@@ -18,6 +18,10 @@
 (test-equal "base64 encode" "YWJjZGVmZw==" (base64-encode-string "abcdefg"))
 (test-equal "base64 decode" "abcdefg" (base64-decode-string "YWJjZGVmZw=="))
 
+(test-equal "base64 encode" "YWJjZGVmZw" 
+	    (base64-encode-string "abcdefg" :padding? #f))
+(test-equal "base64 decode" "abcdefg" (base64-decode-string "YWJjZGVmZw"))
+
 (test-equal "base64 encode long"
 	    *encoded-long-string* 
 	    (base64-encode-string *long-string*))
@@ -86,6 +90,15 @@
 (test-encode "encode" "RWdqYWk=" (base64-encode-string "Egjai"))
 (test-encode "encode" "OTNiamFl" (base64-encode-string "93bjae"))
 (test-encode "encode" "QkFSMGVyOQ==" (base64-encode-string "BAR0er9"))
+
+(test-encode "encode" "YQ" (base64-encode-string "a" :padding? #f))
+(test-encode "encode" "MA" (base64-encode-string "0" :padding? #f))
+(test-encode "encode" "Cg" (base64-encode-string "\n" :padding? #f))
+(test-encode "encode" "YTA" (base64-encode-string "a0" :padding? #f))
+(test-encode "encode" "PQk0" (base64-encode-string "=\t4" :padding? #f))
+(test-encode "encode" "eTQ5YQ" (base64-encode-string "y49a" :padding? #f))
+(test-encode "encode" "RWdqYWk" (base64-encode-string "Egjai" :padding? #f))
+(test-encode "encode" "QkFSMGVyOQ" (base64-encode-string "BAR0er9" :padding? #f))
 
 ;; there is no default line-width on encode port, so this
 ;; test must be done with test-equal

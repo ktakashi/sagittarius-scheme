@@ -27,7 +27,8 @@
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
-#!core
+
+;; ref: https://tools.ietf.org/html/rfc4648
 (library (rfc base64)
     (export base64-encode base64-encode-string
 	    base64-decode base64-decode-string
@@ -37,9 +38,7 @@
 
 	    open-base64-decode-output-port
 	    open-base64-decode-input-port)
-    (import (rnrs) (rnrs r5rs)
-	    (sagittarius)
-	    (sagittarius control))
+    (import (rnrs))
 
   (define *decode-table*
     ;;    !   "   #   $   %   &   '   (   )   *   +   ,   -   .   /
@@ -58,7 +57,7 @@
 
   (define *encode-table*
     (vector-map char->integer
-     ;;0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15
+       ;;0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15
      #(#\A #\B #\C #\D #\E #\F #\G #\H #\I #\J #\K #\L #\M #\N #\O #\P
        ;;16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31
        #\Q #\R #\S #\T #\U #\V #\W #\X #\Y #\Z #\a #\b #\c #\d #\e #\f
@@ -107,28 +106,30 @@
 	      (else     (decoder b0 b1 b2 b3) (loop))))))
 
   (define (base64-encode-string string :key (transcoder utf8-transcoder)
-					    (line-width 76))
+					    (line-width 76)
+					    (padding? #t))
     (or (string? string)
 	(assertion-violation 'base64-encode-string
 			     (format "string required, but got ~s" string)
 			     string))
     (utf8->string
      (base64-encode (string->bytevector string transcoder)
-		    :line-width line-width)))
+		    :line-width line-width :padding? padding?)))
 
-  (define (base64-encode in :key (line-width 76))
+  (define (base64-encode in :key (line-width 76) (padding? #t))
     (if (bytevector? in)
-	(base64-encode (open-bytevector-input-port in) :line-width line-width)
+	(base64-encode (open-bytevector-input-port in) 
+		       :line-width line-width :padding? padding?)
 	(call-with-bytevector-output-port
 	 (lambda (out)
-	   (base64-encode-impl in out line-width *encode-table*)))))
+	   (base64-encode-impl in out line-width padding? *encode-table*)))))
 
-  (define (base64-encode-impl in out line-width encode-table)
+  (define (base64-encode-impl in out line-width padding? encode-table)
     (define (put i)
       (if (negative? i)
 	  (put-u8 out #x0a)
 	  (put-u8 out (vector-ref encode-table i))))
-    (define encoder (make-base64-encoder put line-width))
+    (define encoder (make-base64-encoder put line-width padding?))
     (let loop ()
       (let* ((b0 (get-u8 in))
 	     (b1 (get-u8 in))
@@ -140,7 +141,7 @@
 
   ;; basically the same as above but it input length is unknown
   ;; always encode 3 bytes to 4 bytes
-  (define (make-base64-encoder real-put line-width)
+  (define (make-base64-encoder real-put line-width padding?)
     (define max-col (and line-width (> line-width 0) (- line-width 1)))
     (define col 0)
     (define (check-col)
@@ -161,23 +162,23 @@
       (when (>= b0 0)
 	(put (rshift (bitwise-and #xFC b0) 2))
 	(let ((b (lshift (bitwise-and #x03 b0) 4)))
-	  (cond ((negative? b1)
-		 (put b) (put 64) (put 64))
+	  (cond ((negative? b1) (put b) (when padding? (put 64) (put 64)))
 		(else
 		 (put (bitwise-ior b (rshift (bitwise-and #xF0 b1) 4)))
 		 (let ((b (lshift (bitwise-and #x0F b1) 2)))
-		   (cond ((negative? b2)
-			  (put b) (put 64))
+		   (cond ((negative? b2) (put b) (when padding? (put 64)))
 			 (else
 			  (put (bitwise-ior b (rshift (bitwise-and #xC0 b2) 6)))
 			  (put (bitwise-and #x3F b2)))))))))))
 
-  (define (open-base64-encode-output-port sink :key (owner? #f) (line-width #f))
+  (define (open-base64-encode-output-port sink
+					  :key (owner? #f) (line-width #f)
+					       (padding? #t))
     (open-base64-encode-output-port/encode-table sink *encode-table*
-      :owner? owner? :line-width line-width))
+      :owner? owner? :line-width line-width :padding? padding?))
 
   (define (open-base64-encode-output-port/encode-table
-	   sink encode-table :key (owner? #f) (line-width #f))
+	   sink encode-table :key (owner? #f) (line-width #f) (padding? #t))
     (define buffer (make-bytevector 3 0))
     (define buffer-count 0)
 
@@ -191,7 +192,7 @@
       (if (negative? i)
 	  (put-u8 sink #x0a)
 	  (put-u8 sink (vector-ref encode-table i))))
-    (define encoder (make-base64-encoder put line-width))
+    (define encoder (make-base64-encoder put line-width padding?))
 
     (define (process-encode)
       (define (get n)
@@ -220,12 +221,14 @@
   
   ;; TODO I don't think this has good performance
   (define (open-base64-encode-input-port source
-					 :key (owner? #f) (line-width #f))
+					 :key (owner? #f) (line-width #f)
+					      (padding? #t))
     (open-base64-encode-input-port/encode-table source *encode-table*
-     :owner? owner? :line-width line-width))
+     :owner? owner? :line-width line-width :padding? padding?))
 
   (define (open-base64-encode-input-port/encode-table source encode-table
-					 :key (owner? #f) (line-width #f))
+					 :key (owner? #f) (line-width #f)  
+					      (padding? #t))
     ;; max length = when line-width is 1
     (define buffer (make-bytevector 8 0))
     (define buffer-count 0)
@@ -244,7 +247,7 @@
 			      (vector-ref encode-table i)))
       (set! buffer-count (+ buffer-count 1)))
 
-    (define encoder (make-base64-encoder put line-width))
+    (define encoder (make-base64-encoder put line-width padding?))
 
     (define (process-encode)
       (define (get prev) 
