@@ -45,15 +45,9 @@
 	    jose-crypt-header-x5t jose-crypt-header-x5t-s256
 	    jose-crypt-header-crit
 
-	    ;; put utility here...
-	    base64-url-encode
-	    base64-url-decode
-
 	    x5c-parameter->x509-certificates
-	    
 	    )
     (import (rnrs)
-	    (rfc base64)
 	    (rfc x.509))
 
   (define-record-type jose-header
@@ -64,51 +58,6 @@
   (define-record-type jose-crypto-header
     (parent jose-header)
     (fields alg jku jwk kid x5u x5c x5t x5t-s256 crit))
-
-  (define (base64-url-decode bv)
-    (define (base64-url-decode-value-port src)
-      (define pos 0)
-      (define len (bytevector-length src))
-      (define (read! bv start count)
-	(if (= len pos)
-	    0
-	    (let ((size (min count (- len pos))))
-	      (bytevector-copy! src pos bv start size)
-	      (set! pos (+ pos size))
-	      (let loop ((i start))
-		(if (= i size)
-		    size
-		    (let ((b (bytevector-u8-ref bv i)))
-		      (case (integer->char b)
-			((#\-) (bytevector-u8-set! bv i (char->integer #\+)))
-			((#\_) (bytevector-u8-set! bv i (char->integer #\/))))
-		      (loop (+ i 1))))))))
-      (make-custom-binary-input-port "base64-url-decode-value-port" read!
-				     #f #f #f))
-    (get-bytevector-all
-     (open-base64-decode-input-port (base64-url-decode-value-port bv))))
-
-  (define (base64-url-encode bv)
-    (define (base64-url-encode-sink out)
-      (define (write! bv start count)
-	(do ((i 0 (+ i 1)))
-	    ((= i count) i)
-	  (let ((b (bytevector-u8-ref bv (+ start i))))
-	    (case (integer->char b)
-	      ((#\+) (put-u8 out (char->integer #\-)))
-	      ((#\/) (put-u8 out (char->integer #\_)))
-	      ;; do nothing
-	      ((#\=) )
-	      (else (put-u8 out b))))))
-      (make-custom-binary-output-port "base64-url-encode-sink" write!
-				      #f #f #f))
-    (let-values (((out extract) (open-bytevector-output-port)))
-      (let ((bout (open-base64-encode-output-port
-		   (base64-url-encode-sink out))))
-	(put-bytevector bout bv)
-	(close-output-port bout)
-	(extract))))
-
 
   (define (x5c-parameter->x509-certificates x5c)
     (map make-x509-certificate x5c))

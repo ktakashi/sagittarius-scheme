@@ -99,8 +99,7 @@
     (parent jwk)
     (fields k))
 
-  (define (base64-url-string->bytevector s)
-    (base64-url-decode (string->utf8 s)))
+  (define (base64-url-string->bytevector s) (base64url-decode (string->utf8 s)))
   (define (base64-string->bytevector s) (base64-decode-string s :transcoder #f))
   (define jwk-builder
     (json-object-builder
@@ -206,9 +205,9 @@
 	 (? "x5t#S256" #f jwk-x5t-s256))))))
 
   (define (bytevector->b64u-string bv)
-    (utf8->string (base64-url-encode bv)))
+    (utf8->string (base64url-encode bv)))
   (define (integer->b64u-string i)
-    (utf8->string (base64-url-encode (integer->bytevector i))))
+    (utf8->string (base64url-encode (integer->bytevector i))))
   
   (define jwk:ec-serializer
     (jwk-serializer ("crv" jwk:ec-crv symbol->string)
