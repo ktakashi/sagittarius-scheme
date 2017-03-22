@@ -52,7 +52,7 @@ utilities.
 @subsubsection{JSON object builder}
 
 JSON object builder is a Schem object which contains information to
-construct a Scheme object from JSON string. Currently this can be
+construct a Scheme object from JSON representation. Currently this can be
 created only via @code{json-object-builder} macro.
 
 @define[Function]{@name{json:builder?} @args{obj}}
@@ -179,12 +179,17 @@ Above construct Scheme object from JSON like the following:
 
 }
 
+@define[Function]{@name{json->object}
+ @args{json builder :optional missing-key-handler}}
 @define[Function]{@name{json-string->object}
  @args{json-string builder :optional missing-key-handler}}
 @define[Function]{@name{read-object-from-json}
  @args{builder :optional (in-port (current-input-port)) missing-key-handler}}
-@desc{Constructs Scheme object from given @var{json-string} or @var{in-port},
-according to the given @var{builder}.
+@desc{Constructs Scheme object from given @var{json}, @var{json-string}
+or @var{in-port}, according to the given @var{builder}.
+
+If the first form is used, then @var{json} must be a vector type JSON
+representation specified by the @code{*json-map-type*} parameter.
 
 @codeblock[=> foo]{
 (let ((json-string "{\"bar\": {\"buz\": 1}}"))
@@ -203,3 +208,123 @@ arguments. This procedure is called when the conversion procedure met keys
 which is not defined in @var{builder}. The default behaviour is raising an
 error.
 }
+
+@define[Parameter]{@name{*post-json-object-build*}}
+@define[Parameter]{@name{*post-json-array-build*}}
+@desc{These parameters hold a procedure which is called when an object is
+constructed from JSON object (map) or JSON array, respectively.
+}
+
+@subsubsection{JSON object serializer}
+
+JSON object serializer is a Schem object which contains information to
+construct a JSON representaion from Scheme object. Currently this can be
+created only via @code{json-object-serializer} macro.
+
+@define[Function]{@name{json:serializer?} @args{obj}}
+@desc{Returns #t if the given @var{obj} is a JSON object serializer.}
+
+@define[Macro]{@name{json-object-serializer} @args{ctr spec @dots{}}}
+@define["Auxiliary syntax"]{@name{?}}
+@define["Auxiliary syntax"]{@name{@atmark{}}}
+@define["Auxiliary syntax"]{@name{->}}
+@desc{A DSL which constructs JSON object serializer.
+
+The @var{spec} must be one of the followings:
+@itemlist[
+  @item{@code{(-> car cdr null? spec)}}
+  @item{@code{(-> car cdr null?)}}
+  @item{@code{(-> spec)}}
+  @item{@code{(->)}}
+  @item{@code{(@atmark{} ref length spec)}}
+  @item{@code{(@atmark{} ref length)}}
+  @item{@code{(@atmark{} spec)}}
+  @item{@code{(@atmark{})}}
+  @item{@code{(mapping mapping* @dots{})}}
+  @item{@code{converter/serializer}}
+]
+@code{->} indicates that the given object is a listlike object which can
+be accessed sequentially. @var{car}, @var{cdr} and @var{null?} specifies
+how to retrieve the car part and cdr part, and how to check if the object
+is empty or not, respectively. If these are not given then the macro
+uses @code{car}, @code{cdr} and @code{null?}.
+
+@code{@atmar{}} indicates that the given object is a vectorlike object which
+can be accessed randomly. @var{ref} and @var{length} specifies how to access
+the element of the object, and how to retrieve the length of the object,
+respectively. If these are not given then the macro uses @code{vector-ref},
+and @code{vector-length}.
+
+If both of the form don't have @code{spec}, then the macro uses the given
+value.
+
+@code{mapping} must be one of the followings:
+@itemlist[
+  @item{@code{(? name absent ref spec)}}
+  @item{@code{(? name absent ref)}}
+  @item{@code{(name ref spec)}}
+  @item{@code{(name ref)}}
+]
+@code{?} indicates that referencing object might be absent.
+
+@var{name} must be a string which represents JSON object's key.
+
+@var{absent} must be an object indicating absent value. If the converting
+object is equal to this value in sense of @code{equal?}, then the constructed
+JSON representaion don't have @var{name}.
+
+@var{ref} must be a accessor which is a procedure accepts one argument.
+
+@var{converter/serializer} must be either a JSON object serializer or
+a procedure which accepts one argument and returns JSON representaion.
+
+@codeblock{
+(json-object-serializer
+  (-> (("precision" location-precision)
+       ("Latitude" location-latitude)
+       ("Longitude" location-longitude)
+       (? "Address" #f location-address)
+       ("City" location-city)
+       ("State" location-state)
+       ("Zip" location-zip)
+       ("Country" location-country))))
+
+;; Above constructs JSON representaion from the following record type.
+(define-record-type location
+  (fields precision latitude longitude address city state zip country))
+}
+@codeblock{
+(json-object-serializer
+ (("Image" image-holder-image
+   (("Width" image-width)
+    ("Height" image-height)
+    ("Title" image-title)
+    ("Thumbnail" image-thumbnail
+	(("Url" thumbnail-url)
+	 ("Height" thumbnail-height)
+	 ("Width" thumbnail-width)))
+    ("Animated" image-animated)
+    ("IDs" image-ids (->))))))
+
+;; Above constructs JSON representaion from the following record type.
+(define-record-type image-holder
+  (fields image))
+(define-record-type image
+  (fields width height title thumbnail animated ids))
+(define-record-type thumbnail
+  (fields url height width))
+}
+}
+
+@define[Function]{@name{object->json} @args{obj serializer}}
+@desc{Converts Scheme object to JSON representaion.
+
+The converted JSON representaion is the same as @code{'vector} representaion.
+}
+
+@define[Function]{@name{object->json-string} @args{obj serializer}}
+@desc{Converts Scheme object to JSON string.}
+
+@define[Function]{@name{write-object-as-json}
+ @args{obj serializer :optional (out-port (current-output-port))}}
+@desc{Writes JSON string converted from @var{obj} to @var{out-port}.}
