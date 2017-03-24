@@ -1228,11 +1228,22 @@ PpO1zqk5Ua50RLuhFKj9n+0OuD5pCnwPEizvsoh69jdEN9f/cRdU8Iusln42clM=")
 		 #vu8(#x00 #x01 #x02 #x03 #x04 #x05 #x06 #x07 
 		      #x08 #x09 #x0A #x0B #x0C #x0D #x0E #x0F)))
        (aes-wrap (make-aes-key-wrap aes-key))
-       (aes-unwrap (make-aes-key-unwrap aes-key)))
+       (aes-unwrap (make-aes-key-unwrap aes-key))
+       (invalid-aes-unwrap
+	(make-aes-key-unwrap aes-key :iv #vu8(1 2 3 4 5 6 7 8))))
   (test-equal #vu8(#x1F #xA6 #x8B #x0A #x81 #x12 #xB4 #x47
 		   #xAE #xF3 #x4B #xD8 #xFB #x5A #x7B #x82
 		   #x9D #x3E #x86 #x23 #x71 #xD2 #xCF #xE5)
 	      (aes-wrap #vu8(#x00 #x11 #x22 #x33 #x44 #x55 #x66 #x77
-			     #x88 #x99 #xAA #xBB #xCC #xDD #xEE #xFF))))
+			     #x88 #x99 #xAA #xBB #xCC #xDD #xEE #xFF)))
+  (test-equal #vu8(#x00 #x11 #x22 #x33 #x44 #x55 #x66 #x77
+		   #x88 #x99 #xAA #xBB #xCC #xDD #xEE #xFF)
+	      (aes-unwrap #vu8(#x1F #xA6 #x8B #x0A #x81 #x12 #xB4 #x47
+			       #xAE #xF3 #x4B #xD8 #xFB #x5A #x7B #x82
+			       #x9D #x3E #x86 #x23 #x71 #xD2 #xCF #xE5)))
+  (test-error integrity-error?
+	      (invalid-aes-unwrap #vu8(#x1F #xA6 #x8B #x0A #x81 #x12 #xB4 #x47
+				       #xAE #xF3 #x4B #xD8 #xFB #x5A #x7B #x82
+				       #x9D #x3E #x86 #x23 #x71 #xD2 #xCF #xE5))))
 
 (test-end)

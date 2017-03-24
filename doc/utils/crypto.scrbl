@@ -479,6 +479,32 @@ Verify given message @var{m} according to the PKCS#1 section 9.2.
 Other keyword arguments are the same as @code{pkcs1-emsa-pss-encode}.
 }
 
+@subsubsection{Key wrapping}
+
+@define[Function]{@name{make-aes-key-wrap} @args{wrapping-key :key iv}}
+@desc{Returns AES key wrapping procedure which accepts one argument of
+bytevector to be wrapped.
+
+The returning procedure wraps the given bytevector with AES Key Wrap algorithm
+specified by NIST or RFC 3394.
+
+The keyword argument @var{iv} specifies initial value (IV) for data integrity.
+The default value is @code{#vu8(#xa6 #xa6 #xa6 #xa6 #xa6 #xa6 #xa6 #xa6)}
+specified by the specification.
+}
+
+@define[Function]{@name{make-aes-key-unwrap} @args{wrapping-key :key iv}}
+@desc{Returns AES key unwrapping procedure which accepts one argument of
+bytevector to be unwrapped.
+
+The returning procedure wraps the given bytevector with AES Key Wrap algorithm
+specified by NIST or RFC 3394.
+
+The keyword argument @var{iv} specifies initial value (IV) for data integrity.
+The default value is @code{#vu8(#xa6 #xa6 #xa6 #xa6 #xa6 #xa6 #xa6 #xa6)}
+specified by the specification.
+}
+
 @subsubsection{Cryptographic conditions}
 @define["Condition Type"]{@name{&crypto-error}}
 @define[Function]{@name{crypto-error?} @args{obj}}
@@ -535,6 +561,14 @@ Raises @code{&encode-error}.
 @code{assertion-violation}.
 
 Raises @code{&decode-error}.
+}
+
+@define["Condition Type"]{@name{&integrity-error}}
+@define[Function]{@name{integrity-error?} @args{obj}}
+@desc{Subcondition of @code{&crypto-error}
+
+This condition will be raised when key unwrap failed due to the
+integrity check error.
 }
 
 @subsubsection[:tag "custom.cipher"]{Creating own cipher}

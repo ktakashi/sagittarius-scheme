@@ -39,10 +39,18 @@
 	    make-aes-key-unwrap
 	    ;; 
 	    make-camellia-key-wrap
-	    make-camellia-key-unwrap)
-    (import (rnrs)
-	    (crypto cipher))
+	    make-camellia-key-unwrap
 
+	    ;; condition
+	    integrity-error? &integrity-error
+	    )
+    (import (rnrs)
+	    (crypto cipher)
+	    (sagittarius crypto))
+
+  (define-condition-type &integrity-error &crypto-error
+    make-integrity-error integrity-error?)
+    
   (define +default-iv+ #vu8(#xa6 #xa6 #xa6 #xa6 #xa6 #xa6 #xa6 #xa6))
   (define +iv-length+ 8)
   
@@ -91,7 +99,9 @@
       (define n (div ct-len 8))
       (define (check a iv)
 	(unless (bytevector=? a iv)
-	  (error 'rfc3394-key-unwrap "Invalid cipher text")))
+	  (raise (condition (make-integrity-error)
+			    (make-who-condition 'rfc3394-key-unwrap)
+			    (make-message-condition "Invalid cipher text")))))
       (unless (zero? (mod ct-len 8))
 	(assertion-violation 'rfc3394-key-unwrap
 			     "unwrapping data length must be multiple of 8"))
