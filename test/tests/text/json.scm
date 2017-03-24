@@ -94,10 +94,16 @@
 		("Country" . "US")))
 	    (call-with-input-file two-objects-data
 	      (cut json-read <>)))
-  )
+)
 
 ;; call #129
-(test-error "unexpected EOF in string"
-	    (parse-json-string "\"a'"))
+(test-error "unexpected EOF in string" (parse-json-string "\"a'"))
+
+(let ((alist-json (parameterize ((*json-map-type* 'alist))
+		    (call-with-input-file synopsis-data json-read)))
+      (vector-json (call-with-input-file synopsis-data json-read)))
+  (test-equal alist-json (vector-json->alist-json vector-json))
+  (test-equal vector-json (alist-json->vector-json alist-json)))
+		    
 
 (test-end)

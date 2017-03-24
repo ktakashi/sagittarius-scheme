@@ -30,4 +30,5 @@
 
 (library (text json)
     (export :all)
-    (import (text json parse)))
+    (import (text json parse)
+	    (text json convert)))
