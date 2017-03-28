@@ -49,13 +49,11 @@
 	    oauth2-access-token-expires-in
 	    oauth2-access-token-refresh-token
 	    oauth2-access-token-scope
-	    
-	    oauth2-connection?
-	    oauth2-http-connection?
-	    oauth2-http2-connection?
-	    make-http-oauth2-connection
-	    make-http2-oauth2-connection
-	    oauth2-connection-close!
+
+	    (rename (open-http-connection! open-oauth2-connection!)
+		    (close-http-connection! close-oauth2-connection!))
+	    make-oauth2-http1-connection
+	    make-oauth2-http2-connection
 	    )
     (import (rnrs)
 	    (rnrs eval)
@@ -66,8 +64,7 @@
 	    (text json)
 	    (rfc uri)
 	    (rfc base64)
-	    (rfc http)
-	    (rfc http2 client))
+	    (rfc http-connections))
 ;;; Access token
 
   ;; section 4.3
@@ -113,8 +110,9 @@
 	   connection path credential parameters)
     (define content-type "application/x-www-form-urlencoded")
     (let-values (((status header body)
-		  ((oauth2-connection-http-post connection)
-		   connection path parameters
+		  (http-request
+		   connection 'POST path
+		   :sender (http-string-sender connection parameters)
 		   :content-type content-type
 		   :authorization (string-append "Basic " credential))))
       (if (string=? status "200")
@@ -179,82 +177,13 @@
 					    :key (content #f))
     (let-values (((header query)
 		  (oauth2-access-token->authorization access-token)))
-      (case method
-	((GET)
-	 (apply (oauth2-connection-http-get conn) conn path header))
-	((POST)
-	 (apply (oauth2-connection-http-post conn) conn path content header)))))
+      (apply http-request conn method path
+	     :sender (and content (http-blob-sender conn content))
+	     header)))
+
+  (define (make-oauth2-http2-connection server)
+    (make-http2-connection server #t))
+  (define (make-oauth2-http1-connection server)
+    (make-http1-connection server #t))
   
-;;; Connection
-  (define-record-type oauth2-connection
-    (fields http-get http-post close))
-  
-  (define-record-type oauth2-http-connection
-    (parent oauth2-connection)
-    (fields server))
-
-  (define-record-type oauth2-http2-connection
-    (parent oauth2-connection)
-    (fields http2-connection))
-
-  (define (make-http-oauth2-connection server)
-    (define (nothing conn) #t)
-    (make-oauth2-http-connection oauth2-http-get oauth2-http-post
-				 nothing server))
-
-  (define (oauth2-connection-close! connection)
-    ((oauth2-connection-close connection) connection))
-  
-  (define (oauth2-http-get connection path . headers)
-    (apply http-get (oauth2-http-connection-server connection)
-	   path
-	   :receiver (http-binary-receiver)
-	   :secure #t
-	   headers))
-  (define (oauth2-http-post connection path body . headers)
-    (apply http-post (oauth2-http-connection-server connection)
-	       path body
-	       :receiver (http-binary-receiver)
-	       :secure #t
-	       headers))
-
-;;; http2
-  (define (make-http2-oauth2-connection server)
-    (define (parse-port server)
-      (cond ((string-index-right server #\:) =>
-	     (lambda (p) (string-copy server (+ p 1))))
-	    (else #f)))
-    (let ((port (or (parse-port server) "443")))
-      (make-oauth2-http2-connection oauth2-http2-get oauth2-http2-post
-       oauth2-http2-close
-       (make-http2-client-connection server port :secure? #t))))
-
-  (define (oauth2-http2-close conn)
-    (close-http2-client-connection!
-     (oauth2-http2-connection-http2-connection conn)))
-  
-  (define (http2-response->http1-compatible header body)
-    (define (bv-header->string-header n&b)
-      (list (utf8->string (car n&b)) (utf8->string (cadr n&b))))
-    (let ((headers (map bv-header->string-header header)))
-      (values (cond ((assoc ":status" headers) => cadr))
-	      headers
-	      body)))
-
-  (define (oauth2-http2-get connection path . headers)
-    (let-values (((h b)
-		  (apply http2-get
-			 (oauth2-http2-connection-http2-connection connection)
-			 path
-			 headers)))
-      (http2-response->http1-compatible h b)))
-
-  (define (oauth2-http2-post connection path body . headers)
-    (let-values (((h b)
-		  (apply http2-post
-			 (oauth2-http2-connection-http2-connection connection)
-			 path
-			 (string->utf8 body)
-			 headers)))
-      (http2-response->http1-compatible h b)))
 )
