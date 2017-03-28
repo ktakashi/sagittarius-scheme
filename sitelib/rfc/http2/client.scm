@@ -54,6 +54,7 @@
 	    http2-data-receiver
 	    http2-binary-receiver
 	    http2-null-receiver
+	    http2-gzip-receiver make-gzip-receiver
 
 	    http2-redirect-handler
 	    ;; TODO redirect handler using HTTP1.1
@@ -414,10 +415,11 @@
   (define-syntax http2-request
     (syntax-rules ()
       ((_ conn method uri sender receiver opts ...)
-       (let ((s sender)
+       (let ((c conn)
+	     (s sender)
 	     (r receiver))
-	 (http2-add-request! conn method uri s r opts ...)
-	 (http2-invoke-requests! conn)))))
+	 (http2-add-request! c method uri s r opts ...)
+	 (http2-invoke-requests! c)))))
 
   ;; TODO 
   (define-syntax http2-multi-requests
