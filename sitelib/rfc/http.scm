@@ -66,6 +66,7 @@
 	    ;; for convenience
 	    http-lookup-auth-handler
 	    url-server&path
+	    (rename (options->request-headers list->request-headers))
 	    )
     (import (except (rnrs) put-string get-line)
 	    (sagittarius)
