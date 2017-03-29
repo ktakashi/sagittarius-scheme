@@ -79,8 +79,7 @@
     ((object-id  :init-keyword :object-id
 		 :reader algorithm-identifier-object-id)
      (parameters :init-keyword :parameters :init-value #f
-		 :reader algorithm-identifier-parameters)
-     (parameters-defined? :init-keyword :defined? :init-value #f)))
+		 :reader algorithm-identifier-parameters)))
   (define (algorithm-identifier? o) (is-a? o <algorithm-identifier>))
   (define-generic make-algorithm-identifier)
   (define-method make-algorithm-identifier ((o <der-object-identifier>))
@@ -93,21 +92,18 @@
       (if (= len 2)
 	  (make <algorithm-identifier>
 	    :object-id (asn.1-sequence-get s 0)
-	    :parameters (asn.1-sequence-get s 1)
-	    :defined? #t)
+	    :parameters (asn.1-sequence-get s 1))
 	  (make <algorithm-identifier>
 	    :object-id (asn.1-sequence-get s 0)))))
   (define-method make-algorithm-identifier ((oid <string>)
 					    (param <asn.1-encodable>))
     (make <algorithm-identifier> 
       :object-id (make-der-object-identifier oid)
-      :parameters param
-      :defined? #t))
+      :parameters param))
   (define-method asn.1-encodable->asn.1-object ((o <algorithm-identifier>))
     (make-der-sequence (slot-ref o 'object-id)
-		       (if (slot-ref o 'parameters-defined?)
-			   (slot-ref o 'parameters)
-			   (make-der-null))))
+		       (cond ((slot-ref o 'parameters))
+			     (else (make-der-null)))))
 
   (define-method write-object ((o <algorithm-identifier>) (p <port>))
     (format p "#<algorithm-identifier ~a~%~a>" (algorithm-identifier-id o)

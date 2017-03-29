@@ -41,8 +41,13 @@
 
 	    <pkcs8-private-key>
 	    pkcs8-private-key?
-	    pki->private-key
+	    private-key-info->private-key
+	    (rename (private-key-info->private-key pki->private-key))
 	    pkcs8-private-key->private-key
+
+	    PKCS8
+	    import-private-key export-private-key
+	    generate-private-key
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -52,7 +57,6 @@
 	    (rsa pkcs :10) ;; for algorithm-identifier
 	    )
 
-  (define dsa-oid (make-der-object-identifier "1.2.840.10040.4.1"))
   #|
       PrivateKeyInfo ::= SEQUENCE {
         version                   Version,
@@ -92,11 +96,24 @@
       (make-private-key-info o)))
   (define-method make-private-key-info ((id <algorithm-identifier>)
 					(key <private-key>))
+    (define (bv->asn.1 bv) (read-asn.1-object (open-bytevector-input-port bv)))
     (make <private-key-info> :id id :attributes #f
-	  :private-key (export-private-key key)))
+	  :private-key (bv->asn.1 (%export-private-key key))))
+  
   (define-method make-private-key-info ((key <rsa-private-key>))
     (make-private-key-info 
      (make-algorithm-identifier "1.2.840.113549.1.1.1" (make-der-null))
+     key))
+  (define-method make-private-key-info ((key <ecdsa-private-key>))
+    ;; FIXME inefficient
+    (define exported (read-asn.1-object
+		      (open-bytevector-input-port
+		       ;; specify marker to avoid :around...
+		       (export-private-key key))))
+    ;; assume it as tag[0]
+    (make-private-key-info 
+     (make-algorithm-identifier "1.2.840.10045.2.1"
+      (slot-ref (asn.1-sequence-get exported 2) 'obj))
      key))
 
 
@@ -146,19 +163,56 @@
   ;; hmm kinda silly without cipher...
   (define-method generate-private-key ((m (eql PKCS8)) (pki <private-key-info>))
     (make <pkcs8-private-key> :private-key-info pki))
+
+  (define-method import-private-key ((m (eql PKCS8)) (in <bytevector>))
+    (import-private-key PKCS8 (open-bytevector-input-port in)))
+  (define-method import-private-key ((m (eql PKCS8)) (in <port>))
+    (import-private-key PKCS8 (read-asn.1-object in)))
+  (define-method import-private-key ((m (eql PKCS8)) (in <asn.1-sequence>))
+    (make-private-key-info in))
+
+  (define-method export-private-key ((m (eql PKCS8)) (in <private-key-info>))
+    (asn.1-encode (asn.1-encodable->asn.1-object in)))
+  (define-method export-private-key ((in <private-key-info>))
+    (asn.1-encode (asn.1-encodable->asn.1-object in)))
+
+  ;; fxxk!!
+  (define-generic %export-private-key)
+  (define-method %export-private-key (key)
+    (export-private-key key))
   
+  (define-method %export-private-key ((key <ecdsa-private-key>))
+    (let* ((r (export-private-key key))
+	   (s (read-asn.1-object (open-bytevector-input-port r))))
+      ;; ok remove tag[0]
+      (if (= (asn.1-sequence-size s) 4)
+	  (asn.1-encode
+	   (make-der-sequence
+	    (asn.1-sequence-get s 0)
+	    (asn.1-sequence-get s 1)
+	    (asn.1-sequence-get s 3)))
+	  (asn.1-encode s))))
+	    
   ;; for now we only support RSA
   ;; FIXME kinda silly
   (define *oid-marker*
-    `(("1.2.840.113549.1.1.1" . ,RSA)))
+    `(("1.2.840.113549.1.1.1"
+       . ,(lambda (pki)
+	    (import-private-key RSA (slot-ref pki 'private-key))))
+      ("1.2.840.10040.4.1" .
+       ,(lambda (pki)
+	  (import-private-key DSA (slot-ref pki 'private-key))))
+      ("1.2.840.10045.2.1" .
+       ,(lambda (pki)
+	  ;; awkward way to make it consistant...
+	  (import-private-key ECDSA (slot-ref pki 'private-key)
+	    (algorithm-identifier-parameters (slot-ref pki 'id)))))))
 
-  (define (pki->private-key pki)
+  (define (private-key-info->private-key pki)
     (let ((oid (algorithm-identifier-id (slot-ref pki 'id))))
-      (cond ((assoc oid *oid-marker*) =>
-	     (lambda (m) 
-	       (import-private-key (cdr m) (slot-ref pki 'private-key))))
-	    (else
-	     (assertion-violation 'pki->private-key "not supported" oid)))))
+      (cond ((assoc oid *oid-marker*) => (lambda (s) ((cdr s) pki)))
+	    (else (assertion-violation 'private-key-info->private-key
+				       "not supported" oid)))))
   (define (pkcs8-private-key->private-key k)
-    (pki->private-key (slot-ref k 'private-key-info)))
+    (private-key-info->private-key (slot-ref k 'private-key-info)))
 )

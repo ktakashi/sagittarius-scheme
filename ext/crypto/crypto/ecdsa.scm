@@ -395,23 +395,24 @@
   |#
   (define-method export-private-key ((m (eql ECDSA)) (key <ecdsa-private-key>))
     (define param (slot-ref key 'parameter))
-    (define curve (ec-parameter-curve param))
+    (define curve (and param (ec-parameter-curve param)))
     (define oid (and param (ec-parameter-oid param)))
     (define pub (slot-ref key 'public-key))
     (asn.1-encode
      (apply make-der-sequence
-      (cons* (make-der-integer 1)
-	     (make-der-octet-string (integer->bytevector (slot-ref key 'd)))
-	     (make-der-tagged-object #t 0
-	      (if oid
-		  (make-der-object-identifier oid)
-		  (ec-parameter->asn.1-object param)))
-	     (if (and pub (slot-ref pub 'parameter))
-		 (list
-		  (make-der-tagged-object #t 1
-		   (make-der-bit-string
-		    (encode-ec-point curve (slot-ref pub 'Q)))))
-		 '())))))
+	    (make-der-integer 1)
+	    (make-der-octet-string (integer->bytevector (slot-ref key 'd)))
+	    (filter values
+		    (list
+		     (and param
+			  (make-der-tagged-object #t 0
+			   (if oid
+			       (make-der-object-identifier oid)
+			       (ec-parameter->asn.1-object param))))
+		     (and pub (slot-ref pub 'parameter)
+			  (make-der-tagged-object #t 1
+			   (make-der-bit-string
+			    (encode-ec-point curve (slot-ref pub 'Q))))))))))
       
   (define-method export-private-key ((key <ecdsa-private-key>))
     (export-private-key ECDSA key))
@@ -420,27 +421,39 @@
     (import-private-key ECDSA (open-bytevector-input-port in)))
   (define-method import-private-key ((marker (eql ECDSA)) (in <port>))
     (import-private-key ECDSA (read-asn.1-object in)))
+  
+  (define (find-tag objs n)
+    (exists (lambda (obj)
+	      (and (is-a? obj <asn.1-tagged-object>)
+		   (= (slot-ref obj 'tag-no) n)
+		   (slot-ref obj 'obj))) objs))
   (define-method import-private-key ((marker (eql ECDSA)) (in <asn.1-sequence>))
-    (define (find-tag objs n)
-      (exists (lambda (obj)
-		(and (is-a? obj <asn.1-tagged-object>)
-		     (= (slot-ref obj 'tag-no) n)
-		     (slot-ref obj 'obj))) objs))
     (let ((objs (slot-ref in 'sequence)))
-      (when (< (length objs) 3) 
+      (when (< (length objs) 2) 
 	(assertion-violation 'import-private-key "invalid sequence size" in))
       (unless (= 1 (der-integer->integer (car objs)))
 	(assertion-violation 'import-private-key "invalid version"))
-      (let* ((tag0 (find-tag (cddr objs) 0))
-	     (param (and tag0
-			 (if (is-a? tag0 <der-object-identifier>)
-			     (lookup-named-curve-parameter tag0)
-			     (->ec-parameter tag0)))))
+      (let ((tag0 (find-tag (cddr objs) 0)))
+	(if tag0
+	    (import-private-key ECDSA in tag0)
+	    (assertion-violation 'import-private-key
+				 "ECParameter is not found")))))
+  ;; for PKCS#8 format
+  (define-method import-private-key ((marker (eql ECDSA))
+				     (in <asn.1-sequence>)
+				     (param <asn.1-encodable>))
+    (let ((objs (slot-ref in 'sequence)))
+      (when (< (length objs) 2) 
+	(assertion-violation 'import-private-key "invalid sequence size" in))
+      (unless (= 1 (der-integer->integer (car objs)))
+	(assertion-violation 'import-private-key "invalid version"))
+      (let ((param (if (is-a? param <der-object-identifier>)
+		       (lookup-named-curve-parameter param)
+		       (->ec-parameter param))))
 	(make <ecdsa-private-key>
 	  :d (bytevector->uinteger (der-octet-string-octets (cadr objs)))
 	  :parameter param
-	  :public-key (and-let* (( param )
-				 (p (find-tag (cddr objs) 1)))
+	  :public-key (and-let* ((p (find-tag (cddr objs) 1)))
 			(make <ecdsa-public-key>
 			  :Q (decode-ec-point (ec-parameter-curve param)
 					      (slot-ref p 'data))
