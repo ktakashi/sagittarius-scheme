@@ -30,6 +30,7 @@
 
 (library (rfc http-connections)
     (export http-connection? http-connection-secure?
+	    http-connection-server http-connection-server&port
 	    open-http-connection! close-http-connection!
 	    http-request
 	    
@@ -88,19 +89,26 @@
 		      http2-request)
 		   #f)))))
 
-  (define (open-http2-connection! conn)
+  (define (http-connection-server&port conn)
     (define (parse-port server)
       (cond ((string-index-right server #\:) =>
-	     (lambda (p) (string-copy server (+ p 1))))
-	    (else #f)))
+	     (lambda (p)
+	       (values (string-copy server 0 p)
+		       (string-copy server (+ p 1)))))
+	    (else (values server #f))))
     (define secure? (http-connection-secure? conn))
     (define server (http-connection-server conn))
     
-    (let* ((port (or (parse-port server) (if secure? "443" "80")))
-	   (h2conn (rfc:make-http2-client-connection
-		    server port :secure? secure?)))
-      (http2-connection-http2-connection-set! conn h2conn)
-      conn))
+    (let-values (((server port) (parse-port server)))
+      (values server (or port (if secure? "443" "80")))))
+  
+  (define (open-http2-connection! conn)
+    (define secure? (http-connection-secure? conn))
+    (let-values (((server port) (http-connection-server&port conn)))
+      (let ((h2conn (rfc:make-http2-client-connection
+		     server port :secure? secure?)))
+	(http2-connection-http2-connection-set! conn h2conn)
+	conn)))
 
   (define (close-http2-connection! conn)
     (rfc:close-http2-client-connection!
