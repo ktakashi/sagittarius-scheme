@@ -1,5 +1,7 @@
+#!read-macro=sagittarius/bv-string
 (import (rnrs)
 	(rfc oauth signature)
+	(rfc http-connections)
 	(util bytevector)
 	(rsa pkcs :8)
 	(rfc base64)
@@ -83,5 +85,18 @@
     
     (let ((verifier (make-oauth-rsa-sha1-verifier public-key)))
       (test-assert (verifier (string->utf8 base-string) signature)))))
+
+(test-equal "http://example.com/r%20v/X"
+	    (oauth-construct-base-string-uri
+	     (make-http1-connection "EXAMPLE.COM:80" #f)
+	     "/r%20v/X?id=123"))
+(test-equal "https://www.example.net:8080/"
+	    (oauth-construct-base-string-uri
+	     (make-http1-connection "www.example.net:8080" #t)
+	     "/?q=1"))
+(test-equal #*"%3D%253D" (oauth-encode-string "=%3D"))
+(test-equal #*"a" (oauth-encode-string "a"))
+(test-equal #*"c%40" (oauth-encode-string "c@"))
+(test-equal #*"r%20b" (oauth-encode-string "r b"))
 
 (test-end)

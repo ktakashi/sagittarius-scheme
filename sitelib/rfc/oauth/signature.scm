@@ -28,14 +28,21 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+;; reference: https://tools.ietf.org/html/rfc5849
 (library (rfc oauth signature)
     (export make-oauth-hmac-sha1-signer make-oauth-hmac-sha1-verifier
 	    make-oauth-rsa-sha1-signer make-oauth-rsa-sha1-verifier
-	    make-oauth-plaintext-signer make-oauth-plaintext-verifier)
+	    make-oauth-plaintext-signer make-oauth-plaintext-verifier
+
+	    oauth-construct-base-string-uri
+	    oauth-encode-string)
     (import (rnrs)
 	    (rfc base64)
 	    (rfc hmac)
 	    (rfc http-connections)
+	    (rfc uri)
+	    (srfi :13)
+	    (srfi :14)
 	    (crypto)
 	    (math))
   (define (->base64 bv) (utf8->string (base64-encode bv :line-width #f)))
@@ -80,4 +87,28 @@
     (lambda (msg signature)
       (unless (bytevector=? msg (base64-decode-string signature :transcoder #f))
 	(assertion-violation 'oauth-plaintext-verifier "inconsistent"))))
+
+  ;; 3.4 Signature Base String
+  ;; 3.4.1.2 Base String URI
+  (define (oauth-construct-base-string-uri http-connection path)
+    (define secure? (http-connection-secure? http-connection))
+    (define (remove-query path)
+      (cond ((string-index-right path #\?) =>
+	     (lambda (p) (string-copy path 0 p)))
+	    (else path)))
+    (let-values (((server port) (http-connection-server&port http-connection)))
+      (let ((scheme (if secure? "https://" "http://"))
+	    (path   (remove-query path)))
+	(string-append scheme (string-downcase server)
+		       (if (not (or (string=? "443" port) (string=? "80" port)))
+			   (string-append ":" port)
+			   "")
+		       path))))
+	  
+  ;; 3.6.  Percent Encoding
+  ;; we return encoded value as bytevector for convenience.
+  (define (oauth-encode-string s)
+    (let-values (((out extract) (open-bytevector-output-port)))
+      (uri-encode (open-bytevector-input-port (string->utf8 s)) out)
+      (extract)))
 )
