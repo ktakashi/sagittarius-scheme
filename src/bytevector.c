@@ -114,16 +114,16 @@ SgObject Sg_MakeByteVectorFromU8Array(const uint8_t *buf, int size)
 
 int Sg_ByteVectorCmp(SgByteVector *bv1, SgByteVector *bv2)
 {
-  if (SG_BVECTOR_SIZE(bv1) == SG_BVECTOR_SIZE(bv2)) {
-    int r = memcmp(SG_BVECTOR_ELEMENTS(bv1),
-		   SG_BVECTOR_ELEMENTS(bv2),
-		   SG_BVECTOR_SIZE(bv1));
-    return (r > 0) ? 1 : (r < 0) ? -1 : r;
-  } else if (SG_BVECTOR_SIZE(bv1) < SG_BVECTOR_SIZE(bv2)) {
-    return -1;
-  } else {
-    return 1;
+  int bv1_len = SG_BVECTOR_SIZE(bv1);
+  int bv2_len = SG_BVECTOR_SIZE(bv2);
+  int len = (bv1_len > bv2_len)? bv2_len : bv1_len;
+  int r = memcmp(SG_BVECTOR_ELEMENTS(bv1), SG_BVECTOR_ELEMENTS(bv2), len);
+  if (r == 0) {
+    if (bv1_len == bv2_len) return 0;
+    else if (bv1_len >bv2_len) return 1;
+    else return -1;
   }
+  return r;
 }
 
 int Sg_ByteVectorEqP(SgByteVector *bv1, SgByteVector *bv2)

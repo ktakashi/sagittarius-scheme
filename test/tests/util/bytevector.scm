@@ -42,9 +42,12 @@
   (test-cmp (runner bytevector>=? "\xDF;" "z") #t)
   (test-cmp (runner bytevector>=? "z" "zz") #f)
   (test-cmp (runner bytevector>=? "z" "Z") #t)
-  (test-cmp (runner bytevector>=? "z" "z") #t))
-
-
+  (test-cmp (runner bytevector>=? "z" "z") #t)
+  
+  (test-cmp (runner bytevector<=? "c2" "c%40") #f)
+  (test-cmp (runner bytevector<? "c2" "c%40") #f)
+  (test-cmp (runner bytevector>=? "c2" "c%40") #t)
+  (test-cmp (runner bytevector>? "c2" "c%40") #t))
 
 (test-equal "bytevector-slices (normal)"
 	    '(#vu8(0 1 2 3) #vu8(4 5 6 7) #vu8(8 9 10 11) #vu8(12 13 14 15))
