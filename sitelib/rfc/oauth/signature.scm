@@ -35,7 +35,10 @@
 	    make-oauth-plaintext-signer make-oauth-plaintext-verifier
 
 	    oauth-construct-base-string-uri
-	    oauth-encode-string)
+	    oauth-encode-string
+
+	    oauth-normalize-parameters
+	    )
     (import (rnrs)
 	    (rfc base64)
 	    (rfc hmac)
@@ -43,6 +46,7 @@
 	    (rfc uri)
 	    (srfi :13)
 	    (srfi :14)
+	    (util bytevector)
 	    (crypto)
 	    (math))
   (define (->base64 bv) (utf8->string (base64-encode bv :line-width #f)))
@@ -104,7 +108,18 @@
 			   (string-append ":" port)
 			   "")
 		       path))))
-	  
+
+  ;; 3.4.1.3.2 Parameters Normalization
+  ;; input = ((str . str) ...)
+  ;; output = ((bv . bv) ...)
+  (define (oauth-normalize-parameters alist)
+    (list-sort (lambda (a b)
+		 (if (bytevector=? (car a) (car b))
+		     (bytevector<? (cdr a) (cdr b))
+		     (bytevector<? (car a) (car b))))
+	       (map (lambda (s) (cons (oauth-encode-string (car s))
+				      (oauth-encode-string (cdr s)))) alist)))
+  
   ;; 3.6.  Percent Encoding
   ;; we return encoded value as bytevector for convenience.
   (define (oauth-encode-string s)
