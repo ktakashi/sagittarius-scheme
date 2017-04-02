@@ -31,7 +31,10 @@
 ;; reference: https://tools.ietf.org/html/rfc5849
 #!read-macro=sagittarius/bv-string
 (library (rfc oauth consumer)
-    (export oauth-request-temporary-credential)
+    (export oauth-request-temporary-credential
+
+	    ;; for debug/test
+	    oauth-authorization-header)
     (import (rnrs)
 	    (srfi :13)
 	    (srfi :19)
@@ -41,7 +44,10 @@
 	    (rfc http-connections)
 	    (only (rfc http) list->request-headers))
   
-  (define (oauth-authorization-header conn method uri . parameters)
+  (define (oauth-authorization-header conn method uri 
+	    :key (timestamp (time-second (current-time)))
+		 (nonce (random-integer (greatest-fixnum)))
+	    :allow-other-keys parameters)
     (define key (oauth-connection-consumer-key conn))
     (define signer (oauth-connection-signer conn))
     (define sbs (oauth-construct-base-string-uri
@@ -50,20 +56,23 @@
       `(("oauth_consumer_key" ,key)
 	("oauth_signature_method" ,(symbol->string
 				    (oauth-signer-method signer)))
-	("oauth_timestamp" ,(number->string (time-second (current-time))))
-	("oauth_nonce" ,(number->string (random-integer (greatest-fixnum))))
+	("oauth_timestamp" ,(number->string timestamp))
+	("oauth_nonce" ,(number->string nonce))
 	("oauth_version" "1.0")
 	,@(list->request-headers parameters)))
-    
+
     (oauth-signer-process! signer (string->utf8 (symbol->string method)))
     (oauth-signer-process! signer #*"&")
     (oauth-signer-process! signer (string->utf8 sbs))
     (oauth-signer-process! signer #*"&")
-    (for-each (lambda (k&v)
-		(oauth-signer-process! signer (car k&v))
-		(oauth-signer-process! signer #*"=")
-		(oauth-signer-process! signer (cdr k&v)))
-	      (oauth-normalize-parameters alist))
+    (let loop ((alist (oauth-normalize-parameters alist)) (first? #t))
+      (unless (null? alist)
+	(unless first? (oauth-signer-process! signer #*"%26")) ;; &
+	(let ((k&v (car alist)))
+	  (oauth-signer-process! signer (car k&v))
+	  (oauth-signer-process! signer #*"%3D") ;; =
+	  (oauth-signer-process! signer (cdr k&v)))
+	(loop (cdr alist) #f)))
     (let ((signature (oauth-signer-done! signer)))
       (let-values (((out extract) (open-string-output-port)))
 	(put-string out "OAuth ")
