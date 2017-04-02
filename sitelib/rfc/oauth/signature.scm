@@ -30,7 +30,10 @@
 
 ;; reference: https://tools.ietf.org/html/rfc5849
 (library (rfc oauth signature)
-    (export make-oauth-hmac-sha1-signer make-oauth-hmac-sha1-verifier
+    (export oauth-signer? oauth-signer-process! oauth-signer-done!
+	    oauth-signer-method
+	    oauth-verifier? oauth-verifier-verify
+	    make-oauth-hmac-sha1-signer make-oauth-hmac-sha1-verifier
 	    make-oauth-rsa-sha1-signer make-oauth-rsa-sha1-verifier
 	    make-oauth-plaintext-signer make-oauth-plaintext-verifier
 
@@ -40,57 +43,75 @@
 	    oauth-normalize-parameters
 	    )
     (import (rnrs)
+	    (rfc http-connections)
 	    (rfc base64)
 	    (rfc hmac)
-	    (rfc http-connections)
 	    (rfc uri)
 	    (srfi :13)
 	    (srfi :14)
 	    (util bytevector)
 	    (crypto)
 	    (math))
+  (define-record-type oauth-signer
+    (fields process done method))
+  (define (oauth-signer-process! signer msg)
+    ((oauth-signer-process signer) msg))
+  (define (oauth-signer-done! signer)
+    ((oauth-signer-done signer)))
+  
+  (define-record-type oauth-verifier
+    (fields %verify))
+  (define (oauth-verifier-verify verify msg signature)
+    ((oauth-verifier-%verify verify) msg signature))
+
   (define (->base64 bv) (utf8->string (base64-encode bv :line-width #f)))
   ;; 3.4.2 HMAC-SHA1
-  (define (make-oauth-hmac-sha1-signer conn secret)
+  (define (make-oauth-hmac-sha1-signer secret)
     (define hmac (hash-algorithm HMAC :key secret))
     (hash-init! hmac)
-    (values (lambda (msg) (hash-process! hmac msg))
-	    (lambda () (let ((out (make-bytevector (hash-size hmac))))
-			 (hash-done! hmac out 0 (bytevector-length out))
-			 (hash-init! hmac) ;; for next time if needed
-			 (->base64 out)))))
+    (make-oauth-signer
+     (lambda (msg) (hash-process! hmac msg))
+     (lambda () (let ((out (make-bytevector (hash-size hmac))))
+		  (hash-done! hmac out 0 (bytevector-length out))
+		  (hash-init! hmac) ;; for next time if needed
+		  (->base64 out)))
+     'HMAC-SHA1))
   (define (make-oauth-hmac-sha1-verifier secret)
     (define hmac (hash-algorithm HMAC :key secret))
-    (lambda (msg signature)
-      (verify-mac hmac msg (base64-decode-string signature :transcoder #f))))
+    (make-oauth-verifier
+     (lambda (msg signature)
+       (verify-mac hmac msg (base64-decode-string signature :transcoder #f)))))
 
   ;; 3.4.3 RSA-SHA1
   ;; private key must be provided before hand.
-  (define (make-oauth-rsa-sha1-signer conn private-key)
+  (define (make-oauth-rsa-sha1-signer private-key)
     (define cipher (make-cipher RSA private-key))
     (let-values (((out extract) (open-bytevector-output-port)))
-      (values (lambda (msg) (put-bytevector out msg))
-	      (lambda ()
-		(->base64
-		 (cipher-signature cipher (extract)
-				   :encode pkcs1-emsa-v1.5-encode))))))
+      (values
+       (make-oauth-signer
+	(lambda (msg) (put-bytevector out msg))
+	(lambda ()
+	  (->base64
+	   (cipher-signature cipher (extract)
+			     :encode pkcs1-emsa-v1.5-encode)))
+	'RSA-SHA1))))
   (define (make-oauth-rsa-sha1-verifier public-key)
     (define cipher (make-cipher RSA public-key))
-    (lambda (msg signature)
-      (cipher-verify cipher msg (base64-decode-string signature :transcoder #f)
-		     :verify pkcs1-emsa-v1.5-verify)))
+    (make-oauth-verifier
+     (lambda (msg signature)
+       (cipher-verify cipher msg (base64-decode-string signature :transcoder #f)
+		      :verify pkcs1-emsa-v1.5-verify))))
   ;; 3.4.4 PLAINTEXT
   ;; secret must be the same as HMAC-SHA1
-  (define (make-oauth-plaintext-signer conn secret)
-    (unless (http-connection-secure? conn)
-      (assertion-violation 'make-oauth-plaintext
-			   "only TLS connection is allowed"))
+  (define (make-oauth-plaintext-signer secret)
     (let ((r (->base64 secret)))
-      (values (lambda (msg) #t) (lambda () r))))
+      (make-oauth-signer (lambda (msg) #t) (lambda () r) 'PLAINTEXT)))
   (define (make-oauth-plaintext-verifier secret)
-    (lambda (msg signature)
-      (unless (bytevector=? msg (base64-decode-string signature :transcoder #f))
-	(assertion-violation 'oauth-plaintext-verifier "inconsistent"))))
+    (make-oauth-verifier
+     (lambda (msg signature)
+       (unless (bytevector=? msg
+			     (base64-decode-string signature :transcoder #f))
+	 (assertion-violation 'oauth-plaintext-verifier "inconsistent")))))
 
   ;; 3.4 Signature Base String
   ;; 3.4.1.2 Base String URI
@@ -110,15 +131,15 @@
 		       path))))
 
   ;; 3.4.1.3.2 Parameters Normalization
-  ;; input = ((str . str) ...)
-  ;; output = ((bv . bv) ...)
+  ;; input = ((str str) ...)
+  ;; output = ((bv bv) ...)
   (define (oauth-normalize-parameters alist)
     (list-sort (lambda (a b)
 		 (if (bytevector=? (car a) (car b))
 		     (bytevector<? (cdr a) (cdr b))
 		     (bytevector<? (car a) (car b))))
 	       (map (lambda (s) (cons (oauth-encode-string (car s))
-				      (oauth-encode-string (cdr s)))) alist)))
+				      (oauth-encode-string (cadr s)))) alist)))
   
   ;; 3.6.  Percent Encoding
   ;; we return encoded value as bytevector for convenience.
