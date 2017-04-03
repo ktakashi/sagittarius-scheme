@@ -41,6 +41,9 @@
 	    ->odd-parity
 	    ->odd-parity!
 
+	    bytevector=?
+	    bytevector-append
+	    bytevector-concatenate
 	    ;; extra comparison
 	    bytevector<?
 	    bytevector>?
