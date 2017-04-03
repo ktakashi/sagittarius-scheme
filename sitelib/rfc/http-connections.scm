@@ -39,7 +39,7 @@
 
 	    ;; utilities
 	    http-null-receiver http-oport-receiver
-	    http-blob-sender http-string-sender
+	    http-blob-sender http-string-sender http-null-sender
 	    )
     (import (rnrs)
 	    (prefix (rfc http) rfc:)
@@ -163,4 +163,9 @@
     (rfc:http-string-sender string))
   (define-method http-string-sender ((conn http2-connection) string)
     (rfc:http2-data-sender (string->utf8 string)))
+
+  (define-generic http-null-sender)
+  (define-method http-null-sender ((conn http1-connection))
+    (rfc:http-null-sender))
+  (define-method http-null-sender ((conn http2-connection)) #f)
 )
