@@ -1,6 +1,8 @@
 #!read-macro=sagittarius/bv-string
 (import (rnrs)
 	(rfc oauth signature)
+	(rfc oauth connection)
+	(rfc oauth consumer)
 	(rfc http-connections)
 	(util bytevector)
 	(rsa pkcs :8)
@@ -12,11 +14,11 @@
 
 (test-group "HMAC-SHA1 Signature"
   ;; from https://dev.twitter.com/oauth/overview/creating-signatures
-  (define secret
-    "kAcSOqF21Fu85e7zjz7ZN2U4ZRhfV3WpwPAoE3Z7kBw&LswwdoUaIvS8ltyTt5jkRh4J50vUPVVHtR2YPi5kE")
+  (define consumer-secret #*"kAcSOqF21Fu85e7zjz7ZN2U4ZRhfV3WpwPAoE3Z7kBw")
+  (define token-secret #*"LswwdoUaIvS8ltyTt5jkRh4J50vUPVVHtR2YPi5kE")
   (define base-string
     "POST&https%3A%2F%2Fapi.twitter.com%2F1%2Fstatuses%2Fupdate.json&include_entities%3Dtrue%26oauth_consumer_key%3Dxvz1evFS4wEEPTGEFPHBog%26oauth_nonce%3DkYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg%26oauth_signature_method%3DHMAC-SHA1%26oauth_timestamp%3D1318622958%26oauth_token%3D370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb%26oauth_version%3D1.0%26status%3DHello%2520Ladies%2520%252B%2520Gentlemen%252C%2520a%2520signed%2520OAuth%2520request%2521")
-  (let ((signer (make-oauth-hmac-sha1-signer (string->utf8 secret))))
+  (let ((signer (make-oauth-hmac-sha1-signer consumer-secret token-secret)))
     (test-assert (oauth-signer? signer))
     (oauth-signer-process! signer (string->utf8 base-string))
     (test-equal "tnnArxj06cWHq44gCs1OSKk/jLY=" (oauth-signer-done! signer))
@@ -29,7 +31,7 @@
 	  (unless (eof-object? bv) (oauth-signer-process! signer bv) (loop))))
       (test-equal "tnnArxj06cWHq44gCs1OSKk/jLY=" (oauth-signer-done! signer)))
 
-    (let ((verifier (make-oauth-hmac-sha1-verifier (string->utf8 secret))))
+    (let ((verifier (make-oauth-hmac-sha1-verifier consumer-secret token-secret)))
       (test-assert (oauth-verifier? verifier))
       (test-assert (oauth-verifier-verify verifier (string->utf8 base-string)
 			     "tnnArxj06cWHq44gCs1OSKk/jLY=")))))
@@ -124,5 +126,34 @@
                (       "oauth_nonce"           "7d8f3e4a"     )
                (           "c2"                    ""         )
                (           "a3"                   "2 q"       ))))
+
+;; data from
+;; https://dev.twitter.com/oauth/overview/creating-signatures
+(let ((conn
+       (make-oauth-connection
+	(make-http1-connection "api.twitter.com" #t)
+	"xvz1evFS4wEEPTGEFPHBog"
+	(make-oauth-hmac-sha1-signer
+	 #*"kAcSOqF21Fu85e7zjz7ZN2U4ZRhfV3WpwPAoE3Z7kBw"
+	 #*"LswwdoUaIvS8ltyTt5jkRh4J50vUPVVHtR2YPi5kE"))))
+  (let-values (((signature alist)
+		(oauth-compute-signature&authorization-parameter conn 'POST
+		 "/1/statuses/update.json"
+		 :include_entities "true"
+		 ;; hand modified post data...
+		 :status "Hello%20Ladies%20%2B%20Gentlemen%2C%20a%20signed%20OAuth%20request%21"
+		 :timestamp 1318622958
+		 :nonce "kYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg"
+		 :oauth_token "370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb")))
+    (test-equal "tnnArxj06cWHq44gCs1OSKk/jLY=" signature))
+
+  (test-equal "OAuth oauth_consumer_key=\"xvz1evFS4wEEPTGEFPHBog\",oauth_signature_method=\"HMAC-SHA1\",oauth_timestamp=\"1318622958\",oauth_nonce=\"kYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg\",oauth_version=\"1.0\",oauth_token=\"370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb\",oauth_signature=\"tnnArxj06cWHq44gCs1OSKk%2FjLY%3D\""
+	      (oauth-authorization-header conn 'POST
+	       "/1/statuses/update.json"
+	       :include_entities "true"
+	       :status "Hello%20Ladies%20%2B%20Gentlemen%2C%20a%20signed%20OAuth%20request%21"
+	       :timestamp 1318622958
+	       :nonce "kYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg"
+	       :oauth_token "370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb")))
 
 (test-end)

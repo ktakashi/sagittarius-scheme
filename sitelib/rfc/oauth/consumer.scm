@@ -34,7 +34,8 @@
     (export oauth-request-temporary-credential
 
 	    ;; for debug/test
-	    oauth-authorization-header)
+	    oauth-authorization-header
+	    oauth-compute-signature&authorization-parameter)
     (import (rnrs)
 	    (srfi :13)
 	    (srfi :19)
@@ -43,10 +44,10 @@
 	    (rfc oauth connection)
 	    (rfc http-connections)
 	    (only (rfc http) list->request-headers))
-  
-  (define (oauth-authorization-header conn method uri 
+
+  (define (oauth-compute-signature&authorization-parameter conn method uri
 	    :key (timestamp (time-second (current-time)))
-		 (nonce (random-integer (greatest-fixnum)))
+		 (nonce (number->string (random-integer (greatest-fixnum))))
 	    :allow-other-keys parameters)
     (define key (oauth-connection-consumer-key conn))
     (define signer (oauth-connection-signer conn))
@@ -57,13 +58,12 @@
 	("oauth_signature_method" ,(symbol->string
 				    (oauth-signer-method signer)))
 	("oauth_timestamp" ,(number->string timestamp))
-	("oauth_nonce" ,(number->string nonce))
+	("oauth_nonce" ,nonce)
 	("oauth_version" "1.0")
 	,@(list->request-headers parameters)))
-
     (oauth-signer-process! signer (string->utf8 (symbol->string method)))
     (oauth-signer-process! signer #*"&")
-    (oauth-signer-process! signer (string->utf8 sbs))
+    (oauth-signer-process! signer (oauth-encode-string sbs))
     (oauth-signer-process! signer #*"&")
     (let loop ((alist (oauth-normalize-parameters alist)) (first? #t))
       (unless (null? alist)
@@ -73,21 +73,26 @@
 	  (oauth-signer-process! signer #*"%3D") ;; =
 	  (oauth-signer-process! signer (cdr k&v)))
 	(loop (cdr alist) #f)))
-    (let ((signature (oauth-signer-done! signer)))
-      (let-values (((out extract) (open-string-output-port)))
-	(put-string out "OAuth ")
-	(for-each (lambda (o)
-		    (put-string out (car o))
-		    (put-string out "=\"")
-		    (put-string out (cadr o))
-		    (put-string out "\","))
-		  (filter (lambda (o) (string-prefix? "oauth_" (car o)))
-			  alist))
-	(put-string out "oauth_signature")
-	(put-string out "=\"")
-	(put-string out (utf8->string (oauth-encode-string signature)))
-	(put-string out "\"")
-	(extract))))
+    (values (oauth-signer-done! signer)
+	    (filter (lambda (o) (string-prefix? "oauth_" (car o)))
+		    alist)))
+  
+  (define (oauth-authorization-header conn method uri . parameters)
+    (let-values (((signature alist)
+		  (apply oauth-compute-signature&authorization-parameter
+			 conn method uri parameters))
+		 ((out extract) (open-string-output-port)))
+      (put-string out "OAuth ")
+      (for-each (lambda (o)
+		  (put-string out (car o))
+		  (put-string out "=\"")
+		  (put-string out (cadr o))
+		  (put-string out "\",")) alist)
+      (put-string out "oauth_signature")
+      (put-string out "=\"")
+      (put-string out (utf8->string (oauth-encode-string signature)))
+      (put-string out "\"")
+      (extract)))
 
   (define (oauth-request-temporary-credential conn uri :key (callback "oob")
 					      :allow-other-keys others)
@@ -97,7 +102,8 @@
     (oauth-request conn 'POST uri
 		   (apply oauth-authorization-header conn 'POST uri
 			  :oauth_callback callback
-			  others)))
+			  others)
+		   :sender (http-null-sender (oauth-connection-http-connection conn))))
 
   (define (oauth-request conn method uri authorization . others)
     (apply http-request (oauth-connection-http-connection conn) method uri

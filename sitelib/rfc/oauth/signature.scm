@@ -29,6 +29,7 @@
 ;;;  
 
 ;; reference: https://tools.ietf.org/html/rfc5849
+#!read-macro=sagittarius/bv-string
 (library (rfc oauth signature)
     (export oauth-signer? oauth-signer-process! oauth-signer-done!
 	    oauth-signer-method
@@ -66,21 +67,33 @@
 
   (define (->base64 bv) (utf8->string (base64-encode bv :line-width #f)))
   ;; 3.4.2 HMAC-SHA1
-  (define (make-oauth-hmac-sha1-signer secret)
-    (define hmac (hash-algorithm HMAC :key secret))
-    (hash-init! hmac)
-    (make-oauth-signer
-     (lambda (msg) (hash-process! hmac msg))
-     (lambda () (let ((out (make-bytevector (hash-size hmac))))
-		  (hash-done! hmac out 0 (bytevector-length out))
-		  (hash-init! hmac) ;; for next time if needed
-		  (->base64 out)))
-     'HMAC-SHA1))
-  (define (make-oauth-hmac-sha1-verifier secret)
-    (define hmac (hash-algorithm HMAC :key secret))
-    (make-oauth-verifier
-     (lambda (msg signature)
-       (verify-mac hmac msg (base64-decode-string signature :transcoder #f)))))
+  (define (append-secrets cs ts) (bytevector-append cs #*"&" ts))
+  (define make-oauth-hmac-sha1-signer
+    (case-lambda
+     ((secret) (make-oauth-hmac-sha1-signer secret #vu8()))
+     ((consumer-secret token-secret)
+      (define hmac
+	(hash-algorithm HMAC
+			:key (append-secrets consumer-secret token-secret)))
+      (hash-init! hmac)
+      (make-oauth-signer
+       (lambda (msg) (hash-process! hmac msg))
+       (lambda () (let ((out (make-bytevector (hash-size hmac))))
+		    (hash-done! hmac out 0 (bytevector-length out))
+		    (hash-init! hmac) ;; for next time if needed
+		    (->base64 out)))
+       'HMAC-SHA1))))
+  (define make-oauth-hmac-sha1-verifier
+    (case-lambda
+     ((secret) (make-oauth-hmac-sha1-verifier secret #vu8()))
+     ((consumer-secret token-secret)
+      (define hmac
+	(hash-algorithm HMAC
+			:key (append-secrets consumer-secret token-secret)))
+      (make-oauth-verifier
+       (lambda (msg signature)
+	 (verify-mac hmac msg
+		     (base64-decode-string signature :transcoder #f)))))))
 
   ;; 3.4.3 RSA-SHA1
   ;; private key must be provided before hand.
