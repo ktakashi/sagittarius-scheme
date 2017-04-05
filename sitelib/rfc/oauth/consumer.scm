@@ -37,6 +37,11 @@
 	    oauth-temporary-credential-token-secret
 
 	    make-oauth-authorization-url
+	    oauth-request-access-token
+	    oauth-access-token oauth-access-token? make-oauth-access-token
+	    oauth-access-token-token oauth-access-token-token-secret
+
+	    oauth-request
 	    ;; for debug/test
 	    oauth-authorization-header
 	    oauth-compute-signature&authorization-parameter)
@@ -50,17 +55,19 @@
 	    (rfc http-connections)
 	    (rfc :5322)
 	    (rfc uri)
+	    (only (rfc http) list->request-headers)
 	    (www cgi) ;; for split-query-string
-	    (only (rfc http) list->request-headers))
+	    (sagittarius control))
 
   (define (oauth-compute-signature&authorization-parameter conn method uri
 	    :key (timestamp (time-second (current-time)))
-		 (nonce (number->string (random-integer (greatest-fixnum))))
+	         (nonce (number->string (random-integer (greatest-fixnum))))
 	    :allow-other-keys parameters)
+    (define-values (auth path query frag) (uri-decompose-hierarchical uri))
     (define key (oauth-connection-consumer-key conn))
     (define signer (oauth-connection-signer conn))
     (define sbs (oauth-construct-base-string-uri
-		 (oauth-connection-http-connection conn) uri))
+		 (oauth-connection-http-connection conn) path))
     (define alist
       `(("oauth_consumer_key" ,key)
 	("oauth_signature_method" ,(symbol->string
@@ -68,6 +75,7 @@
 	("oauth_timestamp" ,(number->string timestamp))
 	("oauth_nonce" ,nonce)
 	("oauth_version" "1.0")
+	,@(if query (split-query-string query) '())
 	,@(list->request-headers parameters)))
     (oauth-signer-process! signer (string->utf8 (symbol->string method)))
     (oauth-signer-process! signer #*"&")
@@ -102,10 +110,17 @@
       (put-string out "\"")
       (extract)))
 
+  (define (raise-request-error who msg status response)
+    (raise
+     (condition (make-oauth-request-error status (utf8->string response))
+		(make-who-condition 'who)
+		(make-message-condition msg))))
   (define-record-type oauth-temporary-credential
     (fields token token-secret))
-  (define (oauth-request-temporary-credential conn uri :key (callback "oob")
-					      :allow-other-keys others)
+
+  ;; NB: we don't check content-type since one of the big OAuth provider
+  ;;     (c.f. Twitter) doesn't return content-type x-www-form-urlencoded
+  (define (oauth-request-temporary-credential conn uri :key (callback "oob"))
     (define (parse-response response)
       (define (raise-check-error)
 	(raise
@@ -126,19 +141,17 @@
 			   "connection must be secure"))
     (let-values (((s h b)
 		  (oauth-request conn 'POST uri
-		   (apply oauth-authorization-header conn 'POST uri
-			  :oauth_callback callback
-			  others)
+		   (oauth-authorization-header conn 'POST uri
+					       :oauth_callback callback)
 		   :sender (http-null-sender
 			    (oauth-connection-http-connection conn)))))
       (if (string=? s "200")
 	  (parse-response (utf8->string b))
-	  (raise
-	   (condition (make-oauth-request-error s (utf8->string b))
-		      (make-who-condition 'oauth-request-temporary-credential)
-		      (make-message-condition
-		       "Failed to request temporary credential"))))))
+	  (raise-request-error 'oauth-request-temporary-credential
+			       "Failed to request temporary credential" s b))))
 
+  (define-record-type oauth-access-token
+    (fields token token-secret))
   (define (make-oauth-authorization-url base-url temporary-credential)
     (define (compose-query query)
       (define token (oauth-temporary-credential-token temporary-credential))
@@ -150,6 +163,29 @@
 		   :path path :query (compose-query query)
 		   :fragment frag)))
 
+  (define (oauth-request-access-token conn uri temporary-credential pin)
+    (define (parse-response response)
+      (let ((alist (split-query-string response)))
+	(make-oauth-access-token
+	 (cadr (assoc "oauth_token" alist))
+	 (cadr (assoc "oauth_token_secret" alist)))))
+    (unless (oauth-connection-secure? conn)
+      (assertion-violation 'oauth-request-access-token
+			   "connection must be secure"))
+    (let ((token (oauth-temporary-credential-token temporary-credential)))
+      (let-values (((s h b)
+		    (oauth-request conn 'POST uri
+		     (oauth-authorization-header conn 'POST uri
+						 :oauth_token token
+						 :oauth_verifier pin)
+		     :sender (http-blob-sender
+			      (oauth-connection-http-connection conn)
+			      (string->utf8 pin)))))
+	(if (string=? s "200")
+	    (parse-response (utf8->string b))
+	    (raise-request-error 'oauth-request-access-token
+				 "Failed to request access token" s b)))))
+  
   (define (oauth-request conn method uri authorization . others)
     (apply http-request (oauth-connection-http-connection conn) method uri
 	   :authorization authorization
