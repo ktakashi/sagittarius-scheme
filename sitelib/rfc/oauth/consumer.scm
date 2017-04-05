@@ -32,7 +32,11 @@
 #!read-macro=sagittarius/bv-string
 (library (rfc oauth consumer)
     (export oauth-request-temporary-credential
+	    oauth-temporary-credential oauth-temporary-credential?
+	    oauth-temporary-credential-token
+	    oauth-temporary-credential-token-secret
 
+	    make-oauth-authorization-url
 	    ;; for debug/test
 	    oauth-authorization-header
 	    oauth-compute-signature&authorization-parameter)
@@ -42,7 +46,11 @@
 	    (srfi :27)
 	    (rfc oauth signature)
 	    (rfc oauth connection)
+	    (rfc oauth conditions)
 	    (rfc http-connections)
+	    (rfc :5322)
+	    (rfc uri)
+	    (www cgi) ;; for split-query-string
 	    (only (rfc http) list->request-headers))
 
   (define (oauth-compute-signature&authorization-parameter conn method uri
@@ -94,16 +102,53 @@
       (put-string out "\"")
       (extract)))
 
+  (define-record-type oauth-temporary-credential
+    (fields token token-secret))
   (define (oauth-request-temporary-credential conn uri :key (callback "oob")
 					      :allow-other-keys others)
+    (define (parse-response response)
+      (define (raise-check-error)
+	(raise
+	 (conditions (make-oauth-error)
+		     (make-who-condition 'oauth-request-temporary-credential)
+		     (make-message-condition
+		      "oauth_callback_confirmed is not found or not true"))))
+      (let ((alist (split-query-string response)))
+	(cond ((assoc "oauth_callback_confirmed" alist) =>
+	       (lambda (v)
+		 (unless (string=? (cadr v) "true") (raise-check-error))))
+	      (else (raise-check-error)))
+	(make-oauth-temporary-credential
+	 (cadr (assoc "oauth_token" alist))
+	 (cadr (assoc "oauth_token_secret" alist)))))
     (unless (oauth-connection-secure? conn)
       (assertion-violation 'oauth-request-temporary-credential
 			   "connection must be secure"))
-    (oauth-request conn 'POST uri
+    (let-values (((s h b)
+		  (oauth-request conn 'POST uri
 		   (apply oauth-authorization-header conn 'POST uri
 			  :oauth_callback callback
 			  others)
-		   :sender (http-null-sender (oauth-connection-http-connection conn))))
+		   :sender (http-null-sender
+			    (oauth-connection-http-connection conn)))))
+      (if (string=? s "200")
+	  (parse-response (utf8->string b))
+	  (raise
+	   (condition (make-oauth-request-error s (utf8->string b))
+		      (make-who-condition 'oauth-request-temporary-credential)
+		      (make-message-condition
+		       "Failed to request temporary credential"))))))
+
+  (define (make-oauth-authorization-url base-url temporary-credential)
+    (define (compose-query query)
+      (define token (oauth-temporary-credential-token temporary-credential))
+      (if query
+	  (string-append query "&oauth_token=" (uri-encode-string token))
+	  (string-append "oauth_token=" (uri-encode-string token))))
+    (let-values (((scheme ui host port path query frag) (uri-parse base-url)))
+      (uri-compose :scheme scheme :userinfo ui :host host :port port
+		   :path path :query (compose-query query)
+		   :fragment frag)))
 
   (define (oauth-request conn method uri authorization . others)
     (apply http-request (oauth-connection-http-connection conn) method uri
