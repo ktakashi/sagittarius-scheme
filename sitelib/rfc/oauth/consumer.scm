@@ -41,6 +41,7 @@
 	    oauth-access-token oauth-access-token? make-oauth-access-token
 	    oauth-access-token-token oauth-access-token-token-secret
 
+	    oauth-request/authorization
 	    oauth-request
 	    ;; for debug/test
 	    oauth-authorization-header
@@ -68,6 +69,7 @@
     (define signer (oauth-connection-signer conn))
     (define sbs (oauth-construct-base-string-uri
 		 (oauth-connection-http-connection conn) path))
+    (define access-token (oauth-connection-access-token conn))
     (define alist
       `(("oauth_consumer_key" ,key)
 	("oauth_signature_method" ,(symbol->string
@@ -75,8 +77,15 @@
 	("oauth_timestamp" ,(number->string timestamp))
 	("oauth_nonce" ,nonce)
 	("oauth_version" "1.0")
+	,@(if access-token `(("oauth_token" ,access-token)) '())
 	,@(if query (split-query-string query) '())
 	,@(list->request-headers parameters)))
+
+    ;; sanity check
+    (when (and access-token (memq :oauth_token parameters))
+      (assertion-violation 'oauth-compute-signature&authorization-parameter
+			   "2 access tokens are passed"))
+    
     (oauth-signer-process! signer (string->utf8 (symbol->string method)))
     (oauth-signer-process! signer #*"&")
     (oauth-signer-process! signer (oauth-encode-string sbs))
@@ -185,7 +194,11 @@
 	    (parse-response (utf8->string b))
 	    (raise-request-error 'oauth-request-access-token
 				 "Failed to request access token" s b)))))
-  
+
+  ;; For convenience
+  (define (oauth-request/authorization conn method uri . others)
+    (apply oauth-request conn method uri
+	   (oauth-authorization-header conn method uri) others))
   (define (oauth-request conn method uri authorization . others)
     (apply http-request (oauth-connection-http-connection conn) method uri
 	   :authorization authorization

@@ -32,22 +32,27 @@
     (export make-oauth-connection oauth-connection?
 	    open-oauth-connection! close-oauth-connection!
 	    oauth-connection-secure?
-	    oauth-connection-consumer-key oauth-connection-signer
+	    oauth-connection-consumer-key
+	    oauth-connection-access-token
+	    oauth-connection-signer
 	    oauth-connection-http-connection)
     (import (rnrs)
 	    (rfc oauth signature)
 	    (rfc http-connections))
 
   (define-record-type oauth-connection
-    (fields http-connection consumer-key signer)
+    (fields http-connection consumer-key access-token signer)
     (protocol
      (lambda (p)
-       (lambda (conn key signer)
+       (define (construct conn key token signer)
 	 (when (and (eq? 'PLAINTEXT (oauth-signer-method signer))
 		    (not (http-connection-secure? conn)))
 	   (assertion-violation 'make-oauth-connection
 				"PLAINTEXT must be under TLS connection"))
-	 (p conn key signer)))))
+	 (p conn key token signer))
+       (case-lambda
+	((conn key signer) (construct conn key #f signer))
+	((conn key token signer) (construct conn key token signer))))))
 
   (define (open-oauth-connection! conn)
     (open-http-connection! (oauth-connection-http-connection conn)))
