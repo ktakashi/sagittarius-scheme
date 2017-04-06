@@ -70,6 +70,9 @@
     (define sbs (oauth-construct-base-string-uri
 		 (oauth-connection-http-connection conn) path))
     (define access-token (oauth-connection-access-token conn))
+    (define (re-encode slot)
+      (list (utf8->string (oauth-encode-string (car slot)))
+	    (utf8->string (oauth-encode-string (cadr slot)))))
     (define alist
       `(("oauth_consumer_key" ,key)
 	("oauth_signature_method" ,(symbol->string
@@ -78,7 +81,7 @@
 	("oauth_nonce" ,nonce)
 	("oauth_version" "1.0")
 	,@(if access-token `(("oauth_token" ,access-token)) '())
-	,@(if query (split-query-string query) '())
+	,@(if query (map re-encode (split-query-string query)) '())
 	,@(list->request-headers parameters)))
 
     ;; sanity check
