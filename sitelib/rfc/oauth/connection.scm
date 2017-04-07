@@ -55,9 +55,11 @@
 	((conn key token signer) (construct conn key token signer))))))
 
   (define (open-oauth-connection! conn)
-    (open-http-connection! (oauth-connection-http-connection conn)))
+    (open-http-connection! (oauth-connection-http-connection conn))
+    conn)
   (define (close-oauth-connection! conn)
-    (close-http-connection! (oauth-connection-http-connection conn)))
+    (close-http-connection! (oauth-connection-http-connection conn))
+    conn)
   (define (oauth-connection-secure? conn)
     (http-connection-secure? (oauth-connection-http-connection conn)))
 )

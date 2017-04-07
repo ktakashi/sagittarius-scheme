@@ -156,4 +156,14 @@
 	       :nonce "kYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg"
 	       :oauth_token "370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb")))
 
+(let ((conn (make-oauth-connection
+	     (make-http1-connection "api.twitter.com" #t)
+	     "xvz1evFS4wEEPTGEFPHBog"
+	     (make-oauth-hmac-sha1-signer
+	      #*"kAcSOqF21Fu85e7zjz7ZN2U4ZRhfV3WpwPAoE3Z7kBw"
+	      #*"LswwdoUaIvS8ltyTt5jkRh4J50vUPVVHtR2YPi5kE"))))
+  ;; http1 connection does nothing, so no packet sending to Twitter ;)
+  (test-assert (oauth-connection? (open-oauth-connection! conn)))
+  (test-assert (oauth-connection? (close-oauth-connection! conn))))
+
 (test-end)
