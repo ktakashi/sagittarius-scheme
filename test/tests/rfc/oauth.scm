@@ -1,8 +1,6 @@
 #!read-macro=sagittarius/bv-string
 (import (rnrs)
-	(rfc oauth signature)
-	(rfc oauth connection)
-	(rfc oauth consumer)
+	(rfc oauth)
 	(rfc http-connections)
 	(util bytevector)
 	(rsa pkcs :8)

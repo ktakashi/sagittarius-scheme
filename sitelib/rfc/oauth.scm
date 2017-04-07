@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
-;;; rfc/oauth/conditions.scm - OAuth1 conditions
+;;; rfc/oauth.scm - OAuth 1.0 client
 ;;;  
 ;;;   Copyright (c) 2017  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -28,15 +28,9 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-(library (rfc oauth conditions)
-    (export &oauth-error oauth-error? make-oauth-error
-	    &oauth-request-error oauth-request-error? make-oauth-request-error
-	    oauth-request-error-status oauth-request-error-content)
-    (import (rnrs))
-
-  (define-condition-type &oauth-error &error make-oauth-error oauth-error?)
-  (define-condition-type &oauth-request-error &oauth-error
-    make-oauth-request-error oauth-request-error?
-    (status oauth-request-error-status)
-    (content oauth-request-error-content))
-)
+(library (rfc oauth)
+    (export :all)
+    (import (rfc oauth connection)
+	    (rfc oauth signature)
+	    (rfc oauth consumer)
+	    (rfc oauth conditions)))
