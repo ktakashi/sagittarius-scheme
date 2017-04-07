@@ -164,6 +164,7 @@
 	      #*"LswwdoUaIvS8ltyTt5jkRh4J50vUPVVHtR2YPi5kE"))))
   ;; http1 connection does nothing, so no packet sending to Twitter ;)
   (test-assert (oauth-connection? (open-oauth-connection! conn)))
-  (test-assert (oauth-connection? (close-oauth-connection! conn))))
+  (test-assert (oauth-connection? (close-oauth-connection! conn)))
+  (test-assert (http-connection? (oauth-connection-http-connection conn))))
 
 (test-end)

@@ -44,6 +44,8 @@
 
 	    make-oauth2-access-token
 	    oauth2-access-token?
+	    oauth2-access-token-expired?
+	    oauth2-access-token-creation-time
 	    oauth2-access-token-access-token
 	    oauth2-access-token-token-type
 	    oauth2-access-token-expires-in
@@ -59,18 +61,35 @@
 	    close-oauth2-connection!
 
 	    json-string->access-token
+
+	    &oauth2-error oauth2-error?
+	    &oauth2-request-error oauth2-request-error?
+	    oauth2-request-error-status oauth2-request-error-content
+
+	    &oauth2-authorization-server-error oauth2-authorization-server-error?
 	    )
     (import (rnrs)
 	    (rnrs eval)
 	    (sagittarius)
 	    (srfi :1)
 	    (srfi :13)
+	    (srfi :19)
 	    (srfi :39)
 	    (text json)
 	    (text json object-builder)
 	    (rfc uri)
 	    (rfc base64)
 	    (rfc http-connections))
+
+  ;; condition
+  (define-condition-type &oauth2-error &error
+    make-oauth2-error oauth2-error?)
+  (define-condition-type &oauth2-request-error &oauth2-error
+    make-oauth2-request-error oauth2-request-error?
+    (status oauth2-request-error-status)
+    (content oauth2-request-error-content))
+  (define-condition-type &oauth2-authorization-server-error &oauth2-request-error
+    make-oauth2-authorization-server-error oauth2-authorization-server-error?)
 ;;; Section 7. Accessing Protected Resources
   (define (oauth2-access-token->authorization access-token)
     (let ((type (string->symbol
@@ -81,15 +100,15 @@
 	    (environment `(rfc oauth2 ,type)))))
 
   (define-record-type oauth2-connection
-    (fields http-connection authorization query)
+    (fields http-connection access-token authorization query)
     (protocol
      (lambda (p)
        (case-lambda
-	((conn) (p conn #f #f))
+	((conn) (p conn #f #f #f))
 	((conn access-token)
 	 (let-values (((header query)
 		       (oauth2-access-token->authorization access-token)))
-	   (p conn header query)))))))
+	   (p conn access-token header query)))))))
 
   (define-syntax define-oauth2-connection
     (syntax-rules ()
@@ -110,7 +129,13 @@
     conn)
 ;;; Access token
   (define-record-type oauth2-access-token
-    (fields access-token token-type expires-in refresh-token scope parameters)
+    (fields creation-time
+	    access-token
+	    token-type
+	    expires-in
+	    refresh-token
+	    scope
+	    parameters)
     (protocol (lambda (p)
 		(lambda (access-token token-type expires-in refresh-token
 		         scope parameters)
@@ -120,17 +145,20 @@
 		  (unless token-type
 		    (assertion-violation 'make-oauth2-access-token
 					 "token_type is required"))
-		  (p access-token token-type expires-in refresh-token
-		     scope parameters)))))
-  (define (->time v)
-    (let ((sec (string->number v)))
-      (add-duration (current-time) (make-time time-duration 0 sec))))
+		  (p (current-time)
+		     access-token
+		     token-type
+		     (and expires-in
+			  (make-time time-duration 0 expires-in))
+		     refresh-token
+		     scope
+		     parameters)))))
   (define access-token-builder
     (json-object-builder
      (list
       "access_token"
       "token_type"
-      (? "expires-in" #f ->time)
+      (? "expires_in" #f)
       (? "refresh_token" #f)
       (? "scope" #f))))
   (define (json-string->access-token json)
@@ -140,6 +168,12 @@
       (apply make-oauth2-access-token (append obj (list extra-parameters))))
     (parameterize ((*post-json-object-build* post-object-build))
       (json-string->object json access-token-builder parameter-handler)))
+
+  (define (oauth2-access-token-expired? access-token)
+    (define expires-in (oauth2-access-token-expires-in access-token))
+    (define creation-time (oauth2-access-token-creation-time access-token))
+    (and expires-in
+	 (time<=? (add-duration creation-time expires-in) (current-time))))
   
   ;; section 4.3
   (define (oauth2-request-password-credentials-access-token 
@@ -192,10 +226,11 @@
 		   :authorization (string-append "Basic " credential))))
       (if (string=? status "200")
 	  (utf8->string body)
-	  (error 'oauth2-request-authorization-server
-		 "Failed to access to authorization server"
-		 `((status: ,status)
-		   (body: ,(and body (utf8->string body))))))))
+	  (raise
+	   (condition (make-oauth2-authorization-server-error
+		       status (and body (utf8->string body)))
+		      (make-who-condition 'oauth2-request-authorization-server)
+		      (make-message-condition "Failed to access to authorization server"))))))
    
   (define (oauth2-get-request conn path) (oauth2-request conn 'GET path))
   (define (oauth2-post-request conn path body)
@@ -204,7 +239,14 @@
 			     (oauth2-connection-http-connection conn))))
 
   (define (oauth2-request conn method path . options)
-    (let ((authorization (oauth2-connection-authorization conn)))
+    (let ((access-token  (oauth2-connection-access-token conn))
+	  (authorization (oauth2-connection-authorization conn)))
+      (unless (oauth2-access-token? access-token)
+	(assertion-violation 'oauth2-request
+			     "connection doesn't have access token"))
+      (when (oauth2-access-token-expired? access-token)
+	(assertion-violation 'oauth2-request
+			     "access-token is expired"))
       (apply http-request (oauth2-connection-http-connection conn) method path
 	     :authorization authorization
 	     options)))
