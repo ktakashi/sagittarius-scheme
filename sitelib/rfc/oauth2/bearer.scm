@@ -36,7 +36,7 @@
     (import (rnrs)
 	    (rfc uri))
   (define (oauth2-generate-authorization token)
-    (values (list :authorization (string-append "Bearer " token))
+    (values (string-append "Bearer " token)
 	    (string-append "access_token=" (uri-encode-string token))))
 
   )

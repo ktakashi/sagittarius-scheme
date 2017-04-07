@@ -38,7 +38,7 @@
 
 	    oauth2-get-request
 	    oauth2-post-request
-	    oauth2-access-protected-resource
+	    oauth2-request
 
 	    oauth2-revoke-access-token
 
@@ -49,11 +49,16 @@
 	    oauth2-access-token-expires-in
 	    oauth2-access-token-refresh-token
 	    oauth2-access-token-scope
+	    oauth2-access-token-parameters
 
-	    (rename (open-http-connection! open-oauth2-connection!)
-		    (close-http-connection! close-oauth2-connection!))
+	    oauth2-connection?
 	    make-oauth2-http1-connection
 	    make-oauth2-http2-connection
+	    oauth2-connection-http-connection
+	    open-oauth2-connection!
+	    close-oauth2-connection!
+
+	    json-string->access-token
 	    )
     (import (rnrs)
 	    (rnrs eval)
@@ -62,11 +67,80 @@
 	    (srfi :13)
 	    (srfi :39)
 	    (text json)
+	    (text json object-builder)
 	    (rfc uri)
 	    (rfc base64)
 	    (rfc http-connections))
-;;; Access token
+;;; Section 7. Accessing Protected Resources
+  (define (oauth2-access-token->authorization access-token)
+    (let ((type (string->symbol
+		 (string-downcase
+		  (oauth2-access-token-token-type access-token))))
+	  (token (oauth2-access-token-access-token access-token)))
+      (eval `(oauth2-generate-authorization ,token)
+	    (environment `(rfc oauth2 ,type)))))
 
+  (define-record-type oauth2-connection
+    (fields http-connection authorization query)
+    (protocol
+     (lambda (p)
+       (case-lambda
+	((conn) (p conn #f #f))
+	((conn access-token)
+	 (let-values (((header query)
+		       (oauth2-access-token->authorization access-token)))
+	   (p conn header query)))))))
+
+  (define-syntax define-oauth2-connection
+    (syntax-rules ()
+      ((_ name make-http-connection)
+       (define name
+	 (case-lambda
+	  ((server) (make-oauth2-connection (make-http-connection server #t)))
+	  ((server token)
+	   (make-oauth2-connection (make-http-connection server #t) token)))))))
+  
+  (define-oauth2-connection make-oauth2-http2-connection make-http2-connection)
+  (define-oauth2-connection make-oauth2-http1-connection make-http1-connection)
+  (define (open-oauth2-connection! conn)
+    (open-http-connection! (oauth2-connection-http-connection conn))
+    conn)
+  (define (close-oauth2-connection! conn)
+    (close-http-connection! (oauth2-connection-http-connection conn))
+    conn)
+;;; Access token
+  (define-record-type oauth2-access-token
+    (fields access-token token-type expires-in refresh-token scope parameters)
+    (protocol (lambda (p)
+		(lambda (access-token token-type expires-in refresh-token
+		         scope parameters)
+		  (unless access-token
+		    (assertion-violation 'make-oauth2-access-token
+					 "access_token is required"))
+		  (unless token-type
+		    (assertion-violation 'make-oauth2-access-token
+					 "token_type is required"))
+		  (p access-token token-type expires-in refresh-token
+		     scope parameters)))))
+  (define (->time v)
+    (let ((sec (string->number v)))
+      (add-duration (current-time) (make-time time-duration 0 sec))))
+  (define access-token-builder
+    (json-object-builder
+     (list
+      "access_token"
+      "token_type"
+      (? "expires-in" #f ->time)
+      (? "refresh_token" #f)
+      (? "scope" #f))))
+  (define (json-string->access-token json)
+    (define extra-parameters (make-equal-hashtable))
+    (define (parameter-handler k v) (hashtable-set! extra-parameters k v))
+    (define (post-object-build obj)
+      (apply make-oauth2-access-token (append obj (list extra-parameters))))
+    (parameterize ((*post-json-object-build* post-object-build))
+      (json-string->object json access-token-builder parameter-handler)))
+  
   ;; section 4.3
   (define (oauth2-request-password-credentials-access-token 
 	   connection path username password :optional (scope #f))
@@ -109,10 +183,11 @@
   (define (oauth2-request-authorization-server
 	   connection path credential parameters)
     (define content-type "application/x-www-form-urlencoded")
+    (define http-connection (oauth2-connection-http-connection connection))
     (let-values (((status header body)
 		  (http-request
-		   connection 'POST path
-		   :sender (http-string-sender connection parameters)
+		   http-connection 'POST path
+		   :sender (http-string-sender http-connection parameters)
 		   :content-type content-type
 		   :authorization (string-append "Basic " credential))))
       (if (string=? status "200")
@@ -121,69 +196,17 @@
 		 "Failed to access to authorization server"
 		 `((status: ,status)
 		   (body: ,(and body (utf8->string body))))))))
-    
-;;; Access token
-  (define-record-type oauth2-access-token
-    (fields access-token token-type expires-in refresh-token scope)
-    (protocol (lambda (p)
-		(lambda (access-token token-type expires-in refresh-token scope)
-		  (define (->time v)
-		    (let ((sec (if (string? v)
-				   (string->number v)
-				   v)))
-		      (make-time time-duration 0 sec)))		  
-		  (unless access-token
-		    (assertion-violation 'make-oauth2-access-token
-					 "access_token is required"))
-		  (unless token-type
-		    (assertion-violation 'make-oauth2-access-token
-					 "token_type is required"))
-		  (p access-token token-type
-		     (and expires-in
-			  (or (and (time? expires-in) expires-in)
-			      (->time expires-in)))
-		     refresh-token scope)))))
-  
-  (define (json-string->access-token json)
-    (define (assoc-ref alist v)
-      (cond ((assoc v alist) => cdr)
-	    (else #f)))
-    (parameterize ((*json-map-type* 'alist))
-      (let ((json (json-read (open-string-input-port json))))
-	(make-oauth2-access-token
-	 (assoc-ref json "access_token")
-	 (assoc-ref json "token_type")
-	 (assoc-ref json "expires_in")
-	 (assoc-ref json "refresh_token")
-	 (assoc-ref json "scope")))))
+   
+  (define (oauth2-get-request conn path) (oauth2-request conn 'GET path))
+  (define (oauth2-post-request conn path body)
+    (oauth2-request conn 'POST path
+		    :sender (http-blob-sender
+			     (oauth2-connection-http-connection conn))))
 
-;;; Section 7. Accessing Protected Resources
-  (define (oauth2-access-token->authorization access-token)
-    (let ((type (string->symbol
-		 (string-downcase
-		  (oauth2-access-token-token-type access-token))))
-	  (token (oauth2-access-token-access-token access-token)))
-      (eval `(oauth2-generate-authorization ,token)
-	    (environment `(rfc oauth2 ,type)))))
-
-  (define (oauth2-get-request conn access-token path)
-    (oauth2-access-protected-resource conn 'GET access-token path))
-
-  (define (oauth2-post-request conn access-token path body)
-    (oauth2-access-protected-resource conn 'POST access-token path
-				      :content body))
-
-  (define (oauth2-access-protected-resource conn method access-token path
-					    :key (content #f))
-    (let-values (((header query)
-		  (oauth2-access-token->authorization access-token)))
-      (apply http-request conn method path
-	     :sender (and content (http-blob-sender conn content))
-	     header)))
-
-  (define (make-oauth2-http2-connection server)
-    (make-http2-connection server #t))
-  (define (make-oauth2-http1-connection server)
-    (make-http1-connection server #t))
+  (define (oauth2-request conn method path . options)
+    (let ((authorization (oauth2-connection-authorization conn)))
+      (apply http-request (oauth2-connection-http-connection conn) method path
+	     :authorization authorization
+	     options)))
   
 )
