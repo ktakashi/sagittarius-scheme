@@ -41,7 +41,8 @@
 	    oauth-access-token oauth-access-token? make-oauth-access-token
 	    oauth-access-token-token oauth-access-token-token-secret
 
-	    oauth-request/authorization
+	    oauth-request/header-authorization
+	    oauth-request/query-string-authoerization
 	    oauth-request
 	    ;; for debug/test
 	    oauth-authorization-header
@@ -58,6 +59,7 @@
 	    (rfc uri)
 	    (only (rfc http) list->request-headers)
 	    (www cgi) ;; for split-query-string
+	    (sagittarius)
 	    (sagittarius control))
 
   (define (oauth-compute-signature&authorization-parameter conn method uri
@@ -105,11 +107,26 @@
 	    (filter (lambda (o) (string-prefix? "oauth_" (car o)))
 		    alist)))
   
-  (define (oauth-authorization-header conn method uri . parameters)
-    (let-values (((signature alist)
+  (define (oauth-authorization-parameter conn method uri . parameters)
+    (let-values (((out extract) (open-string-output-port))
+		 ((signature alist)
 		  (apply oauth-compute-signature&authorization-parameter
-			 conn method uri parameters))
-		 ((out extract) (open-string-output-port)))
+			 conn method uri parameters)))
+      (for-each (lambda (o)
+		  (put-string out (car o))
+		  (put-string out "=")
+		  (put-string out (cadr o))
+		  (put-string out "&")) alist)
+      (put-string out "oauth_signature")
+      (put-string out "=")
+      (put-string out (utf8->string (oauth-encode-string signature)))
+      (extract)))
+  
+  (define (oauth-authorization-header conn method uri . parameters)
+    (let-values (((out extract) (open-string-output-port))
+		 ((signature alist)
+		  (apply oauth-compute-signature&authorization-parameter
+			 conn method uri parameters)))
       (put-string out "OAuth ")
       (for-each (lambda (o)
 		  (put-string out (car o))
@@ -119,8 +136,8 @@
       (put-string out "oauth_signature")
       (put-string out "=\"")
       (put-string out (utf8->string (oauth-encode-string signature)))
-      (put-string out "\"")
-      (extract)))
+      (put-string out "\""))
+      (extract))
 
   (define (raise-request-error who msg status response)
     (raise
@@ -198,13 +215,29 @@
 	    (raise-request-error 'oauth-request-access-token
 				 "Failed to request access token" s b)))))
 
-  ;; For convenience
-  (define (oauth-request/authorization conn method uri . others)
+  ;; 3.5.  Parameter Transmission
+  ;; POST request is not considered with these procedures
+  ;; 3.5.1
+  (define (oauth-request/header-authorization conn method uri . others)
     (apply oauth-request conn method uri
-	   (oauth-authorization-header conn method uri) others))
-  (define (oauth-request conn method uri authorization . others)
+	   :authorization (oauth-authorization-header conn method uri)
+	   others))
+  ;; 3.5.2 is not supported
+  ;; it's rather trouble some to implement generic way to handle POST request
+  ;; and 3.5.2 requires POST.
+  
+  ;; 3.5.3
+  (define (oauth-request/query-string-authoerization conn method uri . others)
+    (let ((auth (oauth-authorization-parameter conn method uri)))
+      (let-values (((a path query frag) (uri-decompose-hierarchical uri)))
+	(apply oauth-request conn method
+	       (string-append path "?" auth
+			      (if query (string-append "&" query) ""))
+	       others))))
+
+  ;; it's just an wrapper of http-request for convenience.
+  (define (oauth-request conn method uri . others)
     (apply http-request (oauth-connection-http-connection conn) method uri
-	   :authorization authorization
 	   others))
 )
 
