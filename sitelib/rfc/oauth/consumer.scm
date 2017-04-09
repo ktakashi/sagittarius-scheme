@@ -136,8 +136,8 @@
       (put-string out "oauth_signature")
       (put-string out "=\"")
       (put-string out (utf8->string (oauth-encode-string signature)))
-      (put-string out "\""))
-      (extract))
+      (put-string out "\"")
+      (extract)))
 
   (define (raise-request-error who msg status response)
     (raise
