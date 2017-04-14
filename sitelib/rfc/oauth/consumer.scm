@@ -46,6 +46,7 @@
 	    oauth-request
 	    ;; for debug/test
 	    oauth-authorization-header
+	    oauth-authorization-parameter
 	    oauth-compute-signature&authorization-parameter)
     (import (rnrs)
 	    (srfi :13)

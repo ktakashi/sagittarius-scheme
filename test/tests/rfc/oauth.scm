@@ -152,6 +152,14 @@
 	       :status "Hello%20Ladies%20%2B%20Gentlemen%2C%20a%20signed%20OAuth%20request%21"
 	       :timestamp 1318622958
 	       :nonce "kYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg"
+	       :oauth_token "370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb"))
+  (test-equal "oauth_consumer_key=xvz1evFS4wEEPTGEFPHBog&oauth_signature_method=HMAC-SHA1&oauth_timestamp=1318622958&oauth_nonce=kYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg&oauth_version=1.0&oauth_token=370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb&oauth_signature=tnnArxj06cWHq44gCs1OSKk%2FjLY%3D"
+	      (oauth-authorization-parameter conn 'POST
+	       "/1/statuses/update.json"
+	       :include_entities "true"
+	       :status "Hello%20Ladies%20%2B%20Gentlemen%2C%20a%20signed%20OAuth%20request%21"
+	       :timestamp 1318622958
+	       :nonce "kYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg"
 	       :oauth_token "370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb")))
 
 (let ((conn (make-oauth-connection
