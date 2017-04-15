@@ -49,6 +49,8 @@
 	    TLS-DHE-RSA-WITH-3DES-EDE-CBC-SHA
 	    TLS-DHE-RSA-WITH-AES-128-CBC-SHA
 	    TLS-DHE-RSA-WITH-AES-256-CBC-SHA
+	    TLS-DHE-RSA-WITH-AES-128-CBC-SHA256
+	    TLS-DHE-RSA-WITH-AES-256-CBC-SHA256
 	    TLS-DH-anon-WITH-3DES-EDE-CBC-SHA
 	    TLS-DH-anon-WITH-AES-128-CBC-SHA
 	    TLS-DH-anon-WITH-AES-256-CBC-SHA
@@ -151,6 +153,8 @@
   (define-constant TLS-DHE-RSA-WITH-3DES-EDE-CBC-SHA #x0016)
   (define-constant TLS-DHE-RSA-WITH-AES-128-CBC-SHA  #x0033)
   (define-constant TLS-DHE-RSA-WITH-AES-256-CBC-SHA  #x0039)
+  (define-constant TLS-DHE-RSA-WITH-AES-128-CBC-SHA256  #x0067)
+  (define-constant TLS-DHE-RSA-WITH-AES-256-CBC-SHA256  #x006B)
 
   ;; anonymous key exchange
   (define-constant TLS-DH-anon-WITH-3DES-EDE-CBC-SHA   #x001B)
@@ -164,6 +168,8 @@
       ,TLS-DHE-RSA-WITH-3DES-EDE-CBC-SHA
       ,TLS-DHE-RSA-WITH-AES-256-CBC-SHA
       ,TLS-DHE-RSA-WITH-AES-128-CBC-SHA
+      ,TLS-DHE-RSA-WITH-AES-128-CBC-SHA256
+      ,TLS-DHE-RSA-WITH-AES-256-CBC-SHA256
       ))
   (define-constant *dh-anon-key-exchange-algorithms*
     `(
@@ -178,6 +184,8 @@
     `(
       ;; cipher suite number   .   public key  (scheme . key-length) hash
       ;; DHE
+      (,TLS-DHE-RSA-WITH-AES-256-CBC-SHA256  . (,RSA (,AES . 32) ,SHA-256))
+      (,TLS-DHE-RSA-WITH-AES-128-CBC-SHA256  . (,RSA (,AES . 16) ,SHA-256))
       (,TLS-DHE-RSA-WITH-AES-256-CBC-SHA  . (,RSA (,AES . 32) ,SHA-1))
       (,TLS-DHE-RSA-WITH-3DES-EDE-CBC-SHA . (,RSA (,DES3 . 24) ,SHA-1))
       (,TLS-DHE-RSA-WITH-AES-128-CBC-SHA  . (,RSA (,AES . 16) ,SHA-1))
