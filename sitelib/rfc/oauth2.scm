@@ -36,6 +36,9 @@
 	    oauth2-request-client-credentials-access-token
 	    oauth2-request-authorization-server
 
+	    oauth2-authorization-code-grant-authorization-url
+	    oauth2-request-authorization-code-grant-access-token
+	    
 	    oauth2-get-request
 	    oauth2-post-request
 	    oauth2-request
@@ -174,13 +177,60 @@
     (define creation-time (oauth2-access-token-creation-time access-token))
     (and expires-in
 	 (time<=? (add-duration creation-time expires-in) (current-time))))
+
+  ;; section 4.1 Authorization Code Grant
+  (define (oauth2-authorization-code-grant-authorization-url
+	   base-url client-id :key (redirect-uri #f)
+				   (scope #f)
+				   (state #f))
+    (define (compose-query query)
+      (let ((request-parameters
+	     (string-concatenate
+	      (filter values
+		      (list "response_type=code&client_id="
+			    (uri-encode-string client-id)
+			    (and redirect-uri
+				 (string-append "&redirect_uri="
+						(uri-encode-string redirect-uri)))
+			    (and state
+				 (string-append "&state="
+						(uri-encode-string state)))
+			    (and scope
+				 (string-append "&scope="
+						(uri-encode-string scope))))))))
+			    
+	(if query
+	    (string-append query "&" request-parameters)
+	    request-parameters)))
+    (let-values (((scheme ui host port path query frag) (uri-parse base-url)))
+      (uri-compose :scheme "https" :userinfo ui :host host :port port
+		   :path path :query (compose-query query) :fragment frag)))
+
+  (define (authorization-header u p)
+    (string-append "Basic " (base64-encode-string (string-append u ":" p))))
+  (define (oauth2-request-authorization-code-grant-access-token
+	   connection path client-id credential code redirect-uri)
+    (json-string->access-token
+     (oauth2-request-authorization-server connection path
+      (string-join
+       (list "grant_type=authorization_code"
+	     (string-append "code=" (uri-encode-string code))
+	     (string-append "client_id=" (uri-encode-string client-id))
+	     (string-append "client_secret=" (uri-encode-string credential))
+	     (string-append "redirect_uri=" (uri-encode-string redirect-uri)))
+       "&")
+      ;; Github, Google and LinkedIn requires client_secret parameter
+      ;; thus, we can't send Authorization header. But specification
+      ;; says it can be either way. So need better solution instead of
+      ;; just disabling...
+      ;; :authorization (authorization-header client-id credential)
+      )))
   
   ;; section 4.3
   (define (oauth2-request-password-credentials-access-token 
-	   connection path username password :optional (scope #f))
+	   connection path username password :key (scope #f))
     (json-string->access-token
      (oauth2-request-authorization-server connection path
-      (base64-encode-string (string-append username ":" password))
       (string-join
        (cons* "grant_type=password"
 	      (string-append "username=" (uri-encode-string username))
@@ -188,49 +238,54 @@
 	      (if scope
 		  (list (string-append "scope=" (uri-encode-string scope)))
 		  '()))
-       "&"))))
+       "&")
+      :authorization (authorization-header username password))))
 
   ;; section 4.4
   (define (oauth2-request-client-credentials-access-token
-	   connection path credential :optional (scope #f))
+	   connection path credential :key (scope #f))
     (json-string->access-token 
      (oauth2-request-authorization-server connection path
-      credential
       (string-join
        (cons* "grant_type=client_credentials"
 	      (if scope
 		  (list (string-append "scope=" (uri-encode-string scope)))
 		  '()))
-       "&"))))
+       "&")
+      :authorization (string-append "Basic " credential))))
 
 ;;; OAuth 2.0 Token Revocation
   (define (oauth2-revoke-access-token connection path credential access-token)
     (define (do-revoke auth token type)
-      (oauth2-request-authorization-server connection path credential
-       (string-append "token=" token "&token_type_hint=" type)))
+      (oauth2-request-authorization-server connection path
+       (string-append "token=" token "&token_type_hint=" type)
+       :authorization (string-append "Basic "credential)))
     (let ((token (oauth2-access-token-access-token access-token))
 	  (refresh-token (oauth2-access-token-refresh-token access-token)))
       ;; TODO should we make this optional?
       (when refresh-token (do-revoke auth refresh-token "refresh_token"))
       (do-revoke auth token "access_token")))
   
-  (define (oauth2-request-authorization-server
-	   connection path credential parameters)
+  (define (oauth2-request-authorization-server connection path parameters
+					       . rest)
     (define content-type "application/x-www-form-urlencoded")
     (define http-connection (oauth2-connection-http-connection connection))
     (let-values (((status header body)
-		  (http-request
-		   http-connection 'POST path
-		   :sender (http-string-sender http-connection parameters)
-		   :content-type content-type
-		   :authorization (string-append "Basic " credential))))
+		  (apply http-request
+			 http-connection 'POST path
+			 :sender (http-string-sender http-connection parameters)
+			 :content-type content-type
+			 ;; please return JSON...
+			 :accept "application/json"
+			 rest)))
       (if (string=? status "200")
 	  (utf8->string body)
 	  (raise
 	   (condition (make-oauth2-authorization-server-error
 		       status (and body (utf8->string body)))
 		      (make-who-condition 'oauth2-request-authorization-server)
-		      (make-message-condition "Failed to access to authorization server"))))))
+		      (make-message-condition
+		       "Failed to access to authorization server"))))))
    
   (define (oauth2-get-request conn path) (oauth2-request conn 'GET path))
   (define (oauth2-post-request conn path body)
