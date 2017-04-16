@@ -258,7 +258,8 @@
 
   (define (uri-encode in out
 		      :key ((:noescape echars) *rfc3986-unreserved-char-set*)
-			   (upper-case #t))
+			   (upper-case #t)
+			   (cgi-encode #f))
     (define (hex->char-integer h)
       (cond ((<= 0 h 9) (+ h #x30))
 	    ((<= #xa h #xf) (+ h (- (if upper-case #x41 #x61) 10)))
@@ -266,15 +267,17 @@
 				       "invalid hex number" h))))
     (let loop ((b (get-u8 in)))
       (unless (eof-object? b)
-	(if (and (< b #x80)
-		 (char-set-contains? echars (integer->char b)))
-	    (put-u8 out b)
-	    (begin
-	      (put-u8 out #x25) ;; %
-	      (let ((hi (fxand (fxarithmetic-shift-right b 4) #xf))
-		    (lo (fxand b #xf)))
-		(put-u8 out (hex->char-integer hi))
-		(put-u8 out (hex->char-integer lo)))))
+	(cond ((and (< b #x80) (char-set-contains? echars (integer->char b)))
+	       (put-u8 out b))
+	      ;; W3C.REC-html401-19991224, i think
+	      ((and cgi-encode (= b #x20))
+	       (put-u8 out #x2b)) ;; +
+	      (else
+	       (put-u8 out #x25) ;; %
+	       (let ((hi (fxand (fxarithmetic-shift-right b 4) #xf))
+		     (lo (fxand b #xf)))
+		 (put-u8 out (hex->char-integer hi))
+		 (put-u8 out (hex->char-integer lo)))))
 	(loop (get-u8 in)))))
 
   (define (uri-encode-string string :key (encoding 'utf-8)

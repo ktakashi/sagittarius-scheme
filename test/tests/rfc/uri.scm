@@ -164,5 +164,7 @@
   (t "http://example.com"  "../foo" "http://example.com/foo")
   )
 
+(test-equal "+%25%26%2B%C2%A3%E2%82%AC"
+	    (uri-encode-string " %&+\xA3;\x20AC;" :cgi-encode #t))
 
 (test-end)
