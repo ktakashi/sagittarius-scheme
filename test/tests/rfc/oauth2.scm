@@ -31,7 +31,7 @@
   (define json-string
     "{
        \"access_token\":\"2YotnFZFEjr1zCsicMWpAA\",
-       \"token_type\":\"example\",
+       \"token_type\":\"bearer\",
        \"expires_in\":3600,
        \"refresh_token\":\"tGzv3JOkF0XG5Qx2TlKWIA\",
        \"example_parameter\":\"example_value\"
@@ -39,7 +39,7 @@
   (test-assert (oauth2-access-token? (json-string->access-token json-string)))
   (let ((access-token (json-string->access-token json-string)))
     (test-equal "2YotnFZFEjr1zCsicMWpAA" (oauth2-access-token-access-token access-token))
-    (test-equal "example" (oauth2-access-token-token-type access-token))
+    (test-equal "bearer" (oauth2-access-token-token-type access-token))
     (test-assert (time? (oauth2-access-token-expires-in access-token)))
     (test-equal time-duration (time-type (oauth2-access-token-expires-in access-token)))
     (test-equal "tGzv3JOkF0XG5Qx2TlKWIA" (oauth2-access-token-refresh-token access-token))
@@ -47,7 +47,12 @@
     (test-assert (hashtable? (oauth2-access-token-parameters access-token)))
     (let ((param (oauth2-access-token-parameters access-token)))
       (test-equal "example_value" (hashtable-ref param "example_parameter")))
-    (test-assert (not (oauth2-access-token-expired? access-token)))))
+    (test-assert (not (oauth2-access-token-expired? access-token)))
+
+    (let ((conn (make-oauth2-http1-connection "api.twitter.com")))
+      (test-assert (oauth2-connection? (oauth2-connection-attach-access-token! conn access-token)))
+      (test-eq access-token (oauth2-connection-access-token conn)))
+    ))
 
 (let ((access-token (make-oauth2-access-token "token" "exaple" -1 #f #f #f)))
   (test-assert (oauth2-access-token-expired? access-token)))

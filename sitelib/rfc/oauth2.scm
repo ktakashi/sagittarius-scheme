@@ -63,6 +63,8 @@
 	    oauth2-connection-http-connection
 	    open-oauth2-connection!
 	    close-oauth2-connection!
+	    oauth2-connection-attach-access-token!
+	    oauth2-connection-access-token
 
 	    json-string->access-token
 
@@ -105,7 +107,10 @@
 	    (environment `(rfc oauth2 ,type)))))
 
   (define-record-type oauth2-connection
-    (fields http-connection access-token authorization query)
+    (fields http-connection
+	    (mutable access-token)
+	    (mutable authorization)
+	    (mutable query))
     (protocol
      (lambda (p)
        (case-lambda
@@ -114,6 +119,16 @@
 	 (let-values (((header query)
 		       (oauth2-access-token->authorization access-token)))
 	   (p conn access-token header query)))))))
+  ;; even though, servers (resource, authorization) can be separated,
+  ;; authorization server and resource server are the same most of the
+  ;; time. so this procedure is useful in practice (not in theory)
+  (define (oauth2-connection-attach-access-token! conn access-token)
+    (let-values (((header query)
+		  (oauth2-access-token->authorization access-token)))
+      (oauth2-connection-access-token-set! conn access-token)
+      (oauth2-connection-authorization-set! conn header)
+      (oauth2-connection-query-set! conn query)
+      conn))
 
   (define-syntax define-oauth2-connection
     (syntax-rules ()
