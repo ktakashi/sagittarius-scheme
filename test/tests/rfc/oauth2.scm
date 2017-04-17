@@ -52,6 +52,11 @@
 (let ((access-token (make-oauth2-access-token "token" "exaple" -1 #f #f #f)))
   (test-assert (oauth2-access-token-expired? access-token)))
 
+(test-equal "grant_type=foo&bar=bar"
+	    (oauth2-compose-access-token-request-parameter "foo" :bar "bar"))
+(test-error (oauth2-compose-access-token-request-parameter "foo" :bar))
+(test-error (oauth2-compose-access-token-request-parameter "foo" "bar" "bar"))
+
 (let ()
   (define json-string
     (string->utf8

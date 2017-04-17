@@ -35,6 +35,7 @@
     (export oauth2-request-password-credentials-access-token
 	    oauth2-request-client-credentials-access-token
 	    oauth2-request-authorization-server
+	    oauth2-compose-access-token-request-parameter
 
 	    oauth2-authorization-code-grant-authorization-url
 	    oauth2-request-authorization-code-grant-access-token
@@ -69,7 +70,8 @@
 	    &oauth2-request-error oauth2-request-error?
 	    oauth2-request-error-status oauth2-request-error-content
 
-	    &oauth2-authorization-server-error oauth2-authorization-server-error?
+	    &oauth2-authorization-server-error
+	    oauth2-authorization-server-error?
 	    )
     (import (rnrs)
 	    (rnrs eval)
@@ -179,6 +181,7 @@
 	 (time<=? (add-duration creation-time expires-in) (current-time))))
 
   ;; section 4.1 Authorization Code Grant
+  ;; TODO support PKCE: https://tools.ietf.org/html/rfc7636
   (define (oauth2-authorization-code-grant-authorization-url
 	   base-url client-id :key (redirect-uri #f)
 				   (scope #f)
@@ -208,37 +211,60 @@
 
   (define (authorization-header u p)
     (string-append "Basic " (base64-encode-string (string-append u ":" p))))
+
+  (define (oauth2-compose-access-token-request-parameter type . rest)
+    (let-values (((out extract) (open-string-output-port)))
+      (put-string out "grant_type=")
+      (put-string out type)
+      (let loop ((k&v rest))
+	(cond ((null? k&v) (extract))
+	      ((null? (cdr k&v))
+	       (assertion-violation
+		'oauth2-compose-access-token-request-parameter
+		"keyword list is not even" rest))
+	      (else
+	       (let ((k (car k&v))
+		     (v (cadr k&v)))
+		 (unless (and (keyword? k) (or (string? v) (not v)))
+		   (assertion-violation
+		    'oauth2-compose-access-token-request-parameter
+		    "value must be keyword followed by string" k v))
+		 (when v
+		   (put-string out "&")
+		   (put-string out
+		    (uri-encode-string (keyword->string k) :cgi-encode #t))
+		   (put-string out "=")
+		   (put-string out (uri-encode-string v :cgi-encode #t)))
+		 (loop (cddr k&v))))))))
+  
+  ;; even though cliend_secret is an optional parameter in spec however
+  ;; it's sort of required according to the following page:
+  ;; https://aaronparecki.com/oauth-2-simplified/
+  ;; since client_id and client_secret combination is the alternative
+  ;; method of authentication, we must not send authorization header here.
+  ;; (this method is optional to support according to the spec but in this
+  ;;  case it's rather must support instead of may support. wtf?)
   (define (oauth2-request-authorization-code-grant-access-token
-	   connection path client-id credential code redirect-uri)
+	   connection path client-id code redirect-uri :key (client-secret #f))
     (json-string->access-token
      (oauth2-request-authorization-server connection path
-      (string-join
-       (list "grant_type=authorization_code"
-	     (string-append "code=" (uri-encode-string code))
-	     (string-append "client_id=" (uri-encode-string client-id))
-	     (string-append "client_secret=" (uri-encode-string credential))
-	     (string-append "redirect_uri=" (uri-encode-string redirect-uri)))
-       "&")
-      ;; Github, Google and LinkedIn requires client_secret parameter
-      ;; thus, we can't send Authorization header. But specification
-      ;; says it can be either way. So need better solution instead of
-      ;; just disabling...
-      ;; :authorization (authorization-header client-id credential)
-      )))
+      (oauth2-compose-access-token-request-parameter
+       "authorization_code"
+       :code code
+       :client_id client-id
+       :client_secret client-secret
+       :redirect_uri redirect-uri))))
   
   ;; section 4.3
   (define (oauth2-request-password-credentials-access-token 
 	   connection path username password :key (scope #f))
     (json-string->access-token
      (oauth2-request-authorization-server connection path
-      (string-join
-       (cons* "grant_type=password"
-	      (string-append "username=" (uri-encode-string username))
-	      (string-append "password=" (uri-encode-string password))
-	      (if scope
-		  (list (string-append "scope=" (uri-encode-string scope)))
-		  '()))
-       "&")
+      (oauth2-compose-access-token-request-parameter
+       "password"
+       :username username
+       :password password
+       :scope scope)
       :authorization (authorization-header username password))))
 
   ;; section 4.4
@@ -246,12 +272,9 @@
 	   connection path credential :key (scope #f))
     (json-string->access-token 
      (oauth2-request-authorization-server connection path
-      (string-join
-       (cons* "grant_type=client_credentials"
-	      (if scope
-		  (list (string-append "scope=" (uri-encode-string scope)))
-		  '()))
-       "&")
+      (oauth2-compose-access-token-request-parameter
+       "client_credentials"
+       :scope scope)
       :authorization (string-append "Basic " credential))))
 
 ;;; OAuth 2.0 Token Revocation
