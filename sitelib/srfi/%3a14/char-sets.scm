@@ -28,8 +28,6 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-#!core
-#!nobacktrace
 (library (srfi :14 char-sets)
   (export
    ;; predicates & comparison
@@ -66,22 +64,6 @@
   (import (rnrs)
 	  (rnrs r5rs)
 	  (sagittarius)
-	  ;; To keep backward compatibility...
-	  ;; FIXME remove rename
-	  #;
-	  (rename (sagittarius)
-		  (char-set:lower-case   %char-set:lower-case  ) 
-		  (char-set:upper-case   %char-set:upper-case  ) 
-		  (char-set:title-case   %char-set:title-case  ) 
-		  (char-set:letter       %char-set:letter      )
-		  (char-set:digit        %char-set:digit       )
-		  (char-set:letter+digit %char-set:letter+digit)
-		  (char-set:graphic      %char-set:graphic     )
-		  (char-set:printing     %char-set:printing    )
-		  (char-set:whitespace   %char-set:whitespace  )
-		  (char-set:iso-control  %char-set:iso-control )
-		  (char-set:punctuation  %char-set:punctuation )
-		  (char-set:symbol       %char-set:symbol      ))
 	  (sagittarius control))
 
 ;;; Exports:
