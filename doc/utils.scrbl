@@ -34,6 +34,7 @@
 @include-section["utils/rfc/cmac.scrbl"]
 @include-section["utils/rfc/hmac.scrbl"]
 @include-section["utils/rfc/http.scrbl"]
+@include-section["utils/rfc/http2.scrbl"]
 @include-section["utils/rfc/pem.scrbl"]
 @include-section["utils/rfc/otp.scrbl"]
 @include-section["utils/rfc/quoted-printable.scrbl"]
