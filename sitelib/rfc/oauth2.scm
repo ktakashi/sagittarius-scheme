@@ -42,8 +42,8 @@
 	    oauth2-authorization-code-grant-authorization-url
 	    oauth2-request-authorization-code-grant-access-token
 	    
-	    oauth2-get-request
-	    oauth2-post-request
+	    oauth2-get
+	    oauth2-post
 	    oauth2-request
 
 	    oauth2-revoke-access-token
@@ -342,11 +342,13 @@
 		      (make-message-condition
 		       "Failed to access to authorization server"))))))
    
-  (define (oauth2-get-request conn path) (oauth2-request conn 'GET path))
-  (define (oauth2-post-request conn path body)
-    (oauth2-request conn 'POST path
-		    :sender (http-blob-sender
-			     (oauth2-connection-http-connection conn))))
+  (define (oauth2-get conn path . rest)
+    (apply oauth2-request conn 'GET path rest))
+  (define (oauth2-post conn path body . rest)
+    (apply oauth2-request conn 'POST path
+	   :sender (http-blob-sender
+		    (oauth2-connection-http-connection conn))
+	   rest))
 
   (define (oauth2-request conn method path . options)
     (let ((access-token  (oauth2-connection-access-token conn))
