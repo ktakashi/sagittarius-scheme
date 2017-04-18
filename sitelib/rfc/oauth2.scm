@@ -35,7 +35,9 @@
     (export oauth2-request-password-credentials-access-token
 	    oauth2-request-client-credentials-access-token
 	    oauth2-request-authorization-server
+	    oauth2-compose-authorization-request-parameter
 	    oauth2-compose-access-token-request-parameter
+	    oauth2-compose-request-parameter
 
 	    oauth2-authorization-code-grant-authorization-url
 	    oauth2-request-authorization-code-grant-access-token
@@ -74,12 +76,16 @@
 
 	    &oauth2-authorization-server-error
 	    oauth2-authorization-server-error?
+	    
+	    ;; utility
+	    oauth2-scope-string->list
 	    )
     (import (rnrs)
 	    (rnrs eval)
 	    (sagittarius)
 	    (srfi :1)
 	    (srfi :13)
+	    (srfi :14)
 	    (srfi :19)
 	    (srfi :39)
 	    (text json)
@@ -173,6 +179,23 @@
 		     refresh-token
 		     scope
 		     parameters)))))
+  #|
+     scope       = scope-token *( SP scope-token )
+     scope-token = 1*( %x21 / %x23-5B / %x5D-7E )
+  |#
+  (define scope-set (char-set-union
+		     (ucs-range->char-set #x21 #x22)
+		     (ucs-range->char-set #x23 #x5C)
+		     (ucs-range->char-set #x5D #x7F)))
+  (define (oauth2-scope-string->list s)
+    (unless (string-every (lambda (c)
+			    (or (char-set-contains? scope-set c)
+				(char-whitespace? c))) s)
+      (assertion-violation 'oauth2-scope-string->list
+			   "scope contains invalid character(s)" s))
+    (string-tokenize s scope-set))
+  (define (oauth2-string-list->scope lis) (string-join lis " "))
+  
   (define access-token-builder
     (json-object-builder
      (list
@@ -180,7 +203,7 @@
       "token_type"
       (? "expires_in" #f)
       (? "refresh_token" #f)
-      (? "scope" #f))))
+      (? "scope" #f oauth2-scope-string->list))))
   (define (json-string->access-token json)
     (define extra-parameters (make-equal-hashtable))
     (define (parameter-handler k v) (hashtable-set! extra-parameters k v))
@@ -203,20 +226,12 @@
 				   (state #f))
     (define (compose-query query)
       (let ((request-parameters
-	     (string-concatenate
-	      (filter values
-		      (list "response_type=code&client_id="
-			    (uri-encode-string client-id)
-			    (and redirect-uri
-				 (string-append "&redirect_uri="
-						(uri-encode-string redirect-uri)))
-			    (and state
-				 (string-append "&state="
-						(uri-encode-string state)))
-			    (and scope
-				 (string-append "&scope="
-						(uri-encode-string scope))))))))
-			    
+	     (oauth2-compose-authorization-request-parameter
+	      "code"
+	      :client_id client-id
+	      :redirect_uri redirect-uri
+	      :scope (oauth2-string-list->scope scope)
+	      :state state)))
 	(if query
 	    (string-append query "&" request-parameters)
 	    request-parameters)))
@@ -227,11 +242,9 @@
   (define (authorization-header u p)
     (string-append "Basic " (base64-encode-string (string-append u ":" p))))
 
-  (define (oauth2-compose-access-token-request-parameter type . rest)
+  (define (oauth2-compose-request-parameter . rest)
     (let-values (((out extract) (open-string-output-port)))
-      (put-string out "grant_type=")
-      (put-string out type)
-      (let loop ((k&v rest))
+      (let loop ((k&v rest) (first #t))
 	(cond ((null? k&v) (extract))
 	      ((null? (cdr k&v))
 	       (assertion-violation
@@ -245,12 +258,16 @@
 		    'oauth2-compose-access-token-request-parameter
 		    "value must be keyword followed by string" k v))
 		 (when v
-		   (put-string out "&")
+		   (unless first (put-string out "&"))
 		   (put-string out
 		    (uri-encode-string (keyword->string k) :cgi-encode #t))
 		   (put-string out "=")
 		   (put-string out (uri-encode-string v :cgi-encode #t)))
-		 (loop (cddr k&v))))))))
+		 (loop (cddr k&v) #f)))))))
+  (define (oauth2-compose-access-token-request-parameter type . rest)
+    (apply oauth2-compose-request-parameter :grant_type type rest))
+  (define (oauth2-compose-authorization-request-parameter type . rest)
+    (apply oauth2-compose-request-parameter :response_type type rest))
   
   ;; even though cliend_secret is an optional parameter in spec however
   ;; it's sort of required according to the following page:
@@ -279,7 +296,7 @@
        "password"
        :username username
        :password password
-       :scope scope)
+       :scope (and scope (oauth2-string-list->scope scope)))
       :authorization (authorization-header username password))))
 
   ;; section 4.4
@@ -289,7 +306,7 @@
      (oauth2-request-authorization-server connection path
       (oauth2-compose-access-token-request-parameter
        "client_credentials"
-       :scope scope)
+       :scope (and scope (oauth2-string-list->scope scope)))
       :authorization (string-append "Basic " credential))))
 
 ;;; OAuth 2.0 Token Revocation

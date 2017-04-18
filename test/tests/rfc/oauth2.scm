@@ -62,6 +62,14 @@
 (test-error (oauth2-compose-access-token-request-parameter "foo" :bar))
 (test-error (oauth2-compose-access-token-request-parameter "foo" "bar" "bar"))
 
+(test-equal "response_type=foo&bar=bar"
+	    (oauth2-compose-authorization-request-parameter "foo" :bar "bar"))
+(test-error (oauth2-compose-authorization-request-parameter "foo" :bar))
+(test-error (oauth2-compose-authorization-request-parameter "foo" "bar" "bar"))
+
+(test-equal "foo=foo&bar=bar"
+	    (oauth2-compose-request-parameter :foo "foo" :bar "bar"))
+
 (let ()
   (define json-string
     (string->utf8
