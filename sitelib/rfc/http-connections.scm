@@ -53,9 +53,11 @@
 	    http-request))
 
   (define (open-http-connection! conn)
-    ((http-connection-open conn) conn))
+    ((http-connection-open conn) conn)
+    conn)
   (define (close-http-connection! conn)
-    ((http-connection-close conn) conn))
+    ((http-connection-close conn) conn)
+    conn)
 
   (define (http-request conn method path . opt)
     (apply (http-connection-http-request conn) conn method path opt))
