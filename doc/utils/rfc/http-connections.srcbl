@@ -1,0 +1,11 @@
+@; -*- coding: utf-8 -*-
+@subsection[:tag "rfc.http-connections"]{
+(rfc http-connections) - HTTP client utilities
+}
+
+@define[Library]{@name{(rfc http)}}
+@desc{This library provides wrapper layer of @code{(rfc http)} and
+@code{(rfc http2)} library.
+}
+
+
