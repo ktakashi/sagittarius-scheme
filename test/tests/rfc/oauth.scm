@@ -1,4 +1,5 @@
 #!read-macro=sagittarius/bv-string
+#!read-macro=sagittarius/regex
 (import (rnrs)
 	(rfc oauth)
 	(rfc http-connections)
@@ -6,6 +7,18 @@
 	(rsa pkcs :8)
 	(rfc base64)
 	(rfc x.509)
+	(rfc :5322)
+	(rfc uri)
+	(net server)
+	(only (rfc http) http-get url-server&path)
+	(prefix (binary io) binary:)
+	(crypto)
+	(sagittarius regex)
+	(sagittarius socket)
+	(sagittarius control)
+	(rfc tls)
+	(srfi :18)
+	(srfi :19)
 	(srfi :64))
 
 (test-begin "OAuth 1.0")
@@ -172,5 +185,104 @@
   (test-assert (oauth-connection? (open-oauth-connection! conn)))
   (test-assert (oauth-connection? (close-oauth-connection! conn)))
   (test-assert (http-connection? (oauth-connection-http-connection conn))))
+
+
+(let ()
+  (define consumer-key "consumer-key")
+  (define consumer-secret "consumer-secret")
+  (define +shutdown-port+ "20000")
+  (define keypair (generate-key-pair RSA :size 1024))
+  (define cert (make-x509-basic-certificate keypair 1
+					    (make-x509-issuer '((C . "NL")))
+					    (make-validity (current-date)
+							   (current-date))
+					    (make-x509-issuer '((C . "NL")))))
+  
+  (define config (make-server-config :shutdown-port +shutdown-port+
+				     :secure? #t
+				     :use-ipv6? #t
+				     :certificates (list cert)))
+  (define temporary_credential
+    #*"oauth_callback_confirmed=true&oauth_token=oauth_toke&oauth_token_secret=oauth_token_secret")
+  (define access-token
+    #*"oauth_token=oauth_token&oauth_token_secret=oauth_token_secret")
+  (define (put-error out)
+    (put-bytevector out #*"HTTP/1.1 401 Unauthorized\r\n")
+    (put-bytevector out #*"Content-Length: 5\r\n\r\n")
+    (put-bytevector out #*"error"))
+  
+  (define (do-test-process out method opath headers content)
+    (let-values (((auth path query frag) (uri-decompose-hierarchical opath)))
+      (cond ((string=? path "/request_token")
+	     (test-assert (rfc5322-header-ref headers "authorization"))
+	     (test-equal "POST" method)
+	     (put-bytevector out #*"HTTP/1.1 200 OK\r\n")
+	     (put-bytevector out #*"Content-Type: application/x-www-form-urlencoded\r\n")
+	     (put-bytevector out #*"Content-Length: ")
+	     (put-bytevector out
+			     (string->utf8 (number->string (bytevector-length temporary_credential))))
+	     (put-bytevector out #*"\r\n\r\n")
+	     (put-bytevector out temporary_credential))
+	    ((string=? path "/authorize")
+	     (put-bytevector out #*"HTTP/1.1 200 OK\r\n")
+	     (put-bytevector out #*"Content-Type: application/x-www-form-urlencoded\r\n")
+	     (put-bytevector out #*"Content-Length: 5\r\n")
+	     (put-bytevector out #*"\r\n")
+	     (put-bytevector out #*"12345"))
+	    ((string=? path "/access_token")
+	     (test-assert (rfc5322-header-ref headers "authorization"))
+	     (put-bytevector out #*"HTTP/1.1 200 OK\r\n")
+	     (put-bytevector out #*"Content-Type: application/x-www-form-urlencoded\r\n")
+	     (put-bytevector out #*"Content-Length: ")
+	     (put-bytevector out
+			     (string->utf8 (number->string (bytevector-length access-token))))
+	     (put-bytevector out #*"\r\n\r\n")
+	     (put-bytevector out access-token))
+	    (else (put-error out)))))
+  
+  (define (handler server socket)
+    (call-with-port (socket-port socket #f)
+      (lambda (in/out)
+	(let ((line (binary:get-line in/out)))
+	  (cond ((#/(\w+)\s+([^\s]+)\s+HTTP\/([\d\.]+)/ line) =>
+		 (lambda (m)
+		   (let* ((method (utf8->string (m 1)))
+			  (path (utf8->string (m 2)))
+			  (headers (rfc5322-read-headers in/out))
+			  (content (if (and (string=? method "POST")
+					    (not (string=? "0" (rfc5322-header-ref headers "content-length" ""))))
+				       (get-bytevector-all in/out)
+				       #vu8())))
+		     (do-test-process in/out method path headers content))))
+		;; something went terribly wrong
+		(else (get-bytevector-all in/out) (put-error in/out)))))))
+
+  (define server (make-simple-server "20080" handler :config config
+				     :exception-handler print))
+
+  (define conn (make-oauth-connection
+		(make-http1-connection "localhost:20080" #t)
+		consumer-key
+		(make-oauth-hmac-sha1-signer (string->utf8 consumer-secret))))
+  (define (get-pin url)
+    (let*-values (((server uri) (url-server&path url))
+		  ((s h b) (http-get server uri :secure #t)))
+      b))
+
+  (server-start! server :background #t)
+  (thread-sleep! 0.1)
+
+  (let ((token (oauth-request-temporary-credential conn "/request_token")))
+    (test-assert (oauth-temporary-credential? token))
+    (let ((pin (get-pin (make-oauth-authorization-url "http://localhost:20080/authorize" token))))
+      (test-equal "12345" pin)
+      (let ((access-token (oauth-request-access-token conn "/access_token" token pin)))
+	(test-assert (oauth-access-token? access-token))
+	(test-equal "oauth_token" (oauth-access-token-token access-token))
+	(test-equal "oauth_token_secret" (oauth-access-token-token-secret access-token)))))
+	
+  
+  (make-client-socket "localhost" +shutdown-port+)
+  (test-assert "finish simple server (2)" (wait-server-stop! server)))
 
 (test-end)
