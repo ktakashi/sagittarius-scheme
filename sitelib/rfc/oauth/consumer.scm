@@ -205,9 +205,10 @@
     (let ((token (oauth-temporary-credential-token temporary-credential)))
       (let-values (((s h b)
 		    (oauth-request conn 'POST uri
-		     (oauth-authorization-header conn 'POST uri
-						 :oauth_token token
-						 :oauth_verifier pin)
+		     :authorization (oauth-authorization-header 
+				     conn 'POST uri
+				     :oauth_token token
+				     :oauth_verifier pin)
 		     :sender (http-blob-sender
 			      (oauth-connection-http-connection conn)
 			      (string->utf8 pin)))))
