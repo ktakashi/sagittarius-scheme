@@ -171,8 +171,8 @@
 			   "connection must be secure"))
     (let-values (((s h b)
 		  (oauth-request conn 'POST uri
-		   (oauth-authorization-header conn 'POST uri
-					       :oauth_callback callback)
+		   :authorization (oauth-authorization-header
+				   conn 'POST uri :oauth_callback callback)
 		   :sender (http-null-sender
 			    (oauth-connection-http-connection conn)))))
       (if (string=? s "200")
