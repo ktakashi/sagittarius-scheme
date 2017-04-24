@@ -40,10 +40,13 @@
 	    ;; utilities
 	    http-null-receiver http-oport-receiver
 	    http-blob-sender http-string-sender http-null-sender
+	    http-multipart-sender
 	    )
     (import (rnrs)
 	    (prefix (rfc http) rfc:)
 	    (prefix (rfc http2 client) rfc:)
+	    (rfc mime)
+	    (srfi :1)
 	    (srfi :13)
 	    (clos user))
     
@@ -170,4 +173,30 @@
   (define-method http-null-sender ((conn http1-connection))
     (rfc:http-null-sender))
   (define-method http-null-sender ((conn http2-connection)) #f)
+
+  (define-generic http-multipart-sender)
+  (define-method http-multipart-sender ((conn http1-connection) boundary parts)
+    (unless (for-all mime-part? parts)
+      (assertion-violation 'http-multipart-sender
+			   "parts must be a list of <mult-part>" parts))
+    (lambda (hdrs encoding header-sink)
+      (let* ((body (mime-compose-message-string parts :boundary boundary))
+	     (size (string-length body))
+	     (hdrs `(("content-length" ,(number->string size))
+		     ("mime-version" "1.0")
+		     ("content-type" ,(string-append
+				       "multipart/form-data; boundary=\""
+				       boundary
+				       "\""))
+		     ,@(alist-delete "content-type" hdrs equal?)))
+	     (body-sink (header-sink hdrs))
+	     (port (body-sink size)))
+	(put-bytevector port (string->utf8 body))
+	(body-sink 0))))
+  (define-method http-multipart-sender ((conn http2-connection) boundary parts)
+    (unless (for-all mime-part? parts)
+      (assertion-violation 'http-multipart-sender
+			   "parts must be a list of <mult-part>" parts))
+    (rfc:http2-multipart-sender boundary parts))
+    
 )

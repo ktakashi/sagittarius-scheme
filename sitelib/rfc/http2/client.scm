@@ -49,6 +49,7 @@
 	    ;; primitive senders&receivers
 	    http2-headers-sender
 	    http2-data-sender
+	    http2-multipart-sender
 	    http2-composite-sender
 	    
 	    http2-data-receiver
@@ -72,6 +73,7 @@
 	    (rfc http2 conditions)
 	    (rfc http2 hpack)
 	    (rfc gzip)
+	    (rfc mime)
 	    (srfi :1)
 	    (srfi :18))
 
@@ -478,11 +480,48 @@
 	(http2-write-stream stream frame end-stream?))))
   (define (http2-data-sender data)
     (lambda (stream end-stream?)
-      (let* ((frame (make-http2-frame-data 0 
-					   (http2-stream-identifier stream)
-					   data)))
+      (let ((frame (make-http2-frame-data 0 
+					  (http2-stream-identifier stream)
+					  data)))
 	(http2-write-stream stream frame end-stream?))))
 
+
+  (define (make-stream-write-port stream end-stream? buffer-size)
+    (define buffer (make-bytevector buffer-size))
+    (define pos 0)
+    (define (write! bv start count)
+      (let loop ((c count))
+	(let ((size (min c (- buffer-size pos))))
+	  (if (zero? c)
+	      count
+	      (begin
+		(bytevector-copy! bv start buffer pos size)
+		(set! pos (+ pos size))
+		(when (= pos buffer-size)
+		  (let ((frame (make-http2-frame-data
+				0 (http2-stream-identifier stream) buffer)))
+		    (http2-write-stream stream frame end-stream?))
+		  (set! pos 0))
+		(loop (- c size)))))))
+    (define (close!)
+      (define (copy-buffer buffer)
+	(if (zero? pos)
+	    #vu8()
+	    (bytevector-copy buffer 0 pos)))
+      (let ((frame (make-http2-frame-data
+		    0 (http2-stream-identifier stream) (copy-buffer buffer))))
+	(http2-write-stream stream frame end-stream?)))
+    (make-custom-binary-output-port "stream-write-port" write! #f #f close!))
+  
+  (define multipart-transcoder (make-transcoder (utf-8-codec) 'none))
+  (define (http2-multipart-sender boundary parts :key (buffer-size 4096))
+    (lambda (stream end-stream?)
+      (let ((out (transcoded-port
+		  (make-stream-write-port stream end-stream? buffer-size)
+		  multipart-transcoder)))
+	(mime-compose-message parts out :boundary boundary)
+	(close-output-port out))))
+  
   (define (http2-composite-sender . senders)
     (lambda (stream end-stream?)
       (let loop ((senders senders))

@@ -100,13 +100,15 @@
   (define (mime-parse-version field)
     (and-let* (( field )
 	       (s (string-concatenate
-		   (map (lambda (f) (format "~a" f)) (rfc5322-field->tokens field))))
+		   (map (lambda (f) (format "~a" f))
+			(rfc5322-field->tokens field))))
 	       (m (looking-at *version-regex* s)))
       (map (lambda (d) (string->number (m d))) '(1 2))))
 
 
   (define *ct-token-chars*
-    (char-set-difference (ucs-range->char-set #x21 #x7e) (string->char-set "()<>@,;:\\\"/[]?=")))
+    (char-set-difference (ucs-range->char-set #x21 #x7e)
+			 (string->char-set "()<>@,;:\\\"/[]?=")))
 
   ;; RFC2045 Content-Type header field
   ;; returns (<type> <subtype (attribute . <value>) ...)
@@ -117,7 +119,8 @@
 	     (and-let* ((type (rfc5322-next-token input `(,*ct-token-chars*)))
 			( (string? type) )
 			( (eqv? #\/ (rfc5322-next-token input '())) )
-			(subtype (rfc5322-next-token input `(,*ct-token-chars*)))
+			(subtype (rfc5322-next-token input
+						     `(,*ct-token-chars*)))
 			( (string? subtype) ))
 	       (cons* (string-downcase type)
 		      (string-downcase subtype)
