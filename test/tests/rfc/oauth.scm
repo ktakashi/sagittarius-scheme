@@ -23,6 +23,24 @@
 
 (test-begin "OAuth 1.0")
 
+(define-syntax copy-test
+  (syntax-rules ()
+    ((_ signer verifier plain signature)
+     (let ((copied-signer (oauth-signer-clone signer))
+	   (copied-verifier (oauth-verifier-clone verifier))
+	   (text plain)
+	   (sig signature))
+       (test-assert (oauth-signer? copied-signer))
+       (test-assert (oauth-verifier? copied-verifier))
+       (test-equal sig
+		   (begin
+		     (oauth-signer-process! copied-signer (string->utf8 text))
+		     (oauth-signer-process! signer #*"dummy")
+		     (oauth-signer-done! copied-signer)))
+       (oauth-signer-done! signer)
+       (test-assert (oauth-verifier-verify copied-verifier
+					   (string->utf8 text) sig))))))
+
 (test-group "HMAC-SHA1 Signature"
   ;; from https://dev.twitter.com/oauth/overview/creating-signatures
   (define consumer-secret #*"kAcSOqF21Fu85e7zjz7ZN2U4ZRhfV3WpwPAoE3Z7kBw")
@@ -45,7 +63,9 @@
     (let ((verifier (make-oauth-hmac-sha1-verifier consumer-secret token-secret)))
       (test-assert (oauth-verifier? verifier))
       (test-assert (oauth-verifier-verify verifier (string->utf8 base-string)
-			     "tnnArxj06cWHq44gCs1OSKk/jLY=")))))
+					  "tnnArxj06cWHq44gCs1OSKk/jLY="))
+
+      (copy-test signer verifier base-string "tnnArxj06cWHq44gCs1OSKk/jLY="))))
 
 (test-group "RSA-SHA1 Signature"
   ;; from http://wiki.oauth.net/w/page/12238556/TestCases
@@ -100,7 +120,8 @@
     (let ((verifier (make-oauth-rsa-sha1-verifier public-key)))
       (test-assert (oauth-verifier? verifier))
       (test-assert (oauth-verifier-verify
-		    verifier (string->utf8 base-string) signature)))))
+		    verifier (string->utf8 base-string) signature))
+      (copy-test signer verifier base-string signature))))
 
 (test-equal "http://example.com/r%20v/X"
 	    (oauth-construct-base-string-uri

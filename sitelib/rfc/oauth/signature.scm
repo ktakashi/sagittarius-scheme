@@ -32,8 +32,10 @@
 #!read-macro=sagittarius/bv-string
 (library (rfc oauth signature)
     (export oauth-signer? oauth-signer-process! oauth-signer-done!
-	    oauth-signer-method
+	    oauth-signer-method oauth-signer-clone
+	    
 	    oauth-verifier? oauth-verifier-verify
+	    oauth-verifier-clone
 	    make-oauth-hmac-sha1-signer make-oauth-hmac-sha1-verifier
 	    make-oauth-rsa-sha1-signer make-oauth-rsa-sha1-verifier
 	    make-oauth-plaintext-signer make-oauth-plaintext-verifier
@@ -54,16 +56,20 @@
 	    (crypto)
 	    (math))
   (define-record-type oauth-signer
-    (fields process done method))
+    (fields process done method cloner))
   (define (oauth-signer-process! signer msg)
     ((oauth-signer-process signer) msg))
   (define (oauth-signer-done! signer)
     ((oauth-signer-done signer)))
+  (define (oauth-signer-clone signer)
+    ((oauth-signer-cloner signer)))
   
   (define-record-type oauth-verifier
-    (fields %verify))
+    (fields %verify cloner))
   (define (oauth-verifier-verify verify msg signature)
     ((oauth-verifier-%verify verify) msg signature))
+  (define (oauth-verifier-clone verify)
+    ((oauth-verifier-cloner verify)))
 
   (define (->base64 bv) (utf8->string (base64-encode bv :line-width #f)))
   ;; 3.4.2 HMAC-SHA1
@@ -82,7 +88,9 @@
 		    (hash-done! hmac out 0 (bytevector-length out))
 		    (hash-init! hmac) ;; for next time if needed
 		    (->base64 out)))
-       'HMAC-SHA1))))
+       'HMAC-SHA1
+       (lambda ()
+	 (make-oauth-hmac-sha1-signer consumer-secret token-secret))))))
   (define make-oauth-hmac-sha1-verifier
     (case-lambda
      ((secret) (make-oauth-hmac-sha1-verifier secret #vu8()))
@@ -93,7 +101,9 @@
       (make-oauth-verifier
        (lambda (msg signature)
 	 (verify-mac hmac msg
-		     (base64-decode-string signature :transcoder #f)))))))
+		     (base64-decode-string signature :transcoder #f)))
+       (lambda ()
+	 (make-oauth-hmac-sha1-verifier consumer-secret token-secret))))))
 
   ;; 3.4.3 RSA-SHA1
   ;; private key must be provided before hand.
@@ -107,24 +117,31 @@
 	  (->base64
 	   (cipher-signature cipher (extract)
 			     :encode pkcs1-emsa-v1.5-encode)))
-	'RSA-SHA1))))
+	'RSA-SHA1
+	(lambda ()
+	  (make-oauth-rsa-sha1-signer private-key))))))
   (define (make-oauth-rsa-sha1-verifier public-key)
     (define cipher (make-cipher RSA public-key))
     (make-oauth-verifier
      (lambda (msg signature)
        (cipher-verify cipher msg (base64-decode-string signature :transcoder #f)
-		      :verify pkcs1-emsa-v1.5-verify))))
+		      :verify pkcs1-emsa-v1.5-verify))
+     (lambda ()
+       (make-oauth-rsa-sha1-verifier public-key))))
   ;; 3.4.4 PLAINTEXT
   ;; secret must be the same as HMAC-SHA1
   (define (make-oauth-plaintext-signer secret)
     (let ((r (->base64 secret)))
-      (make-oauth-signer (lambda (msg) #t) (lambda () r) 'PLAINTEXT)))
+      (make-oauth-signer (lambda (msg) #t) (lambda () r) 'PLAINTEXT
+			 (lambda () (make-oauth-plaintext-signer secret)))))
   (define (make-oauth-plaintext-verifier secret)
     (make-oauth-verifier
      (lambda (msg signature)
        (unless (bytevector=? msg
 			     (base64-decode-string signature :transcoder #f))
-	 (assertion-violation 'oauth-plaintext-verifier "inconsistent")))))
+	 (assertion-violation 'oauth-plaintext-verifier "inconsistent")))
+     (lambda ()
+       (make-oauth-plaintext-verifier secret))))
 
   ;; 3.4 Signature Base String
   ;; 3.4.1.2 Base String URI
