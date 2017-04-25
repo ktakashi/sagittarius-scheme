@@ -497,7 +497,7 @@
   (define (http2-data-sender data)
     (lambda (stream end-stream?)
       (when (http2-stream-need-header? stream)
-	(http2-stream-send-header stream value))
+	(http2-stream-send-header stream values))
       (let ((frame (make-http2-frame-data 0 
 					  (http2-stream-identifier stream)
 					  data)))
