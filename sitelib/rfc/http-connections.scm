@@ -46,6 +46,7 @@
 	    (prefix (rfc http) rfc:)
 	    (prefix (rfc http2 client) rfc:)
 	    (rfc mime)
+	    (sagittarius control)
 	    (srfi :1)
 	    (srfi :13)
 	    (clos user))
@@ -180,19 +181,19 @@
       (assertion-violation 'http-multipart-sender
 			   "parts must be a list of <mult-part>" parts))
     (lambda (hdrs encoding header-sink)
-      (let* ((body (mime-compose-message-string parts))
-	     (size (string-length body))
-	     (hdrs `(("content-length" ,(number->string size))
-		     ("mime-version" "1.0")
-		     ("content-type" ,(string-append
-				       "multipart/form-data; boundary=\""
-				       boundary
-				       "\""))
-		     ,@(alist-delete "content-type" hdrs equal?)))
-	     (body-sink (header-sink hdrs))
-	     (port (body-sink size)))
-	(put-bytevector port (string->utf8 body))
-	(body-sink 0))))
+      (let-values (((body boundary) (mime-compose-message-string parts)))
+	(let* ((size (string-length body))
+	       (hdrs `(("content-length" ,(number->string size))
+		       ("mime-version" "1.0")
+		       ("content-type" ,(string-append
+					 "multipart/form-data; boundary=\""
+					 boundary
+					 "\""))
+		       ,@(alist-delete "content-type" hdrs equal?)))
+	       (body-sink (header-sink hdrs))
+	       (port (body-sink size)))
+	  (dotimes (i size) (put-u8 port (char->integer (string-ref body i))))
+	  (body-sink 0)))))
   (define-method http-multipart-sender ((conn http2-connection) parts)
     (unless (for-all mime-part? parts)
       (assertion-violation 'http-multipart-sender

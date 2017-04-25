@@ -92,6 +92,7 @@
 	    (rfc base64)
 	    (slib queue)
 	    (util list)
+	    (util bytevector)
 	    (math))
 
   (define *version-regex* #/^(\d+)\.(\d+)$/)
@@ -613,16 +614,9 @@
 
   (define (mime-compose-message-string parts
 				       :key (boundary (mime-make-boundary)))
-    (let-values (((port extract) (open-bytevector-output-port 
-				  ;; should we add keyword argument for this?
-				  (make-transcoder (utf-8-codec)
-						   (eol-style none)))))
+    (let-values (((port extract) (open-string-output-port)))
       (mime-compose-message parts port :boundary boundary)
-      (values (utf8->string (extract))
-		#;
-		(call-with-string-output-port
-		(cut mime-compose-message parts <> :boundary boundary))
-		boundary)))
+      (values (extract) boundary)))
 
   (define (mime-make-boundary)
     (format "boundary-~a" (number->string (* (random-integer (expt 2 64))
@@ -720,15 +714,11 @@
 			(get-string-all port))))
       (cond ((or (not transfer-enc) (member transfer-enc '("binary" "7bit")
 					    string-ci=?))
-	     ;; danger
 	     (unless (eof-object? content)
 	       (if (string? content)
 		   (put-string (current-output-port) content)
-		   ;; hopefully the current-output-port supports
-		   ;; reckless (probably not, if this is called 
-		   ;; from http library...)
-		   (put-bytevector (current-output-port) content
-				   0 (bytevector-length content) #t))))
+		   (put-string (current-output-port)
+			       (bytevector->escaped-string content)))))
 	    ((string-ci=? transfer-enc "base64")
 	     (unless (eof-object? content)
 	       (put-string (current-output-port)

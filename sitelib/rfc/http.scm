@@ -727,9 +727,8 @@
 		       ,@(alist-delete "content-type" hdrs equal?)))
 	       (body-sink (header-sink hdrs))
 	       (port (body-sink size)))
-	  ;; put-string is defined in this library using
-	  ;; put-bytevector and string->utf8.
-	  (put-string port body)
+	  ;; string->utf8 isn't correct so use one by one for now
+	  (dotimes (i size) (put-u8 port (char->integer (string-ref body i))))
 	  (body-sink 0)))))
 
   ;; authentication handling
