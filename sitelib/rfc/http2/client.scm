@@ -121,6 +121,13 @@
 	      user-agent
 	      server port secure?))))))
 
+  (define (stream-not-opened-error-raiser stream-id)
+    (lambda (stream converter)
+      (http2-stream-closed
+       'http2-sender
+       "The stream is not opened. Maybe forgot to call http2-headers-sender?"
+       `(stream-identifier, stream-id))))
+	    
   ;; A stream is created when either HEADERS is sent or PUSH_PROMISE
   ;; is received. Either case, the state should be open.
   ;; For now we don't preserve streams so there is no idel state.
@@ -135,6 +142,7 @@
 	    (mutable window-size) ;; again do we need this?
 	    connection		  ;; connection of this stream
 	    redirect-handler	  ;; for redirect, must be per stream?
+	    (mutable header-sender)     ;; will be set by http2-headers-sender
 	    )
     (protocol
      (lambda (p)
@@ -143,7 +151,12 @@
 	 (p identifier method uri sender receiver 'open 
 	    (http2-client-connection-window-size connection)
 	    connection
-	    redirect-handler)))))
+	    redirect-handler
+	    (stream-not-opened-error-raiser identifier))))))
+  (define (http2-stream-send-header stream conv)
+    ((http2-stream-header-sender stream) stream conv))
+  (define (http2-stream-need-header? stream)
+    (http2-stream-header-sender stream))
   ;; open stream
   ;; associate sender and receiver to the created stream
   ;; associate stream to identifier
@@ -472,14 +485,19 @@
   ;;      for now.
   (define (http2-headers-sender . headers)
     (lambda (stream end-stream?)
-      (let* ((headers (apply http2-construct-header stream headers))
-	     (frame (make-http2-frame-headers 0 
-					      (http2-stream-identifier stream)
-					      #f #f
-					      headers)))
-	(http2-write-stream stream frame end-stream?))))
+      (http2-stream-header-sender-set! stream
+       (lambda (stream conv)
+	 (let* ((headers (apply http2-construct-header stream (conv headers)))
+		(id (http2-stream-identifier stream))
+		(frame (make-http2-frame-headers 0 id #f #f headers)))
+	   (http2-write-stream stream frame end-stream?))
+	 ;; ok it's ugly but we can check now :)
+	 (http2-stream-header-sender-set! stream #f)))))
+  
   (define (http2-data-sender data)
     (lambda (stream end-stream?)
+      (when (http2-stream-need-header? stream)
+	(http2-stream-send-header stream value))
       (let ((frame (make-http2-frame-data 0 
 					  (http2-stream-identifier stream)
 					  data)))
@@ -500,7 +518,7 @@
 		(when (= pos buffer-size)
 		  (let ((frame (make-http2-frame-data
 				0 (http2-stream-identifier stream) buffer)))
-		    (http2-write-stream stream frame end-stream?))
+		    (http2-write-stream stream frame #f))
 		  (set! pos 0))
 		(loop (- c size)))))))
     (define (close!)
@@ -514,8 +532,34 @@
     (make-custom-binary-output-port "stream-write-port" write! #f #f close!))
   
   (define multipart-transcoder (make-transcoder (utf-8-codec) 'none))
-  (define (http2-multipart-sender boundary parts :key (buffer-size 4096))
+  (define (adjust-for-multipart boundary)
+    (lambda (headers)
+      (define ->bv string->utf8)
+      (define (reconstruct headers boundary)
+	(define (content-type? v)
+	  (or (eq? v :content-type)
+	      (and (bytevector? v)
+		   (bytevector=? #*"content-type" v))))
+	(let loop ((r '()) (h headers) (ct? #f))
+	  (match h
+	    (()
+	     (cons* #*"mime-version" #*"1.0"
+		    (if ct? r (cons* #*"content-type" boundary r))))
+	    (((? content-type? ct) value rest ...)
+	     (loop (if ct? r (cons* #*"content-type" boundary r)) rest #t))
+	    ((name value rest ...)
+	     (loop (cons* name value r) rest ct?)))))
+	    
+      (let1 b (string-append "multipart/form-data; boundary=\"" boundary "\"")
+	(reconstruct headers (->bv b)))))
+    
+  (define (http2-multipart-sender parts
+				  :key (buffer-size 4096)
+				       (boundary (mime-make-boundary)))
     (lambda (stream end-stream?)
+      ;; ok hope user sent it properly then
+      (when (http2-stream-need-header? stream)
+	(http2-stream-send-header stream (adjust-for-multipart boundary)))
       (let ((out (transcoded-port
 		  (make-stream-write-port stream end-stream? buffer-size)
 		  multipart-transcoder)))

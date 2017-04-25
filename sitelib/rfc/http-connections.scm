@@ -175,12 +175,12 @@
   (define-method http-null-sender ((conn http2-connection)) #f)
 
   (define-generic http-multipart-sender)
-  (define-method http-multipart-sender ((conn http1-connection) boundary parts)
+  (define-method http-multipart-sender ((conn http1-connection) parts)
     (unless (for-all mime-part? parts)
       (assertion-violation 'http-multipart-sender
 			   "parts must be a list of <mult-part>" parts))
     (lambda (hdrs encoding header-sink)
-      (let* ((body (mime-compose-message-string parts :boundary boundary))
+      (let* ((body (mime-compose-message-string parts))
 	     (size (string-length body))
 	     (hdrs `(("content-length" ,(number->string size))
 		     ("mime-version" "1.0")
@@ -193,10 +193,10 @@
 	     (port (body-sink size)))
 	(put-bytevector port (string->utf8 body))
 	(body-sink 0))))
-  (define-method http-multipart-sender ((conn http2-connection) boundary parts)
+  (define-method http-multipart-sender ((conn http2-connection) parts)
     (unless (for-all mime-part? parts)
       (assertion-violation 'http-multipart-sender
 			   "parts must be a list of <mult-part>" parts))
-    (rfc:http2-multipart-sender boundary parts))
+    (rfc:http2-multipart-sender parts))
     
 )
