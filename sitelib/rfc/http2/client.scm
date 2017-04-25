@@ -531,7 +531,7 @@
 	(http2-write-stream stream frame end-stream?)))
     (make-custom-binary-output-port "stream-write-port" write! #f #f close!))
   
-  (define multipart-transcoder (make-transcoder (utf-8-codec) 'none))
+  (define multipart-transcoder (make-transcoder (latin-1-codec) 'none))
   (define (adjust-for-multipart boundary)
     (lambda (headers)
       (define ->bv string->utf8)

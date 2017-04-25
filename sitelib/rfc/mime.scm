@@ -547,7 +547,7 @@
   (define (mime-retrieve-body packet inp outp)
     (define (read-line/nl)
       (define (list->string u8s)
-	(utf8->string (u8-list->bytevector u8s)))
+	(bytevector->escaped-string (u8-list->bytevector u8s)))
       (let loop ((c (get-u8 inp))
 		 (chars '()))
 	(cond ((eof-object? c)
