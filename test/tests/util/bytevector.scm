@@ -1243,4 +1243,6 @@
 (test-equal "align-bytevectors (2)" '(#vu8(1 2 3 4 5) #vu8(6 7 8 9 3) #vu8(4))
 	    (align-bytevectors '(#vu8(1 2 3 4 5) #vu8(6 7 8 9) #vu8(3 4)) 5))
 
+
+(test-equal "\x1;\x2;\x3;\x4;\x5;" (bytevector->escaped-string #vu8(1 2 3 4 5)))
 (test-end)

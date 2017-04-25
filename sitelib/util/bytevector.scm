@@ -83,6 +83,8 @@
 	    ;; others
 	    align-bytevectors
 	    align-bytevectors!
+
+	    bytevector->escaped-string
 	    )
     (import (rnrs)
 	    (rnrs mutable-strings)
@@ -212,7 +214,17 @@
 	    (bytevector-u8-set! bv i 
 	      (bitwise-ior (bitwise-arithmetic-shift h 4) l))
 	    (loop (- i 1) (- j 2)))))))
-  
+
+;; #vu8(56) -> "\x56;"
+(define (bytevector->escaped-string bv)
+  ;; it's like this but efficient
+  ;; (list->string (map integer->char (bytevector->u8-list bv)))
+  (let* ((len (bytevector-length bv))
+	 (str (make-string len)))
+    (dotimes (i len str)
+      (let ((b (bytevector-u8-ref bv i)))
+	(string-set! str i (integer->char b))))))
+
 ;; srfi 13 things
 ;; helper
 (define (u8? n) (and (integer? n) (<= 0 n #xFF)))
