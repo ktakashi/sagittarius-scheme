@@ -1062,6 +1062,7 @@ SgObject Sg_ComputeMethods(SgGeneric *gf, SgObject *argv, int argc,
 {
   SgObject applicable = compute_applicable_methods(gf, argv, argc, applyargs);
   if (SG_NULLP(applicable)) return applicable;
+  if (SG_NULLP(SG_CDR(applicable))) return applicable;
   return sort_method(applicable, argv, argc, applyargs);
 }
 
