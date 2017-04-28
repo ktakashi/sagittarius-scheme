@@ -392,5 +392,12 @@
 		'ok)
 	      (length (generic-methods foo))))
 
+(let ()
+  (define-generic nm-1)
+  (define-method nm-1 (o) #f)
+  (define-generic nm-2)
+  (define-method nm-2 (o) (call-next-method))
+  (test-assert (slot-ref (car (generic-methods nm-1)) 'method-leaf))
+  (test-assert (not (slot-ref (car (generic-methods nm-2)) 'method-leaf))))
 
 (test-end)

@@ -43,6 +43,7 @@
 #include "sagittarius/generic.h"
 #include "sagittarius/gloc.h"
 #include "sagittarius/hashtable.h"
+#include "sagittarius/instruction.h"
 #include "sagittarius/keyword.h"
 #include "sagittarius/library.h"
 #include "sagittarius/number.h"
@@ -2038,6 +2039,11 @@ static SgObject method_qualifier(SgMethod *method)
   return SG_METHOD_QUALIFIER(method);
 }
 
+static SgObject method_leaf(SgMethod *method)
+{
+  return SG_MAKE_BOOL(SG_METHOD_LEAF_P(method));
+}
+
 /* next method */
 static void next_method_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
@@ -2145,6 +2151,8 @@ static SgSlotAccessor method_slots[] = {
   SG_CLASS_SLOT_SPEC("required", 3, method_required, NULL),
   SG_CLASS_SLOT_SPEC("optional", 4, method_optional, NULL),
   SG_CLASS_SLOT_SPEC("qualifier", 5, method_qualifier, NULL),
+  /* name is taken from Gauche */
+  SG_CLASS_SLOT_SPEC("method-leaf", 6, method_leaf, NULL),
   { { NULL } }
 };
 
@@ -2664,6 +2672,30 @@ static SG_DEFINE_METHOD(object_hash_rec, &Sg_GenericObjectHash,
 			object_hash_SPEC,
 			&object_hash_default);
 
+static int check_lref0(SgObject procedure)
+{
+  if (!SG_CLOSUREP(procedure)) return FALSE;
+  SgCodeBuilder *cb = SG_CODE_BUILDER(SG_CLOSURE(procedure)->code);
+  /* here we do rather naive way. thus, if it's referred it's called. */
+  int size = cb->size, i;
+  SgWord *code = cb->code;
+  
+  for (i = 0; i < size; i++) {
+    InsnInfo *info = Sg_LookupInsnName(INSN(code[i]));
+    switch (info->number) {
+    case LREF: case LREF_PUSH:
+      /* we don't check LREF_CAR and LREF_CAR_PUSH since it'd be
+         an error for. */
+      if (INSN_VALUE1(code[i])) {
+	continue;
+      }
+      return FALSE;
+    }
+    i += info->argc;
+  }
+  return TRUE;
+}
+
 static SgObject method_initialize_impl(SgObject *argv, int argc, void *data)
 {
   SgMethod *m = SG_METHOD(argv[0]);
@@ -2691,6 +2723,8 @@ static SgObject method_initialize_impl(SgObject *argv, int argc, void *data)
   if ((speclen = Sg_Length(specs)) < 0) {
     Sg_Error(UC("invalid specializers list: %S"), specs);
   }
+  SG_METHOD_LEAF_P(m) = check_lref0(body);
+  
   specarray = class_list_to_array(specs, speclen);
 
   SG_FOR_EACH(lp, llist) req++;

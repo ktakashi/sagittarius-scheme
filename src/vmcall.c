@@ -238,8 +238,12 @@
 	PUSH(SP(vm), args);
       }
 #endif
-      nm = Sg_MakeNextMethod(SG_GENERIC(AC(vm)), SG_CDR(mm), SP(vm) - argc, 
-			     argc, TRUE);
+      if (SG_METHOD_LEAF_P(SG_CAR(mm))) {
+	nm = SG_TRUE;		/* dummy */
+      } else {
+	nm = Sg_MakeNextMethod(SG_GENERIC(AC(vm)), SG_CDR(mm), SP(vm) - argc, 
+			       argc, TRUE);
+      }
       AC(vm) = SG_CAR(mm);
       proctype = SG_PROC_METHOD;
     }
@@ -264,8 +268,12 @@
       AC(vm) = SG_OBJ(n->generic);
       proctype = SG_PROC_GENERIC;
     } else {
-      nm = Sg_MakeNextMethod(n->generic, SG_CDR(n->methods),
-			     SP(vm)-argc, argc, TRUE);
+      if (SG_METHOD_LEAF_P(SG_CAR(n->methods))) {
+	nm = SG_TRUE;		/* dummy */
+      } else {
+	nm = Sg_MakeNextMethod(n->generic, SG_CDR(n->methods),
+			       SP(vm)-argc, argc, TRUE);
+      }
       AC(vm) = SG_CAR(n->methods);
       proctype = SG_PROC_METHOD;
     }

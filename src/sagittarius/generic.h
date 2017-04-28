@@ -79,6 +79,7 @@ typedef struct SgMethodRec
 				   must be array to initialize statically. */
   SgObject    procedure;	/* subr or closuer.
 				   (lambda (call-next-method generic) ...) */
+  int         leafp;	       /* call-next-method is called or not */
 } SgMethod;
 #define SG_METHOD(obj)  ((SgMethod*)(obj))
 #define SG_METHODP(obj) SG_XTYPEP(obj, SG_CLASS_METHOD)
@@ -87,13 +88,14 @@ typedef struct SgMethodRec
 #define SG_METHOD_SPECIALIZERS(method) (SG_METHOD(method)->specializers)
 #define SG_METHOD_PROCEDURE(method)    (SG_METHOD(method)->procedure)
 #define SG_METHOD_QUALIFIER(method)    (SG_METHOD(method)->qualifier)
+#define SG_METHOD_LEAF_P(method)       (SG_METHOD(method)->leafp)
 
 #define SG_DEFINE_METHOD(cvar, gf, req, opt, specs, proc)		\
   SgMethod cvar = {							\
     SG__PROCEDURE_INITIALIZER(SG_CLASS_STATIC_TAG(Sg_MethodClass),	\
 			      req, opt, SG_PROC_METHOD,			\
 			      SG_FALSE, SG_FALSE),			\
-    gf, SG_KEYWORD(SG_FALSE), specs, proc				\
+    gf, SG_KEYWORD(SG_FALSE), specs, proc, 0				\
   }
 
 SG_CLASS_DECL(Sg_NextMethodClass);
