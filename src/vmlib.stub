@@ -89,7 +89,7 @@
 
   (define-c-proc syntax? (arg0) ::<boolean> SG_SYNTAXP)
 
-  (define-c-proc call-syntax-handler (s::<syntax> expr p1env) ::<top>
+  (define-c-proc call-syntax-handler (s::<syntax> expr p1env)
     (result (Sg_VMApply2 (SG_SYNTAX_PROC s) expr p1env)))
 
   ;; macro
@@ -189,8 +189,11 @@
   (define-c-proc make-toplevel-closure (cb::<code-builder>)
     ;; topleve closure should not have any free variables
     (result (Sg_MakeClosure cb NULL)))
-
-
+  (define-c-proc closure->code-vector (cl)
+    (unless (SG_CLOSUREP cl)
+      (wrong-type-of-argument-violation 'closure->code-vector "closure" cl))
+    (result (Sg_CodeBuilderToVector (-> (SG_CLOSURE cl) code))))
+  
   ;; code-builder
   (define-c-proc make-code-builder ()
     (result (Sg_MakeCodeBuilder 2)))
@@ -268,7 +271,7 @@
     (Sg_CodeBuilderEmit cb CLOSURE ARGUMENT1 self-pos 0 lambda_cb)
     (Sg_CodeBuilderAddSrc lambda_cb CLOSURE src))
 
-  (define-c-proc code-builder-label-defs (cb::<code-builder>) ::<top>
+  (define-c-proc code-builder-label-defs (cb::<code-builder>)
     (result (-> cb labelDefs)))
 
   (define-c-proc code-builder-finish-builder (cb::<code-builder> last::<fixnum>)
@@ -491,6 +494,13 @@
 			      (SG_MAKE_BOOL (-> info label))))
 	  (result (Sg_Values5 SG_FALSE SG_FALSE SG_FALSE SG_FALSE SG_FALSE)))))
 
+  (define-c-proc insn-value1 (insn::<integer>) ::<fixnum> INSN_VALUE1)
+  (define-c-proc insn-value2 (insn::<integer>)
+    (let ((v1::int 0)
+	  (v2::int 2))
+      (INSN_VAL2 v1 v2 insn)
+      (result (Sg_Values2 (SG_MAKE_INT v1) (SG_MAKE_INT v2)))))
+  
   ;; this is required on compiler
   (define-c-proc vm-execute! (cb::<code-builder>) Sg_VMExecute)
 
