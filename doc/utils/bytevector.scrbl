@@ -104,6 +104,14 @@ procedures converts to upper case hex values, otherwise lower case.
 @define[Function]{@name{hex-string->bytevector} @args{string}}
 @desc{Converts given hex string @var{string} to bytevector.}
 
+@define[Function]{@name{bytevector->escaped-string} @args{bv}}
+@desc{Converts given bytevector to string without transcoder.
+
+The conversion is the same as the following code:
+@snipet{(list->string (map integer->char (bytevector->u8-list bv)))}
+This procedure is implemented in a memory efficient way.
+}
+
 @define[Function]{@name{bytevector-reverse!}
  @args{bv :optional (start 0) (end (bytevector-length bv))}}
 @define[Function]{@name{bytevector-reverse}
