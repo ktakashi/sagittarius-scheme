@@ -70,6 +70,9 @@
 	    socket-info-values
 	    socket-nonblocking!
 	    socket-blocking!
+	    socket-read-select
+	    socket-write-select
+	    socket-error-select
 	    ;; to send handshake explicitly
 	    tls-server-handshake
 	    tls-client-handshake
@@ -90,6 +93,10 @@
 	    (sagittarius socket)
 	    (sagittarius control)
 	    (sagittarius object)
+	    (prefix (only (sagittarius socket)
+			  socket-read-select
+			  socket-write-select
+			  socket-error-select) socket:)
 	    (rename (rfc tls types) (tls-alert? %tls-alert?))
 	    (rfc tls constant)
 	    (rfc x.509)
@@ -101,6 +108,7 @@
 	    (clos user)
 	    (except (binary io) get-line)
 	    (rsa pkcs :10)
+	    (srfi :1 lists)
 	    (srfi :19 time)
 	    (srfi :26 cut)
 	    (srfi :39 parameters))
@@ -1743,4 +1751,20 @@
     (tls-socket-nonblocking! o))
   (define-method socket-blocking! ((o <tls-socket>))
     (tls-socket-blocking! o))
+
+  (define (select-sockets selector timeout sockets)
+    (define mapping (make-eq-hashtable))
+    (for-each (lambda (s)
+		(hashtable-set! mapping
+		  (if (tls-socket? s) (slot-ref s 'raw-socket) s) s)) sockets)
+    (let ((raw-sockets (apply selector timeout
+			      (hashtable-keys-list mapping))))
+      (filter-map (lambda (s) (hashtable-ref mapping s #f)) raw-sockets)))
+  (define-method socket-read-select (timeout . rest)
+    (select-sockets socket:socket-read-select timeout rest))
+  (define-method socket-write-select (timeout . rest)
+    (select-sockets socket:socket-write-select timeout rest))
+  (define-method socket-error-select (timeout . rest)
+    (select-sockets socket:socket-error-select timeout rest))
+
   )
