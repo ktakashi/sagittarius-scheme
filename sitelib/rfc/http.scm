@@ -49,6 +49,7 @@
 	    http-request
 
 	    ;; senders
+	    http-debug-sender ;; better than nothing
 	    http-null-sender
 	    http-multipart-sender
 	    http-blob-sender
@@ -316,24 +317,19 @@
   (define (send-request out method host uri sender ext-headers options enc
 			auth-headers)
     (binary:format out "~a ~a HTTP/1.1\r\n" method uri)
-    (case method
-      ((POST PUT)
-       (sender (options->request-headers `(:host ,host ,@options)) enc
-	       (lambda (hdrs)
-		 (send-headers hdrs out ext-headers auth-headers)
-		 (let ((chunked? (equal? (rfc5322-header-ref
-					  hdrs "transfer-encoding")
-					 "chunked"))
-		       (first-time #t))
-		   (lambda (size)
-		     (when chunked?
-		       (unless first-time (put-string out "\r\n"))
-		       (binary:format out "~x\r\n" size))
-		     (flush-output-port out)
-		     out)))))
-      (else
-       (send-headers (options->request-headers `(:host ,host ,@options)) out
-		     ext-headers auth-headers))))
+    (if (procedure? sender)
+	(sender (options->request-headers `(:host ,host ,@options)) enc
+		(lambda (hdrs)
+		  (send-headers hdrs out ext-headers auth-headers)
+		  (let ((chunked? (equal? (rfc5322-header-ref
+					   hdrs "transfer-encoding")
+					  "chunked")))
+		    (lambda (size)
+		      (when chunked? (binary:format out "~x\r\n" size))
+		      (flush-output-port out)
+		      out))))
+	(send-headers (options->request-headers `(:host ,host ,@options)) out
+		      ext-headers auth-headers)))
 
   (define (send-headers hdrs out ext-header auth-headers)
     (define (send hdrs)
@@ -670,7 +666,7 @@
     (apply %http-request-adaptor 'DELETE server request-uri #f options))
 
   (define (%http-request-adaptor method server request-uri body
-				 :key receiver (sink #f) (flusher #f)
+				 :key receiver (debug #f) (sink #f) (flusher #f)
 				 :allow-other-keys opts)
     (define recvr
       (if (or sink flusher)
@@ -678,13 +674,39 @@
 			       (or flusher (lambda (s h) 
 					     (get-output-bytevector s))))
 	  receiver))
+    (define (make-sender sender)
+      (if (and (output-port? debug) (binary-port? debug))
+	  (http-debug-sender debug sender)
+	  sender))
     (apply http-request method server request-uri
-	   :sender (cond ((not body) (http-null-sender))
-			 ((list? body) (http-multipart-sender body))
-			 (else (http-blob-sender body)))
+	   :sender (make-sender
+		    (cond ((not body) (http-null-sender))
+			  ((list? body) (http-multipart-sender body))
+			  (else (http-blob-sender body))))
 	   :receiver recvr opts))
 
   ;; senders
+  ;; TODO make it generic to reuse
+  (define (make-tee-port out1 out2)
+    (define (write! bv start count)
+      (put-bytevector out1 bv start count)
+      (put-bytevector out2 bv start count)
+      count)
+    (define (close) #t) ;; do nothing
+    (make-custom-binary-output-port "tee-port" write! #f #f close))
+  (define (http-debug-sender sink sender :key (body #f))
+    (define (debug-header-sink header-sink)
+      (lambda (hdrs)
+	(send-headers hdrs sink '() '())
+	(if body
+	    (let ((body-sink (header-sink hdrs)))
+	      (lambda (size)
+		(let ((out (body-sink size)))
+		  (make-tee-port out sink))))
+	    (header-sink hdrs))))
+    (lambda (hdrs encoding header-sink)
+      (sender hdrs encoding (debug-header-sink header-sink))))
+  
   (define (http-null-sender)
     (lambda (hdrs encoding header-sink)
       (let ((body-sink (header-sink `(("content-length" "0") ,@hdrs))))
