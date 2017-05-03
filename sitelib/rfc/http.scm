@@ -29,6 +29,7 @@
 ;;;  
 
 #!read-macro=sagittarius/regex
+#!read-macro=sagittarius/bv-string
 (library (rfc http)
     (export &http-error
 	    http-error?
@@ -178,6 +179,7 @@
 			     (secure #f)
 			     (receiver (http-string-receiver))
 			     (sender #f)
+			     (trace #f) ;; for debug but hmmmm
 			     (enc :request-encoding 'utf-8)
 			:allow-other-keys opts)
     (let1 conn (ensure-connection server auth-handler auth-user auth-password
@@ -185,21 +187,36 @@
       (request-response
        method conn host (ensure-request-uri request-uri enc)
        sender receiver `(:user-agent ,user-agent ,@opts)
-       '() no-redirect redirect-handler enc)))
+       '() no-redirect redirect-handler enc trace)))
 
   (define (server->socket server port make-socket)
     (cond ((matches #/([^:]+):(\d+)/ server)
 	   => (lambda (m) (make-socket (m 1) (m 2))))
 	  (else (make-socket server port))))
 
-  (define (with-connection conn proc)
+  (define (make-trace-port trace port)
+    (define (read! bv start count)
+      (let ((n (get-bytevector-n! port bv start count)))
+	(unless (eof-object? n) (put-bytevector trace bv start n))
+	(if (eof-object? n) 0 n)))
+    (define (write! bv start count)
+      (put-bytevector trace bv start count)
+      (put-bytevector port bv start count)
+      count)
+    (define (close) (close-port port))
+    (if (and (output-port? trace) (binary-port? trace))
+	(make-custom-binary-input/output-port "trace-port"
+					      read! write! #f #f close)
+	port))
+  (define (with-connection conn proc trace)
     (let* ((secure? (http-connection-secure conn))
 	   (make-socket (if secure? make-client-tls-socket make-client-socket))
 	   (port (if secure? "443" "80")))
       (let* ((s (server->socket (or (http-connection-proxy conn)
 				    (http-connection-server conn))
 				port make-socket))
-	     (p (buffered-port (socket-port s #f) (buffer-mode block))))
+	     (p (buffered-port (make-trace-port trace (socket-port s #f))
+			       (buffer-mode block))))
 	(unwind-protect
 	    (proc p (http-connection-extra-headers conn))
 	  (close-port p)
@@ -208,7 +225,7 @@
 
   (define (request-response method conn host request-uri
 			    sender receiver options 
-			    history no-redirect redirect-handler enc
+			    history no-redirect redirect-handler enc trace
 			    :optional (auth-header '()))
 
     (define no-body-replies '("204" "304"))
@@ -245,7 +262,7 @@
 	     method conn
 	     (http-connection-server (redirect conn proto new-server))
 	     path* sender receiver options
-	     (cons uri history) no-redirect redirect-handler enc))))
+	     (cons uri history) no-redirect redirect-handler enc trace))))
 
       ;; authentication
       (define (handle-authentication in/out code headers 
@@ -272,7 +289,7 @@
 			  (else #f))))
 	  (request-response method conn host request-uri
 			    sender receiver options
-			    history no-redirect redirect-handler enc
+			    history no-redirect redirect-handler enc trace
 			    auth-headers)))
 
       (let ((auth-handler  (http-connection-auth-handler conn))
@@ -291,7 +308,8 @@
 			 (and (not (eq? method 'HEAD))
 			      (not (member code no-body-replies))
 			      (receive-body in/out code 
-					    headers receiver))))))))))
+					    headers receiver))))))
+	 trace))))
 
   (define (canonical-uri conn uri host)
     (let*-values (((scheme specific) (uri-scheme&specific uri))
