@@ -29,6 +29,7 @@
 ;;;  
 
 #!read-macro=sagittarius/regex
+#!read-macro=sagittarius/bv-string
 (library (rfc http)
     (export &http-error
 	    http-error?
@@ -49,6 +50,7 @@
 	    http-request
 
 	    ;; senders
+	    http-debug-sender ;; better than nothing
 	    http-null-sender
 	    http-multipart-sender
 	    http-blob-sender
@@ -177,6 +179,7 @@
 			     (secure #f)
 			     (receiver (http-string-receiver))
 			     (sender #f)
+			     (trace #f) ;; for debug but hmmmm
 			     (enc :request-encoding 'utf-8)
 			:allow-other-keys opts)
     (let1 conn (ensure-connection server auth-handler auth-user auth-password
@@ -184,21 +187,36 @@
       (request-response
        method conn host (ensure-request-uri request-uri enc)
        sender receiver `(:user-agent ,user-agent ,@opts)
-       '() no-redirect redirect-handler enc)))
+       '() no-redirect redirect-handler enc trace)))
 
   (define (server->socket server port make-socket)
     (cond ((matches #/([^:]+):(\d+)/ server)
 	   => (lambda (m) (make-socket (m 1) (m 2))))
 	  (else (make-socket server port))))
 
-  (define (with-connection conn proc)
+  (define (make-trace-port trace port)
+    (define (read! bv start count)
+      (let ((n (get-bytevector-n! port bv start count)))
+	(unless (eof-object? n) (put-bytevector trace bv start n))
+	(if (eof-object? n) 0 n)))
+    (define (write! bv start count)
+      (put-bytevector trace bv start count)
+      (put-bytevector port bv start count)
+      count)
+    (define (close) (close-port port))
+    (if (and (output-port? trace) (binary-port? trace))
+	(make-custom-binary-input/output-port "trace-port"
+					      read! write! #f #f close)
+	port))
+  (define (with-connection conn proc trace)
     (let* ((secure? (http-connection-secure conn))
 	   (make-socket (if secure? make-client-tls-socket make-client-socket))
 	   (port (if secure? "443" "80")))
       (let* ((s (server->socket (or (http-connection-proxy conn)
 				    (http-connection-server conn))
 				port make-socket))
-	     (p (buffered-port (socket-port s #f) (buffer-mode block))))
+	     (p (buffered-port (make-trace-port trace (socket-port s #f))
+			       (buffer-mode block))))
 	(unwind-protect
 	    (proc p (http-connection-extra-headers conn))
 	  (close-port p)
@@ -207,7 +225,7 @@
 
   (define (request-response method conn host request-uri
 			    sender receiver options 
-			    history no-redirect redirect-handler enc
+			    history no-redirect redirect-handler enc trace
 			    :optional (auth-header '()))
 
     (define no-body-replies '("204" "304"))
@@ -244,7 +262,7 @@
 	     method conn
 	     (http-connection-server (redirect conn proto new-server))
 	     path* sender receiver options
-	     (cons uri history) no-redirect redirect-handler enc))))
+	     (cons uri history) no-redirect redirect-handler enc trace))))
 
       ;; authentication
       (define (handle-authentication in/out code headers 
@@ -271,7 +289,7 @@
 			  (else #f))))
 	  (request-response method conn host request-uri
 			    sender receiver options
-			    history no-redirect redirect-handler enc
+			    history no-redirect redirect-handler enc trace
 			    auth-headers)))
 
       (let ((auth-handler  (http-connection-auth-handler conn))
@@ -290,7 +308,8 @@
 			 (and (not (eq? method 'HEAD))
 			      (not (member code no-body-replies))
 			      (receive-body in/out code 
-					    headers receiver))))))))))
+					    headers receiver))))))
+	 trace))))
 
   (define (canonical-uri conn uri host)
     (let*-values (((scheme specific) (uri-scheme&specific uri))
@@ -316,24 +335,19 @@
   (define (send-request out method host uri sender ext-headers options enc
 			auth-headers)
     (binary:format out "~a ~a HTTP/1.1\r\n" method uri)
-    (case method
-      ((POST PUT)
-       (sender (options->request-headers `(:host ,host ,@options)) enc
-	       (lambda (hdrs)
-		 (send-headers hdrs out ext-headers auth-headers)
-		 (let ((chunked? (equal? (rfc5322-header-ref
-					  hdrs "transfer-encoding")
-					 "chunked"))
-		       (first-time #t))
-		   (lambda (size)
-		     (when chunked?
-		       (unless first-time (put-string out "\r\n"))
-		       (binary:format out "~x\r\n" size))
-		     (flush-output-port out)
-		     out)))))
-      (else
-       (send-headers (options->request-headers `(:host ,host ,@options)) out
-		     ext-headers auth-headers))))
+    (if (procedure? sender)
+	(sender (options->request-headers `(:host ,host ,@options)) enc
+		(lambda (hdrs)
+		  (send-headers hdrs out ext-headers auth-headers)
+		  (let ((chunked? (equal? (rfc5322-header-ref
+					   hdrs "transfer-encoding")
+					  "chunked")))
+		    (lambda (size)
+		      (when chunked? (binary:format out "~x\r\n" size))
+		      (flush-output-port out)
+		      out))))
+	(send-headers (options->request-headers `(:host ,host ,@options)) out
+		      ext-headers auth-headers)))
 
   (define (send-headers hdrs out ext-header auth-headers)
     (define (send hdrs)
@@ -670,7 +684,7 @@
     (apply %http-request-adaptor 'DELETE server request-uri #f options))
 
   (define (%http-request-adaptor method server request-uri body
-				 :key receiver (sink #f) (flusher #f)
+				 :key receiver (debug #f) (sink #f) (flusher #f)
 				 :allow-other-keys opts)
     (define recvr
       (if (or sink flusher)
@@ -678,13 +692,39 @@
 			       (or flusher (lambda (s h) 
 					     (get-output-bytevector s))))
 	  receiver))
+    (define (make-sender sender)
+      (if (and (output-port? debug) (binary-port? debug))
+	  (http-debug-sender debug sender)
+	  sender))
     (apply http-request method server request-uri
-	   :sender (cond ((not body) (http-null-sender))
-			 ((list? body) (http-multipart-sender body))
-			 (else (http-blob-sender body)))
+	   :sender (make-sender
+		    (cond ((not body) (http-null-sender))
+			  ((list? body) (http-multipart-sender body))
+			  (else (http-blob-sender body))))
 	   :receiver recvr opts))
 
   ;; senders
+  ;; TODO make it generic to reuse
+  (define (make-tee-port out1 out2)
+    (define (write! bv start count)
+      (put-bytevector out1 bv start count)
+      (put-bytevector out2 bv start count)
+      count)
+    (define (close) #t) ;; do nothing
+    (make-custom-binary-output-port "tee-port" write! #f #f close))
+  (define (http-debug-sender sink sender :key (body #f))
+    (define (debug-header-sink header-sink)
+      (lambda (hdrs)
+	(send-headers hdrs sink '() '())
+	(if body
+	    (let ((body-sink (header-sink hdrs)))
+	      (lambda (size)
+		(let ((out (body-sink size)))
+		  (make-tee-port out sink))))
+	    (header-sink hdrs))))
+    (lambda (hdrs encoding header-sink)
+      (sender hdrs encoding (debug-header-sink header-sink))))
+  
   (define (http-null-sender)
     (lambda (hdrs encoding header-sink)
       (let ((body-sink (header-sink `(("content-length" "0") ,@hdrs))))
