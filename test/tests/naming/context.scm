@@ -18,6 +18,7 @@
   (test-assert (naming-context-set-attribute! ctx "attr" 'value))
   (test-equal 'value (naming-context-get-attribute ctx "attr"))
 
+  (test-error naming-error? (naming-context-bind! ctx "foo:a/b/c" 'value))
   (test-assert (naming-context-bind! ctx "scheme:a/b/c" 'value))
   (test-equal 'value (naming-context-lookup ctx "scheme:a/b/c"))
   (let ((child (make-naming-context ctx)))

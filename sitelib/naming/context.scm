@@ -204,12 +204,18 @@
 		   (lambda (category)
 		     (naming-category-bind! category specific value)))
 		  (else
-		   (let ((category
-			  (make-category-of context
-			   (or specification
-			       (*default-naming-category-specification*)))))
-		     (hashtable-set! categories scheme category)
-		     (naming-category-bind! category specific value)))))
+		   (let* ((spec (or specification
+				    (*default-naming-category-specification*)))
+			  (cate (make-category-of context spec)))
+		     (unless (string-ci=? (naming-category-type cate) scheme)
+		       (raise (condition
+			       (make-naming-error name)
+			       (make-who-condition 'naming-context-bind!)
+			       (make-message-condition
+				"name and specification doesn't match")
+			       (make-irritants-condition (list name spec)))))
+		     (hashtable-set! categories scheme cate)
+		     (naming-category-bind! cate specific value)))))
 	  (raise (condition
 		  (make-naming-error name)
 		  (make-who-condition 'naming-context-bind!)
