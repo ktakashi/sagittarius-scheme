@@ -120,4 +120,8 @@
 	       (let ((s (make-server-socket "12345")))
 		 (socket-close s))))
 
+(let ((server (make-simple-server "12345" (lambda (s sock) #t)
+				  :context 'context)))
+  (test-equal 'context (server-context server)))
+
 (test-end)

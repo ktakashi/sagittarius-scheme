@@ -33,7 +33,7 @@
     (export make-simple-server
 	    make-server-config
 	    server?
-	    server-config? server-config
+	    server-config? server-config server-context
 	    server-start! on-server-start!
 	    ;; well for multithreading?
 	    server-stop!  on-server-stop! 
@@ -99,7 +99,9 @@
      (port           :init-keyword :port)
      (dispatch       :init-keyword :dispatch)
      ;; set if non-blocking mode
-     (initialiser    :init-value #f)))
+     (initialiser    :init-value #f)
+     (context        :init-keyword :context :init-value #f
+		     :reader server-context)))
   (define (server? o) (is-a? o <simple-server>))
   (define (server-stopped? server) (not (~ server 'server-sockets)))
 
