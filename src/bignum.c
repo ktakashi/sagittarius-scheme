@@ -995,8 +995,6 @@ SgObject Sg_BignumLogXor(SgBignum *x, SgBignum *y)
       bignum_2scmpl(yy);
 
       z = bignum_xor(make_bignum(zsize), xx, yy, TRUE, TRUE);
-      SG_BIGNUM_SET_SIGN(z, -1);
-      bignum_2scmpl(z);
       return Sg_NormalizeBignum(z);
     }
   }
