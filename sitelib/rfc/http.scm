@@ -417,11 +417,11 @@
 	    ;; If we've already handled some chunks, we need to skip
 	    ;; the tailing CRLF of the previous chunk
 	    (when chunk-size (get-line remote))
-	    (let1 line (utf8->string (get-line remote))
+	    (let1 line (get-line remote)
 	      (when (eof-object? line)
 		(raise-http-error 'receive-body-chunked
 				  "chunked body ended prematurely"))
-	      (cond ((#/^([0-9a-fA-F]+)/ line)
+	      (cond ((#/^([0-9a-fA-F]+)/ (utf8->string line))
 		     => (lambda (m)
 			  (let1 digits (m 1)
 			    (set! chunk-size (string->number digits 16))
