@@ -43,6 +43,9 @@
   (test (iq c c c c) (make-ilist 4 'c))
   (test (iq 0 1 2 3) (ilist-tabulate 4 values))
   (test (iq 0 1 2 3 4) (iiota 5))
+  (define abc-copy (ilist-copy abc))
+  (test abc abc-copy)
+  (test-assert (not (eq? abc abc-copy)))
 ) ; end ilists/constructors
 
 (test-group "ilists/predicates"
@@ -59,6 +62,7 @@
   (test-assert (not-ipair? 'a))
   (test-assert (not (not-ipair? (ipair 'a 'b))))
   (test-assert (ilist= = (iq 1 2 3) (iq 1 2 3)))
+  (test-assert (ilist= = (iq 1 2 3) (iq 1 2 3) (iq 1 2 3)))
   (test-assert (not (ilist= = (iq 1 2 3 4) (iq 1 2 3))))
   (test-assert (not (ilist= = (iq 1 2 3) (iq 1 2 3 4))))
   (test-assert (ilist= = (iq 1 2 3) (iq 1 2 3)))
@@ -297,8 +301,8 @@
   (test #t (iany  even? (iq 1 2 3)))
   (test #f (ifind even? (iq 1 7 3)))
   (test #f (iany  even? (iq 1 7 3)))
-  (test-error (ifind even? (ipair (1 (ipair 3 x)))))
-  (test-error (iany  even? (ipair (1 (ipair 3 x)))))
+  (test-error (ifind even? (ipair 1 (ipair 3 'x))))
+  (test-error (iany  even? (ipair 1 (ipair 3 'x))))
   (test 4 (ifind even? (iq 3 1 4 1 5 9)))
   (test (iq -8 -5 0 0) (ifind-tail even? (iq 3 1 37 -8 -5 0 0)))
   (test (iq 2 18) (itake-while even? (iq 2 18 3 10 22 9)))
@@ -316,7 +320,7 @@
   (test #t (iany < (iq 3 1 4 1 5) (iq 2 7 1 8 2)))
   (test #t (ievery integer? (iq 1 2 3 4 5)))
   (test #f (ievery integer? (iq 1 2 3 4.5 5)))
-  (test #t (ievery < (iq 1 2 3) (iq 4 5 6)))
+  (test #t (ievery (lambda (a b) (< a b)) (iq 1 2 3) (iq 4 5 6)))
   (test 2 (ilist-index even? (iq 3 1 4 1 5 9)))
   (test 1 (ilist-index < (iq 3 1 4 1 5 9 2 5 6) (iq 2 7 1 8 2)))
   (test #f (ilist-index = (iq 3 1 4 1 5 9 2 5 6) (iq 2 7 1 8 2)))
