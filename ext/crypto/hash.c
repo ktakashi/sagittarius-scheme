@@ -418,7 +418,11 @@ void Sg__InitHash(SgLibrary *lib)
   REGISTER_HASH(&sha512_desc);
   REGISTER_HASH(&sha512_224_desc);
   REGISTER_HASH(&sha512_256_desc);
-
+  /* SHA3 */
+  REGISTER_HASH(&sha3_224_desc);
+  REGISTER_HASH(&sha3_256_desc);
+  REGISTER_HASH(&sha3_384_desc);
+  REGISTER_HASH(&sha3_512_desc);
   /* RMD */
   REGISTER_HASH(&rmd128_desc);
   REGISTER_HASH(&rmd160_desc);
@@ -428,7 +432,17 @@ void Sg__InitHash(SgLibrary *lib)
   REGISTER_HASH(&md5_desc);
   REGISTER_HASH(&md4_desc);
   REGISTER_HASH(&md2_desc);
-
+  /* BLAKE2b */
+  REGISTER_HASH(&blake2b_160_desc);
+  REGISTER_HASH(&blake2b_256_desc);
+  REGISTER_HASH(&blake2b_384_desc);
+  REGISTER_HASH(&blake2b_512_desc);
+  /* BLAKE2s */
+  REGISTER_HASH(&blake2s_128_desc);
+  REGISTER_HASH(&blake2s_160_desc);
+  REGISTER_HASH(&blake2s_224_desc);
+  REGISTER_HASH(&blake2s_256_desc);
+  
   Sg_InitStaticClass(SG_CLASS_HASH, UC("<hash-algorithm>"), lib, NULL, 0);
   Sg_InitStaticClass(SG_CLASS_BUILTIN_HASH, UC("<builtin-hash-algorithm>"),
 		     lib, NULL, 0);

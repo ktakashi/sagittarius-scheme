@@ -120,6 +120,7 @@ ADD_LIBRARY(hashes STATIC
   src/hashes/sha2/sha512_256.c
   # sha3
   src/hashes/sha3.c
+  src/hashes/sha3_test.c
   # whirl
   src/hashes/whirl/whirl.c
   # blake

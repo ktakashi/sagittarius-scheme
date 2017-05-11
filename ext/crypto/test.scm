@@ -1,6 +1,6 @@
 (add-load-path "./crypto")
 #!compatible
-
+#!read-macro=sagittarius/bv-string
 (import (srfi :64 testing)
 	(rnrs)
 	(sagittarius)
@@ -10,6 +10,7 @@
 	(math hash)
 	(math ec)
 	(rfc base64)
+	(util bytevector)
 	(clos user))
 
 ;; plain value for all test cases
@@ -277,6 +278,101 @@
   (test-equal "SHA-512/256"
 	      (integer->bytevector #xc672b8d1ef56ed28ab87c3622c5114069bdd3ad7b8f9737498d0c01ecef0967a)
 	      (hash md msg)))
+
+;; SHA3
+(let ((algorithmes (list SHA-3-224 SHA-3-256 SHA-3-384 SHA-3-512)))
+  (define abcs
+    (map hex-string->bytevector
+	 '("e642824c3f8cf24ad09234ee7d3c766fc9a3a5168d0c94ad73b46fdf"
+	   "3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532"
+	   "ec01498288516fc926459f58e2c6ad8df9b473cb0fc08c2596da7cf0e49be4b298d88cea927ac7f539f1edf228376d25"
+	   "b751850b1a57168a5693cd924b6b096e08f621827444f70d884f5d0240d2712e10e116e9192af3c91a7ec57647e3934057340b4cf408d5a56592f8274eec53f0")))
+  (define empties
+    (map hex-string->bytevector
+	 '("6b4e03423667dbb73b6e15454f0eb1abd4597f9a1b078e3f5b5a6bc7"
+	   "a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a"
+	   "0c63a75b845e4f7d01107d852e4c2485c51a50aaaa94fc61995e71bbee983a2ac3713831264adb47fb6bd1e058d5f004"
+	   "a69f73cca23a9ac5c8b567dc185a756e97c982164fe25859e0d1dcc1475c80a615b2123af1f5f94c11e3e9402c3ac558f500199d95b6d3e301758586281dcd26")))
+  (define (test-sha3 algo in out) (test-equal out (hash algo in)))
+  (for-each (lambda (algo out) (test-sha3 algo #*"abc" out)) algorithmes abcs)
+  (for-each (lambda (algo out) (test-sha3 algo #*"" out)) algorithmes empties))
+
+;; BLAKE2s
+(let ((algos (list BLAKE2s-256 BLAKE2s-224 BLAKE2s-160 BLAKE2s-128
+		   BLAKE2b-512 BLAKE2b-384 BLAKE2b-256 BLAKE2b-160)))
+  (define empties
+    '(#vu8( #x69 #x21 #x7a #x30 #x79 #x90 #x80 #x94
+            #xe1 #x11 #x21 #xd0 #x42 #x35 #x4a #x7c
+	    #x1f #x55 #xb6 #x48 #x2c #xa1 #xa5 #x1e
+	    #x1b #x25 #x0d #xfd #x1e #xd0 #xee #xf9 )
+      #vu8( #x1f #xa1 #x29 #x1e #x65 #x24 #x8b #x37
+            #xb3 #x43 #x34 #x75 #xb2 #xa0 #xdd #x63
+	    #xd5 #x4a #x11 #xec #xc4 #xe3 #xe0 #x34
+	    #xe7 #xbc #x1e #xf4 )
+      #vu8( #x35 #x4c #x9c #x33 #xf7 #x35 #x96 #x24
+            #x18 #xbd #xac #xb9 #x47 #x98 #x73 #x42
+	    #x9c #x34 #x91 #x6f)
+      #vu8( #x64 #x55 #x0d #x6f #xfe #x2c #x0a #x01
+	    #xa1 #x4a #xba #x1e #xad #xe0 #x20 #x0c )
+      #vu8( #x78 #x6a #x02 #xf7 #x42 #x01 #x59 #x03
+            #xc6 #xc6 #xfd #x85 #x25 #x52 #xd2 #x72
+            #x91 #x2f #x47 #x40 #xe1 #x58 #x47 #x61
+            #x8a #x86 #xe2 #x17 #xf7 #x1f #x54 #x19
+            #xd2 #x5e #x10 #x31 #xaf #xee #x58 #x53
+            #x13 #x89 #x64 #x44 #x93 #x4e #xb0 #x4b
+            #x90 #x3a #x68 #x5b #x14 #x48 #xb7 #x55
+            #xd5 #x6f #x70 #x1a #xfe #x9b #xe2 #xce )
+      #vu8( #xb3 #x28 #x11 #x42 #x33 #x77 #xf5 #x2d
+            #x78 #x62 #x28 #x6e #xe1 #xa7 #x2e #xe5
+            #x40 #x52 #x43 #x80 #xfd #xa1 #x72 #x4a
+            #x6f #x25 #xd7 #x97 #x8c #x6f #xd3 #x24
+            #x4a #x6c #xaf #x04 #x98 #x81 #x26 #x73
+            #xc5 #xe0 #x5e #xf5 #x83 #x82 #x51 #x00 )
+      #vu8( #x0e #x57 #x51 #xc0 #x26 #xe5 #x43 #xb2
+            #xe8 #xab #x2e #xb0 #x60 #x99 #xda #xa1
+            #xd1 #xe5 #xdf #x47 #x77 #x8f #x77 #x87
+            #xfa #xab #x45 #xcd #xf1 #x2f #xe3 #xa8 )
+      #vu8( #x33 #x45 #x52 #x4a #xbf #x6b #xbe #x18
+            #x09 #x44 #x92 #x24 #xb5 #x97 #x2c #x41
+            #x79 #x0b #x6c #xf2 )))
+  (define abcs
+    '(#vu8( #x50 #x8c #x5e #x8c #x32 #x7c #x14 #xe2
+            #xe1 #xa7 #x2b #xa3 #x4e #xeb #x45 #x2f
+	    #x37 #x45 #x8b #x20 #x9e #xd6 #x3a #x29
+	    #x4d #x99 #x9b #x4c #x86 #x67 #x59 #x82 )
+      #vu8( #x0b #x03 #x3f #xc2 #x26 #xdf #x7a #xbd
+	    #xe2 #x9f #x67 #xa0 #x5d #x3d #xc6 #x2c
+	    #xf2 #x71 #xef #x3d #xfe #xa4 #xd3 #x87
+	    #x40 #x7f #xbd #x55 )
+      #vu8( #x5a #xe3 #xb9 #x9b #xe2 #x9b #x01 #x83
+            #x4c #x3b #x50 #x85 #x21 #xed #xe6 #x04
+	    #x38 #xf8 #xde #x17 )
+      #vu8( #xaa #x49 #x38 #x11 #x9b #x1d #xc7 #xb8
+	    #x7c #xba #xd0 #xff #xd2 #x00 #xd0 #xae )
+      #vu8( #xba #x80 #xa5 #x3f #x98 #x1c #x4d #x0d
+            #x6a #x27 #x97 #xb6 #x9f #x12 #xf6 #xe9
+            #x4c #x21 #x2f #x14 #x68 #x5a #xc4 #xb7
+            #x4b #x12 #xbb #x6f #xdb #xff #xa2 #xd1
+            #x7d #x87 #xc5 #x39 #x2a #xab #x79 #x2d
+            #xc2 #x52 #xd5 #xde #x45 #x33 #xcc #x95
+            #x18 #xd3 #x8a #xa8 #xdb #xf1 #x92 #x5a
+            #xb9 #x23 #x86 #xed #xd4 #x00 #x99 #x23 )
+      #vu8( #x6f #x56 #xa8 #x2c #x8e #x7e #xf5 #x26
+            #xdf #xe1 #x82 #xeb #x52 #x12 #xf7 #xdb
+            #x9d #xf1 #x31 #x7e #x57 #x81 #x5d #xbd
+            #xa4 #x60 #x83 #xfc #x30 #xf5 #x4e #xe6
+            #xc6 #x6b #xa8 #x3b #xe6 #x4b #x30 #x2d
+            #x7c #xba #x6c #xe1 #x5b #xb5 #x56 #xf4 )
+      #vu8( #xbd #xdd #x81 #x3c #x63 #x42 #x39 #x72
+            #x31 #x71 #xef #x3f #xee #x98 #x57 #x9b
+            #x94 #x96 #x4e #x3b #xb1 #xcb #x3e #x42
+            #x72 #x62 #xc8 #xc0 #x68 #xd5 #x23 #x19 )
+      #vu8( #x38 #x42 #x64 #xf6 #x76 #xf3 #x95 #x36
+            #x84 #x05 #x23 #xf2 #x84 #x92 #x1c #xdc
+            #x68 #xb6 #x84 #x6b )))
+  (define (test-blake2 algo in out) (test-equal out (hash algo in)))
+  (for-each (lambda (algo out) (test-blake2 algo #*"abc" out)) algos abcs)
+  (for-each (lambda (algo out) (test-blake2 algo #*"" out)) algos empties))
 
 ;; mgf-1 test
 (define mgf-result-sha1

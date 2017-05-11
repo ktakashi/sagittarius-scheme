@@ -21,10 +21,12 @@
 	    hash-oid
 	    WHIRLPOOL 
 	    SHA-224 SHA-256 SHA-384 SHA-512 SHA-512/224 SHA-512/256
-	     
+	    SHA-3-224 SHA-3-256 SHA-3-384 SHA-3-512
 	    RIPEMD-320 RIPEMD-256   
 	    Tiger-192 SHA-1 RIPEMD-160 RIPEMD-128
 	    MD5 MD4 MD2
+	    BLAKE2s-128 BLAKE2s-160 BLAKE2s-224 BLAKE2s-256
+	    BLAKE2b-160 BLAKE2b-256 BLAKE2b-384 BLAKE2b-512
 	    ;; clos
 	    <prng> <user-prng> <builtin-prng> <secure-random>
 	    <hash-algorithm> <user-hash-algorithm>
@@ -58,6 +60,12 @@
   (define-constant SHA-512    "sha512")
   (define-constant SHA-512/224 "sha512-224")
   (define-constant SHA-512/256 "sha512-256")
+  ;; SHA3
+  (define-constant SHA-3-224   "sha3-224")
+  (define-constant SHA-3-256   "sha3-256")
+  (define-constant SHA-3-384   "sha3-384")
+  (define-constant SHA-3-512   "sha3-512")
+  
   (define-constant Tiger-192  "tiger")
 
   (define-constant RIPEMD-160 "rmd160")
@@ -65,4 +73,13 @@
   (define-constant MD5        "md5")
   (define-constant MD4        "md4")
   (define-constant MD2        "md2")
+
+  (define-constant BLAKE2s-128 "blake2s-128")
+  (define-constant BLAKE2s-160 "blake2s-160")
+  (define-constant BLAKE2s-224 "blake2s-224")
+  (define-constant BLAKE2s-256 "blake2s-256")
+  (define-constant BLAKE2b-160 "blake2b-160")
+  (define-constant BLAKE2b-256 "blake2b-256")
+  (define-constant BLAKE2b-384 "blake2b-384")
+  (define-constant BLAKE2b-512 "blake2b-512")
 )
