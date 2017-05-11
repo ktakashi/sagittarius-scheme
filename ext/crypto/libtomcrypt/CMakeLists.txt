@@ -68,7 +68,23 @@ ADD_LIBRARY(ciphers STATIC
   src/ciphers/safer/safer.c src/ciphers/safer/saferp.c
   src/ciphers/safer/safer_tab.c
   # twofish
-  src/ciphers/twofish/twofish.c)
+  src/ciphers/twofish/twofish.c
+
+
+  # stream cipher
+  # chacha
+  src/stream/chacha/chacha_crypt.c
+  src/stream/chacha/chacha_done.c
+  src/stream/chacha/chacha_ivctr32.c
+  src/stream/chacha/chacha_ivctr64.c
+  src/stream/chacha/chacha_keystream.c
+  src/stream/chacha/chacha_setup.c
+  # rc4
+  src/stream/rc4/rc4.c
+  # sober
+  src/stream/sober128/sober128.c
+  src/stream/sober128/sober128tab.c
+  )
 
 # hashes
 # we don't need helpers
@@ -102,8 +118,15 @@ ADD_LIBRARY(hashes STATIC
   src/hashes/sha2/sha512.c
   src/hashes/sha2/sha512_224.c
   src/hashes/sha2/sha512_256.c
+  # sha3
+  src/hashes/sha3.c
   # whirl
-  src/hashes/whirl/whirl.c)
+  src/hashes/whirl/whirl.c
+  # blake
+  src/hashes/blake2b.c
+  src/hashes/blake2s.c)
+
+SET_TARGET_PROPERTIES(hashes PROPERTIES COMPILE_DEFINITIONS LTC_NO_TEST)
 
 # modes
 ADD_LIBRARY(modes STATIC
@@ -169,6 +192,7 @@ ADD_LIBRARY(prngs STATIC
   src/misc/crypt/crypt_register_prng.c
   src/misc/crypt/crypt_unregister_prng.c
 
+  src/prngs/chacha20.c
   src/prngs/fortuna.c
   src/prngs/rc4.c
   src/prngs/rng_get_bytes.c
@@ -176,6 +200,8 @@ ADD_LIBRARY(prngs STATIC
   src/prngs/sober128.c
   src/prngs/sprng.c
   src/prngs/yarrow.c)
+
+SET_TARGET_PROPERTIES(prngs PROPERTIES COMPILE_DEFINITIONS LTC_NO_TEST)
 
 SET(DUMMY_FILE ${CMAKE_CURRENT_BINARY_DIR}/src/libtomcrypt.c)
 ADD_LIBRARY(libtomcrypt STATIC

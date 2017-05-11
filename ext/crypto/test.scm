@@ -324,13 +324,14 @@
 					:seed #vu8(1 2 3 4 5 6 7 8))))
 	       (pseudo-random? prng)))
 
-(test-error "SOBER-128 prng (no seed)"
-	    error?
-	    (pseudo-random SOBER-128))
-
-(test-error "SOBER-128 prng (invalid seed size)"
-	    error?
-	    (pseudo-random SOBER-128 :seed #vu8(1 2 3)))
+;; this will never happen since we follow the upsteam of libtomcrypt
+;; (test-error "SOBER-128 prng (no seed)"
+;; 	    error?
+;; 	    (pseudo-random SOBER-128))
+;; 
+;; (test-error "SOBER-128 prng (invalid seed size)"
+;; 	    error?
+;; 	    (pseudo-random SOBER-128 :seed #vu8(1 2 3)))
 
 ;; blowfish
 ;; test vector from http://www.schneier.com/code/vectors.txt

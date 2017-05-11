@@ -4,14 +4,20 @@ struct yarrow_prng {
     int                   cipher, hash;
     unsigned char         pool[MAXBLOCKSIZE];
     symmetric_CTR         ctr;
-    LTC_MUTEX_TYPE(prng_lock)
 };
 #endif
 
 #ifdef LTC_RC4
 struct rc4_prng {
-    int x, y;
-    unsigned char buf[256];
+    rc4_state s;
+};
+#endif
+
+#ifdef LTC_CHACHA20_PRNG
+struct chacha20_prng {
+    chacha_state s;        /* chacha state */
+    unsigned char ent[40]; /* entropy buffer */
+    unsigned long idx;     /* entropy counter */
 };
 #endif
 
@@ -29,38 +35,38 @@ struct fortuna_prng {
                   wd;
 
     ulong64       reset_cnt;  /* number of times we have reset */
-    LTC_MUTEX_TYPE(prng_lock)
 };
 #endif
 
 #ifdef LTC_SOBER128
 struct sober128_prng {
-    ulong32      R[17],          /* Working storage for the shift register */
-                 initR[17],      /* saved register contents */
-                 konst,          /* key dependent constant */
-                 sbuf;           /* partial word encryption buffer */
-
-    int          nbuf,           /* number of part-word stream bits buffered */
-                 flag,           /* first add_entropy call or not? */
-                 set;            /* did we call add_entropy to set key? */
-
+    sober128_state s;      /* sober128 state */
+    unsigned char ent[40]; /* entropy buffer */
+    unsigned long idx;     /* entropy counter */
 };
 #endif
 
-typedef union Prng_state {
-    char dummy[1];
+typedef struct {
+   union {
+      char dummy[1];
 #ifdef LTC_YARROW
-    struct yarrow_prng    yarrow;
+      struct yarrow_prng    yarrow;
 #endif
 #ifdef LTC_RC4
-    struct rc4_prng       rc4;
+      struct rc4_prng       rc4;
+#endif
+#ifdef LTC_CHACHA20_PRNG
+      struct chacha20_prng  chacha;
 #endif
 #ifdef LTC_FORTUNA
-    struct fortuna_prng   fortuna;
+      struct fortuna_prng   fortuna;
 #endif
 #ifdef LTC_SOBER128
-    struct sober128_prng  sober128;
+      struct sober128_prng  sober128;
 #endif
+   };
+   short ready;            /* ready flag 0-1 */
+   LTC_MUTEX_TYPE(lock)    /* lock */
 } prng_state;
 
 /** PRNG descriptor */
@@ -154,6 +160,18 @@ int  rc4_test(void);
 extern const struct ltc_prng_descriptor rc4_desc;
 #endif
 
+#ifdef LTC_CHACHA20_PRNG
+int chacha20_prng_start(prng_state *prng);
+int chacha20_prng_add_entropy(const unsigned char *in, unsigned long inlen, prng_state *prng);
+int chacha20_prng_ready(prng_state *prng);
+unsigned long chacha20_prng_read(unsigned char *out, unsigned long outlen, prng_state *prng);
+int  chacha20_prng_done(prng_state *prng);
+int  chacha20_prng_export(unsigned char *out, unsigned long *outlen, prng_state *prng);
+int  chacha20_prng_import(const unsigned char *in, unsigned long inlen, prng_state *prng);
+int  chacha20_prng_test(void);
+extern const struct ltc_prng_descriptor chacha20_prng_desc;
+#endif
+
 #ifdef LTC_SPRNG
 int sprng_start(prng_state *prng);
 int sprng_add_entropy(const unsigned char *in, unsigned long inlen, prng_state *prng);
@@ -192,6 +210,11 @@ unsigned long rng_get_bytes(unsigned char *out,
                             void (*callback)(void));
 
 int rng_make_prng(int bits, int wprng, prng_state *prng, void (*callback)(void));
+
+#ifdef LTC_PRNG_ENABLE_LTC_RNG
+extern unsigned long (*ltc_rng)(unsigned char *out, unsigned long outlen,
+      void (*callback)(void));
+#endif
 
 
 /* $Source$ */

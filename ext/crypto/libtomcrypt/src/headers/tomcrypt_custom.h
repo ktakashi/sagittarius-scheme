@@ -3,70 +3,46 @@
 
 /* macros for various libc functions you can change for embedded targets */
 #ifndef XMALLOC
-   #ifdef malloc
-   #define LTC_NO_PROTOTYPES
-   #endif
 #define XMALLOC  malloc
 #endif
 #ifndef XREALLOC
-   #ifdef realloc
-   #define LTC_NO_PROTOTYPES
-   #endif
 #define XREALLOC realloc
 #endif
 #ifndef XCALLOC
-   #ifdef calloc
-   #define LTC_NO_PROTOTYPES
-   #endif
 #define XCALLOC  calloc
 #endif
 #ifndef XFREE
-   #ifdef free
-   #define LTC_NO_PROTOTYPES
-   #endif
 #define XFREE    free
 #endif
 
 #ifndef XMEMSET
-   #ifdef memset
-   #define LTC_NO_PROTOTYPES
-   #endif
 #define XMEMSET  memset
 #endif
 #ifndef XMEMCPY
-   #ifdef memcpy
-   #define LTC_NO_PROTOTYPES
-   #endif
 #define XMEMCPY  memcpy
 #endif
 #ifndef XMEMCMP
-   #ifdef memcmp
-   #define LTC_NO_PROTOTYPES
-   #endif
 #define XMEMCMP  memcmp
 #endif
 #ifndef XMEM_NEQ
 #define XMEM_NEQ  mem_neq
 #endif
 #ifndef XSTRCMP
-   #ifdef strcmp
-   #define LTC_NO_PROTOTYPES
-   #endif
 #define XSTRCMP strcmp
 #endif
 
 #ifndef XCLOCK
 #define XCLOCK   clock
 #endif
-#ifndef XCLOCKS_PER_SEC
-#define XCLOCKS_PER_SEC CLOCKS_PER_SEC
-#endif
 
 #ifndef XQSORT
-   #ifdef qsort
-   #define LTC_NO_PROTOTYPES
-   #endif
 #define XQSORT qsort
+#endif
+
+#if ( defined(malloc) || defined(realloc) || defined(calloc) || defined(free) || \
+      defined(memset) || defined(memcpy) || defined(memcmp) || defined(strcmp) || \
+      defined(clock) || defined(qsort) ) && !defined(LTC_NO_PROTOTYPES)
+#define LTC_NO_PROTOTYPES
 #endif
 
 /* shortcut to disable automatic inclusion */
@@ -98,6 +74,7 @@
 
    #define LTC_NO_HASHES
    #define LTC_SHA1
+   #define LTC_SHA3
    #define LTC_SHA512
    #define LTC_SHA384
    #define LTC_SHA256
@@ -127,11 +104,13 @@
 
 /* The minimal set of functionality to run the tests */
 #ifdef LTC_MINIMAL
+   #define LTC_RIJNDAEL
    #define LTC_SHA256
+   #define LTC_YARROW
    #define LTC_CTR_MODE
+
    #define LTC_RNG_MAKE_PRNG
    #define LTC_RNG_GET_BYTES
-   #define LTC_YARROW
    #define LTC_DEVRANDOM
    #define LTC_TRY_URANDOM_FIRST
 
@@ -158,10 +137,7 @@
 /* #define LTC_NO_ASM */
 
 /* disable FAST mode */
-/* why don't you do like this from the beginning? */
-#if __GNUC__ < 4 || defined(_MSC_VER)
-# define LTC_NO_FAST
-#endif
+/* #define LTC_NO_FAST */
 
 /* disable BSWAP on x86 */
 /* #define LTC_NO_BSWAP */
@@ -175,10 +151,10 @@
 /* TomsFastMath */
 /* #define TFM_DESC */
 
-#endif /* LTC_NO_MATH */
-
 /* GNU Multiple Precision Arithmetic Library */
 /* #define GMP_DESC */
+
+#endif /* LTC_NO_MATH */
 
 /* ---> Symmetric Block Ciphers <--- */
 #ifndef LTC_NO_CIPHERS
@@ -214,6 +190,11 @@
 #define LTC_MULTI2
 #define LTC_CAMELLIA
 
+/* stream ciphers */
+#define LTC_CHACHA
+#define LTC_RC4_STREAM
+#define LTC_SOBER128_STREAM
+
 #endif /* LTC_NO_CIPHERS */
 
 
@@ -248,6 +229,7 @@
 
 #define LTC_CHC_HASH
 #define LTC_WHIRLPOOL
+#define LTC_SHA3
 #define LTC_SHA512
 #define LTC_SHA512_256
 #define LTC_SHA512_224
@@ -263,6 +245,8 @@
 #define LTC_RIPEMD160
 #define LTC_RIPEMD256
 #define LTC_RIPEMD320
+#define LTC_BLAKE2S
+#define LTC_BLAKE2B
 
 #define LTC_HASH_HELPERS
 
@@ -278,6 +262,9 @@
 #define LTC_XCBC
 #define LTC_F9_MODE
 #define LTC_PELICAN
+#define LTC_POLY1305
+#define LTC_BLAKE2SMAC
+#define LTC_BLAKE2BMAC
 
 /* ---> Encrypt + Authenticate Modes <--- */
 
@@ -287,6 +274,7 @@
 #define LTC_OCB3_MODE
 #define LTC_CCM_MODE
 #define LTC_GCM_MODE
+#define LTC_CHACHA20POLY1305_MODE
 
 /* Use 64KiB tables */
 #ifndef LTC_NO_TABLES
@@ -306,24 +294,20 @@
 
 /* Yarrow */
 #define LTC_YARROW
-/* which descriptor of AES to use?  */
-/* 0 = rijndael_enc 1 = aes_enc, 2 = rijndael [full], 3 = aes [full] */
-#ifdef ENCRYPT_ONLY
-  #define LTC_YARROW_AES 0
-#else
-  #define LTC_YARROW_AES 2
-#endif
 
 /* a PRNG that simply reads from an available system source */
 #define LTC_SPRNG
 
-/* The LTC_RC4 stream cipher */
+/* The RC4 stream cipher based PRNG */
 #define LTC_RC4
+
+/* The ChaCha20 stream cipher based PRNG */
+#define LTC_CHACHA20_PRNG
 
 /* Fortuna PRNG */
 #define LTC_FORTUNA
 
-/* Greg's LTC_SOBER128 PRNG ;-0 */
+/* Greg's SOBER128 stream cipher based PRNG */
 #define LTC_SOBER128
 
 /* the *nix style /dev/random device */
@@ -336,7 +320,22 @@
 /* rng_make_prng() */
 #define LTC_RNG_MAKE_PRNG
 
+/* enable the ltc_rng hook to integrate e.g. embedded hardware RNG's easily */
+/* #define LTC_PRNG_ENABLE_LTC_RNG */
+
 #endif /* LTC_NO_PRNGS */
+
+#ifdef LTC_YARROW
+
+/* which descriptor of AES to use?  */
+/* 0 = rijndael_enc 1 = aes_enc, 2 = rijndael [full], 3 = aes [full] */
+#ifdef ENCRYPT_ONLY
+  #define LTC_YARROW_AES 0
+#else
+  #define LTC_YARROW_AES 2
+#endif
+
+#endif
 
 #ifdef LTC_FORTUNA
 
@@ -360,7 +359,6 @@
 #define LTC_MRSA
 
 /* Include Diffie-Hellman support */
-#ifndef GMP_DESC
 /* is_prime fails for GMP */
 #define LTC_MDH
 /* Supported Key Sizes */
@@ -376,7 +374,6 @@
 #define LTC_DH2560
 #define LTC_DH3072
 #define LTC_DH4096
-#endif
 #endif
 
 /* Include Katja (a Rabin variant like RSA) */
@@ -521,6 +518,30 @@
    #error PK requires ASN.1 DER functionality, make sure LTC_DER is enabled
 #endif
 
+#if defined(LTC_CHACHA20POLY1305_MODE) && (!defined(LTC_CHACHA) || !defined(LTC_POLY1305))
+   #error LTC_CHACHA20POLY1305_MODE requires LTC_CHACHA + LTC_POLY1305
+#endif
+
+#if defined(LTC_CHACHA20_PRNG) && !defined(LTC_CHACHA)
+   #error LTC_CHACHA20_PRNG requires LTC_CHACHA
+#endif
+
+#if defined(LTC_RC4) && !defined(LTC_RC4_STREAM)
+   #error LTC_RC4 requires LTC_RC4_STREAM
+#endif
+
+#if defined(LTC_SOBER128) && !defined(LTC_SOBER128_STREAM)
+   #error LTC_SOBER128 requires LTC_SOBER128_STREAM
+#endif
+
+#if defined(LTC_BLAKE2SMAC) && !defined(LTC_BLAKE2S)
+   #error LTC_BLAKE2SMAC requires LTC_BLAKE2S
+#endif
+
+#if defined(LTC_BLAKE2BMAC) && !defined(LTC_BLAKE2B)
+   #error LTC_BLAKE2BMAC requires LTC_BLAKE2B
+#endif
+
 /* THREAD management */
 #ifdef LTC_PTHREAD
 
@@ -547,12 +568,17 @@
 
 /* Debuggers */
 
-/* define this if you use Valgrind, note: it CHANGES the way SOBER-128 and LTC_RC4 work (see the code) */
+/* define this if you use Valgrind, note: it CHANGES the way SOBER-128 and RC4 work (see the code) */
 /* #define LTC_VALGRIND */
 
 #endif
 
-
+#ifndef LTC_NO_FILE
+   /* buffer size for reading from a file via fread(..) */
+   #ifndef LTC_FILE_READ_BUFSIZE
+   #define LTC_FILE_READ_BUFSIZE 8192
+   #endif
+#endif
 
 /* $Source$ */
 /* $Revision$ */

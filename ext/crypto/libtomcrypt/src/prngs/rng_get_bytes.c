@@ -5,8 +5,6 @@
  *
  * The library is free for all purposes without any express
  * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
  */
 #include "tomcrypt.h"
 
@@ -21,14 +19,15 @@
 static unsigned long rng_nix(unsigned char *buf, unsigned long len,
                              void (*callback)(void))
 {
-    LTC_UNUSED_PARAM(callback);
 #ifdef LTC_NO_FILE
+    LTC_UNUSED_PARAM(callback);
     LTC_UNUSED_PARAM(buf);
     LTC_UNUSED_PARAM(len);
     return 0;
 #else
     FILE *f;
     unsigned long x;
+    LTC_UNUSED_PARAM(callback);
 #ifdef LTC_TRY_URANDOM_FIRST
     f = fopen("/dev/urandom", "rb");
     if (f == NULL)
@@ -53,8 +52,7 @@ static unsigned long rng_nix(unsigned char *buf, unsigned long len,
 
 #endif /* LTC_DEVRANDOM */
 
-/* on ANSI C platforms with 100 < CLOCKS_PER_SEC < 10000 */
-#if defined(CLOCKS_PER_SEC) && !defined(WINCE)
+#if !defined(_WIN32_WCE)
 
 #define ANSI_RNG
 
@@ -63,10 +61,6 @@ static unsigned long rng_ansic(unsigned char *buf, unsigned long len,
 {
    clock_t t1;
    int l, acc, bits, a, b;
-
-   if (XCLOCKS_PER_SEC < 100 || XCLOCKS_PER_SEC > 10000) {
-      return 0;
-   }
 
    l = len;
    bits = 8;
@@ -84,23 +78,22 @@ static unsigned long rng_ansic(unsigned char *buf, unsigned long len,
        acc  = 0;
        bits = 8;
    }
-   acc = bits = a = b = 0;
    return l;
 }
 
 #endif
 
 /* Try the Microsoft CSP */
-#if defined(WIN32) || defined(_WIN32) || defined(WINCE)
+#if defined(_WIN32) || defined(_WIN32_WCE)
 #ifndef _WIN32_WINNT
   #define _WIN32_WINNT 0x0400
 #endif
-#ifdef WINCE
+#ifdef _WIN32_WCE
    #define UNDER_CE
    #define ARM
 #endif
 
-/* #define WIN32_LEAN_AND_MEAN */
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <wincrypt.h>
 
@@ -140,11 +133,19 @@ unsigned long rng_get_bytes(unsigned char *out, unsigned long outlen,
 
    LTC_ARGCHK(out != NULL);
 
-#if defined(LTC_DEVRANDOM)
-   x = rng_nix(out, outlen, callback);   if (x != 0) { return x; }
+#ifdef LTC_PRNG_ENABLE_LTC_RNG
+   if (ltc_rng) {
+      x = ltc_rng(out, outlen, callback);
+      if (x != 0) {
+         return x;
+      }
+   }
 #endif
-#if defined(WIN32) || defined(_WIN32) || defined(WINCE)
+
+#if defined(_WIN32) || defined(_WIN32_WCE)
    x = rng_win32(out, outlen, callback); if (x != 0) { return x; }
+#elif defined(LTC_DEVRANDOM)
+   x = rng_nix(out, outlen, callback);   if (x != 0) { return x; }
 #endif
 #ifdef ANSI_RNG
    x = rng_ansic(out, outlen, callback); if (x != 0) { return x; }
