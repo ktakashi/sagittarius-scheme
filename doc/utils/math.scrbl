@@ -172,18 +172,31 @@ predefined algorithms are blow:
 @define[Constant]{@name{WHIRLPOOL}}
 @define[Constant]{@name{SHA-512}}
 @define[Constant]{@name{SHA-384}}
-@define[Constant]{@name{RIPEMD-320}}
 @define[Constant]{@name{SHA-256}}
-@define[Constant]{@name{RIPEMD-256}}
 @define[Constant]{@name{SHA-224}}
-@define[Constant]{@name{SHA-224}}
+@define[Constant]{@name{SHA-512/256}}
+@define[Constant]{@name{SHA-512/224}}
 @define[Constant]{@name{Tiger-192}}
 @define[Constant]{@name{SHA-1}}
+@define[Constant]{@name{RIPEMD-320}}
+@define[Constant]{@name{RIPEMD-256}}
 @define[Constant]{@name{RIPEMD-160}}
 @define[Constant]{@name{RIPEMD-128}}
 @define[Constant]{@name{MD5}}
 @define[Constant]{@name{MD4}}
 @define[Constant]{@name{MD2}}
+@define[Constant]{@name{SHA-3-224}}
+@define[Constant]{@name{SHA-3-256}}
+@define[Constant]{@name{SHA-3-384}}
+@define[Constant]{@name{SHA-3-512}}
+@define[Constant]{@name{BLAKE2s-128}
+@define[Constant]{@name{BLAKE2s-160}
+@define[Constant]{@name{BLAKE2s-224}
+@define[Constant]{@name{BLAKE2s-256}
+@define[Constant]{@name{BLAKE2b-160}
+@define[Constant]{@name{BLAKE2b-256}
+@define[Constant]{@name{BLAKE2b-384}
+@define[Constant]{@name{BLAKE2b-512}
 
 If you want to use other hash algorithm, you can also create a new hash
 algorithm. It is described the section
