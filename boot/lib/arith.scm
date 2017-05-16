@@ -150,27 +150,40 @@
 ;; from Ypsilon end
 ;; rotate
 (define (fxrotate-bit-field fx1 fx2 fx3 fx4)
-  (or (fixnum? fx1) (assertion-violation 'fxrotate-bit-field (format "fixnum required, but got ~a" fx1) fx1 fx2 fx3 fx4))
-  (or (fixnum? fx2) (assertion-violation 'fxrotate-bit-field (format "fixnum required, but got ~a" fx2) fx1 fx2 fx3 fx4))
-  (or (fixnum? fx3) (assertion-violation 'fxrotate-bit-field (format "fixnum required, but got ~a" fx3) fx1 fx2 fx3 fx4))
-  (or (fixnum? fx4) (assertion-violation 'fxrotate-bit-field (format "fixnum required, but got ~a" fx4) fx1 fx2 fx3 fx4))
+  (define (msg f) (format "fixnum required, but got ~a" f))
+  (or (fixnum? fx1)
+      (assertion-violation 'fxrotate-bit-field (msg fx1) fx1 fx2 fx3 fx4))
+  (or (fixnum? fx2)
+      (assertion-violation 'fxrotate-bit-field (msg fx2) fx1 fx2 fx3 fx4))
+  (or (fixnum? fx3)
+      (assertion-violation 'fxrotate-bit-field (msg fx3) fx1 fx2 fx3 fx4))
+  (or (fixnum? fx4)
+      (assertion-violation 'fxrotate-bit-field (msg fx4) fx1 fx2 fx3 fx4))
   (or (and (<= 0 fx2) (<= fx2 (fixnum-width)))
-      (assertion-violation 'fxrotate-bit-field "out of range"  fx1 fx2 fx3 fx4))
+      (assertion-violation 'fxrotate-bit-field "out of range (start)"
+			   fx1 fx2 fx3 fx4))
   (or (and (<= 0 fx3) (<= fx3 (fixnum-width)))
-      (assertion-violation 'fxrotate-bit-field "out of range"  fx1 fx2 fx3 fx4))
+      (assertion-violation 'fxrotate-bit-field "out of range (end)"
+			   fx1 fx2 fx3 fx4))
   (or (and (<= 0 fx4) (<= fx4 (fixnum-width)))
-      (assertion-violation 'fxrotate-bit-field "out of range"  fx1 fx2 fx3 fx4))
-  (when (or (> fx2 fx3) (>= fx4 (- fx3 fx2)))
-    (assertion-violation 'name "out of range" fx1 fx2 fx3 fx4))
-  (let ((width (- fx3 fx2)))
-    (if (> width 0)
-	(let* ((count  (fxmod fx4 width))
-	       (field0 (fxbit-field fx1 fx2 fx3))
-	       (field1 (fxarithmetic-shift-left field0 fx4))
-	       (field2 (fxarithmetic-shift-right field0 (- width count)))
-	       (field  (fxior field1 field2)))
-	  (fxcopy-bit-field fx1 fx2 fx3 field))
-	fx1)))
+      (assertion-violation 'fxrotate-bit-field "out of range (count)"
+			   fx1 fx2 fx3 fx4))
+  (and (> fx2 fx3)
+       (assertion-violation 'name "out of range (start > end)" fx1 fx2 fx3 fx4))
+  (and (> fx4 (- fx3 fx2))
+       (assertion-violation 'name "out of range (count > end - start)"
+			    fx1 fx2 fx3 fx4))
+  (let* ((n     fx1)
+	 (start fx2)
+	 (end   fx3)
+	 (count fx4)
+	 (width (fx- end start)))
+    (fxcopy-bit-field n start end
+     (fxior
+      (fxarithmetic-shift-left
+       (fxbit-field n start (fx- end count)) count)
+      (fxarithmetic-shift-right
+       (fxbit-field n start end) (fx- width count))))))
 
 (define (fldiv-and-mod f1 f2)
   (values (fldiv f1 f2) (flmod f1 f2)))

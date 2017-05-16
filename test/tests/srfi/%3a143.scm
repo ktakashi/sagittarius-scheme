@@ -142,9 +142,9 @@
   (test "test-190" 3 (fxbit-field 6 1 3))
   (test "test-196" 2 (fxarithmetic-shift 1 1))
   (test "test-197" 0 (fxarithmetic-shift 1 -1))
-;; these 2 (test-200 and test-202)  are violating R6RS so need clarification
-;;  (test "test-200" #b110  (fxbit-field-rotate #b110 1 1 2))
+  (test "test-200" #b110  (fxbit-field-rotate #b110 1 1 2))
   (test "test-201" #b1010 (fxbit-field-rotate #b110 1 2 4))
+;; this (test-202) seems violating R6RS so need clarification
 ;;  (test "test-202" #b1011 (fxbit-field-rotate #b0111 -1 1 4))
   (test "test-208" #b110 (fxbit-field-rotate #b110 0 0 10))
   (test "test-211" 6 (fxbit-field-reverse 6 1 3))
