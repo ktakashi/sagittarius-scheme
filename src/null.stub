@@ -3287,10 +3287,16 @@
 
   (define-c-proc bitwise-bit-field (ei1::<number> ei2::<fixnum> ei3::<fixnum>)
     :constant
+    (when (< ei2 0)
+      (assertion-violation 'bitwise-bit-field 
+       "2nd parameter (start) must be non-negative" (SG_MAKE_INT ei2)))
+    (when (< ei3 0)
+      (assertion-violation 'bitwise-bit-field 
+       "3rd parameter (end) must be non-negative" (SG_MAKE_INT ei3)))
     (when (> ei2 ei3)
       (assertion-violation 'bitwise-bit-field 
-	   "2nd parameter must be less than or equal to 3rd parameter"
-	   (SG_LIST3 ei1 (SG_MAKE_INT ei2) (SG_MAKE_INT ei3))))
+       "2nd parameter must be less than or equal to 3rd parameter"
+       (SG_LIST3 ei1 (SG_MAKE_INT ei2) (SG_MAKE_INT ei3))))
     (let ((mask (Sg_LogNot (Sg_Ash (SG_MAKE_INT -1) ei3))))
       (result (Sg_Ash (Sg_LogAnd ei1 mask) (- 0 ei2)))))
 

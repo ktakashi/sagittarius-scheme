@@ -51,8 +51,7 @@
     (let ((args (map (lambda (arg)
 		       (unless (integer? arg)
 			 (assertion-violation 'lcm
-					      (wrong-type-argument-message "integer" arg)
-					      args))
+			  (wrong-type-argument-message "integer" arg) args))
 		       (abs arg))
 		     args)))
       (cond ((null? args) 1)
@@ -77,13 +76,9 @@
          (width (- end start)))
     (if (positive? width)
         (let* ((count (mod count width))
-               (field0
-                (bitwise-bit-field n start end))
-               (field1 (bitwise-arithmetic-shift-left
-                        field0 count))
-               (field2 (bitwise-arithmetic-shift-right
-                        field0
-                        (- width count)))
+               (field0 (bitwise-bit-field n start end))
+               (field1 (bitwise-arithmetic-shift-left field0 count))
+               (field2 (bitwise-arithmetic-shift-right field0 (- width count)))
                (field (bitwise-ior field1 field2)))
           (bitwise-copy-bit-field n start end field))
         n)))
@@ -152,22 +147,21 @@
 (define (fxrotate-bit-field fx1 fx2 fx3 fx4)
   (define (msg f) (format "fixnum required, but got ~a" f))
   (or (fixnum? fx1)
-      (assertion-violation 'fxrotate-bit-field (msg fx1) fx1 fx2 fx3 fx4))
+      (assertion-violation 'fxrotate-bit-field (msg fx1) fx1))
   (or (fixnum? fx2)
-      (assertion-violation 'fxrotate-bit-field (msg fx2) fx1 fx2 fx3 fx4))
+      (assertion-violation 'fxrotate-bit-field (msg fx2) fx2))
   (or (fixnum? fx3)
-      (assertion-violation 'fxrotate-bit-field (msg fx3) fx1 fx2 fx3 fx4))
+      (assertion-violation 'fxrotate-bit-field (msg fx3) fx3))
   (or (fixnum? fx4)
-      (assertion-violation 'fxrotate-bit-field (msg fx4) fx1 fx2 fx3 fx4))
+      (assertion-violation 'fxrotate-bit-field (msg fx4) fx4))
   (or (and (<= 0 fx2) (<= fx2 (fixnum-width)))
-      (assertion-violation 'fxrotate-bit-field "out of range (start)"
-			   fx1 fx2 fx3 fx4))
+      (assertion-violation 'fxrotate-bit-field "invalid start index" fx2))
   (or (and (<= 0 fx3) (<= fx3 (fixnum-width)))
-      (assertion-violation 'fxrotate-bit-field "out of range (end)"
-			   fx1 fx2 fx3 fx4))
-  (or (and (<= 0 fx4) (<= fx4 (fixnum-width)))
-      (assertion-violation 'fxrotate-bit-field "out of range (count)"
-			   fx1 fx2 fx3 fx4))
+      (assertion-violation 'fxrotate-bit-field "invalid end index" fx3))
+;; extension for SRFI-143, cound can be negative now.
+;;   (or (and (<= 0 fx4) (<= fx4 (fixnum-width)))
+;;       (assertion-violation 'fxrotate-bit-field "out of range (count)"
+;; 			   fx1 fx2 fx3 fx4))
   (and (> fx2 fx3)
        (assertion-violation 'name "out of range (start > end)" fx1 fx2 fx3 fx4))
   (and (> fx4 (- fx3 fx2))
@@ -177,13 +171,15 @@
 	 (start fx2)
 	 (end   fx3)
 	 (count fx4)
-	 (width (fx- end start)))
-    (fxcopy-bit-field n start end
-     (fxior
-      (fxarithmetic-shift-left
-       (fxbit-field n start (fx- end count)) count)
-      (fxarithmetic-shift-right
-       (fxbit-field n start end) (fx- width count))))))
+	 (width (- end start)))
+    (if (fxpositive? width)
+	(let* ((count (fxmod count width))
+	       (field0 (fxbit-field n start end))
+	       (field1 (fxarithmetic-shift-left field0 count))
+	       (field2 (fxarithmetic-shift-right field0 (fx- width count)))
+	       (field (fxior field1 field2)))
+	  (fxcopy-bit-field n start end field))
+	n)))
 
 (define (fldiv-and-mod f1 f2)
   (values (fldiv f1 f2) (flmod f1 f2)))
