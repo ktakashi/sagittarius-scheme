@@ -164,11 +164,11 @@
 
   (define *default-naming-category-specification*
     (make-parameter scheme-category-specification
-		    (lambda (v)
-		      (unless (naming-category-specification? v)
-			(assertion-violation '*default-specification*
-			  "must be naming-category-specification" v))
-		      v)))
+      (lambda (v)
+	(unless (naming-category-specification? v)
+	  (assertion-violation '*default-naming-category-specification*
+			       "must be naming-category-specification" v))
+	v)))
   
   (define (naming-context-lookup context name)
     (define (not-found)
