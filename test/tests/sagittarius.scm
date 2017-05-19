@@ -2227,4 +2227,7 @@
 (test-i/o-error (delete-directory "doesn't-exist"))
 (test-i/o-error (create-directory "doesn't/exist"))
 
+;; fxrotate-bit-field
+(test-equal 6 (fxrotate-bit-field 6 1 2 1))
+
 (test-end)
