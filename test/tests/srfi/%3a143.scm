@@ -1,4 +1,5 @@
 (import (rnrs)
+	(rnrs eval)
 	(srfi :143)
 	(srfi :64))
 
@@ -194,5 +195,22 @@
   (test "test-373" 3 (fxif 1 1 2))
   (test "test-378" #b00110011 (fxif #b00111100 #b11110000 #b00001111))
   (test "test-379" #b1 (fxcopy-bit 0 0 #t))
+
+
+(for-each (lambda (sym)
+	    (test-assert sym (eval sym (environment '(srfi :143 fixnums)))))
+	  '(fx-width fx-greatest fx-least
+	    fixnum? fx=? fx<? fx>? fx<=? fx>=? fxzero?
+	    fxpositive? fxnegative? fxodd? fxeven? fxmax fxmin
+	    fx+ fx- fx* fx+/carry fx-/carry fx*/carry
+	    fxnot fxand fxior fxxor
+	    fxarithmetic-shift fxarithmetic-shift-left fxarithmetic-shift-right
+	    fxbit-count fxlength fxif
+	    fxbit-field
+	    ;; non R6RS
+	    fxabs fxsqrt fxneg fxsquare fxquotient fxremainder
+	    ;; something is different from R6RS
+	    fxbit-set? fxcopy-bit fxbit-field-rotate fxbit-field-reverse
+	    fxfirst-set-bit))
 
 (test-end)

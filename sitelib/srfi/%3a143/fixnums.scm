@@ -32,7 +32,7 @@
     (export fx-width fx-greatest fx-least
 	    fixnum? fx=? fx<? fx>? fx<=? fx>=? fxzero?
 	    fxpositive? fxnegative? fxodd? fxeven? fxmax fxmin
-	    fx+ fx- fx* fx+/carry fx-/carry fx+*/carry
+	    fx+ fx- fx* fx+/carry fx-/carry fx*/carry
 	    fxnot fxand fxior fxxor
 	    fxarithmetic-shift fxarithmetic-shift-left fxarithmetic-shift-right
 	    fxbit-count fxlength fxif
