@@ -2675,11 +2675,16 @@ static SG_DEFINE_METHOD(object_hash_rec, &Sg_GenericObjectHash,
 
 static int check_lref0(SgObject procedure)
 {
+  SgCodeBuilder *cb;
+  int size, i;
+  SgWord *code;
+  
   if (!SG_CLOSUREP(procedure)) return FALSE;
-  SgCodeBuilder *cb = SG_CODE_BUILDER(SG_CLOSURE(procedure)->code);
+  
+  cb = SG_CODE_BUILDER(SG_CLOSURE(procedure)->code);
+  size = cb->size;
   /* here we do rather naive way. thus, if it's referred it's called. */
-  int size = cb->size, i;
-  SgWord *code = cb->code;
+  code = cb->code;
   
   for (i = 0; i < size; i++) {
     InsnInfo *info = Sg_LookupInsnName(INSN(code[i]));
