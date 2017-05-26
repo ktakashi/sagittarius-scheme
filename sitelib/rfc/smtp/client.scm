@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!read-macro=sagittarius/regex
 (library (rfc smtp client)
     (export make-smtp-connection smtp-connection?	    
 	    smtp-connection-options
@@ -73,6 +74,8 @@
 	    make-smtp-alternative
 	    ;; low level
 	    smtp-mail->string
+	    smtp-address->string
+	    string->smtp-address
 	    )
     (import (rnrs)
 	    (rnrs mutable-pairs)
@@ -89,6 +92,7 @@
 	    (rfc mime) ;; for attachments
 	    (rfc quoted-printable)
 	    (rfc :5322)
+	    (sagittarius regex)
 	    )
 
 (define-record-type (<smtp-connection> make-smtp-connection smtp-connection?)
@@ -140,7 +144,7 @@
 
 (define-record-type (<smtp-recipipent> make-smtp-recipient smtp-recipient?)
   (parent <smtp-address>)
-    (protocol (lambda (p) (lambda (t e m) ((p t e m))))))
+  (protocol (lambda (p) (lambda (t e m) ((p t e m))))))
 
 (define-syntax define-recipient
   (lambda (x)
@@ -346,6 +350,10 @@
       (put-string out email)
       (put-char out #\>))
     (extract)))
+
+(define (string->smtp-address ctr str)
+  (cond ((#/([^<>]+)<(.+)>/ str) => (lambda (m) (ctr (m 1) (m 2))))
+	(else (ctr str))))
 
 (define (smtp-mail->string mail)
   (define qpes quoted-printable-encode-string)
