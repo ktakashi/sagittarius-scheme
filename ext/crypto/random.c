@@ -325,6 +325,7 @@ void Sg__InitPrng(SgLibrary *lib)
   REGISTER_PRNG(&rc4_desc);
   REGISTER_PRNG(&sober128_desc);
   REGISTER_PRNG(&sprng_desc);
+  REGISTER_PRNG(&chacha20_prng_desc);
 
   Sg_InitStaticClass(SG_CLASS_PRNG, UC("<prng>"), lib, NULL, 0);
   Sg_InitStaticClass(SG_CLASS_BUILTIN_PRNG, UC("<builtin-prng>"), lib, NULL, 0);

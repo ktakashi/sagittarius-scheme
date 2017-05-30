@@ -110,10 +110,14 @@
 (test-assert "crypto-object?" (crypto-object? des-enc/cbc-cipher))
 (test-assert "cipher?" (cipher? des-enc/cbc-cipher))
 (test-assert "key?" (key? *des-key*))
-(test-assert "prng?" (prng? (pseudo-random RC4)))
-(test-assert "prng?" (prng? (secure-random RC4)))
-(test-assert "pseudo-random?" (pseudo-random? (pseudo-random RC4)))
-(test-assert "secure-random?" (secure-random? (secure-random RC4)))
+
+(define (test-prng prng)
+  (test-assert "prng?" (prng? (pseudo-random prng)))
+  (test-assert "prng?" (prng? (secure-random prng)))
+  (test-assert "pseudo-random?" (pseudo-random? (pseudo-random prng)))
+  (test-assert "secure-random?" (secure-random? (secure-random prng))))
+(for-each test-prng (list Yarrow Fortuna RC4 SOBER-128 System ChaCha20))
+
 
 (test-assert "cipher-iv" (bytevector? (cipher-iv des-enc/cbc-cipher)))
 (test-equal "cipher-iv (set!)"
