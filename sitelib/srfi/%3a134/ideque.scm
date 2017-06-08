@@ -298,12 +298,12 @@
         (lenr (dq-lenr dq))
         (r    (dq-r dq)))
     (if (<= n lenf)
-      (check n (drop f n) lenr r)
+      (check (- lenf n) (drop f n) lenr r)
       (let ((lenr. (- lenr (- n lenf))))
         (check 0 '() lenr. (take r lenr.))))))
 
 (define (%check-length who dq n)
-  (unless (<= 0 n (- (ideque-length dq) 1))
+  (unless (<= 0 n (ideque-length dq))
     (assertion-violation who "argument is out of range:" n)))
 
 ;; API
