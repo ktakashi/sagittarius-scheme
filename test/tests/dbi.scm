@@ -102,4 +102,10 @@
 ;; connection level commit and rollback
 (test-assert (dbi-commit! conn))
 (test-assert (dbi-rollback! conn))
+
+;; condition tests
+(test-assert (dbi-error? (make-dbi-sql-error 200)))
+(test-assert (dbi-sql-error? (make-dbi-sql-error 200)))
+(test-equal 200 (dbi-sql-error-code (make-dbi-sql-error 200)))
+
 (test-end)

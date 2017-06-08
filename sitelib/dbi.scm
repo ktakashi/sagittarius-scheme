@@ -35,6 +35,8 @@
 	    dbi-driver-not-exist? condition-driver-name
 	    &dbi-unsupported make-dbi-unsupported dbi-unsupported?
 	    &dbi-parameter-error make-dbi-parameter-error dbi-parameter-error?
+	    &dbi-sql-error make-dbi-sql-error dbi-sql-error?
+	    dbi-sql-error-code
 	    raise-dbi-error
 	    ;; dbi objects
 	    ;; These are for DBD APIs
@@ -97,6 +99,10 @@
   ;; Parameter mismatch between a prepared query and its execution
   (define-condition-type &dbi-parameter-error &dbi-error
     make-dbi-parameter-error dbi-parameter-error?)
+  ;; SQL execution error
+  (define-condition-type &dbi-sql-error &dbi-error
+    make-dbi-sql-error dbi-sql-error?
+    (code dbi-sql-error-code))
 
   (define (raise-dbi-error type who msg . irritants)
     (raise (apply condition
