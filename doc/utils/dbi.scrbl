@@ -30,7 +30,7 @@ If you want to use other database named @var{boo}, then you just need to pass
 @code{"dbi:@var{boo}:@var{parameter}"} to @code{dbi-connect} instead. As long
 as you have @code{(dbd boo)} installed then everything stays the same.
 
-@subsubsection{DBI user API}
+@subsubsection{DBI user APIs}
 
 @sub*section{Database connection}
 
@@ -75,7 +75,7 @@ might not close opened connections automatically.
 @define[Method]{@name{dbi-rollback!} @args{(c <dbi-connection>)}}
 @desc{Commits or rollback transactions on the given connection, respectively.}
 
-@sub*section{Preparing and executing queries }
+@sub*section{Preparing and executing queries}
 
 @define[Method]{@name{dbi-prepare} @args{conn sql . args}}
 @desc{From a string representation of SQL @var{sql}, creates and returns a
@@ -151,6 +151,51 @@ NOTE: There is a default implementation of @code{dbi-fetch-all!}, it calls
 @desc{Returns a column names affected by the given @var{query}.
 
 The procedure shall return a vector as its result.}
+
+@sub*section{Conditions}
+
+The DBI library provides some of conditions which should be raised by
+underlying DBD implementations.
+
+NOTE: The listed conditions may or may not be raised by underlying DBD
+implementation.
+
+@define[Condition"]{@name{&dbi-error}}
+@define[Function]{@name{dbi-error?} @args{object}}
+@define[Function]{@name{make-dbi-error}}
+@desc{Root condition of DBI condition. @code{&dbi-error} is a sub condition
+of @code{@error}.
+
+All DBI related condition should inherit this condition.
+}
+
+@define[Condition"]{@name{&dbi-driver-not-exist}}
+@define[Function]{@name{dbi-driver-not-exist?} @args{object}}
+@define[Function]{@name{condition-driver-name} @args{condition}}
+@desc{This condition is raised when DBD implementation can't be found.
+
+@code{condition-driver-name} returns missing driver name.
+}
+
+@define[Condition"]{@name{&dbi-unsupported}}
+@define[Function]{@name{dbi-unsupported?} @args{object}}
+@define[Function]{@name{make-dbi-unsupported}}
+@desc{This condition indicates that DBI feature is not supported.
+
+Implementations should raise this condition when methods can't be
+implemented on the target DBMS.
+}
+
+@define[Condition"]{@name{&dbi-sql-error}}
+@define[Function]{@name{dbi-sql-error?} @args{object}}
+@define[Function]{@name{make-dbi-sql-error}}
+@define[Function]{@name{dbi-sql-error-code}}
+@desc{This condition holds SQL status code.
+
+Implementations should raise this condition when SQL execution is failed
+with SQL status code.
+}
+
 
 @subsubsection{Writing drivers for DBI}
 
