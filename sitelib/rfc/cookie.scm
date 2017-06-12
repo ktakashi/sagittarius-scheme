@@ -42,6 +42,8 @@
     (export <cookie> make-cookie cookie?
 	    parse-cookie
 	    parse-cookie-string
+	    parse-cookies
+	    parse-cookies-string
 	    cookie->string
 	    ;; accessors
 	    cookie-name
@@ -188,6 +190,23 @@
 (define (parse-cookie-string cookie)
   (parse-cookie (open-string-input-port cookie)))
 
+;; this parses Cookie: header
+;; a bit ugly but I don't want to break backward compatibility
+(define (parse-cookies input)
+  (let loop ((r '()))
+    ;; ignore separator
+    (parse-it (lambda (c) (char-set-contains? char-set:separators c)) input)
+    (if (eof-object? (lookahead-char input))
+	(reverse! r)
+	(or (and-let* ((name (parse-token input))
+		       ( (eqv? (get-char input) #\=) )
+		       (value (parse-token input)))
+	      
+	      (loop (cons (make-cookie name value) r)))
+	    (assertion-violation 'parse-cookies
+				 "cookie pair must be $name=$value format")))))
+(define (parse-cookies-string cookie)
+  (parse-cookies (open-string-input-port cookie)))
 
 ;;; parsing utilities
 (define (space? c) (and (not (eof-object? c)) (eqv? c #\space))) ;; SP
