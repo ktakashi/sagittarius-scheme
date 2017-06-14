@@ -6,6 +6,7 @@
 	(rfc smtp extensions)
 	(rfc smtp conditions)
 	(rfc smtp client)
+	(rfc smtp format)
 	(rfc base64)
 	(rfc mime)
 	(rfc :5322)
@@ -13,6 +14,10 @@
 	(srfi :64))
 
 (test-begin "SMTP")
+
+(test-assert (smtp-valid-address? "aaaa@bbbb"))
+(test-assert (smtp-valid-address? "aaaa+b@bbbb"))
+(test-assert (not (smtp-valid-address? "aaaa\\@bbbb")))
 
 ;; command test
 (define-syntax test-command 

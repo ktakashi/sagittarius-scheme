@@ -1,8 +1,8 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
-;;; rfc/smtp.scm - SMTP client
+;;; rfc/smtp/format.scm - SMTP format check
 ;;;  
-;;;   Copyright (c) 2010-2015  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2017  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -28,8 +28,40 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-(library (rfc smtp)
-    (export :all)
-    (import (rfc smtp client)
-	    (rfc smtp conditions)
-	    (rfc smtp format)))
+;; references
+;;   - https://tools.ietf.org/html/rfc5321
+;;   - https://tools.ietf.org/html/rfc5322
+(library (rfc smtp format)
+    (export smtp-valid-address?)
+    (import (rnrs)
+	    (srfi :2)
+	    (srfi :13)
+	    (srfi :14)
+	    (rfc :5322))
+
+;; https://tools.ietf.org/html/rfc5321#section-2.3.11
+;; local-part@domain
+;; this is a bit too naive but for now
+(define (smtp-valid-address? s)
+  (define in (if (input-port? s) s (open-string-input-port s)))
+  (let ((local (rfc5322-next-token in)))
+    (and (eqv? #\@ (get-char in))
+	 ;; this doesn't handle domain-literal properly...
+	 (let ((domain (rfc5322-next-token in)))
+	   (and (string? domain)
+		(check-length local domain)
+		(eof-object? (get-char in)))))))
+
+;; TODO add mailbox format
+;; mailbox format is more strict than address
+;; though, not sure if we need it...
+;; (define (smtp-valid-mailbox? s))
+
+(define (check-length local-part domain)
+  (define llen (string-length local-part))
+  (define dlen (string-length domain))
+  (and (<= llen 64)
+       (<= dlen 255)
+       ;; exclude '@'
+       (< (+ llen dlen) 253)))
+)
