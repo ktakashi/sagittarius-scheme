@@ -2239,5 +2239,14 @@
 
 (test-assert (not (= (inexact 100000000000000000000001)
 		     (inexact 99999999999999999999999))))
+(let ((ten11 (inexact (expt 10 11)))
+      (ten12 (inexact (expt 10 12)))
+      (one   (inexact 1)))
+  (define (do-it x y z)
+    (let ((x (exact x))
+	  (y (exact y))
+	  (z (exact z)))
+      (inexact (+ (* x y) z))))
+  (test-assert (not (= (do-it ten11 ten12 one) (do-it ten11 ten12 (fl- one))))))
 
 (test-end)

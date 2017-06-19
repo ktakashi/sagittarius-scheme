@@ -419,31 +419,62 @@ int Sg_BignumCmp3U(SgBignum *bx, SgBignum *off, SgBignum *by)
   return 0;
 }
 
+static double u64_to_double(uint64_t u)
+{
+  union { double f64; uint64_t u64; } d;
+  d.u64 = u;
+  return d.f64;
+}
+
+static int lsb(SgBignum *b)
+{
+  int count = SG_BIGNUM_GET_COUNT(b);
+  int i;
+  long l;
+  if (count == 0) return -1;
+  
+  for (i = 0; i < count; i++) {
+    l = b->elements[i];
+    if (l != 0) break;
+  }
+  return (i<<SHIFT_MAGIC) + ntz(l);
+}
+
 double Sg_BignumToDouble(SgBignum *b)
 {
   int count = SG_BIGNUM_GET_COUNT(b);
-  double ans = 0.0;
-  int i;
-#if SIZEOF_LONG >= 8
+  int exponent, shift, increment;
+  uint64_t twiceSigFloor, sigFloor, sigRounded, bits;
+  SgObject o;
+
   if (count == 0) return 0.0;
-  else if (count == 1) ans = b->elements[0];
-  else { 
-    for (i = count - 1; i >= count - 2; i--)
-      ans += ldexp((double)b->elements[i], WORD_BITS * i);
+
+  exponent = Sg_BignumBitSize(b) - 1;
+  if (exponent < 64 - 1) {
+    return Sg_BignumToS64(b, SG_CLAMP_NONE, NULL);
+  } else if (exponent > 1023) {
+    return SG_BIGNUM_GET_SIGN(b) > 0
+      ? u64_to_double(0x7ff0000000000000ULL)
+      : u64_to_double(0xfff0000000000000ULL);
   }
-  return SG_BIGNUM_GET_SIGN(b) > 0 ? ans : -ans;
-#else
-  if (count == 0) return 0.0;
-  else if (count == 1)
-    ans = b->elements[0];
-  else if (count == 2)
-    ans = b->elements[1] * (double)4294967296.0 + b->elements[0];
-  else {
-    for (i = count - 1; i >= count - 3; i--)
-      ans += ldexp((double)b->elements[i], WORD_BITS * i);
+  shift = exponent - 53; 	/* significand width */
+
+  /* TODO improve performance... */
+  o = Sg_BignumShiftRight(Sg_Abs(b), shift);
+  if (SG_INTP(o)) {
+    twiceSigFloor = SG_INT_VALUE(o);
+  } else {
+    twiceSigFloor = Sg_BignumToU64(o, SG_CLAMP_NONE, NULL);
   }
-  return SG_BIGNUM_GET_SIGN(b) > 0 ? ans : -ans;
-#endif 
+  sigFloor = twiceSigFloor >> 1;
+  sigFloor &= 0x000FFFFFFFFFFFFFL;
+  increment = (twiceSigFloor & 1) != 0
+    && ((sigFloor & 1) != 0 || lsb(Sg_Abs(b)) < shift);
+  sigRounded = increment ? sigFloor + 1: sigFloor;
+  bits = (uint64_t)(exponent + 1023) << (53 - 1);
+  bits += sigRounded;
+  bits |= SG_BIGNUM_GET_SIGN(b) & 0x8000000000000000L;
+  return u64_to_double(bits);
 }
 
 static inline int bn_norm_pred(SgBignum *bn)
