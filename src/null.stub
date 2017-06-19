@@ -3043,9 +3043,7 @@
     (begin
       (check-flonum fl/ fl)
       (if (SG_UNBOUNDP fl2)
-	  (if (== (flonum-value fl) 0.0)
-	      (assertion-violation 'fl/ "undefined for 0" (SG_LIST1 fl))
-	      (result (Sg_MakeFlonum (/ 1.0 (flonum-value fl)))))
+	  (result (Sg_MakeFlonum (/ 1.0 (flonum-value fl))))
 	  (let ((ret::double 0.0))
 	    (check-flonum fl- fl2)
 	    (set! ret (/ (flonum-value fl) (flonum-value fl2)))
