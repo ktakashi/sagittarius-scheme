@@ -2230,4 +2230,13 @@
 ;; fxrotate-bit-field
 (test-equal 6 (fxrotate-bit-field 6 1 2 1))
 
+;; flfinite?
+(test-assert (not (flfinite? +nan.0)))
+;; (fl/ 0.0)
+(test-equal +inf.0 (fl/ 0.0))
+(test-equal -inf.0 (fl/ -0.0))
+
+(test-assert (not (= (inexact 100000000000000000000001)
+		     (inexact 99999999999999999999999))))
+
 (test-end)
