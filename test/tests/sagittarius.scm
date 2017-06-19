@@ -2232,6 +2232,7 @@
 
 ;; flfinite?
 (test-assert (not (flfinite? +nan.0)))
+(test-assert (not (flinfinite? +nan.0)))
 ;; (fl/ 0.0)
 (test-equal +inf.0 (fl/ 0.0))
 (test-equal -inf.0 (fl/ -0.0))

@@ -2954,11 +2954,13 @@
 					  (SG_LIST1 fl))))
   (define-c-proc flfinite? (fl::<number>) ::<boolean> :no-side-effect
     (check-flonum flfinite? fl)
-    (result (not (isinf (flonum-value fl)))))
+    (let ((d::double (flonum-value fl)))
+      (result (and (not (isinf (flonum-value fl))) (not (isnan d))))))
 
   (define-c-proc flinfinite? (fl::<number>) ::<boolean> :no-side-effect
     (check-flonum flinfinite? fl)
-    (result (isinf (flonum-value fl))))
+    (let ((d::double (flonum-value fl)))
+      (result (and (isinf (flonum-value fl)) (not (isnan d))))))
 
   (define-c-proc flnan? (fl::<number>) ::<boolean> :no-side-effect
     (check-flonum flnan? fl)
