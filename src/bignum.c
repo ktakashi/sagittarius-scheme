@@ -445,7 +445,7 @@ double Sg_BignumToDouble(SgBignum *b)
   int count = SG_BIGNUM_GET_COUNT(b);
   int exponent, shift, increment;
   uint64_t twiceSigFloor, sigFloor, sigRounded, bits;
-  SgObject o;
+  SgObject o, ab;
 
   if (count == 0) return 0.0;
 
@@ -460,7 +460,8 @@ double Sg_BignumToDouble(SgBignum *b)
   shift = exponent - 53; 	/* significand width */
 
   /* TODO improve performance... */
-  o = Sg_BignumShiftRight(Sg_Abs(b), shift);
+  ab = Sg_Abs(b);
+  o = Sg_BignumShiftRight(ab, shift);
   if (SG_INTP(o)) {
     twiceSigFloor = SG_INT_VALUE(o);
   } else {
@@ -469,7 +470,7 @@ double Sg_BignumToDouble(SgBignum *b)
   sigFloor = twiceSigFloor >> 1;
   sigFloor &= 0x000FFFFFFFFFFFFFL;
   increment = (twiceSigFloor & 1) != 0
-    && ((sigFloor & 1) != 0 || lsb(Sg_Abs(b)) < shift);
+    && ((sigFloor & 1) != 0 || lsb(ab) < shift);
   sigRounded = increment ? sigFloor + 1: sigFloor;
   bits = (uint64_t)(exponent + 1023) << (53 - 1);
   bits += sigRounded;
