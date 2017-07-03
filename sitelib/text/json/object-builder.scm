@@ -46,6 +46,7 @@
 	    )
     (import (rnrs)
 	    (text json parse)
+	    (srfi :1)
 	    (srfi :39))
 
  (define-record-type json:builder
@@ -306,9 +307,27 @@
 
  (define simple-json-serializer (make-json:serializer (lambda (_ obj) obj)))
 
+ (define (serializer->mapping serializer)
+   (unless (json:object-serializer? serializer)
+     (assertion-violation 'json-object-serializer
+			  "nested serializer must be an object serializer"
+			  serializer))
+   (json:object-serializer-mappings serializer))
+ 
+ (define (flatten . lis)
+   (define (rec lis acc stk)
+     (cond ((null? lis)
+	    (if (null? stk)
+		(reverse! acc)
+		(rec (car stk) acc (cdr stk))))
+	   ((pair? (car lis))
+	    (rec (car lis) acc (cons (cdr lis) stk)))
+	   (else (rec (cdr lis) (cons (car lis) acc) stk))))
+   (rec lis '() '()))
+    
  (define-syntax -> (syntax-rules ()))
  (define-syntax json-object-object-serializer
-   (syntax-rules (?)
+   (syntax-rules (? json-object-serializer)
      ((_ "parse" (mapping ...) ((? name absent ref spec) rest ...))
       (json-object-object-serializer "parse"
 	(mapping ... (name ref (json-object-serializer spec) #t absent))
@@ -323,10 +342,22 @@
      ((_ "parse" (mapping ...) ((name ref) rest ...))
       (json-object-object-serializer "parse"
 	(mapping ... (name ref simple-json-serializer #f #f)) (rest ...)))
-     ((_ "parse" ((name ref serializer optional? absent) ...) ())
-      (make-json:object-serializer
-       (list (make-json:serializer-mapping name ref serializer optional? absent)
-	     ...)))
+     ((_ "parse" (mapping ...) (serializer rest ...))
+      (json-object-object-serializer "parse"
+	(mapping ... (json-object-serializer serializer)) (rest ...)))
+     ((_ "parse" (results ...) ())
+      (json-object-object-serializer "ctr" () (results ...)))
+     ((_ "ctr" (mapping ...) ((name ref serializer optional? absent) rest ...))
+      (json-object-object-serializer "ctr"
+       (mapping ... (make-json:serializer-mapping 
+		     name ref serializer optional? absent))
+       (rest ...)))
+     ((_ "ctr" (mapping ...) ((json-object-serializer serializer) rest ...))
+      (json-object-object-serializer "ctr"
+       (mapping ... (serializer->mapping serializer))
+       (rest ...)))
+     ((_ "ctr" (mapping ...) ())
+      (make-json:object-serializer (flatten mapping ...)))
      ((_ mapping mapping* ...)
       (json-object-object-serializer "parse" () (mapping mapping* ...)))))
  

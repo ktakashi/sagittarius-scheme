@@ -190,4 +190,13 @@
 	       (json-string->object json-string builder)
 	       serializer)))
 
+(let ()
+  (define-record-type base (fields base))
+  (define-record-type sub (fields sub) (parent base))
+  (define base-serializer (json-object-serializer (("base" base-base))))
+  (define sub-serializer (json-object-serializer
+			  (base-serializer ("sub" sub-sub))))
+  (test-equal '#(("base" . "base") ("sub" . "sub"))
+	      (object->json (make-sub "base" "sub") sub-serializer)))
+
 (test-end)
