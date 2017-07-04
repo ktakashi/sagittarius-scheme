@@ -1,0 +1,73 @@
+(import (rnrs base)
+	(srfi :142)
+	(srfi :64))
+
+(test-begin "SRFI-142 Bitwise Operations")
+
+(test-equal -11 (bitwise-not 10))
+(test-equal 36 (bitwise-not -37))
+
+(test-equal  11	(bitwise-ior 3  10))
+(test-equal  10	(bitwise-and 11 26))
+(test-equal   9	(bitwise-xor 3 10) )
+(test-equal -42	(bitwise-eqv 37 12))
+(test-equal   4	(bitwise-and 37 12))
+
+(test-equal -11	(bitwise-nand 11 26) )
+(test-equal -28	(bitwise-nor  11 26) )
+(test-equal  16	(bitwise-andc1 11 26))
+(test-equal  1 	(bitwise-andc2 11 26))
+(test-equal -2 	(bitwise-orc1 11 26) )
+(test-equal -17	(bitwise-orc2 11 26) )
+
+(test-equal 32 (arithmetic-shift 8 2)) 
+(test-equal 4 (arithmetic-shift 4 0) )
+(test-equal 4 (arithmetic-shift 8 -1))
+(test-equal -79 (arithmetic-shift -100000000000000000000000000000000 -100))
+
+(test-equal 0 (bit-count 0))
+(test-equal 0 (bit-count -1))
+(test-equal 3 (bit-count 7))
+(test-equal 3 (bit-count  13))
+(test-equal 2 (bit-count -13))
+(test-equal 4 (bit-count  30))
+(test-equal 4 (bit-count -30))
+(test-equal 1 (bit-count (expt 2 100)))
+(test-equal 100 (bit-count (- (expt 2 100))))
+(test-equal 1 (bit-count (- (+ 1 (expt 2 100)))))
+
+(test-equal 0 (integer-length  0))
+(test-equal 1 (integer-length  1))
+(test-equal 0 (integer-length -1))
+(test-equal 3 (integer-length  7))
+(test-equal 3 (integer-length -7))
+(test-equal 4 (integer-length  8))
+(test-equal 3 (integer-length -8))
+
+(test-equal 9 (bitwise-if 3 8 1))
+(test-equal 0 (bitwise-if 3 1 8))
+(test-equal 3 (bitwise-if 1 2 1))
+(test-equal #b00110011 (bitwise-if #b00111100 #b00001111 #b11110000))
+
+(test-assert (not (bit-set? 1 1)))
+(test-assert (bit-set? 0 1))
+(test-assert (bit-set? 3 10))
+(test-assert (bit-set? 1000000 -1))
+(test-assert (bit-set? 2 6))
+(test-assert (not (bit-set? 0 6)))
+
+(test-equal #b1  (copy-bit 0 0 #t))
+(test-equal #b100 (copy-bit 2 0 #t))
+(test-equal #b1011 (copy-bit 2 #b1111 #f))
+
+(test-equal #b1 (bit-swap 0 2 4))
+
+(test-equal 0  (first-set-bit 1))
+(test-equal 1  (first-set-bit 2))
+(test-equal -1 (first-set-bit 0))
+(test-equal 3  (first-set-bit 40))
+(test-equal 2  (first-set-bit -28))
+(test-equal 99 (first-set-bit (expt  2 99)))
+(test-equal 99 (first-set-bit (expt -2 99)))
+
+(test-end)
