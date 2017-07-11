@@ -200,7 +200,7 @@
 	(reverse! r)
 	(or (and-let* ((name (parse-token input))
 		       ( (eqv? (get-char input) #\=) )
-		       (value (parse-token input)))
+		       (value (parse-value input)))
 	      
 	      (loop (cons (make-cookie name value) r)))
 	    (assertion-violation 'parse-cookies

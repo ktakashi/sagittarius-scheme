@@ -21,7 +21,7 @@
 	       (time=? (date->time-utc (make-date 0 0 0 0 2 1 2014 0))
 		       (date->time-utc (cookie-expires cookie)))))
 
-(let ((cookies (parse-cookies-string "c=1; c=2;")))
+(let ((cookies (parse-cookies-string "c=1; c=2=;")))
   (test-equal 2 (length cookies))
   (test-assert (for-all cookie? cookies)))
 
