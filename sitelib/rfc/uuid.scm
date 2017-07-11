@@ -37,7 +37,18 @@
 	    make-v4-uuid
 	    make-v5-uuid
 	    uuid?
+	    null-uuid?
+	    v1-uuid?
+	    v3-uuid?
+	    v4-uuid?
+	    v5-uuid?
 	    uuid=?
+	    uuid-time-low
+	    uuid-time-mid
+	    uuid-time-high
+	    uuid-clock-seq-var
+	    uuid-clock-seq-low
+	    uuid-node
 	    ;; namespace
 	    +namespace-dns+
 	    +namespace-url+
@@ -101,6 +112,22 @@
 	   :reader uuid-node)))
 
   (define (uuid? obj) (is-a? obj <uuid>))
+  (define (null-uuid? obj)
+    (and (uuid? obj)
+	 (zero? (uuid-time-low obj))
+	 (zero? (uuid-time-mid obj))
+	 (zero? (uuid-time-high obj))
+	 (zero? (uuid-clock-seq-var obj))
+	 (zero? (uuid-clock-seq-low obj))
+	 (zero? (uuid-node obj))))
+  (define (check-version obj ver)
+    (and (uuid? obj)
+	 (= ver (bitwise-arithmetic-shift-right (uuid-time-high obj) 12))))
+  (define (v1-uuid? obj) (check-version obj 1))
+  (define (v3-uuid? obj) (check-version obj 3))
+  (define (v4-uuid? obj) (check-version obj 4))
+  (define (v5-uuid? obj) (check-version obj 5))
+  
   (define-method write-object ((uuid <uuid>) out)
     (format out "#<uuid ~a>" (uuid->string uuid)))
   (define-method object-equal? ((uuid1 <uuid>) (uuid2 <uuid>))

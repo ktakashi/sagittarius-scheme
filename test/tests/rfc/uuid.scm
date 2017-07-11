@@ -24,6 +24,18 @@
 (test-assert "uuid=?(v4)"
 	     (not (uuid=? (make-v4-uuid) (make-v4-uuid))))
 
+(test-assert (null-uuid? (make-null-uuid)))
+(test-assert (v1-uuid? (make-v1-uuid)))
+(test-assert (v4-uuid? (make-v4-uuid)))
+
+(let ((uuid (make-null-uuid)))
+  (test-equal 0 (uuid-time-low uuid))
+  (test-equal 0 (uuid-time-mid uuid))
+  (test-equal 0 (uuid-time-high uuid))
+  (test-equal 0 (uuid-clock-seq-var uuid))
+  (test-equal 0 (uuid-clock-seq-low uuid))
+  (test-equal 0 (uuid-node uuid)))
+
 ;; v3 and v5 always return the same UUID if the given arguments are the same
 (let* ((v3-uuid-string  "C6437EF1-5B86-3A4E-A071-C2D4AD414E65")
        (v3-uuid (string->uuid v3-uuid-string))
@@ -31,7 +43,7 @@
   (test-assert "uuid? (string->uuid)" (uuid? v3-uuid))
   (test-assert "uuid=?" (uuid=? v3-uuid2 v3-uuid))
   (test-assert "compare (v3)" (string=? v3-uuid-string (uuid->string v3-uuid2)))
-  )
+  (test-assert (v3-uuid? v3-uuid)))
 
 (let* ((v5-uuid-string "9B8EDCA0-90F2-5031-8E5D-3F708834696C")
        (v5-uuid (string->uuid v5-uuid-string))
@@ -39,7 +51,7 @@
   (test-assert "uuid? (string->uuid)" (uuid? v5-uuid))
   (test-assert "uuid=?" (uuid=? v5-uuid2 v5-uuid))
   (test-assert "compare (v5)" (string=? v5-uuid-string (uuid->string v5-uuid2)))
-  )
+  (test-assert (v5-uuid? v5-uuid)))
 
 ;; bytevector conversion
 (let* ((v3-uuid-bv
@@ -59,5 +71,6 @@
   (test-assert "uuid=?" (uuid=? v5-uuid2 v5-uuid))
   (test-assert "compare (v5)"
 	       (bytevector=? v5-uuid-bv (uuid->bytevector v5-uuid2))))
+
 
 (test-end)
