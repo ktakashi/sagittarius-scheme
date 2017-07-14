@@ -262,24 +262,24 @@
                                       (identifier? once)
                                       (eq? once (car vars)))
                                  once ;; shortcut
-				    ;; call #151 
-				    ;; map accepts different length of 
-				    ;; input this causes different input
-				    ;; form acceptible. put some validation
-				    ;; here
-				    (if (or (null? ell-vars)
-					    (null? (cdr ell-vars)))
-					;; not need to do it
-					(cons _map
-					      (cons (list _lambda ell-vars once)
-						    ell-vars))
-					(list _begin
-					      (cons* _check-length 
-						     (list _quote tmpl)
-						     ell-vars)
-					      (cons _map
-						    (cons (list _lambda ell-vars once)
-							  ell-vars))))))
+				 ;; call #151 
+				 ;; map accepts different length of 
+				 ;; input this causes different input
+				 ;; form acceptible. put some validation
+				 ;; here
+				 (if (or (null? ell-vars)
+					 (null? (cdr ell-vars)))
+				     ;; not need to do it
+				     (cons _map
+					   (cons (list _lambda ell-vars once)
+						 ell-vars))
+				     (list _begin
+					   (cons* _check-length 
+						  (list _quote tmpl)
+						  ell-vars)
+					   (cons _map
+						 (cons (list _lambda ell-vars once)
+						       ell-vars))))))
                        (many (do ((d depth (- d 1))
                                   (many nest
                                         (list _apply _append many)))
