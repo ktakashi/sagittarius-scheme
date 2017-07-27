@@ -27,4 +27,27 @@
 
 (test-error condition? (parse-cookies-string "c=1; c"))
 
+(test-assert (cookie-jar? (make-cookie-jar)))
+(let ((jar (make-cookie-jar)))
+  (test-assert (cookie-jar?
+		(cookie-jar-add-cookie! jar (make-cookie "c" "v"))))
+  (test-equal 1 (cookie-jar-size jar))
+  (cookie-jar? (cookie-jar-add-cookie! jar (make-cookie "c" "v")))
+  (test-equal 1 (cookie-jar-size jar))
+  (test-assert (cookie-jar?
+		(cookie-jar-delete-cookie! jar (make-cookie "c" "v"))))
+  (test-equal 0 (cookie-jar-size jar))
+
+  (test-assert (cookie-jar?
+		(cookie-jar-add-cookie! jar
+					(make-cookie "c" "v")
+					(make-cookie "c" "v" :path "/"))))
+  (test-equal 2 (cookie-jar-size jar))
+  (test-assert (let ((cookies (cookie-jar->cookies
+			       jar
+			       (lambda (cookie)
+				 (equal? (cookie-path cookie) "/")))))
+		 (test-equal 1 (length cookies))
+		 (equal? (cookie-path (car cookies)) "/"))))
+
 (test-end)

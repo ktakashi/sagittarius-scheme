@@ -51,9 +51,17 @@
 	    cookie-expires cookie-expires-set!
 	    cookie-max-age cookie-max-age-set!
 	    cookie-domain cookie-domain-set!
+	    cookie-path cookie-path-set!
 	    cookie-secure? cookie-secure-set!
 	    cookie-http-only? cookie-http-only-set!
 	    cookie-extension cookie-extension-add!
+
+	    (rename (cookie-jar <cookie-jar>))
+	    make-cookie-jar cookie-jar?
+	    cookie-jar-size
+	    cookie-jar-add-cookie!
+	    cookie-jar-delete-cookie!
+	    cookie-jar->cookies
 	    )
     (import (rnrs)
 	    (sagittarius) ;; for format
@@ -61,6 +69,8 @@
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
 	    (srfi :19 time)
+	    (srfi :113 sets)
+	    (srfi :128 comparators)
 	    (text parse)
 	    (util hashtables)
 	    (clos user))
@@ -85,8 +95,8 @@
 	      :reader cookie-http-only? :writer cookie-http-only-set!)
    ;; TODO can extension-av appear multiple times?
    ;; (I think so)
-   (extension :init-keyword :extension :init-form 
-	      (make-hashtable string-ci-hash string-ci=?)
+   (extension :init-keyword :extension
+	      :init-form (make-hashtable string-ci-hash string-ci=?)
 	      :reader cookie-extension)))
 
 (define-method write-object ((o <cookie>) out)
@@ -438,5 +448,38 @@
 	       (format out "; ~a" key)
 	       (format out "; ~a=~a" key value)))) ht))
     (extract)))
+
+(define cookie-comparator
+  (make-comparator cookie?
+		   (lambda (c1 c2)
+		     (and (equal? (cookie-name c1) (cookie-name c2))
+			  (equal? (cookie-path c1) (cookie-path c2))))
+		   #f
+		   (lambda (c)
+		     (let* ((hash (* 17 37))
+			    (name-hash (+ hash (string-hash (cookie-name c)))))
+		       (cond ((cookie-path c) =>
+			      (lambda (path)
+				(+ (* name-hash 37) (string-hash path))))
+			     (else name-hash))))))
+		     
+(define-record-type cookie-jar
+  (fields cookies)
+  (protocol (lambda (p) (lambda () (p (set cookie-comparator))))))
+
+(define (cookie-jar-size cookie-jar) (set-size (cookie-jar-cookies cookie-jar)))
+
+(define (cookie-jar-add-cookie! cookie-jar cookie . cookie*)
+  (apply set-adjoin! (cookie-jar-cookies cookie-jar) cookie cookie*)
+  cookie-jar)
+(define (cookie-jar-delete-cookie! cookie-jar cookie . cookie*)
+  (apply set-delete! (cookie-jar-cookies cookie-jar) cookie cookie*)
+  cookie-jar)
+(define (cookie-jar->cookies cookie-jar . maybe-predicate)
+  (define (true o) #t)
+  (let ((predicate (if (null? maybe-predicate) true (car maybe-predicate))))
+    (set-fold (lambda (cookie acc)
+		(if (predicate cookie) (cons cookie acc) acc))
+	      '() (cookie-jar-cookies cookie-jar))))
 
 )
