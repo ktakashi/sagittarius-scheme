@@ -79,6 +79,8 @@
 	    (srfi :1 lists)
 	    (srfi :2 and-let*)
 	    (srfi :13 strings)
+	    (srfi :14 char-sets)
+	    (srfi :19 time)
 	    (srfi :39 parameters)
 	    (match)
 	    (math)
@@ -93,6 +95,7 @@
 	    (rfc base64)
 	    (rfc tls)
 	    (rfc gzip)
+	    (rfc cookie)
 	    (prefix (binary io) binary:)
 	    (util bytevector))
 
@@ -119,24 +122,32 @@
   (define-class <http-connection> ()
     (;; server[:port]
      (server :init-keyword :server :init-value #f
-	     :accessor http-connection-server)
+	     :reader http-connection-server
+	     :writer http-connection-server-set!)
      ;; A socket for persistent connection.
      (socket :init-keyword :socket :init-value #f
-	     :accessor http-connection-socket)
-     (secure-agent :init-keyword :secure-agent :init-value #f
-		   :accessor http-connection-secure-agent)
+	     :reader http-connection-socket)
      (proxy  :init-keyword :proxy :init-value #f
-	     :accessor http-connection-proxy)
+	     :reader http-connection-proxy
+	     :writer http-connection-proxy-set!)
      (extra-headers :init-keyword :extra-headers :init-value '()
-		    :accessor http-connection-extra-headers)
+		    :reader http-connection-extra-headers
+		    :writer http-connection-extra-headers-set!)
      (secure :init-keyword :secure :init-value #f
-	     :accessor http-connection-secure)
+	     :reader http-connection-secure
+	     :writer http-connection-secure-set!)
      (auth-handler :init-keyword :auth-handler :init-value #f
-		   :accessor http-connection-auth-handler)
+		   :reader http-connection-auth-handler
+		   :writer http-connection-auth-handler-set!)
      (auth-user :init-keyword :auth-user :init-value #f
-		:accessor http-connection-auth-user)
+		:reader http-connection-auth-user
+		:writer http-connection-auth-user-set!)
      (auth-password :init-keyword :auth-password :init-value #f
-		    :accessor http-connection-auth-password)))
+		    :reader http-connection-auth-password
+		    :writer http-connection-auth-password-set!)
+     (cookie-jar :init-keyword :cookie-jar :init-value #f
+		 :reader http-connection-cookie-jar
+		 :writer http-connection-cookie-jar-set!)))
   (define (make-http-connection server . args)
     (apply make <http-connection> :server server args))
   (define (http-connection? o) (is-a? o <http-connection>))
@@ -149,8 +160,8 @@
     (let1 orig-server (http-connection-server conn)
       (unless (and (string=? orig-server new-server)
 		   (eq? (http-connection-secure conn) (equal? proto "https")))
-	(http-connection-server conn new-server)
-	(http-connection-secure conn (equal? proto "https"))))
+	(http-connection-server-set! conn new-server)
+	(http-connection-secure-set! conn (equal? proto "https"))))
     conn)
 
   (define *http-default-redirect-handler*
@@ -170,20 +181,21 @@
 			:key (host #f)
 			     (redirect-handler #t)
 			     (no-redirect #f)
-			     (auth-handler #f)
-			     (auth-user #f)
-			     (auth-password #f)
+			     auth-handler
+			     auth-user
+			     auth-password
 			     proxy
-			     (extra-headers '())
+			     extra-headers
 			     (user-agent (*http-user-agent*))
-			     (secure #f)
+			     secure
 			     (receiver (http-string-receiver))
 			     (sender #f)
+			     cookie-jar
 			     (trace #f) ;; for debug but hmmmm
 			     (enc :request-encoding 'utf-8)
 			:allow-other-keys opts)
     (let1 conn (ensure-connection server auth-handler auth-user auth-password
-				  proxy secure extra-headers)
+				  proxy secure extra-headers cookie-jar)
       (request-response
        method conn host (ensure-request-uri request-uri enc)
        sender receiver `(:user-agent ,user-agent ,@opts)
@@ -275,15 +287,15 @@
 		   (auth-headers
 		    (cond (auth-handler
 			   ;; never use
-			   (http-connection-auth-handler conn #f)
+			   (http-connection-auth-handler-set! conn #f)
 			   (auth-handler (connection-info) 
 					 auth-user auth-password headers body))
 			  ((and auth-user auth-password
 				(http-lookup-auth-handler headers))
 			   => (lambda (handler)
 				;; reset
-				(http-connection-auth-user conn #f)
-				(http-connection-auth-password conn #f)
+				(http-connection-auth-user-set! conn #f)
+				(http-connection-auth-password-set! conn #f)
 				(handler (connection-info) 
 					 auth-user auth-password headers body)))
 			  (else #f))))
@@ -297,10 +309,12 @@
 	    (auth-password (http-connection-auth-password conn)))
 	(with-connection conn
 	 (lambda (in/out ext-header)
-	   (send-request in/out method host uri sender ext-header options enc
-			 auth-header)
+	   (send-request in/out method host uri sender ext-header
+			 (add-cookie-header conn request-uri options)
+			 enc auth-header)
 	   (flush-output-port in/out)
 	   (receive (code headers) (receive-header in/out)
+	     (add-to-cookie-jar conn headers)
 	     (or (handle-redirect in/out code headers)
 		 (handle-authentication in/out code headers 
 					auth-handler auth-user auth-password)
@@ -311,6 +325,52 @@
 					    headers receiver))))))
 	 trace))))
 
+  (define (add-to-cookie-jar conn headers)
+    (define cookie-jar (http-connection-cookie-jar conn))
+    (define (add-cookie header)
+      (when (string=? "set-cookie" (car header))
+	(let ((cookie (parse-cookie-string (cadr header))))
+	  (cookie-jar-add-cookie! cookie-jar cookie))))
+    (when cookie-jar (for-each add-cookie headers)))
+  
+  (define path-component-set
+    (char-set-difference char-set:ascii char-set:iso-control (char-set #\/)))
+  (define (add-cookie-header conn uri options)
+    (define cookie-jar (http-connection-cookie-jar conn))
+    (define (add-them conn cookie-jar options)
+      (define secure (http-connection-secure conn))
+      (let-values (((h path q f) (uri-decompose-hierarchical uri)))
+	(define (predicate cookie)
+	  (define (match-secure cookie)
+	    (if (cookie-secure? cookie) secure #t))
+	  (define (match-path cookie)
+	    (define cpath (cookie-path cookie))
+	    (if cpath
+		(let loop ((cp* (string-tokenize cpath path-component-set))
+			   (pp* (string-tokenize path path-component-set)))
+		  (cond ((null? cp*) #t)
+			((null? pp*) #f)
+			((string=? (car cp*) (car pp*))
+			 (loop (cdr cp*) (cdr pp*)))
+			(else #f)))
+		#t))
+	  ;; TODO how to handle max-age?
+	  (define (not-expired cookie)
+	    (define expires (cookie-expires cookie))
+	    (if expires
+		(time<? (current-time) (date->time-utc expires))
+		#t))
+	  (and (not-expired cookie)
+	       (match-secure cookie)
+	       (match-path cookie)))
+	(let ((cookies (cookie-jar->cookies cookie-jar predicate)))
+	  (if (null? cookies)
+	      options
+	      `(:cookie ,(cookies->string cookies) ,@options)))))
+    (if cookie-jar
+	(add-them conn cookie-jar options)
+	options))
+    
   (define (canonical-uri conn uri host)
     (let*-values (((scheme specific) (uri-scheme&specific uri))
 		  ((h p q f) (uri-decompose-hierarchical specific)))
@@ -639,7 +699,7 @@
       (_ (error "Invalid request-uri form for http request API" request-uri))))
 
   (define (ensure-connection server auth-handler auth-user auth-password
-			     proxy secure extra-headers)
+			     proxy secure extra-headers cookie-jar)
     (let1 conn (cond ((http-connection? server) server)
 		     ((string? server) (make-http-connection server))
 		     (else
@@ -654,7 +714,7 @@
 					(datum->syntax 
 					 #'k
 					 (string->symbol
-					  (format "http-connection-~a"
+					  (format "http-connection-~a-set!"
 						  (syntax->datum #'id))))))
 			   #'(unless (undefined? id)
 			       (name conn id))))))))
@@ -664,6 +724,7 @@
 	(check-override proxy)
 	(check-override extra-headers)
 	(check-override secure)
+	(check-override cookie-jar)
 	conn)))
 		     
 

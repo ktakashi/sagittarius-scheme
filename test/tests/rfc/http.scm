@@ -4,6 +4,7 @@
 	(rfc http)
 	(rfc mime)
 	(rfc :5322)
+	(rfc cookie)
 	(sagittarius)
 	(sagittarius io)
 	(sagittarius regex)
@@ -63,6 +64,15 @@
     (hashtable-set! ht "/void"
 		     '("HTTP/1.x 404 Not found\nContent-type: text/plain\n"
 		       "Content-length: 9\n\nNot found"))
+    (hashtable-set! ht "/cookie/set-cookie"
+		     '("HTTP/1.x 200 Not found\n\
+                        Content-type: text/plain\n\
+                        Content-Length: 2\n\
+                        Set-Cookie: c1=v1\n\
+                        Set-Cookie: c2=v2; Secure\n\
+                        Set-Cookie: c3=v3; Path=/cookie\n\
+                        Set-Cookie: c3=v3; Path=/idontcare\n\n\
+                        OK"))
     ht))
 
 (define server-up? #f)
@@ -74,6 +84,10 @@
 						    (buffer-mode block))
 				     (make-transcoder (utf-8-codec) 'lf))]
 	   [request-line (get-line in/out)])
+      (define (finish)
+	(close-port in/out)
+	(socket-shutdown client SHUT_RDWR)
+	(socket-close client))
       (cond ((#/^(\S+) (\S+) HTTP\/1\.1$/ request-line)
 	     => (lambda (m)
 		  (let* ([method (m 1)]
@@ -90,9 +104,7 @@
 		      (display "HTTP/1.x 200 OK\nContent-Type: text/plain\n\n" in/out)
 		      (display "exit" in/out)
 		      (set! server-done? #t)
-		      (close-port in/out)
-		      (socket-shutdown client SHUT_RDWR)
-		      (socket-close client)]
+		      (finish)]
 		     [(hashtable-ref %predefined-contents request-uri #f)
 		      => (lambda (x)
 			   (for-each (cut display <> in/out) x)
@@ -100,6 +112,18 @@
 			   (socket-shutdown client SHUT_RDWR)
 			   (socket-close client)
 			   (loop))]
+		     [(equal? request-uri "/cookie/check-cookie")
+		      ;; we must have only 2 cookies
+		      (display "HTTP/1.x 200 OK\nContent-Type: text/plain\n\n" in/out)
+		      (cond ((rfc5322-header-ref headers "cookie") =>
+			     (lambda (c)
+			       (let ((cookies (parse-cookies-string c)))
+				 (if (= (length cookies) 2)
+				     (display "OK" in/out)
+				     (display "NG" in/out)))))
+			    (else (display "NG" in/out)))
+		      (finish)
+		      (loop)]
 		     [else
 		      (display "HTTP/1.x 200 OK\nContent-Type: text/plain\n\n" in/out)
 		      ;; to avoid SIGPIPE
@@ -109,9 +133,7 @@
 				 ("request-body" ,(utf8->string body))
 				 ,@headers)
 			       in/out))
-		      (close-port in/out)
-		      (socket-shutdown client SHUT_RDWR)
-		      (socket-close client)
+		      (finish)
 		      (loop)]))))
 	    (else
 	     (error 'http-server "malformed request line:" request-line))))))
@@ -342,6 +364,18 @@
             (http-post (format "localhost:~a" *http-port*) "/post"
                        '(("a" "b") ("c" "d")))))
   )
+
+(let ((cookie-jar (make-cookie-jar))
+      (server (format "localhost:~a" *http-port*)))
+  (let-values (((s h b) (http-get server "/cookie/set-cookie"
+				  :cookie-jar cookie-jar)))
+    (test-equal "200" s)
+    (test-equal "OK" b)
+    (test-equal 4 (cookie-jar-size cookie-jar)))
+  (let-values (((s h b) (http-get server "/cookie/check-cookie"
+				  :cookie-jar cookie-jar)))
+    (test-equal "OK" b)))
+
 ;; stop
 (test-equal "exit" "exit"
 	    (receive (s h b) 

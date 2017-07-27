@@ -45,6 +45,7 @@
 	    parse-cookies
 	    parse-cookies-string
 	    cookie->string
+	    cookies->string
 	    ;; accessors
 	    cookie-name
 	    cookie-value cookie-value-set!
@@ -429,9 +430,11 @@
     ("HttpOnly" http-only #f              #f)))
 
 ;;; string conversion
+(define (write-cookie out cookie)
+  (format out "~a=~a" (cookie-name cookie) (cookie-value cookie)))
 (define (cookie->string cookie) 
   (let-values (((out extract) (open-string-output-port)))
-    (format out "~a=~a" (cookie-name cookie) (cookie-value cookie))
+    (write-cookie out cookie)
     (for-each (lambda (spec)
 		(and-let* ((v (slot-ref cookie (cadr spec))))
 		  (if (caddr spec)
@@ -447,6 +450,15 @@
 	   (if (boolean? value)
 	       (format out "; ~a" key)
 	       (format out "; ~a=~a" key value)))) ht))
+    (extract)))
+
+(define (cookies->string cookies)
+  (when (null? cookies)
+    (assertion-violation 'cookies->string "at least one cookie is required"))
+  (let-values (((out extract) (open-string-output-port)))
+    (write-cookie out (car cookies))
+    (for-each (lambda (cookie) (display "; " out) (write-cookie out cookie))
+	      (cdr cookies))
     (extract)))
 
 (define cookie-comparator
