@@ -96,6 +96,8 @@
   (set-delete! nums 1)
   (test 2 (set-size nums))
   (set! nums2 (set-map (lambda (x) (* 10 x)) number-comparator nums))
+  (test-assert (set=? nums2
+		      (set-map number-comparator (lambda (x) (* 10 x)) nums)))
   ;; nums2 is now {30, 40}
   (test-assert (set-contains? nums2 30))
   (test-assert (not (set-contains? nums2 3)))
@@ -111,6 +113,12 @@
        (lambda (i) (- i 1))
        5
        eqv-comparator)))
+  (test-assert
+    (set=? nums (set-unfold eqv-comparator
+       (lambda (i) (= i 0))
+       (lambda (i) (* i 10))
+       (lambda (i) (- i 1))
+       5)))
   (test '(a) (set->list (set eq-comparator 'a)))
   (set! syms2 (list->set eq-comparator '(e f)))
   ;; syms2 is now {e, f}

@@ -199,13 +199,15 @@
 		 (syntax-rules ()
 		   ((_ ?name ?class)
 		    (define (?name stop? mapper successor seed comparator)
-		      (let ((result (make-sob ?class comparator)))
-			(let loop ((seed seed))
-			  (if (stop? seed)
-			      result
-			      (begin
-				(sob-increment! result (mapper seed) 1)
-				(loop (successor seed)))))))))))
+		      (if (comparator? stop?)
+			  (?name mapper successor seed comparator stop?)
+			  (let ((result (make-sob ?class comparator)))
+			    (let loop ((seed seed))
+			      (if (stop? seed)
+				  result
+				  (begin
+				    (sob-increment! result (mapper seed) 1)
+				    (loop (successor seed))))))))))))
     (define-unfold set-unfold <set>)
     (define-unfold bag-unfold <bag>))
 
@@ -461,12 +463,14 @@
 		   ((_ ?name ?class)
 		    (define (?name proc comparator sob)
 		      (check-type ?name sob ?class)
-		      (let ((r (make-sob ?class comparator)))
-			(hashtable-for-each
-			 (lambda (key value)
-			   (sob-increment! r (proc key) value))
-			 (slot-ref sob 'hashtable))
-			r))))))
+		      (if (comparator? proc)
+			  (?name comparator proc sob)
+			  (let ((r (make-sob ?class comparator)))
+			    (hashtable-for-each
+			     (lambda (key value)
+			       (sob-increment! r (proc key) value))
+			     (slot-ref sob 'hashtable))
+			    r)))))))
     (define-map set-map <set>)
     (define-map bag-map <bag>))
 
