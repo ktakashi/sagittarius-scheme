@@ -102,14 +102,13 @@
   '(allocate are asensitive asymmetric at atomic authorization
     begin bigint binary blob boolean both call called cascaded 
     char character clob close column connect continue corresponding 
-    current current_date current_default_transform_group current_path 
-    current_role current_time current_timestamp 
-    current_transform_group_for_type current_user
+    current current_default_transform_group current_path 
+    current_role current_transform_group_for_type current_user
     cursor cycle date day deallocate dec decimal declare deref describe
     deterministic disconnect double dynamic each element end end-exec exec
     execute external false fetch filter float for free function get
     global grant hold hour identity immediate indicator
-    inout input insensitive int integer interval isolation language large
+    inout input insensitive int integer isolation language large
     lateral leading like local localtime localtimestamp match member
     merge method minute modifies module month national
     nchar nclob new no none numeric of old only open out output
