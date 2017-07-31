@@ -1153,7 +1153,7 @@
       '#\( i <- interval-leading-field-precision
          '#\, s <- interval-fractional-seconds-precision
       '#\))
-     (list 'second (list i s)))
+     (list 'second i s))
     (('second '#\( i <- interval-leading-field-precision '#\))
      (list 'second i))
     (('second) 'second))
@@ -2313,9 +2313,9 @@
 		     (('timestamp s <- string) (list 'timestamp s)))
    ;; TODO better representation
    (interval-literal (('interval s <- sign i <- string q <- interval-qualifier)
-		      (list 'interval (list q s i)))
+		      (cons 'interval (list (list s i) q)))
 		     (('interval i <- string q <- interval-qualifier)
-		      (list 'interval (list q i))))
+		      (cons 'interval (list i q))))
    ;; TODO introducer thing
    (character-string-literal ((s <- string) s))
    ))

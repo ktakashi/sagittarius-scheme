@@ -1238,6 +1238,34 @@
   (('only id)
    (write/case " ONLY " out) (apply write-ssql id out opt)))
 
+;; interval
+(define-sql-writer (interval ssql out . opt)
+  (define (write-interval-qualifier qualifier out)
+    (define (write-single q out)
+      (match q
+	((n precision ...)
+	 (write/case (symbol-upcase n) out)
+	 (unless (null? precision)
+	   (with-parenthesis out
+	     (write-ssql (car precision) out)
+	     (for-each (lambda (p)
+			 (put-string out ", ")
+			 (write-ssql p out))
+		       (cdr precision)))))
+	(n (write/case (symbol-upcase n) out))))
+    (match qualifier
+      (('to start end)
+       (write-single start out)
+       (write/case " TO " out)
+       (write-single end out))
+      (_
+       (write-single qualifier out))))
+  (('interval v qualifier)
+   (write/case "INTERVAL " out)
+   (write-ssql v out)
+   (put-char out #\space)
+   (write-interval-qualifier qualifier out)))
+
 ;; aggregate functions
 ;; this is needed because it can take filter clause...
 (define-sql-writer (filter ssql out . opt)

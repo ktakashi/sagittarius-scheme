@@ -416,6 +416,15 @@
 (test-parse "select * from t window w as (partition by c)"
 	    '(select * (from t) (window (as w (partition-by c)))))
 
+;; interval
+(test-parse "select interval + '1-1' month(2) to year"
+	    '(select ((interval (+ "1-1") (to (month 2) year)))))
+(test-parse "select interval '1' second(2,4)"
+	    '(select ((interval "1" (second 2 4)))))
+(test-parse "select current_time + interval '1' month"
+	    '(select ((+ current_time (interval "1" month)))))
+
+
 ;; delete from
 (test-parse "delete from t" '(delete-from t))
 (test-parse "delete from t where a = 1" '(delete-from t (where (= a 1))))
