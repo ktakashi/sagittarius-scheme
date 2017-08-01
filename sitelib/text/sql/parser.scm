@@ -178,6 +178,7 @@
 	 ((t <- table-definition) t) ;; create table
 	 ((t <- alter-table-statement) t) ;; alter table
 	 ((s <- sequence-generator-definition) s) ;; create sequence
+	 ((s <- schema-definition) s)
 	 ((d <- drop-schema-statement) d) ;; drop schema
 	 ((g <- grant-statement) g)
 	 ((c <- commit-statement) c) 
@@ -320,6 +321,29 @@
 		(('local v <- simple-value-specification) (list 'local v))
 		((i <- local-or-schema-qualified-name) i))
 
+   ;; 11.1 schema definition
+   (schema-definition (('create (=? 'schema) n <- schema-name-clause
+			sp <- schema-character-set-or-path)
+		       `(create-schema ,@n ,@sp))
+		      (('create (=? 'schema) n <- schema-name-clause)
+		       `(create-schema ,@n)))
+   (schema-name-clause (('authorization a <- identifier) `((authorization ,a)))
+		       ((n <- identifier-chain 'authorization a <- identifier)
+			`(,n (authorization ,a)))
+		       ((n <- identifier-chain) `(,n)))
+   (schema-character-set-or-path ((sc <- schema-character-set-specification
+				   sp <- schema-path-specification)
+				  (list sc sp))
+				 ((sp <- schema-path-specification
+				   sc <- schema-character-set-specification)
+				  (list sc sp))
+				 ((s <- schema-character-set-specification)
+				  (list s))
+				 ((s <- schema-path-specification) (list s)))
+   (schema-character-set-specification
+    (('default 'character 'set c <- character-set-specification)
+     `(default-character-set ,c)))
+   (schema-path-specification ((p <- path-specification) p))
    ;; 11.2 drop schema statement
    (drop-schema-statement (('drop (=? 'schema) n <- identifier-chain
 			    b <- drop-behavior?)
@@ -1194,6 +1218,13 @@
    (interval-leading-field-precision ((n <- 'number) n))
    (interval-fractional-seconds-precision ((n <- 'number) n))
 
+   ;; 10.3 path specification
+   (path-specification (((=? 'path) n <- schema-name-list) (cons 'path n)))
+   (schema-name-list ((n <- identifier-chain n* <- schema-name-list*)
+		      (cons n n*)))
+   (schema-name-list* (('#\, l <- schema-name-list) l)
+		      (() '()))
+   
    ;; 6.35 array value expression
    ;; I think this won't reach since string-value-expression has the
    ;; same expression.

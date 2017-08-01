@@ -520,6 +520,19 @@
 (test-parse "create table t (user varchar default user)"
 	    '(create-table t ((user varchar (default user)))))
 
+(test-parse "create schema foo" '(create-schema foo))
+(test-parse "create schema foo authorization auth"
+	    '(create-schema foo (authorization auth)))
+(test-parse "create schema authorization auth"
+	    '(create-schema (authorization auth)))
+(test-parse "create schema foo authorization auth path charset"
+	    '(create-schema foo (authorization auth) (path charset)))
+(test-parse "create schema foo default character set utf8"
+	    '(create-schema foo (default-character-set utf8)))
+(test-parse "create schema foo path charset"
+	    '(create-schema foo (path charset)))
+
+
 ;; create sequence
 (test-parse "create sequence s" '(create-sequence s))
 (test-parse "create sequence p.s" '(create-sequence (~ p s)))
