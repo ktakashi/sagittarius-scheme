@@ -612,6 +612,34 @@
 (test-parse "savepoint foo" '(savepoint foo))
 (test-parse "release savepoint foo" '(release-savepoint foo))
 
+(test-parse "begin" '(begin))
+(test-parse "begin read only" '(begin read-only))
+(test-parse "begin read write" '(begin read-write))
+(test-parse "begin read write, isolation level read uncommitted"
+	    '(begin read-write (isolation-level read-uncommitted)))
+(test-parse "begin read write, isolation level read committed"
+	    '(begin read-write (isolation-level read-committed)))
+(test-parse "begin read write, isolation level repeatable read"
+	    '(begin read-write (isolation-level repeatable-read)))
+(test-parse "begin read write, isolation level serializable"
+	    '(begin read-write (isolation-level serializable)))
+(test-parse "begin read write, diagnostics size 1"
+	    '(begin read-write (diagnostics-size 1)))
+(test-parse "start transaction" '(start-transaction))
+(test-parse "start transaction read only" '(start-transaction read-only))
+(test-parse "start transaction read write" '(start-transaction read-write))
+(test-parse "start transaction read write, isolation level read uncommitted"
+	    '(start-transaction read-write (isolation-level read-uncommitted)))
+(test-parse "start transaction read write, isolation level read committed"
+	    '(start-transaction read-write (isolation-level read-committed)))
+(test-parse "start transaction read write, isolation level repeatable read"
+	    '(start-transaction read-write (isolation-level repeatable-read)))
+(test-parse "start transaction read write, isolation level serializable"
+	    '(start-transaction read-write (isolation-level serializable)))
+(test-parse "start transaction read write, diagnostics size 1"
+	    '(start-transaction read-write (diagnostics-size 1)))
+
+
 ;; found a bug on local-or-schema-qualified-name
 (test-parse "select * from s.t" '(select * (from (~ s t))))
 

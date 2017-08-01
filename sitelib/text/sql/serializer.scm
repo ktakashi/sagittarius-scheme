@@ -1347,6 +1347,27 @@
 (define-sql-writer savepoint to-savepoint)
 (define-sql-writer release-savepoint to-savepoint)
 
+;; begin, start transaction
+(define-sql-writer (begin ssql out . opt)
+  (define (write-one-mode mode out)
+    (match mode
+      (('diagnostics-size v)
+       (write/case "DIAGNOSTICS SIZE " out)
+       (write-ssql v out))
+      ((name value)
+       (write/case (symbol-upcase name) out)
+       (put-char out #\space)
+       (write/case (symbol-upcase value) out))
+      (name (write/case (symbol-upcase name) out))))
+  ((name rest ...)
+   (write/case (symbol-upcase name) out)
+   (unless (null? rest)
+     (put-char out #\space)
+     (write-one-mode (car rest) out)
+     (for-each (lambda (mode)
+		 (put-string out ", ")
+		 (write-one-mode mode out)) (cdr rest)))))
+(define-sql-writer start-transaction begin)
 ;; TBD lot more to go...
 
 ;; meta values

@@ -184,10 +184,38 @@
 	 ((r <- rollback-statement) r) 
 	 ((s <- savepoint-statement) s)
 	 ((s <- release-savepoint-statement) s)
+	 ((s <- start-transaction-statement) s)
 	 ((c <- 'comment)         (list '*COMMENT* c))
 	 ;; TODO more
 	 )
 
+   ;; 16.1 start transaction statement
+   (start-transaction-statement (('start (=? 'transaction)
+				  mode <- transaction-mode-list?)
+				 (cons 'start-transaction mode))
+				;; it's widely used anyway
+				(('begin mode <- transaction-mode-list?)
+				 (cons 'begin mode)))
+   (transaction-mode-list? ((t <- transaction-mode t* <- transaction-mode*)
+			    (cons t t*))
+			   (() '()))
+   (transaction-mode  ((i <- isolation-level) i)
+		      ((m <- transaction-access-mode) m)
+		      ((d <- diagnostics-size) d))
+   (isolation-level (('isolation (=? 'level) l <- level-of-isolation)
+		     (list 'isolation-level l)))
+   (level-of-isolation (((=? 'read) (=? 'uncommitted)) 'read-uncommitted)
+		       (((=? 'read) (=? 'committed))   'read-committed)
+		       (((=? 'repeatable) (=? 'read))  'repeatable-read)
+		       (((=? 'serializable))           'serializable))
+   (transaction-access-mode (((=? 'read) 'only)        'read-only)
+			    (((=? 'read) (=? 'write))  'read-write))
+   (diagnostics-size (((=? 'diagnostics) (=? 'size)
+		       v <- simple-value-specification)
+		      (list 'diagnostics-size v)))
+   (transaction-mode* (('#\, m <- transaction-mode m* <- transaction-mode*)
+		       (cons m m*))
+		      (() '()))
    ;; 16.4 savepoint statement
    (savepoint-statement (('savepoint n <- identifier) (list 'savepoint n)))
    ;; 16.5 release savepoint statement
