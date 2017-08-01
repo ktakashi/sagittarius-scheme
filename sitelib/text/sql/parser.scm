@@ -376,7 +376,7 @@
    ;; TODO should we also add 'temp for PostgreSQL?
    (table-scope? ((g <- global/local (=? 'temporary)) 
 		  (if (null? g)
-		      'temporary
+		      '(temporary)
 		      (list (symbol-append (car g) '-temporary))))
 		 (() '()))
    ;; this can be optional (at least on PostgreSQL)

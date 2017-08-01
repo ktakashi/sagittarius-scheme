@@ -520,6 +520,9 @@
 (test-parse "create table t (user varchar default user)"
 	    '(create-table t ((user varchar (default user)))))
 
+(test-parse "create table foo (id int, name varchar) on commit preserve rows"
+	    '(create-table foo ((id int) (name varchar)) (on-commit preserve)))
+
 (test-parse "create schema foo" '(create-schema foo))
 (test-parse "create schema foo authorization auth"
 	    '(create-schema foo (authorization auth)))

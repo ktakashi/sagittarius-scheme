@@ -441,7 +441,7 @@
 
 (define (write-columns ssql out :key (indent #f) :allow-other-keys opt)
   (unless (null? ssql)
-    (put-indent out indent)
+    (when indent (put-indent out indent))
     (apply write-column-definition (car ssql) out :indent indent opt)
     (for-each (lambda (column)
 		(put-char out #\,)
@@ -452,15 +452,28 @@
 ;; not complete this is only for my testing sake
 (define-sql-writer (create-table ssql out :key (indent #f) 
 				 :allow-other-keys opt)
-  (('create-table table (columns ...))
-   (write/case "CREATE TABLE " out)
+  ((name table (columns ...) params ...)
+   (write/case (symbol-upcase name) out)
+   (put-char out #\space)
    (apply write-ssql table out opt)
    (put-char out #\space)
    (with-parenthesis out
     (put-newline out indent)
     ;; indent 4 would be nice, i think
     (apply write-columns columns out :indent (next-indent indent 4) opt)
-    (put-newline out indent))))
+    (put-newline out indent))
+   (for-each (lambda (p)
+	       (put-newline/space out indent)
+	       (apply write-ssql p out opt)) params)))
+(define-sql-writer create-temporary-table create-table)
+(define-sql-writer create-global-temporary-table create-table)
+(define-sql-writer create-local-temporary-table create-table)
+
+(define-sql-writer (on-commit ssql out . opt)
+  (('on-commit action)
+   (write/case "ON COMMIT " out)
+   (write/case (symbol-upcase action) out)
+   (write/case " ROWS" out)))
 
 (define-sql-writer (create-schema ssql out :key (indent #f)
 				  :allow-other-keys opt)
