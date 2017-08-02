@@ -469,17 +469,14 @@
 ;; create table
 (test-parse "create table t (a int)" '(create-table t ((a int))))
 (test-parse "create table t (a int primary key)"
-	    '(create-table t ((a int (constraint primary-key)))))
+	    '(create-table t ((a int primary-key))))
 (test-parse "create table t (a int primary key, b varchar)"
-	    '(create-table t ((a int (constraint primary-key)) (b varchar))))
+	    '(create-table t ((a int primary-key) (b varchar))))
 (test-parse "create table t (a int default nextval('seq') not null, b varchar)"
-	    '(create-table t ((a int (default (nextval "seq")) 
-				 (constraint not-null))
+	    '(create-table t ((a int (default (nextval "seq")) not-null)
 			      (b varchar))))
 (test-parse "create table t (a int default nextval('seq') not null unique, b varchar)"
-	    '(create-table t ((a int (default (nextval "seq")) 
-				 (constraint not-null)
-				 (constraint unique))
+	    '(create-table t ((a int (default (nextval "seq")) not-null unique)
 			      (b varchar))))
 (test-parse "create table t (id int generated always as identity (start with 1 increment by 1 no cycle))"
 	    '(create-table t ((id int (generated-always-as-identity 
@@ -489,28 +486,32 @@
 (test-parse "create table t (id int, name varchar, primary key (id), unique(name))"
 	    '(create-table t ((id int)
 			      (name varchar)
-			      (constraint (primary-key id))
-			      (constraint (unique name)))))
+			      (primary-key (id))
+			      (unique (name)))))
 (test-parse "create table t (id int, name varchar, primary key (id) initially immediate)"
 	    '(create-table t ((id int)
 			      (name varchar)
-			      (constraint (primary-key id) initially-immediate))))
+			      (primary-key (id) initially-immediate))))
 (test-parse "create table t (id int, primary key (id) initially immediate deferrable)"
 	    '(create-table t ((id int)
-			      (constraint (primary-key id)
-					  initially-immediate deferrable))))
+			      (primary-key (id) initially-immediate deferrable))))
 (test-parse "create table t (id int, constraint p_key primary key (id))"
 	    '(create-table t ((id int)
-			      (constraint p_key (primary-key id)))))
+			      (constraint p_key primary-key (id)))))
+(test-parse "create table t (id int, constraint p_key primary key (id) initially immediate)"
+	    '(create-table t ((id int)
+			      (constraint p_key primary-key (id) initially-immediate))))
 (test-parse "create table t (id int constraint p_key primary key)"
 	    '(create-table t ((id int (constraint p_key primary-key)))))
 (test-parse "create table t (id int constraint f_key references b(id))"
-	    '(create-table t ((id int (constraint f_key (references b id))))))
+	    '(create-table t ((id int (constraint f_key references (b id))))))
 (test-parse "create table t (id int references b(id))"
-	    '(create-table t ((id int (constraint (references b id))))))
+	    '(create-table t ((id int (references (b id))))))
+(test-parse "create table t (id int, foreign key (id) references b(id))"
+	    '(create-table t ((id int) (foreign-key (id) references (b id)))))
 
 (test-parse "create table t (a varchar array primary key)"
-	    '(create-table t ((a (varchar array) (constraint primary-key)))))
+	    '(create-table t ((a (varchar array) primary-key))))
 (test-parse "create table t (a varchar array[1])"
 	    '(create-table t ((a (varchar array 1)))))
 
@@ -549,17 +550,17 @@
 (test-parse "alter table t add column b int"
 	    '(alter-table t (add-column b int)))
 (test-parse "alter table t add column b int primary key"
-	    '(alter-table t (add-column b int (constraint primary-key))))
-(test-parse "alter table t drop b" '(alter-table t (drop-column b)))
+	    '(alter-table t (add-column b int primary-key)))
+(test-parse "alter table t drop b" '(alter-table t (drop b)))
 (test-parse "alter table t drop column b" '(alter-table t (drop-column b)))
 (test-parse "alter table t drop column b cascade"
 	    '(alter-table t (drop-column b cascade)))
 (test-parse "alter table t drop column b restrict"
 	    '(alter-table t (drop-column b restrict)))
 (test-parse "alter table t add unique (b)"
-	    '(alter-table t (add-constraint (unique b))))
+	    '(alter-table t (add unique (b))))
 (test-parse "alter table t add constraint u_b unique (b)"
-	    '(alter-table t (add-constraint u_b (unique b))))
+	    '(alter-table t (add constraint u_b unique (b))))
 (test-parse "alter table t drop constraint u_b"
 	    '(alter-table t (drop-constraint u_b)))
 (test-parse "alter table t drop constraint u_b cascade"

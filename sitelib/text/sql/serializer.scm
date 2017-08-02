@@ -338,115 +338,99 @@
   (('delete-from table ('where condition))
    (write-delete out table (list 'where condition))))
 
-(define (write-constraint ssql out :key (indent #f) :allow-other-keys opt)
-  (define (emit-constraint name type column rest)
-    (when name 
+(define (write-constraint ssql out . opt)
+  (define (constraint ssql out opt)
+    (define (emit-base name)
       (write/case "CONSTRAINT " out)
       (apply write-ssql name out opt)
       (put-char out #\space))
-    ;; UNIQUE(col), PRIMERY KEY(col) or so
-    ;; default writer can handle it so just do it like this
-    (cond ((null? column)
-	   (write/case (symbol-upcase type) out)) ;; not-null
-	  ((eq? type 'references) ;; sucks!!!
-	   (write/case "REFERENCES " out)
-	   (apply write-ssql (car column) out opt)
-	   (unless (null? (cdr column))
-	     (with-parenthesis out (apply write/comma* out (cdr column) opt))))
-	  ((eq? type 'foreign-key)
-	   (write/case "FOREIGN KEY " out)
-	   (with-parenthesis out (apply write/comma* out (car column) opt))
-	   (put-char out #\space)
-	   (emit-constraint #f 'references (cdadr column) '()))
-	  (else
-	   (apply write-ssql `(,(symbol-upcase type) ,@column)
-		  out :indent #f opt)))
-    (unless (null? rest)
-      (for-each (lambda (c)
-		  (put-char out #\space)
-		  (write/case (symbol-upcase c) out)) rest)))
-  (match ssql
-    ;; references thing
-    (('constraint (type columns ...) rest ...)
-     (emit-constraint #f type columns rest))
-    (('constraint name (type columns ...) rest ...)
-     (emit-constraint name type columns rest))
-    ;; sucks...
-    (('constraint name single rest ...)
-     (emit-constraint name single '() rest))
-    (('constraint single rest ...)
-     (emit-constraint #f single '() rest))))
-  
-(define (write-column-definition ssql out :key (indent #f)
-				 :allow-other-keys opt)
-  (define (emit-constraint name type column rest)
-    (when name 
-      (write/case "CONSTRAINT " out)
-      (apply write-ssql name out opt)
-      (put-char out #\space))
-    ;; UNIQUE(col), PRIMERY KEY(col) or so
-    ;; default writer can handle it so just do it like this
-    (cond ((null? column)
-	   (write/case (symbol-upcase type) out)) ;; not-null
-	  ((eq? type 'references) ;; sucks!!!
-	   (write/case "REFERENCES " out)
-	   (apply write-ssql (car column) out opt)
-	   (unless (null? (cdr column))
-	     (with-parenthesis out (apply write/comma* out (cdr column) opt))))
-	  ((eq? type 'foreign-key)
-	   (write/case "FOREIGN KEY " out)
-	   (with-parenthesis out (apply write/comma* out (car column) opt))
-	   (put-char out #\space)
-	   (emit-constraint #f 'references (cdadr column) '()))
-	  (else
-	   (apply write-ssql `(,(symbol-upcase type) ,@column)
-		  out :indent #f opt)))
-    (unless (null? rest)
-      (for-each (lambda (c)
-		  (put-char out #\space)
-		  (write/case (symbol-upcase c) out)) rest)))
-  (define (write-column col out)
-    ;; FIXME it's the same as basic one...
-    (define (emit type)
-      (put-char out #\space)
-      (match type
-	;; references thing
-	(('constraint rest ...) (apply write-constraint type out opt))
-	;; array
-	((type 'array . rest)
-	 (apply write-ssql type out :indent #f opt)
-	 (write/case " ARRAY" out)
-	 (unless (null? rest)
-	   (unless (and (null? (cdr rest))
-			(integer? (car rest))
-			(exact? (car rest)))
-	     (assertion-violation 'write-column
-				  "array element must be exact integer"
-				  (car rest)))
-	   (put-char out #\[)
-	   (put-string out (number->string (car rest)))
-	   (put-char out #\])))
-	;; default
-	((a . d) (apply write-ssql type out :indent #f opt))
-	(_ (write/case (symbol-upcase type) out))))
-    (match col
-      (('constraint rest ...)
-       (apply write-constraint col out opt))
-      ((name types ...)
-       ;; assume the first one is always symbol
-       ;;(emit name #f)
-       (write/case name out)
-       (for-each emit types))))
-  (write-column ssql out))
+    (match ssql
+      (('constraint name constraint)
+       (emit-base name)
+       (write/case (symbol-upcase constraint) out))
+      (('constraint name constraint1 constraint* ...)
+       (emit-base name)
+       (write-it (cddr ssql) out opt))))
+  (define (primary-key ssql out opt)
+    (match ssql
+      ((name columns rest ...)
+       (write/case (symbol-upcase name) out)
+       (put-char out #\space)
+       (with-parenthesis out (apply write/comma* out columns opt))
+       (unless (null? rest)
+	 (for-each (lambda (c)
+		     (put-char out #\space)
+		     (write/case (symbol-upcase c) out)) rest)))))
+  (define (foreign-key ssql out opt)
+    (match ssql
+      (('foreign-key columns 'references rest ...)
+       (write/case "FOREIGN KEY " out)
+       (with-parenthesis out (apply write/comma* out columns opt))
+       (put-char out #\space)
+       (write-it (cddr ssql) out opt))))
+  (define (references ssql out opt)
+    (match ssql
+      (('references (table columns ...) rest ...)
+       (write/case "REFERENCES " out)
+       (apply write-ssql table out opt)
+       (with-parenthesis out (apply write/comma* out columns opt))
+       (unless (null? rest)
+	 (put-char out #\space)
+	 (for-each (lambda (s) (apply write-ssql s out opt)))))))
+  (define (write-it ssql out opt)
+    (let ((head (car ssql)))
+      (cond ((eq? head 'constraint) (constraint ssql out opt))
+	    ((memq head '(primary-key unique)) (primary-key ssql out opt))
+	    ((eq? head 'foreign-key) (foreign-key ssql out opt))
+	    ((eq? head 'references) (references ssql out opt))
+	    (else (apply write-ssql ssql out :indent #f opt)))))
+  (write-it ssql out opt))
 
+(define (write-column-definition ssql out . opt)
+  (define (handle-constraint constraint)
+    (put-char out #\space)
+    (if (pair? constraint)
+	(apply write-constraint constraint out opt)
+	(write/case (symbol-upcase constraint) out)))
+  (let ((name (car ssql))
+	(type (cadr ssql))
+	(maybe-constraints (cddr ssql)))
+    (write/case name out)
+    (put-char out #\space)
+    (match type
+      ((type 'array . rest)
+       (apply write-ssql type out :indent #f opt)
+       (write/case " ARRAY" out)
+       (unless (null? rest)
+	 (unless (and (null? (cdr rest))
+		      (integer? (car rest))
+		      (exact? (car rest)))
+	   (assertion-violation 'write-column
+				"array element must be exact integer"
+				(car rest)))
+	 (put-char out #\[)
+	 (put-string out (number->string (car rest)))
+	 (put-char out #\])))
+      ((a . d) (apply write-ssql type out :indent #f opt))
+      (_ (write/case (symbol-upcase type) out)))
+    (for-each handle-constraint maybe-constraints)))
+
+(define-constant +table-constraint-keywords+
+  '(primary-key unique constraint foreign-key check))
 (define (write-columns ssql out :key (indent #f) :allow-other-keys opt)
+  (define (table-constraints? ssql)
+    (and (pair? ssql) (member (car ssql) +table-constraint-keywords+)))
+  (define (dispatch ssql)
+    (if (table-constraints? ssql)
+	(apply write-constraint ssql out :indent #f opt)
+	(apply write-column-definition ssql out :indent #f opt)))
   (unless (null? ssql)
     (when indent (put-indent out indent))
-    (apply write-column-definition (car ssql) out :indent indent opt)
+    (dispatch (car ssql))
     (for-each (lambda (column)
 		(put-char out #\,)
 		(put-newline/space out indent)
-		(apply write-column-definition column out :indent indent opt))
+		(dispatch column))
 	      (cdr ssql))))
 ;; create table
 ;; not complete this is only for my testing sake
@@ -543,8 +527,8 @@
 				    
 
 (define-sql-writer (alter-table ssql out :key (indent #f) :allow-other-keys opt)
-  (define (add/drop-column? x) 
-    (memq x '(add-column drop-column drop-constraint)))
+  (define (drop-column? x)
+    (memq x '(drop drop-column drop-constraint)))
   (define write-alter-column-action
     (match-lambda
      ('drop-default (write/case " DROP DEFAULT" out))
@@ -566,21 +550,27 @@
       (write/case " SET " out)
       (apply write-ssql sequence-option out opt))))
       
-  (('alter-table name ((? add/drop-column? x) definition ...))
+  (('alter-table name ('add-column definition ...))
+   (write/case "ALTER TABLE " out)
+   (apply write-ssql name out opt)
+   (write/case " ADD COLUMN " out)
+   (write-column-definition definition out))
+  (('alter-table name ((? drop-column? x) col rest ...))
    (write/case "ALTER TABLE " out)
    (apply write-ssql name out opt)
    (put-char out #\space)
    (write/case (symbol-upcase x) out)
    (put-char out #\space)
-   ;; this works perfectly for drop-column and drop-constraint
-   ;; as well because it considers 'cascade' or 'restrict' as 
-   ;; type. rather abusing though...
-   (write-column-definition definition out))
-  (('alter-table name ('add-constraint rest ...))
+   (apply write-ssql col out opt)
+   (unless (null? rest)
+     (for-each (lambda (behaviour)
+		 (put-char out #\space)
+		 (write/case (symbol-upcase behaviour) out)) rest)))
+  (('alter-table name ('add rest ...))
    (write/case "ALTER TABLE " out)
    (apply write-ssql name out opt)
    (write/case " ADD " out)
-   (write-constraint (cons 'constraint rest) out))
+   (write-constraint rest out))
   (('alter-table name (alter-column c action))
    (write/case "ALTER TABLE " out)
    (apply write-ssql name out opt)

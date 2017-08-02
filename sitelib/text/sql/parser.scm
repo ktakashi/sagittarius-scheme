@@ -461,11 +461,11 @@
    (column-constraint-definition ((n <- constraint-name-definition?
 				   c <- column-constraint
 				   r <- constraint-characteristics?)
-				  (if (null? n)
-				      `(constraint ,c ,@r)
-				      `(,@(car n) ,c ,@r))))
-   (column-constraint (('not 'null) 'not-null)
-		      ((u <- unique-specification) u)
+				  (if (and (null? n) (null? r) (null? (cdr c)))
+				      (car c)
+				      `(,@n ,@c ,@r))))
+   (column-constraint (('not 'null) '(not-null))
+		      ((u <- unique-specification) (list u))
 		      ;; TODO should we accept 'foreign key references'
 		      ;;      as well? not SQL 2003 but seems common.
 		      ((r <- references-specification) r)
@@ -524,9 +524,10 @@
    (table-constraint-definition ((d <- constraint-name-definition?
 				  t <- table-constraint
 				  c <- constraint-characteristics?)
-				 (if (null? d)
-				     `(constraint ,t ,@c)
-				     `(,@(car d) ,t ,@c))))
+				 (let ((r (append t c)))
+				   (if (null? d)
+				       r
+				       `(,@d ,@r)))))
    (table-constraint ((u <- unique-constraint-definition) u)
 		     ((r <- referential-constraint-definition) r)
 		     ((c <- check-constraint-definition) c))
@@ -534,7 +535,7 @@
    ;; NB i don't know what UNIQUE(VALUE) means, so ignore it for now
    (unique-constraint-definition ((s <- unique-specification 
 				   '#\( c <- column-name-list '#\))
-				  (cons s c)))
+				  (list s c)))
    (unique-specification (('unique) 'unique)
 			 (('primary (=? 'key)) 'primary-key))
 
@@ -542,12 +543,12 @@
    (referential-constraint-definition 
     (('foreign (=? 'key) '#\( c <- column-name-list '#\) 
       s <- references-specification)
-     `(foreign-key ,c ,s)))
+     `(foreign-key ,c ,@s)))
    (references-specification (('references 
 			       t <- referenced-table-and-columns
 			       m <- match-type?
 			       a <- referential-triggered-action?)
-			      `(references ,@t ,@m ,@a)))
+			      `(references ,t ,@m ,@a)))
    (referenced-table-and-columns 
     ((t <- table-name '#\( c <- column-name-list '#\)) (cons t c))
     ((t <- table-name) (list t)))
@@ -642,10 +643,10 @@
    (drop-column-definition (('drop 'column n <- column-name b <- drop-behavior?)
 			    `(drop-column ,n ,@b))
 			   (('drop n <- column-name b <- drop-behavior?)
-			    `(drop-column ,n ,@b)))
+			    `(drop ,n ,@b)))
    ;; 11.19 add table constraint definition
    (add-table-constraint-definition (('add c <- table-constraint-definition)
-				     `(add-constraint ,@(cdr c))))
+				     `(add ,@c)))
    ;; 11.20 drop table constraint definition
    (drop-table-constraint-definition 
     (('drop 'constraint n <- identifier-chain b <- drop-behavior?)
@@ -2228,7 +2229,7 @@
 		    (() '()))
 
    ;; 10.8 constraint name definition
-   (constraint-name-definition? ((c <- constraint-name-definition) (list c))
+   (constraint-name-definition? ((c <- constraint-name-definition) c)
 				(() '()))
    (constraint-name-definition (('constraint n <- identifier-chain)
 				(list 'constraint n)))
