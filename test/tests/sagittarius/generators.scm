@@ -187,7 +187,7 @@
 	    (generator->list (circular-generator 1 2 3) 10))
 (test-equal '(1 3 2 1 3 2 1 3 2 1)
 	    (generator->reverse-list (circular-generator 1 2 3) 10))
-(test-equal (eof-object) ((circular-generator)))
+(test-error assertion-violation?  (circular-generator))
 
 (define-syntax test-list-like
   (syntax-rules ()

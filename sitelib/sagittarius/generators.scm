@@ -143,7 +143,8 @@
 
   (define (circular-generator . args)
     (if (null? args)
-	null-generator
+	(assertion-violation 'circular-generator
+			     "at least one argument is required")
 	(let1 tmp args
 	  (lambda () (when (null? tmp) (set! tmp args)) (pop! tmp)))))
   

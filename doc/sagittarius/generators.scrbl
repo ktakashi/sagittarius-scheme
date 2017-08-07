@@ -24,6 +24,9 @@ indicates a generator.
 @define[Function]{@name{null-generator}}
 @desc{Returns a generator which always returns EOF object.}
 
+@define[Function]{@name{circular-generator} @args{obj obj* @dots{}}}
+@desc{Returns a generator which repeats the given @var{obj}s.}
+
 @define[Function]{@name{giota}
  @args{:optional (count +inf.0) (start 0) (step 1)}}
 @desc{Returns a generator which returns @var{count} number of numbers.
