@@ -183,6 +183,12 @@
                                  0
                                  (^s (giota 10)))))
 
+(test-equal '(1 2 3 1 2 3 1 2 3 1)
+	    (generator->list (circular-generator 1 2 3) 10))
+(test-equal '(1 3 2 1 3 2 1 3 2 1)
+	    (generator->reverse-list (circular-generator 1 2 3) 10))
+(test-equal (eof-object) ((circular-generator)))
+
 (define-syntax test-list-like
   (syntax-rules ()
     [(_  gfn lfn src ...)

@@ -34,7 +34,7 @@
 ;; 
 (library (sagittarius generators)
     (export ;; predefined generator
-	    null-generator
+	    null-generator circular-generator
 
 	    ;; operations (from SRFI-121)
 	    gcons* gappend gcombine gfilter gremove
@@ -140,6 +140,12 @@
   (define null-generator
     (let ((r (eof-object)))
       (lambda () r)))
+
+  (define (circular-generator . args)
+    (if (null? args)
+	null-generator
+	(let1 tmp args
+	  (lambda () (when (null? tmp) (set! tmp args)) (pop! tmp)))))
   
   ;; converter
   (define (generator->reverse-list g . maybe-k) 
