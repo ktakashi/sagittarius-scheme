@@ -51,6 +51,7 @@
 # include <arpa/inet.h>
 # include <sys/select.h>
 # include <netinet/in.h>
+# include <netinet/tcp.h>
 #endif
 #include <sagittarius.h>
 

@@ -469,14 +469,25 @@ SgObject Sg_CreateSocket(int family, int socktype, int protocol)
 		       &option_value, sizeof(option_value))) {
     return SG_FALSE;
   }
-#endif
+#endif  
   return make_socket_inner(fd);
+}
+
+static void disable_nagle(SOCKET fd)
+{
+#ifdef TCP_NODELAY
+    const int value = 1;
+    /* we ignore the return value here, since this is merely performance
+       optimisation */
+    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &value, sizeof(int));
+#endif
 }
 
 SgObject Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo)
 {
   struct addrinfo *p = addrinfo->ai;
   if (connect(socket->socket, p->ai_addr, (int)p->ai_addrlen) == 0) {
+    disable_nagle(socket->socket);
     socket->type = SG_SOCKET_CLIENT;
     socket->address = SG_SOCKADDR(ai_addr(addrinfo));
     return socket;
@@ -769,6 +780,7 @@ SgObject Sg_SocketAccept(SgSocket *socket)
       break;
     }
   }
+  disable_nagle(fd);
   return make_socket(fd, SG_SOCKET_SERVER, 
 		     make_sockaddr(addrlen, (struct sockaddr *)&addr, TRUE));
 }
