@@ -466,7 +466,7 @@ SgObject Sg_CreateSocket(int family, int socktype, int protocol)
 #ifdef SO_NOSIGPIPE
   const int option_value = 1;
   if (-1 == setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, 
-		       &option_value, sizeof(option_value))) {
+		       (const char *)&option_value, sizeof(option_value))) {
     return SG_FALSE;
   }
 #endif  
@@ -479,7 +479,7 @@ static void disable_nagle(SOCKET fd)
     const int value = 1;
     /* we ignore the return value here, since this is merely performance
        optimisation */
-    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &value, sizeof(int));
+    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char *)&value, sizeof(int));
 #endif
 }
 
