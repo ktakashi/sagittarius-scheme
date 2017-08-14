@@ -37,9 +37,7 @@
 	   "c99_flonum.h"))
 
 (define-type <flonum> "double" "flonum" "SG_FLONUMP" "SG_FLONUM_VALUE"
-  "Sg_MakeFlonum"
-  #;0 ;; FIXME bug in stub on 0.8.5
-  )
+  "Sg_MakeFlonum" 0)
 
 ;; Constructors
 (define (flonum n)
@@ -47,13 +45,61 @@
       (inexact n)
       (assertion-violation 'flonum "real number required" n)))
 
-(define-c-proc fladjacent (x::<flonum> y::<flonum>) ::<flonum>
-  (result (nextafter x y)))
+(define-c-proc fladjacent (x::<flonum> y::<flonum>) ::<flonum> :constant
+  nextafter)
+(define-c-proc flcopysign (x::<flonum> y::<flonum>) ::<flonum> :constant
+  copysign)
+(define-c-proc make-flonum (x::<flonum> n::<fixnum>) ::<flonum> :constant
+  ldexp)
 
-(define-c-proc flcopysign (x::<flonum> y::<flonum>) ::<flonum>
-  (result (copysign x y)))
+;; Accessors
+(define-c-proc flinteger-fraction (x::<flonum>) :constant
+  (let* ((iptr::double 0.0)
+	 (r::double))
+    (set! r (modf x (& iptr)))
+    (Sg_Values2 (Sg_MakeFlonum r) (Sg_MakeFlonum iptr))))
 
-(define-c-proc make-flonum (x::<flonum> n::<fixnum>)
-  (result (ldexp x n)))
+(define-c-proc flexponent (x::<flonum>) ::<flonum> :constant logb)
+(define-c-proc flnormalized-fraction-exponent (x::<flonum>) :constant
+  (let* ((r::double 0.0)
+	 (e::int 0))
+    (set! r (frexp x (& e)))
+    (Sg_Values2 (Sg_MakeFlonum r) (SG_MAKE_INT e))))
+(define-c-proc flsign-bit (x::<flonum>) ::<fixnum> :constant signbit)
+
+;; predicate
+;; TODO move them from null.stub
+;; flonum?
+;; fl=?
+;; fl<?
+;; fl>?
+;; fl<=?
+;; fl>=?
+(define (flunordered? x y) (or (flnan? x) (flnan? y)))
+;; flinteger?
+;; flzero?
+;; flpositive?
+;; flnegative?
+;; flodd?
+;; fleven?
+;; flfinite?
+;; flinfinite?
+;; flnan?
+(define-c-proc flnormalized (x::<flonum>) ::<boolean> :constant
+  (result (== (fpclassify x) FP_NORMAL)))
+(define-c-proc fldenormalized (x::<flonum>) ::<boolean> :constant
+  (result (== (fpclassify x) FP_SUBNORMAL)))
+
+;; arithmetic
+;; flmax
+;; flmin
+;; fl+
+;; fl*
+(define-c-proc fl+* (x::<flonum> y::<flonum> z::<flonum>) ::<flonum> :constant
+  fma)
+;; fl-
+;; fl/
+;; flabs
+
 )
 
