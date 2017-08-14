@@ -214,7 +214,7 @@
     (cgen-literal obj))
 
   (define-form-parser define-type args
-    (unless (<= 2 (length args) 6)
+    (unless (<= 2 (length args) 7)
       (error 'define-type "malformed define-type" `(define-type . ,args)))
     (apply make-cgen-type args))
 
