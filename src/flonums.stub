@@ -432,6 +432,6 @@
 (define-c-proc flerfc (x::<flonum>) ::<flonum> :constant erfc)
 
 ;; constants
-
+;; I want to write like this but I can't yet ...
+;; (define-c-constant fl-e M_E ::<flonum>)
 )
-

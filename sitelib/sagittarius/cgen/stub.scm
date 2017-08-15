@@ -280,7 +280,7 @@
 	(values flags body)))
 
     (check-arg symbol? scheme-name 'define-c-proc)
-    (check-arg list argspec 'define-c-proc)
+    (check-arg list? argspec 'define-c-proc)
     (let*-values (((args keyargs nreqs nopts rest? other-keys?)
 		   (process-c-proc-args scheme-name argspec))
 		  ((body rettype) (extract-rettype body))
@@ -681,7 +681,7 @@
     (cgen-cexpr (cgen-literal k)))
 
   ;; constants
-  (define-form-parser define-c-constant (scheme-name value . opt)
+  (define-form-parser define-c-literal (scheme-name value . opt)
     (define export? (memq :export opt))
     (let ((cname (get-c-name "" scheme-name))
 	  (literal (cgen-literal value)))
@@ -692,5 +692,25 @@
 			     (cgen-cexpr name-literal)
 			     (cgen-cexpr literal)))))))
 
-
+  (define-class <cgen-constant> (<stub>)
+    ((constant :init-keyword :constant :init-value #f)
+     (type     :init-keyword :type)
+     (value    :init-keyword :value)))
+  (define-form-parser define-c-constant (scheme-name value . type&flag)
+    (define (extract-flags body)
+      (if (null? body)
+	  #f
+	  (cond ((memq body '(:constant)) #t)
+		(else #f))))
+    (check-arg symbol? scheme-name 'define-c-constant)
+    (let*-values (((body type) (extract-rettype body))
+		  (((constant?))  (extract-flags body)))
+      (let1 c (make <cgen-constant>
+		:scheme-name scheme-name
+		:c-name (get-c-name (slot-ref (cgen-current-unit)
+					      'c-name-prefix)
+				    scheme-name)
+		:constant constant
+		:type type :value value)
+	(cgen-add! c))))
 )
