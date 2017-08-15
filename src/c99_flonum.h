@@ -35,7 +35,7 @@
 #include <math.h>
 #include <float.h>
 
-#if !(__STDC_VERSION__ >= 199901L)
+#if !(__STDC_VERSION__ >= 199901L) || !(__GNUC__ >= 4)
 # if defined(_MSC_VER)
 #   if  _MSC_VER < 1800
 /* under VS 2012. add required ones them */

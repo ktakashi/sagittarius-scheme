@@ -2619,7 +2619,8 @@
 	  (implementation-restriction-violation
 	   'fxmod "result is not a fixnum"
 	   (SG_LIST2 (SG_MAKE_INT fx1) (SG_MAKE_INT fx2))))))
-  
+
+  (decl-code (.include <math.h>))
   (define-cfn fixnum-div0 (x::long y::long) ::long :static
     (let* ((d::long (fixnum-div x y))
 	   (m::double (- x (* d y))))
