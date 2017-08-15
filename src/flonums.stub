@@ -62,6 +62,8 @@
 (define-c-proc make-flonum (x::<flonum> n::<fixnum>) ::<flonum> :constant
   ldexp)
 
+(define-c-proc fixnum->flonum (fx::<fixnum>) :constant Sg_MakeFlonum)
+
 ;; Accessors
 (define-c-proc flinteger-fraction (x::<flonum>) :constant
   (let* ((iptr::double 0.0)
@@ -70,6 +72,8 @@
     (Sg_Values2 (Sg_MakeFlonum r) (Sg_MakeFlonum iptr))))
 
 (define-c-proc flexponent (x::<flonum>) ::<flonum> :constant logb)
+(define-c-proc flinteger-exponent (x::<flonum>) ::<flonum> :constant ilogb)
+
 (define-c-proc flnormalized-fraction-exponent (x::<flonum>) :constant
   (let* ((r::double 0.0)
 	 (e::int 0))
@@ -407,6 +411,27 @@
 (define (fldiv0-and-mod0 f1 f2)
   (values (fldiv0 f1 f2) (flmod0 f1 f2)))
 
-(define-c-proc fixnum->flonum (fx::<fixnum>) :constant Sg_MakeFlonum)
+(define-c-proc flquotient (x::<flonum> y::<flonum>) ::<flonum> :constant
+  (result (trunc (/ x y))))
+
+(define-c-proc flremainder (x::<flonum> y::<flonum>) ::<flonum> :constant
+  (result (- x (* y (trunc (/ x y))))))
+
+(define-c-proc flremquo (x::<flonum> y::<flonum>) :constant
+  (let ((quo::int)
+	(rem::double))
+    (set! rem (remquo x y (& quo)))
+    (result (Sg_Values2 (Sg_MakeFlonum rem) (SG_MAKE_INT quo)))))
+
+;; special functions
+(define-c-proc flgamma (x::<flonum>) ::<flonum> :constant tgamma)
+(define-c-proc flloggamma (x::<flonum>) ::<flonum> :constant lgamma)
+(define-c-proc flfirst-bessel (n::<fixnum> x::<flonum>) ::<flonum> jn)
+(define-c-proc flsecond-bessel (n::<fixnum> x::<flonum>) ::<flonum> yn)
+(define-c-proc flerf (x::<flonum>) ::<flonum> :constant erf)
+(define-c-proc flerfc (x::<flonum>) ::<flonum> :constant erfc)
+
+;; constants
+
 )
 

@@ -41,6 +41,8 @@
 /* under VS 2012. add required ones them */
 
 #   endif
+#   define jn _jn
+#   define yn _yn
 # else
 #  error "not supported"
 # endif
