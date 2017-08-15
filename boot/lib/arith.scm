@@ -10,9 +10,7 @@
 	    fx+/carry
 	    fx-/carry
 	    fx*/carry
-	    fxrotate-bit-field
-	    fldiv-and-mod
-	    fldiv0-and-mod0)
+	    fxrotate-bit-field)
     (import (core)
 	    (core base)
 	    (core errors)
@@ -180,11 +178,4 @@
 	       (field (fxior field1 field2)))
 	  (fxcopy-bit-field n start end field))
 	n)))
-
-(define (fldiv-and-mod f1 f2)
-  (values (fldiv f1 f2) (flmod f1 f2)))
-
-(define (fldiv0-and-mod0 f1 f2)
-  (values (fldiv0 f1 f2) (flmod0 f1 f2)))
-
 )

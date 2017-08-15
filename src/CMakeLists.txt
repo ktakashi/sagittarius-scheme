@@ -28,7 +28,8 @@ ELSE()
 ENDIF()
 
 # Just making future myself happy...
-SET(STUB_SOURCES null.c closlib.c proclib.c vmlib.c vmdebug.c extlib.c)
+SET(STUB_SOURCES null.c closlib.c proclib.c vmlib.c vmdebug.c extlib.c
+  flonums.c)
 SET(BUILTIN_SOURCES 
   compiler.c   compiler-aux.c
   lib_scmlib.c lib_errors.c   lib_arith.c lib_macro.c lib_program.c)

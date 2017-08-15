@@ -82,6 +82,7 @@ extern void Sg__Init_sagittarius_vm_debug();
 extern void Sg__Init_sagittarius_vm();
 extern void Sg__Init_sagittarius();
 extern void Sg__Init_sagittarius_clos();
+extern void Sg__Init_sagittarius_flonums();
 extern void Sg__InitInstruction();
 /* compiled libraries */
 extern void Sg__Init_core();
@@ -194,7 +195,8 @@ void Sg_Init()
   Sg__Init_sagittarius_vm();
   Sg__Init_sagittarius_vm_debug();
   Sg__Init_sagittarius_clos();
-
+  Sg__Init_sagittarius_flonums();
+  
   /* this is scmlib.scm */
   Sg__Init_core_base();
   /* record can be here. */

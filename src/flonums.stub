@@ -1,0 +1,412 @@
+;; flonum.stub                                -*- mode:scheme; coding:utf-8; -*-
+;;
+;;  Copyright (c) 2017  Takashi Kato <ktakashi@ymail.com>
+;;
+;;  Redistribution and use in source and binary forms, with or without
+;;  modification, are permitted provided that the following conditions
+;;  are met:
+;;
+;;  1. Redistributions of source code must retain the above copyright
+;;     notice, this list of conditions and the following disclaimer.
+;;
+;;  2. Redistributions in binary form must reproduce the above copyright
+;;     notice, this list of conditions and the following disclaimer in the
+;;     documentation and/or other materials provided with the distribution.
+;;
+;;  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+;;  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+;;  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+;;  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+;;  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+;;  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+;;  TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+;;  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+;;  LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+;;  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+;;  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+;; provides R6RS and SRFI-144 flonum procedures
+;; see: https://srfi.schemers.org/srfi-144/srfi-144.html
+(library (sagittarius flonums)
+    (export :only-bindings)
+    (import (core))
+(decl-code
+ (.define "LIBSAGITTARIUS_BODY")
+ (.include <sagittarius.h>
+	   <sagittarius/cache.h>
+	   "c99_flonum.h"))
+
+(define-type <flonum> "double" "flonum" "SG_FLONUMP" "SG_FLONUM_VALUE"
+  "Sg_MakeFlonum" 0)
+
+(define-cise-expr str
+  ((_ v) `(SG_MAKE_STRING ,v)))
+
+(define-c-proc real->flonum (n::<number>) :constant
+  (unless (Sg_RealValuedP n)
+    (Sg_WrongTypeOfArgumentViolation 'real->flonum (str "real value") n '()))
+  (if (SG_FLONUMP n)
+      (result n)
+      (result (Sg_MakeFlonum (Sg_GetDouble n)))))
+
+;; Constructors
+(define (flonum n)
+  (if (real? n)
+      (inexact n)
+      (assertion-violation 'flonum "real number required" n)))
+
+(define-c-proc fladjacent (x::<flonum> y::<flonum>) ::<flonum> :constant
+  nextafter)
+(define-c-proc flcopysign (x::<flonum> y::<flonum>) ::<flonum> :constant
+  copysign)
+(define-c-proc make-flonum (x::<flonum> n::<fixnum>) ::<flonum> :constant
+  ldexp)
+
+;; Accessors
+(define-c-proc flinteger-fraction (x::<flonum>) :constant
+  (let* ((iptr::double 0.0)
+	 (r::double))
+    (set! r (modf x (& iptr)))
+    (Sg_Values2 (Sg_MakeFlonum r) (Sg_MakeFlonum iptr))))
+
+(define-c-proc flexponent (x::<flonum>) ::<flonum> :constant logb)
+(define-c-proc flnormalized-fraction-exponent (x::<flonum>) :constant
+  (let* ((r::double 0.0)
+	 (e::int 0))
+    (set! r (frexp x (& e)))
+    (Sg_Values2 (Sg_MakeFlonum r) (SG_MAKE_INT e))))
+(define-c-proc flsign-bit (x::<flonum>) ::<fixnum> :constant signbit)
+
+;; predicate
+;; TODO move them from null.stub
+(define-c-proc flonum? (o) ::<boolean> :constant SG_FLONUMP)
+
+;; Again Watcom, I love it!!!
+(define-cise-expr nan-return
+  ((_ d)
+   `(is-nan? ,d 0.0))
+  ((_ d1 d2)     
+   `(.if "defined(__WATCOMC__)"
+	 (when (or (isnan ,d1) (isnan ,d2)) (return #f))
+	 ;; for other we skip, because it can handle properly.
+	 )))
+
+(define-cise-expr flonum-value
+  ((_ fl)
+   `(SG_FLONUM_VALUE ,fl)))
+
+(define-cise-stmt check-flonum
+  ((_ name v)
+   `(unless (SG_FLONUMP ,v)
+      (Sg_WrongTypeOfArgumentViolation ',name (str "flonum") ,v '()))))
+
+(define-cise-stmt flonum-compare
+  ((_ name compare first second rest)
+   `(begin
+      (nan-return ,first ,second)
+      (unless (,compare ,first ,second) (return #f))
+      (let ((prev::double ,second)
+	    (target::double 0.0))
+	(dolist (v ,rest)
+	  (check-flonum ,name v)
+	  (set! target (flonum-value v))
+	  (nan-return prev target)
+	  (unless (,compare prev target) (return #f))
+	  (set! prev target))
+	(return #t)))))
+
+(define-c-proc fl=? (fl1::<flonum> fl2::<flonum> :rest rest)
+  ::<boolean> :constant
+  (flonum-compare fl=? == fl1 fl2 rest))
+(define-c-proc fl<? (fl1::<flonum> fl2::<flonum> :rest rest)
+  ::<boolean> :constant
+  (flonum-compare fl<? < fl1 fl2 rest))
+(define-c-proc fl>? (fl1::<flonum> fl2::<flonum> :rest rest)
+  ::<boolean> :constant
+  (flonum-compare fl>? > fl1 fl2 rest))
+(define-c-proc fl<=? (fl1::<flonum> fl2::<flonum> :rest rest)
+  ::<boolean> :constant
+  (flonum-compare fl<=? <= fl1 fl2 rest))
+(define-c-proc fl>=? (fl1::<flonum> fl2::<flonum> :rest rest)
+  ::<boolean> :constant
+  (flonum-compare fl>=? >= fl1 fl2 rest))
+
+(define (flunordered? x y) (or (flnan? x) (flnan? y)))
+
+(define-cise-expr flonum-integer?
+  ((_ fl)
+   `(?: (or (isinf ,fl) (isnan ,fl)) FALSE (== ,fl (floor ,fl)))))
+
+(define-c-proc flinteger? (fl::<flonum>) ::<boolean> :constant
+  (result (flonum-integer? fl)))
+
+(define-c-proc flzero? (fl::<flonum>) ::<boolean> :constant
+  (result (== fl 0.0)))
+
+(define-c-proc flpositive? (fl::<flonum>) ::<boolean> :constant
+  (result (>  fl 0.0)))
+
+(define-c-proc flnegative? (fl::<flonum>) ::<boolean> :constant
+  (result (< fl 0.0)))
+
+(define-c-proc flodd? (fl::<flonum>) ::<boolean> :constant
+  (if (flonum-integer? fl)
+      (result (not (== (* fl 0.5) (floor (* fl 0.5)))))
+      (Sg_WrongTypeOfArgumentViolation 'flodd? (str "integer flonum")
+				       (Sg_MakeFlonum fl) '())))
+
+(define-c-proc fleven? (fl::<flonum>) ::<boolean> :constant
+  (if (flonum-integer? fl)
+      (result (== (* fl 0.5) (floor (* fl 0.5))))
+      (Sg_WrongTypeOfArgumentViolation 'fleven? (str "integer flonum")
+				       (Sg_MakeFlonum fl) '())))
+
+(define-c-proc flfinite? (fl::<flonum>) ::<boolean> :constant
+  (result (and (not (isinf fl)) (not (isnan fl)))))
+
+(define-c-proc flinfinite? (fl::<flonum>) ::<boolean> :constant
+  (result (and (isinf fl) (not (isnan fl)))))
+
+(define-c-proc flnan? (fl::<flonum>) ::<boolean> :constant isnan)
+
+(define-c-proc flnormalized (x::<flonum>) ::<boolean> :constant
+  (result (== (fpclassify x) FP_NORMAL)))
+(define-c-proc fldenormalized (x::<flonum>) ::<boolean> :constant
+  (result (== (fpclassify x) FP_SUBNORMAL)))
+
+;; arithmetic
+(define-c-proc flmax (fl::<flonum> :rest rest) ::<flonum> :constant
+  (if (isnan fl)
+      (result fl)
+      (let ((max::double fl))
+	(dolist (v rest)
+	  (check-flonum flmax v)
+	  (if (isnan (flonum-value v))
+	      (return v))
+	  (if (> (flonum-value v) max)
+	      (set! max (flonum-value v))))
+	(result max))))
+
+(define-c-proc flmin (fl::<flonum> :rest rest) ::<flonum> :constant
+  (if (isnan fl)
+      (result fl)
+      (let ((min::double fl))
+	(dolist (v rest)
+	  (check-flonum flmax v)
+	  (if (isnan (flonum-value v))
+	      (return v))
+	  (if (< (flonum-value v) min)
+	      (set! min (flonum-value v))))
+	(result min))))
+
+(define-cise-stmt flonum-op
+  ((_ name op ret rest)
+   `(dolist (v ,rest)
+      (check-flonum ,name v)
+      (set! ,ret (,op ,ret (flonum-value v))))))
+
+(define-c-proc fl+ (:optional fl1::<number> fl2::<number> :rest rest) :constant
+  (cond ((SG_UNBOUNDP fl1) (result (Sg_MakeFlonum 0.0)))
+	((SG_UNBOUNDP fl2)
+	 (check-flonum fl+ fl1)
+	 (result fl1))
+	(else
+	 (check-flonum fl+ fl1)
+	 (check-flonum fl+ fl2)
+	 (let ((ret::double (+ (flonum-value fl1) (flonum-value fl2))))
+	   (flonum-op fl+ + ret rest)
+	   (result (Sg_MakeFlonum ret))))))
+
+(define-c-proc fl* (:optional fl1::<number> fl2::<number> :rest rest) :constant
+  (cond ((SG_UNBOUNDP fl1) (result (Sg_MakeFlonum 1.0)))
+	((SG_UNBOUNDP fl2)
+	 (check-flonum fl* fl1)
+	 (result fl1))
+	(else
+	 (check-flonum fl* fl1)
+	 (check-flonum fl* fl2)
+	 (let ((ret::double (* (flonum-value fl1) (flonum-value fl2))))
+	   (flonum-op fl* * ret rest)
+	   (result (Sg_MakeFlonum ret))))))
+
+(define-c-proc fl- (fl::<flonum> :optional fl2::<number> :rest rest)
+  ::<flonum> :constant
+  (if (SG_UNBOUNDP fl2) 
+	(result (- fl))
+	(let ((ret::double 0.0))
+	  (check-flonum fl- fl2)
+	  (set! ret (- fl (flonum-value fl2)))
+	  (flonum-op fl- - ret rest)
+	  (result ret))))
+
+(define-c-proc fl/ (fl::<flonum> :optional fl2::<number> :rest rest)
+  ::<flonum> :constant
+  (if (SG_UNBOUNDP fl2)
+      (result (/ 1.0 fl))
+      (let ((ret::double 0.0))
+	(check-flonum fl- fl2)
+	(set! ret (/ fl (flonum-value fl2)))
+	(flonum-op fl/ / ret rest)
+	(result ret))))
+
+(define-c-proc fl+* (x::<flonum> y::<flonum> z::<flonum>) ::<flonum> :constant
+  fma)
+
+(define-c-proc flabs (fl::<flonum>) ::<flonum> :constant fabs)
+
+(define (flabsdiff x y)
+  (unless (and (flonum? x) (flonum? y))
+    (assertion-violation 'flabsdiff "flonum required" x y))
+  (flabs (- x y)))
+
+(define-c-proc flposdiff (x::<flonum> y::<flonum>) ::<flonum> :constant fdim)
+
+(define (flsgn x) (flcopysign 1.0 x))
+
+(define-c-proc flnumerator (fl::<number>) :constant
+  (check-flonum flnumerator fl)
+  (result (Sg_Numerator fl)))
+
+(define-c-proc fldenominator (fl::<number>) :constant
+  (check-flonum fldenominator fl)
+  (result (Sg_Denominator fl)))
+
+(define-c-proc flfloor (fl::<flonum>) ::<flonum> :constant floor) 
+(define-c-proc flceiling (fl::<flonum>) ::<flonum> :constant ceil)
+(define-c-proc fltruncate (fl::<flonum>) ::<flonum> :constant trunc)
+;; TODO put roundeven in c99_flonum.c
+(define-c-proc flround (fl::<number>) :constant
+  (check-flonum flround fl)
+  (result (Sg_Round fl SG_ROUND_ROUND)))
+
+;; exponents and logarithms
+
+(define-c-proc flexp (fl::<flonum>) ::<flonum> :constant exp)
+(define-c-proc flexp2 (fl::<flonum>) ::<flonum> :constant exp2)
+(define-c-proc flexp-1 (fl::<flonum>) ::<flonum> :constant expm1)
+(define-c-proc flsquare (fl::<flonum>) ::<flonum> :constant
+  (result (* fl fl)))
+
+(define-c-proc flsqrt (fl::<flonum>) :constant
+  (let ((v::double fl))
+    (if (< v 0.0)
+	(result (Sg_MakeComplex (Sg_MakeFlonum 0.0)
+				(Sg_MakeFlonum (sqrt (fabs v)))))
+	(result (Sg_MakeFlonum (sqrt v))))))
+
+(define-c-proc flcbrt (fl::<flonum>) ::<flonum> :constant cbrt)
+(define-c-proc flhypot (x::<flonum> y::<flonum>) ::<flonum> :constant hypot)
+(define-c-proc flexpt (fl1::<flonum> fl2::<flonum>) ::<flonum> :constant pow)
+
+;; Yeah!! Watcom!!!
+(define-cfn log_impl (d::double) ::double :static
+  (.if "defined(__WATCOMC__)"
+       (if (== d (- INFINITY))
+	   (return NAN)
+	   (return (log d)))
+       (return (log d))))
+
+(define-c-proc fllog (fl1::<flonum> :optional fl2) :constant
+  (if (SG_UNBOUNDP fl2)
+      (result (Sg_MakeFlonum (log_impl fl1)))
+      (begin
+	(check-flonum fllog fl2)
+	(result (Sg_MakeFlonum (/ (log_impl fl1)
+				  (log_impl (flonum-value fl2))))))))
+
+(define-c-proc fllog1+ (x::<flonum>) ::<flonum> :constant log1p)
+(define-c-proc fllog2 (x::<flonum>) ::<flonum> :constant log2)
+(define-c-proc fllog10 (x::<flonum>) ::<flonum> :constant log10)
+
+(define (make-fllog-base x)
+  (unless (flonum? x)
+    (assertion-violation 'make-fllog-base "flonum required" x))
+  (when (<= x 1.0)
+    (assertion-violation 'make-fllog-base "greater than 1.0 is required" x))
+  (lambda (fl) (fllog fl x)))
+
+;; trigonometric functions
+(define-c-proc flsin (fl::<flonum>) ::<flonum> :constant sin)
+(define-c-proc flcos (fl::<flonum>) ::<flonum> :constant cos)
+(define-c-proc fltan (fl::<flonum>) ::<flonum> :constant tan)
+(define-c-proc flasin (fl::<flonum>) ::<flonum> :constant asin)
+(define-c-proc flacos (fl::<flonum>) ::<flonum> :constant acos)
+(define-c-proc flatan (fl1::<flonum> :optional fl2) ::<flonum> :constant
+  (if (SG_UNBOUNDP fl2)
+      (result (atan fl1))
+      (begin
+	(check-flonum flatan fl2)
+	(result (atan2 fl1 (flonum-value fl2))))))
+
+(define-c-proc flsinh (fl::<flonum>) ::<flonum> :constant sinh)
+(define-c-proc flcosh (fl::<flonum>) ::<flonum> :constant cosh)
+(define-c-proc fltanh (fl::<flonum>) ::<flonum> :constant tanh)
+(define-c-proc flasinh (fl::<flonum>) ::<flonum> :constant asinh)
+(define-c-proc flacosh (fl::<flonum>) ::<flonum> :constant acosh)
+(define-c-proc flatanh (fl::<flonum>) ::<flonum> :constant atanh)
+
+;; Integer division
+
+(define-cise-stmt flonum-div
+  ((_ ret d1 d2)
+   `(if (> ,d2 0.0)
+	(set! ,ret (floor (/ ,d1 ,d2)))
+	(set! ,ret (negate (floor (/ ,d1 (negate ,d2))))))))
+
+(define-cise-stmt flonum-mod
+  ((_ ret d1 d2)
+   (let ((tmp (gensym)))
+     `(let ((,(string->symbol (format "~a::double" tmp)) 0.0))
+	(flonum-div ,tmp ,d1 ,d2)
+	(set! ,ret (- ,d1 (* ,d2 ,tmp)))))))
+
+(define-c-proc fldiv (fl1::<flonum> fl2::<flonum>) ::<flonum> :constant
+  (let ((ret::double 0.0))
+    (flonum-div ret fl1 fl2)
+    (result ret)))
+
+(define-c-proc flmod (fl1::<flonum> fl2::<flonum>) ::<flonum> :constant
+  (let ((ret::double 0.0))
+    (flonum-mod ret fl1 fl2)
+    (result ret)))
+
+(define-cise-stmt flonum-div0
+  ((_ ret d1 d2)
+   (let ((div (gensym))
+	 (mod (gensym)))
+     `(let ((,(string->symbol (format "~a::double" div)) 0.0)
+	    (,(string->symbol (format "~a::double" mod)) 0.0))
+	(flonum-div ,div ,d1 ,d2)
+	(flonum-mod ,mod ,d1 ,d2)
+	(cond ((< ,mod (/ (fabs ,d2) 2.0))
+	       (set! ,ret ,div))
+	      ((> ,d2 0.0)
+	       (set! ,ret (+ ,div 1.0)))
+	      (else(set! ,ret (- ,div 1.0))))))))
+
+(define-cise-stmt flonum-mod0
+  ((_ ret d1 d2)
+   (let ((div (gensym)))
+     `(let ((,(string->symbol (format "~a::double" div)) 0.0))
+	(flonum-div0 ,div ,d1 ,d2)
+	(set! ,ret (- ,d1 (* ,d2 ,div)))))))
+
+(define-c-proc fldiv0 (fl1::<flonum> fl2::<flonum>) ::<flonum> :constant
+  (let ((ret::double 0.0))
+    (flonum-div0 ret fl1 fl2)
+    (result ret)))
+
+(define-c-proc flmod0 (fl1::<flonum> fl2::<flonum>) ::<flonum> :constant
+  (let ((ret::double 0.0))
+    (flonum-mod0 ret fl1 fl2)
+    (result ret)))
+
+(define (fldiv-and-mod f1 f2)
+  (values (fldiv f1 f2) (flmod f1 f2)))
+
+(define (fldiv0-and-mod0 f1 f2)
+  (values (fldiv0 f1 f2) (flmod0 f1 f2)))
+
+(define-c-proc fixnum->flonum (fx::<fixnum>) :constant Sg_MakeFlonum)
+)
+

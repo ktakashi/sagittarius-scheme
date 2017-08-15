@@ -50,7 +50,8 @@
 	    &no-nans make-no-nans-violation no-nans-violation?)
     (import (core)
 	    (core arithmetic)
-	    (core conditions))
+	    (core conditions)
+	    (sagittarius flonums))
 
   (define-condition-type &no-infinities
     &implementation-restriction
