@@ -27,7 +27,7 @@
  */
 /* private file 
    This file provides either C99 flonum funcions from C99 math.h
-   or equivalent function (more or less MSVC)
+   or equivalent function (more or less for MSVC)
  */
 #ifndef C99_FLONUM_H
 #define C99_FLONUM_H
@@ -35,10 +35,10 @@
 #include <math.h>
 #include <float.h>
 
-#if !(__STDC_VERSION__ >= 199901L) || !(__GNUC__ >= 4)
+#if !(__STDC_VERSION__ >= 199901L) && !defined(__GNUC__)
 # if defined(_MSC_VER)
 #   if  _MSC_VER < 1800
-/* under VS 2012. add required ones them */
+/* under VS 2012. add required ones */
 #     define nextafter 	_nextafter
 #     define copysign  	_copysign
 #     define logb      	_logb
