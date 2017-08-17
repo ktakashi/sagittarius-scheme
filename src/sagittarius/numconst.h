@@ -43,7 +43,9 @@ SG_CDECL_END
 #define SG_NAN                (Sg__ConstObjes[4]) /* #<nan> */
 #define SG_FL_POSITIVE_ZERO   (Sg__ConstObjes[5]) /* 0.0 */
 #define SG_FL_NEGATIVE_ZERO   (Sg__ConstObjes[6]) /* -0.0 */
-#define SG_NUM_CONST_OBJS 7
+#define SG_FL_POSITIVE_ONE    (Sg__ConstObjes[7]) /* 1.0 */
+#define SG_FL_NEGATIVE_ONE    (Sg__ConstObjes[8]) /* -1.0 */
+#define SG_NUM_CONST_OBJS 9
 
 #endif /* SAGITTARIUS_NUMCONST_H_ */
 

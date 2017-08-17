@@ -34,6 +34,7 @@
  (.define "LIBSAGITTARIUS_BODY")
  (.include <sagittarius.h>
 	   <sagittarius/cache.h>
+	   <sagittarius/numconst.h>
 	   "c99_flonum.h"))
 
 (define-type <flonum> "double" "flonum" "SG_FLONUMP" "SG_FLONUM_VALUE"
@@ -69,16 +70,25 @@
   (let* ((iptr::double 0.0)
 	 (r::double))
     (set! r (modf x (& iptr)))
-    (Sg_Values2 (Sg_MakeFlonum r) (Sg_MakeFlonum iptr))))
+    (result (Sg_Values2 (Sg_MakeFlonum iptr) (Sg_MakeFlonum r)))))
 
 (define-c-proc flexponent (x::<flonum>) ::<flonum> :constant logb)
-(define-c-proc flinteger-exponent (x::<flonum>) ::<flonum> :constant ilogb)
+(define-c-proc flinteger-exponent (x::<flonum>) :constant
+  (result (Sg_Exact (Sg_MakeFlonum (ilogb x)))))
+
+(define-cfn frexp_rec (x::double e::int*) ::double :static
+  (cond ((isnan x) (set! e 0) (return x))
+	((< x 0) (return (- (frexp_rec (- x) e))))
+	((isinf x)
+	 (set! (pointer e) (+ 3 (cast int (round (log2 DBL_MAX)))))
+	 (return 0.5))
+	(else (return (frexp x e)))))
 
 (define-c-proc flnormalized-fraction-exponent (x::<flonum>) :constant
   (let* ((r::double 0.0)
 	 (e::int 0))
-    (set! r (frexp x (& e)))
-    (Sg_Values2 (Sg_MakeFlonum r) (SG_MAKE_INT e))))
+    (set! r (frexp_rec x (& e)))
+    (return (Sg_Values2 (Sg_MakeFlonum r) (SG_MAKE_INT e)))))
 (define-c-proc flsign-bit (x::<flonum>) ::<fixnum> :constant signbit)
 
 ;; predicate
@@ -173,9 +183,9 @@
 
 (define-c-proc flnan? (fl::<flonum>) ::<boolean> :constant isnan)
 
-(define-c-proc flnormalized (x::<flonum>) ::<boolean> :constant
+(define-c-proc flnormalized? (x::<flonum>) ::<boolean> :constant
   (result (== (fpclassify x) FP_NORMAL)))
-(define-c-proc fldenormalized (x::<flonum>) ::<boolean> :constant
+(define-c-proc fldenormalized? (x::<flonum>) ::<boolean> :constant
   (result (== (fpclassify x) FP_SUBNORMAL)))
 
 ;; arithmetic
@@ -222,7 +232,7 @@
 	   (result (Sg_MakeFlonum ret))))))
 
 (define-c-proc fl* (:optional fl1::<number> fl2::<number> :rest rest) :constant
-  (cond ((SG_UNBOUNDP fl1) (result (Sg_MakeFlonum 1.0)))
+  (cond ((SG_UNBOUNDP fl1) (result SG_FL_POSITIVE_ONE))
 	((SG_UNBOUNDP fl2)
 	 (check-flonum fl* fl1)
 	 (result fl1))
@@ -425,7 +435,14 @@
 
 ;; special functions
 (define-c-proc flgamma (x::<flonum>) ::<flonum> :constant tgamma)
-(define-c-proc flloggamma (x::<flonum>) ::<flonum> :constant lgamma)
+(define-c-proc flloggamma (x::<flonum>) :constant
+  (let ((l::double (lgamma x))
+	(g::double (tgamma x)))
+    (result (Sg_Values2 (Sg_MakeFlonum l)
+			(?: (signbit g)
+			    SG_FL_NEGATIVE_ONE
+			    SG_FL_POSITIVE_ONE)))))
+
 (define-c-proc flfirst-bessel (n::<fixnum> x::<flonum>) ::<flonum> jn)
 (define-c-proc flsecond-bessel (n::<fixnum> x::<flonum>) ::<flonum> yn)
 (define-c-proc flerf (x::<flonum>) ::<flonum> :constant erf)
@@ -504,4 +521,23 @@
 (define fl-sin-1      0.8414709848078965066525023216302989996226) ; sin(1)
 (define fl-cos-1      0.5403023058681397174009366074429766037323) ; cos(1)
 
+;; implementation constants
+;; (define-c-constant fl-greatest  DBL_MAX ::<flonum>)
+;; (define-c-constant fl-least    -DBL_MAX ::<flonum>)
+;; (define-c-constant fl-fast-fl+* FP_FAST_FMA ::<boolean>)
+;; (define-c-constant fl-integer-exponent-zero FP_ILOGB0 ::<flonum>)
+;; (define-c-constant fl-integer-exponent-nan  FP_ILOGBNAN ::<flonum>)
+
+(define-c-proc fl-fast-fl+*? () ::<boolean>
+  (.if "defined(FP_FAST_FMA)"
+       (result FP_FAST_FMA)
+       (result FALSE)))
+(define-c-proc dbl-max () ::<flonum> (result DBL_MAX))
+(define-c-proc dbl-epsilon () ::<flonum> (result DBL_EPSILON))
+(define fl-greatest (dbl-max))
+(define fl-least (- (dbl-max)))
+(define fl-epsilon (dbl-epsilon))
+(define fl-fast-fl+* (fl-fast-fl+*?))
+(define fl-integer-exponent-zero (exact (flinteger-exponent 0.0)))
+(define fl-integer-exponent-nan (exact (flinteger-exponent +nan.0)))
 )

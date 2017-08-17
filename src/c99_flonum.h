@@ -43,6 +43,8 @@
 #     define copysign  	_copysign
 #     define logb      	_logb
 
+#     undef FP_FAST_FMA
+
 static double d0__ = 0.0;
 static double d1__ = 1.0;
 #define INFINITY (d1__/d0__)
