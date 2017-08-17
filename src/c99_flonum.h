@@ -368,7 +368,6 @@ static double lgamma(double x)
   return eqn6_1_41(x);
 }
 
-#   endif
 /* seems MSVC _yn returns NaN whilst C99 yn return -inf.0
    when the second value is 0.0.
    (though, it's pole error case, so can be NaN I think...)
@@ -378,8 +377,9 @@ static __inline double yn_wrap(int n, double x)
   if (x == 0.0) return -INFINITY;
   return _yn(n, x);
 }
-#   define jn _jn
-#   define yn yn_wrap
+#     define jn _jn
+#     define yn yn_wrap
+#   endif
 # else
 #  error "not supported"
 # endif
