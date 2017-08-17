@@ -1331,7 +1331,8 @@ SgObject Sg_Denominator(SgObject x)
   if (!SG_NUMBERP(x)) wte(SG_INTERN("denominator"), "number", x);
   if (SG_FLONUMP(x)) {
     double d = SG_FLONUM_VALUE(x);
-    if (isinf(d) || isnan(d)) return Sg_MakeFlonum(1.0);
+    if (isinf(d)) return Sg_MakeFlonum(1.0);
+    if (isnan(d)) return SG_NAN;
     inexact = TRUE;
   }
   obj = Sg_Exact(x);
