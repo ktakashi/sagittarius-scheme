@@ -89,10 +89,13 @@
 	 (e::int 0))
     (set! r (frexp_rec x (& e)))
     (return (Sg_Values2 (Sg_MakeFlonum r) (SG_MAKE_INT e)))))
-(define-c-proc flsign-bit (x::<flonum>) ::<fixnum> :constant signbit)
+(define-c-proc flsign-bit (x::<flonum>) ::<fixnum> :constant
+  ;; for some reason Cygwin returns 512 on negative value
+  ;; I have no idea why (and if we just do with test code
+  ;; it does return 1). so a bit of trick here...
+  (result (?: (signbit x) 1 0)))
 
 ;; predicate
-;; TODO move them from null.stub
 (define-c-proc flonum? (o) ::<boolean> :constant SG_FLONUMP)
 
 ;; Again Watcom, I love it!!!
