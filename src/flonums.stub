@@ -80,7 +80,7 @@
   (cond ((isnan x) (set! e 0) (return x))
 	((< x 0) (return (- (frexp_rec (- x) e))))
 	((isinf x)
-	 (set! (pointer e) (+ 3 (cast int (round (log2 DBL_MAX)))))
+	 (set! (pointer e) (+ 3 (cast int (roundeven (log2 DBL_MAX)))))
 	 (return 0.5))
 	(else (return (frexp x e)))))
 

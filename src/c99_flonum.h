@@ -35,6 +35,8 @@
 #include <math.h>
 #include <float.h>
 
+#include "roundeven.inc"
+
 #if !(__STDC_VERSION__ >= 199901L) && !defined(__GNUC__)
 # if defined(_MSC_VER)
 #   if  _MSC_VER < 1800
@@ -67,7 +69,7 @@ static __inline int ilogb(double d)
   
 static __inline int signbit(double d)
 {
-  return (*(__int64 *)(&d) & (1LL << 63)) != 0;
+  return (*(__int64 *)(&d) & (1LL << 63)) != 0LL;
 }
 
 static __inline double acosh(double x)
@@ -87,31 +89,76 @@ static __inline double atanh(double x)
 
 static __inline double cbrt(double x)
 {
-  return (x > 0.0) ? pow(x, 1.0 / 3.0) : -pow(-x, 1.0 / 3.0);
+  return (x >= 0.0) ? pow(x, 1.0 / 3.0) : -pow(-x, 1.0 / 3.0);
 }
 
-static __inline double erf(double x)
+static const double rel_error= 1E-12;
+static double erf(double x);
+static double erfc(double x);
+
+static double erf(double x)
 {
-  double a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741;
-  double a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
-  double t, y;
-  int sign = (x >= 0) ? 1 : -1;
-  x = fabs(x);
-  t = 1.0 / (1.0 + p*x);
-  y = 1.0 - (((((a5 * t + a4 ) * t) + a3) * t + a2) * t + a1) * t * exp(-x * x);
-  return sign * y;
+  static const double two_sqrtpi = 1.128379167095512574;
+  double sum, term, xsqr;
+  int j = 1;
+  
+  /* edge cases */
+  if (x == 0.0) return x;
+  if (isnan(x)) return x;
+  if (isinf(x)) {
+    if (x > 0.0) return 1.0;
+    return -1.0;
+  }
+  if (x < 0.0) return -erf(-x);
+  sum = term = x; 
+  if (sum > 2.2) {
+    return 1.0 - erfc(x);
+  }
+  xsqr = x*x;
+  do {
+    term *= xsqr/j;
+    sum -= term/(2*j+1);
+    j++;
+    term *= xsqr/j;
+    sum += term/(2*j+1);
+    j++;
+  } while (term/sum > rel_error);
+  return two_sqrtpi*sum;
 }
 
-static __inline double erfc(double x)
+static double erfc(double x)
 {
-  return 1 - erf(x);
+  static const double one_sqrtpi=  0.564189583547756287;
+  double a=1, b=x;
+  double c=x, d=x*x+0.5;
+  double q1, q2= b/d;
+  double n= 1.0, t;
+
+  if (isnan(x)) return x;
+  if (x == 0)   return 1.0;
+  if (x < 0.0)  return 2.0 - erfc(-x);
+  if (isinf(x)) return 0.0;
+
+  if (fabs(x) < 2.2) {
+    return 1.0 - erf(x);
+  }
+  do {
+    t  = a*n+b*x;
+    a  = b;
+    b  = t;
+    t  = c*n+d*x;
+    c  = d;
+    d  = t;
+    n += 0.5;
+    q1 = q2;
+    q2 = b/d;
+  } while (fabs(q1-q2)/q2 > rel_error);
+  return one_sqrtpi*exp(-x*x)*q2;
 }
 
-static __inline double expm1(double x){
-    if(fabs(x) < 1e-5)
-        return x + 0.5 * x * x;
-    else
-        return exp(x) - 1.0;
+static __inline double expm1(double x)
+{
+  return (fabs(x) < 1e-5) ? x + 0.5*x*x : exp(x) - 1.0;
 }
 
 static __inline double fdim(double x, double y)
@@ -121,7 +168,7 @@ static __inline double fdim(double x, double y)
 
 static __inline double fma(double x, double y, double z)
 {
-    return ((x * y) + z);
+    return x*y + z;
 }
 
 #define FP_INFINITE  1
@@ -214,55 +261,76 @@ static double polynomial_at(double x, double *coefs, int size)
 
 #define asize(a) ((int)(sizeof(a)/sizeof(a[0])))
 
-static double gamma(double x)
-{
-  if (x > 2.0) {
-    x -= 2.0;
-    return x * (x + 1.0) * gamma(x);
-  } else if (x == 2.0) {
-    return 1.0;
-  } else if (x > 1.0) {
-    x -= 1.0;
-    return x * gamma(x);
-  } else if (x == 1.0) {
-    return 1.0;
-  } else if (x == 0.0) {
-    return INFINITY;
-  } else if (x < 0.0) {
-    if (!isnan(x) && !isinf(x) && x == floor(x)) {
-      return NAN;
-    } else {
-      return gamma(x + 2.0) / x / (x + 1.0);
-    }
-  } else {
-    return 1.0 / polynomial_at(x, GAMMA_COEFS, asize(GAMMA_COEFS));
-  }
-}
+static double tgamma(double x);
+static double lgamma(double x);
 
 static __inline int flodd(double x)
 {
   return (x * 0.5) != floor(x * 0.5);
 }
-static __inline double tgamma(double x)
+
+#define UPPER_THRESHOLD 12.0
+static double tgamma(double x)
 {
-  static double upper = 2.0;
-  static double lower = -2.0;
-  if (upper == 2.0) {
-    for (; isinf(gamma(upper)); upper += 1.0);
+  static const double gamma = 0.577215664901532860606512090;
+  /* numerator coefficients */
+  static const double p[] = {
+    -1.71618513886549492533811E+0,
+    2.47656508055759199108314E+1,
+    -3.79804256470945635097577E+2,
+    6.29331155312818442661052E+2,
+    8.66966202790413211295064E+2,
+    -3.14512729688483675254357E+4,
+    -3.61444134186911729807069E+4,
+    6.64561438202405440627855E+4
+  };
+  /* denominator coefficients*/
+  static const double q[] = {
+    -3.08402300119738975254353E+1,
+    3.15350626979604161529144E+2,
+    -1.01515636749021914166146E+3,
+    -3.10777167157231109440444E+3,
+    2.25381184209801510330112E+4,
+    4.75584627752788110767815E+3,
+    -1.34659959864969306392456E+5,
+    -1.15132259675553483497211E+5
+  };
+
+  /* it's undefined so follow C99 tgamma (returns +inf.0) */
+  if (x == 0.0) return INFINITY;
+  if (x < 0.0) {
+    if (x == floor(x)) return NAN;
+    return tgamma(x + 2.0) / x / (x + 1.0);
   }
-  if (lower == -2.0) {
-    for (; gamma(nextafter(lower, 0.0)); upper -= 1.0);
+
+  if (x < 0.001) return 1.0/(x*(1.0 + gamma*x));
+  if (x < UPPER_THRESHOLD) {
+    double y = x, num = 0.0, den = 1.0, z, result;
+    int n, less = (y < 1.0), i;
+    if (less) y += 1.0;
+    else {
+      n = (int)floor(y) - 1;
+      y -= n;
+    }
+    z = y - 1;
+    for (i = 0; i < asize(p); i++) {
+      num = (num + p[i])*z;
+      den = den*z + q[i];
+    }
+    result = num/den + 1.0;
+    if (less) {
+      result /= (y - 1.0);
+    } else {
+      for (i = 0; i < n; i++) {
+	result *= y++;
+      }
+    }
+    return result;
+  } 
+  if (x > 171.624) {
+    return DBL_MAX * 2.0;
   }
-  if (x >= upper) {
-    return INFINITY;
-  } else if (x <= lower) {
-    if (isinf(x) && signbit(x)) return NAN;
-    else if (x == floor(x)) return NAN;
-    else if (flodd(trunc(x))) return 0.0;
-    else return -0.0;
-  } else {
-    return gamma(x);
-  }
+  return exp(lgamma(x));
 }
 
 static __inline double eqn6_1_41(double x)
@@ -289,29 +357,29 @@ static __inline double eqn6_1_41(double x)
   return (x - 0.5) * log(x) - x + halfLogTwoPi + series;
 }
 
-static __inline double lgamma(double x)
+static double lgamma(double x)
 {
-#define UPPER_THRESHOLD 20.0
+  if (isnan(x)) return x;
   if (isinf(x)) {
-    if (x > 0.0) {
-      return x;
-    } else {
-      return INFINITY;
-    }
-  } else if (x >= UPPER_THRESHOLD) {
-    return eqn6_1_41(x);
-  } else if (x > 0.0) {
-    double g = tgamma(x);
-    return log(g);
-  } else {
-    double g = tgamma(x);
-    return log(fabs(g));
+    if (x > 0.0) return x;
+    else return INFINITY;
   }
+  if (x < UPPER_THRESHOLD) return log(fabs(tgamma(x)));
+  return eqn6_1_41(x);
 }
 
 #   endif
+/* seems MSVC _yn returns NaN whilst C99 yn return -inf.0
+   when the second value is 0.0.
+   (though, it's pole error case, so can be NaN I think...)
+ */
+static __inline double yn_wrap(int n, double x)
+{
+  if (x == 0.0) return -INFINITY;
+  return _yn(n, x);
+}
 #   define jn _jn
-#   define yn _yn
+#   define yn yn_wrap
 # else
 #  error "not supported"
 # endif

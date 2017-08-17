@@ -107,7 +107,7 @@ enum { /* used in the exactness flag */
 static const int64_t iexpt_2n52 = 0x10000000000000LL; // 2^(53-1)
 static const int64_t iexpt_2n53 = 0x20000000000000LL; // 2^53
 
-static double roundeven(double v);
+#include "roundeven.inc"
 
 /* classes */
 static SgClass *numeric_cpl[] = {
@@ -3770,24 +3770,6 @@ SgObject Sg_Square(SgObject x)
   }
   /* TODO rational and complex but it's rare i think...*/
   return Sg_Mul(x, x);
-}
-
-static inline double roundeven(double v)
-{
-  double r;
-  double frac = modf(v, &r);
-  if (v > 0.0) {
-    if (frac > 0.5) r += 1.0;
-    else if (frac == 0.5) {
-      if (fmod(r, 2.0) != 0.0) r += 1.0;
-    }
-  } else {
-    if (frac < -0.5) r -= 1.0;
-    else if (frac == -0.5) {
-      if (fmod(r, 2.0) != 0.0) r -= 1.0;
-    }
-  }
-  return r;
 }
 
 SgObject Sg_Round(SgObject num, int mode)
