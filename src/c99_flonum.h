@@ -40,11 +40,11 @@
 
 #if !(__STDC_VERSION__ >= 199901L) && !defined(__GNUC__)
 # if defined(_MSC_VER)
+#   define logb      	_logb
 #   if  _MSC_VER < 1800
 /* under VS 2012. add required ones */
 #     define nextafter 	_nextafter
 #     define copysign  	_copysign
-#     define logb      	_logb
 
 #     undef FP_FAST_FMA
 

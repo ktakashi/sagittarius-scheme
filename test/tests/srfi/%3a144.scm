@@ -82,25 +82,19 @@
     ((_ expr expected)
      (test-compare good-enough? expected expr))))
 
-(define fl-least-decimal
-  (let loop ((x 1.0))
-    (if (> (/ x 2.0) 0.0)
-	(loop (/ x 2.0))
-	x)))
-
 (define posints (map flonum '(1 2 3 4 5 10 65536 1e23)))
 (define nats (cons (flonum 0) posints))
 (define ints (append (map flonum '(-20 -8 -2 -1)) nats))
 (define posfracs (map flonum '(1/1000 1/10 1/3 1/2)))
 (define extremes
-  (list (fl- fl-greatest) (fl- fl-least-decimal) fl-least-decimal fl-greatest))
+  (list (fl- fl-greatest) (fl- fl-least) fl-least fl-greatest))
 (define infinities (map flonum (list -inf.0 +inf.0)))
 (define weird (append infinities (list (flonum +nan.0))))
 
 (define somereals (append (map flonum
 			       (list (fl- fl-greatest)
 				     -10
-				     (fl- fl-least-decimal)
+				     (fl- fl-least)
 				     0))
 			  posfracs
 			  posints))
@@ -200,19 +194,19 @@
 (test (map fladjacent somereals somereals) somereals)
 (test (map fladjacent weird weird) weird)
 
-(test (fladjacent zero posinf) fl-least-decimal)
-(test (fladjacent zero neginf) (fl- fl-least-decimal))
-(test (fladjacent fl-least-decimal posinf) (fl+ fl-least-decimal fl-least-decimal))
-(test (fladjacent fl-least-decimal neginf) zero)
-(test (fladjacent (fl- fl-least-decimal) posinf) negzero)
-(test (fladjacent (fl- fl-least-decimal) neginf) (fl* -2.0 fl-least-decimal))
+(test (fladjacent zero posinf) fl-least)
+(test (fladjacent zero neginf) (fl- fl-least))
+(test (fladjacent fl-least posinf) (fl+ fl-least fl-least))
+(test (fladjacent fl-least neginf) zero)
+(test (fladjacent (fl- fl-least) posinf) negzero)
+(test (fladjacent (fl- fl-least) neginf) (fl* -2.0 fl-least))
 
-(test (fladjacent zero one) fl-least-decimal)
-(test (fladjacent zero (fl- one)) (fl- fl-least-decimal))
-(test (fladjacent fl-least-decimal one) (fl+ fl-least-decimal fl-least-decimal))
-(test (fladjacent fl-least-decimal (fl- one)) zero)
-(test (fladjacent (fl- fl-least-decimal) one) negzero)
-(test (fladjacent (fl- fl-least-decimal) (fl- one)) (fl* -2.0 fl-least-decimal))
+(test (fladjacent zero one) fl-least)
+(test (fladjacent zero (fl- one)) (fl- fl-least))
+(test (fladjacent fl-least one) (fl+ fl-least fl-least))
+(test (fladjacent fl-least (fl- one)) zero)
+(test (fladjacent (fl- fl-least) one) negzero)
+(test (fladjacent (fl- fl-least) (fl- one)) (fl* -2.0 fl-least))
 
 (test (fl- (fladjacent one fl-greatest) one) fl-epsilon)
 (test (fl- one (fladjacent one zero)) (fl/ fl-epsilon 2.0))
@@ -224,7 +218,7 @@
 (test (flcopysign zero neginf) negzero)
 (test (flcopysign zero one) zero)
 (test (flcopysign zero (fl- one)) negzero)
-(test (flcopysign one fl-least-decimal) one)
+(test (flcopysign one fl-least) one)
 (test (flcopysign one (fl- fl-greatest)) (fl- one))
 (test (flcopysign (fl- one) zero) one)
 (test (map flcopysign somereals somereals) somereals)
@@ -247,10 +241,10 @@
 (test (make-flonum (fl- fl-greatest) 1) neginf)
 (test (make-flonum fl-greatest -1) (fl/ fl-greatest two))
 (test (make-flonum (fl- fl-greatest) -1) (fl- (fl/ fl-greatest two)))
-(test (make-flonum fl-least-decimal 1) (fl* two fl-least-decimal))
-(test (make-flonum (fl- fl-least-decimal) 1) (fl- (fl* two fl-least-decimal)))
-(test (make-flonum fl-least-decimal -1) zero)
-(test (make-flonum (fl- fl-least-decimal) -1) negzero)
+(test (make-flonum fl-least 1) (fl* two fl-least))
+(test (make-flonum (fl- fl-least) 1) (fl- (fl* two fl-least)))
+(test (make-flonum fl-least -1) zero)
+(test (make-flonum (fl- fl-least) -1) negzero)
 
 ;; Accessors
 
@@ -352,8 +346,8 @@
   (test (map fl=? somereals (cdr somereals)) (cdr allfalse))
   (test (map fl=? (cdr somereals) somereals) (cdr allfalse))
 
-  (test-assert (fl<? zero fl-least-decimal))
-  (test-deny   (fl<? fl-least-decimal fl-least-decimal))
+  (test-assert (fl<? zero fl-least))
+  (test-deny   (fl<? fl-least fl-least))
   (test-deny   (fl<? one fl-least))
   (test-deny   (fl<? neginf neginf))
   (test-assert (fl<? neginf posinf))
@@ -365,9 +359,9 @@
   (test (map fl<? somereals (cdr somereals)) (cdr alltrue))
   (test (map fl<? (cdr somereals) somereals) (cdr allfalse))
 
-  (test-deny   (fl>? zero fl-least-decimal))
-  (test-deny   (fl>? fl-least-decimal fl-least-decimal))
-  (test-assert (fl>? one fl-least-decimal))
+  (test-deny   (fl>? zero fl-least))
+  (test-deny   (fl>? fl-least fl-least))
+  (test-assert (fl>? one fl-least))
   (test-deny   (fl>? neginf neginf))
   (test-deny   (fl>? neginf posinf))
   (test-assert (fl>? posinf neginf))
@@ -378,9 +372,9 @@
   (test (map fl>? somereals (cdr somereals)) (cdr allfalse))
   (test (map fl>? (cdr somereals) somereals) (cdr alltrue))
 
-  (test-assert (fl<=? zero fl-least-decimal))
-  (test-assert (fl<=? fl-least-decimal fl-least-decimal))
-  (test-deny   (fl<=? one fl-least-decimal))
+  (test-assert (fl<=? zero fl-least))
+  (test-assert (fl<=? fl-least fl-least))
+  (test-deny   (fl<=? one fl-least))
   (test-assert (fl<=? neginf neginf))
   (test-assert (fl<=? neginf posinf))
   (test-deny   (fl<=? posinf neginf))
@@ -391,8 +385,8 @@
   (test (map fl<=? somereals (cdr somereals)) (cdr alltrue))
   (test (map fl<=? (cdr somereals) somereals) (cdr allfalse))
 
-  (test-deny   (fl>=? zero fl-least-decimal))
-  (test-assert (fl>=? fl-least-decimal fl-least-decimal))
+  (test-deny   (fl>=? zero fl-least))
+  (test-assert (fl>=? fl-least fl-least))
   (test-assert (fl>=? one fl-least))
   (test-assert (fl>=? neginf neginf))
   (test-deny   (fl>=? neginf posinf))
@@ -404,8 +398,8 @@
   (test (map fl>=? somereals (cdr somereals)) (cdr allfalse))
   (test (map fl>=? (cdr somereals) somereals) (cdr alltrue))
 
-  (test-deny   (flunordered? zero fl-least-decimal))
-  (test-deny   (flunordered? fl-least-decimal fl-least-decimal))
+  (test-deny   (flunordered? zero fl-least))
+  (test-deny   (flunordered? fl-least fl-least))
   (test-deny   (flunordered? one fl-least))
   (test-deny   (flunordered? neginf neginf))
   (test-deny   (flunordered? neginf posinf))
@@ -437,24 +431,24 @@
 	   (map flround somereals)))
 
 (test-deny   (flzero? neginf))
-(test-deny   (flzero? (fl- fl-least-decimal)))
+(test-deny   (flzero? (fl- fl-least)))
 (test-assert (flzero? negzero))
 (test-assert (flzero? zero))
-(test-deny   (flzero? fl-least-decimal))
+(test-deny   (flzero? fl-least))
 (test-deny   (flzero? posinf))
 
 (test-deny   (flpositive? neginf))
-(test-deny   (flpositive? (fl- fl-least-decimal)))
+(test-deny   (flpositive? (fl- fl-least)))
 (test-deny   (flpositive? negzero))
 (test-deny   (flpositive? zero))
-(test-assert (flpositive? fl-least-decimal))
+(test-assert (flpositive? fl-least))
 (test-assert (flpositive? posinf))
 
 (test-assert (flnegative? neginf))
-(test-assert (flnegative? (fl- fl-least-decimal)))
+(test-assert (flnegative? (fl- fl-least)))
 (test-deny   (flnegative? negzero))    ; explicit in SRFI 144
 (test-deny   (flnegative? zero))
-(test-deny   (flnegative? fl-least-decimal))
+(test-deny   (flnegative? fl-least))
 (test-deny   (flnegative? posinf))
 
 (test-deny   (flodd? zero))
@@ -481,9 +475,9 @@
       (map (lambda (x) #f) somereals))
 
 (test-assert (flnormalized? fl-greatest))
-(test-deny   (flnormalized? fl-least-decimal))
+(test-deny   (flnormalized? fl-least))
 (test-deny   (fldenormalized? fl-greatest))
-(test-assert (fldenormalized? fl-least-decimal))
+(test-assert (fldenormalized? fl-least))
 
 ;; Arithmetic
 
@@ -661,7 +655,7 @@
 (test/approx (flexp fl-pi/4) fl-e-pi/4)
 (test (flexp posinf) posinf)
 (test (flexp fl-greatest) posinf)
-(test/approx (flexp fl-least-decimal) one)
+(test/approx (flexp fl-least) one)
 (test/approx (flexp (fl- fl-greatest)) zero)
 (test/approx (flexp neginf) zero)
 
@@ -673,7 +667,7 @@
 (test/approx (fl+ one (flexp-1 fl-pi/4)) fl-e-pi/4)
 (test (fl+ one (flexp-1 posinf)) posinf)
 (test (fl+ one (flexp-1 fl-greatest)) posinf)
-(test/approx (fl+ one (flexp-1 fl-least-decimal)) one)
+(test/approx (fl+ one (flexp-1 fl-least)) one)
 (test/approx (fl+ one (flexp-1 (fl- fl-greatest))) zero)
 (test/approx (fl+ one (flexp-1 neginf)) zero)
 
@@ -686,7 +680,7 @@
 (test/approx (flexp2 fl-log2-e) fl-e)
 (test (flexp2 posinf) posinf)
 (test (flexp2 fl-greatest) posinf)
-(test/approx (flexp2 fl-least-decimal) one)
+(test/approx (flexp2 fl-least) one)
 (test/approx (flexp2 (fl- fl-greatest)) zero)
 (test/approx (flexp2 neginf) zero)
 
@@ -775,7 +769,7 @@
 	    (test/approx (flexpt (flonum 10) (fllog10 x)) x))
 	  (filter flpositive? somereals))
 
-(test-assert (flpositive? (fllog1+ fl-least-decimal)))
+(test-assert (flpositive? (fllog1+ fl-least)))
 (test (fllog1+ (fl- zero one)) neginf)
 (test (fllog1+ (fl- one one)) zero)
 (test/approx (fllog1+ (fl- two one)) fl-log-2)
