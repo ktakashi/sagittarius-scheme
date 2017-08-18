@@ -386,13 +386,45 @@ static __inline double yn_wrap(int n, double x)
 # endif
 #endif
 
-/* libc under 2.22 returns wrong value with remquo so fix it
+/* 
+   Some version of libc returns wrong values
+   - under 2.22: remquo
+   - unser eglibc 15: logb
    FIXME: is this correct?
  */
 #if defined(__GNUC__) && defined(HAVE_FEATURES_H)
 #  include <features.h>
-#  if defined(__GNU_LIBRARY__) && (__GLIBC_MINOR__ < 22)
+#  if defined(__GNU_LIBRARY__)
 
+/* I'm not sure if eglibc and glibc share the same version
+   but at least eglibc 2.15-0ubuntu10.18 returns wrong value
+   on logb. so replace it
+ */
+#    if (__GLIBC_MINOR__ < 15)
+static inline double logb_(double x)
+{
+  union {
+    double value;
+    struct {
+      int32_t msw;
+      int32_t lsw;
+    };
+  } shape;
+  int32_t lx,ix;
+  shape.value = x;
+  lx = shape.msw;
+  ix = shape.lsw;
+  
+  ix &= 0x7fffffff;
+  if((ix|lx)==0)     return -1.0/fabs(x);
+  if(ix>=0x7ff00000) return x*x;
+  if((ix>>=20)==0)   return -1022.0;
+  return (double) (ix-1023);
+}
+#      define logb logb_
+#    endif
+
+#    if  (__GLIBC_MINOR__ < 22)
 /* FIXME copy&paste */
 static inline double remquo__(double x, double y, int* q)
 {
@@ -401,7 +433,8 @@ static inline double remquo__(double x, double y, int* q)
   return (x - (d * y));
 }
 
-#   define remquo remquo__
+#      define remquo remquo__
+#    endif
 #  endif  /* __GNU_LIBRARY__ */
 #endif
 

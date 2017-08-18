@@ -170,8 +170,8 @@
 (test-assert (flonum? fl-least))
 (test-assert (flonum? fl-epsilon))
 
-(test-assert (< fl-least
-		0.0
+(test-assert (< 0.0
+		fl-least
 		fl-epsilon
 		1.0
 		(+ 1.0 fl-epsilon)
