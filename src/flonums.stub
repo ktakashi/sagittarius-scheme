@@ -538,7 +538,6 @@
 (define-c-proc dbl-max () ::<flonum> (result DBL_MAX))
 (define-c-proc dbl-min ()
   (.cond ("defined(DBL_TRUE_MIN)" (result (Sg_MakeFlonum DBL_TRUE_MIN)))
-	 ("defined(DBL_MIN)"      (result (Sg_MakeFlonum DBL_MIN)))
 	 (else                    (result SG_FALSE))))
   
 (define-c-proc dbl-epsilon () ::<flonum> (result DBL_EPSILON))
