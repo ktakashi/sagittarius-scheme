@@ -34,6 +34,7 @@
 
 #include <math.h>
 #include <float.h>
+#include <sagittarius/config.h>
 
 #include "roundeven.inc"
 
@@ -388,7 +389,7 @@ static __inline double yn_wrap(int n, double x)
 /* libc under 2.22 returns wrong value with remquo so fix it
    FIXME: is this correct?
  */
-#if defined(__GNUC__)
+#if defined(__GNUC__) && defined(HAVE_FEATURES_H)
 #  include <features.h>
 #  if defined(__GNU_LIBRARY__) && (__GLIBC_MINOR__ < 22)
 
