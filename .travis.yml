@@ -12,6 +12,7 @@ branches:
     - master
 
 before_install:
+  - sudo apt-cache show libc6
   - rm -rf $HOME/.sagittarius
   - echo `pwd`
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew update; fi
