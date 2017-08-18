@@ -85,7 +85,12 @@
      ;; but can be called to construct more complex ones.
      test-on-group-begin-simple test-on-group-end-simple
      test-on-bad-count-simple test-on-bad-end-name-simple
-     test-on-final-simple test-on-test-end-simple)
+     test-on-final-simple test-on-test-end-simple
+
+
+     ;; extra for my usecase
+     (rename (%test-comp2 test-compare))
+     )
     (import
      (except (rnrs) error equal?)
      (prefix (only (rnrs eval) eval) rnrs:)

@@ -80,7 +80,7 @@
 (define-syntax test/approx
   (syntax-rules ()
     ((_ expr expected)
-     (test-assert (good-enough? expected expr)))))
+     (test-compare good-enough? expected expr))))
 
 (define fl-least-decimal
   (let loop ((x 1.0))
