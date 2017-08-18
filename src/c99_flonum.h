@@ -385,4 +385,23 @@ static __inline double yn_wrap(int n, double x)
 # endif
 #endif
 
+/* libc under 2.22 returns wrong value with remquo so fix it
+   FIXME: is this correct?
+ */
+#if defined(__GNUC__)
+#  include <features.h>
+#  if defined(__GNU_LIBRARY__) && (__GLIBC_MINOR__ < 22)
+
+/* FIXME copy&paste */
+static inline double remquo__(double x, double y, int* q)
+{
+  double d = rint(x / y);
+  *q = (int)d;
+  return (x - (d * y));
+}
+
+#   define remquo remquo__
+#  endif  /* __GNU_LIBRARY__ */
 #endif
+
+#endif	/* C99_FLONUM_H */
