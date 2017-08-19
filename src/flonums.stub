@@ -439,12 +439,16 @@
 ;; special functions
 (define-c-proc flgamma (x::<flonum>) ::<flonum> :constant tgamma)
 (define-c-proc flloggamma (x::<flonum>) :constant
-  (let ((l::double (lgamma x))
-	(g::double (tgamma x)))
-    (result (Sg_Values2 (Sg_MakeFlonum l)
-			(?: (signbit g)
-			    SG_FL_NEGATIVE_ONE
-			    SG_FL_POSITIVE_ONE)))))
+  (if (isinf x)
+      (if (> x 0.0)
+	  (result (Sg_Values2 (Sg_MakeFlonum x) SG_FL_POSITIVE_ONE))
+	  (result (Sg_Values2 SG_NEGATIVE_INFINITY SG_NAN)))
+      (let ((l::double (lgamma x))
+	    (g::double (tgamma x)))
+	(if (> x 0.0)
+	    (result (Sg_Values2 (Sg_MakeFlonum l) SG_FL_POSITIVE_ONE))
+	    (result (Sg_Values2 (Sg_MakeFlonum l)
+				(Sg_MakeFlonum (copysign 1.0 g))))))))
 
 (define-c-proc flfirst-bessel (n::<fixnum> x::<flonum>) ::<flonum> jn)
 (define-c-proc flsecond-bessel (n::<fixnum> x::<flonum>) ::<flonum> yn)

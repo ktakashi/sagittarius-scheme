@@ -1038,9 +1038,7 @@
   (test (s (flonum -49.2)) one)
   (test (s (flonum -50.3)) (fl- one))
   (test (s (flonum -999.5)) one)
-  ;; FIXME seem VS2013 logb returns different value
-  (unless (getenv "APPVEYOR")
-    (test (s (flonum -1000.5)) (fl- one)))
+  (test (s (flonum -1000.5)) (fl- one))
   )
 
 (test (flfirst-bessel 0 zero) one)
