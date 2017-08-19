@@ -389,18 +389,13 @@ static __inline double yn_wrap(int n, double x)
 /* 
    Some version of libc returns wrong values
    - under 2.22: remquo
-   - unser eglibc 15: logb
+   - unser eglibc 2.15: logb?
    FIXME: is this correct?
  */
 #if defined(__GNUC__) && defined(HAVE_FEATURES_H)
 #  include <features.h>
-#  if defined(__GNU_LIBRARY__)
-
-/* I'm not sure if eglibc and glibc share the same version
-   but at least eglibc 2.15-0ubuntu10.18 returns wrong value
-   on logb. so replace it
- */
-#    if (__GLIBC_MINOR__ < 15)
+#  if defined(__GNU_LIBRARY__) && (__GLIBC_MINOR__ < 22)
+/* for travis CI. maybe wise to disable the test */
 static inline double logb_(double x)
 {
   union {
@@ -421,10 +416,8 @@ static inline double logb_(double x)
   if((ix>>=20)==0)   return -1022.0;
   return (double) (ix-1023);
 }
-#      define logb logb_
-#    endif
+#    define logb logb_
 
-#    if  (__GLIBC_MINOR__ < 22)
 /* FIXME copy&paste */
 static inline double remquo__(double x, double y, int* q)
 {
@@ -433,8 +426,7 @@ static inline double remquo__(double x, double y, int* q)
   return (x - (d * y));
 }
 
-#      define remquo remquo__
-#    endif
+#    define remquo remquo__
 #  endif  /* __GNU_LIBRARY__ */
 #endif
 
