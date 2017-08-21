@@ -364,6 +364,44 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
 
     The name @code{integer-division} is taken from the name of the SRFI.
     }}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-142/srfi-142.html"]{SRFI-142}}
+    @td{(srfi :142 bitwise)
+
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :142)}. So for the portability it's better to use the
+    @code{(srfi :142)}.
+
+    The name @code{bitwise} is taken from the name of the SRFI.
+
+    This SRFI is deprecated by SRFI-151.
+    }}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-143/srfi-143.html"]{SRFI-143}}
+    @td{(srfi :143 fixnums)
+
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :143)}. So for the portability it's better to use the
+    @code{(srfi :143)}.
+
+    The name @code{fixnums} is taken from the name of the SRFI.
+    }}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-144/srfi-144.html"]{SRFI-144}}
+    @td{(srfi :144 flonums)
+
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :144)}. So for the portability it's better to use the
+    @code{(srfi :144)}.
+
+    The name @code{flonums} is taken from the name of the SRFI.
+    }}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-151/srfi-151.html"]{SRFI-151}}
+    @td{(srfi :151 bitwise)
+
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :151)}. So for the portability it's better to use the
+    @code{(srfi :151)}.
+
+    The name @code{bitwise} is taken from the name of the SRFI.
+    }}
 @; > In order to facilitate writing sophisticated custom macro transformers, it
 @; > is allowed that a transformer spec expands into a sequence of multiple
 @; > definitions eventually followed by a transformer spec (whose expansion may
