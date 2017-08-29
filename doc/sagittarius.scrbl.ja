@@ -553,34 +553,30 @@ Sagittariusはキーワードを持っています。これは@code{':'}から�
 @define[Function]{@name{weak-vector-set!} @args{wvec k value}}
 @desc{弱ベクター@var{wvec}の@var{k}番目に@var{value}をセットします。}
 
-@subsubsection{Weak hashtable}
+@subsubsection{弱ハッシュテーブル}
 
-A weak hashtable  is a reference to  an object that doesn’t  prevent the object
-from being garbage-collected the same as  weak vector. A weak hashtable is like
-a hashtable, except each entry can be garbage collected if it is not referenced
-from objects other than weak hashtable according to the constructed condition.
+弱ハッシュテーブルはハッシュテーブルとよく似ていますが保持されるキー、値また
+はその両方がGCの対象になります。GCの対象になるものは作成時に指定可能です。
 
 @define[Function]{@name{weak-hashtable?} @args{obj}}
-@desc{Returns #t if @var{obj} is weak hashtable otherwise #f.}
+@desc{与えられた@var{obj}が弱ハッシュテーブルならば#tをそれ以外なら#fを返します。}
 
 @define[Function]{@name{make-weak-eq-hashtable}
  @args{:key (init-size 200) (weakness 'both) default}}
 @define[Function]{@name{make-weak-eqv-hashtable}
  @args{:key (init-size 200) (weakness 'both) default}}
-@desc{Make a weak hashtable with the hash procedure @code{eq?} and @code{eqv?},
-respectively.
+@desc{弱ハッシュテーブルを比較手続き@code{eq?}または@code{eqv?}を用いて作成します。
 
-The keyword argument @var{init-size} specifies the initial size of the
-weak hashtable.
+キーワード引数@var{init-size}を用いて初期サイズを可能です。
 
-The kwyword argument @var{weakness} specifies the place where the weak pointer
-is. This must be one of the @code{key}, @code{value} and @code{both}. If the
-@code{key} is specified, then weak hashtable's weak pointer will be the key
-so is @code{value}. If the @code{both} is specified, then it will be both.
+キーワード引数@var{weakness}では格納される要素の弱ポインタ部分を指定します。この値は
+@code{key}、 @code{value}または@code{both}のいづれかでなければなりません。
+@code{key}が指定された場合は弱ハッシュテーブルのキーが、@code{value}が指定された
+場合は値が弱ポインタとして格納されます。@code{both}が指定された場合は格納される
+要素のどちらもが弱ポインタになります。
 
-The keyword argument @var{default} specifies the default value when the entry
-is garbage collected. If this is not spceified, then undefined value will be
-used.
+キーワード引数@var{default}は要素がGCされた際に返す値を指定します。
+既定の値は未定義値です。
 }
 
 @define[Function]{@name{weak-hashtable-ref}

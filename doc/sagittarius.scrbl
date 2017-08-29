@@ -541,7 +541,7 @@ collocted. Otherwise returns @var{fallback}.}
 
 @subsubsection{Weak vector}
 
-A weak vector  is like a vector  of objects, except each object  can be garbage
+A weak vector is like a vector of objects, except each object can be garbage
 collected if it is not referenced from objects other than weak vectors.  If the
 object is collected, the entry of the weak vector is replaced to #f.
 
@@ -573,10 +573,11 @@ the size of @var{wvec}.
 
 @subsubsection{Weak hashtable}
 
-A weak hashtable  is a reference to  an object that doesn’t  prevent the object
-from being garbage-collected the same as  weak vector. A weak hashtable is like
-a hashtable, except each entry can be garbage collected if it is not referenced
-from objects other than weak hashtable according to the constructed condition.
+A weak hashtable contains references to an object that doesn't prevent the
+object from being garbage-collected the same as weak vector. A weak hashtable
+is like a hashtable, except each entry can be garbage collected if it is not
+referenced from objects other than weak hashtable according to the constructed
+condition.
 
 @define[Function]{@name{weak-hashtable?} @args{obj}}
 @desc{Returns #t if @var{obj} is weak hashtable otherwise #f.}
