@@ -143,7 +143,7 @@
   (define (raise-request-error who msg status response)
     (raise
      (condition (make-oauth-request-error status (utf8->string response))
-		(make-who-condition 'who)
+		(make-who-condition who)
 		(make-message-condition msg))))
   (define-record-type oauth-temporary-credential
     (fields token token-secret))
