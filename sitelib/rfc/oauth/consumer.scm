@@ -202,7 +202,12 @@
     (unless (oauth-connection-secure? conn)
       (assertion-violation 'oauth-request-access-token
 			   "connection must be secure"))
-    (let ((token (oauth-temporary-credential-token temporary-credential)))
+    ;; if callback is used, then most of the time information of
+    ;; temporary-credential is gone. so we allow string here since
+    ;; we don't expose make-oauth-temporary-credential
+    (let ((token (if (string? temporary-credential)
+		     temporary-credential
+		     (oauth-temporary-credential-token temporary-credential))))
       (let-values (((s h b)
 		    (oauth-request conn 'POST uri
 		     :authorization (oauth-authorization-header 
