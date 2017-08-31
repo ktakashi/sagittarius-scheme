@@ -719,8 +719,14 @@ int real_main(int argc, tchar **argv)
     
   /* import all necessary stuff first, otherwise profiler doesn't work. */
   if (load_base_library) {
-    SgObject base = SG_LIST3(SG_INTERN("(core)"), SG_INTERN("(core base)"),
-			     SG_INTERN("(sagittarius)"));
+    SgObject base = SG_LIST5(SG_INTERN("(core)"),
+			     SG_INTERN("(core base)"),
+			     SG_INTERN("(sagittarius)"),
+			     /* not really needed but for convenience 
+				NB: it's extracted from (core)
+			      */
+			     SG_INTERN("(sagittarius fixnums)"),
+			     SG_INTERN("(sagittarius flonums)"));
     if (SG_NULLP(preimport)) preimport = base;
     else preimport = Sg_Append2X(base, Sg_ReverseX(preimport));
   }
