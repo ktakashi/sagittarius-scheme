@@ -1,6 +1,6 @@
 /* bignum.inc                                      -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2017  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -42,29 +42,13 @@
  */
 
 /* things must be here */
-typedef unsigned int uint;
-typedef unsigned long ulong;
 
 /* in case of platform whose long size if 8 but no 128 bit storage.
    we put this. however, it's not tested at all. so most likely doesn't
-   work at all.
+    work at all.
  */
 #define USE_DLONG
-
-#if SIZEOF_LONG == 8
-# ifdef __GNUC__
-   typedef unsigned int dlong __attribute__((__mode__(TI)));
-# else
-/* try not to use dlong */
-#  undef USE_DLONG
-/* error for now */
-#  error "sizeof(long) == 8 but not GCC (not supported yet)"
-# endif
-#  define SHIFT_MAGIC 6
-#else
-  typedef uint64_t dlong;
-# define SHIFT_MAGIC 5
-#endif
+#include "number.inc"
 
 static inline ulong* mp_2scmpl(ulong *p, uint s)
 {
@@ -115,10 +99,10 @@ static long mp_add_n(ulong *rp, ulong *xp, ulong *yp, int len)
 {
   int i;
 #ifdef USE_DLONG
-  dlong t = (dlong)xp[0] + yp[0];
+  udlong t = (udlong)xp[0] + yp[0];
   rp[0] = (ulong)t;
   for (i = 1; i < len; i++) {
-    t = (dlong)xp[i] + (dlong)yp[i] + (ulong)(t >> WORD_BITS);
+    t = (udlong)xp[i] + (udlong)yp[i] + (ulong)(t >> WORD_BITS);
     rp[i] = (ulong)t;
   }
   return (long)(t >> WORD_BITS);
@@ -163,7 +147,7 @@ static int mp_add_one(ulong *rp, uint rsize,
 		      ulong y)
 {
 #ifdef USE_DLONG
-  dlong t = (dlong)xp[0] + y;
+  udlong t = (udlong)xp[0] + y;
   int i;
   rp[0] = (ulong)t;
   /* copy if this is not self destructive operation */
@@ -209,10 +193,10 @@ static long mp_sub_n(ulong *rp, ulong *xp, ulong *yp, int len)
 {
   int i;
 #ifdef USE_DLONG
-  dlong t = (dlong)xp[0] - yp[0];
+  udlong t = (udlong)xp[0] - yp[0];
   rp[0] = (ulong)t;
   for (i = 1; i < len; i++) {
-    t = (dlong)xp[i] - (dlong)yp[i] - (ulong)-(t >> WORD_BITS);
+    t = (udlong)xp[i] - (udlong)yp[i] - (ulong)-(t >> WORD_BITS);
     rp[i] = (ulong)t;
   }
   return (long)(t >> WORD_BITS);
@@ -354,12 +338,12 @@ static void mp_mul_ul(ulong *rp, uint rsize,
   uint i;
 
 #ifdef USE_DLONG
-  register dlong p;
+  register udlong p;
 
-  p = (dlong)xp[0] * y;
+  p = (udlong)xp[0] * y;
   rp[0] = (ulong)p;
   for (i = 1; i < xsize; i++) {
-    p = (dlong)xp[i] * y + (ulong)(p >> WORD_BITS);
+    p = (udlong)xp[i] * y + (ulong)(p >> WORD_BITS);
     rp[i] = (ulong)p;
   }
   rp[i] = (ulong)(p >> WORD_BITS);
@@ -688,11 +672,11 @@ static inline ulong mp_mul_add(ulong *out, ulong *in, int len, ulong k)
 {
   int i;
 #ifdef USE_DLONG
-  dlong p = (dlong)in[0] * k + out[0];
+  udlong p = (udlong)in[0] * k + out[0];
   out[0] = (ulong)p;
 
   for (i = 1; i < len; i++) {
-    p = (dlong)in[i] * k + (ulong)(p >> WORD_BITS) + out[i];
+    p = (udlong)in[i] * k + (ulong)(p >> WORD_BITS) + out[i];
     out[i] = (ulong)p;
   }
   return (ulong)(p >> WORD_BITS);
@@ -760,15 +744,15 @@ static void mp_mul(ulong *rp, uint rsize,
 static void mp_base_square(ulong *rp, uint rsize,
 			   ulong *xp, uint xsize)
 {
-  /* TODO version for not using dlong */
+  /* TODO version for not using udlong */
 #ifdef USE_DLONG
   int i, j, xlen;
   ulong last = 0;
 
   /* store the squares, right shifted one bit */
   for (i = xsize - 1, j = xsize<<1; i >= 0; i--) {
-    dlong t = xp[i];
-    dlong p = t * t;
+    udlong t = xp[i];
+    udlong p = t * t;
     rp[--j] = (last<<(WORD_BITS-1))|(ulong)(p>>(WORD_BITS+1));
     rp[--j] = (ulong)(p>>1);
     last = p&1;
@@ -1115,7 +1099,7 @@ static uint mp_div_rem_burnikel_zeigler(ulong *qp, uint qlen,
   /* step 2 */
   ulong j = (s+m-1)/m;
   ulong n = j*m;
-  dlong nb = WORD_BITS * n;	/* n block in bits */
+  udlong nb = WORD_BITS * n;	/* n block in bits */
   /* step 3 */
   int sigma = max(0, nb - bbits), t;
   /* step 4 */
@@ -1206,10 +1190,10 @@ static uint mp_div_rem(ulong *qp, uint qlen,
 #if 0
 static void mul_n1(ulong *out, ulong *in, int nlen, ulong k)
 {
-  dlong p = (dlong)*in++ * k;
+  udlong p = (udlong)*in++ * k;
   *out++ = (ulong)p;
   while (--nlen) {
-    p = (dlong)*in++ * k + (ulong)(p >> WORD_BITS);
+    p = (udlong)*in++ * k + (ulong)(p >> WORD_BITS);
     *out++ = (ulong)p;
   }
   *out = (ulong)(p >> WORD_BITS);

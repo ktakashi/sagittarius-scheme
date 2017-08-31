@@ -82,6 +82,7 @@ extern void Sg__Init_sagittarius_vm_debug();
 extern void Sg__Init_sagittarius_vm();
 extern void Sg__Init_sagittarius();
 extern void Sg__Init_sagittarius_clos();
+extern void Sg__Init_sagittarius_fixnums();
 extern void Sg__Init_sagittarius_flonums();
 extern void Sg__InitInstruction();
 /* compiled libraries */
@@ -195,6 +196,7 @@ void Sg_Init()
   Sg__Init_sagittarius_vm();
   Sg__Init_sagittarius_vm_debug();
   Sg__Init_sagittarius_clos();
+  Sg__Init_sagittarius_fixnums();
   Sg__Init_sagittarius_flonums();
   
   /* this is scmlib.scm */
@@ -218,11 +220,7 @@ void Sg_Init()
   Sg_ImportLibrary(compsym, sgsym);
 
   /* 
-     we need extra treatment for er-rename. it's defined after the 
-     initialization of compiler, so we need to export it to (core base) which 
-     defines er-macro-transformer.
-     er-macro-transformer is defined (core base) but we want to export it with
-     (sagittarius) so insert it to the library here.
+     rebind er-macro-transformer into (sagittarius)
    */
   {
     SgObject core_macro = SG_INTERN("(core macro)");

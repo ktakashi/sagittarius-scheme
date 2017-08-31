@@ -47,6 +47,7 @@
 	  (sagittarius vm) (sagittarius vm instruction)
 	  (sagittarius compiler util)
 	  (sagittarius vm debug)
+	  (sagittarius fixnums) ;; for fixnum?
 	  (for (compiler-aux) expand)
 	  (sagittarius compiler procedure))
  (exports compile compile-p1 compile-p2 compile-p3 compile-p4 compile-p5)

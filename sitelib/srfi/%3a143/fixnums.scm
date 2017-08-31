@@ -53,6 +53,7 @@
   (define fx-least    (least-fixnum))
   (define fx-greatest (greatest-fixnum))
 
+  ;; TODO move to (sagittarius fixnums) the follwing 6
   (define (fxabs i)
     (unless (fixnum? i) (assertion-violation 'fxabs "fixnum required" i))
     (if (fxnegative? i) (fx- i) i))

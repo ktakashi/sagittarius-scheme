@@ -45,8 +45,7 @@
 	    fxarithmetic-shift-right
 	    fxrotate-bit-field
 	    fxreverse-bit-field)
-    (import (core)
-	    (core arithmetic))
+    (import (sagittarius fixnums))
 
 ) ; [end]
 ;; end of file

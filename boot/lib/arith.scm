@@ -4,13 +4,7 @@
 	    div-and-mod
 	    div0-and-mod0
 	    bitwise-rotate-bit-field
-	    bitwise-reverse-bit-field
-	    fxdiv-and-mod
-	    fxdiv0-and-mod0
-	    fx+/carry
-	    fx-/carry
-	    fx*/carry
-	    fxrotate-bit-field)
+	    bitwise-reverse-bit-field)
     (import (core)
 	    (core base)
 	    (core errors)
@@ -99,83 +93,4 @@
                         (bitwise-arithmetic-shift-right field 1)
                         (- width 1)))))
         n)))
-
-;; fixnum arithmetic
-;; originally from mosh
-(define (fxdiv-and-mod fx1 fx2)
-  (values (fxdiv fx1 fx2) (fxmod fx1 fx2)))
-
-(define (fxdiv0-and-mod0 fx1 fx2)
-  (values (fxdiv0 fx1 fx2) (fxmod0 fx1 fx2)))
-
-(define (fx+/carry fx1 fx2 fx3)
-  (or (fixnum? fx1) (assertion-violation 'fx+/carry (format "fixnum required, but got ~a" fx1) fx1 fx2 fx3))
-  (or (fixnum? fx2) (assertion-violation 'fx+/carry (format "fixnum required, but got ~a" fx2) fx1 fx2 fx3))
-  (or (fixnum? fx3) (assertion-violation 'fx+/carry (format "fixnum required, but got ~a" fx3) fx1 fx2 fx3))
-  (let* ((s (+ fx1 fx2 fx3))
-         ;(s0 (mod0 s (expt 2 (fixnum-width))))
-         (s0 (mod0 s (abs (+ (least-fixnum) (least-fixnum)))))
-         ;(s1 (div0 s (expt 2 (fixnum-width)))))
-         (s1 (div0 s (abs (+ (least-fixnum) (least-fixnum))))))
-    (values s0 s1)))
-
-(define (fx-/carry fx1 fx2 fx3)
-  (or (fixnum? fx1) (assertion-violation 'fx-/carry (format "fixnum required, but got ~a" fx1) fx1 fx2 fx3))
-  (or (fixnum? fx2) (assertion-violation 'fx-/carry (format "fixnum required, but got ~a" fx2) fx1 fx2 fx3))
-  (or (fixnum? fx3) (assertion-violation 'fx-/carry (format "fixnum required, but got ~a" fx3) fx1 fx2 fx3))
-  (let* ((d (- fx1 fx2 fx3))
-         ;(d0 (mod0 d (expt 2 (fixnum-width))))
-         (d0 (mod0 d (abs (+ (least-fixnum) (least-fixnum)))))
-         ;(d1 (div0 d (expt 2 (fixnum-width)))))
-         (d1 (div0 d (abs (+ (least-fixnum) (least-fixnum))))))
-    (values d0 d1)))
-
-(define (fx*/carry fx1 fx2 fx3)
-  (or (fixnum? fx1) (assertion-violation 'fx*/carry (format "fixnum required, but got ~a" fx1) fx1 fx2 fx3))
-  (or (fixnum? fx2) (assertion-violation 'fx*/carry (format "fixnum required, but got ~a" fx2) fx1 fx2 fx3))
-  (or (fixnum? fx3) (assertion-violation 'fx*/carry (format "fixnum required, but got ~a" fx3) fx1 fx2 fx3))
-  (let* ((s (+ (* fx1 fx2) fx3))
-         ;(s0 (mod0 s (expt 2 (fixnum-width))))
-         (s0 (mod0 s (abs (+ (least-fixnum) (least-fixnum)))))
-         ;(s1 (div0 s (expt 2 (fixnum-width)))))
-         (s1 (div0 s (abs (+ (least-fixnum) (least-fixnum))))))
-    (values s0 s1)))
-;; from Ypsilon end
-;; rotate
-(define (fxrotate-bit-field fx1 fx2 fx3 fx4)
-  (define (msg f) (format "fixnum required, but got ~a" f))
-  (or (fixnum? fx1)
-      (assertion-violation 'fxrotate-bit-field (msg fx1) fx1))
-  (or (fixnum? fx2)
-      (assertion-violation 'fxrotate-bit-field (msg fx2) fx2))
-  (or (fixnum? fx3)
-      (assertion-violation 'fxrotate-bit-field (msg fx3) fx3))
-  (or (fixnum? fx4)
-      (assertion-violation 'fxrotate-bit-field (msg fx4) fx4))
-  (or (and (<= 0 fx2) (<= fx2 (fixnum-width)))
-      (assertion-violation 'fxrotate-bit-field "invalid start index" fx2))
-  (or (and (<= 0 fx3) (<= fx3 (fixnum-width)))
-      (assertion-violation 'fxrotate-bit-field "invalid end index" fx3))
-;; extension for SRFI-143, cound can be negative now.
-;;   (or (and (<= 0 fx4) (<= fx4 (fixnum-width)))
-;;       (assertion-violation 'fxrotate-bit-field "out of range (count)"
-;; 			   fx1 fx2 fx3 fx4))
-  (and (> fx2 fx3)
-       (assertion-violation 'name "out of range (start > end)" fx1 fx2 fx3 fx4))
-  (and (> fx4 (- fx3 fx2))
-       (assertion-violation 'name "out of range (count > end - start)"
-			    fx1 fx2 fx3 fx4))
-  (let* ((n     fx1)
-	 (start fx2)
-	 (end   fx3)
-	 (count fx4)
-	 (width (- end start)))
-    (if (fxpositive? width)
-	(let* ((count (fxmod count width))
-	       (field0 (fxbit-field n start end))
-	       (field1 (fxarithmetic-shift-left field0 count))
-	       (field2 (fxarithmetic-shift-right field0 (fx- width count)))
-	       (field (fxior field1 field2)))
-	  (fxcopy-bit-field n start end field))
-	n)))
 )

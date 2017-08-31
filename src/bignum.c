@@ -1229,17 +1229,17 @@ static inline SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
   /* do trivial case first */
   if (size == 1) {
     /* only one element in bx */
-    dlong p;
-    p = (dlong)bx->elements[0] * y;
+    udlong p;
+    p = (udlong)bx->elements[0] * y;
     br->elements[0] = (ulong)p;
     br->elements[1] = (ulong)(p >> WORD_BITS);
     return br;
   } else if (size == 2) {
     /* only 2 elements in bx */
-    dlong p;
-    p = (dlong)bx->elements[0] * y;
+    udlong p;
+    p = (udlong)bx->elements[0] * y;
     br->elements[0] = (ulong)p;
-    p = (dlong)bx->elements[1] * y + (ulong)(p >> WORD_BITS);
+    p = (udlong)bx->elements[1] * y + (ulong)(p >> WORD_BITS);
     br->elements[1] = (ulong)p;
     br->elements[2] = (ulong)(p >> WORD_BITS);
     return br;
@@ -1471,7 +1471,7 @@ static ulong bignum_sdiv_rec(SgBignum *quotient,
 {
 #ifdef USE_DLONG
   if (dividend->size == 1) {
-    dlong de = dividend->elements[0];
+    udlong de = dividend->elements[0];
     ulong q = (ulong) (de / divisor);
     ulong r = (ulong) (de - q * divisor);
     quotient->elements[0] = q;
@@ -1481,20 +1481,20 @@ static ulong bignum_sdiv_rec(SgBignum *quotient,
     ulong *pu = dividend->elements;
     ulong *qu = quotient->elements;
     int shift = nlz(divisor);
-    dlong rem = pu[n];
+    udlong rem = pu[n];
     
     if (rem < divisor) {
       qu[n] = 0;
     } else {
       qu[n] = (ulong)(rem / divisor);
-      rem = (ulong)(rem - ((dlong)qu[n] * divisor));
+      rem = (ulong)(rem - ((udlong)qu[n] * divisor));
     }
     n--;
     for (; n >= 0; n--) {
-      dlong e = (rem << WORD_BITS) | pu[n];
+      udlong e = (rem << WORD_BITS) | pu[n];
       ulong q;
       q = (ulong)(e/divisor);
-      rem = (ulong)(e - ((dlong)q * divisor));
+      rem = (ulong)(e - ((udlong)q * divisor));
       qu[n] = q;
     }
     return (shift>0) ? rem % divisor: rem;
@@ -1605,7 +1605,7 @@ SgObject Sg_BignumModuloSI(SgBignum *a, long b, int remp)
 
   /* ASSERT(b != 0); */
   for (i = SG_BIGNUM_GET_COUNT(a)-1 ; i >= 0; i--) {
-    r = (((dlong)r<<WORD_BITS) | a->elements[i]) % d;
+    r = (((udlong)r<<WORD_BITS) | a->elements[i]) % d;
   }
   r = r * sign;			/* got remainder */
 

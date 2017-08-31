@@ -20,13 +20,6 @@
 	(match)
 	(getopt))
 
-;; REMOVE ME
-(with-library (sagittarius cgen stub)
-  (define-form-parser define-type args
-    (unless (<= 2 (length args) 7)
-      (error 'define-type "malformed define-type" `(define-type . ,args)))
-    (apply make-cgen-type args)))
-
 (define-form-parser define (name . body)
   (set! *scheme-definitions*
 	(cons `(define ,name . ,body) *scheme-definitions*)))
