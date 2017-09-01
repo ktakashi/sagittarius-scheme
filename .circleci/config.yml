@@ -27,16 +27,16 @@ jobs:
              sudo make install
        - run:
            name: Pre-build
-           working_directory: ~/$CIRCLE_WORKING_DIRECTORY/sagittarius-scheme
+           working_directory: ~/project/sagittarius-scheme
            command: |
              pwd
              ./dist.sh gen
              cmake .
        - run:
            name: Build
-           working_directory: ~/$CIRCLE_WORKING_DIRECTORY/sagittarius-scheme
+           working_directory: ~/project/sagittarius-scheme
            command: make
        - run:
            name: Test
-           working_directory: ~/$CIRCLE_WORKING_DIRECTORY/sagittarius-scheme
+           working_directory: ~/project/sagittarius-scheme
            command: make test
