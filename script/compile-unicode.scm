@@ -21,7 +21,7 @@ exec sagittarius -L${this_path}/../unicode $0 "$@"
 (define-constant +host+ "ftp.unicode.org")
 ;; this is always the latest but we use explicit version.
 ;;(define-constant +latest+ "/Public/UNIDATA/UCD.zip")
-(define-constant +latest+ "/Public/8.0.0/ucd/UCD.zip")
+(define-constant +latest+ "/Public/10.0.0/ucd/UCD.zip")
 (define-constant +max-retry+ 5)
 (define-constant +unicode-dir+ "unicode")
 (define-constant +data-dir+ (build-path +unicode-dir+ "data"))
