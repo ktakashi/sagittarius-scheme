@@ -10,6 +10,7 @@ jobs:
            command: sudo apt-get install cmake libgc-dev zlib1g-dev libffi-dev
        - run:
            name: Installing current Sagittarius
+           working_directory: ~/current_sagittarius
            command: |
              curl -L -o version https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/latest-version.txt
              curl -L -o sagittarius.tar.gz https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/sagittarius-`cat version`.tar.gz
@@ -19,7 +20,6 @@ jobs:
              make -j8 sash
              make
              sudo make install
-          working_directory: ~/current_sagittarius
        - run:
            name: Pre-build
            command: |
@@ -31,9 +31,3 @@ jobs:
        - run:
            name: Test
            command: make test
-workflows:
-  version: 2
-  default_workflow:
-    jobs:
-      - build
-
