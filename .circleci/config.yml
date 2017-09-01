@@ -4,7 +4,12 @@ jobs:
      docker:
        - image: circleci/postgres:9.6
      steps:
-       - checkout
+       - run:
+           name: Checkout repository
+           working_directory: ~
+           command: |
+             sudo apt-get install mercurial
+             hg clone https://bitbucket.org/ktakashi/sagittarius-scheme sagittarius-scheme
        - run:
            name: Installing dependencies
            command: sudo apt-get install cmake libgc-dev zlib1g-dev libffi-dev
@@ -22,12 +27,15 @@ jobs:
              sudo make install
        - run:
            name: Pre-build
+           working_directory: ~/sagittarius-scheme
            command: |
              ./dist.sh gen
              cmake .
        - run:
            name: Build
+           working_directory: ~/sagittarius-scheme
            command: make
        - run:
            name: Test
+           working_directory: ~/sagittarius-scheme
            command: make test
