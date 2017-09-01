@@ -33,7 +33,8 @@
     (import (core)
 	    (core base)
 	    (sagittarius)
-	    (sagittarius vm))
+	    (sagittarius vm)
+	    (sagittarius fixnums))
 
   (define command-line (make-core-parameter '()))
 
