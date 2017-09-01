@@ -5,10 +5,11 @@ jobs:
      steps:
        - run:
            name: Checkout repository
-           working_directory: ~
            command: |
              sudo apt-get install mercurial
              hg clone https://bitbucket.org/ktakashi/sagittarius-scheme sagittarius-scheme
+             pwd
+             ls
        - run:
            name: Installing dependencies
            command: sudo apt-get install cmake libgc-dev zlib1g-dev libffi-dev
@@ -26,15 +27,16 @@ jobs:
              sudo make install
        - run:
            name: Pre-build
-           working_directory: ~/sagittarius-scheme
+           working_directory: ~/$CIRCLE_WORKING_DIRECTORY/sagittarius-scheme
            command: |
+             pwd
              ./dist.sh gen
              cmake .
        - run:
            name: Build
-           working_directory: ~/sagittarius-scheme
+           working_directory: ~/$CIRCLE_WORKING_DIRECTORY/sagittarius-scheme
            command: make
        - run:
            name: Test
-           working_directory: ~/sagittarius-scheme
+           working_directory: ~/$CIRCLE_WORKING_DIRECTORY/sagittarius-scheme
            command: make test
