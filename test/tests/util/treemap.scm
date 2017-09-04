@@ -143,4 +143,24 @@
 				(treemap-ref tm "c")))
   )
 
+(let ()
+  (define tm (alist->treemap '((0 . "0") (1 . "1")
+			       (2 . "2") (3 . "3")
+			       (4 . "4") (5 . "5"))
+			     (lambda (a b)
+			       (cond ((= a b) 0)
+				     ((< a b) -1)
+				     (else 1)))))
+  (define (error) (assertion-violation 'failed))
+  (test-equal "higher" '(4 "4")
+	      (let-values (((k v) (treemap-higher-entry tm 3 error)))
+		(list k v)))
+  (test-equal "lower" '(2 "2")
+	      (let-values (((k v) (treemap-lower-entry tm 3 error)))
+		(list k v)))
+
+  (test-equal "higher" 'not-found
+	      (treemap-higher-entry tm 5 (lambda () 'not-found)))
+  (test-equal "lower" 'not-found
+	      (treemap-lower-entry tm 0 (lambda () 'not-found))))
 (test-end)

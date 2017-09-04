@@ -1827,6 +1827,17 @@
       (result (Sg_MakeSubr treemap-itr itr 1 0 
 			   (SG_MAKE_STRING "treemap-iterator")))))
 
+  (define-c-proc treemap-higher-entry (tm::<tree-map> key failure::<procedure>)
+    (let ((e::SgTreeEntry* (Sg_TreeMapHigherEntry tm key)))
+      (if (== e NULL)
+	  (result (Sg_VMApply0 failure))
+	  (result (Sg_Values2 (SG_DICT_ENTRY_KEY e) (SG_DICT_ENTRY_VALUE e))))))
+  (define-c-proc treemap-lower-entry (tm::<tree-map> key failure::<procedure>)
+    (let ((e::SgTreeEntry* (Sg_TreeMapLowerEntry tm key)))
+      (if (== e NULL)
+	  (result (Sg_VMApply0 failure))
+	  (result (Sg_Values2 (SG_DICT_ENTRY_KEY e) (SG_DICT_ENTRY_VALUE e))))))
+  
   ;; only equality argument must be a procedure.
   (define-c-proc %make-comparator (type-test eq::<procedure>
 				   comparison hash name)

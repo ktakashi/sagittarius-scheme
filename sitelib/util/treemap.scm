@@ -43,7 +43,8 @@
 	    treemap-entries treemap-entries-list
 	    treemap-keys    treemap-keys-list
 	    treemap-values  treemap-values-list
-
+	    treemap-higher-entry treemap-lower-entry
+	    
 	    treemap-for-each treemap-map treemap-fold
 	    treemap->alist alist->treemap
 	    )
