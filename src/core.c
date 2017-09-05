@@ -84,6 +84,7 @@ extern void Sg__Init_sagittarius();
 extern void Sg__Init_sagittarius_clos();
 extern void Sg__Init_sagittarius_fixnums();
 extern void Sg__Init_sagittarius_flonums();
+extern void Sg__Init_sagittarius_treemap();
 extern void Sg__InitInstruction();
 /* compiled libraries */
 extern void Sg__Init_core();
@@ -198,6 +199,7 @@ void Sg_Init()
   Sg__Init_sagittarius_clos();
   Sg__Init_sagittarius_fixnums();
   Sg__Init_sagittarius_flonums();
+  Sg__Init_sagittarius_treemap();
   
   /* this is scmlib.scm */
   Sg__Init_core_base();

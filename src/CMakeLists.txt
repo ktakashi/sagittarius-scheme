@@ -29,7 +29,7 @@ ENDIF()
 
 # Just making future myself happy...
 SET(STUB_SOURCES null.c closlib.c proclib.c vmlib.c vmdebug.c extlib.c
-  flonums.c fixnums.c)
+  lib_flonums.c lib_fixnums.c lib_treemap.c)
 SET(BUILTIN_SOURCES 
   compiler.c   compiler-aux.c
   lib_scmlib.c lib_errors.c   lib_arith.c lib_macro.c lib_program.c)

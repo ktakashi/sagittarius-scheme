@@ -52,6 +52,7 @@
 	    (only (core base) wrong-type-argument-message)
 	    (clos user)
 	    (sagittarius)
+	    (sagittarius treemap)
 	    (sagittarius object))
 
   ;; sort of consistency for hashtable
