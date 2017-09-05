@@ -113,6 +113,25 @@ static node_t* successor(node_t *t)
   }
 }
 
+static node_t* predecessor(node_t *t)
+{
+  if (t == NULL) return NULL;
+  else if (t->left != NULL) {
+    node_t *p = t->left;
+    while (p->right != NULL) p = p->right;
+    return p;
+  } else {
+    node_t *p = t->parent;
+    node_t *ch = t;
+    while (p != NULL && ch == p->left) {
+      ch = p;
+      p = p->parent;
+    }
+    return p;
+  }
+}
+
+
 static void rotate_left(SgTreeMap *tm, node_t *p)
 {
   if (p != NULL) {
@@ -414,7 +433,7 @@ static node_t* copy_tree(node_t *parent, node_t *self)
 
 static SgObject rb_copy(const SgTreeMap *tm);
 static SgTreeIter* rb_iter(SgTreeIter *iter, SgTreeMap *tm,
-			   SgTreeEntry *start);
+			   SgTreeEntry *start, int ascP);
 
 static SgTreeEntry* rb_search(SgTreeMap *tm, intptr_t key, SgDictOp op)
 {
@@ -445,7 +464,7 @@ static SgObject rb_copy(const SgTreeMap *tm)
   return dst;
 }
 
-static node_t* get_first_entry(SgTreeMap *tm)
+static node_t* get_first_left_entry(SgTreeMap *tm)
 {
   node_t *p = NODE(tm->root);
   if (p != NULL)
@@ -453,25 +472,47 @@ static node_t* get_first_entry(SgTreeMap *tm)
   return p;
 }
 
+static node_t* get_first_right_entry(SgTreeMap *tm)
+{
+  node_t *p = NODE(tm->root);
+  if (p != NULL)
+    while (p->right != NULL) p = p->right;
+  return p;
+}
+
+
 static SgTreeEntry *rb_iter_next(SgTreeIter *iter)
 {
   if (iter->end) return NULL;
   if (iter->e) {
     iter->e = (SgTreeEntry*)successor((node_t*)iter->e);
   } else {
-    iter->e = (SgTreeEntry*)get_first_entry(iter->t);
+    iter->e = (SgTreeEntry*)get_first_left_entry(iter->t);
   }
   if (iter->e == NULL) iter->end = TRUE;
   return (SgTreeEntry*)iter->e;
 }
 
+static SgTreeEntry *rb_iter_reverse_next(SgTreeIter *iter)
+{
+  if (iter->end) return NULL;
+  if (iter->e) {
+    iter->e = (SgTreeEntry*)predecessor((node_t*)iter->e);
+  } else {
+    iter->e = (SgTreeEntry*)get_first_right_entry(iter->t);
+  }
+  if (iter->e == NULL) iter->end = TRUE;
+  return (SgTreeEntry*)iter->e;
+}
+
+
 static SgTreeIter* rb_iter(SgTreeIter *iter, SgTreeMap *tm,
-			   SgTreeEntry *start)
+			   SgTreeEntry *start, int ascP)
 {
   if (start && get_entry(tm, start->key) != (node_t*)start) {
     Sg_Error(UC("rb_iter: iteration start point is not a part of the tree."));
   }
-  iter->next = rb_iter_next;
+  iter->next = (ascP)? rb_iter_next: rb_iter_reverse_next;
   iter->t = tm;
   iter->e = start;
   iter->end = FALSE;

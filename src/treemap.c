@@ -152,8 +152,15 @@ void Sg_TreeMapClear(SgTreeMap *tm)
 void Sg_TreeIterInit(SgTreeIter *iter,
 		     SgTreeMap *tm, SgTreeEntry *start)
 {
-  SG_TREEMAP_C_PROC(tm, iter)(iter, tm, start);
+  SG_TREEMAP_C_PROC(tm, iter)(iter, tm, start, TRUE);
 }
+
+void Sg_TreeReverseIterInit(SgTreeIter *iter,
+		     SgTreeMap *tm, SgTreeEntry *start)
+{
+  SG_TREEMAP_C_PROC(tm, iter)(iter, tm, start, FALSE);
+}
+
 
 SgTreeEntry* Sg_TreeIterNext(SgTreeIter *iter)
 {

@@ -43,7 +43,7 @@ typedef SgObject SgTreeCopyProc(const SgTreeMap *);
 /* only for c */
 typedef struct SgTreeIterRec SgTreeIter;
 typedef SgTreeIter* SgTreeIterInitProc(SgTreeIter *, SgTreeMap *,
-				       SgTreeEntry *);
+				       SgTreeEntry *, int ascP);
 
 /*
   header:
@@ -145,6 +145,9 @@ SG_EXTERN SgObject Sg_MakeGenericSchemeTreeMap(SgObject cmp,
 /* iterator these APIs are only for C */
 SG_EXTERN void         Sg_TreeIterInit(SgTreeIter *iter,
 				       SgTreeMap *tm, SgTreeEntry *start);
+SG_EXTERN void         Sg_TreeReverseIterInit(SgTreeIter *iter,
+					      SgTreeMap *tm,
+					      SgTreeEntry *start);
 SG_EXTERN SgTreeEntry* Sg_TreeIterNext(SgTreeIter *iter);
 SG_EXTERN int          Sg_TreeIterHasNext(SgTreeIter *iter);
 SG_EXTERN SgObject     Sg_TreeMapEntries(SgTreeMap *tm);
