@@ -37,6 +37,8 @@
 (let ((tm (alist->treemap '((1 . a) (3 . c) (2 . b)) compare)))
   (test-equal "treemap-map" '(1 2 3) (treemap-map (lambda (k v) k) tm))
   (test-equal "treemap-map" '(a b c) (treemap-map (lambda (k v) v) tm))
+  (test-equal "treemap-map-reverse" '(3 2 1) (treemap-map-reverse (lambda (k v) k) tm))
+  (test-equal "treemap-map-reverse" '(c b a) (treemap-map-reverse (lambda (k v) v) tm))
   (test-equal "treemap->alist" '((1 . a) (2 . b) (3 . c)) (treemap->alist tm)))
 
 ;; from Gauche
