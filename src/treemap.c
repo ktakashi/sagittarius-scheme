@@ -233,6 +233,20 @@ SgTreeEntry* Sg_TreeMapLowerEntry(SgTreeMap *tm, SgObject key)
   return NULL;			/* dummy */
 }
 
+SgTreeEntry* Sg_TreeMapFirstEntry(SgTreeMap *tm)
+{
+  SgTreeIter itr;
+  Sg_TreeIterInit(&itr, tm, NULL);
+  return Sg_TreeIterNext(&itr);
+}
+
+SgTreeEntry* Sg_TreeMapLastEntry(SgTreeMap *tm)
+{
+  SgTreeIter itr;
+  Sg_TreeReverseIterInit(&itr, tm, NULL);
+  return Sg_TreeIterNext(&itr);
+}
+
 int Sg_TreeMapEq(SgTreeMap *a, SgTreeMap *b)
 {
   SgTreeIter ai, bi;

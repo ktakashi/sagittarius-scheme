@@ -44,6 +44,7 @@
 	    treemap-keys    treemap-keys-list
 	    treemap-values  treemap-values-list
 	    treemap-higher-entry treemap-lower-entry
+	    treemap-first-entry treemap-last-entry
 	    
 	    treemap-for-each treemap-map treemap-fold
 	    treemap-for-each-reverse treemap-map-reverse treemap-fold-reverse

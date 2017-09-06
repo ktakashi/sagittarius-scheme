@@ -168,15 +168,29 @@
       (let ((p (car alist)))
 	(treemap-set! tm (car p) (cdr p))))))
 
-(define-c-proc treemap-higher-entry (tm::<tree-map> key failure::<procedure>)
-  (let ((e::SgTreeEntry* (Sg_TreeMapHigherEntry tm key)))
-    (if (== e NULL)
-	(result (Sg_VMApply0 failure))
-	(result (Sg_Values2 (SG_DICT_ENTRY_KEY e) (SG_DICT_ENTRY_VALUE e))))))
-(define-c-proc treemap-lower-entry (tm::<tree-map> key failure::<procedure>)
-  (let ((e::SgTreeEntry* (Sg_TreeMapLowerEntry tm key)))
-    (if (== e NULL)
-	(result (Sg_VMApply0 failure))
-	(result (Sg_Values2 (SG_DICT_ENTRY_KEY e) (SG_DICT_ENTRY_VALUE e))))))
+(define-cise-stmt treemap-entry
+  ((_ who retriever tm failure rest ...)
+   `(let ((e::SgTreeEntry*))
+      (when (== (-> ,tm entryCount) 0)
+	(Sg_AssertionViolation ',who
+			       (SG_MAKE_STRING "treemap is empty") ,tm))
+      (set! e (,retriever ,tm ,@rest))
+      (if (== e NULL)
+	  ,(if failure
+	       `(result (Sg_VMApply0 ,failure))
+	       `(Sg_AssertionViolation ',who
+				       (SG_MAKE_STRING "treemap is empty") ,tm))
+	  (result (Sg_Values2 (SG_DICT_ENTRY_KEY e)
+				    (SG_DICT_ENTRY_VALUE e)))))))
 
+(define-c-proc treemap-higher-entry (tm::<tree-map> key failure::<procedure>)
+  (treemap-entry treemap-higher-entry
+		 Sg_TreeMapHigherEntry tm (Sg_VMApply0 failure) key))
+(define-c-proc treemap-lower-entry (tm::<tree-map> key failure::<procedure>)
+  (treemap-entry treemap-lower-entry
+		 Sg_TreeMapLowerEntry tm (Sg_VMApply0 failure) key))
+(define-c-proc treemap-first-entry (tm::<tree-map>)
+  (treemap-entry treemap-first-entry Sg_TreeMapFirstEntry tm #f))
+(define-c-proc treemap-last-entry (tm::<tree-map>)
+  (treemap-entry treemap-last-entry Sg_TreeMapLastEntry tm #f))
 )

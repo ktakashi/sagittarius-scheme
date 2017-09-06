@@ -154,9 +154,10 @@ SG_EXTERN SgObject     Sg_TreeMapEntries(SgTreeMap *tm);
 SG_EXTERN SgObject     Sg_TreeMapKeys(SgTreeMap *tm);
 SG_EXTERN SgObject     Sg_TreeMapValues(SgTreeMap *tm);
 
-/* NavigationMap APIs are only for C */
 SG_EXTERN SgTreeEntry* Sg_TreeMapHigherEntry(SgTreeMap *tm, SgObject key);
 SG_EXTERN SgTreeEntry* Sg_TreeMapLowerEntry(SgTreeMap *tm, SgObject key);
+SG_EXTERN SgTreeEntry* Sg_TreeMapFirstEntry(SgTreeMap *tm);
+SG_EXTERN SgTreeEntry* Sg_TreeMapLastEntry(SgTreeMap *tm);
 
 /* Supported implementation tree constructors */
 SG_EXTERN SgObject Sg_MakeRBTreeMap(SgTreeCompareProc *cmp);

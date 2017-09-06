@@ -160,6 +160,12 @@
   (test-equal "lower" '(2 "2")
 	      (let-values (((k v) (treemap-lower-entry tm 3 error)))
 		(list k v)))
+  (test-equal "first" '(0 "0")
+	      (let-values (((k v) (treemap-first-entry tm)))
+		(list k v)))
+  (test-equal "first" '(5 "5")
+	      (let-values (((k v) (treemap-last-entry tm)))
+		(list k v)))
 
   (test-equal "higher" 'not-found
 	      (treemap-higher-entry tm 5 (lambda () 'not-found)))
