@@ -1,0 +1,182 @@
+;; lib_treemap.stub                           -*- mode:scheme; coding:utf-8; -*-
+;;
+;;  Copyright (c) 2010-2017  Takashi Kato <ktakashi@ymail.com>
+;;
+;;  Redistribution and use in source and binary forms, with or without
+;;  modification, are permitted provided that the following conditions
+;;  are met:
+;;
+;;  1. Redistributions of source code must retain the above copyright
+;;     notice, this list of conditions and the following disclaimer.
+;;
+;;  2. Redistributions in binary form must reproduce the above copyright
+;;     notice, this list of conditions and the following disclaimer in the
+;;     documentation and/or other materials provided with the distribution.
+;;
+;;  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+;;  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+;;  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+;;  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+;;  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+;;  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+;;  TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+;;  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+;;  LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+;;  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+;;  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+(library (sagittarius treemap)
+    (export :only-bindings)
+    (import (core) (sagittarius))
+
+(decl-code
+ (.define "LIBSAGITTARIUS_BODY")
+ (.include <sagittarius.h>))
+;; tree-map, only expose default implementation for now (rb-tree)
+(define-c-proc make-rb-treemap (cmp::<procedure>) :no-side-effect
+  Sg_MakeSchemeRBTreeMap)
+(define-c-proc make-rb-treemap/comparator (c::<comparator>) :no-side-effect
+  (let ((p (-> c compFn)))
+    (unless (and (SG_PROCEDUREP p)
+		 (>= (SG_PROCEDURE_REQUIRED p) 2))
+      (Sg_AssertionViolation 'make-rb-treemap/comparator
+	(SG_MAKE_STRING "given comparator doesn't support compare")
+	c))
+    (result (Sg_MakeSchemeRBTreeMap p))))
+(define-c-proc treemap? (o) ::<boolean> :constant SG_TREEMAP_P)
+
+(define-c-proc treemap-ref (tm::<tree-map> key :optional (fallback #f))
+  :no-side-effect
+  Sg_TreeMapRef)
+(define-c-proc treemap-set! (tm::<tree-map> key value) ::<void>
+  (Sg_TreeMapSet tm key value 0))
+(define-c-proc treemap-delete! (tm::<tree-map> key) ::<void>
+  Sg_TreeMapDelete)
+(define-c-proc treemap-clear! (tm::<tree-map>) ::<void>
+  Sg_TreeMapClear)
+(define-c-proc treemap-copy (tm::<tree-map>) :no-side-effect Sg_TreeMapCopy)
+(define-c-proc treemap-contains? (tm::<tree-map> key)
+  ::<boolean> :no-side-effect
+  ;; TODO this may expose unbound variable to scheme world
+  ;; so need something better...
+  (let* ((mark (?: (SG_SCHEME_TREEMAP_P tm) SG_UNBOUND NULL))
+	   (r (Sg_TreeMapRef tm key mark)))
+    (result (not (== r mark)))))
+
+(define-c-proc treemap-keys-list (tm::<tree-map>) :no-side-effect
+  Sg_TreeMapKeys)
+(define-c-proc treemap-values-list (tm::<tree-map>) :no-side-effect
+  Sg_TreeMapValues)
+(define-c-proc treemap-entries-list (tm::<tree-map>) :no-side-effect
+  Sg_TreeMapEntries)
+
+;; sort of consistency for hashtable
+(define (treemap-entries tm) 
+  (let-values (((ks vs) (treemap-entries-list tm)))
+    (values (list->vector ks) (list->vector vs))))
+(define (treemap-keys tm) (list->vector (treemap-keys-list tm)))
+(define (treemap-values tm) (list->vector (treemap-values-list tm)))
+
+(define-c-proc treemap-size (tm::<tree-map>) ::<fixnum> :no-side-effect
+  (result (-> tm entryCount)))
+
+(define-cfn treemap-update-cc (result data::void**) :static
+  (let ((e::SgDictEntry* (cast SgDictEntry* (aref data 0))))
+    (cast void (SG_DICT_ENTRY_SET_VALUE e result))
+    (return result)))
+
+(define-cise-expr tree-entry-set!
+  ((_ dict e value)
+   `(SG_DICT_ENTRY_SET_VALUE ,e ,value)))
+(define-cise-expr tree-entry-value
+  ((_ dict e) `(SG_DICT_ENTRY_VALUE ,e)))
+
+;; FIXME duplicated definition (originally from extlib.stub)
+(define-cise-stmt dict-update!
+  ((_ dict searcher xtractor cc set unwrap)
+   `(let ((e::SgDictEntry*)
+	  (data::(.array void* (2))))
+      (set! e (,searcher (,xtractor ,dict) (cast intptr_t key)
+			 SG_DICT_CREATE 0))
+      (unless (-> e value) (cast void (,set ,dict e default)))
+      (set! (aref data 0) (cast void* e))
+      (set! (aref data 1) (cast void* ,dict))
+      (Sg_VMPushCC ,cc data 2)
+      (result (Sg_VMApply1 proc (,unwrap ,dict e))))))
+
+(define-c-proc treemap-update! 
+  (tm::<tree-map> key proc::<procedure> default)
+  (dict-update! tm Sg_TreeMapCoreSearch SG_TREEMAP treemap-update-cc
+		  tree-entry-set! tree-entry-value))
+
+(define-cfn treemap-itr (args::SgObject* argc::int data::void*) :static
+  (let* ((itr::SgTreeIter* (cast SgTreeIter* data))
+	   (e::SgTreeEntry* (Sg_TreeIterNext itr))
+	   (eofval (aref args 0)))
+    (if (== e NULL)
+	(return (Sg_Values2 eofval eofval))
+	(return (Sg_Values2 (SG_DICT_ENTRY_KEY e) (SG_DICT_ENTRY_VALUE e))))))
+(define-c-proc treemap-iterator (tm::<tree-map>)
+  (let ((itr::SgTreeIter* (SG_NEW SgTreeIter)))
+    (Sg_TreeIterInit itr tm NULL)
+    (result (Sg_MakeSubr treemap-itr itr 1 0 
+			 (SG_MAKE_STRING "treemap-iterator")))))
+
+(define-c-proc treemap-reverse-iterator (tm::<tree-map>)
+  (let ((itr::SgTreeIter* (SG_NEW SgTreeIter)))
+    (Sg_TreeReverseIterInit itr tm NULL)
+    (result (Sg_MakeSubr treemap-itr itr 1 0 
+			 (SG_MAKE_STRING "treemap-iterator")))))
+
+(define (%treemap-fold who iter)
+  (lambda (kons tm knil)
+    (unless (procedure? kons)
+      (assertion-violation who
+			   (wrong-type-argument-message "procedure" kons 1)))
+    (unless (treemap? tm)
+      (assertion-violation who
+			   (wrong-type-argument-message "treemap" tm 2)))
+    (let ((itr (iter tm)) (eof (cons #t #t)))
+      (let loop ((r knil))
+	(let-values (((k v) (itr eof)))
+	  (if (eq? k eof)
+	      r
+	      (loop (kons k v r))))))))
+
+(define treemap-fold (%treemap-fold 'treemap-fold treemap-iterator))
+(define treemap-fold-reverse (%treemap-fold 'treemap-fold-reverse
+					    treemap-reverse-iterator))
+
+(define (treemap-for-each proc tm)
+  (treemap-fold (lambda (k v r) (proc k v) r) tm (undefined)))
+
+(define (treemap-map proc tm)
+  (reverse! (treemap-fold (lambda (k v r) (cons (proc k v) r)) tm '())))
+
+(define (treemap-for-each-reverse proc tm)
+  (treemap-fold-reverse (lambda (k v r) (proc k v) r) tm (undefined)))
+
+(define (treemap-map-reverse proc tm)
+  (reverse! (treemap-fold-reverse (lambda (k v r) (cons (proc k v) r)) tm '())))
+
+
+(define (treemap->alist tm) (treemap-map cons tm))
+
+(define (alist->treemap alist comp)
+  (let ((tm (make-rb-treemap comp)))
+    (do ((alist alist (cdr alist)))
+	((null? alist) tm)
+      (let ((p (car alist)))
+	(treemap-set! tm (car p) (cdr p))))))
+
+(define-c-proc treemap-higher-entry (tm::<tree-map> key failure::<procedure>)
+  (let ((e::SgTreeEntry* (Sg_TreeMapHigherEntry tm key)))
+    (if (== e NULL)
+	(result (Sg_VMApply0 failure))
+	(result (Sg_Values2 (SG_DICT_ENTRY_KEY e) (SG_DICT_ENTRY_VALUE e))))))
+(define-c-proc treemap-lower-entry (tm::<tree-map> key failure::<procedure>)
+  (let ((e::SgTreeEntry* (Sg_TreeMapLowerEntry tm key)))
+    (if (== e NULL)
+	(result (Sg_VMApply0 failure))
+	(result (Sg_Values2 (SG_DICT_ENTRY_KEY e) (SG_DICT_ENTRY_VALUE e))))))
+
+)
