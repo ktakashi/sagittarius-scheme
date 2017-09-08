@@ -215,6 +215,17 @@
                  (cut map (^[x y] (* x y)) <...>)
                  '((1 2 3 4 5) (2 3 4 5)) '(() ()))
 
+(let ((input1 '(1 2 3 4 5))
+      (input2 '(2 3 4 5)))
+  (test-equal "generator-map"
+	      (map (lambda (x) (* x 2)) input1)
+	      (generator-map (lambda (x) (* x 2)) (list->generator input1)))
+  (test-equal "generator-map"
+	      (map (lambda (x y) (* x y)) input1 input2)
+	      (generator-map (lambda (x y) (* x y))
+			     (list->generator input1)
+			     (list->generator input2))))
+		 
 (define-syntax values-ref
   (syntax-rules ()
     ((_ expr n)

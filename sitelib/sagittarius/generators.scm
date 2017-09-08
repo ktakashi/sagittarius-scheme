@@ -48,7 +48,7 @@
 
 	    ;; these are not generator operations
 	    ;; using generators as its arguments
-	    generator-for-each 
+	    generator-for-each generator-map
 	    generator-fold generator-fold-right
 	    generator-find 
 	    generator-length generator-count 
@@ -437,6 +437,9 @@
 	(let loop ((vs (map (lambda (f) (f)) gs)))
 	  (unless (exists eof-object? vs) 
 	    (apply fn vs) (loop (map (lambda (f) (f)) gs))))))))
+
+  (define (generator-map proc gen1 . args)
+    (generator->list (apply gmap proc gen1 args)))
 
   (define generator-fold 
     (case-lambda
