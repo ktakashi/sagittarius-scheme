@@ -393,6 +393,15 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
 
     The name @code{flonums} is taken from the name of the SRFI.
     }}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-145/srfi-145.html"]{SRFI-145}}
+    @td{(srfi :145 assumptions)
+
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :145)}. So for the portability it's better to use the
+    @code{(srfi :145)}.
+
+    The name @code{assumptions} is taken from the name of the SRFI.
+    }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-151/srfi-151.html"]{SRFI-151}}
     @td{(srfi :151 bitwise)
 
