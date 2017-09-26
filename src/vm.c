@@ -195,6 +195,8 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
     SG_LIBRARY_GENERICS(nl) = copy_generics(proto->currentLibrary);
     if (!SG_FALSEP(proto->sandbox)) {
       v->sandbox = Sg_HashTableCopy(proto->sandbox, TRUE);
+    } else {
+      v->sandbox = SG_FALSE;
     }
   } else {
     v->currentLibrary = SG_UNDEF;
