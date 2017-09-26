@@ -125,15 +125,24 @@
 			      ,id))))))
 (define-cise-stmt REFER-GLOBAL
   ((_ vm ret)
-   (let ((v (gensym "id")))
-     `(let ((,v (FETCH_OPERAND (PC ,vm))))
+   (let ((v (gensym "id"))
+	 (s (gensym "s"))
+	 (id (gensym "id")))
+     `(let ((,v (FETCH_OPERAND (PC ,vm)))
+	    (,s (-> vm sandbox)))
 	(cond ((SG_GLOCP ,v)
+	       (when (not (SG_FALSEP ,s))
+		 (let ((,id (Sg_MakeGlobalIdentifier
+			     (-> (SG_GLOC ,v) name)
+			     (-> (SG_GLOC ,v) library))))
+		   (FIND-GLOBAL ,vm ,id ,v)))
 	       (set! ,ret (SG_GLOC_GET (SG_GLOC ,v))))
 	      (else
 	       (FIND-GLOBAL ,vm ,v ,ret)
 	       (when (SG_GLOCP ,ret)
-		 (set! (pointer (- (PC ,vm) 1)) (SG_WORD ,ret)
-		       ,ret (SG_GLOC_GET (SG_GLOC ,ret))))))))))
+		 (when (SG_FALSEP ,s)
+		   (set! (pointer (- (PC ,vm) 1)) (SG_WORD ,ret)))
+		 (set! ,ret (SG_GLOC_GET (SG_GLOC ,ret))))))))))
 
 (define-inst GREF (0 1 #t)
   (let ((v ))

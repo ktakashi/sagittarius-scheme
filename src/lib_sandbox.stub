@@ -14,7 +14,7 @@
 (define-c-proc insert-sandbox-binding! (lib name::<symbol> value) ::<void>
   Sg_InsertSandboxBinding)
 
-(define (call-with-sandbox thunk)
+(define (with-sandbox thunk)
   (dynamic-wind enable-sandbox! thunk disable-sandbox!))
 
 ;; we want to define macro here but it's not possible at this moment

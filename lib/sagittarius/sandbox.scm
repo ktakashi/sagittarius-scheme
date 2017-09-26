@@ -29,8 +29,9 @@
 ;;;  
 
 (library (sagittarius sandbox)
-    (export call-with-sandbox
-	    define-in-sandbox)
+    (export with-sandbox
+	    define-in-sandbox
+	    playground)
     (import (core)
 	    (sagittarius sandbox internal))
 
@@ -45,4 +46,14 @@
 	   (let ((v body))
 	     (insert-sandbox-binding! library 'name v)
 	     v))))))
+
+(define-syntax playground
+  (lambda (x)
+    (syntax-case x ()
+      ((_ ((name library expr) ...) body ...)
+       #'(with-sandbox
+	  (lambda ()
+	    (define-in-sandbox library name expr) ...
+	    body ...))))))
+
 )
