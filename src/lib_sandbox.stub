@@ -1,0 +1,32 @@
+;; -*- mode: scheme; coding: utf-8 -*-
+(library (sagittarius sandbox internal)
+    (export :only-bindings)
+    (import (core)
+	    (sagittarius))
+
+(decl-code
+   (.define "LIBSAGITTARIUS_BODY")
+   (.include <sagittarius.h>
+	     <sagittarius/cache.h>))
+
+(define-c-proc enable-sandbox! () ::<void> Sg_EnableSandbox)
+(define-c-proc disable-sandbox! () ::<void> Sg_DisableSandbox)
+(define-c-proc insert-sandbox-binding! (lib name::<symbol> value) ::<void>
+  Sg_InsertSandboxBinding)
+
+(define (call-with-sandbox thunk)
+  (dynamic-wind enable-sandbox! thunk disable-sandbox!))
+
+;; we want to define macro here but it's not possible at this moment
+;; (define-syntax define-in-sandbox
+;;   (lambda (x)
+;;     (syntax-case x ()
+;;       ((_ library (name . args) body ...)
+;;        #'(define-in-sandbox library name (lambda args body ...)))
+;;       ((_ library name body)
+;;        (identifier? #'name)
+;;        #'(define name
+;; 	   (let ((v body))
+;; 	     (insert-sandbox-binding! library 'name v)
+;; 	     v))))))
+)

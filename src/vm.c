@@ -193,10 +193,14 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
     v->currentLibrary = nl;
     v->parameters = Sg_WeakHashTableCopy(proto->parameters);
     SG_LIBRARY_GENERICS(nl) = copy_generics(proto->currentLibrary);
+    if (!SG_FALSEP(proto->sandbox)) {
+      v->sandbox = Sg_HashTableCopy(proto->sandbox, TRUE);
+    }
   } else {
     v->currentLibrary = SG_UNDEF;
     v->parameters = Sg_MakeWeakHashTableSimple(SG_HASH_EQ, SG_WEAK_KEY, 64, 
 					       SG_FALSE);
+    v->sandbox = SG_FALSE;
   }
   /* child thread should not affect parent load-path*/
   v->loadPath = proto ? Sg_CopyList(proto->loadPath): SG_NIL;
@@ -771,6 +775,20 @@ SgObject Sg_CurrentInputPort()
 SgObject Sg_VMCurrentLibrary()
 {
   return Sg_VM()->currentLibrary;
+}
+
+
+void Sg_EnableSandbox()
+{
+  SgVM *vm = Sg_VM();
+  if (SG_FALSEP(vm->sandbox)) {
+    vm->sandbox = Sg_MakeHashTableSimple(SG_HASH_EQUAL, 32);
+  }
+}
+void Sg_DisableSandbox()
+{
+  SgVM *vm = Sg_VM();
+  vm->sandbox = SG_FALSE;
 }
 
 

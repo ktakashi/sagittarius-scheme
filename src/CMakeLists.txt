@@ -34,7 +34,8 @@ SET(STUB_SOURCES
   lib_flonums.c lib_fixnums.c lib_treemap.c)
 SET(BUILTIN_SOURCES 
   compiler.c   compiler-aux.c
-  lib_scmlib.c lib_errors.c   lib_arith.c lib_macro.c lib_program.c)
+  lib_scmlib.c lib_errors.c   lib_arith.c lib_macro.c lib_program.c
+  lib_sandbox.c)
 
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/regex_match.c
   ${CMAKE_CURRENT_BINARY_DIR}/regex_text_match.c  COPYONLY)

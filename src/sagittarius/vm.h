@@ -266,6 +266,9 @@ struct SgVMRec
      when importing a library, first list will be appended.
    */
   SgObject cache;
+  /* Sandbox is a hashtable which contains replaced binding.
+     if it's not available then #f is set. */
+  SgObject sandbox;
 };
 
 /*
@@ -428,6 +431,9 @@ SG_EXTERN SgObject Sg_VMValues5(SgVM *vm, SgObject v1,
 SG_EXTERN void Sg_VMAcquireGlobalLock();
 SG_EXTERN void Sg_VMReleaseGlobalLock();
 
+SG_EXTERN void Sg_EnableSandbox();
+SG_EXTERN void Sg_DisableSandbox();
+ 
 /* it would be too dangerous to exporse */
 /* SG_EXTERN SgObject Sg_RootVM(); */
 

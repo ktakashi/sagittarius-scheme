@@ -23,6 +23,9 @@
 (define-form-parser define (name . body)
   (set! *scheme-definitions*
 	(cons `(define ,name . ,body) *scheme-definitions*)))
+(define-form-parser define-syntax (name . body)
+  (set! *scheme-definitions*
+	(cons `(define-syntax ,name . ,body) *scheme-definitions*)))
 
 (define *scheme-definitions* '())
 
@@ -40,6 +43,7 @@
     (define (collect-names defs)
       (filter-map (match-lambda (('define (name . args) rest ...) name)
 				(('define name expr) name)
+				(('define-syntax name expr) name)
 				(_ #f))
 		  defs))
     (append (collect-names (reverse! *scheme-definitions*))

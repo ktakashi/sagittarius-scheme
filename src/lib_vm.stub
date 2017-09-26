@@ -193,6 +193,11 @@
     (unless (SG_CLOSUREP cl)
       (wrong-type-of-argument-violation 'closure->code-vector "closure" cl))
     (result (Sg_CodeBuilderToVector (-> (SG_CLOSURE cl) code))))
+
+;;   (define-c-proc closure->code-builder (cl)
+;;     (unless (SG_CLOSUREP cl)
+;;       (wrong-type-of-argument-violation 'closure->code-builder "closure" cl))
+;;     (result (-> (SG_CLOSURE cl) code)))
   
   ;; code-builder
   (define-c-proc make-code-builder ()
