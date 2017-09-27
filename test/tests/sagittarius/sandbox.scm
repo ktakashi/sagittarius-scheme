@@ -51,4 +51,26 @@
 		  (playground-root 5))
 		(map thread-join! threads)))))
 
+;; actual library
+(library (sandboxing)
+    (export boo (rename (cons sandbox-cons)))
+    (import (rnrs))
+  (define (boo out) (display 'boo out)))
+
+(import (sandboxing))
+(define (test-global-sandboxing)
+  (let-values (((out extract) (open-string-output-port)))
+    (boo out)
+    (test-equal "boo" (extract))
+    (test-equal '(a . b) (sandbox-cons 'a 'b))))
+
+(test-global-sandboxing)
+
+(playground ((boo '(sandboxing) (lambda (ignore) 'sandboxed))
+	     (sandbox-cons '(sandboxing) (lambda (a b) (vector a b))))
+  (test-equal 'sandboxed (boo #t))
+  (test-equal '#(a b) (sandbox-cons 'a 'b)))
+
+(test-global-sandboxing)
+
 (test-end)
