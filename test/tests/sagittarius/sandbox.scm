@@ -53,7 +53,7 @@
 
 ;; actual library
 (library (sandboxing)
-    (export boo (rename (cons sandbox-cons)))
+    (export boo (rename (cons sandbox-cons) (list sandbox-list)))
     (import (rnrs))
   (define (boo out) (display 'boo out)))
 
@@ -62,14 +62,21 @@
   (let-values (((out extract) (open-string-output-port)))
     (boo out)
     (test-equal "boo" (extract))
-    (test-equal '(a . b) (sandbox-cons 'a 'b))))
+    (test-equal '(a . b) (sandbox-cons 'a 'b))
+    (test-equal '(a b) (sandbox-list 'a 'b))
+    (test-equal '(a b) (list 'a 'b))))
 
 (test-global-sandboxing)
 
 (playground ((boo '(sandboxing) (lambda (ignore) 'sandboxed))
-	     (sandbox-cons '(sandboxing) (lambda (a b) (vector a b))))
+	     (sandbox-cons '(sandboxing) (lambda (a b) (vector a b)))
+	     (list '(rnrs) (lambda args (apply vector args))))
   (test-equal 'sandboxed (boo #t))
-  (test-equal '#(a b) (sandbox-cons 'a 'b)))
+  (test-equal '#(a b) (sandbox-cons 'a 'b))
+  ;; even though, original binding is sandboxed, this renamed binding
+  ;; won't be affected
+  (test-equal '(a b) (sandbox-list 'a 'b))
+  (test-equal '#(a b) (list 'a 'b)))
 
 (test-global-sandboxing)
 
