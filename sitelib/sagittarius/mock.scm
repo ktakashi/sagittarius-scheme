@@ -45,24 +45,22 @@
 	    (srfi :1))
 
 (define-record-type mock-recorder
-  (fields arguments count)
-  (protocol (lambda (p)
-	      (lambda ()
-		(p (make-eq-hashtable) (make-eq-hashtable))))))
+  (fields arguments)
+  (protocol (lambda (p) (lambda () (p (make-eq-hashtable))))))
 (define-record-type mock-status
-  (fields callee-name arguments-list called-count))
+  (fields callee-name arguments-list))
+
 (define (record-mock recorder name args)
   (hashtable-update! (mock-recorder-arguments recorder) name
-		     (lambda (value) (cons args value)) '())
-  (hashtable-update! (mock-recorder-count recorder) name
-		     (lambda (value) (+ value 1)) 0))
+		     (lambda (value) (cons args value)) '()))
 (define (recorder-ref recorder name)
   (make-mock-status name
-		    (hashtable-ref (mock-recorder-arguments recorder) name '())
-		    (hashtable-ref (mock-recorder-count recorder) name 0)))
+		    (hashtable-ref (mock-recorder-arguments recorder) name '())))
 (define (recorder->mock-statuses recorder)
-  (hashtable-map (lambda (k v) (recorder-ref recorder k))
-		 (mock-recorder-arguments recorder)))
+  (hashtable-map make-mock-status (mock-recorder-arguments recorder)))
+
+(define (mock-status-called-count status)
+  (length (mock-status-arguments-list status)))
 
 (define-syntax mock-up
   (lambda (x)
