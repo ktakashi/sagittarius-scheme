@@ -29,7 +29,10 @@
 ;;;  
 
 (library (sagittarius mock)
-    (export mock-status? mock-status-arguments-list mock-status-called-count
+    (export mock-status? 
+	    mock-status-callee-name
+	    mock-status-arguments-list
+	    mock-status-called-count
 	    mock-up)
     (import (rnrs)
 	    (rnrs eval)
@@ -37,8 +40,9 @@
 	    (sagittarius control)
 	    (sagittarius sandbox)
 	    (sagittarius vm)
-	    (srfi :1)
-	    (pp))
+	    (sagittarius compiler procedure)
+	    (util hashtables)
+	    (srfi :1))
 
 (define-record-type mock-recorder
   (fields arguments count)
@@ -46,35 +50,43 @@
 	      (lambda ()
 		(p (make-eq-hashtable) (make-eq-hashtable))))))
 (define-record-type mock-status
-  (fields arguments-list called-count))
+  (fields callee-name arguments-list called-count))
 (define (record-mock recorder name args)
   (hashtable-update! (mock-recorder-arguments recorder) name
 		     (lambda (value) (cons args value)) '())
   (hashtable-update! (mock-recorder-count recorder) name
 		     (lambda (value) (+ value 1)) 0))
 (define (recorder-ref recorder name)
-  (make-mock-status (hashtable-ref (mock-recorder-arguments recorder) name '())
+  (make-mock-status name
+		    (hashtable-ref (mock-recorder-arguments recorder) name '())
 		    (hashtable-ref (mock-recorder-count recorder) name 0)))
+(define (recorder->mock-statuses recorder)
+  (hashtable-map (lambda (k v) (recorder-ref recorder k))
+		 (mock-recorder-arguments recorder)))
 
 (define-syntax mock-up
   (lambda (x)
     (syntax-case x ()
       ((k ((libs-name ...) ...) body ...)
        (with-syntax ((mock-it (datum->syntax #'k 'mock-it))
-		     (mock-status-of (datum->syntax #'k 'mock-status-of)))
-       #'(with-sandbox
-	  (lambda ()
-	    (define recorder (make-mock-recorder))
-	    (define (mock-status-of name) (recorder-ref recorder name))
-	    (define-syntax mock-it
-	      (syntax-rules ()
-		((_ lib (name . args) expr (... ...))
-		 (let ()
-		   (define-in-sandbox lib (name . args)
-		     (record-mock recorder 'name args)
-		     expr (... ...))))))
-	    (%mockup k recorder (libs-name ...)) ...
-	    body ...)))))))
+		     (mock-status-of (datum->syntax #'k 'mock-status-of))
+		     (mock-statuses (datum->syntax #'k 'mock-statuses)))
+	 #'(let ()
+	     (define recorder (make-mock-recorder))
+	     (define (mock-status-of name) (recorder-ref recorder name))
+	     (define (mock-statuses) (recorder->mock-statuses recorder))
+	     
+	     (with-sandbox
+	      (lambda ()
+		(define-syntax mock-it
+		  (syntax-rules ()
+		    ((_ lib (name . args) expr (... ...))
+		     (let ()
+		       (define-in-sandbox lib (name . args)
+			 (record-mock recorder 'name args)
+			 expr (... ...))))))
+		(%mockup k recorder (libs-name ...)) ...
+		body ...))))))))
 
 (define-syntax %mockup
   (lambda (x)
@@ -82,14 +94,44 @@
       (define lib (find-library (syntax->datum lib-name) #f))
       (define (procedure-binding? e)
 	(let ((g (find-binding lib e #f)))
-	  (and g (procedure? (gloc-ref g)))))
+	  (and g (procedure? (gloc-ref g)) (not (inline? (gloc-ref g))))))
+      (define (collect-from-imports lib)
+	(define (->exported imported)
+	  (define (apply-spec exported spec)
+	    (case (car spec)
+	      ((prefix)
+	       (map (lambda (e)
+		      (string->symbol (format "~a~a" (cdr spec) e))) exported))
+	      ((rename)
+	       (let ((renames (cdr spec)))
+		 (map (lambda (e)
+			(cond ((assq e renames) => cadr)
+			      (else e))) exported)))
+	      ((only)
+	       (let ((only (cdr spec)))
+		 (filter (lambda (e)
+			   (cond ((memq e only) => car)
+				 (else #f))) exported)))
+	      (else
+	       (syntax-violation 'mock-up "unknown importing spec"
+				 spec))))
+	  (let ((lib (car imported))
+		(spec (cdr imported)))
+	    (let loop ((exported (collect-exported lib))
+		       (spec (reverse spec)))
+	      (if (null? spec)
+		  exported
+		  (loop (apply-spec exported (car spec)) (cdr spec))))))
+	(append-map ->exported (library-imported lib)))
+      
       (unless lib (syntax-violation 'mockup "library not found" lib-name))
       (let ((exports (library-exported lib)))
 	(cond ((not exports) ;; only (core)
 	       (syntax-violation 'mock-up "Can't mock the library"
 				 (syntax->datum lib-name)))
 	      ((memq :all (car exports))
-	       (error 'who "not yet"))
+	       (let ((exported (collect-from-imports lib)))
+		 (filter procedure-binding? exported)))
 	      (else
 	       (append (filter procedure-binding? (car exports))
 		       (filter-map (lambda (e)
