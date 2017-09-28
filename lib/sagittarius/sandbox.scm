@@ -42,7 +42,7 @@
        #'(define-in-sandbox library name (lambda args body ...)))
       ((_ library name body)
        (identifier? #'name)
-       #'(define name
+       #'(define dummy
 	   (let ((v body))
 	     (insert-sandbox-binding! library 'name v)
 	     v))))))

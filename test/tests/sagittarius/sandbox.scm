@@ -53,7 +53,8 @@
 
 ;; actual library
 (library (sandboxing)
-    (export boo (rename (cons sandbox-cons) (list sandbox-list)))
+    (export boo (rename (reverse sandbox-reverse)
+			(string-copy sandbox-string-copy)))
     (import (rnrs))
   (define (boo out) (display 'boo out)))
 
@@ -62,21 +63,22 @@
   (let-values (((out extract) (open-string-output-port)))
     (boo out)
     (test-equal "boo" (extract))
-    (test-equal '(a . b) (sandbox-cons 'a 'b))
-    (test-equal '(a b) (sandbox-list 'a 'b))
-    (test-equal '(a b) (list 'a 'b))))
+    (test-equal '(b a) (sandbox-reverse '(a b)))
+    (test-equal "string" (sandbox-string-copy "string"))
+    (test-equal "string" (string-copy "string"))))
 
 (test-global-sandboxing)
 
 (playground ((boo '(sandboxing) (lambda (ignore) 'sandboxed))
-	     (sandbox-cons '(sandboxing) (lambda (a b) (vector a b)))
-	     (list '(rnrs) (lambda args (apply vector args))))
+	     (sandbox-reverse '(sandboxing) (lambda (a) a))
+	     (string-copy '(rnrs) (lambda (a) "copied")))
   (test-equal 'sandboxed (boo #t))
-  (test-equal '#(a b) (sandbox-cons 'a 'b))
+  (test-equal '(a b) (sandbox-reverse '(a b)))
+  (test-equal '(b a) (reverse '(a b)))
   ;; even though, original binding is sandboxed, this renamed binding
   ;; won't be affected
-  (test-equal '(a b) (sandbox-list 'a 'b))
-  (test-equal '#(a b) (list 'a 'b)))
+  (test-equal "string" (sandbox-string-copy "string"))
+  (test-equal "copied" (string-copy "string")))
 
 (test-global-sandboxing)
 

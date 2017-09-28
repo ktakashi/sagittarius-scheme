@@ -965,10 +965,11 @@ static SgObject unrename_variable(SgObject key, SgObject specs)
 
 static SgGloc* find_binding(SgObject sandbox,
 			    SgObject library,
+			    SgObject olibrary,
 			    SgObject oname,
 			    SgObject callback)
 {
-  SgLibrary *lib/* , *olib */;
+  SgLibrary *lib /* , *olib */;
   SgObject ret, name = oname;
   ASSERT(SG_SYMBOLP(name));
 
@@ -980,7 +981,7 @@ static SgGloc* find_binding(SgObject sandbox,
   /* olib = lib; */			/* keep it */
  reent:
   if (!SG_FALSEP(sandbox)) {
-    ret = Sg_HashTableRef(sandbox, Sg_Cons(lib, name), SG_UNBOUND);
+    ret = Sg_HashTableRef(sandbox, Sg_Cons(lib, oname), SG_UNBOUND);
     if (!SG_UNBOUNDP(ret)) return ret;
   }
   /* first look up from library table */
@@ -1011,7 +1012,7 @@ static SgGloc* find_binding(SgObject sandbox,
 	    /* c stub or :all doesn't always have the variables,
 	       so we need to keep searching. */
 	    if (SG_FALSEP(pexport) || SG_EQ(SG_KEYWORD_ALL, mq)) {
-	      ret = Sg_FindBinding(plib, unrenamed, callback);
+	      ret = find_binding(sandbox, plib, olibrary, unrenamed, callback);
 	      if (ret != callback) {
 		/* 
 		   Originally we implmeneted library more statically means
@@ -1046,30 +1047,44 @@ static SgGloc* find_binding(SgObject sandbox,
   return ret;
 }
 
-SgGloc* Sg_FindBinding(SgObject library, SgObject oname, SgObject callback)
+SgGloc* Sg_FindBinding(SgObject library, SgObject name, SgObject callback)
 {
-  return find_binding(Sg_VM()->sandbox, library, oname, callback);
+  SgLibrary *lib;
+  ENSURE_LIBRARY(library, lib);
+  return find_binding(Sg_VM()->sandbox, lib, lib, name, callback);
+}
+
+static SgLibrary *wrap_library(SgObject library) {
+  SgLibrary *lib = make_library();
+  lib->name = SG_INTERN("(sandbox dummy)");
+  lib->version = SG_FALSE;
+  Sg_ImportLibrary(lib, library);
+  return lib;
 }
 
 void Sg_InsertSandboxBinding(SgObject library, SgObject name, SgObject value)
 {
   SgVM *vm = Sg_VM();
-  SgGloc *g; 
-  SgObject v, key, lib;
+  SgGloc *g;
+  SgObject key, lib, v;
   if (SG_FALSEP(vm->sandbox)) {
     Sg_AssertionViolation(SG_INTERN("insert-sandbox-binding"),
 			  SG_MAKE_STRING("sandbox is not enabled"),
-			  SG_LIST3(library, name, value));
+			  SG_NIL);
+  }
+  /* ENSURE_LIBRARY(library, lib); */
+  lib = wrap_library(library);
+  v = find_binding(SG_FALSE, lib, lib, name, SG_UNBOUND);
+  if (SG_UNBOUNDP(v)) {
+    Sg_AssertionViolation(SG_INTERN("insert-sandbox-binding"),
+			  Sg_Sprintf(UC("no binding named '%S' in '%S'"),
+				     name, library),
+			  SG_LIST2(library, name));
   }
   ENSURE_LIBRARY(library, lib);
   key = Sg_Cons(lib, name);
-  v = Sg_HashTableRef(vm->sandbox, key, SG_UNBOUND);
-  if (SG_GLOCP(v)) {
-    g = SG_GLOC(v);
-  } else {
-    g = SG_GLOC(Sg_MakeGloc(name, lib));
-    Sg_HashTableSet(vm->sandbox, key, SG_OBJ(g), 0);
-  }
+  g = SG_GLOC(Sg_MakeGloc(name, lib));
+  Sg_HashTableSet(vm->sandbox, key, SG_OBJ(g), 0);
   SG_GLOC_SET(g, value);
 }
 
