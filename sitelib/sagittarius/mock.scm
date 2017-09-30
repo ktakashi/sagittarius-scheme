@@ -78,10 +78,11 @@
 	      (lambda ()
 		(define-syntax mock-it
 		  (syntax-rules ()
-		    ((_ lib (name . args) expr (... ...))
+		    ((_ lib (name args (... ...) . rest) expr (... ...))
 		     (let ()
-		       (define-in-sandbox lib (name . args)
-			 (record-mock recorder 'name args)
+		       (define-in-sandbox 'lib (name args (... ...) . rest)
+			 (record-mock recorder 'name
+				      (apply list args (... ...) rest))
 			 expr (... ...))))))
 		(%mockup k recorder (libs-name ...)) ...
 		body ...))))))))
