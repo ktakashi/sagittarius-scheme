@@ -18,10 +18,6 @@
 	(srfi :26)
 	(srfi :39))
 
-;; REMOVE ME after 0.8.7
-(eval '(library (sagittarius fixnums) (export fixnum?) (import (core)))
-      (environment '(sagittarius)))
-
 ;; cancel inliner
 (procedure-inliner-set! (find-procedure 'map '(core base)) #f)
 (procedure-inliner-set! (find-procedure 'for-each '(core base)) #f)
