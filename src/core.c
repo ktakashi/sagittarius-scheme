@@ -85,7 +85,7 @@ extern void Sg__Init_sagittarius_clos();
 extern void Sg__Init_sagittarius_fixnums();
 extern void Sg__Init_sagittarius_flonums();
 extern void Sg__Init_sagittarius_treemap();
-extern void Sg__Init_sagittarius_sandbox_internal();
+extern void Sg__Init_sagittarius_sandbox();
 extern void Sg__InitInstruction();
 /* compiled libraries */
 extern void Sg__Init_core();
@@ -201,7 +201,6 @@ void Sg_Init()
   Sg__Init_sagittarius_fixnums();
   Sg__Init_sagittarius_flonums();
   Sg__Init_sagittarius_treemap();
-  Sg__Init_sagittarius_sandbox_internal();
   
   /* this is scmlib.scm */
   Sg__Init_core_base();
@@ -222,6 +221,9 @@ void Sg_Init()
   /* we need to put basic syntaxes to compiler. */
   Sg_ImportLibrary(compsym, nullsym);
   Sg_ImportLibrary(compsym, sgsym);
+
+  /* this requires macro so after (core macro) */
+  Sg__Init_sagittarius_sandbox();
 
   /* 
      rebind er-macro-transformer into (sagittarius)
