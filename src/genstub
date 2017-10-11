@@ -35,10 +35,10 @@
 			(import ,@imports)
 			,@(reverse *scheme-definitions*))
 		     (environment '(only (sagittarius) library)))))
-    (cgen-literal cb)))
+    (values (cgen-literal cb) (find-library name #f))))
 
 ;; at this point all units are compiled
-(define (emit-toplevel-executor name imports oexports topcb)
+(define (emit-toplevel-executor name imports oexports topcb lib)
   (define (gen-exports unit)
     (define (collect-names defs)
       (filter-map (match-lambda (('define (name . args) rest ...) name)
@@ -51,13 +51,19 @@
 			  (and (is-a? node <c-proc>)
 			       (slot-ref node 'scheme-name)))
 			(cgen-unit-toplevel-nodes unit))))
-  
+
+  (define (collect-macros)
+    (filter macro? (hashtable-map
+		    (lambda (name binding) (gloc-ref binding))
+		    (library-table lib))))
+
   (cgen-body "static SgCodeBuilder *toplevel = ")
   (cgen-body (format "   SG_CODE_BUILDER(~a);" (cgen-cexpr topcb)))
   (let ((lib (find-library name #f)) ;; get the library
 	(exports (or (and (memq :only-bindings oexports)
 			  (gen-exports (cgen-current-unit)))
-		     oexports)))
+		     oexports))
+	(macros (collect-macros)))
     ;; emit imports
     (for-each (lambda (i)
 		;; we don't resolve any condition but for
@@ -89,6 +95,28 @@
     (cgen-init (format "  Sg_VM()->currentLibrary = ~a;" 
 		       (cgen-cexpr (cgen-literal lib))))
     (cgen-init (format "  Sg_VMExecute(SG_OBJ(toplevel));"))
+
+    (unless (null? macros)
+      (let ((core-macro (gensym))
+	    (gloc (gensym))
+	    (unit (cgen-current-unit)))
+	(define (literalise m)
+	  (let1 ml (cgen-literal m)
+	    (cgen-init (format "    Sg_InsertBinding(SG_LIBRARY(~a), ~a, ~a);~%"
+			       (cgen-cexpr (cgen-literal lib))
+			       (cgen-cexpr (cgen-literal (macro-name m)))
+			       (cgen-cexpr ml)))))
+	(set! (~ unit 'init-prologue)
+	      (string-append
+	       (~ unit 'init-prologue)
+	       (format "  SgObject ~a = Sg_FindLibrary(SG_INTERN(~s), FALSE);~%"
+		       core-macro "(core macro)")
+	       (format "  SgObject ~a = Sg_FindBinding(~a, SG_INTERN(~s), SG_UNDEF);~%"
+		       gloc core-macro "macro-transform")
+	       (format "  SgObject macro_transform = SG_GLOC_GET(SG_GLOC(~a));~%"
+		       gloc)))
+	(for-each literalise macros)))
+    
     (cgen-init "  Sg_VM()->currentLibrary = save;")))
 
 (define (cgen-gen-c form c-file :key (predef-syms '()))
@@ -112,8 +140,8 @@
 	(for-each cgen-define predef-syms)
 	(cgen-stub-parse-form form)
 	(unless (null? *scheme-definitions*)
-	  (emit-toplevel-executor names imports exports
-				  (compile-scheme-definitions names imports))
+	  (let-values (((topcb lib) (compile-scheme-definitions names imports)))
+	    (emit-toplevel-executor names imports exports topcb lib))
 	  (cond ((cgen-unit-init-prologue (cgen-current-unit)) =>
 		 (lambda (prev)
 		   (cgen-unit-init-prologue (cgen-current-unit)

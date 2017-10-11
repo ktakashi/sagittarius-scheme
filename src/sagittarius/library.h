@@ -120,6 +120,8 @@ SG_EXTERN SgGloc*  Sg_FindBinding(SgObject library, SgObject name,
 				  SgObject callback);
 SG_EXTERN void     Sg_InsertBinding(SgLibrary *library, SgObject name,
 				    SgObject value);
+SG_EXTERN void Sg_InsertSandboxBinding(SgObject library, SgObject name,
+				       SgObject value);
 SG_EXTERN SgObject Sg_AddLoadSuffix(SgObject suffix, int appendP);
 /* make library immutable
    this operation, for now, is one way. (and not used)

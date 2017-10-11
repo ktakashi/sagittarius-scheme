@@ -33,7 +33,6 @@
       (let ((s (mock-status-of 'mock-implementation)))
 	(test-equal 1 (mock-status-called-count s))
 	(test-equal 'mock-implementation (mock-status-callee-name s))
-	(print (mock-status-arguments-list s))
 	(test-equal '((3)) (mock-status-arguments-list s))))))
  
 
