@@ -3,7 +3,8 @@
 (define-syntax test
   (syntax-rules ()
     ((_ expect actual)
-     (test-equal 'expect expect actual))))
+     (test-equal (format "expr ~s: exptected ~s"
+			 'actual 'expect) expect actual))))
 
 (define (maybe-match->sexp rx str . o)
   (guard (e (else (print (condition-message e)
@@ -76,6 +77,11 @@
     (regexp-match-submatch
      (regexp-matches '(or (-> foo "ab") (-> foo "cd")) "cd")
      'foo))
+
+;; non-deterministic case from issue #229
+(let* ((elapsed '(: (** 1 2 num) ":" num num (? ":" num num)))
+       (span (rx ,elapsed "-" ,elapsed)))
+  (test-re-search '("1:45:02-2:06:13") span " 1:45:02-2:06:13 "))
 
 (test-re '("ababc" "abab")
          '(: bos ($ (* "ab")) "c")
@@ -193,12 +199,22 @@
 
 (test '("123" "456" "789") (regexp-extract '(+ digit) "abc123def456ghi789"))
 (test '("123" "456" "789") (regexp-extract '(* digit) "abc123def456ghi789"))
-(test '("abc" "def" "ghi") (regexp-split '(+ digit) "abc123def456ghi789"))
+(test '("abc" "def" "ghi" "") (regexp-split '(+ digit) "abc123def456ghi789"))
 
 ;; *** ditto
-(test '("a" "b" "c" "d" "e" "f" "g" "h" "i")
+(test '("abc" "def" "ghi" "")
       (regexp-split '(* digit) "abc123def456ghi789"))
 (test '("a" "b") (regexp-split '(+ whitespace) "a b"))
+(test '("a" "" "b")
+      (regexp-split '(",;") "a,,b"))
+(test '("a" "" "b" "")
+      (regexp-split '(",;") "a,,b,"))
+(test '("")
+      (regexp-partition '(* digit) ""))
+(test '("abc" "123" "def" "456" "ghi")
+      (regexp-partition '(* digit) "abc123def456ghi"))
+(test '("abc" "123" "def" "456" "ghi" "789")
+      (regexp-partition '(* digit) "abc123def456ghi789"))
 
 (test '("한" "글")
     (regexp-extract
