@@ -30,7 +30,7 @@ ENDIF()
 # Just making future myself happy...
 SET(STUB_SOURCES
   lib_core.c lib_clos.c lib_proc.c lib_vm.c
-  lib_vmdebug.c lib_sagittarius.c
+  lib_vmdebug.c lib_sagittarius.c lib_regex.c
   lib_flonums.c lib_fixnums.c lib_treemap.c)
 SET(BUILTIN_SOURCES 
   compiler.c   compiler-aux.c
@@ -82,7 +82,7 @@ SET(SAGITTARIUS_LIB_SOURCE
 
   clos.c
   collection.c     compare.c
-  regex.c          regex_stub.c
+  regex.c
   ${MATCHER_SOURCES}
 
   system.c
