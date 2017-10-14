@@ -1,21 +1,7 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
 (library (sagittarius regex impl)
-    (export compile-regex
-	    regex-matcher
-	    regex-match
-	    regex-looking-at
-	    regex-find
-	    regex-group
-	    regex-capture-count
-	    regex-replace-all
-	    regex-replace-first
-
-	    ;; pred
-	    regex-pattern?
-	    regex-matcher?
-
-	    dump-regex)
-    (import :none)
+    (export :only-bindings :export-reader-macro)
+    (import (core))
 
   (define-type <text-matcher> 
     "SgTextMatcher*"
@@ -42,7 +28,6 @@
 					  (port::<port> (Sg_CurrentOutputPort)))
     ::<void>
     Sg_DumpRegex)
-
 
   (define-c-proc regex-matcher 
     (p::<pattern> text
@@ -102,7 +87,7 @@
   (define-c-proc regex-last (m::<matcher>) ::<fixnum> :no-side-effect
     SG_MATCHER_LAST)
 
-  (define-c-proc regex-replace-all (m::<matcher> replacement)
+  (define-c-proc %regex-replace-all (m::<matcher> replacement)
     (unless (or (and (SG_STRINGP replacement) (SG_TEXT_MATCHER m))
 		(and (SG_BVECTORP replacement) (SG_BINARY_MATCHER m))
 		(SG_PROCEDUREP replacement))
@@ -112,7 +97,7 @@
        replacement SG_NIL))
     (result (Sg_RegexReplaceAll m replacement)))
 
-  (define-c-proc regex-replace-first (m::<matcher> replacement)
+  (define-c-proc %regex-replace-first (m::<matcher> replacement)
     (unless (or (and (SG_STRINGP replacement) (SG_TEXT_MATCHER m))
 		(and (SG_BVECTORP replacement) (SG_BINARY_MATCHER m))
 		(SG_PROCEDUREP replacement))
@@ -122,7 +107,7 @@
        replacement SG_NIL))
     (result (Sg_RegexReplaceFirst m replacement)))
 
-  (define-c-proc regex-replace (m::<matcher> replacement count::<fixnum>)
+  (define-c-proc %regex-replace (m::<matcher> replacement count::<fixnum>)
     (unless (or (and (SG_STRINGP replacement) (SG_TEXT_MATCHER m))
 		(and (SG_BVECTORP replacement) (SG_BINARY_MATCHER m))
 		(SG_PROCEDUREP replacement))
@@ -131,7 +116,7 @@
        (SG_MAKE_STRING "string, bytevector or procedure")
        replacement SG_NIL))
     (result (Sg_RegexReplace m replacement count)))
-
+  
   ;; pred
   (define-c-proc regex-pattern? (o) ::<boolean> :constant SG_PATTERNP)
   (define-c-proc regex-matcher? (o) ::<boolean> :constant SG_MATCHERP)
@@ -160,5 +145,16 @@
 
   (define-c-proc regex-text-after (m::<text-matcher>) Sg_RegexTextAfter)
   (define-c-proc regex-text-before (m::<text-matcher>) Sg_RegexTextBefore)
+
+    ;; we can't use case-lambda...
+  (define (make-replacer impl)
+    (lambda (p t . maybe)
+      (if (null? maybe)
+	  (impl p t)
+	  (impl (regex-matcher p t) (car maybe)))))
+
+  (define regex-replace-all (make-replacer %regex-replace-all))
+  (define regex-replace-first (make-replacer %regex-replace-first)))
+  (define regex-replace (make-replacer %regex-replace))
 
 )

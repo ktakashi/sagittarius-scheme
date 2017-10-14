@@ -50,7 +50,10 @@
 	    (filter-map (lambda (node)
 			  (and (is-a? node <c-proc>)
 			       (slot-ref node 'scheme-name)))
-			(cgen-unit-toplevel-nodes unit))))
+			(cgen-unit-toplevel-nodes unit))
+	    (if (memq :export-reader-macro oexports)
+		'(:export-reader-macro)
+		'())))
 
   (define (collect-macros)
     (filter macro? (hashtable-map

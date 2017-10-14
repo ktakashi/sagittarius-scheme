@@ -93,12 +93,9 @@
 	    parse-char-set-string
 	    char-set->regex-string
 	    )
-    (import (rename (sagittarius regex impl)
-		    (regex-replace-first impl:regex-replace-first)
-		    (regex-replace-all   impl:regex-replace-all)
-		    (regex-replace       impl:regex-replace))
-	    (rnrs)
+    (import (rnrs)
 	    (sagittarius)
+	    (sagittarius regex impl)
 	    (clos user))
 
   (define regex compile-regex)
@@ -130,29 +127,6 @@
       ((after)  (regex-after self))
       (else     (regex-group group))))
   
-  ;; we can use case-lambda
-  (define regex-replace-all
-    (case-lambda
-     ((pattern text replacement)
-      (regex-replace-all (regex-matcher pattern text) replacement))
-     ((matcher replacement)
-      (impl:regex-replace-all matcher replacement))))
-
-  (define regex-replace-first
-    (case-lambda
-     ((pattern text replacement)
-      (regex-replace-first (regex-matcher pattern text) replacement))
-     ((matcher replacement)
-      (impl:regex-replace-first matcher replacement))))
-
-  (define regex-replace
-    (case-lambda
-     ((pattern text replacement count)
-      (regex-replace (regex-matcher pattern text) replacement count))
-     ((matcher replacement count)
-      (impl:regex-replace matcher replacement count))))
-
-
   (define (default-finish from md str acc) acc)
   ;; SRFI-115 thing
   (define (regex-fold rx kons knil str 
