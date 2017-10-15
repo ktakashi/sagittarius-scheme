@@ -1,6 +1,6 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
 (library (sagittarius regex impl)
-    (export :only-bindings :export-reader-macro)
+  (export :only-bindings :export-reader-macro)
     (import (core))
 
   (define-type <text-matcher> 
@@ -154,7 +154,10 @@
 	  (impl (regex-matcher p t) (car maybe)))))
 
   (define regex-replace-all (make-replacer %regex-replace-all))
-  (define regex-replace-first (make-replacer %regex-replace-first)))
-  (define regex-replace (make-replacer %regex-replace))
+  (define regex-replace-first (make-replacer %regex-replace-first))
+  (define (regex-replace p t r . maybe)
+    (if (null? maybe)
+	(%regex-replace p t r)
+	(%regex-replace (regex-matcher p t) r (car maybe))))
 
 )
