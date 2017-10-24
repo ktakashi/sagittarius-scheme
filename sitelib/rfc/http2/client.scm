@@ -503,32 +503,31 @@
 					  data)))
 	(http2-write-stream stream frame end-stream?))))
 
-
   (define (make-stream-write-port stream end-stream? buffer-size)
     (define buffer (make-bytevector buffer-size))
+    (define sid (http2-stream-identifier stream))
     (define pos 0)
+    (define (flush-buffer! end-stream? buffer)
+      (put-bytevector (standard-error-port) buffer)
+      (let ((frame (make-http2-frame-data 0 sid buffer)))
+	(http2-write-stream stream frame end-stream?)))
     (define (write! bv start count)
-      (let loop ((c count))
-	(let ((size (min c (- buffer-size pos))))
-	  (if (zero? c)
-	      count
-	      (begin
-		(bytevector-copy! bv start buffer pos size)
-		(set! pos (+ pos size))
-		(when (= pos buffer-size)
-		  (let ((frame (make-http2-frame-data
-				0 (http2-stream-identifier stream) buffer)))
-		    (http2-write-stream stream frame #f))
-		  (set! pos 0))
-		(loop (- c size)))))))
+      (let loop ((i start) (c count))
+	(if (zero? c)
+	    count
+	    (let ((size (min c (- buffer-size pos))))
+	      (bytevector-copy! bv i buffer pos size)
+	      (set! pos (+ pos size))
+	      (when (= pos buffer-size)
+		(flush-buffer! #f buffer)
+		(set! pos 0))
+	      (loop (+ i size) (- c size))))))
     (define (close!)
       (define (copy-buffer buffer)
 	(if (zero? pos)
 	    #vu8()
 	    (bytevector-copy buffer 0 pos)))
-      (let ((frame (make-http2-frame-data
-		    0 (http2-stream-identifier stream) (copy-buffer buffer))))
-	(http2-write-stream stream frame end-stream?)))
+      (flush-buffer! end-stream? (copy-buffer buffer)))
     (make-custom-binary-output-port "stream-write-port" write! #f #f close!))
   
   (define multipart-transcoder (make-transcoder (latin-1-codec) 'none))
