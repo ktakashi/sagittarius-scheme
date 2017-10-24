@@ -508,7 +508,6 @@
     (define sid (http2-stream-identifier stream))
     (define pos 0)
     (define (flush-buffer! end-stream? buffer)
-      (put-bytevector (standard-error-port) buffer)
       (let ((frame (make-http2-frame-data 0 sid buffer)))
 	(http2-write-stream stream frame end-stream?)))
     (define (write! bv start count)
