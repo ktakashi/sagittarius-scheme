@@ -63,12 +63,7 @@
 			    (format "~a" (thread-pool-thread thread-pool tid))
 			    (cdr e))))
     (define (socket-manager->vector)
-      (list-sort (lambda (a b)
-		   (let ((ai (car a))
-			 (bi (car b)))
-		     (cond ((= ai bi) 0)
-			   ((< ai bi) -1)
-			   (else 1))))
+      (list-sort (lambda (a b) (< (car a) (car b)))
 		 ;; don't do this casually...
 		 (vector->list (slot-ref socket-manager 'elements))))
     (make-server-status server

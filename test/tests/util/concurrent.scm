@@ -2,6 +2,7 @@
 	(sagittarius) ;; for format
 	(sagittarius control) ;; for dotimes
 	(util concurrent)
+	(srfi :1)
 	(srfi :18)
 	(srfi :64)
 	(match))
@@ -188,16 +189,42 @@
     (test-equal "sync" '(1 2 3 4 5 6 7 8) (thread-join! f))))
 
 (let ()
-  (define spq (make-shared-priority-queue compare 1))
-  (test-equal "max-length" 1 (shared-priority-queue-max-length spq))
+  (define spq (make-shared-priority-queue compare 5))
+  (test-equal "max-length" 5 (shared-priority-queue-max-length spq))
 
-  (test-equal "shared-priority-queue-put!" 1 
-	      (shared-priority-queue-put! spq 1))
+  (for-each (lambda (i) 
+	      (test-equal "shared-priority-queue-put!" i
+			  (shared-priority-queue-put! spq i)))
+	    '(0 1 2 3 4))
+  (for-each (lambda (i)
+	      (test-assert (shared-priority-queue-remove! spq i))
+	      (test-equal "shared-priority-queue-put!" i
+			  (shared-priority-queue-put! spq i)))
+	    '(0 1 2 3 4))
+  (test-equal 5 (shared-priority-queue-size spq))
   (test-equal "shared-priority-queue-put! (timeout)" 'boom 
 	      (shared-priority-queue-put! spq 1 1 'boom))
   (test-assert "shared-queue-overflows?" 
 	       (shared-priority-queue-overflows? spq 1))
   )
+
+(let ((data (iota 50)))
+  (define spq (make-shared-priority-queue compare (length data)))
+  (define thread1
+    (make-thread
+     (lambda ()
+       (for-each (lambda (i) (shared-priority-queue-put! spq i)) data))))
+  (define thread2
+    (make-thread
+     (lambda ()
+       (for-each (lambda (i) (shared-priority-queue-remove! spq i)) data))))
+  (for-each (lambda (i) (shared-priority-queue-put! spq i)) data)
+  (thread-start! thread1)
+  (thread-start! thread2)
+  (thread-join! thread2)
+  (thread-join! thread1)
+  (test-assert "shared-queue-overflows?" 
+	       (shared-priority-queue-overflows? spq 1)))
 
 ;; thread-pool
 (let ((pool (make-thread-pool 5)))
