@@ -52,6 +52,7 @@
 	    shared-priority-queue? make-shared-priority-queue
 	    <shared-priority-queue>
 	    shared-priority-queue-empty? shared-priority-queue-size
+	    shared-priority-queue-capacity
 	    shared-priority-queue-max-length
 	    shared-priority-queue-overflows?
 	    shared-priority-queue-put! shared-priority-queue-get!
@@ -246,7 +247,8 @@
 				  "capacity must be an integer" capacity))
 	   (p (make-vector capacity) 0 max-length compare 0 (make-mutex) 
 	      (make-condition-variable) (make-condition-variable)))))))
-
+  (define (shared-priority-queue-capacity spq)
+    (vector-length (%spq-es spq)))
   (define (shared-priority-queue-empty? spq) 
     (zero? (shared-priority-queue-size spq)))
 

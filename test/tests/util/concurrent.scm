@@ -223,8 +223,9 @@
   (thread-start! thread2)
   (thread-join! thread2)
   (thread-join! thread1)
-  (test-assert "shared-queue-overflows?" 
-	       (shared-priority-queue-overflows? spq 1)))
+  (test-assert "shared-queue-overflows?"
+	       (shared-priority-queue-overflows? spq 1))
+  (test-equal 50 (shared-priority-queue-capacity spq)))
 
 ;; thread-pool
 (let ((pool (make-thread-pool 5)))
