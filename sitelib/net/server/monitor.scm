@@ -34,10 +34,12 @@
 	    report-server-status
 
 	    server-status-target-server
-	    server-status-num-threads
-	    server-status-num-idling-threads
+	    server-status-thread-count
 	    server-status-thread-statuses
-	    thread-status-num-pending-task)
+	    thread-status-thread-info
+	    thread-status-thread-id
+	    thread-status-active-socket-count
+	    )
     (import (rnrs)
 	    (sagittarius)
 	    (clos user)
@@ -46,33 +48,42 @@
 
 (define-record-type server-status
   (fields target-server
-	  num-threads
-	  num-idling-threads
+	  thread-count
 	  thread-statuses))
 (define-record-type thread-status
-  (fields num-pending-task))
+  (fields thread-id thread-info active-socket-count))
 
-(define (make-non-blocking-server-monitor server thread-pool)
+(define (make-non-blocking-server-monitor server thread-pool socket-manager)
   (lambda ()
-    (define (->thread-status queue)
-      (make-thread-status (shared-queue-size queue)))
+    (define (->thread-status e)
+      (let ((tid (car e)))
+	(make-thread-status tid
+			    ;; we don't want to expose thread itself
+			    ;; so write it :)
+			    (format "~a" (thread-pool-thread thread-pool tid))
+			    (cdr e))))
+    (define (socket-manager->vector)
+      (list-sort (lambda (a b)
+		   (let ((ai (car a))
+			 (bi (car b)))
+		     (cond ((= ai bi) 0)
+			   ((< ai bi) -1)
+			   (else 1))))
+		 ;; don't do this casually...
+		 (vector->list (slot-ref socket-manager 'elements))))
     (make-server-status server
 			(thread-pool-size thread-pool)
-			(thread-pool-idling-count thread-pool)
-			(vector-map ->thread-status
-				    (slot-ref thread-pool 'queues)))))
+			(map ->thread-status (socket-manager->vector)))))
 
 (define (report-server-status status :optional (to-port (current-error-port)))
   (let-values (((out extract) (open-string-output-port)))
-    (format out "Total thread count: ~a~%" (server-status-num-threads status))
-    (format out "Idling thread count: ~a~%"
-	    (server-status-num-idling-threads status))
-    (let ((statuses (server-status-thread-statuses status)))
-      (do ((i 0 (+ i 1))
-	   (len (vector-length statuses)))
-	  ((= i len))
-	(format out "  Thread #~a --- pending task ~a~%" (+ i 1)
-		(thread-status-num-pending-task (vector-ref statuses i)))))
+    (format out "Total thread count: ~a~%" (server-status-thread-count status))
+    (for-each (lambda (status)
+		(format out "  Thread #~a ~a--- active sockets ~a~%"
+			(thread-status-thread-id status)
+			(thread-status-thread-info status)
+			(thread-status-active-socket-count status)))
+	      (server-status-thread-statuses status))
     (newline out)
     (display (extract) to-port)))
 

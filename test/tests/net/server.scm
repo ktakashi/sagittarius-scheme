@@ -133,7 +133,17 @@
   (test-assert (server-status server))
   (let ((status (server-status server)))
     (test-assert (server-status? status))
-    #; (report-server-status status))
+    (test-equal 5 (server-status-thread-count status))
+    (test-equal server (server-status-target-server status))
+    (test-equal 5 (length (server-status-thread-statuses status)))
+    (for-each (lambda (ts)
+		(test-assert (number? (thread-status-thread-id ts)))
+		(test-assert (string? (thread-status-thread-info ts)))
+		(test-equal 0 (thread-status-active-socket-count ts)))
+	      (server-status-thread-statuses status))
+    (test-assert
+     (call-with-string-output-port
+      (lambda (out) (report-server-status status out)))))
   
   (server-stop! server))
 

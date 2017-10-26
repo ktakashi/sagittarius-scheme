@@ -44,10 +44,11 @@
 	    server-status?
 	    report-server-status
 	    server-status-target-server
-	    server-status-num-threads
-	    server-status-num-idling-threads
+	    server-status-thread-count
 	    server-status-thread-statuses
-	    thread-status-num-pending-task
+	    thread-status-thread-info
+	    thread-status-thread-id
+	    thread-status-active-socket-count
 	    ;; for extension
 	    <simple-server>
 	    <server-config>)
@@ -129,16 +130,17 @@
       ;; input is (tid . socket-count)
       ;; tid won't be duplicated
       (make-shared-priority-queue 
-       (lambda (a b) 
-	 (let ((atid (car a))
-	       (btid (car b)))
-	   (if (= atid btid)
-	       0
-	       (let ((ac (cdr a))
-		     (bc (cdr b)))
-		 (cond ((< ac bc) -1)
-		       ((> ac bc) 1)
-		       (else 0))))))
+       (lambda (a b)
+	 (let ((ac (cdr a))
+	       (bc (cdr b)))
+	   (cond ((< ac bc) -1)
+		 ((> ac bc) 1)
+		 (else
+		  (let ((atid (car a))
+			(btid (car b)))
+		    (cond ((= atid btid) 0)
+			  ((< atid btid) -1)
+			  (else 1)))))))
        num-threads))
     (define manager-channel (make-shared-queue))
     (define (manager)
@@ -189,9 +191,8 @@
 		(let ((id (thread-pool-push-task! thread-pool task)))
 		  (notify-info id 0)
 		  (vector-set! channels id channel))))))
-
     (set! (~ server 'monitor)
-	  (make-non-blocking-server-monitor server thread-pool))
+	  (make-non-blocking-server-monitor server thread-pool socket-manager))
     ;; process
     (lambda (server socket)
       (let* ((info (shared-priority-queue-get! socket-manager))
