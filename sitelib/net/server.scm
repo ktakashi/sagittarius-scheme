@@ -131,16 +131,11 @@
       ;; tid won't be duplicated
       (make-shared-priority-queue 
        (lambda (a b)
-	 (let ((ac (cdr a))
-	       (bc (cdr b)))
-	   (cond ((< ac bc) -1)
-		 ((> ac bc) 1)
-		 (else
-		  (let ((atid (car a))
-			(btid (car b)))
-		    (cond ((= atid btid) 0)
-			  ((< atid btid) -1)
-			  (else 1)))))))
+	 (let ((ac (cdr a)) (bc (cdr b))
+	       (atid (car a)) (btid (car b)))
+	   (cond ((= atid btid) 0)
+		 ((< ac bc) -1)
+		 (else 1))))
        num-threads))
     (define manager-channel (make-shared-queue))
     (define (manager)
