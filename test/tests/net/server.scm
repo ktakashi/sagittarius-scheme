@@ -122,6 +122,19 @@
 
 (let ((server (make-simple-server "12345" (lambda (s sock) #t)
 				  :context 'context)))
-  (test-equal 'context (server-context server)))
+  (test-equal 'context (server-context server))
+  (test-error (server-status server)))
+
+(let ()
+  (define config (make-server-config :non-blocking? #t :max-thread 5))
+  (define server (make-simple-server "12345" (lambda (s sock) #t)
+				     :config config))
+  (server-start! server :background #t)
+  (test-assert (server-status server))
+  (let ((status (server-status server)))
+    (test-assert (server-status? status))
+    #; (report-server-status status))
+  
+  (server-stop! server))
 
 (test-end)

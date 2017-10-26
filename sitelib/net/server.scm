@@ -2,7 +2,7 @@
 ;;;
 ;;; net/server.scm - Simple server framework.
 ;;;  
-;;;   Copyright (c) 2010-2012  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2017  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -40,6 +40,14 @@
 	    
 	    server-stopped? wait-server-stop!
 
+	    server-status
+	    server-status?
+	    report-server-status
+	    server-status-target-server
+	    server-status-num-threads
+	    server-status-num-idling-threads
+	    server-status-thread-statuses
+	    thread-status-num-pending-task
 	    ;; for extension
 	    <simple-server>
 	    <server-config>)
@@ -54,7 +62,8 @@
 	    ;; (srfi :18)
 	    (sagittarius threads) ;; need thread-interrupt!
 	    (srfi :26)
-	    (rfc tls))
+	    (rfc tls)
+	    (net server monitor))
 
   (define (close-socket socket)
     ;; we don't care if socket sending failed or not...
@@ -83,7 +92,9 @@
      ;; non blocking (default #f for backward compatibility)
      (non-blocking? :init-keyword :non-blocking? :init-value #f)))
   (define (server-config? o) (is-a? o <server-config>))
-
+  
+  (define (default-server-monitor)
+    (error 'server-monitor "not supported"))
   (define-class <simple-server> ()
     ((server-sockets :init-keyword :server-sockets :init-value #f)
      (server-threads :init-keyword :server-threads)
@@ -101,7 +112,11 @@
      ;; set if non-blocking mode
      (initialiser    :init-value #f)
      (context        :init-keyword :context :init-value #f
-		     :reader server-context)))
+		     :reader server-context)
+     (monitor        :reader server-monitor
+		     :init-value default-server-monitor)))
+
+  (define (server-status server) ((server-monitor server)))
   (define (server? o) (is-a? o <simple-server>))
   (define (server-stopped? server) (not (~ server 'server-sockets)))
 
@@ -175,6 +190,8 @@
 		  (notify-info id 0)
 		  (vector-set! channels id channel))))))
 
+    (set! (~ server 'monitor)
+	  (make-non-blocking-server-monitor server thread-pool))
     ;; process
     (lambda (server socket)
       (let* ((info (shared-priority-queue-get! socket-manager))
