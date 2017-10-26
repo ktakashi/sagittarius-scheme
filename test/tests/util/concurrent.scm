@@ -2,7 +2,7 @@
 	(sagittarius) ;; for format
 	(sagittarius control) ;; for dotimes
 	(util concurrent)
-	(srfi :1)
+	(only (srfi :1) iota)
 	(srfi :18)
 	(srfi :64)
 	(match))
