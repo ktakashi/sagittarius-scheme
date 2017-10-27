@@ -346,7 +346,7 @@
 	(if (= s index)
 	    (vector-set! es s empty-marker)
 	    (let ((moved (vector-ref es s)))
-	      (vector-set! es s #f)
+	      (vector-set! es s empty-marker)
 	      (shift-down spq index moved)
 	      (when (eq? (vector-ref es index) moved)
 		(shift-up spq index moved)))))

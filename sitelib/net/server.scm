@@ -137,20 +137,29 @@
 		 ((< ac bc) -1)
 		 (else 1))))
        num-threads))
-    (define manager-channel (make-shared-queue))
+    ;; TODO make it as an actor model...
+    (define manager-input-channel (make-shared-queue))
+    (define manager-output-channel (make-shared-queue))
     (define (manager)
       (let loop ()
-	(let ((info (shared-queue-get! manager-channel)))
-	  (shared-priority-queue-remove! socket-manager info)
-	  (shared-priority-queue-put! socket-manager info))
-	(loop)))
+	(let ((command&info (shared-queue-get! manager-input-channel)))
+	  (case (car command&info)
+	    ((put)
+	     (let ((info (cdr command&info)))
+	       (shared-priority-queue-remove! socket-manager info)
+	       (shared-priority-queue-put! socket-manager info)))
+	    ((get)
+	     (shared-queue-put! manager-output-channel
+				(shared-priority-queue-get! socket-manager))))
+	  (loop))))
     ;; the manager-thread is needed to make sure socket-manager operation
     ;; is done in atomic environment.
     (define manager-thread (thread-start! (make-thread manager)))
     (define (notify-info tid count)
-      (shared-queue-put! manager-channel (cons tid count)))
+      (shared-queue-put! manager-input-channel (cons 'put (cons tid count))))
     (define (retrieve-info)
-      (shared-priority-queue-get! socket-manager))
+      (shared-queue-put! manager-input-channel '(get))
+      (shared-queue-get! manager-output-channel))
     ;; this depends on the thread-pool thread id which is exact integer
     ;; and less than number of threads
     (define channels (make-vector num-threads #f))

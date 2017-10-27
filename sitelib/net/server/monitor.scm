@@ -42,7 +42,6 @@
 	    )
     (import (rnrs)
 	    (sagittarius)
-	    (clos user)
 	    (util concurrent thread-pool)
 	    (util concurrent shared-queue))
 
@@ -62,14 +61,12 @@
 			    ;; so write it :)
 			    (format "~a" (thread-pool-thread thread-pool tid))
 			    (cdr e))))
-    (define (socket-manager->vector)
+    (define (socket-manager->list)
       (list-sort (lambda (a b) (< (car a) (car b)))
-		 (filter pair?
-			 ;; don't do this casually...
-			 (vector->list (slot-ref socket-manager 'elements)))))
+		 (shared-priority-queue->list socket-manager)))
     (make-server-status server
 			(thread-pool-size thread-pool)
-			(map ->thread-status (socket-manager->vector)))))
+			(map ->thread-status (socket-manager->list)))))
 
 (define (report-server-status status :optional (to-port (current-error-port)))
   (let-values (((out extract) (open-string-output-port)))
