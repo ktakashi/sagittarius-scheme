@@ -2,7 +2,7 @@
 	(sagittarius) ;; for format
 	(sagittarius control) ;; for dotimes
 	(util concurrent)
-	(only (srfi :1) iota)
+	(only (srfi :1) iota lset=)
 	(srfi :18)
 	(srfi :64)
 	(match))
@@ -227,7 +227,7 @@
   (test-assert "shared-queue-overflows?"
 	       (shared-priority-queue-overflows? spq 1))
   (test-equal 50 (shared-priority-queue-capacity spq))
-  (test-equal data (shared-priority-queue->list spq)))
+  (test-assert (lset= = data (shared-priority-queue->list spq))))
 
 ;; thread-pool
 (let ((pool (make-thread-pool 5)))
