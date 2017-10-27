@@ -84,6 +84,7 @@
 	      (shared-queue-put! shared-queue 1 1 'boom))
   (test-assert "shared-queue-overflows?" 
 	       (shared-queue-overflows? shared-queue 1))
+  (test-equal '(1) (shared-queue->list shared-queue))
   )
 
 ;; max-length 0
@@ -225,7 +226,8 @@
   (thread-join! thread1)
   (test-assert "shared-queue-overflows?"
 	       (shared-priority-queue-overflows? spq 1))
-  (test-equal 50 (shared-priority-queue-capacity spq)))
+  (test-equal 50 (shared-priority-queue-capacity spq))
+  (test-equal data (shared-priority-queue->list spq)))
 
 ;; thread-pool
 (let ((pool (make-thread-pool 5)))

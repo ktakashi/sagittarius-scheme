@@ -144,9 +144,13 @@
 	  (shared-priority-queue-remove! socket-manager info)
 	  (shared-priority-queue-put! socket-manager info))
 	(loop)))
+    ;; the manager-thread is needed to make sure socket-manager operation
+    ;; is done in atomic environment.
     (define manager-thread (thread-start! (make-thread manager)))
     (define (notify-info tid count)
       (shared-queue-put! manager-channel (cons tid count)))
+    (define (retrieve-info)
+      (shared-priority-queue-get! socket-manager))
     ;; this depends on the thread-pool thread id which is exact integer
     ;; and less than number of threads
     (define channels (make-vector num-threads #f))
@@ -164,8 +168,7 @@
 	    (dolist (socket read-sockets)
 	      (guard (e ((~ config 'exception-handler)
 			 ;; let them handle it
-			 ((~ config 'exception-handler) 
-			  server socket e))
+			 ((~ config 'exception-handler) server socket e))
 			;; if exception-handler is not there
 			;; close the socket.
 			(else (socket-shutdown socket SHUT_RDWR)
@@ -190,7 +193,7 @@
 	  (make-non-blocking-server-monitor server thread-pool socket-manager))
     ;; process
     (lambda (server socket)
-      (let* ((info (shared-priority-queue-get! socket-manager))
+      (let* ((info (retrieve-info))
 	     (thread-id (car info)))
 	(let ((channel (vector-ref channels thread-id)))
 	  (let ((thread (thread-pool-thread thread-pool thread-id)))

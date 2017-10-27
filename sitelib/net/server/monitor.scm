@@ -64,8 +64,9 @@
 			    (cdr e))))
     (define (socket-manager->vector)
       (list-sort (lambda (a b) (< (car a) (car b)))
-		 ;; don't do this casually...
-		 (vector->list (slot-ref socket-manager 'elements))))
+		 (filter pair?
+			 ;; don't do this casually...
+			 (vector->list (slot-ref socket-manager 'elements)))))
     (make-server-status server
 			(thread-pool-size thread-pool)
 			(map ->thread-status (socket-manager->vector)))))
@@ -73,12 +74,17 @@
 (define (report-server-status status :optional (to-port (current-error-port)))
   (let-values (((out extract) (open-string-output-port)))
     (format out "Total thread count: ~a~%" (server-status-thread-count status))
-    (for-each (lambda (status)
-		(format out "  Thread #~a ~a--- active sockets ~a~%"
-			(thread-status-thread-id status)
-			(thread-status-thread-info status)
-			(thread-status-active-socket-count status)))
-	      (server-status-thread-statuses status))
+    (let ((statuses (server-status-thread-statuses status)))
+      ;; this must be the same as total thread count
+      ;; if this is not the same then it's a bug on (net server)
+      (format out "Active thread count: ~a~%" (length statuses))
+      (for-each (lambda (status)
+		  (format out "  Thread #~a ~a~%"
+			  (thread-status-thread-id status)
+			  (thread-status-thread-info status))
+		  (format out "    - active sockets ~a~%"
+			  (thread-status-active-socket-count status)))
+		statuses))
     (newline out)
     (display (extract) to-port)))
 

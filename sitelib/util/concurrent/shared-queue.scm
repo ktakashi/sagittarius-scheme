@@ -2,7 +2,7 @@
 ;;;
 ;;; util/concurrent/shared-queue.scm - Shared queue
 ;;;  
-;;;   Copyright (c) 2010-2015  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2017  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -45,6 +45,7 @@
 	    shared-queue-locked?
 	    shared-queue-lock!
 	    shared-queue-unlock!
+	    (rename (shared-queue-head shared-queue->list))
 
 	    ;; shared-priority-queue
 	    ;; even thought the name is queue but it's not a
@@ -61,6 +62,7 @@
 	    shared-priority-queue-locked? ;; for consistency
 	    shared-priority-queue-lock!
 	    shared-priority-queue-unlock!
+	    shared-priority-queue->list
 	    )
     (import (rnrs)
 	    (rnrs mutable-pairs)
@@ -223,7 +225,8 @@
   (define (shared-queue-unlock! sq) (mutex-unlock! (%lock sq)))
 
   ;; priority queue
-  ;; we do simply B-tree
+  ;; we simply use B-tree
+  (define empty-marker (list '()))
   (define-record-type 
     (<shared-priority-queue> make-shared-priority-queue shared-priority-queue?)
     (fields (mutable elements %spq-es %spq-es-set!)
@@ -245,10 +248,16 @@
 	   (unless (integer? capacity)
 	     (assertion-violation 'make-shared-priority-queue
 				  "capacity must be an integer" capacity))
-	   (p (make-vector capacity) 0 max-length compare 0 (make-mutex) 
+	   (p (make-vector capacity empty-marker)
+	      0 max-length compare 0 (make-mutex) 
 	      (make-condition-variable) (make-condition-variable)))))))
+
   (define (shared-priority-queue-capacity spq)
     (vector-length (%spq-es spq)))
+  ;; changing content may not affect order immediately
+  (define (shared-priority-queue->list spq)
+    (filter (lambda (e) (not (eq? e empty-marker)))
+	    (vector->list (%spq-es spq))))
   (define (shared-priority-queue-empty? spq) 
     (zero? (shared-priority-queue-size spq)))
 
@@ -317,7 +326,7 @@
 		      (es (%spq-es spq))
 		      (r (vector-ref es 0))
 		      (x (vector-ref es s)))
-		 (vector-set! es s #f)
+		 (vector-set! es s empty-marker)
 		 (unless (zero? s) (shift-down spq 0 x))
 		 (mutex-unlock! (%spq-lock spq))
 		 r))))))
@@ -335,7 +344,7 @@
       (%spq-size-set! spq (- (shared-priority-queue-size spq) 1))
       (let ((s (shared-priority-queue-size spq)))
 	(if (= s index)
-	    (vector-set! es s #f)
+	    (vector-set! es s empty-marker)
 	    (let ((moved (vector-ref es s)))
 	      (vector-set! es s #f)
 	      (shift-down spq index moved)
@@ -399,7 +408,7 @@
 	((= i len) 
 	 (%spq-size-set! spq 0)
 	 (mutex-unlock! (%spq-lock spq)))
-      (vector-set! es i #f)))
+      (vector-set! es i empty-marker)))
 
   (define (shared-priority-queue-locked? sq . maybe-wait?)
     (let ((wait? (if (null? maybe-wait?) #f (car maybe-wait?))))
