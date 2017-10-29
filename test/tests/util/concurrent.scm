@@ -427,14 +427,37 @@
 
 ;; actor
 (let ()
+  (define (actor-test make-actor)
+    (define actor
+      (make-actor
+       (lambda (in out)
+	 (let ((v (in)))
+	   (out (+ v 1))))))
+    (test-assert (actor? actor))
+    (test-assert (actor-running? actor))
+    (test-equal 'running (actor-state actor))
+    (test-assert (actor-send-message! actor 1))
+    (test-equal 2 (actor-receive-message! actor))
+    (test-assert (not (actor-running? actor)))
+    (test-equal 'finished (actor-state actor))
+    (test-assert (actor-wait! actor)))
+
+  (actor-test make-shared-queue-channel-actor)
+  (actor-test (lambda (task)
+		(make-shared-priority-queue-channel-actor
+		 task
+		 (lambda (a b) (cond ((= a b) 0)
+				     ((< a b) -1)
+				     (else    1)))))))
+
+(let ()
   (define actor
     (make-shared-queue-channel-actor
      (lambda (in out)
        (let ((v (in)))
 	 (out (+ v 1))))))
-  (test-assert (actor? actor))
-  (test-assert (actor-send-message! actor 1))
-  (test-equal 2 (actor-receive-message! actor))
-  (test-assert (actor-wait! actor)))
+  (test-assert (actor-terminate! actor))
+  (test-assert (not (actor-running? actor)))
+  (test-equal 'terminated (actor-state actor)))
 
 (test-end)

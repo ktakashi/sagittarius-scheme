@@ -32,8 +32,10 @@
     (export actor? (rename actor <actor>) make-actor
 	    actor-send-message!
 	    actor-receive-message!
+	    actor-running?
 	    actor-wait!
 	    actor-terminate!
+	    actor-state
 	    
 	    make-shared-queue-channel-actor
 	    make-shared-priority-queue-channel-actor
@@ -47,8 +49,24 @@
 
 ;; base actor record
 ;; actor has 2 channels to receive/send messages
-(define-record-type (actor %make-actor actor?)
-  (fields thread receiver sender))
+(define-record-type (actor make-actor actor?)
+  (fields (mutable state) thread receiver sender)
+  (protocol
+   (lambda (p)
+     (lambda (task make-receiver make-sender)
+       (let-values (((receiver/actor sender/client) (make-receiver))
+		    ((receiver/client sender/actor) (make-sender)))
+	 (let* ((t (make-thread
+		    (lambda ()
+		      (define actor (thread-specific (current-thread)))
+		      (guard (e (else (actor-state-set! actor 'error)
+				      (raise e)))
+			(task receiver/client sender/client)
+			(actor-state-set! actor 'finished)))))
+		(actor (p 'running t receiver/actor sender/actor)))
+	   (thread-specific-set! t actor)
+	   (thread-start! t)
+	   actor))))))
 
 (define (make-shared-queue-channel . opt)
   (define sq (apply make-shared-queue opt))
@@ -62,6 +80,8 @@
   (define (sender v . opt) (apply shared-priority-queue-put! sq v opt))
   (values receiver sender))
 
+(define (actor-running? actor) (eq? (actor-state actor) 'running))
+
 (define (actor-send-message! actor message . opt)
   (apply (actor-sender actor) message opt))
 
@@ -70,14 +90,9 @@
 
 ;; need this?
 (define (actor-wait! actor) (thread-join! (actor-thread actor)))
-(define (actor-terminate! actor) (thread-terminate! (actor-thread actor)))
-
-(define (make-actor task make-receiver make-sender)
-  (let-values (((receiver/actor sender/client) (make-receiver))
-	       ((receiver/client sender/actor) (make-sender)))
-    (let ((t (make-thread (lambda () (task receiver/client sender/client)))))
-      (thread-start! t)
-      (%make-actor t receiver/actor sender/actor))))
+(define (actor-terminate! actor)
+  (thread-terminate! (actor-thread actor))
+  (actor-state-set! actor 'terminated))
 
 ;; common actors
 (define (make-shared-queue-channel-actor task)
