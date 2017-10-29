@@ -425,4 +425,16 @@
   (test-equal '(3 2 1) (map future-get f*))
   )
 
+;; actor
+(let ()
+  (define actor
+    (make-shared-queue-channel-actor
+     (lambda (in out)
+       (let ((v (in)))
+	 (out (+ v 1))))))
+  (test-assert (actor? actor))
+  (test-assert (actor-send-message! actor 1))
+  (test-equal 2 (actor-receive-message! actor))
+  (test-assert (actor-wait! actor)))
+
 (test-end)

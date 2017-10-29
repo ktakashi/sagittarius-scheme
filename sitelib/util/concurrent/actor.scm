@@ -62,11 +62,11 @@
   (define (sender v . opt) (apply shared-priority-queue-put! sq v opt))
   (values receiver sender))
 
-(define (actor-send-message! actor mesasge . opt)
-  (apply (actor-sender actor) actor message opt))
+(define (actor-send-message! actor message . opt)
+  (apply (actor-sender actor) message opt))
 
 (define (actor-receive-message! actor . opt)
-  (apply (actor-receiver actor) actor opt))
+  (apply (actor-receiver actor) opt))
 
 ;; need this?
 (define (actor-wait! actor) (thread-join! (actor-thread actor)))
