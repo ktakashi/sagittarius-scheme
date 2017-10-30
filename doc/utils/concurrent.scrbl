@@ -576,3 +576,26 @@ until the queue is available and returns #f.
 
 
 @; TODO shared priority queue
+
+@subsubsection{Actor}
+
+@define[Library]{@name{(util concurrent actor)}}
+@desc{A sub library of @code{(util concurrent)}. This library provides
+actor model like APIs.}
+
+An actor is an object which contains thread, input receiver and output sender.
+This is based on the Actor model. Communication between an actor and outside of
+the actor can only be done via input receiver or output sender. From here, we
+call them channel.
+
+@define[Function]{@name{actor?} @args{obj}}
+@desc{Returns #t if the given @var{obj} is an actor, otherwise #f.}
+
+@define[Function]{@name{actor-send-message!}
+ @args{actor message :optional timeout timeout-val}}
+@desc{Sends the given @var{message} to the @var{actor}. The operation may block
+the caller thread depending on the underlying channel implementation.
+
+If optional argument @var{timeout} and @var{timeout-val} are given, it shall
+behave the same as @code{shared-queue-put!}.
+}
