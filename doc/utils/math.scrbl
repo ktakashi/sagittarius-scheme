@@ -189,14 +189,14 @@ predefined algorithms are blow:
 @define[Constant]{@name{SHA-3-256}}
 @define[Constant]{@name{SHA-3-384}}
 @define[Constant]{@name{SHA-3-512}}
-@define[Constant]{@name{BLAKE2s-128}
-@define[Constant]{@name{BLAKE2s-160}
-@define[Constant]{@name{BLAKE2s-224}
-@define[Constant]{@name{BLAKE2s-256}
-@define[Constant]{@name{BLAKE2b-160}
-@define[Constant]{@name{BLAKE2b-256}
-@define[Constant]{@name{BLAKE2b-384}
-@define[Constant]{@name{BLAKE2b-512}
+@define[Constant]{@name{BLAKE2s-128}}
+@define[Constant]{@name{BLAKE2s-160}}
+@define[Constant]{@name{BLAKE2s-224}}
+@define[Constant]{@name{BLAKE2s-256}}
+@define[Constant]{@name{BLAKE2b-160}}
+@define[Constant]{@name{BLAKE2b-256}}
+@define[Constant]{@name{BLAKE2b-384}}
+@define[Constant]{@name{BLAKE2b-512}}
 
 If you want to use other hash algorithm, you can also create a new hash
 algorithm. It is described the section

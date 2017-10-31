@@ -89,7 +89,8 @@
   (apply (actor-receiver actor) opt))
 
 ;; need this?
-(define (actor-wait! actor) (thread-join! (actor-thread actor)))
+(define (actor-wait! actor . timeout)
+  (apply thread-join! (actor-thread actor) timeout))
 (define (actor-terminate! actor)
   (thread-terminate! (actor-thread actor))
   (actor-state-set! actor 'terminated))

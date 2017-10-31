@@ -586,10 +586,72 @@ actor model like APIs.}
 An actor is an object which contains thread, input receiver and output sender.
 This is based on the Actor model. Communication between an actor and outside of
 the actor can only be done via input receiver or output sender. From here, we
-call them channel.
+call them channel. The following is a simple bank account example using actor.
+
+@codeblock{
+(import (rnrs) (util concurrent actor) (match))
+
+(define (open-account initial-amount)
+  (define balance initial-amount)
+  (make-shared-queue-channel-actor
+   (lambda (input-receiver output-sender)
+     (let loop ()
+       (match (input-receiver)
+	 (('withdrow how-much)
+	  (if (< balance how-much)
+	      (output-sender "invalid amount")
+	      (begin
+		(set! balance (- balance how-much))
+		(output-sender (cons how-much balance))))
+	  (loop))
+	 (('deposite a)
+	  (if (negative? a)
+	      (output-sender "invalid amount")
+	      (begin
+		(set! balance (+ balance a))
+		(output-sender (cons 0 balance))))
+	  (loop))
+	 (('close) #t)
+	 (else "invalid message"))))))
+
+(define client (open-account 1000))
+
+(actor-send-message! client '(withdrow 100))
+(actor-send-message! client '(deposite 100))
+(actor-send-message! client '(close))
+
+(actor-receive-message! client) ;; => (100 . 900)
+(actor-receive-message! client) ;; => (0 . 1000)
+}
 
 @define[Function]{@name{actor?} @args{obj}}
 @desc{Returns #t if the given @var{obj} is an actor, otherwise #f.}
+
+@define[Function]{@name{make-shared-queue-channel-actor} @args{task}}
+@define[Function]{@name{make-shared-priority-queue-channel-actor}
+ @args{task compare}}
+@desc{Creates actors with shared-queue or shared-priority-queue as underlying
+channel implementation, respectively.
+
+If the @code{make-shared-priority-queue-channel-actor} is used, then the
+@var{compare} must be a procedure which takes 2 arguments and returns the
+comparison result of given 2 arguments. The value should be, -1, 0 or 1.
+
+@var{task} must be an procedure accepts 2 argument, @var{input-receiver} and
+@var{output-sender}. The procedures' signatures are the followings:
+@define[Function]{@name{input-receiver} @args{:optional timeout timeout-val}}
+@define[Function]{@name{output-sender}
+ @args{messge :optional timeout timeout-val}}
+The @var{input-receiver} receives a message from outside of the actor.
+
+The @var{output-sender} sends a message @var{message} to outside of the actor.
+
+Messages can be sent to an actor via @code{actor-send-message!}, and be
+received from an actor via @code{actor-receive-message!}.
+
+The optional arguments @var{timeout} and @var{timeout-val} are given, it shall
+behave the same as @code{shared-queue-get!} or @code{shared-queue-put!}.
+}
 
 @define[Function]{@name{actor-send-message!}
  @args{actor message :optional timeout timeout-val}}
@@ -599,3 +661,33 @@ the caller thread depending on the underlying channel implementation.
 If optional argument @var{timeout} and @var{timeout-val} are given, it shall
 behave the same as @code{shared-queue-put!}.
 }
+
+@define[Function]{@name{actor-receive-message!}
+ @args{actor :optional timeout timeout-val}}
+@desc{Receives a message from given @var{actor}. The operation may block the
+caller thread depending on the underlying channel implementation.
+
+If optional argument @var{timeout} and @var{timeout-val} are given, it shall
+behave the same as @code{shared-queue-get!}.
+}
+
+@define[Function]{@name{actor-running?} @args{actor}}
+@desc{Return #t if the given @var{actor} is running, otherwise #f.}
+
+@define[Function]{@name{actor-wait!}
+ @args{actor :optional timeout timeout-val}}
+@desc{Waits until the given @var{actor} is finished.
+
+The optional arguments works the same as @code{thread-join!}.
+}
+
+@define[Function]{@name{actor-terminate!} @args{actor}}
+@desc{Terminates the given @var{actor}.
+
+NOTE: This operation is not safe. It is users' responsibility to release
+resource if it's needed.
+}
+
+@; TBD
+@; write low level API of actor:
+@; make-actor, make-shared-priority-queue-channel etc.

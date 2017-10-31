@@ -247,7 +247,7 @@ This parameter is a subclass of @code{<iv-parameter>}.
 }
 
 @define[Function]{@name{make-ctr-paramater}
- @args{iv :key (rounds 0) (mode CTR_COUNTER_BIG_ENDIAN)}
+ @args{iv :key (rounds 0) (mode CTR_COUNTER_BIG_ENDIAN)}}
 @desc{
 Creates a counter mode parameter. This is used by @code{MODE_CTR}.
 
@@ -270,7 +270,7 @@ This parameter is a subclass of @code{<ctr-parameter>}.
 }
 
 @define[Function]{@name{make-rfc3686-paramater}
- @args{iv nonce :key (rounds 0) (mode CTR_COUNTER_BIG_ENDIAN)}
+ @args{iv nonce :key (rounds 0) (mode CTR_COUNTER_BIG_ENDIAN)}}
 @desc{Creates RFC3686 mode parameter.}
 
 @define["Record Type"]{@name{<padding-paramater>}}
