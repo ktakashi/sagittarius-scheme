@@ -42,8 +42,8 @@
 	    gdelete gdelete-neighbor-dups gindex gselect
 
 	    ;; from Gauche
-	    gconcatenate gflatten gmerge gmap gfilter-map
-	    glet* glet1 do-generator generate
+	    gslices gconcatenate gflatten ggroup gmerge gmap gfilter-map
+	    gstate-filter glet* glet1 do-generator generate
 	    giota grange gunfold
 
 	    ;; these are not generator operations
@@ -70,6 +70,7 @@
     (import (rnrs)
 	    (clos user)
 	    (util list)
+	    (srfi :1 lists)
 	    (srfi :26 cut)
 	    (srfi :31 rec)
 	    (sagittarius)
@@ -320,6 +321,17 @@
 	  (glet* ((v (vgen))
 		  (t (tgen)))
 	    (if t v (loop)))))))
+
+  ;; gslices :: (Generator a, Int) -> Generator [a]
+  (define (gslices gen k :optional (fill? #f) (padding #f))
+    (let ((gen (->gen gen)))
+      (lambda ()
+	(let* ((e (generator->list gen k))
+	       (len (length e)))
+	  (cond ((null? e) (eof-object))
+		((= len k) e)
+		(fill? (append e (make-list (- k len) padding)))
+		(else e))))))
   
   ;; gconcatenate :: Generator Generator a -> Generator a
   (define (gconcatenate gen)
@@ -356,12 +368,12 @@
 	    (if (eof-object? e1)
 		(if (eof-object? e2)
 		    e2
-		    (rlet1 r e2 (set! e2 (gen2))))
+		    (begin0 e2 (set! e2 (gen2))))
 		(if (eof-object? e2)
-		    (rlet1 r e1 (set! e1 (gen1)))
-		    (if (proc e1 e2)
-			(rlet1 r e1 (set! e1 (gen1)))
-			(rlet1 r e2 (set! e2 (gen2))))))))))
+		    (begin0 e1 (set! e1 (gen1)))
+		    (if (proc e2 e1)
+			(begin0 e2 (set! e2 (gen2)))
+			(begin0 e1 (set! e1 (gen1))))))))))
      ((proc . gens)
       (apply gmerge proc (map (cut apply gmerge proc <>) (slices gens 2))))))
 
@@ -397,6 +409,16 @@
 		    ((apply fn vs))
 		    (else (loop))))))))))
 
+  ;; gstate-filter :: ((a, b) -> (Bool, b), b, Generator a) -> Generator
+  (define (gstate-filter proc seed gen)
+    (let ((gen (->gen gen)))
+      (lambda ()
+	(let loop ()
+	  (glet1 v (gen)
+	    (let-values (((yes seed1) (proc v seed)))
+	      (set! seed seed1)
+	      (if yes v (loop))))))))
+  
   ;; Seems this would be nicer
   ;; follow Gauche
   (define (giota :optional (count +inf.0) (start 0) (step 1))
