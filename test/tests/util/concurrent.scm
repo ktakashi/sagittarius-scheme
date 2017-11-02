@@ -47,14 +47,14 @@
 		 (shared-queue-put! out (cons 0 balance))
 		 (loop))))
 	  (('close) #t)
-	  (else "invalid message"0))))
+	  (else "invalid message"))))
 
     (let ((t (make-thread process)))
       (thread-start! t)
-      shared-queue))
+      (values t shared-queue)))
 
   (define recepit (make-shared-queue))
-  (define client (open-account 1000 recepit))
+  (define-values (thread client) (open-account 1000 recepit))
   (define eager-client
     (thread-start!
      (make-thread
@@ -68,6 +68,7 @@
   (shared-queue-put! client '(close))
   ;; wait until eager client is done
   (thread-join! eager-client)
+  (thread-join! thread)
 
   (test-equal "size"  1 (shared-queue-size recepit))
   (test-equal "shared-queue-get (2)" '(0 . 1000) (shared-queue-get! recepit))
