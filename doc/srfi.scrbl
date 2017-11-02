@@ -411,6 +411,16 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
 
     The name @code{bitwise} is taken from the name of the SRFI.
     }}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-158/srfi-158.html"]{SRFI-158}}
+    @td{(srfi :158 generators-and-accumulators)
+
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :158)}. So for the portability it's better to use the
+    @code{(srfi :158)}.
+
+    The name @code{generators-and-accumulators} is taken from the name of
+    the SRFI.
+    }}
 @; > In order to facilitate writing sophisticated custom macro transformers, it
 @; > is allowed that a transformer spec expands into a sequence of multiple
 @; > definitions eventually followed by a transformer spec (whose expansion may
