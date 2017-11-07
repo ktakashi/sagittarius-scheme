@@ -232,5 +232,23 @@ Following is the description of keyword arguments.
 }
 }
 
+@subsubsection{Socket detaching}
+
+Non blocking server manages sockets per threads. This feature is useful if
+the server handler is reused per socket. However this prevents users to
+write asynchronous call. The following procedure allow users to detach
+sockets from the server.
+
+@define[Function]{@name{server-detach-socket!} @args{server socket}}
+@desc{Detaches the given @var{socket}.
+
+If the socket is detached, then all resource managements, including closing
+socket, become users' responsibility.
+
+This procedure is only available on non blocking server and can be called
+inside of server handler. If the condition is not met, then @code{&assertion}
+is signaled.
+}
+
 @; TBD
 @;@subsubsection{Extending server}
