@@ -2,6 +2,7 @@
 	(net server)
 	(sagittarius)
 	(sagittarius socket)
+	(util concurrent)
 	(rfc tls)
 	(rfc x.509)
 	(crypto)
@@ -126,12 +127,27 @@
   (test-error (server-status server)))
 
 (let ()
-  (define config (make-server-config :non-blocking? #t :max-thread 5))
-  (define server (make-simple-server "12345" (lambda (s sock) #t)
-				     :config config))
-  (server-start! server :background #t)
-  (test-assert (server-status server))
-  (let ((status (server-status server)))
+  (define detached-actor
+    (make-shared-queue-channel-actor
+     (lambda (input-receiver output-sender)
+       (define socket (input-receiver))
+       (output-sender 'ready)
+       (let ((msg (input-receiver)))
+	 (socket-send socket msg))
+       (output-sender 'done)
+       (input-receiver)
+       (socket-shutdown socket SHUT_RDWR)
+       (socket-close socket))))
+  (define config (make-server-config
+		  :non-blocking? #t :max-thread 5
+		  :exception-handler print))
+  (define server (make-simple-server
+		  "12345" (lambda (s sock)
+			    (server-detach-socket! s sock)
+			    (actor-send-message! detached-actor sock))
+		  :config config))
+  (define (check-status server)
+    (let ((status (server-status server)))
     (test-assert (server-status? status))
     (test-equal 5 (server-status-thread-count status))
     (test-equal server (server-status-target-server status))
@@ -143,7 +159,25 @@
 	      (server-status-thread-statuses status))
     (test-assert
      (call-with-string-output-port
-      (lambda (out) (report-server-status status out)))))
+      (lambda (out) (report-server-status status out))))))
+  
+  (server-start! server :background #t)
+  (test-assert (server-status server))
+  (check-status server)
+
+  (let ((sock (make-client-socket "localhost" "12345")))
+    (socket-send sock #vu8(0))
+    (test-equal 'ready (actor-receive-message! detached-actor))
+    (actor-send-message! detached-actor #vu8(1 2 3 4 5))
+    (test-equal 'done (actor-receive-message! detached-actor))
+    ;; it should have 0 active socket on the server, it's detached
+    ;; and server socket is not closed
+    (check-status server)
+    (actor-send-message! detached-actor 'finish)
+    (let ((bv (socket-recv sock 5)))
+      (test-equal #vu8(1 2 3 4 5) bv))
+    (socket-shutdown sock SHUT_RDWR)
+    (socket-close sock))
   
   (server-stop! server))
 

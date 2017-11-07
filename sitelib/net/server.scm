@@ -40,6 +40,9 @@
 	    
 	    server-stopped? wait-server-stop!
 
+	    ;; for socket detaching
+	    server-detach-socket!
+	    
 	    server-status
 	    server-status?
 	    report-server-status
@@ -59,10 +62,11 @@
 	    (sagittarius control)
 	    (sagittarius socket)
 	    (sagittarius object)
-	    (rename (srfi :1) (alist-cons acons))
-	    ;; (srfi :18)
 	    (sagittarius threads) ;; need thread-interrupt!
+	    (rename (srfi :1) (alist-cons acons))
 	    (srfi :26)
+	    (srfi :39)
+	    (srfi :117)
 	    (rfc tls)
 	    (net server monitor))
 
@@ -123,6 +127,14 @@
 
   (define (make-server-config . opt) (apply make <server-config> opt))
 
+  (define *detaching-sockets* (make-parameter #f))
+  (define (server-detach-socket! server socket)
+    (let ((queue (*detaching-sockets*)))
+      (unless (list-queue? queue)
+	(assertion-violation 'server-detach-socket!
+	  "only non-blocking server can detach socket or it's not in task"))
+      (list-queue-add-front! queue socket)))
+    
   (define (make-non-blocking-process server handler config)
     (define num-threads (~ config 'max-thread))
     (define thread-pool (make-thread-pool num-threads raise))
@@ -165,6 +177,15 @@
 	  (do ((sockets init (cons (shared-queue-get! channel) sockets)))
 	      ((and (shared-queue-empty? channel) (not (null? sockets)))
 	       sockets)))
+	(define (filter-active sockets)
+	  (define detaching-sockets
+	    (list-queue-remove-all! (*detaching-sockets*)))
+	  (define (check-active o)
+	    (and (not (socket-closed? o))
+		 (not (memq o detaching-sockets))))
+	  (filter check-active sockets))
+	
+	(*detaching-sockets* (list-queue))
 	;; get sockets
 	(let loop ((sockets (retrieve-sockets '())))
 	  (let ((read-sockets (apply socket-read-select #f sockets)))
@@ -177,12 +198,10 @@
 			(else (socket-shutdown socket SHUT_RDWR)
 			      (socket-close socket)))
 		(handler server socket)))
-	    (let ((active (filter (lambda (o) (not (socket-closed? o))) 
-				  sockets))
+	    (let ((active (filter-active sockets))
 		  (tid (thread-pool-current-thread-id)))
 	      (notify-info tid (length active))
 	      (loop (retrieve-sockets active))))))
-
       (values task channel))
     ;; must be initialised during server-start!
     (set! (~ server 'initialiser)
