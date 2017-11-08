@@ -152,7 +152,7 @@ static SgObject copy_generics(SgObject lib)
   return h;
 }
 
-SgVM* Sg_NewVM(SgVM *proto, SgObject name)
+SgVM* Sg_NewThreadVM(SgVM *proto, SgObject name)
 {
   SgVM *v = SG_NEW(SgVM);
   int i;
@@ -161,12 +161,6 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->name = name;
   v->threadErrorP = FALSE;
   v->threadState = SG_VM_NEW;
-  v->stack = SG_NEW_ARRAY(SgObject, SG_VM_STACK_SIZE);
-  v->sp = v->fp = v->stack;
-  v->stackEnd = v->stack + SG_VM_STACK_SIZE;
-  v->cont = (SgContFrame *)v->sp;
-  v->ac = SG_NIL;
-  v->cl = NULL;
   for (i = 0; i < DEFAULT_VALUES_SIZE; i++) v->values[i] = SG_UNDEF;
   v->valuesCount = 1;
 
@@ -229,6 +223,24 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
 
   Sg_RegisterFinalizer(SG_OBJ(v), vm_finalize, NULL);
   return v;
+}
+
+SgVM* Sg_SetVMStack(SgVM *vm, SgObject *stack, int stackSize)
+{
+  vm->stack = stack;
+  vm->sp = vm->fp = vm->stack;
+  vm->stackEnd = vm->stack + stackSize;
+  vm->cont = (SgContFrame *)vm->sp;
+  vm->ac = SG_NIL;
+  vm->cl = NULL;
+  return vm;
+}
+
+SgVM* Sg_NewVM(SgVM *proto, SgObject name)
+{
+  SgVM *vm = Sg_NewThreadVM(proto, name);
+  SgObject *stack = SG_NEW_ARRAY(SgObject, SG_VM_STACK_SIZE);
+  return Sg_SetVMStack(vm, stack, SG_VM_STACK_SIZE);
 }
 
 /*

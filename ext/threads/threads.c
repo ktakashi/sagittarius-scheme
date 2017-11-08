@@ -47,7 +47,7 @@ SgObject Sg_MakeThread(SgProcedure *thunk, SgObject name)
   if (SG_PROCEDURE_REQUIRED(thunk) != 0) {
     Sg_Error(UC("thunk required, but got %S"), thunk);
   }
-  vm = Sg_NewVM(current, name);
+  vm = Sg_NewThreadVM(current, name);
   vm->thunk = thunk;
   return SG_OBJ(vm);
 }
@@ -76,6 +76,13 @@ static void thread_cleanup(void *data)
 static void* thread_entry(void *data)
 {
   SgVM *vm = SG_VM(data);
+  SgObject *stack;
+#ifdef HAVE_ALLOCA
+  stack = (SgObject *)alloca(sizeof(SgObject) * SG_VM_STACK_SIZE);
+#else
+  SgObject *stack = SG_NEW_ARRAY(SgObject, SG_VM_STACK_SIZE);
+#endif
+  Sg_SetVMStack(vm, stack, SG_VM_STACK_SIZE);
   thread_cleanup_push(thread_cleanup, vm);
   if (Sg_SetCurrentVM(vm)) {
     SG_UNWIND_PROTECT {

@@ -351,6 +351,8 @@ typedef enum {
 SG_CDECL_BEGIN
 
 SG_EXTERN SgVM*    Sg_NewVM(SgVM *proto, SgObject name);
+SG_EXTERN SgVM*    Sg_NewThreadVM(SgVM *proto, SgObject name);
+SG_EXTERN SgVM*    Sg_SetVMStack(SgVM *vm, SgObject *stack, int stackSize);
 SG_EXTERN SgObject Sg_Compile(SgObject sexp, SgObject env);
 SG_EXTERN SgObject Sg_Apply(SgObject proc, SgObject args);
 SG_EXTERN SgObject Sg_Apply0(SgObject proc);
