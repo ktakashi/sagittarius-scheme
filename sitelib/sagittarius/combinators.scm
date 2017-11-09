@@ -90,9 +90,9 @@
 
 ;; Cardinal (C-Combinator) Cxyz = xzy
 (define (cardinal x0 . x*)
+  (define x (reverse-compose x0 x*))
   (lambda (y . y*)
     (lambda (z0 . z*)
-      (define x (reverse-compose x0 x*))
       (define z (reverse-compose z0 z*))
       (let ((xz (x z)))
 	(if (null? y*)
@@ -101,10 +101,10 @@
 
 ;; Starling (S-Combinator) Sxyz = xz(yz)
 (define (starling x0 . x*)
+  (define x (reverse-compose x0 x*))
   (lambda (y0 . y*)
+    (define y (reverse-compose y0 y*))
     (lambda (z0 . z*)
-      (define x (reverse-compose x0 x*))
-      (define y (reverse-compose y0 y*))
       (define z (reverse-compose z0 z*))
       ((x z) (y z)))))
 
