@@ -127,11 +127,17 @@
   (test-error (server-status server)))
 
 (let ()
+  ;; the thread management is done outside of our threads
+  ;; thus there's no way to guarantee. let's hope...
+  (define (hope-it-works)
+    (thread-yield!)
+    (thread-sleep! 1))
   (define detached-actor
     (make-shared-queue-channel-actor
      (lambda (input-receiver output-sender)
        (define socket (input-receiver))
        (output-sender 'ready)
+       (hope-it-works)
        (let ((msg (input-receiver)))
 	 (socket-send socket msg))
        (output-sender 'done)
@@ -170,6 +176,7 @@
     (test-equal 'ready (actor-receive-message! detached-actor))
     (actor-send-message! detached-actor #vu8(1 2 3 4 5))
     (test-equal 'done (actor-receive-message! detached-actor))
+    (hope-it-works)
     ;; it should have 0 active socket on the server, it's detached
     ;; and server socket is not closed
     (check-status server)
