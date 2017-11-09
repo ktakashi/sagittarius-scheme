@@ -31,7 +31,10 @@
 
 ;; $ suffix is taken from Gauche for partial application
 (library (sagittarius combinators)
-    (export compose (rename (compose .$))
+    (export compose reverse-compose 
+	    (rename (compose .$)
+		    ;; does this make sense?
+		    (reverse-compose $.))
 	    kestrel thrush ~> cardinal
 	    idiot starling
 	    ;; formal names
@@ -49,17 +52,25 @@
 		    (every-pred for-all-pred))
 	    )
     (import (rnrs)
-	    (only (srfi :1) reverse!))
+	    (only (srfi :1) reverse! fold))
 
-(define (compose f g0 . g*)
-  (define (compose0 f g)
-    (lambda args
-      (let-values ((r (apply g args)))
-	(apply f r))))
-  (if (null? g*)
-      (compose0 f g0)
-      (let ((g1 (apply compose g0 g*)))
-	(compose0 f g1))))
+;; 2 arguments as helper
+(define (compose0 f g)
+  (lambda args
+    (let-values ((r (apply g args)))
+      (apply f r))))
+
+;; compose f g -> (a -> f(g(a)))
+(define (compose f . g*)
+  (cond ((null? g*) f)
+	((null? (cdr g*)) (compose0 f (car g*)))
+	(else (fold-left compose0 f g*))))
+
+;; reverse-compose f g -> (a -> g(f(a)))
+(define (reverse-compose f . g*)
+  (cond ((null? g*) f)
+	((null? (cdr g*)) (compose0 (car g*) f))
+	(else (fold compose0 f g*))))
 
 ;; from https://github.com/raganwald-deprecated/homoiconic
 ;;  and https://github.com/fantasyland/fantasy-birds
@@ -70,17 +81,13 @@
       ;; not sure if this is correct...
       (lambda y (apply values x x*))))
 
-(define (reverse-compose f f*)
-  (if (null? f*)
-      f
-      (apply compose (reverse! (cons f f*)))))
 ;; Thrush Txy = yx
 (define (thrush x . x*)
   (if (null? x*)
       (lambda (f . f*)
-	((reverse-compose f f*) x))
+	((apply reverse-compose f f*) x))
       (lambda (f . f*)
-	(apply (reverse-compose f f*) x x*))))
+	(apply (apply reverse-compose f f*) x x*))))
 
 ;; threading macro (for convenience)
 (define-syntax ~>
@@ -90,10 +97,10 @@
 
 ;; Cardinal (C-Combinator) Cxyz = xzy
 (define (cardinal x0 . x*)
-  (define x (reverse-compose x0 x*))
+  (define x (apply reverse-compose x0 x*))
   (lambda (y . y*)
     (lambda (z0 . z*)
-      (define z (reverse-compose z0 z*))
+      (define z (apply reverse-compose z0 z*))
       (let ((xz (x z)))
 	(if (null? y*)
 	    (xz y)
@@ -101,11 +108,11 @@
 
 ;; Starling (S-Combinator) Sxyz = xz(yz)
 (define (starling x0 . x*)
-  (define x (reverse-compose x0 x*))
+  (define x (apply reverse-compose x0 x*))
   (lambda (y0 . y*)
-    (define y (reverse-compose y0 y*))
+    (define y (apply reverse-compose y0 y*))
     (lambda (z0 . z*)
-      (define z (reverse-compose z0 z*))
+      (define z (apply reverse-compose z0 z*))
       ((x z) (y z)))))
 
 ;; Idiot (I-Combinator, identity) Ix = x

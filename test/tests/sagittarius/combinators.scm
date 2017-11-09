@@ -6,21 +6,37 @@
 
 (test-begin "Combinators")
 
-(define (value1->2 a) (values a a))
-(define (value1->3 a) (values a a a))
-(define (value2->1 a b) a)
+(let ()
+  (define (value1->2 a) (values a a))
+  (define (value1->3 a) (values a a a))
+  (define (value2->1 a b) a)
+  ;; compose
+  (test-equal '(1 1 1)
+	      (let-values ((r ((compose value1->3 value2->1 value1->2) 1))) r))
+  
+  (test-equal '(#(1)) ((compose list vector) 1)) 
+  (test-equal '(#("1")) ((compose list vector string) #\1))
+  
+  (test-equal '#(1 2) ((compose list->vector list) 1 2)) 
+  (test-equal '#(#\1 #\2) ((compose list->vector string->list string) #\1 #\2))
+  (test-assert .$)
+  (test-error (compose))
 
-(test-equal '(1 1 1)
-	    (let-values ((r ((compose value1->3 value2->1 value1->2) 1))) r))
-
-(test-equal '(#(1)) ((compose list vector) 1)) 
-(test-equal '(#("1")) ((compose list vector string) #\1))
-
-(test-equal '#(1 2) ((compose list->vector list) 1 2)) 
-(test-equal '#(#\1 #\2) ((compose list->vector string->list string) #\1 #\2))
-
-(test-error (compose))
-(test-error (compose list))
+  ;; reverse-compose
+  (test-equal '(1 1 1)
+	      (let-values ((r ((reverse-compose value1->2 value2->1 value1->3) 1)))
+		r))
+  
+  (test-equal '(#(1)) ((reverse-compose vector list) 1)) 
+  (test-equal '(#("1")) ((reverse-compose string vector list) #\1))
+  
+  (test-equal '#(1 2) ((reverse-compose list list->vector) 1 2)) 
+  (test-equal '#(#\1 #\2)
+	      ((reverse-compose string string->list list->vector) #\1 #\2))
+  (test-assert $.)
+  (test-error (reverse-compose))
+  
+  )
 
 ;; kestrel
 (test-equal 'x ((kestrel 'x) 'y))
