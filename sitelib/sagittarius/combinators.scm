@@ -32,10 +32,11 @@
 ;; $ suffix is taken from Gauche for partial application
 (library (sagittarius combinators)
     (export compose (rename (compose .$))
-	    kestrels thrush ~> cardinal
+	    kestrel thrush ~> cardinal
 	    idiot starling
 	    ;; formal names
 	    (rename (idiot identity)
+		    (kestrel constant)
 		    (cardinal flip)
 		    (starling substitution))
 	    
@@ -62,8 +63,8 @@
 
 ;; from https://github.com/raganwald-deprecated/homoiconic
 ;;  and https://github.com/fantasyland/fantasy-birds
-;; Kestrels (K-Combinator) Kxy = x
-(define (kestrels x . x*)
+;; Kestrel (K-Combinator) Kxy = x
+(define (kestrel x . x*)
   (if (null? x*)
       (lambda y x)
       ;; not sure if this is correct...

@@ -22,11 +22,12 @@
 (test-error (compose))
 (test-error (compose list))
 
-;; kestrels
-(test-equal 'x ((kestrels 'x) 'y))
-(test-equal 'x ((kestrels 'x) 'y0 'y1))
+;; kestrel
+(test-equal 'x ((kestrel 'x) 'y))
+(test-equal 'x ((kestrel 'x) 'y0 'y1))
 (test-equal '(x0 x1)
-	    (let-values ((r ((kestrels 'x0 'x1) 'y0 'y1))) r))
+	    (let-values ((r ((kestrel 'x0 'x1) 'y0 'y1))) r))
+(test-assert constant)
 
 ;; thrush
 (let ((add2 (pa$ + 2))
@@ -49,6 +50,15 @@
 (let ((add2 (pa$ + 2))
       (id (lambda (f) f)))
   (test-equal 5 (((cardinal id) 3) add2)))
+(test-assert flip)
+
+;; idiot
+(test-equal 'a (idiot 'a))
+(test-equal '(a b c) (let-values ((r (idiot 'a 'b 'c))) r))
+(test-assert identity)
+
+(test-assert starling)
+(test-assert substitution)
 
 
 (let ((add3 (pa$ + 3)))
