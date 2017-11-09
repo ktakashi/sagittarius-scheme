@@ -65,7 +65,10 @@
 ;; cardinal
 (let ((add2 (pa$ + 2))
       (id (lambda (f) f)))
-  (test-equal 5 (((cardinal id) 3) add2)))
+  (test-equal 5 (((cardinal id) 3) add2))
+  (test-equal '(a b c)
+	      (let-values ((r (((cardinal idiot) 'a 'b 'c) idiot))) r)))
+
 (test-assert flip)
 
 ;; idiot
@@ -75,6 +78,19 @@
 
 (test-assert starling)
 (test-assert substitution)
+
+;; starling
+(let* ((s starling)
+       (k kestrel)
+       (i ((s k) k)) ;; identity, i = s k k
+       ;; cardinal, c = s (s (k (s (k s) k)) s) (k k)
+       (c ((s ((s (k ((s (k s)) k))) s)) (k k))))
+  (test-equal 'a (i 'a))
+  (test-equal (idiot 'a) (i 'a))
+  (test-equal '(1 2 3) (let-values ((r (i 1 2 3))) r))
+  (test-equal 'a (((c i) 'a) i))
+  (test-equal '(a b c) (let-values ((r (((c i) 'a 'b 'c) i))) r))
+  (test-equal (((cardinal idiot) 'a) idiot) (((c i) 'a) i)))
 
 
 (let ((add3 (pa$ + 3)))

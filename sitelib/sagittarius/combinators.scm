@@ -112,8 +112,11 @@
   (lambda (y0 . y*)
     (define y (apply reverse-compose y0 y*))
     (lambda (z0 . z*)
-      (define z (apply reverse-compose z0 z*))
-      ((x z) (y z)))))
+      (if (null? z*)
+	  (let-values ((r (y z0)))
+	    (apply (x z0) r))
+	  (let-values ((r (apply y z0 z*)))
+	    (apply (apply x z0 z*) r))))))
 
 ;; Idiot (I-Combinator, identity) Ix = x
 ;; Should we define like this?
