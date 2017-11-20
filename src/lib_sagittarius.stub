@@ -77,6 +77,7 @@
 
   ;; closure?
   (define-c-proc closure? (cl) ::<boolean> :constant SG_CLOSUREP)
+  (define-c-proc subr? (p) ::<boolean> :constant SG_SUBRP)
 
   ;; list
   (define-c-proc dotted-list? (lst) ::<boolean> :constant SG_DOTTED_LISTP)
