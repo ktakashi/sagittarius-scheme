@@ -4583,7 +4583,30 @@
 	     (let ((x. (pass3/rec x labels)))
 	       (loop (if (transparent? x.) r (cons x. r)) xs))))))))
 
+(define (check-argumens iform)
+  (define (err-msg name req opt? given)
+    (if opt?
+	(format "wrong number of arguments: ~a requires at least ~a, but got ~a"
+		name req given)
+	(format "wrong number of arguments: ~a requires ~a, but got ~a"
+		name req given)))
+  (and-let* ((proc ($call-proc iform))
+	     ( ($gref? proc) )
+	     (id ($gref-id proc)) 
+	     (g (find-binding (id-library id) (id-name id) #f))
+	     (b (gloc-ref g))
+	     ( (or (subr? b) (closure? b)) ))
+    (let ((given (length ($call-args iform)))
+	  (req (procedure-reqargs b))
+	  (opt? (procedure-optional? b)))
+      (when (or (and (not opt?) (not (= req given)))
+		(and opt? (< given req)))
+	;; Should we reuse this?
+	(if (vm-error-unbound?)
+	    (error (id-name id) (err-msg (id-name id) req opt? given))
+	    (vm-warn (err-msg (id-name id) req opt? given)))))))
 (define (pass3/$CALL iform labels)
+  (check-argumens iform)
   ($call-args-set! iform (imap (lambda (arg) (pass3/rec arg labels))
 			       ($call-args iform)))
   (case ($call-flag iform)
