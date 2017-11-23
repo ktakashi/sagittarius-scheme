@@ -78,7 +78,8 @@
   (test-equal 5 ((json-pointer "/i\\\\j") json))
   (test-equal 6 ((json-pointer "/k'l") json))
   (test-equal 7 ((json-pointer "/ ") json))
-  (test-equal 8 ((json-pointer "/m~0n") json)))
+  (test-equal 8 ((json-pointer "/m~0n") json))
+  (test-assert (json-pointer-not-found? ((json-pointer "/foo/-") json))))
 
 (test-from-draft)
 (parameterize ((*json-map-type* 'alist)) (test-from-draft))

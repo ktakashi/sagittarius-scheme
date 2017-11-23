@@ -30,6 +30,8 @@
 
 ;; reference:
 ;; RFC 6901: https://tools.ietf.org/html/rfc6901
+;; For now, we only provide get (and it's enough for most of the time)
+;; So '-' is more or less useless
 #!nounbound
 (library (rfc json-pointer)
     (export json-pointer json-pointer-not-found?
