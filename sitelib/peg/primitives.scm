@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!nounbound
 (library (peg primitives)
     (export $return $fail $expect
 	    $eof
@@ -92,7 +93,7 @@
 (define ($not parser)
   (lambda (l)
     (let-values (((s v nl) (parser l)))
-      (if (parse-success? r)
+      (if (parse-success? s)
 	  (return-unexpect v l)
 	  (return-result #f nl)))))
 
@@ -122,7 +123,7 @@
 	  (let-values (((s v nl) ((car e*) l)))
 	    (if (parse-success? s)
 		(return-result v nl)
-		(loop (cdr expr) (acons s v rs))))))))
+		(loop (cdr e*) (acons s v rs))))))))
 
 ;; greedy option and repetition
 (define ($optional parser) ($or parser $eof))
