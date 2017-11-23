@@ -30,6 +30,7 @@
 
 ;; reference:
 ;; RFC 6901: https://tools.ietf.org/html/rfc6901
+#!nounbound
 (library (rfc json-pointer)
     (export json-pointer json-pointer-not-found?
 	    parse-json-pointer)
@@ -79,11 +80,11 @@
 	     +json-pointer-not-found+
 	     (cdr (vector-ref json i))))))
   (define (find-list-array json p)
-    (do ((i 0 (+ i 1)) (j json (cdr json)))
+    (do ((i 0 (+ i 1)) (j json (cdr j)))
 	((or (= i p) (null? j))
 	 (if (null? j)
 	     +json-pointer-not-found+
-	     (car json)))))
+	     (car j)))))
   (define parent (if (null? maybe-parent) values (car maybe-parent)))
   ;; TODO leading 0 shouldn't be there for array-index
   ;;      e.g. 0001 is not an index
@@ -103,7 +104,7 @@
 			(cond ((and (pair? json) (assoc p json)) => cdr)
 			      ((and (vector? json) (->array-index p)) =>
 			       (lambda (n)
-				 (if (< (vector-length json) n)
+				 (if (< n (vector-length json))
 				     (vector-ref json n)
 				     +json-pointer-not-found+)))
 			      (else +json-pointer-not-found+)))))))
