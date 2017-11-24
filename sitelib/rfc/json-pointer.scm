@@ -40,30 +40,30 @@
 	    (peg)
 	    (text json)
 	    (sagittarius generators)
-	    (srfi :14)
 	    (srfi :127))
 
-(define json-pointer-token
-  (char-set-difference char-set:full (char-set #\/ #\~)))
+(define unescaped
+  ($do (c ($satisfy (lambda (c) (not (or (eqv? #\/ c) (eqv? #\~ c))))))
+       ($return c)))
+(define escaped
+  ($do (($satisfy (lambda (c) (eqv? #\~ c))))
+       (c ($satisfy (lambda (c) (or (eqv? #\0 c) (eqv? #\1 c)))))
+       ($return (case c ((#\0) #\~) ((#\1) #\/)))))
+(define reference-token
+  ($do (chars ($many ($or unescaped escaped)))
+       ($return (list->string chars))))
+(define root
+  ($do (jp ($many ($seq ($satisfy (lambda (c) (eqv? c #\/)))
+			reference-token)))
+       ($return jp)))
 
 ;; more for testing...
 (define (parse-json-pointer p)
-  (define ->token list->string)
-  (define unescaped
-    ($do (c ($satisfy (lambda (c) (char-set-contains? json-pointer-token c))))
-	 ($return c)))
-  (define escaped
-    ($do (($satisfy (lambda (c) (eqv? #\~ c))))
-	 (c ($satisfy (lambda (c) (or (eqv? #\0 c) (eqv? #\1 c)))))
-	 ($return (case c ((#\0) #\~) ((#\1) #\/)))))
-  (define reference-token
-    ($do (chars ($many ($or unescaped escaped)))
-	 ($return (->token chars))))
-  (define root
-    ($do (jp ($many ($seq ($satisfy (lambda (c) (eqv? c #\/)))
-			  reference-token)))
-	 ($return jp)))
-  (let-values (((s v nl) (root (generator->lseq (string->generator p)))))
+  (define (->generator p)
+    (if (port? p)
+	(port->char-generator p)
+	(string->generator p)))
+  (let-values (((s v nl) (root (generator->lseq (->generator p)))))
     (if (parse-success? s)
 	v
 	(error 'json-pointer "Failed to parse JSON pointer"))))
