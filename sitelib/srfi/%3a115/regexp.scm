@@ -2,7 +2,7 @@
 ;;;
 ;;; regexp.scm - SRFI-115 Scheme Regular Expressions
 ;;;  
-;;;   Copyright (c) 2010-2014  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2014-2017  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!nounbound
 (library (srfi :115 regexp)
     (export regexp regexp? valid-sre? rx regexp->sre char-set->sre
 	    regexp-matches regexp-matches? regexp-search
@@ -49,8 +50,7 @@
 	sre
 	(sre->regex sre)))
 
-  (define (valid-sre? sre) 
-    (guard (e (else #f)) (sre-parse sre)))
+  (define (valid-sre? sre) (guard (e (else #f)) (sre-parse sre) #t))
 
   (define regexp->sre regex->sre)
   (define (char-set->sre cs) (list (char-set->string cs)))
