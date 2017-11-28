@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!nounbound
 (library (text json object-builder)
     (export json-string->object read-object-from-json
 	    json:builder? @ ?
@@ -40,12 +41,15 @@
 	    *post-json-object-build*
 	    *post-json-array-build*
 
+	    make-hashtable-serializer ;; for convenience
+
 	    ;; don't want to expose but no choice...
 	    json->object
 	    object->json
 	    )
     (import (rnrs)
 	    (text json parse)
+	    (util hashtables)
 	    (srfi :1)
 	    (srfi :39))
 
@@ -264,10 +268,17 @@
    (let loop ((mappings mappings) (r '()))
      (if (null? mappings)
 	 (list->vector (reverse r))
-	 (let-values (((absent? json) (serialize-element (car mappings) obj)))
-	   (if absent?
-	       (loop (cdr mappings) r)
-	       (loop (cdr mappings) (cons json r)))))))
+	 (let ((m (car mappings)))
+	   (cond ((json:serializer-mapping? m)
+		  (let-values (((absent? json) (serialize-element m obj)))
+		    (if absent?
+			(loop (cdr mappings) r)
+			(loop (cdr mappings) (cons json r)))))
+		 ((json:serializer? m)
+		  (loop (cdr mappings)
+			(append! (vector->list (object->json obj m)) r)))
+		 (else (assertion-violation 'serialize-object
+					    "invalid serializer")))))))
 
  (define (serialize-list-like-object serializer obj)
    (define car (json:sequential-access-array-serializer-car serializer))
@@ -289,6 +300,12 @@
 	 (reverse r)
 	 (let ((obj (ref obj i)))
 	   (loop (+ i 1) (cons (object->json obj element-serializer) r))))))
+
+ (define (make-hashtable-serializer getter)
+   (define (serialize ser obj)
+     (define hashtable (getter obj))
+     (list->vector (hashtable-map cons hashtable)))
+   (make-json:serializer serialize))
  
  (define (object->json obj serializer)
    ((json:serializer-serialize-object serializer) serializer obj))
@@ -308,11 +325,9 @@
  (define simple-json-serializer (make-json:serializer (lambda (_ obj) obj)))
 
  (define (serializer->mapping serializer)
-   (unless (json:object-serializer? serializer)
-     (assertion-violation 'json-object-serializer
-			  "nested serializer must be an object serializer"
-			  serializer))
-   (json:object-serializer-mappings serializer))
+   (if (json:object-serializer? serializer)
+       (json:object-serializer-mappings serializer)
+       serializer))
  
  (define (flatten . lis)
    (define (rec lis acc stk)

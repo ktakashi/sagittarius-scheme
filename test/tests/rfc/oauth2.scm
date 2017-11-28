@@ -1,18 +1,19 @@
 #!read-macro=sagittarius/regex
 #!read-macro=sagittarius/bv-string
 (import (rnrs)
-	(rfc oauth2)
-	(rfc http-connections)
-	(clos user)
 	(sagittarius)
-	(net server)
-	(crypto)
-	(rfc x.509)
-	(rfc :5322)
-	(prefix (binary io) binary:)
 	(sagittarius regex)
 	(sagittarius socket)
+	(rfc oauth2)
+	(rfc http-connections)
+	(rfc x.509)
+	(rfc :5322)
 	(rfc tls)
+	(clos user)
+	(net server)
+	(crypto)
+	(prefix (binary io) binary:)
+	(text json)
 	(srfi :18)
 	(srfi :19)
 	(srfi :64))
@@ -52,6 +53,10 @@
     (let ((conn (make-oauth2-http1-connection "api.twitter.com")))
       (test-assert (oauth2-connection? (oauth2-connection-attach-access-token! conn access-token)))
       (test-eq access-token (oauth2-connection-access-token conn)))
+
+    (test-equal (json-read (open-string-input-port json-string))
+		(json-read (open-string-input-port
+			    (access-token->json-string access-token))))
     ))
 
 (let ((access-token (make-oauth2-access-token "token" "exaple" -1 #f #f #f)))
@@ -130,7 +135,7 @@
   (define conn (make-oauth2-http1-connection "localhost:10080"))
   (server-start! server :background #t)
   (thread-sleep! 0.1)
-  
+
   (test-assert (oauth2-access-token?
 		(oauth2-request-password-credentials-access-token
 		 conn "/password_credentials" "username" "password")))

@@ -31,6 +31,7 @@
 ;; reference
 ;;  RFC 6749: https://tools.ietf.org/html/rfc6749
 ;;  RFC 7009: https://tools.ietf.org/html/rfc7009 (revocation)
+#!nounbound
 (library (rfc oauth2)
     (export oauth2-request-password-credentials-access-token
 	    oauth2-request-client-credentials-access-token
@@ -52,6 +53,7 @@
 	    oauth2-access-token?
 	    oauth2-access-token-expired?
 	    oauth2-access-token-creation-time
+	    oauth2-access-token-creation-time-set!
 	    oauth2-access-token-access-token
 	    oauth2-access-token-token-type
 	    oauth2-access-token-expires-in
@@ -69,6 +71,7 @@
 	    oauth2-connection-access-token
 
 	    json-string->access-token
+	    access-token->json-string
 
 	    &oauth2-error oauth2-error?
 	    &oauth2-request-error oauth2-request-error?
@@ -90,6 +93,7 @@
 	    (srfi :39)
 	    (text json)
 	    (text json object-builder)
+	    (util hashtables)
 	    (rfc uri)
 	    (rfc base64)
 	    (rfc http-connections))
@@ -155,7 +159,7 @@
     conn)
 ;;; Access token
   (define-record-type oauth2-access-token
-    (fields creation-time
+    (fields (mutable creation-time) ;; for restoring...
 	    access-token
 	    token-type
 	    expires-in
@@ -211,6 +215,19 @@
       (apply make-oauth2-access-token (append obj (list extra-parameters))))
     (parameterize ((*post-json-object-build* post-object-build))
       (json-string->object json access-token-builder parameter-handler)))
+
+  (define oauth2-parameter-serializer
+    (make-hashtable-serializer oauth2-access-token-parameters))
+  (define access-token-serializer
+    (json-object-serializer
+     (("access_token" oauth2-access-token-access-token)
+      ("token_type" oauth2-access-token-token-type)
+      (? "expires_in" #f oauth2-access-token-expires-in time-second)
+      (? "refresh_token" #f oauth2-access-token-refresh-token)
+      (? "scope" #f oauth2-access-token-scope oauth2-string-list->scope)
+      oauth2-parameter-serializer)))
+  (define (access-token->json-string access-token)
+    (object->json-string access-token access-token-serializer))
 
   (define (oauth2-access-token-expired? access-token)
     (define expires-in (oauth2-access-token-expires-in access-token))
@@ -311,15 +328,15 @@
 
 ;;; OAuth 2.0 Token Revocation
   (define (oauth2-revoke-access-token connection path credential access-token)
-    (define (do-revoke auth token type)
+    (define (do-revoke token type)
       (oauth2-request-authorization-server connection path
        (string-append "token=" token "&token_type_hint=" type)
        :authorization (string-append "Basic "credential)))
     (let ((token (oauth2-access-token-access-token access-token))
 	  (refresh-token (oauth2-access-token-refresh-token access-token)))
       ;; TODO should we make this optional?
-      (when refresh-token (do-revoke auth refresh-token "refresh_token"))
-      (do-revoke auth token "access_token")))
+      (when refresh-token (do-revoke refresh-token "refresh_token"))
+      (do-revoke token "access_token")))
   
   (define (oauth2-request-authorization-server connection path parameters
 					       . rest)
