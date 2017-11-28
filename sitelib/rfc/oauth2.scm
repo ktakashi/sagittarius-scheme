@@ -72,7 +72,8 @@
 
 	    json-string->access-token
 	    access-token->json-string
-
+	    (rename (access-token-builder oauth2-access-token-builder)
+		    (access-token-serializer oauth2-access-token-serializer))
 	    &oauth2-error oauth2-error?
 	    &oauth2-request-error oauth2-request-error?
 	    oauth2-request-error-status oauth2-request-error-content
