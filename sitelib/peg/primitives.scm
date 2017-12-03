@@ -31,7 +31,7 @@
 #!nounbound
 (library (peg primitives)
     (export $return $fail $expect
-	    $eof
+	    $eof $any
 	    $satisfy $not
 	    $seq $or $optional $many
 
@@ -108,6 +108,12 @@
 	      (return-expect expect l))))))
 
 (define $eof ($satisfy null? "EOF is expected"))
+;; the same as ($not $eof)) but better performance
+(define $any
+  (lambda (l)
+    (if (null? l)
+	(return-unexpect "EOF" l)
+	(return-result (lseq-car l) (lseq-cdr l)))))
 
 ;; ordered choice
 (define ($or . expr)

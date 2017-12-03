@@ -72,4 +72,10 @@
 
 (test-error assertion-violation? ($many ($fail "incorrect happen") 5 2))
 
+(let-values (((s v n)
+	      (($do (c* ($many $any 3 3)) ($return (list->string c*)))
+	       (generator->lseq (string->generator "abcdef")))))
+  (test-equal "abc" v))
+	    
+
 (test-end)
