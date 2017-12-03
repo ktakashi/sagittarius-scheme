@@ -33,12 +33,24 @@
     (import (rnrs)
 	    (peg primitives))
 
-(define ($bind p f)
+(define ($$bind p f)
   (lambda (l)
     (let-values (((s v nl) (p l)))
       (if (parse-success? s)
 	  ((f v) nl)
 	  (values s v l)))))
+
+(define-syntax $bind
+  (lambda (x)
+    (syntax-case x ()
+      ((_ p? f?)
+       #'(let ((p p?) (f f?))
+	   (lambda (l)
+	     (let-values (((s v nl) (p l)))
+	       (if (parse-success? s)
+		   ((f v) nl)
+		   (values s v l))))))
+      (k (identifier? #'k) #'$$bind))))
 
 ;; $do clause ... body
 ;;   clause := (var parser)
