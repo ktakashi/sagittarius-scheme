@@ -262,4 +262,16 @@
   (test-assert "symbol (:) file" (symbol? (call-with-input-file file read)))
   (test-assert "symbol (:) file (2)" (with-input-from-file file read)))
 
+(let ()
+  (define-syntax mac-main1
+    (syntax-rules ()
+      ((_ lit x1 y1 z1)
+       (let-syntax
+	   ((mac-sub1
+	     (syntax-rules (lit)
+	       ((_ x2 y2 z2)
+		(+ x2 y2 z2)))))
+	 (mac-sub1 x1 y1 z1)))))
+  (test-equal 6 (mac-main1 x2 1 2 3)))
+
 (test-end)

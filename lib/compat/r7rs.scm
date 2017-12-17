@@ -34,9 +34,9 @@
 ;; syntax-violation
 (define (error msg . irr) 
   (let ((form (if (null? irr) #f (car irr)))
-	  (subform (and (not (null? irr))
-			(not (null? (cdr irr)))
-			(cdr irr))))
+	(subform (and (not (null? irr))
+		      (not (null? (cdr irr)))
+		      (cdr irr))))
     (syntax-violation 'syntax-rules msg form subform)))
 
 ;; Chibi's length* returns element count of car parts of inproper list
@@ -105,7 +105,7 @@
            _let (list (list v x))
            (cond
             ((identifier? p)
-             (cond ((any (lambda (l) (compare p l)) lits)
+             (cond ((memq p lits)
 		    (list _and
 			  (list _compare v (list _rename (list _quote p)))
 			  (k vars)))
@@ -208,7 +208,7 @@
     (define (all-vars x dim)
       (let lp ((x x) (dim dim) (vars '()))
         (cond ((identifier? x)
-               (if (any (lambda (lit) (compare x lit)) lits)
+               (if (or (memq x lits) (compare x _underscore))
                    vars
                    (cons (cons x dim) vars)))
               ((ellipsis? x) (lp (car x) (+ dim 1) (lp (cddr x) dim vars)))
