@@ -1,0 +1,43 @@
+key="val"
+key2=true
+str1="str\tstr"
+str2='str\tstr'
+str3="""
+multi line
+this is not wrapped \
+like this
+"""
+str4='''
+multi line
+this is wrapped \
+it shows as it is
+'''
+dec1=1234_5678
+dec2=-1234_5678
+dec3=+1234_5678
+hex1=0x12ab
+hex2=0x1234_abcd
+oct1=0o1234
+oct2=0o1234_567
+float1=10.05e10
+float1=1e10
+date1=2018-12-21
+date2=2018-12-21T01:00:00Z
+date3=2018-12-21T01:00:00+03:00
+array1=[]
+array2=[1]
+array3=[1,2]
+array4=[[]]
+array5=[[],[]]
+
+[key]
+
+[key.nest1]
+
+[key.nest1.nest2]
+
+[[array-key]]
+
+[[array-key.nest1]]
+
+[[array-key.nest1.nest2]]
