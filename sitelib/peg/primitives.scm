@@ -33,7 +33,7 @@
     (export $return $fail $expect
 	    $eof $any
 	    $satisfy $not
-	    $seq $or $optional $many
+	    $seq $or $many
 
 	    $debug
 	    ;; value returning
@@ -132,7 +132,6 @@
 		(loop (cdr e*) (acons s v rs))))))))
 
 ;; greedy option and repetition
-(define ($optional parser) ($or parser $eof))
 (define ($many parser . count)
   (define at-least (if (null? count) 0 (car count)))
   (define at-most (if (or (null? count) (null? (cdr count)))

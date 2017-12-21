@@ -29,7 +29,7 @@
 ;;;  
 
 (library (peg derived)
-    (export $bind $do)
+    (export $bind $do $optional $repeat $sequence-of)
     (import (rnrs)
 	    (peg primitives))
 
@@ -65,6 +65,13 @@
      ($bind parser (lambda (_) ($do clause rest ...))))
     ((_ parser clause rest ...)
      ($bind parser (lambda (_) ($do clause rest ...))))))
-  
-    
+
+(define ($optional parser . maybe-fallback)
+  (define fallback (if (null? maybe-fallback) #f (car maybe-fallback)))
+  ($do (r ($many parser 0 1))
+       ($return (if (null? r) fallback (car r)))))
+(define ($repeat parser n) ($many parser n n))
+
+(define ($sequence-of preds)
+  (apply $seq (map $satisfy preds)))
 )
