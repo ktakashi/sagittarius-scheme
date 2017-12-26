@@ -22,12 +22,6 @@
 (procedure-inliner-set! (find-procedure 'map '(core base)) #f)
 (procedure-inliner-set! (find-procedure 'for-each '(core base)) #f)
 
-;; Remove after 0.8.9
-(eval '(begin
-	 (with-library (sagittarius) (define (subr? o) #f))
-	 (with-library (sagittarius) (export subr?)))
-      (environment '(core) '(sagittarius control)))
-
 (define-constant +default-compiler+ "../boot/compiler.scm")
 ;; import specs for compiler 
 ;; we can use (rnrs) here since it won't be pre-compiled
