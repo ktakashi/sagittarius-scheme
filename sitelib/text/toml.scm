@@ -382,6 +382,25 @@
        array-table-close
        ($return (string-concatenate (cons k k*)))))
 
+;; inlien table
+(define inline-table-sep ($seq ws ($eqv? #\,) ws))
+(define inline-table-keyvals-non-empty
+  ($do (k key)
+       keyval-sep
+       (v val)
+       (kv* ($optional
+	     ($seq inline-table-sep
+		   inline-table-keyvals-non-empty)
+	     '()))
+       ($return (cons (cons k v) kv*))))
+(define inline-table-keyvals
+  ($optional inline-table-keyvals-non-empty '()))
+(define inline-table
+  ($do (($seq ($eqv? #\{) ws))
+       (r inline-table-keyvals)
+       (($seq ws ($eqv? #\})))
+       ($return (list->vector r))))
+
 (define table
   ($or std-table array-table))
 
@@ -389,7 +408,7 @@
   ($or string
        boolean
        array
-       ;; inline-table
+       inline-table
        date-time
        float
        integer))
@@ -407,11 +426,11 @@
 (define toml
   ($do (e expression)
        (e* ($many ($do newline (e expression) ($return e))))
-       ($return (filter values (cons e e*)))))
+       ($return (list->vector (filter values (cons e e*))))))
 
 (define (toml-read in)
   (let-values (((s v nl) (toml (generator->lseq (port->char-generator in)))))
     (if (parse-success? s)
 	v
-	(error 'toml-readl "Failed to read TOML" v))))
+	(error 'toml-read "Failed to read TOML" v))))
 )

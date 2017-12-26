@@ -29,7 +29,9 @@ array2=[1]
 array3=[1,2]
 array4=[[]]
 array5=[[],[]]
-
+inline-table1={ }
+inline-table2={ key1="key1" }
+inline-table3={ key1="key1", key2="key2", key3=true }
 [key]
 
 [key.nest1]
