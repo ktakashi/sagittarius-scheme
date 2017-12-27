@@ -365,12 +365,16 @@
 (define std-table-close ($seq ($eqv? #\]) ws))
 (define table-key-sep ($seq ws ($eqv? #\.)  ws))
 
+(define (keys->table k . keys)
+  (if (null? keys)
+      `#((,k))
+      `#((,k . ,(apply keys->table keys)))))
 (define std-table
   ($do std-table-open
        (k key)
        (k* ($many ($do table-key-sep (k key) ($return k))))
        std-table-close
-       ($return (string-concatenate (cons k k*)))))
+       ($return (apply keys->table k k*))))
 
 (define array-table-open ($seq ($eqv? #\[) ($eqv? #\[) ws))
 (define array-table-close ($seq ($eqv? #\]) ($eqv? #\]) ws))
