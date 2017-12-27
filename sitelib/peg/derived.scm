@@ -29,9 +29,11 @@
 ;;;  
 
 (library (peg derived)
-    (export $bind $do $optional $repeat $sequence-of)
+    (export $bind $do $optional $repeat $sequence-of
+	    $parameterize)
     (import (rnrs)
-	    (peg primitives))
+	    (peg primitives)
+	    (srfi :39 parameters))
 
 (define ($$bind p f)
   (lambda (l)
@@ -74,4 +76,12 @@
 
 (define ($sequence-of preds)
   (apply $seq (map $satisfy preds)))
+
+(define-syntax $parameterize
+  (syntax-rules ()
+    ((_ ((p c) ...) parser)
+     (let ((e parser))
+       (lambda (l)
+	 (parameterize ((p c) ...)
+	   (e l)))))))
 )
