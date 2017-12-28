@@ -37,6 +37,7 @@
     (import (rename (rnrs)
 		    (newline r6:newline)
 		    (string r6:string))
+	    (rnrs mutable-pairs)
 	    (peg)
 	    (sagittarius generators)
 	    (sagittarius timezone)
@@ -62,6 +63,11 @@
 			x
 			(error '*json-map-type* 
 			       "type must be 'vector or 'alist" x)))))
+;; internal parameters
+(define *current-table* (make-parameter #f))
+(define *tables* (make-parameter #f))
+(define *array-tables* (make-parameter #f))
+
 
 (define non-eol-set (ucs-range->char-set #x20 #x110000))
 (define key-set
@@ -367,7 +373,9 @@
 
 (define (keys->table k . keys)
   (if (null? keys)
-      `#((,k))
+      (let ((r `#((,k))))
+	(*current-table* r)
+	r)
       `#((,k . ,(apply keys->table keys)))))
 (define std-table
   ($do std-table-open
@@ -379,12 +387,16 @@
 (define array-table-open ($seq ($eqv? #\[) ($eqv? #\[) ws))
 (define array-table-close ($seq ($eqv? #\]) ($eqv? #\]) ws))
 
+(define (keys->array-table k . keys)
+  (if (null? keys)
+      `#((,k . #()))
+      `#((,k . ,(apply keys->array-table keys)))))
 (define array-table
   ($do array-table-open
        (k key)
        (k* ($many ($do table-key-sep (k key) ($return k))))
        array-table-close
-       ($return (string-concatenate (cons k k*)))))
+       ($return (apply keys->array-table k k*))))
 
 ;; inlien table
 (define inline-table-sep ($seq ws ($eqv? #\,) ws))
@@ -417,11 +429,22 @@
        float
        integer))
 
+(define (resolve-table k v)
+  (cond ((*current-table*) =>
+	 (lambda (t)
+	   (let* ((store (vector-ref t 0))
+		  (v* (cdr store)))
+	     (if (null? v*)
+		 (set-cdr! store (vector (cons k v)))
+		 (set-cdr! store `#(,@(vector->list v*) (,k . ,v)))))
+	   #f))
+	(else (cons k v))))
+
 (define keyval
   ($do (k key)
        keyval-sep
        (v val)
-       ($return (cons k v))))
+       ($return (resolve-table k v))))
 
 (define expression
   ($or ($do ws (k keyval) ws (($optional comment)) ($return k))
