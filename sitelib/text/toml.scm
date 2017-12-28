@@ -372,11 +372,27 @@
 (define table-key-sep ($seq ws ($eqv? #\.)  ws))
 
 (define (keys->table k . keys)
-  (if (null? keys)
-      (let ((r `#((,k))))
-	(*current-table* r)
-	r)
-      `#((,k . ,(apply keys->table keys)))))
+  (define last)
+  (define root-table (cond ((*current-table*) => car)
+			   (else #f)))
+  (define (rec table k . keys)
+    (cond ((null? keys)
+	   (let ((r `#((,k))))
+	     (set! last r) ;; FIXME
+	     r))
+	  ((and table (equal? (car (vector-ref table 0)) k))
+	   (let* ((store (vector-ref table 0))
+		  (v* (cdr store))
+		  (n (apply rec (cdr (vector-ref table 0)) keys)))
+	     (set-cdr! store `#(,@(vector->list v*) ,@(vector->list n)))
+	     table))
+	  (table `#((,k . ,(apply rec (cdr (vector-ref table 0)) keys))))
+	  (else  `#((,k . ,(apply rec table keys))))))
+  (let* ((r (apply rec root-table k keys))
+	 (current? (eq? r root-table)))
+    (*current-table* (cons r last))
+    (and (not current?) r)))
+
 (define std-table
   ($do std-table-open
        (k key)
@@ -432,7 +448,7 @@
 (define (resolve-table k v)
   (cond ((*current-table*) =>
 	 (lambda (t)
-	   (let* ((store (vector-ref t 0))
+	   (let* ((store (vector-ref (cdr t) 0))
 		  (v* (cdr store)))
 	     (if (null? v*)
 		 (set-cdr! store (vector (cons k v)))

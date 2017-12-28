@@ -33,12 +33,12 @@ inline-table1={ }
 inline-table2={ key1="key1" }
 inline-table3={ key1="key1", key2="key2", key3=true }
 
-[key]
+[table]
 internal="value"
 
-[key.nest1]
+[table.nest1]
 
-[key.nest1.nest2]
+[table.nest1.nest2]
 
 [[array-key]]
 
