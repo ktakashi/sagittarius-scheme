@@ -36,14 +36,24 @@ inline-table3={ key1="key1", key2="key2", key3=true }
 [table]
 internal="value"
 
-[table.nest1]
+  [table.nest1]
+  value = 1
+
+  [table.nest1.nest2]
+  value = 2
+
+[[array-table]]
 value = 1
+  [array-table.kv]
+  key = 1
 
-[table.nest1.nest2]
-value = 2
+  [[array-table.nest1]]
+  nest-value = 1
+  [[array-table.nest1]]
+  nest-value = 2
 
-[[array-key]]
+# [[array-table]]
+# value = 2
 
-[[array-key.nest1]]
-
-[[array-key.nest1.nest2]]
+# [[array-table]]
+# value = 3
