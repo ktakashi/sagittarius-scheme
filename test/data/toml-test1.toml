@@ -19,11 +19,13 @@ hex1=0x12ab
 hex2=0x1234_abcd
 oct1=0o1234
 oct2=0o1234_567
+bin1=0b01
+bin2=0b11
 float1=10.05e10
 float1=1e10
-date1=2018-12-21
-date2=2018-12-21T01:00:00Z
-date3=2018-12-21T01:00:00+03:00
+# date1=2018-12-21
+# date2=2018-12-21T01:00:00Z
+# date3=2018-12-21T01:00:00+03:00
 array1=[]
 array2=[1]
 array3=[1,2]
@@ -32,34 +34,3 @@ array5=[[],[]]
 inline-table1={ }
 inline-table2={ key1="key1" }
 inline-table3={ key1="key1", key2="key2", key3=true }
-
-[table]
-internal="value"
-
-  [table.nest1]
-  value = 1
-
-  [table.nest1.nest2]
-  value = 2
-
-  [[table.array]]
-  name = "name1"
-
-  [[table.array]]
-  name = "name2"
-
-[[array-table]]
-value = 1
-  [array-table.kv]
-  key = 1
-
-  [[array-table.nest1]]
-  nest-value = 1
-  [[array-table.nest1]]
-  nest-value = 2
-
-[[array-table]]
-value = 2
-
-[[array-table]]
-value = 3

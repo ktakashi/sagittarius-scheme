@@ -32,8 +32,7 @@
 (library (text toml)
     (export ;; toml-write
 	    toml-read
-	    
-	    *toml-map-type*)
+	    )
     (import (rename (rnrs)
 		    (newline r6:newline)
 		    (string r6:string))
@@ -58,13 +57,6 @@
 	    (srfi :39 parameters)
 	    (srfi :127 lseqs))
 
-(define *toml-map-type*
-  (make-parameter 'vector
-		  (lambda (x)
-		    (if (or (eq? x 'vector) (eq? x 'alist))
-			x
-			(error '*json-map-type* 
-			       "type must be 'vector or 'alist" x)))))
 ;; internal parameters
 (define *current-table* (make-parameter #f))
 (define *current-root-table* (make-parameter #f))
@@ -390,19 +382,34 @@
   (define (rec table k . keys)
     (cond ((and table (find-table table k)) =>
 	   (lambda (store)
-	     (let* ((v* (last-element (cdr store)))
-		    (n (and (not (null? keys)) (apply rec v* keys))))
-	       (when (null? keys) (*current-table* (cons type `#(,store))))
-	       (when (and n (not (eq? v* n)))
-		 (let ((tail (vector-append v* n)))
-		   (set-cdr! store
-			     (if (vector? (cdr store)) tail (list tail)))))
+	     (define (make-tail)
+	       (let ((v (case type
+			  ((standard) `#(,store))
+			  ((array) (vector (append! store (list (vector))))))))
+		 (*current-table* (cons type v))
+		 (values #f #f)))
+	     (define (process-tail)
+	       (let* ((v (last-element (cdr store)))
+		      (n (apply rec v keys)))
+		 (cond ((eq? v n) (values #f #f))
+		       ((vector? (cdr store))
+			(values (vector-append v n) #t))
+		       (else
+			(let loop ((h store))
+			  (cond ((eq? (cadr h) v)
+				 (set-cdr! h (list (vector-append v n)))
+				 (values #f #f))
+				(else (loop (cdr store)))))))))
+	     (let-values (((tail update?)
+			   (if (null? keys) (make-tail) (process-tail))))
+	       (when update? (set-cdr! store tail))
 	       table)))
 	  ((null? keys)
 	   (let ((r `#((,k))))
 	     (*current-table* (cons type r))
 	     r))
-	  (else  `#((,k . ,(apply rec table keys))))))
+	  (else `#((,k . ,(apply rec table keys))))))
+
   (let* ((r (apply rec root-table k keys))
 	 (current? (eq? r root-table)))
     (when (or (not root-table) (not current?))
@@ -458,21 +465,28 @@
        integer))
 
 (define (resolve-table k v)
+  (define (maybe-last-element e)
+    (if (null? e)
+	e
+	(last-element e)))
   (cond ((*current-table*) =>
 	 (lambda (t)
 	   (let* ((type (car t))
 		  (store (vector-ref (cdr t) 0))
-		  (v* (cdr store)))
-	     (set-cdr! store 
-		       (case type
-			 ((standard)
-			  (if (null? v*)
-			      (vector (cons k v))
-			      `#(,@(vector->list v*) (,k . ,v))))
-			 ((array)
-			  (if (null? v*)
-			      (list (vector (cons k v)))
-			      (append! v* `(#((,k . ,v))))))))
+		  (v* (maybe-last-element (cdr store))))
+	     (let ((v (if (null? v*)
+			  `#((,k . ,v))
+			  (vector-append v* `#((,k . ,v))))))
+	       (case type
+		 ((standard) (set-cdr! store v))
+		 ((array)
+		  (if (null? v*)
+		      (set-cdr! store (list v))
+		      (let loop ((h store))
+			(cond ((null? h)) ;; error case should never happen
+			      ((eq? (cadr h) v*)
+			       (set-cdr! h (list v)))
+			      (else (loop (cdr h)))))))))
 	     #f)))
 	(else (cons k v))))
 
@@ -483,15 +497,18 @@
        ($return (resolve-table k v))))
 
 (define expression
-  ($or ($do ws (k keyval) ws (($optional comment)) ($return k))
-       ($do ws (t table) ws (($optional comment)) ($return t))
+  ($or ($do ws (t table) ws (($optional comment)) ($return t))
+       ;; toplevel keyval is converted to table format
+       ($do ws (k keyval) ws (($optional comment)) ($return (and k (vector k))))
        ($do ws (($optional comment)) ($return #f))))
+
 (define toml
   ($parameterize ((*current-table* #f)
 		  (*current-root-table* #f))
     ($do (e expression)
 	 (e* ($many ($do newline (e expression) ($return e))))
-	 ($return (list->vector (filter values (cons e e*)))))))
+	 ;; merge expressions
+	 ($return (vector-concatenate (filter values (cons e e*)))))))
 
 (define (toml-read in)
   (let-values (((s v nl) (toml (generator->lseq (port->char-generator in)))))
