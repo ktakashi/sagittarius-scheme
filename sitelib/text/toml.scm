@@ -32,6 +32,9 @@
 (library (text toml)
     (export ;; toml-write
 	    toml-read
+	    *toml-version*
+	    +toml-version-0.4.0+
+	    &toml-parse-error make-toml-parse-error toml-parse-error?
 	    )
     (import (rename (rnrs)
 		    (newline r6:newline)
@@ -57,12 +60,17 @@
 	    (srfi :39 parameters)
 	    (srfi :127 lseqs))
 
+(define-condition-type &toml-parse-error &error
+  make-toml-parse-error toml-parse-error?)
+
+(define *toml-version* (make-parameter +inf.0))
+(define-constant +toml-version-0.4.0+ 0.4)
+
 ;; internal parameters
 (define *current-table* (make-parameter #f))
 (define *current-root-table* (make-parameter #f))
 (define *tables* (make-parameter #f))
 (define *array-tables* (make-parameter #f))
-
 
 (define non-eol-set (ucs-range->char-set #x20 #x110000))
 (define key-set
@@ -220,8 +228,11 @@
 (define hex-int (radius-int "0x" hex-digit 16))
 (define oct-int (radius-int "0o" oct-digit 8))
 (define bin-int (radius-int "0b" bin-digit 2))
+(define non-dec-int ($or hex-int oct-int bin-int))
 
-(define integer ($or hex-int oct-int bin-int dec-int))
+(define integer
+  ($or ($when (< +toml-version-0.4.0+ (*toml-version*)) non-dec-int)
+       dec-int))
 
 ;; Float
 ;; silly...
@@ -241,12 +252,22 @@
   ($do (($eqv? #\e))
        (e float-int-part)
        ($return (string-append "e" e))))
+(define float-inf
+  ($do (s ($optional ($or ($eqv? #\+) ($eqv? #\-)) #\+))
+       (($token "inf"))
+       ($return (if (eqv? s #\-) -inf.0 +inf.0))))
+(define float-nan
+  ($do (s ($optional ($or ($eqv? #\+) ($eqv? #\-)) #\+))
+       (($token "nan"))
+       ($return (if (eqv? s #\-) -nan.0 +nan.0))))
+(define float-special ($or float-inf float-nan))
 (define float
-  ($do (i float-int-part)
-       (f ($or exponent
-	       ($do (f frac) (e ($optional exponent))
-		    ($return (if e (string-append f e) f)))))
-       ($return (string->number (string-append i f)))))
+  ($or ($do (i float-int-part)
+	    (f ($or exponent
+		    ($do (f frac) (e ($optional exponent))
+			 ($return (if e (string-append f e) f)))))
+	    ($return (string->number (string-append i f))))
+       ($when (< +toml-version-0.4.0+ (*toml-version*)) float-special)))
 
 ;; Date and Time
 ;; hmmm
@@ -274,10 +295,16 @@
 (define time-hour 2digits)
 (define time-minute 2digits)
 (define time-second 2digits)
+(define (->nanosecond digits n)
+  (if (zero? n)
+      n
+      (let* ((len (length digits))
+	     (base (/ 1000000000 (* (- len 1) 10))))
+	(* base n))))
 (define time-secfrac
   ($do (($eqv? #\.))
        (m ($many ($in-set dec-digit) 1))
-       ($return (* 1000000 (string->number (list->string m))))))
+       ($return (->nanosecond m (string->number (list->string m))))))
 (define time-numoffset
   ($do (s ($or ($eqv? #\+) ($eqv? #\-)))
        (h time-hour)
@@ -333,9 +360,9 @@
 (define local-time partial-time)
 (define date-time
   ($or offset-date-time
-       local-date-time
-       local-date
-       local-time))
+       ($when (< +toml-version-0.4.0+ (*toml-version*)) local-date-time)
+       ($when (< +toml-version-0.4.0+ (*toml-version*)) local-date)
+       ($when (< +toml-version-0.4.0+ (*toml-version*)) local-time)))
 
 ;; Array
 (define ws-comment-newline
@@ -512,7 +539,12 @@
 
 (define (toml-read in)
   (let-values (((s v nl) (toml (generator->lseq (port->char-generator in)))))
-    (if (parse-success? s)
+    (if (and (parse-success? s) (null? nl))
 	v
-	(error 'toml-read "Failed to read TOML" v))))
+	(raise
+	 (condition
+	  (make-toml-parse-error)
+	  (make-who-condition 'toml-read)
+	  (make-message-condition "Failed to read TOML")
+	  (make-irritants-condition v))))))
 )
