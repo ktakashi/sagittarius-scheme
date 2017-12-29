@@ -381,31 +381,31 @@
     (cond ((= i len) #f)
 	  ((equal? (car (vector-ref table i)) k) (vector-ref table i))
 	  (else (loop (+ i 1))))))
-(define (keys->table k . keys)
+(define (last-element store)
+  (if (vector? store)
+      store ;; current was standard
+      (car (last-pair store))))
+(define (keys->table type k keys)
   (define root-table (*current-root-table*))
-  (define (last-store store)
-    (if (vector? store)
-	store ;; current was standard
-	(car (last-pair store))))
   (define (rec table k . keys)
-    (cond ((null? keys)
-	   (let ((r `#((,k))))
-	     (*current-table* (cons 'standard r))
-	     r))
-	  ((and table (find-table table k)) =>
+    (cond ((and table (find-table table k)) =>
 	   (lambda (store)
-	     (let* ((v* (last-store (cdr store)))
-		    (n (apply rec v* keys)))
-	       (unless (eq? v* n)
+	     (let* ((v* (last-element (cdr store)))
+		    (n (and (not (null? keys)) (apply rec v* keys))))
+	       (when (null? keys) (*current-table* (cons type `#(,store))))
+	       (when (and n (not (eq? v* n)))
 		 (let ((tail (vector-append v* n)))
 		   (set-cdr! store
 			     (if (vector? (cdr store)) tail (list tail)))))
 	       table)))
-	  (table `#((,k . ,(apply rec (cdr (vector-ref table 0)) keys))))
+	  ((null? keys)
+	   (let ((r `#((,k))))
+	     (*current-table* (cons type r))
+	     r))
 	  (else  `#((,k . ,(apply rec table keys))))))
   (let* ((r (apply rec root-table k keys))
 	 (current? (eq? r root-table)))
-    (when (or (not root-table) (not (find-table root-table k)))
+    (when (or (not root-table) (not current?))
       (*current-root-table* r))
     (and (not current?) r)))
 
@@ -414,39 +414,17 @@
        (k key)
        (k* ($many ($do table-key-sep (k key) ($return k))))
        std-table-close
-       ($return (apply keys->table k k*))))
+       ($return (keys->table 'standard k k*))))
 
 (define array-table-open ($seq ($eqv? #\[) ($eqv? #\[) ws))
 (define array-table-close ($seq ($eqv? #\]) ($eqv? #\]) ws))
 
-(define (keys->array-table k . keys)
-  (define root-table (*current-root-table*))
-  (define (rec table k . keys)
-    (cond ((and table (find-table table k)) =>
-	   (lambda (store)
-	     (let* ((v* (cdr store))
-		    (n (and (not (null? keys)) (apply rec v* keys))))
-	       (when (and n (not (eq? v* n)))
-		 (set-cdr! store
-			   (list (vector-append (car (last-pair v*)) n))))
-	       table)))
-	  ((null? keys)
-	   (let ((r `#((,k))))
-	     (*current-table* (cons 'array r))
-	     r))
-	  (table `#((,k ,(apply rec (cdr (vector-ref table 0)) keys))))
-	  (else  `#((,k ,(apply rec table keys))))))
-  (let* ((r (apply rec root-table k keys))
-	 (current? (eq? r root-table)))
-    (when (or (not root-table) (not (find-table root-table k)))
-      (*current-root-table* r))
-    (and (not current?) r)))
 (define array-table
   ($do array-table-open
        (k key)
        (k* ($many ($do table-key-sep (k key) ($return k))))
        array-table-close
-       ($return (apply keys->array-table k k*))))
+       ($return (keys->table 'array k k*))))
 
 ;; inlien table
 (define inline-table-sep ($seq ws ($eqv? #\,) ws))
@@ -509,9 +487,11 @@
        ($do ws (t table) ws (($optional comment)) ($return t))
        ($do ws (($optional comment)) ($return #f))))
 (define toml
-  ($do (e expression)
-       (e* ($many ($do newline (e expression) ($return e))))
-       ($return (list->vector (filter values (cons e e*))))))
+  ($parameterize ((*current-table* #f)
+		  (*current-root-table* #f))
+    ($do (e expression)
+	 (e* ($many ($do newline (e expression) ($return e))))
+	 ($return (list->vector (filter values (cons e e*)))))))
 
 (define (toml-read in)
   (let-values (((s v nl) (toml (generator->lseq (port->char-generator in)))))

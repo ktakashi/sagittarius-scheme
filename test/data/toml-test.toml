@@ -42,6 +42,12 @@ internal="value"
   [table.nest1.nest2]
   value = 2
 
+  [[table.array]]
+  name = "name1"
+
+  [[table.array]]
+  name = "name2"
+
 [[array-table]]
 value = 1
   [array-table.kv]
@@ -52,8 +58,8 @@ value = 1
   [[array-table.nest1]]
   nest-value = 2
 
-# [[array-table]]
-# value = 2
+[[array-table]]
+value = 2
 
-# [[array-table]]
-# value = 3
+[[array-table]]
+value = 3
