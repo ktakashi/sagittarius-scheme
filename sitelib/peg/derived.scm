@@ -30,7 +30,7 @@
 
 (library (peg derived)
     (export $bind $do $optional $repeat $sequence-of
-	    $parameterize)
+	    $parameterize $if $when $unless)
     (import (rnrs)
 	    (peg primitives)
 	    (srfi :39 parameters))
@@ -84,4 +84,22 @@
        (lambda (l)
 	 (parameterize ((p c) ...)
 	   (e l)))))))
+
+(define-syntax $if
+  (syntax-rules ()
+    ((_ pred consequence alternative)
+     (let ((c consequence)
+	   (a alternative))
+       (lambda (l)
+	 (if pred
+	     (c l)
+	     (a l)))))))
+(define-syntax $when
+  (syntax-rules ()
+    ((_ pred body)
+     ($if pred body ($fail 'pred)))))
+(define-syntax $unless
+  (syntax-rules ()
+    ((_ pred body)
+     ($when (not pred) body))))
 )
