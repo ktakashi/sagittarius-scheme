@@ -386,7 +386,7 @@
        (v ($optional array-values '()))
        ws-comment-newline
        (($eqv? #\]))
-       ($return (list->vector v))))
+       ($return v)))
 
 ;; Table
 (define std-table-open ($seq ($eqv? #\[) ws))
