@@ -115,9 +115,14 @@
   (define (write-number value out) (put-datum out value))
   (define (write-date value out)
     (put-string out (date->string value "~6")))
+  (define (write-boolean value out)
+    (if value
+	(put-string out "true")
+	(put-string out "false")))
   (cond ((string? value) (write-string value out))
 	((number? value) (write-number value out))
 	((date? value)   (write-date value out))
+	((boolean? value) (write-boolean value out))
 	(else (assertion-violation 'toml-write "unknown value" value))))
 
 (define (toml-write-readable toml out)
