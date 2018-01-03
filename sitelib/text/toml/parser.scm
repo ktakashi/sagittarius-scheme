@@ -432,7 +432,9 @@
 	       (when update? (set-cdr! store tail))
 	       table)))
 	  ((null? keys)
-	   (let ((r `#((,k))))
+	   (let ((r `#((,k . ,(case type
+				((standard) (vector))
+				((array) '()))))))
 	     (*current-table* (cons type r))
 	     r))
 	  (else `#((,k . ,(apply rec table keys))))))

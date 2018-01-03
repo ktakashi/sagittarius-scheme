@@ -2,7 +2,8 @@
 	(text toml)
 	(srfi :64)
 	(srfi :19)
-	(srfi :39))
+	(srfi :39)
+	(pp))
 
 (test-begin "TOML")
 
@@ -30,7 +31,10 @@
   (test-assert str (toml-read (open-string-input-port str))))
 
 (define (test-toml-file expected file)
-  (test-equal file expected (call-with-input-file file toml-read)))
+  (test-equal file expected (call-with-input-file file toml-read))
+  (let ((toml (call-with-string-output-port
+	       (lambda (out) (toml-write expected out)))))
+    (test-equal file expected (toml-read (open-string-input-port toml)))))
 
 (define (make-local-date n s m h d mm y)
   (make-date n s m h d mm y (date-zone-offset (current-date))))
