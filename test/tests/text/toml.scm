@@ -78,6 +78,17 @@
   (test-error toml-parse-error? (parse-toml "nan=+nan"))
   (test-error toml-parse-error? (parse-toml "nan=-nan")))
 
+(define (check-flonum expected)
+  (let ((toml (call-with-string-output-port
+	       (lambda (out) (toml-write expected out)))))
+    (test-equal expected (parse-toml toml))))
+(check-flonum '#(("inf" . +inf.0)))
+(check-flonum '#(("inf" . +inf.0)))
+(check-flonum '#(("inf" . -inf.0)))
+(check-flonum '#(("nan" . +nan.0)))
+(check-flonum '#(("nan" . +nan.0)))
+(check-flonum '#(("nan" . -nan.0)))
+
 (test-equal '#(("hex" . #x12ab)) (parse-toml "hex=0x12ab"))
 (test-equal '#(("hex" . #x1234abcd)) (parse-toml "hex=0x12_34_ab_cd"))
 (test-equal '#(("oct" . #o1234)) (parse-toml "oct=0o1234"))

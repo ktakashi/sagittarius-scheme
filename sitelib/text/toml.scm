@@ -114,7 +114,15 @@
   (define (write-string value out)
     ;; TODO multi string and so
     (put-datum out value))
-  (define (write-number value out) (put-datum out value))
+  (define (write-number value out)
+    (cond ((infinite? value)
+	   (if (negative? value)
+	       (put-string out "-inf")
+	       (put-string out "inf")))
+	  ((nan? value)
+	   ;; we don't have anyway of checking negative nan
+	   (put-string out "nan"))
+	  (else (put-datum out value))))
   (define (write-date value out)
     (put-string out (date->string value "~6")))
   (define (write-boolean value out)
