@@ -1,8 +1,8 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
-;;; sagittarius/time.scm - srfi-19 time library
+;;; sagittarius/time.scm - time library
 ;;;  
-;;;   Copyright (c) 2010-2015  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2017  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -114,6 +114,12 @@
 	    julian-day->time-monotonic
 	    julian-day->time-tai
 	    julian-day->time-utc
+
+	    ;; modified-julian-day->*
+	    modified-julian-day->date
+	    modified-julian-day->time-utc
+	    modified-julian-day->time-tai
+	    modified-julian-day->time-monotonic
 
 	    ;; converte to string
 	    date->string string->date
