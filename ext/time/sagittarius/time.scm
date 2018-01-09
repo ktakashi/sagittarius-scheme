@@ -197,13 +197,6 @@
 			(make-message-condition m)
 			(make-irritants-condition value)))))
 
-  (define-constant time-duration  'time-duration)
-  (define-constant time-utc       'time-utc)
-  (define-constant time-tai       'time-tai)
-  (define-constant time-monotonic 'time-monotonic)
-  (define-constant time-thread    'time-thread)
-  (define-constant time-process   'time-process)
-
   ;; from srfi-19 reference implementation
   (define tm:time-error-types
     '(invalid-clock-type

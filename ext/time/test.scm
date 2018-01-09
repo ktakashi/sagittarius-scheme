@@ -20,3 +20,8 @@
 (test-runner-reset (test-runner-get))
 (include "test-timezone.scm")
 
+(import (sagittarius calendar))
+
+;; rest
+(test-runner-reset (test-runner-get))
+(include "test-calendar.scm")

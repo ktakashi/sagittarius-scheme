@@ -33,8 +33,24 @@
 	    tm:decode-julian-day-number
 	    tm:encode-julian-day-number
 	    tm:sihd tm:sid tm:nano
-	    tm:tai-epoch-in-jd)
+	    tm:tai-epoch-in-jd
+
+	    time-duration
+	    time-utc
+	    time-tai
+	    time-monotonic
+	    time-thread
+	    time-process
+	    )
     (import (core) (sagittarius))
+
+  (define-constant time-duration  'time-duration)
+  (define-constant time-utc       'time-utc)
+  (define-constant time-tai       'time-tai)
+  (define-constant time-monotonic 'time-monotonic)
+  (define-constant time-thread    'time-thread)
+  (define-constant time-process   'time-process)
+
   ;; moved from time.scm to share with timezone.scm
   (define-constant tm:sid  86400)    ; seconds in a day
   (define-constant tm:sihd 43200)    ; seconds in a half day

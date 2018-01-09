@@ -81,7 +81,7 @@
 	    (immutable rules      timezone-rules)))
 
   (define-method write-object ((tz <timezone>) out)
-    (format out "#<timezone ~a>" (timezone-name tz)))
+    (format out "#<timezone ~a (~a)>" (timezone-name tz) (timezone-offset tz)))
 
   (define (binary-search array name)
     (let loop ((from 0) (to (- (vector-length array) 1)))

@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
-;;; sagittarius/calender.scm - calender
+;;; sagittarius/calendar.scm - calender
 ;;;  
 ;;;   Copyright (c) 2018  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -29,23 +29,38 @@
 ;;;  
 
 #!nounbound
-(library (sagittarius calender)
+(library (sagittarius calendar)
     (export (rename (calendar <calender>)) calendar?
 	    calendar:rfc3339 calendar:gregorian
 	    calendar:julian
 	    (rename (calendar:rfc3339 calendar:system))
+	    calendar-name
 
 	    (rename (calendar-date <calendar-date>))
-	    make-calendar-date calendar-date?
+	    make-calendar-date calendar-date? time-utc->calendar-date
+	    calendar-date-calendar
+	    calendar-date-year
+	    calendar-date-month
+	    calendar-date-day
+	    calendar-date-hour
+	    calendar-date-minute
+	    calendar-date-second
+	    calendar-date-nanosecond
+	    calendar-date-timezone
+	    
 
 	    calendar-date-add  calendar-date-subtract)
     (import (rnrs)
+	    (rnrs r5rs)
+	    (clos user)
+	    (sagittarius)
 	    (sagittarius time-private)
 	    (sagittarius time-util)
 	    (sagittarius timezone))
 
 (define-record-type calendar
-  (fields decoder
+  (fields name
+	  decoder
 	  encoder))
 (define (julian-day-decoder time timezone)
   (define offset (timezone-offset timezone))
@@ -75,12 +90,14 @@
 		  (* minute 60)
 		  second
 		  (- offset)))))
-(define calendar:rfc3339 (make-calendar julian-day-decoder
+(define calendar:rfc3339 (make-calendar "RFC 3339"
+					julian-day-decoder
 					julian-day-encoder))
-(define calendar:gregorian (make-calendar julian-day-decoder
+(define calendar:gregorian (make-calendar "Gregorian"
+					  julian-day-decoder
 					  julian-day-encoder))
 ;; TBD
-(define calendar:julian (make-calendar #f #f))
+(define calendar:julian (make-calendar "Julian" #f #f))
 
 (define (calendar-normalize calendar
 			    nanosecond second minute hour day month year
@@ -88,7 +105,8 @@
   (define encoder (calendar-encoder calendar))
   (define decoder (calendar-decoder calendar))
   ;; it's inefficient but works perfectly fine
-  (decoder (encoder nanosecond second minute hour day month year timezone)))
+  (decoder (encoder nanosecond second minute hour day month year timezone)
+	   timezone))
 (define (calendar-decode-time-utc calendar time timezone)
   ((calendar-decoder calendar) time timezone))
 
@@ -113,16 +131,26 @@
 				      n s m h d M y timezone)))
 	 (p n s m h d M y timezone calendar))))))
 
-(define (time-utc->calendar time :optional (timezone (local-timezone))
-			    (calendar calendar:rfc3339))
+(define (time-utc->calendar-date time :optional (timezone (local-timezone))
+				 (calendar calendar:rfc3339))
   (unless (eq? (time-type time) 'time-utc)
     (assertion-violation 'time-utc->calendar "invalid time type" time))
   (let-values (((n s m h d M y)
 		(calendar-decode-time-utc calendar time timezone)))
     (make-calendar-date n s m h d M y timezone calendar)))
 
-(define (convert-calendar-date calendar-date calendar)
-  (error 'convert-calendar-date "not yet"))
+(define (convert-calendar-date calendar-date calendar :optional (timezone #f))
+  (define encoder (calendar-encoder calendar))
+  (define timezone (or timezone (calendar-date-timezone cd)))
+  (let ((time (encoder (calendar-date-nanosecond cd)
+		       (calendar-date-second cd)
+		       (calendar-date-minute cd)
+		       (calendar-date-hour cd)
+		       (calendar-date-day cd)
+		       (calendar-date-month cd)
+		       (calendar-date-year cd)
+		       timezone)))
+    (time-utc->calendar-date time timezone calendar)))
 
 ;; API
 (define (calendar-date-add calendar-date unit amount)
@@ -132,5 +160,19 @@
 (define (calendar-date-subtract calendar-date unit amount)
   (error 'calendar-date-subtract "not-yet"))
 
-
+;; print
+(define-method write-object ((c calendar) out)
+  (format out "#<calendar ~a>" (calendar-name c)))
+(define-method write-object ((cd calendar-date) out)
+  (format
+   out "#<calendar-date ~a ~d/~2,'0d/~2,'0d ~2,'0d:~2,'0d:~2,'0d.~9,'0d (~a)>"
+   (calendar-date-calendar cd)
+   (calendar-date-year cd)
+   (calendar-date-month cd)
+   (calendar-date-day cd)
+   (calendar-date-hour cd)
+   (calendar-date-minute cd)
+   (calendar-date-second cd)
+   (calendar-date-nanosecond cd)
+   (calendar-date-timezone cd)))
 )
