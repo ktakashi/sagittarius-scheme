@@ -418,18 +418,6 @@
     (- (time-monotonic->julian-day time)
        (/ 4800001 2)))
 
-  (define (tm:encode-julian-day-number day month year)
-    (let* ((a (quotient (- 14 month) 12))
-           (y (- (- (+ year 4800) a) (if (negative? year) -1 0)))
-           (m (- (+ month (* 12 a)) 3)))
-      (+ day
-         (quotient (+ (* 153 m) 2) 5)
-         (* 365 y)
-         (quotient y 4)
-         (- (quotient y 100))
-         (quotient y 400)
-         -32045)))
-
   (define (tm:char-pos char str index len)
     (cond
      ((>= index len) #f)

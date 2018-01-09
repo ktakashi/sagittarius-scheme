@@ -28,22 +28,25 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!nounbound
 (library (sagittarius calender)
-    (export (rename (calendar-type <calender-type>)) calendar-type?
-	    calendar-type:rfc3339 calendar-type:gregorian
-	    calendar-type:julian
-	    (rename (calendar-type:rfc3339 calendar-type:system))
+    (export (rename (calendar <calender>)) calendar?
+	    calendar:rfc3339 calendar:gregorian
+	    calendar:julian
+	    (rename (calendar:rfc3339 calendar:system))
 
-	    (rename (calendar <calendar>)) make-calendar calendar?
-	    calendar-add! calendar-add
-	    calendar-subtract! calendar-subtract)
+	    (rename (calendar-date <calendar-date>))
+	    make-calendar-date calendar-date?
+
+	    calendar-date-add  calendar-date-subtract)
     (import (rnrs)
 	    (sagittarius time-private)
 	    (sagittarius time-util)
 	    (sagittarius timezone))
 
-(define-record-type calendar-type
-  (fields decoder))
+(define-record-type calendar
+  (fields decoder
+	  encoder))
 (define (julian-day-decoder time timezone)
   (define offset (timezone-offset timezone))
   (let-values (((secs date month year)
@@ -60,61 +63,74 @@
 	      date
 	      month
 	      year))))
-(define calendar-type:rfc3339 (make-calendar-type julian-day-decoder))
-(define calendar-type:gregorian (make-calendar-type julian-day-decoder))
+
+(define (julian-day-encoder nanosecond second minute hour
+			    day month year timezone)
+  (define offset (timezone-offset timezone))
+  (let ( (jdays (- (tm:encode-julian-day-number day month year)
+		   tm:tai-epoch-in-jd)) )
+    (make-time time-utc nanosecond
+	       (+ (* (- jdays 1/2) 24 60 60)
+		  (* hour 60 60)
+		  (* minute 60)
+		  second
+		  (- offset)))))
+(define calendar:rfc3339 (make-calendar julian-day-decoder
+					julian-day-encoder))
+(define calendar:gregorian (make-calendar julian-day-decoder
+					  julian-day-encoder))
 ;; TBD
-(define calendar-type:julian (make-calendar-type #f))
+(define calendar:julian (make-calendar #f #f))
 
-(define (calendar-type:normalize nanosecond second minute hour day month year)
-  ;; e.g. 69 sec -> 1min + 9 sec
-  (values nanosecond second minute hour day month year))
-(define (calendar-type-decode-time calendar-type time timezone)
-  ((calendar-type-decoder calendar-type) time timezone))
+(define (calendar-normalize calendar
+			    nanosecond second minute hour day month year
+			    timezone)
+  (define encoder (calendar-encoder calendar))
+  (define decoder (calendar-decoder calendar))
+  ;; it's inefficient but works perfectly fine
+  (decoder (encoder nanosecond second minute hour day month year timezone)))
+(define (calendar-decode-time-utc calendar time timezone)
+  ((calendar-decoder calendar) time timezone))
 
-(define-record-type calendar
+(define-record-type calendar-date
   ;; absent = #f
-  (fields (mutable nanosecond)
-	  (mutable second)
-	  (mutable minute)
-	  (mutable hour)
-	  (mutable day)
-	  (mutable month)
-	  (mutable year)
-	  (mutable timezone) ;; timezone
-	  type		     ;; calendar-type
+  (fields nanosecond
+	  second
+	  minute
+	  hour
+	  day
+	  month
+	  year
+	  timezone ;; timezone
+	  calendar ;; calendar-type
 	  )
   (protocol
    (lambda (p)
      (lambda (n s m h d M y :optional (timezone (local-timezone))
-		(type calendar-type:rfc3339))
-       ;; TODO check integer or #f
-       (p n s m h d M y timezone type)))))
+		(calendar calendar:rfc3339))
+       (let-values (((n s m h d M y) (calendar-normalize
+				      calendar
+				      n s m h d M y timezone)))
+	 (p n s m h d M y timezone calendar))))))
 
 (define (time-utc->calendar time :optional (timezone (local-timezone))
-			    (type calendar-type:rfc3339))
+			    (calendar calendar:rfc3339))
   (unless (eq? (time-type time) 'time-utc)
     (assertion-violation 'time-utc->calendar "invalid time type" time))
-  (let-values (((n s m h d M y) (calendar-type-decode-time type time timezone)))
-    (make-calendar n s m h d M y timezone type)))
+  (let-values (((n s m h d M y)
+		(calendar-decode-time-utc calendar time timezone)))
+    (make-calendar-date n s m h d M y timezone calendar)))
 
-(define (convert-calendar cal type)
-  (error 'convert-calendar "not yet"))
-
-;; API
-(define (calendar-add! calendar unit amount)
-  (error 'calendar-add "not-yet"))
+(define (convert-calendar-date calendar-date calendar)
+  (error 'convert-calendar-date "not yet"))
 
 ;; API
-(define (calendar-subtract! calendar unit amount)
-  (error 'calendar-add "not-yet"))
+(define (calendar-date-add calendar-date unit amount)
+  (error 'calendar-date-add "not-yet"))
 
 ;; API
-(define (calendar-add calendar unit amount)
-  (calendar-add! (copy-calendar calendar) unit amount))
-
-;; API
-(define (calendar-subtract calendar unit amount)
-  (calendar-subtract! (copy-calendar calendar) unit amount))
+(define (calendar-date-subtract calendar-date unit amount)
+  (error 'calendar-date-subtract "not-yet"))
 
 
 )

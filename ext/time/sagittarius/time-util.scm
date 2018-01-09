@@ -31,6 +31,7 @@
 (library (sagittarius time-util)
     (export tm:time->julian-day-number
 	    tm:decode-julian-day-number
+	    tm:encode-julian-day-number
 	    tm:sihd tm:sid tm:nano
 	    tm:tai-epoch-in-jd)
     (import (core) (sagittarius))
@@ -58,11 +59,18 @@
        (if (>= 0 y) (- y 1) y))
       ))
   (define (tm:time->julian-day-number seconds tz-offset)
-    (+ (/ (+ seconds
-             tz-offset
-             tm:sihd)
-          tm:sid)
+    (+ (/ (+ seconds tz-offset tm:sihd) tm:sid)
        tm:tai-epoch-in-jd))
 
-
+  (define (tm:encode-julian-day-number day month year)
+    (let* ((a (quotient (- 14 month) 12))
+           (y (- (- (+ year 4800) a) (if (negative? year) -1 0)))
+           (m (- (+ month (* 12 a)) 3)))
+      (+ day
+         (quotient (+ (* 153 m) 2) 5)
+         (* 365 y)
+         (quotient y 4)
+         (- (quotient y 100))
+         (quotient y 400)
+         -32045)))
 )
