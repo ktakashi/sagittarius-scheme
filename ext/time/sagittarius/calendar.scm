@@ -139,9 +139,9 @@
 		(calendar-decode-time-utc calendar time timezone)))
     (make-calendar-date n s m h d M y timezone calendar)))
 
-(define (convert-calendar-date calendar-date calendar :optional (timezone #f))
+(define (convert-calendar-date cd calendar :optional (timezone #f))
   (define encoder (calendar-encoder calendar))
-  (define timezone (or timezone (calendar-date-timezone cd)))
+  (define tz (or timezone (calendar-date-timezone cd)))
   (let ((time (encoder (calendar-date-nanosecond cd)
 		       (calendar-date-second cd)
 		       (calendar-date-minute cd)
@@ -149,7 +149,7 @@
 		       (calendar-date-day cd)
 		       (calendar-date-month cd)
 		       (calendar-date-year cd)
-		       timezone)))
+		       tz)))
     (time-utc->calendar-date time timezone calendar)))
 
 ;; API
