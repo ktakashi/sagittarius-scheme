@@ -37,7 +37,8 @@
 	    calendar-name
 
 	    (rename (calendar-date <calendar-date>))
-	    make-calendar-date calendar-date? time-utc->calendar-date
+	    make-calendar-date calendar-date? 
+	    time-utc->calendar-date calendar-date->time-utc
 	    calendar-date-calendar
 	    calendar-date-year
 	    calendar-date-month
@@ -47,7 +48,6 @@
 	    calendar-date-second
 	    calendar-date-nanosecond
 	    calendar-date-timezone
-	    
 
 	    calendar-date-add  calendar-date-subtract)
     (import (rnrs)
@@ -138,6 +138,16 @@
   (let-values (((n s m h d M y)
 		(calendar-decode-time-utc calendar time timezone)))
     (make-calendar-date n s m h d M y timezone calendar)))
+(define (calendar-date->time-utc cd)
+  (define encoder (calendar-encoder (calendar-date-calendar cd)))
+  (encoder (calendar-date-nanosecond cd)
+	   (calendar-date-second cd)
+	   (calendar-date-minute cd)
+	   (calendar-date-hour cd)
+	   (calendar-date-day cd)
+	   (calendar-date-month cd)
+	   (calendar-date-year cd)
+	   (calendar-date-timezone cd)))
 
 (define (convert-calendar-date cd calendar :optional (timezone #f))
   (define encoder (calendar-encoder calendar))

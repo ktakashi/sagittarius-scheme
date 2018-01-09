@@ -7,4 +7,8 @@
 
 (test-assert (calendar-date? (time-utc->calendar-date (current-time))))
 
+(let ((time (current-time)))
+  (test-assert (time=? time (calendar-date->time-utc
+			     (time-utc->calendar-date time)))))
+
 (test-end)
