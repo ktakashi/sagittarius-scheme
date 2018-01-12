@@ -1,3 +1,5 @@
+(import (sagittarius timezone))
+
 (test-begin "timezone")
 
 (test-assert "timezone?" (timezone? (timezone "GMT")))

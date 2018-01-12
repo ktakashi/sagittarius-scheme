@@ -1,3 +1,7 @@
+(import (sagittarius time)
+	;; for slot access
+	(clos user))
+
 (test-begin "time")
 
 ;; check slot access

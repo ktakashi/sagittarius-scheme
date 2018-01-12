@@ -34,60 +34,77 @@
 ;; * Calendrical Calculations, II: Three Historical Calendars
 ;;     Edward M. Reingold, Nachum Dershowitz, and Stewart M. Clamen
 ;;   http://reingold.co/cc2-paper.pdf
+;; * Year zero - Wikipedia
+;;   https://en.wikipedia.org/wiki/Year_zero
 (library (sagittarius calendar gregorian)
-    (export gregorian->absolute absolute->gregorian)
+    (export gregorian->absolute absolute->gregorian
+
+	    ;; helpers for other calendars
+	    gregorian-leap-year? gregorian-new-year absolute->gregorian-year
+	    +gregorian-epoch+)
     (import (rnrs)
+	    (sagittarius) ;; for define-constant
 	    (sagittarius timezone))
 
-;; TODO move
-(define-syntax sum
-  (syntax-rules ()
-    ((_ expr index init cond)
-     (do ((tmp 0 (+ tmp expr)) (index init (+ index 1)))
-	 ((not cond) tmp)))))
+(define-constant +gregorian-epoch+ 1)
+(define *timezone/gmt* (timezone "GMT"))
 
-(define (last-day-of-gregorian-month month year)
-  (if (and (= month 2)
-	   (zero? (mod year 4))
-	   (not (memv (mod year 400) '(100 200 300))))
-      29
-      (vector-ref '#(31 28 31 30 31 30 31 31 30 31 30 31) (- month 1))))
+;;; Aux API
+(define (gregorian-leap-year? y)
+  (and (zero? (mod y 4))
+       (not (memv (mod y 400) '(100 200 300)))))
 
-;; we put absolute date 1 is 1/Jan/1 12:00:00.0 UTC+0
+;;; API
 (define (gregorian->absolute n s m h d M y . maybe-tz)
-  (define timezone (if (null? maybe-tz) (local-timezone) (car maybe-tz)))
+  (define tz (if (null? maybe-tz) (local-timezone) (car maybe-tz)))
   (define y-1 (- y 1))
-  (+ d 
-     (sum (last-day-of-gregorian-month m* y) m* 1 (< m* M))
+  (+ (- +gregorian-epoch+ 1)
      (* 365 y-1)
      (div y-1 4)
      (- (div y-1 100))
      (div y-1 400)
+     (div (- (* 367 M) 362) 12)
+     (cond ((<= M 2) 0)
+	   ((gregorian-leap-year? y) -1)
+	   (else -2))
+     d
      -1/2 ;; julian day of 0 starts 12:00:00 so subtract it
      (/ (+ (* h 60 60)
 	   (* m 60)
 	   s
 	   (/ n tm:nano)
-	   (- (timezone-offset timezone)))
+	   (- (timezone-offset tz)))
 	tm:sid)))
 
-(define *timezone/gmt* (timezone "GMT"))
+;;; Aux API
+(define (gregorian-new-year y)
+  (gregorian->absolute 0 0 0 12 1 1 y *timezone/gmt*))
 
-(define (absolute->gregorian gd . maybe-tz)
+;;; Aux API
+(define (absolute->gregorian-year d tz)
+  (define dis (/ (timezone-offset tz) tm:sid))
+  (let* ((d0 (- (+ d dis) +gregorian-epoch+))
+	 (n400 (div d0 146097))
+	 (d1 (mod d0 146097))
+	 (n100 (div d1 36524))
+	 (d2 (mod d1 36524))
+	 (n4 (div d2 1461))
+	 (d3 (mod d2 1461))
+	 (n1 (div d3 365))
+	 (year (+ (* 400 n400) (* 100 n100) (* 4 n4) n1)))
+    (if (or (= n100 4) (= n1 4))
+	year
+	(+ year 1))))
+
+(define (last-day-of-gregorian-month month year)
+  (if (and (= month 2) (gregorian-leap-year? year))
+      29
+      (vector-ref '#(31 28 31 30 31 30 31 31 30 31 30 31) (- month 1))))
+
+;;; API
+(define (absolute->gregorian date . maybe-tz)
   (define tz (if (null? maybe-tz) (local-timezone) (car maybe-tz)))
-  ;; the following 2 are using GMT timezone for simplicity
-  (define (compute-year d apprx)
-    (+ apprx
-       (sum 1 y apprx 
-	    (>= d (gregorian->absolute 0 0 0 12 1 1 (+ 1 y) *timezone/gmt*)))))
-  (define (compute-month d year)
-    (+ 1 (sum 1 m 1 (> d (gregorian->absolute 0 0 0 12
-			  (last-day-of-gregorian-month m year) m year
-			  *timezone/gmt*)))))
-  (define (compute-day d month year)
-    ;; use passed timezone here to compute offset properly
-    (- d (- (gregorian->absolute 0 0 0 12 1 month year tz) 1)))
-  
+
   (define (day&secs gd)
     (if (and (exact? gd) (integer? gd))
 	(values gd 0)
@@ -95,29 +112,53 @@
 	       (fgd (floor igd)))
 	  (values (exact fgd) (exact (* 24 3600 tm:nano (- igd fgd)))))))
 
-  (define (compute-hours day nsec tz)
-    (define offset-day (* day 24))
+  (define (compute-hours day tz)
     (define (compute day nsec)
       (define (parse-nanosec nsec)
 	(values (mod nsec tm:nano) (floor (/ nsec tm:nano))))
+      (define (fixup nsec s0 m0 h0 d0)
+	(define-syntax carry
+	  (syntax-rules ()
+	    ((_ v c) (if (>= v c) (values (- v c) 1) (values v 0)))))
+	(let*-values (((s c) (carry s0 60))
+		      ((m c) (carry (+ m0 c) 60))
+		      ((h c) (carry (+ h0 c) 24)))
+	  (values nsec s m h (+ d0 c) (> c 0))))
       (let-values (((nsec sec) (parse-nanosec nsec)))
 	(let* ((h (+ (div sec 3600) 12)) ;; sum offset
 	       (r (mod sec 3600))
 	       (m (div r 60))
 	       (s (mod r 60)))
-	  (values (exact (floor nsec)) s m h day))))
-    (let-values (((d ns) (day&secs day)))
-      (let ((nsec (+ nsec ns)))
-	(compute d nsec))))
-  (unless (positive? gd)
-    (assertion-violation 'absolute->gregorian "Positive number required" gd))
-  (let-values (((d nsec) (day&secs gd)))
-    (let* ((approx (div d 366))
-	   (year (compute-year d approx))
-	   (month (compute-month d year))
-	   (day (compute-day d month year)))
-      (let-values (((n s m h day) (compute-hours day nsec tz)))
-	(values n s m h day month year)))))
-
+	  (fixup (exact (floor nsec)) s m h day))))
+    (let-values (((d nsec) (day&secs day)))
+      (compute d nsec)))
+  
+    (let* ((d (exact date)) ;; make sure it's exact number
+	   (year (absolute->gregorian-year d tz))
+	   (prior-days (- d (gregorian-new-year year)))
+	   (correction-d (gregorian->absolute 0 0 0 12 1 3 year tz))
+	   (correction (cond ((< d correction-d) 0)
+			     ((gregorian-leap-year? year) 1)
+			     (else 2)))
+	   (month (div (+ (* 12 (+ prior-days correction)) 373) 367))
+	   (day (+ (- d (gregorian->absolute 0 0 0 12 1 month year tz)) 1)))
+      (define (fixup n s m h day month year)
+	(let ((last-day (last-day-of-gregorian-month month year)))
+	  (if (> day last-day)
+	      (let ((m (+ month 1))
+		    (d 1))
+		(if (> m 12)
+		    (values n s m h d 1 (+ year 1))
+		    (values n s m h d m year)))
+	      (values n s m h day month year))))
+      (let*-values (((n s m h day carry?) (compute-hours day tz))
+		    ((month year) (if (> month 12)
+				      (values 1 (+ year 1))
+				      (values month year))))
+	;; 1 BC is followed by 1 AD so no 0 AD or 0 BC.
+	(let ((year (if (<= d 0) (- year 1) year)))
+	  (if carry?
+	      (fixup n s m h day month year)
+	      (values n s m h day month year))))))
 )
 

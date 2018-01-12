@@ -5,23 +5,16 @@
 ;; so load path must be like this
 (add-load-path "./time")
 
-(import (srfi :64 testing)
-	(rnrs)
-	(sagittarius time)
-	;; for slot access
-	(clos user))
+(import (rnrs)
+	(srfi :64 testing))
 
 (include "test-time.scm")
 
 ;; timezone 
-(import (sagittarius timezone))
-
-;; rest first
+;; reset first
 (test-runner-reset (test-runner-get))
 (include "test-timezone.scm")
 
-(import (sagittarius calendar))
-
-;; rest
+;; reset
 (test-runner-reset (test-runner-get))
 (include "test-calendar.scm")
