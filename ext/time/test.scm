@@ -240,6 +240,11 @@
   (test-equal "5 sec in nano sec (second)" 5 (time-second t))
   (test-equal "5 sec in nano sec (nanosecond)" 1 (time-nanosecond t)))
 
+;; happened on Cygwin and Windows
+(let* ((date (make-date 0 0 0 0 1 1 1 0))
+       (jdn (inexact (date->julian-day date))))
+  (test-assert (time=? (date->time-utc date) (julian-day->time-utc jdn))))
+
 (test-end)
 
 ;; timezone 
