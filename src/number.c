@@ -961,7 +961,7 @@ uint64_t Sg_GetIntegerU64Clamp(SgObject obj, int clamp, int *oor)
       if (!(clamp & SG_CLAMP_HI)) goto err;
       return maxval;
     } else {
-      return (int64_t)v;
+      return (uint64_t)v;
     }
   }
  err:
