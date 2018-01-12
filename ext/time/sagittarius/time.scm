@@ -557,7 +557,10 @@
   (define (julian-day->time-utc jdn)
     (let ( (nanosecs (* tm:nano tm:sid (- jdn tm:tai-epoch-in-jd))) )
       (make-time time-utc
-                 (remainder nanosecs tm:nano)
+		 ;; FIX using mod instead of remainder
+		 ;; to avoid Windows and Cygwin issue.
+		 ;; not sure why this doesn't happen on Linux...
+                 (mod nanosecs tm:nano)
                  (floor (/ nanosecs tm:nano)))))
 
   (define (julian-day->time-tai jdn)
