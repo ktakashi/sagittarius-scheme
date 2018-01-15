@@ -40,7 +40,8 @@
     (export gregorian->absolute absolute->gregorian
 	    ;; helpers for other calendars
 	    absolute->gregorian-component gregorian-components->absolute
-	    gregorian-leap-year? gregorian-new-year absolute->gregorian-year
+	    gregorian-leap-year? absolute->gregorian-year
+	    gregorian-new-year gregorian-end-of-year
 	    +gregorian-epoch+)
     (import (rnrs)
 	    (sagittarius) ;; for define-constant
@@ -83,8 +84,12 @@
 				  (common-local-date-year local-date)
 				  tz))
 ;;; Aux API
-(define (gregorian-new-year y)
-  (gregorian-components->absolute 0 0 0 12 1 1 y *timezone/gmt*))
+(define (gregorian-new-year y tz)
+  (gregorian-components->absolute 0 0 0 12 1 1 y tz))
+
+;;; Aux API
+(define (gregorian-end-of-year y tz)
+  (gregorian-components->absolute 0 0 0 12 31 12 y tz))
 
 ;;; Aux API
 (define (absolute->gregorian-year d tz)
@@ -111,7 +116,7 @@
 (define (absolute->gregorian-component date tz)
   (let* ((d (exact date)) ;; make sure it's exact number
 	 (year (absolute->gregorian-year d tz))
-	 (prior-days (- d (gregorian-new-year year)))
+	 (prior-days (- d (gregorian-new-year year tz)))
 	 (correction-d (gregorian-components->absolute 0 0 0 12 1 3 year tz))
 	 (correction (cond ((< d correction-d) 0)
 			   ((gregorian-leap-year? year) 1)
