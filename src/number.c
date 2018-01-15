@@ -949,7 +949,7 @@ uint64_t Sg_GetIntegerU64Clamp(SgObject obj, int clamp, int *oor)
   }
   if (SG_FLONUMP(obj)) {
     double v = SG_FLONUM_VALUE(obj);
-    int64_t maxval;
+    uint64_t maxval;
     if (v < 0) {
       if (!(clamp & SG_CLAMP_LO)) goto err;
       return 0;
