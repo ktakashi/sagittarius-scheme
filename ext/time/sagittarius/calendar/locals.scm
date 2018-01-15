@@ -78,7 +78,8 @@
   (define day&secs absolute->day&nanosecond)
   (define (compute day nsec)
     (define (parse-nanosec nsec)
-      (values (mod nsec tm:nano) (floor (/ nsec tm:nano))))
+      (values (mod nsec tm:nano)
+	      (+ (floor (/ nsec tm:nano)) (timezone-offset tz))))
     (define (fixup nsec s0 m0 h0)
       (define-syntax carry
 	(syntax-rules ()

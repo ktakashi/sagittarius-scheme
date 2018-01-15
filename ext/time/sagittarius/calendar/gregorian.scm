@@ -133,7 +133,10 @@
 		  (values n s m h d 1 (+ year 1))
 		  (values n s m h d m year)))
 	    (values n s m h day month year))))
-    (let*-values (((n s m h carry) (absolute->time-components day tz))
+    (let*-values (((n s m h carry)
+		   ;; the day contains timezone offset already so
+		   ;; passing GMT
+		   (absolute->time-components day *timezone/gmt*))
 		  ((month year) (if (> month 12)
 				    (values 1 (+ year 1))
 				    (values month year))))

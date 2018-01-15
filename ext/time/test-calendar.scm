@@ -1,5 +1,6 @@
 (import (sagittarius calendar)
-	(sagittarius calendar gregorian))
+	(sagittarius calendar gregorian)
+	(sagittarius calendar iso))
 
 (test-begin "calendar")
 
@@ -24,5 +25,17 @@
   (let-values ((r (absolute->gregorian-component 0 (timezone "GMT")))) r))
 (test-equal '(0 0 0 0 1 1 1)
   (let-values ((r (absolute->gregorian-component 0.5 (timezone "GMT")))) r))
+
+(test-equal '(0 0 0 13 1 1 2)
+  (let-values ((r (absolute->iso-component 365 (timezone "CET")))) r))
+(test-equal '(0 0 0 12 7 52 0)
+  (let-values ((r (absolute->iso-component 0 (timezone "GMT")))) r))
+(test-equal '(0 0 0 0 1 1 2)
+  (let-values ((r (absolute->iso-component 364.5 (timezone "GMT")))) r))
+
+(test-equal 0 (iso-component->absolute 0 0 0 12 7 52 0 (timezone "GMT")))
+(test-equal 365 (iso-component->absolute 0 0 0 12 1 1 2 (timezone "GMT")))
+(test-equal (exact 364.5)
+	    (iso-component->absolute 0 0 0 0 1 1 2 (timezone "GMT")))
 
 (test-end)

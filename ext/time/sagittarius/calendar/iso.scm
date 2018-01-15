@@ -34,7 +34,7 @@
 	    iso-local-date-day iso-local-date-week iso-local-date-year
 
 	    ;; aux APIs
-	    iso-component->absolute
+	    iso-component->absolute absolute->iso-component
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -88,8 +88,7 @@
 	(= dec31 4))))
 
 ;;; API
-(define (absolute->iso odate . maybe-tz)
-  (define tz (if (null? maybe-tz) (local-timezone) (car maybe-tz)))
+(define (absolute->iso-component odate tz)
   (define (nsec->day nsec)
     (/ nsec tm:nano ;; -> sec
        60 ;; -> min
@@ -101,7 +100,7 @@
       (if (zero? d)
 	  (+ d 7)
 	  d)))
-  (define (fixup local-time d0 w y tz)
+  (define (fixup n s m h d0 w y tz)
     (define (compute-w&y w y)
       (cond ((<= w 52) (values w y))
 	    ((and (= w 53) (iso-long-year? y tz)) (values w y))
@@ -111,11 +110,11 @@
 		   (values (- w 53) y0)
 		   (values (- w 52) y0))))))
     (if (<= d0 7)
-	(values local-time (make-iso-local-date d0 w y) tz)
+	(values n s m h d0 w y)
 	(let ((d (->day d0))
 	      (w0 (+ w 1)))
 	  (let-values (((w y) (compute-w&y w0 y)))
-	    (values local-time (make-iso-local-date d w y) tz)))))
+	    (values n s m h d w y)))))
   (let* ((date (exact (floor odate)))
 	 (approx (absolute->gregorian-year (- date 3) tz))
 	 (tmp (iso-component->absolute 0 0 0 12 1 1 (+ approx 1) tz))
@@ -126,12 +125,15 @@
 	 (day (->day date)))
     (let*-values (((d nsec) (absolute->day&nanosecond odate))
 		  ((n s m h c) (absolute->time-components (nsec->day nsec) tz)))
-      ;; time is already normalized, so we can make it here
-      (let ((local-time (make-common-local-time n s m h)))
 	(if (zero? c)
-	    (values local-time
-		    (make-iso-local-date day week year)
-		    tz)
+	    (values n s m h day week year)
 	    ;; at this moment, carry must be 1
-	    (fixup local-time (+ day c) week year tz))))))
+	    (fixup n s m h (+ day c) week year tz)))))
+
+(define (absolute->iso odate . maybe-tz)
+  (define tz (if (null? maybe-tz) (local-timezone) (car maybe-tz)))
+  (let-values (((n s m h d w y) (absolute->iso-component odate tz)))
+    (values (make-common-local-time n s m h)
+	    (make-iso-local-date d w y)
+	    tz)))
 )
