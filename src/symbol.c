@@ -32,6 +32,7 @@
 #include "sagittarius/hashtable.h"
 #include "sagittarius/thread.h"
 #include "sagittarius/port.h"
+#include "sagittarius/number.h"
 #include "sagittarius/writer.h"
 
 #include "gc-incl.inc"
@@ -46,6 +47,7 @@ static SgHashTable *obtable = NULL;
 #endif
 
 static SgInternalMutex obtable_mutax;
+static SgInternalMutex unique_symbol_mutax;
 
 
 static void symbol_print(SgObject sym, SgPort *port, SgWriteContext *ctx)
@@ -108,9 +110,9 @@ SgObject Sg_MakeSymbol(SgString *name, int interned)
 
 static SgString *default_prefix;
 
-static SgObject gensym_rec(SgString *prefix, int reversiblep)
+SgObject Sg_Gensym(SgString *prefix)
 {
-  SgObject name;
+    SgObject name;
   SgSymbol *sym;
   char numbuf[50] = {0};
   SgChar buf[50] = {0};
@@ -119,11 +121,7 @@ static SgObject gensym_rec(SgString *prefix, int reversiblep)
   static intptr_t gensym_count = 0;
 
   if (prefix == NULL) prefix = default_prefix;
-  if (reversiblep) {
-    nc = snprintf(numbuf, sizeof(numbuf), "`%"PRIdPTR, gensym_count++);
-  } else {
-    nc = snprintf(numbuf, sizeof(numbuf), "%"PRIdPTR, gensym_count++);
-  }
+  nc = snprintf(numbuf, sizeof(numbuf), "%"PRIdPTR, gensym_count++);
 
   /* TODO it's really inconvenient */
   for (i = 0; i < 50; i++) {
@@ -134,9 +132,26 @@ static SgObject gensym_rec(SgString *prefix, int reversiblep)
   return SG_OBJ(sym);
 }
 
-SgObject Sg_Gensym(SgString *prefix)
+static uint64_t unique_symbol_count = 0;
+SgObject Sg_MakeUniqueSymbol(SgString *prefix)
 {
-  return gensym_rec(prefix, FALSE);
+  uint64_t suffix;
+  unsigned long sec, usec;
+  SgObject name, p1, p2, p3;
+  
+  Sg_GetTimeOfDay(&sec, &usec);
+  /* increment suffix */
+  Sg_LockMutex(&obtable_mutax);
+  suffix = ++unique_symbol_count;
+  Sg_UnlockMutex(&obtable_mutax);
+  /* TODO maybe we also want to get PID */
+  p1 = Sg_NumberToString(Sg_MakeIntegerU(sec), 32, FALSE);
+  p2 = Sg_NumberToString(Sg_MakeIntegerU(usec), 32, FALSE);
+  p3 = Sg_NumberToString(Sg_MakeIntegerFromU64(suffix), 32, FALSE);
+  if (prefix == NULL) prefix = default_prefix;
+  
+  name = Sg_Sprintf(UC("%A%A%A_%A"), prefix, p1, p2, p3);
+  return make_symbol(SG_STRING(name), TRUE);
 }
 
 #include "builtin-symbols.c"
@@ -146,6 +161,7 @@ DEFINE_DEBUG_DUMPER(symbol, obtable)
 void Sg__InitSymbol()
 {
   Sg_InitMutex(&obtable_mutax, FALSE);
+  Sg_InitMutex(&unique_symbol_mutax, FALSE);
 #ifdef USE_WEAK_SYMBOL
   obtable = SG_WEAK_HASHTABLE(Sg_MakeWeakHashTableSimple(SG_HASH_STRING,
 							 SG_WEAK_REMOVE_VALUE,
