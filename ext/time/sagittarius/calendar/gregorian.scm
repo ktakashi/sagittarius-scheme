@@ -38,8 +38,14 @@
 ;;   https://en.wikipedia.org/wiki/Year_zero
 (library (sagittarius calendar gregorian)
     (export gregorian->absolute absolute->gregorian
-	    ;; helpers for other calendars
-	    absolute->gregorian-component gregorian-components->absolute
+	    (rename (make-common-local-time make-gregorian-local-time)
+		    (make-common-local-date make-gregorian-local-date)
+		    (common-local-time? gregorian-local-time?)
+		    (common-local-date? gregorian-local-date?))
+	    gregorian-components->absolute
+	    absolute->gregorian-components
+
+	    ;; helpers for other calendars	    
 	    gregorian-leap-year? absolute->gregorian-year
 	    gregorian-new-year gregorian-end-of-year
 	    +gregorian-epoch+)
@@ -57,20 +63,22 @@
   (and (zero? (mod y 4))
        (not (memv (mod y 400) '(100 200 300)))))
 
-;;; Aux API
-(define (gregorian-components->absolute n s m h d M y tz)
+;;; API
+(define (gregorian-components->absolute n s m h d M y . maybe-tz)
+  (define tz (if (null? maybe-tz) (local-timezone) (car maybe-tz)))
   (define y-1 (- y 1))
-  (+ (- +gregorian-epoch+ 1)
-     (* 365 y-1)
-     (div y-1 4)
-     (- (div y-1 100))
-     (div y-1 400)
-     (div (- (* 367 M) 362) 12)
-     (cond ((<= M 2) 0)
-	   ((gregorian-leap-year? y) -1)
-	   (else -2))
-     d
-     (time-components->absolute n s m h tz)))
+  (values (+ (- +gregorian-epoch+ 1)
+	     (* 365 y-1)
+	     (div y-1 4)
+	     (- (div y-1 100))
+	     (div y-1 400)
+	     (div (- (* 367 M) 362) 12)
+	     (cond ((<= M 2) 0)
+		   ((gregorian-leap-year? y) -1)
+		   (else -2))
+	     d
+	     (time-components->absolute n s m h tz))
+	  tz))
 
 ;;; API
 (define (gregorian->absolute local-time local-date . maybe-tz)
@@ -112,8 +120,9 @@
       29
       (vector-ref '#(31 28 31 30 31 30 31 31 30 31 30 31) (- month 1))))
 
-;;; Aux API
-(define (absolute->gregorian-component date tz)
+;;; API
+(define (absolute->gregorian-components date . maybe-tz)
+  (define tz (if (null? maybe-tz) (local-timezone) (car maybe-tz)))
   (let* ((d (exact date)) ;; make sure it's exact number
 	 (year (absolute->gregorian-year d tz))
 	 (prior-days (- d (gregorian-new-year year tz)))
@@ -150,9 +159,10 @@
 ;;; API
 (define (absolute->gregorian date  . maybe-tz)
   (define tz (if (null? maybe-tz) (local-timezone) (car maybe-tz)))
-  (let-values (((n s m h d M y) (absolute->gregorian-component date tz)))
+  (let-values (((n s m h d M y) (absolute->gregorian-components date tz)))
     (values (make-common-local-time n s m h)
-	    (make-gregorian-local-date d M y)
+	    (make-common-local-date d M y)
 	    tz)))
+
 )
 

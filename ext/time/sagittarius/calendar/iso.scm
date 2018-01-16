@@ -34,7 +34,7 @@
 	    iso-local-date-day iso-local-date-week iso-local-date-year
 
 	    ;; aux APIs
-	    iso-component->absolute absolute->iso-component
+	    iso-components->absolute absolute->iso-components
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -66,14 +66,15 @@
 	(+ (* n 7) (kday-after k d)))))
 
 ;;; Aux API
-(define (iso-component->absolute n s m h d w y tz)
+(define (iso-components->absolute n s m h d w y . maybe-tz)
+  (define tz (if (null? maybe-tz) (local-timezone) (car maybe-tz)))
   (let ((hid (time-components->absolute n s m h tz)))
-    (+ (nth-kday w +sunday+ 28 12 (- y 1) tz) d hid)))
+    (values (+ (nth-kday w +sunday+ 28 12 (- y 1) tz) d hid) tz)))
 
 ;;; API
 (define (iso->absolute local-time iso-date . maybe-tz)
   (define tz (if (null? maybe-tz) (local-timezone) (car maybe-tz)))
-  (iso-component->absolute (local-time-nanosecond local-time)
+  (iso-components->absolute (local-time-nanosecond local-time)
 			   (local-time-second local-time)
 			   (local-time-minute local-time)
 			   (local-time-hour local-time)
@@ -89,7 +90,8 @@
 	(= dec31 +thursday+))))
 
 ;;; API
-(define (absolute->iso-component odate tz)
+(define (absolute->iso-components odate . maybe-tz)
+  (define tz (if (null? maybe-tz) (local-timezone) (car maybe-tz)))
   (define (nsec->day nsec)
     (/ nsec tm:nano ;; -> sec
        60 ;; -> min
@@ -118,9 +120,9 @@
 	    (values n s m h d w y)))))
   (let* ((date (exact (floor odate)))
 	 (approx (absolute->gregorian-year (- date 3) tz))
-	 (tmp (iso-component->absolute 0 0 0 12 1 1 (+ approx 1) tz))
+	 (tmp (iso-components->absolute 0 0 0 12 1 1 (+ approx 1) tz))
 	 (year (if (>= date tmp) (+ approx 1) approx))
-	 (week (+ (div (- date (iso-component->absolute 0 0 0 12 1 1 year tz))
+	 (week (+ (div (- date (iso-components->absolute 0 0 0 12 1 1 year tz))
 		       7)
 		  1))
 	 (day (->day date)))
@@ -133,7 +135,7 @@
 
 (define (absolute->iso odate . maybe-tz)
   (define tz (if (null? maybe-tz) (local-timezone) (car maybe-tz)))
-  (let-values (((n s m h d w y) (absolute->iso-component odate tz)))
+  (let-values (((n s m h d w y) (absolute->iso-components odate tz)))
     (values (make-common-local-time n s m h)
 	    (make-iso-local-date d w y)
 	    tz)))

@@ -35,7 +35,7 @@
 ;;     Edward M. Reingold, Nachum Dershowitz, and Stewart M. Clamen
 ;;   http://reingold.co/cc2-paper.pdf
 (library (sagittarius calendar constants)
-    (export +julian-day-offset+
+    (export +julian-day-offset+ +epoch-in-utc-second+
 	    +sunday+ +monday+ +tuesday+ +wednesday+
 	    +thursday+ +friday+ +saturday+)
     (import (sagittarius))
@@ -43,6 +43,12 @@
 ;;; (date->julian-day (make-date 0 0 0 12 1 1 1 0)) => 1721426
 ;;; so absolute date 0 is 1721426 - 1
 (define-constant +julian-day-offset+ 1721425)
+
+;; (make-time 0 +epoch-in-utc-second+) points 1/1/1 12:0:0.0 GMT
+(define-constant +epoch-in-utc-second+ -62135553600)
+;; or should we use this as absolute 0?
+;; (make-time 0 +epoch-in-utc-second+) points -1/12/31 12:0:0.0 GMT
+;; (define-constant +epoch-in-utc-second+ -62135640000)
 
 ;; day of week
 (define-constant +sunday+ 0)
