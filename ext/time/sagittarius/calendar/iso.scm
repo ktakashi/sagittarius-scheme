@@ -41,6 +41,7 @@
 	    (sagittarius timezone)
 	    (sagittarius time-util)
 	    (sagittarius calendar gregorian)
+	    (sagittarius calendar constants)
 	    (sagittarius calendar locals))
 
 ;; like 2018-W52-7
@@ -67,7 +68,7 @@
 ;;; Aux API
 (define (iso-component->absolute n s m h d w y tz)
   (let ((hid (time-components->absolute n s m h tz)))
-    (+ (nth-kday w 0 28 12 (- y 1) tz) d hid)))
+    (+ (nth-kday w +sunday+ 28 12 (- y 1) tz) d hid)))
 
 ;;; API
 (define (iso->absolute local-time iso-date . maybe-tz)
@@ -84,8 +85,8 @@
 (define (iso-long-year? year tz)
   (let ((jan1 (absolute->day-of-week (gregorian-new-year year tz)))
 	(dec31 (absolute->day-of-week (gregorian-end-of-year year tz))))
-    (or (= jan1 4) ;; thursday
-	(= dec31 4))))
+    (or (= jan1 +thursday+)
+	(= dec31 +thursday+))))
 
 ;;; API
 (define (absolute->iso-component odate tz)

@@ -35,11 +35,22 @@
 ;;     Edward M. Reingold, Nachum Dershowitz, and Stewart M. Clamen
 ;;   http://reingold.co/cc2-paper.pdf
 (library (sagittarius calendar constants)
-    (export)
+    (export +julian-day-offset+
+	    +sunday+ +monday+ +tuesday+ +wednesday+
+	    +thursday+ +friday+ +saturday+)
     (import (sagittarius))
 ;;; JD offset of absolute date 1 of gregorian (1/1/1)
 ;;; (date->julian-day (make-date 0 0 0 12 1 1 1 0)) => 1721426
 ;;; so absolute date 0 is 1721426 - 1
 (define-constant +julian-day-offset+ 1721425)
+
+;; day of week
+(define-constant +sunday+ 0)
+(define-constant +monday+ 1)
+(define-constant +tuesday+ 2)
+(define-constant +wednesday+ 3)
+(define-constant +thursday+ 4)
+(define-constant +friday+ 5)
+(define-constant +saturday+ 6)
 
 )
