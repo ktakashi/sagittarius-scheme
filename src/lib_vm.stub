@@ -68,7 +68,7 @@
 	      ;; NB: this must be called only from compiler.
 	      (not (SG_FALSEP (SG_IDENTIFIER_IDENTITY id))))
       (set! (SG_IDENTIFIER_NAME id) 
-	    (Sg_Gensym (-> (SG_SYMBOL (SG_IDENTIFIER_NAME id)) name)))
+	    (Sg_MakeUniqueSymbol (-> (SG_SYMBOL (SG_IDENTIFIER_NAME id)) name)))
       ;; Issue 86
       ;; now pending identifiers hold macro environment but when it
       ;; needs to be renamed, it must hold use environment as its 
