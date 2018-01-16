@@ -1,20 +1,20 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
 ;;; sagittarius/calendar/locals.scm - Local date/time containers
-;;;  
+;;;
 ;;;   Copyright (c) 2018  Takashi Kato  <ktakashi@ymail.com>
-;;;   
+;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
 ;;;   are met:
-;;;   
+;;;
 ;;;   1. Redistributions of source code must retain the above copyright
 ;;;      notice, this list of conditions and the following disclaimer.
-;;;  
+;;;
 ;;;   2. Redistributions in binary form must reproduce the above copyright
 ;;;      notice, this list of conditions and the following disclaimer in the
 ;;;      documentation and/or other materials provided with the distribution.
-;;;  
+;;;
 ;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 ;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 ;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -26,7 +26,7 @@
 ;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-;;;  
+;;;
 
 ;; it's called local-time or local-date this is because
 ;; time and date are already taken and calendar-date means differntly
@@ -45,10 +45,21 @@
 	    time-components->absolute
 	    absolute->time-components
 	    absolute->day&nanosecond
+
+	    nanosecond->day
+	    second->day
+	    minute->day
+	    hour->day
+	    day->nanosecond
+	    day->second
+	    day->minute
+	    day->hour
+	    add-common-calendar-unit
 	    )
     (import (rnrs)
 	    (sagittarius timezone)
-	    (sagittarius time-util))
+	    (sagittarius time-util)
+	    (sagittarius calendar constants))
 
 ;; local time holds hour, minute second and nanosecond
 (define-record-type local-time)
@@ -57,6 +68,7 @@
 ;; depending on the calendars
 (define-record-type local-date)
 
+;; TODO maybe we should move this to commons library or so
 (define-record-type common-local-time
   (parent local-time)
   (fields nanosecond second minute hour))
@@ -64,7 +76,6 @@
 (define-record-type common-local-date
   (parent local-date)
   (fields day month year))
-
 
 (define (absolute->day&nanosecond gd)
   (if (integer? gd)
@@ -106,5 +117,24 @@
 	   (/ n tm:nano)
 	   (- (timezone-offset tz)))
 	tm:sid)))
-  
+
+(define (nanosecond->day nsec) (/ nsec tm:nano (* 60 60 24)))
+(define (second->day sec)      (/ sec (* 60 60 24)))
+(define (minute->day min)      (/ min (* 60 24)))
+(define (hour->day hour)       (/ hour 24))
+(define (day->nanosecond day)  (* day (* 24 60 60 tm:nano)))
+(define (day->second day)      (* day (* 24 60 60)))
+(define (day->minute day)      (* day (* 24 60)))
+(define (day->hour day)        (* day 24))
+
+(define (add-common-calendar-unit absolute unit amount)
+  (+ absolute
+     (case unit
+       ((nanosecond) (nanosecond->day amount))
+       ((second)     (second->day amount))
+       ((minute)     (minute->day amount))
+       ((hour)       (hour->day amount))
+       ((day)        amount)
+       (else (assertion-violation 'add-common-calendar-unit
+				  "unknown unit" unit)))))
 )

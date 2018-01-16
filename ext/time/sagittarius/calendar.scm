@@ -38,14 +38,23 @@
 
 	    (rename (calendar-date <calendar-date>))
 	    make-calendar-date calendar-date? 
+	    make-gregorian-calendar-date make-iso-calendar-date
 	    time-utc->calendar-date calendar-date->time-utc
 	    calendar-date-calendar
-	    calendar-date-absolute-date
+	    (rename (calendar-date-absolute-date calendar-date->gregorian-day))
 	    calendar-date-timezone
 
 	    calendar-date->julian-day
 	    
-	    calendar-date-add  calendar-date-subtract)
+	    calendar-date-add  calendar-date-subtract
+	    +calendar-unit:nanosecond+
+	    +calendar-unit:second+
+	    +calendar-unit:minute+
+	    +calendar-unit:hour+
+	    +calendar-unit:day+
+	    +calendar-unit:week+
+	    +calendar-unit:month+
+	    +calendar-unit:year+)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (clos user)
@@ -55,32 +64,34 @@
 	    (sagittarius timezone)
 	    (sagittarius calendar constants)
 	    (sagittarius calendar gregorian)
-	    (sagittarius calendar iso))
+	    (sagittarius calendar iso)
+	    (sagittarius calendar locals))
 
 (define-record-type calendar
   (fields name
 	  components->absolute
-	  absolute->components))
+	  absolute->components
+	  add-unit))
 
 (define calendar:gregorian (make-calendar "Gregorian"
 					  gregorian-components->absolute
-					  absolute->gregorian-components))
+					  absolute->gregorian-components
+					  gregorian-calendar-add-unit))
 (define calendar:iso (make-calendar "ISO"
 				    iso-components->absolute
-				    absolute->iso-components))
+				    absolute->iso-components
+				    iso-calendar-add-unit))
 ;; TBD
 ;; (define calendar:julian (make-calendar "Julian" #f #f))
 
 ;; time-utc -> absolute date
 (define (time-utc->absolute time timezone)
-  (define (nanosecond->date nsec) (/ nsec tm:nano 60 60 24))
   (let ((sec (+ (time-second time) (timezone-offset timezone)
 		+epoch-in-utc-second+)))
-    (+ (nanosecond->date (+ (* sec tm:nano) (time-nanosecond time))) 1)))
+    (+ (nanosecond->day (+ (* sec tm:nano) (time-nanosecond time))) 1)))
 
 (define (absolute->time-utc absolute timezone)
-  (define (date->nanosecond date) (* date tm:sid tm:nano))
-  (let ((nsec (date->nanosecond (- absolute 1))))
+  (let ((nsec (day->nanosecond (- absolute 1))))
     (make-time time-utc
 	       (mod nsec tm:nano)
 	       (- (floor (/ nsec tm:nano))
@@ -124,11 +135,15 @@
 
 ;; API
 (define (calendar-date-add calendar-date unit amount)
-  (error 'calendar-date-add "not-yet"))
+  (define calendar (calendar-date-calendar calendar-date))
+  (define absolute (calendar-date-absolute-date calendar-date))
+  (let ((new-absolute ((calendar-add-unit calendar) absolute unit amount)))
+    (make-calendar-date new-absolute (calendar-date-timezone calendar-date)
+			calendar)))
 
 ;; API
 (define (calendar-date-subtract calendar-date unit amount)
-  (error 'calendar-date-subtract "not-yet"))
+  (calendar-date-add calendar-date unit (- amount)))
 
 ;; print
 (define-method write-object ((c calendar) out)

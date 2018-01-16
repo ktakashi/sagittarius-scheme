@@ -45,6 +45,9 @@
 	    gregorian-components->absolute
 	    absolute->gregorian-components
 
+	    +gregorian-calendar-unit+
+	    gregorian-calendar-add-unit
+	    
 	    ;; helpers for other calendars	    
 	    gregorian-leap-year? absolute->gregorian-year
 	    gregorian-new-year gregorian-end-of-year
@@ -53,6 +56,7 @@
 	    (sagittarius) ;; for define-constant
 	    (sagittarius time-util)
 	    (sagittarius timezone)
+	    (sagittarius calendar constants)
 	    (sagittarius calendar locals))
 
 (define-constant +gregorian-epoch+ 1)
@@ -164,5 +168,21 @@
 	    (make-common-local-date d M y)
 	    tz)))
 
+(define +gregorian-calendar-unit+
+  (calendar-unit-set nanosecond second minute hour day month year))
+
+(define (gregorian-calendar-add-unit absolute unit amount)
+  (define gmt *timezone/gmt*)
+  (unless (enum-set-member? unit +gregorian-calendar-unit+)
+    (assertion-violation 'gregorian-calendar-add-unit "unsupported unit" unit))
+  (if (enum-set-member? unit +common-time-calendar-unit-set+)
+      (add-common-calendar-unit absolute unit amount)
+      (let-values (((n s m h d M y)
+		    (absolute->gregorian-components absolute *timezone/gmt*)))
+	(case unit
+	  ((month)
+	   (gregorian-components->absolute n s m h d (+ M amount) y gmt))
+	  ((year)
+	   (gregorian-components->absolute n s m h d M (+ y amount) gmt))))))
 )
 

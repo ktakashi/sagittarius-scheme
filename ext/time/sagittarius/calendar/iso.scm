@@ -33,6 +33,7 @@
 	    make-iso-local-date iso-local-date?
 	    iso-local-date-day iso-local-date-week iso-local-date-year
 
+	    +iso-calendar-unit+ iso-calendar-add-unit
 	    ;; aux APIs
 	    iso-components->absolute absolute->iso-components
 	    )
@@ -139,4 +140,19 @@
     (values (make-common-local-time n s m h)
 	    (make-iso-local-date d w y)
 	    tz)))
+
+(define +iso-calendar-unit+
+  (calendar-unit-set nanosecond second minute hour week month year))
+
+(define (iso-calendar-add-unit absolute unit amount)
+  (define gmt (timezone "GMT"))
+  (unless (enum-set-member? unit +iso-calendar-unit+)
+    (assertion-violation 'iso-calendar-add-unit "unsupported unit" unit))
+  (if (enum-set-member? unit +common-time-calendar-unit-set+)
+      (add-common-calendar-unit absolute unit amount)
+      (let-values (((n s m h d w y)
+		    (absolute->iso-components absolute *timezone/gmt*)))
+	(case unit
+	  ((week) (iso-components->absolute n s m h d (+ w amount) y gmt))
+	  ((year) (iso-components->absolute n s m h d w (+ y amount) gmt))))))
 )

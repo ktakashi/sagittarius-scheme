@@ -1,6 +1,7 @@
 (import (sagittarius calendar)
 	(sagittarius calendar gregorian)
-	(sagittarius calendar iso))
+	(sagittarius calendar iso)
+	(sagittarius time-util))
 
 (test-begin "calendar")
 
@@ -17,13 +18,32 @@
   (test-assert (time=? time (calendar-date->time-utc
 			     (time-utc->calendar-date time))))
   (test-equal 25/24
-	      (calendar-date-absolute-date
+	      (calendar-date->gregorian-day
 	       (time-utc->calendar-date absolute-1-in-utc cet)))
   (test-equal 1
-	      (calendar-date-absolute-date
+	      (calendar-date->gregorian-day
 	       (time-utc->calendar-date absolute-1-in-utc gmt)))
   (test-equal (time-utc->julian-day time)
 	      (calendar-date->julian-day (time-utc->calendar-date time gmt))))
+
+(let ((gc (make-gregorian-calendar-date 0 0 0 0 16 1 2018))
+      (->day calendar-date->gregorian-day))
+  (test-error assertion-violation?
+	      (calendar-date-add gc +calendar-unit:week+ 1))
+  (test-equal (+ (calendar-date->gregorian-day gc) 365)
+	      (->day (calendar-date-add gc +calendar-unit:year+ 1)))
+  (test-equal (+ (calendar-date->gregorian-day gc) 31)
+	      (->day (calendar-date-add gc +calendar-unit:month+ 1)))
+  (test-equal (+ (calendar-date->gregorian-day gc) 1)
+	      (->day (calendar-date-add gc +calendar-unit:day+ 1)))
+  (test-equal (+ (calendar-date->gregorian-day gc) 1/24)
+	      (->day (calendar-date-add gc +calendar-unit:hour+ 1)))
+  (test-equal (+ (calendar-date->gregorian-day gc) (/ 1 (* 24 60)))
+	      (->day (calendar-date-add gc +calendar-unit:minute+ 1)))
+  (test-equal (+ (calendar-date->gregorian-day gc) (/ 1 (* 24 60 60)))
+	      (->day (calendar-date-add gc +calendar-unit:second+ 1)))
+  (test-equal (+ (calendar-date->gregorian-day gc) (/ 1 (* 24 60 60 tm:nano)))
+	      (->day (calendar-date-add gc +calendar-unit:nanosecond+ 1))))
 
 (test-assert (gregorian-leap-year? 4))
 (test-assert (not (gregorian-leap-year? 2100)))
