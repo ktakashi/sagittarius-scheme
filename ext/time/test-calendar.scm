@@ -10,9 +10,20 @@
 
 (test-assert (calendar-date? (time-utc->calendar-date (current-time))))
 
-(let ((time (current-time)))
+(let ((time (current-time))
+      (absolute-1-in-utc (make-time time-utc 0 -62135553600))
+      (cet (timezone "CET"))
+      (gmt (timezone "GMT")))
   (test-assert (time=? time (calendar-date->time-utc
-			     (time-utc->calendar-date time)))))
+			     (time-utc->calendar-date time))))
+  (test-equal 25/24
+	      (calendar-date-absolute-date
+	       (time-utc->calendar-date absolute-1-in-utc cet)))
+  (test-equal 1
+	      (calendar-date-absolute-date
+	       (time-utc->calendar-date absolute-1-in-utc gmt)))
+  (test-equal (time-utc->julian-day time)
+	      (calendar-date->julian-day (time-utc->calendar-date time gmt))))
 
 (test-assert (gregorian-leap-year? 4))
 (test-assert (not (gregorian-leap-year? 2100)))

@@ -45,7 +45,7 @@
 (define-constant +julian-day-offset+ 1721425)
 
 ;; (make-time 0 +epoch-in-utc-second+) points 1/1/1 12:0:0.0 GMT
-(define-constant +epoch-in-utc-second+ -62135553600)
+(define-constant +epoch-in-utc-second+ 62135553600)
 ;; or should we use this as absolute 0?
 ;; (make-time 0 +epoch-in-utc-second+) points -1/12/31 12:0:0.0 GMT
 ;; (define-constant +epoch-in-utc-second+ -62135640000)

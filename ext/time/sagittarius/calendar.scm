@@ -43,6 +43,8 @@
 	    calendar-date-absolute-date
 	    calendar-date-timezone
 
+	    calendar-date->julian-day
+	    
 	    calendar-date-add  calendar-date-subtract)
     (import (rnrs)
 	    (rnrs r5rs)
@@ -74,11 +76,11 @@
   (define (nanosecond->date nsec) (/ nsec tm:nano 60 60 24))
   (let ((sec (+ (time-second time) (timezone-offset timezone)
 		+epoch-in-utc-second+)))
-    (nanosecond->date (+ (* sec tm:nano) (time-nanosecond time)))))
+    (+ (nanosecond->date (+ (* sec tm:nano) (time-nanosecond time))) 1)))
 
 (define (absolute->time-utc absolute timezone)
   (define (date->nanosecond date) (* date tm:sid tm:nano))
-  (let ((nsec (date->nanosecond absolute)))
+  (let ((nsec (date->nanosecond (- absolute 1))))
     (make-time time-utc
 	       (mod nsec tm:nano)
 	       (- (floor (/ nsec tm:nano))
@@ -116,6 +118,9 @@
   (let ((absolute (calendar-date-absolute-date cd))
 	(timezone (calendar-date-timezone cd)))
     (absolute->time-utc absolute timezone)))
+
+(define (calendar-date->julian-day cd)
+  (+ (calendar-date-absolute-date cd) +julian-day-offset+))
 
 ;; API
 (define (calendar-date-add calendar-date unit amount)
