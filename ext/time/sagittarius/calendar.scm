@@ -32,7 +32,7 @@
 (library (sagittarius calendar)
     (export (rename (calendar <calender>)) calendar?
 	    calendar:gregorian
-	    calendar:julian
+	    calendar:iso
 	    (rename (calendar:gregorian calendar:system))
 	    calendar-name
 
@@ -69,7 +69,7 @@
 				    iso-components->absolute
 				    absolute->iso-components))
 ;; TBD
-(define calendar:julian (make-calendar "Julian" #f #f))
+;; (define calendar:julian (make-calendar "Julian" #f #f))
 
 ;; time-utc -> absolute date
 (define (time-utc->absolute time timezone)
