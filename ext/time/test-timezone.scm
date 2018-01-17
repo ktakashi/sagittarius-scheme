@@ -32,20 +32,38 @@
 ;; history
 (let ((tz (timezone "Europe/Dublin"))
       (now (date->time-utc (make-date 0 0 0 0 24 7 2015 0)))
-      ;; 1:00	-	IST	1971 Oct 31  2:00u
+      ;; it's just past...
       (no-rule-past (date->time-utc (make-date 0 0 0 0 24 7 1971 0)))
       ;; 0:00	GB-Eire	GMT/IST	1968 Oct 27
-      (rule-past (date->time-utc (make-date 0 0 0 0 24 7 1968 0))))
+      (rule-past (date->time-utc (make-date 0 0 0 0 24 7 1968 0)))
+
+      ;; gb-eire of dublin
+      #|
+# S.R.&O. 1921, No. 363
+Rule	GB-Eire	1921	only	-	Apr	 3	2:00s	1:00	BST
+Rule	GB-Eire	1921	only	-	Oct	 3	2:00s	0	GMT
+         :
+			 0:00	GB-Eire	%s	1921 Dec  6 # independence
+         :
+      |#
+      (gb-eire-dst (date->time-utc (make-date 0 0 0 0 3 4 1921 0)))
+      (gb-eire     (date->time-utc (make-date 0 0 0 0 4 10 1921 0))) 
+      )
   (test-equal "timezone-short-name (1)" "IST/GMT" (timezone-short-name tz now))
   (test-equal "timezone-short-name (2)" "IST/GMT" (timezone-short-name tz no-rule-past))
-  (test-equal "timezone-offset" 3600 (timezone-offset tz no-rule-past))
+  (test-equal "timezone-offset (1)" 3600 (timezone-offset tz no-rule-past))
 
-  (test-equal "timezone-raw-offset" 3600 (timezone-raw-offset tz))
-  (test-equal "timezone-raw-offset" 3600 (timezone-raw-offset tz no-rule-past))
+  (test-equal "timezone-raw-offset (1)" 3600 (timezone-raw-offset tz))
+  (test-equal "timezone-raw-offset (2)" 3600 (timezone-raw-offset tz no-rule-past))
 
   (test-equal "timezone-short-name (3)" "GMT/IST"
 	      (timezone-short-name tz rule-past))
-  (test-equal "timezone-raw-offset" 0 (timezone-raw-offset tz rule-past))
+  (test-equal "timezone-raw-offset (3)" 0 (timezone-raw-offset tz rule-past))
+
+  (test-equal "timezone-short-name (4)" "BST" (timezone-short-name tz gb-eire-dst))
+  (test-equal "timezone-offset (2)" 3600 (timezone-offset tz gb-eire-dst))
+  (test-equal "timezone-short-name (5)" "GMT" (timezone-short-name tz gb-eire))
+  (test-equal "timezone-offset (3)" 0 (timezone-offset tz gb-eire))
   )
 
 ;; name-list
