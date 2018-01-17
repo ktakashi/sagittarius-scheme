@@ -36,15 +36,14 @@
       (no-rule-past (date->time-utc (make-date 0 0 0 0 24 7 1971 0)))
       ;; 0:00	GB-Eire	GMT/IST	1968 Oct 27
       (rule-past (date->time-utc (make-date 0 0 0 0 24 7 1968 0))))
-  (test-equal "timezone-short-name" "GMT/IST" (timezone-short-name tz now))
-  (test-equal "timezone-short-name" "IST" (timezone-short-name tz no-rule-past))
-
+  (test-equal "timezone-short-name (1)" "IST/GMT" (timezone-short-name tz now))
+  (test-equal "timezone-short-name (2)" "IST/GMT" (timezone-short-name tz no-rule-past))
   (test-equal "timezone-offset" 3600 (timezone-offset tz no-rule-past))
 
-  (test-equal "timezone-raw-offset" 0    (timezone-raw-offset tz))
+  (test-equal "timezone-raw-offset" 3600 (timezone-raw-offset tz))
   (test-equal "timezone-raw-offset" 3600 (timezone-raw-offset tz no-rule-past))
 
-  (test-equal "timezone-short-name" "GMT/IST"
+  (test-equal "timezone-short-name (3)" "GMT/IST"
 	      (timezone-short-name tz rule-past))
   (test-equal "timezone-raw-offset" 0 (timezone-raw-offset tz rule-past))
   )
