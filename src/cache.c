@@ -1110,6 +1110,13 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
 			      ";;         cache=%A\n"), id, cache_path);
   }
   SG_OPEN_FILE(&file, cache_path, SG_CREATE | SG_WRITE);
+  /* In some cases, e.g. encrypted drive on Ubuntu, the path
+     name would be too long and can't be opened. In that case,
+     we just return here.
+   */
+  if (!SG_FILE_VTABLE(&file)->isOpen(&file)) {
+    return FALSE;
+  }
   /* lock file */
   if (!Sg_LockFile(&file, SG_EXCLUSIVE | SG_DONT_WAIT)) {
     /* if locking file fails means there is a already process running to write
