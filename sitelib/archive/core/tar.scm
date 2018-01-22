@@ -86,8 +86,7 @@
 
   (define-syntax trace
     (syntax-rules ()
-      #;
-      ((_ . args)
+      #;((_ . args)
        (begin
          (for-each display (list . args))
          (newline)))
@@ -143,6 +142,8 @@
         ((#\6) 'fifo)
         ;; Regular file with "high-performance attribute"?
         ((#\7) 'regular)
+	((#\g) 'global-extended-header)
+	((#\x) 'extended-header)
         (else t))))
   (define (header-linkname rec) (get-asciiz rec 157 100))
   (define (header-magic rec) (get-asciiz rec 257 6))
@@ -285,12 +286,13 @@
     (define who 'get-header-record)
     (let ((rec (get-bytevector-n tarport 512)))
       (trace "get-header-record: `" (utf8->string rec) "'")
+
       (cond ((eof-object? rec) (eof-object))
             ((zero-record? rec) (eof-object))
             ((not (= (bytevector-length rec) 512))
              (premature-eof who tarport))
             ((not (header-chksum-ok? rec))
-             (error who "bad tar header checsum" tarport))
+             (error who "bad tar header checksum" tarport))
             (else rec))))
 
   (define (extract-file tarport header :key (overwrite #f))
@@ -304,7 +306,8 @@
 	(let-values (((dir base ext) (decompose-path file)))
 	  (create-directory* dir)))
       ;; if it's directory skip
-      (cond ((eq? (header-typeflag header) 'directory)
+      (cond ((memq (header-typeflag header)
+		   '(directory global-extended-header extended-header))
 	     (skip-file tarport header))
 	    (else
 	     (when (and overwrite (file-exists? file))
@@ -325,10 +328,11 @@
       (do ((buf (make-bytevector 512))
            (blocks blocks (- blocks 1)))
           ((zero? blocks)
-           (let ((r (get-bytevector-n! tarport buf 0 512)))
-             (trace "read block: " r " (last)")
-             (unless (eqv? r 512) (premature-eof who tarport))
-             (put-bytevector destport buf 0 trail)))
+	   (unless (zero? trail)
+	     (let ((r (get-bytevector-n! tarport buf 0 512)))
+	       (trace "read block: " r " (last)")
+	       (unless (eqv? r 512) (premature-eof who tarport))
+	       (put-bytevector destport buf 0 trail))))
         (let ((r (get-bytevector-n! tarport buf 0 512)))
           (unless (eqv? r 512) (premature-eof who tarport))
           (trace "read block: " r)

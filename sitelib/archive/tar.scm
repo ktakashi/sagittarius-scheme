@@ -53,18 +53,25 @@
     (when (~ in 'current)
       ;; skip
       (let1 c (~ in 'current)
-	(skip-file (~ in 'source) (~ c 'header))))
-    (let1 header (get-header-record (~ in 'source))
+	(skip-file (~ in 'source) (~ c 'header))
+	(set! (~ in 'current) #f)))
+    (let loop ((header (get-header-record (~ in 'source))))
       (if (eof-object? header)
 	  #f
-	  (rlet1 e (make <tar-archive-entry>
-		     :name (header-fulpath header)
-		     :type (if (eq? (header-typeflag header) 'directory)
-			       'directory
-			       ;; might be symbolic link or so but ignore...
-			       'file)
-		     :input in :header header)
-	    (set! (~ in 'current) e)))))
+	  (let ((type (header-typeflag header)))
+	    (cond ((memq type '(global-extended-header extended-header))
+		   (skip-file (~ in 'source) header)
+		   (loop (get-header-record (~ in 'source))))
+		  (else 
+		   (rlet1 e (make <tar-archive-entry>
+			      :name (header-fulpath header)
+			      :type (if (eq? type 'directory)
+					'directory
+					;; might be symbolic link or so
+					;; but ignore...
+					'file)
+			      :input in :header header)
+		     (set! (~ in 'current) e))))))))
 
   (define-method extract-entry ((e <tar-archive-entry>) (out <port>))
     (rlet1 r (extract-to-port (~ e 'input 'source) (~ e 'header) out)
