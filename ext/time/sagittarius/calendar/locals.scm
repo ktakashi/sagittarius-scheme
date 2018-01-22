@@ -32,14 +32,17 @@
 ;; time and date are already taken and calendar-date means differntly
 ;; on our calendar libraries...
 (library (sagittarius calendar locals)
-    (export (rename (local-time <local-time>)) local-time?
-	    make-common-local-time common-local-time?
-	    common-local-time-hour common-local-time-minute
-	    common-local-time-second common-local-time-nanosecond
+    (export (rename (partial-time <partial-time>)
+		    (partial-date <partial-date>))
+	    partial-time? partial-date?
+
+	    (rename (local-time <local-time>)) local-time?
+	    make-local-time
+	    local-time-hour local-time-minute
+	    local-time-second local-time-nanosecond
 	    (rename (local-date <local-date>)) local-date?
-	    make-common-local-date common-local-date?
-	    common-local-date-day common-local-date-month
-	    common-local-date-year
+	    make-local-date
+	    local-date-day local-date-month local-date-year
 
 	    ;; helpers for common-time and date
 	    time-components->absolute
@@ -61,20 +64,22 @@
 	    (sagittarius time-util)
 	    (sagittarius calendar constants))
 
-;; local time holds hour, minute second and nanosecond
-(define-record-type local-time)
-
-;; this is an abstract type. actual implementations are
+;; these are an abstract type. actual implementations are
 ;; depending on the calendars
-(define-record-type local-date)
+
+;; interface: partial time
+(define-record-type partial-time)
+
+;; interface: partial date
+(define-record-type partial-date)
 
 ;; TODO maybe we should move this to commons library or so
-(define-record-type common-local-time
-  (parent local-time)
+(define-record-type local-time
+  (parent partial-time)
   (fields nanosecond second minute hour))
 
-(define-record-type common-local-date
-  (parent local-date)
+(define-record-type local-date
+  (parent partial-date)
   (fields day month year))
 
 (define (absolute->day&nanosecond gd)

@@ -38,10 +38,10 @@
 ;;   https://en.wikipedia.org/wiki/Year_zero
 (library (sagittarius calendar gregorian)
     (export gregorian->absolute absolute->gregorian
-	    (rename (make-common-local-time make-gregorian-local-time)
-		    (make-common-local-date make-gregorian-local-date)
-		    (common-local-time? gregorian-local-time?)
-		    (common-local-date? gregorian-local-date?))
+	    (rename (make-local-time make-gregorian-local-time)
+		    (make-local-date make-gregorian-local-date)
+		    (local-time? gregorian-local-time?)
+		    (local-date? gregorian-local-date?))
 	    gregorian-components->absolute
 	    absolute->gregorian-components
 
@@ -87,13 +87,13 @@
 ;;; API
 (define (gregorian->absolute local-time local-date . maybe-tz)
   (define tz (if (null? maybe-tz) (local-timezone) (car maybe-tz)))
-  (gregorian-components->absolute (common-local-time-nanosecond local-time)
-				  (common-local-time-second local-time)
-				  (common-local-time-minute local-time)
-				  (common-local-time-hour local-time)
-				  (common-local-date-day local-date)
-				  (common-local-date-month local-date)
-				  (common-local-date-year local-date)
+  (gregorian-components->absolute (local-time-nanosecond local-time)
+				  (local-time-second local-time)
+				  (local-time-minute local-time)
+				  (local-time-hour local-time)
+				  (local-date-day local-date)
+				  (local-date-month local-date)
+				  (local-date-year local-date)
 				  tz))
 ;;; Aux API
 (define (gregorian-new-year y tz)
@@ -164,8 +164,8 @@
 (define (absolute->gregorian date  . maybe-tz)
   (define tz (if (null? maybe-tz) (local-timezone) (car maybe-tz)))
   (let-values (((n s m h d M y) (absolute->gregorian-components date tz)))
-    (values (make-common-local-time n s m h)
-	    (make-common-local-date d M y)
+    (values (make-local-time n s m h)
+	    (make-local-date d M y)
 	    tz)))
 
 (define +gregorian-calendar-unit+

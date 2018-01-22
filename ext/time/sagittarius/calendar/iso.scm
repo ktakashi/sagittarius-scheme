@@ -50,7 +50,7 @@
 ;; week = 52
 ;; year = 2018
 (define-record-type iso-local-date
-  (parent <local-date>)
+  (parent <partial-date>)
   (fields day week year))
 
 ;;; Aux APIs
@@ -137,7 +137,7 @@
 (define (absolute->iso odate . maybe-tz)
   (define tz (if (null? maybe-tz) (local-timezone) (car maybe-tz)))
   (let-values (((n s m h d w y) (absolute->iso-components odate tz)))
-    (values (make-common-local-time n s m h)
+    (values (make-local-time n s m h)
 	    (make-iso-local-date d w y)
 	    tz)))
 
