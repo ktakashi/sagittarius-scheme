@@ -60,7 +60,7 @@
       (and (regex-matches m) m)))
 
   (define (regexp-matches? re str :optional (start 0) (end (string-length str)))
-    (regex-matches re str start end))
+    (regex-matches (regex-matcher (regexp re) str start end)))
 
   (define (regexp-search re str :optional (start 0) (end (string-length str)))
     (let ((m (regex-matcher (regexp re) str start end)))
