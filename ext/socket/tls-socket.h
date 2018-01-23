@@ -36,6 +36,7 @@ typedef struct SgTLSSocketRec
   SG_HEADER;
   SgSocket *socket;
   /* Need them? */
+  int numCertificates;
   void **certificates;
   void *privateKey;
 } SgTLSSocket;

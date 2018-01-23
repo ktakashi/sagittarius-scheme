@@ -26,10 +26,14 @@
  *   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <wincrypt.h>
 #include <sagittarius.h>
 #define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
 #include "tls-socket.h"
+
+#pragma comment(lib, "crypt32.lib")
+
 
 SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 				  /* list of bytevectors */
@@ -37,7 +41,36 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 				  /* encoded private key */
 				  SgByteVector *privateKey)
 {
-  /* TBD */
+  int len = Sg_Length(certificates), i = 0;
+  SgTLSSocket *r = SG_NEW(SgTLSSocket);
+  SgObject cp;
+  SG_SET_CLASS(r, SG_CLASS_TLS_SOCKET);
+  r->numCertificates = len;
+  r->certificates = SG_NEW_ARRAY(void *, len);
+  SG_FOR_EACH(cp, certificates) {
+    BYTE *decoded;
+    DWORD size;
+    SgByteVector *cert;
+    if (!SG_BVECTORP(SG_CAR(cp))) {
+      Sg_AssertionViolation(SG_INTERN("socket->tls-socket"),
+			    Sg_Sprintf(UC("bytevector required but got %S",
+					  SG_CAR(cp))),
+			    certificates);
+    }
+    cert = SG_BVECTOR(SG_CAR(cp));
+    if (!CryptDecodeObjectEx(X509_ASN_ENCODING, X509_NAME,
+			     SG_BVECTOR_ELEMENTS(cert), SG_BVECTOR_SIZE(cert),
+			     0, NULL, NULL, &size)) {
+      Sg_Error(UC("Failed to query buffer size of the certificate"));
+    }
+    decoded = SG_NEW2(size);
+    if (!CryptDecodeObjectEx(X509_ASN_ENCODING, X509_NAME,
+			     SG_BVECTOR_ELEMENTS(cert), SG_BVECTOR_SIZE(cert),
+			     0, NULL, decoded, &size)) {
+      Sg_Error(UC("Failed to decode the certificate"));
+    }
+    r->certificate[i++] = decoded;
+  }
 }
 
 int Sg_TLSClientHandshake(SgTLSSocket *tlsSocket)
