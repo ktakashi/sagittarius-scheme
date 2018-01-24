@@ -39,9 +39,9 @@ typedef struct SgTLSSocketRec
 } SgTLSSocket;
 
 SG_CLASS_DECL(Sg_TLSSocketClass);
-#define SG_CLASS_TLS_SOCKET (&Sg_TLSSocketClass)
-#define SG_TLS_SOCKET(obj)  ((SgTLSSocket *)obj)
-#define SG_TLS_SOCKETP(obj) SG_XTYPEP(obj, SG_CLASS_TLS_SOCKET)
+#define SG_CLASS_TLS_SOCKET  (&Sg_TLSSocketClass)
+#define SG_TLS_SOCKET(obj)   ((SgTLSSocket *)obj)
+#define SG_TLS_SOCKET_P(obj) SG_XTYPEP(obj, SG_CLASS_TLS_SOCKET)
 
 SG_CDECL_BEGIN
 
@@ -59,6 +59,7 @@ SG_EXTERN int       Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *data,
 					int size, int flags);
 SG_EXTERN int       Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *data,
 				     int size, int flags);
+SG_EXTERN void      Sg_InitTLSImplementation();
 
 SG_CDECL_END
 
