@@ -1,0 +1,78 @@
+;; -*- scheme -*-
+#!compatible
+(decl-code
+ (.include <sagittarius.h>)
+ (.define "LIBSAGITTARIUS_EXT_BODY")
+ (.include <sagittarius/extend.h>
+	   "tls-socket.h"))
+
+(define-cise-stmt check-string-or-false
+  ((_ name o)
+   `(unless (or (SG_STRINGP ,o)
+		(SG_FALSEP ,o))
+      (Sg_WrongTypeOfArgumentViolation ',name
+				       (SG_MAKE_STRING "string or #f")
+				       ,o
+				       '()))))
+
+(define-type <socket> "SgSocket*")
+(define-type <tls-socket> "SgTLSSocket*")
+
+(define-c-proc socket->tls-socket
+  (socket::<socket> :key (certificate #f) (private-key #f))
+  (result (Sg_SocketToTLSSocket socket
+	    (?: (SG_PAIRP certificate) certificate SG_NIL)
+	    (?: (SG_BVECTORP private-key) private-key NULL))))
+
+(define-c-proc tls-socket-connect! (o::<tls-socket>) ::<boolean>
+  Sg_TLSSocketConnect)
+
+(define-c-proc tls-socket? (o) ::<boolean> :constant SG_TLS_SOCKET_P)
+
+(define-c-proc tls-socket-accept (o::<tls-socket>) Sg_TLSSocketAccept)
+
+(define-c-proc tls-socket-send
+  (o::<tls-socket> bv::<bytevector> :optional (flags::<fixnum> 0)) ::<fixnum>
+  (result (Sg_TLSSocketSend (SG_TLS_SOCKET o)
+			    (SG_BVECTOR_ELEMENTS bv)
+			    (SG_BVECTOR_SIZE bv)
+			    flags)))
+
+(define-c-proc tls-socket-recv (o::<tls-socket> len::<fixnum>
+						:optional (flags::<fixnum> 0)) 
+  (let ((data (Sg_MakeByteVector len 0))
+	(res::int (Sg_TLSSocketReceive (SG_TLS_SOCKET o)
+				       (SG_BVECTOR_ELEMENTS data) len flags)))
+    (cond ((== len res) (result data))
+	  ((< res 0)
+	   ;; most probably socket is non-blocking
+	   (result #f))
+	  (else
+	   ;; shrink
+	   (let ((r (Sg_MakeByteVector res 0)))
+	     (Sg_ByteVectorCopyX (SG_BVECTOR data) 0 (SG_BVECTOR r) 0 res)
+	     (result r))))))
+
+;; destructive
+(define-c-proc tls-socket-recv! 
+  (o::<tls-socket> bv::<bytevector> start::<fixnum> len::<fixnum>
+	       :optional (flags::<fixnum> 0)) ::<fixnum>
+  ;; sanity check
+  (when (or (>= start (SG_BVECTOR_SIZE bv))
+	    (> len (- (SG_BVECTOR_SIZE bv) start)))
+    (Sg_AssertionViolation 'tls-socket-recv! 
+			   (SG_MAKE_STRING "out of range")
+			   (SG_LIST4 o bv (SG_MAKE_INT start) 
+				     (SG_MAKE_INT len))))
+  (result (Sg_TLSSocketReceive (SG_TLS_SOCKET o)
+			    (+ (SG_BVECTOR_ELEMENTS bv) start)
+			    len flags)))
+
+
+(define-c-proc tls-socket-shutdown (o::<tls-socket> how::<fixnum>) ::<void>
+  Sg_TLSSocketShutdown)
+
+(define-c-proc tls-socket-close  (o::<tls-socket>) ::<void> Sg_TLSSocketClose)
+(define-c-proc tls-socket-closed?  (o::<tls-socket>) ::<boolean>
+  (result (not (Sg_TLSSocketOpenP o))))
+
