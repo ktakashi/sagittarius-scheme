@@ -87,10 +87,10 @@ enum SgFileLockType {
   SG_DONT_WAIT = 1U << 2
 };
 
-#define SG_OPEN_FILE(file, path, flags)				\
+#define SG_OPEN_FILE(r, file, path, flags)			\
   do {								\
     Sg_InitFile(file);						\
-    SG_FILE_VTABLE(file)->open((file), (path), (flags));	\
+    (r) = SG_FILE_VTABLE(file)->open((file), (path), (flags));	\
   } while (0)
 
 SG_CDECL_BEGIN

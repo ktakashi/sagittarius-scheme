@@ -30,6 +30,38 @@
   (test-assert "dst? (2)" (not (timezone-dst? tz winter))))
 
 ;; history
+#|
+From europe file
+# Zone	NAME		GMTOFF	RULES	FORMAT	[UNTIL]
+Zone	Europe/Dublin	-0:25:00 -	LMT	1880 Aug  2
+			-0:25:21 -	DMT	1916 May 21  2:00s
+			-0:25:21 1:00	IST	1916 Oct  1  2:00s
+			 0:00	GB-Eire	%s	1921 Dec  6 # independence
+			 0:00	GB-Eire	GMT/IST	1940 Feb 25  2:00s
+			 0:00	1:00	IST	1946 Oct  6  2:00s
+			 0:00	-	GMT	1947 Mar 16  2:00s
+			 0:00	1:00	IST	1947 Nov  2  2:00s
+			 0:00	-	GMT	1948 Apr 18  2:00s
+			 0:00	GB-Eire	GMT/IST	1968 Oct 27
+# From Paul Eggert (2018-01-18):
+# The next line should look like this:
+#			 1:00	Eire	IST/GMT
+# However, in January 2018 we discovered that the Eire rules cause
+# problems with tests for ICU:
+# https://mm.icann.org/pipermail/tz/2018-January/025825.html
+# and with tests for OpenJDK:
+# https://mm.icann.org/pipermail/tz/2018-January/025822.html
+# To work around this problem, use a traditional approximation for
+# time stamps after 1971-10-31 02:00 UTC, to give ICU and OpenJDK
+# developers breathing room to fix bugs.  This approximation has
+# correct UTC offsets, but results in tm_isdst flags are the reverse
+# of what they should be.  This workaround is temporary and should be
+# removed reasonably soon.
+			 1:00	-	IST	1971 Oct 31  2:00u
+			 0:00	GB-Eire	GMT/IST	1996
+			 0:00	EU	GMT/IST
+# End of workaround for ICU and OpenJDK bugs.
+|#
 (let ((tz (timezone "Europe/Dublin"))
       (now (date->time-utc (make-date 0 0 0 0 24 7 2015 0)))
       ;; it's just past...
@@ -49,10 +81,15 @@ Rule	GB-Eire	1921	only	-	Oct	 3	2:00s	0	GMT
       (gb-eire-dst (date->time-utc (make-date 0 0 0 0 3 4 1921 0)))
       (gb-eire     (date->time-utc (make-date 0 0 0 0 4 10 1921 0))) 
       )
+  ;; These 2 will fail due to the comment above
+  ;; Remove when it started to pass.
+  (test-expect-fail 2)
   (test-equal "timezone-short-name (1)" "IST/GMT" (timezone-short-name tz now))
   (test-equal "timezone-short-name (2)" "IST/GMT" (timezone-short-name tz no-rule-past))
   (test-equal "timezone-offset (1)" 3600 (timezone-offset tz no-rule-past))
 
+  ;; Ditto
+  (test-expect-fail 1)
   (test-equal "timezone-raw-offset (1)" 3600 (timezone-raw-offset tz))
   (test-equal "timezone-raw-offset (2)" 3600 (timezone-raw-offset tz no-rule-past))
 

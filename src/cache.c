@@ -1099,7 +1099,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   SgFilePort bp;
   SgBufferedPort bfp;
   SgObject cache, size;
-  int index = 0;
+  int index = 0, ret;
   uint8_t portBuffer[SG_PORT_DEFAULT_BUFFER_SIZE];
   int64_t cacheSize;
 
@@ -1109,14 +1109,13 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
     Sg_Printf(vm->logPort, UC(";; caching id=%A\n"
 			      ";;         cache=%A\n"), id, cache_path);
   }
-  SG_OPEN_FILE(&file, cache_path, SG_CREATE | SG_WRITE);
+  SG_OPEN_FILE(ret, &file, cache_path, SG_CREATE | SG_WRITE);
   /* In some cases, e.g. encrypted drive on Ubuntu, the path
      name would be too long and can't be opened. In that case,
      we just return here.
    */
-  if (!SG_FILE_VTABLE(&file)->isOpen(&file)) {
-    return FALSE;
-  }
+  if (!ret) return FALSE;
+  
   /* lock file */
   if (!Sg_LockFile(&file, SG_EXCLUSIVE | SG_DONT_WAIT)) {
     /* if locking file fails means there is a already process running to write
@@ -1152,7 +1151,9 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   }
 
   cache_path = Sg_StringAppend2(cache_path, TIMESTAMP_EXT);
-  SG_OPEN_FILE(&tagfile, cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
+  SG_OPEN_FILE(ret, &tagfile, cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
+  if (!ret) return FALSE;
+  
   Sg_LockFile(&tagfile, SG_EXCLUSIVE);
 
   out = Sg_InitFileBinaryPort(&bp, &tagfile, SG_OUTPUT_PORT, &bfp, 
@@ -2003,6 +2004,7 @@ static int check_timestamp(SgString* id, SgString *cache_path)
   SgString *timestamp;
   SgObject obj, vtime, otime;
   int64_t size;
+  int ret;
   char tagbuf[50];
   /* check timestamp */
   timestamp = Sg_StringAppend2(cache_path, TIMESTAMP_EXT);
@@ -2017,7 +2019,9 @@ static int check_timestamp(SgString* id, SgString *cache_path)
     return RE_CACHE_NEEDED;
   }
 
-  SG_OPEN_FILE(&file, timestamp, SG_READ);
+  SG_OPEN_FILE(ret, &file, timestamp, SG_READ);
+  if (!ret) return INVALID_CACHE;
+  
   Sg_LockFile(&file, SG_SHARED);
   /* To use less memory we use file object directly */
   size = SG_FILE_VTABLE(&file)->read(&file, (uint8_t *)tagbuf, (int)TAG_LENGTH);
@@ -2177,7 +2181,9 @@ int Sg_ReadCache(SgString *id)
     /* Sg_Printf(vm->logPort, UC(";; reading cache of %S\n"), id); */
   }
 
-  SG_OPEN_FILE(&file, cache_path, SG_READ);
+  SG_OPEN_FILE(ret, &file, cache_path, SG_READ);
+  if (!ret) return INVALID_CACHE;
+  
   Sg_LockFile(&file, SG_SHARED);
   /* Now I/O is not so slow so we can use file input port.
      This uses less memory :) */
