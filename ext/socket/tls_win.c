@@ -34,6 +34,12 @@
 
 #pragma comment(lib, "crypt32.lib")
 
+typedef struct WinTLSDataRec
+{
+  int              numCerts;
+  CERT_NAME_INFO **certs;
+} WinTLSData;
+
 
 SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 				  /* list of bytevectors */
@@ -43,10 +49,13 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 {
   int len = Sg_Length(certificates), i = 0;
   SgTLSSocket *r = SG_NEW(SgTLSSocket);
+  WinTLSData *data = SG_NEW(WinTLSData);
   SgObject cp;
   SG_SET_CLASS(r, SG_CLASS_TLS_SOCKET);
-  r->numCertificates = len;
-  r->certificates = SG_NEW_ARRAY(void *, len);
+
+  r->data = data;
+  data->numCerts = len;
+  data->certs = SG_NEW_ARRAY(CERT_NAME_INFO *, len);
   SG_FOR_EACH(cp, certificates) {
     BYTE *decoded;
     DWORD size;
@@ -69,16 +78,11 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 			     0, NULL, decoded, &size)) {
       Sg_Error(UC("Failed to decode the certificate"));
     }
-    r->certificate[i++] = decoded;
+    data->certs[i++] = (CERT_NAME_INFO *)decoded;
   }
 }
 
-int Sg_TLSClientHandshake(SgTLSSocket *tlsSocket)
-{
-  /* TBD */
-}
-
-int Sg_TLSServerHandshake(SgTLSSocket *tlsSocket)
+int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
 {
   /* TBD */
 }

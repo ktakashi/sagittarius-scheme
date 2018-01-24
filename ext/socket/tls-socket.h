@@ -35,10 +35,7 @@ typedef struct SgTLSSocketRec
 {
   SG_HEADER;
   SgSocket *socket;
-  /* Need them? */
-  int numCertificates;
-  void **certificates;
-  void *privateKey;
+  void *data;
 } SgTLSSocket;
 
 SG_CLASS_DECL(Sg_TLSSocketClass);
@@ -53,8 +50,7 @@ SG_EXTERN SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 					    SgObject certificates,
 					    /* encoded private key */
 					    SgByteVector *privateKey);
-SG_EXTERN int       Sg_TLSClientHandshake(SgTLSSocket *tlsSocket);
-SG_EXTERN int       Sg_TLSServerHandshake(SgTLSSocket *tlsSocket);
+SG_EXTERN int       Sg_TLSSocketConnect(SgTLSSocket *tlsSocket);
 SG_EXTERN SgObject  Sg_TLSSocketAccept(SgTLSSocket *tlsSocket);
 SG_EXTERN void      Sg_TLSSocketShutdown(SgTLSSocket *tlsSocket, int how);
 SG_EXTERN void      Sg_TLSSocketClose(SgTLSSocket *tlsSocket);
