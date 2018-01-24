@@ -587,6 +587,36 @@ SgObject Sg_SocketGetopt(SgSocket *socket, int level, int name, int rsize)
   }
 }
 
+#if EAGAIN == EWOULDBLOCK
+#define NON_BLOCKING_CASE EAGAIN
+#else
+#define NON_BLOCKING_CASE EAGAIN: case EWOULDBLOCK
+#endif
+
+#define handleError(who, socket, r)					\
+  do {									\
+    if ((r) == -1) {							\
+      socket->lastError = last_error;					\
+      int e = last_error;						\
+      switch (e) {							\
+      case EINTR:							\
+	continue;							\
+      case EPIPE:							\
+	if (flags & MSG_NOSIGNAL) {					\
+	  return 0;							\
+	}								\
+	break;								\
+      case NON_BLOCKING_CASE:						\
+	/* most probably non-blocking socket */				\
+	return (r);							\
+      }									\
+      raise_socket_error(SG_INTERN(who),				\
+			 Sg_GetLastErrorMessageWithErrorCode(e),	\
+			 Sg_MakeConditionSocket(socket),		\
+			 SG_LIST1(SG_MAKE_INT(e)));			\
+    }									\
+  } while (0)
+
 int Sg_SocketReceive(SgSocket *socket, uint8_t *data, int size, int flags)
 {
   /* int count = 0, osize = size; */
@@ -595,23 +625,7 @@ int Sg_SocketReceive(SgSocket *socket, uint8_t *data, int size, int flags)
     const int ret = recv(socket->socket, (char*)data, size,
 			 /* we don't want SIGPIPE */
 			 flags | MSG_NOSIGNAL);
-    if (ret == -1) {
-      socket->lastError = last_error;
-      if (last_error == EINTR) {
-	continue;
-      } else if (last_error == EPIPE) {
-	if (flags & MSG_NOSIGNAL) {
-	  return 0;
-	}
-      } else if (last_error == EAGAIN || last_error == EWOULDBLOCK) {
-	/* most probably non-blocking socket */
-	return ret;
-      }
-      raise_socket_error(SG_INTERN("socket-recv"), 
-			 Sg_GetLastErrorMessageWithErrorCode(last_error),
-			 Sg_MakeConditionSocket(socket), SG_NIL);
-      return ret;		/* dummy */
-    }
+    handleError("socket-recv", socket, ret);
     return ret;
   }
 }
@@ -620,32 +634,13 @@ int Sg_SocketReceiveFrom(SgSocket *socket, uint8_t *data, int size, int flags,
 			 SgSockaddr *addr)
 {
   /* int count = 0, osize = size; */
-  CLOSE_SOCKET("socket-recv", socket);
+  CLOSE_SOCKET("socket-recvfrom", socket);
   for (;;) {
     const int ret = recvfrom(socket->socket, (char*)data, size,
 			     /* we don't want SIGPIPE */
 			     flags | MSG_NOSIGNAL, addr->addr,
 			     (socklen_t *)&addr->addr_size);
-    if (ret == -1) {
-      if (last_error == EINTR) {
-	continue;
-      } else if (last_error == EPIPE) {
-	if (flags & MSG_NOSIGNAL) {
-	  return 0;
-	} else {
-	  goto err;
-	}
-      } else if (last_error == EAGAIN || last_error == EWOULDBLOCK) {
-	/* most probably non-blocking socket */
-	return ret;
-      } else {
-      err:
-	raise_socket_error(SG_INTERN("socket-recv"), 
-			   Sg_GetLastErrorMessageWithErrorCode(last_error),
-			   Sg_MakeConditionSocket(socket), SG_NIL);
-	return ret;
-      }
-    }
+    handleError("socket-recvfrom", socket, ret);
     return ret;
   }
 }
@@ -660,26 +655,7 @@ int Sg_SocketSend(SgSocket *socket, uint8_t *data, int size, int flags)
     const int ret = send(socket->socket, (char*)data, size, 
 			 /* we don't want SIGPIPE */
 			 flags | MSG_NOSIGNAL);
-    if (ret == -1) {
-      if (last_error == EINTR) {
-	continue;
-      } else if (last_error == EPIPE) {
-	if (flags & MSG_NOSIGNAL) {
-	  return 0;
-	} else {
-	  goto err;
-	}	
-      } else if (last_error == EAGAIN || last_error == EWOULDBLOCK) {
-	/* most probably non-blocking socket */
-	continue;
-      } else {
-      err:
-	raise_socket_error(SG_INTERN("socket-send"), 
-			   Sg_GetLastErrorMessageWithErrorCode(last_error),
-			   Sg_MakeConditionSocket(socket), SG_NIL);
-	return ret;
-      }
-    }
+    handleError("socket-send", socket, ret);
     sizeSent += ret;
     rest -= ret;
     data += ret;
@@ -700,26 +676,7 @@ int Sg_SocketSendTo(SgSocket *socket, uint8_t *data, int size, int flags,
 			   /* we don't want SIGPIPE */
 			   flags | MSG_NOSIGNAL, addr->addr, 
 			   (int)addr->addr_size);
-    if (ret == -1) {
-      if (last_error == EINTR) {
-	continue;
-      } else if (last_error == EPIPE) {
-	if (flags & MSG_NOSIGNAL) {
-	  return 0;
-	} else {
-	  goto err;
-	}	
-      } else if (last_error == EAGAIN || last_error == EWOULDBLOCK) {
-	/* most probably non-blocking socket */
-	continue;
-      } else {
-      err:
-	raise_socket_error(SG_INTERN("socket-sendto"), 
-			   Sg_GetLastErrorMessageWithErrorCode(last_error),
-			   Sg_MakeConditionSocket(socket), SG_NIL);
-	return ret;
-      }
-    }
+    handleError("socket-sendto", socket, ret);
     sizeSent += ret;
     rest -= ret;
     data += ret;
