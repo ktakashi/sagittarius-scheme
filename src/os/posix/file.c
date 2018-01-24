@@ -155,8 +155,6 @@ static int64_t posix_tell(SgObject self)
 static int64_t posix_read(SgObject self, uint8_t *buf, int64_t size)
 {
   int64_t result = 0;
-  ASSERT(posix_is_open(self));
-  errno = 0;
   do {
     result = read(SG_FD(self)->fd, buf, size);
   } while (result < 0 && errno == EINTR);
@@ -171,7 +169,6 @@ static int64_t posix_read(SgObject self, uint8_t *buf, int64_t size)
 static int64_t posix_write(SgObject self, uint8_t *buf, int64_t size)
 {
   int64_t result;
-  ASSERT(posix_is_open(self));
   do {
     result = write(SG_FD(self)->fd, buf, size);
   } while (result < 0 && errno == EINTR);
