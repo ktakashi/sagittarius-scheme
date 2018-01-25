@@ -30,6 +30,7 @@
 #ifndef SAGITTARIUS_WIN_COMPAT_H_
 #define SAGITTARIUS_WIN_COMPAT_H_
 
+#include <sagittarius/config.h>
 #include <time.h>
 /* some compatible layer of POSIX for Windows */
 
@@ -41,7 +42,7 @@ typedef unsigned long time_t;
 # endif
 #endif
 
-#ifdef _MSC_VER
+#if !defined(HAVE_TIMESPEC)
 /* ugh, why this doesn't exist... */
 struct timespec {
   time_t tv_sec;

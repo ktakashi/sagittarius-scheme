@@ -36,6 +36,8 @@
 #cmakedefine HAVE_EXECINFO_H
 #cmakedefine HAVE_FEATURES_H
 
+#cmakedefine HAVE_TIMESPEC
+
 #cmakedefine HAVE_ALLOCA
 #cmakedefine HAVE_SCHED_YIELD
 #cmakedefine HAVE_NANOSLEEP

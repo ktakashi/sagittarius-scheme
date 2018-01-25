@@ -34,6 +34,7 @@ INCLUDE(${PROJECT_SOURCE_DIR}/cmake/CheckVariable.cmake)
 INCLUDE(${PROJECT_SOURCE_DIR}/cmake/Triple.cmake)
 INCLUDE(${PROJECT_SOURCE_DIR}/cmake/FixupCompilerFlags.cmake)
 INCLUDE(${PROJECT_SOURCE_DIR}/cmake/Parameters.cmake)
+INCLUDE(${PROJECT_SOURCE_DIR}/cmake/CheckStructExists.cmake)
 
 # Install directories
 GET_PARAMETER(BIN_DIR        bin)
@@ -74,6 +75,10 @@ CHECK_INCLUDE_FILE(unistd.h    HAVE_UNISTD_H)
 CHECK_INCLUDE_FILE(semaphore.h HAVE_SEMAPHORE_H)
 CHECK_INCLUDE_FILE(execinfo.h  HAVE_EXECINFO_H)
 CHECK_INCLUDE_FILE(features.h  HAVE_FEATURES_H)
+
+IF (HAVE_TIME_H)
+  CHECK_STRUCT_EXISTS("struct timespec" time.h HAVE_TIMESPEC)
+ENDIF()
 
 # sizeofs
 CHECK_TYPE_SIZE(int SIZEOF_INT)
