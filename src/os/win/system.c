@@ -28,7 +28,7 @@
  *  $Id: $
  */
 #include <windows.h>
-#include <TlHelp32.h>
+#include <tlhelp32.h>
 #include <wchar.h>
 #include <io.h>
 #include <string.h>

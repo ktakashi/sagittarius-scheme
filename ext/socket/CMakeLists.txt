@@ -7,7 +7,7 @@ ADD_LIBRARY(sagittarius--socket MODULE
 
 ADD_FEATURE(socket)
 
-IF (MSVC OR CYGWIN)
+IF (WINDOWS_SUPPORT OR CYGWIN)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(sagittarius-socket.c 
     ${CMAKE_CURRENT_BINARY_DIR}/socket_stub.c
@@ -28,9 +28,10 @@ IF(APPLE)
 ENDIF()
 TARGET_LINK_LIBRARIES(sagittarius--socket sagittarius)
 
-IF (${SAGITTARIUS_OS} STREQUAL "qnx" OR 
-    ${SAGITTARIUS_OS} STREQUAL "sunos")
+IF (${SAGITTARIUS_OS} STREQUAL "qnx" OR ${SAGITTARIUS_OS} STREQUAL "sunos")
   TARGET_LINK_LIBRARIES(sagittarius--socket socket)
+ELSEIF (MINGW)
+  TARGET_LINK_LIBRARIES(sagittarius--socket ws2_32)
 ENDIF()
 
 INSTALL(TARGETS sagittarius--socket

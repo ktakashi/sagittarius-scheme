@@ -91,7 +91,7 @@ ELSE()
   ADD_LIBRARY(sagittarius--ffi MODULE sagittarius-ffi.c 
     ${CMAKE_CURRENT_BINARY_DIR}/ffi_stub.c)
 
-  IF (MSVC OR CYGWIN)
+  IF (WINDOWS_SUPPORT OR CYGWIN)
     # ugly solution
     SET_SOURCE_FILES_PROPERTIES(sagittarius-ffi.c
       ${CMAKE_CURRENT_BINARY_DIR}/ffi_stub.c

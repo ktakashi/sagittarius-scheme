@@ -389,6 +389,11 @@ int wmain(int argc, tchar **argv)
     return exceptionCode;
   }
 }
+
+#elif defined(__MINGW32__) || defined(__MINGW64__)
+
+#define real_main main
+
 #else
 
 #include <signal.h>

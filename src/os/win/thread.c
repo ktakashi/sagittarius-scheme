@@ -117,12 +117,7 @@ static unsigned int __stdcall win32_thread_entry(void *params)
 {
   unsigned int status;
   SgInternalThread *me = ((ThreadParams *)params)->me;
-  /* most likely we don't need __try anymore */
-  __try {
-    status = win32_thread_entry_innter(params);
-  } __except (exception_filter(GetExceptionCode(), GetExceptionInformation())) {
-    status = FALSE;
-  }
+  status = win32_thread_entry_innter(params);
   /* clear the stackBase, from now on, thread can't be terminated */
   me->stackBase = 0;
   return status;

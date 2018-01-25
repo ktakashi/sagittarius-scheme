@@ -72,7 +72,7 @@ ADD_STUBS(sagittarius--filewatch
   COMMAND ${GENSTUB}
   FILES filewatch_stub.stub)
 
-IF (MSVC OR CYGWIN)
+IF (WINDOWS_SUPPORT OR CYGWIN)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(${FILE_WATCH_C}
     ${CMAKE_CURRENT_BINARY_DIR}/filewatch_stub.c 

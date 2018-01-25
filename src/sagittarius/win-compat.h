@@ -41,10 +41,12 @@ typedef unsigned long time_t;
 # endif
 #endif
 
+#ifdef _MSC_VER
 /* ugh, why this doesn't exist... */
 struct timespec {
   time_t tv_sec;
   long   tv_nsec;
 };
+#endif
 
 #endif

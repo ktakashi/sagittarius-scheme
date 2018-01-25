@@ -148,6 +148,7 @@ typedef struct SgInternalSemaphoreRec
 #define SG_INTERRUPTED_THREAD_END()
 #define SG_RESET_INTERRUPTED_THREAD(vm) /* dummy */
 
+#ifdef _MSC_VER
 /* emulation code from pthread for win32 */
 typedef void (* ptw32_cleanup_callback_t)(void *);
 typedef struct ptw32_cleanup_rec_t
@@ -169,7 +170,10 @@ typedef struct ptw32_cleanup_rec_t
       }							\
     }							\
   }
-
+#else
+# define thread_cleanup_push(_rout, _arg)
+# define thread_cleanup_pop(_execute)
+#endif
 #else
 # error "pthread.h or MSC is required"
 #endif
