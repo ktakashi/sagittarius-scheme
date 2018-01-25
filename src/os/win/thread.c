@@ -488,7 +488,6 @@ void Sg_DestroySemaphore(SgInternalSemaphore *semaphore)
   CloseHandle(semaphore->semaphore);
 }
 
-
 /*
   end of file
   Local Variables:
