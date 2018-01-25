@@ -44,11 +44,12 @@ GET_PARAMETER(SHARE_DIR      share)
 # so make it configurable
 GET_PARAMETER(PKGCONFIG_DIR  lib/pkgconfig)
 
-if (WATCOM)
-  message(STATUS "*CAUTION* open watcom is experimental")
-endif()
+IF (WATCOM)
+  MESSAGE(STATUS "*CAUTION* open watcom is experimental")
+ENDIF()
 
-message(STATUS "system processor ${CMAKE_SYSTEM_PROCESSOR}")
+MESSAGE(STATUS "system processor ${CMAKE_SYSTEM_PROCESSOR}")
+MESSAGE(STATUS "Buinding directory: ${CMAKE_CURRENT_BINARY_DIR}")
 
 # basic info for project
 SET(SAGITTARIUS_NAME "sagittarius" CACHE STRING "Sagittarius PACKAGE_NAME")
@@ -180,7 +181,7 @@ IF(WIN32 AND NOT CYGWIN)
   SET(SAGITTARIUS_SITE_LIB_PATH "sitelib")
   SET(SAGITTARIUS_DYNLIB_PATH "modules")
   SET(SAGITTARIUS_SITE_DYNLIB_PATH "modules")
-  IF (MSVC)
+  IF (MSVC OR MINGW)
     ADD_DEFINITIONS("-D_UNICODE -DUNICODE")
   ELSEIF (WATCOM)
     ADD_DEFINITIONS("-D_SG_WIN_SUPPORT")
@@ -239,7 +240,7 @@ IF(USE_BOEHM_GC)
     SET(GC_URL "http://www.hboehm.info/gc/gc_source")
     # for now get it from github...
     # SET(GC_URL "https://github.com/ivmai/bdwgc/archive")
-    IF (MSVC OR WATCOM)
+    IF (MSVC OR WATCOM OR MINGW)
       SET(USED_GC_VERSION "gc-7.4.2")
       SET(GC_VERSION "gc-7.4.2")
       SET(NEED_LIB_ATMIC TRUE)
@@ -268,13 +269,16 @@ IF(USE_BOEHM_GC)
       MESSAGE(STATUS "unpacked gc.tar.gz")
     ENDIF()
 
-    IF (NOT MSVC AND NOT WATCOM AND NOT ${SAGITTARIUS_OS} STREQUAL "qnx")
+    IF (NOT MSVC
+	AND NOT WATCOM
+	AND NOT MINGW
+	AND NOT ${SAGITTARIUS_OS} STREQUAL "qnx")
       MESSAGE(FATAL_ERROR "First install Boehm GC. Go to gc directory.")
     ENDIF()
 
     ADD_DEFINITIONS("-DLARGE_CONFIG -DGC_DLL")
     # OK we don't want to link this for god sake.
-    IF (MSVC)
+    IF (MSVC OR MINGW)
       ADD_DEFINITIONS("-DDONT_USE_USER32_DLL")
     ENDIF()
 
@@ -321,16 +325,24 @@ ENDIF(CMAKE_USE_PTHREADS_INIT)"
     STRING(REGEX REPLACE ";" "\\\\;" GC_BUILD_LINES "${GC_BUILD_LINES}")
     STRING(REGEX REPLACE "\n" ";" GC_BUILD_LINES "${GC_BUILD_LINES}")
     FOREACH(GC_BUILD_LINE ${GC_BUILD_LINES})
-      IF (MSVC AND GC_BUILD_LINE STREQUAL "IF(WIN32)")
+      IF (MSVC
+	  OR MINGW
+	  AND GC_BUILD_LINE STREQUAL "IF(WIN32)")
 	MESSAGE(STATUS "Found IF(WIN32)")
 	SET(IN_WIN32_TERM TRUE)
       ENDIF()
       # skip cord
-      IF (IN_WIN32_TERM AND GC_BUILD_LINE STREQUAL "ENDIF(WIN32)")
+      IF (IN_WIN32_TERM
+	  AND NOT MINGW
+	  AND GC_BUILD_LINE STREQUAL "ENDIF(WIN32)")
 	MESSAGE(STATUS "Adding install command")
 	SET(GC_BUILD_LINE "INSTALL(TARGETS gcmt-dll DESTINATION .)")
 	SET(IN_WIN32_TERM FALSE)
       ENDIF()
+      IF (MINGW AND GC_BUILD_LINE MATCHES ".*gcmt-dll.*")
+	SET(GC_BUILD_LINE "")
+      ENDIF()
+
       IF (NOT IN_WIN32_TERM)
 	FILE(APPEND ${GC_DIR}/CMakeLists.txt.tmp "${GC_BUILD_LINE}\n")
       ENDIF()
@@ -341,8 +353,12 @@ ENDIF(CMAKE_USE_PTHREADS_INIT)"
     ADD_SUBDIRECTORY(${GC_DIR} build/gc)
     INCLUDE_DIRECTORIES(${GC_DIR}/include)
     SET(HAVE_GC_H 1)
-    SET(GC_DEPENDS_TARGET gcmt-dll)
-
+    IF (MINGW)
+      SET(GC_DEPENDS_TARGET gcmt-lib)
+    ELSE()
+      SET(GC_DEPENDS_TARGET gcmt-dll)
+    ENDIF()
+    
     IF (NEED_LIB_ATMIC)
       # since 7.4.0 or 7.4.2? Boehm GC separated libatomic_ops so
       # we need to download it separately
@@ -385,7 +401,7 @@ CONFIGURE_FILE(cmake/config-cmake.h.in
   ${PROJECT_BINARY_DIR}/sagittarius/config.h)
 ADD_DEFINITIONS(-DHAVE_CONFIG_H)
 
-IF(MSVC OR WATCOM)
+IF(MSVC OR WATCOM OR MINGW)
   ADD_DEFINITIONS(-DWIN32_LEAN_AND_MEAN)
 ENDIF()
 
@@ -394,7 +410,7 @@ SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY
   ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
   ${PROJECT_BINARY_DIR}/build)
 
-IF (MSVC OR WATCOM)
+IF (MSVC OR WATCOM OR MINGW)
   SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY
     ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
     ${PROJECT_BINARY_DIR}/build/modules)
@@ -455,7 +471,7 @@ CONFIGURE_FILE(cmake/sagittarius-config.in
   ${PROJECT_BINARY_DIR}/sagittarius-config)
 CONFIGURE_FILE(cmake/sagittarius-package.in 
   ${PROJECT_BINARY_DIR}/sagittarius-package)
-IF (MSVC)
+IF (MSVC OR MINGW)
   # make 32 bit and 64 bit different application
   IF (SIZEOF_VOIDP EQUAL 4)
     SET(SAGITTARIUS_INSTALLER_MODE "")
