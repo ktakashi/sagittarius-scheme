@@ -37,7 +37,7 @@ ADD_LIBRARY(sagittarius--tls-socket MODULE
 
 ADD_FEATURE(socket)
 
-IF (MSVC OR CYGWIN)
+IF (WINDOWS_SUPPORT OR CYGWIN)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(sagittarius-socket.c 
     ${CMAKE_CURRENT_BINARY_DIR}/socket_stub.c
@@ -67,10 +67,11 @@ IF (TLS_LIBS)
   TARGET_LINK_LIBRARIES(sagittarius--tls-socket ${TLS_LIBS})
 ENDIF()
 
-IF (${SAGITTARIUS_OS} STREQUAL "qnx" OR 
-    ${SAGITTARIUS_OS} STREQUAL "sunos")
+IF (${SAGITTARIUS_OS} STREQUAL "qnx" OR ${SAGITTARIUS_OS} STREQUAL "sunos")
   TARGET_LINK_LIBRARIES(sagittarius--socket socket)
   TARGET_LINK_LIBRARIES(sagittarius--tls-socket socket)
+ELSEIF (MINGW)
+  TARGET_LINK_LIBRARIES(sagittarius--socket ws2_32)
 ENDIF()
 
 INSTALL(TARGETS sagittarius--socket

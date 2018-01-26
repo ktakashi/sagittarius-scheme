@@ -148,28 +148,47 @@ typedef struct SgInternalSemaphoreRec
 #define SG_INTERRUPTED_THREAD_END()
 #define SG_RESET_INTERRUPTED_THREAD(vm) /* dummy */
 
-/* emulation code from pthread for win32 */
-typedef void (* ptw32_cleanup_callback_t)(void *);
-typedef struct ptw32_cleanup_rec_t
+typedef void (* cleanup_callback_t)(void *);
+typedef struct cleanup_rec_t
 {
-  ptw32_cleanup_callback_t routine;
+  cleanup_callback_t routine;
   void *arg;
-} ptw32_cleanup_t;
-# define thread_cleanup_push(_rout, _arg)			\
+} cleanup_t;
+
+# ifdef _MSC_VER
+/* emulation code from pthread for win32 */
+#  define thread_cleanup_push(_rout, _arg)			\
   {								\
-    ptw32_cleanup_t _cleanup;					\
-    _cleanup.routine = (ptw32_cleanup_callback_t)(_rout);	\
+    cleanup_t _cleanup;						\
+    _cleanup.routine = (cleanup_callback_t)(_rout);		\
     _cleanup.arg = (_arg);					\
     __try {
 
-# define thread_cleanup_pop(_execute)			\
+#  define thread_cleanup_pop(_execute)			\
     } __finally {					\
       if ( _execute || AbnormalTermination()) {		\
 	(*(_cleanup.routine))(_cleanup.arg);		\
       }							\
     }							\
   }
+# elif defined(__MINGW32__) || defined(__MINGW64__)
+/* unfortunately __try1 and __except1 couldn't be linked on
+   cross compile environment. so for now does nothing.
+ */
+#  define thread_cleanup_push(_rout, _arg)			\
+  {								\
+    cleanup_t _cleanup;						\
+    _cleanup.routine = (cleanup_callback_t)(_rout);		\
+    _cleanup.arg = (_arg);					\
 
+#  define thread_cleanup_pop(_execute)		\
+    if (_execute || AbnormalTermination()) {	\
+      (*(_cleanup.routine))(_cleanup.arg);	\
+    }						\
+  }
+# else
+# error "Not supported yet"
+#endif
 #else
 # error "pthread.h or MSC is required"
 #endif

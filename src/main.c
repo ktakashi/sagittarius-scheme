@@ -328,7 +328,7 @@ static void set_vm_mode(SgVM *vm, int standard, SgPort *port)
 static int profiler_mode = FALSE;
 static SgObject profiler_option = SG_UNDEF;
 
-static int stat = FALSE;
+static int show_stat = FALSE;
 /* static int standard_given = FALSE; */
 
 static void cleanup_main(void *data)
@@ -346,7 +346,7 @@ static void cleanup_main(void *data)
     }
   }
 
-  if (stat) {
+  if (show_stat) {
     fprintf(stderr, "\n;; Statistics (*: main thread only):\n");
     fprintf(stderr, ";;  GC: %zubytes heap, %zubytes allocated, "
 		    "%" PRIdPTR " gc occurred\n",
@@ -389,6 +389,11 @@ int wmain(int argc, tchar **argv)
     return exceptionCode;
   }
 }
+
+#elif defined(__MINGW32__) || defined(__MINGW64__)
+
+#define real_main main
+
 #else
 
 #include <signal.h>
@@ -695,7 +700,7 @@ int real_main(int argc, tchar **argv)
       break;
 #endif
     case 's':
-      stat = TRUE;
+      show_stat = TRUE;
       break;
     case 'n':
       noMainP = TRUE;

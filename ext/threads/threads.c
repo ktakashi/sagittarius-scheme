@@ -80,7 +80,7 @@ static void* thread_entry(void *data)
 #ifdef HAVE_ALLOCA
   stack = (SgObject *)alloca(sizeof(SgObject) * SG_VM_STACK_SIZE);
 #else
-  SgObject *stack = SG_NEW_ARRAY(SgObject, SG_VM_STACK_SIZE);
+  stack = SG_NEW_ARRAY(SgObject, SG_VM_STACK_SIZE);
 #endif
   Sg_SetVMStack(vm, stack, SG_VM_STACK_SIZE);
   thread_cleanup_push(thread_cleanup, vm);

@@ -30,6 +30,7 @@
  *  $Id: $
  */
 
+#include <math.h>
 #include <sagittarius/transcoder.h>
 #include <sagittarius/codec.h>
 #include <sagittarius/string.h>

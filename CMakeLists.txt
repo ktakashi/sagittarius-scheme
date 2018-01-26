@@ -34,6 +34,7 @@ INCLUDE(${PROJECT_SOURCE_DIR}/cmake/CheckVariable.cmake)
 INCLUDE(${PROJECT_SOURCE_DIR}/cmake/Triple.cmake)
 INCLUDE(${PROJECT_SOURCE_DIR}/cmake/FixupCompilerFlags.cmake)
 INCLUDE(${PROJECT_SOURCE_DIR}/cmake/Parameters.cmake)
+INCLUDE(${PROJECT_SOURCE_DIR}/cmake/CheckStructExists.cmake)
 
 # Install directories
 GET_PARAMETER(BIN_DIR        bin)
@@ -44,11 +45,12 @@ GET_PARAMETER(SHARE_DIR      share)
 # so make it configurable
 GET_PARAMETER(PKGCONFIG_DIR  lib/pkgconfig)
 
-if (WATCOM)
-  message(STATUS "*CAUTION* open watcom is experimental")
-endif()
+IF (WATCOM)
+  MESSAGE(STATUS "*CAUTION* open watcom is experimental")
+ENDIF()
 
-message(STATUS "system processor ${CMAKE_SYSTEM_PROCESSOR}")
+MESSAGE(STATUS "system processor ${CMAKE_SYSTEM_PROCESSOR}")
+MESSAGE(STATUS "Buinding directory: ${CMAKE_CURRENT_BINARY_DIR}")
 
 # basic info for project
 SET(SAGITTARIUS_NAME "sagittarius" CACHE STRING "Sagittarius PACKAGE_NAME")
@@ -73,6 +75,10 @@ CHECK_INCLUDE_FILE(unistd.h    HAVE_UNISTD_H)
 CHECK_INCLUDE_FILE(semaphore.h HAVE_SEMAPHORE_H)
 CHECK_INCLUDE_FILE(execinfo.h  HAVE_EXECINFO_H)
 CHECK_INCLUDE_FILE(features.h  HAVE_FEATURES_H)
+
+IF (HAVE_TIME_H)
+  CHECK_STRUCT_EXISTS("struct timespec" time.h HAVE_TIMESPEC)
+ENDIF()
 
 # sizeofs
 CHECK_TYPE_SIZE(int SIZEOF_INT)
@@ -180,11 +186,13 @@ IF(WIN32 AND NOT CYGWIN)
   SET(SAGITTARIUS_SITE_LIB_PATH "sitelib")
   SET(SAGITTARIUS_DYNLIB_PATH "modules")
   SET(SAGITTARIUS_SITE_DYNLIB_PATH "modules")
-  IF (MSVC)
+  IF (MSVC OR MINGW)
     ADD_DEFINITIONS("-D_UNICODE -DUNICODE")
-  ELSEIF (WATCOM)
+  ENDIF()
+  IF (WATCOM OR MINGW)
     ADD_DEFINITIONS("-D_SG_WIN_SUPPORT")
   ENDIF()
+  SET(WINDOWS_SUPPORT TRUE)
 ELSE()
   SET(SAGITTARIUS_SHARE_LIB_PATH
     "${CMAKE_INSTALL_PREFIX}/${SAGITTARIUS_CURRENT_SHARE}/lib")
@@ -239,7 +247,7 @@ IF(USE_BOEHM_GC)
     SET(GC_URL "http://www.hboehm.info/gc/gc_source")
     # for now get it from github...
     # SET(GC_URL "https://github.com/ivmai/bdwgc/archive")
-    IF (MSVC OR WATCOM)
+    IF (WINDOWS_SUPPORT)
       SET(USED_GC_VERSION "gc-7.4.2")
       SET(GC_VERSION "gc-7.4.2")
       SET(NEED_LIB_ATMIC TRUE)
@@ -249,13 +257,9 @@ IF(USE_BOEHM_GC)
       SET(GC_VERSION "gc-7.2")
       SET(NEED_LIB_ATMIC FALSE)
     ENDIF()
-    FIND_FILE(HAS_BOEHM_GC_TAR
-      NAMES gc.tar.gz
-      PATHS ${CMAKE_CURRENT_BINARY_DIR})
 
-    MESSAGE(STATUS "Checked Boehm GC archive file: ${HAS_BOEHM_GC_TAR}")
-
-    IF (NOT EXISTS ${HAS_BOEHM_GC_TAR})
+    IF (NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/gc.tar.gz")
+      MESSAGE(STATUS "Checking Boehm GC archive file ... not found")
       MESSAGE(STATUS "Downloading ${GC_URL}/${USED_GC_VERSION}.tar.gz")
       FILE(
 	DOWNLOAD "${GC_URL}/${USED_GC_VERSION}.tar.gz"
@@ -266,15 +270,17 @@ IF(USE_BOEHM_GC)
 	${CMAKE_CURRENT_BINARY_DIR}/gc.tar.gz
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
       MESSAGE(STATUS "unpacked gc.tar.gz")
+    ELSEIF()
+      MESSAGE(STATUS "Checking Boehm GC archive file ... found")
     ENDIF()
 
-    IF (NOT MSVC AND NOT WATCOM AND NOT ${SAGITTARIUS_OS} STREQUAL "qnx")
+    IF (NOT WINDOWS_SUPPORT AND NOT ${SAGITTARIUS_OS} STREQUAL "qnx")
       MESSAGE(FATAL_ERROR "First install Boehm GC. Go to gc directory.")
     ENDIF()
 
     ADD_DEFINITIONS("-DLARGE_CONFIG -DGC_DLL")
     # OK we don't want to link this for god sake.
-    IF (MSVC)
+    IF (MSVC OR MINGW)
       ADD_DEFINITIONS("-DDONT_USE_USER32_DLL")
     ENDIF()
 
@@ -315,13 +321,19 @@ IF(USE_BOEHM_GC)
 ENDIF(CMAKE_USE_PTHREADS_INIT)"
 	GC_BUILD_LINES "${GC_BUILD_LINES}")
     ENDIF()
+    IF (MINGW)
+      # for now... could be only on Linux
+      STRING(REGEX REPLACE "gc_cpp.cc" "" GC_BUILD_LINES "${GC_BUILD_LINES}")
+    ENDIF()
 
     SET(IN_WIN32_TERM FALSE)
     MESSAGE(STATUS "Appending GC build configuration to temp file.")
     STRING(REGEX REPLACE ";" "\\\\;" GC_BUILD_LINES "${GC_BUILD_LINES}")
     STRING(REGEX REPLACE "\n" ";" GC_BUILD_LINES "${GC_BUILD_LINES}")
     FOREACH(GC_BUILD_LINE ${GC_BUILD_LINES})
-      IF (MSVC AND GC_BUILD_LINE STREQUAL "IF(WIN32)")
+      IF (MSVC
+	  OR MINGW
+	  AND GC_BUILD_LINE STREQUAL "IF(WIN32)")
 	MESSAGE(STATUS "Found IF(WIN32)")
 	SET(IN_WIN32_TERM TRUE)
       ENDIF()
@@ -331,6 +343,7 @@ ENDIF(CMAKE_USE_PTHREADS_INIT)"
 	SET(GC_BUILD_LINE "INSTALL(TARGETS gcmt-dll DESTINATION .)")
 	SET(IN_WIN32_TERM FALSE)
       ENDIF()
+
       IF (NOT IN_WIN32_TERM)
 	FILE(APPEND ${GC_DIR}/CMakeLists.txt.tmp "${GC_BUILD_LINE}\n")
       ENDIF()
@@ -342,17 +355,13 @@ ENDIF(CMAKE_USE_PTHREADS_INIT)"
     INCLUDE_DIRECTORIES(${GC_DIR}/include)
     SET(HAVE_GC_H 1)
     SET(GC_DEPENDS_TARGET gcmt-dll)
-
+    
     IF (NEED_LIB_ATMIC)
       # since 7.4.0 or 7.4.2? Boehm GC separated libatomic_ops so
       # we need to download it separately
       SET(LIBATOMIC_OPS "libatomic_ops-7.4.0")
-      FIND_FILE(HAS_LIBATMIC_OPS_TAR
-	NAMES libatomic_ops.tar.gz
-	PATHS ${GC_DIR})
-      MESSAGE(STATUS
-	"Checked libatmic_ops archive file: ${HAS_LIBATMIC_OPS_TAR}")
-      IF (NOT EXISTS ${HAS_LIBATMIC_OPS_TAR})
+      IF (NOT EXISTS "${GC_DIR}/libatomic_ops.tar.gz")
+	MESSAGE(STATUS "Checking libatmic_ops archive file ... not found")
 	MESSAGE(STATUS "Downloading ${GC_URL}/${LIBATOMIC_OPS}.tar.gz")
 	FILE(
 	  DOWNLOAD "${GC_URL}/${LIBATOMIC_OPS}.tar.gz"
@@ -362,8 +371,11 @@ ENDIF(CMAKE_USE_PTHREADS_INIT)"
 	  ${GC_DIR}/libatomic_ops.tar.gz
 	  WORKING_DIRECTORY ${GC_DIR})
 	MESSAGE(STATUS "unpacked libatomic_ops.tar.gz")
+      ELSE()
+	MESSAGE(STATUS "Checking libatmic_ops archive file ... found")
       ENDIF()
-      IF (EXISTS ${GC_DIR}/${LIBATOMIC_OPS})
+      IF (EXISTS ${GC_DIR}/${LIBATOMIC_OPS}
+	  AND NOT EXISTS ${GC_DIR}/libatomic_ops)
 	FILE(RENAME ${GC_DIR}/${LIBATOMIC_OPS} ${GC_DIR}/libatomic_ops)
       ENDIF()
     ENDIF()
@@ -385,7 +397,7 @@ CONFIGURE_FILE(cmake/config-cmake.h.in
   ${PROJECT_BINARY_DIR}/sagittarius/config.h)
 ADD_DEFINITIONS(-DHAVE_CONFIG_H)
 
-IF(MSVC OR WATCOM)
+IF(WINDOWS_SUPPORT)
   ADD_DEFINITIONS(-DWIN32_LEAN_AND_MEAN)
 ENDIF()
 
@@ -394,7 +406,7 @@ SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY
   ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
   ${PROJECT_BINARY_DIR}/build)
 
-IF (MSVC OR WATCOM)
+IF (WINDOWS_SUPPORT)
   SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY
     ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
     ${PROJECT_BINARY_DIR}/build/modules)
@@ -455,7 +467,7 @@ CONFIGURE_FILE(cmake/sagittarius-config.in
   ${PROJECT_BINARY_DIR}/sagittarius-config)
 CONFIGURE_FILE(cmake/sagittarius-package.in 
   ${PROJECT_BINARY_DIR}/sagittarius-package)
-IF (MSVC)
+IF (MSVC OR MINGW)
   # make 32 bit and 64 bit different application
   IF (SIZEOF_VOIDP EQUAL 4)
     SET(SAGITTARIUS_INSTALLER_MODE "")
