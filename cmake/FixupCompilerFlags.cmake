@@ -124,7 +124,7 @@ MACRO (FIXUP_COMPILER_FLAGS _PROCESSOR _PLATFORM)
   # compiler option for global
   # TODO support MinGW
   IF(${CMAKE_SYSTEM_NAME} MATCHES Windows)
-    IF (MSVC OR WATCOM)
+    IF (MSVC OR WATCOM OR MINGW)
       SET(USE_UCS4_CPP TRUE)
     ELSE()
       MESSAGE(FATAL_ERROR "On Windows Only MSVC is supported")

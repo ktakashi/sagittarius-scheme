@@ -50,7 +50,7 @@ int main()
 " HAVE_ALLOCA)
   ELSEIF (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
     # FreeBSD has alloca in stdlib
-    CHECK_C_SOURCE_RUNS("
+    CHECK_C_SOURCE_COMPILES("
 #include <stdlib.h>
 int main()
 {
@@ -58,8 +58,8 @@ int main()
   return 0;
 }
 " HAVE_ALLOCA)
-  ELSEIF (MSVC)
-    CHECK_C_SOURCE_RUNS("
+  ELSEIF (MSVC OR MINGW)
+    CHECK_C_SOURCE_COMPILES("
 #include <malloc.h>
 int main()
 {

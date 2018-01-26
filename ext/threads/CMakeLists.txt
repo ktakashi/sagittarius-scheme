@@ -7,7 +7,7 @@ ADD_LIBRARY(sagittarius--threads MODULE
 
 ADD_FEATURE(threads)
 
-IF (MSVC OR CYGWIN)
+IF (WINDOWS_SUPPORT OR CYGWIN)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(threads.c 
     ${CMAKE_CURRENT_BINARY_DIR}/threads_stub.c mutex.c 
