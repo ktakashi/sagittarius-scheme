@@ -15,7 +15,7 @@
 				       ,o
 				       '()))))
 
-(define-type <socket> "SgSocket*")
+(define-type <socket> "SgSocket*" "socket" "Sg_SocketP" "SG_SOCKET")
 (define-type <tls-socket> "SgTLSSocket*")
 
 (define-c-proc socket->tls-socket

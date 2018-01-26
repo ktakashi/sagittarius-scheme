@@ -43,7 +43,6 @@
 #ifdef _MSC_VER
 # pragma comment(lib, "crypt32.lib")
 # pragma comment(lib, "secur32.lib")
-# pragma comment(lib, "shannel.lib")
 #endif
 
 typedef struct WinTLSDataRec
@@ -283,7 +282,7 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
   }
 
 #ifdef HAVE_ALLOCA
-  mmsg = (uint8_t *)alloca(sizes.cbMaximumMessage);
+  mmsg = (uint8_t *)alloca(min(sizes.cbMaximumMessage, size));
   mhdr = (uint8_t *)alloca(sizes.cbHeader);
   mtrl = (uint8_t *)alloca(sizes.cbTrailer);
 #else

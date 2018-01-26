@@ -24,10 +24,7 @@
  *   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  *   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  *   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- *  $Id: $
  */
-
 
 #include <sagittarius.h>
 #define LIBSAGITTARIUS_EXT_BODY
@@ -456,6 +453,11 @@ SgAddrinfo* Sg_GetAddrinfo(SgObject node, SgObject service, SgAddrinfo *hints)
 
   freeaddrinfo(ai);
   return result;
+}
+
+int Sg_SocketP(SgObject obj)
+{
+  return SG_SOCKETP(obj);
 }
 
 SgObject Sg_CreateSocket(int family, int socktype, int protocol)

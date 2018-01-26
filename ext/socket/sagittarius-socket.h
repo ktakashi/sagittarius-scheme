@@ -112,7 +112,6 @@ SG_CLASS_DECL(Sg_SockaddrClass);
 #define SG_SOCKADDR(obj)  ((SgSockaddr*)obj)
 #define SG_SOCKADDRP(obj) SG_XTYPEP(obj, SG_CLASS_SOCKADDR)
 
-
 typedef enum {
   None,
   IPv4,
@@ -326,6 +325,9 @@ SG_EXTERN SgObject  Sg_MakeConditionSocket(SgObject socket);
 SG_EXTERN SgObject  Sg_MakeConditionSocketConnection(SgObject socket);
 SG_EXTERN SgObject  Sg_MakeConditionSocketClosed(SgObject socket);
 SG_EXTERN SgObject  Sg_MakeConditionSocketPort(SgObject socket, SgObject port);
+
+/* To share with TLS module... */
+SG_EXTERN int       Sg_SocketP(SgObject obj);
 
 SG_CDECL_END
 
