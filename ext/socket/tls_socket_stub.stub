@@ -22,7 +22,7 @@
   (socket::<socket> :key (certificate #f) (private-key #f))
   (result (Sg_SocketToTLSSocket socket
 	    (?: (SG_PAIRP certificate) certificate SG_NIL)
-	    (?: (SG_BVECTORP private-key) private-key NULL))))
+	    (?: (SG_BVECTORP private-key) (SG_BVECTOR private-key) NULL))))
 
 (define-c-proc tls-socket-connect! (o::<tls-socket>) ::<boolean>
   Sg_TLSSocketConnect)

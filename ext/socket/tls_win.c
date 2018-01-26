@@ -26,20 +26,27 @@
  *   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#define SECURITY_WIN32
+#include <winsock.h>
 #include <wincrypt.h>
+#include <wintrust.h>
+#include <schannel.h>
+/* #include <security.h> */
+#include <sspi.h>
 #include <sagittarius.h>
 #define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
 #include "tls-socket.h"
 
 #pragma comment(lib, "crypt32.lib")
+#pragma comment(lib, "secur32.lib")
+
 
 typedef struct WinTLSDataRec
 {
-  int              numCerts;
-  CERT_NAME_INFO **certs;
+  CredHandle credential;
+  TimeStamp lifetime;
 } WinTLSData;
-
 
 SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 				  /* list of bytevectors */
@@ -47,13 +54,14 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 				  /* encoded private key */
 				  SgByteVector *privateKey)
 {
-  int len = Sg_Length(certificates), i = 0;
   SgTLSSocket *r = SG_NEW(SgTLSSocket);
   WinTLSData *data = SG_NEW(WinTLSData);
-  SgObject cp;
+  SCHANNEL_CRED credData;
+  SECURITY_STATUS status;
   SG_SET_CLASS(r, SG_CLASS_TLS_SOCKET);
-
+  
   r->data = data;
+#if 0
   data->numCerts = len;
   data->certs = SG_NEW_ARRAY(CERT_NAME_INFO *, len);
   SG_FOR_EACH(cp, certificates) {
@@ -67,29 +75,36 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 			    certificates);
     }
     cert = SG_BVECTOR(SG_CAR(cp));
-    if (!CryptDecodeObjectEx(X509_ASN_ENCODING, X509_NAME,
+    if (!CryptDecodeObjectEx(X509_ASN_ENCODING, X509_CERT,
 			     SG_BVECTOR_ELEMENTS(cert), SG_BVECTOR_SIZE(cert),
 			     0, NULL, NULL, &size)) {
       Sg_Error(UC("Failed to query buffer size of the certificate"));
     }
     decoded = SG_NEW2(size);
-    if (!CryptDecodeObjectEx(X509_ASN_ENCODING, X509_NAME,
+    if (!CryptDecodeObjectEx(X509_ASN_ENCODING, X509_CERT,
 			     SG_BVECTOR_ELEMENTS(cert), SG_BVECTOR_SIZE(cert),
 			     0, NULL, decoded, &size)) {
       Sg_Error(UC("Failed to decode the certificate"));
     }
     data->certs[i++] = (CERT_NAME_INFO *)decoded;
   }
+#endif
+  status = AcquireCredentialsHandle(NULL, UNISP_NAME, SECPKG_CRED_OUTBOUND,
+				    NULL, &credData, NULL, NULL,
+				    &data->credential, &data->lifetime);
+  return r;
 }
 
 int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
 {
   /* TBD */
+  return FALSE;
 }
 
-SgObject  Sg_TLSSocketAccept(SgTLSSocket *tlsSocket)
+SgObject Sg_TLSSocketAccept(SgTLSSocket *tlsSocket)
 {
   /* TBD */
+  return SG_UNDEF;
 }
 
 void Sg_TLSSocketShutdown(SgTLSSocket *tlsSocket, int how)
@@ -118,5 +133,6 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *data, int size, int flags)
   /* TBD */
 }
 
-
-
+void Sg_InitTLSImplementation()
+{
+}
