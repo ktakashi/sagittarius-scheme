@@ -73,6 +73,8 @@ IF (${SAGITTARIUS_OS} STREQUAL "qnx" OR ${SAGITTARIUS_OS} STREQUAL "sunos")
 ELSEIF (MINGW)
   TARGET_LINK_LIBRARIES(sagittarius--socket ws2_32)
   TARGET_LINK_LIBRARIES(sagittarius--tls-socket schannel)
+  TARGET_LINK_LIBRARIES(sagittarius--tls-socket crypt32)
+  TARGET_LINK_LIBRARIES(sagittarius--tls-socket secur32)
 ENDIF()
 
 INSTALL(TARGETS sagittarius--socket

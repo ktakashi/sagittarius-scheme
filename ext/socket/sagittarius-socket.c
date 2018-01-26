@@ -309,10 +309,12 @@ static SgSocket* make_socket(SOCKET fd, SgSocketType type, SgSockaddr *address)
   return s;
 }
 
-static SgAddrinfo* make_addrinfo()
+static SgAddrinfo* make_addrinfo(SgObject node, SgObject service)
 {
   SgAddrinfo *info = SG_NEW(SgAddrinfo);
   SG_SET_CLASS(info, SG_CLASS_ADDRINFO);
+  info->node = node;
+  info->service = service;
   return info;
 }
 
@@ -365,7 +367,7 @@ static SgObject ai_addr(SgAddrinfo *ai)
 static SgObject ai_next(SgAddrinfo *ai)
 {
   if (ai->ai->ai_next) {
-    SgAddrinfo *info = make_addrinfo();
+    SgAddrinfo *info = make_addrinfo(ai->node, ai->service);
     info->ai = ai->ai->ai_next;
     return info;
   }
@@ -384,7 +386,7 @@ static SgSlotAccessor ai_slots[] = {
 
 SgAddrinfo* Sg_MakeAddrinfo()
 {
-  SgAddrinfo *info = make_addrinfo();
+  SgAddrinfo *info = make_addrinfo(SG_FALSE, SG_FALSE);
   info->ai = SG_NEW(struct addrinfo);
   memset(info->ai, 0, sizeof(struct addrinfo));
   return info;
@@ -424,7 +426,7 @@ SgAddrinfo* Sg_GetAddrinfo(SgObject node, SgObject service, SgAddrinfo *hints)
   const char * csrv  = (!SG_FALSEP(service)) ?
     Sg_Utf32sToUtf8s(SG_STRING(service)) : NULL;
   int ret;
-  SgAddrinfo *result = make_addrinfo();
+  SgAddrinfo *result = make_addrinfo(node, service);
   struct addrinfo *ai, *cur, *prev, *next;
   do {
     ret = getaddrinfo(cnode, csrv, hints->ai, &ai);
@@ -490,6 +492,8 @@ SgObject Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo)
     disable_nagle(socket->socket);
     socket->type = SG_SOCKET_CLIENT;
     socket->address = SG_SOCKADDR(ai_addr(addrinfo));
+    socket->node = addrinfo->node;
+    socket->service = addrinfo->service;
     return socket;
   }
   socket->lastError = last_error;
@@ -511,6 +515,8 @@ SgObject Sg_SocketBind(SgSocket *socket, SgAddrinfo* addrinfo)
     socket->type = SG_SOCKET_SERVER;
     socket->address 
       = make_sockaddr((size_t)len, (struct sockaddr *)&name, TRUE);
+    socket->node = addrinfo->node;
+    socket->service = addrinfo->service;
     return socket;
   }
   socket->lastError = last_error;
