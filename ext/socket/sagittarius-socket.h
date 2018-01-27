@@ -99,7 +99,6 @@ SG_CLASS_DECL(Sg_AddrinfoClass);
 #define SG_ADDRINFO(obj)  ((SgAddrinfo*)obj)
 #define SG_ADDRINFOP(obj) SG_XTYPEP(obj, SG_CLASS_ADDRINFO)
 
-
 struct SgSockaddrRec
 {
   SG_HEADER;
@@ -327,7 +326,13 @@ SG_EXTERN SgObject  Sg_MakeConditionSocketClosed(SgObject socket);
 SG_EXTERN SgObject  Sg_MakeConditionSocketPort(SgObject socket, SgObject port);
 
 /* To share with TLS module... */
+#ifdef _MSC_VER
 SG_EXTERN int       Sg_SocketP(SgObject obj);
+# define SG_SOCKET_P Sg_SocketP
+#else
+# define SG_SOCKET_P SG_SOCKETP
+#endif
+
 
 SG_CDECL_END
 

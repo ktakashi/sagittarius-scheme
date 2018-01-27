@@ -61,6 +61,7 @@ IF(APPLE)
   SET_TARGET_PROPERTIES(sagittarius--tls-socket PROPERTIES SUFFIX ".dylib")
 ENDIF()
 TARGET_LINK_LIBRARIES(sagittarius--socket sagittarius)
+TARGET_LINK_LIBRARIES(sagittarius--tls-socket sagittarius)
 TARGET_LINK_LIBRARIES(sagittarius--tls-socket sagittarius--socket)
 
 IF (TLS_LIBS)
