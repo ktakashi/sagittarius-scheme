@@ -1,12 +1,15 @@
 ;; -*- scheme -*-
 #!compatible
 (decl-code
- (.include <sagittarius.h>)
+ (.include <sagittarius.h>
+	   ;; This has to be before LIBSAGITTARIUS_EXT_BODY
+	   ;; to make sure Sg_SocketClass is prefixed with dllimport
+	   "sagittarius-socket.h")
  (.define "LIBSAGITTARIUS_EXT_BODY")
  (.include <sagittarius/extend.h>
 	   "tls-socket.h"))
 
-(define-type <socket> "SgSocket*" "socket" "SG_SOCKET_P" "SG_SOCKET")
+(define-type <socket> "SgSocket*")
 (define-type <tls-socket> "SgTLSSocket*")
 
 (define-c-proc socket->tls-socket

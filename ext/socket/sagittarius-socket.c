@@ -455,13 +455,6 @@ SgAddrinfo* Sg_GetAddrinfo(SgObject node, SgObject service, SgAddrinfo *hints)
   return result;
 }
 
-#ifdef _MSC_VER
-int Sg_SocketP(SgObject obj)
-{
-  return SG_SOCKETP(obj);
-}
-#endif
-
 SgObject Sg_CreateSocket(int family, int socktype, int protocol)
 {
   const SOCKET fd = socket(family, socktype, protocol);

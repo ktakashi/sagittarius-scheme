@@ -325,15 +325,6 @@ SG_EXTERN SgObject  Sg_MakeConditionSocketConnection(SgObject socket);
 SG_EXTERN SgObject  Sg_MakeConditionSocketClosed(SgObject socket);
 SG_EXTERN SgObject  Sg_MakeConditionSocketPort(SgObject socket, SgObject port);
 
-/* To share with TLS module... */
-#ifdef _MSC_VER
-SG_EXTERN int       Sg_SocketP(SgObject obj);
-# define SG_SOCKET_P Sg_SocketP
-#else
-# define SG_SOCKET_P SG_SOCKETP
-#endif
-
-
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_SOCKET_HPP_ */
