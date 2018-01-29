@@ -373,12 +373,7 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
   uint8_t *mmsg, *mhdr, *mtrl;
 
   ss = QueryContextAttributes(&data->context, SECPKG_ATTR_STREAM_SIZES, &sizes);
-  if (FAILED(ss)) {
-    raise_socket_error(SG_INTERN("tls-socket-send"),
-		       SG_MAKE_STRING("failed to query attribute"),
-		       Sg_MakeConditionSocket(tlsSocket),
-		       SG_LIST1(SG_MAKE_INT(ss)));
-  }
+  if (FAILED(ss)) goto err;
 
 #ifdef HAVE_ALLOCA
   mmsg = (uint8_t *)alloca(min(sizes.cbMaximumMessage, (unsigned int)size));
@@ -416,9 +411,7 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
     data->sbin.cBuffers = 4;
 
     ss = EncryptMessage(&data->context, 0, &data->sbin, 0);
-    if (FAILED(ss)) {
-      /* socket error */
-    }
+    if (FAILED(ss)) goto err;
 #define send(buf)							\
     do {								\
       rval=Sg_SocketSend(socket, (uint8_t *)(buf).pvBuffer,		\
@@ -435,6 +428,13 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
     b    += portion;
   }
   return sent;
+ err:
+  /* TODO get error message from ss */
+  raise_socket_error(SG_INTERN("tls-socket-send"),
+		     SG_MAKE_STRING("failed to query attribute"),
+		     Sg_MakeConditionSocket(tlsSocket),
+		     SG_LIST1(Sg_MakeIntegerFromS64(ss)));
+  return -1;			/* dummy */
 }
 
 void Sg_InitTLSImplementation()
