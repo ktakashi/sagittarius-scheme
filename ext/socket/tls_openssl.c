@@ -69,24 +69,7 @@ static SgTLSSocket* make_tls_socket(SgSocket *socket, SSL_CTX *ctx)
   return r;
 }
 
-/* needs to be shared... */
-static void raise_socket_error(SgObject who, SgObject msg, 
-			       SgObject c, SgObject irr)
-{
-  SgObject sc;
-  if (SG_NULLP(irr)) {
-    sc = Sg_Condition(SG_LIST3(c,
-			       Sg_MakeWhoCondition(who),
-			       Sg_MakeMessageCondition(msg)));
-  } else {
-    sc = Sg_Condition(SG_LIST4(c,
-			       Sg_MakeWhoCondition(who),
-			       Sg_MakeMessageCondition(msg),
-			       Sg_MakeIrritantsCondition(irr)));
-  }
-  Sg_Raise(sc, FALSE);
-}
-
+#include "raise_incl.incl"
 
 SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 				  /* list of bytevectors */
@@ -95,8 +78,25 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 				  SgByteVector *privateKey)
 {
   SgObject cp;
-  SSL_CTX *ctx = SSL_CTX_new(SSLv23_client_method());
+  SSL_CTX *ctx;
+
+  switch(socket->type) {
+  case SG_SOCKET_CLIENT:
+    ctx = SSL_CTX_new(SSLv23_client_method());
+    break;
+  case SG_SOCKET_SERVER:
+    ctx = SSL_CTX_new(SSLv23_server_method());
+    break;
+  default:
+    Sg_AssertionViolation(SG_INTERN("socket->tls-socket"),
+      Sg_Sprintf(UC("Client or server socket is required but got %S"), socket),
+      socket);
+    return NULL;		/* dummy */
+  }
+  
   SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3);
+  SSL_CTX_set_mode(ctx, SSL_MODE_AUTO_RETRY);
+  
   /* TODO handle certificates and private key */
   SG_FOR_EACH(cp, Sg_Reverse(certificates)) {
     SgObject c = SG_CAR(cp);
@@ -140,7 +140,7 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
   return SSL_connect(data->ssl);
 }
 
-SgObject  Sg_TLSSocketAccept(SgTLSSocket *tlsSocket)
+SgObject Sg_TLSSocketAccept(SgTLSSocket *tlsSocket)
 {
   SgObject sock = Sg_SocketAccept(tlsSocket->socket);
   if (SG_SOCKETP(sock)) {
@@ -217,10 +217,17 @@ int Sg_TLSSocketOpenP(SgTLSSocket *tlsSocket)
 			   SG_LIST1(SG_MAKE_INT(e)));			\
       }									\
       msg = ERR_reason_error_string(err);				\
-      raise_socket_error(SG_INTERN(who),				\
-			 Sg_Utf8sToUtf32s(msg, strlen(msg)),		\
-			 Sg_MakeConditionSocket(tlsSocket),		\
-			 SG_NIL);					\
+      if (msg) {							\
+	raise_socket_error(SG_INTERN(who),				\
+			   Sg_Utf8sToUtf32s(msg, strlen(msg)),		\
+			   Sg_MakeConditionSocket(tlsSocket),		\
+			   SG_NIL);					\
+      } else {								\
+	raise_socket_error(SG_INTERN(who),				\
+			   SG_MAKE_STRING("unknown error"),		\
+			   Sg_MakeConditionSocket(tlsSocket),		\
+			   SG_LIST1(SG_MAKE_INT(err)));			\
+      }									\
     }									\
   }
 

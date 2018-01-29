@@ -389,22 +389,7 @@ SgAddrinfo* Sg_MakeAddrinfo()
   return info;
 }
 
-static void raise_socket_error(SgObject who, SgObject msg, 
-			       SgObject c, SgObject irr)
-{
-  SgObject sc;
-  if (SG_NULLP(irr)) {
-    sc = Sg_Condition(SG_LIST3(c,
-			       Sg_MakeWhoCondition(who),
-			       Sg_MakeMessageCondition(msg)));
-  } else {
-    sc = Sg_Condition(SG_LIST4(c,
-			       Sg_MakeWhoCondition(who),
-			       Sg_MakeMessageCondition(msg),
-			       Sg_MakeIrritantsCondition(irr)));
-  }
-  Sg_Raise(sc, FALSE);
-}
+#include "raise_incl.incl"
 
 static void raise_io_error(SgObject who, int ret, SgObject c, SgObject irr)
 {

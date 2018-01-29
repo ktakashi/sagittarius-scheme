@@ -13,9 +13,9 @@
 (define-type <tls-socket> "SgTLSSocket*")
 
 (define-c-proc socket->tls-socket
-  (socket::<socket> :key (certificate #f) (private-key #f))
+  (socket::<socket> :key (certificates #f) (private-key #f))
   (result (Sg_SocketToTLSSocket socket
-	    (?: (SG_PAIRP certificate) certificate SG_NIL)
+	    (?: (SG_PAIRP certificates) certificates SG_NIL)
 	    (?: (SG_BVECTORP private-key) (SG_BVECTOR private-key) NULL))))
 
 (define-c-proc tls-socket-connect! (o::<tls-socket>) ::<boolean>
