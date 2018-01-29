@@ -36,10 +36,18 @@
 #include <signal.h>
 /* we assume _WIN32 is only VC */
 #if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
-#define EINTR  WSAEINTR
-#define EAGAIN WSATRY_AGAIN
-#define EWOULDBLOCK WSAEWOULDBLOCK
-#define EPIPE WSAEINVAL
+# ifndef EINTR
+#  define EINTR  WSAEINTR
+# endif
+# ifndef EAGAIN
+#  define EAGAIN WSATRY_AGAIN
+# endif
+# ifndef EWOULDBLOCK
+#  define EWOULDBLOCK WSAEWOULDBLOCK
+# endif
+# ifndef EPIPE
+#  define EPIPE WSAEINVAL
+# endif
 #endif
 
 #ifndef MSG_NOSIGNAL

@@ -49,8 +49,10 @@ IF (WATCOM)
   MESSAGE(STATUS "*CAUTION* open watcom is experimental")
 ENDIF()
 
-MESSAGE(STATUS "system processor ${CMAKE_SYSTEM_PROCESSOR}")
-MESSAGE(STATUS "Buinding directory: ${CMAKE_CURRENT_BINARY_DIR}")
+MESSAGE(STATUS "System processor ... ${CMAKE_SYSTEM_PROCESSOR}")
+MESSAGE(STATUS "System name ... ${CMAKE_SYSTEM_NAME}")
+MESSAGE(STATUS "Host system name ... ${CMAKE_HOST_SYSTEM_NAME}")
+MESSAGE(STATUS "Buinding directory ... ${CMAKE_CURRENT_BINARY_DIR}")
 
 # basic info for project
 SET(SAGITTARIUS_NAME "sagittarius" CACHE STRING "Sagittarius PACKAGE_NAME")

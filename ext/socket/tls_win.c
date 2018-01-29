@@ -56,6 +56,8 @@
 # pragma comment(lib, "secur32.lib")
 #endif
 
+#include "raise_incl.incl"
+
 typedef struct WinTLSDataRec
 {
   CredHandle credential;
@@ -105,6 +107,7 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
   SG_SET_CLASS(r, SG_CLASS_TLS_SOCKET);
   
   r->data = data;
+  r->socket = socket;
   data->credential.dwLower = 0;
   data->credential.dwUpper = 0;
   data->context.dwLower = 0;
@@ -167,13 +170,13 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
   WinTLSData *data = (WinTLSData *)tlsSocket->data;
   SecBuffer bufso, bufsi[2];
   wchar_t *dn;
-  int initialised = FALSE, pt = 0;
+  int initialised = FALSE, pt = 0, i;
   /* FIXME... */
   uint8_t t[0x10000];
 
   dn= (SG_FALSEP(socket->node)) ? NULL : Sg_StringToWCharTs(socket->node);
 
-  for (;;) {
+  for (i = 0;; i++) {
     DWORD sspiFlags = ISC_REQ_SEQUENCE_DETECT   |
       ISC_REQ_REPLAY_DETECT     |
       ISC_REQ_CONFIDENTIALITY   |
@@ -204,7 +207,7 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
       rval = Sg_SocketReceive(socket, t+pt, 0x10000, 0);
       if (rval == 0 || rval == -1) {
 	/* correct? */
-	Sg_Error(UC("Failed to handshake"));
+	Sg_Error(UC("Failed to handshake (recv) [%d]"), i);
       }
       pt += rval;
       bufsi[0].BufferType = SECBUFFER_TOKEN;
@@ -226,7 +229,7 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
 				    0,
 				    initialised ? &data->sbin : NULL,
 				    0,
-				    initialised ? &data->context : NULL,
+				    initialised ? NULL : &data->context,
 				    &data->sbout,
 				    &sspiOutFlags,
 				    NULL);
@@ -235,16 +238,19 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
     
     pt = 0;
     
-    if (FAILED(ss) || ss != SEC_I_CONTINUE_NEEDED) {
-      Sg_Error(UC("Failed to handshake"));
+    if (FAILED(ss) && ss != SEC_I_CONTINUE_NEEDED) {
+      Sg_Error(UC("Failed to handshake (context) [%d]"), i);
     }
-    
-    /* send the data we got to the remote part */
-    rval = Sg_SocketSend(socket, (uint8_t *)bufso.pvBuffer, bufso.cbBuffer, 0);
-    FreeContextBuffer(bufso.pvBuffer);
-    if ((unsigned int)rval != bufso.cbBuffer) {
-      /* correct? */
-      Sg_Error(UC("Failed to handshake"));
+
+    if (bufso.cbBuffer != 0 && bufso.pvBuffer != NULL) {
+      /* send the data we got to the remote part */
+      rval = Sg_SocketSend(socket, (uint8_t *)bufso.pvBuffer, bufso.cbBuffer, 0);
+      FreeContextBuffer(bufso.pvBuffer);
+      if ((unsigned int)rval != bufso.cbBuffer) {
+	/* correct? */
+	Sg_Error(UC("Failed to handshake (send) [%d]"), i);
+      }
+      bufso.pvBuffer = NULL;
     }
     if (!initialised) {
       initialised = TRUE;
@@ -257,7 +263,7 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
   return TRUE;
 }
 
-SgObject Sg_TLSSocketAccept(SgTLSSocket *tlsSocket)
+SgObject Sg_TLSSocketAccept(SgTLSSocket *tlsSocket, int handshake)
 {
   /* TBD */
   return SG_UNDEF;
@@ -368,7 +374,10 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
 
   ss = QueryContextAttributes(&data->context, SECPKG_ATTR_STREAM_SIZES, &sizes);
   if (FAILED(ss)) {
-    /* TODO raise socket error */
+    raise_socket_error(SG_INTERN("tls-socket-send"),
+		       SG_MAKE_STRING("failed to query attribute"),
+		       Sg_MakeConditionSocket(tlsSocket),
+		       SG_LIST1(SG_MAKE_INT(ss)));
   }
 
 #ifdef HAVE_ALLOCA
