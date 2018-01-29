@@ -26,6 +26,17 @@
  *   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+
+#ifndef max
+# define max(a,b) (((a) > (b)) ? (a) : (b))
+#endif
+#ifndef min
+# define min(a,b) (((a) < (b)) ? (a) : (b))
+#endif
+
+#ifndef UNICODE
+# define UNICODE
+#endif
 #define SECURITY_WIN32
 #include <winsock2.h>
 #include <windows.h>
@@ -52,19 +63,27 @@ typedef struct WinTLSDataRec
   TimeStamp lifetime;
   SecBufferDesc sbout;
   SecBufferDesc sbin;
+  int pendingSize;
+  uint8_t *pendingData;
 } WinTLSData;
 
 static SECURITY_STATUS client_init(WinTLSData *data)
 {
-  SCHANNEL_CRED credData;
-  memset(&credData, 0, sizeof(SCHANNEL_CRED));
+  SCHANNEL_CRED credData = {0};
+  wchar_t tmp[sizeof(SCHANNEL_NAME_W) + 1] = {0}, *t;
+  const wchar_t *p;
+  
   credData.dwVersion = SCHANNEL_CRED_VERSION;
   credData.dwFlags = SCH_CRED_NO_DEFAULT_CREDS |
     SCH_CRED_NO_SYSTEM_MAPPER |
     SCH_CRED_REVOCATION_CHECK_CHAIN;
+  
+  /* shut the compiler up... */
+  for (p = SCHANNEL_NAME_W, t = tmp; *p; *t++ = *p++);
+  
   /* TODO load certificate */
   return AcquireCredentialsHandleW(NULL,
-				   SCHANNEL_NAME_W,
+				   tmp,
 				   SECPKG_CRED_OUTBOUND,
 				   NULL,
 				   &credData,
@@ -90,6 +109,7 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
   data->credential.dwUpper = 0;
   data->context.dwLower = 0;
   data->context.dwUpper = 0;
+  data->pendingSize = 0;
   
 #if 0
   data->numCerts = len;
@@ -259,11 +279,81 @@ int Sg_TLSSocketOpenP(SgTLSSocket *tlsSocket)
   return FALSE;
 }
 
-int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *data,
-			int size, int flags)
+/* for now nothing */
+#define handleError(rval, socket) 
+
+int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
 {
-  /* TBD */
-  return 0;
+  SgSocket *socket = tlsSocket->socket;
+  WinTLSData *data = (WinTLSData *)tlsSocket->data;
+  SecPkgContext_StreamSizes sizes;
+  SECURITY_STATUS ss;
+  int read = 0;
+  SecBuffer buffer;
+  uint8_t *mmsg;
+
+  ss = QueryContextAttributes(&data->context, SECPKG_ATTR_STREAM_SIZES, &sizes);
+  if (FAILED(ss)) {
+    Sg_Error(UC("Failed to query"));    
+  }
+  if (data->pendingSize > 0) {
+    if (size <= data->pendingSize) {
+      int s = data->pendingSize-size;
+      memcpy(b, data->pendingData, size);
+      if (s) {
+	memmove(data->pendingData, data->pendingData + size, s);
+      }
+      data->pendingSize = s;
+      return size;
+    }
+    memcpy(b, data->pendingData, data->pendingSize);
+    read += data->pendingSize;
+    size -= data->pendingSize;
+    data->pendingSize = 0;
+  }
+
+#ifdef HAVE_ALLOCA
+  mmsg = (uint8_t *)alloca(min(sizes.cbMaximumMessage, (unsigned int)size));
+#else
+  mmsg = SG_NEW_ATOMIC2(uint8_t *, min(sizes.cbMaximumMessage, size));
+#endif
+
+  for (;;) {
+    int rval = Sg_SocketReceive(socket, mmsg, size, 0);
+    handleError(rval, socket);
+    buffer.pvBuffer = mmsg;
+    buffer.cbBuffer = rval;
+    buffer.BufferType = SECBUFFER_DATA;
+    
+    data->sbin.ulVersion = SECBUFFER_VERSION;
+    data->sbin.pBuffers = &buffer;
+    data->sbin.cBuffers = 1;
+    ss = DecryptMessage(&data->context, &data->sbin, 0, NULL);
+
+    /* TODO how to handle this? */
+    /* if (ss = SEC_E_INCOMPLETE_MESSAGE) continue; */
+    if (ss != SEC_E_OK) {
+      Sg_Error(UC("replace with socket condition"));
+    }
+    /* would this happen? */
+    if (buffer.BufferType != SECBUFFER_DATA) {
+      return read;
+    }
+
+    if (buffer.cbBuffer <= (unsigned int)size) {
+      memcpy(b + read, buffer.pvBuffer, buffer.cbBuffer);
+      read += buffer.cbBuffer;
+    } else {
+      int s = buffer.cbBuffer - size;
+      memcpy(b + read, buffer.pvBuffer, size);
+      data->pendingSize = s;
+      /* TODO reuse the buffer if it fits */
+      data->pendingData = SG_NEW_ATOMIC2(uint8_t *, s);
+      memcpy(data->pendingData, (uint8_t *)buffer.pvBuffer + size, s);
+      read += s;
+    }
+    return read;
+  }
 }
 
 int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
@@ -282,17 +372,18 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
   }
 
 #ifdef HAVE_ALLOCA
-  mmsg = (uint8_t *)alloca(min(sizes.cbMaximumMessage, size));
+  mmsg = (uint8_t *)alloca(min(sizes.cbMaximumMessage, (unsigned int)size));
   mhdr = (uint8_t *)alloca(sizes.cbHeader);
   mtrl = (uint8_t *)alloca(sizes.cbTrailer);
 #else
-  mmsg = SG_NEW_ATMIC2(uint8_t *, sizes.cbMaximumMessage);
-  mhdr = SG_NEW_ATMIC2(uint8_t *, sizes.cbHeader);
-  mtrl = SG_NEW_ATMIC2(uint8_t *, sizes.cbTrailer);
+  mmsg = SG_NEW_ATOMIC2(uint8_t *, min(sizes.cbMaximumMessage, size));
+  mhdr = SG_NEW_ATOMIC2(uint8_t *, sizes.cbHeader);
+  mtrl = SG_NEW_ATOMIC2(uint8_t *, sizes.cbTrailer);
 #endif
   
   while (rest > 0) {
     unsigned int portion = rest;
+    int rval;
     if (portion > sizes.cbMaximumMessage) {
       portion = sizes.cbMaximumMessage;
     }
@@ -319,10 +410,16 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
     if (FAILED(ss)) {
       /* socket error */
     }
+#define send(buf)							\
+    do {								\
+      rval=Sg_SocketSend(socket, (uint8_t *)(buf).pvBuffer,		\
+			 (buf).cbBuffer, 0);				\
+      handleError(rval, socket);					\
+    } while (0)
 
-    Sg_SocketSend(socket, (uint8_t *)bufs[0].pvBuffer, bufs[0].cbBuffer, 0);
-    Sg_SocketSend(socket, (uint8_t *)bufs[1].pvBuffer, bufs[1].cbBuffer, 0);
-    Sg_SocketSend(socket, (uint8_t *)bufs[2].pvBuffer, bufs[2].cbBuffer, 0);
+    send(bufs[0]);
+    send(bufs[1]);
+    send(bufs[2]);
     
     sent += portion;
     rest -= portion;

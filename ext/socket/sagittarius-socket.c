@@ -599,8 +599,8 @@ SgObject Sg_SocketGetopt(SgSocket *socket, int level, int name, int rsize)
 #define handleError(who, socket, r)					\
   do {									\
     if ((r) == -1) {							\
-      socket->lastError = last_error;					\
       int e = last_error;						\
+      socket->lastError = e;						\
       switch (e) {							\
       case EINTR:							\
 	continue;							\
