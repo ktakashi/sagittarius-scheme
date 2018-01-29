@@ -23,7 +23,8 @@
 
 (define-c-proc tls-socket? (o) ::<boolean> :constant SG_TLS_SOCKET_P)
 
-(define-c-proc tls-socket-accept (o::<tls-socket>) Sg_TLSSocketAccept)
+(define-c-proc tls-socket-accept (o::<tls-socket> :key (handshake::<boolean> #t))
+  (result (Sg_TLSSocketAccept o handshake)))
 
 (define-c-proc tls-socket-send
   (o::<tls-socket> bv::<bytevector> :optional (flags::<fixnum> 0)) ::<fixnum>

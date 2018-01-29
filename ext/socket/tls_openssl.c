@@ -43,6 +43,51 @@
 #include <sagittarius/extend.h>
 #include "tls-socket.h"
 
+
+#if EAGAIN == EWOULDBLOCK
+#define NON_BLOCKING_CASE EAGAIN
+#else
+#define NON_BLOCKING_CASE EAGAIN: case EWOULDBLOCK
+#endif
+
+#define handleError(who, r, ssl)					\
+  if ((r) <= 0)	{							\
+    int e = errno;							\
+    int err = SSL_get_error((ssl), (r));				\
+    if (err != SSL_ERROR_NONE) {					\
+      const char *msg;							\
+      if (SSL_ERROR_SYSCALL == err) {					\
+	switch (e) {							\
+	case EINTR: continue;						\
+	case EPIPE:							\
+	  if (flags & MSG_NOSIGNAL) {					\
+	    return 0;							\
+	  }								\
+	  break;							\
+	case NON_BLOCKING_CASE:						\
+	  /* most probably non-blocking socket */			\
+	  continue;							\
+	}								\
+	raise_socket_error(SG_INTERN(who),				\
+			   Sg_GetLastErrorMessageWithErrorCode(e),	\
+			   Sg_MakeConditionSocket(tlsSocket),		\
+			   SG_LIST1(SG_MAKE_INT(e)));			\
+      }									\
+      msg = ERR_reason_error_string(err);				\
+      if (msg) {							\
+	raise_socket_error(SG_INTERN(who),				\
+			   Sg_Utf8sToUtf32s(msg, strlen(msg)),		\
+			   Sg_MakeConditionSocket(tlsSocket),		\
+			   SG_NIL);					\
+      } else {								\
+	raise_socket_error(SG_INTERN(who),				\
+			   SG_MAKE_STRING("unknown error"),		\
+			   Sg_MakeConditionSocket(tlsSocket),		\
+			   SG_LIST1(SG_MAKE_INT(err)));			\
+      }									\
+    }									\
+  }
+
 typedef struct OpenSSLDataRec
 {
   SSL_CTX *ctx;
@@ -140,7 +185,7 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
   return SSL_connect(data->ssl);
 }
 
-SgObject Sg_TLSSocketAccept(SgTLSSocket *tlsSocket)
+SgObject Sg_TLSSocketAccept(SgTLSSocket *tlsSocket, int handshake)
 {
   SgObject sock = Sg_SocketAccept(tlsSocket->socket);
   if (SG_SOCKETP(sock)) {
@@ -153,6 +198,27 @@ SgObject Sg_TLSSocketAccept(SgTLSSocket *tlsSocket)
     newData = (OpenSSLData *)newSock->data;
     newData->ssl = SSL_new(data->ctx);
     SSL_set_fd(newData->ssl, newSock->socket->socket);
+    if (handshake) {
+      int r = SSL_accept(newData->ssl);
+      if (r <= 0) {
+	int err = SSL_get_error(newData->ssl, r);
+	const char *msg = ERR_reason_error_string(err);
+
+	SSL_free(newData->ssl);
+	newData->ssl = NULL;
+	if (msg) {
+	  raise_socket_error(SG_INTERN("tls-socket-accept"),
+			     Sg_Utf8sToUtf32s(msg, strlen(msg)),
+			     Sg_MakeConditionSocket(tlsSocket),
+			     SG_LIST1(SG_MAKE_INT(err)));
+	} else {
+	  raise_socket_error(SG_INTERN("tls-socket-accept"),
+			     SG_MAKE_STRING("failed to handshake"),
+			     Sg_MakeConditionSocket(tlsSocket),
+			     SG_LIST1(SG_MAKE_INT(err)));
+	}
+      }
+    }
     return newSock;
   }
   /* interrupted */
@@ -186,50 +252,6 @@ int Sg_TLSSocketOpenP(SgTLSSocket *tlsSocket)
   OpenSSLData *data = (OpenSSLData *)tlsSocket->data;
   return data->ssl != NULL && data->ctx != NULL;
 }
-
-#if EAGAIN == EWOULDBLOCK
-#define NON_BLOCKING_CASE EAGAIN
-#else
-#define NON_BLOCKING_CASE EAGAIN: case EWOULDBLOCK
-#endif
-
-#define handleError(who, r, ssl)					\
-  if ((r) <= 0)	{							\
-    int e = errno;							\
-    int err = SSL_get_error((ssl), (r));				\
-    if (err != SSL_ERROR_NONE) {					\
-      const char *msg;							\
-      if (SSL_ERROR_SYSCALL == err) {					\
-	switch (e) {							\
-	case EINTR: continue;						\
-	case EPIPE:							\
-	  if (flags & MSG_NOSIGNAL) {					\
-	    return 0;							\
-	  }								\
-	  break;							\
-	case NON_BLOCKING_CASE:						\
-	  /* most probably non-blocking socket */			\
-	  continue;							\
-	}								\
-	raise_socket_error(SG_INTERN(who),				\
-			   Sg_GetLastErrorMessageWithErrorCode(e),	\
-			   Sg_MakeConditionSocket(tlsSocket),		\
-			   SG_LIST1(SG_MAKE_INT(e)));			\
-      }									\
-      msg = ERR_reason_error_string(err);				\
-      if (msg) {							\
-	raise_socket_error(SG_INTERN(who),				\
-			   Sg_Utf8sToUtf32s(msg, strlen(msg)),		\
-			   Sg_MakeConditionSocket(tlsSocket),		\
-			   SG_NIL);					\
-      } else {								\
-	raise_socket_error(SG_INTERN(who),				\
-			   SG_MAKE_STRING("unknown error"),		\
-			   Sg_MakeConditionSocket(tlsSocket),		\
-			   SG_LIST1(SG_MAKE_INT(err)));			\
-      }									\
-    }									\
-  }
 
 int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *data,
 			int size, int flags)

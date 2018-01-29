@@ -51,7 +51,7 @@ SG_EXTERN SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 					    /* encoded private key */
 					    SgByteVector *privateKey);
 SG_EXTERN int       Sg_TLSSocketConnect(SgTLSSocket *tlsSocket);
-SG_EXTERN SgObject  Sg_TLSSocketAccept(SgTLSSocket *tlsSocket);
+SG_EXTERN SgObject  Sg_TLSSocketAccept(SgTLSSocket *tlsSocket, int handshake);
 SG_EXTERN void      Sg_TLSSocketShutdown(SgTLSSocket *tlsSocket, int how);
 SG_EXTERN void      Sg_TLSSocketClose(SgTLSSocket *tlsSocket);
 SG_EXTERN int       Sg_TLSSocketOpenP(SgTLSSocket *tlsSocket);
