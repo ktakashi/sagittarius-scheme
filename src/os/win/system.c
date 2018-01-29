@@ -982,7 +982,7 @@ static void print(FILE *out, int index, void *addr,
     fprintf(out, " unknown");
   }
   if (line) {
-    fprintf(out, "\n\t%S:%d", line->FileName, line->LineNumber);
+    fprintf(out, "\n\t%S:%d", line->FileName, (int)line->LineNumber);
   }
   fprintf(out, "\n");
 }
@@ -1082,16 +1082,24 @@ static void dump_trace(const char *file, EXCEPTION_POINTERS *ep)
     /* get the information of exception address */
     DWORD64 displacement = 0;
     void *addr = ep->ExceptionRecord->ExceptionAddress;
-    if (symFromAddrW(proc, (DWORD64)addr, &displacement, info)) {
-      IMAGEHLP_LINEW64 line;
-      line.SizeOfStruct = sizeof(IMAGEHLP_LINEW64);
-      if (symGetLineFromAddrW64(proc, (DWORD64)addr,
-				(PDWORD)&displacement, &line)) {
-	print(stderr, 0, addr, info, &line);
-	print(out, 0, addr, info, &line);
-      } else {
-	print(stderr, 0, addr, info, NULL);
-	print(out, 0, addr, info, NULL);
+    if (addr) {
+      if (symFromAddrW(proc, (DWORD64)addr, &displacement, info)) {
+	IMAGEHLP_LINEW64 line;
+	line.SizeOfStruct = sizeof(IMAGEHLP_LINEW64);
+	if (symGetLineFromAddrW64(proc, (DWORD64)addr,
+				  (PDWORD)&displacement, &line)) {
+	  print(stderr, 0, addr, info, &line);
+	  print(out, 0, addr, info, &line);
+	} else {
+	  print(stderr, 0, addr, info, NULL);
+	  print(out, 0, addr, info, NULL);
+	}
+      }
+    } else {
+      fputs("No exception address\n", stderr);
+      if (out) {
+	fputs("No exception address\n", out);
+	fflush(out);
       }
     }
   }
