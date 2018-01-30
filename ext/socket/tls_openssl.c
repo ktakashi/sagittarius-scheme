@@ -53,9 +53,9 @@
 #define handleError(who, r, ssl)					\
   if ((r) <= 0)	{							\
     int e = errno;							\
-    int err = SSL_get_error((ssl), (r));				\
+    unsigned long err = SSL_get_error((ssl), (r));			\
     if (err != SSL_ERROR_NONE) {					\
-      const char *msg;							\
+      const char *msg = NULL;						\
       if (SSL_ERROR_SYSCALL == err) {					\
 	switch (e) {							\
 	case EINTR: continue;						\
@@ -72,21 +72,20 @@
 			   Sg_GetLastErrorMessageWithErrorCode(e),	\
 			   Sg_MakeConditionSocket(tlsSocket),		\
 			   SG_LIST1(SG_MAKE_INT(e)));			\
+      } else if (SSL_ERROR_SSL == err) {				\
+	err = ERR_get_error();						\
       }									\
       msg = ERR_reason_error_string(err);				\
-      if (msg) {							\
-	raise_socket_error(SG_INTERN(who),				\
-			   Sg_Utf8sToUtf32s(msg, strlen(msg)),		\
-			   Sg_MakeConditionSocket(tlsSocket),		\
-			   SG_NIL);					\
-      } else {								\
-	raise_socket_error(SG_INTERN(who),				\
-			   SG_MAKE_STRING("unknown error"),		\
-			   Sg_MakeConditionSocket(tlsSocket),		\
-			   SG_LIST1(SG_MAKE_INT(err)));			\
-      }									\
+      if (!msg) msg = "unknown error";					\
+      raise_socket_error(SG_INTERN(who),				\
+			 Sg_Utf8sToUtf32s(msg, strlen(msg)),		\
+			 Sg_MakeConditionSocket(tlsSocket),		\
+			 SG_NIL);					\
     }									\
   }
+
+/* should we disable SHA1 as well? */
+#define CIPHER_LIST "HIGH:!aNULL:!kRSA:!PSK:!SRP:!MD5:!RC4"
 
 typedef struct OpenSSLDataRec
 {
@@ -116,6 +115,8 @@ static SgTLSSocket* make_tls_socket(SgSocket *socket, SSL_CTX *ctx)
 
 #include "raise_incl.incl"
 
+#define SSL_OP_FLAGS (SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION)
+
 SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 				  /* list of bytevectors */
 				  SgObject certificates,
@@ -125,12 +126,14 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
   SgObject cp;
   SSL_CTX *ctx;
 
+  ERR_clear_error();		/* clear error */
   switch(socket->type) {
   case SG_SOCKET_CLIENT:
     ctx = SSL_CTX_new(SSLv23_client_method());
     break;
   case SG_SOCKET_SERVER:
     ctx = SSL_CTX_new(SSLv23_server_method());
+    SSL_CTX_set_ecdh_auto(ctx, 1);
     break;
   default:
     Sg_AssertionViolation(SG_INTERN("socket->tls-socket"),
@@ -138,9 +141,11 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
       socket);
     return NULL;		/* dummy */
   }
+  if (!ctx) goto err;
   
-  SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3);
+  SSL_CTX_set_options(ctx, SSL_OP_FLAGS);
   SSL_CTX_set_mode(ctx, SSL_MODE_AUTO_RETRY);
+  SSL_CTX_set_cipher_list(ctx, CIPHER_LIST);
   
   /* TODO handle certificates and private key */
   SG_FOR_EACH(cp, Sg_Reverse(certificates)) {
@@ -179,9 +184,15 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 
 int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
 {
+  SgSocket *socket = tlsSocket->socket;
   OpenSSLData *data = (OpenSSLData *)tlsSocket->data;
+  ERR_clear_error();		/* clear error */
   data->ssl = SSL_new(data->ctx);
-  SSL_set_fd(data->ssl, tlsSocket->socket->socket);
+  if (!SG_FALSEP(socket->node)) {
+    const char *hostname = Sg_Utf32sToUtf8s(SG_STRING(socket->node));
+    SSL_set_tlsext_host_name(data->ssl, hostname);
+  }
+  SSL_set_fd(data->ssl, socket->socket);
   return SSL_connect(data->ssl);
 }
 
@@ -191,43 +202,49 @@ SgObject Sg_TLSSocketAccept(SgTLSSocket *tlsSocket, int handshake)
   if (SG_SOCKETP(sock)) {
     OpenSSLData *newData, *data = (OpenSSLData *)tlsSocket->data;
     SgTLSSocket *newSock = make_tls_socket(SG_SOCKET(sock), data->ctx);
+    int r;
+    ERR_clear_error();		/* clear error */
     /* this will be shared among the server socket, so increase the 
        reference count.
      */
     SSL_CTX_up_ref(data->ctx);
+    
     newData = (OpenSSLData *)newSock->data;
     newData->ssl = SSL_new(data->ctx);
-    SSL_set_fd(newData->ssl, newSock->socket->socket);
+    r = SSL_set_fd(newData->ssl, SG_SOCKET(sock)->socket);
+    if (r <= 0) goto err;
     if (handshake) {
-      int r = SSL_accept(newData->ssl);
-      if (r <= 0) {
-	int err = SSL_get_error(newData->ssl, r);
-	const char *msg = ERR_reason_error_string(err);
-
-	SSL_free(newData->ssl);
-	newData->ssl = NULL;
-	if (msg) {
-	  raise_socket_error(SG_INTERN("tls-socket-accept"),
-			     Sg_Utf8sToUtf32s(msg, strlen(msg)),
-			     Sg_MakeConditionSocket(tlsSocket),
-			     SG_LIST1(SG_MAKE_INT(err)));
-	} else {
-	  raise_socket_error(SG_INTERN("tls-socket-accept"),
-			     SG_MAKE_STRING("failed to handshake"),
-			     Sg_MakeConditionSocket(tlsSocket),
-			     SG_LIST1(SG_MAKE_INT(err)));
-	}
-      }
+      r = SSL_accept(newData->ssl);
+      if (r <= 0) goto err;
     }
     return newSock;
+
+  err: {
+      unsigned long err = SSL_get_error(newData->ssl, r);
+      const char *msg = NULL;
+      
+      if (SSL_ERROR_SSL == err) {
+	err = ERR_get_error();
+      }
+      msg = ERR_reason_error_string(err);
+      if (!msg) msg = "failed to handshake";
+      
+      SSL_free(newData->ssl);
+      newData->ssl = NULL;
+      raise_socket_error(SG_INTERN("tls-socket-accept"),
+			 Sg_Utf8sToUtf32s(msg, strlen(msg)),
+			 Sg_MakeConditionSocket(tlsSocket),
+			 tlsSocket);
+      return SG_UNDEF;		/* dummy */
+    }
   }
-  /* interrupted */
   return SG_FALSE;
 }
 
 void Sg_TLSSocketShutdown(SgTLSSocket *tlsSocket, int how)
 {
   OpenSSLData *data = (OpenSSLData *)tlsSocket->data;
+  ERR_clear_error();		/* clear error */
   SSL_shutdown(data->ssl);
   /* hmmm, does this work? */
   Sg_SocketShutdown(tlsSocket->socket, how);
@@ -264,6 +281,7 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *data,
 		       Sg_MakeConditionSocketClosed(tlsSocket),
 		       tlsSocket);
   }
+  ERR_clear_error();		/* clear error */
   for (;;) {
     r = SSL_read(tlsData->ssl, data, size);
     handleError("tls-socket-recv", r, tlsData->ssl);
@@ -281,6 +299,7 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *data, int size, int flags)
 		       Sg_MakeConditionSocketClosed(tlsSocket),
 		       tlsSocket);
   }
+  ERR_clear_error();		/* clear error */
   while (size > 0) {
     r = SSL_write(tlsData->ssl, data, size);
     handleError("tls-socket-send", r, tlsData->ssl);
@@ -294,6 +313,7 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *data, int size, int flags)
 void Sg_InitTLSImplementation()
 {
   OpenSSL_add_all_algorithms();
+  OpenSSL_add_ssl_algorithms();
   /* ERR_load_BIO_strings(); */
   /* ERR_load_crypto_strings(); */
   SSL_load_error_strings();
