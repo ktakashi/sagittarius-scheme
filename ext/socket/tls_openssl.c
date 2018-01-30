@@ -117,6 +117,10 @@ static SgTLSSocket* make_tls_socket(SgSocket *socket, SSL_CTX *ctx)
 
 #define SSL_OP_FLAGS (SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION)
 
+#define CERTIFICATE_LOADED 0x1
+#define PRIVATE_KEY_LOADED 0x2
+#define SERVER_READY       (CERTIFICATE_LOADED | PRIVATE_KEY_LOADED)
+
 SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 				  /* list of bytevectors */
 				  SgObject certificates,
@@ -125,6 +129,7 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 {
   SgObject cp;
   SSL_CTX *ctx;
+  int loaded = 0;
 
   ERR_clear_error();		/* clear error */
   switch(socket->type) {
@@ -160,6 +165,7 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
     r = SSL_CTX_use_certificate_ASN1(ctx, SG_BVECTOR_SIZE(c),
 				     SG_BVECTOR_ELEMENTS(c));
     if (r != 1) goto err;
+    loaded |= CERTIFICATE_LOADED;
   }
   if (privateKey) {
     int r = SSL_CTX_use_RSAPrivateKey_ASN1(ctx, SG_BVECTOR_ELEMENTS(privateKey),
@@ -167,6 +173,12 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
     if (r != 1) goto err;
     r = SSL_CTX_check_private_key(ctx);
     if (r != 1) goto err;
+    loaded |= PRIVATE_KEY_LOADED;
+  }
+  if (socket->type == SG_SOCKET_SERVER && loaded != SERVER_READY) {
+    Sg_AssertionViolation(SG_INTERN("socket->tls-socket"),
+			  SG_MAKE_STRING("Both certificate and private key must be provided"),
+			  SG_FALSE);
   }
   
   return make_tls_socket(socket, ctx);
