@@ -62,6 +62,8 @@ typedef struct WinTLSDataRec
 {
   CredHandle credential;
   CtxtHandle context;
+  /* maybe multiple? */
+  PCCERT_CONTEXT certificate;
   TimeStamp lifetime;
   SecBufferDesc sbout;
   SecBufferDesc sbin;
@@ -69,23 +71,86 @@ typedef struct WinTLSDataRec
   uint8_t *pendingData;
 } WinTLSData;
 
+/* #define IMPL_NAME UNISP_NAME_W */
+#define IMPL_NAME SCHANNEL_NAME_W
+
+static PCCERT_CONTEXT create_self_signed_certificate()
+{
+  HCRYPTPROV prov = 0;
+  PCCERT_CONTEXT p = NULL;
+  HCRYPTKEY key = 0;
+  CERT_NAME_BLOB sib = {0};
+  BOOL ax = FALSE;
+  
+  char cb[1000] = {0};
+  wchar_t *subject = L"CN=Certificate", *keyContainerName = L"Container";
+  CRYPT_KEY_PROV_INFO kpi = {0};
+  SYSTEMTIME et;
+  CERT_EXTENSIONS exts = {0};
+  
+  sib.pbData = (BYTE *)cb;
+  sib.cbData = sizeof(cb);
+  if (!CertStrToName(CRYPT_ASN_ENCODING, subject,
+		     0, 0, sib.pbData, &sib.cbData, NULL)) {
+    return NULL;
+  }
+  if (!CryptAcquireContextW(&prov, keyContainerName,
+			    MS_DEF_PROV, PROV_RSA_FULL,
+			    CRYPT_NEWKEYSET | CRYPT_MACHINE_KEYSET)) {
+    if (GetLastError() == NTE_EXISTS) {
+      if (!CryptAcquireContextW(&prov, keyContainerName,
+				MS_DEF_PROV, PROV_RSA_FULL,
+				CRYPT_MACHINE_KEYSET)) {
+	return NULL;
+      }
+    } else {
+      return NULL;
+    }
+  }
+  if (!CryptGenKey(prov, AT_KEYEXCHANGE, CRYPT_EXPORTABLE, &key)) {
+    return NULL;
+  }
+  
+  kpi.pwszContainerName = keyContainerName;
+  kpi.pwszProvName = MS_DEF_PROV;
+  kpi.dwProvType = PROV_RSA_FULL;
+  kpi.dwFlags = CERT_SET_KEY_CONTEXT_PROP_ID;
+  kpi.dwKeySpec = AT_KEYEXCHANGE;
+
+  GetSystemTime(&et);
+  et.wYear += 1;
+  
+  p = CertCreateSelfSignCertificate(prov, &sib, 0, &kpi,
+				    NULL, NULL, &et, &exts);
+  if (!p) return NULL;
+
+  ax = CryptFindCertificateKeyProvInfo(p, CRYPT_FIND_MACHINE_KEYSET_FLAG, NULL);
+
+  if (!ax) return NULL;
+  if (key) CryptDestroyKey(key);
+  key = 0;
+  if (prov) CryptReleaseContext(prov, 0);
+  prov = 0;
+  return p;
+}
+
+
 static SECURITY_STATUS client_init(WinTLSData *data)
 {
   SCHANNEL_CRED credData = {0};
-  wchar_t tmp[sizeof(SCHANNEL_NAME_W) + 1] = {0}, *t;
-  const wchar_t *p;
+  wchar_t *name = IMPL_NAME;
+  PCCERT_CONTEXT cert = create_self_signed_certificate();
   
   credData.dwVersion = SCHANNEL_CRED_VERSION;
   credData.dwFlags = SCH_CRED_NO_DEFAULT_CREDS |
     SCH_CRED_NO_SYSTEM_MAPPER |
     SCH_CRED_REVOCATION_CHECK_CHAIN;
-  
-  /* shut the compiler up... */
-  for (p = SCHANNEL_NAME_W, t = tmp; *p; *t++ = *p++);
-  
+
+  credData.cCreds = 1;
+  credData.paCred = &cert;
   /* TODO load certificate */
   return AcquireCredentialsHandleW(NULL,
-				   tmp,
+				   name,
 				   SECPKG_CRED_OUTBOUND,
 				   NULL,
 				   &credData,
@@ -157,7 +222,7 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
   }
   if (status != S_OK) {
     /* TODO message  */
-    Sg_Error(UC("Failed to create TLS socket"));
+    Sg_Error(UC("Failed to create TLS socket %x"), status);
   }
   return r;
 }
@@ -173,16 +238,17 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
   int initialised = FALSE, pt = 0, i;
   /* FIXME... */
   uint8_t t[0x10000];
+  DWORD sspiFlags = ISC_REQ_MANUAL_CRED_VALIDATION |
+    ISC_REQ_SEQUENCE_DETECT   |
+    ISC_REQ_REPLAY_DETECT     |
+    ISC_REQ_CONFIDENTIALITY   |
+    ISC_RET_EXTENDED_ERROR    |
+    ISC_REQ_ALLOCATE_MEMORY   |
+    ISC_REQ_STREAM;
 
   dn= (SG_FALSEP(socket->node)) ? NULL : Sg_StringToWCharTs(socket->node);
 
   for (i = 0;; i++) {
-    DWORD sspiFlags = ISC_REQ_SEQUENCE_DETECT   |
-      ISC_REQ_REPLAY_DETECT     |
-      ISC_REQ_CONFIDENTIALITY   |
-      ISC_RET_EXTENDED_ERROR    |
-      ISC_REQ_ALLOCATE_MEMORY   |
-      ISC_REQ_STREAM;
     DWORD sspiOutFlags = 0;
     int rval;
     
@@ -190,11 +256,6 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
 	ss != SEC_E_INCOMPLETE_MESSAGE &&
 	ss != SEC_I_INCOMPLETE_CREDENTIALS)
       break;
-    
-    if (FALSE) {
-      /* manual verification (or maybe no verification?) */
-      sspiFlags |= ISC_REQ_MANUAL_CRED_VALIDATION;
-    }
 
     bufso.pvBuffer = NULL;
     bufso.BufferType = SECBUFFER_TOKEN;
@@ -204,11 +265,12 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
     data->sbout.pBuffers = &bufso;
     if (initialised) {
       /* FIXME this is ugly... */
-      rval = Sg_SocketReceive(socket, t+pt, 0x10000, 0);
+      rval = Sg_SocketReceive(socket, t+pt, sizeof(t), 0);
       if (rval == 0 || rval == -1) {
 	/* correct? */
 	Sg_Error(UC("Failed to handshake (recv) [%d]"), i);
       }
+      
       pt += rval;
       bufsi[0].BufferType = SECBUFFER_TOKEN;
       bufsi[0].cbBuffer = pt;
@@ -233,12 +295,12 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
 				    &data->sbout,
 				    &sspiOutFlags,
 				    NULL);
-    
+    fprintf(stderr, "ss = %lx\n", ss);
     if (ss == SEC_E_INCOMPLETE_MESSAGE) continue;
     
     pt = 0;
     
-    if (FAILED(ss) && ss != SEC_I_CONTINUE_NEEDED) {
+    if (FAILED(ss) || (!initialised && ss != SEC_I_CONTINUE_NEEDED)) {
       Sg_Error(UC("Failed to handshake (context) [%d]"), i);
     }
 
@@ -250,7 +312,6 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
 	/* correct? */
 	Sg_Error(UC("Failed to handshake (send) [%d]"), i);
       }
-      bufso.pvBuffer = NULL;
     }
     if (!initialised) {
       initialised = TRUE;
