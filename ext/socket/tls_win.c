@@ -58,22 +58,43 @@
 
 #include "raise_incl.incl"
 
+static SgObject security_status_to_message(SECURITY_STATUS ss)
+{
+#define MSG_SIZE 128
+  wchar_t msg[MSG_SIZE];
+    int size = FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM |
+			      FORMAT_MESSAGE_IGNORE_INSERTS,
+			      0,
+			      ss,
+			      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			      msg,
+			      MSG_SIZE,
+			      NULL);
+  if (size > 2 && msg[size - 2] == '\r') {
+    msg[size - 2] = 0;
+    size -= 2;
+  }
+  return Sg_WCharTsToString(msg, size);
+#undef MSG_SIZE
+}
+
 typedef struct WinTLSDataRec
 {
   CredHandle credential;
   CtxtHandle context;
-  /* maybe multiple? */
-  PCCERT_CONTEXT certificate;
   TimeStamp lifetime;
   SecBufferDesc sbout;
   SecBufferDesc sbin;
   int pendingSize;
   uint8_t *pendingData;
+  int closed;
 } WinTLSData;
 
 /* #define IMPL_NAME UNISP_NAME_W */
 #define IMPL_NAME SCHANNEL_NAME_W
 
+/* we don't need this */
+#if 0
 static PCCERT_CONTEXT create_self_signed_certificate()
 {
   HCRYPTPROV prov = 0;
@@ -81,13 +102,13 @@ static PCCERT_CONTEXT create_self_signed_certificate()
   HCRYPTKEY key = 0;
   CERT_NAME_BLOB sib = {0};
   BOOL ax = FALSE;
-  
+
   char cb[1000] = {0};
   wchar_t *subject = L"CN=Certificate", *keyContainerName = L"Container";
   CRYPT_KEY_PROV_INFO kpi = {0};
   SYSTEMTIME et;
   CERT_EXTENSIONS exts = {0};
-  
+
   sib.pbData = (BYTE *)cb;
   sib.cbData = sizeof(cb);
   if (!CertStrToName(CRYPT_ASN_ENCODING, subject,
@@ -110,7 +131,7 @@ static PCCERT_CONTEXT create_self_signed_certificate()
   if (!CryptGenKey(prov, AT_KEYEXCHANGE, CRYPT_EXPORTABLE, &key)) {
     return NULL;
   }
-  
+
   kpi.pwszContainerName = keyContainerName;
   kpi.pwszProvName = MS_DEF_PROV;
   kpi.dwProvType = PROV_RSA_FULL;
@@ -119,7 +140,7 @@ static PCCERT_CONTEXT create_self_signed_certificate()
 
   GetSystemTime(&et);
   et.wYear += 1;
-  
+
   p = CertCreateSelfSignCertificate(prov, &sib, 0, &kpi,
 				    NULL, NULL, &et, &exts);
   if (!p) return NULL;
@@ -133,21 +154,21 @@ static PCCERT_CONTEXT create_self_signed_certificate()
   prov = 0;
   return p;
 }
-
+#endif
 
 static SECURITY_STATUS client_init(WinTLSData *data)
 {
   SCHANNEL_CRED credData = {0};
   wchar_t *name = IMPL_NAME;
-  PCCERT_CONTEXT cert = create_self_signed_certificate();
-  
+  /* PCCERT_CONTEXT cert = create_self_signed_certificate(); */
+
   credData.dwVersion = SCHANNEL_CRED_VERSION;
   credData.dwFlags = SCH_CRED_NO_DEFAULT_CREDS |
     SCH_CRED_NO_SYSTEM_MAPPER |
     SCH_CRED_REVOCATION_CHECK_CHAIN;
 
-  credData.cCreds = 1;
-  credData.paCred = &cert;
+  /* credData.cCreds = 1; */
+  /* credData.paCred = &cert; */
   /* TODO load certificate */
   return AcquireCredentialsHandleW(NULL,
 				   name,
@@ -160,6 +181,12 @@ static SECURITY_STATUS client_init(WinTLSData *data)
 				   &data->lifetime);
 }
 
+static void tls_socket_finalizer(SgObject self, void *data)
+{
+  Sg_TLSSocketClose(SG_TLS_SOCKET(self));
+}
+
+
 SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 				  /* list of bytevectors */
 				  SgObject certificates,
@@ -170,7 +197,7 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
   WinTLSData *data = SG_NEW(WinTLSData);
   SECURITY_STATUS status = SEC_E_INTERNAL_ERROR;
   SG_SET_CLASS(r, SG_CLASS_TLS_SOCKET);
-  
+
   r->data = data;
   r->socket = socket;
   data->credential.dwLower = 0;
@@ -178,7 +205,8 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
   data->context.dwLower = 0;
   data->context.dwUpper = 0;
   data->pendingSize = 0;
-  
+  data->closed = FALSE;
+
 #if 0
   data->numCerts = len;
   data->certs = SG_NEW_ARRAY(CERT_NAME_INFO *, len);
@@ -207,7 +235,7 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
     data->certs[i++] = (CERT_NAME_INFO *)decoded;
   }
 #endif
-  
+
   switch (socket->type) {
   case SG_SOCKET_CLIENT:
     status = client_init(data);
@@ -221,9 +249,13 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
       socket);
   }
   if (status != S_OK) {
-    /* TODO message  */
-    Sg_Error(UC("Failed to create TLS socket %x"), status);
+    FreeCredentialsHandle(&data->credential);
+    raise_socket_error(SG_INTERN("socket->tls-socket"),
+		       security_status_to_message(status),
+		       Sg_MakeConditionSocket(r),
+		       SG_LIST1(Sg_MakeIntegerFromS64(status)));
   }
+  Sg_RegisterFinalizer(r, tls_socket_finalizer, NULL);
   return r;
 }
 
@@ -251,7 +283,7 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
   for (i = 0;; i++) {
     DWORD sspiOutFlags = 0;
     int rval;
-    
+
     if (ss != SEC_I_CONTINUE_NEEDED &&
 	ss != SEC_E_INCOMPLETE_MESSAGE &&
 	ss != SEC_I_INCOMPLETE_CREDENTIALS)
@@ -264,13 +296,14 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
     data->sbout.cBuffers = 1;
     data->sbout.pBuffers = &bufso;
     if (initialised) {
-      /* FIXME this is ugly... */
       rval = Sg_SocketReceive(socket, t+pt, sizeof(t), 0);
       if (rval == 0 || rval == -1) {
-	/* correct? */
-	Sg_Error(UC("Failed to handshake (recv) [%d]"), i);
+	raise_socket_error(SG_INTERN("tls-socket-connect!"),
+			   SG_MAKE_STRING("Failed to receive handshake message"),
+			   Sg_MakeConditionSocket(tlsSocket),
+			   tlsSocket);
       }
-      
+
       pt += rval;
       bufsi[0].BufferType = SECBUFFER_TOKEN;
       bufsi[0].cbBuffer = pt;
@@ -282,7 +315,7 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
       data->sbin.pBuffers = bufsi;
       data->sbin.cBuffers = 2;
     }
-    
+
     ss = InitializeSecurityContextW(&data->credential,
 				    initialised ? &data->context : NULL,
 				    dn,
@@ -295,13 +328,16 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
 				    &data->sbout,
 				    &sspiOutFlags,
 				    NULL);
-    fprintf(stderr, "ss = %lx\n", ss);
+
     if (ss == SEC_E_INCOMPLETE_MESSAGE) continue;
-    
+
     pt = 0;
-    
+
     if (FAILED(ss) || (!initialised && ss != SEC_I_CONTINUE_NEEDED)) {
-      Sg_Error(UC("Failed to handshake (context) [%d]"), i);
+      raise_socket_error(SG_INTERN("tls-socket-connect!"),
+			 security_status_to_message(ss),
+			 Sg_MakeConditionSocket(tlsSocket),
+			 SG_LIST1(Sg_MakeIntegerFromS64(ss)));
     }
 
     if (bufso.cbBuffer != 0 && bufso.pvBuffer != NULL) {
@@ -309,8 +345,10 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
       rval = Sg_SocketSend(socket, (uint8_t *)bufso.pvBuffer, bufso.cbBuffer, 0);
       FreeContextBuffer(bufso.pvBuffer);
       if ((unsigned int)rval != bufso.cbBuffer) {
-	/* correct? */
-	Sg_Error(UC("Failed to handshake (send) [%d]"), i);
+	raise_socket_error(SG_INTERN("tls-socket-connect!"),
+			   SG_MAKE_STRING("Failed to send handshake message"),
+			   Sg_MakeConditionSocket(tlsSocket),
+			   tlsSocket);
       }
     }
     if (!initialised) {
@@ -320,7 +358,7 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
 
     if (ss == S_OK) break;
   }
-  
+
   return TRUE;
 }
 
@@ -332,22 +370,41 @@ SgObject Sg_TLSSocketAccept(SgTLSSocket *tlsSocket, int handshake)
 
 void Sg_TLSSocketShutdown(SgTLSSocket *tlsSocket, int how)
 {
-  /* TBD */
+  Sg_SocketShutdown(tlsSocket->socket, how);
 }
 
 void Sg_TLSSocketClose(SgTLSSocket *tlsSocket)
 {
-  /* TBD */
+  WinTLSData *data = (WinTLSData *)tlsSocket->data;
+  if (!data->closed) {
+    DeleteSecurityContext(&data->context);
+    FreeCredentialsHandle(&data->credential);
+    Sg_SocketClose(tlsSocket->socket);
+    data->closed = TRUE;
+    Sg_UnregisterFinalizer(SG_OBJ(tlsSocket));
+  }
 }
 
 int Sg_TLSSocketOpenP(SgTLSSocket *tlsSocket)
 {
-  /* TBD */
-  return FALSE;
+  WinTLSData *data = (WinTLSData *)tlsSocket->data;
+  return !data->closed;
 }
 
-/* for now nothing */
-#define handleError(rval, socket) 
+/* TODO check -1 */
+#define handleError(rval, socket)
+
+static int socket_readable(SOCKET socket)
+{
+  fd_set rfds;
+  int total;
+  struct timeval tv;
+  FD_ZERO(&rfds);
+  FD_SET(socket, &rfds);
+  tv.tv_sec = tv.tv_usec = 0;
+  total = select(0, &rfds, NULL, NULL, &tv);
+  return total == 1;
+}
 
 int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
 {
@@ -355,13 +412,16 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
   WinTLSData *data = (WinTLSData *)tlsSocket->data;
   SecPkgContext_StreamSizes sizes;
   SECURITY_STATUS ss;
-  int read = 0;
-  SecBuffer buffer;
+  int read = 0, bufferSize;
+  SecBuffer buffers[4];
   uint8_t *mmsg;
 
   ss = QueryContextAttributes(&data->context, SECPKG_ATTR_STREAM_SIZES, &sizes);
   if (FAILED(ss)) {
-    Sg_Error(UC("Failed to query"));    
+    raise_socket_error(SG_INTERN("tls-socket-recv!"),
+		       security_status_to_message(ss),
+		       Sg_MakeConditionSocket(tlsSocket),
+		       SG_LIST1(Sg_MakeIntegerFromS64(ss)));
   }
   if (data->pendingSize > 0) {
     if (size <= data->pendingSize) {
@@ -377,47 +437,62 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
     read += data->pendingSize;
     size -= data->pendingSize;
     data->pendingSize = 0;
+    if (!socket_readable(socket->socket)) return read;
   }
-
+  /* TODO optimise size or reuse buffer */
+  bufferSize = sizes.cbMaximumMessage + sizes.cbHeader + sizes.cbTrailer;
 #ifdef HAVE_ALLOCA
-  mmsg = (uint8_t *)alloca(min(sizes.cbMaximumMessage, (unsigned int)size));
+  mmsg = (uint8_t *)alloca(bufferSize);
 #else
-  mmsg = SG_NEW_ATOMIC2(uint8_t *, min(sizes.cbMaximumMessage, size));
+  mmsg = SG_NEW_ATOMIC2(uint8_t *, bufferSize);
 #endif
 
   for (;;) {
-    int rval = Sg_SocketReceive(socket, mmsg, size, 0);
-    handleError(rval, socket);
-    buffer.pvBuffer = mmsg;
-    buffer.cbBuffer = rval;
-    buffer.BufferType = SECBUFFER_DATA;
-    
-    data->sbin.ulVersion = SECBUFFER_VERSION;
-    data->sbin.pBuffers = &buffer;
-    data->sbin.cBuffers = 1;
-    ss = DecryptMessage(&data->context, &data->sbin, 0, NULL);
+    int rval = Sg_SocketReceive(socket, mmsg, bufferSize, 0), i;
+    SecBuffer *buffer = NULL, *extra = NULL;
 
-    /* TODO how to handle this? */
-    /* if (ss = SEC_E_INCOMPLETE_MESSAGE) continue; */
+    handleError(rval, socket);
+    buffers[0].pvBuffer = mmsg;
+    buffers[0].cbBuffer = rval;
+    buffers[0].BufferType = SECBUFFER_DATA;
+    buffers[1].BufferType = SECBUFFER_EMPTY;
+    buffers[2].BufferType = SECBUFFER_EMPTY;
+    buffers[3].BufferType = SECBUFFER_EMPTY;
+
+    data->sbin.ulVersion = SECBUFFER_VERSION;
+    data->sbin.pBuffers = buffers;
+    data->sbin.cBuffers = 4;
+    ss = DecryptMessage(&data->context, &data->sbin, 0, NULL);
+    /* should never happend since we are receiving max packet size */
+    /* if (ss == SEC_E_INCOMPLETE_MESSAGE) continue; */
     if (ss != SEC_E_OK) {
-      Sg_Error(UC("replace with socket condition"));
+      raise_socket_error(SG_INTERN("tls-socket-recv!"),
+			 security_status_to_message(ss),
+			 Sg_MakeConditionSocket(tlsSocket),
+			 SG_LIST1(Sg_MakeIntegerFromS64(ss)));
+    }
+    for (i = 1; i < sizeof(buffers); i++) {
+      if (buffer == NULL && buffers[i].BufferType == SECBUFFER_DATA)
+	buffer = &buffers[i];
+      if (extra == NULL && buffers[i].BufferType == SECBUFFER_EXTRA)
+	extra = &buffers[i];
     }
     /* would this happen? */
-    if (buffer.BufferType != SECBUFFER_DATA) {
-      return read;
+    if (buffer->BufferType != SECBUFFER_DATA) {
+      return 0;
     }
 
-    if (buffer.cbBuffer <= (unsigned int)size) {
-      memcpy(b + read, buffer.pvBuffer, buffer.cbBuffer);
-      read += buffer.cbBuffer;
+    if (buffer->cbBuffer <= (unsigned int)size) {
+      memcpy(b + read, buffer->pvBuffer, buffer->cbBuffer);
+      read += buffer->cbBuffer;
     } else {
-      int s = buffer.cbBuffer - size;
-      memcpy(b + read, buffer.pvBuffer, size);
+      int s = buffer->cbBuffer - size;
+      memcpy(b + read, buffer->pvBuffer, size);
       data->pendingSize = s;
       /* TODO reuse the buffer if it fits */
       data->pendingData = SG_NEW_ATOMIC2(uint8_t *, s);
-      memcpy(data->pendingData, (uint8_t *)buffer.pvBuffer + size, s);
-      read += s;
+      memcpy(data->pendingData, (uint8_t *)buffer->pvBuffer + size, s);
+      read += size;
     }
     return read;
   }
@@ -445,7 +520,7 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
   mhdr = SG_NEW_ATOMIC2(uint8_t *, sizes.cbHeader);
   mtrl = SG_NEW_ATOMIC2(uint8_t *, sizes.cbTrailer);
 #endif
-  
+
   while (rest > 0) {
     unsigned int portion = rest;
     int rval;
@@ -457,15 +532,15 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
     bufs[0].pvBuffer = mhdr;
     bufs[0].cbBuffer = sizes.cbHeader;
     bufs[0].BufferType = SECBUFFER_STREAM_HEADER;
+    bufs[1].pvBuffer = mmsg;
+    bufs[1].cbBuffer = portion;
+    bufs[1].BufferType = SECBUFFER_DATA;
     bufs[2].pvBuffer = mtrl;
-    bufs[2].cbBuffer = sizes.cbHeader;
+    bufs[2].cbBuffer = sizes.cbTrailer;
     bufs[2].BufferType = SECBUFFER_STREAM_TRAILER;
     bufs[3].pvBuffer = NULL;
     bufs[3].cbBuffer = 0;
     bufs[3].BufferType = SECBUFFER_EMPTY;
-    bufs[1].pvBuffer = mmsg;
-    bufs[1].cbBuffer = portion;
-    bufs[1].BufferType = SECBUFFER_DATA;
 
     data->sbin.ulVersion = SECBUFFER_VERSION;
     data->sbin.pBuffers = bufs;
@@ -483,16 +558,15 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
     send(bufs[0]);
     send(bufs[1]);
     send(bufs[2]);
-    
+
     sent += portion;
     rest -= portion;
     b    += portion;
   }
   return sent;
  err:
-  /* TODO get error message from ss */
   raise_socket_error(SG_INTERN("tls-socket-send"),
-		     SG_MAKE_STRING("failed to query attribute"),
+		     security_status_to_message(ss),
 		     Sg_MakeConditionSocket(tlsSocket),
 		     SG_LIST1(Sg_MakeIntegerFromS64(ss)));
   return -1;			/* dummy */
