@@ -30,6 +30,8 @@ SET(TLS_SOURCE ${TLS_SOURCE} tls-socket.c)
 ADD_LIBRARY(sagittarius--socket SHARED
   sagittarius-socket.c
   ${CMAKE_CURRENT_BINARY_DIR}/socket_stub.c)
+SET_TARGET_PROPERTIES(sagittarius--socket
+  PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
 ADD_LIBRARY(sagittarius--tls-socket MODULE
   ${TLS_SOURCE}
@@ -73,12 +75,11 @@ IF (${SAGITTARIUS_OS} STREQUAL "qnx" OR ${SAGITTARIUS_OS} STREQUAL "sunos")
   TARGET_LINK_LIBRARIES(sagittarius--tls-socket socket)
 ELSEIF (MINGW)
   TARGET_LINK_LIBRARIES(sagittarius--socket ws2_32)
-  TARGET_LINK_LIBRARIES(sagittarius--tls-socket schannel)
   TARGET_LINK_LIBRARIES(sagittarius--tls-socket crypt32)
   TARGET_LINK_LIBRARIES(sagittarius--tls-socket secur32)
 ENDIF()
 
-INSTALL(TARGETS sagittarius--socket
+INSTALL(TARGETS sagittarius--socket sagittarius--tls-socket
   DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
 INSTALL(FILES sagittarius/socket.scm
   DESTINATION ${SAGITTARIUS_SHARE_LIB_PATH}/sagittarius)

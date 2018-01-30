@@ -280,6 +280,8 @@ IF(USE_BOEHM_GC)
       MESSAGE(FATAL_ERROR "First install Boehm GC. Go to gc directory.")
     ENDIF()
 
+    SET(enable_threads ON CACHE BOOL "Enabling Boehm GC thread")
+    SET(enable_parallel_mark ON CACHE BOOL "Enabling Boehm GC parallel marking")
     ADD_DEFINITIONS("-DLARGE_CONFIG -DGC_DLL")
     # OK we don't want to link this for god sake.
     IF (MSVC OR MINGW)

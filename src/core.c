@@ -422,8 +422,10 @@ void* Sg_GCBase(void *value)
 void finalizable()
 {
   SgVM *vm = Sg_VM();
-  vm->finalizerPending = TRUE;
-  vm->attentionRequest = TRUE;
+  if (vm) {
+    vm->finalizerPending = TRUE;
+    vm->attentionRequest = TRUE;
+  }
 }
 
 SgObject Sg_VMFinalizerRun(SgVM *vm)
