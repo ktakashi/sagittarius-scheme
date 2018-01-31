@@ -3,6 +3,7 @@
 	(asn.1)
 	(crypto)
 	(clos user)
+	(srfi :19)
 	(srfi :64 testing))
 
 (test-begin "ASN.1 test")
@@ -69,5 +70,11 @@
 	    (asn.1-encode (make-der-integer #xFF)))
 (test-equal "der integer (signed)" #vu8(2 1 255)
 	    (asn.1-encode (make-der-integer -1)))
+
+(let ((d (make-date 0 0 0 0 31 1 2018 0)))
+  (test-assert (time=? (date->time-utc d)
+		       (date->time-utc (der-time->date (make-der-utc-time d)))))
+  (test-assert (time=? (date->time-utc d)
+		       (date->time-utc (der-time->date (make-der-utc-time "180131000000Z"))))))
 
 (test-end)
