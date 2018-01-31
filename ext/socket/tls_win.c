@@ -143,6 +143,7 @@ static SgTLSSocket * make_tls_socket(SgSocket *socket)
   SG_SET_CLASS(r, SG_CLASS_TLS_SOCKET);
   r->socket = socket;
   r->data = data;
+  data->certificateCount = 0;
   return r;
 }
 
@@ -312,19 +313,37 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
   return TRUE;
 }
 
-static SgTLSSocket * to_server_socket(SgSocket *sock)
+static SgTLSSocket * to_server_socket(SgTLSSocket *parent, SgSocket *sock)
 {
   SgTLSSocket *s = make_tls_socket(sock);
   WinTLSData *data = (WinTLSData *)s->data;
+  WinTLSData *pData = (WinTLSData *)parent->data;
   SCHANNEL_CRED credData = {0};
   wchar_t *name = IMPL_NAME;
   SECURITY_STATUS ss;
 
+  if (pData->certificateCount > 0) {
+    int i;
+    data->certificateCount = pData->certificateCount;
+    data->certificates = SG_NEW_ARRAY(PCCERT_CONTEXT, pData->certificateCount);
+    for (i = 0; i < pData->certificateCount; i++) {
+      data->certificates[i] =
+	CertDuplicateCertificateContext(pData->certificates[i]);
+    }
+  }
+  
   credData.dwVersion = SCHANNEL_CRED_VERSION;
   credData.dwFlags = SCH_CRED_NO_DEFAULT_CREDS |
     SCH_CRED_NO_SYSTEM_MAPPER |
     SCH_CRED_REVOCATION_CHECK_CHAIN;
   credData.dwMinimumCipherStrength = 128;
+  credData.cCreds = data->certificateCount;
+  credData.paCred = data->certificates;
+  if (data->certificateCount > 0) {
+    /* cheating... */
+    credData.hRootStore = data->certificates[0]->hCertStore;
+  }
+  
   ss = AcquireCredentialsHandleW(NULL,
 				 name,
 				 SECPKG_CRED_INBOUND,
@@ -334,9 +353,10 @@ static SgTLSSocket * to_server_socket(SgSocket *sock)
 				 NULL,
 				 &data->credential,
 				 NULL);
+  Sg_RegisterFinalizer(s, tls_socket_finalizer, NULL);
   if (ss != S_OK) {
     FreeCredentialsHandle(&data->credential);
-    raise_socket_error(SG_INTERN("socket->tls-socket"),
+    raise_socket_error(SG_INTERN("tls-socket-accept"),
 		       security_status_to_message(ss),
 		       Sg_MakeConditionSocket(s),
 		       SG_LIST1(Sg_MakeIntegerFromS64(ss)));
@@ -435,7 +455,7 @@ SgObject Sg_TLSSocketAccept(SgTLSSocket *tlsSocket, int handshake)
 {
   SgObject sock = Sg_SocketAccept(tlsSocket->socket);
   if (SG_SOCKETP(sock)) {
-    SgTLSSocket *srv = to_server_socket(SG_SOCKET(sock));
+    SgTLSSocket *srv = to_server_socket(tlsSocket, SG_SOCKET(sock));
     if (handshake) {
       server_handshake(srv);
     }
@@ -530,8 +550,12 @@ void Sg_TLSSocketClose(SgTLSSocket *tlsSocket)
 {
   WinTLSData *data = (WinTLSData *)tlsSocket->data;
   if (!data->closed) {
+    int i;
     DeleteSecurityContext(&data->context);
     FreeCredentialsHandle(&data->credential);
+    for (i = 0; i < data->certificateCount; i++) {
+      CertFreeCertificateContext(data->certificates[i]);
+    }
     Sg_SocketClose(tlsSocket->socket);
     data->closed = TRUE;
     Sg_UnregisterFinalizer(SG_OBJ(tlsSocket));
