@@ -181,6 +181,25 @@ static void load_certificates(WinTLSData *data, SgObject certificates)
 
 }
 
+static void free_certificates(WinTLSData *data)
+{
+  int i;
+  for (i = 0; i < data->certificateCount; i++) {
+    CertFreeCertificateContext(data->certificates[i]);
+  }
+}
+
+static int add_private_key(WinTLSData *data, SgByteVector *privateKey)
+{
+#if 0
+  if (privateKey && data->certificateCount > 0) {
+    PCERT_CONTEXT ctx = data->certificates[0];
+    CertSetCertificateContextProperty(ctx, CERT_KEY_CONTEXT_PROP_ID, should_be_key);
+  }
+#endif
+  return FALSE;
+}
+
 SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 				  /* list of bytevectors */
 				  SgObject certificates,
@@ -190,16 +209,20 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
   SgTLSSocket *r = make_tls_socket(socket);
   WinTLSData *data = (WinTLSData *)r->data;
   int len = Sg_Length(certificates);
+  int serverP = FALSE;
+  int hasPrivateKey;
   
   data->certificateCount = len;
   data->certificates = SG_NEW_ARRAY(PCCERT_CONTEXT, len);
   load_certificates(data, certificates);
+  hasPrivateKey = add_private_key(data, privateKey);
   /* TODO store private key into data */
   
   switch (socket->type) {
   case SG_SOCKET_CLIENT: client_init(r); break;
-  case SG_SOCKET_SERVER: break;
+  case SG_SOCKET_SERVER: serverP = TRUE; break;
   default:
+    free_certificates(data);
     Sg_AssertionViolation(SG_INTERN("socket->tls-socket"),
       Sg_Sprintf(UC("Client or server socket is required but got %S"), socket),
       socket);
@@ -550,12 +573,9 @@ void Sg_TLSSocketClose(SgTLSSocket *tlsSocket)
 {
   WinTLSData *data = (WinTLSData *)tlsSocket->data;
   if (!data->closed) {
-    int i;
     DeleteSecurityContext(&data->context);
     FreeCredentialsHandle(&data->credential);
-    for (i = 0; i < data->certificateCount; i++) {
-      CertFreeCertificateContext(data->certificates[i]);
-    }
+    free_certificates(data);
     Sg_SocketClose(tlsSocket->socket);
     data->closed = TRUE;
     Sg_UnregisterFinalizer(SG_OBJ(tlsSocket));
