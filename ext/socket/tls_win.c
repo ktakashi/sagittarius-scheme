@@ -47,6 +47,7 @@
 /* #include <security.h> */
 #include <sspi.h>
 #include <sagittarius.h>
+#include "sagittarius-socket.h"
 #define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
 #include "tls-socket.h"
