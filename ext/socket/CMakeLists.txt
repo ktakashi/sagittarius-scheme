@@ -77,6 +77,7 @@ ELSEIF (MINGW)
   TARGET_LINK_LIBRARIES(sagittarius--socket ws2_32)
   TARGET_LINK_LIBRARIES(sagittarius--tls-socket crypt32)
   TARGET_LINK_LIBRARIES(sagittarius--tls-socket secur32)
+  TARGET_LINK_LIBRARIES(sagittarius--tls-socket ncrypt)
 ENDIF()
 
 INSTALL(TARGETS sagittarius--socket sagittarius--tls-socket
