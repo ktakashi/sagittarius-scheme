@@ -130,7 +130,7 @@ typedef struct WinTLSContextRec
   HCERTSTORE certStore;
   int certificateCount;
   PCCERT_CONTEXT *certificates;
-  NCRYPT_KEY_HANDLE privateKey;
+  HCRYPTKEY privateKey;
 } WinTLSContext;
 
 typedef struct WinTLSDataRec
@@ -181,7 +181,7 @@ static void client_init(SgTLSSocket *r)
     raise_socket_error(SG_INTERN("socket->tls-socket"),
 		       Sg_GetLastErrorMessageWithErrorCode(status),
 		       Sg_MakeConditionSocket(r),
-		       Sg_MakeIntegerFromS64(status));
+		       Sg_MakeIntegerU(status));
   }
 }
 
@@ -192,8 +192,8 @@ static void free_context(WinTLSContext *context)
     CertFreeCertificateContext(context->certificates[i]);
   }
   if (context->privateKey) {
-    NCryptFreeObject(context->privateKey);
-    context->privateKey = 0;
+    CryptDestroyKey(context->privateKey);
+    context->privateKey = NULL;
   }
   context->certificateCount = 0;
   if (context->certStore) {
@@ -224,6 +224,7 @@ static SgTLSSocket * make_tls_socket(SgSocket *socket, WinTLSContext *ctx)
   data->tlsContext = context;
   if (!ctx) {
     context->certificateCount = 0;
+    context->privateKey = NULL;
     Sg_RegisterFinalizer(context, tls_context_finalize, NULL);
   }
   return r;
@@ -273,78 +274,95 @@ static DWORD add_private_key(WinTLSData *data,
   WinTLSContext *context = data->tlsContext;
   if (privateKey && context->certificateCount > 0) {
     PCCERT_CONTEXT ctx = context->certificates[0];
-    NCRYPT_PROV_HANDLE provider;
-    NCRYPT_KEY_HANDLE c;
-    CRYPT_KEY_PROV_INFO provInfo;
-    DWORD spec;
+    HCRYPTPROV hProv = NULL;
+    HCRYPTKEY c;
+    CERT_KEY_CONTEXT keyCtx = {0};
+    DWORD spec, cbKeyBlob;
+    LPBYTE pbKeyBlob = NULL;
     BOOL callerFree;
-    NCryptBufferDesc cBufDesc;
-    NCryptBuffer cbuf;
-    SECURITY_STATUS ss = NCryptOpenStorageProvider(&provider, NULL, 0);
-    wchar_t *keyName = L"server private key";
+    CRYPT_KEY_PROV_INFO provInfo;
     
-    if (FAILED(ss)) goto err;
-    /* cBufDesc.ulVersion = NCRYPTBUFFER_VERSION; */
-    /* cBufDesc.cBuffers = 1; */
-    /* cBufDesc.pBuffers = &cbuf; */
-    /* cbuf.BufferType = NCRYPTBUFFER_PKCS_KEY_NAME; */
-    /* cbuf.cbBuffer = sizeof(keyName); */
-    /* cbuf.pvBuffer = (void *)keyName; */
+    if (!CryptDecodeObjectEx(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+			     PKCS_RSA_PRIVATE_KEY,
+			     SG_BVECTOR_ELEMENTS(privateKey),
+			     SG_BVECTOR_SIZE(privateKey),
+			     0, NULL, NULL, &cbKeyBlob)) {
+      return GetLastError();
+    }
+#ifdef HAVE_ALLOCA
+    pbKeyBlob = (LPBYTE)alloca(cbKeyBlob);
+#else
+    pbKeyBlob = SG_NEW_ATOMIC2(LPBYTE, cbKeyBlob);
+#endif    
+    if (!CryptDecodeObjectEx(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+			     PKCS_RSA_PRIVATE_KEY,
+			     SG_BVECTOR_ELEMENTS(privateKey),
+			     SG_BVECTOR_SIZE(privateKey),
+			     0, NULL, pbKeyBlob, &cbKeyBlob)) {
+      return GetLastError();
+    }
+    if (!CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_SCHANNEL,
+			     CRYPT_NEWKEYSET | CRYPT_VERIFYCONTEXT)) {
+      if (NTE_BAD_KEYSET == GetLastError()) {
+	if (!CryptAcquireContext(&hProv, L"Sagittarius Server Socket",
+				 MS_DEF_RSA_SCHANNEL_PROV, PROV_RSA_SCHANNEL,
+				 CRYPT_NEWKEYSET | CRYPT_VERIFYCONTEXT)) {
+	  return GetLastError();
+	}
+      } else {
+	return GetLastError();
+      }
+    }
+    CryptSetProvParam(hProv, PP_DELETEKEY, NULL, 0);
     
-    ss = NCryptImportKey(provider,	/* hProvider */
-			 0,
-			 NCRYPT_PKCS8_PRIVATE_KEY_BLOB,
-			 NULL,
-			 &context->privateKey,
-			 SG_BVECTOR_ELEMENTS(privateKey),
-			 SG_BVECTOR_SIZE(privateKey),
-			 0);
-    if (FAILED(ss)) goto err;
+    if (!CryptImportKey(hProv, pbKeyBlob, cbKeyBlob,
+			NULL, 0, &context->privateKey)) {
+      CryptReleaseContext(hProv, 0);
+      return GetLastError();
+    }
+    keyCtx.cbSize = sizeof(CERT_KEY_CONTEXT);
+    keyCtx.hCryptProv = hProv;
+    keyCtx.dwKeySpec = AT_SIGNATURE;
+    if (!CertSetCertificateContextProperty(ctx, CERT_KEY_CONTEXT_PROP_ID, 0,
+					   (const void *)&keyCtx)) {
+      CryptReleaseContext(hProv, 0);
+      return GetLastError();
+    }
 
     provInfo.pwszContainerName = NULL;
     provInfo.pwszProvName = NULL;
     provInfo.dwProvType = PROV_RSA_SCHANNEL;
     provInfo.dwFlags = CERT_SET_KEY_CONTEXT_PROP_ID;
-    provInfo.dwKeySpec = 0;
+    provInfo.dwKeySpec = AT_SIGNATURE;
     provInfo.cProvParam = 0;
     if (!CertSetCertificateContextProperty(ctx, CERT_KEY_PROV_INFO_PROP_ID, 0,
 					   (const void *)&provInfo)) {
-      ss = GetLastError();
-      goto err;
-    }
-
-    if (!CertSetCertificateContextProperty(ctx, CERT_NCRYPT_KEY_HANDLE_PROP_ID, 0,
-					   (const void *)context->privateKey)) {
-      ss = GetLastError();
-      goto err;
+      return GetLastError();
     }
     /* check */
     if (!CryptAcquireCertificatePrivateKey(ctx, CRYPT_ACQUIRE_SILENT_FLAG, NULL,
 					   &c, &spec, &callerFree)) {
-      ss = GetLastError();
-      goto err;
+      return GetLastError();
     }
-    fprintf(stderr, "spec %x\n", spec);
     if (callerFree) {
       if (spec == CERT_NCRYPT_KEY_SPEC) NCryptFreeObject(c);
       else CryptReleaseContext(c, 0);
     }
-    NCryptFreeObject(provider);
     return S_OK;
-  err:
-    NCryptFreeObject(provider);
-    return ss;
   }
   return E_NOTIMPL;
 }
 
 static HCERTSTORE create_cert_store(SgTLSSocket *s)
 {
-#if 0
+#if 1
+  /* Using memory (should work) */
   return CertOpenStore(CERT_STORE_PROV_MEMORY, 0, NULL, 0, (const void *)NULL);
 #else
+  /* Using temporary file */
   SgObject dir = Sg_GetTemporaryDirectory();
-  SgObject path = Sg_Sprintf(UC("%A\\%A"), dir, Sg_MakeIntegerFromU64((uintptr_t)s));
+  SgObject path = Sg_Sprintf(UC("%A\\%A"), dir,
+			     Sg_MakeIntegerU((uintptr_t)s));
   wchar_t *p = Sg_StringToWCharTs(path);
   HANDLE handle = CreateFileW(p, GENERIC_READ | GENERIC_WRITE,
 			      FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
@@ -417,7 +435,7 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
     raise_socket_error(SG_INTERN("socket->tls-socket"),
 		       Sg_GetLastErrorMessageWithErrorCode(result),
 		       Sg_MakeConditionSocket(r),
-		       Sg_MakeIntegerFromS64(result));
+		       Sg_MakeIntegerU(result));
   }
   Sg_RegisterFinalizer(r, tls_socket_finalizer, NULL);
   return r;
@@ -502,7 +520,7 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
       raise_socket_error(SG_INTERN("tls-socket-connect!"),
 			 Sg_GetLastErrorMessageWithErrorCode(ss),
 			 Sg_MakeConditionSocket(tlsSocket),
-			 Sg_MakeIntegerFromS64(ss));
+			 Sg_MakeIntegerU(ss));
     }
 
     if (bufso.cbBuffer != 0 && bufso.pvBuffer != NULL) {
@@ -563,7 +581,7 @@ static SgTLSSocket * to_server_socket(SgTLSSocket *parent, SgSocket *sock)
     raise_socket_error(SG_INTERN("tls-socket-accept"),
 		       Sg_GetLastErrorMessageWithErrorCode(ss),
 		       Sg_MakeConditionSocket(s),
-		       Sg_MakeIntegerFromS64(ss));
+		       Sg_MakeIntegerU(ss));
   }
   Sg_RegisterFinalizer(s, tls_socket_finalizer, NULL);
   return s;
@@ -634,7 +652,7 @@ static int server_handshake(SgTLSSocket *tlsSocket)
       raise_socket_error(SG_INTERN("tls-socket-accept"),
 			 Sg_GetLastErrorMessageWithErrorCode(ss),
 			 Sg_MakeConditionSocket(tlsSocket),
-			 Sg_MakeIntegerFromS64(ss));
+			 Sg_MakeIntegerU(ss));
     }
     DUMP_CTX_HANDLE(&data->context);
     if (bufso[0].cbBuffer != 0 && bufso[0].pvBuffer != NULL) {
@@ -801,7 +819,7 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
     raise_socket_error(SG_INTERN("tls-socket-recv!"),
 		       Sg_GetLastErrorMessageWithErrorCode(ss),
 		       Sg_MakeConditionSocket(tlsSocket),
-		       Sg_MakeIntegerFromS64(ss));
+		       Sg_MakeIntegerU(ss));
   }
   if (data->pendingSize > 0) {
     if (size <= data->pendingSize) {
@@ -849,7 +867,7 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
       raise_socket_error(SG_INTERN("tls-socket-recv!"),
 			 Sg_GetLastErrorMessageWithErrorCode(ss),
 			 Sg_MakeConditionSocket(tlsSocket),
-			 Sg_MakeIntegerFromS64(ss));
+			 Sg_MakeIntegerU(ss));
     }
     for (i = 1; i < sizeof(buffers); i++) {
       if (buffer == NULL && buffers[i].BufferType == SECBUFFER_DATA)
@@ -931,7 +949,8 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
     if (FAILED(ss)) goto err;
 #define send(buf)							\
     do {								\
-      rval = Sg_SocketSend(socket, (uint8_t *)(buf).pvBuffer, (buf).cbBuffer, 0); \
+      rval = Sg_SocketSend(socket, (uint8_t *)(buf).pvBuffer,		\
+			   (buf).cbBuffer, 0);				\
       handleError(rval, socket);					\
     } while (0)
 
@@ -948,7 +967,7 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
   raise_socket_error(SG_INTERN("tls-socket-send"),
 		     Sg_GetLastErrorMessageWithErrorCode(ss),
 		     Sg_MakeConditionSocket(tlsSocket),
-		     Sg_MakeIntegerFromS64(ss));
+		     Sg_MakeIntegerU(ss));
   return -1;			/* dummy */
 }
 
