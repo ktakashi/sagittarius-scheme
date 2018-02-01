@@ -61,25 +61,77 @@
 
 #include "raise_incl.incl"
 
-static SgObject security_status_to_message(SECURITY_STATUS ss)
+#define DEBUG_TLS_HANDLES
+#ifdef  DEBUG_TLS_HANDLES
+
+#define fmt_dump(fmt, ...) fprintf(stderr, fmt, __VA_ARGS__)
+#define msg_dump(msg) fputs(msg, stderr)
+
+static void dump_ctx_handle(CtxtHandle *ctx)
 {
-#define MSG_SIZE 128
-  wchar_t msg[MSG_SIZE];
-  int size = FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM |
-			    FORMAT_MESSAGE_IGNORE_INSERTS,
-			    0,
-			    ss,
-			    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-			    msg,
-			    MSG_SIZE,
-			    NULL);
-  if (size > 2 && msg[size - 2] == '\r') {
-    msg[size - 2] = 0;
-    size -= 2;
+  SECURITY_STATUS ss;
+  SecPkgContext_ConnectionInfo ci;
+  ss = QueryContextAttributes(ctx, SECPKG_ATTR_CONNECTION_INFO, (void *)&ci);
+  if (FAILED(ss)) {
+    msg_dump("Failed to QueryContextAttributes\n");
+    return;
   }
-  return Sg_WCharTsToString(msg, size);
-#undef MSG_SIZE
+  fmt_dump("Protocol: 0x%x\n", ci.dwProtocol);
+  fmt_dump("Cipher: 0x%x\n", ci.aiCipher);
+  fmt_dump("Cipher strength: %d\n", ci.dwCipherStrength);
 }
+
+static void dump_cred_handle(CredHandle *cred)
+{
+  SECURITY_STATUS ss;
+  SecPkgCred_SupportedAlgs sa;
+  SecPkgCred_SupportedProtocols sp;
+  ss = QueryCredentialsAttributes(cred, SECPKG_ATTR_SUPPORTED_ALGS, (void *)&sa);
+  if (!FAILED(ss)) {
+    int i;
+    fmt_dump("# of Supported algorithms %d\n", sa.cSupportedAlgs);
+    for (i = 0; i < sa.cSupportedAlgs; i++) 
+      fmt_dump("[%d] algorithm %x\n", i, sa.palgSupportedAlgs[i]);
+  } else {
+    SgObject msg = Sg_GetLastErrorMessageWithErrorCode(ss);
+    fmt_dump("[%lx] %s\n", ss, Sg_Utf32sToUtf8s(SG_STRING(msg)));
+  }
+  ss = QueryCredentialsAttributes(cred, SECPKG_ATTR_SUPPORTED_PROTOCOLS, (void *)&sp);
+  if (!FAILED(ss)) {
+#define if_supported(v)							\
+    do {								\
+      if ((v&sp.grbitProtocol)==(v)) fmt_dump("Protocol: %s\n", #v);	\
+    } while (0)
+    
+    if_supported(SP_PROT_TLS1_CLIENT);
+    if_supported(SP_PROT_TLS1_SERVER);
+    if_supported(SP_PROT_SSL3_CLIENT);
+    if_supported(SP_PROT_SSL3_SERVER);
+    if_supported(SP_PROT_SSL2_CLIENT);
+    if_supported(SP_PROT_SSL2_SERVER);
+#undef is_supported
+  } else {
+    SgObject msg = Sg_GetLastErrorMessageWithErrorCode(ss);
+    fmt_dump("[%lx] %s\n", ss, Sg_Utf32sToUtf8s(SG_STRING(msg)));
+  }
+}
+#undef dump
+#undef fmt_dump
+
+# define DUMP_CTX_HANDLE(ctx) dump_ctx_handle(ctx)
+# define DUMP_CRED_HANDLE(cred) dump_cred_handle(cred)
+#else
+# define DUMP_CTX_HANDLE(ctx)
+# define DUMP_CRED_HANDLE(cred)
+#endif
+
+typedef struct WinTLSContextRec
+{
+  HCERTSTORE certStore;
+  int certificateCount;
+  PCCERT_CONTEXT *certificates;
+  NCRYPT_KEY_HANDLE privateKey;
+} WinTLSContext;
 
 typedef struct WinTLSDataRec
 {
@@ -88,10 +140,7 @@ typedef struct WinTLSDataRec
   int pendingSize;
   uint8_t *pendingData;
   int closed;
-  PCCERT_CONTEXT *certificates;
-  int certificateCount;
-  NCRYPT_PROV_HANDLE provider;
-  NCRYPT_KEY_HANDLE privateKey;
+  WinTLSContext *tlsContext;
 } WinTLSData;
 
 /* #define IMPL_NAME UNISP_NAME_W */
@@ -103,20 +152,20 @@ static void client_init(SgTLSSocket *r)
   SCHANNEL_CRED credData = {0};
   wchar_t *name = IMPL_NAME;
   WinTLSData *data = (WinTLSData *)r->data;
+  WinTLSContext *context = data->tlsContext;
   
   data->credential.dwLower = 0;
   data->credential.dwUpper = 0;
   data->context.dwLower = 0;
   data->context.dwUpper = 0;
   data->pendingSize = 0;
-  data->closed = FALSE;
 
   credData.dwVersion = SCHANNEL_CRED_VERSION;
   credData.dwFlags = SCH_CRED_NO_DEFAULT_CREDS |
     SCH_CRED_NO_SYSTEM_MAPPER |
     SCH_CRED_REVOCATION_CHECK_CHAIN;
-  credData.cCreds = data->certificateCount;
-  credData.paCred = data->certificates;
+  credData.cCreds = context->certificateCount;
+  credData.paCred = context->certificates;
   
   status = AcquireCredentialsHandleW(NULL,
 				     name,
@@ -130,9 +179,26 @@ static void client_init(SgTLSSocket *r)
   if (status != S_OK) {
     FreeCredentialsHandle(&data->credential);
     raise_socket_error(SG_INTERN("socket->tls-socket"),
-		       security_status_to_message(status),
+		       Sg_GetLastErrorMessageWithErrorCode(status),
 		       Sg_MakeConditionSocket(r),
 		       Sg_MakeIntegerFromS64(status));
+  }
+}
+
+static void free_context(WinTLSContext *context)
+{
+  int i;
+  for (i = 0; i < context->certificateCount; i++) {
+    CertFreeCertificateContext(context->certificates[i]);
+  }
+  if (context->privateKey) {
+    NCryptFreeObject(context->privateKey);
+    context->privateKey = 0;
+  }
+  context->certificateCount = 0;
+  if (context->certStore) {
+    CertCloseStore(context->certStore, 0);
+    context->certStore = NULL;
   }
 }
 
@@ -141,21 +207,36 @@ static void tls_socket_finalizer(SgObject self, void *data)
   Sg_TLSSocketClose(SG_TLS_SOCKET(self));
 }
 
-static SgTLSSocket * make_tls_socket(SgSocket *socket)
+static void tls_context_finalize(SgObject self, void *data)
+{
+  WinTLSContext *context = (WinTLSContext *)self;
+  free_context(context);
+}
+
+static SgTLSSocket * make_tls_socket(SgSocket *socket, WinTLSContext *ctx)
 {
   SgTLSSocket *r = SG_NEW(SgTLSSocket);
   WinTLSData *data = SG_NEW(WinTLSData);
+  WinTLSContext *context = ctx == NULL? SG_NEW(WinTLSContext) : ctx;
   SG_SET_CLASS(r, SG_CLASS_TLS_SOCKET);
   r->socket = socket;
   r->data = data;
-  data->certificateCount = 0;
+  data->tlsContext = context;
+  if (!ctx) {
+    context->certificateCount = 0;
+    Sg_RegisterFinalizer(context, tls_context_finalize, NULL);
+  }
   return r;
 }
 
 static void load_certificates(WinTLSData *data, SgObject certificates)
 {
-  int count = 0;
+  
+  int count = 0, len = Sg_Length(certificates);
   SgObject cp;
+  WinTLSContext *context = data->tlsContext;
+  context->certificateCount = len;
+  context->certificates = SG_NEW_ARRAY(PCCERT_CONTEXT, len);
   SG_FOR_EACH(cp, certificates) {
     SgByteVector *cert;
     PCCERT_CONTEXT pcert;
@@ -174,50 +255,136 @@ static void load_certificates(WinTLSData *data, SgObject certificates)
       SgObject msg = Sg_GetLastErrorMessageWithErrorCode(GetLastError());
       int i;
       for (i = 0; i < count; i++) {
-	CertFreeCertificateContext(data->certificates[i]);
+	CertFreeCertificateContext(context->certificates[i]);
       }
+      context->certificateCount = 0;
       Sg_AssertionViolation(SG_INTERN("socket->tls-socket"),
 			    Sg_Sprintf(UC("Failed to load certificate: %A"),
 				       msg),
 			    cert);
     }
-    data->certificates[count++] = pcert;
-  }
-}
-
-static void free_certificates(WinTLSData *data)
-{
-  int i;
-  for (i = 0; i < data->certificateCount; i++) {
-    CertFreeCertificateContext(data->certificates[i]);
+    context->certificates[count++] = pcert;
   }
 }
 
 static DWORD add_private_key(WinTLSData *data,
 			     SgByteVector *privateKey)
 {
-  if (privateKey && data->certificateCount > 0) {
-    PCCERT_CONTEXT ctx = data->certificates[0];
-    SECURITY_STATUS ss = NCryptOpenStorageProvider(&data->provider, NULL, 0);
-    if (FAILED(ss)) return ss;
-    ss = NCryptImportKey(data->provider,	/* hProvider */
-			 NULL,
+  WinTLSContext *context = data->tlsContext;
+  if (privateKey && context->certificateCount > 0) {
+    PCCERT_CONTEXT ctx = context->certificates[0];
+    NCRYPT_PROV_HANDLE provider;
+    NCRYPT_KEY_HANDLE c;
+    CRYPT_KEY_PROV_INFO provInfo;
+    DWORD spec;
+    BOOL callerFree;
+    NCryptBufferDesc cBufDesc;
+    NCryptBuffer cbuf;
+    SECURITY_STATUS ss = NCryptOpenStorageProvider(&provider, NULL, 0);
+    wchar_t *keyName = L"server private key";
+    
+    if (FAILED(ss)) goto err;
+    /* cBufDesc.ulVersion = NCRYPTBUFFER_VERSION; */
+    /* cBufDesc.cBuffers = 1; */
+    /* cBufDesc.pBuffers = &cbuf; */
+    /* cbuf.BufferType = NCRYPTBUFFER_PKCS_KEY_NAME; */
+    /* cbuf.cbBuffer = sizeof(keyName); */
+    /* cbuf.pvBuffer = (void *)keyName; */
+    
+    ss = NCryptImportKey(provider,	/* hProvider */
+			 0,
 			 NCRYPT_PKCS8_PRIVATE_KEY_BLOB,
 			 NULL,
-			 &data->privateKey,
+			 &context->privateKey,
 			 SG_BVECTOR_ELEMENTS(privateKey),
 			 SG_BVECTOR_SIZE(privateKey),
 			 0);
-    if (FAILED(ss)) return ss;
-    if (!CertSetCertificateContextProperty(ctx,
-					   CERT_NCRYPT_KEY_HANDLE_PROP_ID,
-					   0,
-					   (const void *)data->privateKey)) {
-      return GetLastError();
+    if (FAILED(ss)) goto err;
+
+    provInfo.pwszContainerName = NULL;
+    provInfo.pwszProvName = NULL;
+    provInfo.dwProvType = PROV_RSA_SCHANNEL;
+    provInfo.dwFlags = CERT_SET_KEY_CONTEXT_PROP_ID;
+    provInfo.dwKeySpec = 0;
+    provInfo.cProvParam = 0;
+    if (!CertSetCertificateContextProperty(ctx, CERT_KEY_PROV_INFO_PROP_ID, 0,
+					   (const void *)&provInfo)) {
+      ss = GetLastError();
+      goto err;
     }
+
+    if (!CertSetCertificateContextProperty(ctx, CERT_NCRYPT_KEY_HANDLE_PROP_ID, 0,
+					   (const void *)context->privateKey)) {
+      ss = GetLastError();
+      goto err;
+    }
+    /* check */
+    if (!CryptAcquireCertificatePrivateKey(ctx, CRYPT_ACQUIRE_SILENT_FLAG, NULL,
+					   &c, &spec, &callerFree)) {
+      ss = GetLastError();
+      goto err;
+    }
+    fprintf(stderr, "spec %x\n", spec);
+    if (callerFree) {
+      if (spec == CERT_NCRYPT_KEY_SPEC) NCryptFreeObject(c);
+      else CryptReleaseContext(c, 0);
+    }
+    NCryptFreeObject(provider);
     return S_OK;
+  err:
+    NCryptFreeObject(provider);
+    return ss;
   }
   return E_NOTIMPL;
+}
+
+static HCERTSTORE create_cert_store(SgTLSSocket *s)
+{
+#if 0
+  return CertOpenStore(CERT_STORE_PROV_MEMORY, 0, NULL, 0, (const void *)NULL);
+#else
+  SgObject dir = Sg_GetTemporaryDirectory();
+  SgObject path = Sg_Sprintf(UC("%A\\%A"), dir, Sg_MakeIntegerFromU64((uintptr_t)s));
+  wchar_t *p = Sg_StringToWCharTs(path);
+  HANDLE handle = CreateFileW(p, GENERIC_READ | GENERIC_WRITE,
+			      FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
+			      CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+  CloseHandle(handle);
+  return CertOpenStore(CERT_STORE_PROV_FILENAME_W,
+		       X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+		       NULL, 0, p);
+#endif
+}
+
+static int server_init(SgTLSSocket *s)
+{
+  WinTLSData *data = (WinTLSData *)s->data;
+  WinTLSContext *context = data->tlsContext;
+  context->certStore = create_cert_store(s);
+
+  if (!context->certStore) goto err;
+  if (context->certificateCount > 0) {
+    int i;
+    for (i = 0; i < context->certificateCount; i++) {
+      if (!CertAddCertificateContextToStore(context->certStore,
+					    context->certificates[i],
+					    CERT_STORE_ADD_REPLACE_EXISTING,
+					    NULL)) {
+	CertCloseStore(context->certStore, 0);
+	context->certStore = NULL;
+	goto err;
+      }
+    }
+  }
+  return TRUE;
+ err:
+  free_context(context);
+  Sg_UnregisterFinalizer(context);
+  raise_socket_error(SG_INTERN("tls-socket-accept"),
+		     Sg_GetLastErrorMessageWithErrorCode(GetLastError()),
+		     Sg_MakeConditionSocket(s),
+		     s);
+  return FALSE;			/* dummy */
 }
 
 SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
@@ -226,22 +393,19 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 				  /* encoded private key */
 				  SgByteVector *privateKey)
 {
-  SgTLSSocket *r = make_tls_socket(socket);
+  SgTLSSocket *r = make_tls_socket(socket, NULL);
   WinTLSData *data = (WinTLSData *)r->data;
-  int len = Sg_Length(certificates);
   int serverP = FALSE;
   DWORD result;
   
-  data->certificateCount = len;
-  data->certificates = SG_NEW_ARRAY(PCCERT_CONTEXT, len);
   load_certificates(data, certificates);
   result = add_private_key(data, privateKey);
   
   switch (socket->type) {
   case SG_SOCKET_CLIENT: client_init(r); break;
-  case SG_SOCKET_SERVER: serverP = TRUE; break;
+  case SG_SOCKET_SERVER: serverP = server_init(r); break;
   default:
-    free_certificates(data);
+    free_context(data->tlsContext);
     Sg_AssertionViolation(SG_INTERN("socket->tls-socket"),
       Sg_Sprintf(UC("Client or server socket is required but got %S"), socket),
       socket);
@@ -251,9 +415,9 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
   if (serverP && FAILED(result) && result != E_NOTIMPL) {
     Sg_TLSSocketClose(r);
     raise_socket_error(SG_INTERN("socket->tls-socket"),
-		       security_status_to_message(result),
+		       Sg_GetLastErrorMessageWithErrorCode(result),
 		       Sg_MakeConditionSocket(r),
-		       r);
+		       Sg_MakeIntegerFromS64(result));
   }
   Sg_RegisterFinalizer(r, tls_socket_finalizer, NULL);
   return r;
@@ -336,7 +500,7 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
 
     if (FAILED(ss) || (!initialised && ss != SEC_I_CONTINUE_NEEDED)) {
       raise_socket_error(SG_INTERN("tls-socket-connect!"),
-			 security_status_to_message(ss),
+			 Sg_GetLastErrorMessageWithErrorCode(ss),
 			 Sg_MakeConditionSocket(tlsSocket),
 			 Sg_MakeIntegerFromS64(ss));
     }
@@ -365,32 +529,24 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
 
 static SgTLSSocket * to_server_socket(SgTLSSocket *parent, SgSocket *sock)
 {
-  SgTLSSocket *s = make_tls_socket(sock);
-  WinTLSData *data = (WinTLSData *)s->data;
   WinTLSData *pData = (WinTLSData *)parent->data;
+  SgTLSSocket *s = make_tls_socket(sock, pData->tlsContext);
+  WinTLSData *data = (WinTLSData *)s->data;
   SCHANNEL_CRED credData = {0};
   wchar_t *name = IMPL_NAME;
   SECURITY_STATUS ss;
-
-  if (pData->certificateCount > 0) {
-    int i;
-    data->certificateCount = pData->certificateCount;
-    data->certificates = SG_NEW_ARRAY(PCCERT_CONTEXT, pData->certificateCount);
-    for (i = 0; i < pData->certificateCount; i++) {
-      data->certificates[i] =
-	CertDuplicateCertificateContext(pData->certificates[i]);
-    }
-  }
+  
+  data->closed = FALSE;
   
   credData.dwVersion = SCHANNEL_CRED_VERSION;
   credData.dwFlags = SCH_CRED_NO_DEFAULT_CREDS |
     SCH_CRED_NO_SYSTEM_MAPPER |
     SCH_CRED_REVOCATION_CHECK_CHAIN;
   credData.dwMinimumCipherStrength = 128;
-  credData.cCreds = data->certificateCount;
-  credData.paCred = data->certificates;
-  /* credData.hRootStore = data->rootStore; */
-  
+  credData.cCreds = data->tlsContext->certificateCount;
+  credData.paCred = data->tlsContext->certificates;
+  /* credData.hRootStore = data->tlsContext->certStore; */
+
   ss = AcquireCredentialsHandleW(NULL,
 				 name,
 				 SECPKG_CRED_INBOUND,
@@ -400,14 +556,16 @@ static SgTLSSocket * to_server_socket(SgTLSSocket *parent, SgSocket *sock)
 				 NULL,
 				 &data->credential,
 				 NULL);
-  Sg_RegisterFinalizer(s, tls_socket_finalizer, NULL);
+  DUMP_CRED_HANDLE(&data->credential);
+
   if (ss != S_OK) {
-    FreeCredentialsHandle(&data->credential);
+    Sg_TLSSocketClose(s);
     raise_socket_error(SG_INTERN("tls-socket-accept"),
-		       security_status_to_message(ss),
+		       Sg_GetLastErrorMessageWithErrorCode(ss),
 		       Sg_MakeConditionSocket(s),
 		       Sg_MakeIntegerFromS64(ss));
   }
+  Sg_RegisterFinalizer(s, tls_socket_finalizer, NULL);
   return s;
 }
 
@@ -474,11 +632,11 @@ static int server_handshake(SgTLSSocket *tlsSocket)
 
     if (FAILED(ss) || ss != SEC_I_CONTINUE_NEEDED) {
       raise_socket_error(SG_INTERN("tls-socket-accept"),
-			 security_status_to_message(ss),
+			 Sg_GetLastErrorMessageWithErrorCode(ss),
 			 Sg_MakeConditionSocket(tlsSocket),
 			 Sg_MakeIntegerFromS64(ss));
     }
-
+    DUMP_CTX_HANDLE(&data->context);
     if (bufso[0].cbBuffer != 0 && bufso[0].pvBuffer != NULL) {
       /* send the data we got to the remote part */
       rval = Sg_SocketSend(socket, (uint8_t *)bufso[0].pvBuffer,
@@ -599,13 +757,7 @@ void Sg_TLSSocketClose(SgTLSSocket *tlsSocket)
   if (!data->closed) {
     DeleteSecurityContext(&data->context);
     FreeCredentialsHandle(&data->credential);
-    free_certificates(data);
-    if (data->provider) {
-      NCryptFreeObject(data->provider);
-    }
-    if (data->privateKey) {
-      NCryptFreeObject(data->privateKey);
-    }
+    data->tlsContext = NULL;      /* for GC */
     Sg_SocketClose(tlsSocket->socket);
     data->closed = TRUE;
     Sg_UnregisterFinalizer(SG_OBJ(tlsSocket));
@@ -647,7 +799,7 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
   ss = QueryContextAttributes(&data->context, SECPKG_ATTR_STREAM_SIZES, &sizes);
   if (FAILED(ss)) {
     raise_socket_error(SG_INTERN("tls-socket-recv!"),
-		       security_status_to_message(ss),
+		       Sg_GetLastErrorMessageWithErrorCode(ss),
 		       Sg_MakeConditionSocket(tlsSocket),
 		       Sg_MakeIntegerFromS64(ss));
   }
@@ -695,7 +847,7 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
     /* if (ss == SEC_E_INCOMPLETE_MESSAGE) continue; */
     if (ss != SEC_E_OK) {
       raise_socket_error(SG_INTERN("tls-socket-recv!"),
-			 security_status_to_message(ss),
+			 Sg_GetLastErrorMessageWithErrorCode(ss),
 			 Sg_MakeConditionSocket(tlsSocket),
 			 Sg_MakeIntegerFromS64(ss));
     }
@@ -794,7 +946,7 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
   return sent;
  err:
   raise_socket_error(SG_INTERN("tls-socket-send"),
-		     security_status_to_message(ss),
+		     Sg_GetLastErrorMessageWithErrorCode(ss),
 		     Sg_MakeConditionSocket(tlsSocket),
 		     Sg_MakeIntegerFromS64(ss));
   return -1;			/* dummy */
