@@ -267,7 +267,8 @@ static void dump_cert_context(PCCERT_CONTEXT cert)
 
 typedef struct WinTLSContextRec
 {
-  HCERTSTORE certStore;
+  /* we don't support CA/trusted certificates for now. */
+  /* HCERTSTORE certStore; */
   int certificateCount;
   PCCERT_CONTEXT *certificates;
   HCRYPTKEY privateKey;
@@ -336,10 +337,10 @@ static void free_context(WinTLSContext *context)
     context->privateKey = NULL;
   }
   context->certificateCount = 0;
-  if (context->certStore) {
-    CertCloseStore(context->certStore, 0);
-    context->certStore = NULL;
-  }
+  /* if (context->certStore) { */
+  /*   CertCloseStore(context->certStore, 0); */
+  /*   context->certStore = NULL; */
+  /* } */
 }
 
 static void tls_socket_finalizer(SgObject self, void *data)
@@ -499,6 +500,7 @@ static DWORD add_private_key(WinTLSData *data,
   return E_NOTIMPL;
 }
 
+#if 0
 static HCERTSTORE create_cert_store(SgTLSSocket *s)
 {
 #if 1
@@ -519,36 +521,36 @@ static HCERTSTORE create_cert_store(SgTLSSocket *s)
 		       NULL, 0, p);
 #endif
 }
+#endif
 
 static int server_init(SgTLSSocket *s)
 {
-  WinTLSData *data = (WinTLSData *)s->data;
-  WinTLSContext *context = data->tlsContext;
-  context->certStore = create_cert_store(s);
-
-  if (!context->certStore) goto err;
-  if (context->certificateCount > 0) {
-    int i;
-    for (i = 0; i < context->certificateCount; i++) {
-      if (!CertAddCertificateContextToStore(context->certStore,
-					    context->certificates[i],
-					    CERT_STORE_ADD_REPLACE_EXISTING,
-					    NULL)) {
-	CertCloseStore(context->certStore, 0);
-	context->certStore = NULL;
-	goto err;
-      }
-    }
-  }
+  /* WinTLSData *data = (WinTLSData *)s->data; */
+  /* WinTLSContext *context = data->tlsContext; */
+  /* context->certStore = create_cert_store(s); */
+  /* if (!context->certStore) goto err; */
+  /* if (context->certificateCount > 0) { */
+  /*   int i; */
+  /*   for (i = 0; i < context->certificateCount; i++) { */
+  /*     if (!CertAddCertificateContextToStore(context->certStore, */
+  /* 					    context->certificates[i], */
+  /* 					    CERT_STORE_ADD_REPLACE_EXISTING, */
+  /* 					    NULL)) { */
+  /* 	CertCloseStore(context->certStore, 0); */
+  /* 	context->certStore = NULL; */
+  /* 	goto err; */
+  /*     } */
+  /*   } */
+  /* } */
   return TRUE;
- err:
-  free_context(context);
-  Sg_UnregisterFinalizer(context);
-  raise_socket_error(SG_INTERN("tls-socket-accept"),
-		     Sg_GetLastErrorMessageWithErrorCode(GetLastError()),
-		     Sg_MakeConditionSocket(s),
-		     s);
-  return FALSE;			/* dummy */
+ /* err: */
+ /*  free_context(context); */
+ /*  Sg_UnregisterFinalizer(context); */
+ /*  raise_socket_error(SG_INTERN("tls-socket-accept"), */
+ /* 		     Sg_GetLastErrorMessageWithErrorCode(GetLastError()), */
+ /* 		     Sg_MakeConditionSocket(s), */
+ /* 		     s); */
+ /*  return FALSE;		 */	/* dummy */
 }
 
 SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
