@@ -960,7 +960,7 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
   WinTLSData *data = (WinTLSData *)tlsSocket->data;
   SecPkgContext_StreamSizes sizes;
   SECURITY_STATUS ss;
-  int read = 0, bufferSize;
+  int read = 0, bufferSize, pt;
   SecBufferDesc sbin;
   SecBuffer buffers[4];
   uint8_t *mmsg;
@@ -996,8 +996,10 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
   mmsg = SG_NEW_ATOMIC2(uint8_t *, bufferSize);
 #endif
 
+  pt = 0;
   for (;;) {
-    int rval = Sg_SocketReceive(socket, mmsg, bufferSize, 0), i;
+    /* TODO handle the case when pt is bigger than buffer */
+    int rval = Sg_SocketReceive(socket, mmsg + pt, bufferSize, 0), i;
     SecBuffer *buffer = NULL, *extra = NULL;
 
     handleError(rval, socket);
@@ -1012,22 +1014,27 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
     sbin.pBuffers = buffers;
     sbin.cBuffers = 4;
     ss = DecryptMessage(&data->context, &sbin, 0, NULL);
-    /* should never happend since we are receiving max packet size */
-    /* if (ss == SEC_E_INCOMPLETE_MESSAGE) continue; */
+    /* In case of non SSL? */
+    if (ss == SEC_E_INCOMPLETE_MESSAGE) {
+      pt += rval;
+      continue;
+    }
+    pt = 0;
     if (ss != SEC_E_OK) {
       raise_socket_error(SG_INTERN("tls-socket-recv!"),
 			 Sg_GetLastErrorMessageWithErrorCode(ss),
 			 Sg_MakeConditionSocket(tlsSocket),
 			 Sg_MakeIntegerU(ss));
     }
+    buffer = NULL;
     for (i = 1; i < sizeof(buffers); i++) {
       if (buffer == NULL && buffers[i].BufferType == SECBUFFER_DATA)
 	buffer = &buffers[i];
       if (extra == NULL && buffers[i].BufferType == SECBUFFER_EXTRA)
 	extra = &buffers[i];
     }
-    /* would this happen? */
-    if (buffer->BufferType != SECBUFFER_DATA) {
+    /* Data buffer not found */
+    if (buffer == NULL || buffer->BufferType != SECBUFFER_DATA) {
       return 0;
     }
 
