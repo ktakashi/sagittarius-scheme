@@ -71,6 +71,10 @@ References:
 #define fmt_dump(fmt, ...) fprintf(stderr, fmt, __VA_ARGS__)
 #define msg_dump(msg) fputs(msg, stderr)
 
+static LPWSTR KEY_CONTAINER_NAME =
+  L"Sagittarius "SAGITTARIUS_VERSION" SSL Socket Key Container";
+static LPWSTR KEY_PROVIDER = MS_DEF_RSA_SCHANNEL_PROV;
+
 static void dump_ctx_handle(CtxtHandle *ctx)
 {
   SECURITY_STATUS ss;
@@ -119,14 +123,144 @@ static void dump_cred_handle(CredHandle *cred)
     fmt_dump("[%lx] %s\n", ss, Sg_Utf32sToUtf8s(SG_STRING(msg)));
   }
 }
+
+typedef BOOL (WINAPI *GetCryptProvFromCert)(HWND,
+					    PCCERT_CONTEXT,
+					    HCRYPTPROV *,
+					    DWORD *,
+					    BOOL *,
+					    LPWSTR *,
+					    LPWSTR *,
+					    DWORD *);
+typedef void (WINAPI *FreeCryptProvFromCert)(BOOL, HCRYPTPROV, LPWSTR, DWORD, LPWSTR);
+
+static void dump_cert_context(PCCERT_CONTEXT cert)
+{
+  HCRYPTPROV prov;
+  DWORD keySpec, provType, propId, cbData;
+  LPWSTR container, provName;
+  void *pvData;
+  BOOL acquire = FALSE;
+  HMODULE module = LoadLibraryA("mssign32.dll");
+  if (module) {
+    GetCryptProvFromCert getCryptProvFromCert =
+      (GetCryptProvFromCert)GetProcAddress(module, "GetCryptProvFromCert");
+    FreeCryptProvFromCert freeCryptProvFromCert =
+      (FreeCryptProvFromCert)GetProcAddress(module, "FreeCryptProvFromCert");
+    if (getCryptProvFromCert &&
+	freeCryptProvFromCert &&
+	getCryptProvFromCert(NULL, cert, &prov, &keySpec, &acquire,
+			     &container, &provName, &provType)) {
+      fmt_dump("Provider name: %S\n", provName);
+      fmt_dump("Container name: %S\n", container);
+      fmt_dump("Provider type: %ld\n", provType);
+      fmt_dump("Key spec: %ld\n", keySpec);
+      freeCryptProvFromCert(FALSE, prov, provName, provType, container);
+    } else {
+      fmt_dump("Failed to get key provider from cert: %lx\n", GetLastError());
+    }
+    FreeLibrary(module);
+  }
+  propId = 0;
+  while (propId = CertEnumCertificateContextProperties(cert, propId)) {
+    fmt_dump("Property # %d found\n  --> ", propId);
+    switch(propId) {
+    case CERT_FRIENDLY_NAME_PROP_ID:
+      msg_dump("Display name: ");
+      break;
+    case CERT_SIGNATURE_HASH_PROP_ID:
+      msg_dump("Signature hash identifier ");
+      break;
+    case CERT_KEY_PROV_HANDLE_PROP_ID:
+      msg_dump("KEY PROV HANDLE.");
+      break;
+    case CERT_KEY_PROV_INFO_PROP_ID:
+      msg_dump("KEY PROV INFO.");
+      break;
+    case CERT_SHA1_HASH_PROP_ID:
+      msg_dump("SHA1 HASH identifier.");
+      break;
+    case CERT_MD5_HASH_PROP_ID:
+      msg_dump("md5 hash identifier.");
+      break;
+    case CERT_KEY_CONTEXT_PROP_ID:
+      msg_dump("KEY CONTEXT PROP identifier.");
+      break;
+    case CERT_KEY_SPEC_PROP_ID:
+      msg_dump("KEY SPEC PROP identifier.");
+      break;
+    case CERT_ENHKEY_USAGE_PROP_ID:
+      msg_dump("ENHKEY USAGE PROP identifier.");
+      break;
+    case CERT_NEXT_UPDATE_LOCATION_PROP_ID:
+      msg_dump("NEXT UPDATE LOCATION PROP identifier.");
+      break;
+    case CERT_PVK_FILE_PROP_ID:
+      msg_dump("PVK FILE PROP identifier.");
+      break;
+    case CERT_DESCRIPTION_PROP_ID:
+      msg_dump("DESCRIPTION PROP identifier.");
+      break;
+    case CERT_ACCESS_STATE_PROP_ID:
+      msg_dump("ACCESS STATE PROP identifier.");
+      break;
+    case CERT_SMART_CARD_DATA_PROP_ID:
+      msg_dump("SMART_CARD DATA PROP identifier.");
+      break;
+    case CERT_EFS_PROP_ID:
+      msg_dump("EFS PROP identifier.");
+      break;
+    case CERT_FORTEZZA_DATA_PROP_ID:
+      msg_dump("FORTEZZA DATA PROP identifier.");
+      break;
+    case CERT_ARCHIVED_PROP_ID:
+      msg_dump("ARCHIVED PROP identifier ");
+      break;
+    case CERT_KEY_IDENTIFIER_PROP_ID:
+      msg_dump("KEY IDENTIFIER PROP identifier.");
+      break;
+    case CERT_AUTO_ENROLL_PROP_ID:
+      msg_dump("AUTO ENROLL identifier.");
+      break;
+    default:
+      msg_dump("Unknown identifier.");
+      break;
+    }
+    if (CertGetCertificateContextProperty(cert, propId, NULL, &cbData)) {
+      pvData = (void *)LocalAlloc(0, cbData);
+      if (CertGetCertificateContextProperty(cert, propId, pvData, &cbData)) {
+	if (propId == CERT_KEY_CONTEXT_PROP_ID) {
+	  CERT_KEY_CONTEXT *keyCtx = (CERT_KEY_CONTEXT *)pvData;
+	  msg_dump(" The property contents are\n");
+	  fmt_dump("   - Key spec %d\n", keyCtx->dwKeySpec);
+	  fmt_dump("   - Provider %p\n", keyCtx->hCryptProv);
+	} else if (propId == CERT_KEY_PROV_INFO_PROP_ID) {
+	  CRYPT_KEY_PROV_INFO *provInfo = (CRYPT_KEY_PROV_INFO *)pvData;
+	  msg_dump(" The property contents are\n");
+	  fmt_dump("   - Container name %S\n", provInfo->pwszContainerName);
+	  fmt_dump("   - Provider name %S\n", provInfo->pwszProvName);
+	  fmt_dump("   - Provider type %d\n", provInfo->dwProvType);
+	  fmt_dump("   - Flags %d\n", provInfo->dwFlags);
+	  fmt_dump("   - Key spec %d\n", provInfo->dwKeySpec);
+	  fmt_dump("   - # of parameters %d\n", provInfo->cProvParam);
+	} else {
+	  fmt_dump(" The property content is %d\n", pvData);
+	}
+      }
+      LocalFree(pvData);
+    }
+  }
+}
 #undef dump
 #undef fmt_dump
 
 # define DUMP_CTX_HANDLE(ctx) dump_ctx_handle(ctx)
 # define DUMP_CRED_HANDLE(cred) dump_cred_handle(cred)
+# define DUMP_CERT_CONTEXT(cert) dump_cert_context(cert)
 #else
 # define DUMP_CTX_HANDLE(ctx)
 # define DUMP_CRED_HANDLE(cred)
+# define DUMP_CERT_CONTEXT(cert)
 #endif
 
 typedef struct WinTLSContextRec
@@ -306,12 +440,14 @@ static DWORD add_private_key(WinTLSData *data,
 			     NULL, pbKeyBlob, &cbKeyBlob)) {
       return GetLastError();
     }
-    if (!CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_SCHANNEL,
-			     CRYPT_NEWKEYSET | CRYPT_VERIFYCONTEXT)) {
-      if (NTE_BAD_KEYSET == GetLastError()) {
-	if (!CryptAcquireContext(&hProv, L"Sagittarius Server Socket",
-				 MS_DEF_RSA_SCHANNEL_PROV, PROV_RSA_SCHANNEL,
-				 CRYPT_NEWKEYSET | CRYPT_VERIFYCONTEXT)) {
+    if (!CryptAcquireContext(&hProv,
+			     KEY_CONTAINER_NAME,
+			     KEY_PROVIDER,
+			     PROV_RSA_SCHANNEL,
+			     CRYPT_NEWKEYSET)) {
+      if (NTE_EXISTS == GetLastError()) {
+	if (!CryptAcquireContext(&hProv, KEY_CONTAINER_NAME,
+				 KEY_PROVIDER, PROV_RSA_SCHANNEL, 0)) {
 	  return GetLastError();
 	}
       } else {
@@ -321,26 +457,12 @@ static DWORD add_private_key(WinTLSData *data,
     /* CryptSetProvParam(hProv, PP_DELETEKEY, NULL, 0); */
     if (!CryptImportKey(hProv, pbKeyBlob, cbKeyBlob,
 			NULL, 0, &context->privateKey)) {
-      fprintf(stderr, "here %x\n", GetLastError());
       CryptReleaseContext(hProv, 0);
       return GetLastError();
     }
-    keyCtx.cbSize = sizeof(CERT_KEY_CONTEXT);
-    keyCtx.hCryptProv = hProv;
-    keyCtx.dwKeySpec = AT_KEYEXCHANGE;
-    if (!CertSetCertificateContextProperty(ctx, CERT_KEY_CONTEXT_PROP_ID, 0,
-					   (const void *)&keyCtx)) {
-      CryptReleaseContext(hProv, 0);
-      return GetLastError();
-    }
-    if (!CertSetCertificateContextProperty(ctx, CERT_KEY_PROV_HANDLE_PROP_ID, 0,
-					   (const void *)&hProv)) {
-      CryptReleaseContext(hProv, 0);
-      return GetLastError();
-    }
-#if 0
-    provInfo.pwszContainerName = NULL;
-    provInfo.pwszProvName = NULL;
+    
+    provInfo.pwszContainerName = KEY_CONTAINER_NAME;
+    provInfo.pwszProvName = KEY_PROVIDER;
     provInfo.dwProvType = PROV_RSA_SCHANNEL;
     provInfo.dwFlags = CERT_SET_KEY_CONTEXT_PROP_ID;
     provInfo.dwKeySpec = AT_KEYEXCHANGE;
@@ -349,12 +471,23 @@ static DWORD add_private_key(WinTLSData *data,
 					   (const void *)&provInfo)) {
       return GetLastError();
     }
-#endif
+
+    keyCtx.cbSize = sizeof(CERT_KEY_CONTEXT);
+    keyCtx.hCryptProv = hProv;
+    keyCtx.dwKeySpec = AT_KEYEXCHANGE;
+    if (!CertSetCertificateContextProperty(ctx, CERT_KEY_CONTEXT_PROP_ID, 0,
+					   (const void *)&keyCtx)) {
+      CryptReleaseContext(hProv, 0);
+      return GetLastError();
+    }
+
+    DUMP_CERT_CONTEXT(ctx);
     /* check */
-    if (!CryptAcquireCertificatePrivateKey(ctx, CRYPT_ACQUIRE_SILENT_FLAG, NULL,
+    if (!CryptAcquireCertificatePrivateKey(ctx, 0, NULL,
 					   &c, &spec, &callerFree)) {
       return GetLastError();
     }
+    
     if (callerFree) {
       if (spec == CERT_NCRYPT_KEY_SPEC) NCryptFreeObject(c);
       else CryptReleaseContext(c, 0);
@@ -568,8 +701,10 @@ static SgTLSSocket * to_server_socket(SgTLSSocket *parent, SgSocket *sock)
   data->closed = FALSE;
   
   credData.dwVersion = SCHANNEL_CRED_VERSION;
-  credData.dwFlags = SCH_CRED_NO_DEFAULT_CREDS |
-    SCH_CRED_NO_SYSTEM_MAPPER |
+  credData.dwFlags = SCH_CRED_NO_SYSTEM_MAPPER |
+#ifdef SCH_USE_STRONG_CRYPTO
+    SCH_USE_STRONG_CRYPTO |
+#endif
     SCH_CRED_REVOCATION_CHECK_CHAIN;
   credData.dwMinimumCipherStrength = 128;
   credData.cCreds = data->tlsContext->certificateCount;
@@ -620,7 +755,7 @@ static int server_handshake(SgTLSSocket *tlsSocket)
 
     rval = Sg_SocketReceive(socket, t+pt, sizeof(t), 0);
     if (rval == 0 || rval == -1) {
-      raise_socket_error(SG_INTERN("tls-socket-accept"),
+      raise_socket_error(SG_INTERN("tls-socket-server-handshake"),
 			 SG_MAKE_STRING("Failed to receive handshake message"),
 			 Sg_MakeConditionSocket(tlsSocket),
 			 tlsSocket);
@@ -658,9 +793,9 @@ static int server_handshake(SgTLSSocket *tlsSocket)
     initialised = TRUE;
     if (ss == SEC_E_INCOMPLETE_MESSAGE) continue;
     pt = 0;
-
+	
     if (FAILED(ss) || ss != SEC_I_CONTINUE_NEEDED) {
-      raise_socket_error(SG_INTERN("tls-socket-accept"),
+      raise_socket_error(SG_INTERN("tls-socket-server-handshake"),
 			 Sg_GetLastErrorMessageWithErrorCode(ss),
 			 Sg_MakeConditionSocket(tlsSocket),
 			 Sg_MakeIntegerU(ss));
@@ -672,7 +807,7 @@ static int server_handshake(SgTLSSocket *tlsSocket)
 			   bufso[0].cbBuffer, 0);
       FreeContextBuffer(bufso[0].pvBuffer);
       if ((unsigned int)rval != bufso[0].cbBuffer) {
-	raise_socket_error(SG_INTERN("tls-socket-accept!"),
+	raise_socket_error(SG_INTERN("tls-socket-server-handshake"),
 			   SG_MAKE_STRING("Failed to send handshake message"),
 			   Sg_MakeConditionSocket(tlsSocket),
 			   tlsSocket);
@@ -984,4 +1119,8 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
 
 void Sg_InitTLSImplementation()
 {
+  /* DELETE */
+  HCRYPTPROV hProv = NULL;
+  CryptAcquireContext(&hProv, KEY_CONTAINER_NAME, KEY_PROVIDER,
+		      PROV_RSA_SCHANNEL, CRYPT_DELETEKEYSET);
 }
