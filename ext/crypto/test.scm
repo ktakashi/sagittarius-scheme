@@ -509,6 +509,50 @@
   (test-equal "import private key" (keypair-private key-pair)
 	      (import-private-key RSA epri)))
 
+(let ((pv
+#u8( 
+ #x30 #x82 #x02 #x5c #x02 #x01 #x00 #x02 #x81 #x81 #x00 #x9f #xe9 #x80 #x09 #x39
+ #x20 #x58 #x3e #xf7 #xb5 #x8e #x96 #x03 #xce #xaf #xb0 #xfb #xef #x18 #x56 #x80
+ #x13 #x23 #xf6 #x02 #x8b #xf4 #x4a #x65 #xa4 #x24 #xfa #x5d #x99 #x7e #x85 #x10
+ #x83 #x4a #xab #x62 #xb7 #xe4 #xcd #xea #x0e #x6b #xfa #x9d #xe5 #x52 #xe3 #x4d
+ #x3b #xc7 #x12 #x0c #x17 #x9e #x50 #xd7 #x31 #xfa #x3e #xbd #x28 #x31 #xa2 #xc5
+ #x31 #x0c #xe6 #x57 #x31 #x30 #x6a #x24 #x63 #x95 #x8a #xfe #x4a #xd9 #x00 #x6f
+ #x93 #xc0 #x35 #xc2 #x2e #x24 #xf2 #xdb #xa8 #xff #xb3 #x96 #xc9 #xad #xbd #x1e
+ #xf7 #x1f #x6a #xf5 #x24 #xdd #x85 #xda #x57 #x66 #x05 #x7b #xc5 #x7a #xb2 #xc6
+ #x99 #x8c #xd7 #x15 #x5a #x60 #xdd #x8e #xa3 #x64 #x5f #x02 #x03 #x01 #x00 #x01
+ #x02 #x81 #x80 #x2e #xb7 #x7e #x8a #x33 #x40 #x39 #xc7 #x9b #x82 #x54 #xf7 #x8a
+ #x81 #x35 #x5e #x95 #x1b #x52 #x96 #xe2 #xaf #xb4 #xcf #xc8 #x0a #xaf #x01 #x95
+ #x14 #x11 #x21 #x7b #x7a #xbe #x35 #x8d #x8f #x6d #x9f #x08 #x26 #x05 #x18 #x0b
+ #x0a #xcf #x8c #xd5 #xd8 #x0b #x11 #x10 #x9d #x28 #x19 #x23 #xa3 #x3a #xc3 #x0f
+ #x3b #x30 #x89 #xf1 #x50 #x9a #xae #x8f #xae #x66 #x2b #x06 #x41 #x45 #xa8 #x2a
+ #x0b #x27 #x07 #xa9 #x49 #x87 #x56 #x9c #xad #x60 #x6d #x9f #xdd #xe3 #x7a #xd1
+ #xda #xc5 #xf3 #x48 #x66 #x67 #x82 #xc7 #x31 #xd0 #x2c #x4e #xec #xa6 #x7b #xc5
+ #x49 #x30 #x10 #xd1 #x9d #xdf #xe9 #x4a #x5d #x5e #xc9 #xeb #xfb #xe0 #xcc #x9e
+ #x17 #x9e #x41 #x02 #x41 #x00 #xd3 #x3f #xac #xd6 #x29 #x3e #xd8 #x0d #xc9 #x24
+ #x59 #xed #x38 #x85 #xb8 #x47 #xc8 #x1b #x8d #x39 #x6d #x3a #xf0 #xd8 #x14 #x52
+ #xfa #x19 #x74 #x17 #xb0 #x7a #xb4 #x7b #xe0 #xc2 #x71 #xea #x7c #xf6 #xf1 #x3a
+ #x7e #x0d #xe3 #x6f #x73 #x41 #x2f #x7a #x24 #x31 #xb0 #x49 #xdb #x57 #xcb #xbe
+ #x35 #x19 #x17 #xe7 #x2d #x31 #x02 #x41 #x00 #xc1 #xc9 #xc4 #x00 #x60 #x67 #xe6
+ #x42 #x5d #xe9 #x2a #x54 #xd0 #x02 #xc0 #xf5 #x71 #x29 #x52 #xfe #xed #x1d #x30
+ #x06 #x41 #x88 #x02 #x45 #xb7 #xd3 #x4f #x9f #x61 #x84 #xea #xba #x23 #x6d #x80
+ #x8a #xf8 #xce #x08 #xd1 #xbd #x73 #xa1 #x3b #x10 #x1d #xa4 #x70 #xf5 #x46 #xb8
+ #x2a #x58 #x52 #x1c #xbb #x5c #x12 #x06 #x8f #x02 #x40 #x2b #x99 #x5a #xbc #xa0
+ #xaa #x9d #xc0 #xca #xa0 #xbc #x06 #x9f #xc1 #xc9 #x74 #xd7 #x32 #x08 #x85 #xaf
+ #xab #x98 #x85 #xa0 #x3c #x37 #xee #x04 #xed #xd6 #xb8 #x9c #x83 #x6c #xb1 #xf4
+ #xfc #xe6 #x69 #xb9 #x03 #xcf #x7c #x62 #x52 #x60 #x41 #x35 #xe1 #x49 #x93 #x0f
+ #xc5 #x4e #x85 #xe2 #x41 #x11 #x88 #x6a #x4c #x86 #x21 #x02 #x40 #x24 #x87 #xa6
+ #x3c #xf3 #xef #x62 #x06 #x6c #xb1 #x81 #x5b #x4f #x82 #xd5 #x60 #xef #x1d #xfd
+ #x19 #x35 #x15 #x65 #x72 #x28 #x74 #x3d #x09 #x6b #x67 #x98 #x00 #xd1 #x5f #x3e
+ #xe8 #x2b #xb9 #x7e #x9b #xb3 #xdf #x12 #xe6 #x86 #xb1 #xff #x58 #xa4 #xe7 #x11
+ #x92 #x81 #x89 #xfd #x39 #x6e #x40 #xbc #x4d #xcd #x43 #x50 #x9d #x02 #x41 #x00
+ #x89 #xb0 #xaf #xfc #x98 #x15 #xe9 #xc8 #xc7 #x71 #xd0 #xe9 #x45 #xff #x7c #x2b
+ #x7a #xaa #x91 #x83 #xbf #x45 #x5f #x38 #xbc #x91 #xeb #x83 #x0d #x79 #xe8 #x31
+ #xa3 #xb0 #xe1 #x37 #x11 #xdb #x16 #x42 #x06 #xce #x4e #x25 #x2a #x13 #x0a #x70
+ #x72 #x83 #xad #xac #x19 #x6d #xd2 #x6d #x4b #xd8 #x9e #xda #x07 #x92 #xc1 #x54
+ )))
+  (test-equal pv (export-private-key (import-private-key RSA pv))))
+
+
 ;; EC arithmetic
 ;; EC point test (from bouncycastle ECPointTest.java) start
 

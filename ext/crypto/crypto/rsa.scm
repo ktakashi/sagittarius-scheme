@@ -525,7 +525,7 @@
 		(make-der-integer (slot-ref private 'q))
 		(make-der-integer (slot-ref private 'dP))
 		(make-der-integer (slot-ref private 'dQ))
-		(make-der-integer (slot-ref private 'dP)))))
+		(make-der-integer (slot-ref private 'qP)))))
       (encode der)))
   (define-method export-private-key ((marker (eql RSA)) (key <rsa-private-crt-key>))
     (rsa-export-private-key key))
