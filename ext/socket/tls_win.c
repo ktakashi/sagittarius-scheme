@@ -65,15 +65,17 @@ References:
 
 #include "raise_incl.incl"
 
-#define DEBUG_TLS_HANDLES
+#define W_(x) L ## x
+#define W(x) W_(x)
+static LPWSTR KEY_CONTAINER_NAME =
+  L"Sagittarius " W(SAGITTARIUS_VERSION) L" SSL Socket Key Container";
+static LPWSTR KEY_PROVIDER = MS_DEF_RSA_SCHANNEL_PROV;
+
+/* #define DEBUG_TLS_HANDLES */
 #ifdef  DEBUG_TLS_HANDLES
 
 #define fmt_dump(fmt, ...) fprintf(stderr, fmt, __VA_ARGS__)
 #define msg_dump(msg) fputs(msg, stderr)
-
-static LPWSTR KEY_CONTAINER_NAME =
-  L"Sagittarius "SAGITTARIUS_VERSION" SSL Socket Key Container";
-static LPWSTR KEY_PROVIDER = MS_DEF_RSA_SCHANNEL_PROV;
 
 static void dump_ctx_handle(CtxtHandle *ctx)
 {
@@ -746,13 +748,14 @@ static int server_handshake(SgTLSSocket *tlsSocket)
 
   for (;;) {
     DWORD sspiOutFlags = 0;
-    int rval;
+    int rval = 0;
 
     if (ss != SEC_I_CONTINUE_NEEDED &&
 	ss != SEC_E_INCOMPLETE_MESSAGE &&
 	ss != SEC_I_INCOMPLETE_CREDENTIALS)
       break;
 
+    /* TODO handle when pt is bigger than buffer size */
     rval = Sg_SocketReceive(socket, t+pt, sizeof(t), 0);
     if (rval == 0 || rval == -1) {
       raise_socket_error(SG_INTERN("tls-socket-server-handshake"),
@@ -793,8 +796,8 @@ static int server_handshake(SgTLSSocket *tlsSocket)
     initialised = TRUE;
     if (ss == SEC_E_INCOMPLETE_MESSAGE) continue;
     pt = 0;
-	
-    if (FAILED(ss) || ss != SEC_I_CONTINUE_NEEDED) {
+    
+    if (FAILED(ss) || (ss != S_OK && ss != SEC_I_CONTINUE_NEEDED)) {
       raise_socket_error(SG_INTERN("tls-socket-server-handshake"),
 			 Sg_GetLastErrorMessageWithErrorCode(ss),
 			 Sg_MakeConditionSocket(tlsSocket),
