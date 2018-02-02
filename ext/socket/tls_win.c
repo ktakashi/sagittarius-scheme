@@ -1122,10 +1122,16 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
   return -1;			/* dummy */
 }
 
-void Sg_InitTLSImplementation()
+static void cleanup_keyset(void *data)
 {
-  /* DELETE */
+  /* Delete key set*/
   HCRYPTPROV hProv = NULL;
   CryptAcquireContext(&hProv, KEY_CONTAINER_NAME, KEY_PROVIDER,
 		      PROV_RSA_SCHANNEL, CRYPT_DELETEKEYSET);
+}
+
+void Sg_InitTLSImplementation()
+{
+  Sg_AddCleanupHandler(cleanup_keyset, NULL);
+  cleanup_keyset(NULL);
 }
