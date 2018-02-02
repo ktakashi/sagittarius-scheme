@@ -26,6 +26,10 @@
  *   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/* 
+References:
+- https://msdn.microsoft.com/en-us/library/windows/desktop/aa375195(v=vs.85).aspx
+ */
 
 #ifndef max
 # define max(a,b) (((a) > (b)) ? (a) : (b))
@@ -298,7 +302,8 @@ static DWORD add_private_key(WinTLSData *data,
 			     PKCS_RSA_PRIVATE_KEY,
 			     SG_BVECTOR_ELEMENTS(privateKey),
 			     SG_BVECTOR_SIZE(privateKey),
-			     0, NULL, pbKeyBlob, &cbKeyBlob)) {
+			     CRYPT_DECODE_NOCOPY_FLAG,
+			     NULL, pbKeyBlob, &cbKeyBlob)) {
       return GetLastError();
     }
     if (!CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_SCHANNEL,
@@ -313,32 +318,38 @@ static DWORD add_private_key(WinTLSData *data,
 	return GetLastError();
       }
     }
-    CryptSetProvParam(hProv, PP_DELETEKEY, NULL, 0);
-    
+    /* CryptSetProvParam(hProv, PP_DELETEKEY, NULL, 0); */
     if (!CryptImportKey(hProv, pbKeyBlob, cbKeyBlob,
 			NULL, 0, &context->privateKey)) {
+      fprintf(stderr, "here %x\n", GetLastError());
       CryptReleaseContext(hProv, 0);
       return GetLastError();
     }
     keyCtx.cbSize = sizeof(CERT_KEY_CONTEXT);
     keyCtx.hCryptProv = hProv;
-    keyCtx.dwKeySpec = AT_SIGNATURE;
+    keyCtx.dwKeySpec = AT_KEYEXCHANGE;
     if (!CertSetCertificateContextProperty(ctx, CERT_KEY_CONTEXT_PROP_ID, 0,
 					   (const void *)&keyCtx)) {
       CryptReleaseContext(hProv, 0);
       return GetLastError();
     }
-
+    if (!CertSetCertificateContextProperty(ctx, CERT_KEY_PROV_HANDLE_PROP_ID, 0,
+					   (const void *)&hProv)) {
+      CryptReleaseContext(hProv, 0);
+      return GetLastError();
+    }
+#if 0
     provInfo.pwszContainerName = NULL;
     provInfo.pwszProvName = NULL;
     provInfo.dwProvType = PROV_RSA_SCHANNEL;
     provInfo.dwFlags = CERT_SET_KEY_CONTEXT_PROP_ID;
-    provInfo.dwKeySpec = AT_SIGNATURE;
+    provInfo.dwKeySpec = AT_KEYEXCHANGE;
     provInfo.cProvParam = 0;
     if (!CertSetCertificateContextProperty(ctx, CERT_KEY_PROV_INFO_PROP_ID, 0,
 					   (const void *)&provInfo)) {
       return GetLastError();
     }
+#endif
     /* check */
     if (!CryptAcquireCertificatePrivateKey(ctx, CRYPT_ACQUIRE_SILENT_FLAG, NULL,
 					   &c, &spec, &callerFree)) {
