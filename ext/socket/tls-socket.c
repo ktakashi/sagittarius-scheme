@@ -44,6 +44,7 @@ extern void Sg__Init_tls_socket_stub(SgLibrary *lib);
 SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__tls_socket()
 {
   SgLibrary *lib;
+  SG_INIT_EXTENSION(sagittarius__tls_socket);
   lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius tls-socket)"),
 				  TRUE));
   Sg_InitStaticClassWithMeta(SG_CLASS_TLS_SOCKET, UC("<tls-socket>"), lib, NULL,

@@ -31,22 +31,17 @@ References:
 - https://msdn.microsoft.com/en-us/library/windows/desktop/aa375195(v=vs.85).aspx
  */
 
-#ifndef max
-# define max(a,b) (((a) > (b)) ? (a) : (b))
-#endif
-#ifndef min
-# define min(a,b) (((a) < (b)) ? (a) : (b))
-#endif
-
 #ifndef UNICODE
 # define UNICODE
 #endif
+
 #define SECURITY_WIN32
-#include <winsock2.h>
+#ifndef __CYGWIN__
+# include <winsock2.h>
+#endif
 #include <windows.h>
-#include <winsock.h>
-#include <wincrypt.h>
 #include <wintrust.h>
+#include <wincrypt.h>
 #include <schannel.h>
 #include <ncrypt.h>
 /* #include <security.h> */
@@ -63,13 +58,49 @@ References:
 # pragma comment(lib, "ncrypt.lib")
 #endif
 
+#ifndef max
+# define max(a,b) (((a) > (b)) ? (a) : (b))
+#endif
+#ifndef min
+# define min(a,b) (((a) < (b)) ? (a) : (b))
+#endif
+
 #include "raise_incl.incl"
+
+#ifdef __CYGWIN__
+static SgObject get_windows_last_error(int e)
+{
+#define MSG_SIZE 128
+  wchar_t msg[MSG_SIZE];
+  int size = FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM
+			    | FORMAT_MESSAGE_IGNORE_INSERTS,
+			    0, 
+			    e,
+			    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			    msg,
+			    MSG_SIZE,
+			    NULL);
+  if (size > 2 && msg[size - 2] == '\r') {
+    msg[size - 2] = 0;
+    size -= 2;
+  }
+  return Sg_WCharTsToString(msg, size);
+#undef MSG_SIZE
+}
+# define Sg_GetLastErrorMessageWithErrorCode get_windows_last_error
+#endif
 
 #define W_(x) L ## x
 #define W(x) W_(x)
+
+#ifndef __CYGWIN__
 static LPWSTR KEY_CONTAINER_NAME =
   L"Sagittarius " W(SAGITTARIUS_VERSION) L" SSL Socket Key Container";
 static LPWSTR KEY_PROVIDER = MS_DEF_RSA_SCHANNEL_PROV;
+#else
+static LPWSTR KEY_CONTAINER_NAME = NULL;
+static LPWSTR KEY_PROVIDER = NULL;
+#endif
 
 /* #define DEBUG_TLS_HANDLES */
 #ifdef  DEBUG_TLS_HANDLES
@@ -285,7 +316,11 @@ typedef struct WinTLSDataRec
 } WinTLSData;
 
 /* #define IMPL_NAME UNISP_NAME_W */
-#define IMPL_NAME SCHANNEL_NAME_W
+#ifndef __CYGWIN__
+# define IMPL_NAME SCHANNEL_NAME_W
+#else
+static wchar_t *IMPL_NAME = NULL;
+#endif
 
 static void client_init(SgTLSSocket *r)
 {
@@ -317,6 +352,8 @@ static void client_init(SgTLSSocket *r)
 				     NULL,
 				     &data->credential,
 				     NULL);
+  DUMP_CRED_HANDLE(&data->credential);
+  
   if (status != S_OK) {
     FreeCredentialsHandle(&data->credential);
     raise_socket_error(SG_INTERN("socket->tls-socket"),
@@ -589,6 +626,22 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
   return r;
 }
 
+static int socket_readable(SOCKET socket)
+{
+  fd_set rfds;
+  int total;
+  struct timeval tv;
+  FD_ZERO(&rfds);
+  FD_SET(socket, &rfds);
+  tv.tv_sec = 0;
+#ifdef __CYGWIN__
+  tv.tv_usec = 10;		/* wait a bit on Cygwin */
+#else
+  tv.tv_usec = 0;		/* seems okay like this */
+#endif
+  total = select(socket+1, &rfds, NULL, NULL, &tv);
+  return total == 1;
+}
 
 int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
 {
@@ -609,8 +662,7 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
     ISC_REQ_ALLOCATE_MEMORY   |
     ISC_REQ_STREAM;
 
-  dn= (SG_FALSEP(socket->node)) ? NULL : Sg_StringToWCharTs(socket->node);
-
+  dn = (SG_FALSEP(socket->node)) ? NULL : Sg_StringToWCharTs(socket->node);
   for (;;) {
     DWORD sspiOutFlags = 0;
     int rval;
@@ -627,15 +679,17 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
     sbout.cBuffers = 1;
     sbout.pBuffers = &bufso;
     if (initialised) {
-      rval = Sg_SocketReceive(socket, t+pt, sizeof(t), 0);
-      if (rval == 0 || rval == -1) {
-	raise_socket_error(SG_INTERN("tls-socket-connect!"),
-			   SG_MAKE_STRING("Failed to receive handshake message"),
-			   Sg_MakeConditionSocket(tlsSocket),
-			   tlsSocket);
+      for (;;) {
+	rval = Sg_SocketReceive(socket, t+pt, sizeof(t), 0);
+	if (rval == 0 || rval == -1) {
+	  raise_socket_error(SG_INTERN("tls-socket-connect!"),
+			     SG_MAKE_STRING("Failed to receive handshake message"),
+			     Sg_MakeConditionSocket(tlsSocket),
+			     tlsSocket);
+	}
+	pt += rval;
+	if (!socket_readable(socket->socket)) break;
       }
-
-      pt += rval;
       bufsi[0].BufferType = SECBUFFER_TOKEN;
       bufsi[0].cbBuffer = pt;
       bufsi[0].pvBuffer = t;
@@ -659,7 +713,8 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
 				    &sbout,
 				    &sspiOutFlags,
 				    NULL);
-
+    DUMP_CTX_HANDLE(&data->context);
+    
     if (ss == SEC_E_INCOMPLETE_MESSAGE) continue;
 
     pt = 0;
@@ -758,14 +813,17 @@ static int server_handshake(SgTLSSocket *tlsSocket)
       break;
 
     /* TODO handle when pt is bigger than buffer size */
-    rval = Sg_SocketReceive(socket, t+pt, sizeof(t), 0);
-    if (rval == 0 || rval == -1) {
-      raise_socket_error(SG_INTERN("tls-socket-server-handshake"),
-			 SG_MAKE_STRING("Failed to receive handshake message"),
-			 Sg_MakeConditionSocket(tlsSocket),
-			 tlsSocket);
+    for (;;) {
+      rval = Sg_SocketReceive(socket, t+pt, sizeof(t), 0);
+      if (rval == 0 || rval == -1) {
+	raise_socket_error(SG_INTERN("tls-socket-server-handshake"),
+			   SG_MAKE_STRING("Failed to receive handshake message"),
+			   Sg_MakeConditionSocket(tlsSocket),
+			   tlsSocket);
+      }
+      pt += rval;
+      if (!socket_readable(socket->socket)) break;
     }
-    pt += rval;
     bufsi[0].BufferType = SECBUFFER_TOKEN;
     bufsi[0].cbBuffer = pt;
     bufsi[0].pvBuffer = t;
@@ -941,18 +999,6 @@ int Sg_TLSSocketOpenP(SgTLSSocket *tlsSocket)
 
 /* TODO check -1 */
 #define handleError(rval, socket)
-
-static int socket_readable(SOCKET socket)
-{
-  fd_set rfds;
-  int total;
-  struct timeval tv;
-  FD_ZERO(&rfds);
-  FD_SET(socket, &rfds);
-  tv.tv_sec = tv.tv_usec = 0;
-  total = select(0, &rfds, NULL, NULL, &tv);
-  return total == 1;
-}
 
 int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
 {
@@ -1139,6 +1185,17 @@ static void cleanup_keyset(void *data)
 
 void Sg_InitTLSImplementation()
 {
+#ifdef __CYGWIN__
+  /* due to the widechar conversion we need to set up like this */
+  SgObject keyContainer =
+    SG_MAKE_STRING("CYGWIN Sagittarius " SAGITTARIUS_VERSION
+		   " SSL Socket Key Container");
+  SgObject provName = SG_MAKE_STRING(MS_DEF_RSA_SCHANNEL_PROV_A);
+  SgObject implName = SG_MAKE_STRING(SCHANNEL_NAME_A);
+  KEY_CONTAINER_NAME = Sg_StringToWCharTs(keyContainer);
+  KEY_PROVIDER = Sg_StringToWCharTs(provName);
+  IMPL_NAME = Sg_StringToWCharTs(implName);
+#endif
   Sg_AddCleanupHandler(cleanup_keyset, NULL);
   cleanup_keyset(NULL);
 }
