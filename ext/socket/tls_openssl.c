@@ -194,15 +194,26 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
   return NULL;			/* dummy */
 }
 
-int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
+int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
+			SgObject domainName,
+			SgObject alpn)
 {
   SgSocket *socket = tlsSocket->socket;
   OpenSSLData *data = (OpenSSLData *)tlsSocket->data;
   ERR_clear_error();		/* clear error */
   data->ssl = SSL_new(data->ctx);
-  if (!SG_FALSEP(socket->node)) {
+  
+  if (SG_STRINGP(domainName)) {
+    const char *hostname = Sg_Utf32sToUtf8s(SG_STRING(domainName));
+    SSL_set_tlsext_host_name(data->ssl, hostname);
+  } else if (SG_UNBOUNDP(domainName) && !SG_FALSEP(socket->node)) {
     const char *hostname = Sg_Utf32sToUtf8s(SG_STRING(socket->node));
     SSL_set_tlsext_host_name(data->ssl, hostname);
+  }
+  /* For now we expect the argument to be properly formatted TLS packet. */
+  if (SG_BVECTORP(alpn)) {
+    SSL_set_alpn_protos(data->ssl, SG_BVECTOR_ELEMENTS(alpn),
+			SG_BVECTOR_SIZE(alpn));
   }
   SSL_set_fd(data->ssl, socket->socket);
   return SSL_connect(data->ssl);

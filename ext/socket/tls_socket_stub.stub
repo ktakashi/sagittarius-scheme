@@ -22,8 +22,9 @@
 	    (?: (SG_PAIRP certificates) certificates SG_NIL)
 	    (?: (SG_BVECTORP private-key) (SG_BVECTOR private-key) NULL))))
 
-(define-c-proc tls-socket-connect! (o::<tls-socket>) ::<boolean>
-  Sg_TLSSocketConnect)
+(define-c-proc tls-socket-connect!
+  (o::<tls-socket> :key domain-name alpn) ::<boolean>
+  (result (Sg_TLSSocketConnect o domain-name alpn)))
 
 (define-c-proc tls-socket? (o) ::<boolean> :constant SG_TLS_SOCKET_P)
 

@@ -681,7 +681,7 @@ static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
   SgSocket *socket = tlsSocket->socket;
   WinTLSData *data = (WinTLSData *)tlsSocket->data;
   SecBufferDesc sbout, sbin;
-  SecBuffer bufso, bufsi[2];
+  SecBuffer bufso, bufsi;
   wchar_t *dn = NULL;
   int use_alpn = FALSE;
   DWORD sspiOutFlags = 0;
@@ -692,6 +692,17 @@ static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
   } else if (SG_UNBOUNDP(sni)) {
     dn = (SG_FALSEP(socket->node)) ? NULL : Sg_StringToWCharTs(socket->node);
   }
+  /* some of the environment (e.g. Cygwin) doesn't have this */
+#ifdef SECBUFFER_APPLICATION_PROTOCOLS
+  /* for now, we expect the proper protocol name list value. */
+  if (SG_BVECTORP(alpn)) {
+    use_alpn = TRUE;
+    INIT_SEC_BUFFER(&bufsi, SECBUFFER_APPLICATION_PROTOCOLS,
+		    SG_BVECTOR_ELEMENTS(alpn),
+		    SG_BVECTOR_SIZE(alpn));
+    INIT_SEC_BUFFER_DESC(&sbin, &bufsi, 1);
+  }
+#endif
   INIT_SEC_BUFFER(&bufso, SECBUFFER_TOKEN, NULL, 0);
   INIT_SEC_BUFFER_DESC(&sbout, &bufso, 1);
   
@@ -719,7 +730,7 @@ static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
 }
 
 static int client_handshake1(SgTLSSocket *tlsSocket, wchar_t *dn,
-			      DWORD sspiFlags)
+			     DWORD sspiFlags)
 {
   SgSocket *socket = tlsSocket->socket;
   SECURITY_STATUS ss = SEC_I_CONTINUE_NEEDED;
@@ -794,7 +805,9 @@ static int client_handshake1(SgTLSSocket *tlsSocket, wchar_t *dn,
   return FALSE;
 }
 
-int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
+int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
+			SgObject domainName,
+			SgObject alpn)
 {
   DWORD sspiFlags = ISC_REQ_MANUAL_CRED_VALIDATION |
     ISC_REQ_SEQUENCE_DETECT   |
@@ -803,7 +816,7 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
     ISC_RET_EXTENDED_ERROR    |
     ISC_REQ_ALLOCATE_MEMORY   |
     ISC_REQ_STREAM;
-  wchar_t *dn = client_handshake0(tlsSocket, SG_UNBOUND, SG_NIL, sspiFlags);
+  wchar_t *dn = client_handshake0(tlsSocket, domainName, alpn, sspiFlags);
   return client_handshake1(tlsSocket, dn, sspiFlags);
 }
 
