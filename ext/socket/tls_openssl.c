@@ -219,6 +219,27 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
   return SSL_connect(data->ssl);
 }
 
+static void handle_accept_error(SgTLSSocket *tlsSocket, int r)
+{
+  OpenSSLData *newData = (OpenSSLData *)tlsSocket->data;
+  unsigned long err = SSL_get_error(newData->ssl, r);
+  const char *msg = NULL;
+      
+  if (SSL_ERROR_SSL == err) {
+    err = ERR_get_error();
+  }
+  msg = ERR_reason_error_string(err);
+  if (!msg) msg = "failed to handshake";
+      
+  SSL_free(newData->ssl);
+  newData->ssl = NULL;
+  raise_socket_error(SG_INTERN("tls-socket-accept"),
+		     Sg_Utf8sToUtf32s(msg, strlen(msg)),
+		     Sg_MakeConditionSocket(tlsSocket),
+		     tlsSocket);
+    
+}
+
 SgObject Sg_TLSSocketAccept(SgTLSSocket *tlsSocket, int handshake)
 {
   SgObject sock = Sg_SocketAccept(tlsSocket->socket);
@@ -235,33 +256,21 @@ SgObject Sg_TLSSocketAccept(SgTLSSocket *tlsSocket, int handshake)
     newData = (OpenSSLData *)newSock->data;
     newData->ssl = SSL_new(data->ctx);
     r = SSL_set_fd(newData->ssl, SG_SOCKET(sock)->socket);
-    if (r <= 0) goto err;
+    if (r <= 0) handle_accept_error(newSock, r);
     if (handshake) {
-      r = SSL_accept(newData->ssl);
-      if (r <= 0) goto err;
+      return Sg_TLSServerSocketHandshake(newSock);
     }
     return newSock;
-
-  err: {
-      unsigned long err = SSL_get_error(newData->ssl, r);
-      const char *msg = NULL;
-      
-      if (SSL_ERROR_SSL == err) {
-	err = ERR_get_error();
-      }
-      msg = ERR_reason_error_string(err);
-      if (!msg) msg = "failed to handshake";
-      
-      SSL_free(newData->ssl);
-      newData->ssl = NULL;
-      raise_socket_error(SG_INTERN("tls-socket-accept"),
-			 Sg_Utf8sToUtf32s(msg, strlen(msg)),
-			 Sg_MakeConditionSocket(tlsSocket),
-			 tlsSocket);
-      return SG_UNDEF;		/* dummy */
-    }
   }
   return SG_FALSE;
+}
+
+SgObject Sg_TLSServerSocketHandshake(SgTLSSocket *tlsSocket)
+{
+  OpenSSLData *data = (OpenSSLData *)tlsSocket->data;
+  int r = SSL_accept(data->ssl);
+  if (r <= 0) handle_accept_error(tlsSocket, r);
+  return tlsSocket;
 }
 
 void Sg_TLSSocketShutdown(SgTLSSocket *tlsSocket, int how)

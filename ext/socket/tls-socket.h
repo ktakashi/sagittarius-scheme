@@ -54,6 +54,7 @@ SG_EXTERN int       Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
 					SgObject domainName,
 					SgObject alpn);
 SG_EXTERN SgObject  Sg_TLSSocketAccept(SgTLSSocket *tlsSocket, int handshake);
+SG_EXTERN SgObject  Sg_TLSServerSocketHandshake(SgTLSSocket *tlsSocket);
 SG_EXTERN void      Sg_TLSSocketShutdown(SgTLSSocket *tlsSocket, int how);
 SG_EXTERN void      Sg_TLSSocketClose(SgTLSSocket *tlsSocket);
 SG_EXTERN int       Sg_TLSSocketOpenP(SgTLSSocket *tlsSocket);

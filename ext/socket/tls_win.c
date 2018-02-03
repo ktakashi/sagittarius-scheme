@@ -961,11 +961,17 @@ SgObject Sg_TLSSocketAccept(SgTLSSocket *tlsSocket, int handshake)
   if (SG_SOCKETP(sock)) {
     SgTLSSocket *srv = to_server_socket(tlsSocket, SG_SOCKET(sock));
     if (handshake) {
-      server_handshake(srv);
+      return Sg_TLSServerSocketHandshake(srv);
     }
     return SG_OBJ(srv);
   }
   return SG_FALSE;
+}
+
+SgObject Sg_TLSServerSocketHandshake(SgTLSSocket *tlsSocket)
+{
+  server_handshake(tlsSocket);
+  return tlsSocket;
 }
 
 static void tls_socket_shutdown(SgTLSSocket *tlsSocket)
