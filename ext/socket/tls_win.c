@@ -26,7 +26,7 @@
  *   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* 
+/*
 References:
 - https://msdn.microsoft.com/en-us/library/windows/desktop/aa375195(v=vs.85).aspx
  */
@@ -74,7 +74,7 @@ static SgObject get_windows_last_error(int e)
   wchar_t msg[MSG_SIZE];
   int size = FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM
 			    | FORMAT_MESSAGE_IGNORE_INSERTS,
-			    0, 
+			    0,
 			    e,
 			    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 			    msg,
@@ -131,7 +131,7 @@ static void dump_cred_handle(CredHandle *cred)
   if (!FAILED(ss)) {
     int i;
     fmt_dump("# of Supported algorithms %d\n", sa.cSupportedAlgs);
-    for (i = 0; i < sa.cSupportedAlgs; i++) 
+    for (i = 0; i < sa.cSupportedAlgs; i++)
       fmt_dump("[%d] algorithm %x\n", i, sa.palgSupportedAlgs[i]);
   } else {
     SgObject msg = Sg_GetLastErrorMessageWithErrorCode(ss);
@@ -143,7 +143,7 @@ static void dump_cred_handle(CredHandle *cred)
     do {								\
       if ((v&sp.grbitProtocol)==(v)) fmt_dump("Protocol: %s\n", #v);	\
     } while (0)
-    
+
     if_supported(SP_PROT_TLS1_CLIENT);
     if_supported(SP_PROT_TLS1_SERVER);
     if_supported(SP_PROT_SSL3_CLIENT);
@@ -329,7 +329,7 @@ static void client_init(SgTLSSocket *r)
   wchar_t *name = IMPL_NAME;
   WinTLSData *data = (WinTLSData *)r->data;
   WinTLSContext *context = data->tlsContext;
-  
+
   data->credential.dwLower = 0;
   data->credential.dwUpper = 0;
   data->context.dwLower = 0;
@@ -342,7 +342,7 @@ static void client_init(SgTLSSocket *r)
     SCH_CRED_REVOCATION_CHECK_CHAIN;
   credData.cCreds = context->certificateCount;
   credData.paCred = context->certificates;
-  
+
   status = AcquireCredentialsHandleW(NULL,
 				     name,
 				     SECPKG_CRED_OUTBOUND,
@@ -353,7 +353,7 @@ static void client_init(SgTLSSocket *r)
 				     &data->credential,
 				     NULL);
   DUMP_CRED_HANDLE(&data->credential);
-  
+
   if (status != S_OK) {
     FreeCredentialsHandle(&data->credential);
     raise_socket_error(SG_INTERN("socket->tls-socket"),
@@ -410,7 +410,7 @@ static SgTLSSocket * make_tls_socket(SgSocket *socket, WinTLSContext *ctx)
 
 static void load_certificates(WinTLSData *data, SgObject certificates)
 {
-  
+
   int count = 0, len = Sg_Length(certificates);
   SgObject cp;
   WinTLSContext *context = data->tlsContext;
@@ -452,14 +452,14 @@ static DWORD add_private_key(WinTLSData *data,
   WinTLSContext *context = data->tlsContext;
   if (privateKey && context->certificateCount > 0) {
     PCCERT_CONTEXT ctx = context->certificates[0];
-    HCRYPTPROV hProv = NULL;
+    HCRYPTPROV hProv = 0;
     HCRYPTKEY c;
     CERT_KEY_CONTEXT keyCtx = {0};
     DWORD spec, cbKeyBlob;
     LPBYTE pbKeyBlob = NULL;
     BOOL callerFree;
     CRYPT_KEY_PROV_INFO provInfo;
-    
+
     if (!CryptDecodeObjectEx(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
 			     PKCS_RSA_PRIVATE_KEY,
 			     SG_BVECTOR_ELEMENTS(privateKey),
@@ -471,7 +471,7 @@ static DWORD add_private_key(WinTLSData *data,
     pbKeyBlob = (LPBYTE)alloca(cbKeyBlob);
 #else
     pbKeyBlob = SG_NEW_ATOMIC2(LPBYTE, cbKeyBlob);
-#endif    
+#endif
     if (!CryptDecodeObjectEx(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
 			     PKCS_RSA_PRIVATE_KEY,
 			     SG_BVECTOR_ELEMENTS(privateKey),
@@ -500,7 +500,7 @@ static DWORD add_private_key(WinTLSData *data,
       CryptReleaseContext(hProv, 0);
       return GetLastError();
     }
-    
+
     provInfo.pwszContainerName = KEY_CONTAINER_NAME;
     provInfo.pwszProvName = KEY_PROVIDER;
     provInfo.dwProvType = PROV_RSA_SCHANNEL;
@@ -527,7 +527,7 @@ static DWORD add_private_key(WinTLSData *data,
 					   &c, &spec, &callerFree)) {
       return GetLastError();
     }
-    
+
     if (callerFree) {
       if (spec == CERT_NCRYPT_KEY_SPEC) NCryptFreeObject(c);
       else CryptReleaseContext(c, 0);
@@ -600,10 +600,10 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
   WinTLSData *data = (WinTLSData *)r->data;
   int serverP = FALSE;
   DWORD result;
-  
+
   load_certificates(data, certificates);
   result = add_private_key(data, privateKey);
-  
+
   switch (socket->type) {
   case SG_SOCKET_CLIENT: client_init(r); break;
   case SG_SOCKET_SERVER: serverP = server_init(r); break;
@@ -614,7 +614,7 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
       socket);
     return NULL;		/* dummy */
   }
-  
+
   if (serverP && FAILED(result) && result != E_NOTIMPL) {
     Sg_TLSSocketClose(r);
     raise_socket_error(SG_INTERN("socket->tls-socket"),
@@ -643,17 +643,159 @@ static int socket_readable(SOCKET socket)
   return total == 1;
 }
 
-int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
+static void send_sec_buffer(SgTLSSocket *tlsSocket, SecBuffer *bufso)
+{
+  if (bufso->cbBuffer != 0 && bufso->pvBuffer != NULL) {
+    SgSocket *socket = tlsSocket->socket;
+    /* send the data we got to the remote part */
+    int rval = Sg_SocketSend(socket, (uint8_t *)bufso->pvBuffer,
+			     bufso->cbBuffer, 0);
+    FreeContextBuffer(bufso->pvBuffer);
+    if ((unsigned int)rval != bufso->cbBuffer) {
+      raise_socket_error(SG_INTERN("tls-socket-connect!"),
+			 SG_MAKE_STRING("Failed to send handshake message"),
+			 Sg_MakeConditionSocket(tlsSocket),
+			 tlsSocket);
+    }
+  }
+}
+
+#define INIT_SEC_BUFFER(buf, type, value, count)	\
+  do {							\
+    (buf)->pvBuffer = (value);				\
+    (buf)->BufferType = (type);				\
+    (buf)->cbBuffer = (count);				\
+  } while (0)
+#define INIT_SEC_BUFFER_DESC(desc, bufs, count)	\
+  do {						\
+    (desc)->ulVersion = SECBUFFER_VERSION;	\
+    (desc)->cBuffers = (count);			\
+    (desc)->pBuffers = (bufs);			\
+  } while (0)
+
+static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
+				   SgObject sni,
+				   SgObject alpn,
+				   DWORD sspiFlags)
+{
+  SgSocket *socket = tlsSocket->socket;
+  WinTLSData *data = (WinTLSData *)tlsSocket->data;
+  SecBufferDesc sbout, sbin;
+  SecBuffer bufso, bufsi[2];
+  wchar_t *dn = NULL;
+  int use_alpn = FALSE;
+  DWORD sspiOutFlags = 0;
+  SECURITY_STATUS ss;
+
+  if (SG_STRINGP(sni)) {
+    dn = Sg_StringToWCharTs(SG_STRING(sni));
+  } else if (SG_UNBOUNDP(sni)) {
+    dn = (SG_FALSEP(socket->node)) ? NULL : Sg_StringToWCharTs(socket->node);
+  }
+  INIT_SEC_BUFFER(&bufso, SECBUFFER_TOKEN, NULL, 0);
+  INIT_SEC_BUFFER_DESC(&sbout, &bufso, 1);
+  
+  ss = InitializeSecurityContextW(&data->credential,
+				  NULL,
+				  dn,
+				  sspiFlags,
+				  0,
+				  0,
+				  use_alpn ? &sbin : NULL,
+				  0,
+				  &data->context,
+				  &sbout,
+				  &sspiOutFlags,
+				  NULL);
+  if (ss != SEC_I_CONTINUE_NEEDED) {
+    raise_socket_error(SG_INTERN("tls-socket-connect!"),
+		       Sg_GetLastErrorMessageWithErrorCode(ss),
+		       Sg_MakeConditionSocket(tlsSocket),
+		       Sg_MakeIntegerU(ss));
+  }
+  /* sending client hello */
+  send_sec_buffer(tlsSocket, &bufso);
+  return dn;
+}
+
+static int client_handshake1(SgTLSSocket *tlsSocket, wchar_t *dn,
+			      DWORD sspiFlags)
 {
   SgSocket *socket = tlsSocket->socket;
   SECURITY_STATUS ss = SEC_I_CONTINUE_NEEDED;
   WinTLSData *data = (WinTLSData *)tlsSocket->data;
   SecBufferDesc sbout, sbin;
-  SecBuffer bufso, bufsi[2];
-  wchar_t *dn;
-  int initialised = FALSE, pt = 0;
+  SecBuffer bufso[2], bufsi[2];
+  int pt = 0;
   /* FIXME... */
   uint8_t t[0x10000];
+  for (;;) {
+    DWORD sspiOutFlags = 0;
+    int rval, i;
+
+    if (ss != SEC_I_CONTINUE_NEEDED &&
+	ss != SEC_E_INCOMPLETE_MESSAGE &&
+	ss != SEC_I_INCOMPLETE_CREDENTIALS)
+      break;
+
+    for (;;) {
+      rval = Sg_SocketReceive(socket, t+pt, sizeof(t), 0);
+      if (rval == 0 || rval == -1) {
+	raise_socket_error(SG_INTERN("tls-socket-connect!"),
+			   SG_MAKE_STRING("Failed to receive handshake message"),
+			   Sg_MakeConditionSocket(tlsSocket),
+			   tlsSocket);
+      }
+      pt += rval;
+      if (!socket_readable(socket->socket)) break;
+    }
+    INIT_SEC_BUFFER(&bufso[0], SECBUFFER_TOKEN, NULL, 0);
+    /* INIT_SEC_BUFFER(&bufso[1], SECBUFFER_ALERT, NULL, 0); */
+    INIT_SEC_BUFFER(&bufso[1], SECBUFFER_EMPTY, NULL, 0);
+    INIT_SEC_BUFFER_DESC(&sbout, bufso, array_sizeof(bufso));
+
+    INIT_SEC_BUFFER(&bufsi[0], SECBUFFER_TOKEN, t, pt);
+    INIT_SEC_BUFFER(&bufsi[1], SECBUFFER_EMPTY, NULL, 0);
+    INIT_SEC_BUFFER_DESC(&sbin, bufsi, 2);
+
+    ss = InitializeSecurityContextW(&data->credential,
+				    &data->context,
+				    dn,
+				    sspiFlags,
+				    0,
+				    0,
+				    &sbin,
+				    0,
+				    NULL,
+				    &sbout,
+				    &sspiOutFlags,
+				    NULL);
+    /* sorry we can't handle this */
+    /* if (ss == SEC_E_INCOMPLETE_MESSAGE) continue; */
+    if (FAILED(ss)) {
+      raise_socket_error(SG_INTERN("tls-socket-connect!"),
+			 Sg_GetLastErrorMessageWithErrorCode(ss),
+			 Sg_MakeConditionSocket(tlsSocket),
+			 Sg_MakeIntegerU(ss));
+    }
+    pt = 0;
+    
+    for (i = 0; i < array_sizeof(bufso); i++) {
+      if (bufso[i].BufferType == SECBUFFER_TOKEN) {
+	send_sec_buffer(tlsSocket, &bufso[i]);
+      } else if (bufso[i].pvBuffer != NULL) {
+	FreeContextBuffer(bufso[i].pvBuffer);
+      }
+    }
+    DUMP_CTX_HANDLE(&data->context);
+    
+    if (ss == S_OK) return TRUE;;
+  }
+  return FALSE;
+}
+
+int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
+{
   DWORD sspiFlags = ISC_REQ_MANUAL_CRED_VALIDATION |
     ISC_REQ_SEQUENCE_DETECT   |
     ISC_REQ_REPLAY_DETECT     |
@@ -661,91 +803,8 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket)
     ISC_RET_EXTENDED_ERROR    |
     ISC_REQ_ALLOCATE_MEMORY   |
     ISC_REQ_STREAM;
-
-  dn = (SG_FALSEP(socket->node)) ? NULL : Sg_StringToWCharTs(socket->node);
-  for (;;) {
-    DWORD sspiOutFlags = 0;
-    int rval;
-
-    if (ss != SEC_I_CONTINUE_NEEDED &&
-	ss != SEC_E_INCOMPLETE_MESSAGE &&
-	ss != SEC_I_INCOMPLETE_CREDENTIALS)
-      break;
-
-    bufso.pvBuffer = NULL;
-    bufso.BufferType = SECBUFFER_TOKEN;
-    bufso.cbBuffer = 0;
-    sbout.ulVersion = SECBUFFER_VERSION;
-    sbout.cBuffers = 1;
-    sbout.pBuffers = &bufso;
-    if (initialised) {
-      for (;;) {
-	rval = Sg_SocketReceive(socket, t+pt, sizeof(t), 0);
-	if (rval == 0 || rval == -1) {
-	  raise_socket_error(SG_INTERN("tls-socket-connect!"),
-			     SG_MAKE_STRING("Failed to receive handshake message"),
-			     Sg_MakeConditionSocket(tlsSocket),
-			     tlsSocket);
-	}
-	pt += rval;
-	if (!socket_readable(socket->socket)) break;
-      }
-      bufsi[0].BufferType = SECBUFFER_TOKEN;
-      bufsi[0].cbBuffer = pt;
-      bufsi[0].pvBuffer = t;
-      bufsi[1].BufferType = SECBUFFER_EMPTY;
-      bufsi[1].cbBuffer = 0;
-      bufsi[1].pvBuffer = NULL;
-      sbin.ulVersion = SECBUFFER_VERSION;
-      sbin.pBuffers = bufsi;
-      sbin.cBuffers = 2;
-    }
-
-    ss = InitializeSecurityContextW(&data->credential,
-				    initialised ? &data->context : NULL,
-				    dn,
-				    sspiFlags,
-				    0,
-				    0,
-				    initialised ? &sbin : NULL,
-				    0,
-				    initialised ? NULL : &data->context,
-				    &sbout,
-				    &sspiOutFlags,
-				    NULL);
-    DUMP_CTX_HANDLE(&data->context);
-    
-    if (ss == SEC_E_INCOMPLETE_MESSAGE) continue;
-
-    pt = 0;
-
-    if (FAILED(ss) || (!initialised && ss != SEC_I_CONTINUE_NEEDED)) {
-      raise_socket_error(SG_INTERN("tls-socket-connect!"),
-			 Sg_GetLastErrorMessageWithErrorCode(ss),
-			 Sg_MakeConditionSocket(tlsSocket),
-			 Sg_MakeIntegerU(ss));
-    }
-
-    if (bufso.cbBuffer != 0 && bufso.pvBuffer != NULL) {
-      /* send the data we got to the remote part */
-      rval = Sg_SocketSend(socket, (uint8_t *)bufso.pvBuffer, bufso.cbBuffer, 0);
-      FreeContextBuffer(bufso.pvBuffer);
-      if ((unsigned int)rval != bufso.cbBuffer) {
-	raise_socket_error(SG_INTERN("tls-socket-connect!"),
-			   SG_MAKE_STRING("Failed to send handshake message"),
-			   Sg_MakeConditionSocket(tlsSocket),
-			   tlsSocket);
-      }
-    }
-    if (!initialised) {
-      initialised = TRUE;
-      continue;
-    }
-
-    if (ss == S_OK) break;
-  }
-
-  return TRUE;
+  wchar_t *dn = client_handshake0(tlsSocket, SG_UNBOUND, SG_NIL, sspiFlags);
+  return client_handshake1(tlsSocket, dn, sspiFlags);
 }
 
 static SgTLSSocket * to_server_socket(SgTLSSocket *parent, SgSocket *sock)
@@ -756,9 +815,9 @@ static SgTLSSocket * to_server_socket(SgTLSSocket *parent, SgSocket *sock)
   SCHANNEL_CRED credData = {0};
   wchar_t *name = IMPL_NAME;
   SECURITY_STATUS ss;
-  
+
   data->closed = FALSE;
-  
+
   credData.dwVersion = SCHANNEL_CRED_VERSION;
   credData.dwFlags = SCH_CRED_NO_SYSTEM_MAPPER |
 #ifdef SCH_USE_STRONG_CRYPTO
@@ -833,7 +892,7 @@ static int server_handshake(SgTLSSocket *tlsSocket)
     sbin.ulVersion = SECBUFFER_VERSION;
     sbin.pBuffers = bufsi;
     sbin.cBuffers = 2;
-      
+
     bufso[0].pvBuffer = NULL;
     bufso[0].BufferType = SECBUFFER_TOKEN;
     bufso[0].cbBuffer = 0;
@@ -856,7 +915,7 @@ static int server_handshake(SgTLSSocket *tlsSocket)
     initialised = TRUE;
     if (ss == SEC_E_INCOMPLETE_MESSAGE) continue;
     pt = 0;
-    
+
     if (FAILED(ss) || (ss != S_OK && ss != SEC_I_CONTINUE_NEEDED)) {
       raise_socket_error(SG_INTERN("tls-socket-server-handshake"),
 			 Sg_GetLastErrorMessageWithErrorCode(ss),
@@ -903,7 +962,7 @@ static void tls_socket_shutdown(SgTLSSocket *tlsSocket)
   SecBuffer buffer;
   DWORD type = SCHANNEL_SHUTDOWN;
   int serverP;
-  
+
   buffer.pvBuffer = &type;
   buffer.BufferType = SECBUFFER_TOKEN;
   buffer.cbBuffer = sizeof(type);
@@ -916,10 +975,10 @@ static void tls_socket_shutdown(SgTLSSocket *tlsSocket)
   case SG_SOCKET_CLIENT: serverP = FALSE; break;
   default: return;
   }
-  
+
   do {
     SECURITY_STATUS ss = ApplyControlToken(&data->context, &sbout);
-    
+
     DWORD sspiFlags = ISC_REQ_SEQUENCE_DETECT   |
       ISC_REQ_REPLAY_DETECT     |
       ISC_REQ_CONFIDENTIALITY   |
@@ -1178,7 +1237,7 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
 static void cleanup_keyset(void *data)
 {
   /* Delete key set*/
-  HCRYPTPROV hProv = NULL;
+  HCRYPTPROV hProv;
   CryptAcquireContext(&hProv, KEY_CONTAINER_NAME, KEY_PROVIDER,
 		      PROV_RSA_SCHANNEL, CRYPT_DELETEKEYSET);
 }
