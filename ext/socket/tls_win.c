@@ -93,7 +93,7 @@ static SgObject get_windows_last_error(int e)
 #define W_(x) L ## x
 #define W(x) W_(x)
 
-#ifndef __CYGWIN__
+#ifdef USE_UCS4_CPP
 static LPWSTR KEY_CONTAINER_NAME =
   L"Sagittarius " W(SAGITTARIUS_VERSION) L" SSL Socket Key Container";
 static LPWSTR KEY_PROVIDER = MS_DEF_RSA_SCHANNEL_PROV;
@@ -316,7 +316,7 @@ typedef struct WinTLSDataRec
 } WinTLSData;
 
 /* #define IMPL_NAME UNISP_NAME_W */
-#ifndef __CYGWIN__
+#ifdef USE_UCS4_CPP
 # define IMPL_NAME SCHANNEL_NAME_W
 #else
 static wchar_t *IMPL_NAME = NULL;
@@ -1185,7 +1185,7 @@ static void cleanup_keyset(void *data)
 
 void Sg_InitTLSImplementation()
 {
-#ifdef __CYGWIN__
+#ifndef USE_UCS4_CPP
   /* due to the widechar conversion we need to set up like this */
   SgObject keyContainer =
     SG_MAKE_STRING("CYGWIN Sagittarius " SAGITTARIUS_VERSION
