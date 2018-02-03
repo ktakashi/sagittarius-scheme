@@ -31,6 +31,15 @@
 #include <sagittarius/extend.h>
 #include "tls-socket.h"
 
+static SgObject tls_socket_getter(SgTLSSocket *s)
+{
+  return s->socket;
+}
+static SgSlotAccessor tls_socket_slots[] = {
+  SG_CLASS_SLOT_SPEC("raw-socket",   0, tls_socket_getter, NULL),
+  {{ NULL }}
+};
+
 static void tls_socket_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   SgTLSSocket *socket = SG_TLS_SOCKET(self);
@@ -48,7 +57,7 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__tls_socket()
   lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius tls-socket)"),
 				  TRUE));
   Sg_InitStaticClassWithMeta(SG_CLASS_TLS_SOCKET, UC("<tls-socket>"), lib, NULL,
-			     SG_FALSE, NULL, 0);
+			     SG_FALSE, tls_socket_slots, 0);
   Sg_InitTLSImplementation();
   Sg__Init_tls_socket_stub(lib);
 }
