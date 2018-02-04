@@ -34,7 +34,9 @@
 	    tls-socket-accept   ;; server handshake sort of
 	    tls-socket-send
 	    tls-socket-recv tls-socket-recv!
-	    tls-socket-shutdown tls-socket-close tls-socket-closed?)
+	    tls-socket-shutdown tls-socket-close tls-socket-closed?
+	    tls-server-socket-handshake
+	    <tls-socket>)
     (import (only (sagittarius socket)) ;; to load the dynamic module. sucks...
 	    (sagittarius dynamic-module))
 (load-dynamic-module "sagittarius--tls-socket")

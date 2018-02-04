@@ -332,14 +332,16 @@
       :name (make-variable-vector 2 (string->utf8 name))))
 
   (define (write-tls-server-name-list o out)
-    (write-tls-packet (~ o 'server-name-list) out))
+    (write-tls-packet (~ o 'cache) out))
   (define-class <server-name-list> (<tls-packet-component>)
-    ((server-name-list :init-keyword :server-name-list :init-value '()))
+    ((server-name-list :init-keyword :server-name-list :init-value '())
+     (cache :init-keyword :cache :init-keyword #f))
     :packet-writer write-tls-server-name-list)
   (define (make-tls-server-name-list names)
     (let1 bv (call-with-bytevector-output-port
 	      (^o (for-each (^n (write-tls-packet n o)) names)))
-      (make <server-name-list> :server-name-list (make-variable-vector 2 bv))))
+      (make <server-name-list> :server-name-list names
+	    :cache (make-variable-vector 2 bv))))
 
   ;; RFC 7301 ALPN extension
   (define (write-tls-protocol-name o out)
