@@ -1102,17 +1102,12 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
       if (read > 0) return read;
       return rval;
     }
+    INIT_SEC_BUFFER(&buffers[0], SECBUFFER_DATA, content, rval);
+    INIT_SEC_BUFFER(&buffers[1], SECBUFFER_EMPTY, NULL, 0);
+    INIT_SEC_BUFFER(&buffers[2], SECBUFFER_EMPTY, NULL, 0);
+    INIT_SEC_BUFFER(&buffers[3], SECBUFFER_EMPTY, NULL, 0);
+    INIT_SEC_BUFFER_DESC(&sbin, buffers, 4);
 
-    buffers[0].pvBuffer = content;
-    buffers[0].cbBuffer = rval;
-    buffers[0].BufferType = SECBUFFER_DATA;
-    buffers[1].BufferType = SECBUFFER_EMPTY;
-    buffers[2].BufferType = SECBUFFER_EMPTY;
-    buffers[3].BufferType = SECBUFFER_EMPTY;
-
-    sbin.ulVersion = SECBUFFER_VERSION;
-    sbin.pBuffers = buffers;
-    sbin.cBuffers = 4;
     ss = DecryptMessage(&data->context, &sbin, 0, NULL);
 
     if (ss != SEC_E_OK) {
@@ -1173,23 +1168,12 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
       portion = sizes.cbMaximumMessage;
     }
     memcpy(mmsg, b, portion);
-    
-    bufs[0].pvBuffer = mhdr;
-    bufs[0].cbBuffer = sizes.cbHeader;
-    bufs[0].BufferType = SECBUFFER_STREAM_HEADER;
-    bufs[1].pvBuffer = mmsg;
-    bufs[1].cbBuffer = portion;
-    bufs[1].BufferType = SECBUFFER_DATA;
-    bufs[2].pvBuffer = mtrl;
-    bufs[2].cbBuffer = sizes.cbTrailer;
-    bufs[2].BufferType = SECBUFFER_STREAM_TRAILER;
-    bufs[3].pvBuffer = NULL;
-    bufs[3].cbBuffer = 0;
-    bufs[3].BufferType = SECBUFFER_EMPTY;
 
-    sbin.ulVersion = SECBUFFER_VERSION;
-    sbin.pBuffers = bufs;
-    sbin.cBuffers = 4;
+    INIT_SEC_BUFFER(&bufs[0], SECBUFFER_STREAM_HEADER, mhdr, sizes.cbHeader);
+    INIT_SEC_BUFFER(&bufs[1], SECBUFFER_DATA, mmsg, portion);
+    INIT_SEC_BUFFER(&bufs[2], SECBUFFER_STREAM_TRAILER, mtrl, sizes.cbTrailer);
+    INIT_SEC_BUFFER(&bufs[3], SECBUFFER_EMPTY, NULL, 0);
+    INIT_SEC_BUFFER_DESC(&sbin, bufs, 4);
 
     ss = EncryptMessage(&data->context, 0, &sbin, 0);
     if (FAILED(ss)) goto err;
@@ -1202,7 +1186,8 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
     send(bufs[0]);
     send(bufs[1]);
     send(bufs[2]);
-
+#undef send
+    
     sent += portion;
     rest -= portion;
     b    += portion;
