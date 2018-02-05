@@ -1128,7 +1128,7 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
 
     handleError(rval, socket);
     buffers[0].pvBuffer = mmsg;
-    buffers[0].cbBuffer = rval;
+    buffers[0].cbBuffer = rval + pt;
     buffers[0].BufferType = SECBUFFER_DATA;
     buffers[1].BufferType = SECBUFFER_EMPTY;
     buffers[2].BufferType = SECBUFFER_EMPTY;
