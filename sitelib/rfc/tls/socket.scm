@@ -172,7 +172,8 @@
 				     (time-utc->date
 				      (add-duration! (current-time) 1year)))
                       (make-x509-issuer '((C . "NL"))))))
-	    (values (keypair-private ks) (cons cert certificates)))))
+	    ;; TODO show warning message
+	    (values (keypair-private ks) (list cert)))))
     (let-values (((pkey certs) (backward-compatiblity private-key certificates)))
       (let ((r (tls:socket->tls-socket socket
 		 :certificates (certificates->bytevector certs)
