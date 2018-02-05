@@ -73,6 +73,12 @@ https://msdn.microsoft.com/en-us/library/windows/desktop/aa379814(v=vs.85).aspx
 # define min(a,b) (((a) < (b)) ? (a) : (b))
 #endif
 
+#ifndef HAVE_ALLOCA
+# define ALLOCA(type, size) SG_NEW_ATOMIC2(type, size)
+#else
+# define ALLOCA(type, size) (type)alloca(size)
+#endif
+
 #include "raise_incl.incl"
 
 #ifdef __CYGWIN__
@@ -497,11 +503,7 @@ static DWORD add_private_key(WinTLSData *data,
 			     0, NULL, NULL, &cbKeyBlob)) {
       return GetLastError();
     }
-#ifdef HAVE_ALLOCA
-    pbKeyBlob = (LPBYTE)alloca(cbKeyBlob);
-#else
-    pbKeyBlob = SG_NEW_ATOMIC2(LPBYTE, cbKeyBlob);
-#endif
+    pbKeyBlob = ALLOCA(LPBYTE, cbKeyBlob);
     if (!CryptDecodeObjectEx(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
 			     PKCS_RSA_PRIVATE_KEY,
 			     SG_BVECTOR_ELEMENTS(privateKey),
@@ -767,7 +769,9 @@ static int read_n(SgSocket *socket, uint8_t *buf, int count)
 {
   int read = 0;
   while (count != read) {
-    read += Sg_SocketReceive(socket, buf+read, count - read, 0);
+    int r = Sg_SocketReceive(socket, buf+read, count - read, 0);
+    if (r < 0) return -1;	/* non blocking */
+    read += r;
   }
   return read;
 }
@@ -788,6 +792,20 @@ typedef union {
   uint16_t size;
 } ltob_t;
 
+#define READ_RECORD(socket, rval, out)					\
+  do {									\
+    uint8_t header[5];							\
+    ltob_t ltob;							\
+    (rval) = read_n(socket, header, sizeof(header));			\
+    if (rval == sizeof(header)) {					\
+      ltob.hi = header[3];						\
+      ltob.lo = header[4];						\
+      (out) = ALLOCA(uint8_t *, ltob.size + sizeof(header));		\
+      memcpy((out), header, sizeof(header));				\
+      (rval) += read_n(socket, (out) + sizeof(header), ltob.size);	\
+    }									\
+  } while(0)
+
 static int client_handshake1(SgTLSSocket *tlsSocket, wchar_t *dn,
 			     DWORD sspiFlags)
 {
@@ -796,29 +814,18 @@ static int client_handshake1(SgTLSSocket *tlsSocket, wchar_t *dn,
   WinTLSData *data = (WinTLSData *)tlsSocket->data;
   SecBufferDesc sbout, sbin;
   SecBuffer bufso[2], bufsi[2];
-  uint8_t header[5], *content;
-  /* convert bigendian to little endian */
-  ltob_t ltob;
   
   for (;;) {
     DWORD sspiOutFlags = 0;
     int rval, i;
-
+    uint8_t *content;
+    
     if (ss != SEC_I_CONTINUE_NEEDED &&
 	ss != SEC_E_INCOMPLETE_MESSAGE &&
 	ss != SEC_I_INCOMPLETE_CREDENTIALS)
       break;
-
-    rval = read_n(socket, header, sizeof(header));
-    ltob.hi = header[3];
-    ltob.lo = header[4];
-#ifdef HAVE_ALLOCA
-    content = (uint8_t *)alloca(ltob.size + sizeof(header));
-#else
-    content = SG_NEW_ATOMIC2(uint8_t *, ltob.size + sizeof(header));
-#endif
-    memcpy(content, header, sizeof(header));
-    rval += read_n(socket, content + sizeof(header), ltob.size);
+    READ_RECORD(socket, rval, content);
+    if (rval < 0) return FALSE;	/* non blocking */
     
     INIT_SEC_BUFFER(&bufso[0], SECBUFFER_TOKEN, NULL, 0);
     /* INIT_SEC_BUFFER(&bufso[1], SECBUFFER_ALERT, NULL, 0); */
@@ -932,29 +939,17 @@ static int server_handshake(SgTLSSocket *tlsSocket)
   SecBufferDesc sbout, sbin;
   SecBuffer bufso[2], bufsi[2];
   int initialised = FALSE;
-  uint8_t header[5], *content;
-  /* convert bigendian to little endian */
-  ltob_t ltob;
-
+  
   for (;;) {
     DWORD sspiOutFlags = 0;
     int rval = 0, i;
-
+    uint8_t *content;
     if (ss != SEC_I_CONTINUE_NEEDED &&
 	ss != SEC_E_INCOMPLETE_MESSAGE &&
 	ss != SEC_I_INCOMPLETE_CREDENTIALS)
       break;
-
-    rval = read_n(socket, header, sizeof(header));
-    ltob.hi = header[3];
-    ltob.lo = header[4];
-#ifdef HAVE_ALLOCA
-    content = (uint8_t *)alloca(ltob.size + sizeof(header));
-#else
-    content = SG_NEW_ATOMIC2(uint8_t *, ltob.size + sizeof(header));
-#endif
-    memcpy(content, header, sizeof(header));
-    rval += read_n(socket, content + sizeof(header), ltob.size);
+    READ_RECORD(socket, rval, content);
+    if (rval < 0) return FALSE;	/* non blocking... */
     
     INIT_SEC_BUFFER(&bufsi[0], SECBUFFER_TOKEN, content, rval);
     INIT_SEC_BUFFER(&bufsi[1], SECBUFFER_EMPTY, NULL, 0);
@@ -1065,9 +1060,6 @@ int Sg_TLSSocketOpenP(SgTLSSocket *tlsSocket)
   return !data->closed;
 }
 
-/* TODO check -1 */
-#define handleError(rval, socket)
-
 int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
 {
   SgSocket *socket = tlsSocket->socket;
@@ -1077,9 +1069,6 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
   int read = 0;
   SecBufferDesc sbin;
   SecBuffer buffers[4];
-  uint8_t header[5], *content;
-  /* convert bigendian to little endian */
-  ltob_t ltob;
 
   ss = QueryContextAttributes(&data->context, SECPKG_ATTR_STREAM_SIZES, &sizes);
   if (FAILED(ss)) {
@@ -1107,19 +1096,13 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
   for (;;) {
     int rval, i;
     SecBuffer *buffer = NULL, *extra = NULL;
-    
-    rval = read_n(socket, header, sizeof(header));
-    ltob.hi = header[3];
-    ltob.lo = header[4];
-#ifdef HAVE_ALLOCA
-    content = (uint8_t *)alloca(ltob.size + sizeof(header));
-#else
-    content = SG_NEW_ATOMIC2(uint8_t *, ltob.size + sizeof(header));
-#endif
-    memcpy(content, header, sizeof(header));
-    rval += read_n(socket, content + sizeof(header), ltob.size);
+    uint8_t *content;
+    READ_RECORD(socket, rval, content);
+    if (rval < 0) {
+      if (read > 0) return read;
+      return rval;
+    }
 
-    handleError(rval, socket);
     buffers[0].pvBuffer = content;
     buffers[0].cbBuffer = rval;
     buffers[0].BufferType = SECBUFFER_DATA;
@@ -1179,25 +1162,18 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
 
   ss = QueryContextAttributes(&data->context, SECPKG_ATTR_STREAM_SIZES, &sizes);
   if (FAILED(ss)) goto err;
-
-#ifdef HAVE_ALLOCA
-  mmsg = (uint8_t *)alloca(min(sizes.cbMaximumMessage, (unsigned int)size));
-  mhdr = (uint8_t *)alloca(sizes.cbHeader);
-  mtrl = (uint8_t *)alloca(sizes.cbTrailer);
-#else
-  mmsg = SG_NEW_ATOMIC2(uint8_t *, min(sizes.cbMaximumMessage, size));
-  mhdr = SG_NEW_ATOMIC2(uint8_t *, sizes.cbHeader);
-  mtrl = SG_NEW_ATOMIC2(uint8_t *, sizes.cbTrailer);
-#endif
+  
+  mmsg = ALLOCA(uint8_t *, min(sizes.cbMaximumMessage, (unsigned int)size));
+  mhdr = ALLOCA(uint8_t *, sizes.cbHeader);
+  mtrl = ALLOCA(uint8_t *, sizes.cbTrailer);
 
   while (rest > 0) {
     unsigned int portion = rest;
-    int rval;
     if (portion > sizes.cbMaximumMessage) {
       portion = sizes.cbMaximumMessage;
     }
     memcpy(mmsg, b, portion);
-
+    
     bufs[0].pvBuffer = mhdr;
     bufs[0].cbBuffer = sizes.cbHeader;
     bufs[0].BufferType = SECBUFFER_STREAM_HEADER;
@@ -1217,11 +1193,10 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
 
     ss = EncryptMessage(&data->context, 0, &sbin, 0);
     if (FAILED(ss)) goto err;
-#define send(buf)							\
-    do {								\
-      rval = Sg_SocketSend(socket, (uint8_t *)(buf).pvBuffer,		\
-			   (buf).cbBuffer, 0);				\
-      handleError(rval, socket);					\
+#define send(buf)					\
+    do {						\
+      Sg_SocketSend(socket, (uint8_t *)(buf).pvBuffer,	\
+		    (buf).cbBuffer, 0);			\
     } while (0)
 
     send(bufs[0]);
