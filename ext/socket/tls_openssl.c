@@ -66,12 +66,16 @@
 	  break;							\
 	case NON_BLOCKING_CASE:						\
 	  /* most probably non-blocking socket */			\
-	  continue;							\
+	  return r;							\
 	}								\
 	raise_socket_error(SG_INTERN(who),				\
 			   Sg_GetLastErrorMessageWithErrorCode(e),	\
 			   Sg_MakeConditionSocket(tlsSocket),		\
-			   SG_LIST1(SG_MAKE_INT(e)));			\
+			   SG_MAKE_INT(e));				\
+      } else if (SSL_ERROR_WANT_READ == err ||				\
+		 SSL_ERROR_WANT_WRITE == err) {				\
+	/* probably non-blocking socket */				\
+	return r;							\
       } else if (SSL_ERROR_SSL == err) {				\
 	err = ERR_get_error();						\
       }									\
@@ -80,7 +84,7 @@
       raise_socket_error(SG_INTERN(who),				\
 			 Sg_Utf8sToUtf32s(msg, strlen(msg)),		\
 			 Sg_MakeConditionSocket(tlsSocket),		\
-			 SG_NIL);					\
+			 Sg_MakeIntegerU(err));				\
     }									\
   }
 
@@ -277,7 +281,9 @@ void Sg_TLSSocketShutdown(SgTLSSocket *tlsSocket, int how)
 {
   OpenSSLData *data = (OpenSSLData *)tlsSocket->data;
   ERR_clear_error();		/* clear error */
-  SSL_shutdown(data->ssl);
+  if (data->ssl) {
+    SSL_shutdown(data->ssl);
+  }
   /* hmmm, does this work? */
   Sg_SocketShutdown(tlsSocket->socket, how);
 }
@@ -316,7 +322,7 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *data,
   ERR_clear_error();		/* clear error */
   for (;;) {
     r = SSL_read(tlsData->ssl, data, size);
-    handleError("tls-socket-recv", r, tlsData->ssl);
+    handleError("tls-socket-recv!", r, tlsData->ssl);
     return r;
   }
 }
