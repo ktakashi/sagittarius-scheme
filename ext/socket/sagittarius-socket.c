@@ -24,10 +24,7 @@
  *   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  *   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  *   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- *  $Id: $
  */
-
 
 #include <sagittarius.h>
 #define LIBSAGITTARIUS_EXT_BODY
@@ -39,10 +36,22 @@
 #include <signal.h>
 /* we assume _WIN32 is only VC */
 #if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
-#define EINTR  WSAEINTR
-#define EAGAIN WSATRY_AGAIN
-#define EWOULDBLOCK WSAEWOULDBLOCK
-#define EPIPE WSAEINVAL
+# ifndef EINTR
+#  undef EINTR
+# endif
+# ifndef EAGAIN
+#  undef EAGAIN
+# endif
+# ifndef EWOULDBLOCK
+#  undef EWOULDBLOCK
+# endif
+# ifndef EPIPE
+#  undef EPIPE
+# endif
+# define EINTR  WSAEINTR
+# define EAGAIN WSATRY_AGAIN
+# define EWOULDBLOCK WSAEWOULDBLOCK
+# define EPIPE WSAEINVAL
 #endif
 
 #ifndef MSG_NOSIGNAL
@@ -309,10 +318,12 @@ static SgSocket* make_socket(SOCKET fd, SgSocketType type, SgSockaddr *address)
   return s;
 }
 
-static SgAddrinfo* make_addrinfo()
+static SgAddrinfo* make_addrinfo(SgObject node, SgObject service)
 {
   SgAddrinfo *info = SG_NEW(SgAddrinfo);
   SG_SET_CLASS(info, SG_CLASS_ADDRINFO);
+  info->node = node;
+  info->service = service;
   return info;
 }
 
@@ -365,7 +376,7 @@ static SgObject ai_addr(SgAddrinfo *ai)
 static SgObject ai_next(SgAddrinfo *ai)
 {
   if (ai->ai->ai_next) {
-    SgAddrinfo *info = make_addrinfo();
+    SgAddrinfo *info = make_addrinfo(ai->node, ai->service);
     info->ai = ai->ai->ai_next;
     return info;
   }
@@ -384,28 +395,13 @@ static SgSlotAccessor ai_slots[] = {
 
 SgAddrinfo* Sg_MakeAddrinfo()
 {
-  SgAddrinfo *info = make_addrinfo();
+  SgAddrinfo *info = make_addrinfo(SG_FALSE, SG_FALSE);
   info->ai = SG_NEW(struct addrinfo);
   memset(info->ai, 0, sizeof(struct addrinfo));
   return info;
 }
 
-static void raise_socket_error(SgObject who, SgObject msg, 
-			       SgObject c, SgObject irr)
-{
-  SgObject sc;
-  if (SG_NULLP(irr)) {
-    sc = Sg_Condition(SG_LIST3(c,
-			       Sg_MakeWhoCondition(who),
-			       Sg_MakeMessageCondition(msg)));
-  } else {
-    sc = Sg_Condition(SG_LIST4(c,
-			       Sg_MakeWhoCondition(who),
-			       Sg_MakeMessageCondition(msg),
-			       Sg_MakeIrritantsCondition(irr)));
-  }
-  Sg_Raise(sc, FALSE);
-}
+#include "raise_incl.incl"
 
 static void raise_io_error(SgObject who, int ret, SgObject c, SgObject irr)
 {
@@ -424,7 +420,7 @@ SgAddrinfo* Sg_GetAddrinfo(SgObject node, SgObject service, SgAddrinfo *hints)
   const char * csrv  = (!SG_FALSEP(service)) ?
     Sg_Utf32sToUtf8s(SG_STRING(service)) : NULL;
   int ret;
-  SgAddrinfo *result = make_addrinfo();
+  SgAddrinfo *result = make_addrinfo(node, service);
   struct addrinfo *ai, *cur, *prev, *next;
   do {
     ret = getaddrinfo(cnode, csrv, hints->ai, &ai);
@@ -490,6 +486,8 @@ SgObject Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo)
     disable_nagle(socket->socket);
     socket->type = SG_SOCKET_CLIENT;
     socket->address = SG_SOCKADDR(ai_addr(addrinfo));
+    socket->node = addrinfo->node;
+    socket->service = addrinfo->service;
     return socket;
   }
   socket->lastError = last_error;
@@ -511,6 +509,8 @@ SgObject Sg_SocketBind(SgSocket *socket, SgAddrinfo* addrinfo)
     socket->type = SG_SOCKET_SERVER;
     socket->address 
       = make_sockaddr((size_t)len, (struct sockaddr *)&name, TRUE);
+    socket->node = addrinfo->node;
+    socket->service = addrinfo->service;
     return socket;
   }
   socket->lastError = last_error;
@@ -595,9 +595,9 @@ SgObject Sg_SocketGetopt(SgSocket *socket, int level, int name, int rsize)
 
 #define handleError(who, socket, r)					\
   do {									\
-    if ((r) == -1) {							\
-      socket->lastError = last_error;					\
+    if ((r) < 0) {							\
       int e = last_error;						\
+      socket->lastError = e;						\
       switch (e) {							\
       case EINTR:							\
 	continue;							\

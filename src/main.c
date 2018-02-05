@@ -392,7 +392,24 @@ int wmain(int argc, tchar **argv)
 
 #elif defined(__MINGW32__) || defined(__MINGW64__)
 
-#define real_main main
+#include <windows.h>
+
+static LONG show_stack_trace_handler(PEXCEPTION_POINTERS ep)
+{
+  void *exceptionAddress = ep->ExceptionRecord->ExceptionAddress;
+  int exceptionCode = ep->ExceptionRecord->ExceptionCode;
+  fprintf(stderr, "\nNative error occurred at %p (%x)\n", 
+	  exceptionAddress, exceptionCode);
+  fflush(stderr);		/* not needed but for my mental health */
+  Sg_DumpNativeStackTrace(ep);
+  return EXCEPTION_EXECUTE_HANDLER;
+}
+
+int main(int argc, char **argv)
+{
+  AddVectoredExceptionHandler(0, show_stack_trace_handler);
+  return real_main(argc, argv);
+}
 
 #else
 
@@ -499,6 +516,7 @@ int main(int argc, char **argv)
 }
 
 #endif
+
 int real_main(int argc, tchar **argv)
 {
   int opt, optionIndex = 0, off = 0;

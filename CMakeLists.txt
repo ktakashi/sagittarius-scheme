@@ -49,8 +49,10 @@ IF (WATCOM)
   MESSAGE(STATUS "*CAUTION* open watcom is experimental")
 ENDIF()
 
-MESSAGE(STATUS "system processor ${CMAKE_SYSTEM_PROCESSOR}")
-MESSAGE(STATUS "Buinding directory: ${CMAKE_CURRENT_BINARY_DIR}")
+MESSAGE(STATUS "System processor ... ${CMAKE_SYSTEM_PROCESSOR}")
+MESSAGE(STATUS "System name ... ${CMAKE_SYSTEM_NAME}")
+MESSAGE(STATUS "Host system name ... ${CMAKE_HOST_SYSTEM_NAME}")
+MESSAGE(STATUS "Buinding directory ... ${CMAKE_CURRENT_BINARY_DIR}")
 
 # basic info for project
 SET(SAGITTARIUS_NAME "sagittarius" CACHE STRING "Sagittarius PACKAGE_NAME")
@@ -257,13 +259,9 @@ IF(USE_BOEHM_GC)
       SET(GC_VERSION "gc-7.2")
       SET(NEED_LIB_ATMIC FALSE)
     ENDIF()
-    FIND_FILE(HAS_BOEHM_GC_TAR
-      NAMES gc.tar.gz
-      PATHS ${CMAKE_CURRENT_BINARY_DIR})
 
-    MESSAGE(STATUS "Checked Boehm GC archive file: ${HAS_BOEHM_GC_TAR}")
-
-    IF (NOT EXISTS ${HAS_BOEHM_GC_TAR})
+    IF (NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/gc.tar.gz")
+      MESSAGE(STATUS "Checking Boehm GC archive file ... not found")
       MESSAGE(STATUS "Downloading ${GC_URL}/${USED_GC_VERSION}.tar.gz")
       FILE(
 	DOWNLOAD "${GC_URL}/${USED_GC_VERSION}.tar.gz"
@@ -274,12 +272,16 @@ IF(USE_BOEHM_GC)
 	${CMAKE_CURRENT_BINARY_DIR}/gc.tar.gz
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
       MESSAGE(STATUS "unpacked gc.tar.gz")
+    ELSEIF()
+      MESSAGE(STATUS "Checking Boehm GC archive file ... found")
     ENDIF()
 
     IF (NOT WINDOWS_SUPPORT AND NOT ${SAGITTARIUS_OS} STREQUAL "qnx")
       MESSAGE(FATAL_ERROR "First install Boehm GC. Go to gc directory.")
     ENDIF()
 
+    SET(enable_threads ON CACHE BOOL "Enabling Boehm GC thread")
+    SET(enable_parallel_mark ON CACHE BOOL "Enabling Boehm GC parallel marking")
     ADD_DEFINITIONS("-DLARGE_CONFIG -DGC_DLL")
     # OK we don't want to link this for god sake.
     IF (MSVC OR MINGW)
@@ -362,12 +364,8 @@ ENDIF(CMAKE_USE_PTHREADS_INIT)"
       # since 7.4.0 or 7.4.2? Boehm GC separated libatomic_ops so
       # we need to download it separately
       SET(LIBATOMIC_OPS "libatomic_ops-7.4.0")
-      FIND_FILE(HAS_LIBATMIC_OPS_TAR
-	NAMES libatomic_ops.tar.gz
-	PATHS ${GC_DIR})
-      MESSAGE(STATUS
-	"Checked libatmic_ops archive file: ${HAS_LIBATMIC_OPS_TAR}")
-      IF (NOT EXISTS ${HAS_LIBATMIC_OPS_TAR})
+      IF (NOT EXISTS "${GC_DIR}/libatomic_ops.tar.gz")
+	MESSAGE(STATUS "Checking libatmic_ops archive file ... not found")
 	MESSAGE(STATUS "Downloading ${GC_URL}/${LIBATOMIC_OPS}.tar.gz")
 	FILE(
 	  DOWNLOAD "${GC_URL}/${LIBATOMIC_OPS}.tar.gz"
@@ -377,6 +375,8 @@ ENDIF(CMAKE_USE_PTHREADS_INIT)"
 	  ${GC_DIR}/libatomic_ops.tar.gz
 	  WORKING_DIRECTORY ${GC_DIR})
 	MESSAGE(STATUS "unpacked libatomic_ops.tar.gz")
+      ELSE()
+	MESSAGE(STATUS "Checking libatmic_ops archive file ... found")
       ENDIF()
       IF (EXISTS ${GC_DIR}/${LIBATOMIC_OPS}
 	  AND NOT EXISTS ${GC_DIR}/libatomic_ops)

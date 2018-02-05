@@ -33,11 +33,9 @@
 #ifdef _WIN32
 # include <winsock2.h>
 # include <ws2tcpip.h>
-# pragma comment(lib, "ws2_32.lib")
-#if 0
-# include <wspiapi.h>
-# pragma comment(lib, "iphlpapi.lib")
-#endif
+# ifdef _MSC_VER
+#  pragma comment(lib, "ws2_32.lib")
+# endif
 /* what a crap!! */
 # define SHUT_RD   SD_RECEIVE 
 # define SHUT_WR   SD_SEND 
@@ -79,6 +77,8 @@ typedef struct SgSocketRec
 #ifdef _WIN32
   int nonblocking;		/* blocking or not */
 #endif
+  SgObject node;
+  SgObject service;
 } SgSocket;
 
 SG_CLASS_DECL(Sg_SocketClass);
@@ -90,13 +90,14 @@ typedef struct SgAddrinfoRec
 {
   SG_HEADER;
   struct addrinfo *ai;
+  SgObject node;
+  SgObject service;
 } SgAddrinfo;
 
 SG_CLASS_DECL(Sg_AddrinfoClass);
 #define SG_CLASS_ADDRINFO (&Sg_AddrinfoClass)
 #define SG_ADDRINFO(obj)  ((SgAddrinfo*)obj)
 #define SG_ADDRINFOP(obj) SG_XTYPEP(obj, SG_CLASS_ADDRINFO)
-
 
 struct SgSockaddrRec
 {
@@ -109,7 +110,6 @@ SG_CLASS_DECL(Sg_SockaddrClass);
 #define SG_CLASS_SOCKADDR (&Sg_SockaddrClass)
 #define SG_SOCKADDR(obj)  ((SgSockaddr*)obj)
 #define SG_SOCKADDRP(obj) SG_XTYPEP(obj, SG_CLASS_SOCKADDR)
-
 
 typedef enum {
   None,

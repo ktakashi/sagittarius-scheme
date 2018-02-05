@@ -17,14 +17,16 @@
   (tls-socket-close s))
 
 (define keypair (generate-key-pair RSA :size 1024))
-
+(define 1year (make-time time-duration 0 (* 1 60 60 24 365)))
 (define cert (make-x509-basic-certificate keypair 1
                       (make-x509-issuer '((C . "NL")))
                       (make-validity (current-date)
-                             (current-date))
+				     (time-utc->date
+				      (add-duration! (current-time) 1year)))
                       (make-x509-issuer '((C . "NL")))))
 
-(define server-socket (make-server-tls-socket "10001" (list cert)))
+(define server-socket (make-server-tls-socket "10001" (list cert)
+					      :private-key (keypair-private keypair)))
 
 (define (server-run)
   (define end? #f)
@@ -77,7 +79,7 @@
     (test-assert "input-port?" (input-port? port))
     (test-assert "output-port?" (output-port? port))
 
-    (put-bytevector port (string->utf8 "put from port\r\n"))
+    (test-assert (put-bytevector port (string->utf8 "put from port\r\n")))
     (thread-sleep! 2) ;; I hope it's enough
     (test-assert "port-ready?" (port-ready? port))
     (test-equal "get-bytevector-n"
@@ -88,10 +90,10 @@
     (let ((text-port (transcoded-port port
 				      (make-transcoder (utf-8-codec)
 						       'crlf))))
-      (put-string text-port "put from text port\r\n")
+      (test-assert (put-string text-port "put from text port\r\n"))
       (test-equal "get-line" "put from text port" (get-line text-port))
       ;; end test
-      (put-string text-port "end\r\n")
+      (test-assert (put-string text-port "end\r\n"))
       ;; the test server is a bit too naive to handle this...
       ;; (close-port text-port)
       ))

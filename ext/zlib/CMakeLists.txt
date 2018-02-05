@@ -46,12 +46,9 @@ ENDIF()
 
 IF (NOT ZLIB_FOUND)
   # well we need to compile it
-  FIND_FILE(HAS_ZLIB_ARCHIVE
-    NAMES zlib.tar.gz
-    PATHS ${CMAKE_CURRENT_BINARY_DIR})
-  MESSAGE(STATUS "Looked for zlib.tar.gz: ${HAS_ZLIB_ARCHIVE}")
   SET(USED_ZLIB_VERSION "zlib-1.2.11")
-  IF (NOT EXISTS ${HAS_ZLIB_ARCHIVE})
+  IF (NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/zlib.tar.gz")
+    MESSAGE(STATUS "Checking zlib.tar.gz ... not found")
     MESSAGE(STATUS "donwloading zlib")
     FILE(
       DOWNLOAD "http://zlib.net/${USED_ZLIB_VERSION}.tar.gz"
@@ -61,6 +58,8 @@ IF (NOT ZLIB_FOUND)
       ${CMAKE_CURRENT_BINARY_DIR}/zlib.tar.gz
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
     MESSAGE(STATUS "unpacked zlib.tar.gz")
+  ELSEIF()
+    MESSAGE(STATUS "Checking zlib.tar.gz ... found")
   ENDIF()
   # we can't use patch command, as long as all of environments do
   # not have it. so do the same trick as boehm gc.

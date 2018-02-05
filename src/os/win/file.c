@@ -168,11 +168,12 @@ static int64_t win_write(SgObject self, uint8_t *buf, int64_t size)
 		      SG_FALSE, self);
     }
     isOK = WriteFile(SG_FD(file)->desc, dest, destSize, &writeSize, NULL);
-    if (writeSize != destSize) {
+    if (!isOK) {
       Sg_IOWriteError(SG_INTERN("write"), Sg_GetLastErrorMessage(), 
 		      SG_FALSE, self);
     }
-    writeSize = (DWORD)size;
+    /* hmmm */
+    writeSize *= 2;
 #else
     isOK = WriteFile(SG_FD(file)->desc, buf, size, &writeSize, NULL);
 #endif
