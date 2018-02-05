@@ -374,6 +374,7 @@ static void free_context(WinTLSContext *context)
     context->privateKey = NULL;
   }
   context->certificateCount = 0;
+  Sg_UnregisterFinalizer(context);
   /* if (context->certStore) { */
   /*   CertCloseStore(context->certStore, 0); */
   /*   context->certStore = NULL; */
@@ -643,7 +644,8 @@ static int socket_readable(SOCKET socket)
   return total == 1;
 }
 
-static void send_sec_buffer(SgTLSSocket *tlsSocket, SecBuffer *bufso)
+static void send_sec_buffer(SgObject who, SgTLSSocket *tlsSocket,
+			    SecBuffer *bufso)
 {
   if (bufso->cbBuffer != 0 && bufso->pvBuffer != NULL) {
     SgSocket *socket = tlsSocket->socket;
@@ -652,7 +654,7 @@ static void send_sec_buffer(SgTLSSocket *tlsSocket, SecBuffer *bufso)
 			     bufso->cbBuffer, 0);
     FreeContextBuffer(bufso->pvBuffer);
     if ((unsigned int)rval != bufso->cbBuffer) {
-      raise_socket_error(SG_INTERN("tls-socket-connect!"),
+      raise_socket_error(who,
 			 SG_MAKE_STRING("Failed to send handshake message"),
 			 Sg_MakeConditionSocket(tlsSocket),
 			 tlsSocket);
@@ -725,7 +727,7 @@ static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
 		       Sg_MakeIntegerU(ss));
   }
   /* sending client hello */
-  send_sec_buffer(tlsSocket, &bufso);
+  send_sec_buffer(SG_INTERN("tls-socket-connect!"), tlsSocket, &bufso);
   return dn;
 }
 
@@ -783,6 +785,7 @@ static int client_handshake1(SgTLSSocket *tlsSocket, wchar_t *dn,
 				    NULL);
     /* sorry we can't handle this */
     /* if (ss == SEC_E_INCOMPLETE_MESSAGE) continue; */
+    /* fprintf(stderr, "[client] ss = %lx\n", ss); */
     if (FAILED(ss)) {
       raise_socket_error(SG_INTERN("tls-socket-connect!"),
 			 Sg_GetLastErrorMessageWithErrorCode(ss),
@@ -793,7 +796,7 @@ static int client_handshake1(SgTLSSocket *tlsSocket, wchar_t *dn,
     
     for (i = 0; i < array_sizeof(bufso); i++) {
       if (bufso[i].BufferType == SECBUFFER_TOKEN) {
-	send_sec_buffer(tlsSocket, &bufso[i]);
+	send_sec_buffer(SG_INTERN("tls-socket-connect!"), tlsSocket, &bufso[i]);
       } else if (bufso[i].pvBuffer != NULL) {
 	FreeContextBuffer(bufso[i].pvBuffer);
       }
@@ -877,7 +880,7 @@ static int server_handshake(SgTLSSocket *tlsSocket)
 
   for (;;) {
     DWORD sspiOutFlags = 0;
-    int rval = 0;
+    int rval = 0, i;
 
     if (ss != SEC_I_CONTINUE_NEEDED &&
 	ss != SEC_E_INCOMPLETE_MESSAGE &&
@@ -896,26 +899,14 @@ static int server_handshake(SgTLSSocket *tlsSocket)
       pt += rval;
       if (!socket_readable(socket->socket)) break;
     }
-    bufsi[0].BufferType = SECBUFFER_TOKEN;
-    bufsi[0].cbBuffer = pt;
-    bufsi[0].pvBuffer = t;
-    bufsi[1].BufferType = SECBUFFER_EMPTY;
-    bufsi[1].cbBuffer = 0;
-    bufsi[1].pvBuffer = NULL;
-    sbin.ulVersion = SECBUFFER_VERSION;
-    sbin.pBuffers = bufsi;
-    sbin.cBuffers = 2;
+    INIT_SEC_BUFFER(&bufsi[0], SECBUFFER_TOKEN, t, pt);
+    INIT_SEC_BUFFER(&bufsi[1], SECBUFFER_EMPTY, NULL, 0);
+    INIT_SEC_BUFFER_DESC(&sbin, bufsi, 2);
 
-    bufso[0].pvBuffer = NULL;
-    bufso[0].BufferType = SECBUFFER_TOKEN;
-    bufso[0].cbBuffer = 0;
-    bufso[1].pvBuffer = NULL;
-    bufso[1].BufferType = SECBUFFER_EMPTY;
-    bufso[1].cbBuffer = 0;
-    sbout.ulVersion = SECBUFFER_VERSION;
-    sbout.cBuffers = 2;
-    sbout.pBuffers = bufso;
-
+    INIT_SEC_BUFFER(&bufso[0], SECBUFFER_TOKEN, NULL, 0);
+    INIT_SEC_BUFFER(&bufso[1], SECBUFFER_EMPTY, NULL, 0);
+    INIT_SEC_BUFFER_DESC(&sbout, bufso, array_sizeof(bufso));
+    
     ss = AcceptSecurityContext(&data->credential,
 			       initialised ? &data->context : NULL,
 			       &sbin,
@@ -925,27 +916,24 @@ static int server_handshake(SgTLSSocket *tlsSocket)
 			       &sbout,
 			       &sspiOutFlags,
 			       NULL);
+    /* fprintf(stderr, "[server] ss = %lx\n", ss); */
     initialised = TRUE;
     if (ss == SEC_E_INCOMPLETE_MESSAGE) continue;
     pt = 0;
 
-    if (FAILED(ss) || (ss != S_OK && ss != SEC_I_CONTINUE_NEEDED)) {
+    if (ss != S_OK && ss != SEC_I_CONTINUE_NEEDED) {
       raise_socket_error(SG_INTERN("tls-socket-server-handshake"),
 			 Sg_GetLastErrorMessageWithErrorCode(ss),
 			 Sg_MakeConditionSocket(tlsSocket),
 			 Sg_MakeIntegerU(ss));
     }
     DUMP_CTX_HANDLE(&data->context);
-    if (bufso[0].cbBuffer != 0 && bufso[0].pvBuffer != NULL) {
-      /* send the data we got to the remote part */
-      rval = Sg_SocketSend(socket, (uint8_t *)bufso[0].pvBuffer,
-			   bufso[0].cbBuffer, 0);
-      FreeContextBuffer(bufso[0].pvBuffer);
-      if ((unsigned int)rval != bufso[0].cbBuffer) {
-	raise_socket_error(SG_INTERN("tls-socket-server-handshake"),
-			   SG_MAKE_STRING("Failed to send handshake message"),
-			   Sg_MakeConditionSocket(tlsSocket),
-			   tlsSocket);
+    for (i = 0; i < array_sizeof(bufso); i++) {
+      if (bufso[i].BufferType == SECBUFFER_TOKEN) {
+	send_sec_buffer(SG_INTERN("tls-socket-server-handshake"),
+			tlsSocket, &bufso[i]);
+      } else if (bufso[i].pvBuffer != NULL) {
+	FreeContextBuffer(bufso[i].pvBuffer);
       }
     }
     if (ss == S_OK) break;
