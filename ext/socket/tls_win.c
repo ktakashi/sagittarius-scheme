@@ -114,9 +114,20 @@ static LPWSTR KEY_PROVIDER = NULL;
 #ifdef DEBUG_DUMP
 # define fmt_dump(fmt, ...) fprintf(stderr, fmt, __VA_ARGS__)
 # define msg_dump(msg) fputs(msg, stderr)
+# define hex_dump(hex, size) dump_hex(hex, size)
+static void dump_hex(void *data, int size)
+{
+  int i;
+  for (i = 0; i < size; i++) {
+    if (i != 0 && i % 16 == 0) msg_dump("\n");
+    fmt_dump("%02x ", ((uint8_t *)data)[i]);
+  }
+  msg_dump("\n");
+}
 #else
 # define fmt_dump(fmt, ...)
 # define msg_dump(msg)
+# define hex_dump(hex, size) 
 #endif
 
 /* #define DEBUG_TLS_HANDLES */
@@ -428,7 +439,9 @@ static void load_certificates(WinTLSData *data, SgObject certificates)
   SgObject cp;
   WinTLSContext *context = data->tlsContext;
   context->certificateCount = len;
-  context->certificates = SG_NEW_ARRAY(PCCERT_CONTEXT, len);
+  if (len) {
+    context->certificates = SG_NEW_ARRAY(PCCERT_CONTEXT, len);
+  }
   SG_FOR_EACH(cp, certificates) {
     SgByteVector *cert;
     PCCERT_CONTEXT pcert;
@@ -735,7 +748,7 @@ static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
 		       Sg_MakeConditionSocket(tlsSocket),
 		       Sg_MakeIntegerU(ss));
   }
-  fmt_dump("[client] # of initial packet %d\n", bufso.cbBuffer);
+  fmt_dump("[client] # of initial packet %ld\n", bufso.cbBuffer);
   /* sending client hello */
   send_sec_buffer(SG_INTERN("tls-socket-connect!"), tlsSocket, &bufso);
   return dn;
@@ -752,6 +765,11 @@ static int read_n(SgSocket *socket, uint8_t *buf, int count)
 /* 
    reference
    - https://tools.ietf.org/html/rfc5246#section-6.2
+   TLS record structure is:
+   - enum (unit8) type
+   - unit8 major
+   - unit8 minor
+   - uint16 length
  */
 typedef union {
   struct {
@@ -928,7 +946,7 @@ static int server_handshake(SgTLSSocket *tlsSocket)
 #endif
     memcpy(content, header, sizeof(header));
     rval += read_n(socket, content + sizeof(header), ltob.size);
-
+    
     INIT_SEC_BUFFER(&bufsi[0], SECBUFFER_TOKEN, content, rval);
     INIT_SEC_BUFFER(&bufsi[1], SECBUFFER_EMPTY, NULL, 0);
     INIT_SEC_BUFFER_DESC(&sbin, bufsi, 2);
@@ -997,68 +1015,17 @@ static void tls_socket_shutdown(SgTLSSocket *tlsSocket)
   SecBufferDesc sbout;
   SecBuffer buffer;
   DWORD type = SCHANNEL_SHUTDOWN;
-  int serverP;
 
-  buffer.pvBuffer = &type;
-  buffer.BufferType = SECBUFFER_TOKEN;
-  buffer.cbBuffer = sizeof(type);
-  sbout.cBuffers = 1;
-  sbout.pBuffers = &buffer;
-  sbout.ulVersion = SECBUFFER_VERSION;
-
-  switch (tlsSocket->socket->type) {
-  case SG_SOCKET_SERVER: serverP = TRUE; break;
-  case SG_SOCKET_CLIENT: serverP = FALSE; break;
-  default: return;
-  }
-
+  INIT_SEC_BUFFER(&buffer, SECBUFFER_TOKEN, &type, sizeof(type));
+  INIT_SEC_BUFFER_DESC(&sbout, &buffer, 1);
+  
   do {
     SECURITY_STATUS ss = ApplyControlToken(&data->context, &sbout);
-    DWORD sspiFlags = ISC_REQ_SEQUENCE_DETECT   |
-      ISC_REQ_REPLAY_DETECT     |
-      ISC_REQ_CONFIDENTIALITY   |
-      ISC_RET_EXTENDED_ERROR    |
-      ISC_REQ_ALLOCATE_MEMORY   |
-      ISC_REQ_STREAM;
-    DWORD outFlags;
-    uint8_t *message;
-    int count;
     if (FAILED(ss)) return;	/* do nothing? */
-
-    INIT_SEC_BUFFER(&buffer, SECBUFFER_TOKEN, NULL, 0);
-    INIT_SEC_BUFFER_DESC(&sbout, &buffer, 1);
-    if (serverP) {
-      ss = AcceptSecurityContext(&data->credential,
-				 &data->context,
-				 NULL,
-				 sspiFlags,
-				 SECURITY_NATIVE_DREP,
-				 NULL,
-				 &sbout,
-				 &outFlags,
-				 NULL);
-      fmt_dump("[server] shutdown ss = %lx\n", ss);
-    } else {
-      ss = InitializeSecurityContextW(&data->credential,
-				      &data->context,
-				      NULL,
-				      sspiFlags,
-				      0,
-				      SECURITY_NATIVE_DREP,
-				      NULL,
-				      0,
-				      &data->context,
-				      &sbout,
-				      &outFlags,
-				      NULL);
-      fmt_dump("[client] shutdown ss = %lx\n", ss);
-    }
-    if (FAILED(ss)) return;
-    message = (uint8_t *)buffer.pvBuffer;
-    count = buffer.cbBuffer;
-    if (message != NULL && count != 0) {
-      Sg_SocketSend(tlsSocket->socket, message, count, 0);
-      FreeContextBuffer(message);
+    if (buffer.pvBuffer != NULL && buffer.cbBuffer != 0) {
+      Sg_SocketSend(tlsSocket->socket, (uint8_t *)buffer.pvBuffer,
+		    buffer.cbBuffer, 0);
+      FreeContextBuffer(buffer.pvBuffer);
     }
   } while(0);
 }
