@@ -102,11 +102,14 @@ static SgObject get_windows_last_error(int e)
 #define W(x) W_(x)
 
 #ifdef USE_UCS4_CPP
-static LPWSTR KEY_CONTAINER_NAME =
-  L"Sagittarius " W(SAGITTARIUS_VERSION) L" SSL Socket Key Container";
+static LPWSTR SERVER_KEY_CONTAINER_NAME =
+  L"Sagittarius " W(SAGITTARIUS_VERSION) L" SSL Server Socket Key Container";
+static LPWSTR CLIENT_KEY_CONTAINER_NAME =
+  L"Sagittarius " W(SAGITTARIUS_VERSION) L" SSL Client Socket Key Container";
 static LPWSTR KEY_PROVIDER = MS_DEF_RSA_SCHANNEL_PROV;
 #else
-static LPWSTR KEY_CONTAINER_NAME = NULL;
+static LPWSTR SERVER_KEY_CONTAINER_NAME = NULL;
+static LPWSTR CLIENT_KEY_CONTAINER_NAME = NULL;
 static LPWSTR KEY_PROVIDER = NULL;
 #endif
 
@@ -473,7 +476,8 @@ static void load_certificates(WinTLSData *data, SgObject certificates)
 }
 
 static DWORD add_private_key(WinTLSData *data,
-			     SgByteVector *privateKey)
+			     SgByteVector *privateKey,
+			     LPWSTR containerName)
 {
   WinTLSContext *context = data->tlsContext;
   if (privateKey && context->certificateCount > 0) {
@@ -507,12 +511,12 @@ static DWORD add_private_key(WinTLSData *data,
       return GetLastError();
     }
     if (!CryptAcquireContext(&hProv,
-			     KEY_CONTAINER_NAME,
+			     containerName,
 			     KEY_PROVIDER,
 			     PROV_RSA_SCHANNEL,
 			     CRYPT_NEWKEYSET)) {
       if (NTE_EXISTS == GetLastError()) {
-	if (!CryptAcquireContext(&hProv, KEY_CONTAINER_NAME,
+	if (!CryptAcquireContext(&hProv, containerName,
 				 KEY_PROVIDER, PROV_RSA_SCHANNEL, 0)) {
 	  return GetLastError();
 	}
@@ -527,7 +531,7 @@ static DWORD add_private_key(WinTLSData *data,
       return GetLastError();
     }
 
-    provInfo.pwszContainerName = KEY_CONTAINER_NAME;
+    provInfo.pwszContainerName = containerName;
     provInfo.pwszProvName = KEY_PROVIDER;
     provInfo.dwProvType = PROV_RSA_SCHANNEL;
     provInfo.dwFlags = CERT_SET_KEY_CONTEXT_PROP_ID;
@@ -628,11 +632,16 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
   DWORD result;
 
   load_certificates(data, certificates);
-  result = add_private_key(data, privateKey);
 
   switch (socket->type) {
-  case SG_SOCKET_CLIENT: client_init(r); break;
-  case SG_SOCKET_SERVER: serverP = server_init(r); break;
+  case SG_SOCKET_CLIENT:
+    result = add_private_key(data, privateKey, CLIENT_KEY_CONTAINER_NAME);
+    client_init(r);
+    break;
+  case SG_SOCKET_SERVER:
+    result = add_private_key(data, privateKey, SERVER_KEY_CONTAINER_NAME);
+    serverP = server_init(r);
+    break;
   default:
     free_context(data->tlsContext);
     Sg_AssertionViolation(SG_INTERN("socket->tls-socket"),
@@ -1236,7 +1245,9 @@ static void cleanup_keyset(void *data)
 {
   /* Delete key set*/
   HCRYPTPROV hProv;
-  CryptAcquireContext(&hProv, KEY_CONTAINER_NAME, KEY_PROVIDER,
+  CryptAcquireContext(&hProv, SERVER_KEY_CONTAINER_NAME, KEY_PROVIDER,
+		      PROV_RSA_SCHANNEL, CRYPT_DELETEKEYSET);
+  CryptAcquireContext(&hProv, CLIENT_KEY_CONTAINER_NAME, KEY_PROVIDER,
 		      PROV_RSA_SCHANNEL, CRYPT_DELETEKEYSET);
 }
 
@@ -1244,12 +1255,16 @@ void Sg_InitTLSImplementation()
 {
 #ifndef USE_UCS4_CPP
   /* due to the widechar conversion we need to set up like this */
-  SgObject keyContainer =
+  SgObject serverKeyContainer =
     SG_MAKE_STRING("CYGWIN Sagittarius " SAGITTARIUS_VERSION
-		   " SSL Socket Key Container");
+		   " SSL Server Socket Key Container");
+  SgObject clientKeyContainer =
+    SG_MAKE_STRING("CYGWIN Sagittarius " SAGITTARIUS_VERSION
+		   " SSL Client Socket Key Container");
   SgObject provName = SG_MAKE_STRING(MS_DEF_RSA_SCHANNEL_PROV_A);
   SgObject implName = SG_MAKE_STRING(SCHANNEL_NAME_A);
-  KEY_CONTAINER_NAME = Sg_StringToWCharTs(keyContainer);
+  SERVER_KEY_CONTAINER_NAME = Sg_StringToWCharTs(serverKeyContainer);
+  CLIENT_KEY_CONTAINER_NAME = Sg_StringToWCharTs(clientKeyContainer);
   KEY_PROVIDER = Sg_StringToWCharTs(provName);
   IMPL_NAME = Sg_StringToWCharTs(implName);
 #endif

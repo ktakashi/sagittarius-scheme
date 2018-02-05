@@ -17,14 +17,16 @@
   (tls-socket-close s))
 
 (define keypair (generate-key-pair RSA :size 1024))
-
+(define 1year (make-time time-duration 0 (* 1 60 60 24 365)))
 (define cert (make-x509-basic-certificate keypair 1
                       (make-x509-issuer '((C . "NL")))
                       (make-validity (current-date)
-                             (current-date))
+				     (time-utc->date
+				      (add-duration! (current-time) 1year)))
                       (make-x509-issuer '((C . "NL")))))
 
-(define server-socket (make-server-tls-socket "10001" (list cert)))
+(define server-socket (make-server-tls-socket "10001" (list cert)
+					      :private-key (keypair-private keypair)))
 
 (define (server-run)
   (define end? #f)
