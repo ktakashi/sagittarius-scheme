@@ -37,17 +37,21 @@
 /* we assume _WIN32 is only VC */
 #if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
 # ifndef EINTR
-#  define EINTR  WSAEINTR
+#  undef EINTR
 # endif
 # ifndef EAGAIN
-#  define EAGAIN WSATRY_AGAIN
+#  undef EAGAIN
 # endif
 # ifndef EWOULDBLOCK
-#  define EWOULDBLOCK WSAEWOULDBLOCK
+#  undef EWOULDBLOCK
 # endif
 # ifndef EPIPE
-#  define EPIPE WSAEINVAL
+#  undef EPIPE
 # endif
+# define EINTR  WSAEINTR
+# define EAGAIN WSATRY_AGAIN
+# define EWOULDBLOCK WSAEWOULDBLOCK
+# define EPIPE WSAEINVAL
 #endif
 
 #ifndef MSG_NOSIGNAL
@@ -591,7 +595,7 @@ SgObject Sg_SocketGetopt(SgSocket *socket, int level, int name, int rsize)
 
 #define handleError(who, socket, r)					\
   do {									\
-    if ((r) == -1) {							\
+    if ((r) < 0) {							\
       int e = last_error;						\
       socket->lastError = e;						\
       switch (e) {							\
