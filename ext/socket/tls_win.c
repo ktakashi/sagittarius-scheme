@@ -58,6 +58,14 @@ References:
 # pragma comment(lib, "ncrypt.lib")
 #endif
 
+/* 
+some of the environment (e.g. Cygwin) doesn't have this. so define it
+https://msdn.microsoft.com/en-us/library/windows/desktop/aa379814(v=vs.85).aspx
+*/
+#ifndef SECBUFFER_APPLICATION_PROTOCOLS
+# define SECBUFFER_APPLICATION_PROTOCOLS 18
+#endif
+
 #ifndef max
 # define max(a,b) (((a) > (b)) ? (a) : (b))
 #endif
@@ -102,11 +110,17 @@ static LPWSTR KEY_CONTAINER_NAME = NULL;
 static LPWSTR KEY_PROVIDER = NULL;
 #endif
 
+/* #define DEBUG_DUMP */
+#ifdef DEBUG_DUMP
+# define fmt_dump(fmt, ...) fprintf(stderr, fmt, __VA_ARGS__)
+# define msg_dump(msg) fputs(msg, stderr)
+#else
+# define fmt_dump(fmt, ...)
+# define msg_dump(msg)
+#endif
+
 /* #define DEBUG_TLS_HANDLES */
 #ifdef  DEBUG_TLS_HANDLES
-
-#define fmt_dump(fmt, ...) fprintf(stderr, fmt, __VA_ARGS__)
-#define msg_dump(msg) fputs(msg, stderr)
 
 static void dump_ctx_handle(CtxtHandle *ctx)
 {
@@ -284,8 +298,6 @@ static void dump_cert_context(PCCERT_CONTEXT cert)
     }
   }
 }
-#undef dump
-#undef fmt_dump
 
 # define DUMP_CTX_HANDLE(ctx) dump_ctx_handle(ctx)
 # define DUMP_CRED_HANDLE(cred) dump_cred_handle(cred)
@@ -652,7 +664,7 @@ static void send_sec_buffer(SgObject who, SgTLSSocket *tlsSocket,
     /* send the data we got to the remote part */
     int rval = Sg_SocketSend(socket, (uint8_t *)bufso->pvBuffer,
 			     bufso->cbBuffer, 0);
-    FreeContextBuffer(bufso->pvBuffer);
+     FreeContextBuffer(bufso->pvBuffer);
     if ((unsigned int)rval != bufso->cbBuffer) {
       raise_socket_error(who,
 			 SG_MAKE_STRING("Failed to send handshake message"),
@@ -694,8 +706,6 @@ static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
   } else if (SG_UNBOUNDP(sni)) {
     dn = (SG_FALSEP(socket->node)) ? NULL : Sg_StringToWCharTs(socket->node);
   }
-  /* some of the environment (e.g. Cygwin) doesn't have this */
-#ifdef SECBUFFER_APPLICATION_PROTOCOLS
   /* for now, we expect the proper protocol name list value. */
   if (SG_BVECTORP(alpn)) {
     use_alpn = TRUE;
@@ -704,7 +714,6 @@ static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
 		    SG_BVECTOR_SIZE(alpn));
     INIT_SEC_BUFFER_DESC(&sbin, &bufsi, 1);
   }
-#endif
   INIT_SEC_BUFFER(&bufso, SECBUFFER_TOKEN, NULL, 0);
   INIT_SEC_BUFFER_DESC(&sbout, &bufso, 1);
   
@@ -726,10 +735,31 @@ static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
 		       Sg_MakeConditionSocket(tlsSocket),
 		       Sg_MakeIntegerU(ss));
   }
+  fmt_dump("[client] # of initial packet %d\n", bufso.cbBuffer);
   /* sending client hello */
   send_sec_buffer(SG_INTERN("tls-socket-connect!"), tlsSocket, &bufso);
   return dn;
 }
+
+static int read_n(SgSocket *socket, uint8_t *buf, int count)
+{
+  int read = 0;
+  while (count != read) {
+    read += Sg_SocketReceive(socket, buf+read, count - read, 0);
+  }
+  return read;
+}
+/* 
+   reference
+   - https://tools.ietf.org/html/rfc5246#section-6.2
+ */
+typedef union {
+  struct {
+    uint8_t lo;
+    uint8_t hi;
+  };
+  uint16_t size;
+} ltob_t;
 
 static int client_handshake1(SgTLSSocket *tlsSocket, wchar_t *dn,
 			     DWORD sspiFlags)
@@ -739,9 +769,10 @@ static int client_handshake1(SgTLSSocket *tlsSocket, wchar_t *dn,
   WinTLSData *data = (WinTLSData *)tlsSocket->data;
   SecBufferDesc sbout, sbin;
   SecBuffer bufso[2], bufsi[2];
-  int pt = 0;
-  /* FIXME... */
-  uint8_t t[0x10000];
+  uint8_t header[5], *content;
+  /* convert bigendian to little endian */
+  ltob_t ltob;
+  
   for (;;) {
     DWORD sspiOutFlags = 0;
     int rval, i;
@@ -751,23 +782,23 @@ static int client_handshake1(SgTLSSocket *tlsSocket, wchar_t *dn,
 	ss != SEC_I_INCOMPLETE_CREDENTIALS)
       break;
 
-    for (;;) {
-      rval = Sg_SocketReceive(socket, t+pt, sizeof(t), 0);
-      if (rval == 0 || rval == -1) {
-	raise_socket_error(SG_INTERN("tls-socket-connect!"),
-			   SG_MAKE_STRING("Failed to receive handshake message"),
-			   Sg_MakeConditionSocket(tlsSocket),
-			   tlsSocket);
-      }
-      pt += rval;
-      if (!socket_readable(socket->socket)) break;
-    }
+    rval = read_n(socket, header, sizeof(header));
+    ltob.hi = header[3];
+    ltob.lo = header[4];
+#ifdef HAVE_ALLOCA
+    content = (uint8_t *)alloca(ltob.size + sizeof(header));
+#else
+    content = SG_NEW_ATOMIC2(uint8_t *, ltob.size + sizeof(header));
+#endif
+    memcpy(content, header, sizeof(header));
+    rval += read_n(socket, content + sizeof(header), ltob.size);
+    
     INIT_SEC_BUFFER(&bufso[0], SECBUFFER_TOKEN, NULL, 0);
     /* INIT_SEC_BUFFER(&bufso[1], SECBUFFER_ALERT, NULL, 0); */
     INIT_SEC_BUFFER(&bufso[1], SECBUFFER_EMPTY, NULL, 0);
     INIT_SEC_BUFFER_DESC(&sbout, bufso, array_sizeof(bufso));
 
-    INIT_SEC_BUFFER(&bufsi[0], SECBUFFER_TOKEN, t, pt);
+    INIT_SEC_BUFFER(&bufsi[0], SECBUFFER_TOKEN, content, rval);
     INIT_SEC_BUFFER(&bufsi[1], SECBUFFER_EMPTY, NULL, 0);
     INIT_SEC_BUFFER_DESC(&sbin, bufsi, 2);
 
@@ -785,14 +816,13 @@ static int client_handshake1(SgTLSSocket *tlsSocket, wchar_t *dn,
 				    NULL);
     /* sorry we can't handle this */
     /* if (ss == SEC_E_INCOMPLETE_MESSAGE) continue; */
-    /* fprintf(stderr, "[client] ss = %lx\n", ss); */
+    fmt_dump("[client] ss = %lx\n", ss);
     if (FAILED(ss)) {
       raise_socket_error(SG_INTERN("tls-socket-connect!"),
 			 Sg_GetLastErrorMessageWithErrorCode(ss),
 			 Sg_MakeConditionSocket(tlsSocket),
 			 Sg_MakeIntegerU(ss));
     }
-    pt = 0;
     
     for (i = 0; i < array_sizeof(bufso); i++) {
       if (bufso[i].BufferType == SECBUFFER_TOKEN) {
@@ -874,9 +904,10 @@ static int server_handshake(SgTLSSocket *tlsSocket)
   WinTLSData *data = (WinTLSData *)tlsSocket->data;
   SecBufferDesc sbout, sbin;
   SecBuffer bufso[2], bufsi[2];
-  int initialised = FALSE, pt = 0;
-  /* FIXME... */
-  uint8_t t[0x10000];
+  int initialised = FALSE;
+  uint8_t header[5], *content;
+  /* convert bigendian to little endian */
+  ltob_t ltob;
 
   for (;;) {
     DWORD sspiOutFlags = 0;
@@ -887,19 +918,18 @@ static int server_handshake(SgTLSSocket *tlsSocket)
 	ss != SEC_I_INCOMPLETE_CREDENTIALS)
       break;
 
-    /* TODO handle when pt is bigger than buffer size */
-    for (;;) {
-      rval = Sg_SocketReceive(socket, t+pt, sizeof(t), 0);
-      if (rval == 0 || rval == -1) {
-	raise_socket_error(SG_INTERN("tls-socket-server-handshake"),
-			   SG_MAKE_STRING("Failed to receive handshake message"),
-			   Sg_MakeConditionSocket(tlsSocket),
-			   tlsSocket);
-      }
-      pt += rval;
-      if (!socket_readable(socket->socket)) break;
-    }
-    INIT_SEC_BUFFER(&bufsi[0], SECBUFFER_TOKEN, t, pt);
+    rval = read_n(socket, header, sizeof(header));
+    ltob.hi = header[3];
+    ltob.lo = header[4];
+#ifdef HAVE_ALLOCA
+    content = (uint8_t *)alloca(ltob.size + sizeof(header));
+#else
+    content = SG_NEW_ATOMIC2(uint8_t *, ltob.size + sizeof(header));
+#endif
+    memcpy(content, header, sizeof(header));
+    rval += read_n(socket, content + sizeof(header), ltob.size);
+
+    INIT_SEC_BUFFER(&bufsi[0], SECBUFFER_TOKEN, content, rval);
     INIT_SEC_BUFFER(&bufsi[1], SECBUFFER_EMPTY, NULL, 0);
     INIT_SEC_BUFFER_DESC(&sbin, bufsi, 2);
 
@@ -916,11 +946,10 @@ static int server_handshake(SgTLSSocket *tlsSocket)
 			       &sbout,
 			       &sspiOutFlags,
 			       NULL);
-    /* fprintf(stderr, "[server] ss = %lx\n", ss); */
+    fmt_dump("[server] ss = %lx\n", ss);
     initialised = TRUE;
-    if (ss == SEC_E_INCOMPLETE_MESSAGE) continue;
-    pt = 0;
-
+    /* we are reading one record so can't happen... */
+    /* if (ss == SEC_E_INCOMPLETE_MESSAGE) continue; */
     if (ss != S_OK && ss != SEC_I_CONTINUE_NEEDED) {
       raise_socket_error(SG_INTERN("tls-socket-server-handshake"),
 			 Sg_GetLastErrorMessageWithErrorCode(ss),
@@ -985,7 +1014,6 @@ static void tls_socket_shutdown(SgTLSSocket *tlsSocket)
 
   do {
     SECURITY_STATUS ss = ApplyControlToken(&data->context, &sbout);
-
     DWORD sspiFlags = ISC_REQ_SEQUENCE_DETECT   |
       ISC_REQ_REPLAY_DETECT     |
       ISC_REQ_CONFIDENTIALITY   |
@@ -997,12 +1025,8 @@ static void tls_socket_shutdown(SgTLSSocket *tlsSocket)
     int count;
     if (FAILED(ss)) return;	/* do nothing? */
 
-    buffer.pvBuffer = NULL;
-    buffer.BufferType = SECBUFFER_TOKEN;
-    buffer.cbBuffer = 0;
-    sbout.cBuffers = 1;
-    sbout.pBuffers = &buffer;
-    sbout.ulVersion = SECBUFFER_VERSION;
+    INIT_SEC_BUFFER(&buffer, SECBUFFER_TOKEN, NULL, 0);
+    INIT_SEC_BUFFER_DESC(&sbout, &buffer, 1);
     if (serverP) {
       ss = AcceptSecurityContext(&data->credential,
 				 &data->context,
@@ -1013,6 +1037,7 @@ static void tls_socket_shutdown(SgTLSSocket *tlsSocket)
 				 &sbout,
 				 &outFlags,
 				 NULL);
+      fmt_dump("[server] shutdown ss = %lx\n", ss);
     } else {
       ss = InitializeSecurityContextW(&data->credential,
 				      &data->context,
@@ -1026,6 +1051,7 @@ static void tls_socket_shutdown(SgTLSSocket *tlsSocket)
 				      &sbout,
 				      &outFlags,
 				      NULL);
+      fmt_dump("[client] shutdown ss = %lx\n", ss);
     }
     if (FAILED(ss)) return;
     message = (uint8_t *)buffer.pvBuffer;
@@ -1072,10 +1098,12 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
   WinTLSData *data = (WinTLSData *)tlsSocket->data;
   SecPkgContext_StreamSizes sizes;
   SECURITY_STATUS ss;
-  int read = 0, bufferSize, pt;
+  int read = 0;
   SecBufferDesc sbin;
   SecBuffer buffers[4];
-  uint8_t *mmsg;
+  uint8_t header[5], *content;
+  /* convert bigendian to little endian */
+  ltob_t ltob;
 
   ss = QueryContextAttributes(&data->context, SECPKG_ATTR_STREAM_SIZES, &sizes);
   if (FAILED(ss)) {
@@ -1100,23 +1128,24 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
     data->pendingSize = 0;
     if (!socket_readable(socket->socket)) return read;
   }
-  /* TODO optimise size or reuse buffer */
-  bufferSize = sizes.cbMaximumMessage + sizes.cbHeader + sizes.cbTrailer;
-#ifdef HAVE_ALLOCA
-  mmsg = (uint8_t *)alloca(bufferSize);
-#else
-  mmsg = SG_NEW_ATOMIC2(uint8_t *, bufferSize);
-#endif
-
-  pt = 0;
   for (;;) {
-    /* TODO handle the case when pt is bigger than buffer */
-    int rval = Sg_SocketReceive(socket, mmsg + pt, bufferSize, 0), i;
+    int rval, i;
     SecBuffer *buffer = NULL, *extra = NULL;
+    
+    rval = read_n(socket, header, sizeof(header));
+    ltob.hi = header[3];
+    ltob.lo = header[4];
+#ifdef HAVE_ALLOCA
+    content = (uint8_t *)alloca(ltob.size + sizeof(header));
+#else
+    content = SG_NEW_ATOMIC2(uint8_t *, ltob.size + sizeof(header));
+#endif
+    memcpy(content, header, sizeof(header));
+    rval += read_n(socket, content + sizeof(header), ltob.size);
 
     handleError(rval, socket);
-    buffers[0].pvBuffer = mmsg;
-    buffers[0].cbBuffer = rval + pt;
+    buffers[0].pvBuffer = content;
+    buffers[0].cbBuffer = rval;
     buffers[0].BufferType = SECBUFFER_DATA;
     buffers[1].BufferType = SECBUFFER_EMPTY;
     buffers[2].BufferType = SECBUFFER_EMPTY;
@@ -1126,12 +1155,7 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
     sbin.pBuffers = buffers;
     sbin.cBuffers = 4;
     ss = DecryptMessage(&data->context, &sbin, 0, NULL);
-    /* In case of non SSL? */
-    if (ss == SEC_E_INCOMPLETE_MESSAGE) {
-      pt += rval;
-      continue;
-    }
-    pt = 0;
+
     if (ss != SEC_E_OK) {
       raise_socket_error(SG_INTERN("tls-socket-recv!"),
 			 Sg_GetLastErrorMessageWithErrorCode(ss),
