@@ -144,7 +144,8 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
     break;
   case SG_SOCKET_SERVER:
     ctx = SSL_CTX_new(SSLv23_server_method());
-#if (OPENSSL_VERSION_NUMBER < 0x10100000)
+#if (OPENSSL_VERSION_NUMBER > 0x10001000L) &&	\
+  (OPENSSL_VERSION_NUMBER < 0x10100000)
     SSL_CTX_set_ecdh_auto(ctx, 1);
 #endif
     serverP = TRUE;
