@@ -88,7 +88,8 @@
   (define config (make-server-config :shutdown-port +shutdown-port+
 				     :secure? #t
 				     :use-ipv6? #t
-				     :certificates (list cert)))
+				     :certificates (list cert)
+				     :private-key (keypair-private keypair)))
   (define (handler server socket)
     (let ((bv (socket-recv socket 255)))
       (socket-send socket bv)))

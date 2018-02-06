@@ -14,15 +14,6 @@ ELSE()
   PKG_CHECK_MODULES(PC_OPENSSL openssl)
   MESSAGE(STATUS "OpenSSL lib dir ${PC_OPENSSL_LIBDIR}")
 
-  IF (NOT HAVE_OPENSSL_H)
-    MESSAGE(STATUS "OpenSSL include dir ${PC_OPENSSL_INCLUDEDIR}")
-    # okay OSX can't find it
-    FIND_PATH(OPENSSL_INCLUDE_DIR openssl/ssl.h
-      HINTS ${PC_OPENSSL_INCLUDEDIR} ${PC_OPENSSL_INCLUDE_DIRS})
-    IF (PC_OPENSSL_INCLUDE_DIRS)
-      SET(HAVE_OPENSSL_H TRUE)
-    ENDIF()
-  ENDIF()
   FIND_LIBRARY(SSL_LIBRARIES NAMES ssl
     HINTS ${PC_OPENSSL_LIBDIR} ${PC_OPENSSL_LIBRARY_DIRS})
   MESSAGE(STATUS "OpenSSL libs: ${SSL_LIBRARIES}")
@@ -34,6 +25,23 @@ ELSE()
   IF (HAVE_OPENSSL_H)
     SET(TLS_SOURCE tls_openssl.c)
     SET(TLS_LIBS ${SSL_LIBRARIES} ${CRYPTO_LIBRARIES})
+  ELSEIF(${SAGITTARIUS_PLATFORM} STREQUAL "darwin")
+    MESSAGE(STATUS "Trying to use homebrew version of OpenSSL")
+    EXECUTE_PROCESS(COMMAND "brew --prefix openssl"
+      OUTPUT_VARIABLE HOMWBREW_OPENSSL_DIR)
+    SET(tmp ${CMAKE_REQUIRED_INCLUDES})
+    SET(CMAKE_REQUIRED_INCLUDES ${HOMWBREW_OPENSSL_DIR})
+    CHECK_INCLUDE_FILE(openssl/ssl.h HAVE_OPENSSL_H)
+    IF (HAVE_OPENSSL_H)
+      SET(TLS_SOURCE tls_openssl.c)
+      SET(TLS_LIBS
+	${HOMWBREW_OPENSSL_DIR}/lib/libssl.dylib
+	${HOMWBREW_OPENSSL_DIR}/lib/libcrypto.dylib)
+    ELSE()
+      MESSAGE(FATAL_ERROR "No SSL provider found. Please install OpenSSL")
+    ENDIF()
+    # reset
+    SET(CMAKE_REQUIRED_INCLUDES ${tmp})
   ELSEIF (CYGWIN)
     MESSAGE(STATUS "OpenSSL is not found, using SChannel.")
     MESSAGE(WARNING "On this platform, it's better to use OpenSSL, please consider to instsall it
