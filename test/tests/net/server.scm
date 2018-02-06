@@ -10,6 +10,7 @@
 	(srfi :19)
 	(srfi :64))
 
+(define (print . args) (for-each display args) (newline))
 (test-begin "Simple server framework")
 
 (define-constant +shutdown-port+ "7500")

@@ -1906,7 +1906,7 @@ static int64_t custom_bi_binary_put_u8_array(SgObject self, uint8_t *v,
 
 static void custom_flush(SgObject self)
 {
-  if (!SG_FALSEP(SG_CUSTOM_PORT(self)->flush)) {
+  if (SG_PROCEDUREP(SG_CUSTOM_PORT(self)->flush)) {
     Sg_Apply0(SG_CUSTOM_PORT(self)->flush);
   }
 }
@@ -1914,7 +1914,7 @@ static void custom_flush(SgObject self)
 static int custom_close(SgObject self)
 {
   if (SG_PORT(self)->closed != SG_PORT_CLOSED) {
-    if (!SG_FALSEP(SG_CUSTOM_PORT(self)->close)) {
+    if (SG_PROCEDUREP(SG_CUSTOM_PORT(self)->close)) {
       Sg_Apply0(SG_CUSTOM_PORT(self)->close);
     }
     Sg_UnregisterFinalizer(self);
@@ -1925,7 +1925,7 @@ static int custom_close(SgObject self)
 
 static int custom_ready(SgObject self)
 {
-  if (!SG_FALSEP(SG_CUSTOM_PORT(self)->ready)) {
+  if (SG_PROCEDUREP(SG_CUSTOM_PORT(self)->ready)) {
     SgObject r = Sg_Apply0(SG_CUSTOM_PORT(self)->ready);
     return !SG_FALSEP(r);
   }
@@ -1936,7 +1936,7 @@ static int64_t custom_port_position(SgObject self)
 {
   SgObject ret;
   int64_t pos;
-  if (SG_FALSEP(SG_CUSTOM_PORT(self)->getPosition)) {
+  if (!SG_PROCEDUREP(SG_CUSTOM_PORT(self)->getPosition)) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("port-position"),
 				    SG_MAKE_STRING("positionable port"),
 				    self, SG_NIL);
@@ -1962,7 +1962,7 @@ static void custom_binary_set_port_position(SgObject port, int64_t offset,
 					    Whence whence)
 {
   SgObject sym;
-  if (SG_FALSEP(SG_CUSTOM_PORT(port)->setPosition)) {
+  if (!SG_PROCEDUREP(SG_CUSTOM_PORT(port)->setPosition)) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("port-position"),
 				    SG_MAKE_STRING("positionable port"),
 				    port, SG_NIL);
@@ -1998,7 +1998,7 @@ static void custom_textual_set_port_position(SgObject port, int64_t offset,
 {
   SgObject proc;
   SgObject sym = SG_FALSE;
-  if (SG_FALSEP(SG_CUSTOM_PORT(port)->setPosition)) {
+  if (!SG_PROCEDUREP(SG_CUSTOM_PORT(port)->setPosition)) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("port-position"),
 				    SG_MAKE_STRING("positionable port"),
 				    port, SG_NIL);
