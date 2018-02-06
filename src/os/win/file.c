@@ -150,33 +150,35 @@ static int64_t win_write(SgObject self, uint8_t *buf, int64_t size)
   SgFile *file = SG_FILE(self);
   /* check console */
   if (Sg_IsUTF16Console(file)) {
-#if 1
     unsigned int destSize = 0;
-    uint8_t *dest = NULL;
+    int written = FALSE;
     if ((destSize = WideCharToMultiByte(GetConsoleOutputCP(), 0,
 					(const wchar_t *)buf, 
 					(DWORD)(size / 2), 
-					(LPSTR)NULL, 0, NULL, NULL)) == 0) {
-      Sg_IOWriteError(SG_INTERN("win write(1)"), Sg_GetLastErrorMessage(), 
-		      SG_FALSE, self);
-    }
-    dest = SG_NEW_ATOMIC2(uint8_t *, destSize + 1);
-    if (WideCharToMultiByte(GetConsoleOutputCP(), 0, (const wchar_t *)buf,
-			    (DWORD)(size / 2),
-			    (LPSTR)dest, destSize, NULL, NULL) == 0) {
-      Sg_IOWriteError(SG_INTERN("win write(2)"), Sg_GetLastErrorMessage(), 
-		      SG_FALSE, self);
-    }
-    isOK = WriteFile(SG_FD(file)->desc, dest, destSize, &writeSize, NULL);
-    if (!isOK) {
-      Sg_IOWriteError(SG_INTERN("win write(3)"), Sg_GetLastErrorMessage(), 
-		      SG_FALSE, self);
-    }
-    /* hmmm */
-    writeSize *= 2;
+					(LPSTR)NULL, 0, NULL, NULL))) {
+      uint8_t *dest = NULL;
+#ifdef HAVE_ALLOCA
+      dest = (uint8_t *)alloca(destSize + 1);
 #else
-    isOK = WriteFile(SG_FD(file)->desc, buf, size, &writeSize, NULL);
+      dest = SG_NEW_ATOMIC2(uint8_t *, destSize + 1);
 #endif
+      if (WideCharToMultiByte(GetConsoleOutputCP(), 0, (const wchar_t *)buf,
+			      (DWORD)(size / 2),
+			      (LPSTR)dest, destSize, NULL, NULL)) {
+	isOK = WriteFile(SG_FD(file)->desc, dest, destSize, &writeSize, NULL);
+	if (!isOK) {
+	  /* it doesn't make that much sense to raise an error here... */
+	  Sg_IOWriteError(SG_INTERN("win write)"), Sg_GetLastErrorMessage(), 
+			  SG_FALSE, self);
+	}
+	written = TRUE;
+	/* hmmm */
+	writeSize *= 2;
+      }
+    }
+    if (!written) {
+      isOK = WriteFile(SG_FD(file)->desc, buf, (DWORD)size, &writeSize, NULL);
+    }
   } else {
     isOK = WriteFile(SG_FD(file)->desc, buf, (DWORD)size, &writeSize, NULL);
   }
