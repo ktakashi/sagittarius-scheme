@@ -400,14 +400,18 @@ static void client_init(SgTLSSocket *r)
 static void free_context(WinTLSContext *context)
 {
   int i;
-  for (i = 0; i < context->certificateCount; i++) {
-    CertFreeCertificateContext(context->certificates[i]);
+  if (context->certificates && context->certificateCount) {
+    for (i = 0; i < context->certificateCount; i++) {
+      CertFreeCertificateContext(context->certificates[i]);
+      context->certificates[i] = NULL;
+    }
+    context->certificateCount = 0;
+    context->certificates = NULL;
   }
   if (context->privateKey) {
     CryptDestroyKey(context->privateKey);
     context->privateKey = NULL;
   }
-  context->certificateCount = 0;
   Sg_UnregisterFinalizer(context);
   /* if (context->certStore) { */
   /*   CertCloseStore(context->certStore, 0); */
@@ -1163,7 +1167,7 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
     INIT_SEC_BUFFER_DESC(&sbin, buffers, 4);
 
     ss = DecryptMessage(&data->context, &sbin, 0, NULL);
-
+    if (ss == SEC_I_CONTEXT_EXPIRED) return 0; /* server sent end session */
     if (ss != SEC_E_OK) {
       raise_socket_error(SG_INTERN("tls-socket-recv!"),
 			 Sg_GetLastErrorMessageWithErrorCode(ss),
