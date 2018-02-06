@@ -145,7 +145,6 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
   case SG_SOCKET_SERVER:
     ctx = SSL_CTX_new(SSLv23_server_method());
     serverP = TRUE;
-    SSL_CTX_set_ecdh_auto(ctx, 1);
     break;
   default:
     Sg_AssertionViolation(SG_INTERN("socket->tls-socket"),

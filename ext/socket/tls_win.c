@@ -119,7 +119,10 @@ static LPWSTR CLIENT_KEY_CONTAINER_NAME = NULL;
 static LPWSTR KEY_PROVIDER = NULL;
 #endif
 
+/* enable them if you want to debug */
 /* #define DEBUG_DUMP */
+/* #define DEBUG_TLS_HANDLES */
+
 #ifdef DEBUG_DUMP
 # define fmt_dump(fmt, ...) fprintf(stderr, fmt, __VA_ARGS__)
 # define msg_dump(msg) fputs(msg, stderr)
@@ -139,7 +142,6 @@ static void dump_hex(void *data, int size)
 # define hex_dump(hex, size) 
 #endif
 
-/* #define DEBUG_TLS_HANDLES */
 #ifdef  DEBUG_TLS_HANDLES
 
 static void dump_ctx_handle(CtxtHandle *ctx)
@@ -447,10 +449,14 @@ static void load_certificates(WinTLSData *data, SgObject certificates)
   int count = 0, len = Sg_Length(certificates);
   SgObject cp;
   WinTLSContext *context = data->tlsContext;
+
   context->certificateCount = len;
-  if (len) {
-    context->certificates = SG_NEW_ARRAY(PCCERT_CONTEXT, len);
-  }
+  fmt_dump("# of certificates to be loaded %d\n", len);
+  
+  if (!len) return;
+  
+  context->certificates = SG_NEW_ARRAY(PCCERT_CONTEXT, len);
+  msg_dump("Loading certificate ... ");
   SG_FOR_EACH(cp, certificates) {
     SgByteVector *cert;
     PCCERT_CONTEXT pcert;
@@ -479,6 +485,7 @@ static void load_certificates(WinTLSData *data, SgObject certificates)
     }
     context->certificates[count++] = pcert;
   }
+  msg_dump("Done!\n");
 }
 
 static DWORD add_private_key(WinTLSData *data,
@@ -635,6 +642,7 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 
   load_certificates(data, certificates);
 
+  msg_dump("Loading private key and initialising socket ... ");
   switch (socket->type) {
   case SG_SOCKET_CLIENT:
     result = add_private_key(data, privateKey, CLIENT_KEY_CONTAINER_NAME);
@@ -651,6 +659,7 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
       socket);
     return NULL;		/* dummy */
   }
+  fmt_dump("Done! -- %d\n", result);
 
   if (serverP && FAILED(result) && result != E_NOTIMPL) {
     Sg_TLSSocketClose(r);
@@ -1228,6 +1237,10 @@ void Sg_InitTLSImplementation()
   KEY_PROVIDER = Sg_StringToWCharTs(provName);
   IMPL_NAME = Sg_StringToWCharTs(implName);
 #endif
+  fmt_dump("Key provider: '%S'\n", KEY_PROVIDER);
+  fmt_dump("Service provider: '%S'\n", IMPL_NAME);
+  fmt_dump("Client key container: '%S'\n", CLIENT_KEY_CONTAINER_NAME);
+  fmt_dump("Server key container: '%S'\n", SERVER_KEY_CONTAINER_NAME);
   Sg_AddCleanupHandler(cleanup_keyset, NULL);
   cleanup_keyset(NULL);
 }
