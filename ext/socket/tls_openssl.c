@@ -144,6 +144,9 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
     break;
   case SG_SOCKET_SERVER:
     ctx = SSL_CTX_new(SSLv23_server_method());
+#if (OPENSSL_VERSION_NUMBER < 0x10100000)
+    SSL_CTX_set_ecdh_auto(ctx, 1);
+#endif
     serverP = TRUE;
     break;
   default:
@@ -217,10 +220,12 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
     SSL_set_tlsext_host_name(data->ssl, hostname);
   }
   /* For now we expect the argument to be properly formatted TLS packet. */
+#if (OPENSSL_VERSION_NUMBER >= 0x10002000L)
   if (SG_BVECTORP(alpn)) {
     SSL_set_alpn_protos(data->ssl, SG_BVECTOR_ELEMENTS(alpn),
 			SG_BVECTOR_SIZE(alpn));
   }
+#endif
   SSL_set_fd(data->ssl, socket->socket);
   return SSL_connect(data->ssl);
 }
@@ -242,7 +247,7 @@ static void handle_accept_error(SgTLSSocket *tlsSocket, int r)
   raise_socket_error(SG_INTERN("tls-socket-accept"),
 		     Sg_Utf8sToUtf32s(msg, strlen(msg)),
 		     Sg_MakeConditionSocket(tlsSocket),
-		     tlsSocket);
+		     Sg_MakeIntegerU(err));
     
 }
 

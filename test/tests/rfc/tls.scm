@@ -31,6 +31,7 @@
 (define (server-run)
   (define end? #f)
   (let loop ()
+    (guard (e (else (report-error e)))
     (let ((addr (tls-socket-accept server-socket)))
       (guard (e (else (unless end? (loop))))
 	(call-with-tls-socket addr
@@ -50,7 +51,7 @@
 			       (thread-sleep! 1))
 			     (put-bytevector p res 0 (bytevector-length res) #t)
 			     (lp2 (get-line p)))))))))))))))
-  
+  )
 (define server-thread (thread-start! (make-thread server-run)))
 (thread-sleep! 2)
 

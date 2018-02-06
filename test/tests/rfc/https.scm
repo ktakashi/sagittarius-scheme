@@ -178,7 +178,11 @@
 	       (put-bytevector in/out (get-bytevector-all port size))
 	       (loop))))))
   
-
+  (receive (code headers body)
+      (http-request 'GET host "/get" :secure #t :my-header "foo")
+    (and (equal? code "200")
+	 (equal? headers '(("content-type" "text/plain")))
+	 (read-from-string body)))
   (test-assert "http-get, default string receiver"
 	       (alist-equal? 
 		expected
