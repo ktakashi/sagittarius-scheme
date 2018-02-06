@@ -54,7 +54,7 @@
   if ((r) <= 0)	{							\
     int e = errno;							\
     unsigned long err = SSL_get_error((ssl), (r));			\
-    if (err != SSL_ERROR_NONE) {					\
+    if (err != SSL_ERROR_NONE && err != SSL_ERROR_ZERO_RETURN) {	\
       const char *msg = NULL;						\
       if (SSL_ERROR_SYSCALL == err) {					\
 	switch (e) {							\
@@ -318,7 +318,7 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *data,
   OpenSSLData *tlsData = (OpenSSLData *)tlsSocket->data;
   int r;
   if (!tlsData->ssl) {
-    raise_socket_error(SG_INTERN("tls-socket-recv"),
+    raise_socket_error(SG_INTERN("tls-socket-recv!"),
 		       SG_MAKE_STRING("socket is closed"),
 		       Sg_MakeConditionSocketClosed(tlsSocket),
 		       tlsSocket);
