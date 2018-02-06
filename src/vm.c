@@ -1812,7 +1812,6 @@ SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP)
     save_cont(vm);
     exception = Sg_AddStackTrace(exception, vm);
   }
-  Sg_ReportError(exception, vm->currentErrorPort);
   /* should never happen but I usually make mistake so lean to safer side. */
   if (SG_NULLP(vm->exceptionHandlers)) {
     vm->exceptionHandlers = DEFAULT_EXCEPTION_HANDLER;
