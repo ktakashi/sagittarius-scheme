@@ -95,14 +95,12 @@
 	    (rename (sagittarius tls-socket)
 		    (socket->tls-socket tls:socket->tls-socket)
 		    (tls-server-socket-handshake tls-server-handshake))
-	    (except (sagittarius socket)
-		    socket-read-select
-		    socket-write-select
-		    socket-error-select)
+	    (sagittarius socket)
 	    (prefix (only (sagittarius socket)
 			  socket-read-select
 			  socket-write-select
-			  socket-error-select) socket:)
+			  socket-error-select
+			  socket-accept) socket:)
 	    (sagittarius control)
 	    (sagittarius object)
 	    (clos user)
@@ -157,7 +155,7 @@
     (define (certificates->bytevector certificates)
       (map x509-certificate->bytevector certificates))
     (define (backward-compatiblity pkey certs)
-      (if pkey
+      (if (or pkey client-socket)
 	  (values pkey certs)
 	  ;; once upon a time, I misunderstood the requirement of the
 	  ;; certificates and private key. thus, some of the TLS server
@@ -174,10 +172,11 @@
                       (make-x509-issuer '((C . "NL"))))))
 	    ;; TODO show warning message
 	    (values (keypair-private ks) (list cert)))))
-    (let-values (((pkey certs) (backward-compatiblity private-key certificates)))
+    (let-values (((pkey certs)
+		  (backward-compatiblity private-key certificates)))
       (let ((r (tls:socket->tls-socket socket
 		 :certificates (certificates->bytevector certs)
-		 :private-key (export-private-key pkey))))
+		 :private-key (and pkey (export-private-key pkey)))))
 	(if (and client-socket handshake)
 	    (tls-client-handshake r :hello-extensions hello-extensions)
 	    r))))
@@ -249,7 +248,7 @@
     (apply tls-socket-accept o opt))
   ;; To avoid no-next-method error
   (define-method socket-accept ((o <socket>) (key <keyword>) . dummy)
-    (socket-accept o))
+    (socket:socket-accept o))
 
   (define-method call-with-socket ((o <tls-socket>) proc)
     (call-with-tls-socket o proc))

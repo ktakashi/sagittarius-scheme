@@ -95,6 +95,7 @@ typedef struct OpenSSLDataRec
 {
   SSL_CTX *ctx;
   SSL     *ssl;
+  int      rootServerSocketP;
 } OpenSSLData;
 
 static void tls_socket_finalizer(SgObject self, void *data)
@@ -102,7 +103,8 @@ static void tls_socket_finalizer(SgObject self, void *data)
   Sg_TLSSocketClose(SG_TLS_SOCKET(self));
 }
 
-static SgTLSSocket* make_tls_socket(SgSocket *socket, SSL_CTX *ctx)
+static SgTLSSocket* make_tls_socket(SgSocket *socket, SSL_CTX *ctx,
+				    int rootServerSocketP)
 {
   SgTLSSocket *r = SG_NEW(SgTLSSocket);
   OpenSSLData *data = SG_NEW(OpenSSLData);
@@ -111,7 +113,7 @@ static SgTLSSocket* make_tls_socket(SgSocket *socket, SSL_CTX *ctx)
   r->socket = socket;
   r->data = data;
   data->ctx = ctx;
-  
+  data->rootServerSocketP = rootServerSocketP;
   data->ssl = NULL;
   Sg_RegisterFinalizer(r, tls_socket_finalizer, NULL);
   return r;
@@ -133,7 +135,7 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 {
   SgObject cp;
   SSL_CTX *ctx;
-  int loaded = 0;
+  int loaded = 0, serverP = FALSE;
 
   ERR_clear_error();		/* clear error */
   switch(socket->type) {
@@ -142,6 +144,7 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
     break;
   case SG_SOCKET_SERVER:
     ctx = SSL_CTX_new(SSLv23_server_method());
+    serverP = TRUE;
     SSL_CTX_set_ecdh_auto(ctx, 1);
     break;
   default:
@@ -185,7 +188,7 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 			  SG_FALSE);
   }
   
-  return make_tls_socket(socket, ctx);
+  return make_tls_socket(socket, ctx, serverP);
 
  err: {
     unsigned long e = ERR_get_error();
@@ -249,7 +252,7 @@ SgObject Sg_TLSSocketAccept(SgTLSSocket *tlsSocket, int handshake)
   SgObject sock = Sg_SocketAccept(tlsSocket->socket);
   if (SG_SOCKETP(sock)) {
     OpenSSLData *newData, *data = (OpenSSLData *)tlsSocket->data;
-    SgTLSSocket *newSock = make_tls_socket(SG_SOCKET(sock), data->ctx);
+    SgTLSSocket *newSock = make_tls_socket(SG_SOCKET(sock), data->ctx, FALSE);
     int r;
     ERR_clear_error();		/* clear error */
     /* this will be shared among the server socket, so increase the 
@@ -305,7 +308,8 @@ void Sg_TLSSocketClose(SgTLSSocket *tlsSocket)
 int Sg_TLSSocketOpenP(SgTLSSocket *tlsSocket)
 {
   OpenSSLData *data = (OpenSSLData *)tlsSocket->data;
-  return data->ssl != NULL && data->ctx != NULL;
+  return (data->ssl != NULL || data->rootServerSocketP)
+    && data->ctx != NULL;
 }
 
 int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *data,
