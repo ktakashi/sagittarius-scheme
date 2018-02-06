@@ -1022,6 +1022,9 @@ SgObject Sg_TLSServerSocketHandshake(SgTLSSocket *tlsSocket)
   return tlsSocket;
 }
 
+/* 
+https://msdn.microsoft.com/en-us/library/windows/desktop/aa380138(v=vs.85).aspx
+ */
 static void tls_socket_shutdown(SgTLSSocket *tlsSocket)
 {
   WinTLSData *data = (WinTLSData *)tlsSocket->data;
@@ -1034,10 +1037,52 @@ static void tls_socket_shutdown(SgTLSSocket *tlsSocket)
   
   do {
     SECURITY_STATUS ss = ApplyControlToken(&data->context, &sbout);
+    SgSocket *socket;
+    DWORD sspiFlags = ISC_REQ_MANUAL_CRED_VALIDATION |
+      ISC_REQ_SEQUENCE_DETECT   |
+      ISC_REQ_REPLAY_DETECT     |
+      ISC_REQ_CONFIDENTIALITY   |
+      ISC_RET_EXTENDED_ERROR    |
+      ISC_REQ_ALLOCATE_MEMORY   |
+      ISC_REQ_STREAM;
+    DWORD outFlags;
+
     if (FAILED(ss)) return;	/* do nothing? */
+    socket = tlsSocket->socket;
+    INIT_SEC_BUFFER(&buffer, SECBUFFER_TOKEN, NULL, 0);
+    INIT_SEC_BUFFER_DESC(&sbout, &buffer, 1);
+
+    switch (socket->type) {
+    case SG_SOCKET_CLIENT:
+      ss = InitializeSecurityContextW(&data->credential,
+				      &data->context,
+				      NULL,
+				      sspiFlags,
+				      0,
+				      0,
+				      NULL,
+				      0,
+				      &data->context,
+				      &sbout,
+				      &outFlags,
+				      NULL);
+      break;
+    case SG_SOCKET_SERVER:
+      ss = AcceptSecurityContext(&data->credential,
+				 &data->context,
+				 NULL,
+				 sspiFlags,
+				 0,
+				 NULL,
+				 &sbout,
+				 &outFlags,
+				 NULL);
+      break;
+    }
+    if (FAILED(ss)) return;
     if (buffer.pvBuffer != NULL && buffer.cbBuffer != 0) {
-      Sg_SocketSend(tlsSocket->socket, (uint8_t *)buffer.pvBuffer,
-		    buffer.cbBuffer, 0);
+      Sg_SocketSend(socket, (uint8_t *)buffer.pvBuffer, buffer.cbBuffer, 0);
+      fmt_dump("buffer %p [%d]\n", buffer.pvBuffer, buffer.cbBuffer);
       FreeContextBuffer(buffer.pvBuffer);
     }
   } while(0);
