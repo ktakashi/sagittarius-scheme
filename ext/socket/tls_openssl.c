@@ -43,6 +43,9 @@
 #include <sagittarius/extend.h>
 #include "tls-socket.h"
 
+#ifndef MSG_NOSIGNAL
+#define MSG_NOSIGNAL 0		/* no support (incl. *BSD/OSX) */
+#endif
 
 #if EAGAIN == EWOULDBLOCK
 #define NON_BLOCKING_CASE EAGAIN
