@@ -162,7 +162,7 @@ SET_TARGET_PROPERTIES(sash PROPERTIES
 TARGET_LINK_LIBRARIES(sash sagittarius)
 
 # copy gcmt-dll.dll to build
-IF (WINDOWS_SUPPORT)
+IF (GC_DEPENDS_TARGET)
   IF (MINGW)
     SET(GCMT_DLL libgcmt-dll.dll)
   ELSE()
