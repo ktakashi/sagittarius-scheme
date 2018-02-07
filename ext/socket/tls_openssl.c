@@ -89,7 +89,7 @@
   }
 
 /* should we disable SHA1 as well? */
-#define CIPHER_LIST "HIGH:!aNULL:!kRSA:!PSK:!SRP:!MD5:!RC4"
+#define CIPHER_LIST "HIGH:!aNULL:!PSK:!SRP:!MD5:!RC4"
 
 typedef struct OpenSSLDataRec
 {
