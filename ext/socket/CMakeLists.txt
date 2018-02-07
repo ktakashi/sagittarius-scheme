@@ -122,7 +122,7 @@ ENDIF()
 
 INSTALL(TARGETS sagittarius--socket sagittarius--tls-socket
   DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
-INSTALL(FILES sagittarius/socket.scm
+INSTALL(FILES sagittarius/socket.scm sagittarius/tls-socket.scm
   DESTINATION ${SAGITTARIUS_SHARE_LIB_PATH}/sagittarius)
 INSTALL(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/srfi
   DESTINATION ${SAGITTARIUS_SHARE_LIB_PATH})
