@@ -60,34 +60,36 @@
     if (err != SSL_ERROR_NONE && err != SSL_ERROR_ZERO_RETURN) {	\
       const char *msg = NULL;						\
       if (SSL_ERROR_SYSCALL == err) {					\
-	switch (e) {							\
-	case EINTR: continue;						\
-	case EPIPE:							\
-	  if (flags & MSG_NOSIGNAL) {					\
-	    return 0;							\
+	if (e < 0) {							\
+	  switch (e) {							\
+	  case EINTR: continue;						\
+	  case EPIPE:							\
+	    if (flags & MSG_NOSIGNAL) {					\
+	      return 0;							\
+	    }								\
+	    break;							\
+	  case NON_BLOCKING_CASE:					\
+	    /* most probably non-blocking socket */			\
+	    return r;							\
 	  }								\
-	  break;							\
-	case NON_BLOCKING_CASE:						\
-	  /* most probably non-blocking socket */			\
-	  return r;							\
+	  raise_socket_error(SG_INTERN(who),				\
+			     Sg_GetLastErrorMessageWithErrorCode(e),	\
+			     Sg_MakeConditionSocket(tlsSocket),		\
+			     SG_MAKE_INT(e));				\
 	}								\
-	raise_socket_error(SG_INTERN(who),				\
-			   Sg_GetLastErrorMessageWithErrorCode(e),	\
-			   Sg_MakeConditionSocket(tlsSocket),		\
-			   SG_MAKE_INT(e));				\
       } else if (SSL_ERROR_WANT_READ == err ||				\
 		 SSL_ERROR_WANT_WRITE == err) {				\
 	/* probably non-blocking socket */				\
 	return r;							\
-      } else if (SSL_ERROR_SSL == err) {				\
-	err = ERR_get_error();						\
+      } else {								\
+	if (SSL_ERROR_SSL == err) err = ERR_get_error();		\
+	msg = ERR_reason_error_string(err);				\
+	if (!msg) msg = "unknown error";				\
+	raise_socket_error(SG_INTERN(who),				\
+			   Sg_Utf8sToUtf32s(msg, strlen(msg)),		\
+			   Sg_MakeConditionSocket(tlsSocket),		\
+			   Sg_MakeIntegerU(err));			\
       }									\
-      msg = ERR_reason_error_string(err);				\
-      if (!msg) msg = "unknown error";					\
-      raise_socket_error(SG_INTERN(who),				\
-			 Sg_Utf8sToUtf32s(msg, strlen(msg)),		\
-			 Sg_MakeConditionSocket(tlsSocket),		\
-			 Sg_MakeIntegerU(err));				\
     }									\
   }
 
