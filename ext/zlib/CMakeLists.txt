@@ -7,7 +7,7 @@ ADD_LIBRARY(sagittarius--zlib MODULE
 # always support
 ADD_FEATURE(zlib)
 
-IF (WINDOWS_SUPPORT OR CYGWIN)
+IF (USE_CPP_FOR_BROKEN_LINKER)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(sagittarius-zlib.c 
     ${CMAKE_CURRENT_BINARY_DIR}/zlib_stub.c

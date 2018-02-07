@@ -45,6 +45,10 @@ GET_PARAMETER(SHARE_DIR      share)
 # so make it configurable
 GET_PARAMETER(PKGCONFIG_DIR  lib/pkgconfig)
 
+IF (CYGWIN OR MSYS)
+  SET(POSIX_EMULATOR TRUE)
+ENDIF()
+
 IF (WATCOM)
   MESSAGE(STATUS "*CAUTION* open watcom is experimental")
 ENDIF()

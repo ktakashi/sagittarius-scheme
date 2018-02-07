@@ -124,16 +124,14 @@ MACRO (FIXUP_COMPILER_FLAGS _PROCESSOR _PLATFORM)
   # compiler option for global
   # TODO support MinGW
   IF(${CMAKE_SYSTEM_NAME} MATCHES Windows)
-    IF (MSVC OR WATCOM OR MINGW)
-      SET(USE_UCS4_CPP TRUE)
-    ELSE()
-      MESSAGE(FATAL_ERROR "On Windows Only MSVC is supported")
-    ENDIF()
-  ELSEIF(CYGWIN)
+    SET(USE_UCS4_CPP TRUE)
+  ELSEIF(CYGWIN OR MSYS)
     CHECK_C_COMPILER_FLAG("-fwide-exec-charset=ucs-4le" WIDE_EXEC_CHARSET)
     IF (WIDE_EXEC_CHARSET)
       SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fwide-exec-charset=ucs-4le")
       SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fwide-exec-charset=ucs-4le")
+    ELSE()
+      SET(USE_UCS4_CPP TRUE)
     ENDIF()
 
     # Cygwin stack issue

@@ -91,7 +91,7 @@ ELSE()
   ADD_LIBRARY(sagittarius--ffi MODULE sagittarius-ffi.c 
     ${CMAKE_CURRENT_BINARY_DIR}/ffi_stub.c)
 
-  IF (WINDOWS_SUPPORT OR CYGWIN)
+  IF (USE_CPP_FOR_BROKEN_LINKER)
     # ugly solution
     SET_SOURCE_FILES_PROPERTIES(sagittarius-ffi.c
       ${CMAKE_CURRENT_BINARY_DIR}/ffi_stub.c

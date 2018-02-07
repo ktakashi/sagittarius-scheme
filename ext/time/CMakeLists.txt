@@ -9,7 +9,7 @@ ADD_LIBRARY(sagittarius--time MODULE
 
 ADD_FEATURE(time)
 
-IF (WINDOWS_SUPPORT OR CYGWIN)
+IF (USE_CPP_FOR_BROKEN_LINKER)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(sagittarius-time.c date.c 
     ${CMAKE_CURRENT_BINARY_DIR}/time_stub.c 
