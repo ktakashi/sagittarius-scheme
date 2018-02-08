@@ -7,7 +7,7 @@ ADD_LIBRARY(sagittarius--crypto MODULE
 
 ADD_FEATURE(crypto)
 
-IF (WINDOWS_SUPPORT OR CYGWIN)
+IF (USE_CPP_FOR_BROKEN_LINKER)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(crypto.c 
     ${CMAKE_CURRENT_BINARY_DIR}/crypto_stub.c key.c
@@ -46,7 +46,7 @@ INSTALL(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/crypto
 ADD_LIBRARY(sagittarius--math MODULE
   hash.c random.c ${CMAKE_CURRENT_BINARY_DIR}/math_stub.c sagittarius-math.c)
 
-IF (WINDOWS_SUPPORT OR CYGWIN)
+IF (USE_CPP_FOR_BROKEN_LINKER)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(sagittarius-math.c 
     ${CMAKE_CURRENT_BINARY_DIR}/math_stub.c hash.c random.c

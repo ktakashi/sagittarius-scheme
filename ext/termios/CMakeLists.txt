@@ -5,7 +5,7 @@
 INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
 
 # termios
-IF (WIN32 AND NOT CYGWIN)
+IF (WINDOWS_SUPPORT)
   SET(OS_SRC win_termios.c)
 ENDIF()
 
@@ -20,7 +20,7 @@ ADD_STUBS(sagittarius--termios
   OUTTREE)
 ADD_FEATURE(termios)
 
-IF (WINDOWS_SUPPORT OR CYGWIN)
+IF (USE_CPP_FOR_BROKEN_LINKER)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(
     termios.c

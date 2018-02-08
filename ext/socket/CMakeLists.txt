@@ -2,7 +2,7 @@
 # 
 # Build file for socket
 
-IF(CYGWIN)
+IF(POSIX_EMULATOR)
   OPTION(USE_SCHANNEL "Using SChannel instead of OpenSSL" OFF)
 ENDIF()
 
@@ -55,7 +55,7 @@ ELSE()
     ENDIF()
     # reset
     SET(CMAKE_REQUIRED_INCLUDES ${tmp})
-  ELSEIF (CYGWIN)
+  ELSEIF (POSIX_EMULATOR)
     MESSAGE(STATUS "OpenSSL is not found, using SChannel.")
     MESSAGE(WARNING "On this platform, it's better to use OpenSSL, please consider to instsall it
 ")
@@ -79,7 +79,7 @@ ADD_LIBRARY(sagittarius--tls-socket MODULE
 
 ADD_FEATURE(socket)
 
-IF (WINDOWS_SUPPORT OR CYGWIN)
+IF (USE_CPP_FOR_BROKEN_LINKER)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(sagittarius-socket.c 
     ${CMAKE_CURRENT_BINARY_DIR}/socket_stub.c
