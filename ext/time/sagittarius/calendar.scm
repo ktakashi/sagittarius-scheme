@@ -54,7 +54,16 @@
 	    +calendar-unit:day+
 	    +calendar-unit:week+
 	    +calendar-unit:month+
-	    +calendar-unit:year+)
+	    +calendar-unit:year+
+
+	    ;; partial-time and date
+	    <partial-time> <partial-date> partial-time? partial-date?
+	    ;; this format is so common so export them.
+	    <local-time> local-time? make-local-time
+	    local-time-hour local-time-minute
+	    local-time-second local-time-nanosecond
+	    <local-date> local-date? make-local-date
+	    local-date-day local-date-month local-date-year)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (clos user)

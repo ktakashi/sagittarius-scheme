@@ -45,6 +45,7 @@
 	    (peg)
 	    (sagittarius)
 	    (sagittarius timezone)
+	    (sagittarius calendar)
 	    (srfi :1 lists)
 	    (only (srfi :13 strings) string-concatenate)
 	    (srfi :14 char-sets)
@@ -325,7 +326,7 @@
        (($eqv? #\:))
        (s time-second)
        (f ($optional time-secfrac 0))
-       ($return (make-date f s m h 0 0 0 (local-tz-offset)))))
+       ($return (make-local-time f s m h))))
 
 (define full-date
   ($do (y date-fullyear)
@@ -333,7 +334,7 @@
        (m date-of-month)
        (($eqv? #\-))
        (d date-of-day)
-       ($return (make-date 0 0 0 0 d m y (local-tz-offset)))))
+       ($return (make-local-date d m y))))
 
 (define full-time
   ($do (p partial-time)
