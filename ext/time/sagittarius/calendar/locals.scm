@@ -43,7 +43,7 @@
 	    (rename (local-date <local-date>)) local-date?
 	    make-local-date
 	    local-date-day local-date-month local-date-year
-
+	    local-date=? local-time=?
 	    ;; helpers for common-time and date
 	    time-components->absolute
 	    absolute->time-components
@@ -81,6 +81,16 @@
 (define-record-type local-date
   (parent partial-date)
   (fields day month year))
+
+(define (local-time=? d1 d2)
+  (and (= (local-time-nanosecond d1) (local-time-nanosecond d2))
+       (= (local-time-second d1) (local-time-second d2))
+       (= (local-time-minute d1) (local-time-minute d2))
+       (= (local-time-hour d1) (local-time-hour d2))))
+(define (local-date=? d1 d2)
+  (and (= (local-date-day d1) (local-date-day d2))
+       (= (local-date-month d1) (local-date-month d2))
+       (= (local-date-year d1) (local-date-year d2))))
 
 (define (absolute->day&nanosecond gd)
   (if (integer? gd)

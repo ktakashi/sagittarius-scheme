@@ -127,6 +127,15 @@
 	    <time> <date>
 	    ;; other
 	    get-time-of-day
+	    
+	    ;; this can be useful since the <date> treats
+	    ;; date of gregorian calendar (more or less)
+	    <local-time> local-time? make-local-time
+	    local-time-hour local-time-minute
+	    local-time-second local-time-nanosecond
+	    <local-date> local-date? make-local-date
+	    local-date-day local-date-month local-date-year
+	    local-date=? local-time=?
 	    )
     (import (core)
 	    (core base)
@@ -139,7 +148,8 @@
 	    (sagittarius time-util)
 	    (sagittarius timezone)
 	    (clos user)
-	    (sagittarius mop validator))
+	    (sagittarius mop validator)
+	    (sagittarius calendar locals))
 
   (define open-input-string open-string-input-port)
   (define (local-tz-offset) (timezone-offset (local-timezone)))

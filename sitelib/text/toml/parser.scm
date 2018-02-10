@@ -273,15 +273,15 @@
 ;; Date and Time
 ;; hmmm
 (define (local-tz-offset) (timezone-offset (local-timezone)))
-(define (->date d t)
-  (make-date (date-nanosecond t)
-	     (date-second t)
-	     (date-minute t)
-	     (date-hour t)
-	     (date-day d)
-	     (date-month d)
-	     (date-year d)
-	     (date-zone-offset t)))
+(define (->date d t o)
+  (make-date (local-time-nanosecond t)
+	     (local-time-second t)
+	     (local-time-minute t)
+	     (local-time-hour t)
+	     (local-date-day d)
+	     (local-date-month d)
+	     (local-date-year d)
+	     o))
 (define 2digits ($do (d ($repeat ($in-set dec-digit) 2))
 		     ($return (string->number (list->string d)))))
 (define date-fullyear ($do (d ($repeat ($in-set dec-digit) 4))
@@ -300,7 +300,7 @@
   (if (zero? n)
       n
       (let* ((len (length digits))
-	     (base (/ 1000000000 (* (- len 1) 10))))
+	     (base (/ 1000000000 (expt 10 len))))
 	(* base n))))
 (define time-secfrac
   ($do (($eqv? #\.))
@@ -336,27 +336,18 @@
        (d date-of-day)
        ($return (make-local-date d m y))))
 
-(define full-time
-  ($do (p partial-time)
-       (o time-offset)
-       ($return (make-date (date-nanosecond p)
-			   (date-second p)
-			   (date-minute p)
-			   (date-hour p)
-			   0 0 0
-			   o))))
-
 (define offset-date-time
   ($do (d full-date)
        time-delim
-       (t full-time)
-       ($return (->date d t))))
+       (p partial-time)
+       (o time-offset)
+       ($return (->date d p o))))
 
 (define local-date-time
   ($do (d full-date)
        time-delim
        (t partial-time)
-       ($return (->date d t))))
+       ($return (->date d t (local-tz-offset)))))
 (define local-date full-date)
 (define local-time partial-time)
 (define date-time
