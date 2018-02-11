@@ -45,22 +45,21 @@
 	    (peg)
 	    (sagittarius)
 	    (sagittarius timezone)
-	    (sagittarius calendar)
+	    (only (sagittarius time)
+		  make-date
+		  make-local-time
+		  make-local-date
+		  local-time-nanosecond
+		  local-time-second
+		  local-time-minute
+		  local-time-hour
+		  local-date-day
+		  local-date-month
+		  local-date-year)
 	    (srfi :1 lists)
 	    (only (srfi :13 strings) string-concatenate)
 	    (srfi :14 char-sets)
-	    (only (srfi :19 time)
-		  make-date
-		  date-nanosecond
-		  date-second
-		  date-minute
-		  date-hour
-		  date-day
-		  date-month
-		  date-year
-		  date-zone-offset)
-	    (srfi :39 parameters)
-	    )
+	    (srfi :39 parameters))
 (define-condition-type &toml-parse-error &error
   make-toml-parse-error toml-parse-error?)
 
