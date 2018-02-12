@@ -41,10 +41,12 @@
 
 	    ;; utilities
 	    timezone-name-list
-
+	    zone-offset->timezones
+	    
 	    ;; for debug
 	    timezone-rules
 	    timezone-rule-name
+	    timezone-alias-of
 	    )
     (import (core)
 	    (core base)
@@ -78,10 +80,15 @@
 	    (immutable start-offet timezone-start-offset)
 	    ;; histories
 	    (immutable histories  timezone-histories)
-	    (immutable rules      timezone-rules)))
+	    (immutable rules      timezone-rules)
+	    ;; debug purpose for now
+	    (immutable alias-of   timezone-alias-of)))
 
   (define-method write-object ((tz <timezone>) out)
-    (format out "#<timezone ~a (~a)>" (timezone-name tz) (timezone-offset tz)))
+    (format out "#<timezone ~a[~a] (~a)>"
+	    (timezone-name tz)
+	    (timezone-alias-of tz)
+	    (timezone-offset tz)))
 
   (define (binary-search array name)
     (let loop ((from 0) (to (- (vector-length array) 1)))
@@ -93,7 +100,7 @@
 		   ((positive? r) (loop from (- mid 1)))
 		   (else (loop (+ mid 1) to)))))))
 
-  (define (create-timezone name)
+  (define (create-timezone alias name)
     (define (find-rules histories)
       (define rules (vector-ref +tzdata+ +tz-rules+))
       (let loop ((h histories) (r '()))
@@ -129,26 +136,36 @@
 	       (shifted (shiftup-histories (cdr zone)))
 	       (current (car shifted))
 	       (histories (cdr shifted)))
-      (make-timezone name (caddr current) (car current) (cadr current)
+      (make-timezone alias (caddr current) (car current) (cadr current)
 		     (cadddr current) 
 		     histories 
 		     ;; ->vector
 		     (map (lambda (rule)
 			    (cons (car rule) (map list->vector (cdr rule))))
-			  rules))))
+			  rules)
+		     name)))
 
   (define timezone
     (let ((cache (make-string-hashtable))
-	  (alias (vector-ref +tzdata+ +tz-alias+)))
-      (lambda (name)
+	  (aliases (vector-ref +tzdata+ +tz-alias+)))
+      (lambda (alias)
 	;; resolve alias first
-	(let ((name (or (cond ((assoc name alias) => cdr) (else #f)) name)))
-	  (cond ((hashtable-ref cache name #f))
-		((create-timezone name) =>
-		 (lambda (tz) (hashtable-set! cache name tz) tz))
+	(let ((name (or (cond ((assoc alias aliases) => cdr) (else #f)) alias)))
+	  (cond ((hashtable-ref cache alias #f))
+		((create-timezone alias name) =>
+		 (lambda (tz) (hashtable-set! cache alias tz) tz))
 		;; fallback to "GMT"
 		(else (timezone "GMT")))))))
 
+  ;; at this moment, this is incredibly slow
+  (define (zone-offset->timezones offset :optional (when (current-time)))
+    (define (->timezone rule)
+      (let ((tz (timezone (car rule))))
+	(and (= offset (timezone-offset tz when)) tz)))
+    ;; it'll cache everything...
+    (filter values (map ->timezone
+			(vector->list (vector-ref +tzdata+ +tz-zone+)))))
+  
   ;; this considers DST.
   (define (timezone-offset tz :optional (when (current-time)))
     (let-values (((zone rule) (timezone-zone&rule tz when)))
@@ -217,7 +234,8 @@
 			 #f)
 		     '()
 		     ;; this paticular rule is needed
-		     rules))
+		     rules
+		     (timezone-alias-of tz)))
 
     (let ((sec (time-second when)) ;; ignore nanosecond
 	  (rules (timezone-rules tz))
