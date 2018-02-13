@@ -82,3 +82,14 @@ according to the @var{when}. Following is the example of timezone history:
 
 @define[Function]{@name{timezone-name-list}}
 @desc{Returns supported TZIDs.}
+
+@define[Function]{@name{zone-offset->timezones} @args{offset :optional when}}
+@desc{Returns list of timezones whose offsets matched @var{offset}.
+
+This procedure considers the time. For example, if the given @var{offset} is
+@code{3600} which is UTC+1 however if it's summer time, then the returning
+list doesn't contain some of timezones (e.g. Amsterdam).
+
+The optional argument @var{when} specifies the time to consider. If it's not
+specified, then the returning value of @code{current-time} is used.
+}
