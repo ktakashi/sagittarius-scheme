@@ -241,8 +241,8 @@ EXECUTE_PROCESS (
   INSTALL(CODE
     "EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -P ${LIB_LINKING_FILE})")
 
-  IF (CYGWIN)
-    # It seems Cygwin can't handle symbolic linked dll.
+  IF (POSIX_EMULATOR)
+    # It seems Cygwin/MSYS can't handle symbolic linked dll.
     # NB: even CMake doesn't install namelink, so probaby above is true. 
     INSTALL(TARGETS sagittarius DESTINATION ${CMAKE_INSTALL_PREFIX}/${BIN_DIR})
   ENDIF()
