@@ -427,7 +427,12 @@ SgAddrinfo* Sg_GetAddrinfo(SgObject node, SgObject service, SgAddrinfo *hints)
   } while (EAI_AGAIN == ret);
 
   if (ret != 0) {
-    raise_io_error(SG_INTERN("get-addrinfo"), ret,
+    raise_io_error(SG_INTERN("get-addrinfo"),
+#ifdef _WIN32
+		   ret,
+#else
+		   errno,
+#endif
 		   Sg_MakeHostNotFound(node, service),
 		   SG_LIST2(SG_OBJ(node), SG_OBJ(service)));
     return NULL;
@@ -502,7 +507,12 @@ SgObject Sg_SocketBind(SgSocket *socket, SgAddrinfo* addrinfo)
     socklen_t len = p->ai_addrlen;
     int r = getsockname(socket->socket, (struct sockaddr *)&name, &len);
     if (r != 0) {
-      raise_io_error(SG_INTERN("socket-connect!"), r, 
+      raise_io_error(SG_INTERN("socket-connect!"),
+#ifdef _WIN32
+		     r,
+#else
+		     errno,
+#endif
 		     Sg_MakeConditionSocket(socket), socket);
       return SG_FALSE;		/* dummy */
     }

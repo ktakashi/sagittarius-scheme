@@ -109,9 +109,9 @@ static SgObject get_windows_last_error(int e)
 
 #ifdef USE_UCS4_CPP
 static LPWSTR SERVER_KEY_CONTAINER_NAME =
-  L"Sagittarius " W(SAGITTARIUS_VERSION) L" SSL Server Socket Key Container";
+  L"Sagittarius (" W(SAGITTARIUS_TRIPLE) L" " W(SAGITTARIUS_VERSION) L") SSL Server Socket Key Container";
 static LPWSTR CLIENT_KEY_CONTAINER_NAME =
-  L"Sagittarius " W(SAGITTARIUS_VERSION) L" SSL Client Socket Key Container";
+  L"Sagittarius (" W(SAGITTARIUS_TRIPLE) L" " W(SAGITTARIUS_VERSION) L") SSL Client Socket Key Container";
 static LPWSTR KEY_PROVIDER = MS_DEF_RSA_SCHANNEL_PROV;
 #else
 static LPWSTR SERVER_KEY_CONTAINER_NAME = NULL;
@@ -1274,11 +1274,13 @@ void Sg_InitTLSImplementation()
 #ifndef USE_UCS4_CPP
   /* due to the widechar conversion we need to set up like this */
   SgObject serverKeyContainer =
-    SG_MAKE_STRING("CYGWIN Sagittarius " SAGITTARIUS_VERSION
-		   " SSL Server Socket Key Container");
+    SG_MAKE_STRING("CYGWIN Sagittarius ("
+		   SAGITTARIUS_TRIPLE " " SAGITTARIUS_VERSION
+		   ") SSL Server Socket Key Container");
   SgObject clientKeyContainer =
-    SG_MAKE_STRING("CYGWIN Sagittarius " SAGITTARIUS_VERSION
-		   " SSL Client Socket Key Container");
+    SG_MAKE_STRING("CYGWIN Sagittarius ("
+		   SAGITTARIUS_TRIPLE " " SAGITTARIUS_VERSION
+		   ") SSL Client Socket Key Container");
   SgObject provName = SG_MAKE_STRING(MS_DEF_RSA_SCHANNEL_PROV_A);
   SgObject implName = SG_MAKE_STRING(SCHANNEL_NAME_A);
   SERVER_KEY_CONTAINER_NAME = Sg_StringToWCharTs(serverKeyContainer);
