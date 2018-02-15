@@ -502,13 +502,35 @@ int Sg_FileRegularP(SgString *path)
   return errno;
 }
 
+#ifdef __MSYS__
+/* including winbase.h causes problem so declare it here */
+extern __declspec(dllimport) int CreateSymbolicLinkW(const wchar_t *, const wchar_t *, int);
+extern __declspec(dllimport) int GetFileAttributesW(const wchar_t *);
+extern __declspec(dllimport) int GetLastError();
+#define INVALID_FILE_ATTRIBUTES ((int)-1)
+/* 
+values are from
+https://msdn.microsoft.com/en-us/library/windows/desktop/gg258117(v=vs.85).aspx
+*/
+#define FILE_ATTRIBUTE_DIRECTORY     0x00000010
+#define FILE_ATTRIBUTE_REPARSE_POINT 0x00000400
+#endif
+
 int Sg_FileSymbolicLinkP(SgString *path)
 {
+#ifndef __MSYS__
   struct stat st;
   if (lstat(Sg_Utf32sToUtf8s(path), &st) == 0) {
     return S_ISLNK(st.st_mode);
-  }
+   }
   return FALSE;
+#else
+  int attr = GetFileAttributesW(Sg_StringToWCharTs(path));
+  if (attr == INVALID_FILE_ATTRIBUTES) {
+    return FALSE;
+   }
+  return (attr & FILE_ATTRIBUTE_REPARSE_POINT);
+#endif
 }
 
 int Sg_FileExecutableP(SgString *path)
@@ -551,10 +573,30 @@ int Sg_ChangeFileMode(SgString *path, int mode)
 
 int Sg_CreateSymbolicLink(SgString *oldpath, SgString *newpath)
 {
+#ifndef __MSYS__
   if (symlink(Sg_Utf32sToUtf8s(oldpath), Sg_Utf32sToUtf8s(newpath)) == 0) {
     return 0;
   }
   return errno;
+#else
+  /* 
+     MSYS2 doesn't support symlink and they don't have any intension to 
+     support it either.
+     https://sourceforge.net/p/msys2/tickets/41/
+     CAUTION:
+     CreateSymbolicLink requires admin privilege so this may not be
+     an ideal solution
+  */
+  const wchar_t* newPathW = Sg_StringToWCharTs(newpath);
+  const wchar_t* oldPathW = Sg_StringToWCharTs(oldpath);
+  int attr = GetFileAttributesW(oldPathW);
+  int flag = ((attr != INVALID_FILE_ATTRIBUTES) &&
+	      (attr & FILE_ATTRIBUTE_DIRECTORY)) ? 1 : 0;
+  if (CreateSymbolicLinkW(newPathW, oldPathW, flag)) {
+    return 0;
+  }
+  return GetLastError();
+#endif
 }
 
 int Sg_CreateDirectory(SgString *path)

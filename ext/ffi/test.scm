@@ -373,9 +373,10 @@
       (pointer-set-c-int! p 0 10)
       (test-equal "c variable pointer" 10 (pointer->integer (deref (pvar) 0))))
 
-    ;; this test doesn't work on Cygwin because of wide-exec-chaset stuff.
+    ;; this test doesn't work on Cygwin or MSYS because of
+    ;; wide-exec-chaset stuff.
     (cond-expand
-     (cygwin #f)
+     ((or cygwin msys) #f)
      (else 
       (test-equal "c variable wchar" "test wchar" (wcvar))
       (test-error "set! wchar_t*" (set! (wcvar) "wchar_t* is immutable"))
