@@ -427,14 +427,9 @@ SgAddrinfo* Sg_GetAddrinfo(SgObject node, SgObject service, SgAddrinfo *hints)
   } while (EAI_AGAIN == ret);
 
   if (ret != 0) {
-    raise_io_error(SG_INTERN("get-addrinfo"),
-#ifdef _WIN32
-		   ret,
-#else
-		   errno,
-#endif
+    raise_io_error(SG_INTERN("get-addrinfo"), ret,
 		   Sg_MakeHostNotFound(node, service),
-		   SG_LIST2(SG_OBJ(node), SG_OBJ(service)));
+		   SG_LIST3(SG_MAKE_INT(ret), SG_OBJ(node), SG_OBJ(service)));
     return NULL;
   }
   /* copy addr info */
@@ -507,13 +502,9 @@ SgObject Sg_SocketBind(SgSocket *socket, SgAddrinfo* addrinfo)
     socklen_t len = p->ai_addrlen;
     int r = getsockname(socket->socket, (struct sockaddr *)&name, &len);
     if (r != 0) {
-      raise_io_error(SG_INTERN("socket-connect!"),
-#ifdef _WIN32
-		     r,
-#else
-		     errno,
-#endif
-		     Sg_MakeConditionSocket(socket), socket);
+      raise_socket_error(SG_INTERN("socket-connect!"),
+			 Sg_GetLastErrorMessageWithErrorCode(last_error),
+			 Sg_MakeConditionSocket(socket), socket);
       return SG_FALSE;		/* dummy */
     }
     socket->type = SG_SOCKET_SERVER;
@@ -1523,7 +1514,7 @@ SgObject Sg_MakeConditionSocketPort(SgObject socket, SgObject port)
 
 extern void Sg__Init_socket_stub(SgLibrary *lib);
 
-#ifdef _WIN32
+#if defined(_WIN32)
 static void finish_winsock(void *data)
 {
   WSACleanup();
@@ -1533,7 +1524,7 @@ static void finish_winsock(void *data)
 SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__socket()
 {
   SgLibrary *lib;
-#ifdef _WIN32
+#if defined(_WIN32)
   WSADATA wsaData;
   WSAStartup(2, &wsaData);
   Sg_AddCleanupHandler(finish_winsock, NULL);
