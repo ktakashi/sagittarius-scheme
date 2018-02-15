@@ -15,6 +15,7 @@
 	(clos user)
 	(util port)
 	(only (binary io) open-chunked-binary-input/output-port)
+	(util concurrent)
 	(srfi :18 multithreading)
 	(srfi :26 cut)
 	(srfi :64 testing))
@@ -75,7 +76,7 @@
                         OK"))
     ht))
 
-(define server-up? #f)
+
 (define server-done? #f)
 (define (http-server socket)
   (let loop ()
@@ -138,26 +139,25 @@
 	    (else
 	     (error 'http-server "malformed request line:" request-line))))))
 
+(define server-up? (make-shared-queue))
 (define server-thread
   (make-thread (lambda ()
-		 (let1 socket (make-server-socket *http-port*)
-		   (set! server-up? #t)
-		   (let loop ()
-		     ;; somehow socket connection is lost and
-		     ;; failed to send packet. why?
-		     ;; NB: on Windows or Cygwin. So anti virus?
-		     (guard (e (else (report-error e))) (http-server socket))
-		     ;; /exit is not called yet, retry
-		     (unless server-done? (loop)))
-		   (socket-shutdown socket SHUT_RDWR)
-		   (socket-close socket)))))
+		 (guard (e (else (shared-queue-put! server-up? #f) (raise e)))
+		   (let1 socket (make-server-socket *http-port*)
+		     (shared-queue-put! server-up? #t)
+		     (let loop ()
+		       ;; somehow socket connection is lost and
+		       ;; failed to send packet. why?
+		       ;; NB: on Windows or Cygwin. So anti virus?
+		       (guard (e (else (report-error e))) (http-server socket))
+		       ;; /exit is not called yet, retry
+		       (unless server-done? (loop)))
+		     (socket-shutdown socket SHUT_RDWR)
+		     (socket-close socket))))))
 (thread-start! server-thread)
 ;; since 0.3.8 client/server socket creation are really slow on linux.
 ;; needs to be improved.
-(let loop ()
-  (unless server-up?
-    (thread-sleep! 1)
-    (loop)))
+(unless (shared-queue-get! server-up?) (thread-join! server-thread))
 
 (let ([expected `(("method" "GET")
                   ("request-uri" "/get")
