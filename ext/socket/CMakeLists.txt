@@ -130,5 +130,12 @@ INSTALL(FILES sagittarius/socket.scm sagittarius/tls-socket.scm
 INSTALL(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/srfi
   DESTINATION ${SAGITTARIUS_SHARE_LIB_PATH})
 
+IF (APPLE)
+  INSTALL(CODE
+    "EXECUTE_PROCESS(COMMAND install_name_tool -change
+       \"sagittarius--socket.dylib\"
+       \"${SAGITTARIUS_DYNLIB_PATH}/sagittarius--socket.dylib\"
+       \"${SAGITTARIUS_DYNLIB_PATH}/sagittarius--tls-socket.dylib\")")
+ENDIF()
 # for test
 FILE(APPEND ${EXT_TEST_RESOURCE_FILE} "${CMAKE_CURRENT_SOURCE_DIR}\n")
