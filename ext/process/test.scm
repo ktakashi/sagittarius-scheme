@@ -57,6 +57,9 @@
 (let ((p (safe-call *process-name* "sleep")))
   (test-equal "wait timeout" #f (process-wait p :timeout 1)) ;; 1 sec
   (test-assert "still alive" (process-active? p))
+  (cond-expand
+   (msys (test-expect-fail 2))
+   (else #f))
   (test-equal "process-kill" -1 (process-kill p)))
 
 ;; shared memory
@@ -105,6 +108,9 @@
 (let ((p (make-process (build-path build-directory-path "test-kill.bin") '())))
   (test-assert "process-call (process-kill)" (process-call p))
   (test-assert "process-active?" (process-active? p))
+  (cond-expand
+   (msys (test-expect-fail 2))
+   (else #f))
   (test-equal "process-kill" -1 (process-kill p)))
 
 (let ((proc (make-process *process-name* '("process"))))

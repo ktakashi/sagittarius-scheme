@@ -936,7 +936,7 @@ int Sg_SysProcessKill(uintptr_t pid, int childrenp)
 {
   pid_t p = (pid_t)pid;
   /* simply kill */
-  int r, sig;
+  int r, sig, status;
   
 #ifdef SIGKILL
   sig = SIGKILL;
@@ -953,22 +953,32 @@ int Sg_SysProcessKill(uintptr_t pid, int childrenp)
   } else {
     r = kill(p, sig);
   }
-  if (r < 0) {
+  if (r < 0) goto err;
+  
+  /* remove it. */
+  remove_pid(pid);
+  r = waitpid(pid, &status, WNOHANG);
+  if (r < 0) goto err;
+  if (r == 0) {
+    Sg_Error(UC("Specified child process [%d] could not be killed"), pid);
+  }
+  /* returning -1 if the process is killed properly */
+  if (WIFSIGNALED(status)) return -1;
+  if (WIFEXITED(status)) return WEXITSTATUS(status); /* should never happen */
+  
+  /* hmmm, error? */
+ err: {
     int e = errno;
     if (e == ESRCH) {
       /* wait the pid */
       return SG_INT_VALUE(Sg_SysProcessWait(pid, NULL));
     } else {
       /* must be EPERM, so system error */
-      Sg_SystemError(e, UC("failed to kill process: %A"),
-		     Sg_GetLastErrorMessageWithErrorCode(e));
+      Sg_SystemError(e, UC("Failed to kill process: %A"),
+		     Sg_GetLastErrorMessageWithErrorCode(e));      
     }
+    return -1;			/* dummy */
   }
-  /* remove it. */
-  remove_pid(pid);
-  /* dummy status code
-     it's killed so should be something error code, should't it? */
-  return -1;
 }
 
 /* This is for Windows, so on POSIX, just return */

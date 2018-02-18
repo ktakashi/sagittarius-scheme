@@ -83,6 +83,8 @@
      (error  :init-keyword :error  :reader process-error-port :init-value #f)
      (directory :init-keyword :directory)
      (pid    :init-keyword :pid)))
+  (define-method write-object ((p <process>) out)
+    (format out "#<process ~a (~a)>" (slot-ref p 'name) (slot-ref p 'pid)))
 
   (define (process? o) (is-a? o <process>))
   (define (make-process name args)
