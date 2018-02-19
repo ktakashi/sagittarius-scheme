@@ -691,6 +691,14 @@ int Sg_ChangeFileMode(SgString *path, int mode)
 
 typedef BOOL (WINAPI* ProcCreateSymbolicLink) (LPCWSTR, LPCWSTR, DWORD);
 
+/* I think we can now remove XP compatibility here... */
+#ifndef SYMBOLIC_LINK_FLAG_DIRECTORY
+# define SYMBOLIC_LINK_FLAG_DIRECTORY                 0x00000001
+#endif
+#ifndef SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE
+# define SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE 0x00000002
+#endif
+
 int Sg_CreateSymbolicLink(SgString *oldpath, SgString *newpath)
 {
     ProcCreateSymbolicLink win32CreateSymbolicLink
@@ -699,8 +707,8 @@ int Sg_CreateSymbolicLink(SgString *oldpath, SgString *newpath)
     if (win32CreateSymbolicLink) {
       const wchar_t* newPathW = utf32ToUtf16(newpath);
       const wchar_t* oldPathW = utf32ToUtf16(oldpath);
-      /* SYMBOLIC_LINK_FLAG_DIRECTORY == 1 */
-      DWORD flag = directory_p(oldPathW) ? 1 : 0;
+      DWORD flag = directory_p(oldPathW) ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0;
+      flag |= SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE;
       if (win32CreateSymbolicLink(newPathW, oldPathW, flag)) {
 	return 0;
       }

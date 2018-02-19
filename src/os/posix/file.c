@@ -514,6 +514,8 @@ https://msdn.microsoft.com/en-us/library/windows/desktop/gg258117(v=vs.85).aspx
 */
 #define FILE_ATTRIBUTE_DIRECTORY     0x00000010
 #define FILE_ATTRIBUTE_REPARSE_POINT 0x00000400
+#define SYMBOLIC_LINK_FLAG_DIRECTORY                 0x00000001
+#define SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE 0x00000002
 #endif
 
 int Sg_FileSymbolicLinkP(SgString *path)
@@ -580,18 +582,22 @@ int Sg_CreateSymbolicLink(SgString *oldpath, SgString *newpath)
   return errno;
 #else
   /* 
-     MSYS2 doesn't support symlink and they don't have any intension to 
-     support it either.
      https://sourceforge.net/p/msys2/tickets/41/
-     CAUTION:
-     CreateSymbolicLink requires admin privilege so this may not be
-     an ideal solution
+
+     NOTE: 
+
+     Although, if MSYS environment variable is set to winsymlinks:native,
+     then it can actually create symbolic link (in 2018, not sure
+     since when). However we don't want to rely on the variable, so
+     implement it using Win32 API.
   */
   const wchar_t* newPathW = Sg_StringToWCharTs(newpath);
   const wchar_t* oldPathW = Sg_StringToWCharTs(oldpath);
   int attr = GetFileAttributesW(oldPathW);
-  int flag = ((attr != INVALID_FILE_ATTRIBUTES) &&
-	      (attr & FILE_ATTRIBUTE_DIRECTORY)) ? 1 : 0;
+  int dirP = ((attr != INVALID_FILE_ATTRIBUTES) &&
+	      (attr & FILE_ATTRIBUTE_DIRECTORY))
+  int flag =  dirP ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0;
+  flag |= SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE;
   if (CreateSymbolicLinkW(newPathW, oldPathW, flag)) {
     return 0;
   }
