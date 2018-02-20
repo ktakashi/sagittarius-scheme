@@ -47,6 +47,10 @@
 #include <sagittarius/unicode.h>
 #include <sagittarius/number.h>
 
+#ifdef _MSC_VER
+#  pragma comment(lib, "mincore.lib")
+#endif
+
 enum HandleType {
   DISK,				/* regular file */
   PIPE,				/* pipe */
@@ -721,7 +725,6 @@ static int support_unprivileged_create()
   DWORD dummy;
   VS_FIXEDFILEINFO *info;
   DWORD size = GetFileVersionInfoSizeExW(FILE_VER_GET_NEUTRAL, system, &dummy);
-  
   if (size == 0) return FALSE;	/* go safe */
   
 #ifdef HAVE_ALLOCA
@@ -729,7 +732,6 @@ static int support_unprivileged_create()
 #else
   buffer = SG_NEW_ATOMIC2(char *, size);
 #endif
-  
   GetFileVersionInfoExW(FILE_VER_GET_NEUTRAL, system, dummy, size, buffer);
   s = VerQueryValueW(buffer, L"\\", &p, &s);
 
