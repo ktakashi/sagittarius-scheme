@@ -1,6 +1,6 @@
 /*  file.c                                         -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -24,8 +24,6 @@
  *   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  *   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  *   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- *  $Id: $
  */
 #include <windows.h>
 #include <wchar.h>
@@ -34,6 +32,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
+
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius/file.h>
 #include <sagittarius/codec.h>
@@ -47,9 +46,7 @@
 #include <sagittarius/unicode.h>
 #include <sagittarius/number.h>
 
-#ifdef _MSC_VER
-#  pragma comment(lib, "mincore.lib")
-#endif
+#include "shared.h"
 
 enum HandleType {
   DISK,				/* regular file */
@@ -693,72 +690,9 @@ int Sg_ChangeFileMode(SgString *path, int mode)
   return 0;
 }
 
-typedef BOOL (WINAPI* ProcCreateSymbolicLink) (LPCWSTR, LPCWSTR, DWORD);
-
-/* I think we can now remove XP compatibility here... */
-#ifndef SYMBOLIC_LINK_FLAG_DIRECTORY
-# define SYMBOLIC_LINK_FLAG_DIRECTORY                 0x00000001
-#endif
-#ifndef SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE
-# define SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE 0x00000002
-#endif
-#ifndef FILE_VER_GET_NEUTRAL
-# define FILE_VER_GET_NEUTRAL 0x02
-#endif
-
-/* 
-   I don't trust GetVersionEx since its behaviour got changed
-   after Windows 8.
-   see: https://msdn.microsoft.com/en-us/library/windows/desktop/ms724451(v=vs.85).aspx
-
-   So use this:
-   https://stackoverflow.com/questions/47581146/getting-os-build-version-from-win32-api-c?rq=1
-
-   GetFileVersionInfoEx and GetFileVersionInfoSizeExW are since Vista
- */
-static int support_unprivileged_create()
-{
-  const wchar_t *system = L"kernel32";
-  char *buffer;
-  UINT s;
-  void *p = NULL;
-  DWORD dummy;
-  VS_FIXEDFILEINFO *info;
-  DWORD size = GetFileVersionInfoSizeExW(FILE_VER_GET_NEUTRAL, system, &dummy);
-  if (size == 0) return FALSE;	/* go safe */
-  
-#ifdef HAVE_ALLOCA
-  buffer = (char *)alloca(size);
-#else
-  buffer = SG_NEW_ATOMIC2(char *, size);
-#endif
-  GetFileVersionInfoExW(FILE_VER_GET_NEUTRAL, system, dummy, size, buffer);
-  s = VerQueryValueW(buffer, L"\\", &p, &s);
-
-  if (s < sizeof(VS_FIXEDFILEINFO)) return FALSE;
-  if (!p) return FALSE;
-  
-  info = (VS_FIXEDFILEINFO *)p;
-  /*
-    Check minor version of 14972
-    https://blogs.windows.com/buildingapps/2016/12/02/symlinks-windows-10/
-  */
-  return HIWORD(info->dwProductVersionMS) >= 10 &&
-    HIWORD(info->dwProductVersionLS) >= 14972;
-}
-
 int Sg_CreateSymbolicLink(SgString *oldpath, SgString *newpath)
 {
-  const wchar_t* newPathW = utf32ToUtf16(newpath);
-  const wchar_t* oldPathW = utf32ToUtf16(oldpath);
-  DWORD flag = directory_p(oldPathW) ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0;
-  if (support_unprivileged_create) {
-    flag |= SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE;
-  }
-  if (CreateSymbolicLinkW(newPathW, oldPathW, flag)) {
-    return 0;
-  }
-  return GetLastError();
+  return Sg_TrySymbolicLink(oldpath, newpath);
 }
 
 int Sg_CreateDirectory(SgString *path)

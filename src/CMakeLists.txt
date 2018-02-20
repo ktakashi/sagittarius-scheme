@@ -7,7 +7,8 @@ MESSAGE(STATUS "operating system: ${CMAKE_SYSTEM_NAME}")
 IF(WIN32)
   SET(PLATFORM_SOURCE ${PLATFORM_SOURCE}
     os/win/file.c os/win/transcoder.c
-    os/win/system.c os/win/thread.c)
+    os/win/system.c os/win/thread.c
+    os/win/shared.c)
   # TODO add linux and bsd(maybe also apple?)
   # use standard c functionality
 ELSE()

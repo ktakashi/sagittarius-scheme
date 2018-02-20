@@ -36,25 +36,26 @@
 #include <iphlpapi.h>
 #include <winsock2.h>
 #define LIBSAGITTARIUS_BODY
-#include "sagittarius/file.h"
-#include "sagittarius/system.h"
-#include "sagittarius/core.h"
-#include "sagittarius/clos.h"
-#include "sagittarius/pair.h"
-#include "sagittarius/error.h"
-#include "sagittarius/symbol.h"
-#include "sagittarius/library.h"
-#include "sagittarius/values.h"
-#include "sagittarius/number.h"
-#include "sagittarius/keyword.h"
-#include "sagittarius/builtin-keywords.h"
-#include "sagittarius/bytevector.h"
-#include "sagittarius/vector.h"
-#include "sagittarius/string.h"
-#include "sagittarius/unicode.h"
-#include "sagittarius/writer.h"
-#include "sagittarius/weak.h"
+#include <sagittarius/file.h>
+#include <sagittarius/system.h>
+#include <sagittarius/core.h>
+#include <sagittarius/clos.h>
+#include <sagittarius/pair.h>
+#include <sagittarius/error.h>
+#include <sagittarius/symbol.h>
+#include <sagittarius/library.h>
+#include <sagittarius/values.h>
+#include <sagittarius/number.h>
+#include <sagittarius/keyword.h>
+#include <sagittarius/builtin-keywords.h>
+#include <sagittarius/bytevector.h>
+#include <sagittarius/vector.h>
+#include <sagittarius/string.h>
+#include <sagittarius/unicode.h>
+#include <sagittarius/writer.h>
+#include <sagittarius/weak.h>
 
+#include "shared.h"
 #include "win_util.c"
 
 /* os dependent values */
@@ -301,7 +302,7 @@ SgObject Sg_GetMacAddress(int pos)
 
 SgObject Sg_Uname()
 {
-  OSVERSIONINFOEX ver;
+  WinVersion ver;
   SYSTEM_INFO info;
   wchar_t node[256];		/* enough? */
   DWORD size = sizeof(node);
@@ -316,15 +317,20 @@ SgObject Sg_Uname()
   if (GetComputerNameExW(ComputerNameDnsFullyQualified, node, &size)) {
     nodename = utf16ToUtf32(node);
   }
-
-  ver.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
-  GetVersionEx((LPOSVERSIONINFO)&ver);
-  /* the same format as ver commend */
-  version = Sg_Sprintf(UC("%d.%d.%d"),
-		       ver.dwMajorVersion, ver.dwMinorVersion,
-		       ver.dwBuildNumber);
-  /* release = Sg_Sprintf(UC("%d"),); */
-  release = utf16ToUtf32(ver.szCSDVersion);
+  if (Sg_WindowsVersion(&ver)) {
+    /* the same format as ver commend */
+    version = Sg_Sprintf(UC("%d.%d.%d"), ver.major, ver.minor, ver.build);
+    if (ver.release) {
+      /* is this correct? */
+      if (ver.major < 10) {
+	release = Sg_Sprintf(UC("Service Pack %d"), ver.release);
+      } else {
+	release = Sg_NumberToString(SG_MAKE_INT(ver.release), 10, FALSE);
+      }
+    } else {
+      release = SG_MAKE_STRING("");
+    }
+  }
   GetSystemInfo(&info);
   switch (info.wProcessorArchitecture) {
   case PROCESSOR_ARCHITECTURE_AMD64:
