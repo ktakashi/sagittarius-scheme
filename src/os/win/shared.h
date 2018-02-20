@@ -42,5 +42,7 @@ typedef struct {
 /* these won't be exported from DLL */
 extern int Sg_WindowsVersion(WinVersion *version);
 extern int Sg_TrySymbolicLink(SgString *oldpath, SgString *newpath);
+extern int Sg_WindowsDirectoryP(SgString *path);
+extern int Sg_SymbolicLinkP(SgString *path);
 
 #endif

@@ -503,19 +503,7 @@ int Sg_FileRegularP(SgString *path)
 }
 
 #ifdef __MSYS__
-/* including winbase.h causes problem so declare it here */
-extern __declspec(dllimport) int CreateSymbolicLinkW(const wchar_t *, const wchar_t *, int);
-extern __declspec(dllimport) int GetFileAttributesW(const wchar_t *);
-extern __declspec(dllimport) int GetLastError();
-#define INVALID_FILE_ATTRIBUTES ((int)-1)
-/* 
-values are from
-https://msdn.microsoft.com/en-us/library/windows/desktop/gg258117(v=vs.85).aspx
-*/
-#define FILE_ATTRIBUTE_DIRECTORY     0x00000010
-#define FILE_ATTRIBUTE_REPARSE_POINT 0x00000400
-#define SYMBOLIC_LINK_FLAG_DIRECTORY                 0x00000001
-#define SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE 0x00000002
+# include "../win/shared.h"
 #endif
 
 int Sg_FileSymbolicLinkP(SgString *path)
@@ -527,11 +515,8 @@ int Sg_FileSymbolicLinkP(SgString *path)
    }
   return FALSE;
 #else
-  int attr = GetFileAttributesW(Sg_StringToWCharTs(path));
-  if (attr == INVALID_FILE_ATTRIBUTES) {
-    return FALSE;
-   }
-  return (attr & FILE_ATTRIBUTE_REPARSE_POINT);
+  /* TODO check MSYS environment variable and shortcut */
+  return Sg_SymbolicLinkP(path);
 #endif
 }
 
@@ -591,17 +576,18 @@ int Sg_CreateSymbolicLink(SgString *oldpath, SgString *newpath)
      since when). However we don't want to rely on the variable, so
      implement it using Win32 API.
   */
-  const wchar_t* newPathW = Sg_StringToWCharTs(newpath);
-  const wchar_t* oldPathW = Sg_StringToWCharTs(oldpath);
-  int attr = GetFileAttributesW(oldPathW);
-  int dirP = ((attr != INVALID_FILE_ATTRIBUTES) &&
-	      (attr & FILE_ATTRIBUTE_DIRECTORY))
-  int flag =  dirP ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0;
-  flag |= SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE;
-  if (CreateSymbolicLinkW(newPathW, oldPathW, flag)) {
-    return 0;
+  /* 
+     TODO check MSYS environment variable and do one of the following
+     1. Create symbolic link if possible or shortcut as fallback (native)
+     2. Create symbolic link if possible or fail (nativestrict)
+     3. Copy the file (not specified, default)
+   */
+  int r = Sg_TrySymbolicLink(oldpath, newpath);
+  /* try convert at least known values */
+  if (r == ERROR_ALREADY_EXISTS) {
+    return EEXIST;		/* convert it */
   }
-  return GetLastError();
+  return r;
 #endif
 }
 

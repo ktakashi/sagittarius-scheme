@@ -610,11 +610,7 @@ int Sg_FileRegularP(SgString *path)
 
 int Sg_FileSymbolicLinkP(SgString *path)
 {
-    DWORD attr = GetFileAttributesW(utf32ToUtf16(path));
-    if (attr == INVALID_FILE_ATTRIBUTES) {
-        return FALSE;
-    }
-    return (attr & FILE_ATTRIBUTE_REPARSE_POINT);
+  return Sg_SymbolicLinkP(path);
 }
 
 static int end_with(const SgString *target, const char * key)

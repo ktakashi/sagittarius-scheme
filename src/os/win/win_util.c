@@ -31,6 +31,7 @@
  */
 
 #include <math.h>
+#include <string.h>
 #include <sagittarius/transcoder.h>
 #include <sagittarius/codec.h>
 #include <sagittarius/string.h>
@@ -57,6 +58,7 @@ static const wchar_t* utf32ToUtf16(SgString *path)
   return (const wchar_t*)Sg_GetByteArrayFromBinaryPort(&bp);
 }
 
+#ifndef NO_UTF16_TO_UTF32
 static inline int isLead(SgChar c) { return (c & 0xfffffc00) == 0xd800; }
 static inline int isTrail(SgChar c) { return (c & 0xfffffc00) == 0xdc00; }
 static SgString* utf16ToUtf32(wchar_t *s)
@@ -111,7 +113,9 @@ static SgString* utf16ToUtf32WithRegion(wchar_t *s, wchar_t *e)
   SG_CLEAN_STRING_PORT(&tp);
   return r;
 }
+#endif
 
+#ifndef NO_GET_LAST_ERROR
 static SgObject get_last_error(DWORD e)
 {
 #define MSG_SIZE 128
@@ -130,6 +134,7 @@ static SgObject get_last_error(DWORD e)
   return utf16ToUtf32(msg);
 #undef MSG_SIZE
 }
+#endif
 
 static int directory_p(const wchar_t *path)
 {
@@ -138,6 +143,7 @@ static int directory_p(const wchar_t *path)
   return attr & FILE_ATTRIBUTE_DIRECTORY;
 }
 
+#ifndef NO_CONVERTS_TIMESPEC
 static DWORD converts_timespec(struct timespec *pts)
 {
   DWORD msecs;
@@ -163,3 +169,4 @@ static DWORD converts_timespec(struct timespec *pts)
   }
   return msecs;
 }
+#endif

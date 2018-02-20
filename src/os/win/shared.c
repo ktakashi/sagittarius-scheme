@@ -25,14 +25,20 @@
  *   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  *   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <windows.h>
+#include <wchar.h>
+#define LIBSAGITTARIUS_BODY
 #include "shared.h"
+
+#define NO_UTF16_TO_UTF32
+#define NO_GET_LAST_ERROR
+#define NO_CONVERTS_TIMESPEC
+#include "win_util.c"
 
 #ifdef _MSC_VER
 #  pragma comment(lib, "mincore.lib")
 #endif
 
-#define LIBSAGITTARIUS_BODY
-#include "win_util.c"
 
 #ifndef FILE_VER_GET_NEUTRAL
 # define FILE_VER_GET_NEUTRAL 0x02
@@ -50,14 +56,22 @@
  */
 int Sg_WindowsVersion(WinVersion *version)
 {
+#if defined(USE_UCS4_CPP) || _MSC_VER
   const wchar_t *system = L"kernel32.dll";
+#else
+  const char *system = "kernel32.dll";
+#endif
+  
   char *buffer;
   UINT s;
   void *p = NULL;
   DWORD dummy;
   VS_FIXEDFILEINFO *info;
+#if defined(USE_UCS4_CPP) || _MSC_VER
   DWORD size = GetFileVersionInfoSizeExW(FILE_VER_GET_NEUTRAL, system, &dummy);
-  
+#else
+  DWORD size = GetFileVersionInfoSizeExA(FILE_VER_GET_NEUTRAL, system, &dummy);
+#endif
   if (size == 0) return FALSE;
   
 #ifdef HAVE_ALLOCA
@@ -65,9 +79,20 @@ int Sg_WindowsVersion(WinVersion *version)
 #else
   buffer = SG_NEW_ATOMIC2(void *, size);
 #endif
+  
+#if defined(USE_UCS4_CPP) || _MSC_VER
   if (!GetFileVersionInfoExW(FILE_VER_GET_NEUTRAL, system, 0, size, buffer))
     return FALSE;
+#else
+  if (!GetFileVersionInfoExA(FILE_VER_GET_NEUTRAL, system, 0, size, buffer))
+    return FALSE;
+#endif
+
+#if defined(USE_UCS4_CPP) || _MSC_VER
   if (!VerQueryValueW(buffer, L"\\", &p, &s)) return FALSE;
+#else
+  if (!VerQueryValueA(buffer, "\\", &p, &s)) return FALSE;
+#endif
   if (s < sizeof(VS_FIXEDFILEINFO))return FALSE;
   if (!p) return FALSE;
   
@@ -111,4 +136,18 @@ int Sg_TrySymbolicLink(SgString *oldpath, SgString *newpath)
     return 0;
   }
   return GetLastError();
+}
+
+int Sg_WindowsDirectoryP(SgString *path)
+{
+  return directory_p(utf32ToUtf16(path));
+}
+
+int Sg_SymbolicLinkP(SgString *path)
+{
+  DWORD attr = GetFileAttributesW(utf32ToUtf16(path));
+  if (attr == INVALID_FILE_ATTRIBUTES) {
+    return FALSE;
+  }
+  return (attr & FILE_ATTRIBUTE_REPARSE_POINT);
 }
