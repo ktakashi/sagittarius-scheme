@@ -145,6 +145,30 @@ The @code{file-stat-mtime} returns last modified time of @var{filename}.
 The @code{file-stat-atime} returns last accesse time of @var{filename}.
 }
 
+@define[Function]{@name{change-file-timestamp!} @args{filename atime mtime}}
+@desc{Changes given @var{filename}'s access time and modify time.
+
+@var{atime} specifies the access time of the @var{filename}.
+
+@var{mtime} specifies the modify time of the @var{filename}.
+
+If @var{atime} and/or @var{mtime} are time object or real number, then the
+setting timestamp is the absolute time represented by the arguments.
+
+If @var{atime} and/or @var{mtime} are #f, then the timestamp is intact.
+
+If @var{atime} and/or @var{mtime} are true value other then time or real
+number, then the timestamp is set to current time.
+}
+
+@define[Function]{@name{change-file-mode} @args{filename mode}}
+@desc{Changes given @var{filename}'s file mode.
+
+@var{mode} must be a fixnum encoded with POSIX file permission.
+
+NOTE: On Windows, only the owner permission is considered.
+}
+
 @define[Function]{@name{create-symbolic-link} @args{old-filename new-filename}}
 @desc{Creates symbolic link of @var{old-filename} as @var{new-filename}.}
 
