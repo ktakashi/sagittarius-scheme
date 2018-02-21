@@ -36,7 +36,7 @@
 #include "win_util.c"
 
 #ifdef _MSC_VER
-#  pragma comment(lib, "mincore.lib")
+#  pragma comment(lib, "version.lib")
 #endif
 
 /* 
