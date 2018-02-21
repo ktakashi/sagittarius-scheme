@@ -319,17 +319,8 @@ SgObject Sg_Uname()
   }
   if (Sg_WindowsVersion(&ver)) {
     /* the same format as ver commend */
-    version = Sg_Sprintf(UC("%d.%d.%d"), ver.major, ver.minor, ver.build);
-    if (ver.release) {
-      /* is this correct? */
-      if (ver.major < 10) {
-	release = Sg_Sprintf(UC("Service Pack %d"), ver.release);
-      } else {
-	release = Sg_NumberToString(SG_MAKE_INT(ver.release), 10, FALSE);
-      }
-    } else {
-      release = SG_MAKE_STRING("");
-    }
+    version = Sg_Sprintf(UC("%d.%d"), ver.major, ver.minor);
+    release = Sg_Sprintf(UC("%d.%d"), ver.build, ver.release);
   }
   GetSystemInfo(&info);
   switch (info.wProcessorArchitecture) {
