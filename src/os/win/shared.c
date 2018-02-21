@@ -39,11 +39,6 @@
 #  pragma comment(lib, "mincore.lib")
 #endif
 
-
-#ifndef FILE_VER_GET_NEUTRAL
-# define FILE_VER_GET_NEUTRAL 0x02
-#endif
-
 /* 
    I don't trust GetVersionEx since its behaviour got changed
    after Windows 8.
@@ -68,9 +63,9 @@ int Sg_WindowsVersion(WinVersion *version)
   DWORD dummy;
   VS_FIXEDFILEINFO *info;
 #if defined(USE_UCS4_CPP) || _MSC_VER
-  DWORD size = GetFileVersionInfoSizeExW(FILE_VER_GET_NEUTRAL, system, &dummy);
+  DWORD size = GetFileVersionInfoSizeW(system, &dummy);
 #else
-  DWORD size = GetFileVersionInfoSizeExA(FILE_VER_GET_NEUTRAL, system, &dummy);
+  DWORD size = GetFileVersionInfoSizeA(system, &dummy);
 #endif
   if (size == 0) return FALSE;
   
@@ -81,13 +76,13 @@ int Sg_WindowsVersion(WinVersion *version)
 #endif
   
 #if defined(USE_UCS4_CPP) || _MSC_VER
-  if (!GetFileVersionInfoExW(FILE_VER_GET_NEUTRAL, system, 0, size, buffer))
+  if (!GetFileVersionInfoW(system, 0, size, buffer))
     return FALSE;
 #else
-  if (!GetFileVersionInfoExA(FILE_VER_GET_NEUTRAL, system, 0, size, buffer))
+  if (!GetFileVersionInfoA(system, 0, size, buffer))
     return FALSE;
 #endif
-
+  
 #if defined(USE_UCS4_CPP) || _MSC_VER
   if (!VerQueryValueW(buffer, L"\\", &p, &s)) return FALSE;
 #else

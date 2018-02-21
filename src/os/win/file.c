@@ -730,8 +730,42 @@ DEFINE_FILE_STAD(Sg_FileChangeTime, Creation)
 
 int Sg_Utimes(SgString *path, SgObject atime, SgObject mtime)
 {
-  /* TODO */
-  return FALSE;
+  HANDLE fd = CreateFileW(utf32ToUtf16(path), 
+			  GENERIC_READ,
+			  FILE_SHARE_READ | FILE_SHARE_WRITE,
+			  NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+  BOOL r = FALSE;
+  FILETIME aft, mft, *paft = &aft, *pmft = &mft;
+  if (fd == INVALID_HANDLE_VALUE) return FALSE;
+
+#define set_time(ft, time)			\
+  do {						\
+    if (SG_TIMEP(time) || SG_REALP(time)) {	\
+      struct timespec ts;			\
+      LARGE_INTEGER li;				\
+      li.QuadPart = 11644473600000000LL;	\
+      Sg_GetTimeSpec(time, &ts);		\
+      li.QuadPart += ts.tv_sec;			\
+      li.QuadPart *= 10000000LL;		\
+      li.QuadPart += ts.tv_nsec / 100;		\
+      ft->dwLowDateTime = li.u.LowPart;		\
+      ft->dwHighDateTime = li.u.HighPart;	\
+    } else if (SG_FALSEP(time)) {		\
+      ft = NULL;				\
+    } else {					\
+      GetSystemTimeAsFileTime(ft);		\
+    }						\
+  } while (0)
+  
+  set_time(paft, atime);
+  set_time(pmft, mtime);
+  
+#undef set_time
+  
+  r = SetFileTime(fd, NULL, paft, pmft);
+  
+  CloseHandle(fd);
+  return r;
 }
 
 SgObject Sg_FileSize(SgString *path)
