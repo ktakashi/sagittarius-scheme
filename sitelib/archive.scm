@@ -41,7 +41,8 @@
 	    archive-input?
 	    next-entry!
 	    extract-entry
-
+	    set-file-attribute!
+	    
 	    ;; for output
 	    make-output-archive
 	    ;; backward compatibility
@@ -135,6 +136,6 @@
 	       (when (and overwrite (file-exists? dest)) (delete-file dest))
 	       (call-with-output-file dest
 		 (lambda (out) (extract-entry e out))
-		 :transcoder #f))))))
-
+		 :transcoder #f)))
+	(set-file-attribute! e dest))))
 )

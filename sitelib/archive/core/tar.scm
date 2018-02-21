@@ -314,7 +314,9 @@
 	       (delete-file file))
 	     (call-with-output-file file
 	       (lambda (out) (extract-to-port tarport header out))
-	       :transcoder #f)))))
+	       :transcoder #f)
+	     (let ((time (date->time-utc (header-mtime header))))
+	       (change-file-timestamp! file time time))))))
 
   (define (extract-to-port tarport header destport)
     (define who 'extract-to-port)

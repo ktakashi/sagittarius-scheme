@@ -37,7 +37,8 @@
 	    (sagittarius)
 	    (sagittarius object)
 	    (sagittarius control)
-	    (srfi :13 strings))
+	    (srfi :13 strings)
+	    (srfi :19 time))
 
   (define-class <zip-archive-mixin> ()
     ((centrals :init-keyword :centrals :init-value '())))
@@ -107,5 +108,10 @@
 
   (define-method make-archive-output ((type (eql 'zip)) (sink <port>))
     (make <zip-archive-output> :sink sink))
+
+  (define-method set-file-attribute! ((e <zip-archive-input-entry>) file)
+    (let* ((date (central-directory-date (~ e 'central)))
+	   (time (date->time-utc date)))
+      (change-file-timestamp! file time time)))
 
 )

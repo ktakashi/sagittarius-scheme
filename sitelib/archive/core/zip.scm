@@ -663,6 +663,9 @@
                   (bitwise-and
                    (bitwise-not #o022)  ;umask...?
                    (bitwise-arithmetic-shift-right external-attributes 16))))
+	     (when (date? date)
+	       (let ((time (date->time-utc date)))
+		 (change-file-timestamp! inzip-filename time time)))
              ret))))
 
   ;; This procedure will be used when creating .ZIP files. The data

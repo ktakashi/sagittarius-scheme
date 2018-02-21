@@ -36,7 +36,8 @@
 	    (archive core tar)
 	    (sagittarius)
 	    (sagittarius object)
-	    (sagittarius control))
+	    (sagittarius control)
+	    (srfi :19))
 
   (define-class <tar-archive-input> (<archive-input>)
     ((current  :init-value #f)))
@@ -97,4 +98,8 @@
   (define-method make-archive-output ((type (eql 'tar)) (sink <port>))
     (make <tar-archive-output> :sink sink))
 
+  (define-method set-file-attribute! ((e <tar-archive-entry>) file)
+    (let* ((date (header-mtime (~ e 'header)))
+	   (time (date->time-utc date)))
+      (change-file-timestamp! file time time)))
 )

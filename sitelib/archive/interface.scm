@@ -38,7 +38,8 @@
 	    archive-input?
 	    next-entry!
 	    extract-entry
-
+	    set-file-attribute!
+	    
 	    ;; for output
 	    make-archive-output
 	    archive-output?
@@ -81,6 +82,7 @@
 
   (define-generic next-entry!)
   (define-generic extract-entry)
+  (define-generic set-file-attribute!)
   (define-generic create-entry)
   (define-generic append-entry!)
   (define-generic finish!)
@@ -92,4 +94,6 @@
   ;; default doesn't do anything
   (define-method finish! ((in <archive-input>)) #t)
 
+  (define-method set-file-attribute! ((e <archive-entry>) file) #f)
+  
 )
