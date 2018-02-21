@@ -133,6 +133,9 @@ CHECK_FUNCTION_EXISTS(sem_trywait   HAVE_SEM_TRYWAIT)
 CHECK_FUNCTION_EXISTS(backtrace     HAVE_BACKTRACE)
 CHECK_FUNCTION_EXISTS(backtrace_symbols     HAVE_BACKTRACE_SYMBOL)
 CHECK_FUNCTION_EXISTS(backtrace_symbols_fd  HAVE_BACKTRACE_SYMBOL_FD)
+CHECK_FUNCTION_EXISTS(utimensat     HAVE_UTIMENSAT)
+CHECK_FUNCTION_EXISTS(utimes        HAVE_UTIMES)
+
 # CPU_COUNT is a bit tricky
 # Linux man page says it's defined in <sched.h> but seems <unistd.h>
 # is the place

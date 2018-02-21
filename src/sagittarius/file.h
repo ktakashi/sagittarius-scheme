@@ -31,6 +31,7 @@
 #define SAGITTARIUS_FILE_H_
 
 #include "sagittariusdefs.h"
+#include "system.h"
 #include "clos.h"
 
 enum OpenMode {
@@ -159,6 +160,8 @@ SG_EXTERN int      Sg_CopyAccessControl(SgString *src, SgString *dst);
 
 /* glob */
 SG_EXTERN SgObject Sg_Glob(SgString *path, int flags);
+
+SG_EXTERN int      Sg_Utimes(SgString *path, SgObject atime, SgObject mtime);
 
 SG_CDECL_END
 

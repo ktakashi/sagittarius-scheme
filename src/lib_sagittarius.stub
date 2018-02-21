@@ -482,6 +482,9 @@
     (let ((r::int (Sg_ChangeFileMode file mode)))
       (when r (raise-i/o-error change-file-mode r file))))
 
+  (define-c-proc change-file-timestamp! (file::<string> mtime atime) ::<boolean>
+    Sg_Utimes)
+  
   (define-c-proc delete-directory (path::<string>) ::<void>
     (let ((r::int (Sg_DeleteFileOrDirectory path)))
       (when r (raise-i/o-error delete-directory r path))))

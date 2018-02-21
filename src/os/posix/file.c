@@ -659,6 +659,84 @@ SgObject Sg_FileChangeTime(SgString *path)
     return SG_FALSE;
 }
 
+int Sg_Utimes(SgString *path, SgObject atime, SgObject mtime)
+{
+  SgObject absolutePath;
+  char *c_path;
+
+  if (!Sg_AbsolutePathP(path)) {
+    absolutePath = Sg_AbsolutePath(path);
+    if (SG_FALSEP(absolutePath)) {
+      return FALSE;		/* file not exists? */
+    }
+  } else {
+    absolutePath = SG_OBJ(path);
+  }
+  if (!Sg_FileExistP(absolutePath)) return FALSE; /* okay file not exists */
+
+  c_path = Sg_Utf32sToUtf8s(absolutePath);
+#if defined(HAVE_UTIMENSAT)
+  {
+#define set_time(ts, time)			\
+    do {					\
+      if (SG_TIMEP(time) || SG_REALP(time)) {	\
+	Sg_GetTimeSpec(time, ts);		\
+      } else if (SG_FALSEP(time)) {		\
+	(ts)->tv_sec = 0;			\
+	(ts)->tv_nsec = UTIME_OMIT;		\
+      } else {					\
+	(ts)->tv_sec = 0;			\
+	(ts)->tv_nsec = UTIME_NOW;		\
+      }						\
+    } while (0)
+    
+    struct timespec times[2];
+
+    set_time(&times[0], atime);
+    set_time(&times[1], mtime);
+    return utimensat(0, c_path, &times, AT_SYMLINK_NOFOLLOW) == 0;
+#undef set_time
+  }
+#elif defined(HAVE_UTIMES)
+  {
+#define set_time(tv, time, m)			\
+    do {					\
+      if (SG_TIMEP(time) || SG_REALP(time)) {	\
+	struct timespec ts;			\
+	Sg_GetTimeSpec(time, &ts);		\
+	(tv)->tv_sec = ts.tv_sec;		\
+	(tv)->tv_usec = ts.tv_nsec / 1000;	\
+      } else if (SG_FALSEP(time)) {		\
+	/* emulate UTIME_OMIT */		\
+	struct stat st;				\
+	if (stat(c_path, &st) == 0) {		\
+	  (tv)->tv_sec = st. m;			\
+	  (tv)->tv_usec = 0;			\
+	} else {				\
+	  /* sorry */				\
+	  return FALSE;				\
+	}					\
+      }	else {					\
+	/* emulate UTIME_NOW */			\
+	unsigned long sec, usec;		\
+	Sg_GetTimeOfDay(&sec, &usec);		\
+	(tv)->tv_sec = sec;			\
+	(tv)->tv_usec = usec;			\
+      }						\
+    } while (0)
+    
+    struct timeval times[2];
+    set_time(&times[0], atime, st_atime);
+    set_time(&times[1], mtime, st_mtime);
+    return utimes(c_path, times) == 0;
+#undef set_time
+  }
+#else
+  /* just indicate failed to change */
+  return FALSE;
+#endif
+}
+
 SgObject Sg_FileSize(SgString *path)
 {
   struct stat st;

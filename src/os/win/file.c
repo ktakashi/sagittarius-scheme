@@ -728,6 +728,12 @@ DEFINE_FILE_STAD(Sg_FileModifyTime, LastWrite)
 DEFINE_FILE_STAD(Sg_FileAccessTime, LastAccess)
 DEFINE_FILE_STAD(Sg_FileChangeTime, Creation)
 
+int Sg_Utimes(SgString *path, SgObject atime, SgObject mtime)
+{
+  /* TODO */
+  return FALSE;
+}
+
 SgObject Sg_FileSize(SgString *path)
 {
   HANDLE fd = CreateFileW(utf32ToUtf16(path), 
