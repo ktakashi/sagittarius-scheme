@@ -27,6 +27,11 @@
  */
 #include <windows.h>
 #include <wchar.h>
+#include <winnls.h>
+#include <shobjidl.h>
+#include <objbase.h>
+#include <objidl.h>
+#include <shlguid.h>
 #define LIBSAGITTARIUS_BODY
 #include "shared.h"
 
@@ -51,22 +56,14 @@
  */
 int Sg_WindowsVersion(WinVersion *version)
 {
-#if defined(USE_UCS4_CPP) || _MSC_VER
-  const wchar_t *system = L"kernel32.dll";
-#else
   const char *system = "kernel32.dll";
-#endif
   
   char *buffer;
   UINT s;
   void *p = NULL;
   DWORD dummy;
   VS_FIXEDFILEINFO *info;
-#if defined(USE_UCS4_CPP) || _MSC_VER
-  DWORD size = GetFileVersionInfoSizeW(system, &dummy);
-#else
   DWORD size = GetFileVersionInfoSizeA(system, &dummy);
-#endif
   if (size == 0) return FALSE;
   
 #ifdef HAVE_ALLOCA
@@ -75,19 +72,8 @@ int Sg_WindowsVersion(WinVersion *version)
   buffer = SG_NEW_ATOMIC2(void *, size);
 #endif
   
-#if defined(USE_UCS4_CPP) || _MSC_VER
-  if (!GetFileVersionInfoW(system, 0, size, buffer))
-    return FALSE;
-#else
-  if (!GetFileVersionInfoA(system, 0, size, buffer))
-    return FALSE;
-#endif
-  
-#if defined(USE_UCS4_CPP) || _MSC_VER
-  if (!VerQueryValueW(buffer, L"\\", &p, &s)) return FALSE;
-#else
+  if (!GetFileVersionInfoA(system, 0, size, buffer)) return FALSE;
   if (!VerQueryValueA(buffer, "\\", &p, &s)) return FALSE;
-#endif
   if (s < sizeof(VS_FIXEDFILEINFO))return FALSE;
   if (!p) return FALSE;
   
@@ -145,4 +131,35 @@ int Sg_SymbolicLinkP(SgString *path)
     return FALSE;
   }
   return (attr & FILE_ATTRIBUTE_REPARSE_POINT);
+}
+
+int Sg_CreateShortcut(SgString *path, SgString *newpath)
+{
+  /* I have no idea why this can't be compiled. It's mostly copy&paste of
+     the example from MSDN... */
+#if 0
+  HRESULT hres; 
+  IShellLinkW* psl; 
+ 
+  hres = CoCreateInstance(CLSID_ShellLink,
+			  NULL,
+			  CLSCTX_INPROC_SERVER,
+			  IID_IShellLink,
+			  (LPVOID*)&psl); 
+  if (SUCCEEDED(hres)) { 
+    IPersistFile* ppf;
+    wchar_t *wpath = utf32ToUtf16(path);
+    psl->SetPath(wpath); 
+    hres = psl->QueryInterface(IID_IPersistFile, (LPVOID*)&ppf); 
+ 
+    if (SUCCEEDED(hres)) { 
+      wchar_t *wsz = utf32ToUtf16(newpath);
+      hres = ppf->Save(wsz, TRUE); 
+      ppf->Release(); 
+    }
+    psl->Release();
+  }
+  return hres;
+#endif
+  return E_FAIL;
 }
