@@ -731,7 +731,7 @@ DEFINE_FILE_STAD(Sg_FileChangeTime, Creation)
 int Sg_Utimes(SgString *path, SgObject atime, SgObject mtime)
 {
   HANDLE fd = CreateFileW(utf32ToUtf16(path), 
-			  GENERIC_READ,
+			  GENERIC_READ | GENERIC_WRITE,
 			  FILE_SHARE_READ | FILE_SHARE_WRITE,
 			  NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
   BOOL r = FALSE;
@@ -743,8 +743,8 @@ int Sg_Utimes(SgString *path, SgObject atime, SgObject mtime)
     if (SG_TIMEP(time) || SG_REALP(time)) {	\
       struct timespec ts;			\
       LARGE_INTEGER li;				\
-      li.QuadPart = 11644473600000000LL;	\
       Sg_GetTimeSpec(time, &ts);		\
+      li.QuadPart = 11644473600LL;		\
       li.QuadPart += ts.tv_sec;			\
       li.QuadPart *= 10000000LL;		\
       li.QuadPart += ts.tv_nsec / 100;		\
@@ -763,7 +763,7 @@ int Sg_Utimes(SgString *path, SgObject atime, SgObject mtime)
 #undef set_time
   
   r = SetFileTime(fd, NULL, paft, pmft);
-  
+
   CloseHandle(fd);
   return r;
 }

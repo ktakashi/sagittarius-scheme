@@ -152,8 +152,11 @@ The @code{file-stat-atime} returns last accesse time of @var{filename}.
 
 @var{mtime} specifies the modify time of the @var{filename}.
 
-If @var{atime} and/or @var{mtime} are time object or real number, then the
+If @var{atime} and/or @var{mtime} are time object, then the
 setting timestamp is the absolute time represented by the arguments.
+
+If @var{atime} and/or @var{mtime} are real number, then the
+setting timestamp is the difference of the arguments from current time.
 
 If @var{atime} and/or @var{mtime} are #f, then the timestamp is intact.
 
