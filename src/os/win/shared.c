@@ -25,6 +25,8 @@
  *   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  *   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+/* To enable COM macros */
+#define COBJMACROS
 #include <windows.h>
 #include <wchar.h>
 #include <winnls.h>
@@ -135,31 +137,26 @@ int Sg_SymbolicLinkP(SgString *path)
 
 int Sg_CreateShortcut(SgString *path, SgString *newpath)
 {
-  /* I have no idea why this can't be compiled. It's mostly copy&paste of
-     the example from MSDN... */
-#if 0
   HRESULT hres; 
   IShellLinkW* psl; 
  
-  hres = CoCreateInstance(CLSID_ShellLink,
+  hres = CoCreateInstance(&CLSID_ShellLink,
 			  NULL,
 			  CLSCTX_INPROC_SERVER,
-			  IID_IShellLink,
+			  &IID_IShellLink,
 			  (LPVOID*)&psl); 
   if (SUCCEEDED(hres)) { 
     IPersistFile* ppf;
-    wchar_t *wpath = utf32ToUtf16(path);
-    psl->SetPath(wpath); 
-    hres = psl->QueryInterface(IID_IPersistFile, (LPVOID*)&ppf); 
+    const wchar_t *wpath = utf32ToUtf16(path);
+    IShellLinkW_SetPath(psl, wpath); 
+    hres = IPersistFile_QueryInterface(psl, &IID_IPersistFile, (LPVOID*)&ppf); 
  
     if (SUCCEEDED(hres)) { 
-      wchar_t *wsz = utf32ToUtf16(newpath);
-      hres = ppf->Save(wsz, TRUE); 
-      ppf->Release(); 
+      const wchar_t *wsz = utf32ToUtf16(newpath);
+      hres = IPersistFile_Save(ppf, wsz, TRUE); 
+      IPersistFile_Release(ppf);
     }
-    psl->Release();
+    IShellLinkW_Release(psl);
   }
   return hres;
-#endif
-  return E_FAIL;
 }
