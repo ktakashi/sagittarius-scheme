@@ -44,6 +44,5 @@ extern int Sg_WindowsVersion(WinVersion *version);
 extern int Sg_TrySymbolicLink(SgString *oldpath, SgString *newpath);
 extern int Sg_WindowsDirectoryP(SgString *path);
 extern int Sg_SymbolicLinkP(SgString *path);
-extern int Sg_CreateShortcut(SgString *path, SgString *newpath);
 
 #endif

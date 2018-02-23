@@ -504,20 +504,41 @@ int Sg_FileRegularP(SgString *path)
 
 #ifdef __MSYS__
 # include "../win/shared.h"
+
+static int use_msys_runtime()
+{
+  static const char *WINSYMLINKS = "winsymlinks";
+  const char *value = getenv("MSYS"), *p;
+
+  if (value == NULL) return FALSE;
+  p = WINSYMLINKS;
+  while (*p && *p++ == *value++);
+  if (*p) return FALSE;
+  if (!*value) return TRUE;	/* value is winsymlinks, so use shortcut */
+#define check(s)				\
+  do {						\
+    const char *sp = s;				\
+    p = value;					\
+    while (*sp && *sp == *p++);			\
+    if (!*sp) return TRUE;			\
+  } while (0)
+  
+  check(":lnk");
+  check(":nativestrict");
+  check(":native");
+  return FALSE;
+  
+#undef check
+}
 #endif
 
 int Sg_FileSymbolicLinkP(SgString *path)
 {
-#ifndef __MSYS__
   struct stat st;
   if (lstat(Sg_Utf32sToUtf8s(path), &st) == 0) {
     return S_ISLNK(st.st_mode);
-   }
+  }
   return FALSE;
-#else
-  /* TODO check MSYS environment variable and shortcut */
-  return Sg_SymbolicLinkP(path);
-#endif
 }
 
 int Sg_FileExecutableP(SgString *path)
@@ -567,27 +588,32 @@ int Sg_CreateSymbolicLink(SgString *oldpath, SgString *newpath)
   return errno;
 #else
   /* 
-     https://sourceforge.net/p/msys2/tickets/41/
-
-     NOTE: 
-
-     Although, if MSYS environment variable is set to winsymlinks:native,
-     then it can actually create symbolic link (in 2018, not sure
-     since when). However we don't want to rely on the variable, so
-     implement it using Win32 API.
+     if the MSYS environment variable is one of non-copy strategy ones,
+     we use symlink(2)
   */
-  /* 
-     TODO check MSYS environment variable and do one of the following
-     1. Create symbolic link if possible or shortcut as fallback (native)
-     2. Create symbolic link if possible or fail (nativestrict)
-     3. Copy the file (not specified, default)
-   */
-  int r = Sg_TrySymbolicLink(oldpath, newpath);
-  /* try convert at least known values */
-  if (r == ERROR_ALREADY_EXISTS) {
-    return EEXIST;		/* convert it */
+  if (use_msys_runtime()) {
+    if (symlink(Sg_Utf32sToUtf8s(oldpath), Sg_Utf32sToUtf8s(newpath)) == 0) {
+      return 0;
+    }
+    return errno;
+  } else {
+    /* now it's not but we don't want to copy it. so use Windows one. */
+    int r = Sg_TrySymbolicLink(oldpath, newpath);
+    /* try convert at least known values */
+    if (r == ERROR_ALREADY_EXISTS) {
+      return EEXIST;		/* convert it */
+    }
+    if (Sg_FileExistP(newpath)) {
+      return r;
+    } else {
+      /* I want at least short cut... */
+      const char *old = getenv("MSYS");
+      setenv("MSYS", "winsymlinks", 1);
+      r = Sg_CreateSymbolicLink(oldpath, newpath);
+      setenv("MSYS", old, 1);
+      return r;
+    }
   }
-  return r;
 #endif
 }
 
@@ -694,7 +720,7 @@ int Sg_Utimes(SgString *path, SgObject atime, SgObject mtime)
 
     set_time(&times[0], atime);
     set_time(&times[1], mtime);
-    return utimensat(0, c_path, &times, AT_SYMLINK_NOFOLLOW) == 0;
+    return utimensat(0, c_path, times, AT_SYMLINK_NOFOLLOW) == 0;
 #undef set_time
   }
 #elif defined(HAVE_UTIMES)

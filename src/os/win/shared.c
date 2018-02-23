@@ -25,15 +25,8 @@
  *   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  *   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/* To enable COM macros */
-#define COBJMACROS
 #include <windows.h>
 #include <wchar.h>
-#include <winnls.h>
-#include <shobjidl.h>
-#include <objbase.h>
-#include <objidl.h>
-#include <shlguid.h>
 #define LIBSAGITTARIUS_BODY
 #include "shared.h"
 
@@ -133,30 +126,4 @@ int Sg_SymbolicLinkP(SgString *path)
     return FALSE;
   }
   return (attr & FILE_ATTRIBUTE_REPARSE_POINT);
-}
-
-int Sg_CreateShortcut(SgString *path, SgString *newpath)
-{
-  HRESULT hres; 
-  IShellLinkW* psl; 
- 
-  hres = CoCreateInstance(&CLSID_ShellLink,
-			  NULL,
-			  CLSCTX_INPROC_SERVER,
-			  &IID_IShellLink,
-			  (LPVOID*)&psl); 
-  if (SUCCEEDED(hres)) { 
-    IPersistFile* ppf;
-    const wchar_t *wpath = utf32ToUtf16(path);
-    IShellLinkW_SetPath(psl, wpath); 
-    hres = IPersistFile_QueryInterface(psl, &IID_IPersistFile, (LPVOID*)&ppf); 
- 
-    if (SUCCEEDED(hres)) { 
-      const wchar_t *wsz = utf32ToUtf16(newpath);
-      hres = IPersistFile_Save(ppf, wsz, TRUE); 
-      IPersistFile_Release(ppf);
-    }
-    IShellLinkW_Release(psl);
-  }
-  return hres;
 }
