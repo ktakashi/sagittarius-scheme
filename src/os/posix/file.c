@@ -512,14 +512,18 @@ static int use_msys_runtime()
 
   if (value == NULL) return FALSE;
   p = WINSYMLINKS;
-  while (*p && *p++ == *value++);
+  while (*p) {
+    if (*p++ != *value++) return FALSE;
+  }
   if (*p) return FALSE;
   if (!*value) return TRUE;	/* value is winsymlinks, so use shortcut */
 #define check(s)				\
   do {						\
     const char *sp = s;				\
     p = value;					\
-    while (*sp && *sp == *p++);			\
+    while (*sp) {				\
+      if (*sp++ != *p++) return FALSE;		\
+    }						\
     if (!*sp) return TRUE;			\
   } while (0)
   
@@ -579,6 +583,59 @@ int Sg_ChangeFileMode(SgString *path, int mode)
   return 0;
 }
 
+#ifdef __MSYS__
+static int create_msys_symbolic_link(const char *oldp,
+				     const char *newp,
+				     int retryp)
+{
+  int r;
+  /* 
+     if the MSYS environment variable is one of non-copy strategy ones,
+     we use symlink(2)
+  */
+  /* interesting enough, the environment variable parsing happens only
+     "CYGWIN" (Feb 2018). For future change, we support both here.
+
+     Here we are doing kinda silly things but seems required.
+     1. Unset environment variable of MSYS and CYGWIN
+     2. Set the environment variable
+        This trigers the option parsing on MSYS.
+     3. After the process, do the same to restore the option
+   */
+#define call_with_winsymlinks()				\
+  do {							\
+    const char *mold = getenv("MSYS");			\
+    const char *cold = getenv("CYGWIN");		\
+    unsetenv("MSYS");					\
+    unsetenv("CYGWIN");					\
+    setenv("MSYS", "winsymlinks:lnk", 1);		\
+    setenv("CYGWIN", "winsymlinks:lnk", 1);		\
+    r = create_msys_symbolic_link(oldp, newp, TRUE);	\
+    unsetenv("MSYS");					\
+    unsetenv("CYGWIN");					\
+    setenv("MSYS", mold, 1);				\
+    setenv("CYGWIN", cold, 1);				\
+  } while (0)						\
+    
+  if (use_msys_runtime()) {
+    fprintf(stderr, "here: %d %s", retryp, getenv("MSYS"));
+    if (symlink(oldp, newp)) r = errno;
+    else r = 0;
+  } else {
+    call_with_winsymlinks();
+  }
+  if (access(newp, F_OK) != 0) {
+    if (retryp) return r;
+    else {
+      call_with_winsymlinks();
+      return r;
+    }
+  }
+#undef call_with_winsymlinks
+  return 0;
+}
+#endif
+
 int Sg_CreateSymbolicLink(SgString *oldpath, SgString *newpath)
 {
 #ifndef __MSYS__
@@ -587,33 +644,9 @@ int Sg_CreateSymbolicLink(SgString *oldpath, SgString *newpath)
   }
   return errno;
 #else
-  /* 
-     if the MSYS environment variable is one of non-copy strategy ones,
-     we use symlink(2)
-  */
-  if (use_msys_runtime()) {
-    if (symlink(Sg_Utf32sToUtf8s(oldpath), Sg_Utf32sToUtf8s(newpath)) == 0) {
-      return 0;
-    }
-    return errno;
-  } else {
-    /* now it's not but we don't want to copy it. so use Windows one. */
-    int r = Sg_TrySymbolicLink(oldpath, newpath);
-    /* try convert at least known values */
-    if (r == ERROR_ALREADY_EXISTS) {
-      return EEXIST;		/* convert it */
-    }
-    if (Sg_FileExistP(newpath)) {
-      return r;
-    } else {
-      /* I want at least short cut... */
-      const char *old = getenv("MSYS");
-      setenv("MSYS", "winsymlinks", 1);
-      r = Sg_CreateSymbolicLink(oldpath, newpath);
-      setenv("MSYS", old, 1);
-      return r;
-    }
-  }
+  return create_msys_symbolic_link(Sg_Utf32sToUtf8s(oldpath),
+				   Sg_Utf32sToUtf8s(newpath),
+				   FALSE);
 #endif
 }
 
