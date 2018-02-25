@@ -616,7 +616,6 @@ static int create_msys_symbolic_link(const char *oldp,
   } while (0)						\
     
   if (use_msys_runtime()) {
-    fprintf(stderr, "here: %d %s", retryp, getenv("MSYS"));
     if (symlink(oldp, newp)) r = errno;
     else r = 0;
   } else {
