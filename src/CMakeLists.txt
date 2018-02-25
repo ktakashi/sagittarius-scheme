@@ -18,11 +18,6 @@ ELSE()
     os/posix/system.c os/posix/thread.c)
 ENDIF()
 
-IF (MSYS)
-  # For MSYS2 crappy symbolic link issue.
-  SET(PLATFORM_SOURCE ${PLATFORM_SOURCE} os/win/shared.c)
-ENDIF()
-
 IF (USE_UCS4_CPP)
   SET(PLATFORM_SOURCE_UCS4
     ${PLATFORM_SOURCE_UCS4}

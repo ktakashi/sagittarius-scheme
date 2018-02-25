@@ -503,8 +503,6 @@ int Sg_FileRegularP(SgString *path)
 }
 
 #ifdef __MSYS__
-# include "../win/shared.h"
-
 static int use_msys_runtime()
 {
   static const char *WINSYMLINKS = "winsymlinks";
