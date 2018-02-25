@@ -520,9 +520,9 @@ static int use_msys_runtime()
     const char *sp = s;				\
     p = value;					\
     while (*sp) {				\
-      if (*sp++ != *p++) return FALSE;		\
+      if (*sp++ != *p++) break;			\
     }						\
-    if (!*sp) return TRUE;			\
+    if (!*sp && !*p) return TRUE;		\
   } while (0)
   
   check(":lnk");
@@ -612,7 +612,7 @@ static int create_msys_symbolic_link(const char *oldp, const char *newp)
     unsetenv("CYGWIN");					\
     setenv("MSYS", mold, 1);				\
     setenv("CYGWIN", cold, 1);				\
-  } while (0)						\
+  } while (0)
 
   if (use_msys_runtime()) {
     if (symlink(oldp, newp)) r = errno;
@@ -624,10 +624,9 @@ static int create_msys_symbolic_link(const char *oldp, const char *newp)
   }
   if (access(newp, F_OK) != 0) {
     call_with_winsymlinks();
-    return r;
   }
 #undef call_with_winsymlinks
-  return 0;
+  return r;
 }
 #endif
 
