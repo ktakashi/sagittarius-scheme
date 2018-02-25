@@ -582,9 +582,7 @@ int Sg_ChangeFileMode(SgString *path, int mode)
 }
 
 #ifdef __MSYS__
-static int create_msys_symbolic_link(const char *oldp,
-				     const char *newp,
-				     int retryp)
+static int create_msys_symbolic_link(const char *oldp, const char *newp)
 {
   int r;
   /* 
@@ -608,25 +606,25 @@ static int create_msys_symbolic_link(const char *oldp,
     unsetenv("CYGWIN");					\
     setenv("MSYS", "winsymlinks:lnk", 1);		\
     setenv("CYGWIN", "winsymlinks:lnk", 1);		\
-    r = create_msys_symbolic_link(oldp, newp, TRUE);	\
+    if (symlink(oldp, newp)) r = errno;			\
+    else r = 0;						\
     unsetenv("MSYS");					\
     unsetenv("CYGWIN");					\
     setenv("MSYS", mold, 1);				\
     setenv("CYGWIN", cold, 1);				\
   } while (0)						\
-    
+
   if (use_msys_runtime()) {
     if (symlink(oldp, newp)) r = errno;
     else r = 0;
   } else {
+    /* this always calls shortcut creation, thus we can simply return */
     call_with_winsymlinks();
+    return r;
   }
   if (access(newp, F_OK) != 0) {
-    if (retryp) return r;
-    else {
-      call_with_winsymlinks();
-      return r;
-    }
+    call_with_winsymlinks();
+    return r;
   }
 #undef call_with_winsymlinks
   return 0;
@@ -642,8 +640,7 @@ int Sg_CreateSymbolicLink(SgString *oldpath, SgString *newpath)
   return errno;
 #else
   return create_msys_symbolic_link(Sg_Utf32sToUtf8s(oldpath),
-				   Sg_Utf32sToUtf8s(newpath),
-				   FALSE);
+				   Sg_Utf32sToUtf8s(newpath));
 #endif
 }
 
