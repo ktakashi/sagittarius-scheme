@@ -2,7 +2,7 @@
 ;;;
 ;;; archive/zip.scm - Generic zip interface.
 ;;;  
-;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2018  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -113,5 +113,4 @@
     (let* ((date (central-directory-date (~ e 'central)))
 	   (time (date->time-utc date)))
       (change-file-timestamp! file time time)))
-
 )

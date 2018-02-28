@@ -2,7 +2,7 @@
 ;;;
 ;;; archive.scm - Generic archive access
 ;;;  
-;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2018  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -137,5 +137,5 @@
 	       (call-with-output-file dest
 		 (lambda (out) (extract-entry e out))
 		 :transcoder #f)))
-	(set-file-attribute! e dest))))
+	(when dest (set-file-attribute! e dest)))))
 )
