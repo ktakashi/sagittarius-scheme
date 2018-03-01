@@ -191,7 +191,7 @@ Sagittariusは独自の拡張ライブラリを持っています。
 }
 
 
-@subsubsection{Hashtables}
+@subsubsection{ハッシュテーブル}
 
 @define[Function]{@name{make-equal-hashtable} @args{:optional k weakness}}
 @define[Function]{@name{make-string-hashtable} @args{:optional k weakness}}
@@ -221,7 +221,7 @@ Sagittariusは独自の拡張ライブラリを持っています。
 戻り値は@code{key}、@code{value}または@code{both}のいずれかになります。
 }
 
-@subsubsection{I/O}
+@subsubsection{入出力}
 
 @define[Function]{@name{port-closed?} @args{port}}
 @desc{与えられたポート@var{port}が閉じていれば#tをそうでなければ#fを返します。}
@@ -441,7 +441,7 @@ S式の出力。与えられた引数は@code{write}手続きを使った際と�
 実装されています。
 }
 
-@subsubsection{Symbols}
+@subsubsection{シンボル}
 
 @define[Function]{@name{symbol<?} @args{symbol1 symbol2 symbols @dots{}}}
 @define[Function]{@name{symbol<=?} @args{symbol1 symbol2 symbols @dots{}}}
@@ -459,7 +459,7 @@ S式の出力。与えられた引数は@code{write}手続きを使った際と�
 しかし、組み込みの手続きではシンボルから文字列への返還を行いません。
 }
 
-@subsubsection{Keywords}
+@subsubsection{キーワード}
 
 Sagittariusはキーワードを持っています。これは@code{':'}から始まる識別子です。
 キーワードはシンボルとよく似た特徴を持っていますが、キーワードにはいかなる値も束縛
@@ -503,7 +503,7 @@ Sagittariusはキーワードを持っています。これは@code{':'}から�
 @snipet[=> fallback]{(get-keyword :key '(a b c d e f) 'fallback)}
 }
 
-@subsubsection{Weak box(弱ボックス)}
+@subsubsection{弱ボックス(Weak box)}
 
 弱ボックスはGCを阻害しないようにオブジェクトへの参照を保持します。つまり、弱ボックスの
 要素はGCが発生した際し弱ボックス以外から参照されていなかった場合に回収されます。
@@ -526,7 +526,7 @@ Sagittariusはキーワードを持っています。これは@code{':'}から�
 @desc{与えられた弱ボックス@var{wb}の保持する要素を@var{obj}で置き替えます。}
 
 
-@subsubsection{Weak vector(弱ベクター)}
+@subsubsection{弱ベクター(Weak vector)}
 
 弱ベクターはベクターとよく似たオブジェクトですが、保持する要素がGCの対象になります。
 
@@ -553,7 +553,7 @@ Sagittariusはキーワードを持っています。これは@code{':'}から�
 @define[Function]{@name{weak-vector-set!} @args{wvec k value}}
 @desc{弱ベクター@var{wvec}の@var{k}番目に@var{value}をセットします。}
 
-@subsubsection{弱ハッシュテーブル}
+@subsubsection{弱ハッシュテーブル(Weak Hashtable)}
 
 弱ハッシュテーブルはハッシュテーブルとよく似ていますが保持されるキー、値また
 はその両方がGCの対象になります。GCの対象になるものは作成時に指定可能です。
@@ -581,37 +581,32 @@ Sagittariusはキーワードを持っています。これは@code{':'}から�
 
 @define[Function]{@name{weak-hashtable-ref}
  @args{weak-hashtable key :optional (default #f)}}
-@desc{Returns the value in @var{weak-hashtable} associated with @var{key}. If
-@var{weak-hashtable} does not contain an association for @var{key}, 
-@var{default} is returned.
+@desc{@var{weak-hashtable}の@var{key}に紐づけられた値を返します。もし
+@var{weak-hashtable}が@var{key}に紐づけられた値を持っていなかった場合は
+@var{default}を返します。
 }
 
 @define[Function]{@name{weak-hashtable-set!} @args{weak-hashtable key obj}}
-@desc{Changes @var{weak-hashtable} to associate @var{key} with @var{obj},
-adding a new association or replacing any existing association for @var{key},
-and returns unspecified values.
+@desc{@var{weak-hashtable}の@var{key}に@var{obj}を紐づけます。もし@var{key}が
+既に値を持っていた場合はその値を上書きします。戻り値は未定義値です。
 }
 
 @define[Function]{@name{weak-hashtable-delete!} @args{weak-hashtable key}}
-@desc{Removes any association for @var{key} within @var{weak-hashtable} and
-returns unspecified values.
-}
+@desc{@var{weak-hashtable}の@var{key}に紐づけられた値を削除し未定義値を返します。}
 
 @define[Function]{@name{weak-hashtable-keys-list} @args{weak-hashtable}}
 @define[Function]{@name{weak-hashtable-values-list} @args{weak-hashtable}}
-@desc{Returns a list of keys and values in the given @var{weak-hashtable},
-respectively.
-}
+@desc{それぞれ、@var{weak-hashtable}のキーのリストと値のリストを返します。}
 
 @define[Function]{@name{weak-hashtable-copy} @args{weak-hashtable}}
-@desc{Returns a copy of @var{weak-hashtable}.}
+@desc{@var{weak-hashtable}のコピーを返します。}
 
 @define[Function]{@name{weak-hashtable-shrink} @args{weak-hashtable}}
-@desc{Shrink the given @var{weak-hashtable} and returns the number of
-removed entry. This is only for GC friendliness.}
+@desc{@var{weak-hashtable}のサイズを縮め、削除された数を返します。この手続きは
+GCの効率のためにあります。}
 
 
-@subsubsection{Bytevector operations}
+@subsubsection{バイトベクタ操作}
 
 @define[Function]{@name{bytevector->sinteger}
  @args{bytevector :optional start end}}
@@ -619,46 +614,47 @@ removed entry. This is only for GC friendliness.}
  @args{bytevector :optional start end}}
 @define[Function]{@name{bytevector->integer}
  @args{bytevector :optional start end}}
-@desc{Converts given bytevector @var{bytevector} to exact integer. If optional
-argument @var{start} is given, conversion starts with index @var{start}. If
-optional argument @var{end} is given, convertion ends by index @var{end}. The
-conversion only happens in big endian. 
+@desc{与えられたバイトベクタ@var{bytevector}を正確な整数に変換します。
+オプショナル引数の@var{start}が与えられた場合は、変換が指定されたインデックスから
+開始されます。@var{end}も与えられた場合は変換が@var{start}から@var{end}までの
+範囲に制限されます。
 
-The first form converts to signed integer and the rest convert to unsigned
-integer.
+この変換はビッグエンディアンで行われます。
+
+最初の手続きは符号付整数に、それ以外は符号なし整数に変換します。
 }
 
 @define[Function]{@name{sinteger->bytevector} @args{ei :optional size}}
 @define[Function]{@name{uinteger->bytevector} @args{ei :optional size}}
 @define[Function]{@name{integer->bytevector} @args{ei :optional size}}
-@desc{@var{Ei} must be exact integer. Converts exact integer @var{ei} to a
-bytevector.
+@desc{@var{Ei}は正確な整数でなければなりません。
 
-The first form can accept signed integer and converts with two's complement
-form. The rest forms only accept unsigned integer and simply convert to
-bytes.
+与えられた@var{ei}をバイトベクタに変換します。
 
-If optional argument @var{size} is given, then the procedure returns @var{size}
-size bytevector.
+最初の手続きは符号付整数を受け付け、負の整数が与えられた場合は二の補数で変換します。
+それ以外の手続きは負の整数を受け取ると@code{&assertion}を送出します。
 
-NOTE: The conversion is processed from right most byte so if the @var{size} is
-smaller than given @var{ei} bytes, then the rest of left bytes will be dropped.
+オプショナル引数@var{size}が与えらた場合、返されるバイトベクタのサイズが与えられた
+サイズになります。
 
-NOTE: the endianness is always big integer.
+注意：変換プロセスは最も右側のバイトから始まります。もし、@var{size}が与えられた
+@var{ei}が要求するバイト数よりも小さかった場合、左側のバイトが落とされます。
+
+注意：この変換は常にビッグエンディアンです。
 
 @snipet[=> "#vu8(#x00 #x12 #x34 #x56 #x78)"]{(integer->bytevector #x12345678 5)}
 @snipet[=> "#vu8(#x34 #x56 #x78)"]{(integer->bytevector #x12345678 3)}
 }
 
 @define[Function]{@name{bytevector-append} @args{bvs @dots{}}}
-@desc{Returns a newly allocated bytevector that contains all elements in
-order from the subsequent locations in @var{bvs @dots{}}.
-}
+@desc{与えられた全てのバイトベクタ@var{bvs @dots{}}の要素をすべて含む、新たに
+作られたバイトベクタを返します。}
 
 @define[Function]{@name{bytevector-concatenate} @args{list-of-bytevectors}}
-@desc{Appends each bytevectors in @var{list-of-bytevectors}. This is
-equivalent to:
+@desc{与えられたバイトベクタのリスト@var{list-of-bytevectors}を連結して新たに
+作られたバイトベクタを返します。
 
+この手続きは以下の処理と同様の振る舞いをします。
 @snipet{(apply bytevector-append @var{list-of-bytevectors})}
 }
 
