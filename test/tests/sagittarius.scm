@@ -2234,17 +2234,17 @@
   (let ((mtime (file-stat-mtime file))
 	(atime (file-stat-atime file))
 	(1sec (expt 10 9)))
-    (test-assert (change-file-timestamp! file
+    (test-assert (change-file-timestamps! file
 					 (make-time time-utc (- atime 1sec) 0)
 					 (make-time time-utc (- mtime 1sec) 0)))
     (test-equal (- mtime 1sec) (file-stat-mtime file))
     (test-equal (- atime 1sec) (file-stat-atime file))
 
-    (test-assert (change-file-timestamp! file #f #f))
+    (test-assert (change-file-timestamps! file #f #f))
     (test-equal (- mtime 1sec) (file-stat-mtime file))
     (test-equal (- atime 1sec) (file-stat-atime file))
 
-    (test-assert (change-file-timestamp! file #t #t))
+    (test-assert (change-file-timestamps! file #t #t))
     (test-assert (<= mtime (file-stat-mtime file)))
     (test-assert (<= atime (file-stat-mtime file)))))
 

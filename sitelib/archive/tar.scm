@@ -101,5 +101,5 @@
   (define-method set-file-attribute! ((e <tar-archive-entry>) file)
     (let* ((date (header-mtime (~ e 'header)))
 	   (time (date->time-utc date)))
-      (change-file-timestamp! file time time)))
+      (change-file-timestamps! file time time)))
 )

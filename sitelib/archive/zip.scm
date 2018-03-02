@@ -112,5 +112,5 @@
   (define-method set-file-attribute! ((e <zip-archive-input-entry>) file)
     (let* ((date (central-directory-date (~ e 'central)))
 	   (time (date->time-utc date)))
-      (change-file-timestamp! file time time)))
+      (change-file-timestamps! file time time)))
 )

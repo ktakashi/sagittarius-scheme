@@ -619,7 +619,7 @@
   ;; helpers
   (define-constant os-dos 0)
   (define-constant os-unix 3)
-  ;; TODO: change file times. I didn't see a procedure for that.
+
   (define (call-with-adorned-output-file inzip-filename date local-extra
                                          central-extra
                                          os-made-by
@@ -665,7 +665,7 @@
                    (bitwise-arithmetic-shift-right external-attributes 16))))
 	     (when (date? date)
 	       (let ((time (date->time-utc date)))
-		 (change-file-timestamp! inzip-filename time time)))
+		 (change-file-timestamps! inzip-filename time time)))
              ret))))
 
   ;; This procedure will be used when creating .ZIP files. The data
