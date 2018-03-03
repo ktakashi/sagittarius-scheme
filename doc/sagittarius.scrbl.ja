@@ -663,25 +663,22 @@ GCの効率のためにあります。}
 
 @define[Function]{@name{circular-list?} @args{list}}
 @define[Function]{@name{dotted-list?} @args{list}}
-@desc{[SRFI-1] Returns #t if @var{list} is circular or dotted list,
-respectively. Otherwise #f.}
+@desc{[SRFI-1] 与えられた@var{list}が循環リストまたは、
+空リスト@code{'()}で終端していないリストなら#tを、それ以外なら#fを返します。}
 
 @define[Function]{@name{acons} @args{obj1 obj2 obj3}}
-@desc{Returns @code{(cons (cons @var{obj1} @var{obj2}) @var{obj3})}. Useful to
-put an entry at the head of an associative list.
+@desc{@code{(cons (cons @var{obj1} @var{obj2}) @var{obj3})}と等価な結果と返します。
+連想リストの先頭に新しいエントリを挿入する際に役に立ちます。
 }
 
 @define[Function]{@name{append!} @args{list @dots{}}}
-@desc{[SRFI-1] Returns a list consisting of the elements of the first @var{list}
-followed by the elements of the other @var{lists}. The cells in the lists except
-the last one may be reused to construct the result. The last argument may be any
-object.
-}
+@desc{[SRFI-1] 与えられた@var{list}の後ろに@var{lists}の要素を追加したリスト
+を返します。最後に与えられた与えられた引数を除くすべてのリストは破壊的に再利用される
+可能性があります。最後の引数はリストでなくても構いません。}
 
 @define[Function]{@name{reverse!} @args{list @dots{}}}
-@desc{[SRFI-1] Returns a list consisting of the elements of @var{list} in
-reverse order. The cells of list may be reused to construct the returned list.
-}
+@desc{[SRFI-1] 与えられたリスト@var{list}の要素の逆順を持つリストを返します。
+与えられたリストは破壊的に変更されます。}
 
 @subsubsection{Vector operations}
 
