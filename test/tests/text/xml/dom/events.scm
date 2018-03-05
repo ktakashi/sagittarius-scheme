@@ -1,0 +1,20 @@
+(import (rnrs)
+	(text xml dom events)
+	(srfi :19)
+	(srfi :64))
+
+(test-begin "DOM - Events")
+
+(let ((event (make-event "type")))
+  (test-assert (event? event))
+  (test-equal "type" (event-type event))
+  (test-assert (not (event-target event)))
+  (test-assert (not (event-current-target event)))
+  (test-equal +event:none+ (event-event-phase event))
+  (test-assert (not (event-bubbles? event)))
+  (test-assert (not (event-cancelable? event)))
+  (test-assert (not (event-default-prevented? event)))
+  (test-assert (not (event-composed? event)))
+  (test-assert (time? (event-time-stamp event))))
+
+(test-end)
