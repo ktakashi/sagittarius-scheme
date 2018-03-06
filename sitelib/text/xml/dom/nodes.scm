@@ -97,10 +97,113 @@
 (define (node:lookup-prefix node namespace))
 (define (node:lookup-namespace-uri node prefix))
 (define (node:default-namespace node namespace))
-(define (node:insert-before node node0 child) node)
-(define (node:append-child node child))
-(define (node:replace-child node node0 child))
-(define (node:remove-child node child))
+(define (node:insert-before! node node0 child) node)
+(define (node:append-child! node child))
+(define (node:replace-child! node node0 child))
+(define (node:remove-child! node child))
+
+;;; Element
+(define-record-type element
+  (parent node)
+  (fields namespace-uri ;; DOMString?
+	  prefix	;; DOMString?
+	  local-name	;; DOMString
+	  tag-name	;; DOMString
+	  id		;; DOMString
+	  class-name	;; DOMString
+	  class-list	;; DOMTokenList
+	  slot		;; DOMString
+	  attributes	;; NamedNodeMap
+	  shadow-root	;; ShadowRoot? (not supported)
+	  )
+  (protocol (lambda (n)
+	      (lambda args
+		(assertion-violation 'make-document "not yet")))))
+(define (element:has-attributes? element) #f)
+(define (element:get-attribute-names element) '())
+(define (element:get-attribute element qualified-name) #f)
+(define (element:get-attribute-ns element namespace local-name) #f)
+(define (element:set-attribute! element qualified-name value) )
+(define (element:set-attribute-ns! element namespace qualified-name value) )
+(define (element:remove-attribute! element qualified-name) )
+(define (element:remove-attribute-ns! element namespace local-name) )
+(define (element:has-attribute? element qualified-name))
+(define (element:has-attribute-ns? element namespace local-name))
+
+(define (element:get-attribute-node element qualified-name) #f)
+(define (element:get-attribute-node-ns element namespace local-name) #f)
+(define (element:set-attribute-node! element attr) )
+(define (element:set-attribute-node-ns! element attr) )
+(define (element:remove-attribute-node! element attr) )
+(define (element:attach-shadow! element init)
+  (assertion-violation 'element:attach-shadow! "not supported"))
+
+(define (element:closest element selector) #f)
+(define (element:matches? element selector) #f)
+
+(define (element:get-elements-by-tag-name element qualified-name) '())
+(define (element:get-elements-by-tag-name-ns element namespace local-name) '())
+(define (element:get-elements-by-class-name element class-name) '())
+
+;;; Attr
+(define-record-type attr
+  (parent node)
+  (fields namespace-uri ;; DOMString?
+	  prefix	;; DOMString?
+	  local-name	;; DOMString
+	  name		;; DOMString
+	  value		;; DOMString
+	  owner-element ;; Element
+	  specified?	;; boolean (useless always returns true)
+	  )
+  (protocol (lambda (n)
+	      (lambda args
+		(assertion-violation 'make-document "not yet")))))
+
+;;; NamedNodeMap
+(define-record-type named-node-map
+  (fields length
+	  element    ;; internal
+	  attributes ;; internal
+	  )
+  (protocol (lambda (p)
+	      (lambda (element attributes)
+		(let ((v (list->vector attributes)))
+		  (p (vector-length v) element v))))))
+(define (named-node-map:item map index)
+  (vector-ref (named-node-map-attributes map) index))
+(define (named-node-map:get-named-item map qualified-name)
+  (define len (named-node-map-length map))
+  (define attributes (named-node-map-attributes map))
+  (define (->qualified-name attr)
+    ;; TODO 
+    (string-append (or (attr-namespace-uri attr) "")
+		   ":"
+		   (or (attr-local-name attr) "")))
+  (let loop ((i 0))
+    (if (= i len)
+	#f
+	(let ((attr (vector-ref attributes i)))
+	  (if (string=? qualified-name (->qualified-name attr))
+	      attr
+	      (loop (+ i 1)))))))
+
+(define (named-node-map:get-named-item-ns map namespace local-name)
+  (define len (named-node-map-length map))
+  (define attributes (named-node-map-attributes map))
+  (let loop ((i 0))
+    (if (= i len)
+	#f
+	(let ((attr (vector-ref attributes i)))
+	  (if (and (string=? namespace (attr-namespace-uri attr))
+		   (string=? namespace (attr-local-name attr)))
+	      attr
+	      (loop (+ i 1)))))))
+
+(define (named-node-map:set-named-item! map attr))
+(define (named-node-map:set-named-item-ns! map attr))
+(define (named-node-map:remove-named-item! map qualified-name))
+(define (named-node-map:remove-named-item-ns! map namespace local-name))
 
 ;;; Document
 (define-record-type document
