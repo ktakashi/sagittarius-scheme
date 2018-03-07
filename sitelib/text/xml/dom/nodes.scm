@@ -1,20 +1,20 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
 ;;; text/xml/dom/nodes.scm - DOM nodes
-;;;  
+;;;
 ;;;   Copyright (c) 2018  Takashi Kato  <ktakashi@ymail.com>
-;;;   
+;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
 ;;;   are met:
-;;;   
+;;;
 ;;;   1. Redistributions of source code must retain the above copyright
 ;;;      notice, this list of conditions and the following disclaimer.
-;;;  
+;;;
 ;;;   2. Redistributions in binary form must reproduce the above copyright
 ;;;      notice, this list of conditions and the following disclaimer in the
 ;;;      documentation and/or other materials provided with the distribution.
-;;;  
+;;;
 ;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 ;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 ;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -26,7 +26,7 @@
 ;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-;;;  
+;;;
 
 ;; reference
 ;;  - https://dom.spec.whatwg.org/
@@ -34,7 +34,68 @@
 ;; we don't implement shadow tree for now
 
 (library (text xml dom nodes)
-    (export)
+    (export node-list? node-list-length node-list:item
+
+	    +element-node+ +attribute-node+ +text-node+
+	    +cdata-section-node+ +entity-reference-node+
+	    +entity-node+ +processing-instruction-node+
+	    +comment-node+ +document-node+
+	    +document-type-node+ +document-fragment-node+ +notation-node+
+
+	    node? node-node-type node-node-name node-base-uri
+	    node-connected? node-owner-document node-parent-node
+	    node-parent-element node-child-nodes node-first-child
+	    node-last-child node-previous-sibling node-next-sibling
+	    node-node-value node-text-content
+	    node:get-root-node node:normalize! node:clone-node
+	    node:equal-node? node:same-node? node:compare-document-position
+	    node:contains? node:lookup-prefix node:lookup-namespace-uri
+	    node:default-namespace node:insert-before! node:append-child!
+	    node:replace-child! node:remove-child!
+	    
+	    element? element-namespace-uri element-prefix
+	    element-local-name element-tag-name element-id
+	    element-class-name element-class-list element-slot
+	    element-attributes
+	    ;; element-shadow-root ;; not supported yet
+	    element:has-attributes? element:get-attribute-names
+	    element:get-attribute element:get-attribute-ns
+	    element:set-attribute! element:set-attribute-ns!
+	    element:remove-attribute! element:remove-attribute-ns!
+	    element:has-attribute? element:has-attribute-ns?
+	    element:get-attribute-node element:get-attribute-node-ns
+	    element:set-attribute-node! element:set-attribute-node-ns!
+	    element:remove-attribute-node!
+	    ;; element:attach-shadow! ;; not supported yet
+	    element:closest element:matches?
+	    element:get-elements-by-tag-name element:get-elements-by-tag-name-ns
+	    element:get-elements-by-class-name
+
+	    attr? attr-namespace-uri attr-prefix attr-local-name
+	    attr-name attr-value attr-owner-element attr-specified?
+
+	    named-node-map? named-node-map-length
+	    named-node-map:item named-node-map:get-named-item
+	    named-node-map:get-named-item-ns
+	    named-node-map:set-named-item! named-node-map:set-named-item-ns!
+	    named-node-map:remove-named-item!
+	    named-node-map:remove-named-item-ns!
+
+	    document? document-uri document-document-uri document-origin
+	    document-compat-mode document-character-set document-charset
+	    document-input-encoding document-content-type
+	    document-doctype document-document-element
+	    document:get-element-by-tag-name document:get-element-by-tag-name-ns
+	    document:get-element-by-class-name
+	    document:create-element document:create-element-ns
+	    document:create-document-fragment document:create-text-node
+	    document:create-cdata-section document:create-comment
+	    document:create-processing-instruction
+	    document:import-node document:adopt-node
+	    document:create-attribute document:create-attribute-ns
+	    document:create-event document:create-range
+	    document:create-node-iterator document:create-tree-walker
+	    )
     (import (rnrs)
 	    (sagittarius) ;; for define-constant
 	    (text xml dom events))
@@ -44,8 +105,7 @@
   (fields length
 	  items))
 (define (node-list:item nl index) )
-  
-  
+
 ;;; Node
 (define-constant +element-node+                1)
 (define-constant +attribute-node+              2)
@@ -69,31 +129,53 @@
 
 (define-record-type node
   (parent <event-target>)
-  (fields node-type ;; unsigned short
-	  node-name ;; DOMString
-	  base-uri  ;; USVString
-	  connected?	 ;; boolean
-	  owner-document ;; Document?
-	  parent-node	 ;; Node?
-	  parent-element ;; Element?
-	  child-nodes	 ;; NodeList
-	  first-child	 ;; Node?
-	  last-child	 ;; Node?
-	  previous-sibling ;; Node?
-	  next-sibling	   ;; Node?
-	  node-value	   ;; DOMString?
-	  text-content	   ;; DOMString?
+  (fields node-type                  ;; unsigned short
+	  node-name                  ;; DOMString
+	  base-uri                   ;; USVString
+	  connected?                 ;; boolean
+	  owner-document             ;; Document?
+	  (mutable parent-node)	     ;; Node?
+	  (mutable parent-element)    ;; Element?
+	  (mutable child-nodes)	     ;; NodeList
+	  (mutable first-child)	     ;; Node?
+	  (mutable last-child)	     ;; Node?
+	  (mutable previous-sibling) ;; Node?
+	  (mutable next-sibling)     ;; Node?
+	  node-value		     ;; DOMString?
+	  text-content		     ;; DOMString?
 	  )
   (protocol (lambda (n)
-	      (lambda args
-		(assertion-violation 'make-node "Not yet")))))
+	      (lambda (node-type :key (node-name #f)
+				      (base-uri #f)
+				      (connected? #f)
+				      (owner-document #f)
+				      (parent-node #f)
+				      (parent-element #f)
+				      (child-nodes (make-node-list 0 '()))
+				      (node-value #f)
+				      (text-content #f))
+		((n)
+		 node-type
+		 node-name
+		 base-uri
+		 connected?
+		 owner-document
+		 parent-node
+		 parent-element
+		 child-nodes
+		 #f ;; TODO calculate from child-nodes
+		 #f ;; ditto
+		 #f ;; previous sibling will be set
+		 #f ;; next sibling will be set later
+		 node-value
+		 text-content)))))
 (define (node:get-root-node node :optional (options #f)) )
-(define (node:normalize node))
+(define (node:normalize! node))
 (define (node:clone-node node :optional (deep #f)))
 (define (node:equal-node? node1 node2) #f)
 (define (node:same-node? node1 node2) (eq? node1 node2))
 (define (node:compare-document-position node other) 0)
-(define (node:contains node other))
+(define (node:contains? node other))
 (define (node:lookup-prefix node namespace))
 (define (node:lookup-namespace-uri node prefix))
 (define (node:default-namespace node namespace))
@@ -109,16 +191,23 @@
 	  prefix	;; DOMString?
 	  local-name	;; DOMString
 	  tag-name	;; DOMString
-	  id		;; DOMString
-	  class-name	;; DOMString
+	  (mutable id)	;; DOMString
+	  (mutable class-name) ;; DOMString
 	  class-list	;; DOMTokenList
 	  slot		;; DOMString
 	  attributes	;; NamedNodeMap
 	  shadow-root	;; ShadowRoot? (not supported)
 	  )
   (protocol (lambda (n)
-	      (lambda args
-		(assertion-violation 'make-document "not yet")))))
+	      (lambda (namespace-uri prefix local-name tag-name
+		       :key (id #f) (class-name #f) (slot #f)
+			    (attributes (make-named-node-map)))
+		((n +element-node+ :node-name tag-name)
+		 namespace-uri prefix local-name tag-name id class-name
+		 #f ;; class-list later
+		 slot attributes
+		 #f ;; shadow-root later
+		 )))))
 (define (element:has-attributes? element) #f)
 (define (element:get-attribute-names element) '())
 (define (element:get-attribute element qualified-name) #f)
@@ -176,7 +265,7 @@
   (define len (named-node-map-length map))
   (define attributes (named-node-map-attributes map))
   (define (->qualified-name attr)
-    ;; TODO 
+    ;; TODO
     (string-append (or (attr-namespace-uri attr) "")
 		   ":"
 		   (or (attr-local-name attr) "")))
@@ -204,6 +293,17 @@
 (define (named-node-map:set-named-item-ns! map attr))
 (define (named-node-map:remove-named-item! map qualified-name))
 (define (named-node-map:remove-named-item-ns! map namespace local-name))
+
+;;; DocumentType
+(define-record-type document-type
+  (parent node)
+  (fields name	    ;; DOMString 
+	  public-id ;; DOMString 
+	  system-id ;; DOMString
+	  )
+  (protocol (lambda (n)
+	      (lambda (name public-id system-id)
+		((n +document-type-node+) name public-id system-id)))))
 
 ;;; Document
 (define-record-type document
@@ -251,6 +351,3 @@
 					       (filter #f)))
 
 )
-
-
-
