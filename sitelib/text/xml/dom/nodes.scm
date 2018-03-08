@@ -135,7 +135,7 @@
 	  connected?                 ;; boolean
 	  owner-document             ;; Document?
 	  (mutable parent-node)	     ;; Node?
-	  (mutable parent-element)    ;; Element?
+	  (mutable parent-element)   ;; Element?
 	  (mutable child-nodes)	     ;; NodeList
 	  (mutable first-child)	     ;; Node?
 	  (mutable last-child)	     ;; Node?
@@ -304,6 +304,52 @@
   (protocol (lambda (n)
 	      (lambda (name public-id system-id)
 		((n +document-type-node+) name public-id system-id)))))
+
+;;; CharacterData
+(define-record-type character-data
+  (parent node)
+  (fields (mutable data)   ;; DOMString
+	  (mutable length) ;; readonly but we need to update
+	  )
+  (protocol (lambda (n)
+	      (lambda (type data)
+		((n type) data (string-length data))))))
+(define (character-data:substring-data cd offset count))
+(define (character-data:append-data! cd data))
+(define (character-data:insert-data! cd offset data))
+(define (character-data:delete-data! cd offset count))
+(define (character-data:replace-data! cd offset count))
+
+;; Text
+(define-record-type text
+  (parent character-data)
+  (protocol (lambda (n)
+	      (lambda (:key (data "")
+			    (type +text-node+) ;; for CDATA...
+			    )
+		((n type data))))))
+;; it's impossible to implement as a field so just keep the naming convension
+(define (text-whole-text text) "")
+(define (text:split-text text offset))
+
+(define-record-type cdata-section
+  (parent text)
+  (protocol (lambda (n)
+	      (lambda (:key (data ""))
+		((n :data data :type +cdata-section-node+))))))
+
+(define-record-type processing-instruction
+  (parent character-data)
+  (fields target)
+  (protocol (lambda (n)
+	      (lambda (target)
+		((n +processing-instruction-node+ "") target)))))
+
+(define-record-type comment
+  (parent character-data)
+  (protocol (lambda (n)
+	      (lambda (:key (data ""))
+		((n +processing-instruction-node+ data))))))
 
 ;;; Document
 (define-record-type document
