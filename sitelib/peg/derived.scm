@@ -30,7 +30,8 @@
 
 (library (peg derived)
     (export $bind $do $optional $repeat $sequence-of
-	    $parameterize $if $when $unless)
+	    $parameterize $if $when $unless
+	    $eqv?)
     (import (rnrs)
 	    (peg primitives)
 	    (srfi :39 parameters))
@@ -102,4 +103,6 @@
   (syntax-rules ()
     ((_ pred body)
      ($when (not pred) body))))
+
+(define ($eqv? v) ($satisfy (lambda (c) (eqv? c v)) v))
 )

@@ -110,7 +110,6 @@
   ($sequence-of
    (map (lambda (c) (lambda (c2) (eqv? c c2))) (string->list str))))
 
-(define ($eqv? v) ($satisfy (lambda (c) (eqv? c v)) v))
 (define ($in-set s) ($satisfy (lambda (c) (char-set-contains? s c))))
 
 (define newline
