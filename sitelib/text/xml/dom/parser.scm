@@ -34,6 +34,7 @@
 ;; This library returns DOM AST which is *not* DOM yet but intermediate
 ;; data structure. At some point, we can also convert SXML to DOM AST
 ;; but that's a bit far future.
+#!nounbound
 (library (text xml dom parser)
     (export make-xml-document-parse-options
 	    xml-document-parse-options?
@@ -44,14 +45,16 @@
 	    $xml:s
 	    $xml:name $xml:names
 	    $xml:nmtoken $xml:nmtokens
+	    $xml:entity-value $xml:attr-value
 
-	    $xml:char-ref
+	    $xml:char-ref $xml:entity-ref $xml:reference $xml:pe-reference
+	    $xml:entity-value
 	    )
     (import (rnrs)
 	    (peg)
 	    (srfi :14 char-sets)
 	    (srfi :39 parameters))
-
+;; TODO maybe this should be move to constructing part
 (define-record-type xml-document-parse-options
   (fields namespace-aware?
 	  xinclude-aware?
@@ -118,7 +121,7 @@
 ;;                 | [#x0300-#x036F] | [#x203F-#x2040]
 (define +xml:name-char-set+
   (char-set-union
-   $xml:name-start-char-set
+   +xml:name-start-char-set+
    (string->char-set "-.0123456789")
    (char-set #\xB7)
    (ucs-range->char-set #x0300 #x0370)
@@ -127,8 +130,8 @@
 (define ($in-set s) ($satisfy (lambda (c) (char-set-contains? s c))))
 ;; [5] Name   ::= NameStartChar (NameChar)*
 (define $xml:name
-  ($do (s ($in-set $xml:name-start-char-set))
-       (c* ($many ($in-set $xml:name-char-set)))
+  ($do (s ($in-set +xml:name-start-char-set+))
+       (c* ($many ($in-set +xml:name-char-set+)))
        ($return (list->string (cons s c*)))))
 ;; [6] Names  ::= Name (#x20 Name)*
 (define $xml:names
@@ -137,7 +140,7 @@
        ($return (cons n n*))))
 ;; [7] Nmtoken ::= (NameChar)+
 (define $xml:nmtoken
-  ($do (c* ($many ($in-set $xml:name-char-set) 1))
+  ($do (c* ($many ($in-set +xml:name-char-set+) 1))
        ($return (list->string c*))))
 ;; [8] Nmtokens ::= Nmtoken (#x20 Nmtoken)*
 (define $xml:nmtokens
@@ -161,15 +164,66 @@
 	    ($return `(char-ref 16 ,(string->number (list->string c*) 16))))))
 
 ;; [68] EntityRef ::= '&' Name ';'
+(define $xml:entity-ref
+  ($do (($eqv? #\&))
+       (n $xml:name)
+       (($eqv? #\;))
+       ($return `(entity-ref ,n))))
+
 ;; [67] Reference ::= EntityRef | CharRef
+(define $xml:reference ($or $xml:entity-ref $xml:char-ref))
 
 ;; [69] PEReference ::= '%' Name ';'
+(define $xml:pe-reference
+  ($do (($eqv? #\%))
+       (n $xml:name)
+       (($eqv? #\;))
+       ($return `(pe-ref ,n))))
 
 ;; [9]  EntityValue ::= '"' ([^%&"] | PEReference | Reference)* '"'
 ;;                    | "'" ([^%&'] | PEReference | Reference)* "'"
+(define (merge-value result)
+  (let-values (((out extract) (open-string-output-port)))
+    (let loop ((r '()) (result result) (emit? #f))
+      (if (null? result)
+	  (reverse (if emit? (cons (extract) r) r))
+	  (let ((e (car result)))
+	    (cond ((char? e) (put-char out e) (loop r (cdr result) #t))
+		  (else
+		   (if emit?
+		       (loop (cons e (cons (extract) r)) (cdr result) #f)
+		       (loop (cons e r) (cdr result) #f)))))))))
+(define $xml:entity-value
+  (let ((no-dquote (char-set-complement (string->char-set "%&\"")))
+	(no-squote (char-set-complement (string->char-set "%&'"))))
+    ($or ($do (($eqv? #\"))
+	      (r ($many ($or ($do (c ($in-set no-dquote)) ($return c))
+			     $xml:pe-reference
+			     $xml:reference)))
+	      (($eqv? #\"))
+	      ($return `(entity-value ,@(merge-value r))))
+	 ($do (($eqv? #\'))
+	      (r ($many ($or ($do (c ($in-set no-squote)) ($return c))
+			     $xml:pe-reference
+			     $xml:reference)))
+	      (($eqv? #\'))
+	      ($return `(entity-value ,@(merge-value r)))))))
 
 ;; [10] AttValue ::= '"' ([^<&"] | Reference)* '"'
 ;;                 | "'" ([^<&'] | Reference)* "'"
+(define $xml:attr-value
+  (let ((no-dquote (char-set-complement (string->char-set "<&\"")))
+	(no-squote (char-set-complement (string->char-set "<&'"))))
+    ($or ($do (($eqv? #\"))
+	      (r ($many ($or ($do (c ($in-set no-dquote)) ($return c))
+			     $xml:reference)))
+	      (($eqv? #\"))
+	      ($return `(attr-value ,@(merge-value r))))
+	 ($do (($eqv? #\'))
+	      (r ($many ($or ($do (c ($in-set no-squote)) ($return c))
+			     $xml:reference)))
+	      (($eqv? #\'))
+	      ($return `(attr-value ,@(merge-value r)))))))
 ;; [11] SystemLiteral ::= ('"' [^"]* '"') | ("'" [^']* "'")
 ;; [12] PubidLiteral ::= '"' PubidChar* '"' | "'" (PubidChar - "'")* "'"
 ;; [13] PubidChar ::= #x20 | #xD | #xA | [a-zA-Z0-9] | [-'()+,./:=?;!*#@$_%]

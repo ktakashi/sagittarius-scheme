@@ -24,4 +24,28 @@
 (test-parser '(char-ref 10 1234) ($xml:char-ref (string->lseq "&#1234;")))
 (test-parser '(char-ref 16 #x1234) ($xml:char-ref (string->lseq "&#x1234;")))
 
+(test-parser '(entity-ref "amp") ($xml:entity-ref (string->lseq "&amp;")))
+(test-parser '(entity-ref "quot") ($xml:entity-ref (string->lseq "&quot;")))
+
+(test-parser '(pe-ref "style") ($xml:pe-reference (string->lseq "%style;")))
+
+(test-parser '(entity-value "abc") ($xml:entity-value (string->lseq "\"abc\"")))
+(test-parser '(entity-value) ($xml:entity-value (string->lseq "\"\"")))
+(test-parser '(entity-value "abc" (entity-ref "amp") "def")
+	     ($xml:entity-value (string->lseq "\"abc&amp;def\"")))
+(test-parser '(entity-value "abc") ($xml:entity-value (string->lseq "'abc'")))
+(test-parser '(entity-value) ($xml:entity-value (string->lseq "''")))
+(test-parser '(entity-value "abc" (entity-ref "amp") "def")
+	     ($xml:entity-value (string->lseq "'abc&amp;def'")))
+
+(test-parser '(attr-value "abc") ($xml:attr-value (string->lseq "\"abc\"")))
+(test-parser '(attr-value) ($xml:attr-value (string->lseq "\"\"")))
+(test-parser '(attr-value "abc" (entity-ref "amp") "def")
+	     ($xml:attr-value (string->lseq "\"abc&amp;def\"")))
+(test-parser '(attr-value "abc") ($xml:attr-value (string->lseq "'abc'")))
+(test-parser '(attr-value) ($xml:attr-value (string->lseq "''")))
+(test-parser '(attr-value "abc" (entity-ref "amp") "def")
+	     ($xml:attr-value (string->lseq "'abc&amp;def'")))
+
+
 (test-end)
