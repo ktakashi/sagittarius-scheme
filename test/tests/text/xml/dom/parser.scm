@@ -21,4 +21,7 @@
   (test-parser s ($xml:nmtoken (string->lseq s)))
   (test-parser `(,s ,s) ($xml:nmtokens (string->lseq (string-append s " " s)))))
 
+(test-parser '(char-ref 10 1234) ($xml:char-ref (string->lseq "&#1234;")))
+(test-parser '(char-ref 16 #x1234) ($xml:char-ref (string->lseq "&#x1234;")))
+
 (test-end)

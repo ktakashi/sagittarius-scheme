@@ -31,19 +31,27 @@
 ;; reference
 ;; - https://www.w3.org/TR/2008/REC-xml-20081126/
 
+;; This library returns DOM AST which is *not* DOM yet but intermediate
+;; data structure. At some point, we can also convert SXML to DOM AST
+;; but that's a bit far future.
 (library (text xml dom parser)
     (export make-xml-document-parse-options
 	    xml-document-parse-options?
 
+	    *xml:parse-option*
 	    ;; for testing
 	    +xml:char-set+ +xml:name-start-char-set+ +xml:name-char-set+
 	    $xml:s
 	    $xml:name $xml:names
 	    $xml:nmtoken $xml:nmtokens
+
+	    $xml:char-ref
 	    )
     (import (rnrs)
 	    (peg)
-	    (srfi :14 char-sets))
+	    (srfi :14 char-sets)
+	    (srfi :39 parameters))
+
 (define-record-type xml-document-parse-options
   (fields namespace-aware?
 	  xinclude-aware?
@@ -64,7 +72,13 @@
 		(p namespace-aware? xinclude-aware?
 		   validating? whitespace? expand-entity-reference?
 		   ignore-comments? coalescing?)))))
+(define-syntax %expand-entity?
+  (syntax-rules ()
+    ((_)
+     (xml-document-parse-options-expand-entity-reference?
+      (*xml:parse-option*)))))
 (define +default-parse-option+ (make-xml-document-parse-options))
+(define *xml:parse-option* (make-parameter +default-parse-option+))
 ;; [2] Char ::=	#x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD]
 ;;            | [#x10000-#x10FFFF]
 (define +xml:char-set+
@@ -131,6 +145,34 @@
        (t* ($many ($do (($eqv? #\x20)) (n $xml:nmtoken) ($return n))))
        ($return (cons t t*))))
 
+;; [66] CharRef ::= '&#' [0-9]+ ';'
+;;                | '&#x' [0-9a-fA-F]+ ';'
+;; Returns: (char-ref radix n)
+(define ascii-digit-set (char-set-intersection char-set:ascii char-set:digit))
+;; TODO should we expand reference to char according to the option?
+(define $xml:char-ref
+  ($or ($do (($seq ($eqv? #\&) ($eqv? #\#)))
+	    (c* ($many ($in-set ascii-digit-set) 1))
+	    (($eqv? #\;))
+	    ($return `(char-ref 10 ,(string->number (list->string c*)))))
+       ($do (($seq ($eqv? #\&) ($eqv? #\#) ($eqv? #\x)))
+	    (c* ($many ($in-set char-set:hex-digit) 1))
+	    (($eqv? #\;))
+	    ($return `(char-ref 16 ,(string->number (list->string c*) 16))))))
+
+;; [68] EntityRef ::= '&' Name ';'
+;; [67] Reference ::= EntityRef | CharRef
+
+;; [69] PEReference ::= '%' Name ';'
+
+;; [9]  EntityValue ::= '"' ([^%&"] | PEReference | Reference)* '"'
+;;                    | "'" ([^%&'] | PEReference | Reference)* "'"
+
+;; [10] AttValue ::= '"' ([^<&"] | Reference)* '"'
+;;                 | "'" ([^<&'] | Reference)* "'"
+;; [11] SystemLiteral ::= ('"' [^"]* '"') | ("'" [^']* "'")
+;; [12] PubidLiteral ::= '"' PubidChar* '"' | "'" (PubidChar - "'")* "'"
+;; [13] PubidChar ::= #x20 | #xD | #xA | [a-zA-Z0-9] | [-'()+,./:=?;!*#@$_%]
 
 ;; [27] Misc    ::= Comment | PI | S 
 ;; [26] VersionNum  ::= '1.' [0-9]+
