@@ -47,7 +47,10 @@
 	    $xml:nmtoken $xml:nmtokens
 	    $xml:entity-value $xml:attr-value
 	    $xml:system-literal $xml:pubid-literal
-
+	    $xml:pi-target $xml:pi
+	    
+	    $xml:char-data $xml:comment
+	    
 	    $xml:char-ref $xml:entity-ref $xml:reference $xml:pe-reference
 	    $xml:entity-value
 	    )
@@ -129,6 +132,8 @@
    (ucs-range->char-set #x203F #x2041)))
 ;; helper
 (define ($in-set s) ($satisfy (lambda (c) (char-set-contains? s c))))
+(define ($token s) (apply $seq (map $eqv? (string->list s))))
+
 ;; [5] Name   ::= NameStartChar (NameChar)*
 (define $xml:name
   ($do (s ($in-set +xml:name-start-char-set+))
@@ -155,11 +160,11 @@
 (define ascii-digit-set (char-set-intersection char-set:ascii char-set:digit))
 ;; TODO should we expand reference to char according to the option?
 (define $xml:char-ref
-  ($or ($do (($seq ($eqv? #\&) ($eqv? #\#)))
+  ($or ($do (($token "&#"))
 	    (c* ($many ($in-set ascii-digit-set) 1))
 	    (($eqv? #\;))
 	    ($return `(char-ref 10 ,(string->number (list->string c*)))))
-       ($do (($seq ($eqv? #\&) ($eqv? #\#) ($eqv? #\x)))
+       ($do (($token "&#x"))
 	    (c* ($many ($in-set char-set:hex-digit) 1))
 	    (($eqv? #\;))
 	    ($return `(char-ref 16 ,(string->number (list->string c*) 16))))))
@@ -255,6 +260,37 @@
 	      (c* ($many ($in-set pubid-char-squote)))
 	      (($eqv? #\'))
 	      ($return (list->string c*))))))
+
+;; [14] CharData ::= [^<&]* - ([^<&]* ']]>' [^<&]*)
+(define $xml:char-data
+  (let ((char-data-set (char-set-complement (char-set #\< #\&))))
+    ($do (c* ($many ($in-set char-data-set)))
+	 (($not ($token "]]>")))
+	 ($return (list->string c*)))))
+
+;; [15] Comment ::= '<!--' ((Char - '-') | ('-' (Char - '-')))* '-->'
+(define $xml:comment
+  ($do (($token "<!--"))
+       (c* ($many ($seq ($not ($token "--")) ($in-set +xml:char-set+))))
+       (($token "-->"))
+       ($return `(comment ,(list->string c*)))))
+
+;; [17] PITarget ::= Name - (('X' | 'x') ('M' | 'm') ('L' | 'l'))
+(define $xml:pi-target
+  ($seq ($or ($eqv? #\x) ($eqv? #\X))
+	($or ($eqv? #\m) ($eqv? #\M))
+	($or ($eqv? #\l) ($eqv? #\L))))
+;; [16] PI   ::= '<?' PITarget (S (Char* - (Char* '?>' Char*)))? '?>'
+(define $xml:pi
+  ($do (($token "<?"))
+       $xml:pi-target
+       (v ($optional ($do $xml:s
+			  (c* ($many ($seq ($not ($token "?>"))
+					   ($in-set +xml:char-set+))))
+			  ($return (list (list->string c*))))
+		     '()))
+       (($token "?>"))
+       ($return `(PI . ,v))))
 
 ;; [27] Misc    ::= Comment | PI | S 
 ;; [26] VersionNum  ::= '1.' [0-9]+

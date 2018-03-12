@@ -56,4 +56,12 @@
 (test-parser "pub-id" ($xml:pubid-literal (string->lseq "\"pub-id\"")))
 (test-parser "pub-id" ($xml:pubid-literal (string->lseq "'pub-id'")))
 
+(test-parser '(comment " declarations for <head> & <body> ")
+	     ($xml:comment
+	      (string->lseq "<!-- declarations for <head> & <body> -->")))
+
+(test-parser '(PI) ($xml:pi (string->lseq "<?xml?>")))
+(test-parser '(PI "verion='1.0'")
+	     ($xml:pi (string->lseq "<?xml verion='1.0'?>")))
+
 (test-end)
