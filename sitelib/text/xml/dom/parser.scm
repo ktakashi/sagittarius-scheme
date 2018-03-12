@@ -46,6 +46,7 @@
 	    $xml:name $xml:names
 	    $xml:nmtoken $xml:nmtokens
 	    $xml:entity-value $xml:attr-value
+	    $xml:system-literal $xml:pubid-literal
 
 	    $xml:char-ref $xml:entity-ref $xml:reference $xml:pe-reference
 	    $xml:entity-value
@@ -225,8 +226,35 @@
 	      (($eqv? #\'))
 	      ($return `(attr-value ,@(merge-value r)))))))
 ;; [11] SystemLiteral ::= ('"' [^"]* '"') | ("'" [^']* "'")
+(define $xml:system-literal
+  (let ((no-dquote (char-set-complement (string->char-set "\"")))
+	(no-squote (char-set-complement (string->char-set "'"))))
+    ($or ($do (($eqv? #\"))
+	      (c* ($many ($in-set no-dquote)))
+	      (($eqv? #\"))
+	      ($return (list->string c*)))
+	 ($do (($eqv? #\'))
+	      (c* ($many ($in-set no-squote)))
+	      (($eqv? #\'))
+	      ($return (list->string c*))))))
+
 ;; [12] PubidLiteral ::= '"' PubidChar* '"' | "'" (PubidChar - "'")* "'"
-;; [13] PubidChar ::= #x20 | #xD | #xA | [a-zA-Z0-9] | [-'()+,./:=?;!*#@$_%]
+(define $xml:pubid-literal
+  ;; [13] PubidChar ::= #x20 | #xD | #xA | [a-zA-Z0-9] | [-'()+,./:=?;!*#@$_%]
+  (let* ((pubid-char (char-set-union
+		     (char-set #\x20 #\xD #\xA)
+		     (char-set-intersection char-set:ascii
+					    char-set:letter+digit)
+		     (string->char-set "-'()+,./:=?;!*#@$_%")))
+	 (pubid-char-squote (char-set-difference pubid-char (char-set #\'))))
+    ($or ($do (($eqv? #\"))
+	      (c* ($many ($in-set pubid-char)))
+	      (($eqv? #\"))
+	      ($return (list->string c*)))
+	 ($do (($eqv? #\'))
+	      (c* ($many ($in-set pubid-char-squote)))
+	      (($eqv? #\'))
+	      ($return (list->string c*))))))
 
 ;; [27] Misc    ::= Comment | PI | S 
 ;; [26] VersionNum  ::= '1.' [0-9]+

@@ -48,4 +48,12 @@
 	     ($xml:attr-value (string->lseq "'abc&amp;def'")))
 
 
+(test-parser "system literal" ($xml:system-literal (string->lseq "\"system literal\"")))
+(test-parser "system\x1234;literal" ($xml:system-literal (string->lseq "\"system\x1234;literal\"")))
+(test-parser "system literal" ($xml:system-literal (string->lseq "'system literal'")))
+(test-parser "system\x1234;literal" ($xml:system-literal (string->lseq "'system\x1234;literal'")))
+
+(test-parser "pub-id" ($xml:pubid-literal (string->lseq "\"pub-id\"")))
+(test-parser "pub-id" ($xml:pubid-literal (string->lseq "'pub-id'")))
+
 (test-end)
