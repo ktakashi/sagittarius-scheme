@@ -47,7 +47,8 @@
 	    $xml:nmtoken $xml:nmtokens
 	    $xml:entity-value $xml:attr-value
 	    $xml:system-literal $xml:pubid-literal
-	    $xml:pi-target $xml:pi
+	    $xml:pi
+	    $xml:cd-sect
 	    
 	    $xml:char-data $xml:comment
 	    
@@ -291,6 +292,21 @@
 		     '()))
        (($token "?>"))
        ($return `(PI . ,v))))
+
+;; [19] CDStart ::= '<![CDATA['
+(define $xml:cd-start ($token "<![CDATA["))
+;; [21] CDEnd   ::= ']]>'
+(define $xml:cd-end ($token "]]>"))
+;; [20] CData   ::= (Char* - (Char* ']]>' Char*))
+(define $xml:c-data
+  ($do (c* ($many ($seq ($not $xml:cd-end) ($in-set +xml:char-set+))))
+       ($return (list->string c*))))
+;; [18] CDSect  ::= CDStart CData CDEnd
+(define $xml:cd-sect
+  ($do $xml:cd-start
+       (d $xml:c-data)
+       $xml:cd-end
+       ($return `(cdata ,d))))
 
 ;; [27] Misc    ::= Comment | PI | S 
 ;; [26] VersionNum  ::= '1.' [0-9]+

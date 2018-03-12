@@ -64,4 +64,7 @@
 (test-parser '(PI "verion='1.0'")
 	     ($xml:pi (string->lseq "<?xml verion='1.0'?>")))
 
+(test-parser '(cdata "<greeting>Hello, world!</greeting>")
+	     ($xml:cd-sect (string->lseq "<![CDATA[<greeting>Hello, world!</greeting>]]>")))
+
 (test-end)
