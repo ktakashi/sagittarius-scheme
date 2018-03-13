@@ -49,6 +49,7 @@
 	    $xml:system-literal $xml:pubid-literal
 	    $xml:pi
 	    $xml:cd-sect
+	    $xml:prolog $xml:xml-decl
 	    
 	    $xml:char-data $xml:comment
 	    
@@ -245,12 +246,13 @@
 	      ($return (list->string c*))))))
 
 ;; [12] PubidLiteral ::= '"' PubidChar* '"' | "'" (PubidChar - "'")* "'"
+(define ascii-letter+digit
+  (char-set-intersection char-set:ascii char-set:letter+digit))
 (define $xml:pubid-literal
   ;; [13] PubidChar ::= #x20 | #xD | #xA | [a-zA-Z0-9] | [-'()+,./:=?;!*#@$_%]
   (let* ((pubid-char (char-set-union
 		     (char-set #\x20 #\xD #\xA)
-		     (char-set-intersection char-set:ascii
-					    char-set:letter+digit)
+		     ascii-letter+digit
 		     (string->char-set "-'()+,./:=?;!*#@$_%")))
 	 (pubid-char-squote (char-set-difference pubid-char (char-set #\'))))
     ($or ($do (($eqv? #\"))
@@ -308,12 +310,73 @@
        $xml:cd-end
        ($return `(cdata ,d))))
 
-;; [27] Misc    ::= Comment | PI | S 
-;; [26] VersionNum  ::= '1.' [0-9]+
+;; [27] Misc    ::= Comment | PI | S
+(define $xml:misc ($or $xml:comment $xml:pi $xml:s))
+       
 ;; [25] Eq    ::= S? '=' S?
+(define $xml:eq ($seq ($optional $xml:s #f) ($eqv? #\=) ($optional $xml:s #f)))
+;; [26] VersionNum  ::= '1.' [0-9]+
+(define $xml:version-num
+  ($do (($token "1."))
+       (v* ($many ($in-set ascii-digit-set)))
+       ($return (string-append "1." (list->string v*)))))
+;; [81] EncName ::= [A-Za-z] ([A-Za-z0-9._] | '-')*
+(define $xml:enc-name
+  (let* ((ascii-letter (char-set-intersection char-set:ascii char-set:letter))
+	 (enc-sub (char-set-union ascii-letter+digit (string->char-set "._-"))))
+    ($do (f ($in-set ascii-letter))
+	 (l* ($many ($in-set enc-sub)))
+	 ($return (list->string (cons f l*))))))
+;; [80] EncodingDecl ::= S 'encoding' Eq ('"' EncName '"' | "'" EncName "'" )
+(define $xml:encoding-decl
+  ($do $xml:s
+       (($token "encoding"))
+       $xml:eq
+       (v ($or ($do (($eqv? #\")) (v $xml:enc-name) (($eqv? #\"))
+		    ($return v))
+	       ($do (($eqv? #\')) (v $xml:enc-name) (($eqv? #\'))
+		    ($return v))))
+       ($return `(encoding ,v))))
+;; [32] SDDecl ::= S 'standalone' Eq (("'" ('yes' | 'no') "'") | ('"' ('yes' | 'no') '"'))
+(define $xml:sd-decl
+  (let ((yes/no ($or ($do (($token "yes")) ($return "yes"))
+		     ($do (($token "no")) ($return "no")))))
+    ($do $xml:s
+	 (($token "standalone"))
+	 $xml:eq
+	 (v ($or ($do (($eqv? #\")) (v yes/no) (($eqv? #\")) ($return v))
+		 ($do (($eqv? #\')) (v yes/no) (($eqv? #\')) ($return v))))
+	 ($return `(standalone ,v)))))
+
 ;; [24] VersionInfo ::= S 'version' Eq ("'" VersionNum "'" | '"' VersionNum '"')
+(define $xml:version-info
+  ($do $xml:s
+       (($token "version"))
+       $xml:eq
+       (v ($or ($do (($eqv? #\")) (v $xml:version-num) (($eqv? #\"))
+		    ($return v))
+	       ($do (($eqv? #\')) (v $xml:version-num) (($eqv? #\'))
+		    ($return v))))
+       ($return `(version ,v))))
 ;; [23] XMLDecl    ::= '<?xml' VersionInfo EncodingDecl? SDDecl? S? '?>'
+(define $xml:xml-decl
+  ($do (($token "<?xml"))
+       (vi $xml:version-info)
+       (ed ($optional $xml:encoding-decl #f))
+       (sd ($optional $xml:sd-decl #f))
+       ($optional $xml:s #f)
+       (($token "?>"))
+       ($return `(xml-decl ,vi ,@(if ed `(,ed) '()) ,@(if sd `(,sd) '())))))
 ;; [22] prolog    ::= XMLDecl? Misc* (doctypedecl Misc*)?
+(define $xml:prolog
+  ($do (decl ($optional $xml:xml-decl #f))
+       (misc ($many $xml:misc))
+       (doctype ($optional ($do ;;(dec $xml:doc-type-decl)
+				(misc ($many $xml:misc))
+				($return misc #;(cons dec misc)))
+			   '()))
+       ($return `(prolog ,@(if decl (list decl) '()) ,@misc ,@doctype))))
+
 #;(define $xml:prolog
   ($do (decl $xml:xml-decl)
        (($many $xml:misc))
