@@ -744,11 +744,17 @@ reverse order. The cells of list may be reused to construct the returned list.
 arguments can be used to limit the range of @var{vector} to be copied. If the
 range specified by @var{start} and @var{end} falls outside of the original
 vector, the @var{fill} value is used to fill the result vector.
+
+@snipet[=> #(1 2 3)]{(vector-copy '#(0 1 2 3 4) 1 4)}
+@snipet[=> #(4 #f)]{(vector-copy '#(0 1 2 3 4) 4 6 #f)}
+@snipet[=> #(#t #t)]{(vector-copy '#() 0 2 #t)}
 }
 
 @define[Function]{@name{vector-append} @args{vector @dots{}}}
 @desc{[SRFI-43] Returns a newly allocated vector that contains all elements in
 order from the subsequent locations in @var{vector @dots{}}.
+
+@snipet[=> #(1 2 a b 5)]{(vector-append '#(1 2) '#(a b) '#(5))}
 }
 
 @define[Function]{@name{vector-concatenate} @args{list-of-vectors}}

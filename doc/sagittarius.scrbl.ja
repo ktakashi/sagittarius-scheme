@@ -659,7 +659,7 @@ GCの効率のためにあります。}
 }
 
 
-@subsubsection{List operations}
+@subsubsection{リスト操作}
 
 @define[Function]{@name{circular-list?} @args{list}}
 @define[Function]{@name{dotted-list?} @args{list}}
@@ -680,38 +680,45 @@ GCの効率のためにあります。}
 @desc{[SRFI-1] 与えられたリスト@var{list}の要素の逆順を持つリストを返します。
 与えられたリストは破壊的に変更されます。}
 
-@subsubsection{Vector operations}
+@subsubsection{ベクタ操作}
 
 @define[Function]{@name{vector-copy} @args{vector :optional start end fill}}
-@desc{[SRFI-43] Copies a vector @var{vector}. Optional @var{start} and @var{end}
-arguments can be used to limit the range of @var{vector} to be copied. If the
-range specified by @var{start} and @var{end} falls outside of the original
-vector, the @var{fill} value is used to fill the result vector.
+@desc{[SRFI-43] 与えられたベクタ@var{vector}をコピーします。
+
+オプショナル引数@var{start}と@var{end}を指定することでコピーする範囲を制限可能です。
+もし、@var{start}と@var{end}で指定された範囲が@var{vector}の範囲を超える場合は
+@var{fill}で与えられた値が詰められます。
+
+@snipet[=> #(1 2 3)]{(vector-copy '#(0 1 2 3 4) 1 4)}
+@snipet[=> #(4 #f)]{(vector-copy '#(0 1 2 3 4) 4 6 #f)}
+@snipet[=> #(#t #t)]{(vector-copy '#() 0 2 #t)}
 }
 
 @define[Function]{@name{vector-append} @args{vector @dots{}}}
-@desc{[SRFI-43] Returns a newly allocated vector that contains all elements in
-order from the subsequent locations in @var{vector @dots{}}.
+@desc{[SRFI-43] 与えられたベクタ@var{vector @dots{}}が含むすべての要素を与えられた
+順に含むベクタを返します。
+
+@snipet[=> #(1 2 a b 5)]{(vector-append '#(1 2) '#(a b) '#(5))}
 }
 
 @define[Function]{@name{vector-concatenate} @args{list-of-vectors}}
-@desc{[SRFI-43] Appends each vectors in @var{list-of-vectors}. This is
-equivalent to:
+@desc{[SRFI-43] 与えられたベクタのリスト@var{list-of-vectors}を新たに作られたベクタ
+に追加します。この手続きは以下と等価です。
 
 @snipet{(apply vector-append @var{list-of-vectors})}
 }
 
 @define[Function]{@name{vector-reverse} @args{vector :optional start end}}
 @define[Function]{@name{vector-reverse!} @args{vector :optional start end}}
-@desc{[SRFI-43] Reverse the given @var{vector}'s elements.
+@desc{[SRFI-43] 与えられたベクタ@var{vector}の要素を逆順に並び替えます。
 
-The second form reverses the given @var{vector} destructively.
+二つ目の手続きは与えられたベクタを破壊的に変更します。
 
-Optional arguments @var{start} and @var{end} must be non negative integer
-if it's given. And it restricts the range of the target elements.
+オプショナル引数@var{start}と @var{end}が与えられた場合、並び替える範囲を限定します。
+これらの引数は0または正の整数でなければなりません。
 }
 
-@subsubsection{String operations}
+@subsubsection{文字列操作}
 
 @define[Function]{@name{string-scan} @args{string item :optional return}}
 @desc{Scan @var{item} (either a string or a character) in @var{string}.
