@@ -721,65 +721,61 @@ GCの効率のためにあります。}
 @subsubsection{文字列操作}
 
 @define[Function]{@name{string-scan} @args{string item :optional return}}
-@desc{Scan @var{item} (either a string or a character) in @var{string}.
+@desc{文字列@var{string}を文字列または文字@var{item}でスキャンします。
 
-The @var{return} argument specified what value should be returned when
-@var{item} is found in @var{string}. It must be one of the following symbols;
+@var{return}引数は@var{item}が@var{string}内で見つかった際に何を返すのかを指定します。
+これは以下のシンボルでなければなりません。
 
 @dl-list{
 @dl-item[@code{index}]{
-	Returns the index in @var{string} if @var{item} is found, or @code{#f}.
-	This is the default behaviour.
+@var{item}が見つかればその位置を、そうでなければ@code{#f}を返します。
+これが基本動作です。
 }
 @dl-item[@code{before}]{
-	Returns a substring of @var{string} before @var{item}, or @code{#f} if
-	@var{item} is not found.
+@var{item}が見つかればその位置以前の文字列を、そうでなければ@code{#f}を返します。
 }
 @dl-item[@code{after}]{
-	Returns a substring of @var{string} after @var{item}, or @code{#f} if
-	@var{item} is not found.
+@var{item}が見つかればその位置以降の文字列を、そうでなければ@code{#f}を返します。
 }
 @dl-item[@code{before*}]{
-	Returns a substring of @var{string} before @var{item}, and the substring
-	after it. If @var{item} is not found then return @code{(values #f #f)}.
+@var{item}が見つかればその位置までの文字列と残りの文字列の二つの値を返します。
+そうでなければ@code{(values #f #f)}を返します。
 }
 @dl-item[@code{after*}]{
-	Returns a substring of @var{string} up to the end of @var{item}, and the
-	rest. after it. If @var{item} is not found then return 
-	@code{(values #f #f)}.
+@var{item}が見つかればその位置までの文字列とそれ以降の文字列の二つの値を返します。
+そうでなければ@code{(values #f #f)}を返します。
 }
 @dl-item[@code{both}]{
-	Returns a substring of @var{string} before @var{item} and after
-	 @var{item}. If @var{item} is not found, return @code{(values #f #f)}.
+@var{item}が見つかればその位置以前の文字列とその位置以降の文字列列の二つの値を返します。
+そうでなければ@code{(values #f #f)}を返します。
 }
 }
 }
 
 
 @define[Function]{@name{string-concatenate} @args{list-of-strings}}
-@desc{[SRFI-13] Appends each strings in @var{list-of-strings}. This is
-equivalent to:
+@desc{[SRFI-13] 与えられた文字列のリスト@var{list-of-strings}を追加した文字列を
+返します。これは以下と等価です。
 
 @snipet{(apply string-append @var{list-of-strings})}
 }
 
 @define[Function]{@name{istring?} @args{obj}}
-@desc{Returns #t if the given @var{obj} is an immutable string, otherwise #f.
+@desc{与えられた@var{obj}が不変文字列であれば@code{#t}をそうでなければ@code{#f}を
+返します。
 
-Immutable strings are one of the followings:
+不変な文字列は以下のいずれかです：
 @itemlist{
-@item{String literals. (c.f. @code{"abc"})}
-@item{Strings converted to immutable string by @code{string->istring}}
+@item{文字列リテラル。(例：@code{"abc"})}
+@item{@code{string->istring}で返された不変文字列。}
 }
 }
 
-@define[Function]{@name{string->istring} 
- @args{string :optional start end}}
-@desc{Returns copy of the given @var{string}. The returning string is
-converted to immutable string.
+@define[Function]{@name{string->istring} @args{string :optional start end}}
+@desc{与えられた文字列@var{string}のコピーを返します。返される文字列は不変文字列です。
 
-The optional argument @var{start} and @var{end} are given, then the
-returing string is contains only the range of given @var{string}.
+オプショナル引数@var{start}と@var{end}が与えられた場合、それらで指定された範囲の
+文字列が返されます。
 }
 
 @subsubsection{Load path}

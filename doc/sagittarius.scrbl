@@ -824,13 +824,12 @@ equivalent to:
 
 Immutable strings are one of the followings:
 @itemlist{
-@item{String literals. (c.f. @code{"abc"})}
+@item{String literals. (i.e. @code{"abc"})}
 @item{Strings converted to immutable string by @code{string->istring}}
 }
 }
 
-@define[Function]{@name{string->istring} 
- @args{string :optional start end}}
+@define[Function]{@name{string->istring} @args{string :optional start end}}
 @desc{Returns copy of the given @var{string}. The returning string is
 converted to immutable string.
 
