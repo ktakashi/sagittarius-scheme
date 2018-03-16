@@ -15,6 +15,7 @@
        (test-assert '("parser result" parser) (parse-success? r))
        (test-equal '("parser next" parser) '() n)
        (test-equal '("parser value" parser) expected v)))))
+
 (test-parser "name" ($xml:name (string->lseq "name")))
 (test-parser '("name1" "name2") ($xml:names (string->lseq "name1 name2")))
 (let ((s "-.1\xB7;\x0300;\x036F;\x203F;\x2040;"))
@@ -90,4 +91,38 @@
 		      (comment " comment "))
 	     ($xml:prolog (string->lseq "<?xml version='1.0'?><!-- comment -->")))
 
+(test-parser '(element "br" empty)
+	     ($xml:element-decl (string->lseq "<!ELEMENT br EMPTY>")))
+(test-parser '(element "p" (pcdata "emph"))
+	     ($xml:element-decl (string->lseq "<!ELEMENT p (#PCDATA|emph)* >")))
+(test-parser '(element (pe-ref "name.para") (pe-ref "content.para"))
+	     ($xml:element-decl (string->lseq "<!ELEMENT %name.para; %content.para; >")))
+(test-parser '(element "container" any)
+	     ($xml:element-decl (string->lseq "<!ELEMENT container ANY>")))
+;; PCDATA
+(test-parser '(element "p" (pcdata "a" "ul" "b" "i" "em"))
+	     ($xml:element-decl (string->lseq "<!ELEMENT p (#PCDATA|a|ul|b|i|em)*>")))
+(test-parser '(element "p" (pcdata (pe-ref "font") (pe-ref "phrase")
+				   (pe-ref "special") (pe-ref "form")))
+	     ($xml:element-decl (string->lseq "<!ELEMENT p (#PCDATA | %font; | %phrase; | %special; | %form;)* >")))
+(test-parser '(element "b" (pcdata))
+	     ($xml:element-decl (string->lseq "<!ELEMENT b (#PCDATA)>")))
+
+(test-parser '(element "spec" (seq "front" "body" (? "back")))
+	     ($xml:element-decl (string->lseq "<!ELEMENT spec (front, body, back?)>")))
+(test-parser '(element "div1" (seq "head" (* (choice "p" "list" "note")) (* "div2")))
+	     ($xml:element-decl (string->lseq "<!ELEMENT div1 (head, (p | list | note)*, div2*)>")))
+(test-parser '(element "dictionary-body" (* (choice (pe-ref "div.mix") (pe-ref "dict.mix"))))
+	     ($xml:element-decl (string->lseq "<!ELEMENT dictionary-body (%div.mix; | %dict.mix;)*>")))
+
+(test-parser '(doctype "greeting" (system "hello.dtd"))
+	     ($xml:doctype-decl (string->lseq "<!DOCTYPE greeting SYSTEM \"hello.dtd\">")))
+
+(test-parser '(doctype "greeting" (subset (element "greeting" (pcdata))))
+	     ($xml:doctype-decl (string->lseq "<!DOCTYPE greeting [
+  <!ELEMENT greeting (#PCDATA)>
+]>")))
+(test-parser '(prolog (xml-decl (version "1.0"))
+		      (doctype "greeting" (system "hello.dtd")))
+	     ($xml:prolog (string->lseq "<?xml version=\"1.0\"?><!DOCTYPE greeting SYSTEM \"hello.dtd\">")))
 (test-end)

@@ -49,7 +49,8 @@
 	    $xml:system-literal $xml:pubid-literal
 	    $xml:pi
 	    $xml:cd-sect
-	    $xml:prolog $xml:xml-decl
+	    $xml:prolog $xml:xml-decl $xml:doctype-decl
+	    $xml:element-decl
 	    
 	    $xml:char-data $xml:comment
 	    
@@ -101,7 +102,8 @@
 
 ;; [3] S ::= (#x20 | #x9 | #xD | #xA)+
 (define $xml:s
-  ($many ($or ($eqv? #\x20) ($eqv? #\x9) ($eqv? #\xD) ($eqv? #\xA)) 1))
+  ($do (c* ($many ($or ($eqv? #\x20) ($eqv? #\x9) ($eqv? #\xD) ($eqv? #\xA)) 1))
+       ($return (list->string c*))))
 
 ;; [4] NameStartChar ::=   ":" | [A-Z] | "_" | [a-z] | [#xC0-#xD6]
 ;;                     | [#xD8-#xF6] | [#xF8-#x2FF] | [#x370-#x37D]
@@ -312,7 +314,7 @@
 
 ;; [27] Misc    ::= Comment | PI | S
 (define $xml:misc ($or $xml:comment $xml:pi $xml:s))
-       
+
 ;; [25] Eq    ::= S? '=' S?
 (define $xml:eq ($seq ($optional $xml:s #f) ($eqv? #\=) ($optional $xml:s #f)))
 ;; [26] VersionNum  ::= '1.' [0-9]+
@@ -367,15 +369,125 @@
        ($optional $xml:s #f)
        (($token "?>"))
        ($return `(xml-decl ,vi ,@(if ed `(,ed) '()) ,@(if sd `(,sd) '())))))
-;; [22] prolog    ::= XMLDecl? Misc* (doctypedecl Misc*)?
+;; [51] Mixed ::= '(' S? '#PCDATA' (S? '|' S? Name)* S? ')*'
+;;              | '(' S? '#PCDATA' S? ')'
+(define $xml:mixed
+  ($or ($do (($eqv? #\()) (($optional $xml:s))
+	    (($token "#PCDATA"))
+	    (n* ($many ($do (($optional $xml:s)) (($eqv? #\|))
+			    (($optional $xml:s))
+			    (n ($or $xml:name $xml:pe-reference))
+			    ($return n))))
+	    (($optional $xml:s))
+	    (($token ")*"))
+	    ($return `(pcdata . ,n*)))
+       ($do (($eqv? #\()) (($optional $xml:s))
+	    (($token "#PCDATA")) (($optional $xml:s))
+	    (($token ")"))
+	    ($return '(pcdata)))))
+;; [47] children ::= (choice | seq) ('?' | '*' | '+')?
+(define $xml:children
+  (let ()
+    ;; [48] cp	 ::= (Name | choice | seq) ('?' | '*' | '+')?
+    (define ($xml:cp)
+      ($do (n ($or $xml:name $xml:pe-reference $xml:choice $xml:seq))
+	   (c ($optional ($or ($eqv? #\?) ($eqv? #\*) ($eqv? #\+)) #f))
+	   ($return (if c
+			`(,(string->symbol (string c)) ,n)
+			n))))
+    ;; [49] choice ::= '(' S? cp ( S? '|' S? cp )+ S? ')'
+    (define $xml:choice
+      ($do (($eqv? #\()) (($optional $xml:s))
+	   (c ($xml:cp))
+	   (c* ($many ($do (($optional $xml:s)) (($eqv? #\|))
+			   (($optional $xml:s)) (c ($xml:cp))
+			   ($return c))
+		      1))
+	   (($optional $xml:s))
+	   (($eqv? #\)))
+	   ($return `(choice ,c . ,c*))))
+    ;; [50] seq ::= '(' S? cp ( S? ',' S? cp )* S? ')'
+    (define $xml:seq
+      ($do (($eqv? #\()) (($optional $xml:s))
+	   (c ($xml:cp))
+	   (c* ($many ($do (($optional $xml:s)) (($eqv? #\,))
+			   (($optional $xml:s)) (c ($xml:cp))
+			   ($return c))))
+	   (($optional $xml:s))
+	   (($eqv? #\)))
+	   ($return `(seq ,c . ,c*))))
+
+    ($do (c ($or $xml:choice $xml:seq))
+	 (u ($optional ($or ($eqv? #\?) ($eqv? #\*) ($eqv? #\+)) #f))
+	 ($return (if u `(,(string->symbol (string u)) ,c) c)))))
+
+;; [46] contentspec ::= 'EMPTY' | 'ANY' | Mixed | children
+(define $xml:content-spec
+  ($or ($do (($token "EMPTY")) ($return 'empty))
+       ($do (($token "ANY"))   ($return 'any))
+       $xml:pe-reference
+       $xml:mixed
+       $xml:children))
+       
+;; [45] elementdecl ::= '<!ELEMENT' S Name S contentspec S? '>'
+(define $xml:element-decl
+  ($do (($token "<!ELEMENT")) $xml:s
+       (n ($or $xml:name $xml:pe-reference)) $xml:s
+       (c $xml:content-spec) (($optional $xml:s))
+       (($eqv? #\>))
+       ($return `(element ,n ,c))))
+;; [29] markupdecl ::= elementdecl | AttlistDecl
+;;                   | EntityDecl | NotationDecl | PI | Comment
+(define $xml:markup-decl
+  ($or $xml:element-decl
+       ;; $xml:attlist-decl
+       ;; $xml:entity-decl
+       ;; $xml:notaion-decl
+       $xml:pi
+       $xml:comment))
+;; [28a] DeclSep ::= PEReference | S
+(define $xml:decl-sep ($or $xml:pe-reference ($do $xml:s ($return #f))))
+;; [28b] intSubset ::= (markupdecl | DeclSep)*
+(define $xml:int-subset
+  ($do (s* ($many ($or $xml:markup-decl $xml:decl-sep)))
+       ($return (filter values s*))))
+
+;; [75] ExternalID ::= 'SYSTEM' S SystemLiteral
+;;                   | 'PUBLIC' S PubidLiteral S SystemLiteral
+(define $xml:external-id
+  ($or ($do (($token "SYSTEM")) $xml:s
+	    (l $xml:system-literal)
+	    ($return `(system ,l)))
+       ($do (($token "PUBLIC")) $xml:s
+	    (p $xml:pubid-literal) $xml:s
+	    (l $xml:system-literal)
+	    ($return `(public ,p ,l)))))
+;; [28] doctypedecl ::= '<!DOCTYPE' S Name (S ExternalID)? S? ('[' intSubset ']' S?)? '>'
+(define $xml:doctype-decl
+  ($do (($token "<!DOCTYPE"))
+       $xml:s
+       (n $xml:name)
+       (id ($optional ($seq $xml:s $xml:external-id) #f))
+       (($optional $xml:s))
+       (subst ($optional ($do (($eqv? #\[)) (s $xml:int-subset) (($eqv? #\]))
+			      (($optional $xml:s))
+			      ($return s))
+			 #f))
+       (($eqv? #\>))
+       ($return `(doctype ,n ,@(if id `(,id) '())
+			  ,@(if subst `((subset ,@subst)) '())))))
+
+;; [22] prolog ::= XMLDecl? Misc* (doctypedecl Misc*)?
 (define $xml:prolog
   ($do (decl ($optional $xml:xml-decl #f))
        (misc ($many $xml:misc))
-       (doctype ($optional ($do ;;(dec $xml:doc-type-decl)
+       (doctype ($optional ($do (dec $xml:doctype-decl)
 				(misc ($many $xml:misc))
-				($return misc #;(cons dec misc)))
+				($return (cons dec misc)))
 			   '()))
-       ($return `(prolog ,@(if decl (list decl) '()) ,@misc ,@doctype))))
+       ($return `(prolog ,@(if decl (list decl) '())
+			 ,@misc
+			 ,@doctype))))
 
 #;(define $xml:prolog
   ($do (decl $xml:xml-decl)
