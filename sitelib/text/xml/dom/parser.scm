@@ -50,7 +50,7 @@
 	    $xml:pi
 	    $xml:cd-sect
 	    $xml:prolog $xml:xml-decl $xml:doctype-decl
-	    $xml:element-decl
+	    $xml:element-decl $xml:notation-decl
 	    
 	    $xml:char-data $xml:comment
 	    
@@ -436,13 +436,26 @@
        (c $xml:content-spec) (($optional $xml:s))
        (($eqv? #\>))
        ($return `(element ,n ,c))))
+
+;; [83] PublicID     ::= 'PUBLIC' S PubidLiteral
+(define $xml:public-id
+  ($do (($token "PUBLIC")) $xml:s
+       (l $xml:pubid-literal)
+       ($return `(public ,l))))
+;; [82] NotationDecl ::= '<!NOTATION' S Name S (ExternalID | PublicID) S? '>'
+(define $xml:notation-decl
+  ($do (($token "<!NOTATION")) $xml:s
+       (n $xml:name) $xml:s
+       (id ($or $xml:external-id $xml:public-id)) (($optional $xml:s))
+       (($eqv? #\>))
+       ($return `(notation ,n ,id))))
 ;; [29] markupdecl ::= elementdecl | AttlistDecl
 ;;                   | EntityDecl | NotationDecl | PI | Comment
 (define $xml:markup-decl
   ($or $xml:element-decl
        ;; $xml:attlist-decl
        ;; $xml:entity-decl
-       ;; $xml:notaion-decl
+       $xml:notation-decl
        $xml:pi
        $xml:comment))
 ;; [28a] DeclSep ::= PEReference | S

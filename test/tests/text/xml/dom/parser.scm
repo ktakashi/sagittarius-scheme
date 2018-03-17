@@ -115,6 +115,13 @@
 (test-parser '(element "dictionary-body" (* (choice (pe-ref "div.mix") (pe-ref "dict.mix"))))
 	     ($xml:element-decl (string->lseq "<!ELEMENT dictionary-body (%div.mix; | %dict.mix;)*>")))
 
+(test-parser '(notation "name" (system "URI"))
+	     ($xml:notation-decl (string->lseq "<!NOTATION name SYSTEM \"URI\">")))
+(test-parser '(notation "name" (public "public_ID"))
+	     ($xml:notation-decl (string->lseq "<!NOTATION name PUBLIC \"public_ID\">")))
+(test-parser '(notation "name" (public "public_ID" "URI"))
+	     ($xml:notation-decl (string->lseq "<!NOTATION name PUBLIC \"public_ID\" \"URI\">")))
+
 (test-parser '(doctype "greeting" (system "hello.dtd"))
 	     ($xml:doctype-decl (string->lseq "<!DOCTYPE greeting SYSTEM \"hello.dtd\">")))
 
