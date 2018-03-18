@@ -50,7 +50,7 @@
 	    $xml:pi
 	    $xml:cd-sect
 	    $xml:prolog $xml:xml-decl $xml:doctype-decl
-	    $xml:element-decl $xml:notation-decl
+	    $xml:element-decl $xml:entity-decl $xml:notation-decl
 	    
 	    $xml:char-data $xml:comment
 	    
@@ -449,21 +449,7 @@
        (id ($or $xml:external-id $xml:public-id)) (($optional $xml:s))
        (($eqv? #\>))
        ($return `(notation ,n ,id))))
-;; [29] markupdecl ::= elementdecl | AttlistDecl
-;;                   | EntityDecl | NotationDecl | PI | Comment
-(define $xml:markup-decl
-  ($or $xml:element-decl
-       ;; $xml:attlist-decl
-       ;; $xml:entity-decl
-       $xml:notation-decl
-       $xml:pi
-       $xml:comment))
-;; [28a] DeclSep ::= PEReference | S
-(define $xml:decl-sep ($or $xml:pe-reference ($do $xml:s ($return #f))))
-;; [28b] intSubset ::= (markupdecl | DeclSep)*
-(define $xml:int-subset
-  ($do (s* ($many ($or $xml:markup-decl $xml:decl-sep)))
-       ($return (filter values s*))))
+
 
 ;; [75] ExternalID ::= 'SYSTEM' S SystemLiteral
 ;;                   | 'PUBLIC' S PubidLiteral S SystemLiteral
@@ -475,6 +461,57 @@
 	    (p $xml:pubid-literal) $xml:s
 	    (l $xml:system-literal)
 	    ($return `(public ,p ,l)))))
+;; [76] NDataDecl ::= S 'NDATA' S Name
+(define $xml:n-data-decl
+  ($do $xml:s
+       (($token "NDATA")) $xml:s
+       (n $xml:name)
+       ($return `(ndata ,n))))
+
+;; [74] PEDef   ::= EntityValue | ExternalID
+(define $xml:pe-def ($or $xml:entity-value $xml:external-id))
+;; [72] PEDecl   ::= '<!ENTITY' S '%' S Name S PEDef S? '>'
+(define $xml:pe-decl
+  ($do (($token "<!ENTITY")) $xml:s
+       (($eqv? #\%)) $xml:s
+       (n $xml:name) $xml:s
+       (d $xml:pe-def) (($optional $xml:s))
+       (($eqv? #\>))
+       ($return `(entity pe ,n ,d))))
+;; [73] EntityDef  ::= EntityValue | (ExternalID NDataDecl?)
+(define $xml:entity-def
+  ($or ($do (v $xml:entity-value) ($return (list v)))
+       ($do (e $xml:external-id)
+	    (n ($optional $xml:n-data-decl '()))
+	    ($return (if (null? n) (list e) (list e n))))))
+
+;; [71] GEDecl   ::= '<!ENTITY' S Name S EntityDef S? '>'
+(define $xml:ge-decl
+  ($do (($token "<!ENTITY")) $xml:s
+       (n $xml:name) $xml:s
+       (d $xml:entity-def) (($optional $xml:s))
+       (($eqv? #\>))
+       ($return `(entity ge ,n ,@d))))
+
+;; [70] EntityDecl ::= GEDecl | PEDecl
+(define $xml:entity-decl ($or $xml:ge-decl $xml:pe-decl))
+
+;; [29] markupdecl ::= elementdecl | AttlistDecl
+;;                   | EntityDecl | NotationDecl | PI | Comment
+(define $xml:markup-decl
+  ($or $xml:element-decl
+       ;; $xml:attlist-decl
+       $xml:entity-decl
+       $xml:notation-decl
+       $xml:pi
+       $xml:comment))
+;; [28a] DeclSep ::= PEReference | S
+(define $xml:decl-sep ($or $xml:pe-reference ($do $xml:s ($return #f))))
+;; [28b] intSubset ::= (markupdecl | DeclSep)*
+(define $xml:int-subset
+  ($do (s* ($many ($or $xml:markup-decl $xml:decl-sep)))
+       ($return (filter values s*))))
+
 ;; [28] doctypedecl ::= '<!DOCTYPE' S Name (S ExternalID)? S? ('[' intSubset ']' S?)? '>'
 (define $xml:doctype-decl
   ($do (($token "<!DOCTYPE"))

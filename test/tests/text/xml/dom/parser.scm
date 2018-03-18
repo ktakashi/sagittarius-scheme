@@ -115,6 +115,28 @@
 (test-parser '(element "dictionary-body" (* (choice (pe-ref "div.mix") (pe-ref "dict.mix"))))
 	     ($xml:element-decl (string->lseq "<!ELEMENT dictionary-body (%div.mix; | %dict.mix;)*>")))
 
+;; <!ENTITY ... >
+(test-parser '(entity pe "ISOLat2" (system "http://www.xml.com/iso/isolat2-xml.entities"))
+	     ($xml:entity-decl (string->lseq "<!ENTITY % ISOLat2 SYSTEM \"http://www.xml.com/iso/isolat2-xml.entities\" >")))
+(test-parser '(entity ge "Pub-Status"
+		      (entity-value "This is a pre-release of the specification."))
+	     ($xml:entity-decl (string->lseq "<!ENTITY Pub-Status \"This is a pre-release of the specification.\">")))
+(test-parser '(entity ge "open-hatch"
+		      (system "http://www.textuality.com/boilerplate/OpenHatch.xml"))
+	     ($xml:entity-decl (string->lseq "<!ENTITY open-hatch
+         SYSTEM \"http://www.textuality.com/boilerplate/OpenHatch.xml\">")))
+(test-parser '(entity ge "open-hatch"
+		      (public "-//Textuality//TEXT Standard open-hatch boilerplate//EN" "http://www.textuality.com/boilerplate/OpenHatch.xml"))
+	     ($xml:entity-decl (string->lseq "<!ENTITY open-hatch
+         PUBLIC \"-//Textuality//TEXT Standard open-hatch boilerplate//EN\"
+         \"http://www.textuality.com/boilerplate/OpenHatch.xml\">")))
+(test-parser '(entity ge "hatch-pic"
+		      (system "../grafix/OpenHatch.gif") (ndata "gif"))
+	     ($xml:entity-decl (string->lseq "<!ENTITY hatch-pic 
+         SYSTEM \"../grafix/OpenHatch.gif\"
+         NDATA gif >")))
+
+;; <!NOTATION ... >
 (test-parser '(notation "name" (system "URI"))
 	     ($xml:notation-decl (string->lseq "<!NOTATION name SYSTEM \"URI\">")))
 (test-parser '(notation "name" (public "public_ID"))
