@@ -39,14 +39,14 @@
 (test-parser '(entity-value "abc" (entity-ref "amp") "def")
 	     ($xml:entity-value (string->lseq "'abc&amp;def'")))
 
-(test-parser '(attr-value "abc") ($xml:attr-value (string->lseq "\"abc\"")))
-(test-parser '(attr-value) ($xml:attr-value (string->lseq "\"\"")))
-(test-parser '(attr-value "abc" (entity-ref "amp") "def")
-	     ($xml:attr-value (string->lseq "\"abc&amp;def\"")))
-(test-parser '(attr-value "abc") ($xml:attr-value (string->lseq "'abc'")))
-(test-parser '(attr-value) ($xml:attr-value (string->lseq "''")))
-(test-parser '(attr-value "abc" (entity-ref "amp") "def")
-	     ($xml:attr-value (string->lseq "'abc&amp;def'")))
+(test-parser '(att-value "abc") ($xml:att-value (string->lseq "\"abc\"")))
+(test-parser '(att-value) ($xml:att-value (string->lseq "\"\"")))
+(test-parser '(att-value "abc" (entity-ref "amp") "def")
+	     ($xml:att-value (string->lseq "\"abc&amp;def\"")))
+(test-parser '(att-value "abc") ($xml:att-value (string->lseq "'abc'")))
+(test-parser '(att-value) ($xml:att-value (string->lseq "''")))
+(test-parser '(att-value "abc" (entity-ref "amp") "def")
+	     ($xml:att-value (string->lseq "'abc&amp;def'")))
 
 
 (test-parser "system literal" ($xml:system-literal (string->lseq "\"system literal\"")))
@@ -135,6 +135,18 @@
 	     ($xml:entity-decl (string->lseq "<!ENTITY hatch-pic 
          SYSTEM \"../grafix/OpenHatch.gif\"
          NDATA gif >")))
+
+;; <!ATTLIST ...>
+(test-parser '(attlist "termdef" (att-def "id" id required)
+		       (att-def "name" cdata implied))
+	     ($xml:attlist-decl (string->lseq "<!ATTLIST termdef
+          id      ID      #REQUIRED
+          name    CDATA   #IMPLIED>")))
+(test-parser '(attlist "list" (att-def "type" ("bullets" "ordered" "glossary")
+				       (fixed (att-value "ordered"))))
+	     ($xml:attlist-decl (string->lseq "<!ATTLIST list type (bullets|ordered|glossary)  \"ordered\">")))
+(test-parser '(attlist "form" (att-def "method" cdata (fixed (att-value "POST"))))
+	     ($xml:attlist-decl (string->lseq "<!ATTLIST form method  CDATA   #FIXED \"POST\">")))
 
 ;; <!NOTATION ... >
 (test-parser '(notation "name" (system "URI"))

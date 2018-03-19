@@ -45,12 +45,13 @@
 	    $xml:s
 	    $xml:name $xml:names
 	    $xml:nmtoken $xml:nmtokens
-	    $xml:entity-value $xml:attr-value
+	    $xml:entity-value $xml:att-value
 	    $xml:system-literal $xml:pubid-literal
 	    $xml:pi
 	    $xml:cd-sect
 	    $xml:prolog $xml:xml-decl $xml:doctype-decl
-	    $xml:element-decl $xml:entity-decl $xml:notation-decl
+	    $xml:element-decl $xml:entity-decl $xml:attlist-decl
+	    $xml:notation-decl
 	    
 	    $xml:char-data $xml:comment
 	    
@@ -221,19 +222,19 @@
 
 ;; [10] AttValue ::= '"' ([^<&"] | Reference)* '"'
 ;;                 | "'" ([^<&'] | Reference)* "'"
-(define $xml:attr-value
+(define $xml:att-value
   (let ((no-dquote (char-set-complement (string->char-set "<&\"")))
 	(no-squote (char-set-complement (string->char-set "<&'"))))
     ($or ($do (($eqv? #\"))
 	      (r ($many ($or ($do (c ($in-set no-dquote)) ($return c))
 			     $xml:reference)))
 	      (($eqv? #\"))
-	      ($return `(attr-value ,@(merge-value r))))
+	      ($return `(att-value ,@(merge-value r))))
 	 ($do (($eqv? #\'))
 	      (r ($many ($or ($do (c ($in-set no-squote)) ($return c))
 			     $xml:reference)))
 	      (($eqv? #\'))
-	      ($return `(attr-value ,@(merge-value r)))))))
+	      ($return `(att-value ,@(merge-value r)))))))
 ;; [11] SystemLiteral ::= ('"' [^"]* '"') | ("'" [^']* "'")
 (define $xml:system-literal
   (let ((no-dquote (char-set-complement (string->char-set "\"")))
@@ -496,11 +497,75 @@
 ;; [70] EntityDecl ::= GEDecl | PEDecl
 (define $xml:entity-decl ($or $xml:ge-decl $xml:pe-decl))
 
+
+;; [55] StringType ::= 'CDATA'
+(define $xml:string-type ($do (($token "CDATA")) ($return 'cdata)))
+;; [56] TokenizedType ::= 'ID'
+;; 			| 'IDREF'
+;; 			| 'IDREFS'
+;; 			| 'ENTITY'
+;; 			| 'ENTITIES'
+;; 			| 'NMTOKEN'
+;; 			| 'NMTOKENS'
+(define $xml:tokenized-type
+  ($or ($do (($token "ID")) ($return 'id))
+       ($do (($token "IDREF")) ($return 'idref))
+       ($do (($token "IDREFS")) ($return 'idrefs))
+       ($do (($token "ENTITY")) ($return 'entity))
+       ($do (($token "ENTITIES")) ($return 'entities))
+       ($do (($token "NMTOKEN")) ($return 'nmtoken))
+       ($do (($token "NMTOKENS")) ($return 'nmtokens))))
+
+;; [58] NotationType ::= 'NOTATION' S '(' S? Name (S? '|' S? Name)* S? ')'
+(define $xml:notation-type
+  ($do (($token "NOTATION")) $xml:s
+       (($eqv? #\()) (($optional $xml:s))
+       (n $xml:name) 
+       (n* ($many ($seq ($optional $xml:s) ($eqv? #\|) $xml:name)))
+       (($optional $xml:s))
+       (($eqv? #\)))
+       ($return `(notation ,n ,@n*))))
+;; [59] Enumeration ::=	'(' S? Nmtoken (S? '|' S? Nmtoken)* S? ')'
+(define $xml:enumeration
+  ($do (($eqv? #\())  (($optional $xml:s))
+       (t $xml:nmtoken)
+       (t* ($many ($seq ($optional $xml:s) ($eqv? #\|) $xml:nmtoken)))
+       (($optional $xml:s))
+       (($eqv? #\)))
+       ($return (cons t t*))))
+;; [57] EnumeratedType ::= NotationType | Enumeration
+(define $xml:enumerated-type ($or $xml:notation-type $xml:enumeration))
+;; [54] AttType	 ::= StringType | TokenizedType | EnumeratedType
+(define $xml:att-type
+  ($or $xml:string-type $xml:tokenized-type $xml:enumerated-type))
+
+;; [60] DefaultDecl ::=	'#REQUIRED' | '#IMPLIED' | (('#FIXED' S)? AttValue)
+(define $xml:default-decl
+  ($or ($do (($token "#REQUIRED")) ($return 'required))
+       ($do (($token "#IMPLIED")) ($return 'implied))
+       ($do (($optional ($seq ($token "#FIXED") $xml:s)))
+	    (v $xml:att-value)
+	    ($return `(fixed ,v)))))
+;; [53] AttDef ::= S Name S AttType S DefaultDecl
+(define $xml:attr-def
+  ($do $xml:s
+       (n $xml:name) $xml:s
+       (t $xml:att-type) $xml:s
+       (d $xml:default-decl)
+       ($return `(att-def ,n ,t, d))))
+;; [52] AttlistDecl ::= '<!ATTLIST' S Name AttDef* S? '>'
+(define $xml:attlist-decl
+  ($do (($token "<!ATTLIST")) $xml:s
+       (n $xml:name)
+       (d* ($many $xml:attr-def)) (($optional $xml:s))
+       (($eqv? #\>))
+       ($return `(attlist ,n ,@d*))))
+
 ;; [29] markupdecl ::= elementdecl | AttlistDecl
 ;;                   | EntityDecl | NotationDecl | PI | Comment
 (define $xml:markup-decl
   ($or $xml:element-decl
-       ;; $xml:attlist-decl
+       $xml:attlist-decl
        $xml:entity-decl
        $xml:notation-decl
        $xml:pi
