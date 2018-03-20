@@ -91,79 +91,87 @@
 		      (comment " comment "))
 	     ($xml:prolog (string->lseq "<?xml version='1.0'?><!-- comment -->")))
 
-(test-parser '(element "br" empty)
+(test-parser '(!element "br" empty)
 	     ($xml:element-decl (string->lseq "<!ELEMENT br EMPTY>")))
-(test-parser '(element "p" (pcdata "emph"))
+(test-parser '(!element "p" (pcdata "emph"))
 	     ($xml:element-decl (string->lseq "<!ELEMENT p (#PCDATA|emph)* >")))
-(test-parser '(element (pe-ref "name.para") (pe-ref "content.para"))
+(test-parser '(!element (pe-ref "name.para") (pe-ref "content.para"))
 	     ($xml:element-decl (string->lseq "<!ELEMENT %name.para; %content.para; >")))
-(test-parser '(element "container" any)
+(test-parser '(!element "container" any)
 	     ($xml:element-decl (string->lseq "<!ELEMENT container ANY>")))
 ;; PCDATA
-(test-parser '(element "p" (pcdata "a" "ul" "b" "i" "em"))
+(test-parser '(!element "p" (pcdata "a" "ul" "b" "i" "em"))
 	     ($xml:element-decl (string->lseq "<!ELEMENT p (#PCDATA|a|ul|b|i|em)*>")))
-(test-parser '(element "p" (pcdata (pe-ref "font") (pe-ref "phrase")
+(test-parser '(!element "p" (pcdata (pe-ref "font") (pe-ref "phrase")
 				   (pe-ref "special") (pe-ref "form")))
 	     ($xml:element-decl (string->lseq "<!ELEMENT p (#PCDATA | %font; | %phrase; | %special; | %form;)* >")))
-(test-parser '(element "b" (pcdata))
+(test-parser '(!element "b" (pcdata))
 	     ($xml:element-decl (string->lseq "<!ELEMENT b (#PCDATA)>")))
 
-(test-parser '(element "spec" (seq "front" "body" (? "back")))
+(test-parser '(!element "spec" (seq "front" "body" (? "back")))
 	     ($xml:element-decl (string->lseq "<!ELEMENT spec (front, body, back?)>")))
-(test-parser '(element "div1" (seq "head" (* (choice "p" "list" "note")) (* "div2")))
+(test-parser '(!element "div1" (seq "head" (* (choice "p" "list" "note")) (* "div2")))
 	     ($xml:element-decl (string->lseq "<!ELEMENT div1 (head, (p | list | note)*, div2*)>")))
-(test-parser '(element "dictionary-body" (* (choice (pe-ref "div.mix") (pe-ref "dict.mix"))))
+(test-parser '(!element "dictionary-body" (* (choice (pe-ref "div.mix") (pe-ref "dict.mix"))))
 	     ($xml:element-decl (string->lseq "<!ELEMENT dictionary-body (%div.mix; | %dict.mix;)*>")))
 
 ;; <!ENTITY ... >
-(test-parser '(entity pe "ISOLat2" (system "http://www.xml.com/iso/isolat2-xml.entities"))
+(test-parser '(!entity pe "ISOLat2" (system "http://www.xml.com/iso/isolat2-xml.entities"))
 	     ($xml:entity-decl (string->lseq "<!ENTITY % ISOLat2 SYSTEM \"http://www.xml.com/iso/isolat2-xml.entities\" >")))
-(test-parser '(entity ge "Pub-Status"
+(test-parser '(!entity ge "Pub-Status"
 		      (entity-value "This is a pre-release of the specification."))
 	     ($xml:entity-decl (string->lseq "<!ENTITY Pub-Status \"This is a pre-release of the specification.\">")))
-(test-parser '(entity ge "open-hatch"
+(test-parser '(!entity ge "open-hatch"
 		      (system "http://www.textuality.com/boilerplate/OpenHatch.xml"))
 	     ($xml:entity-decl (string->lseq "<!ENTITY open-hatch
          SYSTEM \"http://www.textuality.com/boilerplate/OpenHatch.xml\">")))
-(test-parser '(entity ge "open-hatch"
+(test-parser '(!entity ge "open-hatch"
 		      (public "-//Textuality//TEXT Standard open-hatch boilerplate//EN" "http://www.textuality.com/boilerplate/OpenHatch.xml"))
 	     ($xml:entity-decl (string->lseq "<!ENTITY open-hatch
          PUBLIC \"-//Textuality//TEXT Standard open-hatch boilerplate//EN\"
          \"http://www.textuality.com/boilerplate/OpenHatch.xml\">")))
-(test-parser '(entity ge "hatch-pic"
-		      (system "../grafix/OpenHatch.gif") (ndata "gif"))
+(test-parser '(!entity ge "hatch-pic"
+		       (system "../grafix/OpenHatch.gif") (ndata "gif"))
 	     ($xml:entity-decl (string->lseq "<!ENTITY hatch-pic 
          SYSTEM \"../grafix/OpenHatch.gif\"
          NDATA gif >")))
 
 ;; <!ATTLIST ...>
-(test-parser '(attlist "termdef" (att-def "id" id required)
+(test-parser '(!attlist "termdef" (att-def "id" id required)
 		       (att-def "name" cdata implied))
 	     ($xml:attlist-decl (string->lseq "<!ATTLIST termdef
           id      ID      #REQUIRED
           name    CDATA   #IMPLIED>")))
-(test-parser '(attlist "list" (att-def "type" ("bullets" "ordered" "glossary")
+(test-parser '(!attlist "list" (att-def "type" ("bullets" "ordered" "glossary")
 				       (fixed (att-value "ordered"))))
 	     ($xml:attlist-decl (string->lseq "<!ATTLIST list type (bullets|ordered|glossary)  \"ordered\">")))
-(test-parser '(attlist "form" (att-def "method" cdata (fixed (att-value "POST"))))
+(test-parser '(!attlist "form" (att-def "method" cdata (fixed (att-value "POST"))))
 	     ($xml:attlist-decl (string->lseq "<!ATTLIST form method  CDATA   #FIXED \"POST\">")))
 
 ;; <!NOTATION ... >
-(test-parser '(notation "name" (system "URI"))
+(test-parser '(!notation "name" (system "URI"))
 	     ($xml:notation-decl (string->lseq "<!NOTATION name SYSTEM \"URI\">")))
-(test-parser '(notation "name" (public "public_ID"))
+(test-parser '(!notation "name" (public "public_ID"))
 	     ($xml:notation-decl (string->lseq "<!NOTATION name PUBLIC \"public_ID\">")))
-(test-parser '(notation "name" (public "public_ID" "URI"))
+(test-parser '(!notation "name" (public "public_ID" "URI"))
 	     ($xml:notation-decl (string->lseq "<!NOTATION name PUBLIC \"public_ID\" \"URI\">")))
 
-(test-parser '(doctype "greeting" (system "hello.dtd"))
+(test-parser '(!doctype "greeting" (system "hello.dtd"))
 	     ($xml:doctype-decl (string->lseq "<!DOCTYPE greeting SYSTEM \"hello.dtd\">")))
 
-(test-parser '(doctype "greeting" (subset (element "greeting" (pcdata))))
+(test-parser '(!doctype "greeting" (subset (!element "greeting" (pcdata))))
 	     ($xml:doctype-decl (string->lseq "<!DOCTYPE greeting [
   <!ELEMENT greeting (#PCDATA)>
 ]>")))
+
 (test-parser '(prolog (xml-decl (version "1.0"))
-		      (doctype "greeting" (system "hello.dtd")))
+		      (!doctype "greeting" (system "hello.dtd")))
 	     ($xml:prolog (string->lseq "<?xml version=\"1.0\"?><!DOCTYPE greeting SYSTEM \"hello.dtd\">")))
+
+(test-parser '(element "IMG" (attributes ("align" "left")
+					 ("src" "http://www.w3.org/Icons/WWW/w3c_home")))
+	     ($xml:element (string->lseq "<IMG align=\"left\" src=\"http://www.w3.org/Icons/WWW/w3c_home\" />")))
+(test-parser '(element "br") ($xml:element (string->lseq "<br/>")))
+(let-values ((r ($xml:element (string->lseq "<br></br>"))))
+  (for-each (lambda (v) (write v) (newline)) r))
 (test-end)

@@ -52,7 +52,8 @@
 	    $xml:prolog $xml:xml-decl $xml:doctype-decl
 	    $xml:element-decl $xml:entity-decl $xml:attlist-decl
 	    $xml:notation-decl
-	    
+
+	    $xml:element
 	    $xml:char-data $xml:comment
 	    
 	    $xml:char-ref $xml:entity-ref $xml:reference $xml:pe-reference
@@ -436,7 +437,7 @@
        (n ($or $xml:name $xml:pe-reference)) $xml:s
        (c $xml:content-spec) (($optional $xml:s))
        (($eqv? #\>))
-       ($return `(element ,n ,c))))
+       ($return `(!element ,n ,c))))
 
 ;; [83] PublicID     ::= 'PUBLIC' S PubidLiteral
 (define $xml:public-id
@@ -449,7 +450,7 @@
        (n $xml:name) $xml:s
        (id ($or $xml:external-id $xml:public-id)) (($optional $xml:s))
        (($eqv? #\>))
-       ($return `(notation ,n ,id))))
+       ($return `(!notation ,n ,id))))
 
 
 ;; [75] ExternalID ::= 'SYSTEM' S SystemLiteral
@@ -478,7 +479,7 @@
        (n $xml:name) $xml:s
        (d $xml:pe-def) (($optional $xml:s))
        (($eqv? #\>))
-       ($return `(entity pe ,n ,d))))
+       ($return `(!entity pe ,n ,d))))
 ;; [73] EntityDef  ::= EntityValue | (ExternalID NDataDecl?)
 (define $xml:entity-def
   ($or ($do (v $xml:entity-value) ($return (list v)))
@@ -492,7 +493,7 @@
        (n $xml:name) $xml:s
        (d $xml:entity-def) (($optional $xml:s))
        (($eqv? #\>))
-       ($return `(entity ge ,n ,@d))))
+       ($return `(!entity ge ,n ,@d))))
 
 ;; [70] EntityDecl ::= GEDecl | PEDecl
 (define $xml:entity-decl ($or $xml:ge-decl $xml:pe-decl))
@@ -547,7 +548,7 @@
 	    (v $xml:att-value)
 	    ($return `(fixed ,v)))))
 ;; [53] AttDef ::= S Name S AttType S DefaultDecl
-(define $xml:attr-def
+(define $xml:att-def
   ($do $xml:s
        (n $xml:name) $xml:s
        (t $xml:att-type) $xml:s
@@ -557,9 +558,9 @@
 (define $xml:attlist-decl
   ($do (($token "<!ATTLIST")) $xml:s
        (n $xml:name)
-       (d* ($many $xml:attr-def)) (($optional $xml:s))
+       (d* ($many $xml:att-def)) (($optional $xml:s))
        (($eqv? #\>))
-       ($return `(attlist ,n ,@d*))))
+       ($return `(!attlist ,n ,@d*))))
 
 ;; [29] markupdecl ::= elementdecl | AttlistDecl
 ;;                   | EntityDecl | NotationDecl | PI | Comment
@@ -589,7 +590,7 @@
 			      ($return s))
 			 #f))
        (($eqv? #\>))
-       ($return `(doctype ,n ,@(if id `(,id) '())
+       ($return `(!doctype ,n ,@(if id `(,id) '())
 			  ,@(if subst `((subset ,@subst)) '())))))
 
 ;; [22] prolog ::= XMLDecl? Misc* (doctypedecl Misc*)?
@@ -603,14 +604,55 @@
        ($return `(prolog ,@(if decl (list decl) '())
 			 ,@misc
 			 ,@doctype))))
+;; [41] Attribute ::= Name Eq AttValue
+(define $xml:attribute
+  ($do (n $xml:name) $xml:eq (v $xml:att-value)
+       ($return `(,n ,(cadr v)))))
 
-#;(define $xml:prolog
-  ($do (decl $xml:xml-decl)
-       (($many $xml:misc))
-       (doctype ($optional
- ($do (d $xml:doctypedecl) (($many $xml:misc)) ($return d))
- #f))
-       ($return #f)))
+;; [44] EmptyElemTag ::= '<' Name (S Attribute)* S? '/>'
+(define $xml:empty-elem-tag
+  ($do (($eqv? #\<))
+       (n $xml:name)
+       (a ($many ($seq $xml:s $xml:attribute)))
+       (($optional $xml:s))
+       (($token "/>"))
+       ($return (if (null? a)
+		    `(element ,n)
+		    `(element ,n (attributes ,@a))))))
+;; [39] element ::= EmptyElemTag
+;;                | STag content ETag
+(define $xml:element
+  (let ()
+    ;; [40] STag ::= '<' Name (S Attribute)* S? '>'
+    (define $xml:stag
+      ($do (($eqv? #\<))
+	   (n $xml:name)
+	   (a ($many ($seq $xml:s $xml:attribute)))
+	   (($optional $xml:s))
+	   (($eqv? #\>))
+	   ($return (cons n a))))
+    ;; [42] ETag ::= '</' Name S? '>'
+    (define ($xml:etag name)
+      ($seq ($token "</") ($token name) ($optional $xml:s) ($eqv? #\>)))
+    ;; [43] content ::= CharData? ((element | Reference | CDSect | PI | Comment) CharData?)*
+    (define ($xml:content)
+      ($do (c ($optional $xml:char-data))
+	   (e ($many ($do (v ($or $xml:element
+				  $xml:reference
+				  $xml:cd-sect
+				  $xml:pi
+				  $xml:comment))
+			  (c $xml:char-data)
+			  ($return (list v c)))))
+	   ($return (cons c e))))
+	   
+    ($or $xml:empty-elem-tag
+	 ($do (s $xml:stag)
+	      (c ($xml:content))
+	      (e ($xml:etag (car s)))
+	      ($return `(element ,(car s)
+			  ,@(if (null? (cdr s)) '() (list (cdr s)))
+			  . ,c))))))
 
 ;; [1] document ::= prolog element Misc*
 #;(define $xml:document
