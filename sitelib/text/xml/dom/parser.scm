@@ -53,7 +53,7 @@
 	    $xml:element-decl $xml:entity-decl $xml:attlist-decl
 	    $xml:notation-decl
 
-	    $xml:element
+	    $xml:element $xml:document
 	    $xml:char-data $xml:comment
 	    
 	    $xml:char-ref $xml:entity-ref $xml:reference $xml:pe-reference
@@ -273,7 +273,8 @@
   (let ((char-data-set (char-set-complement (char-set #\< #\&))))
     ($do (c* ($many ($in-set char-data-set)))
 	 (($not ($token "]]>")))
-	 ($return (list->string c*)))))
+	 ($return (if (null? c*) #f (list->string c*))
+		  (if (null? c*) +parse-fail+ +parse-success+)))))
 
 ;; [15] Comment ::= '<!--' ((Char - '-') | ('-' (Char - '-')))* '-->'
 (define $xml:comment
@@ -599,10 +600,10 @@
        (misc ($many $xml:misc))
        (doctype ($optional ($do (dec $xml:doctype-decl)
 				(misc ($many $xml:misc))
-				($return (cons dec misc)))
+				($return (cons dec (filter pair? misc))))
 			   '()))
        ($return `(prolog ,@(if decl (list decl) '())
-			 ,@misc
+			 ,@(filter pair? misc)
 			 ,@doctype))))
 ;; [41] Attribute ::= Name Eq AttValue
 (define $xml:attribute
@@ -642,23 +643,27 @@
 				  $xml:cd-sect
 				  $xml:pi
 				  $xml:comment))
-			  (c $xml:char-data)
-			  ($return (list v c)))))
-	   ($return (cons c e))))
+			  (c ($optional $xml:char-data))
+			  ($return (if c (list v c) (list v))))))
+	   ($return (let ((t (apply append e))) (if c (cons c t) t)))))
 	   
     ($or $xml:empty-elem-tag
 	 ($do (s $xml:stag)
 	      (c ($xml:content))
 	      (e ($xml:etag (car s)))
 	      ($return `(element ,(car s)
-			  ,@(if (null? (cdr s)) '() (list (cdr s)))
+			  ,@(let ((attr (cdr s)))
+			      (if (null? attr)
+				  '()
+				  `((attributes . ,attr))))
 			  . ,c))))))
 
 ;; [1] document ::= prolog element Misc*
-#;(define $xml:document
+(define $xml:document
   ($do (prolog $xml:prolog)
        (element $xml:element)
-       (($many $xml:misc))
-       ($return #f)))
+       (misc* ($many $xml:misc))
+       ($return `(document ,prolog ,element
+			   ,@(filter pair? misc*)))))
 
 )
