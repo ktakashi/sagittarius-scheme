@@ -122,8 +122,9 @@ Rule	GB-Eire	1921	only	-	Oct	 3	2:00s	0	GMT
   (test-equal "timezone offset" off (date-zone-offset d)))
 
 (let ((tz (timezone "Africa/Accra"))
-      (tz2 (timezone "Asia/Tehran")))
-  (test-equal (list tz2) (zone-offset->timezones 12600))
+      (tz2 (timezone "Asia/Yangon"))
+      (tz3 (timezone "Indian/Cocos")))
+  (test-equal (list tz2 tz3) (zone-offset->timezones 23400))
   (test-equal '()
 	      (zone-offset->timezones -52 (make-time time-utc 0 -1643759947)))
   (test-equal (list tz)
