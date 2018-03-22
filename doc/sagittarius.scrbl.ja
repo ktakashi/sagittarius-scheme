@@ -778,33 +778,32 @@ GCの効率のためにあります。}
 文字列が返されます。
 }
 
-@subsubsection{Load path}
+@subsubsection{ロードパス}
 
 @define[Function]{@name{add-load-path} @args{path :key (append #f)}}
-@desc{Add given @var{path} to current loading path list.
+@desc{与えられたパス@var{path}を現在のロードパスに追加します。
 
-If keyword argument @var{append} is @code{#t}, then given @var{path} is
-appended to the current loading path list, otherwise prepend to the list.
+キーワード引数@var{append}に@code{#t}(真値)が与えられた場合、与えられた@var{path}は
+現在のロードパスの最後尾に追加されます。そうでないならば先頭に追加されます。
 }
 
 @define[Function]{@name{add-load-suffix} @args{suffix :key (append #f)}}
-@desc{Add given @var{suffix} to current suffix list.
+@desc{与えられた@var{suffix}を現在の拡張子リストに追加します。
 
-If keyword argument @var{append} is @code{#t}, then given @var{suffix} is
-appended to the current suffix list, otherwise prepend to the list.
+キーワード引数@var{append}に@code{#t}(真値)が与えられた場合、与えられた@var{suffix}は
+最後尾に追加されます。そうでないならば先頭に追加されます。
 
-The @var{suffix} should contain @code{.} as well.
+@var{suffix}は@code{.}を含んでいなければなりません。
 }
 
 @define[Function]{@name{load-path} @args{}}
 @define[Function]{@name{load-path} @args{paths}}
-@desc{Retrives/sets current loading path.
+@desc{現在のロードパスの取得、または設定を行います。
 
-If the latter form is used, then the given path list @var{paths} is set
-to current loading path list. Otherwise retrieves the list.
+一つ目は現在のロードパスを取得を行い、
+二つ目の形式は与えられたパスのリスト@var{paths}を現在のロードパスに設定します。
 
-The returning value is not copied, thus modifying the list may cause
-unexpected results.
+返されるリストは複製ではないので、破壊的変更を行うと未定義の結果を引き起こします。
 }
 
 @subsubsection{System and platform}
