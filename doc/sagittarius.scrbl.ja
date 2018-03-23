@@ -806,30 +806,28 @@ GCの効率のためにあります。}
 返されるリストは複製ではないので、破壊的変更を行うと未定義の結果を引き起こします。
 }
 
-@subsubsection{System and platform}
+@subsubsection{システム環境}
 
 @define[Function]{@name{uname} @args{}}
-@desc{Return a vector which contains the following information.
+@desc{以下の情報を持ったベクタを返します。
 
 @dl-list{
- @dl-item["System name"]{Operating system name. E.g. "Linux"}
- @dl-item["Node name"]{The name of the computer.}
- @dl-item["Release"]{Release number of the system if availabel.}
- @dl-item["Version"]{Version number of the system if availabel.}
- @dl-item["Machine"]{Machine architecture of the system.}
+ @dl-item["システム名"]{オペレーティングシステムの名前。例： "Linux"}
+ @dl-item["ノード名"]{コンピュータ名}
+ @dl-item["リリース"]{システムのリリース番号}
+ @dl-item["バージョン"]{システムのバージョン}
+ @dl-item["機械"]{システムのアーキテクチャ。例："i686"}
 }
 
-On POSIX environment, this is the result of @code{uname(2)}.
+POSIX環境では、結果は@code{uname(2)}と同等です。
 
-On Windows environment, this is the result of couple of Win32 API calls
-and formatted to look like the result of @code{uname(2)}.
+Windows上ではいくつかのWin32 APIを組み合わせて@code{uname(2)}相当の値を返します。
 }
 
 @define[Function]{@name{get-mac-address} @args{:optional (position 0)}}
-@desc{Retrieves MAC address. The returning value is a bytevector which
-contains 6 elements.
+@desc{MAXアドレスを返します。返される値は、6つの要素を含むバイトベクタです。
 
-If optional argument specifies which NIC's MAC address should be returned.
+もしオプショナル引数はどのNICのMAXアドレスを返すのかを指定します。
 }
 
 @define[Function]{@name{get-process-times}}
