@@ -22,11 +22,14 @@ exec sagittarius $0 "$@"
 	(text sxml ssax)
 	(text sxml sxpath)
 	(text sxml tools)
+	(text sxml html-parser)
 	(pp))
 
 (define-constant +tz-archive+ "tzdata-latest.tar.gz")
 (define-constant +ftp-host+ "ftp.iana.org")
 (define-constant +tz-code+ (string-append "/tz/" +tz-archive+))
+(define-constant +http-host+ "data.iana.org")
+(define-constant +http-path+ (string-append "/time-zones/" +tz-archive+))
 (define-constant +work-dir+ "tzdata")
 (define-constant +max-retry+ 5)
 
@@ -121,7 +124,13 @@ zoneinfo2tdf.pl
 	    out))
 	(lambda () (ftp-quit conn)))))
 
-(define (download-archive) (download-ftp +ftp-host+ +tz-code+ +tz-archive+))
+(define (download-http host path out)
+  (http-get host path :secure #t :receiver (http-file-receiver out)))
+
+(define (download-archive)
+  (download-http +http-host+ +http-path+ +tz-archive+)
+  ;; seems http access is faster.
+  #;(download-ftp +ftp-host+ +tz-code+ +tz-archive+))
 
 (define (parse&collect in zones aliases)
   (define (trim-comment line) (regex-replace-all #/#.*/ line ""))
