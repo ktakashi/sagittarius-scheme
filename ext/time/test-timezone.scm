@@ -132,5 +132,7 @@ Rule	GB-Eire	1921	only	-	Oct	 3	2:00s	0	GMT
   (test-equal (list tz)
 	      (zone-offset->timezones -52 (make-time time-utc 0 -1643759949))))
 
+(test-equal 3600 (timezone-offset (timezone "Etc/GMT-1")))
+
 (test-end)
 

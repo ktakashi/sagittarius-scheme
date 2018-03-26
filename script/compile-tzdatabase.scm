@@ -57,8 +57,6 @@ southamerica
 pacificnew
 etcetera
 backzone
-
-;; we don't support them (old names and SystemV something)
 backward
 systemv
 
@@ -88,6 +86,8 @@ zoneinfo2tdf.pl
     "pacificnew"
     "etcetera"
     "backzone"
+    "backward"
+    "systemv"
     ))
 
 (define-constant +leap.list+ "leap-seconds.list")
@@ -137,11 +137,20 @@ zoneinfo2tdf.pl
   (define (parse-zone line in)
     (define (finish name latest prevs)
       (hashtable-set! zones name (cons latest prevs)))
+    (define (fixup latest)
+      ;; the etcetera file explain the reason why Etc/GMT+4 = -4 hours
+      (let ((offset (string->number (car latest))))
+	(cons (number->string (* offset 3600)) (cdr latest))))
     ;; Zone	NAME		GMTOFF	RULES	FORMAT	[UNTIL]
     (let ((ls (string-split (trim-comment line) #/\s+/)))
       (if (= (length ls) 5)
-	  (finish (cadr ls) (cddr ls) ())
-	  ;; ok UNTIL is there so keep goind
+	  (let ((name (cadr ls))
+		(latest (cddr ls)))
+	    (if (string-prefix? "Etc/GMT" name)
+		;; ok, etcetera file contains different format of zone offset
+		(finish name (fixup latest) '())
+		(finish name latest '())))
+	  ;; ok UNTIL is there so keep going
 	  (let ((name (cadr ls)))
 	    (let loop ((zones (list (cddr ls))))
 	      (let ((line (get-line in)))
