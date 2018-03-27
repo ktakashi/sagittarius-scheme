@@ -171,16 +171,20 @@
 (test-parser '(element "IMG" (attributes ("align" "left")
 					 ("src" "http://www.w3.org/Icons/WWW/w3c_home")))
 	     ($xml:element (string->lseq "<IMG align=\"left\" src=\"http://www.w3.org/Icons/WWW/w3c_home\" />")))
-(test-parser '(element "br") ($xml:element (string->lseq "<br/>")))
+(test-parser '(element "br" (attributes))
+	     ($xml:element (string->lseq "<br/>")))
 
-(test-parser '(element "br") ($xml:element (string->lseq "<br></br>")))
-(test-parser '(element "p" "text") ($xml:element (string->lseq "<p>text</p>")))
-(test-parser '(element "p" "text" (element "a" (attributes ("href" "link")) "foo"))
+(test-parser '(element "br" (attributes))
+	     ($xml:element (string->lseq "<br></br>")))
+(test-parser '(element "p" (attributes) "text")
+	     ($xml:element (string->lseq "<p>text</p>")))
+(test-parser '(element "p" (attributes) "text"
+		       (element "a" (attributes ("href" "link")) "foo"))
 	     ($xml:element (string->lseq "<p>text<a href=\"link\">foo</a></p>")))
 
 (test-parser '(document (prolog (xml-decl (version "1.0"))
 				(!doctype "greeting" (system "hello.dtd")))
-			(element "greeting" "Hello, world!"))
+			(element "greeting" (attributes) "Hello, world!"))
 	     ($xml:document (string->lseq "<?xml version=\"1.0\"?>
 <!DOCTYPE greeting SYSTEM \"hello.dtd\">
 <greeting>Hello, world!</greeting> ")))
@@ -188,7 +192,7 @@
 (test-parser '(document (prolog (xml-decl (version "1.0") (encoding "UTF-8"))
 				(!doctype "greeting"
 					  (subset (!element "greeting" (pcdata)))))
-			(element "greeting" "Hello, world!"))
+			(element "greeting" (attributes) "Hello, world!"))
 	     ($xml:document (string->lseq "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>
 <!DOCTYPE greeting [
   <!ELEMENT greeting (#PCDATA)>

@@ -58,11 +58,16 @@
 	    
 	    $xml:char-ref $xml:entity-ref $xml:reference $xml:pe-reference
 	    $xml:entity-value
+
+	    ;; user API
+	    parse-xml
 	    )
     (import (rnrs)
 	    (peg)
+	    (sagittarius generators)
 	    (srfi :14 char-sets)
-	    (srfi :39 parameters))
+	    (srfi :39 parameters)
+	    (srfi :127 lseqs))
 ;; TODO maybe this should be move to constructing part
 (define-record-type xml-document-parse-options
   (fields namespace-aware?
@@ -617,9 +622,7 @@
        (a ($many ($seq $xml:s $xml:attribute)))
        (($optional $xml:s))
        (($token "/>"))
-       ($return (if (null? a)
-		    `(element ,n)
-		    `(element ,n (attributes ,@a))))))
+       ($return `(element ,n (attributes ,@a)))))
 ;; [39] element ::= EmptyElemTag
 ;;                | STag content ETag
 (define $xml:element
@@ -651,12 +654,7 @@
 	 ($do (s $xml:stag)
 	      (c ($xml:content))
 	      (e ($xml:etag (car s)))
-	      ($return `(element ,(car s)
-			  ,@(let ((attr (cdr s)))
-			      (if (null? attr)
-				  '()
-				  `((attributes . ,attr))))
-			  . ,c))))))
+	      ($return `(element ,(car s) (attributes . ,(cdr s)) . ,c))))))
 
 ;; [1] document ::= prolog element Misc*
 (define $xml:document
@@ -665,5 +663,16 @@
        (misc* ($many $xml:misc))
        ($return `(document ,prolog ,element
 			   ,@(filter pair? misc*)))))
+
+;; TODO move this to factory library.
+;; I think we shouldn't show this one to users since the parsing result
+;; is only for internal use.
+(define (parse-xml in)
+  (let-values (((s v n)
+		($xml:document (generator->lseq (port->char-generator in)))))
+    (cond ((and (parse-success? s) (null? n)) v)
+	  ((and (parse-success? s) (not (null? n)))
+	   (error 'parse-xml "XML document contains extra data" n))
+	  (else (error 'parse-xml "Failed to parse XML document" v)))))
 
 )
