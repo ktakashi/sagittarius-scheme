@@ -32,16 +32,14 @@
 ;; - https://www.w3.org/TR/2008/REC-xml-20081126/
 
 ;; This library returns DOM AST which is *not* DOM yet but intermediate
-;; data structure. At some point, we can also convert SXML to DOM AST
+;; data structure. At some point, we will be able to convert SXML to DOM AST
 ;; but that's a bit far future.
+
+;; this library is basically only internal use.
+;; to construct actual DOM tree, use (text xml dom factory)
 #!nounbound
 (library (text xml dom parser)
-    (export make-xml-document-parse-options
-	    xml-document-parse-options?
-
-	    *xml:parse-option*
-	    ;; for testing
-	    +xml:char-set+ +xml:name-start-char-set+ +xml:name-char-set+
+    (export +xml:char-set+ +xml:name-start-char-set+ +xml:name-char-set+
 	    $xml:s
 	    $xml:name $xml:names
 	    $xml:nmtoken $xml:nmtokens
@@ -57,45 +55,11 @@
 	    $xml:char-data $xml:comment
 	    
 	    $xml:char-ref $xml:entity-ref $xml:reference $xml:pe-reference
-	    $xml:entity-value
-
-	    ;; user API
-	    parse-xml
-	    )
+	    $xml:entity-value)
     (import (rnrs)
 	    (peg)
-	    (sagittarius generators)
-	    (srfi :14 char-sets)
-	    (srfi :39 parameters)
-	    (srfi :127 lseqs))
-;; TODO maybe this should be move to constructing part
-(define-record-type xml-document-parse-options
-  (fields namespace-aware?
-	  xinclude-aware?
-	  validating?
-	  whitespace?
-	  expand-entity-reference?
-	  ignore-comments?
-	  coalescing?)
-  (protocol (lambda (p)
-	      ;; the options are taken from Java.
-	      (lambda (:key (namespace-aware? #t)
-			    (xinclude-aware? #f)
-			    (validating? #f)
-			    (whitespace? #f)
-			    (expand-entity-reference? #t)
-			    (ignore-comments? #f)
-			    (coalescing? #f))
-		(p namespace-aware? xinclude-aware?
-		   validating? whitespace? expand-entity-reference?
-		   ignore-comments? coalescing?)))))
-(define-syntax %expand-entity?
-  (syntax-rules ()
-    ((_)
-     (xml-document-parse-options-expand-entity-reference?
-      (*xml:parse-option*)))))
-(define +default-parse-option+ (make-xml-document-parse-options))
-(define *xml:parse-option* (make-parameter +default-parse-option+))
+	    (srfi :14 char-sets))
+
 ;; [2] Char ::=	#x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD]
 ;;            | [#x10000-#x10FFFF]
 (define +xml:char-set+
@@ -663,16 +627,5 @@
        (misc* ($many $xml:misc))
        ($return `(document ,prolog ,element
 			   ,@(filter pair? misc*)))))
-
-;; TODO move this to factory library.
-;; I think we shouldn't show this one to users since the parsing result
-;; is only for internal use.
-(define (parse-xml in)
-  (let-values (((s v n)
-		($xml:document (generator->lseq (port->char-generator in)))))
-    (cond ((and (parse-success? s) (null? n)) v)
-	  ((and (parse-success? s) (not (null? n)))
-	   (error 'parse-xml "XML document contains extra data" n))
-	  (else (error 'parse-xml "Failed to parse XML document" v)))))
 
 )
