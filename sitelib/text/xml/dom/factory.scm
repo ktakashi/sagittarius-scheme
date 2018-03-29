@@ -97,4 +97,26 @@
   (call-with-input-file file
     (lambda (in) (apply input-port->dom-tree in opt))))
 
+(define *factory-table* (make-eq-hashtable))
+(define (dispatch-factory tree)
+  (if (pair? tree)
+      (let ((name (car tree)))
+	(cond ((hashtable-ref *factory-table* name #f) =>
+	       (lambda (proc) (proc tree)))
+	      (else (assertion-violation 'document-factory
+					 "unknown element" name))))
+      (assertion-violation 'document-factory "TODO make text")))
+(define-syntax define-factory
+  (lambda (x)
+    (define (->name name)
+      (string->symbol
+       (string-append (symbol->string (syntax->datum name)) "-factory")))
+    (syntax-case x ()
+      ((k name (tree) body ...)
+       (with-syntax ((defname (datum->syntax #'k (->name #'name))))
+	 #'(define defname
+	     (let ((proc (lambda (tree) body ...)))
+	       (hashtable-set! *factory-table* 'name proc)
+	       proc)))))))
+
 )
