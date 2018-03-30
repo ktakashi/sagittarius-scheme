@@ -340,7 +340,7 @@
        (sd ($optional $xml:sd-decl #f))
        ($optional $xml:s #f)
        (($token "?>"))
-       ($return `(xml-decl ,vi ,@(if ed `(,ed) '()) ,@(if sd `(,sd) '())))))
+       ($return `(xml-decl ,vi ,ed ,sd))))
 ;; [51] Mixed ::= '(' S? '#PCDATA' (S? '|' S? Name)* S? ')*'
 ;;              | '(' S? '#PCDATA' S? ')'
 (define $xml:mixed
@@ -570,10 +570,11 @@
        (doctype ($optional ($do (dec $xml:doctype-decl)
 				(misc ($many $xml:misc))
 				($return (cons dec (filter pair? misc))))
-			   '()))
-       ($return `(prolog ,@(if decl (list decl) '())
-			 ,@(filter pair? misc)
-			 ,@doctype))))
+			   #f))
+       ($return `(prolog ,decl
+			 (misc ,@(filter pair? misc))
+			 ,(and doctype (car doctype))
+			 (misc ,@(if doctype (cdr doctype) '()))))))
 ;; [41] Attribute ::= Name Eq AttValue
 (define $xml:attribute
   ($do (n $xml:name) $xml:eq (v $xml:att-value)

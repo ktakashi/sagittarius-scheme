@@ -86,12 +86,15 @@
 
 ;; internal parameter
 (define *factory-options* (make-parameter #f))
+(define *root-document* (make-parameter #f))
 
 (define (input-port->dom-tree in :optional (option +default-factory-option+))
   (let ((parsed (parse-xml in)))
-    (parameterize ((*factory-options* option))
+    (parameterize ((*factory-options* option)
+		   (*root-document* (make-root-document)))
       ;; TODO
-      (error 'input-port->dom-tree "not yet"))))
+      (error 'input-port->dom-tree "not yet")
+      (*root-document*))))
 
 (define (xml-file->dom-tree file . opt)
   (call-with-input-file file
@@ -102,9 +105,8 @@
   (if (pair? tree)
       (let ((name (car tree)))
 	(cond ((hashtable-ref *factory-table* name #f) =>
-	       (lambda (proc) (proc tree)))
-	      (else (assertion-violation 'document-factory
-					 "unknown element" name))))
+	       (lambda (proc) (proc tree (*root-document*))))
+	      (else tree)))
       (assertion-violation 'document-factory "TODO make text")))
 (define-syntax define-factory
   (lambda (x)
@@ -112,11 +114,40 @@
       (string->symbol
        (string-append (symbol->string (syntax->datum name)) "-factory")))
     (syntax-case x ()
-      ((k name (tree) body ...)
+      ((k (name root-document) body ...)
        (with-syntax ((defname (datum->syntax #'k (->name #'name))))
 	 #'(define defname
-	     (let ((proc (lambda (tree) body ...)))
+	     (let ((proc (lambda (name root-document) body ...)))
 	       (hashtable-set! *factory-table* 'name proc)
 	       proc)))))))
+
+(define-factory (document root-document)
+  (let ((prolog (dispatch-factory (cadr document)))
+	(element (dispatch-factory (caddr document)))
+	(misc (apply dispatch-factory (cdddr document))))
+    ;; Add to root-document
+    ))
+
+(define-factory (prolog root-document)
+  (let ((decl (cond ((cadr prolog) => dispatch-factory) (else #f)))
+	(misc1 (apply dispatch-factory (cdaddr prolog)))
+	(doctype (cond ((cadddr prolog) => dispatch-factory) (else #f)))
+	(misc2 (apply dispatch-factory (cdr (cadddr prolog)))))
+    ;; append child nodes
+    ;; (for-each (lambda (misc) (append-child-node root-document misc)) misc1)
+    ;; (when doctype (append-child-node root-document doctype))
+    ;; (for-each (lambda (misc) (append-child-node root-document misc)) misc2)
+    ))
+
+(define-factory (xml-decl root-document)
+  (let ((version (cadr xml-decl))
+	(encode (caddr xml-decl))
+	(standalone (cadddr xml-decl)))
+    ;; put info to root-document
+    ;; (set-version root-document (cadr version))
+    ;; (when encode (set-charset root-document (cadr encode)))
+    ;; (when standalone
+    ;;   (set-xml-standalone root-document (string=? "yes" (cadr standalone))))
+    ))
 
 )

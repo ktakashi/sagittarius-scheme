@@ -68,27 +68,27 @@
 (test-parser '(cdata "<greeting>Hello, world!</greeting>")
 	     ($xml:cd-sect (string->lseq "<![CDATA[<greeting>Hello, world!</greeting>]]>")))
 
-(test-parser '(xml-decl (version "1.0"))
+(test-parser '(xml-decl (version "1.0") #f #f)
 	     ($xml:xml-decl (string->lseq "<?xml version=\"1.0\"?>")))
-(test-parser '(xml-decl (version "1.0"))
+(test-parser '(xml-decl (version "1.0") #f #f)
 	     ($xml:xml-decl (string->lseq "<?xml version='1.0'?>")))
-(test-parser '(xml-decl (version "1.0") (encoding "utf-8"))
+(test-parser '(xml-decl (version "1.0") (encoding "utf-8") #f)
 	     ($xml:xml-decl (string->lseq "<?xml version='1.0' encoding=\"utf-8\"?>")))
-(test-parser '(xml-decl (version "1.0") (encoding "utf-8"))
+(test-parser '(xml-decl (version "1.0") (encoding "utf-8") #f)
 	     ($xml:xml-decl (string->lseq "<?xml version='1.0' encoding='utf-8'?>")))
-(test-parser '(xml-decl (version "1.0") (standalone "yes"))
+(test-parser '(xml-decl (version "1.0") #f (standalone "yes"))
 	     ($xml:xml-decl (string->lseq "<?xml version='1.0' standalone=\"yes\"?>")))
-(test-parser '(xml-decl (version "1.0") (standalone "no"))
+(test-parser '(xml-decl (version "1.0") #f (standalone "no"))
 	     ($xml:xml-decl (string->lseq "<?xml version='1.0' standalone=\"no\"?>")))
-(test-parser '(xml-decl (version "1.0") (standalone "yes"))
+(test-parser '(xml-decl (version "1.0") #f (standalone "yes"))
 	     ($xml:xml-decl (string->lseq "<?xml version='1.0' standalone='yes'?>")))
-(test-parser '(xml-decl (version "1.0") (standalone "no"))
+(test-parser '(xml-decl (version "1.0") #f (standalone "no"))
 	     ($xml:xml-decl (string->lseq "<?xml version='1.0' standalone='no'?>")))
 
-(test-parser `(prolog (xml-decl (version "1.0")))
+(test-parser `(prolog (xml-decl (version "1.0") #f #f) (misc) #f (misc))
 	     ($xml:prolog (string->lseq "<?xml version='1.0'?>")))
-(test-parser `(prolog (xml-decl (version "1.0"))
-		      (comment " comment "))
+(test-parser `(prolog (xml-decl (version "1.0") #f #f)
+		      (misc (comment " comment ")) #f (misc))
 	     ($xml:prolog (string->lseq "<?xml version='1.0'?><!-- comment -->")))
 
 (test-parser '(!element "br" empty)
@@ -164,8 +164,8 @@
   <!ELEMENT greeting (#PCDATA)>
 ]>")))
 
-(test-parser '(prolog (xml-decl (version "1.0"))
-		      (!doctype "greeting" (system "hello.dtd")))
+(test-parser '(prolog (xml-decl (version "1.0") #f #f) (misc)
+		      (!doctype "greeting" (system "hello.dtd")) (misc))
 	     ($xml:prolog (string->lseq "<?xml version=\"1.0\"?><!DOCTYPE greeting SYSTEM \"hello.dtd\">")))
 
 (test-parser '(element "IMG" (attributes ("align" "left")
@@ -182,16 +182,18 @@
 		       (element "a" (attributes ("href" "link")) "foo"))
 	     ($xml:element (string->lseq "<p>text<a href=\"link\">foo</a></p>")))
 
-(test-parser '(document (prolog (xml-decl (version "1.0"))
-				(!doctype "greeting" (system "hello.dtd")))
+(test-parser '(document (prolog (xml-decl (version "1.0") #f #f) (misc)
+				(!doctype "greeting" (system "hello.dtd")) (misc))
 			(element "greeting" (attributes) "Hello, world!"))
 	     ($xml:document (string->lseq "<?xml version=\"1.0\"?>
 <!DOCTYPE greeting SYSTEM \"hello.dtd\">
 <greeting>Hello, world!</greeting> ")))
 
-(test-parser '(document (prolog (xml-decl (version "1.0") (encoding "UTF-8"))
+(test-parser '(document (prolog (xml-decl (version "1.0") (encoding "UTF-8") #f)
+				(misc)
 				(!doctype "greeting"
-					  (subset (!element "greeting" (pcdata)))))
+					  (subset (!element "greeting" (pcdata))))
+				(misc))
 			(element "greeting" (attributes) "Hello, world!"))
 	     ($xml:document (string->lseq "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>
 <!DOCTYPE greeting [

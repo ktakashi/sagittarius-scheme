@@ -81,6 +81,7 @@
 	    named-node-map:remove-named-item!
 	    named-node-map:remove-named-item-ns!
 
+	    (rename (make-document make-root-document)) ;; internal use only
 	    document? document-uri document-document-uri document-origin
 	    document-compat-mode document-character-set document-charset
 	    document-input-encoding document-content-type
@@ -365,9 +366,10 @@
 	  doctype	 ;; DocumentType?
 	  document-element ;;Element?
 	  )
-  (protocol (lambda (n)
-	      (lambda args
-		(assertion-violation 'make-document "not yet")))))
+  (protocol
+   (lambda (n)
+     (lambda args
+       (assertion-violation 'make-document "not yet")))))
 (define (document:get-element-by-tag-name document qualified-name))
 (define (document:get-element-by-tag-name-ns document namespace local-name))
 (define (document:get-element-by-class-name document class-name))
