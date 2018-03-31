@@ -81,11 +81,11 @@
 	    named-node-map:remove-named-item!
 	    named-node-map:remove-named-item-ns!
 
-	    (rename (make-document make-root-document)) ;; internal use only
 	    document? document-uri document-document-uri document-origin
 	    document-compat-mode document-character-set document-charset
 	    document-input-encoding document-content-type
-	    document-doctype document-document-element
+	    document-doctype document-document-element document-xml-standalone?
+	    document-xml-version
 	    document:get-element-by-tag-name document:get-element-by-tag-name-ns
 	    document:get-element-by-class-name
 	    document:create-element document:create-element-ns
@@ -96,10 +96,16 @@
 	    document:create-attribute document:create-attribute-ns
 	    document:create-event document:create-range
 	    document:create-node-iterator document:create-tree-walker
+	    (rename (make-document make-root-document)) ;; internal use only
+	    document-character-set-set! document-content-type-set!
+	    document-doctype-set! document-document-element-set!
+	    document-xml-standalone?-set! document-xml-version-set!
 	    )
     (import (rnrs)
 	    (sagittarius) ;; for define-constant
 	    (text xml dom events))
+
+(define-constant +undfined+ (undefined))
 
 ;;; NodeList
 (define-record-type node-list
@@ -146,15 +152,15 @@
 	  text-content		     ;; DOMString?
 	  )
   (protocol (lambda (n)
-	      (lambda (node-type :key (node-name #f)
-				      (base-uri #f)
-				      (connected? #f)
-				      (owner-document #f)
-				      (parent-node #f)
-				      (parent-element #f)
+	      (lambda (node-type :key (node-name +undfined+)
+				      (base-uri +undfined+)
+				      (connected? +undfined+)
+				      (owner-document +undfined+)
+				      (parent-node +undfined+)
+				      (parent-element +undfined+)
 				      (child-nodes (make-node-list 0 '()))
-				      (node-value #f)
-				      (text-content #f))
+				      (node-value +undfined+)
+				      (text-content +undfined+))
 		((n)
 		 node-type
 		 node-name
@@ -355,21 +361,33 @@
 ;;; Document
 (define-record-type document
   (parent node)
-  (fields url	       ;; USVString
-	  document-uri ;; USVString
-	  origin       ;; USVString
-	  compat-mode  ;; DOMString
-	  character-set ;; DOMString
-	  charset	;; DOMString historical
-	  input-encoding ;; DOMString historical
-	  content-type	 ;; DOMString
-	  doctype	 ;; DocumentType?
-	  document-element ;;Element?
+  (fields ;; url	  ;; USVString 
+	  ;; document-uri ;; USVString
+	  ;; we use above the same as baseURI of the node
+	  ;; origin       ;; USVString (not used)
+	  compat-mode  ;; DOMString (always BackCompat)
+	  (mutable character-set) ;; DOMString
+	  ;; merged into character-set
+	  ;; charset	;; DOMString historical
+	  ;; input-encoding ;; DOMString historical
+	  (mutable content-type)	 ;; DOMString (default text/xml)
+	  (mutable doctype)	 ;; DocumentType?
+	  (mutable document-element) ;;Element?
+	  (mutable xml-standalone?)
+	  (mutable xml-version)
 	  )
   (protocol
    (lambda (n)
-     (lambda args
-       (assertion-violation 'make-document "not yet")))))
+     (lambda (url)
+       ((n +document-type-node+ :node-name "#document" :base-uri url)
+	"BackCompat" "UTF-8" "text/xml" +undfined+ +undfined+
+	+undfined+ +undfined+)))))
+(define document-url node-base-uri)
+(define document-document-uri node-base-uri)
+(define (document-origin document) +undfined+)
+(define document-charset document-character-set)
+(define document-input-encoding document-character-set)
+
 (define (document:get-element-by-tag-name document qualified-name))
 (define (document:get-element-by-tag-name-ns document namespace local-name))
 (define (document:get-element-by-class-name document class-name))

@@ -91,9 +91,8 @@
 (define (input-port->dom-tree in :optional (option +default-factory-option+))
   (let ((parsed (parse-xml in)))
     (parameterize ((*factory-options* option)
-		   (*root-document* (make-root-document)))
-      ;; TODO
-      (error 'input-port->dom-tree "not yet")
+		   (*root-document* (make-root-document #f)))
+      (dispatch-factory parsed)
       (*root-document*))))
 
 (define (xml-file->dom-tree file . opt)
@@ -124,15 +123,15 @@
 (define-factory (document root-document)
   (let ((prolog (dispatch-factory (cadr document)))
 	(element (dispatch-factory (caddr document)))
-	(misc (apply dispatch-factory (cdddr document))))
+	(misc (map dispatch-factory (cdddr document))))
     ;; Add to root-document
     ))
 
 (define-factory (prolog root-document)
-  (let ((decl (cond ((cadr prolog) => dispatch-factory) (else #f)))
-	(misc1 (apply dispatch-factory (cdaddr prolog)))
+  (cond ((cadr prolog) => dispatch-factory))
+  (let ((misc1 (map dispatch-factory (cdaddr prolog)))
 	(doctype (cond ((cadddr prolog) => dispatch-factory) (else #f)))
-	(misc2 (apply dispatch-factory (cdr (cadddr prolog)))))
+	(misc2 (map dispatch-factory (cdar (cddddr prolog)))))
     ;; append child nodes
     ;; (for-each (lambda (misc) (append-child-node root-document misc)) misc1)
     ;; (when doctype (append-child-node root-document doctype))
@@ -144,10 +143,11 @@
 	(encode (caddr xml-decl))
 	(standalone (cadddr xml-decl)))
     ;; put info to root-document
-    ;; (set-version root-document (cadr version))
-    ;; (when encode (set-charset root-document (cadr encode)))
-    ;; (when standalone
-    ;;   (set-xml-standalone root-document (string=? "yes" (cadr standalone))))
+    (document-xml-version-set! root-document (cadr version))
+    (when encode (document-character-set-set! root-document (cadr encode)))
+    (when standalone
+      (document-xml-standalone?-set! root-document
+				     (string=? (cadr standalone) "yes")))
     ))
 
 )
