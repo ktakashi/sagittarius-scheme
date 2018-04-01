@@ -140,7 +140,7 @@
 	  node-name                  ;; DOMString
 	  base-uri                   ;; USVString
 	  connected?                 ;; boolean
-	  owner-document             ;; Document?
+	  (mutable owner-document)   ;; Document?
 	  (mutable parent-node)	     ;; Node?
 	  (mutable parent-element)   ;; Element?
 	  (mutable child-nodes)	     ;; NodeList
@@ -356,7 +356,10 @@
   (parent character-data)
   (protocol (lambda (n)
 	      (lambda (:key (data ""))
-		((n +processing-instruction-node+ data))))))
+		((n +comment-node+ :key node-name "#comment"
+		    ;; correct?
+		    :node-value data :text-content data)
+		 data)))))
 
 ;;; Document
 (define-record-type document
@@ -396,7 +399,11 @@
 				    :optional (option #f)))
 (define (document:create-document-fragment document))
 (define (document:create-text-node document data))
-(define (document:create-cdata-section document data))
+(define (document:create-cdata-section document data)
+  (let ((node (make-comment data)))
+    (node-owner-document-set! node document)
+    node))
+
 (define (document:create-comment document data))
 (define (document:create-processing-instruction document target data))
 

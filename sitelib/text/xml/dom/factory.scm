@@ -147,7 +147,8 @@
     (when encode (document-character-set-set! root-document (cadr encode)))
     (when standalone
       (document-xml-standalone?-set! root-document
-				     (string=? (cadr standalone) "yes")))
-    ))
+				     (string=? (cadr standalone) "yes")))))
 
+(define-factory (comment root-document)
+  (document:create-comment root-document (cadr comment)))
 )
