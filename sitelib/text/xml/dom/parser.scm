@@ -254,20 +254,19 @@
 
 ;; [17] PITarget ::= Name - (('X' | 'x') ('M' | 'm') ('L' | 'l'))
 (define $xml:pi-target
-  ($seq ($or ($eqv? #\x) ($eqv? #\X))
-	($or ($eqv? #\m) ($eqv? #\M))
-	($or ($eqv? #\l) ($eqv? #\L))))
+  ($do (n $xml:name)
+       ($return n (if (string-ci=? n "xml") +parse-expect+ +parse-success+))))
 ;; [16] PI   ::= '<?' PITarget (S (Char* - (Char* '?>' Char*)))? '?>'
 (define $xml:pi
   ($do (($token "<?"))
-       $xml:pi-target
+       (n $xml:pi-target)
        (v ($optional ($do $xml:s
 			  (c* ($many ($seq ($not ($token "?>"))
 					   ($in-set +xml:char-set+))))
-			  ($return (list (list->string c*))))
-		     '()))
+			  ($return (list->string c*)))
+		     #f))
        (($token "?>"))
-       ($return `(PI . ,v))))
+       ($return `(PI ,n ,v))))
 
 ;; [19] CDStart ::= '<![CDATA['
 (define $xml:cd-start ($token "<![CDATA["))

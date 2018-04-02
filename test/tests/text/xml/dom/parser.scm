@@ -61,9 +61,10 @@
 	     ($xml:comment
 	      (string->lseq "<!-- declarations for <head> & <body> -->")))
 
-(test-parser '(PI) ($xml:pi (string->lseq "<?xml?>")))
-(test-parser '(PI "verion='1.0'")
-	     ($xml:pi (string->lseq "<?xml verion='1.0'?>")))
+(test-parser '(PI "xml-stylesheet" #f)
+	     ($xml:pi (string->lseq "<?xml-stylesheet?>")))
+(test-parser '(PI "xml-stylesheet" "verion='1.0'")
+	     ($xml:pi (string->lseq "<?xml-stylesheet verion='1.0'?>")))
 
 (test-parser '(cdata "<greeting>Hello, world!</greeting>")
 	     ($xml:cd-sect (string->lseq "<![CDATA[<greeting>Hello, world!</greeting>]]>")))
