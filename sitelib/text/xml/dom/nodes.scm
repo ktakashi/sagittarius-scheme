@@ -148,8 +148,9 @@
 	  (mutable last-child)	     ;; Node?
 	  (mutable previous-sibling) ;; Node?
 	  (mutable next-sibling)     ;; Node?
-	  node-value		     ;; DOMString?
-	  text-content		     ;; DOMString?
+	  ;; TODO can we merge them?
+	  (mutable node-value)	 ;; DOMString?
+	  (mutable text-content) ;; DOMString?
 	  )
   (protocol (lambda (n)
 	      (lambda (node-type :key (node-name +undfined+)
@@ -315,12 +316,12 @@
 ;;; CharacterData
 (define-record-type character-data
   (parent node)
-  (fields (mutable data)   ;; DOMString
-	  (mutable length) ;; readonly but we need to update
-	  )
   (protocol (lambda (n)
-	      (lambda (type data)
-		((n type) data (string-length data))))))
+	      (lambda (type data . args)
+		((apply n type :text-content data :node-value data args))))))
+(define (character-data-data cd) (node-text-content cd))
+(define (character-data-data-set! cd data) (node-text-content-set! cd data))
+(define (character-data-length cd) (string-length (character-data-data cd)))
 (define (character-data:substring-data cd offset count))
 (define (character-data:append-data! cd data))
 (define (character-data:insert-data! cd offset data))
@@ -347,19 +348,16 @@
 
 (define-record-type processing-instruction
   (parent character-data)
-  (fields target)
   (protocol (lambda (n)
-	      (lambda (target)
-		((n +processing-instruction-node+ "") target)))))
+	      (lambda (name data)
+		((n +processing-instruction-node+ data :node-name name))))))
+(define (processing-instruction-target pi) (node-node-name pi))
 
 (define-record-type comment
   (parent character-data)
   (protocol (lambda (n)
 	      (lambda (:key (data ""))
-		((n +comment-node+ :key node-name "#comment"
-		    ;; correct?
-		    :node-value data :text-content data)
-		 data)))))
+		((n +comment-node+ data :node-name "#comment"))))))
 
 ;;; Document
 (define-record-type document
@@ -405,7 +403,10 @@
     node))
 
 (define (document:create-comment document data))
-(define (document:create-processing-instruction document target data))
+(define (document:create-processing-instruction document target data)
+  (let ((node (make-processing-instruction target data)))
+    (node-owner-document-set! node document)
+    node))
 
 (define (document:import-node document node :optional (deep #f)))
 (define (document:adopt-node document node))

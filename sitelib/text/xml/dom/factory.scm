@@ -150,5 +150,13 @@
 				     (string=? (cadr standalone) "yes")))))
 
 (define-factory (comment root-document)
-  (document:create-comment root-document (cadr comment)))
+  (document:create-comment root-document (cadr comment))
+  ;; TODO append to current node
+  )
+
+(define-factory (PI root-document)
+  (document:create-processing-instruction root-document (cadr PI) (caddr PI))
+  ;; TODO append to current node
+  )
+
 )
