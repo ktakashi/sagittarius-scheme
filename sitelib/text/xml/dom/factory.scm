@@ -87,14 +87,12 @@
 ;; internal parameter
 (define *factory-options* (make-parameter #f))
 (define *root-document* (make-parameter #f))
-(define *current-node* (make-parameter #f))
 
 (define (input-port->dom-tree in :optional (option +default-factory-option+))
   (let ((parsed (parse-xml in))
 	(document (make-root-document #f)))
     (parameterize ((*factory-options* option)
-		   (*root-document* document)
-		   (*current-node* document))
+		   (*root-document* document))
       (dispatch-factory parsed)
       document)))
 

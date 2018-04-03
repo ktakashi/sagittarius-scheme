@@ -30,6 +30,7 @@
 
 ;; reference
 ;; - https://www.w3.org/TR/2008/REC-xml-20081126/
+;; - https://www.w3.org/TR/xml-names/ (namespace TBD)
 
 ;; This library returns DOM AST which is *not* DOM yet but intermediate
 ;; data structure. At some point, we will be able to convert SXML to DOM AST
