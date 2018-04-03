@@ -135,10 +135,11 @@
   (let ((misc1 (map dispatch-factory (cdaddr prolog)))
 	(doctype (cond ((cadddr prolog) => dispatch-factory) (else #f)))
 	(misc2 (map dispatch-factory (cdar (cddddr prolog)))))
-    ;; append child nodes
-    ;; (for-each (lambda (misc) (append-child-node root-document misc)) misc1)
-    ;; (when doctype (append-child-node root-document doctype))
-    ;; (for-each (lambda (misc) (append-child-node root-document misc)) misc2)
+    (for-each (lambda (node) (node:append-child! (*current-node*) node)) misc1)
+    (when doctype
+      (document-doctype-set! root-document doctype)
+      (node:append-child! root-document doctype))
+    (for-each (lambda (node) (node:append-child! (*current-node*) node)) misc2)
     ))
 
 (define-factory (xml-decl root-document)
@@ -153,12 +154,22 @@
 				     (string=? (cadr standalone) "yes")))))
 
 (define-factory (comment root-document)
-  (node:append-child! (*current-node*)
-		      (document:create-comment root-document (cadr comment))))
+  (document:create-comment root-document (cadr comment)))
 
 (define-factory (PI root-document)
-  (node:append-child! (*current-node*)
-		      (document:create-processing-instruction
-		       root-document (cadr PI) (caddr PI))))
+  (document:create-processing-instruction root-document (cadr PI) (caddr PI)))
+
+(define-factory (!doctype root-document)
+  (define (parse-id id)
+    (cond ((not id) (values "" ""))
+	  ((eq? (car id) 'system) (values "" (cadr id)))
+	  ((eq? (car id) 'public) (values (cadr id) (caddr id)))
+	  (else (assertion-violation '!doctype "Invalid external ID" id))))
+  (let ((name (cadr !doctype))
+	(id (caddr !doctype))
+	(subsets (cadddr !doctype)))
+    (let-values (((public-id system-id) (parse-id id)))
+      ;; TODO add all subsets as its child element
+      (make-document-type name public-id system-id))))
 
 )

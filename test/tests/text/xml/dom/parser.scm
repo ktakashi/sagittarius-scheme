@@ -157,16 +157,16 @@
 (test-parser '(!notation "name" (public "public_ID" "URI"))
 	     ($xml:notation-decl (string->lseq "<!NOTATION name PUBLIC \"public_ID\" \"URI\">")))
 
-(test-parser '(!doctype "greeting" (system "hello.dtd"))
+(test-parser '(!doctype "greeting" (system "hello.dtd") (subset))
 	     ($xml:doctype-decl (string->lseq "<!DOCTYPE greeting SYSTEM \"hello.dtd\">")))
 
-(test-parser '(!doctype "greeting" (subset (!element "greeting" (pcdata))))
+(test-parser '(!doctype "greeting" #f (subset (!element "greeting" (pcdata))))
 	     ($xml:doctype-decl (string->lseq "<!DOCTYPE greeting [
   <!ELEMENT greeting (#PCDATA)>
 ]>")))
 
 (test-parser '(prolog (xml-decl (version "1.0") #f #f) (misc)
-		      (!doctype "greeting" (system "hello.dtd")) (misc))
+		      (!doctype "greeting" (system "hello.dtd") (subset)) (misc))
 	     ($xml:prolog (string->lseq "<?xml version=\"1.0\"?><!DOCTYPE greeting SYSTEM \"hello.dtd\">")))
 
 (test-parser '(element "IMG" (attributes ("align" "left")
@@ -184,7 +184,8 @@
 	     ($xml:element (string->lseq "<p>text<a href=\"link\">foo</a></p>")))
 
 (test-parser '(document (prolog (xml-decl (version "1.0") #f #f) (misc)
-				(!doctype "greeting" (system "hello.dtd")) (misc))
+				(!doctype "greeting" (system "hello.dtd") (subset))
+				(misc))
 			(element "greeting" (attributes) "Hello, world!"))
 	     ($xml:document (string->lseq "<?xml version=\"1.0\"?>
 <!DOCTYPE greeting SYSTEM \"hello.dtd\">
@@ -192,7 +193,7 @@
 
 (test-parser '(document (prolog (xml-decl (version "1.0") (encoding "UTF-8") #f)
 				(misc)
-				(!doctype "greeting"
+				(!doctype "greeting" #f
 					  (subset (!element "greeting" (pcdata))))
 				(misc))
 			(element "greeting" (attributes) "Hello, world!"))

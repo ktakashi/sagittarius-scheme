@@ -52,6 +52,9 @@
 	    node:contains? node:lookup-prefix node:lookup-namespace-uri
 	    node:default-namespace node:insert-before! node:append-child!
 	    node:replace-child! node:remove-child!
+
+	    document-type-name document-type-public-id
+	    document-type-system-id
 	    
 	    element? element-namespace-uri element-prefix
 	    element-local-name element-tag-name element-id
@@ -96,10 +99,13 @@
 	    document:create-attribute document:create-attribute-ns
 	    document:create-event document:create-range
 	    document:create-node-iterator document:create-tree-walker
-	    (rename (make-document make-root-document)) ;; internal use only
 	    document-character-set-set! document-content-type-set!
 	    document-doctype-set! document-document-element-set!
 	    document-xml-standalone?-set! document-xml-version-set!
+
+	    ;; internal use only
+	    (rename (make-document make-root-document))
+	    make-document-type
 	    )
     (import (rnrs)
 	    (sagittarius) ;; for define-constant
@@ -201,6 +207,7 @@
 (define (node:default-namespace node namespace))
 (define (node:insert-before! node node0 child) node)
 (define (node:append-child! node child)
+  (node-parent-node-set! node child)
   (list-queue-add-back! (node-children node) child))
 (define (node:replace-child! node node0 child))
 (define (node:remove-child! node child))
@@ -318,14 +325,13 @@
 ;;; DocumentType
 (define-record-type document-type
   (parent node)
-  (fields name	    ;; DOMString 
-	  public-id ;; DOMString 
+  (fields public-id ;; DOMString 
 	  system-id ;; DOMString
 	  )
   (protocol (lambda (n)
 	      (lambda (name public-id system-id)
-		((n +document-type-node+) name public-id system-id)))))
-
+		((n +document-type-node+ :node-name name) public-id system-id)))))
+(define (document-type-name dt) (node-node-name dt))
 ;;; CharacterData
 (define-record-type character-data
   (parent node)

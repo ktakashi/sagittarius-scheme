@@ -557,10 +557,9 @@
        (subst ($optional ($do (($eqv? #\[)) (s $xml:int-subset) (($eqv? #\]))
 			      (($optional $xml:s))
 			      ($return s))
-			 #f))
+			 '()))
        (($eqv? #\>))
-       ($return `(!doctype ,n ,@(if id `(,id) '())
-			  ,@(if subst `((subset ,@subst)) '())))))
+       ($return `(!doctype ,n ,id (subset ,@subst)))))
 
 ;; [22] prolog ::= XMLDecl? Misc* (doctypedecl Misc*)?
 (define $xml:prolog
