@@ -170,6 +170,6 @@
 	(subsets (cadddr !doctype)))
     (let-values (((public-id system-id) (parse-id id)))
       ;; TODO add all subsets as its child element
-      (make-document-type name public-id system-id))))
+      (document:create-document-type root-document name public-id system-id))))
 
 )

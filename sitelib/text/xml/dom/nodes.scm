@@ -95,6 +95,7 @@
 	    document:create-document-fragment document:create-text-node
 	    document:create-cdata-section document:create-comment
 	    document:create-processing-instruction
+	    document:create-document-type ;; non-dom
 	    document:import-node document:adopt-node
 	    document:create-attribute document:create-attribute-ns
 	    document:create-event document:create-range
@@ -424,6 +425,11 @@
     node))
 (define (document:create-processing-instruction document target data)
   (let ((node (make-processing-instruction target data)))
+    (node-owner-document-set! node document)
+    node))
+;; non-dom factory
+(define (document:create-document-type document name public-id system-id)
+  (let ((node (make-document-type name public-id system-id)))
     (node-owner-document-set! node document)
     node))
 
