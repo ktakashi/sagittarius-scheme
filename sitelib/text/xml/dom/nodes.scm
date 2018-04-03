@@ -103,15 +103,19 @@
 	    )
     (import (rnrs)
 	    (sagittarius) ;; for define-constant
+	    (srfi :117 list-queues)
 	    (text xml dom events))
 
 (define-constant +undfined+ (undefined))
 
 ;;; NodeList
 (define-record-type node-list
-  (fields length
-	  items))
-(define (node-list:item nl index) )
+  (fields length items)
+  (protocol
+   (lambda (p)
+     (lambda (queue)
+       (p (list-queue-length queue) (list->vector (list-queue-first queue)))))))
+(define (node-list:item nl index) (vector-ref (node-list-items nl) index))
 
 ;;; Node
 (define-constant +element-node+                1)
@@ -143,9 +147,8 @@
 	  (mutable owner-document)   ;; Document?
 	  (mutable parent-node)	     ;; Node?
 	  (mutable parent-element)   ;; Element?
-	  (mutable child-nodes)	     ;; NodeList
-	  (mutable first-child)	     ;; Node?
-	  (mutable last-child)	     ;; Node?
+	  ;; (mutable child-nodes)	     ;; NodeList
+	  children
 	  (mutable previous-sibling) ;; Node?
 	  (mutable next-sibling)     ;; Node?
 	  ;; TODO can we merge them?
@@ -159,7 +162,7 @@
 				      (owner-document +undfined+)
 				      (parent-node +undfined+)
 				      (parent-element +undfined+)
-				      (child-nodes (make-node-list 0 '()))
+				      (child-nodes (list-queue))
 				      (node-value +undfined+)
 				      (text-content +undfined+))
 		((n)
@@ -171,12 +174,21 @@
 		 parent-node
 		 parent-element
 		 child-nodes
-		 #f ;; TODO calculate from child-nodes
-		 #f ;; ditto
 		 #f ;; previous sibling will be set
 		 #f ;; next sibling will be set later
 		 node-value
 		 text-content)))))
+(define (node-child-nodes node)
+  (make-node-list (node-children node)))
+(define (node-first-child node)
+  (let ((children (node-children node)))
+    (and (not (list-queue-empty? children))
+	 (list-queue-front children))))
+(define (node-last-child node)
+  (let ((children (node-children node)))
+    (and (not (list-queue-empty? children))
+	 (list-queue-front children))))
+
 (define (node:get-root-node node :optional (options #f)) )
 (define (node:normalize! node))
 (define (node:clone-node node :optional (deep #f)))
@@ -188,7 +200,8 @@
 (define (node:lookup-namespace-uri node prefix))
 (define (node:default-namespace node namespace))
 (define (node:insert-before! node node0 child) node)
-(define (node:append-child! node child))
+(define (node:append-child! node child)
+  (list-queue-add-back! (node-children node) child))
 (define (node:replace-child! node node0 child))
 (define (node:remove-child! node child))
 
@@ -356,7 +369,7 @@
 (define-record-type comment
   (parent character-data)
   (protocol (lambda (n)
-	      (lambda (:key (data ""))
+	      (lambda (data)
 		((n +comment-node+ data :node-name "#comment"))))))
 
 ;;; Document
@@ -397,12 +410,12 @@
 				    :optional (option #f)))
 (define (document:create-document-fragment document))
 (define (document:create-text-node document data))
-(define (document:create-cdata-section document data)
+(define (document:create-cdata-section document data))
+
+(define (document:create-comment document data)
   (let ((node (make-comment data)))
     (node-owner-document-set! node document)
     node))
-
-(define (document:create-comment document data))
 (define (document:create-processing-instruction document target data)
   (let ((node (make-processing-instruction target data)))
     (node-owner-document-set! node document)

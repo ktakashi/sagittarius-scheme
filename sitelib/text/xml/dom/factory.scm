@@ -87,13 +87,16 @@
 ;; internal parameter
 (define *factory-options* (make-parameter #f))
 (define *root-document* (make-parameter #f))
+(define *current-node* (make-parameter #f))
 
 (define (input-port->dom-tree in :optional (option +default-factory-option+))
-  (let ((parsed (parse-xml in)))
+  (let ((parsed (parse-xml in))
+	(document (make-root-document #f)))
     (parameterize ((*factory-options* option)
-		   (*root-document* (make-root-document #f)))
+		   (*root-document* document)
+		   (*current-node* document))
       (dispatch-factory parsed)
-      (*root-document*))))
+      document)))
 
 (define (xml-file->dom-tree file . opt)
   (call-with-input-file file
@@ -150,13 +153,12 @@
 				     (string=? (cadr standalone) "yes")))))
 
 (define-factory (comment root-document)
-  (document:create-comment root-document (cadr comment))
-  ;; TODO append to current node
-  )
+  (node:append-child! (*current-node*)
+		      (document:create-comment root-document (cadr comment))))
 
 (define-factory (PI root-document)
-  (document:create-processing-instruction root-document (cadr PI) (caddr PI))
-  ;; TODO append to current node
-  )
+  (node:append-child! (*current-node*)
+		      (document:create-processing-instruction
+		       root-document (cadr PI) (caddr PI))))
 
 )
