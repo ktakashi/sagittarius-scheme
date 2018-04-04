@@ -42,7 +42,7 @@
 (library (text xml dom parser)
     (export +xml:char-set+ +xml:name-start-char-set+ +xml:name-char-set+
 	    $xml:s
-	    $xml:name $xml:names
+	    $xml:name $xml:names $xml:qname
 	    $xml:nmtoken $xml:nmtokens
 	    $xml:entity-value $xml:att-value
 	    $xml:system-literal $xml:pubid-literal
@@ -129,6 +129,46 @@
   ($do (t $xml:nmtoken)
        (t* ($many ($do (($eqv? #\x20)) (n $xml:nmtoken) ($return n))))
        ($return (cons t t*))))
+
+;; QName stuff
+;; [4] NCName ::= Name - (Char* ':' Char*) /* An XML Name, minus the ":" */
+(define $xml:ncname
+  ;; we define newly for better performance...
+  (let ((scs (char-set-difference +xml:name-start-char-set+ (char-set #\:)))
+	(cs (char-set-difference +xml:name-char-set+ (char-set #\:))))
+    ($do (s ($in-set scs))
+	 (c* ($many ($in-set cs)))
+	 ($return (list->string (cons s c*))))))
+;; [3] DefaultAttName ::= 'xmlns'
+(define $xml:default-att-name ($token "xmlns"))
+;; [2] PrefixedAttName ::= 'xmlns:' NCName
+(define $xml:prefixed-att-name
+  ($do (($token "xmlns:"))
+       (n $xml:ncname)
+       ($return n)))
+;; [1] NSAttName ::= PrefixedAttName
+;;                 | DefaultAttName
+(define $xml:nsatt-name
+  ($or ($do (n $xml:prefixed-att-name) ($return `(xmlns ,n)))
+       ($do $xml:default-att-name ($return '(xmlns #f)))))
+
+;; [10] Prefix ::= NCName
+;; [11] LocalPart ::= NCName
+(define $xml:prefix $xml:ncname)
+(define $xml:local-part $xml:ncname)
+;; [8] PrefixedName ::= Prefix ':' LocalPart
+(define $xml:prefixed-name
+  ($do (p $xml:prefix)
+       (($eqv? #\:))
+       (l $xml:local-part)
+       ($return (list p l))))
+;; [9] UnprefixedName ::= LocalPart
+(define $xml:unprefixed-name $xml:local-part)
+;; [7] QName ::= PrefixedName
+;;             | UnprefixedName
+(define $xml:qname
+  ($or ($do (p $xml:prefixed-name) ($return `(qname . ,p)))
+       ($do (l $xml:unprefixed-name) ($return `(qname #f ,l)))))
 
 ;; [66] CharRef ::= '&#' [0-9]+ ';'
 ;;                | '&#x' [0-9a-fA-F]+ ';'
@@ -341,14 +381,14 @@
        ($optional $xml:s #f)
        (($token "?>"))
        ($return `(xml-decl ,vi ,ed ,sd))))
-;; [51] Mixed ::= '(' S? '#PCDATA' (S? '|' S? Name)* S? ')*'
+;; [51] Mixed ::= '(' S? '#PCDATA' (S? '|' S? QName)* S? ')*'
 ;;              | '(' S? '#PCDATA' S? ')'
 (define $xml:mixed
   ($or ($do (($eqv? #\()) (($optional $xml:s))
 	    (($token "#PCDATA"))
 	    (n* ($many ($do (($optional $xml:s)) (($eqv? #\|))
 			    (($optional $xml:s))
-			    (n ($or $xml:name $xml:pe-reference))
+			    (n ($or $xml:qname $xml:pe-reference))
 			    ($return n))))
 	    (($optional $xml:s))
 	    (($token ")*"))
@@ -360,9 +400,9 @@
 ;; [47] children ::= (choice | seq) ('?' | '*' | '+')?
 (define $xml:children
   (let ()
-    ;; [48] cp	 ::= (Name | choice | seq) ('?' | '*' | '+')?
+    ;; [48] cp	 ::= (QName | choice | seq) ('?' | '*' | '+')?
     (define ($xml:cp)
-      ($do (n ($or $xml:name $xml:pe-reference $xml:choice $xml:seq))
+      ($do (n ($or $xml:qname $xml:pe-reference $xml:choice $xml:seq))
 	   (c ($optional ($or ($eqv? #\?) ($eqv? #\*) ($eqv? #\+)) #f))
 	   ($return (if c
 			`(,(string->symbol (string c)) ,n)
@@ -401,10 +441,10 @@
        $xml:mixed
        $xml:children))
        
-;; [45] elementdecl ::= '<!ELEMENT' S Name S contentspec S? '>'
+;; [45] elementdecl ::= '<!ELEMENT' S QName S contentspec S? '>'
 (define $xml:element-decl
   ($do (($token "<!ELEMENT")) $xml:s
-       (n ($or $xml:name $xml:pe-reference)) $xml:s
+       (n ($or $xml:qname $xml:pe-reference)) $xml:s
        (c $xml:content-spec) (($optional $xml:s))
        (($eqv? #\>))
        ($return `(!element ,n ,c))))
@@ -520,14 +560,14 @@
 ;; [53] AttDef ::= S Name S AttType S DefaultDecl
 (define $xml:att-def
   ($do $xml:s
-       (n $xml:name) $xml:s
+       (n $xml:qname) $xml:s
        (t $xml:att-type) $xml:s
        (d $xml:default-decl)
        ($return `(att-def ,n ,t, d))))
-;; [52] AttlistDecl ::= '<!ATTLIST' S Name AttDef* S? '>'
+;; [52] AttlistDecl ::= '<!ATTLIST' S QName AttDef* S? '>'
 (define $xml:attlist-decl
   ($do (($token "<!ATTLIST")) $xml:s
-       (n $xml:name)
+       (n $xml:qname)
        (d* ($many $xml:att-def)) (($optional $xml:s))
        (($eqv? #\>))
        ($return `(!attlist ,n ,@d*))))
@@ -548,11 +588,11 @@
   ($do (s* ($many ($or $xml:markup-decl $xml:decl-sep)))
        ($return (filter values s*))))
 
-;; [28] doctypedecl ::= '<!DOCTYPE' S Name (S ExternalID)? S? ('[' intSubset ']' S?)? '>'
+;; [28] doctypedecl ::= '<!DOCTYPE' S QName (S ExternalID)? S? ('[' intSubset ']' S?)? '>'
 (define $xml:doctype-decl
   ($do (($token "<!DOCTYPE"))
        $xml:s
-       (n $xml:name)
+       (n $xml:qname)
        (id ($optional ($seq $xml:s $xml:external-id) #f))
        (($optional $xml:s))
        (subst ($optional ($do (($eqv? #\[)) (s $xml:int-subset) (($eqv? #\]))
@@ -574,15 +614,18 @@
 			 (misc ,@(filter pair? misc))
 			 ,(and doctype (car doctype))
 			 (misc ,@(if doctype (cdr doctype) '()))))))
-;; [41] Attribute ::= Name Eq AttValue
+;; [41] Attribute ::= NSAttName Eq AttValue
+;;                  | QName Eq AttValue
 (define $xml:attribute
-  ($do (n $xml:name) $xml:eq (v $xml:att-value)
-       ($return `(,n ,(cadr v)))))
+  ($or ($do (n $xml:nsatt-name) $xml:eq (v $xml:att-value)
+	    ($return `(,n ,(cadr v))))
+       ($do (n $xml:qname) $xml:eq (v $xml:att-value)
+	    ($return `(,n ,(cadr v))))))
 
-;; [44] EmptyElemTag ::= '<' Name (S Attribute)* S? '/>'
+;; [44] EmptyElemTag ::= '<' QName (S Attribute)* S? '/>'
 (define $xml:empty-elem-tag
   ($do (($eqv? #\<))
-       (n $xml:name)
+       (n $xml:qname)
        (a ($many ($seq $xml:s $xml:attribute)))
        (($optional $xml:s))
        (($token "/>"))
@@ -591,17 +634,26 @@
 ;;                | STag content ETag
 (define $xml:element
   (let ()
-    ;; [40] STag ::= '<' Name (S Attribute)* S? '>'
+    ;; [40] STag ::= '<' QName (S Attribute)* S? '>'
     (define $xml:stag
       ($do (($eqv? #\<))
-	   (n $xml:name)
+	   (n $xml:qname)
 	   (a ($many ($seq $xml:s $xml:attribute)))
 	   (($optional $xml:s))
 	   (($eqv? #\>))
 	   ($return (cons n a))))
-    ;; [42] ETag ::= '</' Name S? '>'
+    ;; [42] ETag ::= '</' QName S? '>'
     (define ($xml:etag name)
-      ($seq ($token "</") ($token name) ($optional $xml:s) ($eqv? #\>)))
+      (let ((prefix (cadr name))
+	    (local-part (caddr name)))
+	(if prefix
+	    ($seq ($token "</")
+		  ($token prefix) ($eqv? #\:)
+		  ($token local-part)
+		  ($optional $xml:s) ($eqv? #\>))
+	    ($seq ($token "</")
+		  ($token local-part)
+		  ($optional $xml:s) ($eqv? #\>)))))
     ;; [43] content ::= CharData? ((element | Reference | CDSect | PI | Comment) CharData?)*
     (define ($xml:content)
       ($do (c ($optional $xml:char-data))
