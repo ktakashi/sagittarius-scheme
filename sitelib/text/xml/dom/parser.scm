@@ -168,7 +168,7 @@
 ;;             | UnprefixedName
 (define $xml:qname
   ($or ($do (p $xml:prefixed-name) ($return `(qname . ,p)))
-       ($do (l $xml:unprefixed-name) ($return `(qname #f ,l)))))
+       ($do (l $xml:unprefixed-name) ($return l))))
 
 ;; [66] CharRef ::= '&#' [0-9]+ ';'
 ;;                | '&#x' [0-9a-fA-F]+ ';'
@@ -644,16 +644,16 @@
 	   ($return (cons n a))))
     ;; [42] ETag ::= '</' QName S? '>'
     (define ($xml:etag name)
-      (let ((prefix (cadr name))
-	    (local-part (caddr name)))
-	(if prefix
+	(if (string? name)
 	    ($seq ($token "</")
-		  ($token prefix) ($eqv? #\:)
-		  ($token local-part)
+		  ($token name)
 		  ($optional $xml:s) ($eqv? #\>))
-	    ($seq ($token "</")
-		  ($token local-part)
-		  ($optional $xml:s) ($eqv? #\>)))))
+	    (let ((prefix (cadr name))
+		  (local-part (caddr name)))
+	      ($seq ($token "</")
+		    ($token prefix) ($eqv? #\:)
+		    ($token local-part)
+		    ($optional $xml:s) ($eqv? #\>)))))
     ;; [43] content ::= CharData? ((element | Reference | CDSect | PI | Comment) CharData?)*
     (define ($xml:content)
       ($do (c ($optional $xml:char-data))

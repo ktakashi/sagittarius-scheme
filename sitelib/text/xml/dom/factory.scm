@@ -133,12 +133,11 @@
   (let ((misc1 (map dispatch-factory (cdaddr prolog)))
 	(doctype (cond ((cadddr prolog) => dispatch-factory) (else #f)))
 	(misc2 (map dispatch-factory (cdar (cddddr prolog)))))
-    (for-each (lambda (node) (node:append-child! (*current-node*) node)) misc1)
+    (for-each (lambda (node) (node:append-child! root-document node)) misc1)
     (when doctype
       (document-doctype-set! root-document doctype)
       (node:append-child! root-document doctype))
-    (for-each (lambda (node) (node:append-child! (*current-node*) node)) misc2)
-    ))
+    (for-each (lambda (node) (node:append-child! root-document node)) misc2)))
 
 (define-factory (xml-decl root-document)
   (let ((version (cadr xml-decl))
