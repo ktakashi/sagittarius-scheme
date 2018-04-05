@@ -59,7 +59,11 @@
 	    $xml:entity-value)
     (import (rnrs)
 	    (peg)
-	    (srfi :14 char-sets))
+	    (srfi :14 char-sets)
+	    (srfi :39 parameters))
+;; alist of prefix and namespace
+;; e.g. (("xsd" . "http://www.w3.org/2001/XMLSchema") ...)
+(define *current-namespaces* (make-parameter '()))
 
 ;; [2] Char ::=	#x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD]
 ;;            | [#x10000-#x10FFFF]
@@ -167,8 +171,20 @@
 ;; [7] QName ::= PrefixedName
 ;;             | UnprefixedName
 (define $xml:qname
-  ($or ($do (p $xml:prefixed-name) ($return `(qname . ,p)))
+  ($or ($do (p $xml:prefixed-name) ($return (apply make-qname p)))
        ($do (l $xml:unprefixed-name) ($return l))))
+
+(define (qname? name) (and (pair? name) (eq? (car name) 'qname)))
+(define (find-namespace prefix)
+  (cond ((assoc prefix (*current-namespaces*)) => cdr)
+	(else #f)))
+(define make-qname
+  (case-lambda
+   ((prefix local-part) `(qname ,(find-namespace prefix) ,prefix ,local-part))
+   ((namespace prefix local-part) `(qname ,namespace ,prefix ,local-part))))
+(define (qname-namespace qname) (cadr qname))
+(define (qname-prefix qname) (caddr qname))
+(define (qname-local-part qname) (cadddr qname))
 
 ;; [66] CharRef ::= '&#' [0-9]+ ';'
 ;;                | '&#x' [0-9a-fA-F]+ ';'
@@ -617,11 +633,23 @@
 ;; [41] Attribute ::= NSAttName Eq AttValue
 ;;                  | QName Eq AttValue
 (define $xml:attribute
-  ($or ($do (n $xml:nsatt-name) $xml:eq (v $xml:att-value)
-	    ($return `(,n ,(cadr v))))
-       ($do (n $xml:qname) $xml:eq (v $xml:att-value)
-	    ($return `(,n ,(cadr v))))))
+  (let ()
+    (define (add/replace-ns name uri)
+      (let ((prefix (cadr name))
+	    (current (*current-namespaces*)))
+	;; we don't remove, but first found one is the one to be used.
+	(*current-namespaces* (cons (cons prefix uri) current))
+	`(,name ,uri)))
+    ($or ($do (n $xml:nsatt-name) $xml:eq (v $xml:att-value)
+	      ($return (add/replace-ns n (cadr v))))
+	 ($do (n $xml:qname) $xml:eq (v $xml:att-value)
+	      ($return `(,n ,(cadr v)))))))
 
+(define (fixup-qname qname)
+  (if (and (qname? qname) (not (qname-namespace qname)))
+      (let ((namespace (find-namespace (qname-prefix qname))))
+	(make-qname namespace (qname-prefix qname) (qname-local-part qname)))
+      qname))
 ;; [44] EmptyElemTag ::= '<' QName (S Attribute)* S? '/>'
 (define $xml:empty-elem-tag
   ($do (($eqv? #\<))
@@ -629,7 +657,7 @@
        (a ($many ($seq $xml:s $xml:attribute)))
        (($optional $xml:s))
        (($token "/>"))
-       ($return `(element ,n (attributes ,@a)))))
+       ($return `(element ,(fixup-qname n) (attributes ,@a)))))
 ;; [39] element ::= EmptyElemTag
 ;;                | STag content ETag
 (define $xml:element
@@ -641,19 +669,19 @@
 	   (a ($many ($seq $xml:s $xml:attribute)))
 	   (($optional $xml:s))
 	   (($eqv? #\>))
-	   ($return (cons n a))))
+	   ($return (cons (fixup-qname n) a))))
     ;; [42] ETag ::= '</' QName S? '>'
     (define ($xml:etag name)
-	(if (string? name)
-	    ($seq ($token "</")
-		  ($token name)
-		  ($optional $xml:s) ($eqv? #\>))
-	    (let ((prefix (cadr name))
-		  (local-part (caddr name)))
+	(if (qname? name)
+	    (let ((prefix (qname-prefix name))
+		  (local-part (qname-local-part name)))
 	      ($seq ($token "</")
 		    ($token prefix) ($eqv? #\:)
 		    ($token local-part)
-		    ($optional $xml:s) ($eqv? #\>)))))
+		    ($optional $xml:s) ($eqv? #\>)))
+	    ($seq ($token "</")
+		  ($token name)
+		  ($optional $xml:s) ($eqv? #\>))))
     ;; [43] content ::= CharData? ((element | Reference | CDSect | PI | Comment) CharData?)*
     (define ($xml:content)
       ($do (c ($optional $xml:char-data))
@@ -665,12 +693,12 @@
 			  (c ($optional $xml:char-data))
 			  ($return (if c (list v c) (list v))))))
 	   ($return (let ((t (apply append e))) (if c (cons c t) t)))))
-	   
-    ($or $xml:empty-elem-tag
-	 ($do (s $xml:stag)
-	      (c ($xml:content))
-	      (e ($xml:etag (car s)))
-	      ($return `(element ,(car s) (attributes . ,(cdr s)) . ,c))))))
+    ($parameterize ((*current-namespaces* (*current-namespaces*)))
+      ($or $xml:empty-elem-tag
+	   ($do (s $xml:stag)
+		(c ($xml:content))
+		(e ($xml:etag (car s)))
+		($return `(element ,(car s) (attributes . ,(cdr s)) . ,c)))))))
 
 ;; [1] document ::= prolog element Misc*
 (define $xml:document

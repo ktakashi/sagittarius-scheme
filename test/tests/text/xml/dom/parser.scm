@@ -23,7 +23,7 @@
   (test-parser `(,s ,s) ($xml:nmtokens (string->lseq (string-append s " " s)))))
 
 (test-parser '"name" ($xml:qname (string->lseq "name")))
-(test-parser '(qname "pre" "name") ($xml:qname (string->lseq "pre:name")))
+(test-parser '(qname #f "pre" "name") ($xml:qname (string->lseq "pre:name")))
 
 (test-parser '(char-ref 10 1234) ($xml:char-ref (string->lseq "&#1234;")))
 (test-parser '(char-ref 16 #x1234) ($xml:char-ref (string->lseq "&#x1234;")))
@@ -200,7 +200,7 @@
 			 (attributes ("href" "link")) "foo"))
 	     ($xml:element (string->lseq "<p>text<a href=\"link\">foo</a></p>")))
 
-(test-parser '(element (qname "edi" "price")
+(test-parser '(element (qname "http://ecommerce.example.org/schema" "edi" "price")
 		(attributes ((xmlns "edi") "http://ecommerce.example.org/schema")
 			    ("units" "Euro"))
 		"32.18")
@@ -212,7 +212,7 @@
 		(comment " the 'taxClass' attribute's namespace is http://ecommerce.example.org/schema ")
 		"\n  "
 		(element "lineItem"
-		  (attributes ((qname "edi" "taxClass") "exempt"))
+		  (attributes ((qname "http://ecommerce.example.org/schema" "edi" "taxClass") "exempt"))
 		  "Baby food")
 		"\n")
 	     ($xml:element (string->lseq "<x xmlns:edi='http://ecommerce.example.org/schema'>
