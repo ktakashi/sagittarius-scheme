@@ -44,6 +44,7 @@
 	    (text xml dom parser)
 	    (text xml dom nodes)
 	    (sagittarius generators)
+	    (srfi :1 lists)
 	    (srfi :39 parameters)
 	    (srfi :127 lseqs))
 
@@ -121,13 +122,16 @@
 	       (hashtable-set! *factory-table* 'name proc)
 	       proc)))))))
 
+;; The factories depend on the correctness of the input tree.
+;; at this moment, we don't validate.
 (define-factory (document root-document)
-  (let ((prolog (dispatch-factory (cadr document)))
-	(element (dispatch-factory (caddr document)))
+  (dispatch-factory (cadr document)) ;; prolog
+  (let ((element (dispatch-factory (caddr document)))
 	(misc (map dispatch-factory (cdddr document))))
-    ;; Add to root-document
-    ))
+    (node:append-child! root-document element)
+    (for-each (lambda (node) (node:append-child! root-document node)) misc)))
 
+;; prolog will be handled destructively
 (define-factory (prolog root-document)
   (cond ((cadr prolog) => dispatch-factory))
   (let ((misc1 (map dispatch-factory (cdaddr prolog)))
@@ -168,5 +172,39 @@
     (let-values (((public-id system-id) (parse-id id)))
       ;; TODO add all subsets as its child element
       (document:create-document-type root-document name public-id system-id))))
+
+(define-factory (element root-document)
+  (define (make-element name)
+    (if (qname? name)
+	(document:create-element-qname root-document
+				       (qname-namespace name)
+				       (qname-prefix name)
+				       (qname-local-part name))
+	(document:create-element root-document name)))
+  (define (->attribute-node attribute)
+    (define (set-value attr)
+      (attr-value-set! attr (cadr attribute))
+      attr)
+    (let ((name (car attribute)))
+      (cond ((qname? name)
+	     (set-value
+	      (document:create-attribute-qname root-document
+					       (qname-namespace name)
+					       (qname-prefix name)
+					       (qname-local-part name))))
+	    ((string? name)
+	     (set-value (document:create-attribute root-document name)))
+	    (else #f))))
+  ;; TBD
+  (define (->node content) #f)
+  (let ((name (cadr element))
+	(attributes (caddr element))
+	(content (cdddr element)))
+    (define elm (make-element name))
+    (for-each (lambda (attr) (element:set-attribute-node-ns! elm attr))
+	      (filter-map ->attribute-node (cdr attributes)))
+    (for-each (lambda (node) (node:append-child! elm node))
+	      (filter-map ->node content))
+    elm))
 
 )

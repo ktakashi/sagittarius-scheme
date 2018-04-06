@@ -56,7 +56,11 @@
 	    $xml:char-data $xml:comment
 	    
 	    $xml:char-ref $xml:entity-ref $xml:reference $xml:pe-reference
-	    $xml:entity-value)
+	    $xml:entity-value
+
+	    ;; for factory
+	    qname? qname-prefix qname-namespace qname-local-part
+	    )
     (import (rnrs)
 	    (peg)
 	    (srfi :14 char-sets)
@@ -174,7 +178,6 @@
   ($or ($do (p $xml:prefixed-name) ($return (apply make-qname p)))
        ($do (l $xml:unprefixed-name) ($return l))))
 
-(define (qname? name) (and (pair? name) (eq? (car name) 'qname)))
 (define (find-namespace prefix)
   (cond ((assoc prefix (*current-namespaces*)) => cdr)
 	(else #f)))
@@ -182,6 +185,7 @@
   (case-lambda
    ((prefix local-part) `(qname ,(find-namespace prefix) ,prefix ,local-part))
    ((namespace prefix local-part) `(qname ,namespace ,prefix ,local-part))))
+(define (qname? name) (and (pair? name) (eq? (car name) 'qname)))
 (define (qname-namespace qname) (cadr qname))
 (define (qname-prefix qname) (caddr qname))
 (define (qname-local-part qname) (cadddr qname))

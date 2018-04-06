@@ -58,7 +58,8 @@
 	    
 	    element? element-namespace-uri element-prefix
 	    element-local-name element-tag-name element-id
-	    element-class-name element-class-list element-slot
+	    element-class-name element-class-list
+	    ;; element-slot
 	    element-attributes
 	    ;; element-shadow-root ;; not supported yet
 	    element:has-attributes? element:get-attribute-names
@@ -76,6 +77,7 @@
 
 	    attr? attr-namespace-uri attr-prefix attr-local-name
 	    attr-name attr-value attr-owner-element attr-specified?
+	    attr-value-set!
 
 	    named-node-map? named-node-map-length
 	    named-node-map:item named-node-map:get-named-item
@@ -107,9 +109,13 @@
 	    ;; internal use only
 	    (rename (make-document make-root-document))
 	    make-document-type
+	    document:create-element-qname
+	    document:create-attribute-qname
 	    )
     (import (rnrs)
 	    (sagittarius) ;; for define-constant
+	    (sagittarius treemap)
+	    (srfi :13 strings)
 	    (srfi :117 list-queues)
 	    (text xml dom events))
 
@@ -121,7 +127,7 @@
   (protocol
    (lambda (p)
      (lambda (queue)
-       (p (list-queue-length queue) (list->vector (list-queue-first queue)))))))
+       (p (list-queue-length queue) (list->vector (list-queue-list queue)))))))
 (define (node-list:item nl index) (vector-ref (node-list-items nl) index))
 
 ;;; Node
@@ -219,28 +225,50 @@
   (fields namespace-uri ;; DOMString?
 	  prefix	;; DOMString?
 	  local-name	;; DOMString
-	  tag-name	;; DOMString
-	  (mutable id)	;; DOMString
-	  (mutable class-name) ;; DOMString
 	  class-list	;; DOMTokenList
-	  slot		;; DOMString
-	  attributes	;; NamedNodeMap
+	  attributes ;; NamedNodeMap (hashtable)
 	  shadow-root	;; ShadowRoot? (not supported)
 	  )
-  (protocol (lambda (n)
-	      (lambda (namespace-uri prefix local-name tag-name
-		       :key (id #f) (class-name #f) (slot #f)
-			    (attributes (make-named-node-map)))
-		((n +element-node+ :node-name tag-name)
-		 namespace-uri prefix local-name tag-name id class-name
-		 #f ;; class-list later
-		 slot attributes
-		 #f ;; shadow-root later
-		 )))))
-(define (element:has-attributes? element) #f)
-(define (element:get-attribute-names element) '())
-(define (element:get-attribute element qualified-name) #f)
-(define (element:get-attribute-ns element namespace local-name) #f)
+  (protocol
+   (lambda (n)
+     (define (->tagname prefix localname)
+       (if (zero? (string-length prefix))
+	   localname
+	   (string-append prefix ":" localname)))
+     (define (attr-compare aa ab)
+       (or (and (eq? (attr-owner-element aa) (attr-owner-element ab))
+		(string=? (attr-namespace-uri aa) (attr-namespace-uri ab))
+		(string=? (attr-name aa) (attr-name ab))
+		0)
+	   ;; well order doesn't matter anyway
+	   -1))
+     (lambda (namespace-uri prefix local-name)
+       ((n +element-node+
+	   :node-name (->tagname prefix local-name))
+	namespace-uri prefix local-name
+	'()
+	(make-named-node-map attr-compare)
+	#f ;; shadow-root later
+	)))))
+(define (element-tag-name element) (node-node-name element))
+(define (element-id element)
+  (cond ((element:get-attribute element "id") => attr-value)
+	(else #f)))
+(define (element-class-name element)
+  (cond ((element:get-attribute element "class") => attr-value)
+	(else #f)))
+(define (element:has-attributes? element)
+  (not (zero? (named-node-map-length (element-attributes element)))))
+(define (element:get-attribute-names element)
+  )
+(define (element:get-attribute element qualified-name)
+  (cond ((named-node-map:get-named-item (element-attributes element)
+					qualified-name) => attr-value)
+	(else #f)))
+(define (element:get-attribute-ns element namespace local-name)
+  (cond ((named-node-map:get-named-item-ns (element-attributes element)
+					   namespace local-name) => attr-value)
+	(else #f)))
 (define (element:set-attribute! element qualified-name value) )
 (define (element:set-attribute-ns! element namespace qualified-name value) )
 (define (element:remove-attribute! element qualified-name) )
@@ -250,8 +278,13 @@
 
 (define (element:get-attribute-node element qualified-name) #f)
 (define (element:get-attribute-node-ns element namespace local-name) #f)
-(define (element:set-attribute-node! element attr) )
-(define (element:set-attribute-node-ns! element attr) )
+(define (element:set-attribute-node! element attr)
+  (named-node-map:set-named-item! (element-attributes element) attr)
+  (attr-owner-element-set! attr element))
+(define (element:set-attribute-node-ns! element attr)
+  (named-node-map:set-named-item-ns! (element-attributes element) attr)
+  (attr-owner-element-set! attr element))
+  
 (define (element:remove-attribute-node! element attr) )
 (define (element:attach-shadow! element init)
   (assertion-violation 'element:attach-shadow! "not supported"))
@@ -269,59 +302,61 @@
   (fields namespace-uri ;; DOMString?
 	  prefix	;; DOMString?
 	  local-name	;; DOMString
-	  name		;; DOMString
-	  value		;; DOMString
-	  owner-element ;; Element
+	  (mutable owner-element) ;; Element
 	  specified?	;; boolean (useless always returns true)
 	  )
   (protocol (lambda (n)
-	      (lambda args
-		(assertion-violation 'make-document "not yet")))))
+	      (define (->qualified-name prefix local-name)
+		(cond ((zero? (string-length prefix)) local-name)
+		      (else (string-append prefix ":" local-name))))
+	      (lambda (namespace-uri prefix local-name)
+		((n +attribute-node+
+		    :node-name (->qualified-name prefix local-name)
+		    :node-value ""
+		    :text-content "")
+		 namespace-uri prefix local-name #f #t)))))
+(define (attr-name attr) (node-node-name attr))
+(define (attr-value attr) (node-node-value attr))
+(define (attr-value-set! attr value)
+  (node-node-value-set! attr value)
+  (node-text-content-set! attr value))
 
 ;;; NamedNodeMap
+;; Internally, it's a treemap using as a set. 
 (define-record-type named-node-map
-  (fields length
-	  element    ;; internal
-	  attributes ;; internal
-	  )
+  (fields values)
   (protocol (lambda (p)
-	      (lambda (element attributes)
-		(let ((v (list->vector attributes)))
-		  (p (vector-length v) element v))))))
+	      (lambda (compare)
+		(p (make-rb-treemap compare))))))
+(define (named-node-map-length map) (treemap-size (named-node-map-values map)))
 (define (named-node-map:item map index)
-  (vector-ref (named-node-map-attributes map) index))
+  (treemap-find/index (lambda (i k) (= i index)) (named-node-map-values map)))
+
 (define (named-node-map:get-named-item map qualified-name)
-  (define len (named-node-map-length map))
-  (define attributes (named-node-map-attributes map))
-  (define (->qualified-name attr)
-    ;; TODO
-    (string-append (or (attr-namespace-uri attr) "")
-		   ":"
-		   (or (attr-local-name attr) "")))
-  (let loop ((i 0))
-    (if (= i len)
-	#f
-	(let ((attr (vector-ref attributes i)))
-	  (if (string=? qualified-name (->qualified-name attr))
-	      attr
-	      (loop (+ i 1)))))))
+  (treemap-find (lambda (attr)
+		  (string=? (attr-qualified-name attr) qualified-name))
+		(named-node-map-values map)))
 
 (define (named-node-map:get-named-item-ns map namespace local-name)
-  (define len (named-node-map-length map))
-  (define attributes (named-node-map-attributes map))
-  (let loop ((i 0))
-    (if (= i len)
-	#f
-	(let ((attr (vector-ref attributes i)))
-	  (if (and (string=? namespace (attr-namespace-uri attr))
-		   (string=? namespace (attr-local-name attr)))
-	      attr
-	      (loop (+ i 1)))))))
+  (treemap-find (lambda (attr)
+		  (and (equal? namespace (attr-namespace-uri attr))
+		       (equal? local-name (attr-local-name attr))))
+		(named-node-map-values map)))
 
-(define (named-node-map:set-named-item! map attr))
-(define (named-node-map:set-named-item-ns! map attr))
-(define (named-node-map:remove-named-item! map qualified-name))
-(define (named-node-map:remove-named-item-ns! map namespace local-name))
+(define (named-node-map:set-named-item! map attr)
+  (treemap-set! (named-node-map-values map) attr attr))
+  
+(define (named-node-map:set-named-item-ns! map attr)
+  ;; TODO maybe check namespace-uri?
+  (treemap-set! (named-node-map-values map) attr attr))
+(define (named-node-map:remove-named-item! map qualified-name)
+  (cond ((named-node-map:get-named-item map qualified-name) =>
+	 (lambda (attr)
+	   (treemap-delete! (named-node-map-values map) attr)))))
+(define (named-node-map:remove-named-item-ns! map namespace local-name)
+  (cond ((named-node-map:get-named-item-ns map namespace local-name) =>
+	 (lambda (attr)
+	   (treemap-delete! (named-node-map-values map) attr)))))
 
 ;;; DocumentType
 (define-record-type document-type
@@ -412,7 +447,10 @@
 (define (document:get-element-by-tag-name document qualified-name))
 (define (document:get-element-by-tag-name-ns document namespace local-name))
 (define (document:get-element-by-class-name document class-name))
-(define (document:create-element document local-name :optional (option #f)))
+(define (document:create-element document local-name :optional (option #f))
+  (let ((node (make-element "" "" local-name)))
+    (node-owner-document-set! node document)
+    node))
 (define (document:create-element-ns document namespace qualified-name
 				    :optional (option #f)))
 (define (document:create-document-fragment document))
@@ -432,12 +470,27 @@
   (let ((node (make-document-type name public-id system-id)))
     (node-owner-document-set! node document)
     node))
+(define (document:create-element-qname document namespace prefix local-part
+					    :optional (option #f))
+  (let ((node (make-element namespace prefix local-part)))
+    (node-owner-document-set! node document)
+    node))
 
 (define (document:import-node document node :optional (deep #f)))
 (define (document:adopt-node document node))
 
-(define (document:create-attribute document local-name))
-(define (document:create-attribute-ns document namespace qualified-name))
+(define (document:create-attribute document local-name)
+  (let ((node (make-attr "" "" local-name)))
+    (node-owner-document-set! node document)
+    node))
+(define (document:create-attribute-ns document namespace qualified-name)
+  
+  )
+
+(define (document:create-attribute-qname document namespace prefix local-part)
+  (let ((node (make-attr namespace prefix local-part)))
+    (node-owner-document-set! node document)
+    node))
 
 (define (document:create-event document interface))
 (define (document:create-range document))
