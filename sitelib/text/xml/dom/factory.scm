@@ -129,6 +129,7 @@
   (let ((element (dispatch-factory (caddr document)))
 	(misc (map dispatch-factory (cdddr document))))
     (node:append-child! root-document element)
+    (document-document-element-set! root-document element)
     (for-each (lambda (node) (node:append-child! root-document node)) misc)))
 
 ;; prolog will be handled destructively
