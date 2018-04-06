@@ -48,6 +48,8 @@
 	    
 	    treemap-for-each treemap-map treemap-fold
 	    treemap-for-each-reverse treemap-map-reverse treemap-fold-reverse
+	    treemap-find/index treemap-reverse-find/index
+	    treemap-find treemap-reverse-find
 	    treemap->alist alist->treemap
 	    )
     (import (rnrs)

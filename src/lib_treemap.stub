@@ -158,6 +158,29 @@
 (define (treemap-map-reverse proc tm)
   (reverse! (treemap-fold-reverse (lambda (k v r) (cons (proc k v) r)) tm '())))
 
+(define (%treemap-find/index who iter)
+  (lambda (pred tm :optional (fallback #f))
+    (unless (procedure? pred)
+      (assertion-violation who
+			   (wrong-type-argument-message "procedure" pred 1)))
+    (unless (treemap? tm)
+      (assertion-violation who
+			   (wrong-type-argument-message "treemap" tm 2)))
+    (let ((itr (iter tm)) (eof (cons #t #t)))
+      (let loop ((i 0))
+	(let-values (((k v) (itr eof)))
+	  (cond ((eq? k eof) fallback)
+		((pred i k) v)
+		(else (loop (+ i 1)))))))))
+(define treemap-find/index (%treemap-find/index 'treemap-find/index
+						treemap-iterator))
+(define treemap-reverse-find/index
+  (%treemap-find/index 'treemap-reverse-find/index
+		       treemap-reverse-iterator))
+(define (treemap-find pred tm :optional (fallback #f))
+  (treemap-find/index (lambda (i k) (pred k)) tm fallback))
+(define (treemap-reverse-find pred tm :optional (fallback #f))
+  (treemap-reverse-find/index (lambda (i k) (pred k)) tm fallback))
 
 (define (treemap->alist tm) (treemap-map cons tm))
 

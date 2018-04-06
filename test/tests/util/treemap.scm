@@ -107,6 +107,19 @@
 		  (treemap-update! tree 1 (cut + 1 <>) 0)
 		  (treemap-update! tree 1 (cut + 1 <>) 0)
 		  (treemap-ref tree 1)))
+    (let ((tree (ctor)))
+      (treemap-set! tree 0 "0")
+      (treemap-set! tree 1 "1")
+      (treemap-set! tree 2 "2")
+      (treemap-set! tree 3 "3")
+      (test-equal "treemap-find" "1" (treemap-find (lambda (i) (= i 1)) tree))
+      (test-equal "treemap-reverse-find" "1"
+		  (treemap-reverse-find (lambda (i) (= i 1)) tree))
+      (test-equal "treemap-find/index" "1"
+		  (treemap-find/index (lambda (i k) (= i 1)) tree))
+      (test-equal "treemap-reverse-find/index" "2"
+		  (treemap-reverse-find/index (lambda (i k) (= i 1)) tree)))
+		  
     ))
 
 (do-treemap (lambda () (make-rb-treemap (lambda (a b)
