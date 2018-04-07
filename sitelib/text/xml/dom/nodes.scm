@@ -43,8 +43,10 @@
 	    +document-type-node+ +document-fragment-node+ +notation-node+
 
 	    node? node-node-type node-node-name node-base-uri
-	    node-connected? node-owner-document node-parent-node
-	    node-parent-element node-child-nodes node-first-child
+	    node-connected? node-owner-document
+	    node-parent-node node-parent-node-set!
+	    node-parent-element node-parent-element-set!
+	    node-child-nodes node-first-child
 	    node-last-child node-previous-sibling node-next-sibling
 	    node-node-value node-text-content
 	    node:get-root-node node:normalize! node:clone-node

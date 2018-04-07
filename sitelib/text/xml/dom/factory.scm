@@ -195,9 +195,22 @@
 					       (qname-local-part name))))
 	    ((string? name)
 	     (set-value (document:create-attribute root-document name)))
-	    (else #f))))
+	    (else
+	     ;; xmlns
+	     ;; it seems like this (at least on Firefox)
+	     (let ((local-name (cadr name))
+		   (namespace "http://www.w3.org/2000/xmlns/"))
+	       (set-value
+		(if local-name
+		    (document:create-attribute-qname root-document
+						     namespace "xmlns"
+						     local-name)
+		    (document:create-attribute-qname root-document
+						     namespace ""
+						     "xmlns"))))))))
   ;; TBD
-  (define (->node content) #f)
+  (define (->node content)
+    #f)
   (let ((name (cadr element))
 	(attributes (caddr element))
 	(content (cdddr element)))
