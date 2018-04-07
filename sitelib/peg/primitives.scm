@@ -107,7 +107,11 @@
 	      (return-result v (lseq-cdr l))
 	      (return-expect expect l))))))
 
-(define $eof ($satisfy null? "EOF is expected"))
+(define $eof
+  (lambda (l)
+    (if (null? l)
+	(return-result '() l)
+	(return-expect "EOF" l))))
 ;; the same as ($not $eof)) but better performance
 (define $any
   (lambda (l)
