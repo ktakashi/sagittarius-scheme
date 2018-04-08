@@ -220,6 +220,16 @@
   <lineItem edi:taxClass=\"exempt\">Baby food</lineItem>
 </x>")))
 
+(test-parser '(element (qname "urn:foo" "foo" "x")
+		(attributes ((qname "urn:foo" "foo" "foo") "bar")
+			    ((xmlns "foo") "urn:foo")))
+	     ($xml:element (string->lseq "<foo:x foo:foo='bar' xmlns:foo='urn:foo' />")))
+(test-parser '(element (qname "urn:foo" "foo" "x")
+		(attributes ((qname "urn:foo" "foo" "foo") "bar")
+			    ((xmlns "foo") "urn:foo"))
+		(element (qname "urn:foo" "foo" "bar") (attributes)))
+	     ($xml:element (string->lseq "<foo:x foo:foo='bar' xmlns:foo='urn:foo'><foo:bar /></foo:x>")))
+
 (test-parser '(document (prolog (xml-decl (version "1.0") #f #f) (misc)
 				(!doctype "greeting"
 					  (system "hello.dtd") (subset))

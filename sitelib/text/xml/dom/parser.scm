@@ -654,11 +654,26 @@
       (let ((namespace (find-namespace (qname-prefix qname))))
 	(make-qname namespace (qname-prefix qname) (qname-local-part qname)))
       qname))
+
+;; helper
+(define $xml:attributes
+  (let ()
+    (define (fixup-attribute a)
+      (let ((name (car a)))
+	(if (qname? name)
+	    (let ((namespace (find-namespace (qname-prefix name))))
+	      (list (make-qname namespace (qname-prefix name)
+				(qname-local-part name))
+		    (cadr a)))
+	      a)))
+    ($do (a* ($many ($seq $xml:s $xml:attribute)))
+	 ($return (map fixup-attribute a*)))))
+       
 ;; [44] EmptyElemTag ::= '<' QName (S Attribute)* S? '/>'
 (define $xml:empty-elem-tag
   ($do (($eqv? #\<))
        (n $xml:qname)
-       (a ($many ($seq $xml:s $xml:attribute)))
+       (a $xml:attributes)
        (($optional $xml:s))
        (($token "/>"))
        ($return `(element ,(fixup-qname n) (attributes ,@a)))))
@@ -670,7 +685,7 @@
     (define $xml:stag
       ($do (($eqv? #\<))
 	   (n $xml:qname)
-	   (a ($many ($seq $xml:s $xml:attribute)))
+	   (a $xml:attributes)
 	   (($optional $xml:s))
 	   (($eqv? #\>))
 	   ($return (cons (fixup-qname n) a))))
