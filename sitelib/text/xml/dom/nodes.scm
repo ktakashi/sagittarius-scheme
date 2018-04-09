@@ -393,8 +393,8 @@
 			    (type +text-node+) ;; for CDATA...
 			    )
 		((n type data))))))
-;; it's impossible to implement as a field so just keep the naming convension
-(define (text-whole-text text) "")
+(define (text-whole-text text) (character-data-data text))
+
 (define (text:split-text text offset))
 
 (define-record-type cdata-section
@@ -456,7 +456,10 @@
 (define (document:create-element-ns document namespace qualified-name
 				    :optional (option #f)))
 (define (document:create-document-fragment document))
-(define (document:create-text-node document data))
+(define (document:create-text-node document data)
+  (let ((node (make-text :data data)))
+    (node-owner-document-set! node document)
+    node))
 (define (document:create-cdata-section document data))
 
 (define (document:create-comment document data)

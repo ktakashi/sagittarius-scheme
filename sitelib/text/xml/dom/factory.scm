@@ -103,12 +103,15 @@
 
 (define *factory-table* (make-eq-hashtable))
 (define (dispatch-factory tree)
-  (if (pair? tree)
-      (let ((name (car tree)))
-	(cond ((hashtable-ref *factory-table* name #f) =>
-	       (lambda (proc) (proc tree (*root-document*))))
-	      (else tree)))
-      (assertion-violation 'document-factory "TODO make text")))
+  (cond ((pair? tree)
+	 (let ((name (car tree)))
+	   (cond ((hashtable-ref *factory-table* name #f) =>
+		  (lambda (proc) (proc tree (*root-document*))))
+		 (else tree))))
+	((string? tree)
+	 (document:create-text-node (*root-document*) tree))
+	(else 
+	 (assertion-violation 'document-factory "Unknown value" tree))))
 (define-syntax define-factory
   (lambda (x)
     (define (->name name)
@@ -208,17 +211,18 @@
 		    (document:create-attribute-qname root-document
 						     namespace ""
 						     "xmlns"))))))))
-  ;; TBD
-  (define (->node content)
-    #f)
+
   (let ((name (cadr element))
 	(attributes (caddr element))
 	(content (cdddr element)))
     (define elm (make-element name))
     (for-each (lambda (attr) (element:set-attribute-node-ns! elm attr))
 	      (filter-map ->attribute-node (cdr attributes)))
-    (for-each (lambda (node) (node:append-child! elm node))
-	      (filter-map ->node content))
+    (for-each (lambda (node)
+		(node-parent-node-set! node elm)
+		(node-parent-element-set! node elm)
+		(node:append-child! elm node))
+	      (filter-map dispatch-factory content))
     elm))
 
 )
