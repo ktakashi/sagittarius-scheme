@@ -650,10 +650,17 @@
 	      ($return `(,n ,(cadr v)))))))
 
 (define (fixup-qname qname)
-  (if (and (qname? qname) (not (qname-namespace qname)))
-      (let ((namespace (find-namespace (qname-prefix qname))))
-	(make-qname namespace (qname-prefix qname) (qname-local-part qname)))
-      qname))
+  (cond ((and (qname? qname) (not (qname-namespace qname)))
+	 (let ((namespace (find-namespace (qname-prefix qname))))
+	   (make-qname namespace (qname-prefix qname)
+		       (qname-local-part qname))))
+	((qname? qname) qname)
+	(else 
+	 ;; check default namespace
+	 (let ((namespace (find-namespace #f)))
+	   (if namespace
+	       (make-qname namespace #f qname)
+	       qname)))))
 
 ;; helper
 (define $xml:attributes
@@ -694,10 +701,14 @@
 	(if (qname? name)
 	    (let ((prefix (qname-prefix name))
 		  (local-part (qname-local-part name)))
-	      ($seq ($token "</")
-		    ($token prefix) ($eqv? #\:)
-		    ($token local-part)
-		    ($optional $xml:s) ($eqv? #\>)))
+	      (if prefix
+		  ($seq ($token "</")
+			($token prefix) ($eqv? #\:)
+			($token local-part)
+			($optional $xml:s) ($eqv? #\>))
+		  ($seq ($token "</")
+			($token local-part)
+			($optional $xml:s) ($eqv? #\>))))
 	    ($seq ($token "</")
 		  ($token name)
 		  ($optional $xml:s) ($eqv? #\>))))

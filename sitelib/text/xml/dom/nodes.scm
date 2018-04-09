@@ -234,7 +234,7 @@
   (protocol
    (lambda (n)
      (define (->tagname prefix localname)
-       (if (zero? (string-length prefix))
+       (if (or (not prefix) (zero? (string-length prefix)))
 	   localname
 	   (string-append prefix ":" localname)))
      (define (attr-compare aa ab)
