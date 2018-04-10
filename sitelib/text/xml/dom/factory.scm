@@ -64,6 +64,7 @@
 	  validating?
 	  whitespace?
 	  expand-entity-reference?
+	  expand-character-reference?
 	  ignore-comments?
 	  coalescing?)
   (protocol (lambda (p)
@@ -73,16 +74,24 @@
 			    (validating? #f)
 			    (whitespace? #f)
 			    (expand-entity-reference? #t)
+			    (expand-character-reference? #t)
 			    (ignore-comments? #f)
 			    (coalescing? #f))
 		(p namespace-aware? xinclude-aware?
 		   validating? whitespace? expand-entity-reference?
+		   expand-character-reference?
 		   ignore-comments? coalescing?)))))
 (define-syntax %expand-entity?
   (syntax-rules ()
     ((_)
      (xml-document-factory-options-expand-entity-reference?
       (*factory-options*)))))
+(define-syntax %expand-char-ref?
+  (syntax-rules ()
+    ((_)
+     (xml-document-factory-options-expand-character-reference?
+      (*factory-options*)))))
+
 (define +default-factory-option+ (make-xml-document-factory-options))
 
 ;; internal parameter
@@ -252,7 +261,24 @@
 		    (document:create-attribute-qname root-document
 						     namespace ""
 						     "xmlns"))))))))
-
+  (define (merge-text elements)
+    (define (create-empty-text) (document:create-text-node root-document #f))
+    (let-values (((out extract) (open-string-output-port)))
+      (let loop ((elements elements) (r '()) (text #f))
+	(if (null? elements)
+	    (reverse! r)
+	    (let ((element (car elements)))
+	      ;; if source is set, then we don't merge
+	      (cond ((and (text? element) (not (node-source element)))
+		     (let ((new (or text (create-empty-text))))
+		       (put-string out (character-data-data element))
+		       (loop (cdr elements)
+			     (if text r (cons new r))
+			     new)))
+		    (else
+		     (when text (character-data-data-set! text (extract)))
+		     (loop (cdr elements) (cons (car elements) r) #f))))))))
+		    
   (let ((name (cadr element))
 	(attributes (caddr element))
 	(content (cdddr element)))
@@ -263,7 +289,7 @@
 		(node-parent-node-set! node elm)
 		(node-parent-element-set! node elm)
 		(node:append-child! elm node))
-	      (filter-map dispatch-factory content))
+	      (merge-text (map dispatch-factory content)))
     elm))
 
 (define-factory (entity-ref root-document)
@@ -283,4 +309,9 @@
 					 name))))
       (document:create-entity-reference root-document name)))
 
+(define-factory (char-ref root-document)
+  (let* ((s (string (integer->char (caddr char-ref))))
+	 (node (document:create-text-node root-document s)))
+    (unless (%expand-char-ref?) (node-source-set! node char-ref))
+    node))
 )

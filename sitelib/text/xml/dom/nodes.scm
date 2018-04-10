@@ -94,6 +94,9 @@
 	    named-node-map:remove-named-item-ns!
 
 	    entity-reference?
+	    character-data? text?
+	    character-data-data character-data-data-set!
+	    character-data-length
 	    
 	    document? document-uri document-document-uri document-origin
 	    document-compat-mode document-character-set document-charset
@@ -126,6 +129,7 @@
 	    document:create-entity/system-id
 
 	    document-type-entities
+	    node-source node-source-set!
 	    )
     (import (rnrs)
 	    (sagittarius) ;; for define-constant
@@ -182,6 +186,8 @@
 	  ;; TODO can we merge them?
 	  (mutable node-value)	 ;; DOMString?
 	  (mutable text-content) ;; DOMString?
+	  ;; not dom internal use
+	  (mutable source)
 	  )
   (protocol (lambda (n)
 	      (lambda (node-type :key (node-name +undfined+)
@@ -205,7 +211,8 @@
 		 #f ;; previous sibling will be set
 		 #f ;; next sibling will be set later
 		 node-value
-		 text-content)))))
+		 text-content
+		 #f)))))
 (define (node-child-nodes node)
   (make-node-list (node-children node)))
 (define (node-first-child node)
