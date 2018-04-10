@@ -82,7 +82,7 @@
   (syntax-rules ()
     ((_)
      (xml-document-factory-options-expand-entity-reference?
-      (*xml:factory-option*)))))
+      (*factory-options*)))))
 (define +default-factory-option+ (make-xml-document-factory-options))
 
 ;; internal parameter
@@ -170,13 +170,54 @@
 	  ((eq? (car id) 'system) (values "" (cadr id)))
 	  ((eq? (car id) 'public) (values (cadr id) (caddr id)))
 	  (else (assertion-violation '!doctype "Invalid external ID" id))))
+  (define (handle-subset doctype subset)
+    (let ((e (dispatch-factory subset)))
+      (cond ((entity? e)
+	     (let ((entities (document-type-entities doctype)))
+	       (hashtable-set! entities (node-node-name e) e)))
+	    ;; TODO the rest
+	    )))
   (let ((name (cadr !doctype))
 	(id (caddr !doctype))
 	(subsets (cadddr !doctype)))
     (let-values (((public-id system-id) (parse-id id)))
       ;; TODO add all subsets as its child element
-      (document:create-document-type root-document name public-id system-id))))
+      (let ((doctype (document:create-document-type root-document
+						    name public-id system-id)))
+	(for-each (lambda (subset) (handle-subset doctype subset))
+		  (cdr subsets))
+	doctype))))
 
+(define-factory (!entity root-document)
+  (define (handle-parameter-entity entity)
+    (assertion-violation '!entity "not supported yet"))
+  (define (handle-general-entity entity)
+    (let ((name (car entity))
+	  (value (cadr entity)))
+      (cond ((eq? (car value) 'entity-value)
+	     (document:create-entity/value root-document name (cadr value)))
+	    ((eq? (car value) 'public)
+	     (let ((maybe-notation (cdddr value)))
+	       (if (null? maybe-notation)
+		   (apply document:create-entity/public-id root-document name
+			  (cdr value))
+		   (document:create-entity/public-id root-document name
+						     (cadr value) (caddr value)
+						     (cadar maybe-notation)))))
+	    ((eq? (car value) 'system)
+	     (let ((maybe-notation (cddr value)))
+	       (if (null? maybe-notation)
+		   (document:create-entity/system-id root-document name
+						     (cadr value))
+		   (document:create-entity/system-id root-document name
+						     (cadr value)
+						     (cadar maybe-notation)))))
+	    (else
+	     (assertion-violation 'general-entity "unknown entity" !entity)))))
+  (if (eq? 'pe (cadr !entity))
+      (handle-parameter-entity (cddr !entity))
+      (handle-general-entity (cddr !entity))))
+    
 (define-factory (element root-document)
   (define (make-element name)
     (if (qname? name)
@@ -224,5 +265,22 @@
 		(node:append-child! elm node))
 	      (filter-map dispatch-factory content))
     elm))
+
+(define-factory (entity-ref root-document)
+  (define name (cadr entity-ref))
+  (if (%expand-entity?)
+      (let ((entities (document-type-entities
+		       (document-doctype root-document))))
+	(cond ((hashtable-ref entities name) =>
+	       (lambda (e)
+		 (cond ((entity-entity-value e) =>
+			(lambda (value)
+			  (document:create-text-node root-document value)))
+		       (else (assertion-violation
+			      'entity-ref "External entity is not supported yet"
+			      name)))))
+	      (else (assertion-violation 'entity-ref "Unknown entity name"
+					 name))))
+      (document:create-entity-reference root-document name)))
 
 )

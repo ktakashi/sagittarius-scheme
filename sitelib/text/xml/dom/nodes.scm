@@ -57,6 +57,11 @@
 
 	    document-type-name document-type-public-id
 	    document-type-system-id
+
+	    entity? entity-public-id entity-system-id
+	    entity-entity-value ;; non dom
+	    entity-notation-name entity-input-encoding
+	    entity-xml-encoding entity-xml-version
 	    
 	    element? element-namespace-uri element-prefix
 	    element-local-name element-tag-name element-id
@@ -88,6 +93,8 @@
 	    named-node-map:remove-named-item!
 	    named-node-map:remove-named-item-ns!
 
+	    entity-reference?
+	    
 	    document? document-uri document-document-uri document-origin
 	    document-compat-mode document-character-set document-charset
 	    document-input-encoding document-content-type
@@ -107,12 +114,18 @@
 	    document-character-set-set! document-content-type-set!
 	    document-doctype-set! document-document-element-set!
 	    document-xml-standalone?-set! document-xml-version-set!
-
+	    document:create-entity-reference
+	    
 	    ;; internal use only
 	    (rename (make-document make-root-document))
 	    make-document-type
 	    document:create-element-qname
 	    document:create-attribute-qname
+	    document:create-entity/value
+	    document:create-entity/public-id
+	    document:create-entity/system-id
+
+	    document-type-entities
 	    )
     (import (rnrs)
 	    (sagittarius) ;; for define-constant
@@ -220,6 +233,27 @@
   (list-queue-add-back! (node-children node) child))
 (define (node:replace-child! node node0 child))
 (define (node:remove-child! node child))
+
+(define-record-type entity
+  (parent node)
+  (fields (mutable public-id)
+	  (mutable system-id)
+	  (mutable notation-name)
+	  (mutable entity-value)   ;; for inline entity
+	  (mutable input-encoding) ;; internal subset (the same as document)
+	  (mutable xml-encoding)   ;; external file encoding (or #f)
+	  (mutable xml-version)    ;; external file version (or #f)
+	  )
+  (protocol (lambda (n)
+	      (lambda (document name)
+		((n +entity-node+ :owner-document document :node-name name)
+		 #f ;; public id
+		 #f ;; system id
+		 #f ;; notation name
+		 #f
+		 (document-input-encoding document) ;; input-encoding
+		 (document-charset document)	    ;; probably not right
+		 (document-xml-version document))))))
 
 ;;; Element
 (define-record-type element
@@ -360,15 +394,29 @@
 	 (lambda (attr)
 	   (treemap-delete! (named-node-map-values map) attr)))))
 
+(define-record-type entity-reference
+  (parent node)
+  (protocol (lambda (n)
+	      (lambda (name)
+		((n +entity-reference-node+ :node-name name))))))
+
 ;;; DocumentType
 (define-record-type document-type
   (parent node)
   (fields public-id ;; DOMString 
 	  system-id ;; DOMString
+	  entities  ;; internal
+	  elements  ;; internal (need this?)
+	  notations ;; internal (need this?)
 	  )
   (protocol (lambda (n)
 	      (lambda (name public-id system-id)
-		((n +document-type-node+ :node-name name) public-id system-id)))))
+		((n +document-type-node+ :node-name name)
+		 public-id system-id
+		 (make-string-hashtable)
+		 (make-string-hashtable)
+		 (make-string-hashtable))))))
+
 (define (document-type-name dt) (node-node-name dt))
 ;;; CharacterData
 (define-record-type character-data
@@ -437,7 +485,7 @@
   (protocol
    (lambda (n)
      (lambda (url)
-       ((n +document-type-node+ :node-name "#document" :base-uri url)
+       ((n +document-node+ :node-name "#document" :base-uri url)
 	"BackCompat" "UTF-8" "text/xml" +undfined+ +undfined+
 	+undfined+ +undfined+)))))
 (define document-url node-base-uri)
@@ -470,6 +518,11 @@
   (let ((node (make-processing-instruction target data)))
     (node-owner-document-set! node document)
     node))
+(define (document:create-entity-reference document name)
+  (let ((node (make-entity-reference name)))
+    (node-owner-document-set! node document)
+    node))
+
 ;; non-dom factory
 (define (document:create-document-type document name public-id system-id)
   (let ((node (make-document-type name public-id system-id)))
@@ -480,6 +533,27 @@
   (let ((node (make-element namespace prefix local-part)))
     (node-owner-document-set! node document)
     node))
+;; entity decl
+(define (document:create-entity/value document name value)
+  (let ((entity (make-entity document name)))
+    (entity-entity-value-set! entity value)
+    entity))
+
+(define (document:create-entity/public-id document name
+					  public-id system-id
+					  :optional (notation #f))
+  (let ((entity (make-entity document name)))
+    (entity-public-id-set! entity public-id)
+    (entity-system-id-set! entity system-id)
+    (when notation (entity-notation-name-set! entity notation))
+    entity))
+(define (document:create-entity/system-id document name
+					  id :optional (notation #f))
+  (let ((entity (make-entity document name)))
+    (entity-system-id-set! entity id)
+    (when notation (entity-notation-name-set! entity notation))
+    entity))
+;; TODO pe entities
 
 (define (document:import-node document node :optional (deep #f)))
 (define (document:adopt-node document node))
