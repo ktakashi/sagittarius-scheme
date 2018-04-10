@@ -130,6 +130,7 @@
 
 	    document-type-entities
 	    node-source node-source-set!
+	    char-ref-text? document:create-char-ref-text
 	    )
     (import (rnrs)
 	    (sagittarius) ;; for define-constant
@@ -458,6 +459,15 @@
 	      (lambda (:key (data ""))
 		((n :data data :type +cdata-section-node+))))))
 
+;; non dom
+(define-record-type char-ref-text
+  (parent text)
+  (protocol (lambda (n)
+	      (lambda (data source)
+		(let ((node ((n :data data))))
+		  (node-source-set! node source)
+		  node)))))
+
 (define-record-type processing-instruction
   (parent character-data)
   (protocol (lambda (n)
@@ -538,6 +548,10 @@
 (define (document:create-element-qname document namespace prefix local-part
 					    :optional (option #f))
   (let ((node (make-element namespace prefix local-part)))
+    (node-owner-document-set! node document)
+    node))
+(define (document:create-char-ref-text document s source)
+  (let ((node (make-char-ref-text s source)))
     (node-owner-document-set! node document)
     node))
 ;; entity decl

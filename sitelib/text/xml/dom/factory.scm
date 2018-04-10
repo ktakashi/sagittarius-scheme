@@ -268,8 +268,7 @@
 	(if (null? elements)
 	    (reverse! r)
 	    (let ((element (car elements)))
-	      ;; if source is set, then we don't merge
-	      (cond ((and (text? element) (not (node-source element)))
+	      (cond ((and (text? element) (not (char-ref-text? element)))
 		     (let ((new (or text (create-empty-text))))
 		       (put-string out (character-data-data element))
 		       (loop (cdr elements)
@@ -310,8 +309,8 @@
       (document:create-entity-reference root-document name)))
 
 (define-factory (char-ref root-document)
-  (let* ((s (string (integer->char (caddr char-ref))))
-	 (node (document:create-text-node root-document s)))
-    (unless (%expand-char-ref?) (node-source-set! node char-ref))
-    node))
+  (let ((s (string (integer->char (caddr char-ref)))))
+    (if (%expand-char-ref?)
+	(document:create-text-node root-document s)
+	(document:create-char-ref-text root-document s char-ref))))
 )
