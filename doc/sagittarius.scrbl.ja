@@ -852,7 +852,7 @@ assumed value.
 }
 
 @define[Function]{@name{gc} @args{}}
-@desc{Invokes garbage collection manually.}
+@desc{ガーベジコレクションを起動します。}
 
 @define[Function]{@name{cpu-count} @args{}}
 @desc{Returns number of CPUs. The result contains hyperthreading, for example,
