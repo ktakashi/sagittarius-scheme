@@ -268,7 +268,9 @@
 	(if (null? elements)
 	    (reverse! r)
 	    (let ((element (car elements)))
-	      (cond ((and (text? element) (not (char-ref-text? element)))
+	      (cond ((and (text? element)
+			  (not (cdata-section? element))
+			  (not (char-ref-text? element)))
 		     (let ((new (or text (create-empty-text))))
 		       (put-string out (character-data-data element))
 		       (loop (cdr elements)
@@ -313,4 +315,7 @@
     (if (%expand-char-ref?)
 	(document:create-text-node root-document s)
 	(document:create-char-ref-text root-document s char-ref))))
+
+(define-factory (cdata root-document)
+  (document:create-cdata-section root-document (cadr cdata)))
 )

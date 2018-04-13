@@ -94,7 +94,7 @@
 	    named-node-map:remove-named-item-ns!
 
 	    entity-reference?
-	    character-data? text?
+	    character-data? text? cdata-section?
 	    character-data-data character-data-data-set!
 	    character-data-length
 	    
@@ -525,7 +525,10 @@
   (let ((node (make-text :data data)))
     (node-owner-document-set! node document)
     node))
-(define (document:create-cdata-section document data))
+(define (document:create-cdata-section document data)
+  (let ((node (make-cdata-section :data data)))
+    (node-owner-document-set! node document)
+    node))
 
 (define (document:create-comment document data)
   (let ((node (make-comment data)))
