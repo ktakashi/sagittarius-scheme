@@ -180,17 +180,20 @@
 	  ((eq? (car id) 'public) (values (cadr id) (caddr id)))
 	  (else (assertion-violation '!doctype "Invalid external ID" id))))
   (define (handle-subset doctype subset)
+    (define (set-it table e)
+      (define key (node-node-name e))
+      (if (hashtable-contains? table key)
+	  (assertion-violation '!doctype "Duplicate definition" key e)
+	  (hashtable-set! table key e)))
     (let ((e (dispatch-factory subset)))
-      (cond ((entity? e)
-	     (let ((entities (document-type-entities doctype)))
-	       (hashtable-set! entities (node-node-name e) e)))
+      (cond ((entity? e) (set-it (document-type-entities doctype) e))
+	    ((element-type? e) (set-it (document-type-elements doctype) e))
 	    ;; TODO the rest
 	    )))
   (let ((name (cadr !doctype))
 	(id (caddr !doctype))
 	(subsets (cadddr !doctype)))
     (let-values (((public-id system-id) (parse-id id)))
-      ;; TODO add all subsets as its child element
       (let ((doctype (document:create-document-type root-document
 						    name public-id system-id)))
 	(for-each (lambda (subset) (handle-subset doctype subset))
@@ -226,6 +229,11 @@
   (if (eq? 'pe (cadr !entity))
       (handle-parameter-entity (cddr !entity))
       (handle-general-entity (cddr !entity))))
+
+(define-factory (!element root-document)
+  (let ((name (cadr !element))
+	(spec (caddr !element)))
+    (document:create-element-type root-document name spec)))
     
 (define-factory (element root-document)
   (define (make-element name)

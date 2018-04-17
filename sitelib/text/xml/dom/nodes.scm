@@ -127,10 +127,13 @@
 	    document:create-entity/value
 	    document:create-entity/public-id
 	    document:create-entity/system-id
+	    document:create-element-type
 
 	    document-type-entities
+	    document-type-elements
 	    node-source node-source-set!
 	    char-ref-text? document:create-char-ref-text
+	    element-type? element-type-name element-type-spec
 	    )
     (import (rnrs)
 	    (sagittarius) ;; for define-constant
@@ -163,6 +166,8 @@
 (define-constant +document-type-node+          10)
 (define-constant +document-fragment-node+      11)
 (define-constant +notation-node+               12) ;; historical
+
+(define-constant +element-type-node+           101) ;; non dom
 
 (define-constant +document-position-disconnected+ #x01)
 (define-constant +document-position-preceding+    #x02)
@@ -262,6 +267,14 @@
 		 (document-input-encoding document) ;; input-encoding
 		 (document-charset document)	    ;; probably not right
 		 (document-xml-version document))))))
+
+(define-record-type element-type
+  (parent node)
+  (fields spec)
+  (protocol (lambda (n)
+	      (lambda (name spec)
+		((n +element-type-node+ :node-name name) spec)))))
+(define element-type-name node-node-name)
 
 ;;; Element
 (define-record-type element
@@ -577,6 +590,10 @@
     (entity-system-id-set! entity id)
     (when notation (entity-notation-name-set! entity notation))
     entity))
+(define (document:create-element-type document name spec)
+  (let ((type (make-element-type name spec)))
+    (node-owner-document-set! type document)
+    type))
 ;; TODO pe entities
 
 (define (document:import-node document node :optional (deep #f)))
