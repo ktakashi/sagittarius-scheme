@@ -142,8 +142,6 @@
 	    (srfi :117 list-queues)
 	    (text xml dom events))
 
-(define-constant +undfined+ (undefined))
-
 ;;; NodeList
 (define-record-type node-list
   (fields length items)
@@ -185,10 +183,7 @@
 	  (mutable owner-document)   ;; Document?
 	  (mutable parent-node)	     ;; Node?
 	  (mutable parent-element)   ;; Element?
-	  ;; (mutable child-nodes)	     ;; NodeList
 	  children
-	  (mutable previous-sibling) ;; Node?
-	  (mutable next-sibling)     ;; Node?
 	  ;; TODO can we merge them?
 	  (mutable node-value)	 ;; DOMString?
 	  (mutable text-content) ;; DOMString?
@@ -196,15 +191,15 @@
 	  (mutable source)
 	  )
   (protocol (lambda (n)
-	      (lambda (node-type :key (node-name +undfined+)
-				      (base-uri +undfined+)
-				      (connected? +undfined+)
-				      (owner-document +undfined+)
-				      (parent-node +undfined+)
-				      (parent-element +undfined+)
+	      (lambda (node-type :key (node-name #f)
+				      (base-uri #f)
+				      (connected? #f)
+				      (owner-document #f)
+				      (parent-node #f)
+				      (parent-element #f)
 				      (child-nodes (list-queue))
-				      (node-value +undfined+)
-				      (text-content +undfined+))
+				      (node-value #f)
+				      (text-content #f))
 		((n)
 		 node-type
 		 node-name
@@ -214,8 +209,6 @@
 		 parent-node
 		 parent-element
 		 child-nodes
-		 #f ;; previous sibling will be set
-		 #f ;; next sibling will be set later
 		 node-value
 		 text-content
 		 #f)))))
@@ -230,6 +223,25 @@
     (and (not (list-queue-empty? children))
 	 (list-queue-front children))))
 
+;; at this moment, we do stupidly
+(define (node-previous-sibling node)
+  (let ((parent (node-parent-node node)))
+    (and parent
+	 (let loop ((children (list-queue-list (node-children parent))))
+	   (cond ((null? children) #f)
+		 ((null? (cdr children)) #f)
+		 ((eq? (car children) node) #f)
+		 ((eq? (cadr children) node) (car children))
+		 (else (loop (cdr children))))))))
+(define (node-next-sibling node)
+  (let ((parent (node-parent-node node)))
+    (and parent
+	 (let loop ((children (list-queue-list (node-children parent))))
+	   (cond ((memq node children) =>
+		  (lambda (l)
+		    (and (not (null? (cdr l))) (cadr l))))
+		 (else #f))))))
+
 (define (node:get-root-node node :optional (options #f)) )
 (define (node:normalize! node))
 (define (node:clone-node node :optional (deep #f)))
@@ -242,10 +254,118 @@
 (define (node:default-namespace node namespace))
 (define (node:insert-before! node node0 child) node)
 (define (node:append-child! node child)
-  (node-parent-node-set! node child)
+  (node-parent-node-set! child node)
   (list-queue-add-back! (node-children node) child))
 (define (node:replace-child! node node0 child))
 (define (node:remove-child! node child))
+
+
+;; tree-walker
+(define-record-type tree-walker
+  (fields root
+	  what-to-show
+	  filter
+	  (mutable current-node))
+  (protocol (lambda (p)
+	      (lambda (root what-to-show filter)
+		(p root what-to-show filter root)))))
+(define (tree-walker:parent-node tw)
+  (let ((node (tree-walker-current-node tw))
+	(root   (tree-walker-root tw)))
+    (and node (eq? root node)
+	 (let ((parent (node-parent-node node))
+	       (filter (tree-walker-filter tw)))
+	   (and (accepted? (filter parent))
+		parent)))))
+(define (tree-walker:traverse-children tw type)
+  (define filter (tree-walker-filter tw))
+  (define root (tree-walker-root tw))
+  (define current-node (tree-walker-current-node tw))
+  (define (get-child node)
+    (if (eq? type 'first)
+	(node-first-child node)
+	(node-last-child node)))
+  (define (get-sibling node)
+    (if (eq? type 'first)
+	(node-next-sibling node)
+	(node-previous-sibling node)))
+  (define (get-parent node)
+    (let ((parent (node-parent-node node)))
+      (and (not (eq? parent root))
+	   (not (eq? parent current-node))
+	   parent)))
+  (let loop ((node (get-child current-node)))
+    (and node
+	 (let ((v (filter node)))
+	   (cond ((accepted? v)
+		  (tree-walker-current-node-set! tw node)
+		  node)
+		 ((skipped? v) (loop (get-child node)))
+		 ((get-sibling node) => loop)
+		 ((get-parent node) => loop)
+		 (else #f))))))
+			 
+(define (tree-walker:first-child tw) (tree-walker:traverse-children tw 'first))
+(define (tree-walker:last-child tw) (tree-walker:traverse-children tw 'last))
+
+(define (tree-walker:traverse-sibling tw type)
+  (define filter (tree-walker-filter tw))
+  (define root (tree-walker-root tw))
+  (define current-node (tree-walker-current-node tw))
+  (define (get-sibling node)
+    (if (eq? type 'next)
+	(node-next-sibling node)
+	(node-previous-sibling node)))
+  (define (get-child node)
+    (if (eq? type 'next)
+	(node-first-child node)
+	(node-last-child node)))
+  (and (not (eq? current-node root))
+       (let loop ((node current-node))
+	 (let* ((new-node (get-sibling current-node))
+		(v (filter new-node)))
+	   (if new-node
+	       (cond ((accepted? v)
+		      (tree-walker-current-node-set! tw new-node)
+		      new-node)
+		     ;; I think this is weird but this is how it's specified...
+		     ((rejected? v) (loop (get-child new-node)))
+		     ((skipped? v) (loop (get-sibling new-node)))
+		     (else #f))
+	       (if node
+		   ;; I think this is weird...
+		   (let ((parent (node-parent-node node)))
+		     (and parent (not (eq? parent root))
+			  (let ((v (filter parent)))
+			    (and (rejected? v)
+				 (loop parent)))))))))))
+
+(define (tree-walker:next-sibling tw) (tree-walker:traverse-sibling tw 'next))
+(define (tree-walker:previous-sibling tw)
+  (tree-walker:traverse-sibling tw 'previous))
+
+(define (accepted? v) (eqv? v +node-filter-filter-accept+))
+(define (rejected? v) (eqv? v +node-filter-filter-reject+))
+(define (skipped? v)  (eqv? v +node-filter-filter-skip+))
+
+(define-constant +node-filter-filter-accept+ 1)
+(define-constant +node-filter-filter-reject+ 2)
+(define-constant +node-filter-filter-skip+   3)
+
+(define-constant +node-filter-show-all+                    #xFFFFFFFF)
+(define-constant +node-filter-show-element+                #x01)
+(define-constant +node-filter-show-attribute+              #x02)
+(define-constant +node-filter-show-text+                   #x04)
+(define-constant +node-filter-show-cdata-section+          #x08)
+(define-constant +node-filter-show-entity-reference+       #x10)
+(define-constant +node-filter-show-entity+                 #x20)
+(define-constant +node-filter-show-processing-instruction+ #x40)
+(define-constant +node-filter-show-comment+                #x80)
+(define-constant +node-filter-show-document+               #x100)
+(define-constant +node-filter-show-document-type+          #x200)
+(define-constant +node-filter-show-document-fragment+      #x400)
+(define-constant +node-filter-show-notation+               #x800)
+
 
 (define-record-type entity
   (parent node)
@@ -349,7 +469,8 @@
 (define (element:closest element selector) #f)
 (define (element:matches? element selector) #f)
 
-(define (element:get-elements-by-tag-name element qualified-name) '())
+(define (element:get-elements-by-tag-name element qualified-name)
+  '())
 (define (element:get-elements-by-tag-name-ns element namespace local-name) '())
 (define (element:get-elements-by-class-name element class-name) '())
 
@@ -516,17 +637,22 @@
    (lambda (n)
      (lambda (url)
        ((n +document-node+ :node-name "#document" :base-uri url)
-	"BackCompat" "UTF-8" "text/xml" +undfined+ +undfined+
-	+undfined+ +undfined+)))))
+	"BackCompat" "UTF-8" "text/xml" #f #f #f #f)))))
 (define document-url node-base-uri)
 (define document-document-uri node-base-uri)
-(define (document-origin document) +undfined+)
+(define (document-origin document) #f)
 (define document-charset document-character-set)
 (define document-input-encoding document-character-set)
 
-(define (document:get-element-by-tag-name document qualified-name))
-(define (document:get-element-by-tag-name-ns document namespace local-name))
-(define (document:get-element-by-class-name document class-name))
+(define (document:get-element-by-tag-name document qualified-name)
+  (let ((element (document-document-element document)))
+    (element:get-elements-by-tag-name element qualified-name)))
+(define (document:get-element-by-tag-name-ns document namespace local-name)
+  (let ((element (document-document-element document)))
+    (element:get-elements-by-tag-name-ns element namespace local-name)))
+(define (document:get-element-by-class-name document class-name)
+  (let ((element (document-document-element document)))
+    (element:get-elements-by-class-name element class-name)))
 (define (document:create-element document local-name :optional (option #f))
   (let ((node (make-element "" "" local-name)))
     (node-owner-document-set! node document)
