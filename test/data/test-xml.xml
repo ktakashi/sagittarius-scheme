@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!-- Comment -->
+<?xml-stylesheet href="blabla.xsl"?>
+<!-- DOCTYPE root PUBLIC "foo" "bar" -->
+<!DOCTYPE root [
+<!ELEMENT root (#PCDATA)>
+<!ENTITY entity "entity value">
+<!ENTITY c PUBLIC "-//W3C//TEXT copyright//EN" "http://www.w3.org/xmlspec/copyright.xml">
+]>
+<root xmlns="urn:boo" xmlns:foo="urn:foo" class="foo"
+      foo:bar="bar">
+  &entity;
+  &#x1F602;
+  <!-- &c; -->
+  <foo:foo id="id-of-foo">
+    <foo:bar value="foo-bar" />
+  </foo:foo><!-- Comment2 --><boo>value</boo>
+  <![CDATA[ cdata section ]]>
+</root>
