@@ -372,23 +372,6 @@
 (define (tree-walker:previous-sibling tw)
   (tree-walker:traverse-sibling tw 'previous))
 
-#|
-Let node be the value of the context object’s currentNode attribute.
-While node is not the context object’s root:
-    Let sibling be node’s previous sibling.
-    While sibling is non-null:
-        Set node to sibling.
-        Let result be the result of filtering node.
-        While result is not FILTER_REJECT and node has a child:
-            Set node to node’s last child.
-            Set result to the result of filtering node.
-        If result is FILTER_ACCEPT, then set the context object’s currentNode attribute to node and return node.
-        Set sibling to node’s previous sibling.
-    If node is the context object’s root or node’s parent is null, then return null.
-    Set node to node’s parent.
-    If the return value of filtering node is FILTER_ACCEPT, then set the context object’s currentNode attribute to node and return node.
-Return null.
-|#
 (define (tree-walker:previous-node tw)
   (define filter (tree-walker-filter tw))
   (define root (tree-walker-root tw))
