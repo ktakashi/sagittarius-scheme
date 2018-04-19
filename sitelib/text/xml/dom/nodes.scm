@@ -103,8 +103,10 @@
 	    document-input-encoding document-content-type
 	    document-doctype document-document-element document-xml-standalone?
 	    document-xml-version
-	    document:get-element-by-tag-name document:get-element-by-tag-name-ns
-	    document:get-element-by-class-name
+	    document:get-elements-by-tag-name
+	    document:get-elements-by-tag-name-ns
+	    document:get-elements-by-class-name
+	    document:get-element-by-id
 	    document:create-element document:create-element-ns
 	    document:create-document-fragment document:create-text-node
 	    document:create-cdata-section document:create-comment
@@ -525,10 +527,10 @@
 	)))))
 (define (element-tag-name element) (node-node-name element))
 (define (element-id element)
-  (cond ((element:get-attribute element "id") => attr-value)
+  (cond ((element:get-attribute element "id"))
 	(else #f)))
 (define (element-class-name element)
-  (cond ((element:get-attribute element "class") => attr-value)
+  (cond ((element:get-attribute element "class"))
 	(else #f)))
 (define (element:has-attributes? element)
   (not (zero? (named-node-map-length (element-attributes element)))))
@@ -594,6 +596,7 @@
 (define (attr-value-set! attr value)
   (node-node-value-set! attr value)
   (node-text-content-set! attr value))
+(define attr-qualified-name node-node-name)
 
 ;;; NamedNodeMap
 ;; Internally, it's a treemap using as a set.
@@ -740,19 +743,30 @@
 (define document-charset document-character-set)
 (define document-input-encoding document-character-set)
 
-(define (document:get-element-by-tag-name document qualified-name)
+(define (document:get-elements-by-tag-name document qualified-name)
   (let ((element (document-document-element document)))
     (element:get-elements-by-tag-name element qualified-name)))
-(define (document:get-element-by-tag-name-ns document namespace local-name)
+(define (document:get-elements-by-tag-name-ns document namespace local-name)
   (let ((element (document-document-element document)))
     (element:get-elements-by-tag-name-ns element namespace local-name)))
-(define (document:get-element-by-class-name document class-name)
+(define (document:get-elements-by-class-name document class-name)
   (let ((element (document-document-element document)))
     (element:get-elements-by-class-name element class-name)))
+(define (document:get-element-by-id document id)
+  (define (id-filter node)
+    (if (equal? (element-id node) id)
+	+node-filter-filter-accept+
+	+node-filter-filter-reject+))
+  (let ((tw (document:create-tree-walker document
+					 (document-document-element document)
+					 +node-filter-show-element+ id-filter)))
+    (tree-walker:next-node tw)))
+
 (define (document:create-element document local-name :optional (option #f))
   (let ((node (make-element "" "" local-name)))
     (node-owner-document-set! node document)
     node))
+
 (define (document:create-element-ns document namespace qualified-name
 				    :optional (option #f)))
 (define (document:create-document-fragment document))
