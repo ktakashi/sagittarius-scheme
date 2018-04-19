@@ -55,7 +55,7 @@
 	    node:default-namespace node:insert-before! node:append-child!
 	    node:replace-child! node:remove-child!
 
-	    document-type-name document-type-public-id
+	    document-type? document-type-name document-type-public-id
 	    document-type-system-id
 
 	    entity? entity-public-id entity-system-id
@@ -94,10 +94,12 @@
 	    named-node-map:remove-named-item-ns!
 
 	    entity-reference?
-	    character-data? text? cdata-section?
+	    character-data? text? cdata-section? comment?
+	    processing-instruction?
 	    character-data-data character-data-data-set!
 	    character-data-length
-
+	    processing-instruction-target
+	    
 	    document? document-uri document-document-uri document-origin
 	    document-compat-mode document-character-set document-charset
 	    document-input-encoding document-content-type
