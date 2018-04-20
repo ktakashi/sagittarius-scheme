@@ -11,6 +11,12 @@
 	  node-node-name
 	  (lambda (seed) (gen tw)) (gen tw)))
 
+(define (node-list->list nl)
+  (do ((len (node-list-length nl))
+       (i 0 (+ i 1))
+       (r '() (cons (node-list:item nl i) r)))
+      ((= i len) (reverse r))))
+
 (test-begin "DOM nodes")
 
 (let ((document (xml-file->dom-tree xml-file)))
@@ -32,10 +38,29 @@
   (test-assert (element? (document-document-element document)))
   (let ((e (document-document-element document)))
     (test-equal "root" (node-node-name e))
-    (test-equal "urn:boo" (element-namespace-uri e)))
-  
+    (test-equal "urn:boo" (element-namespace-uri e))
+
+    (test-equal '("foo:bar")
+		(map node-node-name
+		     (node-list->list
+		      (element:get-elements-by-tag-name e "foo:bar"))))
+    (test-equal '("foo:foo")
+		(map node-node-name
+		     (node-list->list
+		      (element:get-elements-by-tag-name-ns e "urn:foo" "foo")))))
+
+  (test-equal '("foo:bar")
+		(map node-node-name
+		     (node-list->list
+		      (document:get-elements-by-tag-name document "foo:bar"))))
+  (test-equal '("foo:foo")
+		(map node-node-name
+		     (node-list->list
+		      (document:get-elements-by-tag-name-ns document
+							    "urn:foo" "foo"))))
   (test-assert (element? (document:get-element-by-id document "id-of-foo")))
   (test-assert (not (document:get-element-by-id document "no-such-id")))
+  
   (let ((tw (document:create-tree-walker document document
 					 +node-filter-show-element+)))
     (test-equal '("root" "foo:foo" "foo:bar" "boo")

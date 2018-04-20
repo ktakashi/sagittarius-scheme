@@ -569,9 +569,53 @@
 (define (element:closest element selector) #f)
 (define (element:matches? element selector) #f)
 
+;; TODO maybe move to somewhere else?
+(define (split-qualified-name qualified-name)
+  (cond ((string-index qualified-name #\:) =>
+	 (lambda (index)
+	   ;; On Sagittarius it doesn't mean anything but
+	   ;; may mean in the future so use substring/shared here
+	   (values (substring/shared qualified-name 0 index)
+		   (substring/shared qualified-name (+ index 1)))))
+	(else (values #f qualified-name))))
+
+(define (tree-walker->node-list tw)
+  (let ((queue (list-queue)))
+    (do ((n (tree-walker:next-node tw) (tree-walker:next-node tw)))
+	((not n) (make-node-list queue))
+      (list-queue-add-back! queue n))))
+
 (define (element:get-elements-by-tag-name element qualified-name)
-  '())
-(define (element:get-elements-by-tag-name-ns element namespace local-name) '())
+  (let-values (((prefix local-name) (split-qualified-name qualified-name)))
+    (define (local-name-filter node)
+      (if (string=? local-name (element-local-name node))
+	  +node-filter-filter-accept+
+	  +node-filter-filter-skip+))
+    (define (qualified-name-filter node)
+      (if (and (equal? prefix (element-prefix node))
+	       (string=? local-name (element-local-name node)))
+	  +node-filter-filter-accept+
+	  +node-filter-filter-skip+))
+    (let ((tw (document:create-tree-walker (node-owner-document element)
+					   element
+					   +node-filter-show-element+
+					   (if prefix
+					       qualified-name-filter
+					       local-name-filter))))
+      (tree-walker->node-list tw))))
+
+(define (element:get-elements-by-tag-name-ns element namespace local-name)
+  (define (filter node)
+    (if (and (equal? namespace (element-namespace-uri node))
+	     (string=? local-name (element-local-name node)))
+	+node-filter-filter-accept+
+	+node-filter-filter-skip+))
+  (let ((tw (document:create-tree-walker (node-owner-document element)
+					 element
+					 +node-filter-show-element+
+					 filter)))
+    (tree-walker->node-list tw)))
+
 (define (element:get-elements-by-class-name element class-name) '())
 
 ;;; Attr
