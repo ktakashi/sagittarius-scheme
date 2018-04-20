@@ -47,7 +47,11 @@
     (test-equal '("foo:foo")
 		(map node-node-name
 		     (node-list->list
-		      (element:get-elements-by-tag-name-ns e "urn:foo" "foo")))))
+		      (element:get-elements-by-tag-name-ns e "urn:foo" "foo"))))
+    (test-equal '("root")
+		(map node-node-name
+		     (node-list->list
+		      (element:get-elements-by-class-name e "foo")))))
 
   (test-equal '("foo:bar")
 		(map node-node-name
@@ -58,6 +62,10 @@
 		     (node-list->list
 		      (document:get-elements-by-tag-name-ns document
 							    "urn:foo" "foo"))))
+  (test-equal '("root")
+		(map node-node-name
+		     (node-list->list
+		      (document:get-elements-by-class-name document "foo"))))
   (test-assert (element? (document:get-element-by-id document "id-of-foo")))
   (test-assert (not (document:get-element-by-id document "no-such-id")))
   

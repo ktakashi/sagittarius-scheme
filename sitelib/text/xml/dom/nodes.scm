@@ -502,7 +502,7 @@
   (fields namespace-uri ;; DOMString?
 	  prefix	;; DOMString?
 	  local-name	;; DOMString
-	  class-list	;; DOMTokenList
+	  (mutable class-list)	;; DOMTokenList
 	  attributes ;; NamedNodeMap (hashtable)
 	  shadow-root	;; ShadowRoot? (not supported)
 	  )
@@ -557,10 +557,12 @@
 (define (element:get-attribute-node-ns element namespace local-name) #f)
 (define (element:set-attribute-node! element attr)
   (named-node-map:set-named-item! (element-attributes element) attr)
+  ;; qualified name?
+  (when (equal? "class" (attr-qualified-name attr))
+    (element-class-list-set! element (string-tokenize (attr-value attr))))
   (attr-owner-element-set! attr element))
 (define (element:set-attribute-node-ns! element attr)
-  (named-node-map:set-named-item-ns! (element-attributes element) attr)
-  (attr-owner-element-set! attr element))
+  (element:set-attribute-node! element attr))
 
 (define (element:remove-attribute-node! element attr) )
 (define (element:attach-shadow! element init)
@@ -597,7 +599,7 @@
 	  +node-filter-filter-accept+
 	  +node-filter-filter-skip+))
     (let ((tw (document:create-tree-walker (node-owner-document element)
-					   element
+					   (node-parent-node element)
 					   +node-filter-show-element+
 					   (if prefix
 					       qualified-name-filter
@@ -611,12 +613,21 @@
 	+node-filter-filter-accept+
 	+node-filter-filter-skip+))
   (let ((tw (document:create-tree-walker (node-owner-document element)
-					 element
+					 (node-parent-node element)
 					 +node-filter-show-element+
 					 filter)))
     (tree-walker->node-list tw)))
 
-(define (element:get-elements-by-class-name element class-name) '())
+(define (element:get-elements-by-class-name element class-name)
+  (define (filter node)
+    (if (member class-name (element-class-list node))
+	+node-filter-filter-accept+
+	+node-filter-filter-skip+))
+  (let ((tw (document:create-tree-walker (node-owner-document element)
+					 (node-parent-node element)
+					 +node-filter-show-element+
+					 filter)))
+    (tree-walker->node-list tw)))
 
 ;;; Attr
 (define-record-type attr

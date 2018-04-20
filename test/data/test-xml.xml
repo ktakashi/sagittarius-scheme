@@ -7,7 +7,7 @@
 <!ENTITY entity "entity value">
 <!ENTITY c PUBLIC "-//W3C//TEXT copyright//EN" "http://www.w3.org/xmlspec/copyright.xml">
 ]>
-<root xmlns="urn:boo" xmlns:foo="urn:foo" class="foo"
+<root xmlns="urn:boo" xmlns:foo="urn:foo" class="foo bar"
       foo:bar="bar">
   &entity;
   &#x1F602;
