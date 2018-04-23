@@ -32,8 +32,8 @@
   (test-assert (document-type? (document-doctype document)))
   (test-equal "root" (document-type-name (document-doctype document)))
   ;; empty document type
-  (test-equal "" (document-type-public-id (document-doctype document)))
-  (test-equal "" (document-type-system-id (document-doctype document)))
+  (test-equal #f (document-type-public-id (document-doctype document)))
+  (test-equal #f (document-type-system-id (document-doctype document)))
 
   (test-assert (element? (document-document-element document)))
   (let ((e (document-document-element document)))

@@ -175,8 +175,8 @@
 
 (define-factory (!doctype root-document)
   (define (parse-id id)
-    (cond ((not id) (values "" ""))
-	  ((eq? (car id) 'system) (values "" (cadr id)))
+    (cond ((not id) (values #f #f))
+	  ((eq? (car id) 'system) (values #f (cadr id)))
 	  ((eq? (car id) 'public) (values (cadr id) (caddr id)))
 	  (else (assertion-violation '!doctype "Invalid external ID" id))))
   (define (handle-subset doctype subset)
