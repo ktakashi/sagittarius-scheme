@@ -164,6 +164,8 @@
 	    node-source node-source-set!
 	    char-ref-text? document:create-char-ref-text
 	    element-type? element-type-name element-type-spec
+	    node-children
+	    +element-type-node+
 	    )
     (import (rnrs)
 	    (sagittarius) ;; for define-constant
