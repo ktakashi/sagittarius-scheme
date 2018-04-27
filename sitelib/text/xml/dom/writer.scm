@@ -108,12 +108,27 @@
   (put-string out "\""))
 
 (define-node-writer +text-node+ (text-write t options out)
-  (put-string out (character-data-data t)))
+  (if (char-ref-text? t)
+      (let* ((source (node-source t))
+	     (radix (cadr source))
+	     (value (caddr source)))
+	(case radix
+	  ((10) (put-string out "&#"))
+	  ((16) (put-string out "&#x"))
+	  (else (assertion-violation 'character-ref "invalid radix")))
+	(put-string out (number->string value radix))
+	(put-char out #\;))
+      (put-string out (character-data-data t))))
 
 (define-node-writer +cdata-section-node+ (cdata-writer t options out)
   (put-string out "<![CDATA[")
   (put-string out (character-data-data t))
   (put-string out "]]>"))
+
+(define-node-writer +entity-reference-node+ (entity-reference er options out)
+  (put-char out #\&)
+  (put-string out (node-node-name er))
+  (put-char out #\;))
 
 (define-node-writer +comment-node+ (comment-writer tree options out)
   (put-string out "<!--")
