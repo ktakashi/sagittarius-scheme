@@ -43,6 +43,7 @@
 	    (peg)
 	    (text xml dom parser)
 	    (text xml dom nodes)
+	    (sagittarius)
 	    (sagittarius generators)
 	    (srfi :1 lists)
 	    (srfi :39 parameters)
@@ -244,8 +245,20 @@
 				       (qname-local-part name))
 	(document:create-element root-document name)))
   (define (->attribute-node attribute)
+    (define (merge-attribute-value val)
+      (if (and (string? (car val)) (null? (cdr val)))
+	  (car val)
+	  (let-values (((out extract) (open-string-output-port)))
+	    (define (write-it v)
+	      (cond ((string? v) (put-string out v))
+		    ((and (pair? v) (eq? 'entity-ref (car v)))
+		     (put-string out (expand-entity root-document v)))
+		    (else (assertion-violation
+			   'element "Invalid attribute value" val))))
+	    (for-each write-it val)
+	    (extract))))
     (define (set-value attr)
-      (attr-value-set! attr (cadr attribute))
+      (attr-value-set! attr (merge-attribute-value (cdr attribute)))
       attr)
     (let ((name (car attribute)))
       (cond ((qname? name)
@@ -302,22 +315,30 @@
 	      (merge-text (map dispatch-factory content)))
     elm))
 
-(define-factory (entity-ref root-document)
+(define-constant +predefined-entities+
+  '(("quot" . "\"")
+    ("gt"   . ">")
+    ("lt"   . "<")
+    ("amp"  . "&")
+    ("apos" . "'")))
+(define (expand-entity root-document entity-ref)
   (define name (cadr entity-ref))
+  (let ((entities (document-type-entities (document-doctype root-document))))
+    (cond ((hashtable-ref entities name) =>
+	   (lambda (e)
+	     (cond ((entity-entity-value e))
+		   (else (assertion-violation
+			  'entity-ref "External entity is not supported yet"
+			  name)))))
+	  ((assoc name +predefined-entities+) => cdr)
+	  (else (assertion-violation 'entity-ref "Unknown entity name" name)))))
+
+(define-factory (entity-ref root-document)
+  (define (->text-node value) (document:create-text-node root-document value))
   (if (%expand-entity?)
-      (let ((entities (document-type-entities
-		       (document-doctype root-document))))
-	(cond ((hashtable-ref entities name) =>
-	       (lambda (e)
-		 (cond ((entity-entity-value e) =>
-			(lambda (value)
-			  (document:create-text-node root-document value)))
-		       (else (assertion-violation
-			      'entity-ref "External entity is not supported yet"
-			      name)))))
-	      (else (assertion-violation 'entity-ref "Unknown entity name"
-					 name))))
-      (document:create-entity-reference root-document name)))
+      (->text-node (expand-entity root-document entity-ref))
+      (let ((name (cadr entity-ref)))
+	(document:create-entity-reference root-document name))))
 
 (define-factory (char-ref root-document)
   (let ((s (string (integer->char (caddr char-ref)))))

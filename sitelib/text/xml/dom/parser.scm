@@ -641,13 +641,16 @@
     (define (add/replace-ns name uri)
       (let ((prefix (cadr name))
 	    (current (*current-namespaces*)))
-	;; we don't remove, but first found one is the one to be used.
-	(*current-namespaces* (cons (cons prefix uri) current))
-	`(,name ,uri)))
+	;; it's a bit too ad-hoc but I'm lazy for now...
+	;; this is incase of "urn:foo:&amp;bla" or so
+	(let ((uri (if (null? (cdr uri)) (car uri) uri)))
+	  ;; we don't remove, but first found one is the one to be used.
+	  (*current-namespaces* (cons (cons prefix uri) current)))
+	(cons name uri)))
     ($or ($do (n $xml:nsatt-name) $xml:eq (v $xml:att-value)
-	      ($return (add/replace-ns n (cadr v))))
+	      ($return (add/replace-ns n (cdr v))))
 	 ($do (n $xml:qname) $xml:eq (v $xml:att-value)
-	      ($return `(,n ,(cadr v)))))))
+	      ($return (cons n (cdr v)))))))
 
 (define (fixup-qname qname)
   (cond ((and (qname? qname) (not (qname-namespace qname)))

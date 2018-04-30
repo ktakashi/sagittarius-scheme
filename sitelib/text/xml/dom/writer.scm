@@ -33,6 +33,7 @@
     (export make-dom-writer)
     (import (rnrs)
 	    (text xml dom nodes)
+	    (srfi :14 char-sets)
 	    (srfi :117 list-queues))
 
 (define-record-type xml-write-options
@@ -101,13 +102,31 @@
     (put-string out name)
     (put-char out #\>)))
 
+(define (make-write/escape attr?)
+  (define (write/attr out ch alt)
+    (if attr?
+	(put-string out alt)
+	(put-char out ch)))
+  (lambda (out ch)
+    (case ch
+      ((#\<) (put-string out "&lt;"))
+      ((#\>) (put-string out "&gt;"))
+      ((#\&) (put-string out "&amp;"))
+      ((#\") (write/attr out ch "&quot;"))
+      ((#\') (write/attr out ch "&apos;"))
+      (else (put-char out ch)))))
+(define write/attr-escape (make-write/escape #t))
+
 (define-node-writer +attribute-node+ (attribute-write a options out)
+  (define (write-it ch) (write/attr-escape out ch))
   (put-string out (attr-name a))
   (put-string out "=\"")
-  (put-string out (attr-value a))
+  (string-for-each write-it (attr-value a))
   (put-string out "\""))
 
+(define write/escape (make-write/escape #f))
 (define-node-writer +text-node+ (text-write t options out)
+  (define (write-it ch) (write/escape out ch))
   (if (char-ref-text? t)
       (let* ((source (node-source t))
 	     (radix (cadr source))
@@ -118,7 +137,7 @@
 	  (else (assertion-violation 'character-ref "invalid radix")))
 	(put-string out (number->string value radix))
 	(put-char out #\;))
-      (put-string out (character-data-data t))))
+      (string-for-each write-it (character-data-data t))))
 
 (define-node-writer +cdata-section-node+ (cdata-writer t options out)
   (put-string out "<![CDATA[")
