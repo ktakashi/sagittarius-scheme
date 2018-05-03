@@ -99,7 +99,8 @@
 	    character-data-data character-data-data-set!
 	    character-data-length
 	    processing-instruction-target
-	    
+
+	    make-document
 	    document? document-uri document-document-uri document-origin
 	    document-compat-mode document-character-set document-charset
 	    document-input-encoding document-content-type
@@ -150,7 +151,6 @@
 	    +node-filter-filter-skip+
 
 	    ;; internal use only
-	    (rename (make-document make-root-document))
 	    make-document-type
 	    document:create-element-qname
 	    document:create-attribute-qname
@@ -793,9 +793,12 @@
 	  )
   (protocol
    (lambda (n)
-     (lambda (url)
+     (define (make url)
        ((n +document-node+ :node-name "#document" :base-uri url)
-	"BackCompat" "UTF-8" "text/xml" #f #f #f #f)))))
+	"BackCompat" "UTF-8" "text/xml" #f #f #f #f))
+     (case-lambda
+      (() (make #f))
+      ((url) (make url))))))
 (define document-url node-base-uri)
 (define document-document-uri node-base-uri)
 (define (document-origin document) #f)
@@ -827,8 +830,14 @@
     node))
 
 (define (document:create-element-ns document namespace qualified-name
-				    :optional (option #f)))
+				    :optional (option #f))
+  (let-values (((prefix local-name) (split-qualified-name qualified-name)))
+    (let ((node (make-element namespace (or prefix "") local-name)))
+      (node-owner-document-set! node document)
+      node)))
+;; TBD
 (define (document:create-document-fragment document))
+
 (define (document:create-text-node document data)
   (let ((node (make-text :data data)))
     (node-owner-document-set! node document)
@@ -899,8 +908,10 @@
     (node-owner-document-set! node document)
     node))
 (define (document:create-attribute-ns document namespace qualified-name)
-
-  )
+  (let-values (((prefix local-name) (split-qualified-name qualified-name)))
+    (let ((node (make-attr namespace (or prefix "") local-name)))
+      (node-owner-document-set! node document)
+      node)))
 
 (define (document:create-attribute-qname document namespace prefix local-part)
   (let ((node (make-attr namespace prefix local-part)))
