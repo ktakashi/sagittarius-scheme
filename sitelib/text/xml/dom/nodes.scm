@@ -851,10 +851,20 @@
 
 (define (document:create-element-ns document namespace qualified-name
 				    :optional (option #f))
+  (define (make-xmlns-attr prefix namespace)
+    (let ((xmlns (document:create-attribute-qname
+		  document "http://www.w3.org/2000/xmlns/"
+		  (if prefix "xmlns" "")
+		  (or prefix "xmlns"))))
+      (attr-value-set! xmlns namespace)
+      xmlns))
   (let-values (((prefix local-name) (split-qualified-name qualified-name)))
-    (let ((node (make-element namespace (or prefix "") local-name)))
+    (let ((node (make-element namespace (or prefix "") local-name))
+	  (xmlns (make-xmlns-attr prefix namespace)))
       (node-owner-document-set! node document)
+      (element:set-attribute-node! node xmlns)
       node)))
+
 ;; TBD
 (define (document:create-document-fragment document))
 
