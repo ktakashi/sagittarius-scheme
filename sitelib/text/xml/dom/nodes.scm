@@ -221,6 +221,7 @@
 	  (mutable text-content) ;; DOMString?
 	  ;; not dom internal use
 	  (mutable source)
+	  mutation-event-listeners ;; queue
 	  )
   (protocol (lambda (n)
 	      (lambda (node-type :key (node-name #f)
@@ -243,7 +244,8 @@
 		 child-nodes
 		 node-value
 		 text-content
-		 #f)))))
+		 #f
+		 (list-queue))))))
 (define (node-child-nodes node)
   (make-node-list (node-children node)))
 (define (node-first-child node)
@@ -257,6 +259,9 @@
 
 ;; non dom
 (define (node-has-child? node) (not (list-queue-empty? (node-children node))))
+(define (node:invoke-mutation-event this type node)
+  (define listeners (node-mutation-event-listeners this))
+  (list-queue-for-each (lambda (listener) (listener this type node)) listeners))
 
 ;; at this moment, we do stupidly
 (define (node-previous-sibling node)
@@ -289,7 +294,8 @@
 (define (node:insert-before! node node0 child) node)
 (define (node:append-child! node child)
   (node-parent-node-set! child node)
-  (list-queue-add-back! (node-children node) child))
+  (list-queue-add-back! (node-children node) child)
+  (node:invoke-mutation-event node 'insert child))
 (define (node:replace-child! node node0 child))
 (define (node:remove-child! node child))
 
@@ -794,11 +800,25 @@
   (protocol
    (lambda (n)
      (define (make url)
-       ((n +document-node+ :node-name "#document" :base-uri url)
-	"BackCompat" "UTF-8" "text/xml" #f #f #f #f))
+       (let ((r ((n +document-node+ :node-name "#document" :base-uri url)
+		 "BackCompat" "UTF-8" "text/xml" #f #f #f #f)))
+	 (list-queue-add-back! (node-mutation-event-listeners r)
+			       document-normalizer)
+	 r))
      (case-lambda
       (() (make #f))
       ((url) (make url))))))
+
+(define (handle-insertion document target)
+  (cond ((element? target)
+	 (document-document-element-set! document target))
+	((document-type? target)
+	 (document-doctype-set! document target))))
+
+(define (document-normalizer document event target)
+  (case event
+    ((insert) (handle-insertion document target))))
+
 (define document-url node-base-uri)
 (define document-document-uri node-base-uri)
 (define (document-origin document) #f)
