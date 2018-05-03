@@ -528,13 +528,33 @@
 	   ;; well order doesn't matter anyway
 	   -1))
      (lambda (namespace-uri prefix local-name)
-       ((n +element-node+
-	   :node-name (->tagname prefix local-name))
-	namespace-uri prefix local-name
-	'()
-	(make-named-node-map attr-compare)
-	#f ;; shadow-root later
-	)))))
+       (let ((e ((n +element-node+
+		    :node-name (->tagname prefix local-name))
+		 namespace-uri prefix local-name
+		 '()
+		 (make-named-node-map attr-compare)
+		 #f ;; shadow-root later
+		 )))
+	 (list-queue-add-back! (node-mutation-event-listeners e)
+			       element-namespace-normalizer)
+	 e)))))
+(define (normalize-namespace element child)
+  (define (remove-xmlns! child)
+    (define (->xmlns child)
+      (let ((prefix (element-prefix child)))
+	(if (or (not prefix) (zero? (string-length prefix)))
+	    "xmlns"
+	    (string-append "xmlns:" prefix))))
+    (cond ((element:get-attribute-node child (->xmlns child)) =>
+	   (lambda (attr) (element:remove-attribute-node! child attr)))))
+  (and (equal? (element-namespace-uri element) (element-namespace-uri child))
+       (equal? (element-prefix element) (element-prefix child))
+       (remove-xmlns! child)))
+(define (element-namespace-normalizer element event target)
+  (when (element? target)
+    (case event
+      ((insert) (normalize-namespace element target)))))
+
 (define (element-tag-name element) (node-node-name element))
 (define (element-id element)
   (cond ((element:get-attribute element "id"))
