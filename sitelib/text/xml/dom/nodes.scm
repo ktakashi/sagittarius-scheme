@@ -550,6 +550,7 @@
   (and (equal? (element-namespace-uri element) (element-namespace-uri child))
        (equal? (element-prefix element) (element-prefix child))
        (remove-xmlns! child)))
+
 (define (element-namespace-normalizer element event target)
   (when (element? target)
     (case event
@@ -567,8 +568,7 @@
 (define (element:get-attribute-names element)
   )
 (define (element:get-attribute element qualified-name)
-  (cond ((named-node-map:get-named-item (element-attributes element)
-					qualified-name) => attr-value)
+  (cond ((element:get-attribute-node element qualified-name) => attr-value)
 	(else #f)))
 (define (element:get-attribute-ns element namespace local-name)
   (cond ((named-node-map:get-named-item-ns (element-attributes element)
@@ -581,7 +581,10 @@
 (define (element:has-attribute? element qualified-name))
 (define (element:has-attribute-ns? element namespace local-name))
 
-(define (element:get-attribute-node element qualified-name) #f)
+(define (element:get-attribute-node element qualified-name)
+  (cond ((named-node-map:get-named-item (element-attributes element)
+					qualified-name))
+	(else #f)))
 (define (element:get-attribute-node-ns element namespace local-name) #f)
 (define (element:set-attribute-node! element attr)
   (named-node-map:set-named-item! (element-attributes element) attr)
@@ -592,7 +595,9 @@
 (define (element:set-attribute-node-ns! element attr)
   (element:set-attribute-node! element attr))
 
-(define (element:remove-attribute-node! element attr) )
+(define (element:remove-attribute-node! element attr)
+  (named-node-map:remove-item! (element-attributes element) attr))
+
 (define (element:attach-shadow! element init)
   (assertion-violation 'element:attach-shadow! "not supported"))
 
@@ -713,12 +718,14 @@
   (treemap-set! (named-node-map-values map) attr attr))
 (define (named-node-map:remove-named-item! map qualified-name)
   (cond ((named-node-map:get-named-item map qualified-name) =>
-	 (lambda (attr)
-	   (treemap-delete! (named-node-map-values map) attr)))))
+	 (lambda (attr) (named-node-map:remove-item! map attr)))))
 (define (named-node-map:remove-named-item-ns! map namespace local-name)
   (cond ((named-node-map:get-named-item-ns map namespace local-name) =>
-	 (lambda (attr)
-	   (treemap-delete! (named-node-map-values map) attr)))))
+	 (lambda (attr) (named-node-map:remove-item! map attr)))))
+
+;; non dom for convenience
+(define (named-node-map:remove-item! map attr)
+  (treemap-delete! (named-node-map-values map) attr))
 
 (define-record-type entity-reference
   (parent node)
@@ -821,7 +828,7 @@
    (lambda (n)
      (define (make url)
        (let ((r ((n +document-node+ :node-name "#document" :base-uri url)
-		 "BackCompat" "UTF-8" "text/xml" #f #f #f #f)))
+		 "BackCompat" "UTF-8" "text/xml" #f #f #f "1.0")))
 	 (list-queue-add-back! (node-mutation-event-listeners r)
 			       document-normalizer)
 	 r))

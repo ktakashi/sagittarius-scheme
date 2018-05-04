@@ -64,11 +64,12 @@
     (put-string out "\""))
   (put-string out " encoding=\"")
   (put-string out (document-character-set tree))
-  (put-string out "\"")	      
-  (when (document-xml-version tree)
-    (put-string out " standalone=\"")
-    (put-string out (if (document-xml-standalone? tree) "yes" "no"))
-    (put-string out "\""))
+  (put-string out "\"")
+
+  (put-string out " standalone=\"")
+  (put-string out (if (document-xml-standalone? tree) "yes" "no"))
+  (put-string out "\"")
+  
   (put-string out "?>"))
 
 (define (write-node tree options out)
