@@ -521,12 +521,27 @@
 	   localname
 	   (string-append prefix ":" localname)))
      (define (attr-compare aa ab)
-       (or (and (eq? (attr-owner-element aa) (attr-owner-element ab))
-		(string=? (attr-namespace-uri aa) (attr-namespace-uri ab))
-		(string=? (attr-name aa) (attr-name ab))
-		0)
-	   ;; well order doesn't matter anyway
-	   -1))
+       (define (compare-string a b)
+	 (cond ((string<? a b) -1)
+	       ((string>? a b) 1)
+	       (else 0)))
+       (unless (eq? (attr-owner-element aa) (attr-owner-element ab))
+	 (assertion-violation 'element:named-node-map
+			      "invalid element is set to the attribute"
+			      aa ab))
+       ;; order:
+       ;;  1 xmlns
+       ;;  2 alphabetical
+       (cond ((and (string=? (attr-namespace-uri aa) (attr-namespace-uri ab))
+		   (string=? (attr-name aa) (attr-name ab))
+		   0))
+	     ((and (string-prefix? "xmlns" (attr-name aa))
+		   (string-prefix? "xmlns" (attr-name ab)))
+	      (compare-string (attr-name aa) (attr-name ab)))
+	     ((string-prefix? "xmlns" (attr-name aa)) -1) 
+	     ((string-prefix? "xmlns" (attr-name ab)) 1)
+	     (else (compare-string (attr-name aa) (attr-name ab)))))
+     
      (lambda (namespace-uri prefix local-name)
        (let ((e ((n +element-node+
 		    :node-name (->tagname prefix local-name))
@@ -575,15 +590,19 @@
 					   namespace local-name) => attr-value)
 	(else #f)))
 (define (element:set-attribute! element qualified-name value)
-  (let ((attr (document:create-attribute (node-owner-document element) qualified-name)))
+  (define doc (node-owner-document element))
+  (let ((attr (document:create-attribute doc qualified-name)))
     (attr-value-set! attr value)
     (element:set-attribute-node! element attr)))
+
 (define (element:set-attribute-ns! element namespace qualified-name value)
-  (let ((attr (document:create-attribute-ns (node-owner-document element)
-					    namespace
-					    qualified-name)))
-    (attr-value-set! attr value)
-    (element:set-attribute-node-ns! element attr)))
+  (define doc (node-owner-document element))
+  (let-values (((prefix local-name) (split-qualified-name qualified-name)))
+    (let ((attr (document:create-attribute-ns doc namespace qualified-name))
+	  (xmlns (make-xmlns-attr doc prefix namespace)))
+      (attr-value-set! attr value)
+      (element:set-attribute-node-ns! element xmlns)
+      (element:set-attribute-node-ns! element attr))))
 (define (element:remove-attribute! element qualified-name) )
 (define (element:remove-attribute-ns! element namespace local-name) )
 (define (element:has-attribute? element qualified-name)
@@ -597,11 +616,12 @@
 	(else #f)))
 (define (element:get-attribute-node-ns element namespace local-name) #f)
 (define (element:set-attribute-node! element attr)
+  ;; first owner incase of duplicated attribute (e.g. xmlns:bla)
+  (attr-owner-element-set! attr element)
   (named-node-map:set-named-item! (element-attributes element) attr)
   ;; qualified name?
   (when (equal? "class" (attr-qualified-name attr))
-    (element-class-list-set! element (string-tokenize (attr-value attr))))
-  (attr-owner-element-set! attr element))
+    (element-class-list-set! element (string-tokenize (attr-value attr)))))
 (define (element:set-attribute-node-ns! element attr)
   (element:set-attribute-node! element attr))
 
@@ -886,18 +906,19 @@
     (node-owner-document-set! node document)
     node))
 
+;; helper
+(define (make-xmlns-attr document prefix namespace)
+  (let ((xmlns (document:create-attribute-qname
+		document "http://www.w3.org/2000/xmlns/"
+		(if prefix "xmlns" "")
+		(or prefix "xmlns"))))
+    (attr-value-set! xmlns namespace)
+    xmlns))
 (define (document:create-element-ns document namespace qualified-name
 				    :optional (option #f))
-  (define (make-xmlns-attr prefix namespace)
-    (let ((xmlns (document:create-attribute-qname
-		  document "http://www.w3.org/2000/xmlns/"
-		  (if prefix "xmlns" "")
-		  (or prefix "xmlns"))))
-      (attr-value-set! xmlns namespace)
-      xmlns))
   (let-values (((prefix local-name) (split-qualified-name qualified-name)))
     (let ((node (make-element namespace (or prefix "") local-name))
-	  (xmlns (make-xmlns-attr prefix namespace)))
+	  (xmlns (make-xmlns-attr document prefix namespace)))
       (node-owner-document-set! node document)
       (element:set-attribute-node! node xmlns)
       node)))
