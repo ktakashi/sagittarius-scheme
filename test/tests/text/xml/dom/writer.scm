@@ -1,6 +1,7 @@
 (import (rnrs)
 	(text xml dom writer)
 	(text xml dom nodes)
+	(srfi :1)
 	(srfi :64))
 
 (test-begin "DOM writer")

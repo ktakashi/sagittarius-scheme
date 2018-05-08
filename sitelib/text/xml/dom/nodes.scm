@@ -560,8 +560,7 @@
 	(if (or (not prefix) (zero? (string-length prefix)))
 	    "xmlns"
 	    (string-append "xmlns:" prefix))))
-    (cond ((element:get-attribute-node child (->xmlns child)) =>
-	   (lambda (attr) (element:remove-attribute-node! child attr)))))
+    (element:remove-attribute! child (->xmlns child)))
   (and (equal? (element-namespace-uri element) (element-namespace-uri child))
        (equal? (element-prefix element) (element-prefix child))
        (remove-xmlns! child)))
@@ -581,13 +580,16 @@
 (define (element:has-attributes? element)
   (not (zero? (named-node-map-length (element-attributes element)))))
 (define (element:get-attribute-names element)
-  )
+  (named-node-map:fold (element-attributes element) '()
+		       (lambda (key-attr value-attr r)
+			 (cons (attr-name key-attr) r))))
+
 (define (element:get-attribute element qualified-name)
   (cond ((element:get-attribute-node element qualified-name) => attr-value)
 	(else #f)))
 (define (element:get-attribute-ns element namespace local-name)
-  (cond ((named-node-map:get-named-item-ns (element-attributes element)
-					   namespace local-name) => attr-value)
+  (cond ((element:get-attribute-node-ns (element-attributes element)
+					namespace local-name) => attr-value)
 	(else #f)))
 (define (element:set-attribute! element qualified-name value)
   (define doc (node-owner-document element))
@@ -603,18 +605,27 @@
       (attr-value-set! attr value)
       (element:set-attribute-node-ns! element xmlns)
       (element:set-attribute-node-ns! element attr))))
-(define (element:remove-attribute! element qualified-name) )
-(define (element:remove-attribute-ns! element namespace local-name) )
+(define (element:remove-attribute! element qualified-name)
+  (cond ((element:get-attribute-node element qualified-name) =>
+	 (lambda (attr) (element:remove-attribute-node! element attr)))))
+(define (element:remove-attribute-ns! element namespace local-name)
+  (cond ((element:get-attribute-node-ns element namespace local-name) =>
+	 (lambda (attr) (element:remove-attribute-node! element attr)))))
 (define (element:has-attribute? element qualified-name)
-  )
+  ;; lazy
+  (and (element:get-attribute-node element qualified-name) #t))
 (define (element:has-attribute-ns? element namespace local-name)
-  )
+  ;; lazy
+  (and (element:get-attribute-node-ns element namespace local-name) #t))
 
 (define (element:get-attribute-node element qualified-name)
   (cond ((named-node-map:get-named-item (element-attributes element)
 					qualified-name))
 	(else #f)))
-(define (element:get-attribute-node-ns element namespace local-name) #f)
+(define (element:get-attribute-node-ns element namespace local-name)
+  (cond ((named-node-map:get-named-item-ns (element-attributes element)
+					   namespace local-name))
+	(else #f)))
 (define (element:set-attribute-node! element attr)
   ;; first owner incase of duplicated attribute (e.g. xmlns:bla)
   (attr-owner-element-set! attr element)
@@ -711,8 +722,8 @@
 		    :node-value ""
 		    :text-content "")
 		 namespace-uri prefix local-name #f #t)))))
-(define (attr-name attr) (node-node-name attr))
-(define (attr-value attr) (node-node-value attr))
+(define attr-name node-node-name)
+(define attr-value node-node-value)
 (define (attr-value-set! attr value)
   (node-node-value-set! attr value)
   (node-text-content-set! attr value))
@@ -756,7 +767,10 @@
 ;; non dom for convenience
 (define (named-node-map:remove-item! map attr)
   (treemap-delete! (named-node-map-values map) attr))
+(define (named-node-map:fold map seed proc)
+  (treemap-fold proc (named-node-map-values map) seed))
 
+;; deprecated but we support this.
 (define-record-type entity-reference
   (parent node)
   (protocol (lambda (n)

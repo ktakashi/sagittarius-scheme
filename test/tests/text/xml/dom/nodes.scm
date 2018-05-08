@@ -76,7 +76,19 @@
     ;; boo is the current node
     (test-equal "boo" (node-node-name (tree-walker-current-node tw)))
     (test-equal '("foo:bar" "foo:foo" "root")
-		(tree-walker-unfold tw tree-walker:previous-node)))
-)
+		(tree-walker-unfold tw tree-walker:previous-node))))
+
+(let* ((document (make-document))
+       (e (document:create-element-ns document "urn:foo" "foo:foo")))
+  (node:append-child! document e)
+  (element:set-attribute-ns! e "urn:foo" "foo:bla" "blabla")
+  (element:set-attribute! e "foo:buz" "buzzz")
+  (node:append-child! e (document:create-element-ns document
+						    "urn:foo" "foo:bar"))
+  (test-assert (element:has-attributes? e))
+  (test-assert (element:has-attribute? e "foo:bla"))
+  (test-assert (element:has-attribute-ns? e "urn:foo" "bla"))
+  (test-assert (lset= string=? '("xmlns:foo" "foo:bla" "foo:buz")
+		      (element:get-attribute-names e))))
 
 (test-end)
