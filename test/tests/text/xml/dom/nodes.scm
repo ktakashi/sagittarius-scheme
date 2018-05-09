@@ -40,6 +40,10 @@
     (test-equal "root" (node-node-name e))
     (test-equal "urn:boo" (element-namespace-uri e))
 
+    (test-equal '("root")
+		(map node-node-name
+		     (node-list->list
+		      (element:get-elements-by-tag-name e "root"))))
     (test-equal '("foo:bar")
 		(map node-node-name
 		     (node-list->list
@@ -53,6 +57,10 @@
 		     (node-list->list
 		      (element:get-elements-by-class-name e "foo")))))
 
+  (test-equal '("root")
+	      (map node-node-name
+		   (node-list->list
+		    (document:get-elements-by-tag-name document "root"))))
   (test-equal '("foo:bar")
 		(map node-node-name
 		     (node-list->list
@@ -68,15 +76,54 @@
 		      (document:get-elements-by-class-name document "foo"))))
   (test-assert (element? (document:get-element-by-id document "id-of-foo")))
   (test-assert (not (document:get-element-by-id document "no-such-id")))
-  
-  (let ((tw (document:create-tree-walker document document
-					 +node-filter-show-element+)))
-    (test-equal '("root" "foo:foo" "foo:bar" "boo")
-		(tree-walker-unfold tw tree-walker:next-node))
-    ;; boo is the current node
-    (test-equal "boo" (node-node-name (tree-walker-current-node tw)))
-    (test-equal '("foo:bar" "foo:foo" "root")
-		(tree-walker-unfold tw tree-walker:previous-node))))
+
+  (let ()
+    (define (test-walker tw expected-next expected-previous
+			 :optional (current "boo"))
+      (test-equal expected-next
+		  (tree-walker-unfold tw tree-walker:next-node))
+      ;; boo is the current node
+      (test-equal current (node-node-name (tree-walker-current-node tw)))
+      (test-equal expected-previous
+		  (tree-walker-unfold tw tree-walker:previous-node)))
+    (define (test-iterator tw expected-next expected-previous
+			   :optional (current "boo"))
+      (test-equal expected-next
+		  (tree-walker-unfold tw node-iterator:next-node))
+      ;; boo is the current node
+      (test-equal current (node-node-name (node-iterator-reference-node tw)))
+      (test-equal expected-previous
+		  (tree-walker-unfold tw node-iterator:previous-node)))
+    (test-walker (document:create-tree-walker document document
+					      +node-filter-show-element+)
+		 '("root" "foo:foo" "foo:bar" "boo")
+		 '("foo:bar" "foo:foo" "root"))
+    (test-walker (document:create-tree-walker document
+		   (document-document-element document)
+		   +node-filter-show-element+)
+		 '("foo:foo" "foo:bar" "boo")
+		 '("foo:bar" "foo:foo" "root"))
+    (test-walker (document:create-tree-walker document
+		   (document:get-element-by-id document "id-of-foo")
+		   +node-filter-show-element+)
+		   '("foo:bar")
+		   '("foo:foo")
+		   "foo:bar")
+    (test-iterator (document:create-node-iterator document document
+						  +node-filter-show-element+)
+		   '("root" "foo:foo" "foo:bar" "boo")
+		   '("boo" "foo:bar" "foo:foo" "root"))
+    (test-iterator (document:create-node-iterator document
+		     (document-document-element document)
+		     +node-filter-show-element+)
+		   '("root" "foo:foo" "foo:bar" "boo")
+		   '("boo" "foo:bar" "foo:foo" "root"))
+    (test-iterator (document:create-node-iterator document
+		     (document:get-element-by-id document "id-of-foo")
+		     +node-filter-show-element+)
+		   '("foo:foo" "foo:bar")
+		   '("foo:bar" "foo:foo")
+		   "foo:bar")))
 
 (let* ((document (make-document))
        (e (document:create-element-ns document "urn:foo" "foo:foo")))
