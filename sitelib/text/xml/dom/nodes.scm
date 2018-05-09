@@ -44,11 +44,11 @@
 
 	    node? node-node-type node-node-name node-base-uri
 	    node-connected? node-owner-document
-	    node-parent-node node-parent-node-set!
-	    node-parent-element node-parent-element-set!
+	    node-parent-node node-parent-element
 	    node-child-nodes node-first-child
 	    node-last-child node-previous-sibling node-next-sibling
 	    node-node-value node-text-content
+	    node:has-child-nodes?
 	    node:get-root-node node:normalize! node:clone-node
 	    node:equal-node? node:same-node? node:compare-document-position
 	    node:contains? node:lookup-prefix node:lookup-namespace-uri
@@ -150,6 +150,13 @@
 	    +node-filter-filter-reject+
 	    +node-filter-filter-skip+
 
+	    node-iterator?
+	    node-iterator-root node-iterator-reference-node
+	    node-iterator-pointer-before-reference-node
+	    node-iterator-what-to-show node-iterator-filter
+	    node-iterator:next-node node-iterator:previous-node
+	    node-iterator:detach
+	    
 	    ;; internal use only
 	    make-document-type
 	    document:create-element-qname
@@ -257,8 +264,9 @@
     (and (not (list-queue-empty? children))
 	 (list-queue-back children))))
 
+(define (node:has-child-nodes? node)
+  (not (list-queue-empty? (node-children node))))
 ;; non dom
-(define (node-has-child? node) (not (list-queue-empty? (node-children node))))
 (define (node:invoke-mutation-event this type node)
   (define listeners (node-mutation-event-listeners this))
   (list-queue-for-each (lambda (listener) (listener this type node)) listeners))
@@ -299,7 +307,6 @@
 (define (node:replace-child! node node0 child))
 (define (node:remove-child! node child))
 
-
 ;; tree-walker
 (define-record-type tree-walker
   (fields root
@@ -321,6 +328,7 @@
   (define filter (tree-walker-filter tw))
   (define root (tree-walker-root tw))
   (define current-node (tree-walker-current-node tw))
+  (define what-to-show (tree-walker-what-to-show tw))
   (define (get-child node)
     (if (eq? type 'first)
 	(node-first-child node)
@@ -336,7 +344,7 @@
 	   parent)))
   (let loop ((node (get-child current-node)))
     (and node
-	 (let ((v (filter tw node)))
+	 (let ((v (filter what-to-show node)))
 	   (cond ((accepted? v)
 		  (tree-walker-current-node-set! tw node)
 		  node)
@@ -352,6 +360,7 @@
   (define filter (tree-walker-filter tw))
   (define root (tree-walker-root tw))
   (define current-node (tree-walker-current-node tw))
+  (define what-to-show (tree-walker-what-to-show tw))
   (define (get-sibling node)
     (if (eq? type 'next)
 	(node-next-sibling node)
@@ -363,7 +372,7 @@
   (and (not (eq? current-node root))
        (let loop ((node current-node))
 	 (let* ((new-node (get-sibling current-node))
-		(v (filter tw new-node)))
+		(v (filter what-to-show new-node)))
 	   (if new-node
 	       (cond ((accepted? v)
 		      (tree-walker-current-node-set! tw new-node)
@@ -376,7 +385,7 @@
 		   ;; I think this is weird...
 		   (let ((parent (node-parent-node node)))
 		     (and parent (not (eq? parent root))
-			  (let ((v (filter tw parent)))
+			  (let ((v (filter what-to-show parent)))
 			    (and (rejected? v)
 				 (loop parent)))))))))))
 
@@ -388,15 +397,16 @@
   (define filter (tree-walker-filter tw))
   (define root (tree-walker-root tw))
   (define current-node (tree-walker-current-node tw))
+  (define what-to-show (tree-walker-what-to-show tw))
   (define (find-child node result)
-    (if (or (rejected? result) (not (node-has-child? node)))
+    (if (or (rejected? result) (not (node:has-child-nodes? node)))
 	(values node result)
 	(let ((child (node-last-child node)))
-	  (find-child child (filter tw child)))))
+	  (find-child child (filter what-to-show child)))))
   (define (find-sibling node)
     (let ((sibling (node-previous-sibling node)))
       (or (and sibling
-	       (let ((result (filter tw sibling)))
+	       (let ((result (filter what-to-show sibling)))
 		 (let-values (((node result) (find-child sibling result)))
 		   (if (accepted? result)
 		       (values node #t)
@@ -410,7 +420,7 @@
 	    ((eq? node root) #f)
 	    (else
 	     (let ((node (node-parent-node node)))
-	       (cond ((accepted? (filter tw node))
+	       (cond ((accepted? (filter what-to-show node))
 		      (tree-walker-current-node-set! tw node)
 		      node)
 		     (else (loop node)))))))))
@@ -419,11 +429,12 @@
   (define filter (tree-walker-filter tw))
   (define root (tree-walker-root tw))
   (define current-node (tree-walker-current-node tw))
+  (define what-to-show (tree-walker-what-to-show tw))
   (define (find-child node result)
     (cond ((rejected? result) (values node result #f))
 	  ((node-first-child node) =>
 	   (lambda (child)
-	     (let ((result (filter tw child)))
+	     (let ((result (filter what-to-show child)))
 	       (if (accepted? result)
 		   (values node result #t)
 		   (find-child child result)))))
@@ -442,11 +453,64 @@
 	    (else
 	     (let ((node (find-sibling node)))
 	       (and node
-		    (let ((result (filter tw node)))
+		    (let ((result (filter what-to-show node)))
 		      (cond ((accepted? result)
 			     (tree-walker-current-node-set! tw node)
 			     node)
 			    (else (loop node result)))))))))))
+
+(define-record-type node-iterator
+  (fields root
+	  (mutable reference-node)
+	  (mutable pointer-before-reference-node)
+	  what-to-show
+	  filter)
+  (protocol (lambda (p)
+	      (lambda (root what-to-show filter)
+		(p root root #t what-to-show filter)))))
+
+(define (node-iterator:traverse ni next?)
+  (define root (node-iterator-root ni))
+  (define filter (node-iterator-filter ni))
+  (define what-to-show (node-iterator-what-to-show tw))
+
+  (define (next-node node)
+    (define (find-parent-sibling parent)
+      (and parent (not (eq? parent root))
+	   (or (node-next-sibling parent)
+	       (find-parent-sibling (node-parent-node parent)))))
+    (if node
+	(cond ((node:has-child-nodes? node) (node-first-child node))
+	      ((eq? node root) #f)
+	      (else (let ((sib (node-next-sibling node)))
+		      (or sib
+			  (find-parent-sibling (node-parent-node node))))))
+	root))
+  (define (previous-node node)
+    (define (find-child-node node)
+      (if (node:has-child-nodes? node)
+	  (find-child-node (node-last-child node))
+	  node))
+    (if node
+	(or (node-previous-sibling node)
+	    (and (node:has-child-nodes? node) (find-child-node node)))
+	root))
+  (define (return node before-node)
+    (node-iterator-reference-node-set! ni node)
+    (node-iterator-pointer-before-reference-node-set! ni before-node)
+    node)
+  (let loop ((node (node-iterator-reference-node ni))
+	     (before-node (node-iterator-pointer-before-reference-node ni)))
+    (let-values (((node before-node)
+		  (if next? (next-node node) (previous-node node))))
+      (let ((result (filter what-to-show node)))
+	(if (accepted? result)
+	    (return node before-node)
+	    (loop node before-node))))))
+(define (node-iterator:next-node ni) (node-iterator:traverse ni #t))
+(define (node-iterator:previous-node ni) (node-iterator:traverse ni #f))
+;; noop
+(define (node-iterator:detach ni))
 
 (define (accepted? v) (eqv? v +node-filter-filter-accept+))
 (define (rejected? v) (eqv? v +node-filter-filter-reject+))
@@ -568,7 +632,9 @@
 (define (element-namespace-normalizer element event target)
   (when (element? target)
     (case event
-      ((insert) (normalize-namespace element target)))))
+      ((insert)
+       (when (node? target) (node-parent-element-set! target element))
+       (normalize-namespace element target)))))
 
 (define (element-tag-name element) (node-node-name element))
 (define (element-id element)
@@ -1025,14 +1091,14 @@
 
 (define (wrap-filter filter)
   (let ((active #f))
-    (lambda (tw node)
+    (lambda (what-to-show node)
       (define (check-bit node tw)
 	(let ((nth (- (node-node-type node) 1)))
-	  (bitwise-bit-set? (tree-walker-what-to-show tw) nth)))
+	  (bitwise-bit-set? what-to-show nth)))
       ;; preprocess
       (when active
 	(assertion-violation 'tree-filter "filter process is active"))
-      (if (check-bit node tw)
+      (if (check-bit node what-to-show)
 	  (or (and filter
 		   (dynamic-wind
 		       (lambda () (set! active #t))
@@ -1046,12 +1112,13 @@
 	      +node-filter-filter-accept+)
 	  +node-filter-filter-skip+))))
 (define (document:create-node-iterator document root
-				       :optional (what-to-show #xFFFFFFFF)
-					         (filter #f)))
+	   :optional (what-to-show +node-filter-show-all+)
+		     (filter #f))
+  (make-node-iterator root what-to-show (wrap-filter filter)))
 
 (define (document:create-tree-walker document root
-				     :optional (what-to-show +node-filter-show-all+)
-				     (filter #f))
+	   :optional (what-to-show +node-filter-show-all+)
+		     (filter #f))
   (make-tree-walker root what-to-show (wrap-filter filter)))
 
 )

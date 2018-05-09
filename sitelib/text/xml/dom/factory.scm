@@ -308,10 +308,7 @@
     (define elm (make-element name))
     (for-each (lambda (attr) (element:set-attribute-node-ns! elm attr))
 	      (filter-map ->attribute-node (cdr attributes)))
-    (for-each (lambda (node)
-		(node-parent-node-set! node elm)
-		(node-parent-element-set! node elm)
-		(node:append-child! elm node))
+    (for-each (lambda (node) (node:append-child! elm node))
 	      (merge-text (map dispatch-factory content)))
     elm))
 
