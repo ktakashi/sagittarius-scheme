@@ -299,13 +299,56 @@
 (define (node:lookup-prefix node namespace))
 (define (node:lookup-namespace-uri node prefix))
 (define (node:default-namespace node namespace))
-(define (node:insert-before! node node0 child) node)
+;; mutations
+(define (find-index lst e)
+  (let loop ((lst lst) (i 0))
+    (cond ((null? lst) #f)
+	  ((eq? (car lst) e) i)
+	  (else (loop (cdr lst) (+ i 1))))))
+
+(define (node:insert-before! node node0 child) 
+  (node-parent-node-set! child node)
+  (let ((children (node-children node)))
+    (cond ((find-index (list-queue-list children) node0) =>
+	   (lambda (index)
+	     (if (zero? index) 
+		 (list-queue-add-front! children child)
+		 ;; TODO do the destructive way
+		 (let-values (((head tail) 
+			       (split-at (list-queue-list children) index)))
+		   (list-queue-set-list! children `(,@head ,child ,@tail))))))
+	  (else (list-queue-add-back! (node-children node) child)))
+    (node:invoke-mutation-event node 'insert child)))
+
 (define (node:append-child! node child)
   (node-parent-node-set! child node)
   (list-queue-add-back! (node-children node) child)
   (node:invoke-mutation-event node 'insert child))
-(define (node:replace-child! node node0 child))
-(define (node:remove-child! node child))
+(define (node:replace-child! node node0 child)
+  (node-parent-node-set! child node)
+  (list-queue-map! 
+   (lambda (n) 
+     (if (eq? n node0)
+	 (begin 
+	   (node:invoke-mutation-event node 'remove node0)
+	   child)
+	 n))
+   (node-children node))
+  (node:invoke-mutation-event node 'insert child))
+
+(define (node:remove-child! node child)
+  (define children (node-children node))
+  (cond ((find-index (list-queue-list children) child) =>
+	 (lambda (index)
+	   (cond ((zero? index) (list-queue-remove-front! children))
+		 ((= index (- (list-queue-length children)))
+		  (list-queue-remove-back! children))
+		 ;; TODO do the destructive way
+		 (else
+		  (let-values (((head tail) 
+				(split-at (list-queue-list children) index)))
+		    (list-queue-set-list! children `(,@head ,@(cdr tail))))))
+	   (node:invoke-mutation-event node 'remove node0)))))
 
 ;; tree-walker
 (define-record-type tree-walker
@@ -646,7 +689,10 @@
     (case event
       ((insert)
        (when (node? target) (node-parent-element-set! target element))
-       (normalize-namespace element target)))))
+       (normalize-namespace element target))
+      ((remove)
+       (node-parent-node-set! target #f)
+       (node-parent-element-set! target #f)))))
 
 (define (element-tag-name element) (node-node-name element))
 (define (element-id element)
@@ -966,7 +1012,10 @@
 
 (define (document-normalizer document event target)
   (case event
-    ((insert) (handle-insertion document target))))
+    ((insert) (handle-insertion document target))
+    ((remove)
+     (node-parent-node-set! target #f)
+     (node-parent-element-set! target #f))))
 
 (define document-url node-base-uri)
 (define document-document-uri node-base-uri)
