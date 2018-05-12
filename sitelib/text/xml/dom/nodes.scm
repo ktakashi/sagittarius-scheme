@@ -177,6 +177,7 @@
     (import (rnrs)
 	    (sagittarius) ;; for define-constant
 	    (sagittarius treemap)
+	    (srfi :1 lists)
 	    (srfi :13 strings)
 	    (srfi :117 list-queues)
 	    (text xml dom events))
@@ -348,7 +349,7 @@
 		  (let-values (((head tail) 
 				(split-at (list-queue-list children) index)))
 		    (list-queue-set-list! children `(,@head ,@(cdr tail))))))
-	   (node:invoke-mutation-event node 'remove node0)))))
+	   (node:invoke-mutation-event node 'remove child)))))
 
 ;; tree-walker
 (define-record-type tree-walker
