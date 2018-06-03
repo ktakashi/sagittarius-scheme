@@ -226,10 +226,25 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
     SSL_set_tlsext_host_name(data->ssl, hostname);
   }
   /* For now we expect the argument to be properly formatted TLS packet. */
-#if (OPENSSL_VERSION_NUMBER >= 0x10002000L)
+#if (OPENSSL_VERSION_NUMBER >= 0x1000200L)
   if (SG_BVECTORP(alpn)) {
-    SSL_set_alpn_protos(data->ssl, SG_BVECTOR_ELEMENTS(alpn),
-			SG_BVECTOR_SIZE(alpn));
+    /* decode the TLS packet to vector */
+    char *vector;
+    int len = 0, i = 4;
+#ifdef HAVE_ALLOCA
+    vector = (char *)alloca(SG_BVECTOR_SIZE(alpn) - 2);
+#else
+    vector = SG_NEW_ATOMIC2(char *, SG_BVECTOR_SIZE(alpn) - 2);
+#endif
+    for (; i < SG_BVECTOR_SIZE(alpn);) {
+      int j, l;
+      l = SG_BVECTOR_ELEMENT(alpn, i++);
+      vector[len++] = l;
+      for (j = 0; j < l; j++) {
+	vector[len++] = SG_BVECTOR_ELEMENT(alpn, i++);
+      }
+    }
+    SSL_set_alpn_protos(data->ssl, (const unsigned char *)vector, len);
   }
 #endif
   SSL_set_fd(data->ssl, socket->socket);

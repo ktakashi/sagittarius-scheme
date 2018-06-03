@@ -201,7 +201,7 @@
 	      ,@(if alpn `(:alpn ,alpn) '()))
 	    (let* ((e (car extensions))
 		   (t (slot-ref e 'type))
-		   (d (slot-ref e 'date)))
+		   (d (slot-ref e 'data)))
 	      (cond ((eqv? *server-name* t)
 		     (loop (cdr extensions) (retrieve-sni d) alpn))
 		    ((eqv? *application-layer-protocol-negotiation* t)
