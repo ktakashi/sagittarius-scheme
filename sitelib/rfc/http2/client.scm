@@ -219,6 +219,7 @@
 	   (,+http2-settings-enable-push+ 0)
 	   ;; no less than 100 huh?
 	   (,+http2-settings-max-concurrent-streams+ 100)))
+	;; ACK might be handled on request invocation
 	(http2-handle-server-settings conn))))
 
   (define (close-http2-client-connection! conn)
@@ -238,26 +239,27 @@
 			 ;; we know context is not needed and 
 			 ;; this won't be the end of stream
 			 #f #f)))
+  ;; return #t if the frame is not ACK otherwise #f
   (define (http2-apply-server-settings conn frame)
     (define in/out (%h2-source conn))
     (define settings (http2-frame-settings-settings frame))
     ;; Ignore ACK SETTINGS
-    (unless (bitwise-bit-set? (http2-frame-flags frame) 0)
-      ;; TODO handle it properly
-      (let loop ((settings settings))
-	(unless (null? settings)
-	  (cond ((= (caar settings) +http2-settings-header-table-size+)
-		 ;; initial request HPACK table size.
-		 (update-hpack-table-size! (%h2-req-hpack conn) 
-					   (cadar settings)))
-		)
-	  (loop (cdr settings))))
-      ;; send SETTING with ACK
-      (write-http2-frame in/out (%h2-buffer conn)
-			 (make-http2-frame-settings 1 0 '())
-			 ;; we know context is not needed and 
-			 ;; this won't be the end of stream
-			 #f #f)))
+    (and (not (bitwise-bit-set? (http2-frame-flags frame) 0))
+	 ;; TODO handle it properly
+	 (let loop ((settings settings))
+	   (cond ((null? settings)
+		  ;; send SETTING with ACK
+		  (write-http2-frame in/out (%h2-buffer conn)
+				     (make-http2-frame-settings 1 0 '())
+				     ;; we know context is not needed and 
+				     ;; this won't be the end of stream
+				     #f #f))
+		 (else
+		  (cond ((= (caar settings) +http2-settings-header-table-size+)
+			 ;; initial request HPACK table size.
+			 (update-hpack-table-size! (%h2-req-hpack conn) 
+						   (cadar settings))))
+		  (loop (cdr settings)))))))
   ;; should only be called when the next frame is SETTINGS.
   ;; (e.g. during negotiation)
   (define (http2-handle-server-settings conn)
@@ -338,19 +340,20 @@
       ;; ended.
       (let loop ((results '()) (redirected-sids '()) (redirected-results '()))
 	(define (continue/quit results sid? redirect?)
-	  (if (http2-has-pending-streams? conn)
-	      (loop results 
-		    (if sid? (cons sid? redirected-sids) redirected-sids)
-		    (if redirect? 
-			(append redirect? redirected-results)
-			redirected-results))
-	      ;; drop stream identifier
-	      (apply append (filter-map 
-			     (lambda (slot) 
-			       (and (not (memv (car slot) redirected-sids))
-				    (list (cadr slot) (cddr slot))))
-			     results)
-		     redirected-results)))
+	  (cond ((http2-has-pending-streams? conn)
+		 (loop results 
+		       (if sid? (cons sid? redirected-sids) redirected-sids)
+		       (if redirect? 
+			   (append redirect? redirected-results)
+			   redirected-results)))
+		(else 
+		 ;; drop stream identifier
+		 (apply append (filter-map 
+				(lambda (slot) 
+				  (and (not (memv (car slot) redirected-sids))
+				       (list (cadr slot) (cddr slot))))
+				results)
+			redirected-results))))
 	(let* ((frame (read-frame))
 	       (sid   (http2-frame-stream-identifier frame))
 	       (stream (hashtable-ref streams sid #f)))
@@ -485,14 +488,18 @@
   ;;      for now.
   (define (http2-headers-sender . headers)
     (lambda (stream end-stream?)
-      (http2-stream-header-sender-set! stream
-       (lambda (stream conv)
-	 (let* ((headers (apply http2-construct-header stream (conv headers)))
-		(id (http2-stream-identifier stream))
-		(frame (make-http2-frame-headers 0 id #f #f headers)))
-	   (http2-write-stream stream frame end-stream?))
-	 ;; ok it's ugly but we can check now :)
-	 (http2-stream-header-sender-set! stream #f)))))
+      (define (sender stream conv)
+	(let* ((headers (apply http2-construct-header stream (conv headers)))
+	       (id (http2-stream-identifier stream))
+	       (frame (make-http2-frame-headers 0 id #f #f headers)))
+	  (http2-write-stream stream frame end-stream?))
+	;; ok it's ugly but we can check now :)
+	(http2-stream-header-sender-set! stream #f))
+      (if end-stream?
+	  ;; if it's end of stream, then just send it
+	  (sender stream values)
+	  ;; otherwise let the next sender handle it
+	  (http2-stream-header-sender-set! stream sender))))
   
   (define (http2-data-sender data)
     (lambda (stream end-stream?)

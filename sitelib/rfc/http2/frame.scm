@@ -125,6 +125,8 @@
   (define-constant +initial-frame-buffer-size+ #x4000)
   ;; Don't use this much but we can do it.
   (define-constant +max-frame-buffer-size+     #xffffff)
+  ;; default window size
+  (define-constant +http2-default-window-size+ 65535)
 
   (define make-frame-buffer
     (case-lambda
@@ -185,7 +187,8 @@
       (when (> len (bytevector-length buf))
 	(http2-frame-size-error 'fill-http2-frame-buffer!
 				"Frame size exceed SETTINGS_MAX_FRAME_SIZE"
-				len))
+				`(current setting ,(bytevector-length buf))
+				`(received ,len)))
       (let loop ((n len) (i 0))
 	(let ((r (binary-pre-allocated-buffer-get-bytevector-n! buffer in n i)))
 	  (if (= r n)
@@ -361,8 +364,7 @@
 						     (endianness big))
 	       (binary-pre-allocated-buffer-put-u32! buffer (cadr s)
 						     (endianness big))
-	       (loop (cdr settings))))
-	 )))
+	       (loop (cdr settings)))))))
 ;;   (define-buffer-converter +http2-frame-type-push-promise+
 ;;     (buffer-converter-push-promise frame buffer end? ctx))
 ;;   (define-buffer-converter +http2-frame-type-ping+
@@ -371,12 +373,22 @@
      (buffer-converter-goaway frame buffer end? ctx)
      (let ((lsi (http2-frame-goaway-last-stream-id frame))
 	   (ec (http2-frame-goaway-error-code frame))
-	   (debug (http2-frame-goaway-data frame)))
+	   (debug (http2-frame-goaway-data frame))
+	   (si (http2-frame-stream-identifier frame)))
+       (put-frame-common buffer 0 (http2-frame-type frame) 0 si)
        (binary-pre-allocated-buffer-put-u32! buffer lsi (endianness big))
        (binary-pre-allocated-buffer-put-u32! buffer ec (endianness big))
        #f))
-;;   (define-buffer-converter +http2-frame-type-window-update+
-;;     (buffer-converter-window-update frame buffer end? ctx))
+   (define-buffer-converter +http2-frame-type-window-update+
+     (buffer-converter-window-update frame buffer end? ctx)
+     (let ((wsi (http2-frame-window-update-window-size-increment frame))
+	   (si (http2-frame-stream-identifier frame)))
+       (when (> wsi (- (expt 2 31) 1))
+	 (error 'write-http2-frame
+		"The windows size is too big" wsi))
+       (put-frame-common buffer 0 (http2-frame-type frame) 0 si)
+       (binary-pre-allocated-buffer-put-u32! buffer wsi (endianness big))
+       #f))
 ;;   (define-buffer-converter +http2-frame-type-continuation+
 ;;     (buffer-converter-continuation frame buffer end? ctx))
 
