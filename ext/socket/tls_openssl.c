@@ -38,6 +38,7 @@
   CRYPTO_add(&(ctx->references), 1, CRYPTO_LOCK_SSL_CTX)
 #endif
 
+#include <dlfcn.h>
 #include <sagittarius.h>
 #define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
@@ -95,6 +96,10 @@
 
 /* should we disable SHA1 as well? */
 #define CIPHER_LIST "HIGH:!aNULL:!PSK:!SRP:!MD5:!RC4"
+
+typedef int (*SSL_ALPN_FN)(SSL *, const unsigned char *, unsigned int);
+static SSL_ALPN_FN SSL_set_alpn_protos_fn = NULL;
+
 
 typedef struct OpenSSLDataRec
 {
@@ -226,27 +231,16 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
     SSL_set_tlsext_host_name(data->ssl, hostname);
   }
   /* For now we expect the argument to be properly formatted TLS packet. */
-#if (OPENSSL_VERSION_NUMBER >= 0x1000200L)
-  if (SG_BVECTORP(alpn)) {
-    /* decode the TLS packet to vector */
-    char *vector;
-    int len = 0, i = 4;
-#ifdef HAVE_ALLOCA
-    vector = (char *)alloca(SG_BVECTOR_SIZE(alpn) - 2);
-#else
-    vector = SG_NEW_ATOMIC2(char *, SG_BVECTOR_SIZE(alpn) - 2);
-#endif
-    for (; i < SG_BVECTOR_SIZE(alpn);) {
-      int j, l;
-      l = SG_BVECTOR_ELEMENT(alpn, i++);
-      vector[len++] = l;
-      for (j = 0; j < l; j++) {
-	vector[len++] = SG_BVECTOR_ELEMENT(alpn, i++);
-      }
+  if (SG_BVECTORP(alpn) && SG_BVECTOR_SIZE(alpn) > 4) {
+    if (SSL_set_alpn_protos_fn) {
+      /* remove prefix */
+      SSL_set_alpn_protos_fn(data->ssl, SG_BVECTOR_ELEMENTS(alpn) + 4,
+			     SG_BVECTOR_SIZE(alpn) - 4);
+    } else {
+      Sg_Warn(UC("ALPN is not supported on this version of OpenSSL.\n"
+		 "Please consider to update your OpenSSL runtime.\n"));
     }
-    SSL_set_alpn_protos(data->ssl, (const unsigned char *)vector, len);
   }
-#endif
   SSL_set_fd(data->ssl, socket->socket);
   return SSL_connect(data->ssl);
 }
@@ -377,8 +371,14 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *data, int size, int flags)
   return sent;
 }
 
+static void cleanup_ssl_lib(void *handle)
+{
+  dlclose(handle);
+}
+
 void Sg_InitTLSImplementation()
 {
+  void *handle;
   OpenSSL_add_all_algorithms();
   OpenSSL_add_ssl_algorithms();
   /* ERR_load_BIO_strings(); */
@@ -386,4 +386,10 @@ void Sg_InitTLSImplementation()
   SSL_load_error_strings();
   OPENSSL_config(NULL);
   SSL_library_init();
+
+  handle = dlopen("libssl"SHLIB_SO_SUFFIX, RTLD_NOW|RTLD_GLOBAL);
+  if (handle) {
+    SSL_set_alpn_protos_fn = (SSL_ALPN_FN)dlsym(handle, "SSL_set_alpn_protos");
+    Sg_AddCleanupHandler(cleanup_ssl_lib, handle);
+  }
 }
