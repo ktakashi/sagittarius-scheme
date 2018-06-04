@@ -387,7 +387,7 @@ void Sg_InitTLSImplementation()
   OPENSSL_config(NULL);
   SSL_library_init();
 
-  handle = dlopen("libssl"SHLIB_SO_SUFFIX, RTLD_NOW|RTLD_GLOBAL);
+  handle = dlopen("libssl" SHLIB_SO_SUFFIX, RTLD_NOW|RTLD_GLOBAL);
   if (handle) {
     SSL_set_alpn_protos_fn = (SSL_ALPN_FN)dlsym(handle, "SSL_set_alpn_protos");
     Sg_AddCleanupHandler(cleanup_ssl_lib, handle);
