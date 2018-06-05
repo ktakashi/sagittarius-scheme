@@ -237,8 +237,8 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
       SSL_set_alpn_protos_fn(data->ssl, SG_BVECTOR_ELEMENTS(alpn) + 4,
 			     SG_BVECTOR_SIZE(alpn) - 4);
     } else {
-      Sg_Warn(UC("ALPN is not supported on this version of OpenSSL.\n"
-		 "Please consider to update your OpenSSL runtime.\n"));
+      Sg_Warn(UC("ALPN is not supported on this version of OpenSSL."));
+      Sg_Warn(UC("Please consider to update your OpenSSL runtime."));
     }
   }
   SSL_set_fd(data->ssl, socket->socket);
@@ -388,8 +388,18 @@ void Sg_InitTLSImplementation()
   SSL_library_init();
 
   handle = dlopen("libssl" SHLIB_SO_SUFFIX, RTLD_NOW|RTLD_GLOBAL);
+#ifdef __CYGWIN__
+  if (!handle) {
+    /* ok, cygwin has weird prefix and version number thing. so handle it
+       differently. */
+    handle = dlopen("cygssl-" SHLIB_VERSION_NUMBER ".dll",
+		    RTLD_NOW|RTLD_GLOBAL);
+  }
+#endif
   if (handle) {
     SSL_set_alpn_protos_fn = (SSL_ALPN_FN)dlsym(handle, "SSL_set_alpn_protos");
     Sg_AddCleanupHandler(cleanup_ssl_lib, handle);
+  } else {
+    Sg_Warn(UC("libssl not found... why?"));
   }
 }
