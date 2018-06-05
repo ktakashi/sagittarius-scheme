@@ -77,6 +77,10 @@
 	    (srfi :1)
 	    (srfi :18))
 
+  ;; (define-constant +client-window-size+ 1024)
+  ;; (define-constant +client-window-size+ +http2-default-window-size+)
+  ;; we use max value since we don't have to consider buffer or other factors.
+  (define-constant +client-window-size+ (- (expt 2 31) 1))
   ;; HTTP2 client connection
   (define-record-type (http2-client-connection 
 		       %make-http2-client-connection 
@@ -217,7 +221,7 @@
 	(http2-send-settings conn
 	 `(;; for now disable push
 	   (,+http2-settings-enable-push+ 0)
-	   (,+http2-settings-initial-window-size+ ,(- (expt 2 31) 1))
+	   (,+http2-settings-initial-window-size+ ,+client-window-size+)
 	   ;; no less than 100 huh?
 	   (,+http2-settings-max-concurrent-streams+ 100)))
 	;; ACK might be handled on request invocation
@@ -437,11 +441,15 @@
 				    (http2-frame-data-data
 				     frame)))
 			     (new-size (+ v size)))
-			(if (>= new-size (http2-stream-window-size stream))
+			(if (>= new-size +client-window-size+)
 			    (begin
+			      ;; Even though this should be the specified
+			      ;; way to do flow control, however, twitter.com
+			      ;; doesn't do anything with this at this moment
+			      ;; (2018-06-05).
 			      (send-frame
 			       (make-http2-frame-window-update
-				0 sid (http2-stream-window-size stream)))
+				0 sid +client-window-size+))
 			      0)
 			    new-size)))
 		    0)

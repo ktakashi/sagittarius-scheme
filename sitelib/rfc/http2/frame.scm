@@ -46,6 +46,7 @@
 		     +http2-initial-frame-buffer-size+)
 		    (+max-frame-buffer-size+
 		     +http2-max-frame-buffer-size+))
+	    +http2-default-window-size+
 	    ;; constants
 	    +http2-frame-type-data+
 	    +http2-frame-type-headers+
