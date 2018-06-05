@@ -217,6 +217,7 @@
 	(http2-send-settings conn
 	 `(;; for now disable push
 	   (,+http2-settings-enable-push+ 0)
+	   (,+http2-settings-initial-window-size+ ,(- (expt 2 31) 1))
 	   ;; no less than 100 huh?
 	   (,+http2-settings-max-concurrent-streams+ 100)))
 	;; ACK might be handled on request invocation
@@ -258,7 +259,11 @@
 		  (cond ((= (caar settings) +http2-settings-header-table-size+)
 			 ;; initial request HPACK table size.
 			 (update-hpack-table-size! (%h2-req-hpack conn) 
-						   (cadar settings))))
+						   (cadar settings)))
+			((= (caar settings)
+			    +http2-settings-initial-window-size+)
+			 (http2-client-connection-window-size-set!
+			  conn (cdar settings))))
 		  (loop (cdr settings)))))))
   ;; should only be called when the next frame is SETTINGS.
   ;; (e.g. during negotiation)
@@ -290,9 +295,9 @@
     (let ((in/out (%h2-source conn))
 	  (req-hpack (%h2-req-hpack conn))
 	  (res-hpack (%h2-res-hpack conn)))
-      (define (send-frame frame)
+      (define (send-frame frame :optional (end? #t))
 	(write-http2-frame in/out (%h2-buffer conn)
-			   frame #t (%h2-req-hpack conn)))
+			   frame end? (%h2-req-hpack conn)))
       (define (send-goaway e ec stream-id)
 	(send-frame (make-http2-frame-goaway 
 		     0 stream-id stream-id
@@ -325,6 +330,7 @@
 		    frame ;; TODO how should we expose this?
 		    (http2-frame-end-stream? frame))))
 
+      (define used-window-sizes (make-eqv-hashtable))
       (vector-for-each (lambda (sid)
 			 (let* ((stream (hashtable-ref streams sid #f))
 				(sender (http2-stream-sender stream)))
@@ -425,6 +431,20 @@
 		     ;; if there is no slot created?
 		     (cond ((assv sid results) =>
 			    (lambda (slot) (set-cdr! (cdr slot) r)))))
+		   (hashtable-update! used-window-sizes sid
+		    (lambda (v)
+		      (let* ((size (bytevector-length
+				    (http2-frame-data-data
+				     frame)))
+			     (new-size (+ v size)))
+			(if (>= new-size (http2-stream-window-size stream))
+			    (begin
+			      (send-frame
+			       (make-http2-frame-window-update
+				0 sid (http2-stream-window-size stream)))
+			      0)
+			    new-size)))
+		    0)
 		   (continue/quit results #f #f)))
 		(else
 		 (error 'http2-request "frame not supported" frame)))))))

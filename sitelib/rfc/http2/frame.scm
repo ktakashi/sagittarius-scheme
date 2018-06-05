@@ -375,7 +375,7 @@
 	   (ec (http2-frame-goaway-error-code frame))
 	   (debug (http2-frame-goaway-data frame))
 	   (si (http2-frame-stream-identifier frame)))
-       (put-frame-common buffer 0 (http2-frame-type frame) 0 si)
+       (put-frame-common buffer 0 +http2-frame-type-goaway+ 0 si)
        (binary-pre-allocated-buffer-put-u32! buffer lsi (endianness big))
        (binary-pre-allocated-buffer-put-u32! buffer ec (endianness big))
        #f))
@@ -384,9 +384,8 @@
      (let ((wsi (http2-frame-window-update-window-size-increment frame))
 	   (si (http2-frame-stream-identifier frame)))
        (when (> wsi (- (expt 2 31) 1))
-	 (error 'write-http2-frame
-		"The windows size is too big" wsi))
-       (put-frame-common buffer 0 (http2-frame-type frame) 0 si)
+	 (error 'write-http2-frame "The windows size is too big" wsi))
+       (put-frame-common buffer 4 +http2-frame-type-window-update+ 0 si)
        (binary-pre-allocated-buffer-put-u32! buffer wsi (endianness big))
        #f))
 ;;   (define-buffer-converter +http2-frame-type-continuation+
