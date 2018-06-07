@@ -36,6 +36,7 @@
 	    actor-wait!
 	    actor-terminate!
 	    actor-state
+	    actor-start!
 	    
 	    make-shared-queue-channel-actor
 	    make-shared-priority-queue-channel-actor
@@ -53,7 +54,9 @@
   (fields (mutable state) thread receiver sender)
   (protocol
    (lambda (p)
-     (lambda (task make-receiver make-sender)
+     (lambda (task make-receiver make-sender . maybe-start?)
+       ;; default start (for backward compatibility...
+       (define start? (or (null? maybe-start?) (car maybe-start?)))
        (let-values (((receiver/actor sender/client) (make-receiver))
 		    ((receiver/client sender/actor) (make-sender)))
 	 (let* ((t (make-thread
@@ -63,10 +66,11 @@
 				      (raise e)))
 			(task receiver/client sender/client)
 			(actor-state-set! actor 'finished)))))
-		(actor (p 'running t receiver/actor sender/actor)))
+		(actor (p 'created t receiver/actor sender/actor)))
 	   (thread-specific-set! t actor)
-	   (thread-start! t)
-	   actor))))))
+	   (if start?
+	       (actor-start! actor)
+	       actor)))))))
 
 (define (make-shared-queue-channel . opt)
   (define sq (apply make-shared-queue opt))
@@ -79,6 +83,12 @@
   (define (receiver . opt) (apply shared-priority-queue-get! sq opt))
   (define (sender v . opt) (apply shared-priority-queue-put! sq v opt))
   (values receiver sender))
+
+(define (actor-start! actor)
+  (when (eq? 'created (actor-state actor))
+    (thread-start! (actor-thread actor))
+    (actor-state-set! actor 'running))
+  actor)
 
 (define (actor-running? actor) (eq? (actor-state actor) 'running))
 
@@ -96,12 +106,13 @@
   (actor-state-set! actor 'terminated))
 
 ;; common actors
-(define (make-shared-queue-channel-actor task)
-  (make-actor task make-shared-queue-channel make-shared-queue-channel))
+(define (make-shared-queue-channel-actor task . opt)
+  (apply make-actor task make-shared-queue-channel make-shared-queue-channel
+	 opt))
 
-(define (make-shared-priority-queue-channel-actor task compare)
+(define (make-shared-priority-queue-channel-actor task compare . opt)
   (define (make-channel) (make-shared-priority-queue-channel compare))
-  (make-actor task make-channel make-channel))
+  (apply make-actor task make-channel make-channel opt))
 
 )
 

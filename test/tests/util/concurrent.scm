@@ -461,4 +461,17 @@
   (test-assert (not (actor-running? actor)))
   (test-equal 'terminated (actor-state actor)))
 
+(let ()
+  (define actor
+    (make-shared-queue-channel-actor
+     (lambda (in out) (in))
+     #f))
+  (test-equal 'created (actor-state actor))
+  (test-assert (actor? (actor-start! actor)))
+  (actor-start! actor)
+  (test-assert (actor? (actor-start! actor)))
+  (test-assert (actor-running? actor))
+  (test-assert (actor-terminate! actor))
+  (test-equal 'terminated (actor-state actor)))
+
 (test-end)
