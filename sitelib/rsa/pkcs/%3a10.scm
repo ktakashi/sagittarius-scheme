@@ -33,13 +33,18 @@
 	    subject-public-key-info?
 	    make-subject-public-key-info
 	    subject-public-key-info-key-data
-
+	    subject-public-key-info->public-key
+	    
 	    <algorithm-identifier>
 	    algorithm-identifier?
 	    make-algorithm-identifier
 	    algorithm-identifier-id ;; returns OID string
 	    algorithm-identifier-object-id ;; der-object-identifier
-	    algorithm-identifier-parameters)
+	    algorithm-identifier-parameters
+
+	    PKCS10
+	    import-public-key export-public-key
+	    )
     (import (rnrs)
 	    (clos user)
 	    (asn.1)
@@ -111,4 +116,37 @@
 
   (define (algorithm-identifier-id id) (~ id 'object-id 'identifier))
 
+  (define PKCS10 :pkcs10)
+  (define-method import-public-key ((m (eql PKCS8)) (in <bytevector>))
+    (import-public-key PKCS8 (open-bytevector-input-port in)))
+  (define-method import-public-key ((m (eql PKCS8)) (in <port>))
+    (import-public-key PKCS8 (read-asn.1-object in)))
+  (define-method import-public-key ((m (eql PKCS8)) (in <asn.1-sequence>))
+    (make-subject-public-key-info in))
+
+  (define-method export-public-key ((m (eql PKCS8))
+				    (in <subject-public-key-info>))
+    (export-public-key in))
+  (define-method export-public-key ((in <subject-public-key-info>))
+    (asn.1-encode (asn.1-encodable->asn.1-object in)))
+
+  ;; FIXME loads of duplicates....
+  (define *oid-marker*
+    `(("1.2.840.113549.1.1.1" .
+       ,(lambda (pki)
+	  (import-public-key RSA (slot-ref (slot-ref pki 'key-data) 'data))))
+      ("1.2.840.10040.4.1" .
+       ,(lambda (pki)
+	  (import-public-key DSA (slot-ref (slot-ref pki 'key-data) 'data))))
+      ;; for now, I don't remember how it was...
+      #;("1.2.840.10045.2.1" .
+       ,(lambda (pki)
+	  ;; awkward way to make it consistant...
+	  (import-private-key ECDSA (slot-ref pki 'private-key)
+	    (algorithm-identifier-parameters (slot-ref pki 'id)))))))
+  (define (subject-public-key-info->public-key spki)
+    (let ((oid (algorithm-identifier-id (slot-ref spki 'algorithm-identifier))))
+      (cond ((assoc oid *oid-marker*) => (lambda (s) ((cdr s) spki)))
+	    (else (assertion-violation 'subject-public-key-info->public-key
+				       "not supported" oid)))))
 )
