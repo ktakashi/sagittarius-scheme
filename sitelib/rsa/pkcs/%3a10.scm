@@ -48,6 +48,7 @@
     (import (rnrs)
 	    (clos user)
 	    (asn.1)
+	    (crypto)
 	    (sagittarius)
 	    (sagittarius object))
 
@@ -117,14 +118,14 @@
   (define (algorithm-identifier-id id) (~ id 'object-id 'identifier))
 
   (define PKCS10 :pkcs10)
-  (define-method import-public-key ((m (eql PKCS8)) (in <bytevector>))
-    (import-public-key PKCS8 (open-bytevector-input-port in)))
-  (define-method import-public-key ((m (eql PKCS8)) (in <port>))
-    (import-public-key PKCS8 (read-asn.1-object in)))
-  (define-method import-public-key ((m (eql PKCS8)) (in <asn.1-sequence>))
+  (define-method import-public-key ((m (eql PKCS10)) (in <bytevector>))
+    (import-public-key PKCS10 (open-bytevector-input-port in)))
+  (define-method import-public-key ((m (eql PKCS10)) (in <port>))
+    (import-public-key PKCS10 (read-asn.1-object in)))
+  (define-method import-public-key ((m (eql PKCS10)) (in <asn.1-sequence>))
     (make-subject-public-key-info in))
 
-  (define-method export-public-key ((m (eql PKCS8))
+  (define-method export-public-key ((m (eql PKCS10))
 				    (in <subject-public-key-info>))
     (export-public-key in))
   (define-method export-public-key ((in <subject-public-key-info>))
