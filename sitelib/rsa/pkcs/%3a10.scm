@@ -73,6 +73,10 @@
 				  id
 				  (make-algorithm-identifier id))
 	:key-data (asn.1-sequence-get s 1))))
+  (define-method asn.1-encodable->asn.1-object ((o <subject-public-key-info>))
+    (make-der-sequence
+     (slot-ref o 'algorithm-identifier)
+     (slot-ref o 'key-data)))
   (define (subject-public-key-info-key-data o) (~ o 'key-data))
   
   #|
