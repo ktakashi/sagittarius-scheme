@@ -31,6 +31,7 @@
 ;; we do not support MAC yet
 (library (rsa pkcs :12 cipher)
     (export PKCS12
+	    pbe-with-sha-and2-keytripledes-cbc
 	    pbe-with-sha-and3-keytripledes-cbc
 	    pbe-with-sha-and-40bit-rc2-cbc
 	    ;; for convenience
@@ -47,31 +48,38 @@
 	    (rsa pkcs :5))
   ;; generate-secret-keys
   ;; PBEWithSHAAnd3-KeyTripleDES-CBC
-  ;; PBEWithSHAAnd2-KeyTripleDES-CBC ;; <- what is this?
+  ;; PBEWithSHAAnd2-KeyTripleDES-CBC ;; <- what is this? A: DES2
 
   ;; type markder
-  (define-class <pkcs12> () ())
-  (define-class <pbe-sha1-des3-3> () ())
-  (define-class <pbe-sha1-rc2-40-3> () ())
-  (define PKCS12 (make <pkcs12>))
-  (define pbe-with-sha-and3-keytripledes-cbc (make <pbe-sha1-des3-3>))
-  (define pbe-with-sha-and-40bit-rc2-cbc (make <pbe-sha1-rc2-40-3>))
+  (define PKCS12 :pkcs12)
+  (define pbe-with-sha-and2-keytripledes-cbc :pbe-sha1-des3-2)
+  (define pbe-with-sha-and3-keytripledes-cbc :pbe-sha1-des3-3)
+  (define pbe-with-sha-and-40bit-rc2-cbc :pbe-sha1-rc2-40-3)
 
-  (define-method generate-secret-key ((marker <pbe-sha1-des3-3>)
+  (define-method generate-secret-key ((marker (eql :pbe-sha1-des3-3))
 				      (password <string>))
     (make <pbe-secret-key> :password  password :hash (hash-algorithm SHA-1)
 	  :scheme DES3 :iv-size 8 :length 24
 	  :type PKCS12))
-  (define-method generate-secret-key ((marker <pbe-sha1-des3-3>)
+  (define-method generate-secret-key ((marker (eql :pbe-sha1-des3-3))
 				      (password <bytevector>))
     (generate-secret-key marker (utf8->string password)))
 
-  (define-method generate-secret-key ((marker <pbe-sha1-rc2-40-3>)
+  (define-method generate-secret-key ((marker (eql :pbe-sha1-des3-2))
+				      (password <string>))
+    (make <pbe-secret-key> :password password :hash (hash-algorithm SHA-1)
+	  :scheme DES3 :iv-size 8 :length 16
+	  :type PKCS12))
+  (define-method generate-secret-key ((marker (eql :pbe-sha1-des3-2))
+				      (password <bytevector>))
+    (generate-secret-key marker (utf8->string password)))
+  
+  (define-method generate-secret-key ((marker (eql :pbe-sha1-rc2-40-3))
 				      (password <string>))
     (make <pbe-secret-key> :password  password :hash (hash-algorithm SHA-1)
 	  :scheme RC2 :iv-size 8 :length 5
 	  :type PKCS12))
-  (define-method generate-secret-key ((marker <pbe-sha1-rc2-40-3>)
+  (define-method generate-secret-key ((marker (eql :pbe-sha1-rc2-40-3))
 				      (password <bytevector>))
     (generate-secret-key marker (utf8->string password)))
 
@@ -150,7 +158,7 @@
 	d-key))
     (generate-derived-key in-byte n))
 
-  (define-method derive-key&iv ((marker <pkcs12>)
+  (define-method derive-key&iv ((marker (eql :pkcs12))
 				(key <pbe-secret-key>)
 				(param <pbe-parameter>))
     (values (derive-pkcs12-key key param *key-material* (slot-ref key 'length))
@@ -163,6 +171,7 @@
 		       (hash-size (slot-ref key 'hash))))
 
   (register-spi pbe-with-sha-and3-keytripledes-cbc <pbe-cipher-spi>)
+  (register-spi pbe-with-sha-and2-keytripledes-cbc <pbe-cipher-spi>)
   (register-spi pbe-with-sha-and-40bit-rc2-cbc <pbe-cipher-spi>)
 
   )

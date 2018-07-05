@@ -52,6 +52,13 @@
 	    ;; should we document this?
 	    pkcs12-keystore-aliases
 
+	    ;; rather weird location but we can't put anywhere else at
+	    ;; this moment. If we want to move proper location
+	    ;; (i.e. (rsa pkcs :8)), then the cipher defined in the
+	    ;; (rsa pkcs :12 cipher) must be extracted to somewhere.
+	    ;; Though the cipher is a part of the PKCS#12 spec...
+	    unwrap-encrypted-private-key-info
+	    
 	    ;; read only accessors 
 	    ;; (for debugging use won't be documented)
 	    pkcs12-keystore-keys pkcs12-keystore-key-certificates
@@ -76,10 +83,12 @@
   ;; oid-cipher mapping
   (define *mapping*
     `(("1.2.840.113549.1.12.1.3" . ,pbe-with-sha-and3-keytripledes-cbc)
+      ("1.2.840.113549.1.12.1.4" . ,pbe-with-sha-and2-keytripledes-cbc)
       ("1.2.840.113549.1.12.1.6" . ,pbe-with-sha-and-40bit-rc2-cbc)))
   ;; for storing
   (define *reverse-mapping*
     `((,pbe-with-sha-and3-keytripledes-cbc . "1.2.840.113549.1.12.1.3")
+      (,pbe-with-sha-and2-keytripledes-cbc . "1.2.840.113549.1.12.1.4")
       (,pbe-with-sha-and-40bit-rc2-cbc . "1.2.840.113549.1.12.1.6")))
 
   (define-class <content-info> (<asn.1-encodable>)
@@ -363,7 +372,7 @@
     ;; do nothing
     )
 
-  (define (pkcs12-keystore-get-key keystore name password)
+  (define (unwrap-encrypted-private-key-info epki password)
     ;; JCE PKCS#12 is implemented properly as the spec mentioned.
     ;; so make it compatible
     (define (unwrap-key alg-id data password)
@@ -373,15 +382,18 @@
 	      (read-asn.1-object (open-bytevector-input-port plain-key)))
 	     (priv-key-info (make-private-key-info asn.1-key)))
 	priv-key-info))
+    (unwrap-key (slot-ref epki 'id) (slot-ref epki 'data) password))
+  
+  (define (pkcs12-keystore-get-key keystore name password)
+    
 
     (let ((keys (slot-ref keystore 'keys)))
       (cond ((hashtable-ref keys name #f)
 	     => (lambda (pki)
 		  (cond ((private-key-info? pki) (pki->private-key pki))
 			((encrypted-private-key-info? pki)
-			 (pki->private-key (unwrap-key (slot-ref pki 'id)
-						       (slot-ref pki 'data)
-						       password)))
+			 (pki->private-key
+			  (unwrap-encrypted-private-key-info pki password)))
 			(else 
 			 (error 'pkcs12-keystore-get-key 
 				"unknown object" pki)))))
