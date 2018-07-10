@@ -106,7 +106,7 @@
 	    
 	    processing-instruction-target
 
-	    make-document
+	    (rename (make-document make-xml-document))
 	    document? document-uri document-document-uri document-origin
 	    document-compat-mode document-character-set document-charset
 	    document-input-encoding document-content-type

@@ -125,7 +125,7 @@
 		   '("foo:bar" "foo:foo")
 		   "foo:bar")))
 
-(let* ((document (make-document))
+(let* ((document (make-xml-document))
        (e (document:create-element-ns document "urn:foo" "foo:foo")))
   (node:append-child! document e)
   (element:set-attribute-ns! e "urn:foo" "foo:bla" "blabla")
@@ -138,7 +138,7 @@
   (test-assert (lset= string=? '("xmlns:foo" "foo:bla" "foo:buz")
 		      (element:get-attribute-names e))))
 
-(let* ((document (make-document))
+(let* ((document (make-xml-document))
        (data "abcdefg")
        (text (document:create-text-node document data)))
   (test-error assertion-violation? (character-data:substring-data text 100 3))

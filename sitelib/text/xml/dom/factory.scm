@@ -101,7 +101,7 @@
 
 (define (input-port->dom-tree in :optional (option +default-factory-option+))
   (let ((parsed (parse-xml in))
-	(document (make-document #f)))
+	(document (make-xml-document #f)))
     (parameterize ((*factory-options* option)
 		   (*root-document* document))
       (dispatch-factory parsed)
