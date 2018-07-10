@@ -98,6 +98,12 @@
 	    processing-instruction?
 	    character-data-data character-data-data-set!
 	    character-data-length
+	    character-data:substring-data
+	    character-data:append-data!
+	    character-data:insert-data!
+	    character-data:delete-data!
+	    character-data:replace-data!
+	    
 	    processing-instruction-target
 
 	    make-document
@@ -927,13 +933,73 @@
 	      (lambda (type data . args)
 		((apply n type :text-content data :node-value data args))))))
 (define (character-data-data cd) (node-text-content cd))
-(define (character-data-data-set! cd data) (node-text-content-set! cd data))
+(define (character-data-data-set! cd data)
+  (node-text-content-set! cd data)
+  (node-node-value-set! cd data))
 (define (character-data-length cd) (string-length (character-data-data cd)))
-(define (character-data:substring-data cd offset count))
-(define (character-data:append-data! cd data))
-(define (character-data:insert-data! cd offset data))
-(define (character-data:delete-data! cd offset count))
-(define (character-data:replace-data! cd offset count))
+(define (character-data:substring-data cd offset count)
+  (when (negative? offset)
+    (assertion-violation 'character-data:substring-data
+			 "Offset can't be negative" offset))
+  (let* ((data (character-data-data cd))
+	 (len (string-length data)))
+    (cond ((> offset len)
+	   (assertion-violation 'character-data:substring-data
+				"Offset is bigeer than data length" offset))
+	  ((or (> count (- len offset)) (negative? count)) data)
+	  (else (substring data offset (+ offset count))))))
+(define (character-data:append-data! cd data)
+  (let ((o (character-data-data cd)))
+    (character-data-data-set! cd (string-append o data))))
+(define (character-data:insert-data! cd offset data)
+  (let* ((o (character-data-data cd))
+	 (olen (string-length o))
+	 (dlen (string-length data)))
+    (cond ((<= offset 0)
+	   (character-data-data-set! cd (string-append data o)))
+	  ((>= offset olen)
+	   (assertion-violation 'character-data:insert-data!
+				"Offset is greater than length"
+				`(offset ,offset)
+				`(length ,olen)))
+	  (else
+	   (let* ((s (make-string (+ olen dlen)))
+		  (in (open-string-input-port o)))
+	     (get-string-n! in s 0 offset)
+	     (get-string-n! (open-string-input-port data) s offset dlen)
+	     (get-string-n! in s (+ offset dlen) (- olen offset))
+	     (character-data-data-set! cd s))))))
+(define (character-data:delete-data! cd offset count)
+  (when (negative? offset)
+    (assertion-violation 'character-data:delete-data!
+			 "Offset can't be negative" offset))
+  (let* ((d (character-data-data cd))
+	 (len (string-length d)))
+    (when (> (+ offset count) len)
+      (assertion-violation 'character-data:delete-data!
+			   "Too many count" count))
+    (when (> offset len)
+      (assertion-violation 'character-data:delete-data!
+			   "Out of range" offset))
+    (character-data-data-set! cd
+      (string-append (substring d 0 offset)
+		     (substring d (+ offset count) len)))))
+(define (character-data:replace-data! cd offset count data)
+    (when (negative? offset)
+    (assertion-violation 'character-data:replace-data!
+			 "Offset can't be negative" offset))
+  (let* ((d (character-data-data cd))
+	 (len (string-length d)))
+    (when (> (+ offset count) len)
+      (assertion-violation 'character-data:replace-data!
+			   "Too many count" count))
+    (when (> offset len)
+      (assertion-violation 'character-data:replace-data!
+			   "Out of range" offset))
+    (character-data-data-set! cd
+     (string-append (substring d 0 offset)
+		    data
+		    (substring d (+ offset count) len)))))
 
 ;; Text
 (define-record-type text
