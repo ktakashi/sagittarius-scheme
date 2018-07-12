@@ -411,6 +411,16 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
 
     The name @code{bitwise} is taken from the name of the SRFI.
     }}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-156/srfi-156.html"]{SRFI-158}}
+    @td{(srfi :156 infix-predicates)
+
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :156)}. So for the portability it's better to use the
+    @code{(srfi :156)}.
+
+    The name @code{infix-predicates} is taken from the meaning of
+    the SRFI.
+    }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-158/srfi-158.html"]{SRFI-158}}
     @td{(srfi :158 generators-and-accumulators)
 
