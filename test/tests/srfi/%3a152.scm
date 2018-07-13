@@ -3,22 +3,16 @@
                 string=? string<? string>? string<=? string>=?)
         (except (scheme char)
                 string-ci=? string-ci<? string-ci>? string-ci<=? string-ci>=?)
-        (srfi :152))
+        (srfi :152)
+	(srfi :64))
 
-(cond-expand
-  ((library (chibi test))
-   (import (chibi test)))
-  ((library (srfi 64))
-   (import (srfi 64))
-   (define-syntax test
-     (syntax-rules ()
-       ((_ arg ...) (test-equal arg ...))))
-   (define-syntax test-exit
-     (syntax-rules ()
-       ((_) (test-end))))
-   (test-begin "srfi-152 top"))
-  (else
-   (error "no suitable test framework available")))
+(define-syntax test
+  (syntax-rules ()
+    ((_ arg ...) (test-equal arg ...))))
+(define-syntax test-exit
+  (syntax-rules ()
+    ((_) (test-end))))
+(test-begin "srfi-152 top")
 
 (define (complement proc) (lambda (x) (not (proc x))))
 (define (char-newline? ch) (eqv? ch #\newline))
@@ -1492,3 +1486,4 @@
 )
 )
 (test-exit)
+
