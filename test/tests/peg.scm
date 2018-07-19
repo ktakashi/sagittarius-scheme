@@ -76,6 +76,15 @@
 	      (($do (c* ($many $any 3 3)) ($return (list->string c*)))
 	       (generator->lseq (string->generator "abcdef")))))
   (test-equal "abc" v))
-	    
+
+(define (test-$cond condition expected)
+  (let-values (((s v n) (($cond ((eq? condition 'fail) ($many $any 3 3))
+				((eq? condition 'ok) ($return 'ok))
+				(else ($return '??)))
+			 (generator->lseq (string->generator "abcdef")))))
+    (test-equal expected v)))
+(test-$cond 'ok 'ok)
+(test-$cond 'fail '(#\a #\b #\c))
+(test-$cond 'unknown '??)
 
 (test-end)

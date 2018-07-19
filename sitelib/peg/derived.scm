@@ -30,7 +30,7 @@
 
 (library (peg derived)
     (export $bind $do $optional $repeat $sequence-of
-	    $parameterize $if $when $unless
+	    $parameterize $if $when $unless $cond
 	    $eqv?)
     (import (rnrs)
 	    (peg primitives)
@@ -103,6 +103,22 @@
   (syntax-rules ()
     ((_ pred body)
      ($when (not pred) body))))
+
+(define-syntax $cond
+  (syntax-rules (else)
+    ((_ "emit" ((pred val) ...))
+     (lambda (input)
+       (cond (pred (val input)) ...)))
+    ((_ "collect" (p&c ...) ()) ($cond "emit" (p&c ...)))
+    ((_ "collect" (p&c ...) ((else alternative)))
+     (let ((tmp alternative))
+       ($cond "emit" (p&c ... (else tmp)))))
+    ((_ "collect" (p&c ...) ((pred consequence) rest ...))
+     (let ((tmp consequence))
+       ($cond "collect" (p&c ... (pred tmp)) (rest ...))))
+    ((_  clause ...)
+     ($cond "collect" () (clause ...)))))
+     
 
 (define ($eqv? v) ($satisfy (lambda (c) (eqv? c v)) v))
 )
