@@ -34,6 +34,7 @@
 	    $eof $any
 	    $satisfy $not
 	    $seq $or $many
+	    $peek
 
 	    $debug
 	    ;; value returning
@@ -155,6 +156,13 @@
 		   (return-result (reverse! vs) l))
 		  ;; return original input
 		  (else (values s v ol))))))))
+
+(define ($peek parser)
+  (lambda (l)
+    (let-values (((s v ignore) (parser l)))
+      (if (parse-success? s)
+	  (values s v l)
+	  (return-failure "Not matched" l)))))
 
 ;; derived?
 (define ($seq . expr)

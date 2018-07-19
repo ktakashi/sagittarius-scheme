@@ -87,4 +87,21 @@
 (test-$cond 'fail '(#\a #\b #\c))
 (test-$cond 'unknown '??)
 
+(let ((seq (generator->lseq (string->generator "abcdef"))))
+  (let-values (((s v l) (($peek $any) seq)))
+    (test-assert (parse-success? s))
+    (test-equal seq l))
+  (let-values (((s v l) (($seq ($eqv? #\a) ($peek $any)) seq)))
+    (test-assert (parse-success? s))
+    (test-equal #\b v)
+    (test-equal (lseq-cdr seq) l))
+
+  (let-values (((s v l)
+		(($or ($do (($eqv? #\a)) (($peek ($eqv? #\z))) ($return 'ng))
+		      ($do (($eqv? #\a)) (($peek ($eqv? #\b))) ($return 'ok)))
+		 seq)))
+    (test-assert (parse-success? s))
+    (test-equal 'ok v)
+    (test-equal (lseq-cdr seq) l)))
+
 (test-end)
