@@ -104,4 +104,18 @@
     (test-equal 'ok v)
     (test-equal (lseq-cdr seq) l)))
 
+(let ((seq (generator->lseq (string->generator "abcdef"))))
+  (let-values (((s v l) (($peek-match ($eqv? #\a)
+				      ($many $any 3 3)
+				      ($fail "unexpected"))
+			 seq)))
+    (test-assert (parse-success? s))
+    (test-equal '(#\a #\b #\c) v))
+  (let-values (((s v l) (($peek-match ($eqv? #\b)
+				      ($fail "unexpected")
+				      ($many $any 3 3))
+			 seq)))
+    (test-assert (parse-success? s))
+    (test-equal '(#\a #\b #\c) v)))
+
 (test-end)

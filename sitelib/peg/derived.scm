@@ -30,7 +30,8 @@
 
 (library (peg derived)
     (export $bind $do $optional $repeat $sequence-of
-	    $parameterize $if $when $unless $cond
+	    $parameterize $if $when $unless $cond else
+	    $peek-match
 	    $eqv?)
     (import (rnrs)
 	    (peg primitives)
@@ -118,7 +119,16 @@
        ($cond "collect" (p&c ... (pred tmp)) (rest ...))))
     ((_  clause ...)
      ($cond "collect" () (clause ...)))))
-     
+
+(define-syntax $peek-match
+  (syntax-rules ()
+    ((_ parser consequence alternative)
+     (let ((peek ($peek parser)))
+       (lambda (input)
+	 (let-values (((s v n) (peek input)))
+	   (if (parse-success? s)
+	       (consequence input)
+	       (alternative input))))))))
 
 (define ($eqv? v) ($satisfy (lambda (c) (eqv? c v)) v))
 )
