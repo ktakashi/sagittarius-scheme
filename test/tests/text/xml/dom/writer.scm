@@ -17,7 +17,7 @@
     <foo:bar/>\
   </foo:foo>"
  (lambda (out)
-   (let* ((document (make-document))
+   (let* ((document (make-xml-document))
 	  (e (document:create-element-ns document "urn:foo" "foo:foo")))
      (node:append-child! document e)
      (element:set-attribute-ns! e "urn:foo" "foo:bla" "blabla")
@@ -28,7 +28,7 @@
 
 ;; it's rather weird to put here to test insert/replace node but
 ;; it's easier to do it here.
-(let* ((document (make-document))
+(let* ((document (make-xml-document))
        (e (document:create-element document "foo")))
   (node:append-child! document e)
   (node:insert-before! document e (document:create-comment document "boo"))
