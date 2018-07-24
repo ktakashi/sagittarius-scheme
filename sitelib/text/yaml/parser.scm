@@ -61,10 +61,7 @@
 
 ;; need this for start of line (sol)
 (define-record-type parsing-context
-  (fields input sol?)
-  (protocol (lambda (p)
-	      (lambda (input)
-		(p input #t)))))
+  (fields input))
 (define *parsing-context* (make-parameter #f))
 
 (define ($in-cset s) ($satisfy (lambda (c) (char-set-contains? s c))))
@@ -171,8 +168,8 @@
 ;; [33] s-white ::= s-space | s-tab
 (define s-white ($satisfy (lambda (c) (memv c '(#\x20 #\9)))))
 ;; [34] ns-char ::= nb-char - s-white
-(define ns-char
-  ($in-cset (char-set-difference +nb-char-set+ (char-set #\x20 #\9))))
+(define +ns-char-set+ (char-set-difference +nb-char-set+ (char-set #\x20 #\9)))
+(define ns-char ($in-cset +ns-char-set+))
 
 ;; [35] ns-dec-digit ::= [#x30-#x39] /* 0-9 */
 (define ns-dec-digit
@@ -197,6 +194,7 @@
 ;;                    | “,” | “_” | “.” | “!” | “~” | “*” | “'” | “(” | “)”
 ;;                    | “[” | “]”
 (define +misc-uri-char-set+ (string->char-set "#;/?:@&=+$,_.!~*'()[]"))
+(define +flow-indicator-set+ (string->char-set "!,[]{}"))
 (define percent-hex2 ($seq ($eqv? #\%) ns-hex-digit ns-hex-digit))
 (define ns-uri-char
   ($or percent-hex2
@@ -207,7 +205,7 @@
   ($or percent-hex2
        ns-word-char
        ($in-cset (char-set-difference +misc-uri-char-set+
-				      (string->char-set "!,[]{}")))))
+				      +flow-indicator-set+))))
 ;; 5.7 Escaped Characters
 ;; I'm lazy to write all the rules here.
 (define c-ns-esc-char
@@ -307,7 +305,7 @@
 ;; [70] l-empty(n,c) ::= ( s-line-prefix(n,c) | s-indent(<n) )
 ;;                       b-as-line-feed
 (define (l-empty n c)
-  ($seq ($or (s-line-prefix n c) (s-indent< n)) b-as-line-feed))
+  ($do (c ($or (s-line-prefix n c) (s-indent< n))) b-as-line-feed))
 
 ;; [71] b-l-trimmed(n,c) ::= b-non-content l-empty(n,c)+
 (define (b-l-trimmed n c) ($seq b-non-content ($many (l-empty n c) 1)))
@@ -457,6 +455,115 @@
        ($return d)))
 
 ;; TBD 6.9 and below sections...
+;; [100] c-non-specific-tag ::= “!”
+(define c-non-specific-tag ($eqv? #\!))
+;; [99] c-ns-shorthand-tag ::= c-tag-handle ns-tag-char+
+(define (resolve-tag tag-handle name) name)
+(define c-ns-shorthand-tag
+  ($do (th c-tag-handle)
+       (c* ($many ns-tag-char 1))
+       ($return `(tag ,(resolve-tag th (list->string c*))))))
+       
+;; [98] c-verbatim-tag ::= “!” “<” ns-uri-char+ “>”
+(define c-verbatim-tag
+  ($do (($token "!<"))
+       (c* ($many ns-uri-char 1))
+       (($eqv? #\>))
+       ($return `(tag ,(list->string c*)))))
+;; [97] c-ns-tag-property ::= c-verbatim-tag
+;;                          | c-ns-shorthand-tag
+;;                          | c-non-specific-tag
+(define c-ns-tag-property
+  ($or c-verbatim-tag
+       c-ns-shorthand-tag
+       c-non-specific-tag))
+
+;; [102] ns-anchor-char ::= ns-char - c-flow-indicator
+(define ns-anchor-char
+  ($in-cset (char-set-difference +ns-char-set+ +flow-indicator-set+)))
+;; [103] ns-anchor-name ::= ns-anchor-char+
+(define ns-anchor-name
+  ($do (c* ($many ns-anchor-char 1)) ($return (list->string c*))))
+;; [101] c-ns-anchor-property ::= “&” ns-anchor-name
+(define c-ns-anchor-property
+  ($do (($eqv? #\&))
+       (n ns-anchor-name)
+       ($return `(anchor ,(list->string n)))))
+
+;; [96] c-ns-properties(n,c) ::= ( c-ns-tag-property
+;;                                 ( s-separate(n,c) c-ns-anchor-property )? )
+;;                             | ( c-ns-anchor-property
+;;                                 ( s-separate(n,c) c-ns-tag-property )? )
+(define (c-ns-properties n c)
+  ($or ($seq c-ns-tag-property
+	     ($optional ($seq (s-separate n c) c-ns-anchor-property)))
+       ($seq c-ns-anchor-property
+	     ($optional ($seq (s-separate n c) c-ns-tag-property)))))
+
+;; 7.1
+;; [104] c-ns-alias-node ::= “*” ns-anchor-name
+(define c-ns-alias-node
+  ($do (($eqv? #\*)) (n ns-anchor-name) ($return `(alias ,n))))
+
+;; [105] e-scalar ::= /* Empty */
+(define e-scalar (lambda (l) (return-result 'null l)))
+;; [106] e-node ::= e-scalar
+(define e-node e-scalar)
+
+;; [107] nb-double-char ::= c-ns-esc-char | ( nb-json - “\” - “"” )
+(define nb-double-char
+  ($or c-ns-esc-char
+       ($in-cset (char-set-difference +json-char-set+ (char-set #\\ #\")))))
+;; [108] ns-double-char ::= nb-double-char - s-white
+(define ns-double-char
+  ($seq ($peek ($not s-white)) nb-double-char))
+
+;; [111] nb-double-one-line ::= nb-double-char*
+(define nb-double-one-line
+  ($do (c* ($many nb-double-char)) ($return (list->string c*))))
+
+;; [112] s-double-escaped(n) ::= s-white* “\” b-non-content
+;;                               l-empty(n,flow-in)* s-flow-line-prefix(n)
+(define (s-double-escaped n)
+  ($do (($many s-white))
+       (($eqv? #\\))
+       (br b-non-content)
+       (($many (l-empty n 'flow-in)))
+       ((s-flow-line-prefix n))
+       ;; FIXME
+       ($return "\n")))
+       
+;; [113] s-double-break(n) ::= s-double-escaped(n) | s-flow-folded(n)
+(define (s-double-break n) ($or (s-double-escaped n) (s-flow-folded n)))
+;; [114] nb-ns-double-in-line ::= ( s-white* ns-double-char )*
+(define nb-ns-double-in-line ($many ($seq ($many s-white) ns-double-char)))
+;; [115] s-double-next-line(n) ::= s-double-break(n)
+;;                                 ( ns-double-char nb-ns-double-in-line
+;;                                   ( s-double-next-line(n) | s-white* ) )?
+(define (s-double-next-line n)
+  ($seq (s-double-break n)
+	($optional ($seq ns-double-char nb-ns-double-in-line
+			 ($or (s-double-next-line n) ($many s-white))))))
+;; [116] nb-double-multi-line(n) ::= nb-ns-double-in-line
+;;                                   ( s-double-next-line(n) | s-white* )
+(define (nb-double-multi-line n)
+  ($seq nb-ns-double-in-line
+	($or (s-double-next-line n) ($many s-white))))
+
+;; [110] nb-double-text(n,c) ::= c = flow-out  ⇒ nb-double-multi-line(n)
+;;                               c = flow-in   ⇒ nb-double-multi-line(n)
+;;                               c = block-key ⇒ nb-double-one-line
+;;                               c = flow-key  ⇒ nb-double-one-line  
+(define (nb-double-one-line n c)
+  ($cond ((eq? c 'flow-out) (nb-double-multi-line n))
+	 ((eq? c 'flow-in) (nb-double-multi-line n))
+	 ((eq? c 'flow-key) (nb-double-one-line n))
+	 ((eq? c 'block-key) (nb-double-one-line n))
+	 (else (assertion-violation 'nb-double-one-line "Unknown context" c))))
+;; [109] c-double-quoted(n,c) ::= “"” nb-double-text(n,c) “"”
+(define (c-double-quoted n c)
+  ($do (($eqv? #\")) (text (nb-double-text n c)) (($eqv? #\")) ($return text)))
+
 
 (define (parse-yaml input)
   (define lseq (generator->lseq (port->char-generator input)))
