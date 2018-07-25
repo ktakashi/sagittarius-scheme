@@ -33,4 +33,7 @@
 (yaml-test '(TAG "yaml" "tag:yaml.org,2002:")
 	   l-directive "%TAG !yaml! tag:yaml.org,2002:")
 
+(yaml-test '#\' ns-single-char "''")
+(yaml-test '#\a ns-single-char "a")
+
 (test-end)

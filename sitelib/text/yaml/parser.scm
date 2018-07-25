@@ -34,6 +34,7 @@
 	    l-comment s-l-comments
 	    l-directive
 
+	    ns-single-char
 	    *parsing-context*
 	    make-parsing-context
 	    )
@@ -564,6 +565,79 @@
 (define (c-double-quoted n c)
   ($do (($eqv? #\")) (text (nb-double-text n c)) (($eqv? #\")) ($return text)))
 
+
+;; [117] c-quoted-quote ::= “'” “'”
+(define c-quoted-quote ($do (($token "''")) ($return #\')))
+;; [118] nb-single-char ::= c-quoted-quote | ( nb-json - “'” )
+(define nb-single-char
+  ($or c-quoted-quote
+       ($in-cset (char-set-difference +json-char-set+ (char-set #\')))))
+;; [119] ns-single-char ::= nb-single-char - s-white
+(define ns-single-char ($seq ($peek ($not s-white)) nb-single-char))
+
+;; [120] c-single-quoted(n,c) ::= “'” nb-single-text(n,c) “'”
+(define (c-single-quoted n c)
+  ($do (($eqv? #\'))
+       (text (nb-single-text n c))
+       (($eqv? #\'))
+       ($return text)))
+;; [121] nb-single-text(n,c) ::= c = flow-out  ⇒ nb-single-multi-line(n)
+;;                               c = flow-in   ⇒ nb-single-multi-line(n)
+;;                               c = block-key ⇒ nb-single-one-line
+;;                               c = flow-key  ⇒ nb-single-one-line
+(define (nb-single-one-line n c)
+  ($cond ((eq? c 'flow-out) (nb-single-multi-line n))
+	 ((eq? c 'flow-in) (nb-single-multi-line n))
+	 ((eq? c 'block-key) nb-single-one-line)
+	 ((eq? c 'flow-key) nb-single-one-line)
+	 (else (assertion-violation 'nb-single-one-line "Unknown context" c))))
+;; [122] nb-single-one-line ::= nb-single-char*
+(define nb-single-one-line
+  ($do (c* ($many nb-single-char)) ($return (list->string c*))))
+
+;; [123] nb-ns-single-in-line ::= ( s-white* ns-single-char )*
+(define nb-ns-single-in-line
+  ($many ($seq ($many s-white) ns-single-char)))
+;; [124] s-single-next-line(n) ::= s-flow-folded(n)
+;;                                 ( ns-single-char nb-ns-single-in-line
+;;                                   ( s-single-next-line(n) | s-white* ) )?
+(define (s-single-next-line n)
+  ($seq (s-flow-folded n)
+	($optional ($seq ns-single-char nb-ns-single-in-line
+			 ($or (s-single-next-line n) ($many s-white))))))
+;; [125] nb-single-multi-line(n) ::= nb-ns-single-in-line
+;;                                   ( s-single-next-line(n) | s-white* )
+(define (nb-single-multi-line n)
+  ($seq nb-ns-single-in-line ($or (s-single-next-line n) ($many s-white))))
+
+;; [126] ns-plain-first(c) ::= ( ns-char - c-indicator )
+;;                           | ( ( “?” | “:” | “-” )
+;;                               /* Followed by an ns-plain-safe(c)) */ )
+(define (ns-plain-first c)
+  ($or ($seq ($peek ($not c-indicator)) ns-char)
+       (($or ($eqv? #\?) ($eqv? #\:) ($eqv? #\-))
+	($peek (ns-plain-safe c)))))
+;; [127] ns-plain-safe(c) ::= c = flow-out  ⇒ ns-plain-safe-out
+;;                            c = flow-in   ⇒ ns-plain-safe-in
+;;                            c = block-key ⇒ ns-plain-safe-out
+;;                            c = flow-key  ⇒ ns-plain-safe-in
+(define (ns-plain-safe c)
+  ($cond ((eq? c 'flow-out) ns-plain-safe-out)
+	 ((eq? c 'flow-in) ns-plain-safe-in)
+	 ((eq? c 'block-key) ns-plain-safe-out)
+	 ((eq? c 'flow-key) ns-plain-safe-in)
+	 (else (assertion-violation 'ns-plain-safe "Unknown context" c))))
+;; [128] ns-plain-safe-out ::= ns-char
+(define ns-plain-safe-out ns-char)
+;; [129] ns-plain-safe-in ::= ns-char - c-flow-indicator
+(define ns-plain-safe-in ($seq ($peek ($not c-flow-indicator)) ns-char))
+;; [130] ns-plain-char(c) ::= ( ns-plain-safe(c) - “:” - “#” )
+;;                          | ( /* An ns-char preceding */ “#” )
+;;                          | ( “:” /* Followed by an ns-plain-safe(c) */ )
+(define (ns-plain-char c)
+  ($or ($seq ($peek ($not ($or ($eqv? #\:) ($eqv? #\#)))) (ns-plain-safe c))
+       ;; ($eqv? #\#) ;; how???
+       ($do (c ($eqv? #\:)) (($peek (ns-plain-safe c))) ($return c))))
 
 (define (parse-yaml input)
   (define lseq (generator->lseq (port->char-generator input)))
