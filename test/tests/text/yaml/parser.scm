@@ -1,3 +1,4 @@
+#|
 (import (rnrs)
 	(text yaml parser)
 	(sagittarius generators)
@@ -37,3 +38,4 @@
 (yaml-test '#\a ns-single-char "a")
 
 (test-end)
+|#
