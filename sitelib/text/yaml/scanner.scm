@@ -58,6 +58,8 @@
 	    &yaml-scanner yaml-scanner-error?
 	    yaml-scanner-error-when yaml-scanner-error-mark)
     (import (rnrs)
+	    (text yaml conditions)
+	    (text yaml tokens)
 	    (only (scheme base) vector-copy!)
 	    (only (srfi :1 lists) reverse!)
 	    (srfi :14 char-sets)
@@ -96,17 +98,7 @@
 (define (simple-key-mark sk)         (vector-ref sk 5))
 
 ;; TODO move
-(define-record-type mark
-  (fields name position line column buffer))
-
-(define (make-scalar-token value plain start-mark end-mark style)
-  (vector 'scalar-token value plain start-mark end-mark style))
-(define (make-block-end-token start-mark end-mark)
-  (vector 'block-end-token start-mark end-mark))
-(define (make-stream-end-token start-mark end-mark)
-  (vector 'stream-end-token start-mark end-mark))
-
-(define-condition-type &yaml-scanner &error
+(define-condition-type &yaml-scanner &yaml
   make-yaml-scanner-error yaml-scanner-error?
   (when yaml-scanner-error-when)
   (mark yaml-scanner-error-mark))
@@ -261,7 +253,7 @@
 	    (values len ch)
 	    (find-ch in (+ len 1)))))
     (define (finish chunks start-mark end-mark)
-      (make-scalar-token chunks #t start-mark end-mark #f))
+      (make-scalar-token chunks #t start-mark end-mark))
     (define start-mark (get-mark))
     (define current-indent (+ indent 1))
     (let-values (((chunks extract) (open-string-output-port)))
@@ -343,7 +335,7 @@
 		  (finish #f line-break breaks))))
 	  (finish whitespaces #f '()))))
   
-  (define (get-mark) (make-mark in position line column buffer))
+  (define (get-mark) (make-yaml-scanner-mark in position line column))
   (define (add-token! token) (list-queue-add-back! tokens token))
 
   (define char-table `())
