@@ -306,7 +306,7 @@
 	  (values #t '())
 	  (let loop ((c (peek in))
 		     (breaks '()))
-	    (if (and (eqv? #\space c) (char-set-contains? +break-set+ c))
+	    (if (or (eqv? #\space c) (char-set-contains? +break-set+ c))
 		(if (eqv? c #\space)
 		    (begin
 		      (forward in)
