@@ -30,8 +30,13 @@
 
 (library (text yaml tokens)
     (export yaml-token?
+	    (rename (stream-end-token <stream-end-token>))
 	    make-stream-end-token stream-end-token?
+	    
+	    (rename (block-end-token <block-end-token>))
 	    make-block-end-token block-end-token?
+	    
+	    (rename (scalar-token <scalar-token>))
 	    make-scalar-token scalar-token?
 	    
 	    yaml-scanner-mark-input
