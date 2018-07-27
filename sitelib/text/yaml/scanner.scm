@@ -110,6 +110,11 @@
 	  (make-message-condition msg)
 	  (make-irritants-condition irr))))
 
+(define +directive-name-set+
+  (char-set-intersection
+   (char-set-union char-set:letter+digit (char-set #\- #\_))
+   char-set:ascii))
+
 (define +break-set+ (string->char-set "\r\n\x85;\x2028;\x2029;"))
 (define +white-set+ (char-set-union (string->char-set "\x0; \t") +break-set+))
 (define +non-plain-set+
@@ -200,26 +205,79 @@
   (define (read in len)
     (do ((i 0 (+ i 1)) (r '() (cons (consume in) r)))
 	((= i len) (list->string (reverse! r)))))
+  (define (skip in ignore)
+    (do ((c (peek in) (peek in)))
+	((not (eqv? ignore c)))
+      (forward in)))
+  (define (skip-comment in)
+    (when (eqv? #\# (peek in))
+      (do ((c (peek in) (peek in)))
+	  ((or (eof-object? c) (char-set-contains? +break-set+ c)))
+	(forward in))))
   ;; read the next l characters and discards
   (define (forward in . maybe-l)
     (define l (if (null? maybe-l) 1 (car maybe-l)))
     (do ((i 0 (+ i 1))) ((= i l)) (consume in)))
+
+  (define (get-mark) (make-yaml-scanner-mark in position line column))
+  (define (add-token! token) (list-queue-add-back! tokens token))
+
+  ;;; Fetchers
+  (define (fetch-directive in)
+    (unwind-indent! -1)
+    (remove-possible-simple-key!)
+    (set! allow-simple-key #f)
+    (add-token! (scan-directive in)))
+  
+  (define (fetch-stream-end in)
+    (unwind-indent! -1)
+    (remove-possible-simple-key!)
+    (set! allow-simple-key #f)
+    (hashtable-clear! possible-simple-keys)
+    (let ((mark (get-mark)))
+      (list-queue-add-back! tokens (make-stream-end-token mark mark))
+      (set! done? #t)))
+  
+  (define (fetch-plain in)
+    (save-possible-simple-key!)
+    (set! allow-simple-key #f)
+    (add-token! (scan-plain in)))
+  
+  ;;; Checkers
+  ;; DIRECTIVE: ^ '%' ...
+  ;; The '%' indicator is already checked.
+  (define (check-directive? in) (zero? column))
     
+  (define (check-plain? in)
+    ;; A plain scalar may start with any non-space character except:
+    ;;   '-', '?', ':', ',', '[', ']', '{', '}',
+    ;;   '#', '&', '*', '!', '|', '>', '\', '\"',
+    ;;   '%', '@', '`'.
+    ;;
+    ;; It may also start with
+    ;;   '-', '?', ':'
+    ;; if it is followed by a non-space character.
+    ;;
+    ;; Note that we limit the last rule to the block context (except the
+    ;; '-' character) because we want the flow context to be space
+    ;; independent.
+    (define c (peek in))
+    (and (not (eof-object? c))
+	 (or (not (char-set-contains? +non-plain-set+ c))
+	     (and (not (char-set-contains? +white-set+ c))
+		  (or (eqv? #\- c)
+		      (and (zero? flow-level)
+			   (memv c '(#\: #\?))))))))
+
+    ;;; Scanners
   ;; We ignore spaces, line breaks and comments.
   ;; If we find a line break in the block section, we set the flag
   ;; `allow_simple_key' on.
   (define (scan-to-next-token in)
     (when (and (zero? position) (eqv? (peek in) #\xFEFF)) (forward in))
     (let loop ()
-      (do ((c (peek in) (peek in)))
-	  ((not (eqv? #\space c)))
-	(forward in))
-      ;; skip comment
-      (when (eqv? #\# (peek in))
-	(do ((c (peek in) (peek in)))
-	    ((or (eof-object? c)
-		 (memv c '(#\return #\newline #\x2028 #\x2029))))
-	  (forward in)))
+      (skip in #\space)
+      (skip-comment in)
       (when (> (string-length (scan-line-break in)) 0)
 	(when (zero? flow-level) (set! allow-simple-key #t))
 	(loop))))
@@ -236,6 +294,88 @@
 	 (forward in)
 	 (string c))
 	(else ""))))
+  ;; See the specification for details.
+  (define (scan-directive in)
+    (define (scan-value in name)
+      (cond ((string=? "YAML" name)
+	     (let ((v (scan-yaml-directive-value in)))
+	       (values v (get-mark))))
+	    #;((string=? "TAG" name)
+	     (let ((v (scan-tag-directive-value in)))
+	       (values v (get-mark))))
+	    (else
+	     (do ((m (get-mark)) (c (peek in) (peek in)))
+		 ((or (eof-object? c) (char-set-contains? +break-set+ c))
+		  (values #f m))
+	       (forward in)))))
+    (let ((start-mark (get-mark)))
+      (forward in)
+      (let ((name (scan-directive-name in)))
+	(let-values (((value end-mark) (scan-value in name)))
+	  (scan-directive-ignored-line in)
+	  (make-directive-token start-mark end-mark name value)))))
+  (define (scan-directive-ignored-line in)
+    (skip in #\space)
+    (skip-comment in)
+    (let ((c (peek in)))
+      (unless (or (eof-object? c) (char-set-contains? +break-set+ c))
+	(scanner-error "While scanning a directive"
+		       "Expected a comment or a line break"
+		       (get-mark)
+		       c)))
+    (scan-line-break in))
+      
+  ;; See the specification for details.
+  (define (scan-directive-name in)
+    (define len
+      (do ((i 0 (+ i 1)) (c (peek in) (peek in i)))
+	  ((or (eof-object? c)
+	       (not (char-set-contains? +directive-name-set+ c)))
+	   (when (zero? i)
+	     (scanner-error "While scanning a directive name"
+			    "Expected alphanumeric characters"
+			    (get-mark)
+			    (peek in)))
+	   (- i 1))))
+    (let* ((value (read in len))
+	   (c (peek in)))
+      (unless (or (eof-object? c)
+		  (eqv? #\space c)
+		  (char-set-contains? +break-set+ c))
+	(scanner-error "While scanning a directive name"
+		       "Expected whitespace"
+		       (get-mark)
+		       c))
+      value))
+  (define (scan-yaml-directive-value in)
+    (skip in #\space)
+    (let* ((major (scan-yaml-directive-number in))
+	   (c (consume in)))
+      (unless (eqv? #\. c)
+	(scanner-error "While scanning a YAML directive"
+		       "Expected digit or '.'"
+		       (get-mark)
+		       c))
+      (let* ((minor (scan-yaml-directive-number in))
+	     (c (peek in)))
+	(unless (or (eof-object? c)
+		    (eqv? #\space c)
+		    (char-set-contains? +break-set+ c))
+	  (scanner-error "While scanning a YAML directive"
+			 "Expected whitespace"
+			 (get-mark)
+			 c))
+	(cons major minor))))
+  (define (scan-yaml-directive-number in)
+    (let ((c (peek in)))
+      (unless (and (char? c) (char<=? #\0 c #\9))
+	(scanner-error "While scanning a YAML directive"
+		       "Expected digit"
+		       (get-mark)
+		       c)))
+    (let ((len (do ((c (peek in) (peek in i)) (i 0 (+ i 1)))
+		   ((or (eof-object? c) (not (char<=? #\0 c #\9))) (- i 1)))))
+      (string->number (read in len))))
   ;; See the specification for details.
   ;; We add an additional restriction for the flow context:
   ;;   plain scalars in the flow context cannot contain ',' ':' '?'.
@@ -335,73 +475,7 @@
 		  (finish #f line-break breaks))))
 	  (finish whitespaces #f '()))))
   
-  (define (get-mark) (make-yaml-scanner-mark in position line column))
-  (define (add-token! token) (list-queue-add-back! tokens token))
 
-  (define char-table `())
-  (define (fetch-more-tokens in)
-    (define (check-ch? ch)
-      (cond ((assv ch char-table)
-	     (lambda (slot)
-	       (let ((t (cdr slot)))
-		 (if (procedure? t)
-		     t
-		     (let loop ((t t))
-		       (and (not (null? t))
-			    (if ((caar t) in)
-				(cdar t)
-				(loop (cdr t)))))))))
-	    (else #f)))
-    (scan-to-next-token in)
-    (stale-posible-simple-keys)
-    (unwind-indent! column)
-    (let ((c (peek in)))
-      (cond ((or (eof-object? c) (eqv? #\nul c))
-	     (fetch-stream-end in))
-	    ((check-ch? c) => (lambda (p) (p in)))
-	    ((check-plain? c) (fetch-plain in))
-	    (else (scanner-error
-		   "While scanning for the next token"
-		   "Found a character that cannot start any token"
-		   (get-mark)
-		   c)))))
-
-  ;;; Fetchers
-  (define (fetch-stream-end in)
-    (unwind-indent! -1)
-    (remove-possible-simple-key!)
-    (set! allow-simple-key #f)
-    (hashtable-clear! possible-simple-keys)
-    (let ((mark (get-mark)))
-      (list-queue-add-back! tokens (make-stream-end-token mark mark))
-      (set! done? #t)))
-  
-  (define (fetch-plain in)
-    (save-possible-simple-key!)
-    (set! allow-simple-key #f)
-    (add-token! (scan-plain in)))
-  
-  ;;; Checkers
-  (define (check-plain? in)
-    ;; A plain scalar may start with any non-space character except:
-    ;;   '-', '?', ':', ',', '[', ']', '{', '}',
-    ;;   '#', '&', '*', '!', '|', '>', '\', '\"',
-    ;;   '%', '@', '`'.
-    ;;
-    ;; It may also start with
-    ;;   '-', '?', ':'
-    ;; if it is followed by a non-space character.
-    ;;
-    ;; Note that we limit the last rule to the block context (except the
-    ;; '-' character) because we want the flow context to be space
-    ;; independent.
-    (define c (peek in))
-    (and (not (eof-object? c))
-	 (or (not (char-set-contains? +non-plain-set+ c))
-	     (and (not (char-set-contains? +white-set+ c))
-		  (or (eqv? #\- c)
-		      (and (zero? flow-level)
-			   (memv c '(#\: #\?))))))))
   ;;; Indentation functions
   ;; In the flow context, indentation is ignored. We make the scanner
   ;; less restrictive than specification requires.
@@ -472,7 +546,38 @@
 			      "Could not find expected ':'"
 			      (get-mark)))
 	     (hashtable-delete! possible-simple-keys flow-level)))))
-			   
+
+  (define char-table
+    `(
+      (#\% . ((,check-directive? . ,fetch-directive)))
+      ))
+  (define (fetch-more-tokens in)
+    (define (check-ch? ch)
+      (cond ((assv ch char-table) =>
+	     (lambda (slot)
+	       (let ((t (cdr slot)))
+		 (if (procedure? t)
+		     t
+		     (let loop ((t t))
+		       (and (not (null? t))
+			    (if ((caar t) in)
+				(cdar t)
+				(loop (cdr t)))))))))
+	    (else #f)))
+    (scan-to-next-token in)
+    (stale-posible-simple-keys)
+    (unwind-indent! column)
+    (let ((c (peek in)))
+      (cond ((or (eof-object? c) (eqv? #\nul c))
+	     (fetch-stream-end in))
+	    ((check-ch? c) => (lambda (p) (p in)))
+	    ((check-plain? c) (fetch-plain in))
+	    (else (scanner-error
+		   "While scanning for the next token"
+		   "Found a character that cannot start any token"
+		   (get-mark)
+		   c)))))
+
   (define (need-more-tokens?)
     (cond (done? #f)
 	  ((list-queue-empty? tokens))

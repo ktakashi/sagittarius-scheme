@@ -40,4 +40,7 @@
 	      (<scalar-token> (value "plain") (plain? #t))
 	      (<scalar-token> (value "bar") (plain? #t)))
 
+(test-scanner "%YAML 1.0"
+	      (<directive-token> (value '(1 . 0)) (name "YAML")))
+
 (test-end)

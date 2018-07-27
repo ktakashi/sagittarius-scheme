@@ -38,6 +38,11 @@
 	    
 	    (rename (scalar-token <scalar-token>))
 	    make-scalar-token scalar-token?
+	    scalar-token-value scalar-token-plain? scalar-token-style
+
+	    (rename (directive-token <directive-token>))
+	    make-directive-token directive-token?
+	    directive-token-name directive-token-value
 	    
 	    yaml-scanner-mark-input
 	    yaml-scanner-mark-position
@@ -56,6 +61,15 @@
   (fields id
 	  start-mark
 	  end-mark))
+(define-record-type directive-token
+  (parent yaml-token)
+  (fields name value)
+  (protocol (lambda (p)
+	      (case-lambda
+	       ((start-mark end-mark name)
+		((p 'directive-token start-mark end-mark) name #f))
+	       ((start-mark end-mark name value)
+		((p 'directive-token start-mark end-mark) name value))))))
 (define-record-type scalar-token
   (parent yaml-token)
   (fields value plain? style)
