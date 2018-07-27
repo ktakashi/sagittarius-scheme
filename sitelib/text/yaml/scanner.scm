@@ -119,6 +119,11 @@
 (define +white-set+ (char-set-union (string->char-set "\x0; \t") +break-set+))
 (define +non-plain-set+
   (char-set-union +white-set+ (string->char-set "-?:,[]{}#&*!|>'\"%@")))
+(define +uri-char-set+
+  (char-set-intersection
+   (char-set-union (string->char-set "-/;?:@&=+$,_.!~*'()[]%^")
+		   +directive-name-set+)
+   char-set:ascii))
 
 (define (port->yaml-scanner-generator in)
   ;; info
@@ -205,6 +210,10 @@
   (define (read in len)
     (do ((i 0 (+ i 1)) (r '() (cons (consume in) r)))
 	((= i len) (list->string (reverse! r)))))
+  (define (read-while in cset)
+    (do ((c (peek in) (peek in i)) (i 0 (+ i 1)))
+	((or (eof-object? c) (not (char-set-contains? cset c)))
+	 (and (not (zero? i)) (read in (- i 1))))))
   (define (skip in ignore)
     (do ((c (peek in) (peek in)))
 	((not (eqv? ignore c)))
@@ -300,14 +309,15 @@
       (cond ((string=? "YAML" name)
 	     (let ((v (scan-yaml-directive-value in)))
 	       (values v (get-mark))))
-	    #;((string=? "TAG" name)
+	    ((string=? "TAG" name)
 	     (let ((v (scan-tag-directive-value in)))
 	       (values v (get-mark))))
 	    (else
-	     (do ((m (get-mark)) (c (peek in) (peek in)))
+	     (do ((m (get-mark))
+		  (i 0 (+ i 1))
+		  (c (peek in) (peek in i)))
 		 ((or (eof-object? c) (char-set-contains? +break-set+ c))
-		  (values #f m))
-	       (forward in)))))
+		  (values (if (zero? i) #f (read in (- i 1))) m))))))
     (let ((start-mark (get-mark)))
       (forward in)
       (let ((name (scan-directive-name in)))
@@ -376,6 +386,84 @@
     (let ((len (do ((c (peek in) (peek in i)) (i 0 (+ i 1)))
 		   ((or (eof-object? c) (not (char<=? #\0 c #\9))) (- i 1)))))
       (string->number (read in len))))
+
+  (define (scan-tag-directive-value in)
+    (skip in #\space)
+    (let ((handle (scan-tag-directive-handle in)))
+      (skip in #\space)
+      (cons handle (scan-tag-directive-prefix in))))
+  (define (scan-tag-directive-handle in)
+    (let ((handle (scan-tag-handle in "directive")))
+      (unless (eqv? #\space (peek in))
+	(scanner-error "While scanning a TAG handle"
+		       "Expected ' '"
+		       (get-mark)
+		       (peek in)))
+      handle))
+  (define (scan-tag-directive-prefix in)
+    (let* ((prefix (scan-tag-uri in "directive"))
+	   (c (peek in)))
+      (unless (or (eof-object? c)
+		  (eqv? #\space c)
+		  (char-set-contains? +break-set+ c))
+	(scanner-error "While scanning a TAG prefix"
+		       "Expected whitespace"
+		       (get-mark)
+		       (peek in)))
+      prefix))
+  ;; See the specification for details.
+  ;; For some strange reason, the specification does not allow '_' in
+  ;; tag handles. I have allowed it anyway.
+  (define (scan-tag-handle in name)
+    (unless (eqv? #\! (peek in))
+      (scanner-error (string-append "While scanning a " name)
+		     "Expected '!'"
+		     (get-mark)
+		     (peek in)))
+    (do ((i 1 (+ i 1)) (c (peek in 1) (peek in i)))
+	((or (eof-object? c)
+	     (not (char-set-contains? +directive-name-set+ c)))
+	 (cond ((= i 1)
+		;; handle secondary tag handle.
+		(if (eqv? c #\!)
+		    (read in 2)
+		    (read in 1)))
+	       ((not (eqv? #\! (peek in (- i 1))))
+		(scanner-error (string-append "While scanning a " name)
+			       "Expected '!'"
+			       (get-mark)
+			       (peek in i)))
+	       (else (read in i))))))
+  ;; we don't check if the uri is well-formed or not
+  (define (scan-tag-uri in name)
+    (define (unescape-uri uri)
+      (define len (string-length uri))
+      (define (err)
+	(scanner-error (string-append "While scanning a " name)
+		       "Invalid URI escape"
+		       (get-mark)
+		       uri))
+      (let-values (((out extract) (open-string-output-port)))
+	;; we use string-ref since it's O(1)
+	(let loop ((i 0))
+	  (if (= i len)
+	      (extract)
+	      (let ((c (string-ref uri i)))
+		(case c
+		  ((#\%)
+		   (unless (> (+ i 3) len) (err))
+		   (let ((n (string->number (substring uri (+ i 1) (+ i 3)))))
+		     (unless (number? n) (err))
+		     (put-char out (integer->char n)))
+		   (loop (+ i 3)))
+		  (else (put-char out c) (loop (+ i 1)))))))))
+    
+    (let ((escaped-uri (read-while in +uri-char-set+)))
+      (unless escaped-uri
+	(scanner-error (string-append "While scanning a " name)
+		       "Expected URI"
+		       (get-mark)))
+      (unescape-uri escaped-uri)))
   ;; See the specification for details.
   ;; We add an additional restriction for the flow context:
   ;;   plain scalars in the flow context cannot contain ',' ':' '?'.
