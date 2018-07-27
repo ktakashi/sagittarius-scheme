@@ -271,7 +271,45 @@
       (forward in)
       (let ((end-mark (get-mark)))
 	(add-token! (make-block-entry-token start-mark end-mark)))))
-      
+
+  (define (fetch-flow-sequence-start in)
+    (fetch-flow-collection-start in make-flow-sequence-start-token))
+  
+  (define (fetch-flow-mapping-start in)
+    (fetch-flow-collection-start in make-flow-mapping-start-token))
+  
+  (define (fetch-flow-collection-start in token)
+    (save-possible-simple-key!)
+    (set! flow-level (+ flow-level 1))
+    (set! allow-simple-key #t)
+    (let ((start-mark (get-mark)))
+      (forward in)
+      (let ((end-mark (get-mark)))
+	(add-token! (token start-mark end-mark)))))
+  
+  (define (fetch-flow-sequence-end in)
+    (fetch-flow-collection-end in make-flow-sequence-end-token))
+  
+  (define (fetch-flow-mapping-end in)
+    (fetch-flow-collection-end in make-flow-mapping-end-token))
+  
+  (define (fetch-flow-collection-end in token)
+    (remove-possible-simple-key!)
+    (set! flow-level (- flow-level 1))
+    (set! allow-simple-key #f)
+    (let ((start-mark (get-mark)))
+      (forward in)
+      (let ((end-mark (get-mark)))
+	(add-token! (token start-mark end-mark)))))
+
+  (define (fetch-flow-entry in)
+    (set! allow-simple-key #t)
+    (remove-possible-simple-key!)
+    (let ((start-mark (get-mark)))
+      (forward in)
+      (let ((end-mark (get-mark)))
+	(add-token! (make-flow-entry-token start-mark end-mark)))))
+  
   (define (fetch-stream-end in)
     (unwind-indent! -1)
     (remove-possible-simple-key!)
@@ -679,6 +717,11 @@
       (#\- . ((,check-document-start? . ,fetch-document-start)
 	      (,check-block-entry? . ,fetch-block-entry)))
       (#\. . ((,check-document-end? . ,fetch-document-end)))
+      (#\[ . ,fetch-flow-sequence-start)
+      (#\{ . ,fetch-flow-mapping-start)
+      (#\] . ,fetch-flow-sequence-end)
+      (#\} . ,fetch-flow-mapping-end)
+      (#\, . ,fetch-flow-entry)
       ))
   (define (fetch-more-tokens in)
     (define (check-ch? ch)

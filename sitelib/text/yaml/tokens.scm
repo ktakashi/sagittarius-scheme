@@ -37,18 +37,33 @@
 	    (rename (document-end-token <document-end-token>))
 	    make-document-end-token document-end-token?
 
+	    (rename (stream-end-token <stream-end-token>))
+	    make-stream-end-token stream-end-token?
+
 	    (rename (block-entry-token <block-entry-token>))
 	    make-block-entry-token block-entry-token?
 
-	    (rename (block-sequence-start-token <block-sequence-start-token>))
-	    make-block-sequence-start-token block-sequence-start-token?
-	    
-	    (rename (stream-end-token <stream-end-token>))
-	    make-stream-end-token stream-end-token?
-	    
 	    (rename (block-end-token <block-end-token>))
 	    make-block-end-token block-end-token?
+
+	    (rename (block-sequence-start-token <block-sequence-start-token>))
+	    make-block-sequence-start-token block-sequence-start-token?
+
+	    (rename (flow-sequence-start-token <flow-sequence-start-token>))
+	    make-flow-sequence-start-token flow-sequence-start-token?
+
+	    (rename (flow-mapping-start-token <flow-mapping-start-token>))
+	    make-flow-mapping-start-token flow-mapping-start-token?
+
+	    (rename (flow-sequence-end-token <flow-sequence-end-token>))
+	    make-flow-sequence-end-token flow-sequence-end-token?
+
+	    (rename (flow-mapping-end-token <flow-mapping-end-token>))
+	    make-flow-mapping-end-token flow-mapping-end-token?
 	    
+	    (rename (flow-entry-token <flow-entry-token>))
+	    make-flow-entry-token flow-entry-token?
+
 	    (rename (scalar-token <scalar-token>))
 	    make-scalar-token scalar-token?
 	    scalar-token-value scalar-token-plain? scalar-token-style
@@ -56,7 +71,7 @@
 	    (rename (directive-token <directive-token>))
 	    make-directive-token directive-token?
 	    directive-token-name directive-token-value
-	    
+
 	    yaml-scanner-mark-input
 	    yaml-scanner-mark-position
 	    yaml-scanner-mark-line
@@ -74,26 +89,25 @@
   (fields id
 	  start-mark
 	  end-mark))
-(define-record-type document-start-token
-  (parent yaml-token)
-  (protocol (lambda (p)
-	       (lambda (start-mark end-mark)
-		 ((p 'document-start-token start-mark end-mark))))))
-(define-record-type document-end-token
-  (parent yaml-token)
-  (protocol (lambda (p)
-	       (lambda (start-mark end-mark)
-		 ((p 'document-end-token start-mark end-mark))))))
-(define-record-type block-entry-token
-  (parent yaml-token)
-  (protocol (lambda (p)
-	       (lambda (start-mark end-mark)
-		 ((p 'block-entry-token start-mark end-mark))))))
-(define-record-type block-sequence-start-token
-  (parent yaml-token)
-  (protocol (lambda (p)
-	       (lambda (start-mark end-mark)
-		 ((p 'block-sequence-start-token start-mark end-mark))))))
+(define-syntax define-simple-token
+  (syntax-rules ()
+    ((_ name)
+     (define-record-type name
+       (parent yaml-token)
+       (protocol (lambda (p)
+		   (lambda (start-mark end-mark)
+		     ((p 'name start-mark end-mark)))))))))
+(define-simple-token document-start-token)
+(define-simple-token document-end-token)
+(define-simple-token stream-end-token)
+(define-simple-token block-entry-token)
+(define-simple-token block-end-token)
+(define-simple-token block-sequence-start-token)
+(define-simple-token flow-sequence-start-token)
+(define-simple-token flow-mapping-start-token)
+(define-simple-token flow-sequence-end-token)
+(define-simple-token flow-mapping-end-token)
+(define-simple-token flow-entry-token)
 
 (define-record-type directive-token
   (parent yaml-token)
@@ -113,15 +127,5 @@
 		((n 'scalar-token start-mark end-mark) value plain #f))
 	       ((value plain start-mark end-mark style)
 		((n 'scalar-token start-mark end-mark) value plain style))))))
-(define-record-type block-end-token
-  (parent yaml-token)
-  (protocol (lambda (p)
-	      (lambda (start-mark end-mark)
-		((p 'block-end-token start-mark end-mark))))))
-(define-record-type stream-end-token
-  (parent yaml-token)
-  (protocol (lambda (p)
-	      (lambda (start-mark end-mark)
-		((p 'stream-end-token start-mark end-mark))))))
 
 )

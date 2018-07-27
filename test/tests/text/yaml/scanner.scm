@@ -65,6 +65,7 @@
 (test-error yaml-scanner-error? (string->scanner "%TAG !"))
 (test-error yaml-scanner-error? (string->scanner "%TAG ! !>"))
 (test-error yaml-scanner-error? (string->scanner "%TAG ! ! !"))
+(test-error yaml-scanner-error? (string->scanner "%TAG foo bar"))
 
 (test-scanner "---" (<document-start-token>))
 (test-scanner "--- " (<document-start-token>))
@@ -76,5 +77,11 @@
 
 (test-scanner "..." (<document-end-token>))
 (test-scanner ". .." (<scalar-token>) (<scalar-token>))
+
+(test-scanner "[" (<flow-sequence-start-token>))
+(test-scanner "]" (<flow-sequence-end-token>))
+(test-scanner "{" (<flow-mapping-start-token>))
+(test-scanner "}" (<flow-mapping-end-token>))
+(test-scanner "," (<flow-entry-token>))
 
 (test-end)
