@@ -88,4 +88,10 @@
 (test-scanner "}" (<flow-mapping-end-token>))
 (test-scanner "," (<flow-entry-token>))
 
+(test-scanner "?" (<block-mapping-start-token>) (<key-token>))
+(test-scanner "[ ? ]"
+	      (<flow-sequence-start-token>)
+	      (<key-token>)
+	      (<flow-sequence-end-token>))
+
 (test-end)

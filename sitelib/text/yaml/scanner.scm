@@ -271,7 +271,21 @@
       (forward in)
       (let ((end-mark (get-mark)))
 	(add-token! (make-block-entry-token start-mark end-mark)))))
-
+  
+  (define (fetch-key in)
+    (when (zero? flow-level)
+      (unless allow-simple-key
+	(scanner-error #f "Mapping keys are not allowed here" (get-mark)))
+      (when (add-indent! column)
+	(let ((mark (get-mark)))
+	  (add-token! (make-block-mapping-start-token mark mark)))))
+    (set! allow-simple-key (zero? flow-level))
+    (remove-possible-simple-key!)
+    (let ((start-mark (get-mark)))
+      (forward in)
+      (let ([end-mark (get-mark)])
+	(add-token! (make-key-token start-mark end-mark)))))
+  
   (define (fetch-flow-sequence-start in)
     (fetch-flow-collection-start in make-flow-sequence-start-token))
   
@@ -340,6 +354,11 @@
 	 (yaml-delimitor? (peek in 3))))
   ;; BLOCK-ENTRY: '-' (' '|'\n')
   (define (check-block-entry? in) (yaml-delimitor? (peek in 1)))
+  ;; KEY(flow context): '?'
+  ;; KEY(block context): '?' (' '|'\n')
+  (define (check-key? in)
+    (or (not (zero? flow-level))
+	(yaml-delimitor? (peek in 1))))
   ;; A plain scalar may start with any non-space character except:
   ;;   '-', '?', ':', ',', '[', ']', '{', '}',
   ;;   '#', '&', '*', '!', '|', '>', '\', '\"',
@@ -653,7 +672,7 @@
     ;; Check if we need to increase indentation.
     (and (< indent column)
 	 (begin
-	   (list-queue-add-back! indents column)
+	   (list-queue-add-back! indents indent)
 	   (set! indent column)
 	   #t)))
   ;;; Simple keys treatment
@@ -723,6 +742,7 @@
       (#\] . ,fetch-flow-sequence-end)
       (#\} . ,fetch-flow-mapping-end)
       (#\, . ,fetch-flow-entry)
+      (#\? . ((,check-key? . ,fetch-key)))
       ))
   (define (fetch-more-tokens in)
     (define (check-ch? ch)
@@ -741,8 +761,7 @@
     (stale-posible-simple-keys)
     (unwind-indent! column)
     (let ((c (peek in)))
-      (cond ((or (eof-object? c) (eqv? #\nul c))
-	     (fetch-stream-end in))
+      (cond ((eof-object? c)  (fetch-stream-end in))
 	    ((check-ch? c) => (lambda (p) (p in)))
 	    ((check-plain? c) (fetch-plain in))
 	    (else (scanner-error

@@ -48,6 +48,8 @@
 
 	    (rename (block-sequence-start-token <block-sequence-start-token>))
 	    make-block-sequence-start-token block-sequence-start-token?
+	    (rename (block-mapping-start-token <block-mapping-start-token>))
+	    make-block-mapping-start-token block-mapping-start-token?
 
 	    (rename (flow-sequence-start-token <flow-sequence-start-token>))
 	    make-flow-sequence-start-token flow-sequence-start-token?
@@ -64,6 +66,12 @@
 	    (rename (flow-entry-token <flow-entry-token>))
 	    make-flow-entry-token flow-entry-token?
 
+	    (rename (key-token <key-token>))
+	    make-key-token key-token?
+
+	    (rename (value-token <value-token>))
+	    make-value-token value-token?
+	    
 	    (rename (scalar-token <scalar-token>))
 	    make-scalar-token scalar-token?
 	    scalar-token-value scalar-token-plain? scalar-token-style
@@ -103,11 +111,14 @@
 (define-simple-token block-entry-token)
 (define-simple-token block-end-token)
 (define-simple-token block-sequence-start-token)
+(define-simple-token block-mapping-start-token)
 (define-simple-token flow-sequence-start-token)
 (define-simple-token flow-mapping-start-token)
 (define-simple-token flow-sequence-end-token)
 (define-simple-token flow-mapping-end-token)
 (define-simple-token flow-entry-token)
+(define-simple-token key-token)
+(define-simple-token value-token)
 
 (define-record-type directive-token
   (parent yaml-token)
