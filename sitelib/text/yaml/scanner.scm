@@ -186,7 +186,7 @@
     (define l (if (null? maybe-length) 1 (car maybe-length)))
     (do ((i 0 (+ i 1))
 	 (r '() (cons (peek in i) r)))
-	((= i l) (list->string (reverse! r)))))
+	((or (eof-object? (peek in i)) (= i l)) (list->string (reverse! r)))))
   ;; read the next character and reduce buffer
   (define (consume in)
     (define (update! c)
@@ -237,7 +237,36 @@
     (remove-possible-simple-key!)
     (set! allow-simple-key #f)
     (add-token! (scan-directive in)))
+
+  (define (fetch-document-start in)
+    (fetch-document-indicator in make-document-start-token))
+    
+  (define (fetch-document-end in)
+    (fetch-document-indicator in make-document-end-token))
   
+  (define (fetch-document-indicator in token)
+    (unwind-indent! -1)
+    (remove-possible-simple-key!)
+    (set! allow-simple-key #f)
+    (let ((start-mark (get-mark)))
+      (forward 3)
+      (let ((end-mark (get-mark)))
+	(add-token! (token start-mark end-mark)))))
+
+  (define (fetch-block-entry in)
+    (when (zero? flow-level)
+      (unless allow-simple-key
+	(scanner-error #f "Sequence entries are not allowed here" (get-mark)))
+      (when (add-indent! column)
+	(let ((mark (get-mark)))
+	  (add-token! (make-block-sequence-start-token mark mark)))))
+    (set! allow-simple-key #t)
+    (remove-possible-simple-key!)
+    (let ((start-mark (get-mark)))
+      (forward in)
+      (let ((end-mark (get-mark)))
+	(add-token! (make-block-entry-token start-mark end-mark)))))
+      
   (define (fetch-stream-end in)
     (unwind-indent! -1)
     (remove-possible-simple-key!)
@@ -256,20 +285,31 @@
   ;; DIRECTIVE: ^ '%' ...
   ;; The '%' indicator is already checked.
   (define (check-directive? in) (zero? column))
-    
+  ;; DOCUMENT-START: ^ '---' (' '|'\n')
+  (define (check-document-start? in)
+    (and (zero? column)
+	 (string=? "---" (prefix in 3))
+	 (or (eof-object? (peek in 3))
+	     (eqv? #\space (peek in 3))
+	     (char-set-contains? +white-set+ (peek in 3)))))
+  ;; BLOCK-ENTRY: '-' (' '|'\n')
+  (define (check-block-entry? in)
+    (or (eof-object? (peek in 1))
+	(eqv? #\space (peek in 1))
+	(char-set-contains? +white-set+ (peek in 1))))
+  ;; A plain scalar may start with any non-space character except:
+  ;;   '-', '?', ':', ',', '[', ']', '{', '}',
+  ;;   '#', '&', '*', '!', '|', '>', '\', '\"',
+  ;;   '%', '@', '`'.
+  ;;
+  ;; It may also start with
+  ;;   '-', '?', ':'
+  ;; if it is followed by a non-space character.
+  ;;
+  ;; Note that we limit the last rule to the block context (except the
+  ;; '-' character) because we want the flow context to be space
+  ;; independent.
   (define (check-plain? in)
-    ;; A plain scalar may start with any non-space character except:
-    ;;   '-', '?', ':', ',', '[', ']', '{', '}',
-    ;;   '#', '&', '*', '!', '|', '>', '\', '\"',
-    ;;   '%', '@', '`'.
-    ;;
-    ;; It may also start with
-    ;;   '-', '?', ':'
-    ;; if it is followed by a non-space character.
-    ;;
-    ;; Note that we limit the last rule to the block context (except the
-    ;; '-' character) because we want the flow context to be space
-    ;; independent.
     (define c (peek in))
     (and (not (eof-object? c))
 	 (or (not (char-set-contains? +non-plain-set+ c))
@@ -576,9 +616,11 @@
 	  (add-token! (make-block-end-token mark mark))))))
   (define (add-indent! column)
     ;; Check if we need to increase indentation.
-    (when(< indent column)
-      (list-queue-add-back! indents column)
-      (set! indent column)))
+    (and (< indent column)
+	 (begin
+	   (list-queue-add-back! indents column)
+	   (set! indent column)
+	   #t)))
   ;;; Simple keys treatment
   ;; Return the number of the nearest possible simple key. Actually we
   ;; don't need to loop through the whole dictionary.
@@ -638,6 +680,8 @@
   (define char-table
     `(
       (#\% . ((,check-directive? . ,fetch-directive)))
+      (#\- . ((,check-document-start? . ,fetch-document-start)
+	      (,check-block-entry? . ,fetch-block-entry)))
       ))
   (define (fetch-more-tokens in)
     (define (check-ch? ch)

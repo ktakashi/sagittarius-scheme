@@ -12,8 +12,10 @@
     ((_ "collect" msg rt o ((n v acc) ...) ())
      (let* ((rtd (record-type-descriptor rt))
 	    (fields (record-type-field-names rtd)))
+       (define pred (record-predicate rtd))
        (define acc (record-accessor rtd (find-index 'n fields)))
        ...
+       (test-assert '(msg predicate) (pred o))
        (test-equal '(msg n v) v (acc o)) ...))
     ((_ "collect" msg rt o ((n v acc) ...) ((slot val) rest ...))
      (test-record "collect" msg rt o ((n v acc) ... (slot val tmp)) (rest ...)))
@@ -63,4 +65,13 @@
 (test-error yaml-scanner-error? (string->scanner "%TAG !"))
 (test-error yaml-scanner-error? (string->scanner "%TAG ! !>"))
 (test-error yaml-scanner-error? (string->scanner "%TAG ! ! !"))
+
+(test-scanner "---" (<document-start-token>))
+(test-scanner "--- " (<document-start-token>))
+(test-scanner "---\n" (<document-start-token>))
+
+(test-scanner "-"  (<block-sequence-start-token>) (<block-entry-token>))
+(test-scanner "- --"(<block-sequence-start-token>)  (<block-entry-token>))
+(test-scanner "-\n--" (<block-sequence-start-token>) (<block-entry-token>))
+
 (test-end)

@@ -29,7 +29,20 @@
 ;;;
 
 (library (text yaml tokens)
-    (export yaml-token?
+    (export yaml-token? yaml-token-id yaml-token-start-mark yaml-token-end-mark
+
+	    (rename (document-start-token <document-start-token>))
+	    make-document-start-token document-start-token?
+
+	    (rename (document-end-token <document-end-token>))
+	    make-document-end-token document-end-token?
+
+	    (rename (block-entry-token <block-entry-token>))
+	    make-block-entry-token block-entry-token?
+
+	    (rename (block-sequence-start-token <block-sequence-start-token>))
+	    make-block-sequence-start-token block-sequence-start-token?
+	    
 	    (rename (stream-end-token <stream-end-token>))
 	    make-stream-end-token stream-end-token?
 	    
@@ -61,6 +74,27 @@
   (fields id
 	  start-mark
 	  end-mark))
+(define-record-type document-start-token
+  (parent yaml-token)
+  (protocol (lambda (p)
+	       (lambda (start-mark end-mark)
+		 ((p 'document-start-token start-mark end-mark))))))
+(define-record-type document-end-token
+  (parent yaml-token)
+  (protocol (lambda (p)
+	       (lambda (start-mark end-mark)
+		 ((p 'document-end-token start-mark end-mark))))))
+(define-record-type block-entry-token
+  (parent yaml-token)
+  (protocol (lambda (p)
+	       (lambda (start-mark end-mark)
+		 ((p 'block-entry-token start-mark end-mark))))))
+(define-record-type block-sequence-start-token
+  (parent yaml-token)
+  (protocol (lambda (p)
+	       (lambda (start-mark end-mark)
+		 ((p 'block-sequence-start-token start-mark end-mark))))))
+
 (define-record-type directive-token
   (parent yaml-token)
   (fields name value)
