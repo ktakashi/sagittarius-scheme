@@ -125,6 +125,11 @@
 		   +directive-name-set+)
    char-set:ascii))
 
+(define (yaml-delimitor? c)
+  (or (eof-object? c) (char-set-contains? +white-set+ c)))
+(define (yaml-directive-delimitor? c)
+  (or (eof-object? c) (eqv? #\space c) (char-set-contains? +break-set+ c)))
+
 (define (port->yaml-scanner-generator in)
   ;; info
   (define line 0)
@@ -289,14 +294,14 @@
   (define (check-document-start? in)
     (and (zero? column)
 	 (string=? "---" (prefix in 3))
-	 (or (eof-object? (peek in 3))
-	     (eqv? #\space (peek in 3))
-	     (char-set-contains? +white-set+ (peek in 3)))))
+	 (yaml-delimitor? (peek in 3))))
+  ;; DOCUMENT-END: ^ '...' (' '|'\n')
+  (define (check-document-end? in)
+    (and (zero? column)
+	 (string=? "..." (prefix in 3))
+	 (yaml-delimitor? (peek in 3))))
   ;; BLOCK-ENTRY: '-' (' '|'\n')
-  (define (check-block-entry? in)
-    (or (eof-object? (peek in 1))
-	(eqv? #\space (peek in 1))
-	(char-set-contains? +white-set+ (peek in 1))))
+  (define (check-block-entry? in) (yaml-delimitor? (peek in 1)))
   ;; A plain scalar may start with any non-space character except:
   ;;   '-', '?', ':', ',', '[', ']', '{', '}',
   ;;   '#', '&', '*', '!', '|', '>', '\', '\"',
@@ -387,15 +392,12 @@
 			    (get-mark)
 			    (peek in)))
 	   (- i 1))))
-    (let* ((value (read in len))
-	   (c (peek in)))
-      (unless (or (eof-object? c)
-		  (eqv? #\space c)
-		  (char-set-contains? +break-set+ c))
+    (let ((value (read in len)))
+      (unless (yaml-directive-delimitor? (peek in))
 	(scanner-error "While scanning a directive name"
 		       "Expected whitespace"
 		       (get-mark)
-		       c))
+		       (peek in)))
       value))
   (define (scan-yaml-directive-value in)
     (skip in #\space)
@@ -406,15 +408,12 @@
 		       "Expected digit or '.'"
 		       (get-mark)
 		       c))
-      (let* ((minor (scan-yaml-directive-number in))
-	     (c (peek in)))
-	(unless (or (eof-object? c)
-		    (eqv? #\space c)
-		    (char-set-contains? +break-set+ c))
+      (let ((minor (scan-yaml-directive-number in)))
+	(unless (yaml-directive-delimitor? (peek in))
 	  (scanner-error "While scanning a YAML directive"
 			 "Expected whitespace"
 			 (get-mark)
-			 c))
+			 (peek in)))
 	(cons major minor))))
   (define (scan-yaml-directive-number in)
     (let ((c (peek in)))
@@ -441,11 +440,8 @@
 		       (peek in)))
       handle))
   (define (scan-tag-directive-prefix in)
-    (let* ((prefix (scan-tag-uri in "directive"))
-	   (c (peek in)))
-      (unless (or (eof-object? c)
-		  (eqv? #\space c)
-		  (char-set-contains? +break-set+ c))
+    (let ((prefix (scan-tag-uri in "directive")))
+      (unless (yaml-directive-delimitor? (peek in))
 	(scanner-error "While scanning a TAG prefix"
 		       "Expected whitespace"
 		       (get-mark)
@@ -682,6 +678,7 @@
       (#\% . ((,check-directive? . ,fetch-directive)))
       (#\- . ((,check-document-start? . ,fetch-document-start)
 	      (,check-block-entry? . ,fetch-block-entry)))
+      (#\. . ((,check-document-end? . ,fetch-document-end)))
       ))
   (define (fetch-more-tokens in)
     (define (check-ch? ch)

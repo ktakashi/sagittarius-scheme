@@ -74,4 +74,7 @@
 (test-scanner "- --"(<block-sequence-start-token>)  (<block-entry-token>))
 (test-scanner "-\n--" (<block-sequence-start-token>) (<block-entry-token>))
 
+(test-scanner "..." (<document-end-token>))
+(test-scanner ". .." (<scalar-token>) (<scalar-token>))
+
 (test-end)
