@@ -58,6 +58,7 @@
 	    &yaml-scanner yaml-scanner-error?
 	    yaml-scanner-error-when yaml-scanner-error-mark)
     (import (rnrs)
+	    (rnrs mutable-pairs)
 	    (text yaml conditions)
 	    (text yaml tokens)
 	    (only (scheme base) vector-copy!)
@@ -235,7 +236,17 @@
 
   (define (get-mark) (make-yaml-scanner-mark in position line column))
   (define (add-token! token) (list-queue-add-back! tokens token))
-
+  (define (add-token-at! token index)
+    (if (and (list-queue-empty? tokens) (zero? index))
+	(list-queue-add-back! tokens token)
+	(let loop ((i 0) (prev #f) (curr (list-queue-list tokens)))
+	  (cond ((null? curr)
+		 (error 'yaml-scanner "[Internal error] Invalid index" i))
+		((= i index)
+		 (if prev
+		     (list-queue-add-front! tokens token)
+		     (set-cdr! prev (cons token curr))))
+		(else (loop (+ i 1) curr (cdr curr)))))))
   ;;; Fetchers
   (define (fetch-directive in)
     (unwind-indent! -1)
@@ -285,7 +296,33 @@
       (forward in)
       (let ([end-mark (get-mark)])
 	(add-token! (make-key-token start-mark end-mark)))))
-  
+
+  (define (fetch-value in)
+    (cond ((hashtable-ref possible-simple-keys flow-level #f) =>
+	   (lambda (key)
+	     (let ((i (- (simple-key-token-number key) tokens-taken))
+		   (mark (simple-key-mark key)))
+	       (hashtable-delete! possible-simple-keys flow-level)
+	       (add-token-at! (make-key-token mark mark) i)
+	       (when (and (zero? flow-level)
+			  (add-indent! (simple-key-column key)))
+		 (add-token-at! (make-block-mapping-start-token mark mark) i))
+	       (set! allow-simple-key #f))))
+	  (else
+	   (when (zero? flow-level)
+	     (unless allow-simple-key
+	       (scanner-error
+		#f "Mapping values are not allowed here" (get-mark)))
+	     (when (add-indent! column)
+	       (let ((mark (get-mark)))
+		 (add-token! (make-block-mapping-start-token mark mark)))))
+	   (set! allow-simple-key (zero? flow-level))
+	   (remove-possible-simple-key!)))
+    (let ((start-mark (get-mark)))
+      (forward in)
+      (let ((end-mark (get-mark)))
+	(add-token! (make-value-token start-mark end-mark)))))
+      
   (define (fetch-flow-sequence-start in)
     (fetch-flow-collection-start in make-flow-sequence-start-token))
   
@@ -359,6 +396,10 @@
   (define (check-key? in)
     (or (not (zero? flow-level))
 	(yaml-delimitor? (peek in 1))))
+  ;; VALUE(flow context): ':'
+  ;; VALUE(block context): ':' (' '|'\n')
+  (define (check-value? in) (check-key? in))
+  
   ;; A plain scalar may start with any non-space character except:
   ;;   '-', '?', ':', ',', '[', ']', '{', '}',
   ;;   '#', '&', '*', '!', '|', '>', '\', '\"',
@@ -694,7 +735,7 @@
   ;; - should be no longer than 1024 characters.
   ;; Disabling this procedure will allow simple keys of any length and
   ;; height (may cause problems if indentation is broken though).
-  (define (stale-posible-simple-keys)
+  (define (stale-possible-simple-keys)
     (do ((levels (hashtable-keys possible-simple-keys))
 	 (i 0 (+ i 1)))
 	((= i (vector-length levels)))
@@ -716,7 +757,6 @@
     (unless (or allow-simple-key (not required?))
       (scanner-error #f "Required simple key not allowed" (get-mark)))
     (when allow-simple-key
-      (remove-possible-simple-key!)
       (let ((token-number (+ tokens-taken (length (list-queue-list tokens)))))
 	(hashtable-set! possible-simple-keys flow-level
 			(make-simple-key token-number required?
@@ -743,6 +783,7 @@
       (#\} . ,fetch-flow-mapping-end)
       (#\, . ,fetch-flow-entry)
       (#\? . ((,check-key? . ,fetch-key)))
+      (#\: . ((,check-value? . ,fetch-value)))
       ))
   (define (fetch-more-tokens in)
     (define (check-ch? ch)
@@ -758,7 +799,7 @@
 				(loop (cdr t)))))))))
 	    (else #f)))
     (scan-to-next-token in)
-    (stale-posible-simple-keys)
+    (stale-possible-simple-keys)
     (unwind-indent! column)
     (let ((c (peek in)))
       (cond ((eof-object? c)  (fetch-stream-end in))
@@ -773,7 +814,7 @@
   (define (need-more-tokens?)
     (cond (done? #f)
 	  ((list-queue-empty? tokens))
-	  (else (stale-posible-simple-keys)
+	  (else (stale-possible-simple-keys)
 		(= (next-possible-simple-key) tokens-taken))))
   
   (define (get-token in)

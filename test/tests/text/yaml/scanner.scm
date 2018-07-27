@@ -94,4 +94,9 @@
 	      (<key-token>)
 	      (<flow-sequence-end-token>))
 
+(test-scanner ":" (<block-mapping-start-token>) (<value-token>))
+
+(test-scanner "[ :"
+	      (<flow-sequence-start-token>)
+	      (<value-token>))
 (test-end)
