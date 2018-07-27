@@ -62,10 +62,14 @@
 (test-scanner "%TAG !! tag:yaml.org,2002:/"
 	      (<directive-token> (value '("!!" . "tag:yaml.org,2002:/"))
 				 (name "TAG")))
+(test-scanner "%TAG !! tag:%20:with:%20:space"
+	      (<directive-token> (value '("!!" . "tag: :with: :space"))
+				 (name "TAG")))
 (test-error yaml-scanner-error? (string->scanner "%TAG !"))
 (test-error yaml-scanner-error? (string->scanner "%TAG ! !>"))
 (test-error yaml-scanner-error? (string->scanner "%TAG ! ! !"))
 (test-error yaml-scanner-error? (string->scanner "%TAG foo bar"))
+(test-error yaml-scanner-error? (string->scanner "%TAG !! tag:%2"))
 
 (test-scanner "---" (<document-start-token>))
 (test-scanner "--- " (<document-start-token>))

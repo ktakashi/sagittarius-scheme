@@ -525,8 +525,9 @@
 	      (let ((c (string-ref uri i)))
 		(case c
 		  ((#\%)
-		   (unless (> (+ i 3) len) (err))
-		   (let ((n (string->number (substring uri (+ i 1) (+ i 3)))))
+		   (when (> (+ i 3) len) (err))
+		   (let ((n (string->number
+			     (substring uri (+ i 1) (+ i 3)) 16)))
 		     (unless (number? n) (err))
 		     (put-char out (integer->char n)))
 		   (loop (+ i 3)))
