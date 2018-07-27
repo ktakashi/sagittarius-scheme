@@ -24,6 +24,8 @@
 
 (test-begin "YAML scanner")
 
+(define (string->scanner s)
+  (port->yaml-scanner-lseq (open-string-input-port s)))
 (define-syntax test-scanner
   (syntax-rules ()
     ((_ "emit" scanner) (begin))
@@ -32,7 +34,7 @@
        (test-record rt ((slot val) ...) (lseq-car scanner))
        (test-scanner "emit" (lseq-cdr scanner) e* ...)))
     ((_ input (rt (s v) ...) rest ...)
-     (let ((scanner (port->yaml-scanner-lseq (open-string-input-port input))))
+     (let ((scanner (string->scanner input)))
        (test-scanner "emit" scanner (rt (s v) ...) rest ...)))))
 
 (test-scanner "plain" (<scalar-token> (value "plain") (plain? #t)))
@@ -42,5 +44,11 @@
 
 (test-scanner "%YAML 1.0"
 	      (<directive-token> (value '(1 . 0)) (name "YAML")))
+(test-error yaml-scanner-error? (string->scanner "% invalid"))
+(test-error yaml-scanner-error? (string->scanner "%YAML 1.x"))
+(test-error yaml-scanner-error? (string->scanner "%YAML 1-1"))
+(test-error yaml-scanner-error? (string->scanner "%YAML 1.1x"))
+;; after a directive, there must be a line break (or EOF)
+(test-error yaml-scanner-error? (string->scanner "%YAML 1.1 boo"))
 
 (test-end)
