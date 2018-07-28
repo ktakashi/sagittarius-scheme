@@ -99,4 +99,14 @@
 (test-scanner "[ :"
 	      (<flow-sequence-start-token>)
 	      (<value-token>))
+
+(test-scanner "&value" (<anchor-token> (value "value")))
+(test-error yaml-scanner-error? (string->scanner "& value"))
+(test-error yaml-scanner-error? (string->scanner "&value$"))
+
+(test-scanner "*value" (<alias-token> (value "value")))
+(test-error yaml-scanner-error? (string->scanner "* value"))
+(test-error yaml-scanner-error? (string->scanner "*value$"))
+
+
 (test-end)

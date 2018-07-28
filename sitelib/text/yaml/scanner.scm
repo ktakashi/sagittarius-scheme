@@ -322,6 +322,16 @@
       (forward in)
       (let ((end-mark (get-mark)))
 	(add-token! (make-value-token start-mark end-mark)))))
+
+  (define (fetch-alias in)
+    (save-possible-simple-key!)
+    (set! allow-simple-key #f)
+    (add-token! (scan-anchor in make-alias-token)))
+  
+  (define (fetch-anchor in)
+    (save-possible-simple-key!)
+    (set! allow-simple-key #f)
+    (add-token! (scan-anchor in make-anchor-token)))
       
   (define (fetch-flow-sequence-start in)
     (fetch-flow-collection-start in make-flow-sequence-start-token))
@@ -477,7 +487,7 @@
 		       (get-mark)
 		       c)))
     (scan-line-break in))
-      
+
   ;; See the specification for details.
   (define (scan-directive-name in)
     (define len
@@ -599,6 +609,26 @@
 		       "Expected URI"
 		       (get-mark)))
       (unescape-uri escaped-uri)))
+
+  ;; The specification does not restrict characters for anchors and
+  ;; aliases. This may lead to problems, for instance, the document:
+  ;;   [ *alias, value ]
+  ;; can be interpreted in two ways, as
+  ;;   [ "value" ]
+  ;; and
+  ;;   [ *alias, "value" ]
+  ;; Therefore we restrict aliases to numbers and ASCII letters.
+  (define (scan-anchor in make)
+    (let ((start-mark (get-mark))
+	  (name (if (eqv? #\* (consume in)) "alias" "anchor")))
+      (let ((value (read-while in +directive-name-set+)))
+	(unless (and value (yaml-delimitor? (peek in)))
+	  (scanner-error (string-append "While scanning an " name)
+			 "Expected alphanumeric character"
+			 (get-mark)
+			 (peek in)))
+	(make start-mark (get-mark) value))))
+  
   ;; See the specification for details.
   ;; We add an additional restriction for the flow context:
   ;;   plain scalars in the flow context cannot contain ',' ':' '?'.
@@ -784,6 +814,8 @@
       (#\, . ,fetch-flow-entry)
       (#\? . ((,check-key? . ,fetch-key)))
       (#\: . ((,check-value? . ,fetch-value)))
+      (#\* . ,fetch-alias)
+      (#\& . ,fetch-anchor)
       ))
   (define (fetch-more-tokens in)
     (define (check-ch? ch)
