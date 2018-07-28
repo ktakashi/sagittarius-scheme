@@ -125,7 +125,7 @@
    (char-set-union (string->char-set "-/;?:@&=+$,_.!~*'()[]%^")
 		   +directive-name-set+)
    char-set:ascii))
-
+(define +non-space-set+ (char-set-complement (char-set #\space)))
 (define (yaml-delimitor? c)
   (or (eof-object? c) (char-set-contains? +white-set+ c)))
 (define (yaml-directive-delimitor? c)
@@ -490,18 +490,8 @@
 
   ;; See the specification for details.
   (define (scan-directive-name in)
-    (define len
-      (do ((i 0 (+ i 1)) (c (peek in) (peek in i)))
-	  ((or (eof-object? c)
-	       (not (char-set-contains? +directive-name-set+ c)))
-	   (when (zero? i)
-	     (scanner-error "While scanning a directive name"
-			    "Expected alphanumeric characters"
-			    (get-mark)
-			    (peek in)))
-	   (- i 1))))
-    (let ((value (read in len)))
-      (unless (yaml-directive-delimitor? (peek in))
+    (let ((value (read-while in +directive-name-set+)))
+      (unless (and value (yaml-directive-delimitor? (peek in)))
 	(scanner-error "While scanning a directive name"
 		       "Expected whitespace"
 		       (get-mark)
@@ -680,10 +670,10 @@
 			   (finish (extract) start-mark end-mark)
 			   (loop start-mark end-mark spaces))))))))))
 
+  ;; See the specification for details.
+  ;; The specification is really confusing about tabs in plain scalars.
+  ;; We just forbid them completely. Do not use tabs in YAML!
   (define (scan-plain-spaces in indent start-mark)
-    ;; See the specification for details.
-    ;; The specification is really confusing about tabs in plain scalars.
-    ;; We just forbid them completely. Do not use tabs in YAML!
     (define (finish whitespaces line-break breaks)
       (let-values (((out extract) (open-string-output-port)))
 	(cond (whitespaces (put-string out whitespaces))
@@ -710,12 +700,7 @@
 			  (values #t '())
 			  (loop (peek in) (cons line-break breaks)))))
 		(values #f breaks)))))
-    (define len (let loop ((i 0))
-		  (let ((c (peek in i)))
-		    (if (or (eof-object? c) (eqv? c #\space))
-			i
-			(loop (+ i 1))))))
-    (let* ((whitespaces (read in len))
+    (let* ((whitespaces (read-while in +non-space-set+))
 	   (ch (peek in)))
       (if (and (char? ch) (char-set-contains? +break-set+ ch))
 	  (let ((line-break (scan-line-break in))
@@ -727,7 +712,6 @@
 		  ""
 		  (finish #f line-break breaks))))
 	  (finish whitespaces #f '()))))
-  
 
   ;;; Indentation functions
   ;; In the flow context, indentation is ignored. We make the scanner
