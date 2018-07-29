@@ -332,7 +332,12 @@
     (save-possible-simple-key!)
     (set! allow-simple-key #f)
     (add-token! (scan-anchor in make-anchor-token)))
-      
+
+  (define (fetch-tag in)
+    (save-possible-simple-key!)
+    (set! allow-simple-key #f)
+    (add-token! (scan-tag in)))
+  
   (define (fetch-flow-sequence-start in)
     (fetch-flow-collection-start in make-flow-sequence-start-token))
   
@@ -618,6 +623,39 @@
 			 (get-mark)
 			 (peek in)))
 	(make start-mark (get-mark) value))))
+
+  (define (scan-tag in)
+    (define start-mark (get-mark))
+    (define (scan-named-tag in)
+      (let* ((suffix (scan-tag-uri in "tag"))
+	     (c (consume in)))
+	(unless (eqv? #\> c)
+	  (scanner-error "While parsing a tag"
+			 "Expected '>'"
+			 (get-mark)
+			 c))
+	(values #f suffix)))
+    (define (scan-handle/suffix in)
+      (define (scan-handle in)
+	(let loop ((i 1))
+	  (let ((c (peek in i)))
+	    (cond ((yaml-delimitor? c) (forward in) "!") ;; e.g. !str
+		  ((eqv? #\! c) (scan-tag-handle in "tag")) ;; e.g. !foo!bar
+		  (else (loop (+ i 1)))))))
+      (let ((handle (scan-handle in)))
+	(values handle (scan-tag-uri in "tag"))))
+    (let-values (((handle suffix)
+		  (let ((c (peek in 1)))
+		    (cond ((eqv? #\< c) (forward in 2) (scan-named-tag in))
+			  ;; Only '!' so forward only 1
+			  ((yaml-delimitor? c) (forward in) (values #f "!"))
+			  (else (scan-handle/suffix in))))))
+      (unless (yaml-delimitor? (peek in))
+	(scanner-error "While scanning a tag"
+		       "Expected ' '"
+		       (get-mark)
+		       (peek in)))
+      (make-tag-token start-mark (get-mark) (cons handle suffix))))
   
   ;; See the specification for details.
   ;; We add an additional restriction for the flow context:
@@ -800,6 +838,7 @@
       (#\: . ((,check-value? . ,fetch-value)))
       (#\* . ,fetch-alias)
       (#\& . ,fetch-anchor)
+      (#\! . ,fetch-tag)
       ))
   (define (fetch-more-tokens in)
     (define (check-ch? ch)

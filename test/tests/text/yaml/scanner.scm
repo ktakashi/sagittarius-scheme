@@ -108,5 +108,13 @@
 (test-error yaml-scanner-error? (string->scanner "* value"))
 (test-error yaml-scanner-error? (string->scanner "*value$"))
 
+(test-scanner "!<tag:yaml.org,2002:str>"
+	      (<tag-token> (value '(#f . "tag:yaml.org,2002:str"))))
+(test-scanner "!" (<tag-token> (value '(#f . "!"))))
+(test-scanner "!!str" (<tag-token> (value '("!!" . "str"))))
+(test-scanner "!str" (<tag-token> (value '("!" . "str"))))
+(test-scanner "!foo!str" (<tag-token> (value '("!foo!" . "str"))))
+(test-error yaml-scanner-error? (string->scanner "!<tag:yaml.org,2002:str"))
+(test-error yaml-scanner-error? (string->scanner "!<tag:yaml.org,2002:str>foo"))
 
 (test-end)
