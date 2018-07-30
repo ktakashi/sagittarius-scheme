@@ -143,9 +143,9 @@
   (fields value plain? style)
   (protocol (lambda (n)
 	      (case-lambda
-	       ((value plain start-mark end-mark)
+	       ((start-mark end-mark value plain)
 		((n 'scalar-token start-mark end-mark) value plain #f))
-	       ((value plain start-mark end-mark style)
+	       ((start-mark end-mark value plain style)
 		((n 'scalar-token start-mark end-mark) value plain style))))))
 
 (define-syntax define-single-valued-token

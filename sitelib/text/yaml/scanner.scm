@@ -62,6 +62,7 @@
 	    (text yaml conditions)
 	    (text yaml tokens)
 	    (only (scheme base) vector-copy!)
+	    (only (scheme char) digit-value)
 	    (only (srfi :1 lists) reverse!)
 	    (srfi :14 char-sets)
 	    (srfi :117 list-queues)
@@ -115,6 +116,7 @@
   (char-set-intersection
    (char-set-union char-set:letter+digit (char-set #\- #\_))
    char-set:ascii))
+(define +digit-set+ (char-set-intersection char-set:digit char-set:ascii))
 
 (define +break-set+ (string->char-set "\r\n\x85;\x2028;\x2029;"))
 (define +white-set+ (char-set-union (string->char-set "\x0; \t") +break-set+))
@@ -126,11 +128,16 @@
 		   +directive-name-set+)
    char-set:ascii))
 (define +non-space-set+ (char-set-complement (char-set #\space)))
+(define +non-break-set+ (char-set-complement +break-set+))
+
 (define (yaml-delimitor? c)
   (or (eof-object? c) (char-set-contains? +white-set+ c)))
 (define (yaml-directive-delimitor? c)
   (or (eof-object? c) (eqv? #\space c) (char-set-contains? +break-set+ c)))
+(define (space/tab? c) (memv c '(#\space #\tab)))
+(define (break? c) (or (eof-object? c) (char-set-contains? +break-set+ c)))
 
+;; entry point
 (define (port->yaml-scanner-generator in)
   ;; info
   (define line 0)
@@ -337,6 +344,14 @@
     (save-possible-simple-key!)
     (set! allow-simple-key #f)
     (add-token! (scan-tag in)))
+
+  (define (fetch-literal in) (fetch-block-scalar in #\|))
+  (define (fetch-folded in) (fetch-block-scalar in #\>))
+
+  (define (fetch-block-scalar in style)
+    (set! allow-simple-key #t)
+    (remove-possible-simple-key!)
+    (add-token! (scan-block-scalar in style)))
   
   (define (fetch-flow-sequence-start in)
     (fetch-flow-collection-start in make-flow-sequence-start-token))
@@ -414,7 +429,9 @@
   ;; VALUE(flow context): ':'
   ;; VALUE(block context): ':' (' '|'\n')
   (define (check-value? in) (check-key? in))
-  
+
+  (define (check-literal? in) (zero? flow-level))
+  (define (check-folded? in) (zero? flow-level))
   ;; A plain scalar may start with any non-space character except:
   ;;   '-', '?', ':', ',', '[', ']', '{', '}',
   ;;   '#', '&', '*', '!', '|', '>', '\', '\"',
@@ -474,8 +491,7 @@
 	     (do ((m (get-mark))
 		  (i 0 (+ i 1))
 		  (c (peek in) (peek in i)))
-		 ((or (eof-object? c) (char-set-contains? +break-set+ c))
-		  (values (if (zero? i) #f (read in (- i 1))) m))))))
+		 ((break? c) (values (if (zero? i) #f (read in (- i 1))) m))))))
     (let ((start-mark (get-mark)))
       (forward in)
       (let ((name (scan-directive-name in)))
@@ -656,6 +672,128 @@
 		       (get-mark)
 		       (peek in)))
       (make-tag-token start-mark (get-mark) (cons handle suffix))))
+
+  (define (scan-block-scalar in style)
+    (define folded? (eqv? style #\>))
+    (define start-mark (get-mark))
+    (forward in)
+    (let-values (((chomping increment) (scan-block-scalar-indicators in)))
+      (scan-block-scalar-ignored-line in)
+      (let ((min-indent (if (< indent 0) (+ indent 2) (+ indent 1))))
+	(let-values (((breaks end-mark tmp-indent)
+		      (if increment
+			  (let ((i (+ min-indent increment -1)))
+			    (let-values (((b e)
+					  (scan-block-scalar-breaks in i)))
+			      (values b e i)))
+			  (scan-block-scalar-indentation in min-indent)))
+		     ((chunks extract) (open-string-output-port)))
+	  (define (finish end-mark line-break breaks)
+	    (unless (eq? 'strip chomping) (put-string chunks line-break))
+	    (when (eq? 'keep chomping) (put-string chunks breaks))
+	    (let ((e (or end-mark start-mark)))
+	      (make-scalar-token start-mark e (extract) #f style)))
+	  (let loop ((line-break "") (b breaks) (e end-mark))
+	    (let ((c (peek in)))
+	      (if (and (= column tmp-indent) (char? c))
+		  (let ((leading-non-space? (not (space/tab? c)))
+			(value (read-while in +non-break-set+)))
+		    (put-string chunks b)
+		    (put-string chunks value)
+		    (let ((line-break (scan-line-break in)))
+		      (let-values (((b e)
+				    (scan-block-scalar-breaks in tmp-indent)))
+			(if (and (= column tmp-indent) (char? (peek in)))
+			    ;; folding rules are ambigous
+			    (begin
+			      (if (and folded? leading-non-space?
+				       (string=? line-break "\n")
+				       (not (space/tab? (peek in))))
+				  (when (zero? (string-length b))
+				    (put-char chunks #\space))
+				  (put-string chunks line-break))
+			      (loop line-break b e))
+			    (finish e line-break b)))))
+		  (finish e line-break b))))))))
+  (define (scan-block-scalar-indicators in)
+    (define (scan-indicators in)      
+      (define c (peek in))
+      (define (check-zero increment)
+	(when (zero? increment)
+	  (scanner-error "While scanning a block scalar"
+			 "Expected indentation indicator (1-9)"
+			 (get-mark)
+			 increment))
+	(forward in)
+	increment)
+      (define (do-chomping in chomping)
+	(forward in)
+	(let ((c (peek in)))
+	  (cond ((and (char? c) (char-set-contains? +digit-set+ c))
+		 (values chomping (check-zero (digit-value c))))
+		(else (values chomping #f)))))
+      
+      (cond ((eqv? #\+ c) (do-chomping in 'keep))
+	    ((eqv? #\- c) (do-chomping in 'strip))
+	    ((and (char? c) (char-set-contains? +digit-set+ c))
+	     (let* ((increment (check-zero (digit-value c)))
+		    (c (peek in)))
+	       (cond ((eqv? #\+ c)
+		      (forward in)
+		      (values 'keep increment))
+		     ((eqv? #\- c)
+		      (forward in)
+		      (values 'strip increment))
+		     (else (values 'clip increment)))))
+	    (else (values 'clip #f))))
+	     
+    (let-values (((chomping increment) (scan-indicators in)))
+      (unless (yaml-delimitor? (peek in))
+	(scanner-error "While scanning a block scalar"
+		       "Expected chomping or indentation indicators"
+		       (get-mark)
+		       (peek in)))
+      (values chomping increment)))
+
+  (define (scan-block-scalar-ignored-line in)
+    (skip in #\space)
+    (skip-comment in)
+    (unless (break? (peek in))
+      (scanner-error "While scanning a block scalar"
+		     "Expected a comment or a line break"
+		     (get-mark)
+		     (peek in)))
+    (scan-line-break in))
+
+  (define (scan-block-scalar-indentation in min-indent)
+    (let-values (((chunks extract) (open-string-output-port)))
+      (let loop ((max-indent 0) (end-mark (get-mark)))
+	(let ((c (peek in)))
+	  (cond ((not (yaml-delimitor? c))
+		 (values (extract) end-mark (max min-indent max-indent)))
+		((not (eqv? #\space c))
+		 (put-string chunks (scan-line-break in))
+		 (loop max-indent (get-mark)))
+		(else
+		 (forward in)
+		 (loop (if (> column max-indent) column max-indent)
+		       end-mark)))))))
+
+  (define (scan-block-scalar-breaks in indent)
+    (define (skip in)
+      (do ((c (peek in) (peek in)))
+	  ((or (eof-object? c) (>= column indent) (not (eqv? #\space c))))
+	(forward in)))
+    (skip in)
+    (let-values (((chunks extract) (open-string-output-port)))
+      (let loop ((end-mark #f))
+	(let ((c (peek in)))
+	  (cond ((and (not (eof-object? c)) (char-set-contains? +break-set+ c))
+		 (put-string chunks (scan-line-break in))
+		 (let ((end-mark (get-mark)))
+		   (skip in)
+		   (loop end-mark)))
+		(else (values (extract) end-mark)))))))
   
   ;; See the specification for details.
   ;; We add an additional restriction for the flow context:
@@ -674,7 +812,7 @@
 	    (values len ch)
 	    (find-ch in (+ len 1)))))
     (define (finish chunks start-mark end-mark)
-      (make-scalar-token chunks #t start-mark end-mark))
+      (make-scalar-token start-mark end-mark chunks #t))
     (define start-mark (get-mark))
     (define current-indent (+ indent 1))
     (let-values (((chunks extract) (open-string-output-port)))
@@ -839,6 +977,8 @@
       (#\* . ,fetch-alias)
       (#\& . ,fetch-anchor)
       (#\! . ,fetch-tag)
+      (#\| . ((,check-literal? . ,fetch-literal)))
+      (#\> . ((,check-folded? . ,fetch-folded)))
       ))
   (define (fetch-more-tokens in)
     (define (check-ch? ch)

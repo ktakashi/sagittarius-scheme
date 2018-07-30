@@ -15,6 +15,7 @@
        (define pred (record-predicate rtd))
        (define acc (record-accessor rtd (find-index 'n fields)))
        ...
+       ;; (begin (write (list 'n v (acc o))) (newline)) ...
        (test-assert '(msg predicate) (pred o))
        (test-equal '(msg n v) v (acc o)) ...))
     ((_ "collect" msg rt o ((n v acc) ...) ((slot val) rest ...))
@@ -116,5 +117,36 @@
 (test-scanner "!foo!str" (<tag-token> (value '("!foo!" . "str"))))
 (test-error yaml-scanner-error? (string->scanner "!<tag:yaml.org,2002:str"))
 (test-error yaml-scanner-error? (string->scanner "!<tag:yaml.org,2002:str>foo"))
+
+(test-scanner "|\n block scalar\n next line"
+	      (<scalar-token> (value "block scalar\nnext line")
+			      (style #\|)
+			      (plain? #f)))
+(test-scanner "|\n \n  \n  literal\n   \n  \n  text\n\n #comment"
+	      (<scalar-token> (value "\n\nliteral\n \n\ntext\n")
+			      (style #\|)
+			      (plain? #f)))
+(test-scanner "| # Empty header\n literal"
+	      (<scalar-token> (value "literal")))
+(test-scanner "|+ # Chompoing indicator\n keep\n\n"
+	      (<scalar-token> (value "keep\n\n")))
+(test-scanner "|1- # Both indicator\n  strip\n\n"
+	      (<scalar-token> (value " strip")))
+(test-error yaml-scanner-error? (string->scanner "| - # wrong indicator"))
+(test-error yaml-scanner-error? (string->scanner "|0- # wrong indicator"))
+(test-error yaml-scanner-error? (string->scanner "|10- # wrong indicator"))
+
+(test-scanner ">1 # Indentation indicator\n  folded\n"
+	      (<scalar-token> (value " folded\n")
+			      (style #\>)
+			      (plain? #f)))
+(test-scanner ">\n folded\n text\n\n"
+	      (<scalar-token> (value "folded text\n")
+			      (style #\>)
+			      (plain? #f)))
+(test-scanner ">\n\n folded\n line\n\n next\n line\n   * bullet\n\n   * list\n   * lines\n\n last\n line\n\n# Comment"
+	      (<scalar-token> (value "\nfolded line\nnext line\n  * bullet\n\n  * list\n  * lines\n\nlast line\n")
+			      (style #\>)
+			      (plain? #f)))
 
 (test-end)
