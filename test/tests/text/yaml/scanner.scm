@@ -149,4 +149,37 @@
 			      (style #\>)
 			      (plain? #f)))
 
+(test-scanner "\"implicit block key\""
+	      (<scalar-token> (value "implicit block key")
+			      (style #\")
+			      (plain? #f)))
+(test-scanner "\"folded \nto a space,\t\n \n to a line feed, or \t\\\n \\ \tnon-content\""
+	      (<scalar-token> (value "folded to a space,\nto a line feed, or \t \tnon-content")
+			      (style #\")))
+(test-scanner "\" 1st non-empty\n\n 2nd non-empty \n\t3rd non-empty \""
+	      (<scalar-token> (value " 1st non-empty\n2nd non-empty 3rd non-empty ")))
+
+(test-scanner "\"\\0\\a\\b\\t\\	\\n\\v\\f\\r\\e\\ \\\"\\\\\\N\\_\\L\\P\""
+	      (<scalar-token> (value "\x0;\x07;\x08;\x09;\x09;\x0a;\x0b;\x0c;\x0d;\x1b; \"\\\x85;\xa0;\x2028;\x2029;")))
+
+(test-scanner "\"\\x20\\u0020\\U00000020\"" (<scalar-token> (value "   ")))
+
+(test-error yaml-scanner-error? (string->scanner "\"foo"))
+(test-error yaml-scanner-error? (string->scanner "\"\\x0\""))
+(test-error yaml-scanner-error? (string->scanner "\"\\u0\""))
+(test-error yaml-scanner-error? (string->scanner "\"\\U0\""))
+(test-error yaml-scanner-error? (string->scanner "\"\\xVV\""))
+(test-error yaml-scanner-error? (string->scanner "\"\\T\""))
+
+(test-scanner "'here''s to \"quotes\"'"
+	      (<scalar-token> (value "here's to \"quotes\"")
+			      (style #\')
+			      (plain? #f)))
+(test-scanner "'implicit block key'"
+	      (<scalar-token> (value "implicit block key")
+			      (style #\')
+			      (plain? #f)))
+(test-scanner "' 1st non-empty\n\n 2nd non-empty \n\t3rd non-empty '"
+	      (<scalar-token> (value " 1st non-empty\n2nd non-empty 3rd non-empty ")
+			      (style #\')))
 (test-end)
