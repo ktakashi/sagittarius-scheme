@@ -130,6 +130,11 @@
 (define +non-space-set+ (char-set-complement (char-set #\space)))
 (define +non-break-set+ (char-set-complement +break-set+))
 
+(define +quoted-sets+
+  (char-set-complement
+   (char-set-union +white-set+ (char-set #\" #\' #\\))))
+(define +space/tab-set+ (char-set #\space #\tab))
+
 (define (yaml-delimitor? c)
   (or (eof-object? c) (char-set-contains? +white-set+ c)))
 (define (yaml-directive-delimitor? c)
@@ -352,6 +357,13 @@
     (set! allow-simple-key #t)
     (remove-possible-simple-key!)
     (add-token! (scan-block-scalar in style)))
+
+  (define (fetch-single in) (fetch-flow-scalar in #\'))
+  (define (fetch-double) (fetch-flow-scalar in #\"))
+  (define (fetch-flow-scalar in style)
+    (save-possible-simple-key!)
+    (set! allow-simple-key #f)
+    (add-token! (scan-flow-scalar in style)))
   
   (define (fetch-flow-sequence-start in)
     (fetch-flow-collection-start in make-flow-sequence-start-token))
@@ -794,7 +806,133 @@
 		   (skip in)
 		   (loop end-mark)))
 		(else (values (extract) end-mark)))))))
-  
+
+  (define (scan-flow-scalar in style)
+    (define double? (eqv? #\" style))
+    (define start-mark (get-mark))
+    (forward in)
+    (let-values (((chunks extract) (open-string-output-port)))
+      (put-string chunks (scan-flow-scalar-non-spaces in double?))
+      (let loop ()
+	(let ((c (peek in)))
+	  (cond ((eof-object? c)
+		 (scanner-error "While scanning flow scalar"
+				"Unexpected EOF" (get-mark)))
+		((eqv? style c)
+		 (forward in)
+		 (make-scalar-token start-mark (get-mark) (extract) #f style))
+		(else
+		 (put-string chunks (scan-flow-scalar-spaces in))
+		 (put-string chunks (scan-flow-scalar-non-spaces in double?))
+		 (loop)))))))
+  (define (scan-flow-scalar-non-spaces in double?)
+    (define esc-repls
+      '(
+	(#\0 . #\nul)
+	(#\a . #\alarm)
+	(#\b . #\backspace)
+	(#\t . #\tab)
+	(#\tab . #\tab)
+	(#\n . #\newline)
+	(#\v . #\vtab)
+	(#\f . #\page)
+	(#\r . #\return)
+	(#\e . #\esc)
+	(#\space . #\space)
+	(#\" . #\")
+	(#\\ . #\\)
+	(#\N . #\x85)
+	(#\_ . #\xA0)
+	(#\L . #\x2028)
+	(#\P . #\x2029)
+	))
+    (define esc-codes '((#\x . 2) (#\u . 4) (#\U . 8)))
+    (define (err)
+      (scanner-error "While scanning a double quoted scalar"
+		     "Expected escape sequence"
+		     (get-mark)))
+    (let-values (((chunks extract) (open-string-output-port)))
+      (let loop ()
+	(put-string chunks (read-while in +quoted-sets+))
+	(let ((c (peek in)) (d (peek in 1)))
+	  (cond ((and (not double?) (eqv? #\' c) (eqv? #\' d))
+		 (put-char chunks #\')
+		 (forward in 2)
+		 (loop))
+		((or (and double? (eqv? #\' c))
+		     (and (not double?) (or (eqv? #\" c) (eqv? #\\ c))))
+		 (put-char chunks c)
+		 (forward in)
+		 (loop))
+		((and double? (eqv? #\\ c))
+		 (forward in)
+		 (cond ((assv d esc-repls) =>
+			(lambda (slot)
+			  (put-char chunks (cdr slot))
+			  (forward in)))
+		       ((assv d esc-codes) =>
+			(lambda (slot)
+			  (let* ((len (cdr slot))
+				 (v (read in len)))
+			    (unless (= (string-length v) len) (err))
+			    (string-for-each
+			     (lambda (c)
+			       (unless (char-set-contains? char-set:hex-digit c)
+				 (err)))
+			     v)
+			    (put-char chunks
+				      (integer->char (string->number v 16))))))
+		       ((and (char? d)
+			     (char-set-contains? +break-set+ d))
+			(scan-line-break in)
+			(put-string chunks (scan-flow-scalar-breaks in)))
+		       (else
+			(scanner-error "While scanning a double quoated scalar"
+				       "Found unknown escape character"
+				       (get-mark)
+				       d)))
+		 (loop))
+		(else (extract)))))))
+
+  (define (scan-flow-scalar-spaces in)
+    (let-values (((chunks extract) (open-string-output-port)))
+      (let* ((whitespaces (read-while in +space/tab-set+))
+	     (c (peek in)))
+	(cond ((eof-object? c)
+	       (scanner-error "While scanning a quoted scalar"
+			      "Found unexpected EOF"
+			      (get-mark)))
+	      ((break? c)
+	       (let* ((line-break (scan-line-break in))
+		      (breaks (scan-flow-scalar-breaks in)))
+		 (cond ((not (string=? "\n" line-break))
+			(put-string chunks line-break))
+		       ((zero? (string-length breaks))
+			(put-char chunks #\space)))
+		 (put-string chunks breaks)))
+	      (else (put-string chunks whitespaces)))
+	(extract))))
+
+  (define (scan-flow-scalar-breaks in)
+    (let-values (((chunks extract) (open-string-output-port)))
+      (let loop ()
+	;; Instead of checking indentation, we check for document
+	;; separators.
+	(let ((pre (prefix in 3)))
+	  (when (and (or (string=? "---" pre) (string=? "..." pre))
+		     (and (not (eqv? #\space (peek in 3)))
+			  (yaml-delimitor? (peek in 3))))
+	    (scanner-error "While scanning a quoted scalar"
+			   "Found unexpected document separator"
+			   (get-mark)))
+	  (do ((c (peek in) (peek in)))
+	      ((or (eof-object? c) (not (space/tab? c))))
+	    (forward in))
+	  (cond ((yaml-directive-delimitor? (peek in))
+		 (put-string chunks (scan-line-break in))
+		 (loop))
+		(else (extract)))))))
+	      
   ;; See the specification for details.
   ;; We add an additional restriction for the flow context:
   ;;   plain scalars in the flow context cannot contain ',' ':' '?'.
@@ -979,6 +1117,8 @@
       (#\! . ,fetch-tag)
       (#\| . ((,check-literal? . ,fetch-literal)))
       (#\> . ((,check-folded? . ,fetch-folded)))
+      (#\' . ,fetch-single)
+      (#\" . ,fetch-double)
       ))
   (define (fetch-more-tokens in)
     (define (check-ch? ch)
