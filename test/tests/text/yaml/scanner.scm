@@ -193,4 +193,13 @@
 (test-scanner "scalar\n..."
 	      (<scalar-token> (value "scalar"))
 	      (<document-end-token>))
+
+(test-scanner "foo:\n- bar"
+	      (<block-mapping-start-token>)
+	      (<key-token>)
+	      (<scalar-token> (value "foo"))
+	      (<value-token>)
+	      (<block-entry-token>)
+	      (<scalar-token> (value "bar"))
+	      (<block-end-token>))
 (test-end)

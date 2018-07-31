@@ -261,8 +261,8 @@
 		 (error 'yaml-scanner "[Internal error] Invalid index" i))
 		((= i index)
 		 (if prev
-		     (list-queue-add-front! tokens token)
-		     (set-cdr! prev (cons token curr))))
+		     (set-cdr! prev (cons token curr))
+		     (list-queue-add-front! tokens token)))
 		(else (loop (+ i 1) curr (cdr curr)))))))
   ;;; Fetchers
   (define (fetch-directive in)
@@ -1081,8 +1081,8 @@
 	((= i (vector-length levels)))
       (let* ((level (vector-ref levels i))
 	     (key (hashtable-ref possible-simple-keys level #f)))
-	(when (or (= (simple-key-line key) line)
-		  (> (- (simple-key-position key) position) 1024))
+	(when (or (not (= (simple-key-line key) line))
+		  (> (- position (simple-key-position key)) 1024))
 	  (when (simple-key-required? key)
 	    (scanner-error "While scanning a simple key"
 			   "Could not find expected ':'"
@@ -1165,11 +1165,12 @@
 		(= (next-possible-simple-key) tokens-taken))))
   
   (define (get-token in)
-    (when (need-more-tokens?) (fetch-more-tokens in))
-    (set! tokens-taken (+ tokens-taken))
+    (do () ((not (need-more-tokens?))) (fetch-more-tokens in))
     (if (list-queue-empty? tokens)
 	(eof-object)
-	(list-queue-remove-front! tokens)))
+	(begin
+	  (set! tokens-taken (+ tokens-taken))
+	  (list-queue-remove-front! tokens))))
 
   ;; add the stream-start token
   (fetch-stream-start in)
