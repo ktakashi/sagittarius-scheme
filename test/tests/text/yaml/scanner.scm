@@ -88,7 +88,7 @@
 (test-scanner "-\n--" (<block-sequence-start-token>) (<block-entry-token>))
 
 (test-scanner "..." (<document-end-token>))
-(test-scanner ". .." (<scalar-token>) (<scalar-token>))
+(test-scanner ". .." (<scalar-token>))
 
 (test-scanner "[" (<flow-sequence-start-token>))
 (test-scanner "]" (<flow-sequence-end-token>))
@@ -189,4 +189,8 @@
 (test-scanner "' 1st non-empty\n\n 2nd non-empty \n\t3rd non-empty '"
 	      (<scalar-token> (value " 1st non-empty\n2nd non-empty 3rd non-empty ")
 			      (style #\')))
+
+(test-scanner "scalar\n..."
+	      (<scalar-token> (value "scalar"))
+	      (<document-end-token>))
 (test-end)
