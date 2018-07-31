@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;
 
+#!nounbound
 (library (text yaml parser)
     (export parse-yaml)
     (import (rnrs)
@@ -107,21 +108,100 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
 (define tag ($token-of 'tag-token))
 (define anchor ($token-of 'anchor-token))
 (define scalar ($token-of 'scalar-token))
-
-(define block-content
-  ($or ;; block-collection
-       ;; flow-collection
-       scalar))
+(define block-sequence-start ($token-of 'block-sequence-start-token))
+(define block-mapping-start ($token-of 'block-mapping-start-token))
+(define block-entry ($token-of 'block-entry-token))
+(define block-end ($token-of 'block-end-token))
+(define flow-sequence-start ($token-of 'flow-sequence-start-token))
+(define flow-mapping-start ($token-of 'flow--mapping-start-token))
+(define flow-entry ($token-of 'flow-entry-token))
+(define flow-sequence-end ($token-of 'flow-sequence-end-token))
+(define flow-mapping-end ($token-of 'flow-mapping-end-token))
+(define key ($token-of 'key-token))
+(define value ($token-of 'value-token))
 
 (define properties
   ($or ($do (t tag) (a ($optional anchor)) ($return (cons t a)))
        ($do (a anchor) (t ($optional tag)) ($return (cons t a)))))
+
+(define (block-node/indentless-sequence)
+  ($or alias
+       ($do (p properties)
+	    (b ($or block-content indentless-sequence))
+	    ($return `(block ,p ,b)))
+       block-content
+       indentless-sequence))
+
+(define (block-k&v)
+  ;; TODO empty scalar
+  ($do (k ($optional ($seq key ($optional (block-node/indentless-sequence)))))
+       (v ($optional ($seq value ($optional (block-node/indentless-sequence)))))
+       ($return (cons k v))))
+
+(define block-mapping
+  ($do block-mapping-start
+       (k&v* ($many (block-k&v)))
+       block-end
+       ($return `(block-mapping . k&v*))))
+
+(define block-sequence
+  ($do block-sequence-start
+       (n* ($many ($seq block-entry ($optional block-node))))
+       block-entry
+       ($return `(block-sequence . ,n*))))
+
+(define block-collection
+  ($or block-sequence
+       block-mapping))
+
+(define (flow-sequence-entry)
+  ($or flow-node
+       ($do key
+	    (k ($optional flow-node))
+	    (v ($optional ($seq value ($optional flow-node))))
+	    ($return (cons k v)))))
+
+(define flow-sequence
+  ($do flow-sequence-start
+       (e* ($many ($do (e (flow-sequence-entry)) flow-entry ($return e))))
+       (e ($optional (flow-sequence-entry)))
+       flow-sequence-end
+       ($return `(flow-sequence . ,(cons e e*)))))
+
+(define flow-mapping-entry flow-sequence-entry)
+(define flow-mapping
+  ($do flow-mapping-start
+       (k&v* ($many ($do (e (flow-mapping-entry)) flow-entry ($return e))))
+       (k&v ($optional (flow-mapping-entry)))
+       flow-mapping-end
+       ($return `(flow-mapping . ,(cons k&v k&v*)))))
+
+(define flow-collection
+  ($or flow-sequence
+       flow-mapping))
+
+(define flow-content
+  ($or flow-collection scalar))
+
+(define flow-node
+  ($or alias
+       ($do (p properties) (b ($optional flow-content))
+	    ($return `(flow ,p ,b)))
+       flow-content))
+
+(define block-content
+  ($or block-collection
+       flow-collection
+       scalar))
 
 (define block-node
   ($or alias
        ($do (p properties) (b ($optional block-content))
 	    ($return `(block ,p ,b)))
        ($do (b block-content) ($return `(block #f ,b)))))
+
+(define indentless-sequence
+  ($many ($seq block-entry ($optional block-node))))
 
 (define implicit-document
   ($do (b block-node)
