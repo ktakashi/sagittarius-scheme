@@ -31,14 +31,17 @@
 (library (text yaml tokens)
     (export yaml-token? yaml-token-id yaml-token-start-mark yaml-token-end-mark
 
+	    (rename (stream-start-token <stream-start-token>))
+	    make-stream-start-token stream-start-token?
+	    
+	    (rename (stream-end-token <stream-end-token>))
+	    make-stream-end-token stream-end-token?
+
 	    (rename (document-start-token <document-start-token>))
 	    make-document-start-token document-start-token?
 
 	    (rename (document-end-token <document-end-token>))
 	    make-document-end-token document-end-token?
-
-	    (rename (stream-end-token <stream-end-token>))
-	    make-stream-end-token stream-end-token?
 
 	    (rename (block-entry-token <block-entry-token>))
 	    make-block-entry-token block-entry-token?
@@ -114,9 +117,10 @@
        (protocol (lambda (p)
 		   (lambda (start-mark end-mark)
 		     ((p 'name start-mark end-mark)))))))))
+(define-simple-token stream-start-token)
+(define-simple-token stream-end-token)
 (define-simple-token document-start-token)
 (define-simple-token document-end-token)
-(define-simple-token stream-end-token)
 (define-simple-token block-entry-token)
 (define-simple-token block-end-token)
 (define-simple-token block-sequence-start-token)

@@ -407,7 +407,11 @@
       (forward in)
       (let ((end-mark (get-mark)))
 	(add-token! (make-flow-entry-token start-mark end-mark)))))
-  
+
+  (define (fetch-stream-start in)
+    (let ((mark (get-mark)))
+      (add-token! (make-stream-start-token mark mark))))
+
   (define (fetch-stream-end in)
     (unwind-indent! -1)
     (remove-possible-simple-key!)
@@ -1165,6 +1169,9 @@
     (if (list-queue-empty? tokens)
 	(eof-object)
 	(list-queue-remove-front! tokens)))
+
+  ;; add the stream-start token
+  (fetch-stream-start in)
   (lambda () (get-token in)))
     
 )

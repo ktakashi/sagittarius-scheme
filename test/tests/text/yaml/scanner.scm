@@ -38,7 +38,14 @@
        (test-scanner "emit" (lseq-cdr scanner) e* ...)))
     ((_ input (rt (s v) ...) rest ...)
      (let ((scanner (string->scanner input)))
-       (test-scanner "emit" scanner (rt (s v) ...) rest ...)))))
+       (test-scanner "emit" scanner
+		     (<stream-start-token>) (rt (s v) ...) rest ...)))))
+(define-syntax test-scanner-error
+  (syntax-rules ()
+    ((_ input)
+     (let ((scanner (string->scanner input)))
+       ;; skip stream-start
+       (test-error input yaml-scanner-error? (lseq-realize  scanner))))))
 
 (test-scanner "plain" (<scalar-token> (value "plain") (plain? #t)))
 (test-scanner "plain #comment\nbar"
@@ -47,12 +54,12 @@
 
 (test-scanner "%YAML 1.0"
 	      (<directive-token> (value '(1 . 0)) (name "YAML")))
-(test-error yaml-scanner-error? (string->scanner "% invalid"))
-(test-error yaml-scanner-error? (string->scanner "%YAML 1.x"))
-(test-error yaml-scanner-error? (string->scanner "%YAML 1-1"))
-(test-error yaml-scanner-error? (string->scanner "%YAML 1.1x"))
+(test-scanner-error "% invalid")
+(test-scanner-error "%YAML 1.x")
+(test-scanner-error "%YAML 1-1")
+(test-scanner-error "%YAML 1.1x")
 ;; after a directive, there must be a line break (or EOF)
-(test-error yaml-scanner-error? (string->scanner "%YAML 1.1 boo"))
+(test-scanner-error "%YAML 1.1 boo")
 
 (test-scanner "%TAG !yaml! tag:yaml.org,2002:"
 	      (<directive-token> (value '("!yaml!" . "tag:yaml.org,2002:"))
@@ -66,11 +73,11 @@
 (test-scanner "%TAG !! tag:%20:with:%20:space"
 	      (<directive-token> (value '("!!" . "tag: :with: :space"))
 				 (name "TAG")))
-(test-error yaml-scanner-error? (string->scanner "%TAG !"))
-(test-error yaml-scanner-error? (string->scanner "%TAG ! !>"))
-(test-error yaml-scanner-error? (string->scanner "%TAG ! ! !"))
-(test-error yaml-scanner-error? (string->scanner "%TAG foo bar"))
-(test-error yaml-scanner-error? (string->scanner "%TAG !! tag:%2"))
+(test-scanner-error "%TAG !")
+(test-scanner-error "%TAG ! !>")
+(test-scanner-error "%TAG ! ! !")
+(test-scanner-error "%TAG foo bar")
+(test-scanner-error "%TAG !! tag:%2")
 
 (test-scanner "---" (<document-start-token>))
 (test-scanner "--- " (<document-start-token>))
@@ -102,12 +109,12 @@
 	      (<value-token>))
 
 (test-scanner "&value" (<anchor-token> (value "value")))
-(test-error yaml-scanner-error? (string->scanner "& value"))
-(test-error yaml-scanner-error? (string->scanner "&value$"))
+(test-scanner-error "& value")
+(test-scanner-error "&value$")
 
 (test-scanner "*value" (<alias-token> (value "value")))
-(test-error yaml-scanner-error? (string->scanner "* value"))
-(test-error yaml-scanner-error? (string->scanner "*value$"))
+(test-scanner-error "* value")
+(test-scanner-error "*value$")
 
 (test-scanner "!<tag:yaml.org,2002:str>"
 	      (<tag-token> (value '(#f . "tag:yaml.org,2002:str"))))
@@ -115,8 +122,8 @@
 (test-scanner "!!str" (<tag-token> (value '("!!" . "str"))))
 (test-scanner "!str" (<tag-token> (value '("!" . "str"))))
 (test-scanner "!foo!str" (<tag-token> (value '("!foo!" . "str"))))
-(test-error yaml-scanner-error? (string->scanner "!<tag:yaml.org,2002:str"))
-(test-error yaml-scanner-error? (string->scanner "!<tag:yaml.org,2002:str>foo"))
+(test-scanner-error "!<tag:yaml.org,2002:str")
+(test-scanner-error "!<tag:yaml.org,2002:str>foo")
 
 (test-scanner "|\n block scalar\n next line"
 	      (<scalar-token> (value "block scalar\nnext line")
@@ -132,9 +139,9 @@
 	      (<scalar-token> (value "keep\n\n")))
 (test-scanner "|1- # Both indicator\n  strip\n\n"
 	      (<scalar-token> (value " strip")))
-(test-error yaml-scanner-error? (string->scanner "| - # wrong indicator"))
-(test-error yaml-scanner-error? (string->scanner "|0- # wrong indicator"))
-(test-error yaml-scanner-error? (string->scanner "|10- # wrong indicator"))
+(test-scanner-error "| - # wrong indicator")
+(test-scanner-error "|0- # wrong indicator")
+(test-scanner-error "|10- # wrong indicator")
 
 (test-scanner ">1 # Indentation indicator\n  folded\n"
 	      (<scalar-token> (value " folded\n")
@@ -164,12 +171,12 @@
 
 (test-scanner "\"\\x20\\u0020\\U00000020\"" (<scalar-token> (value "   ")))
 
-(test-error yaml-scanner-error? (string->scanner "\"foo"))
-(test-error yaml-scanner-error? (string->scanner "\"\\x0\""))
-(test-error yaml-scanner-error? (string->scanner "\"\\u0\""))
-(test-error yaml-scanner-error? (string->scanner "\"\\U0\""))
-(test-error yaml-scanner-error? (string->scanner "\"\\xVV\""))
-(test-error yaml-scanner-error? (string->scanner "\"\\T\""))
+(test-scanner-error "\"foo")
+(test-scanner-error "\"\\x0\"")
+(test-scanner-error "\"\\u0\"")
+(test-scanner-error "\"\\U0\"")
+(test-scanner-error "\"\\xVV\"")
+(test-scanner-error "\"\\T\"")
 
 (test-scanner "'here''s to \"quotes\"'"
 	      (<scalar-token> (value "here's to \"quotes\"")
