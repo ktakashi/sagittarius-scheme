@@ -202,4 +202,12 @@
 	      (<block-entry-token>)
 	      (<scalar-token> (value "bar"))
 	      (<block-end-token>))
+
+(test-scanner "- { foo:bar }"
+	      (<block-sequence-start-token>)
+	      (<block-entry-token>)
+	      (<flow-mapping-start-token>)
+	      (<scalar-token>)
+	      (<flow-mapping-end-token>)
+	      (<block-end-token>))
 (test-end)

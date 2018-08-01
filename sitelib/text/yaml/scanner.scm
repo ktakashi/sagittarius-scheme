@@ -850,6 +850,7 @@
 	(#\space . #\space)
 	(#\" . #\")
 	(#\\ . #\\)
+	(#\/ . #\/)
 	(#\N . #\x85)
 	(#\_ . #\xA0)
 	(#\L . #\x2028)
@@ -946,19 +947,18 @@
 	      
   ;; See the specification for details.
   ;; We add an additional restriction for the flow context:
-  ;;   plain scalars in the flow context cannot contain ',' ':' '?'.
+  ;;   plain scalars in the flow context cannot contain ',' or '?'.
   ;; We also keep track of the `allow-simple-key' flag here.
   (define (scan-plain in)
     (define (find-ch in len)
       (let ((ch (peek in len)))
 	(if (or (eof-object? ch)
 		(char-set-contains? +white-set+ ch)
-		(and (zero? flow-level)
-		     (eqv? ch #\:)
+		(and (eqv? ch #\:)
 		     (or (eof-object? (peek in (+ len 1)))
 			 (char-set-contains? +white-set+ (peek in (+ len 1)))))
 		(and (not (zero? flow-level))
-		     (memv ch '(#\, #\: #\? #\[ #\] #\{ #\}))))
+		     (memv ch '(#\, #\? #\[ #\] #\{ #\}))))
 	    (values len ch)
 	    (find-ch in (+ len 1)))))
     (define (finish chunks start-mark end-mark)
@@ -972,15 +972,7 @@
 	(if (eqv? #\# (peek in))
 	    (finish (extract) start-mark end-mark)
 	    (let-values (((len ch) (find-ch in 0)))
-	      (cond ((and (not (zero? flow-level))
-			  (eqv? ch #\:)
-			  (char? (peek in (+ len 1)))
-			  (char-set-contains? +white-set+ (peek in (+ len 1))))
-		     (forward len)
-		     (scanner-error "While scanning a plain scalar"
-				    "Found unexpected ':'"
-				    (get-mark)))
-		    ((zero? len) (finish (extract) start-mark end-mark))
+	      (cond ((zero? len) (finish (extract) start-mark end-mark))
 		    (else
 		     (set! allow-simple-key #f)
 		     (put-string chunks spaces)
