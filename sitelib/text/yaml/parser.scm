@@ -134,15 +134,15 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
 
 (define (block-k&v)
   ;; TODO empty scalar
-  ($do (k ($optional ($seq key ($optional (block-node/indentless-sequence)))))
-       (v ($optional ($seq value ($optional (block-node/indentless-sequence)))))
-       ($return (cons k v))))
+  ($do (k ($seq key ($optional (block-node/indentless-sequence))))
+       (v ($seq value ($optional (block-node/indentless-sequence))))
+       ($return (list k v))))
 
 (define block-mapping
   ($do block-mapping-start
        (k&v* ($many (block-k&v)))
        block-end
-       ($return `(block-mapping . k&v*))))
+       ($return `(block-mapping . ,k&v*))))
 
 (define block-sequence
   ($do block-sequence-start
@@ -159,7 +159,7 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
        ($do key
 	    (k ($optional flow-node))
 	    (v ($optional ($seq value ($optional flow-node))))
-	    ($return (cons k v)))))
+	    ($return (list k v)))))
 
 (define flow-sequence
   ($do flow-sequence-start
@@ -201,7 +201,8 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
        ($do (b block-content) ($return `(block #f ,b)))))
 
 (define indentless-sequence
-  ($many ($seq block-entry ($optional block-node))))
+  ($do (b* ($many ($seq block-entry ($optional block-node))))
+       ($return `(block-sequence . ,b*))))
 
 (define implicit-document
   ($do (b block-node)
