@@ -208,13 +208,13 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
 (define implicit-document
   ($do (b block-node)
        (($many document-end))
-       ($return `(document #f ,b))))
+       ($return (make-yaml-document #f b))))
 (define explicit-document
   ($do (d* ($many directive))
        document-start
        (b ($optional block-node))
        (($many document-end))
-       ($return `(document ,d* ,b))))
+       ($return (make-yaml-document d* b))))
  
 (define stream
   ($do stream-start
