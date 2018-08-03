@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;
 
+#!nounbound
 (library (text yaml tokens)
     (export yaml-token? yaml-token-id yaml-token-start-mark yaml-token-end-mark
 
@@ -84,13 +85,13 @@
 	    directive-token-name directive-token-value
 
 	    (rename (alias-token <alias-token>))
-	    make-alias-token alias-token?
+	    make-alias-token alias-token? ;; alias-token-value
 
 	    (rename (anchor-token <anchor-token>))
-	    make-anchor-token anchor-token?
+	    make-anchor-token anchor-token? ;; anchor-token-value
 
 	    (rename (tag-token <tag-token>))
-	    make-tag-token tag-token?
+	    make-tag-token tag-token? ;; tag-token-value
 	    
 	    yaml-scanner-mark-input
 	    yaml-scanner-mark-position
@@ -98,12 +99,18 @@
 	    yaml-scanner-mark-column
 
 	    ;; internal only
+	    yaml-scanner-mark->condition
 	    make-yaml-scanner-mark yaml-scanner-mark?
 	    )
-    (import (rnrs))
+    (import (rnrs)
+	    (text yaml conditions))
 
 (define-record-type yaml-scanner-mark
   (fields input position line column))
+(define (yaml-scanner-mark->condition mark)
+  (make-yaml/position (yaml-scanner-mark-position mark)
+		      (yaml-scanner-mark-line mark)
+		      (yaml-scanner-mark-column mark)))
 
 (define-record-type yaml-token
   (fields id
@@ -159,8 +166,8 @@
        (parent yaml-token)
        (fields value)
        (protocol (lambda (p)
-		   (lambda (start-mark end-mark value)
-		     ((p 'name start-mark end-mark value)))))))))
+		   (lambda (start-mark end-mark v)
+		     ((p 'name start-mark end-mark) v))))))))
 (define-single-valued-token alias-token)
 (define-single-valued-token anchor-token)
 (define-single-valued-token tag-token)

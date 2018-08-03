@@ -33,9 +33,11 @@
     (export parse-yaml)
     (import (rnrs)
 	    (peg)
+	    (text yaml conditions)
 	    (text yaml scanner)
 	    (text yaml tokens)
-	    (text yaml nodes))
+	    (text yaml nodes)
+	    (srfi :39 parameters))
 #|
 The BNF is from PyYAML
 
@@ -98,7 +100,30 @@ flow_mapping: { FLOW-MAPPING-START }
 flow_sequence_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-START KEY }
 flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-START KEY }
 |#
+;;; Parameters
+(define *anchors* (make-parameter #f))
 
+(define-condition-type &yaml-parser &yaml
+  make-yaml-parser-error yaml-parser-error?)
+  
+;;; helpers
+(define (yaml-parser-error token message . irr)
+  (let ((c (condition
+	    (make-yaml-parser-error)
+	    (yaml-scanner-mark->condition (yaml-token-start-mark token))
+	    (make-who-condition 'yaml-parser)
+	    (make-message-condition message))))
+    (if (null? irr)
+	(raise c)
+	(raise (condition c (make-irritants-condition irr))))))
+	  
+(define (lookup-alias alias)
+  (yaml-parser-error alias "Found undefined alias")
+  #;(let ((v (anchor-token-value alias)))
+    (cond ((hashtable-ref (*anchors*) v #f))
+	  (else (yaml-parser-error alias "Found undefined alias" v)))))
+
+;;; Tokens
 (define ($token-of pred) ($satisfy (lambda (t) (pred t))))
 (define stream-start ($token-of stream-start-token?))
 (define stream-end ($token-of stream-end-token?))
@@ -126,7 +151,7 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
        ($do (a anchor) (t ($optional tag)) ($return (cons t a)))))
 
 (define (block-node/indentless-sequence)
-  ($or alias
+  ($or ($do (a alias) ($return (lookup-alias a)))
        ($do (p properties)
 	    (b ($or block-content indentless-sequence))
 	    ($return `(block ,p ,b)))
@@ -185,7 +210,7 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
   ($or flow-collection scalar))
 
 (define flow-node
-  ($or alias
+  ($or ($do (a alias) ($return (lookup-alias a)))
        ($do (p properties) (b ($optional flow-content))
 	    ($return `(flow ,p ,b)))
        flow-content))
@@ -196,7 +221,7 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
        scalar))
 
 (define block-node
-  ($or alias
+  ($or ($do (a alias) ($return (lookup-alias a)))
        ($do (p properties) (b ($optional block-content))
 	    ($return `(block ,p ,b)))
        ($do (b block-content) ($return `(block #f ,b)))))
@@ -205,17 +230,20 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
   ($do (b* ($many ($seq block-entry ($optional block-node))))
        ($return `(block-sequence . ,b*))))
 
+;; anchors are per document so wrap it here
 (define implicit-document
-  ($do (b block-node)
-       (($many document-end))
-       ($return (make-yaml-document #f b))))
+  ($parameterize ((*anchors* (make-hashtable string-hash string=?)))
+    ($do (b block-node)
+	 (($many document-end))
+	 ($return (make-yaml-document #f b)))))
 (define explicit-document
-  ($do (d* ($many directive))
-       document-start
-       (b ($optional block-node))
-       (($many document-end))
-       ($return (make-yaml-document d* b))))
- 
+  ($parameterize ((*anchors* (make-hashtable string-hash string=?)))
+    ($do (d* ($many directive))
+	 document-start
+	 (b ($optional block-node))
+	 (($many document-end))
+	 ($return (make-yaml-document d* b)))))
+
 (define stream
   ($do stream-start
        (implicit ($optional implicit-document))

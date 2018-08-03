@@ -29,10 +29,18 @@
 ;;;
 
 (library (text yaml conditions)
-    (export &yaml yaml-error? make-yaml-error)
+    (export &yaml yaml-error? make-yaml-error
+	    &yaml/position yaml/position? make-yaml/position
+	    yaml/position-position yaml/position-line yaml/position-column)
     (import (rnrs))
 
 (define-condition-type &yaml &error
   make-yaml-error yaml-error?)
 
+;; this is only information
+(define-condition-type &yaml/position &condition
+  make-yaml/position yaml/position?
+  (position yaml/position-position)
+  (line     yaml/position-line)
+  (column   yaml/position-column))
 )

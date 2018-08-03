@@ -99,18 +99,19 @@
 (define (simple-key-column sk)       (vector-ref sk 4))
 (define (simple-key-mark sk)         (vector-ref sk 5))
 
-;; TODO move
 (define-condition-type &yaml-scanner &yaml
   make-yaml-scanner-error yaml-scanner-error?
   (when yaml-scanner-error-when)
   (mark yaml-scanner-error-mark))
 
 (define (scanner-error when msg mark . irr)
-  (raise (condition
-	  (make-yaml-scanner-error when mark)
-	  (make-who-condition 'yaml-scanner)
-	  (make-message-condition msg)
-	  (make-irritants-condition irr))))
+  (let ((c (condition (make-yaml-scanner-error when mark)
+		      (yaml-scanner-mark->condition mark) 
+		      (make-who-condition 'yaml-scanner)
+		      (make-message-condition msg))))
+    (if (null? irr)
+	(raise c)
+	(raise (condition c (make-irritants-condition irr))))))
 
 (define +directive-name-set+
   (char-set-intersection
