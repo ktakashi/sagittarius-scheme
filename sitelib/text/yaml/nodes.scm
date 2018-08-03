@@ -28,7 +28,6 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;
 
-;; we don't create tag node
 ;; see http://yaml.org/spec/1.2/spec.html#id2763452
 
 (library (text yaml nodes)
@@ -37,8 +36,17 @@
 	    yaml-document-directives yaml-document-root-node
 
 	    (rename (yaml-directive <yaml-directive>))
+	    make-yaml-directive yaml-directive?
 	    yaml-directive-name yaml-directive-parameters
 
+	    (rename (yaml-yaml-directive <yaml-yaml-directive>))
+	    make-yaml-yaml-directive yaml-yaml-directive?
+	    yaml-yaml-directive-major-version yaml-yaml-directive-minor-version
+
+	    (rename (yaml-tag-directive <yaml-tag-directive>))
+	    make-yaml-tag-directive yaml-tag-directive?
+	    yaml-tag-directive-handle yaml-tag-directive-prefix
+	    
 	    (rename (yaml-node <yaml-node>))
 	    yaml-node?
 	    yaml-node-tag yaml-node-value
@@ -67,6 +75,20 @@
 
 (define-record-type yaml-directive
   (fields name parameters))
+(define-record-type yaml-yaml-directive
+  (parent yaml-directive)
+  (fields major-version minor-version)
+  (protocol (lambda (p)
+	      (lambda (major&minor)
+		((p "YAML" (list major&minor))
+		 (car major&minor) (cdr major&minor))))))
+(define-record-type yaml-tag-directive
+  (parent yaml-directive)
+  (fields handle prefix)
+  (protocol (lambda (p)
+	      (lambda (handle&prefix)
+		((p "TAG" (list handle&prefix))
+		 (car handle&prefix) (cdr handle&prefix))))))
 
 (define-record-type yaml-node
   (fields tag

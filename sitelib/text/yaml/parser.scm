@@ -103,9 +103,20 @@ flow_mapping: { FLOW-MAPPING-START }
 flow_sequence_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-START KEY }
 flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-START KEY }
 |#
+(define +default-tag-handles+
+  '(("!" . "!")
+    ("!!" . "tag:yaml.org,2002:")))
+
+(define (->hashtable alist)
+  (let ((ht (make-hashtable string-hash string=?)))
+    (for-each (lambda (kv) (hashtable-set! ht (car kv) (cdr kv))) alist)
+    ht))
+
 ;;; Parameters
 ;; ((name . (token . node)) ...)
 (define *anchors* (make-parameter #f))
+;; ((short . long) ...)
+(define *tag-handles* (make-parameter #f))
 ;; this is external
 (define *yaml-tag-resolvers* (make-parameter +default-yaml-tag-resolvers+))
 
@@ -138,6 +149,17 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
 				 (yaml-token-start-mark (car slot))))))))
   anchor)
 
+(define (convert-tag tag)
+  (define v (tag-token-value tag))
+  (let ((handle (car v))
+	(suffix (cdr v)))
+    (cond (handle
+	   (cond ((hashtable-ref (*tag-handles*) handle #f) =>
+		  (lambda (prefix) (string-append prefix suffix)))
+		 (else
+		  (yaml-parser-error tag "Undefined tag" handle))))
+	  (else suffix))))
+
 (define (build-block block tag anchor)
   (define (get-tag kind check tag value)
     (if (or (not tag) (string=? "!" tag))
@@ -162,9 +184,7 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
 		  (make (if (eq? kind 'sequence)
 			    make-yaml-scalar-node
 			    make-yaml-mapping-node)))
-	     (make (get-tag kind #t tag #f) (cddr block) flow?
-		   (yaml-token-start-mark start)
-		   (yaml-token-end-mark end))))
+	     (make (get-tag kind #t tag #f) (cddr block) flow? start end)))
 	  (else
 	   (yaml-parser-error (and (yaml-token? block) block)
 			      "Unknown block"
@@ -173,6 +193,41 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
     (when anchor
       (hashtable-set! (*anchors*) anchor node))
     node))
+
+(define (build-directives d*)
+  (define ht (make-hashtable string-hash string=?))
+  (define (finish r ht)
+    (for-each (lambda (kv) (hashtable-update! ht (car kv) values (cdr kv)))
+	      +default-tag-handles+)
+    ;; we update tag-handles here
+    (*tag-handles* ht)
+    r)
+  (let loop ((r '()) (d* d*) (found-yaml? #f))
+    (if (null? d*)
+	(finish (reverse! r) ht)
+	(let ((name (directive-token-name (car d*)))
+	      (value (directive-token-value (car d*))))
+	  (cond ((string=? "YAML" name)
+		 (when found-yaml?
+		   (yaml-parser-error (car d*) "Duplicate YAML directive"))
+		 (unless (= 1 (car value))
+		   (yaml-parser-error (car d*)
+		    "Incompatible YAML document (version 1.x is required)"
+		    value))
+		 (loop (cons (make-yaml-yaml-directive value) r) (cdr d*) #t))
+		((string=? "TAG" name)
+		 (let ((handle (car value))
+		       (prefix (cdr value)))
+		   (when (hashtable-contains? ht handle)
+		     (yaml-parser-error (car d*)
+					"Duplicate tag handle" handle))
+		   (hashtable-set! ht handle prefix))
+		 (loop (cons (make-yaml-tag-directive value) r) (cdr d*)
+		       found-yaml?))
+		(else
+		 (loop (cons (make-yaml-directive name value) r) (cdr d*)
+		       found-yaml?)))))))
+
 ;;; Tokens
 (define ($token-of pred) ($satisfy (lambda (t) (pred t))))
 (define stream-start ($token-of stream-start-token?))
@@ -198,9 +253,9 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
 
 (define properties
   ($or ($do (t tag) (a ($optional anchor))
-	    ($return (cons t (check-anchor a))))
+	    ($return (cons (convert-tag t) (and a (check-anchor a)))))
        ($do (a anchor) (t ($optional tag))
-	    ($return (cons t (check-anchor a))))))
+	    ($return (cons (and t (convert-tag t)) (check-anchor a))))))
 
 (define (block-node/indentless-sequence)
   ($or ($do (a alias) ($return (lookup-alias a)))
@@ -220,13 +275,17 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
   ($do (s block-mapping-start)
        (k&v* ($many (block-k&v)))
        (e block-end)
-       ($return `(mapping (block ,s ,e) . ,k&v*))))
+       ($return `(mapping (block ,(yaml-token-start-mark s)
+				 ,(yaml-token-end-mark e))
+			  ,@k&v*))))
 
 (define block-sequence
   ($do (s block-sequence-start)
        (n* ($many ($seq block-entry ($optional block-node))))
        (e block-end)
-       ($return `(sequence (block ,s ,e) . ,n*))))
+       ($return `(sequence (block ,(yaml-token-start-mark s)
+				  ,(yaml-token-end-mark e))
+			   ,@n*))))
 
 (define block-collection
   ($or block-sequence
@@ -244,7 +303,9 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
        (e* ($many ($do (e (flow-sequence-entry)) flow-entry ($return e))))
        (e ($optional (flow-sequence-entry)))
        (e flow-sequence-end)
-       ($return `(sequence (flow ,s ,e) . ,(cons e e*)))))
+       ($return `(sequence (flow ,(yaml-token-start-mark s)
+				 ,(yaml-token-end-mark e))
+			   ,@(cons e e*)))))
 
 (define flow-mapping-entry flow-sequence-entry)
 (define flow-mapping
@@ -252,7 +313,9 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
        (k&v* ($many ($do (e (flow-mapping-entry)) flow-entry ($return e))))
        (k&v ($optional (flow-mapping-entry)))
        (e flow-mapping-end)
-       ($return `(mapping (flow ,s ,e) . ,(cons k&v k&v*)))))
+       ($return `(mapping (flow ,(yaml-token-start-mark s)
+				,(yaml-token-end-mark e))
+			  ,@(cons k&v k&v*)))))
 
 (define flow-collection
   ($or flow-sequence
@@ -281,17 +344,22 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
 (define indentless-sequence
   ($do (b* ($many ($seq block-entry ($optional block-node)) 1))
        ;; we put start/end as the first/last entry
-       ($return `(sequence (block ,(car b*) ,(car (last-pair b*))) . ,b*))))
+       ($return `(sequence (block ,(yaml-node-start-mark (car b*))
+				  ,(yaml-node-end-mark (car (last-pair b*))))
+			   ,@b*))))
 
 ;; anchors are per document so wrap it here
 (define implicit-document
-  ($parameterize ((*anchors* (make-hashtable string-hash string=?)))
+  ($parameterize ((*anchors* (make-hashtable string-hash string=?))
+		  (*tag-handles* (->hashtable +default-tag-handles+)))
     ($do (b block-node)
 	 (($many document-end))
 	 ($return (make-yaml-document #f b)))))
+
 (define explicit-document
-  ($parameterize ((*anchors* (make-hashtable string-hash string=?)))
-    ($do (d* ($many directive))
+  ($parameterize ((*anchors* (make-hashtable string-hash string=?))
+		  (*tag-handles* #f))
+    ($do (d* ($do (d* ($many directive)) ($return (build-directives d*))))
 	 document-start
 	 (b ($optional block-node))
 	 (($many document-end))
@@ -302,7 +370,9 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
        (implicit ($optional implicit-document))
        (explicit ($many explicit-document))
        stream-end
-       ($return (cons implicit explicit))))
+       ($return (if implicit
+		    (cons implicit explicit)
+		    explicit))))
 
 (define (parse-yaml in)
   (let-values (((s v n) (stream (port->yaml-scanner-lseq in))))
