@@ -2270,4 +2270,16 @@
       (inexact (+ (* x y) z))))
   (test-assert (not (= (do-it ten11 ten12 one) (do-it ten11 ten12 (fl- one))))))
 
+;; Should we add this as a test?
+;; (let ()
+;;   (define-syntax define-single-valued-token
+;;     (syntax-rules ()
+;;       ((_ name)
+;;        (define-record-type name
+;; 	 (fields value)))))
+;;   (define-single-valued-token t)
+;;   
+;;   (define v (make-t 'v))
+;;   (test-error undefined-violation? (t-value v)))
+
 (test-end)
