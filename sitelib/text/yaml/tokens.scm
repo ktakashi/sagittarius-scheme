@@ -85,13 +85,13 @@
 	    directive-token-name directive-token-value
 
 	    (rename (alias-token <alias-token>))
-	    make-alias-token alias-token? ;; alias-token-value
+	    make-alias-token alias-token? alias-token-value
 
 	    (rename (anchor-token <anchor-token>))
-	    make-anchor-token anchor-token? ;; anchor-token-value
+	    make-anchor-token anchor-token? anchor-token-value
 
 	    (rename (tag-token <tag-token>))
-	    make-tag-token tag-token? ;; tag-token-value
+	    make-tag-token tag-token? tag-token-value
 	    
 	    yaml-scanner-mark-input
 	    yaml-scanner-mark-position
@@ -161,14 +161,14 @@
 
 (define-syntax define-single-valued-token
   (syntax-rules ()
-    ((_ name)
+    ((_ name value)
      (define-record-type name
        (parent yaml-token)
        (fields value)
        (protocol (lambda (p)
 		   (lambda (start-mark end-mark v)
 		     ((p 'name start-mark end-mark) v))))))))
-(define-single-valued-token alias-token)
-(define-single-valued-token anchor-token)
-(define-single-valued-token tag-token)
+(define-single-valued-token alias-token value)
+(define-single-valued-token anchor-token value)
+(define-single-valued-token tag-token value)
 )

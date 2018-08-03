@@ -50,7 +50,7 @@
 
 	    (rename (yaml-collection-node <yaml-collection-node>))
 	    yaml-collection-node?
-	    yaml-collection-node-flow-style
+	    yaml-collection-node-flow-style?
 
 	    (rename (yaml-sequence-node <yaml-sequence-node>))
 	    make-yaml-sequence-node yaml-sequence-node?
@@ -88,7 +88,7 @@
 
 (define-record-type yaml-collection-node
   (parent yaml-node)
-  (fields flow-style)
+  (fields flow-style?)
   (protocol (lambda (n)
 	      (case-lambda
 	       ((tag value start-mark end-mark)

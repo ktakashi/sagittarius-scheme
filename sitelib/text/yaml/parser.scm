@@ -30,13 +30,16 @@
 
 #!nounbound
 (library (text yaml parser)
-    (export parse-yaml)
+    (export parse-yaml *yaml-tag-resolvers*
+	    yaml-parser-error?)
     (import (rnrs)
 	    (peg)
 	    (text yaml conditions)
 	    (text yaml scanner)
 	    (text yaml tokens)
 	    (text yaml nodes)
+	    (text yaml resolvers)
+	    (srfi :1 lists) ;; for last-pair
 	    (srfi :39 parameters))
 #|
 The BNF is from PyYAML
@@ -101,7 +104,10 @@ flow_sequence_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-
 flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-START KEY }
 |#
 ;;; Parameters
+;; ((name . (token . node)) ...)
 (define *anchors* (make-parameter #f))
+;; this is external
+(define *yaml-tag-resolvers* (make-parameter +default-yaml-tag-resolvers+))
 
 (define-condition-type &yaml-parser &yaml
   make-yaml-parser-error yaml-parser-error?)
@@ -118,11 +124,55 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
 	(raise (condition c (make-irritants-condition irr))))))
 	  
 (define (lookup-alias alias)
-  (yaml-parser-error alias "Found undefined alias")
-  #;(let ((v (anchor-token-value alias)))
-    (cond ((hashtable-ref (*anchors*) v #f))
+  (let ((v (alias-token-value alias)))
+    (cond ((hashtable-ref (*anchors*) v #f) => cdr)
 	  (else (yaml-parser-error alias "Found undefined alias" v)))))
 
+(define (check-anchor anchor)
+  (let ((v (anchor-token-value anchor)))
+    (cond ((hashtable-ref (*anchors*) v #f) =>
+	   (lambda (slot)
+	     (yaml-parser-error anchor
+				"Duplicate anchor"
+				(yaml-scanner-mark->condition
+				 (yaml-token-start-mark (car slot))))))))
+  anchor)
+
+(define (build-block block tag anchor)
+  (define (get-tag kind check tag value)
+    (if (or (not tag) (string=? "!" tag))
+	(resolve-yaml-tag (*yaml-tag-resolvers*) kind value check)
+	tag))
+  (define (make-node block tag)
+    (cond ((scalar-token? block)
+	   (make-yaml-scalar-node (get-tag 'scalar
+					   (scalar-token-plain? block)
+					   tag
+					   (scalar-token-value block))
+				  (scalar-token-value block)
+				  (scalar-token-style block)
+				  (yaml-token-start-mark block)
+				  (yaml-token-start-mark block)))
+	  ((and (pair? block) (memq (car block) '(sequence mapping)))
+	   (let* ((info (cadr block))
+		  (flow? (eq? (car info) 'flow))
+		  (start (cadr info))
+		  (end (caddr info))
+		  (kind (car block))
+		  (make (if (eq? kind 'sequence)
+			    make-yaml-scalar-node
+			    make-yaml-mapping-node)))
+	     (make (get-tag kind #t tag #f) (cddr block) flow?
+		   (yaml-token-start-mark start)
+		   (yaml-token-end-mark end))))
+	  (else
+	   (yaml-parser-error (and (yaml-token? block) block)
+			      "Unknown block"
+			      block))))
+  (let ((node (make-node block tag)))
+    (when anchor
+      (hashtable-set! (*anchors*) anchor node))
+    node))
 ;;; Tokens
 (define ($token-of pred) ($satisfy (lambda (t) (pred t))))
 (define stream-start ($token-of stream-start-token?))
@@ -147,15 +197,17 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
 (define value ($token-of value-token?))
 
 (define properties
-  ($or ($do (t tag) (a ($optional anchor)) ($return (cons t a)))
-       ($do (a anchor) (t ($optional tag)) ($return (cons t a)))))
+  ($or ($do (t tag) (a ($optional anchor))
+	    ($return (cons t (check-anchor a))))
+       ($do (a anchor) (t ($optional tag))
+	    ($return (cons t (check-anchor a))))))
 
 (define (block-node/indentless-sequence)
   ($or ($do (a alias) ($return (lookup-alias a)))
        ($do (p properties)
 	    (b ($or block-content indentless-sequence))
-	    ($return `(block ,p ,b)))
-       block-content
+	    ($return (build-block b (car p) (cdr p))))
+       ($do (b block-content) ($return (build-block b #f #f)))
        indentless-sequence))
 
 (define (block-k&v)
@@ -165,16 +217,16 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
        ($return (list k v))))
 
 (define block-mapping
-  ($do block-mapping-start
+  ($do (s block-mapping-start)
        (k&v* ($many (block-k&v)))
-       block-end
-       ($return `(block-mapping . ,k&v*))))
+       (e block-end)
+       ($return `(mapping (block ,s ,e) . ,k&v*))))
 
 (define block-sequence
-  ($do block-sequence-start
+  ($do (s block-sequence-start)
        (n* ($many ($seq block-entry ($optional block-node))))
-       block-entry
-       ($return `(block-sequence . ,n*))))
+       (e block-end)
+       ($return `(sequence (block ,s ,e) . ,n*))))
 
 (define block-collection
   ($or block-sequence
@@ -188,19 +240,19 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
 	    ($return (list k v)))))
 
 (define flow-sequence
-  ($do flow-sequence-start
+  ($do (s flow-sequence-start)
        (e* ($many ($do (e (flow-sequence-entry)) flow-entry ($return e))))
        (e ($optional (flow-sequence-entry)))
-       flow-sequence-end
-       ($return `(flow-sequence . ,(cons e e*)))))
+       (e flow-sequence-end)
+       ($return `(sequence (flow ,s ,e) . ,(cons e e*)))))
 
 (define flow-mapping-entry flow-sequence-entry)
 (define flow-mapping
-  ($do flow-mapping-start
+  ($do (s flow-mapping-start)
        (k&v* ($many ($do (e (flow-mapping-entry)) flow-entry ($return e))))
        (k&v ($optional (flow-mapping-entry)))
-       flow-mapping-end
-       ($return `(flow-mapping . ,(cons k&v k&v*)))))
+       (e flow-mapping-end)
+       ($return `(mapping (flow ,s ,e) . ,(cons k&v k&v*)))))
 
 (define flow-collection
   ($or flow-sequence
@@ -223,12 +275,13 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
 (define block-node
   ($or ($do (a alias) ($return (lookup-alias a)))
        ($do (p properties) (b ($optional block-content))
-	    ($return `(block ,p ,b)))
-       ($do (b block-content) ($return `(block #f ,b)))))
+	    ($return (build-block b (car p) (cdr p))))
+       ($do (b block-content) ($return (build-block b #f #f)))))
 
 (define indentless-sequence
-  ($do (b* ($many ($seq block-entry ($optional block-node))))
-       ($return `(block-sequence . ,b*))))
+  ($do (b* ($many ($seq block-entry ($optional block-node)) 1))
+       ;; we put start/end as the first/last entry
+       ($return `(sequence (block ,(car b*) ,(car (last-pair b*))) . ,b*))))
 
 ;; anchors are per document so wrap it here
 (define implicit-document
