@@ -378,5 +378,5 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
   (let-values (((s v n) (stream (port->yaml-scanner-lseq in))))
     (if (parse-success? s)
 	v
-	(error 'parse-yaml "Proper error" v n))))
+	(yaml-parser-error (car n) "Failed to parse YAML stream" v))))
 )

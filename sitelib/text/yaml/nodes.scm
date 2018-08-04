@@ -65,6 +65,10 @@
 
 	    (rename (yaml-mapping-node <yaml-mapping-node>))
 	    make-yaml-mapping-node yaml-mapping-node?
+
+	    yaml-document->sexp
+	    yaml-directive->sexp
+	    yaml-node->sexp
 	    )
     (import (rnrs))
 
@@ -125,4 +129,45 @@
 (define-record-type yaml-mapping-node
   (parent yaml-collection-node)
   (protocol (lambda (n) (lambda args ((apply n args))))))
+
+(define (yaml-document->sexp yaml)
+  (let ((d* (yaml-document-directives yaml))
+	(node (yaml-document-root-node yaml)))
+    `(*yaml*
+      ,@(if (null? d*)
+	    '()
+	    `((*directives* ,@(map yaml-directive->sexp d*))))
+      ,@(if node
+	    (list (yaml-node->sexp node))
+	    '()))))
+(define (yaml-directive->sexp directive)
+  (cond ((yaml-yaml-directive? directive)
+	 `(%YAML ,(yaml-yaml-directive-major-version directive)
+		 ,(yaml-yaml-directive-minor-version directive)))
+	((yaml-tag-directive? directive)
+	 `(%TAG ,(yaml-tag-directive-handle directive)
+		,(yaml-tag-directive-prefix directive)))
+	(else
+	 `(,(string->symbol (string-append "%" (yaml-directive-name directive)))
+	   ,(yaml-directive-parameters directive)))))
+
+;; YAML node to canonical YAML SEXP
+;; node     ::= scalar | mapping | sequence
+;; scalar   ::= (tag value)
+;; mapping  ::= (tag ((map-key map-value) ...))
+;; sequence ::= (tag #(node ...))
+;; ( ...)
+;; NB: we drop flow style information here
+(define (yaml-node->sexp node)
+  (cond ((yaml-scalar-node? node)
+	 `(,(yaml-node-tag node) ,(yaml-node-value node)))
+	((yaml-sequence-node? node)
+	 `(,(yaml-node-tag node)
+	   ,(list->vector (map yaml-node->sexp (yaml-node-value node)))))
+	((yaml-mapping-node? node)
+	 `(,(yaml-node-tag node)
+	   ,(map (lambda (k&v) `(,(yaml-node->sexp (car k&v))
+				 ,(yaml-node->sexp (cdr k&v))))
+		 (yaml-node-value node))))
+	(else (assertion-violation 'yaml-node->sexp "Unsupported node" node))))
 )
