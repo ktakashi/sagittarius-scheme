@@ -134,7 +134,7 @@
   (let ((d* (yaml-document-directives yaml))
 	(node (yaml-document-root-node yaml)))
     `(*yaml*
-      ,@(if (null? d*)
+      ,@(if (or (not d*) (null? d*))
 	    '()
 	    `((*directives* ,@(map yaml-directive->sexp d*))))
       ,@(if node
@@ -160,14 +160,19 @@
 ;; NB: we drop flow style information here
 (define (yaml-node->sexp node)
   (cond ((yaml-scalar-node? node)
-	 `(,(yaml-node-tag node) ,(yaml-node-value node)))
+	 ;; scalar value might be a non sexp value.
+	 ;; so check
+	 (let ((v (yaml-node-value node)))
+	   `(,(yaml-node-tag node)
+	     ,(cond ((pair? v) (map yaml-node->sexp v))
+		    (else (yaml-node->sexp v))))))
 	((yaml-sequence-node? node)
 	 `(,(yaml-node-tag node)
 	   ,(list->vector (map yaml-node->sexp (yaml-node-value node)))))
 	((yaml-mapping-node? node)
-	 `(,(yaml-node-tag node)
+	 `(,(yaml-node-tag node) .  
 	   ,(map (lambda (k&v) `(,(yaml-node->sexp (car k&v))
 				 ,(yaml-node->sexp (cdr k&v))))
 		 (yaml-node-value node))))
-	(else (assertion-violation 'yaml-node->sexp "Unsupported node" node))))
+	(else node)))
 )

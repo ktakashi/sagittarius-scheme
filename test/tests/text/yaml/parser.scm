@@ -1,41 +1,82 @@
-#|
 (import (rnrs)
 	(text yaml parser)
-	(sagittarius generators)
-	(peg)
+	(text yaml nodes)
 	(srfi :127)
 	(srfi :39)
 	(srfi :64))
 
 (test-begin "YAML")
 
-(define (string->lseq s) (generator->lseq (string->generator s)))
+(define (test-yaml-parser expected input)
+  (test-equal input expected
+	      (map yaml-document->sexp
+		   (parse-yaml (open-string-input-port input)))))
 
-(define (yaml-test expected parser text)
-  (define lseq (string->lseq text))
-  (parameterize ((*parsing-context* (make-parsing-context lseq)))
-    (let-values (((s v nl) (parser lseq)))
-      (test-assert (parse-success? s))
-      (test-equal expected v))))
+(test-yaml-parser '((*yaml*
+		     (*directives* (%YAML 1 1))
+		     ("tag:yaml.org,2002:map"
+		      (("tag:yaml.org,2002:str" "foo")
+		       ("tag:yaml.org,2002:seq"
+			#(("tag:yaml.org,2002:str" "bar")
+			  ("tag:yaml.org,2002:int" "1234")
+			  ("tag:yaml.org,2002:null" "~")))))))
+		  "%YAML 1.1\n\
+                   ---\n\
+                   foo:\n  \
+                     - bar\n  \
+                     - 1234\n  \
+                     - ~")
 
-(yaml-test '(comment " This stream contains no")
-	   l-comment "# This stream contains no\n# documents, only comments")
-(yaml-test '(comment " This stream contains no")
-	   l-comment "# This stream contains no")
+(test-yaml-parser '((*yaml*
+		     ("tag:yaml.org,2002:seq"
+		      #(("tag:yaml.org,2002:str" "bar")))))
+		  "  - bar")
 
-(yaml-test '(comment " This stream contains no\n documents, only comments")
-	   s-l-comments "# This stream contains no\n# documents, only comments")
+(test-yaml-parser '((*yaml*
+		     ("tag:yaml.org,2002:seq"
+		      #(("tag:yaml.org,2002:str" "foo")))))
+		  "[ foo ]")
+(test-yaml-parser '((*yaml*
+		     ("tag:yaml.org,2002:seq"
+		      #(("tag:yaml.org,2002:str" "foo")
+			("tag:yaml.org,2002:str" "bar")))))
+		  "[ foo, bar ]")
+;; extra comma
+(test-yaml-parser '((*yaml*
+		     ("tag:yaml.org,2002:seq"
+		      #(("tag:yaml.org,2002:str" "foo")))))
+		  "[ foo, ]")
+(test-yaml-parser '((*yaml*
+		     ("tag:yaml.org,2002:seq"
+		      #(("tag:yaml.org,2002:str" "foo")
+			("tag:yaml.org,2002:str" "bar")))))
+		  "[ foo, bar, ]")
 
-(yaml-test '(YAML (1 2)) l-directive "%YAML 1.2")
-(yaml-test '(TAG primay "tag:yaml.org,2002:")
-	   l-directive "%TAG ! tag:yaml.org,2002:")
-(yaml-test '(TAG secondary "tag:yaml.org,2002:")
-	   l-directive "%TAG !! tag:yaml.org,2002:")
-(yaml-test '(TAG "yaml" "tag:yaml.org,2002:")
-	   l-directive "%TAG !yaml! tag:yaml.org,2002:")
+;; mapping
+(test-yaml-parser '((*yaml*
+		     ("tag:yaml.org,2002:map"
+		      (("tag:yaml.org,2002:str" "foo")
+		       ("tag:yaml.org,2002:str" "bar")))))
+		  "{ foo: bar }")
+(test-yaml-parser '((*yaml*
+		     ("tag:yaml.org,2002:map"
+		      (("tag:yaml.org,2002:str" "foo")
+		       ("tag:yaml.org,2002:str" "bar"))
+		      (("tag:yaml.org,2002:str" "buz")
+		       ("tag:yaml.org,2002:str" "bla")))))
+		  "{ foo: bar, buz: bla }")
 
-(yaml-test '#\' ns-single-char "''")
-(yaml-test '#\a ns-single-char "a")
-
+(test-yaml-parser '((*yaml*
+		     ("tag:yaml.org,2002:map"
+		      (("tag:yaml.org,2002:str" "foo")
+		       ("tag:yaml.org,2002:str" "bar")))))
+		  "{ foo: bar, }")
+(test-yaml-parser '((*yaml*
+		     ("tag:yaml.org,2002:map"
+		      (("tag:yaml.org,2002:str" "foo")
+		       ("tag:yaml.org,2002:str" "bar"))
+		      (("tag:yaml.org,2002:str" "buz")
+		       ("tag:yaml.org,2002:str" "bla")))))
+		  "{ foo: bar, buz: bla, }")
 (test-end)
-|#
+
