@@ -1046,7 +1046,7 @@
     ;; Check if we need to increase indentation.
     (and (< indent column)
 	 (begin
-	   (list-queue-add-back! indents indent)
+	   (list-queue-add-front! indents indent)
 	   (set! indent column)
 	   #t)))
   ;;; Simple keys treatment
