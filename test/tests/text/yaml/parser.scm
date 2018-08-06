@@ -17,9 +17,9 @@
 		     ("tag:yaml.org,2002:map"
 		      (("tag:yaml.org,2002:str" "foo")
 		       ("tag:yaml.org,2002:seq"
-			#(("tag:yaml.org,2002:str" "bar")
-			  ("tag:yaml.org,2002:int" "1234")
-			  ("tag:yaml.org,2002:null" "~")))))))
+			("tag:yaml.org,2002:str" "bar")
+			("tag:yaml.org,2002:int" "1234")
+			("tag:yaml.org,2002:null" "~"))))))
 		  "%YAML 1.1\n\
                    ---\n\
                    foo:\n  \
@@ -29,27 +29,27 @@
 
 (test-yaml-parser '((*yaml*
 		     ("tag:yaml.org,2002:seq"
-		      #(("tag:yaml.org,2002:str" "bar")))))
+		      ("tag:yaml.org,2002:str" "bar"))))
 		  "  - bar")
 
 (test-yaml-parser '((*yaml*
 		     ("tag:yaml.org,2002:seq"
-		      #(("tag:yaml.org,2002:str" "foo")))))
+		      ("tag:yaml.org,2002:str" "foo"))))
 		  "[ foo ]")
 (test-yaml-parser '((*yaml*
 		     ("tag:yaml.org,2002:seq"
-		      #(("tag:yaml.org,2002:str" "foo")
-			("tag:yaml.org,2002:str" "bar")))))
+		      ("tag:yaml.org,2002:str" "foo")
+		      ("tag:yaml.org,2002:str" "bar"))))
 		  "[ foo, bar ]")
 ;; extra comma
 (test-yaml-parser '((*yaml*
 		     ("tag:yaml.org,2002:seq"
-		      #(("tag:yaml.org,2002:str" "foo")))))
+		      ("tag:yaml.org,2002:str" "foo"))))
 		  "[ foo, ]")
 (test-yaml-parser '((*yaml*
 		     ("tag:yaml.org,2002:seq"
-		      #(("tag:yaml.org,2002:str" "foo")
-			("tag:yaml.org,2002:str" "bar")))))
+		      ("tag:yaml.org,2002:str" "foo")
+		      ("tag:yaml.org,2002:str" "bar"))))
 		  "[ foo, bar, ]")
 
 ;; mapping
@@ -108,15 +108,15 @@
 ;; float
 (test-yaml-parser '((*yaml*
 		     ("tag:yaml.org,2002:seq"
-		      #(("tag:yaml.org,2002:float" "1.2")
-			("tag:yaml.org,2002:float" "6.8523015e+5")
-			("tag:yaml.org,2002:float" "685.230_15e+03")
-			("tag:yaml.org,2002:float" "685_230.15")
-			("tag:yaml.org,2002:float" "190:20:30.15")
-			("tag:yaml.org,2002:float" "+.inf")
-			("tag:yaml.org,2002:str" "+.InF")
-			("tag:yaml.org,2002:float" ".nan")
-			("tag:yaml.org,2002:str" ".Nan")))))
+		      ("tag:yaml.org,2002:float" "1.2")
+		      ("tag:yaml.org,2002:float" "6.8523015e+5")
+		      ("tag:yaml.org,2002:float" "685.230_15e+03")
+		      ("tag:yaml.org,2002:float" "685_230.15")
+		      ("tag:yaml.org,2002:float" "190:20:30.15")
+		      ("tag:yaml.org,2002:float" "+.inf")
+		      ("tag:yaml.org,2002:str" "+.InF")
+		      ("tag:yaml.org,2002:float" ".nan")
+		      ("tag:yaml.org,2002:str" ".Nan"))))
 		  "- 1.2\n\
                    - 6.8523015e+5\n\
                    - 685.230_15e+03\n\
@@ -129,15 +129,15 @@
 
 (test-yaml-parser '((*yaml*
 		     ("tag:yaml.org,2002:seq"
-		      #(("tag:yaml.org,2002:bool" "ON")
-			("tag:yaml.org,2002:bool" "OFF")
-			("tag:yaml.org,2002:bool" "y")
-			("tag:yaml.org,2002:bool" "n")
-			("tag:yaml.org,2002:bool" "Yes")
-			("tag:yaml.org,2002:bool" "No")
-			("tag:yaml.org,2002:bool" "True")
-			("tag:yaml.org,2002:bool" "False")
-			("tag:yaml.org,2002:str"  "TrUe")))))
+		      ("tag:yaml.org,2002:bool" "ON")
+		      ("tag:yaml.org,2002:bool" "OFF")
+		      ("tag:yaml.org,2002:bool" "y")
+		      ("tag:yaml.org,2002:bool" "n")
+		      ("tag:yaml.org,2002:bool" "Yes")
+		      ("tag:yaml.org,2002:bool" "No")
+		      ("tag:yaml.org,2002:bool" "True")
+		      ("tag:yaml.org,2002:bool" "False")
+		      ("tag:yaml.org,2002:str"  "TrUe"))))
 		  "- ON\n\
                    - OFF\n\
                    - y\n\
@@ -150,12 +150,12 @@
 
 (test-yaml-parser '((*yaml*
 		     ("tag:yaml.org,2002:seq"
-		      #(("tag:yaml.org,2002:int" "685230")
-			("tag:yaml.org,2002:int" "+685_230")
-			("tag:yaml.org,2002:int" "02472256")
-			("tag:yaml.org,2002:int" "0x_0A_74_AE")
-			("tag:yaml.org,2002:int" "0b1010_0111_0100_1010_1110")
-			("tag:yaml.org,2002:int" "190:20:30")))))
+		      ("tag:yaml.org,2002:int" "685230")
+		      ("tag:yaml.org,2002:int" "+685_230")
+		      ("tag:yaml.org,2002:int" "02472256")
+		      ("tag:yaml.org,2002:int" "0x_0A_74_AE")
+		      ("tag:yaml.org,2002:int" "0b1010_0111_0100_1010_1110")
+		      ("tag:yaml.org,2002:int" "190:20:30"))))
 		  "- 685230\n\
                    - +685_230\n\
                    - 02472256\n\
@@ -167,18 +167,37 @@
 
 (test-yaml-parser '((*yaml*
 		     ("tag:yaml.org,2002:seq"
-		      #(("tag:yaml.org,2002:null" "~")
-			("tag:yaml.org,2002:null" "null")
-			("tag:yaml.org,2002:null" "")
-			("tag:yaml.org,2002:null" "Null")
-			("tag:yaml.org,2002:null" "NULL")
-			("tag:yaml.org,2002:str" "NuLL")))))
+		      ("tag:yaml.org,2002:null" "~")
+		      ("tag:yaml.org,2002:null" "null")
+		      ("tag:yaml.org,2002:null" "")
+		      ("tag:yaml.org,2002:null" "Null")
+		      ("tag:yaml.org,2002:null" "NULL")
+		      ("tag:yaml.org,2002:str" "NuLL"))))
 		  "- ~\n\
                    - null\n\
                    - \n\
                    - Null\n\
                    - NULL\n\
                    - NuLL")
+
+(test-yaml-parser '((*yaml*
+		     ("tag:yaml.org,2002:seq"
+		      ("tag:yaml.org,2002:timestamp" "2001-12-15T02:59:43.1Z")
+		      ("tag:yaml.org,2002:timestamp"
+		       "2001-12-14t21:59:43.10-05:00")
+		      ("tag:yaml.org,2002:timestamp"
+		       "2001-12-14 21:59:43.10 -5")
+		      ("tag:yaml.org,2002:timestamp" "2001-12-15 2:59:43.10")
+		      ("tag:yaml.org,2002:timestamp" "2002-12-14"))))
+		  "- 2001-12-15T02:59:43.1Z\n\
+                   - 2001-12-14t21:59:43.10-05:00\n\
+                   - 2001-12-14 21:59:43.10 -5\n\
+                   - 2001-12-15 2:59:43.10\n\
+                   - 2002-12-14")
+
+(test-yaml-parser '((*yaml* ("tag:yaml.org,2002:value" "="))) "=")
+
+;; TODO test parser errors
 
 (test-end)
 
