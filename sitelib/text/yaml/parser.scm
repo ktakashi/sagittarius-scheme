@@ -222,6 +222,9 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
 		 (loop (cons (make-yaml-directive name value) r) (cdr d*)
 		       found-yaml?)))))))
 
+(define (empty-scalar start/end)
+  (make-yaml-scalar-node (resolve-tag 'scalar #t #f "") "" start/end start/end))
+
 ;;; Tokens
 (define ($token-of pred) ($satisfy (lambda (t) (pred t))))
 (define stream-start ($token-of stream-start-token?))
@@ -260,10 +263,16 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
        indentless-sequence))
 
 (define (block-k&v)
-  ;; TODO empty scalar
-  ($do (k ($seq key ($optional (block-node/indentless-sequence))))
-       (v ($seq value ($optional (block-node/indentless-sequence))))
-       ($return (cons k v))))
+  ($do (k ($do (k key)
+	       (r ($optional (block-node/indentless-sequence)))
+	       ($return (if r
+			    (cons k r)
+			    (cons k (empty-scalar k))))))
+       (v ($optional ($do (v value)
+			  (r ($optional (block-node/indentless-sequence)))
+			  ($return (or r (empty-scalar v))))
+		     (empty-scalar (car k))))
+       ($return (cons (cdr k) v))))
 
 (define block-mapping
   ($do (s block-mapping-start)
@@ -291,7 +300,9 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
   ($or flow-node
        ($do key
 	    (k ($optional flow-node))
-	    (v ($optional ($seq value ($optional flow-node))))
+	    (v ($optional ($do (v value)
+			       (r ($optional flow-node))
+			       ($return (or r (empty-scalar v))))))
 	    ($return (list k v)))))
 
 (define flow-sequence

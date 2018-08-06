@@ -78,5 +78,16 @@
 		      (("tag:yaml.org,2002:str" "buz")
 		       ("tag:yaml.org,2002:str" "bla")))))
 		  "{ foo: bar, buz: bla, }")
+
+(test-yaml-parser '((*yaml*
+		     ("tag:yaml.org,2002:map"
+		      (("tag:yaml.org,2002:str" "foo")
+		       ("tag:yaml.org,2002:null" "")))))
+		  "foo:")
+(test-yaml-parser '((*yaml*
+		     ("tag:yaml.org,2002:map"
+		      (("tag:yaml.org,2002:null" "")
+		       ("tag:yaml.org,2002:null" "")))))
+		  "?")
 (test-end)
 
