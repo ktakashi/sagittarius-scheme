@@ -98,6 +98,25 @@
                      ? !!str \"foo\"\n  \
                      : !!str \"bar\",\n\
                    }")
+
+(test-yaml-parser '((*yaml*
+		     ("tag:yaml.org,2002:seq"
+		      ("tag:yaml.org,2002:map"
+		       (("tag:yaml.org,2002:str" "one")
+			("tag:yaml.org,2002:int" "1")))
+		      ("tag:yaml.org,2002:map"
+		       (("tag:yaml.org,2002:str" "two")
+			("tag:yaml.org,2002:int" "2")))
+		      ("tag:yaml.org,2002:map"
+		       (("tag:yaml.org,2002:str" "three")
+			("tag:yaml.org,2002:int" "3"))))))
+		  "[ one: 1, two: 2, three : 3 ]")
+
+(test-yaml-parser '((*yaml*
+		     ("tag:yaml.org,2002:map"
+		       (("tag:yaml.org,2002:str" "one")
+			("tag:yaml.org,2002:null" "")))))
+		  "{ one: , }")
 ;; corner cases
 ;; we support null scalar only on explicit document (differ from PyYAML)
 (test-yaml-parser '() "")
@@ -197,6 +216,93 @@
 
 (test-yaml-parser '((*yaml* ("tag:yaml.org,2002:value" "="))) "=")
 
+;; omap etc.
+(test-yaml-parser '((*yaml*
+		     (*directives* (%YAML 1 2))
+		     ("tag:yaml.org,2002:map"
+		      (("tag:yaml.org,2002:str" "foo")
+		       ("tag:yaml.org,2002:omap"
+			("tag:yaml.org,2002:map"
+			 (("tag:yaml.org,2002:str" "foo")
+			  ("tag:yaml.org,2002:str" "bar")))
+			("tag:yaml.org,2002:map"
+			 (("tag:yaml.org,2002:str" "boo")
+			  ("tag:yaml.org,2002:str" "buz"))))))))
+		  "%YAML 1.2\n\
+                   ---\n\
+                   foo: !!omap\n\
+                    - foo: bar\n\
+                    - boo: buz")
+
+(test-yaml-parser '((*yaml*
+		     ("tag:yaml.org,2002:omap"
+		      ("tag:yaml.org,2002:map"
+		       (("tag:yaml.org,2002:str" "one")
+			("tag:yaml.org,2002:int" "1")))
+		      ("tag:yaml.org,2002:map"
+		       (("tag:yaml.org,2002:str" "two")
+			("tag:yaml.org,2002:int" "2")))
+		      ("tag:yaml.org,2002:map"
+		       (("tag:yaml.org,2002:str" "three")
+			("tag:yaml.org,2002:int" "3"))))))
+		  "!!omap [ one: 1, two: 2, three : 3 ]")
+
+(test-yaml-parser '((*yaml*
+		     ("tag:yaml.org,2002:map"
+		      (("tag:yaml.org,2002:str" "Block tasks")
+		       ("tag:yaml.org,2002:pairs"
+			("tag:yaml.org,2002:map"
+			 (("tag:yaml.org,2002:str" "meeting")
+			  ("tag:yaml.org,2002:str" "with team.")))
+			("tag:yaml.org,2002:map"
+			 (("tag:yaml.org,2002:str" "meeting")
+			  ("tag:yaml.org,2002:str" "with boss.")))
+			("tag:yaml.org,2002:map"
+			 (("tag:yaml.org,2002:str" "break")
+			  ("tag:yaml.org,2002:str" "lunch.")))
+			("tag:yaml.org,2002:map"
+			 (("tag:yaml.org,2002:str" "meeting")
+			  ("tag:yaml.org,2002:str" "with client."))))))))
+		  "Block tasks: !!pairs\n  \
+                     - meeting: with team.\n  \
+                     - meeting: with boss.\n  \
+                     - break: lunch.\n  \
+                     - meeting: with client.")
+
+(test-yaml-parser '((*yaml*
+		     ("tag:yaml.org,2002:pairs"
+		      ("tag:yaml.org,2002:map"
+		       (("tag:yaml.org,2002:str" "meeting")
+			("tag:yaml.org,2002:str" "with team")))
+		      ("tag:yaml.org,2002:map"
+		       (("tag:yaml.org,2002:str" "meeting")
+			("tag:yaml.org,2002:str" "with boss"))))))
+		  "!!pairs [ meeting: with team, meeting: with boss ]")
+
+(test-yaml-parser '((*yaml*
+		     ("tag:yaml.org,2002:map"
+		      (("tag:yaml.org,2002:str" "baseball players")
+		       ("tag:yaml.org,2002:set"
+			(("tag:yaml.org,2002:str" "Mark McGwire")
+			 ("tag:yaml.org,2002:null" ""))
+			(("tag:yaml.org,2002:str" "Sammy Sosa")
+			 ("tag:yaml.org,2002:null" ""))
+			(("tag:yaml.org,2002:str" "Ken Griffey")
+			 ("tag:yaml.org,2002:null" "")))))))
+		  "baseball players: !!set\n  \
+                     ? Mark McGwire\n  \
+                     ? Sammy Sosa\n  \
+                     ? Ken Griffey")
+
+(test-yaml-parser '((*yaml*
+		     ("tag:yaml.org,2002:set"
+		      (("tag:yaml.org,2002:str" "Boston Red Sox")
+		       ("tag:yaml.org,2002:null" ""))
+		      (("tag:yaml.org,2002:str" "Detroit Tigers")
+		       ("tag:yaml.org,2002:null" ""))
+		      (("tag:yaml.org,2002:str" "New York Yankees")
+		       ("tag:yaml.org,2002:null" "")))))
+		  "!!set { Boston Red Sox, Detroit Tigers, New York Yankees }")
 ;; TODO test parser errors
 
 (test-end)
