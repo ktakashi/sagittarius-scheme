@@ -285,7 +285,9 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
 
 (define block-sequence
   ($do (s block-sequence-start)
-       (n* ($many ($seq block-entry ($optional block-node))))
+       (n* ($many ($do (e block-entry)
+		       (n ($optional block-node))
+		       ($return (or n (empty-scalar e))))))
        (e block-end)
        ($return (make-yaml-sequence-node
 		 (resolve-tag 'sequence #t #f #f) n* #f
@@ -372,10 +374,10 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
   ($parameterize ((*anchors* (make-hashtable string-hash string=?))
 		  (*tag-handles* #f))
     ($do (d* ($do (d* ($many directive)) ($return (build-directives d*))))
-	 document-start
+	 (d document-start)
 	 (b ($optional block-node))
 	 (($many document-end))
-	 ($return (make-yaml-document d* b)))))
+	 ($return (make-yaml-document d* (or b (empty-scalar d)))))))
 
 (define stream
   ($do stream-start
