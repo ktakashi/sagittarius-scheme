@@ -117,6 +117,21 @@
 		       (("tag:yaml.org,2002:str" "one")
 			("tag:yaml.org,2002:null" "")))))
 		  "{ one: , }")
+
+(test-yaml-parser '((*yaml*
+		     ("tag:yaml.org,2002:map"
+		       (("tag:yaml.org,2002:str" "generic")
+			("tag:yaml.org,2002:binary"
+			 "R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5
+OTk6enp56enmlpaWNjY6Ojo4SEhP/++f/++f/++f/++f/++f/++f/++f/++f/+
++f/++f/++f/++f/++f/++SH+Dk1hZGUgd2l0aCBHSU1QACwAAAAADAAMAAAFLC
+AgjoEwnuNAFOhpEMTRiggcz4BNJHrv/zCFcLiwMWYNG84BwwEeECcgggoBADs=")))))
+		  "generic: !!binary |
+ R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5
+ OTk6enp56enmlpaWNjY6Ojo4SEhP/++f/++f/++f/++f/++f/++f/++f/++f/+
+ +f/++f/++f/++f/++f/++SH+Dk1hZGUgd2l0aCBHSU1QACwAAAAADAAMAAAFLC
+ AgjoEwnuNAFOhpEMTRiggcz4BNJHrv/zCFcLiwMWYNG84BwwEeECcgggoBADs=")
+
 ;; corner cases
 ;; we support null scalar only on explicit document (differ from PyYAML)
 (test-yaml-parser '() "")
