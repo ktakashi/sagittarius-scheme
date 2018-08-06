@@ -30,6 +30,7 @@
 
 ;; see http://yaml.org/spec/1.2/spec.html#id2763452
 
+#!nounbound
 (library (text yaml nodes)
     (export (rename (yaml-document <yaml-document>))
 	    make-yaml-document yaml-document?
@@ -66,9 +67,9 @@
 	    (rename (yaml-mapping-node <yaml-mapping-node>))
 	    make-yaml-mapping-node yaml-mapping-node?
 
-	    yaml-document->sexp
-	    yaml-directive->sexp
-	    yaml-node->sexp
+	    yaml-document->canonical-sexp
+	    yaml-directive->canonical-sexp
+	    yaml-node->canonical-sexp
 	    )
     (import (rnrs))
 
@@ -130,17 +131,17 @@
   (parent yaml-collection-node)
   (protocol (lambda (n) (lambda args ((apply n args))))))
 
-(define (yaml-document->sexp yaml)
+(define (yaml-document->canonical-sexp yaml)
   (let ((d* (yaml-document-directives yaml))
 	(node (yaml-document-root-node yaml)))
     `(*yaml*
       ,@(if (or (not d*) (null? d*))
 	    '()
-	    `((*directives* ,@(map yaml-directive->sexp d*))))
+	    `((*directives* ,@(map yaml-directive->canonical-sexp d*))))
       ,@(if node
-	    (list (yaml-node->sexp node))
+	    (list (yaml-node->canonical-sexp node))
 	    '()))))
-(define (yaml-directive->sexp directive)
+(define (yaml-directive->canonical-sexp directive)
   (cond ((yaml-yaml-directive? directive)
 	 `(%YAML ,(yaml-yaml-directive-major-version directive)
 		 ,(yaml-yaml-directive-minor-version directive)))
@@ -158,21 +159,21 @@
 ;; sequence ::= (tag #(node ...))
 ;; ( ...)
 ;; NB: we drop flow style information here
-(define (yaml-node->sexp node)
+(define (yaml-node->canonical-sexp node)
   (cond ((yaml-scalar-node? node)
 	 ;; scalar value might be a non sexp value.
 	 ;; so check
 	 (let ((v (yaml-node-value node)))
 	   `(,(yaml-node-tag node)
-	     ,(cond ((pair? v) (map yaml-node->sexp v))
-		    (else (yaml-node->sexp v))))))
+	     ,(cond ((pair? v) (map yaml-node->canonical-sexp v))
+		    (else (yaml-node->canonical-sexp v))))))
 	((yaml-sequence-node? node)
 	 `(,(yaml-node-tag node)
-	   ,@(map yaml-node->sexp (yaml-node-value node))))
+	   ,@(map yaml-node->canonical-sexp (yaml-node-value node))))
 	((yaml-mapping-node? node)
 	 `(,(yaml-node-tag node)
-	   ,@(map (lambda (k&v) `(,(yaml-node->sexp (car k&v))
-				  ,(yaml-node->sexp (cdr k&v))))
+	   ,@(map (lambda (k&v) `(,(yaml-node->canonical-sexp (car k&v))
+				  ,(yaml-node->canonical-sexp (cdr k&v))))
 		  (yaml-node-value node))))
 	(else node)))
 )

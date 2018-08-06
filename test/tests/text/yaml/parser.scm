@@ -9,7 +9,7 @@
 
 (define (test-yaml-parser expected input)
   (test-equal input expected
-	      (map yaml-document->sexp
+	      (map yaml-document->canonical-sexp
 		   (parse-yaml (open-string-input-port input)))))
 
 (test-yaml-parser '((*yaml*
