@@ -37,5 +37,12 @@
 (test-equal 685230 (->yaml `(,+yaml-tag:int+ . "0b1010_0111_0100_1010_1110")))
 (test-equal 685230 (->yaml `(,+yaml-tag:int+ . "190:20:30")))
 
+(test-equal -685230 (->yaml `(,+yaml-tag:int+ . "-685230")))
+(test-equal -685230 (->yaml `(,+yaml-tag:int+ . "-685_230")))
+(test-equal -685230 (->yaml `(,+yaml-tag:int+ . "-02472256")))
+(test-equal -685230 (->yaml `(,+yaml-tag:int+ . "-0x_0A_74_AE")))
+(test-equal -685230 (->yaml `(,+yaml-tag:int+ . "-0b1010_0111_0100_1010_1110")))
+(test-equal -685230 (->yaml `(,+yaml-tag:int+ . "-190:20:30")))
+
 
 (test-end)
