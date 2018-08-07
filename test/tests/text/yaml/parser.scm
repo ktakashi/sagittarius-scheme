@@ -10,7 +10,12 @@
 (define (test-yaml-parser expected input)
   (test-equal input expected
 	      (map yaml-document->canonical-sexp
-		   (parse-yaml (open-string-input-port input)))))
+		   (parse-yaml (open-string-input-port input))))
+  (test-equal input expected
+	      (map yaml-document->canonical-sexp
+		   (map canonical-sexp->yaml-document
+			(map yaml-document->canonical-sexp
+			     (parse-yaml (open-string-input-port input)))))))
 
 (test-yaml-parser '((*yaml*
 		     (*directives* (%YAML 1 1))

@@ -70,6 +70,9 @@
 	    yaml-document->canonical-sexp
 	    yaml-directive->canonical-sexp
 	    yaml-node->canonical-sexp
+	    canonical-sexp->yaml-document
+	    canonical-sexp->yaml-directive
+	    canonical-sexp->yaml-node
 	    )
     (import (rnrs))
 
@@ -84,16 +87,22 @@
   (parent yaml-directive)
   (fields major-version minor-version)
   (protocol (lambda (p)
-	      (lambda (major&minor)
+	      (case-lambda
+	       ((major&minor)
 		((p "YAML" (list major&minor))
-		 (car major&minor) (cdr major&minor))))))
+		 (car major&minor) (cdr major&minor)))
+	       ((major minor)
+		((p "YAML" (list (cons major minor))) major minor))))))
 (define-record-type yaml-tag-directive
   (parent yaml-directive)
   (fields handle prefix)
   (protocol (lambda (p)
-	      (lambda (handle&prefix)
+	      (case-lambda
+	       ((handle&prefix)
 		((p "TAG" (list handle&prefix))
-		 (car handle&prefix) (cdr handle&prefix))))))
+		 (car handle&prefix) (cdr handle&prefix)))
+	       ((handle prefix)
+		((p "TAG" (list (cons handle prefix))) handle prefix))))))
 
 (define-record-type yaml-node
   (fields tag
@@ -108,6 +117,7 @@
   (fields style)
   (protocol (lambda (n)
 	      (case-lambda
+	       ((tag value) ((n tag value #f #f) #f))
 	       ((tag value start-mark end-mark)
 		((n tag value start-mark end-mark) #f))
 	       ((tag value style start-mark end-mark)
@@ -118,6 +128,7 @@
   (fields flow-style?)
   (protocol (lambda (n)
 	      (case-lambda
+	       ((tag value) ((n tag value #f #f) #f))
 	       ((tag value start-mark end-mark)
 		((n tag value start-mark end-mark) #f))
 	       ((tag value style start-mark end-mark)
@@ -149,8 +160,9 @@
 	 `(%TAG ,(yaml-tag-directive-handle directive)
 		,(yaml-tag-directive-prefix directive)))
 	(else
+	 (let ((v (yaml-directive-parameters directive)))
 	 `(,(string->symbol (string-append "%" (yaml-directive-name directive)))
-	   ,(yaml-directive-parameters directive)))))
+	   ,@(or v '()))))))
 
 ;; YAML node to canonical YAML SEXP
 ;; node     ::= scalar | mapping | sequence
@@ -175,4 +187,43 @@
 				  ,(yaml-node->canonical-sexp (cdr k&v))))
 		  (yaml-node-value node))))
 	(else node)))
+
+(define (canonical-sexp->yaml-document e)
+  (unless (and (pair? e) (eq? '*yaml* (car e)))
+    (assertion-violation 'canonical-sexp->yaml-document
+			 "YAML document sexp must start with '*yaml*" e))
+  (let ((directive? (and (pair? (cadr e)) (eq? (caadr e) '*directives*))))
+    (make-yaml-document
+     (and directive? (map canonical-sexp->yaml-directive (cdadr e)))
+     (canonical-sexp->yaml-node (if directive? (caddr e) (cadr e))))))
+
+(define (canonical-sexp->yaml-directive e)
+  (cond ((eq? (car e) '%YAML) (apply make-yaml-yaml-directive (cdr e)))
+	((eq? (car e) '%TAG) (apply make-yaml-tag-directive (cdr e)))
+	(else (let ((n (symbol->string (car e))))
+		(make-yaml-directive (substring n 1 (string-length n))
+				     (cdr e))))))
+
+  
+(define (canonical-sexp->yaml-node e)
+  (define (scalar? e) (and (pair? e) (string? (car e)) (not (pair? (cdr e)))))
+  (define (sequence? e)
+    (and (vector? e) (> (vector-length e) 0) (string? (vector-ref e 0))))
+  (define (mapping? e)
+    (and (pair? e) (string? (car e)) (or (null? (cdr e)) (pair? (cdr e)))))
+  (cond ((scalar? e) (make-yaml-scalar-node (car e) (cdr e) #f #f))
+	((sequence? e)
+	 (make-yaml-sequence-node
+	  (vector-ref e 0)
+	  (do ((i 1 (+ i 1)) (len (vector-length e))
+	       (r '() (cons (canonical-sexp->yaml-node (vector-ref e i)) r)))
+	      ((= i len) (reverse r)))))
+	((mapping? e)
+	 (make-yaml-mapping-node
+	  (car e)
+	  (map (lambda (kv) (cons (canonical-sexp->yaml-node (car kv))
+				  (canonical-sexp->yaml-node (cadr kv))))
+	       (cdr e))))
+	(else (assertion-violation 'canonical-sexp->yaml-node
+				   "Unknown structure of SEXP" e))))
 )

@@ -64,6 +64,7 @@
 	    (only (scheme base) vector-copy!)
 	    (only (scheme char) digit-value)
 	    (only (srfi :1 lists) reverse!)
+	    (srfi :13 strings)
 	    (srfi :14 char-sets)
 	    (srfi :117 list-queues)
 	    (srfi :127 lseqs))
@@ -510,10 +511,11 @@
 	     (let ((v (scan-tag-directive-value in)))
 	       (values v (get-mark))))
 	    (else
-	     (do ((m (get-mark))
-		  (i 0 (+ i 1))
-		  (c (peek in) (peek in i)))
-		 ((break? c) (values (if (zero? i) #f (read in (- i 1))) m))))))
+	     (let* ((m (get-mark))
+		    (v (read-while in +non-break-set+)))
+	       ;; a bit out of specification but who would use control
+	       ;; characters as a parameter?
+	       (values (if v (string-tokenize v) v) m)))))
     (let ((start-mark (get-mark)))
       (forward in)
       (let ((name (scan-directive-name in)))
