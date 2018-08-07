@@ -33,7 +33,8 @@
     (import (rnrs)
 	    (text yaml conditions)
 	    (text yaml nodes)
-	    (text yaml tags))
+	    (text yaml tags)
+	    (rfc base64))
 
 (define yaml->sexp
   (case-lambda
@@ -66,11 +67,21 @@
 				      "Recursive building of the node" node))
 	       (build-sexp next-node builders)))))
 
+;; the builder doesn't validate input, this is because we don't expect
+;; builder to be used without parser
+(define (->binary v) (base64-decode-string v :transcoder #f))
+(define (->bool v)
+  (or (and (memv (char-downcase (string-ref v 0)) '(#\y #\t)) #t)
+      (string=? (string-downcase v) "on")))
+
 (define (entry pred tag builder) (cons* pred tag builder))
-(define (single-valued p) (lambda (node builders) (p node)))
+(define (single-valued p) (lambda (node builders) (p (yaml-node-value node))))
+(define (single-entry pred tag p) (cons* pred tag (single-valued p)))
 (define +default-yaml-builders+
   `(
-    ,(entry yaml-scalar-node? +yaml-tag:str+ (single-valued yaml-node-value))
+    ,(single-entry yaml-scalar-node? +yaml-tag:str+ values)
+    ,(single-entry yaml-scalar-node? +yaml-tag:binary+ ->binary)
+    ,(single-entry yaml-scalar-node? +yaml-tag:bool+ ->bool)
     ))
 
 )
