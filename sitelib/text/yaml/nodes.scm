@@ -154,20 +154,20 @@
 
 ;; YAML node to canonical YAML SEXP
 ;; node     ::= scalar | mapping | sequence
-;; scalar   ::= (tag value)
+;; scalar   ::= (tag . value)
 ;; mapping  ::= (tag (map-key map-value) ...)
-;; sequence ::= (tag node ...)
+;; sequence ::= #(tag node ...)
 ;; NB: we drop flow style information here
 (define (yaml-node->canonical-sexp node)
   (cond ((yaml-scalar-node? node)
 	 ;; scalar value might be a non sexp value.
 	 ;; so check
 	 (let ((v (yaml-node-value node)))
-	   `(,(yaml-node-tag node)
+	   `(,(yaml-node-tag node) .
 	     ,(cond ((pair? v) (map yaml-node->canonical-sexp v))
 		    (else (yaml-node->canonical-sexp v))))))
 	((yaml-sequence-node? node)
-	 `(,(yaml-node-tag node)
+	 `#(,(yaml-node-tag node)
 	   ,@(map yaml-node->canonical-sexp (yaml-node-value node))))
 	((yaml-mapping-node? node)
 	 `(,(yaml-node-tag node)
