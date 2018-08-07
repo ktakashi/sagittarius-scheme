@@ -66,49 +66,15 @@
   `(
     ;; implicit
     (
-     (,+yaml-tag:bool+ .
-      ,(regexp '(: bos
-		   (or "y" "Y" "yes" "Yes" "YES" "n" "N" "no" "No" "NO"
-		       "true" "True" "TRUE" "false" "False" "FALSE"
-		       "on" "On" "ON" "off" "Off" "OFF")
-		   eol)))
-      (,+yaml-tag:float+ .
-      ,(regexp '(or (: (? ("-+"))
-		       (? (: (/ "09") (* ("_9876543210")))) "."
-		       (: (/ "09") (* ("_9876543210")))
-		       (? (: ("eE") ("-+") (: (+ (/ "09"))))))
-		    (: (? ("-+")) (/ "09") (* ("_9876543210"))
-		       (: (: ":" (? ("543210")) (/ "09"))
-			  (* (: ":" (? ("543210")) (/ "09")))) "."
-			  (* ("_9876543210")))
-		    (: (? ("-+")) "." (or "inf" "Inf" "INF"))
-		    (: "." ($ (or "nan" "NaN" "NAN"))))))
-     (,+yaml-tag:int+ .
-      ,(regexp '(or (: (? ("-+")) (/ "19") (* ("_9876543210"))
-		       (: ":" (? (/ "05")) (/ "09")
-			  (* (: ":" (? (/ "05")) (/ "09")))))
-		    (: (? ("-+")) "0b" (+ ("_10")))
-		    (: (? ("-+")) "0x" (+ (or #\_ xdigit)))
-		    (: (? ("-+")) "0" (+ ("_76543210")))
-		    (: (? ("-+")) (or #\0 (: (/ "19") (* ("_9876543210"))))))))
+     (,+yaml-tag:bool+ . ,(regexp +yaml-regexp:bool+))
+     (,+yaml-tag:float+ . ,(regexp +yaml-regexp:float+))
+     (,+yaml-tag:int+ . ,(regexp +yaml-regexp:int+))
      (,+yaml-tag:merge+ . ,(lambda (value) (string=? "<<" value)))
-     (,+yaml-tag:null+ .
-      ,(regexp '(or #\~ (: "null") (: "Null") (: "NULL") (:))))
-     (,+yaml-tag:timestamp+ .
-      ,(regexp '(or (: (= 4 (/ "09")) "-"  (** 1 2(/ "09")) "-" (** 1 2(/ "09"))
-		       (or ("tT") (+ (" \t")))
-		       (** 1 2 (/ "09")) ":" (= 2 (/ "09")) ":" (= 2 (/ "09"))
-		       (? (: "." (* (/ "09"))))
-		       (? (: (* (" \t"))
-			     (or (: ("-+") (/ "09") (? (/ "09"))
-				    (? (: ":" (= 2 (/ "09")))))
-				 (:  "Z")))))
-		    (: (= 4 (/ "09")) "-" (= 2 (/ "09")) "-" (= 2 (/ "09"))))))
-
+     (,+yaml-tag:null+ . ,(regexp +yaml-regexp:null+))
+     (,+yaml-tag:timestamp+ . ,(regexp +yaml-regexp:timestamp+))
      (,+yaml-tag:value+ . ,(lambda (value) (string=? "=" value)))
-
      ;; this is not useful but defined
-     (,+yaml-tag:yaml+ . ,(regexp '(or #\! #\& #\*)))
+     (,+yaml-tag:yaml+ . ,(regexp +yaml-regexp:yaml+))
      )
      .
      ;; path?

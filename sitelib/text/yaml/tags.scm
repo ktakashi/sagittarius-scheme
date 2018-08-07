@@ -50,8 +50,17 @@
 	    +yaml-tag:set+
 	    +yaml-tag:seq+
 
-	    +yaml-tag-prefix+)
-    (import (only (sagittarius) define-constant))
+	    +yaml-tag-prefix+
+
+	    +yaml-regexp:bool+
+	    +yaml-regexp:float+
+	    +yaml-regexp:int+
+	    +yaml-regexp:null+
+	    +yaml-regexp:timestamp+
+	    +yaml-regexp:yaml+
+	    )
+    (import (only (rnrs) quote)
+	    (only (sagittarius) define-constant))
 
 (define-constant +yaml-tag-prefix+    "tag:yaml.org,2002:")
 (define-constant +yaml-tag:binary+    "tag:yaml.org,2002:binary")
@@ -69,4 +78,43 @@
 (define-constant +yaml-tag:pairs+     "tag:yaml.org,2002:pairs")
 (define-constant +yaml-tag:set+       "tag:yaml.org,2002:set")
 (define-constant +yaml-tag:seq+       "tag:yaml.org,2002:seq")
+
+(define-constant +yaml-regexp:bool+
+  '(: bos
+      (or "y" "Y" "yes" "Yes" "YES" "n" "N" "no" "No" "NO"
+	  "true" "True" "TRUE" "false" "False" "FALSE"
+	  "on" "On" "ON" "off" "Off" "OFF")
+      eol))
+(define-constant +yaml-regexp:float+
+  '(or (: (? ("-+"))
+	  (? (: (/ "09") (* ("_9876543210")))) "."
+	  (: (/ "09") (* ("_9876543210")))
+	  (? (: ("eE") ("-+") (: (+ (/ "09"))))))
+       (: (? ("-+")) (/ "09") (* ("_9876543210"))
+	  (: (: ":" (? ("543210")) (/ "09"))
+	     (* (: ":" (? ("543210")) (/ "09")))) "."
+	     (* ("_9876543210")))
+       (: (? ("-+")) "." (or "inf" "Inf" "INF"))
+       (: "." ($ (or "nan" "NaN" "NAN")))))
+(define-constant +yaml-regexp:int+
+  '(or (: (? ("-+")) (/ "19") (* ("_9876543210"))
+	  (: ":" (? (/ "05")) (/ "09")
+	     (* (: ":" (? (/ "05")) (/ "09")))))
+       (: (? ("-+")) "0b" (+ ("_10")))
+       (: (? ("-+")) "0x" (+ (or #\_ xdigit)))
+       (: (? ("-+")) "0" (+ ("_76543210")))
+       (: (? ("-+")) (or #\0 (: (/ "19") (* ("_9876543210")))))))
+(define-constant +yaml-regexp:null+
+  '(or #\~ (: "null") (: "Null") (: "NULL") (:)))
+(define-constant +yaml-regexp:timestamp+
+  '(or (: (= 4 (/ "09")) "-"  (** 1 2(/ "09")) "-" (** 1 2(/ "09"))
+	  (or ("tT") (+ (" \t")))
+	  (** 1 2 (/ "09")) ":" (= 2 (/ "09")) ":" (= 2 (/ "09"))
+	  (? (: "." (* (/ "09"))))
+	  (? (: (* (" \t"))
+		(or (: ("-+") (/ "09") (? (/ "09"))
+		       (? (: ":" (= 2 (/ "09")))))
+		    (:  "Z")))))
+       (: (= 4 (/ "09")) "-" (= 2 (/ "09")) "-" (= 2 (/ "09")))))
+(define-constant +yaml-regexp:yaml+ '(or #\! #\& #\*))
 )
