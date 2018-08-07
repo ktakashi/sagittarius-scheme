@@ -4,7 +4,7 @@ pipelines:
         script:
           - echo "Installing required packages"
           - apt-get update
-          - apt-get install cmake libgc-dev zlib1g-dev libffi-dev -y
+          - apt-get install cmake libgc-dev zlib1g-dev libffi-dev libssl-dev -y
           - echo "Retrieving the latest version of Sagittarius"
           - curl -L -o latest-version.txt https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/latest-version.txt
           - curl -L -o sagittarius.tar.gz https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/sagittarius-`cat latest-version.txt`.tar.gz
