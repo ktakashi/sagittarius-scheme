@@ -39,6 +39,7 @@
 	    (text yaml tokens)
 	    (text yaml nodes)
 	    (text yaml resolvers)
+	    (text yaml tags)
 	    (srfi :1 lists) ;; for last-pair
 	    (srfi :39 parameters))
 #|
@@ -104,8 +105,8 @@ flow_sequence_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-
 flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-START KEY }
 |#
 (define +default-tag-handles+
-  '(("!" . "!")
-    ("!!" . "tag:yaml.org,2002:")))
+  `(("!" . "!")
+    ("!!" . ,+yaml-tag-prefix+)))
 
 (define (->hashtable alist)
   (let ((ht (make-hashtable string-hash string=?)))

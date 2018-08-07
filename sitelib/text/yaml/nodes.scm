@@ -155,9 +155,8 @@
 ;; YAML node to canonical YAML SEXP
 ;; node     ::= scalar | mapping | sequence
 ;; scalar   ::= (tag value)
-;; mapping  ::= (tag ((map-key map-value) ...))
-;; sequence ::= (tag #(node ...))
-;; ( ...)
+;; mapping  ::= (tag (map-key map-value) ...)
+;; sequence ::= (tag node ...)
 ;; NB: we drop flow style information here
 (define (yaml-node->canonical-sexp node)
   (cond ((yaml-scalar-node? node)
