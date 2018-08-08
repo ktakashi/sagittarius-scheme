@@ -44,5 +44,25 @@
 (test-equal -685230 (->yaml `(,+yaml-tag:int+ . "-0b1010_0111_0100_1010_1110")))
 (test-equal -685230 (->yaml `(,+yaml-tag:int+ . "-190:20:30")))
 
+(test-equal 685230.15 (->yaml `(,+yaml-tag:float+ . "6.8523015e+5")))
+(test-equal 685230.15 (->yaml `(,+yaml-tag:float+ . "685.230_15e+3")))
+(test-equal 685230.15 (->yaml `(,+yaml-tag:float+ . "685_230.15")))
+(test-equal 685230.15 (->yaml `(,+yaml-tag:float+ . "190:20:30.15")))
+(test-equal +inf.0 (->yaml `(,+yaml-tag:float+ . "+.inf")))
+(test-equal +inf.0 (->yaml `(,+yaml-tag:float+ . ".inf")))
+(test-equal +inf.0 (->yaml `(,+yaml-tag:float+ . ".INF")))
+(test-equal +inf.0 (->yaml `(,+yaml-tag:float+ . ".Inf")))
+(test-equal +nan.0 (->yaml `(,+yaml-tag:float+ . ".nan")))
+(test-equal +nan.0 (->yaml `(,+yaml-tag:float+ . ".NaN")))
+(test-equal +nan.0 (->yaml `(,+yaml-tag:float+ . ".NAN")))
+
+(test-equal -685230.15 (->yaml `(,+yaml-tag:float+ . "-6.8523015e+5")))
+(test-equal -685230.15 (->yaml `(,+yaml-tag:float+ . "-685.230_15e+3")))
+(test-equal -685230.15 (->yaml `(,+yaml-tag:float+ . "-685_230.15")))
+(test-equal -685230.15 (->yaml `(,+yaml-tag:float+ . "-190:20:30.15")))
+(test-equal -inf.0 (->yaml `(,+yaml-tag:float+ . "-.inf")))
+(test-equal -inf.0 (->yaml `(,+yaml-tag:float+ . "-.INF")))
+(test-equal -inf.0 (->yaml `(,+yaml-tag:float+ . "-.Inf")))
+
 
 (test-end)
