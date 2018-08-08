@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;
 
+#!nounbound
 (library (text yaml builder)
     (export yaml->sexp)
     (import (rnrs)
@@ -37,6 +38,7 @@
 	    (rfc base64)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
+	    (srfi :19 time)
 	    (srfi :115 regexp))
 
 (define yaml->sexp
@@ -124,7 +126,63 @@
 			(+ (parse-sexagesimal int) (string->number frac))))
 		     (else (string->number ln)))))
       (if neg (- v) v))))
-	       
+
+(define +time-separators-set+ (char-set #\space #\tab #\T #\t))
+(define (->date v)
+  (define len (string-length v))
+  (define (parse-ymd ymd)
+    (values (string->number (substring ymd 0 4))
+	    (string->number (substring ymd 5 7))
+	    (string->number (substring ymd 8 10))))
+  (define (parse-fraction&offset f&o?)
+    (cond ((zero? (string-length f&o?)) (values 0 0))
+	  ((string-index f&o? #\Z) =>
+	   (lambda (i) (values (string->number (substring f&o? 0 i)) 0)))
+	  ((string-index f&o? (char-set #\- #\+)) =>
+	   (lambda (i)
+	     (let ((f (string->number (substring f&o? 0 i)))
+		   (neg (eqv? (string-ref f&o? i) #\-))
+		   (h&m (substring f&o? (+ i 1) (string-length f&o?))))
+	       (let-values (((h m)
+			     (cond ((string-index h&m #\:) =>
+				    (lambda (i)
+				      (values (substring h&m 0 i)
+					      (substring h&m (+ i 1)
+							 (string-length h&m)))))
+				   (else (values h&m #f)))))
+		 (let ((n (+ (* (string->number h) 3600)
+			     (if m (string->number m) 0))))
+		   (values f (if neg (- n ) n)))))))))
+			       
+  (let-values (((ymd rest)
+		(cond ((string-index v +time-separators-set+) =>
+		       (lambda (i)
+			 (values (substring v 0 i) (substring v i len))))
+		      (else (values v "")))))
+    (if (= len (string-length ymd))
+	(let-values (((y m d) (parse-ymd ymd)))
+	  (make-date 0 0 0 0 d m y 0))
+	(let-values (((hms rest)
+		      (let ((hms-i (string-skip rest +time-separators-set+)))
+			(cond ((string-index rest #\.) =>
+			       (lambda (i)
+				 (values (substring rest hms-i i)
+					 (substring rest (+ i 1)
+						    (string-length rest)))))
+			      (else (values (substring rest hms-i
+						       (string-length rest))
+					    ""))))))
+	  (let-values (((fraction offset)
+			(parse-fraction&offset
+			 (string-delete char-set:whitespace rest)))
+		       ((h m s) (apply values
+				       (map string->number
+					    (string-tokenize hms
+							     char-set:digit))))
+		       ((y M d) (parse-ymd ymd)))
+	    (make-date fraction s m h d M y offset))))))
+    
+
 (define (entry pred tag builder) (cons* pred tag builder))
 (define (single-valued p) (lambda (node builders) (p (yaml-node-value node))))
 (define (single-entry pred tag p) (cons* pred tag (single-valued p)))
@@ -134,16 +192,21 @@
     (and (pred node)
 	 (regexp-matches re (yaml-node-value node)))))
 
+(define (add-yaml-builder-entry base entry) (append base (list entry)))
+
 (define +default-yaml-builders+
-  `(
-    ,(single-entry yaml-scalar-node? +yaml-tag:str+ values)
-    ,(single-entry yaml-scalar-node? +yaml-tag:binary+ ->binary)
-    ,(single-entry (regexp-pred yaml-scalar-node? +yaml-regexp:bool+)
-		   +yaml-tag:bool+ ->bool)
-    ,(single-entry (regexp-pred yaml-scalar-node? +yaml-regexp:int+)
-		   +yaml-tag:int+ ->int)
-    ,(single-entry (regexp-pred yaml-scalar-node? +yaml-regexp:float+)
-		   +yaml-tag:float+ ->float)
-    ))
+  (add-yaml-builder-entry
+   `(
+     ,(single-entry yaml-scalar-node? +yaml-tag:str+ values)
+     ,(single-entry yaml-scalar-node? +yaml-tag:binary+ ->binary)
+     ,(single-entry (regexp-pred yaml-scalar-node? +yaml-regexp:bool+)
+		    +yaml-tag:bool+ ->bool)
+     ,(single-entry (regexp-pred yaml-scalar-node? +yaml-regexp:int+)
+		    +yaml-tag:int+ ->int)
+     ,(single-entry (regexp-pred yaml-scalar-node? +yaml-regexp:float+)
+		    +yaml-tag:float+ ->float)
+     )
+   (single-entry (regexp-pred yaml-scalar-node? +yaml-regexp:timestamp+)
+		 +yaml-tag:timestamp+ ->date)))
 
 )

@@ -3,6 +3,7 @@
 	(text yaml nodes)
 	(text yaml tags)
 	(rfc base64)
+	(srfi :19)
 	(srfi :64))
 
 (test-begin "YAML builder")
@@ -63,6 +64,24 @@
 (test-equal -inf.0 (->yaml `(,+yaml-tag:float+ . "-.inf")))
 (test-equal -inf.0 (->yaml `(,+yaml-tag:float+ . "-.INF")))
 (test-equal -inf.0 (->yaml `(,+yaml-tag:float+ . "-.Inf")))
+
+(define (date=? d1 d2) (time=? (date->time-utc d1) (date->time-utc d2)))
+(test-assert (date=? (make-date 0 0 0 0 14 12 2002 0)
+		     (->yaml `(,+yaml-tag:timestamp+ . "2002-12-14"))))
+(test-assert (date=? (make-date 1 43 59 2 15 12 2001 0)
+		     (->yaml `(,+yaml-tag:timestamp+ . "2001-12-15T02:59:43.1Z"))))
+(test-assert
+ (date=? (make-date 1 43 59 2 15 12 2001 3600)
+	 (->yaml `(,+yaml-tag:timestamp+ . "2001-12-15T02:59:43.1+01:00"))))
+(test-assert
+ (date=? (make-date 1 43 59 2 15 12 2001 3600)
+	 (->yaml `(,+yaml-tag:timestamp+ . "2001-12-15t02:59:43.1+01:00"))))
+(test-assert
+ (date=? (make-date 1 43 59 2 15 12 2001 3600)
+	 (->yaml `(,+yaml-tag:timestamp+ . "2001-12-15 02:59:43.1+01:00"))))
+(test-assert
+ (date=? (make-date 1 43 59 2 15 12 2001 (* -5 3600))
+	 (->yaml `(,+yaml-tag:timestamp+ . "2001-12-15 02:59:43.1 -5"))))
 
 
 (test-end)
