@@ -46,6 +46,8 @@
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
 	    (srfi :19 time)
+	    (srfi :113 sets)
+	    (srfi :114 comparators)
 	    (srfi :115 regexp))
 
 (define-condition-type &yaml-builder &yaml
@@ -273,23 +275,21 @@
 		'() (yaml-node-value value)))
   
   (let ((value (flatten-mapping mapping)))
-    (list->vector
-     (delete-duplicates!
-      (map (lambda (k&v)
-	     (cons (key-builder (car k&v)) (value-builder (cdr k&v)))) value)
-      (lambda (x y) (equal? (car x) (car y)))))))
+    (delete-duplicates!
+     (map (lambda (k&v)
+	    (cons (key-builder (car k&v)) (value-builder (cdr k&v)))) value)
+     (lambda (x y) (equal? (car x) (car y))))))
 
-(define (->mapping mapping builder) (generic-mapping mapping builder builder))
+(define (->mapping mapping builder)
+  (list->vector (generic-mapping mapping builder builder)))
 (define (->set mapping builder)
-  (generic-mapping mapping builder (lambda (_) 'null)))
+  (list->vector (generic-mapping mapping builder (lambda (_) 'null))))
 
-;; 
 (define (->pairs pairs builder)
   (list->vector (map (lambda (m)
 		       (let ((v (car (yaml-node-value m))))
 			 (vector (builder (car v)) (builder (cdr v)))))
 		     (yaml-node-value pairs))))
-
 
 (define (list-of-node? v)
   (and (list? v) (for-all yaml-node? v)))
@@ -315,11 +315,11 @@
   (lambda (node)
     (and (pred node)
 	 (value-pred (yaml-node-value node)))))
-(define (add-yaml-builder-entry base entry) (append base (list entry)))
-(define (replace-yaml-builder-entry base entry)
-  (let* ((tag (cadr entry))
-	 (l (remp (lambda (e) (string=? tag (cadr e))) base)))
-    (append l (list entry))))
+(define (add-yaml-builder-entry base . entry*) (append base entry*))
+(define (replace-yaml-builder-entry base . entry*)
+  (let* ((tags (map cadr entry*))
+	 (l (remp (lambda (e) (member (cadr e) tags string=?)) base)))
+    (append l entry*)))
 
 (define sequence-node? (value-pred yaml-sequence-node? list-of-node?))
 (define mapping-node? (value-pred yaml-mapping-node? list-of-pair?))
@@ -349,9 +349,30 @@
     ))
 
 (define +default-yaml-builders+ +json-compat-yaml-builders+)
+
+;;; convert to scheme object
+(define (->hashtable mapping builder)
+  (let ((ht (make-hashtable equal-hash equal?)))
+    (for-each (lambda (kv) (hashtable-set! ht (car kv) (cdr kv)))
+	      (generic-mapping mapping builder builder))
+    ht))
+(define (->vector seq builder) (list->vector (->sequence seq builder)))
+(define (->pair-vector pairs builder)
+  (vector-map (lambda (v) (cons (vector-ref v 0) (vector-ref v 1)))
+	      (->pairs pairs builder)))
+(define (->srfi-set mapping builder)
+  (apply set default-comparator
+	 (map car (generic-mapping mapping builder values))))
+
 (define +scheme-object-yaml-builders+
   (replace-yaml-builder-entry +default-yaml-builders+
     (single-entry (regexp-pred yaml-scalar-node? +yaml-regexp:timestamp+)
-		  +yaml-tag:timestamp+ ->date)))
+		  +yaml-tag:timestamp+ ->date)
+    (entry mapping-node? +yaml-tag:map+ ->hashtable)
+    (entry sequence-node? +yaml-tag:seq+ ->vector)
+    (entry sequence-node? +yaml-tag:pairs+ ->pair-vector)
+    (entry mapping-node? +yaml-tag:set+ ->srfi-set)
+    ;; TODO omap, use SRFI-146 mapping?
+    ))
 
 )
