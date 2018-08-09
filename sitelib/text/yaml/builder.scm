@@ -32,6 +32,7 @@
 (library (text yaml builder)
     (export yaml->sexp
 	    +default-yaml-builders+
+	    +json-compat-yaml-builders+
 	    +scheme-object-yaml-builders+
 	    ;; for testing
 	    date->yaml-canonical-date)
@@ -40,6 +41,7 @@
 	    (text yaml nodes)
 	    (text yaml tags)
 	    (rfc base64)
+	    (srfi :1 lists)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
 	    (srfi :19 time)
@@ -51,11 +53,13 @@
    ((node builders)
     (cond ((yaml-document? node)
 	   (yaml->sexp (yaml-document-root-node node) builders))
-	  ((yaml-node? node) (build-sexp node builders))
+	  ((yaml-node? node)
+	   (let ((objs (make-eq-hashtable)))
+	     (build-sexp node builders objs)))
 	  (else (assertion-violation 'yaml->sexp
 				     "YAML node or document required" node))))))
 
-(define (build-sexp node builders)
+(define (build-sexp node builders constructed-objects)
   (define tag (yaml-node-tag node))
   (define (find-builder builder)
     (let ((pred (car builder))
@@ -70,12 +74,17 @@
 	       "The node/tag is not supported with the given set of builders")
 	      (make-irritants-condition node))))
     ((cddr builder) node
-	     (lambda (next-node)
-	       (when (eq? next-node node)
-		 (assertion-violation 'yaml->sexp
-				      "Recursive building of the node" node))
-	       (build-sexp next-node builders)))))
+     (lambda (next-node)
+       (when (eq? next-node node)
+	 (assertion-violation 'yaml->sexp
+			      "Recursive building of the node" node))
+       (cond ((hashtable-ref constructed-objects next-node #f))
+	     (else
+	      (let ((r (build-sexp next-node builders constructed-objects)))
+		(hashtable-set! constructed-objects r r)
+		r)))))))
 
+;;; Builders
 (define (->binary v) (base64-decode-string v :transcoder #f))
 (define (->bool v)
   (or (and (memv (char-downcase (string-ref v 0)) '(#\y #\t)) #t)
@@ -220,6 +229,37 @@
 		       (->iso-zone offset)))))
 (define (->date-string v) (date->yaml-canonical-date (->date v)))
 
+;; (node builder) -> list
+(define (->sequence seq builder) (map builder (yaml-node-value seq)))
+;; (node builder) -> vector
+(define (->mapping mapping builder)
+  (list->vector (map (lambda (k&v)
+		       (cons (builder (car k&v)) (builder (cdr k&v))))
+		     (yaml-node-value mapping))))
+
+(define (->set mapping builder)
+  (delete-duplicates! (map (lambda (k&v) (builder (car k&v)))
+			   (yaml-node-value mapping))))
+;; 
+(define (->pairs pairs builder)
+  (list->vector (map (lambda (m)
+		       (let ((v (car (yaml-node-value m))))
+			 (vector (builder (car v)) (builder (cdr v)))))
+		     (yaml-node-value pairs))))
+
+
+(define (list-of-node? v)
+  (and (list? v) (for-all yaml-node? v)))
+(define (list-of-pair? v)
+  (and (list? v) (for-all (lambda (k&v)
+			    (and (pair? k&v)
+				 (yaml-scalar-node? (car k&v))
+				 (yaml-node? (cdr k&v)))) v)))
+(define (list-of-single-valued-mapping? v)
+  (and (list? v) (for-all (lambda (m)
+			    (and (mapping-node? m)
+				 (= (length (yaml-node-value m)) 1))) v)))
+
 (define (entry pred tag builder) (cons* pred tag builder))
 (define (single-valued p) (lambda (node builders) (p (yaml-node-value node))))
 (define (single-entry pred tag p) (cons* pred tag (single-valued p)))
@@ -228,27 +268,44 @@
   (lambda (node)
     (and (pred node)
 	 (regexp-matches re (yaml-node-value node)))))
-
+(define (value-pred pred value-pred)
+  (lambda (node)
+    (and (pred node)
+	 (value-pred (yaml-node-value node)))))
 (define (add-yaml-builder-entry base entry) (append base (list entry)))
 (define (replace-yaml-builder-entry base entry)
   (let* ((tag (cadr entry))
 	 (l (remp (lambda (e) (string=? tag (cadr e))) base)))
     (append l (list entry))))
 
-(define +default-yaml-builders+
-  `(
-     ,(single-entry yaml-scalar-node? +yaml-tag:str+ values)
-     ,(single-entry yaml-scalar-node? +yaml-tag:binary+ ->binary)
-     ,(single-entry (regexp-pred yaml-scalar-node? +yaml-regexp:bool+)
-		    +yaml-tag:bool+ ->bool)
-     ,(single-entry (regexp-pred yaml-scalar-node? +yaml-regexp:int+)
-		    +yaml-tag:int+ ->int)
-     ,(single-entry (regexp-pred yaml-scalar-node? +yaml-regexp:float+)
-		    +yaml-tag:float+ ->float)
-     ,(single-entry (regexp-pred yaml-scalar-node? +yaml-regexp:timestamp+)
-		    +yaml-tag:timestamp+ ->date-string)
-     ))
+(define sequence-node? (value-pred yaml-sequence-node? list-of-node?))
+(define mapping-node? (value-pred yaml-mapping-node? list-of-pair?))
+(define pairs-node?
+  (value-pred yaml-sequence-node? list-of-single-valued-mapping?))
+(define omap-node? pairs-node?)
 
+(define +json-compat-yaml-builders+
+  `(
+    ,(single-entry yaml-scalar-node? +yaml-tag:null+ (lambda (_) 'null))
+    ,(single-entry yaml-scalar-node? +yaml-tag:str+ values)
+    ,(single-entry yaml-scalar-node? +yaml-tag:str+ values)
+    ,(single-entry yaml-scalar-node? +yaml-tag:binary+ ->binary)
+    ,(single-entry (regexp-pred yaml-scalar-node? +yaml-regexp:bool+)
+		   +yaml-tag:bool+ ->bool)
+    ,(single-entry (regexp-pred yaml-scalar-node? +yaml-regexp:int+)
+		   +yaml-tag:int+ ->int)
+    ,(single-entry (regexp-pred yaml-scalar-node? +yaml-regexp:float+)
+		   +yaml-tag:float+ ->float)
+    ,(single-entry (regexp-pred yaml-scalar-node? +yaml-regexp:timestamp+)
+		   +yaml-tag:timestamp+ ->date-string)
+    ,(entry sequence-node? +yaml-tag:seq+ ->sequence)
+    ,(entry mapping-node? +yaml-tag:map+ ->mapping)
+    ,(entry pairs-node? +yaml-tag:pairs+ ->pairs)
+    ,(entry omap-node? +yaml-tag:omap+ ->pairs) ;; lazy
+    ,(entry mapping-node? +yaml-tag:set+ ->set)
+    ))
+
+(define +default-yaml-builders+ +json-compat-yaml-builders+)
 (define +scheme-object-yaml-builders+
   (replace-yaml-builder-entry +default-yaml-builders+
     (single-entry (regexp-pred yaml-scalar-node? +yaml-regexp:timestamp+)

@@ -11,6 +11,11 @@
 (define (->yaml sexp . builders)
   (apply yaml->sexp (canonical-sexp->yaml-node sexp) builders))
 
+(test-equal 'null (->yaml `(,+yaml-tag:null+ . "")))
+(test-equal 'null (->yaml `(,+yaml-tag:null+ . "null")))
+;; value doesn't matter on null tag
+(test-equal 'null (->yaml `(,+yaml-tag:null+ . "string")))
+
 (test-equal "string" (->yaml `(,+yaml-tag:str+ . "string")))
 
 (test-equal #vu8(1 2 3 4)
@@ -86,5 +91,54 @@
 		"2001-12-15 02:59:43.1+01:00")
 (test-yaml-date (make-date 100000000 43 59 2 15 12 2001 (* -5 3600))
 		"2001-12-15 02:59:43.1 -5")
+
+(test-equal '(-inf.0 "str")
+	    (->yaml `#(,+yaml-tag:seq+
+		       (,+yaml-tag:float+ . "-.Inf")
+		       (,+yaml-tag:str+ . "str"))))
+
+(test-equal '#(("key" . "value")
+	       ("key" . "value"))
+	    (->yaml `(,+yaml-tag:map+
+		      ((,+yaml-tag:str+ . "key") (,+yaml-tag:str+ . "value"))
+		      ((,+yaml-tag:str+ . "key") (,+yaml-tag:str+ . "value")))))
+
+(test-equal '#(("key" "value1" "value2"))
+	    (->yaml `(,+yaml-tag:map+
+		      ((,+yaml-tag:str+ . "key")
+		       #(,+yaml-tag:seq+
+			 (,+yaml-tag:str+ . "value1")
+			 (,+yaml-tag:str+ . "value2"))))))
+
+(test-equal '#(
+	       #("meeting" "with team")
+	       #("meeting" "with boss")
+	       )
+	    (->yaml `#(,+yaml-tag:pairs+
+		       (,+yaml-tag:map+
+			((,+yaml-tag:str+ . "meeting")
+			 (,+yaml-tag:str+ . "with team")))
+		       (,+yaml-tag:map+
+			((,+yaml-tag:str+ . "meeting")
+			 (,+yaml-tag:str+ . "with boss"))))))
+
+(test-equal '#(
+	       #("meeting" "with team")
+	       #("meeting" "with boss")
+	       )
+	    (->yaml `#(,+yaml-tag:omap+
+		       (,+yaml-tag:map+
+			((,+yaml-tag:str+ . "meeting")
+			 (,+yaml-tag:str+ . "with team")))
+		       (,+yaml-tag:map+
+			((,+yaml-tag:str+ . "meeting")
+			 (,+yaml-tag:str+ . "with boss"))))))
+
+(test-equal '("One" "Two" "Three")
+	    (->yaml `(,+yaml-tag:set+
+		      ((,+yaml-tag:str+ . "One") (,+yaml-tag:null+ . ""))
+		      ((,+yaml-tag:str+ . "Two") (,+yaml-tag:null+ . ""))
+		      ((,+yaml-tag:str+ . "Three") (,+yaml-tag:null+ . ""))
+		      ((,+yaml-tag:str+ . "One") (,+yaml-tag:null+ . "")))))
 
 (test-end)

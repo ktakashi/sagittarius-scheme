@@ -219,10 +219,13 @@
 	       (r '() (cons (canonical-sexp->yaml-node (vector-ref e i)) r)))
 	      ((= i len) (reverse r)))))
 	((mapping? e)
-	 (make-yaml-mapping-node
-	  (car e)
-	  (map (lambda (kv) (cons (canonical-sexp->yaml-node (car kv))
-				  (canonical-sexp->yaml-node (cadr kv))))
+	 (make-yaml-mapping-node (car e)
+	  (map (lambda (kv)
+		 (unless (scalar? (car kv))
+		   (assertion-violation 'canonical-sexp->yaml-node
+					"Mapping key must be a scalar" e))
+		 (cons (canonical-sexp->yaml-node (car kv))
+		       (canonical-sexp->yaml-node (cadr kv))))
 	       (cdr e))))
 	(else (assertion-violation 'canonical-sexp->yaml-node
 				   "Unknown structure of SEXP" e))))
