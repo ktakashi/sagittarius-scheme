@@ -16,6 +16,7 @@
        (define acc (record-accessor rtd (find-index 'n fields)))
        ...
        ;; (begin (write (list 'n v (acc o))) (newline)) ...
+       ;; (begin (display 'rt) (write o) (newline))
        (test-assert '(msg predicate) (pred o))
        (test-equal '(msg n v) v (acc o)) ...))
     ((_ "collect" msg rt o ((n v acc) ...) ((slot val) rest ...))
@@ -225,4 +226,34 @@
 	      (<scalar-token>)
 	      (<block-end-token>)
 	      (<block-end-token>))
+
+(test-scanner "
+- &alias1 1
+- &alias2 2
+- << : [ *alias1, *alias2 ]
+  r: 10"
+	      (<block-sequence-start-token>)
+	      (<block-entry-token>)
+	      (<anchor-token> (value "alias1"))
+	      (<scalar-token> (value "1"))
+	      (<block-entry-token>)
+	      (<anchor-token> (value "alias2"))
+	      (<scalar-token> (value "2"))
+	      (<block-entry-token>)
+	      (<block-mapping-start-token>)
+	      (<key-token>)
+	      (<scalar-token> (value "<<"))
+	      (<value-token>)
+	      (<flow-sequence-start-token>)
+	      (<alias-token> (value "alias1"))
+	      (<flow-entry-token>)
+	      (<alias-token> (value "alias2"))
+	      (<flow-sequence-end-token>)
+	      (<key-token>)
+	      (<scalar-token> (value "r"))
+	      (<value-token>)
+	      (<scalar-token> (value "10"))
+	      (<block-end-token>))
+	      
+	      
 (test-end)

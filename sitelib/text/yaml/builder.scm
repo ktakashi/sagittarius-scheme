@@ -40,6 +40,7 @@
 	    (text yaml conditions)
 	    (text yaml nodes)
 	    (text yaml tags)
+	    (text yaml tokens)
 	    (rfc base64)
 	    (srfi :1 lists)
 	    (srfi :13 strings)
@@ -47,6 +48,22 @@
 	    (srfi :19 time)
 	    (srfi :115 regexp))
 
+(define-condition-type &yaml-builder &yaml
+  make-yaml-builder-error yaml-builder-error?
+  (when yaml-builder-error-when)
+  (node yaml-builder-error-node))
+(define (yaml-builder-error node when message . irr)
+  (raise (apply condition
+		(filter-map values
+			    (list
+			     (make-yaml-builder-error when node)
+			     (and (yaml-node-start-mark node)
+				  (yaml-scanner-mark->condition
+				   (yaml-node-start-mark node)))
+			     (make-who-condition 'yaml->sexp)
+			     (make-message-condition message)
+			     (and (not (null? irr))
+				  (make-irritants-condition irr)))))))
 (define yaml->sexp
   (case-lambda
    ((node) (yaml->sexp node +default-yaml-builders+))
@@ -67,21 +84,17 @@
       (and (pred node) (string=? expected-tag tag))))
   (let ((builder (find find-builder builders)))
     (unless builder
-      (raise (condition
-	      (make-yaml-error)
-	      (make-who-condition 'yaml->sexp)
-	      (make-message-condition
-	       "The node/tag is not supported with the given set of builders")
-	      (make-irritants-condition node))))
+      (yaml-builder-error node "While searching for a builder"
+       "The node/tag is not supported with the given set of builders"
+       (yaml-node-tag node)))
     ((cddr builder) node
      (lambda (next-node)
        (when (eq? next-node node)
-	 (assertion-violation 'yaml->sexp
-			      "Recursive building of the node" node))
+	 (error 'yaml->sexp "[Internal] Recursive building of the node" node))
        (cond ((hashtable-ref constructed-objects next-node #f))
 	     (else
 	      (let ((r (build-sexp next-node builders constructed-objects)))
-		(hashtable-set! constructed-objects r r)
+		(hashtable-set! constructed-objects next-node r)
 		r)))))))
 
 ;;; Builders
@@ -112,13 +125,15 @@
   (let-values (((neg n) (strip-sign v)))
     (let ((i (case (string-ref n 0)
 	       ((#\0)
-		(case (string-ref n 1)
-		  ((#\b) (handle-binary (substring n 2 (string-length n))))
-		  ((#\x) (handle-hex (substring n 2 (string-length n))))
-		  (else
-		   (if (> (string-length n) 1)
-		       (handle-octet (substring n 1 (string-length n)))
-		       (handle-decimal n)))))
+		(if (= (string-length n) 1)
+		    0
+		    (case (string-ref n 1)
+		      ((#\b) (handle-binary (substring n 2 (string-length n))))
+		      ((#\x) (handle-hex (substring n 2 (string-length n))))
+		      (else
+		       (if (> (string-length n) 1)
+			   (handle-octet (substring n 1 (string-length n)))
+			   (handle-decimal n))))))
 	       (else
 		(if (string-index n #\:)
 		    (handle-sexagesimal n)
@@ -232,14 +247,42 @@
 ;; (node builder) -> list
 (define (->sequence seq builder) (map builder (yaml-node-value seq)))
 ;; (node builder) -> vector
-(define (->mapping mapping builder)
-  (list->vector (map (lambda (k&v)
-		       (cons (builder (car k&v)) (builder (cdr k&v))))
-		     (yaml-node-value mapping))))
+(define (generic-mapping mapping key-builder value-builder)
+  (define (flatten-mapping value)
+    (define (handle-merge k v acc)
+      (cond ((yaml-mapping-node? v) (append (flatten-mapping v) acc))
+	    ((yaml-sequence-node? v)
+	     (append (append-map (lambda (v)
+				   (unless (yaml-mapping-node? v)
+				     (yaml-builder-error v
+				      "While building a mapping"
+				      "Expected a mapping for merging"))
+				   (flatten-mapping v))
+				 (yaml-node-value v))
+		     acc))
+	    (else
+	     (yaml-builder-error v
+	      "While building a mapping"
+	      "Expected a mapping or list of mappings for merging"))))
+    (fold-right (lambda (k&v acc)
+		  (let ((k (car k&v))
+			(v (cdr k&v)))
+		    (if (string=? (yaml-node-tag k) +yaml-tag:merge+)
+			(handle-merge k v acc)
+			(cons (cons k v) acc))))
+		'() (yaml-node-value value)))
+  
+  (let ((value (flatten-mapping mapping)))
+    (list->vector
+     (delete-duplicates!
+      (map (lambda (k&v)
+	     (cons (key-builder (car k&v)) (value-builder (cdr k&v)))) value)
+      (lambda (x y) (equal? (car x) (car y)))))))
 
+(define (->mapping mapping builder) (generic-mapping mapping builder builder))
 (define (->set mapping builder)
-  (delete-duplicates! (map (lambda (k&v) (builder (car k&v)))
-			   (yaml-node-value mapping))))
+  (generic-mapping mapping builder (lambda (_) 'null)))
+
 ;; 
 (define (->pairs pairs builder)
   (list->vector (map (lambda (m)

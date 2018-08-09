@@ -147,7 +147,7 @@
 ;; entry point
 (define (port->yaml-scanner-generator in)
   ;; info
-  (define line 0)
+  (define line 1)
   (define column 0)
   (define position 0)
   ;; buffer
@@ -657,7 +657,8 @@
     (let ((start-mark (get-mark))
 	  (name (if (eqv? #\* (consume in)) "alias" "anchor")))
       (let ((value (read-while in +directive-name-set+)))
-	(unless (and value (yaml-delimitor? (peek in)))
+	(unless (and value (or (yaml-delimitor? (peek in))
+			       (eqv? #\, (peek in))))
 	  (scanner-error (string-append "While scanning an " name)
 			 "Expected alphanumeric character"
 			 (get-mark)

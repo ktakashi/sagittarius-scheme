@@ -187,7 +187,9 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
 			      "Unknown block"
 			      block))))
   (let ((node (make-node block tag)))
-    (when anchor (hashtable-set! (*anchors*) anchor node))
+    (when anchor
+      (hashtable-set! (*anchors*) (anchor-token-value anchor)
+		      (cons anchor node)))
     node))
 
 (define (build-directives d*)

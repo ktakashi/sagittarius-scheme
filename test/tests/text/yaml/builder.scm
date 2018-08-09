@@ -2,6 +2,7 @@
 	(text yaml builder)
 	(text yaml nodes)
 	(text yaml tags)
+	(text yaml parser)
 	(rfc base64)
 	(srfi :19)
 	(srfi :64))
@@ -22,14 +23,14 @@
 	    (->yaml `(,+yaml-tag:binary+
 		      . ,(utf8->string (base64-encode #vu8(1 2 3 4))))))
 
-(test-equal #t (->yaml `(,+yaml-tag:bool+ . "y")))
+;; (test-equal #t (->yaml `(,+yaml-tag:bool+ . "y")))
 (test-equal #t (->yaml `(,+yaml-tag:bool+ . "yes")))
 (test-equal #t (->yaml `(,+yaml-tag:bool+ . "Yes")))
 (test-equal #t (->yaml `(,+yaml-tag:bool+ . "true")))
 (test-equal #t (->yaml `(,+yaml-tag:bool+ . "True")))
 (test-equal #t (->yaml `(,+yaml-tag:bool+ . "On")))
 (test-equal #t (->yaml `(,+yaml-tag:bool+ . "on")))
-(test-equal #f (->yaml `(,+yaml-tag:bool+ . "n")))
+;; (test-equal #f (->yaml `(,+yaml-tag:bool+ . "n")))
 (test-equal #f (->yaml `(,+yaml-tag:bool+ . "no")))
 (test-equal #f (->yaml `(,+yaml-tag:bool+ . "No")))
 (test-equal #f (->yaml `(,+yaml-tag:bool+ . "false")))
@@ -98,9 +99,10 @@
 		       (,+yaml-tag:str+ . "str"))))
 
 (test-equal '#(("key" . "value")
-	       ("key" . "value"))
+	       ("key2" . "value"))
 	    (->yaml `(,+yaml-tag:map+
 		      ((,+yaml-tag:str+ . "key") (,+yaml-tag:str+ . "value"))
+		      ((,+yaml-tag:str+ . "key2") (,+yaml-tag:str+ . "value"))
 		      ((,+yaml-tag:str+ . "key") (,+yaml-tag:str+ . "value")))))
 
 (test-equal '#(("key" "value1" "value2"))
@@ -134,11 +136,24 @@
 			((,+yaml-tag:str+ . "meeting")
 			 (,+yaml-tag:str+ . "with boss"))))))
 
-(test-equal '("One" "Two" "Three")
+(test-equal '#(("One" . null) ("Two" . null) ("Three" . null))
 	    (->yaml `(,+yaml-tag:set+
 		      ((,+yaml-tag:str+ . "One") (,+yaml-tag:null+ . ""))
 		      ((,+yaml-tag:str+ . "Two") (,+yaml-tag:null+ . ""))
 		      ((,+yaml-tag:str+ . "Three") (,+yaml-tag:null+ . ""))
 		      ((,+yaml-tag:str+ . "One") (,+yaml-tag:null+ . "")))))
 
+(define (test-yaml/input sexp str)
+  (test-equal sexp
+	      (car (map yaml->sexp (parse-yaml (open-string-input-port str))))))
+
+;; This test relay on the implementation since mapping doesn't
+;; necessarily preserve order
+(test-yaml/input '(#(("one" . 1))
+		   #(("two" . null))
+		   #(("one" . 1) ("two" . 2) ("r" . 10)))
+		 "- &alias1 { one: 1 }\n\
+                  - &alias2 !!set { two: 2 }\n\
+                  - << : [ *alias1, *alias2 ]\n  \
+                    r: 10")
 (test-end)

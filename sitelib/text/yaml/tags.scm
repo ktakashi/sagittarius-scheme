@@ -81,7 +81,7 @@
 
 (define-constant +yaml-regexp:bool+
   '(: bos
-      (or "y" "Y" "yes" "Yes" "YES" "n" "N" "no" "No" "NO"
+      (or "yes" "Yes" "YES" "no" "No" "NO"
 	  "true" "True" "TRUE" "false" "False" "FALSE"
 	  "on" "On" "ON" "off" "Off" "OFF")
       eol))
