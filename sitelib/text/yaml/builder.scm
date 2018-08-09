@@ -331,7 +331,7 @@
   `(
     ,(single-entry yaml-scalar-node? +yaml-tag:null+ (lambda (_) 'null))
     ,(single-entry yaml-scalar-node? +yaml-tag:str+ values)
-    ,(single-entry yaml-scalar-node? +yaml-tag:str+ values)
+    ,(single-entry yaml-scalar-node? +yaml-tag:value+ values)
     ,(single-entry yaml-scalar-node? +yaml-tag:binary+ ->binary)
     ,(single-entry (regexp-pred yaml-scalar-node? +yaml-regexp:bool+)
 		   +yaml-tag:bool+ ->bool)

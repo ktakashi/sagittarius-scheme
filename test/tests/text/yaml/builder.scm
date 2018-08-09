@@ -18,6 +18,7 @@
 (test-equal 'null (->yaml `(,+yaml-tag:null+ . "string")))
 
 (test-equal "string" (->yaml `(,+yaml-tag:str+ . "string")))
+(test-equal "=" (->yaml `(,+yaml-tag:value+ . "=")))
 
 (test-equal #vu8(1 2 3 4)
 	    (->yaml `(,+yaml-tag:binary+
