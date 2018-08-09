@@ -30,7 +30,11 @@
 
 #!nounbound
 (library (text yaml builder)
-    (export yaml->sexp)
+    (export yaml->sexp
+	    +default-yaml-builders+
+	    +scheme-object-yaml-builders+
+	    ;; for testing
+	    date->yaml-canonical-date)
     (import (rnrs)
 	    (text yaml conditions)
 	    (text yaml nodes)
@@ -134,13 +138,22 @@
     (values (string->number (substring ymd 0 4))
 	    (string->number (substring ymd 5 7))
 	    (string->number (substring ymd 8 10))))
+  (define (fraction->nanosecond v)
+    (* (case (string-length v)
+	 ((0) 0) ;; error?
+	 ((1) (* (string->number v) 100))
+	 ((2) (* (string->number v) 10))
+	 ((3) (string->number v))
+	 (else ;; we truncate to millis
+	  (string->number (substring v 0 3))))
+       1000000))
   (define (parse-fraction&offset f&o?)
     (cond ((zero? (string-length f&o?)) (values 0 0))
 	  ((string-index f&o? #\Z) =>
-	   (lambda (i) (values (string->number (substring f&o? 0 i)) 0)))
+	   (lambda (i) (values (fraction->nanosecond (substring f&o? 0 i)) 0)))
 	  ((string-index f&o? (char-set #\- #\+)) =>
 	   (lambda (i)
-	     (let ((f (string->number (substring f&o? 0 i)))
+	     (let ((f (fraction->nanosecond (substring f&o? 0 i)))
 		   (neg (eqv? (string-ref f&o? i) #\-))
 		   (h&m (substring f&o? (+ i 1) (string-length f&o?))))
 	       (let-values (((h m)
@@ -169,6 +182,11 @@
 				 (values (substring rest hms-i i)
 					 (substring rest (+ i 1)
 						    (string-length rest)))))
+			      ((string-index rest (char-set #\Z #\+ #\-)) =>
+			       (lambda (i)
+				 (values (substring rest hms-i i)
+					 (substring rest i
+						    (string-length rest)))))
 			      (else (values (substring rest hms-i
 						       (string-length rest))
 					    ""))))))
@@ -181,7 +199,26 @@
 							     char-set:digit))))
 		       ((y M d) (parse-ymd ymd)))
 	    (make-date fraction s m h d M y offset))))))
-    
+(define (date->yaml-canonical-date d)
+  (define (->iso-zone offset)
+    (define o (abs offset))
+    (let* ((h (div o 3600))
+	   (m (- o (* h 3600))))
+      (string-append (if (negative? offset) "-" "+")
+		     (number->string h)
+		     ":"
+		     (number->string m))))
+  (let ((iso-time (date->string d "~5"))
+	(milli (div (date-nanosecond d) 1000000))
+	(offset (date-zone-offset d)))
+    (string-append iso-time
+		   (if (zero? milli)
+		       ""
+		       (string-append "." (number->string milli)))
+		   (if (zero? offset)
+		       "Z"
+		       (->iso-zone offset)))))
+(define (->date-string v) (date->yaml-canonical-date (->date v)))
 
 (define (entry pred tag builder) (cons* pred tag builder))
 (define (single-valued p) (lambda (node builders) (p (yaml-node-value node))))
@@ -193,10 +230,13 @@
 	 (regexp-matches re (yaml-node-value node)))))
 
 (define (add-yaml-builder-entry base entry) (append base (list entry)))
+(define (replace-yaml-builder-entry base entry)
+  (let* ((tag (cadr entry))
+	 (l (remp (lambda (e) (string=? tag (cadr e))) base)))
+    (append l (list entry))))
 
 (define +default-yaml-builders+
-  (add-yaml-builder-entry
-   `(
+  `(
      ,(single-entry yaml-scalar-node? +yaml-tag:str+ values)
      ,(single-entry yaml-scalar-node? +yaml-tag:binary+ ->binary)
      ,(single-entry (regexp-pred yaml-scalar-node? +yaml-regexp:bool+)
@@ -205,8 +245,13 @@
 		    +yaml-tag:int+ ->int)
      ,(single-entry (regexp-pred yaml-scalar-node? +yaml-regexp:float+)
 		    +yaml-tag:float+ ->float)
-     )
-   (single-entry (regexp-pred yaml-scalar-node? +yaml-regexp:timestamp+)
-		 +yaml-tag:timestamp+ ->date)))
+     ,(single-entry (regexp-pred yaml-scalar-node? +yaml-regexp:timestamp+)
+		    +yaml-tag:timestamp+ ->date-string)
+     ))
+
+(define +scheme-object-yaml-builders+
+  (replace-yaml-builder-entry +default-yaml-builders+
+    (single-entry (regexp-pred yaml-scalar-node? +yaml-regexp:timestamp+)
+		  +yaml-tag:timestamp+ ->date)))
 
 )

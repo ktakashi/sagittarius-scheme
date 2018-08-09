@@ -8,7 +8,8 @@
 
 (test-begin "YAML builder")
 
-(define (->yaml sexp) (yaml->sexp (canonical-sexp->yaml-node sexp)))
+(define (->yaml sexp . builders)
+  (apply yaml->sexp (canonical-sexp->yaml-node sexp) builders))
 
 (test-equal "string" (->yaml `(,+yaml-tag:str+ . "string")))
 
@@ -66,22 +67,24 @@
 (test-equal -inf.0 (->yaml `(,+yaml-tag:float+ . "-.Inf")))
 
 (define (date=? d1 d2) (time=? (date->time-utc d1) (date->time-utc d2)))
-(test-assert (date=? (make-date 0 0 0 0 14 12 2002 0)
-		     (->yaml `(,+yaml-tag:timestamp+ . "2002-12-14"))))
-(test-assert (date=? (make-date 1 43 59 2 15 12 2001 0)
-		     (->yaml `(,+yaml-tag:timestamp+ . "2001-12-15T02:59:43.1Z"))))
-(test-assert
- (date=? (make-date 1 43 59 2 15 12 2001 3600)
-	 (->yaml `(,+yaml-tag:timestamp+ . "2001-12-15T02:59:43.1+01:00"))))
-(test-assert
- (date=? (make-date 1 43 59 2 15 12 2001 3600)
-	 (->yaml `(,+yaml-tag:timestamp+ . "2001-12-15t02:59:43.1+01:00"))))
-(test-assert
- (date=? (make-date 1 43 59 2 15 12 2001 3600)
-	 (->yaml `(,+yaml-tag:timestamp+ . "2001-12-15 02:59:43.1+01:00"))))
-(test-assert
- (date=? (make-date 1 43 59 2 15 12 2001 (* -5 3600))
-	 (->yaml `(,+yaml-tag:timestamp+ . "2001-12-15 02:59:43.1 -5"))))
+(define (test-yaml-date d str)
+  (let ((s (->yaml `(,+yaml-tag:timestamp+ . ,str))))
+    (test-equal (date->yaml-canonical-date d)  s)
+    (test-assert (date=? d (->yaml `(,+yaml-tag:timestamp+ . ,s)
+				   +scheme-object-yaml-builders+))))
+  (test-assert (date=? d (->yaml `(,+yaml-tag:timestamp+ . ,str)
+				 +scheme-object-yaml-builders+))))
 
+(test-yaml-date (make-date 0 0 0 0 14 12 2002 0) "2002-12-14")
+(test-yaml-date (make-date 100000000 43 59 2 15 12 2001 0)
+		"2001-12-15T02:59:43.1Z")
+(test-yaml-date (make-date 100000000 43 59 2 15 12 2001 3600)
+		"2001-12-15T02:59:43.1+01:00")
+(test-yaml-date (make-date 100000000 43 59 2 15 12 2001 3600)
+		"2001-12-15t02:59:43.1+01:00")
+(test-yaml-date (make-date 100000000 43 59 2 15 12 2001 3600)
+		"2001-12-15 02:59:43.1+01:00")
+(test-yaml-date (make-date 100000000 43 59 2 15 12 2001 (* -5 3600))
+		"2001-12-15 02:59:43.1 -5")
 
 (test-end)
