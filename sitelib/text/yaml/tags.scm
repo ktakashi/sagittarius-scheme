@@ -105,7 +105,7 @@
        (: (? ("-+")) "0" (+ ("_76543210")))
        (: (? ("-+")) (or #\0 (: (/ "19") (* ("_9876543210")))))))
 (define-constant +yaml-regexp:null+
-  '(or #\~ (: "null") (: "Null") (: "NULL") (:)))
+  '(: bos (or #\~ (: "null") (: "Null") (: "NULL") (:)) eol))
 (define-constant +yaml-regexp:timestamp+
   '(or (: (= 4 (/ "09")) "-"  (** 1 2(/ "09")) "-" (** 1 2(/ "09"))
 	  (or ("tT") (+ (" \t")))
