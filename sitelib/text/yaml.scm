@@ -30,7 +30,7 @@
 
 #!nounbound
 (library (text yaml)
-    (export read-yaml
+    (export yaml-read
 	    +default-yaml-builders+
 	    +json-compat-yaml-builders+
 	    +scheme-object-yaml-builders+)
@@ -38,9 +38,9 @@
 	    (text yaml parser)
 	    (text yaml builder))
 
-(define (read-yaml in . builder)
+(define (yaml-read in . builder)
   (let ((yaml (parse-yaml in)))
     (map (lambda (y) (apply yaml->sexp y builder)) yaml)))
 
-;; TODO add write-yaml
+;; TODO add yaml-write
 )

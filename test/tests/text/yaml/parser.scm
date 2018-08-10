@@ -5,7 +5,7 @@
 	(srfi :39)
 	(srfi :64))
 
-(test-begin "YAML")
+(test-begin "YAML parser")
 
 (define (test-yaml-parser expected input)
   (test-equal input expected
