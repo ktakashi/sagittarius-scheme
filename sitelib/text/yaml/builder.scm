@@ -225,6 +225,7 @@
 							     char-set:digit))))
 		       ((y M d) (parse-ymd ymd)))
 	    (make-date fraction s m h d M y offset))))))
+;; TODO move it somewhere
 (define (date->yaml-canonical-date d)
   (define (->iso-zone offset)
     (define o (abs offset))
