@@ -33,14 +33,25 @@
     (export yaml-read
 	    +default-yaml-builders+
 	    +json-compat-yaml-builders+
-	    +scheme-object-yaml-builders+)
+	    +scheme-object-yaml-builders+
+
+	    yaml-write
+	    +default-yaml-serializers+
+	    +json-compat-yaml-serializers+
+	    +scheme-object-yaml-serializers+
+	    )
     (import (rnrs)
 	    (text yaml parser)
-	    (text yaml builder))
+	    (text yaml builder)
+	    (text yaml writer))
 
 (define (yaml-read in . builder)
   (let ((yaml (parse-yaml in)))
     (map (lambda (y) (apply yaml->sexp y builder)) yaml)))
 
-;; TODO add yaml-write
+(define yaml-write
+  (case-lambda
+   ((yaml) (emit-yaml (current-output-port) yaml))
+   ((yaml out) (emit-yaml out yaml))
+   ((yaml out serializers) (emit-yaml out yaml serializers))))
 )

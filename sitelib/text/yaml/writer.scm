@@ -32,7 +32,7 @@
 (library (text yaml writer)
     (export emit-yaml
 	    +default-yaml-serializers+
-	    +json-yaml-serializers+
+	    +json-compat-yaml-serializers+
 	    +scheme-object-yaml-serializers+
 	    )
     (import (rnrs)
@@ -86,13 +86,15 @@
       (append-map
        (lambda (k&v)
 	 (define key (convert-key (car k&v)))
-	 (let-values (((value container?) (convert-value (cdr k&v))))
-	   (if container?
-	       (cons (string-append (car key) ": ")
-		     (map (lambda (e)
-			    (string-append (emit-indent (+ indent 2)) e))
-			  value))
-	       (list (string-append (car key) ": " (car value))))))
+	 (if (eq? 'null (cdr k&v)) ;; a bit of cheat
+	     (list (string-append "? " (car key)))
+	     (let-values (((value container?) (convert-value (cdr k&v))))
+	       (if container?
+		   (cons (string-append (car key) ": ")
+			 (map (lambda (e)
+				(string-append (emit-indent (+ indent 2)) e))
+			      value))
+		   (list (string-append (car key) ": " (car value)))))))
        (vector->list mapping))))
 (define (hashtable-mapping-emitter mapping indent serializers)
   (let-values (((keys values) (hashtable-entries mapping)))
@@ -167,7 +169,7 @@
   (let ((r (remp (lambda (s) (eq? (car s) id)) base)))
     (add-yaml-serializer r id serializer)))
 
-(define +json-yaml-serializers+
+(define +json-compat-yaml-serializers+
   `(
     (mapping . ,(serializer-entry #t vector? mapping-emitter))
     (sequence . ,(serializer-entry #t list? sequence-emitter))
@@ -176,7 +178,7 @@
     (boolean . ,(simple-entry boolean? boolean-emitter))
     (null . ,(simple-entry (lambda (v) (eq? 'null v)) null-emitter))
     ))
-(define +default-yaml-serializers+ +json-yaml-serializers+)
+(define +default-yaml-serializers+ +json-compat-yaml-serializers+)
 
 (define +scheme-object-yaml-serializers+
   (add-yaml-serializer
