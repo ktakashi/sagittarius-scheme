@@ -286,10 +286,10 @@
   (list->vector (generic-mapping mapping builder (lambda (_) 'null))))
 
 (define (->pairs pairs builder)
-  (list->vector (map (lambda (m)
-		       (let ((v (car (yaml-node-value m))))
-			 (vector (builder (car v)) (builder (cdr v)))))
-		     (yaml-node-value pairs))))
+  (map (lambda (m)
+	 (let ((v (car (yaml-node-value m))))
+	   (list (builder (car v)) (builder (cdr v)))))
+       (yaml-node-value pairs)))
 
 (define (list-of-node? v)
   (and (list? v) (for-all yaml-node? v)))

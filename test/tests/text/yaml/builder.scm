@@ -113,10 +113,10 @@
 			 (,+yaml-tag:str+ . "value1")
 			 (,+yaml-tag:str+ . "value2"))))))
 
-(test-equal '#(
-	       #("meeting" "with team")
-	       #("meeting" "with boss")
-	       )
+(test-equal '(
+	      ("meeting" "with team")
+	      ("meeting" "with boss")
+	      )
 	    (->yaml `#(,+yaml-tag:pairs+
 		       (,+yaml-tag:map+
 			((,+yaml-tag:str+ . "meeting")
@@ -125,10 +125,10 @@
 			((,+yaml-tag:str+ . "meeting")
 			 (,+yaml-tag:str+ . "with boss"))))))
 
-(test-equal '#(
-	       #("meeting" "with team")
-	       #("meeting" "with boss")
-	       )
+(test-equal '(
+	      ("meeting" "with team")
+	      ("meeting" "with boss")
+	      )
 	    (->yaml `#(,+yaml-tag:omap+
 		       (,+yaml-tag:map+
 			((,+yaml-tag:str+ . "meeting")
