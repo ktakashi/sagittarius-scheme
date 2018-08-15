@@ -157,4 +157,7 @@
                   - &alias2 !!set { two: 2 }\n\
                   - << : [ *alias1, *alias2 ]\n  \
                     r: 10")
+
+(test-yaml/input '1.0 "!!float 1")
+
 (test-end)

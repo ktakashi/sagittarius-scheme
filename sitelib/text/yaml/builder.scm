@@ -155,7 +155,7 @@
 			     (frac (substring ln i (string-length ln))))
 			(+ (parse-sexagesimal int) (string->number frac))))
 		     (else (string->number ln)))))
-      (if neg (- v) v))))
+      (inexact (if neg (- v) v)))))
 
 (define +time-separators-set+ (char-set #\space #\tab #\T #\t))
 (define (->date v)
@@ -328,6 +328,12 @@
   (value-pred yaml-sequence-node? list-of-single-valued-mapping?))
 (define omap-node? pairs-node?)
 
+;; explicit tag should allow float without fraction
+(define float-value
+  `(or ,+yaml-regexp:float+
+       ;; integer 10 base
+       (: (? ("-+")) (or #\0 (: (/ "19") (* ("_9876543210")))))))
+
 (define +json-compat-yaml-builders+
   `(
     ,(single-entry yaml-scalar-node? +yaml-tag:null+ (lambda (_) 'null))
@@ -338,7 +344,7 @@
 		   +yaml-tag:bool+ ->bool)
     ,(single-entry (regexp-pred yaml-scalar-node? +yaml-regexp:int+)
 		   +yaml-tag:int+ ->int)
-    ,(single-entry (regexp-pred yaml-scalar-node? +yaml-regexp:float+)
+    ,(single-entry (regexp-pred yaml-scalar-node? float-value)
 		   +yaml-tag:float+ ->float)
     ,(single-entry (regexp-pred yaml-scalar-node? +yaml-regexp:timestamp+)
 		   +yaml-tag:timestamp+ ->date-string)
