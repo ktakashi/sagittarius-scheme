@@ -260,7 +260,10 @@
 	(list-queue-add-back! tokens token)
 	(let loop ((i 0) (prev #f) (curr (list-queue-list tokens)))
 	  (cond ((null? curr)
-		 (error 'yaml-scanner "[Internal error] Invalid index" i))
+		 (scanner-error "[Internal error]"
+				"Invalid index"
+				(yaml-token-start-mark token)
+				i index))
 		((= i index)
 		 (if prev
 		     (set-cdr! prev (cons token curr))
@@ -1165,7 +1168,7 @@
     (if (list-queue-empty? tokens)
 	(eof-object)
 	(begin
-	  (set! tokens-taken (+ tokens-taken))
+	  (set! tokens-taken (+ tokens-taken 1))
 	  (list-queue-remove-front! tokens))))
 
   ;; add the stream-start token
