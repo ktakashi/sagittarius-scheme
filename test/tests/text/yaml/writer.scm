@@ -34,4 +34,26 @@ foo: !!omap
   - {it: updates, in: real-time}
 ")
 
+(test-read/write "%YAML 1.2
+---
+? - foo
+  - boo
+: - bar
+  - - buz
+    - bla
+")
+
+(test-read/write "%YAML 1.2
+---
+foo: &key [ foo, bar ]
+bar: &value [ bar, buz ]
+*key : *value
+")
+
+(test-read/write "%YAML 1.2
+---
+foo: &key [ foo, bar ]
+*key : bar
+")
+
 (test-end)

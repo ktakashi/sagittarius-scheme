@@ -115,41 +115,63 @@
 ;; -> key:
 ;;    - a ... (sequence, indent + 0)
 (define (mapping-emitter  mapping indent serializers)
-  (define (convert-key key)
-    (let ((key-s (search-serializer serializers key)))
-      (when (container-serializer? key-s)
-	(error 'emit-yaml "Mapping key must be a simple value" key))
-      ((serializer-emitter key-s) key indent serializers)))
-  (define (convert-value value)
+  (define (convert value)
     (let ((value-s (search-serializer serializers value)))
       (values ((serializer-emitter value-s) value indent serializers)
 	      (container-serializer? value-s))))
+  (define (emit klabel kref? key key-container?
+		vlabel vref? value value-container?)
+    (define (multi-lines v prefix indent)
+      (let ((len (string-length prefix)))
+	(pair-fold-right
+	 (lambda (p acc)
+	   (cons (string-append (if (eq? p v)
+				    prefix
+				    (emit-indent (+ indent len)))
+				(car p)) acc)) '() v)))
+    (define (->vlabel vlabel vref?)
+      (cond ((and vref? vlabel) (string-append ": *" vlabel))
+	    (vlabel (string-append ": &" vlabel))
+	    (else ": ")))
+    (define (->key kref? klabel key vlabel)
+      (cond ((and kref? klabel) (string-append "*" klabel " " vlabel))
+	    (klabel (string-append "&" klabel " " (car key) vlabel))
+	    (else (string-append (car key) vlabel))))
+    ;; we don't support key with &label here
+    (cond (key-container?
+	   `(,@(multi-lines key "? " indent)
+	     ,@(multi-lines value (->vlabel vlabel vref?) indent)))
+	  (value-container?
+	   `(,(->key kref? klabel key (->vlabel vlabel vref?))
+	     ,@(multi-lines value "" indent)))
+	  (else
+	   (list (string-append
+		  (->key kref? klabel key (->vlabel vlabel vref?))
+		  (car value))))))
+
+  (define (->label label ref?)
+    (if label (string-append (if ref? "*" "&") label) ""))
+  
   (if (zero? (vector-length mapping))
       '("{}")
       (append-map
        (lambda (k&v)
 	 (define key-entry (car k&v))
 	 (define value-entry (cdr k&v))
-	 (define key (convert-key key-entry))
-	 (if (eq? 'null (cdr k&v)) ;; a bit of cheat
-	     (list (string-append "? " (car key)))
-	     (let*-values (((label ref?) (yaml-writer-get-label value-entry)))
-	       (let ((l (if label (string-append (if ref? "*" "&") label) "")))
-		 (if ref?
-		     (list (string-append (car key) ": " l))
-		     (let-values (((value container?)
-				   (convert-value value-entry)))
-		       (if container?
-			   (cons (string-append (car key) ": " l)
-				 (map (lambda (e)
-					(string-append
-					 (emit-indent (+ indent 2)) e))
-				      value))
-			   (list (string-append (car key) ": "
-						(if (string-null? l)
-						    ""
-						    (string-append l " "))
-						(car value))))))))))
+	 (let-values (((klabel kref?) (yaml-writer-get-label key-entry))
+		      ((vlabel vref?) (yaml-writer-get-label value-entry)))
+	   ;; handle special case here
+	   (if (and kref? vref?)
+	       (list (string-append "*" klabel " : *" vlabel))
+	       (let-values (((key key-container?)
+			     (if kref? (values #f #f) (convert key-entry)))
+			    ((value value-container?)
+			     (if vref? (values #f #f) (convert value-entry))))
+		 ;; FIXME value conversion might be useless here
+		 (if (eq? 'null (cdr k&v))
+		     (emit klabel kref? key key-container? #f #f #f #f)
+		     (emit klabel kref? key key-container?
+			   vlabel vref? value value-container?))))))
        (vector->list mapping))))
 (define (hashtable-mapping-emitter mapping indent serializers)
   (let-values (((keys values) (hashtable-entries mapping)))

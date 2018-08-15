@@ -297,7 +297,7 @@
 (define (list-of-pair? v)
   (and (list? v) (for-all (lambda (k&v)
 			    (and (pair? k&v)
-				 (yaml-scalar-node? (car k&v))
+				 (yaml-node? (car k&v))
 				 (yaml-node? (cdr k&v)))) v)))
 (define (list-of-single-valued-mapping? v)
   (and (list? v) (for-all (lambda (m)

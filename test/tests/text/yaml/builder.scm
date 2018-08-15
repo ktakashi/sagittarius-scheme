@@ -160,4 +160,11 @@
 
 (test-yaml/input '1.0 "!!float 1")
 
+(test-yaml/input '#((("foo" "boo") . "bar")) "%YAML 1.2
+---
+? - foo
+  - boo
+: bar
+")
+
 (test-end)
