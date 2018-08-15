@@ -45,6 +45,7 @@
 	    float-serializer
 	    boolean-serializer
 	    null-serializer
+	    binary-serializer
 
 	    *yaml:share-string?*
 	    ;; for developer
@@ -53,6 +54,7 @@
     (import (rnrs)
 	    (text yaml builder)
 	    (text yaml tags)
+	    (rfc base64)
 	    (srfi :1 lists)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
@@ -200,9 +202,11 @@
 (define (number-emitter yaml) (list (number->string yaml)))
 (define (boolean-emitter yaml) (if yaml '("true") '("false")))
 (define (null-emitter yaml) '("~"))
-
 (define (date-emitter yaml) (date->yaml-canonical-date yaml))
-   
+(define (binary-emitter yaml)
+  (list (string-append "!!binary "
+		       (utf8->string (base64-encode yaml :line-width #f)))))
+
 (define (simple-emitter emitter)
   (lambda (yaml indent serializers) (emitter yaml)))
 
@@ -258,6 +262,8 @@
 (define float-serializer (simple-entry real? number-emitter))
 (define boolean-serializer (simple-entry boolean? boolean-emitter))
 (define null-serializer (simple-entry (lambda (v) (eq? 'null v)) null-emitter))
+(define binary-serializer (simple-entry bytevector? binary-emitter))
+
 (define +json-compat-yaml-serializers+
   `(
     (,+yaml-tag:map+ . ,mapping-serializer)
@@ -267,6 +273,7 @@
     (,+yaml-tag:float+ . ,float-serializer)
     (,+yaml-tag:bool+ . ,boolean-serializer)
     (,+yaml-tag:null+ . ,null-serializer)
+    (,+yaml-tag:binary+ . ,binary-serializer)
     ))
 (define +default-yaml-serializers+ +json-compat-yaml-serializers+)
 
