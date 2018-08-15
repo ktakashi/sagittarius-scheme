@@ -34,24 +34,65 @@
 	    +default-yaml-serializers+
 	    +json-compat-yaml-serializers+
 	    +scheme-object-yaml-serializers+
+
+	    add-yaml-serializer
+	    replace-yaml-serializer
+
+	    mapping-serializer
+	    sequence-serializer
+	    string-serializer
+	    int-serializer
+	    float-serializer
+	    boolean-serializer
+	    null-serializer
+
+	    *yaml:share-string?*
+	    ;; for developer
+	    yaml-writer-get-label
 	    )
     (import (rnrs)
 	    (text yaml builder)
+	    (text yaml tags)
 	    (srfi :1 lists)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
 	    (srfi :19 time)
+	    (srfi :39 parameters)
 	    (srfi :113 sets))
 
+;; external parameter
+(define *yaml:share-string?* (make-parameter #f))
+    
+(define *labels* (make-parameter #f))
+(define *label-generator* (make-parameter #f))
 (define emit-yaml 
   (case-lambda 
    ((out yaml) (emit-yaml out yaml +default-yaml-serializers+))
    ((out yaml serializers)
     (define (dump-structure l)
       (for-each (lambda (v) (put-char out #\newline) (put-string out v)) l))
+    (define label-generator
+      (let ((i 0))
+	(lambda ()
+	  (set! i (+ i 1))
+	  (string-append "label" (number->string i)))))
     (put-string out "---")
-    (dump-structure (serialize-yaml yaml 0 serializers))
+    (dump-structure
+     (parameterize ((*labels* (walk-yaml yaml serializers))
+		    (*label-generator* label-generator))
+       (serialize-yaml yaml 0 serializers)))
     (put-string out "\n...\n"))))
+
+(define (yaml-writer-get-label yaml)
+  (let ((labels (*labels*)))
+    (and labels
+	 (let ((label (hashtable-ref labels yaml #f)))
+	   (cond ((eqv? #t label)
+		  (let ((l ((*label-generator*))))
+		    (hashtable-set! labels yaml l)
+		    (values l #f)))
+		 (label (values label #t))
+		 (else (values #f #f)))))))
 
 (define (serialize-yaml yaml indent serializers)
   (let ((serializer (search-serializer serializers yaml)))
@@ -85,16 +126,28 @@
       '("{}")
       (append-map
        (lambda (k&v)
-	 (define key (convert-key (car k&v)))
+	 (define key-entry (car k&v))
+	 (define value-entry (cdr k&v))
+	 (define key (convert-key key-entry))
 	 (if (eq? 'null (cdr k&v)) ;; a bit of cheat
 	     (list (string-append "? " (car key)))
-	     (let-values (((value container?) (convert-value (cdr k&v))))
-	       (if container?
-		   (cons (string-append (car key) ": ")
-			 (map (lambda (e)
-				(string-append (emit-indent (+ indent 2)) e))
-			      value))
-		   (list (string-append (car key) ": " (car value)))))))
+	     (let*-values (((label ref?) (yaml-writer-get-label value-entry)))
+	       (let ((l (if label (string-append (if ref? "*" "&") label) "")))
+		 (if ref?
+		     (list (string-append (car key) ": " l))
+		     (let-values (((value container?)
+				   (convert-value value-entry)))
+		       (if container?
+			   (cons (string-append (car key) ": " l)
+				 (map (lambda (e)
+					(string-append
+					 (emit-indent (+ indent 2)) e))
+				      value))
+			   (list (string-append (car key) ": "
+						(if (string-null? l)
+						    ""
+						    (string-append l " "))
+						(car value))))))))))
        (vector->list mapping))))
 (define (hashtable-mapping-emitter mapping indent serializers)
   (let-values (((keys values) (hashtable-entries mapping)))
@@ -145,8 +198,7 @@
 	    yaml)))
 
 (define (number-emitter yaml) (list (number->string yaml)))
-(define (boolean-emitter yaml)
-  (if yaml '("true") '("false")))
+(define (boolean-emitter yaml) (if yaml '("true") '("false")))
 (define (null-emitter yaml) '("~"))
 
 (define (date-emitter yaml) (date->yaml-canonical-date yaml))
@@ -156,7 +208,8 @@
 
 ;; (id container? predicate . emitter)
 (define serializer-entry cons*)
-(define container-serializer? car)
+(define serializer-walker car)
+(define (container-serializer? s) (not (not (serializer-walker s))))
 (define serializer-predicate cadr)
 (define serializer-emitter cddr)
 
@@ -169,14 +222,51 @@
   (let ((r (remp (lambda (s) (eq? (car s) id)) base)))
     (add-yaml-serializer r id serializer)))
 
+(define (walk-yaml yaml serializers)
+  (define store (make-eq-hashtable))
+  (define (rec yaml serializers)
+    (define (store-it yaml)
+      (cond ((hashtable-contains? store yaml)
+	   ;; okay more than once
+	   (hashtable-set! store yaml #t))
+	  ;; first we need to create an entry
+	    (else (hashtable-set! store yaml #f))))
+    (cond ((and (string? yaml) (*yaml:share-string?*)) (store-it yaml))
+	  ((or (string? yaml) (symbol? yaml) (number? yaml)))
+	  (else (store-it yaml)))
+    (let* ((s (search-serializer serializers yaml))
+	   (walker (serializer-walker s)))
+      (when walker
+	(walker yaml
+		(lambda (next-yaml) (rec next-yaml serializers))))))
+  (rec yaml serializers)
+  store)
+
+(define (mapping-walker mapping next-walk)
+  (vector-for-each (lambda (k&v)
+		     (next-walk (car k&v))
+		     (next-walk (cdr k&v))) mapping))
+(define (sequence-walker sequence next-walk)
+  (for-each next-walk sequence))
+
+(define mapping-serializer
+  (serializer-entry mapping-walker vector? mapping-emitter))
+(define sequence-serializer
+  (serializer-entry sequence-walker list? sequence-emitter))
+(define string-serializer (simple-entry string? string-emitter))
+(define int-serializer (simple-entry integer? number-emitter))
+(define float-serializer (simple-entry real? number-emitter))
+(define boolean-serializer (simple-entry boolean? boolean-emitter))
+(define null-serializer (simple-entry (lambda (v) (eq? 'null v)) null-emitter))
 (define +json-compat-yaml-serializers+
   `(
-    (mapping . ,(serializer-entry #t vector? mapping-emitter))
-    (sequence . ,(serializer-entry #t list? sequence-emitter))
-    (string . ,(simple-entry string? string-emitter))
-    (number . ,(simple-entry number? number-emitter))
-    (boolean . ,(simple-entry boolean? boolean-emitter))
-    (null . ,(simple-entry (lambda (v) (eq? 'null v)) null-emitter))
+    (,+yaml-tag:map+ . ,mapping-serializer)
+    (,+yaml-tag:seq+ . ,sequence-serializer)
+    (,+yaml-tag:str+ . ,string-serializer)
+    (,+yaml-tag:int+ . ,int-serializer)
+    (,+yaml-tag:float+ . ,float-serializer)
+    (,+yaml-tag:bool+ . ,boolean-serializer)
+    (,+yaml-tag:null+ . ,null-serializer)
     ))
 (define +default-yaml-serializers+ +json-compat-yaml-serializers+)
 
@@ -186,9 +276,9 @@
     (replace-yaml-serializer
      (replace-yaml-serializer
       +default-yaml-serializers+
-      'mapping (serializer-entry #t hashtable? hashtable-mapping-emitter))
-     'sequence (serializer-entry #t vector? vector-sequence-emitter))
-    'set (serializer-entry #t set? set-emitter))
-  'timestamp (simple-entry date? date-emitter)))
+      +yaml-tag:map+ (serializer-entry #t hashtable? hashtable-mapping-emitter))
+     +yaml-tag:seq+ (serializer-entry #t vector? vector-sequence-emitter))
+    +yaml-tag:set+ (serializer-entry #t set? set-emitter))
+   +yaml-tag:timestamp+ (simple-entry date? date-emitter)))
 
 )
