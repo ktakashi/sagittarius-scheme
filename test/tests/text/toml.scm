@@ -51,6 +51,8 @@
 
 (test-toml-date `#(("date" . ,(make-local-date 0 59 59 12 1 1 2018)))
 		"date=2018-01-01T12:59:59.0")
+(test-toml-date `#(("date" . ,(make-local-date 0 59 59 12 1 1 2018)))
+		"date=2018-01-01 12:59:59.0")
 (test-toml-date `#(("date" . ,(make-date 0 59 59 12 1 1 2018 0)))
 		"date=2018-01-01T12:59:59.0Z")
 (test-toml-date `#(("date" . ,(make-date 0 59 59 12 1 1 2018 0)))
@@ -166,5 +168,11 @@
 		      ("variety"
 		       #(("name" . "plantain"))))))
 		"test/data/toml-test4.toml")
+
+(test-toml-file '#(("name" . "Orange")
+		   ("physical" . #(("color" . "orange")
+				   ("shape" . "round")))
+		   ("site" . #(("google.com"  . #t))))
+		"test/data/toml-test5.toml")
 
 (test-end)

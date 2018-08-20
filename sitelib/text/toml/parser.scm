@@ -32,6 +32,7 @@
 (library (text toml parser)
     (export *toml-version*
 	    +toml-version-0.4.0+
+	    +toml-version-0.5.0+
 	    &toml-parse-error make-toml-parse-error toml-parse-error?
 	    toml-parser
 
@@ -65,6 +66,7 @@
 
 (define *toml-version* (make-parameter +inf.0))
 (define-constant +toml-version-0.4.0+ 0.4)
+(define-constant +toml-version-0.5.0+ 0.5)
 
 ;; internal parameters
 (define *current-table* (make-parameter #f))
@@ -194,7 +196,13 @@
        ($return (list->string c*))))
 (define quoted-key ($or basic-string literal-string))
 (define keyval-sep ($seq ws ($eqv? #\=) ws))
-(define key ($or unquoted-key quoted-key))
+(define simple-key ($or unquoted-key quoted-key))
+(define dot-sep ($seq ws ($eqv? #\.)  ws))
+(define (dotted-key type)
+  ($do (k simple-key)
+       (k* ($many ($seq dot-sep simple-key) 1))
+       ($return (keys->table type k k*))))
+(define (key type) ($or (dotted-key type) simple-key))
 
 (define boolean
   ($or ($do (($token "true")) ($return #t))
@@ -289,7 +297,7 @@
 (define date-of-month 2digits)
 (define date-of-day 2digits)
 
-(define time-delim ($eqv? #\T))
+(define time-delim ($or ($eqv? #\T) ($eqv? #\space)))
 
 (define time-hour 2digits)
 (define time-minute 2digits)
@@ -381,7 +389,6 @@
 ;; Table
 (define std-table-open ($seq ($eqv? #\[) ws))
 (define std-table-close ($seq ($eqv? #\]) ws))
-(define table-key-sep ($seq ws ($eqv? #\.)  ws))
 
 (define (find-table otable k)
   (define table (if (vector? otable) otable (car (last-pair otable))))
@@ -428,7 +435,6 @@
 	     (*current-table* (cons type r))
 	     r))
 	  (else `#((,k . ,(apply rec table keys))))))
-
   (let* ((r (apply rec root-table k keys))
 	 (current? (eq? r root-table)))
     (when (or (not root-table) (not current?))
@@ -436,9 +442,9 @@
     (and (not current?) r)))
 
 (define std-table
-  ($do std-table-open
-       (k key)
-       (k* ($many ($do table-key-sep (k key) ($return k))))
+  ($do std-table-open 
+       (k simple-key)
+       (k* ($many ($seq dot-sep simple-key)))
        std-table-close
        ($return (keys->table 'standard k k*))))
 
@@ -447,15 +453,15 @@
 
 (define array-table
   ($do array-table-open
-       (k key)
-       (k* ($many ($do table-key-sep (k key) ($return k))))
+       (k simple-key)
+       (k* ($many ($seq dot-sep simple-key)))
        array-table-close
        ($return (keys->table 'array k k*))))
 
 ;; inlien table
 (define inline-table-sep ($seq ws ($eqv? #\,) ws))
 (define inline-table-keyvals-non-empty
-  ($do (k key)
+  ($do (k (key 'standard))
        keyval-sep
        (v val)
        (kv* ($optional
@@ -488,14 +494,23 @@
     (if (null? e)
 	e
 	(last-element e)))
-  (cond ((*current-table*) =>
+  (define (get-target-key k)
+    (define l (vector-length k))
+    (let ((v (vector-ref k (- l 1))))
+      (if (zero? (vector-length (cdr v)))
+	  v
+	  (get-target-key (cdr v)))))
+  (cond ((vector? k) ;; dotted key
+	 (set-cdr! (get-target-key k) v)
+	 k)
+	((*current-table*) =>
 	 (lambda (t)
 	   (let* ((type (car t))
 		  (store (vector-ref (cdr t) 0))
 		  (v* (maybe-last-element (cdr store))))
-	     (let ((v (if (null? v*)
-			  `#((,k . ,v))
-			  (vector-append v* `#((,k . ,v))))))
+	     (let ((v (cond ((not k) v) ;; dotted key
+			    ((null? v*) `#((,k . ,v)))
+			    (else (vector-append v* `#((,k . ,v)))))))
 	       (case type
 		 ((standard) (set-cdr! store v))
 		 ((array)
@@ -505,12 +520,12 @@
 			(cond ((null? h)) ;; error case should never happen
 			      ((eq? (cadr h) v*)
 			       (set-cdr! h (list v)))
-			      (else (loop (cdr h)))))))))
-	     #f)))
-	(else (cons k v))))
+			      (else (loop (cdr h))))))))
+	       #f))))
+	(else (vector (cons k v)))))
 
 (define keyval
-  ($do (k key)
+  ($do (k (key 'standard))
        keyval-sep
        (v val)
        ($return (resolve-table k v))))
@@ -518,7 +533,7 @@
 (define expression
   ($or ($do ws (t table) ws (($optional comment)) ($return t))
        ;; toplevel keyval is converted to table format
-       ($do ws (k keyval) ws (($optional comment)) ($return (and k (vector k))))
+       ($do ws (k keyval) ws (($optional comment)) ($return k))
        ($do ws (($optional comment)) ($return #f))))
 
 (define toml-parser
