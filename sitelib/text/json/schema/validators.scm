@@ -50,6 +50,10 @@
 	    json-schema:max-items
 	    json-schema:min-items
 	    json-schema:unique-items
+
+	    json-schema:max-properties
+	    json-schema:min-properties
+	    json-schema:required
 	    )
     (import (rnrs)
 	    (sagittarius regex)
@@ -206,7 +210,7 @@
 			 "maxProperties must be a non negative integer" n))
   (lambda (e) (and (vector? e) (<= (vector-length e) n))))
 ;; 6.5.2. minProperties
-(define (json-schema:max-properties n)
+(define (json-schema:min-properties n)
   (when (or (not (integer? n)) (negative? n))
     (assertion-violation 'json-schema:min-properties
 			 "minProperties must be a non negative integer" n))
@@ -219,7 +223,14 @@
   (lambda (e)
     (and (vector? e)
 	 ;; TODO inefficient
-	 (for-all (lambda (k) (vector-any (lambda (v) (string=? v k)) e)) e*))))
+	 (for-all (lambda (k)
+		    (vector-any
+		     (lambda (v)
+		       ;; not sure if we need to handle invalid JSON
+		       ;; structure...
+		       (and (pair? v) (string? (car v)) (string=? (car v) k)))
+		     e))
+		  e*))))
 ;; properties, patternProperties, additionalPropperties,
 ;; dependencies, propertyNames are handled on validator creation
 
@@ -252,12 +263,24 @@
     ("uniqueItems" ,json-schema:unique-items)
     ("contains" #t)
     ))
+(define +json-schema-object-validators+
+  `(
+    ("maxProperties" ,json-schema:max-properties)
+    ("minProperties" ,json-schema:min-properties)
+    ("required" ,json-schema:required)
+    ("properties" #t)
+    ("patternProperties" #t)
+    ("additionalPropperties" #t)
+    ("dependencies" #t)
+    ("propertyNames" #t)
+    ))
 (define +json-schema-validators+
   `(
     ,@+json-schema-any-instance-validators+
     ,@+json-schema-numeric-instance-validators+
     ,@+json-schema-string-validators+
     ,@+json-schema-array-validators+
+    ,@+json-schema-object-validators+
     ))
 
 (define +json-type-sub-validators+
@@ -266,5 +289,6 @@
     ("number" ,@+json-schema-numeric-instance-validators+)
     ("integer" ,@+json-schema-numeric-instance-validators+)
     ("array" ,@+json-schema-array-validators+)
+    ("object" ,@+json-schema-object-validators+)
     ))
 )

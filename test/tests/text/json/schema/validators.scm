@@ -129,4 +129,27 @@
   (test-validator (json-schema:unique-items #t) '(#t (1 2)) '(#f (1 1)))
   (test-validator (json-schema:unique-items #f) '(#t (1 2)) '(#t (1 1)))))
 
+(test-group "6.5. Validation Keywords for Objects"
+ (test-group "6.5.1. maxProperties"
+  (test-error assertion-violation? (json-schema:max-properties "s"))
+  (test-error assertion-violation? (json-schema:max-properties -1))
+  (test-error assertion-violation? (json-schema:max-properties 1.1))
+  (test-validator (json-schema:max-properties 2)
+		  '(#t #(("k" . "v") ("k2" . "v")))
+		  '(#f #(("k" . "v") ("k2" . "v") ("k3" . "v")))))
+ (test-group "6.5.2. minProperties"
+  (test-error assertion-violation? (json-schema:min-properties "s"))
+  (test-error assertion-violation? (json-schema:min-properties -1))
+  (test-error assertion-violation? (json-schema:min-properties 1.1))
+  (test-validator (json-schema:min-properties 3)
+		  '(#t #(("k" . "v") ("k2" . "v") ("k3" . "v")))
+		  '(#f #(("k" . "v") ("k2" . "v")))))
+ (test-group "6.5.3. required"
+  (test-error assertion-violation? (json-schema:required "s"))
+  (test-error assertion-violation? (json-schema:required '(1)))
+  (test-error assertion-violation? (json-schema:required '("s" "s")))
+  (test-validator (json-schema:required '("k" "k2"))
+		  '(#t #(("k" . "v") ("k2" . "v") ("k3" . "v")))
+		  '(#f #(("k3" . "v"))))))
+
 (test-end)
