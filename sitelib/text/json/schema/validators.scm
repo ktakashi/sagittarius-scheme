@@ -54,6 +54,9 @@
 	    json-schema:max-properties
 	    json-schema:min-properties
 	    json-schema:required
+
+	    +json-schema-validators+
+	    +json-schema-type-sub-validators+
 	    )
     (import (rnrs)
 	    (sagittarius regex)
@@ -256,23 +259,23 @@
     ))
 (define +json-schema-array-validators+
   `(
-    ("items" #t)
-    ("additionalItems" #t)
+    ("items" #f)
+    ("additionalItems" #f)
     ("maxItems" ,json-schema:max-items)
     ("minItems" ,json-schema:min-items)
     ("uniqueItems" ,json-schema:unique-items)
-    ("contains" #t)
+    ("contains" #f)
     ))
 (define +json-schema-object-validators+
   `(
     ("maxProperties" ,json-schema:max-properties)
     ("minProperties" ,json-schema:min-properties)
     ("required" ,json-schema:required)
-    ("properties" #t)
-    ("patternProperties" #t)
-    ("additionalPropperties" #t)
-    ("dependencies" #t)
-    ("propertyNames" #t)
+    ("properties" #f)
+    ("patternProperties" #f)
+    ("additionalPropperties" #f)
+    ("dependencies" #f)
+    ("propertyNames" #f)
     ))
 (define +json-schema-validators+
   `(
@@ -283,7 +286,7 @@
     ,@+json-schema-object-validators+
     ))
 
-(define +json-type-sub-validators+
+(define +json-schema-type-sub-validators+
   `(
     ("string" ,@+json-schema-string-validators+)
     ("number" ,@+json-schema-numeric-instance-validators+)
