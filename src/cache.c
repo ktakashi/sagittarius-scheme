@@ -450,6 +450,7 @@ static int write_cache(SgObject name, SgCodeBuilder *cb, SgPort *out, int index)
   write_cache_pass2(out, cb, closures, &ctx);
   SG_FOR_EACH(closure, SG_CDR(Sg_Reverse(closures))) {
     SgObject slot = SG_CAR(closure);
+    /* Sg_Printf(Sg_StandardErrorPort(), UC("closures: %S\n"), slot); */
     Sg_PutbUnsafe(out, CLOSURE_TAG);
     write_cache_pass2(out, SG_CODE_BUILDER(SG_CAR(slot)), closures, &ctx);
   }
@@ -504,7 +505,9 @@ static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
   } else {
     Sg_HashTableSet(ctx->sharedObjects, obj, SG_FALSE, 0);
   }
-  if (SG_PAIRP(obj)) {
+  if (SG_STRINGP(obj) || SG_SYMBOLP(obj) || SG_KEYWORDP(obj)) {
+    return cbs;
+  } else if (SG_PAIRP(obj)) {
     cbs = write_cache_scan(SG_CAR(obj), cbs, ctx);
     /* should we? */
 #ifdef STORE_SOURCE_INFO
@@ -519,7 +522,7 @@ static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
     }
   } else if (SG_CLOSUREP(obj)) {
     if (SG_FALSEP(Sg_Assq(SG_CLOSURE(obj)->code, cbs))) {
-      cbs = Sg_Acons(SG_CLOSURE(obj)->code, SG_MAKE_INT(ctx->index), cbs);
+      cbs = Sg_Acons(SG_CLOSURE(obj)->code, SG_MAKE_INT(ctx->index++), cbs);
       cbs = write_cache_pass1(SG_CLOSURE(obj)->code, cbs, NULL, ctx);
     }
   } else if (SG_IDENTIFIERP(obj)) {
@@ -1221,7 +1224,36 @@ static int read_word(SgPort *in, int tag_type, read_ctx *ctx)
   return (int)read_word_rec(in, tag_type, EMIT_SIZE, ctx);
 }
 
-static SgObject link_cb(SgObject cb, read_ctx *ctx)
+static SgObject link_cb_rec(SgObject cb, SgHashTable *seen, read_ctx *ctx);
+static void link_container(SgObject obj, SgHashTable *seen, read_ctx *ctx)
+{
+  if (SG_TRUEP(Sg_HashTableRef(seen, obj, SG_FALSE))) return;
+  
+  Sg_HashTableSet(seen, obj, SG_TRUE, 0);
+  if (SG_PAIRP(obj)) {
+    if (SG_CLOSUREP(SG_CAR(obj))) {
+      link_cb_rec(SG_CLOSURE(SG_CAR(obj))->code, seen, ctx);
+    } else {
+      link_container(SG_CAR(obj), seen, ctx);
+    }
+    if (SG_CLOSUREP(SG_CDR(obj))) {
+      link_cb_rec(SG_CLOSURE(SG_CDR(obj))->code, seen, ctx);
+    } else {
+      link_container(SG_CDR(obj), seen, ctx);
+    }
+  }
+  if (SG_VECTORP(obj)) {
+    int len = SG_VECTOR_SIZE(obj), i;
+    for (i = 0; i < len; i++) {
+      if (SG_CLOSUREP(SG_VECTOR_ELEMENT(obj, i))) {
+	link_cb_rec(SG_VECTOR_ELEMENT(obj, i), seen, ctx);
+      } else {
+	link_container(SG_VECTOR_ELEMENT(obj, i), seen, ctx);
+      }
+    }
+  }
+}
+static SgObject link_cb_rec(SgObject cb, SgHashTable *seen, read_ctx *ctx)
 {
   SgWord *code;
   int len, i, j;
@@ -1243,13 +1275,22 @@ static SgObject link_cb(SgObject cb, read_ctx *ctx)
 	    ESCAPE(ctx, "linking code builder failed. %A", new_cb);
 	  }
 	  code[i+j+1] = SG_WORD(new_cb);
-	  link_cb(new_cb, ctx);
+	  link_cb_rec(new_cb, seen, ctx);
+	} else if (SG_PAIRP(o) || SG_VECTORP(o)) {
+	  link_container(o, seen, ctx);
 	}
       }
     }
     i += 1 + info->argc;
   }
-  return cb;
+  return cb;  
+}
+
+static SgObject link_cb(SgObject cb, read_ctx *ctx)
+{
+  SgHashTable seen;
+  Sg_InitHashTableSimple(&seen, SG_HASH_EQ, 128);
+  return link_cb_rec(cb, &seen, ctx);
 }
 
 static SgObject read_toplevel(SgPort *in, int boundary, read_ctx *ctx)
@@ -1573,12 +1614,16 @@ static SgObject read_macro(SgPort *in, read_ctx *ctx)
 }
 
 
-static SgSharedRef* make_shared_ref(int mark)
+static SgSharedRef* make_shared_ref(int mark, read_ctx *ctx)
 {
-  SgSharedRef *z = SG_NEW(SgSharedRef);
-  SG_SET_CLASS(z, SG_CLASS_SHARED_REF);
-  z->index = SG_MAKE_INT(mark);
-  return z;
+  SgObject o = Sg_HashTableRef(ctx->seen, SG_MAKE_INT(mark), SG_UNBOUND);
+  if (SG_UNBOUNDP(o)) {
+    SgSharedRef *z = SG_NEW(SgSharedRef);
+    SG_SET_CLASS(z, SG_CLASS_SHARED_REF);
+    z->index = SG_MAKE_INT(mark);
+    return z;
+  }
+  return o;
 }
 
 static SgObject read_lookup(SgPort *in, read_ctx *ctx)
@@ -1594,7 +1639,7 @@ static SgObject read_lookup(SgPort *in, read_ctx *ctx)
 #endif
   if (SG_UNBOUNDP(o)) {
     ctx->isLinkNeeded = TRUE;
-    return make_shared_ref(uid);
+    return make_shared_ref(uid, ctx);
   } else {
     return o;
   }
@@ -1618,6 +1663,7 @@ static SgObject read_closure(SgPort *in, read_ctx *ctx)
     uid = read_shared_tag(in, ctx);
     break;
   }
+
   cb = read_code(in, ctx);
   if (uid >= 0) {
     Sg_HashTableSet(ctx->sharedObjects, SG_MAKE_INT(uid), cb, 0);
@@ -1752,7 +1798,7 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
     int index;
     /* discards tag  */
     index = read_word(in, MARK_TAG, ctx);
-    return make_shared_ref(index);
+    return make_shared_ref(index, ctx);
   }
   case IMMEDIATE_TAG:
     return read_immediate(in, ctx);
