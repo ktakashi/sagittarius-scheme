@@ -33,7 +33,13 @@
 ;; TODO: follow the final version when published
 #!nounbound
 (library (text json schema validators)
-    (export json-schema:type
+    (export json-schema->json-validator
+	    json-schema-validator?
+	    json-schema-validator-id json-schema-validator-schema
+	    json-schema-validator-source
+
+	    ;; simple validators
+	    json-schema:type
 	    json-schema:enum
 	    json-schema:const
 
@@ -55,13 +61,66 @@
 	    json-schema:min-properties
 	    json-schema:required
 
-	    +json-schema-validators+
-	    +json-schema-type-sub-validators+
+	    ;; schema aware validators
+	    json-schema:properties
+	    
 	    )
     (import (rnrs)
+	    (text json validator)
+	    (text json pointer)
+	    (text json parse) ;; for *json-map-type*
+	    (text json convert)
 	    (sagittarius regex)
 	    (srfi :1 lists)
 	    (srfi :133 vectors))
+
+(define-record-type json-schema-validator
+  (parent <json-validator>)
+  (fields source ;; RAW sexp JSON (vector)
+	  schema ;; $schema
+	  id	 ;; $id
+	  ))
+
+(define (key=? key) (lambda (e) (and (pair? e) (string=? (car e) key) e)))
+(define value-of
+  (case-lambda
+   ((key schema) (value-of key schema #f))
+   ((key schema default)
+    (cond ((vector-any (key=? key) schema) => cdr)
+	  (else default)))))
+
+(define +json-schema-uri+  "http://json-schema.org/schema#")
+(define (json-schema->json-validator schema)
+  (define (convert schema)
+    (let ((r (alist-json->vector-json schema)))
+      (unless (vector? r)
+	(assertion-violation 'json-schema->json-validator
+			     "JSON object is required" schema))
+      r))
+  (if (vector? schema)
+      (let (($schema (value-of "$schema" schema +json-schema-uri+))
+	    ($id (value-of "$id" schema)))
+	(make-json-schema-validator (->json-validator schema)
+				    schema $schema $id))
+      (json-schema->json-validator (convert schema))))
+
+;; internal
+(define (->json-validator schema)
+  (vector-fold
+   (lambda (combined-validator e)
+     ;; TODO consider schema version
+     (cond ((assoc (car e) +json-schema-validators+) =>
+	    (lambda (slot)
+	      (cond ((cadr slot) =>
+		     (lambda (g)
+		       (let ((validator (g schema (cdr e))))
+			 (lambda (e)
+			   (and (combined-validator e) (validator e))))))
+		    ;; for unknown property we ignore
+		    (else combined-validator))))
+	   (else combined-validator)))
+   (lambda (e) #t) schema))
+
 ;; utilities
 (define unique?
   (case-lambda
@@ -234,46 +293,143 @@
 		       (and (pair? v) (string? (car v)) (string=? (car v) k)))
 		     e))
 		  e*))))
-;; properties, patternProperties, additionalPropperties,
-;; dependencies, propertyNames are handled on validator creation
+
+;; 6.5.4. properties
+;; 6.5.5. patternProperties
+;; 6.5.6. additionalProperties
+;; we handle properties and patternProperties simultaneously this may
+;; results the same validator twice, but it's okay since both
+;; validator returns the same result (only performance penalty)
+(define (json-schema:properties schema value)
+  ;; we don't know which one it is so retrieve it again
+  (define properties (value-of "properties" schema (eof-object)))
+  (define pattern-properties (value-of "patternProperties" schema (eof-object)))
+  (define additional-properties (value-of "additionalProperties" schema #t))
+
+  (define (->validator schema)
+    (if (boolean? schema)
+	(boolean->validator schema)
+	(->json-validator schema)))
+
+  (define (object->validator obj regex?)
+    (define (check vec key=? validator)
+      (define len (vector-length vec))
+      (let loop ((i 0) (found? #f) (ok? #t))
+	(cond ((= i len) (and found? ok?))
+	      ((key=? (vector-ref vec i)) =>
+	       (lambda (k&v) (loop (+ i 1) #t (validator (cdr k&v)))))
+	      (else (loop (+ i 1) found? ok?)))))
+    (define (->key=? reg)
+      (define rx (regex reg))
+      (lambda (e) (and (matches rx (car e)) e)))
+    (cond ((eof-object? obj)
+	   (values '() (boolean->validator #t))) ;; always #t
+	  ((boolean? obj)
+	   (values '() (boolean->validator obj)))
+	  (else
+	   (let ((k=?&v (vector-map
+			 (lambda (e)
+			   (cons (if regex? (->key=? (car e)) (key=? (car e)))
+				 (cdr e))) obj)))
+	     (values
+	      (vector-fold (lambda (acc e) (cons (car e) acc)) '() k=?&v)
+	      (vector-fold (lambda (combined k&v)
+			     (let ((validator (->validator (cdr k&v)))
+				   (key=? (car k&v)))
+			       (lambda (e)
+				 ;; first this, to check vector or not
+				 (and (combined e)
+				      (check e key=? validator)))))
+			   (lambda (e) (vector? e))
+			   k=?&v))))))
+  (define (wrap props pprops validator)
+    (define pred
+      (lambda (e)
+	(and (not (exists (lambda (key=?) (key=? e)) props))
+	     (not (exists (lambda (key=?) (key=? e)) pprops))
+	     (cdr e))))
+    (lambda (e)
+      (define len (vector-length e))
+      (let loop ((i 0) (ok? #f) (found? #f))
+	(cond ((= i len) (or (not found?) ok?))
+	      ((pred (vector-ref e i)) =>
+	       (lambda (v) (loop (+ i 1) (validator v) #t)))
+	      (else (loop (+ i 1) ok? found?))))))
+
+  (let-values (((props validator) (object->validator properties #f))
+	       ((pprops pvalidator) (object->validator pattern-properties #t)))
+    (let ((additional-validator (wrap props pprops
+				      (->validator additional-properties))))
+      (lambda (e)
+	(and (vector? e)
+	     (validator e)
+	     (pvalidator e)
+	     (additional-validator e))))))
+;; 6.5.7. dependencies
+
+;; 6.5.8. propertyNames
+
+;;; 6.6. Keywords for Applying Subschemas Conditionally
+
+;;; 6.7. Keywords for Applying Subschemas With Boolean Logic
+
+;;; 7. Semantic Validation With "format"
+
+
+(define (boolean->validator b) (if b (lambda (_) #t) (lambda (_) #f)))
+(define (type-wrap type? validator)
+  (lambda (e) (or (not (type? e)) (validator e))))
+;; simple wrap 
+(define (s/w simple-validator-generator)
+  (lambda (schema v) (simple-validator-generator v)))
+;; type check
+(define (t/w type? simple-validator-generator)
+  (lambda (schema v) (type-wrap type? (simple-validator-generator v))))
+;; JSON schema of true/false is {} or { "not": {} }
+(define (a/w type? schema-validator-generator)
+  (lambda (schema v)
+    (type-wrap type? 
+	       (if (boolean? v)
+		   (boolean->validator v)
+		   (schema-validator-generator schema v)))))
 
 (define +json-schema-any-instance-validators+
   `(
-    ("type" ,json-schema:type)
-    ("enum" ,json-schema:enum)
-    ("const" ,json-schema:const)
+    ("type" ,(s/w json-schema:type))
+    ("enum" ,(s/w json-schema:enum))
+    ("const" ,(s/w json-schema:const))
     ))
 (define +json-schema-numeric-instance-validators+
   `(
-    ("multipleOf" ,json-schema:multiple-of)
-    ("maximum" ,json-schema:maximum)
-    ("exclusiveMaximum" ,json-schema:exclusive-maximum)
-    ("minimum" ,json-schema:minimum)
-    ("exclusiveMinimum" ,json-schema:exclusive-minimum)
+    ("multipleOf" ,(t/w real? json-schema:multiple-of))
+    ("maximum" ,(t/w real?  json-schema:maximum))
+    ("exclusiveMaximum" ,(t/w real? json-schema:exclusive-maximum))
+    ("minimum" ,(t/w real?  json-schema:minimum))
+    ("exclusiveMinimum" ,(t/w real? json-schema:exclusive-minimum))
     ))
 (define +json-schema-string-validators+
   `(
-    ("maxLength" ,json-schema:max-length)
-    ("minLength" ,json-schema:min-length)
-    ("pattern" ,json-schema:pattern)
+    ("maxLength" ,(t/w string? json-schema:max-length))
+    ("minLength" ,(t/w string? json-schema:min-length))
+    ("pattern" ,(t/w string? json-schema:pattern))
     ))
 (define +json-schema-array-validators+
   `(
     ("items" #f)
     ("additionalItems" #f)
-    ("maxItems" ,json-schema:max-items)
-    ("minItems" ,json-schema:min-items)
-    ("uniqueItems" ,json-schema:unique-items)
+    ("maxItems" ,(t/w list? json-schema:max-items))
+    ("minItems" ,(t/w list? json-schema:min-items))
+    ("uniqueItems" ,(t/w list? json-schema:unique-items))
     ("contains" #f)
     ))
 (define +json-schema-object-validators+
   `(
-    ("maxProperties" ,json-schema:max-properties)
-    ("minProperties" ,json-schema:min-properties)
-    ("required" ,json-schema:required)
-    ("properties" #f)
-    ("patternProperties" #f)
-    ("additionalPropperties" #f)
+    ("maxProperties" ,(t/w vector? json-schema:max-properties))
+    ("minProperties" ,(t/w vector? json-schema:min-properties))
+    ("required" ,(t/w vector? json-schema:required))
+    ("properties" ,(a/w vector? json-schema:properties))
+    ("patternProperties" ,(a/w vector? json-schema:properties))
+    ("additionalProperties" ,(a/w vector? json-schema:properties))
     ("dependencies" #f)
     ("propertyNames" #f)
     ))
@@ -284,14 +440,5 @@
     ,@+json-schema-string-validators+
     ,@+json-schema-array-validators+
     ,@+json-schema-object-validators+
-    ))
-
-(define +json-schema-type-sub-validators+
-  `(
-    ("string" ,@+json-schema-string-validators+)
-    ("number" ,@+json-schema-numeric-instance-validators+)
-    ("integer" ,@+json-schema-numeric-instance-validators+)
-    ("array" ,@+json-schema-array-validators+)
-    ("object" ,@+json-schema-object-validators+)
     ))
 )

@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
-;;; text/json/schema.scm - JSON schema
+;;; text/json/validator.scm - JSON validator framework
 ;;;  
 ;;;   Copyright (c) 2018  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -28,13 +28,18 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-;; reference:
-;; Draft-7: http://json-schema.org/
-;; TODO: follow the final version when published
-#!nounbound
-(library (text json schema)
-    (export json-schema->json-validator json-schema-validator?
-	    json-schema-validator-id json-schema-validator-schema
-	    json-schema-validator-source)
-    ;; TODO add hyperlink and so
-    (import (text json schema validators)))
+;; JSON has a lot of validation machanism (e.g. JSON schama)
+;; this library abstract a bit
+(library (text json validator)
+    (export (rename (json-validator <json-validator>))
+	    make-json-validator json-validator?
+
+	    validate-json)
+    (import (rnrs))
+
+(define-record-type json-validator
+  (fields validator))
+
+(define (validate-json json-validator json)
+  ((json-validator-validator json-validator) json))
+)
