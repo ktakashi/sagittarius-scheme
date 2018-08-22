@@ -150,6 +150,37 @@
   (test-error assertion-violation? (json-schema:required '("s" "s")))
   (test-validator (json-schema:required '("k" "k2"))
 		  '(#t #(("k" . "v") ("k2" . "v") ("k3" . "v")))
-		  '(#f #(("k3" . "v"))))))
+		  '(#f #(("k3" . "v")))))
+
+ (test-group "6.5.4. properties"
+  (test-validator (json-schema:properties 
+		   '#(("properties" . #(("name" . #(("type" . "string")))))
+		      ("patternProperties" .
+		       #(("f.*" . #(("type" . "integer")))))
+		      ("additionalProperties" . #f))
+		   'dummy)
+		  '(#t #(("name" . "v") ("foo" . 1)))
+		  '(#t #(("name" . "v") ("name" . "v2") ("foo" . 1)))
+		  '(#t #(("name" . "v") ("foo" . 1) ("fff" . 1)))
+		  '(#f #(("name" . "v") ("foo" . "v")))
+		  '(#f #(("name" . 1) ("foo" . 1)))
+		  '(#f #(("name" . "v") ("foo" . 1) ("dummy" . 1))))
+  (test-validator (json-schema:properties 
+		   '#(("properties" . #(("name" . #(("type" . "string")))))
+		      ("patternProperties" .
+		       #(("f.*" . #(("type" . "integer")))))
+		      ("additionalProperties" . #t))
+		   'dummy)
+		  '(#t #(("name" . "v") ("foo" . 1) ("dummy" . 1))))
+  (test-validator (json-schema:properties 
+		   '#(("properties" . #(("name" . #(("type" . "string")))))
+		      ("patternProperties" .
+		       #(("f.*" . #(("type" . "integer")))))
+		      ("additionalProperties" . #(("type" . "integer"))))
+		   'dummy)
+		  '(#t #(("name" . "v") ("foo" . 1) ("dummy" . 1)))
+		  '(#f #(("name" . "v") ("foo" . 1) ("dummy" . #t)))))
+
+)
 
 (test-end)
