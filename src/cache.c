@@ -1257,6 +1257,7 @@ static SgObject link_cb_rec(SgObject cb, SgHashTable *seen, read_ctx *ctx)
 {
   SgWord *code;
   int len, i, j;
+
   ASSERT(SG_CODE_BUILDERP(cb));
   code = SG_CODE_BUILDER(cb)->code;
   len = SG_CODE_BUILDER(cb)->size;
@@ -1278,6 +1279,8 @@ static SgObject link_cb_rec(SgObject cb, SgHashTable *seen, read_ctx *ctx)
 	  link_cb_rec(new_cb, seen, ctx);
 	} else if (SG_PAIRP(o) || SG_VECTORP(o)) {
 	  link_container(o, seen, ctx);
+	} else if (SG_CLOSUREP(o)) {
+	  link_cb_rec(SG_CLOSURE(o)->code, seen, ctx);
 	}
       }
     }
