@@ -108,7 +108,7 @@
  (test-group "6.3.3. pattern"
   (test-error assertion-violation? (json-schema:pattern 1))
   (test-error assertion-violation? (json-schema:pattern "[]"))
-  (test-validator (json-schema:pattern "\\d\\w")
+  (test-validator (json-schema:pattern "^\\d\\w$")
 		  '(#t "1a") '(#f "aa") '(#f "1aa"))))
 
 (test-group "6.4. Validation Keywords for Arrays"
@@ -179,7 +179,13 @@
 		      ("additionalProperties" . #(("type" . "integer"))))
 		   'dummy)
 		  '(#t #(("name" . "v") ("foo" . 1) ("dummy" . 1)))
-		  '(#f #(("name" . "v") ("foo" . 1) ("dummy" . #t)))))
+		  '(#f #(("name" . "v") ("foo" . 1) ("dummy" . #t))))
+  (test-validator (json-schema:properties 
+		   '#(("patternProperties" .
+		       #(("^f" . #(("type" . "integer"))))))
+		   'dummy)
+		  '(#t #(("foo" . 1)))
+		  '(#f #(("foo" . "s")))))
 
   (test-group "6.5.5. dependencies"
    (test-error assertion-violation? (json-schema:dependencies "s"))

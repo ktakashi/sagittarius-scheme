@@ -239,7 +239,7 @@
 				  "Invalid regex pattern" p)))
     (let ((rx (regex p)))
       (lambda (e)
-	(and (string? e) (matches rx e) #t)))))
+	(and (string? e) (looking-at rx e) #t)))))
 
 ;;; 6.4. Validation Keywords for Arrays
 ;; items, additionalItems, and contains are handled on validator creation
@@ -322,7 +322,7 @@
 	      (else (loop (+ i 1) found? ok?)))))
     (define (->key=? reg)
       (define rx (regex reg))
-      (lambda (e) (and (matches rx (car e)) e)))
+      (lambda (e) (and (looking-at rx (car e)) e)))
     (cond ((eof-object? obj)
 	   (values '() (boolean->validator #t))) ;; always #t
 	  ((boolean? obj)
