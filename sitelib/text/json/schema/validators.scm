@@ -72,6 +72,8 @@
 	    (text json parse) ;; for *json-map-type*
 	    (text json convert)
 	    (sagittarius regex)
+	    (sagittarius control)
+	    (rfc uri)
 	    (srfi :1 lists)
 	    (srfi :133 vectors))
 
@@ -99,21 +101,101 @@
 			     "JSON object is required" schema))
       r))
   (if (vector? schema)
-      (let (($schema (value-of "$schema" schema +json-schema-uri+))
-	    ($id (value-of "$id" schema)))
+      (let* (($schema (value-of "$schema" schema +json-schema-uri+))
+	     ($id (value-of "$id" schema))
+	     (schema (resolve-$ref $id schema)))
 	(make-json-schema-validator (->json-validator schema)
 				    schema $schema $id))
       (json-schema->json-validator (convert schema))))
 
 ;; internal
+;; The $ref resolution takes the following 2 passes:
+;;   1. collect and merge all $id's
+;;   2. resolve $ref (incl. removing other properties)
+;; The first pass collects and stores the absolute id of the target
+;; JSON object which contains the id.
+;; The second pass resolves the '$ref's as either JSON pointer or
+;; absolute id.
+;;
+;; NOTE: 
+;; The specification is rather vague for $id and $ref, especially
+;; merging URI. For example, 2 of the online validator behave
+;; differently. We only merge URI to root id, iff it has hostname, and
+;; if there's an $id with hostname, we treat it as if it's just an
+;; absolute URI.
+;;
+;; NOTE 2:
+;; An absolute URI in this case is an URI containing scheme.
+;;
+;; FIXME: This followes the tree twice 
+(define (resolve-$ref root-id schema)
+  (define (parse-id id)
+    (if id
+	(let*-values (((scheme specific) (uri-scheme&specific id))
+		      ((auth path query frag)
+		       (uri-decompose-hierarchical specific)))
+	  (values scheme auth path query frag))
+	(values #f #f #f #f #f)))
+  (define-values (root-scheme root-auth root-path root-query root-frag)
+    (parse-id root-id))
+  ;; absolute id storage
+  (define ids (make-hashtable string-hash string=?))
+  (define (merge-id id)
+    (let-values (((scheme auth path query frag) (parse-id id)))
+      (if (or scheme (not root-scheme))
+	  id
+	  (uri-compose :scheme root-scheme :authority root-auth :path path
+		       :query query :fragment frag))))
+  (define (collect-ids object)
+    (define (collect-id parent-object e)
+      (cond ((string=? (car e) "$id")
+	     (unless (string? (cdr e))
+	       (assertion-violation 'json-schema->json-validator
+				    "$id must be a string" e))
+	     (unless (string=? (cdr e) root-id)
+	       (hashtable-set! ids (merge-id (cdr e)) parent-object)))
+	    ((vector? (cdr e)) (collect-ids (cdr e)))))
+    (vector-for-each (lambda (e) (collect-id object e)) object))
+  (define (handle-$ref e)
+    (define (refer-absolute id maybe-external?)
+      (or (hashtable-ref ids id)
+	  (hashtable-ref ids (string-append id "#"))
+	  ;; TODO handle external
+	  (assertion-violation 'json-schema->json-validator
+			       "Unknown $ref" id)))
+    (cond ((string=? "$ref" (car e))
+	   (let-values (((scheme auth path query frag) (parse-id (cdr e))))
+	     (cond (scheme (refer-absolute (cdr e) #t))
+		   (query
+		    (let ((obj (refer-absolute (merge-id query) #f)))
+		      (if frag
+			  ((json-pointer frag) obj)
+			  obj)))
+		   (frag ((json-pointer frag) schema))
+		   (else (refer-absolute (cdr e) #f)))))
+	  ((vector? (cdr e))
+	   (cons (car e) (vector-map handle-$ref (cdr e))))
+	  (else e)))
+  (define (resolve-reference object) object)
+    
+  (collect-ids schema)
+  (resolve-reference schema))
+
 (define (->json-validator schema)
+  (define ignore (make-hashtable string-hash string=?))
   (vector-fold
    (lambda (combined-validator e)
      ;; TODO consider schema version
-     (cond ((assoc (car e) +json-schema-validators+) =>
+     (cond ((and (not (hashtable-contains? ignore (car e)))
+		 (assoc (car e) +json-schema-validators+)) =>
 	    (lambda (slot)
 	      (cond ((cadr slot) =>
 		     (lambda (g)
+		       ;; some of the validators are pretty much associated
+		       ;; if this is such a propety, then it should have the
+		       ;; ignore list behind the slot, so add them.
+		       (for-each (lambda (i) (hashtable-set! ignore i #t))
+				 (cddr slot))
 		       (let ((validator (g schema (cdr e))))
 			 (lambda (e)
 			   (and (combined-validator e) (validator e))))))
@@ -469,9 +551,12 @@
     ("maxProperties" ,(t/w vector? json-schema:max-properties))
     ("minProperties" ,(t/w vector? json-schema:min-properties))
     ("required" ,(t/w vector? json-schema:required))
-    ("properties" ,(a/w vector? json-schema:properties))
-    ("patternProperties" ,(a/w vector? json-schema:properties))
-    ("additionalProperties" ,(a/w vector? json-schema:properties))
+    ("properties" ,(a/w vector? json-schema:properties)
+     "patternProperties" "additionalProperties")
+    ("patternProperties" ,(a/w vector? json-schema:properties)
+     "properties" "additionalProperties")
+    ("additionalProperties" ,(a/w vector? json-schema:properties)
+     "properties" "patternProperties")
     ("dependencies" ,(t/w vector? json-schema:dependencies))
     ("propertyNames" ,(t/w vector? json-schema:property-names))
     ))
