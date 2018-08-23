@@ -103,8 +103,8 @@
   (if (vector? schema)
       (let* (($schema (value-of "$schema" schema +json-schema-uri+))
 	     ($id (value-of "$id" schema))
-	     (schema (resolve-$ref $id schema)))
-	(make-json-schema-validator (->json-validator schema)
+	     (resolved-schema (resolve-$ref $id schema)))
+	(make-json-schema-validator (->json-validator resolved-schema)
 				    schema $schema $id))
       (json-schema->json-validator (convert schema))))
 
@@ -163,21 +163,33 @@
 	  ;; TODO handle external
 	  (assertion-violation 'json-schema->json-validator
 			       "Unknown $ref" id)))
-    (cond ((string=? "$ref" (car e))
-	   (let-values (((scheme auth path query frag) (parse-id (cdr e))))
-	     (cond (scheme (refer-absolute (cdr e) #t))
-		   (query
-		    (let ((obj (refer-absolute (merge-id query) #f)))
-		      (if frag
-			  ((json-pointer frag) obj)
-			  obj)))
-		   (frag ((json-pointer frag) schema))
-		   (else (refer-absolute (cdr e) #f)))))
-	  ((vector? (cdr e))
-	   (cons (car e) (vector-map handle-$ref (cdr e))))
-	  (else e)))
-  (define (resolve-reference object) object)
-    
+    (let-values (((scheme auth path query frag)
+		  (parse-id (cdr e))))
+      (cond (scheme (refer-absolute (cdr e) #t))
+	    (query
+	     (let ((obj (refer-absolute (merge-id query) #f)))
+	       (if frag
+		   ((json-pointer frag) obj)
+		   obj)))
+	    (frag ((json-pointer frag) schema))
+	    (else (refer-absolute (cdr e) #f)))))
+  (define (resolve-reference o)
+    (define len (vector-length o))
+    (define object (vector-copy o))
+    (let loop ((i 0) (found? #f) (refs '()))
+      (if (= len i)
+	  (if found?
+	      (vector-concatenate refs)
+	      object)
+	  (let ((e (vector-ref object i)))
+	    (cond ((string=? "$ref" (car e))
+		   (loop (+ i 1) #t (cons (handle-$ref e) refs)))
+		  ((vector? (cdr e))
+		   (vector-set! object i
+				(cons (car e) (resolve-reference (cdr e))))
+		   (loop (+ i 1) found? refs))
+		  (else (loop (+ i 1) found? refs)))))))
+  
   (collect-ids schema)
   (resolve-reference schema))
 
