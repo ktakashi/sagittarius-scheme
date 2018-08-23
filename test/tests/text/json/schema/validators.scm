@@ -191,7 +191,6 @@
    (test-error assertion-violation? (json-schema:dependencies "s"))
    (test-error assertion-violation? (json-schema:dependencies
 				     '#(("k" "s" "s"))))
-   (test-error assertion-violation? (json-schema:dependencies '#(("k" . #t))))
    (test-validator (json-schema:dependencies '#(("k" "s" "v")))
 		   '(#t #(("k" . "v") ("s" . "v") ("v" . "v")))
 		   '(#t #(("k2" . "v")))
@@ -203,6 +202,15 @@
 		   '(#t #(("k" . "v") ("s" . 1)))
 		   '(#t #(("k2" . "v")))
 		   '(#f #(("k" . "v") ("s" . "v")))))
+
+  (test-group "6.5.8. propertyNames"
+   (test-error assertion-violation? (json-schema:property-names "s"))
+   (test-error assertion-violation? (json-schema:property-names '(1)))
+   (test-validator (json-schema:property-names #t) '(#t #(("v" . "v"))))
+   (test-validator (json-schema:property-names #f) '(#f #(("v" . "v"))))
+   (test-validator (json-schema:property-names '#(("pattern" . "^f")))
+		   '(#t #(("f" . "v")))
+		   '(#f #(("v" . "v")))))
 )
 
 (test-end)
