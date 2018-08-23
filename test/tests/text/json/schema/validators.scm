@@ -181,6 +181,22 @@
 		  '(#t #(("name" . "v") ("foo" . 1) ("dummy" . 1)))
 		  '(#f #(("name" . "v") ("foo" . 1) ("dummy" . #t)))))
 
+  (test-group "6.5.5. dependencies"
+   (test-error assertion-violation? (json-schema:dependencies "s"))
+   (test-error assertion-violation? (json-schema:dependencies
+				     '#(("k" "s" "s"))))
+   (test-error assertion-violation? (json-schema:dependencies '#(("k" . #t))))
+   (test-validator (json-schema:dependencies '#(("k" "s" "v")))
+		   '(#t #(("k" . "v") ("s" . "v") ("v" . "v")))
+		   '(#t #(("k2" . "v")))
+		   '(#f #(("k" . "v") ("s" . "v"))))
+   (test-validator (json-schema:dependencies
+		    '#(("k" . #(("properties" .
+				 #(("s" . #(("type" . "number")))))
+				("required" "s")))))
+		   '(#t #(("k" . "v") ("s" . 1)))
+		   '(#t #(("k2" . "v")))
+		   '(#f #(("k" . "v") ("s" . "v")))))
 )
 
 (test-end)

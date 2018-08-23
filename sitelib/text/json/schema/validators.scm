@@ -60,7 +60,8 @@
 	    json-schema:max-properties
 	    json-schema:min-properties
 	    json-schema:required
-
+	    json-schema:dependencies
+	    
 	    ;; schema aware validators
 	    json-schema:properties
 	    
@@ -366,7 +367,34 @@
 	     (pvalidator e)
 	     (additional-validator e))))))
 ;; 6.5.7. dependencies
-
+(define (json-schema:dependencies v)
+  (define (handle-array v)
+    ;; for debug purpose, we check value here as well...
+    (unless (and (for-all string? v)
+		 (unique? v string=?))
+      (assertion-violation 'json-schema:dependencies
+			   "Array of dependencies must be a unique string array"
+			   v))
+    (json-schema:required v))
+  (define (handle-dependency d)
+    (cond ((list? d) (handle-array d))
+	  ((vector? d) (->json-validator d))
+	  (else (assertion-violation 'json-schema:dependencies
+				     "Dependency must be an array or schema"
+				     d))))
+  (unless (vector? v)
+    (assertion-violation 'json-schema:dependencies
+			 "Dependencies must be an object" v))
+  (vector-fold (lambda (combined e)
+		 (let ((prop (car e))
+		       (dependency (handle-dependency (cdr e))))
+		   (lambda (e)
+		     (let ((v (value-of prop e (eof-object))))
+		       (and (combined e)
+			    (if (not (eof-object? v))
+				(dependency e)
+				#t))))))
+	       (boolean->validator #t) v))
 ;; 6.5.8. propertyNames
 
 ;;; 6.6. Keywords for Applying Subschemas Conditionally
@@ -430,7 +458,7 @@
     ("properties" ,(a/w vector? json-schema:properties))
     ("patternProperties" ,(a/w vector? json-schema:properties))
     ("additionalProperties" ,(a/w vector? json-schema:properties))
-    ("dependencies" #f)
+    ("dependencies" ,(t/w vector? json-schema:dependencies))
     ("propertyNames" #f)
     ))
 (define +json-schema-validators+
