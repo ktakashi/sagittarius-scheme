@@ -207,6 +207,26 @@
 		  '(#t "1a") '(#f "aa") '(#f "1aa"))))
 
 (test-group "6.4. Validation Keywords for Arrays"
+ (test-group "6.4.1. items"
+  (test-error assertion-violation? (json-schema:items '#() "s"))
+  (test-error assertion-violation? (json-schema:items '#() '("a")))
+  (test-validator (json-schema:items '#() '#(("type" . "integer")))
+		  '(#t (1 2 3 4))
+		  '(#f (1 2 "3" 4)))
+  (test-validator (json-schema:items '#(("additionalItems" .
+					 #(("type" . "string"))))
+				     '(#(("type" . "integer"))))
+		  '(#t (1 "2" "3"))
+		  '(#f (1 "2" 3 4)))
+  (test-validator (json-schema:items '#(("additionalItems" .
+					 #(("type" . "object"))))
+				     '(#(("type" . "integer"))
+				       #(("type" . "string"))))
+		  '(#t (1))
+		  '(#t (1 "2"))
+		  '(#t (1 "2" #()))
+		  '(#f (1 "2" 3))
+		  '(#f (1 "2" #() 3))))
  (test-group "6.4.3. maxItems"
   (test-error assertion-violation? (json-schema:max-items "s"))
   (test-error assertion-violation? (json-schema:max-items -1))
@@ -222,7 +242,15 @@
  (test-group "6.4.5. uniqueItems"
   (test-error assertion-violation? (json-schema:unique-items "s"))
   (test-validator (json-schema:unique-items #t) '(#t (1 2)) '(#f (1 1)))
-  (test-validator (json-schema:unique-items #f) '(#t (1 2)) '(#t (1 1)))))
+  (test-validator (json-schema:unique-items #f) '(#t (1 2)) '(#t (1 1))))
+ (test-group "6.4.6. contains"
+  (test-error assertion-violation? (json-schema:contains 1))
+  (test-validator (json-schema:contains #t) '(#f ()) '(#t (1 2 3 4)))
+  (test-validator (json-schema:contains #f) '(#f ()) '(#f (1 2 3 4)))
+  (test-validator (json-schema:contains '#(("type" . "string")))
+		  '(#t (1 "2" 3 4))
+		  '(#f (1 2 3 4))))
+)
 
 (test-group "6.5. Validation Keywords for Objects"
  (test-group "6.5.1. maxProperties"

@@ -53,16 +53,17 @@
 	    json-schema:min-length
 	    json-schema:pattern
 
+	    json-schema:items
 	    json-schema:max-items
 	    json-schema:min-items
 	    json-schema:unique-items
+	    json-schema:contains
 
 	    json-schema:max-properties
 	    json-schema:min-properties
 	    json-schema:required
 	    json-schema:dependencies
 	    json-schema:property-names
-	    ;; schema aware validators
 	    json-schema:properties
 
 	    ;; for testing
@@ -243,6 +244,12 @@
 	   (else combined-validator)))
    (lambda (e) #t) schema))
 
+(define (schema->validator who schema)
+  (cond ((boolean? schema) (boolean->validator schema))
+	((vector? schema) (->json-validator schema))
+	(else
+	 (assertion-violation who "JSON schema is required" schema))))
+
 ;; utilities
 (define unique?
   (case-lambda
@@ -363,8 +370,30 @@
 	(and (string? e) (looking-at rx e) #t)))))
 
 ;;; 6.4. Validation Keywords for Arrays
-;; items, additionalItems, and contains are handled on validator creation
-;; (Those require understanding of the schema)
+;; 6.4.1. items
+;; 6.4.2. additionalItems
+(define (json-schema:items schema items)
+  (define (->validator schema) (schema->validator 'json-schema:items schema))
+  (define (get-additional-validator schema)
+    (->validator (value-of "additionalItems" schema #t)))
+  
+  (cond ((boolean? items) (boolean->validator items))
+	((and (list? items) (for-all vector? items))
+	 (let ((additional-validator (get-additional-validator schema))
+	       (validators (map ->json-validator items)))
+	   (lambda (e*)
+	     (let loop ((e* e*) (validators validators))
+	       (cond ((null? e*) #t)
+		     ((null? validators) (for-all additional-validator e*))
+		     (else (and ((car validators) (car e*))
+				(loop (cdr e*) (cdr validators)))))))))
+	((vector? items)
+	 (let ((validator (->validator items)))
+	   (lambda (e*)
+	     (for-all validator e*))))
+	(else
+	 (assertion-violation 'json-schema:items
+	  "Items must be a JSON schema or array of JSON schema" items))))
 ;; 6.4.3. maxItems
 (define (json-schema:max-items n)
   (when (or (not (integer? n)) (negative? n))
@@ -385,6 +414,10 @@
   (if b
       (lambda (e) (and (list? e) (unique? e)))
       (lambda (e) #t)))
+;; 6.4.6. contains
+(define (json-schema:contains value)
+  (let ((validator (schema->validator 'json-schema:contains value)))
+    (lambda (e) (exists validator e))))
 
 ;;; 6.5. Validation Keywords for Objects
 ;; 6.5.1. maxProperties
@@ -429,10 +462,7 @@
   (define additional-properties (value-of "additionalProperties" schema #t))
 
   (define (->validator schema)
-    (if (boolean? schema)
-	(boolean->validator schema)
-	(->json-validator schema)))
-
+    (schema->validator 'json-schema:properties schema))
   (define (object->validator obj regex?)
     (define (check vec key=? validator)
       (define len (vector-length vec))
@@ -522,9 +552,7 @@
   (unless (or (boolean? v) (vector? v))
     (assertion-violation 'json-schema:propperty-names
 			 "PropertyNames must be a JSON schema"))
-  (let ((validator (if (boolean? v)
-		       (boolean->validator v)
-		       (->json-validator v))))
+  (let ((validator (schema->validator 'json-schema:propperty-names v)))
     (lambda (e)
       (vector-every (lambda (k&v)
 		      ;; the key must always be a string, otherwise it's an
@@ -578,12 +606,12 @@
     ))
 (define +json-schema-array-validators+
   `(
-    ("items" #f)
-    ("additionalItems" #f)
+    ("items" ,(a/w list? json-schema:items))
+    ("additionalItems" #f) ;; this is handled by items
     ("maxItems" ,(t/w list? json-schema:max-items))
     ("minItems" ,(t/w list? json-schema:min-items))
     ("uniqueItems" ,(t/w list? json-schema:unique-items))
-    ("contains" #f)
+    ("contains" ,(t/w list? json-schema:contains))
     ))
 (define +json-schema-object-validators+
   `(
