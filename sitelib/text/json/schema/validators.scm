@@ -66,6 +66,8 @@
 	    json-schema:property-names
 	    json-schema:properties
 
+	    json-schema:if
+	    
 	    ;; for testing
 	    resolve-$ref
 	    )
@@ -561,6 +563,11 @@
 			  (validator (car k&v)))) e))))
 
 ;;; 6.6. Keywords for Applying Subschemas Conditionally
+(define (json-schema:if schema v)
+  (define $then (schema->validator 'json-schema:if (value-of "then" schema #t)))
+  (define $else (schema->validator 'json-schema:if (value-of "else" schema #t)))
+  (define $if (schema->validator 'json-schema:if v))
+  (lambda (e) (if ($if e) ($then e) ($else e))))
 
 ;;; 6.7. Keywords for Applying Subschemas With Boolean Logic
 
@@ -627,6 +634,10 @@
     ("dependencies" ,(t/w vector? json-schema:dependencies))
     ("propertyNames" ,(t/w vector? json-schema:property-names))
     ))
+(define +json-schema-conditional-validators+
+  `(
+    ("if" ,json-schema:if)
+    ))
 (define +json-schema-validators+
   `(
     ,@+json-schema-any-instance-validators+
@@ -634,5 +645,6 @@
     ,@+json-schema-string-validators+
     ,@+json-schema-array-validators+
     ,@+json-schema-object-validators+
+    ,@+json-schema-conditional-validators+
     ))
 )

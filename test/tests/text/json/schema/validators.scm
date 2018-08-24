@@ -334,6 +334,14 @@
    (test-validator (json-schema:property-names '#(("pattern" . "^f")))
 		   '(#t #(("f" . "v")))
 		   '(#f #(("v" . "v")))))
+(test-group "6.6. Keywords for Applying Subschemas Conditionally"
+ (test-error assertion-violation? (json-schema:if '#() "s"))
+ (test-error assertion-violation? (json-schema:if '#(("then" . 1)) #t))
+ (test-error assertion-violation? (json-schema:if '#(("else" . 1)) #t))
+ (test-validator (json-schema:if '#(("then" . #(("enum" "100")))
+				    ("else" . #(("type" . "integer"))))
+				 '#(("type" . "string")))
+		 '(#t "100") '(#t 100) '(#f "s") '(#f ())))
 ))
 
 (test-end)
