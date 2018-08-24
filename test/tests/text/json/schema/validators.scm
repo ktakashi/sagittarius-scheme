@@ -1,5 +1,6 @@
 (import (rnrs)
 	(text json schema validators)
+	(srfi :133)
 	(srfi :64))
 
 (test-begin "JSON Schema validators")
@@ -9,6 +10,100 @@
 	      (test-equal e (car e) (validator (cadr e))))
 	    expected*))
 
+;; core
+(test-group "JSON Schema"
+(test-group "8.3. Schema References With '$ref'"
+ ;; From the specification
+ ;; {
+ ;;     "$id": "http://example.com/root.json",
+ ;;     "definitions": {
+ ;;         "A": { "$id": "#foo" },
+ ;;         "B": {
+ ;;             "$id": "other.json",
+ ;;             "definitions": {
+ ;;                 "X": { "$id": "#bar" },
+ ;;                 "Y": { "$id": "t/inner.json" }
+ ;;             }
+ ;;         },
+ ;;         "C": {
+ ;;             "$id": "urn:uuid:ee564b8a-7a87-4125-8c96-e9f123d6766f"
+ ;;         }
+ ;;     }
+ ;; }
+ (let ((base-schema '#(("$id" . "http://example.com/root.json")
+		       ("definitions" . 
+			#(("A" . #(("$id" . "#foo")
+				   ("maximum" . 5)))
+			  ("B" .
+			   #(("$id" . "other.json")
+			     ("definitions" .
+			      #(("X" . #(("$id" . "#bar")
+					 ("minimum" . 0)))
+				("Y" . #(("$id" . "t/inner.json")
+					 ("type" . "number")))))))
+			  ("C" .
+			   #(("$id" . "urn:uuid:ee564b8a-7a87-4125-8c96-e9f123d6766f")
+			     ("type" . "string"))))))))
+   (define (make-$ref . $refs)
+     (define (->vec $refs)
+       (list->vector (map (lambda ($ref) (cons "$ref" $ref)) $refs)))
+     (vector-append (->vec $refs) base-schema))
+   (test-equal '#(("$id" . "#foo") ("maximum" . 5))
+	       (resolve-$ref "http://example.com/root.json"
+			     (make-$ref "#/definitions/A")))
+   (test-equal '#(("$id" . "#foo") ("maximum" . 5))
+	       (resolve-$ref "http://example.com/root.json"
+			     (make-$ref "http://example.com/root.json#/definitions/A")))
+   (test-equal '#(("$id" . "#foo") ("maximum" . 5))
+	       (resolve-$ref "http://example.com/root.json"
+			     (make-$ref "http://example.com/root.json#foo")))
+   (test-equal '#(("$id" . "#bar") ("minimum" . 0))
+	       (resolve-$ref "http://example.com/root.json"
+			     (make-$ref "other.json#/definitions/X")))
+   (test-equal '#(("$id" . "#bar") ("minimum" . 0))
+	       (resolve-$ref "http://example.com/root.json"
+			     (make-$ref "http://example.com/other.json#bar")))
+   (test-equal '#(("$id" . "#bar") ("minimum" . 0))
+	       (resolve-$ref "http://example.com/root.json"
+			     (make-$ref "http://example.com/other.json#/definitions/X")))
+   (test-equal '#(("$id" . "t/inner.json") ("type" . "number"))
+	       (resolve-$ref "http://example.com/root.json"
+			     (make-$ref "t/inner.json#")))
+   (test-equal '#(("$id" . "t/inner.json") ("type" . "number"))
+	       (resolve-$ref "http://example.com/root.json"
+			     (make-$ref "t/inner.json")))
+
+   (test-equal '#(("$id" . "t/inner.json") ("type" . "number"))
+	       (resolve-$ref "http://example.com/root.json"
+			     (make-$ref "http://example.com/other.json#/definitions/Y")))
+   (test-equal '#(("$id" . "t/inner.json") ("type" . "number"))
+	       (resolve-$ref "http://example.com/root.json"
+			     (make-$ref "http://example.com/root.json#/definitions/B/definitions/Y")))
+   
+   (test-equal '#(("$id" . "urn:uuid:ee564b8a-7a87-4125-8c96-e9f123d6766f")
+		  ("type" . "string"))
+	       (resolve-$ref "http://example.com/root.json"
+			     (make-$ref "#/definitions/C")))
+   (test-equal '#(("$id" . "urn:uuid:ee564b8a-7a87-4125-8c96-e9f123d6766f")
+		  ("type" . "string"))
+	       (resolve-$ref "http://example.com/root.json"
+			     (make-$ref "urn:uuid:ee564b8a-7a87-4125-8c96-e9f123d6766f")))
+   (test-equal '#(("$id" . "urn:uuid:ee564b8a-7a87-4125-8c96-e9f123d6766f")
+		  ("type" . "string"))
+	       (resolve-$ref "http://example.com/root.json"
+			     (make-$ref "urn:uuid:ee564b8a-7a87-4125-8c96-e9f123d6766f#")))
+   (test-equal '#(("$id" . "urn:uuid:ee564b8a-7a87-4125-8c96-e9f123d6766f")
+		  ("type" . "string"))
+	       (resolve-$ref "http://example.com/root.json"
+			     (make-$ref "http://example.com/root.json#/definitions/C")))
+   )
+
+ )
+
+)
+
+;; validation tests
+(test-group "JSON Schema Validation"
 (test-group "6.1.  Validation Keywords for Any Instance Type"
  (test-group "6.1.1.  type"
    (test-error assertion-violation? (json-schema:type '#()))
@@ -211,6 +306,6 @@
    (test-validator (json-schema:property-names '#(("pattern" . "^f")))
 		   '(#t #(("f" . "v")))
 		   '(#f #(("v" . "v")))))
-)
+))
 
 (test-end)

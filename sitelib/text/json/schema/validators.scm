@@ -64,7 +64,9 @@
 	    json-schema:property-names
 	    ;; schema aware validators
 	    json-schema:properties
-	    
+
+	    ;; for testing
+	    resolve-$ref
 	    )
     (import (rnrs)
 	    (text json validator)
@@ -138,41 +140,66 @@
 	(values #f #f #f #f #f)))
   (define-values (root-scheme root-auth root-path root-query root-frag)
     (parse-id root-id))
+  (define current-path root-path)
   ;; absolute id storage
   (define ids (make-hashtable string-hash string=?))
   (define (merge-id id)
     (let-values (((scheme auth path query frag) (parse-id id)))
       (if (or scheme (not root-scheme))
-	  id
-	  (uri-compose :scheme root-scheme :authority root-auth :path path
+	  (if frag id (string-append id "#"))
+	  (uri-compose :scheme root-scheme :authority root-auth
+		       :path (or path current-path)
 		       :query query :fragment frag))))
   (define (collect-ids object)
-    (define (collect-id parent-object e)
-      (cond ((string=? (car e) "$id")
-	     (unless (string? (cdr e))
-	       (assertion-violation 'json-schema->json-validator
-				    "$id must be a string" e))
-	     (unless (string=? (cdr e) root-id)
-	       (hashtable-set! ids (merge-id (cdr e)) parent-object)))
-	    ((vector? (cdr e)) (collect-ids (cdr e)))))
-    (vector-for-each (lambda (e) (collect-id object e)) object))
+    (define (collect-id parent-object id)
+      (unless (string? id)
+	(assertion-violation 'json-schema->json-validator
+			     "$id must be a string" id))
+      (when (or (string=? "" id) (string=? "#" id))
+	(assertion-violation 'json-schema->json-validator
+			     "$id should not be an empty string or '#'" id))
+      ;; root-id might be #f so use equal? instead of string=?
+      (unless (equal? id root-id)
+	(hashtable-set! ids (merge-id id) parent-object)
+	;; FIXME parsing twice...
+	(let-values (((scheme auth path query frag) (parse-id id)))
+	  ;; if we have path, then this object belongs to the path
+	  (when path (set! current-path path)))))
+    (let (($id (value-of "$id" object)))
+      (when $id (collect-id object $id))
+      (vector-for-each (lambda (e)
+			 (when (vector? (cdr e))
+			   (let ((current current-path)) 
+			     (collect-ids (cdr e))
+			     (set! current-path current))))
+		       object)))
   (define (handle-$ref e)
-    (define (refer-absolute id maybe-external?)
+    (define (err id)
+      (assertion-violation 'json-schema->json-validator "Unknown $ref" id))
+    (define (refer-absolute id maybe-external? error?)
       (or (hashtable-ref ids id)
-	  (hashtable-ref ids (string-append id "#"))
+	  (hashtable-ref ids (string-append id "#")) ;; check with fragment
 	  ;; TODO handle external
-	  (assertion-violation 'json-schema->json-validator
-			       "Unknown $ref" id)))
+	  (and error? (err id))))
     (let-values (((scheme auth path query frag)
 		  (parse-id (cdr e))))
-      (cond (scheme (refer-absolute (cdr e) #t))
-	    (query
-	     (let ((obj (refer-absolute (merge-id query) #f)))
+      (cond (scheme
+	     (or (refer-absolute (cdr e) #t #f)
+		 ;; okay as it as doesn't exist so try JSON pointer
+		 (let* ((uri (uri-compose :scheme scheme :authority auth
+					  :path path :query query))
+			(obj (refer-absolute uri #t #t)))
+		   (if frag
+		       ((json-pointer frag) obj)
+		       obj))))
+	    (path
+	     (let ((obj (refer-absolute (merge-id path) #f #t)))
 	       (if frag
 		   ((json-pointer frag) obj)
 		   obj)))
 	    (frag ((json-pointer frag) schema))
-	    (else (refer-absolute (cdr e) #f)))))
+	    ;; should not happen, ...I think...
+	    (else (refer-absolute (cdr e) #f #t)))))
   (define (resolve-reference o)
     (define len (vector-length o))
     (define object (vector-copy o))
@@ -189,7 +216,7 @@
 				(cons (car e) (resolve-reference (cdr e))))
 		   (loop (+ i 1) found? refs))
 		  (else (loop (+ i 1) found? refs)))))))
-  
+  (when root-id (hashtable-set! ids root-id schema))
   (collect-ids schema)
   (resolve-reference schema))
 
