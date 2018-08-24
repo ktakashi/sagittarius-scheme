@@ -72,7 +72,9 @@
 	    json-schema:any-of
 	    json-schema:one-of
 	    json-schema:not
-	    
+
+	    json-schema:format
+	    *json-schema:validate-format?*
 	    ;; for testing
 	    resolve-$ref
 	    )
@@ -84,8 +86,15 @@
 	    (sagittarius regex)
 	    (sagittarius control)
 	    (rfc uri)
+	    (rfc smtp format) ;; for smtp-valid-address?
 	    (srfi :1 lists)
+	    (srfi :39 parameters)
 	    (srfi :133 vectors))
+
+;;; 7.2. Implementation Requirements
+;; they SHOULD offer an option to disable validation for this
+;; ('format') keyword.
+(define *json-schema:validate-format?* (make-parameter #t))
 
 (define-record-type json-schema-validator
   (parent <json-validator>)
@@ -371,7 +380,10 @@
     (assertion-violation 'json-schema:pattern "pattern must be a string" p))
   (guard (e (else
 	     (assertion-violation 'json-schema:pattern
-				  "Invalid regex pattern" p)))
+				  (if (message-condition? e)
+				      (condition-message e)
+				      "Invalid regex pattern")
+				  p)))
     (let ((rx (regex p)))
       (lambda (e)
 	(and (string? e) (looking-at rx e) #t)))))
@@ -608,7 +620,80 @@
     (lambda (e) (not (validator e)))))
 
 ;;; 7. Semantic Validation With "format"
+(define (json-schema:format v)
+  (cond ((assoc v +json-schema-defined-formats+) =>
+	 (lambda (slot)
+	   (let ((validator (cdr slot)))
+	     (lambda (e)
+	       (if (*json-schema:validate-format?*)
+		   (and (validator e) #t)
+		   #t)))))
+	;; not supported, so ignore
+	(else (boolean->validator #t))))
 
+;; NOTE: for date-time related, we only check format not validity
+(define date-pattern "\\d{4}-\\d{2}-\\d{2}")
+(define time-pattern
+  "\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|(?:\\+|-)\\d{2}:\\d{2})")
+(define json-schema:format-date
+  (json-schema:pattern (string-append "^" date-pattern "$")))
+(define json-schema:format-time
+  (json-schema:pattern (string-append "^" time-pattern "$")))
+(define json-schema:format-date-time
+  (json-schema:pattern (string-append "^" date-pattern "T" time-pattern "$")))
+
+(define (json-schema:format-email e) (smtp-valid-address? e))
+;; lazy...
+(define json-schema:format-idn-email (json-schema:pattern "[^@]+@[^@]+"))
+
+;; hostname
+(define json-schema:format-hostname
+  (json-schema:pattern "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])$"))
+(define json-schema:format-idn-hostname
+  (json-schema:pattern "^(([^\\.-]|[^\\.-][^\\.]*[^\\.\\-])\\.)*([^\\.\\-]|[^\\.\\-][^\\.]*[^\\.\\-])$"))
+
+;; IP address
+(define json-schema:format-ipv4
+  (json-schema:pattern "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"))
+;; from https://stackoverflow.com/a/17871737/4377398
+(define json-schema:format-ipv6
+  (json-schema:pattern "(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))"))
+
+;; we don't check if the scheme requires authority or not
+(define (json-schema:format-uri e)
+  (let-values (((scheme specific) (uri-scheme&specific e)))
+    (and scheme specific #t)))
+(define (json-schema:format-uri-reference e) #t)
+(define (json-schema:format-uri-template e) #t)
+
+(define (json-schema:format-json-pointer v)
+  (guard (e (else #f)) (json-pointer v)))
+(define (json-schema:format-relative-json-pointer v)
+  (and (string->number (string (string-ref v 0)))
+       (guard (e (else #f)) (json-pointer v))))
+(define (json-schema:format-regex v)
+  (guard (e (else  #f)) (regex v)))
+
+(define +json-schema-defined-formats+
+  `(
+    ("date" . ,json-schema:format-date)
+    ("time" . ,json-schema:format-time)
+    ("date-time" . ,json-schema:format-date-time)
+    ("email" . ,json-schema:format-email)
+    ("idn-email" . ,json-schema:format-idn-email)
+    ("hostname" . ,json-schema:format-hostname)
+    ("idn-hostname" . ,json-schema:format-idn-hostname)
+    ("ipv4" . ,json-schema:format-ipv4)
+    ("ipv6" . ,json-schema:format-ipv6)
+    ("uri" . ,json-schema:format-uri)
+    ("uri-reference" . ,json-schema:format-uri-reference)
+    ("iri" . ,json-schema:format-uri)
+    ("iri-reference" . ,json-schema:format-uri-reference)
+    ("uri-template" . ,json-schema:format-uri-template)
+    ("json-pointer" . ,json-schema:format-json-pointer)
+    ("relative-json-pointer" . ,json-schema:format-relative-json-pointer)
+    ("regex" . ,json-schema:format-regex)
+    ))
 
 (define (boolean->validator b) (if b (lambda (_) #t) (lambda (_) #f)))
 (define (type-wrap type? validator)
@@ -646,6 +731,8 @@
     ("maxLength" ,(t/w string? json-schema:max-length))
     ("minLength" ,(t/w string? json-schema:min-length))
     ("pattern" ,(t/w string? json-schema:pattern))
+    ;; well it's string validation anyway...
+    ("format" ,(t/w string? json-schema:format))
     ))
 (define +json-schema-array-validators+
   `(
