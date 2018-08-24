@@ -342,6 +342,43 @@
 				    ("else" . #(("type" . "integer"))))
 				 '#(("type" . "string")))
 		 '(#t "100") '(#t 100) '(#f "s") '(#f ())))
+
+(test-group "6.7. Keywords for Applying Subschemas With Boolean Logic"
+ (test-group "6.7.1. allOf"
+  (test-error assertion-violation? (json-schema:all-of "s"))
+  (test-error assertion-violation? (json-schema:all-of '()))
+  (test-error assertion-violation? (json-schema:all-of '("s")))
+  (test-validator (json-schema:all-of '(#(("type" . "string"))
+					#(("maxLength" . 5))))
+		  '(#t "12345") '(#f "123456") '(#f 12345))
+  ;; impossible pattern
+  (test-validator (json-schema:all-of '(#(("type" . "string"))
+					#(("type" . "number"))))
+		  '(#f "12345") '(#f 12345)))
+ (test-group "6.7.2. anyOf"
+  (test-error assertion-violation? (json-schema:any-of "s"))
+  (test-error assertion-violation? (json-schema:any-of '()))
+  (test-error assertion-violation? (json-schema:any-of '("s")))
+  (test-validator (json-schema:any-of '(#(("type" . "string")
+					  ("maxLength" . 5))
+					#(("type" . "number")
+					  ("minimum" . 0))))
+		  '(#t "12345") '(#f "123456")
+		  '(#t 1) '(#f -5)
+		  '(#f #())))
+ (test-group "6.7.3. oneOf"
+  (test-error assertion-violation? (json-schema:one-of "s"))
+  (test-error assertion-violation? (json-schema:one-of '()))
+  (test-error assertion-violation? (json-schema:one-of '("s")))
+  (test-validator (json-schema:one-of '(#(("multipleOf" . 3))
+					#(("multipleOf" . 5))))
+		  '(#t 3) '(#t 5) '(#f 2) '(#f 15)))
+ (test-group "6.7.4. not"
+  (test-error assertion-violation? (json-schema:not "s"))
+  (test-error assertion-violation? (json-schema:not '()))
+  (test-error assertion-violation? (json-schema:not '("s")))
+  (test-validator (json-schema:not '#(("type" . "string")))
+		  '(#t 3) '(#t #()) '(#t ()) '(#f "s"))))
 ))
 
 (test-end)

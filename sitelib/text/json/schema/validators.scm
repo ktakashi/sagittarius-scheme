@@ -67,6 +67,11 @@
 	    json-schema:properties
 
 	    json-schema:if
+
+	    json-schema:all-of
+	    json-schema:any-of
+	    json-schema:one-of
+	    json-schema:not
 	    
 	    ;; for testing
 	    resolve-$ref
@@ -570,6 +575,37 @@
   (lambda (e) (if ($if e) ($then e) ($else e))))
 
 ;;; 6.7. Keywords for Applying Subschemas With Boolean Logic
+;; 6.7.1. allOf
+(define (json-schema:all-of v)
+  (define (->validator v) (schema->validator 'json-schema:all-of v))
+  (unless (and (list? v) (not (null? v)) (for-all vector? v))
+    (assertion-violation 'json-schema:all-of
+			 "AllOf must be non empty array of JSON schema" v))
+  (let ((validators (map ->validator v)))
+    (lambda (e)
+      (for-all (lambda (v) (v e)) validators))))
+;; 6.7.2. anyOf
+(define (json-schema:any-of v)
+  (define (->validator v) (schema->validator 'json-schema:any-of v))
+  (unless (and (list? v) (not (null? v)) (for-all vector? v))
+    (assertion-violation 'json-schema:any-of
+			 "AnyOf must be non empty array of JSON schema" v))
+  (let ((validators (map ->validator v)))
+    (lambda (e)
+      (exists (lambda (v) (v e)) validators))))
+;; 6.7.3. oneOf
+(define (json-schema:one-of v)
+  (define (->validator v) (schema->validator 'json-schema:one-of v))
+  (unless (and (list? v) (not (null? v)) (for-all vector? v))
+    (assertion-violation 'json-schema:any-of
+			 "OneOf must be non empty array of JSON schema" v))
+  (let ((validators (map ->validator v)))
+    (lambda (e)
+      (= 1 (fold-left (lambda (n v) (if (v e) (+ n 1) n)) 0 validators)))))
+;; 6.7.4. not
+(define (json-schema:not v)
+  (let ((validator (schema->validator 'json-schema:not v)))
+    (lambda (e) (not (validator e)))))
 
 ;;; 7. Semantic Validation With "format"
 
@@ -638,6 +674,13 @@
   `(
     ("if" ,json-schema:if)
     ))
+(define +json-schema-boolean-logic-validators+
+  `(
+    ("allOf" ,(s/w json-schema:all-of))
+    ("anyOf" ,(s/w json-schema:any-of))
+    ("oneOf" ,(s/w json-schema:one-of))
+    ("not" ,(s/w json-schema:not))
+    ))
 (define +json-schema-validators+
   `(
     ,@+json-schema-any-instance-validators+
@@ -646,5 +689,6 @@
     ,@+json-schema-array-validators+
     ,@+json-schema-object-validators+
     ,@+json-schema-conditional-validators+
+    ,@+json-schema-boolean-logic-validators+
     ))
 )
