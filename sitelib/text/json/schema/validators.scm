@@ -119,13 +119,17 @@
 	(assertion-violation 'json-schema->json-validator
 			     "JSON object is required" schema))
       r))
-  (if (vector? schema)
-      (let* (($schema (value-of "$schema" schema +json-schema-uri+))
-	     ($id (value-of "$id" schema))
-	     (resolved-schema (resolve-$ref $id schema)))
-	(make-json-schema-validator (->json-validator resolved-schema)
-				    schema $schema $id))
-      (json-schema->json-validator (convert schema))))
+  (cond ((vector? schema)
+	 (let* (($schema (value-of "$schema" schema +json-schema-uri+))
+		($id (value-of "$id" schema))
+		(resolved-schema (resolve-$ref $id schema)))
+	   (make-json-schema-validator (->json-validator resolved-schema)
+				       schema $schema $id)))
+	((boolean? schema)
+	 ;; boolean is also a valid schema
+	 (make-json-schema-validator (boolean->validator schema)
+				     schema +json-schema-uri+ #f))
+	(else (json-schema->json-validator (convert schema)))))
 
 ;; internal
 ;; The $ref resolution takes the following 2 passes:
@@ -260,6 +264,7 @@
 	   (else combined-validator)))
    (lambda (e) #t) schema))
 
+(define (schema? v) (or (boolean? v) (vector? v)))
 (define (schema->validator who schema)
   (cond ((boolean? schema) (boolean->validator schema))
 	((vector? schema) (->json-validator schema))
@@ -394,12 +399,16 @@
 (define (json-schema:items schema items)
   (define (->validator schema) (schema->validator 'json-schema:items schema))
   (define (get-additional-validator schema)
-    (->validator (value-of "additionalItems" schema #t)))
+    (if (vector? schema)
+	(->validator (value-of "additionalItems" schema #t))
+	#t))
   
   (cond ((boolean? items) (boolean->validator items))
-	((and (list? items) (for-all vector? items))
+	((and (list? items) (for-all schema? items))
 	 (let ((additional-validator (get-additional-validator schema))
-	       (validators (map ->json-validator items)))
+	       (validators
+		(map (lambda (i) (schema->validator 'json-schema:items i))
+		     items)))
 	   (lambda (e*)
 	     (let loop ((e* e*) (validators validators))
 	       (cond ((null? e*) #t)
@@ -590,7 +599,7 @@
 ;; 6.7.1. allOf
 (define (json-schema:all-of v)
   (define (->validator v) (schema->validator 'json-schema:all-of v))
-  (unless (and (list? v) (not (null? v)) (for-all vector? v))
+  (unless (and (list? v) (not (null? v)) (for-all schema? v))
     (assertion-violation 'json-schema:all-of
 			 "AllOf must be non empty array of JSON schema" v))
   (let ((validators (map ->validator v)))
@@ -599,7 +608,7 @@
 ;; 6.7.2. anyOf
 (define (json-schema:any-of v)
   (define (->validator v) (schema->validator 'json-schema:any-of v))
-  (unless (and (list? v) (not (null? v)) (for-all vector? v))
+  (unless (and (list? v) (not (null? v)) (for-all schema? v))
     (assertion-violation 'json-schema:any-of
 			 "AnyOf must be non empty array of JSON schema" v))
   (let ((validators (map ->validator v)))
@@ -608,7 +617,7 @@
 ;; 6.7.3. oneOf
 (define (json-schema:one-of v)
   (define (->validator v) (schema->validator 'json-schema:one-of v))
-  (unless (and (list? v) (not (null? v)) (for-all vector? v))
+  (unless (and (list? v) (not (null? v)) (for-all schema? v))
     (assertion-violation 'json-schema:any-of
 			 "OneOf must be non empty array of JSON schema" v))
   (let ((validators (map ->validator v)))
