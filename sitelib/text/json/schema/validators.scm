@@ -195,32 +195,30 @@
 			     (set! current-path current))))
 		       object)))
   (define (handle-$ref e)
-    (define (err id)
-      (assertion-violation 'json-schema->json-validator "Unknown $ref" id))
-    (define (refer-absolute id maybe-external? error?)
+    (define (refer-absolute id maybe-external?)
       (or (hashtable-ref ids id)
 	  (hashtable-ref ids (string-append id "#")) ;; check with fragment
 	  ;; TODO handle external
-	  (and error? (err id))))
+	  ))
     (let-values (((scheme auth path query frag)
 		  (parse-id (cdr e))))
       (cond (scheme
-	     (or (refer-absolute (cdr e) #t #f)
+	     (or (refer-absolute (cdr e) #t)
 		 ;; okay as it as doesn't exist so try JSON pointer
 		 (let* ((uri (uri-compose :scheme scheme :authority auth
 					  :path path :query query))
-			(obj (refer-absolute uri #t #t)))
-		   (if frag
-		       ((json-pointer frag) obj)
-		       obj))))
+			(obj (refer-absolute uri #t)))
+		   (and obj
+			(or (and frag ((json-pointer frag) obj))
+			    obj)))))
 	    (path
-	     (let ((obj (refer-absolute (merge-id path) #f #t)))
-	       (if frag
-		   ((json-pointer frag) obj)
-		   obj)))
+	     (let ((obj (refer-absolute (merge-id path) #f)))
+	       (and obj
+		    (or (and frag ((json-pointer frag) obj))
+			obj))))
 	    (frag ((json-pointer frag) schema))
 	    ;; should not happen, ...I think...
-	    (else (refer-absolute (cdr e) #f #t)))))
+	    (else (refer-absolute (cdr e) #f)))))
   (define (resolve-reference o)
     (define len (vector-length o))
     (define object (vector-copy o))
@@ -231,7 +229,10 @@
 	      object)
 	  (let ((e (vector-ref object i)))
 	    (cond ((string=? "$ref" (car e))
-		   (loop (+ i 1) #t (cons (handle-$ref e) refs)))
+		   (let ((resolved (handle-$ref e)))
+		     (if (vector? resolved)
+			 (loop (+ i 1) #t (cons resolved refs))
+			 (loop (+ i 1) #t refs))))
 		  ((vector? (cdr e))
 		   (vector-set! object i
 				(cons (car e) (resolve-reference (cdr e))))
@@ -280,10 +281,14 @@
   (define (entry=? a b)
     (and (json=? (car a) (car b))
 	 (json=? (cdr a) (cdr b))))
+  (define (key-compare a b) (string<? (car a) (car b)))
   (cond ((and (string? a) (string? b)) (string=? a b))
 	;; 1 and 1.0 are not the same so can't be = or equal?
 	((and (number? a) (number? b)) (eqv? a b))
-	((and (vector? a) (vector? b)) (vector-every entry=? a b))
+	((and (vector? a) (vector? b))
+	 (vector-every entry=?
+		       (vector-sort key-compare a)
+		       (vector-sort key-compare b)))
 	((and (list? a) (list? b)) (for-all json=? a b))
 	(else (eq? a b))))
 
@@ -403,7 +408,7 @@
 	(->validator (value-of "additionalItems" schema #t))
 	#t))
   
-  (cond ((boolean? items) (boolean->validator items))
+  (cond ((boolean? items) (lambda (e*) (or (null? e*) items)))
 	((and (list? items) (for-all schema? items))
 	 (let ((additional-validator (get-additional-validator schema))
 	       (validators
@@ -495,7 +500,7 @@
     (define (check vec key=? validator)
       (define len (vector-length vec))
       (let loop ((i 0) (found? #f) (ok? #t))
-	(cond ((= i len) (and found? ok?))
+	(cond ((= i len) (or (not found?) ok?))
 	      ((key=? (vector-ref vec i)) =>
 	       (lambda (k&v) (loop (+ i 1) #t (validator (cdr k&v)))))
 	      (else (loop (+ i 1) found? ok?)))))

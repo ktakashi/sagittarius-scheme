@@ -226,6 +226,13 @@
 		  '(#t (1 "2"))
 		  '(#t (1 "2" #()))
 		  '(#f (1 "2" 3))
+		  '(#f (1 "2" #() 3)))
+  (test-validator (json-schema:items '#() #f)
+		  '(#t ())
+		  '(#f (1))
+		  '(#f (1 "2"))
+		  '(#f (1 "2" #()))
+		  '(#f (1 "2" 3))
 		  '(#f (1 "2" #() 3))))
  (test-group "6.4.3. maxItems"
   (test-error assertion-violation? (json-schema:max-items "s"))
