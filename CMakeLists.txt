@@ -700,6 +700,21 @@ ADD_CUSTOM_TARGET(test-site-s
 	  -fno-backtrace
 	  ${PROJECT_SOURCE_DIR}/run-test.scm sitelib-s
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+ADD_CUSTOM_TARGET(clone-json-schema
+  COMMAND rm -rf JSON-Schema-Test-Suite
+  COMMAND git clone https://github.com/json-schema-org/JSON-Schema-Test-Suite.git
+  WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/test)
+ADD_CUSTOM_TARGET(test-json-schema
+  DEPENDS clone-json-schema
+  COMMAND ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME}
+          -D${PROJECT_BINARY_DIR}/build
+	  -D${PROJECT_BINARY_DIR}/build/modules
+	  -L${PROJECT_SOURCE_DIR}
+	  -L${PROJECT_SOURCE_DIR}/lib
+	  -L${PROJECT_SOURCE_DIR}/sitelib
+	  -L${PROJECT_SOURCE_DIR}/test/r7rs-tests
+	  ${PROJECT_SOURCE_DIR}/test/json-schema-tests.scm
+  WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/test)
 
 # This can be removed but may be convenient to run this with
 #  $ make update-tz
