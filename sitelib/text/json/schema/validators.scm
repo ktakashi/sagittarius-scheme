@@ -726,6 +726,9 @@
 	       (if (boolean? v)
 		   (boolean->validator v)
 		   (schema-validator-generator schema v)))))
+(define (b/w type? schema-validator-generator)
+  (lambda (schema v)
+    (type-wrap type? (schema-validator-generator schema v))))
 
 (define +json-schema-any-instance-validators+
   `(
@@ -751,7 +754,7 @@
     ))
 (define +json-schema-array-validators+
   `(
-    ("items" ,(a/w list? json-schema:items))
+    ("items" ,(b/w list? json-schema:items))
     ("additionalItems" #f) ;; this is handled by items
     ("maxItems" ,(t/w list? json-schema:max-items))
     ("minItems" ,(t/w list? json-schema:min-items))
