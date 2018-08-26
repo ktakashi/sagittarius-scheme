@@ -157,7 +157,8 @@
 	(let*-values (((scheme specific) (uri-scheme&specific id))
 		      ((auth path query frag)
 		       (uri-decompose-hierarchical specific)))
-	  (values scheme auth path query frag))
+	  ;; decode fragment for relative JSON pointer.
+	  (values scheme auth path query (and frag (uri-decode-string frag))))
 	(values #f #f #f #f #f)))
   (define-values (root-scheme root-auth root-path root-query root-frag)
     (parse-id root-id))
