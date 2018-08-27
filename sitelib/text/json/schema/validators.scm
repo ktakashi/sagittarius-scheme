@@ -247,6 +247,11 @@
 		   (vector-set! object i
 				(cons (car e) (resolve-reference (cdr e))))
 		   (loop (+ i 1) found? refs))
+		  ((and (list? (cdr e)) (for-all vector? (cdr e)))
+		   (vector-set! object i
+				(cons (car e)
+				      (map resolve-reference (cdr e))))
+		   (loop (+ i 1) found? refs))
 		  (else (loop (+ i 1) found? refs)))))))
   (when root-id (hashtable-set! ids root-id schema))
   (collect-ids schema)
