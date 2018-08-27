@@ -208,25 +208,26 @@
 	  ;; TODO handle external
 	  (and (*json-schema:resolve-external-schema?*)
 	       (retrieve-from-uri id))))
-    (let-values (((scheme auth path query frag)
-		  (parse-id (cdr e))))
-      (cond (scheme
-	     (or (refer-absolute (cdr e) #t)
-		 ;; okay as it as doesn't exist so try JSON pointer
-		 (let* ((uri (uri-compose :scheme scheme :authority auth
-					  :path path :query query))
-			(obj (refer-absolute uri #t)))
-		   (and obj
-			(or (and frag ((json-pointer frag) obj))
-			    obj)))))
-	    (path
-	     (let ((obj (refer-absolute (merge-id path) #f)))
-	       (and obj
-		    (or (and frag ((json-pointer frag) obj))
-			obj))))
-	    (frag ((json-pointer frag) schema))
-	    ;; should not happen, ...I think...
-	    (else (refer-absolute (cdr e) #f)))))
+    (and (string? (cdr e))
+	 (let-values (((scheme auth path query frag)
+		       (parse-id (cdr e))))
+	   (cond (scheme
+		  (or (refer-absolute (cdr e) #t)
+		      ;; okay as it as doesn't exist so try JSON pointer
+		      (let* ((uri (uri-compose :scheme scheme :authority auth
+					       :path path :query query))
+			     (obj (refer-absolute uri #t)))
+			(and obj
+			     (or (and frag ((json-pointer frag) obj))
+				 obj)))))
+		 (path
+		  (let ((obj (refer-absolute (merge-id path) #f)))
+		    (and obj
+			 (or (and frag ((json-pointer frag) obj))
+			     obj))))
+		 (frag ((json-pointer frag) schema))
+		 ;; should not happen, ...I think...
+		 (else (refer-absolute (cdr e) #f))))))
   (define (resolve-reference o)
     (define len (vector-length o))
     (define object (vector-copy o))
