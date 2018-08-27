@@ -503,7 +503,7 @@
       (let loop ((i 0) (found? #f) (ok? #t))
 	(cond ((= i len) (or (not found?) ok?))
 	      ((key=? (vector-ref vec i)) =>
-	       (lambda (k&v) (loop (+ i 1) #t (validator (cdr k&v)))))
+	       (lambda (k&v) (loop (+ i 1) #t (and ok? (validator (cdr k&v))))))
 	      (else (loop (+ i 1) found? ok?)))))
     (define (->key=? reg)
       (define rx (regex reg))
