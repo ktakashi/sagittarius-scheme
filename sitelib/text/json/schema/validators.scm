@@ -80,6 +80,7 @@
 	    resolve-$ref
 	    )
     (import (rnrs)
+	    (rnrs mutable-pairs)
 	    (text json validator)
 	    (text json pointer)
 	    (text json parse) ;; for *json-map-type*
@@ -98,6 +99,9 @@
 ;; they SHOULD offer an option to disable validation for this
 ;; ('format') keyword.
 (define *json-schema:validate-format?* (make-parameter #t))
+
+;; internal parameter to handle shared structure
+(define *validators* (make-parameter #f))
 
 (define-record-type json-schema-validator
   (parent <json-validator>)
@@ -125,9 +129,10 @@
   (cond ((vector? schema)
 	 (let* (($schema (value-of "$schema" schema +json-schema-uri+))
 		($id (value-of "$id" schema))
-		(resolved-schema (resolve-$ref $id schema)))
-	   (make-json-schema-validator (->json-validator resolved-schema)
-				       schema $schema $id)))
+		(resolved-schema (resolve-$ref $id (deep-copy schema))))
+	   (parameterize ((*validators* (make-eq-hashtable)))
+	     (make-json-schema-validator (->json-validator resolved-schema)
+					 schema $schema $id))))
 	((boolean? schema)
 	 ;; boolean is also a valid schema
 	 (make-json-schema-validator (boolean->validator schema)
@@ -135,6 +140,13 @@
 	(else (json-schema->json-validator (convert schema)))))
 
 ;; internal
+(define (deep-copy e)
+  ;; we copy the JSON object structure completely so that we can
+  ;; modify the vector destructively
+  (cond ((vector? e) (vector-map deep-copy e))
+	((pair? e) (cons (deep-copy (car e)) (deep-copy (cdr e))))
+	(else e)))
+		       
 ;; The $ref resolution takes the following 2 passes:
 ;;   1. collect and merge all $id's
 ;;   2. resolve $ref (incl. removing other properties)
@@ -155,6 +167,8 @@
 ;;
 ;; FIXME: This followes the tree twice 
 (define (resolve-$ref root-id schema)
+  (define seen (make-hashtable string-hash string=?))
+  (define seen2 (make-eq-hashtable))
   (define (parse-id id)
     (if id
 	(let*-values (((scheme specific) (uri-scheme&specific id))
@@ -177,19 +191,18 @@
 		       :query query :fragment frag))))
   (define (collect-ids object)
     (define (collect-id parent-object id)
-      (unless (string? id)
-	(assertion-violation 'json-schema->json-validator
-			     "$id must be a string" id))
-      (when (or (string=? "" id) (string=? "#" id))
-	(assertion-violation 'json-schema->json-validator
-			     "$id should not be an empty string or '#'" id))
-      ;; root-id might be #f so use equal? instead of string=?
-      (unless (equal? id root-id)
-	(hashtable-set! ids (merge-id id) parent-object)
-	;; FIXME parsing twice...
-	(let-values (((scheme auth path query frag) (parse-id id)))
-	  ;; if we have path, then this object belongs to the path
-	  (when path (set! current-path path)))))
+      ;; maybe $id as propery so we don't throw if it's not a string
+      (when (string? id)
+	(when (or (string=? "" id) (string=? "#" id))
+	  (assertion-violation 'json-schema->json-validator
+			       "$id should not be an empty string or '#'" id))
+	;; root-id might be #f so use equal? instead of string=?
+	(unless (equal? id root-id)
+	  (hashtable-set! ids (merge-id id) parent-object)
+	  ;; FIXME parsing twice...
+	  (let-values (((scheme auth path query frag) (parse-id id)))
+	    ;; if we have path, then this object belongs to the path
+	    (when path (set! current-path path))))))
     (let (($id (value-of "$id" object)))
       (when $id (collect-id object $id))
       (vector-for-each (lambda (e)
@@ -198,22 +211,24 @@
 			     (collect-ids (cdr e))
 			     (set! current-path current))))
 		       object)))
-  (define (handle-$ref e)
+  (define (handle-$ref ref)
     (define (retrieve-from-uri uri)
-      (guard (e (else (display e) (newline)#f))
-	(let ((in (open-uri uri)))
-	  (call-with-port (transcoded-port in (native-transcoder)) json-read))))
+      (guard (e (else #f))
+	(let* ((schema (call-with-port (transcoded-port (open-uri uri)
+							(native-transcoder))
+				       json-read))
+	       ($id (value-of "$id" schema)))
+	  (resolve-$ref $id schema))))
     (define (refer-absolute id maybe-external?)
       (or (hashtable-ref ids id)
 	  (hashtable-ref ids (string-append id "#")) ;; check with fragment
-	  ;; TODO handle external
 	  (and (*json-schema:resolve-external-schema?*)
 	       (retrieve-from-uri id))))
-    (and (string? (cdr e))
+    (and (string? ref)
 	 (let-values (((scheme auth path query frag)
-		       (parse-id (cdr e))))
+		       (parse-id ref)))
 	   (cond (scheme
-		  (or (refer-absolute (cdr e) #t)
+		  (or (refer-absolute ref #t)
 		      ;; okay as it as doesn't exist so try JSON pointer
 		      (let* ((uri (uri-compose :scheme scheme :authority auth
 					       :path path :query query))
@@ -228,57 +243,76 @@
 			     obj))))
 		 (frag ((json-pointer frag) schema))
 		 ;; should not happen, ...I think...
-		 (else (refer-absolute (cdr e) #f))))))
-  (define (resolve-reference o)
-    (define len (vector-length o))
-    (define object (vector-copy o))
-    (let loop ((i 0) (found? #f) (refs '()))
+		 (else (refer-absolute ref #f))))))
+  (define (resolve-reference object)
+    (define len (vector-length object))
+    (define (handle-recursive-$ref v)
+      (cond ((not (string? v)))
+	    ((hashtable-ref seen v #f))
+	    (else
+	     (let ((resolved (handle-$ref v)))
+	       (hashtable-set! seen v resolved)
+	       (if (vector? resolved)
+		   (resolve-reference resolved)
+		   resolved)))))
+
+    (let loop ((i 0) (refs '()))
       (if (= len i)
-	  (if found?
-	      (vector-concatenate refs)
-	      object)
+	  (if (null? refs)
+	      object
+	      (vector-concatenate refs))
 	  (let ((e (vector-ref object i)))
-	    (cond ((string=? "$ref" (car e))
-		   (let ((resolved (handle-$ref e)))
-		     (if (vector? resolved)
-			 (loop (+ i 1) #t (cons resolved refs))
-			 (loop (+ i 1) #t refs))))
-		  ((vector? (cdr e))
-		   (vector-set! object i
-				(cons (car e) (resolve-reference (cdr e))))
-		   (loop (+ i 1) found? refs))
-		  ((and (list? (cdr e)) (for-all vector? (cdr e)))
-		   (vector-set! object i
-				(cons (car e)
-				      (map resolve-reference (cdr e))))
-		   (loop (+ i 1) found? refs))
-		  (else (loop (+ i 1) found? refs)))))))
+	    (cond ((hashtable-ref seen2 e #f) (loop (+ i 1) refs))
+		  (else
+		   (hashtable-set! seen2 e #t)
+		   (cond ((string=? "$ref" (car e))
+			  (let ((resolved (handle-recursive-$ref (cdr e))))
+			    (if (vector? resolved)
+				(loop (+ i 1) (cons resolved refs))
+				(loop (+ i 1) refs))))
+			 ((vector? (cdr e))
+			  (set-cdr! e (resolve-reference (cdr e)))
+			  (loop (+ i 1) refs))
+			 ((and (list? (cdr e)) (for-all vector? (cdr e)))
+			  (set-cdr! e (map resolve-reference (cdr e)))
+			  (loop (+ i 1) refs))
+			 (else (loop (+ i 1) refs)))))))))
   (when root-id (hashtable-set! ids root-id schema))
   (collect-ids schema)
   (resolve-reference schema))
 
 (define (->json-validator schema)
-  (define ignore (make-hashtable string-hash string=?))
-  (vector-fold
-   (lambda (combined-validator e)
-     ;; TODO consider schema version
-     (cond ((and (not (hashtable-contains? ignore (car e)))
-		 (assoc (car e) +json-schema-validators+)) =>
-	    (lambda (slot)
-	      (cond ((cadr slot) =>
-		     (lambda (g)
-		       ;; some of the validators are pretty much associated
-		       ;; if this is such a propety, then it should have the
-		       ;; ignore list behind the slot, so add them.
-		       (for-each (lambda (i) (hashtable-set! ignore i #t))
-				 (cddr slot))
-		       (let ((validator (g schema (cdr e))))
-			 (lambda (e)
-			   (and (combined-validator e) (validator e))))))
-		    ;; for unknown property we ignore
-		    (else combined-validator))))
-	   (else combined-validator)))
-   (lambda (e) #t) schema))
+  (define (generate-validator schema)
+    (define ignore (make-hashtable string-hash string=?))
+    (vector-fold
+     (lambda (combined-validator e)
+       ;; TODO consider schema version
+       (cond ((and (not (hashtable-contains? ignore (car e)))
+		   (assoc (car e) +json-schema-validators+)) =>
+	      (lambda (slot)
+		(cond ((cadr slot) =>
+		       (lambda (g)
+			 ;; some of the validators are pretty much
+			 ;; associated if this is such a propety, then
+			 ;; it should have the ignore list behind the
+			 ;; slot, so add them.
+			 (for-each (lambda (i) (hashtable-set! ignore i #t))
+				   (cddr slot))
+			 (let ((validator (g schema (cdr e))))
+			   (lambda (e)
+			     (and (combined-validator e) (validator e))))))
+		      ;; for unknown property we ignore
+		      (else combined-validator))))
+	     (else combined-validator)))
+     (lambda (e) #t) schema))
+  (define validators (*validators*))
+  (cond ((hashtable-ref validators schema #f))
+	(else
+	 (hashtable-set! validators schema
+			 (lambda (e) (hashtable-ref validators schema #f)))
+	 (let ((validator (generate-validator schema)))
+	   (hashtable-set! validators schema validator)
+	   validator))))
 
 (define (schema? v) (or (boolean? v) (vector? v)))
 (define (schema->validator who schema)
