@@ -35,6 +35,9 @@
 (library (text json schema)
     (export json-schema->json-validator json-schema-validator?
 	    json-schema-validator-id json-schema-validator-schema
-	    json-schema-validator-source)
+	    json-schema-validator-source
+	    *json-schema:resolve-external-schema?*
+	    *json-schema:validate-format?*
+	    )
     ;; TODO add hyperlink and so
     (import (text json schema validators)))

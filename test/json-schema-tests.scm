@@ -8,6 +8,7 @@
 	(sagittarius socket)
 	(sagittarius regex)
 	(util file)
+	(srfi :39)
 	(srfi :133)
 	(chibi test))
 
@@ -69,7 +70,8 @@
 
 (test-begin "JSON Schema test")
 
-(for-each run-schema-tests files)
+(parameterize ((*json-schema:resolve-external-schema?* #t))
+  (for-each run-schema-tests files))
 
 (test-end)
 

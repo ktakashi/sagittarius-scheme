@@ -74,6 +74,7 @@
 	    json-schema:not
 
 	    json-schema:format
+	    *json-schema:resolve-external-schema?*
 	    *json-schema:validate-format?*
 	    ;; for testing
 	    resolve-$ref
@@ -92,7 +93,7 @@
 	    (srfi :39 parameters)
 	    (srfi :133 vectors))
 
-(define *json-schema:resolve-external-schema?* (make-parameter #t))
+(define *json-schema:resolve-external-schema?* (make-parameter #f))
 ;;; 7.2. Implementation Requirements
 ;; they SHOULD offer an option to disable validation for this
 ;; ('format') keyword.
