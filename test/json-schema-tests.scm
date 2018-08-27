@@ -37,7 +37,6 @@
 		   (else (put-string in/out "HTTP/1.1 404 Not Found\r\n\r\n")))))
 	  (else (put-string in/out "HTTP/1.1 404 Not Found\r\n\r\n")))))
 (define server (make-simple-server "1234" http-handler))
-(server-start! server :background #t)
 
 (define data-directory "JSON-Schema-Test-Suite/tests/draft7/")
 (define files
@@ -70,9 +69,10 @@
 
 (test-begin "JSON Schema test")
 
+(server-start! server :background #t)
 (parameterize ((*json-schema:resolve-external-schema?* #t))
   (for-each run-schema-tests files))
-
-(test-end)
-
 (server-stop! server)
+
+(test-exit)
+

@@ -40,3 +40,7 @@ jobs:
            name: Test
            working_directory: ~/project/sagittarius-scheme
            command: make test
+       - run:
+           name: JSON Schema test
+           working_directory: ~/project/sagittarius-scheme
+           command: make test-json-schema
