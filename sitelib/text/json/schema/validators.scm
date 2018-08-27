@@ -87,10 +87,12 @@
 	    (sagittarius control)
 	    (rfc uri)
 	    (rfc smtp format) ;; for smtp-valid-address?
+	    (util uri)
 	    (srfi :1 lists)
 	    (srfi :39 parameters)
 	    (srfi :133 vectors))
 
+(define *json-schema:resolve-external-schema?* (make-parameter #t))
 ;;; 7.2. Implementation Requirements
 ;; they SHOULD offer an option to disable validation for this
 ;; ('format') keyword.
@@ -196,11 +198,16 @@
 			     (set! current-path current))))
 		       object)))
   (define (handle-$ref e)
+    (define (retrieve-from-uri uri)
+      (guard (e (else (display e) (newline)#f))
+	(let ((in (open-uri uri)))
+	  (call-with-port (transcoded-port in (native-transcoder)) json-read))))
     (define (refer-absolute id maybe-external?)
       (or (hashtable-ref ids id)
 	  (hashtable-ref ids (string-append id "#")) ;; check with fragment
 	  ;; TODO handle external
-	  ))
+	  (and (*json-schema:resolve-external-schema?*)
+	       (retrieve-from-uri id))))
     (let-values (((scheme auth path query frag)
 		  (parse-id (cdr e))))
       (cond (scheme
@@ -539,13 +546,13 @@
       (lambda (e)
 	(and (not (exists (lambda (key=?) (key=? e)) props))
 	     (not (exists (lambda (key=?) (key=? e)) pprops))
-	     (cdr e))))
+	     e)))
     (lambda (e)
       (define len (vector-length e))
-      (let loop ((i 0) (ok? #f) (found? #f))
+      (let loop ((i 0) (ok? #t) (found? #f))
 	(cond ((= i len) (or (not found?) ok?))
 	      ((pred (vector-ref e i)) =>
-	       (lambda (v) (loop (+ i 1) (validator v) #t)))
+	       (lambda (v) (loop (+ i 1) (and ok? (validator (cdr v))) #t)))
 	      (else (loop (+ i 1) ok? found?))))))
 
   (let-values (((props validator) (object->validator properties #f))
