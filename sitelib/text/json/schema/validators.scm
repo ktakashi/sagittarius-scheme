@@ -343,11 +343,17 @@
 ;;; 6.2. Validation Keywords for Numeric Instances (number and integer)
 ;; 6.2.1 multipleOf
 (define (json-schema:multiple-of v)
+  (define (->integer e v)
+    (if (not (or (integer? e) (integer? v)))
+	(->integer (* e 10) (* v 10))
+	(values e v)))
   (unless (and (real? v) (positive? v))
     (assertion-violation 'json-schema:multiple-of
 			 "MultipleOf must be a number greater than 0" v))
   (lambda (e)
-    (and (real? e) (zero? (mod e v)))))
+    (and (real? e)
+	 (let-values (((e v) (->integer e v)))
+	   (zero? (mod e v))))))
 
 ;; 6.2.2. maximum
 (define (json-schema:maximum v)
