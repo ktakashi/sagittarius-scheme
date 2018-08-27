@@ -85,6 +85,7 @@
 	    (text json pointer)
 	    (text json parse) ;; for *json-map-type*
 	    (text json convert)
+	    (sagittarius)
 	    (sagittarius regex)
 	    (sagittarius control)
 	    (rfc uri)
@@ -224,26 +225,27 @@
 	  (hashtable-ref ids (string-append id "#")) ;; check with fragment
 	  (and (*json-schema:resolve-external-schema?*)
 	       (retrieve-from-uri id))))
-    (and (string? ref)
-	 (let-values (((scheme auth path query frag)
-		       (parse-id ref)))
-	   (cond (scheme
-		  (or (refer-absolute ref #t)
-		      ;; okay as it as doesn't exist so try JSON pointer
-		      (let* ((uri (uri-compose :scheme scheme :authority auth
-					       :path path :query query))
-			     (obj (refer-absolute uri #t)))
-			(and obj
-			     (or (and frag ((json-pointer frag) obj))
-				 obj)))))
-		 (path
-		  (let ((obj (refer-absolute (merge-id path) #f)))
-		    (and obj
-			 (or (and frag ((json-pointer frag) obj))
-			     obj))))
-		 (frag ((json-pointer frag) schema))
-		 ;; should not happen, ...I think...
-		 (else (refer-absolute ref #f))))))
+    (if (string? ref)
+	(let-values (((scheme auth path query frag)
+		      (parse-id ref)))
+	  (cond (scheme
+		 (or (refer-absolute ref #t)
+		     ;; okay as it as doesn't exist so try JSON pointer
+		     (let* ((uri (uri-compose :scheme scheme :authority auth
+					      :path path :query query))
+			    (obj (refer-absolute uri #t)))
+		       (if obj
+			   (or (and frag ((json-pointer frag) obj)) obj)
+			   (eof-object)))))
+		(path
+		 (let ((obj (refer-absolute (merge-id path) #f)))
+		   (if obj
+		       (or (and frag ((json-pointer frag) obj)) obj)
+		       (eof-object))))
+		(frag ((json-pointer frag) schema))
+		;; should not happen, ...I think...
+		(else (or (refer-absolute ref #f) (eof-object)))))
+	(eof-object)))
   (define (resolve-reference object)
     (define len (vector-length object))
     (define (handle-recursive-$ref v)
@@ -267,9 +269,17 @@
 		   (hashtable-set! seen2 e #t)
 		   (cond ((string=? "$ref" (car e))
 			  (let ((resolved (handle-recursive-$ref (cdr e))))
-			    (if (vector? resolved)
-				(loop (+ i 1) (cons resolved refs))
-				(loop (+ i 1) refs))))
+			    (cond ((or (json-pointer-not-found? resolved)
+				       (eof-object? resolved))
+				   (loop (+ i 1) refs))
+				  ((boolean? resolved)
+				   ;; for covenience
+				   (if resolved
+				       (loop (+ i 1) refs)
+				       (loop (+ i 1)
+					     (cons '#(("not" . #())) refs))))
+				  (else
+				   (loop (+ i 1) (cons resolved refs))))))
 			 ((vector? (cdr e))
 			  (set-cdr! e (resolve-reference (cdr e)))
 			  (loop (+ i 1) refs))
@@ -309,7 +319,8 @@
   (cond ((hashtable-ref validators schema #f))
 	(else
 	 (hashtable-set! validators schema
-			 (lambda (e) (hashtable-ref validators schema #f)))
+			 (lambda (e)
+			   ((hashtable-ref validators schema #f) e)))
 	 (let ((validator (generate-validator schema)))
 	   (hashtable-set! validators schema validator)
 	   validator))))
