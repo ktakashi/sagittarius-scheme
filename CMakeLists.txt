@@ -712,6 +712,7 @@ ADD_CUSTOM_TARGET(test-json-schema
 	  -L${PROJECT_SOURCE_DIR}
 	  -L${PROJECT_SOURCE_DIR}/lib
 	  -L${PROJECT_SOURCE_DIR}/sitelib
+	  -L${PROJECT_SOURCE_DIR}/ext/*
 	  -L${PROJECT_SOURCE_DIR}/test/r7rs-tests
 	  ${PROJECT_SOURCE_DIR}/test/json-schema-tests.scm
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/test)
