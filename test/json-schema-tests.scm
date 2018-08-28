@@ -74,5 +74,6 @@
   (for-each run-schema-tests files))
 (server-stop! server)
 
+(test-end)
 (test-exit)
 
