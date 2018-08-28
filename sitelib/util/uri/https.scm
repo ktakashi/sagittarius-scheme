@@ -32,7 +32,7 @@
 (library (util uri https)
     (export open-uri)
     (import (rnrs)
-	    (prefix (util uri http) http:)
+	    (prefix (util uri http) http:))
 
 (define (open-uri uri . opts) (apply http:open-uri uri :secure? #t opts))
 )
