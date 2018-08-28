@@ -101,8 +101,9 @@
 (define *json-schema:validate-format?* (make-parameter #t))
 
 ;; internal parameter to handle shared structure
-(define *validators* (make-parameter #f))
-(define *referencing-validators* (make-parameter #f))
+;; for unit test we need to have default hashtable
+(define *validators* (make-parameter (make-eq-hashtable)))
+(define *referencing-validators* (make-parameter (make-eq-hashtable)))
   
 (define-record-type json-schema-validator
   (parent <json-validator>)
@@ -305,10 +306,11 @@
   (resolve-reference schema))
 
 (define (->json-validator schema)
+  (define referencing-validators (*referencing-validators*))
   (define (generate-validator schema)
     (define ignore (make-hashtable string-hash string=?))
     (define (reference-validator id)
-      (hashtable-ref (*referencing-validators*) id #f))
+      (hashtable-ref referencing-validators id #f))
     (vector-fold
      (lambda (combined-validator e)
        ;; TODO consider schema version
