@@ -85,7 +85,6 @@
 	    (text json pointer)
 	    (text json parse) ;; for *json-map-type*
 	    (text json convert)
-	    (sagittarius)
 	    (sagittarius regex)
 	    (sagittarius control)
 	    (rfc uri)
@@ -103,7 +102,8 @@
 
 ;; internal parameter to handle shared structure
 (define *validators* (make-parameter #f))
-
+(define *referencing-validators* (make-parameter #f))
+  
 (define-record-type json-schema-validator
   (parent <json-validator>)
   (fields source ;; RAW sexp JSON (vector)
@@ -120,18 +120,31 @@
 	  (else default)))))
 
 (define +json-schema-uri+  "http://json-schema.org/schema#")
-(define (json-schema->json-validator schema)
+(define (json-schema->json-validator schema . referencing-validators)
   (define (convert schema)
     (let ((r (alist-json->vector-json schema)))
       (unless (vector? r)
 	(assertion-violation 'json-schema->json-validator
 			     "JSON object is required" schema))
       r))
+  (define (->validator-map)
+    (unless (for-all json-schema-validator? referencing-validators)
+      (assertion-violation 'json-schema->json-validator
+       "referencing-validators must be a list of json-schema-validators"
+       referencing-validators))
+    (let ((ht (make-hashtable equal-hash equal?)))
+      (for-each (lambda (v)
+		  (hashtable-set! ht (json-schema-validator-id v)
+				  (json-validator-validator v)))
+		referencing-validators)
+      ht))
+
   (cond ((vector? schema)
 	 (let* (($schema (value-of "$schema" schema +json-schema-uri+))
 		($id (value-of "$id" schema))
 		(resolved-schema (resolve-$ref $id (deep-copy schema))))
-	   (parameterize ((*validators* (make-eq-hashtable)))
+	   (parameterize ((*validators* (make-eq-hashtable))
+			  (*referencing-validators* (->validator-map)))
 	     (make-json-schema-validator (->json-validator resolved-schema)
 					 schema $schema $id))))
 	((boolean? schema)
@@ -294,6 +307,8 @@
 (define (->json-validator schema)
   (define (generate-validator schema)
     (define ignore (make-hashtable string-hash string=?))
+    (define (reference-validator id)
+      (hashtable-ref (*referencing-validators*) id #f))
     (vector-fold
      (lambda (combined-validator e)
        ;; TODO consider schema version
@@ -313,6 +328,9 @@
 			     (and (combined-validator e) (validator e))))))
 		      ;; for unknown property we ignore
 		      (else combined-validator))))
+	     ((and (equal? (car e) "$ref") (reference-validator (cdr e))) =>
+	      (lambda (validator)
+		(lambda (e) (and (combined-validator e) (validator e)))))
 	     (else combined-validator)))
      (lambda (e) #t) schema))
   (define validators (*validators*))

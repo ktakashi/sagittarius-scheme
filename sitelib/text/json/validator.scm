@@ -33,7 +33,7 @@
 (library (text json validator)
     (export (rename (json-validator <json-validator>))
 	    make-json-validator json-validator?
-
+	    json-validator-validator
 	    validate-json)
     (import (rnrs))
 
