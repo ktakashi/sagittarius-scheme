@@ -76,6 +76,16 @@
 	    json-schema:format
 	    *json-schema:resolve-external-schema?*
 	    *json-schema:validate-format?*
+	    *json-schema-validator-error-reporter*
+	    *json-schema-lint-mode?*
+
+	    json-schema-report?
+	    json-schema-report-path
+	    json-schema-report-target
+	    json-schema-report-parameter
+	    simple-json-schema-error-reporter
+	    *json-schema-report-port*
+
 	    ;; for testing
 	    resolve-$ref
 	    )
@@ -104,13 +114,57 @@
 ;; for unit test we need to have default hashtable
 (define *validators* (make-parameter (make-eq-hashtable)))
 (define *referencing-validators* (make-parameter (make-eq-hashtable)))
-  
+
+;; reporting parameter
+;; json pointer
+(define *current-path* (make-parameter ""))
+;; reporter we don't do anything by default
+(define *json-schema-validator-error-reporter* (make-parameter #f))
+(define *json-schema-report-port* (make-parameter #f))
+(define *json-schema-lint-mode?* (make-parameter #f))
+
+(define-condition-type &json-schema-report &condition
+  make-json-schema-report json-schema-report?
+  (path json-schema-report-path)
+  (target json-schema-report-target)
+  (parameter json-schema-report-parameter))
+
+(define (report obj parameter)
+  (raise-continuable
+   (make-json-schema-report (*current-path*) obj parameter)))
+(define (build-pointer base next)
+  (string-append base "/" (if (number? next) (number->string next) next)))
+
+(define (simple-json-schema-error-reporter e)
+  (define out (or (*json-schema-report-port*) (current-error-port)))
+  (display (json-schema-report-path e) out) (newline out)
+  (display "\tobject: " out) (write (json-schema-report-target e) out)
+  (newline out)
+  (let ((parameter (json-schema-report-parameter e)))
+    (display "\t" out)
+    (display (car parameter) out) (display ": " out)
+    (display (cadr parameter) out) (newline out)))
+      
+(define (reporting-validator validator)
+  (lambda (e)
+    (let ((reporter (*json-schema-validator-error-reporter*)))
+      (if reporter
+	  (with-exception-handler
+	   (lambda (e)
+	     (unless (json-schema-report? e) (raise e))
+	     (reporter e)
+	     (*json-schema-lint-mode?*))
+	   (lambda () (validator e)))
+	  (validator e)))))
 (define-record-type json-schema-validator
   (parent <json-validator>)
   (fields source ;; RAW sexp JSON (vector)
 	  schema ;; $schema
 	  id	 ;; $id
-	  ))
+	  )
+  (protocol (lambda (n)
+	      (lambda (validator source schema id)
+		((n (reporting-validator validator)) source schema id)))))
 
 (define (key=? key) (lambda (e) (and (pair? e) (string=? (car e) key) e)))
 (define value-of
@@ -386,22 +440,27 @@
     (unless (unique? type string=?)
       (assertion-violation 'json-schema:type
 			   "Array type contains duplicate value" type)))
+  (define (predicate-of type)
+    (cond ((string=? "string" type) string?)
+	  ((string=? "integer" type) integer?)
+	  ((string=? "number" type) real?)	;; TODO exclude rational?)
+	  ;; we use vector json for validation
+	  ;; TODO should we check content?
+	  ((string=? "object" type) vector?)
+	  ((string=? "array" type) list?)
+	  ((string=? "boolean" type) boolean?)
+	  ((string=? "null" type) (lambda (e) (eq? e 'null)))
+	  (else (assertion-violation 'json-schema:type "Unknown type"))))
+  (define (wrap-report v)
+    (lambda (e) (or (v e) (report e `(type, type)))))
   (cond ((list? type)
 	 (check type)
-	 (fold-left (lambda (acc t)
-		      (let ((v (json-schema:type t)))
-			(lambda (e) (or (v e) (acc e))))) (lambda (e) #f) type))
-	((string? type)
-	 (cond ((string=? "string" type) string?)
-	       ((string=? "integer" type) integer?)
-	       ((string=? "number" type) real?)	;; TODO exclude rational?)
-	       ;; we use vector json for validation
-	       ;; TODO should we check content?
-	       ((string=? "object" type) vector?)
-	       ((string=? "array" type) list?)
-	       ((string=? "boolean" type) boolean?)
-	       ((string=? "null" type) (lambda (e) (eq? e 'null)))
-	       (else (assertion-violation 'json-schema:type "Unknown type"))))
+	 (wrap-report
+	  (fold-left 
+	   (lambda (acc t)
+	     (let ((v (predicate-of t)))
+	       (lambda (e) (or (v e) (acc e))))) (lambda (e) #f) type)))
+	((string? type) (wrap-report (predicate-of type)))
 	(else (assertion-violation 'json-schema:type
 				   "Type must be array or string" type))))
 
@@ -414,10 +473,13 @@
   (unless (unique? vals)
     (assertion-violation 'json-schema:enum
 			 "Enum should contain unique value" vals))
-  (lambda (e) (exists (lambda (v) (json=? e v)) vals)))
+  (lambda (e)
+    (or (exists (lambda (v) (json=? e v)) vals)
+	(report e `(enum ,vals)))))
 
 ;; 6.1.3 const
-(define (json-schema:const v) (lambda (e) (json=? e v)))
+(define (json-schema:const v)
+  (lambda (e) (or (json=? e v) (report e `(const v)))))
 
 ;;; 6.2. Validation Keywords for Numeric Instances (number and integer)
 ;; 6.2.1 multipleOf
@@ -430,32 +492,27 @@
     (assertion-violation 'json-schema:multiple-of
 			 "MultipleOf must be a number greater than 0" v))
   (lambda (e)
-    (and (real? e)
-	 (let-values (((e v) (->integer e v)))
-	   (zero? (mod e v))))))
+    (or (and (real? e)
+	     (let-values (((e v) (->integer e v)))
+	       (zero? (mod e v))))
+	(report e `(multiple-of ,v)))))
 
+(define (min/max who compare)
+  (define name (symbol->string who))
+  (define err-who (string->symbol (string-append "json-schema:" name)))
+  (define err-msg (string-append (string-titlecase name) " must be a number"))
+  (lambda (v)
+    (unless (real? v) (assertion-violation err-who err-msg v))
+    (lambda (e)
+      (or (and (real? e) (compare e v)) (report e `(,who ,v))))))
 ;; 6.2.2. maximum
-(define (json-schema:maximum v)
-  (unless (real? v)
-    (assertion-violation 'json-schema:maximum "Maximum must be a number" v))
-  (lambda (e) (and (real? e) (<= e v))))
+(define json-schema:maximum (min/max 'maximum <=))
 ;; 6.2.3. exclusiveMaximum
-(define (json-schema:exclusive-maximum v)
-  (unless (real? v)
-    (assertion-violation 'json-schema:exclusive-maximum
-			 "ExclusiveMaximum must be a number" v))
-  (lambda (e) (and (real? e) (< e v))))
+(define json-schema:exclusive-maximum (min/max 'exclusive-maximum <))
 ;; 6.2.4. minimum
-(define (json-schema:minimum v)
-  (unless (real? v)
-    (assertion-violation 'json-schema:minimum "Minimum must be a number" v))
-  (lambda (e) (and (real? e) (<= v e))))
+(define json-schema:minimum (min/max 'minimum >=))
 ;; 6.2.5. exclusiveMinimum
-(define (json-schema:exclusive-minimum v)
-  (unless (real? v)
-    (assertion-violation 'json-schema:exclusive-minimum
-			 "ExclusiveMinimum must be a number" v))
-  (lambda (e) (and (real? e) (< v e))))
+(define json-schema:exclusive-minimum (min/max 'exclusive-minimum >))
 
 ;;; 6.3. Validation Keywords for Strings
 ;; 6.3.1. maxLength
@@ -463,13 +520,17 @@
   (when (or (not (integer? v)) (negative? v))
     (assertion-violation 'json-schema:max-length
 			 "maxLength must be a non negative integer" v))
-  (lambda (e) (and (string? e) (<= (string-length e) v))))
+  (lambda (e)
+    (or (and (string? e) (<= (string-length e) v))
+	(report e `(max-length ,v)))))
 ;; 6.3.2. minLength
 (define (json-schema:min-length v)
   (when (or (not (integer? v)) (negative? v))
     (assertion-violation 'json-schema:min-length
 			 "minLength must be a non negative integer" v))
-  (lambda (e) (and (string? e) (<= v (string-length e)))))
+  (lambda (e)
+    (or (and (string? e) (<= v (string-length e)))
+	(report e `(min-length ,v)))))
 ;; 6.3.3. pattern
 (define (json-schema:pattern p)
   (unless (string? p)
@@ -478,11 +539,11 @@
 	     (assertion-violation 'json-schema:pattern
 				  (if (message-condition? e)
 				      (condition-message e)
-				      "Invalid regex pattern")
-				  p)))
+				      "Invalid regex pattern") p)))
     (let ((rx (regex p)))
       (lambda (e)
-	(and (string? e) (looking-at rx e) #t)))))
+	(or (and (string? e) (looking-at rx e) #t)
+	    (report e `(pattern ,p)))))))
 
 ;;; 6.4. Validation Keywords for Arrays
 ;; 6.4.1. items
@@ -492,24 +553,37 @@
   (define (get-additional-validator schema)
     (if (vector? schema)
 	(->validator (value-of "additionalItems" schema #t))
-	#t))
-  
-  (cond ((boolean? items) (lambda (e*) (or (null? e*) items)))
+	(boolean->validator #t)))
+  (define (validate path i validator e)
+    (parameterize ((*current-path* (build-pointer path i)))
+      ;; TODO should we also add definition of items, etc. for report here?
+      (validator e)))
+  (define (validate-elements path validator i e*)
+    (let loop ((i i) (e* e*))
+      (cond ((null? e*))
+	    ((validate path i validator (car e*)) (loop (+ i 1) (cdr e*)))
+	    (else #f))))
+  (cond ((boolean? items)
+	 (lambda (e*) (or (null? e*) items (report e* `(items ,items)))))
 	((and (list? items) (for-all schema? items))
 	 (let ((additional-validator (get-additional-validator schema))
 	       (validators
 		(map (lambda (i) (schema->validator 'json-schema:items i))
 		     items)))
 	   (lambda (e*)
-	     (let loop ((e* e*) (validators validators))
-	       (cond ((null? e*) #t)
-		     ((null? validators) (for-all additional-validator e*))
-		     (else (and ((car validators) (car e*))
-				(loop (cdr e*) (cdr validators)))))))))
+	     (define current-path (*current-path*))
+	     (let loop ((i 0) (e* e*) (validators validators))
+	       (cond ((null? e*))
+		     ((null? validators)
+		      (validate-elements current-path
+					 additional-validator i e*))
+		     (else
+		      (and (validate current-path i (car validators) (car e*))
+			   (loop (+ i 1) (cdr e*) (cdr validators)))))))))
 	((vector? items)
 	 (let ((validator (->validator items)))
 	   (lambda (e*)
-	     (for-all validator e*))))
+	     (validate-elements (*current-path*) validator 0 e*))))
 	(else
 	 (assertion-violation 'json-schema:items
 	  "Items must be a JSON schema or array of JSON schema" items))))
@@ -518,25 +592,28 @@
   (when (or (not (integer? n)) (negative? n))
     (assertion-violation 'json-schema:max-items
 			 "maxItems must be a non negative integer" n))
-  (lambda (e) (and (list? e) (<= (length e) n))))
+  (lambda (e)
+    (or (and (list? e) (<= (length e) n)) (report e `(max-items ,n)))))
 ;; 6.4.4. minItems
 (define (json-schema:min-items n)
   (when (or (not (integer? n)) (negative? n))
     (assertion-violation 'json-schema:max-items
 			 "minItems must be a non negative integer" n))
-  (lambda (e) (and (list? e) (<= n (length e)))))
+  (lambda (e)
+    (or (and (list? e) (<= n (length e))) (report e `(min-items ,n)))))
 ;; 6.4.5. uniqueItems
 (define (json-schema:unique-items b)
   (unless (boolean? b)
     (assertion-violation 'json-schema:unique-items
 			 "uniqueItems must be a boolean" b))
   (if b
-      (lambda (e) (and (list? e) (unique? e)))
+      (lambda (e)
+	(or (and (list? e) (unique? e)) (report e `(unique-items ,b))))
       (lambda (e) #t)))
 ;; 6.4.6. contains
 (define (json-schema:contains value)
   (let ((validator (schema->validator 'json-schema:contains value)))
-    (lambda (e) (exists validator e))))
+    (lambda (e) (or (exists validator e) (report e `(contains ,value))))))
 
 ;;; 6.5. Validation Keywords for Objects
 ;; 6.5.1. maxProperties
@@ -544,30 +621,36 @@
   (when (or (not (integer? n)) (negative? n))
     (assertion-violation 'json-schema:max-properties
 			 "maxProperties must be a non negative integer" n))
-  (lambda (e) (and (vector? e) (<= (vector-length e) n))))
+  (lambda (e)
+    (or (and (vector? e) (<= (vector-length e) n))
+	(report e `(max-properties ,n)))))
 ;; 6.5.2. minProperties
 (define (json-schema:min-properties n)
   (when (or (not (integer? n)) (negative? n))
     (assertion-violation 'json-schema:min-properties
 			 "minProperties must be a non negative integer" n))
-  (lambda (e) (and (vector? e) (<= n (vector-length e)))))
+  (lambda (e)
+    (or (and (vector? e) (<= n (vector-length e)))
+	(report e `(min-properties ,n)))))
 ;; 6.5.3. required
 (define (json-schema:required e*)
   (unless (and (list? e*) (for-all string? e*) (unique? e*))
     (assertion-violation 'json-schema:required
 			 "Required must be an array of unique strings" e*))
   (lambda (e)
-    (and (vector? e)
-	 ;; TODO inefficient
-	 (for-all (lambda (k)
-		    (vector-any
-		     (lambda (v)
-		       ;; not sure if we need to handle invalid JSON
-		       ;; structure...
-		       (and (pair? v) (string? (car v)) (string=? (car v) k)))
-		     e))
-		  e*))))
-
+    (or (and (vector? e)
+	     ;; TODO inefficient
+	     (for-all (lambda (k)
+			(vector-any
+			 (lambda (v)
+			   ;; not sure if we need to handle invalid JSON
+			   ;; structure...
+			   (and (pair? v) (string? (car v)) 
+				(string=? (car v) k)))
+			 e))
+		      e*))
+	(report e `(required ,e*)))))
+  
 ;; 6.5.4. properties
 ;; 6.5.5. patternProperties
 ;; 6.5.6. additionalProperties
@@ -582,13 +665,21 @@
 
   (define (->validator schema)
     (schema->validator 'json-schema:properties schema))
+  (define (validate path validator key value)
+    (parameterize ((*current-path* (build-pointer path key)))
+      ;; TODO should we also add definition of properties, etc for report here?
+      (validator value)))
   (define (object->validator obj regex?)
     (define (check vec key=? validator)
       (define len (vector-length vec))
+      (define path (*current-path*))
       (let loop ((i 0) (found? #f) (ok? #t))
 	(cond ((= i len) (or (not found?) ok?))
 	      ((key=? (vector-ref vec i)) =>
-	       (lambda (k&v) (loop (+ i 1) #t (and ok? (validator (cdr k&v))))))
+	       (lambda (k&v)
+		 (loop (+ i 1) #t
+		       (and ok? (validate path validator
+					  (car k&v) (cdr k&v))))))
 	      (else (loop (+ i 1) found? ok?)))))
     (define (->key=? reg)
       (define rx (regex reg))
@@ -621,10 +712,13 @@
 	     e)))
     (lambda (e)
       (define len (vector-length e))
+      (define path (*current-path*))
       (let loop ((i 0) (ok? #t) (found? #f))
 	(cond ((= i len) (or (not found?) ok?))
 	      ((pred (vector-ref e i)) =>
-	       (lambda (v) (loop (+ i 1) (and ok? (validator (cdr v))) #t)))
+	       (lambda (v)
+		 (loop (+ i 1)
+		       (and ok? (validate path validator (car v) (cdr v))) #t)))
 	      (else (loop (+ i 1) ok? found?))))))
 
   (let-values (((props validator) (object->validator properties #f))
@@ -662,9 +756,8 @@
 		   (lambda (e)
 		     (let ((v (value-of prop e (eof-object))))
 		       (and (combined e)
-			    (if (not (eof-object? v))
-				(dependency e)
-				#t))))))
+			    (or (eof-object? v)
+				(dependency e)))))))
 	       (boolean->validator #t) v))
 ;; 6.5.8. propertyNames
 (define (json-schema:property-names v)
@@ -673,11 +766,16 @@
 			 "PropertyNames must be a JSON schema"))
   (let ((validator (schema->validator 'json-schema:propperty-names v)))
     (lambda (e)
+      (define path (*current-path*))
+      (define (validate path validator k)
+	(parameterize ((*current-path* (build-pointer path k)))
+	  (or (validator k)
+	      (report k `(property-names ,v)))))
       (vector-every (lambda (k&v)
 		      ;; the key must always be a string, otherwise it's an
 		      ;; invalid JSON but we don't check that 
 		      (or (not (string? (car k&v)))
-			  (validator (car k&v)))) e))))
+			  (validate path validator (car k&v)))) e))))
 
 ;;; 6.6. Keywords for Applying Subschemas Conditionally
 (define (json-schema:if schema v)

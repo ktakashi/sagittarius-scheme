@@ -6,9 +6,15 @@
 (test-begin "JSON Schema validators")
 
 (define (test-validator validator . expected*)
-  (for-each (lambda (e)
-	      (test-equal e (car e) (validator (cadr e))))
-	    expected*))
+  (define (wrap validator)
+    (lambda (e)
+      (with-exception-handler
+       (lambda (e) #f)
+       (lambda () (validator e)))))
+  (let ((wrapped-validator (wrap validator)))
+    (for-each (lambda (e)
+		(test-equal e (car e) (wrapped-validator (cadr e))))
+	      expected*)))
 
 ;; core
 (test-group "JSON Schema"
