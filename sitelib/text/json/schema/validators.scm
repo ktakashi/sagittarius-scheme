@@ -148,14 +148,11 @@
 (define (reporting-validator validator)
   (lambda (e)
     (let ((reporter (*json-schema-validator-error-reporter*)))
-      (if reporter
-	  (with-exception-handler
-	   (lambda (e)
-	     (unless (json-schema-report? e) (raise e))
-	     (reporter e)
-	     (*json-schema-lint-mode?*))
-	   (lambda () (validator e)))
-	  (validator e)))))
+      (with-exception-handler
+       (lambda (e)
+	 (unless (json-schema-report? e) (raise e))
+	 (and reporter (reporter e) (*json-schema-lint-mode?*)))
+       (lambda () (validator e))))))
 (define-record-type json-schema-validator
   (parent <json-validator>)
   (fields source ;; RAW sexp JSON (vector)
