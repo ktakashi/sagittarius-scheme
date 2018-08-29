@@ -738,12 +738,9 @@
 			   v))
     (json-schema:required v))
   (define (handle-dependency d)
-    (cond ((list? d) (handle-array d))
-	  ((vector? d) (->json-validator d))
-	  ((boolean? d) (boolean->validator d))
-	  (else (assertion-violation 'json-schema:dependencies
-				     "Dependency must be an array or schema"
-				     d))))
+    (if (list? d)
+	(handle-array d)
+	(schema->validator 'json-schema:dependencies d)))
   (unless (vector? v)
     (assertion-violation 'json-schema:dependencies
 			 "Dependencies must be an object" v))
