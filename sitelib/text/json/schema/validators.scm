@@ -774,12 +774,23 @@
 		      (or (not (string? (car k&v)))
 			  (validate path validator (car k&v)))) e))))
 
+(define-syntax no-report
+  (syntax-rules ()
+    ((_ expr)
+     (with-exception-handler
+      (lambda (e)
+	(unless (json-schema-report? e) (raise e))
+	#f)
+      (lambda () expr)))))
 ;;; 6.6. Keywords for Applying Subschemas Conditionally
 (define (json-schema:if schema v)
   (define $then (schema->validator 'json-schema:if (value-of "then" schema #t)))
   (define $else (schema->validator 'json-schema:if (value-of "else" schema #t)))
   (define $if (schema->validator 'json-schema:if v))
-  (lambda (e) (if ($if e) ($then e) ($else e))))
+  (lambda (e)
+    (if (no-report ($if e))
+	($then e)
+	($else e))))
 
 ;;; 6.7. Keywords for Applying Subschemas With Boolean Logic
 ;; 6.7.1. allOf
@@ -790,7 +801,8 @@
 			 "AllOf must be non empty array of JSON schema" v))
   (let ((validators (map ->validator v)))
     (lambda (e)
-      (for-all (lambda (v) (v e)) validators))))
+      (or (no-report (for-all (lambda (v) (v e)) validators))
+	  (report e `(all-of ,v))))))
 ;; 6.7.2. anyOf
 (define (json-schema:any-of v)
   (define (->validator v) (schema->validator 'json-schema:any-of v))
@@ -799,20 +811,25 @@
 			 "AnyOf must be non empty array of JSON schema" v))
   (let ((validators (map ->validator v)))
     (lambda (e)
-      (exists (lambda (v) (v e)) validators))))
+      (or (no-report (exists (lambda (v) (v e)) validators))
+	  (report e `(any-of ,v))))))
 ;; 6.7.3. oneOf
 (define (json-schema:one-of v)
   (define (->validator v) (schema->validator 'json-schema:one-of v))
+  (define (check validators e)
+    (no-report (fold-left (lambda (n v) (if (v e) (+ n 1) n)) 0 validators)))
   (unless (and (list? v) (not (null? v)) (for-all schema? v))
     (assertion-violation 'json-schema:any-of
 			 "OneOf must be non empty array of JSON schema" v))
   (let ((validators (map ->validator v)))
     (lambda (e)
-      (= 1 (fold-left (lambda (n v) (if (v e) (+ n 1) n)) 0 validators)))))
+      (or (= 1 (check validators e)) (report e `(one-of ,v))))))
 ;; 6.7.4. not
 (define (json-schema:not v)
   (let ((validator (schema->validator 'json-schema:not v)))
-    (lambda (e) (not (validator e)))))
+    (lambda (e)
+      (or (not (no-report (validator e)))
+	  (report e `(not ,v))))))
 
 ;;; 7. Semantic Validation With "format"
 (define (json-schema:format v)
