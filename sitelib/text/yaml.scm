@@ -51,7 +51,8 @@
 
 (define yaml-write
   (case-lambda
-   ((yaml) (emit-yaml (current-output-port) yaml))
-   ((yaml out) (emit-yaml out yaml))
-   ((yaml out serializers) (emit-yaml out yaml serializers))))
+   ((yaml*) (yaml-write yaml* (current-output-port)))
+   ((yaml* out) (yaml-write yaml* out +default-yaml-serializers+))
+   ((yaml* out serializers)
+    (for-each (lambda (yaml) (emit-yaml out yaml serializers)) yaml*))))
 )

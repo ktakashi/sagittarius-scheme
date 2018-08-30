@@ -78,6 +78,7 @@
 	(lambda ()
 	  (set! i (+ i 1))
 	  (string-append "label" (number->string i)))))
+    (put-string out "%YAML 1.2\n")
     (put-string out "---")
     (dump-structure
      (parameterize ((*labels* (walk-yaml yaml serializers))
