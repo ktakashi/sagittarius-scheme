@@ -57,6 +57,7 @@
 @include-section["utils/text/markdown.scrbl"]
 @include-section["utils/text/object-builder.scrbl"]
 @include-section["utils/text/tree.scrbl"]
+@include-section["utils/text/yaml.scrbl"]
 @include-section["utils/timer.scrbl"]
 @include-section["utils/tlv.scrbl"]
 @include-section["utils/treemap.scrbl"]
