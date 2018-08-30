@@ -76,15 +76,15 @@
 	    json-schema:format
 	    *json-schema:resolve-external-schema?*
 	    *json-schema:validate-format?*
-	    *json-schema-validator-error-reporter*
-	    *json-schema-lint-mode?*
+	    *json-schema:validator-error-reporter*
+	    *json-schema:lint-mode?*
 
 	    json-schema-report?
 	    json-schema-report-path
 	    json-schema-report-target
 	    json-schema-report-parameter
 	    simple-json-schema-error-reporter
-	    *json-schema-report-port*
+	    *json-schema:report-port*
 
 	    ;; for testing
 	    resolve-$ref
@@ -119,9 +119,9 @@
 ;; json pointer
 (define *current-path* (make-parameter ""))
 ;; reporter we don't do anything by default
-(define *json-schema-validator-error-reporter* (make-parameter #f))
-(define *json-schema-report-port* (make-parameter #f))
-(define *json-schema-lint-mode?* (make-parameter #f))
+(define *json-schema:validator-error-reporter* (make-parameter #f))
+(define *json-schema:report-port* (make-parameter #f))
+(define *json-schema:lint-mode?* (make-parameter #f))
 
 (define-condition-type &json-schema-report &condition
   make-json-schema-report json-schema-report?
@@ -136,7 +136,7 @@
   (string-append base "/" (if (number? next) (number->string next) next)))
 
 (define (simple-json-schema-error-reporter e)
-  (define out (or (*json-schema-report-port*) (current-error-port)))
+  (define out (or (*json-schema:report-port*) (current-error-port)))
   (display (json-schema-report-path e) out) (newline out)
   (display "\tobject: " out) (write (json-schema-report-target e) out)
   (newline out)
@@ -147,11 +147,11 @@
       
 (define (reporting-validator validator)
   (lambda (e)
-    (let ((reporter (*json-schema-validator-error-reporter*)))
+    (let ((reporter (*json-schema:validator-error-reporter*)))
       (with-exception-handler
        (lambda (e)
 	 (unless (json-schema-report? e) (raise e))
-	 (and reporter (reporter e) (*json-schema-lint-mode?*)))
+	 (and reporter (reporter e) (*json-schema:lint-mode?*)))
        (lambda () (validator e))))))
 (define-record-type json-schema-validator
   (parent <json-validator>)
