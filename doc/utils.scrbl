@@ -53,6 +53,7 @@
 @include-section["utils/text/csv.scrbl"]
 @include-section["utils/text/html-lite.scrbl"]
 @include-section["utils/text/json.scrbl"]
+@include-section["utils/text/json/pointer.scrbl"]
 @include-section["utils/text/html-parser.scrbl"]
 @include-section["utils/text/markdown.scrbl"]
 @include-section["utils/text/object-builder.scrbl"]
