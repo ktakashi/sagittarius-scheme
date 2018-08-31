@@ -8,22 +8,27 @@
 
 (define (test-writer sexp)
   (let-values (((out extract) (open-string-output-port)))
-    (test-assert (emit-yaml out sexp))
-    (let ((yaml (car (parse-yaml (open-string-input-port (extract))))))
-      (test-equal sexp (yaml->sexp yaml)))))
+    (test-assert (list "test-writer" sexp) (emit-yaml out sexp))
+    (let* ((written (extract))
+	   (yaml (car (parse-yaml (open-string-input-port written)))))
+      (test-equal (list "test-writer" sexp) sexp (yaml->sexp yaml)))))
 
 (define (test-read/write str)
   (let ((sexp (yaml->sexp (car (parse-yaml (open-string-input-port str))))))
     (let-values (((out extract) (open-string-output-port)))
-      (test-assert (emit-yaml out sexp))
-      (let ((yaml (car (parse-yaml (open-string-input-port (extract))))))
-	(test-equal sexp (yaml->sexp yaml))))))
+      (test-assert (list "test-read/write" str) (emit-yaml out sexp))
+      (let* ((written (extract))
+	     (yaml (car (parse-yaml (open-string-input-port written)))))
+	(test-equal (list "test-read/write" str) sexp (yaml->sexp yaml))))))
 
 (test-writer '#(("foo"
 		 ("just" "write some")
 		 ("yaml"
 		  (("here" "and")
 		   #(("it" . "updates") ("in" . "real-time")))))))
+
+(test-writer '#(("foo" . #(("key" . 2) ("key2" . 2)))
+		("bar" . #(("key" . 2) ("key2" . 2)))))
 
 (test-read/write "%YAML 1.2
 ---
