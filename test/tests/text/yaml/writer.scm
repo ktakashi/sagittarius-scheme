@@ -56,4 +56,10 @@ foo: &key [ foo, bar ]
 *key : bar
 ")
 
+(test-read/write "%YAML 1.2
+---
+foo: false
+bar: false
+")
+
 (test-end)

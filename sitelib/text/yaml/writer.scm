@@ -259,7 +259,7 @@
 	  ;; first we need to create an entry
 	    (else (hashtable-set! store yaml #f))))
     (cond ((and (string? yaml) (*yaml:share-string?*)) (store-it yaml))
-	  ((or (string? yaml) (symbol? yaml) (number? yaml)))
+	  ((or (string? yaml) (symbol? yaml) (number? yaml) (boolean? yaml)))
 	  (else (store-it yaml)))
     (let* ((s (search-serializer serializers yaml))
 	   (walker (serializer-walker s)))
