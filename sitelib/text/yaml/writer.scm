@@ -144,7 +144,7 @@
 	     ,@(multi-lines value (->vlabel vlabel vref?) indent)))
 	  (value-container?
 	   `(,(->key kref? klabel key (->vlabel vlabel vref?))
-	     ,@(multi-lines value "" indent)))
+	     ,@(multi-lines value (emit-indent (+ indent 2)) indent)))
 	  (else
 	   (list (string-append
 		  (->key kref? klabel key (->vlabel vlabel vref?))
@@ -165,9 +165,11 @@
 	   (if (and kref? vref?)
 	       (list (string-append "*" klabel " : *" vlabel))
 	       (let-values (((key key-container?)
-			     (if kref? (values #f #f) (convert key-entry)))
+			     (if kref? (values '("") #f) (convert key-entry)))
 			    ((value value-container?)
-			     (if vref? (values #f #f) (convert value-entry))))
+			     (if vref?
+				 (values '("") #f)
+				 (convert value-entry))))
 		 ;; FIXME value conversion might be useless here
 		 (if (eq? 'null (cdr k&v))
 		     (emit klabel kref? key key-container? #f #f #f #f)
@@ -254,12 +256,12 @@
   (define (rec yaml serializers)
     (define (store-it yaml)
       (cond ((hashtable-contains? store yaml)
-	   ;; okay more than once
-	   (hashtable-set! store yaml #t))
-	  ;; first we need to create an entry
+	     ;; okay more than once
+	     (hashtable-set! store yaml #t))
+	    ;; first we need to create an entry
 	    (else (hashtable-set! store yaml #f))))
     (cond ((and (string? yaml) (*yaml:share-string?*)) (store-it yaml))
-	  ((or (string? yaml) (symbol? yaml) (number? yaml)))
+	  ((or (string? yaml) (symbol? yaml) (number? yaml) (boolean? yaml)))
 	  (else (store-it yaml)))
     (let* ((s (search-serializer serializers yaml))
 	   (walker (serializer-walker s)))
