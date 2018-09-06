@@ -41,6 +41,7 @@
     (import (rnrs)
 	    (peg)
 	    (sagittarius generators)
+	    (rfc uri-template conditions)
 	    (srfi :14 char-sets)
 	    (srfi :127 lseqs))
 
@@ -173,11 +174,21 @@
 ;; URI-template = *( literals /expression)
 (define uri-template ($many ($or literals expression)))
 
+(define-condition-type &uri-template-parse &uri-template
+  make-uri-template-parse-error uri-template-parse-error?
+  (template uri-template-parsing-template))
+
 (define (parse-uri-template in)
-  (let-values (((s v nl)
-		(uri-template (generator->lseq (port->char-generator in)))))
+  (define lseq (generator->lseq (port->char-generator in)))
+  (let-values (((s v nl) (uri-template lseq)))
     (if (and (parse-success? s) (null? nl))
 	v
-	(error 'parse-uri-template "Failed to parse" v nl))))
+	;; should be okay like this...
+	(raise
+	 (condition
+	  (make-uri-template-parse-error (list->string (lseq-realize lseq)))
+	  (make-who-condition 'parse-uri-template)
+	  (make-message-condition "Failed to parse")
+	  (make-irritants-condition (list->string nl)))))))
 
 )
