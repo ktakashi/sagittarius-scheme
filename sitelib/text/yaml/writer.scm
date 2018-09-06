@@ -223,7 +223,7 @@
   ;; using flow here for convenience
   (list (string-append "!!set " (set->flow-string set))))
 
-(define (string-emitter yaml indent)
+(define (string-emitter yaml)
   (define (write/escape yaml out)
     (define (escape c)
       (case c
@@ -251,7 +251,7 @@
 	   (put-string out (escape c))
 	   (put-char out c))) yaml))
   
-  (define (handle-multi-line yaml indent)
+  (define (handle-multi-line yaml)
     (let-values (((out extract) (open-string-output-port)))
       (define in (open-string-input-port yaml))
       (let loop ((r '()) (line (get-line in)))
@@ -260,19 +260,29 @@
 	    (begin
 	      (write/escape line out)
 	      (loop (cons (extract) r) (get-line in)))))))
-  (define (handle-write yaml indent)
+  (define (handle-write yaml)
     (if (string-index yaml #\newline)
 	;; multiline
-	(handle-multi-line yaml (+ indent 2))
+	(handle-multi-line yaml)
 	(let-values (((out extract) (open-string-output-port)))
 	  (put-char out #\")
 	  (write/escape yaml out)
 	  (put-char out #\")
 	  (list (extract)))))
-  (if (string-index yaml char-set:iso-control)
-      ;; FIXME probably this isn't enough
-      (handle-write yaml indent)
-      (list yaml)))
+  (define (check-hash yaml start)
+    (cond ((string-index yaml #\# start) =>
+	   (lambda (index)
+	     ;; ok check if this requires double quote
+	     (cond ((zero? index)) ;; first character
+		   ;; only #\space should be remaind but in case...
+		   ((char-whitespace? (string-ref yaml (- index 1))))
+		   ((check-hash yaml (+ index 1)))
+		   (else #f))))
+	  (else #f)))
+  ;; TODO flow style in case of long string?
+  (cond ((string-index yaml char-set:iso-control) (handle-write yaml))
+	((check-hash yaml 0) (handle-write yaml))
+	(else (list yaml))))
 
 (define (number-emitter yaml) (list (number->string yaml)))
 (define (boolean-emitter yaml) (if yaml '("true") '("false")))
@@ -284,8 +294,6 @@
 
 (define (simple-emitter emitter)
   (lambda (yaml indent serializers) (emitter yaml)))
-(define (indent-emitter emitter)
-  (lambda (yaml indent serializers) (emitter yaml indent)))
 
 ;; (id container? predicate . emitter)
 (define serializer-entry cons*)
@@ -296,8 +304,6 @@
 
 (define (simple-entry pred emitter)
   (serializer-entry #f pred (simple-emitter emitter)))
-(define (indent-entry pred emitter)
-  (serializer-entry #f pred (indent-emitter emitter)))
 
 (define (add-yaml-serializer base id serializer)
   (cons (cons id serializer) base))
@@ -336,7 +342,7 @@
   (serializer-entry mapping-walker vector? mapping-emitter))
 (define sequence-serializer
   (serializer-entry sequence-walker list? sequence-emitter))
-(define string-serializer (indent-entry string? string-emitter))
+(define string-serializer (simple-entry string? string-emitter))
 (define int-serializer (simple-entry integer? number-emitter))
 (define float-serializer (simple-entry real? number-emitter))
 (define boolean-serializer (simple-entry boolean? boolean-emitter))

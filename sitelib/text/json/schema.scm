@@ -44,6 +44,8 @@
 	    *json-schema:report-port*
 
 	    simple-json-schema-error-reporter
+
+	    +json-schema-uri+
 	    )
     ;; TODO add hyperlink and so
     (import (text json schema validators)))

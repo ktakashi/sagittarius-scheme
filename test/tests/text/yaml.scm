@@ -24,14 +24,25 @@ boo:
 	      (extract)))
 (test-error (yaml-write '#(("key" . 1))))
 
-(let ((yaml '#(("boo" .
-		#(("bar" . #f)
-		  ("foo" . "aa\nbb\n\tcc")
-		  ("buz" . 1))))))
+(define (test-yaml yaml . checkers)
   (let-values (((out e) (open-string-output-port)))
     (yaml-write (list yaml) out)
     (let ((s (e)))
-      (test-assert (string-contains s "|-"))
+      (for-each (lambda (checker) (checker s)) checkers)
       (test-equal yaml (car (yaml-read (open-string-input-port s)))))))
+
+(test-yaml '#(("boo" .
+	       #(("bar" . #f)
+		 ("foo" . "aa\nbb\n\tcc")
+		 ("buz" . 1))))
+	   (lambda (s) (test-assert (string-contains s "|-"))))
+
+(test-yaml '#(("boo" . "#not a comment"))
+	   (lambda (s) (test-assert (string-contains s "\"#not a comment\""))))
+(test-yaml '#(("boo" . "not# a comment"))
+	   (lambda (s) (test-assert "no double quote"
+				    (string-contains s "not# a comment"))))
+(test-yaml '#(("boo" . "not # a comment"))
+	   (lambda (s) (test-assert (string-contains s "\"not # a comment\""))))
       
 (test-end)

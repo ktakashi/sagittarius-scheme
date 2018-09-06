@@ -86,6 +86,7 @@
 	    simple-json-schema-error-reporter
 	    *json-schema:report-port*
 
+	    +json-schema-uri+
 	    ;; for testing
 	    resolve-$ref
 	    )
