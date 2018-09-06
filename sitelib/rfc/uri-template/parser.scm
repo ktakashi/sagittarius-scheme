@@ -34,6 +34,8 @@
 #!nounbound
 (library (rfc uri-template parser)
     (export parse-uri-template
+	    &uri-template-parse
+	    uri-template-parse-error? uri-template-parsing-template
 	    ;; these char sets can be used during expansion
 	    (rename (*reserved* *uri-template:reserved-set*)
 		    (*unreserved* *uri-template:unreserved-set*))

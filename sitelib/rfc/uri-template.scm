@@ -34,4 +34,7 @@
 
 (library (rfc uri-template)
     (export :all)
-    (import (rfc uri-template parser)))
+    (import (only (rfc uri-template conditions)
+		  &uri-template
+		  uri-template-error?)
+	    (rfc uri-template parser)))
