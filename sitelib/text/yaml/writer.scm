@@ -145,6 +145,13 @@
 	  (value-container?
 	   `(,(->key kref? klabel key (->vlabel vlabel vref?))
 	     ,@(multi-lines value (emit-indent (+ indent 2)) indent)))
+	  ;; FIXME better way of handling ...
+	  ((not (null? (cdr value)))
+	   `(,(string-append (->key kref? klabel key (->vlabel vlabel vref?))
+			     (case (car value)
+			       ((block) "|-")
+			       (else    ">-")))
+	     ,@(multi-lines (cdr value) (emit-indent (+ indent 2)) indent)))
 	  (else
 	   (list (string-append
 		  (->key kref? klabel key (->vlabel vlabel vref?))
@@ -216,13 +223,56 @@
   ;; using flow here for convenience
   (list (string-append "!!set " (set->flow-string set))))
 
-(define (string-emitter yaml)
-  (list (if (string-index yaml char-set:iso-control)
-	    ;; FIXME probably this isn't enough
-	    (let-values (((out extract) (open-string-output-port)))
-	      (write yaml out)
-	      (extract))
-	    yaml)))
+(define (string-emitter yaml indent)
+  (define (write/escape yaml out)
+    (define (escape c)
+      (case c
+	((#\nul) "\\0")
+	((#\alarm) "\\a")
+	((#\backspace) "\\b")
+	((#\tab) "\t")
+	((#\newline) "\\n")
+	((#\vtab) "\\v")
+	((#\page) "\\f")
+	((#\return) "\\r")
+	((#\esc) "\\e")
+	((#\space) "\\ ")
+	((#\") "\\\"")
+	((#\\) "\\\\")
+	((#\/) "\\/")
+	((#\x85) "\\N")
+	((#\xA0) "\\_")
+	((#\x2028)  "\\L")
+	((#\x2029)  "\\P")
+	(else (error 'emit-yaml "Unknown control character" c))))
+    (string-for-each
+     (lambda (c)
+       (if (char-set-contains? char-set:iso-control c)
+	   (put-string out (escape c))
+	   (put-char out c))) yaml))
+  
+  (define (handle-multi-line yaml indent)
+    (let-values (((out extract) (open-string-output-port)))
+      (define in (open-string-input-port yaml))
+      (let loop ((r '()) (line (get-line in)))
+	(if (eof-object? line)
+	    (cons 'block (reverse r))
+	    (begin
+	      (write/escape line out)
+	      (loop (cons (extract) r) (get-line in)))))))
+  (define (handle-write yaml indent)
+    (if (string-index yaml #\newline)
+	;; multiline
+	(handle-multi-line yaml (+ indent 2))
+	(let-values (((out extract) (open-string-output-port)))
+	  (put-char out #\")
+	  (write/escape yaml out)
+	  (put-char out #\")
+	  (list (extract)))))
+  (if (string-index yaml char-set:iso-control)
+      ;; FIXME probably this isn't enough
+      (handle-write yaml indent)
+      (list yaml)))
 
 (define (number-emitter yaml) (list (number->string yaml)))
 (define (boolean-emitter yaml) (if yaml '("true") '("false")))
@@ -234,6 +284,8 @@
 
 (define (simple-emitter emitter)
   (lambda (yaml indent serializers) (emitter yaml)))
+(define (indent-emitter emitter)
+  (lambda (yaml indent serializers) (emitter yaml indent)))
 
 ;; (id container? predicate . emitter)
 (define serializer-entry cons*)
@@ -244,6 +296,8 @@
 
 (define (simple-entry pred emitter)
   (serializer-entry #f pred (simple-emitter emitter)))
+(define (indent-entry pred emitter)
+  (serializer-entry #f pred (indent-emitter emitter)))
 
 (define (add-yaml-serializer base id serializer)
   (cons (cons id serializer) base))
@@ -282,7 +336,7 @@
   (serializer-entry mapping-walker vector? mapping-emitter))
 (define sequence-serializer
   (serializer-entry sequence-walker list? sequence-emitter))
-(define string-serializer (simple-entry string? string-emitter))
+(define string-serializer (indent-entry string? string-emitter))
 (define int-serializer (simple-entry integer? number-emitter))
 (define float-serializer (simple-entry real? number-emitter))
 (define boolean-serializer (simple-entry boolean? boolean-emitter))
