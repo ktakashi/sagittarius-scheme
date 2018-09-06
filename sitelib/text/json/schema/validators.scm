@@ -448,7 +448,7 @@
 	  ((string=? "array" type) list?)
 	  ((string=? "boolean" type) boolean?)
 	  ((string=? "null" type) (lambda (e) (eq? e 'null)))
-	  (else (assertion-violation 'json-schema:type "Unknown type"))))
+	  (else (assertion-violation 'json-schema:type "Unknown type" type))))
   (define (wrap-report v)
     (lambda (e) (or (v e) (report e `(type, type)))))
   (cond ((list? type)
