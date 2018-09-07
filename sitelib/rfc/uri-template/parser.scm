@@ -35,7 +35,7 @@
 (library (rfc uri-template parser)
     (export parse-uri-template
 	    &uri-template-parse
-	    uri-template-parse-error? uri-template-parsing-template
+	    uri-template-parse-error? uri-template-error-parsing-template
 	    ;; these char sets can be used during expansion
 	    (rename (*reserved* *uri-template:reserved-set*)
 		    (*unreserved* *uri-template:unreserved-set*))
@@ -178,7 +178,7 @@
 
 (define-condition-type &uri-template-parse &uri-template
   make-uri-template-parse-error uri-template-parse-error?
-  (template uri-template-parsing-template))
+  (template uri-template-error-parsing-template))
 
 (define (parse-uri-template in)
   (define lseq (generator->lseq

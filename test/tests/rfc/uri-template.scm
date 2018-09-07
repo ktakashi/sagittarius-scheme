@@ -23,7 +23,7 @@
 (test-error uri-template-parse-error? (uri-parse "http://www.<>example.com"))
 (guard (e ((uri-template-parse-error? e)
 	   (test-equal "http://www.<>example.com"
-		       (uri-template-parsing-template e)))
+		       (uri-template-error-parsing-template e)))
 	  (else (test-assert "Not an expected condition" #f)))
   (uri-parse "http://www.<>example.com")
   (test-assert "Condition must be raised" #f))
@@ -166,5 +166,12 @@
 (test-rfc-expand "{&list*}" "&list=red&list=green&list=blue")
 (test-rfc-expand "{&keys}" "&keys=semi,%3B,dot,.,comma,%2C")
 (test-rfc-expand "{&keys*}" "&semi=%3B&dot=.&comma=%2C")
+
+(test-error uri-template-unknown-operator-error?
+	    (expand-uri-template '((#\@ "template")) '#()))
+(test-error uri-template-unknown-value-error?
+	    (expand-uri-template '(("template")) '#(("template" . #f))))
+(test-error uri-template-unknown-value-error?
+	    (expand-uri-template '(("template")) '#(("template" . 1))))
 
 (test-end)

@@ -34,13 +34,25 @@
 ;; section 3
 #!nounbound
 (library (rfc uri-template expander)
-    (export expand-uri-template)
+    (export expand-uri-template
+	    &uri-template-unknown-value uri-template-unknown-value-error?
+	    uri-template-error-unknown-value
+	    &uri-template-unknown-operator uri-template-unknown-operator-error?
+	    uri-template-error-unknown-operator)
     (import (rnrs)
 	    (rfc uri)
 	    (rfc uri-template parser) ;; for charsets
+	    (rfc uri-template conditions)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
 	    (srfi :133 vectors))
+
+(define-condition-type &uri-template-unknown-value &uri-template
+  make-uri-template-unknown-value-error uri-template-unknown-value-error?
+  (unknown-value uri-template-error-unknown-value))
+(define-condition-type &uri-template-unknown-operator &uri-template
+  make-uri-template-unknown-operator-error uri-template-unknown-operator-error?
+  (unknown-operator uri-template-error-unknown-operator))
 
 ;; parameter must be a vector represented JSON
 (define (expand-uri-template uri-template parameters)
@@ -64,10 +76,16 @@
 	     (cond ((assv (car template) +template-handlers+) =>
 		    (lambda (handler)
 		      ((cdr handler) out (cdr template) parameter)))
-		   (else (error 'expand-uri-template "Unknown operator"
-				template)))
+		   (else
+		    (raise
+		     (condition (make-uri-template-unknown-operator-error
+				 (car template))
+				(make-who-condition 'expand-uri-template)
+				(make-message-condition "Unknown operator")
+				(make-irritants-condition template)))))
 	     (handle-simple out template parameter)))
-	(else (error 'expand-uri-template "Unknown template" template))))
+	(else (assertion-violation
+	       'expand-uri-template "Unknown template" template))))
 
 (define (vector-find pred vec)
   (cond ((vector-index pred vec) => (lambda (index) (vector-ref vec index)))
@@ -93,6 +111,11 @@
 	  (loop (and first? (eq? value 'null))
 		(cdr templates)))))))
 
+(define (uri-template-unknown-value-error who value)
+  (raise
+   (condition (make-uri-template-unknown-value-error value)
+	      (make-who-condition who)
+	      (make-message-condition "Unknown value"))))
 ;; value only
 (define (simple-modifier name value separator prefix encoder)
   (cond ((string? value)
@@ -109,7 +132,7 @@
 					    (encoder (cdr k&v))))
 			   (vector->list value))
 		      (if (eq? prefix '*) separator ",")))
-	(else (error 'simple-modifier "Unknown value" value))))
+	(else (uri-template-unknown-value-error 'simple-modifier value))))
 ;; key value
 (define (make-key-value-modifier query?)
   (lambda (name value separator prefix encoder)
@@ -131,7 +154,7 @@
 	       (simple-modifier name value separator prefix encoder)
 	       (string-append name "="
 			      (simple-modifier name value "," prefix encoder))))
-	  (else (error 'simple-modifier "Unknown value" value)))))
+	  (else (uri-template-unknown-value-error 'key-value-modifier value)))))
 
 (define *reserved&unreserved-set*
   (char-set-union *uri-template:reserved-set*
