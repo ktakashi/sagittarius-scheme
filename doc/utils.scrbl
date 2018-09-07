@@ -44,6 +44,7 @@
 @include-section["utils/rfc/smtp.scrbl"]
 @include-section["utils/rfc/tls.scrbl"]
 @include-section["utils/rfc/uri.scrbl"]
+@include-section["utils/rfc/uri-template.scrbl"]
 @include-section["utils/rfc/uuid.scrbl"]
 @include-section["utils/rfc/websocket.scrbl"]
 @include-section["utils/rfc/x.509.scrbl"]
