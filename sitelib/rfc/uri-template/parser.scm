@@ -181,7 +181,10 @@
   (template uri-template-parsing-template))
 
 (define (parse-uri-template in)
-  (define lseq (generator->lseq (port->char-generator in)))
+  (define lseq (generator->lseq
+		(if (string? in)
+		    (string->generator in)
+		    (port->char-generator in))))
   (let-values (((s v nl) (uri-template lseq)))
     (if (and (parse-success? s) (null? nl))
 	v
