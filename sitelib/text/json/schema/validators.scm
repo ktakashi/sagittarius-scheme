@@ -99,6 +99,7 @@
 	    (sagittarius regex)
 	    (sagittarius control)
 	    (rfc uri)
+	    (rfc uri-template)
 	    (rfc smtp format) ;; for smtp-valid-address?
 	    (util uri)
 	    (srfi :1 lists)
@@ -874,7 +875,9 @@
   (let-values (((scheme specific) (uri-scheme&specific e)))
     (and scheme specific #t)))
 (define (json-schema:format-uri-reference e) #t)
-(define (json-schema:format-uri-template e) #t)
+(define (json-schema:format-uri-template e)
+  (guard (e (else #f))
+    (pair? (parse-uri-template e))))
 
 (define (json-schema:format-json-pointer v)
   (guard (e (else #f)) (json-pointer v)))

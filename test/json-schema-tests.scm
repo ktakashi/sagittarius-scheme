@@ -39,8 +39,11 @@
 (define server (make-simple-server "1234" http-handler))
 
 (define data-directory "JSON-Schema-Test-Suite/tests/draft7/")
-(define files
+(define core-files
   (find-files data-directory :recursive #f :pattern "\\.json$"))
+(define format-files
+  (find-files (build-path* data-directory "optional" "format")
+	      :recursive #f :pattern "\\.json$"))
 
 ;; FIXME copy&paste...
 (define (key=? key) (lambda (e) (and (pair? e) (string=? (car e) key) e)))
@@ -71,7 +74,11 @@
 
 (server-start! server :background #t)
 (parameterize ((*json-schema:resolve-external-schema?* #t))
-  (for-each run-schema-tests files))
+  (for-each run-schema-tests core-files)
+  ;; optional tests always fail
+  ;; format tests always fail, so manually check occasionally
+  ;; (for-each run-schema-tests format-files)
+  )
 (server-stop! server)
 
 (test-end)
