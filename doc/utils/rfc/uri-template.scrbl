@@ -24,6 +24,10 @@ The parsed form consists with the following rules:
 ]
 
 @var{operator} must be a valid URI template operator
+
+@snipet[=> ("http://" (("domain" *)) "/" (#\/ "path"))]{
+(parse-uri-template "http://{domain*}/{/path}")
+}
 }
 
 @define[Function]{@name{expand-uri-template} @args{uri-template parameter}}
