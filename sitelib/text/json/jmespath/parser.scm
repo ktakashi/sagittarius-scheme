@@ -40,7 +40,7 @@
 ;;              | or-expression
 ;;              | and-expression
 ;;              | pipe-expression
-;; # can be toplevel
+;; # this can be first expression
 ;; top-expression ::= "@" # current-node
 ;;     	            | "*" # wild card
 ;;     	            | "!" expression # not-expression
@@ -57,13 +57,14 @@
 ;;                  | bracket-specifier # part of index-expression
 ;; index-expression ::= top-expression bracket-specifier
 ;; comparator-expression ::= top-expression comparator expression
-;; pipe-expression ::= top-expression "|" expression
-;; or-expression ::= top-expression "||" expression
-;; and-expression ::= top-expression "&&" expression
-;; sub-expression ::= top-expression "." ( identifier
-;;                                       | multi-select-list
-;;                                       | multi-select-hash function-expression
-;;                                       | "*" )
+;; pipe-expression ::= top-expression +("|" expression)
+;; or-expression ::= top-expression +("||" expression)
+;; and-expression ::= top-expression +("&&" expression)
+;; sub-expression ::= top-expression +("." ( identifier
+;;                                         | multi-select-list
+;;                                         | multi-select-hash
+;;                                         | function-expression
+;;                                         | "*" ))
 #!nounbound
 (library (text json jmespath parser)
     (export ;;parse-jmespath
@@ -71,13 +72,24 @@
 	    jmespath:unquoted-string
 	    jmespath:quoted-string
 	    jmespath:identifier
-	    jmespath:top-expression)
+	    jmespath:not-expression
+	    jmespath:paren-expression
+	    jmespath:multi-select-list
+	    jmespath:multi-select-hash
+	    jmespath:function-expression
+	    jmespath:top-expression
+	    jmespath:expression)
     (import (rnrs)
 	    (peg)
 	    (srfi :14))
-'dummy
-;; TODO maybe 
+
+;; TODO maybe it's better to put it in (peg derive) or so
 (define ($cs s) ($satisfy (lambda (c) (char-set-contains? s c))))
+(define ws ($cs (char-set #\space #\tab #\newline #\return)))
+(define (op token)
+  ($seq ($many ws)
+	(apply $seq (map $eqv? (string->list token)))
+	($many ws)))
 (define jmespath:unquoted-string
   ($do (c ($cs (char-set-union (ucs-range->char-set #x41 (+ #x5A 1))
 			       (ucs-range->char-set #x61 (+ #x7A 1))
@@ -116,42 +128,97 @@
   ($or jmespath:unquoted-string
        jmespath:quoted-string))
 
+(define jmespath:not-expression
+  ($do ((op "!")) (e (jmespath:expression)) ($return `(not ,e))))
+(define jmespath:paren-expression
+  ($do ((op "(")) (e (jmespath:expression)) ((op ")")) ($return `(,e))))
+(define jmespath:multi-select-list
+  ($do ((op "["))
+       (e ($optional ($do (e (jmespath:expression))
+			  (c* ($many ($seq (op ",") (jmespath:expression))))
+			  ($return (cons e c*)))
+		     '()))
+       ((op "]"))
+       ($return `(list ,@e))))
+(define jmespath:keyval-expr
+  ($do (k jmespath:identifier)
+       ((op ":"))
+       (v (jmespath:expression))
+       ($return (cons k v))))
+(define jmespath:multi-select-hash
+  ($do ((op "{"))
+       (e ($optional ($do (e jmespath:keyval-expr)
+			  (c* ($many ($seq (op ",") jmespath:keyval-expr)))
+			  ($return (cons e c*)))
+		     '()))
+       ((op "}"))
+       ($return `(hash ,@e))))
+(define (function-arg)
+  ($or (jmespath:expression)
+       ($do ((op "&")) (e (jmespath:expression)) ($return `(& ,e)))))
+(define jmespath:function-expression
+  ($do (name jmespath:unquoted-string)
+       ((op "("))
+       (arg ($optional ($do (arg (function-arg))
+			    (arg* ($many ($seq (op ",") (function-arg))))
+			    ($return (cons arg arg*))) '()))
+       ((op ")"))
+       ($return `(function ,name ,@arg))))
+
 (define jmespath:top-expression
-  ($or ($eqv? #\*)
-       ($eqv? #\@)
-       jmespath:identifier
-       ;;jmespath:not-expression
-       ;;jmespath:paren-expression
-       ;;jmespath:multi-select-list
-       ;;jmespath:multi-select-hash
+  ($or ($do ((op "*")) ($return '*)) ;; op?
+       ($do ((op "@")) ($return '@)) ;; op?
+       jmespath:not-expression
+       jmespath:paren-expression
+       jmespath:multi-select-list
+       jmespath:multi-select-hash
        ;;jmespath:literal
-       ;;jmespath:function-expression
+       jmespath:function-expression
        ;;jmespath:raw-string
+       ;;jmespath:bracket-specifier
+       jmespath:identifier ;; used by function-expression so must be here
        ))
 
-(define (jmespath:pipe-expression)
+(define (merge r)
+  (define op (car r))
+  (fold-left (lambda (acc v)
+	       ;; FIXME wtf!!
+	       (if (and (pair? v) (eq? (car v) op))
+		   (append acc (cdr v))
+		   (append acc (list v))))
+	     (list op) (cdr r)))
+(define jmespath:sub-expression
   ($do (e jmespath:top-expression)
-       (($eqv? #\|))
-       (e2 jmespath:expression)
-       ($return `(pipe ,e ,e2))))
-(define (jmespath:or-expression)
+       
+       (e2 ($many ($seq (op ".")
+			($or jmespath:identifier
+			     jmespath:multi-select-list
+			     jmespath:multi-select-hash
+			     jmespath:function-expression
+			     ($do ((op "*")) ($return '*)))) 1))
+       ($return (merge `(-> ,e ,@e2)))))
+(define jmespath:pipe-expression
   ($do (e jmespath:top-expression)
-       (($eqv? #\|)) (($eqv? #\|))
-       (e2 jmespath:expression)
-       ($return `(or ,e ,e2))))
-(define (jmespath:and-expression)
+       (e2 ($many ($seq (op "|") (jmespath:expression)) 1))
+       ($return (merge `(pipe ,e ,@e2)))))
+(define jmespath:or-expression
   ($do (e jmespath:top-expression)
-       (($eqv? #\&)) (($eqv? #\&))
-       (e2 jmespath:expression)
-       ($return `(and ,e ,e2))))
+       (e2 ($many ($seq (op "||") (jmespath:expression)) 1))
+       ($return (merge `(or ,e ,@e2)))))
+(define jmespath:and-expression
+  ($do (e jmespath:top-expression)
+       (e2 ($many ($seq (op "&&") (jmespath:expression)) 1))
+       ($return (merge `(and ,e ,@e2)))))
 
 (define (jmespath:expression)
-  ($or ;;jmespath:sub-expression
-       ;;jmespath:index-expression
-       ;;jmespath:comparator-expression
-       (jmespath:pipe-expression) ;; pipe must be before the or
-       (jmespath:or-expression)
-       (jmespath:and-expression)
-       jmespath:top-expression ;; this must be the last
-       ))
+  ;; wrap with $do to avoid extra parser creation
+  ($do (e ($or jmespath:sub-expression
+	       ;;jmespath:index-expression
+	       ;;jmespath:comparator-expression
+	       jmespath:pipe-expression ;; pipe must be before the or
+	       jmespath:or-expression
+	       jmespath:and-expression
+	       ;; this must be the last
+	       jmespath:top-expression))
+       ($return e)))
 )
