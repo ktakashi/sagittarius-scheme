@@ -43,6 +43,10 @@
 (test-parser jmespath:function-expression
 	     '(function "abs" "foo" (& "bar") "buz") "abs(foo, &bar, buz)")
 
+(test-parser jmespath:bracket-specifier '(index 0) "[0]")
+(test-parser jmespath:bracket-specifier '(slice 0 2 1) "[0:2]")
+(test-parser jmespath:bracket-specifier '(index *) "[*]")
+
 (test-parser jmespath:top-expression '* "*")
 (test-parser jmespath:top-expression '* " * ")
 (test-parser jmespath:top-expression '@ "@")
@@ -66,6 +70,8 @@
 (test-parser (jmespath:expression) '(pipe "a" (-> "b" "c")) "a | b.c")
 #; (test-parser (jmespath:expression)
 	     '(-> (pipe "people" (index 0))) "people | [0] . name")
+
+(test-parser (jmespath:expression) '(ref "a" (index 0)) "a[0]")
 
 ;; considering associsativity?
 ;; NOTE: I can't read from the specification and tutorial act like this

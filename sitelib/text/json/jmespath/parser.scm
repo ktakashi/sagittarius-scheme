@@ -77,6 +77,7 @@
 	    jmespath:multi-select-list
 	    jmespath:multi-select-hash
 	    jmespath:function-expression
+	    jmespath:bracket-specifier
 	    jmespath:top-expression
 	    jmespath:expression)
     (import (rnrs)
@@ -164,10 +165,32 @@
 			    ($return (cons arg arg*))) '()))
        ((op ")"))
        ($return `(function ,name ,@arg))))
+(define star ($do ((op "*")) ($return '*)))
 
+(define jmespath:number
+  ($do (sign ($optional ($eqv? #\-) #\+))
+       (n* ($many ($cs (char-set-intersection
+			char-set:ascii char-set:digit)) 1))
+       ($return (string->number (apply string sign n*)))))
+
+(define jmespath:slice-expression
+  ($do (n1 ($optional jmespath:number 0))
+       ((op ":"))
+       (n2 ($optional jmespath:number +inf.0))
+       (n3 ($optional ($seq (op ":") ($optional jmespath:number 1)) 1))
+       ;; start stop step
+       ($return `(slice ,n1 ,2 ,n3))))
+
+(define jmespath:bracket-specifier
+  ($do ((op "["))
+       (v ($or jmespath:slice-expression
+	       ($do (v ($or jmespath:number star)) ($return `(index ,v)))))
+       ((op "]"))
+       ($return v)))
+       
 (define jmespath:top-expression
-  ($or ($do ((op "*")) ($return '*)) ;; op?
-       ($do ((op "@")) ($return '@)) ;; op?
+  ($or star
+       ($do ((op "@")) ($return '@))
        jmespath:not-expression
        jmespath:paren-expression
        jmespath:multi-select-list
@@ -175,7 +198,7 @@
        ;;jmespath:literal
        jmespath:function-expression
        ;;jmespath:raw-string
-       ;;jmespath:bracket-specifier
+       jmespath:bracket-specifier
        jmespath:identifier ;; used by function-expression so must be here
        ))
 
@@ -189,13 +212,12 @@
 	     (list op) (cdr r)))
 (define jmespath:sub-expression
   ($do (e jmespath:top-expression)
-       
        (e2 ($many ($seq (op ".")
 			($or jmespath:identifier
 			     jmespath:multi-select-list
 			     jmespath:multi-select-hash
 			     jmespath:function-expression
-			     ($do ((op "*")) ($return '*)))) 1))
+			     star)) 1))
        ($return (merge `(-> ,e ,@e2)))))
 (define jmespath:pipe-expression
   ($do (e jmespath:top-expression)
@@ -210,10 +232,15 @@
        (e2 ($many ($seq (op "&&") (jmespath:expression)) 1))
        ($return (merge `(and ,e ,@e2)))))
 
+(define jmespath:index-expression
+  ($do (e jmespath:top-expression)
+       (b jmespath:bracket-specifier)
+       ($return `(ref ,e ,b))))
+
 (define (jmespath:expression)
   ;; wrap with $do to avoid extra parser creation
   ($do (e ($or jmespath:sub-expression
-	       ;;jmespath:index-expression
+	       jmespath:index-expression
 	       ;;jmespath:comparator-expression
 	       jmespath:pipe-expression ;; pipe must be before the or
 	       jmespath:or-expression
