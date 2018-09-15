@@ -52,10 +52,11 @@
   (if (null? irr)
       (raise c)
       (raise (condition c (make-irritants-condition irr)))))
-(define ($error in)
-  (if (null? in)
-      (json-parse-error "Unexpected EOF")
-      (json-parse-error "Invalid JSON character" (lseq-car in))))
+(define ($error message)
+  (lambda (in)
+    (if (null? in)
+	(json-parse-error "Unexpected EOF")
+	(json-parse-error message (lseq-car in)))))
 
 (define ($cs s) ($satisfy (lambda (c) (char-set-contains? s c))))
 (define ws ($many ($cs (char-set #\space #\tab #\newline #\return))))
@@ -128,7 +129,7 @@
 					   (+ #x10000
 					      (* (- cp #xd800) #x400)
 					      (- cp2 #xdc00))))
-				 $error))
+				 ($error "Invalid unicode code point")))
 		       ($return (integer->char cp)))))))
 
 (define json:char
@@ -146,7 +147,7 @@
 			   (v* ($many ($seq value-separactor (json:value))))
 			   ($return (cons v1 v*)))
 		      '()))
-       end-array
+       (($or end-array ($error "Invalid JSON array")))
        ($return v*)))
 
 (define json:member
@@ -157,7 +158,7 @@
 			   (v* ($many ($seq value-separactor json:member)))
 			   ($return (cons v1 v*)))
 		      '()))
-       end-object
+       (($or end-object ($error "Invalid JSON object")))
        ($return (list->vector v*))))
 
 (define (json:value)
@@ -168,7 +169,7 @@
        json:array
        json:string
        json:number
-       $error))
+       ($error "Invalid JSON character")))
 
 (define json:parser ($do ws (v (json:value)) ws ($return v)))
 
