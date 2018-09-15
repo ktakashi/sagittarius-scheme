@@ -90,12 +90,10 @@
 (define-syntax $if
   (syntax-rules ()
     ((_ pred consequence alternative)
-     (let ((c consequence)
-	   (a alternative))
-       (lambda (l)
-	 (if pred
-	     (c l)
-	     (a l)))))))
+     (lambda (l)
+       (if pred
+	   (consequence l)
+	   (alternative l))))))
 (define-syntax $when
   (syntax-rules ()
     ((_ pred body)

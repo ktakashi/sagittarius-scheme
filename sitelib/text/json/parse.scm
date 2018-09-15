@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding:utf-8 -*-
 ;;;
-;;; text/json/parse.scm - JSON parser
+;;; text/json/parse.scm - JSON parsing
 ;;;  
 ;;;   Copyright (c) 2010-2017  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
