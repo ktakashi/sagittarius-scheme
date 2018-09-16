@@ -34,6 +34,7 @@
 	    $peek-match
 	    $eqv?)
     (import (rnrs)
+	    (core inline)
 	    (peg primitives)
 	    (srfi :39 parameters))
 
@@ -70,11 +71,20 @@
     ((_ parser clause rest ...)
      ($bind parser (lambda (_) ($do clause rest ...))))))
 
-(define ($optional parser . maybe-fallback)
+(define ($$optional parser . maybe-fallback)
   (define fallback (if (null? maybe-fallback) #f (car maybe-fallback)))
   ($do (r ($many parser 0 1))
        ($return (if (null? r) fallback (car r)))))
-(define ($repeat parser n) ($many parser n n))
+(define-syntax $optional
+  (lambda (x)
+    (syntax-case x ()
+      ((_ parser) #'($optional parser #f))
+      ((_ parser fallback)
+       #'($do (r ($many parser 0 1))
+	      ($return (if (null? r) fallback (car r)))))
+      (k (identifier? #'k) #'$$optional))))
+       
+(define-inline ($repeat parser n) ($many parser n n))
 
 (define ($sequence-of preds)
   (apply $seq (map $satisfy preds)))
@@ -128,5 +138,5 @@
 	       (consequence input)
 	       (alternative input))))))))
 
-(define ($eqv? v) ($satisfy (lambda (c) (eqv? c v)) v))
+(define-inline ($eqv? v) ($satisfy (lambda (c) (eqv? c v)) v))
 )

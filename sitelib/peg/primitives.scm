@@ -74,11 +74,18 @@
   (syntax-rules ()
     ((_ m l) (values +parse-unexpect+ m l))))
 
-(define $return
+(define $$return
   (case-lambda
    ((v) (lambda (l) (values +parse-success+ v l)))
    ((v state) (lambda (l) (values state v l)))
    ((v state l) (lambda (_) (values state v l)))))
+(define-syntax $return
+  (lambda (x)
+    (syntax-case x ()
+      ((_ v) #'(lambda (l) (values +parse-success+ v l)))
+      ((_ v state) #'(lambda (l) (values state v l)))
+      ((_ v state l) #'(lambda (_) (values state v l)))
+      (k (identifier? #'k) #'$$return))))
 
 (define ($expect parser msg)
   (lambda (l)
@@ -98,7 +105,7 @@
 	  (return-unexpect v l)
 	  (return-result #f nl)))))
 
-(define ($satisfy pred . maybe-expect)
+(define ($$satisfy pred . maybe-expect)
   (define expect (if (null? maybe-expect) pred (car maybe-expect)))
   (lambda (l)
     (if (null? l)
@@ -107,6 +114,19 @@
 	  (if (pred v)
 	      (return-result v (lseq-cdr l))
 	      (return-expect expect l))))))
+(define-syntax $satisfy
+  (lambda (x)
+    (syntax-case x ()
+      ((_ pred) #'($satisfy pred 'pred))
+      ((_ pred expect)
+       #'(lambda (l)
+	   (if (null? l)
+	       (return-expect expect l)
+	       (let ((v (lseq-car l)))
+		 (if (pred v)
+		     (return-result v (lseq-cdr l))
+		     (return-expect expect l))))))
+      (k (identifier? #'k) #'$$satisfy))))
 
 (define $eof
   (lambda (l)

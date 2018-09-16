@@ -34,6 +34,7 @@
 #!nounbound
 (library (text json parser)
     (export parse-json
+	    json:object
 	    json:parser)
     (import (rnrs)
 	    (peg)
