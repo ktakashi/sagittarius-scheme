@@ -52,6 +52,7 @@
   (if (null? irr)
       (raise c)
       (raise (condition c (make-irritants-condition irr)))))
+
 (define ($error message)
   (lambda (in)
     (if (null? in)
@@ -59,9 +60,14 @@
 	(json-parse-error message (lseq-car in)))))
 
 (define ($cs s) ($satisfy (lambda (c) (char-set-contains? s c))))
-(define ws ($many ($cs (char-set #\space #\tab #\newline #\return))))
+;; read only one char 
+(define ($getc l)
+  (if (null? l)
+      (return-unexpect "Unexpected EOF" l)
+      (return-result (lseq-car l) (lseq-cdr l))))
+(define $peekc ($peek $getc))
 
-(define digit ($cs (string->char-set "0123456789")))
+(define ws ($many ($cs (char-set #\space #\tab #\newline #\return))))
 
 (define begin-array ($seq ws ($eqv? #\[) ws))
 (define begin-object ($seq ws ($eqv? #\{) ws))
@@ -70,36 +76,55 @@
 (define name-separactor ($seq ws ($eqv? #\:) ws))
 (define value-separactor ($seq ws ($eqv? #\,) ws))
 
-(define (token s) (apply $seq (map $eqv? (string->list s))))
+(define (token s)
+  ($or (apply $seq (map $eqv? (string->list s)))
+       ($error (string-append "Unexpected character for token " s))))
 
 (define json:true  ($do ((token "true")) ($return #t)))
 (define json:false ($do ((token "false")) ($return #f)))
 (define json:null  ($do ((token "null")) ($return 'null)))
 
-(define json:int
-  ($or ($do (($eqv? #\0)) ($return "0"))
-       ($do (c ($cs (string->char-set "123456789")))
-	    (c* ($many digit))
-	    ($return (apply string c c*)))))
-(define json:frac
-  ($do (($eqv? #\.))
-       (c* ($many digit 1))
-       ($return (list->string c*))))
-(define json:exp
-  ($do (e ($or ($eqv? #\e) ($eqv? #\E)))
-       (s ($or ($eqv? #\-) ($eqv? #\+)))
-       (c* ($many digit 1))
-       ($return (apply string e s c*))))
-
+(define num-set
+  ($cs (char-set #\- #\+ #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9 #\. #\e #\E)))
+;; This doesn't make happy...
+#;(define num-set
+  ($satisfy
+   (lambda (c)
+     (memv c '(#\- #\+ #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9 #\. #\e #\E)))))
 (define json:number
-  ($do (sig ($optional ($do (($eqv? #\-)) ($return "-")) "+"))
-       (int json:int)
-       (frac ($optional json:frac ""))
-       (exp  ($optional json:exp ""))
-       ($return (let* ((s (string-append sig int frac exp))
+  ($do (c* ($many num-set 1))
+       ($return (let* ((s (list->string c*))
 		       (v (string->number s)))
-		  (or v
-		      (json-parse-error "Invalid JSON number" s))))))
+		  (or v (json-parse-error "Invalid JSON number" s))))))
+
+;;; This is more acculate and following specification but slow
+;;; (5% slower than above)
+;; (define digit ($cs (string->char-set "0123456789")))
+;; (define json:int
+;;   ($or ($do (($eqv? #\0)) ($return "0"))
+;;        ($do (c ($cs (string->char-set "123456789")))
+;; 	    (c* ($many digit))
+;; 	    ($return (apply string c c*)))))
+;; (define json:frac
+;;   ($do (($eqv? #\.))
+;;        (c* ($many digit 1))
+;;        ($return (list->string c*))))
+;; (define json:exp
+;;   ($do (e ($or ($eqv? #\e) ($eqv? #\E)))
+;;        (s ($or ($eqv? #\-) ($eqv? #\+)))
+;;        (c* ($many digit 1))
+;;        ($return (apply string e s c*))))
+;; 
+;; (define json:number
+;;   ($do (sig ($optional ($do (($eqv? #\-)) ($return "-")) "+"))
+;;        (int json:int)
+;;        (frac ($optional json:frac ""))
+;;        (exp  ($optional json:exp ""))
+;;        ($return (let* ((s (string-append sig int frac exp))
+;; 		       (v (string->number s)))
+;; 		  (or v
+;; 		      (json-parse-error "Invalid JSON number" s))))))
+
 (define json:unescaped
   ($cs (char-set-union
 	(ucs-range->char-set #x20 (+ #x21 1))
@@ -133,8 +158,13 @@
 		       ($return (integer->char cp)))))))
 
 (define json:char
-  ($or json:unescaped
-       json:escaped))
+  ;; This didn't make me happy at all...
+  #;($do (c $peekc)
+       ($cond ((eqv? c #\\) json:escaped)
+	      ((eqv? c #\")
+	       (lambda (l) (return-unexpect "end of JSON string" l)))
+	      (else $getc)))
+  ($or json:unescaped json:escaped))
 (define json:string
   ($do (($eqv? #\"))
        (c* ($many json:char))
@@ -147,7 +177,6 @@
 			   (v* ($many ($seq value-separactor (json:value))))
 			   ($return (cons v1 v*)))
 		      '()))
-       ;; end-array
        (($or end-array ($error "Invalid JSON array")))
        ($return v*)))
 
@@ -159,16 +188,12 @@
 			   (v* ($many ($seq value-separactor json:member)))
 			   ($return (cons v1 v*)))
 		      '()))
-       ;; end-object
        (($or end-object ($error "Invalid JSON object")))
        ($return (list->vector v*))))
 
-(define (one-char l)
-  (if (null? l)
-      (return-unexpect "Unexpected EOF" l)
-      (return-result (lseq-car l) (lseq-cdr l))))
 (define (json:value)
-  ($do (c ($peek one-char))
+  ;; This is better performance than listing with $or
+  ($do (c $peekc)
        ($cond ((eqv? #\{ c) json:object)
 	      ((eqv? #\[ c) json:array)
 	      ((eqv? #\" c) json:string)
