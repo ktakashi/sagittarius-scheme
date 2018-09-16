@@ -173,7 +173,8 @@
 
 (define json:array
   ($do begin-array
-       (v* ($optional ($do (v1 (json:value))
+       (v* ($optional ($do (($not ($eqv? #\])))
+			   (v1 (json:value))
 			   (v* ($many ($seq value-separactor (json:value))))
 			   ($return (cons v1 v*)))
 		      '()))
@@ -184,7 +185,8 @@
   ($do (k json:string) name-separactor (v (json:value)) ($return (cons k v))))
 (define json:object
   ($do begin-object
-       (v* ($optional ($do (v1 json:member)
+       (v* ($optional ($do (($not ($eqv? #\})))
+			   (v1 json:member)
 			   (v* ($many ($seq value-separactor json:member)))
 			   ($return (cons v1 v*)))
 		      '()))
