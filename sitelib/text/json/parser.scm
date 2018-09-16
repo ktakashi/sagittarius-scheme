@@ -61,7 +61,7 @@
 (define ($cs s) ($satisfy (lambda (c) (char-set-contains? s c))))
 (define ws ($many ($cs (char-set #\space #\tab #\newline #\return))))
 
-(define digit ($cs (string->char-set "012345789")))
+(define digit ($cs (string->char-set "0123456789")))
 
 (define begin-array ($seq ws ($eqv? #\[) ws))
 (define begin-object ($seq ws ($eqv? #\{) ws))
@@ -78,7 +78,7 @@
 
 (define json:int
   ($or ($do (($eqv? #\0)) ($return "0"))
-       ($do (c ($cs (string->char-set "12345789")))
+       ($do (c ($cs (string->char-set "123456789")))
 	    (c* ($many digit))
 	    ($return (apply string c c*)))))
 (define json:frac
