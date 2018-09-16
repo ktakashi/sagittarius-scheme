@@ -156,7 +156,7 @@
 					      (* (- cp #xd800) #x400)
 					      (- cp2 #xdc00))))
 				 ($error "Invalid unicode code point")))
-		       ($return (integer->char cp)))))))
+		       ($lazy ($return (integer->char cp))))))))
 
 (define json:char
   ;; This didn't make me happy at all...

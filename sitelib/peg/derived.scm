@@ -30,10 +30,12 @@
 
 (library (peg derived)
     (export $bind $do $optional $repeat $sequence-of
-	    $parameterize $if $when $unless $cond else
+	    $parameterize $lazy
+	    $if $when $unless $cond else
 	    $peek-match
 	    $eqv?)
     (import (rnrs)
+	    (rnrs r5rs)
 	    (core inline)
 	    (peg primitives)
 	    (srfi :39 parameters))
@@ -96,14 +98,21 @@
        (lambda (l)
 	 (parameterize ((p c) ...)
 	   (e l)))))))
+(define-syntax $lazy
+  (syntax-rules ()
+    ((_ parser)
+     (let ((p (delay parser)))
+       (lambda (l) ((force parser) l))))))
 
 (define-syntax $if
   (syntax-rules ()
     ((_ pred consequence alternative)
-     (lambda (l)
-       (if pred
-	   (consequence l)
-	   (alternative l))))))
+     (let ((c consequence)
+	   (a alternative))
+       (lambda (l)
+	 (if pred
+	     (c l)
+	     (a l)))))))
 (define-syntax $when
   (syntax-rules ()
     ((_ pred body)
