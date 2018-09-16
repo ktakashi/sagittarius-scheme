@@ -147,6 +147,7 @@
 			   (v* ($many ($seq value-separactor (json:value))))
 			   ($return (cons v1 v*)))
 		      '()))
+       ;; end-array
        (($or end-array ($error "Invalid JSON array")))
        ($return v*)))
 
@@ -158,18 +159,25 @@
 			   (v* ($many ($seq value-separactor json:member)))
 			   ($return (cons v1 v*)))
 		      '()))
+       ;; end-object
        (($or end-object ($error "Invalid JSON object")))
        ($return (list->vector v*))))
 
+(define (one-char l)
+  (if (null? l)
+      (return-unexpect "Unexpected EOF" l)
+      (return-result (lseq-car l) (lseq-cdr l))))
 (define (json:value)
-  ($or json:true
-       json:null
-       json:false
-       json:object
-       json:array
-       json:string
-       json:number
-       ($error "Invalid JSON character")))
+  ($do (c ($peek one-char))
+       ($cond ((eqv? #\{ c) json:object)
+	      ((eqv? #\[ c) json:array)
+	      ((eqv? #\" c) json:string)
+	      ((memv c '(#\- #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9))
+	       json:number)
+	      ((eqv? #\t c) json:true)
+	      ((eqv? #\f c) json:false)
+	      ((eqv? #\n c) json:null)
+	      (else ($error "Invalid JSON character")))))
 
 (define json:parser ($do ws (v (json:value)) ws ($return v)))
 
