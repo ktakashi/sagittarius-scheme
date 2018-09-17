@@ -47,6 +47,11 @@
 (test-parser jmespath:bracket-specifier '(slice 0 2 1) "[0:2]")
 (test-parser jmespath:bracket-specifier '(index *) "[*]")
 
+(test-parser jmespath:literal '(literal #(("key" . "value")))
+	     "`{\"key\": \"value\"}`")
+
+(test-parser jmespath:raw-string '(raw-string "'\\a") "'\\'\\\\a'")
+
 (test-parser jmespath:top-expression '* "*")
 (test-parser jmespath:top-expression '* " * ")
 (test-parser jmespath:top-expression '@ "@")
@@ -54,29 +59,29 @@
 (test-parser jmespath:top-expression
 	     '(function "abs" "foo" (& "bar") "buz") "abs(foo, &bar, buz)")
 
-(test-parser (jmespath:expression) '(pipe "foo" "bar") "foo | bar")
-(test-parser (jmespath:expression) '(pipe "foo" "bar") "foo|bar")
-(test-parser (jmespath:expression) '(pipe "foo" "bar" "boo") "foo | bar | boo")
-(test-parser (jmespath:expression) '(or "foo" "bar") "foo || bar")
-(test-parser (jmespath:expression) '(or "foo" "bar") "foo||bar")
-(test-parser (jmespath:expression) '(or "foo" "bar" "boo") "foo || bar || boo")
-(test-parser (jmespath:expression) '(and "foo" "bar") "foo && bar")
-(test-parser (jmespath:expression) '(and "foo" "bar") "foo&&bar")
-(test-parser (jmespath:expression) '(and "foo" "bar" "boo") "foo && bar && boo")
-(test-parser (jmespath:expression) '(-> "foo" "bar") "foo.bar")
-(test-parser (jmespath:expression) '(-> "foo" "bar") "foo . bar")
-(test-parser (jmespath:expression) '(-> "foo" * "bar") "foo.* . bar")
+(test-parser jmespath:expression '(pipe "foo" "bar") "foo | bar")
+(test-parser jmespath:expression '(pipe "foo" "bar") "foo|bar")
+(test-parser jmespath:expression '(pipe "foo" "bar" "boo") "foo | bar | boo")
+(test-parser jmespath:expression '(or "foo" "bar") "foo || bar")
+(test-parser jmespath:expression '(or "foo" "bar") "foo||bar")
+(test-parser jmespath:expression '(or "foo" "bar" "boo") "foo || bar || boo")
+(test-parser jmespath:expression '(and "foo" "bar") "foo && bar")
+(test-parser jmespath:expression '(and "foo" "bar") "foo&&bar")
+(test-parser jmespath:expression '(and "foo" "bar" "boo") "foo && bar && boo")
+(test-parser jmespath:expression '(-> "foo" "bar") "foo.bar")
+(test-parser jmespath:expression '(-> "foo" "bar") "foo . bar")
+(test-parser jmespath:expression '(-> "foo" * "bar") "foo.* . bar")
 
-(test-parser (jmespath:expression) '(pipe "a" (-> "b" "c")) "a | b.c")
+(test-parser jmespath:expression '(pipe "a" (-> "b" "c")) "a | b.c")
 #; (test-parser (jmespath:expression)
 	     '(-> (pipe "people" (index 0))) "people | [0] . name")
 
-(test-parser (jmespath:expression) '(ref "a" (index 0)) "a[0]")
+(test-parser jmespath:expression '(ref "a" (index 0)) "a[0]")
 
 ;; considering associsativity?
 ;; NOTE: I can't read from the specification and tutorial act like this
 ;;       so should be fine?
-(test-parser (jmespath:expression) '(pipe "foo" (or "bar" "buz"))
+(test-parser jmespath:expression '(pipe "foo" (or "bar" "buz"))
 	     "foo | bar || buz")
 
 (test-end)
