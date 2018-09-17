@@ -78,6 +78,13 @@
 
 (test-parser jmespath:expression '(ref "a" (index 0)) "a[0]")
 
+(test-parser jmespath:expression '(< "a" "b")  "a < b")
+(test-parser jmespath:expression '(<= "a" "b") "a <= b")
+(test-parser jmespath:expression '(== "a" "b") "a == b")
+(test-parser jmespath:expression '(>= "a" "b") "a >= b")
+(test-parser jmespath:expression '(> "a" "b")  "a > b")
+(test-parser jmespath:expression '(!= "a" "b") "a != b")
+
 ;; considering associsativity?
 ;; NOTE: I can't read from the specification and tutorial act like this
 ;;       so should be fine?

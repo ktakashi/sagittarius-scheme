@@ -259,12 +259,24 @@
   ($do (e jmespath:top-expression)
        (b jmespath:bracket-specifier)
        ($return `(ref ,e ,b))))
+(define jmespath:comparator
+  ($or ($do ((op "<=")) ($return '<=))
+       ($do ((op "<"))  ($return '<))
+       ($do ((op "==")) ($return '==))
+       ($do ((op ">=")) ($return '>=))
+       ($do ((op ">"))  ($return '>))
+       ($do ((op "!=")) ($return '!=))))
+(define jmespath:comparator-expression
+  ($do (e jmespath:top-expression)
+       (c jmespath:comparator)
+       (e2 jmespath:expression)
+       ($return `(,c ,e ,e2))))
 
 (define jmespath:expression
   ($lazy
    ($or jmespath:sub-expression
 	jmespath:index-expression
-	;;jmespath:comparator-expression
+	jmespath:comparator-expression
 	jmespath:pipe-expression ;; pipe must be before the or
 	jmespath:or-expression
 	jmespath:and-expression
