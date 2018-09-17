@@ -29,18 +29,46 @@
 ;;;  
 
 ;; peg parser of JSON
-;; reference
-;; RFC8259: https://tools.ietf.org/html/rfc8259
+;; reference:
+;; https://tools.ietf.org/html/rfc8259
 #!nounbound
 (library (text json parser)
-    (export parse-json
-	    json:object
-	    json:parser)
+    (export json:parser)
     (import (rnrs)
 	    (peg)
 	    (sagittarius generators)
 	    (srfi :14 char-sets)
 	    (srfi :127 lseqs))
+#|
+;; Ironically this is slower than PEG...
+;; convert lazy sequence to input port.
+(define (lseq->char-input-port lseq)
+  (define current lseq)
+  (define (read! s start count)
+    (let loop ((i 0) (seq current))
+      (cond ((= i count) (set! current seq) i)
+	    ((null? seq) (set! current '()) i)
+	    (else
+	     (string-set! s (+ i start) (lseq-car seq))
+	     (loop (+ i 1) (lseq-cdr seq))))))
+  ;; we do sloppy way
+  (define (get-position)
+    (let loop ((i 0) (seq lseq))
+      (cond ((eq? seq current) i)
+	    ((null? seq) i)
+	    (else (loop (+ i 1) (lseq-cdr seq))))))
+  (define (set-position! n)
+    (do ((i 0 (+ i 1)) (seq lseq (lseq-cdr seq)))
+	((or (= i n) (null? seq)) (set! current seq))))
+  (values (make-custom-textual-input-port "lseq-input-port" read!
+					  get-position set-position! #f)
+	  (lambda () current)))
+(define (json:parser l)
+  (let-values (((in nl) (lseq->char-input-port l)))
+    (let ((r (json-read in)))
+      (return-result r (nl)))))
+|#
+
 (define-condition-type &json &error
   make-json-error json-error?)
 (define-condition-type &json-parse &json
@@ -98,7 +126,7 @@
 		       (v (string->number s)))
 		  (or v (json-parse-error "Invalid JSON number" s))))))
 
-;;; This is more acculate and following specification but slow
+;;; This is more acculate and follows specification but slow
 ;;; (5% slower than above)
 ;; (define digit ($cs (string->char-set "0123456789")))
 ;; (define json:int
@@ -137,9 +165,10 @@
        ($return (string->number (list->string c*) 16))))
 (define json:escaped
   ($seq ($eqv? #\\)
-	($or ($do (($eqv? #\")) ($return #\"))
-	     ($do (($eqv? #\\)) ($return #\\))
-	     ($do (($eqv? #\/)) ($return #\/))
+	;; The same as (text json parse)
+	($or ;;($do (($eqv? #\")) ($return #\"))
+	     ;;($do (($eqv? #\\)) ($return #\\))
+	     ;;($do (($eqv? #\/)) ($return #\/))
 	     ($do (($eqv? #\b)) ($return #\backspace))
 	     ($do (($eqv? #\f)) ($return #\page))
 	     ($do (($eqv? #\n)) ($return #\linefeed))
@@ -156,7 +185,8 @@
 					      (* (- cp #xd800) #x400)
 					      (- cp2 #xdc00))))
 				 ($error "Invalid unicode code point")))
-		       ($lazy ($return (integer->char cp))))))))
+		       ($lazy ($return (integer->char cp)))))
+	     $getc)))
 
 (define json:char
   ;; This didn't make me happy at all...
@@ -175,15 +205,15 @@
 (define json:array
   ($do begin-array
        (v* ($optional ($do (($not ($eqv? #\])))
-			   (v1 (json:value))
-			   (v* ($many ($seq value-separactor (json:value))))
+			   (v1 json:value)
+			   (v* ($many ($seq value-separactor json:value)))
 			   ($return (cons v1 v*)))
 		      '()))
        (($or end-array ($error "Invalid JSON array")))
        ($return v*)))
 
 (define json:member
-  ($do (k json:string) name-separactor (v (json:value)) ($return (cons k v))))
+  ($do (k json:string) name-separactor (v json:value) ($return (cons k v))))
 (define json:object
   ($do begin-object
        (v* ($optional ($do (($not ($eqv? #\})))
@@ -194,26 +224,19 @@
        (($or end-object ($error "Invalid JSON object")))
        ($return (list->vector v*))))
 
-(define (json:value)
-  ;; This is better performance than listing with $or
-  ($do (c $peekc)
-       ($cond ((eqv? #\{ c) json:object)
-	      ((eqv? #\[ c) json:array)
-	      ((eqv? #\" c) json:string)
-	      ((memv c '(#\- #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9))
-	       json:number)
-	      ((eqv? #\t c) json:true)
-	      ((eqv? #\f c) json:false)
-	      ((eqv? #\n c) json:null)
-	      (else ($error "Invalid JSON character")))))
+(define json:value
+  ($lazy
+   ;; This is better performance than listing with $or
+   ($do (c $peekc)
+	($cond ((eqv? #\{ c) json:object)
+	       ((eqv? #\[ c) json:array)
+	       ((eqv? #\" c) json:string)
+	       ((memv c '(#\- #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9))
+		json:number)
+	       ((eqv? #\t c) json:true)
+	       ((eqv? #\f c) json:false)
+	       ((eqv? #\n c) json:null)
+	       (else ($error "Invalid JSON character"))))))
 
-(define json:parser ($do ws (v (json:value)) ws ($return v)))
-
-(define (parse-json in)
-  (define lseq (generator->lseq (port->char-generator in)))
-  (let-values (((s v nl) (json:parser lseq)))
-    (if (parse-success? s)
-	v
-	(json-parse-error "Failed to parse JSON"))))
-
+(define json:parser ($do ws (v json:value) ws ($return v)))
 )
