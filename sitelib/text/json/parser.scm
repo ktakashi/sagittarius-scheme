@@ -90,10 +90,7 @@
 
 (define ($cs s) ($satisfy (lambda (c) (char-set-contains? s c))))
 ;; read only one char 
-(define ($getc l)
-  (if (null? l)
-      (return-unexpect "Unexpected EOF" l)
-      (return-result (lseq-car l) (lseq-cdr l))))
+(define $getc $any)
 (define $peekc ($peek $getc))
 
 (define ws ($many ($cs (char-set #\space #\tab #\newline #\return))))
@@ -202,25 +199,29 @@
        (($eqv? #\"))
        ($return (list->string c*))))
 
+(define array-values
+  ($optional ($do (($not ($eqv? #\])))
+		  (v1 json:value)
+		  (v* ($many ($seq value-separactor json:value)))
+		  ($return (cons v1 v*)))
+	     '()))
 (define json:array
   ($do begin-array
-       (v* ($optional ($do (($not ($eqv? #\])))
-			   (v1 json:value)
-			   (v* ($many ($seq value-separactor json:value)))
-			   ($return (cons v1 v*)))
-		      '()))
+       (v* array-values)
        (($or end-array ($error "Invalid JSON array")))
        ($return v*)))
 
 (define json:member
   ($do (k json:string) name-separactor (v json:value) ($return (cons k v))))
+(define object-values
+  ($optional ($do (($not ($eqv? #\})))
+		  (v1 json:member)
+		  (v* ($many ($seq value-separactor json:member)))
+		  ($return (cons v1 v*)))
+	     '()))
 (define json:object
   ($do begin-object
-       (v* ($optional ($do (($not ($eqv? #\})))
-			   (v1 json:member)
-			   (v* ($many ($seq value-separactor json:member)))
-			   ($return (cons v1 v*)))
-		      '()))
+       (v* object-values)
        (($or end-object ($error "Invalid JSON object")))
        ($return (list->vector v*))))
 
