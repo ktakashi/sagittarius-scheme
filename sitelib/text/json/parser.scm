@@ -36,6 +36,7 @@
     (export json:parser)
     (import (rnrs)
 	    (peg)
+	    (peg chars)
 	    (sagittarius generators)
 	    (srfi :14 char-sets)
 	    (srfi :127 lseqs))
@@ -88,7 +89,7 @@
 	(json-parse-error "Unexpected EOF")
 	(json-parse-error message (lseq-car in)))))
 
-(define ($cs s) ($satisfy (lambda (c) (char-set-contains? s c))))
+(define $cs $char-set-contains?)
 ;; read only one char 
 (define $getc $any)
 (define $peekc ($peek $getc))
@@ -103,7 +104,7 @@
 (define value-separactor ($seq ws ($eqv? #\,) ws))
 
 (define (token s)
-  ($or (apply $seq (map $eqv? (string->list s)))
+  ($or ($lazy ($token s))
        ($error (string-append "Unexpected character for token " s))))
 
 (define json:true  ($do ((token "true")) ($return #t)))

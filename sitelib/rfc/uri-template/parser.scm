@@ -42,12 +42,13 @@
 	    )
     (import (rnrs)
 	    (peg)
+	    (peg chars)
 	    (sagittarius generators)
 	    (rfc uri-template conditions)
 	    (srfi :14 char-sets)
 	    (srfi :127 lseqs))
 
-(define ($cs s) ($satisfy (lambda (c) (char-set-contains? s c))))
+(define $cs $char-set-contains?)
 
 ;;; 1.5.  Notational Conventions
 ;; ALPHA       =  %x41-5A / %x61-7A   ; A-Z / a-z

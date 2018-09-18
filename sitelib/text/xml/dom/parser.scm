@@ -63,6 +63,7 @@
 	    )
     (import (rnrs)
 	    (peg)
+	    (peg chars)
 	    (srfi :14 char-sets)
 	    (srfi :39 parameters))
 ;; alist of prefix and namespace
@@ -115,8 +116,7 @@
    (ucs-range->char-set #x0300 #x0370)
    (ucs-range->char-set #x203F #x2041)))
 ;; helper
-(define ($in-set s) ($satisfy (lambda (c) (char-set-contains? s c))))
-(define ($token s) (apply $seq (map $eqv? (string->list s))))
+(define $in-set $char-set-contains?)
 
 ;; [5] Name   ::= NameStartChar (NameChar)*
 (define $xml:name

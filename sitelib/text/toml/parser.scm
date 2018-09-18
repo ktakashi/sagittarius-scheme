@@ -44,6 +44,7 @@
 		    (string r6:string))
 	    (rnrs mutable-pairs)
 	    (peg)
+	    (peg chars)
 	    (sagittarius)
 	    (sagittarius timezone)
 	    (only (sagittarius time)
@@ -108,8 +109,7 @@
 (define oct-digit (string->char-set "01234567"))
 (define bin-digit (string->char-set "01"))
 
-(define ($token str) (apply $seq (map $eqv? (string->list s))))
-(define ($in-set s) ($satisfy (lambda (c) (char-set-contains? s c))))
+(define $in-set $char-set-contains?)
 
 (define newline
   ($or ($eqv? #\newline)
