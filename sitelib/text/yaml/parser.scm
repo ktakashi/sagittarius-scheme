@@ -258,31 +258,33 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
        ($do (a anchor) (t ($optional tag))
 	    ($return (cons (and t (convert-tag t)) (check-anchor a))))))
 
-(define (block-node/indentless-sequence)
-  ($parameterize ((*current-tag* #f))
+(define block-node/indentless-sequence
+  ($lazy
+   ($parameterize ((*current-tag* #f))
     ($or ($do (a alias) ($return (lookup-alias a)))
 	 ($do (p properties)
 	      (b ($parameterize ((*current-tag* (car p)))
 				($or block-content indentless-sequence)))
 	      ($return (build-node b (car p) (cdr p))))
 	 ($do (b block-content) ($return (build-node b #f #f)))
-	 indentless-sequence)))
+	 indentless-sequence))))
 
-(define (block-k&v)
-  ($do (k ($do (k key)
-	       (r ($optional (block-node/indentless-sequence)))
-	       ($return (if r
-			    (cons k r)
-			    (cons k (empty-scalar k))))))
-       (v ($optional ($do (v value)
-			  (r ($optional (block-node/indentless-sequence)))
-			  ($return (or r (empty-scalar v))))
-		     (empty-scalar (car k))))
-       ($return (cons (cdr k) v))))
+(define block-k&v
+  ($lazy
+   ($do (k ($do (k key)
+		(r ($optional block-node/indentless-sequence))
+		($return (if r
+			     (cons k r)
+			     (cons k (empty-scalar k))))))
+	(v ($optional ($do (v value)
+			   (r ($optional block-node/indentless-sequence))
+			   ($return (or r (empty-scalar v))))
+		      (empty-scalar (car k))))
+	($return (cons (cdr k) v)))))
 
 (define block-mapping
   ($do (s block-mapping-start)
-       (k&v* ($many (block-k&v)))
+       (k&v* ($many block-k&v))
        (e block-end)
        ($return (make-yaml-mapping-node
 		 (resolve-tag 'mapping #t (*current-tag*) #f) k&v* #f
