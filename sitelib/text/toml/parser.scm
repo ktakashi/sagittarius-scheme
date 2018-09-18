@@ -108,10 +108,7 @@
 (define oct-digit (string->char-set "01234567"))
 (define bin-digit (string->char-set "01"))
 
-(define ($token str)
-  ($sequence-of
-   (map (lambda (c) (lambda (c2) (eqv? c c2))) (string->list str))))
-
+(define ($token str) (apply $seq (map $eqv? (string->list s))))
 (define ($in-set s) ($satisfy (lambda (c) (char-set-contains? s c))))
 
 (define newline
@@ -119,7 +116,6 @@
        ($seq ($eqv? #\return) ($eqv? #\newline))))
 (define wschar ($or ($eqv? #\space) ($eqv? #\tab)))
 (define ws ($many wschar))
-
 
 (define comment-start-symbol ($eqv? #\#)) ;; #\x23
 (define non-eol

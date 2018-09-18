@@ -29,7 +29,7 @@
 ;;;  
 
 (library (peg derived)
-    (export $bind $do $optional $repeat $sequence-of
+    (export $bind $do $optional $repeat
 	    $parameterize $lazy
 	    $if $when $unless $cond else
 	    $peek-match
@@ -87,9 +87,6 @@
       (k (identifier? #'k) #'$$optional))))
        
 (define-inline ($repeat parser n) ($many parser n n))
-
-(define ($sequence-of preds)
-  (apply $seq (map $satisfy preds)))
 
 (define-syntax $parameterize
   (syntax-rules ()
