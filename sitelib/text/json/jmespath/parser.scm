@@ -95,14 +95,16 @@
 	(apply $seq (map $eqv? (string->list token)))
 	($many ws)))
 (define jmespath:unquoted-string
-  ($do (c ($cs (char-set-union (ucs-range->char-set #x41 (+ #x5A 1))
-			       (ucs-range->char-set #x61 (+ #x7A 1))
-			       (char-set #\_))))
-       (c* ($many ($cs (char-set-union
+  (let ((first-set ($cs (char-set-union (ucs-range->char-set #x41 (+ #x5A 1))
+					(ucs-range->char-set #x61 (+ #x7A 1))
+					(char-set #\_))))
+	(next-set ($cs (char-set-union
 			(char-set-intersection char-set:ascii
 					       char-set:letter+digit)
 			(char-set #\_)))))
-       ($return (apply string c c*))))
+    ($do (c first-set)
+	 (c* ($many next-set))
+	 ($return (apply string c c*)))))
 (define jmespath:unescaped-char
   ($cs (char-set-union
 	(ucs-range->char-set #x20 (+ #x21 1))
@@ -113,11 +115,11 @@
 	($or ($eqv? #\")
 	     ($eqv? #\\)
 	     ($eqv? #\/)
-	     ($do (($eqv? #\b)) ($return #\backspace))
-	     ($do (($eqv? #\f)) ($return #\page))
-	     ($do (($eqv? #\n)) ($return #\newline))
-	     ($do (($eqv? #\r)) ($return #\return))
-	     ($do (($eqv? #\t)) ($return #\tab))
+	     ($seq ($eqv? #\b) ($return #\backspace))
+	     ($seq ($eqv? #\f) ($return #\page))
+	     ($seq ($eqv? #\n) ($return #\newline))
+	     ($seq ($eqv? #\r) ($return #\return))
+	     ($seq ($eqv? #\t) ($return #\tab))
 	     ($do (($eqv? #\x))
 		  (c* ($repeat ($cs char-set:hex-digit) 4))
 		  ($return (integer->char
@@ -171,10 +173,11 @@
 (define star ($do ((op "*")) ($return '*)))
 
 (define jmespath:number
-  ($do (sign ($optional ($eqv? #\-) #\+))
-       (n* ($many ($cs (char-set-intersection
-			char-set:ascii char-set:digit)) 1))
-       ($return (string->number (apply string sign n*)))))
+  (let ((num-set ($cs (char-set-intersection
+		       char-set:ascii char-set:digit))))
+    ($do (sign ($optional ($eqv? #\-) #\+))
+	 (n* ($many num-set 1))
+	 ($return (string->number (apply string sign n*))))))
 
 (define jmespath:slice-expression
   ($do (n1 ($optional jmespath:number 0))
@@ -213,7 +216,7 @@
        
 (define jmespath:top-expression
   ($or star
-       ($do ((op "@")) ($return '@))
+       ($seq (op "@") ($return '@))
        jmespath:not-expression
        jmespath:paren-expression
        jmespath:multi-select-list
