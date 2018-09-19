@@ -67,8 +67,10 @@
 	   ((not) (jmespath:compile-not-expression e))
 	   ((index) (jmespath:compile-index-expression e))
 	   ((slice) (jmespath:compile-slice-expression e))
+	   ((or) (jmespath:compile-or-expression e))
+	   ((and) (jmespath:compile-and-expression e))
 	   ((function) (jmespath:compile-function e))
-	   (else (error 'compile-jmespath "Unsupported command"))))))
+	   (else (error 'compile-jmespath "Unsupported command" e))))))
   
 (define (jmespath:compile-identifier s)
   (define key=? (lambda (k&v) (and (string=? s (car k&v)) k&v)))
@@ -85,9 +87,7 @@
 	(if (null? e*)
 	    json
 	    (let ((v ((car e*) json context)))
-	      (if (false-value? v)
-		  'null
-		  (loop v (make-child-context v context) (cdr e*)))))))))
+	      (loop v (make-child-context v context) (cdr e*))))))))
 
 (define (jmespath:compile-index-expression e)
   (let ((n (cadr e)))
@@ -129,6 +129,33 @@
 		    (reverse r)
 		    (loop (+ i step) (cons (list-ref json i) r)))))
 	    'null)))))
+
+(define (jmespath:compile-or-expression e)
+  (let ((e* (map compile-expression (cdr e))))
+    (lambda (json context)
+      (let loop ((e* e*))
+	(if (null? e*)
+	    'null
+	    (let ((v ((car e*) json context)))
+	      (if (false-value? v)
+		  (loop (cdr e*))
+		  v)))))))
+
+(define (jmespath:compile-and-expression e)
+  (when (null? e)
+    (assertion-violation 'jmespath:compile "And must have at least one expression"))
+  (let ((e* (map compile-expression (cdr e))))
+    (lambda (json context)
+      (let ((v ((car e*) json context)))
+	(if (false-value? v)
+	    v
+	    (let loop ((e* (cdr e*)) (v v))
+	      (if (null? e*)
+		  v
+		  (let ((v2 ((car e*) json context)))
+		    (if (false-value? v2)
+			v2
+			(loop (cdr e*) v2))))))))))
 
 (define (jmespath:compile-not-expression e)
   (let ((e (compile-expression (cadr e))))
