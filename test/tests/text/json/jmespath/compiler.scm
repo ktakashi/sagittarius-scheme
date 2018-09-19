@@ -29,6 +29,23 @@
   (test-compiler "value" '(-> "foo" "bar" "baz") 
 		 "{\"foo\": {\"bar\": {\"baz\": \"value\"}}}"))
 
+(test-group "Index expressions"
+  (test-compiler 0 '(index 0) "[0,1,2,3,4,5]")
+  (test-compiler 5 '(index 5) "[0,1,2,3,4,5]")
+  (test-compiler 'null '(index 6) "[0,1,2,3,4,5]")
+  (test-compiler 5 '(index -1) "[0,1,2,3,4,5]")
+  (test-compiler 0 '(index -6) "[0,1,2,3,4,5]")
+  (test-compiler 'null '(index -7) "[0,1,2,3,4,5]")
+  (test-compiler '(0 1 2 3 4 5) '(index *) "[0,1,2,3,4,5]"))
+
+(test-group "Slice expressions"
+  (test-compiler '(0 1 2 3) '(slice 0 4 1) "[0,1,2,3]")
+  (test-compiler '(0 1 2) '(slice 0 3 1) "[0,1,2,3]")
+  (test-compiler '(0 1) '(slice #f 2 1) "[0,1,2,3]")
+  (test-compiler '(0 2) '(slice #f #f 2) "[0,1,2,3]")
+  (test-compiler '(3 2 1 0) '(slice #f #f -1) "[0,1,2,3]")
+  (test-compiler '(2 3) '(slice -2 #f 1) "[0,1,2,3]"))
+
 (test-group "Not expressions"
   (test-compiler #f '(not "True") "{\"True\": true}")
   (test-compiler #t '(not "False") "{\"False\": false}")

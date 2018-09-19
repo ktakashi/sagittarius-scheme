@@ -45,6 +45,8 @@
 
 (test-parser jmespath:bracket-specifier '(index 0) "[0]")
 (test-parser jmespath:bracket-specifier '(slice 0 2 1) "[0:2]")
+(test-parser jmespath:bracket-specifier '(slice 0 #f 1) "[0:]")
+(test-parser jmespath:bracket-specifier '(slice #f #f 1) "[::]")
 (test-parser jmespath:bracket-specifier '(index *) "[*]")
 
 (test-parser jmespath:literal '(literal #(("key" . "value")))

@@ -180,12 +180,12 @@
 	 ($return (string->number (apply string sign n*))))))
 
 (define jmespath:slice-expression
-  ($do (n1 ($optional jmespath:number 0))
+  ($do (n1 ($optional jmespath:number))
        ((op ":"))
-       (n2 ($optional jmespath:number +inf.0))
+       (n2 ($optional jmespath:number))
        (n3 ($optional ($seq (op ":") ($optional jmespath:number 1)) 1))
        ;; start stop step
-       ($return `(slice ,n1 ,2 ,n3))))
+       ($return `(slice ,n1 ,n2 ,n3))))
 
 (define jmespath:bracket-specifier
   ($do ((op "["))
