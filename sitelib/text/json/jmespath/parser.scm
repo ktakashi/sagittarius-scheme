@@ -188,11 +188,15 @@
        ($return `(slice ,n1 ,n2 ,n3))))
 
 (define jmespath:bracket-specifier
-  ($do ((op "["))
-       (v ($or jmespath:slice-expression
-	       ($do (v ($or jmespath:number star)) ($return `(index ,v)))))
-       ((op "]"))
-       ($return v)))
+  ($or ($do ((op "[?"))
+	    (v jmespath:expression)
+	    ((op "]"))
+	    ($return `(filter ,v)))
+       ($do ((op "["))
+	    (v ($or jmespath:slice-expression
+		    ($do (v ($or jmespath:number star)) ($return `(index ,v)))))
+	    ((op "]"))
+	    ($return v))))
 
 (define jmespath:literal
   ($do ((op "`"))

@@ -48,6 +48,8 @@
 (test-parser jmespath:bracket-specifier '(slice 0 #f 1) "[0:]")
 (test-parser jmespath:bracket-specifier '(slice #f #f 1) "[::]")
 (test-parser jmespath:bracket-specifier '(index *) "[*]")
+(test-parser jmespath:bracket-specifier 
+	     '(filter (== "state" (raw-string "running"))) "[?state=='running']")
 
 (test-parser jmespath:literal '(literal #(("key" . "value")))
 	     "`{\"key\": \"value\"}`")
