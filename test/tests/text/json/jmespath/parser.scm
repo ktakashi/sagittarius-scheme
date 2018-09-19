@@ -19,10 +19,10 @@
 (test-parser jmespath:not-expression '(not "foo") "!foo")
 (test-parser jmespath:not-expression '(not "foo") "! foo")
 
-(test-parser jmespath:paren-expression '("foo") "(foo)")
-(test-parser jmespath:paren-expression '("foo") "( foo )")
-(test-parser jmespath:paren-expression '((not "foo")) "(!foo)")
-(test-parser jmespath:paren-expression '((not "foo")) "( ! foo)")
+(test-parser jmespath:paren-expression '"foo" "(foo)")
+(test-parser jmespath:paren-expression '"foo" "( foo )")
+(test-parser jmespath:paren-expression '(not "foo") "(!foo)")
+(test-parser jmespath:paren-expression '(not "foo") "( ! foo)")
 
 (test-parser jmespath:multi-select-list '(list) "[]")
 (test-parser jmespath:multi-select-list '(list "foo") "[foo]")
@@ -90,5 +90,8 @@
 ;;       so should be fine?
 (test-parser jmespath:expression '(pipe "foo" (or "bar" "buz"))
 	     "foo | bar || buz")
+
+(test-parser jmespath:expression '(or (pipe "foo""bar" ) "buz")
+	     "(foo | bar) || buz")
 
 (test-end)

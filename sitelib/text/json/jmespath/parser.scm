@@ -137,7 +137,7 @@
 (define jmespath:not-expression
   ($do ((op "!")) (e jmespath:expression) ($return `(not ,e))))
 (define jmespath:paren-expression
-  ($do ((op "(")) (e jmespath:expression) ((op ")")) ($return `(,e))))
+  ($do ((op "(")) (e jmespath:expression) ((op ")")) ($return e)))
 (define jmespath:multi-select-list
   ($do ((op "["))
        (e ($optional ($do (e jmespath:expression)
