@@ -84,11 +84,11 @@
 	    jmespath:expression)
     (import (rnrs)
 	    (peg)
+	    (peg chars)
 	    (text json parser)
 	    (srfi :14))
 
-;; TODO maybe it's better to put it in (peg derive) or so
-(define ($cs s) ($satisfy (lambda (c) (char-set-contains? s c))))
+(define $cs $char-set-contains?)
 (define ws ($cs (char-set #\space #\tab #\newline #\return)))
 (define (op token)
   ($seq ($many ws)
