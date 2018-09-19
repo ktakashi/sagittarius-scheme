@@ -203,7 +203,7 @@
 			(+ ,char-set:regional-indicator)
 			(seq "\r\n")
 			(seq (~ control ("\r\n"))
-			     (+ ,char-set:extend-or-spacing-mark))
+			     (* ,char-set:extend-or-spacing-mark))
 			control)))
 	   ((ascii)	char-set:ascii)
 	   ((nonl)	`(inverted-char-class ,(string->char-set "\n")))
