@@ -63,8 +63,9 @@
   (cond ((string? e) (jmespath:compile-identifier e))
 	((pair? e)
 	 (case (car e)
-	   ((not)
-	    (jmespath:compile-not-expression (compile-expression (cadr e))))
+	   ((->) (jmespath:compile-sub-expression e))
+	   ((not) (jmespath:compile-not-expression e))
+	   ((function) (jmespath:compile-function e))
 	   (else (error 'compile-jmespath "Unsupported command"))))))
   
 (define (jmespath:compile-identifier s)
@@ -75,10 +76,44 @@
 	      (else 'null))
 	'null)))
 
-(define (jmespath:compile-not-expression e)
-  (lambda (json context)
-    (let ((v (e json context)))
-      ;; false-like values?
-      (false-value? v))))
+(define (jmespath:compile-sub-expression e)
+  (let ((e* (map compile-expression (cdr e))))
+    (lambda (json context)
+      (let loop ((json json) (context context) (e* e*))
+	(if (null? e*)
+	    json
+	    (let ((v ((car e*) json context)))
+	      (if (false-value? v)
+		  'null
+		  (loop v (make-child-context v context) (cdr e*)))))))))
 
+(define (jmespath:compile-not-expression e)
+  (let ((e (compile-expression (cadr e))))
+    (lambda (json context)
+      (let ((v (e json context)))
+	;; false-like values?
+	(false-value? v)))))
+
+(define (jmespath:compile-function e)
+  (define (lookup-function name)
+    (cond ((assq name +jmespath:buildin-functions+) => cdr)
+	  ;; TODO user defined function
+	  (else #f)))
+  (let ((func (lookup-function (string->symbol (cadr e))))
+	(e* (map compile-expression (cddr e))))
+    (unless func
+      (assertion-violation 'jmespath:compile "No such function" (cadr e)))
+    (lambda (json context)
+      (let ((args (map (lambda (e) (e json context)) e*)))
+	(apply func context args)))))
+(define (jmespath:parent-function context)
+  (let ((parent (jmespath-eval-context-parent context)))
+    (if parent
+	(jmespath-eval-context-source parent)
+	'null)))
+(define +jmespath:buildin-functions+
+  `(
+    ;; This is not standard but we want it
+    (parent . ,jmespath:parent-function)
+    ))
 )
