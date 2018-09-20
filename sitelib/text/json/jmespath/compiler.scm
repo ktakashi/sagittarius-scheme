@@ -34,6 +34,7 @@
 (library (text json jmespath compiler)
     (export jmespath:compile)
     (import (rnrs)
+	    (srfi :1 lists)
 	    (srfi :133 vectors))
 
 (define-record-type jmespath-eval-context
@@ -67,6 +68,7 @@
 	   ((not) (jmespath:compile-not-expression e))
 	   ((index) (jmespath:compile-index-expression e))
 	   ((slice) (jmespath:compile-slice-expression e))
+	   ((filter) (jmespath:compile-filter-expression e))
 	   ((or) (jmespath:compile-or-expression e))
 	   ((and) (jmespath:compile-and-expression e))
 	   ((< <= = >= > !=) (jmespath:compile-comparator-expression e))
@@ -132,6 +134,15 @@
 		    (loop (+ i step) (cons (list-ref json i) r)))))
 	    'null)))))
 
+(define (jmespath:compile-filter-expression e)
+  (let ((e (compile-expression (cadr e))))
+    (lambda (json context)
+      (if (list? json)
+	  (filter-map (lambda (elm)
+			(let ((v (e elm (make-child-context elm context))))
+			  (and (not (false-value? v)) elm))) json)
+	  'null))))
+			      
 (define (jmespath:compile-or-expression e)
   (let ((e* (map compile-expression (cdr e))))
     (lambda (json context)

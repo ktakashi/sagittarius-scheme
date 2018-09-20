@@ -9,7 +9,6 @@
   (let ((e (jmespath:compile ast))
 	(json (json-read (open-string-input-port input))))
     (test-assert (procedure? e))
-    ;; (print expected (e json))
     (test-equal (list input expected) expected (e json))))
 
 (test-group "Identifiers"
@@ -113,6 +112,14 @@
   (test-compiler "foo" '(quote "foo") "{\"foo\": true}")
   (test-compiler 1 '(quote 1) "{\"foo\": true}")
   (test-compiler "foo" '(or "bar" '"foo") "{\"foo\": true}"))
+
+(test-group "Filter expressions"
+  (test-compiler '(#(("bar" . 10))) '(ref "foo" (filter (= "bar" '10)))
+		 "{\"foo\": [{\"bar\": 1}, {\"bar\": 10}]}")
+  (test-compiler '(#(("bar" . 10))) '(filter (= "bar" '10))
+		 "[{\"bar\": 1}, {\"bar\": 10}]")
+  (test-compiler '(#(("a" . 2) ("b" . 2))) '(ref "foo" (filter (= "a" "b")))
+		 "{\"foo\": [{\"a\": 1, \"b\": 2}, {\"a\": 2, \"b\": 2}]}"))
 
 (test-group "Functions expressions"
   (test-compiler 'null '(function "parent") "{\"foo\": true}")
