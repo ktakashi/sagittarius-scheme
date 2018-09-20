@@ -22,14 +22,14 @@
   (test-compiler "value" "\x2713;" "{\"\\u2713\": \"value\"}"))
 
 (test-group "Sub expressions"
-  (test-compiler "value" '(-> "foo" "bar") 
+  (test-compiler "value" '(ref "foo" "bar") 
 		 "{\"foo\": {\"bar\": \"value\"}}")
-  (test-compiler 'null '(-> "foo" "bar") 
+  (test-compiler 'null '(ref "foo" "bar") 
 		 "{\"foo\": {\"baz\": \"value\"}}")
-  (test-compiler "value" '(-> "foo" "bar" "baz") 
+  (test-compiler "value" '(ref "foo" "bar" "baz") 
 		 "{\"foo\": {\"bar\": {\"baz\": \"value\"}}}")
-  (test-compiler '#() '(-> "a") "{\"a\": {}}")
-  (test-compiler 'null '(-> "a" "b") "{\"a\": {}}"))
+  (test-compiler '#() '(ref "a") "{\"a\": {}}")
+  (test-compiler 'null '(ref "a" "b") "{\"a\": {}}"))
 
 (test-group "Index expressions"
   (test-compiler 0 '(index 0) "[0,1,2,3,4,5]")
@@ -52,11 +52,11 @@
   (test-compiler "first" '(index 0) "[\"first\", \"second\", \"third\"]")
   (test-compiler "third" '(index -1) "[\"first\", \"second\", \"third\"]")
   (test-compiler 'null '(index 100) "[\"first\", \"second\", \"third\"]")
-  (test-compiler "first" '(-> "foo" (index 0))
+  (test-compiler "first" '(ref "foo" (index 0))
 		 "{\"foo\": [\"first\", \"second\", \"third\"]}")
-  (test-compiler 'null '(-> "foo" (index 100))
+  (test-compiler 'null '(ref "foo" (index 100))
 		 "{\"foo\": [\"first\", \"second\", \"third\"]}")
-  (test-compiler 0 '(-> "foo" (index 0) (index 0))
+  (test-compiler 0 '(ref "foo" (index 0) (index 0))
 		 "{\"foo\": [[0,1],[1,2]]}"))
 
 (test-group "Or expressions"
@@ -66,9 +66,9 @@
 		 "{\"foo\": \"foo-value\", \"bar\": \"bar-value\"}")
   (test-compiler 'null '(or "foo" "bar") "{\"baz\": \"baz-value\"}")
   (test-compiler "baz-value" '(or "foo" "bar" "baz") "{\"baz\": \"baz-value\"}")
-  (test-compiler "two" '(or "override" (-> "mylist" (index -1)))
+  (test-compiler "two" '(or "override" (ref "mylist" (index -1)))
 		 "{\"mylist\": [\"one\", \"two\"]}")
-  (test-compiler "yes" '(or "override" (-> "mylist" (index -1)))
+  (test-compiler "yes" '(or "override" (ref "mylist" (index -1)))
 		 "{\"mylist\": [\"one\", \"two\"], \"override\": \"yes\"}"))
 
 (test-group "And expressions"
@@ -85,10 +85,10 @@
 (test-group "Functions expressions"
   (test-compiler 'null '(function "parent") "{\"foo\": true}")
   (test-compiler '#(("foo" . #(("bar" . #t))))
-		 '(-> "foo" (function "parent"))
+		 '(ref "foo" (function "parent"))
 		 "{\"foo\": { \"bar\": true} }")
   (test-compiler'#(("baz" . "value"))
-		'(-> "foo" "bar" "baz" (function "parent"))
+		'(ref "foo" "bar" "baz" (function "parent"))
 		 "{\"foo\": {\"bar\": {\"baz\": \"value\"}}}"))
 
 

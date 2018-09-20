@@ -63,7 +63,7 @@
   (cond ((string? e) (jmespath:compile-identifier e))
 	((pair? e)
 	 (case (car e)
-	   ((->) (jmespath:compile-sub-expression e))
+	   ((ref) (jmespath:compile-sub-expression e))
 	   ((not) (jmespath:compile-not-expression e))
 	   ((index) (jmespath:compile-index-expression e))
 	   ((slice) (jmespath:compile-slice-expression e))

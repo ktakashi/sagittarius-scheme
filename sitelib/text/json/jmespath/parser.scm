@@ -202,7 +202,7 @@
   ($do ((op "`"))
        (v json:parser)
        ((op "`"))
-       ($return `(literal ,v))))
+       ($return `(quote ,v))))
 
 (define raw-string-set
   ($cs (char-set-union
@@ -216,7 +216,7 @@
   ($do ((op "'"))
        (c* ($many jmespath:raw-string-char))
        ((op "'"))
-       ($return `(raw-string ,(list->string c*)))))
+       ($return `(quote ,(list->string c*)))))
        
 (define jmespath:top-expression
   ($or star
@@ -240,6 +240,10 @@
 		   (append acc (cdr v))
 		   (append acc (list v))))
 	     (list op) (cdr r)))
+(define jmespath:index-expression
+  ($do (e jmespath:top-expression)
+       (b jmespath:bracket-specifier)
+       ($return `(ref ,e ,b))))
 (define jmespath:sub-expression
   ($do (e jmespath:top-expression)
        (e2 ($many ($seq (op ".")
@@ -248,7 +252,7 @@
 			     jmespath:multi-select-hash
 			     jmespath:function-expression
 			     star)) 1))
-       ($return (merge `(-> ,e ,@e2)))))
+       ($return (merge `(ref ,e ,@e2)))))
 (define jmespath:pipe-expression
   ($do (e jmespath:top-expression)
        (e2 ($many ($seq (op "|") jmespath:expression) 1))
@@ -262,14 +266,10 @@
        (e2 ($many ($seq (op "&&") jmespath:expression) 1))
        ($return (merge `(and ,e ,@e2)))))
 
-(define jmespath:index-expression
-  ($do (e jmespath:top-expression)
-       (b jmespath:bracket-specifier)
-       ($return `(ref ,e ,b))))
 (define jmespath:comparator
   ($or ($do ((op "<=")) ($return '<=))
        ($do ((op "<"))  ($return '<))
-       ($do ((op "==")) ($return '==))
+       ($do ((op "==")) ($return '=))
        ($do ((op ">=")) ($return '>=))
        ($do ((op ">"))  ($return '>))
        ($do ((op "!=")) ($return '!=))))
@@ -280,13 +280,11 @@
        ($return `(,c ,e ,e2))))
 
 (define jmespath:expression
-  ($lazy
-   ($or jmespath:sub-expression
-	jmespath:index-expression
-	jmespath:comparator-expression
-	jmespath:pipe-expression ;; pipe must be before the or
-	jmespath:or-expression
-	jmespath:and-expression
-	;; this must be the last
-	jmespath:top-expression)))
+  ($or jmespath:index-expression
+       jmespath:sub-expression
+       jmespath:comparator-expression
+       jmespath:pipe-expression ;; pipe must be before the or
+       jmespath:or-expression
+       jmespath:and-expression
+       jmespath:top-expression))
 )
