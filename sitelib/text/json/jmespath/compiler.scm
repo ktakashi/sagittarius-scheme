@@ -70,6 +70,7 @@
 	   ((or) (jmespath:compile-or-expression e))
 	   ((and) (jmespath:compile-and-expression e))
 	   ((< <= = >= > !=) (jmespath:compile-comparator-expression e))
+	   ((quote) (jmespath:compile-literal-expression e))
 	   ((function) (jmespath:compile-function e))
 	   (else (error 'compile-jmespath "Unsupported command" e))))))
   
@@ -192,6 +193,10 @@
 	       'null))
 	  ((=) (json=? lhs rhs))
 	  ((!=) (not (json=? lhs rhs))))))))
+
+(define (jmespath:compile-literal-expression e)
+  (let ((v (cadr e)))
+    (lambda (json context) v)))
 
 (define (jmespath:compile-function e)
   (define (lookup-function name)

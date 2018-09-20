@@ -9,7 +9,8 @@
   (let ((e (jmespath:compile ast))
 	(json (json-read (open-string-input-port input))))
     (test-assert (procedure? e))
-    (test-equal expected (e json))))
+    ;; (print expected (e json))
+    (test-equal (list input expected) expected (e json))))
 
 (test-group "Identifiers"
   (test-compiler "value" "foo" "{\"foo\": \"value\"}")
@@ -107,6 +108,11 @@
   (test-compiler #t '(= "foo" "bar") "{\"foo\": [1,2], \"bar\": [1,2]}")
   (test-compiler #f '(= "foo" "bar") "{\"foo\": [1,2], \"bar\": [2,1]}")
   )
+
+(test-group "Literal expressions"
+  (test-compiler "foo" '(quote "foo") "{\"foo\": true}")
+  (test-compiler 1 '(quote 1) "{\"foo\": true}")
+  (test-compiler "foo" '(or "bar" '"foo") "{\"foo\": true}"))
 
 (test-group "Functions expressions"
   (test-compiler 'null '(function "parent") "{\"foo\": true}")
