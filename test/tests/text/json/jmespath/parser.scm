@@ -11,6 +11,7 @@
   (let ((lseq (generator->lseq (string->generator string))))
     (let-values (((s v nl) (parser lseq)))
       (test-assert (parse-success? s))
+      (test-assert (null? nl))
       (test-equal (list string v) expected v))))
 
 (test-parser jmespath:identifier "foo" "foo")
@@ -82,6 +83,8 @@
 
 (test-parser jmespath:expression '(ref "a" (index 0)) "a[0]")
 (test-parser jmespath:expression '(ref "a" "b" (index 0)) "a.b[0]")
+(test-parser jmespath:expression '(ref "a" "b" (index 0) "c" (index 0)) "a.b[0].c[0]")
+(test-parser jmespath:expression '(ref "a" "b" (index 0) "c" (index *)) "a.b[0].c[*]")
 
 (test-parser jmespath:expression '(< "a" "b")  "a < b")
 (test-parser jmespath:expression '(<= "a" "b") "a <= b")
