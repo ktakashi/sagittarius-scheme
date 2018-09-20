@@ -69,6 +69,7 @@
 	   ((slice) (jmespath:compile-slice-expression e))
 	   ((or) (jmespath:compile-or-expression e))
 	   ((and) (jmespath:compile-and-expression e))
+	   ((< <= = >= > !=) (jmespath:compile-comparator-expression e))
 	   ((function) (jmespath:compile-function e))
 	   (else (error 'compile-jmespath "Unsupported command" e))))))
   
@@ -142,20 +143,15 @@
 		  v)))))))
 
 (define (jmespath:compile-and-expression e)
-  (when (null? e)
-    (assertion-violation 'jmespath:compile "And must have at least one expression"))
   (let ((e* (map compile-expression (cdr e))))
     (lambda (json context)
-      (let ((v ((car e*) json context)))
-	(if (false-value? v)
+      (let loop ((e* e*) (v 'null))
+	(if (null? e*)
 	    v
-	    (let loop ((e* (cdr e*)) (v v))
-	      (if (null? e*)
-		  v
-		  (let ((v2 ((car e*) json context)))
-		    (if (false-value? v2)
-			v2
-			(loop (cdr e*) v2))))))))))
+	    (let ((v2 ((car e*) json context)))
+	      (if (false-value? v2)
+		  v2
+		  (loop (cdr e*) v2))))))))
 
 (define (jmespath:compile-not-expression e)
   (let ((e (compile-expression (cadr e))))
@@ -163,6 +159,39 @@
       (let ((v (e json context)))
 	;; false-like values?
 	(false-value? v)))))
+
+(define (jmespath:compile-comparator-expression e)
+  ;; hmmmm, we need to utilise this
+  (define (json=? a b)
+    (define (entry=? a b)
+      (and (json=? (car a) (car b))
+	   (json=? (cdr a) (cdr b))))
+    (define (key-compare a b) (string<? (car a) (car b)))
+    (cond ((and (string? a) (string? b)) (string=? a b))
+	  ;; 1 and 1.0 are not the same so can't be = or equal?
+	  ((and (number? a) (number? b)) (eqv? a b))
+	  ((and (vector? a) (vector? b))
+	   (vector-every entry=?
+			 (vector-sort key-compare a)
+			 (vector-sort key-compare b)))
+	  ((and (list? a) (list? b)) (for-all json=? a b))
+	  (else (eq? a b))))
+  (let ((cmp (car e))
+	(lhse (compile-expression (cadr e)))
+	(rhse (compile-expression (caddr e))))
+    (lambda (json context)
+      (let ((lhs (lhse json context))
+	    (rhs (rhse json context)))
+	(case cmp
+	  ((< <= >= >)
+	   (if (and (number? lhs) (number? rhs))
+	       (cond ((eq? cmp '<)  (< lhs rhs))
+		     ((eq? cmp '>)  (> lhs rhs))
+		     ((eq? cmp '<=) (<= lhs rhs))
+		     ((eq? cmp '>=) (>= lhs rhs)))
+	       'null))
+	  ((=) (json=? lhs rhs))
+	  ((!=) (not (json=? lhs rhs))))))))
 
 (define (jmespath:compile-function e)
   (define (lookup-function name)

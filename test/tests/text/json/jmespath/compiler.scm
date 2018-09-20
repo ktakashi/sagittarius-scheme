@@ -82,6 +82,32 @@
   (test-compiler #f '(not "Number") "{\"Number\": 5}")
   (test-compiler #t '(not "EmptyList") "{\"EmptyList\": []}"))
 
+(test-group "Comparator expressions"
+  (test-compiler #t '(< "one" "two") "{\"one\": 1, \"two\": 2}")
+  (test-compiler #f '(< "two" "one") "{\"one\": 1, \"two\": 2}")
+  (test-compiler #t '(<= "one" "two") "{\"one\": 1, \"two\": 2}")
+  (test-compiler #t '(<= "one" "one") "{\"one\": 1, \"two\": 2}")
+  (test-compiler #f '(<= "two" "one") "{\"one\": 1, \"two\": 2}")
+  (test-compiler #t '(> "two" "one") "{\"one\": 1, \"two\": 2}")
+  (test-compiler #f '(> "one" "two") "{\"one\": 1, \"two\": 2}")
+  (test-compiler #t '(>= "two" "one") "{\"one\": 1, \"two\": 2}")
+  (test-compiler #t '(>= "two" "two") "{\"one\": 1, \"two\": 2}")
+  (test-compiler #f '(>= "one" "two") "{\"one\": 1, \"two\": 2}")
+  (test-compiler #t '(= "one" "one") "{\"one\": 1, \"two\": 2}")
+  (test-compiler #f '(= "one" "two") "{\"one\": 1, \"two\": 2}")
+  (test-compiler #t '(!= "one" "two") "{\"one\": 1, \"two\": 2}")
+  (test-compiler #f '(!= "one" "one") "{\"one\": 1, \"two\": 2}")
+  (test-compiler 'null '(< "one" "bar") "{\"one\": 1, \"bar\": true}")
+  (test-compiler 'null '(< "bar" "one") "{\"one\": 1, \"bar\": true}")
+
+  (test-compiler #t '(= "foo" "bar")
+		 "{\"foo\": {\"a\": 1, \"b\": 2}, \"bar\": {\"b\": 2, \"a\": 1}}")
+  (test-compiler #f '(= "foo" "bar")
+		 "{\"foo\": {\"a\": 1, \"b\": 2}, \"bar\": {\"b\": 2, \"c\": 1}}")
+  (test-compiler #t '(= "foo" "bar") "{\"foo\": [1,2], \"bar\": [1,2]}")
+  (test-compiler #f '(= "foo" "bar") "{\"foo\": [1,2], \"bar\": [2,1]}")
+  )
+
 (test-group "Functions expressions"
   (test-compiler 'null '(function "parent") "{\"foo\": true}")
   (test-compiler '#(("foo" . #(("bar" . #t))))
