@@ -108,6 +108,14 @@
   (test-compiler #f '(= "foo" "bar") "{\"foo\": [1,2], \"bar\": [2,1]}")
   )
 
+(test-group "Wildcard expressions"
+  (test-compiler '(1 2 3) '(ref (index *) "foo")
+		 "[{\"foo\": 1},{\"foo\": 2},{\"foo\": 3}]")
+  (test-compiler '(1 2) '(ref (index *) "foo")
+		 "[{\"foo\": 1},{\"foo\": 2},{\"bar\": 3}]")
+  (test-compiler '(1 2) '(ref * "foo")
+		 "{\"a\": {\"foo\": 1}, \"b\": {\"foo\": 2}, \"c\": {\"bar\": 1}}"))
+
 (test-group "Literal expressions"
   (test-compiler "foo" '(quote "foo") "{\"foo\": true}")
   (test-compiler 1 '(quote 1) "{\"foo\": true}")

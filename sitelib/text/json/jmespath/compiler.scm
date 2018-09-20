@@ -38,11 +38,13 @@
 	    (srfi :133 vectors))
 
 (define-record-type jmespath-eval-context
-  (fields source parent))
+  (fields source parent wildcard?))
 (define (make-root-context source)
-  (make-jmespath-eval-context source #f))
-(define (make-child-context json parent)
-  (make-jmespath-eval-context json parent))
+  (make-jmespath-eval-context source #f #f))
+(define (make-child-context json parent . wildcard?)
+  (make-jmespath-eval-context json parent
+			      (and (not (null? wildcard?))
+				   (car wildcard?))))
 
 ;; from OrExpressions section
 (define (false-value? v)
@@ -60,8 +62,11 @@
     (define root-context (make-root-context json))
     (expression json root-context)))
 
+(define (wildcard-expression? e)
+  (or (eq? e '*) (equal? e '(index *))))
 (define (compile-expression e)
   (cond ((string? e) (jmespath:compile-identifier e))
+	((eq? e '*) (jmespath:compile-wilecard-expression e))
 	((pair? e)
 	 (case (car e)
 	   ((ref) (jmespath:compile-sub-expression e))
@@ -78,20 +83,45 @@
   
 (define (jmespath:compile-identifier s)
   (define key=? (lambda (k&v) (and (string=? s (car k&v)) k&v)))
+  (define (get json)
+    (cond ((vector-any key=? json) => cdr)
+	  (else 'null)))
+  (lambda (json context)
+    (cond ((vector? json) (get json))
+	  ((and (list? json) (jmespath-eval-context-wildcard? context))
+	   ;; okay it has to be list of vector
+	   ;; FIXME it's ugly...
+	   (if (for-all vector? json)
+	       (let ((r (map (lambda (e) (if (vector? e) (get e) 'null)) json)))
+		 (filter-map (lambda (e) (and (not (eq? e 'null)) e)) r))
+	       'null))
+	  (else 'null))))
+
+(define (jmespath:compile-wilecard-expression e)
   (lambda (json context)
     (if (vector? json)
-	(cond ((vector-any key=? json) => cdr)
-	      (else 'null))
+	(map cdr (vector->list json))
 	'null)))
 
 (define (jmespath:compile-sub-expression e)
   (let ((e* (map compile-expression (cdr e))))
     (lambda (json context)
-      (let loop ((json json) (context context) (e* e*))
+      (let loop ((json json)
+		 (context context)
+		 (e* e*)
+		 (e (cdr e))
+		 (in-wildcard? #f))
 	(if (null? e*)
 	    json
-	    (let ((v ((car e*) json context)))
-	      (loop v (make-child-context v context) (cdr e*))))))))
+	    ;; hmmm ugly...
+	    (let ((v ((car e*) json context))
+		  (in-wildcard? (or (wildcard-expression? (car e))
+				    in-wildcard?)))
+	      (loop v
+		    (make-child-context v context in-wildcard?)
+		    (cdr e*)
+		    (cdr e)
+		    in-wildcard?)))))))
 
 (define (jmespath:compile-index-expression e)
   (let ((n (cadr e)))
