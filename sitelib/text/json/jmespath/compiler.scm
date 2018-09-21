@@ -44,7 +44,7 @@
 	    (srfi :133 vectors))
 
 (define-record-type jmespath-eval-context
-  (fields source parent wildcard?))
+  (fields source parent projection?))
 
 (define-condition-type &jmespath:expression &jmespath
   dummy dummy? ;; we don't use this
@@ -69,10 +69,10 @@
 
 (define (make-root-context source)
   (make-jmespath-eval-context source #f #f))
-(define (make-child-context json parent . wildcard?)
+(define (make-child-context json parent . projection?)
   (make-jmespath-eval-context json parent
-			      (and (not (null? wildcard?))
-				   (car wildcard?))))
+			      (and (not (null? projection?))
+				   (car projection?))))
 
 ;; from OrExpressions section
 (define (false-value? v)
@@ -105,8 +105,10 @@
     (define root-context (make-root-context json))
     (expression json root-context)))
 
-(define (wildcard-expression? e)
-  (or (eq? e '*) (equal? e '(index *))))
+(define (projection-expression? e)
+  (or (eq? e '*)
+      (and (pair? e) (memv (car e) '(slice flatten)))
+      (equal? e '(index *))))
 (define (compile-expression e)
   (cond ((string? e) (jmespath:compile-identifier e))
 	((eq? e '*) (jmespath:compile-wilecard-expression e))
@@ -138,7 +140,7 @@
 	  (else 'null)))
   (lambda (json context)
     (cond ((vector? json) (get json))
-	  ((and (list? json) (jmespath-eval-context-wildcard? context))
+	  ((and (list? json) (jmespath-eval-context-projection? context))
 	   ;; okay it has to be list of vector
 	   ;; FIXME it's ugly...
 	   (if (for-all vector? json)
@@ -163,18 +165,18 @@
 		 (context context)
 		 (e* e*)
 		 (e (cdr e))
-		 (in-wildcard? #f))
+		 (projection? #f))
 	(if (null? e*)
 	    json
 	    ;; hmmm ugly...
 	    (let ((v ((car e*) json context))
-		  (in-wildcard? (or (wildcard-expression? (car e))
-				    in-wildcard?)))
+		  (projection? (or (projection-expression? (car e))
+				   projection?)))
 	      (loop v
-		    (make-child-context v context in-wildcard?)
+		    (make-child-context v context projection?)
 		    (cdr e*)
 		    (cdr e)
-		    in-wildcard?)))))))
+		    projection?)))))))
 
 (define (jmespath:compile-index-expression e)
   (let ((n (cadr e)))
@@ -221,7 +223,8 @@
   (lambda (json context)
     (if (list? json)
 	;; lazy
-	(append-map (lambda (v) (if (list? v) v (list v))) json)
+	(filter (lambda (e) (not (eq? e 'null)))
+		(append-map (lambda (v) (if (list? v) v (list v))) json))
 	'null)))
 
 (define (jmespath:compile-filter-expression e)
@@ -382,6 +385,77 @@
     (jmespath-runtime-error 'map "array required" expression array))
   (map (lambda (e) (expr e (make-child-context e context))) array))
 
+(define (jmespath:max-function context expression array)
+  (unless (list? array)
+    (jmespath-runtime-error 'max "array required" expression array))
+  (cond ((null? array) 'null)
+	((for-all number? array) (apply max array))
+	((for-all string? array)
+	 ;; TODO create string-max?
+	 (let loop ((s (car array)) (s* (cdr array)))
+	   (cond ((null? s*) s)
+		 ((string< s (car s*)) (loop (car s*) (cdr s*)))
+		 (else (loop s (cdr s*))))))
+	(else
+	 (jmespath-runtime-error 'max "array of number or string required"
+				 expression array))))
+
+(define (jmespath:merge-function context expression . objects)
+  (unless (for-all vector? objects)
+    (jmespath-runtime-error 'merge "Object required" expression objects))
+  (let ((ht (make-hashtable string-hash string=?)))
+    (for-each (lambda (obj)
+		(vector-for-each (lambda (k&v)
+				   (hashtable-set! ht (car k&v) (cdr k&v)))
+				 obj)) objects)
+    (let-values (((keys values) (hashtable-entries ht)))
+      (vector-map cons keys values))))
+
+(define (jmespath:min-function context expression array)
+  (unless (list? array)
+    (jmespath-runtime-error 'min "array required" expression array))
+  (cond ((null? array) 'null)
+	((for-all number? array) (apply min array))
+	((for-all string? array)
+	 ;; TODO create string-max?
+	 (let loop ((s (car array)) (s* (cdr array)))
+	   (cond ((null? s*) s)
+		 ((string> s (car s*)) (loop (car s*) (cdr s*)))
+		 (else (loop s (cdr s*))))))
+	(else
+	 (jmespath-runtime-error 'min "array of number or string required"
+				 expression array))))
+
+(define (jmespath:not-null-function context expression e . e*)
+  (if (eq? 'null e)
+      (let loop ((e* e*))
+	(cond ((null? e*) 'null)
+	      ((eq? (car e*) 'null) (loop (cdr e*)))
+	      (else (car e*))))
+      e))
+
+(define (jmespath:reverse-function context expression argument)
+  (cond ((list? argument) (reverse argument))
+	((string? argument) (string-reverse argument))
+	(else (jmespath-runtime-error 'reverse "array or string required"
+				      expression argument))))
+
+(define (jmespath:sort-function context expression array)
+  (unless (list? array)
+    (jmespath-runtime-error 'sort "array required" expression array))
+  (cond ((null? array) 'null)
+	((for-all number? array) (list-sort < array))
+	((for-all string? array) (list-sort string<? array))
+	(else
+	 (jmespath-runtime-error 'sort "array of number or string required"
+				 expression array))))
+
+(define (jmespath:start-with-function context expression subject prefix)
+  (unless (and (string? subject) (string? prefix))
+    (jmespath-runtime-error 'start_with "String required"
+			    expression subject prefix))
+  (string-prefix? prefix subject))
+
 (define (jmespath:parent-function context expression)
   (let ((parent (jmespath-eval-context-parent context)))
     (if parent
@@ -400,6 +474,19 @@
     (keys . ,jmespath:keys-function)
     (length . ,jmespath:length-function)
     (map . ,jmespath:map-function)
+    (max . ,jmespath:max-function)
+    ;; later
+    ;; (max_by . ,jmespath:max-by-function)
+    (merge . ,jmespath:merge-function)
+    (min . ,jmespath:min-function)
+    ;; later
+    ;; (min_by . ,jmespath:min-by-function)
+    (not_null . ,jmespath:not-null-function)
+    (reverse . ,jmespath:reverse-function)
+    (sort . ,jmespath:sort-function)
+    ;; later
+    ;; (sort_by . ,jmespath:sort-by-function)
+    (start_with . ,jmespath:start-with-function)
     ;; This is not standard but we want it
     (parent . ,jmespath:parent-function)
     ))

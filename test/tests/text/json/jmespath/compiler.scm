@@ -67,7 +67,10 @@
   (test-compiler 0 '(ref "foo" (index 0) (index 0))
 		 "{\"foo\": [[0,1],[1,2]]}")
   (test-compiler '(1 2 3 4 5) '(flatten) "[1,2,3,4,5]")
-  (test-compiler '(1 2 3 4 5) '(flatten) "[1,2,3,[4,5]]"))
+  (test-compiler '(1 2 3 4 5) '(flatten) "[1,2,3,[4,5]]")
+  (test-compiler '(1 2 4 5) '(flatten) "[1,2,null,[4,5]]")
+  (test-compiler '(1 2) '(flatten) "[1,null,[2,null]]")
+  (test-compiler '(1 2 (null)) '(flatten) "[1,null,[2,[null]]]"))
 
 (test-group "Or expressions"
   (test-compiler "foo-value" '(or "foo" "bar") "{\"foo\": \"foo-value\"}")
@@ -234,6 +237,53 @@
 		 "{\"array\": [{\"foo\": \"a\"}, {\"foo\": \"b\"}, {}, [], {\"foo\": \"f\"}]}")
   (test-compiler '((1 2 3 4) (5 6 7 8 9)) '(map (& (flatten)) @)
 		 "[[1, 2, 3, [4]], [5, 6, 7, [8, 9]]]")
+
+  (test-compiler 15 '(max @) "[10, 15]")
+  (test-compiler "b" '(max @) "[\"a\", \"b\"]")
+  (test-runtime-error '(max @) "[\"a\", 2, \"b\"]")
+  (test-runtime-error '(max @) "[10, false, 15]")
+
+  (test-compiler '#(("a" . "b") ("c" . "d"))
+		 '(merge '#(("a" . "b")) '#(("c" . "d"))) "{}")
+  (test-compiler '#(("a" . "override"))
+		 '(merge '#(("a" . "b")) '#(("a" . "override"))) "{}")
+  (test-compiler '#(("a" . "x") ("b" . "override") ("c" . "z"))
+		 '(merge '#(("a" . "x") ("b" . "y"))
+			 '#(("b" . "override") ("c" . "z"))) "{}")
+  (test-compiler '#() '(merge) "{}")
+  (test-runtime-error '(merge '1) "{}")
+
+  (test-compiler 10 '(min @) "[10, 15]")
+  (test-compiler "a" '(min @) "[\"a\", \"b\"]")
+  (test-runtime-error '(min @) "[\"a\", 2, \"b\"]")
+  (test-runtime-error '(min @) "[10, false, 15]")
+
+  (test-compiler '() '(not_null "not_exist" "a" "b" "c" "d")
+		 "{\"a\": null, \"b\": null, \"c\": [], \"d\": \"foo\"}")
+  (test-compiler "foo" '(not_null "a" "b" 'null "d" "c")
+		 "{\"a\": null, \"b\": null, \"c\": [], \"d\": \"foo\"}")
+  (test-compiler 'null '(not_null "a" "b")
+		 "{\"a\": null, \"b\": null, \"c\": [], \"d\": \"foo\"}")
+  (test-runtime-error '(not_null) "{}")
+
+  (test-compiler '(4 3 2 1 0) '(reverse @) "[0,1,2,3,4]")
+  (test-compiler '() '(reverse @) "[]")
+  (test-compiler '(3 2 1 "c" "b" "a") '(reverse @) "[\"a\",\"b\",\"c\",1,2,3]")
+  (test-compiler "dcba" '(reverse @) "\"abcd\"")
+  (test-runtime-error '(reverse @) "true")
+  (test-runtime-error '(reverse @) "{}")
+  (test-runtime-error '(reverse @) "1")
+
+  (test-compiler '(1 2 3) '(sort @) "[2,3,1]")
+  (test-compiler '("a" "b" "c") '(sort @) "[\"c\",\"a\",\"b\"]")
+  ;; The specification example shows wrong or specification is wrong.
+  (test-runtime-error '(sort @) "[1, false, []]")
+
+  (test-compiler #t '(start_with @ '"foo") "\"foobarbaz\"")
+  (test-compiler #f '(start_with @ '"baz") "\"foobarbaz\"")
+  (test-compiler #t '(start_with @ '"f") "\"foobarbaz\"")
+  (test-runtime-error '(start_with 'null "bar") "{}")
+  (test-runtime-error '(start_with "bar" 'null) "{}")
   
   (test-compiler 'null '(parent) "{\"foo\": true}")
   (test-compiler '#(("foo" . #(("bar" . #t))))
