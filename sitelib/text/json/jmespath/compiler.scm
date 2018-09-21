@@ -81,8 +81,7 @@
 		 ((and) (jmespath:compile-and-expression e))
 		 ((< <= = >= > !=) (jmespath:compile-comparator-expression e))
 		 ((quote) (jmespath:compile-literal-expression e))
-		 ((function) (jmespath:compile-function e))
-		 (else (error 'compile-jmespath "Unsupported command" e)))
+		 (else (jmespath:compile-function e)))
 	       (jmespath:compile-multi-select-list e))))
 	((vector? e) (jmespath:compile-multi-select-hash e))
 	(else (assertion-violation 'compile-jmespath "Unknown expression" e))))
@@ -265,10 +264,10 @@
     (cond ((assq name +jmespath:buildin-functions+) => cdr)
 	  ;; TODO user defined function
 	  (else #f)))
-  (let ((func (lookup-function (string->symbol (cadr e))))
-	(e* (map compile-expression (cddr e))))
+  (let ((func (lookup-function (car e)))
+	(e* (map compile-expression (cdr e))))
     (unless func
-      (assertion-violation 'jmespath:compile "No such function" (cadr e)))
+      (assertion-violation 'jmespath:compile "No such function" (car e)))
     (lambda (json context)
       (let ((args (map (lambda (e) (e json context)) e*)))
 	(apply func context args)))))

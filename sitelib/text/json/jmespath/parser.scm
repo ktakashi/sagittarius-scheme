@@ -172,7 +172,7 @@
 (define jmespath:function-expression
   ($do (name jmespath:unquoted-string)
        (arg ($or no-arg one-or-more))
-       ($return `(function ,name ,@arg))))
+       ($return `(,(string->symbol name) ,@arg))))
 (define star ($do ((op "*")) ($return '*)))
 
 (define jmespath:number

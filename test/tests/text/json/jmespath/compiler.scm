@@ -159,12 +159,12 @@
 		 "{\"foo\": [{\"a\": 1, \"b\": 2}, {\"a\": 2, \"b\": 2}]}"))
 
 (test-group "Functions expressions"
-  (test-compiler 'null '(function "parent") "{\"foo\": true}")
+  (test-compiler 'null '(parent) "{\"foo\": true}")
   (test-compiler '#(("foo" . #(("bar" . #t))))
-		 '(ref "foo" (function "parent"))
+		 '(ref "foo" (parent))
 		 "{\"foo\": { \"bar\": true} }")
   (test-compiler'#(("baz" . "value"))
-		'(ref "foo" "bar" "baz" (function "parent"))
+		'(ref "foo" "bar" "baz" (parent))
 		 "{\"foo\": {\"bar\": {\"baz\": \"value\"}}}"))
 
 
