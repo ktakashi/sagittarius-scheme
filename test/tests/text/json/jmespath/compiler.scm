@@ -9,7 +9,7 @@
   (let ((e (jmespath:compile ast))
 	(json (json-read (open-string-input-port input))))
     (test-assert (procedure? e))
-    (test-equal (list input expected) expected (e json))))
+    (test-equal (list ast expected) expected (e json))))
 
 (define (test-compile-error ast input)
   (test-error jmespath-compile-error (jmespath:compile ast)))
@@ -144,8 +144,7 @@
   (test-compiler #f '(= "foo" "bar")
     "{\"foo\": {\"a\": 1, \"b\": 2}, \"bar\": {\"b\": 2, \"c\": 1}}")
   (test-compiler #t '(= "foo" "bar") "{\"foo\": [1,2], \"bar\": [1,2]}")
-  (test-compiler #f '(= "foo" "bar") "{\"foo\": [1,2], \"bar\": [2,1]}")
-  )
+  (test-compiler #f '(= "foo" "bar") "{\"foo\": [1,2], \"bar\": [2,1]}"))
 
 (test-group "Wildcard expressions"
   (test-compiler '(1 2 3) '(ref (index *) "foo")
