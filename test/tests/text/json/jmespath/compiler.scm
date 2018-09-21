@@ -65,7 +65,9 @@
   (test-compiler 'null '(ref "foo" (index 100))
 		 "{\"foo\": [\"first\", \"second\", \"third\"]}")
   (test-compiler 0 '(ref "foo" (index 0) (index 0))
-		 "{\"foo\": [[0,1],[1,2]]}"))
+		 "{\"foo\": [[0,1],[1,2]]}")
+  (test-compiler '(1 2 3 4 5) '(flatten) "[1,2,3,4,5]")
+  (test-compiler '(1 2 3 4 5) '(flatten) "[1,2,3,[4,5]]"))
 
 (test-group "Or expressions"
   (test-compiler "foo-value" '(or "foo" "bar") "{\"foo\": \"foo-value\"}")
@@ -227,6 +229,11 @@
   (test-compiler 0 '(length @) "[]")
   (test-compiler 0 '(length @) "{}")
   (test-compiler 2 '(length @) "{\"foo\": \"baz\", \"bar\": \"bam\"}")
+
+  (test-compiler '("a" "b" null null "f") '(map (& "foo") "array")
+		 "{\"array\": [{\"foo\": \"a\"}, {\"foo\": \"b\"}, {}, [], {\"foo\": \"f\"}]}")
+  (test-compiler '((1 2 3 4) (5 6 7 8 9)) '(map (& (flatten)) @)
+		 "[[1, 2, 3, [4]], [5, 6, 7, [8, 9]]]")
   
   (test-compiler 'null '(parent) "{\"foo\": true}")
   (test-compiler '#(("foo" . #(("bar" . #t))))
@@ -234,7 +241,6 @@
 		 "{\"foo\": { \"bar\": true} }")
   (test-compiler'#(("baz" . "value"))
 		'(ref "foo" "bar" "baz" (parent))
-		 "{\"foo\": {\"bar\": {\"baz\": \"value\"}}}"))
-
+		"{\"foo\": {\"bar\": {\"baz\": \"value\"}}}"))
 
 (test-end)

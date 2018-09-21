@@ -119,11 +119,13 @@
 		 ((not) (jmespath:compile-not-expression e))
 		 ((index) (jmespath:compile-index-expression e))
 		 ((slice) (jmespath:compile-slice-expression e))
+		 ((flatten) (jmespath:compile-flatten-expression e))
 		 ((filter) (jmespath:compile-filter-expression e))
 		 ((or) (jmespath:compile-or-expression e))
 		 ((and) (jmespath:compile-and-expression e))
 		 ((< <= = >= > !=) (jmespath:compile-comparator-expression e))
 		 ((quote) (jmespath:compile-literal-expression e))
+		 ((&) (jmespath:compile-expression-reference e))
 		 (else (jmespath:compile-function e)))
 	       (jmespath:compile-multi-select-list e))))
 	((vector? e) (jmespath:compile-multi-select-hash e))
@@ -213,6 +215,15 @@
 		    (loop (+ i step) (cons (list-ref json i) r)))))
 	    'null)))))
 
+(define (jmespath:compile-flatten-expression e)
+  (unless (null? (cdr e))
+    (jmespath-compile-error "flatten must only have one element" e))
+  (lambda (json context)
+    (if (list? json)
+	;; lazy
+	(append-map (lambda (v) (if (list? v) v (list v))) json)
+	'null)))
+
 (define (jmespath:compile-filter-expression e)
   (let ((e (compile-expression (cadr e))))
     (lambda (json context)
@@ -284,6 +295,11 @@
 (define (jmespath:compile-literal-expression e)
   (let ((v (cadr e)))
     (lambda (json context) v)))
+
+;; This must only be used by function but this is easier for me
+(define (jmespath:compile-expression-reference e)
+  (let ((e (compile-expression (cadr e))))
+    (lambda (json context) e)))
 
 (define (jmespath:compile-function e)
   (define (lookup-function name)
@@ -361,6 +377,11 @@
 	 (jmespath-runtime-error 'length "String, array or object required"
 				 expression subject))))
 
+(define (jmespath:map-function context expression expr array)
+  (unless (list? array)
+    (jmespath-runtime-error 'map "array required" expression array))
+  (map (lambda (e) (expr e (make-child-context e context))) array))
+
 (define (jmespath:parent-function context expression)
   (let ((parent (jmespath-eval-context-parent context)))
     (if parent
@@ -378,6 +399,7 @@
     (join . ,jmespath:join-function)
     (keys . ,jmespath:keys-function)
     (length . ,jmespath:length-function)
+    (map . ,jmespath:map-function)
     ;; This is not standard but we want it
     (parent . ,jmespath:parent-function)
     ))

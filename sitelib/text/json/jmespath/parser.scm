@@ -138,13 +138,12 @@
 (define jmespath:paren-expression
   ($do ((op "(")) (e jmespath:expression) ((op ")")) ($return e)))
 (define jmespath:multi-select-list
-  ($or ($do ((op "[")) ((op "]")) ($return '()))
-       ($do ((op "["))
-	    (e ($do (e jmespath:expression)
-		    (c* ($many ($seq (op ",") jmespath:expression)))
-		    ($return (cons e c*))))
-	    ((op "]"))
-	    ($return e))))
+  ($do ((op "["))
+       (e ($do (e jmespath:expression)
+	       (c* ($many ($seq (op ",") jmespath:expression)))
+	       ($return (cons e c*))))
+       ((op "]"))
+       ($return e)))
 (define jmespath:keyval-expr
   ($do (k jmespath:identifier)
        ((op ":"))
@@ -152,10 +151,9 @@
        ($return (cons k v))))
 (define jmespath:multi-select-hash
   ($do ((op "{"))
-       (e ($optional ($do (e jmespath:keyval-expr)
-			  (c* ($many ($seq (op ",") jmespath:keyval-expr)))
-			  ($return (cons e c*)))
-		     '()))
+       (e ($do (e jmespath:keyval-expr)
+	       (c* ($many ($seq (op ",") jmespath:keyval-expr)))
+	       ($return (cons e c*))))
        ((op "}"))
        ($return (list->vector e))))
 (define function-arg
@@ -199,7 +197,8 @@
 	    (v ($or jmespath:slice-expression
 		    ($do (v ($or jmespath:number star)) ($return `(index ,v)))))
 	    ((op "]"))
-	    ($return v))))
+	    ($return v))
+       ($seq (op "[]") ($return '(flatten)))))
 
 (define jmespath:literal
   ($do ((op "`"))

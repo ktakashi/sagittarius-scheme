@@ -25,12 +25,10 @@
 (test-parser jmespath:paren-expression '(not "foo") "(!foo)")
 (test-parser jmespath:paren-expression '(not "foo") "( ! foo)")
 
-(test-parser jmespath:multi-select-list '() "[]")
 (test-parser jmespath:multi-select-list '("foo") "[foo]")
 (test-parser jmespath:multi-select-list '("foo" "bar") "[foo, bar]")
 (test-parser jmespath:multi-select-list '("foo" (not "bar")) "[foo, !bar]")
 
-(test-parser jmespath:multi-select-hash '#() "{}")
 (test-parser jmespath:multi-select-hash '#(("key" . "value"))
 	     "{ key: value }")
 (test-parser jmespath:multi-select-hash
@@ -51,6 +49,7 @@
 (test-parser jmespath:bracket-specifier '(index *) "[*]")
 (test-parser jmespath:bracket-specifier 
 	     '(filter (= "state" '"running")) "[?state=='running']")
+(test-parser jmespath:bracket-specifier '(flatten) "[]")
 
 (test-parser jmespath:literal '(quote #(("key" . "value")))
 	     "`{\"key\": \"value\"}`")
@@ -64,6 +63,7 @@
 (test-parser jmespath:top-expression
 	     '(abs "foo" (& "bar") "buz") "abs(foo, &bar, buz)")
 
+(test-parser jmespath:expression '(flatten) "[]")
 (test-parser jmespath:expression '(pipe "foo" "bar") "foo | bar")
 (test-parser jmespath:expression '(pipe "foo" "bar") "foo|bar")
 (test-parser jmespath:expression '(pipe "foo" "bar" "boo") "foo | bar | boo")
