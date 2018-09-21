@@ -73,14 +73,40 @@
 
 (test-group "And expressions"
   (test-compiler #f '(and "True" "False") "{\"True\": true, \"False\": false}")
-  (test-compiler '() '(and "Number" "EmptyList") "{\"Number\": 5, \"EmptyList\": []}")
-  (test-compiler '() '(and "EmptyList" "Number") "{\"Number\": 5, \"EmptyList\": []}"))
+  (test-compiler '() '(and "Number" "EmptyList")
+		 "{\"Number\": 5, \"EmptyList\": []}")
+  (test-compiler '() '(and "EmptyList" "Number")
+		 "{\"Number\": 5, \"EmptyList\": []}"))
 
 (test-group "Not expressions"
   (test-compiler #f '(not "True") "{\"True\": true}")
   (test-compiler #t '(not "False") "{\"False\": false}")
   (test-compiler #f '(not "Number") "{\"Number\": 5}")
   (test-compiler #t '(not "EmptyList") "{\"EmptyList\": []}"))
+
+(test-group "Multi select list"
+  (test-compiler '("a" "b") '("foo" "bar")
+		 "{\"foo\": \"a\", \"bar\": \"b\", \"baz\": \"c\"}")
+  (test-compiler '("a" "b") '("foo" (ref "bar" (index 0)))
+		 "{\"foo\": \"a\", \"bar\": [\"b\"], \"baz\": \"c\"}")
+  (test-compiler '("a" "b")  '("foo" (ref "bar" "baz"))
+		 "{\"foo\": \"a\", \"bar\": { \"baz\": \"b\"}}")
+  (test-compiler '("a" null) '("foo" "bar")
+		 "{\"foo\": \"a\", \"baz\": \"b\"}"))
+
+(test-group "Multi select hash"
+  (test-compiler '#(("foo" . "a") ("bar" . "b"))
+		 '#(("foo" . "foo") ("bar" . "bar"))
+		 "{\"foo\": \"a\", \"bar\": \"b\", \"baz\": \"c\"}")
+  (test-compiler '#(("foo" . "a") ("firstbar" . "b"))
+		 '#(("foo" . "foo") ("firstbar" . (ref "bar" (index 0))))
+		 "{\"foo\": \"a\", \"bar\": [\"b\"], \"baz\": \"c\"}")
+  (test-compiler '#(("foo" . "a") ("bar.baz" . "b"))
+		 '#(("foo" . "foo") ("bar.baz" . (ref "bar" "baz")))
+		 "{\"foo\": \"a\", \"bar\": { \"baz\": \"b\"}}")
+  (test-compiler '#(("foo" . "a") ("baz" . null))
+		 '#(("foo" . "foo") ("baz" . "baz"))
+		 "{\"foo\": \"a\", \"bar\": \"b\"}"))
 
 (test-group "Comparator expressions"
   (test-compiler #t '(< "one" "two") "{\"one\": 1, \"two\": 2}")
@@ -101,9 +127,9 @@
   (test-compiler 'null '(< "bar" "one") "{\"one\": 1, \"bar\": true}")
 
   (test-compiler #t '(= "foo" "bar")
-		 "{\"foo\": {\"a\": 1, \"b\": 2}, \"bar\": {\"b\": 2, \"a\": 1}}")
+    "{\"foo\": {\"a\": 1, \"b\": 2}, \"bar\": {\"b\": 2, \"a\": 1}}")
   (test-compiler #f '(= "foo" "bar")
-		 "{\"foo\": {\"a\": 1, \"b\": 2}, \"bar\": {\"b\": 2, \"c\": 1}}")
+    "{\"foo\": {\"a\": 1, \"b\": 2}, \"bar\": {\"b\": 2, \"c\": 1}}")
   (test-compiler #t '(= "foo" "bar") "{\"foo\": [1,2], \"bar\": [1,2]}")
   (test-compiler #f '(= "foo" "bar") "{\"foo\": [1,2], \"bar\": [2,1]}")
   )
@@ -114,7 +140,10 @@
   (test-compiler '(1 2) '(ref (index *) "foo")
 		 "[{\"foo\": 1},{\"foo\": 2},{\"bar\": 3}]")
   (test-compiler '(1 2) '(ref * "foo")
-		 "{\"a\": {\"foo\": 1}, \"b\": {\"foo\": 2}, \"c\": {\"bar\": 1}}"))
+    "{\"a\": {\"foo\": 1}, \"b\": {\"foo\": 2}, \"c\": {\"bar\": 1}}"))
+
+(test-group "Current expressions"
+  (test-compiler '(#(("foo" . 1))) '@ "[{\"foo\": 1}]"))
 
 (test-group "Literal expressions"
   (test-compiler "foo" '(quote "foo") "{\"foo\": true}")

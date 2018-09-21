@@ -138,13 +138,13 @@
 (define jmespath:paren-expression
   ($do ((op "(")) (e jmespath:expression) ((op ")")) ($return e)))
 (define jmespath:multi-select-list
-  ($or ($do ((op "[")) ((op "]")) ($return '(list)))
+  ($or ($do ((op "[")) ((op "]")) ($return '()))
        ($do ((op "["))
 	    (e ($do (e jmespath:expression)
 		    (c* ($many ($seq (op ",") jmespath:expression)))
 		    ($return (cons e c*))))
 	    ((op "]"))
-	    ($return `(list ,@e)))))
+	    ($return e))))
 (define jmespath:keyval-expr
   ($do (k jmespath:identifier)
        ((op ":"))
@@ -157,7 +157,7 @@
 			  ($return (cons e c*)))
 		     '()))
        ((op "}"))
-       ($return `(hash ,@e))))
+       ($return (list->vector e))))
 (define function-arg
   ($or ($do ((op "&")) (e jmespath:expression) ($return `(& ,e)))
        ($lazy jmespath:expression)))

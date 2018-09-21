@@ -25,16 +25,16 @@
 (test-parser jmespath:paren-expression '(not "foo") "(!foo)")
 (test-parser jmespath:paren-expression '(not "foo") "( ! foo)")
 
-(test-parser jmespath:multi-select-list '(list) "[]")
-(test-parser jmespath:multi-select-list '(list "foo") "[foo]")
-(test-parser jmespath:multi-select-list '(list "foo" "bar") "[foo, bar]")
-(test-parser jmespath:multi-select-list '(list "foo" (not "bar")) "[foo, !bar]")
+(test-parser jmespath:multi-select-list '() "[]")
+(test-parser jmespath:multi-select-list '("foo") "[foo]")
+(test-parser jmespath:multi-select-list '("foo" "bar") "[foo, bar]")
+(test-parser jmespath:multi-select-list '("foo" (not "bar")) "[foo, !bar]")
 
-(test-parser jmespath:multi-select-hash '(hash) "{}")
-(test-parser jmespath:multi-select-hash '(hash ("key" . "value"))
+(test-parser jmespath:multi-select-hash '#() "{}")
+(test-parser jmespath:multi-select-hash '#(("key" . "value"))
 	     "{ key: value }")
 (test-parser jmespath:multi-select-hash
-	     '(hash ("key" . "value") ("key2" . "value2"))
+	     '#(("key" . "value") ("key2" . "value2"))
 	     "{ key: value, key2: value2 }")
 
 (test-parser jmespath:function-expression
