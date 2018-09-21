@@ -11,6 +11,14 @@
     (test-assert (procedure? e))
     (test-equal (list input expected) expected (e json))))
 
+(define (test-compile-error ast input)
+  (test-error jmespath-compile-error (jmespath:compile ast)))
+(define (test-runtime-error ast input)
+  (let ((e (jmespath:compile ast))
+	(json (json-read (open-string-input-port input))))
+    (test-assert (procedure? e))
+    (test-error (list ast input) jmespath-runtime-error? (e json))))
+
 (test-group "Identifiers"
   (test-compiler "value" "foo" "{\"foo\": \"value\"}")
   (test-compiler 'null "bar" "{\"foo\": \"value\"}")
@@ -159,6 +167,67 @@
 		 "{\"foo\": [{\"a\": 1, \"b\": 2}, {\"a\": 2, \"b\": 2}]}"))
 
 (test-group "Functions expressions"
+  (test-compiler 1 '(abs "foo") "{\"foo\": 1, \"bar\": 2}")
+  (test-compiler 1 '(abs "foo") "{\"foo\": -1, \"bar\": 2}")
+  (test-runtime-error '(abs "foo") "{\"foo\": true, \"bar\": 2}")
+  (test-runtime-error '(abs) "{\"foo\": true, \"bar\": 2}")
+  (test-runtime-error '(abs "foo" "bar") "{\"foo\": true, \"bar\": 2}")
+
+  (test-compiler 15 '(avg @) "[10, 15, 20]")
+  (test-runtime-error '(avg @) "[10, false, 20]")
+  (test-runtime-error '(avg @) "[false]")
+  (test-runtime-error '(avg @) "false")
+  (test-runtime-error '(avg @) "5")
+
+  (test-compiler #t '(contains '"foobar" '"foo") "{}")
+  (test-compiler #f '(contains '"foobar" '"not") "{}")
+  (test-compiler #t '(contains '"foobar" '"bar") "{}")
+  (test-runtime-error '(contains '#f "bar") "5")
+  (test-compiler #f '(contains '"foobar" '123) "{}")
+  (test-compiler #t '(contains @ '"a") "[\"a\", \"b\"]")
+  (test-compiler #t '(contains @ '"a") "[\"a\"]")
+  (test-compiler #f '(contains @ '"b") "[\"a\"]")
+  (test-compiler #t '(contains @ '"foo") "[\"foo\", \"bar\"]")
+  (test-compiler #f '(contains @ '"b") "[\"foo\", \"bar\"]")
+  (test-runtime-error '(contains '#() "bar") "5")
+  (test-runtime-error '(contains '1 "bar") "5")
+  (test-runtime-error '(contains 'null "bar") "5")
+
+  (test-compiler 2 '(ceil '1.001) "{}")
+  (test-compiler 2 '(ceil '1.9) "{}")
+  (test-compiler 1 '(ceil '1) "{}")
+  (test-runtime-error '(ceil '"abc") "{}")
+
+  (test-compiler #t '(end_with @ '"baz") "\"foobarbaz\"")
+  (test-compiler #f '(end_with @ '"foo") "\"foobarbaz\"")
+  (test-compiler #t '(end_with @ '"z") "\"foobarbaz\"")
+  (test-runtime-error '(end_with 'null "bar") "{}")
+  (test-runtime-error '(end_with "bar" 'null) "{}")
+
+  (test-compiler 1 '(floor '1.001) "{}")
+  (test-compiler 1 '(floor '1.9) "{}")
+  (test-compiler 1 '(floor '1) "{}")
+  (test-runtime-error '(floor '"abc") "{}")
+
+  (test-compiler "a, b" '(join '", " @) "[\"a\", \"b\"]")
+  (test-compiler "ab" '(join '"" @) "[\"a\", \"b\"]")
+  (test-runtime-error '(join '", " @) "[\"a\", false, \"b\"]")
+  (test-runtime-error '(join '", " @) "[false]")
+
+  (test-compiler '("foo" "bar") '(keys @) 
+		 "{\"foo\": \"baz\", \"bar\": \"bam\"}")
+  (test-compiler '() '(keys @) "{}")
+  (test-runtime-error '(keys @) "false")
+  (test-runtime-error '(keys @) "[\"b\", \"a\", \"c\"]")
+
+  (test-compiler 3 '(length '"abc") "{}")
+  (test-compiler 7 '(length @) "\"current\"")
+  (test-runtime-error '(length "not_there") "\"current\"")
+  (test-compiler 3 '(length @) "[\"a\", \"b\", \"c\"]")
+  (test-compiler 0 '(length @) "[]")
+  (test-compiler 0 '(length @) "{}")
+  (test-compiler 2 '(length @) "{\"foo\": \"baz\", \"bar\": \"bam\"}")
+  
   (test-compiler 'null '(parent) "{\"foo\": true}")
   (test-compiler '#(("foo" . #(("bar" . #t))))
 		 '(ref "foo" (parent))

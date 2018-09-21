@@ -32,13 +32,41 @@
 ;; http://jmespath.org/specification.html
 #!nounbound
 (library (text json jmespath compiler)
-    (export jmespath:compile)
+    (export jmespath:compile 
+	    jmespath-error-expression
+	    jmespath-error-arguments
+	    jmespath-compile-error?
+	    jmespath-runtime-error?)
     (import (rnrs)
+	    (text json jmespath conditions)
 	    (srfi :1 lists)
+	    (srfi :13 strings)
 	    (srfi :133 vectors))
 
 (define-record-type jmespath-eval-context
   (fields source parent wildcard?))
+
+(define-condition-type &jmespath:expression &jmespath
+  dummy dummy? ;; we don't use this
+  (expression jmespath-error-expression))
+(define-condition-type &jmespath:compile &jmespath:expression
+  make-jmespath-compile-error jmespath-compile-error?)
+(define-condition-type &jmespath:runtime &jmespath:expression
+  make-jmespath-runtime-error jmespath-runtime-error?
+  (arguments jmespath-error-arguments))
+
+(define (jmespath-compile-error message expression)
+  (raise (condition
+	  (make-jmespath-compile-error expression)
+	  (make-assertion-violation)
+	  (make-who-condition 'jmespath:compile)
+	  (make-message-condition message))))
+(define (jmespath-runtime-error who message expression . arguments)
+  (raise (condition
+	  (make-jmespath-runtime-error expression arguments)
+	  (make-who-condition who)
+	  (make-message-condition message))))
+
 (define (make-root-context source)
   (make-jmespath-eval-context source #f #f))
 (define (make-child-context json parent . wildcard?)
@@ -53,6 +81,21 @@
       (and (string? v) (zero? (string-length v)))
       (not v)
       (eqv? v 'null)))
+;; hmmmm, we need to utilise this
+(define (json=? a b)
+  (define (entry=? a b)
+    (and (json=? (car a) (car b))
+	 (json=? (cdr a) (cdr b))))
+  (define (key-compare a b) (string<? (car a) (car b)))
+  (cond ((and (string? a) (string? b)) (string=? a b))
+	;; 1 and 1.0 are not the same so can't be = or equal?
+	((and (number? a) (number? b)) (eqv? a b))
+	((and (vector? a) (vector? b))
+	 (vector-every entry=?
+		       (vector-sort key-compare a)
+		       (vector-sort key-compare b)))
+	((and (list? a) (list? b)) (for-all json=? a b))
+	(else (eq? a b))))
 
 ;; receives AST parsed by (text json jmespath compiler)
 ;; and returns a procedure takes one argument, sexp JSON
@@ -84,7 +127,7 @@
 		 (else (jmespath:compile-function e)))
 	       (jmespath:compile-multi-select-list e))))
 	((vector? e) (jmespath:compile-multi-select-hash e))
-	(else (assertion-violation 'compile-jmespath "Unknown expression" e))))
+	(else (jmespath-compile-error "Unknown expression" e))))
   
 (define (jmespath:compile-identifier s)
   (define key=? (lambda (k&v) (and (string=? s (car k&v)) k&v)))
@@ -144,7 +187,7 @@
 			  (list-ref json (+ l n)))
 			 (else 'null)))
 		 'null)))
-	  (else (assertion-violation 'jmespath:compile
+	  (else (jmespath-compile-error
 		  "Index must have either exact integer or *" e)))))
 
 (define (jmespath:compile-slice-expression e)
@@ -155,10 +198,8 @@
   (let ((start (cadr e))
 	(end (caddr e))
 	(step (cadddr e)))
-    (unless (number? step)
-      (assertion-violation 'jmespath:compile "step must be a number" e))
-    (when (zero? step)
-      (assertion-violation 'jmespath:compile "step can't be 0" e))
+    (unless (number? step) (jmespath-compile-error "step must be a number" e))
+    (when (zero? step) (jmespath-compile-error "step can't be 0" e))
     (let ((cmp (if (negative? step) < >=)))
       (lambda (json _)
 	(if (list? json)
@@ -223,21 +264,6 @@
 		    (cons (car n&e) ((cdr n&e) json context))) e*))))
 
 (define (jmespath:compile-comparator-expression e)
-  ;; hmmmm, we need to utilise this
-  (define (json=? a b)
-    (define (entry=? a b)
-      (and (json=? (car a) (car b))
-	   (json=? (cdr a) (cdr b))))
-    (define (key-compare a b) (string<? (car a) (car b)))
-    (cond ((and (string? a) (string? b)) (string=? a b))
-	  ;; 1 and 1.0 are not the same so can't be = or equal?
-	  ((and (number? a) (number? b)) (eqv? a b))
-	  ((and (vector? a) (vector? b))
-	   (vector-every entry=?
-			 (vector-sort key-compare a)
-			 (vector-sort key-compare b)))
-	  ((and (list? a) (list? b)) (for-all json=? a b))
-	  (else (eq? a b))))
   (let ((cmp (car e))
 	(lhse (compile-expression (cadr e)))
 	(rhse (compile-expression (caddr e))))
@@ -266,18 +292,92 @@
 	  (else #f)))
   (let ((func (lookup-function (car e)))
 	(e* (map compile-expression (cdr e))))
-    (unless func
-      (assertion-violation 'jmespath:compile "No such function" (car e)))
+    (unless func (jmespath-compile-error "No such function" (car e)))
     (lambda (json context)
       (let ((args (map (lambda (e) (e json context)) e*)))
-	(apply func context args)))))
-(define (jmespath:parent-function context)
+	(guard (ex ((jmespath-runtime-error? ex) (raise ex))
+		   (else (apply jmespath-runtime-error (car e)
+				(condition-message ex) e args)))
+	  (apply func context e args))))))
+
+(define (jmespath:abs-function context expression argument)
+  (unless (number? argument)
+    (jmespath-runtime-error 'abs "Number required" expression argument))
+  (abs argument))
+(define (jmespath:avg-function context expression argument)
+  (unless (and (list? argument) (for-all number? argument))
+    (jmespath-runtime-error 'avg "Array of number required"
+			    expression argument))
+  (let* ((len (length argument))
+	 (v (/ (fold + 0 argument) len)))
+    (if (integer? v) v (inexact v))))
+
+(define (jmespath:contains-function context expression subject search)
+  (cond ((list? subject) (exists (lambda (e) (json=? e search)) subject))
+	((string? subject)
+	 (and (string? search)
+	      (string-contains subject search)
+	      #t))
+	(else
+	 (jmespath-runtime-error 'contains "Array or string required"
+				 expression subject search))))
+
+(define (jmespath:ceil-function context expression value)
+  (if (number? value)
+      (exact (ceiling value))
+      ;; Example of the specification says returning null
+      ;; Tutorial implementation raised an error.
+      ;; Specification itself saying if the type is mismatched
+      ;; raise an error. so follow it
+      (jmespath-runtime-error 'ceil "Number required" expression value)))
+
+(define (jmespath:end-with-function context expression subject suffix)
+  (unless (and (string? subject) (string? suffix))
+    (jmespath-runtime-error 'end_with "String required"
+			    expression subject suffix))
+  (string-suffix? suffix subject))
+
+(define (jmespath:floor-function context expression value)
+  (if (number? value)
+      (exact (floor value))
+      (jmespath-runtime-error 'floor "Number required" expression value)))
+
+(define (jmespath:join-function context expression glue strings)
+  (if (and (string? glue) (for-all string? strings))
+      (string-join strings glue)
+      (jmespath-runtime-error 'join "String and array of string required"
+			      expression glue strings)))
+
+(define (jmespath:keys-function context expression obj)
+  (if (vector? obj)
+      (vector->list (vector-map car obj)) ;; TODO performance?
+      (jmespath-runtime-error 'keys "Object required" expression obj)))
+
+(define (jmespath:length-function context expression subject)
+  (cond ((vector? subject) (vector-length subject))
+	((list? subject) (length subject))
+	((string? subject) (string-length subject))
+	(else
+	 (jmespath-runtime-error 'length "String, array or object required"
+				 expression subject))))
+
+(define (jmespath:parent-function context expression)
   (let ((parent (jmespath-eval-context-parent context)))
     (if parent
 	(jmespath-eval-context-source parent)
 	'null)))
+
 (define +jmespath:buildin-functions+
   `(
+    (abs . ,jmespath:abs-function)
+    (avg . ,jmespath:avg-function)
+    (contains . ,jmespath:contains-function)
+    (ceil . ,jmespath:ceil-function)
+    (end_with . ,jmespath:end-with-function)
+    (floor . ,jmespath:floor-function)
+    (join . ,jmespath:join-function)
+    (keys . ,jmespath:keys-function)
+    (length . ,jmespath:length-function)
     ;; This is not standard but we want it
     (parent . ,jmespath:parent-function)
     ))
