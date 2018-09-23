@@ -173,6 +173,8 @@
 (test-group "Functions expressions"
   (test-compiler 1 '(abs "foo") "{\"foo\": 1, \"bar\": 2}")
   (test-compiler 1 '(abs "foo") "{\"foo\": -1, \"bar\": 2}")
+  ;; projection
+  (test-compiler '(1 2 3) '(ref (flatten) (abs @)) "[1, -2, 3]")
   (test-runtime-error '(abs "foo") "{\"foo\": true, \"bar\": 2}")
   (test-runtime-error '(abs) "{\"foo\": true, \"bar\": 2}")
   (test-runtime-error '(abs "foo" "bar") "{\"foo\": true, \"bar\": 2}")

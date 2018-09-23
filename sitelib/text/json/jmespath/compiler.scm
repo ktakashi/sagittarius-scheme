@@ -87,12 +87,15 @@
 (define (simple-applier context e json) (e json context))
 (define (projection-applier context e json)
   ;; json must be an array
-  (make-result (filter (lambda (v) (not (eq? v 'null)))
-		       (map (lambda (v)
-			      (jmespath-eval-result-value
-			       (e v (make-child-context v context))))
-			    json))
-	       context))
+  (if (list? json)
+      (make-result (filter (lambda (v) (not (eq? v 'null)))
+			   (map (lambda (v)
+				  (jmespath-eval-result-value
+				   (e v (make-child-context v context))))
+				json))
+		   context)
+      ;; but life is not so sweet...
+      (e json context)))
 
 ;; For sub expression. The previous result need to be the parent context.
 (define (result->context result . applier)
@@ -179,7 +182,7 @@
 		     'null) context projection-applier)))
 
 (define (jmespath:compile-current-expression e)
-  (lambda (json context) (make-result json context)))
+  (lambda (json context) (make-result json context simple-applier)))
 
 (define (jmespath:compile-sub-expression e)
   (let ((e* (map compile-expression (cdr e))))
