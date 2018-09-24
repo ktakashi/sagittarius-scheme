@@ -287,6 +287,41 @@
   (test-compiler #t '(start_with @ '"f") "\"foobarbaz\"")
   (test-runtime-error '(start_with 'null "bar") "{}")
   (test-runtime-error '(start_with "bar" 'null) "{}")
+
+  (test-compiler 25 '(sum @) "[10, 15]")
+  (test-compiler 0 '(sum @) "[]")
+  (test-compiler 30 '(sum (ref (flatten) (to_number @))) "[10, false, 20]")
+  (test-runtime-error '(sum @) "[10, false, 20]")
+
+  (test-compiler '(1 2) '(to_array '(1 2)) "{}")
+  (test-compiler '("string") '(to_array '"string") "{}")
+  (test-compiler '(0) '(to_array '0) "{}")
+  (test-compiler '(#t) '(to_array '#t) "{}")
+  (test-compiler '(#(("foo" . "bar"))) '(to_array '#(("foo" . "bar"))) "{}")
+
+  (test-compiler "2" '(to_string '2) "{}")
+  (test-compiler "1" '(to_string '"1") "{}")
+
+  (test-compiler "string" '(type @) "\"foo\"")
+  (test-compiler "boolean" '(type @) "true")
+  (test-compiler "boolean" '(type @) "false")
+  (test-compiler "null" '(type @) "null")
+  (test-compiler "number" '(type @) "123")
+  (test-compiler "number" '(type @) "123.05")
+  (test-compiler "array" '(type @) "[\"abc\"]")
+  (test-compiler "object" '(type @) "{\"abc\": \"123\"}")
+  
+  (test-compiler 2 '(to_number '"2") "{}")
+  (test-compiler 1 '(to_number '1) "{}")
+  (test-compiler 'null '(to_number '#t) "{}")
+  (test-compiler 'null '(to_number '()) "{}")
+  (test-compiler 'null '(to_number '#()) "{}")
+  (test-compiler 'null '(to_number '"abc") "{}")
+
+  (test-compiler '("baz" "bam") '(values @)
+		 "{\"foo\": \"baz\", \"bar\": \"bam\"}")
+  (test-runtime-error '(values @) "[\"a\", \"b\"]")
+  (test-runtime-error '(values @) "false")
   
   (test-compiler 'null '(parent) "{\"foo\": true}")
   (test-compiler '#(("foo" . #(("bar" . #t))))

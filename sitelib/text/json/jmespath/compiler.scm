@@ -39,6 +39,7 @@
 	    jmespath-runtime-error?)
     (import (rnrs)
 	    (text json jmespath conditions)
+	    (text json parse) ;; for json-write
 	    (srfi :1 lists)
 	    (srfi :13 strings)
 	    (srfi :133 vectors))
@@ -499,6 +500,42 @@
 			    expression subject prefix))
   (string-prefix? prefix subject))
 
+(define (jmespath:sum-function context expression argument)
+  (unless (and (list? argument) (for-all number? argument))
+    (jmespath-runtime-error 'sum "Array of number required"
+			    expression argument))
+  (fold + 0 argument))
+
+(define (jmespath:to-array-function context expression argument)
+  (if (list? argument)
+      argument
+      (list argument)))
+
+(define (jmespath:to-string-function context expression argument)
+  (if (string? argument)
+      argument
+      (let-values (((out extract) (open-string-output-port)))
+	(json-write argument out)
+	(extract))))
+
+(define (jmespath:to-number-function context expression argument)
+  (cond ((string? argument) (or (string->number argument) 'null))
+	((number? argument) argument)
+	(else 'null)))
+
+(define (jmespath:type-function context expression argument)
+  (cond ((string? argument) "string")
+	((boolean? argument) "boolean")
+	((number? argument) "number")
+	((vector? argument) "object")
+	((list? argument) "array")
+	(else "null"))) ;; not really but go safer
+
+(define (jmespath:values-function context expression obj)
+  (if (vector? obj)
+      (vector->list (vector-map cdr obj)) ;; TODO performance?
+      (jmespath-runtime-error 'keys "Object required" expression obj)))
+
 (define (jmespath:parent-function context expression)
   (let ((parent (jmespath-eval-context-parent context)))
     (if parent
@@ -530,6 +567,12 @@
     ;; later
     ;; (sort_by . ,jmespath:sort-by-function)
     (start_with . ,jmespath:start-with-function)
+    (sum . ,jmespath:sum-function)
+    (to_array . ,jmespath:to-array-function)
+    (to_string . ,jmespath:to-string-function)
+    (to_number . ,jmespath:to-number-function)
+    (type . ,jmespath:type-function)
+    (values . ,jmespath:values-function)
     ;; This is not standard but we want it
     (parent . ,jmespath:parent-function)
     ))
