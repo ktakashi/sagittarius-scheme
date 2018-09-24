@@ -66,9 +66,7 @@
 ;; sub-expression ::= top-expression +("." expression)
 #!nounbound
 (library (text json jmespath parser)
-    (export ;;parse-jmespath
-
-	    jmespath:unquoted-string
+    (export jmespath:unquoted-string
 	    jmespath:quoted-string
 	    jmespath:identifier
 	    jmespath:not-expression
