@@ -39,6 +39,7 @@
 	    jmespath-runtime-error?)
     (import (rnrs)
 	    (text json jmespath conditions)
+	    (text json parse) ;; for json-write
 	    (srfi :1 lists)
 	    (srfi :13 strings)
 	    (srfi :133 vectors))
@@ -86,7 +87,6 @@
 			     json))
 (define (simple-applier context e json) (e json context))
 (define (projection-applier context e json)
-  ;; json must be an array
   (if (list? json)
       (make-result (filter (lambda (v) (not (eq? v 'null)))
 			   (map (lambda (v)
@@ -94,8 +94,8 @@
 				   (e v (make-child-context v context))))
 				json))
 		   context)
-      ;; but life is not so sweet...
-      (e json context)))
+      ;; life isn't easy...
+      (simple-applier context e json)))
 
 ;; For sub expression. The previous result need to be the parent context.
 (define (result->context result . applier)
@@ -160,6 +160,7 @@
 		 ((or) (jmespath:compile-or-expression e))
 		 ((and) (jmespath:compile-and-expression e))
 		 ((< <= = >= > !=) (jmespath:compile-comparator-expression e))
+		 ((pipe) (jmespath:compile-pipe-expression e))
 		 ((quote) (jmespath:compile-literal-expression e))
 		 ((&) (jmespath:compile-expression-reference e))
 		 (else (jmespath:compile-function e)))
@@ -182,7 +183,7 @@
 		     'null) context projection-applier)))
 
 (define (jmespath:compile-current-expression e)
-  (lambda (json context) (make-result json context simple-applier)))
+  (lambda (json context) (make-result json context)))
 
 (define (jmespath:compile-sub-expression e)
   (let ((e* (map compile-expression (cdr e))))
@@ -332,8 +333,21 @@
 		       ((=) (json=? lhs rhs))
 		       ((!=) (not (json=? lhs rhs)))) context)))))
 
+(define (jmespath:compile-pipe-expression e)
+  (let ((e* (map compile-expression (cdr e))))
+    (lambda (json context)
+      (let ((v&c (fold-left (lambda (in e)
+			      (let ((next-context (cdr in)))
+				(cons
+				 (jmespath-eval-result-value
+				  (jmespath:eval e (car in) next-context))
+				 (make-root-context in))))
+			    (cons json context) e*)))
+	(make-result (car v&c) (cdr v&c))))))
+
 (define (jmespath:compile-literal-expression e)
   (let ((v (cadr e)))
+    ;; TODO Should we create a new root context here? 
     (lambda (json context) (make-result v context))))
 
 ;; This must only be used by function but this is easier for me
@@ -350,7 +364,6 @@
 	(e* (map compile-expression (cdr e))))
     (unless func (jmespath-compile-error "No such function" (car e)))
     (lambda (json context)
-      ;; TODO check if the function must be projection aware
       (let ((args (map (lambda (e)
 			 (jmespath-eval-result-value
 			  (jmespath:eval e json context))) e*)))
@@ -444,6 +457,43 @@
 	 (jmespath-runtime-error 'max "array of number or string required"
 				 expression array))))
 
+(define-syntax define-by-function
+  (syntax-rules (comparator)
+    ((_ name func (comparator cmp))
+     (define-by-function name func
+       (lambda (p&v)
+	 (cond ((reduce (lambda (x identity)
+			  (cond ((not identity) x)
+				((cmp (cdr x) (cdr identity)) x)
+				(else identity)))
+			#f p&v) => car)
+	       (else 'null)))))
+    ((_ name func reducer)
+     (define (name context expression array expr)
+       (unless (list? array)
+	 (jmespath-runtime-error 'func "array required" expression array))
+       (unless (procedure? expr)
+	 (jmespath-runtime-error 'func "expression required" expression expr))
+       (let ((p&v (map (lambda (e)
+			 (let ((v (jmespath-eval-result-value 
+				   (expr e context))))
+			   (cons e v))) array)))
+	 (unless (or (for-all (lambda (v) (string? (cdr v))) p&v)
+		     (for-all (lambda (v) (number? (cdr v))) p&v))
+	   (jmespath-runtime-error 'func 
+	    "Expression returned non number nor non string"
+	    expression (map car p&v)))
+	 (reducer p&v))))))
+(define-syntax define-number/string-comparison
+  (syntax-rules ()
+    ((_ name n<> s<>)
+     (define (name a b)
+       (if (and (number? a) (number? b))
+	   (n<> a b)
+	   (s<> a b))))))
+(define-number/string-comparison ns> > string>?)
+(define-by-function jmespath:max-by-function max_by (comparator ns>))
+
 (define (jmespath:merge-function context expression . objects)
   (unless (for-all vector? objects)
     (jmespath-runtime-error 'merge "Object required" expression objects))
@@ -469,7 +519,9 @@
 	(else
 	 (jmespath-runtime-error 'min "array of number or string required"
 				 expression array))))
-
+(define-number/string-comparison ns< < string<?)
+(define-by-function jmespath:min-by-function min_by (comparator ns<))
+  
 (define (jmespath:not-null-function context expression e . e*)
   (if (eq? 'null e)
       (let loop ((e* e*))
@@ -494,11 +546,52 @@
 	 (jmespath-runtime-error 'sort "array of number or string required"
 				 expression array))))
 
+(define-by-function jmespath:sort-by-function sort_by
+  (lambda (p&v)
+    (map car
+	 (list-sort (lambda (a b) (ns< (cdr a) (cdr b))) p&v))))
+
 (define (jmespath:start-with-function context expression subject prefix)
   (unless (and (string? subject) (string? prefix))
     (jmespath-runtime-error 'start_with "String required"
 			    expression subject prefix))
   (string-prefix? prefix subject))
+
+(define (jmespath:sum-function context expression argument)
+  (unless (and (list? argument) (for-all number? argument))
+    (jmespath-runtime-error 'sum "Array of number required"
+			    expression argument))
+  (fold + 0 argument))
+
+(define (jmespath:to-array-function context expression argument)
+  (if (list? argument)
+      argument
+      (list argument)))
+
+(define (jmespath:to-string-function context expression argument)
+  (if (string? argument)
+      argument
+      (let-values (((out extract) (open-string-output-port)))
+	(json-write argument out)
+	(extract))))
+
+(define (jmespath:to-number-function context expression argument)
+  (cond ((string? argument) (or (string->number argument) 'null))
+	((number? argument) argument)
+	(else 'null)))
+
+(define (jmespath:type-function context expression argument)
+  (cond ((string? argument) "string")
+	((boolean? argument) "boolean")
+	((number? argument) "number")
+	((vector? argument) "object")
+	((list? argument) "array")
+	(else "null"))) ;; not really but go safer
+
+(define (jmespath:values-function context expression obj)
+  (if (vector? obj)
+      (vector->list (vector-map cdr obj)) ;; TODO performance?
+      (jmespath-runtime-error 'keys "Object required" expression obj)))
 
 (define (jmespath:parent-function context expression)
   (let ((parent (jmespath-eval-context-parent context)))
@@ -519,18 +612,21 @@
     (length . ,jmespath:length-function)
     (map . ,jmespath:map-function)
     (max . ,jmespath:max-function)
-    ;; later
-    ;; (max_by . ,jmespath:max-by-function)
+    (max_by . ,jmespath:max-by-function)
     (merge . ,jmespath:merge-function)
     (min . ,jmespath:min-function)
-    ;; later
-    ;; (min_by . ,jmespath:min-by-function)
+    (min_by . ,jmespath:min-by-function)
     (not_null . ,jmespath:not-null-function)
     (reverse . ,jmespath:reverse-function)
     (sort . ,jmespath:sort-function)
-    ;; later
-    ;; (sort_by . ,jmespath:sort-by-function)
+    (sort_by . ,jmespath:sort-by-function)
     (start_with . ,jmespath:start-with-function)
+    (sum . ,jmespath:sum-function)
+    (to_array . ,jmespath:to-array-function)
+    (to_string . ,jmespath:to-string-function)
+    (to_number . ,jmespath:to-number-function)
+    (type . ,jmespath:type-function)
+    (values . ,jmespath:values-function)
     ;; This is not standard but we want it
     (parent . ,jmespath:parent-function)
     ))

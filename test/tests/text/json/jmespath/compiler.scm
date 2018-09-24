@@ -170,6 +170,32 @@
   (test-compiler '(#(("a" . 2) ("b" . 2))) '(ref "foo" (filter (= "a" "b")))
 		 "{\"foo\": [{\"a\": 1, \"b\": 2}, {\"a\": 2, \"b\": 2}]}"))
 
+#|
+"people": [
+  {"age": 20, "age_str": "20", "bool": true, "name": "a", "extra": "foo"},
+  {"age": 40, "age_str": "40", "bool": false, "name": "b", "extra": "bar"},
+  {"age": 30, "age_str": "30", "bool": true, "name": "c"},
+  {"age": 50, "age_str": "50", "bool": false, "name": "d"},
+  {"age": 10, "age_str": "10", "bool": true, "name": 3}
+]
+|#
+(define people-json
+  '#(
+     ("people"
+      #(("age" . 20) ("age_str" . "20") ("bool" . #t) ("name" . "a")
+	("extra" . "foo"))
+      #(("age" . 40) ("age_str" . "40") ("bool" . #f) ("name" . "a")
+	("extra" . "bar"))
+      #(("age" . 30) ("age_str" . "30") ("bool" . #t) ("name" . "c"))
+      #(("age" . 50) ("age_str" . "50") ("bool" . #f) ("name" . "d"))
+      #(("age" . 10) ("age_str" . "10") ("bool" . #t) ("name" . 3))
+      )
+     ))
+(define people-json-string
+  (let-values (((out extract) (open-string-output-port)))
+    (json-write people-json out)
+    (extract)))
+
 (test-group "Functions expressions"
   (test-compiler 1 '(abs "foo") "{\"foo\": 1, \"bar\": 2}")
   (test-compiler 1 '(abs "foo") "{\"foo\": -1, \"bar\": 2}")
@@ -184,6 +210,8 @@
   (test-runtime-error '(avg @) "[false]")
   (test-runtime-error '(avg @) "false")
   (test-runtime-error '(avg @) "5")
+  ;; projection applies the result list one by one so it has to be an error
+  (test-runtime-error '(ref (flatten) (abs @) (avg @)) "[1,-2,3]")
 
   (test-compiler #t '(contains '"foobar" '"foo") "{}")
   (test-compiler #f '(contains '"foobar" '"not") "{}")
@@ -213,6 +241,7 @@
   (test-compiler 1 '(floor '1.001) "{}")
   (test-compiler 1 '(floor '1.9) "{}")
   (test-compiler 1 '(floor '1) "{}")
+  (test-compiler '(1 2 3) '(ref (flatten) (abs @) (floor @)) "[1,-2,3]")
   (test-runtime-error '(floor '"abc") "{}")
 
   (test-compiler "a, b" '(join '", " @) "[\"a\", \"b\"]")
@@ -244,6 +273,21 @@
   (test-runtime-error '(max @) "[\"a\", 2, \"b\"]")
   (test-runtime-error '(max @) "[10, false, 15]")
 
+  (test-compiler '#(("age" . 50) ("age_str" . "50")
+		    ("bool" . #f) ("name" . "d"))
+		 '(max_by "people" (& "age")) people-json-string)
+  (test-compiler '50 '(ref (max_by "people" (& "age")) "age")
+		 people-json-string)
+  (test-compiler '#(("age" . 50) ("age_str" . "50")
+		    ("bool" . #f) ("name" . "d"))
+		 '(max_by "people" (& (to_number "age_str")))
+		 people-json-string)
+  ;; difference between spec and compliance test
+  (test-compiler '#(("age" . 50) ("age_str" . "50")
+		    ("bool" . #f) ("name" . "d"))
+		 '(max_by "people" (& "age_str")) people-json-string)
+  (test-runtime-error '(max_by "people" "age") people-json-string)
+  
   (test-compiler '#(("a" . "b") ("c" . "d"))
 		 '(merge '#(("a" . "b")) '#(("c" . "d"))) "{}")
   (test-compiler '#(("a" . "override"))
@@ -259,6 +303,22 @@
   (test-runtime-error '(min @) "[\"a\", 2, \"b\"]")
   (test-runtime-error '(min @) "[10, false, 15]")
 
+  (test-compiler '#(("age" . 10) ("age_str" . "10")
+		    ("bool" . #t) ("name" . 3))
+		 '(min_by "people" (& "age")) people-json-string)
+  (test-compiler '10 '(ref (min_by "people" (& "age")) "age")
+		 people-json-string)
+  (test-compiler '#(("age" . 10) ("age_str" . "10")
+		    ("bool" . #t) ("name" . 3))
+		 '(min_by "people" (& (to_number "age_str")))
+		 people-json-string)
+  ;; difference between spec and compliance test
+  (test-compiler '#(("age" . 10) ("age_str" . "10")
+		    ("bool" . #t) ("name" . 3))
+		 '(min_by "people" (& "age_str")) people-json-string)
+  (test-runtime-error '(min_by "people" "age") people-json-string)
+
+  
   (test-compiler '() '(not_null "not_exist" "a" "b" "c" "d")
 		 "{\"a\": null, \"b\": null, \"c\": [], \"d\": \"foo\"}")
   (test-compiler "foo" '(not_null "a" "b" 'null "d" "c")
@@ -280,11 +340,59 @@
   ;; The specification example shows wrong or specification is wrong.
   (test-runtime-error '(sort @) "[1, false, []]")
 
+  (test-compiler '(10 20 30 40 50)
+		 '(ref (sort_by "people" (& "age")) (flatten) "age")
+		 people-json-string)
+  (test-compiler '#(("age" . 10) ("age_str" . "10")
+		    ("bool" . #t) ("name" . 3))
+		 '(ref (sort_by "people" (& "age")) (index 0))
+		 people-json-string)
+  (test-compiler '#(("age" . 10) ("age_str" . "10")
+		    ("bool" . #t) ("name" . 3))
+		 '(ref (sort_by "people" (& "age_str")) (index 0))
+		 people-json-string)
+  (test-runtime-error '(sort_by "people" "age") people-json-string)
+  
   (test-compiler #t '(start_with @ '"foo") "\"foobarbaz\"")
   (test-compiler #f '(start_with @ '"baz") "\"foobarbaz\"")
   (test-compiler #t '(start_with @ '"f") "\"foobarbaz\"")
   (test-runtime-error '(start_with 'null "bar") "{}")
   (test-runtime-error '(start_with "bar" 'null) "{}")
+
+  (test-compiler 25 '(sum @) "[10, 15]")
+  (test-compiler 0 '(sum @) "[]")
+  (test-compiler 30 '(sum (ref (flatten) (to_number @))) "[10, false, 20]")
+  (test-runtime-error '(sum @) "[10, false, 20]")
+
+  (test-compiler '(1 2) '(to_array '(1 2)) "{}")
+  (test-compiler '("string") '(to_array '"string") "{}")
+  (test-compiler '(0) '(to_array '0) "{}")
+  (test-compiler '(#t) '(to_array '#t) "{}")
+  (test-compiler '(#(("foo" . "bar"))) '(to_array '#(("foo" . "bar"))) "{}")
+
+  (test-compiler "2" '(to_string '2) "{}")
+  (test-compiler "1" '(to_string '"1") "{}")
+
+  (test-compiler "string" '(type @) "\"foo\"")
+  (test-compiler "boolean" '(type @) "true")
+  (test-compiler "boolean" '(type @) "false")
+  (test-compiler "null" '(type @) "null")
+  (test-compiler "number" '(type @) "123")
+  (test-compiler "number" '(type @) "123.05")
+  (test-compiler "array" '(type @) "[\"abc\"]")
+  (test-compiler "object" '(type @) "{\"abc\": \"123\"}")
+  
+  (test-compiler 2 '(to_number '"2") "{}")
+  (test-compiler 1 '(to_number '1) "{}")
+  (test-compiler 'null '(to_number '#t) "{}")
+  (test-compiler 'null '(to_number '()) "{}")
+  (test-compiler 'null '(to_number '#()) "{}")
+  (test-compiler 'null '(to_number '"abc") "{}")
+
+  (test-compiler '("baz" "bam") '(values @)
+		 "{\"foo\": \"baz\", \"bar\": \"bam\"}")
+  (test-runtime-error '(values @) "[\"a\", \"b\"]")
+  (test-runtime-error '(values @) "false")
   
   (test-compiler 'null '(parent) "{\"foo\": true}")
   (test-compiler '#(("foo" . #(("bar" . #t))))
@@ -293,5 +401,13 @@
   (test-compiler'#(("baz" . "value"))
 		'(ref "foo" "bar" "baz" (parent))
 		"{\"foo\": {\"bar\": {\"baz\": \"value\"}}}"))
+
+(test-group "Pipe expression"
+  (test-compiler "baz" '(pipe "foo" "bar") 
+		 "{\"foo\": {\"bar\": \"baz\"}}")
+  (test-compiler '("first1" "second1")
+		 '(pipe (ref "foo" (index *) "bar") (index 0))
+		 "{\"foo\": [{\"bar\": [\"first1\", \"second1\"]}, {\"bar\": [\"first2\", \"second2\"]}]}")
+  (test-compiler '0 '(pipe "foo" (index 0)) "{\"foo\": [0,1,2]}"))
 
 (test-end)
