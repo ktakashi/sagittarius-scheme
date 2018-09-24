@@ -170,6 +170,32 @@
   (test-compiler '(#(("a" . 2) ("b" . 2))) '(ref "foo" (filter (= "a" "b")))
 		 "{\"foo\": [{\"a\": 1, \"b\": 2}, {\"a\": 2, \"b\": 2}]}"))
 
+#|
+"people": [
+  {"age": 20, "age_str": "20", "bool": true, "name": "a", "extra": "foo"},
+  {"age": 40, "age_str": "40", "bool": false, "name": "b", "extra": "bar"},
+  {"age": 30, "age_str": "30", "bool": true, "name": "c"},
+  {"age": 50, "age_str": "50", "bool": false, "name": "d"},
+  {"age": 10, "age_str": "10", "bool": true, "name": 3}
+]
+|#
+(define people-json
+  '#(
+     ("people"
+      #(("age" . 20) ("age_str" . "20") ("bool" . #t) ("name" . "a")
+	("extra" . "foo"))
+      #(("age" . 40) ("age_str" . "40") ("bool" . #f) ("name" . "a")
+	("extra" . "bar"))
+      #(("age" . 30) ("age_str" . "30") ("bool" . #t) ("name" . "c"))
+      #(("age" . 50) ("age_str" . "50") ("bool" . #f) ("name" . "d"))
+      #(("age" . 10) ("age_str" . "10") ("bool" . #t) ("name" . 3))
+      )
+     ))
+(define people-json-string
+  (let-values (((out extract) (open-string-output-port)))
+    (json-write people-json out)
+    (extract)))
+
 (test-group "Functions expressions"
   (test-compiler 1 '(abs "foo") "{\"foo\": 1, \"bar\": 2}")
   (test-compiler 1 '(abs "foo") "{\"foo\": -1, \"bar\": 2}")
@@ -246,6 +272,21 @@
   (test-runtime-error '(max @) "[\"a\", 2, \"b\"]")
   (test-runtime-error '(max @) "[10, false, 15]")
 
+  (test-compiler '#(("age" . 50) ("age_str" . "50")
+		    ("bool" . #f) ("name" . "d"))
+		 '(max_by "people" (& "age")) people-json-string)
+  (test-compiler '50 '(ref (max_by "people" (& "age")) "age")
+		 people-json-string)
+  (test-compiler '#(("age" . 50) ("age_str" . "50")
+		    ("bool" . #f) ("name" . "d"))
+		 '(max_by "people" (& (to_number "age_str")))
+		 people-json-string)
+  ;; difference between spec and compliance test
+  (test-compiler '#(("age" . 50) ("age_str" . "50")
+		    ("bool" . #f) ("name" . "d"))
+		 '(max_by "people" (& "age_str")) people-json-string)
+  (test-runtime-error '(max_by "people" "age") people-json-string)
+  
   (test-compiler '#(("a" . "b") ("c" . "d"))
 		 '(merge '#(("a" . "b")) '#(("c" . "d"))) "{}")
   (test-compiler '#(("a" . "override"))
@@ -261,6 +302,22 @@
   (test-runtime-error '(min @) "[\"a\", 2, \"b\"]")
   (test-runtime-error '(min @) "[10, false, 15]")
 
+  (test-compiler '#(("age" . 10) ("age_str" . "10")
+		    ("bool" . #t) ("name" . 3))
+		 '(min_by "people" (& "age")) people-json-string)
+  (test-compiler '10 '(ref (min_by "people" (& "age")) "age")
+		 people-json-string)
+  (test-compiler '#(("age" . 10) ("age_str" . "10")
+		    ("bool" . #t) ("name" . 3))
+		 '(min_by "people" (& (to_number "age_str")))
+		 people-json-string)
+  ;; difference between spec and compliance test
+  (test-compiler '#(("age" . 10) ("age_str" . "10")
+		    ("bool" . #t) ("name" . 3))
+		 '(min_by "people" (& "age_str")) people-json-string)
+  (test-runtime-error '(min_by "people" "age") people-json-string)
+
+  
   (test-compiler '() '(not_null "not_exist" "a" "b" "c" "d")
 		 "{\"a\": null, \"b\": null, \"c\": [], \"d\": \"foo\"}")
   (test-compiler "foo" '(not_null "a" "b" 'null "d" "c")
@@ -282,6 +339,19 @@
   ;; The specification example shows wrong or specification is wrong.
   (test-runtime-error '(sort @) "[1, false, []]")
 
+  (test-compiler '(10 20 30 40 50)
+		 '(ref (sort_by "people" (& "age")) (flatten) "age")
+		 people-json-string)
+  (test-compiler '#(("age" . 10) ("age_str" . "10")
+		    ("bool" . #t) ("name" . 3))
+		 '(ref (sort_by "people" (& "age")) (index 0))
+		 people-json-string)
+  (test-compiler '#(("age" . 10) ("age_str" . "10")
+		    ("bool" . #t) ("name" . 3))
+		 '(ref (sort_by "people" (& "age_str")) (index 0))
+		 people-json-string)
+  (test-runtime-error '(sort_by "people" "age") people-json-string)
+  
   (test-compiler #t '(start_with @ '"foo") "\"foobarbaz\"")
   (test-compiler #f '(start_with @ '"baz") "\"foobarbaz\"")
   (test-compiler #t '(start_with @ '"f") "\"foobarbaz\"")

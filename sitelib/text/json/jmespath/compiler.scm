@@ -350,7 +350,6 @@
 	(e* (map compile-expression (cdr e))))
     (unless func (jmespath-compile-error "No such function" (car e)))
     (lambda (json context)
-      ;; TODO check if the function must be projection aware
       (let ((args (map (lambda (e)
 			 (jmespath-eval-result-value
 			  (jmespath:eval e json context))) e*)))
@@ -444,6 +443,43 @@
 	 (jmespath-runtime-error 'max "array of number or string required"
 				 expression array))))
 
+(define-syntax define-by-function
+  (syntax-rules (comparator)
+    ((_ name func (comparator cmp))
+     (define-by-function name func
+       (lambda (p&v)
+	 (cond ((reduce (lambda (x identity)
+			  (cond ((not identity) x)
+				((cmp (cdr x) (cdr identity)) x)
+				(else identity)))
+			#f p&v) => car)
+	       (else 'null)))))
+    ((_ name func reducer)
+     (define (name context expression array expr)
+       (unless (list? array)
+	 (jmespath-runtime-error 'func "array required" expression array))
+       (unless (procedure? expr)
+	 (jmespath-runtime-error 'func "expression required" expression expr))
+       (let ((p&v (map (lambda (e)
+			 (let ((v (jmespath-eval-result-value 
+				   (expr e context))))
+			   (cons e v))) array)))
+	 (unless (or (for-all (lambda (v) (string? (cdr v))) p&v)
+		     (for-all (lambda (v) (number? (cdr v))) p&v))
+	   (jmespath-runtime-error 'func 
+	    "Expression returned non number nor non string"
+	    expression (map car p&v)))
+	 (reducer p&v))))))
+(define-syntax define-number/string-comparison
+  (syntax-rules ()
+    ((_ name n<> s<>)
+     (define (name a b)
+       (if (and (number? a) (number? b))
+	   (n<> a b)
+	   (s<> a b))))))
+(define-number/string-comparison ns> > string>?)
+(define-by-function jmespath:max-by-function max_by (comparator ns>))
+
 (define (jmespath:merge-function context expression . objects)
   (unless (for-all vector? objects)
     (jmespath-runtime-error 'merge "Object required" expression objects))
@@ -469,7 +505,9 @@
 	(else
 	 (jmespath-runtime-error 'min "array of number or string required"
 				 expression array))))
-
+(define-number/string-comparison ns< < string<?)
+(define-by-function jmespath:min-by-function min_by (comparator ns<))
+  
 (define (jmespath:not-null-function context expression e . e*)
   (if (eq? 'null e)
       (let loop ((e* e*))
@@ -493,6 +531,11 @@
 	(else
 	 (jmespath-runtime-error 'sort "array of number or string required"
 				 expression array))))
+
+(define-by-function jmespath:sort-by-function sort_by
+  (lambda (p&v)
+    (map car
+	 (list-sort (lambda (a b) (ns< (cdr a) (cdr b))) p&v))))
 
 (define (jmespath:start-with-function context expression subject prefix)
   (unless (and (string? subject) (string? prefix))
@@ -555,17 +598,14 @@
     (length . ,jmespath:length-function)
     (map . ,jmespath:map-function)
     (max . ,jmespath:max-function)
-    ;; later
-    ;; (max_by . ,jmespath:max-by-function)
+    (max_by . ,jmespath:max-by-function)
     (merge . ,jmespath:merge-function)
     (min . ,jmespath:min-function)
-    ;; later
-    ;; (min_by . ,jmespath:min-by-function)
+    (min_by . ,jmespath:min-by-function)
     (not_null . ,jmespath:not-null-function)
     (reverse . ,jmespath:reverse-function)
     (sort . ,jmespath:sort-function)
-    ;; later
-    ;; (sort_by . ,jmespath:sort-by-function)
+    (sort_by . ,jmespath:sort-by-function)
     (start_with . ,jmespath:start-with-function)
     (sum . ,jmespath:sum-function)
     (to_array . ,jmespath:to-array-function)
