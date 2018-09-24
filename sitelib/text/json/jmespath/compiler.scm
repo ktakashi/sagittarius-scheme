@@ -160,6 +160,7 @@
 		 ((or) (jmespath:compile-or-expression e))
 		 ((and) (jmespath:compile-and-expression e))
 		 ((< <= = >= > !=) (jmespath:compile-comparator-expression e))
+		 ((pipe) (jmespath:compile-pipe-expression e))
 		 ((quote) (jmespath:compile-literal-expression e))
 		 ((&) (jmespath:compile-expression-reference e))
 		 (else (jmespath:compile-function e)))
@@ -332,8 +333,21 @@
 		       ((=) (json=? lhs rhs))
 		       ((!=) (not (json=? lhs rhs)))) context)))))
 
+(define (jmespath:compile-pipe-expression e)
+  (let ((e* (map compile-expression (cdr e))))
+    (lambda (json context)
+      (let ((v&c (fold-left (lambda (in e)
+			      (let ((next-context (cdr in)))
+				(cons
+				 (jmespath-eval-result-value
+				  (jmespath:eval e (car in) next-context))
+				 (make-root-context in))))
+			    (cons json context) e*)))
+	(make-result (car v&c) (cdr v&c))))))
+
 (define (jmespath:compile-literal-expression e)
   (let ((v (cadr e)))
+    ;; TODO Should we create a new root context here? 
     (lambda (json context) (make-result v context))))
 
 ;; This must only be used by function but this is easier for me

@@ -401,4 +401,12 @@
 		'(ref "foo" "bar" "baz" (parent))
 		"{\"foo\": {\"bar\": {\"baz\": \"value\"}}}"))
 
+(test-group "Pipe expression"
+  (test-compiler "baz" '(pipe "foo" "bar") 
+		 "{\"foo\": {\"bar\": \"baz\"}}")
+  (test-compiler '("first1" "second1")
+		 '(pipe (ref "foo" (index *) "bar") (index 0))
+		 "{\"foo\": [{\"bar\": [\"first1\", \"second1\"]}, {\"bar\": [\"first2\", \"second2\"]}]}")
+  (test-compiler '0 '(pipe "foo" (index 0)) "{\"foo\": [0,1,2]}"))
+
 (test-end)
