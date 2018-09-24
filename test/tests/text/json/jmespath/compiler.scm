@@ -173,6 +173,7 @@
 (test-group "Functions expressions"
   (test-compiler 1 '(abs "foo") "{\"foo\": 1, \"bar\": 2}")
   (test-compiler 1 '(abs "foo") "{\"foo\": -1, \"bar\": 2}")
+  (test-compiler '(1 2 3) '(ref (flatten) (abs @)) "[1,-2,3]")
   (test-runtime-error '(abs "foo") "{\"foo\": true, \"bar\": 2}")
   (test-runtime-error '(abs) "{\"foo\": true, \"bar\": 2}")
   (test-runtime-error '(abs "foo" "bar") "{\"foo\": true, \"bar\": 2}")
@@ -182,6 +183,8 @@
   (test-runtime-error '(avg @) "[false]")
   (test-runtime-error '(avg @) "false")
   (test-runtime-error '(avg @) "5")
+  ;; projection applies the result list one by one so it has to be an error
+  (test-runtime-error '(ref (flatten) (abs @) (avg @)) "[1,-2,3]")
 
   (test-compiler #t '(contains '"foobar" '"foo") "{}")
   (test-compiler #f '(contains '"foobar" '"not") "{}")
@@ -211,6 +214,7 @@
   (test-compiler 1 '(floor '1.001) "{}")
   (test-compiler 1 '(floor '1.9) "{}")
   (test-compiler 1 '(floor '1) "{}")
+  (test-compiler '(1 2 3) '(ref (flatten) (abs @) (floor @)) "[1,-2,3]")
   (test-runtime-error '(floor '"abc") "{}")
 
   (test-compiler "a, b" '(join '", " @) "[\"a\", \"b\"]")
