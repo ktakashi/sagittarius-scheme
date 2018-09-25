@@ -56,11 +56,11 @@
 
 (test-parser jmespath:raw-string '(quote "'\\a") "'\\'\\\\a'")
 
-(test-parser jmespath:top-expression '* "*")
-(test-parser jmespath:top-expression '* " * ")
-(test-parser jmespath:top-expression '@ "@")
-(test-parser jmespath:top-expression '@ " @ ")
-(test-parser jmespath:top-expression
+(test-parser jmespath:expression '* "*")
+(test-parser jmespath:expression '* " * ")
+(test-parser jmespath:expression '@ "@")
+(test-parser jmespath:expression '@ " @ ")
+(test-parser jmespath:expression
 	     '(abs "foo" (& "bar") "buz") "abs(foo, &bar, buz)")
 
 (test-parser jmespath:expression '(flatten) "[]")
