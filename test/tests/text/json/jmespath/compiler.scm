@@ -46,7 +46,7 @@
   (test-compiler 5 '(index -1) "[0,1,2,3,4,5]")
   (test-compiler 0 '(index -6) "[0,1,2,3,4,5]")
   (test-compiler 'null '(index -7) "[0,1,2,3,4,5]")
-  (test-compiler '(0 1 2 3 4 5) '(index *) "[0,1,2,3,4,5]"))
+  (test-compiler '(0 1 2 3 4 5) '(*) "[0,1,2,3,4,5]"))
 
 (test-group "Slice expressions"
   (test-compiler '(0 1 2 3) '(slice 0 4 1) "[0,1,2,3]")
@@ -147,9 +147,9 @@
   (test-compiler #f '(= "foo" "bar") "{\"foo\": [1,2], \"bar\": [2,1]}"))
 
 (test-group "Wildcard expressions"
-  (test-compiler '(1 2 3) '(ref (index *) "foo")
+  (test-compiler '(1 2 3) '(ref (*) "foo")
 		 "[{\"foo\": 1},{\"foo\": 2},{\"foo\": 3}]")
-  (test-compiler '(1 2) '(ref (index *) "foo")
+  (test-compiler '(1 2) '(ref (*) "foo")
 		 "[{\"foo\": 1},{\"foo\": 2},{\"bar\": 3}]")
   (test-compiler '(1 2) '(ref * "foo")
     "{\"a\": {\"foo\": 1}, \"b\": {\"foo\": 2}, \"c\": {\"bar\": 1}}"))
@@ -406,7 +406,7 @@
   (test-compiler "baz" '(pipe "foo" "bar") 
 		 "{\"foo\": {\"bar\": \"baz\"}}")
   (test-compiler '("first1" "second1")
-		 '(pipe (ref "foo" (index *) "bar") (index 0))
+		 '(pipe (ref "foo" (*) "bar") (index 0))
 		 "{\"foo\": [{\"bar\": [\"first1\", \"second1\"]}, {\"bar\": [\"first2\", \"second2\"]}]}")
   (test-compiler '0 '(pipe "foo" (index 0)) "{\"foo\": [0,1,2]}"))
 

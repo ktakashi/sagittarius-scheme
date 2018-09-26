@@ -199,7 +199,8 @@
 	    ($return `(filter ,v)))
        ($do ((op "["))
 	    (v ($or jmespath:slice-expression
-		    ($do (v ($or jmespath:number star)) ($return `(index ,v)))))
+		    ($do (v jmespath:number) ($return `(index ,v)))
+		    ($seq star ($return '(*)))))
 	    ((op "]"))
 	    ($return v))
        ($seq (op "[]") ($return '(flatten)))))

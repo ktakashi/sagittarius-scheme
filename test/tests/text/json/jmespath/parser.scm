@@ -46,7 +46,7 @@
 (test-parser jmespath:bracket-specifier '(slice 0 2 1) "[0:2]")
 (test-parser jmespath:bracket-specifier '(slice 0 #f 1) "[0:]")
 (test-parser jmespath:bracket-specifier '(slice #f #f 1) "[::]")
-(test-parser jmespath:bracket-specifier '(index *) "[*]")
+(test-parser jmespath:bracket-specifier '(*) "[*]")
 (test-parser jmespath:bracket-specifier 
 	     '(filter (= "state" '"running")) "[?state=='running']")
 (test-parser jmespath:bracket-specifier '(flatten) "[]")
@@ -84,7 +84,7 @@
 (test-parser jmespath:expression '(ref "a" (index 0)) "a[0]")
 (test-parser jmespath:expression '(ref "a" "b" (index 0)) "a.b[0]")
 (test-parser jmespath:expression '(ref "a" "b" (index 0) "c" (index 0)) "a.b[0].c[0]")
-(test-parser jmespath:expression '(ref "a" "b" (index 0) "c" (index *)) "a.b[0].c[*]")
+(test-parser jmespath:expression '(ref "a" "b" (index 0) "c" (*)) "a.b[0].c[*]")
 
 (test-parser jmespath:expression '(< "a" "b")  "a < b")
 (test-parser jmespath:expression '(<= "a" "b") "a <= b")
@@ -121,6 +121,6 @@
 	     "outer.inner.foo|(outer.inner.bar||outer.inner.baz)")
 
 ;; found during compliance test
-(test-parser jmespath:expression '(ref (index *) "foo") "[*].foo")
+(test-parser jmespath:expression '(ref (*) "foo") "[*].foo")
 
 (test-end)
