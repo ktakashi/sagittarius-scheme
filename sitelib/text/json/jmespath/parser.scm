@@ -366,7 +366,9 @@
 	  (else e)))
   (flatten-group
    (if (and (pair? e) (pair? (car e)))
-       (resolve e)
+       (if (null? (cdr e))
+	   e
+	   (resolve e))
        e)))
 (define jmespath:expression
   ($do (e jmespath:expression*)
