@@ -137,20 +137,21 @@
        jmespath:quoted-string))
 
 (define jmespath:not-expression
-  ($do ((op "!")) (e jmespath:expression) ($return `(not ,e))))
+  ($do ((op "!")) (e jmespath:expression*) ($return `(not ,e))))
 (define jmespath:paren-expression
-  ($do ((op "(")) (e jmespath:expression) ((op ")")) ($return e)))
+  ;; mark this is paren
+  ($do ((op "(")) (e jmespath:expression*) ((op ")")) ($return e)))
 (define jmespath:multi-select-list
   ($do ((op "["))
-       (e ($do (e jmespath:expression)
-	       (c* ($many ($seq (op ",") jmespath:expression)))
+       (e ($do (e jmespath:expression*)
+	       (c* ($many ($seq (op ",") jmespath:expression*)))
 	       ($return (cons e c*))))
        ((op "]"))
        ($return e)))
 (define jmespath:keyval-expr
   ($do (k jmespath:identifier)
        ((op ":"))
-       (v jmespath:expression)
+       (v jmespath:expression*)
        ($return (cons k v))))
 (define jmespath:multi-select-hash
   ($do ((op "{"))
@@ -160,8 +161,8 @@
        ((op "}"))
        ($return (list->vector e))))
 (define function-arg
-  ($or ($do ((op "&")) (e jmespath:expression) ($return `(& ,e)))
-       ($lazy jmespath:expression)))
+  ($or ($do ((op "&")) (e jmespath:expression*) ($return `(& ,e)))
+       ($lazy jmespath:expression*)))
 (define one-or-more
   ($do ((op "("))
        (args ($do (arg function-arg)
@@ -193,7 +194,7 @@
 
 (define jmespath:bracket-specifier
   ($or ($do ((op "[?"))
-	    (v jmespath:expression)
+	    (v jmespath:expression*)
 	    ((op "]"))
 	    ($return `(filter ,v)))
        ($do ((op "["))
@@ -237,15 +238,6 @@
        ;; used by function-expression so must be here
        jmespath:identifier))
 
-(define (merge r r2)
-  (define op (car r))
-  (display r) (newline)
-  (display r2) (newline)
-  (newline)
-  (cond ((null? r2) r)
-	((eq? op (car r2)) `(,@r ,@(cdr r2)))
-	(else `(,(car r2) ,r ,@(cdr r2)))))
-
 (define jmespath:comparator
   ($or ($seq (op "<=") ($return '<=))
        ($seq (op "<")  ($return '<))
@@ -258,23 +250,49 @@
 (define jmespath:and (op "&&"))
 
 (define $epsilon (lambda (in) (return-result '() in)))
+(define (handle-sequence op e e*)
+  #;(begin (display op) (newline)
+	 (display e) (newline)
+	 (display e*) (newline) (newline))
+  (if (null? e*)
+      (cond ((not (pair? e)) (list op e))
+	    ((eq? (car e) op) e)
+	    #;((eq? (car e) '$g)
+	     (let ((e1 (cadr e)))
+	       (list op `(,(caadr e1) ,(car e1) ,@(cdadr e1)))))
+	    ((and (pair? (car e)) (pair? (cadr e)))
+	     (if (eq? op (caadr e))
+		 (cons* op (car e) (cdadr e))
+		 (cons* (caadr e) (list op (car e)) (cdadr e))))
+	    (else (list op e)))
+      (cons e e*)))
 (define jmespath:pipe-expression
-  ($do (e ($seq jmespath:pipe ($lazy jmespath:expression)))
-       (e* ($lazy jmespath:expression*))
-       ($return (merge `(pipe ,e) e*))))
+  ($do (e ($seq jmespath:pipe ($lazy jmespath:expression*)))
+       (e* ($lazy jmespath:expression**))
+       ($return (handle-sequence 'pipe e e*))))
 (define jmespath:or-expression
-  ($do (e ($seq jmespath:or ($lazy jmespath:expression)))
-       (e* ($lazy jmespath:expression*))
-       ($return (merge `(or ,e) e*))))
+  ($do (e ($seq jmespath:or ($lazy jmespath:expression*)))
+       (e* ($lazy jmespath:expression**))
+       ($return (handle-sequence 'or e e*))))
 (define jmespath:and-expression
-  ($do (e ($seq jmespath:and ($lazy jmespath:expression)))
-       (e* ($lazy jmespath:expression*))
-       ($return (merge `(and ,e) e*))))
+  ($do (e ($seq jmespath:and ($lazy jmespath:expression*)))
+       (e* ($lazy jmespath:expression**))
+       ($return (handle-sequence 'and e e*))))
 
 (define jmespath:comparator-expression
   ($do (c jmespath:comparator)
-       (e2 jmespath:expression)
+       (e2 jmespath:expression*)
        ($return `(,c ,e2))))
+
+(define (merge-ref r r2)
+  #;(begin (display r) (newline)
+	 (display r2) (newline)
+	 (newline))
+  (cond ((null? r2) `(ref ,r))
+	((eq? 'ref (car r2)) `(ref ,r ,@(cdr r2)))
+	((pair? (car r2)) (cons (merge-ref r (car r2)) (cdr r2)))
+	((eq? 'index (car r2)) `(ref ,r ,r2))
+	(else (list `(ref ,r) r2))))
 
 (define jmespath:sub-expression
   ($do (e ($seq (op ".")
@@ -283,15 +301,15 @@
 		     jmespath:multi-select-hash
 		     jmespath:function-expression
 		     star)))
-       (e* ($lazy jmespath:expression*))
-       ($return (merge `(ref ,e) e*))))
+       (e* ($lazy jmespath:expression**))
+       ($return (merge-ref e e*))))
 
 (define jmespath:index-expression
   ($do (b jmespath:bracket-specifier)
-       (e jmespath:expression)
-       ($return `(ref ,e ,b))))
+       (e jmespath:expression**)
+       ($return (merge-ref b e))))
 
-(define jmespath:expression*
+(define jmespath:expression**
   ($or jmespath:index-expression
        jmespath:sub-expression
        jmespath:comparator-expression
@@ -299,11 +317,45 @@
        jmespath:or-expression
        jmespath:and-expression
        $epsilon))
+
+(define jmespath:expression*
+  (letrec ((handle-sequence (lambda (f e*)
+			      #;(begin (display f) (newline)
+				     (display e*) (newline)
+				     (newline))
+			      (cond ((null? e*) f)
+				    ((pair? (car e*))
+				     (cons (handle-sequence f (car e*))
+					   (cdr e*)))
+				    ((and (pair? f) (pair? (car f)))
+				     (cons* (car e*)
+					    (resolve-sequence f)
+					    (cdr e*)))
+				    ((and (pair? e*) (eq? 'index (car e*)))
+				     `(ref ,f ,e*))
+				    (else `(,(car e*) ,f ,@(cdr e*)))))))
+    ($do (f beta)
+	 (e* jmespath:expression**)
+	 ($return (handle-sequence f e*)))))
+
+(define (resolve-sequence e)
+  (define (resolve e)
+    ;; (display e) (newline)
+    (let ((e0 (car e)) (e1 (cadr e)))
+      ;; we put e0 into the first deepest command of the first nested
+      ;; expression
+      (let loop ((e1 e1) (e* (cdr e1)))
+	(cond ((null? e*) `(,(car e1) ,e0 ,@(cdr e1)))
+	      ((and (pair? (car e*)) (memq (caar e*) '(pipe or and)))
+	       (cons* (car e1)
+		      (loop (car e*) (cdar e*))
+		      (cddr e1)))
+	      (else `(,(car e1) ,e0 ,@(cdr e1)))))))
+  (if (and (pair? e) (pair? (car e)))
+      (resolve e)
+      e))
 (define jmespath:expression
-  ($do (f beta)
-       (e* jmespath:expression*)
-       ($return (if (null? e*)
-		    f
-		    `(,(car e*) ,f ,@(cdr e*))))))
+  ($do (e jmespath:expression*)
+       ($return (resolve-sequence e))))
 
 )

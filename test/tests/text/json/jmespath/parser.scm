@@ -102,4 +102,23 @@
 (test-parser jmespath:expression '(or (pipe "foo""bar" ) "buz")
 	     "(foo | bar) || buz")
 
+(test-parser jmespath:expression
+	     '(or (pipe (ref "outer" "inner" "foo")
+			(ref "outer" "inner" "bar"))
+		  (ref "outer" "inner" "baz"))
+	     "(outer.inner.foo|outer.inner.bar)||outer.inner.baz")
+
+(test-parser jmespath:expression
+	     '(or (pipe (ref "outer" "inner" "foo")
+			(ref "outer" "inner" "bar"))
+		  (ref "outer" "inner" "baz"))
+	     "outer.inner.foo|outer.inner.bar||outer.inner.baz")
+
+;; grouping doesn't work yet
+#;(test-parser jmespath:expression
+	     '(pipe (ref "outer" "inner" "foo")
+		    (or (ref "outer" "inner" "bar")
+			(ref "outer" "inner" "baz")))
+	     "outer.inner.foo|(outer.inner.bar||outer.inner.baz)")
+
 (test-end)
