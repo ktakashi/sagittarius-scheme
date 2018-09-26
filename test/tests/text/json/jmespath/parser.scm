@@ -20,10 +20,10 @@
 (test-parser jmespath:not-expression '(not "foo") "!foo")
 (test-parser jmespath:not-expression '(not "foo") "! foo")
 
-(test-parser jmespath:paren-expression '"foo" "(foo)")
-(test-parser jmespath:paren-expression '"foo" "( foo )")
-(test-parser jmespath:paren-expression '(not "foo") "(!foo)")
-(test-parser jmespath:paren-expression '(not "foo") "( ! foo)")
+(test-parser jmespath:paren-expression '($g "foo") "(foo)")
+(test-parser jmespath:paren-expression '($g "foo") "( foo )")
+(test-parser jmespath:paren-expression '($g (not "foo")) "(!foo)")
+(test-parser jmespath:paren-expression '($g (not "foo")) "( ! foo)")
 
 (test-parser jmespath:multi-select-list '("foo") "[foo]")
 (test-parser jmespath:multi-select-list '("foo" "bar") "[foo, bar]")
@@ -114,8 +114,7 @@
 		  (ref "outer" "inner" "baz"))
 	     "outer.inner.foo|outer.inner.bar||outer.inner.baz")
 
-;; grouping doesn't work yet
-#;(test-parser jmespath:expression
+(test-parser jmespath:expression
 	     '(pipe (ref "outer" "inner" "foo")
 		    (or (ref "outer" "inner" "bar")
 			(ref "outer" "inner" "baz")))

@@ -140,7 +140,7 @@
   ($do ((op "!")) (e jmespath:expression*) ($return `(not ,e))))
 (define jmespath:paren-expression
   ;; mark this is paren
-  ($do ((op "(")) (e jmespath:expression*) ((op ")")) ($return e)))
+  ($do ((op "(")) (e jmespath:expression*) ((op ")")) ($return `($g ,e))))
 (define jmespath:multi-select-list
   ($do ((op "["))
        (e ($do (e jmespath:expression*)
@@ -250,6 +250,9 @@
 (define jmespath:and (op "&&"))
 
 (define $epsilon (lambda (in) (return-result '() in)))
+(define (handle-group e)
+  (let ((e1 (cadr e)))
+    `($g (,(caadr e1) ,(car e1) ,@(cdadr e1)))))
 (define (handle-sequence op e e*)
   #;(begin (display op) (newline)
 	 (display e) (newline)
@@ -257,9 +260,8 @@
   (if (null? e*)
       (cond ((not (pair? e)) (list op e))
 	    ((eq? (car e) op) e)
-	    #;((eq? (car e) '$g)
-	     (let ((e1 (cadr e)))
-	       (list op `(,(caadr e1) ,(car e1) ,@(cdadr e1)))))
+	    ((eq? (car e) '$g)
+	     (list op (handle-group e)))
 	    ((and (pair? (car e)) (pair? (cadr e)))
 	     (if (eq? op (caadr e))
 		 (cons* op (car e) (cdadr e))
@@ -340,7 +342,6 @@
 
 (define (resolve-sequence e)
   (define (resolve e)
-    ;; (display e) (newline)
     (let ((e0 (car e)) (e1 (cadr e)))
       ;; we put e0 into the first deepest command of the first nested
       ;; expression
@@ -351,9 +352,21 @@
 		      (loop (car e*) (cdar e*))
 		      (cddr e1)))
 	      (else `(,(car e1) ,e0 ,@(cdr e1)))))))
-  (if (and (pair? e) (pair? (car e)))
-      (resolve e)
-      e))
+  (define (flatten-group e)
+    (cond ((pair? e)
+	   (if (eq? (car e) '$g)
+	       (let ((e1 (cadr e)))
+		 (flatten-group 
+		  (if (and (pair? e1) (pair? (car e1)))
+		      (handle-group e)
+		       e1)))
+	       (cons (flatten-group (car e))
+		     (flatten-group (cdr e)))))
+	  (else e)))
+  (flatten-group
+   (if (and (pair? e) (pair? (car e)))
+       (resolve e)
+       e)))
 (define jmespath:expression
   ($do (e jmespath:expression*)
        ($return (resolve-sequence e))))
