@@ -120,4 +120,7 @@
 			(ref "outer" "inner" "baz")))
 	     "outer.inner.foo|(outer.inner.bar||outer.inner.baz)")
 
+;; found during compliance test
+(test-parser jmespath:expression '(ref (index *) "foo") "[*].foo")
+
 (test-end)

@@ -64,7 +64,8 @@
 	  (make-jmespath-compile-error expression)
 	  (make-assertion-violation)
 	  (make-who-condition 'jmespath:compile)
-	  (make-message-condition message))))
+	  (make-message-condition message)
+	  (make-irritants-condition expression))))
 (define (jmespath-runtime-error who message expression . arguments)
   (raise (condition
 	  (make-jmespath-runtime-error expression arguments)
@@ -268,13 +269,13 @@
 (define (jmespath:compile-or-expression e)
   (let ((e* (map compile-expression (cdr e))))
     (lambda (json context)
-      (make-result (let loop ((e* e*))
+      (make-result (let loop ((e* e*) (v 'null))
 		     (if (null? e*)
-			 'null
+			 v
 			 (let* ((r (jmespath:eval (car e*) json context))
 				(v (jmespath-eval-result-value r)))
 			   (if (false-value? v)
-			       (loop (cdr e*))
+			       (loop (cdr e*) v)
 			       v))))
 		   context))))
 

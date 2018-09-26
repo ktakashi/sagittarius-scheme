@@ -122,13 +122,13 @@
 	     ($seq ($eqv? #\n) ($return #\newline))
 	     ($seq ($eqv? #\r) ($return #\return))
 	     ($seq ($eqv? #\t) ($return #\tab))
-	     ($do (($eqv? #\x))
+	     ($do (($eqv? #\u))
 		  (c* ($repeat ($cs char-set:hex-digit) 4))
 		  ($return (integer->char
 			    (string->number (list->string c*) 16)))))))
 (define jmespath:quoted-string
   ($do (($eqv? #\"))
-       (c* ($many ($or jmespath:unescaped-char jmespath:escaped-char) 1))
+       (c* ($many ($or jmespath:escaped-char jmespath:unescaped-char) 1))
        (($eqv? #\"))
        ($return (list->string c*))))
 
@@ -227,6 +227,7 @@
 (define beta
   ($or star
        ($seq (op "@") ($return '@))
+       jmespath:bracket-specifier
        jmespath:not-expression
        jmespath:paren-expression
        jmespath:multi-select-list
@@ -234,7 +235,6 @@
        jmespath:literal
        jmespath:function-expression
        jmespath:raw-string
-       jmespath:bracket-specifier
        ;; used by function-expression so must be here
        jmespath:identifier))
 
