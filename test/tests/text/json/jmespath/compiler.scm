@@ -232,11 +232,11 @@
   (test-compiler 1 '(ceil '1) "{}")
   (test-runtime-error '(ceil '"abc") "{}")
 
-  (test-compiler #t '(end_with @ '"baz") "\"foobarbaz\"")
-  (test-compiler #f '(end_with @ '"foo") "\"foobarbaz\"")
-  (test-compiler #t '(end_with @ '"z") "\"foobarbaz\"")
-  (test-runtime-error '(end_with 'null "bar") "{}")
-  (test-runtime-error '(end_with "bar" 'null) "{}")
+  (test-compiler #t '(ends_with @ '"baz") "\"foobarbaz\"")
+  (test-compiler #f '(ends_with @ '"foo") "\"foobarbaz\"")
+  (test-compiler #t '(ends_with @ '"z") "\"foobarbaz\"")
+  (test-runtime-error '(ends_with 'null "bar") "{}")
+  (test-runtime-error '(ends_with "bar" 'null) "{}")
 
   (test-compiler 1 '(floor '1.001) "{}")
   (test-compiler 1 '(floor '1.9) "{}")
@@ -353,11 +353,11 @@
 		 people-json-string)
   (test-runtime-error '(sort_by "people" "age") people-json-string)
   
-  (test-compiler #t '(start_with @ '"foo") "\"foobarbaz\"")
-  (test-compiler #f '(start_with @ '"baz") "\"foobarbaz\"")
-  (test-compiler #t '(start_with @ '"f") "\"foobarbaz\"")
-  (test-runtime-error '(start_with 'null "bar") "{}")
-  (test-runtime-error '(start_with "bar" 'null) "{}")
+  (test-compiler #t '(starts_with @ '"foo") "\"foobarbaz\"")
+  (test-compiler #f '(starts_with @ '"baz") "\"foobarbaz\"")
+  (test-compiler #t '(starts_with @ '"f") "\"foobarbaz\"")
+  (test-runtime-error '(starts_with 'null "bar") "{}")
+  (test-runtime-error '(starts_with "bar" 'null) "{}")
 
   (test-compiler 25 '(sum @) "[10, 15]")
   (test-compiler 0 '(sum @) "[]")

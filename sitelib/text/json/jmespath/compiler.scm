@@ -406,9 +406,9 @@
       ;; raise an error. so follow it
       (jmespath-runtime-error 'ceil "Number required" expression value)))
 
-(define (jmespath:end-with-function context expression subject suffix)
+(define (jmespath:ends-with-function context expression subject suffix)
   (unless (and (string? subject) (string? suffix))
-    (jmespath-runtime-error 'end_with "String required"
+    (jmespath-runtime-error 'ends_with "String required"
 			    expression subject suffix))
   (string-suffix? suffix subject))
 
@@ -553,9 +553,9 @@
     (map car
 	 (list-sort (lambda (a b) (ns< (cdr a) (cdr b))) p&v))))
 
-(define (jmespath:start-with-function context expression subject prefix)
+(define (jmespath:starts-with-function context expression subject prefix)
   (unless (and (string? subject) (string? prefix))
-    (jmespath-runtime-error 'start_with "String required"
+    (jmespath-runtime-error 'starts_with "String required"
 			    expression subject prefix))
   (string-prefix? prefix subject))
 
@@ -607,7 +607,7 @@
     (avg . ,jmespath:avg-function)
     (contains . ,jmespath:contains-function)
     (ceil . ,jmespath:ceil-function)
-    (end_with . ,jmespath:end-with-function)
+    (ends_with . ,jmespath:ends-with-function)
     (floor . ,jmespath:floor-function)
     (join . ,jmespath:join-function)
     (keys . ,jmespath:keys-function)
@@ -622,7 +622,7 @@
     (reverse . ,jmespath:reverse-function)
     (sort . ,jmespath:sort-function)
     (sort_by . ,jmespath:sort-by-function)
-    (start_with . ,jmespath:start-with-function)
+    (starts_with . ,jmespath:starts-with-function)
     (sum . ,jmespath:sum-function)
     (to_array . ,jmespath:to-array-function)
     (to_string . ,jmespath:to-string-function)
