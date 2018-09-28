@@ -54,7 +54,7 @@
 (test-parser jmespath:literal '(quote #(("key" . "value")))
 	     "`{\"key\": \"value\"}`")
 
-(test-parser jmespath:raw-string '(quote "'\\a") "'\\'\\\\a'")
+(test-parser jmespath:raw-string '(quote "'\\\\a") "'\\'\\\\a'")
 
 (test-parser jmespath:expression '* "*")
 (test-parser jmespath:expression '* " * ")
@@ -126,4 +126,8 @@
 (test-parser jmespath:expression
 	     '(filter (or (= "name" '"a") (= "name" '"b") (= "name" '"c")))
 	     "[?name == 'a' || name == 'b' || name == 'c']")
+
+(test-parser jmespath:expression ''"'" "'\\''")
+(test-parser jmespath:expression ''"\\\\" "'\\\\'")
+
 (test-end)

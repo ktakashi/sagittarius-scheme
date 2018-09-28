@@ -247,19 +247,28 @@
        ((op "`"))
        ($return `(quote ,v))))
 
-(define raw-string-set
-  ($cs (char-set-union
-	(ucs-range->char-set #x20 (+ #x26 1))
-	(ucs-range->char-set #x28 (+ #x5B 1))
-	(ucs-range->char-set #x5D (+ #x10FFFF 1)))))
+;; This is fxxking lie. The compiliance test even expect to accept
+;; all characters including control chars (e.g. newline) as the
+;; implementations do.
+;; (define raw-string-set
+;;   ($cs (char-set-union
+;; 	(ucs-range->char-set #x20 (+ #x26 1))
+;; 	(ucs-range->char-set #x28 (+ #x5B 1))
+;; 	(ucs-range->char-set #x5D (+ #x10FFFF 1)))))
 (define jmespath:raw-string-char
-  ($or raw-string-set
-       ($seq ($eqv? #\\) ($or raw-string-set ($eqv? #\\) ($eqv? #\')))))
+  ($or ($seq ($eqv? #\\) ($eqv? #\'))
+       ($seq ($eqv? #\\) ($eqv? #\\) ($return "\\\\"))
+       ($cs (char-set-difference char-set:full (char-set #\')))))
+(define (jmespath:raw-string-char->string c*)
+  (let-values (((out extract) (open-string-output-port)))
+    (for-each (lambda (c)
+		(if (char? c) (put-char out c) (put-string out c))) c*)
+    (extract)))
 (define jmespath:raw-string
-  ($do ((op "'"))
+  ($do (($many ws)) (($eqv? #\'))
        (c* ($many jmespath:raw-string-char))
-       ((op "'"))
-       ($return `(quote ,(list->string c*)))))
+       (($eqv? #\')) (($many ws))
+       ($return `(quote ,(jmespath:raw-string-char->string c*)))))
 ;; β
 (define beta
   ($or star
