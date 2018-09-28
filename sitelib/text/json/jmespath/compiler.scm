@@ -98,6 +98,8 @@
       ;; life isn't easy...
       (simple-applier context e json)))
 
+(define (context-in-projection? context)
+  (eq? projection-applier (jmespath-eval-context-applier context)))
 ;; For sub expression. The previous result need to be the parent context.
 (define (result->context result . applier)
   (apply make-child-context (jmespath-eval-result-value result) result applier))
@@ -180,9 +182,8 @@
 
 (define (jmespath:compile-wildcard-expression e)
   (lambda (json context)
-    (make-result (if (vector? json)
-		     (map cdr (vector->list json))
-		     'null) context projection-applier)))
+    (make-result (if (vector? json) (map cdr (vector->list json)) 'null)
+		 context projection-applier)))
 
 (define (jmespath:compile-current-expression e)
   (lambda (json context) (make-result json context)))
