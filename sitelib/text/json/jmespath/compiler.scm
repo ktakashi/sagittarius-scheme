@@ -39,7 +39,6 @@
 	    jmespath-runtime-error?)
     (import (rnrs)
 	    (text json jmespath conditions)
-	    (text json parse) ;; for json-write
 	    (srfi :1 lists)
 	    (srfi :13 strings)
 	    (srfi :133 vectors))
@@ -227,7 +226,7 @@
 	  (else n)))
   (define (nget n l default)
     (cond ((not n) default)
-	  ((negative? n) (max (+ l n) 0))
+	  ((negative? n) (max (+ l n) -1))
 	  ((<= l n) (- l 1))
 	  (else n)))
   (let ((start (cadr e))
@@ -235,14 +234,14 @@
 	(step (cadddr e)))
     (unless (number? step) (jmespath-compile-error "step must be a number" e))
     (when (zero? step) (jmespath-compile-error "step can't be 0" e))
-    (let ((cmp (if (negative? step) < >=)))
+    (let ((cmp (if (negative? step) <= >=)))
       (lambda (json context)
 	(make-result
 	 (if (list? json)
 	     (let ((l (length json)))
 	       (let-values (((s e)
 			     (if (negative? step)
-				 (values (nget start l (- l 1)) (nget end l 0))
+				 (values (nget start l (- l 1)) (nget end l -1))
 				 (values (pget start l 0) (pget end l l)))))
 		 ;; TODO slow?
 		 (let loop ((i s) (r '()))
@@ -314,18 +313,22 @@
 (define (jmespath:compile-multi-select-list e)
   (let ((e* (map compile-expression e)))
     (lambda (json context)
-      (make-result (map (lambda (e)
-			  (jmespath-eval-result-value
-			   (jmespath:eval e json context))) e*) context))))
+      (make-result (if (eq? 'null json)
+		       json
+		       (map (lambda (e)
+			      (jmespath-eval-result-value
+			       (jmespath:eval e json context))) e*)) context))))
 
 (define (jmespath:compile-multi-select-hash e)
   (let ((e* (vector-map (lambda (k&v)
 			  (cons (car k&v) (compile-expression (cdr k&v)))) e)))
     (lambda (json context)
-      (make-result (vector-map (lambda (n&e)
-				 (let* ((r ((cdr n&e) json context))
-					(v (jmespath-eval-result-value r)))
-				   (cons (car n&e) v))) e*) context))))
+      (make-result (if (eq? 'null json)
+		       json
+		       (vector-map (lambda (n&e)
+				     (let* ((r ((cdr n&e) json context))
+					    (v (jmespath-eval-result-value r)))
+				       (cons (car n&e) v))) e*)) context))))
 
 (define (jmespath:compile-comparator-expression e)
   (let ((cmp (car e))
@@ -394,7 +397,7 @@
     (jmespath-runtime-error 'avg "Array of number required"
 			    expression argument))
   (if (null? argument)
-      0
+      'null
       (let* ((len (length argument))
 	     (v (/ (fold + 0 argument) len)))
 	(if (integer? v) v (inexact v)))))
@@ -553,7 +556,7 @@
 (define (jmespath:sort-function context expression array)
   (unless (list? array)
     (jmespath-runtime-error 'sort "array required" expression array))
-  (cond ((null? array) 'null)
+  (cond ((null? array) '())
 	((for-all number? array) (list-sort < array))
 	((for-all string? array) (list-sort string<? array))
 	(else
@@ -583,6 +586,38 @@
       (list argument)))
 
 (define (jmespath:to-string-function context expression argument)
+  ;; JMESPath requires us not to emit extra space...
+  (define (json-write x port)
+    (define (write-ht vec port)
+      (display "{" port)
+      (vector-fold (lambda (need-comma? e)
+		     (let ((k (car e)) (v (cdr e)))
+		       (when need-comma? (display "," port))
+		       (if (string? k)
+			   (write k port)
+			   (jmespath-runtime-error 'to_string
+			    "Invalid JSON table key" expression argument))
+		       (display ":" port)
+		       (write-any v port)
+		       #t)) #f vec)
+      (display "}" port))
+    (define (write-array arr port)
+      (display "[" port)
+      (fold-left (lambda (need-comma? e)
+		   (when need-comma? (display "," port))
+		   (write-any e port)
+		   #t) #f arr)
+      (display "]" port))
+    (define (write-any x port)
+      (cond ((vector? x) (write-ht x port))
+	    ((list? x) (write-array x port))
+	    ((eq? x 'null) (display "null" port))
+	    ((symbol? x) (write (symbol->string x) port))
+	    ((or (string? x) (number? x)) (write x port))
+	    ((boolean? x) (display (if x "true" "false") port))
+	    (else (jmespath-runtime-error 'to_string
+		   "Invalid JSON object" expression argument))))
+    (write-any x port))
   (if (string? argument)
       argument
       (let-values (((out extract) (open-string-output-port)))

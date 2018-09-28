@@ -116,6 +116,8 @@
   ($seq ($many ws)
 	(apply $seq (map $eqv? (string->list token)))
 	($many ws)))
+(define jmespath:backquote ($cs (char-set #\`)))
+
 (define jmespath:unquoted-string
   (let ((first-set ($cs (char-set-union (ucs-range->char-set #x41 (+ #x5A 1))
 					(ucs-range->char-set #x61 (+ #x7A 1))
@@ -238,7 +240,10 @@
 
 (define jmespath:literal
   ($do ((op "`"))
-       (v json:parser)
+       (v ($parameterize ((*json:escape-required* jmespath:backquote))
+	    ($guard (e ((json-parse-error? e)
+			($error "Failed to parse JSON" (condition-message e))))
+	      json:parser)))
        ((op "`"))
        ($return `(quote ,v))))
 

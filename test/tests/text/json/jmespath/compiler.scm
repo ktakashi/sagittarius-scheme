@@ -372,6 +372,9 @@
 
   (test-compiler "2" '(to_string '2) "{}")
   (test-compiler "1" '(to_string '"1") "{}")
+  (test-compiler "[1,2]" '(to_string '(1 2)) "{}")
+  (test-compiler "{\"foo\":1,\"bar\":2}"
+		 '(to_string '#(("foo" . 1) ("bar" . 2))) "{}")
 
   (test-compiler "string" '(type @) "\"foo\"")
   (test-compiler "boolean" '(type @) "true")

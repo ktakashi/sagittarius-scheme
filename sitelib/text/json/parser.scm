@@ -33,12 +33,16 @@
 ;; https://tools.ietf.org/html/rfc8259
 #!nounbound
 (library (text json parser)
-    (export json:parser)
+    (export json:parser
+	    json-error?
+	    json-parse-error?
+	    *json:escape-required*)
     (import (rnrs)
 	    (peg)
 	    (peg chars)
 	    (sagittarius generators)
 	    (srfi :14 char-sets)
+	    (srfi :39 parameters)
 	    (srfi :127 lseqs))
 #|
 ;; Ironically this is slower than PEG...
@@ -73,7 +77,11 @@
 (define-condition-type &json &error
   make-json-error json-error?)
 (define-condition-type &json-parse &json
-  make-json-parse-error json-parse-error)
+  make-json-parse-error json-parse-error?)
+
+;; If the JSON is embedded to somewhere (i.e. JMESPath) it may require
+;; extra escape rule.
+(define *json:escape-required* (make-parameter #f))
 
 (define (json-parse-error message . irr)
   (define c (condition (make-json-parse-error)
@@ -186,6 +194,7 @@
 		       ($lazy ($return (integer->char cp)))))
 	     $getc)))
 
+(define (not-in-escape in) (($not (*json:escape-required*)) in))
 (define json:char
   ;; This didn't make me happy at all...
   #;($do (c $peekc)
@@ -193,7 +202,10 @@
 	      ((eqv? c #\")
 	       (lambda (l) (return-unexpect "end of JSON string" l)))
 	      (else $getc)))
-  ($or json:unescaped json:escaped))
+  ($or ($if (*json:escape-required*)
+	    ($seq not-in-escape json:unescaped)
+	    json:unescaped)
+       json:escaped))
 (define json:string
   ($do (($eqv? #\"))
        (c* ($many json:char))
