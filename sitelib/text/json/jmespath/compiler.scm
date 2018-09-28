@@ -393,9 +393,11 @@
   (unless (and (list? argument) (for-all number? argument))
     (jmespath-runtime-error 'avg "Array of number required"
 			    expression argument))
-  (let* ((len (length argument))
-	 (v (/ (fold + 0 argument) len)))
-    (if (integer? v) v (inexact v))))
+  (if (null? argument)
+      0
+      (let* ((len (length argument))
+	     (v (/ (fold + 0 argument) len)))
+	(if (integer? v) v (inexact v)))))
 
 (define (jmespath:contains-function context expression subject search)
   (cond ((list? subject) (exists (lambda (e) (json=? e search)) subject))
