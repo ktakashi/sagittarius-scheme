@@ -171,10 +171,10 @@
        jmespath:quoted-string))
 
 (define jmespath:not-expression
-  ($do ((op "!")) (e jmespath:expression*) ($return `(not ,e))))
+  ($do ((op "!")) (e jmespath:expression) ($return `(not ,e))))
 (define jmespath:paren-expression
   ;; mark this is paren
-  ($do ((op "(")) (e jmespath:expression*) ((op ")")) ($return `($g ,e))))
+  ($do ((op "(")) (e jmespath:expression) ((op ")")) ($return `($g ,e))))
 (define jmespath:multi-select-list
   ($do ((op "["))
        (e ($do (e jmespath:expression)
@@ -196,7 +196,7 @@
        ($return (list->vector e))))
 (define function-arg
   ($or ($do ((op "&")) (e jmespath:expression) ($return `(& ,e)))
-       ($lazy jmespath:expression*)))
+       ($lazy jmespath:expression)))
 (define one-or-more
   ($do ((op "("))
        (args ($do (arg function-arg)
@@ -283,7 +283,8 @@
        jmespath:function-expression
        jmespath:raw-string
        ;; used by function-expression so must be here
-       jmespath:identifier))
+       ;; we wrap this with ref
+       ($do (v jmespath:identifier) ($return `(ref , v)))))
 
 (define jmespath:comparator
   ($or ($seq (op "<=") ($return '<=))
@@ -339,7 +340,11 @@
 (define jmespath:comparator-expression
   ($do (c jmespath:comparator)
        (e jmespath:expression*)
-       ($return `(,c ,e))))
+       ($return `(,c ,e))
+       ;; in case of 'foo[?key==`[0]`]', we shouldn't do the following
+       ;;(e* ($lazy jmespath:expression**))
+       ;;($return (handle-sequence c e e*))
+       ))
 
 (define (merge-ref r r2)
   #;(begin (display r) (newline)
@@ -403,6 +408,9 @@
 	    (((? comparator? cmp) ((? conjunction? c) e1 e2 ...))
 	     ;; (= (or 'a (= a '2))) -> ((= f 'a) (or (= a '2)))
 	     `((,cmp ,f ,e1) (,c ,@e2)))
+	    (((? conjunction? c) ((? comparator? cmp) e1) rest ...)
+	     ;; (or (= 'a) (= a '2))) -> (or (= f 'a) (= a '2))
+	     `(,c (,cmp ,f ,e1) ,@rest))
 	    #;(((? conjunction? c) expr* ...)
 	     ;; a bit of trick...
 	     (if (pair? f)
@@ -430,11 +438,12 @@
 		  (else `(,(car e1) ,e0 ,@(cdr e1))))))
 	e))
   (define (flatten-group e)
+    ;;(write e) (newline)
     (match e
       (((? $g?) ((? pair? x) rest)) (flatten-group (handle-group e)))
-      (((? $g?) e0) e0)
+      (((? $g?) e0) (flatten-group e0))
       ;; strip single ref
-      ;; (((? (lambda (x) (eq? 'ref x))) e) e)
+      (((? (lambda (x) (eq? 'ref x))) e) e)
       ((a . d) (cons (flatten-group a) (flatten-group d)))
       (_ e)))
   ;; (display e) (newline)

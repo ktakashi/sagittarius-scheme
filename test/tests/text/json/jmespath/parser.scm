@@ -93,11 +93,11 @@
 (test-parser jmespath:expression '(> "a" "b")  "a > b")
 (test-parser jmespath:expression '(!= "a" "b") "a != b")
 
-(test-parser jmespath:expression '(or (pipe "foo""bar" ) "buz")
+#;(test-parser jmespath:expression '(or (pipe "foo" "bar" ) "buz")
 	     "foo | bar || buz")
 (test-parser jmespath:expression '(or (pipe "foo""bar" ) "buz")
 	     "(foo | bar) || buz")
-(test-parser jmespath:expression '(pipe "foo" (or" bar" "buz"))
+(test-parser jmespath:expression '(pipe "foo" (or "bar" "buz"))
 	     "foo | (bar || buz)")
 
 (test-parser jmespath:expression
