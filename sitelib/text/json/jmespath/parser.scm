@@ -404,16 +404,18 @@
 
 (define (resolve-sequence e)
   (define (resolve e)
-    (let ((e0 (car e)) (e1 (cadr e)))
-      ;; we put e0 into the first deepest command of the first nested
-      ;; expression
-      (let loop ((e1 e1) (e* (cdr e1)))
-	(cond ((null? e*) `(,(car e1) ,e0 ,@(cdr e1)))
-	      ((and (pair? (car e*)) (memq (caar e*) '(pipe or and)))
-	       (cons* (car e1)
-		      (loop (car e*) (cdar e*))
-		      (cddr e1)))
-	      (else `(,(car e1) ,e0 ,@(cdr e1)))))))
+    (if (pair? (cadr e))
+	(let ((e0 (car e)) (e1 (cadr e)))
+	  ;; we put e0 into the first deepest command of the first nested
+	  ;; expression
+	  (let loop ((e1 e1) (e* (cdr e1)))
+	    (cond ((null? e*) `(,(car e1) ,e0 ,@(cdr e1)))
+		  ((and (pair? (car e*)) (memq (caar e*) '(pipe or and)))
+		   (cons* (car e1)
+			  (loop (car e*) (cdar e*))
+			  (cddr e1)))
+		  (else `(,(car e1) ,e0 ,@(cdr e1))))))
+	e))
   (define (flatten-group e)
     (cond ((pair? e)
 	   (if (eq? (car e) '$g)
