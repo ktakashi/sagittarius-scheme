@@ -93,6 +93,7 @@
 	    (peg chars)
 	    (text json parser)
 	    (text json jmespath conditions)
+	    (match)
 	    (srfi :14 char-sets)
 	    (srfi :121 generators)
 	    (srfi :127 lseqs))
@@ -227,7 +228,7 @@
 
 (define jmespath:bracket-specifier
   ($or ($do ((op "[?"))
-	    (v jmespath:expression*)
+	    (v jmespath:expression)
 	    ((op "]"))
 	    ($return `(filter ,v)))
        ($do ((op "["))
@@ -297,30 +298,30 @@
 
 (define $epsilon (lambda (in) (return-result '() in)))
 
+(define ($g? x) (eq? '$g x))
 (define (handle-group e)
   (define (strip-nested-group e)
-    (if (and (pair? (cadr e)) (eq? (caadr e) '$g))
-	(strip-nested-group (cadr e))
-	e))
+    ;; ($g ($g e)) -> ($g e)
+    (match e
+      (((? $g?) ((? $g?) e*)) (strip-nested-group (cadr e)))
+      (else e)))
   (let ((e1 (cadr (strip-nested-group e))))
     ;; handling ((ref a b c) (or (ref d e f))) case here
     (if (and (= (length e1) 2) (pair? (cadr e1)))
 	`($g (,(caadr e1) ,(car e1) ,@(cdadr e1)))
 	(list '$g e1))))
 (define (handle-sequence op e e*)
+  (define (op? x) (eq? op x))
   #;(begin (display op) (newline)
 	 (display e) (newline)
 	 (display e*) (newline) (newline))
   (if (null? e*)
-      (cond ((not (pair? e)) (list op e))
-	    ((eq? (car e) op) e)
-	    ((eq? (car e) '$g)
-	     (list op (handle-group e)))
-	    ((and (pair? (car e)) (pair? (cadr e)))
-	     (if (eq? op (caadr e))
-		 (cons* op (car e) (cdadr e))
-		 (cons* (caadr e) (list op (car e)) (cdadr e))))
-	    (else (list op e)))
+      (match e
+	(((? op?) r ...) e) ;; no extra
+	(((? $g?) r ...) (list op (handle-group e)))
+	((e0 ((? op?) r ...)) (cons* op e0 r))
+	((e0 (? pair? e1)) (cons* (car e1) (list op e0) (cdr e1)))
+	(_ (list op e)))
       (cons e e*)))
 (define jmespath:pipe-expression
   ($do (e ($seq jmespath:pipe ($lazy jmespath:expression*)))
@@ -337,8 +338,8 @@
 
 (define jmespath:comparator-expression
   ($do (c jmespath:comparator)
-       (e2 jmespath:expression*)
-       ($return `(,c ,e2))))
+       (e jmespath:expression*)
+       ($return `(,c ,e))))
 
 (define (merge-ref r r2)
   #;(begin (display r) (newline)
@@ -377,6 +378,8 @@
 (define jmespath:expression*
   (let ()
     (define comparators '(< <= = >= > !=))
+    (define (comparator? x) (memq x comparators))
+    (define (conjunction? x) (memq x '(pipe or and)))
     (define (handle-comparator e)
       (let ((e0 (car e)) (e1 (cadr e)))
 	(if (= (length e1) 2)
@@ -387,31 +390,22 @@
       #;(begin (display f) (newline)
 	     (display e*) (newline)
 	     (newline))
-      (cond ((null? e*)
-	     ;; merge comparator expression here if neccesarry
-	     (if (and (pair? f) (pair? (car f)) (pair? (cdr f))
-		      (pair? (cadr f)) (memq (caadr f) comparators))
-		 (handle-comparator f)
-		 f))
-	    ;; e* = ((ref a b) expr) pattern
-	    ((pair? (car e*))
-	     (handle-sequence (cons (handle-sequence f (car e*)) (cdr e*)) '()))
-	    ;; f = ((ref a f)) or so
-	    ((and (pair? f) (pair? (car f)))
-	     (cons* (car e*) (resolve-sequence f) (cdr e*)))
-	    ;; merging index
-	    ((and (pair? e*) (eq? 'index (car e*))) `(ref ,f ,e*))
-	    ;; (= (or 'a (= a '2))) or so
-	    ((and (memq (car e*) comparators)
-		  (= (length e*) 2)
-		  (pair? (cadr e*)) (memq (caadr e*) '(pipe or and)))
-	     (let* ((op (car e*))
-		    (e0 (cadr e*))
-		    (e1 (cadr e0))
-		    (e2 (cddr e0)))
-	       `(,(car e0) (,op ,f ,e1) ,@e2)))
-	    ;; merging (expr (op expr)) pattern
-	    (else `(,(car e*) ,f ,@(cdr e*)))))
+      (if (null? e*)
+	  (match f
+	    (((? pair?) ((? comparator?) r* ...)) (handle-comparator f))
+	    (else f))
+	  (match e*
+	    (((? pair? e0) e1 ...) ;; e* = ((ref a b) expr) pattern
+	     ;; we need to add 'f' to e0
+	     (handle-sequence (cons (handle-sequence f e0) e1) '()))
+	    (((? (lambda (x) (eq? 'index x))) ignore ...) ;; merging index
+	     `(ref ,f ,e*))
+	    (((? comparator? cmp) ((? conjunction? c) e1 e2 ...))
+	     ;; (= (or 'a (= a '2))) -> ((= f 'a) (or (= a '2)))
+	     `((,cmp ,f ,e1) (,c ,@e2)))
+	    ;; e* = (pipe expr)
+	    ;; f  = expr
+	    (else `(,(car e*) ,f ,@(cdr e*))))))
     ($do (f beta)
 	 (e* jmespath:expression**)
 	 ($return (handle-sequence f e*)))))
