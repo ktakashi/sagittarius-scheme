@@ -83,12 +83,32 @@
 	    jmespath:bracket-specifier
 	    jmespath:literal
 	    jmespath:raw-string
-	    jmespath:expression)
+	    jmespath:expression
+
+	    parse-jmespath
+	    jmespath-parse-error?
+	    )
     (import (rnrs)
 	    (peg)
 	    (peg chars)
 	    (text json parser)
-	    (srfi :14))
+	    (text json jmespath conditions)
+	    (srfi :14 char-sets)
+	    (srfi :121 generators)
+	    (srfi :127 lseqs))
+
+(define-condition-type &jmespath:parse &jmespath
+  make-jmespath-parse-error jmespath-parse-error?)
+
+(define (jmespath-parse-error message . irr)
+  (raise (condition
+	  (make-jmespath-parse-error)
+	  (make-who-condition 'jmespath:expression)
+	  (make-message-condition message)
+	  (make-irritants-condition irr))))
+(define ($error message . irr)
+  (lambda (in)
+    (jmespath-parse-error message irr)))
 
 (define $cs $char-set-contains?)
 (define ws ($cs (char-set #\space #\tab #\newline #\return)))
@@ -112,6 +132,9 @@
 	(ucs-range->char-set #x20 (+ #x21 1))
 	(ucs-range->char-set #x23 (+ #x5B 1))
 	(ucs-range->char-set #x5D (+ #x10FFFF 1)))))
+(define jmespath:code-point
+  ($do (c* ($repeat ($cs char-set:hex-digit) 4))
+       ($return (string->number (list->string c*) 16))))
 (define jmespath:escaped-char
   ($seq ($eqv? #\\)
 	($or ($eqv? #\")
@@ -123,9 +146,17 @@
 	     ($seq ($eqv? #\r) ($return #\return))
 	     ($seq ($eqv? #\t) ($return #\tab))
 	     ($do (($eqv? #\u))
-		  (c* ($repeat ($cs char-set:hex-digit) 4))
-		  ($return (integer->char
-			    (string->number (list->string c*) 16)))))))
+		  (cp jmespath:code-point)
+		  ($if (<= #xd800 cp #xdbff)
+		       ($do (($eqv? #\\)) (($eqv? #\u))
+			    (cp2 jmespath:code-point)
+			    ($if (<= #xdc00 cp2 #xdfff)
+				 ($return (integer->char
+					   (+ #x10000
+					      (* (- cp #xd800) #x400)
+					      (- cp2 #xdc00))))
+				 ($error "Invalid unicode code point" cp cp2)))
+		       ($lazy ($return (integer->char cp))))))))
 (define jmespath:quoted-string
   ($do (($eqv? #\"))
        (c* ($many ($or jmespath:escaped-char jmespath:unescaped-char) 1))
@@ -405,4 +436,10 @@
   ($do (e jmespath:expression*)
        ($return (resolve-sequence e))))
 
+(define (parse-jmespath path)
+  (define lseq (generator->lseq (string->generator path)))
+  (let-values (((s v nl) (jmespath:expression lseq)))
+    (unless (and (parse-success? s) (null? nl))
+      (jmespath-parse-error "Failed to parse JMESPath" path))
+    v))
 )

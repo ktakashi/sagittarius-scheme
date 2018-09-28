@@ -32,17 +32,7 @@
     (export jmespath)
     (import (rnrs)
 	    (text json jmespath parser)
-	    (text json jmespath compiler)
-	    (peg)
-	    (srfi :121 generators)
-	    (srfi :127 lseqs))
-
-(define (jmespath path)
-  (define lseq (generator->lseq (string->generator path)))
-  (let-values (((s v nl) (jmespath:expression lseq)))
-    (unless (and (parse-success? s) (null? nl))
-      ;; TODO condition
-      (error 'jmespath "Failed to parse JMESPath" path))
-    (jmespath:compile v)))
+	    (text json jmespath compiler))
+(define (jmespath path) (jmespath:compile (parse-jmespath path)))
 
 )
