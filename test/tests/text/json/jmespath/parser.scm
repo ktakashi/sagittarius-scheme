@@ -93,14 +93,12 @@
 (test-parser jmespath:expression '(> "a" "b")  "a > b")
 (test-parser jmespath:expression '(!= "a" "b") "a != b")
 
-;; considering associsativity?
-;; NOTE: I can't read from the specification and tutorial act like this
-;;       so should be fine?
-(test-parser jmespath:expression '(pipe "foo" (or "bar" "buz"))
+(test-parser jmespath:expression '(or (pipe "foo""bar" ) "buz")
 	     "foo | bar || buz")
-
 (test-parser jmespath:expression '(or (pipe "foo""bar" ) "buz")
 	     "(foo | bar) || buz")
+(test-parser jmespath:expression '(pipe "foo" (or" bar" "buz"))
+	     "foo | (bar || buz)")
 
 (test-parser jmespath:expression
 	     '(or (pipe (ref "outer" "inner" "foo")

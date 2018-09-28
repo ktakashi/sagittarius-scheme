@@ -177,15 +177,15 @@
   ($do ((op "(")) (e jmespath:expression*) ((op ")")) ($return `($g ,e))))
 (define jmespath:multi-select-list
   ($do ((op "["))
-       (e ($do (e jmespath:expression*)
-	       (c* ($many ($seq (op ",") jmespath:expression*)))
+       (e ($do (e jmespath:expression)
+	       (c* ($many ($seq (op ",") jmespath:expression)))
 	       ($return (cons e c*))))
        ((op "]"))
        ($return e)))
 (define jmespath:keyval-expr
   ($do (k jmespath:identifier)
        ((op ":"))
-       (v jmespath:expression*)
+       (v jmespath:expression)
        ($return (cons k v))))
 (define jmespath:multi-select-hash
   ($do ((op "{"))
@@ -195,7 +195,7 @@
        ((op "}"))
        ($return (list->vector e))))
 (define function-arg
-  ($or ($do ((op "&")) (e jmespath:expression*) ($return `(& ,e)))
+  ($or ($do ((op "&")) (e jmespath:expression) ($return `(& ,e)))
        ($lazy jmespath:expression*)))
 (define one-or-more
   ($do ((op "("))
@@ -387,8 +387,8 @@
 	    ;; I don't know what this is...
 	    e)))
     (define (handle-sequence f e*)
-      #;(begin (display f) (newline)
-	     (display e*) (newline)
+      #;(begin (write f) (newline)
+	     (write e*) (newline)
 	     (newline))
       (if (null? e*)
 	  (match f
@@ -403,6 +403,11 @@
 	    (((? comparator? cmp) ((? conjunction? c) e1 e2 ...))
 	     ;; (= (or 'a (= a '2))) -> ((= f 'a) (or (= a '2)))
 	     `((,cmp ,f ,e1) (,c ,@e2)))
+	    #;(((? conjunction? c) expr* ...)
+	     ;; a bit of trick...
+	     (if (pair? f)
+		 (list f e*)
+		 `((ref ,f) ,e*)))
 	    ;; e* = (pipe expr)
 	    ;; f  = expr
 	    (else `(,(car e*) ,f ,@(cdr e*))))))
@@ -412,7 +417,7 @@
 
 (define (resolve-sequence e)
   (define (resolve e)
-    (if (pair? (cadr e))
+    (if (and (pair? e) (pair? (cdr e)) (pair? (cadr e)))
 	(let ((e0 (car e)) (e1 (cadr e)))
 	  ;; we put e0 into the first deepest command of the first nested
 	  ;; expression
@@ -425,18 +430,15 @@
 		  (else `(,(car e1) ,e0 ,@(cdr e1))))))
 	e))
   (define (flatten-group e)
-    (cond ((pair? e)
-	   (if (eq? (car e) '$g)
-	       (let ((e1 (cadr e)))
-		 (flatten-group 
-		  (if (and (pair? e1) (pair? (car e1)))
-		      (handle-group e)
-		       e1)))
-	       (cons (flatten-group (car e))
-		     (flatten-group (cdr e)))))
-	  (else e)))
+    (match e
+      (((? $g?) ((? pair? x) rest)) (flatten-group (handle-group e)))
+      (((? $g?) e0) e0)
+      ;; strip single ref
+      ;; (((? (lambda (x) (eq? 'ref x))) e) e)
+      ((a . d) (cons (flatten-group a) (flatten-group d)))
+      (_ e)))
   ;; (display e) (newline)
-  (flatten-group
+  (flatten-group #;(resolve e)
    (if (and (pair? e) (pair? (car e)))
        (if (null? (cdr e))
 	   e
