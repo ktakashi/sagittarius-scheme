@@ -35,7 +35,7 @@
 ;; left recursion elimination
 ;; e ::= e a | a ->
 ;; e ::= a e'
-;; e' ::= a e' | ε 
+;; e' ::= a e' | ε
 
 ;; expression ::= "@" # current-node
 ;;              | "*" # wild card
@@ -283,8 +283,7 @@
        jmespath:function-expression
        jmespath:raw-string
        ;; used by function-expression so must be here
-       ;; we wrap this with ref
-       ($do (v jmespath:identifier) ($return `(ref , v)))))
+       jmespath:identifier))
 
 (define jmespath:comparator
   ($or ($seq (op "<=") ($return '<=))
@@ -299,160 +298,146 @@
 
 (define $epsilon (lambda (in) (return-result '() in)))
 
-(define ($g? x) (eq? '$g x))
-(define (handle-group e)
-  (define (strip-nested-group e)
-    ;; ($g ($g e)) -> ($g e)
-    (match e
-      (((? $g?) ((? $g?) e*)) (strip-nested-group (cadr e)))
-      (else e)))
-  (let ((e1 (cadr (strip-nested-group e))))
-    ;; handling ((ref a b c) (or (ref d e f))) case here
-    (if (and (= (length e1) 2) (pair? (cadr e1)))
-	`($g (,(caadr e1) ,(car e1) ,@(cdadr e1)))
-	(list '$g e1))))
-(define (handle-sequence op e e*)
-  (define (op? x) (eq? op x))
-  #;(begin (display op) (newline)
-	 (display e) (newline)
-	 (display e*) (newline) (newline))
-  (if (null? e*)
-      (match e
-	(((? op?) r ...) e) ;; no extra
-	(((? $g?) r ...) (list op (handle-group e)))
-	((e0 ((? op?) r ...)) (cons* op e0 r))
-	((e0 (? pair? e1)) (cons* (car e1) (list op e0) (cdr e1)))
-	(_ (list op e)))
-      (cons e e*)))
 (define jmespath:pipe-expression
   ($do (e ($seq jmespath:pipe ($lazy jmespath:expression*)))
-       (e* ($lazy jmespath:expression**))
-       ($return (handle-sequence 'pipe e e*))))
+       ($return (list 'pipe e))))
 (define jmespath:or-expression
   ($do (e ($seq jmespath:or ($lazy jmespath:expression*)))
-       (e* ($lazy jmespath:expression**))
-       ($return (handle-sequence 'or e e*))))
+       ($return (list 'or e))))
 (define jmespath:and-expression
   ($do (e ($seq jmespath:and ($lazy jmespath:expression*)))
-       (e* ($lazy jmespath:expression**))
-       ($return (handle-sequence 'and e e*))))
+       ($return (list 'and e))))
 
 (define jmespath:comparator-expression
   ($do (c jmespath:comparator)
        (e jmespath:expression*)
-       ($return `(,c ,e))
-       ;; in case of 'foo[?key==`[0]`]', we shouldn't do the following
-       ;;(e* ($lazy jmespath:expression**))
-       ;;($return (handle-sequence c e e*))
-       ))
+       ($return (list c e))))
 
-(define (merge-ref r r2)
-  #;(begin (display r) (newline)
-	 (display r2) (newline)
+(define (resolve-ref e e*)
+  (define (add-ref e e*)
+    (match e
+      (('ref i* ...) `(,@e ,@e*))
+      ((a . d) `(ref ,@e ,@e*))
+      ;; this will never happen...
+      (else `(ref ,e ,@e*))))
+  #;(begin (display e) (newline)
+	 (display e*) (newline)
 	 (newline))
-  (cond ((null? r2) `(ref ,r))
-	((eq? 'ref (car r2)) `(ref ,r ,@(cdr r2)))
-	((pair? (car r2)) (cons (merge-ref r (car r2)) (cdr r2)))
-	((eq? 'index (car r2)) `(ref ,r ,r2))
-	(else (list `(ref ,r) r2))))
-
+  (match e*
+    (() (add-ref e e*)) ;; ε
+    (('ref i* ...) (add-ref e i*)) ;; merge it
+    ((('index n) e*) (resolve-ref `(,@e (index ,n)) e*))
+    ((('*) e*) (resolve-ref `(,@e (*)) e*))
+    (((? symbol? c) ('ref i* ...) e* ...)
+     `(,c ,(add-ref e '()) (ref ,@i*) ,@e*))
+    ;; 'a.b | c' or so
+    (((? symbol? c) e0 e* ...)
+     `(,c ,(add-ref e '()) ,e0 ,@e*))
+    ;; ???
+    (else (add-ref e (list e*)))))
+  
 (define jmespath:sub-expression
-  ($do (e ($seq (op ".")
-		($or jmespath:multi-select-list
-		     jmespath:multi-select-hash
-		     jmespath:function-expression
-		     jmespath:identifier
-		     star)))
+  ($do (e ($many ($seq (op ".")
+		       ($or jmespath:multi-select-list
+			    jmespath:multi-select-hash
+			    jmespath:function-expression
+			    jmespath:identifier
+			    star)) 1))
        (e* ($lazy jmespath:expression**))
-       ($return (merge-ref e e*))))
+       ($return (resolve-ref e e*))))
 
 (define jmespath:index-expression
   ($do (b jmespath:bracket-specifier)
        (e jmespath:expression**)
-       ($return (merge-ref b e))))
+       ($return (list b e))))
 
 (define jmespath:expression**
   ($or jmespath:index-expression
        jmespath:sub-expression
        jmespath:comparator-expression
-       jmespath:pipe-expression ;; pipe must be before the or
+       jmespath:pipe-expression
        jmespath:or-expression
        jmespath:and-expression
        $epsilon))
 
+(define (conjunction? x) (memq x '(pipe or and)))
+(define ($g? x) (eq? '$g x))
 (define jmespath:expression*
   (let ()
     (define comparators '(< <= = >= > !=))
     (define (comparator? x) (memq x comparators))
-    (define (conjunction? x) (memq x '(pipe or and)))
-    (define (handle-comparator e)
-      (let ((e0 (car e)) (e1 (cadr e)))
-	(if (= (length e1) 2)
-	    `(,(car e1) ,e0 ,@(cdr e1))
-	    ;; I don't know what this is...
-	    e)))
-    (define (handle-sequence f e*)
-      #;(begin (write f) (newline)
-	     (write e*) (newline)
+    ;; e0 op e1 -> (op e0 e1)
+    (define (resolve-operators e0 e1)
+      #;(begin (write e0) (newline)
+	     (write e1) (newline)
 	     (newline))
-      (if (null? e*)
-	  (match f
-	    (((? pair?) ((? comparator?) r* ...)) (handle-comparator f))
-	    (else f))
-	  (match e*
-	    (((? pair? e0) e1 ...) ;; e* = ((ref a b) expr) pattern
-	     ;; we need to add 'f' to e0
-	     (handle-sequence (cons (handle-sequence f e0) e1) '()))
-	    (((? (lambda (x) (eq? 'index x))) ignore ...) ;; merging index
-	     `(ref ,f ,e*))
-	    (((? comparator? cmp) ((? conjunction? c) e1 e2 ...))
-	     ;; (= (or 'a (= a '2))) -> ((= f 'a) (or (= a '2)))
-	     `((,cmp ,f ,e1) (,c ,@e2)))
-	    (((? conjunction? c) ((? comparator? cmp) e1) rest ...)
-	     ;; (or (= 'a) (= a '2))) -> (or (= f 'a) (= a '2))
-	     `(,c (,cmp ,f ,e1) ,@rest))
-	    #;(((? conjunction? c) expr* ...)
-	     ;; a bit of trick...
-	     (if (pair? f)
-		 (list f e*)
-		 `((ref ,f) ,e*)))
-	    ;; e* = (pipe expr)
-	    ;; f  = expr
-	    (else `(,(car e*) ,f ,@(cdr e*))))))
+      (match e1
+	(() e0) ;; ε
+	((('index n) e)
+	 (match e0
+	   (('ref e* ...) (resolve-operators `(ref ,@e* (index ,n)) e))
+	   (else (resolve-operators `(ref ,e0 (index ,n)) e))))
+	;; pipe or and
+	;; (pipe (or e1 e2)) -> e0 | e1 || e2
+	;; however the priority should go to pipe since it's before or
+	(((? conjunction? c1) ((? conjunction? c2) e1 e2))
+	 (if (eq? c1 c2)
+	     ;; (or (or e ...)) so just inject
+	     `(,c2 ,e0 ,e1 ,e2)
+	     ;; we do recursively
+	     `(,c2 ,(resolve-operators e0 `(,c1 ,e1)) ,e2)))
+	(((? conjunction? c1) ('ref i* ...) e e* ...)
+	 ;; here we need to inject e0 into e1 if the expression
+	 ;; is under the context of sub-expression.
+	 ;; means e1 must be one of the sub-expression rule after '.'
+	 (if (or (string? e0) ;; identifier
+		 (vector? e0)  ;; multi-select-hash
+		 ;; function-expression or multi-select-list
+		 (and (pair? e0) (not ($g? (car e0))))
+		 (eq? '* e0))
+	     ;; okay, we need to resolve the operator priority.
+	     (resolve-operators `(ref ,e0 ,@i*) `(,c1 ,e ,@e*))
+	     (cons* (car e1) e0 (cdr e1))))
+	;; (= (or e e* ...))
+	;; with this parser, comparator will be constructed as if it's
+	;; unary operator (e.g. (= "a")). so it always requires beta
+	;; to be injected, however if the conjunction is there, it'd be
+	;; like the above so handle it
+	(((? comparator? cmp) ((? conjunction? c) e e* ...))
+	 `(,c (,cmp ,e0 ,e) ,@e*))
+	(else (cons* (car e1) e0 (cdr e1)))))
     ($do (f beta)
 	 (e* jmespath:expression**)
-	 ($return (handle-sequence f e*)))))
+	 ($return (resolve-operators f e*)))))
 
 (define (resolve-sequence e)
-  (define (resolve e)
-    (if (and (pair? e) (pair? (cdr e)) (pair? (cadr e)))
-	(let ((e0 (car e)) (e1 (cadr e)))
-	  ;; we put e0 into the first deepest command of the first nested
-	  ;; expression
-	  (let loop ((e1 e1) (e* (cdr e1)))
-	    (cond ((null? e*) `(,(car e1) ,e0 ,@(cdr e1)))
-		  ((and (pair? (car e*)) (memq (caar e*) '(pipe or and)))
-		   (cons* (car e1)
-			  (loop (car e*) (cdar e*))
-			  (cddr e1)))
-		  (else `(,(car e1) ,e0 ,@(cdr e1))))))
-	e))
+  (define (handle-group e)
+    (define (strip-nested-group e)
+      ;; ($g ($g e)) -> ($g e)
+      (match e
+	(((? $g?) ((? $g?) e*)) (strip-nested-group (cadr e)))
+	(else e)))
+    (let ((e1 (cadr (strip-nested-group e))))
+      ;; handling ((ref a b c) (or (ref d e f))) case here
+      (if (and (= (length e1) 2) (pair? (cadr e1)))
+	  `($g (,(caadr e1) ,(car e1) ,@(cdadr e1)))
+	  (list '$g e1))))
   (define (flatten-group e)
-    ;;(write e) (newline)
     (match e
       (((? $g?) ((? pair? x) rest)) (flatten-group (handle-group e)))
       (((? $g?) e0) (flatten-group e0))
-      ;; strip single ref
-      (((? (lambda (x) (eq? 'ref x))) e) e)
       ((a . d) (cons (flatten-group a) (flatten-group d)))
       (_ e)))
-  ;; (display e) (newline)
-  (flatten-group #;(resolve e)
-   (if (and (pair? e) (pair? (car e)))
-       (if (null? (cdr e))
-	   e
-	   (resolve e))
-       e)))
+  (define (flatten-operator e)
+    (match e
+      (((? conjunction? c1) ((? conjunction? c2) e1* ...) e2* ...)
+       (if (eq? c1 c2)
+	   (flatten-operator `(,c1 ,@e1* ,@e2*))
+	   (cons* c1 (flatten-operator (cons c2 e1*)) e2*)))
+      ((a . d) (cons a (flatten-operator d)))
+      (else e)))
+  ;;(display e) (newline)
+  (flatten-operator (flatten-group e)))
 (define jmespath:expression
   ($do (e jmespath:expression*)
        ($return (resolve-sequence e))))

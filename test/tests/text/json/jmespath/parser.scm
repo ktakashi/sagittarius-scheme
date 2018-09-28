@@ -83,7 +83,8 @@
 
 (test-parser jmespath:expression '(ref "a" (index 0)) "a[0]")
 (test-parser jmespath:expression '(ref "a" "b" (index 0)) "a.b[0]")
-(test-parser jmespath:expression '(ref "a" "b" (index 0) "c" (index 0)) "a.b[0].c[0]")
+(test-parser jmespath:expression '(ref "a" "b" (index 0) "c" (index 0))
+	     "a.b[0].c[0]")
 (test-parser jmespath:expression '(ref "a" "b" (index 0) "c" (*)) "a.b[0].c[*]")
 
 (test-parser jmespath:expression '(< "a" "b")  "a < b")
@@ -93,7 +94,7 @@
 (test-parser jmespath:expression '(> "a" "b")  "a > b")
 (test-parser jmespath:expression '(!= "a" "b") "a != b")
 
-#;(test-parser jmespath:expression '(or (pipe "foo" "bar" ) "buz")
+(test-parser jmespath:expression '(or (pipe "foo" "bar" ) "buz")
 	     "foo | bar || buz")
 (test-parser jmespath:expression '(or (pipe "foo""bar" ) "buz")
 	     "(foo | bar) || buz")
