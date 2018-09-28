@@ -30,7 +30,7 @@
 
 (library (peg derived)
     (export $bind $do $optional $repeat
-	    $parameterize $lazy
+	    $parameterize $lazy $guard
 	    $if $when $unless $cond else
 	    $peek-match
 	    $eqv?)
@@ -100,6 +100,14 @@
     ((_ parser)
      (let ((p (delay parser)))
        (lambda (l) ((force parser) l))))))
+
+(define-syntax $guard
+  (syntax-rules ()
+    ((_ (e (pred clause) ...) body)
+     (let ((parser body))
+       (lambda (l)
+	 (guard (e (pred (clause l)) ...)
+	   (parser l)))))))
 
 (define-syntax $if
   (syntax-rules ()
