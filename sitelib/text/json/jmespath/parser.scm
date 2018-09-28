@@ -399,8 +399,8 @@
 	     (let* ((op (car e*))
 		    (e0 (cadr e*))
 		    (e1 (cadr e0))
-		    (e2 (caddr e0)))
-	       `(,(car e0) (,op ,f ,e1) ,e2)))
+		    (e2 (cddr e0)))
+	       `(,(car e0) (,op ,f ,e1) ,@e2)))
 	    ;; merging (expr (op expr)) pattern
 	    (else `(,(car e*) ,f ,@(cdr e*)))))
     ($do (f beta)

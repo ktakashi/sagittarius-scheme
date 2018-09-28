@@ -123,4 +123,7 @@
 ;; found during compliance test
 (test-parser jmespath:expression '(ref (*) "foo") "[*].foo")
 
+(test-parser jmespath:expression
+	     '(filter (or (= "name" '"a") (= "name" '"b") (= "name" '"c")))
+	     "[?name == 'a' || name == 'b' || name == 'c']")
 (test-end)
