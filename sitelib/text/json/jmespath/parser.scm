@@ -307,10 +307,10 @@
 
 (define jmespath:sub-expression
   ($do (e ($seq (op ".")
-		($or jmespath:identifier
-		     jmespath:multi-select-list
+		($or jmespath:multi-select-list
 		     jmespath:multi-select-hash
 		     jmespath:function-expression
+		     jmespath:identifier
 		     star)))
        (e* ($lazy jmespath:expression**))
        ($return (merge-ref e e*))))
