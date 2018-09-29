@@ -148,4 +148,14 @@
 (test-parser jmespath:expression
 	     '(ref "foo" (filter (= (ref "top" "name") '"a")))
 	     "foo[?top.name == 'a']")
+
+(test-parser jmespath:expression
+	     '(filter (or (and (= "a" '3) (= "b" '4)) (= "b" '2)))
+	     "[?a == `3` && b == `4` || b == `2`]")
+(test-parser jmespath:expression
+	     '(filter (or (and (= "a" '3) (= "b" '4)) (= "b" '2)))
+	     "[?(a == `3` && b == `4`) || b == `2`]")
+(test-parser jmespath:expression
+	     '(filter (and (= "a" '3) (or (= "b" '4) (= "b" '2))))
+	     "[?a == `3` && (b == `4` || b == `2`)]")
 (test-end)

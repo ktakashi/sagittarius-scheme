@@ -415,7 +415,8 @@
 	;; to be injected, however if the conjunction is there, it'd be
 	;; like the above so handle it
 	(((? comparator? cmp) ((? conjunction? c) e e* ...))
-	 `(,c (,cmp ,e0 ,e) ,@e*))
+	 `(,c ,(resolve-operators e0 `(,cmp ,e)) ,@e*)
+	 #;`(,c (,cmp ,e0 ,e) ,@e*))
 	(else (cons* (car e1) e0 (cdr e1)))))
     ($do (f beta)
 	 (e* jmespath:expression**)
