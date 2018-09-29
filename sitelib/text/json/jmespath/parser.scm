@@ -313,6 +313,7 @@
        (e jmespath:expression*)
        ($return (list c e))))
 
+(define (bracket-specifier? x) (memq x '(filter index flatten slice *)))
 (define (resolve-ref e e*)
   (define (add-ref e e*)
     (match e
@@ -326,8 +327,9 @@
   (match e*
     (() (add-ref e e*)) ;; ε
     (('ref i* ...) (add-ref e i*)) ;; merge it
-    ((('index n) e*) (resolve-ref `(,@e (index ,n)) e*))
-    ((('*) e*) (resolve-ref `(,@e (*)) e*))
+    ;;((('index n) e*) (resolve-ref `(,@e (index ,n)) e*))
+    ((((? bracket-specifier? b) a ...) e*) (resolve-ref `(,@e (,b ,@a)) e*))
+    ;;((('*) e*) (resolve-ref `(,@e (*)) e*))
     (((? symbol? c) ('ref i* ...) e* ...)
      `(,c ,(add-ref e '()) (ref ,@i*) ,@e*))
     ;; 'a.b | c' or so
@@ -366,6 +368,12 @@
   (let ()
     (define comparators '(< <= = >= > !=))
     (define (comparator? x) (memq x comparators))
+    (define precedence
+      '(
+	(and  . 1) ;; strongest
+	(or   . 2)
+	(pipe . 3)
+	))
     ;; e0 op e1 -> (op e0 e1)
     (define (resolve-operators e0 e1)
       #;(begin (write e0) (newline)
@@ -373,19 +381,22 @@
 	     (newline))
       (match e1
 	(() e0) ;; ε
-	((('index n) e)
+	((((? bracket-specifier? b) a ...) e)
 	 (match e0
-	   (('ref e* ...) (resolve-operators `(ref ,@e* (index ,n)) e))
-	   (else (resolve-operators `(ref ,e0 (index ,n)) e))))
-	;; pipe or and
-	;; (pipe (or e1 e2)) -> e0 | e1 || e2
-	;; however the priority should go to pipe since it's before or
+	   (('ref e* ...) (resolve-operators `(ref ,@e* (,b ,@a)) e))
+	   (else (resolve-operators `(ref ,e0 (,b ,@a)) e))))
+	;; 'pipe', 'or', and 'and'
+	;; (or (pipe e1 e2)) -> e0 || e1 | e2
+	;; however the priority must be put on or
 	(((? conjunction? c1) ((? conjunction? c2) e1 e2))
-	 (if (eq? c1 c2)
-	     ;; (or (or e ...)) so just inject
-	     `(,c2 ,e0 ,e1 ,e2)
-	     ;; we do recursively
-	     `(,c2 ,(resolve-operators e0 `(,c1 ,e1)) ,e2)))
+	 (cond ((eq? c1 c2) `(,c2 ,e0 ,e1 ,e2)) ;; (or (or e ...)) inject
+	       ((< (cdr (assq c1 precedence)) (cdr (assq c2 precedence)))
+		;; c2 is stronger than c1 so swap
+		;; we do recursively
+		`(,c2 ,(resolve-operators e0 `(,c1 ,e1)) ,e2))
+	       (else
+		;; it's proper order, so just inject
+		`(,c1 ,e0 (,c2 ,e1 ,e2)))))
 	(((? conjunction? c1) ('ref i* ...) e e* ...)
 	 ;; here we need to inject e0 into e1 if the expression
 	 ;; is under the context of sub-expression.
@@ -439,7 +450,7 @@
   ;;(display e) (newline)
   (flatten-operator (flatten-group e)))
 (define jmespath:expression
-  ($do (e jmespath:expression*)
+  ($do (($many ws)) (e jmespath:expression*) (($many ws))
        ($return (resolve-sequence e))))
 
 (define (parse-jmespath path)

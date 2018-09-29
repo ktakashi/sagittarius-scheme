@@ -11,7 +11,7 @@
   (let ((lseq (generator->lseq (string->generator string))))
     (let-values (((s v nl) (parser lseq)))
       (test-assert (parse-success? s))
-      (test-assert (null? nl))
+      (test-assert string (null? nl))
       (test-equal (list string v) expected v))))
 
 (test-parser jmespath:identifier "foo" "foo")
@@ -94,9 +94,9 @@
 (test-parser jmespath:expression '(> "a" "b")  "a > b")
 (test-parser jmespath:expression '(!= "a" "b") "a != b")
 
-(test-parser jmespath:expression '(or (pipe "foo" "bar" ) "buz")
+(test-parser jmespath:expression '(pipe "foo" (or "bar" "buz"))
 	     "foo | bar || buz")
-(test-parser jmespath:expression '(or (pipe "foo""bar" ) "buz")
+(test-parser jmespath:expression '(or (pipe "foo" "bar") "buz")
 	     "(foo | bar) || buz")
 (test-parser jmespath:expression '(pipe "foo" (or "bar" "buz"))
 	     "foo | (bar || buz)")
@@ -108,9 +108,9 @@
 	     "(outer.inner.foo|outer.inner.bar)||outer.inner.baz")
 
 (test-parser jmespath:expression
-	     '(or (pipe (ref "outer" "inner" "foo")
-			(ref "outer" "inner" "bar"))
-		  (ref "outer" "inner" "baz"))
+	     '(pipe (ref "outer" "inner" "foo")
+		    (or (ref "outer" "inner" "bar")
+			(ref "outer" "inner" "baz")))
 	     "outer.inner.foo|outer.inner.bar||outer.inner.baz")
 
 (test-parser jmespath:expression
@@ -128,5 +128,21 @@
 
 (test-parser jmespath:expression ''"'" "'\\''")
 (test-parser jmespath:expression ''"\\\\" "'\\\\'")
+
+(test-parser jmespath:expression '(ref "foo" (filter (= "key" '#(("bar" 0)))))
+	     "foo[?key==`{\"bar\": [0]}`]")
+(test-parser jmespath:expression '(ref "foo" (*)) "foo[*]")
+(test-parser jmespath:expression '(ref "foo" (slice -4 -1 1)) "foo[-4:-1]")
+
+(test-parser jmespath:expression '(or "Number" (and "True" "False"))
+	     "Number || True && False")
+(test-parser jmespath:expression '(or (and "True" "False") "Number")
+	     "True && False || Number")
+;; with space
+(test-parser jmespath:expression '(or (and "True" "False") "Number")
+	     " True && False || Number ")
+
+(test-parser jmespath:expression '(pipe "a" (or "b" "c")) "a | b || c")
+(test-parser jmespath:expression '(pipe (or "a" "b") "c") "a || b | c")
 
 (test-end)
