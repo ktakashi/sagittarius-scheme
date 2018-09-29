@@ -31,7 +31,7 @@
 #!nounbound
 (library (peg primitives)
     (export $return $fail $expect
-	    $eof $any
+	    $eof $any $empty
 	    $satisfy $not
 	    $seq $or $many
 	    $peek
@@ -139,6 +139,10 @@
     (if (null? l)
 	(return-unexpect "EOF" l)
 	(return-result (lseq-car l) (lseq-cdr l)))))
+
+;; empty match.
+;; epsilon in context of BNF term.
+(define ($empty v) (lambda (l) (return-result v l)))
 
 ;; ordered choice
 (define ($or . expr)

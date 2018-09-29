@@ -296,7 +296,7 @@
 (define jmespath:or (op "||"))
 (define jmespath:and (op "&&"))
 
-(define $epsilon (lambda (in) (return-result '() in)))
+(define $epsilon ($empty '()))
 
 (define jmespath:pipe-expression
   ($do (e ($seq jmespath:pipe ($lazy jmespath:expression*)))
