@@ -145,4 +145,7 @@
 (test-parser jmespath:expression '(pipe "a" (or "b" "c")) "a | b || c")
 (test-parser jmespath:expression '(pipe (or "a" "b") "c") "a || b | c")
 
+(test-parser jmespath:expression
+	     '(ref "foo" (filter (= (ref "top" "name") '"a")))
+	     "foo[?top.name == 'a']")
 (test-end)

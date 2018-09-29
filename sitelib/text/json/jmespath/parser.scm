@@ -397,7 +397,7 @@
 	       (else
 		;; it's proper order, so just inject
 		`(,c1 ,e0 (,c2 ,e1 ,e2)))))
-	(((? conjunction? c1) ('ref i* ...) e e* ...)
+	(((? symbol? c1) ('ref i* ...) e e* ...)
 	 ;; here we need to inject e0 into e1 if the expression
 	 ;; is under the context of sub-expression.
 	 ;; means e1 must be one of the sub-expression rule after '.'
