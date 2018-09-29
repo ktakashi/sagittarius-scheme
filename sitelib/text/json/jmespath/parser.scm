@@ -437,6 +437,8 @@
     (match e
       (((? $g?) ((? pair? x) rest)) (flatten-group (handle-group e)))
       (((? $g?) e0) (flatten-group e0))
+      ;; simple merge for ref
+      (('ref ('ref e0 ...) e1 ...) (flatten-group `(ref ,@e0 ,@e1)))
       ((a . d) (cons (flatten-group a) (flatten-group d)))
       (_ e)))
   (define (flatten-operator e)
@@ -447,7 +449,7 @@
 	   (cons* c1 (flatten-operator (cons c2 e1*)) e2*)))
       ((a . d) (cons a (flatten-operator d)))
       (else e)))
-  ;;(display e) (newline)
+  ;; (display e) (newline)
   (flatten-operator (flatten-group e)))
 (define jmespath:expression
   ($do (($many ws)) (e jmespath:expression*) (($many ws))
