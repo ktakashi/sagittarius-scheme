@@ -94,6 +94,7 @@
 	    (text json parser)
 	    (text json jmespath conditions)
 	    (match)
+	    (srfi :1 lists) ;; for reverse!
 	    (srfi :14 char-sets)
 	    (srfi :121 generators)
 	    (srfi :127 lseqs))
@@ -450,8 +451,27 @@
 	   (cons* c1 (flatten-operator (cons c2 e1*)) e2*)))
       ((a . d) (cons a (flatten-operator d)))
       (else e)))
+  ;; (ref e (filter ...)) -> (ref (filter e ...))
+  ;; (ref e (flatten)) -> (ref (flatten e))
+  (define (fixup-ref e)
+    (define (projection-op? x) (memq x '(flatten slice)))
+    (define (do-fixup e)
+      ;; at this moment, we don't have to care other fixups
+      (let loop ((e e) (t '()) (r '()))
+	(match e
+	  (() `(ref ,@(reverse! r) ,@(reverse! t)))
+	  ((((? projection-op? op) a* ...) e* ...)
+	   (loop e* '()
+		 (cons (cond ((null? t) `(,op ,@a*))
+			     ((null? (cdr t)) `(,op ,@a* ,(car t)))
+			     (else `(,op ,@a* (ref ,@(reverse! t))))) r)))
+	  ((a . d) (loop d (cons a t) r)))))
+    (match e
+      (('ref e ...) (do-fixup e))
+      ((a . d) (cons a (fixup-ref d)))
+      (else e)))
   ;; (display e) (newline)
-  (flatten-operator (flatten-group e)))
+  (fixup-ref (flatten-operator (flatten-group e))))
 (define jmespath:expression
   ($do (($many ws)) (e jmespath:expression*) (($many ws))
        ($return (resolve-sequence e))))

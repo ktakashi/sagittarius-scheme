@@ -132,7 +132,7 @@
 (test-parser jmespath:expression '(ref "foo" (filter (= "key" '#(("bar" 0)))))
 	     "foo[?key==`{\"bar\": [0]}`]")
 (test-parser jmespath:expression '(ref "foo" (*)) "foo[*]")
-(test-parser jmespath:expression '(ref "foo" (slice -4 -1 1)) "foo[-4:-1]")
+(test-parser jmespath:expression '(ref (slice -4 -1 1 "foo")) "foo[-4:-1]")
 
 (test-parser jmespath:expression '(or "Number" (and "True" "False"))
 	     "Number || True && False")
@@ -158,4 +158,9 @@
 (test-parser jmespath:expression
 	     '(filter (and (= "a" '3) (or (= "b" '4) (= "b" '2))))
 	     "[?a == `3` && (b == `4` || b == `2`)]")
+
+(test-parser jmespath:expression
+	     '(ref (flatten (ref * "foo")) "bar") "*.foo[].bar")
+(test-parser jmespath:expression
+	     '(ref (flatten (ref * "foo")) (flatten "bar")) "*.foo[].bar[]")
 (test-end)
