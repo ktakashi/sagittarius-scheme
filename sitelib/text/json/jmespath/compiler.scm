@@ -124,10 +124,6 @@
       (define root-context (make-root-context json))
       (expression json root-context))))
 
-(define (projection-expression? e)
-  (or (eq? e '*)
-      (and (pair? e) (memv (car e) '(slice flatten)))
-      (equal? e '(*))))
 (define (compile-expression e)
   (cond ((string? e) (jmespath:compile-identifier e))
 	((eq? e '*) (jmespath:compile-wildcard-expression e))
@@ -168,15 +164,19 @@
   (lambda (json context)
     (if (vector? json) (get json) 'null)))
 
+(define (not-null? e) (not (eq? 'null e)))
 (define-compiler wildcard (jmespath:compile-wildcard-expression e)
   (lambda (json context)
-    (if (vector? json) (map cdr (vector->list json)) 'null)))
+    (if (vector? json)
+	(filter not-null? (map cdr (vector->list json)))
+	'null)))
 
 (define-compiler current (jmespath:compile-current-expression e)
   (lambda (json context) json))
 
 ;; the projection seems only ocucres in sub expression
 ;; (I couldn't read it from the spec but example are working like that...)
+;; here we need to handle special cases like [? expr ][]
 (define-compiler sub (jmespath:compile-sub-expression e)
   (let ((e (fold-right
 	    (lambda (e0 acc)
@@ -186,8 +186,13 @@
 		    (if (eq? v 'null)
 			'null
 			(case type
-			  ((array* wildcard flatten slice filter)
-			   (filter (lambda (e) (not (false-value? e)))
+			  ((array* flatten slice filter)
+			   (filter not-false-value?
+				   (map (lambda (v)
+					  (acc v (make-child-context v context)))
+					v)))
+			  ((wildcard)
+			   (filter not-null?
 				   (map (lambda (v)
 					  (acc v (make-child-context v context)))
 					v)))
@@ -197,8 +202,12 @@
 	    (cdr e))))
     (lambda (json context) (e json context))))
 
+(define (not-false-value? e) (not (false-value? e)))
 (define-compiler array* (jmespath:compile-array-wildcard-expression e)
-  (lambda (json context) (if (list? json) json 'null)))
+  (lambda (json context)
+    (if (list? json)
+	(filter not-false-value? json)
+	'null)))
 
 (define-compiler index (jmespath:compile-index-expression e)
   (let ((n (cadr e)))
@@ -242,7 +251,7 @@
 		;; TODO slow?
 		(let loop ((i s) (r '()))
 		  (if (cmp i e)
-		      (reverse r)
+		      (filter not-null? (reverse r))
 		      (loop (+ i step) (cons (list-ref json i) r))))))
 	    'null)))))
 
@@ -252,7 +261,7 @@
   (lambda (json context)
     (if (list? json)
 	;; lazy
-	(filter (lambda (e) (not (eq? e 'null)))
+	(filter not-null?
 		(append-map
 		 (lambda (v) (if (list? v) v (list v))) json))
 	'null)))
