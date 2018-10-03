@@ -187,12 +187,12 @@
 		    (if (eq? v 'null)
 			'null
 			(case type
-			  ((array* flatten slice filter)
+			  ((filter array* slice)
 			   (filter not-false-value?
 				   (map (lambda (v)
 					  (acc v (make-child-context v context)))
 					v)))
-			  ((wildcard)
+			  ((wildcard flatten)
 			   (filter not-null?
 				   (map (lambda (v)
 					  (acc v (make-child-context v context)))

@@ -456,15 +456,25 @@
   (define (fixup-ref e)
     (define (projection-op? x) (memq x '(flatten slice)))
     (define (do-fixup e)
+      (define (merge e r)
+	(if (null? r)
+	    (cons e r)
+	    (let ((op (car e))
+		  (re (car r)))
+	      (if (and (pair? re) (eq? (car re) op))
+		  ;; merge it
+		  (cons `(,op (ref ,re ,@(cdr e))) (cdr r))
+		  (cons e r)))))
+
       ;; at this moment, we don't have to care other fixups
       (let loop ((e e) (t '()) (r '()))
 	(match e
 	  (() `(ref ,@(reverse! r) ,@(reverse! t)))
 	  ((((? projection-op? op) a* ...) e* ...)
-	   (loop e* '()
-		 (cons (cond ((null? t) `(,op ,@a*))
-			     ((null? (cdr t)) `(,op ,@a* ,(car t)))
-			     (else `(,op ,@a* (ref ,@(reverse! t))))) r)))
+	   (let ((fixed (cond ((null? t) `(,op ,@a*))
+			      ((null? (cdr t)) `(,op ,@a* ,(car t)))
+			      (else `(,op ,@a* (ref ,@(reverse! t)))))))
+	     (loop e* '() (merge fixed r))))
 	  ((a . d) (loop d (cons a t) r)))))
     (match e
       (('ref e ...) (do-fixup e))

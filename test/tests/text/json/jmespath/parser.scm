@@ -162,5 +162,5 @@
 (test-parser jmespath:expression
 	     '(ref (flatten (ref * "foo")) "bar") "*.foo[].bar")
 (test-parser jmespath:expression
-	     '(ref (flatten (ref * "foo")) (flatten "bar")) "*.foo[].bar[]")
+	     '(ref (flatten (ref (flatten (ref * "foo")) "bar"))) "*.foo[].bar[]")
 (test-end)
