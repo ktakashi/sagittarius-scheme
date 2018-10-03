@@ -254,7 +254,7 @@
 		  ;; TODO slow?
 		  (let loop ((i s) (r '()))
 		    (if (cmp i e)
-			(filter not-null? (reverse r))
+			(filter not-null? (reverse! r))
 			(loop (+ i step) (cons (list-ref json i) r))))))
 	      'null)))))
   (match e

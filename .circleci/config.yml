@@ -41,6 +41,6 @@ jobs:
            working_directory: ~/project/sagittarius-scheme
            command: make test
        - run:
-           name: JSON Schema test
+           name: JSON related tests
            working_directory: ~/project/sagittarius-scheme
-           command: make test-json-schema
+           command: make test-jsons

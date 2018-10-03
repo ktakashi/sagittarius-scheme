@@ -29,8 +29,15 @@
 ;;;
 
 (library (text json jmespath)
-    (export jmespath)
+    (export jmespath
+	    jmespath-error?
+	    jmespath-error-expression
+	    jmespath-error-arguments
+	    jmespath-compile-error?
+	    jmespath-runtime-error?
+	    jmespath-parse-error?)
     (import (rnrs)
+	    (text json jmespath conditions)
 	    (text json jmespath parser)
 	    (text json jmespath compiler))
 (define (jmespath path) (jmespath:compile (parse-jmespath path)))
