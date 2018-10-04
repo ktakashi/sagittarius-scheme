@@ -22,8 +22,8 @@
    (sagittarius
     (import (only (rename (sagittarius vm debug) (source-info pair-source))
 		  pair-source)
-	    (only (sagittarius) describe-condition))
-    (begin (define print-exception write))
+	    (only (sagittarius) report-error describe-condition))
+    (begin (define print-exception report-error))
     )
    (else
     (begin
