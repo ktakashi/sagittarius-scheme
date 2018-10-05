@@ -21,4 +21,13 @@
 	     '#(("a" . #(("foo" . 1)))
 		("b" . #(("foo" . 1))))))
 
+(test-equal '(#(("a" . #(("foo" . 1)))))
+	    ((jmespath "unique(@)")
+	     '(#(("a" . #(("foo" . 1))))
+	       #(("a" . #(("foo" . 1)))))))
+
+(test-equal '(#(("a" . #(("foo" . 1))) ("b" . #(("foo" . 1)))))
+	    ((jmespath "*.foo.parent(@).parent(@) | unique(@)")
+	     '#(("a" . #(("foo" . 1)))
+		("b" . #(("foo" . 1))))))
 (test-end)

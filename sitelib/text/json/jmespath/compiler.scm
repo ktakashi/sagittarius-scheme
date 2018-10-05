@@ -650,11 +650,17 @@
 (define-function (jmespath:values-function context expression obj)
   (if (vector? obj)
       (vector->list (vector-map cdr obj)) ;; TODO performance?
-      (jmespath-runtime-error 'keys "Object required" expression obj)))
+      (jmespath-runtime-error 'values "Object required" expression obj)))
 
+;; Non standard functions
 (define (jmespath:parent-function context expression node)
   (let ((parent (jmespath-context-parent node)))
     (or parent ($c 'null node))))
+
+(define-function (jmespath:unique-function context expression array)
+  (if (list? array)
+      (delete-duplicates array json=?)
+      (jmespath-runtime-error 'unique "Array required" expression array)))
 
 (define +jmespath:buildin-functions+
   `(
@@ -684,7 +690,8 @@
     (to_number . ,jmespath:to-number-function)
     (type . ,jmespath:type-function)
     (values . ,jmespath:values-function)
-    ;; This is not standard but we want it
+    ;; These are not standard but we want it
     (parent . ,jmespath:parent-function)
+    (unique . ,jmespath:unique-function)
     ))
 )
