@@ -146,7 +146,7 @@
 	   `(,(->key kref? klabel key (->vlabel vlabel vref?))
 	     ,@(multi-lines value (emit-indent (+ indent 2)) indent)))
 	  ;; FIXME better way of handling ...
-	  ((not (null? (cdr value)))
+	  ((and (pair? value) (not (null? (cdr value))))
 	   `(,(string-append (->key kref? klabel key (->vlabel vlabel vref?))
 			     (case (car value)
 			       ((block) "|-")
@@ -155,7 +155,7 @@
 	  (else
 	   (list (string-append
 		  (->key kref? klabel key (->vlabel vlabel vref?))
-		  (car value))))))
+		  (if value (car value) ""))))))
 
   (define (->label label ref?)
     (if label (string-append (if ref? "*" "&") label) ""))

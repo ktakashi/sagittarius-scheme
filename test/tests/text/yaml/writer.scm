@@ -30,6 +30,8 @@
 (test-writer '#(("foo" . #(("key" . 2) ("key2" . 2)))
 		("bar" . #(("key" . 2) ("key2" . 2)))))
 
+(test-writer '#(("foo" . null)))
+
 (test-read/write "%YAML 1.2
 ---
 foo: !!omap
@@ -65,6 +67,11 @@ foo: &key [ foo, bar ]
 ---
 foo: false
 bar: false
+")
+
+(test-read/write "%YAML 1.2
+---
+shared:
 ")
 
 (test-end)
