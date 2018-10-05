@@ -400,12 +400,12 @@
   (test-runtime-error '(values @) "[\"a\", \"b\"]")
   (test-runtime-error '(values @) "false")
   
-  (test-compiler 'null '(parent) "{\"foo\": true}")
+  (test-compiler 'null '(parent @) "{\"foo\": true}")
   (test-compiler '#(("foo" . #(("bar" . #t))))
-		 '(ref "foo" (parent))
+		 '(ref "foo" (parent @))
 		 "{\"foo\": { \"bar\": true} }")
   (test-compiler'#(("baz" . "value"))
-		'(ref "foo" "bar" "baz" (parent))
+		'(ref "foo" "bar" "baz" (parent @))
 		"{\"foo\": {\"bar\": {\"baz\": \"value\"}}}"))
 
 (test-group "Pipe expression"

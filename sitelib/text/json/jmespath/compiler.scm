@@ -385,7 +385,7 @@
 	(e* (map compile-expression-w/o-type (cdr e))))
     (unless func (jmespath-compile-error "No such function" (car e)))
     (lambda (context)
-      (let ((args (map (lambda (e) ($j (e context))) e*)))
+      (let ((args (map (lambda (e) (e context)) e*)))
 	(guard (ex ((jmespath-runtime-error? ex) (raise ex))
 		   (else (apply jmespath-runtime-error (car e)
 				(condition-message ex) e args)))
@@ -396,11 +396,11 @@
     ((_ (name c e a ...) body ...)
      (define (name c e a ...)
        (define (inner c e a ...) body ...)
-       ($c (inner c e a ...) c)))
+       ($c (inner c e ($j a) ...) c)))
     ((_ (name c e a ... . r) body ...)
      (define (name c e a ... . r)
        (define (inner c e a ... . r) body ...)
-       ($c (apply inner c e a ... r) c)))))
+       ($c (apply inner c e ($j a) ... (map $j r)) c)))))
 
 (define-function (jmespath:abs-function context expression argument)
   (unless (number? argument)
@@ -652,9 +652,9 @@
       (vector->list (vector-map cdr obj)) ;; TODO performance?
       (jmespath-runtime-error 'keys "Object required" expression obj)))
 
-(define (jmespath:parent-function context expression)
-  (let ((parent (jmespath-context-parent context)))
-    (or parent ($c 'null context))))
+(define (jmespath:parent-function context expression node)
+  (let ((parent (jmespath-context-parent node)))
+    (or parent ($c 'null node))))
 
 (define +jmespath:buildin-functions+
   `(
