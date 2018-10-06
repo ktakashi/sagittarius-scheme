@@ -40,6 +40,11 @@
 	    (text json jmespath conditions)
 	    (text json jmespath parser)
 	    (text json jmespath compiler))
-(define (jmespath path) (jmespath:compile (parse-jmespath path)))
+(define (jmespath path)
+  (let ((ast (cond ((string? path) (parse-jmespath path))
+		   ((pair? path) path)
+		   (else (assertion-violation 'jmespath
+			   "String or list is required" path)))))
+    (jmespath:compile ast)))
 
 )
