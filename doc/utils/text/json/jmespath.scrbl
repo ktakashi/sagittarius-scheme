@@ -114,8 +114,8 @@ This library provides extra functions for usability.
 @desc{Returns parent node of the given @var{node}. This function can be
 used like this:
 
-@codeblock[=> (#(("bar" . 1)))]{
-((jmespath "*.bar.parent(@)") '#(("foo" . #(("bar" . 1)))))
+@codeblock[=> '(#(("bar" . 1)))]{
+((jmespath "*.bar.parent(@atmark{})") '#(("foo" . #(("bar" . 1)))))
 }
 
 A literal doesn't have a parent so returns @code{null}.
@@ -128,8 +128,8 @@ A literal doesn't have a parent so returns @code{null}.
 @desc{Returns unique elements of the given @var{array}. This function can be
 used like this:
 
-@codeblock[=> (1 2 3)]{
-((jmespath "unique(@)") '(1 2 1 2 3))
+@codeblock[=> '(1 2 3)]{
+((jmespath "unique(@atmark{})") '(1 2 1 2 3))
 }
 
 It raises a @code{&jmespath:runtime} if the give @var{array} is not an array.
@@ -139,15 +139,56 @@ It raises a @code{&jmespath:runtime} if the give @var{array} is not an array.
 @desc{Returns #t if the given @var{number} is an odd number.
 This function can be used like this:
 
-@snipet[=> #t]{((jmespath "is_odd(@)") '5)}
+@snipet[=> #t]{((jmespath "is_odd(@atmark{})") '5)}
 
 It raises a @code{&jmespath:runtime} if the give @var{number} is not a number.
 }
+
 @define["JMESPath Function"]{@name{even} @args{number}}
 @desc{Returns #t if the given @var{number} is an even number.
 This function can be used like this:
 
-@snipet[=> #t]{((jmespath "is_even(@)") '5)}
+@snipet[=> #t]{((jmespath "is_even(@atmark{})") '5)}
 
 It raises a @code{&jmespath:runtime} if the give @var{number} is not a number.
+}
+
+@define["JMESPath Function"]{@name{remove} @args{array/object expr}}
+@desc{Removes element from the given @var{array/object} if the @var{expr}
+returns true value.
+
+The @var{array/object} must be an array or object.
+
+The @var{expr} must be an expression reference. 
+
+The @var{expr} is executed in the context of the elements of @var{array/object}.
+Means if the @code{@atmark{}} is passed to the @var{expr}, then the receiving
+value is one of the elements of the @var{array/object}.
+
+This function can be used like this:
+
+@snipet[=> '(1 3 5)]{((jmespath "remove(@atmark{}, &odd(@atmark{}))") '(1 2 3 4 5))}
+
+It raises a @code{&jmespath:runtime} if the give @var{array/object} is not
+either an array or object, or if the given @var{expr} is not a function
+reference.
+}
+
+@define["JMESPath Function"]{@name{remove_entry} @args{object keys @dots{}}}
+@desc{Removes entries from the given @var{object} if its key is in the
+@var{keys}.
+
+The @var{object} must be an object.
+
+This function can be used like this:
+
+@codeblock[=> '#(("key" . 1))]{
+((jmespath "remove_entry(@atmark{}, 'key2')") '#(("key" . 1)("key2" . 2)))
+}
+@codeblock[=> '#()]{
+((jmespath "remove_entry(@atmark{}, 'key1', 'key2')") '#(("key" . 1)("key2" . 2)))
+}
+
+It raises a @code{&jmespath:runtime} if the give @var{object} is not an object,
+or if the given @var{keys} are not strings.
 }
