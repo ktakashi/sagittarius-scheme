@@ -34,12 +34,12 @@
 	     '#(("a" . #(("foo" . 1)))
 		("b" . #(("foo" . 1))))))
 
-(test-equal '(1 3 5) ((jmespath "remove(@, &even(@))") '(1 2 3 4 5)))
-(test-equal '(2 4) ((jmespath "remove(@, &odd(@))") '(1 2 3 4 5)))
-(test-equal '#(("key" . 1)) ((jmespath "remove(@, &even(@))")
+(test-equal '(1 3 5) ((jmespath "remove(@, &is_even(@))") '(1 2 3 4 5)))
+(test-equal '(2 4) ((jmespath "remove(@, &is_odd(@))") '(1 2 3 4 5)))
+(test-equal '#(("key" . 1)) ((jmespath "remove(@, &is_even(@))")
 			     '#(("key" . 1) ("key2" . 2))))
-(test-error jmespath-runtime-error? ((jmespath "remove(@, &odd(@))") "s"))
-(test-error jmespath-runtime-error? ((jmespath "remove(@, &odd(@))") 1))
+(test-error jmespath-runtime-error? ((jmespath "remove(@, &is_odd(@))") "s"))
+(test-error jmespath-runtime-error? ((jmespath "remove(@, &is_odd(@))") 1))
 
 (test-equal '#(("key" . 1)) ((jmespath "remove_entry(@, 'key2')")
 			     '#(("key" . 1) ("key2" . 2))))

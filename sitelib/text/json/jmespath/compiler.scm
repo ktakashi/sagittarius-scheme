@@ -651,14 +651,14 @@
       (jmespath-runtime-error 'values "Object is required" expression obj)))
 
 ;; Non standard functions
-(define-function (jmespath:odd-function context expression n)
+(define-function (jmespath:odd?-function context expression n)
   (if (number? n)
       (odd? n)
-      (jmespath-runtime-error 'odd "Number is required" expression n)))
-(define-function (jmespath:even-function context expression n)
+      (jmespath-runtime-error 'is_odd "Number is required" expression n)))
+(define-function (jmespath:even?-function context expression n)
   (if (number? n)
       (even? n)
-      (jmespath-runtime-error 'even "Number is required" expression n)))
+      (jmespath-runtime-error 'is_even "Number is required" expression n)))
 
 (define (jmespath:parent-function context expression node)
   (let ((parent (jmespath-context-parent node)))
@@ -728,8 +728,8 @@
     (->string . ,jmespath:to-string-function)
     (->number . ,jmespath:to-number-function)
     ;; These are not standard but we want it
-    (odd    . ,jmespath:odd-function)
-    (even   . ,jmespath:even-function)
+    (is_odd    . ,jmespath:odd?-function)
+    (is_even   . ,jmespath:even?-function)
     (parent . ,jmespath:parent-function)
     (unique . ,jmespath:unique-function)
     (remove . ,jmespath:remove-function)

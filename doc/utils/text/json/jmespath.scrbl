@@ -134,3 +134,20 @@ used like this:
 
 It raises a @code{&jmespath:runtime} if the give @var{array} is not an array.
 }
+
+@define["JMESPath Function"]{@name{odd} @args{number}}
+@desc{Returns #t if the given @var{number} is an odd number.
+This function can be used like this:
+
+@snipet[=> #t]{((jmespath "is_odd(@)") '5)}
+
+It raises a @code{&jmespath:runtime} if the give @var{number} is not a number.
+}
+@define["JMESPath Function"]{@name{even} @args{number}}
+@desc{Returns #t if the given @var{number} is an even number.
+This function can be used like this:
+
+@snipet[=> #t]{((jmespath "is_even(@)") '5)}
+
+It raises a @code{&jmespath:runtime} if the give @var{number} is not a number.
+}
