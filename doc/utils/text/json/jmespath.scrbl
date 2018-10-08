@@ -174,21 +174,24 @@ either an array or object, or if the given @var{expr} is not a function
 reference.
 }
 
-@define["JMESPath Function"]{@name{remove_entry} @args{object keys @dots{}}}
-@desc{Removes entries from the given @var{object} if its key is in the
-@var{keys}.
+@define["JMESPath Function"]{@name{remove_entry} @args{object array/expr}}
+@desc{Removes entries from the given @var{object} either
+if @var{array/expr} is an array of string and it contains the key of the entry
+or if @var{array/expr} is a function expression and returns true value.
 
 The @var{object} must be an object.
 
 This function can be used like this:
 
 @codeblock[=> '#(("key" . 1))]{
-((jmespath "remove_entry(@atmark{}, 'key2')") '#(("key" . 1)("key2" . 2)))
+((jmespath "remove_entry(@atmark{}, `[\"key2\"]`)") '#(("key" . 1)))
 }
-@codeblock[=> '#()]{
-((jmespath "remove_entry(@atmark{}, 'key1', 'key2')") '#(("key" . 1)("key2" . 2)))
+@codeblock[=> '#(("key" . 1))]{
+((jmespath "remove_entry(@atmark{}, &contains(`[\"key2\"]`, @))")
+ '#(("key" . 1) ("key2" . 2)))
 }
 
 It raises a @code{&jmespath:runtime} if the give @var{object} is not an object,
-or if the given @var{keys} are not strings.
+or if the given @var{array/expr} is not an array of string or function
+reference.
 }

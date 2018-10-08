@@ -683,12 +683,19 @@
 	 (jmespath-runtime-error 'remove "Array or object is required"
 				 expression obj expr))))
 
-(define-function (jmespath:remove-entry-function c e obj . keys)
-  (unless (and (vector? obj) (for-all string? keys))
-    (jmespath-runtime-error 'remove_entry "Object and array of string required"
-			    e obj keys))
-  (vector-filter (lambda (e) (not (member (car e) keys))) obj))
-
+(define-function (jmespath:remove-entry-function c e obj array/expr)
+  (unless (vector? obj)
+    (jmespath-runtime-error 'remove_entry "Object is required"
+			    e obj array/expr))
+  (cond ((and (list? array/expr) (for-all string? array/expr))
+	 (vector-filter (lambda (e) (not (member (car e) array/expr))) obj))
+	((procedure? array/expr)
+	 (vector-filter 
+	  (lambda (e) (not ($j (array/expr ($c (car e) c))))) obj))
+	(else (jmespath-runtime-error
+	       'remove_entry "2nd argument must be array or function reference"
+	       e obj array/expr))))
+	      
 (define +jmespath:buildin-functions+
   `(
     (abs . ,jmespath:abs-function)
