@@ -40,6 +40,7 @@
     (import (rnrs)
 	    (text json jmespath conditions)
 	    (util list)
+	    (util vector)
 	    (match)
 	    (srfi :1 lists)
 	    (srfi :13 strings)
@@ -647,9 +648,18 @@
 (define-function (jmespath:values-function context expression obj)
   (if (vector? obj)
       (vector->list (vector-map cdr obj)) ;; TODO performance?
-      (jmespath-runtime-error 'values "Object required" expression obj)))
+      (jmespath-runtime-error 'values "Object is required" expression obj)))
 
 ;; Non standard functions
+(define-function (jmespath:odd-function context expression n)
+  (if (number? n)
+      (odd? n)
+      (jmespath-runtime-error 'odd "Number is required" expression n)))
+(define-function (jmespath:even-function context expression n)
+  (if (number? n)
+      (even? n)
+      (jmespath-runtime-error 'even "Number is required" expression n)))
+
 (define (jmespath:parent-function context expression node)
   (let ((parent (jmespath-context-parent node)))
     (or parent ($c 'null node))))
@@ -657,7 +667,27 @@
 (define-function (jmespath:unique-function context expression array)
   (if (list? array)
       (delete-duplicates array json=?)
-      (jmespath-runtime-error 'unique "Array required" expression array)))
+      (jmespath-runtime-error 'unique "Array is required" expression array)))
+
+(define-function (jmespath:remove-function context expression obj expr)
+  (unless (procedure? expr)
+    (jmespath-runtime-error 'remove "2nd argument must be a function ref"
+			    expression obj expr))
+  (cond ((list? obj)
+	 (filter (lambda (e) (not ($j (expr ($c e context))))) obj))
+	((vector? obj)
+	 ;; filter by value
+	 (vector-filter (lambda (e) (not ($j (expr ($c (cdr e) context)))))
+			obj))
+	(else
+	 (jmespath-runtime-error 'remove "Array or object is required"
+				 expression obj expr))))
+
+(define-function (jmespath:remove-entry-function c e obj . keys)
+  (unless (and (vector? obj) (for-all string? keys))
+    (jmespath-runtime-error 'remove_entry "Object and array of string required"
+			    e obj keys))
+  (vector-filter (lambda (e) (not (member (car e) keys))) obj))
 
 (define +jmespath:buildin-functions+
   `(
@@ -698,7 +728,11 @@
     (->string . ,jmespath:to-string-function)
     (->number . ,jmespath:to-number-function)
     ;; These are not standard but we want it
+    (odd    . ,jmespath:odd-function)
+    (even   . ,jmespath:even-function)
     (parent . ,jmespath:parent-function)
     (unique . ,jmespath:unique-function)
+    (remove . ,jmespath:remove-function)
+    (remove_entry . ,jmespath:remove-entry-function)
     ))
 )

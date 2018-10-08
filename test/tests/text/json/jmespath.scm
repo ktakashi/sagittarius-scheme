@@ -5,7 +5,7 @@
 
 (test-begin "JMESPath")
 
-;; non builtin 
+;; non standard builtin 
 (test-equal '(#(("a" . #(("foo" . 1))) ("b" . #(("foo" . 1))))
 	      #(("a" . #(("foo" . 1))) ("b" . #(("foo" . 1)))))
 	    ((jmespath "*.foo.parent(@).parent(@)")
@@ -27,10 +27,27 @@
 	     '(#(("a" . #(("foo" . 1))))
 	       #(("a" . #(("foo" . 1)))))))
 
+(test-equal '(1 2 3) ((jmespath "unique(@)") '(1 2 1 2 3)))
+
 (test-equal '(#(("a" . #(("foo" . 1))) ("b" . #(("foo" . 1)))))
 	    ((jmespath "*.foo.parent(@).parent(@) | unique(@)")
 	     '#(("a" . #(("foo" . 1)))
 		("b" . #(("foo" . 1))))))
+
+(test-equal '(1 3 5) ((jmespath "remove(@, &even(@))") '(1 2 3 4 5)))
+(test-equal '(2 4) ((jmespath "remove(@, &odd(@))") '(1 2 3 4 5)))
+(test-equal '#(("key" . 1)) ((jmespath "remove(@, &even(@))")
+			     '#(("key" . 1) ("key2" . 2))))
+(test-error jmespath-runtime-error? ((jmespath "remove(@, &odd(@))") "s"))
+(test-error jmespath-runtime-error? ((jmespath "remove(@, &odd(@))") 1))
+
+(test-equal '#(("key" . 1)) ((jmespath "remove_entry(@, 'key2')")
+			     '#(("key" . 1) ("key2" . 2))))
+(test-equal '#() ((jmespath "remove_entry(@, 'key', 'key2')")
+		  '#(("key" . 1) ("key2" . 2))))
+(test-error jmespath-runtime-error? ((jmespath "remove_entry(@, 'key', 'key2')")
+				     '(1 2 3)))
+(test-error jmespath-runtime-error? ((jmespath "remove_entry(@, `1`)") '#()))
 
 (define (test-sexp-jmespath expected path input)
   (let ((json (json-read (open-string-input-port input))))
