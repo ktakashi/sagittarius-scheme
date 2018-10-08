@@ -54,6 +54,7 @@
 @include-section["utils/text/csv.scrbl"]
 @include-section["utils/text/html-lite.scrbl"]
 @include-section["utils/text/json.scrbl"]
+@include-section["utils/text/json/jmespath.scrbl"]
 @include-section["utils/text/json/pointer.scrbl"]
 @include-section["utils/text/json/schema.scrbl"]
 @include-section["utils/text/json/validator.scrbl"]
