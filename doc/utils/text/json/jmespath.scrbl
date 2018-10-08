@@ -187,7 +187,7 @@ This function can be used like this:
 ((jmespath "remove_entry(@atmark{}, `[\"key2\"]`)") '#(("key" . 1)))
 }
 @codeblock[=> '#(("key" . 1))]{
-((jmespath "remove_entry(@atmark{}, &contains(`[\"key2\"]`, @))")
+((jmespath "remove_entry(@atmark{}, &contains(`[\"key2\"]`, @atmark{}))")
  '#(("key" . 1) ("key2" . 2)))
 }
 
