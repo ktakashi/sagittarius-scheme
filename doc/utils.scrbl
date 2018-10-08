@@ -66,3 +66,4 @@
 @include-section["utils/timer.scrbl"]
 @include-section["utils/tlv.scrbl"]
 @include-section["utils/treemap.scrbl"]
+@include-section["utils/vector.scrbl"]

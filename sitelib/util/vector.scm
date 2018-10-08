@@ -31,7 +31,7 @@
 ;; This library defines procedures which are not supported by SRFI-133
 ;; (or SRFI-43) but very common case that I use.
 (library (util vector)
-    (export vector-filter vector-remove)
+    (export vector-filter vector-remove vector-find)
     (import (rnrs)
 	    (sagittarius) ;; for reverse!
 	    )
@@ -47,4 +47,11 @@
 (define (vector-remove pred vec)
   (vector-filter (lambda (e) (not (pred e))) vec))
 
+(define (vector-find pred vec)
+  (define len (vector-length vec))
+  (let loop ((i 0))
+    (and (not (= i len))
+	 (let ((e (vector-ref vec i)))
+	   (or (and (pred e) e)
+	       (loop (+ i 1)))))))
 )
