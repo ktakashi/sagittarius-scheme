@@ -135,7 +135,7 @@ used like this:
 It raises a @code{&jmespath:runtime} if the give @var{array} is not an array.
 }
 
-@define["JMESPath Function"]{@name{odd} @args{number}}
+@define["JMESPath Function"]{@name{is_odd} @args{number}}
 @desc{Returns #t if the given @var{number} is an odd number.
 This function can be used like this:
 
@@ -144,7 +144,7 @@ This function can be used like this:
 It raises a @code{&jmespath:runtime} if the give @var{number} is not a number.
 }
 
-@define["JMESPath Function"]{@name{even} @args{number}}
+@define["JMESPath Function"]{@name{is_even} @args{number}}
 @desc{Returns #t if the given @var{number} is an even number.
 This function can be used like this:
 
@@ -194,4 +194,10 @@ This function can be used like this:
 It raises a @code{&jmespath:runtime} if the give @var{object} is not an object,
 or if the given @var{array/expr} is not an array of string or function
 reference.
+}
+
+@define["JMESPath Function"]{@name{array_of} @args{any} @dots{}}
+@desc{Returns array of given arguments @var{any}.
+
+@snipet[=> '(1 2 3)]{((jmespath "array_of(`1`, `2`, `3`)") 'null)}
 }

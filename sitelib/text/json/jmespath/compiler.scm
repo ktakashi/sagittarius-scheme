@@ -695,7 +695,9 @@
 	(else (jmespath-runtime-error
 	       'remove_entry "2nd argument must be array or function reference"
 	       e obj array/expr))))
-	      
+
+(define-function (jmespath:array-of-function c e . obj) obj)
+
 (define +jmespath:buildin-functions+
   `(
     (abs . ,jmespath:abs-function)
@@ -741,5 +743,6 @@
     (unique . ,jmespath:unique-function)
     (remove . ,jmespath:remove-function)
     (remove_entry . ,jmespath:remove-entry-function)
+    (array_of . ,jmespath:array-of-function)
     ))
 )

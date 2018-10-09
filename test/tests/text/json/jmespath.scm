@@ -54,6 +54,8 @@
 				     '(1 2 3)))
 (test-error jmespath-runtime-error? ((jmespath "remove_entry(@, `1`)") '#()))
 
+(test-equal '(1 2 3) ((jmespath "array_of(`1`, `2`, `3`)") '#()))
+
 (define (test-sexp-jmespath expected path input)
   (let ((json (json-read (open-string-input-port input))))
     (test-equal path expected ((jmespath path) json))))
