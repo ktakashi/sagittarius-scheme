@@ -26,6 +26,7 @@
 @include-section["utils/net/oauth.scrbl"]
 @include-section["utils/net/server.scrbl"]
 @include-section["utils/odbc.scrbl"]
+@include-section["utils/peg.scrbl"]
 @include-section["utils/pkcs/5.scrbl"]
 @include-section["utils/pkcs/12.scrbl"]
 @include-section["utils/queue.scrbl"]
