@@ -68,7 +68,7 @@
 	  #\a)
 
   (test-a-fail ($many ($satisfy (lambda (v) (eqv? #\a v)) "more than 3 As") 3)
-	       "aa" '((expected "more than 3 As") (got eof))))
+	       "aa" "more than 3 As"))
 
 (test-error assertion-violation? ($many ($fail "incorrect happen") 5 2))
 
@@ -118,7 +118,7 @@
     (test-assert (parse-success? s))
     (test-equal '(#\a #\b #\c) v)))
 
-;; $fail let entire expression fail
+;; $fail let entire $or expression fail
 (let ()
   (define failure ($or ($fail "stop!") ($eqv? #\a)))
   (let ((seq (generator->lseq (string->generator "abcdef"))))

@@ -44,10 +44,13 @@
 	    (rename (parse-state <parse-state>))
 	    parse-success? parse-fail? parse-expect? parse-unexpect?
 	    +parse-success+ +parse-fail+ +parse-expect+ +parse-unexpect+
+
+	    describe-parse-failure-reason
 	    )
     (import (rnrs)
 	    (rename (only (srfi :1) reverse! alist-cons)
 		    (alist-cons acons))
+	    (srfi :13 strings)
 	    (srfi :127 lseqs))
 
 (define-record-type parse-state)
@@ -55,6 +58,35 @@
 (define-record-type parse-fail    (parent parse-state))
 (define-record-type parse-expect  (parent parse-state))
 (define-record-type parse-unexpect  (parent parse-state))
+
+(define (describe-parse-failure-reason reason)
+  (define (rec reason)
+    (cond ((pair? reason)
+	   ;; we handle common case here
+	   ;; (state (state (state ...)))
+	   (cond ((and (pair? (car reason)) (parse-state? (caar reason)))
+		  (let ((f (rec (cdar reason)))
+			(e (rec (cdr reason))))
+		    (cond ((string-null? f) e)
+			  ((string-null? e) f)
+			  (else (string-append f "\n" e)))))
+		 (else
+		  (let ((f (rec (car reason)))
+			(e (rec (cdr reason))))
+		    (cond ((string-null? f) e)
+			  ((string-null? e) f)
+			  (else (string-append f " " e)))))))
+	  ((parse-state? reason) "")
+	  ((null? reason) "")
+	  ((symbol? reason) (symbol->string reason))
+	  ((number? reason) (number->string reason))
+	  (else
+	   (let-values (((out extract) (open-string-output-port)))
+	     (write reason out)
+	     (extract)))))
+  (if (pair? reason)
+      (string-join (map rec reason) "\n")
+      reason))
 
 (define +parse-success+ (make-parse-success))
 (define +parse-fail+    (make-parse-fail))
@@ -106,10 +138,12 @@
 	  (return-result #f nl)))))
 
 (define (expected expect v l)
-  (return-expect `((expected ,expect) (got ,v)) l))
+  (if (string? expect)
+      (return-expect expect l)
+      (return-expect `((Expected . ,expect) (got . ,v)) l)))
+
 (define ($$satisfy pred . maybe-expect)
-  (define expect
-    `(expected ,(if (null? maybe-expect) pred (car maybe-expect))))
+  (define expect (if (null? maybe-expect) pred (car maybe-expect)))
   (lambda (l)
     (if (null? l)
 	(expected expect 'eof l)
@@ -150,14 +184,12 @@
 ;; ordered choice
 (define ($or . expr)
   (define (fail rs l)
-    (define (merge-failures rs l)
-      ;; get the top reason
-      (values (caar rs) (map cdr rs) l))
+    (define (merge-failures rs l) )
     (cond ((null? rs) (return-failure "Empty expression" l))
 	  ;; one error
 	  ((null? (cdr rs)) (values (caar rs) (cdar rs) l))
-	  ;; compound?
-	  (else (merge-failures rs l))))
+	  ;; return the first state and the rest
+	  (else (values (caar rs) rs l))))
   (lambda (l)
     (let loop ((e* expr) (rs '()))
       (if (null? e*)
