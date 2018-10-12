@@ -45,14 +45,14 @@
       (let-values (((s v nl) (parser l)))
 	(test-assert (parse-success? s))
 	(test-equal first-remain (lseq-car nl))
-	(test-equal expected v))))
+	(test-equal input expected v))))
   (define (test-a-fail parser input expected)
     (define in-list (string->list input))
     (let ((l (generator->lseq (list->generator in-list))))
       (let-values (((s v nl) (parser l)))
 	(test-assert (parse-expect? s))
 	(test-equal in-list (lseq-realize nl))
-	(test-equal expected v))))
+	(test-equal `(,input ,v) expected v))))
   
   (test-a ($many ($satisfy (lambda (v) (eqv? #\a v))))
 	  "aaab"
@@ -68,7 +68,7 @@
 	  #\a)
 
   (test-a-fail ($many ($satisfy (lambda (v) (eqv? #\a v)) "more than 3 As") 3)
-	       "aa" "more than 3 As"))
+	       "aa" '((expected "more than 3 As") (got eof))))
 
 (test-error assertion-violation? ($many ($fail "incorrect happen") 5 2))
 
@@ -117,5 +117,13 @@
 			 seq)))
     (test-assert (parse-success? s))
     (test-equal '(#\a #\b #\c) v)))
+
+;; $fail let entire expression fail
+(let ()
+  (define failure ($or ($fail "stop!") ($eqv? #\a)))
+  (let ((seq (generator->lseq (string->generator "abcdef"))))
+    (let-values (((s v nl) (failure seq)))
+      (test-assert  (parse-fail? s))
+      (test-equal "stop!" v))))
 
 (test-end)

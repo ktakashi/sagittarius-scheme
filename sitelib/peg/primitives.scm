@@ -48,7 +48,7 @@
     (import (rnrs)
 	    (rename (only (srfi :1) reverse! alist-cons)
 		    (alist-cons acons))
-	    (srfi :127))
+	    (srfi :127 lseqs))
 
 (define-record-type parse-state)
 (define-record-type parse-success (parent parse-state))
@@ -105,15 +105,18 @@
 	  (return-unexpect v l)
 	  (return-result #f nl)))))
 
+(define (expected expect v l)
+  (return-expect `((expected ,expect) (got ,v)) l))
 (define ($$satisfy pred . maybe-expect)
-  (define expect (if (null? maybe-expect) pred (car maybe-expect)))
+  (define expect
+    `(expected ,(if (null? maybe-expect) pred (car maybe-expect))))
   (lambda (l)
     (if (null? l)
-	(return-expect expect l)
+	(expected expect 'eof l)
 	(let ((v (lseq-car l)))
 	  (if (pred v)
 	      (return-result v (lseq-cdr l))
-	      (return-expect expect l))))))
+	      (expected expect v l))))))
 (define-syntax $satisfy
   (lambda (x)
     (syntax-case x ()
@@ -121,11 +124,11 @@
       ((_ pred expect)
        #'(lambda (l)
 	   (if (null? l)
-	       (return-expect expect l)
+	       (expected expect 'eof l)
 	       (let ((v (lseq-car l)))
 		 (if (pred v)
 		     (return-result v (lseq-cdr l))
-		     (return-expect expect l))))))
+		     (expected expect v l))))))
       (k (identifier? #'k) #'$$satisfy))))
 
 (define $eof
@@ -147,18 +150,22 @@
 ;; ordered choice
 (define ($or . expr)
   (define (fail rs l)
+    (define (merge-failures rs l)
+      ;; get the top reason
+      (values (caar rs) (map cdr rs) l))
     (cond ((null? rs) (return-failure "Empty expression" l))
+	  ;; one error
 	  ((null? (cdr rs)) (values (caar rs) (cdar rs) l))
 	  ;; compound?
-	  (else (return-failure rs l))))
+	  (else (merge-failures rs l))))
   (lambda (l)
     (let loop ((e* expr) (rs '()))
       (if (null? e*)
 	  (fail rs l)
 	  (let-values (((s v nl) ((car e*) l)))
-	    (if (parse-success? s)
-		(return-result v nl)
-		(loop (cdr e*) (acons s v rs))))))))
+	    (cond ((parse-success? s) (return-result v nl))
+		  ((parse-fail? s) (values s v l))
+		  (else (loop (cdr e*) (acons s v rs)))))))))
 
 ;; greedy option and repetition
 (define ($many parser . count)
@@ -186,7 +193,7 @@
     (let-values (((s v ignore) (parser l)))
       (if (parse-success? s)
 	  (values s v l)
-	  (return-failure "Not matched" l)))))
+	  (return-expect parser l)))))
 
 ;; derived?
 (define ($seq . expr)

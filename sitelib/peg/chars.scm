@@ -38,7 +38,7 @@
 	    (srfi :14 char-sets))
 
 (define ($char-set-contains? s) 
-  ($satisfy (lambda (c) (char-set-contains? s c))))
+  ($satisfy (lambda (c) (char-set-contains? s c)) s))
 (define ($token s) (apply $seq (map $eqv? (string->list s))))
 
 )
