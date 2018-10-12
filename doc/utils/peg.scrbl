@@ -201,4 +201,150 @@ The parser returns successful if the given @var{parser} returns successful.
 The returning next input will not be consumed by the parser.
 }
 
-@; TBD derived parsers.
+@; derived
+@define[Function]{@name{$eqv?} @args{obj}}
+@desc{Returns a parser which compares the first element of the input
+and the given @var{obj} using @code{eqv?}.
+
+If the comparison result is @code{#t}, then it returns successful.
+
+This procedure is equivalent with the following:
+@codeblogk{
+(define ($eqv? v) ($satisfy (lambda (e) (eqv? e v))))
+}
+}
+
+@define[Function]{@name{$optional} @args{parser}}
+@define[Function]{@name{$optional} @args{parser fallback}}
+@desc{Returns a parser which uses the given @var{parser} as its parser.
+
+The parser returns always successful state. The returning value is the
+value of the given @var{parser} if the @var{parser} returns successful.
+Otherwise @code{#f}.
+
+If the second form is used, then @var{fallback} is returned when the
+@var{parser} returned non successful.
+}
+
+@define[Function]{@name{$repeat} @args{parser n}}
+@desc{Returns a parser which uses the given @var{parser} as its parser.
+
+The parser parses input exactly @var{n} times and returns a list of
+result value if the given @var{parser} returns @var{n} times successful.
+
+This is equivalent with the following code:
+@codeblogk{
+(define ($repeat parser n) ($many parser n n))
+}
+}
+
+@define[Function]{@name{$bind} @args{parser f}}
+@desc{Returns a parser which uses the given @var{parser} as its parser.
+
+The @var{f} must be a procedure which takes one argument and returns a parser.
+
+The parser returns the result of the parser created by @var{f}. The @var{f} is
+called when the given @var{parser} returned successful state, passed the
+returning value of the given @var{parser}.
+
+The @code{$bind} is useful to take the result of the parsers.
+
+This procedure is used to implement @code{$do} described below.
+}
+
+@define[Macro]{@name{$do} @args{clause @dot{} body}}
+@desc{A macro which creates a parser.
+
+The @code{$do} macro makes users easier to bind variables. The syntax is
+the following:
+@codeblock{
+$do    ::= ($do clause ... parser)
+clause ::= (var parser)
+         | (parser)
+	 | parser
+}
+The following example shows how to bind a variable returned by the @code{$many}
+procedure.
+
+@codeblock{
+($do (c* ($many ($satisfy char-numeric?)))
+     ($return (string->number (list->string c*))))
+}
+The above parser parses given numeric character sequence and returns a number.
+The @var{c*} is the result of the @var{$many}.
+}
+
+@define[Macro]{@name{$lazy} @args{parser}}
+@desc{A macro which creates a parser.
+
+The @code{$lazy} macro delays the creation of @var{parser}. This macro is
+useful to handle cross reference. For example:
+@codeblock{
+(define a ($do (c b) ($return c)))
+(define b ($do (c a) ($return c)))
+}
+The above code causes unbound variable in runtime when the definition of
+@code{a} is evaluated. To avoid this, users can use the @code{$lazy} like this:
+@codeblock{
+(define a ($do (c ($lazy b)) ($return c)))
+(define b ($do (c a) ($return c)))
+}
+}
+
+@define[Macro]{@name{$if} @args{pred then else}}
+@desc{A macro which creates a parser.
+
+The returning parser calls either @var{then} or @var{else} parser depending
+on the result of @var{pred}.
+
+This is the simple example.
+@codeblock{
+($if #t ($eqv? #\t) ($eqv? #\f))
+;; ($eqv? #\t) will ba called
+}
+
+The @code{$if} can be used to dispatch parsers by the results like this:
+@codeblock{
+($do (c ($optional ($eqv? #\t)))
+     ($if c
+          ($return c)
+	  ($return 'something)))
+}
+}
+
+@define[Macro]{@name{$cond} @args{clause @dots{}}}
+@define[Macro]{@name{$cond} @args{clause @dots{} (else parser)}}
+@desc{A macro which creates a parser.
+
+The @var{clause} must be the following form:
+@codeblock{
+clause ::= (pred parser)
+}
+
+The parser returned by this macro is similar with the one from @code{$if},
+the difference is this macro can handle multiple predicates.
+}
+
+@define[Macro]{@name{$when} @args{pred parser}}
+@define[Macro]{@name{$unless} @args{pred parser}}
+@desc{A macro which creates a parser.
+
+The @code{$when} macro returns a parser which calls the given @var{parser}
+only if the @var{pred} returned true value.
+
+The @code{$unless} macro returns a parser which calls the given @var{parser}
+only if the @var{pred} returned @code{#f}.
+
+They are defined like this:
+@codeblock{
+(define-syntax $when
+  (syntax-rules ()
+    ((_ pred body)
+     ($if pred body ($fail 'pred)))))
+
+(define-syntax $unless
+  (syntax-rules ()
+    ((_ pred body)
+     ($when (not pred) body))))
+}
+}
