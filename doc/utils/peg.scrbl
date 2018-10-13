@@ -348,3 +348,32 @@ They are defined like this:
      ($when (not pred) body))))
 }
 }
+
+@define[Macro]{@name{$parameterize} @args{bindings parser}}
+@desc{A macro which creates a parser.
+
+The @code{$parameterize} macro returns a parser which calls the given
+@var{parser} in the extended dynamic extend with the given @var{bindings}.
+
+The @var{bindings} must be the following form:
+@codeblock{
+bindings ::= ((parameter value) ...)
+}
+}
+
+@define[Macro]{@name{$guard} @args{guard-clause parser}}
+@desc{A macro which creates a parser.
+
+The @code{$guard} macro returns a parser which is wrapped by the @code{guard}.
+When the given @var{parser} raises an error during parsing, then the
+@var{guard-clause} will be executed.
+
+The @var{guard-clause} must be the following form:
+@code{
+guard-clause ::= (variable (pred clause) ...)
+}
+The @var{pred} must be a expression which checks if the raised condition
+should be handled by the coupled @var{clause} or not. If the @var{pred}
+is evaluated to true value, then the coupled @var{clause} is called with
+the input of the given @var{parser}.
+}
