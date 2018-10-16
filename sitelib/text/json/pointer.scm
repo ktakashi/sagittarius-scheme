@@ -59,11 +59,11 @@
 
 ;; more for testing...
 (define (parse-json-pointer p)
-  (define (->generator p)
+  (define (->lseq p)
     (if (port? p)
-	(port->char-generator p)
-	(string->generator p)))
-  (let-values (((s v nl) (root (generator->lseq (->generator p)))))
+	(generator->lseq (port->char-generator p))
+	(string->list p)))
+  (let-values (((s v nl) (root (->lseq p))))
     (if (parse-success? s)
 	v
 	(error 'json-pointer "Failed to parse JSON pointer"))))
