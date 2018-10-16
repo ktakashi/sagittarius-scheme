@@ -35,12 +35,16 @@
 #!nounbound
 (library (text json pointer)
     (export json-pointer json-pointer-not-found?
+	    json-modifier
 	    parse-json-pointer)
     (import (rnrs)
+	    (rnrs mutable-pairs)
 	    (peg)
 	    (text json)
+	    (only (scheme base) list-set!)
 	    (sagittarius generators)
-	    (srfi :127))
+	    (srfi :1 lists)
+	    (srfi :127 lseqs))
 
 (define unescaped
   ($do (c ($satisfy (lambda (c) (not (or (eqv? #\/ c) (eqv? #\~ c))))))
@@ -72,44 +76,81 @@
 (define +json-pointer-not-found+ (make-not-found))
 (define (json-pointer-not-found? v) (eq? +json-pointer-not-found+ v))
 
+;; API
 (define (json-pointer p . maybe-parent)
-  (define tokens (parse-json-pointer p))
-  (define (find-vector-map json p)
-    (define len (vector-length json))
-    (do ((i 0 (+ i 1)))
-	((or (= i len) (equal? (car (vector-ref json i)) p))
-	 (if (= i len)
-	     +json-pointer-not-found+
-	     (cdr (vector-ref json i))))))
-  (define (find-list-array json p)
-    (do ((i 0 (+ i 1)) (j json (cdr j)))
-	((or (= i p) (null? j))
-	 (if (null? j)
-	     +json-pointer-not-found+
-	     (car j)))))
-  (define parent (if (null? maybe-parent) values (car maybe-parent)))
-  ;; TODO leading 0 shouldn't be there for array-index
-  ;;      e.g. 0001 is not an index
-  (define (->array-index p) (string->number p))
-  (fold-left (lambda (pointer p)
-	         (case (*json-map-type*)
-		   ((vector)
-		    (lambda (json)
-		      (let ((json (pointer json)))
-			(cond ((vector? json) (find-vector-map json p))
-			      ((and (pair? json) (->array-index p)) =>
-			       (lambda (n) (find-list-array json n)))
-			      (else +json-pointer-not-found+)))))
-		   ((alist)
-		    (lambda (json)
-		      (let ((json (pointer json)))
-			(cond ((and (pair? json) (assoc p json)) => cdr)
-			      ((and (vector? json) (->array-index p)) =>
-			       (lambda (n)
-				 (if (< n (vector-length json))
-				     (vector-ref json n)
-				     +json-pointer-not-found+)))
-			      (else +json-pointer-not-found+)))))))
-	     (lambda (json) (parent json)) tokens))
+  (apply make-json-pointer (parse-json-pointer p) maybe-parent))
 
+;; API
+(define (json-modifier p . maybe-parent)
+  (define tokens (parse-json-pointer p))
+  (define len (length tokens))
+  (let-values (((token* last) (split-at! tokens (- len 1))))
+    (let ((pointer (apply make-json-pointer token* maybe-parent))
+	  (p (car last)))
+      (case (*json-map-type*)
+	((vector)
+	 (lambda (json value)
+	   (let ((json (pointer json)))
+	     (cond ((vector? json)
+		    (let ((e (find-vector-map json p)))
+		      (set-cdr! e value)
+		      #t))
+		   ;; TODO handle '-'
+		   ((and (pair? json) (->array-index p)) =>
+		    (lambda (n) (list-set! json n value) #t))
+		   (else #f)))))
+	((alist)
+	 (lambda (json value)
+	   (let ((json (pointer json)))
+	     (cond ((and (pair? json) (assoc p json)) =>
+		    (lambda (e) (set-cdr! e value) #t))
+		   ;; TODO handle '-'
+		   ((and (vector? json) (->array-index p)) =>
+		    (lambda (n) (vector-set! json n value) #t))
+		   (else #f)))))))))
+
+(define (find-vector-map json p)
+  (define len (vector-length json))
+  (do ((i 0 (+ i 1)))
+      ((or (= i len) (equal? (car (vector-ref json i)) p))
+       (if (= i len)
+	   +json-pointer-not-found+
+	   (vector-ref json i)))))
+
+;; TODO leading 0 shouldn't be there for array-index
+;;      e.g. 0001 is not an index
+(define (->array-index p) (string->number p))
+(define (find-list-array json p)
+  (do ((i 0 (+ i 1)) (j json (cdr j)))
+      ((or (= i p) (null? j))
+       (if (null? j)
+	   +json-pointer-not-found+
+	   (car j)))))
+(define (make-json-pointer tokens . maybe-parent)
+  (define (find-vector-value json p)
+    (let ((e (find-vector-map json p)))
+      (if (eq? +json-pointer-not-found+ e)
+	  e
+	  (cdr e))))
+  (define parent (if (null? maybe-parent) values (car maybe-parent)))
+  (fold-left (lambda (pointer p)
+	       (case (*json-map-type*)
+		 ((vector)
+		  (lambda (json)
+		    (let ((json (pointer json)))
+		      (cond ((vector? json) (find-vector-value json p))
+			    ((and (pair? json) (->array-index p)) =>
+			     (lambda (n) (find-list-array json n)))
+			    (else +json-pointer-not-found+)))))
+		 ((alist)
+		  (lambda (json)
+		    (let ((json (pointer json)))
+		      (cond ((and (pair? json) (assoc p json)) => cdr)
+			    ((and (vector? json) (->array-index p)) =>
+			     (lambda (n)
+			       (if (< n (vector-length json))
+				   (vector-ref json n)
+				   +json-pointer-not-found+)))
+			    (else +json-pointer-not-found+)))))))
+	     (lambda (json) (parent json)) tokens))
 )
