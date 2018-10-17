@@ -84,18 +84,4 @@
 (test-from-draft)
 (parameterize ((*json-map-type* 'alist)) (test-from-draft))
 
-(define (test-modifier path str value)
-  (define json (json-read (open-string-input-port str)))
-  (let ((pointer (json-pointer path))
-	(modifier (json-modifier path)))
-    (test-equal (string-append path " Modify") #t (modifier json value))
-    (test-equal (string-append path " Validate") value (pointer json))))
-
-;; TODO more tests
-(test-modifier "/f/p" "{\"f\": {\"p\": true}}" 1)
-(test-modifier "/f/1" "{\"f\": [true, false]}" 1)
-(parameterize ((*json-map-type* 'alist))
-  (test-modifier "/f/p" "{\"f\": {\"p\": true}}" 1)
-  (test-modifier "/f/1" "{\"f\": [true, false]}" 1))
-
 (test-end)
