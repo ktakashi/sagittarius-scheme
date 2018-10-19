@@ -34,8 +34,12 @@
     (export json-patcher)
     (import (rnrs)
 	    (text json pointer)
+	    (text json parse)
+	    (text json convert)
 	    (srfi :1 lists)
-	    (util vector))
+	    (srfi :133 vectors)
+	    (util vector)
+	    (util flexible-vector))
 
 (define (json-patcher patch)
   (unless (list? patch)
@@ -46,7 +50,52 @@
 		   (combined-patcher (patcher json))))) values patch))
 
 (define-condition-type &json-patch &error
-  make-json-patch-error json-patch-error)
+  make-json-patch-error json-patch-error
+  (path json-patch-path))
+(define-condition-type &json-patch-path-not-found &json-patch
+  make-json-patch-path-not-found-error json-patch-path-not-found-error?)
+(define-condition-type &json-patch-illegal-type &json-patch
+  make-json-patch-illegal-type-error json-patch-illegal-type-error?)
+
+(define (json-patch-path-not-found-error path who message . irr)
+  (raise (condition (make-json-patch-path-not-found-error path)
+		    (make-who-condition who)
+		    (make-message-condition message)
+		    (make-irritants-condition irr))))
+(define (json-patch-illegal-type-error path who message . irr)
+  (raise (condition (make-json-patch-path-not-found-error path)
+		    (make-who-condition who)
+		    (make-message-condition message)
+		    (make-irritants-condition irr))))
+
+;; mutable json is an alternative form for sexp json to make modification
+;; a json object easier
+;; it uses hashtable for json object, and flexible array for array
+(define (json->mutable-json json)
+  (define (convert json)
+    (cond ((vector? json)
+	   (let ((ht (make-hashtable string-hash string=?)))
+	     (vector-for-each (lambda (e)
+				(hashtable-set! ht (car e) (convert (cdr e))))
+			      json)
+	     ht))
+	  ((list? json) (list->flexible-vector (map convert json)))
+	  (else json)))
+  (case (*json-map-type*)
+    ((vector) (convert json))
+    ((alist) (convert (alist-json->vector-json json)))))
+(define (mutable-json->json mutable-json)
+  (define (convert mjson)
+    (cond ((hashtable? mjson)
+	   (list->vector
+	    (hashtable-map (lambda (k v) (cons k (convert v))) mjson)))
+	  ((flexible-vector? mjson)
+	   (map convert (flexible-vector->list mjson)))
+	  (else mjson)))
+  (let ((json (convert mutable-json)))
+    (case (*json-map-type*)
+      ((vector) (convert json))
+      ((alist) (convert (vector-json->alist-json json))))))
 
 (define (key=? key) (lambda (e) (string=? (car e) key)))
 (define op? (key=? "op"))
@@ -82,16 +131,19 @@
 	      ((json-object? json)
 	       (let ((e (json-object-ref json (car tokens))))
 		 (if (json-not-found? e)
-		     (error 'add "Parent node to add does not exist"
-			    (mutable-json->json mutable-json))
+		     (json-patch-path-not-found-error path
+		      'add "Parent node to add does not exist"
+		      (mutable-json->json mutable-json))
 		     (loop (cdr tokens) e))))
 	      ((json-array? json)
 	       (let ((e (json-array-ref json (car tokens))))
 		 (if (json-not-found? e)
-		     (error 'add "Parent node to add does not exist"
-			    (mutable-json->json mutable-json))
+		     (json-patch-path-not-found-error path
+		      'add "Parent node to add does not exist"
+		      (mutable-json->json mutable-json))
 		     (loop (cdr tokens) e))))
-	      (else (error 'add "Parent path to add is not a container"
-			    (mutable-json->json mutable-json))))))))
+	      (else (json-patch-illegal-type-error path
+		     'add "Parent path to add is not a container"
+		     (mutable-json->json mutable-json))))))))
 
 )
