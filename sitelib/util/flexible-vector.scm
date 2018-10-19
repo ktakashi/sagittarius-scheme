@@ -38,7 +38,7 @@
 	    flexible-vector->vector flexible-vector->list
 
 	    flexible-vector-ref flexible-vector-set!
-	    flexible-vector-insert!)
+	    flexible-vector-insert! flexible-vector-delete!)
     (import (rnrs)
 	    (srfi :1 lists) ;; for reverse!
 	    (srfi :133 vectors))
@@ -105,4 +105,12 @@
       (vector-copy! elements (+ index 1) elements index current-size))
     (vector-set! elements index value)
     (%fv-size-set! fv (+ (if (< index current-size) current-size index) 1))))
+(define (flexible-vector-delete! fv index)
+  (define current-size (flexible-vector-size fv))
+  (when (or (< index 0) (> index current-size))
+    (assertion-violation 'flexible-vector-delete!
+			 "Index out of bound" fv index))
+  (let ((elements (flexible-vector-elements fv)))
+    (vector-copy! elements index elements (+ index 1) current-size)
+    (%fv-size-set! fv (- current-size 1))))
 )

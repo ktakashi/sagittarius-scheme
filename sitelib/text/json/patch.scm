@@ -30,8 +30,14 @@
 
 ;; reference:
 ;; RFC 6902: https://tools.ietf.org/html/rfc6902
+#!nounbound
 (library (text json patch)
-    (export json-patcher)
+    (export json-patcher
+
+	    json-patch-error? json-patch-error-path
+	    json-patch-path-not-found-error?
+	    json-patch-illegal-type-error?
+	    )
     (import (rnrs)
 	    (text json pointer)
 	    (text json parse)
@@ -39,19 +45,26 @@
 	    (srfi :1 lists)
 	    (srfi :133 vectors)
 	    (util vector)
+	    (util hashtables)
 	    (util flexible-vector))
 
 (define (json-patcher patch)
+  (define (->patcher patch)
+    (fold-left (lambda (combined-patcher patch)
+		 (let ((patcher (make-patcher patch)))
+		   (lambda (json)
+		     (combined-patcher (patcher json))))) values patch))
   (unless (list? patch)
     (assertion-violation 'json-patcher "A list is required" patch))
-  (fold-left (lambda (combined-patcher patch)
-	       (let ((patcher (make-patcher patch)))
-		 (lambda (json)
-		   (combined-patcher (patcher json))))) values patch))
+  (let ((patcher (->patcher patch)))
+    (lambda (json)
+      (let ((mutable-json (json->mutable-json json)))
+	(patcher mutable-json)
+	(mutable-json->json mutable-json)))))
 
 (define-condition-type &json-patch &error
-  make-json-patch-error json-patch-error
-  (path json-patch-path))
+  make-json-patch-error json-patch-error?
+  (path json-patch-error-path))
 (define-condition-type &json-patch-path-not-found &json-patch
   make-json-patch-path-not-found-error json-patch-path-not-found-error?)
 (define-condition-type &json-patch-illegal-type &json-patch
@@ -97,6 +110,32 @@
       ((vector) (convert json))
       ((alist) (convert (vector-json->alist-json json))))))
 
+(define mutable-json-object? hashtable?)
+(define mutable-json-array? flexible-vector?)
+(define-record-type not-found)
+(define +json-not-found+ (make-not-found))
+(define (mutable-json-object-set! mj key value) (hashtable-set! mj key value))
+(define (mutable-json-object-delete! mj key) (hashtable-delete! mj key))
+(define (mutable-json-object-contains? mj key) (hashtable-contains? mj key))
+(define (mutable-json-object-ref mj key)
+  (hashtable-ref mj key +json-not-found+))
+(define (mutable-json-not-found? o) (eq? +json-not-found+ o))
+(define (mutable-json-array-set! mj key value)
+  ;; TODO proper key?
+  ;; TODO handle error case
+  (flexible-vector-set! mj (string->number key) value))
+(define (mutable-json-array-insert! mj key value)
+  ;; TODO proper key?
+  ;; TODO handle error case
+  (flexible-vector-insert! mj (string->number key) value))
+(define (mutable-json-array-delete! mj key)
+  ;; TODO proper key?
+  ;; TODO handle error case
+  (flexible-vector-delete! mj (string->number key)))
+(define (mutable-json-array-ref mj key)
+  (flexible-vector-ref mj (string->number key)))
+(define (mutable-json-array-size mj) (flexible-vector-size mj))
+
 (define (key=? key) (lambda (e) (string=? (car e) key)))
 (define op? (key=? "op"))
 (define path? (key=? "path"))
@@ -108,42 +147,82 @@
   (define (find pred)
     (cond ((vector-find pred patch) => cdr)
 	  (else (err))))
-  (case (find op?)
+  (case (string->symbol (find op?))
     ((add) (make-add-command (find path?) (find value?)))
-    ;;((remove) (make-remove-command (find path?)))
-    ;;((replace) (make-replace-command (find path?) (find value?)))
+    ((remove) (make-remove-command (find path?)))
+    ((replace) (make-replace-command (find path?) (find value?)))
     ;;((move) (make-move-command (find from?) (find path?)))
     ;;((copy) (make-copy-command (find from?) (find path?)))
     ;;((test) (make-test-command (find path?) (find value?)))
     (else (err))))
 
+(define-syntax call-with-last-entry
+  (syntax-rules ()
+    ((_ name ?path ?object-handler ?array-handler)
+     (let ((path ?path)
+	   (object-handler ?object-handler)
+	   (array-handler ?array-handler))
+       (define tokens (parse-json-pointer path))
+       (define (ile mutable-json)
+	 (json-patch-illegal-type-error path
+	  'name "Parent path to add is not a container"
+	  (mutable-json->json mutable-json)))
+       (define (pne mutable-json)
+	 (json-patch-path-not-found-error path
+	  'name "Parent node to add does not exist"
+	  (mutable-json->json mutable-json)))
+       (let-values (((first last-list)
+		     (split-at! tokens (- (length tokens) 1))))
+	 (define last (car last-list))
+	 (lambda (mutable-json)
+	   (let loop ((tokens first) (json mutable-json))
+	     (cond ((null? tokens)
+		    (cond ((mutable-json-object? json)
+			   (object-handler last json mutable-json))
+			  ((mutable-json-array? json)
+			   (array-handler last json mutable-json))
+			  (else (ile mutable-json))))
+		   ((mutable-json-object? json)
+		    (let ((e (mutable-json-object-ref json (car tokens))))
+		      (if (mutable-json-not-found? e)
+			  (pne mutable-json)
+			  (loop (cdr tokens) e))))
+		   ((mutable-json-array? json)
+		    (let ((e (mutable-json-array-ref json (car tokens))))
+		      (if (mutable-json-not-found? e)
+			  (pne mutable-json)
+			  (loop (cdr tokens) e))))
+		   (else (ile mutable-json))))))))))
+
 (define (make-add-command path value)
-  (define tokens (parse-json-pointer path))
   (define mutable-value (json->mutable-json value))
-  (let-values (((first last-list) (split-at! tokens (- (length tokens) 1))))
-    (define last (car last-list))
-    (lambda (mutable-json)
-      (let ((tokens tokens) (json mutable-json))
-	(cond ((null? tokens)
-	       (if (json-object? json)
-		   (json-object-set! json last mutable-value)
-		   (json-array-set! json last mutable-json)))
-	      ((json-object? json)
-	       (let ((e (json-object-ref json (car tokens))))
-		 (if (json-not-found? e)
-		     (json-patch-path-not-found-error path
-		      'add "Parent node to add does not exist"
-		      (mutable-json->json mutable-json))
-		     (loop (cdr tokens) e))))
-	      ((json-array? json)
-	       (let ((e (json-array-ref json (car tokens))))
-		 (if (json-not-found? e)
-		     (json-patch-path-not-found-error path
-		      'add "Parent node to add does not exist"
-		      (mutable-json->json mutable-json))
-		     (loop (cdr tokens) e))))
-	      (else (json-patch-illegal-type-error path
-		     'add "Parent path to add is not a container"
-		     (mutable-json->json mutable-json))))))))
+  (call-with-last-entry add path
+    (lambda (last json _)
+      (mutable-json-object-set! json last mutable-value))
+    (lambda (last json _)
+      (mutable-json-array-insert! json last mutable-value))))
+
+(define (make-remove-command path)
+  (call-with-last-entry add path
+    (lambda (last json _)
+      (mutable-json-object-delete! json last))
+    (lambda (last json _)
+      (mutable-json-array-delete! json last))))
+
+(define (make-replace-command path value)
+  (define mutable-value (json->mutable-json value))
+  (define (nsp mutable-json)
+    (json-patch-path-not-found-error path
+     'replace "no such path in target JSON document"
+     (mutable-json->json mutable-json)))
+  (call-with-last-entry add path
+    (lambda (last json root-json)
+      (if (mutable-json-object-contains? json last)
+	  (mutable-json-object-set! json last mutable-value)
+	  (nsp root-json)))
+    (lambda (last json root-json)
+      (if (< (mutable-json-array-size json) (string->number last))
+	  (mutable-json-array-set! json last mutable-value)
+	  (nsp root-json)))))
 
 )
