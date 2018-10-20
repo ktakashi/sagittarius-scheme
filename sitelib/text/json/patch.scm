@@ -151,10 +151,15 @@
     ((add) (make-add-command (find path?) (find value?)))
     ((remove) (make-remove-command (find path?)))
     ((replace) (make-replace-command (find path?) (find value?)))
-    ;;((move) (make-move-command (find from?) (find path?)))
+    ((move) (make-move-command (find from?) (find path?)))
     ;;((copy) (make-copy-command (find from?) (find path?)))
     ;;((test) (make-test-command (find path?) (find value?)))
     (else (err))))
+
+(define (nsp who path mutable-json)
+  (json-patch-path-not-found-error path
+   who "No such path in target JSON document"
+   (mutable-json->json mutable-json)))
 
 (define-syntax call-with-last-entry
   (syntax-rules ()
@@ -203,7 +208,7 @@
       (mutable-json-array-insert! json last mutable-value))))
 
 (define (make-remove-command path)
-  (call-with-last-entry add path
+  (call-with-last-entry remove path
     (lambda (last json _)
       (mutable-json-object-delete! json last))
     (lambda (last json _)
@@ -211,18 +216,30 @@
 
 (define (make-replace-command path value)
   (define mutable-value (json->mutable-json value))
-  (define (nsp mutable-json)
-    (json-patch-path-not-found-error path
-     'replace "no such path in target JSON document"
-     (mutable-json->json mutable-json)))
-  (call-with-last-entry add path
+  (call-with-last-entry replace path
     (lambda (last json root-json)
       (if (mutable-json-object-contains? json last)
 	  (mutable-json-object-set! json last mutable-value)
-	  (nsp root-json)))
+	  (nsp 'replace path root-json)))
     (lambda (last json root-json)
       (if (< (mutable-json-array-size json) (string->number last))
 	  (mutable-json-array-set! json last mutable-value)
-	  (nsp root-json)))))
+	  (nsp 'replace path root-json)))))
 
+(define (make-move-command from path)
+  (define tokens (parse-json-pointer from))
+  (define pointer (json-pointer from))
+  (call-with-last-entry move path
+    (lambda (last json root-json)
+      ;; FIXME inefficient...
+      (let ((v (pointer (mutable-json->json root-json))))
+	(when (json-pointer-not-found? v) (nsp 'move from root-json))
+	(mutable-json-object-set! json last (json->mutable-json v))))
+    (lambda (last json root-json)
+      (let ((v (pointer (mutable-json->json root-json)))
+	    (l (car (last-pair tokens))))
+	(when (json-pointer-not-found? v) (nsp 'move from root-json))
+	(unless (equal? last l)
+	  (mutable-json-array-delete! json l)
+	  (mutable-json-array-insert! json last (json->mutable-json v)))))))
 )
