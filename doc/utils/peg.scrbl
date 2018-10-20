@@ -377,3 +377,35 @@ should be handled by the coupled @var{clause} or not. If the @var{pred}
 is evaluated to true value, then the coupled @var{clause} is called with
 the input of the given @var{parser}.
 }
+
+@; TBD writing own parser
+
+@subsubsection{Character specific parsers}
+
+The procedures provided by the @code{(peg)} can be used for all kinds of
+input. This section describes parsers which can only be used for character
+input.
+
+@define[Library]{@name{(peg chars)}}
+@desc{Character specific PEG parser library.}
+
+@define[Function]{@name{$char-set-contains?} @args{char-set}}
+@desc{Returns a parser which returns successful if the given
+@var{char-set} contains the input of the parser.
+
+This procedure is defined like this:
+@codeblock{
+(define ($char-set-contains? s) 
+  ($satisfy (lambda (c) (char-set-contains? s c)) s))
+}
+}
+
+@define[Function]{@name{$token} @args{string}}
+@desc{Returns a parser which returns successful if the input of
+the parser matches with the given @var{string}.
+
+This procedure is defined like this:
+@codeblock{
+(define ($token s) (apply $seq (map $eqv? (string->list s))))
+}
+}
