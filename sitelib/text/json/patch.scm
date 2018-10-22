@@ -42,6 +42,7 @@
 	    (text json pointer)
 	    (text json parse)
 	    (text json convert)
+	    (text json compare)
 	    (srfi :1 lists)
 	    (srfi :133 vectors)
 	    (util vector)
@@ -52,8 +53,9 @@
   (define (->patcher patch)
     (fold-left (lambda (combined-patcher patch)
 		 (let ((patcher (make-patcher patch)))
-		   (lambda (json)
-		     (combined-patcher (patcher json))))) values patch))
+		   (lambda (mutable-json)
+		     (patcher mutable-json)
+		     (combined-patcher mutable-json)))) values patch))
   (unless (list? patch)
     (assertion-violation 'json-patcher "A list is required" patch))
   (let ((patcher (->patcher patch)))
@@ -63,11 +65,17 @@
 	(mutable-json->json mutable-json)))))
 
 (define-condition-type &json-patch &error
-  make-json-patch-error json-patch-error?
+  make-json-patch-error json-patch-error?)
+
+(define-condition-type &json-patch:compile &json-patch
+  make-json-patch-compile-error json-patch-compile-error?
+  (patch json-patch-error-patch))
+(define-condition-type &json-patch:runtime &json-patch
+  make-json-patch-runtime-error json-patch-runtime-error?
   (path json-patch-error-path))
-(define-condition-type &json-patch-path-not-found &json-patch
+(define-condition-type &json-patch-path-not-found &json-patch:runtime
   make-json-patch-path-not-found-error json-patch-path-not-found-error?)
-(define-condition-type &json-patch-illegal-type &json-patch
+(define-condition-type &json-patch-illegal-type &json-patch:runtime
   make-json-patch-illegal-type-error json-patch-illegal-type-error?)
 
 (define (json-patch-path-not-found-error path who message . irr)
@@ -147,13 +155,23 @@
   (define (find pred)
     (cond ((vector-find pred patch) => cdr)
 	  (else (err))))
-  (case (string->symbol (find op?))
+  (define (check-duplicate pred patch)
+    (let ((index (vector-index pred patch)))
+      (unless (eqv? index (vector-index-right pred patch))
+	(raise (condition
+		(make-json-patch-compile-error patch)
+		(make-who-condition 'json-patcher)
+		(make-message-condition "Duplicate JSON command")
+		(make-irritants-condition patch))))
+      (cdr (vector-ref patch index))))
+  
+  (case (string->symbol (check-duplicate op? patch))
     ((add) (make-add-command (find path?) (find value?)))
     ((remove) (make-remove-command (find path?)))
     ((replace) (make-replace-command (find path?) (find value?)))
     ((move) (make-move-command (find from?) (find path?)))
     ;;((copy) (make-copy-command (find from?) (find path?)))
-    ;;((test) (make-test-command (find path?) (find value?)))
+    ((test) (make-test-command (find path?) (find value?)))
     (else (err))))
 
 (define (nsp who path mutable-json)
@@ -205,7 +223,10 @@
     (lambda (last json _)
       (mutable-json-object-set! json last mutable-value))
     (lambda (last json _)
-      (mutable-json-array-insert! json last mutable-value))))
+      (if (equal? last "-")
+	  (let ((n (number->string (mutable-json-array-size json))))
+	    (mutable-json-array-insert! json n mutable-value))
+	  (mutable-json-array-insert! json last mutable-value)))))
 
 (define (make-remove-command path)
   (call-with-last-entry remove path
@@ -244,4 +265,15 @@
 	(unless (equal? last l)
 	  (remove root-json)
 	  (mutable-json-array-insert! json last (json->mutable-json v)))))))
+
+;; FIXME inefficient...
+(define (make-test-command path value)
+  (define pointer (json-pointer path))
+  (lambda (mutable-json)
+    (let ((v (pointer (mutable-json->json mutable-json))))
+      (cond ((json-pointer-not-found? v) (nsp 'test path mutable-json))
+	    ((not (json=? v value))
+	     (json-patch-illegal-type-error path 'test
+	      "Unexpected value" v))))))
+  
 )
