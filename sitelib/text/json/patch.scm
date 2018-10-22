@@ -170,7 +170,7 @@
     ((remove) (make-remove-command (find path?)))
     ((replace) (make-replace-command (find path?) (find value?)))
     ((move) (make-move-command (find from?) (find path?)))
-    ;;((copy) (make-copy-command (find from?) (find path?)))
+    ((copy) (make-copy-command (find from?) (find path?)))
     ((test) (make-test-command (find path?) (find value?)))
     (else (err))))
 
@@ -275,5 +275,12 @@
 	    ((not (json=? v value))
 	     (json-patch-illegal-type-error path 'test
 	      "Unexpected value" v))))))
-  
+
+;; FIXME inefficient...
+(define (make-copy-command from path)
+  (define pointer (json-pointer from))
+  (lambda (mutable-json)
+    (let* ((v (pointer (mutable-json->json mutable-json)))
+	   (add (make-add-command path v)))
+      (add mutable-json))))
 )
