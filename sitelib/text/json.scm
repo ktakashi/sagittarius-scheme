@@ -31,4 +31,5 @@
 (library (text json)
     (export :all)
     (import (text json parse)
-	    (text json convert)))
+	    (text json convert)
+	    (text json compare)))

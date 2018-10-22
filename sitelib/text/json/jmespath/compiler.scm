@@ -38,6 +38,7 @@
 	    jmespath-compile-error?
 	    jmespath-runtime-error?)
     (import (rnrs)
+	    (text json compare)
 	    (text json jmespath conditions)
 	    (util list)
 	    (util vector)
@@ -83,21 +84,7 @@
       (and (string? v) (zero? (string-length v)))
       (not v)
       (eqv? v 'null)))
-;; hmmmm, we need to utilise this
-(define (json=? a b)
-  (define (entry=? a b)
-    (and (json=? (car a) (car b))
-	 (json=? (cdr a) (cdr b))))
-  (define (key-compare a b) (string<? (car a) (car b)))
-  (cond ((and (string? a) (string? b)) (string=? a b))
-	;; 1 and 1.0 are not the same so can't be = or equal?
-	((and (number? a) (number? b)) (eqv? a b))
-	((and (vector? a) (vector? b))
-	 (vector-every entry=?
-		       (vector-sort key-compare a)
-		       (vector-sort key-compare b)))
-	((and (list? a) (list? b)) (for-all json=? a b))
-	(else (eq? a b))))
+
 
 ;; receives AST parsed by (text json jmespath compiler)
 ;; and returns a procedure takes one argument, sexp JSON

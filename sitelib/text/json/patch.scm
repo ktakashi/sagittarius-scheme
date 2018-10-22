@@ -226,20 +226,22 @@
 	  (mutable-json-array-set! json last mutable-value)
 	  (nsp 'replace path root-json)))))
 
+;; FIXME inefficient...
 (define (make-move-command from path)
   (define tokens (parse-json-pointer from))
   (define pointer (json-pointer from))
+  (define remove (make-remove-command from))
   (call-with-last-entry move path
     (lambda (last json root-json)
-      ;; FIXME inefficient...
       (let ((v (pointer (mutable-json->json root-json))))
 	(when (json-pointer-not-found? v) (nsp 'move from root-json))
-	(mutable-json-object-set! json last (json->mutable-json v))))
+	(mutable-json-object-set! json last (json->mutable-json v))
+	(remove root-json)))
     (lambda (last json root-json)
       (let ((v (pointer (mutable-json->json root-json)))
 	    (l (car (last-pair tokens))))
 	(when (json-pointer-not-found? v) (nsp 'move from root-json))
 	(unless (equal? last l)
-	  (mutable-json-array-delete! json l)
+	  (remove root-json)
 	  (mutable-json-array-insert! json last (json->mutable-json v)))))))
 )
