@@ -34,7 +34,12 @@
 (library (text json patch)
     (export json-patcher
 
-	    json-patch-error? json-patch-error-path
+	    json-patch-error?
+	    json-patch-error-path ;; only for runtime
+	    json-patch-error-patch ;; only for compile
+	    
+	    json-patch-compile-error?
+	    json-patch-runtime-error?
 	    json-patch-path-not-found-error?
 	    json-patch-illegal-type-error?
 	    )
@@ -54,15 +59,13 @@
     (fold-left (lambda (combined-patcher patch)
 		 (let ((patcher (make-patcher patch)))
 		   (lambda (mutable-json)
-		     (patcher mutable-json)
-		     (combined-patcher mutable-json)))) values patch))
+		     (patcher (combined-patcher mutable-json))))) values patch))
   (unless (list? patch)
     (assertion-violation 'json-patcher "A list is required" patch))
   (let ((patcher (->patcher patch)))
     (lambda (json)
       (let ((mutable-json (json->mutable-json json)))
-	(patcher mutable-json)
-	(mutable-json->json mutable-json)))))
+	(mutable-json->json (patcher mutable-json))))))
 
 (define-condition-type &json-patch &error
   make-json-patch-error json-patch-error?)
@@ -129,19 +132,11 @@
   (hashtable-ref mj key +json-not-found+))
 (define (mutable-json-not-found? o) (eq? +json-not-found+ o))
 (define (mutable-json-array-set! mj key value)
-  ;; TODO proper key?
-  ;; TODO handle error case
-  (flexible-vector-set! mj (string->number key) value))
+  (flexible-vector-set! mj key value))
 (define (mutable-json-array-insert! mj key value)
-  ;; TODO proper key?
-  ;; TODO handle error case
-  (flexible-vector-insert! mj (string->number key) value))
-(define (mutable-json-array-delete! mj key)
-  ;; TODO proper key?
-  ;; TODO handle error case
-  (flexible-vector-delete! mj (string->number key)))
-(define (mutable-json-array-ref mj key)
-  (flexible-vector-ref mj (string->number key)))
+  (flexible-vector-insert! mj key value))
+(define (mutable-json-array-delete! mj key) (flexible-vector-delete! mj key))
+(define (mutable-json-array-ref mj key) (flexible-vector-ref mj key))
 (define (mutable-json-array-size mj) (flexible-vector-size mj))
 
 (define (key=? key) (lambda (e) (string=? (car e) key)))
@@ -151,7 +146,10 @@
 (define from? (key=? "from"))
 (define (make-patcher patch)
   (define (err)
-    (assertion-violation 'json-patcher "Invalid JSON patch command" patch))
+    (raise (condition (make-json-patch-compile-error patch)
+		      (make-who-condition 'json-patcher)
+		      (make-message-condition "Invalid JSON patch command")
+		      (make-irritants-condition patch))))
   (define (find pred)
     (cond ((vector-find pred patch) => cdr)
 	  (else (err))))
@@ -178,6 +176,16 @@
   (json-patch-path-not-found-error path
    who "No such path in target JSON document"
    (mutable-json->json mutable-json)))
+(define (rte who path msg mutable-json)
+  (raise (condition (make-json-patch-runtime-error path)
+		    (make-who-condition who)
+		    (make-message-condition msg)
+		    (make-irritants-condition mutable-json))))
+(define (check-index who path n)
+  (let ((i (string->number n)))
+    (unless (and (fixnum? i) (not (negative? i)))
+      (rte who path "Illegal index" n))
+    i))
 
 (define-syntax call-with-last-entry
   (syntax-rules ()
@@ -201,9 +209,11 @@
 	   (let loop ((tokens first) (json mutable-json))
 	     (cond ((null? tokens)
 		    (cond ((mutable-json-object? json)
-			   (object-handler last json mutable-json))
+			   (object-handler last json mutable-json)
+			   mutable-json)
 			  ((mutable-json-array? json)
-			   (array-handler last json mutable-json))
+			   (array-handler last json mutable-json)
+			   mutable-json)
 			  (else (ile mutable-json))))
 		   ((mutable-json-object? json)
 		    (let ((e (mutable-json-object-ref json (car tokens))))
@@ -211,7 +221,8 @@
 			  (pne mutable-json)
 			  (loop (cdr tokens) e))))
 		   ((mutable-json-array? json)
-		    (let ((e (mutable-json-array-ref json (car tokens))))
+		    (let* ((n (check-index 'name path (car tokens)))
+			   (e (mutable-json-array-ref json n)))
 		      (if (mutable-json-not-found? e)
 			  (pne mutable-json)
 			  (loop (cdr tokens) e))))
@@ -219,52 +230,68 @@
 
 (define (make-add-command path value)
   (define mutable-value (json->mutable-json value))
-  (call-with-last-entry add path
-    (lambda (last json _)
-      (mutable-json-object-set! json last mutable-value))
-    (lambda (last json _)
-      (if (equal? last "-")
-	  (let ((n (number->string (mutable-json-array-size json))))
-	    (mutable-json-array-insert! json n mutable-value))
-	  (mutable-json-array-insert! json last mutable-value)))))
+  (if (string=? path "")
+      (lambda (_) mutable-value)
+      (call-with-last-entry add path
+       (lambda (last json _)
+	 (mutable-json-object-set! json last mutable-value))
+       (lambda (last json root-json)
+	 (let ((n (mutable-json-array-size json)))
+	   (if (equal? last "-")
+	       (mutable-json-array-insert! json n mutable-value)
+	       (let ((i (check-index 'add path last)))
+		 (if (or (negative? i) (> i n))
+		     (rte 'add path "Index out of bound" root-json)
+		     (mutable-json-array-insert! json i mutable-value)))))))))
 
 (define (make-remove-command path)
   (call-with-last-entry remove path
-    (lambda (last json _)
-      (mutable-json-object-delete! json last))
-    (lambda (last json _)
-      (mutable-json-array-delete! json last))))
+    (lambda (last json root-json)
+      (if (mutable-json-object-contains? json last)
+	  (mutable-json-object-delete! json last)
+	  (nsp 'remove path root-json)))
+    (lambda (last json root-json)
+      (let ((n (check-index 'remove path last)))
+	(if (< n (mutable-json-array-size json))
+	    (mutable-json-array-delete! json n)
+	    (nsp 'remove path root-json))))))
 
 (define (make-replace-command path value)
   (define mutable-value (json->mutable-json value))
-  (call-with-last-entry replace path
-    (lambda (last json root-json)
-      (if (mutable-json-object-contains? json last)
-	  (mutable-json-object-set! json last mutable-value)
-	  (nsp 'replace path root-json)))
-    (lambda (last json root-json)
-      (if (< (mutable-json-array-size json) (string->number last))
-	  (mutable-json-array-set! json last mutable-value)
-	  (nsp 'replace path root-json)))))
+  (if (string=? path "")
+      (lambda (_) mutable-value)
+      (call-with-last-entry replace path
+       (lambda (last json root-json)
+	 (if (mutable-json-object-contains? json last)
+	     (mutable-json-object-set! json last mutable-value)
+	     (nsp 'replace path root-json)))
+       (lambda (last json root-json)
+	 (let ((n (check-index 'replace path last)))
+	   (if (< n (mutable-json-array-size json))
+	       (mutable-json-array-set! json n mutable-value)
+	       (nsp 'replace path root-json)))))))
 
 ;; FIXME inefficient...
 (define (make-move-command from path)
   (define tokens (parse-json-pointer from))
   (define pointer (json-pointer from))
   (define remove (make-remove-command from))
-  (call-with-last-entry move path
-    (lambda (last json root-json)
-      (let ((v (pointer (mutable-json->json root-json))))
-	(when (json-pointer-not-found? v) (nsp 'move from root-json))
-	(mutable-json-object-set! json last (json->mutable-json v))
-	(remove root-json)))
-    (lambda (last json root-json)
-      (let ((v (pointer (mutable-json->json root-json)))
-	    (l (car (last-pair tokens))))
-	(when (json-pointer-not-found? v) (nsp 'move from root-json))
-	(unless (equal? last l)
-	  (remove root-json)
-	  (mutable-json-array-insert! json last (json->mutable-json v)))))))
+  (if (string=? from path) ;; a bit of minior optimisation
+      (lambda (mutable-json) mutable-json)
+      (call-with-last-entry move path
+       (lambda (last json root-json)
+	 (let ((v (pointer (mutable-json->json root-json))))
+	   (when (json-pointer-not-found? v) (nsp 'move from root-json))
+	   (mutable-json-object-set! json last (json->mutable-json v))
+	   (remove root-json)))
+       (lambda (last json root-json)
+	 (let ((v (pointer (mutable-json->json root-json)))
+	       (l (car (last-pair tokens))))
+	   (when (json-pointer-not-found? v) (nsp 'move from root-json))
+	   (let ((n (check-index 'move path last)))
+	     (unless (equal? last l)
+	       (remove root-json)
+	       (mutable-json-array-insert! json n (json->mutable-json v)))))))))
 
 ;; FIXME inefficient...
 (define (make-test-command path value)
@@ -273,8 +300,8 @@
     (let ((v (pointer (mutable-json->json mutable-json))))
       (cond ((json-pointer-not-found? v) (nsp 'test path mutable-json))
 	    ((not (json=? v value))
-	     (json-patch-illegal-type-error path 'test
-	      "Unexpected value" v))))))
+	     (json-patch-illegal-type-error path 'test "Unexpected value" v)))
+      mutable-json)))
 
 ;; FIXME inefficient...
 (define (make-copy-command from path)
@@ -282,5 +309,6 @@
   (lambda (mutable-json)
     (let* ((v (pointer (mutable-json->json mutable-json)))
 	   (add (make-add-command path v)))
+      (when (json-pointer-not-found? v) (nsp 'copy path mutable-json))
       (add mutable-json))))
 )
