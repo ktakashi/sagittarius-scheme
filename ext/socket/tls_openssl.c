@@ -39,6 +39,7 @@
 #endif
 
 #include <dlfcn.h>
+#include <string.h>
 #include <sagittarius.h>
 #define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
@@ -384,7 +385,9 @@ void Sg_InitTLSImplementation()
   /* ERR_load_BIO_strings(); */
   /* ERR_load_crypto_strings(); */
   SSL_load_error_strings();
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
   OPENSSL_config(NULL);
+#endif
   SSL_library_init();
 
   handle = dlopen("libssl" SHLIB_SO_SUFFIX, RTLD_NOW|RTLD_GLOBAL);
