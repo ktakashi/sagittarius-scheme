@@ -29,6 +29,7 @@
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/closure.h"
 #include "sagittarius/code.h"
+#include "sagittarius/core.h"
 #include "sagittarius/instruction.h"
 #include "sagittarius/gloc.h"
 #include "sagittarius/library.h"
@@ -61,6 +62,9 @@ SgObject Sg_VMMakeClosure(SgObject code, int self_pos, SgObject *frees)
   freec = SG_CODE_BUILDER_FREEC(code);
 
   cl->code = code;
+  if (freec && !frees) {
+    Sg_Panic("Free variable count is %d, but actuall argument is null", freec);
+  }
   for (i = 0; i < freec; i++) {
     cl->frees[i] = frees[freec - i - 1];
   }
@@ -94,6 +98,9 @@ static int closure_transparent_rec(SgCodeBuilder *cb, SgObject seen)
 {
   SgWord *code = cb->code;
   int size = cb->size, flag = SG_PROC_TRANSPARENT, i;
+
+  /* We can't mark transparent with free variable */
+  if (SG_CODE_BUILDER_FREEC(cb)) flag = SG_PROC_NO_SIDE_EFFECT;
   /* for now we only checks very simple case... */
   for (i = 0; i < size; i++) {
     InsnInfo *info = Sg_LookupInsnName(INSN(code[i]));
