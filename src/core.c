@@ -243,6 +243,13 @@ void Sg_Init()
   /* Sg__Port* will be called after all initialisations are done. */
   Sg__PostInitVM();
   Sg__PostInitCache();
+
+  /* this is required to even import or so on user library */
+  Sg_ImportLibraryFullSpec(Sg_VM()->currentLibrary, sgsym,
+			   SG_LIST1(SG_LIST4(SG_INTERN("only"),
+					     SG_INTERN("import"),
+					     SG_INTERN("library"),
+					     SG_INTERN("define-library"))));
 }
 
 /* GC related */
@@ -636,18 +643,10 @@ static void init_cond_features()
 void Sg_Start(SgObject fileOrPort, SgObject commandLine,
 	      const char *fmt, SgObject rest)
 {
-  SgVM *vm = Sg_VM();
   SgObject lib = Sg_FindLibrary(SG_INTERN("(core program)"), FALSE);
   SgObject args = SG_NIL;
   SgObject start = Sg_FindBinding(lib, SG_INTERN("start"), SG_UNBOUND);
   
-  /* this is required to even import or so on user library */
-  Sg_ImportLibraryFullSpec(vm->currentLibrary, SG_INTERN("(sagittarius)"),
-			   SG_LIST1(SG_LIST4(SG_INTERN("only"),
-					     SG_INTERN("import"),
-					     SG_INTERN("library"),
-					     SG_INTERN("define-library"))));
-
   if (SG_UNBOUNDP(start)) Sg_Panic("`start` is not found");
   if (SG_LISTP(rest)) {
     while (*fmt) {
