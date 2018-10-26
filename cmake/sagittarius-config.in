@@ -52,8 +52,8 @@ Paremters to compile an application using Sagittarius
 ")
   (exit 1))
 
-(define (resolve-flag flag)
-  (define (emit s) (display s) (display #\space))
+(define (resolve-flag first? flag)
+  (define (emit s) (unless first? (display #\space)) (display s))
   (case flag
     ((include-path)
      (emit "-I${CMAKE_INSTALL_PREFIX}/${SAGITTARIUS_CURRENT_LIB}/include"))
@@ -107,10 +107,8 @@ Paremters to compile an application using Sagittarius
 (define (main args)
   (check-version)
   (let1 flags (parse-argument (cdr args))
-    (when (null? flags)
-      (usage))
-    (for-each (lambda (flag)
-		(resolve-flag flag)) flags))
+    (when (null? flags) (usage))
+    (fold-left (lambda (first? flag) (resolve-flag first? flag) #f) #t flags))
   (newline)
   0)
 
