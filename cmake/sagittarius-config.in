@@ -32,23 +32,25 @@ Paremters to compile an application using Sagittarius
 	prints the used CFLAGS.
   --cxx-flags
 	prints the used CXXFLAGS.
-   --sharedir
+  --sharedir
 	prints the paths of Sagittarius' shread directory.
-   --incdir,--sysincdir
+  --incdir,--sysincdir
 	prints the paths of Sagittarius' include files directory.
-   --syslibdir
+  --syslibdir
 	prints the paths of Sagittarius' library directory.
-   --sysarchdir
+  --sysarchdir
 	prints the paths of Sagittarius' system architecture directory.
-   --pkgincdir
+  --pkgincdir
 	prints the paths of Sagittarius' include files directory without
 	installed prefix
-   --pkglibdir
+  --pkglibdir
 	prints the paths of Sagittarius' library directory without
 	installed prefix
-   --pkgarchdir
+  --pkgarchdir
 	prints the paths of Sagittarius' system architecture directory without
 	installed prefix
+  --install-prefix
+        prints the install prefix where Sagittarius is installed.
 ")
   (exit 1))
 
@@ -83,6 +85,8 @@ Paremters to compile an application using Sagittarius
      (emit "${SAGITTARIUS_SHARE_SUFFIX}/sitelib"))
     ((pkgarchdir)
      (emit "${SAGITTARIUS_LIB_SUFFIX}/sitelib/${SAGITTARIUS_TRIPLE}"))
+    ((install-prefix)
+     (emit "${CMAKE_INSTALL_PREFIX}"))
     (else
      (usage))))
 
