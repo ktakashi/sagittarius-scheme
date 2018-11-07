@@ -185,8 +185,9 @@
 		       (else (loop r (reader in))))))))))
 
   (define (rfc5322-header-ref header field-name . maybe-default)
-    ;; the read header is downcased so just like this is fine
-    (cond ((assoc (string-foldcase field-name) header string=?) => cadr)
+    ;; passing headers may not only be read by the reader
+    ;; so we need to compare with string-ci=?
+    (cond ((assoc field-name header string-ci=?) => cadr)
 	  (else (get-optional maybe-default #f))))
 
   (define (rfc5322-field->tokens field . opts)
