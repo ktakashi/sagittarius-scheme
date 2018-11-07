@@ -38,12 +38,23 @@ Reads a line from given port. If the last character is CR chop it off.
 
 @define[Function]{@name{rfc5322-header-ref}
  @args{header-list field-name . maybe-default}}
-@desc{An utility procedure to get a specific field from the parsed header list, which is returned by @code{rfc5322-read-headers}.
+@desc{An utility procedure to get a specific field from the parsed header list,
+which is returned by @code{rfc5322-read-headers}.
 
-@var{field-name} specifies the field name in lowercase string. If the field with
-given name is in @var{header-list}, the procedure returns its value in a string.
-Otherwise, if default is given, it is returned, and if not, #f is returned. 
+If the field with given @var{field-name} is in @var{header-list}, the
+procedure returns its value in a string.  Otherwise, if default is
+given, it is returned, and if not, #f is returned.
 }
+
+@define[Function]{@name{rfc5322-header-ref*} @args{header-list field-name}}
+@desc{An utility procedure to get a specific field from the parsed header list,
+which is returned by @code{rfc5322-read-headers}.
+
+This procedure collects all the given @var{field-name} from the
+@var{header-list}. If there's no header named @var{field-name}, then the
+procedure returns @code{()}.
+}
+
 
 @subsubsection{Basic field parsers}
 

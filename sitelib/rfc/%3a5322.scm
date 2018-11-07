@@ -37,7 +37,7 @@
     (export &rfc5322-parse-error rfc5322-parse-error?
 	    rfc5322-read-headers
 	    rfc5322-next-token
-	    rfc5322-header-ref
+	    rfc5322-header-ref rfc5322-header-ref*
 	    rfc5322-field->tokens
 	    rfc5322-quoted-string
 	    rfc5322-write-headers
@@ -189,6 +189,11 @@
     ;; so we need to compare with string-ci=?
     (cond ((assoc field-name header string-ci=?) => cadr)
 	  (else (get-optional maybe-default #f))))
+  ;; returns a list
+  (define (rfc5322-header-ref* header field-name)
+    (filter-map (lambda (slot)
+		  (and (string-ci=? field-name (car slot)) (cadr slot)))
+		header))
 
   (define (rfc5322-field->tokens field . opts)
     (call-with-input-string field
