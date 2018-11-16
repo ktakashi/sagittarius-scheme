@@ -1550,7 +1550,7 @@
 
 (define (pass1/compile-let-syntax form p1env)
   (smatch form
-    ((- () body ___) (values p1env form)) ;; don't create scope
+    ((- () body ___) (values p1env body)) ;; don't have to create scope
     ((- ((name trans-spec) ___) body ___)
      (check-duplicate-variable form name variable=? "duplicate variable")
      (let ((trans (imap2 (lambda (n x)
@@ -1575,7 +1575,7 @@
 
 (define (pass1/compile-letrec-syntax form p1env)
   (smatch form
-    ((- () body ___) (values p1env form)) ;; don't create scope
+    ((- () body ___) (values p1env body)) ;; don't have to create scope
     ((- ((name trans-spec) ___) body ___)
      (check-duplicate-variable form name variable=? "duplicate variable")
      (let* ((newenv (p1env-extend p1env
