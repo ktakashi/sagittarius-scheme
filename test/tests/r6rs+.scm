@@ -576,4 +576,18 @@
 	    2182600451
 	    (gcd -165543184715050652143983385447792 15946333291432216432322993695213691))
 
+(test-equal 'b
+	    (eval '(let ()
+		     (let-syntax ()
+		       (define foo 'b))
+		     foo)
+		  (environment '(rnrs))))
+
+(test-equal 'b
+	    (eval '(let ()
+		     (letrec-syntax ()
+		       (define foo 'b))
+		     foo)
+		  (environment '(rnrs))))
+
 (test-end)
