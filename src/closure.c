@@ -63,7 +63,8 @@ SgObject Sg_VMMakeClosure(SgObject code, int self_pos, SgObject *frees)
 
   cl->code = code;
   if (freec && !frees) {
-    Sg_Panic("Free variable count is %d, but actuall argument is null", freec);
+    /* better than SEGV... */
+    Sg_Panic("Free variable count is %d, but actual argument is null", freec);
   }
   for (i = 0; i < freec; i++) {
     cl->frees[i] = frees[freec - i - 1];
