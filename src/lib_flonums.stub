@@ -54,7 +54,7 @@
 (define (flonum n)
   (if (real? n)
       (inexact n)
-      (assertion-violation 'flonum "real number required" n)))
+      +nan.0))
 
 (define-c-proc fladjacent (x::<flonum> y::<flonum>) ::<flonum> :constant
   nextafter)
