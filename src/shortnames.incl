@@ -1,0 +1,67 @@
+/* shortnames.h                                    -*- mode:c; coding:utf-8; -*-
+ *
+ *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
+ *
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
+ *   are met:
+ *
+ *   1. Redistributions of source code must retain the above copyright
+ *      notice, this list of conditions and the following disclaimer.
+ *
+ *   2. Redistributions in binary form must reproduce the above copyright
+ *      notice, this list of conditions and the following disclaimer in the
+ *      documentation and/or other materials provided with the distribution.
+ *
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ *   TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ *   PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ *   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ *   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ *   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ *  $Id: $
+ */
+#define LF      SG_EOL_STYLE_LF   
+#define CR      SG_EOL_STYLE_CR   
+#define NEL     SG_EOL_STYLE_NEL  
+#define LS      SG_EOL_STYLE_LS   
+#define CRNEL   SG_EOL_STYLE_CRNEL
+#define CRLF    SG_EOL_STYLE_CRLF  
+#define E_NONE  SG_EOL_STYLE_E_NONE
+
+#define Lu  SG_GENERAL_CATEGORY_Lu
+#define Ll  SG_GENERAL_CATEGORY_Ll
+#define Lt  SG_GENERAL_CATEGORY_Lt
+#define Lm  SG_GENERAL_CATEGORY_Lm
+#define Lo  SG_GENERAL_CATEGORY_Lo
+#define Mn  SG_GENERAL_CATEGORY_Mn
+#define Mc  SG_GENERAL_CATEGORY_Mc
+#define Me  SG_GENERAL_CATEGORY_Me
+#define Nd  SG_GENERAL_CATEGORY_Nd
+#define Nl  SG_GENERAL_CATEGORY_Nl
+#define No  SG_GENERAL_CATEGORY_No
+#define Ps  SG_GENERAL_CATEGORY_Ps
+#define Pe  SG_GENERAL_CATEGORY_Pe
+#define Pi  SG_GENERAL_CATEGORY_Pi
+#define Pf  SG_GENERAL_CATEGORY_Pf
+#define Pd  SG_GENERAL_CATEGORY_Pd
+#define Pc  SG_GENERAL_CATEGORY_Pc
+#define Po  SG_GENERAL_CATEGORY_Po
+#define Sc  SG_GENERAL_CATEGORY_Sc
+#define Sm  SG_GENERAL_CATEGORY_Sm
+#define Sk  SG_GENERAL_CATEGORY_Sk
+#define So  SG_GENERAL_CATEGORY_So
+#define Zs  SG_GENERAL_CATEGORY_Zs
+#define Zp  SG_GENERAL_CATEGORY_Zp
+#define Zl  SG_GENERAL_CATEGORY_Zl
+#define Cc  SG_GENERAL_CATEGORY_Cc
+#define Cf  SG_GENERAL_CATEGORY_Cf
+#define Cs  SG_GENERAL_CATEGORY_Cs
+#define Co  SG_GENERAL_CATEGORY_Co
+#define Cn  SG_GENERAL_CATEGORY_Cn
