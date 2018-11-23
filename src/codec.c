@@ -72,7 +72,7 @@ static SgCodec* make_codec()
   } while (0);
 
 static int put_utf8_char(SgObject self, SgPort *port, SgChar c,
-			 ErrorHandlingMode mode)
+			 SgErrorHandlingMode mode)
 {
   uint8_t buf[4];
   int size = Sg_ConvertUcs4ToUtf8(c, buf, mode);
@@ -80,7 +80,7 @@ static int put_utf8_char(SgObject self, SgPort *port, SgChar c,
 }
 
 static SgChar get_utf8_char(SgObject self, SgPort *port,
-			    ErrorHandlingMode mode, int checkBOM)
+			    SgErrorHandlingMode mode, int checkBOM)
 {
   return Sg_ConvertUtf8ToUcs4(port, mode);
 }
@@ -91,7 +91,7 @@ static SgChar get_utf8_char(SgObject self, SgPort *port,
 
 #define DEFINE_READER(cname, convertor, calc)				\
   static int64_t cname(SgObject self, SgPort *port, SgChar *buf,	\
-		       int64_t size, ErrorHandlingMode mode,		\
+		       int64_t size, SgErrorHandlingMode mode,		\
 		       int checkBOM)					\
   {									\
     uint8_t read_buf[TMP_BUF_SIZE] = {0};				\
@@ -119,7 +119,7 @@ static SgChar get_utf8_char(SgObject self, SgPort *port,
 DEFINE_READER(read_utf8, Sg_ConvertUtf8BufferToUcs4, size);
 
 static int64_t write_utf8(SgObject self, SgPort* port, SgChar *str,
-			  int64_t count, ErrorHandlingMode mode)
+			  int64_t count, SgErrorHandlingMode mode)
 {
   /* we at lease need 'size' size buffer. */
   uint8_t tmp[TMP_BUF_SIZE];
@@ -183,7 +183,7 @@ SgObject Sg_MakeUtf8Codec()
 
 
 static int put_utf16_char(SgObject self, SgPort *port, SgChar c,
-			  ErrorHandlingMode mode)
+			  SgErrorHandlingMode mode)
 {
   uint8_t buf[4];
   int littlep = SG_CODEC_BUILTIN(self)->littlep;
@@ -194,7 +194,7 @@ static int put_utf16_char(SgObject self, SgPort *port, SgChar c,
 }
 
 static SgChar get_utf16_char(SgObject self, SgPort *port,
-			     ErrorHandlingMode mode, int checkBOM)
+			     SgErrorHandlingMode mode, int checkBOM)
 {
   return Sg_ConvertUtf16ToUcs4(port, mode, SG_CODEC(self), checkBOM);
 }
@@ -203,7 +203,7 @@ static SgChar get_utf16_char(SgObject self, SgPort *port,
 DEFINE_READER(read_utf16, Sg_ConvertUtf16BufferToUcs4, size*2);
 
 static int64_t write_utf16(SgObject self, SgPort* port, SgChar *str,
-			   int64_t count, ErrorHandlingMode mode)
+			   int64_t count, SgErrorHandlingMode mode)
 {
   /* we at lease need 'size' size buffer. */
   uint8_t tmp[TMP_BUF_SIZE];
@@ -229,7 +229,7 @@ static int64_t write_utf16(SgObject self, SgPort* port, SgChar *str,
 }
 
 
-SgObject Sg_MakeUtf16Codec(Endianness endian)
+SgObject Sg_MakeUtf16Codec(SgEndianness endian)
 {
   SgCodec* z;
   ASSERT(endian == UTF_16BE || endian == UTF_16LE || endian == UTF_16CHECK_BOM);
@@ -278,7 +278,7 @@ static void char_to_utf8_array(SgObject self, SgChar u, uint8_t *buf)
 }
 
 static int put_utf32_char(SgObject self, SgPort *port, SgChar u,
-			  ErrorHandlingMode mode)
+			  SgErrorHandlingMode mode)
 {
   uint8_t buf[4];
   /* for now we don't do for UTF-32 */
@@ -289,7 +289,7 @@ static int put_utf32_char(SgObject self, SgPort *port, SgChar u,
 
 static SgChar get_utf32(int (*u8_reader)(void *), SgObject self, 
 			SgPort *port,
-			ErrorHandlingMode mode, void *data)
+			SgErrorHandlingMode mode, void *data)
 {
   int a, b, c, d;
   SgChar sv;
@@ -333,7 +333,7 @@ static int port_u8_reader(void *data)
 }
 
 static SgChar get_utf32_char(SgObject self, SgPort *port, 
-			     ErrorHandlingMode mode, int checkBOM)
+			     SgErrorHandlingMode mode, int checkBOM)
 {
   return get_utf32(port_u8_reader, self, port, mode, port);
 }
@@ -358,7 +358,7 @@ static int64_t convert_utf32_buffer_ucs32(SgCodec *codec,
 					  uint8_t *u8buf, int64_t u8size,
 					  SgChar *buf, int64_t size,
 					  SgPort *port,
-					  ErrorHandlingMode mode,
+					  SgErrorHandlingMode mode,
 					  int checkBOM)
 {
   int64_t i;
@@ -379,7 +379,7 @@ static int64_t convert_utf32_buffer_ucs32(SgCodec *codec,
 DEFINE_READER(read_utf32, convert_utf32_buffer_ucs32, size*4);
 
 static int64_t write_utf32(SgObject self, SgPort* port, SgChar *s,
-			   int64_t count, ErrorHandlingMode mode)
+			   int64_t count, SgErrorHandlingMode mode)
 {
   uint8_t tmp[TMP_BUF_SIZE];
   int converted = 0;
@@ -401,7 +401,7 @@ static int64_t write_utf32(SgObject self, SgPort* port, SgChar *s,
 }
 
 
-SgObject Sg_MakeUtf32Codec(Endianness endian)
+SgObject Sg_MakeUtf32Codec(SgEndianness endian)
 {
   SgCodec* z = make_codec();
   if (endian == UTF_32USE_NATIVE_ENDIAN) {
@@ -437,7 +437,7 @@ SgObject Sg_MakeUtf32Codec(Endianness endian)
 }
 
 static int convert_latin1(SgPort *port, SgChar c,
-			  uint8_t *buf, ErrorHandlingMode mode)
+			  uint8_t *buf, SgErrorHandlingMode mode)
 {
   int size = 0;
   if (c <= 0xFF) {
@@ -462,7 +462,7 @@ static int convert_latin1(SgPort *port, SgChar c,
 }
 
 static int put_latin1_char(SgObject self, SgPort *port, SgChar c,
-			   ErrorHandlingMode mode)
+			   SgErrorHandlingMode mode)
 {
   uint8_t buf[1];
   int size = convert_latin1(port, c, buf, mode);
@@ -470,7 +470,7 @@ static int put_latin1_char(SgObject self, SgPort *port, SgChar c,
 }
 
 static SgChar get_latin1_char(SgObject self, SgPort *port,
-			      ErrorHandlingMode mode, int checkBOM)
+			      SgErrorHandlingMode mode, int checkBOM)
 {
   int f;
   f = Sg_GetbUnsafe(port);
@@ -490,7 +490,7 @@ static int64_t convert_latin1_buffer_ucs32(SgCodec *codec,
 					   uint8_t *u8buf, int64_t u8size,
 					   SgChar *buf, int64_t size,
 					   SgPort *port,
-					   ErrorHandlingMode mode,
+					   SgErrorHandlingMode mode,
 					   int checkBOM)
 {
   int64_t i;
@@ -511,7 +511,7 @@ static int64_t convert_latin1_buffer_ucs32(SgCodec *codec,
 DEFINE_READER(read_latin1, convert_latin1_buffer_ucs32, size);
 
 static int64_t write_latin1(SgObject self, SgPort* port, SgChar *s,
-			    int64_t count, ErrorHandlingMode mode)
+			    int64_t count, SgErrorHandlingMode mode)
 {
   /* actually, we can just dump it, but for checking... */
   uint8_t tmp[TMP_BUF_SIZE];
@@ -545,7 +545,7 @@ SgObject Sg_MakeLatin1Codec()
 }
 
 
-Endianness Sg_Utf16CheckBOM(SgByteVector *bv)
+SgEndianness Sg_Utf16CheckBOM(SgByteVector *bv)
 {
   if (SG_BVECTOR_SIZE(bv) >= 2) {
     if (SG_BVECTOR_ELEMENT(bv, 0) == 0xFE &&
@@ -562,7 +562,7 @@ Endianness Sg_Utf16CheckBOM(SgByteVector *bv)
   }
 }
 
-Endianness Sg_Utf32CheckBOM(SgByteVector *bv)
+SgEndianness Sg_Utf32CheckBOM(SgByteVector *bv)
 {
   if (SG_BVECTOR_SIZE(bv) >= 4) {
     if (SG_BVECTOR_ELEMENT(bv, 0) == 0x00

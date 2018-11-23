@@ -33,37 +33,37 @@
 #include "sagittariusdefs.h"
 
 typedef enum {
-  Lu,
-  Ll,
-  Lt,
-  Lm,
-  Lo,
-  Mn,
-  Mc,
-  Me,
-  Nd,
-  Nl,
-  No,
-  Ps,
-  Pe,
-  Pi,
-  Pf,
-  Pd,
-  Pc,
-  Po,
-  Sc,
-  Sm,
-  Sk,
-  So,
-  Zs,
-  Zp,
-  Zl,
-  Cc,
-  Cf,
-  Cs,
-  Co,
-  Cn
-} GeneralCategory;
+  SG_GENERAL_CATEGORY_Lu,
+  SG_GENERAL_CATEGORY_Ll,
+  SG_GENERAL_CATEGORY_Lt,
+  SG_GENERAL_CATEGORY_Lm,
+  SG_GENERAL_CATEGORY_Lo,
+  SG_GENERAL_CATEGORY_Mn,
+  SG_GENERAL_CATEGORY_Mc,
+  SG_GENERAL_CATEGORY_Me,
+  SG_GENERAL_CATEGORY_Nd,
+  SG_GENERAL_CATEGORY_Nl,
+  SG_GENERAL_CATEGORY_No,
+  SG_GENERAL_CATEGORY_Ps,
+  SG_GENERAL_CATEGORY_Pe,
+  SG_GENERAL_CATEGORY_Pi,
+  SG_GENERAL_CATEGORY_Pf,
+  SG_GENERAL_CATEGORY_Pd,
+  SG_GENERAL_CATEGORY_Pc,
+  SG_GENERAL_CATEGORY_Po,
+  SG_GENERAL_CATEGORY_Sc,
+  SG_GENERAL_CATEGORY_Sm,
+  SG_GENERAL_CATEGORY_Sk,
+  SG_GENERAL_CATEGORY_So,
+  SG_GENERAL_CATEGORY_Zs,
+  SG_GENERAL_CATEGORY_Zp,
+  SG_GENERAL_CATEGORY_Zl,
+  SG_GENERAL_CATEGORY_Cc,
+  SG_GENERAL_CATEGORY_Cf,
+  SG_GENERAL_CATEGORY_Cs,
+  SG_GENERAL_CATEGORY_Co,
+  SG_GENERAL_CATEGORY_Cn
+} SgGeneralCategory;
 
 
 SG_CDECL_BEGIN
@@ -73,11 +73,11 @@ SG_EXTERN int 	 Sg_Ucs4SubsequentP(SgChar c);
 SG_EXTERN int 	 Sg_Ucs4WhiteSpaceP(SgChar c);
 SG_EXTERN int 	 Sg_Ucs4IntralineWhiteSpaceP(SgChar c);
 SG_EXTERN int 	 Sg_ConvertUcs4ToUtf8(SgChar c, uint8_t utf8[4],
-				      ErrorHandlingMode mode);
+				      SgErrorHandlingMode mode);
 SG_EXTERN int 	 Sg_ConvertUcs4ToUtf16(SgChar c, uint8_t utf8[4],
-				       ErrorHandlingMode mode, int littelp);
-SG_EXTERN SgChar Sg_ConvertUtf8ToUcs4(SgPort *port, ErrorHandlingMode mode);
-SG_EXTERN SgChar Sg_ConvertUtf16ToUcs4(SgPort *port, ErrorHandlingMode mode,
+				       SgErrorHandlingMode mode, int littelp);
+SG_EXTERN SgChar Sg_ConvertUtf8ToUcs4(SgPort *port, SgErrorHandlingMode mode);
+SG_EXTERN SgChar Sg_ConvertUtf16ToUcs4(SgPort *port, SgErrorHandlingMode mode,
 				       SgCodec *codec, int checkBOMNow);
 SG_EXTERN SgChar Sg_EnsureUcs4(SgChar c);
 
@@ -85,13 +85,13 @@ SG_EXTERN int64_t Sg_ConvertUtf8BufferToUcs4(SgCodec *codec,
 					     uint8_t *u8buf, int64_t u8size,
 					     SgChar *buf, int64_t size,
 					     SgPort *port,
-					     ErrorHandlingMode mode,
+					     SgErrorHandlingMode mode,
 					     int checkBOM);
 SG_EXTERN int64_t Sg_ConvertUtf16BufferToUcs4(SgCodec *codec,
 					      uint8_t *u8buf, int64_t u8size,
 					      SgChar *buf, int64_t size,
 					      SgPort *port,
-					      ErrorHandlingMode mode,
+					      SgErrorHandlingMode mode,
 					      int checkBOM);
 
 /* string convertion */
@@ -127,8 +127,8 @@ SG_EXTERN SgObject Sg_StringNormalizeNfkd(SgString *str);
 SG_EXTERN SgObject Sg_StringNormalizeNfc(SgString *str);
 SG_EXTERN SgObject Sg_StringNormalizeNfkc(SgString *str);
 
-SG_EXTERN GeneralCategory Sg_CharGeneralCategory(SgChar ch);
-SG_EXTERN SgObject Sg_CategroyToSymbol(GeneralCategory cate);
+SG_EXTERN SgGeneralCategory Sg_CharGeneralCategory(SgChar ch);
+SG_EXTERN SgObject Sg_CategroyToSymbol(SgGeneralCategory cate);
 
 SG_EXTERN SgObject Sg_DigitValue(SgChar ch);
 

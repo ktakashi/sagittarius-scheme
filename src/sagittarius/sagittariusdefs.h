@@ -1,6 +1,6 @@
 /* sagittariusdefs.h                               -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -326,23 +326,23 @@ typedef enum {
   SG_RAISE_ERROR,    ///< Raises error when it's occured
   SG_REPLACE_ERROR,  ///< Replace
   SG_IGNORE_ERROR    ///< Ignore error
-} ErrorHandlingMode;
+} SgErrorHandlingMode;
 
 typedef enum {
-  LF  	= 0x0a,
-  CR  	= 0x0d,
-  NEL 	= 0x85,
-  LS  	= 0x2028,
-  CRNEL = 0x0d85,
-  CRLF  = 0x0d0a,
-  E_NONE
-} EolStyle;
+  SG_EOL_STYLE_LF    = 0x0a,
+  SG_EOL_STYLE_CR    = 0x0d,
+  SG_EOL_STYLE_NEL   = 0x85,
+  SG_EOL_STYLE_LS    = 0x2028,
+  SG_EOL_STYLE_CRNEL = 0x0d85,
+  SG_EOL_STYLE_CRLF  = 0x0d0a,
+  SG_EOL_STYLE_E_NONE
+} SgEolStyle;
 
 typedef enum  {
   SG_BEGIN,
   SG_CURRENT,
   SG_END
-} Whence;
+} SgWhence;
 
 /* Type coercer */
 #define SG_OBJ(obj)    ((SgObject)(obj))

@@ -50,7 +50,7 @@ typedef struct SgFileTableRec
   int64_t (*read)(SgObject self, uint8_t *buf, int64_t size);
   /* write buffer to file */
   int64_t (*write)(SgObject self, uint8_t *buf, int64_t size);
-  int64_t (*seek)(SgObject self, int64_t offset, Whence whence); /* seek */
+  int64_t (*seek)(SgObject self, int64_t offset, SgWhence whence); /* seek */
   int64_t (*tell)(SgObject self);
   int64_t (*size)(SgObject self);
   int     (*isOpen)(SgObject self);
@@ -106,7 +106,7 @@ SG_EXTERN SgObject Sg_FileErrorMessage(SgObject file);
 SG_EXTERN int      Sg_LockFile(SgObject file, enum SgFileLockType mode);
 SG_EXTERN int      Sg_UnlockFile(SgObject file);
 /* wrappers */
-SG_EXTERN int64_t  Sg_FileSeek(SgObject file, int64_t off, Whence whence);
+SG_EXTERN int64_t  Sg_FileSeek(SgObject file, int64_t off, SgWhence whence);
 SG_EXTERN void     Sg_FileTruncate(SgObject file, int64_t size);
 
 /* 

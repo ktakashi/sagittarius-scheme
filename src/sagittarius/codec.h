@@ -43,7 +43,7 @@ typedef enum {
   UTF_32LE,
   UTF_32USE_NATIVE_ENDIAN,
   NO_BOM,
-} Endianness;
+} SgEndianness;
 
 typedef enum {
   SG_BUILTIN_CODEC,
@@ -58,13 +58,13 @@ struct SgCodecRec
   union {
     struct {
       /* TODO read and write; */
-      int     (*putc)(SgObject, SgPort*, SgChar, ErrorHandlingMode);
-      SgChar  (*getc)(SgObject, SgPort*, ErrorHandlingMode, int);
+      int     (*putc)(SgObject, SgPort*, SgChar, SgErrorHandlingMode);
+      SgChar  (*getc)(SgObject, SgPort*, SgErrorHandlingMode, int);
       int64_t (*readc)(SgObject, SgPort*, SgChar*, int64_t,
-		       ErrorHandlingMode, int);
+		       SgErrorHandlingMode, int);
       int64_t (*writec)(SgObject, SgPort*, SgChar *, int64_t, 
-			ErrorHandlingMode);
-      Endianness endian;
+			SgErrorHandlingMode);
+      SgEndianness endian;
       /* only for utf16 and utf32 */
       int     littlep;
     } builtin;
@@ -95,16 +95,17 @@ SG_CLASS_DECL(Sg_CodecClass);
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeUtf8Codec();
-SG_EXTERN SgObject Sg_MakeUtf16Codec(Endianness endian);
-SG_EXTERN SgObject Sg_MakeUtf32Codec(Endianness endian);
+SG_EXTERN SgObject Sg_MakeUtf16Codec(SgEndianness endian);
+SG_EXTERN SgObject Sg_MakeUtf32Codec(SgEndianness endian);
 SG_EXTERN SgObject Sg_MakeLatin1Codec();
 
 /* check BOM */
-SG_EXTERN Endianness Sg_Utf16CheckBOM(SgByteVector *bv);
-SG_EXTERN Endianness Sg_Utf32CheckBOM(SgByteVector *bv);
+SG_EXTERN SgEndianness Sg_Utf16CheckBOM(SgByteVector *bv);
+SG_EXTERN SgEndianness Sg_Utf32CheckBOM(SgByteVector *bv);
 
 /* Scheme interface */
-SG_EXTERN SgObject Sg_MakeCustomCodecSimple(SgObject name, SgObject getc, SgObject putc, SgObject data);
+SG_EXTERN SgObject Sg_MakeCustomCodecSimple(SgObject name, SgObject getc,
+					    SgObject putc, SgObject data);
 
 SG_CDECL_END
 

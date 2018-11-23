@@ -54,6 +54,8 @@
 #include "sagittarius/unicode.h"
 #include "sagittarius/builtin-symbols.h"
 
+#include "shortnames.incl"
+
 #define WRITE_LIMITED  0x10
 #define WRITE_CIRCULAR 0x20
 

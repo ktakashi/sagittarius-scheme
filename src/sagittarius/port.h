@@ -179,7 +179,7 @@ typedef struct SgPortTableRec
      port is input port and contains infinite data.
    */
   int64_t  (*portPosition)(SgObject);
-  void     (*setPortPosition)(SgObject, int64_t, Whence);
+  void     (*setPortPosition)(SgObject, int64_t, SgWhence);
   /* port operations */
   int     (*open)(SgObject);
 
@@ -668,7 +668,7 @@ SG_EXTERN int      Sg_HasPortPosition(SgPort *port);
 SG_EXTERN int      Sg_HasSetPortPosition(SgPort *port);
 SG_EXTERN int64_t  Sg_PortPosition(SgPort *port);
 SG_EXTERN void     Sg_SetPortPosition(SgPort *port, int64_t offset,
-				      Whence whence);
+				      SgWhence whence);
 
 SG_EXTERN int      Sg_LineNo(SgPort *port);
 SG_EXTERN SgObject Sg_FileName(SgPort *port);
@@ -679,7 +679,7 @@ SG_EXTERN int      Sg_AddPortCleanup(SgPort *port);
 
 /* misc */
 SG_EXTERN int      Sg_PortCaseInsensitiveP(SgPort *port);
-SG_EXTERN SgObject Sg_ReadLine(SgPort *port, EolStyle eolStyle);
+SG_EXTERN SgObject Sg_ReadLine(SgPort *port, SgEolStyle eolStyle);
 SG_EXTERN SgObject Sg_ReadbUntil(SgPort *port, SgByteVector *eol);
 SG_EXTERN void     Sg_DefaultPortPrinter(SgObject obj, SgPort *port,
 					 SgWriteContext *ctx);

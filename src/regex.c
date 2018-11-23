@@ -38,6 +38,7 @@
 #include "sagittarius/symbol.h"
 #include "sagittarius/cache.h"
 
+#include "shortnames.incl"
 
 /* #define DEBUG_REGEX 1 */
 

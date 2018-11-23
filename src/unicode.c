@@ -41,6 +41,8 @@
 #include "sagittarius/bytevector.h"
 #include "sagittarius/hashtable.h"
 
+#include "shortnames.incl"
+
 #include "../unicode/lexeme.inc"
 
 int Sg_Ucs4ConstituentP(SgChar c)
@@ -107,7 +109,7 @@ int Sg_Ucs4IntralineWhiteSpaceP(SgChar c)
   return FALSE;
 }
 
-int Sg_ConvertUcs4ToUtf8(SgChar ucs4, uint8_t utf8[4], ErrorHandlingMode mode)
+int Sg_ConvertUcs4ToUtf8(SgChar ucs4, uint8_t utf8[4], SgErrorHandlingMode mode)
 {
   if (ucs4 < 0x80) {
     utf8[0] = ucs4;
@@ -149,7 +151,8 @@ int Sg_ConvertUcs4ToUtf8(SgChar ucs4, uint8_t utf8[4], ErrorHandlingMode mode)
   return 0; /* dummy */
 }
 
-int Sg_ConvertUcs4ToUtf16(SgChar ucs4, uint8_t utf8[4], ErrorHandlingMode mode,
+int Sg_ConvertUcs4ToUtf16(SgChar ucs4, uint8_t utf8[4],
+			  SgErrorHandlingMode mode,
 			  int littlep)
 {
 #define put2byte(buf, in)			\
@@ -304,7 +307,7 @@ static inline int port_u8_reader(void *data, int getP)
   }
 }
 
-SgChar Sg_ConvertUtf8ToUcs4(SgPort *port, ErrorHandlingMode mode)
+SgChar Sg_ConvertUtf8ToUcs4(SgPort *port, SgErrorHandlingMode mode)
 {
   SgChar r;
   utf8_reader(r, port_u8_reader, NULL, port, mode, FALSE, (void*)port);
@@ -355,7 +358,7 @@ static inline int buffer_u8_reader(void *data, int getP)
 #define DEFINE_BUFFER_CONVERTOR(cname, char_reader)			\
   int64_t cname(SgCodec *codec, uint8_t *u8buf, int64_t u8size,		\
 		SgChar *buf, int64_t size, SgPort *port,		\
-		ErrorHandlingMode mode, int checkBOM)			\
+		SgErrorHandlingMode mode, int checkBOM)			\
   {									\
     int64_t i;								\
     u8_reader_ctx ctx;							\
@@ -425,7 +428,7 @@ DEFINE_BUFFER_CONVERTOR(Sg_ConvertUtf8BufferToUcs4, utf8_reader);
   end:;									\
   } while (0)
 
-SgChar Sg_ConvertUtf16ToUcs4(SgPort *port, ErrorHandlingMode mode,
+SgChar Sg_ConvertUtf16ToUcs4(SgPort *port, SgErrorHandlingMode mode,
 			     SgCodec *codec, int checkBOMNow)
 {
   SgChar r;
@@ -844,7 +847,7 @@ int Sg_CharTitleCaseP(SgChar ch)
 
 static SgHashTable *general_category = NULL;
 
-GeneralCategory Sg_CharGeneralCategory(SgChar ch)
+SgGeneralCategory Sg_CharGeneralCategory(SgChar ch)
 {
 #if 0
   const int cate1_size = array_sizeof(s_general_category_1);
@@ -876,7 +879,7 @@ GeneralCategory Sg_CharGeneralCategory(SgChar ch)
   else return Cn;
 }
 
-SgObject Sg_CategroyToSymbol(GeneralCategory cate)
+SgObject Sg_CategroyToSymbol(SgGeneralCategory cate)
 {
 #define CASE_INTERN(c)			\
   case c : return SG_INTERN(#c)

@@ -8,6 +8,7 @@
 	     <sagittarius/instruction.h>
 	     <sagittarius/builtin-symbols.h>
 	     ;; need this...
+	     "shortnames.incl"
 	     "gc-incl.inc"))
 
   (define-cise-stmt assertion-violation
@@ -1430,7 +1431,7 @@
   (define-c-proc utf16->string (bv::<bytevector> endian::<symbol>
 						 :optional mandatory)
     :no-side-effect
-    (let ((endianness::Endianness NO_BOM)
+    (let ((endianness::SgEndianness NO_BOM)
 	  (skipBOM::int FALSE))
       (when (SG_UNBOUNDP mandatory)
 	(set! endianness (Sg_Utf16CheckBOM bv))
@@ -1456,7 +1457,7 @@
 
   (define-c-proc string->utf16 (s::<string> :optional endian::<symbol>)
     :no-side-effect
-    (let ((endianness::Endianness UTF_16BE)
+    (let ((endianness::SgEndianness UTF_16BE)
 	  (trans::SgTranscoder))
       (if (not (SG_UNBOUNDP endian))
 	  (cond ((SG_EQ endian 'little)
@@ -1473,7 +1474,7 @@
 
   (define-c-proc string->utf32 (s::<string> :optional endian::<symbol>)
     :no-side-effect
-    (let ((endianness::Endianness UTF_32BE)
+    (let ((endianness::SgEndianness UTF_32BE)
 	  (trans::SgTranscoder))
       (if (not (SG_UNBOUNDP endian))
 	  (cond ((SG_EQ endian 'little)
@@ -1490,7 +1491,7 @@
   (define-c-proc utf32->string (bv::<bytevector> endian::<symbol> 
 						 :optional mandatory)
     :no-side-effect
-    (let ((endianness::Endianness NO_BOM)
+    (let ((endianness::SgEndianness NO_BOM)
 	  (skipBOM::int FALSE))
       (when (SG_UNBOUNDP mandatory)
 	(set! endianness (Sg_Utf32CheckBOM bv))
@@ -1561,7 +1562,7 @@
     (result (Sg_MakeUtf16Codec UTF_16CHECK_BOM)))
 
   (define-c-proc native-eol-style () :no-side-effect
-    (let ((style::EolStyle (Sg_NativeEol)))
+    (let ((style::SgEolStyle (Sg_NativeEol)))
       (cond ((== style LF)
 	     (result 'lf))
 	    ((== style CR)
@@ -1589,8 +1590,8 @@
 		(SG_SYMBOLP eol))
       (wrong-type-of-argument-violation 'make-transcoder
 					"symbol" eol))
-    (let ((style::EolStyle (Sg_NativeEol))
-	  (handling::ErrorHandlingMode SG_REPLACE_ERROR))
+    (let ((style::SgEolStyle (Sg_NativeEol))
+	  (handling::SgErrorHandlingMode SG_REPLACE_ERROR))
       (cond ((SG_UNBOUNDP eol)) ;; do nothing
 	    ((SG_EQ eol 'lf)
 	     (set! style LF))
@@ -1628,7 +1629,7 @@
     SG_TRANSCODER_CODEC)
 
   (define-c-proc transcoder-eol-style (t::<transcoder>) :no-side-effect
-    (let ((style::EolStyle (SG_TRANSCODER_EOL_STYLE t)))
+    (let ((style::SgEolStyle (SG_TRANSCODER_EOL_STYLE t)))
       (cond ((== style LF)
 	     (result 'lf))
 	    ((== style CR)
@@ -1651,7 +1652,7 @@
 
   (define-c-proc transcoder-error-handling-mode (t::<transcoder>) 
     :no-side-effect
-    (let ((mode::ErrorHandlingMode (SG_TRANSCODER_MODE t)))
+    (let ((mode::SgErrorHandlingMode (SG_TRANSCODER_MODE t)))
       (cond ((SG_EQ mode SG_REPLACE_ERROR)
 	     (result SG_SYMBOL_REPLACE))
 	    ((SG_EQ mode SG_IGNORE_ERROR)
@@ -1721,7 +1722,7 @@
     (p::<port> off::<number> :optional (whence::<symbol> 'begin))
     ::<void>
     (check-port-open set-port-position! p)
-    (let ((w::Whence SG_BEGIN))
+    (let ((w::SgWhence SG_BEGIN))
       (cond ((SG_EQ whence 'begin)
 	     (when (Sg_NegativeP off)
 	       (wrong-type-of-argument-violation 'set-port-position!

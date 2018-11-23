@@ -39,6 +39,8 @@
 #include "sagittarius/vm.h"
 #include "sagittarius/error.h"
 
+#include "shortnames.incl"
+
 /* Linux(maybe only ubuntu) has this stupid macro. so we need to undefine it. */
 #ifdef putc
 #undef putc
@@ -428,16 +430,16 @@ int64_t Sg_TranscoderWrite(SgObject self, SgPort *tport,
 		     SG_TRANSCODER_MODE(self), new_s);
 }
 
-SgObject Sg_MakeTranscoder(SgCodec *codec, EolStyle eolStyle,
-			   ErrorHandlingMode mode)
+SgObject Sg_MakeTranscoder(SgCodec *codec, SgEolStyle eolStyle,
+			   SgErrorHandlingMode mode)
 {
   SgTranscoder *z = SG_NEW(SgTranscoder);
   return Sg_InitTranscoder(z, codec, eolStyle, mode);
 }
 
 SgObject Sg_InitTranscoder(SgTranscoder *transcoder,
-			   SgCodec *codec, EolStyle eolStyle,
-			   ErrorHandlingMode mode)
+			   SgCodec *codec, SgEolStyle eolStyle,
+			   SgErrorHandlingMode mode)
 {
   SG_SET_CLASS(transcoder, SG_CLASS_TRANSCODER);
   transcoder->codec = codec;

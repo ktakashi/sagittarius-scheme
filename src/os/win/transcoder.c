@@ -31,6 +31,8 @@
 #include <sagittarius/transcoder.h>
 #include <sagittarius/codec.h>
 
+#include "shortnames.incl"
+
 SgObject Sg_MakeNativeConsoleTranscoder()
 {
   static SgObject trans = NULL;
@@ -41,7 +43,7 @@ SgObject Sg_MakeNativeConsoleTranscoder()
   return trans;
 }
 
-EolStyle Sg_NativeEol()
+SgEolStyle Sg_NativeEol()
 {
   return CRLF;
 }

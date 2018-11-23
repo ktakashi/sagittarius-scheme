@@ -49,6 +49,8 @@
 #include "sagittarius/number.h"
 #include "sagittarius/builtin-symbols.h"
 
+#include "shortnames.incl"
+
 static SgClass *port_cpl[] = {
   SG_CLASS_PORT,
   SG_CLASS_TOP,
@@ -628,7 +630,7 @@ static int64_t buffered_position(SgObject self)
   return CONSIDER_PEEK(SG_PORT(self)->position, self);
 }
 
-static void buffered_set_position(SgObject self, int64_t off, Whence where)
+static void buffered_set_position(SgObject self, int64_t off, SgWhence where)
 {
   SgBufferedPort *bp = SG_BUFFERED_PORT(self);
   SgPort *src = bp->src;
@@ -973,7 +975,7 @@ static int64_t file_port_position(SgObject self)
 }
 
 static void file_set_port_position(SgObject self, int64_t offset,
-				   Whence whence)
+				   SgWhence whence)
 {
   SgFile *file = SG_PORT_FILE(self);
   /* if flush is there, then flush it */
@@ -1203,7 +1205,7 @@ static int64_t input_byte_array_port_position(SgObject self)
 }
 
 static void input_byte_array_set_port_position(SgObject self, int64_t offset,
-					       Whence whence)
+					       SgWhence whence)
 {
   SgBytePort *bp = SG_BYTE_PORT(self);
   int64_t realoff = 0LL;
@@ -1256,7 +1258,7 @@ static int64_t output_byte_array_port_position(SgObject self)
 }
 
 static void output_byte_array_set_port_position(SgObject self, int64_t offset,
-						Whence whence)
+						SgWhence whence)
 {
   /* todo check whence */
   SgBytePort *bp = SG_BYTE_PORT(self);
@@ -1461,7 +1463,7 @@ static int64_t trans_port_position(SgObject self)
 }
 
 static void trans_set_port_position(SgObject self, int64_t offset, 
-				    Whence whence)
+				    SgWhence whence)
 {
   SgPort *p = SG_TPORT_PORT(self);
   SG_TRANSCODED_PORT_UNGET(self) = EOF;
@@ -1631,7 +1633,7 @@ static int64_t input_string_port_position(SgObject self)
 }
 
 static void input_string_set_port_position(SgObject self, int64_t offset,
-					   Whence whence)
+					   SgWhence whence)
 {
   SgStringPort *tp = SG_STRING_PORT(self);
   int64_t realoff = 0LL;
@@ -1656,7 +1658,7 @@ static int64_t output_string_port_position(SgObject self)
 }
 
 static void output_string_set_port_position(SgObject self, int64_t offset,
-					   Whence whence)
+					    SgWhence whence)
 {
   SgStringPort *tp = SG_STRING_PORT(self);
   int64_t realoff = 0LL;
@@ -1959,7 +1961,7 @@ static int64_t custom_port_position(SgObject self)
 }
 
 static void custom_binary_set_port_position(SgObject port, int64_t offset,
-					    Whence whence)
+					    SgWhence whence)
 {
   SgObject sym;
   if (!SG_PROCEDUREP(SG_CUSTOM_PORT(port)->setPosition)) {
@@ -1994,7 +1996,7 @@ static void custom_binary_set_port_position(SgObject port, int64_t offset,
 }
 
 static void custom_textual_set_port_position(SgObject port, int64_t offset,
-					     Whence whence)
+					     SgWhence whence)
 {
   SgObject proc;
   SgObject sym = SG_FALSE;
@@ -2931,7 +2933,7 @@ SgChar Sg_PeekcUnsafe(SgPort *port)
   return -1;			/* dummy */
 }
 
-SgObject Sg_ReadLine(SgPort *port, EolStyle eolStyle)
+SgObject Sg_ReadLine(SgPort *port, SgEolStyle eolStyle)
 {
   volatile SgObject r = SG_UNDEF;
   if (!SG_TEXTUAL_PORTP(port)) {
@@ -3072,7 +3074,7 @@ int64_t Sg_PortPosition(SgPort *port)
   return SG_PORT_VTABLE(port)->portPosition(port);
 }
 
-void Sg_SetPortPosition(SgPort *port, int64_t offset, Whence whence)
+void Sg_SetPortPosition(SgPort *port, int64_t offset, SgWhence whence)
 {
   if (!SG_PORT_VTABLE(port)->setPortPosition) {
     Sg_Error(UC("Given port does not support set-port-position! %S"), port);

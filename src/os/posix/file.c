@@ -127,7 +127,7 @@ static int posix_can_close(SgObject self)
 }
 
 
-static int64_t posix_seek(SgObject self, int64_t offset, Whence whence)
+static int64_t posix_seek(SgObject self, int64_t offset, SgWhence whence)
 {
   int w = SEEK_SET;
   int64_t ret;

@@ -41,8 +41,8 @@ struct SgTranscoderRec
 {
   SG_HEADER;
   SgCodec               *codec;
-  EolStyle               eolStyle;
-  ErrorHandlingMode      mode;
+  SgEolStyle             eolStyle;
+  SgErrorHandlingMode    mode;
 };
 
 #define SG_TRANSCODERP(obj) SG_XTYPEP(obj, SG_CLASS_TRANSCODER)
@@ -55,15 +55,15 @@ struct SgTranscoderRec
 
 SG_CDECL_BEGIN
 
-SG_EXTERN SgObject Sg_MakeTranscoder(SgCodec *codec, EolStyle eolStyle,
-				     ErrorHandlingMode mode);
+SG_EXTERN SgObject Sg_MakeTranscoder(SgCodec *codec, SgEolStyle eolStyle,
+				     SgErrorHandlingMode mode);
 SG_EXTERN SgObject Sg_InitTranscoder(SgTranscoder *transcoder,
-				     SgCodec *codec, EolStyle eolStyle,
-				     ErrorHandlingMode mode);
+				     SgCodec *codec, SgEolStyle eolStyle,
+				     SgErrorHandlingMode mode);
 /* These two are OS dependent. see os/${os}/transcoder.c */
 SG_EXTERN SgObject Sg_MakeNativeConsoleTranscoder();
 SG_EXTERN SgObject Sg_MakeNativeTranscoder();
-SG_EXTERN EolStyle Sg_NativeEol();
+SG_EXTERN SgEolStyle Sg_NativeEol();
 
 SG_EXTERN SgChar   Sg_TranscoderGetc(SgObject self, SgPort *port);
 SG_EXTERN void     Sg_TranscoderPutc(SgObject self, SgPort *port, SgChar c);

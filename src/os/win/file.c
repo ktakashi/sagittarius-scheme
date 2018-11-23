@@ -191,7 +191,7 @@ static int64_t win_write(SgObject self, uint8_t *buf, int64_t size)
   }
 }
 
-static int64_t win_seek(SgObject self, int64_t offset, Whence whence)
+static int64_t win_seek(SgObject self, int64_t offset, SgWhence whence)
 {
   LARGE_INTEGER largePos, resultPos = {0};
   DWORD posMode;

@@ -54,6 +54,8 @@
 #include "sagittarius/writer.h"
 #include "sagittarius/library.h"
 
+#include "shortnames.incl"
+
 static uint8_t CHAR_MAP[] = {
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,

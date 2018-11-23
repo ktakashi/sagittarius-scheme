@@ -65,7 +65,7 @@ int Sg_CloseFile(SgObject file)
   return SG_FILE_VTABLE(file)->close(file);
 }
 
-int64_t Sg_FileSeek(SgObject file, int64_t off, Whence whence)
+int64_t Sg_FileSeek(SgObject file, int64_t off, SgWhence whence)
 {
   return SG_FILE_VTABLE(file)->seek(file, off, whence);
 }

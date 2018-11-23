@@ -34,7 +34,8 @@
   (decl-code
    (.define "LIBSAGITTARIUS_BODY")
    (.include <sagittarius.h>
-	     <sagittarius/cache.h>))
+	     <sagittarius/cache.h>
+	     "shortnames.incl"))
 
   (decl-code
    (.typedef "unsigned long" "ulong"))
