@@ -41,6 +41,8 @@
 #define W_OK 2
 #define R_OK 4
 
+#include "../../shortnames.incl"
+
 /* from mosh */
 static const wchar_t* utf32ToUtf16(SgString *path)
 {
