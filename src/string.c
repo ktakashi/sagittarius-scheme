@@ -111,7 +111,7 @@ SG_DEFINE_BUILTIN_CLASS(Sg_StringClass, string_print, NULL, NULL, NULL,
 
 #define ALLOC_TEMP_STRING SG_ALLOC_TEMP_STRING
 
-static SgString* make_string(int size)
+static SgString* make_string(long size)
 {
   SgString *z = SG_NEW_ATOMIC2(SgString *, SG_STRING_ALLOC_SIZE(size));
   SG_SET_CLASS(z, SG_CLASS_STRING);
@@ -122,7 +122,7 @@ static SgString* make_string(int size)
 
 #define COPY_STRING(ret, src, size, offset)				\
   do {									\
-    int i;								\
+    long i;								\
     for (i = 0; i < (size); i++) {					\
       ((ret)->value)[i + (offset)] = (src[i]);				\
     }									\
@@ -141,7 +141,7 @@ static SgWeakHashTable *stable = NULL;
 static SgHashTable *stable = NULL;
 #endif
 
-static SgObject makestring(const SgChar *value, SgStringType flag, int length)
+static SgObject makestring(const SgChar *value, SgStringType flag, long length)
 {
   SgObject r;
   SgString *z;
@@ -178,10 +178,10 @@ static SgObject makestring(const SgChar *value, SgStringType flag, int length)
   return r;
 }
 
-SgObject Sg_MakeString(const SgChar *value, SgStringType flag, int length)
+SgObject Sg_MakeString(const SgChar *value, SgStringType flag, long length)
 {
   if (length < 0) {
-    int len = (int)ustrlen(value);
+    long len = (long)ustrlen(value);
     return makestring(value, flag, len);
   } else {
     return makestring(value, flag, length);
@@ -192,16 +192,16 @@ SgObject Sg_MakeString(const SgChar *value, SgStringType flag, int length)
 SgObject Sg_MakeStringC(const char *value)
 {
   SgString *z;
-  z = make_string((int)strlen(value));
+  z = make_string((long)strlen(value));
   COPY_STRING(z, value, z->size, 0);
   z->value[z->size] = 0;
   return SG_OBJ(z);
 }
 
-SgObject Sg_ReserveString(int size, SgChar fill)
+SgObject Sg_ReserveString(long size, SgChar fill)
 {
   SgString *z = make_string(size);
-  int i;
+  long i;
   for (i = 0; i < size; i++) {
     z->value[i] = fill;
   }
@@ -225,10 +225,10 @@ int Sg_LiteralStringP(SgString *s)
   return SG_EQ(s, r);
 }
 /* converts given string to immutable string if it's not */
-SgObject Sg_StringToIString(SgString *s, int start, int end)
+SgObject Sg_StringToIString(SgString *s, long start, long end)
 {
   SgObject r;
-  int size = SG_STRING_SIZE(s);
+  long size = SG_STRING_SIZE(s);
   SG_CHECK_START_END(start, end, size);
   
   if (start == 0 && end == size && SG_IMMUTABLE_STRINGP(s)) return s;
@@ -253,11 +253,11 @@ SgObject Sg_StringIntern(SgString *s)
 }
 
 
-static int string_equal(SgChar *s1, int size1, SgChar *s2, int size2)
+static int string_equal(SgChar *s1, long size1, SgChar *s2, long size2)
 {
   if (size1 != size2) return FALSE;
   else {
-    int i;
+    long i;
     for (i = 0; i < size1; i++) {
       if (s1[i] != s2[i]) return FALSE;
     }
@@ -270,9 +270,9 @@ int Sg_StringEqual(SgString *s1, SgString *s2)
   return string_equal(s1->value, s1->size, s2->value, s2->size);
 }
 
-static inline int string_compare_rec(SgString *s1, SgString *s2, int len)
+static inline int string_compare_rec(SgString *s1, SgString *s2, long len)
 {
-  int i;
+  long i;
   for (i = 0; i < len; i++) {
     if (SG_STRING_VALUE_AT(s1, i) > SG_STRING_VALUE_AT(s2, i)) {
       return 1;
@@ -285,9 +285,9 @@ static inline int string_compare_rec(SgString *s1, SgString *s2, int len)
 
 int Sg_StringCompare(SgString *s1, SgString *s2)
 {
-  int s1_len = SG_STRING_SIZE(s1);
-  int s2_len = SG_STRING_SIZE(s2);
-  int len = (s1_len > s2_len) ? s2_len : s1_len;
+  long s1_len = SG_STRING_SIZE(s1);
+  long s2_len = SG_STRING_SIZE(s2);
+  long len = (s1_len > s2_len) ? s2_len : s1_len;
   int result = string_compare_rec(s1, s2, len);
   if (result == 0) {
     if (s1_len == s2_len) return 0;
@@ -307,9 +307,9 @@ SgObject Sg_StringAppend2(SgString *a, SgString *b)
   return SG_OBJ(z);
 }
 
-SgObject Sg_StringAppendC(SgString *a, const SgChar *s, int sizey)
+SgObject Sg_StringAppendC(SgString *a, const SgChar *s, long sizey)
 {
-  int sizex = a->size;
+  long sizex = a->size;
   SgString *p = make_string(sizex + sizey);
   /* manual copy */
   COPY_STRING(p, a->value, sizex, 0);
@@ -321,7 +321,7 @@ SgObject Sg_StringAppendC(SgString *a, const SgChar *s, int sizey)
 
 SgObject Sg_StringAppend(SgObject args)
 {
-  int len = 0, off = 0;
+  long len = 0, off = 0;
   SgObject cp;
   SgString *r;
   /* calculate length */
@@ -345,9 +345,9 @@ SgObject Sg_StringAppend(SgObject args)
   return SG_OBJ(r);
 }
 
-SgObject Sg_StringToList(SgString *s, int start, int end)
+SgObject Sg_StringToList(SgString *s, long start, long end)
 {
-  int size = SG_STRING_SIZE(s), i;
+  long size = SG_STRING_SIZE(s), i;
   const SgChar *buf = SG_STRING_VALUE(s);
   SgObject h = SG_NIL, t = SG_NIL;
   SG_CHECK_START_END(start, end, size);
@@ -357,10 +357,10 @@ SgObject Sg_StringToList(SgString *s, int start, int end)
   return h;
 }
 
-SgObject Sg_ListToString(SgObject chars, int start, int end)
+SgObject Sg_ListToString(SgObject chars, long start, long end)
 {
   SgObject cp, r;
-  int len = 0, i;
+  long len = 0, i;
   SgChar *buf;
 
   if (start < 0 || (end >= 0 && start > end)) {
@@ -402,7 +402,7 @@ SgObject Sg_CopyString(SgString *a)
   return SG_OBJ(s);
 }
 
-SgChar Sg_StringRef(SgString *s, int k)
+SgChar Sg_StringRef(SgString *s, long k)
 {
   if (k > SG_STRING_SIZE(s) || k < 0) {
     Sg_Error(UC("string-ref: index out of bounds. %S %d"), s, k);
@@ -410,11 +410,11 @@ SgChar Sg_StringRef(SgString *s, int k)
   return SG_STRING_VALUE_AT(s, k);
 }
 
-static inline int boyer_moore(const SgChar *ss1, int siz1,
-                              const SgChar *ss2, int siz2)
+static inline int boyer_moore(const SgChar *ss1, long siz1,
+                              const SgChar *ss2, long siz2)
 {
   uint32_t shift[256];
-  int i, j, k;
+  long i, j, k;
   for (i = 0; i < 256; i++) { shift[i] = siz2; }
   for (j = 0; j < siz2-1; j++) {
     shift[(uint32_t)ss2[j]] = siz2-j-1;
@@ -428,11 +428,11 @@ static inline int boyer_moore(const SgChar *ss1, int siz1,
 }
 
 static SgObject string_scan(SgString *s, const SgChar *ss2,
-			    int size2, int retmode)
+			    long size2, int retmode)
 {
-  int i;
+  long i;
   const SgChar *ss1 = SG_STRING_VALUE(s);
-  int size1 = SG_STRING_SIZE(s);
+  long size1 = SG_STRING_SIZE(s);
   const SgObject nullstr = SG_MAKE_STRING("");
 
   if (retmode < 0 || retmode > SG_STRING_SCAN_BOTH) {
@@ -534,9 +534,9 @@ SgObject Sg_StringSplitChar(SgString *s1, SgChar ch)
   return h;
 }
 
-SgObject Sg_Substring(SgString *x, int start, int end)
+SgObject Sg_Substring(SgString *x, long start, long end)
 {
-  int len = x->size;
+  long len = x->size;
   SgString *ret;
   SG_CHECK_START_END(start, end, len);
 
@@ -546,7 +546,7 @@ SgObject Sg_Substring(SgString *x, int start, int end)
   return ret;
 }
 
-void Sg_StringSet(SgString *s, int k, SgChar c)
+void Sg_StringSet(SgString *s, long k, SgChar c)
 {
   if (SG_IMMUTABLE_STRINGP(s)) {
     Sg_Error(UC("attemped to modify a immutable string %S"), s);
@@ -554,7 +554,7 @@ void Sg_StringSet(SgString *s, int k, SgChar c)
   SG_STRING_VALUE_AT(s, k) = c;
 }
 
-void Sg_StringFill(SgString *s, SgChar c, int start, int end)
+void Sg_StringFill(SgString *s, SgChar c, long start, long end)
 {
   int size = s->size, i;
   SG_CHECK_START_END(start, end, size);
@@ -563,7 +563,7 @@ void Sg_StringFill(SgString *s, SgChar c, int start, int end)
   }
 }
 
-SgObject Sg_MaybeSubstring(SgString *s, int start, int end)
+SgObject Sg_MaybeSubstring(SgString *s, long start, long end)
 {
   if (start == 0 && end < 0) return SG_OBJ(s);
   return Sg_Substring(s, start, end);
@@ -571,7 +571,7 @@ SgObject Sg_MaybeSubstring(SgString *s, int start, int end)
 
 #define STRING_HASH(hv, chars, size)				\
   do {								\
-    int i_ = (size);						\
+    long i_ = (size);						\
     (hv) = 0;							\
     while (i_-- > 0) {						\
       (hv) = ((hv) << 5) - (hv) + ((unsigned char)*chars++);	\

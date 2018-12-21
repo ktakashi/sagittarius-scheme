@@ -614,7 +614,7 @@ int ustrncmp(const SgChar *s1,
 size_t ustrlen(const SgChar *value)
 {
   /* TODO naive? */
-  int count = 0;
+  size_t count = 0;
   for (; *value ;value++, count++);
   return count;
 }

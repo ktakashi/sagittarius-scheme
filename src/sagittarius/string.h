@@ -39,8 +39,8 @@ SG_CLASS_DECL(Sg_StringClass);
 struct SgStringRec
 {
   SG_HEADER;
-  unsigned int immutablep: 1;
-  int size             : (SIZEOF_INT*CHAR_BIT-1);
+  unsigned long immutablep: 1;
+  long size             : (SIZEOF_LONG*CHAR_BIT-1);
   SgChar value[1];
 };
 
@@ -98,14 +98,14 @@ SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeStringC(const char *value);
 SG_EXTERN SgObject Sg_MakeString(const SgChar *value, SgStringType flag,
-				 int length);
+				 long length);
 
-SG_EXTERN SgObject Sg_ReserveString(int size, SgChar fill);
+SG_EXTERN SgObject Sg_ReserveString(long size, SgChar fill);
 /* this is for get-string-n related not for c use */
 SG_EXTERN SgObject Sg_MakeEmptyString();
 
-SG_EXTERN SgObject Sg_StringToList(SgString *s, int start, int end);
-SG_EXTERN SgObject Sg_ListToString(SgObject obj, int start, int end);
+SG_EXTERN SgObject Sg_StringToList(SgString *s, long start, long end);
+SG_EXTERN SgObject Sg_ListToString(SgObject obj, long start, long end);
 
 /* compare */
 SG_EXTERN int 	   Sg_StringEqual(SgString *s1, SgString *s2);
@@ -113,11 +113,11 @@ SG_EXTERN int 	   Sg_StringCompare(SgString *s1, SgString *s2);
 
 /* concat */
 SG_EXTERN SgObject Sg_StringAppend2(SgString *a, SgString *b);
-SG_EXTERN SgObject Sg_StringAppendC(SgString *a, const SgChar *s, int size);
+SG_EXTERN SgObject Sg_StringAppendC(SgString *a, const SgChar *s, long size);
 SG_EXTERN SgObject Sg_StringAppend(SgObject args);
 SG_EXTERN SgObject Sg_CopyString(SgString *a);
 
-SG_EXTERN SgChar   Sg_StringRef(SgString *s, int k);
+SG_EXTERN SgChar   Sg_StringRef(SgString *s, long k);
 /* search */
 SG_EXTERN SgObject Sg_StringScan(SgString *s1, SgString *s2, int retmode);
 SG_EXTERN SgObject Sg_StringScanChar(SgString *s1, SgChar ch, int retmode);
@@ -125,16 +125,16 @@ SG_EXTERN SgObject Sg_StringScanChar(SgString *s1, SgChar ch, int retmode);
 SG_EXTERN SgObject Sg_StringSplitChar(SgString *s1, SgChar ch);
 
 /* modify */
-SG_EXTERN SgObject Sg_Substring(SgString *x, int start, int end);
-SG_EXTERN void     Sg_StringSet(SgString *s, int k, SgChar c);
-SG_EXTERN void     Sg_StringFill(SgString *s, SgChar c, int start, int end);
+SG_EXTERN SgObject Sg_Substring(SgString *x, long start, long end);
+SG_EXTERN void     Sg_StringSet(SgString *s, long k, SgChar c);
+SG_EXTERN void     Sg_StringFill(SgString *s, SgChar c, long start, long end);
 /* for srfi-13 */
-SG_EXTERN SgObject Sg_MaybeSubstring(SgString *s, int start, int end);
+SG_EXTERN SgObject Sg_MaybeSubstring(SgString *s, long start, long end);
 
 /* check if the string is literal (not immutable) string */
 SG_EXTERN int      Sg_LiteralStringP(SgString *s);
 /* converts given string to immutable string if it's not */
-SG_EXTERN SgObject Sg_StringToIString(SgString *s, int start, int end);
+SG_EXTERN SgObject Sg_StringToIString(SgString *s, long start, long end);
 /* mostly for cache */
 SG_EXTERN SgObject Sg_StringIntern(SgString *s);
 
