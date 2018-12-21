@@ -1791,9 +1791,11 @@ static SgObject radix2_string(SgBignum *b)
   long count, n, off = 0, i;
   /* we only need to care the first element's bit size */
   count = n = WORD_BITS - nlz(b->elements[b->size-1]);
+
   if (b->sign < 0) count++;
   /* compute the rest of elements bit */
   count += (b->size-1)*WORD_BITS;
+
   /* allocate string */
   r = Sg_ReserveString(count, 0);
   if (b->sign < 0) SG_STRING_VALUE_AT(r, off++) = '-';

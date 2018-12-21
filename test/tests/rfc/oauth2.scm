@@ -129,8 +129,7 @@
 		     (do-test-process in/out method path headers content))))
 		;; something went terribly wrong
 		(else (get-bytevector-all in/out) (put-error in/out)))))))
-  (define server (make-simple-server "10080" handler :config config
-				     :exception-handler print))
+  (define server (make-simple-server "10080" handler :config config))
 
   (define conn (make-oauth2-http1-connection "localhost:10080"))
   (server-start! server :background #t)

@@ -278,8 +278,7 @@
 		;; something went terribly wrong
 		(else (get-bytevector-all in/out) (put-error in/out)))))))
 
-  (define server (make-simple-server "20080" handler :config config
-				     :exception-handler print))
+  (define server (make-simple-server "20080" handler :config config))
 
   (define conn (make-oauth-connection
 		(make-http1-connection "localhost:20080" #t)

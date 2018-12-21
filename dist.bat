@@ -20,7 +20,7 @@ set RETRY=0
 set COMMAND=%1
 shift
 :retry
-%SASH% %COMMAND% %*
+%SASH% -L../sitelib %COMMAND% %*
 if %errorlevel% neq 0 (
     set /a RETRY=%RETRY%+1
     if %RETRY% neq %MAX_RETRY% goto retry

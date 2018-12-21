@@ -52,7 +52,7 @@ struct SgBignumRec
 {
   SG_HEADER;
   long sign : 2;
-  unsigned long size: (SIZEOF_LONG*CHAR_BIT-2);
+  long size: (SIZEOF_LONG*CHAR_BIT-2);
   unsigned long elements[1];
 };
 
