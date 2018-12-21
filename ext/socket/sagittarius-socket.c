@@ -36,6 +36,9 @@
 #include <signal.h>
 /* we assume _WIN32 is only VC */
 #if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
+/* MSVC 2012 doesn't have this, so define it */
+typedef int ssize_t;
+typedef long suseconds_t;
 # ifndef EINTR
 #  undef EINTR
 # endif
