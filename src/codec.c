@@ -1,6 +1,6 @@
 /* codec.c                                         -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -265,15 +265,15 @@ SgObject Sg_MakeUtf16Codec(SgEndianness endian)
 static void char_to_utf8_array(SgObject self, SgChar u, uint8_t *buf)
 {
   if (SG_CODEC_ENDIAN(self) == UTF_32LE) {
-    buf[0] = u;
-    buf[1] = u >> 8;
-    buf[2] = u >> 16;
-    buf[3] = u >> 24;
+    buf[0] = (uint8_t)u;
+    buf[1] = (uint8_t)(u >> 8);
+    buf[2] = (uint8_t)(u >> 16);
+    buf[3] = (uint8_t)(u >> 24);
   } else {
-    buf[0] = u >> 24;
-    buf[1] = u >> 16;
-    buf[2] = u >> 8;
-    buf[3] = u;
+    buf[0] = (uint8_t)(u >> 24);
+    buf[1] = (uint8_t)(u >> 16);
+    buf[2] = (uint8_t)(u >> 8);
+    buf[3] = (uint8_t)u;
   }  
 }
 
@@ -441,7 +441,7 @@ static int convert_latin1(SgPort *port, SgChar c,
 {
   int size = 0;
   if (c <= 0xFF) {
-    buf[0] = c;
+    buf[0] = (uint8_t)c;
     size = 1;
   } else {
     if (mode == SG_RAISE_ERROR) {
@@ -587,7 +587,7 @@ static SgObject readc_proc(SgObject *args, int argc, void *data)
 {
   SgObject codec, port, size, mode, sdata;
   SgStringPort out;
-  int count, i;
+  long count, i;
   codec = SG_OBJ(data);
   if (argc != 4) {
     Sg_WrongNumberOfArgumentsViolation(SG_INTERN("default-codec-readc"),

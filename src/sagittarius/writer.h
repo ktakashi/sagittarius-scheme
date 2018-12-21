@@ -37,7 +37,7 @@ struct SgWriteContextRec
   short mode;                 /* print mode */
   short flags;                /* internal */
   int sharedId;		      /* internal */
-  int limit;                  /* internal */
+  long limit;		      /* internal */
   int ncirc;                  /* internal */
   SgHashTable *table;         /* internal */
   int stackSize;	      /* internal */
@@ -66,9 +66,12 @@ enum {
 SG_CDECL_BEGIN
 
 SG_EXTERN void 	   Sg_Write(SgObject obj, SgObject port, int mode);
-SG_EXTERN int  	   Sg_WriteCircular(SgObject obj, SgObject port, int mode, int width);
-SG_EXTERN int  	   Sg_WriteLimited(SgObject obj, SgObject port, int mode, int width);
-SG_EXTERN void 	   Sg_Format(SgPort *port, SgString *fmt, SgObject args, int ss);
+SG_EXTERN long     Sg_WriteCircular(SgObject obj, SgObject port,
+				    int mode, long width);
+SG_EXTERN long     Sg_WriteLimited(SgObject obj, SgObject port,
+				   int mode, long width);
+SG_EXTERN void 	   Sg_Format(SgPort *port, SgString *fmt,
+			     SgObject args, int ss);
 SG_EXTERN void 	   Sg_Printf(SgPort *port, const SgChar *fmt, ...);
 SG_EXTERN void 	   Sg_PrintfShared(SgPort *port, const SgChar *fmt, ...);
 SG_EXTERN void 	   Sg_Vprintf(SgPort *port, const SgChar *fmt, va_list args,

@@ -155,7 +155,7 @@
     (wrong-type-of-argument-violation 'make-semaphore 
 				      "non negative fixnum" 
 				      (SG_MAKE_INT value)))
-  (let ((v::int value)
+  (let ((v::int (cast int value))
 	(n::SgString* (?: (SG_FALSEP name) NULL (SG_STRING name))))
     (result (Sg_MakeSemaphore n v))))
 

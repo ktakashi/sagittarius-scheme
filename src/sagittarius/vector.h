@@ -1,6 +1,6 @@
 /* vector.h                                        -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -39,8 +39,8 @@ SG_CLASS_DECL(Sg_VectorClass);
 struct SgVectorRec
 {
   SG_HEADER;
-  unsigned int literalp: 1;
-  int size             : (SIZEOF_INT*CHAR_BIT-1);
+  unsigned long literalp: 1;
+  long size             : (SIZEOF_LONG*CHAR_BIT-1);
   SgObject elements[1];
 };
 
@@ -57,19 +57,19 @@ struct SgVectorRec
 
 SG_CDECL_BEGIN
 
-SG_EXTERN SgObject Sg_MakeVector(int size, SgObject fill);
-SG_EXTERN SgObject Sg_VectorRef(SgVector *vec, int i, SgObject fallback);
-SG_EXTERN SgObject Sg_VectorSet(SgVector *vec, int i, SgObject obj);
+SG_EXTERN SgObject Sg_MakeVector(long size, SgObject fill);
+SG_EXTERN SgObject Sg_VectorRef(SgVector *vec, long i, SgObject fallback);
+SG_EXTERN SgObject Sg_VectorSet(SgVector *vec, long i, SgObject obj);
 SG_EXTERN SgObject Sg_VectorFill(SgVector *vec, SgObject fill,
-				 int start, int end);
+				 long start, long end);
 
-SG_EXTERN SgObject Sg_ListToVector(SgObject l, int start, int end);
-SG_EXTERN SgObject Sg_VectorToList(SgVector *v, int start, int end);
-SG_EXTERN SgObject Sg_VectorCopy(SgVector *vec, int start, int end,
+SG_EXTERN SgObject Sg_ListToVector(SgObject l,  long start, long end);
+SG_EXTERN SgObject Sg_VectorToList(SgVector *v, long start, long end);
+SG_EXTERN SgObject Sg_VectorCopy(SgVector *vec, long start, long end,
 				 SgObject fill);
 
 SG_EXTERN SgObject Sg_VectorConcatenate(SgObject vecList);
-SG_EXTERN SgObject Sg_VectorReverseX(SgObject vec, int start, int end);
+SG_EXTERN SgObject Sg_VectorReverseX(SgObject vec, long start, long end);
 
 SG_CDECL_END
 

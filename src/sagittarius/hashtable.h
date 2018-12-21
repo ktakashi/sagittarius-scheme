@@ -1,6 +1,6 @@
 /* hashtable.h                                     -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2016  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -45,11 +45,12 @@ typedef enum {
 typedef struct SgHashCoreRec SgHashCore;
 typedef struct SgHashIterRec SgHashIter;
 
+typedef unsigned long SgHashVal;
 /* hasher */
-typedef uint32_t SgHashProc(const SgHashCore *hc, intptr_t key);
+typedef SgHashVal SgHashProc(const SgHashCore *hc, intptr_t key);
 /* tester */
-typedef int      SgHashCompareProc(const SgHashCore *hc, intptr_t key,
-				   intptr_t entryKey);
+typedef int  SgHashCompareProc(const SgHashCore *hc, intptr_t key,
+			       intptr_t entryKey);
 
 typedef SgDictEntry SgHashEntry;
 /* 
@@ -58,9 +59,9 @@ typedef SgDictEntry SgHashEntry;
 struct SgHashCoreRec
 {
   void  **buckets;
-  int     bucketCount;
-  int     entryCount;
-  int     bucketsLog2Count;
+  long    bucketCount;
+  long    entryCount;
+  long    bucketsLog2Count;
   void              *access;
   SgHashProc        *hasher;
   SgHashCompareProc *compare;
@@ -74,7 +75,7 @@ struct SgHashCoreRec
 struct SgHashIterRec
 {
   SgHashCore *core;
-  int         bucket;
+  long         bucket;
   void       *next;
   SgObject    table;  /* need for weak hashtable */
   /* Iterator itself should have next operation */
@@ -143,12 +144,12 @@ SG_CDECL_BEGIN
 /* hash core */
 SG_EXTERN void Sg_HashCoreInitSimple(SgHashCore *core,
 				     SgHashType type,
-				     unsigned int initSize,
+				     long initSize,
 				     void *data);
 SG_EXTERN void Sg_HashCoreInitGeneral(SgHashCore *core,
 				      SgHashProc *hasher,
 				      SgHashCompareProc *compare,
-				      unsigned int initSize,
+				      long initSize,
 				      void *data);
 SG_EXTERN int Sg_HashCoreTypeToProcs(SgHashType type, SgHashProc **hasher,
 				     SgHashCompareProc **compare);
@@ -156,7 +157,7 @@ SG_EXTERN SgHashEntry* Sg_HashCoreSearch(SgHashCore *table, intptr_t key,
 					 SgDictOp op, int flags);
 /* core operation to copy hashtable structure */
 SG_EXTERN void Sg_HashCoreCopy(SgHashTable *dst, const SgHashTable *src);
-SG_EXTERN void Sg_HashCoreClear(SgHashCore *ht, int k);
+SG_EXTERN void Sg_HashCoreClear(SgHashCore *ht, long k);
 
 /* iterator */
 SG_EXTERN void Sg_HashIterInit(SgObject table, SgHashIter *itr);
@@ -166,19 +167,19 @@ SG_EXTERN SgHashEntry* Sg_HashIterNext(SgHashIter *itr,
 				       SgObject *val /* out */);
 
 /* hasher */
-SG_EXTERN uint32_t Sg_EqHash(SgObject obj, uint32_t bound);
-SG_EXTERN uint32_t Sg_EqvHash(SgObject obj, uint32_t bound);
-SG_EXTERN uint32_t Sg_EqualHash(SgObject obj, uint32_t bound);
-SG_EXTERN uint32_t Sg_StringHash(SgString *str, uint32_t bound);
+SG_EXTERN SgHashVal Sg_EqHash(SgObject obj, SgHashVal bound);
+SG_EXTERN SgHashVal Sg_EqvHash(SgObject obj, SgHashVal bound);
+SG_EXTERN SgHashVal Sg_EqualHash(SgObject obj, SgHashVal bound);
+SG_EXTERN SgHashVal Sg_StringHash(SgString *str, SgHashVal bound);
 
-SG_EXTERN SgObject Sg_MakeHashTableSimple(SgHashType type, int initSize);
+SG_EXTERN SgObject Sg_MakeHashTableSimple(SgHashType type, long initSize);
 SG_EXTERN SgObject Sg_InitHashTableSimple(SgHashTable *table, 
-					  SgHashType type, int initSize);
+					  SgHashType type, long initSize);
 
 SG_EXTERN SgObject Sg_MakeHashTable(SgObject hasher, 
-				    SgObject compare, int initSize);
+				    SgObject compare, long initSize);
 SG_EXTERN SgObject Sg_MakeHashTableWithComparator(SgObject comparator, 
-						  int initSize);
+						  long initSize);
 
 SG_EXTERN SgObject Sg_HashTableCopy(SgHashTable *table, int mutableP);
 
@@ -194,7 +195,7 @@ SG_EXTERN SgObject Sg_HashTableValues(SgHashTable *table);
 /* status for hash table */
 SG_EXTERN SgObject Sg_HashTableStat(SgHashTable *table);
 
-SG_EXTERN int      Sg_HashTableSize(SgHashTable *table);
+SG_EXTERN long     Sg_HashTableSize(SgHashTable *table);
 
 SG_CDECL_END
 

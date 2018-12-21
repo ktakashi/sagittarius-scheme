@@ -1,6 +1,6 @@
 /* pair.c                                          -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -134,10 +134,10 @@ SgObject Sg_ArrayToListWithTail(SgObject *array, int nelts, SgObject tail)
   return array_to_list_with_tail(array, nelts, tail);
 }
 
-static SgObject* list_to_array_rec(SgObject list, int nullTermP, int *rlen)
+static SgObject* list_to_array_rec(SgObject list, int nullTermP, long *rlen)
 {
   SgObject *array, lp;
-  int len = Sg_Length(list), i, offset = 0;;
+  long len = Sg_Length(list), i, offset = 0;;
   if (len < 0) Sg_Error(UC("proper list required, but got %S"), list);
   if (nullTermP) offset++;
   array = SG_NEW_ARRAY(SgObject, len+offset);
@@ -191,10 +191,10 @@ CXR(Sg_Cdar, "cdar", A D)
 CXR(Sg_Cddr, "cddr", D D)
 /* Maybe add cadr etc.*/
 
-int Sg_Length(SgObject obj)
+long Sg_Length(SgObject obj)
 {
   SgObject slow = obj;
-  int len = 0;
+  long len = 0;
   for (;;) {
     if (SG_NULLP(obj)) break;
     if (!SG_PAIRP(obj)) return SG_LIST_DOTTED;
@@ -312,9 +312,9 @@ SgObject Sg_LastPair(SgObject list)
   return SG_UNDEF; /* never reached */
 }
 
-SgObject Sg_ListTail(SgObject list, int i, SgObject fallback)
+SgObject Sg_ListTail(SgObject list, long i, SgObject fallback)
 {
-  int count = i;
+  long count = i;
   SgObject oargs = list;
   if (i < 0) goto err;
   while (count-- > 0) {
@@ -331,9 +331,9 @@ SgObject Sg_ListTail(SgObject list, int i, SgObject fallback)
   return fallback;
 }
 
-SgObject Sg_ListRef(SgObject list, int i, SgObject fallback)
+SgObject Sg_ListRef(SgObject list, long i, SgObject fallback)
 {
-  int k;
+  long k;
   SgObject oargs = list;
   if (i < 0) goto err;
   for (k = 0; k < i; k++) {
@@ -435,10 +435,10 @@ SgObject Sg_SetPairAnnotation(SgObject pair, SgObject name, SgObject v)
 }
 
 /* from Ypsilon */
-static SgObject do_transpose(int shortest_len, SgObject args[])
+static SgObject do_transpose(long shortest_len, SgObject args[])
 {
   SgObject ans = SG_NIL, tail = SG_NIL;
-  int i, n, argc;
+  long i, n, argc;
   SgObject *rest = list_to_array_rec(args[1], FALSE, &argc);
 
   for (i = 0; i < shortest_len; i++) {
@@ -472,13 +472,13 @@ static SgObject list_transpose_s(SgObject *args, int argc, void *data)
    */
   v = args[0];
   if (SG_LISTP(args[0])) {
-    int each_len = Sg_Length(args[0]);
+    long each_len = Sg_Length(args[0]);
     SgObject cp;
     if (each_len < 0 && each_len != SG_LIST_CIRCULAR) goto err;
     SG_FOR_EACH(cp, args[1]) {
       v = SG_CAR(cp);
       if (SG_LISTP(v)) {
-	int len = Sg_Length(v);
+	long len = Sg_Length(v);
 	if (len < 0 && len != SG_LIST_CIRCULAR) goto err;
 	if (len >= 0) {
 	  if (len < each_len) each_len = len;
@@ -508,13 +508,13 @@ static SgObject list_transpose_p(SgObject *args, int argc, void *data)
   }
   v = args[0];
   if (SG_LISTP(args[0])) {
-    int each_len = Sg_Length(args[0]);
+    long each_len = Sg_Length(args[0]);
     SgObject cp;
     if (each_len < 0) goto err;
     SG_FOR_EACH(cp, args[1]) {
       v = SG_CAR(cp);
       if (SG_LISTP(v)) {
-	int len = Sg_Length(v);
+	long len = Sg_Length(v);
 	if (len < 0) goto err;
 	if (len != each_len) return SG_FALSE;
 	continue;

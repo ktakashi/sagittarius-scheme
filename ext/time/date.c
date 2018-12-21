@@ -204,7 +204,7 @@ SgObject Sg_LocalTimezoneName()
        */
       char linkbuf[PATH_MAX+1] = {0, };
       const char *r;
-      int len;
+      ssize_t len;
       if ((len = readlink(ETC_LOCALTIME, linkbuf, sizeof(linkbuf)-1)) == 0) {
 	linkbuf[len] = '\0';
       }

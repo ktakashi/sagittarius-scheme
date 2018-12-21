@@ -45,6 +45,7 @@
    (label? :init-keyword :label?)
    (return? :init-keyword :return?)
    (combined :init-keyword :combined)
+   (no-declare? :init-keyword :no-declare?)
    (push-variant :init-value #f)
    (base-variant :init-value #f)
    (ret-variant :init-value #f)
@@ -71,20 +72,23 @@
     (let loop ((form form)
 	       (return? #f)
 	       (label? #f)
-	       (combined #f))
+	       (combined #f)
+	       (no-declare? #f))
       (match form
-	((:label . rest) (loop (cdr form) return? #t combined))
-	((:return . rest) (loop (cdr form) #t label? combined))
-	((:combined . rest)
-	 (values return? label? (car rest) #f))
-	(_ (values return? label? combined form)))))
+	((:label . rest) (loop (cdr form) return? #t combined no-declare?))
+	((:return . rest) (loop (cdr form) #t label? combined no-declare?))
+	((:combined . rest) (values return? label? (car rest) no-declare? #f))
+	((:no-declare . rest) (loop (cdr form) #t label? combined #t))
+	(_ (values return? label? combined no-declare? form)))))
 
   (match definsn
     ((_ name (insn-argc argc src?) . rest)
-     (let-values (((return? label? combined body) (parse-keywords rest)))
+     (let-values (((return? label? combined no-declare? body)
+		   (parse-keywords rest)))
        (make <vm-insn-info>
 	 :name name :code insn-num :vals insn-argc :argc argc
 	 :src? src? :label? label? :return? return? :combined combined
+	 :no-declare? no-declare?
 	 :body body)))
     (_ (error 'parse-define-inst
 	      "malformed define-inst" definsn))))
@@ -186,9 +190,10 @@
       (cgen-body (string-append "{"
 				(call-with-string-output-port
 				 (lambda (p)
-				   (let ((count (~ insn 'vals)))
-				     (dotimes (i count)
-				       (format p "~%int val~a;" (+ i 1))))))))
+				   (unless (~ insn 'no-declare?)
+				     (let ((count (~ insn 'vals)))
+				       (dotimes (i count)
+					 (format p "~%int val~a;" (+ i 1)))))))))
       (render1 insn)
       (cgen-body "}"))
     ))

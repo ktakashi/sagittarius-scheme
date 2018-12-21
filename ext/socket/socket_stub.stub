@@ -31,18 +31,18 @@
 
 (define-c-proc sockaddr? (o) ::<boolean> :constant SG_SOCKADDRP)
 
-(define-c-proc make-socket (f::<fixnum> t::<fixnum> :optional (p::<fixnum> 0))
+(define-c-proc make-socket (f::<ifixnum> t::<ifixnum> :optional (p::<ifixnum> 0))
   Sg_CreateSocket)
 (define-c-proc socket-setsockopt!
-  (socket::<socket> level::<fixnum> name::<fixnum> value) Sg_SocketSetopt)
+  (socket::<socket> level::<ifixnum> name::<ifixnum> value) Sg_SocketSetopt)
 (define-c-proc socket-getsockopt
-  (socket::<socket> level::<fixnum> name::<fixnum> size::<fixnum>)
+  (socket::<socket> level::<ifixnum> name::<ifixnum> size::<ifixnum>)
   Sg_SocketGetopt)
 
 (define-c-proc socket-connect! (socket::<socket> info::<addrinfo>)
   Sg_SocketConnect)
 (define-c-proc socket-bind! (socket::<socket> info::<addrinfo>) Sg_SocketBind)
-(define-c-proc socket-listen! (socket::<socket> backlog::<fixnum>)
+(define-c-proc socket-listen! (socket::<socket> backlog::<ifixnum>)
   Sg_SocketListen)
 
 ;;; error message
@@ -57,7 +57,7 @@
 (define-c-proc socket-input-port (o::<socket>)   Sg_MakeSocketInputPort)
 (define-c-proc socket-output-port (o::<socket>)  Sg_MakeSocketOutputPort)
 
-(define-c-proc shutdown-port (o::<port> how::<fixnum>) ::<void> 
+(define-c-proc shutdown-port (o::<port> how::<ifixnum>) ::<void> 
   (Sg_ShutdownPort o how))
 (define-c-proc shutdown-output-port (o::<port>) ::<void> 
   (Sg_ShutdownPort o SHUT_WR))
@@ -67,14 +67,14 @@
 (define-c-proc socket-accept (o::<socket>) Sg_SocketAccept)
 
 (define-c-proc socket-send
-  (o::<socket> bv::<bytevector> :optional (flags::<fixnum> 0)) ::<fixnum>
+  (o::<socket> bv::<bytevector> :optional (flags::<ifixnum> 0)) ::<fixnum>
   (result (Sg_SocketSend (SG_SOCKET o)
 			 (SG_BVECTOR_ELEMENTS bv)
 			 (SG_BVECTOR_SIZE bv)
 			 flags)))
 
 (define-c-proc socket-sendto
-  (o::<socket> bv::<bytevector> addr::<sockaddr> :optional (flags::<fixnum> 0))
+  (o::<socket> bv::<bytevector> addr::<sockaddr> :optional (flags::<ifixnum> 0))
   ::<fixnum>
   (result (Sg_SocketSendTo (SG_SOCKET o)
 			   (SG_BVECTOR_ELEMENTS bv)
@@ -83,10 +83,10 @@
 			   addr)))
 
 (define-c-proc socket-recv (o::<socket> len::<fixnum>
-					:optional (flags::<fixnum> 0)) 
+					:optional (flags::<ifixnum> 0)) 
   (let ((data (Sg_MakeByteVector len 0))
-	(res::int (Sg_SocketReceive (SG_SOCKET o)
-				    (SG_BVECTOR_ELEMENTS data) len flags)))
+	(res::long (Sg_SocketReceive (SG_SOCKET o)
+				     (SG_BVECTOR_ELEMENTS data) len flags)))
     (cond ((== len res) (result data))
 	  ((< res 0)
 	   ;; most probably socket is non-blocking
@@ -100,7 +100,7 @@
 ;; destructive
 (define-c-proc socket-recv! 
   (o::<socket> bv::<bytevector> start::<fixnum> len::<fixnum>
-	       :optional (flags::<fixnum> 0)) ::<fixnum>
+	       :optional (flags::<ifixnum> 0)) ::<fixnum>
   ;; sanity check
   (when (or (>= start (SG_BVECTOR_SIZE bv))
 	    (> len (- (SG_BVECTOR_SIZE bv) start)))
@@ -113,11 +113,11 @@
 			    len flags)))
 
 (define-c-proc socket-recvfrom (o::<socket> len::<fixnum> addr::<sockaddr>
-					    :optional (flags::<fixnum> 0)) 
+					    :optional (flags::<ifixnum> 0)) 
   (let ((data (Sg_MakeByteVector len 0))
-	(res::int (Sg_SocketReceiveFrom (SG_SOCKET o)
-					(SG_BVECTOR_ELEMENTS data) len flags
-					addr)))
+	(res::long (Sg_SocketReceiveFrom (SG_SOCKET o)
+					 (SG_BVECTOR_ELEMENTS data) len flags
+					 addr)))
     (cond ((== len res) (result data))
 	  ((< res 0)
 	   ;; most probably socket is non-blocking
@@ -130,7 +130,7 @@
 
 (define-c-proc socket-recvfrom! 
   (o::<socket> bv::<bytevector> start::<fixnum> len::<fixnum> addr::<sockaddr>
-	       :optional (flags::<fixnum> 0)) ::<fixnum>
+	       :optional (flags::<ifixnum> 0)) ::<fixnum>
   ;; sanity check
   (when (or (>= start (SG_BVECTOR_SIZE bv))
 	    (> len (- (SG_BVECTOR_SIZE bv) start)))
@@ -142,7 +142,7 @@
 				(+ (SG_BVECTOR_ELEMENTS bv) start)
 				len flags addr)))
 
-(define-c-proc socket-shutdown (o::<socket> how::<fixnum>) ::<void>
+(define-c-proc socket-shutdown (o::<socket> how::<ifixnum>) ::<void>
   Sg_SocketShutdown)
 
 (define-c-proc socket-close  (o::<socket>) ::<void> Sg_SocketClose)

@@ -565,7 +565,7 @@ void Sg_Abort(const char* msg)
 {
   int size = (int)strlen(msg);
 #ifndef _MSC_VER
-  int r = write(2, msg, size);
+  ssize_t r = write(2, msg, size);
   if (r < 0) {
     _exit(EXIT_CODE(errno));
   }

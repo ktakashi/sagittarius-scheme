@@ -1,6 +1,6 @@
 /* file.c                                          -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -117,7 +117,7 @@ SgObject Sg_FindFile(SgString *path, SgObject loadPaths,
 #define dirsep_p(x) ((x) == '/' || (x) == '\\')
 #define S SG_STRING_VALUE_AT
 
-static int next_dirsep(SgObject path, int skipped)
+static long next_dirsep(SgObject path, long skipped)
 {
   while (skipped < SG_STRING_SIZE(path) && !dirsep_p(S(path, skipped))) {
     skipped++;
@@ -139,7 +139,7 @@ static int detect_prefix(SgObject path)
 {
   /* network address or so e.g. \\foo\bar */
   if (dirsep_p(S(path,0)) && dirsep_p(S(path,1))) {
-    int skipped = 2;
+    long skipped = 2;
     while (dirsep_p(S(path, skipped))) {
       skipped++;
     }

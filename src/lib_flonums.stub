@@ -61,7 +61,7 @@
 (define-c-proc flcopysign (x::<flonum> y::<flonum>) ::<flonum> :constant
   copysign)
 (define-c-proc make-flonum (x::<flonum> n::<fixnum>) ::<flonum> :constant
-  ldexp)
+  (result (ldexp x (cast int n))))
 
 (define-c-proc fixnum->flonum (fx::<fixnum>) :constant Sg_MakeFlonum)
 
@@ -446,8 +446,10 @@
 			    SG_FL_NEGATIVE_ONE
 			    SG_FL_POSITIVE_ONE)))))
 
-(define-c-proc flfirst-bessel (n::<fixnum> x::<flonum>) ::<flonum> jn)
-(define-c-proc flsecond-bessel (n::<fixnum> x::<flonum>) ::<flonum> yn)
+(define-c-proc flfirst-bessel (n::<fixnum> x::<flonum>) ::<flonum>
+  (result (jn (cast int n) x)))
+(define-c-proc flsecond-bessel (n::<fixnum> x::<flonum>) ::<flonum>
+  (result (yn (cast int n) x)))
 (define-c-proc flerf (x::<flonum>) ::<flonum> :constant erf)
 (define-c-proc flerfc (x::<flonum>) ::<flonum> :constant erfc)
 

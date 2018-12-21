@@ -1,6 +1,6 @@
 /* cache.c                                         -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -137,7 +137,7 @@ static int need_encode(SgChar ch, SgChar *h, SgChar *l)
 static SgString* id_to_filename(SgString *id)
 {
   SgString *r;
-  int size = SG_STRING_SIZE(id), i, offset = 0;
+  long size = SG_STRING_SIZE(id), i, offset = 0;
 
   if (SG_FALSEP(CACHE_DIR)) return NULL;
   
@@ -384,7 +384,7 @@ static int write_library(SgPort *out, SgLibrary *lib)
 static int write_dependancy(SgPort *out, SgLibrary *lib, cache_ctx *ctx)
 {
   SgObject cp;
-  int len;
+  long len;
   if (!write_library(out, lib)) return FALSE;
 
   /* write import spec */
@@ -516,7 +516,7 @@ static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
     obj = SG_CDR(obj);
     goto loop;
   } else if (SG_VECTORP(obj)) {
-    int i, size = SG_VECTOR_SIZE(obj);
+    long i, size = SG_VECTOR_SIZE(obj);
     for (i = 0; i < size; i++) {
       cbs = write_cache_scan(SG_VECTOR_ELEMENT(obj, i), cbs, ctx);
     }
@@ -696,7 +696,7 @@ static void write_string_cache(SgPort *out, SgString *s, int tag)
   Sg_WritebUnsafe(out, (uint8_t*)str, 0, size);
 #else
   SgChar *str = SG_STRING_VALUE(s);
-  int size = SG_STRING_SIZE(s);
+  long size = SG_STRING_SIZE(s);
   put_word(out, size, tag);
   Sg_WritebUnsafe(out, (uint8_t*)str, 0, size * sizeof(SgChar));
 #endif
@@ -714,7 +714,7 @@ static void write_number_cache(SgPort *out, SgObject o)
   /* reading bignum as a string is not good for performance */
   
   if (SG_BIGNUMP(o)) {
-    unsigned int size = SG_BIGNUM_GET_COUNT(o), i;
+    unsigned long size = SG_BIGNUM_GET_COUNT(o), i;
     int sign = SG_BIGNUM_GET_SIGN(o);
     put_word(out, size, NUMBER_TAG);
     Sg_PutbUnsafe(out, BIGNUM);
@@ -730,7 +730,7 @@ static void write_number_cache(SgPort *out, SgObject o)
     Sg_WritebUnsafe(out, (uint8_t *)&d, 0, sizeof(double));
   } else {
     SgObject str = Sg_NumberToString(o, 10, FALSE);
-    int size = SG_STRING_SIZE(str);
+    long size = SG_STRING_SIZE(str);
     SgChar *v = SG_STRING_VALUE(str);
     put_word(out, size, NUMBER_TAG);
     Sg_PutbUnsafe(out, STRING);
@@ -762,7 +762,7 @@ static void write_list_cache(SgPort *out, SgObject o, SgObject cbs,
      o = 'e
    */
   if (SG_NULLP(o)) {
-    int size = Sg_Length(v);
+    long size = Sg_Length(v);
     SgObject cp;
     put_word(out, size, PLIST_TAG);
     SG_FOR_EACH(cp, v) {
@@ -776,7 +776,7 @@ static void write_list_cache(SgPort *out, SgObject o, SgObject cbs,
   } else {
     /* DLIST_TAG 4
        (symbol 'e) (symbol 'a) (symbol 'b) (symbol 'c) (symbol 'd) */
-    int size = Sg_Length(v);
+    long size = Sg_Length(v);
     SgObject cp, p;
     put_word(out, size, DLIST_TAG);
     p = Sg_HashTableRef(ctx->sharedObjects, o, SG_FALSE);
@@ -876,14 +876,14 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
     /* non fixnum number */
     write_number_cache(out, o);
   } else if (SG_BVECTORP(o)) {
-    int size = SG_BVECTOR_SIZE(o), j;
+    long size = SG_BVECTOR_SIZE(o), j;
     put_word(out, size, BYTE_VECTOR_TAG);
     Sg_PutbUnsafe(out, Sg_ConstantLiteralP(o));
     for (j = 0; j < size; j++) {
       Sg_PutbUnsafe(out, SG_BVECTOR_ELEMENT(o, j));
     }
   } else if (SG_VECTORP(o)) {
-    int size = SG_VECTOR_SIZE(o), j;
+    long size = SG_VECTOR_SIZE(o), j;
     put_word(out, size, VECTOR_TAG);
     Sg_PutbUnsafe(out, Sg_ConstantLiteralP(o));
     for (j = 0; j < size; j++) {
@@ -1243,7 +1243,7 @@ static void link_container(SgObject obj, SgHashTable *seen, read_ctx *ctx)
     }
   }
   if (SG_VECTORP(obj)) {
-    int len = SG_VECTOR_SIZE(obj), i;
+    long len = SG_VECTOR_SIZE(obj), i;
     for (i = 0; i < len; i++) {
       if (SG_CLOSUREP(SG_VECTOR_ELEMENT(obj, i))) {
 	link_cb_rec(SG_VECTOR_ELEMENT(obj, i), seen, ctx);
@@ -1760,7 +1760,7 @@ static void read_cache_link(SgObject obj, SgHashTable *seen, read_ctx *ctx)
     return;
   }
   if (SG_VECTORP(obj)) {
-    int len = SG_VECTOR_SIZE(obj), i;
+    long len = SG_VECTOR_SIZE(obj), i;
     for (i = 0; i < len; i++) {
       if (SG_SHAREDREF_P(SG_VECTOR_ELEMENT(obj, i))) {
 	SgObject index = SG_SHAREDREF(SG_VECTOR_ELEMENT(obj, i))->index;

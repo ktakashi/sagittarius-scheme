@@ -93,7 +93,7 @@
 	  (Sg_WrongTypeOfArgumentViolation '%make-next-method
 					   'method mp
 					   (SG_LIST3 gf methods args))))
-      (set! argc (Sg_Length args))
+      (set! argc (cast int (Sg_Length args)))
       (set! argv (Sg_ListToArray args FALSE))
       (result (Sg_MakeNextMethod (SG_GENERIC gf) methods argv argc
 				 FALSE))))
@@ -128,7 +128,8 @@
       (Sg_WrongTypeOfArgumentViolation (SG_INTERN "%make-slot-accessor")
 				       (SG_INTERN "procedure or #f")
 				       klass (SG_LIST2 klass bound?)))
-    (result (Sg_MakeSlotAccessor klass slot index getter setter bound?)))
+    (result (Sg_MakeSlotAccessor klass slot (cast int index)
+				 getter setter bound?)))
 
   ;; for change-class
   (define-c-proc %swap-class-and-slots! (new-instance old-instance) ::<void>

@@ -65,7 +65,7 @@
   do {									\
     int required = SG_PROCEDURE_REQUIRED(proc);				\
     int optargs =  SG_PROCEDURE_OPTIONAL(proc);				\
-    int rargc = Sg_Length(INDEX(SP(vm), 0));				\
+    int rargc = (int)Sg_Length(INDEX(SP(vm), 0));			\
     SgObject p, a;							\
     if (optargs) {							\
       int __i, req_opt, oargc;						\

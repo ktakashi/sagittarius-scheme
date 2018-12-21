@@ -264,7 +264,7 @@
   (define-c-proc vm-log-port () :no-side-effect (result (-> (Sg_VM) logPort)))
   (define-c-proc vm-load-flags (:optional f)
     (cond ((SG_UNBOUNDP f) (result (SG_MAKE_INT (-> (Sg_VM) flags))))
-	  ((SG_INTP f)     (set! (-> (Sg_VM) flags) (SG_INT_VALUE f)))
+	  ((SG_INTP f)    (set! (-> (Sg_VM) flags) (cast int (SG_INT_VALUE f))))
 	  ((SG_FALSEP f)
 	   ;; Reset only during importing otherwise main script would
 	   ;; also get affected.
@@ -480,7 +480,7 @@
       (when r (raise-i/o-error rename-file r oldpath))))
 
   (define-c-proc change-file-mode (file::<string> mode::<fixnum>) ::<void>
-    (let ((r::int (Sg_ChangeFileMode file mode)))
+    (let ((r::int (Sg_ChangeFileMode file (cast int mode))))
       (when r (raise-i/o-error change-file-mode r file))))
 
   (define-c-proc change-file-timestamps! (file::<string> mtime atime) ::<boolean>
@@ -829,8 +829,7 @@
 	(check-binary-port ,name ,out)
 	(check-output-port ,name ,out)
 	(SG_PORT_LOCK_WRITE ,out)
-	(safe-oport-operation
-	 ,out
+	(safe-oport-operation ,out
 	 (cond ((SG_EQ ,endian 'big)
 		(let ((i::int ,(- size 1)))
 		  (for (() (>= i 0) (post-- i))
@@ -1307,7 +1306,7 @@
     (if (SG_UNBOUNDP obj)
 	(Sg_EmergencyExit EXIT_SUCCESS)
 	(cond ((SG_INTP obj)
-	       (Sg_EmergencyExit (SG_INT_VALUE obj)))
+	       (Sg_EmergencyExit (cast int (SG_INT_VALUE obj))))
 	      ((SG_TRUEP obj)
 	       (Sg_EmergencyExit EXIT_SUCCESS))
 	      (else
@@ -1662,11 +1661,12 @@
     (result (not (SG_PTRP o))))
 
   (define-c-proc get-mac-address (:optional (pos::<fixnum> 0)) :no-side-effect
-    Sg_GetMacAddress)
+    (result (Sg_GetMacAddress (cast int pos))))
 
   (define-c-proc uname () :no-side-effect Sg_Uname)
 
-  (define-c-proc sagittarius-sitelib-directory () :no-side-effect Sg_SitelibPath)
+  (define-c-proc sagittarius-sitelib-directory () :no-side-effect
+    Sg_SitelibPath)
 
   ;; for convenience.
   (define-c-proc gc () ::<void> Sg_GC)

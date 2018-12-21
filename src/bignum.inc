@@ -50,9 +50,9 @@
 #define USE_DLONG
 #include "number.inc"
 
-static inline ulong* mp_2scmpl(ulong *p, uint s)
+static inline ulong* mp_2scmpl(ulong *p, ulong s)
 {
-  int i, c;
+  ulong i, c;
   for (i = 0, c = 1; i < s; i++) {
     ulong x = ~p[i];
     UADD(p[i], c, x, 0);
@@ -60,10 +60,10 @@ static inline ulong* mp_2scmpl(ulong *p, uint s)
   return p;
 }
 
-static int mp_bit_size(ulong *x, uint s)
+static long mp_bit_size(ulong *x, ulong s)
 {
-  int last = s - 1;
-  int bitsize = WORD_BITS * last;
+  long last = s - 1;
+  long bitsize = WORD_BITS * last;
   if (s == 0) return 0;
   return bitsize + WORD_BITS - nlz(x[last]);
 }
@@ -72,8 +72,8 @@ static int mp_bit_size(ulong *x, uint s)
 /* Addition */
 
 /* helper */
-static int mp_safe_size_for_add(ulong *xp, uint xsize, 
-				ulong *yp, uint ysize)
+static ulong mp_safe_size_for_add(ulong *xp, ulong xsize, 
+				  ulong *yp, ulong ysize)
 {
   if (xsize > ysize) {
     if (xp[xsize - 1] == SG_ULONG_MAX) return xsize + 1;
@@ -95,9 +95,9 @@ static int mp_safe_size_for_add(ulong *xp, uint xsize,
    NB: to make better performance, this part should be written in
        assembly. but for now it's ok
  */
-static long mp_add_n(ulong *rp, ulong *xp, ulong *yp, int len)
+static long mp_add_n(ulong *rp, ulong *xp, ulong *yp, long len)
 {
-  int i;
+  long i;
 #ifdef USE_DLONG
   udlong t = (udlong)xp[0] + yp[0];
   rp[0] = (ulong)t;
@@ -107,7 +107,7 @@ static long mp_add_n(ulong *rp, ulong *xp, ulong *yp, int len)
   }
   return (long)(t >> WORD_BITS);
 #else
-  int c = 0;
+  long c = 0;
   for (i = 0; i < len; i++) {
     UADD(rp[i], c, xp[i], yp[i]);
   }
@@ -118,12 +118,12 @@ static long mp_add_n(ulong *rp, ulong *xp, ulong *yp, int len)
 /* xp + yp -> rp (xsize >= ysize)
    returns carry (0 or 1)
 */
-static int mp_add(ulong *rp, uint rsize, 
-		  ulong *xp, uint xsize,
-		  ulong *yp, uint ysize)
+static int mp_add(ulong *rp, ulong rsize, 
+		  ulong *xp, ulong xsize,
+		  ulong *yp, ulong ysize)
 {
-  int i;
-  int c = mp_add_n(rp, xp, yp, ysize);
+  long i;
+  long c = mp_add_n(rp, xp, yp, ysize);
   /* do the rest */
   for (i = ysize; i < xsize && c; i++) {
     rp[i] = xp[i] + 1;
@@ -134,7 +134,7 @@ static int mp_add(ulong *rp, uint rsize,
     rp[i] = xp[i];
   }
   if (c) rp[rsize-1] = 1L;
-  return c;
+  return (int)c;
 }
 
 /*
@@ -142,13 +142,13 @@ static int mp_add(ulong *rp, uint rsize,
   returns carry (0 or 1)
 */
 /* mp_add_one doesn't add carry to the end */
-static int mp_add_one(ulong *rp, uint rsize, 
-		      ulong *xp, uint xsize,
+static int mp_add_one(ulong *rp, ulong rsize, 
+		      ulong *xp, ulong xsize,
 		      ulong y)
 {
 #ifdef USE_DLONG
   udlong t = (udlong)xp[0] + y;
-  int i;
+  ulong i;
   rp[0] = (ulong)t;
   /* copy if this is not self destructive operation */
   if (rp != xp) for (i = 1; i < xsize; i++) rp[i] = xp[i];
@@ -160,8 +160,8 @@ static int mp_add_one(ulong *rp, uint rsize,
   return 1;
 #else
   long c = 0;
-  uint i;
-
+  ulong i;
+  
   UADD(rp[0], c, xp[0], y);
   for (i = 1; i < xsize; i++) {
     UADD(rp[i], c, xp[i], 0);
@@ -169,8 +169,8 @@ static int mp_add_one(ulong *rp, uint rsize,
   return c;
 #endif  
 }
-static int mp_add_ul(ulong *rp, uint rsize, 
-		     ulong *xp, uint xsize,
+static int mp_add_ul(ulong *rp, ulong rsize, 
+		     ulong *xp, ulong xsize,
 		     ulong y)
 {
   int c = mp_add_one(rp, rsize, xp, xsize, y);
@@ -189,9 +189,9 @@ static int mp_add_ul(ulong *rp, uint rsize,
    NB: to make better performance, this part should be written in
        assembly. but for now it's ok
  */
-static long mp_sub_n(ulong *rp, ulong *xp, ulong *yp, int len)
+static long mp_sub_n(ulong *rp, ulong *xp, ulong *yp, long len)
 {
-  int i;
+  long i;
 #ifdef USE_DLONG
   udlong t = (udlong)xp[0] - yp[0];
   rp[0] = (ulong)t;
@@ -212,12 +212,12 @@ static long mp_sub_n(ulong *rp, ulong *xp, ulong *yp, int len)
 /* xp - yp -> rp (xsize >= ysize)
    returns carry (0 or 1)
 */
-static int mp_sub(ulong *rp, uint rsize, 
-		  ulong *xp, uint xsize,
-		  ulong *yp, uint ysize)
+static int mp_sub(ulong *rp, ulong rsize, 
+		  ulong *xp, ulong xsize,
+		  ulong *yp, ulong ysize)
 {
-  int i;
-  int c = mp_sub_n(rp, xp, yp, ysize);
+  long i;
+  long c = mp_sub_n(rp, xp, yp, ysize);
   /* do the rest */
   for (i = ysize; i < xsize && c; i++) {
     rp[i] = xp[i] - 1;
@@ -230,18 +230,18 @@ static int mp_sub(ulong *rp, uint rsize,
   for (; i < rsize; i++) {
     rp[i] = (ulong)c;
   }
-  return c;
+  return (int)c;
 }
 
 /* xp - y -> rp (xzise > 1)
    returns carry (0 or 1)
 */   
-static int mp_sub_ul(ulong *rp, uint rsize, 
-		     ulong *xp, uint xsize,
+static int mp_sub_ul(ulong *rp, ulong rsize, 
+		     ulong *xp, ulong xsize,
 		     ulong y)
 {
-  long c = 0;
-  uint i;
+  int c = 0;
+  ulong i;
 
   USUB(rp[0], c, xp[0], y);
   for (i = 1; i < xsize; i++) {
@@ -252,12 +252,12 @@ static int mp_sub_ul(ulong *rp, uint rsize,
 }
 
 /* shift operations */
-static void mp_lshift(ulong *rp, uint rsize,
-		      ulong *xp, uint xsize,
+static void mp_lshift(ulong *rp, ulong rsize,
+		      ulong *xp, ulong xsize,
 		      long amount)
 {
   long nwords, nbits;
-  int i;
+  long i;
 
   /* simple check */
   if (xsize == 0) return;	/* 0<<n is always 0 */
@@ -298,13 +298,13 @@ static void mp_lshift(ulong *rp, uint rsize,
    For performance, we don't fill 0. it is callers responsibility
    to make sure the size and content if needed.
  */
-static uint mp_rshift(ulong *rp, uint rsize,
-		      ulong *xp, uint xsize,
-		      long amount)
+static ulong mp_rshift(ulong *rp, ulong rsize,
+		       ulong *xp, ulong xsize,
+		       long amount)
 {
   ulong nwords = amount / WORD_BITS;
   ulong nbits = amount % WORD_BITS;
-  int i;
+  ulong i;
   if (xsize <= nwords) {
     /* TODO should we do this? */
     /* for (i = i; i < rsize; i++) rp[i] = 0; */
@@ -331,11 +331,11 @@ static uint mp_rshift(ulong *rp, uint rsize,
 /* xp * y -> rp (xsize > 1)
    assumes rp has sufficient size.
  */
-static void mp_mul_ul(ulong *rp, uint rsize,
-		      ulong *xp, uint xsize,
+static void mp_mul_ul(ulong *rp, ulong rsize,
+		      ulong *xp, ulong xsize,
 		      ulong y)
 {
-  uint i;
+  ulong i;
 
 #ifdef USE_DLONG
   register udlong p;
@@ -351,7 +351,7 @@ static void mp_mul_ul(ulong *rp, uint rsize,
 #else
 
   for (i = 0; i < xsize; i++) {
-    uint j;
+    ulong j;
     ulong hi, lo, r1;
     ulong x = xp[i];
     ulong c = 0;
@@ -375,13 +375,13 @@ static void mp_mul_ul(ulong *rp, uint rsize,
 }
 
 /* forward declaration */
-static void mp_mul_rec(ulong *rp, uint rsize,
-		       ulong *xp, uint xsize,
-		       ulong *yp, uint ysize,
+static void mp_mul_rec(ulong *rp, ulong rsize,
+		       ulong *xp, ulong xsize,
+		       ulong *yp, ulong ysize,
 		       intptr_t stack_size);
 
-static void mp_square_rec(ulong *rp, uint rsize,
-			  ulong *xp, uint xsize,
+static void mp_square_rec(ulong *rp, ulong rsize,
+			  ulong *xp, ulong xsize,
 			  intptr_t stack_size);
 
 /*
@@ -410,12 +410,12 @@ static void mp_square_rec(ulong *rp, uint rsize,
 */
 #define KARATSUBA_LOW_LIMIT ((1600>>3)/SIZEOF_LONG)
 
-static int can_karatsuba(uint xlen, uint ylen)
+static long can_karatsuba(ulong xlen, ulong ylen)
 {
   if (xlen < KARATSUBA_LOW_LIMIT || ylen < KARATSUBA_LOW_LIMIT) {
     return FALSE;
   } else {
-    int n = max(xlen, ylen)/2;
+    long n = max(xlen, ylen)/2;
     return n < xlen && n < ylen;
   }
 }
@@ -461,7 +461,7 @@ static int can_karatsuba(uint xlen, uint ylen)
  */
 #define ALLOC_BUFFER_REC(r, type, size, stack)			\
   do {								\
-    uint s__ = (size);						\
+    ulong s__ = (size);						\
     if ((stack) > 0 && (s__)*sizeof(type*) <= (stack)) {	\
       ALLOC_TEMP_BUFFER_REC(r, type, s__);			\
       (stack) -= s__;						\
@@ -475,16 +475,16 @@ static int can_karatsuba(uint xlen, uint ylen)
     clear_buffer(r, size);				\
   } while (0)
 
-static void karatsuba(ulong *rp, uint rsize,
-		      ulong *xp, uint xsize,
-		      ulong *yp, uint ysize,
+static void karatsuba(ulong *rp, ulong rsize,
+		      ulong *xp, ulong xsize,
+		      ulong *yp, ulong ysize,
 		      intptr_t stack_size)
 {
-  uint n = max(xsize, ysize)/2, apblen, cpdlen, adbclen;
-  uint n2 = n<<1;
+  ulong n = max(xsize, ysize)/2, apblen, cpdlen, adbclen;
+  ulong n2 = n<<1;
   ulong *a, *b, *c, *d;
   ulong *bd, *apb, *cpd, *adbc;
-  uint alen, clen, aclen;
+  ulong alen, clen, aclen;
 
   /* split given argument into 2 parts
      it's little endian so the last is the most significant */
@@ -555,7 +555,7 @@ static void karatsuba(ulong *rp, uint rsize,
 /* the value is found experimentally. */
 #define KARATSUBA_SQUARE_LOW_LIMIT ((2880>>3)/SIZEOF_LONG)
 
-static int can_karatsuba_square(uint len)
+static int can_karatsuba_square(ulong len)
 {
   return len >= KARATSUBA_SQUARE_LOW_LIMIT;
 }
@@ -574,16 +574,16 @@ static int can_karatsuba_square(uint len)
   x*y = B^n*a^2 + B^(n/2)*((a+b)^ - (a^2 + b^2)) + b^2
       = B^(n/2)(B^(n/2)*a^2 + ((a+b)^ - (a^2 + b^2))) + b^2
 */
-static void karatsuba_square(ulong *rp, uint rsize,
-			     ulong *xp, uint xsize,
+static void karatsuba_square(ulong *rp, ulong rsize,
+			     ulong *xp, ulong xsize,
 			     intptr_t stack_size)
 {
-  int n = xsize/2;
+  long n = xsize/2;
   ulong *a, *b;
   ulong *b2, *apb, *a2pb2, *apb2;
-  uint alen, a2len, apblen, a2pb2len, apb2len;
-  uint a2_ext, apb2_ext, rlen;
-  int n2 = n<<1;
+  ulong alen, a2len, apblen, a2pb2len, apb2len;
+  ulong a2_ext, apb2_ext, rlen;
+  long n2 = n<<1;
  
   alen = xsize - n;
   a = xp + n;
@@ -655,9 +655,9 @@ static void karatsuba_square(ulong *rp, uint rsize,
  */
 #undef USE_SCHOENEHAGE_STRASSEN
 #ifdef USE_SCHOENEHAGE_STRASSEN
-static void schoenhage_strassen(ulong *rp, uint rsize,
-				ulong *xp, uint xsize,
-				ulong *yp, uint ysize)
+static void schoenhage_strassen(ulong *rp, ulong rsize,
+				ulong *xp, ulong xsize,
+				ulong *yp, ulong ysize)
 {
   /* TBD */
 }
@@ -668,9 +668,9 @@ static void schoenhage_strassen(ulong *rp, uint rsize,
 /* 
    out += in * k
  */
-static inline ulong mp_mul_add(ulong *out, ulong *in, int len, ulong k)
+static inline ulong mp_mul_add(ulong *out, ulong *in, long len, ulong k)
 {
-  int i;
+  long i;
 #ifdef USE_DLONG
   udlong p = (udlong)in[0] * k + out[0];
   out[0] = (ulong)p;
@@ -701,11 +701,11 @@ static inline ulong mp_mul_add(ulong *out, ulong *in, int len, ulong k)
 #endif
 }
 /* grade-school  */
-static ulong* long_mul(ulong *rp, uint rsize,
-		       ulong *xp, uint xsize,
-		       ulong *yp, uint ysize)
+static ulong* long_mul(ulong *rp, ulong rsize,
+		       ulong *xp, ulong xsize,
+		       ulong *yp, ulong ysize)
 {
-  int i;
+  long i;
   /* multiply first word */
   mp_mul_ul(rp, rsize, xp, xsize, yp[0]);
   /* add in subsequent words, storing the most significant word which is new
@@ -716,9 +716,9 @@ static ulong* long_mul(ulong *rp, uint rsize,
   return rp;
 }
 
-static void mp_mul_rec(ulong *rp, uint rsize,
-		       ulong *xp, uint xsize,
-		       ulong *yp, uint ysize,
+static void mp_mul_rec(ulong *rp, ulong rsize,
+		       ulong *xp, ulong xsize,
+		       ulong *yp, ulong ysize,
 		       intptr_t stack_size)
 {
 #ifdef USE_KARATSUBA
@@ -730,9 +730,9 @@ static void mp_mul_rec(ulong *rp, uint rsize,
   long_mul(rp, rsize, xp, xsize, yp, ysize);
 }
 
-static void mp_mul(ulong *rp, uint rsize,
-		   ulong *xp, uint xsize,
-		   ulong *yp, uint ysize)
+static void mp_mul(ulong *rp, ulong rsize,
+		   ulong *xp, ulong xsize,
+		   ulong *yp, ulong ysize)
 {
   volatile char t = 'a';	/* don't let compiler erase this */
   intptr_t stack_size = Sg_AvailableStackSize((volatile uintptr_t)&t);
@@ -741,12 +741,12 @@ static void mp_mul(ulong *rp, uint rsize,
 
 /* xp^2 -> rp */
 /* static int add_one(ulong *num, int len, ulong carry); */
-static void mp_base_square(ulong *rp, uint rsize,
-			   ulong *xp, uint xsize)
+static void mp_base_square(ulong *rp, ulong rsize,
+			   ulong *xp, ulong xsize)
 {
   /* TODO version for not using udlong */
 #ifdef USE_DLONG
-  int i, j, xlen;
+  long i, j, xlen;
   ulong last = 0;
 
   /* store the squares, right shifted one bit */
@@ -760,7 +760,7 @@ static void mp_base_square(ulong *rp, uint rsize,
   /* then add in the off diagonal sums */
   for (i = 0, j = 1, xlen = xsize - 1; xlen; i++, j+= 2, xlen--) {
     ulong t = xp[i];
-    uint ts = xlen+j;
+    ulong ts = xlen+j;
     t = mp_mul_add(rp+j, xp+i+1, xlen, t);
     /* add_one(rp + xlen + j, xlen + 1, t); */
     mp_add_ul(rp+ts, rsize-ts, rp+ts, xlen+1, t);
@@ -772,8 +772,8 @@ static void mp_base_square(ulong *rp, uint rsize,
 #endif
 }
 
-static void mp_square_rec(ulong *rp, uint rsize,
-			  ulong *xp, uint xsize,
+static void mp_square_rec(ulong *rp, ulong rsize,
+			  ulong *xp, ulong xsize,
 			  intptr_t stack_size)
 {
   /* handle special case */
@@ -788,8 +788,8 @@ static void mp_square_rec(ulong *rp, uint rsize,
   mp_base_square(rp, rsize, xp, xsize);
 }
 
-static void mp_square(ulong *rp, uint rsize,
-		      ulong *xp, uint xsize)
+static void mp_square(ulong *rp, ulong rsize,
+		      ulong *xp, ulong xsize)
 {
   volatile char t = 'a';	/* don't let compiler erase this */
   intptr_t stack_size = Sg_AvailableStackSize((volatile uintptr_t)&t);
@@ -798,9 +798,10 @@ static void mp_square(ulong *rp, uint rsize,
 
 /* divide */
 
-static inline int div_normalization_factor(unsigned long w)
+static inline int div_normalization_factor(ulong w)
 {
-  ulong b = (1L << (WORD_BITS - 1)), c = 0;
+  ulong b = (1L << (WORD_BITS - 1));
+  int c = 0;
   for (; b > 0; b >>= 1, c++) {
     if (w & b) return c;
   }
@@ -813,16 +814,16 @@ static inline int div_normalization_factor(unsigned long w)
     xp % yp -> rem
     return size of remainder
  */
-static uint mp_div_rem_kunuth(ulong *dp, uint qlen,
-			      ulong *rem, uint rlen,
-			      ulong *xp, uint xsize,
-			      ulong *yp, uint ysize)
+static ulong mp_div_rem_kunuth(ulong *dp,  ulong qlen,
+			       ulong *rem, ulong rlen,
+			       ulong *xp,  ulong xsize,
+			       ulong *yp,  ulong ysize)
 {
   ulong *u, *v;
-  uint de_size = xsize;
-  uint ds_size = ysize;
+  ulong de_size = xsize;
+  ulong ds_size = ysize;
   int d = div_normalization_factor(yp[ds_size - 1]);
-  int j, k, n, m;
+  long j, k, n, m;
   ulong vn_1, vn_2, vv, uj, uj2, cy;
 
 #define DIGIT(num, n)							\
@@ -913,9 +914,10 @@ static uint mp_div_rem_kunuth(ulong *dp, uint qlen,
 #define BURNIKEL_ZIEGLER_OFFSET    40
 
 /* this doesn't consider signess */
-static int mp_compare(ulong *lhs, uint lhs_count, ulong *rhs, uint rhs_count)
+static int mp_compare(ulong *lhs, ulong lhs_count,
+		      ulong *rhs, ulong rhs_count)
 {
-  int i;
+  long i;
   /* compare size */
   if (lhs_count < rhs_count) return  -1;
   if (lhs_count > rhs_count) return  1;
@@ -927,10 +929,10 @@ static int mp_compare(ulong *lhs, uint lhs_count, ulong *rhs, uint rhs_count)
   return 0;
 }
 
-static int mp_burnikel_ziegler_d2n1n(ulong *q, uint qn,
-				     ulong *r, uint rn,
-				     ulong *a, uint an,
-				     ulong *b, uint bn);
+static int mp_burnikel_ziegler_d2n1n(ulong *q, ulong qn,
+				     ulong *r, ulong rn,
+				     ulong *a, ulong an,
+				     ulong *b, ulong bn);
 /*
    From Section 2, Algorithm 2. (D 3n/2n)
    Let A and B be non negative integers, and let A < β^n*B and 
@@ -952,17 +954,17 @@ static int mp_burnikel_ziegler_d2n1n(ulong *q, uint qn,
 
    NB: the procedure returns size of quotient
 */
-static int mp_burnikel_ziegler_d3n2n(ulong *q, uint qn,
-				     ulong *r, uint rn,
-				     ulong *a, uint an,
-				     ulong *b, uint bn)
+static int mp_burnikel_ziegler_d3n2n(ulong *q, ulong qn,
+				     ulong *r, ulong rn,
+				     ulong *a, ulong an,
+				     ulong *b, ulong bn)
 {
-  int n = bn/2;
-  int n2 = n<<1;
+  long n = bn/2;
+  long n2 = n<<1;
   ulong *a12, *a3;
   ulong *b1, *b2;
   ulong *rh, *d;
-  uint rh_size, qs, i;
+  ulong rh_size, qs, i;
   /* step 1 */
   a12 = a;
   a3 = a+n2;
@@ -975,7 +977,7 @@ static int mp_burnikel_ziegler_d3n2n(ulong *q, uint qn,
   if (mp_compare(a, n, b, n) < 0) {
     qs = mp_burnikel_ziegler_d2n1n(q, qn, r, rn, a12, n2, b1, n);
   } else {
-    int i;
+    long i;
     ulong *b10;
     for (i = 0; i < n ; i++) {
       q[i] = (ulong)-1L;
@@ -1027,14 +1029,14 @@ static int mp_burnikel_ziegler_d3n2n(ulong *q, uint qn,
 
    this procedure return size of quotient
 */
-static int mp_burnikel_ziegler_d2n1n(ulong *q, uint qn,
-				     ulong *r, uint rn,
-				     ulong *a, uint an,
-				     ulong *b, uint bn)
+static int mp_burnikel_ziegler_d2n1n(ulong *q, ulong qn,
+				     ulong *r, ulong rn,
+				     ulong *a, ulong an,
+				     ulong *b, ulong bn)
 {
-  int n = bn, i;
+  long n = bn, i;
   ulong *a123, *a4, *r12a4;
-  uint a123_len, q1, q2;
+  ulong a123_len, q1, q2;
   /* step 1 */
   if (n & 1 || n < BURNIKEL_ZIEGLER_THRESHOLD) {
     mp_div_rem_kunuth(q, qn, r, rn, a, an, b, bn);
@@ -1084,16 +1086,16 @@ static int mp_burnikel_ziegler_d2n1n(ulong *q, uint qn,
     if this is not the case we can shift B and A to the left)
     
  */
-static uint mp_div_rem_burnikel_zeigler(ulong *qp, uint qlen,
-					ulong *rp, uint rlen,
-					ulong *xp, uint xsize,
-					ulong *yp, uint ysize)
+static uint mp_div_rem_burnikel_zeigler(ulong *qp, ulong qlen,
+					ulong *rp, ulong rlen,
+					ulong *xp, ulong xsize,
+					ulong *yp, ulong ysize)
 {
   /* make things easier for me... */
   ulong *a = xp, *b = yp;
   ulong r = xsize, s = ysize;
 
-  int bbits = mp_bit_size(b, s);
+  long bbits = mp_bit_size(b, s);
   /* step 1 */
   ulong m = 1 << (nlz(s/BURNIKEL_ZIEGLER_THRESHOLD));
   /* step 2 */
@@ -1170,10 +1172,10 @@ static uint mp_div_rem_burnikel_zeigler(ulong *qp, uint qlen,
     xp % yp -> rem
     return size of remainder
 */
-static uint mp_div_rem(ulong *qp, uint qlen,
-		       ulong *rp, uint rlen,
-		       ulong *xp, uint xsize,
-		       ulong *yp, uint ysize)
+static ulong mp_div_rem(ulong *qp, ulong qlen,
+			ulong *rp, ulong rlen,
+			ulong *xp, ulong xsize,
+			ulong *yp, ulong ysize)
 {
 #ifdef USE_BURNIKEL_ZIEGLER
   if (xsize < BURNIKEL_ZIEGLER_THRESHOLD &&
@@ -1201,9 +1203,9 @@ static void mul_n1(ulong *out, ulong *in, int nlen, ulong k)
 #endif
 
 /* compare 2 array whose length are the same. */
-static int ulong_array_cmp_to_len(ulong *arg1, ulong *arg2, int len)
+static int ulong_array_cmp_to_len(ulong *arg1, ulong *arg2, long len)
 {
-  int i;
+  long i;
   for (i = len-1; i >= 0; i--) {
     if (arg1[i] != arg2[i]) {
       if (arg1[i] < arg2[i]) return -1;
@@ -1213,12 +1215,12 @@ static int ulong_array_cmp_to_len(ulong *arg1, ulong *arg2, int len)
   return 0;
 }
 
-static ulong* mp_mont_reduce(ulong *n, uint nlen,
-			     ulong *mod, int mlen,
+static ulong* mp_mont_reduce(ulong *n,   ulong nlen,
+			     ulong *mod, long mlen,
 			     ulong inv)
 {
   ulong c = 0;
-  int len = mlen;
+  long len = mlen;
   
   do {
     ulong carry = mp_mul_add(n, mod, mlen, inv * n[0]);

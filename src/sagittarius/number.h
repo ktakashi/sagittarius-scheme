@@ -51,15 +51,15 @@ SG_CDECL_BEGIN
 struct SgBignumRec
 {
   SG_HEADER;
-  int sign : 2;
-  unsigned int size: (SIZEOF_INT*CHAR_BIT-2);
+  long sign : 2;
+  unsigned long size: (SIZEOF_LONG*CHAR_BIT-2);
   unsigned long elements[1];
 };
 
 #define SG_BIGNUMP(obj) SG_XTYPEP(obj, SG_CLASS_INTEGER)
 #define SG_BIGNUM(obj)  ((SgBignum*)(obj))
 
-#define BIGNUM_MAX_DIGITS  ((1UL<<(SIZEOF_INT*CHAR_BIT-2))-1)
+#define SG_BIGNUM_MAX_DIGITS  ((1UL<<(SIZEOF_LONG*CHAR_BIT-2))-1)
 
 #define SG_BIGNUM_SET_SIGN(obj, s)   (SG_BIGNUM(obj)->sign=(s))
 
@@ -210,16 +210,16 @@ SG_EXTERN int      Sg_IntegerValuedP(SgObject n);
 
 SG_EXTERN SgObject Sg_Inverse(SgObject obj);
 
-SG_EXTERN int      Sg_IntegerLength(SgObject n);
+SG_EXTERN long     Sg_IntegerLength(SgObject n);
 SG_EXTERN SgObject Sg_Ash(SgObject x, long count);
 SG_EXTERN SgObject Sg_LogNot(SgObject x);
 SG_EXTERN SgObject Sg_LogAnd(SgObject x, SgObject y);
 SG_EXTERN SgObject Sg_LogIor(SgObject x, SgObject y);
 SG_EXTERN SgObject Sg_LogXor(SgObject x, SgObject y);
-SG_EXTERN int      Sg_BitCount(SgObject x);
-SG_EXTERN int      Sg_BitSize(SgObject x);
-SG_EXTERN int      Sg_FirstBitSet(SgObject x);
-SG_EXTERN int      Sg_BitSetP(SgObject x, int n);
+SG_EXTERN long     Sg_BitCount(SgObject x);
+SG_EXTERN long     Sg_BitSize(SgObject x);
+SG_EXTERN long     Sg_FirstBitSet(SgObject x);
+SG_EXTERN int      Sg_BitSetP(SgObject x, long n);
 
 SG_EXTERN SgObject Sg_Add(SgObject x, SgObject y);
 SG_EXTERN SgObject Sg_Sub(SgObject x, SgObject y);

@@ -358,7 +358,7 @@ SgObject Sg_ByteVectorToString(SgByteVector *bv, SgTranscoder *transcoder,
   SgObject r;
   SgChar buf[BUF_SIZ];
   long size = SG_BVECTOR_SIZE(bv);
-  int read_size = BUF_SIZ;
+  long read_size = BUF_SIZ;
   int64_t total_size = 0;
   int64_t len;
 
@@ -369,7 +369,7 @@ SgObject Sg_ByteVectorToString(SgByteVector *bv, SgTranscoder *transcoder,
 
   bin = Sg_InitByteArrayInputPort(&bp, SG_BVECTOR_ELEMENTS(bv), start, end);
   tin = Sg_InitTranscodedPort(&tp, bin, transcoder, SG_INPUT_PORT);
-  accum = Sg_InitStringOutputPort(&ap, end);
+  accum = Sg_InitStringOutputPort(&ap, size);
   
   for (;;) {
     int rest;
@@ -899,7 +899,7 @@ void Sg_ByteVectorIEEEDoubleBigSet(SgByteVector *bv, long index, double value)
 #endif
 }
 
-static unsigned long fill_bits(unsigned long x, int bytes)
+static unsigned long fill_bits(unsigned long x, long bytes)
 {
   unsigned long mask = ~((1UL << (bytes<<3))-1);
   return x | mask;
@@ -922,7 +922,8 @@ static SgObject bytevector2integer(SgByteVector *bv, long start, long end,
        e[0] = 0xFFFFFF01
        e[1] = 0x1F.
      */
-    int bignum_size = (int)ceil((double)len/SIZEOF_LONG), i, pos;
+    int bignum_size = (int)ceil((double)len/SIZEOF_LONG);
+    long i, pos;
     ans = Sg_MakeBignumWithSize(bignum_size, 0);
     for (i = 0, pos = end-1; i < bignum_size; i++, pos -= SIZEOF_LONG) {
       /* resolve bytevector with reverse order */
@@ -979,8 +980,8 @@ SgObject Sg_ByteVectorToIntegerBig(SgByteVector *bv, long start, long end)
 
 static SgObject integer2bytevector(SgObject num, long size, int sign)
 {
-  int bitlen, fill = 0;
-  long len;
+  int fill = 0;
+  long bitlen, len;
   SgByteVector *bv;
   unsigned long left;
   
@@ -1031,7 +1032,7 @@ static SgObject integer2bytevector(SgObject num, long size, int sign)
   if (SG_BIGNUMP(num)) {
     /* the structure of bignum is commented above. this case we simply put
        the value from the bottom. */
-    int pos, i;
+    long pos, i;
     size_t bignum_size = SG_BIGNUM(num)->size;
     for (i = 0, pos = len-1; i < bignum_size; i++, pos -= SIZEOF_LONG) {
       unsigned long v = SG_BIGNUM(num)->elements[i];

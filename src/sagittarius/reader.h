@@ -1,6 +1,6 @@
 /* reader.h                                        -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -57,9 +57,9 @@ typedef struct SgReadContextRec
   SG_HEADER;
   SgHashTable *graph; /* for shared object*/
   int          graphRef;
-  int          firstLine;
-  int          parsingLineFrom;
-  int          parsingLineTo;
+  long         firstLine;
+  long         parsingLineFrom;
+  long         parsingLineTo;
   int          escapedp;	/* for |.|, ugly */
   int          flags;
 } SgReadContext;

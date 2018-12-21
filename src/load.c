@@ -81,7 +81,7 @@ int Sg_Load(SgString *path)
   }
   r = Sg_Apply1(load_stub, path);
   vm->flags = save;
-  return (SG_INTP(r) ? SG_INT_VALUE(r) : 0);
+  return (SG_INTP(r) ? (int)SG_INT_VALUE(r) : 0);
 }
 
 int Sg_LoadFromPort(SgPort *port)
@@ -108,7 +108,7 @@ int Sg_LoadFromPort(SgPort *port)
   }
   r = Sg_Apply1(load_stub, port);
   vm->flags = save;
-  return (SG_INTP(r) ? SG_INT_VALUE(r) : 0);
+  return (SG_INTP(r) ? (int)SG_INT_VALUE(r) : 0);
 }
 
 /*

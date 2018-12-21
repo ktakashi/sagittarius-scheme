@@ -906,7 +906,7 @@ static int file_look_ahead_u8(SgObject self)
 }
 static int64_t file_try_read_all(SgObject self, uint8_t **buf)
 {
-  int result = file_look_ahead_u8(self);
+  int64_t result = file_look_ahead_u8(self);
   if (result != EOF) {
     int count = 0;
     SgBytePort bp;
@@ -1335,13 +1335,13 @@ SgObject Sg_MakeByteArrayInputPort(uint8_t *src, int64_t size)
   return Sg_InitByteArrayInputPort(z, src, 0, size);
 }
 
-SgObject Sg_MakeByteArrayOutputPort(int size)
+SgObject Sg_MakeByteArrayOutputPort(size_t size)
 {
   SgBytePort *z = SG_NEW(SgBytePort);
   return Sg_InitByteArrayOutputPort(z, size);
 }
 
-SgObject Sg_InitByteArrayOutputPort(SgBytePort *bp, int bufferSize)
+SgObject Sg_InitByteArrayOutputPort(SgBytePort *bp, size_t bufferSize)
 {
   SG_INIT_PORT(bp, SG_CLASS_BYTE_PORT, SG_OUTPUT_PORT, &bt_outputs, SG_FALSE);
   /* TODO precompute buffer according to the given size */
@@ -1713,14 +1713,14 @@ static SgPortTable str_outputs = {
   string_oport_put_string
 };
 
-SgObject Sg_MakeStringOutputPort(int bufferSize)
+SgObject Sg_MakeStringOutputPort(size_t bufferSize)
 {
   SgStringPort *z = SG_NEW(SgStringPort);
   return Sg_InitStringOutputPort(z,  bufferSize);
 }
 
 SgObject Sg_InitStringOutputPort(SgStringPort *port,
-				 int bufferSize)
+				 size_t bufferSize)
 {
   SG_INIT_PORT(port, SG_CLASS_STRING_PORT, SG_OUTPUT_PORT, &str_outputs,
 	       SG_TRUE);
@@ -1794,7 +1794,7 @@ static int64_t custom_binary_read_inner(SgObject self, uint8_t *buf,
 					int64_t size, int allP)
 {
   SgObject bv, result;
-  int bvsize;
+  long bvsize;
   int64_t read = 0;
 
   if (SG_CUSTOM_HAS_U8_AHEAD(self)) {
@@ -1810,8 +1810,8 @@ static int64_t custom_binary_read_inner(SgObject self, uint8_t *buf,
   /* input/output port is *not* a bidirectional port so we can use the
      same buffer as write. so re-use it.*/
   do {
-    int r;
-    int count = (size < bvsize)? (int)size: bvsize;
+    long r;
+    long count = (size < bvsize)? (long)size: bvsize;
     result = Sg_Apply3(SG_CUSTOM_PORT(self)->read, bv,
 		       SG_MAKE_INT(0), SG_MAKE_INT(count));
 
@@ -1868,11 +1868,11 @@ static int64_t custom_binary_put_u8_array(SgObject self, uint8_t *v,
   SgObject result;
   SgByteVector *bv = SG_CUSTOM_PORT(self)->binaryBuffer;
   int64_t written = 0, c = size;
-  int bvsize = SG_BVECTOR_SIZE(bv);
+  long bvsize = SG_BVECTOR_SIZE(bv);
   /* to avoid huge allocation, we use pre-allocated buffer to
      pass to the Scheme procedure. */
   while (written < size) {
-    int count = (c < bvsize)? (int)c: bvsize;
+    long count = (c < bvsize)? (long)c: bvsize;
     int64_t t;
     memcpy(SG_BVECTOR_ELEMENTS(bv), v+written, count);
     result = Sg_Apply3(SG_CUSTOM_PORT(self)->write, bv, 
@@ -2121,7 +2121,7 @@ static int64_t custom_textual_get_string(SgObject self, SgChar *buf,
 
   s = SG_CUSTOM_PORT(self)->textualBuffer;
   do {
-    int r;
+    long r;
     result = Sg_Apply3(SG_CUSTOM_PORT(self)->read, s, 
 		       SG_MAKE_INT(0), 
 		       SG_MAKE_INT(size));
@@ -2156,10 +2156,10 @@ static int64_t custom_textual_put_string(SgObject self, SgChar *str,
   SgObject result;
   SgString *s = SG_CUSTOM_PORT(self)->textualBuffer;
   int64_t written = 0, c = count;
-  int size = SG_STRING_SIZE(s);
+  long size = SG_STRING_SIZE(s);
 
   while (written < count) {
-    int rc = (c < size)? (int)c: size;
+    long rc = (c < size)? (long)c: size;
     int64_t t;
     memcpy(SG_STRING_VALUE(s), str+written, rc*sizeof(SgChar));
     result = Sg_Apply3(SG_CUSTOM_PORT(self)->write, s, start, 
@@ -2995,7 +2995,7 @@ static SgObject readb_until(SgPort *port, SgByteVector *eol)
   SgObject r;
   /* use something the same as buffer ports (256) */
   uint8_t tmp[DEFAULT_BUFFER_SIZE], *buf;
-  int size = SG_BVECTOR_SIZE(eol);
+  long size = SG_BVECTOR_SIZE(eol);
 
   /* pre-check */
   if (Sg_PeekbUnsafe(port) == EOF) return SG_EOF;
@@ -3012,16 +3012,16 @@ static SgObject readb_until(SgPort *port, SgByteVector *eol)
     int b = Sg_GetbUnsafe(port);
     if (b == EOF) {
       break;
-    } else if (b == SG_BVECTOR_ELEMENT(eol, 0)) {
+    } else if ((uint8_t)b == SG_BVECTOR_ELEMENT(eol, 0)) {
       /* inner loop */
-      int i, offset = 0;
-      buf[0] = b;
+      long i, offset = 0;
+      buf[0] = (uint8_t)b;
       for (i = 1; i < size; i++) {
 	b = Sg_GetbUnsafe(port);
 
 	if (b == EOF) break;
 
-	buf[i] = b;
+	buf[i] = (uint8_t)b;
 	if (b != SG_BVECTOR_ELEMENT(eol, i)) {
 	  offset = 1;
 	  break;
@@ -3030,7 +3030,7 @@ static SgObject readb_until(SgPort *port, SgByteVector *eol)
       if (i == size) break;
       Sg_WritebUnsafe(out, buf, 0, i + offset);
     } else {
-      Sg_PutbUnsafe(out, b);
+      Sg_PutbUnsafe(out, (uint8_t)b);
     }
   }
 
@@ -3084,7 +3084,7 @@ void Sg_SetPortPosition(SgPort *port, int64_t offset, SgWhence whence)
   SG_PORT_CHAR_AHEAD(port) = EOF;
 }
 
-int Sg_LineNo(SgPort *port)
+int64_t Sg_LineNo(SgPort *port)
 {
   if (SG_BUFFERED_PORTP(port)) {
     return Sg_LineNo(SG_BUFFERED_PORT(port)->src);

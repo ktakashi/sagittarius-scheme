@@ -78,7 +78,7 @@
   (let ((val (FETCH_OPERAND (PC vm))))
     ($result val)))
 
-(define-inst CONSTI (1 0 #f)
+(define-inst CONSTI (1 0 #f) :no-declare
   ;;(INSN_VAL1 val1 c)
   ($result:i (INSN_VALUE1 c)))
 
@@ -451,7 +451,7 @@
 ;; if tail? is 1, then we need to shift args. like tail_call
 (define-inst APPLY (2 0 #t)
   (INSN_VAL2 val1 val2 c)
-  (let ((rargc::int (Sg_Length (AC vm)))
+  (let ((rargc::long (Sg_Length (AC vm)))
 	(nargc::int (- val1 2))
 	(proc (INDEX (SP vm) nargc))
 	(fp::SgObject* (- (SP vm) (- val1 1))))
@@ -475,7 +475,7 @@
 	   (set! (AC vm) proc)
 	   (goto tail_apply_entry)))))
 
-(define-inst CALL (1 0 #t)
+(define-inst CALL (1 0 #t) :no-declare
   (.undef APPLY_CALL)
   (.include "vmcall.c")
   (label tail_apply_entry)
@@ -662,7 +662,7 @@
       (wrong-type-of-argument-violation "vector-ref" "vector" obj))
     (unless (SG_INTP (AC vm))
       (wrong-type-of-argument-violation "vector-ref" "fixnum" (AC vm)))
-    (let ((index::int (SG_INT_VALUE (AC vm))))
+    (let ((index::long (SG_INT_VALUE (AC vm))))
       (when (or (>= index (SG_VECTOR_SIZE obj)) (< index 0))
 	(assertion-violation "vector-ref" "index out of range" 
 			     (SG_LIST2 obj (AC vm))))
@@ -679,7 +679,7 @@
 			   (SG_LIST1 obj)))
     (unless (SG_INTP index)
       (wrong-type-of-argument-violation "vector-set!" "fixnum" index))
-    (let ((i::int (SG_INT_VALUE index)))
+    (let ((i::long (SG_INT_VALUE index)))
       (when (or (>= i (SG_VECTOR_SIZE obj)) (< i 0))
 	(assertion-violation "vector-set!" "index out of range" 
 			     (SG_LIST2 obj index)))
@@ -699,13 +699,13 @@
 (define-inst CONST_PUSH (0 1 #f) :combined
   (CONST PUSH))
 
-(define-inst CONSTI_PUSH (1 0 #f) :combined
+(define-inst CONSTI_PUSH (1 0 #f) :no-declare :combined
   (CONSTI PUSH))
 
-(define-inst GREF_CALL (1 1 #t) :combined
+(define-inst GREF_CALL (1 1 #t) :no-declare :combined
   (GREF CALL))
 
-(define-inst GREF_TAIL_CALL (1 1 #t) :combined
+(define-inst GREF_TAIL_CALL (1 1 #t) :no-declare :combined
   (GREF TAIL_CALL))
 
 (define-inst SET_CAR (0 0 #t)

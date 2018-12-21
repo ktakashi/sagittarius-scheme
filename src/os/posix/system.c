@@ -258,7 +258,7 @@ SgObject Sg_GetTemporaryDirectory()
   const char *home;
   const size_t version_len = strlen(SAGITTARIUS_VERSION);
   const size_t triple_len = strlen(SAGITTARIUS_TRIPLE);
-  int len, i;
+  size_t len, i;
   char *real;
   struct stat st;
   
@@ -619,9 +619,9 @@ static int init_fd(int *fds, SgObject *port,
 	  if (Sg_StringEqual(abp, SG_CAR(slot))) {
 	    *port = SG_CAR(SG_CDDR(slot));
 	    if (type == IN) {
-	      fds[0] = SG_INT_VALUE(SG_CADR(slot));
+	      fds[0] = (int)SG_INT_VALUE(SG_CADR(slot));
 	    } else {
-	      fds[1] = SG_INT_VALUE(SG_CADR(slot));
+	      fds[1] = (int)SG_INT_VALUE(SG_CADR(slot));
 	    }
 	    return TRUE;
 	  }
@@ -694,7 +694,7 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
   SgObject cp, files = SG_NIL;	/* alist of file and port */
   /* this fails on Cygwin if I put it in the child process thing... */
   name = Sg_Utf32sToUtf8s(sname);
-  count = Sg_Length(sargs);
+  count = (int)Sg_Length(sargs);
 #ifdef HAVE_ALLOCA
   args = alloca(sizeof(char *) * (count + 2));
 #else
@@ -710,7 +710,7 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
   args[i] = NULL;
 
   sysfunc = "sysconf";
-  if ((open_max = sysconf(_SC_OPEN_MAX)) < 0) goto sysconf_fail;
+  if ((open_max = (int)sysconf(_SC_OPEN_MAX)) < 0) goto sysconf_fail;
 
   sysfunc = "pipe";
   if (!init_fd(pipe0, inp,  IN,  &closeP[0], &files)) goto pipe_fail;
@@ -957,7 +957,7 @@ int Sg_SysProcessKill(uintptr_t pid, int childrenp)
     int e = errno;
     if (e == ESRCH) {
       /* wait the pid */
-      return SG_INT_VALUE(Sg_SysProcessWait(pid, NULL));
+      return (int)SG_INT_VALUE(Sg_SysProcessWait(pid, NULL));
     } else {
       /* must be EPERM, so system error */
       Sg_SystemError(e, UC("failed to kill process: %A"),
@@ -965,7 +965,7 @@ int Sg_SysProcessKill(uintptr_t pid, int childrenp)
     }
   }
   /* remove it. */
-  remove_pid(pid);
+  remove_pid(p);
   /* dummy status code
      it's killed so should be something error code, should't it? */
   return -1;

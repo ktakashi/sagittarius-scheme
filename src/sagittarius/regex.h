@@ -1,6 +1,6 @@
 /* regex.h                                         -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -55,18 +55,18 @@ typedef struct inst_rec_t inst_t;
 
 typedef union {		 /* arguments for opcode */
   SgChar c;		 /* RX_CHAR: target character */
-  unsigned int n;	 /* RX_SAVE: submatch start or end position */
+  unsigned long n;	 /* RX_SAVE: submatch start or end position */
   struct {		 /* RX_SPLIT */
     inst_t *x;		 /*   primary position to jump */
     inst_t *y;		 /*   secondary position to jump */
   } pos;
   SgObject set;		 /* RX_SET: charset */
   unsigned int flags;	 /* RX_FLAGS */
-  unsigned int index;	 /* RX_BREF: reference index */
+  unsigned long index;	 /* RX_BREF: reference index */
   struct {		 /* RX_BRANCH or RX_BRANCHA */
     inst_t *x;			/* yes-pattern */
     inst_t *y;			/* no-pattern */
-    int     n;			/* submatch */
+    long    n;			/* submatch */
   } cond;
 } inst_arg_t;
 
@@ -118,11 +118,11 @@ typedef struct SgMatcherRec
   SG_HEADER;
   SgPattern *pattern;
   /* privates */
-  int        from;
-  int        to;
-  int        first;
-  int        last;
-  int        lastAppendPosition;
+  long       from;
+  long       to;
+  long       first;
+  long       last;
+  long       lastAppendPosition;
 } SgMatcher;
 
 typedef struct SgTextMatcherRec
@@ -175,18 +175,18 @@ SG_EXTERN void       Sg_DumpRegex(SgPattern *pattern, SgObject port);
 
 /* misc */
 SG_EXTERN SgObject   Sg_ParseCharSetString(SgString *s, int asciiP, 
-					   int start, int end);
+					   long start, long end);
 SG_EXTERN SgObject   Sg_CharSetToRegexString(SgObject cset, int invertP);
 
 /* text matcher */
 SG_EXTERN SgMatcher* Sg_RegexTextMatcher(SgPattern *pattern, SgString *text,
-					   int start, int end);
+					 long start, long end);
 SG_EXTERN SgObject   Sg_RegexTextAfter(SgTextMatcher *matcher);
 SG_EXTERN SgObject   Sg_RegexTextBefore(SgTextMatcher *matcher);
 
 SG_EXTERN int        Sg_RegexTextMatches(SgTextMatcher *m);
 SG_EXTERN int        Sg_RegexTextLookingAt(SgTextMatcher *m);
-SG_EXTERN int        Sg_RegexTextFind(SgTextMatcher *m, int start);
+SG_EXTERN int        Sg_RegexTextFind(SgTextMatcher *m, long start);
 
 SG_EXTERN SgObject   Sg_RegexTextGroup(SgTextMatcher *m, SgObject groupOrName);
 SG_EXTERN int        Sg_RegexTextGroupPosition(SgTextMatcher *m, 
@@ -198,18 +198,18 @@ SG_EXTERN SgString*  Sg_RegexTextReplaceAll(SgTextMatcher *m,
 SG_EXTERN SgString*  Sg_RegexTextReplaceFirst(SgTextMatcher *m, 
 					      SgObject replacement);
 SG_EXTERN SgString*  Sg_RegexTextReplace(SgTextMatcher *m, SgObject replacement,
-					 int count);
+					 long count);
 SG_EXTERN int        Sg_RegexTextCaptureCount(SgTextMatcher *m);
 
 /* binary matcher */
 SG_EXTERN SgMatcher* Sg_RegexBinaryMatcher(SgPattern *pattern,
 					   SgByteVector *text,
-					   int start, int end);
+					   long start, long end);
 SG_EXTERN SgObject   Sg_RegexBinaryAfter(SgBinaryMatcher *matcher);
 SG_EXTERN SgObject   Sg_RegexBinaryBefore(SgBinaryMatcher *matcher);
 SG_EXTERN int        Sg_RegexBinaryMatches(SgBinaryMatcher *m);
 SG_EXTERN int        Sg_RegexBinaryLookingAt(SgBinaryMatcher *m);
-SG_EXTERN int        Sg_RegexBinaryFind(SgBinaryMatcher *m, int start);
+SG_EXTERN int        Sg_RegexBinaryFind(SgBinaryMatcher *m, long start);
 
 SG_EXTERN SgObject   Sg_RegexBinaryGroup(SgBinaryMatcher *m, 
 					 SgObject groupOrName);
@@ -223,17 +223,17 @@ SG_EXTERN SgByteVector* Sg_RegexBinaryReplaceFirst(SgBinaryMatcher *m,
 						   SgObject replacement);
 SG_EXTERN SgByteVector* Sg_RegexBinaryReplace(SgBinaryMatcher *m, 
 					      SgObject replacement,
-					      int count);
+					      long count);
 SG_EXTERN int        Sg_RegexBinaryCaptureCount(SgBinaryMatcher *m);
 
 
 
 /* Old interfaces */
 SG_EXTERN SgMatcher* Sg_RegexMatcher(SgPattern *pattern, SgObject text,
-					 int start, int end);
+				     long start, long end);
 SG_EXTERN int        Sg_RegexMatches(SgMatcher *m);
 SG_EXTERN int        Sg_RegexLookingAt(SgMatcher *m);
-SG_EXTERN int        Sg_RegexFind(SgMatcher *m, int start);
+SG_EXTERN int        Sg_RegexFind(SgMatcher *m, long start);
 
 SG_EXTERN SgObject   Sg_RegexGroup(SgMatcher *m, SgObject groupOrName);
 SG_EXTERN int        Sg_RegexGroupPosition(SgMatcher *m, 
@@ -245,7 +245,7 @@ SG_EXTERN SgObject   Sg_RegexReplaceAll(SgMatcher *m,
 SG_EXTERN SgObject   Sg_RegexReplaceFirst(SgMatcher *m, 
 					  SgObject replacement);
 SG_EXTERN SgObject   Sg_RegexReplace(SgMatcher *m, SgObject replacement,
-				     int count);
+				     long count);
 SG_EXTERN int        Sg_RegexCaptureCount(SgMatcher *m);
 SG_EXTERN SgObject   Sg_RegexAfter(SgMatcher *matcher);
 SG_EXTERN SgObject   Sg_RegexBefore(SgMatcher *matcher);

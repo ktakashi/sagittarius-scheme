@@ -40,7 +40,7 @@
 static void wvector_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
   SgWeakVector *wvec = SG_WEAK_VECTOR(obj);
-  int size = wvec->size, i;
+  long size = wvec->size, i;
   Sg_Putuz(port, UC("#<weak-vector"));
   for (i = 0; i < size; i++) {
     Sg_Putc(port, ' ');
@@ -83,9 +83,9 @@ static void weakvector_finalize(SgObject obj, void *data)
   }
 }
 
-SgObject Sg_MakeWeakVector(int size)
+SgObject Sg_MakeWeakVector(long size)
 {
-  int i;
+  long i;
   SgObject *p;
   SgWeakVector *v = SG_NEW(SgWeakVector);
 
@@ -101,7 +101,7 @@ SgObject Sg_MakeWeakVector(int size)
   return SG_OBJ(v);
 }
 
-SgObject Sg_WeakVectorRef(SgWeakVector *v, int index, SgObject fallback)
+SgObject Sg_WeakVectorRef(SgWeakVector *v, long index, SgObject fallback)
 {
   SgObject *p;
   if (index < 0 || index >= v->size) {
@@ -119,7 +119,7 @@ SgObject Sg_WeakVectorRef(SgWeakVector *v, int index, SgObject fallback)
   }
 }
 
-SgObject Sg_WeakVectorSet(SgWeakVector *v, int index, SgObject value)
+SgObject Sg_WeakVectorSet(SgWeakVector *v, long index, SgObject value)
 {
   SgObject *p;
   if (index < 0 || index >= v->size) {
@@ -194,7 +194,7 @@ void* Sg_WeakBoxRef(SgWeakBox *wbox)
 
 #define MARK_GONE_ENTRY(ht, e) (ht->goneEntries++)
 
-static uint32_t weak_key_hash(const SgHashCore *hc, intptr_t key)
+static SgHashVal weak_key_hash(const SgHashCore *hc, intptr_t key)
 {
   SgWeakHashTable *wh = SG_WEAK_HASHTABLE(hc->data);
   SgWeakBox *box;
@@ -520,7 +520,7 @@ static void weak_hashtable_create_entry(SgHashCore *core, SgHashEntry *e)
 
 SgObject Sg_MakeWeakHashTableSimple(SgHashType type,
 				    SgWeakness weakness,
-				    int initSize,
+				    long initSize,
 				    SgObject defaultValue)
 {
   SgWeakHashTable *wh = make_weak_hashtable(type, weakness, defaultValue);
@@ -542,7 +542,7 @@ SgObject Sg_MakeWeakHashTableSimple(SgHashType type,
 SgObject Sg_MakeWeakHashTable(SgObject hasher,
 			      SgObject compare,
 			      SgWeakness weakness,
-			      int initSize,
+			      long initSize,
 			      SgObject defaultValue)
 {
   SgWeakHashTable *wh = 

@@ -103,7 +103,7 @@ static void flush(SgCodeBuilder *cb)
     push(cb, SG_WORD(insn));
     break;
   case ARGUMENT1: {
-    InsnInfo *info = Sg_LookupInsnName(cb->packet.insn);
+    InsnInfo *info = Sg_LookupInsnName((Instruction)cb->packet.insn);
     push(cb, SG_WORD(insn));
     if (info->label) {
       cb->labelRefs = Sg_Acons(cb->packet.obj, SG_MAKE_INT(cb->size),
@@ -171,7 +171,7 @@ static void cb_put(SgCodeBuilder *cb, SgCodePacket *packet)
   for (i = 0; i < array_sizeof(comb_table); i++) {
     struct comb_table_t *entry = &comb_table[i];
     if (entry->current == curr && entry->previous == prev) {
-      InsnInfo *currI = Sg_LookupInsnName(curr); 
+      InsnInfo *currI = Sg_LookupInsnName((Instruction)curr); 
       cb->packet.insn = entry->next;
       cb->packet.type = entry->type;
       /* only one object can be supported any way */
@@ -240,7 +240,7 @@ SgCodeBuilder* Sg_MakeCodeBuilderFromCache(SgObject name, SgWord *code, int size
 }
 
 void Sg_CodeBuilderEmit(SgCodeBuilder *cb, SgWord insn, PacketType type,
-			int arg0, int arg1, SgObject obj)
+			long arg0, long arg1, SgObject obj)
 {
   SgCodePacket packet;
   packet.insn = insn;
@@ -307,7 +307,7 @@ static void finish_builder_rec(SgCodeBuilder *cb)
     SgObject l = SG_CAAR(label);
     SgObject op = SG_CDAR(label);
     SgObject dest = Sg_Assq(l, labelDefs);
-    int d, o;
+    long d, o;
     if (!SG_FALSEP(dest)) {
       dest = SG_CDR(dest);
     } else {

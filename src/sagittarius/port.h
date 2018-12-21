@@ -1,6 +1,6 @@
 /* port.h                                          -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -551,9 +551,9 @@ SG_EXTERN SgObject Sg_MakeByteArrayInputPort(uint8_t *src, int64_t size);
 SG_EXTERN SgObject Sg_InitByteArrayInputPort(SgBytePort *port,
 					     uint8_t *src,
 					     size_t start, size_t end);
-SG_EXTERN SgObject Sg_MakeByteArrayOutputPort(int bufferSize);
+SG_EXTERN SgObject Sg_MakeByteArrayOutputPort(size_t bufferSize);
 SG_EXTERN SgObject Sg_InitByteArrayOutputPort(SgBytePort *port,
-					      int bufferSize);
+					      size_t bufferSize);
 
 SG_EXTERN SgObject Sg_MakeTranscodedPort(SgPort *port,
 					 SgTranscoder *transcoder);
@@ -563,9 +563,9 @@ SG_EXTERN SgObject Sg_InitTranscodedPort(SgTranscodedPort *port,
 					 SgPortDirection direction);
 
 /* buffer size is not used yet */
-SG_EXTERN SgObject Sg_MakeStringOutputPort(int bufferSize);
+SG_EXTERN SgObject Sg_MakeStringOutputPort(size_t bufferSize);
 SG_EXTERN SgObject Sg_InitStringOutputPort(SgStringPort *port,
-					   int bufferSize);
+					   size_t bufferSize);
 SG_EXTERN SgObject Sg_MakeStringInputPort(SgString *in,
 					  int64_t start, int64_t end);
 SG_EXTERN SgObject Sg_InitStringInputPort(SgStringPort *port, SgString *in,
@@ -670,7 +670,7 @@ SG_EXTERN int64_t  Sg_PortPosition(SgPort *port);
 SG_EXTERN void     Sg_SetPortPosition(SgPort *port, int64_t offset,
 				      SgWhence whence);
 
-SG_EXTERN int      Sg_LineNo(SgPort *port);
+SG_EXTERN int64_t Sg_LineNo(SgPort *port);
 SG_EXTERN SgObject Sg_FileName(SgPort *port);
 SG_EXTERN SgObject Sg_PortFile(SgPort *port);
 

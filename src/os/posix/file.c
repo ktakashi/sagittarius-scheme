@@ -834,7 +834,7 @@ void Sg_SetCurrentDirectory(SgString *path)
 
 SgObject Sg_DirectoryName(SgString *path)
 {
-  int size = SG_STRING_SIZE(path), i;
+  long size = SG_STRING_SIZE(path), i;
   for (i = size-1; i >= 0; i--) {
     if (SG_STRING_VALUE_AT(path, i) == '/') break;
   }
@@ -844,8 +844,8 @@ SgObject Sg_DirectoryName(SgString *path)
 
 SgObject Sg_BuildPath(SgString *path, SgString *file)
 {
-  int psize = SG_STRING_SIZE(path), fsize = SG_STRING_SIZE(file);
-  int i, j, offset = 1;
+  long psize = SG_STRING_SIZE(path), fsize = SG_STRING_SIZE(file);
+  long i, j, offset = 1;
   SgObject ret;
   if (SG_STRING_VALUE_AT(path, psize-1) == '/') offset--;
   ret = Sg_ReserveString(psize + fsize + offset, 0);
@@ -866,9 +866,9 @@ int Sg_AbsolutePathP(SgString *path)
   return (SG_STRING_VALUE_AT(path, 0) == '/');
 }
 
-static int search_separator(SgObject path, int off)
+static int64_t search_separator(SgObject path, int64_t off)
 {
-  int i;
+  int64_t i;
   for (i = off; i >= 0; i--) {
     if (SG_STRING_VALUE_AT(path, i) == '/') break;
   }

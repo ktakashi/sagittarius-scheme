@@ -49,7 +49,7 @@ static void string_print(SgObject o, SgPort *port, SgWriteContext *ctx)
     Sg_PutsUnsafe(port, obj);
   } else {
     SgChar *s = obj->value;
-    int i, size = obj->size;
+    long i, size = obj->size;
     Sg_PutcUnsafe(port, '"');
     for (i = 0; i < size; i++) {
       SgChar ch = s[i];
@@ -410,16 +410,16 @@ SgChar Sg_StringRef(SgString *s, long k)
   return SG_STRING_VALUE_AT(s, k);
 }
 
-static inline int boyer_moore(const SgChar *ss1, long siz1,
+static inline long boyer_moore(const SgChar *ss1, long siz1,
                               const SgChar *ss2, long siz2)
 {
-  uint32_t shift[256];
+  long shift[256];
   long i, j, k;
   for (i = 0; i < 256; i++) { shift[i] = siz2; }
   for (j = 0; j < siz2-1; j++) {
     shift[(uint32_t)ss2[j]] = siz2-j-1;
   }
-  for (i = siz2 - 1; i < siz1; i += shift[(uint32_t)ss1[i]]) {
+  for (i = siz2 - 1; i < siz1; i += shift[ss1[i]]) {
     for (j = siz2 - 1, k = i; j >= 0 && ss1[k] == ss2[j]; j--, k--)
       ;
     if (j == -1) return k+1;
@@ -525,7 +525,7 @@ SgObject Sg_StringSplitChar(SgString *s1, SgChar ch)
   SgObject h = SG_NIL, t = SG_NIL, s = s1;
 
   while (!SG_FALSEP(pos)) {
-    int p = SG_INT_VALUE(pos);
+    long p = SG_INT_VALUE(pos);
     SG_APPEND1(h, t, Sg_Substring(s, 0, p));
     s = Sg_Substring(s, p+1, SG_STRING_SIZE(s));
     pos = Sg_StringScanChar(s, ch, SG_STRING_SCAN_INDEX);
@@ -556,7 +556,7 @@ void Sg_StringSet(SgString *s, long k, SgChar c)
 
 void Sg_StringFill(SgString *s, SgChar c, long start, long end)
 {
-  int size = s->size, i;
+  long size = s->size, i;
   SG_CHECK_START_END(start, end, size);
   for (i = start; i < end; i++) {
     SG_STRING_VALUE_AT(s, i) = c;

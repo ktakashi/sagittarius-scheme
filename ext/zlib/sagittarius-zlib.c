@@ -76,7 +76,8 @@ int Sg_DeflateSetDictionary(SgZStream *strm, SgByteVector *dict)
 {
   return deflateSetDictionary(strm->strm,
 			      SG_BVECTOR_ELEMENTS(dict),
-			      SG_BVECTOR_SIZE(dict));
+			      /* home it's 32 bit size */
+			      (int)SG_BVECTOR_SIZE(dict));
 }
 
 int Sg_Deflate(SgZStream *strm, SgByteVector *data, SgByteVector *dest,
@@ -84,9 +85,9 @@ int Sg_Deflate(SgZStream *strm, SgByteVector *data, SgByteVector *dest,
 {
   int ret;
   strm->strm->next_in = SG_BVECTOR_ELEMENTS(data);
-  strm->strm->avail_in = SG_BVECTOR_SIZE(data);
+  strm->strm->avail_in = (int)SG_BVECTOR_SIZE(data);
   strm->strm->next_out = SG_BVECTOR_ELEMENTS(dest);
-  strm->strm->avail_out = SG_BVECTOR_SIZE(dest);
+  strm->strm->avail_out = (int)SG_BVECTOR_SIZE(dest);
   ret = deflate(strm->strm, flush);
 
   return ret;
@@ -139,7 +140,7 @@ int Sg_InflateSetDictionary(SgZStream *strm, SgByteVector *dict)
 {
   return inflateSetDictionary(strm->strm,
 			      SG_BVECTOR_ELEMENTS(dict),
-			      SG_BVECTOR_SIZE(dict));
+			      (int)SG_BVECTOR_SIZE(dict));
 }
 
 int Sg_InflateSync(SgZStream *strm)
@@ -151,9 +152,9 @@ int Sg_Inflate(SgZStream *strm, SgByteVector *data, SgByteVector *dest,
 	       int flush)
 {
   strm->strm->next_in = SG_BVECTOR_ELEMENTS(data);
-  strm->strm->avail_in = SG_BVECTOR_SIZE(data);
+  strm->strm->avail_in = (int)SG_BVECTOR_SIZE(data);
   strm->strm->next_out = SG_BVECTOR_ELEMENTS(dest);
-  strm->strm->avail_out = SG_BVECTOR_SIZE(dest);
+  strm->strm->avail_out = (int)SG_BVECTOR_SIZE(dest);
   return inflate(strm->strm, flush);  
 }
 

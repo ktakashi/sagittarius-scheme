@@ -35,14 +35,14 @@
   Sg_TLSServerSocketHandshake)
 
 (define-c-proc tls-socket-send
-  (o::<tls-socket> bv::<bytevector> :optional (flags::<fixnum> 0)) ::<fixnum>
+  (o::<tls-socket> bv::<bytevector> :optional (flags::<ifixnum> 0)) ::<fixnum>
   (result (Sg_TLSSocketSend (SG_TLS_SOCKET o)
 			    (SG_BVECTOR_ELEMENTS bv)
-			    (SG_BVECTOR_SIZE bv)
+			    (cast int (SG_BVECTOR_SIZE bv))
 			    flags)))
 
-(define-c-proc tls-socket-recv (o::<tls-socket> len::<fixnum>
-						:optional (flags::<fixnum> 0)) 
+(define-c-proc tls-socket-recv (o::<tls-socket> len::<ifixnum>
+						:optional (flags::<ifixnum> 0)) 
   (let ((data (Sg_MakeByteVector len 0))
 	(res::int (Sg_TLSSocketReceive (SG_TLS_SOCKET o)
 				       (SG_BVECTOR_ELEMENTS data) len flags)))
@@ -59,7 +59,7 @@
 ;; destructive
 (define-c-proc tls-socket-recv! 
   (o::<tls-socket> bv::<bytevector> start::<fixnum> len::<fixnum>
-	       :optional (flags::<fixnum> 0)) ::<fixnum>
+	       :optional (flags::<ifixnum> 0)) ::<fixnum>
   ;; sanity check
   (when (or (>= start (SG_BVECTOR_SIZE bv))
 	    (> len (- (SG_BVECTOR_SIZE bv) start)))
@@ -68,11 +68,11 @@
 			   (SG_LIST4 o bv (SG_MAKE_INT start) 
 				     (SG_MAKE_INT len))))
   (result (Sg_TLSSocketReceive (SG_TLS_SOCKET o)
-			    (+ (SG_BVECTOR_ELEMENTS bv) start)
-			    len flags)))
+			       (+ (SG_BVECTOR_ELEMENTS bv) start)
+			       (cast int len) flags)))
 
 
-(define-c-proc tls-socket-shutdown (o::<tls-socket> how::<fixnum>) ::<void>
+(define-c-proc tls-socket-shutdown (o::<tls-socket> how::<ifixnum>) ::<void>
   Sg_TLSSocketShutdown)
 
 (define-c-proc tls-socket-close  (o::<tls-socket>) ::<void> Sg_TLSSocketClose)

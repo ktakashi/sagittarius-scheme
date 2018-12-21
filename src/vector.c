@@ -1,6 +1,6 @@
 /* vector.c                                        -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -44,7 +44,7 @@ SG_DEFINE_BUILTIN_CLASS(Sg_VectorClass, vector_print, NULL, NULL, NULL,
 			SG_CLASS_SEQUENCE_CPL);
 
 
-static SgVector* make_vector(int size)
+static SgVector* make_vector(long size)
 {
   SgVector *v = SG_NEW2(SgVector*, sizeof(SgVector)+sizeof(SgObject)*(size-1));
   SG_SET_CLASS(v, SG_CLASS_VECTOR);
@@ -52,9 +52,9 @@ static SgVector* make_vector(int size)
   return v;
 }
 
-SgObject Sg_MakeVector(int size, SgObject fill)
+SgObject Sg_MakeVector(long size, SgObject fill)
 {
-  int i;
+  long i;
   SgVector *v;
   if (size < 0) {
     Sg_Error(UC("vector size must be a positive integer, but got %d"), size);
@@ -65,21 +65,21 @@ SgObject Sg_MakeVector(int size, SgObject fill)
   return SG_OBJ(v);
 }
 
-SgObject Sg_VectorRef(SgVector *vec, int i, SgObject fallback)
+SgObject Sg_VectorRef(SgVector *vec, long i, SgObject fallback)
 {
   if (i < 0 || i >= vec->size) return fallback;
   return vec->elements[i];
 }
 
-SgObject Sg_VectorSet(SgVector *vec, int i, SgObject obj)
+SgObject Sg_VectorSet(SgVector *vec, long i, SgObject obj)
 {
   if (i >= 0 && i < vec->size) vec->elements[i] = obj;
   return obj;
 }
 
-SgObject Sg_VectorFill(SgVector *vec, SgObject fill, int start, int end)
+SgObject Sg_VectorFill(SgVector *vec, SgObject fill, long start, long end)
 {
-  int i, len = SG_VECTOR_SIZE(vec);
+  long i, len = SG_VECTOR_SIZE(vec);
   SG_CHECK_START_END(start, end, len);
   for (i = start; i < end; i++) {
     SG_VECTOR_ELEMENT(vec, i) = fill;
@@ -87,15 +87,14 @@ SgObject Sg_VectorFill(SgVector *vec, SgObject fill, int start, int end)
   return SG_OBJ(vec);
 }
 
-
-SgObject Sg_ListToVector(SgObject l, int start, int end)
+SgObject Sg_ListToVector(SgObject l, long start, long end)
 {
   SgVector *v;
   SgObject e;
-  int i;
+  long i;
 
   if (end < 0) {
-    int size = Sg_Length(l);
+    long size = Sg_Length(l);
     if (size < 0) Sg_Error(UC("bad list: %S"), l);
     SG_CHECK_START_END(start, end, size);
     v = make_vector(size - start);
@@ -113,26 +112,27 @@ SgObject Sg_ListToVector(SgObject l, int start, int end)
   return SG_OBJ(v);
 }
 
-SgObject Sg_VectorToList(SgVector *v, int start, int end)
+SgObject Sg_VectorToList(SgVector *v, long start, long end)
 {
-  int len = SG_VECTOR_SIZE(v);
+  long len = SG_VECTOR_SIZE(v);
   SgObject h = SG_NIL, t = SG_NIL;
   SgObject *elts = SG_VECTOR_ELEMENTS(v);
   SG_CHECK_START_END(start, end, len);
   if (elts) {
-    int i;
+    long i;
     for (i = start; i < end; i++) SG_APPEND1(h, t, *(elts + i));
   }
   return h;
 }
 
-SgObject Sg_VectorCopy(SgVector *vec, int start, int end, SgObject fill)
+SgObject Sg_VectorCopy(SgVector *vec, long start, long end, SgObject fill)
 {
-  int i, len = SG_VECTOR_SIZE(vec);
+  long i, len = SG_VECTOR_SIZE(vec);
   SgVector *v = NULL;
   if (end < 0) end = len;
   if (end < start) {
-    Sg_Error(UC("vector-copy: start (%d) is greater then end (%d)"), start, end);
+    Sg_Error(UC("vector-copy: start (%d) is greater then end (%d)"),
+	     start, end);
   } else if (end == start) {
     v = make_vector(0);
   } else {
@@ -152,7 +152,7 @@ SgObject Sg_VectorCopy(SgVector *vec, int start, int end, SgObject fill)
 SgObject Sg_VectorConcatenate(SgObject vecList)
 {
   SgObject r, cp;
-  int size = 0, i;
+  long size = 0, i;
   SG_FOR_EACH(cp, vecList) {
     if (!SG_VECTORP(SG_CAR(cp))) {
       Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-concatenate"),
@@ -173,10 +173,10 @@ SgObject Sg_VectorConcatenate(SgObject vecList)
   return r;
 }
 
-SgObject Sg_VectorReverseX(SgObject vec, int start, int end)
+SgObject Sg_VectorReverseX(SgObject vec, long start, long end)
 {
   SgObject t;
-  int i, n = SG_VECTOR_SIZE(vec), e, c;
+  long i, n = SG_VECTOR_SIZE(vec), e, c;
   SG_CHECK_START_END(start, end, n);
 
   n = (end-start)/2;

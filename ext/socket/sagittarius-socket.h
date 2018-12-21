@@ -102,7 +102,7 @@ SG_CLASS_DECL(Sg_AddrinfoClass);
 struct SgSockaddrRec
 {
   SG_HEADER;
-  size_t           addr_size;
+  socklen_t        addr_size;
   struct sockaddr *addr;
 };
 
@@ -277,14 +277,15 @@ SG_EXTERN SgObject  Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo);
 SG_EXTERN SgObject  Sg_SocketBind(SgSocket *socket, SgAddrinfo* addrinfo);
 SG_EXTERN SgObject  Sg_SocketListen(SgSocket *socket, int backlog);
 
-SG_EXTERN int       Sg_SocketReceive(SgSocket *socket, uint8_t *data,
-				     int size, int flags);
-SG_EXTERN int       Sg_SocketReceiveFrom(SgSocket *socket, uint8_t *data,
-					 int size, int flags, SgSockaddr *addr);
-SG_EXTERN int       Sg_SocketSend(SgSocket *socket, uint8_t *data,
-				  int size, int flags);
-SG_EXTERN int       Sg_SocketSendTo(SgSocket *socket, uint8_t *data,
-				    int size, int flags, SgSockaddr *addr);
+SG_EXTERN long      Sg_SocketReceive(SgSocket *socket, uint8_t *data,
+				     long size, int flags);
+SG_EXTERN long      Sg_SocketReceiveFrom(SgSocket *socket, uint8_t *data,
+					 long size, int flags,
+					 SgSockaddr *addr);
+SG_EXTERN long      Sg_SocketSend(SgSocket *socket, uint8_t *data,
+				  long size, int flags);
+SG_EXTERN long      Sg_SocketSendTo(SgSocket *socket, uint8_t *data,
+				    long size, int flags, SgSockaddr *addr);
 SG_EXTERN SgObject  Sg_SocketAccept(SgSocket *socket);
 SG_EXTERN void      Sg_SocketShutdown(SgSocket *socket, int how);
 SG_EXTERN void      Sg_SocketClose(SgSocket *socket);

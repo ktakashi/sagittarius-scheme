@@ -41,7 +41,7 @@ SG_EXTERN SgObject Sg_MakeBignumFromUI(unsigned long value);
 SG_EXTERN SgObject Sg_MakeBignumFromS64(int64_t value);
 SG_EXTERN SgObject Sg_MakeBignumFromU64(uint64_t value);
 SG_EXTERN SgObject Sg_MakeBignumFromDouble(double value);
-SG_EXTERN SgObject Sg_MakeBignumWithSize(int size, unsigned long init);
+SG_EXTERN SgObject Sg_MakeBignumWithSize(long size, unsigned long init);
 SG_EXTERN SgObject Sg_BignumCopy(SgBignum *b);
 SG_EXTERN SgObject Sg_NormalizeBignum(SgBignum *b);
 SG_EXTERN int      Sg_BignumCmp(SgBignum *lhs, SgBignum *rhs);
@@ -51,10 +51,10 @@ SG_EXTERN SgObject Sg_BignumToInteger(SgBignum *b);
 SG_EXTERN long          Sg_BignumToSI(SgBignum *b, int clamp, int *oor);
 SG_EXTERN unsigned long Sg_BignumToUI(SgBignum *b, int clamp, int *oor);
 
-SG_EXTERN int      Sg_BignumBitCount(SgBignum *b);
-SG_EXTERN int      Sg_BignumBitSize(SgBignum *b);
-SG_EXTERN int      Sg_BignumFirstBitSet(SgBignum *b);
-SG_EXTERN int      Sg_BignumBitSetP(SgBignum *b, int n);
+SG_EXTERN long     Sg_BignumBitCount(SgBignum *b);
+SG_EXTERN long     Sg_BignumBitSize(SgBignum *b);
+SG_EXTERN long     Sg_BignumFirstBitSet(SgBignum *b);
+SG_EXTERN int      Sg_BignumBitSetP(SgBignum *b, long n);
 SG_EXTERN int      Sg_BignumAbsCmp(SgBignum *bx, SgBignum *by);
 SG_EXTERN int      Sg_BignumCmp3U(SgBignum *bx, SgBignum *off, SgBignum *by);
 

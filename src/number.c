@@ -125,14 +125,14 @@ SG_DEFINE_BUILTIN_CLASS(Sg_RationalClass, number_print, NULL, NULL, NULL,
 SG_DEFINE_BUILTIN_CLASS(Sg_IntegerClass, number_print, NULL, NULL, NULL,
 			numeric_cpl);
 
-static inline unsigned long ipow(int r, int n)
+static inline unsigned long ipow(int r, long n)
 {
   unsigned long k;
   for (k = 1; n > 0; n--) k *= r;
   return k;
 }
 
-static double pow10n(double x, int n)
+static double pow10n(double x, long n)
 {
   static double dpow10[] = { 1.0, 1.0e1, 1.0e2, 1.0e3, 1.0e4,
 			     1.0e5, 1.0e6, 1.0e7, 1.0e8, 1.0e9,
@@ -287,7 +287,7 @@ static double prevfloat(double z)
 //  How to read floating point numbers accurately
 //  Proceedings of the ACM SIGPLAN 1990 conference on Programming language design and implementation, p.92-101, June 1990
 */
-static double algorithmR(SgObject f, const int e, const double z0)
+static double algorithmR(SgObject f, const long e, const double z0)
 {
   double z = z0;
   SgObject x0, pow10e;
@@ -376,15 +376,15 @@ static long longdigs[RADIX_MAX - RADIX_MIN + 1] = {0};
 static unsigned long longlimit[RADIX_MAX - RADIX_MIN + 1] = {0};
 static unsigned long bigdig[RADIX_MAX - RADIX_MIN + 1] = {0};
 
-static SgObject read_uint(const SgChar **strp, int *lenp,
+static SgObject read_uint(const SgChar **strp, long *lenp,
 			  struct numread_packet *ctx,
 			  SgObject initval)
 {
   const SgChar *str = *strp;
   int digread = FALSE;
-  int len = *lenp;
+  long len = *lenp;
   int radix = ctx->radix;
-  int digits = 0, diglimit = longdigs[radix - RADIX_MIN];
+  long digits = 0, diglimit = longdigs[radix - RADIX_MIN];
   unsigned long limit = longlimit[radix - RADIX_MIN],
                 bdig = bigdig[radix - RADIX_MIN];
   unsigned long value_int = 0;
@@ -456,12 +456,12 @@ static SgObject read_uint(const SgChar **strp, int *lenp,
   return Sg_NormalizeBignum(value_big);
 }
 
-static SgObject read_real(const SgChar **strp, int *lenp,
+static SgObject read_real(const SgChar **strp, long *lenp,
 			  struct numread_packet *ctx)
 {
   int minusp = FALSE, exp_minusp = FALSE, exp_overflow = FALSE;
   int sign_seen = FALSE, has_fraction = FALSE, has_exponent = FALSE;
-  int fracdigs = 0;
+  long fracdigs = 0;
   long exponent = 0;
   SgObject intpart, fraction;
   const SgChar *mark;
@@ -498,7 +498,7 @@ static SgObject read_real(const SgChar **strp, int *lenp,
     if (**strp == '/') {
       /* possibly rational */
       SgObject denom;
-      int lensave;
+      long lensave;
       if ((*lenp) <= 1 || mark == *strp) return SG_FALSE;
       (*strp)++; (*lenp)--;
       lensave = *lenp;
@@ -532,7 +532,7 @@ static SgObject read_real(const SgChar **strp, int *lenp,
 
   /* read fractional part */
   if (**strp == '.') {
-    int lensave;
+    long lensave;
     if (ctx->radix != 10) {
       return number_read_error(UC("only 10-based fraction is supported"), ctx);
     }
@@ -649,7 +649,7 @@ static SgObject read_real(const SgChar **strp, int *lenp,
  * only ASCII chars.
  */
 /* entry point */
-static SgObject read_number(const SgChar *str, int len, int radix, int strict)
+static SgObject read_number(const SgChar *str, long len, int radix, int strict)
 {
   struct numread_packet ctx;
   int radix_seen = 0, exactness_seen = 0, sign_seen = 0;
@@ -1269,24 +1269,25 @@ double Sg_RationalToDouble(SgRational *obj)
   double deno = Sg_GetDouble(obj->denominator);
   if (isinf(nume) || isinf(deno)) {
     if (isinf(nume) && isinf(deno)) {
-      int nume_bitsize = Sg_BignumBitSize(obj->numerator);
-      int deno_bitsize = Sg_BignumBitSize(obj->denominator);
-      int shift = (nume_bitsize > deno_bitsize) ? nume_bitsize - BITSIZE_TH : deno_bitsize - BITSIZE_TH;
+      long nume_bitsize = Sg_BignumBitSize(obj->numerator);
+      long deno_bitsize = Sg_BignumBitSize(obj->denominator);
+      long shift = (nume_bitsize > deno_bitsize)
+	? nume_bitsize - BITSIZE_TH : deno_bitsize - BITSIZE_TH;
       if (shift < 1) shift = 1;
       nume = Sg_GetDouble(Sg_BignumShiftRight(obj->numerator, shift));
       deno = Sg_GetDouble(Sg_BignumShiftRight(obj->denominator, shift));
     } else if (isinf(deno)) {
-      int deno_bitsize = Sg_BignumBitSize(obj->denominator);
-      int shift = deno_bitsize - BITSIZE_TH;
+      long deno_bitsize = Sg_BignumBitSize(obj->denominator);
+      long shift = deno_bitsize - BITSIZE_TH;
       if (shift < 1) shift = 1;
-      nume = ldexp(nume, -shift);
+      nume = ldexp(nume, (int)-shift);
       deno = Sg_GetDouble(Sg_BignumShiftRight(obj->denominator, shift));
     } else {
-      int nume_bitsize = Sg_BignumBitSize(obj->numerator);
-      int shift = nume_bitsize - BITSIZE_TH;
+      long nume_bitsize = Sg_BignumBitSize(obj->numerator);
+      long shift = nume_bitsize - BITSIZE_TH;
       if (shift < 1) shift = 1;
       nume = Sg_GetDouble(Sg_BignumShiftRight(obj->numerator, shift));
-      deno = ldexp(deno, -shift);
+      deno = ldexp(deno, (int)-shift);
     }
   }
   return nume / deno;
@@ -1700,9 +1701,9 @@ SgObject Sg_Inverse(SgObject obj)
   return SG_UNDEF;		/* dummy */
 }
 
-static inline int integer_length_rec(SgObject n)
+static inline long integer_length_rec(SgObject n)
 {
-  int n2;
+  long n2;
   SgObject n3;
   if (SG_INTP(n)) {
     switch (SG_INT_VALUE(n)) {
@@ -1725,7 +1726,7 @@ static inline int integer_length_rec(SgObject n)
   return SG_INT_VALUE(n3);
 }
 
-int Sg_IntegerLength(SgObject n)
+long Sg_IntegerLength(SgObject n)
 {
   if (!Sg_IntegerP(n)) wte(SG_INTERN("integer-length"), "integer", n);
   return integer_length_rec(n);
@@ -1849,7 +1850,7 @@ SgObject Sg_LogXor(SgObject x, SgObject y)
   return Sg_BignumLogXor(SG_BIGNUM(x), SG_BIGNUM(y));
 }
 
-int Sg_BitCount(SgObject x)
+long Sg_BitCount(SgObject x)
 {
   if (!SG_EXACT_INTP(x)) wte(SG_INTERN("bitwise-bit-count"), "exact integer", x);
   if (SG_INTP(x)) {
@@ -1864,7 +1865,7 @@ int Sg_BitCount(SgObject x)
   }
 }
 
-int Sg_BitSize(SgObject x)
+long Sg_BitSize(SgObject x)
 {
   if (!SG_EXACT_INTP(x)) wte(SG_INTERN("bitwise-length"), "exact integer", x);
   if (SG_INTP(x)) {
@@ -1878,7 +1879,7 @@ int Sg_BitSize(SgObject x)
   }  
 }
 
-int Sg_FirstBitSet(SgObject x)
+long Sg_FirstBitSet(SgObject x)
 {
   if (!SG_EXACT_INTP(x)) {
     wte(SG_INTERN("bitwise-first-bit-set"), "exact integer", x);
@@ -1895,7 +1896,7 @@ int Sg_FirstBitSet(SgObject x)
   }
 }
 
-int Sg_BitSetP(SgObject x, int n)
+int Sg_BitSetP(SgObject x, long n)
   
 {
   if (!SG_EXACT_INTP(x)) {
@@ -3186,7 +3187,7 @@ static inline SgObject exact_integer_sqrt(SgObject k)
   if (Sg_FiniteP(ik)) {
     return Sg_Exact(Sg_Round(ik, SG_ROUND_FLOOR));
   } else {
-    int len = Sg_IntegerLength(k);
+    long len = Sg_IntegerLength(k);
     SgObject quo = Sg_Quotient(SG_MAKE_INT(len), SG_MAKE_INT(2), NULL);
     ASSERT(SG_INTP(quo));
     return Sg_Ash(SG_MAKE_INT(1), SG_INT_VALUE(quo));
@@ -3229,11 +3230,11 @@ SgObject Sg_ExactIntegerSqrt(SgObject k)
 
 int Sg_Sign(SgObject obj)
 {
-  long r = 0;
+  int r = 0;
   if (SG_INTP(obj)) {
-    r = SG_INT_VALUE(obj);
-    if (r > 0) r = 1;
-    else if (r < 0) r = -1;
+    long v = SG_INT_VALUE(obj);
+    if (v > 0) r = 1;
+    else if (v < 0) r = -1;
   } else if (SG_BIGNUMP(obj)) {
     r = SG_BIGNUM_GET_SIGN(obj);
   } else if (SG_FLONUMP(obj)) {

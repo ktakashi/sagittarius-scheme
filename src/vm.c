@@ -1,6 +1,6 @@
 /* vm.c                                            -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -315,7 +315,8 @@ SgObject Sg_Values(SgObject args)
 SgObject Sg_VMValues(SgVM *vm, SgObject args)
 {
   SgObject cp;
-  int nvals, len = -1, init = FALSE;
+  int nvals, init = FALSE;
+  int len = -1;
   if (!SG_PAIRP(args)) {
     vm->valuesCount = 0;
     return SG_UNDEF;
@@ -327,7 +328,8 @@ SgObject Sg_VMValues(SgVM *vm, SgObject args)
       SG_VALUES_SET(vm, nvals-1, SG_CAR(cp));
     } else {
       if (len < 0) {
-	len = Sg_Length(cp); /* get rest... */
+	/* we can't allow too many values so cast it... */
+	len = (int)Sg_Length(cp); /* get rest... */
       }
       if (!init) {
 	if (!vm->extra_values || vm->extra_values->buffer_size < len) {
@@ -741,7 +743,7 @@ static void vm_dump_code_rec(SgCodeBuilder *cb, int indent)
 	if (info->hasSrc) {
 	  if (SG_PAIRP(cb->src)) {
 	    SgObject src = Sg_Assv(SG_MAKE_INT(i), cb->src);
-	    int len = SG_STRING_SIZE(s);
+	    long len = SG_STRING_SIZE(s);
 	    for (; len<32; len++) {
 	      Sg_Putc(vm->logPort, ' ');
 	    }
@@ -1098,7 +1100,7 @@ SgObject Sg_Apply4(SgObject proc, SgObject arg0, SgObject arg1,
 SgObject Sg_Apply(SgObject proc, SgObject args)
 {
   SgVM *vm = theVM;
-  int nargs = Sg_Length(args), i;
+  int nargs = (int)Sg_Length(args), i;
   if (nargs < 0) {
     Sg_Error(UC("improper list not allowed: %S"), args);
   }
@@ -1118,7 +1120,7 @@ SgObject Sg_Apply(SgObject proc, SgObject args)
  */
 SgObject Sg_VMApply(SgObject proc, SgObject args)
 {
-  int argc = Sg_Length(args);
+  int argc = (int)Sg_Length(args);
   int reqstack;
   SgVM *vm = Sg_VM();
 
@@ -1441,7 +1443,7 @@ static void expand_stack(SgVM *vm)
 
   save_cont(vm);
   /* seems this is a bit faster (it's really a bit) */
-  size = (SP(vm) - FP(vm));
+  size = (int)((SP(vm) - FP(vm)));
   for (p = FP(vm), i = 0; i < size; i++, p++) {
     vm->stack[i] = *p;
   }
@@ -1499,7 +1501,7 @@ static SgObject throw_continuation_body(SgObject handlers,
       vm->valuesCount = 1;
     } else {			/* multi values */
       SgObject ap;
-      int argc = Sg_Length(args), i;
+      int argc = (int)Sg_Length(args), i;
       /* when argc == DEFAULT_VALUES_SIZE+1, it must be in pre-allocated
 	 buffer */
       if (argc > DEFAULT_VALUES_SIZE+1) {

@@ -538,7 +538,12 @@ static int wrapped_compare(SgTreeMap *tm, intptr_t a, intptr_t b)
   } else {
     r = Sg_Apply2(SG_OBJ(tm->data), SG_OBJ(a), SG_OBJ(b));
   }
-  if (SG_INTP(r)) return SG_INT_VALUE(r);
+  if (SG_INTP(r)) {
+    long l = SG_INT_VALUE(r);
+    if (l == 0) return 0;
+    else if (l > 0) return 1;
+    else return -1;
+  }
   Sg_Error(UC("compare returned non exact integer value %S"), r);
   return 0; 			/* dummy */
 }

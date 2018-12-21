@@ -69,6 +69,8 @@
    (cut apply make-cgen-type <>)
    '(;; numeric
      (<fixnum>  "long" "fixnum" "SG_INTP" "SG_INT_VALUE" "SG_MAKE_INT" 0)
+     ;; for convenience...
+     (<ifixnum> "int"  "fixnum" "SG_INTP" "(int)SG_INT_VALUE" "SG_MAKE_INT" 0)
      (<integer> "SgObject" "exact integer" "SG_EXACT_INTP" "")
      (<real>    "SgObject" "real number" "SG_REALP" "")
      (<number> "SgObject" "number" "SG_NUMBERP" "")

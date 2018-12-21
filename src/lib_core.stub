@@ -351,11 +351,11 @@
 				 :optional (radix::<fixnum> 10)
 				 precision) :constant
     ;; ignore precision
-    (result (Sg_NumberToString z radix FALSE)))
+    (result (Sg_NumberToString z (cast int radix) FALSE)))
 
   (define-c-proc string->number (s::<string> :optional (radix::<fixnum> 10)) 
     :constant
-    (result (Sg_StringToNumber s radix FALSE)))
+    (result (Sg_StringToNumber s (cast int radix) FALSE)))
 
   ;; 11.8 booleans
   (define-c-proc not (arg0) ::<boolean> :constant (inline NOT) SG_FALSEP)
@@ -852,7 +852,7 @@
   (define-c-proc make-bytevector (len::<fixnum> :optional (fill::<fixnum> 0))
     :no-side-effect
     (check-non-negative-fixnum make-bytevector len)
-    (result (Sg_MakeByteVector len fill)))
+    (result (Sg_MakeByteVector len (cast int fill))))
 
   (define-c-proc bytevector? (o) ::<boolean> :constant SG_BVECTORP)
 
@@ -860,9 +860,8 @@
     SG_BVECTOR_SIZE)
 
   (define-c-proc bytevector-fill! 
-    (bv::<bytevector> fill::<fixnum>
-		      :optional (start::<fixnum> 0) (end::<fixnum> -1)) ::<void>
-    Sg_ByteVectorFill)
+    (bv::<bytevector> fill::<fixnum> :optional (start::<fixnum> 0) (end::<fixnum> -1)) ::<void>
+    (Sg_ByteVectorFill bv (cast int fill) start end))
   
   ;; 2.3 operations on bytes and octets
   (define-c-proc u8-list->bytevector (lst) :no-side-effect
@@ -877,7 +876,7 @@
 	(assertion-violation ',name "index out of range"
 			     (SG_LIST2 ,bv (SG_MAKE_INT ,index)))))
     ((_ name bv index offset)
-     `(let ((len::int (SG_BVECTOR_SIZE ,bv)))
+     `(let ((len::long (SG_BVECTOR_SIZE ,bv)))
 	(unless (and (> len ,offset)
 		     (< ,index (- len ,offset)))
 	  (assertion-violation ',name "index out of range"
@@ -1351,7 +1350,7 @@
   (define-cise-expr utf8-tail?
     ((_ b)
      `(and (<= #x80 ,b) (<= ,b #xbf))))
-  (define-cfn check-utf8-3bytes (bv i::int)
+  (define-cfn check-utf8-3bytes (bv i::long)
     ::int :static
     (let ((first::int (SG_BVECTOR_ELEMENT bv i))
 	  (second::int (SG_BVECTOR_ELEMENT bv (+ i 1)))
@@ -1364,7 +1363,7 @@
 			   (utf8-tail? second))))
 	     (return FALSE))
 	    (else (return TRUE)))))
-  (define-cfn check-utf8-4bytes (bv i::int)
+  (define-cfn check-utf8-4bytes (bv i::long)
     ::int :static
     (let ((first::int (SG_BVECTOR_ELEMENT bv i))
 	  (second::int (SG_BVECTOR_ELEMENT bv (+ i 1)))
@@ -1382,9 +1381,9 @@
 						(end::<fixnum> -1))
     :no-side-effect
     (let ((s)
-	  (count::int 0)
-	  (size::int (SG_BVECTOR_SIZE bv))
-	  (i::int start))
+	  (count::long 0)
+	  (size::long (SG_BVECTOR_SIZE bv))
+	  (i::long start))
       (SG_CHECK_START_END start end size)
       (while (< i end)
 	(post++ count)
@@ -1408,10 +1407,10 @@
 					   (end::<fixnum> -1))
     :no-side-effect
     (let ((bv)
-	  (count::int 0)
-	  (size::int (SG_STRING_SIZE s)))
+	  (count::long 0)
+	  (size::long (SG_STRING_SIZE s)))
       (SG_CHECK_START_END start end size)
-      (dotimes (i (- end start))
+      (dotimes (i (- end start) long)
 	(let ((ucs4::SgChar (SG_STRING_VALUE_AT s (+ i start))))
 	  (+= count (?: (< ucs4 #x80) 1
 			(?: (< ucs4 #x800) 2
@@ -1420,7 +1419,7 @@
 				(?: (< ucs4 #x200000) 4 2)))))))
       (set! bv (Sg_MakeByteVector count 0))
       (set! count 0)
-      (dotimes (i  (- end start))
+      (dotimes (i (- end start) long)
 	(+= count (Sg_ConvertUcs4ToUtf8 
 		   (SG_STRING_VALUE_AT s (+ i start)) 
 		   (+ (SG_BVECTOR_ELEMENTS bv) count)
@@ -2448,12 +2447,9 @@
     ;; TODO thread
     (if (SG_UNBOUNDP obj)
 	(Sg_Exit EXIT_SUCCESS)
-	(cond ((SG_INTP obj)
-	       (Sg_Exit (SG_INT_VALUE obj)))
-	      ((SG_TRUEP obj)
-	       (Sg_Exit EXIT_SUCCESS))
-	      (else
-	       (Sg_Exit EXIT_FAILURE)))))
+	(cond ((SG_INTP obj) (Sg_Exit (cast int (SG_INT_VALUE obj))))
+	      ((SG_TRUEP obj) (Sg_Exit EXIT_SUCCESS))
+	      (else (Sg_Exit EXIT_FAILURE)))))
 
   ;; 11 Arithmetic
   ;; 11.2 fixnum (moved to fixnums.stub)
@@ -2708,7 +2704,7 @@
   (define-c-proc string-hash
     (o::<string> :optional bound (start::<fixnum> 0) (end::<fixnum> -1))
     ::<fixnum> :no-side-effect
-    (let ((modulo::uint32_t 0))
+    (let ((modulo::long 0))
       (cond ((SG_UNBOUNDP bound) (set! modulo (cast uint32_t SG_INT_MAX)))
 	    ((SG_INTP bound) (set! modulo (SG_INT_VALUE bound)))
 	    ((SG_BIGNUMP bound)
@@ -2722,7 +2718,7 @@
   (define-c-proc string-ci-hash
     (o::<string> :optional bound (start::<fixnum> 0) (end::<fixnum> -1))
     ::<fixnum> :no-side-effect
-    (let ((modulo::uint32_t 0))
+    (let ((modulo::long 0))
       (cond ((SG_UNBOUNDP bound) (set! modulo (cast uint32_t SG_INT_MAX)))
 	    ((SG_INTP bound) (set! modulo (SG_INT_VALUE bound)))
 	    ((SG_BIGNUMP bound)

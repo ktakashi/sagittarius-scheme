@@ -108,7 +108,7 @@ static void sampler_sample(int sig)
 
 static void collect_samples(SgVMProfiler *prof)
 {
-  int i, count;
+  int i;
   for (i = 0; i < prof->currentSample; i++) {
     SgObject e = Sg_HashTableRef(prof->statHash,
 				 prof->samples[i].func, SG_UNBOUND);
@@ -116,6 +116,7 @@ static void collect_samples(SgVMProfiler *prof)
       Sg_Warn(UC("profiler: uncounted object appeared in a sample: %p (%S)\n"),
 	      prof->samples[i].func, prof->samples[i].func);
     } else {
+      long count;
       ASSERT(SG_PAIRP(e));
       count = SG_INT_VALUE(SG_CDR(e)) + 1;
       SG_SET_CDR(e, SG_MAKE_INT(count));
@@ -209,7 +210,7 @@ void Sg_ProfilerCountBufferFlush(SgVM *vm)
   ncounts = vm->profiler->currentCount;
   for (i = 0; i < ncounts; i++) {
     SgObject e, func;
-    int count;
+    long count;
     
     func = vm->profiler->counts[i].func;
     e = Sg_HashTableSet(vm->profiler->statHash,

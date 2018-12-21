@@ -131,7 +131,8 @@ static void socket_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_SocketClass, socket_printer);
 
 
-static SgSockaddr * make_sockaddr(size_t size, struct sockaddr *addr, int copyP)
+static SgSockaddr * make_sockaddr(socklen_t size,
+				  struct sockaddr *addr, int copyP)
 {
   SgSockaddr *r = SG_NEW(SgSockaddr);
   SG_SET_CLASS(r, SG_CLASS_SOCKADDR);
@@ -335,7 +336,7 @@ static SgObject ai_flags(SgAddrinfo *ai)
 static void ai_flags_set(SgAddrinfo *ai, SgObject flags)
 {
   if (!SG_INTP(flags)) Sg_Error(UC("fixnum required but got %S"), flags);
-  ai->ai->ai_flags = SG_INT_VALUE(flags);
+  ai->ai->ai_flags = (int)SG_INT_VALUE(flags);
 }
 
 static SgObject ai_family(SgAddrinfo *ai)
@@ -345,7 +346,7 @@ static SgObject ai_family(SgAddrinfo *ai)
 static void ai_family_set(SgAddrinfo *ai, SgObject family)
 {
   if (!SG_INTP(family)) Sg_Error(UC("fixnum required but got %S"), family);
-  ai->ai->ai_family = SG_INT_VALUE(family);
+  ai->ai->ai_family = (int)SG_INT_VALUE(family);
 }
 
 static SgObject ai_socktype(SgAddrinfo *ai)
@@ -355,7 +356,7 @@ static SgObject ai_socktype(SgAddrinfo *ai)
 static void ai_socktype_set(SgAddrinfo *ai, SgObject socktype)
 {
   if (!SG_INTP(socktype)) Sg_Error(UC("fixnum required but got %S"), socktype);
-  ai->ai->ai_socktype = SG_INT_VALUE(socktype);
+  ai->ai->ai_socktype = (int)SG_INT_VALUE(socktype);
 }
 
 static SgObject ai_protocol(SgAddrinfo *ai)
@@ -365,7 +366,7 @@ static SgObject ai_protocol(SgAddrinfo *ai)
 static void ai_protocol_set(SgAddrinfo *ai, SgObject protocol)
 {
   if (!SG_INTP(protocol)) Sg_Error(UC("fixnum required but got %S"), protocol);
-  ai->ai->ai_protocol = SG_INT_VALUE(protocol);
+  ai->ai->ai_protocol = (int)SG_INT_VALUE(protocol);
 }
 
 static SgObject ai_addr(SgAddrinfo *ai)
@@ -508,8 +509,7 @@ SgObject Sg_SocketBind(SgSocket *socket, SgAddrinfo* addrinfo)
       return SG_FALSE;		/* dummy */
     }
     socket->type = SG_SOCKET_SERVER;
-    socket->address 
-      = make_sockaddr((size_t)len, (struct sockaddr *)&name, TRUE);
+    socket->address = make_sockaddr(len, (struct sockaddr *)&name, TRUE);
     socket->node = addrinfo->node;
     socket->service = addrinfo->service;
     return socket;
@@ -544,9 +544,9 @@ SgObject Sg_SocketSetopt(SgSocket *socket, int level, int name, SgObject value)
   if (SG_BVECTORP(value)) {
     r = setsockopt(socket->socket, level, name,
 		   (const char *)SG_BVECTOR_ELEMENTS(value), 
-		   SG_BVECTOR_SIZE(value));
+		   (int)SG_BVECTOR_SIZE(value));
   } else if (SG_INTP(value) || SG_BIGNUMP(value)) {
-    int v = Sg_GetInteger(value);
+    long v = Sg_GetInteger(value);
     r = setsockopt(socket->socket, level, name, (const char *)&v, sizeof(int));
   } else {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("socket-setsockopt!"),
@@ -618,44 +618,44 @@ SgObject Sg_SocketGetopt(SgSocket *socket, int level, int name, int rsize)
     }									\
   } while (0)
 
-int Sg_SocketReceive(SgSocket *socket, uint8_t *data, int size, int flags)
+long Sg_SocketReceive(SgSocket *socket, uint8_t *data, long size, int flags)
 {
   /* int count = 0, osize = size; */
   CLOSE_SOCKET("socket-recv", socket);
   for (;;) {
-    const int ret = recv(socket->socket, (char*)data, size,
-			 /* we don't want SIGPIPE */
-			 flags | MSG_NOSIGNAL);
+    const ssize_t ret = recv(socket->socket, (char*)data, size,
+			     /* we don't want SIGPIPE */
+			     flags | MSG_NOSIGNAL);
     handleError("socket-recv", socket, ret);
     return ret;
   }
 }
 
-int Sg_SocketReceiveFrom(SgSocket *socket, uint8_t *data, int size, int flags,
-			 SgSockaddr *addr)
+long Sg_SocketReceiveFrom(SgSocket *socket, uint8_t *data, long size,
+			  int flags, SgSockaddr *addr)
 {
   /* int count = 0, osize = size; */
   CLOSE_SOCKET("socket-recvfrom", socket);
   for (;;) {
-    const int ret = recvfrom(socket->socket, (char*)data, size,
-			     /* we don't want SIGPIPE */
-			     flags | MSG_NOSIGNAL, addr->addr,
-			     (socklen_t *)&addr->addr_size);
+    const ssize_t ret = recvfrom(socket->socket, (char*)data, size,
+				 /* we don't want SIGPIPE */
+				 flags | MSG_NOSIGNAL, addr->addr,
+				 &addr->addr_size);
     handleError("socket-recvfrom", socket, ret);
     return ret;
   }
 }
 
-int Sg_SocketSend(SgSocket *socket, uint8_t *data, int size, int flags)
+long Sg_SocketSend(SgSocket *socket, uint8_t *data, long size, int flags)
 {
-  int rest = size;
-  int sizeSent = 0;
+  long rest = size;
+  long sizeSent = 0;
 
   CLOSE_SOCKET("socket-send", socket);
   while (rest > 0) {
-    const int ret = send(socket->socket, (char*)data, size, 
-			 /* we don't want SIGPIPE */
-			 flags | MSG_NOSIGNAL);
+    const ssize_t ret = send(socket->socket, (char*)data, size, 
+			     /* we don't want SIGPIPE */
+			     flags | MSG_NOSIGNAL);
     handleError("socket-send", socket, ret);
     sizeSent += ret;
     rest -= ret;
@@ -665,18 +665,18 @@ int Sg_SocketSend(SgSocket *socket, uint8_t *data, int size, int flags)
   return sizeSent;
 }
 
-int Sg_SocketSendTo(SgSocket *socket, uint8_t *data, int size, int flags,
+long Sg_SocketSendTo(SgSocket *socket, uint8_t *data, long size, int flags,
 		    SgSockaddr *addr)
 {
-  int rest = size;
-  int sizeSent = 0;
+  long rest = size;
+  long sizeSent = 0;
 
   CLOSE_SOCKET("socket-send", socket);
   while (rest > 0) {
-    const int ret = sendto(socket->socket, (char*)data, size, 
-			   /* we don't want SIGPIPE */
-			   flags | MSG_NOSIGNAL, addr->addr, 
-			   (int)addr->addr_size);
+    const ssize_t ret = sendto(socket->socket, (char*)data, size, 
+			       /* we don't want SIGPIPE */
+			       flags | MSG_NOSIGNAL, addr->addr, 
+			       addr->addr_size);
     handleError("socket-sendto", socket, ret);
     sizeSent += ret;
     rest -= ret;
@@ -843,7 +843,7 @@ static struct timeval *select_timeval(SgObject timeout, struct timeval *tm)
 {
   if (SG_FALSEP(timeout)) return NULL;
   if (SG_INTP(timeout)) {
-    int val = SG_INT_VALUE(timeout);
+    long val = SG_INT_VALUE(timeout);
     if (val < 0) goto badtv;
     tm->tv_sec = val / 1000000;
     tm->tv_usec = val % 1000000;
@@ -854,7 +854,7 @@ static struct timeval *select_timeval(SgObject timeout, struct timeval *tm)
     if (Sg_Sign(timeout) < 0) goto badtv;
     sec = Sg_BignumDivSI(SG_BIGNUM(timeout), 1000000, &usec);
     tm->tv_sec = Sg_GetInteger(sec);
-    tm->tv_usec = usec;
+    tm->tv_usec = (suseconds_t)usec;
     return tm;
   } else if (SG_FLONUMP(timeout)) {
     long val = Sg_GetInteger(timeout);
@@ -871,7 +871,7 @@ static struct timeval *select_timeval(SgObject timeout, struct timeval *tm)
     iusec = Sg_GetInteger(usec);
     if (isec < 0 || iusec < 0) goto badtv;
     tm->tv_sec = isec;
-    tm->tv_usec = iusec;
+    tm->tv_usec = (suseconds_t)iusec;
     return tm;
   }
  badtv:
@@ -1229,7 +1229,7 @@ static int64_t socket_read_u8(SgObject self, uint8_t *buf, int64_t size)
      for example, if the socket is TLS socket and encryption/decryption
      take sometime to flush socket even the data is continuous.
    */
-  int readSize = 0;
+  long readSize = 0;
   if (SG_PORT_HAS_U8_AHEAD(self) && size > 0) {
     buf[0] = SG_PORT_U8_AHEAD(self);
     SG_PORT_U8_AHEAD(self) = EOF;
@@ -1243,8 +1243,8 @@ static int64_t socket_read_u8(SgObject self, uint8_t *buf, int64_t size)
     /* wait a bit in case of retry (10ms?)*/
     /* struct timeval tm = {0, 10000}; */
     /* int ready; */
-    int now = Sg_SocketReceive(SG_PORT_SOCKET(self), buf + readSize, 
-			       (int)size, 0);
+    long now = Sg_SocketReceive(SG_PORT_SOCKET(self), buf + readSize, 
+				(long)size, 0);
     if (-1 == now) {
       int e = SG_PORT_SOCKET(self)->lastError;
       Sg_IOReadError(SG_INTERN("read-u8"),
@@ -1288,7 +1288,7 @@ static int64_t socket_read_u8_all(SgObject self, uint8_t **buf)
   if (ready) {
     for (;;) {
       SgSocket *sock = SG_PORT_SOCKET(self);
-      int read_size = Sg_SocketReceive(sock, read_buf, 1024, 0);
+      long read_size = Sg_SocketReceive(sock, read_buf, 1024, 0);
       if (-1 == read_size) {
 	Sg_IOReadError(SG_INTERN("read-u8-all"),
 		       Sg_GetLastErrorMessageWithErrorCode(sock->lastError),

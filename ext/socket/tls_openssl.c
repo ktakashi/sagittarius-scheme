@@ -183,7 +183,7 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 			    Sg_Sprintf(UC("bytevector required but got %S"), c),
 			    certificates);
     }
-    r = SSL_CTX_use_certificate_ASN1(ctx, SG_BVECTOR_SIZE(c),
+    r = SSL_CTX_use_certificate_ASN1(ctx, (int)SG_BVECTOR_SIZE(c),
 				     SG_BVECTOR_ELEMENTS(c));
     if (r != 1) goto err;
     loaded |= CERTIFICATE_LOADED;
@@ -236,7 +236,7 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
     if (SSL_set_alpn_protos_fn) {
       /* remove prefix */
       SSL_set_alpn_protos_fn(data->ssl, SG_BVECTOR_ELEMENTS(alpn) + 4,
-			     SG_BVECTOR_SIZE(alpn) - 4);
+			     (int)SG_BVECTOR_SIZE(alpn) - 4);
     } else {
       Sg_Warn(UC("ALPN is not supported on this version of OpenSSL."));
       Sg_Warn(UC("Please consider to update your OpenSSL runtime."));

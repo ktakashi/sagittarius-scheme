@@ -121,7 +121,7 @@ DEF_EQ_PROC(r6rs_equal, r6rs_equalp)
   static SgObject SG_CPP_CAT(name, _hash_proc)				\
        (SgObject *args, int argc, void *data)				\
   {									\
-    uint32_t bound = 0;							\
+    long bound = 0;							\
     if (argc > 2) {							\
       if (!SG_INTP(args[1])) {						\
 	Sg_Error(UC("bound must a fixnum: %S"), args[1]);		\
@@ -535,12 +535,12 @@ static SgObject pre_p(SgObject x, SgObject y, SgObject k,
     if (!SG_VECTORP(y)) {
       return SG_FALSE;
     } else {
-      int sizex = SG_VECTOR_SIZE(x);
-      int sizey = SG_VECTOR_SIZE(y);
+      long sizex = SG_VECTOR_SIZE(x);
+      long sizey = SG_VECTOR_SIZE(y);
       if (sizex != sizey) {
 	return SG_FALSE;
       } else {
-	int i;
+	long i;
 	ASSERT(SG_INTP(k));
 	for (i = 0;; i++) {
 	  if (i == sizex || SG_INT_VALUE(k) <= 0) {
@@ -696,12 +696,12 @@ SgObject fast_p(SgHashTable **pht, SgObject x, SgObject y,
     if (!SG_VECTORP(y)) {
       return SG_FALSE;
     } else {
-      int sizex = SG_VECTOR_SIZE(x);
-      int sizey = SG_VECTOR_SIZE(y);
+      long sizex = SG_VECTOR_SIZE(x);
+      long sizey = SG_VECTOR_SIZE(y);
       if (sizex != sizey) {
 	return SG_FALSE;
       } else {
-	int i;
+	long i;
 	for (i = 0;; i++) {
 	  if (i == sizex || SG_INT_VALUE(k) <= 0) {
 	    return k;
@@ -722,7 +722,7 @@ SgObject fast_p(SgHashTable **pht, SgObject x, SgObject y,
     if (!SG_STRING(y)) {
       return SG_FALSE;
     }
-    if(Sg_StringEqual(x, y)) {
+    if (Sg_StringEqual(x, y)) {
       return k;
     } else {
       return SG_FALSE;
@@ -864,8 +864,8 @@ SgObject slow_p(SgHashTable **pht, SgObject x, SgObject y,
     }
   }
   if (SG_VECTORP(x)) {
-    int n = SG_VECTOR_SIZE(x);
-    int i;
+    long n = SG_VECTOR_SIZE(x);
+    long i;
     if (!SG_VECTORP(y)) {
       return SG_FALSE;
     }

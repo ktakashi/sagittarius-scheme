@@ -43,8 +43,8 @@ typedef struct SgCodePacketRec
 {
   SgWord     insn;
   PacketType type;
-  int        arg0;		/* vm instruction value1 */
-  int        arg1;		/* vm instruction value2 */
+  long       arg0;		/* vm instruction value1 */
+  long       arg1;		/* vm instruction value2 */
   SgObject   obj;		/* vm instruction argument */
 } SgCodePacket;
 
@@ -117,9 +117,11 @@ struct SgCodeBuilderRec
 SG_CDECL_BEGIN
 
 SG_EXTERN SgCodeBuilder* Sg_MakeCodeBuilder(int size);
-SG_EXTERN void     Sg_CodeBuilderEmit(SgCodeBuilder *cb, SgWord insn, PacketType type,
-				      int arg0, int arg1, SgObject obj);
-SG_EXTERN void     Sg_CodeBuilderAddSrc(SgCodeBuilder *cb, int insn, SgObject src);
+SG_EXTERN void     Sg_CodeBuilderEmit(SgCodeBuilder *cb,
+				      SgWord insn, PacketType type,
+				      long arg0, long arg1, SgObject obj);
+SG_EXTERN void     Sg_CodeBuilderAddSrc(SgCodeBuilder *cb, int insn,
+					SgObject src);
 SG_EXTERN void     Sg_CodeBuilderFlush(SgCodeBuilder *cb);
 SG_EXTERN void     Sg_CodeBuilderLabelSet(SgCodeBuilder *cb, SgObject label);
 SG_EXTERN SgObject Sg_CodeBuilderFinishBuilder(SgCodeBuilder *cb, int last);

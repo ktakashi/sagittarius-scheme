@@ -88,9 +88,9 @@ typedef struct lexer_ctx_rec_t
 {
   SgChar *str;
   SgChar *ostr;			/* original string for error message */
-  int     len;
+  long    len;
   int     reg;
-  int     pos;
+  long    pos;
   SgObject last_pos;
   int     flags;
   int     reg_num;
@@ -110,7 +110,7 @@ typedef struct lexer_ctx_rec_t
 
 static void remove_qe_quoting(lexer_ctx_t *ctx)
 {
-  const int plen = ctx->len;
+  const long plen = ctx->len;
   int i = 0, j, inQuote = TRUE;
   SgChar *newtemp;
   while (i < plen - 1) {
@@ -170,7 +170,7 @@ static void init_lexer(lexer_ctx_t *ctx, SgString *str, int flags)
 }
 
 /* error */
-static void raise_syntax_error(lexer_ctx_t *ctx, int pos, const SgChar *str)
+static void raise_syntax_error(lexer_ctx_t *ctx, long pos, const SgChar *str)
 {
   /* TODO create regex parser error or so */
   Sg_Error(UC("bad regex syntax in %s: %s, [posision %d]"),
@@ -213,7 +213,7 @@ static SgChar next_char_non_extended(lexer_ctx_t *ctx);
    the corresponding number started within the regex string.
  */
 static SgObject make_char_from_code(lexer_ctx_t *ctx, SgObject number,
-				    int error_pos)
+				    long error_pos)
 {
   int code;
   if (SG_FALSEP(number)) code = 0;
@@ -236,7 +236,7 @@ static SgObject make_char_from_code(lexer_ctx_t *ctx, SgObject number,
 static SgObject unescape_char(lexer_ctx_t *ctx)
 {
   SgChar chr, nc;
-  int error_pos;
+  long error_pos;
   SgObject n;
   if (END_OF_STRING_P(ctx)) {
     raise_syntax_error(ctx, -1, UC("String ends with backslash."));
@@ -286,9 +286,9 @@ static SgObject unescape_char(lexer_ctx_t *ctx)
 }
 
 /* I forgot to make ustrchr in unicode.c */
-static int ustrchr(const SgChar *str, SgChar c, int len)
+static long ustrchr(const SgChar *str, SgChar c, long len)
 {
-  int i;
+  long i;
   for (i = 0; i < len; i++, str++) {
     if (*str == c) return i;
   }
@@ -313,7 +313,7 @@ static SgChar next_char_non_extended(lexer_ctx_t *ctx)
 static SgChar next_char(lexer_ctx_t *ctx)
 {
   SgChar nc = next_char_non_extended(ctx);
-  int last_pos;
+  long last_pos;
   while (1) {
     last_pos = ctx->pos;
     if (nc != EOF && nc == '(' && LOOKING_AT_P(ctx, '?')) {
@@ -322,7 +322,7 @@ static SgChar next_char(lexer_ctx_t *ctx)
 	/* "(?#" must be a nested comment - so we have to search for the
 	   closing parenthesis
 	*/
-	int error_pos = ctx->pos - 2;
+	long error_pos = ctx->pos - 2;
 	SgChar skip_char = nc;
 	while (skip_char != EOF && skip_char != ')') {
 	  skip_char = next_char_non_extended(ctx);
@@ -376,7 +376,7 @@ static SgChar next_char(lexer_ctx_t *ctx)
  */
 static int start_of_subexpr_p(lexer_ctx_t *ctx)
 {
-  int pos = ctx->pos;
+  long pos = ctx->pos;
   SgChar nc = next_char(ctx);
   if (nc == EOF) return FALSE;
   /* rest position */
@@ -400,7 +400,7 @@ static SgObject read_char_property(lexer_ctx_t *ctx, SgChar first)
      */
     SgObject es;
     SgGloc *gloc;
-    int pos;
+    long pos;
     /* first check the property has 'Is' or 'In. */
     if (ctx->len-ctx->pos <= 2 ||
 	!(ctx->str[ctx->pos] == 'I' &&
@@ -488,12 +488,12 @@ static SgChar read_charset_xdigits(lexer_ctx_t *ctx, int ndigs, int key)
 
    ugh, this is defined in Scheme as well
    TODO implement this properly in C and expose it to Scheme world. */
-static SgObject sub_range(SgObject ranges, int from, int to)
+static SgObject sub_range(SgObject ranges, long from, long to)
 {
   SgObject h = SG_NIL, t = SG_NIL, cp;
   SG_FOR_EACH(cp, ranges) {
-    int lo = SG_INT_VALUE(SG_CAAR(cp));
-    int hi = SG_INT_VALUE(SG_CDAR(cp));
+    long lo = SG_INT_VALUE(SG_CAAR(cp));
+    long hi = SG_INT_VALUE(SG_CDAR(cp));
     if (lo <= from && from <= hi) {
       if (lo <= to && to <= hi) {
 	if (lo == from) {
@@ -537,8 +537,8 @@ static SgObject cset_diff(SgObject base, SgObject cset)
   }
   base = Sg_MakeEmptyCharSet();
   SG_FOR_EACH(cp, ranges) {
-    SgChar from = SG_INT_VALUE(SG_CAAR(cp));
-    SgChar to = SG_INT_VALUE(SG_CDAR(cp));
+    SgChar from = (SgChar)SG_INT_VALUE(SG_CAAR(cp));
+    SgChar to = (SgChar)SG_INT_VALUE(SG_CDAR(cp));
     Sg_CharSetAddRange(SG_CHAR_SET(base), from, to);
   }
   return base;
@@ -570,7 +570,7 @@ static SgObject read_defined_charset(lexer_ctx_t *ctx)
   */
   SgObject es;
   SgGloc *gloc;
-  int pos;
+  long pos;
   SgObject lib, default_lib = SG_FALSE;
   /* [[:name:]] thing */
   if (ctx->len-ctx->pos < 2 ||
@@ -621,7 +621,7 @@ static SgObject read_char_set(lexer_ctx_t *ctx, int *complement_p)
   SgObject moreset;
   SgObject chars = SG_NIL;
   SgChar ch = 0;
-  int start_pos = ctx->pos;
+  long start_pos = ctx->pos;
 
   for (;;) {
     ch = next_char_non_extended(ctx);
@@ -773,13 +773,13 @@ static SgObject fail(lexer_ctx_t *ctx)
 static SgObject get_number(lexer_ctx_t *ctx, int radix, int maxlen,
 			   int nowhilespace)
 {
-  int i, size = ctx->len - ctx->pos, end, n = 0;
+  long i, size = ctx->len - ctx->pos, end, n = 0;
   if (nowhilespace &&
       Sg_Ucs4WhiteSpaceP(ctx->str[ctx->pos])) {
     return SG_FALSE;
   }
   if (maxlen > 0) {
-    int end_pos = ctx->pos + maxlen;
+    long end_pos = ctx->pos + maxlen;
     if (end_pos < size) end = end_pos;
     else end = size;
   } else {
@@ -938,7 +938,7 @@ static SgObject get_quantifier(lexer_ctx_t *ctx, int *standalone)
 static SgObject parse_register_name_aux(lexer_ctx_t *ctx)
 {
   /* we have to look for an ending > character now */
-  int end_name = ustrchr(ctx->str+ctx->pos, '>', ctx->len-ctx->pos), i;
+  long end_name = ustrchr(ctx->str+ctx->pos, '>', ctx->len-ctx->pos), i;
   SgObject s;
   if (end_name < 0) {
     raise_syntax_error(ctx, ctx->pos - 1,
@@ -1005,7 +1005,7 @@ static SgObject get_token(lexer_ctx_t *ctx, SgObject *ret)
       /* left brace isn't a special character in it's own right but we must
 	 check if what follows might look like a quantifier.*/
       {
-	int here = ctx->pos;
+	long here = ctx->pos;
 	SgObject last = ctx->last_pos;
 	unget_token(ctx);
 	if (!SG_FALSEP(get_quantifier(ctx, NULL))) {
@@ -1040,7 +1040,7 @@ static SgObject get_token(lexer_ctx_t *ctx, SgObject *ret)
       case 'k': 
 	if (LOOKING_AT_P(ctx, '<')) {
 	  SgObject name, num = SG_FALSE;
-	  int pos = ctx->pos - 2;
+	  long pos = ctx->pos - 2;
 	  ctx->pos++;
 	  name = parse_register_name_aux(ctx);
 	  /* search backref name from context */
@@ -1076,7 +1076,7 @@ static SgObject get_token(lexer_ctx_t *ctx, SgObject *ret)
       case '1': case '2': case '3': case '4': case '5': 
       case '6': case '7': case '8': case '9': 
 	{
-	  int oldpos = --ctx->pos;
+	  long oldpos = --ctx->pos;
 	  SgObject num = get_number(ctx, 10, -1, FALSE);
 	  if (SG_INT_VALUE(num) > ctx->reg &&
 	      10 <= SG_INT_VALUE(num)) {
@@ -1093,7 +1093,7 @@ static SgObject get_token(lexer_ctx_t *ctx, SgObject *ret)
       case '0':
 	/* this always means an octal character code */
 	{
-	  int oldpos = ctx->pos - 1;
+	  long oldpos = ctx->pos - 1;
 	  return make_char_from_code(ctx, get_number(ctx, 8, 3, FALSE), oldpos);
 	}
 	break;
@@ -1214,7 +1214,7 @@ static SgObject group(lexer_ctx_t *ctx)
        we accespt a couple of illegal combinations which'll be sorted out later
        by the converter
      */
-    int open_paren_pos = SG_INT_VALUE(SG_CAR(ctx->last_pos));
+    long open_paren_pos = SG_INT_VALUE(SG_CAR(ctx->last_pos));
     /* check if what follows "(?(" is a number*/
     SgObject number = try_number(ctx, 10, -1, TRUE);
     if (!SG_FALSEP(number)) {
@@ -1279,7 +1279,7 @@ static SgObject group(lexer_ctx_t *ctx)
 	     SG_EQ(open_token, SYM_OPEN_PAREN_LESS_LETTER)) {
     /* we saw one of the six token representing opening parentheses */
     int saved_reg_num = 0;
-    int open_paren_pos = SG_INT_VALUE(SG_CAR(ctx->last_pos));
+    long open_paren_pos = SG_INT_VALUE(SG_CAR(ctx->last_pos));
     SgObject register_name = (SG_EQ(open_token, SYM_OPEN_PAREN_LESS_LETTER))
       ? parse_register_name_aux(ctx) : SG_FALSE;
     SgObject regexpr, close_token;
@@ -1386,7 +1386,7 @@ static SgObject greedy_quant(lexer_ctx_t *ctx)
 static SgObject quant(lexer_ctx_t *ctx)
 {
   SgObject greedy = greedy_quant(ctx);
-  int pos = ctx->pos;
+  long pos = ctx->pos;
   SgChar nc = next_char(ctx);
   if (nc != EOF) {
     if (nc == '?') {
@@ -1459,7 +1459,7 @@ Will return <parse-tree> or (SYM_ALTER <parse-tree> <parse-tree>).
  */
 static SgObject reg_expr(lexer_ctx_t *ctx)
 {
-  int pos = ctx->pos;
+  long pos = ctx->pos;
   switch (next_char(ctx)) {
   case EOF:
     /* if we didn't get any token we return 'void which stands for
@@ -1553,7 +1553,7 @@ static SgObject optimize(SgObject ast, SgObject rest);
  */
 static SgObject maybe_split_repetition(SgObject ast, SgObject regex)
 {
-  int minimum, maximum = -1;
+  long minimum, maximum = -1;
   SgObject max = SG_CAR(SG_CDDR(ast));
   SgObject constant = SG_NIL;
   minimum = SG_INT_VALUE(SG_CADR(ast));
@@ -1684,7 +1684,7 @@ typedef struct
   int     codemax;		/* max code count */
   prog_t *prog;			/* building prog */
   inst_t *inst;
-  int     index;		/* current inst index */
+  long    index;		/* current inst index */
   int     extendedp;		/* extended regular expression or not */
   int     lookbehindp;
 } compile_ctx_t;
@@ -1750,7 +1750,7 @@ static void compile_seq(compile_ctx_t *ctx, SgObject seq, int lastp)
 }
 
 static void compile_rep_seq(compile_ctx_t *ctx, SgObject seq,
-			    int count, int lastp)
+			    long count, int lastp)
 {
   SgObject h = SG_NIL, t = SG_NIL;
   /* I don't remenber why I needed to check this, but this causes an error with
@@ -1774,7 +1774,7 @@ static void compile_rep_seq(compile_ctx_t *ctx, SgObject seq,
 }
 
 static void compile_min_max(compile_ctx_t *ctx, SgObject type,
-			    int count, SgObject item, int lastp)
+			    long count, SgObject item, int lastp)
 {
   /* {m, n} pattern. it can be replaced like this.
      x{2,5} = xx(x(x(x)?)?)?
@@ -1789,7 +1789,7 @@ static void compile_min_max(compile_ctx_t *ctx, SgObject type,
      7: char x
      8: match
    */
-  int i;
+  long i;
   SgObject h = SG_NIL, t = SG_NIL, cp;
   int nongreedyp = SG_EQ(type, SYM_NON_GREEDY_REP);
 
@@ -1949,7 +1949,7 @@ static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp)
   }
   if (SG_EQ(type, SYM_REGISTER)) {
     /* (register <number> <name> <ast>) */
-    int grpno = SG_INT_VALUE(SG_CADR(ast));
+    long grpno = SG_INT_VALUE(SG_CADR(ast));
     arg.n = 2*grpno;
     emit(ctx, RX_SAVE, arg);
     compile_rec(ctx, SG_CADR(SG_CDDR(ast)), lastp);
@@ -2009,7 +2009,7 @@ static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp)
 
     if (SG_EQ(min, max)) return; /* well, it must match exact times */
     if (!SG_FALSEP(max)) {
-      int count = SG_INT_VALUE(max) - SG_INT_VALUE(min);
+      long count = SG_INT_VALUE(max) - SG_INT_VALUE(min);
       compile_min_max(ctx, type, count, item, lastp);
       return;
     }
@@ -2202,7 +2202,7 @@ static prog_t* compile(compile_ctx_t *ctx, SgObject ast)
 static void pattern_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   SgPattern *pattern = SG_PATTERN(self);
-  int i, size = SG_STRING_SIZE(pattern->pattern);
+  long i, size = SG_STRING_SIZE(pattern->pattern);
   SG_PORT_LOCK_WRITE(port);
   Sg_PutzUnsafe(port, "#/");
   /* Sg_Printf(port, UC("#/%A/"), pattern->pattern); */
@@ -2244,7 +2244,7 @@ static SgObject pattern_cache_reader(SgPort *port, SgReadCacheCtx *ctx)
   SgObject pattern = Sg_ReadCacheObject(port, ctx);
   SgObject flags = Sg_ReadCacheObject(port, ctx);
   if (SG_STRINGP(pattern) && SG_INTP(flags)) {
-    return Sg_CompileRegex(pattern, SG_INT_VALUE(flags), FALSE);
+    return Sg_CompileRegex(pattern, (int)SG_INT_VALUE(flags), FALSE);
   } else {
     return SG_FALSE;
   }
@@ -2305,7 +2305,8 @@ static void charset_to_regex(SgObject cs, int invertP, SgPort *out)
   }
   SG_FOR_EACH(cp, ranges) {
     SgObject cell = SG_CAR(cp);
-    SgChar start = SG_INT_VALUE(SG_CAR(cell)), end = SG_INT_VALUE(SG_CDR(cell));
+    SgChar start = (SgChar)SG_INT_VALUE(SG_CAR(cell));
+    SgChar end = (SgChar)SG_INT_VALUE(SG_CDR(cell));
     charset_print_ch(out, start, firstp);
     firstp = FALSE;
     if (start != end) {
@@ -2631,11 +2632,11 @@ static SgObject compile_regex_ast(SgString *pattern, SgObject ast, int flags)
   return SG_OBJ(p);
 }
 
-SgObject Sg_ParseCharSetString(SgString *s, int asciiP, int start, int end)
+SgObject Sg_ParseCharSetString(SgString *s, int asciiP, long start, long end)
 {
   /* sanity check */
   lexer_ctx_t ctx;
-  int size = SG_STRING_SIZE(s);
+  long size = SG_STRING_SIZE(s);
   SgObject r;
   SG_CHECK_START_END(start, end, size);
   if (size < 2) {
@@ -2862,7 +2863,7 @@ SgObject Sg_RegexReplaceFirst(SgMatcher *m, SgObject replacement)
 }
 
 SgMatcher* Sg_RegexMatcher(SgPattern *pattern, SgObject text,
-			   int start, int end)
+			   long start, long end)
 {
   if (SG_STRINGP(text)) {
     return Sg_RegexTextMatcher(pattern, SG_STRING(text), start, end);
@@ -2896,7 +2897,7 @@ int Sg_RegexLookingAt(SgMatcher *m)
     return FALSE;
   }
 }
-int Sg_RegexFind(SgMatcher *m, int start)
+int Sg_RegexFind(SgMatcher *m, long start)
 {
   if (SG_TEXT_MATCHERP(m)) {
     return Sg_RegexTextFind(SG_TEXT_MATCHER(m), start);
@@ -2945,7 +2946,7 @@ SgObject Sg_RegexReplaceAll(SgMatcher *m,
   }
 }
 SgObject Sg_RegexReplace(SgMatcher *m, SgObject replacement,
-			 int count)
+			 long count)
 {
   if (SG_TEXT_MATCHERP(m)) {
     return Sg_RegexTextReplace(SG_TEXT_MATCHER(m), replacement, count);

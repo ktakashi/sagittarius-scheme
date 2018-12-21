@@ -1,6 +1,6 @@
 /* pair.h                                          -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -128,7 +128,7 @@ SG_EXTERN SgObject Sg_Caar(SgObject obj);
 SG_EXTERN SgObject Sg_Cadr(SgObject obj);
 SG_EXTERN SgObject Sg_Cdar(SgObject obj);
 SG_EXTERN SgObject Sg_Cddr(SgObject obj);
-SG_EXTERN int      Sg_Length(SgObject obj);
+SG_EXTERN long     Sg_Length(SgObject obj);
 SG_EXTERN SgObject Sg_CopyList(SgObject list);
 SG_EXTERN SgObject Sg_Append2X(SgObject list, SgObject obj);
 SG_EXTERN SgObject Sg_Append2(SgObject list, SgObject obj);
@@ -136,8 +136,8 @@ SG_EXTERN SgObject Sg_Append(SgObject args);
 SG_EXTERN SgObject Sg_ReverseX(SgObject list);
 SG_EXTERN SgObject Sg_Reverse(SgObject list);
 SG_EXTERN SgObject Sg_LastPair(SgObject list);
-SG_EXTERN SgObject Sg_ListTail(SgObject list, int i, SgObject fallback);
-SG_EXTERN SgObject Sg_ListRef(SgObject list, int i, SgObject fallback);
+SG_EXTERN SgObject Sg_ListTail(SgObject list, long i, SgObject fallback);
+SG_EXTERN SgObject Sg_ListRef(SgObject list, long i, SgObject fallback);
 
 SG_EXTERN SgObject Sg_Memq(SgObject obj, SgObject list);
 SG_EXTERN SgObject Sg_Memv(SgObject obj, SgObject list);

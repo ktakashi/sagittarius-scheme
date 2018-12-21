@@ -40,7 +40,9 @@ MACRO (FIXUP_COMPILER_FLAGS _PROCESSOR _PLATFORM)
     # adding extra flags
     #  * -Wall: compiler warning is important to find a bug
     SET(CMAKE_C_FLAGS "-Wall ${CMAKE_C_FLAGS}")
+    #SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wshorten-64-to-32")
     SET(CMAKE_CXX_FLAGS "-Wall ${CMAKE_CXX_FLAGS}")
+    #SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wshorten-64-to-32")
 
     # for GCC or Clang, we want both maximum performance and debug info.
     IF (${CMAKE_BUILD_TYPE} STREQUAL Debug)

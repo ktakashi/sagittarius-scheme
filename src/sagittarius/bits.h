@@ -124,8 +124,8 @@ static inline int nbits(long x)
 
 SG_CDECL_BEGIN
 
-SG_EXTERN int Sg_BitsCount0(const unsigned long *bits, int start, int end);
-SG_EXTERN int Sg_BitsCount1(const unsigned long *bits, int start, int end);
+SG_EXTERN long Sg_BitsCount0(const unsigned long *bits, long start, long end);
+SG_EXTERN long Sg_BitsCount1(const unsigned long *bits, long start, long end);
 
 SG_CDECL_END
 

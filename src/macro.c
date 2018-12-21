@@ -103,7 +103,7 @@ static SgObject unwrap_rec(SgObject form, SgObject history)
     return form;
   }
   if (SG_VECTORP(form)) {
-    int i, j, len = SG_VECTOR_SIZE(form);
+    long i, j, len = SG_VECTOR_SIZE(form);
     SgObject elt, *pelt = SG_VECTOR_ELEMENTS(form);
     newh = Sg_Cons(form, history);
     for (i = 0; i < len; i++, pelt++) {

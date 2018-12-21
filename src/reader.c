@@ -137,7 +137,7 @@ SgObject Sg_MakeReadContextForLoad()
   return SG_OBJ(ctx);
 }
 
-static SgSharedRef* make_shared_ref(int mark)
+static SgSharedRef* make_shared_ref(long mark)
 {
   SgSharedRef *z = SG_NEW(SgSharedRef);
   SG_SET_CLASS(z, SG_CLASS_SHARED_REF);
@@ -146,13 +146,13 @@ static SgSharedRef* make_shared_ref(int mark)
 }
 
 /* ctx utility */
-static void parsing_range(SgReadContext *ctx, int from, int to)
+static void parsing_range(SgReadContext *ctx, long from, long to)
 {
   ctx->parsingLineFrom = from;
   ctx->parsingLineTo = to;
 }
 
-static void parsing_line(SgReadContext *ctx, int line)
+static void parsing_line(SgReadContext *ctx, long line)
 {
   parsing_range(ctx, line, line);
 }
@@ -160,7 +160,7 @@ static void parsing_line(SgReadContext *ctx, int line)
 
 typedef struct
 {
-  int value;
+  long value;
   int present;
 } dispmacro_param;
 
@@ -370,14 +370,14 @@ static void lexical_error(SgPort * port, SgReadContext *ctx,
   Sg_ReadError(UC("%A (%A)"), msg, line);
 }
 
-static int read_thing(SgPort *port, SgReadContext *ctx, SgChar *buf,
-		      size_t size, SgChar initial)
+static long read_thing(SgPort *port, SgReadContext *ctx, SgChar *buf,
+		       size_t size, SgChar initial)
 {
-  size_t i = 0;
+  long i = 0;
   if (initial != -1) {
     buf[i++] = initial;
   }
-  while (i < size) {
+  while (i < (long)size) {
     SgChar c = Sg_PeekcUnsafe(port);
     if (c == EOF || delimited(port, c)) {
       buf[i] = 0;
@@ -698,7 +698,7 @@ SgObject macro_reader(SgPort *port, SgChar c, readtab_t *tab,
 }
 
 static SgObject read_list_int(SgPort *port, SgChar closer, SgReadContext *ctx,
-			      int start_line)
+			      long start_line)
 {
   SgObject start = SG_NIL, last = SG_NIL, item;
   item = read_expr4(port, ACCEPT_EOF, closer, ctx);
@@ -733,7 +733,7 @@ static SgObject read_list_int(SgPort *port, SgChar closer, SgReadContext *ctx,
 
 static SgObject read_list(SgPort *port, SgChar closer, SgReadContext *ctx)
 {
-  int line = Sg_LineNo(port);
+  long line = Sg_LineNo(port);
   SgObject r = read_list_int(port, closer, ctx, line);
   if (SG_PAIRP(r) && line >= 0) {
     SgVM *vm = Sg_VM();
@@ -920,7 +920,7 @@ SgObject read_colon(SgPort *port, SgChar c, SgReadContext *ctx)
     name = read_quoted_symbol(port, ctx, FALSE);
     return Sg_MakeKeyword(SG_SYMBOL(name)->name);
   } else {
-    int size;
+    long size;
     Sg_UngetcUnsafe(port, c2);
     size = read_thing(port, ctx, buf, array_sizeof(buf), -1);
     buf[size] = 0;
@@ -1247,10 +1247,10 @@ static SgObject read_bytevector(SgPort *port, SgChar *buf, SgReadContext *ctx)
 #define READ_BVECTOR(s_type, c_type, s_type_test, c_type_test)		\
   do {									\
     if (ustrcmp(buf, s_type) == 0) {					\
-      int m = n * sizeof(c_type);					\
-      int i;								\
+      long m = (long)(n * sizeof(c_type));				\
+      long i;								\
       SgByteVector *bvector = Sg_MakeByteVector(m, 0);			\
-      for (i = 0; i < m; i += sizeof(c_type)) {				\
+      for (i = 0; i < m; i += (long)sizeof(c_type)) {			\
 	SgObject datum = SG_CAR(lst);					\
 	if ( s_type_test (datum)) {					\
 	  c_type * ref = (c_type *)&bvector->elements[i];		\
@@ -1267,8 +1267,8 @@ static SgObject read_bytevector(SgPort *port, SgChar *buf, SgReadContext *ctx)
     }									\
   } while (0)
 
-  int line_begin = Sg_LineNo(port);
-  int n;
+  long line_begin = Sg_LineNo(port);
+  long n;
   SgObject lst = read_list(port, ')', ctx);
   parsing_range(ctx, line_begin, Sg_LineNo(port));
   n = Sg_Length(lst);
@@ -1523,7 +1523,7 @@ SgObject read_hash_hash(SgPort *port, SgChar c, dispmacro_param *param,
 			SgReadContext *ctx)
 {
   if (param->present) {
-    intptr_t mark = param->value;
+    long mark = param->value;
     SgSharedRef *ref = make_shared_ref(mark);
     ctx->graphRef = TRUE;
     return SG_OBJ(ref);
@@ -1721,7 +1721,7 @@ static void link_graph(SgPort *port, SgReadContext *ctx, SgObject obj)
     return;
   }
   if (SG_VECTORP(obj)) {
-    int n = SG_VECTOR_SIZE(obj), i;
+    long n = SG_VECTOR_SIZE(obj), i;
     for (i = 0; i < n; i++) {
       if (SG_SHAREDREF_P(SG_VECTOR_ELEMENT(obj, i))) {
 	SG_VECTOR_ELEMENT(obj, i)

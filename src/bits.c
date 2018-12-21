@@ -1,6 +1,6 @@
 /* bits.c                                          -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -33,12 +33,12 @@
 #include "sagittarius/bits.h"
 #include "sagittarius/arith.h"
 
-int Sg_BitsCount0(const unsigned long *bits, int start, int end)
+long Sg_BitsCount0(const unsigned long *bits, long start, long end)
 {
-  int sw = start  / WORD_BITS;
-  int ew = (end-1)/ WORD_BITS;
-  int sb = start  % WORD_BITS;
-  int eb = end    % WORD_BITS;
+  long sw = start  / WORD_BITS;
+  long ew = (end-1)/ WORD_BITS;
+  long sb = start  % WORD_BITS;
+  long eb = end    % WORD_BITS;
   unsigned long num;
 
   if (start == end) return 0;
@@ -49,12 +49,12 @@ int Sg_BitsCount0(const unsigned long *bits, int start, int end)
   return num + (nbits(~bits[ew] & SG_BITS_MASK(0, eb)));
 }
 
-int Sg_BitsCount1(const unsigned long *bits, int start, int end)
+long Sg_BitsCount1(const unsigned long *bits, long start, long end)
 {
-  int sw = start  / WORD_BITS;
-  int ew = (end-1)/ WORD_BITS;
-  int sb = start  % WORD_BITS;
-  int eb = end    % WORD_BITS;
+  long sw = start  / WORD_BITS;
+  long ew = (end-1)/ WORD_BITS;
+  long sb = start  % WORD_BITS;
+  long eb = end    % WORD_BITS;
   unsigned long num;
 
   if (start == end) return 0;

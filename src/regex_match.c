@@ -1,6 +1,6 @@
-/* regex_match.c                                           -*- coding: utf-8; -*-
+/* regex_match.c                                          -*- coding: utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -255,7 +255,8 @@ static void add_to_threadq(match_ctx_t *ctx, THREADQ_T *q, int id0, int flags,
 
   while (nstk > 0) {
     const add_state_t *a = &stk[--nstk];
-    int id = a->id, j;
+    int id = a->id;
+    long j;
     thread_t **tp, *t;
     inst_t *ip;
     if (a->j >= 0)
@@ -375,7 +376,7 @@ static int inst_matches(match_ctx_t *ctx, inst_t *inst, char_t c)
   }
 }
 
-static int matcher_match1(match_ctx_t *ctx, int from, int anchor, inst_t *inst);
+static int matcher_match1(match_ctx_t *ctx, long from, int anchor, inst_t *inst);
 
 #ifdef DEBUG_REGEX
 static void dump_capture(match_ctx_t *ctx, const char_t **capture)
@@ -522,7 +523,7 @@ static const char_t * precheck(const char_t *p, const char_t *ep, inst_t *inst)
   return p;
 }
 
-static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst)
+static int matcher_match0(match_ctx_t *ctx, long from, int anchor, inst_t *inst)
 {
   THREADQ_T *runq = ctx->q0, *nextq = ctx->q1, *tmp;
   const char_t *otext = TEXT_ELEMENTS(MATCHER(ctx->m)->text);
@@ -605,7 +606,7 @@ enum extended_flags {
   LOOK_BEHIND = 1<<0,		/* lookbehind */
 };
 
-static const char_t* retrieve_back_ref(match_ctx_t *ctx, int index, int *size)
+static const char_t* retrieve_back_ref(match_ctx_t *ctx, long index, int *size)
 {
   index *= 2;
   if (ctx->match[index] != NULL && ctx->match[index+1] != NULL) {
@@ -659,7 +660,7 @@ static int match_back_ref(match_ctx_t *ctx, inst_t *ip, const char_t *p,
 
 
 static int match_step1(match_ctx_t *ctx, inst_t *inst, int flags,
-		      const char_t *bp, int i)
+		      const char_t *bp, long i)
 {
   const char_t *otext = TEXT_ELEMENTS(MATCHER(ctx->m)->text);
   const char_t *ep = otext + SG_MATCHER_TO(ctx->m);
@@ -783,7 +784,7 @@ static int match_step1(match_ctx_t *ctx, inst_t *inst, int flags,
    based on pikevm from RE1 pike.c
  */
 
-static int matcher_match1(match_ctx_t *ctx, int from, int anchor, inst_t *inst)
+static int matcher_match1(match_ctx_t *ctx, long from, int anchor, inst_t *inst)
 {
   const char_t *otext = TEXT_ELEMENTS(MATCHER(ctx->m)->text);
   const char_t *bp = otext + from;
@@ -793,7 +794,7 @@ static int matcher_match1(match_ctx_t *ctx, int from, int anchor, inst_t *inst)
   ctx->wasword = FALSE;
   matched = match_step1(ctx, inst, 0, bp, from);
   if (!matched && anchor == UNANCHORED) {
-    int i, size = SG_MATCHER_TO(ctx->m);
+    long i, size = SG_MATCHER_TO(ctx->m);
     for (i = from+1; i <= size; i++) {
       debug_printf("%c", '\n');
       matched = match_step1(ctx, inst, 0, bp, i);
@@ -821,9 +822,10 @@ static int finish_match(match_ctx_t *ctx, int anchor)
 }
 
 /* match entry point*/
-static int matcher_match(SgMatcher *m, int from, int anchor)
+static int matcher_match(SgMatcher *m, long from, int anchor)
 {
-  int ret, i;
+  int ret;
+  long i;
   ASSERT(from >= 0);
   SG_MATCHER_FIRST(m) = from;
   MATCHER(m)->match_ctx->matched = FALSE;
@@ -884,7 +886,7 @@ static SgMatcher* reset_matcher(SgMatcher *m)
 }
 
 static SgMatcher* make_matcher(SgPattern *p, text_t *text,
-			       int start, int end)
+			       long start, long end)
 {
   SgMatcher *m = SG_NEW2(SgMatcher*, sizeof(matcher_t) + 
 			 sizeof(text_t *) * (p->groupCount-1));
@@ -901,7 +903,7 @@ static SgMatcher* make_matcher(SgPattern *p, text_t *text,
 
 
 SgMatcher* DECL_FUNC_NAME(Matcher)(SgPattern *pattern, text_t *text,
-				   int start, int end)
+				   long start, long end)
 {
   SgMatcher *m;
   SG_CHECK_START_END(start, end, TEXT_SIZE(text));
@@ -935,11 +937,11 @@ int DECL_FUNC_NAME(LookingAt)(matcher_t *mt)
   return matcher_match(m, m->from, UNANCHORED);
 }
 
-int DECL_FUNC_NAME(Find)(matcher_t *mt, int start)
+int DECL_FUNC_NAME(Find)(matcher_t *mt, long start)
 {
   SgMatcher *m = SG_MATCHER(mt);
   if (start < 0) {
-    int index = m->last + ((m->last == m->first) ? 1 : 0);
+    long index = m->last + ((m->last == m->first) ? 1 : 0);
     return matcher_match(m, index, UNANCHORED);
   } else if (start <= m->to) {
     reset_matcher(m);
@@ -955,11 +957,11 @@ int DECL_FUNC_NAME(CaptureCount)(matcher_t *m)
   return MATCHER(m)->match_ctx->ncapture/2;
 }
 
-static void retrive_group(SgMatcher *m, int submatch)
+static void retrieve_group(SgMatcher *m, long submatch)
 {
   if (MATCHER(m)->submatch[submatch]) return;
   else {
-    int i = submatch*2;
+    long i = submatch*2;
     match_ctx_t *ctx = MATCHER(m)->match_ctx;
     const char_t *sp = ctx->match[i], *ep = ctx->match[i+1];
     size_t size, j;
@@ -980,10 +982,10 @@ static void retrive_group(SgMatcher *m, int submatch)
   }
 }
 
-static int get_group(SgMatcher *m, SgObject groupOrName)
+static long get_group(SgMatcher *m, SgObject groupOrName)
 {
   if (SG_INTP(groupOrName)) {
-    int group = SG_INT_VALUE(groupOrName);
+    long group = SG_INT_VALUE(groupOrName);
     if (m->pattern->groupCount <= group) {
       /* TODO regexp error */
       Sg_Error(UC("group number is too big %d"), group);
@@ -998,8 +1000,8 @@ static int get_group(SgMatcher *m, SgObject groupOrName)
     }
     /* bit inefficient but hey */
     SG_FOR_EACH(cp, SG_CDR(slot)) {
-      int group = SG_INT_VALUE(SG_CAR(cp));
-      int i = group*2;
+      long group = SG_INT_VALUE(SG_CAR(cp));
+      long i = group*2;
       const char_t *sp = MATCHER(m)->match_ctx->match[i];
       const char_t *ep = MATCHER(m)->match_ctx->match[i+1];
       if (sp && ep) return group;
@@ -1011,7 +1013,7 @@ static int get_group(SgMatcher *m, SgObject groupOrName)
 
 SgObject DECL_FUNC_NAME(Group)(matcher_t *m, SgObject groupOrName)
 {
-  int group;
+  long group;
   if (!MATCHER(m)->match_ctx->matched) {
     Sg_Error(UC("no matched text"));
   }
@@ -1020,7 +1022,7 @@ SgObject DECL_FUNC_NAME(Group)(matcher_t *m, SgObject groupOrName)
   if (group < 0) return SG_FALSE;
 
   /* should matched string be literal? */
-  retrive_group(SG_MATCHER(m), group);
+  retrieve_group(SG_MATCHER(m), group);
   if (!MATCHER(m)->submatch[group]) return SG_FALSE;
   return MATCHER(m)->submatch[group];
 }
@@ -1028,7 +1030,7 @@ SgObject DECL_FUNC_NAME(Group)(matcher_t *m, SgObject groupOrName)
 int DECL_FUNC_NAME(GroupPosition)(matcher_t *mt, SgObject groupOrName,
 				  int startP)
 {
-  int group, i;
+  long group, i;
   const char_t *sp, *ep;
   SgMatcher *m = SG_MATCHER(mt);
   if (!MATCHER(m)->match_ctx->matched) {
@@ -1112,7 +1114,7 @@ static void append_string_replacement(SgMatcher *m, SgPort *p,
 
 static void append_replacement(SgMatcher *m, SgPort *p, SgObject replacement)
 {
-  int i;
+  long i;
   if (m->first < 0) {
     Sg_Error(UC("No match available"));
   }
@@ -1180,7 +1182,7 @@ text_t* DECL_FUNC_NAME(ReplaceAll)(matcher_t *mt, SgObject replacement)
   return MATCHER(m)->text;
 }
 
-text_t* DECL_FUNC_NAME(Replace)(matcher_t *mt, SgObject replacement, int count)
+text_t* DECL_FUNC_NAME(Replace)(matcher_t *mt, SgObject replacement, long count)
 {
   int result;
   SgMatcher *m = SG_MATCHER(mt);

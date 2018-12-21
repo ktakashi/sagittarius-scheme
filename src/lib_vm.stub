@@ -33,7 +33,7 @@
 	(Sg_WrongTypeOfArgumentViolation ,who (SG_MAKE_STRING ,msg) ,got ,irritants))))
 
   (define-c-proc insn-name (insn::<fixnum>)
-    (let ((info::InsnInfo* (Sg_LookupInsnName insn)))
+    (let ((info::InsnInfo* (Sg_LookupInsnName (cast int insn))))
       (result (Sg_MakeStringC (-> info name)))))
 
   ;; identifier
@@ -205,36 +205,36 @@
   (define-c-proc code-builder? (o) ::<boolean> SG_CODE_BUILDERP)
 
   (define-c-proc cb-emit0! (cb::<code-builder> insn::<fixnum>) ::<void>
-    (Sg_CodeBuilderEmit cb insn ARGUMENT0 0 0 SG_UNDEF))
+    (Sg_CodeBuilderEmit cb (cast int insn) ARGUMENT0 0 0 SG_UNDEF))
 
   (define-c-proc cb-emit1! (cb::<code-builder> insn::<fixnum> arg0::<fixnum>) ::<void>
-    (Sg_CodeBuilderEmit cb insn ARGUMENT0 arg0 0 SG_UNDEF))
-
+    (Sg_CodeBuilderEmit cb (cast int insn) ARGUMENT0 arg0 0 SG_UNDEF))
+  
   (define-c-proc cb-emit2! (cb::<code-builder> insn::<fixnum> arg0::<fixnum> arg1::<fixnum>) ::<void>
     (Sg_CodeBuilderEmit cb insn ARGUMENT0 arg0 arg1 SG_UNDEF))
 
   (define-c-proc cb-emit0i! (cb::<code-builder> insn::<fixnum> src) ::<void>    
     (Sg_CodeBuilderEmit cb insn ARGUMENT0 0 0 SG_UNDEF)
-    (Sg_CodeBuilderAddSrc cb insn src))
+    (Sg_CodeBuilderAddSrc cb (cast int insn) src))
 
   (define-c-proc cb-emit1i! (cb::<code-builder> insn::<fixnum> arg0::<fixnum> src) ::<void>
     (Sg_CodeBuilderEmit cb insn ARGUMENT0 arg0 0 SG_UNDEF)
-    (Sg_CodeBuilderAddSrc cb insn src))
+    (Sg_CodeBuilderAddSrc cb (cast int insn) src))
 
   (define-c-proc cb-emit2i! (cb::<code-builder> insn::<fixnum> arg0::<fixnum> arg1::<fixnum> src) ::<void>
     (Sg_CodeBuilderEmit cb insn ARGUMENT0 arg0 arg1 SG_UNDEF)
-    (Sg_CodeBuilderAddSrc cb insn src))
+    (Sg_CodeBuilderAddSrc cb (cast int insn) src))
 
   (define-c-proc cb-emit0o! (cb::<code-builder> insn::<fixnum> obj) ::<void>
-    (Sg_CodeBuilderEmit cb insn ARGUMENT1 0 0 obj))
+    (Sg_CodeBuilderEmit cb (cast int insn) ARGUMENT1 0 0 obj))
 
   (define-c-proc cb-emit0oi! (cb::<code-builder> insn::<fixnum> obj src) ::<void>
-    (Sg_CodeBuilderEmit cb insn ARGUMENT1 0 0 obj)
-    (Sg_CodeBuilderAddSrc cb insn src))
+    (Sg_CodeBuilderEmit cb (cast int insn) ARGUMENT1 0 0 obj)
+    (Sg_CodeBuilderAddSrc cb (cast int insn) src))
 
   (define-c-proc cb-emit1oi! (cb::<code-builder> insn::<fixnum> arg0::<fixnum> obj src) ::<void>
-    (Sg_CodeBuilderEmit cb insn ARGUMENT1 arg0 0 obj)
-    (Sg_CodeBuilderAddSrc cb insn src))
+    (Sg_CodeBuilderEmit cb (cast int insn) ARGUMENT1 arg0 0 obj)
+    (Sg_CodeBuilderAddSrc cb (cast int insn) src))
 
   (define-c-proc cb-label-set! (cb::<code-builder> label) ::<void>
     (Sg_CodeBuilderLabelSet cb label))
@@ -249,13 +249,13 @@
 				   max_stack::<fixnum>
 				   src) ::<void>
     (set! (SG_CODE_BUILDER_NAME lambda_cb) name)
-    (set! (SG_CODE_BUILDER_ARGC lambda_cb) req_argc)
-    (set! (SG_CODE_BUILDER_OPTIONAL lambda_cb) opt)
-    (set! (SG_CODE_BUILDER_FREEC lambda_cb) freec)
-    (set! (SG_CODE_BUILDER_MAX_STACK lambda_cb) max_stack)
+    (set! (SG_CODE_BUILDER_ARGC lambda_cb) (cast int req_argc))
+    (set! (SG_CODE_BUILDER_OPTIONAL lambda_cb) (cast int opt))
+    (set! (SG_CODE_BUILDER_FREEC lambda_cb) (cast int freec))
+    (set! (SG_CODE_BUILDER_MAX_STACK lambda_cb) (cast int max_stack))
     (Sg_CodeBuilderFlush lambda_cb)
-    (Sg_CodeBuilderEmit cb insn ARGUMENT1 0 0 lambda_cb)
-    (Sg_CodeBuilderAddSrc lambda_cb insn src))
+    (Sg_CodeBuilderEmit cb (cast int insn) ARGUMENT1 0 0 lambda_cb)
+    (Sg_CodeBuilderAddSrc lambda_cb (cast int insn) src))
 
   ;; for local closure
   (define-c-proc cb-emit-local-closure! (cb::<code-builder> 
@@ -268,10 +268,10 @@
 					 max_stack::<fixnum>
 					 src) ::<void>
     (set! (SG_CODE_BUILDER_NAME lambda_cb) name)
-    (set! (SG_CODE_BUILDER_ARGC lambda_cb) req_argc)
-    (set! (SG_CODE_BUILDER_OPTIONAL lambda_cb) opt)
-    (set! (SG_CODE_BUILDER_FREEC lambda_cb) freec)
-    (set! (SG_CODE_BUILDER_MAX_STACK lambda_cb) max_stack)
+    (set! (SG_CODE_BUILDER_ARGC lambda_cb) (cast int req_argc))
+    (set! (SG_CODE_BUILDER_OPTIONAL lambda_cb) (cast int opt))
+    (set! (SG_CODE_BUILDER_FREEC lambda_cb) (cast int freec))
+    (set! (SG_CODE_BUILDER_MAX_STACK lambda_cb) (cast int max_stack))
     (Sg_CodeBuilderFlush lambda_cb)
     (Sg_CodeBuilderEmit cb CLOSURE ARGUMENT1 self-pos 0 lambda_cb)
     (Sg_CodeBuilderAddSrc lambda_cb CLOSURE src))
@@ -280,7 +280,7 @@
     (result (-> cb labelDefs)))
 
   (define-c-proc code-builder-finish-builder (cb::<code-builder> last::<fixnum>)
-    (result (Sg_CodeBuilderFinishBuilder cb last)))
+    (result (Sg_CodeBuilderFinishBuilder cb (cast int last))))
 
   ;; misc
   (define-c-proc vm-r6rs-mode? () ::<boolean>
@@ -487,7 +487,7 @@
 
   (define-c-proc insn-info (insn::<integer>)
     (let* ((i::int64_t     (Sg_GetIntegerS64Clamp insn SG_CLAMP_NONE NULL))
-	   (info::InsnInfo* (Sg_LookupInsnName (INSN i))))
+	   (info::InsnInfo* (Sg_LookupInsnName (cast Instruction (INSN i)))))
       (if info
 	  ;; it's better to use record or something?
 	  (result (Sg_Values5 (SG_LIST2

@@ -66,7 +66,7 @@ static void charset_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   Sg_Putuz(port, UC("#<char-set"));
   SG_FOR_EACH(cp, ranges) {
     SgObject cell = SG_CAR(cp);
-    SgChar start = SG_INT_VALUE(SG_CAR(cell)), end = SG_INT_VALUE(SG_CDR(cell));
+    long start = SG_INT_VALUE(SG_CAR(cell)), end = SG_INT_VALUE(SG_CDR(cell));
     Sg_Putc(port, ' ');
     if (start > SG_CHAR_SET_SMALL_CHARS) {
       Sg_Printf(port, UC("#x%x"), start);
@@ -105,7 +105,8 @@ static SgObject charset_cache_reader(SgPort *port, SgReadCacheCtx *ctx)
   SgCharSet *cs = SG_CHAR_SET(Sg_MakeEmptyCharSet());
   SG_FOR_EACH(ranges, ranges) {
     SgObject r = SG_CAR(ranges);
-    Sg_CharSetAddRange(cs, SG_INT_VALUE(SG_CAR(r)), SG_INT_VALUE(SG_CDR(r)));
+    Sg_CharSetAddRange(cs, (SgChar)SG_INT_VALUE(SG_CAR(r)),
+		       (SgChar)SG_INT_VALUE(SG_CDR(r)));
   }
   return SG_OBJ(cs);
 }
@@ -297,7 +298,7 @@ SgObject Sg_CharSetComplement(SgCharSet *cs)
 
 SgObject Sg_StringToCharSet(SgString *input, int error_p)
 {
-  int i, len = SG_STRING_SIZE(input);
+  long i, len = SG_STRING_SIZE(input);
   SgCharSet *cs = make_charset();
   int complement = FALSE, inrange = TRUE;
   SgChar lastChar = -1;

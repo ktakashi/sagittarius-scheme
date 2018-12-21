@@ -127,7 +127,7 @@ static SgObject class_array_to_names(SgClass **array, int len)
   return h;
 }
 
-static SgObject class_list_to_array(SgObject lst, int len)
+static SgObject class_list_to_array(SgObject lst, long len)
 {
   SgObject cp;
   SgClass **v, **vp;
@@ -522,7 +522,7 @@ SgObject Sg_RemoveMethod(SgGeneric *gf, SgMethod *m)
 static SgObject merge_lists(SgObject sequence)
 {
   SgObject rpr = SG_NIL, next;
-  int len = Sg_Length(sequence);
+  long len = Sg_Length(sequence);
   SgObject *ri, *sp, *tp;
   /* never happen unless we export this function to the Scheme world */
   if (len < 0) Sg_Error(UC("bad list of sequence: %S"), sequence);
@@ -676,7 +676,7 @@ static SgObject compute_applicable_methods(SgGeneric *gf, SgObject *argv,
   nsel = generic_max_reqargs(gf);
   if (applyargs) argc--;
   if (applyargs && nsel) {
-    int size = Sg_Length(argv[argc]) + argc, i;
+    int size = (int)Sg_Length(argv[argc]) + argc, i;
     SgObject ap;
     args = SG_NEW_ARRAY(SgObject, size);
     for (i = 0; i < argc; i++) {
@@ -793,12 +793,12 @@ static SgObject sort_primary_methods(SgObject methods, SgObject *argv, int argc,
   /* for safety */
   if (SG_NULLP(methods)) return methods;
 
-  len = Sg_Length(methods);
+  len = (int)Sg_Length(methods);
   /* TODO maybe we should use alloca */
   if (len >= PREALLOC_SIZE)  array = SG_NEW_ARRAY(SgObject, len);
   /* if this is apply call we need to expand the arguments */
   if (applyargs) {
-    int n = Sg_Length(argv[argc-1]);
+    int n = (int)Sg_Length(argv[argc-1]);
     if (n < 0) Sg_Error(UC("bad argument list: %S"), argv[argc-1]);
     tsize += n-1;
     argc--;
@@ -881,7 +881,7 @@ static SgObject unpack_argument(SgObject proc, SgObject **oargs, int *oargc,
     *oargc = argc;
     return Sg_MakeNextMethod(SG_METHOD_GENERIC(proc), rest, args, argc, FALSE);
   } else {
-    int len = Sg_Length(opts), i;
+    int len = (int)Sg_Length(opts), i;
     int size = argc + len;
     SgObject *newargs = SG_NEW_ARRAY(SgObject, size), cp;
     for (i = 0; i < argc; i++) {
@@ -1576,7 +1576,7 @@ static void find_core_allocator(SgClass *klass)
 
 static void class_cpl_set(SgClass *klass, SgObject cpl)
 {
-  int len;
+  long len;
   SgObject cp;
   
   if (!SG_PAIRP(cpl)) goto err;
@@ -1612,7 +1612,8 @@ static SgObject class_nfields(SgClass *klass)
 
 static void class_nfields_set(SgClass *klass, SgObject nfields)
 {
-  klass->nfields = SG_INT_VALUE(nfields);
+  /* TODO should we make nfields long? but who would list so many fields? */
+  klass->nfields = (int)SG_INT_VALUE(nfields);
 }
 
 static SgObject class_direct_subclasses(SgClass *klass)
@@ -2211,7 +2212,7 @@ static void initialize_builtin_cpl(SgClass *klass, SgObject supers)
    but not for the accessor. */
 static void fixup_slot_accessor(SgObject accs)
 {
-  int index = Sg_Length(accs) - 1;
+  int index = (int)Sg_Length(accs) - 1;
   SgObject cp;
   SG_FOR_EACH(cp, accs) {
     SgSlotAccessor *acc = SG_SLOT_ACCESSOR(SG_CAR(cp));
@@ -2284,7 +2285,7 @@ static void init_class(SgClass *klass, const SgChar *name,
   fixup_slot_accessor(acc);
   klass->gettersNSetters = (SgSlotAccessor**)Sg_ListToArray(acc, TRUE);
   klass->slots = slots;
-  klass->nfields = Sg_Length(slots);
+  klass->nfields = (int)Sg_Length(slots);
   /* do we need this? */
   Sg_InitMutex(&klass->mutex, FALSE);
   Sg_InitCond(&klass->cv);
@@ -2624,7 +2625,7 @@ static int object_compare(SgObject x, SgObject y, int equalp)
     /* not supported yet */
     r = Sg_Apply2(SG_OBJ(&Sg_GenericObjectCompare), x, y);
     if (SG_INTP(r)) {
-      int v = SG_INT_VALUE(r);
+      long v = SG_INT_VALUE(r);
       if (v < 0) return -1;
       if (v > 0) return 1;
       return 0;
@@ -2726,7 +2727,7 @@ static SgObject method_initialize_impl(SgObject *argv, int argc, void *data)
   if (!SG_CLOSUREP(body) && !SG_SUBRP(body)) {
     Sg_Error(UC("closure required for :body argument: %S"), body);
   }
-  if ((speclen = Sg_Length(specs)) < 0) {
+  if ((speclen = (int)Sg_Length(specs)) < 0) {
     Sg_Error(UC("invalid specializers list: %S"), specs);
   }
   SG_METHOD_LEAF_P(m) = check_lref0(body);
@@ -2872,7 +2873,7 @@ static SgObject compute_method_more_specific_p(SgObject *args, int argc,
 					       void *data)
 {
   SgObject argv = args[1], cp;
-  int len = Sg_Length(argv), i;
+  int len = (int)Sg_Length(argv), i;
   SgClass **klass = SG_NEW2(SgClass **, len);
   i = 0;
   SG_FOR_EACH(cp, argv) {

@@ -18,11 +18,11 @@
 					    (flags::<fixnum> 0)
 					    (parse_only::<boolean> #f))
     :no-side-effect
-    Sg_CompileRegex)
+    (result (Sg_CompileRegex p (cast int flags) parse_only)))
 
   (define-c-proc compile-regex-ast (ast :optional (flags::<fixnum> 0))
     :no-side-effect
-    Sg_CompileRegexAST)
+    (result (Sg_CompileRegexAST ast (cast int flags))))
 
   (define-c-proc dump-regex (p::<pattern> :optional
 					  (port::<port> (Sg_CurrentOutputPort)))

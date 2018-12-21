@@ -1,6 +1,6 @@
 /* library.c                                       -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2016  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -146,7 +146,7 @@ static SgObject library_name_to_id_version(SgObject name)
 {
   SgObject h = SG_NIL, t = SG_NIL, cp;
   if (!SG_NULLP(name) && SG_PAIRP(name)) {
-    int len = Sg_Length(name);
+    long len = Sg_Length(name);
     if (len >= 0) {
       SG_FOR_EACH(cp, name) {
 	SgObject o = SG_CAR(cp);
@@ -177,7 +177,7 @@ static SgObject library_name_to_id_version(SgObject name)
        So we need to do some trick here
      */
     SgString *s = SG_SYMBOL_NAME(name);
-    int len = SG_STRING_SIZE(s);
+    long len = SG_STRING_SIZE(s);
     if (SG_STRING_VALUE_AT(s, len-1) == ')' &&
 	SG_STRING_VALUE_AT(s, len-2) == ')') {
       /* ok we need to strip version number. 
@@ -383,7 +383,7 @@ static int need_encode(SgChar ch, SgChar *h, SgChar *l)
 static SgString* encode_string(SgString *s, int keywordP)
 {
   SgString *r;
-  int size = SG_STRING_SIZE(s), i, offset;
+  long size = SG_STRING_SIZE(s), i, offset;
   SgChar high, low;
   if (keywordP) size += 3;	/* extra %3a */
   /* calculate size */
@@ -1111,9 +1111,9 @@ SgObject Sg_FindDefaultDirectiveByPath(SgObject path)
   if (SG_STRINGP(path)) {
     SG_FOR_EACH(cp, extensions) {
       SgObject conf = SG_CAR(cp);
-      int length = SG_STRING_SIZE(SG_CAR(conf));
-      int plen = SG_STRING_SIZE(path);
-      int i,j;
+      long length = SG_STRING_SIZE(SG_CAR(conf));
+      long plen = SG_STRING_SIZE(path);
+      long i,j;
       if (plen < length) goto fallback;
       for (i = length-1, j = plen-1; i >= 0; i--, j--) {
 	if (SG_STRING_VALUE_AT(SG_CAR(conf), i) != SG_STRING_VALUE_AT(path, j))

@@ -40,7 +40,7 @@ SG_CLASS_DECL(Sg_WeakHashTableClass);
 typedef struct SgWeakVectorRec
 {
   SG_HEADER;
-  int   size;
+  long  size;
   void *pointers;		/* opaque */
 } SgWeakVector;
 
@@ -97,9 +97,11 @@ typedef SgHashIter SgWeakHashIter;
 SG_CDECL_BEGIN
 
 /* weak vector */
-SG_EXTERN SgObject Sg_MakeWeakVector(int size);
-SG_EXTERN SgObject Sg_WeakVectorRef(SgWeakVector *v, int index, SgObject fallback);
-SG_EXTERN SgObject Sg_WeakVectorSet(SgWeakVector *v, int index, SgObject value);
+SG_EXTERN SgObject Sg_MakeWeakVector(long size);
+SG_EXTERN SgObject Sg_WeakVectorRef(SgWeakVector *v,
+				    long index, SgObject fallback);
+SG_EXTERN SgObject Sg_WeakVectorSet(SgWeakVector *v,
+				    long index, SgObject value);
 
 /* weak box */
 SG_EXTERN SgWeakBox* Sg_MakeWeakBox(void *value);
@@ -110,12 +112,12 @@ SG_EXTERN void*      Sg_WeakBoxRef(SgWeakBox *wbox);
 /* weak hash */
 SG_EXTERN SgObject Sg_MakeWeakHashTableSimple(SgHashType type,
 					      SgWeakness weakness,
-					      int initSize,
+					      long initSize,
 					      SgObject defaultValue);
 SG_EXTERN SgObject Sg_MakeWeakHashTable(SgObject hasher,
 					SgObject compare,
 					SgWeakness weakness,
-					int initSize,
+					long initSize,
 					SgObject defaultValue);
 SG_EXTERN SgObject Sg_WeakHashTableCopy(SgWeakHashTable *table);
 SG_EXTERN SgObject Sg_WeakHashTableRef(SgWeakHashTable *table,

@@ -1,6 +1,6 @@
 /* hashtable.c                                     -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2016  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -51,7 +51,7 @@ typedef struct EntryRec
   intptr_t key;
   intptr_t value;
   struct EntryRec *next;
-  uint32_t hashValue;
+  SgHashVal hashValue;
 } Entry;
 
 #define BUCKETS(hc) ((Entry**)hc->buckets)
@@ -65,13 +65,13 @@ typedef struct EntryRec
 typedef Entry* SearchProc(SgHashCore *core, intptr_t key, 
 			  SgDictOp op, int flags);
 
-static unsigned int round2up(unsigned int val);
+static unsigned long round2up(unsigned long val);
 void hash_iter_init(SgHashCore *core, SgHashIter *itr);
 
 /* hash functions */
 #define STRING_HASH(hv, chars, size)				\
   do {								\
-    int i_ = (size);						\
+    long i_ = (size);						\
     (hv) = 0;							\
     while (i_-- > 0) {						\
       (hv) = ((hv) << 5) - (hv) + ((unsigned char)*chars++);	\
@@ -81,44 +81,44 @@ void hash_iter_init(SgHashCore *core, SgHashIter *itr);
 #define SMALL_INT_HASH(result, value)		\
   (result) = ((value)*2654435761UL)
 #define ADDRESS_HASH(result, val)				\
-  (result) = (uint32_t)((SG_WORD(val) >> 3)*2654435761UL)
+  (result) = (SgHashVal)((SG_WORD(val) >> 3)*2654435761UL)
 
 #define HASH2INDEX(tabsize, bits, hashval)			\
   (((hashval)+((hashval)>>(32-(bits)))) & ((tabsize) - 1))
 
 #define COMBINE(hv1, hv2)  ((hv1)*5+(hv2))
 
-uint32_t Sg_EqHash(SgObject obj, uint32_t bound)
+SgHashVal Sg_EqHash(SgObject obj, SgHashVal bound)
 {
-  uint32_t hashval;
+  SgHashVal hashval;
   ADDRESS_HASH(hashval, obj);
   if (bound) return (hashval & HASHMASK) % bound;
   return hashval & HASHMASK;
 }
 
-uint32_t Sg_EqvHash(SgObject obj, uint32_t bound)
+SgHashVal Sg_EqvHash(SgObject obj, SgHashVal bound)
 {
-  uint32_t hashval;
+  SgHashVal hashval;
   if (SG_NUMBERP(obj)) {
     if (SG_INTP(obj)) {
       SMALL_INT_HASH(hashval, SG_INT_VALUE(obj));
     } else if (SG_BIGNUMP(obj)) {
-      int i;
+      long i;
       unsigned long u = 0;
-      int size = SG_BIGNUM_GET_COUNT(obj);
+      unsigned long size = SG_BIGNUM_GET_COUNT(obj);
       for (i = 0; i < size; i++) {
 	u += SG_BIGNUM(obj)->elements[i];
       }
       SMALL_INT_HASH(hashval, u);
     } else if (SG_FLONUMP(obj)) {
-      hashval = (unsigned long)(SG_FLONUM_VALUE(obj) * 2654435761UL);
+      hashval = (SgHashVal)(SG_FLONUM_VALUE(obj) * 2654435761UL);
     } else if (SG_RATIONALP(obj)) {
-      uint32_t h1 = Sg_EqvHash(SG_RATIONAL(obj)->numerator, bound);
-      uint32_t h2 = Sg_EqvHash(SG_RATIONAL(obj)->denominator, bound);
+      SgHashVal h1 = Sg_EqvHash(SG_RATIONAL(obj)->numerator, bound);
+      SgHashVal h2 = Sg_EqvHash(SG_RATIONAL(obj)->denominator, bound);
       hashval = COMBINE(h1, h2);
     } else {
-      uint32_t h1 = Sg_EqvHash(SG_COMPLEX(obj)->real, bound);
-      uint32_t h2 = Sg_EqvHash(SG_COMPLEX(obj)->imag, bound);
+      SgHashVal h1 = Sg_EqvHash(SG_COMPLEX(obj)->real, bound);
+      SgHashVal h2 = Sg_EqvHash(SG_COMPLEX(obj)->imag, bound);
       hashval = COMBINE(h1, h2);
     }
   } else {
@@ -128,29 +128,29 @@ uint32_t Sg_EqvHash(SgObject obj, uint32_t bound)
   return hashval & HASHMASK;
 }
 
-static uint32_t pair_hash(SgObject o, int level);
-static uint32_t vector_hash(SgObject o, int level);
-static uint32_t equal_hash_rec(SgObject obj, int level);
+static SgHashVal pair_hash(SgObject o, int level);
+static SgHashVal vector_hash(SgObject o, int level);
+static SgHashVal equal_hash_rec(SgObject obj, int level);
 
-static uint32_t level_hash(SgObject o, int level)
+static SgHashVal level_hash(SgObject o, int level)
 {
   if (SG_PAIRP(o)) return pair_hash(o, level);
   else if (SG_VECTORP(o)) return vector_hash(o, level);
   else return equal_hash_rec(o, level);
 }
 
-static uint32_t pair_hash(SgObject o, int level)
+static SgHashVal pair_hash(SgObject o, int level)
 {
   if (level == 0) return 0x08d;
   else return COMBINE(level_hash(SG_CAR(o), level-1),
 		      level_hash(SG_CDR(o), level-1));
 }
 
-static SgObject compact_vector(SgObject vec, int len, int short_len)
+static SgObject compact_vector(SgObject vec, long len, long short_len)
 {
-  int selections = short_len - 5;
-  int interval = (len-5)/(short_len-5);
-  int fsp = 3 + interval/2, i, index;
+  long selections = short_len - 5;
+  long interval = (len-5)/(short_len-5);
+  long fsp = 3 + interval/2, i, index;
   SgObject r = Sg_MakeVector(short_len, SG_FALSE);
   /* set 5 elements first */
   SG_VECTOR_ELEMENT(r,	0) = SG_VECTOR_ELEMENT(vec, 0);
@@ -164,22 +164,22 @@ static SgObject compact_vector(SgObject vec, int len, int short_len)
   return r;
 }
 
-static uint32_t smoosh_vector(SgObject vec, int len, int level)
+static SgHashVal smoosh_vector(SgObject vec, long len, int level)
 {
-  int remain;
-  uint32_t result = 0xd80f;
+  long remain;
+  SgHashVal result = 0xd80f;
   for (remain = len; remain > 0; remain--) {
     result = COMBINE(result, level_hash(SG_VECTOR_ELEMENT(vec, remain-1),
 					level-1));
   }
   return result;
 }
-static uint32_t vector_hash(SgObject obj, int level)
+static SgHashVal vector_hash(SgObject obj, int level)
 {
   if (level == 0) return 0xd80e;
   else {
-    int breakn = 13, len = SG_VECTOR_SIZE(obj);
-    uint32_t hashval, h;
+    long breakn = 13, len = SG_VECTOR_SIZE(obj);
+    SgHashVal hashval, h;
     SMALL_INT_HASH(hashval, len);
     if (len <= breakn) {
       h = smoosh_vector(obj, len, level);
@@ -191,14 +191,14 @@ static uint32_t vector_hash(SgObject obj, int level)
   }
 }
 
-static uint32_t object_hash(SgObject obj, int level)
+static SgHashVal object_hash(SgObject obj, int level)
 {
   SgObject l = SG_MAKE_INT(level);
   SgObject r = Sg_Apply2(SG_OBJ(&Sg_GenericObjectHash), obj, l);
-  uint32_t hashval;  
+  SgHashVal hashval;  
   if (SG_EXACT_INTP(r)) {
     int oor;
-    hashval = (uint32_t)Sg_GetUIntegerClamp(r, SG_CLAMP_NONE, &oor);
+    hashval = (SgHashVal)Sg_GetUIntegerClamp(r, SG_CLAMP_NONE, &oor);
     if (!oor) {
       return hashval;
     }
@@ -210,11 +210,11 @@ static uint32_t object_hash(SgObject obj, int level)
 }
 
 #define MAX_NESTING_LEVEL 4
-static uint32_t equal_hash_rec(SgObject obj, int level)
+static SgHashVal equal_hash_rec(SgObject obj, int level)
 {
-  uint32_t hashval;
+  SgHashVal hashval;
   if (!SG_PTRP(obj)) {
-    SMALL_INT_HASH(hashval, (unsigned long)SG_WORD(obj));
+    SMALL_INT_HASH(hashval, (SgHashVal)SG_WORD(obj));
     return hashval;
   } else if (SG_NUMBERP(obj)) {
     return Sg_EqvHash(obj, 0);
@@ -230,8 +230,8 @@ static uint32_t equal_hash_rec(SgObject obj, int level)
     return Sg_StringHash(SG_KEYWORD_NAME(obj), 0);
   } else if (SG_BVECTORP(obj)) {
     /* TODO is this ok? */
-    unsigned long h = 0, h2;
-    int i, size = SG_BVECTOR_SIZE(obj);
+    SgHashVal h = 0, h2;
+    long i, size = SG_BVECTOR_SIZE(obj);
     for (i = 0; i < size; i++) {
       SMALL_INT_HASH(h2, SG_BVECTOR_ELEMENT(obj, i));
       h = COMBINE(h, h2);
@@ -242,16 +242,16 @@ static uint32_t equal_hash_rec(SgObject obj, int level)
   }
 }
 
-uint32_t Sg_EqualHash(SgObject obj, uint32_t bound)
+SgHashVal Sg_EqualHash(SgObject obj, SgHashVal bound)
 {
-  uint32_t hash = equal_hash_rec(obj, MAX_NESTING_LEVEL);
+  SgHashVal hash = equal_hash_rec(obj, MAX_NESTING_LEVEL);
   if (bound) return hash % bound;
   return hash;
 }
 
-uint32_t Sg_StringHash(SgString *str, uint32_t bound)
+SgHashVal Sg_StringHash(SgString *str, SgHashVal bound)
 {
-  uint32_t hashval;
+  SgHashVal hashval;
   const SgChar *p = str->value;
   STRING_HASH(hashval, p, str->size);
   if (bound == 0) return hashval;
@@ -261,8 +261,8 @@ uint32_t Sg_StringHash(SgString *str, uint32_t bound)
 /* accessor and so */
 static Entry *insert_entry(SgHashCore *table,
 			   intptr_t key,
-			   uint32_t hashval,
-			   int index)
+			   SgHashVal hashval,
+			   long index)
 {
   Entry *e = SG_NEW(Entry);
   Entry **buckets = BUCKETS(table);
@@ -281,8 +281,8 @@ static Entry *insert_entry(SgHashCore *table,
     /* extend the table */
     Entry **newb, *f;
     SgHashIter itr;
-    int i, newsize = (table->bucketCount << EXTEND_BITS);
-    int newbits = table->bucketsLog2Count + EXTEND_BITS;
+    long i, newsize = (table->bucketCount << EXTEND_BITS);
+    long newbits = table->bucketsLog2Count + EXTEND_BITS;
 
     newb = SG_NEW_ARRAY(Entry*, newsize);
     for (i = 0; i < newsize; i++) newb[i] = NULL; /* initialize new buckets */
@@ -305,7 +305,7 @@ static Entry *insert_entry(SgHashCore *table,
 
 static Entry *delete_entry(SgHashCore *table,
 			   Entry *entry, Entry *prev,
-			   int index)
+			   long index)
 {
   if (prev) prev->next = entry->next;
   else table->buckets[index] = (void*)entry->next;
@@ -342,11 +342,11 @@ static void hash_core_init(SgHashCore *table,
 			   SearchProc *access,
 			   SgHashProc *hasher,
 			   SgHashCompareProc *compare,
-			   unsigned int initSize,
+			   unsigned long initSize,
 			   void* data)
 {
   Entry **b;
-  unsigned int i;
+  unsigned long i;
 
   if (initSize != 0) initSize = round2up(initSize);
   else initSize = DEFAULT_BUCKET_COUNT;
@@ -375,7 +375,8 @@ static Entry *address_access(SgHashCore *table,
 			     SgDictOp op,
 			     int flags)
 {
-  uint32_t hashval, index;
+  SgHashVal hashval;
+  unsigned long index;
   Entry *e, *p, **buckets = BUCKETS(table);
 
   ADDRESS_HASH(hashval, key);
@@ -387,9 +388,9 @@ static Entry *address_access(SgHashCore *table,
   NOTFOUND(table, op, key, hashval, index);
 }
 
-static uint32_t address_hash(const SgHashCore *ht, intptr_t obj)
+static SgHashVal address_hash(const SgHashCore *ht, intptr_t obj)
 {
-  uint32_t hashval;
+  SgHashVal hashval;
   ADDRESS_HASH(hashval, obj);
   return hashval;
 }
@@ -400,7 +401,7 @@ static int address_compare(const SgHashCore *ht, intptr_t key, intptr_t k2)
 }
 
 /* eqv? and equal? */
-static uint32_t eqv_hash(const SgHashCore *table, intptr_t key)
+static SgHashVal eqv_hash(const SgHashCore *table, intptr_t key)
 {
   return Sg_EqvHash(SG_OBJ(key), 0);
 }
@@ -410,7 +411,7 @@ static int eqv_compare(const SgHashCore *table, intptr_t key, intptr_t k2)
   return Sg_EqvP(SG_OBJ(key), SG_OBJ(k2));
 }
 
-static uint32_t equal_hash(const SgHashCore *table, intptr_t key)
+static SgHashVal equal_hash(const SgHashCore *table, intptr_t key)
 {
   return Sg_EqualHash(SG_OBJ(key), 0);
 }
@@ -426,8 +427,9 @@ static Entry *string_access(SgHashCore *table,
 			    SgDictOp op,
 			    int flags)
 {
-  uint32_t hashval, index;
-  int size;
+  SgHashVal hashval;
+  unsigned long index;
+  long size;
   const SgChar *s;
   SgObject key = SG_OBJ(k);
   Entry *e, *p, **buckets;
@@ -452,7 +454,7 @@ static Entry *string_access(SgHashCore *table,
   NOTFOUND(table, op, k, hashval, index);
 }
 
-static uint32_t string_hash(const SgHashCore *table, intptr_t key)
+static SgHashVal string_hash(const SgHashCore *table, intptr_t key)
 {
   return Sg_StringHash(SG_STRING(key), 0);
 }
@@ -467,7 +469,8 @@ static Entry* general_access(SgHashCore *table,
 			     SgDictOp op,
 			     int flags)
 {
-  uint32_t hashval, index;
+  SgHashVal hashval;
+  unsigned long index;
   Entry *e, *p, **buckets;
 
   hashval = table->hasher(table, key);
@@ -480,7 +483,7 @@ static Entry* general_access(SgHashCore *table,
   NOTFOUND(table, op, key, hashval, index);
 }
 
-static uint32_t general_hash(const SgHashCore *table, intptr_t key)
+static SgHashVal general_hash(const SgHashCore *table, intptr_t key)
 {
   SgObject hash, hasher = table->generalHasher;
   
@@ -548,7 +551,7 @@ static int hash_core_predef_procs(SgHashType type,
 
 void Sg_HashCoreInitSimple(SgHashCore *core,
 			   SgHashType type,
-			   unsigned int initSize,
+			   long initSize,
 			   void *data)
 {
   SearchProc *access = NULL;
@@ -564,14 +567,14 @@ void Sg_HashCoreInitSimple(SgHashCore *core,
 void Sg_HashCoreInitGeneral(SgHashCore *core,
 			    SgHashProc *hasher,
 			    SgHashCompareProc *compare,
-			    unsigned int initSize,
+			    long initSize,
 			    void *data)
 {
   hash_core_init(core, general_access, hasher, compare, initSize, data);
 }
 
 int Sg_HashCoreTypeToProcs(SgHashType type, SgHashProc **hasher,
-			    SgHashCompareProc **compare)
+			   SgHashCompareProc **compare)
 {
   SearchProc *access;
   return hash_core_predef_procs(type, &access, hasher, compare);
@@ -624,9 +627,9 @@ void Sg_HashCoreCopy(SgHashTable *dstT, const SgHashTable *srcT)
   dst->entryCount = src->entryCount;
 }
 
-void Sg_HashCoreClear(SgHashCore *ht, int k)
+void Sg_HashCoreClear(SgHashCore *ht, long k)
 {
-  int i;
+  long i;
   for (i = 0; i < ht->bucketCount; i++) {
     ht->buckets[i] = NULL;
   }
@@ -634,7 +637,6 @@ void Sg_HashCoreClear(SgHashCore *ht, int k)
   /* TODO: do we need this? */
   if (k > 0) {
     Entry **b;
-    int i;
     ht->buckets = NULL;	/* gc friendliness */
     if (k == 0) k = DEFAULT_BUCKET_COUNT;
     else k = round2up(k);
@@ -724,7 +726,8 @@ static void hash_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 static SgObject hash_cache_reader(SgPort *port, SgReadCacheCtx *ctx)
 {
   SgHashTable *ht;
-  int type, immutablep, entryCount, i;
+  int type, immutablep;
+  long entryCount, i;
   SgObject count;
   type = Sg_GetbUnsafe(port);
   immutablep = Sg_GetbUnsafe(port);
@@ -864,7 +867,7 @@ SgHashEntry * hash_iter_next(SgHashIter *itr, SgObject *key, SgObject *value)
   if (e != NULL) {
     if (e->next) itr->next = e->next;
     else {
-      int i = itr->bucket + 1;
+      long i = itr->bucket + 1;
       for (; i < itr->core->bucketCount; i++) {
 	if (itr->core->buckets[i]) {
 	  itr->bucket = i;
@@ -898,14 +901,14 @@ static SgHashTable * make_hashtable()
   return z;
 }
 
-SgObject Sg_MakeHashTableSimple(SgHashType type, int initSize)
+SgObject Sg_MakeHashTableSimple(SgHashType type, long initSize)
 {
   SgHashTable *z = make_hashtable();
   return Sg_InitHashTableSimple(z, type, initSize);
 }
 
 SgObject Sg_InitHashTableSimple(SgHashTable *table, 
-				SgHashType type, int initSize)
+				SgHashType type, long initSize)
 {
   if (type > SG_HASH_GENERAL) {
     Sg_Error(UC("Sg_MakeHashTableSimple: wrong type arg: %d"), type);
@@ -918,8 +921,7 @@ SgObject Sg_InitHashTableSimple(SgHashTable *table,
   return SG_OBJ(table);
 }
 
-SgObject Sg_MakeHashTable(SgObject hasher, SgObject compare,
-			  int initSize)
+SgObject Sg_MakeHashTable(SgObject hasher, SgObject compare, long initSize)
 {
   SgHashTable *z = SG_HASHTABLE(Sg_MakeHashTableSimple(SG_HASH_GENERAL,
 						       initSize));
@@ -928,8 +930,7 @@ SgObject Sg_MakeHashTable(SgObject hasher, SgObject compare,
   return SG_OBJ(z);
 }
 
-SgObject Sg_MakeHashTableWithComparator(SgObject comparator, 
-					int initSize)
+SgObject Sg_MakeHashTableWithComparator(SgObject comparator, long initSize)
 {
   /* do some optimisation */
   if (comparator == Sg_EqComparator()) {
@@ -1040,14 +1041,14 @@ SgObject Sg_HashTableStat(SgHashTable *table)
   return SG_FALSE;
 }
 
-int Sg_HashTableSize(SgHashTable *table)
+long Sg_HashTableSize(SgHashTable *table)
 {
   return SG_HASHTABLE_CORE(table)->entryCount;
 }
 
-unsigned int round2up(unsigned int val)
+unsigned long round2up(unsigned long val)
 {
-  unsigned int n = 1;
+  unsigned long n = 1;
   while (n < val) {
     n <<= 1;
     ASSERT(n > 1);      /* check overflow */

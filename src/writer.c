@@ -112,14 +112,15 @@ void Sg_Write(SgObject obj, SgObject p, int mode)
   SG_PORT_UNLOCK_WRITE(port);
 }
 
-int Sg_WriteCircular(SgObject obj, SgObject port, int mode, int width)
+long Sg_WriteCircular(SgObject obj, SgObject port, int mode, long width)
 {
   SgWriteContext ctx;
   SgString *str;
   SgPort *out;
   SgStringPort tp;
   SgHashTable seen;
-  int nc, sharedp = FALSE;
+  long nc;
+  int sharedp = FALSE;
 
   if (!SG_OUTPUT_PORTP(port)) {
     Sg_Error(UC("output port required, but got %S"), port);
@@ -159,13 +160,14 @@ int Sg_WriteCircular(SgObject obj, SgObject port, int mode, int width)
   }
 }
 
-int Sg_WriteLimited(SgObject obj, SgObject port, int mode, int width)
+long Sg_WriteLimited(SgObject obj, SgObject port, int mode, long width)
 {
   SgWriteContext ctx;
   SgString *str;
   SgPort *out;
   SgStringPort tp;
-  int nc, sharedp = FALSE;
+  long nc;
+  int sharedp = FALSE;
 
   if (!SG_OUTPUT_PORTP(port)) {
     Sg_Error(UC("output port required, but got %S"), port);
@@ -206,11 +208,11 @@ int Sg_WriteLimited(SgObject obj, SgObject port, int mode, int width)
 #define MAX_PARAMS 5
 
 static void format_pad(SgPort *out, SgString *str,
-		       int mincol, int colinc, SgChar padchar,
+		       long mincol, long colinc, SgChar padchar,
 		       int rightalign)
 {
-  int padcount = mincol - SG_STRING_SIZE(str);
-  int i;
+  long padcount = mincol - SG_STRING_SIZE(str);
+  long i;
 
   if (padcount > 0) {
     if (colinc > 1) {
@@ -233,7 +235,7 @@ static void format_sexp(SgPort *out, SgObject arg,
 			SgObject *params, int nparams,
 			int rightalign, int dots, int mode)
 {
-  int mincol = 0, colinc = 1, minpad = 0, maxcol = -1, nwritten = 0, i;
+  long mincol = 0, colinc = 1, minpad = 0, maxcol = -1, nwritten = 0, i;
   SgChar padchar = ' ';
   SgPort *tmpout;
   SgStringPort tp;
@@ -263,7 +265,7 @@ static void format_sexp(SgPort *out, SgObject arg,
 
   if (maxcol > 0 && nwritten < 0) {
     const SgChar *s = SG_STRING_VALUE(tmpstr);
-    int size = SG_STRING_SIZE(tmpstr);
+    long size = SG_STRING_SIZE(tmpstr);
     if (dots && maxcol > 4) {
       for (i = 0; i < size - 4; i++) {
 	Sg_PutcUnsafe(out, *s++);
@@ -284,7 +286,7 @@ static void format_integer(SgPort *out, SgObject arg, SgObject *params,
 			   int nparams, int radix, int delimited,
 			   int alwayssign, int use_upper)
 {
-  int mincol = 0, commainterval = 3;
+  long mincol = 0, commainterval = 3;
   SgChar padchar = ' ', commachar = ',';
   SgObject str;
   if (!Sg_IntegerP(arg)) {
@@ -306,9 +308,8 @@ static void format_integer(SgPort *out, SgObject arg, SgObject *params,
     str = Sg_StringAppend2(SG_MAKE_STRING("+"), str);
   }
   if (delimited && commainterval) {
-    int i;
     const SgChar *ptr = SG_STRING_VALUE(str);
-    unsigned int num_digits = SG_STRING_SIZE(str), colcnt;
+    unsigned long  num_digits = SG_STRING_SIZE(str), colcnt, i;
     SgPort *strout;
     SgStringPort tp;
 
@@ -321,7 +322,7 @@ static void format_integer(SgPort *out, SgObject arg, SgObject *params,
     }
     colcnt = num_digits % commainterval;
     if (colcnt != 0) {
-      for (i = 0; (unsigned int)i < colcnt; i++) {
+      for (i = 0; i < colcnt; i++) {
 	Sg_Putc(strout, *(ptr + i));
       }
     }
@@ -657,7 +658,7 @@ static char special[] = {
   The bar needs only for symbols start with number or
   contains control characters or white space.
  */
-static int symbol_need_bar(const SgChar *s, int n)
+static int symbol_need_bar(const SgChar *s, long n)
 {
   /* R7RS allows these without escape. */
 #if 0
@@ -929,7 +930,7 @@ void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
       Sg_PutcUnsafe(port, ' ');
     }
   } else if (SG_VECTORP(obj)) {
-    int len, i;
+    long len, i;
     SgObject *elts;
     Sg_PutuzUnsafe(port, UC("#("));
     len = SG_VECTOR(obj)->size;
@@ -957,7 +958,7 @@ static void write_walk_circular(SgObject obj, SgWriteContext *ctx,
   do {								\
     SgObject e = Sg_HashTableRef(ht, (obj), SG_UNBOUND);	\
     if (SG_INTP(e)) {						\
-      int v = SG_INT_VALUE(e);					\
+      long v = SG_INT_VALUE(e);					\
       Sg_HashTableSet(ht, (obj), SG_MAKE_INT(v + 1), 0);	\
       if (v > 0) return;					\
     } else {							\
@@ -969,7 +970,7 @@ static void write_walk_circular(SgObject obj, SgWriteContext *ctx,
   do {								\
     if (cycleonlyp) {						\
       SgObject e = Sg_HashTableRef(ht, (obj), SG_MAKE_INT(0));	\
-      int v = SG_INT_VALUE(e);					\
+      long v = SG_INT_VALUE(e);					\
       if (v <= 1) {						\
 	Sg_HashTableDelete(ht, (obj));				\
       }								\
@@ -984,7 +985,7 @@ static void write_walk_circular(SgObject obj, SgWriteContext *ctx,
       if (SG_PTRP(elt)) write_walk_circular(elt, ctx, cycleonlyp);
       write_walk_circular(SG_CDR(obj), ctx, cycleonlyp);
     } else if (SG_VECTORP(obj) && SG_VECTOR_SIZE(obj) > 0) {
-      int i, len = SG_VECTOR_SIZE(obj);
+      long i, len = SG_VECTOR_SIZE(obj);
       for (i = 0; i < len; i++) {
 	elt = SG_VECTOR_ELEMENT(obj, i);
 	if (SG_PTRP(elt)) write_walk_circular(elt, ctx, cycleonlyp);
@@ -1031,7 +1032,7 @@ static void write_walk(SgObject obj, SgWriteContext *ctx)
       return;
     }
     if (SG_VECTORP(obj) && SG_VECTOR_SIZE(obj) > 0) {
-      int i, len = SG_VECTOR_SIZE(obj);
+      long i, len = SG_VECTOR_SIZE(obj);
       REGISTER(obj);
       for (i = 0; i < len; i++) {
 	elt = SG_VECTOR_ELEMENT(obj, i);
@@ -1111,10 +1112,11 @@ static void vprintf_proc(SgPort *port, const SgChar *fmt,
   SgObject value;
   SgChar c;
   char buf[SPBUFSIZ], tmp[SPBUFSIZ];
-  int longp = 0, len, mode;
+  int longp = 0, mode;
+  long len;
 
   while ((c = *fmtp++) != 0) {
-    int width, prec, dot_appeared, pound_appeared, index;
+    long width, prec, dot_appeared, pound_appeared, index;
     int minus_appeared;
 
     if (c != '%') {
@@ -1253,7 +1255,7 @@ static void vprintf_proc(SgPort *port, const SgChar *fmt,
 	  wctx.sharedId = 0;
 	  SET_STACK_SIZE(&wctx);
 	  if (pound_appeared) {
-	    int  n = Sg_WriteCircular(value, SG_OBJ(port), mode, width);
+	    long n = Sg_WriteCircular(value, SG_OBJ(port), mode, width);
 	    if (n < 0 && prec > 0) {
 	      Sg_PutuzUnsafe(port, UC(" ..."));
 	    }
@@ -1263,7 +1265,7 @@ static void vprintf_proc(SgPort *port, const SgChar *fmt,
 	  } else if (width == 0) {
 	    format_write(value, port, &wctx, sharedp);
 	  } else if (dot_appeared) {
-	    int  n = Sg_WriteLimited(value, SG_OBJ(port), mode, width);
+	    long n = Sg_WriteLimited(value, SG_OBJ(port), mode, width);
 	    if (n < 0 && prec > 0) {
 	      Sg_PutuzUnsafe(port, UC(" ..."));
 	    }
@@ -1279,7 +1281,7 @@ static void vprintf_proc(SgPort *port, const SgChar *fmt,
 	{
 	  get_value();
 	  ASSERT(Sg_ExactP(value));
-	  Sg_PutcUnsafe(port, Sg_GetInteger(value));
+	  Sg_PutcUnsafe(port, (SgChar)Sg_GetInteger(value));
 	}
       case '0': case '1': case '2': case '3': case '4':
       case '5': case '6': case '7': case '8': case '9':
@@ -1290,7 +1292,7 @@ static void vprintf_proc(SgPort *port, const SgChar *fmt,
 	    width = width * 10 + (c - '0');
 	    if (minus_appeared) {
 	      /* not so smart... */
-	      width = 0 - abs(width);
+	      width = 0 - labs(width);
 	    }
 	  }
 	  goto fallback;
@@ -1453,7 +1455,7 @@ void Sg_WriteSymbolName(SgString *snam, SgPort *port,
 			SgWriteContext *ctx, int flags)
 {
   const SgChar *p = snam->value, *q;
-  int size = snam->size;
+  long size = snam->size;
   int escape = FALSE;
   int r6rsMode = SG_VM_IS_SET_FLAG(Sg_VM(), SG_R6RS_MODE);
   int mode = SG_WRITE_MODE(ctx);

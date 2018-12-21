@@ -1,6 +1,6 @@
 /* unicode.c                                       -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -448,7 +448,7 @@ SgChar Sg_EnsureUcs4(SgChar c)
   return c;
 }
 
-SgObject Sg_Utf8sToUtf32s(const char *s, int len)
+SgObject Sg_Utf8sToUtf32s(const char *s, size_t len)
 {
   /* we know utf8 length will be less than ucs4 */
   SgObject ss = Sg_ReserveString(len, 0);
@@ -459,7 +459,7 @@ SgObject Sg_Utf8sToUtf32s(const char *s, int len)
   return ss;
 }
 
-SgObject Sg_Utf16sToUtf32s(const char *s, int len)
+SgObject Sg_Utf16sToUtf32s(const char *s, size_t len)
 {
   /* we know utf16->ucs32 less than len. (well actuall len/2 is enough) */
   SgObject ss = Sg_ReserveString(len/2, 0);
@@ -498,7 +498,7 @@ char* Sg_Utf32sToUtf8s(const SgString *s)
 
 wchar_t* Sg_StringToWCharTs(SgObject s)
 {
-  int size = SG_STRING_SIZE(s);
+  long size = SG_STRING_SIZE(s);
   SgBytePort out;
   SgTranscodedPort tp;
 #if SIZEOF_WCHAR_T == 2
@@ -521,7 +521,7 @@ wchar_t* Sg_StringToWCharTs(SgObject s)
   return (wchar_t*)Sg_GetByteArrayFromBinaryPort(&out);
 }
 
-SgObject Sg_WCharTsToString(wchar_t *s, int size)
+SgObject Sg_WCharTsToString(wchar_t *s, size_t size)
 {
 #define BUF_SIZ 256
   /* TODO this is a bit inefficient */
@@ -864,7 +864,7 @@ SgGeneralCategory Sg_CharGeneralCategory(SgChar ch)
   SgObject c;
   c = Sg_HashTableRef(general_category, SG_MAKE_CHAR(ch), SG_FALSE);
   if (!SG_FALSEP(c)) {
-    return SG_INT_VALUE(c);
+    return (SgGeneralCategory)SG_INT_VALUE(c);
   }
   if (0x3400 <= ch && ch <= 0x4DB5) return Lo;
   else if (0x4E00 <= ch && ch <= 0x9FBB) return Lo;
@@ -940,10 +940,10 @@ DECLARE_SPECIAL_CASING(special_casing_title);
 DECLARE_SPECIAL_CASING(case_folding);
 DECLARE_SPECIAL_CASING(decompose);
 
-static int final_sigma_p(int index, SgString *in, SgPort *out)
+static int final_sigma_p(long index, SgString *in, SgPort *out)
 {
   SgChar ch;
-  int size = SG_STRING_SIZE(in);
+  long size = SG_STRING_SIZE(in);
   if (size <= index + 1) {
     return Sg_PortPosition(out) != 0;
   }
@@ -952,7 +952,7 @@ static int final_sigma_p(int index, SgString *in, SgPort *out)
   else if (Sg_Ucs4WhiteSpaceP(ch)) return TRUE;
   else if (Sg_CharGeneralCategory(ch) == Pd) return TRUE;
   else {
-    int i = index;
+    long i = index;
     for (; i < size; i++) {
       ch = SG_STRING_VALUE_AT(in, i);
       if (Sg_CharAlphabeticP(ch)) return FALSE;
@@ -965,7 +965,7 @@ static int final_sigma_p(int index, SgString *in, SgPort *out)
 
 SgObject Sg_StringUpCase(SgString *str)
 {
-  int i, size = SG_STRING_SIZE(str);
+  long i, size = SG_STRING_SIZE(str);
   SgPort *out;
   SgStringPort tp;
   SgObject newS;
@@ -1025,7 +1025,7 @@ static void special_casing_char_downcase(SgPort *out, SgChar ch, SgChar lastCh,
 
 SgObject Sg_StringDownCase(SgString *str)
 {
-  int i, size = SG_STRING_SIZE(str);
+  long i, size = SG_STRING_SIZE(str);
   SgPort *out;
   SgStringPort tp;
   SgObject newS;
@@ -1047,13 +1047,13 @@ SgObject Sg_StringDownCase(SgString *str)
   }
 }
 
-static int titlecase_first_char(int index, SgString *in, SgPort *out,
-				int useSpecialCasing);
+static long titlecase_first_char(long index, SgString *in, SgPort *out,
+				 int useSpecialCasing);
 
-static int downcase_subsequence(int index, SgString *in, SgPort *out,
-				int useSpecialCasing)
+static long downcase_subsequence(long index, SgString *in, SgPort *out,
+				 int useSpecialCasing)
 {
-  int i, size = SG_STRING_SIZE(in);
+  long i, size = SG_STRING_SIZE(in);
   SgChar ch, lastCh = ' ';
   for (i = index; i < size; i++, lastCh = ch) {
     ch = SG_STRING_VALUE_AT(in, i);
@@ -1092,10 +1092,10 @@ static int downcase_subsequence(int index, SgString *in, SgPort *out,
   return i - index;
 }
 
-static int titlecase_first_char(int index, SgString *in, SgPort *out,
-				int useSpecialCasing)
+static long titlecase_first_char(long index, SgString *in, SgPort *out,
+				 int useSpecialCasing)
 {
-  int i, size = SG_STRING_SIZE(in);
+  long i, size = SG_STRING_SIZE(in);
   SgChar ch;
   for (i = index; i < size; i++) {
     ch = SG_STRING_VALUE_AT(in, i);
@@ -1129,7 +1129,7 @@ static int titlecase_first_char(int index, SgString *in, SgPort *out,
 
 SgObject Sg_StringTitleCase(SgString *str, int useSpecialCasing)
 {
-  int size = SG_STRING_SIZE(str);
+  long size = SG_STRING_SIZE(str);
   SgPort *out;
   SgStringPort tp;
   SgObject newS;
@@ -1150,7 +1150,7 @@ SgObject Sg_StringTitleCase(SgString *str, int useSpecialCasing)
 
 SgObject Sg_StringFoldCase(SgString *str)
 {
-  int i, size = SG_STRING_SIZE(str);
+  long i, size = SG_STRING_SIZE(str);
   SgPort *out;
   SgStringPort tp;
   SgObject newS;
@@ -1194,7 +1194,7 @@ SgObject Sg_StringFoldCase(SgString *str)
 static SgByteVector* string2bytevector(SgObject s)
 {
   SgByteVector* bv = Sg_MakeByteVector(SG_STRING_SIZE(s)*sizeof(SgChar), 0);
-  int i;
+  long i;
   for (i = 0; i < SG_STRING_SIZE(s); i++) {
     uint8_t *tmp = &SG_BVECTOR_ELEMENT(bv, i*4);
     *(uint32_t *)tmp = SG_STRING_VALUE_AT(s, i);
@@ -1205,10 +1205,10 @@ static SgByteVector* string2bytevector(SgObject s)
 static SgObject bytevector2string(SgByteVector *bv)
 {
   SgString *s = Sg_ReserveString(SG_BVECTOR_SIZE(bv)/sizeof(SgChar), ' ');
-  int i;
+  long i;
   for (i = 0; i < SG_STRING_SIZE(s); i++) {
     uint8_t *tmp = &SG_BVECTOR_ELEMENT(bv, i*4);
-    SG_STRING_VALUE_AT(s, i) = *(uint32_t*)tmp;
+    SG_STRING_VALUE_AT(s, i) = *(uint32_t *)tmp;
   }
   return SG_OBJ(s);
 }
@@ -1240,7 +1240,7 @@ static void recursive_decomposition(int canonicalP, SgChar sv, SgPort *out)
 
 static SgByteVector* decompose_rec(SgString *in, int canonicalP)
 {
-  int i, size = SG_STRING_SIZE(in);
+  long i, size = SG_STRING_SIZE(in);
   SgPort *out;
   SgStringPort tp;
   SgObject r;
@@ -1257,7 +1257,7 @@ static SgByteVector* decompose_rec(SgString *in, int canonicalP)
 
 static SgByteVector* sort_combining_marks(SgByteVector *bv)
 {
-  int last = SG_BVECTOR_SIZE(bv) - 4, i;
+  long last = SG_BVECTOR_SIZE(bv) - 4, i;
   for (i = 0; i < last;) {
     uint32_t this = Sg_ByteVectorU32NativeRef(bv, i);
     uint32_t next = Sg_ByteVectorU32NativeRef(bv, i + 4);
@@ -1321,7 +1321,7 @@ static int32_t pair_wise_composition(uint32_t first, uint32_t second)
 static SgObject compose_rec(SgByteVector *bv)
 {
   SgByteVector *out;
-  int size = SG_BVECTOR_SIZE(bv);
+  long size = SG_BVECTOR_SIZE(bv);
   uint32_t first = Sg_ByteVectorU32NativeRef(bv, 0);
   int32_t first_cc = (canonical_class(first) == 0) ? 0 : 256;
   

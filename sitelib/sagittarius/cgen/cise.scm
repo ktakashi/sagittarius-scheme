@@ -238,47 +238,49 @@
 		   stmt/expr))))
 
   (define (render-rec form env)
-    (match form
-      (((? symbol? key) . args)
-       (cond ((cise-lookup-macro key)
-	      => (lambda (expander)
+    ;; TODO better error handling...
+    (guard (e (else (error (car form) "Invalid form" form e)))
+      (match form
+	(((? symbol? key) . args)
+	 (cond ((cise-lookup-macro key)
+		=> (lambda (expander)
+		     `(,@(source-info form env)
+		       ,@(render-rec (expander form env) env))))
+	       ((or (type-decl-initial? key)
+		    (exists type-decl-subsequent? args))
+		(cise-render-typed-var form "" env))
+	       (else
+		(let1 eenv (expr-env env)
+		  (wrap-expr
 		   `(,@(source-info form env)
-		     ,@(render-rec (expander form env) env))))
-	     ((or (type-decl-initial? key)
-		  (exists type-decl-subsequent? args))
-	      (cise-render-typed-var form "" env))
-	     (else
-	      (let1 eenv (expr-env env)
-		(wrap-expr
-		 `(,@(source-info form env)
-		   ,(cise-render-identifier key) "("
-		   ,@(intersperse "," (map (cut render-rec <> eenv) args))
-		   ")")
-		 env)))))
-      ((x . y) form)
-      ('|#reset-line| '|#reset-line|) ; special directove to reset line info
-      ((? type-decl-initial?) 
-       (wrap-expr (cise-render-typed-var form "" env) env))
-      ((? symbol?) (wrap-expr (cise-render-identifier form) env))
-      ((? identifier?) (wrap-expr (cise-render-identifier (unwrap-syntax form))
-				  env))
-      ((? string?) (wrap-expr (format "~s" form) env))
-      ((? real?)   (wrap-expr form env))
-      ((? boolean?) (render-literal form env))
-      ((? keyword?) (wrap-expr (render-literal form env) env))
-      (()          '())
-      (#\'         (wrap-expr "'\\''" env))
-      (#\\         (wrap-expr "'\\\\'" env))
-      (#\newline   (wrap-expr "'\\n'" env))
-      (#\return    (wrap-expr "'\\r'" env))
-      (#\tab       (wrap-expr "'\\t'" env))
-      ((? char?)   (wrap-expr `("'" ,(if (char-set-contains?
-					  char-set:letter+digit form)
-					 (string form)
-					 (format "\\x~2'0x" 
-						 (char->integer form)))
-				"'") env))
-      (_           (error 'render-rec "Invalid form" form))))
+		     ,(cise-render-identifier key) "("
+		     ,@(intersperse "," (map (cut render-rec <> eenv) args))
+		     ")")
+		   env)))))
+	((x . y) form)
+	('|#reset-line| '|#reset-line|) ; special directove to reset line info
+	((? type-decl-initial?) 
+	 (wrap-expr (cise-render-typed-var form "" env) env))
+	((? symbol?) (wrap-expr (cise-render-identifier form) env))
+	((? identifier?) (wrap-expr (cise-render-identifier (unwrap-syntax form))
+				    env))
+	((? string?) (wrap-expr (format "~s" form) env))
+	((? real?)   (wrap-expr form env))
+	((? boolean?) (render-literal form env))
+	((? keyword?) (wrap-expr (render-literal form env) env))
+	(()          '())
+	(#\'         (wrap-expr "'\\''" env))
+	(#\\         (wrap-expr "'\\\\'" env))
+	(#\newline   (wrap-expr "'\\n'" env))
+	(#\return    (wrap-expr "'\\r'" env))
+	(#\tab       (wrap-expr "'\\t'" env))
+	((? char?)   (wrap-expr `("'" ,(if (char-set-contains?
+					    char-set:letter+digit form)
+					   (string form)
+					   (format "\\x~2'0x" 
+						   (char->integer form)))
+				  "'") env))
+	(_           (error 'render-rec "Invalid form" form)))))
 
   ;; c function definitions
   ;; sub library must implements this
@@ -458,11 +460,12 @@
   ;; dotimes
   (define-cise-macro (dotimes form env)
     (ensure-stmt-ctx form env)
-    (let ((eenv (expr-env env))
-	  (n    (gensym "cise__")))
-      (match form
-	((_ (var expr) . body)
-	 `(let* ((,var :: int 0) (,n :: int ,expr))
+    (match form
+      ((_ (var expr) . body)
+       `(dotimes (,var ,expr int) . ,body))
+      ((_ (var expr type) . body)
+       (let ((n    (gensym "cise__")))
+	 `(let* ((,var :: ,type 0) (,n :: ,type ,expr))
 	    (for (() (< ,var ,n) (post++ ,var)) ,@body))))))
 
   ;; return

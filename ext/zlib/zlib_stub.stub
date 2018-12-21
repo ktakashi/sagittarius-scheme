@@ -9,7 +9,10 @@
 
 (define-c-proc deflate-init
   (level::<fixnum> windowbits::<fixnum> memlevel::<fixnum> strategy::<fixnum>)
-  Sg_DeflateInit)
+  (result (Sg_DeflateInit (cast int level)
+			  (cast int windowbits)
+			  (cast int memlevel)
+			  (cast int strategy))))
 
 (define-c-proc deflate-reset (strm::<z-stream>) ::<fixnum> Sg_DeflateReset)
 
@@ -20,15 +23,16 @@
 (define-c-proc deflate
   (strm::<z-stream> data::<bytevector> dest::<bytevector> flush::<fixnum>)
   ::<fixnum>
-  Sg_Deflate)
+  (result (Sg_Deflate strm data dest (cast int flush))))
 
 (define-c-proc deflate-end (strm::<z-stream>) ::<fixnum> Sg_DeflateEnd)
 
-(define-c-proc inflate-init (windowbits::<fixnum>) Sg_InflateInit)
+(define-c-proc inflate-init (windowbits::<fixnum>)
+  (result (Sg_InflateInit (cast int windowbits))))
 
 (define-c-proc inflate-reset
   (strm::<z-stream> :optional (bits::<fixnum> -1)) ::<fixnum>
-  Sg_InflateReset)
+  (result (Sg_InflateReset strm (cast int bits))))
 
 (define-c-proc inflate-set-dictionary (strm::<z-stream> dict::<bytevector>)
   ::<fixnum>
@@ -40,10 +44,10 @@
 (define-c-proc inflate
   (strm::<z-stream> data::<bytevector> dest::<bytevector> flush::<fixnum>)
   ::<fixnum>
-  Sg_Inflate)
+  (result (Sg_Inflate strm data dest (cast int flush))))
 
 (define-c-proc inflate-end (strm::<z-stream> flush::<fixnum>) ::<fixnum>
-  Sg_InflateEnd)
+  (result (Sg_InflateEnd strm (cast int flush))))
 
 ;; accessor
 (define-c-proc zstream? (obj) ::<boolean> :constant SG_ZSTREAM_P)
@@ -82,10 +86,10 @@
   :constant
   (result (Sg_MakeIntegerU (crc32 (Sg_GetUInteger crc)
 				  (SG_BVECTOR_ELEMENTS data)
-				  (SG_BVECTOR_SIZE data)))))
+				  (cast int (SG_BVECTOR_SIZE data))))))
 
 (define-c-proc adler32 (data::<bytevector> :optional (crc::<integer> 1))
   :constant
   (result (Sg_MakeIntegerU (adler32 (Sg_GetUInteger crc)
 				    (SG_BVECTOR_ELEMENTS data)
-				    (SG_BVECTOR_SIZE data)))))
+				    (cast int (SG_BVECTOR_SIZE data))))))

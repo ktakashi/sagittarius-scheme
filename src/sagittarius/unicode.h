@@ -95,13 +95,13 @@ SG_EXTERN int64_t Sg_ConvertUtf16BufferToUcs4(SgCodec *codec,
 					      int checkBOM);
 
 /* string convertion */
-SG_EXTERN SgObject Sg_Utf8sToUtf32s(const char *s, int len);
-SG_EXTERN SgObject Sg_Utf16sToUtf32s(const char *s, int len);
+SG_EXTERN SgObject Sg_Utf8sToUtf32s(const char *s, size_t len);
+SG_EXTERN SgObject Sg_Utf16sToUtf32s(const char *s, size_t len);
 SG_EXTERN char*    Sg_Utf32sToUtf8s(const SgString *s);
 
 /* might be convenient? */
 SG_EXTERN wchar_t* Sg_StringToWCharTs(SgObject s);
-SG_EXTERN SgObject Sg_WCharTsToString(wchar_t *s, int len);
+SG_EXTERN SgObject Sg_WCharTsToString(wchar_t *s, size_t len);
 
 /* char case */
 SG_EXTERN SgChar   Sg_CharUpCase(SgChar ch);
