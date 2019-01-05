@@ -10,8 +10,6 @@
 
 (test-begin "(run-ffi-test)")
 
-(define build-directory-path "build")
-
 (cond-expand
  (sagittarius.ffi
   (define ffi-test-lib
