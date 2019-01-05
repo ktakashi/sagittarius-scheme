@@ -328,8 +328,9 @@ static inline size_t compute_offset(size_t offset, size_t align)
   return (offset + align - 1) & ~(align - 1);
 }
 
-static inline size_t compute_padding(size_t offset, size_t align)
+static inline size_t compute_padding(size_t offset, size_t align, int a)
 {
+  if (a > 0 && offset % a == 0) return 0;
   return (-offset) & (align - 1);
 }
 
@@ -347,7 +348,7 @@ static inline void check_bif_field_size(SgObject fields, size_t size)
   }
 }
 
-SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int packedp)
+SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int alignment)
 {
   SgCStruct *st;
   SgObject cp;
@@ -355,6 +356,12 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int packedp)
   size_t size, max_type, offset, padding;
   if (!SG_LISTP(layouts)) {
     Sg_Error(UC("list required but got %S"), layouts);
+  }
+  if (alignment > 0
+      && alignment != 1 && alignment != 2
+      && alignment != 4 && alignment != 8
+      && alignment != 16) {
+    Sg_Error(UC("alignment must be 1, 2, 4, 8 or 16 but got %d"), alignment);
   }
 
   size = Sg_Length(layouts);
@@ -390,18 +397,23 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int packedp)
 	st->type.elements[index] = &SG_CSTRUCT(st2)->type;
 	st->layouts[index].type = &SG_CSTRUCT(st2)->type;
 	st->layouts[index].cstruct = SG_CSTRUCT(st2);
-	st->layouts[index].tag = FFI_RETURN_TYPE_STRUCT;	
+	st->layouts[index].tag = FFI_RETURN_TYPE_STRUCT;
 	size += SG_CSTRUCT(st2)->type.size;
-	padding = compute_padding(size, SG_CSTRUCT(st2)->type.alignment);
+	padding = compute_padding(size, SG_CSTRUCT(st2)->type.alignment, alignment);
 	size += padding;
-	/* increment offset so that new offset won't be the same as before... */
-	/* FIXME this is ugly! */
-	if (index) offset += 1;
-	offset = compute_offset(offset, SG_CSTRUCT(st2)->type.alignment);
+
+	if (alignment < 0) {
+	  offset = compute_offset(offset, SG_CSTRUCT(st2)->type.alignment);
+	} else {
+	  offset = compute_offset(offset, alignment);
+	}
 
 	st->layouts[index].offset = offset;
 	if (SG_CSTRUCT(st2)->type.alignment > max_type) 
 	  max_type = SG_CSTRUCT(st2)->type.alignment;
+
+	/* next rough offset  */
+	offset += size;
       } else if (SG_EQ(SYMBOL_BIT_FIELD, SG_CAR(layout))) {
 	type = SG_INT_VALUE(SG_CADR(layout));
 	ffi = lookup_ffi_return_type(type);
@@ -429,12 +441,12 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int packedp)
     primitive_type:
       if (ffi->size > max_type) max_type = ffi->size;
       /* compute new offset */
-      padding = compute_padding(size, ffi->alignment);
+      padding = compute_padding(size, ffi->alignment, alignment);
       size += padding;
       /* padded size - alignment is offset ... */
       /* offset = compute_offset(offset + 1, ffi->alignment); */
       offset = size - ffi->alignment - array_off;
-
+      
       st->type.elements[index] = ffi;
       st->layouts[index].type = ffi;
       st->layouts[index].cstruct = NULL;
@@ -446,11 +458,17 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int packedp)
     index++;
   }
 
-  st->packed = packedp;
+  st->alignment = alignment;
   st->type.alignment = max_type;
   /* fixup size */
-  max_type--;
-  size = (size + max_type) & ~max_type;
+  if (alignment > 0) {
+    alignment--;
+    size = (size + alignment) & ~alignment;
+  } else {
+    max_type--;
+    size = (size + max_type) & ~max_type;
+  }
+
   st->type.size = size;
   return SG_OBJ(st);
 }

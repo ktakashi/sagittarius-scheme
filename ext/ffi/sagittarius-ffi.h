@@ -132,7 +132,7 @@ struct SgCStructRec
   SgObject  name;
   size_t    fieldCount;
   ffi_type  type;
-  int       packed;
+  int       alignment;		/* -1 default */
   struct_layout_t layouts[1];
 };
 
@@ -177,7 +177,7 @@ SgObject Sg_CreateCFunction(SgPointer *handle, SgObject name, int rettype,
 			    SgObject args, SgObject sret, SgObject sparam);
 SgObject Sg_CreateCallback(int rettype, SgString *signatures, SgObject proc);
 void     Sg_ReleaseCallback(SgCallback *callback);
-SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int packedp);
+SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int alignment);
 SgObject Sg_CStructRef(SgPointer *p, SgCStruct *st, SgSymbol *name);
 void     Sg_CStructSet(SgPointer *p, SgCStruct *st, SgSymbol *name,
 		       SgObject value);

@@ -10,13 +10,15 @@
 
 (test-begin "(run-ffi-test)")
 
+(define build-directory-path "build")
+
 (cond-expand
  (sagittarius.ffi
   (define ffi-test-lib
     (open-shared-library
-        (cond-expand
-          (darwin (string-append build-directory-path "/test-lib.dylib"))
-          (else (string-append build-directory-path "/test-lib.so")))))
+     (cond-expand
+      (darwin (string-append build-directory-path "/test-lib.dylib"))
+      (else (string-append build-directory-path "/test-lib.so")))))
 
   ;; originally this was array but now it must be an
   ;; different name otherwise define-c-struct
@@ -619,8 +621,72 @@
 	      (let ()
 		(define-c-struct foo
 		  (bit-field void* (a 10)))))
-
+  
   (close-shared-library ffi-test-lib)
+
+  ;; alignment
+  (let ()
+    (define (p? p8 p4) (if (= size-of-void* 8) p8 p4))
+    (define-c-struct packed (alignment 4)
+      (char c)
+      (short s)
+      (void* p))
+    (define-c-struct non-packed
+      (char c)
+      (short s)
+      (void* p))
+    (define-c-struct mixed
+      (struct packed p)
+      (struct non-packed np))
+    (define-c-struct mixed-packed (alignment 4)
+      (struct packed p)
+      (struct non-packed np))
+    (test-equal "size-of-packed" (p? 12 8) (size-of-c-struct packed))
+    (test-equal "size-of-non-packed" (p? 16 8) (size-of-c-struct non-packed))
+    (test-equal "size-of-mixed" (p? 32 16) (size-of-c-struct mixed))
+    (test-equal "size-of-mixed-packed" (p? 28 16) (size-of-c-struct mixed-packed))
+
+    (let ((p (allocate-c-struct packed))
+	  (np (allocate-c-struct non-packed)))
+      (packed-c-set! p 20)
+      (packed-s-set! p 1)
+      (packed-p-set! p (integer->pointer 2))
+      (test-equal "packed-c-ref (1)" 20 (packed-c-ref p))
+      (test-equal "packed-s-ref (1)" 1 (packed-s-ref p))
+      (test-equal "packed-p-ref (1)" 2 (pointer->integer (packed-p-ref p)))
+
+      (non-packed-c-set! np 21)
+      (non-packed-s-set! np 3)
+      (non-packed-p-set! np (integer->pointer 4))
+      (test-equal "non-packed-c-ref (1)" 21 (non-packed-c-ref np))
+      (test-equal "non-packed-s-ref (1)" 3 (non-packed-s-ref np))
+      (test-equal "non-packed-p-ref (1)" 4 (pointer->integer (non-packed-p-ref np)))
+
+      (let ((m (allocate-c-struct mixed)))
+	(mixed-p-set! m p)
+	(mixed-np-set! m np)
+	(let ((p (mixed-p-ref m))
+	      (np (mixed-np-ref m)))
+	  (test-equal "packed-c-ref (2)" 20 (packed-c-ref p))
+	  (test-equal "packed-s-ref (2)" 1 (packed-s-ref p))
+	  (test-equal "packed-p-ref (2)" 2 (pointer->integer (packed-p-ref p)))
+	  (test-equal "non-packed-c-ref (2)" 21 (non-packed-c-ref np))
+	  (test-equal "non-packed-s-ref (2)" 3 (non-packed-s-ref np))
+	  (test-equal "non-packed-p-ref (2)" 4 (pointer->integer (non-packed-p-ref np)))))
+
+      (let ((m (allocate-c-struct mixed-packed)))
+	(mixed-packed-p-set! m p)
+	(mixed-packed-np-set! m np)
+	(let ((p (mixed-packed-p-ref m))
+	      (np (mixed-packed-np-ref m)))
+	  (test-equal "packed-c-ref (3)" 20 (packed-c-ref p))
+	  (test-equal "packed-s-ref (3)" 1 (packed-s-ref p))
+	  (test-equal "packed-p-ref (3)" 2 (pointer->integer (packed-p-ref p)))
+	  (test-equal "non-packed-c-ref (3)" 21 (non-packed-c-ref np))
+	  (test-equal "non-packed-s-ref (3)" 3 (non-packed-s-ref np))
+	  (test-equal "non-packed-p-ref (3)" 4 (pointer->integer (non-packed-p-ref np)))))
+      )
+    )
   )
  (else
   #t))

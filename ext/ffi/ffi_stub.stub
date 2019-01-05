@@ -130,8 +130,11 @@
     (result (Sg_MakePointer p))))
 
 ;; struct
-(define-c-proc create-c-struct (name::<symbol> layouts packed?::<boolean>)
-  Sg_CreateCStruct)
+(define-c-proc create-c-struct (name::<symbol> layouts alignment)
+  (let ((align::int -1))
+    (when (SG_INTP alignment)
+      (set! align (SG_INT_VALUE alignment)))
+    (result (Sg_CreateCStruct name layouts align))))
 
 (define-c-proc c-struct? (obj) ::<boolean> :constant SG_CSTRUCTP)
 

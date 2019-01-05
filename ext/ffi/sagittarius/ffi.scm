@@ -572,7 +572,7 @@
 				(list ret args proc)))))
 
   ;; c-struct
-  (define (make-c-struct name defs packed?)
+  (define (make-c-struct name defs alignment)
     (define (bit-field-check fields)
       (and (for-all (lambda (field)
 		      (and (pair? field)
@@ -623,7 +623,7 @@
 	 'make-c-struct
 	 "struct declaration contains duplicated member name"
 	 (list name defs)))
-      (create-c-struct name layouts packed?)))
+      (create-c-struct name layouts alignment)))
 
   ;; (define-c-struct name (int x) (int y) (struct st s))
   (define (generate-member-name base lst)
@@ -730,14 +730,8 @@
 	  (((bit-field type (member bit) ...) rest ...)
 	   (continue #'(member ...) #'(rest ...) #f))))
 
-      (syntax-case x ()
-	((_ name (type . rest) ...)
-	 #'(define-c-struct name #f (type . rest) ...))
-	((_ name packed? (type . rest) ...)
-	 ;;(or (eq? #'packed? :packed) (not #'packed?))
-	 ;; disabled for now
-	 (not #'packed?)
-	 ;; with black magic ...
+      (syntax-case x (alignment)
+	((_ name (alignment n) (type . rest) ...)
 	 (with-syntax (((accessors ...)
 			(generate-accessors #'name
 					    #'((type . rest) ...)
@@ -745,9 +739,10 @@
 	   #'(begin
 	       (define name (make-c-struct 'name
 					   (type-list (type . rest) ...)
-					   (eq? packed? :packed)))
-	       accessors ...))))))
-
+					   n))
+	       accessors ...)))
+	((_ name (type . rest) ...)
+	 #'(define-c-struct name (alignment -1) (type . rest) ...)))))
 
   (define (find-max-size types)
     (define (find-size type n) (* (size-of-of type) n))
