@@ -411,9 +411,6 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int alignment)
 	st->layouts[index].offset = offset;
 	if (SG_CSTRUCT(st2)->type.alignment > max_type) 
 	  max_type = SG_CSTRUCT(st2)->type.alignment;
-
-	/* next rough offset  */
-	offset += size;
       } else if (SG_EQ(SYMBOL_BIT_FIELD, SG_CAR(layout))) {
 	type = SG_INT_VALUE(SG_CADR(layout));
 	ffi = lookup_ffi_return_type(type);
@@ -446,15 +443,15 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int alignment)
       /* padded size - alignment is offset ... */
       /* offset = compute_offset(offset + 1, ffi->alignment); */
       offset = size - ffi->alignment - array_off;
-      
+
       st->type.elements[index] = ffi;
       st->layouts[index].type = ffi;
       st->layouts[index].cstruct = NULL;
       st->layouts[index].tag = type;
       st->layouts[index].offset = offset;
-      /* FIXME ugly!!! */
-      offset += array_off;
     }
+    /* next rough offset  */
+    offset += size;
     index++;
   }
 
