@@ -834,7 +834,7 @@
 			(max (find-max-size types)))
 		   (make-c-struct 'name
 				  (list (list uint8_t 'array max (gensym)))
-				  #f)))
+				  -1)))
 	       accessors ...))))))
 
   (define c-function-integers
