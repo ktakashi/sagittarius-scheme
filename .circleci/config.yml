@@ -6,6 +6,8 @@ jobs:
        - run:
            name: Checkout repository
            command: |
+             sudo apt-get update
+             sudo apt-get upgrade
              sudo apt-get install mercurial
              hg clone https://bitbucket.org/ktakashi/sagittarius-scheme sagittarius-scheme
              pwd
