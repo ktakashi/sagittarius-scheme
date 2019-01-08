@@ -296,12 +296,14 @@
   (define-c-struct size-check
     (char  c)
     (short s))
-  (test-equal "size-check" 4 (size-of-c-struct size-check))
+  (test-equal "size-check (1)" 4 (size-of-c-struct size-check))
+  (test-equal "size-check (2)" 4 size-of-size-check)
 
   ;; local struct
   (let ()
     (define-c-struct local-struct (int32_t v))
-    (test-equal "local-struct" 4 (size-of-c-struct local-struct)))
+    (test-equal "local-struct (1)" 4 (size-of-c-struct local-struct))
+    (test-equal "local-struct (2)" 4 size-of-local-struct))
   (test-error "local-struct(outside)" local-struct)
 
   ;; varargs
@@ -411,6 +413,7 @@
       (int i)
       (char array size-of-int c*)
       (struct a-st st))
+    (test-assert "union size" (= (size-of-c-struct a-union) size-of-a-union))
     ;; we can use c-struct allocation
     (let ((p (allocate-c-struct a-union)))
       (a-union-i-set! p #x12345678)

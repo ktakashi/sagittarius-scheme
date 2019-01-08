@@ -552,7 +552,7 @@ similar structure. This section describes how to define C structure in Scheme
 world.
 
 @define[Macro]{@name{define-c-struct} @args{name clauses @dots{}}}
-@;@define[Macro]{@name{define-c-struct} @args{name :packed clauses @dots{}}}
+@define[Macro]{@name{define-c-struct} @args{name (alignment n) clauses @dots{}}}
 @desc{Defines C structure.
 
 @var{clauses} must be following form;
@@ -564,6 +564,13 @@ world.
 (@code{bit-field} (@var{type} @var{endian}) (@var{name} @var{bit}) @dots{})
 }
 @var{name} must be a symbol.
+
+If the second form is used, then @code{alignment} is an auxiliary syntax
+and @var{n} must be an integer which must be either negative number or
+one of @code{1}, @code{2}, @code{4}, @code{8}, or @code{16}. This form
+specifies the alignemtn of the struct. If the @var{n} is negative number,
+then it uses platform default alignment, if it's one of the above number,
+then the alignment is according to the given number.
 
 The first form is the simple C type form. @var{type} must be a symbol and the
 same as one of the @code{c-function}'s @var{return-types} or @code{callback}.
@@ -653,6 +660,9 @@ applied;
 @item{For getter: @var{name}-@var{member-name}-ref}
 @item{For setter: @var{name}-@var{member-name}-set!}
 }
+
+The macro also defines size variable for the c-struct. If the name of the
+c-struct if @var{foo}, then the variable name will be @code{size-of-foo}.
 
 }
 

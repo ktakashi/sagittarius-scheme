@@ -730,16 +730,22 @@
 	  (((bit-field type (member bit) ...) rest ...)
 	   (continue #'(member ...) #'(rest ...) #f))))
 
+      (define (generate-size-of name)
+	(datum->syntax name
+	 (string->symbol
+	  (string-append "size-of-" (symbol->string (syntax->datum name))))))
       (syntax-case x (alignment)
 	((_ name (alignment n) (type . rest) ...)
 	 (with-syntax (((accessors ...)
 			(generate-accessors #'name
 					    #'((type . rest) ...)
-					    '())))
+					    '()))
+		       (size-of (generate-size-of #'name)))
 	   #'(begin
 	       (define name (make-c-struct 'name
 					   (type-list (type . rest) ...)
 					   n))
+	       (define size-of (size-of-c-struct name))
 	       accessors ...)))
 	((_ name (type . rest) ...)
 	 #'(define-c-struct name (alignment -1) (type . rest) ...)))))
@@ -821,13 +827,18 @@
 	  (((type array elements member) rest ...)
 	   (continue #'type #'member #'elements #'(rest ...) 'array))))
 
+      (define (generate-size-of name)
+	(datum->syntax name
+	 (string->symbol
+	  (string-append "size-of-" (symbol->string (syntax->datum name))))))
       (syntax-case x ()
 	((_ name (type rest ...) ...)
 	 ;; with black magic ...
 	 (with-syntax (((accessors ...)
 			(generate-accessors #'name
 					    #'((type rest ...) ...)
-					    '())))
+					    '()))
+		       (size-of (generate-size-of #'name)))
 	   #'(begin
 	       (define name
 		 (let* ((types (type-list (type rest ...) ...))
@@ -835,6 +846,7 @@
 		   (make-c-struct 'name
 				  (list (list uint8_t 'array max (gensym)))
 				  -1)))
+	       (define size-of (size-of-c-struct name))
 	       accessors ...))))))
 
   (define c-function-integers
