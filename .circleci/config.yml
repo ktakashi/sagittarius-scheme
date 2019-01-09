@@ -7,11 +7,9 @@ jobs:
            name: Checkout repository
            command: |
              sudo apt-get update
-             sudo apt-get upgrade
+             sudo apt-get upgrade openssl
              sudo apt-get install mercurial
              hg clone https://bitbucket.org/ktakashi/sagittarius-scheme sagittarius-scheme
-             pwd
-             ls
        - run:
            name: Installing dependencies
            command: sudo apt-get install cmake libgc-dev zlib1g-dev libffi-dev
