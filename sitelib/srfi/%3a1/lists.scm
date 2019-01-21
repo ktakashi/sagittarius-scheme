@@ -1,6 +1,7 @@
 #!core
 #!nobacktrace
-;;; SRFI-1 list-processing library          -*- Scheme -*-
+#!nounbound
+;;; SRFI-1 list-processing library          -*- mode:scheme;coding:utf-8 -*-
 ;;; Reference implementation
 ;;;
 ;;; Copyright (c) 1998, 1999 by Olin Shivers. You may do as you please with
@@ -69,7 +70,7 @@
     assoc cons* filter find fold-right for-each map member partition remove)
 
   (import 
-   (only (rename (rnrs) (for-all every) (exists any))
+   (only (rnrs)
 	 define-syntax lambda syntax-case and identifier? syntax define
 	 syntax-rules ... cons let if not pair? car cdr unless integer? >=
 	 quote = procedure? do - < case-lambda number? <= + * eq? null? or
@@ -82,19 +83,15 @@
 	 caaaar caaadr caaar caadar caaddr
 	 caadr caar cadaar cadadr cadar caddar cadddr caddr cadr
 	 car cdaaar cdaadr cdaar cdadar cdaddr cdadr cdar cddaar
-	 cddadr cddar cdddar cddddr cdddr cddr cdr assv assq
-	 every any)
-   
+	 cddadr cddar cdddar cddddr cdddr cddr cdr assv assq)
    (only (rnrs mutable-pairs) set-cdr! set-car!)
    (only (sagittarius) receive circular-list? dotted-list? reverse! acons
-    append! list-copy)
+	 append! list-copy format list-transpose*)
    (only (sagittarius control) check-arg define-inline)
    (only (core) last-pair)
    (only (core base) split-at null-list? delete lset-intersection take drop fold
-    lset-difference assoc member find find-tail lset-union reduce
-    filter-map filter! delete!)
-   ;; (only (core inline) define-inline)
-    )
+	 lset-difference assoc member find find-tail lset-union reduce
+	 filter-map filter! delete!))
 
 ;;;
 ;;; In principle, the following R4RS list- and pair-processing procedures
@@ -1498,6 +1495,86 @@
 
 (define (break  pred lis) (span  (lambda (x) (not (pred x))) lis))
 (define (break! pred lis) (span! (lambda (x) (not (pred x))) lis))
+
+(define (every pred lst1 . lst2)
+  (define (every-n-quick pred lst)
+    (or (null? lst)
+        (let loop ((head (car lst)) (rest (cdr lst)))
+          (if (null? rest)
+              (apply pred head)
+              (and (apply pred head)
+                   (loop (car rest) (cdr rest)))))))
+  (define (every-1 pred lst)
+    (cond ((null? lst) #t)
+          ((pair? lst)
+           (let loop ((head (car lst)) (rest (cdr lst)))
+             (cond ((null? rest) (pred head))
+                   ((pair? rest)
+                    (and (pred head)
+                         (loop (car rest) (cdr rest))))
+                   (else
+                    (and (pred head)
+                         (assertion-violation 'every (format "traversal reached to non-pair element ~s" rest) (list pred lst)))))))
+          (else
+           (assertion-violation 'every (format "expected chain of pairs, but got ~a, as argument 2" lst) (list pred lst)))))
+
+  (cond ((null? lst2)
+         (every-1 pred lst1))
+        ((apply list-transpose* lst1 lst2)
+         => (lambda (lst) (every-n-quick pred lst)))
+        (else
+	 ;; improper list so let it fail immediately...
+	 (assertion-violation 'every
+			      "one of the given lists contains non-proper list"
+			      (cons* pred lst1 lst2)))))
+
+(define (any pred lst1 . lst2)
+  (define (any-1 pred lst)
+    (cond ((null? lst) #f)
+          ((pair? lst)
+           (let loop ((head (car lst)) (rest (cdr lst)))
+             (cond ((null? rest) (pred head))
+                   ((pred head))
+                   ((pair? rest) (loop (car rest) (cdr rest)))
+                   (else
+                    (assertion-violation 'any (format "traversal reached to non-pair element ~s" rest) (list pred lst))))))
+          (else
+           (assertion-violation 'any (format "expected chain of pairs, but got ~a, as argument 2" lst) (list pred lst)))))
+  (define (any-n-quick pred lst)
+    (and (pair? lst)
+         (let loop ((head (car lst)) (rest (cdr lst)))
+           (if (null? rest)
+               (apply pred head)
+               (or (apply pred head)
+                   (loop (car rest) (cdr rest)))))))
+  (define (any-n pred list-of-lists)
+    (let ((argc (length list-of-lists)))
+      (define (collect-cdr lst)
+        (let loop ((lst lst))
+          (cond ((null? lst) '())
+                ((null? (cdar lst)) (loop (cdr lst)))
+                (else (cons (cdar lst) (loop (cdr lst)))))))
+      (define (collect-car lst)
+        (let loop ((lst lst))
+          (cond ((null? lst) '())
+                ((pair? (car lst))
+                 (cons (caar lst) (loop (cdr lst))))
+                (else
+                 (assertion-violation 'any (format "traversal reached to non-pair element ~s" (car lst)) list-of-lists)))))
+
+      (let loop ((head (collect-car list-of-lists)) (rest (collect-cdr list-of-lists)))
+        (or (= (length head) argc)
+            (assertion-violation 'any "expected same length chains of pairs" list-of-lists))
+        (if (null? rest)
+            (apply pred head)
+            (or (apply pred head)
+                (loop (collect-car rest) (collect-cdr rest)))))))
+  (cond ((null? lst2)
+         (any-1 pred lst1))
+        ((apply list-transpose* lst1 lst2)
+         => (lambda (lst) (any-n-quick pred lst)))
+        (else
+         (any-n pred (cons lst1 lst2)))))
 
 ;;(define (any pred lis1 . lists)
 ;;  (check-arg procedure? pred any)

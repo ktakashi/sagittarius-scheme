@@ -2098,4 +2098,27 @@
 ;;
 (test-assert (equal? '(y . x) (xcons 'x 'y)))
 
+;;
+;; every
+;;
+(test-assert "every" (every symbol? '(a b c d e)))
+(test-assert "every" (not (every symbol? '(a b c d e 1))))
+(test-assert "every 2 lists" (every eq? '(a b c d e) '(a b c d e)))
+(test-assert "every 2 lists different length"
+	     (every eq? '(a b c d e) '(a b c d)))
+
+;;
+;; any
+;;
+(let ()
+  (define (number-of a) (and (number? a) a))
+  (define (number= a b)
+    (and (number-of a) (number-of b) (= a b) a))
+  (test-equal "any" 3 (any number-of '(a b 3 d e)))
+  (test-equal "any 2 lists" 3 (any number= '(a b 3 d e) '(a b 3 d e)))
+  (test-equal "any 2 lists different length "
+	      3 (any number= '(a b 3 d e) '(a b 3 d)))
+  (test-assert "any 2 lists different length no match"
+	       (not (any number= '(a b 3 d e) '(a b 4 d)))))
+
 (test-end)
