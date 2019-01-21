@@ -2349,6 +2349,13 @@
 (test '() (extract-last ())) ;; => nil
 (test 1 (extract-last 1)) ;; => 1 
 
+(let ()
+  (define-syntax foo
+    (syntax-rules ()
+      ((_ (a b ...) ...) '((a b ...) ...))))
+  (test '((1 2) (3 4)) (foo (1 2) (3 4))))
+       
+
 (test-end)
 
 (test-end)
