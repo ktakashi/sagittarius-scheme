@@ -1259,6 +1259,12 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
   return -1;			/* dummy */
 }
 
+SgObject Sg_TLSSocketPeerCertificate(SgTLSSocket *tlsSocket)
+{
+  /* TODO implement */
+  return SG_FALSE;
+}
+
 static void cleanup_keyset(void *data)
 {
   /* Delete key set*/

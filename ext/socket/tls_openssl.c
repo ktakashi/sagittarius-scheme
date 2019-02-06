@@ -107,6 +107,7 @@ typedef struct OpenSSLDataRec
   SSL_CTX *ctx;
   SSL     *ssl;
   int      rootServerSocketP;
+  SgObject peerCertificate;
 } OpenSSLData;
 
 static void tls_socket_finalizer(SgObject self, void *data)
@@ -126,6 +127,7 @@ static SgTLSSocket* make_tls_socket(SgSocket *socket, SSL_CTX *ctx,
   data->ctx = ctx;
   data->rootServerSocketP = rootServerSocketP;
   data->ssl = NULL;
+  data->peerCertificate = SG_FALSE;
   Sg_RegisterFinalizer(r, tls_socket_finalizer, NULL);
   return r;
 }
@@ -322,6 +324,7 @@ void Sg_TLSSocketClose(SgTLSSocket *tlsSocket)
     SSL_CTX_free(data->ctx);
     data->ctx = NULL;
   }
+  data->peerCertificate = SG_FALSE;
   Sg_SocketClose(tlsSocket->socket);
 }
 
@@ -370,6 +373,43 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *data, int size, int flags)
     size -= r;
   }
   return sent;
+}
+
+SgObject Sg_TLSSocketPeerCertificate(SgTLSSocket *tlsSocket)
+{
+  OpenSSLData *tlsData = (OpenSSLData *)tlsSocket->data;
+  SSL_SESSION *session;
+  X509 *x509;
+  int len;
+  unsigned char *p;
+  SgObject bv;
+  if (!tlsData->ssl) {
+      raise_socket_error(SG_INTERN("tls-socket-peer-certificate"),
+		       SG_MAKE_STRING("socket is closed"),
+		       Sg_MakeConditionSocketClosed(tlsSocket),
+		       tlsSocket);
+  }
+  ERR_clear_error();		/* clear error */
+  session = SSL_get_session(tlsData->ssl);
+  if (!session) {
+    raise_socket_error(SG_INTERN("tls-socket-peer-certificate"),
+		       SG_MAKE_STRING("no SSL session"),
+		       Sg_MakeConditionSocketClosed(tlsSocket),
+		       tlsSocket);
+  }
+  ERR_clear_error();		/* clear error */
+  /* we cache the certificate */
+  if (SG_FALSEP(tlsData->peerCertificate)) {
+    x509 = SSL_SESSION_get0_peer(session);
+    if (x509) {
+      len = i2d_X509(x509, NULL);
+      bv = Sg_MakeByteVector(len, 0);
+      p = SG_BVECTOR_ELEMENTS(bv);
+      i2d_X509(x509, &p);
+      tlsData->peerCertificate = bv;
+    }
+  }
+  return tlsData->peerCertificate;
 }
 
 static void cleanup_ssl_lib(void *handle)

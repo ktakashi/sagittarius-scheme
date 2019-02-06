@@ -98,6 +98,8 @@
       ;; the test server is a bit too naive to handle this...
       ;; (close-port text-port)
       ))
+  (test-assert "peer certificate"
+	       (x509-certificate? (tls-socket-peer-certificate client-socket)))
   (shutdown&close client-socket))
 
 (let ((client-socket (make-client-tls-socket "localhost" "10001")))

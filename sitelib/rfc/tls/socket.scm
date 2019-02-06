@@ -47,6 +47,7 @@
 	    tls-socket-info
 	    tls-socket-info-values
 	    call-with-tls-socket
+	    tls-socket-peer-certificate
 	    <tls-socket>
 	    ;; blocking
 	    tls-socket-nonblocking!
@@ -94,7 +95,8 @@
 	    (sagittarius)
 	    (rename (sagittarius tls-socket)
 		    (socket->tls-socket tls:socket->tls-socket)
-		    (tls-server-socket-handshake tls-server-handshake))
+		    (tls-server-socket-handshake tls-server-handshake)
+		    (tls-socket-peer-certificate %tls-socket-peer-certificate))
 	    (sagittarius socket)
 	    (prefix (only (sagittarius socket)
 			  socket-read-select
@@ -210,6 +212,10 @@
     (let ((opts (parse-extension hello-extensions)))
       (and (apply tls-socket-connect! socket opts)
 	   socket)))
+
+  (define (tls-socket-peer-certificate socket)
+    (let ((bv (%tls-socket-peer-certificate socket)))
+      (and bv (make-x509-certificate bv))))
   
   (define (call-with-tls-socket socket proc)
     (let-values ((args (proc socket)))

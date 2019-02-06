@@ -79,3 +79,6 @@
 (define-c-proc tls-socket-closed?  (o::<tls-socket>) ::<boolean>
   (result (not (Sg_TLSSocketOpenP o))))
 
+(define-c-proc tls-socket-peer-certificate  (o::<tls-socket>)
+  Sg_TLSSocketPeerCertificate)
+
