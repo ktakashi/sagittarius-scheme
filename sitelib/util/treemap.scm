@@ -2,7 +2,7 @@
 ;;;
 ;;; treemap.scm - treemap utilities
 ;;;  
-;;;   Copyright (c) 2010-2014  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2019  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -34,6 +34,8 @@
 	    treemap?
 	    treemap-ref
 	    treemap-set!
+	    treemap-adjoin!
+	    treemap-replace!
 	    treemap-delete!
 	    treemap-update!
 	    treemap-clear!
@@ -45,11 +47,13 @@
 	    treemap-values  treemap-values-list
 	    treemap-higher-entry treemap-lower-entry
 	    treemap-first-entry treemap-last-entry
+	    treemap-pop-first-entry! treemap-pop-last-entry!
 	    
 	    treemap-for-each treemap-map treemap-fold
 	    treemap-for-each-reverse treemap-map-reverse treemap-fold-reverse
 	    treemap-find/index treemap-reverse-find/index
 	    treemap-find treemap-reverse-find
+	    treemap-seek
 	    treemap->alist alist->treemap
 	    )
     (import (rnrs)
@@ -58,13 +62,43 @@
 	    (sagittarius)
 	    (sagittarius treemap)
 	    (sagittarius object))
-  
-  ;; for generic ref
-  (define-method ref ((tm <tree-map>) key)
-    (treemap-ref tm key #f))
-  (define-method ref ((tm <tree-map>) key fallback)
-    (treemap-ref tm key fallback))
-  (define-method (setter ref) ((tm <tree-map>) key value)
-    (treemap-set! tm key value))
+;; should we move this to lib_treemap.stub?
+(define %unique (list #t))
+(define (treemap-adjoin! tree k v)
+  (treemap-update! tree k (lambda (old) (if (eq? old %unique) v old)) %unique))
+;; TODO not efficient
+(define (treemap-replace! tree k v)
+  (when (treemap-contains? tree k) (treemap-set! tree k v)))
+
+;; from Gauche
+(define (treemap-seek tm pred succ fail)
+  (let ((itr (treemap-iterator tm)) (eof (cons #t #t)))
+    (let loop ()
+      (let-values (((k v) (itr eof)))
+	(cond ((eq? k eof) (fail))
+	      ((pred k v) => (lambda (r) (succ r k v)))
+	      (else (loop)))))))
+;; end
+
+(define (treemap-pop-first-entry! tm)
+  (let ((itr (treemap-iterator tm)) (eof (cons #t #t)))
+    (let-values (((k v) (itr eof)))
+      (and (not (eq? k eof))
+	   (treemap-delete! tm k)
+	   (cons k v)))))
+(define (treemap-pop-last-entry! tm :optional (fallback #f))
+  (let ((itr (treemap-reverse-iterator tm)) (eof (cons #t #t)))
+    (let-values (((k v) (itr eof)))
+      (and (not (eq? k eof))
+	   (treemap-delete! tm k)
+	   (cons k v)))))
+
+;; for generic ref
+(define-method ref ((tm <tree-map>) key)
+  (treemap-ref tm key #f))
+(define-method ref ((tm <tree-map>) key fallback)
+  (treemap-ref tm key fallback))
+(define-method (setter ref) ((tm <tree-map>) key value)
+  (treemap-set! tm key value))
 
 )

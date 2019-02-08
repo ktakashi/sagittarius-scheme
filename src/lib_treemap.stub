@@ -127,6 +127,11 @@
     (result (Sg_MakeSubr treemap-itr itr 1 0 
 			 (SG_MAKE_STRING "treemap-iterator")))))
 
+(define (wrong-type-argument-message expect got . nth)
+  (if (null? nth)
+      (format "expected ~a, but got ~a" expect got)
+      (format "expected ~a, but got ~a, as argument ~a" expect got (car nth))))
+
 (define (%treemap-fold who iter)
   (lambda (kons tm knil)
     (unless (procedure? kons)
