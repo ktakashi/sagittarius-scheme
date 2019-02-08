@@ -33,6 +33,11 @@
 	    hashtable-map
 	    hashtable-fold
 	    hashtable->alist
+	    make-hashtable/comparator
+	    hashtable-adjoin!
+	    hashtable-replace!
+	    hashtable-seek
+	    
 	    alist->hashtable
 	    hashtable-keys-list
 	    hashtable-values-list)
@@ -40,21 +45,34 @@
 	    (sagittarius control)
 	    (only (core base) hashtable-for-each hashtable-map
 		  hashtable->alist hashtable-fold)
-	    (only (sagittarius) hashtable-keys-list hashtable-values-list))
+	    (rename (only (sagittarius)
+			  hashtable-keys-list hashtable-values-list
+			  make-hashtable/comparator
+			  %hashtable-iter)
+		    (%hashtable-iter hashtable-iterator)))
 
-  (define (create-hashtable compare hasher)
-    (cond ((eq? compare eq?)
-	   (make-eq-hashtable))
-	  ((eq? compare eqv?)
-	   (make-eqv-hashtable))
-	  (else
-	   (make-hashtable hasher compare))))
+(define (create-hashtable compare hasher)
+  (cond ((eq? compare eq?) (make-eq-hashtable))
+	((eq? compare eqv?) (make-eqv-hashtable))
+	(else (make-hashtable hasher compare))))
 
-  (define (alist->hashtable alist
-			    :key (compare eq?)
-			    (hasher symbol-hash))
-    (let ((ht (create-hashtable compare hasher)))
-      (for-each (lambda (k/v)
-		  (hashtable-set! ht (car k/v) (cdr k/v))) alist)
-      ht))
+(define (alist->hashtable alist :key (compare eq?) (hasher symbol-hash))
+  (let ((ht (create-hashtable compare hasher)))
+    (for-each (lambda (k/v) (hashtable-set! ht (car k/v) (cdr k/v))) alist)
+    ht))
+
+(define %unique (list #t))
+(define (hashtable-adjoin! ht k v)
+  (hashtable-update! ht k (lambda (old) (if (eq? old %unique) v old)) %unique))
+(define (hashtable-replace! ht k v)
+  (when (hashtable-contains? ht k) (hashtable-set! ht k v)))
+
+(define (hashtable-seek ht pred succ fail)
+  (let ((itr (hashtable-iterator ht)) (eof (cons #t #t)))
+    (let loop ()
+      (let-values (((k v) (itr eof)))
+	(cond ((eq? k eof) (fail))
+	      ((pred k v) => (lambda (r) (succ r k v)))
+	      (else (loop)))))))  
+
 )
