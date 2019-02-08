@@ -34,7 +34,7 @@ stub()
 srfi()
 {
     echo Generating R7RS style SRFI libraries
-    $SASH ./script/r7rs-srfi-gen.scm -p ./ext -p ./sitelib/srfi $1
+    $SASH -L./sitelib ./script/r7rs-srfi-gen.scm -p ./ext -p ./sitelib/srfi $1
 }
 
 tzdata()
