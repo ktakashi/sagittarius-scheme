@@ -23,16 +23,21 @@
 		   list->rlist))))
     (134 (scheme ideque) #f)
     (135 (scheme text) #f)
-    (121 (scheme generator) #f)
+    ;; (121 (scheme generator) #f) ;; Tangerine supersedes this...
     (127 (scheme lseq) #f)
     (41  (scheme stream) #f)
     (111 (scheme box) #f)
+    (115 (scheme regex) #f)
     (117 (scheme list-queue) #f)
     (124 (scheme ephemeron) #f)
     (128 (scheme comparator) #f)
+    (141 (scheme division) #f)
+    (143 (scheme fixnum) #f)
+    (144 (scheme flonum) #f)
     (146 (scheme mapping) #f)
-    ;; TODO
-    ;; ((146 hash) (scheme mapping hash) #f)
+    ((146 hash) (scheme mapping hash) #f)
+    (151 (scheme bitwise) #f)
+    (158 (scheme generator) #f)
     ))
 
 (define (ensure-dir file)
@@ -43,7 +48,10 @@
   (define (library-name->file name)
     (string-append (apply build-path* (map symbol->string name)) ".scm"))
   (define (->import-spec num spec)
-    (define base-lib `(srfi ,num))
+    (define base-lib
+      (if (pair? num)
+	  (cons 'srfi num)
+	  `(srfi ,num)))
     (if spec
 	(do ((spec spec (cdr spec))
 	     (lib base-lib (cons* (caar spec) lib (cdar spec))))

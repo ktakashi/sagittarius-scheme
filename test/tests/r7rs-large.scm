@@ -9,6 +9,7 @@
 
 (test-begin "R7RS-large")
 
+;; Red
 (test-library '(scheme list) 'alist-cons)
 (test-library '(scheme vector) 'vector-empty?)
 (test-library '(scheme sort) 'list-sorted?)
@@ -26,5 +27,13 @@
 (test-library '(scheme list-queue) 'make-list-queue)
 (test-library '(scheme ephemeron) 'ephemeron?)
 (test-library '(scheme comparator) 'make-comparator)
+
+;; Tangerine
+(test-library '(scheme regex) 'regexp)
+(test-library '(scheme division) 'floor/)
+(test-library '(scheme fixnum) 'fx-width)
+(test-library '(scheme flonum) 'flonum)
+(test-library '(scheme mapping) 'mapping?)
+(test-library '(scheme mapping hash) 'hashmap?)
 
 (test-end)
