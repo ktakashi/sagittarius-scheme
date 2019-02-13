@@ -1261,8 +1261,22 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
 
 SgObject Sg_TLSSocketPeerCertificate(SgTLSSocket *tlsSocket)
 {
-  /* TODO implement */
-  return SG_FALSE;
+  WinTLSData *data = (WinTLSData *)tlsSocket->data;
+  SECURITY_STATUS ss;
+  PCCERT_CONTEXT cc = NULL;
+  SgObject cert = SG_FALSE;
+  int i;
+  
+  ss = QueryContextAttributes(&data->context, SECPKG_ATTR_REMOTE_CERT_CONTEXT, (PVOID)&cc);
+
+  /* #f to be returned */
+  if (ss != SEC_E_OK) return cert;
+  cert = Sg_MakeByteVector(cc->cbCertEncoded, 0);
+  for (i = 0; i < cc->cbCertEncoded; i++) {
+    SG_BVECTOR_ELEMENT(cert, i) = cc->pbCertEncoded[i];
+  }
+  CertFreeCertificateContext(cc);
+  return cert;
 }
 
 static void cleanup_keyset(void *data)
