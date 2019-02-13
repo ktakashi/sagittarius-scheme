@@ -2,6 +2,7 @@
 
 #!read-macro=sagittarius/regex
 (import (rnrs) (util file) (sagittarius regex) (pp)
+	(srfi :13)
 	(sagittarius control)
 	(getopt))
 
@@ -84,11 +85,13 @@
   '(#/%3a146\/hash/))
 
 (define (create p pattern full-path? clean?)
-  (define (file->srfi-libary path)
+  (define (file->srfi-libary opath)
     (define (convert s)
       (let ((v (regex-replace-all #/%3a/ s ":")))
 	(or (string->number v)
 	    (string->symbol v))))
+    (define path (string-map (lambda (c) (if (eqv? c #\\) #\/ c)) opath))
+    (print path)
     (cond ((#/srfi\/(.+)\.scm$/ path) =>
 	   (lambda (m)
 	     (let ((names (string-split (m 1) "/")))
