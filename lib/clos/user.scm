@@ -311,8 +311,8 @@
 						     #'true-name LEXICAL))))
 	      #`(begin
 		  (let* ((gf #,(if global?
-				   #'(%ensure-generic-function 'true-name 
-					(current-library))
+				   #'(%ensure-generic-function 'true-name
+					(id-library #'true-name))
 				   #'true-name))
 			 (m (make <method>
 			      :specializers  (list specializers ...)

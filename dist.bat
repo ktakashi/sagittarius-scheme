@@ -56,7 +56,7 @@ goto:eof
 rem srfi
 :srfi
 echo Generating R7RS style SRFI libraries
-call :invoke ./script/r7rs-srfi-gen.scm -p ./ext -p ./sitelib/srfi %1
+call :invoke -L./sitelib ./script/r7rs-srfi-gen.scm -p ./ext -p ./sitelib/srfi %1
 goto:eof
 
 rem tzdata
