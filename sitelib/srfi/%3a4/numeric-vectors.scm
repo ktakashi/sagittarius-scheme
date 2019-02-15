@@ -152,30 +152,30 @@
 		     (/ (bytevector-length (slot-ref bv 'value)) offset))
 		   (define (ref bv i)
 		     (unless (pred bv)
-		       (assertion-violation 'len
+		       (assertion-violation 'ref
 					    (format "~a required but got ~s"
 						    class bv)))
 		     (getter (slot-ref bv 'value) (* i offset)))
 		   (define (set bv i o)
 		     (unless (pred bv)
-		       (assertion-violation 'len
+		       (assertion-violation 'set
 					    (format "~a required but got ~s"
 						    class bv)))
 		     (setter (slot-ref bv 'value) (* i offset) o))
 		   (define (->list bv)
 		     (unless (pred bv)
-		       (assertion-violation 'len
+		       (assertion-violation '->list
 					    (format "~a required but got ~s"
 						    class bv)))
-		     (let ((value (slot-ref bv 'value)))
-		       (do ((limit (bytevector-length value))
-			    (i 0 (+ i offset))
-			    (r '() (cons (ref value i) r)))
-			   ((= i limit) (reverse! r)))))
+		     (do ((limit (len bv))
+			  (i 0 (+ i 1))
+			  (r '() (cons (ref bv i) r)))
+			 ((= i limit) (reverse! r))))
 		   (define (list-> lst)
-		     (let ((r (make-bytevector (* (length lst) offset))))
+		     (define len (length lst))
+		     (let ((r (ctr len)))
 		       (do ((i 0 (+ i 1)) (lst lst (cdr lst)))
-			   ((null? lst) (make class :value r))
+			   ((null? lst) r)
 			 (set r i (car lst))))))))))))
 
   (define-tagged-vector "s8" 1 bytevector-s8-ref bytevector-s8-set!)
