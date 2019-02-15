@@ -3,6 +3,7 @@
 	(sagittarius object) 
 	(sagittarius socket) 
 	(rfc tls)
+	(rfc base64)
 	(rfc x.509) 
 	(crypto)
 	(srfi :18)
@@ -18,22 +19,34 @@
 
 (define keypair (generate-key-pair RSA :size 1024))
 (define 1year (make-time time-duration 0 (* 1 60 60 24 365)))
+;; NB timezone must be set (probably with Z), so specifying zone offset 0.
 (define cert (make-x509-basic-certificate keypair 1
-                      (make-x509-issuer '((C . "NL")))
-                      (make-validity (current-date)
-				     (time-utc->date
-				      (add-duration! (current-time) 1year)))
-                      (make-x509-issuer '((C . "NL")))))
+              (make-x509-issuer '((C . "NL")))
+              (make-validity (current-date 0)
+			     (time-utc->date
+			      (add-duration! (current-time) 1year) 0))
+              (make-x509-issuer '((C . "NL")))))
+
+(define client-keypair (generate-key-pair RSA :size 1024))
+(define client-cert (make-x509-basic-certificate client-keypair 2
+		     (make-x509-issuer '((C . "NL")))
+		     (make-validity (current-date 0)
+				    (time-utc->date
+				     (add-duration! (current-time) 1year) 0))
+		     (make-x509-issuer '((C . "NL")))))
 
 (define server-socket (make-server-tls-socket "10001" (list cert)
-					      :private-key (keypair-private keypair)))
+					      :private-key (keypair-private keypair)
+					      :authorities (list client-cert)
+					      :client-certificate-required? #f
+					      :certificate-verifier #t))
 
 (define (server-run)
   (define end? #f)
   (let loop ()
-    (guard (e (else (report-error e)))
+    (guard (e (else (report-error e) (loop)))
     (let ((addr (tls-socket-accept server-socket)))
-      (guard (e (else (unless end? (loop))))
+      (guard (e (else (report-error e) (unless end? (loop))))
 	(call-with-tls-socket addr
 	  (lambda (sock)
 	    (let ((p (transcoded-port (tls-socket-port sock #f) 
@@ -44,6 +57,16 @@
 		    (cond ((or (not (string? r)) (string=? r "test-end"))
 			   (set! end? #t))
 			  ((or (not (string? r)) (string=? r "end")) (loop))
+			  ((or (not (string? r)) (string=? r "certificate"))
+			   (let* ((cert (tls-socket-peer-certificate sock))
+				  (b64 (if cert
+					   (utf8->string
+					    (base64-encode (x509-certificate->bytevector cert)))
+					    "")))
+			     (put-string p (number->string (string-length b64)))
+			     (put-string p "\r\n")
+			     (put-string p b64)
+			     (lp2 (get-line p))))
 			  (else
 			   (let ((res (string->utf8 (string-append r "\r\n"))))
 			     (when (string=? r "wait")
@@ -102,6 +125,32 @@
 	       (x509-certificate? (tls-socket-peer-certificate client-socket)))
   (shutdown&close client-socket))
 
+;; send certificate
+(let ((client-socket (make-client-tls-socket "localhost" "10001"
+					     :private-key (keypair-private client-keypair)
+					     :certificates (list client-cert))))
+  (tls-socket-send client-socket (string->utf8 "certificate\r\n"))
+  (let ((in/out (transcoded-port (tls-socket-port client-socket)
+				 (native-transcoder))))
+    (let ((n (string->number (get-line in/out))))
+      (unless (zero? n)
+	(let ((cert (get-string-n in/out n)))
+	  (test-assert (x509-certificate?
+			(make-x509-certificate
+			 (base64-decode-string cert :transcoder #f)))))))
+    
+    (put-string in/out "end\r\n"))
+  (shutdown&close client-socket))
+
+;; no certificate
+(let ((client-socket (make-client-tls-socket "localhost" "10001")))
+  (tls-socket-send client-socket (string->utf8 "certificate\r\n"))
+  (let ((in/out (transcoded-port (tls-socket-port client-socket)
+				 (native-transcoder))))
+      (test-equal 0 (string->number (get-line in/out)))
+      (put-string in/out "end\r\n"))
+  (shutdown&close client-socket))
+
 (let ((client-socket (make-client-tls-socket "localhost" "10001")))
   (tls-socket-nonblocking! client-socket)
   (test-equal "raw nonblocking socket-send"
@@ -120,4 +169,5 @@
 (thread-join! server-thread)
 ;;(test-assert "TLS server finish" (thread-join! server-thread))
 (shutdown&close server-socket)
+
 (test-end)

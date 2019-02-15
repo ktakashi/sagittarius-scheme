@@ -45,7 +45,8 @@
 	    open-base64-decode-input-port
 	    open-base64url-decode-output-port
 	    open-base64url-decode-input-port)
-    (import (rnrs))
+    (import (rnrs)
+	    (sagittarius))
 
   (define *decode-table*
     ;;    !   "   #   $   %   &   '   (   )   *   +   ,   -   .   /

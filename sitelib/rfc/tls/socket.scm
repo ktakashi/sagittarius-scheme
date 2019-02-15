@@ -115,13 +115,17 @@
 
   (define (make-server-tls-socket port certificates :key
 				  (private-key #f)
-				  ;; not used yet 
 				  (authorities '()) ;; trust store i guess.
+				  (client-certificate-required? #f)
+				  (certificate-verifier #f)
 				  :allow-other-keys opt)
     (let ((s (apply make-server-socket port opt)))
       (socket->tls-socket s :certificates certificates
 			  :private-key private-key
-			  :client-socket #f)))
+			  :client-socket #f
+			  :authorities authorities
+			  :peer-certificate-required? client-certificate-required?
+			  :certificate-verifier certificate-verifier)))
   (define (make-client-tls-socket server service :key
 				  (handshake #t)
 				  (certificates '())
@@ -153,6 +157,9 @@
 				   (hello-extensions '())
 				   (certificates '())
 				   (private-key #f)
+				   (authorities '())
+				   (peer-certificate-required? #t)
+				   (certificate-verifier #f)
 				   :allow-other-keys opt)
     (define (certificates->bytevector certificates)
       (map x509-certificate->bytevector certificates))
@@ -179,9 +186,15 @@
       (let ((r (tls:socket->tls-socket socket
 		 :certificates (certificates->bytevector certs)
 		 :private-key (and pkey (export-private-key pkey)))))
+	(tls-socket-authorities-set! r
+	 (map x509-certificate->bytevector authorities))
+	(tls-socket-peer-certificate-verifier-set! r
+	 peer-certificate-required? certificate-verifier)
 	(if (and client-socket handshake)
 	    (tls-client-handshake r :hello-extensions hello-extensions)
 	    r))))
+
+
 
   (define (tls-client-handshake socket :key (hello-extensions '()))
     (define (parse-extension hello-extensions)

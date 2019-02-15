@@ -124,6 +124,9 @@ static SgTLSSocket* make_tls_socket(SgSocket *socket, SSL_CTX *ctx,
   
   r->socket = socket;
   r->data = data;
+  r->peerCertificateRequiredP = FALSE;
+  r->peerCertificateVerifier = SG_UNDEF;
+  r->authorities = SG_NIL;
   data->ctx = ctx;
   data->rootServerSocketP = rootServerSocketP;
   data->ssl = NULL;
@@ -266,7 +269,19 @@ static void handle_accept_error(SgTLSSocket *tlsSocket, int r)
 		     Sg_Utf8sToUtf32s(msg, strlen(msg)),
 		     Sg_MakeConditionSocket(tlsSocket),
 		     Sg_MakeIntegerU(err));
-    
+}
+static void handle_verify_error(SgTLSSocket *tlsSocket, long n)
+{
+  OpenSSLData *newData = (OpenSSLData *)tlsSocket->data;
+  const char *msg = X509_verify_cert_error_string(n);
+  if (!msg) msg = "Certificate verification error";
+
+  SSL_free(newData->ssl);
+  newData->ssl = NULL;
+  raise_socket_error(SG_INTERN("tls-socket-accept"),
+		     Sg_Utf8sToUtf32s(msg, strlen(msg)),
+		     Sg_MakeConditionSocket(tlsSocket),
+		     Sg_MakeIntegerU(n));
 }
 
 SgObject Sg_TLSSocketAccept(SgTLSSocket *tlsSocket, int handshake)
@@ -298,6 +313,9 @@ SgObject Sg_TLSServerSocketHandshake(SgTLSSocket *tlsSocket)
 {
   OpenSSLData *data = (OpenSSLData *)tlsSocket->data;
   int r = SSL_accept(data->ssl);
+  long cert = SSL_get_verify_result(data->ssl);
+
+  if (cert != X509_V_OK) handle_verify_error(tlsSocket, cert);
   if (r <= 0) handle_accept_error(tlsSocket, r);
   return tlsSocket;
 }
@@ -375,14 +393,26 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *data, int size, int flags)
   return sent;
 }
 
+static SgObject x509_to_bytevector(X509 *x509)
+{
+  int len;
+  unsigned char *p;
+  SgObject bv;
+  
+  len = i2d_X509(x509, NULL);
+  bv = Sg_MakeByteVector(len, 0);
+  p = SG_BVECTOR_ELEMENTS(bv);
+  i2d_X509(x509, &p);
+  
+  return bv;
+}
+
 SgObject Sg_TLSSocketPeerCertificate(SgTLSSocket *tlsSocket)
 {
   OpenSSLData *tlsData = (OpenSSLData *)tlsSocket->data;
   SSL_SESSION *session;
   X509 *x509;
-  int len;
-  unsigned char *p;
-  SgObject bv;
+
   if (!tlsData->ssl) {
       raise_socket_error(SG_INTERN("tls-socket-peer-certificate"),
 		       SG_MAKE_STRING("socket is closed"),
@@ -402,14 +432,85 @@ SgObject Sg_TLSSocketPeerCertificate(SgTLSSocket *tlsSocket)
   if (SG_FALSEP(tlsData->peerCertificate)) {
     x509 = SSL_SESSION_get0_peer(session);
     if (x509) {
-      len = i2d_X509(x509, NULL);
-      bv = Sg_MakeByteVector(len, 0);
-      p = SG_BVECTOR_ELEMENTS(bv);
-      i2d_X509(x509, &p);
-      tlsData->peerCertificate = bv;
+      tlsData->peerCertificate = x509_to_bytevector(x509);
     }
   }
   return tlsData->peerCertificate;
+}
+
+/* will be initialised during the initialisation */
+static int callback_data_index;
+
+static int verify_callback(int previously_ok, X509_STORE_CTX *x509_store_ctx)
+{
+  SgTLSSocket *socket;
+  SgObject verifier, authorities, bv;
+  X509    *cert;
+  int      depth;
+  SSL     *ssl;
+  SSL_CTX *ctx;
+  
+  cert = X509_STORE_CTX_get_current_cert(x509_store_ctx);
+  depth = X509_STORE_CTX_get_error_depth(x509_store_ctx);
+  ssl = X509_STORE_CTX_get_ex_data(x509_store_ctx,
+				   SSL_get_ex_data_X509_STORE_CTX_idx());
+  /* our data is stored in the SSL_CTX */
+  ctx = SSL_get_SSL_CTX(ssl);
+  socket = (SgTLSSocket *)SSL_CTX_get_ex_data(ctx, callback_data_index);
+  verifier = SG_TLS_SOCKET_PEER_CERTIFICATE_VERIFIER(socket);
+  authorities = SG_TLS_SOCKET_AUTHORITIES(socket);
+
+  bv = x509_to_bytevector(cert);
+  if (SG_PROCEDUREP(verifier)) {
+    volatile int err = 0;
+    SG_UNWIND_PROTECT {
+      SgObject result = Sg_Apply2(verifier, SG_MAKE_INT(depth), bv);
+      if (SG_FALSEP(result)) {
+	/* TODO which error code? */
+	err = 1; 
+      }
+    } SG_WHEN_ERROR {
+      /* TODO which error code? */
+      err = 1;
+    } SG_END_PROTECT;
+    if (err) {
+      X509_STORE_CTX_set_error(x509_store_ctx, err);
+      return 0;
+    }
+    return previously_ok;
+  } else {
+    /* check if it's trusted or not */
+    SgObject cp;
+    SG_FOR_EACH(cp, authorities) {
+      if (Sg_ByteVectorCmp(bv, SG_CAR(cp)) == 0) {
+	int err = X509_STORE_CTX_get_error(x509_store_ctx);
+	if (!previously_ok && err == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT) {
+	  /* accept self signed it's trusted */
+	  X509_STORE_CTX_set_error(x509_store_ctx, X509_V_OK);
+	  previously_ok = 1;
+	}
+	return previously_ok;
+      }
+    }
+    return X509_verify_cert(x509_store_ctx);
+  }
+}
+
+void Sg_TLSSocketPeerCertificateVerifier(SgTLSSocket *tlsSocket)
+{
+  OpenSSLData *tlsData = (OpenSSLData *)tlsSocket->data;
+  int mode = SSL_VERIFY_NONE;
+  
+  if (!SG_FALSEP(tlsSocket->peerCertificateVerifier)) {
+    mode = SSL_VERIFY_PEER;
+    if (tlsSocket->peerCertificateRequiredP) {
+      mode |= SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
+    }
+  }
+  /* we do only for context level */
+  SSL_CTX_set_verify(tlsData->ctx, mode, verify_callback);
+  /* we set socket as data for convenience */
+  SSL_CTX_set_ex_data(tlsData->ctx, callback_data_index, tlsSocket);
 }
 
 static void cleanup_ssl_lib(void *handle)
@@ -445,4 +546,6 @@ void Sg_InitTLSImplementation()
   } else {
     Sg_Warn(UC("libssl not found... why?"));
   }
+  callback_data_index =
+    SSL_get_ex_new_index(0, "sagittarius index", NULL, NULL, NULL);
 }

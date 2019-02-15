@@ -1279,6 +1279,11 @@ SgObject Sg_TLSSocketPeerCertificate(SgTLSSocket *tlsSocket)
   return cert;
 }
 
+void Sg_TLSSocketPeerCertificateVerifier(SgTLSSocket *tlsSocket)
+{
+  /* TBD */
+}
+
 static void cleanup_keyset(void *data)
 {
   /* Delete key set*/

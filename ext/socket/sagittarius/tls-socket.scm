@@ -37,6 +37,11 @@
 	    tls-socket-shutdown tls-socket-close tls-socket-closed?
 	    tls-server-socket-handshake
 	    tls-socket-peer-certificate
+	    tls-socket-peer-certificate-verifier
+	    tls-socket-peer-certificate-verifier-set!
+	    tls-socket-peer-certificate-required?
+	    tls-socket-authorities
+	    tls-socket-authorities-set!
 	    <tls-socket>)
     (import (only (sagittarius socket)) ;; to load the dynamic module. sucks...
 	    (sagittarius dynamic-module))

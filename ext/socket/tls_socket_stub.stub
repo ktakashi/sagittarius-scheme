@@ -82,3 +82,32 @@
 (define-c-proc tls-socket-peer-certificate  (o::<tls-socket>)
   Sg_TLSSocketPeerCertificate)
 
+(define-c-proc tls-socket-authorities-set! (o::<tls-socket> certs) ::<void>
+  (unless (or (SG_PAIRP certs) (SG_NULLP certs))
+    (Sg_AssertionViolation 'tls-socket-authorities-set!
+      (SG_MAKE_STRING "A list of bytevector required")
+      certs))
+  (dolist (c certs)
+    (unless (SG_BVECTORP c)
+      (Sg_AssertionViolation 'tls-socket-authorities-set!
+        (SG_MAKE_STRING "A list of bytevector required")
+	certs)))
+  (set! (SG_TLS_SOCKET_AUTHORITIES o) certs))
+(define-c-proc tls-socket-authorities (o::<tls-socket>)
+  SG_TLS_SOCKET_AUTHORITIES)
+
+(define-c-proc tls-socket-peer-certificate-verifier-set!
+  (o::<tls-socket> required?::<boolean> proc) ::<void>
+  (unless (or (SG_BOOLP proc) (SG_PROCEDUREP proc))
+    (Sg_AssertionViolation 'tls-socket-peer-certificate-verifier-set!
+      (SG_MAKE_STRING "procedure or boolean is required for verifier")
+      proc))
+  (set! (SG_TLS_SOCKET_PEER_CERTIFICATE_VERIFIER o) proc)
+  (set! (SG_TLS_SOCKET_PEER_CERTIFICATE_REQUIREDP o) required?)
+  (Sg_TLSSocketPeerCertificateVerifier o))
+(define-c-proc tls-socket-peer-certificate-verifier (o::<tls-socket>)
+  SG_TLS_SOCKET_PEER_CERTIFICATE_VERIFIER)
+
+(define-c-proc tls-socket-peer-certificate-required?
+  (o::<tls-socket>) ::<boolean>
+  SG_TLS_SOCKET_PEER_CERTIFICATE_REQUIREDP)

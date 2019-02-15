@@ -36,12 +36,22 @@ typedef struct SgTLSSocketRec
   SG_HEADER;
   SgSocket *socket;
   void *data;
+  SgObject authorities;
+  int peerCertificateRequiredP;
+  SgObject peerCertificateVerifier;
 } SgTLSSocket;
 
 SG_CLASS_DECL(Sg_TLSSocketClass);
 #define SG_CLASS_TLS_SOCKET  (&Sg_TLSSocketClass)
 #define SG_TLS_SOCKET(obj)   ((SgTLSSocket *)obj)
 #define SG_TLS_SOCKET_P(obj) SG_XTYPEP(obj, SG_CLASS_TLS_SOCKET)
+
+#define SG_TLS_SOCKET_PEER_CERTIFICATE_REQUIREDP(obj) \
+  SG_TLS_SOCKET(obj)->peerCertificateRequiredP
+#define SG_TLS_SOCKET_PEER_CERTIFICATE_VERIFIER(obj) \
+  SG_TLS_SOCKET(obj)->peerCertificateVerifier
+#define SG_TLS_SOCKET_AUTHORITIES(obj) \
+  SG_TLS_SOCKET(obj)->authorities
 
 SG_CDECL_BEGIN
 
@@ -65,6 +75,7 @@ SG_EXTERN int       Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *data,
 SG_EXTERN void      Sg_InitTLSImplementation();
 
 SG_EXTERN SgObject  Sg_TLSSocketPeerCertificate(SgTLSSocket *tlsSocket);
+SG_EXTERN void      Sg_TLSSocketPeerCertificateVerifier(SgTLSSocket *tlsSocket);
 
 SG_CDECL_END
 
