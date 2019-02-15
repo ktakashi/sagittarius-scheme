@@ -372,7 +372,9 @@ static void client_init(SgTLSSocket *r)
 
   credData.dwVersion = SCHANNEL_CRED_VERSION;
   credData.dwFlags = SCH_CRED_NO_DEFAULT_CREDS |
-    SCH_CRED_NO_SYSTEM_MAPPER |
+#ifdef SCH_USE_STRONG_CRYPTO
+    SCH_USE_STRONG_CRYPTO |
+#endif
     SCH_CRED_REVOCATION_CHECK_CHAIN;
   credData.cCreds = context->certificateCount;
   credData.paCred = context->certificates;
@@ -583,6 +585,7 @@ static DWORD add_private_key(WinTLSData *data,
   return E_NOTIMPL;
 }
 
+#if 0
 static HCERTSTORE create_cert_store(SgTLSSocket *s)
 {
 #if 1
@@ -603,6 +606,7 @@ static HCERTSTORE create_cert_store(SgTLSSocket *s)
 		       NULL, 0, p);
 #endif
 }
+#endif
 
 static int server_init(SgTLSSocket *s)
 {
@@ -813,18 +817,21 @@ static int client_handshake1(SgTLSSocket *tlsSocket, wchar_t *dn,
 	ss != SEC_E_INCOMPLETE_MESSAGE &&
 	ss != SEC_I_INCOMPLETE_CREDENTIALS)
       break;
-    READ_RECORD(socket, rval, content);
-    if (rval < 0) return FALSE;	/* non blocking */
     
-    INIT_SEC_BUFFER(&bufso[0], SECBUFFER_TOKEN, NULL, 0);
-    /* INIT_SEC_BUFFER(&bufso[1], SECBUFFER_ALERT, NULL, 0); */
-    INIT_SEC_BUFFER(&bufso[1], SECBUFFER_EMPTY, NULL, 0);
-    INIT_SEC_BUFFER_DESC(&sbout, bufso, array_sizeof(bufso));
+    if (ss != SEC_I_INCOMPLETE_CREDENTIALS) {
+      READ_RECORD(socket, rval, content);
+      if (rval < 0) return FALSE;	/* non blocking */
+    
+      INIT_SEC_BUFFER(&bufso[0], SECBUFFER_TOKEN, NULL, 0);
+      /* INIT_SEC_BUFFER(&bufso[1], SECBUFFER_ALERT, NULL, 0); */
+      INIT_SEC_BUFFER(&bufso[1], SECBUFFER_EMPTY, NULL, 0);
+      INIT_SEC_BUFFER_DESC(&sbout, bufso, array_sizeof(bufso));
 
-    INIT_SEC_BUFFER(&bufsi[0], SECBUFFER_TOKEN, content, rval);
-    INIT_SEC_BUFFER(&bufsi[1], SECBUFFER_EMPTY, NULL, 0);
-    INIT_SEC_BUFFER_DESC(&sbin, bufsi, 2);
-
+      INIT_SEC_BUFFER(&bufsi[0], SECBUFFER_TOKEN, content, rval);
+      INIT_SEC_BUFFER(&bufsi[1], SECBUFFER_EMPTY, NULL, 0);
+      INIT_SEC_BUFFER_DESC(&sbin, bufsi, 2);
+    }
+    
     ss = InitializeSecurityContextW(&data->credential,
 				    &data->context,
 				    dn,
@@ -838,25 +845,27 @@ static int client_handshake1(SgTLSSocket *tlsSocket, wchar_t *dn,
 				    &sspiOutFlags,
 				    NULL);
     /* sorry we can't handle this */
-    /* if (ss == SEC_E_INCOMPLETE_MESSAGE) continue; */
     fmt_dump("[client] ss = %lx\n", ss);
+    if (ss == SEC_E_INCOMPLETE_MESSAGE) continue;
     if (FAILED(ss)) {
       raise_socket_error(SG_INTERN("tls-socket-connect!"),
 			 Sg_GetLastErrorMessageWithErrorCode(ss),
 			 Sg_MakeConditionSocket(tlsSocket),
 			 Sg_MakeIntegerU(ss));
     }
-    
-    for (i = 0; i < array_sizeof(bufso); i++) {
-      if (bufso[i].BufferType == SECBUFFER_TOKEN) {
-	send_sec_buffer(SG_INTERN("tls-socket-connect!"), tlsSocket, &bufso[i]);
-      } else if (bufso[i].pvBuffer != NULL) {
-	FreeContextBuffer(bufso[i].pvBuffer);
+
+    if (ss == SEC_E_OK || ss == SEC_I_CONTINUE_NEEDED) {
+      for (i = 0; i < array_sizeof(bufso); i++) {
+	if (bufso[i].BufferType == SECBUFFER_TOKEN) {
+	  send_sec_buffer(SG_INTERN("tls-socket-connect!"), tlsSocket, &bufso[i]);
+	} else if (bufso[i].pvBuffer != NULL) {
+	  FreeContextBuffer(bufso[i].pvBuffer);
+	}
       }
     }
     DUMP_CTX_HANDLE(&data->context);
     
-    if (ss == S_OK) return TRUE;;
+    if (ss == S_OK) return TRUE;
   }
   return FALSE;
 }
@@ -866,11 +875,12 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
 			SgObject alpn)
 {
   DWORD sspiFlags = ISC_REQ_MANUAL_CRED_VALIDATION |
-    ISC_REQ_SEQUENCE_DETECT   |
-    ISC_REQ_REPLAY_DETECT     |
-    ISC_REQ_CONFIDENTIALITY   |
-    ISC_RET_EXTENDED_ERROR    |
-    ISC_REQ_ALLOCATE_MEMORY   |
+    ISC_REQ_SEQUENCE_DETECT    |
+    ISC_REQ_REPLAY_DETECT      |
+    ISC_REQ_CONFIDENTIALITY    |
+    ISC_RET_EXTENDED_ERROR     |
+    ISC_REQ_ALLOCATE_MEMORY    |
+    /* ISC_REQ_USE_SUPPLIED_CREDS | */
     ISC_REQ_STREAM;
   wchar_t *dn = client_handshake0(tlsSocket, domainName, alpn, sspiFlags);
   return client_handshake1(tlsSocket, dn, sspiFlags);
@@ -886,9 +896,9 @@ static SgTLSSocket * to_server_socket(SgTLSSocket *parent, SgSocket *sock)
   SECURITY_STATUS ss;
 
   data->closed = FALSE;
-  /* s->peerCertificateVerifier = parent->peerCertificateVerifier; */
-  /* s->peerCertificateRequiredP = parent->peerCertificateRequiredP; */
-  /* s->authorities = parent->authorities; */
+  s->peerCertificateVerifier = parent->peerCertificateVerifier;
+  s->peerCertificateRequiredP = parent->peerCertificateRequiredP;
+  s->authorities = parent->authorities;
 
   credData.dwVersion = SCHANNEL_CRED_VERSION;
   credData.dwFlags = SCH_CRED_NO_SYSTEM_MAPPER |
@@ -1282,30 +1292,31 @@ SgObject Sg_TLSSocketPeerCertificate(SgTLSSocket *tlsSocket)
   return cert;
 }
 
-static void load_authorities(SgTLSSocket *s)
-{
-  WinTLSData *data = (WinTLSData *)s->data;
-  WinTLSContext *context = data->tlsContext;
-  int len = Sg_Length(s->authorities);
+/* Maybe later? */
+/* static void load_authorities(SgTLSSocket *s) */
+/* { */
+/*   WinTLSData *data = (WinTLSData *)s->data; */
+/*   WinTLSContext *context = data->tlsContext; */
+/*   int len = Sg_Length(s->authorities); */
 
-  if (len > 0) {
-    int i;
-    SgObject cp;
-    context->certStore = create_cert_store(s);
-    if (!context->certStore) goto done;
-    SG_FOR_EACH(cp, s->authorities) {
-      /* we don't check the result here */
-      CertAddEncodedCertificateToStore(context->certStore,
-				       X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
-				       SG_BVECTOR_ELEMENTS(SG_CAR(cp)),
-				       SG_BVECTOR_SIZE(SG_CAR(cp)),
-				       CERT_STORE_ADD_REPLACE_EXISTING,
-				       NULL);
-    }
-  }
- done:  
-  return;
-}
+/*   if (len > 0) { */
+/*     int i; */
+/*     SgObject cp; */
+/*     context->certStore = create_cert_store(s); */
+/*     if (!context->certStore) goto done; */
+/*     SG_FOR_EACH(cp, s->authorities) { */
+/*       /\* we don't check the result here *\/ */
+/*       CertAddEncodedCertificateToStore(context->certStore, */
+/* 				       X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, */
+/* 				       SG_BVECTOR_ELEMENTS(SG_CAR(cp)), */
+/* 				       SG_BVECTOR_SIZE(SG_CAR(cp)), */
+/* 				       CERT_STORE_ADD_REPLACE_EXISTING, */
+/* 				       NULL); */
+/*     } */
+/*   } */
+/*  done:   */
+/*   return; */
+/* } */
 
 void Sg_TLSSocketPeerCertificateVerifier(SgTLSSocket *tlsSocket)
 {
