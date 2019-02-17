@@ -704,6 +704,39 @@ static void send_sec_buffer(SgObject who, SgTLSSocket *tlsSocket,
     (desc)->pBuffers = (bufs);			\
   } while (0)
 
+static int verify_certificate(SgTLSSocket *tlsSocket, SgObject who)
+{
+  WinTLSData *data = (WinTLSData *)tlsSocket->data;
+  SECURITY_STATUS ss;
+  PCCERT_CONTEXT cc = NULL;
+
+  ss = QueryContextAttributes(&data->context, SECPKG_ATTR_REMOTE_CERT_CONTEXT,
+			      (PVOID)&cc);
+  if (tlsSocket->peerCertificateRequiredP) {
+    if (cc == NULL) {
+      raise_socket_error(who,
+			 SG_MAKE_STRING("peer certificate is missing"),
+			 Sg_MakeConditionSocket(tlsSocket),
+			 SG_NIL);
+    }
+  }
+  if (cc != NULL) {
+    SgObject verifier = tlsSocket->peerCertificateVerifier;
+    /* TODO get certificate chain here */
+    if (SG_PROCEDUREP(verifier)) {
+      SG_UNWIND_PROTECT {
+      } SG_WHEN_ERROR {
+      } SG_END_PROTECT;
+    } else if (!SG_FALSEP(verifier)) {
+      /* TODO call certificate validation */
+    }
+
+    CertFreeCertificateContext(cc);
+  }
+  /* default */
+  return TRUE;
+}
+
 static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
 				   SgObject sni,
 				   SgObject alpn,
@@ -865,7 +898,10 @@ static int client_handshake1(SgTLSSocket *tlsSocket, wchar_t *dn,
     }
     DUMP_CTX_HANDLE(&data->context);
     
-    if (ss == S_OK) return TRUE;
+    if (ss == S_OK) {
+      return verify_certificate(tlsSocket,
+				SG_INTERN("tls-socket-client-handshake"));
+    }
   }
   return FALSE;
 }
@@ -991,18 +1027,7 @@ static int server_handshake(SgTLSSocket *tlsSocket)
 	}
       }
     }
-    if (ss == SEC_E_OK) {
-      if (tlsSocket->peerCertificateRequiredP) {
-	SgObject cert = Sg_TLSSocketPeerCertificate(tlsSocket);
-	if (SG_FALSEP(cert)) {
-	  raise_socket_error(SG_INTERN("tls-socket-server-handshake"),
-			     SG_MAKE_STRING("client certificate is missing"),
-			     Sg_MakeConditionSocket(tlsSocket),
-			     SG_NIL);
-	}
-      }
-      break;
-    }
+    if (ss == SEC_E_OK) break;
     if (ss == SEC_I_CONTINUE_NEEDED
 	|| ss == SEC_I_INCOMPLETE_CREDENTIALS
 	|| ss == SEC_E_INCOMPLETE_MESSAGE) continue;
@@ -1015,7 +1040,8 @@ static int server_handshake(SgTLSSocket *tlsSocket)
     }    
   }
 
-  return TRUE;
+  return verify_certificate(tlsSocket,
+			    SG_INTERN("tls-socket-server-handshake"));
 }
 
 
