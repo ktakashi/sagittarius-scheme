@@ -77,6 +77,9 @@ SG_EXTERN void      Sg_InitTLSImplementation();
 SG_EXTERN SgObject  Sg_TLSSocketPeerCertificate(SgTLSSocket *tlsSocket);
 SG_EXTERN void      Sg_TLSSocketPeerCertificateVerifier(SgTLSSocket *tlsSocket);
 
+/* TODO we may want to extract this to ext/x509 */
+SG_EXTERN int Sg_X509VerifyCertificate(SgObject bv);
+
 SG_CDECL_END
 
 #endif

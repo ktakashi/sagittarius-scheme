@@ -1352,6 +1352,11 @@ void Sg_TLSSocketPeerCertificateVerifier(SgTLSSocket *tlsSocket)
   /* } */
 }
 
+int Sg_X509VerifyCertificate(SgObject bv)
+{
+  return TRUE;
+}
+
 static void cleanup_keyset(void *data)
 {
   /* Delete key set*/

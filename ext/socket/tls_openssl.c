@@ -220,12 +220,28 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
   return NULL;			/* dummy */
 }
 
+static void handle_verify_error(SgTLSSocket *tlsSocket, SgObject who, long n)
+{
+  OpenSSLData *newData = (OpenSSLData *)tlsSocket->data;
+  const char *msg = X509_verify_cert_error_string(n);
+  if (!msg) msg = "Certificate verification error";
+
+  SSL_free(newData->ssl);
+  newData->ssl = NULL;
+  raise_socket_error(who,
+		     Sg_Utf8sToUtf32s(msg, strlen(msg)),
+		     Sg_MakeConditionSocket(tlsSocket),
+		     Sg_MakeIntegerU(n));
+}
+
 int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
 			SgObject domainName,
 			SgObject alpn)
 {
   SgSocket *socket = tlsSocket->socket;
   OpenSSLData *data = (OpenSSLData *)tlsSocket->data;
+  int r;
+  long cert;
   ERR_clear_error();		/* clear error */
   data->ssl = SSL_new(data->ctx);
   
@@ -248,7 +264,12 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
     }
   }
   SSL_set_fd(data->ssl, socket->socket);
-  return SSL_connect(data->ssl);
+  r = SSL_connect(data->ssl);
+  cert = SSL_get_verify_result(data->ssl);
+  if (cert != X509_V_OK) {
+    handle_verify_error(tlsSocket, SG_INTERN("tls-socket-connect!"), cert);
+  }
+  return r;
 }
 
 static void handle_accept_error(SgTLSSocket *tlsSocket, int r)
@@ -269,19 +290,6 @@ static void handle_accept_error(SgTLSSocket *tlsSocket, int r)
 		     Sg_Utf8sToUtf32s(msg, strlen(msg)),
 		     Sg_MakeConditionSocket(tlsSocket),
 		     Sg_MakeIntegerU(err));
-}
-static void handle_verify_error(SgTLSSocket *tlsSocket, long n)
-{
-  OpenSSLData *newData = (OpenSSLData *)tlsSocket->data;
-  const char *msg = X509_verify_cert_error_string(n);
-  if (!msg) msg = "Certificate verification error";
-
-  SSL_free(newData->ssl);
-  newData->ssl = NULL;
-  raise_socket_error(SG_INTERN("tls-socket-accept"),
-		     Sg_Utf8sToUtf32s(msg, strlen(msg)),
-		     Sg_MakeConditionSocket(tlsSocket),
-		     Sg_MakeIntegerU(n));
 }
 
 SgObject Sg_TLSSocketAccept(SgTLSSocket *tlsSocket, int handshake)
@@ -315,7 +323,10 @@ SgObject Sg_TLSServerSocketHandshake(SgTLSSocket *tlsSocket)
   int r = SSL_accept(data->ssl);
   long cert = SSL_get_verify_result(data->ssl);
 
-  if (cert != X509_V_OK) handle_verify_error(tlsSocket, cert);
+  if (cert != X509_V_OK) {
+    handle_verify_error(tlsSocket, SG_INTERN("tls-server-socket-handshake"),
+			cert);
+  }
   if (r <= 0) handle_accept_error(tlsSocket, r);
   return tlsSocket;
 }
@@ -511,6 +522,16 @@ void Sg_TLSSocketPeerCertificateVerifier(SgTLSSocket *tlsSocket)
   SSL_CTX_set_verify(tlsData->ctx, mode, verify_callback);
   /* we set socket as data for convenience */
   SSL_CTX_set_ex_data(tlsData->ctx, callback_data_index, tlsSocket);
+}
+
+int Sg_X509VerifyCertificate(SgObject bv)
+{
+  /* Create X509_STORE_CTX */
+  /* load X509 from the given bv */
+  /* load above to the store context */
+  /* call X509_verify_cert */
+  /* check the stored result  y calling X509_STORE_CTX_get_error */
+  return TRUE;
 }
 
 static void cleanup_ssl_lib(void *handle)
