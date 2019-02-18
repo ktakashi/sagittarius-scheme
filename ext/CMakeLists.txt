@@ -104,7 +104,7 @@ ELSE()
     MESSAGE(STATUS "OpenSSL is not found, using SChannel.")
     MESSAGE(WARNING "On this platform, it's better to use OpenSSL, please consider to instsall it
 ")
-    SET(TLS_LIBS crypt32 secur32 ncrypt)
+    SET(CRYPTO_LIBS crypt32 secur32 ncrypt)
     SET(USE_SCHANNEL ON)
   ELSE()
     MESSAGE(FATAL_ERROR "No SSL provider found. Please install OpenSSL")

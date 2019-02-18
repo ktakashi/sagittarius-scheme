@@ -704,14 +704,88 @@ static void send_sec_buffer(SgObject who, SgTLSSocket *tlsSocket,
     (desc)->pBuffers = (bufs);			\
   } while (0)
 
+static SgObject get_certificate_chain(PCCERT_CONTEXT cc,
+				      SgTLSSocket *tlsSocket,
+				      PCCERT_CHAIN_CONTEXT *chainCtx)
+{
+  int isClientCert = tlsSocket->socket->type == SG_SOCKET_CLIENT;
+  CERT_CHAIN_PARA          chainPara{ 0 };
+  LPSTR usage = isClientCert
+    ? (LPSTR)szOID_PKIX_KP_CLIENT_AUTH
+    : (LPSTR)szOID_PKIX_KP_SERVER_AUTH;
+  LPSTR rgszUsages[] = { usage,
+			 (LPSTR)szOID_SERVER_GATED_CRYPTO,
+			 (LPSTR)szOID_SGC_NETSCAPE };
+  DWORD cUsages = array_sizeof(rgszUsages);
+  
+  chainPara.cbSize = sizeof(CERT_CHAIN_PARA);
+  chainPara.RequestedUsage.dwType = USAGE_MATCH_TYPE_OR;
+  chainPara.RequestedUsage.Usage.cUsageIdentifier = cUsages;
+  chainPara.RequestedUsage.Usage.rgpszUsageIdentifier = rgszUsages;
+  
+  if (!CertGetCertificateChain(NULL, cc, NULL, cc->hCertStore, &chainPara,
+			       0, NULL, chainCtx)) {
+    return Sg_GetLastErrorMessageWithErrorCode(GetLastError());
+  }
+  return SG_FALSE;
+}
+
+static SgObject default_verify_certificate(PCCERT_CONTEXT cc,
+					   SgTLSSocket *tlsSocket)
+{
+  PCCERT_CHAIN_CONTEXT chainCtx = NULL;
+  HTTPSPolicyCallbackData  polHttps{ 0 };
+  CERT_CHAIN_POLICY_PARA   policyPara{ 0 };
+  CERT_CHAIN_POLICY_STATUS policyStatus{ 0 };
+  int isClientCert = tlsSocket->socket->type == SG_SOCKET_CLIENT;
+  SgObject errMsg = SG_FALSE;
+  
+  errMsg = get_certificate_chain(cc, tlsSocket, &chainCtx);
+  if (!SG_FALSEP(errMsg)) return errMsg;
+  
+  polHttps.cbStruct = sizeof(HTTPSPolicyCallbackData);
+  polHttps.dwAuthType = isClientCert ? AUTHTYPE_CLIENT : AUTHTYPE_SERVER;
+  polHttps.fdwChecks = 0;
+  polHttps.pwszServerName = NULL;
+  
+  policyPara.cbSize = sizeof(CERT_CHAIN_POLICY_PARA);
+  policyPara.pvExtraPolicyPara = &polHttps;
+
+  policyStatus.cbSize = sizeof(CERT_CHAIN_POLICY_STATUS);
+
+  if (!CertVerifyCertificateChainPolicy(CERT_CHAIN_POLICY_SSL,
+					chainCtx, &policyPara, &policyStatus)) {
+    errMsg = Sg_GetLastErrorMessageWithErrorCode(GetLastError());
+    goto cleanup;
+  }
+  
+  if (policyStatus.dwError) {
+    errMsg = Sg_GetLastErrorMessageWithErrorCode(policyStatus.dwError);
+    goto cleanup;
+  }
+  
+cleanup:
+  if (chainCtx) CertFreeCertificateChain(chainCtx);
+  return errMsg;
+}
+
+static SgObject pccert_context_to_bytevector(PCCERT_CONTEXT cc)
+{
+  unsigned int i;
+  SgObject bv = Sg_MakeByteVector(cc->cbCertEncoded, 0);
+  for (i = 0; i < cc->cbCertEncoded; i++) {
+    SG_BVECTOR_ELEMENT(bv, i) = cc->pbCertEncoded[i];
+  }
+  return bv;
+}
+
 static int verify_certificate(SgTLSSocket *tlsSocket, SgObject who)
 {
   WinTLSData *data = (WinTLSData *)tlsSocket->data;
-  SECURITY_STATUS ss;
   PCCERT_CONTEXT cc = NULL;
 
-  ss = QueryContextAttributes(&data->context, SECPKG_ATTR_REMOTE_CERT_CONTEXT,
-			      (PVOID)&cc);
+  QueryContextAttributes(&data->context, SECPKG_ATTR_REMOTE_CERT_CONTEXT,
+			 (PVOID)&cc);
   if (tlsSocket->peerCertificateRequiredP) {
     if (cc == NULL) {
       raise_socket_error(who,
@@ -722,16 +796,45 @@ static int verify_certificate(SgTLSSocket *tlsSocket, SgObject who)
   }
   if (cc != NULL) {
     SgObject verifier = tlsSocket->peerCertificateVerifier;
+    volatile SgObject errMsg = SG_FALSE;
     /* TODO get certificate chain here */
     if (SG_PROCEDUREP(verifier)) {
-      SG_UNWIND_PROTECT {
-      } SG_WHEN_ERROR {
-      } SG_END_PROTECT;
+      PCCERT_CHAIN_CONTEXT chainCtx = NULL;
+      errMsg = get_certificate_chain(cc, tlsSocket, &chainCtx);
+      if (!SG_FALSEP(errMsg)) {
+	int depth;
+	SG_UNWIND_PROTECT {
+	  for (depth = 0; depth < chainCtx->cChain; depth++) {
+	    PCERT_SIMPLE_CHAIN psc = chainCtx->rgpChain[depth];
+	    PCERT_CHAIN_ELEMENT pce = psc->rgpElement[0];
+	    PCCERT_CONTEXT c = pce->pCertContext;
+	    SgObject bv = pccert_context_to_bytevector(c), r;
+	    r = Sg_Apply2(verifier, SG_MAKE_INT(depth), bv);
+	    if (SG_FALSEP(r)) {
+	      errMsg = SG_MAKE_STRING("Failed to verify certificate");
+	      break;
+	    }
+	  }
+	} SG_WHEN_ERROR {
+	  errMsg = SG_MAKE_STRING("An error occurred during certificate veirfication");
+	} SG_END_PROTECT;
+      }
+      if (chainCtx) CertFreeCertificateChain(chainCtx);
     } else if (!SG_FALSEP(verifier)) {
-      /* TODO call certificate validation */
+      SgObject bv = pccert_context_to_bytevector(cc), cp;
+      SG_FOR_EACH(cp, tlsSocket->authorities) {
+	/* if it's trusted, then trust it */
+	if (Sg_ByteVectorCmp(SG_BVECTOR(bv), SG_BVECTOR(SG_CAR(cp))) == 0)
+	  goto end;
+      }
+      errMsg = default_verify_certificate(cc, tlsSocket);
     }
-
+  end:
     CertFreeCertificateContext(cc);
+    if (!SG_FALSEP(errMsg)) {
+      raise_socket_error(who, errMsg,
+			 Sg_MakeConditionSocket(tlsSocket), SG_NIL);
+    }
   }
   /* default */
   return TRUE;
@@ -1303,17 +1406,13 @@ SgObject Sg_TLSSocketPeerCertificate(SgTLSSocket *tlsSocket)
   SECURITY_STATUS ss;
   PCCERT_CONTEXT cc = NULL;
   SgObject cert = SG_FALSE;
-  int i;
   
   ss = QueryContextAttributes(&data->context, SECPKG_ATTR_REMOTE_CERT_CONTEXT,
 			      (PVOID)&cc);
 
   /* #f to be returned */
   if (ss != SEC_E_OK) return cert;
-  cert = Sg_MakeByteVector(cc->cbCertEncoded, 0);
-  for (i = 0; i < cc->cbCertEncoded; i++) {
-    SG_BVECTOR_ELEMENT(cert, i) = cc->pbCertEncoded[i];
-  }
+  cert = pccert_context_to_bytevector(cc);
   CertFreeCertificateContext(cc);
   return cert;
 }
