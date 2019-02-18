@@ -9,13 +9,13 @@ jobs:
        - run:
            name: Checkout repository
            command: |
-             sudo apt-get update
-             sudo apt-get upgrade openssl
-             sudo apt-get install mercurial
+             apt-get update
+             apt-get upgrade openssl
+             apt-get install mercurial
              hg clone https://bitbucket.org/ktakashi/sagittarius-scheme sagittarius-scheme
        - run:
            name: Installing dependencies
-           command: sudo apt-get install cmake libgc-dev zlib1g-dev libffi-dev
+           command: apt-get install cmake libgc-dev zlib1g-dev libffi-dev
        - run:
            name: Installing current Sagittarius
            working_directory: ~/current_sagittarius
@@ -27,7 +27,7 @@ jobs:
              cmake .
              make -j8 sash
              make
-             sudo make install
+             make install
        - run:
            name: Pre-build
            working_directory: ~/project/sagittarius-scheme
