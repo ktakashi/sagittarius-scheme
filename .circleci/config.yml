@@ -10,7 +10,6 @@ jobs:
            name: Checkout repository
            command: |
              apt-get update
-             apt-get upgrade openssl
              apt-get -y install mercurial
              hg clone https://bitbucket.org/ktakashi/sagittarius-scheme sagittarius-scheme
        - run:
