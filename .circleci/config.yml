@@ -11,11 +11,11 @@ jobs:
            command: |
              apt-get update
              apt-get upgrade openssl
-             apt-get install mercurial
+             apt-get -y install mercurial
              hg clone https://bitbucket.org/ktakashi/sagittarius-scheme sagittarius-scheme
        - run:
            name: Installing dependencies
-           command: apt-get install cmake libgc-dev zlib1g-dev libffi-dev
+           command: apt-get -y install cmake libgc-dev zlib1g-dev libffi-dev
        - run:
            name: Installing current Sagittarius
            working_directory: ~/current_sagittarius
