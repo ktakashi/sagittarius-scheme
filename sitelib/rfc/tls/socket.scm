@@ -131,13 +131,16 @@
 				  (certificates '())
 				  (private-key #f)
 				  (hello-extensions '())
+				  (certificate-verifier #t)
 				  :allow-other-keys opt)
     (let ((s (apply make-client-socket server service opt)))
       (socket->tls-socket s :certificates certificates
 			  :private-key private-key
 			  :handshake #t
 			  :client-socket #t
-			  :hello-extensions hello-extensions)))
+			  :hello-extensions hello-extensions
+			  :peer-certificate-required? #t
+			  :certificate-verifier certificate-verifier)))
 
   (define (make-hello-extension type data)
     (make-tls-extension type (make-variable-vector 2 data)))

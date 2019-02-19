@@ -241,8 +241,9 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
   SgSocket *socket = tlsSocket->socket;
   OpenSSLData *data = (OpenSSLData *)tlsSocket->data;
   int r;
-  long cert;
+
   ERR_clear_error();		/* clear error */
+
   data->ssl = SSL_new(data->ctx);
   
   if (SG_STRINGP(domainName)) {
@@ -265,9 +266,19 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
   }
   SSL_set_fd(data->ssl, socket->socket);
   r = SSL_connect(data->ssl);
-  cert = SSL_get_verify_result(data->ssl);
-  if (cert != X509_V_OK) {
-    handle_verify_error(tlsSocket, SG_INTERN("tls-socket-connect!"), cert);
+
+  /* I don't know how to verify server certificate using OpenSSL :( */
+  if (SG_PROCEDUREP(tlsSocket->peerCertificateVerifier)) {
+    SG_UNWIND_PROTECT {
+      SgObject bv = Sg_TLSSocketPeerCertificate(tlsSocket);
+      SgObject r = Sg_Apply2(tlsSocket->peerCertificateVerifier,
+			     SG_MAKE_INT(0), bv);
+      if (SG_FALSEP(r)) {
+	handle_verify_error(tlsSocket, SG_INTERN("tls-socket-connect!"), -1);
+      }
+    } SG_WHEN_ERROR {
+      handle_verify_error(tlsSocket, SG_INTERN("tls-socket-connect!"), -1);
+    } SG_END_PROTECT;
   }
   return r;
 }
@@ -421,7 +432,6 @@ static SgObject x509_to_bytevector(X509 *x509)
 SgObject Sg_TLSSocketPeerCertificate(SgTLSSocket *tlsSocket)
 {
   OpenSSLData *tlsData = (OpenSSLData *)tlsSocket->data;
-  SSL_SESSION *session;
   X509 *x509;
 
   if (!tlsData->ssl) {
@@ -431,19 +441,12 @@ SgObject Sg_TLSSocketPeerCertificate(SgTLSSocket *tlsSocket)
 		       tlsSocket);
   }
   ERR_clear_error();		/* clear error */
-  session = SSL_get_session(tlsData->ssl);
-  if (!session) {
-    raise_socket_error(SG_INTERN("tls-socket-peer-certificate"),
-		       SG_MAKE_STRING("no SSL session"),
-		       Sg_MakeConditionSocketClosed(tlsSocket),
-		       tlsSocket);
-  }
-  ERR_clear_error();		/* clear error */
   /* we cache the certificate */
   if (SG_FALSEP(tlsData->peerCertificate)) {
-    x509 = SSL_SESSION_get0_peer(session);
+    x509 = SSL_get_peer_certificate(tlsData->ssl);
     if (x509) {
       tlsData->peerCertificate = x509_to_bytevector(x509);
+      X509_free(x509);
     }
   }
   return tlsData->peerCertificate;
