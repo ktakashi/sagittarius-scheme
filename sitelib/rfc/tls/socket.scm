@@ -131,7 +131,7 @@
 				  (certificates '())
 				  (private-key #f)
 				  (hello-extensions '())
-				  (certificate-verifier #t)
+				  (certificate-verifier #f)
 				  :allow-other-keys opt)
     (let ((s (apply make-client-socket server service opt)))
       (socket->tls-socket s :certificates certificates

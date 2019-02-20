@@ -234,6 +234,26 @@ static void handle_verify_error(SgTLSSocket *tlsSocket, SgObject who, long n)
 		     Sg_MakeIntegerU(n));
 }
 
+static void handle_accept_error(SgTLSSocket *tlsSocket, int r)
+{
+  OpenSSLData *newData = (OpenSSLData *)tlsSocket->data;
+  unsigned long err = SSL_get_error(newData->ssl, r);
+  const char *msg = NULL;
+      
+  if (SSL_ERROR_SSL == err) {
+    err = ERR_get_error();
+  }
+  msg = ERR_reason_error_string(err);
+  if (!msg) msg = "failed to handshake";
+      
+  SSL_free(newData->ssl);
+  newData->ssl = NULL;
+  raise_socket_error(SG_INTERN("tls-socket-accept"),
+		     Sg_Utf8sToUtf32s(msg, strlen(msg)),
+		     Sg_MakeConditionSocket(tlsSocket),
+		     Sg_MakeIntegerU(err));
+}
+
 int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
 			SgObject domainName,
 			SgObject alpn)
@@ -241,7 +261,8 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
   SgSocket *socket = tlsSocket->socket;
   OpenSSLData *data = (OpenSSLData *)tlsSocket->data;
   int r;
-
+  long cert;
+  
   ERR_clear_error();		/* clear error */
 
   data->ssl = SSL_new(data->ctx);
@@ -266,42 +287,16 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
   }
   SSL_set_fd(data->ssl, socket->socket);
   r = SSL_connect(data->ssl);
-
-  /* I don't know how to verify server certificate using OpenSSL :( */
-  if (SG_PROCEDUREP(tlsSocket->peerCertificateVerifier)) {
-    SG_UNWIND_PROTECT {
-      SgObject bv = Sg_TLSSocketPeerCertificate(tlsSocket);
-      SgObject r = Sg_Apply2(tlsSocket->peerCertificateVerifier,
-			     SG_MAKE_INT(0), bv);
-      if (SG_FALSEP(r)) {
-	handle_verify_error(tlsSocket, SG_INTERN("tls-socket-connect!"), -1);
-      }
-    } SG_WHEN_ERROR {
-      handle_verify_error(tlsSocket, SG_INTERN("tls-socket-connect!"), -1);
-    } SG_END_PROTECT;
+  /* We care verification result only if the verifier is not #f */
+  if (!SG_FALSEP(tlsSocket->peerCertificateVerifier)) {
+    cert = SSL_get_verify_result(data->ssl);
+    if (cert != X509_V_OK) {
+      handle_verify_error(tlsSocket, SG_INTERN("tls-socket-connect!"), cert);
+    }
   }
   return r;
 }
 
-static void handle_accept_error(SgTLSSocket *tlsSocket, int r)
-{
-  OpenSSLData *newData = (OpenSSLData *)tlsSocket->data;
-  unsigned long err = SSL_get_error(newData->ssl, r);
-  const char *msg = NULL;
-      
-  if (SSL_ERROR_SSL == err) {
-    err = ERR_get_error();
-  }
-  msg = ERR_reason_error_string(err);
-  if (!msg) msg = "failed to handshake";
-      
-  SSL_free(newData->ssl);
-  newData->ssl = NULL;
-  raise_socket_error(SG_INTERN("tls-socket-accept"),
-		     Sg_Utf8sToUtf32s(msg, strlen(msg)),
-		     Sg_MakeConditionSocket(tlsSocket),
-		     Sg_MakeIntegerU(err));
-}
 
 SgObject Sg_TLSSocketAccept(SgTLSSocket *tlsSocket, int handshake)
 {
@@ -332,11 +327,14 @@ SgObject Sg_TLSServerSocketHandshake(SgTLSSocket *tlsSocket)
 {
   OpenSSLData *data = (OpenSSLData *)tlsSocket->data;
   int r = SSL_accept(data->ssl);
-  long cert = SSL_get_verify_result(data->ssl);
 
-  if (cert != X509_V_OK) {
-    handle_verify_error(tlsSocket, SG_INTERN("tls-server-socket-handshake"),
-			cert);
+  /* The same as tls-socket-connect! */
+  if (!SG_FALSEP(tlsSocket->peerCertificateVerifier)) {
+    long cert = SSL_get_verify_result(data->ssl);
+    if (cert != X509_V_OK) {
+      handle_verify_error(tlsSocket, SG_INTERN("tls-server-socket-handshake"),
+			  cert);
+    }
   }
   if (r <= 0) handle_accept_error(tlsSocket, r);
   return tlsSocket;
@@ -458,7 +456,7 @@ static int callback_data_index;
 static int verify_callback(int previously_ok, X509_STORE_CTX *x509_store_ctx)
 {
   SgTLSSocket *socket;
-  SgObject verifier, authorities, bv;
+  SgObject verifier, authorities, bv, cp;
   X509    *cert;
   int      depth;
   SSL     *ssl;
@@ -475,10 +473,13 @@ static int verify_callback(int previously_ok, X509_STORE_CTX *x509_store_ctx)
   authorities = SG_TLS_SOCKET_AUTHORITIES(socket);
 
   bv = x509_to_bytevector(cert);
+  /* if the verifier is a procedure, then the result matters */
   if (SG_PROCEDUREP(verifier)) {
     volatile int err = 0;
     SG_UNWIND_PROTECT {
-      SgObject result = Sg_Apply2(verifier, SG_MAKE_INT(depth), bv);
+      /* passing depth, system-result, certificate */
+      SgObject result = Sg_Apply3(verifier, SG_MAKE_INT(depth),
+				  SG_MAKE_BOOL(previously_ok), bv);
       if (SG_FALSEP(result)) {
 	/* TODO which error code? */
 	err = 1; 
@@ -491,23 +492,21 @@ static int verify_callback(int previously_ok, X509_STORE_CTX *x509_store_ctx)
       X509_STORE_CTX_set_error(x509_store_ctx, err);
       return 0;
     }
-    return previously_ok;
-  } else {
-    /* check if it's trusted or not */
-    SgObject cp;
-    SG_FOR_EACH(cp, authorities) {
-      if (Sg_ByteVectorCmp(bv, SG_CAR(cp)) == 0) {
-	int err = X509_STORE_CTX_get_error(x509_store_ctx);
-	if (!previously_ok && err == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT) {
-	  /* accept self signed it's trusted */
-	  X509_STORE_CTX_set_error(x509_store_ctx, X509_V_OK);
-	  previously_ok = 1;
-	}
-	return previously_ok;
+    X509_STORE_CTX_set_error(x509_store_ctx, X509_V_OK);
+    return 1;
+  }
+  SG_FOR_EACH(cp, authorities) {
+    if (Sg_ByteVectorCmp(bv, SG_CAR(cp)) == 0) {
+      int err = X509_STORE_CTX_get_error(x509_store_ctx);
+      if (!previously_ok && err == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT) {
+	/* accept self signed it's trusted */
+	X509_STORE_CTX_set_error(x509_store_ctx, X509_V_OK);
+	previously_ok = 1;
       }
     }
-    return X509_verify_cert(x509_store_ctx);
   }
+
+  return previously_ok;
 }
 
 void Sg_TLSSocketPeerCertificateVerifier(SgTLSSocket *tlsSocket)
