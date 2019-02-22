@@ -783,7 +783,8 @@ static int verify_certificate(SgTLSSocket *tlsSocket, SgObject who)
 {
   WinTLSData *data = (WinTLSData *)tlsSocket->data;
   PCCERT_CONTEXT cc = NULL;
-
+  SgObject verifier = tlsSocket->peerCertificateVerifier;
+  
   QueryContextAttributes(&data->context, SECPKG_ATTR_REMOTE_CERT_CONTEXT,
 			 (PVOID)&cc);
   if (tlsSocket->peerCertificateRequiredP) {
@@ -794,47 +795,39 @@ static int verify_certificate(SgTLSSocket *tlsSocket, SgObject who)
 			 SG_NIL);
     }
   }
-  if (cc != NULL) {
-    SgObject verifier = tlsSocket->peerCertificateVerifier;
+  if (!SG_FALSEP(verifier) && cc != NULL) {
     volatile SgObject errMsg = SG_FALSE;
+    SgObject bv = pccert_context_to_bytevector(cc), cp;
+    /* Default check */
+    errMsg = default_verify_certificate(cc, tlsSocket);
+    SG_FOR_EACH(cp, tlsSocket->authorities) {
+      /* if it's trusted, then trust it */
+      if (Sg_ByteVectorCmp(SG_BVECTOR(bv), SG_BVECTOR(SG_CAR(cp))) == 0) {
+	errMsg = SG_FALSE;
+      }
+    }
+    
     /* TODO get certificate chain here */
     if (SG_PROCEDUREP(verifier)) {
-      PCCERT_CHAIN_CONTEXT chainCtx = NULL;
-      errMsg = get_certificate_chain(cc, tlsSocket, &chainCtx);
-      if (!SG_FALSEP(errMsg)) {
-	int depth;
-	SG_UNWIND_PROTECT {
-	  for (depth = 0; depth < chainCtx->cChain; depth++) {
-	    PCERT_SIMPLE_CHAIN psc = chainCtx->rgpChain[depth];
-	    PCERT_CHAIN_ELEMENT pce = psc->rgpElement[0];
-	    PCCERT_CONTEXT c = pce->pCertContext;
-	    SgObject bv = pccert_context_to_bytevector(c), r;
-	    r = Sg_Apply2(verifier, SG_MAKE_INT(depth), bv);
-	    if (SG_FALSEP(r)) {
-	      errMsg = SG_MAKE_STRING("Failed to verify certificate");
-	      break;
-	    }
-	  }
-	} SG_WHEN_ERROR {
-	  errMsg = SG_MAKE_STRING("An error occurred during certificate veirfication");
-	} SG_END_PROTECT;
-      }
-      if (chainCtx) CertFreeCertificateChain(chainCtx);
-    } else if (!SG_FALSEP(verifier)) {
-      SgObject bv = pccert_context_to_bytevector(cc), cp;
-      SG_FOR_EACH(cp, tlsSocket->authorities) {
-	/* if it's trusted, then trust it */
-	if (Sg_ByteVectorCmp(SG_BVECTOR(bv), SG_BVECTOR(SG_CAR(cp))) == 0)
-	  goto end;
-      }
-      errMsg = default_verify_certificate(cc, tlsSocket);
+      SG_UNWIND_PROTECT {
+	SgObject r = Sg_Apply3(verifier, SG_MAKE_INT(0),
+			       SG_FALSEP(errMsg) ? SG_TRUE : SG_FALSE,
+			       bv);
+	if (SG_FALSEP(r)) {
+	  errMsg = SG_MAKE_STRING("Certificate veirfication failed");
+	}
+      } SG_WHEN_ERROR {
+	errMsg = SG_MAKE_STRING("An error occurred during certificate veirfication");
+      } SG_END_PROTECT;
     }
-  end:
+    
     CertFreeCertificateContext(cc);
     if (!SG_FALSEP(errMsg)) {
       raise_socket_error(who, errMsg,
 			 Sg_MakeConditionSocket(tlsSocket), SG_NIL);
     }
+  } else if (cc != NULL) {
+    CertFreeCertificateContext(cc);
   }
   /* default */
   return TRUE;
