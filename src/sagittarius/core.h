@@ -44,6 +44,8 @@ typedef void (*SgFinalizerProc)(SgObject z, void *data);
 #define SG_MAIN_THREAD_STACK_SIZE_LIMIT  0x100000
 #define SG_CHILD_THREAD_STACK_SIZE_LIMIT 0x10000
 
+/* alien thread invocation */
+typedef void* (*SgAlienThreadInvokeFunc)(void *data);
 
 SG_CDECL_BEGIN
 
@@ -77,6 +79,8 @@ SG_EXTERN intptr_t   Sg_AvailableStackSize(uintptr_t csp);
 
 /* experimental */
 SG_EXTERN void  Sg_AddGCRoots(void *start, void *end);
+SG_EXTERN void* Sg_InvokeOnAlienThread(SgAlienThreadInvokeFunc func,
+				       void *data);
 
 /* cond-expand */
 SG_EXTERN void  Sg_AddCondFeature(const SgChar *feature);

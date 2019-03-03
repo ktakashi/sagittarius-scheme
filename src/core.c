@@ -132,6 +132,7 @@ void Sg_Init()
   SgObject nullsym, coreBase, compsym, sgsym;
 #ifdef USE_BOEHM_GC
   GC_INIT();
+  GC_allow_register_threads();
 #if GC_VERSION_MAJOR >= 7 && GC_VERSION_MINOR >= 2
   GC_set_oom_fn(oom_handler);
   GC_set_finalize_on_demand(TRUE);
@@ -472,6 +473,22 @@ void Sg_AddGCRoots(void *start, void *end)
 {
 #ifdef USE_BOEHM_GC
   GC_add_roots(start, end);
+#else
+  /* do nothing for now */
+#endif
+}
+
+void* Sg_InvokeOnAlienThread(SgAlienThreadInvokeFunc func, void *data)
+{
+#ifdef USE_BOEHM_GC
+  /* the func is called here and from here, the memory is managed by the GC */
+  struct GC_stack_base sb;
+  void *r;
+  GC_get_stack_base(&sb);
+  GC_register_my_thread(&sb);
+  r = func(data);
+  GC_unregister_my_thread();
+  return r;
 #else
   /* do nothing for now */
 #endif
