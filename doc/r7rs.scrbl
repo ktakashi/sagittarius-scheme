@@ -810,7 +810,7 @@ SRFI-135 @code{(srfi :135)}.
 @subsubsection{Generator library}
 @define[Library]{@name{(scheme generator)}}
 @desc{This library exports the procedures and macros defined in
-SRFI-121 @code{(srfi :121)}.
+SRFI-158 @code{(srfi :158)}.
 }
 
 @subsubsection{Lazy sequence library}
@@ -847,4 +847,50 @@ SRFI-124 @code{(srfi :124)}.
 @define[Library]{@name{(scheme comparator)}}
 @desc{This library exports the procedures and macros defined in
 SRFI-128 @code{(srfi :128)}.
+}
+
+@; Tangerine
+@subsubsection{Comparator library}
+@define[Library]{@name{(scheme division)}}
+@desc{This library exports the procedures and macros defined in
+SRFI-141 @code{(srfi :141)}.
+}
+
+@subsubsection{Comparator library}
+@define[Library]{@name{(scheme fixnum)}}
+@desc{This library exports the procedures and macros defined in
+SRFI-143 @code{(srfi :143)}.
+}
+
+@subsubsection{Comparator library}
+@define[Library]{@name{(scheme flonum)}}
+@desc{This library exports the procedures and macros defined in
+SRFI-144 @code{(srfi :144)}.
+}
+
+@subsubsection{Comparator library}
+@define[Library]{@name{(scheme mapping)}}
+@desc{This library exports the procedures and macros defined in
+SRFI-146 @code{(srfi :146)}.
+}
+
+@subsubsection{Comparator library}
+@define[Library]{@name{(scheme mapping hash)}}
+@desc{This library exports the procedures and macros defined in
+SRFI-146 @code{(srfi :146 hash)}.
+}
+
+@subsubsection{Comparator library}
+@define[Library]{@name{(scheme bitwise)}}
+@desc{This library exports the procedures and macros defined in
+SRFI-151 @code{(srfi :151)}.
+}
+
+@subsubsection{Comparator library}
+@define[Library]{@name{(scheme bytevector)}}
+@desc{This library exports the procedures and macros defined in
+R6RS bytevectors library @code{(rnrs bytevectors)}.
+
+NOTE: The exporting names may conflicts with the ones exported from R7RS
+libraries (e.g. @code{bytevector-copy!} from @code{(scheme base)}).
 }
