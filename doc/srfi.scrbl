@@ -402,6 +402,14 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
 
     The name @code{assumptions} is taken from the name of the SRFI.
     }}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-146/srfi-146.html"]{SRFI-146}}
+    @td{(srfi :146 mapping) and (srfi :146 hash)
+
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :146)} and @code{(srfi :146 hash)}. So for the portability it's better to use them.
+
+    The name @code{mapping} is taken from the name of the SRFI.
+    }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-151/srfi-151.html"]{SRFI-151}}
     @td{(srfi :151 bitwise)
 
