@@ -42,6 +42,8 @@
 	    json-patch-runtime-error?
 	    json-patch-path-not-found-error?
 	    json-patch-illegal-type-error?
+
+	    *json-patcher:ignore-no-such-path*
 	    )
     (import (rnrs)
 	    (text json pointer)
@@ -49,6 +51,7 @@
 	    (text json convert)
 	    (text json compare)
 	    (srfi :1 lists)
+	    (srfi :39 parameters)
 	    (srfi :133 vectors)
 	    (util vector)
 	    (util hashtables)
@@ -172,10 +175,16 @@
     ((test) (make-test-command (find path?) (find value?)))
     (else (err))))
 
+(define *json-patcher:ignore-no-such-path* (make-parameter '()))
 (define (nsp who path mutable-json)
-  (json-patch-path-not-found-error path
-   who "No such path in target JSON document"
-   (mutable-json->json mutable-json)))
+  (define ls (*json-patcher:ignore-no-such-path*))
+  (when (or (not ls)
+	    (not (eq? who ls))
+	    (not (and (pair? who)
+		      (memv who (*json-patcher:ignore-no-such-path*)))))
+    (json-patch-path-not-found-error path
+      who "No such path in target JSON document"
+      (mutable-json->json mutable-json))))
 (define (rte who path msg mutable-json)
   (raise (condition (make-json-patch-runtime-error path)
 		    (make-who-condition who)
@@ -287,11 +296,13 @@
        (lambda (last json root-json)
 	 (let ((v (pointer (mutable-json->json root-json)))
 	       (l (car (last-pair tokens))))
-	   (when (json-pointer-not-found? v) (nsp 'move from root-json))
-	   (let ((n (check-index 'move path last)))
-	     (unless (equal? last l)
-	       (remove root-json)
-	       (mutable-json-array-insert! json n (json->mutable-json v)))))))))
+	   (if (json-pointer-not-found? v)
+	       (nsp 'move from root-json)
+	       (let ((n (check-index 'move path last)))
+		 (unless (equal? last l)
+		   (remove root-json)
+		   (mutable-json-array-insert! 
+		    json n (json->mutable-json v))))))))))
 
 ;; FIXME inefficient...
 (define (make-test-command path value)
@@ -309,6 +320,7 @@
   (lambda (mutable-json)
     (let* ((v (pointer (mutable-json->json mutable-json)))
 	   (add (make-add-command path v)))
-      (when (json-pointer-not-found? v) (nsp 'copy path mutable-json))
-      (add mutable-json))))
+      (if (json-pointer-not-found? v)
+	  (nsp 'copy path mutable-json)
+	  (add mutable-json)))))
 )
