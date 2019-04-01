@@ -5,6 +5,7 @@
 	(text json pointer)
 	(text json compare)
 	(srfi :26)
+	(srfi :39)
 	(srfi :64))
 
 (define (test-json-patch file)
@@ -33,5 +34,21 @@
 (test-begin "JSON Patch")
 (test-json-patch "test/data/json-patch-spec-test.json")
 (test-json-patch "test/data/json-patch-test.json")
+
+(parameterize ((*json-patcher:ignore-no-such-path* 'remove))
+  (test-assert (json=? #(("foo" . 1)) 
+		       ((json-patcher '(#(("op" . "remove")
+					  ("path" . "/bla"))))
+			#(("foo" . 1))))))
+
+(parameterize ((*json-patcher:ignore-no-such-path* '(remove replace)))
+  (test-assert (json=? #(("foo" . 1)) 
+		       ((json-patcher '(#(("op" . "remove")
+					  ("path" . "/bla"))
+					#(("op" . "replace")
+					  ("path" . "/bla")
+					  ("value" . "brr"))))
+			#(("foo" . 1))))))
+
 (test-end)
     

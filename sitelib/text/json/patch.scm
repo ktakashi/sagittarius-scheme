@@ -178,10 +178,7 @@
 (define *json-patcher:ignore-no-such-path* (make-parameter '()))
 (define (nsp who path mutable-json)
   (define ls (*json-patcher:ignore-no-such-path*))
-  (when (or (not ls)
-	    (not (eq? who ls))
-	    (not (and (pair? who)
-		      (memv who (*json-patcher:ignore-no-such-path*)))))
+  (unless (or (eq? who ls) (and (pair? ls) (memv who ls)))
     (json-patch-path-not-found-error path
       who "No such path in target JSON document"
       (mutable-json->json mutable-json))))
