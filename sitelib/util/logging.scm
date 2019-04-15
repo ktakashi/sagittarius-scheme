@@ -268,9 +268,12 @@
 		      
 	 #'(begin
 	     (define (check logger) (>= c (logger-threshold logger)))
-	     (define (logging logger msg)
-	       (when (check logger)
-		 (push-log logger (make-log (current-time) 'level msg))))))))))
+	     (define-syntax logging
+	       (syntax-rules ()
+		 ((_ logger msg)
+		  (when (check logger)
+		    (push-log logger (make-log (current-time)
+					       'level msg))))))))))))
 ;; per level APIs
 (define-logging-api trace)
 (define-logging-api debug)
