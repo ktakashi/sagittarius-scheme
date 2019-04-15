@@ -46,6 +46,15 @@
 	    (with-output-to-string
 	      (lambda ()
 		(print-log (make-logger +info-level+ (make-appender "~l"))))))
+(let ((logger (make-logger +info-level+ (make-appender "~a[0]~a[1]~a"))))
+  (define (log-it msg . args)
+    (with-output-to-string
+      (lambda ()
+	(apply info-log logger msg args))))
+  (test-equal "argument-ref(1)" "#()\n"        (log-it "dummy"))
+  (test-equal "argument-ref(2)" "a#(a)\n"      (log-it "dummy" 'a))
+  (test-equal "argument-ref(3)" "ab#(a b)\n"   (log-it "dummy" 'a 'b))
+  (test-equal "argument-ref(4)" "ab#(a b c)\n" (log-it "dummy" 'a 'b 'c)))
 
 (let ((file  "log.log"))
   (when (file-exists? file) (delete-file file))
@@ -78,7 +87,7 @@
       (if (= (string-length a) (string-length b))
 	  (string<? a b)
 	  (> (string-length a) (string-length b))))
-    (for-each (lambda (e v) 
+    (for-each (lambda (e v)
 		(test-equal "rolling file appender" e (string-trim-right v)))
 	      expects
 	      (map file->string (list-sort comp log-files)))
