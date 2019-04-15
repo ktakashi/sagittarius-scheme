@@ -89,17 +89,17 @@ To stop background thread, @code{terminate-logger!} needs to be called. It
 is users responsibility to do it.
 }
 
-@define[Function]{@name{trace-log} @args{logger message}}
+@define[Function]{@name{trace-log} @args{logger message . arguments}}
 @define[Function]{@name{logger-trace?} @args{logger}}
-@define[Function]{@name{debug-log} @args{logger message}}
+@define[Function]{@name{debug-log} @args{logger message . arguments}}
 @define[Function]{@name{logger-debug?} @args{logger}}
-@define[Function]{@name{info-log} @args{logger message}}
+@define[Function]{@name{info-log} @args{logger message . arguments}}
 @define[Function]{@name{logger-info?} @args{logger}}
-@define[Function]{@name{warn-log} @args{logger message}}
+@define[Function]{@name{warn-log} @args{logger message . arguments}}
 @define[Function]{@name{logger-warn?} @args{logger}}
-@define[Function]{@name{error-log} @args{logger message}}
+@define[Function]{@name{error-log} @args{logger message . arguments}}
 @define[Function]{@name{logger-error?} @args{logger}}
-@define[Function]{@name{fatal-log} @args{logger message}}
+@define[Function]{@name{fatal-log} @args{logger message . arguments}}
 @define[Function]{@name{logger-fatal?} @args{logger}}
 @desc{Logging APIs.
 
@@ -152,6 +152,12 @@ The @var{log-format} can contains place holders stating with the character
   }
   @dl-item[@code{#\m}]{
     Puts log message on this location.
+  }
+  @dl-item[@code{#\a[n]}]{
+    Puts @var{n}th log argument on this location.
+  }
+  @dl-item[@code{#\a}]{
+    Puts all log arguments on this location.
   }
 }
 
@@ -302,15 +308,16 @@ The default implementation handles the log format described in the
 
 @define["Record Type"]{@name{<log>}}
 @define[Function]{@name{log?} @args{obj}}
-@define[Function]{@name{make-log} @args{when level message}}
+@define[Function]{@name{make-log} @args{when level message . arguments}}
 @define[Function]{@name{log-when} @args{log}}
 @define[Function]{@name{log-level} @args{log}}
 @define[Function]{@name{log-message} @args{log}}
+@define[Function]{@name{log-arguments} @args{log}}
 @desc{Default log object.
 
-@code{<log>} has 3 fields @code{when}, @code{level} and @code{message}.
-By default creation, they are UTC time object, symbol of log level and
-log message, respectively.
+@code{<log>} has 4 fields @code{when}, @code{level}, @code{message} and
+@code{arguments}. By the default creation, they are UTC time object, symbol
+of log level, log message and a vector of extra logging arguments, respectively.
 }
 
 If you want to create own logger which handles log object differently,

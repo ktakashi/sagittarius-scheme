@@ -2,7 +2,7 @@
 ;;;
 ;;; util/logging.scm - Logging utilities
 ;;;  
-;;;   Copyright (c) 2010-2016  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2019  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!nounbound
 (library (util logging)
     (export ;; Loggers
 	    make-logger        logger?       <logger>
@@ -57,7 +58,7 @@
 	    
 	    format-log (rename (appender-format appender-log-format))
 	    <log> make-log log? ;; for push-log
-	    log-when log-level log-message
+	    log-when log-level log-message log-arguments
 
 	    ;; logger storage
 	    define-logger-storage loggers
