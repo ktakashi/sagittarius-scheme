@@ -112,7 +112,11 @@
 	      (vector-ref arguments v)
 	      #f)
 	  (string-append "a[" v))))
-  
+  (define (put out msg)
+    (if (string? msg)
+	(put-string out msg)
+	(put-datum out msg)))
+
   (let-values (((out extract) (open-string-output-port)))
     (do ((c (get-char in) (get-char in)))
 	((eof-object? c) (extract))
@@ -127,14 +131,11 @@
 		(else
 		 (put-string out (date->string when (string #\~ c2)))))))
 	   ((#\l) (put-string out (symbol->string level)))
-	   ((#\m) (if (string? message)
-		      (put-string out message)
-		      (put-datum out message)))
+	   ((#\m) (put out message))
 	   ((#\a)
 	    (let ((c2 (lookahead-char in)))
 	      (case c2
-		((#\[)
-		 (cond ((get-argument in) => (lambda (v) (put-datum out v)))))
+		((#\[) (cond ((get-argument in) => (lambda (v) (put out v)))))
 		(else  (put-datum out arguments)))))
 	   (else => (lambda (c2)
 		      (put-char out #\~)
