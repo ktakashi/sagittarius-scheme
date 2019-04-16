@@ -25,7 +25,8 @@
 	    raise-i/o-encoding-error)
     (import (core)
 	    (core base)
-	    (sagittarius))
+	    (sagittarius)
+	    (sagittarius vm))
 
 (define (%condition-message c)
   (cond ((not (message-condition? c)) #f)
@@ -36,15 +37,18 @@
 		 ((%condition-message (car cp)))
 		 (else (loop (cdr cp))))))))
 	    
-(define (raise-continuable c) ((car (current-exception-handlers)) c))
-(define (raise c)
+(define (raise-continuable co)
+  (define c (vm-attach-stack-trace co))
+  ((car (current-exception-handlers)) c))
+(define (raise co)
+  (define c (vm-attach-stack-trace co))
   (let ((eh* (current-exception-handlers)))
     ;; invoke the first one. if it's the default-exception-handler
     ;; then it won't return.
     ((car eh*) c)
     ;; if it's returned, then pop the invoked handler.
     (current-exception-handlers (cdr eh*))
-    ;; we use sort Sagittarius specific here to avoit
+    ;; we use sort of Sagittarius specific here to avoid
     ;; deeply nested &non-continuable
     (let ((msg "error in raise: returned from non-continuable"))
       (if (and (non-continuable-violation? c) (eq? (%condition-message c) msg))

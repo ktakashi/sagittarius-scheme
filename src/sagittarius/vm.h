@@ -435,6 +435,9 @@ SG_EXTERN void Sg_VMReleaseGlobalLock();
 
 SG_EXTERN void Sg_EnableSandbox();
 SG_EXTERN void Sg_DisableSandbox();
+
+SG_EXTERN SgObject Sg_VMAttachStackTrace(SgVM *vm, SgObject condition,
+					 int skipTop);
  
 /* it would be too dangerous to exporse */
 /* SG_EXTERN SgObject Sg_RootVM(); */

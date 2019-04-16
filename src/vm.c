@@ -1792,28 +1792,40 @@ static SgObject raise_cc(SgObject result, void **data)
   return Sg_VMApply1(p, e);
 }
 
+/*
+  This change makes raise or raise-continuable and saving raised condition
+  a bit more expensive than before (and may cause memory explosion). The 
+  basic idea of this change is that using continuation frame as a stack 
+  trace so that nested stack trace can be detected easily. To make this 
+  happen, we save all frames into the heap as if call/cc is called when 
+  raise/raise-contiuable is called.
+  
+  Above sounds kinda horrible however if we implement segmented stacks type
+  call/cc described the blow paper, then this performance penalty wouldn't be
+  a problem.
+  - Representing Control in the Presence of First-Class Continuations
+    URL: http://www.cs.indiana.edu/~dyb/papers/stack.ps
+  Not sure if this happens in near future but we may review the current
+  implementation of call/cc if the performance would be an issue.
+*/
+SgObject Sg_VMAttachStackTrace(SgVM *vm, SgObject condition, int skipTop)
+{
+  if (Sg_CompoundConditionP(condition)) {
+    SgContFrame *save;
+    save_cont(vm);
+    save = vm->cont;
+    if (skipTop) {
+      vm->cont = vm->cont->prev;
+    }
+    condition = Sg_AddStackTrace(condition, vm);
+    vm->cont = save;
+  }
+  return condition;
+}
+
 SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP)
 {
-  /*
-    This change makes raise or raise-continuable and saving raised condition
-    a bit more expensive than before (and may cause memory explosion). The 
-    basic idea of this change is that using continuation frame as a stack 
-    trace so that nested stack trace can be detected easily. To make this 
-    happen, we save all frames into the heap as if call/cc is called when 
-    raise/raise-contiuable is called.
-    
-    Above sounds kinda horrible however if we implement segmented stacks type
-    call/cc described the blow paper, then this performance penalty wouldn't be
-    a problem.
-    - Representing Control in the Presence of First-Class Continuations
-      URL: http://www.cs.indiana.edu/~dyb/papers/stack.ps
-    Not sure if this happens in near future but we may review the current
-    implementation of call/cc if the performance would be an issue.
-  */
-  if (Sg_CompoundConditionP(exception)) {
-    save_cont(vm);
-    exception = Sg_AddStackTrace(exception, vm);
-  }
+  exception = Sg_VMAttachStackTrace(vm, exception, FALSE);
   /* should never happen but I usually make mistake so lean to safer side. */
   if (SG_NULLP(vm->exceptionHandlers)) {
     vm->exceptionHandlers = DEFAULT_EXCEPTION_HANDLER;

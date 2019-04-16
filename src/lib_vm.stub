@@ -514,4 +514,7 @@
   (define-c-proc acquire-global-lock! () ::<void> Sg_VMAcquireGlobalLock)
   (define-c-proc release-global-lock! () ::<void> Sg_VMReleaseGlobalLock)
 
+  (define-c-proc vm-attach-stack-trace (c)
+    (result (Sg_VMAttachStackTrace (Sg_VM) c TRUE)))
+  
 )
