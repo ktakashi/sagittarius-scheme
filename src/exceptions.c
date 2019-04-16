@@ -802,6 +802,7 @@ SgObject Sg_MakeIODecoding(SgObject port)
 static SgObject make_stack_trace(SgObject cause, SgVM *vm)
 {
   SgObject st = stack_trace_allocate(SG_CLASS_STACK_TRACE_CONDITION, SG_NIL);
+  
   SG_STACK_TRACE_CONDITION(st)->cause = cause;
   SG_STACK_TRACE_CONDITION(st)->trace = vm->cont;
   SG_STACK_TRACE_CONDITION(st)->cl = vm->cl;
@@ -825,8 +826,13 @@ SgObject Sg_AddStackTrace(SgObject e, SgVM *vm)
 	SG_APPEND1(h, t, SG_CAR(cp));
       }
     }
-    SG_APPEND1(h, t, make_stack_trace(cause, vm));
-    return Sg_Condition(h);
+    if (SG_FALSEP(cause) ||
+	!SG_EQ(vm->cont, SG_STACK_TRACE_CONDITION(cause)->trace)) {
+      SG_APPEND1(h, t, make_stack_trace(cause, vm));
+      return Sg_Condition(h);
+    }
+    /* nothing was assed, so just ignore */
+    return e;
   }
   return e;
 }

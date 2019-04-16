@@ -525,7 +525,25 @@ static void format_stack_trace(SgVM *vm, SgObject buf, SgContFrame *cur,
 			       SgContFrame *prev, SgObject cl, SgWord *pc)
 {
   int i;
-
+  SgContFrame *shared = NULL;
+  
+  if (prev) {
+    SgContFrame *tmp = cur;
+    while (tmp != tmp->prev && tmp != tmp->prev->prev) {
+      SgContFrame *sharedTmp  = prev;
+      while (sharedTmp != sharedTmp->prev
+	     && sharedTmp != sharedTmp->prev->prev) {
+	if (tmp == sharedTmp) {
+	  shared = sharedTmp;
+	  break;
+	}
+	sharedTmp = sharedTmp->prev;
+      }
+      if (shared) break;
+      tmp = tmp->prev;
+    }
+  }
+  
   Sg_PutuzUnsafe(buf, UC("stack trace:\n"));
   for (i = 1;;) {
     if (i > MAX_STACK_TRACE) {
@@ -574,7 +592,7 @@ static void format_stack_trace(SgVM *vm, SgObject buf, SgContFrame *cur,
     if ((!IN_STACK_P((SgObject *)cur, vm) || 
 	 (uintptr_t)cur > (uintptr_t)vm->stack) &&
 	/* already printed */
-	cur != prev) {
+	cur != shared) {
       cl = cur->cl;
       pc = cur->pc;
       cur = cur->prev;
@@ -634,14 +652,11 @@ static inline void report_error(SgObject error, SgObject out)
 
   if (cl && !SG_NULLP(stackTrace)) {
     SgVM *vm = Sg_VM();
+    SgContFrame *prevFrame = NULL;
     while (1) {
-      SgContFrame *nextFrame = NULL;
+      format_stack_trace(vm, buf, stackTrace, prevFrame, cl, pc);
       if (SG_STACK_TRACE_CONDITION_P(next)) {
-	nextFrame = (SgContFrame *)SG_STACK_TRACE_CONDITION(next)->trace;
-      }
-      format_stack_trace(vm, buf, stackTrace, nextFrame, cl, pc);
-      if (SG_STACK_TRACE_CONDITION_P(next)) {
-	/* prev = stackTrace; */
+	prevFrame = stackTrace;
 	stackTrace = (SgContFrame *)SG_STACK_TRACE_CONDITION(next)->trace;
 	next = SG_STACK_TRACE_CONDITION(next)->cause;
 	if (SG_STACK_TRACE_CONDITION_P(next)) {
