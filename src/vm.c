@@ -1827,13 +1827,21 @@ SgObject Sg_VMAttachStackTrace(SgVM *vm, SgObject condition, int skipTop)
 {
   if (Sg_CompoundConditionP(condition)) {
     SgContFrame *save;
+    SgObject cl;
+    SgWord *pc;
     save_cont(vm);
     save = vm->cont;
+    cl = vm->cl;
+    pc = vm->pc;
     if (skipTop) {
       vm->cont = vm->cont->prev;
+      vm->cl = vm->cont->cl;
+      vm->pc = vm->cont->pc;
     }
     condition = Sg_AddStackTrace(condition, vm);
     vm->cont = save;
+    vm->cl = cl;
+    vm->pc = pc;
   }
   return condition;
 }
