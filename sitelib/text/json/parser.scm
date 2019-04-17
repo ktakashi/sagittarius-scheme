@@ -37,6 +37,7 @@
 	    json-error?
 	    json-parse-error?
 	    *json:escape-required*
+	    *json:raise-error?*
 
 	    json:null
 	    json:number
@@ -91,6 +92,7 @@
 ;; If the JSON is embedded to somewhere (i.e. JMESPath) it may require
 ;; extra escape rule.
 (define *json:escape-required* (make-parameter #f))
+(define *json:raise-error?* (make-parameter #f))
 
 (define (json-parse-error message . irr)
   (define c (condition (make-json-parse-error)
@@ -102,9 +104,11 @@
 
 (define ($error message)
   (lambda (in)
-    (if (null? in)
-	(json-parse-error "Unexpected EOF")
-	(json-parse-error message (lseq-car in)))))
+    (if (*json:raise-error?*)
+	(if (null? in)
+	    (json-parse-error "Unexpected EOF")
+	    (json-parse-error message (lseq-car in)))
+	(return-expect message in))))
 
 (define $cs $char-set-contains?)
 ;; read only one char 
@@ -121,7 +125,7 @@
 (define value-separactor ($seq ws ($eqv? #\,) ws))
 
 (define (token s)
-  ($or ($lazy ($token s))
+  ($or ($token s)
        ($error (string-append "Unexpected character for token " s))))
 
 (define json:true  ($do ((token "true")) ($return #t)))
@@ -261,5 +265,7 @@
 	       ((eqv? #\n c) json:null)
 	       (else ($error "Invalid JSON character"))))))
 
-(define json:parser ($do ws (v json:value) ws ($return v)))
+(define json:parser
+  ($parameterize ((*json:raise-error?* #t))
+   ($do ws (v json:value) ws ($return v))))
 )
