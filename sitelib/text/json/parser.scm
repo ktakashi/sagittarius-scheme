@@ -36,7 +36,16 @@
     (export json:parser
 	    json-error?
 	    json-parse-error?
-	    *json:escape-required*)
+	    *json:escape-required*
+
+	    json:null
+	    json:number
+	    json:string
+	    json:true
+	    json:false
+	    json:object
+	    json:array
+	    json:value)
     (import (rnrs)
 	    (peg)
 	    (peg chars)
