@@ -337,7 +337,7 @@
 ;; reg-name      = *( unreserved / pct-encoded / sub-delims )
 (define uri:reg-name-parser
   ($do (c* ($many ($or uri:unreserved uri:pct-encoded uri:sub-delims)))
-       ($return (list->string c*))))
+       ($return (and (not (null? c*)) (list->string c*)))))
 ;; host          = IP-literal / IPv4address / reg-name
 (define uri:host-parser
   ($or uri:ip-literal-parser uri:ipv4-address-parser uri:reg-name-parser))
@@ -486,10 +486,6 @@
 
 (define (uri-parse uri)
   (define lseq (generator->lseq (string->generator uri)))
-  (define (filter-non-empty-string str)
-    (and (string? str)
-	 (not (string-null? str))
-	 str))
   (define (decompose hier)
     (cond ((null? hier) #f)
 	  ((eq? (car hier) '//)
@@ -507,7 +503,7 @@
 	  (let-values (((user-info host port path) (decompose hier)))
 	    (values scheme
 		    user-info
-		    (filter-non-empty-string host)
+		    host
 		    (and port (string->number port))
 		    path
 		    query

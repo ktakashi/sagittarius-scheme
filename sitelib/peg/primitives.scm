@@ -119,12 +119,9 @@
       ((_ v state l) #'(lambda (_) (values state v l)))
       (k (identifier? #'k) #'$$return))))
 
-(define ($expect parser msg)
+(define ($expect msg)
   (lambda (l)
-    (let-values (((r v nl) (parser l)))
-      (if (parse-success? r)
-	  (return-result v nl)
-	  (return-expect msg l)))))
+    (return-expect msg l)))
 
 (define ($fail msg)
   (lambda (l)

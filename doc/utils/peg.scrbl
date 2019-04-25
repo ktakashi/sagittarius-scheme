@@ -101,12 +101,9 @@ The next input must be a lazy sequence.
 return value is given @var{message}.
 }
 
-@define[Function]{@name{$expect} @args{parser message}}
-@desc{Returns a parser which uses the given @var{parser} to parse its input,
-and if the result state is not success, then return @code{+parse-expect+}
-with the given @var{message} as its return value.
-
-This is useful to provide detail message of the failure.
+@define[Function]{@name{$expect} @args{message}}
+@desc{Returns a parser whose returning state is @code{+parse-expect+} and
+return value is given @var{message}.
 }
 
 @define[Function]{@name{$eof} @args{input}}

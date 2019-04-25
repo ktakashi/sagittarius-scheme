@@ -122,7 +122,7 @@
 (define-syntax $when
   (syntax-rules ()
     ((_ pred body)
-     ($if pred body ($fail 'pred)))))
+     ($if pred body ($expect 'pred)))))
 (define-syntax $unless
   (syntax-rules ()
     ((_ pred body)
