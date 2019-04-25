@@ -2,7 +2,7 @@
 ;;;
 ;;; rfc/uri-template/parser.scm - URI template parser
 ;;;  
-;;;   Copyright (c) 2018  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2018-2019  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -45,6 +45,7 @@
 	    (peg chars)
 	    (sagittarius generators)
 	    (rfc uri-template conditions)
+	    (rfc uri parser)
 	    (srfi :14 char-sets)
 	    (srfi :127 lseqs))
 
@@ -57,7 +58,6 @@
 ;;                ; case-insensitive
 (define *alpha* (char-set-intersection char-set:letter char-set:ascii))
 (define *digit* (char-set-intersection char-set:digit char-set:ascii))
-(define *hexdig* char-set:hex-digit)
 
 
 ;; unreserved  =  ALPHA / DIGIT / "-" / "." / "_" / "~"
@@ -102,9 +102,7 @@
 		    (ucs-range->char-set #x100000 (+ #x10FFFD))))
 
 ;; pct-encoded =  "%" HEXDIG HEXDIG
-(define pct-encoded
- ($do (($eqv? #\%)) (c1 ($cs *hexdig*)) (c2 ($cs *hexdig*))
-      ($return (integer->char (string->number (string c1 c2))))))
+(define pct-encoded uri:pct-encoded)
 
 ;;; 2.1 Literals
 ;; literals =  %x21 / %x23-24 / %x26 / %x28-3B / %x3D / %x3F-5B
@@ -130,7 +128,7 @@
 ;; max-length    =  %x31-39 0*3DIGIT   ; positive integer < 10000
 (define prefix ($do (($eqv? #\:))
 		    (d1 ($cs (string->char-set "123456789")))
-		    (d* ($many ($cs *digit*) 0 3))
+		    (d* ($many uri:digit 0 3))
 		    ($return (string->number (apply string d1 d*)))))
 ;;; 2.4.2 Composite Values
 ;; explode       =  "*"
@@ -141,7 +139,7 @@
 
 ;;; 2.3 Variables
 ;; varchar       =  ALPHA / DIGIT / "_" / pct-encoded
-(define varchar ($or ($cs *alpha*) ($cs *digit*) ($eqv? #\_) pct-encoded))
+(define varchar ($or uri:alpha uri:digit ($eqv? #\_) pct-encoded))
 ;; varname       =  varchar *( ["."] varchar )
 (define varname ($do (c varchar)
 		     (c* ($many ($do (d ($optional ($eqv? #\.)))
