@@ -57,25 +57,6 @@
 	    (sagittarius control)
 	    (sagittarius regex))
 
-  ;; returns (scheme user-info host port path query fragments)
-  ;; TODO use https://tools.ietf.org/html/rfc3986#appendix-A ABNF
-  (define (uri-parse uri)
-    (define (filter-non-empty-string str)
-      (and (string? str)
-	   (not (string-null? str))
-	   str))
-    (let*-values (((scheme specific) (uri-scheme&specific uri))
-		  ((auth path query frag)
-		   (uri-decompose-hierarchical specific))
-		  ((user-info host port) (uri-decompose-authority auth)))
-      (values scheme
-	      user-info
-	      (filter-non-empty-string host)
-	      (and port (string->number port))
-	      (filter-non-empty-string path)
-	      query
-	      frag)))
-
   ;; compose
   (define (uri-compose :key (scheme #f) (userinfo #f) (host #f) (port #f)
 			    (authority #f) (path  #f) (path* #f) (query #f)

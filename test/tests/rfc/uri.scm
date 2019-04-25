@@ -103,7 +103,7 @@
 	    (receive r (uri-parse "mailto:shiro@example.com") r))
 
 (let ([base0 "http://a/b/c/d;p?q"])
-  (define (t base rel expect) 
+  (define (t base rel expect)
     (test-equal (format "merging ~s onto ~s" rel base)
 		expect (uri-merge base rel)))
   (define t0 (lambda args (apply t base0 args)))
