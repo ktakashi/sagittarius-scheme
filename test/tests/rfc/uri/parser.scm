@@ -1,5 +1,6 @@
 (import (rnrs)
 	(rfc uri parser)
+	(sagittarius)
 	(sagittarius generators)
 	(peg)
 	(srfi :127 lseqs)
@@ -73,5 +74,10 @@
 (test-equal "uri reference (1)"
 	    '(#f (// (#f "localhost" #f) (/ "a" "b")) #f #f)
 	    (parse uri:uri-reference-parser "//localhost/a/b"))
+
+;; duplicated tests
+(let ((me (current-load-path)))
+  (load (build-path (directory-name me) "parse.incl.scm")))
+
 
 (test-end)

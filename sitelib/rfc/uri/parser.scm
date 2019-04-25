@@ -47,8 +47,6 @@
 	    uri:scheme-parser
 	    uri:hier-part-parser
 	    uri:authority-parser
-	    uri:host-parser
-	    uri:port-parser
 	    uri:query-parser
 	    uri:fragment-parser
 	    uri:path-parser
@@ -60,6 +58,8 @@
 	    uri:path-absolute-parser
 	    uri:path-abempty-parser
 	    uri:path-empty-parser
+	    uri:host-parser
+	    uri:port-parser
 	    uri:ip-literal-parser
 	    uri:ipv-future-parser
 	    uri:ipv6-address-parser
@@ -337,7 +337,7 @@
 ;; reg-name      = *( unreserved / pct-encoded / sub-delims )
 (define uri:reg-name-parser
   ($do (c* ($many ($or uri:unreserved uri:pct-encoded uri:sub-delims)))
-       ($return (and (not (null? c*)) (list->string c*)))))
+       ($return (list->string c*))))
 ;; host          = IP-literal / IPv4address / reg-name
 (define uri:host-parser
   ($or uri:ip-literal-parser uri:ipv4-address-parser uri:reg-name-parser))
@@ -463,7 +463,7 @@
       (cond ((and u p) (string-append u "@" h ":" p))
 	    (u         (string-append u "@" h))
 	    (p         (string-append h ":" p))
-	    (else      h))))
+	    (else       h))))
   (let-values (((s v nl) (uri:relative-ref-parser lseq)))
     (if (parse-success? s)
 	(let ((rel (car v))
@@ -487,12 +487,12 @@
 (define (uri-parse uri)
   (define lseq (generator->lseq (string->generator uri)))
   (define (decompose hier)
-    (cond ((null? hier) #f)
+    (cond ((null? hier) (values #f "" #f #f))
 	  ((eq? (car hier) '//)
 	   (let ((auth (cadr hier))
 		 (path (caddr hier)))
 	     (values (car auth) (cadr auth) (caddr auth) (->path-string path))))
-	  (else (values #f #f #f (->path-string hier)))))
+	  (else (values #f "" #f (->path-string hier)))))
   ;; interestingly, it's reference...
   (let-values (((s v nl) (uri:uri-reference-parser lseq)))
     (if (parse-success? s)
@@ -503,7 +503,7 @@
 	  (let-values (((user-info host port path) (decompose hier)))
 	    (values scheme
 		    user-info
-		    host
+		    (if (zero? (string-length host)) #f host)
 		    (and port (string->number port))
 		    path
 		    query
