@@ -79,5 +79,16 @@
 (let ((me (current-load-path)))
   (load (build-path (directory-name me) "parse.incl.scm")))
 
+(test-equal "uri->string (1)" "http://localhost/a/b"
+	    (uri:parsed-uri->string
+	     '("http" (// (#f "localhost" #f) (/ "a" "b")) #f #f)))
+(test-equal "uri->string (2)" "//localhost/a/b"
+	    (uri:parsed-uri->string
+	     '(#f (// (#f "localhost" #f) (/ "a" "b")) #f #f)))
+(test-equal "uri->string (3)" "//user@localhost:8080/a/b"
+	    (uri:parsed-uri->string
+	     '(// ("user" "localhost" "8080") (/ "a" "b"))))
+(test-equal "uri->string (4)" "urn:foo:bar"
+	    (uri:parsed-uri->string '("urn" (! "foo:bar") #f #f)))
 
 (test-end)

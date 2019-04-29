@@ -50,6 +50,9 @@
 	    uri:query-parser
 	    uri:fragment-parser
 	    uri:path-parser
+
+	    ;; utility
+	    uri:parsed-uri->string
 	    
 	    ;; mid level
 	    uri:relative-ref-parser
@@ -508,4 +511,48 @@
 		    path
 		    query
 		    frag))))))
+
+(define (uri:parsed-uri->string uri)
+  (define (user-info->string uri)
+    (let ((u (car uri))
+	  (h (cadr uri))
+	  (p (caddr uri)))
+      (let-values (((out e) (open-string-output-port)))
+	(when u (put-string out u) (put-string out "@"))
+	(when h (put-string out h))
+	(when p (put-string out ":") (put-string out p))
+	(e))))
+  (define (query->string uri) (if uri (string-append "?" uri) ""))
+  (define fragment->string query->string)
+  (define (relative-path->string uri) (string-join (cdr uri) "/"))
+  (define (absolute-path->string uri)
+    (string-append "/" (relative-path->string uri)))
+  (define (authority->string uri)
+    (let-values (((out e) (open-string-output-port)))
+      (put-string out "//")
+      (put-string out (user-info->string (cadr uri)))
+      (put-string out (absolute-path->string (caddr uri)))
+      (e)))
+  (define (full-uri->string uri)
+    (let ((scheme (cond ((car uri) => (lambda (s) (string-append s ":")))
+			(else ""))))
+      (string-append scheme
+		     (->string (cadr uri))
+		     (query->string (caddr uri))
+		     (fragment->string (cadddr uri)))))
+  (define (other->string uri)
+    (let ((first (car uri))
+	  (second (cadr uri)))
+      (if (pair? second)
+	  (full-uri->string uri)
+	  (user-info->string uri))))
+  (define (->string uri)
+    (case (car uri)
+      ((//) (authority->string uri))
+      ((/)  (absolute-path->string uri))
+      ((!)  (relative-path->string uri))
+      (else (other->string uri))))
+  (if (pair? uri)
+      (->string uri)
+      uri))
 )
