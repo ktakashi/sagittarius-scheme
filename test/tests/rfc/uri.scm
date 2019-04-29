@@ -1,4 +1,5 @@
 (import (rnrs)
+	(rnrs eval)
 	(sagittarius)
 	(rfc uri)
 	(srfi :64 testing))
@@ -30,7 +31,7 @@
 (test-equal "decode" ""     (uri-decode-string ""))
 
 (let ((me (current-load-path)))
-  (load (build-path (directory-name me) "uri/parse.incl.scm")))
+  (load (build-path (directory-name me) "uri/parse.incl.ss")))
 
 (let ([base0 "http://a/b/c/d;p?q"])
   (define (t base rel expect)

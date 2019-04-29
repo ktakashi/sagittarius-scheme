@@ -30,6 +30,7 @@
 
 ;; Main reference:
 ;; RFC3986 URI Generic Syntax <https://tools.ietf.org/html/rfc3986>
+#!nounbound
 #!read-macro=sagittarius/regex
 (library (rfc uri)
     (export uri-parse
@@ -50,7 +51,6 @@
 	    (rfc uri regex)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
-	    (shorten)
 	    (sagittarius)
 	    (sagittarius io)
 	    (encoding decoder)

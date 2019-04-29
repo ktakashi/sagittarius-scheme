@@ -77,7 +77,7 @@
 
 ;; duplicated tests
 (let ((me (current-load-path)))
-  (load (build-path (directory-name me) "parse.incl.scm")))
+  (load (build-path (directory-name me) "parse.incl.ss")))
 
 (test-equal "uri->string (1)" "http://localhost/a/b"
 	    (uri:parsed-uri->string
