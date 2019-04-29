@@ -44,6 +44,10 @@
 	    json-patch-illegal-type-error?
 
 	    *json-patcher:ignore-no-such-path*
+
+	    ;; for convenient
+	    json->mutable-json
+	    mutable-json->json
 	    )
     (import (rnrs)
 	    (text json pointer)
