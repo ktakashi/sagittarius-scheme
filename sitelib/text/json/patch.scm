@@ -48,7 +48,19 @@
 	    ;; for convenient
 	    json->mutable-json
 	    mutable-json->json
-	    )
+	    mutable-json-object?
+	    mutable-json-array?
+	    mutable-json-object-set!
+	    mutable-json-object-merge!
+	    mutable-json-object-delete!
+	    mutable-json-object-contains?
+	    mutable-json-object-ref
+	    mutable-json-not-found?
+	    mutable-json-array-set!
+	    mutable-json-array-insert!
+	    mutable-json-array-delete!
+	    mutable-json-array-ref
+	    mutable-json-array-size)
     (import (rnrs)
 	    (text json pointer)
 	    (text json parse)
@@ -56,6 +68,7 @@
 	    (text json compare)
 	    (srfi :1 lists)
 	    (srfi :39 parameters)
+	    (srfi :126 hashtables)
 	    (srfi :133 vectors)
 	    (util vector)
 	    (util hashtables)
@@ -133,6 +146,19 @@
 (define-record-type not-found)
 (define +json-not-found+ (make-not-found))
 (define (mutable-json-object-set! mj key value) (hashtable-set! mj key value))
+(define (mutable-json-object-merge! base-mj mj . mj*)
+  (define (merge1 base mj) (hashtable-merge! base mj))
+  (define (err)
+    (assertion-violation 'mutable-json-object-merge!
+			 "Mutable JSON object requried" base-mj mj mj*))
+  (unless (and (mutable-json-object? base-mj) (mutable-json-object? mj))
+    (err))
+  (cond ((null? mj*) (merge1 base-mj mj))
+	((for-all mutable-json-object? mj*)
+	 (merge1 base-mj mj)
+	 (for-each (lambda (mj) (merge1 base-mj mj)) mj*))
+	(else (err)))
+  base-mj)
 (define (mutable-json-object-delete! mj key) (hashtable-delete! mj key))
 (define (mutable-json-object-contains? mj key) (hashtable-contains? mj key))
 (define (mutable-json-object-ref mj key)
