@@ -48,6 +48,7 @@
 	    ;; for convenient
 	    json->mutable-json
 	    mutable-json->json
+	    mutable-json?
 	    mutable-json-object?
 	    mutable-json-array?
 	    mutable-json-object-set!
@@ -84,8 +85,10 @@
     (assertion-violation 'json-patcher "A list is required" patch))
   (let ((patcher (->patcher patch)))
     (lambda (json)
-      (let ((mutable-json (json->mutable-json json)))
-	(mutable-json->json (patcher mutable-json))))))
+      (if (mutable-json? json)
+	  (patcher json) ;; return mutable json
+	  (let ((mutable-json (json->mutable-json json)))
+	    (mutable-json->json (patcher mutable-json)))))))
 
 (define-condition-type &json-patch &error
   make-json-patch-error json-patch-error?)
@@ -122,32 +125,56 @@
 	     (vector-for-each (lambda (e)
 				(hashtable-set! ht (car e) (convert (cdr e))))
 			      json)
-	     ht))
-	  ((list? json) (list->flexible-vector (map convert json)))
+	     (make-mutable-json-object ht)))
+	  ((list? json)
+	   (make-mutable-json-array (list->flexible-vector (map convert json))))
 	  (else json)))
   (case (*json-map-type*)
     ((vector) (convert json))
     ((alist) (convert (alist-json->vector-json json)))))
 (define (mutable-json->json mutable-json)
   (define (convert mjson)
-    (cond ((hashtable? mjson)
+    (cond ((mutable-json-object? mjson)
 	   (list->vector
-	    (hashtable-map (lambda (k v) (cons k (convert v))) mjson)))
-	  ((flexible-vector? mjson)
-	   (map convert (flexible-vector->list mjson)))
+	    (hashtable-map (lambda (k v) (cons k (convert v)))
+			   (mutable-json-object-entries mjson))))
+	  ((mutable-json-array? mjson)
+	   (map convert
+		(flexible-vector->list (mutable-json-array-elements mjson))))
 	  (else mjson)))
   (let ((json (convert mutable-json)))
     (case (*json-map-type*)
       ((vector) (convert json))
       ((alist) (convert (vector-json->alist-json json))))))
 
-(define mutable-json-object? hashtable?)
-(define mutable-json-array? flexible-vector?)
+;; we are exporting mutable json so, make a proper type...
+(define-record-type mutable-json)
+(define-record-type mutable-json-object
+  (fields entries)
+  (parent mutable-json)
+  (protocol (lambda (n)
+	      (case-lambda
+	       (() ((n) (make-hashtable string-hash string=?)))
+	       ((ht) ((n) ht))))))
+(define-record-type mutable-json-array
+  (fields elements)
+  (parent mutable-json)
+  (protocol (lambda (n)
+	      (case-lambda
+	       (() ((n) (make-flexible-vector 0)))
+	       ((l) ((n) l))))))
+
+;;(define mutable-json-object? hashtable?)
+;;(define mutable-json-array?  flexible-vector?)
+
 (define-record-type not-found)
 (define +json-not-found+ (make-not-found))
-(define (mutable-json-object-set! mj key value) (hashtable-set! mj key value))
+(define (mutable-json-object-set! mj key value)
+  (hashtable-set! (mutable-json-object-entries mj) key value))
 (define (mutable-json-object-merge! base-mj mj . mj*)
-  (define (merge1 base mj) (hashtable-merge! base mj))
+  (define (merge1 base mj)
+    (hashtable-merge! (mutable-json-object-entries base)
+		      (mutable-json-object-entries mj)))
   (define (err)
     (assertion-violation 'mutable-json-object-merge!
 			 "Mutable JSON object requried" base-mj mj mj*))
@@ -159,18 +186,23 @@
 	 (for-each (lambda (mj) (merge1 base-mj mj)) mj*))
 	(else (err)))
   base-mj)
-(define (mutable-json-object-delete! mj key) (hashtable-delete! mj key))
-(define (mutable-json-object-contains? mj key) (hashtable-contains? mj key))
+(define (mutable-json-object-delete! mj key)
+  (hashtable-delete! (mutable-json-object-entries mj) key))
+(define (mutable-json-object-contains? mj key)
+  (hashtable-contains? (mutable-json-object-entries mj) key))
 (define (mutable-json-object-ref mj key)
-  (hashtable-ref mj key +json-not-found+))
+  (hashtable-ref (mutable-json-object-entries mj) key +json-not-found+))
 (define (mutable-json-not-found? o) (eq? +json-not-found+ o))
 (define (mutable-json-array-set! mj key value)
-  (flexible-vector-set! mj key value))
+  (flexible-vector-set! (mutable-json-array-elements mj) key value))
 (define (mutable-json-array-insert! mj key value)
-  (flexible-vector-insert! mj key value))
-(define (mutable-json-array-delete! mj key) (flexible-vector-delete! mj key))
-(define (mutable-json-array-ref mj key) (flexible-vector-ref mj key))
-(define (mutable-json-array-size mj) (flexible-vector-size mj))
+  (flexible-vector-insert! (mutable-json-array-elements mj) key value))
+(define (mutable-json-array-delete! mj key)
+  (flexible-vector-delete! (mutable-json-array-elements mj) key))
+(define (mutable-json-array-ref mj key)
+  (flexible-vector-ref (mutable-json-array-elements mj) key))
+(define (mutable-json-array-size mj)
+  (flexible-vector-size (mutable-json-array-elements mj)))
 
 (define (key=? key) (lambda (e) (string=? (car e) key)))
 (define op? (key=? "op"))

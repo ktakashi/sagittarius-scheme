@@ -23,12 +23,17 @@
     (define expected (expected-pointer json))
     (define comment (let ((v (comment-pointer json)))
 		      (if (json-pointer-not-found? v) patch v)))
-    (if (json-pointer-not-found? err)
-	(if (json-pointer-not-found? expected)
-	    (test-assert comment ((json-patcher patch) doc))
-	    (test-assert comment (json=? expected ((json-patcher patch) doc))))
-	;; TODO detect type of error from error message
-	(test-error comment json-patch-error? ((json-patcher patch) doc))))
+
+    (define (assert doc wrap)
+      (if (json-pointer-not-found? err)
+	  (if (json-pointer-not-found? expected)
+	      (test-assert comment (wrap ((json-patcher patch) doc)))
+	      (test-assert comment (json=? expected
+					   (wrap ((json-patcher patch) doc)))))
+	  ;; TODO detect type of error from error message
+	  (test-error comment json-patch-error? ((json-patcher patch) doc))))
+    (assert doc values)
+    (assert (json->mutable-json doc) mutable-json->json))
   (for-each run-test-case test-cases))
 
 (test-begin "JSON Patch")
