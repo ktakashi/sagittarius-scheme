@@ -119,19 +119,24 @@
 ;; a json object easier
 ;; it uses hashtable for json object, and flexible array for array
 (define (json->mutable-json json)
-  (define (convert json)
-    (cond ((vector? json)
-	   (let ((ht (make-hashtable string-hash string=?)))
-	     (vector-for-each (lambda (e)
-				(hashtable-set! ht (car e) (convert (cdr e))))
-			      json)
-	     (make-mutable-json-object ht)))
-	  ((list? json)
-	   (make-mutable-json-array (list->flexible-vector (map convert json))))
-	  (else json)))
   (case (*json-map-type*)
-    ((vector) (convert json))
-    ((alist) (convert (alist-json->vector-json json)))))
+    ((vector) (->mutable-json json))
+    ((alist) (->mutable-json (alist-json->vector-json json)))))
+;; internal
+(define (->mutable-json json)
+  (cond ((vector? json)
+	 (let ((ht (make-hashtable string-hash string=?)))
+	   (vector-for-each
+	    (lambda (e)
+	      (hashtable-set! ht (car e) (make-lazy-mutable-json (cdr e))))
+	    json)
+	   (make-mutable-json-object ht)))
+	((list? json)
+	 (make-mutable-json-array
+	  (list->flexible-vector
+	   (map (lambda (e) (make-lazy-mutable-json e)) json))))
+	(else json)))
+
 (define (mutable-json->json mutable-json)
   (define (convert mjson)
     (cond ((mutable-json-object? mjson)
@@ -141,6 +146,7 @@
 	  ((mutable-json-array? mjson)
 	   (map convert
 		(flexible-vector->list (mutable-json-array-elements mjson))))
+	  ((lazy-mutable-json? mjson) (lazy-mutable-json-value mjson))
 	  (else mjson)))
   (let ((json (convert mutable-json)))
     (case (*json-map-type*)
@@ -149,6 +155,16 @@
 
 ;; we are exporting mutable json so, make a proper type...
 (define-record-type mutable-json)
+(define-record-type lazy-mutable-json
+  (parent mutable-json)
+  (fields value))
+(define (realize-lazy-mutable-json lmj)
+  (->mutable-json (lazy-mutable-json-value lmj)))
+(define (ensure-mutable-json j)
+  (if (or (mutable-json? j) (string? j) (number? j) (boolean? j))
+      j
+      (make-lazy-mutable-json j)))
+
 (define-record-type mutable-json-object
   (fields entries)
   (parent mutable-json)
@@ -164,13 +180,11 @@
 	       (() ((n) (make-flexible-vector 0)))
 	       ((l) ((n) l))))))
 
-;;(define mutable-json-object? hashtable?)
-;;(define mutable-json-array?  flexible-vector?)
-
 (define-record-type not-found)
 (define +json-not-found+ (make-not-found))
 (define (mutable-json-object-set! mj key value)
-  (hashtable-set! (mutable-json-object-entries mj) key value))
+  (hashtable-set! (mutable-json-object-entries mj) key
+		  (ensure-mutable-json value)))
 (define (mutable-json-object-merge! base-mj mj . mj*)
   (define (merge1 base mj)
     (hashtable-merge! (mutable-json-object-entries base)
@@ -191,16 +205,32 @@
 (define (mutable-json-object-contains? mj key)
   (hashtable-contains? (mutable-json-object-entries mj) key))
 (define (mutable-json-object-ref mj key)
-  (hashtable-ref (mutable-json-object-entries mj) key +json-not-found+))
+  (define entries (mutable-json-object-entries mj))
+  (define (unwrap mj key e)
+    (if (lazy-mutable-json? e)
+	(let ((v (realize-lazy-mutable-json e)))
+	  (hashtable-set! entries key v)
+	  v)
+	e))
+  (unwrap mj key (hashtable-ref entries key +json-not-found+)))
 (define (mutable-json-not-found? o) (eq? +json-not-found+ o))
 (define (mutable-json-array-set! mj key value)
-  (flexible-vector-set! (mutable-json-array-elements mj) key value))
+  (flexible-vector-set! (mutable-json-array-elements mj) key
+			(ensure-mutable-json value)))
 (define (mutable-json-array-insert! mj key value)
-  (flexible-vector-insert! (mutable-json-array-elements mj) key value))
+  (flexible-vector-insert! (mutable-json-array-elements mj) key
+			   (ensure-mutable-json value)))
 (define (mutable-json-array-delete! mj key)
   (flexible-vector-delete! (mutable-json-array-elements mj) key))
 (define (mutable-json-array-ref mj key)
-  (flexible-vector-ref (mutable-json-array-elements mj) key))
+  (define elements (mutable-json-array-elements mj))
+  (define (unwrap mj key e)
+    (if (lazy-mutable-json? e)
+	(let ((v (realize-lazy-mutable-json e)))
+	  (flexible-vector-set! elements key v)
+	  v)
+	e))
+  (unwrap mj key (flexible-vector-ref elements key)))
 (define (mutable-json-array-size mj)
   (flexible-vector-size (mutable-json-array-elements mj)))
 
@@ -297,20 +327,19 @@
 		   (else (ile mutable-json))))))))))
 
 (define (make-add-command path value)
-  (define mutable-value (json->mutable-json value))
   (if (string=? path "")
-      (lambda (_) mutable-value)
+      (lambda (_) (ensure-mutable-json value))
       (call-with-last-entry add path
        (lambda (last json _)
-	 (mutable-json-object-set! json last mutable-value))
+	 (mutable-json-object-set! json last value))
        (lambda (last json root-json)
 	 (let ((n (mutable-json-array-size json)))
 	   (if (equal? last "-")
-	       (mutable-json-array-insert! json n mutable-value)
+	       (mutable-json-array-insert! json n value)
 	       (let ((i (check-index 'add path last)))
 		 (if (or (negative? i) (> i n))
 		     (rte 'add path "Index out of bound" root-json)
-		     (mutable-json-array-insert! json i mutable-value)))))))))
+		     (mutable-json-array-insert! json i value)))))))))
 
 (define (make-remove-command path)
   (call-with-last-entry remove path
@@ -325,18 +354,17 @@
 	    (nsp 'remove path root-json))))))
 
 (define (make-replace-command path value)
-  (define mutable-value (json->mutable-json value))
   (if (string=? path "")
-      (lambda (_) mutable-value)
+      (lambda (_) (ensure-mutable-json value))
       (call-with-last-entry replace path
        (lambda (last json root-json)
 	 (if (mutable-json-object-contains? json last)
-	     (mutable-json-object-set! json last mutable-value)
+	     (mutable-json-object-set! json last value)
 	     (nsp 'replace path root-json)))
        (lambda (last json root-json)
 	 (let ((n (check-index 'replace path last)))
 	   (if (< n (mutable-json-array-size json))
-	       (mutable-json-array-set! json n mutable-value)
+	       (mutable-json-array-set! json n value)
 	       (nsp 'replace path root-json)))))))
 
 ;; FIXME inefficient...
