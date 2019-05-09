@@ -43,37 +43,17 @@
 	    json-patch-path-not-found-error?
 	    json-patch-illegal-type-error?
 
-	    *json-patcher:ignore-no-such-path*
-
-	    ;; for convenient
-	    json->mutable-json
-	    mutable-json->json
-	    mutable-json?
-	    mutable-json-object?
-	    mutable-json-array?
-	    mutable-json-object-set!
-	    mutable-json-object-merge!
-	    mutable-json-object-delete!
-	    mutable-json-object-contains?
-	    mutable-json-object-ref
-	    mutable-json-not-found?
-	    mutable-json-array-set!
-	    mutable-json-array-insert!
-	    mutable-json-array-delete!
-	    mutable-json-array-ref
-	    mutable-json-array-size)
+	    *json-patcher:ignore-no-such-path*)
     (import (rnrs)
 	    (text json pointer)
 	    (text json parse)
 	    (text json convert)
 	    (text json compare)
+	    (text json mutable)
 	    (srfi :1 lists)
 	    (srfi :39 parameters)
-	    (srfi :126 hashtables)
 	    (srfi :133 vectors)
-	    (util vector)
-	    (util hashtables)
-	    (util flexible-vector))
+	    (util vector))
 
 (define (json-patcher patch)
   (define (->patcher patch)
@@ -114,125 +94,6 @@
 		    (make-who-condition who)
 		    (make-message-condition message)
 		    (make-irritants-condition irr))))
-
-;; mutable json is an alternative form for sexp json to make modification
-;; a json object easier
-;; it uses hashtable for json object, and flexible array for array
-(define (json->mutable-json json)
-  (case (*json-map-type*)
-    ((vector) (->mutable-json json))
-    ((alist) (->mutable-json (alist-json->vector-json json)))))
-;; internal
-(define (->mutable-json json)
-  (cond ((vector? json)
-	 (let ((ht (make-hashtable string-hash string=?)))
-	   (vector-for-each
-	    (lambda (e)
-	      (hashtable-set! ht (car e) (make-lazy-mutable-json (cdr e))))
-	    json)
-	   (make-mutable-json-object ht)))
-	((list? json)
-	 (make-mutable-json-array
-	  (list->flexible-vector
-	   (map (lambda (e) (make-lazy-mutable-json e)) json))))
-	(else json)))
-
-(define (mutable-json->json mutable-json)
-  (define (convert mjson)
-    (cond ((mutable-json-object? mjson)
-	   (list->vector
-	    (hashtable-map (lambda (k v) (cons k (convert v)))
-			   (mutable-json-object-entries mjson))))
-	  ((mutable-json-array? mjson)
-	   (map convert
-		(flexible-vector->list (mutable-json-array-elements mjson))))
-	  ((lazy-mutable-json? mjson) (lazy-mutable-json-value mjson))
-	  (else mjson)))
-  (let ((json (convert mutable-json)))
-    (case (*json-map-type*)
-      ((vector) (convert json))
-      ((alist) (convert (vector-json->alist-json json))))))
-
-;; we are exporting mutable json so, make a proper type...
-(define-record-type mutable-json)
-(define-record-type lazy-mutable-json
-  (parent mutable-json)
-  (fields value))
-(define (realize-lazy-mutable-json lmj)
-  (->mutable-json (lazy-mutable-json-value lmj)))
-(define (ensure-mutable-json j)
-  (if (or (mutable-json? j) (string? j) (number? j) (boolean? j))
-      j
-      (make-lazy-mutable-json j)))
-
-(define-record-type mutable-json-object
-  (fields entries)
-  (parent mutable-json)
-  (protocol (lambda (n)
-	      (case-lambda
-	       (() ((n) (make-hashtable string-hash string=?)))
-	       ((ht) ((n) ht))))))
-(define-record-type mutable-json-array
-  (fields elements)
-  (parent mutable-json)
-  (protocol (lambda (n)
-	      (case-lambda
-	       (() ((n) (make-flexible-vector 0)))
-	       ((l) ((n) l))))))
-
-(define-record-type not-found)
-(define +json-not-found+ (make-not-found))
-(define (mutable-json-object-set! mj key value)
-  (hashtable-set! (mutable-json-object-entries mj) key
-		  (ensure-mutable-json value)))
-(define (mutable-json-object-merge! base-mj mj . mj*)
-  (define (merge1 base mj)
-    (hashtable-merge! (mutable-json-object-entries base)
-		      (mutable-json-object-entries mj)))
-  (define (err)
-    (assertion-violation 'mutable-json-object-merge!
-			 "Mutable JSON object requried" base-mj mj mj*))
-  (unless (and (mutable-json-object? base-mj) (mutable-json-object? mj))
-    (err))
-  (cond ((null? mj*) (merge1 base-mj mj))
-	((for-all mutable-json-object? mj*)
-	 (merge1 base-mj mj)
-	 (for-each (lambda (mj) (merge1 base-mj mj)) mj*))
-	(else (err)))
-  base-mj)
-(define (mutable-json-object-delete! mj key)
-  (hashtable-delete! (mutable-json-object-entries mj) key))
-(define (mutable-json-object-contains? mj key)
-  (hashtable-contains? (mutable-json-object-entries mj) key))
-(define (mutable-json-object-ref mj key)
-  (define entries (mutable-json-object-entries mj))
-  (define (unwrap mj key e)
-    (if (lazy-mutable-json? e)
-	(let ((v (realize-lazy-mutable-json e)))
-	  (hashtable-set! entries key v)
-	  v)
-	e))
-  (unwrap mj key (hashtable-ref entries key +json-not-found+)))
-(define (mutable-json-not-found? o) (eq? +json-not-found+ o))
-(define (mutable-json-array-set! mj key value)
-  (flexible-vector-set! (mutable-json-array-elements mj) key
-			(ensure-mutable-json value)))
-(define (mutable-json-array-insert! mj key value)
-  (flexible-vector-insert! (mutable-json-array-elements mj) key
-			   (ensure-mutable-json value)))
-(define (mutable-json-array-delete! mj key)
-  (flexible-vector-delete! (mutable-json-array-elements mj) key))
-(define (mutable-json-array-ref mj key)
-  (define elements (mutable-json-array-elements mj))
-  (define (unwrap mj key e)
-    (if (lazy-mutable-json? e)
-	(let ((v (realize-lazy-mutable-json e)))
-	  (flexible-vector-set! elements key v)
-	  v)
-	e))
-  (unwrap mj key (flexible-vector-ref elements key)))
-(define (mutable-json-array-size mj)
-  (flexible-vector-size (mutable-json-array-elements mj)))
 
 (define (key=? key) (lambda (e) (string=? (car e) key)))
 (define op? (key=? "op"))
@@ -328,7 +189,7 @@
 
 (define (make-add-command path value)
   (if (string=? path "")
-      (lambda (_) (ensure-mutable-json value))
+      (lambda (_) (->lazy-mutable-json value))
       (call-with-last-entry add path
        (lambda (last json _)
 	 (mutable-json-object-set! json last value))
@@ -355,7 +216,7 @@
 
 (define (make-replace-command path value)
   (if (string=? path "")
-      (lambda (_) (ensure-mutable-json value))
+      (lambda (_) (->lazy-mutable-json value))
       (call-with-last-entry replace path
        (lambda (last json root-json)
 	 (if (mutable-json-object-contains? json last)

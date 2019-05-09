@@ -4,6 +4,7 @@
 	(text json patch)
 	(text json pointer)
 	(text json compare)
+	(text json mutable)
 	(srfi :26)
 	(srfi :39)
 	(srfi :64))
