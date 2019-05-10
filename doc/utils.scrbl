@@ -56,6 +56,7 @@
 @include-section["utils/text/html-lite.scrbl"]
 @include-section["utils/text/json.scrbl"]
 @include-section["utils/text/json/jmespath.scrbl"]
+@include-section["utils/text/json/mutable.scrbl"]
 @include-section["utils/text/json/pointer.scrbl"]
 @include-section["utils/text/json/patch.scrbl"]
 @include-section["utils/text/json/schema.scrbl"]

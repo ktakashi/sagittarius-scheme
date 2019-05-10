@@ -31,17 +31,16 @@
 #!nounbound
 (library (text json mutable)
     (export json->mutable-json
-	    (rename (make-lazy-mutable-json ->lazy-mutable-json))
 	    mutable-json->json
 	    mutable-json?
 	    mutable-json-object?
-	    mutable-json-array?
 	    mutable-json-object-set!
 	    mutable-json-object-merge!
 	    mutable-json-object-delete!
 	    mutable-json-object-contains?
 	    mutable-json-object-ref
 	    mutable-json-not-found?
+	    mutable-json-array?
 	    mutable-json-array-set!
 	    mutable-json-array-insert!
 	    mutable-json-array-delete!

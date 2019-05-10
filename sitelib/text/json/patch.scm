@@ -189,7 +189,7 @@
 
 (define (make-add-command path value)
   (if (string=? path "")
-      (lambda (_) (->lazy-mutable-json value))
+      (lambda (_) (json->mutable-json value))
       (call-with-last-entry add path
        (lambda (last json _)
 	 (mutable-json-object-set! json last value))
@@ -216,7 +216,7 @@
 
 (define (make-replace-command path value)
   (if (string=? path "")
-      (lambda (_) (->lazy-mutable-json value))
+      (lambda (_) (json->mutable-json value))
       (call-with-last-entry replace path
        (lambda (last json root-json)
 	 (if (mutable-json-object-contains? json last)
