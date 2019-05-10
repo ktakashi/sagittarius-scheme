@@ -129,12 +129,21 @@
 (let ((client-socket (make-client-tls-socket "localhost" "10001"
 					     :private-key (keypair-private client-keypair)
 					     :certificates (list client-cert))))
+  (define (ensure-read-n in n)
+    (let-values (((out e) (open-string-output-port)))
+      (let loop ((c n))
+	(let ((s (get-string-n in c)))
+	  (put-string out s)
+	  (if (= (string-length s) c)
+	      (e)
+	      (loop (- c (string-length s))))))))
+    
   (tls-socket-send client-socket (string->utf8 "certificate\r\n"))
   (let ((in/out (transcoded-port (tls-socket-port client-socket)
 				 (native-transcoder))))
     (let ((n (string->number (get-line in/out))))
       (unless (zero? n)
-	(let ((cert (get-string-n in/out n)))
+	(let ((cert (ensure-read-n in/out n)))
 	  (test-assert (x509-certificate?
 			(make-x509-certificate
 			 (base64-decode-string cert :transcoder #f)))))))
