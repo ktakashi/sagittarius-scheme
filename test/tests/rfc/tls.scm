@@ -143,6 +143,10 @@
 				 (native-transcoder))))
     (let ((n (string->number (get-line in/out))))
       (unless (zero? n)
+	;; skip excess space in case of on windows
+	(do ((c (lookahead-char in/out) (lookahead-char in/out)))
+	    ((not (char-whitespace? c)))
+	  (get-char in/out))
 	(let ((cert (ensure-read-n in/out n)))
 	  (test-assert (x509-certificate?
 			(make-x509-certificate
