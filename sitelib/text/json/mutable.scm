@@ -48,7 +48,9 @@
 	    mutable-json-array-size)
     (import (rnrs)
 	    (text json) ;; for *json-map-type*...
-	    (srfi :126 hashtables)
+	    ;; The srfi provides own make-hashtable and it'd be slower
+	    ;; than buildin version.
+	    (except (srfi :126 hashtables) make-hashtable)
 	    (srfi :133 vectors)
 	    (util vector)
 	    (util hashtables)
@@ -64,17 +66,8 @@
     ((alist) (->mutable-json (alist-json->vector-json json)))))
 ;; internal
 (define (->mutable-json json)
-  (cond ((vector? json)
-	 (let ((ht (make-hashtable string-hash string=?)))
-	   (vector-for-each
-	    (lambda (e)
-	      (hashtable-set! ht (car e) (ensure-mutable-json (cdr e))))
-	    json)
-	   (make-mutable-json-object ht)))
-	((list? json)
-	 (make-mutable-json-array
-	  (list->flexible-vector
-	   (map (lambda (e) (ensure-mutable-json e)) json))))
+  (cond ((vector? json) (make-mutable-json-object json))
+	((list? json)   (make-mutable-json-array json))
 	(else json)))
 
 (define (mutable-json->json mutable-json)
@@ -114,16 +107,20 @@
   (fields entries)
   (parent mutable-json)
   (protocol (lambda (n)
-	      (case-lambda
-	       (() ((n) (make-hashtable string-hash string=?)))
-	       ((ht) ((n) ht))))))
+	      (lambda (json)
+		(let ((ht (make-hashtable string-hash string=?)))
+		  (vector-for-each
+		   (lambda (e)
+		     (hashtable-set! ht (car e) (ensure-mutable-json (cdr e))))
+		   json)
+		  ((n) ht))))))
 (define-record-type mutable-json-array
   (fields elements)
   (parent mutable-json)
   (protocol (lambda (n)
-	      (case-lambda
-	       (() ((n) (make-flexible-vector 0)))
-	       ((l) ((n) l))))))
+	      (lambda (json)
+		((n) (list->flexible-vector
+		      (map (lambda (e) (ensure-mutable-json e)) json)))))))
 
 (define-record-type not-found)
 (define +json-not-found+ (make-not-found))
