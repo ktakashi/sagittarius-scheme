@@ -146,7 +146,9 @@
   (hashtable-delete! (mutable-json-object-entries mj) key))
 (define (mutable-json-object-contains? mj key)
   (hashtable-contains? (mutable-json-object-entries mj) key))
-(define (mutable-json-object-ref mj key)
+(define (mutable-json-object-ref mj key . maybe-default)
+  (define default
+    (if (null? maybe-default) +json-not-found+ (car maybe-default)))
   (define entries (mutable-json-object-entries mj))
   (define (unwrap mj key e)
     (if (lazy-mutable-json? e)
@@ -154,7 +156,7 @@
 	  (hashtable-set! entries key v)
 	  v)
 	e))
-  (unwrap mj key (hashtable-ref entries key +json-not-found+)))
+  (unwrap mj key (hashtable-ref entries key default)))
 (define (mutable-json-not-found? o) (eq? +json-not-found+ o))
 (define (mutable-json-array-set! mj key value)
   (flexible-vector-set! (mutable-json-array-elements mj) key

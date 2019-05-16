@@ -39,6 +39,7 @@
     (import (rnrs)
 	    (peg)
 	    (text json)
+	    (text json mutable)
 	    (sagittarius generators)
 	    (srfi :127 lseqs))
 
@@ -86,6 +87,14 @@
 	 (string=? p (number->string n))
 	 n)))
 
+(define (handle-mutable-json json p)
+  (cond ((mutable-json-object? json)
+	 (mutable-json-object-ref json p +json-pointer-not-found+))
+	((and (mutable-json-array? json) (->array-index p)) =>
+	 (lambda (n)
+	   (and (< n (mutable-json-array-size json))
+		(mutable-json-array-ref json n))))
+	(else #f)))
 (define (make-vector-json-pointer tokens parent)
   (define (find-vector-map json p)
     (define len (vector-length json))
@@ -106,6 +115,7 @@
 		   (cond ((vector? json) (find-vector-map json p))
 			 ((and (pair? json) (->array-index p)) =>
 			  (lambda (n) (find-list-array json n)))
+			 ((handle-mutable-json json p))
 			 (else +json-pointer-not-found+)))))
 	     (lambda (json) (parent json)) tokens))
 
@@ -119,6 +129,7 @@
 			    (if (< n (vector-length json))
 				(vector-ref json n)
 				+json-pointer-not-found+)))
+			 ((handle-mutable-json json p))
 			 (else +json-pointer-not-found+)))))
 	     (lambda (json) (parent json)) tokens))
 )
