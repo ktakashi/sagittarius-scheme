@@ -33,8 +33,11 @@ exec sagittarius $0 "$@"
 (define-constant +work-dir+ "tzdata")
 (define-constant +max-retry+ 5)
 
-(define-constant +windows-mappings-url+
+;; Seems it's moved to github...
+#;(define-constant +windows-mappings-url+
   "http://unicode.org/repos/cldr/trunk/common/supplemental/windowsZones.xml")
+(define-constant +windows-mappings-url+
+  "https://raw.githubusercontent.com/unicode-org/cldr/master/common/supplemental/windowsZones.xml")
 (define-constant +windows-mappings-file+ "windowsZones.xml")
 
 ;; zone history and rules older than this parameter are stripped 
