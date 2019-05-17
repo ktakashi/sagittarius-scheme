@@ -2282,4 +2282,12 @@
 ;;   (define v (make-t 'v))
 ;;   (test-error undefined-violation? (t-value v)))
 
+;; ÿ thing
+(define tmp "issue_256.tmp")
+(when (file-exists? tmp) (delete-file tmp))
+(call-with-output-file tmp (lambda (out) (write "\xff;" out)))
+(let ((expected #vu8(#x22 #xc3 #xbf #x22)))
+  (test-equal "ÿ is not \xff;" expected
+	      (call-with-input-file tmp get-bytevector-all :transcoder #f)))
+
 (test-end)

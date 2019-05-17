@@ -88,7 +88,8 @@ static void string_print(SgObject o, SgPort *port, SgWriteContext *ctx)
 	  if ((ch != 0xa && ch != 0xd && ch < ASCII_SPC) ||
 	      ch == ASCII_DEL ||
 	      ch == 0x80 ||
-	      ch == 0xff ||
+	      /* Issue #256, ÿ should have printed as it is */
+	      /* ch == 0xff || */
 	      ch == 0xD7FF ||
 	      ch == 0xE000 ||
 	      ch == 0x10FFFF) { // todo
