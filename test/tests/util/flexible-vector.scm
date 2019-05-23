@@ -42,4 +42,10 @@
 (test-w/default (vector->flexible-vector '#(1 2 3) 'ok))
 (test-w/default (list->flexible-vector '(1 2 3) 'ok))
 
+(let ()
+  (define fv (vector->flexible-vector '#(1)))
+  (test-assert (flexible-vector-delete! fv 0))
+  (test-equal 0 (flexible-vector-size fv))
+  (test-error (flexible-vector-delete! fv 0)))
+
 (test-end)
