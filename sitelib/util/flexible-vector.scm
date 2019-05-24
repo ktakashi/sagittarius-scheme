@@ -111,7 +111,7 @@
     (assertion-violation 'flexible-vector-delete!
 			 "Index out of bound" fv index))
   (let ((elements (flexible-vector-elements fv)))
-    (unless (= (vector-length elements) 1)
+    (unless (= current-size (+ index 1))
       (vector-copy! elements index elements (+ index 1) current-size))
     (%fv-size-set! fv (- current-size 1))))
 )
