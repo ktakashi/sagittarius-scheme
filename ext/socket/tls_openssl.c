@@ -464,8 +464,8 @@ static int verify_callback(int previously_ok, X509_STORE_CTX *x509_store_ctx)
   
   cert = X509_STORE_CTX_get_current_cert(x509_store_ctx);
   depth = X509_STORE_CTX_get_error_depth(x509_store_ctx);
-  ssl = X509_STORE_CTX_get_ex_data(x509_store_ctx,
-				   SSL_get_ex_data_X509_STORE_CTX_idx());
+  ssl = (SSL *)X509_STORE_CTX_get_ex_data(x509_store_ctx,
+					  SSL_get_ex_data_X509_STORE_CTX_idx());
   /* our data is stored in the SSL_CTX */
   ctx = SSL_get_SSL_CTX(ssl);
   socket = (SgTLSSocket *)SSL_CTX_get_ex_data(ctx, callback_data_index);
@@ -496,7 +496,7 @@ static int verify_callback(int previously_ok, X509_STORE_CTX *x509_store_ctx)
     return 1;
   }
   SG_FOR_EACH(cp, authorities) {
-    if (Sg_ByteVectorCmp(bv, SG_CAR(cp)) == 0) {
+    if (Sg_ByteVectorCmp(SG_BVECTOR(bv), SG_BVECTOR(SG_CAR(cp))) == 0) {
       int err = X509_STORE_CTX_get_error(x509_store_ctx);
       if (!previously_ok && err == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT) {
 	/* accept self signed it's trusted */
@@ -570,5 +570,5 @@ void Sg_InitTLSImplementation()
     Sg_Warn(UC("libssl not found... why?"));
   }
   callback_data_index =
-    SSL_get_ex_new_index(0, "sagittarius index", NULL, NULL, NULL);
+    SSL_get_ex_new_index(0, (void *)"sagittarius index", NULL, NULL, NULL);
 }
