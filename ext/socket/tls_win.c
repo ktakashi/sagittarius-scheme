@@ -709,7 +709,7 @@ static SgObject get_certificate_chain(PCCERT_CONTEXT cc,
 				      PCCERT_CHAIN_CONTEXT *chainCtx)
 {
   int isClientCert = tlsSocket->socket->type == SG_SOCKET_CLIENT;
-  CERT_CHAIN_PARA          chainPara{ 0 };
+  CERT_CHAIN_PARA          chainPara = { 0 };
   LPSTR usage = isClientCert
     ? (LPSTR)szOID_PKIX_KP_CLIENT_AUTH
     : (LPSTR)szOID_PKIX_KP_SERVER_AUTH;
@@ -734,9 +734,9 @@ static SgObject default_verify_certificate(PCCERT_CONTEXT cc,
 					   SgTLSSocket *tlsSocket)
 {
   PCCERT_CHAIN_CONTEXT chainCtx = NULL;
-  HTTPSPolicyCallbackData  polHttps{ 0 };
-  CERT_CHAIN_POLICY_PARA   policyPara{ 0 };
-  CERT_CHAIN_POLICY_STATUS policyStatus{ 0 };
+  HTTPSPolicyCallbackData  polHttps = { 0 };
+  CERT_CHAIN_POLICY_PARA   policyPara = { 0 };
+  CERT_CHAIN_POLICY_STATUS policyStatus = { 0 };
   int isClientCert = tlsSocket->socket->type == SG_SOCKET_CLIENT;
   SgObject errMsg = SG_FALSE;
   
