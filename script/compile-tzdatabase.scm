@@ -209,6 +209,9 @@ zoneinfo2tdf.pl
 	 (lambda (m) (cons (string->symbol (m 1)) 'last)))
 	((#/(\w+)>=(\d+)/ date) =>
 	 (lambda (m) (cons (string->symbol (m 1)) (string->number (m 2)))))
+	((#/(\w+)<=(\d+)/ date) =>
+	 ;; FIXME ...
+	 (lambda (m) (cons (string->symbol (m 1)) (string->number (m 2)))))
 	(else (error 'parse-time-at "unknown AT date format" date))))
 
 (define-constant +month-prefix+
