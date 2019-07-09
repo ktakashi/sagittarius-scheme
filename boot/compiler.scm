@@ -145,6 +145,13 @@
     ((_ f l)
      (apply append (imap f l)))))
 
+(define-syntax $vm-warn
+  (syntax-rules ()
+    ((_ fmt args ...)
+     (when (vm-log-level 'warn)
+       (let ((msg (format/ss fmt args ...)))
+	 (vm-warn msg))))))
+
 (define (uniq lst)
   (let loop ((lst lst) (ret '()))
     (cond ((null? lst) ret)
@@ -2924,9 +2931,8 @@
 	      (if (vm-error-unbound?)
 		  (error 'check-exports "attempt to export unbound variable(s)"
 			 diff lib)
-		  (vm-warn (format 
-			    "attempt to export unbound variable(s) ~a at ~a"
-			    diff (library-name lib)))))))))
+		  ($vm-warn "attempt to export unbound variable(s) ~a at ~a"
+			    diff (library-name lib))))))))
 
 (define (pass1/library form lib p1env)
   (define (finish iform save)
@@ -3897,10 +3903,10 @@
 
 (define (pass2/remove-unused-lvars iform lvars type)
   (define (unused-warning lvar)
-    (vm-warn (format "unused variable ~a in ~s"
-		     (lvar-name lvar)
-		     (or (cond (($let-src iform) => unwrap-syntax) (else #f))
-			 (iform->sexp iform)))))
+    ($vm-warn "unused variable ~a in ~s"
+	      (lvar-name lvar)
+	      (or (cond (($let-src iform) => unwrap-syntax) (else #f))
+		  (iform->sexp iform))))
   (let loop ((lvars lvars)
 	     (rl '())  ;; result lvars
 	     (ri '())  ;; result inits
@@ -4266,13 +4272,13 @@
 
 ;; args must be a list of $const node.
 (define (constant-folding-warning src who args)
-  (vm-warn (format/ss "~s: gave up constant folding with given argument(s)."
-		      ;; should be fine right?
-		      (if (circular-list? src) src (unwrap-syntax src))
-		      #;`(,(if (symbol? who)
-			     who
-			     (string->symbol (format "~a" who)))
-			,@(imap $const-value args))))
+  ($vm-warn "~s: gave up constant folding with given argument(s)."
+	    ;; should be fine right?
+	    (if (circular-list? src) src (unwrap-syntax src))
+	    #;`(,(if (symbol? who)
+		   who
+		   (string->symbol (format "~a" who)))
+	      ,@(imap $const-value args)))
   ;; for convenience
   #f)
 
@@ -4589,12 +4595,10 @@
 	       (loop (if (transparent? x.) r (cons x. r)) xs))))))))
 
 (define (check-argumens iform)
-  (define (err-msg name req opt? given)
+  (define (err-msg-fmt opt?)
     (if opt?
-	(format "wrong number of arguments: ~a requires at least ~a, but got ~a"
-		name req given)
-	(format "wrong number of arguments: ~a requires ~a, but got ~a"
-		name req given)))
+	"wrong number of arguments: ~a requires at least ~a, but got ~a"
+	"wrong number of arguments: ~a requires ~a, but got ~a"))
   (and-let* ((proc ($call-proc iform))
 	     ( ($gref? proc) )
 	     (id ($gref-id proc)) 
@@ -4608,8 +4612,10 @@
 		(and opt? (< given req)))
 	;; Should we reuse this?
 	(if (vm-error-unbound?)
-	    (error (id-name id) (err-msg (id-name id) req opt? given))
-	    (vm-warn (err-msg (id-name id) req opt? given)))))))
+	    (error (id-name id)
+		   (format/ss (err-msg-fmt opt?) (id-name id) req given))
+	    ($vm-warn (err-msg-fmt opt?)
+		      (id-name id) req given))))))
 (define (pass3/$CALL iform labels)
   (check-argumens iform)
   ($call-args-set! iform (imap (lambda (arg) (pass3/rec arg labels))
@@ -5301,11 +5307,8 @@
 		(memq name (library-defined lib)))
       (if (vm-error-unbound?)
 	  (undefined-violation name "unbound identifier")
-	  (vm-warn (format/ss 
-		    "reference to undefined variable: '~a' in ~a (source: ~a)"
-		    name 
-		    (library-name lib)
-		    (retrieve-first-source renv)))))))
+	  ($vm-warn "reference to undefined variable: '~a' in ~a (source: ~a)"
+		    name (library-name lib) (retrieve-first-source renv))))))
 
 (define (pass5/$GREF iform cb renv ctx)
   (let ((id ($gref-id iform)))
