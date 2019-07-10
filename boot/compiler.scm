@@ -369,18 +369,21 @@
   name
   (initval '())
   (ref-count 0)
-  (set-count 0))
+  (set-count 0)
+  ;; if ref count is decreased, it means optimised out
+  ;; in such case, we don't want to show warning message
+  (optimized? #f))
 
 ;; lvar name is basically for debug purpose and there is no reason to
 ;; be an identifier. 
-(define (make-lvar name) (%make-lvar (if (identifier? name)
-					 (id-name name)
-					 name)))
+(define (make-lvar name) 
+  (%make-lvar (if (identifier? name) (id-name name) name)))
 (define (make-lvar+ name) (make-lvar name))
 (define (lvar? obj) (and (vector? obj) (eq? (vector-ref obj 0) 'lvar)))
 (define (lvar-ref++! lvar) 
   (lvar-ref-count-set! lvar (+ (lvar-ref-count lvar) 1)))
 (define (lvar-ref--! lvar)
+  (lvar-optimized?-set! lvar #t)
   (lvar-ref-count-set! lvar (- (lvar-ref-count lvar) 1)))
 (define (lvar-set++! lvar)
   (lvar-set-count-set! lvar (+ (lvar-set-count lvar) 1)))
@@ -3862,6 +3865,7 @@
 		  (else
 		   (loop (cdr lvars) (cdr inits)
 			 (cons (car lvars) seen)))))))))
+
   (receive (lvars inits) (process-inits ($let-lvars iform) ($let-inits iform))
     (ifor-each2 (lambda (lv in) (lvar-initval-set! lv in)) lvars inits)
     (let ((obody (pass2/rec ($let-body iform) penv tail?)))
@@ -3903,10 +3907,11 @@
 
 (define (pass2/remove-unused-lvars iform lvars type)
   (define (unused-warning lvar)
-    ($vm-warn "unused variable ~a in ~s"
-	      (lvar-name lvar)
-	      (or (cond (($let-src iform) => unwrap-syntax) (else #f))
-		  (iform->sexp iform))))
+    (unless (lvar-optimized? lvar)
+      ($vm-warn "unused variable ~a in ~s"
+		(lvar-name lvar)
+		(or (cond (($let-src iform) => unwrap-syntax) (else #f))
+		    (iform->sexp iform)))))
   (let loop ((lvars lvars)
 	     (rl '())  ;; result lvars
 	     (ri '())  ;; result inits
@@ -3920,17 +3925,13 @@
 	  ((and (zero? (lvar-ref-count (car lvars)))
 		(zero? (lvar-set-count (car lvars))))
 	   (let ((init (lvar-initval (car lvars))))
-	     (if (and (eq? type 'rec*)
-		      (not (transparent? init)))
+	     (if (and (eq? type 'rec*) (not (transparent? init)))
 		 (loop (cdr lvars) (cons (car lvars) rl) (cons init ri) rr)
 		 ;; TODO: if I remove $LREF from inits, do I need to decrement
 		 ;; refcount?
 		 (begin
-		   ;; FIXME
-		   ;; adhoc fix for lambda inlining...
-		   ;; we don't want to show warning if it's lambda inlining
-		   ;; elimination.
-		   (unless ($lref? init) (unused-warning (car lvars)))
+		   ;; okay show warning
+		   (unused-warning (car lvars))
 		   (loop (cdr lvars) rl ri
 			 (cond (($lref? init)
 				(lvar-ref--! ($lref-lvar init))
