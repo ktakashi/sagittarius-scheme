@@ -96,6 +96,7 @@
 	    (text json pointer)
 	    (text json parse) ;; for *json-map-type*
 	    (text json convert)
+	    (sagittarius)
 	    (sagittarius regex)
 	    (sagittarius control)
 	    (rfc uri)
@@ -309,7 +310,8 @@
 		   (if obj
 		       (or (and frag ((json-pointer frag) obj)) obj)
 		       (eof-object))))
-		(frag ((json-pointer frag) schema))
+		(frag (or (refer-absolute ref #t)
+			  ((json-pointer frag) schema)))
 		;; should not happen, ...I think...
 		(else (or (refer-absolute ref #f) (eof-object)))))
 	(eof-object)))
