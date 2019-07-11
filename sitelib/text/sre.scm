@@ -50,7 +50,6 @@
 	    (sagittarius regex)
 	    (sagittarius control)
 	    (sagittarius char-set boundary)
-	    (core misc) ;; for define-macro
 	    (match))
 
 (define-condition-type &sre-parse-error &error

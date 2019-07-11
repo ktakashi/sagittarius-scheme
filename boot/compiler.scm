@@ -376,8 +376,14 @@
 
 ;; lvar name is basically for debug purpose and there is no reason to
 ;; be an identifier. 
-(define (make-lvar name) 
-  (%make-lvar (if (identifier? name) (id-name name) name)))
+(define (make-lvar name)
+  (if (identifier? name)
+      ;; users can't create identifier thus, if there's an identifier
+      ;; it means the expression is result of the macro expansion.
+      ;; for now, we don't want to see any of the unused warning
+      ;; caused by the expansion since it's too much.
+      (%make-lvar (id-name name) '() 0 0 #t)
+      (%make-lvar name)))
 (define (make-lvar+ name) (make-lvar name))
 (define (lvar? obj) (and (vector? obj) (eq? (vector-ref obj 0) 'lvar)))
 (define (lvar-ref++! lvar) 
