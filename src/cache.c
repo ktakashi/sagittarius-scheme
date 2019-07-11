@@ -278,8 +278,9 @@ static int cachable_p(SgObject obj, SgObject seen)
     return TRUE;
   } else {
     SgClass *klass = Sg_ClassOf(obj);
-    return (klass->cacheReader && klass->cacheWriter) ||
-      (SG_PROCEDUREP(klass->creader) && SG_PROCEDUREP(klass->cwriter));
+    return SG_LIBRARYP(klass->library) &&
+      ((klass->cacheReader && klass->cacheWriter) ||
+       (SG_PROCEDUREP(klass->creader) && SG_PROCEDUREP(klass->cwriter)));
   }
 }
 
@@ -947,18 +948,21 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
     }
   } else {
     SgClass *klass = Sg_ClassOf(o);
-    if (SG_PROCEDUREP(klass->cwriter)) {
+    SgObject library = klass->library;
+    if (SG_PROCEDUREP(klass->cwriter) && SG_LIBRARYP(library)) {
       Sg_PutbUnsafe(out, USER_DEFINED_OBJECT_TAG);
+      write_library(out, SG_LIBRARY(library));
       write_object_cache(out, klass->name, cbs, ctx);
       Sg_Apply3(klass->cwriter, o, out, ctx);
-    } else if (klass->cacheWriter) {
+    } else if (klass->cacheWriter && SG_LIBRARYP(library)) {
       /* put USER_DEFINED_OBJECT_TAG and class name */
       Sg_PutbUnsafe(out, USER_DEFINED_OBJECT_TAG);
+      write_library(out, SG_LIBRARY(library));
       write_object_cache(out, klass->name, cbs, ctx);
       /* now cache write can write */
       klass->cacheWriter(o, out, (void *)ctx);
     } else {
-      ESCAPE(ctx, "Non-cachable object appeared in writing phase %S\n", o);
+      ESCAPE(ctx, "Non-cacheable object appeared in writing phase %S\n", o);
     }
   }
 }
@@ -1680,24 +1684,24 @@ static SgObject read_closure(SgPort *in, read_ctx *ctx)
 }
 
 static SgObject clos_lib = SG_UNDEF;
+static SgObject read_library_name(SgPort *in, read_ctx *ctx);
 
 static SgObject read_user_defined_object(SgPort *in, read_ctx *ctx)
 {
   int tag = Sg_GetbUnsafe(in);
-  SgObject name, library, klass;
+  SgObject name, library, klass, library_name;
   SgGloc *target;
   CLOSE_TAG_CHECK(ctx, USER_DEFINED_OBJECT_TAG, tag);
+  library_name = read_library_name(in, ctx);
   name = read_object_rec(in, ctx);
-  /* TODO: 
-     The library we look up here might not have the class.
-     ex) #<(sagittarus regex)> 
-         (library (test) (export rx) (import (rnrs))
-           (define rx #/this won't be valid/))
-     The sample code will be valid for caching but reading will be invalid
-     because we don't have any <pattern> class info anywhere. How should we
-     treat this problem?
-   */
-  library = Sg_VM()->currentLibrary;
+
+  library = Sg_FindLibrary(library_name, FALSE);
+  if (SG_FALSEP(library)) {
+    ESCAPE(ctx, "library %S for user defined object %S is not found\n",
+	   library_name, name);
+    return SG_FALSE;		/* dummy */
+  }
+
   target = Sg_FindBinding(library, name, SG_FALSE);
   if (SG_FALSEP(target)) {
     /* might be builtin CLOS  */
@@ -1878,6 +1882,18 @@ SgObject Sg_ReadCacheObject(SgPort *p, SgReadCacheCtx *ctx)
   return o;
 }
 
+static SgObject read_library_name(SgPort *in, read_ctx *ctx)
+{
+  SgObject name;
+  int tag = Sg_GetbUnsafe(in);
+
+  CLOSE_TAG_CHECK(ctx, LIBRARY_TAG, tag);
+  name = read_symbol(in, TRUE, ctx);
+  if (SG_FALSEP(name)) 
+    ESCAPE(ctx, "%S contains invalid library name.\n", ctx->file);
+  return name;
+}
+
 static SgObject read_library(SgPort *in, read_ctx *ctx)
 {
   int length, tag, i;
@@ -1885,13 +1901,7 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
   SgLibrary *lib;
   SgObject later = SG_NIL;
   /* SgObject vtime = Sg_FileModifyTime(ctx->file); */
-
-  tag = Sg_GetbUnsafe(in);
-  CLOSE_TAG_CHECK(ctx, LIBRARY_TAG, tag);
-  name = read_symbol(in, TRUE, ctx);
-  if (SG_FALSEP(name)) 
-    ESCAPE(ctx, "%S contains invalid library name.\n", ctx->file);
-
+  name = read_library_name(in, ctx);
   /* if vm is reading a cache, which means library is not loaded yet.
      so we need to create it.
    */

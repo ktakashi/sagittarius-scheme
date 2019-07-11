@@ -2241,6 +2241,7 @@ static void init_class(SgClass *klass, const SgChar *name,
 
   if (name && lib) {
     klass->name = Sg_Intern(Sg_String(name));
+    klass->library = lib;
     Sg_InsertBinding(lib, SG_SYMBOL(klass->name), SG_OBJ(klass));
   }
 
