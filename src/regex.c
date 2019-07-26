@@ -2700,7 +2700,8 @@ void Sg_DumpRegex(SgPattern *pattern, SgObject port)
   int i;
   const int size = pattern->prog->rootLength;
   inst_t *start = &pattern->prog->root[0];
-  Sg_Printf(port, UC("input regex : %S\n"), pattern->pattern);
+  Sg_Printf(port, UC("input regex : %S extended? %A\n"), pattern->pattern,
+	    SG_MAKE_BOOL(pattern->extendedp));
   Sg_Printf(port, UC(" group count: %d\n"), pattern->groupCount);
   for (i = 0; i < size; i++) {
     inst_t *inst = &pattern->prog->root[i];

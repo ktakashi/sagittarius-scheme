@@ -195,6 +195,7 @@ struct match_ctx_rec_t
   char          reserved : 6;
 };
 
+/* #define DEBUG_REGEX */
 #if (defined DEBUG_REGEX)
 #define debug_printf(fmt, ...)			\
   Sg_Printf(Sg_StandardErrorPort(), UC(fmt), __VA_ARGS__)
@@ -267,42 +268,36 @@ static void add_to_threadq(match_ctx_t *ctx, THREADQ_T *q, int id0, int flags,
 
     /* create entry in q no matter what. we might fill it it in below or
        we might not. Even if now, it is necessary to have it, so that we
-       don't revisit r during thre recursion. */
+       don't revisit during thre recursion. */
     THREADQ_SET(q, id, filler);
     tp = &THREADQ_REF(q, id);
     ip = &ctx->inst[id];
     switch (INST_OPCODE(ip)) {
     case RX_FAIL: break;
     case RX_JMP:
-      add_state(&stk[nstk], ip->arg.pos.x - ctx->start, -1, NULL);
-      nstk++;
+      add_state(&stk[nstk++], ip->arg.pos.x - ctx->start, -1, NULL);
       break;
       
     case RX_SPLIT:
       /* explore alternatives */
-      add_state(&stk[nstk], ip->arg.pos.y - ctx->start, -1, NULL);
-      nstk++;
-      add_state(&stk[nstk], ip->arg.pos.x - ctx->start, -1, NULL);
-      nstk++;
+      add_state(&stk[nstk++], ip->arg.pos.y - ctx->start, -1, NULL);
+      add_state(&stk[nstk++], ip->arg.pos.x - ctx->start, -1, NULL);
       break;
 
     case RX_SAVE:
       if ((j = ip->arg.n) < ctx->ncapture) {
 	/* push a dummy whose only job is to restore capture[j] */
-	add_state(&stk[nstk], -1, j, capture[j]);
-	nstk++;
+	add_state(&stk[nstk++], -1, j, capture[j]);
 	capture[j] = p;
       }
-      add_state(&stk[nstk], id+1, -1, NULL);
-      nstk++;
+      add_state(&stk[nstk++], id+1, -1, NULL);
       break;
 
     case RX_EMPTY:
       /* printf("\nflags: %x %x, %x %d\n", ip->arg.flags, flags, ~flags, */
       /* 	     (ip->arg.flags & ~flags)); */
       if (ip->arg.flags & ~flags) break;
-      add_state(&stk[nstk], id+1, -1, NULL);
-      nstk++;
+      add_state(&stk[nstk++], id+1, -1, NULL);
       break;
       
     case RX_ANY:
@@ -448,7 +443,7 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
       THREADQ_CLEAR(runq);
       ctx->matched = TRUE;
       debug_printf(" matched%c", '\n');
-      return 0;
+      return TRUE;
     }
     default:
       Sg_Error(UC("[internal] Unhandled opcode in step: id=%d opcode=%d"),
@@ -458,7 +453,7 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
   }
   debug_printf(" %c", '\n');
   THREADQ_CLEAR(runq);
-  return 0;
+  return FALSE;
 }
 
 /* #define iswordchar(c) (c <= 0xFF && (isalnum(c) || (c) == '_')) */
@@ -541,7 +536,7 @@ static int matcher_match0(match_ctx_t *ctx, long from, int anchor, inst_t *inst)
   ctx->inst = inst;
 
   /* check word boundary */
-  for (p = precheck(bp, ep, inst); ;p++) {
+  for (p = precheck(bp, ep, inst); ; p++) {
     int flag = 0, isword = FALSE;
 
     /* ^ and \A */
@@ -553,9 +548,9 @@ static int matcher_match0(match_ctx_t *ctx, long from, int anchor, inst_t *inst)
     /* $, \Z and \z */
     if (p == ep)
       flag |= EmptyEndText | EmptyEndLine | EmptyEndTextNoNewLine;
-    else if (p+1 == ep && p[0] == '\n') {
+    else if (p+1 == ep && *p == '\n') {
       flag |= EmptyEndTextNoNewLine | EmptyEndLine;
-    } else if (p < ep && p[0] == '\n')
+    } else if (p < ep && *p == '\n')
       flag |= EmptyEndLine;
 
     /* \b and \B */
@@ -811,6 +806,7 @@ static int finish_match(match_ctx_t *ctx, int anchor)
   if (ctx->matched) {
     const char_t *ep = TEXT_ELEMENTS(MATCHER(ctx->m)->text)
       + SG_MATCHER_TO(ctx->m);
+    debug_printf("lastp %p, ep%p\n", ctx->lastp, ep);
     if (anchor != UNANCHORED && ctx->lastp != ep) {
       ctx->matched = FALSE;
       return FALSE;
