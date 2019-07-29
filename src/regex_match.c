@@ -251,8 +251,7 @@ static void add_to_threadq(match_ctx_t *ctx, THREADQ_T *q, int id0, int flags,
   if (id0 < 0) return;
 
   stk = ctx->astack;
-  add_state(&stk[nstk], id0, -1, NULL);
-  nstk++;
+  add_state(&stk[nstk++], id0, -1, NULL);
 
   while (nstk > 0) {
     const add_state_t *a = &stk[--nstk];
@@ -561,7 +560,7 @@ static int matcher_match0(match_ctx_t *ctx, long from, int anchor, inst_t *inst)
       flag |= EmptyWordBoundary;
     else
       flag |= EmptyNonWordBoundary;
-
+    
     match_step(ctx, runq, nextq, c, flag, p);
 
     /* swap */
