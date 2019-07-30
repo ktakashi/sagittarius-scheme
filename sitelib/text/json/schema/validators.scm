@@ -418,8 +418,7 @@
 	 (json=? (cdr a) (cdr b))))
   (define (key-compare a b) (string<? (car a) (car b)))
   (cond ((and (string? a) (string? b)) (string=? a b))
-	;; 1 and 1.0 are not the same so can't be = or equal?
-	((and (number? a) (number? b)) (eqv? a b))
+	((and (number? a) (number? b)) (= a b))
 	((and (vector? a) (vector? b))
 	 (vector-every entry=?
 		       (vector-sort key-compare a)

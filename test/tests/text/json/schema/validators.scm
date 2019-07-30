@@ -160,15 +160,15 @@
   (test-error assertion-violation? (json-schema:enum '(1 1)))
   
   (test-validator (json-schema:enum '(1 null ()))
-		  '(#t 1) '(#t null) '(#f 1.0) '(#t ()) '(#f "string"))
+		  '(#t 1) '(#t null) '(#t 1.0) '(#t ()) '(#f "string"))
   (test-validator (json-schema:enum '((1) #(("key" . 1))))
-		  '(#t (1)) '(#f (1.0))
-		  '(#t #(("key" . 1))) '(#f #(("key" . 1.0)))))
+		  '(#t (1)) '(#t (1.0))
+		  '(#t #(("key" . 1))) '(#t #(("key" . 1.0)))))
  (test-group "6.1.3.  const"
   (test-validator (json-schema:const "string") '(#t "string") '(#f "str"))
-  (test-validator (json-schema:const '(1)) '(#t (1)) '(#f (1.0)))
+  (test-validator (json-schema:const '(1)) '(#t (1)) '(#t (1.0)))
   (test-validator (json-schema:const '#(("key" . 1)))
-		  '(#t #(("key" . 1))) '(#f #(("key" . 1.0))))))
+		  '(#t #(("key" . 1))) '(#t #(("key" . 1.0))))))
 
 (test-group "6.2. Validation Keywords for Numeric Instances"
  (test-group "6.2.1. multipleOf"
