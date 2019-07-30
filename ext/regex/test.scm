@@ -1906,4 +1906,13 @@
 		(if (regex-find m)
 		    (loop (cons #t r))
 		    r))))
+
+;; issue 263
+(test-equal "#/1(?:x2)?/" '(#f #t)
+	    (let ((p (compile-regex "1(?:x2)?")))
+	      (let ((m1 (regex-matcher p "1x"))
+		    (m2 (regex-matcher p "1x2")))
+		(list (regex-matches m1)
+		      (regex-matches m2)))))
+
 (test-end)
