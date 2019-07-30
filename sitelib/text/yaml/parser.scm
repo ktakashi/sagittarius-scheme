@@ -264,7 +264,7 @@ flow_mapping_entry: { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-S
     ($or ($do (a alias) ($return (lookup-alias a)))
 	 ($do (p properties)
 	      (b ($parameterize ((*current-tag* (car p)))
-				($or block-content indentless-sequence)))
+		   ($or block-content indentless-sequence)))
 	      ($return (build-node b (car p) (cdr p))))
 	 ($do (b block-content) ($return (build-node b #f #f)))
 	 indentless-sequence))))

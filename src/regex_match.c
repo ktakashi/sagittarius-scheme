@@ -113,6 +113,26 @@ typedef struct thread_rec_t
     struct thread_rec_t *next;
   };
   const char_t **capture;
+  /*
+    For RX_SPLIT immediately followed by RX_MATCH case.
+    We need to save the input for above situation otherwise the
+    lastp would be further than the expected location.
+    For example, suppose pattern is #/1(?:x2)?/ and the input is '1x'
+    then the VM step would be like this:
+
+     -> input sequense
+                   +-----+    +----+
+                   | 'x' | -- | '' | (not match)
+     +-----+     / +-----+    +----+
+     | '1' | ---+  
+     +-----+     \ +-----+
+                   |  !  | (match)
+                   +-----+
+    In this situaction, the 'lastp' of the context would be the top one
+    (not matched one), however, it should be before split.
+    This field is to save the location.
+   */
+  const char_t  *p;
 } thread_t;
 
 static thread_t *filler = (thread_t*)-1;
@@ -175,6 +195,7 @@ typedef struct
   int id;			/* inst to process */
   int j;
   const char_t *cap_j;
+  const char_t *p;		/* current input */
 } add_state_t;
 
 struct match_ctx_rec_t
@@ -234,13 +255,18 @@ static void copy_capture(match_ctx_t *ctx, const char_t **dst,
 
 static match_ctx_t* init_match_ctx(match_ctx_t *ctx, SgMatcher *m, int size);
 
-static void add_state(add_state_t *a, intptr_t id, intptr_t j,
-		      const char_t *cap_j)
+static void add_state4(add_state_t *a, intptr_t id, intptr_t j,
+		       const char_t *cap_j, const char_t *p)
 {
   a->id = (int)id;
   a->j  = (int)j;
   a->cap_j = cap_j;
+  a->p = p;
 }
+
+#define add_state(a, id)        add_state4(a, id, -1, NULL, NULL)
+#define add_statec(a, j, cap_j) add_state4(a, -1, j, cap_j, NULL)
+#define add_statep(a, id, p)    add_state4(a, id, -1, NULL, p)
 
 static void add_to_threadq(match_ctx_t *ctx, THREADQ_T *q, int id0, int flags,
 			   const char_t *p, const char_t **capture)
@@ -251,11 +277,12 @@ static void add_to_threadq(match_ctx_t *ctx, THREADQ_T *q, int id0, int flags,
   if (id0 < 0) return;
 
   stk = ctx->astack;
-  add_state(&stk[nstk++], id0, -1, NULL);
+  add_state(&stk[nstk++], id0);
 
   while (nstk > 0) {
     const add_state_t *a = &stk[--nstk];
     int id = a->id;
+    const char_t *saved = a->p;
     long j;
     thread_t **tp, *t;
     inst_t *ip;
@@ -271,32 +298,33 @@ static void add_to_threadq(match_ctx_t *ctx, THREADQ_T *q, int id0, int flags,
     THREADQ_SET(q, id, filler);
     tp = &THREADQ_REF(q, id);
     ip = &ctx->inst[id];
+
     switch (INST_OPCODE(ip)) {
     case RX_FAIL: break;
     case RX_JMP:
-      add_state(&stk[nstk++], ip->arg.pos.x - ctx->start, -1, NULL);
+      add_state(&stk[nstk++], ip->arg.pos.x - ctx->start);
       break;
       
     case RX_SPLIT:
       /* explore alternatives */
-      add_state(&stk[nstk++], ip->arg.pos.y - ctx->start, -1, NULL);
-      add_state(&stk[nstk++], ip->arg.pos.x - ctx->start, -1, NULL);
+      add_statep(&stk[nstk++], ip->arg.pos.y - ctx->start, p);
+      add_state(&stk[nstk++], ip->arg.pos.x - ctx->start);
       break;
 
     case RX_SAVE:
       if ((j = ip->arg.n) < ctx->ncapture) {
 	/* push a dummy whose only job is to restore capture[j] */
-	add_state(&stk[nstk++], -1, j, capture[j]);
+	add_statec(&stk[nstk++], j, capture[j]);
 	capture[j] = p;
       }
-      add_state(&stk[nstk++], id+1, -1, NULL);
+      add_statep(&stk[nstk++], id+1, saved);
       break;
 
     case RX_EMPTY:
       /* printf("\nflags: %x %x, %x %d\n", ip->arg.flags, flags, ~flags, */
       /* 	     (ip->arg.flags & ~flags)); */
       if (ip->arg.flags & ~flags) break;
-      add_state(&stk[nstk++], id+1, -1, NULL);
+      add_state(&stk[nstk++], id+1);
       break;
       
     case RX_ANY:
@@ -308,6 +336,7 @@ static void add_to_threadq(match_ctx_t *ctx, THREADQ_T *q, int id0, int flags,
       /* save state */
       t = alloc_thread(ctx);
       t->id = id;
+      t->p = a->p;
       copy_capture(ctx, t->capture, capture);
       *tp = t;
       break;
@@ -398,7 +427,7 @@ static void dump_capture(match_ctx_t *ctx, const char_t **capture)
 #endif
 
 static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
-		      char_t c, int flags, const char_t *p)
+		      char_t c, int flags, const char_t *p, const char_t **pp)
 {
   THREADQ_ITERATOR_T i;
   THREADQ_CLEAR(nextq);
@@ -441,6 +470,7 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
 
       THREADQ_CLEAR(runq);
       ctx->matched = TRUE;
+      *pp = t->p;
       debug_printf(" matched%c", '\n');
       return TRUE;
     }
@@ -523,7 +553,7 @@ static int matcher_match0(match_ctx_t *ctx, long from, int anchor, inst_t *inst)
   const char_t *otext = TEXT_ELEMENTS(MATCHER(ctx->m)->text);
   const char_t *bp = otext + from;
   const char_t *ep = otext + SG_MATCHER_TO(ctx->m);
-  const char_t *p;
+  const char_t *p, *saved = NULL;
   char_t c = -1;
   int wasword = FALSE;
   THREADQ_ITERATOR_T i;
@@ -560,14 +590,15 @@ static int matcher_match0(match_ctx_t *ctx, long from, int anchor, inst_t *inst)
       flag |= EmptyWordBoundary;
     else
       flag |= EmptyNonWordBoundary;
-    
-    match_step(ctx, runq, nextq, c, flag, p);
 
+    /* fprintf(stderr, "%c: %p(%p)\n", (c > 0)? c : ' ', p, ep); */
+    match_step(ctx, runq, nextq, c, flag, p, &saved);
+
+    if (p > ep) break;
     /* swap */
     tmp = nextq;
     nextq = runq;
     runq = tmp;
-    if (p > ep) break;
 
     /* start a new thread if there have not been any matches. */
     if (!ctx->matched && (anchor == UNANCHORED || p == bp)) {
@@ -589,6 +620,7 @@ static int matcher_match0(match_ctx_t *ctx, long from, int anchor, inst_t *inst)
     wasword = isword;
     ctx->lastp = p;
   }
+  if (saved) ctx->lastp = saved;
 
   THREADQ_FOR_EACH(i, runq) {
     free_thread(ctx, THREADQ_ITERATOR_REF(i, runq));
@@ -688,8 +720,9 @@ static int match_step1(match_ctx_t *ctx, inst_t *inst, int flags,
     flag |= EmptyNonWordBoundary;
   ctx->lastp = (bp+i);
 
-  debug_printf("inst %d:%d (%d:%c) %x\n", inst- ctx->start, INST_OPCODE(inst),
-	       i, (i<0)?'\0':*(bp+i), flag);
+  debug_printf("inst %d:%d (%d:%c, %p) %x\n",
+	       inst - ctx->start, INST_OPCODE(inst),
+	       i, (i<0)?'\0':*(bp+i), bp+i, flag);
   switch (INST_OPCODE(inst)) {
   case RX_ANY:
   case RX_CHAR:	
@@ -805,7 +838,7 @@ static int finish_match(match_ctx_t *ctx, int anchor)
   if (ctx->matched) {
     const char_t *ep = TEXT_ELEMENTS(MATCHER(ctx->m)->text)
       + SG_MATCHER_TO(ctx->m);
-    debug_printf("lastp %p, ep%p\n", ctx->lastp, ep);
+    /* fprintf(stderr, "lastp %p, ep%p\n", ctx->lastp, ep); */
     if (anchor != UNANCHORED && ctx->lastp != ep) {
       ctx->matched = FALSE;
       return FALSE;

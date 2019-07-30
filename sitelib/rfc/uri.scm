@@ -107,7 +107,7 @@
     (define (merge base-path rel-path base-auth)
       (cond ((and base-auth (string-null? base-path))
 	     (string-append "/" rel-path))
-	    ((matches #/(.*)\/[\/]*/ base-path)
+	    ((matches #/(.*)\/[^\/]*/ base-path)
 	     => (^m (string-append (m 1) "/" rel-path)))
 	    (else rel-path)))
     ;; 5.2.4
