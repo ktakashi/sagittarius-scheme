@@ -145,7 +145,7 @@
 		      ((,+yaml-tag:str+ . "One") (,+yaml-tag:null+ . "")))))
 
 (define (test-yaml/input sexp str)
-  (test-equal sexp
+  (test-equal str sexp
 	      (car (map yaml->sexp (parse-yaml (open-string-input-port str))))))
 
 ;; This test relay on the implementation since mapping doesn't

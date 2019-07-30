@@ -1499,8 +1499,12 @@ static SgObject read_vector(SgPort *in, read_ctx *ctx)
   vec = Sg_MakeVector(length, SG_UNDEF);
   for (i = 0; i < length; i++) {
     SgObject o = read_object_rec(in, ctx);
-    /* I don't remember why code builders needed to be handled here */
-    /* if (SG_CODE_BUILDERP(o)) o = Sg_MakeClosure(o, NULL); */
+    /* 
+       Optimisation may inline constant variables which may contain
+       closures, in such case, we need to restore code builder as
+       a closure.
+     */
+    if (SG_CODE_BUILDERP(o)) o = Sg_MakeClosure(o, NULL);
     SG_VECTOR_ELEMENT(vec, i) = o;
   }
   if (literalp) {
@@ -1523,8 +1527,12 @@ static SgObject read_plist(SgPort *in, read_ctx *ctx)
   length = read_word(in, PLIST_TAG, ctx);
   for (i = 0; i < length; i++) {
     SgObject o = read_object_rec(in, ctx);
-    /* I don't remember why code builders needed to be handled here */
-    /* if (SG_CODE_BUILDERP(o)) o = Sg_MakeClosure(o, NULL); */
+    /* 
+       Optimisation may inline constant variables which may contain
+       closures, in such case, we need to restore code builder as
+       a closure.
+     */
+    if (SG_CODE_BUILDERP(o)) o = Sg_MakeClosure(o, NULL);
     SG_APPEND1(h, t, o);
   }
 
@@ -1556,11 +1564,15 @@ static SgObject read_dlist(SgPort *in, read_ctx *ctx)
 
   length = read_word(in, DLIST_TAG, ctx);
   o = read_object_rec(in, ctx);
-  /* I don't remember why code builders needed to be handled here... */
-  /* if (SG_CODE_BUILDERP(o)) o = Sg_MakeClosure(o, NULL); */
+  /* 
+     Optimisation may inline constant variables which may contain
+     closures, in such case, we need to restore code builder as
+     a closure.
+  */
+  if (SG_CODE_BUILDERP(o)) o = Sg_MakeClosure(o, NULL);
   for (i = 0; i < length; i++) {
     SgObject oo = read_object_rec(in, ctx);
-    /* if (SG_CODE_BUILDERP(oo)) oo = Sg_MakeClosure(oo, NULL); */
+    if (SG_CODE_BUILDERP(oo)) oo = Sg_MakeClosure(oo, NULL);
     SG_APPEND1(h, t, oo);
   }
   /* set last element */

@@ -49,6 +49,7 @@
 	    ((and (procedure? matcher) (matcher value)))
 	    ;; should be check on extension procedure
 	    (else #f))))
+
   (cond ((and (eq? kind 'scalar) implicit?)
 	 (let ((implicit-resolvers (car resolvers)))
 	   (cond ((find check implicit-resolvers) => car)

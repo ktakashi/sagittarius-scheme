@@ -216,7 +216,7 @@ struct match_ctx_rec_t
   char          reserved : 6;
 };
 
-#define DEBUG_REGEX
+/* #define DEBUG_REGEX */
 #if (defined DEBUG_REGEX)
 #define debug_printf(fmt, ...)			\
   Sg_Printf(Sg_StandardErrorPort(), UC(fmt), __VA_ARGS__)
