@@ -1499,12 +1499,6 @@ static SgObject read_vector(SgPort *in, read_ctx *ctx)
   vec = Sg_MakeVector(length, SG_UNDEF);
   for (i = 0; i < length; i++) {
     SgObject o = read_object_rec(in, ctx);
-    /* 
-       Optimisation may inline constant variables which may contain
-       closures, in such case, we need to restore code builder as
-       a closure.
-     */
-    if (SG_CODE_BUILDERP(o)) o = Sg_MakeClosure(o, NULL);
     SG_VECTOR_ELEMENT(vec, i) = o;
   }
   if (literalp) {
@@ -1527,12 +1521,6 @@ static SgObject read_plist(SgPort *in, read_ctx *ctx)
   length = read_word(in, PLIST_TAG, ctx);
   for (i = 0; i < length; i++) {
     SgObject o = read_object_rec(in, ctx);
-    /* 
-       Optimisation may inline constant variables which may contain
-       closures, in such case, we need to restore code builder as
-       a closure.
-     */
-    if (SG_CODE_BUILDERP(o)) o = Sg_MakeClosure(o, NULL);
     SG_APPEND1(h, t, o);
   }
 
@@ -1564,15 +1552,8 @@ static SgObject read_dlist(SgPort *in, read_ctx *ctx)
 
   length = read_word(in, DLIST_TAG, ctx);
   o = read_object_rec(in, ctx);
-  /* 
-     Optimisation may inline constant variables which may contain
-     closures, in such case, we need to restore code builder as
-     a closure.
-  */
-  if (SG_CODE_BUILDERP(o)) o = Sg_MakeClosure(o, NULL);
   for (i = 0; i < length; i++) {
     SgObject oo = read_object_rec(in, ctx);
-    if (SG_CODE_BUILDERP(oo)) oo = Sg_MakeClosure(oo, NULL);
     SG_APPEND1(h, t, oo);
   }
   /* set last element */
@@ -1600,7 +1581,7 @@ static SgObject read_macro(SgPort *in, read_ctx *ctx)
   name = read_object_rec(in, ctx);
   /* env must be p1env, so the first element must be library */
   transformer = read_object(in, ctx);
-  if (!SG_CODE_BUILDERP(transformer) && !SG_FALSEP(transformer)) {
+  if (!SG_CLOSURE(transformer) && !SG_FALSEP(transformer)) {
     ESCAPE(ctx, "broken cache: %A (macro transformer)\n", transformer);
   }
   /* data = read_object(in, ctx); */
@@ -1619,8 +1600,7 @@ static SgObject read_macro(SgPort *in, read_ctx *ctx)
   if (SG_FALSEP(transformer)) {
     transformer = macro_transform;
   } else {
-    link_cb(SG_CODE_BUILDER(transformer), ctx);
-    transformer = Sg_MakeClosure(transformer, NULL);
+    link_cb(SG_CODE_BUILDER(SG_CLOSURE(transformer)->code), ctx);
   }
 
   if (SG_CODE_BUILDERP(cc)) {
@@ -1675,7 +1655,7 @@ static int read_shared_tag(SgPort *in, read_ctx *ctx)
 static SgObject read_closure(SgPort *in, read_ctx *ctx)
 {
   int tag = Sg_GetbUnsafe(in), uid = -1;
-  SgObject cb;
+  SgObject cb, o;
   CLOSE_TAG_CHECK(ctx, CLOSURE_TAG, tag);
   tag = Sg_PeekbUnsafe(in);
   switch (tag) {
@@ -1687,12 +1667,17 @@ static SgObject read_closure(SgPort *in, read_ctx *ctx)
   }
 
   cb = read_code(in, ctx);
+  /* FIXME: this isn't right to check # of free variable here. */
+  if (SG_CODE_BUILDER(cb)->freec == 0) {
+    o = Sg_MakeClosure(cb, NULL);
+  } else {
+    o = cb;
+  }
   if (uid >= 0) {
-    Sg_HashTableSet(ctx->sharedObjects, SG_MAKE_INT(uid), cb, 0);
+    Sg_HashTableSet(ctx->sharedObjects, SG_MAKE_INT(uid), o, 0);
   }
   /* Sg_HashTableSet(ctx->seen, SG_MAKE_INT(num), cb, 0); */
-  /* Do we need free variables? */
-  return cb;
+  return o;
 }
 
 static SgObject clos_lib = SG_UNDEF;

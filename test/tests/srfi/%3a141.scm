@@ -14,7 +14,7 @@
 (define-syntax define-test
   (syntax-rules ()
     ((_ name proc)
-     (guard (e (else (print e) (test-assert name #f))) (proc)))))
+     (guard (e (else (test-assert name #f))) (proc)))))
 (test-begin "SRFI-141: Integer division")
       
 ;;; Copyright (c) 2010--2011 Taylor R. Campbell

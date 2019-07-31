@@ -1,4 +1,5 @@
 (import (rnrs)
+	(rnrs r5rs)
 	(only (scheme base) exact-integer?)
 	(sagittarius)
 	(srfi :144)
