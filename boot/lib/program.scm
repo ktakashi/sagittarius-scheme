@@ -85,6 +85,8 @@
 				  #f 'block (*current-load-transcoder*))))
       (let ((in (ensure-port file/port)))
 	(apply-directive! in 'r7rs *r6rs-read-context*)
+	;; put cond-expand into the environment
+	(eval '(import (only (sagittarius) cond-expand)) #f)
 	(load-from-port in)))
     
     (cond ((assq :preimports opt) =>
