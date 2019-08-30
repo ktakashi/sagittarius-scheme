@@ -6,7 +6,8 @@ jobs:
          environment:
            ENV: CI
      steps:
-       - checkout
+       - checkout:
+           path: ~/project/sagittarius-scheme
        - run:
            name: Installing dependencies
            command: |
