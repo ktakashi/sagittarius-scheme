@@ -6,12 +6,7 @@ jobs:
          environment:
            ENV: CI
      steps:
-       - run:
-           name: Checkout repository
-           command: |
-             apt-get update
-             apt-get -y install mercurial
-             hg clone https://bitbucket.org/ktakashi/sagittarius-scheme sagittarius-scheme
+       - checkout
        - run:
            name: Installing dependencies
            command: apt-get -y install cmake libgc-dev zlib1g-dev libffi-dev
