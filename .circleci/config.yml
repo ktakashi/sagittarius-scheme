@@ -9,7 +9,9 @@ jobs:
        - checkout
        - run:
            name: Installing dependencies
-           command: apt-get -y install cmake libgc-dev zlib1g-dev libffi-dev
+           command: |
+             apt-get update
+             apt-get -y install cmake libgc-dev zlib1g-dev libffi-dev
        - run:
            name: Installing current Sagittarius
            working_directory: ~/current_sagittarius
