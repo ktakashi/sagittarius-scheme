@@ -40,6 +40,7 @@
     (import (rnrs)
 	    (peg)
 	    (peg chars)
+	    (srfi :13 strings)
 	    (srfi :14 char-sets)
 	    ;; need number of xml parsers
 	    (text xml dom parser))
@@ -58,11 +59,31 @@
 [113] IntegerLiteral	::= Digits	
 [114] DecimalLiteral	::= ("." Digits) | (Digits "." [0-9]*)
 [115] DoubleLiteral	::= (("." Digits) | (Digits ("." [0-9]*)?)) [eE] [+-]? Digits
-[116] StringLiteral	::= ('"' (EscapeQuot | [^"])* '"') | ("'" (EscapeApos | [^'])* "'")
-[119] EscapeQuot	::= '""'	
-[120] EscapeApos	::= "''"	
+
 [121] Comment	   ::=      "(:" (CommentContents | Comment)* ":)"
 |#
+
+;; [119] EscapeQuot	::= '""'
+(define $xpath:escape-quot ($do (($token "\"\"")) ($return #\")))
+
+;; [120] EscapeApos	::= "''"
+(define $xpath:escape-apos ($do (($token "''")) ($return #\')))
+
+;; [116] StringLiteral ::= ('"' (EscapeQuot | [^"])* '"')
+;;                       | ("'" (EscapeApos | [^'])* "'")
+(define $xpath:string-literal
+  (let ((no-dq-set (char-set-difference char-set:full (char-set #\")))
+	(no-sq-set (char-set-difference char-set:full (char-set #\'))))
+    ($or ($let* ((($eqv? #\"))
+		 (c* ($many ($or $xpath:escape-quot
+				 ($char-set-contains? no-dq-set))))
+		 (($eqv? #\")))
+	   ($return (list->string c*)))
+	 ($let* ((($eqv? #\'))
+		 (c* ($many ($or $xpath:escape-apos
+				 ($char-set-contains? no-sq-set))))
+		 (($eqv? #\')))
+	   ($return (list->string c*))))))
 
 ;; [118] BracedURILiteral	::= "Q" "{" [^{}]* "}"
 (define $xpath:braced-uri-literal
@@ -101,7 +122,7 @@
 ;; [8] ForExpr ::= SimpleForClause "return" ExprSingle
 (define $xpath:for-expr
   ($let* ((c $xpath:simple-for-clause)
-	  ((ws++ ($token "return")))
+	  ((ws** ($token "return")))
 	  (e $xpath:expr-single))
     ;; 3.9 For Expressions
     ;; In `for $x in X, $y in Y return $x + $y`
@@ -116,59 +137,220 @@
 	  (n $xpath:var-name))
     ($return `(ref ,n))))
 
-;; [31] ValueExpr ::= SimpleMapExpr	
-;; [30] UnaryExpr ::= ("-" | "+")* ValueExpr
-;; [29] ArrowExpr ::= UnaryExpr ( "=>" ArrowFunctionSpecifier ArgumentList )*
-;; [28] CastExpr ::= ArrowExpr ( "cast" "as" SingleType )?
-
-;; [27] CastableExpr ::= CastExpr ( "castable" "as" SingleType )?
-;; [26] TreatExpr ::= CastableExpr ( "treat" "as" SequenceType )?
-
-;; [25] InstanceofExpr ::= TreatExpr ( "instance" "of" SequenceType )?
-
-;; [24] IntersectExceptExpr ::=
-;;          InstanceofExpr ( ("intersect" | "except") InstanceofExpr )*
-
-;; [23]	UnionExpr ::=
-;;        IntersectExceptExpr ( ("union" | "|") IntersectExceptExpr )*
-
 (define (merge e e*)
   (if (null? e*)
       e
       (let ((e0 (car e*)))
 	(merge (list (car e0) e (cdr e0)) (cdr e*)))))
+(define (op->symbol s)
+  (if (char? s)
+      (op->symbol (string s))
+      (string->symbol s)))
+(define-syntax define-concat-parser
+  (syntax-rules ()
+    ((_ name base-parser separator-parser)
+     (define name
+       (let ((bp base-parser)
+	     (sp (ws** separator-parser)))
+	 ($let* ((e base-parser)
+		 (e* ($many ($let* ((s sp) (e bp))
+			      ($return (cons (op->symbol s) e))))))
+	   ($return (merge e e*))))))
+    ((_ name op base-parser separator-parser)
+     (define name
+       (let ((bp base-parser)
+	     (sp (ws++ separator-parser)))
+	 ($let* ((e base-parser)
+		 (e* ($many ($let* ((sp) (e bp)) ($return (cons 'op e))))))
+	   ($return (merge e e*))))))))
+
+;; [39]   	AxisStep	   ::=   	(ReverseStep | ForwardStep) PredicateList	
+;; [40]   	ForwardStep	   ::=   	(ForwardAxis NodeTest) | AbbrevForwardStep	
+;; [41]   	ForwardAxis	   ::=   	("child" "::")
+;; | ("descendant" "::")
+;; | ("attribute" "::")
+;; | ("self" "::")
+;; | ("descendant-or-self" "::")
+;; | ("following-sibling" "::")
+;; | ("following" "::")
+;; | ("namespace" "::")	
+;; [42]   	AbbrevForwardStep	   ::=   	"@"? NodeTest	
+;; [43]   	ReverseStep	   ::=   	(ReverseAxis NodeTest) | AbbrevReverseStep	
+;; [44]   	ReverseAxis	   ::=   	("parent" "::")
+;; | ("ancestor" "::")
+;; | ("preceding-sibling" "::")
+;; | ("preceding" "::")
+;; | ("ancestor-or-self" "::")	
+;; [45]   	AbbrevReverseStep	   ::=   	".."	
+;; [46]   	NodeTest	   ::=   	KindTest | NameTest	
+;; [47]   	NameTest	   ::=   	EQName | Wildcard	
+
+;; [61]  ParenthesizedExpr ::= "(" Expr? ")"
+(define $xpath:parenthesized-expr
+  ($let* (((ws** ($eqv? #\()))
+	  (e ($optional $xpath:expr '()))
+	  ((ws** ($eqv? #\)))))
+	 ($return e)))
+
+;; [58] NumericLiteral ::= IntegerLiteral | DecimalLiteral | DoubleLiteral
+(define $xpath:numeric-literal ($expect "not yet"))
+
+;; [57] Literal ::= NumericLiteral | StringLiteral
+(define $xpath:literal
+  ($or $xpath:numeric-literal $xpath:string-literal))
+
+;; [56] PrimaryExpr ::= Literal
+;;                    | VarRef
+;;                    | ParenthesizedExpr
+;;                    | ContextItemExpr
+;;                    | FunctionCall
+;;                    | FunctionItemExpr
+;;                    | MapConstructor
+;;                    | ArrayConstructor
+;;                    | UnaryLookup
+(define $xpath:primary-expr
+  ($or $xpath:literal $xpath:var-ref $xpath:parenthesized-expr))
+
+;; [49] PostfixExpr ::= PrimaryExpr (Predicate | ArgumentList | Lookup)*
+(define $xpath:postfix-expr
+  ($let* ((p $xpath:primary-expr))
+	 ;; TODO
+    ($return p)))
+;; [38] StepExpr ::= PostfixExpr | AxisStep
+(define $xpath:step-expr
+  ($or $xpath:postfix-expr
+       ;; $xpath:axis-step
+       ))
+;; [37] RelativePathExpr ::= StepExpr (("/" | "//") StepExpr)*
+(define-concat-parser $xpath:relative-path-expr $xpath:step-expr
+  ($or ($eqv? #\/) ($token "//")))
+
+;; [36] PathExpr ::= ("/" RelativePathExpr?)
+;;                 | ("//" RelativePathExpr)
+;;                 | RelativePathExpr /* xgc: leading-lone-slash */
+(define $xpath:path-expr
+  ($or ($let* ((($eqv? #\/))
+	       (r ($optional $xpath:relative-path-expr '())))
+	 ($return (cons '/ r)))
+       ($let* ((($eqv? #\/))
+	       (r $xpath:relative-path-expr))
+	 ($return (cons '// r)))
+       $xpath:relative-path-expr))
+
+;; [35] SimpleMapExpr ::= PathExpr ("!" PathExpr)*
+(define-concat-parser $xpath:simple-map-expr $xpath:path-expr ($eqv? #\!))
+
+;; [31] ValueExpr ::= SimpleMapExpr
+(define $xpath:value-expr $xpath:simple-map-expr)
+
+;; [30] UnaryExpr ::= ("-" | "+")* ValueExpr
+(define $xpath:unary-expr
+  ($let* ((op* ($many (ws** ($or ($eqv? #\-) ($eqv? #\+)))))
+	  (v $xpath:value-expr))
+    ;; TODO
+    ($return (if (null? op*) v (cons op* v)))))
+
+;; [65] ArgumentPlaceholder ::= "?"
+(define $xpath:argument-placeholder
+  ($do ((ws** ($eqv? #\?))) ($return '?)))
+;; [64] Argument ::= ExprSingle | ArgumentPlaceholder
+(define $xpath:argument
+  ($or ($lazy $xpath:expr-single)
+       ;; $xpath:argument-placeholder ; TODO
+       ))
+;; [50] ArgumentList ::= "(" (Argument ("," Argument)*)? ")"
+(define $xpath:argument-list
+  ($let* (((ws** ($eqv? #\()))
+	  (a* ($optional ($let* ((a $xpath:argument)
+				 (a* ($many ($seq (ws** ($eqv? #\,)))
+					    $xpath:argument)))
+			   ($return (cons a a*))) '()))
+	  ((ws** ($eqv? #\)))))
+    ($return a*)))
+;; [55] ArrowFunctionSpecifier ::= EQName | VarRef | ParenthesizedExpr
+(define $xpath:arrow-function-specifier
+  ($or $xpath:eqname $xpath:var-name $xpath:parenthesized-expr))
+
+;; [29] ArrowExpr ::= UnaryExpr ( "=>" ArrowFunctionSpecifier ArgumentList )*
+(define $xpath:arrow-expr
+  ($let* ((e $xpath:unary-expr)
+	  (e* ($many ($let* (((ws++ ($token "=>" )))
+			     (s $xpath:arrow-function-specifier)
+			     (a $xpath:argument-list))
+		       ($return (list '=> s a))))))
+   ($return (merge e e*))))
+
+(define-syntax define-type-parser
+  (syntax-rules ()
+    ((_ name base-parser type-parser tokens ...)
+     (define name
+       (let ((bp base-parser)
+	     (tp type-parser)
+	     (keyword (string->symbol (string-join (list tokens ...) "-"))))
+	 ($let* ((t bp)
+		 (s ($optional ($seq (ws++ ($token tokens)) ... tp))))
+	   ($return (if s `(keyword t s) t))))))))
+
+;; [101] TypeName	::= EQName
+(define $xpath:type-name $xpath:eqname)
+;; [100] SimpleTypeName	::= TypeName
+(define $xpath:simple-type-name $xpath:type-name)
+
+;; [77] SingleType ::= SimpleTypeName "?"?
+(define $xpath:single-type
+  ($let* ((n $xpath:simple-type-name)
+	  (q ($optional (ws** ($eqv? #\?)))))
+    ($return (if q `(? ,n) n))))
+;; [28] CastExpr ::= ArrowExpr ( "cast" "as" SingleType )?
+(define-type-parser $xpath:cast-expr $xpath:arrow-expr
+  $xpath:single-type "cast" "as")
+
+;; [27] CastableExpr ::= CastExpr ( "castable" "as" SingleType )?
+(define-type-parser $xpath:castable-expr $xpath:cast-expr
+  $xpath:single-type "castable" "as")
+
+;; [79] SequenceType ::= ("empty-sequence" "(" ")")
+;;                     | (ItemType OccurrenceIndicator?)
+(define $xpath:sequence-type
+  ($or ($do w* (($token "empty-sequence")) w* (($eqv? #\()) w* (($eqv? #\)))
+	    ($return '(sequence)))
+       ;; TODO
+       ))
+       
+;; [26] TreatExpr ::= CastableExpr ( "treat" "as" SequenceType )?
+(define-type-parser $xpath:treat-expr $xpath:castable-expr
+  $xpath:sequence-type "treat" "as")
+
+;; [25] InstanceofExpr ::= TreatExpr ( "instance" "of" SequenceType )?
+(define-type-parser $xpath:instanceof-expr $xpath:treat-expr
+  $xpath:sequence-type "instance" "of")
+
+;; [24] IntersectExceptExpr ::=
+;;          InstanceofExpr ( ("intersect" | "except") InstanceofExpr )*
+(define-concat-parser $xpath:intersect-exept-expr $xpath:instanceof-expr
+  ($or ($token "intersect") ($token "except")))
+
+;; [23]	UnionExpr ::=
+;;        IntersectExceptExpr ( ("union" | "|") IntersectExceptExpr )*
+(define-concat-parser $xpath:union-expr union $xpath:intersect-exept-expr
+  ($or ($token "union") ($eqv? #\|)))
 
 ;; [22]	MultiplicativeExpr ::=
 ;;        UnionExpr ( ("*" | "div" | "idiv" | "mod") UnionExpr )*
-(define $xpath:multiplcative-expr
-  ($let* ((a ($or $xpath:var-name $xpath:var-ref)) ;; for now
-	  #;(a* ($many ($let* ((o ($or ($eqv? #\*)
-				     ($token "div")
-				     ($token "idiv")
-				     ($token "mod")))
-			     (e $xpath:union-expr))
-			 ($return (cons o e))))))
-    ($return a #;(merge a a*))))
+(define-concat-parser $xpath:multiplcative-expr $xpath:union-expr
+  ($or ($eqv? #\*) ($token "div") ($token "idiv") ($token "mod")))
 
 ;; [21] AdditiveExpr ::= MultiplicativeExpr ( ("+" | "-") MultiplicativeExpr )*
-(define $xpath:additive-expr
-  ($let* ((a $xpath:multiplcative-expr)
-	  (a* ($many ($let* ((o (ws** ($or ($eqv? #\+) ($eqv? #\-))))
-			     (e $xpath:multiplcative-expr))
-		       ($return (cons (string->symbol (string o)) e))))))
-    ($return (merge a a*))))
+(define-concat-parser $xpath:additive-expr $xpath:multiplcative-expr
+  ($or ($eqv? #\+) ($eqv? #\-)))
 
 ;; [20] RangeExpr ::= AdditiveExpr ( "to" AdditiveExpr )?
-(define $xpath:range-expr
-  ($let* ((a $xpath:additive-expr)
-	  (a* ($many ($seq ($token "to") $xpath:additive-expr))))
-    ($return (if (null? a*) a `(range ,a ,@a*)))))
+(define-concat-parser $xpath:range-expr range $xpath:additive-expr
+  ($token "to"))
   
 ;; [19] StringConcatExpr ::= RangeExpr ( "||" RangeExpr )*
-(define $xpath:string-concat-expr
-  ($let* ((r $xpath:range-expr)
-	  (r* ($many ($seq ($token "||") $xpath:range-expr))))
-    ($return (if (null? r*) r `(concat ,r ,@r*)))))
+(define-concat-parser $xpath:string-concat-expr concat $xpath:range-expr
+  ($token "||"))
 
 ;; [18] ComparisonExpr ::= StringConcatExpr ( (ValueComp
 ;;                         | GeneralComp
@@ -179,16 +361,10 @@
     ($return sc)))
 
 ;; [17] AndExpr ::= ComparisonExpr ( "and" ComparisonExpr )*
-(define $xpath:and-expr
-  ($let* ((e $xpath:comparison-expr)
-	  (e* ($many ($seq ($token "and") $xpath:comparison-expr))))
-    ($return (if (null? e*) e `(and ,e ,@e*)))))
+(define-concat-parser $xpath:and-expr and $xpath:comparison-expr ($token "and"))
 
 ;; [16] OrExpr ::= AndExpr ( "or" AndExpr )*
-(define $xpath:or-expr
-  ($let* ((e $xpath:and-expr)
-	  (e* ($many ($seq ($token "or") $xpath:and-expr))))
-    ($return (if (null? e*) e `(or ,e ,@e*)))))
+(define-concat-parser $xpath:or-expr or  $xpath:and-expr ($token "or"))
 ;; [7] ExprSingle ::= ForExpr | LetExpr | QuantifiedExpr | IfExpr | OrExpr
 (define $xpath:expr-single
   ($or $xpath:for-expr
@@ -221,61 +397,24 @@
 [32]   	GeneralComp	   ::=   	"=" | "!=" | "<" | "<=" | ">" | ">="	
 [33]   	ValueComp	   ::=   	"eq" | "ne" | "lt" | "le" | "gt" | "ge"	
 [34]   	NodeComp	   ::=   	"is" | "<<" | ">>"	
-[35]   	SimpleMapExpr	   ::=   	PathExpr ("!" PathExpr)*	
-[36]   	PathExpr	   ::=   	("/" RelativePathExpr?)
-| ("//" RelativePathExpr)
-| RelativePathExpr	/* xgc: leading-lone-slash */
-[37]   	RelativePathExpr	   ::=   	StepExpr (("/" | "//") StepExpr)*	
-[38]   	StepExpr	   ::=   	PostfixExpr | AxisStep	
-[39]   	AxisStep	   ::=   	(ReverseStep | ForwardStep) PredicateList	
-[40]   	ForwardStep	   ::=   	(ForwardAxis NodeTest) | AbbrevForwardStep	
-[41]   	ForwardAxis	   ::=   	("child" "::")
-| ("descendant" "::")
-| ("attribute" "::")
-| ("self" "::")
-| ("descendant-or-self" "::")
-| ("following-sibling" "::")
-| ("following" "::")
-| ("namespace" "::")	
-[42]   	AbbrevForwardStep	   ::=   	"@"? NodeTest	
-[43]   	ReverseStep	   ::=   	(ReverseAxis NodeTest) | AbbrevReverseStep	
-[44]   	ReverseAxis	   ::=   	("parent" "::")
-| ("ancestor" "::")
-| ("preceding-sibling" "::")
-| ("preceding" "::")
-| ("ancestor-or-self" "::")	
-[45]   	AbbrevReverseStep	   ::=   	".."	
-[46]   	NodeTest	   ::=   	KindTest | NameTest	
-[47]   	NameTest	   ::=   	EQName | Wildcard	
+
+
 [48]   	Wildcard	   ::=   	"*"
 | (NCName ":*")
 | ("*:" NCName)
 | (BracedURILiteral "*")	/* ws: explicit */
-[49]   	PostfixExpr	   ::=   	PrimaryExpr (Predicate | ArgumentList | Lookup)*	
-[50]   	ArgumentList	   ::=   	"(" (Argument ("," Argument)*)? ")"	
+
+
 [51]   	PredicateList	   ::=   	Predicate*	
 [52]   	Predicate	   ::=   	"[" Expr "]"	
 [53]   	Lookup	   ::=   	"?" KeySpecifier	
 [54]   	KeySpecifier	   ::=   	NCName | IntegerLiteral | ParenthesizedExpr | "*"	
-[55]   	ArrowFunctionSpecifier	   ::=   	EQName | VarRef | ParenthesizedExpr	
-[56]   	PrimaryExpr	   ::=   	Literal
-| VarRef
-| ParenthesizedExpr
-| ContextItemExpr
-| FunctionCall
-| FunctionItemExpr
-| MapConstructor
-| ArrayConstructor
-| UnaryLookup	
-[57]   	Literal	   ::=   	NumericLiteral | StringLiteral	
-[58]   	NumericLiteral	   ::=   	IntegerLiteral | DecimalLiteral | DoubleLiteral	
 
-[61]   	ParenthesizedExpr	   ::=   	"(" Expr? ")"	
 [62]   	ContextItemExpr	   ::=   	"."	
 [63]   	FunctionCall	   ::=   	EQName ArgumentList	/* xgc: reserved-function-names */
 /* gn: parens */
-[64]   	Argument	   ::=   	ExprSingle | ArgumentPlaceholder	
-[65]   	ArgumentPlaceholder	   ::=   	"?"	
+
+
 [66]   	FunctionItemExpr	   ::=   	NamedFunctionRef | InlineFunctionExpr	
 [67]   	NamedFunctionRef	   ::=   	EQName "#" IntegerLiteral	/* xgc: reserved-function-names */
 [68]   	InlineFunctionExpr	   ::=   	"function" "(" ParamList? ")" ("as" SequenceType)? FunctionBody	
@@ -287,10 +426,9 @@
 [74]   	SquareArrayConstructor	   ::=   	"[" (ExprSingle ("," ExprSingle)*)? "]"	
 [75]   	CurlyArrayConstructor	   ::=   	"array" EnclosedExpr	
 [76]   	UnaryLookup	   ::=   	"?" KeySpecifier	
-[77]   	SingleType	   ::=   	SimpleTypeName "?"?	
+
 [78]   	TypeDeclaration	   ::=   	"as" SequenceType	
-[79]   	SequenceType	   ::=   	("empty-sequence" "(" ")")
-| (ItemType OccurrenceIndicator?)	
+
 [80]   	OccurrenceIndicator	   ::=   	"?" | "*" | "+"	/* xgc: occurrence-indicators */
 [81]   	ItemType	   ::=   	KindTest | ("item" "(" ")") | FunctionTest | MapTest | ArrayTest | AtomicOrUnionType | ParenthesizedItemType	
 [82]   	AtomicOrUnionType	   ::=   	EQName	
@@ -320,8 +458,7 @@
 [97]   	ElementDeclaration	   ::=   	ElementName	
 [98]   	AttributeName	   ::=   	EQName	
 [99]   	ElementName	   ::=   	EQName	
-[100]   	SimpleTypeName	   ::=   	TypeName	
-[101]   	TypeName	   ::=   	EQName	
+
 [102]   	FunctionTest	   ::=   	AnyFunctionTest
 | TypedFunctionTest	
 [103]   	AnyFunctionTest	   ::=   	"function" "(" "*" ")"	
