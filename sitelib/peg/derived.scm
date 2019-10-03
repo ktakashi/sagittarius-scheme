@@ -91,8 +91,8 @@
 
 (define-syntax $parameterize
   (syntax-rules ()
-    ((_ ((p c) ...) parser)
-     (let ((e parser))
+    ((_ ((p c) ...) parser0 parser* ...)
+     (let ((e ($seq parser0 parser* ...)))
        (lambda (l)
 	 (parameterize ((p c) ...)
 	   (e l)))))))
