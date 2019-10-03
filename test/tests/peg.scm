@@ -126,4 +126,13 @@
       (test-assert  (parse-fail? s))
       (test-equal "stop!" v))))
 
+;; $let*
+(let ((seq (generator->lseq (string->generator "abcdef"))))
+  (let-values (((s v l) (($let* ((a ($eqv? #\a))
+				 (a* ($many $any 3 3)))
+			  ($return (cons a a*)))
+			 seq)))
+    (test-assert (parse-success? s))
+    (test-equal '(#\a #\b #\c #\d) v)))
+
 (test-end)
