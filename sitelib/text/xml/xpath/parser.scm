@@ -78,12 +78,12 @@
 		 (c* ($many ($or $xpath:escape-quot
 				 ($char-set-contains? no-dq-set))))
 		 (($eqv? #\")))
-	   ($return (list->string c*)))
+	   ($return `(str ,(list->string c*))))
 	 ($let* ((($eqv? #\'))
 		 (c* ($many ($or $xpath:escape-apos
 				 ($char-set-contains? no-sq-set))))
 		 (($eqv? #\')))
-	   ($return (list->string c*))))))
+	   ($return `(str ,(list->string c*)))))))
 
 ;; [118] BracedURILiteral	::= "Q" "{" [^{}]* "}"
 (define $xpath:braced-uri-literal
@@ -137,11 +137,14 @@
 	  (n $xpath:var-name))
     ($return `(ref ,n))))
 
+;; Not sure if we should do this
 (define (merge e e*)
   (if (null? e*)
       e
       (let ((e0 (car e*)))
-	(merge (list (car e0) e (cdr e0)) (cdr e*)))))
+	(if (and (pair? e) (eq? (car e0) (car e)))
+	    (merge `(,@e ,(cdr e0)) (cdr e*))
+	    (merge (list (car e0) e (cdr e0)) (cdr e*))))))
 (define (op->symbol s)
   (if (char? s)
       (op->symbol (string s))
@@ -164,8 +167,7 @@
 		 (e* ($many ($let* ((sp) (e bp)) ($return (cons 'op e))))))
 	   ($return (merge e e*))))))))
 
-;; [39]   	AxisStep	   ::=   	(ReverseStep | ForwardStep) PredicateList	
-;; [40]   	ForwardStep	   ::=   	(ForwardAxis NodeTest) | AbbrevForwardStep	
+
 ;; [41]   	ForwardAxis	   ::=   	("child" "::")
 ;; | ("descendant" "::")
 ;; | ("attribute" "::")
@@ -174,7 +176,6 @@
 ;; | ("following-sibling" "::")
 ;; | ("following" "::")
 ;; | ("namespace" "::")	
-;; [42]   	AbbrevForwardStep	   ::=   	"@"? NodeTest	
 ;; [43]   	ReverseStep	   ::=   	(ReverseAxis NodeTest) | AbbrevReverseStep	
 ;; [44]   	ReverseAxis	   ::=   	("parent" "::")
 ;; | ("ancestor" "::")
@@ -182,8 +183,6 @@
 ;; | ("preceding" "::")
 ;; | ("ancestor-or-self" "::")	
 ;; [45]   	AbbrevReverseStep	   ::=   	".."	
-;; [46]   	NodeTest	   ::=   	KindTest | NameTest	
-;; [47]   	NameTest	   ::=   	EQName | Wildcard	
 
 ;; [61]  ParenthesizedExpr ::= "(" Expr? ")"
 (define $xpath:parenthesized-expr
@@ -216,11 +215,30 @@
   ($let* ((p $xpath:primary-expr))
 	 ;; TODO
     ($return p)))
+
+;; [47] NameTest ::= EQName | Wildcard
+(define $xpath:name-test ($or $xpath:eqname #;$xpath:wildcard))
+
+;; [46] NodeTest ::= KindTest | NameTest
+(define $xpath:node-test ($or #;$xpath:kind-test $xpath:name-test))
+
+;; [42] AbbrevForwardStep ::= "@"? NodeTest
+(define $xpath:abbrev-forward-step
+  ($do (at ($optional ($eqv? #\@))) (t $xpath:node-test)
+       ($return (if at (list at t) t))))
+
+;;;; [40] ForwardStep ::= (ForwardAxis NodeTest) | AbbrevForwardStep
+(define $xpath:forward-step
+  ($or ;;($do (a $xpath:forwrd-axis) (t $xpath:node-test) ($return (cons a t)))
+   $xpath:abbrev-forward-step))
+
+;; [39] AxisStep ::= (ReverseStep | ForwardStep) PredicateList
+(define $xpath:axis-step
+  ($let* ((s ($or #;$xpath:reverse-step $xpath:forward-step))
+	  #;(p $xpath:predicate-list))
+    ($return s)))
 ;; [38] StepExpr ::= PostfixExpr | AxisStep
-(define $xpath:step-expr
-  ($or $xpath:postfix-expr
-       ;; $xpath:axis-step
-       ))
+(define $xpath:step-expr ($or $xpath:postfix-expr $xpath:axis-step))
 ;; [37] RelativePathExpr ::= StepExpr (("/" | "//") StepExpr)*
 (define-concat-parser $xpath:relative-path-expr $xpath:step-expr
   ($or ($eqv? #\/) ($token "//")))
@@ -231,8 +249,10 @@
 (define $xpath:path-expr
   ($or ($let* ((($eqv? #\/))
 	       (r ($optional $xpath:relative-path-expr '())))
-	 ($return (cons '/ r)))
-       ($let* ((($eqv? #\/))
+	 ($return (if (and (not (null? r)) (eq? (car r) '/))
+		      r
+		      (cons '/ r))))
+       ($let* ((($token "//"))
 	       (r $xpath:relative-path-expr))
 	 ($return (cons '// r)))
        $xpath:relative-path-expr))

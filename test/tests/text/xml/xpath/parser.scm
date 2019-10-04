@@ -17,9 +17,15 @@
     (test-assert (parse-success? s))
     (test-equal text expected v)))
 
-(success-test $xpath:for-expr "for $x in 'X' return $x"
+(success-test $xpath:for-expr "for $x in X return $x"
 	      '(for (x "X") (ref x)))
-(success-test $xpath:for-expr "for $x in 'X', $y in 'Y' return $x + $y"
-	      '(for (x "X") (for (y "Y") (+ (ref x) (ref y)))))
+(success-test $xpath:for-expr "for $x in \"X\", $y in 'Y' return $x + $y"
+	      '(for (x (str "X")) (for (y (str "Y")) (+ (ref x) (ref y)))))
+
+(success-test $xpath:expr-single "\"\"\"\"" '(str "\""))
+(success-test $xpath:expr-single "''''" '(str "'"))
+
+(success-test $xpath:expr-single "/foo/bar" '(/ "foo" "bar"))
+(success-test $xpath:expr-single "/foo/bar/baz" '(/ "foo" "bar" "baz"))
 
 (test-end)
