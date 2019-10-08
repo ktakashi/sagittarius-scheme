@@ -46,15 +46,9 @@
 	    (text xml dom parser))
 (define w* ($many $xml:s))
 (define w+ ($many $xml:s 1))
-(define (ws** p)
-  ($let* ((w*) (r p) (w*))
-   ($return r)))
-(define (ws*+ p)
-  ($let* ((w*) (r p) (w+))
-    ($return r)))
-(define (ws++ p)
-  ($let* ((w+) (r p) (w+))
-    ($return r)))
+(define (ws** p) ($do w* (r p) w* ($return r)))
+(define (ws*+ p) ($do w* (r p) w+ ($return r)))
+(define (ws++ p) ($do w+ (r p) w+ ($return r)))
 #|
 [113] IntegerLiteral	::= Digits	
 [114] DecimalLiteral	::= ("." Digits) | (Digits "." [0-9]*)
@@ -164,7 +158,7 @@
        (let ((bp base-parser)
 	     (sp (ws++ separator-parser)))
 	 ($let* ((e base-parser)
-		 (e* ($many ($let* ((sp) (e bp)) ($return (cons 'op e))))))
+		 (e* ($many ($do sp (e bp) ($return (cons 'op e))))))
 	   ($return (merge e e*))))))))
 
 
@@ -241,7 +235,7 @@
 (define $xpath:step-expr ($or $xpath:postfix-expr $xpath:axis-step))
 ;; [37] RelativePathExpr ::= StepExpr (("/" | "//") StepExpr)*
 (define-concat-parser $xpath:relative-path-expr $xpath:step-expr
-  ($or ($eqv? #\/) ($token "//")))
+  ($or ($token "//") ($eqv? #\/)))
 
 ;; [36] PathExpr ::= ("/" RelativePathExpr?)
 ;;                 | ("//" RelativePathExpr)
