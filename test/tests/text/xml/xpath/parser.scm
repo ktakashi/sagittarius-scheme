@@ -13,7 +13,7 @@
 
 (define (success-test parser text expected)
   (let-values (((s v nl) (parse-it parser text)))
-;;     (write v) (newline)
+    ;; (write v) (newline)
     (test-assert (parse-success? s))
     (test-equal text expected v)))
 
@@ -25,9 +25,13 @@
 (success-test $xpath:expr-single "\"\"\"\"" '(str "\""))
 (success-test $xpath:expr-single "''''" '(str "'"))
 
-(success-test $xpath:expr-single "/foo/bar" '(/ "foo" "bar"))
-(success-test $xpath:expr-single "/foo/bar/baz" '(/ "foo" "bar" "baz"))
+(success-test $xpath:expr-single "/foo/bar" '((/ "foo") (/ "bar")))
+(success-test $xpath:expr-single "/foo/bar/baz"
+	      '((/ "foo") (/ "bar") (/ "baz")))
 
-;; (success-test $xpath:expr-single "/foo//baz" '(/ "foo" (// "baz")))
+(success-test $xpath:expr-single "/foo//baz" '((/ "foo") (// "baz")))
+(success-test $xpath:expr-single "/" '((/)))
+(success-test $xpath:expr-single "/foo" '((/ "foo")))
+(success-test $xpath:expr-single "//bar" '((// "bar")))
 
 (test-end)

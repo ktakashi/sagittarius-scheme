@@ -137,29 +137,30 @@
       e
       (let ((e0 (car e*)))
 	(if (and (pair? e) (eq? (car e0) (car e)))
-	    (merge `(,@e ,(cdr e0)) (cdr e*))
-	    (merge (list (car e0) e (cdr e0)) (cdr e*))))))
+	    (merge `(,@e ,(cdr e0)) (cadr e*))
+	    (merge (list (car e0) e (cadr e0)) (cdr e*))))))
 (define (op->symbol s)
-  (if (char? s)
-      (op->symbol (string s))
-      (string->symbol s)))
-(define-syntax define-concat-parser
+  (cond ((char? s) (op->symbol (string s)))
+	((string? s) (string->symbol s))
+	(else s)))
+(define-syntax define-concat-parser/merger
   (syntax-rules ()
-    ((_ name base-parser separator-parser)
+    ((_ name base-parser separator-parser merger)
      (define name
        (let ((bp base-parser)
 	     (sp (ws** separator-parser)))
 	 ($let* ((e base-parser)
 		 (e* ($many ($let* ((s sp) (e bp))
-			      ($return (cons (op->symbol s) e))))))
-	   ($return (merge e e*))))))
+			      ($return (list (op->symbol s) e))))))
+	   ($return (merger e e*))))))))
+(define-syntax define-concat-parser
+  (syntax-rules ()
+    ((_ name base-parser separator-parser)
+     (define-concat-parser/merger name base-parser separator-parser merge))
     ((_ name op base-parser separator-parser)
-     (define name
-       (let ((bp base-parser)
-	     (sp (ws++ separator-parser)))
-	 ($let* ((e base-parser)
-		 (e* ($many ($do sp (e bp) ($return (cons 'op e))))))
-	   ($return (merge e e*))))))))
+     (begin
+       (define sep ($seq separator-parser ($return 'op)))
+       (define-concat-parser name base-parser sep)))))
 
 
 ;; [41]   	ForwardAxis	   ::=   	("child" "::")
@@ -234,21 +235,27 @@
 ;; [38] StepExpr ::= PostfixExpr | AxisStep
 (define $xpath:step-expr ($or $xpath:postfix-expr $xpath:axis-step))
 ;; [37] RelativePathExpr ::= StepExpr (("/" | "//") StepExpr)*
-(define-concat-parser $xpath:relative-path-expr $xpath:step-expr
-  ($or ($token "//") ($eqv? #\/)))
+(define (path-merger e e*)
+  (if (null? e*)
+      e
+      (cons e e*)))
+(define-concat-parser/merger $xpath:relative-path-expr $xpath:step-expr
+  ($or ($token "//") ($eqv? #\/)) path-merger)
 
 ;; [36] PathExpr ::= ("/" RelativePathExpr?)
 ;;                 | ("//" RelativePathExpr)
 ;;                 | RelativePathExpr /* xgc: leading-lone-slash */
 (define $xpath:path-expr
-  ($or ($let* ((($eqv? #\/))
-	       (r ($optional $xpath:relative-path-expr '())))
-	 ($return (if (and (not (null? r)) (eq? (car r) '/))
-		      r
-		      (cons '/ r))))
-       ($let* ((($token "//"))
+  ($or ($let* ((($token "//"))
 	       (r $xpath:relative-path-expr))
-	 ($return (cons '// r)))
+	 ($return (if (pair? r) 
+		      (cons (list '// (car r)) (cdr r))
+		      (list (list '// r)))))
+       ($let* ((($eqv? #\/))
+	       (r ($optional $xpath:relative-path-expr '())))
+	 ($return (cond ((null? r) (list '(/)))
+			((pair? r) (cons (list '/ (car r)) (cdr r)))
+			(else (list (list '/ r))))))
        $xpath:relative-path-expr))
 
 ;; [35] SimpleMapExpr ::= PathExpr ("!" PathExpr)*
