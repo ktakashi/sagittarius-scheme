@@ -37,4 +37,10 @@
 
 (success-test $xpath:expr-single "/parent::foo" '((/ (parent:: "foo"))))
 
+(success-test $xpath:expr-single "a or b" '(or ("a") ("b")))
+(success-test $xpath:expr-single "a or b or c" '(or ("a") ("b") ("c")))
+(success-test $xpath:expr-single "a or b and c" '(or ("a") (and ("b") ("c"))))
+(success-test $xpath:expr-single "a or b and c or d"
+	      '(or ("a") (and ("b") ("c")) ("d")))
+
 (test-end)

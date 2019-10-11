@@ -58,66 +58,66 @@
 |#
 
 ;; [119] EscapeQuot	::= '""'
-(define $xpath:escape-quot ($do (($token "\"\"")) ($return #\")))
+(define $xpath:escape-quot ($seq ($token "\"\"") ($return #\")))
 
 ;; [120] EscapeApos	::= "''"
-(define $xpath:escape-apos ($do (($token "''")) ($return #\')))
+(define $xpath:escape-apos ($seq ($token "''") ($return #\')))
 
 ;; [116] StringLiteral ::= ('"' (EscapeQuot | [^"])* '"')
 ;;                       | ("'" (EscapeApos | [^'])* "'")
 (define $xpath:string-literal
   (let ((no-dq-set (char-set-difference char-set:full (char-set #\")))
 	(no-sq-set (char-set-difference char-set:full (char-set #\'))))
-    ($or ($let* ((($eqv? #\"))
-		 (c* ($many ($or $xpath:escape-quot
-				 ($char-set-contains? no-dq-set))))
-		 (($eqv? #\")))
+    ($or ($let ((($eqv? #\"))
+		(c* ($many ($or $xpath:escape-quot
+				($char-set-contains? no-dq-set))))
+		(($eqv? #\")))
 	   ($return `(str ,(list->string c*))))
-	 ($let* ((($eqv? #\'))
-		 (c* ($many ($or $xpath:escape-apos
-				 ($char-set-contains? no-sq-set))))
-		 (($eqv? #\')))
+	 ($let ((($eqv? #\'))
+		(c* ($many ($or $xpath:escape-apos
+				($char-set-contains? no-sq-set))))
+		(($eqv? #\')))
 	   ($return `(str ,(list->string c*)))))))
 
 ;; [118] BracedURILiteral	::= "Q" "{" [^{}]* "}"
 (define $xpath:braced-uri-literal
   (let ((cs (char-set-difference char-set:full (char-set #\{ #\}))))
-    ($let* ((($token "Q{"))
-	    (n ($many ($char-set-contains? cs)))
-	    (($eqv? #\})))
+    ($let ((($token "Q{"))
+	   (n ($many ($char-set-contains? cs)))
+	   (($eqv? #\})))
       ($return n))))
 ;; [117] URIQualifiedName	::= BracedURILiteral NCName
 (define $xpath:uri-qualified-name
-  ($let* ((q $xpath:braced-uri-literal)
-	  (n $xml:ncname))
+  ($let ((q $xpath:braced-uri-literal)
+	 (n $xml:ncname))
     ($return `(eqname ,q ,n))))
 
 ;; [112] EQName	::= QName | URIQualifiedName
 (define $xpath:eqname ($or $xml:qname $xpath:uri-qualified-name))
 ;; [60] VarName	::= EQName
 (define $xpath:var-name
-  ($let* ((v $xpath:eqname)) ($return (string->symbol v))))
+  ($let ((v $xpath:eqname)) ($return (string->symbol v))))
 ;; [11] LetExpr	::= SimpleLetClause "return" ExprSingle
 
 
 ;; [10] SimpleForBinding ::= "$" VarName "in" ExprSingle	
 (define $xpath:simple-for-binding
-  ($let* ((($eqv? #\$))
-	  (v $xpath:var-name)
-	  ((ws++ ($token "in")))
-	  (e $xpath:expr-single))
+  ($let ((($eqv? #\$))
+	 (v $xpath:var-name)
+	 ((ws++ ($token "in")))
+	 (e ($lazy $xpath:expr-single)))
     ($return (list v e))))
 ;; [9] SimpleForClause ::= "for" SimpleForBinding ("," SimpleForBinding)*
 (define $xpath:simple-for-clause
-  ($let* (((ws*+ ($token "for")))
-	  (b $xpath:simple-for-binding)
-	  (b* ($many ($seq (ws** ($eqv? #\,)) $xpath:simple-for-binding))))
+  ($let (((ws*+ ($token "for")))
+	 (b $xpath:simple-for-binding)
+	 (b* ($many ($seq (ws** ($eqv? #\,)) $xpath:simple-for-binding))))
     ($return (cons b b*))))
 ;; [8] ForExpr ::= SimpleForClause "return" ExprSingle
 (define $xpath:for-expr
-  ($let* ((c $xpath:simple-for-clause)
-	  ((ws** ($token "return")))
-	  (e $xpath:expr-single))
+  ($let ((c $xpath:simple-for-clause)
+	 ((ws** ($token "return")))
+	 (e ($lazy $xpath:expr-single)))
     ;; 3.9 For Expressions
     ;; In `for $x in X, $y in Y return $x + $y`
     ;; Out: `for $x in X return for $y in Y return $x + $y`
@@ -127,8 +127,8 @@
 
 ;; [59]	VarRef ::= "$" VarName
 (define $xpath:var-ref
-  ($let* ((($eqv? #\$))
-	  (n $xpath:var-name))
+  ($let ((($eqv? #\$))
+	 (n $xpath:var-name))
     ($return `(ref ,n))))
 
 ;; Not sure if we should do this
@@ -137,7 +137,7 @@
       e
       (let ((e0 (car e*)))
 	(if (and (pair? e) (eq? (car e0) (car e)))
-	    (merge `(,@e ,(cdr e0)) (cadr e*))
+	    (merge `(,@e ,(cadr e0)) (cdr e*))
 	    (merge (list (car e0) e (cadr e0)) (cdr e*))))))
 (define (op->symbol s)
   (cond ((char? s) (op->symbol (string s)))
@@ -149,9 +149,9 @@
      (define name
        (let ((bp base-parser)
 	     (sp (ws** separator-parser)))
-	 ($let* ((e base-parser)
-		 (e* ($many ($let* ((s sp) (e bp))
-			      ($return (list (op->symbol s) e))))))
+	 ($let ((e base-parser)
+		(e* ($many ($let ((s sp) (e bp))
+			     ($return (list (op->symbol s) e))))))
 	   ($return (merger e e*))))))))
 (define-syntax define-concat-parser
   (syntax-rules ()
@@ -189,9 +189,26 @@
 ;; [45] AbbrevReverseStep ::= ".."
 (define $xpath:abbrev-reverse-step ($seq ($token "..") ($return '..)))
 
+;; [48]	Wildcard ::= "*"
+;;                 | (NCName ":*")
+;;                 | ("*:" NCName)
+;;                 | (BracedURILiteral "*")	/* ws: explicit */
+(define $xpath:wildcard
+  ($or ($seq ($eqv? #\*) ($return '*))
+       ($let ((n $xml:ncname) ((ws** ($token ":*")))) ($return `(,n *)))
+       ($let (((ws** ($token ":*"))) (n $xml:ncname)) ($return `(* ,n)))
+       ($let ((u $xpath:braced-uri-literal) ((ws** ($token "*"))))
+	 ($return `(,u *)))))
+
+;; [47] NameTest ::= EQName | Wildcard
+(define $xpath:name-test ($or $xpath:eqname $xpath:wildcard))
+
+;; [46] NodeTest ::= KindTest | NameTest
+(define $xpath:node-test ($or #;$xpath:kind-test $xpath:name-test))
+
 ;; [43] ReverseStep ::= (ReverseAxis NodeTest) | AbbrevReverseStep
 (define $xpath:reverse-step
-  ($or ($let* ((ra $xpath:reverse-axis) (t $xpath:node-test))
+  ($or ($let ((ra $xpath:reverse-axis) (t $xpath:node-test))
 	 ($return (list ra t)))
        $xpath:abbrev-reverse-step))
 
@@ -226,12 +243,6 @@
   ($let* ((p $xpath:primary-expr))
 	 ;; TODO
     ($return p)))
-
-;; [47] NameTest ::= EQName | Wildcard
-(define $xpath:name-test ($or $xpath:eqname #;$xpath:wildcard))
-
-;; [46] NodeTest ::= KindTest | NameTest
-(define $xpath:node-test ($or #;$xpath:kind-test $xpath:name-test))
 
 ;; [42] AbbrevForwardStep ::= "@"? NodeTest
 (define $xpath:abbrev-forward-step
@@ -429,13 +440,6 @@
 [32]   	GeneralComp	   ::=   	"=" | "!=" | "<" | "<=" | ">" | ">="	
 [33]   	ValueComp	   ::=   	"eq" | "ne" | "lt" | "le" | "gt" | "ge"	
 [34]   	NodeComp	   ::=   	"is" | "<<" | ">>"	
-
-
-[48]   	Wildcard	   ::=   	"*"
-| (NCName ":*")
-| ("*:" NCName)
-| (BracedURILiteral "*")	/* ws: explicit */
-
 
 [51]   	PredicateList	   ::=   	Predicate*	
 [52]   	Predicate	   ::=   	"[" Expr "]"	
