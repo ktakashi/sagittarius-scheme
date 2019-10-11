@@ -171,13 +171,29 @@
 ;; | ("following-sibling" "::")
 ;; | ("following" "::")
 ;; | ("namespace" "::")	
-;; [43]   	ReverseStep	   ::=   	(ReverseAxis NodeTest) | AbbrevReverseStep	
-;; [44]   	ReverseAxis	   ::=   	("parent" "::")
-;; | ("ancestor" "::")
-;; | ("preceding-sibling" "::")
-;; | ("preceding" "::")
-;; | ("ancestor-or-self" "::")	
-;; [45]   	AbbrevReverseStep	   ::=   	".."	
+
+;; [44] ReverseAxis ::= ("parent" "::")
+;;                    | ("ancestor" "::")
+;;                    | ("preceding-sibling" "::")
+;;                    | ("preceding" "::")
+;;                    | ("ancestor-or-self" "::")
+(define $xpath:reverse-axis
+  (let ((colons (ws** ($token "::"))))
+    ($or ($seq (ws** ($token "parent")) colons ($return 'parent::))
+	 ($seq (ws** ($token "ancestor")) colons ($return 'ancestor::))
+	 ($seq (ws** ($token "precending-sibling")) colons
+	       ($return 'precending-sibling::))
+	 ($seq (ws** ($token "preceding")) colons ($return 'preceding::))
+	 ($seq (ws** ($token "ancestor-of-self")) colons
+	       ($return 'ancestor-of-self::)))))
+;; [45] AbbrevReverseStep ::= ".."
+(define $xpath:abbrev-reverse-step ($seq ($token "..") ($return '..)))
+
+;; [43] ReverseStep ::= (ReverseAxis NodeTest) | AbbrevReverseStep
+(define $xpath:reverse-step
+  ($or ($let* ((ra $xpath:reverse-axis) (t $xpath:node-test))
+	 ($return (list ra t)))
+       $xpath:abbrev-reverse-step))
 
 ;; [61]  ParenthesizedExpr ::= "(" Expr? ")"
 (define $xpath:parenthesized-expr
@@ -229,7 +245,7 @@
 
 ;; [39] AxisStep ::= (ReverseStep | ForwardStep) PredicateList
 (define $xpath:axis-step
-  ($let* ((s ($or #;$xpath:reverse-step $xpath:forward-step))
+  ($let* ((s ($or $xpath:reverse-step $xpath:forward-step))
 	  #;(p $xpath:predicate-list))
     ($return s)))
 ;; [38] StepExpr ::= PostfixExpr | AxisStep
@@ -277,8 +293,7 @@
 ;; [64] Argument ::= ExprSingle | ArgumentPlaceholder
 (define $xpath:argument
   ($or ($lazy $xpath:expr-single)
-       ;; $xpath:argument-placeholder ; TODO
-       ))
+       $xpath:argument-placeholder))
 ;; [50] ArgumentList ::= "(" (Argument ("," Argument)*)? ")"
 (define $xpath:argument-list
   ($let* (((ws** ($eqv? #\()))
