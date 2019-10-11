@@ -251,12 +251,8 @@
 ;; [38] StepExpr ::= PostfixExpr | AxisStep
 (define $xpath:step-expr ($or $xpath:postfix-expr $xpath:axis-step))
 ;; [37] RelativePathExpr ::= StepExpr (("/" | "//") StepExpr)*
-(define (path-merger e e*)
-  (if (null? e*)
-      e
-      (cons e e*)))
 (define-concat-parser/merger $xpath:relative-path-expr $xpath:step-expr
-  ($or ($token "//") ($eqv? #\/)) path-merger)
+  ($or ($token "//") ($eqv? #\/)) cons)
 
 ;; [36] PathExpr ::= ("/" RelativePathExpr?)
 ;;                 | ("//" RelativePathExpr)

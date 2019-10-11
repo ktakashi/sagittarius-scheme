@@ -18,12 +18,13 @@
     (test-equal text expected v)))
 
 (success-test $xpath:for-expr "for $x in X return $x"
-	      '(for (x "X") (ref x)))
+	      '(for (x ("X")) ((ref x))))
 (success-test $xpath:for-expr "for $x in \"X\", $y in 'Y' return $x + $y"
-	      '(for (x (str "X")) (for (y (str "Y")) (+ (ref x) (ref y)))))
+	      '(for (x ((str "X"))) (for (y ((str "Y")))
+		 (+ ((ref x)) ((ref y))))))
 
-(success-test $xpath:expr-single "\"\"\"\"" '(str "\""))
-(success-test $xpath:expr-single "''''" '(str "'"))
+(success-test $xpath:expr-single "\"\"\"\"" '((str "\"")))
+(success-test $xpath:expr-single "''''" '((str "'")))
 
 (success-test $xpath:expr-single "/foo/bar" '((/ "foo") (/ "bar")))
 (success-test $xpath:expr-single "/foo/bar/baz"
@@ -33,5 +34,7 @@
 (success-test $xpath:expr-single "/" '((/)))
 (success-test $xpath:expr-single "/foo" '((/ "foo")))
 (success-test $xpath:expr-single "//bar" '((// "bar")))
+
+(success-test $xpath:expr-single "/parent::foo" '((/ (parent:: "foo"))))
 
 (test-end)
