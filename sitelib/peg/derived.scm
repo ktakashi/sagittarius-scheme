@@ -30,7 +30,7 @@
 
 #!nounbound
 (library (peg derived)
-    (export $bind $do $let* $optional $repeat
+    (export $bind $do $let* $let $optional $repeat
 	    $parameterize $lazy $guard
 	    $if $when $unless $cond else
 	    $peek-match
@@ -89,6 +89,29 @@
     ((_ (parser bind* ...) body ...)
      ($bind parser (lambda (_) ($let* (bind* ...) body ...))))))
 
+;; $let (bind ...) body
+;;   bind := (var parser)
+;;        |  (parser)
+;;        |  parser
+;; analogy of let* but better performance
+(define-syntax $let
+  (syntax-rules ()
+    ((_ () body0 body* ...) ($seq body0 body* ...)) ;; short cut
+    ((_ (bind bind* ...) body* ...)
+     ($let "collect" (bind bind* ...) (body* ...) ()))
+
+    ((_ "collect" ((var parser) bind* ...) body ((v t p) ...))
+     ($let "collect" (bind* ...) body ((v t p) ... (var tmp parser))))
+
+    ((_ "collect" ((parser) bind* ...) body ((v t p) ...))
+     ($let "collect" (bind* ...) body ((v t p) ... (var tmp parser))))
+
+    ((_ "collect" (parser bind* ...) body ((v t p) ...))
+     ($let "collect" (bind* ...) body ((v t p) ... (var tmp parser))))
+
+    ((_ "collect" () (body0 body* ...) ((v t p) ...))
+     (let ((t p) ...) ;; bind parser
+       ($let* ((v t) ...) body0 body* ...)))))
 
 (define ($$optional parser . maybe-fallback)
   (define fallback (if (null? maybe-fallback) #f (car maybe-fallback)))

@@ -245,7 +245,7 @@
 
 ;; [39] AxisStep ::= (ReverseStep | ForwardStep) PredicateList
 (define $xpath:axis-step
-  ($let* ((s ($or $xpath:reverse-step $xpath:forward-step))
+  ($let ((s ($or $xpath:reverse-step $xpath:forward-step))
 	  #;(p $xpath:predicate-list))
     ($return s)))
 ;; [38] StepExpr ::= PostfixExpr | AxisStep
@@ -258,13 +258,13 @@
 ;;                 | ("//" RelativePathExpr)
 ;;                 | RelativePathExpr /* xgc: leading-lone-slash */
 (define $xpath:path-expr
-  ($or ($let* ((($token "//"))
-	       (r $xpath:relative-path-expr))
+  ($or ($let ((($token "//"))
+	      (r $xpath:relative-path-expr))
 	 ($return (if (pair? r) 
 		      (cons (list '// (car r)) (cdr r))
 		      (list (list '// r)))))
-       ($let* ((($eqv? #\/))
-	       (r ($optional $xpath:relative-path-expr '())))
+       ($let ((($eqv? #\/))
+	      (r ($optional $xpath:relative-path-expr '())))
 	 ($return (cond ((null? r) (list '(/)))
 			((pair? r) (cons (list '/ (car r)) (cdr r)))
 			(else (list (list '/ r))))))
@@ -278,26 +278,26 @@
 
 ;; [30] UnaryExpr ::= ("-" | "+")* ValueExpr
 (define $xpath:unary-expr
-  ($let* ((op* ($many (ws** ($or ($eqv? #\-) ($eqv? #\+)))))
-	  (v $xpath:value-expr))
+  ($let ((op* ($many (ws** ($or ($eqv? #\-) ($eqv? #\+)))))
+	 (v $xpath:value-expr))
     ;; TODO
     ($return (if (null? op*) v (cons op* v)))))
 
 ;; [65] ArgumentPlaceholder ::= "?"
 (define $xpath:argument-placeholder
-  ($do ((ws** ($eqv? #\?))) ($return '?)))
+  ($seq (ws** ($eqv? #\?)) ($return '?)))
 ;; [64] Argument ::= ExprSingle | ArgumentPlaceholder
 (define $xpath:argument
   ($or ($lazy $xpath:expr-single)
        $xpath:argument-placeholder))
 ;; [50] ArgumentList ::= "(" (Argument ("," Argument)*)? ")"
 (define $xpath:argument-list
-  ($let* (((ws** ($eqv? #\()))
-	  (a* ($optional ($let* ((a $xpath:argument)
-				 (a* ($many ($seq (ws** ($eqv? #\,)))
-					    $xpath:argument)))
-			   ($return (cons a a*))) '()))
-	  ((ws** ($eqv? #\)))))
+  ($let (((ws** ($eqv? #\()))
+	 (a* ($optional ($let* ((a $xpath:argument)
+				(a* ($many ($seq (ws** ($eqv? #\,)))
+					   $xpath:argument)))
+			  ($return (cons a a*))) '()))
+	 ((ws** ($eqv? #\)))))
     ($return a*)))
 ;; [55] ArrowFunctionSpecifier ::= EQName | VarRef | ParenthesizedExpr
 (define $xpath:arrow-function-specifier
@@ -305,10 +305,10 @@
 
 ;; [29] ArrowExpr ::= UnaryExpr ( "=>" ArrowFunctionSpecifier ArgumentList )*
 (define $xpath:arrow-expr
-  ($let* ((e $xpath:unary-expr)
-	  (e* ($many ($let* (((ws++ ($token "=>" )))
-			     (s $xpath:arrow-function-specifier)
-			     (a $xpath:argument-list))
+  ($let ((e $xpath:unary-expr)
+	 (e* ($many ($let* (((ws++ ($token "=>" )))
+			    (s $xpath:arrow-function-specifier)
+			    (a $xpath:argument-list))
 		       ($return (list '=> s a))))))
    ($return (merge e e*))))
 
@@ -319,8 +319,8 @@
        (let ((bp base-parser)
 	     (tp type-parser)
 	     (keyword (string->symbol (string-join (list tokens ...) "-"))))
-	 ($let* ((t bp)
-		 (s ($optional ($seq (ws++ ($token tokens)) ... tp))))
+	 ($let ((t bp)
+		(s ($optional ($seq (ws++ ($token tokens)) ... tp))))
 	   ($return (if s `(keyword t s) t))))))))
 
 ;; [101] TypeName	::= EQName
@@ -330,8 +330,8 @@
 
 ;; [77] SingleType ::= SimpleTypeName "?"?
 (define $xpath:single-type
-  ($let* ((n $xpath:simple-type-name)
-	  (q ($optional (ws** ($eqv? #\?)))))
+  ($let ((n $xpath:simple-type-name)
+	 (q ($optional (ws** ($eqv? #\?)))))
     ($return (if q `(? ,n) n))))
 ;; [28] CastExpr ::= ArrowExpr ( "cast" "as" SingleType )?
 (define-type-parser $xpath:cast-expr $xpath:arrow-expr
@@ -388,8 +388,8 @@
 ;;                         | GeneralComp
 ;;                         | NodeComp) StringConcatExpr )?	
 (define $xpath:comparison-expr
-  ($let* ((sc $xpath:string-concat-expr))
-	 ;; TODO with other thing
+  ($let ((sc $xpath:string-concat-expr))
+	;; TODO with other thing
     ($return sc)))
 
 ;; [17] AndExpr ::= ComparisonExpr ( "and" ComparisonExpr )*
@@ -407,8 +407,8 @@
 
 ;; [6]  Expr  ::= ExprSingle ("," ExprSingle)*
 (define $xpath:expr
-  ($let* ((es $xpath:expr-single)
-	  (es* ($many ($seq ($eqv? #\,) $xpath:expr-single))))
+  ($let ((es $xpath:expr-single)
+	 (es* ($many ($seq ($eqv? #\,) $xpath:expr-single))))
     ($return (cons es es*))))
 
 ;; [1] 	XPath ::= Expr
