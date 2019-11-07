@@ -34,8 +34,23 @@
 (success-test $xpath:expr-single "/" '((/)))
 (success-test $xpath:expr-single "/foo" '((/ "foo")))
 (success-test $xpath:expr-single "//bar" '((// "bar")))
+(success-test $xpath:expr-single "//*" '((// *)))
+(success-test $xpath:expr-single "//*:foo" '((// (* "foo"))))
+(success-test $xpath:expr-single "//foo:*" '((// ("foo" *))))
 
 (success-test $xpath:expr-single "/parent::foo" '((/ (parent:: "foo"))))
+(success-test $xpath:expr-single "/ancestor::foo" '((/ (ancestor:: "foo"))))
+(success-test $xpath:expr-single "/preceding-sibling::foo"
+	      '((/ (preceding-sibling:: "foo"))))
+(success-test $xpath:expr-single "/preceding::foo"
+	      '((/ (preceding:: "foo"))))
+(success-test $xpath:expr-single "/ancestor-or-self::foo"
+	      '((/ (ancestor-or-self:: "foo"))))
+
+(success-test $xpath:expr-single "/node()" '((/ (node))))
+(success-test $xpath:expr-single "/text()" '((/ (text))))
+(success-test $xpath:expr-single "/comment()" '((/ (comment))))
+(success-test $xpath:expr-single "/namespace-node()" '((/ (namespace-node))))
 
 (success-test $xpath:expr-single "a or b" '(or ("a") ("b")))
 (success-test $xpath:expr-single "a or b or c" '(or ("a") ("b") ("c")))

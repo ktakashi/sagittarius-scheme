@@ -50,7 +50,7 @@
 (define (ws*+ p) ($do w* (r p) w+ ($return r)))
 (define (ws++ p) ($do w+ (r p) w+ ($return r)))
 #|
-[113] IntegerLiteral	::= Digits	
+[113] IntegerLiteral	::= Digits
 [114] DecimalLiteral	::= ("." Digits) | (Digits "." [0-9]*)
 [115] DoubleLiteral	::= (("." Digits) | (Digits ("." [0-9]*)?)) [eE] [+-]? Digits
 
@@ -100,7 +100,7 @@
 ;; [11] LetExpr	::= SimpleLetClause "return" ExprSingle
 
 
-;; [10] SimpleForBinding ::= "$" VarName "in" ExprSingle	
+;; [10] SimpleForBinding ::= "$" VarName "in" ExprSingle
 (define $xpath:simple-for-binding
   ($let ((($eqv? #\$))
 	 (v $xpath:var-name)
@@ -170,7 +170,7 @@
 ;; | ("descendant-or-self" "::")
 ;; | ("following-sibling" "::")
 ;; | ("following" "::")
-;; | ("namespace" "::")	
+;; | ("namespace" "::")
 
 ;; [44] ReverseAxis ::= ("parent" "::")
 ;;                    | ("ancestor" "::")
@@ -181,11 +181,11 @@
   (let ((colons (ws** ($token "::"))))
     ($or ($seq (ws** ($token "parent")) colons ($return 'parent::))
 	 ($seq (ws** ($token "ancestor")) colons ($return 'ancestor::))
-	 ($seq (ws** ($token "precending-sibling")) colons
-	       ($return 'precending-sibling::))
+	 ($seq (ws** ($token "preceding-sibling")) colons
+	       ($return 'preceding-sibling::))
 	 ($seq (ws** ($token "preceding")) colons ($return 'preceding::))
-	 ($seq (ws** ($token "ancestor-of-self")) colons
-	       ($return 'ancestor-of-self::)))))
+	 ($seq (ws** ($token "ancestor-or-self")) colons
+	       ($return 'ancestor-or-self::)))))
 ;; [45] AbbrevReverseStep ::= ".."
 (define $xpath:abbrev-reverse-step ($seq ($token "..") ($return '..)))
 
@@ -194,17 +194,71 @@
 ;;                 | ("*:" NCName)
 ;;                 | (BracedURILiteral "*")	/* ws: explicit */
 (define $xpath:wildcard
-  ($or ($seq ($eqv? #\*) ($return '*))
-       ($let ((n $xml:ncname) ((ws** ($token ":*")))) ($return `(,n *)))
-       ($let (((ws** ($token ":*"))) (n $xml:ncname)) ($return `(* ,n)))
+  ($or ($let ((n $xml:ncname) ((ws** ($token ":*")))) ($return `(,n *)))
+       ($let (((ws** ($token "*:"))) (n $xml:ncname)) ($return `(* ,n)))
        ($let ((u $xpath:braced-uri-literal) ((ws** ($token "*"))))
-	 ($return `(,u *)))))
+	 ($return `(,u *)))
+       ($seq ($eqv? #\*) ($return '*))))
 
 ;; [47] NameTest ::= EQName | Wildcard
-(define $xpath:name-test ($or $xpath:eqname $xpath:wildcard))
+(define $xpath:name-test ($or $xpath:wildcard $xpath:eqname))
+
+;; [89] PITest	   ::=   	"processing-instruction" "(" (NCName | StringLiteral)? ")"
+;; [90] AttributeTest	   ::=   	"attribute" "(" (AttribNameOrWildcard ("," TypeName)?)? ")"
+;; [91] AttribNameOrWildcard	   ::=   	AttributeName | "*"
+;; [92] SchemaAttributeTest	   ::=   	"schema-attribute" "(" AttributeDeclaration ")"
+;; [93] AttributeDeclaration	   ::=   	AttributeName
+;; [94] ElementTest	   ::=   	"element" "(" (ElementNameOrWildcard ("," TypeName "?"?)?)? ")"
+;; [95] ElementNameOrWildcard	   ::=   	ElementName | "*"
+;; [96] SchemaElementTest	   ::=   	"schema-element" "(" ElementDeclaration ")"
+
+;; [84] AnyKindTest ::= "node" "(" ")"
+(define $xpath:any-kind-test
+  ($seq (ws** ($token "node"))
+	(ws** ($eqv? #\())
+	(ws** ($eqv? #\))) ($return '(node))))
+;; [85] DocumentTest ::= "document-node" "(" (ElementTest | SchemaElementTest)? ")"
+
+;; [86] TextTest ::= "text" "(" ")"
+(define $xpath:text-test
+  ($seq (ws** ($token "text"))
+	(ws** ($eqv? #\())
+	(ws** ($eqv? #\))) ($return '(text))))
+;; [87] CommentTest ::= "comment" "(" ")"
+(define $xpath:comment-test
+  ($seq (ws** ($token "comment"))
+	(ws** ($eqv? #\())
+	(ws** ($eqv? #\))) ($return '(comment))))
+;; [88] NamespaceNodeTest ::= "namespace-node" "(" ")"
+(define $xpath:namespace-node-test
+  ($seq (ws** ($token "namespace-node"))
+	(ws** ($eqv? #\())
+	(ws** ($eqv? #\))) ($return '(namespace-node))))
+
+
+;; [83] KindTest ::= DocumentTest
+;;                 | ElementTest
+;;                 | AttributeTest
+;;                 | SchemaElementTest
+;;                 | SchemaAttributeTest
+;;                 | PITest
+;;                 | CommentTest
+;;                 | TextTest
+;;                 | NamespaceNodeTest
+;;                 | AnyKindTest
+(define $xpath:kind-test
+  ($or ;;$xpath:document-test
+       ;;$xpath:element-test
+       ;;$xpath:schema-element-test
+       ;;$xpath:schema-attribute-test
+       ;;$xpath:pi-test
+       $xpath:comment-test
+       $xpath:text-test
+       $xpath:namespace-node-test
+       $xpath:any-kind-test))
 
 ;; [46] NodeTest ::= KindTest | NameTest
-(define $xpath:node-test ($or #;$xpath:kind-test $xpath:name-test))
+(define $xpath:node-test ($or $xpath:kind-test $xpath:name-test))
 
 ;; [43] ReverseStep ::= (ReverseAxis NodeTest) | AbbrevReverseStep
 (define $xpath:reverse-step
@@ -271,7 +325,7 @@
 (define $xpath:path-expr
   ($or ($let ((($token "//"))
 	      (r $xpath:relative-path-expr))
-	 ($return (if (pair? r) 
+	 ($return (if (pair? r)
 		      (cons (list '// (car r)) (cdr r))
 		      (list (list '// r)))))
        ($let ((($eqv? #\/))
@@ -355,11 +409,11 @@
 ;; [79] SequenceType ::= ("empty-sequence" "(" ")")
 ;;                     | (ItemType OccurrenceIndicator?)
 (define $xpath:sequence-type
-  ($or ($do w* (($token "empty-sequence")) w* (($eqv? #\()) w* (($eqv? #\)))
-	    ($return '(sequence)))
+  ($or ($let (w* (($token "empty-sequence")) w* (($eqv? #\()) w* (($eqv? #\))))
+	 ($return '(sequence)))
        ;; TODO
        ))
-       
+
 ;; [26] TreatExpr ::= CastableExpr ( "treat" "as" SequenceType )?
 (define-type-parser $xpath:treat-expr $xpath:castable-expr
   $xpath:sequence-type "treat" "as")
@@ -390,14 +444,14 @@
 ;; [20] RangeExpr ::= AdditiveExpr ( "to" AdditiveExpr )?
 (define-concat-parser $xpath:range-expr range $xpath:additive-expr
   ($token "to"))
-  
+
 ;; [19] StringConcatExpr ::= RangeExpr ( "||" RangeExpr )*
 (define-concat-parser $xpath:string-concat-expr concat $xpath:range-expr
   ($token "||"))
 
 ;; [18] ComparisonExpr ::= StringConcatExpr ( (ValueComp
 ;;                         | GeneralComp
-;;                         | NodeComp) StringConcatExpr )?	
+;;                         | NodeComp) StringConcatExpr )?
 (define $xpath:comparison-expr
   ($let ((sc $xpath:string-concat-expr))
 	;; TODO with other thing
@@ -427,85 +481,63 @@
 
 #|
 
-[2]   	ParamList  ::=   	Param ("," Param)*	
-[3]   	Param	   ::=   	"$" EQName TypeDeclaration?	
-[4]   	FunctionBody ::=   	EnclosedExpr	
-[5]   	EnclosedExpr ::=   	"{" Expr? "}"	
+[2]   	ParamList  ::=   	Param ("," Param)*
+[3]   	Param	   ::=   	"$" EQName TypeDeclaration?
+[4]   	FunctionBody ::=   	EnclosedExpr
+[5]   	EnclosedExpr ::=   	"{" Expr? "}"
 
-[12]   	SimpleLetClause	   ::=   	"let" SimpleLetBinding ("," SimpleLetBinding)*	
-[13]   	SimpleLetBinding	   ::=   	"$" VarName ":=" ExprSingle	
-[14]   	QuantifiedExpr	   ::=   	("some" | "every") "$" VarName "in" ExprSingle ("," "$" VarName "in" ExprSingle)* "satisfies" ExprSingle	
-[15]   	IfExpr	   ::=   	"if" "(" Expr ")" "then" ExprSingle "else" ExprSingle	
+[12]   	SimpleLetClause	   ::=   	"let" SimpleLetBinding ("," SimpleLetBinding)*
+[13]   	SimpleLetBinding	   ::=   	"$" VarName ":=" ExprSingle
+[14]   	QuantifiedExpr	   ::=   	("some" | "every") "$" VarName "in" ExprSingle ("," "$" VarName "in" ExprSingle)* "satisfies" ExprSingle
+[15]   	IfExpr	   ::=   	"if" "(" Expr ")" "then" ExprSingle "else" ExprSingle
 
-[32]   	GeneralComp	   ::=   	"=" | "!=" | "<" | "<=" | ">" | ">="	
-[33]   	ValueComp	   ::=   	"eq" | "ne" | "lt" | "le" | "gt" | "ge"	
-[34]   	NodeComp	   ::=   	"is" | "<<" | ">>"	
+[32]   	GeneralComp	   ::=   	"=" | "!=" | "<" | "<=" | ">" | ">="
+[33]   	ValueComp	   ::=   	"eq" | "ne" | "lt" | "le" | "gt" | "ge"
+[34]   	NodeComp	   ::=   	"is" | "<<" | ">>"
 
-[51]   	PredicateList	   ::=   	Predicate*	
-[52]   	Predicate	   ::=   	"[" Expr "]"	
-[53]   	Lookup	   ::=   	"?" KeySpecifier	
-[54]   	KeySpecifier	   ::=   	NCName | IntegerLiteral | ParenthesizedExpr | "*"	
+[51]   	PredicateList	   ::=   	Predicate*
+[52]   	Predicate	   ::=   	"[" Expr "]"
+[53]   	Lookup	   ::=   	"?" KeySpecifier
+[54]   	KeySpecifier	   ::=   	NCName | IntegerLiteral | ParenthesizedExpr | "*"
 
-[62]   	ContextItemExpr	   ::=   	"."	
+[62]   	ContextItemExpr	   ::=   	"."
 [63]   	FunctionCall	   ::=   	EQName ArgumentList	/* xgc: reserved-function-names */
 /* gn: parens */
 
 
-[66]   	FunctionItemExpr	   ::=   	NamedFunctionRef | InlineFunctionExpr	
+[66]   	FunctionItemExpr	   ::=   	NamedFunctionRef | InlineFunctionExpr
 [67]   	NamedFunctionRef	   ::=   	EQName "#" IntegerLiteral	/* xgc: reserved-function-names */
-[68]   	InlineFunctionExpr	   ::=   	"function" "(" ParamList? ")" ("as" SequenceType)? FunctionBody	
-[69]   	MapConstructor	   ::=   	"map" "{" (MapConstructorEntry ("," MapConstructorEntry)*)? "}"	
-[70]   	MapConstructorEntry	   ::=   	MapKeyExpr ":" MapValueExpr	
-[71]   	MapKeyExpr	   ::=   	ExprSingle	
-[72]   	MapValueExpr	   ::=   	ExprSingle	
-[73]   	ArrayConstructor	   ::=   	SquareArrayConstructor | CurlyArrayConstructor	
-[74]   	SquareArrayConstructor	   ::=   	"[" (ExprSingle ("," ExprSingle)*)? "]"	
-[75]   	CurlyArrayConstructor	   ::=   	"array" EnclosedExpr	
-[76]   	UnaryLookup	   ::=   	"?" KeySpecifier	
+[68]   	InlineFunctionExpr	   ::=   	"function" "(" ParamList? ")" ("as" SequenceType)? FunctionBody
+[69]   	MapConstructor	   ::=   	"map" "{" (MapConstructorEntry ("," MapConstructorEntry)*)? "}"
+[70]   	MapConstructorEntry	   ::=   	MapKeyExpr ":" MapValueExpr
+[71]   	MapKeyExpr	   ::=   	ExprSingle
+[72]   	MapValueExpr	   ::=   	ExprSingle
+[73]   	ArrayConstructor	   ::=   	SquareArrayConstructor | CurlyArrayConstructor
+[74]   	SquareArrayConstructor	   ::=   	"[" (ExprSingle ("," ExprSingle)*)? "]"
+[75]   	CurlyArrayConstructor	   ::=   	"array" EnclosedExpr
+[76]   	UnaryLookup	   ::=   	"?" KeySpecifier
 
-[78]   	TypeDeclaration	   ::=   	"as" SequenceType	
+[78]   	TypeDeclaration	   ::=   	"as" SequenceType
 
 [80]   	OccurrenceIndicator	   ::=   	"?" | "*" | "+"	/* xgc: occurrence-indicators */
-[81]   	ItemType	   ::=   	KindTest | ("item" "(" ")") | FunctionTest | MapTest | ArrayTest | AtomicOrUnionType | ParenthesizedItemType	
-[82]   	AtomicOrUnionType	   ::=   	EQName	
-[83]   	KindTest	   ::=   	DocumentTest
-| ElementTest
-| AttributeTest
-| SchemaElementTest
-| SchemaAttributeTest
-| PITest
-| CommentTest
-| TextTest
-| NamespaceNodeTest
-| AnyKindTest	
-[84]   	AnyKindTest	   ::=   	"node" "(" ")"	
-[85]   	DocumentTest	   ::=   	"document-node" "(" (ElementTest | SchemaElementTest)? ")"	
-[86]   	TextTest	   ::=   	"text" "(" ")"	
-[87]   	CommentTest	   ::=   	"comment" "(" ")"	
-[88]   	NamespaceNodeTest	   ::=   	"namespace-node" "(" ")"	
-[89]   	PITest	   ::=   	"processing-instruction" "(" (NCName | StringLiteral)? ")"	
-[90]   	AttributeTest	   ::=   	"attribute" "(" (AttribNameOrWildcard ("," TypeName)?)? ")"	
-[91]   	AttribNameOrWildcard	   ::=   	AttributeName | "*"	
-[92]   	SchemaAttributeTest	   ::=   	"schema-attribute" "(" AttributeDeclaration ")"	
-[93]   	AttributeDeclaration	   ::=   	AttributeName	
-[94]   	ElementTest	   ::=   	"element" "(" (ElementNameOrWildcard ("," TypeName "?"?)?)? ")"	
-[95]   	ElementNameOrWildcard	   ::=   	ElementName | "*"	
-[96]   	SchemaElementTest	   ::=   	"schema-element" "(" ElementDeclaration ")"	
-[97]   	ElementDeclaration	   ::=   	ElementName	
-[98]   	AttributeName	   ::=   	EQName	
-[99]   	ElementName	   ::=   	EQName	
+[81]   	ItemType	   ::=   	KindTest | ("item" "(" ")") | FunctionTest | MapTest | ArrayTest | AtomicOrUnionType | ParenthesizedItemType
+[82]   	AtomicOrUnionType	   ::=   	EQName
+
+[97]   	ElementDeclaration	   ::=   	ElementName
+[98]   	AttributeName	   ::=   	EQName
+[99]   	ElementName	   ::=   	EQName
 
 [102]   	FunctionTest	   ::=   	AnyFunctionTest
-| TypedFunctionTest	
-[103]   	AnyFunctionTest	   ::=   	"function" "(" "*" ")"	
-[104]   	TypedFunctionTest	   ::=   	"function" "(" (SequenceType ("," SequenceType)*)? ")" "as" SequenceType	
-[105]   	MapTest	   ::=   	AnyMapTest | TypedMapTest	
-[106]   	AnyMapTest	   ::=   	"map" "(" "*" ")"	
-[107]   	TypedMapTest	   ::=   	"map" "(" AtomicOrUnionType "," SequenceType ")"	
-[108]   	ArrayTest	   ::=   	AnyArrayTest | TypedArrayTest	
-[109]   	AnyArrayTest	   ::=   	"array" "(" "*" ")"	
-[110]   	TypedArrayTest	   ::=   	"array" "(" SequenceType ")"	
-[111]   	ParenthesizedItemType	   ::=   	"(" ItemType ")"	
+| TypedFunctionTest
+[103]   	AnyFunctionTest	   ::=   	"function" "(" "*" ")"
+[104]   	TypedFunctionTest	   ::=   	"function" "(" (SequenceType ("," SequenceType)*)? ")" "as" SequenceType
+[105]   	MapTest	   ::=   	AnyMapTest | TypedMapTest
+[106]   	AnyMapTest	   ::=   	"map" "(" "*" ")"
+[107]   	TypedMapTest	   ::=   	"map" "(" AtomicOrUnionType "," SequenceType ")"
+[108]   	ArrayTest	   ::=   	AnyArrayTest | TypedArrayTest
+[109]   	AnyArrayTest	   ::=   	"array" "(" "*" ")"
+[110]   	TypedArrayTest	   ::=   	"array" "(" SequenceType ")"
+[111]   	ParenthesizedItemType	   ::=   	"(" ItemType ")"
 
 |#
 
