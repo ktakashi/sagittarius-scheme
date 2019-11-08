@@ -15,7 +15,7 @@ before_install:
   - rm -rf $HOME/.sagittarius
   - echo `pwd`
 #  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew update; fi
-#  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew upgrade; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then rvm use 2.6 fi
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install bdw-gc; fi
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install libffi; fi
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install openssl; fi
@@ -24,8 +24,6 @@ before_install:
   - curl -L -o sagittarius.tar.gz https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/sagittarius-`cat version`.tar.gz
   - tar xvf sagittarius.tar.gz
   - cd sagittarius-`cat version`
-  - if [ `cat ../version` = "0.6.7" ]; then curl -L -o osx.patch https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/sagittarius-0.6.7-osx.patch; fi
-  - if [ `cat ../version` = "0.6.7" ]; then patch -p1 < osx.patch; fi
   - if [ `cat ../version` = "0.9.0" ]; then curl -L -o osx.patch https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/sagittarius-0.9.0-osx.patch; fi
   - if [ `cat ../version` = "0.9.0" ]; then patch -p1 < osx.patch; fi
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then cmake . -DFFI_LIBRARY_DIR=/usr/local/Cellar/libffi/3.0.13/lib; fi
