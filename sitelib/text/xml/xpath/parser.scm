@@ -203,7 +203,6 @@
 ;; [47] NameTest ::= EQName | Wildcard
 (define $xpath:name-test ($or $xpath:wildcard $xpath:eqname))
 
-;; [89] PITest	   ::=   	"processing-instruction" "(" (NCName | StringLiteral)? ")"
 ;; [90] AttributeTest	   ::=   	"attribute" "(" (AttribNameOrWildcard ("," TypeName)?)? ")"
 ;; [91] AttribNameOrWildcard	   ::=   	AttributeName | "*"
 ;; [92] SchemaAttributeTest	   ::=   	"schema-attribute" "(" AttributeDeclaration ")"
@@ -234,7 +233,13 @@
   ($seq (ws** ($token "namespace-node"))
 	(ws** ($eqv? #\())
 	(ws** ($eqv? #\))) ($return '(namespace-node))))
-
+;; [89] PITest ::= "processing-instruction" "(" (NCName | StringLiteral)? ")"
+(define $xpath:pi-test
+  ($let (((ws** ($token "processing-instruction")))
+	 (($eqv? #\())
+	 (v ($optional ($or $xml:ncname $xpath:string-literal)))
+	 ((ws** ($eqv? #\)))))
+    ($return `(processing-instruction ,v))))
 
 ;; [83] KindTest ::= DocumentTest
 ;;                 | ElementTest
@@ -251,7 +256,7 @@
        ;;$xpath:element-test
        ;;$xpath:schema-element-test
        ;;$xpath:schema-attribute-test
-       ;;$xpath:pi-test
+       $xpath:pi-test
        $xpath:comment-test
        $xpath:text-test
        $xpath:namespace-node-test

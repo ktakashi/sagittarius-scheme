@@ -51,6 +51,12 @@
 (success-test $xpath:expr-single "/text()" '((/ (text))))
 (success-test $xpath:expr-single "/comment()" '((/ (comment))))
 (success-test $xpath:expr-single "/namespace-node()" '((/ (namespace-node))))
+(success-test $xpath:expr-single "/processing-instruction()"
+	      '((/ (processing-instruction #f))))
+(success-test $xpath:expr-single "/processing-instruction('foo')"
+	      '((/ (processing-instruction (str "foo")))))
+(success-test $xpath:expr-single "/processing-instruction(name)"
+	      '((/ (processing-instruction "name"))))
 
 (success-test $xpath:expr-single "a or b" '(or ("a") ("b")))
 (success-test $xpath:expr-single "a or b or c" '(or ("a") ("b") ("c")))
