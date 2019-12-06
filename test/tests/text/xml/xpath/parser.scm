@@ -48,6 +48,18 @@
 (success-test $xpath:expr-single "/ancestor-or-self::foo"
 	      '((/ (ancestor-or-self:: "foo"))))
 
+(success-test $xpath:expr-single "/child::foo" '((/ (child:: "foo"))))
+(success-test $xpath:expr-single "/descendant::foo" '((/ (descendant:: "foo"))))
+(success-test $xpath:expr-single "/attribute::foo" '((/ (attribute:: "foo"))))
+(success-test $xpath:expr-single "/self::foo" '((/ (self:: "foo"))))
+(success-test $xpath:expr-single "/descendant-or-self::foo"
+	      '((/ (descendant-or-self:: "foo"))))
+(success-test $xpath:expr-single "/following-sibling::foo"
+	      '((/ (following-sibling:: "foo"))))
+(success-test $xpath:expr-single "/following::foo" '((/ (following:: "foo"))))
+(success-test $xpath:expr-single "/namespace::foo" '((/ (namespace:: "foo"))))
+
+
 (success-test $xpath:expr-single "/node()" '((/ (node))))
 (success-test $xpath:expr-single "/text()" '((/ (text))))
 (success-test $xpath:expr-single "/comment()" '((/ (comment))))

@@ -169,14 +169,26 @@
        (define-concat-parser name base-parser sep)))))
 
 
-;; [41]   	ForwardAxis	   ::=   	("child" "::")
-;; | ("descendant" "::")
-;; | ("attribute" "::")
-;; | ("self" "::")
-;; | ("descendant-or-self" "::")
-;; | ("following-sibling" "::")
-;; | ("following" "::")
-;; | ("namespace" "::")
+(define colons (ws** ($token "::")))
+;; [41]	ForwardAxis ::= ("child" "::")
+;;                    | ("descendant" "::")
+;;                    | ("attribute" "::")
+;;                    | ("self" "::")
+;;                    | ("descendant-or-self" "::")
+;;                    | ("following-sibling" "::")
+;;                    | ("following" "::")
+;;                    | ("namespace" "::")
+(define $xpath:forward-axis
+  ($or ($seq (ws** ($token "child")) colons ($return 'child::))
+       ($seq (ws** ($token "descendant")) colons ($return 'descendant::))
+       ($seq (ws** ($token "attribute")) colons ($return 'attribute::))
+       ($seq (ws** ($token "self")) colons ($return 'self::))
+       ($seq (ws** ($token "descendant-or-self")) colons
+	     ($return 'descendant-or-self::))
+       ($seq (ws** ($token "following-sibling")) colons
+	     ($return 'following-sibling::))
+       ($seq (ws** ($token "following")) colons ($return 'following::))
+       ($seq (ws** ($token "namespace")) colons ($return 'namespace::))))
 
 ;; [44] ReverseAxis ::= ("parent" "::")
 ;;                    | ("ancestor" "::")
@@ -184,14 +196,13 @@
 ;;                    | ("preceding" "::")
 ;;                    | ("ancestor-or-self" "::")
 (define $xpath:reverse-axis
-  (let ((colons (ws** ($token "::"))))
-    ($or ($seq (ws** ($token "parent")) colons ($return 'parent::))
-	 ($seq (ws** ($token "ancestor")) colons ($return 'ancestor::))
-	 ($seq (ws** ($token "preceding-sibling")) colons
-	       ($return 'preceding-sibling::))
-	 ($seq (ws** ($token "preceding")) colons ($return 'preceding::))
-	 ($seq (ws** ($token "ancestor-or-self")) colons
-	       ($return 'ancestor-or-self::)))))
+  ($or ($seq (ws** ($token "parent")) colons ($return 'parent::))
+       ($seq (ws** ($token "ancestor")) colons ($return 'ancestor::))
+       ($seq (ws** ($token "preceding-sibling")) colons
+	     ($return 'preceding-sibling::))
+       ($seq (ws** ($token "preceding")) colons ($return 'preceding::))
+       ($seq (ws** ($token "ancestor-or-self")) colons
+	     ($return 'ancestor-or-self::))))
 ;; [45] AbbrevReverseStep ::= ".."
 (define $xpath:abbrev-reverse-step ($seq ($token "..") ($return '..)))
 
@@ -372,8 +383,9 @@
 
 ;;;; [40] ForwardStep ::= (ForwardAxis NodeTest) | AbbrevForwardStep
 (define $xpath:forward-step
-  ($or ;;($do (a $xpath:forwrd-axis) (t $xpath:node-test) ($return (cons a t)))
-   $xpath:abbrev-forward-step))
+  ($or ($let ((a $xpath:forward-axis) (t $xpath:node-test))
+	 ($return (list a t)))
+       $xpath:abbrev-forward-step))
 
 ;; [39] AxisStep ::= (ReverseStep | ForwardStep) PredicateList
 (define $xpath:axis-step
