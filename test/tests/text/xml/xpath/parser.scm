@@ -15,6 +15,7 @@
   (let-values (((s v nl) (parse-it parser text)))
     ;; (write v) (newline)
     (test-assert (parse-success? s))
+    (unless (equal? expected v) (write v) (newline))
     (test-equal text expected v)))
 
 (success-test $xpath:for-expr "for $x in X return $x"
@@ -57,6 +58,40 @@
 	      '((/ (processing-instruction (str "foo")))))
 (success-test $xpath:expr-single "/processing-instruction(name)"
 	      '((/ (processing-instruction "name"))))
+
+(success-test $xpath:expr-single "/element(*)" '((/ (element *))))
+(success-test $xpath:expr-single "/element(*, type)"
+	      '((/ (element (* of "type")))))
+(success-test $xpath:expr-single "/element(*, type?)"
+	      '((/ (element (* of (? "type"))))))
+(success-test $xpath:expr-single "/element(e)" '((/ (element "e"))))
+(success-test $xpath:expr-single "/element(e, type)"
+	      '((/ (element ("e" of "type")))))
+(success-test $xpath:expr-single "/element(e, type?)"
+	      '((/ (element ("e" of (? "type"))))))
+
+(success-test $xpath:expr-single "/attribute(*)" '((/ (attribute *))))
+(success-test $xpath:expr-single "/attribute(*, type)"
+	      '((/ (attribute (* of "type")))))
+(success-test $xpath:expr-single "/attribute(*, type?)"
+	      '((/ (attribute (* of (? "type"))))))
+(success-test $xpath:expr-single "/attribute(e)" '((/ (attribute "e"))))
+(success-test $xpath:expr-single "/attribute(e, type)"
+	      '((/ (attribute ("e" of "type")))))
+(success-test $xpath:expr-single "/attribute(e, type?)"
+	      '((/ (attribute ("e" of (? "type"))))))
+
+(success-test $xpath:expr-single "/schema-element(e)"
+	      '((/ (schema-element "e"))))
+
+(success-test $xpath:expr-single "/document-node()" '((/ (document-node))))
+(success-test $xpath:expr-single "/document-node(element(*))"
+	      '((/ (document-node (element *)))))
+(success-test $xpath:expr-single "/document-node(schema-element(e))"
+	      '((/ (document-node (schema-element "e")))))
+
+(success-test $xpath:expr-single "/schema-attribute(a)"
+	      '((/ (schema-attribute "a"))))
 
 (success-test $xpath:expr-single "a or b" '(or ("a") ("b")))
 (success-test $xpath:expr-single "a or b or c" '(or ("a") ("b") ("c")))

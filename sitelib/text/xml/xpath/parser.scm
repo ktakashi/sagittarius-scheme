@@ -99,6 +99,12 @@
   ($let ((v $xpath:eqname)) ($return (string->symbol v))))
 ;; [11] LetExpr	::= SimpleLetClause "return" ExprSingle
 
+;; [99] ElementName ::= EQName
+(define $xpath:element-name $xpath:eqname)
+;; [101] TypeName	::= EQName
+(define $xpath:type-name $xpath:eqname)
+;; [100] SimpleTypeName	::= TypeName
+(define $xpath:simple-type-name $xpath:type-name)
 
 ;; [10] SimpleForBinding ::= "$" VarName "in" ExprSingle
 (define $xpath:simple-for-binding
@@ -203,20 +209,75 @@
 ;; [47] NameTest ::= EQName | Wildcard
 (define $xpath:name-test ($or $xpath:wildcard $xpath:eqname))
 
-;; [90] AttributeTest	   ::=   	"attribute" "(" (AttribNameOrWildcard ("," TypeName)?)? ")"
-;; [91] AttribNameOrWildcard	   ::=   	AttributeName | "*"
-;; [92] SchemaAttributeTest	   ::=   	"schema-attribute" "(" AttributeDeclaration ")"
-;; [93] AttributeDeclaration	   ::=   	AttributeName
-;; [94] ElementTest	   ::=   	"element" "(" (ElementNameOrWildcard ("," TypeName "?"?)?)? ")"
-;; [95] ElementNameOrWildcard	   ::=   	ElementName | "*"
-;; [96] SchemaElementTest	   ::=   	"schema-element" "(" ElementDeclaration ")"
+;; [98] AttributeName ::= EQName
+(define $xpath:attribute-name $xpath:eqname)
+;; [91] AttribNameOrWildcard ::= AttributeName | "*"
+(define $xpath:attribute-name-or-wildcard
+  ($or $xpath:attribute-name ($seq ($eqv? #\*) ($return '*))))
+;; [90] AttributeTest ::= "attribute" "(" (AttribNameOrWildcard ("," TypeName)?)? ")"
+(define $xpath:attribute-test
+  ($let* (((ws** ($token "attribute")))
+	  ((ws** ($eqv? #\()))
+	  (name $xpath:attribute-name-or-wildcard)
+	  (type ($optional ($let (((ws** ($eqv? #\,)))
+				 (t $xpath:type-name)
+				 (opt? ($optional ($seq (ws** ($eqv? #\?))
+							($return #t)))))
+			     ($return `(,name of ,(if opt? `(? ,t) t))))
+			   name))
+	  ((ws** ($eqv? #\)))))
+   ($return `(attribute ,type))))
+
+;; [93] AttributeDeclaration ::= AttributeName
+(define $xpath:attribute-declaration $xpath:attribute-name)
+;; [92] SchemaAttributeTest ::= "schema-attribute" "(" AttributeDeclaration ")"
+(define $xpath:schema-attribute-test
+  ($let (((ws** ($token "schema-attribute")))
+	 ((ws** ($eqv? #\()))
+	 (decl $xpath:attribute-declaration)
+	 ((ws** ($eqv? #\)))))
+    ($return `(schema-attribute ,decl))))
+
+;; [97] ElementDeclaration ::= ElementName
+(define $xpath:element-declaration $xpath:element-name)
+;; [96] SchemaElementTest ::= "schema-element" "(" ElementDeclaration ")"
+(define $xpath:schema-element-test
+  ($let (((ws** ($token "schema-element")))
+	 ((ws** ($eqv? #\()))
+	 (decl $xpath:element-declaration)
+	 ((ws** ($eqv? #\)))))
+    ($return `(schema-element ,decl))))
 
 ;; [84] AnyKindTest ::= "node" "(" ")"
 (define $xpath:any-kind-test
   ($seq (ws** ($token "node"))
 	(ws** ($eqv? #\())
 	(ws** ($eqv? #\))) ($return '(node))))
+
+;; [95] ElementNameOrWildcard ::= ElementName | "*"
+(define $xpath:element-name-or-wildcard
+  ($or $xpath:element-name ($seq ($eqv? #\*) ($return '*))))
+;; [94] ElementTest ::= "element" "(" (ElementNameOrWildcard ("," TypeName "?"?)?)? ")"
+(define $xpath:element-test
+  ($let* (((ws** ($token "element")))
+	  ((ws** ($eqv? #\()))
+	  (name $xpath:element-name-or-wildcard)
+	  (type ($optional ($let (((ws** ($eqv? #\,)))
+				 (t $xpath:type-name)
+				 (opt? ($optional ($seq (ws** ($eqv? #\?))
+							($return #t)))))
+			     ($return `(,name of ,(if opt? `(? ,t) t))))
+			   name))
+	  ((ws** ($eqv? #\)))))
+    ($return `(element ,type))))
+
 ;; [85] DocumentTest ::= "document-node" "(" (ElementTest | SchemaElementTest)? ")"
+(define $xpath:document-test
+  ($let* (((ws** ($token "document-node")))
+	  ((ws** ($eqv? #\()))
+	  (e/s ($optional ($or $xpath:element-test $xpath:schema-element-test)))
+	  ((ws** ($eqv? #\)))))
+    ($return (if e/s `(document-node ,e/s) `(document-node)))))
 
 ;; [86] TextTest ::= "text" "(" ")"
 (define $xpath:text-test
@@ -252,10 +313,11 @@
 ;;                 | NamespaceNodeTest
 ;;                 | AnyKindTest
 (define $xpath:kind-test
-  ($or ;;$xpath:document-test
-       ;;$xpath:element-test
-       ;;$xpath:schema-element-test
-       ;;$xpath:schema-attribute-test
+  ($or $xpath:document-test
+       $xpath:element-test
+       $xpath:attribute-test
+       $xpath:schema-element-test
+       $xpath:schema-attribute-test
        $xpath:pi-test
        $xpath:comment-test
        $xpath:text-test
@@ -393,11 +455,6 @@
 		(s ($optional ($seq (ws++ ($token tokens)) ... tp))))
 	   ($return (if s `(keyword t s) t))))))))
 
-;; [101] TypeName	::= EQName
-(define $xpath:type-name $xpath:eqname)
-;; [100] SimpleTypeName	::= TypeName
-(define $xpath:simple-type-name $xpath:type-name)
-
 ;; [77] SingleType ::= SimpleTypeName "?"?
 (define $xpath:single-type
   ($let ((n $xpath:simple-type-name)
@@ -527,10 +584,6 @@
 [80]   	OccurrenceIndicator	   ::=   	"?" | "*" | "+"	/* xgc: occurrence-indicators */
 [81]   	ItemType	   ::=   	KindTest | ("item" "(" ")") | FunctionTest | MapTest | ArrayTest | AtomicOrUnionType | ParenthesizedItemType
 [82]   	AtomicOrUnionType	   ::=   	EQName
-
-[97]   	ElementDeclaration	   ::=   	ElementName
-[98]   	AttributeName	   ::=   	EQName
-[99]   	ElementName	   ::=   	EQName
 
 [102]   	FunctionTest	   ::=   	AnyFunctionTest
 | TypedFunctionTest
