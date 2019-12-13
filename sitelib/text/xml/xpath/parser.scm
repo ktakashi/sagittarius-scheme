@@ -35,8 +35,11 @@
 #!nounbound
 (library (text xml xpath parser)
     (export $xpath:xpath
+	    ;; for testing (for now, may export more for convenience but later)
 	    $xpath:expr-single
-	    $xpath:for-expr)
+	    $xpath:for-expr
+	    $xpath:item-type
+	    )
     (import (rnrs)
 	    (peg)
 	    (peg chars)
@@ -448,7 +451,6 @@
 (define $xpath:unary-expr
   ($let ((op* ($many (ws** ($or ($eqv? #\-) ($eqv? #\+)))))
 	 (v $xpath:value-expr))
-    ;; TODO
     ($return (if (null? op*) v (cons op* v)))))
 
 ;; [65] ArgumentPlaceholder ::= "?"
@@ -504,13 +506,55 @@
 (define-type-parser $xpath:castable-expr $xpath:cast-expr
   $xpath:single-type "castable" "as")
 
+;; [103] AnyFunctionTest ::= "function" "(" "*" ")"
+(define $xpath:any-function-test
+  ($seq (ws** ($token "function"))
+	(ws** ($eqv? #\()) (ws** ($eqv? #\*)) (ws** ($eqv? #\)))
+	($return '(function * (*)))))
+
+;; [104] TypedFunctionTest ::= "function" "(" (SequenceType ("," SequenceType)*)? ")" "as" SequenceType
+(define $xpath:typed-function-test
+  ($let (((ws** ($token "function")))
+	 ((ws** ($eqv? #\()))
+	 (arg ($lazy $xpath:sequence-type))
+ 	 (arg* ($many ($seq (ws** ($eqv? #\,)) ($lazy $xpath:sequence-type))))
+	 ((ws** ($eqv? #\))))
+	 ((ws** ($token "as")))
+	 (rettype ($lazy $xpath:sequence-type)))
+    ($return `(function ,rettype ,(cons arg arg*)))))
+
+;; [102] FunctionTest ::= AnyFunctionTest | TypedFunctionTest
+(define $xpath:function-test
+  ($or $xpath:any-function-test $xpath:typed-function-test))
+
+;; [81] ItemType ::= KindTest | ("item" "(" ")")
+;;                 | FunctionTest | MapTest | ArrayTest
+;;                 | AtomicOrUnionType | ParenthesizedItemType
+(define $xpath:item-type
+  ($or $xpath:kind-test
+       ($seq (ws** ($token "item")) (ws** ($eqv? #\()) (ws** ($eqv? #\)))
+	     ($return '(item)))
+       $xpath:function-test
+       ;; TODO
+       ;; $xpath:map-test
+       ;; $xpath:array-test
+       ;; $xpath:atomic-or-union-type
+       ;; $xpath:parenthesized-item-type
+       ))
+       
+
+;; [80] OccurrenceIndicator ::= "?" | "*" | "+" /* xgc: occurrence-indicators */
+(define $xpath:occurrence-indicator
+  ($or ($seq (ws** ($eqv? #\?)) ($return '?))
+       ($seq (ws** ($eqv? #\*)) ($return '*))
+       ($seq (ws** ($eqv? #\+)) ($return '+))))
 ;; [79] SequenceType ::= ("empty-sequence" "(" ")")
 ;;                     | (ItemType OccurrenceIndicator?)
 (define $xpath:sequence-type
   ($or ($let (w* (($token "empty-sequence")) w* (($eqv? #\()) w* (($eqv? #\))))
 	 ($return '(sequence)))
-       ;; TODO
-       ))
+       ($let ((i $xpath:item-type) (o ($optional $xpath:occurrence-indicator)))
+	 ($return (if o (list o i) i)))))
 
 ;; [26] TreatExpr ::= CastableExpr ( "treat" "as" SequenceType )?
 (define-type-parser $xpath:treat-expr $xpath:castable-expr
@@ -617,14 +661,9 @@
 
 [78]   	TypeDeclaration	   ::=   	"as" SequenceType
 
-[80]   	OccurrenceIndicator	   ::=   	"?" | "*" | "+"	/* xgc: occurrence-indicators */
-[81]   	ItemType	   ::=   	KindTest | ("item" "(" ")") | FunctionTest | MapTest | ArrayTest | AtomicOrUnionType | ParenthesizedItemType
 [82]   	AtomicOrUnionType	   ::=   	EQName
 
-[102]   	FunctionTest	   ::=   	AnyFunctionTest
-| TypedFunctionTest
-[103]   	AnyFunctionTest	   ::=   	"function" "(" "*" ")"
-[104]   	TypedFunctionTest	   ::=   	"function" "(" (SequenceType ("," SequenceType)*)? ")" "as" SequenceType
+
 [105]   	MapTest	   ::=   	AnyMapTest | TypedMapTest
 [106]   	AnyMapTest	   ::=   	"map" "(" "*" ")"
 [107]   	TypedMapTest	   ::=   	"map" "(" AtomicOrUnionType "," SequenceType ")"

@@ -24,6 +24,13 @@
 	      '(for (x ((str "X"))) (for (y ((str "Y")))
 		 (+ ((ref x)) ((ref y))))))
 
+(success-test $xpath:item-type "item()" '(item))
+(success-test $xpath:item-type "element(*)" '(element *))
+(success-test $xpath:item-type "function(*)" '(function * (*)))
+(success-test $xpath:item-type "function(item()) as item()"
+	      '(function (item) ((item))))
+	      
+
 (success-test $xpath:expr-single "\"\"\"\"" '((str "\"")))
 (success-test $xpath:expr-single "''''" '((str "'")))
 (success-test $xpath:expr-single "1" '(1))
