@@ -50,12 +50,11 @@
 (define (ws*+ p) ($do w* (r p) w+ ($return r)))
 (define (ws++ p) ($do w+ (r p) w+ ($return r)))
 #|
-[113] IntegerLiteral	::= Digits
-[114] DecimalLiteral	::= ("." Digits) | (Digits "." [0-9]*)
-[115] DoubleLiteral	::= (("." Digits) | (Digits ("." [0-9]*)?)) [eE] [+-]? Digits
-
 [121] Comment	   ::=      "(:" (CommentContents | Comment)* ":)"
 |#
+;; digits := [0-9]+
+(define digits+ ($many ($char-set-contains? char-set:digit) 1))
+(define digits* ($many ($char-set-contains? char-set:digit)))
 
 ;; [119] EscapeQuot	::= '""'
 (define $xpath:escape-quot ($seq ($token "\"\"") ($return #\")))
@@ -351,8 +350,33 @@
 	  ((ws** ($eqv? #\)))))
 	 ($return e)))
 
+;; [113] IntegerLiteral	::= Digits
+(define $xpath:integer-literal
+  ($let ((c* digits+)) ($return (string->number (list->string c*)))))
+;; [114] DecimalLiteral	::= ("." Digits) | (Digits "." [0-9]*)
+(define $xpath:decimal-literal
+  ($or ($let (((ws** ($eqv? #\.))) (c* digits+))
+	  ($return (string->number (list->string (cons #\. c*)))))
+       ($let ((c1* digits+)
+	      ((ws** ($eqv? #\.)))
+	      (c2* digits*))
+	  ($return (string->number 
+		    (list->string (append c1* (cons #\. c2*))))))))
+;; [115] DoubleLiteral ::= (("." Digits) | (Digits ("." [0-9]*)?)) [eE] [+-]? Digits
+(define $xpath:double-literal
+  ($let ((i ($or ($let (((ws** ($eqv? #\.))) (c* digits+))
+		   ($return (cons #\. c*)))
+		 ($let ((c1* digits+)
+			(c2* ($optional ($seq (ws** ($eqv? #\.)) digits*) #f)))
+		   ($return (if c2* (append c1* (cons #\. c2*)) c1*)))))
+	 (($or ($eqv? #\e) ($eqv? #\E)))
+	 (sign ($optional ($or ($eqv? #\+) ($eqv? #\-)) #\+))
+	 (f digits+))
+   ($return (string->number (list->string `(,@i #\e ,sign ,@f))))))
+
 ;; [58] NumericLiteral ::= IntegerLiteral | DecimalLiteral | DoubleLiteral
-(define $xpath:numeric-literal ($expect "not yet"))
+(define $xpath:numeric-literal
+  ($or $xpath:double-literal $xpath:decimal-literal $xpath:integer-literal))
 
 ;; [57] Literal ::= NumericLiteral | StringLiteral
 (define $xpath:literal

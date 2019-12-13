@@ -26,6 +26,13 @@
 
 (success-test $xpath:expr-single "\"\"\"\"" '((str "\"")))
 (success-test $xpath:expr-single "''''" '((str "'")))
+(success-test $xpath:expr-single "1" '(1))
+(success-test $xpath:expr-single "1234" '(1234))
+(success-test $xpath:expr-single ".0" '(0.0))
+(success-test $xpath:expr-single "1.12" '(1.12))
+(success-test $xpath:expr-single "1.0e1" '(10.0))
+(success-test $xpath:expr-single "1.0e+1" '(10.0))
+(success-test $xpath:expr-single "1.0e-1" '(0.1))
 
 (success-test $xpath:expr-single "/foo/bar" '((/ "foo") (/ "bar")))
 (success-test $xpath:expr-single "/foo/bar/baz"
