@@ -527,6 +527,13 @@
 (define $xpath:function-test
   ($or $xpath:any-function-test $xpath:typed-function-test))
 
+
+;; [111] ParenthesizedItemType ::= "(" ItemType ")"
+(define $xpath:parenthesized-item-type
+  ($let (((ws** ($eqv? #\()))
+	 (i ($lazy $xpath:item-type))
+	 ((ws** ($eqv? #\)))))
+     ($return i)))
 ;; [81] ItemType ::= KindTest | ("item" "(" ")")
 ;;                 | FunctionTest | MapTest | ArrayTest
 ;;                 | AtomicOrUnionType | ParenthesizedItemType
@@ -539,9 +546,7 @@
        ;; $xpath:map-test
        ;; $xpath:array-test
        ;; $xpath:atomic-or-union-type
-       ;; $xpath:parenthesized-item-type
-       ))
-       
+       $xpath:parenthesized-item-type))
 
 ;; [80] OccurrenceIndicator ::= "?" | "*" | "+" /* xgc: occurrence-indicators */
 (define $xpath:occurrence-indicator
@@ -670,7 +675,6 @@
 [108]   	ArrayTest	   ::=   	AnyArrayTest | TypedArrayTest
 [109]   	AnyArrayTest	   ::=   	"array" "(" "*" ")"
 [110]   	TypedArrayTest	   ::=   	"array" "(" SequenceType ")"
-[111]   	ParenthesizedItemType	   ::=   	"(" ItemType ")"
 
 |#
 
