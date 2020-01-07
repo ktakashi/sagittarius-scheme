@@ -125,5 +125,13 @@
 (success-test $xpath:expr-single "a or b and c" '(or ("a") (and ("b") ("c"))))
 (success-test $xpath:expr-single "a or b and c or d"
 	      '(or ("a") (and ("b") ("c")) ("d")))
+;; "postfix-expr with predicate"
+(success-test $xpath:expr-single "/$a[b]" '((/ ((ref a) (? (("b")))))))
+;; "postfix-expr with argument list"
+(success-test $xpath:expr-single "/$a()" '((/ ((ref a) ()))))
+(success-test $xpath:expr-single "/$a?a" '((/ ((ref a) (lookup "a")))))
+(success-test $xpath:expr-single "/$a?1" '((/ ((ref a) (lookup 1)))))
+(success-test $xpath:expr-single "/$a?(a)" '((/ ((ref a) (lookup (("a")))))))
+(success-test $xpath:expr-single "/$a?*" '((/ ((ref a) (lookup *)))))
 
 (test-end)

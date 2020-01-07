@@ -397,11 +397,47 @@
 (define $xpath:primary-expr
   ($or $xpath:literal $xpath:var-ref $xpath:parenthesized-expr))
 
+;; [52] Predicate ::= "[" Expr "]"
+(define $xpath:predicate
+  ($let (( (ws** ($eqv? #\[)) )
+	 (e ($lazy $xpath:expr))
+	 ( (ws** ($eqv? #\])) ))
+     ($return `(? ,e))))
+
+;; [65] ArgumentPlaceholder ::= "?"
+(define $xpath:argument-placeholder
+  ($seq (ws** ($eqv? #\?)) ($return '?)))
+;; [64] Argument ::= ExprSingle | ArgumentPlaceholder
+(define $xpath:argument
+  ($or ($lazy $xpath:expr-single)
+       $xpath:argument-placeholder))
+;; [50] ArgumentList ::= "(" (Argument ("," Argument)*)? ")"
+(define $xpath:argument-list
+  ($let (((ws** ($eqv? #\()))
+	 (a* ($optional ($let* ((a $xpath:argument)
+				(a* ($many ($seq (ws** ($eqv? #\,)))
+					   $xpath:argument)))
+			  ($return (cons a a*))) '()))
+	 ((ws** ($eqv? #\)))))
+    ($return a*)))
+
+;; [54] KeySpecifier ::= NCName | IntegerLiteral | ParenthesizedExpr | "*"
+(define $xpath:key-specifier
+  ($or $xml:ncname $xpath:integer-literal $xpath:parenthesized-expr
+       ($seq ($eqv? #\*) ($return '*))))
+;; [53] Lookup ::= "?" KeySpecifier
+(define $xpath:lookup
+  ($let (( (ws** ($eqv? #\?)) )
+	 (ks $xpath:key-specifier))
+    ($return `(lookup ,ks))))
+
 ;; [49] PostfixExpr ::= PrimaryExpr (Predicate | ArgumentList | Lookup)*
 (define $xpath:postfix-expr
-  ($let* ((p $xpath:primary-expr))
-	 ;; TODO
-    ($return p)))
+  ($let ((p $xpath:primary-expr)
+	 (rest ($optional ($or $xpath:predicate
+			       $xpath:argument-list
+			       $xpath:lookup))))
+    ($return (if rest `(,p ,rest) p))))
 
 ;; [42] AbbrevForwardStep ::= "@"? NodeTest
 (define $xpath:abbrev-forward-step
@@ -453,22 +489,6 @@
 	 (v $xpath:value-expr))
     ($return (if (null? op*) v (cons op* v)))))
 
-;; [65] ArgumentPlaceholder ::= "?"
-(define $xpath:argument-placeholder
-  ($seq (ws** ($eqv? #\?)) ($return '?)))
-;; [64] Argument ::= ExprSingle | ArgumentPlaceholder
-(define $xpath:argument
-  ($or ($lazy $xpath:expr-single)
-       $xpath:argument-placeholder))
-;; [50] ArgumentList ::= "(" (Argument ("," Argument)*)? ")"
-(define $xpath:argument-list
-  ($let (((ws** ($eqv? #\()))
-	 (a* ($optional ($let* ((a $xpath:argument)
-				(a* ($many ($seq (ws** ($eqv? #\,)))
-					   $xpath:argument)))
-			  ($return (cons a a*))) '()))
-	 ((ws** ($eqv? #\)))))
-    ($return a*)))
 ;; [55] ArrowFunctionSpecifier ::= EQName | VarRef | ParenthesizedExpr
 (define $xpath:arrow-function-specifier
   ($or $xpath:eqname $xpath:var-name $xpath:parenthesized-expr))
@@ -643,9 +663,6 @@
 [34]   	NodeComp	   ::=   	"is" | "<<" | ">>"
 
 [51]   	PredicateList	   ::=   	Predicate*
-[52]   	Predicate	   ::=   	"[" Expr "]"
-[53]   	Lookup	   ::=   	"?" KeySpecifier
-[54]   	KeySpecifier	   ::=   	NCName | IntegerLiteral | ParenthesizedExpr | "*"
 
 [62]   	ContextItemExpr	   ::=   	"."
 [63]   	FunctionCall	   ::=   	EQName ArgumentList	/* xgc: reserved-function-names */
