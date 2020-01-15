@@ -134,4 +134,22 @@
 (success-test $xpath:expr-single "/$a?(a)" '((/ ((ref a) (lookup (("a")))))))
 (success-test $xpath:expr-single "/$a?*" '((/ ((ref a) (lookup *)))))
 
+(success-test $xpath:expr-single "a eq b" '(eq ("a") ("b")))
+(success-test $xpath:expr-single "a ne b" '(ne ("a") ("b")))
+(success-test $xpath:expr-single "a lt b" '(lt ("a") ("b")))
+(success-test $xpath:expr-single "a le b" '(le ("a") ("b")))
+(success-test $xpath:expr-single "a gt b" '(gt ("a") ("b")))
+(success-test $xpath:expr-single "a ge b" '(ge ("a") ("b")))
+
+(success-test $xpath:expr-single "a = b"  '(= ("a") ("b")))
+(success-test $xpath:expr-single "a != b" '(!= ("a") ("b")))
+(success-test $xpath:expr-single "a < b"  '(< ("a") ("b")))
+(success-test $xpath:expr-single "a <= b" '(<= ("a") ("b")))
+(success-test $xpath:expr-single "a > b"  '(> ("a") ("b")))
+(success-test $xpath:expr-single "a >= b" '(>= ("a") ("b")))
+
+(success-test $xpath:expr-single "a is b" '(is ("a") ("b")))
+(success-test $xpath:expr-single "a << b" '(<< ("a") ("b")))
+(success-test $xpath:expr-single "a >> b" '(>> ("a") ("b")))
+
 (test-end)

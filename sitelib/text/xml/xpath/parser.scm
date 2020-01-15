@@ -616,13 +616,40 @@
 (define-concat-parser $xpath:string-concat-expr concat $xpath:range-expr
   ($token "||"))
 
+;; [33] ValueComp ::= "eq" | "ne" | "lt" | "le" | "gt" | "ge"
+(define $xpath:value-comp
+  ($or ($seq (ws** ($token "eq")) ($return 'eq))
+       ($seq (ws** ($token "ne")) ($return 'ne))
+       ($seq (ws** ($token "lt")) ($return 'lt))
+       ($seq (ws** ($token "le")) ($return 'le))
+       ($seq (ws** ($token "gt")) ($return 'gt))
+       ($seq (ws** ($token "ge")) ($return 'ge))))
+;; [32] GeneralComp ::= "=" | "!=" | "<" | "<=" | ">" | ">="
+(define $xpath:general-comp
+  ($or ($seq (ws** ($token "="))  ($return '=))
+       ($seq (ws** ($token "!=")) ($return '!=))
+       ($seq (ws** ($token "<=")) ($return '<=))
+       ($seq (ws** ($token "<"))  ($return '<))
+       ($seq (ws** ($token ">=")) ($return '>=))
+       ($seq (ws** ($token ">"))  ($return '>))))
+
+;; [34] NodeComp ::= "is" | "<<" | ">>"
+(define $xpath:node-comp
+  ($or ($seq (ws** ($token "is")) ($return 'is))
+       ($seq (ws** ($token "<<")) ($return '<<))
+       ($seq (ws** ($token ">>")) ($return '>>))))
+
 ;; [18] ComparisonExpr ::= StringConcatExpr ( (ValueComp
 ;;                         | GeneralComp
 ;;                         | NodeComp) StringConcatExpr )?
 (define $xpath:comparison-expr
-  ($let ((sc $xpath:string-concat-expr))
-	;; TODO with other thing
-    ($return sc)))
+  ($let ((sc $xpath:string-concat-expr)
+	 (comp? ($optional ($let ((c ($or $xpath:value-comp
+					  $xpath:node-comp
+					  $xpath:general-comp))
+				  (e $xpath:string-concat-expr))
+			    ($return (cons c e))))))
+    ($return (if comp? `(,(car comp?) ,sc ,(cdr comp?)) sc))))
 
 ;; [17] AndExpr ::= ComparisonExpr ( "and" ComparisonExpr )*
 (define-concat-parser $xpath:and-expr and $xpath:comparison-expr ($token "and"))
@@ -657,10 +684,6 @@
 [13]   	SimpleLetBinding	   ::=   	"$" VarName ":=" ExprSingle
 [14]   	QuantifiedExpr	   ::=   	("some" | "every") "$" VarName "in" ExprSingle ("," "$" VarName "in" ExprSingle)* "satisfies" ExprSingle
 [15]   	IfExpr	   ::=   	"if" "(" Expr ")" "then" ExprSingle "else" ExprSingle
-
-[32]   	GeneralComp	   ::=   	"=" | "!=" | "<" | "<=" | ">" | ">="
-[33]   	ValueComp	   ::=   	"eq" | "ne" | "lt" | "le" | "gt" | "ge"
-[34]   	NodeComp	   ::=   	"is" | "<<" | ">>"
 
 [51]   	PredicateList	   ::=   	Predicate*
 
