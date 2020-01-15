@@ -38,6 +38,7 @@
 	    ;; for testing (for now, may export more for convenience but later)
 	    $xpath:expr-single
 	    $xpath:for-expr
+	    $xpath:let-expr
 	    $xpath:item-type
 	    )
     (import (rnrs)
@@ -99,7 +100,32 @@
 ;; [60] VarName	::= EQName
 (define $xpath:var-name
   ($let ((v $xpath:eqname)) ($return (string->symbol v))))
+
+;; [13] SimpleLetBinding ::= "$" VarName ":=" ExprSingle
+(define $xpath:simple-let-binding
+  ($let ((($eqv? #\$))
+	 (v $xpath:var-name)
+	 ((ws** ($token ":=")))
+	 (e ($lazy $xpath:expr-single)))
+    ($return (list v e))))
+;; [12] SimpleLetClause	::= "let" SimpleLetBinding ("," SimpleLetBinding)*
+(define $xpath:simple-let-clause
+  ($let (((ws*+ ($token "let")))
+	 (b $xpath:simple-let-binding)
+	 (b* ($many ($seq (ws** ($eqv? #\,)) $xpath:simple-let-binding))))
+    ($return (cons b b*))))
+
 ;; [11] LetExpr	::= SimpleLetClause "return" ExprSingle
+(define $xpath:let-expr
+  ($let ((c $xpath:simple-let-clause)
+	 ( (ws** ($token "return")) )
+	 (e ($lazy $xpath:expr-single)))
+    ;; 3.10 Let Expression
+    ;; In:  `let $x := 4, $y := 3 return $x + $y`
+    ;; Out: `let $x := 4 return let $y := 3 return $x + $y`
+    ($return (if (null? (cdr c))
+		 `(let ,(car c) ,e)
+		 (fold-right (lambda (bind body) `(let ,bind ,body)) e c)))))
 
 ;; [99] ElementName ::= EQName
 (define $xpath:element-name $xpath:eqname)
@@ -453,6 +479,7 @@
 ;; [39] AxisStep ::= (ReverseStep | ForwardStep) PredicateList
 (define $xpath:axis-step
   ($let ((s ($or $xpath:reverse-step $xpath:forward-step))
+	 ;; TODO
 	  #;(p $xpath:predicate-list))
     ($return s)))
 ;; [38] StepExpr ::= PostfixExpr | AxisStep
@@ -697,10 +724,11 @@
 ;; [7] ExprSingle ::= ForExpr | LetExpr | QuantifiedExpr | IfExpr | OrExpr
 (define $xpath:expr-single
   ($or $xpath:for-expr
-       ;;$xpath:let-expr $xpath:quantified-expr
-       ;;$xpath:if-expr
-       $xpath:or-expr
-       ))
+       $xpath:let-expr
+       ;; TODO
+       ;; $xpath:quantified-expr
+       ;; $xpath:if-expr
+       $xpath:or-expr))
 
 ;; [6]  Expr  ::= ExprSingle ("," ExprSingle)*
 (define $xpath:expr
@@ -718,8 +746,6 @@
 [4]   	FunctionBody ::=   	EnclosedExpr
 [5]   	EnclosedExpr ::=   	"{" Expr? "}"
 
-[12]   	SimpleLetClause	   ::=   	"let" SimpleLetBinding ("," SimpleLetBinding)*
-[13]   	SimpleLetBinding	   ::=   	"$" VarName ":=" ExprSingle
 [14]   	QuantifiedExpr	   ::=   	("some" | "every") "$" VarName "in" ExprSingle ("," "$" VarName "in" ExprSingle)* "satisfies" ExprSingle
 [15]   	IfExpr	   ::=   	"if" "(" Expr ")" "then" ExprSingle "else" ExprSingle
 

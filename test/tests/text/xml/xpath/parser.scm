@@ -23,6 +23,12 @@
 (success-test $xpath:for-expr "for $x in \"X\", $y in 'Y' return $x + $y"
 	      '(for (x ((str "X"))) (for (y ((str "Y")))
 		 (+ ((ref x)) ((ref y))))))
+(success-test $xpath:let-expr "let $x := X return $x"
+	      '(let (x ("X")) ((ref x))))
+(success-test $xpath:let-expr "let $x := \"X\", $y:='Y' return $x + $y"
+	      '(let (x ((str "X"))) (let (y ((str "Y")))
+		 (+ ((ref x)) ((ref y))))))
+
 
 (success-test $xpath:item-type "item()" '(item))
 (success-test $xpath:item-type "element(*)" '(element *))
