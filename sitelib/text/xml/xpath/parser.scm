@@ -554,6 +554,45 @@
 	 (i ($lazy $xpath:item-type))
 	 ((ws** ($eqv? #\)))))
      ($return i)))
+
+;; [106] AnyMapTest ::= "map" "(" "*" ")"
+(define $xpath:any-map-test
+  ($seq (ws** ($token "map"))
+	(ws** ($eqv? #\()) (ws** ($eqv? #\*)) (ws** ($eqv? #\)))
+	($return '(map *))))
+
+;; [82] AtomicOrUnionType ::= EQName
+(define $xpath:atomic-or-union-type $xpath:eqname)
+;; [107] TypedMapTest ::= "map" "(" AtomicOrUnionType "," SequenceType ")"
+(define $xpath:typed-map-test
+  ($let (( (ws** ($token "map")) )
+	 ( (ws** ($eqv? #\()) )
+	 (t $xpath:atomic-or-union-type)
+	 ( (ws** ($eqv? #\,)) )
+	 (s ($lazy $xpath:sequence-type))
+	 ( (ws** ($eqv? #\))) ))
+    ($return `(map ,t ,s))))
+  
+;; [105] MapTest ::= AnyMapTest | TypedMapTest
+(define $xpath:map-test ($or $xpath:any-map-test $xpath:typed-map-test))
+
+;; [109] AnyArrayTest ::= "array" "(" "*" ")"
+(define $xpath:any-array-test
+  ($seq (ws** ($token "array"))
+	(ws** ($eqv? #\()) (ws** ($eqv? #\*)) (ws** ($eqv? #\)))
+	($return '(array *))))
+  
+;; [110] TypedArrayTest ::= "array" "(" SequenceType ")"
+(define $xpath:typed-array-test
+  ($let (( (ws** ($token "array")) )
+	 ( (ws** ($eqv? #\()) )
+	 (s ($lazy $xpath:sequence-type))
+	 ( (ws** ($eqv? #\))) ))
+    ($return `(array ,s))))
+
+;; [108] ArrayTest ::= AnyArrayTest | TypedArrayTest
+(define $xpath:array-test ($or $xpath:any-array-test $xpath:typed-array-test))
+
 ;; [81] ItemType ::= KindTest | ("item" "(" ")")
 ;;                 | FunctionTest | MapTest | ArrayTest
 ;;                 | AtomicOrUnionType | ParenthesizedItemType
@@ -562,10 +601,9 @@
        ($seq (ws** ($token "item")) (ws** ($eqv? #\()) (ws** ($eqv? #\)))
 	     ($return '(item)))
        $xpath:function-test
-       ;; TODO
-       ;; $xpath:map-test
-       ;; $xpath:array-test
-       ;; $xpath:atomic-or-union-type
+       $xpath:map-test
+       $xpath:array-test
+       $xpath:atomic-or-union-type
        $xpath:parenthesized-item-type))
 
 ;; [80] OccurrenceIndicator ::= "?" | "*" | "+" /* xgc: occurrence-indicators */
@@ -705,16 +743,6 @@
 [76]   	UnaryLookup	   ::=   	"?" KeySpecifier
 
 [78]   	TypeDeclaration	   ::=   	"as" SequenceType
-
-[82]   	AtomicOrUnionType	   ::=   	EQName
-
-
-[105]   	MapTest	   ::=   	AnyMapTest | TypedMapTest
-[106]   	AnyMapTest	   ::=   	"map" "(" "*" ")"
-[107]   	TypedMapTest	   ::=   	"map" "(" AtomicOrUnionType "," SequenceType ")"
-[108]   	ArrayTest	   ::=   	AnyArrayTest | TypedArrayTest
-[109]   	AnyArrayTest	   ::=   	"array" "(" "*" ")"
-[110]   	TypedArrayTest	   ::=   	"array" "(" SequenceType ")"
 
 |#
 
