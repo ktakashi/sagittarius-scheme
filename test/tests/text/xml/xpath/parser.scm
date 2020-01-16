@@ -14,7 +14,8 @@
 (define (success-test parser text expected)
   (let-values (((s v nl) (parse-it parser text)))
     ;; (write v) (newline)
-    (test-assert (parse-success? s))
+    (test-assert text (parse-success? s))
+    (test-assert text (null? nl))
     (unless (equal? expected v) (write v) (newline))
     (test-equal text expected v)))
 
@@ -28,7 +29,12 @@
 (success-test $xpath:let-expr "let $x := \"X\", $y:='Y' return $x + $y"
 	      '(let (x ((str "X"))) (let (y ((str "Y")))
 		 (+ ((ref x)) ((ref y))))))
-
+(success-test $xpath:quantified-expr
+	      "some $x in X, $y in Y satisfies $x + $y = 4"
+	      '(some ((x ("X")) (y ("Y"))) (= (+ ((ref x)) ((ref y))) (4))))
+(success-test $xpath:quantified-expr
+	      "every $x in X, $y in Y satisfies $x + $y = 4"
+	      '(every ((x ("X")) (y ("Y"))) (= (+ ((ref x)) ((ref y))) (4))))
 
 (success-test $xpath:item-type "item()" '(item))
 (success-test $xpath:item-type "element(*)" '(element *))
@@ -86,6 +92,10 @@
 	      '((/ (following-sibling:: "foo"))))
 (success-test $xpath:expr-single "/following::foo" '((/ (following:: "foo"))))
 (success-test $xpath:expr-single "/namespace::foo" '((/ (namespace:: "foo"))))
+
+(success-test $xpath:expr-single "/foo[text()]" '((/ ("foo" (? (((text))))))))
+(success-test $xpath:expr-single "/foo[text()][b]"
+	      '((/ ("foo" (? (((text)))) (? (("b")))))))
 
 
 (success-test $xpath:expr-single "/node()" '((/ (node))))

@@ -39,6 +39,7 @@
 	    $xpath:expr-single
 	    $xpath:for-expr
 	    $xpath:let-expr
+	    $xpath:quantified-expr
 	    $xpath:item-type
 	    )
     (import (rnrs)
@@ -421,6 +422,7 @@
 ;;                    | ArrayConstructor
 ;;                    | UnaryLookup
 (define $xpath:primary-expr
+  ;; TODO
   ($or $xpath:literal $xpath:var-ref $xpath:parenthesized-expr))
 
 ;; [52] Predicate ::= "[" Expr "]"
@@ -476,12 +478,15 @@
 	 ($return (list a t)))
        $xpath:abbrev-forward-step))
 
+;; [51] PredicateList ::= Predicate*
+(define $xpath:predicate-list ($many $xpath:predicate))
+
 ;; [39] AxisStep ::= (ReverseStep | ForwardStep) PredicateList
 (define $xpath:axis-step
   ($let ((s ($or $xpath:reverse-step $xpath:forward-step))
-	 ;; TODO
-	  #;(p $xpath:predicate-list))
-    ($return s)))
+	 (p* $xpath:predicate-list))
+    ($return (if (null? p*) s (cons s p*)))))
+
 ;; [38] StepExpr ::= PostfixExpr | AxisStep
 (define $xpath:step-expr ($or $xpath:postfix-expr $xpath:axis-step))
 ;; [37] RelativePathExpr ::= StepExpr (("/" | "//") StepExpr)*
@@ -721,12 +726,31 @@
 
 ;; [16] OrExpr ::= AndExpr ( "or" AndExpr )*
 (define-concat-parser $xpath:or-expr or  $xpath:and-expr ($token "or"))
+
+;; [14] QuantifiedExpr ::= ("some" | "every") "$" VarName "in" ExprSingle
+;;                         ("," "$" VarName "in" ExprSingle)* "satisfies"
+;;                         ExprSingle
+(define $xpath:quantified-binding
+  ($let (( (ws** ($eqv? #\$)) )
+	 (v $xpath:var-name)
+	 ( (ws** ($token "in")) )
+	 (e ($lazy $xpath:expr-single)))
+    ($return (list v e))))
+(define $xpath:quantified-expr
+  ($let ((s/e ($or ($seq (ws*+ ($token "some"))  ($return 'some))
+		   ($seq (ws*+ ($token "every")) ($return 'every))))
+	 (v&e $xpath:quantified-binding)
+	 (v&e* ($many ($seq (ws** ($eqv? #\,)) $xpath:quantified-binding)))
+	 ( (ws** ($token "satisfies")) )
+	 (e ($lazy $xpath:expr-single)))
+    ($return `(,s/e (,v&e ,@v&e*) ,e))))
+
 ;; [7] ExprSingle ::= ForExpr | LetExpr | QuantifiedExpr | IfExpr | OrExpr
 (define $xpath:expr-single
   ($or $xpath:for-expr
        $xpath:let-expr
+       $xpath:quantified-expr
        ;; TODO
-       ;; $xpath:quantified-expr
        ;; $xpath:if-expr
        $xpath:or-expr))
 
@@ -746,10 +770,7 @@
 [4]   	FunctionBody ::=   	EnclosedExpr
 [5]   	EnclosedExpr ::=   	"{" Expr? "}"
 
-[14]   	QuantifiedExpr	   ::=   	("some" | "every") "$" VarName "in" ExprSingle ("," "$" VarName "in" ExprSingle)* "satisfies" ExprSingle
 [15]   	IfExpr	   ::=   	"if" "(" Expr ")" "then" ExprSingle "else" ExprSingle
-
-[51]   	PredicateList	   ::=   	Predicate*
 
 [62]   	ContextItemExpr	   ::=   	"."
 [63]   	FunctionCall	   ::=   	EQName ArgumentList	/* xgc: reserved-function-names */
