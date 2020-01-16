@@ -36,6 +36,10 @@
 	      "every $x in X, $y in Y satisfies $x + $y = 4"
 	      '(every ((x ("X")) (y ("Y"))) (= (+ ((ref x)) ((ref y))) (4))))
 
+(success-test $xpath:expr-single
+	      "if (Y) then 1 + 2 else 3 + 4"
+	      '(if (("Y")) (+ (1) (2)) (+ (3) (4))))
+
 (success-test $xpath:item-type "item()" '(item))
 (success-test $xpath:item-type "element(*)" '(element *))
 (success-test $xpath:item-type "function(*)" '(function * (*)))
