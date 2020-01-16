@@ -19,20 +19,20 @@
     (unless (equal? expected v) (write v) (newline))
     (test-equal text expected v)))
 
-(success-test $xpath:for-expr "for $x in X return $x"
+(success-test $xpath:expr-single "for $x in X return $x"
 	      '(for (x ("X")) ((ref x))))
-(success-test $xpath:for-expr "for $x in \"X\", $y in 'Y' return $x + $y"
+(success-test $xpath:expr-single "for $x in \"X\", $y in 'Y' return $x + $y"
 	      '(for (x ((str "X"))) (for (y ((str "Y")))
 		 (+ ((ref x)) ((ref y))))))
-(success-test $xpath:let-expr "let $x := X return $x"
+(success-test $xpath:expr-single "let $x := X return $x"
 	      '(let (x ("X")) ((ref x))))
-(success-test $xpath:let-expr "let $x := \"X\", $y:='Y' return $x + $y"
+(success-test $xpath:expr-single "let $x := \"X\", $y:='Y' return $x + $y"
 	      '(let (x ((str "X"))) (let (y ((str "Y")))
 		 (+ ((ref x)) ((ref y))))))
-(success-test $xpath:quantified-expr
+(success-test $xpath:expr-single
 	      "some $x in X, $y in Y satisfies $x + $y = 4"
 	      '(some ((x ("X")) (y ("Y"))) (= (+ ((ref x)) ((ref y))) (4))))
-(success-test $xpath:quantified-expr
+(success-test $xpath:expr-single
 	      "every $x in X, $y in Y satisfies $x + $y = 4"
 	      '(every ((x ("X")) (y ("Y"))) (= (+ ((ref x)) ((ref y))) (4))))
 

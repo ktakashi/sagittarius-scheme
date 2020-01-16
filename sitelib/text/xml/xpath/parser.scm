@@ -37,9 +37,6 @@
     (export $xpath:xpath
 	    ;; for testing (for now, may export more for convenience but later)
 	    $xpath:expr-single
-	    $xpath:for-expr
-	    $xpath:let-expr
-	    $xpath:quantified-expr
 	    $xpath:item-type
 	    )
     (import (rnrs)
@@ -745,13 +742,24 @@
 	 (e ($lazy $xpath:expr-single)))
     ($return `(,s/e (,v&e ,@v&e*) ,e))))
 
+;; [15] IfExpr ::= "if" "(" Expr ")" "then" ExprSingle "else" ExprSingle
+(define $xpath:if-expr
+  ($let (( (ws** ($token "if")) )
+	 ( (ws** ($eqv? #\()) )
+	 (e ($lazy $xpath:expr))
+	 ( (ws** ($eqv? #\))) )
+	 ( (ws** ($token "then")) )
+	 (then ($lazy $xpath:expr-single))
+	 ( (ws** ($token "else")) )
+	 (els ($lazy $xpath:expr-single)))
+    ($return `(if ,e ,then ,els))))
+
 ;; [7] ExprSingle ::= ForExpr | LetExpr | QuantifiedExpr | IfExpr | OrExpr
 (define $xpath:expr-single
   ($or $xpath:for-expr
        $xpath:let-expr
        $xpath:quantified-expr
-       ;; TODO
-       ;; $xpath:if-expr
+       $xpath:if-expr
        $xpath:or-expr))
 
 ;; [6]  Expr  ::= ExprSingle ("," ExprSingle)*
@@ -769,8 +777,6 @@
 [3]   	Param	   ::=   	"$" EQName TypeDeclaration?
 [4]   	FunctionBody ::=   	EnclosedExpr
 [5]   	EnclosedExpr ::=   	"{" Expr? "}"
-
-[15]   	IfExpr	   ::=   	"if" "(" Expr ")" "then" ExprSingle "else" ExprSingle
 
 [62]   	ContextItemExpr	   ::=   	"."
 [63]   	FunctionCall	   ::=   	EQName ArgumentList	/* xgc: reserved-function-names */
