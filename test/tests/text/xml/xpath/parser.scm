@@ -179,4 +179,11 @@
 (success-test $xpath:expr-single "a << b" '(<< ("a") ("b")))
 (success-test $xpath:expr-single "a >> b" '(>> ("a") ("b")))
 
+(success-test $xpath:expr-single "." '(~))
+(success-test $xpath:expr-single "foo('a', 'b')"
+	      '((apply "foo" ((str "a")) ((str "b")))))
+(success-test $xpath:expr-single "foo#1" '((fref "foo" 1)))
+#;(success-test $xpath:expr-single "function ($x, $y) as int { $x + $y }"
+	      '((fref "foo" 1)))
+
 (test-end)

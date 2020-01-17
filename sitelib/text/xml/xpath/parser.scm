@@ -58,6 +58,27 @@
 (define digits+ ($many ($char-set-contains? char-set:digit) 1))
 (define digits* ($many ($char-set-contains? char-set:digit)))
 
+;; A.3 reserved function names
+(define $xpath:reserved-function-name
+  ($or (ws** ($token "array"))
+       (ws** ($token "attribute"))
+       (ws** ($token "comment"))
+       (ws** ($token "document-node"))
+       (ws** ($token "element"))
+       (ws** ($token "empty-sequence"))
+       (ws** ($token "function"))
+       (ws** ($token "if"))
+       (ws** ($token "item"))
+       (ws** ($token "map"))
+       (ws** ($token "namespace-node"))
+       (ws** ($token "node"))
+       (ws** ($token "processing-instruction"))
+       (ws** ($token "schema-attribute"))
+       (ws** ($token "schema-element"))
+       (ws** ($token "switch"))
+       (ws** ($token "text"))
+       (ws** ($token "typeswitch"))))
+
 ;; [119] EscapeQuot	::= '""'
 (define $xpath:escape-quot ($seq ($token "\"\"") ($return #\")))
 
@@ -409,6 +430,64 @@
 (define $xpath:literal
   ($or $xpath:numeric-literal $xpath:string-literal))
 
+;; [62] ContextItemExpr ::= "."
+(define $xpath:context-item-expr ($seq (ws** ($eqv? #\.)) ($return '~)))
+
+;; [63] FunctionCall ::= EQName ArgumentList /* xgc: reserved-function-names */
+(define $xpath:function-call
+  ($let ((n ($seq ($not $xpath:reserved-function-name) $xpath:eqname))
+	 (a* ($lazy $xpath:argument-list)))
+    ($return (cons* 'apply n a*))))
+
+;; [78] TypeDeclaration ::= "as" SequenceType
+(define $xpath:type-declaration
+  ($seq (ws*+ ($token "as")) ($lazy $xpath:sequence-type)))
+
+;; [3] Param ::= "$" EQName TypeDeclaration?
+(define $xpath:param
+  ($let (( (ws** ($eqv? #\$)) )
+	 (n $xpath:eqname)
+	 (t ($optional $xpath:type-declaration)))
+    ($return (if t (list n t) n))))
+
+;; [2] ParamList ::= Param ("," Param)*
+(define $xpath:param-list
+  ($let ((p $xpath:param)
+	 (p* ($many ($seq (ws** ($eqv? #\,)) $xpath:param))))
+    ($return (cons p p*))))
+
+;; [5] EnclosedExpr ::= "{" Expr? "}"
+(define $xpath:enclosed-expr
+  ($let (( (ws** ($eqv? #\{)) )
+	 (e ($optional ($lazy $xpath:expr) '()))
+	 ( (ws** ($eqv? #\})) ))
+    ($return e)))
+;; [4] FunctionBody ::= EnclosedExpr
+(define $xpath:function-body $xpath:enclosed-expr)
+
+;; [68] InlineFunctionExpr ::= "function" "(" ParamList? ")"
+;;                             ("as" SequenceType)? FunctionBody
+(define $xpath:inline-function-expr
+  ($let (( (ws** ($token "function")) )
+	 ( (ws** ($eqv? #\()) )
+	 (p ($optional $xpath:param-list '()))
+	 ( (ws** ($eqv? #\))) )
+	 (t? ($optional $xpath:type-declaration))
+	 (body $xpath:function-body))
+   ($return `(function ,p ,@(if t? t? '()) ,body))))
+
+;; [67] NamedFunctionRef ::= EQName "#" IntegerLiteral
+;;                           /* xgc: reserved-function-names */
+(define $xpath:named-function-ref
+  ($let ((n ($seq ($not $xpath:reserved-function-name) $xpath:eqname))
+	 ( (ws** ($eqv? #\#)) )
+	 (i $xpath:integer-literal))
+   ($return `(fref ,n ,i))))
+
+;; [66] FunctionItemExpr ::= NamedFunctionRef | InlineFunctionExpr
+(define $xpath:function-item-expr
+  ($or $xpath:named-function-ref $xpath:inline-function-expr))
+
 ;; [56] PrimaryExpr ::= Literal
 ;;                    | VarRef
 ;;                    | ParenthesizedExpr
@@ -420,7 +499,13 @@
 ;;                    | UnaryLookup
 (define $xpath:primary-expr
   ;; TODO
-  ($or $xpath:literal $xpath:var-ref $xpath:parenthesized-expr))
+  ($or $xpath:literal
+       $xpath:var-ref
+       $xpath:parenthesized-expr
+       $xpath:context-item-expr
+       $xpath:function-call
+       $xpath:function-item-expr
+       ))
 
 ;; [52] Predicate ::= "[" Expr "]"
 (define $xpath:predicate
@@ -440,8 +525,8 @@
 (define $xpath:argument-list
   ($let (((ws** ($eqv? #\()))
 	 (a* ($optional ($let* ((a $xpath:argument)
-				(a* ($many ($seq (ws** ($eqv? #\,)))
-					   $xpath:argument)))
+				(a* ($many ($seq (ws** ($eqv? #\,))
+						 $xpath:argument))))
 			  ($return (cons a a*))) '()))
 	 ((ws** ($eqv? #\)))))
     ($return a*)))
@@ -557,7 +642,7 @@
 
 ;; [103] AnyFunctionTest ::= "function" "(" "*" ")"
 (define $xpath:any-function-test
-  ($seq (ws** ($token "function"))
+  ($seq (ws**  ($token "function"))
 	(ws** ($eqv? #\()) (ws** ($eqv? #\*)) (ws** ($eqv? #\)))
 	($return '(function * (*)))))
 
@@ -772,20 +857,9 @@
 (define $xpath:xpath $xpath:expr)
 
 #|
-
-[2]   	ParamList  ::=   	Param ("," Param)*
-[3]   	Param	   ::=   	"$" EQName TypeDeclaration?
-[4]   	FunctionBody ::=   	EnclosedExpr
-[5]   	EnclosedExpr ::=   	"{" Expr? "}"
-
-[62]   	ContextItemExpr	   ::=   	"."
-[63]   	FunctionCall	   ::=   	EQName ArgumentList	/* xgc: reserved-function-names */
 /* gn: parens */
 
 
-[66]   	FunctionItemExpr	   ::=   	NamedFunctionRef | InlineFunctionExpr
-[67]   	NamedFunctionRef	   ::=   	EQName "#" IntegerLiteral	/* xgc: reserved-function-names */
-[68]   	InlineFunctionExpr	   ::=   	"function" "(" ParamList? ")" ("as" SequenceType)? FunctionBody
 [69]   	MapConstructor	   ::=   	"map" "{" (MapConstructorEntry ("," MapConstructorEntry)*)? "}"
 [70]   	MapConstructorEntry	   ::=   	MapKeyExpr ":" MapValueExpr
 [71]   	MapKeyExpr	   ::=   	ExprSingle
@@ -794,8 +868,6 @@
 [74]   	SquareArrayConstructor	   ::=   	"[" (ExprSingle ("," ExprSingle)*)? "]"
 [75]   	CurlyArrayConstructor	   ::=   	"array" EnclosedExpr
 [76]   	UnaryLookup	   ::=   	"?" KeySpecifier
-
-[78]   	TypeDeclaration	   ::=   	"as" SequenceType
 
 |#
 
