@@ -183,7 +183,7 @@
 (success-test $xpath:expr-single "foo('a', 'b')"
 	      '((apply "foo" ((str "a")) ((str "b")))))
 (success-test $xpath:expr-single "foo#1" '((fref "foo" 1)))
-#;(success-test $xpath:expr-single "function ($x, $y) as int { $x + $y }"
-	      '((fref "foo" 1)))
+(success-test $xpath:expr-single "function ($x, $y) as int { $x + $y }"
+	      '((function ("x" "y") "int" ((+ ((ref x)) ((ref y)))))))
 
 (test-end)

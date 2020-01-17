@@ -474,7 +474,7 @@
 	 ( (ws** ($eqv? #\))) )
 	 (t? ($optional $xpath:type-declaration))
 	 (body $xpath:function-body))
-   ($return `(function ,p ,@(if t? t? '()) ,body))))
+   ($return `(function ,p ,@(if t? (list t?) '()) ,body))))
 
 ;; [67] NamedFunctionRef ::= EQName "#" IntegerLiteral
 ;;                           /* xgc: reserved-function-names */
