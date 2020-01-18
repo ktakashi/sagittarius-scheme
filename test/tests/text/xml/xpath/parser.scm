@@ -20,25 +20,25 @@
     (test-equal text expected v)))
 
 (success-test $xpath:expr-single "for $x in X return $x"
-	      '(for (x ("X")) ((ref x))))
+	      '(for (x "X") (ref x)))
 (success-test $xpath:expr-single "for $x in \"X\", $y in 'Y' return $x + $y"
-	      '(for (x ((str "X"))) (for (y ((str "Y")))
-		 (+ ((ref x)) ((ref y))))))
+	      '(for (x (str "X")) (for (y (str "Y"))
+		 (+ (ref x) (ref y)))))
 (success-test $xpath:expr-single "let $x := X return $x"
-	      '(let (x ("X")) ((ref x))))
+	      '(let (x "X") (ref x)))
 (success-test $xpath:expr-single "let $x := \"X\", $y:='Y' return $x + $y"
-	      '(let (x ((str "X"))) (let (y ((str "Y")))
-		 (+ ((ref x)) ((ref y))))))
+	      '(let (x (str "X")) (let (y (str "Y"))
+		 (+ (ref x) (ref y)))))
 (success-test $xpath:expr-single
 	      "some $x in X, $y in Y satisfies $x + $y = 4"
-	      '(some ((x ("X")) (y ("Y"))) (= (+ ((ref x)) ((ref y))) (4))))
+	      '(some ((x "X") (y "Y")) (= (+ (ref x) (ref y)) 4)))
 (success-test $xpath:expr-single
 	      "every $x in X, $y in Y satisfies $x + $y = 4"
-	      '(every ((x ("X")) (y ("Y"))) (= (+ ((ref x)) ((ref y))) (4))))
+	      '(every ((x "X") (y "Y")) (= (+ (ref x) (ref y)) 4)))
 
 (success-test $xpath:expr-single
 	      "if (Y) then 1 + 2 else 3 + 4"
-	      '(if (("Y")) (+ (1) (2)) (+ (3) (4))))
+	      '(if ("Y") (+ 1 2) (+ 3 4)))
 
 (success-test $xpath:item-type "item()" '(item))
 (success-test $xpath:item-type "element(*)" '(element *))
@@ -49,21 +49,21 @@
 	      '(function (item) ((item))))
 (success-test $xpath:item-type "map(*)" '(map *))
 (success-test $xpath:item-type "map(bla, empty-sequence())"
-	      '(map "bla" (sequence)))
+	      '(map bla (sequence)))
 (success-test $xpath:item-type "array(*)" '(array *))
 (success-test $xpath:item-type "array(empty-sequence())"
 	      '(array (sequence)))
-(success-test $xpath:item-type "bla" "bla")
+(success-test $xpath:item-type "bla" 'bla)
 
-(success-test $xpath:expr-single "\"\"\"\"" '((str "\"")))
-(success-test $xpath:expr-single "''''" '((str "'")))
-(success-test $xpath:expr-single "1" '(1))
-(success-test $xpath:expr-single "1234" '(1234))
-(success-test $xpath:expr-single ".0" '(0.0))
-(success-test $xpath:expr-single "1.12" '(1.12))
-(success-test $xpath:expr-single "1.0e1" '(10.0))
-(success-test $xpath:expr-single "1.0e+1" '(10.0))
-(success-test $xpath:expr-single "1.0e-1" '(0.1))
+(success-test $xpath:expr-single "\"\"\"\"" '(str "\""))
+(success-test $xpath:expr-single "''''" '(str "'"))
+(success-test $xpath:expr-single "1" '1)
+(success-test $xpath:expr-single "1234" '1234)
+(success-test $xpath:expr-single ".0" '0.0)
+(success-test $xpath:expr-single "1.12" '1.12)
+(success-test $xpath:expr-single "1.0e1" '10.0)
+(success-test $xpath:expr-single "1.0e+1" '10.0)
+(success-test $xpath:expr-single "1.0e-1" '0.1)
 
 (success-test $xpath:expr-single "/foo/bar" '((/ "foo") (/ "bar")))
 (success-test $xpath:expr-single "/foo/bar/baz"
@@ -97,9 +97,9 @@
 (success-test $xpath:expr-single "/following::foo" '((/ (following:: "foo"))))
 (success-test $xpath:expr-single "/namespace::foo" '((/ (namespace:: "foo"))))
 
-(success-test $xpath:expr-single "/foo[text()]" '((/ ("foo" (? (((text))))))))
+(success-test $xpath:expr-single "/foo[text()]" '((/ ("foo" (?(text))))))
 (success-test $xpath:expr-single "/foo[text()][b]"
-	      '((/ ("foo" (? (((text)))) (? (("b")))))))
+	      '((/ ("foo" (? (text)) (? "b")))))
 
 
 (success-test $xpath:expr-single "/node()" '((/ (node))))
@@ -147,43 +147,43 @@
 (success-test $xpath:expr-single "/schema-attribute(a)"
 	      '((/ (schema-attribute "a"))))
 
-(success-test $xpath:expr-single "a or b" '(or ("a") ("b")))
-(success-test $xpath:expr-single "a or b or c" '(or ("a") ("b") ("c")))
-(success-test $xpath:expr-single "a or b and c" '(or ("a") (and ("b") ("c"))))
+(success-test $xpath:expr-single "a or b" '(or "a" "b"))
+(success-test $xpath:expr-single "a or b or c" '(or "a" "b" "c"))
+(success-test $xpath:expr-single "a or b and c" '(or "a" (and "b" "c")))
 (success-test $xpath:expr-single "a or b and c or d"
-	      '(or ("a") (and ("b") ("c")) ("d")))
+	      '(or "a" (and "b" "c") "d"))
 ;; "postfix-expr with predicate"
-(success-test $xpath:expr-single "/$a[b]" '((/ ((ref a) (? (("b")))))))
+(success-test $xpath:expr-single "/$a[b]" '((/ ((ref a) (? "b")))))
 ;; "postfix-expr with argument list"
 (success-test $xpath:expr-single "/$a()" '((/ ((ref a) ()))))
 (success-test $xpath:expr-single "/$a?a" '((/ ((ref a) (lookup "a")))))
 (success-test $xpath:expr-single "/$a?1" '((/ ((ref a) (lookup 1)))))
-(success-test $xpath:expr-single "/$a?(a)" '((/ ((ref a) (lookup (("a")))))))
+(success-test $xpath:expr-single "/$a?(a)" '((/ ((ref a) (lookup ("a"))))))
 (success-test $xpath:expr-single "/$a?*" '((/ ((ref a) (lookup *)))))
 
-(success-test $xpath:expr-single "a eq b" '(eq ("a") ("b")))
-(success-test $xpath:expr-single "a ne b" '(ne ("a") ("b")))
-(success-test $xpath:expr-single "a lt b" '(lt ("a") ("b")))
-(success-test $xpath:expr-single "a le b" '(le ("a") ("b")))
-(success-test $xpath:expr-single "a gt b" '(gt ("a") ("b")))
-(success-test $xpath:expr-single "a ge b" '(ge ("a") ("b")))
+(success-test $xpath:expr-single "a eq b" '(eq "a" "b"))
+(success-test $xpath:expr-single "a ne b" '(ne "a" "b"))
+(success-test $xpath:expr-single "a lt b" '(lt "a" "b"))
+(success-test $xpath:expr-single "a le b" '(le "a" "b"))
+(success-test $xpath:expr-single "a gt b" '(gt "a" "b"))
+(success-test $xpath:expr-single "a ge b" '(ge "a" "b"))
 
-(success-test $xpath:expr-single "a = b"  '(= ("a") ("b")))
-(success-test $xpath:expr-single "a != b" '(!= ("a") ("b")))
-(success-test $xpath:expr-single "a < b"  '(< ("a") ("b")))
-(success-test $xpath:expr-single "a <= b" '(<= ("a") ("b")))
-(success-test $xpath:expr-single "a > b"  '(> ("a") ("b")))
-(success-test $xpath:expr-single "a >= b" '(>= ("a") ("b")))
+(success-test $xpath:expr-single "a = b"  '(= "a" "b"))
+(success-test $xpath:expr-single "a != b" '(!= "a" "b"))
+(success-test $xpath:expr-single "a < b"  '(< "a" "b"))
+(success-test $xpath:expr-single "a <= b" '(<= "a" "b"))
+(success-test $xpath:expr-single "a > b"  '(> "a" "b"))
+(success-test $xpath:expr-single "a >= b" '(>= "a" "b"))
 
-(success-test $xpath:expr-single "a is b" '(is ("a") ("b")))
-(success-test $xpath:expr-single "a << b" '(<< ("a") ("b")))
-(success-test $xpath:expr-single "a >> b" '(>> ("a") ("b")))
+(success-test $xpath:expr-single "a is b" '(is "a" "b"))
+(success-test $xpath:expr-single "a << b" '(<< "a" "b"))
+(success-test $xpath:expr-single "a >> b" '(>> "a" "b"))
 
-(success-test $xpath:expr-single "." '(~))
+(success-test $xpath:expr-single "." '~)
 (success-test $xpath:expr-single "foo('a', 'b')"
-	      '((apply "foo" ((str "a")) ((str "b")))))
-(success-test $xpath:expr-single "foo#1" '((fref "foo" 1)))
+	      '(apply "foo" (str "a") (str "b")))
+(success-test $xpath:expr-single "foo#1" '(fref "foo" 1))
 (success-test $xpath:expr-single "function ($x, $y) as int { $x + $y }"
-	      '((function ("x" "y") "int" ((+ ((ref x)) ((ref y)))))))
+	      '(function (x y) int ((+ (ref x) (ref y)))))
 
 (test-end)

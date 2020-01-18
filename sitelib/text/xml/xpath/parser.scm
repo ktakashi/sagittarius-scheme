@@ -448,7 +448,7 @@
   ($let (( (ws** ($eqv? #\$)) )
 	 (n $xpath:eqname)
 	 (t ($optional $xpath:type-declaration)))
-    ($return (if t (list n t) n))))
+    ($return (if t (list (string->symbol n) t) (string->symbol n)))))
 
 ;; [2] ParamList ::= Param ("," Param)*
 (define $xpath:param-list
@@ -512,7 +512,7 @@
   ($let (( (ws** ($eqv? #\[)) )
 	 (e ($lazy $xpath:expr))
 	 ( (ws** ($eqv? #\])) ))
-     ($return `(? ,e))))
+     ($return `(? ,@e))))
 
 ;; [65] ArgumentPlaceholder ::= "?"
 (define $xpath:argument-placeholder
@@ -573,21 +573,24 @@
 (define $xpath:step-expr ($or $xpath:postfix-expr $xpath:axis-step))
 ;; [37] RelativePathExpr ::= StepExpr (("/" | "//") StepExpr)*
 (define-concat-parser/merger $xpath:relative-path-expr $xpath:step-expr
-  ($or ($token "//") ($eqv? #\/)) cons)
+  ($or ($token "//") ($eqv? #\/)) (lambda (e e*) (if (null? e*) e (cons e e*))))
 
 ;; [36] PathExpr ::= ("/" RelativePathExpr?)
 ;;                 | ("//" RelativePathExpr)
 ;;                 | RelativePathExpr /* xgc: leading-lone-slash */
+(define (relative-paths? r)
+  (and r (pair? r) (pair? (cdr r)) (pair? (cadr r))
+       (memq (caadr r) '(/ //))))
 (define $xpath:path-expr
-  ($or ($let ((($token "//"))
+  ($or ($let (((ws** ($token "//")))
 	      (r $xpath:relative-path-expr))
-	 ($return (if (pair? r)
-		      (cons (list '// (car r)) (cdr r))
+	 ($return (if (relative-paths? r)
+		      `((// ,(car r)) . ,(cdr r))
 		      (list (list '// r)))))
-       ($let ((($eqv? #\/))
-	      (r ($optional $xpath:relative-path-expr '())))
-	 ($return (cond ((null? r) (list '(/)))
-			((pair? r) (cons (list '/ (car r)) (cdr r)))
+       ($let (((ws** ($eqv? #\/)))
+	      (r ($optional $xpath:relative-path-expr)))
+	 ($return (cond ((relative-paths? r) `((/ ,(car r)) . ,(cdr r)))
+			((not r) '((/)))
 			(else (list (list '/ r))))))
        $xpath:relative-path-expr))
 
@@ -676,7 +679,8 @@
 	($return '(map *))))
 
 ;; [82] AtomicOrUnionType ::= EQName
-(define $xpath:atomic-or-union-type $xpath:eqname)
+(define $xpath:atomic-or-union-type
+  ($let ((n $xpath:eqname)) ($return (string->symbol n))))
 ;; [107] TypedMapTest ::= "map" "(" AtomicOrUnionType "," SequenceType ")"
 (define $xpath:typed-map-test
   ($let (( (ws** ($token "map")) )
