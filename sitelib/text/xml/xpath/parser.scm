@@ -488,6 +488,31 @@
 (define $xpath:function-item-expr
   ($or $xpath:named-function-ref $xpath:inline-function-expr))
 
+;; [71] MapKeyExpr ::= ExprSingle
+(define $xpath:map-key-expr ($lazy $xpath:expr-single))
+;; [72] MapValueExpr  ::= ExprSingle
+(define $xpath:map-value-expr ($lazy $xpath:expr-single))
+
+;; [70] MapConstructorEntry ::= MapKeyExpr ":" MapValueExpr
+(define $xpath:map-constructor-entry
+  ($let ((k $xpath:map-key-expr)
+	 ( (ws** ($eqv? #\:)) )
+	 (v $xpath:map-value-expr))
+    ($return (list k v))))
+;; [69] MapConstructor ::= "map" "{" (MapConstructorEntry
+;;                          ("," MapConstructorEntry)*)? "}"
+(define $xpath:map-constructor-entry*
+  ($let ((e $xpath:map-constructor-entry)
+	 (e* ($many ($seq (ws** ($eqv? #\,)) $xpath:map-constructor-entry))))
+   ($return (cons e e*))))
+       
+(define $xpath:map-constructor
+  ($let (( (ws** ($token "map")))
+	 ( (ws** ($eqv? #\{)) )
+	 (e* ($optional $xpath:map-constructor-entry* '()))
+	 ( (ws** ($eqv? #\})) ))
+   ($return `(map-ctr ,@e*))))
+
 ;; [56] PrimaryExpr ::= Literal
 ;;                    | VarRef
 ;;                    | ParenthesizedExpr
@@ -505,6 +530,7 @@
        $xpath:context-item-expr
        $xpath:function-call
        $xpath:function-item-expr
+       $xpath:map-constructor
        ))
 
 ;; [52] Predicate ::= "[" Expr "]"
@@ -863,11 +889,6 @@
 #|
 /* gn: parens */
 
-
-[69]   	MapConstructor	   ::=   	"map" "{" (MapConstructorEntry ("," MapConstructorEntry)*)? "}"
-[70]   	MapConstructorEntry	   ::=   	MapKeyExpr ":" MapValueExpr
-[71]   	MapKeyExpr	   ::=   	ExprSingle
-[72]   	MapValueExpr	   ::=   	ExprSingle
 [73]   	ArrayConstructor	   ::=   	SquareArrayConstructor | CurlyArrayConstructor
 [74]   	SquareArrayConstructor	   ::=   	"[" (ExprSingle ("," ExprSingle)*)? "]"
 [75]   	CurlyArrayConstructor	   ::=   	"array" EnclosedExpr

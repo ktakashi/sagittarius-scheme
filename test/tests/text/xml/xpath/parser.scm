@@ -186,4 +186,11 @@
 (success-test $xpath:expr-single "function ($x, $y) as int { $x + $y }"
 	      '(function (x y) int ((+ (ref x) (ref y)))))
 
+(success-test $xpath:expr-single "map {}" '(map-ctr))
+(success-test $xpath:expr-single "map {\"key\": 'value'}"
+	      '(map-ctr ((str "key") (str "value"))))
+(success-test $xpath:expr-single "map {\"key\": 'value', key2: 2}"
+	      '(map-ctr ((str "key") (str "value")) ("key2" 2)))
+	      
+
 (test-end)
