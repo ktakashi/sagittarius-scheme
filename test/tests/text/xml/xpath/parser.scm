@@ -97,9 +97,9 @@
 (success-test $xpath:expr-single "/following::foo" '((/ (following:: "foo"))))
 (success-test $xpath:expr-single "/namespace::foo" '((/ (namespace:: "foo"))))
 
-(success-test $xpath:expr-single "/foo[text()]" '((/ ("foo" (?(text))))))
+(success-test $xpath:expr-single "/foo[text()]" '((/ ("foo" (?? (text))))))
 (success-test $xpath:expr-single "/foo[text()][b]"
-	      '((/ ("foo" (? (text)) (? "b")))))
+	      '((/ ("foo" (?? (text)) (?? "b")))))
 
 
 (success-test $xpath:expr-single "/node()" '((/ (node))))
@@ -153,12 +153,13 @@
 (success-test $xpath:expr-single "a or b and c or d"
 	      '(or "a" (and "b" "c") "d"))
 ;; "postfix-expr with predicate"
-(success-test $xpath:expr-single "/$a[b]" '((/ ((ref a) (? "b")))))
+(success-test $xpath:expr-single "/$a[b]" '((/ ((ref a) (?? "b")))))
 ;; "postfix-expr with argument list"
 (success-test $xpath:expr-single "/$a()" '((/ ((ref a) ()))))
 (success-test $xpath:expr-single "/$a?a" '((/ ((ref a) (lookup "a")))))
 (success-test $xpath:expr-single "/$a?1" '((/ ((ref a) (lookup 1)))))
-(success-test $xpath:expr-single "/$a?(a)" '((/ ((ref a) (lookup ("a"))))))
+(success-test $xpath:expr-single "/$a?(a)"
+	      '((/ ((ref a) (lookup (group "a"))))))
 (success-test $xpath:expr-single "/$a?*" '((/ ((ref a) (lookup *)))))
 
 (success-test $xpath:expr-single "a eq b" '(eq "a" "b"))
@@ -196,5 +197,9 @@
 (success-test $xpath:expr-single "[1, 2, 3]" '(array 1 2 3))
 (success-test $xpath:expr-single "array {}" '(array))
 (success-test $xpath:expr-single "array {/a, /b}" '(array ((/ "a")) ((/ "b"))))
+(success-test $xpath:expr-single "? key" '(lookup "key"))
+(success-test $xpath:expr-single "? 1" '(lookup 1))
+(success-test $xpath:expr-single "? *" '(lookup *))
+(success-test $xpath:expr-single "? (1)" '(lookup (group 1)))
 
 (test-end)

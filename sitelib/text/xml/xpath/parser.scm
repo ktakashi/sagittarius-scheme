@@ -2,7 +2,7 @@
 ;;;
 ;;; text/xml/xpath/parser.scm - XPath parser
 ;;;
-;;;   Copyright (c) 2019  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2019-2020  Takashi Kato  <ktakashi@ymail.com>
 ;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -393,10 +393,10 @@
 
 ;; [61]  ParenthesizedExpr ::= "(" Expr? ")"
 (define $xpath:parenthesized-expr
-  ($let* (((ws** ($eqv? #\()))
-	  (e ($optional $xpath:expr '()))
-	  ((ws** ($eqv? #\)))))
-	 ($return e)))
+  ($let (((ws** ($eqv? #\()))
+	 (e ($optional ($lazy $xpath:expr) '()))
+	 ((ws** ($eqv? #\)))))
+    ($return `(group ,@e))))
 
 ;; [113] IntegerLiteral	::= Digits
 (define $xpath:integer-literal
@@ -533,6 +533,11 @@
   ($or $xpath:square-array-constructor
        $xpath:curly-array-constructor))
 
+;; [76] UnaryLookup ::= "?" KeySpecifier
+(define $xpath:unary-lookup
+  ($let (( (ws** ($eqv? #\?)) )
+	 (k ($lazy $xpath:key-specifier)))
+    ($return `(lookup ,k))))
 ;; [56] PrimaryExpr ::= Literal
 ;;                    | VarRef
 ;;                    | ParenthesizedExpr
@@ -543,7 +548,6 @@
 ;;                    | ArrayConstructor
 ;;                    | UnaryLookup
 (define $xpath:primary-expr
-  ;; TODO
   ($or $xpath:literal
        $xpath:var-ref
        $xpath:parenthesized-expr
@@ -552,14 +556,14 @@
        $xpath:function-item-expr
        $xpath:map-constructor
        $xpath:array-constructor
-       ))
+       $xpath:unary-lookup))
 
 ;; [52] Predicate ::= "[" Expr "]"
 (define $xpath:predicate
   ($let (( (ws** ($eqv? #\[)) )
 	 (e ($lazy $xpath:expr))
 	 ( (ws** ($eqv? #\])) ))
-     ($return `(? ,@e))))
+     ($return `(?? ,@e))))
 
 ;; [65] ArgumentPlaceholder ::= "?"
 (define $xpath:argument-placeholder
@@ -906,11 +910,5 @@
 
 ;; [1] 	XPath ::= Expr
 (define $xpath:xpath $xpath:expr)
-
-#|
-/* gn: parens */
-[76]   	UnaryLookup	   ::=   	"?" KeySpecifier
-
-|#
 
 )
