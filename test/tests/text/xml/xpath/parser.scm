@@ -47,12 +47,12 @@
 	      '(function (item) ((item))))
 (success-test $xpath:item-type "function((item())) as item()"
 	      '(function (item) ((item))))
-(success-test $xpath:item-type "map(*)" '(map *))
+(success-test $xpath:item-type "map(*)" '(map? *))
 (success-test $xpath:item-type "map(bla, empty-sequence())"
-	      '(map bla (sequence)))
-(success-test $xpath:item-type "array(*)" '(array *))
+	      '(map? bla (sequence)))
+(success-test $xpath:item-type "array(*)" '(array? *))
 (success-test $xpath:item-type "array(empty-sequence())"
-	      '(array (sequence)))
+	      '(array? (sequence)))
 (success-test $xpath:item-type "bla" 'bla)
 
 (success-test $xpath:expr-single "\"\"\"\"" '(str "\""))
@@ -186,11 +186,15 @@
 (success-test $xpath:expr-single "function ($x, $y) as int { $x + $y }"
 	      '(function (x y) int ((+ (ref x) (ref y)))))
 
-(success-test $xpath:expr-single "map {}" '(map-ctr))
+(success-test $xpath:expr-single "map {}" '(map))
 (success-test $xpath:expr-single "map {\"key\": 'value'}"
-	      '(map-ctr ((str "key") (str "value"))))
+	      '(map ((str "key") (str "value"))))
 (success-test $xpath:expr-single "map {\"key\": 'value', key2: 2}"
-	      '(map-ctr ((str "key") (str "value")) ("key2" 2)))
-	      
+	      '(map ((str "key") (str "value")) ("key2" 2)))
+
+(success-test $xpath:expr-single "[]" '(array))
+(success-test $xpath:expr-single "[1, 2, 3]" '(array 1 2 3))
+(success-test $xpath:expr-single "array {}" '(array))
+(success-test $xpath:expr-single "array {/a, /b}" '(array ((/ "a")) ((/ "b"))))
 
 (test-end)

@@ -511,7 +511,27 @@
 	 ( (ws** ($eqv? #\{)) )
 	 (e* ($optional $xpath:map-constructor-entry* '()))
 	 ( (ws** ($eqv? #\})) ))
-   ($return `(map-ctr ,@e*))))
+   ($return `(map ,@e*))))
+
+;; [75] CurlyArrayConstructor ::= "array" EnclosedExpr
+(define $xpath:curly-array-constructor
+  ($let (( (ws** ($token "array")) )
+	 (e $xpath:enclosed-expr))
+    ($return `(array ,@e))))
+
+;; [74] SquareArrayConstructor ::= "[" (ExprSingle ("," ExprSingle)*)? "]"
+(define $xpath:square-array-constructor
+  ($let (( (ws** ($eqv? #\[)) )
+	 (e* ($optional ($let ((e ($lazy $xpath:expr-single))
+			       (e* ($many ($seq (ws** ($eqv? #\,))
+						($lazy $xpath:expr-single)))))
+			  ($return (cons e e*))) '()))
+	 ( (ws** ($eqv? #\])) ))
+   ($return `(array ,@e*))))
+;; [73] ArrayConstructor ::= SquareArrayConstructor | CurlyArrayConstructor
+(define $xpath:array-constructor
+  ($or $xpath:square-array-constructor
+       $xpath:curly-array-constructor))
 
 ;; [56] PrimaryExpr ::= Literal
 ;;                    | VarRef
@@ -531,6 +551,7 @@
        $xpath:function-call
        $xpath:function-item-expr
        $xpath:map-constructor
+       $xpath:array-constructor
        ))
 
 ;; [52] Predicate ::= "[" Expr "]"
@@ -550,9 +571,9 @@
 ;; [50] ArgumentList ::= "(" (Argument ("," Argument)*)? ")"
 (define $xpath:argument-list
   ($let (((ws** ($eqv? #\()))
-	 (a* ($optional ($let* ((a $xpath:argument)
-				(a* ($many ($seq (ws** ($eqv? #\,))
-						 $xpath:argument))))
+	 (a* ($optional ($let ((a $xpath:argument)
+			       (a* ($many ($seq (ws** ($eqv? #\,))
+						$xpath:argument))))
 			  ($return (cons a a*))) '()))
 	 ((ws** ($eqv? #\)))))
     ($return a*)))
@@ -702,7 +723,7 @@
 (define $xpath:any-map-test
   ($seq (ws** ($token "map"))
 	(ws** ($eqv? #\()) (ws** ($eqv? #\*)) (ws** ($eqv? #\)))
-	($return '(map *))))
+	($return '(map? *))))
 
 ;; [82] AtomicOrUnionType ::= EQName
 (define $xpath:atomic-or-union-type
@@ -715,7 +736,7 @@
 	 ( (ws** ($eqv? #\,)) )
 	 (s ($lazy $xpath:sequence-type))
 	 ( (ws** ($eqv? #\))) ))
-    ($return `(map ,t ,s))))
+    ($return `(map? ,t ,s))))
   
 ;; [105] MapTest ::= AnyMapTest | TypedMapTest
 (define $xpath:map-test ($or $xpath:any-map-test $xpath:typed-map-test))
@@ -724,7 +745,7 @@
 (define $xpath:any-array-test
   ($seq (ws** ($token "array"))
 	(ws** ($eqv? #\()) (ws** ($eqv? #\*)) (ws** ($eqv? #\)))
-	($return '(array *))))
+	($return '(array? *))))
   
 ;; [110] TypedArrayTest ::= "array" "(" SequenceType ")"
 (define $xpath:typed-array-test
@@ -732,7 +753,7 @@
 	 ( (ws** ($eqv? #\()) )
 	 (s ($lazy $xpath:sequence-type))
 	 ( (ws** ($eqv? #\))) ))
-    ($return `(array ,s))))
+    ($return `(array? ,s))))
 
 ;; [108] ArrayTest ::= AnyArrayTest | TypedArrayTest
 (define $xpath:array-test ($or $xpath:any-array-test $xpath:typed-array-test))
@@ -888,10 +909,6 @@
 
 #|
 /* gn: parens */
-
-[73]   	ArrayConstructor	   ::=   	SquareArrayConstructor | CurlyArrayConstructor
-[74]   	SquareArrayConstructor	   ::=   	"[" (ExprSingle ("," ExprSingle)*)? "]"
-[75]   	CurlyArrayConstructor	   ::=   	"array" EnclosedExpr
 [76]   	UnaryLookup	   ::=   	"?" KeySpecifier
 
 |#
