@@ -109,7 +109,7 @@ it is marked as "[SRFI-n+]", the entry has additional functionality.}
 
 @subsection{Invoking Sagittarius}
 
-Sagittarius can be used as an independent Schame interpreter. The interpreter
+Sagittarius can be used as an independent Scheme interpreter. The interpreter
 which comes with Sagittarius distribution is a program named @code{sagittarius}
 on Unix like environment and @code{sash} on Windows environment.
 
