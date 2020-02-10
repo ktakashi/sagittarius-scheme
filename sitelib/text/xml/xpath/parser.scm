@@ -34,7 +34,11 @@
 ;;   A XPath 3.1 Grammer - A.1 EBNF
 #!nounbound
 (library (text xml xpath parser)
-    (export $xpath:xpath
+    (export xpath:parse
+	    xpath-parse-error?
+	    xpath-parse-error-xpath
+	    ;; parsers
+	    $xpath:xpath 
 	    ;; for testing (for now, may export more for convenience but later)
 	    $xpath:expr-single
 	    $xpath:item-type
@@ -44,6 +48,7 @@
 	    (peg chars)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
+	    (srfi :127 lseqs)
 	    ;; need number of xml parsers
 	    (text xml dom parser))
 (define w* ($many $xml:s))
@@ -910,5 +915,21 @@
 
 ;; [1] 	XPath ::= Expr
 (define $xpath:xpath $xpath:expr)
+
+(define-condition-type &xpath-parse &error
+  make-xpath-parse-error xpath-parse-error?
+  (xpath xpath-parse-error-xpath))
+ 
+
+(define (xpath:parse lseq)
+  (let-values (((s v nl) ($xpath:expr lseq)))
+    ;; TODO proper condition
+    (unless (and (parse-success? s) (null? nl))
+      (raise (condition (make-xpath-parse-error
+			 (list->string (lseq-realize lseq)))
+			(make-who-condition 'xpath:parse)
+			(make-message-condition "Failed to parse XPath")
+			(make-irritants-condition nl))))
+    v))
 
 )
