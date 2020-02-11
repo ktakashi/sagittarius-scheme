@@ -202,4 +202,9 @@
 (success-test $xpath:expr-single "? *" '(lookup *))
 (success-test $xpath:expr-single "? (1)" '(lookup (group 1)))
 
+(test-equal '(((/ "foo") (// "baz")))
+	    (xpath:parse (generator->lseq (string->generator "/foo//baz"))))
+(test-error "parse error test" xpath-parse-error?
+	    (xpath:parse (generator->lseq (string->generator "???"))))
+
 (test-end)
