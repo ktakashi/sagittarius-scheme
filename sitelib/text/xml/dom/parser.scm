@@ -67,7 +67,8 @@
 	    (peg)
 	    (peg chars)
 	    (srfi :14 char-sets)
-	    (srfi :39 parameters))
+	    (srfi :39 parameters)
+	    (srfi :127 lseqs))
 ;; alist of prefix and namespace
 ;; e.g. (("xsd" . "http://www.w3.org/2001/XMLSchema") ...)
 (define *current-namespaces* (make-parameter '()))

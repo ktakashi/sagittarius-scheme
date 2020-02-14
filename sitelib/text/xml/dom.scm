@@ -38,4 +38,8 @@
 
 (library (text xml dom)
     (export :all)
-    (import (text xml dom events)))
+    (import (text xml dom events)
+	    (text xml dom nodes)
+	    (only (text xml dom factory)
+		  input-port->dom-tree
+		  xml-file->dom-tree)))
