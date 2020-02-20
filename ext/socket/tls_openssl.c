@@ -99,8 +99,9 @@
 #define CIPHER_LIST "HIGH:!aNULL:!PSK:!SRP:!MD5:!RC4"
 
 typedef int (*SSL_ALPN_FN)(SSL *, const unsigned char *, unsigned int);
+#ifndef HAVE_SSL_SET_ALPN_PROTOS
 static SSL_ALPN_FN SSL_set_alpn_protos_fn = NULL;
-
+#endif
 
 typedef struct OpenSSLDataRec
 {
@@ -276,6 +277,10 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
   }
   /* For now we expect the argument to be properly formatted TLS packet. */
   if (SG_BVECTORP(alpn) && SG_BVECTOR_SIZE(alpn) > 4) {
+#ifdef HAVE_SSL_SET_ALPN_PROTOS
+    SSL_set_alpn_protos(data->ssl, SG_BVECTOR_ELEMENTS(alpn) + 4,
+			(int)SG_BVECTOR_SIZE(alpn) - 4);
+#else
     if (SSL_set_alpn_protos_fn) {
       /* remove prefix */
       SSL_set_alpn_protos_fn(data->ssl, SG_BVECTOR_ELEMENTS(alpn) + 4,
@@ -284,6 +289,7 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
       Sg_Warn(UC("ALPN is not supported on this version of OpenSSL."));
       Sg_Warn(UC("Please consider to update your OpenSSL runtime."));
     }
+#endif
   }
   SSL_set_fd(data->ssl, socket->socket);
   r = SSL_connect(data->ssl);
@@ -536,19 +542,14 @@ int Sg_X509VerifyCertificate(SgObject bv)
   return TRUE;
 }
 
+#ifndef HAVE_SSL_SET_ALPN_PROTOS
 static void cleanup_ssl_lib(void *handle)
 {
   dlclose(handle);
 }
-
-void Sg_InitTLSImplementation()
+static void setup_ssl_alpn_protos_handle()
 {
   void *handle;
-  OpenSSL_add_all_algorithms();
-  OpenSSL_add_ssl_algorithms();
-  /* ERR_load_BIO_strings(); */
-  /* ERR_load_crypto_strings(); */
-  SSL_load_error_strings();
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
   OPENSSL_config(NULL);
 #endif
@@ -569,6 +570,19 @@ void Sg_InitTLSImplementation()
   } else {
     Sg_Warn(UC("libssl not found... why?"));
   }
+}
+#endif
+
+void Sg_InitTLSImplementation()
+{
+  OpenSSL_add_all_algorithms();
+  OpenSSL_add_ssl_algorithms();
+  /* ERR_load_BIO_strings(); */
+  /* ERR_load_crypto_strings(); */
+  SSL_load_error_strings();
+#ifndef HAVE_SSL_SET_ALPN_PROTOS
+  setup_ssl_alpn_protos_handle();
+#endif
   callback_data_index =
     SSL_get_ex_new_index(0, (void *)"sagittarius index", NULL, NULL, NULL);
 }
