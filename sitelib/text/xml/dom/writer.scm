@@ -37,9 +37,11 @@
 	    (srfi :117 list-queues))
 
 (define-record-type xml-write-options
-  (fields emit-internal-dtd?))
+  (fields emit-internal-dtd?
+	  strict?))
 
-(define *default-options* (make-xml-write-options #f))
+;; for now not strict by default
+(define *default-options* (make-xml-write-options #f #f))
 
 (define make-dom-writer
   (case-lambda
@@ -50,11 +52,14 @@
      ((tree out) (write-dom tree options out))))))
    
 (define (write-dom tree options out)
-  (unless (document? tree)
-    (assertion-violation 'write-dom "DOM document is required" tree))
-  (write-xml-decl tree options out)
-  (for-each (lambda (child) (write-node child options out))
-	    (list-queue-list (node-children tree))))
+  (when (document? tree)
+    (if  (xml-write-options-strict? options)
+	 (assertion-violation 'write-dom "DOM document is required" tree)
+	 (write-xml-decl tree options out)))
+  (if (document? tree)
+      (for-each (lambda (child) (write-node child options out))
+		(list-queue-list (node-children tree)))
+      (write-node tree options out)))
 
 (define (write-xml-decl tree options out)
   (put-string out "<?xml")
