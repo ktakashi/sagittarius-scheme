@@ -451,6 +451,7 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     The name @code{generators-and-accumulators} is taken from the name of
     the SRFI.
     }}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-159/srfi-159.html"]{SRFI-159}}}
 @; > In order to facilitate writing sophisticated custom macro transformers, it
 @; > is allowed that a transformer spec expands into a sequence of multiple
 @; > definitions eventually followed by a transformer spec (whose expansion may

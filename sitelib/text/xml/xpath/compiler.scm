@@ -107,8 +107,9 @@
 	segment))))
   (let ((filter (make-filter (car segment) (cadr segment))))
     (lambda (context)
-      (define dom (xpath-context-targets context))
-      (let ((r (append-map filter dom)))
+      (define doms (xpath-context-targets context))
+      (let ((r (append-map filter doms)))
+	(display doms)  (newline)
 	(make-xpath-context r (xpath-context-variables context))))))
 	     
 )
