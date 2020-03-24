@@ -35,5 +35,6 @@
 (test-library '(scheme flonum) 'flonum)
 (test-library '(scheme mapping) 'mapping?)
 (test-library '(scheme mapping hash) 'hashmap?)
+(test-library '(scheme format) 'show)
 
 (test-end)

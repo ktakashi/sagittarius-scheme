@@ -39,6 +39,7 @@
     ((srfi 146 hash) (scheme mapping hash) #f)
     ((srfi 151) (scheme bitwise) #f)
     ((srfi 158) (scheme generator) #f)
+    ((srfi 159) (scheme format) #f)
     ((rnrs bytevectors) (scheme bytevector) #f)
     ))
 
