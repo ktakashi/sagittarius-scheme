@@ -71,7 +71,7 @@
 	    (util list)
 	    (clos user))
 
-  (define (write-vector bv prefix offset getter port)
+  (define (write-vector bv prefix bytevector-length offset getter port)
     (display #\# port)
     (display prefix port)
     (display #\( port)
@@ -95,88 +95,93 @@
   (define-syntax define-tagged-vector
     (lambda (x)
       (syntax-case x ()
-	  ((k tag offset getter setter)
-	   (let ((name (format "~avector" (syntax->datum #'tag)))
-		 (formats (lambda (f name)
-			    (string->symbol (format f name)))))
-	     (with-syntax ((meta (datum->syntax #'k (formats "<~a-meta>" name)))
-			   (class (datum->syntax #'k (formats "<~a>" name)))
-			   (ctr   (datum->syntax #'k (formats "make-~a" name)))
-			   (ctr2  (datum->syntax #'k (formats "~a" name)))
-			   (pred  (datum->syntax #'k (formats "~a?" name)))
-			   (len  (datum->syntax #'k (formats "~a-length" name)))
-			   (ref  (datum->syntax #'k (formats "~a-ref" name)))
-			   (set  (datum->syntax #'k (formats "~a-set!" name)))
-			   (->list (datum->syntax #'k
-						  (formats "~a->list" name)))
-			   (list-> (datum->syntax #'k
-						  (formats "list->~a" name))))
-	       #'(begin
-		   (define-class meta (<class>) ())
-		   ;; ctr is used in initialize, so it must be here
-		   (define (ctr n :optional (value 0))
-		     (let* ((len (* n offset))
-			    (v (make-bytevector len)))
-		       (do ((i 0 (+ i offset)))
-			   ((= i len) (make class :value v))
-			 (setter v i value))))
+	((k tag offset make-bytevector bytevector-length bytevector=?
+	    getter setter)
+	 (let ((name (format "~avector" (syntax->datum #'tag)))
+	       (formats (lambda (f name)
+			  (string->symbol (format f name)))))
+	   (with-syntax ((meta (datum->syntax #'k (formats "<~a-meta>" name)))
+			 (class (datum->syntax #'k (formats "<~a>" name)))
+			 (ctr   (datum->syntax #'k (formats "make-~a" name)))
+			 (ctr2  (datum->syntax #'k (formats "~a" name)))
+			 (pred  (datum->syntax #'k (formats "~a?" name)))
+			 (len  (datum->syntax #'k (formats "~a-length" name)))
+			 (ref  (datum->syntax #'k (formats "~a-ref" name)))
+			 (set  (datum->syntax #'k (formats "~a-set!" name)))
+			 (->list (datum->syntax #'k
+						(formats "~a->list" name)))
+			 (list-> (datum->syntax #'k
+						(formats "list->~a" name))))
+	     #'(begin
+		 (define-class meta (<class>) ())
+		 ;; ctr is used in initialize, so it must be here
+		 (define (ctr n :optional (value 0))
+		   (let* ((len (* n offset))
+			  (v (make-bytevector len)))
+		     (do ((i 0 (+ i offset)))
+			 ((= i len) (make class :value v))
+		       (setter v i value))))
 
-		   (define (ctr2 . args)
-		     (let* ((len (* (length args) offset))
-			    (bv (make-bytevector len)))
-		       (do ((i 0 (+ i offset)) (v args (cdr v)))
-			   ((= i len) (make class :value bv))
-			 (setter bv i (car v)))))
+		 (define (ctr2 . args)
+		   (let* ((len (* (length args) offset))
+			  (bv (make-bytevector len)))
+		     (do ((i 0 (+ i offset)) (v args (cdr v)))
+			 ((= i len) (make class :value bv))
+		       (setter bv i (car v)))))
 
-		   (define-method initialize ((klass meta) initargs)
-		     (call-next-method)
-		     ;; we don't need scanner
-		     (slot-set! klass 'cache-reader (generate-reader ctr))
-		     (slot-set! klass 'cache-writer cache-writer))
+		 (define-method initialize ((klass meta) initargs)
+		   (call-next-method)
+		   ;; we don't need scanner
+		   (slot-set! klass 'cache-reader (generate-reader ctr))
+		   (slot-set! klass 'cache-writer cache-writer))
 
-		   (define-class class (<sequence>)
-		     ((value :init-keyword :value))
-		     :metaclass meta)
+		 (define-class class (<sequence>)
+		   ((value :init-keyword :value))
+		   :metaclass meta)
 
-		   (define-method write-object ((o class) (p <port>))
-		     (write-vector (slot-ref o 'value) tag offset getter p))
-		   (define-method object-equal? ((a class) (b class))
-		     (bytevector=? (slot-ref a 'value) (slot-ref b 'value)))
-		   
-		   (define (pred o) (is-a? o class))
-		   (define (len bv)
-		     (unless (pred bv)
-		       (assertion-violation 'len
-					    (format "~a required but got ~s"
-						    class bv)))
-		     (/ (bytevector-length (slot-ref bv 'value)) offset))
-		   (define (ref bv i)
-		     (unless (pred bv)
-		       (assertion-violation 'ref
-					    (format "~a required but got ~s"
-						    class bv)))
-		     (getter (slot-ref bv 'value) (* i offset)))
-		   (define (set bv i o)
-		     (unless (pred bv)
-		       (assertion-violation 'set
-					    (format "~a required but got ~s"
-						    class bv)))
-		     (setter (slot-ref bv 'value) (* i offset) o))
-		   (define (->list bv)
-		     (unless (pred bv)
-		       (assertion-violation '->list
-					    (format "~a required but got ~s"
-						    class bv)))
-		     (do ((limit (len bv))
-			  (i 0 (+ i 1))
-			  (r '() (cons (ref bv i) r)))
-			 ((= i limit) (reverse! r))))
-		   (define (list-> lst)
-		     (define len (length lst))
-		     (let ((r (ctr len)))
-		       (do ((i 0 (+ i 1)) (lst lst (cdr lst)))
-			   ((null? lst) r)
-			 (set r i (car lst))))))))))))
+		 (define-method write-object ((o class) (p <port>))
+		   (write-vector (slot-ref o 'value) tag bytevector-length
+				 offset getter p))
+		 (define-method object-equal? ((a class) (b class))
+		   (bytevector=? (slot-ref a 'value) (slot-ref b 'value)))
+		 
+		 (define (pred o) (is-a? o class))
+		 (define (len bv)
+		   (unless (pred bv)
+		     (assertion-violation 'len
+					  (format "~a required but got ~s"
+						  class bv)))
+		   (/ (bytevector-length (slot-ref bv 'value)) offset))
+		 (define (ref bv i)
+		   (unless (pred bv)
+		     (assertion-violation 'ref
+					  (format "~a required but got ~s"
+						  class bv)))
+		   (getter (slot-ref bv 'value) (* i offset)))
+		 (define (set bv i o)
+		   (unless (pred bv)
+		     (assertion-violation 'set
+					  (format "~a required but got ~s"
+						  class bv)))
+		   (setter (slot-ref bv 'value) (* i offset) o))
+		 (define (->list bv :optional (start 0) (end (len bv)))
+		   (unless (pred bv)
+		     (assertion-violation '->list
+					  (format "~a required but got ~s"
+						  class bv)))
+		   (do ((limit end)
+			(i start (+ i 1))
+			(r '() (cons (ref bv i) r)))
+		       ((= i limit) (reverse! r))))
+		 (define (list-> lst)
+		   (define len (length lst))
+		   (let ((r (ctr len)))
+		     (do ((i 0 (+ i 1)) (lst lst (cdr lst)))
+			 ((null? lst) r)
+		       (set r i (car lst)))))))))
+	((k tag offset getter setter)
+	 #'(k tag offset make-bytevector bytevector-length bytevector=?
+	      getter setter)))))
 
   (define-tagged-vector "s8" 1 bytevector-s8-ref bytevector-s8-set!)
   (define-tagged-vector "u8" 1 bytevector-u8-ref bytevector-u8-set!)
