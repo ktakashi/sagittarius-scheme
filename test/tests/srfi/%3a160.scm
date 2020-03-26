@@ -5,6 +5,35 @@
 
 (test-begin "SRFI-160")
 
+(define (reader-test str type-pred expected)
+  (define (read-from-string str)
+    (read (open-string-input-port
+	   (string-append "#!read-macro=srfi/:160 " str))))
+  (define (read-test str)
+    (let ((v (read-from-string str)))
+      (test-assert (string-append str " pred") (type-pred v))
+      (test-equal str expected v)
+      v))
+  (let ((v (read-test str)))
+    ;; write test as well
+    (let-values (((out e) (open-string-output-port)))
+      (display v out)
+      (read-test (e)))))
+
+(reader-test "#u8(1 2 3)" u8vector? (u8vector 1 2 3))
+(reader-test "#s8(1 2 3)" s8vector? (s8vector 1 2 3))
+(reader-test "#u16(1 2 3)" u16vector? (u16vector 1 2 3))
+(reader-test "#s16(1 2 3)" s16vector? (s16vector 1 2 3))
+(reader-test "#u32(1 2 3)" u32vector? (u32vector 1 2 3))
+(reader-test "#s32(1 2 3)" s32vector? (s32vector 1 2 3))
+(reader-test "#u64(1 2 3)" u64vector? (u64vector 1 2 3))
+(reader-test "#s64(1 2 3)" s64vector? (s64vector 1 2 3))
+(reader-test "#f32(1 2 3)" f32vector? (f32vector 1 2 3))
+(reader-test "#f64(1 2 3)" f64vector? (f64vector 1 2 3))
+(reader-test "#c64(1 2 3)" c64vector? (c64vector 1 2 3))
+(reader-test "#c128(1 2 3)" c128vector? (c128vector 1 2 3))
+
+
 ;; from example implementation
 ;;;; Shared tests
 ;;; Hvector = homogeneous vector

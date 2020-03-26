@@ -31,7 +31,7 @@
 
 #!nounbound
 (library (srfi :160 base c64)
-    (export make-c64vector c64vector c64vector?
+    (export make-c64vector c64vector c64vector? <c64vector>
 
 	    c64vector-length c64vector-ref c64vector-set!
 	    c64vector->list list->c64vector)

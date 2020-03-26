@@ -30,7 +30,7 @@
 
 ;; this library is extra as the SRFI says it doesn't provide
 (library (srfi :160)
-  (export :all)
+  (export :all :export-reader-macro)
   (import (srfi :160 base)
 	  (srfi :160 u8)
 	  (srfi :160 s8)

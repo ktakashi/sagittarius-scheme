@@ -63,9 +63,14 @@
 	    list->u32vector list->s32vector list->u64vector list->s64vector
 	    list->f32vector list->f64vector list->c64vector list->c128vector
 
-	    u8? s8? u16? s16? u32? s32? u64? s64? f32? f64? c64? c128?)
+	    u8? s8? u16? s16? u32? s32? u64? s64? f32? f64? c64? c128?
+
+	    :export-reader-macro
+	    )
     (import (rnrs)
 	    (only (scheme base) exact-integer?)
+	    (sagittarius) ;; for format
+	    (sagittarius reader)
 	    ;; @vector->list of srfi-4 has extension of srfi-160
 	    ;; so just re-export ;)
 	    (srfi :4 numeric-vectors)
@@ -85,5 +90,27 @@
 (define (f64? n) (f32? n))
 (define (c64? n) (inexact? n))
 (define (c128? n) (inexact? n))
+
+(define-dispatch-macro 
+  |#c-reader| #\# #\c
+  (lambda (port c param)
+    (if (delimited-char? (lookahead-char port))
+	#f
+	(let ((n (read port)))
+	  (unless (integer? n)
+	    (raise-i/o-read-error '|#c-reader| "invalid character for #c" port))
+	  (let ((lst (read port))) ;; must be a list
+	    (unless (list? lst)
+	      (raise-i/o-read-error '|#c-reader|
+				    (format "list required, but got ~s" lst)
+				    port))
+	    (let ((ctr (case n
+			 ((64) c64vector)
+			 ((128) c128vector)
+			 (else
+			  (raise-i/o-read-error '|#c-reader|
+			   (format "given number was not supported ~a" n)
+			   port)))))
+	      (apply ctr lst)))))))
 
 )

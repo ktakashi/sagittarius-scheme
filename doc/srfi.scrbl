@@ -451,7 +451,29 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     The name @code{generators-and-accumulators} is taken from the name of
     the SRFI.
     }}
-@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-159/srfi-159.html"]{SRFI-159}}}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-159/srfi-159.html"]{SRFI-159}}
+    @td{(srfi :159)}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-160/srfi-160.html"]{SRFI-160}}
+    @td{(srfi :160)
+
+    The short name is Sagittarius specific which provides all the bindings
+    from the below libraries which are specified in the SRFI:
+    @itemlist{
+    @item{(srfi :160 base)}
+    @item{(srfi :160 u8)}
+    @item{(srfi :160 s8)}
+    @item{(srfi :160 u16)}
+    @item{(srfi :160 s16)}
+    @item{(srfi :160 u32)}
+    @item{(srfi :160 s32)}
+    @item{(srfi :160 u64)}
+    @item{(srfi :160 s64)}
+    @item{(srfi :160 f32)}
+    @item{(srfi :160 f64)}
+    @item{(srfi :160 c64)}
+    @item{(srfi :160 c128)}
+    }
+    }}
 @; > In order to facilitate writing sophisticated custom macro transformers, it
 @; > is allowed that a transformer spec expands into a sequence of multiple
 @; > definitions eventually followed by a transformer spec (whose expansion may

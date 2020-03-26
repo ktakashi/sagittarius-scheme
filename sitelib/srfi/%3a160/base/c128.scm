@@ -31,7 +31,7 @@
 
 #!nounbound
 (library (srfi :160 base c128)
-    (export make-c128vector c128vector c128vector?
+    (export make-c128vector c128vector c128vector? <c128vector>
 
 	    c128vector-length c128vector-ref c128vector-set!
 	    c128vector->list list->c128vector)
