@@ -892,6 +892,19 @@ SRFI-151 @code{(srfi :151)}.
 SRFI-159 @code{(srfi :159)}.
 }
 
+@subsubsection{Homogeneous vector library base}
+@define[Library]{@name{(scheme vector base)}}
+@desc{This library exports the procedures and macros defined in
+SRFI-160 @code{(srfi :160 base)}.
+}
+
+@subsubsection{Homogeneous vector library per types}
+@define[Library]{@name{(scheme vector @atmark{})}}
+@desc{This library exports the procedures and macros defined in
+SRFI-160 @code{(srfi :160 @atmark{})}. Where @code{@atmark{}} is one of
+@code{u8 s8 u16 s16 u32 s32 u64 s64 f32 f64 c64 c128}
+}
+
 @subsubsection{Bytevector library}
 @define[Library]{@name{(scheme bytevector)}}
 @desc{This library exports the procedures and macros defined in
