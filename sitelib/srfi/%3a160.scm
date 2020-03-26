@@ -28,6 +28,19 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+;; this library is extra as the SRFI says it doesn't provide
 (library (srfi :160)
   (export :all)
-  (import (srfi :160 base)))
+  (import (srfi :160 base)
+	  (srfi :160 u8)
+	  (srfi :160 s8)
+	  (srfi :160 u16)
+	  (srfi :160 s16)
+	  (srfi :160 u32)
+	  (srfi :160 s32)
+	  (srfi :160 u64)
+	  (srfi :160 s64)
+	  (srfi :160 f32)
+	  (srfi :160 f64)
+	  (srfi :160 c64)
+	  (srfi :160 c128)))

@@ -1,0 +1,674 @@
+;;; -*- mode:scheme; coding:utf-8; -*-
+;;;
+;;; srfi/%3a160/@at@.scm - Homogeneous numeric vector datatypes (@at@)
+;;;  
+;;;   Copyright (c) 2020  Takashi Kato  <ktakashi@ymail.com>
+;;;   
+;;;   Redistribution and use in source and binary forms, with or without
+;;;   modification, are permitted provided that the following conditions
+;;;   are met:
+;;;   
+;;;   1. Redistributions of source code must retain the above copyright
+;;;      notice, this list of conditions and the following disclaimer.
+;;;  
+;;;   2. Redistributions in binary form must reproduce the above copyright
+;;;      notice, this list of conditions and the following disclaimer in the
+;;;      documentation and/or other materials provided with the distribution.
+;;;  
+;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+;;;   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+;;;   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+;;;   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+;;;   TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+;;;   PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+;;;  
+
+#!nounbound
+(library (srfi :160 @at@)
+    (export make-@at@vector @at@vector
+	    @at@vector-unfold @at@vector-unfold-right
+	    @at@vector-copy @at@vector-reverse-copy 
+	    @at@vector-append @at@vector-concatenate
+	    @at@vector-append-subvectors
+	    ;; Predicates 
+	    @at@? @at@vector? @at@vector-empty? @at@vector=
+	    ;; Selectors
+	    @at@vector-ref @at@vector-length
+	    ;; Iteration 
+	    @at@vector-take @at@vector-take-right
+	    @at@vector-drop @at@vector-drop-right
+	    @at@vector-segment
+	    @at@vector-fold @at@vector-fold-right
+	    @at@vector-map @at@vector-map! @at@vector-for-each
+	    @at@vector-count @at@vector-cumulate
+	    ;; Searching 
+	    @at@vector-take-while @at@vector-take-while-right
+	    @at@vector-drop-while @at@vector-drop-while-right
+	    @at@vector-index @at@vector-index-right @at@vector-skip @at@vector-skip-right 
+	    @at@vector-any @at@vector-every @at@vector-partition
+	    @at@vector-filter @at@vector-remove
+	    ;; Mutators 
+	    @at@vector-set! @at@vector-swap! @at@vector-fill! @at@vector-reverse!
+	    @at@vector-copy! @at@vector-reverse-copy!
+	    @at@vector-unfold! @at@vector-unfold-right!
+	    ;; Conversion 
+	    @at@vector->list list->@at@vector
+	    reverse-@at@vector->list reverse-list->@at@vector
+	    @at@vector->vector vector->@at@vector
+	    ;; Misc
+	    make-@at@vector-generator @at@vector-comparator write-@at@vector)
+    (import (rename (rnrs) (exact inexact->exact))
+	    (srfi :128)
+	    (srfi :160 base))
+
+;;;; From example implementation
+;;; Copyright (c) John Cowan 2018.
+;;;
+;;; Permission is hereby granted, free of charge, to any person
+;;; obtaining a copy of this software and associated documentation
+;;; files (the "Software"), to deal in the Software without
+;;; restriction, including without limitation the rights to use, copy,
+;;; modify, merge, publish, distribute, sublicense, and/or sell copies
+;;; of the Software, and to permit persons to whom the Software is
+;;; furnished to do so, subject to the following conditions:
+;;; 
+;;; The above copyright notice and this permission notice (including
+;;; the next paragraph) shall be included in all copies or substantial
+;;; portions of the Software.
+;;;
+;;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+;;; EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+;;; OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+;;; NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+;;; HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+;;; WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+;;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+;;; OTHER DEALINGS IN THE SOFTWARE.
+
+;; make-@at@vector defined in (srfi 160 base)
+
+;; @at@vector defined in (srfi 160 base)
+
+(define (@at@vector-unfold f len seed)
+  (let ((v (make-@at@vector len)))
+    (let loop ((i 0) (state seed))
+      (unless (= i len)
+        (let-values (((value newstate) (f i state)))
+          (@at@vector-set! v i value)
+          (loop (+ i 1) newstate))))
+    v))
+
+(define (@at@vector-unfold-right f len seed)
+  (let ((v (make-@at@vector len)))
+    (let loop ((i (- len 1)) (state seed))
+      (unless (= i -1)
+        (let-values (((value newstate) (f i state)))
+          (@at@vector-set! v i value)
+          (loop (- i 1) newstate))))
+    v))
+
+(define @at@vector-copy
+  (case-lambda
+    ((vec) (@at@vector-copy* vec 0 (@at@vector-length vec)))
+    ((vec start) (@at@vector-copy* vec start (@at@vector-length vec)))
+    ((vec start end) (@at@vector-copy* vec start end))))
+
+(define (@at@vector-copy* vec start end)
+  (let ((v (make-@at@vector (- end start))))
+    (@at@vector-copy! v 0 vec start end)
+    v))
+
+(define (@at@vector-copy! to at from start end)
+  (let loop ((at at) (i start))
+    (unless (= i end)
+      (@at@vector-set! to at (@at@vector-ref from i))
+      (loop (+ at 1) (+ i 1)))))
+
+(define @at@vector-reverse-copy
+  (case-lambda
+    ((vec) (@at@vector-reverse-copy* vec 0 (@at@vector-length vec)))
+    ((vec start) (@at@vector-reverse-copy* vec start (@at@vector-length vec)))
+    ((vec start end) (@at@vector-reverse-copy* vec start end))))
+
+(define (@at@vector-reverse-copy* vec start end)
+  (let ((v (make-@at@vector (- end start))))
+    (@at@vector-reverse-copy! v 0 vec start end)
+    v))
+
+(define (@at@vector-reverse-copy! to at from start end)
+  (let loop ((at at) (i (- end 1)))
+    (unless (< i start)
+      (@at@vector-set! to at (@at@vector-ref from i))
+      (loop (+ at 1) (- i 1)))))
+
+(define (@at@vector-append . vecs)
+  (@at@vector-concatenate vecs))
+
+(define (@at@vector-concatenate vecs)
+  (let ((v (make-@at@vector (len-sum vecs))))
+    (let loop ((vecs vecs) (at 0))
+      (unless (null? vecs)
+        (let ((vec (car vecs)))
+          (@at@vector-copy! v at vec 0 (@at@vector-length vec))
+          (loop (cdr vecs) (+ at (@at@vector-length vec)))))
+    v)))
+
+(define (len-sum vecs)
+  (if (null? vecs)
+    0
+    (+ (@at@vector-length (car vecs))
+       (len-sum (cdr vecs)))))
+
+(define (@at@vector-append-subvectors . args)
+  (let ((v (make-@at@vector (len-subsum args))))
+    (let loop ((args args) (at 0))
+      (unless (null? args)
+        (let ((vec (car args))
+              (start (cadr args))
+              (end (caddr args)))
+          (@at@vector-copy! v at vec start end)
+          (loop (cdddr args) (+ at (- end start))))))
+    v))
+
+(define (len-subsum vecs)
+  (if (null? vecs)
+    0
+    (+ (- (caddr vecs) (cadr vecs))
+       (len-subsum (cdddr vecs)))))
+
+;; @at@? defined in (srfi 160 base)
+
+;; @at@vector? defined in (srfi 160 base)
+
+(define (@at@vector-empty? vec)
+  (zero? (@at@vector-length vec)))
+
+(define (@at@vector= . vecs)
+  (@at@vector=* (car vecs) (cadr vecs) (cddr vecs)))
+
+(define (@at@vector=* vec1 vec2 vecs)
+  (if (null? vecs)
+    (and
+      (@at@dyadic-vecs= vec1 0 (@at@vector-length vec1)
+                          vec2 0 (@at@vector-length vec2))
+      (if (null? vecs)
+        #t
+        (@at@vector=* vec2 (car vecs) (cdr vecs))))))
+
+(define (@at@dyadic-vecs= vec1 start1 end1 vec2 start2 end2)
+  (cond
+    ((not (= end1 end2)) #f)
+    ((not (< start1 end1)) #t)
+    ((let ((elt1 (@at@vector-ref vec1 start1))
+           (elt2 (@at@vector-ref vec2 start2)))
+      (= elt1 elt2))
+     (@at@dyadic-vecs= vec1 (+ start1 1) end1
+                         vec2 (+ start2 1) end2))
+    (else #f)))
+
+;; @at@vector-ref defined in (srfi 160 base)
+
+;; @at@vector-length defined in (srfi 160 base)
+
+(define (@at@vector-take vec n)
+  (let ((v (make-@at@vector n)))
+    (@at@vector-copy! v 0 vec 0 n)
+    v))
+
+(define (@at@vector-take-right vec n)
+  (let ((v (make-@at@vector n))
+        (len (@at@vector-length vec)))
+    (@at@vector-copy! v 0 vec (- len n) len)
+    v))
+
+(define (@at@vector-drop vec n)
+ (let* ((len (@at@vector-length vec))
+        (vlen (- len n))
+        (v (make-@at@vector vlen)))
+    (@at@vector-copy! v 0 vec n len)
+    v))
+
+(define (@at@vector-drop-right vec n)
+  (let* ((len (@at@vector-length vec))
+         (rlen (- len n))
+         (v (make-@at@vector rlen)))
+    (@at@vector-copy! v 0 vec 0 rlen)
+    v))
+
+(define (@at@vector-segment vec n)
+  (let loop ((r '()) (i 0) (remain (@at@vector-length vec)))
+    (if (<= remain 0)
+      (reverse r)
+      (let ((size (min n remain)))
+        (loop
+          (cons (@at@vector-copy vec i (+ i size)) r)
+          (+ i size)
+          (- remain size))))))
+
+;; aux. procedure
+(define (%@at@vectors-ref vecs i)
+  (map (lambda (v) (@at@vector-ref v i)) vecs))
+
+(define (@at@vector-fold kons knil vec . vecs)
+  (if (null? vecs)
+    ;; fast path
+    (let ((len (@at@vector-length vec)))
+      (let loop ((r knil) (i 0))
+        (if (= i len)
+          r
+          (loop (kons r (@at@vector-ref vec i)) (+ i 1)))))
+    ;; generic case
+    (let* ((vecs (cons vec vecs))
+           (len (apply min (map @at@vector-length vecs))))
+      (let loop ((r knil) (i 0))
+        (if (= i len)
+          r
+          (loop (apply kons r (%@at@vectors-ref vecs i))
+                (+ i 1)))))))
+
+(define (@at@vector-fold-right kons knil vec . vecs)
+  (if (null? vecs)
+    ;; fast path
+    (let ((len (@at@vector-length vec)))
+      (let loop ((r knil) (i (- (@at@vector-length vec) 1)))
+        (if (negative? i)
+          r
+          (loop (kons (@at@vector-ref vec i) r) (- i 1)))))
+    ;; generic case
+    (let* ((vecs (cons vec vecs))
+           (len (apply min (map @at@vector-length vecs))))
+      (let loop ((r knil) (i (- len 1)))
+        (if (negative? i)
+          r
+          (loop (apply kons r (%@at@vectors-ref vecs i))
+                (- i 1)))))))
+
+(define (@at@vector-map f vec . vecs)
+  (if (null? vecs)
+    ;; fast path
+    (let* ((len (@at@vector-length vec))
+           (v (make-@at@vector len)))
+      (let loop ((i 0))
+        (unless (= i len)
+          (@at@vector-set! v i (f (@at@vector-ref vec i)))
+          (loop (+ i 1))))
+      v)
+    ;; generic case
+    (let* ((vecs (cons vec vecs))
+           (len (apply min (map @at@vector-length vecs)))
+           (v (make-@at@vector len)))
+      (let loop ((i 0))
+        (unless (= i len)
+          (@at@vector-set! v i (apply f (%@at@vectors-ref vecs i)))
+          (loop (+ i 1))))
+      v)))
+    
+
+(define (@at@vector-map! f vec . vecs)
+  (if (null? vecs)
+    ;; fast path
+    (let ((len (@at@vector-length vec)))
+      (let loop ((i 0))
+        (unless (= i len)
+          (@at@vector-set! vec i (f (@at@vector-ref vec i)))
+          (loop (+ i 1)))))
+    ;; generic case
+    (let* ((vecs (cons vec vecs))
+           (len (apply min (map @at@vector-length vecs))))
+      (let loop ((i 0))
+        (unless (= i len)
+          (@at@vector-set! vec i (apply f (%@at@vectors-ref vecs i)))
+          (loop (+ i 1)))))))
+
+(define (@at@vector-for-each f vec . vecs)
+  (if (null? vecs)
+    ;; fast path
+    (let ((len (@at@vector-length vec)))
+      (let loop ((i 0))
+        (unless (= i len)
+          (f (@at@vector-ref vec i))
+          (loop (+ i 1)))))
+    ;; generic case
+    (let* ((vecs (cons vec vecs))
+           (len (apply min (map @at@vector-length vecs))))
+      (let loop ((i 0))
+        (unless (= i len)
+          (apply f (%@at@vectors-ref vecs i))
+          (loop (+ i 1)))))))
+
+(define (@at@vector-count pred vec . vecs)
+  (if (null? vecs)
+    ;; fast path
+    (let ((len (@at@vector-length vec)))
+      (let loop ((i 0) (r 0))
+        (cond
+         ((= i (@at@vector-length vec)) r)
+         ((pred (@at@vector-ref vec i)) (loop (+ i 1) (+ r 1)))
+         (else (loop (+ i 1) r)))))
+    ;; generic case
+    (let* ((vecs (cons vec vecs))
+           (len (apply min (map @at@vector-length vecs))))
+      (let loop ((i 0) (r 0))
+        (cond
+         ((= i len) r)
+         ((apply pred (%@at@vectors-ref vecs i)) (loop (+ i 1) (+ r 1)))
+         (else (loop (+ i 1) r)))))))
+
+(define (@at@vector-cumulate f knil vec)
+  (let* ((len (@at@vector-length vec))
+         (v (make-@at@vector len)))
+    (let loop ((r knil) (i 0))
+      (unless (= i len)
+        (let ((next (f r (@at@vector-ref vec i))))
+          (@at@vector-set! v i next)
+          (loop next (+ i 1)))))
+    v))
+
+(define (@at@vector-foreach f vec)
+  (let ((len (@at@vector-length vec)))
+    (let loop ((i 0))
+      (unless (= i len)
+        (f (@at@vector-ref vec i))
+        (loop (+ i 1))))))
+
+(define (@at@vector-take-while pred vec)
+  (let* ((len (@at@vector-length vec))
+         (idx (@at@vector-skip pred vec))
+         (idx* (if idx idx len)))
+    (@at@vector-copy vec 0 idx*)))
+
+(define (@at@vector-take-while-right pred vec)
+  (let* ((len (@at@vector-length vec))
+         (idx (@at@vector-skip-right pred vec))
+         (idx* (if idx (+ idx 1) 0)))
+    (@at@vector-copy vec idx* len)))
+
+(define (@at@vector-drop-while pred vec)
+  (let* ((len (@at@vector-length vec))
+         (idx (@at@vector-skip pred vec))
+         (idx* (if idx idx len)))
+    (@at@vector-copy vec idx* len)))
+
+(define (@at@vector-drop-while-right pred vec)
+  (let* ((len (@at@vector-length vec))
+         (idx (@at@vector-skip-right pred vec))
+         (idx* (if idx idx -1)))
+    (@at@vector-copy vec 0 (+ 1 idx*))))
+
+(define (@at@vector-index pred vec . vecs)
+  (if (null? vecs)
+    ;; fast path
+    (let ((len (@at@vector-length vec)))
+      (let loop ((i 0))
+        (cond
+         ((= i len) #f)
+         ((pred (@at@vector-ref vec i)) i)
+         (else (loop (+ i 1))))))
+    ;; generic case
+    (let* ((vecs (cons vec vecs))
+           (len (apply min (map @at@vector-length vecs))))
+      (let loop ((i 0))
+        (cond
+         ((= i len) #f)
+         ((apply pred (%@at@vectors-ref vecs i)) i)
+         (else (loop (+ i 1))))))))
+
+(define (@at@vector-index-right pred vec . vecs)
+  (if (null? vecs)
+    ;; fast path
+    (let ((len (@at@vector-length vec)))
+      (let loop ((i (- len 1)))
+        (cond
+         ((negative? i) #f)
+         ((pred (@at@vector-ref vec i)) i)
+         (else (loop (- i 1))))))
+    ;; generic case
+    (let* ((vecs (cons vec vecs))
+           (len (apply min (map @at@vector-length vecs))))
+      (let loop ((i (- len 1)))
+        (cond
+         ((negative? i) #f)
+         ((apply pred (%@at@vectors-ref vecs i)) i)
+         (else (loop (- i 1))))))))
+
+(define (@at@vector-skip pred vec . vecs)
+  (if (null? vecs)
+    (@at@vector-index (lambda (x) (not (pred x))) vec)
+    (apply @at@vector-index (lambda xs (not (apply pred xs))) vec vecs)))
+     
+(define (@at@vector-skip-right pred vec . vecs)
+  (if (null? vecs)
+    (@at@vector-index-right (lambda (x) (not (pred x))) vec)
+    (apply @at@vector-index-right (lambda xs (not (apply pred xs))) vec vecs)))
+
+(define (@at@vector-any pred vec . vecs)
+  (if (null? vec)
+    ;; fast path
+    (let ((len (@at@vector-length vec)))
+      (let loop ((i 0))
+        (cond
+         ((= i len) #f)
+         ((pred (@at@vector-ref vec i)))  ;returns result of pred
+         (else (loop (+ i 1))))))
+    ;; generic case
+    (let* ((vecs (cons vec vecs))
+           (len (apply min (map @at@vector-length vecs))))
+      (let loop ((i 0))
+        (cond
+         ((= i len) #f)
+         ((apply pred (%@at@vectors-ref vecs i))) ;returns result of pred
+         (else (loop (+ i 1))))))))
+
+(define (@at@vector-every pred vec . vecs)
+  (if (null? vec)
+    ;; fast path
+    (let ((len (@at@vector-length vec)))
+      (let loop ((i 0) (last #t))
+        (cond
+         ((= i len) last)
+         ((pred (@at@vector-ref vec i)) => (lambda (r) (loop (+ i 1) r)))
+         (else #f))))
+    ;; generic case
+    (let* ((vecs (cons vec vecs))
+           (len (apply min (map @at@vector-length vecs))))
+      (let loop ((i 0) (last #t))
+        (cond
+         ((= i len) last)
+         ((apply pred (%@at@vectors-ref vecs i)) => (lambda (r) (loop (+ i 1) r)))
+         (else #f))))))
+
+(define (@at@vector-partition pred vec)
+  (let* ((len (@at@vector-length vec))
+         (cnt (@at@vector-count pred vec))
+         (r (make-@at@vector len)))
+    (let loop ((i 0) (yes 0) (no cnt))
+      (cond
+        ((= i len) r)
+        ((pred (@at@vector-ref vec i))
+         (@at@vector-set! r yes (@at@vector-ref vec i))
+         (loop (+ i 1) (+ yes 1) no))
+        (else
+         (@at@vector-set! r no (@at@vector-ref vec i))
+         (loop (+ i 1) yes (+ no 1)))))))
+
+(define (@at@vector-filter pred vec)
+  (let* ((len (@at@vector-length vec))
+         (cnt (@at@vector-count pred vec))
+         (r (make-@at@vector cnt)))
+    (let loop ((i 0) (j 0))
+      (cond
+        ((= i len) r)
+        ((pred (@at@vector-ref vec i))
+         (@at@vector-set! r j (@at@vector-ref vec i))
+         (loop (+ i 1) (+ j 1)))
+        (else
+         (loop (+ i 1) j))))))
+
+(define (@at@vector-remove pred vec)
+  (@at@vector-filter (lambda (x) (not (pred x))) vec))
+
+;; @at@vector-set! defined in (srfi 160 base)
+
+(define (@at@vector-swap! vec i j)
+  (let ((ival (@at@vector-ref vec i))
+        (jval (@at@vector-ref vec j)))
+    (@at@vector-set! vec i jval)
+    (@at@vector-set! vec j ival)))
+
+(define @at@vector-fill!
+  (case-lambda
+    ((vec fill) (@at@vector-fill-some! vec fill 0 (@at@vector-length vec)))
+    ((vec fill start) (@at@vector-fill-some! vec fill start (@at@vector-length vec)))
+    ((vec fill start end) (@at@vector-fill-some! vec fill start end))))
+
+(define (@at@vector-fill-some! vec fill start end)
+  (unless (= start end)
+    (@at@vector-set! vec start fill)
+    (@at@vector-fill-some! vec fill (+ start 1) end)))
+
+(define @at@vector-reverse!
+  (case-lambda
+    ((vec) (@at@vector-reverse-some! vec 0 (@at@vector-length vec)))
+    ((vec start) (@at@vector-reverse-some! vec start (@at@vector-length vec)))
+    ((vec start end) (@at@vector-reverse-some! vec start end))))
+
+(define (@at@vector-reverse-some! vec start end)
+  (let ((len (@at@vector-length vec)))
+    (let loop ((i 0)(j (- len 1)))
+      (when (< i j)
+        (@at@vector-swap! vec i j)
+        (loop (+ i 1) (- j 1))))))
+
+(define (@at@vector-unfold! f vec start end seed)
+  (let loop ((i start) (seed seed))
+    (when (< i end)
+      (let-values (((elt seed) (f seed)))
+        (@at@vector-set! vec i elt)
+        (loop (+ i 1) seed)))))
+
+(define (@at@vector-unfold-right! f vec start end seed)
+  (let loop ((i (- end 1)) (seed seed))
+    (when (>= i start)
+      (let-values (((elt seed) (f seed)))
+        (@at@vector-set! vec i elt)
+        (loop (- i 1) seed)))))
+
+(define reverse-@at@vector->list
+  (case-lambda
+    ((vec) (reverse-@at@vector->list* vec 0 (@at@vector-length vec)))
+    ((vec start) (reverse-@at@vector->list* vec start (@at@vector-length vec)))
+    ((vec start end) (reverse-@at@vector->list* vec start end))))
+
+(define (reverse-@at@vector->list* vec start end)
+  (let loop ((i start) (r '()))
+    (if (= i end)
+      r
+      (loop (+ 1 i) (cons (@at@vector-ref vec i) r)))))
+
+(define (reverse-list->@at@vector list)
+  (let* ((len (length list))
+         (r (make-@at@vector len)))
+    (let loop ((i 0) (list list))
+      (cond
+        ((= i len) r)
+        (else
+          (@at@vector-set! r (- len i 1) (car list))
+          (loop (+ i 1) (cdr list)))))))
+
+(define @at@vector->vector
+  (case-lambda
+    ((vec) (@at@vector->vector* vec 0 (@at@vector-length vec)))
+    ((vec start) (@at@vector->vector* vec start (@at@vector-length vec)))
+    ((vec start end) (@at@vector->vector* vec start end))))
+
+(define (@at@vector->vector* vec start end)
+  (let* ((len (- end start))
+         (r (make-vector len)))
+    (let loop ((i start) (o 0))
+      (cond
+        ((= i end) r)
+        (else
+          (vector-set! r o (@at@vector-ref vec i))
+          (loop (+ i 1) (+ o 1)))))))
+
+(define vector->@at@vector
+  (case-lambda
+    ((vec) (vector->@at@vector* vec 0 (vector-length vec)))
+    ((vec start) (vector->@at@vector* vec start (vector-length vec)))
+    ((vec start end) (vector->@at@vector* vec start end))))
+
+(define (vector->@at@vector* vec start end)
+  (let* ((len (- end start))
+         (r (make-@at@vector len)))
+    (let loop ((i start) (o 0))
+      (cond
+        ((= i end) r)
+        (else
+          (@at@vector-set! r o (vector-ref vec i))
+          (loop (+ i 1) (+ o 1)))))))
+
+(define make-@at@vector-generator
+  (case-lambda ((vec) (make-@at@vector-generator vec 0 (@at@vector-length vec)))
+               ((vec start) (make-@at@vector-generator vec start (@at@vector-length vec)))
+               ((vec start end)
+                (lambda () (if (>= start end)
+                             (eof-object)
+                             (let ((next (@at@vector-ref vec start)))
+                              (set! start (+ start 1))
+                              next))))))
+
+(define write-@at@vector
+  (case-lambda
+    ((vec) (write-@at@vector* vec (current-output-port)))
+    ((vec port) (write-@at@vector* vec port))))
+
+
+(define (write-@at@vector* vec port)
+  (display "#@at@(" port)  ; @at@-expansion is blind, so will expand this too
+  (let ((last (- (@at@vector-length vec) 1)))
+    (let loop ((i 0))
+      (cond
+        ((= i last)
+         (write (@at@vector-ref vec i) port)
+         (display ")" port))
+        (else
+          (write (@at@vector-ref vec i) port)
+          (display " " port)
+          (loop (+ i 1)))))))
+
+(define (@at@vector< vec1 vec2)
+  (let ((len1 (@at@vector-length vec1))
+        (len2 (@at@vector-length vec2)))
+    (cond
+      ((< len1 len2)
+       #t)
+      ((> len1 len2)
+       #f)
+      (else
+       (let loop ((i 0))
+         (cond
+           ((= i len1)
+            #f)
+           ((< (@at@vector-ref vec1 i) (@at@vector-ref vec2 i))
+            #t)
+           ((> (@at@vector-ref vec1 i) (@at@vector-ref vec2 i))
+            #f)
+           (else
+             (loop (+ i 1)))))))))
+
+(define (@at@vector-hash vec)
+  (let ((len (min 256 (@at@vector-length vec))))
+    (let loop ((i 0) (r 0))
+      (if (= i len)
+        (abs (floor (real-part (inexact->exact r))))
+        (loop (+ i 1) (+ r (@at@vector-ref vec i)))))))
+
+(define @at@vector-comparator
+  (make-comparator @at@vector? @at@vector= @at@vector< @at@vector-hash))
+
+)
