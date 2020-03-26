@@ -40,6 +40,19 @@
     ((srfi 151) (scheme bitwise) #f)
     ((srfi 158) (scheme generator) #f)
     ((srfi 159) (scheme format) #f)
+    ((srfi 160 base) (scheme vector base) #f)
+    ((srfi 160 u8) (scheme vector u8) #f)
+    ((srfi 160 s8) (scheme vector s8) #f)
+    ((srfi 160 u16) (scheme vector u16) #f)
+    ((srfi 160 s16) (scheme vector s16) #f)
+    ((srfi 160 u32) (scheme vector u32) #f)
+    ((srfi 160 s32) (scheme vector s32) #f)
+    ((srfi 160 u64) (scheme vector u64) #f)
+    ((srfi 160 s64) (scheme vector s64) #f)
+    ((srfi 160 f32) (scheme vector f32) #f)
+    ((srfi 160 f64) (scheme vector f64) #f)
+    ((srfi 160 c64) (scheme vector c64) #f)
+    ((srfi 160 c128) (scheme vector c128) #f)
     ((rnrs bytevectors) (scheme bytevector) #f)
     ))
 
@@ -101,7 +114,8 @@
 (define nested-srfis
   '(
     #/%3a146[\/\\]hash/
-    #/%3a160[\/\\][cfsu]\d{2,3}/
+    #/%3a160[\/\\]base/
+    #/%3a160[\/\\][cfsu]\d{1,3}/
   ))
 
 (define (create p pattern full-path? clean?)
