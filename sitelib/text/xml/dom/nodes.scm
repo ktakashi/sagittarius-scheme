@@ -34,7 +34,9 @@
 ;; we don't implement shadow tree for now
 
 (library (text xml dom nodes)
-    (export node-list? node-list-length node-list:item
+    (export node-list? node-list-length node-list:item make-node-list
+	    list->node-list node-list-sub-list node-list-append
+	    node-list-for-each
 
 	    +element-node+ +attribute-node+ +text-node+
 	    +cdata-section-node+ +entity-reference-node+
@@ -194,8 +196,38 @@
   (protocol
    (lambda (p)
      (lambda (queue)
-       (p (list-queue-length queue) (list->vector (list-queue-list queue)))))))
+       (cond ((list-queue? queue)
+	      (p (list-queue-length queue)
+		 (list->vector (list-queue-list queue))))
+	     ((vector? queue)
+	      ;; we share the vector...
+	      (p (vector-length queue) queue)))))))
 (define (node-list:item nl index) (vector-ref (node-list-items nl) index))
+(define (list->node-list l) (make-node-list (make-list-queue l)))
+(define (node-list-sub-list nl start . maybe-end)
+  (define end (if (not (null? maybe-end)) (car maybe-end) (node-list-length nl)))
+  (make-node-list (vector-copy (node-list-items nl) start end)))
+(define (node-list-append nl . nl*)
+  (define queue (make-list-queue (vector->list (node-list-items nl))))
+  (do ((nl* nl* (cdr nl*)))
+      ((null? nl*) (make-node-list queue))
+    (vector-for-each (lambda (n) (list-queue-add-back! queue n))
+		     (node-list-items (car nl*)))))
+
+(define (node-list-for-each proc vec . more)
+  (if (null? more)
+      (let ((len (node-list-length vec)))
+	(let loop ((i 0))
+	  (unless (= i len)
+	    (proc (node-list:item vec i))
+	    (loop (+ i 1)))))
+      (let* ((vecs (cons vec more))
+	     (len  (apply min (map node-list-length vecs))))
+	(let loop ((i 0))
+	  (unless (= i len)
+	    (apply proc (map (lambda (v) (node-list:item v i)) vecs))
+	    (loop (+ i 1)))))))
+
 
 ;;; Node
 (define-constant +element-node+                1)
