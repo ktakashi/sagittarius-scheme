@@ -202,8 +202,7 @@
   (define-tagged-vector "f64" 8 bytevector-ieee-double-native-ref
     bytevector-ieee-double-native-set!)
 
-  (define-dispatch-macro
-    |#u-reader| #\# #\u
+  (define-dispatch-macro |#u-reader| #\# #\u
     (lambda (port c param)
       (let ((n (read port)))
 	(unless (integer? n)
@@ -213,28 +212,18 @@
 	    (raise-i/o-read-error '|#s-reader|
 				  (format "list required, but got ~s" lst)
 				  port))
-	  (let-values (((class offset setter)
-			(case n
-			  ((8)
-			   (values <u8vector> 1 bytevector-u8-set!))
-			  ((16)
-			   (values <u16vector> 2 bytevector-u16-native-set!))
-			  ((32)
-			   (values <u32vector> 4 bytevector-u32-native-set!))
-			  ((64)
-			   (values <u64vector> 8 bytevector-u64-native-set!))
-			  (else
-			   (raise-i/o-read-error 
-			    '|#u-reader|
-			    (format "given number was not supported ~a" n)
-			    port)))))
-	    (let ((r (make-bytevector (* (length lst) offset))))
-	      (for-each-with-index (lambda (i e)
-				     (setter r (* i offset) e)) lst)
-	      (make class :value r)))))))
+	  (let ((ctr (case n
+		       ((8)  u8vector)
+		       ((16) u16vector)
+		       ((32) u32vector)
+		       ((64) u64vector)
+		       (else
+			(raise-i/o-read-error '|#u-reader|
+			 (format "given number was not supported ~a" n)
+			 port)))))
+	    (apply ctr lst))))))
 
-  (define-dispatch-macro
-    |#s-reader| #\# #\s
+  (define-dispatch-macro |#s-reader| #\# #\s
     (lambda (port c param)
       (let ((n (read port)))
 	(unless (integer? n)
@@ -244,28 +233,18 @@
 	    (raise-i/o-read-error '|#s-reader|
 				  (format "list required, but got ~s" lst)
 				  port))
-	  (let-values (((class offset setter)
-			(case n
-			  ((8)
-			   (values <s8vector> 1 bytevector-s8-set!))
-			  ((16)
-			   (values <s16vector> 2 bytevector-s16-native-set!))
-			  ((32)
-			   (values <s32vector> 4 bytevector-s32-native-set!))
-			  ((64)
-			   (values <s64vector> 8 bytevector-s64-native-set!))
-			  (else
-			   (raise-i/o-read-error 
-			    '|#s-reader|
-			    (format "given number was not supported ~a" n)
-			    port)))))
-	    (let ((r (make-bytevector (* (length lst) offset))))
-	      (for-each-with-index (lambda (i e)
-				     (setter r (* i offset) e)) lst)
-	      (make class :value r)))))))
+	  (let ((ctr (case n
+		       ((8)  s8vector)
+		       ((16) s16vector)
+		       ((32) s32vector)
+		       ((64) s64vector)
+		       (else
+			(raise-i/o-read-error '|#s-reader|
+			 (format "given number was not supported ~a" n)
+			 port)))))
+	    (apply ctr lst))))))
 
-  (define-dispatch-macro 
-    |#f-reader| #\# #\f
+  (define-dispatch-macro |#f-reader| #\# #\f
     (lambda (port c param)
       (if (delimited-char? (lookahead-char port))
 	  #f
@@ -274,29 +253,19 @@
 	     ((eq? n 'alse) #f) ;; for R7RS support
 	     (else 
 	      (unless (integer? n)
-		(raise-i/o-read-error 
-		 '|#f-reader|
-		 "invalid character for #f" port))
+		(raise-i/o-read-error '|#f-reader|
+				      "invalid character for #f" port))
 	      (let ((lst (read port))) ;; must be a list
 		(unless (list? lst)
 		  (raise-i/o-read-error '|#f-reader|
 					(format "list required, but got ~s" lst)
 					port))
-		(let-values (((class offset setter)
-			      (case n
-				((32)
-				 (values <f32vector> 4
-					 bytevector-ieee-single-native-set!))
-				((64)
-				 (values <f64vector> 8
-					 bytevector-ieee-double-native-set!))
-				(else
-				 (raise-i/o-read-error 
-				  '|#f-reader|
-				  (format "given number was not supported ~a" n)
-				  port)))))
-		  (let ((r (make-bytevector (* (length lst) offset))))
-		    (for-each-with-index (lambda (i e)
-					   (setter r (* i offset) e)) lst)
-		    (make class :value r))))))))))
+		(let ((ctr (case n
+			     ((32) f32vector)
+			     ((64) f64vector)
+			     (else
+			      (raise-i/o-read-error '|#f-reader|
+			       (format "given number was not supported ~a" n)
+			       port)))))
+		  (apply ctr lst)))))))))
   )
