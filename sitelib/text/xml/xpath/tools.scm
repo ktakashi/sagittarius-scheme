@@ -35,7 +35,10 @@
 (library (text xml xpath tools)
     (export xml:descendant
 	    xml:descendant-or-self
-	    #;xml:select-kids
+
+	    ;; utilities
+	    xml:child
+	    xml:filter
 	    )
     (import (rnrs)
 	    (srfi :1 lists)

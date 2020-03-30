@@ -24,4 +24,7 @@
 (test-selector (xml:descendant-or-self element?) '("foo" "bar" "baz")
 	       "<foo><bar><baz></baz></bar></foo>")
 
+;; comment has a special node name
+(test-selector (xml:child comment?) '("#comment") "<foo><!-- comment --></foo>")
+
 (test-end)

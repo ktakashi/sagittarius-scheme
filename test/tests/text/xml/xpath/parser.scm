@@ -202,6 +202,11 @@
 (success-test $xpath:expr-single "? *" '(lookup *))
 (success-test $xpath:expr-single "? (1)" '(lookup (group 1)))
 
+;; namespace
+(success-test $xpath:expr-single "/ns:foo" '((/ (qname #f "ns" "foo"))))
+(success-test $xpath:expr-single "/Q{fqn}foo" '((/ (eqname "fqn" "foo"))))
+
+
 (test-equal '(((/ "foo") (// "baz")))
 	    (xpath:parse (generator->lseq (string->generator "/foo//baz"))))
 (test-error "parse error test" xpath-parse-error?

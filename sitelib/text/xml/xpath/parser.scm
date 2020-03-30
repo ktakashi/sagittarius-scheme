@@ -112,7 +112,7 @@
     ($let ((($token "Q{"))
 	   (n ($many ($char-set-contains? cs)))
 	   (($eqv? #\})))
-      ($return n))))
+      ($return (list->string n)))))
 ;; [117] URIQualifiedName	::= BracedURILiteral NCName
 (define $xpath:uri-qualified-name
   ($let ((q $xpath:braced-uri-literal)
@@ -120,7 +120,7 @@
     ($return `(eqname ,q ,n))))
 
 ;; [112] EQName	::= QName | URIQualifiedName
-(define $xpath:eqname ($or $xml:qname $xpath:uri-qualified-name))
+(define $xpath:eqname ($or $xpath:uri-qualified-name $xml:qname))
 ;; [60] VarName	::= EQName
 (define $xpath:var-name
   ($let ((v $xpath:eqname)) ($return (string->symbol v))))
