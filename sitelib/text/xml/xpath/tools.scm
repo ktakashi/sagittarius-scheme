@@ -35,6 +35,8 @@
 (library (text xml xpath tools)
     (export xml:descendant
 	    xml:descendant-or-self
+	    xml:ancestor
+	    xml:ancestor-or-self
 
 	    ;; utilities
 	    xml:child
@@ -70,6 +72,24 @@
 		   (nappend ((xml:child node?) (ncar more)) (ncdr more))))
 	    ((zero? (node-list-length more))
 	     (list->node-list (reverse! res)))))))
+ 
+;; ancestor
+(define (xml:ancestor pred?)
+  (lambda (node)
+    (if (node-list? node)
+	(node-list:map-union (xml:ancestor pred?) node)
+	(do ((res '() (if (pred? parent) (cons parent res) res))
+	     (parent (node-parent-node node) (node-parent-node parent)))
+	    ((not parent) (list->node-list (reverse! res)))))))
+
+;; ancestor-or-self
+(define (xml:ancestor-or-self pred?)
+  (lambda (node)
+    (if (node-list? node)
+	(node-list:map-union (xml:ancestor-or-self pred?) node)
+	(do ((res '() (if (pred? parent) (cons parent res) res))
+	     (parent node (node-parent-node parent)))
+	    ((not parent) (list->node-list (reverse! res)))))))
 
 (define (node-list:map-union proc node-list)
   (define len (node-list-length node-list))
