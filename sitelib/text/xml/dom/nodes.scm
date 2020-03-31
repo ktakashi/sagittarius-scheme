@@ -1135,7 +1135,7 @@
   (define (id-filter node)
     (if (equal? (element-id node) id)
 	+node-filter-filter-accept+
-	+node-filter-filter-reject+))
+	+node-filter-filter-skip+))
   (let ((tw (document:create-tree-walker document
 					 (document-document-element document)
 					 +node-filter-show-element+ id-filter)))
