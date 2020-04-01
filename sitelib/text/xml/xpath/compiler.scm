@@ -49,9 +49,7 @@
   (define (wrap evaluator)
     (lambda (dom)
       (let* ((context (evaluator
-		       (make-xpath-context
-			(list->node-list (list (document-document-element dom)))
-			'())))
+		       (make-xpath-context (list->node-list (list dom)) '())))
 	     (result (xpath-context-targets context)))
 	(cond ((node-list? result) result)
 	      ((node? result) (list->node-list result))
@@ -89,7 +87,7 @@
 (define descendant-nodes (xml:descendant-or-self node?))
 (define (xpath:compile-path-segment segment ns-binding)
   (define (make-filter type pred)
-    (define selector (xml:filter (xml:ntype?? pred ns-binding)))
+    (define selector (xml:child (xml:ntype?? pred ns-binding)))
     (case type
       ;; for now simple
       ((//) (lambda (node) (selector (descendant-nodes node))))
