@@ -94,6 +94,7 @@
 	    named-node-map:set-named-item! named-node-map:set-named-item-ns!
 	    named-node-map:remove-named-item!
 	    named-node-map:remove-named-item-ns!
+	    named-node-map->node-list
 
 	    entity-reference?
 	    character-data? text? cdata-section? comment?
@@ -935,6 +936,9 @@
   (treemap-delete! (named-node-map-values map) attr))
 (define (named-node-map:fold map seed proc)
   (treemap-fold proc (named-node-map-values map) seed))
+
+(define (named-node-map->node-list map)
+  (make-node-list (treemap-values (named-node-map-values map))))
 
 ;; deprecated but we support this.
 (define-record-type entity-reference

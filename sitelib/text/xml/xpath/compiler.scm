@@ -41,10 +41,11 @@
 	    (srfi :127 lseqs)
 	    (sagittarius generators))
 
-(define (xpath:compile-string xpath-string)
-  (xpath:compile (open-string-input-port xpath-string)))
+(define (xpath:compile-string xpath-string . options)
+  (apply xpath:compile (open-string-input-port xpath-string) options))
 
-(define (xpath:compile in)
+(define (xpath:compile in . maybe-ns-bindings)
+  (define ns-binding (if (null? maybe-ns-bindings) '() (car maybe-ns-bindings)))
   (define (wrap evaluator)
     (lambda (dom)
       (let* ((context (evaluator
@@ -60,7 +61,7 @@
     ;;      for now, pipe
     (wrap 
      (fold-left (lambda (acc expr)
-		   (let ((evaluator (xpath:compile1 expr)))
+		   (let ((evaluator (xpath:compile1 expr ns-binding)))
 		     (lambda (context)
 		       (acc (evaluator context)))))
 		 (lambda (context) context)
@@ -72,23 +73,23 @@
 	  ;; for now alist
 	  variables))
 
-(define (xpath:compile1 expr)
+(define (xpath:compile1 expr ns-binding)
   (if (and (pair? expr) (pair? (car expr)))
-      (xpath:compile-path expr)
+      (xpath:compile-path expr ns-binding)
       (lambda (context)
 	(xqt-error 'unknown 'xpath:compile "not yet"))))
 
-(define (xpath:compile-path expr)
+(define (xpath:compile-path expr ns-binding)
   (fold-left (lambda (acc segment)
-	       (let ((evaluator (xpath:compile-path-segment segment)))
+	       (let ((evaluator (xpath:compile-path-segment segment ns-binding)))
 		 (lambda (context)
 		   (evaluator (acc context)))))
 	     (lambda (context) context) expr))
 
 (define descendant-nodes (xml:descendant-or-self node?))
-(define (xpath:compile-path-segment segment)
+(define (xpath:compile-path-segment segment ns-binding)
   (define (make-filter type pred)
-    (define selector (xml:filter (xml:ntype?? pred)))
+    (define selector (xml:filter (xml:ntype?? pred ns-binding)))
     (case type
       ;; for now simple
       ((//) (lambda (node) (selector (descendant-nodes node))))

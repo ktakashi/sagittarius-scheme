@@ -41,4 +41,24 @@
 	      (ansestor-selector (xml:ancestor-or-self element?) elm)))
 
 
+(let* ((xml "<foo a='1'><bar b='2'><baz id='child'></baz></bar></foo>")
+       (dom (input-port->dom-tree (open-string-input-port xml)))
+       (elm (document-document-element dom)))
+  (define a=1
+    (lambda (attr)
+      (and (equal? (attr-name attr) "a")
+	   (equal? (attr-value attr) "1"))))
+  (define b=2
+    (lambda (attr)
+      (and (equal? (attr-name attr) "b")
+	   (equal? (attr-value attr) "2"))))
+  (define (attribute-selector selector element)
+    (define node-list (selector element))
+    (do ((len (node-list-length node-list)) (i 0 (+ i 1))
+	 (res '() (cons (node-node-name (node-list:item node-list i)) res)))
+	((= len i) (reverse res))))
+  (test-equal '("a") (attribute-selector (xml:attribute a=1) elm))
+  ;; works only the current node
+  (test-equal '() (attribute-selector (xml:attribute b=2) elm)))
+
 (test-end)

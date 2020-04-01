@@ -38,6 +38,8 @@
 	    xml:ancestor
 	    xml:ancestor-or-self
 
+	    xml:attribute
+	    
 	    ;; utilities
 	    xml:child
 	    xml:filter
@@ -123,6 +125,19 @@
 		 (pred-result (pred? item)))
 	    (loop (+ i 1) (if pred-result (cons item res) res)))))))
 
+
+(define (xml:attribute pred)
+  (define filter (xml:filter pred))
+  (lambda (node)
+    (xml:map-union
+     (lambda (node)
+       (if (element? node)
+	   (filter (named-node-map->node-list (element-attributes node)))
+	   (list->node-list '())))
+     (if (node-list? node)
+	 node
+	 (list->node-list (list node))))))
+
 (define (xml:ntype?? crit . maybe-ns-bindings)
   (define ns-bindings (if (null? maybe-ns-bindings) '() (car maybe-ns-bindings)))
   (define (ns-element=? namespace local-name)
@@ -142,7 +157,7 @@
 	 (let ((ns (caddr crit))
 	       (local-name (cadddr crit)))
 	   (cond ((assoc ns ns-bindings) =>
-		  (lambda (namespace) (ns-element=? namespace local-name)))
+		  (lambda (namespace) (ns-element=? (cdr namespace) local-name)))
 		 (else
 		  ;; unknown namespace
 		  ;; TODO how to handle this?

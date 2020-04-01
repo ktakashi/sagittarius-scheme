@@ -607,8 +607,9 @@
 
 ;; [42] AbbrevForwardStep ::= "@"? NodeTest
 (define $xpath:abbrev-forward-step
-  ($do (at ($optional ($eqv? #\@))) (t $xpath:node-test)
-       ($return (if at (list at t) t))))
+  ($let ((at ($optional ($eqv? #\@)))
+	 (t $xpath:node-test))
+    ($return (if at (list '@ t) t))))
 
 ;;;; [40] ForwardStep ::= (ForwardAxis NodeTest) | AbbrevForwardStep
 (define $xpath:forward-step
