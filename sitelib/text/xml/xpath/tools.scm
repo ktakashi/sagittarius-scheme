@@ -41,6 +41,8 @@
 	    ;; utilities
 	    xml:child
 	    xml:filter
+	    xml:ntype??
+	    xml:map-union
 	    )
     (import (rnrs)
 	    (srfi :1 lists)
@@ -55,7 +57,7 @@
 (define (xml:descendant test-pred?)
   (lambda (node)
     (if (node-list? node)
-	(node-list:map-union (xml:descendant test-pred?) node)
+	(xml:map-union (xml:descendant test-pred?) node)
 	(do ((res '() (if (test-pred? (ncar more)) (cons (ncar more) res) res))
 	     (more ((xml:child node?) node)
 		   (nappend ((xml:child node?) (ncar more)) (ncdr more))))
@@ -66,7 +68,7 @@
 (define (xml:descendant-or-self test-pred?)
   (lambda (node)
     (if (node-list? node)
-	(node-list:map-union (xml:descendant-or-self test-pred?) node)
+	(xml:map-union (xml:descendant-or-self test-pred?) node)
 	(do ((res '() (if (test-pred? (ncar more)) (cons (ncar more) res) res))
 	     (more (list->node-list (list node))
 		   (nappend ((xml:child node?) (ncar more)) (ncdr more))))
@@ -77,7 +79,7 @@
 (define (xml:ancestor pred?)
   (lambda (node)
     (if (node-list? node)
-	(node-list:map-union (xml:ancestor pred?) node)
+	(xml:map-union (xml:ancestor pred?) node)
 	(do ((res '() (if (pred? parent) (cons parent res) res))
 	     (parent (node-parent-node node) (node-parent-node parent)))
 	    ((not parent) (list->node-list (reverse! res)))))))
@@ -86,12 +88,12 @@
 (define (xml:ancestor-or-self pred?)
   (lambda (node)
     (if (node-list? node)
-	(node-list:map-union (xml:ancestor-or-self pred?) node)
+	(xml:map-union (xml:ancestor-or-self pred?) node)
 	(do ((res '() (if (pred? parent) (cons parent res) res))
 	     (parent node (node-parent-node parent)))
 	    ((not parent) (list->node-list (reverse! res)))))))
 
-(define (node-list:map-union proc node-list)
+(define (xml:map-union proc node-list)
   (define len (node-list-length node-list))
   (define (push-all proc-res queue)
     (do ((len (node-list-length proc-res)) (i 0 (+ i 1)))
@@ -107,8 +109,7 @@
 (define (xml:child test-pred?)
   (lambda (node)
     (cond ((node? node) ((xml:filter test-pred?) (node-child-nodes node)))
-	  ((node-list? node)
-	   (node-list:map-union (xml:child test-pred?) node))
+	  ((node-list? node) (xml:map-union (xml:child test-pred?) node))
 	  (else #f))))
 
 (define (xml:filter pred?)
@@ -121,5 +122,37 @@
 	  (let* ((item (node-list:item node-list i))
 		 (pred-result (pred? item)))
 	    (loop (+ i 1) (if pred-result (cons item res) res)))))))
+
+(define (xml:ntype?? crit . maybe-ns-bindings)
+  (define ns-bindings (if (null? maybe-ns-bindings) '() (car maybe-ns-bindings)))
+  (define (ns-element=? namespace local-name)
+    (lambda (node)
+      (and (element? node)
+	   (equal? namespace (element-namespace-uri node))
+	   (equal? local-name (element-local-name node)))))
+  (cond ((eq? crit '*) element?)
+	;; local name 
+	((string? crit)
+	 (lambda (node)
+	   (and (element? node)
+		(not (element-namespace-uri node)) ;; no namespace
+		(equal? crit (element-local-name node)))))
+	((and (pair? crit) (eq? 'qname (car crit)))
+	 ;; namespace with
+	 (let ((ns (caddr crit))
+	       (local-name (cadddr crit)))
+	   (cond ((assoc ns ns-bindings) =>
+		  (lambda (namespace) (ns-element=? namespace local-name)))
+		 (else
+		  ;; unknown namespace
+		  ;; TODO how to handle this?
+		  (let ((node-name (string-append ns ":" local-name)))
+		    (lambda (node)
+		      (and (element? node)
+			   (equal? (node-node-name node) node-name))))))))
+	((and (pair? crit) (eq? 'eqname (car crit)))
+	 (ns-element=? (cadr crit) (caddr crit)))
+	(else
+	 (assertion-violation 'xml:ntype?? "not supported yet" crit))))
 
 )

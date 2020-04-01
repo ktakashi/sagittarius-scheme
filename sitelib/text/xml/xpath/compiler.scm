@@ -36,8 +36,9 @@
 	    (text xml errors)
 	    (text xml dom nodes)
 	    (text xml xpath parser)
-	    (srfi :1)
-	    (srfi :127)
+	    (text xml xpath tools)
+	    (srfi :1 lists)
+	    (srfi :127 lseqs)
 	    (sagittarius generators))
 
 (define (xpath:compile-string xpath-string)
@@ -46,18 +47,24 @@
 (define (xpath:compile in)
   (define (wrap evaluator)
     (lambda (dom)
-      ;; TODO chheck dom?
-      (evaluator (make-xpath-context (list (document-document-element dom))
-				     '()))))
+      (let* ((context (evaluator
+		       (make-xpath-context
+			(list->node-list (list (document-document-element dom)))
+			'())))
+	     (result (xpath-context-targets context)))
+	(cond ((node-list? result) result)
+	      ((node? result) (list->node-list result))
+	      (else #f)))))
   (let ((expr* (xpath:parse (generator->lseq (port->char-generator in)))))
     ;; TODO how should we handle multiple expression?
     ;;      for now, pipe
     (wrap 
      (fold-left (lambda (acc expr)
-		  (let ((evaluator (xpath:compile1 expr)))
-		    (lambda (context)
-		      (acc (evaluator context)))))
-		(lambda (context) (xpath-context-targets context)) expr*))))
+		   (let ((evaluator (xpath:compile1 expr)))
+		     (lambda (context)
+		       (acc (evaluator context)))))
+		 (lambda (context) context)
+		 expr*))))
 
 ;; internal
 (define-record-type xpath-context
@@ -71,36 +78,21 @@
       (lambda (context)
 	(xqt-error 'unknown 'xpath:compile "not yet"))))
 
-(define (node-list->list node-list)
-  (do ((len (node-list-length node-list))
-       (i 0 (+ i 1))
-       (r '() (cons (node-list:item node-list i) r)))
-      ((= i len) (reverse r))))
-
 (define (xpath:compile-path expr)
   (fold-left (lambda (acc segment)
 	       (let ((evaluator (xpath:compile-path-segment segment)))
 		 (lambda (context)
-		   (acc (evaluator context)))))
+		   (evaluator (acc context)))))
 	     (lambda (context) context) expr))
 
+(define descendant-nodes (xml:descendant-or-self node?))
 (define (xpath:compile-path-segment segment)
-  (define (filter-any pred)
-    (if (string? pred)
-	(lambda (dom)
-	  (node-list->list (element:get-elements-by-tag-name dom pred)))
-	(assertion-violation 'xpath:compile-path-segment "Not yet" pred)))
-  
-  (define (filter-root pred)
-    (if (string? pred)
-	(lambda (dom)
-	  (or (and (string=? (node-node-name dom) pred) (list dom)) '()))
-	(assertion-violation 'xpath:compile-path-segment "Not yet" pred)))
-  
   (define (make-filter type pred)
+    (define selector (xml:filter (xml:ntype?? pred)))
     (case type
-      ((//) (filter-any pred))
-      ((/)  (filter-root pred))
+      ;; for now simple
+      ((//) (lambda (node) (selector (descendant-nodes node))))
+      ((/)  (lambda (node) (selector node)))
       (else
        (assertion-violation
 	'xpath:compile-path-segment "Invalid type"
@@ -108,8 +100,7 @@
   (let ((filter (make-filter (car segment) (cadr segment))))
     (lambda (context)
       (define doms (xpath-context-targets context))
-      (let ((r (append-map filter doms)))
-	(display doms)  (newline)
+      (let ((r (xml:map-union filter doms)))
 	(make-xpath-context r (xpath-context-variables context))))))
 	     
 )

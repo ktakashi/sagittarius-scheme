@@ -36,7 +36,7 @@
 (library (text xml dom nodes)
     (export node-list? node-list-length node-list:item make-node-list
 	    list->node-list node-list-sub-list node-list-append
-	    node-list-for-each
+	    node-list-for-each node-list->list
 
 	    +element-node+ +attribute-node+ +text-node+
 	    +cdata-section-node+ +entity-reference-node+
@@ -227,6 +227,9 @@
 	  (unless (= i len)
 	    (apply proc (map (lambda (v) (node-list:item v i)) vecs))
 	    (loop (+ i 1)))))))
+
+(define (node-list->list node-list)
+  (vector->list (node-list-items node-list)))
 
 
 ;;; Node
@@ -1142,7 +1145,7 @@
     (tree-walker:next-node tw)))
 
 (define (document:create-element document local-name :optional (option #f))
-  (let ((node (make-element "" "" local-name)))
+  (let ((node (make-element #f #f local-name)))
     (node-owner-document-set! node document)
     node))
 
