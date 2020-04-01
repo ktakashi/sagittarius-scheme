@@ -72,10 +72,12 @@
 	  variables))
 
 (define (xpath:compile1 expr ns-binding)
-  (if (and (pair? expr) (pair? (car expr)))
-      (xpath:compile-path expr ns-binding)
-      (lambda (context)
-	(xqt-error 'unknown 'xpath:compile "not yet"))))
+  (cond ((and (pair? expr) (pair? (car expr)))
+	 (xpath:compile-path expr ns-binding))
+	((and (pair? expr) (assq (car expr) axis-list)) =>
+	 (lambda (slot) ((cadr slot) expr ns-binding)))
+	(else
+	 (xqt-error 'unknown 'xpath:compile "not yet" expr))))
 
 (define (xpath:compile-path expr ns-binding)
   (fold-left (lambda (acc segment)
@@ -87,19 +89,64 @@
 (define descendant-nodes (xml:descendant-or-self node?))
 (define (xpath:compile-path-segment segment ns-binding)
   (define (make-filter type pred)
-    (define selector (xml:child (xml:ntype?? pred ns-binding)))
+    (define selector
+      (cond ((or (string? pred)
+		 ;; qname and eqname are handled by xml:ntype??
+		 (and (pair? pred) (memq (car pred) '(qname eqname))))
+	     (xml:child (xml:ntype?? pred ns-binding)))
+	    ((and (pair? pred) (string? (car pred)) (pair? (cadr pred)))
+	     (let ((predicate (xpath:compile-predicate (cadr pred) ns-binding))
+		   (select (xml:child (xml:ntype?? (car pred) ns-binding))))
+	       (lambda (node)
+		 (let ((target (select node)))
+		   (and target (predicate target) target)))))
+	    (else (assertion-violation 'xpath:compile-path-segment
+				       "Unknown path segment"  segment))))
     (case type
-      ;; for now simple
       ((//) (lambda (node) (selector (descendant-nodes node))))
-      ((/)  (lambda (node) (selector node)))
-      (else
-       (assertion-violation
-	'xpath:compile-path-segment "Invalid type"
-	segment))))
+      ((/) (lambda (node) (selector node)))
+      (else (assertion-violation 'xpath:compile-path-segment "Invalid type"
+				 segment))))
   (let ((filter (make-filter (car segment) (cadr segment))))
     (lambda (context)
       (define doms (xpath-context-targets context))
       (let ((r (xml:map-union filter doms)))
 	(make-xpath-context r (xpath-context-variables context))))))
-	     
+
+(define (xpath:compile-predicate pred ns-binding)
+  (case (car pred)
+    ((??)
+     (unless (pair? (cadr pred))
+       (assertion-violation 'xpath:compile-predicate "Unknown predicate" pred))
+     (let* ((condition (cadr pred))
+	    (lhs (xpath:compile1 (cadr condition) ns-binding))
+	    (rhs (xpath:compile1 (caddr condition) ns-binding)))
+       (case (car condition)
+	 ((=)
+	  (lambda (node)
+	    (let ((lvar (lhs node))
+		  (rvar (rhs node)))
+	      (and (equal? lvar rvar) node))))
+	 (else (assertion-violation 'xpath:compile-predicate "not yet" pred)))))
+    (else (assertion-violation 'xpath:compile-predicate "not yet" pred))))
+
+(define (xpath:compile-attribute expr ns-binding)
+  (let ((name (cadr expr)))
+    ;; TODO handle attribute namespace
+    (lambda (node)
+      (define (pred attr)
+	(equal? (attr-name attr) name))
+      (let ((attr ((xml:attribute pred) node)))
+	(unless (<= (node-list-length attr) 1)
+	  (assertion-violation '@ "More than one attribute have the same name"
+				  name))
+	(and (= (node-list-length attr) 1)
+	     (attr-value (node-list:item attr 0)))))))
+
+(define (xpath:compile-literal expr ns-binding)
+  (lambda (node) (cadr expr)))
+
+(define axis-list
+  `((@    ,xpath:compile-attribute)
+    (str  ,xpath:compile-literal)))
 )

@@ -21,6 +21,10 @@
   (test-equal '("ns:foo") (test-xpath "//ns:foo" '(("ns" . "ns-foo"))))
 
   (test-equal '("foo") (test-xpath "//ns:foo/foo" '(("ns" . "ns-foo"))))
+
+  (test-equal '("foo") (test-xpath "//foo[@a='12']/foo"))
+  (test-equal '() (test-xpath "//foo[@a='123']/foo"))
   )
 
 (test-end)
+

@@ -104,9 +104,8 @@
   (do ((i 0 (+ i 1)) (queue (list-queue)))
       ((= i len) (make-node-list queue))
     (let ((proc-res (proc (node-list:item node-list i))))
-      (if (node-list? proc-res)
-	  (push-all proc-res queue)
-	  (list-queue-add-back! queue proc-res)))))
+      (cond ((node-list? proc-res) (push-all proc-res queue))
+	    ((node? proc-res) (list-queue-add-back! queue proc-res))))))
 
 (define (xml:child test-pred?)
   (lambda (node)
