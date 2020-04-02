@@ -76,6 +76,8 @@
 	 (xpath:compile-path expr ns-binding))
 	((and (pair? expr) (assq (car expr) axis-list)) =>
 	 (lambda (slot) ((cadr slot) expr ns-binding)))
+	((or (string? expr) (number? expr) (boolean? expr))
+	 (xpath:compile-literal (list 'dummy expr) ns-binding))
 	(else
 	 (xqt-error 'unknown 'xpath:compile "not yet" expr))))
 
@@ -100,6 +102,8 @@
 	       (lambda (node)
 		 (let ((target (select node)))
 		   (and target (predicate target) target)))))
+	    ((and (pair? pred) (symbol? (car pred)))
+	     (xpath:compile1 pred ns-binding))
 	    (else (assertion-violation 'xpath:compile-path-segment
 				       "Unknown path segment"  segment))))
     (case type
@@ -114,6 +118,12 @@
 	(make-xpath-context r (xpath-context-variables context))))))
 
 (define (xpath:compile-predicate pred ns-binding)
+  ;; ugly...
+  ;; we need to make compare procedure like value vs node
+  (define (get-value obj)
+    (cond ((not (node? obj)) obj)
+	  ((attr? obj) (attr-value obj))
+	  (else obj)))
   (case (car pred)
     ((??)
      (unless (pair? (cadr pred))
@@ -124,8 +134,8 @@
        (case (car condition)
 	 ((=)
 	  (lambda (node)
-	    (let ((lvar (lhs node))
-		  (rvar (rhs node)))
+	    (let ((lvar (get-value (lhs node)))
+		  (rvar (get-value (rhs node))))
 	      (and (equal? lvar rvar) node))))
 	 (else (assertion-violation 'xpath:compile-predicate "not yet" pred)))))
     (else (assertion-violation 'xpath:compile-predicate "not yet" pred))))
@@ -141,12 +151,25 @@
 	  (assertion-violation '@ "More than one attribute have the same name"
 				  name))
 	(and (= (node-list-length attr) 1)
-	     (attr-value (node-list:item attr 0)))))))
+	     (node-list:item attr 0))))))
 
 (define (xpath:compile-literal expr ns-binding)
   (lambda (node) (cadr expr)))
 
+
 (define axis-list
   `((@    ,xpath:compile-attribute)
     (str  ,xpath:compile-literal)))
+
+;;; helpers
+(define (xml:equality-cmp bool-op number-op string-op)
+  (lambda (obj1 obj2)
+    (eq? obj1 obj2)))
+(define xml:equal? (xml:equality-cmp eq? = string=?))
+(define xml:not-equal?
+  (xml:equality-cmp
+   (lambda (b1 b2) (not (eq? b1 b2)))
+   (lambda (n1 n2) (not (= n1 n2)))
+   (lambda (s1 s2) (not (string=? s1 s2)))))
+
 )

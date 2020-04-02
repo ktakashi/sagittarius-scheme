@@ -39,6 +39,8 @@
 	    xml:ancestor-or-self
 
 	    xml:attribute
+
+	    xml:boolean
 	    
 	    ;; utilities
 	    xml:child
@@ -49,6 +51,7 @@
     (import (rnrs)
 	    (srfi :1 lists)
 	    (srfi :117 list-queues)
+	    (text xml errors)
 	    (text xml dom nodes))
 
 (define (ncar nl) (node-list:item nl 0))
@@ -136,6 +139,21 @@
      (if (node-list? node)
 	 node
 	 (list->node-list (list node))))))
+
+;;; conversion
+;; https://www.w3.org/TR/xpath-functions-31/
+;; 7.3.1
+;; fn:boolean($arg) equivalent
+(define (xml:boolean node)
+  (cond ((node-list? node)
+	 (and (not (zero? (node-list-length node)))
+	      (node? (node-list:item node 0))))
+	((string? node) (> (string-length node) 0))
+	((number? node) (not (= node 0)))
+	((boolean? node) node)
+	(else (xqt-error 'FORG0006 'xml:boolean "Invalid argument" node))))
+
+
 
 (define (xml:ntype?? crit . maybe-ns-bindings)
   (define ns-bindings (if (null? maybe-ns-bindings) '() (car maybe-ns-bindings)))
