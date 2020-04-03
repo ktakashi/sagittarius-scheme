@@ -24,6 +24,7 @@
 
   (test-equal '("foo") (test-xpath "//foo[@a='12']/foo"))
   (test-equal '() (test-xpath "//foo[@a='123']/foo"))
+  (test-equal '("a") (test-xpath "//foo/@a"))
   )
 
 (test-end)

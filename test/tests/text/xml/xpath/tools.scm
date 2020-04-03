@@ -1,5 +1,6 @@
 (import (rnrs)
 	(text xml dom)
+	(text xml errors)
 	(text xml xpath tools)
 	(srfi :127)
 	(sagittarius generators)
@@ -13,6 +14,9 @@
   (do ((len (node-list-length node-list)) (i 0 (+ i 1))
        (res '() (cons (node-node-name (node-list:item node-list i)) res)))
       ((= len i) (reverse res))))
+
+(define (string->dom xml)
+  (input-port->dom-tree (open-string-input-port xml)))
 
 (define-syntax test-selector
   (syntax-rules ()
@@ -28,8 +32,7 @@
 (test-selector (xml:child comment?) '("#comment") "<foo><!-- comment --></foo>")
 
 ;; ancestor needs to be tested differently
-(let* ((xml "<foo><bar> <baz id='child'></baz> </bar></foo>")
-       (dom (input-port->dom-tree (open-string-input-port xml)))
+(let* ((dom (string->dom "<foo><bar> <baz id='child'></baz> </bar></foo>"))
        (elm (document:get-element-by-id dom "child")))
   (define (ansestor-selector selector element)
     (define node-list (selector element))
@@ -41,8 +44,7 @@
 	      (ansestor-selector (xml:ancestor-or-self element?) elm)))
 
 
-(let* ((xml "<foo a='1'><bar b='2'><baz id='child'></baz></bar></foo>")
-       (dom (input-port->dom-tree (open-string-input-port xml)))
+(let* ((dom (string->dom "<foo a='1'><bar b='2'><baz id='child'></baz></bar></foo>"))
        (elm (document-document-element dom)))
   (define a=1
     (lambda (attr)
@@ -60,5 +62,19 @@
   (test-equal '("a") (attribute-selector (xml:attribute a=1) elm))
   ;; works only the current node
   (test-equal '() (attribute-selector (xml:attribute b=2) elm)))
+
+(let* ((dom (string->dom "<foo><bar><baz id='child'/></bar></foo>"))
+       (nl1 (node-child-nodes (document-document-element dom)))
+       (nl2 (node-child-nodes (document:get-element-by-id dom "child"))))
+  (test-assert "xml:boolean (true) s" (xml:boolean "1"))
+  (test-assert "xml:boolean (true) n" (xml:boolean 1))
+  (test-assert "xml:boolean (true) b" (xml:boolean #t))
+  (test-assert "xml:boolean (true) l" (xml:boolean nl1))
+  (test-assert "xml:boolean (false) s" (not (xml:boolean "")))
+  (test-assert "xml:boolean (false) n" (not (xml:boolean 0)))
+  (test-assert "xml:boolean (false) b" (not (xml:boolean #f)))
+  (test-assert "xml:boolean (false) l" (not (xml:boolean nl2)))
+
+  (test-error xqt-error? (xml:boolean 'a)))
 
 (test-end)

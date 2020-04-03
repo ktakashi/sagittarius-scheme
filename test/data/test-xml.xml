@@ -8,12 +8,12 @@
 <!ENTITY c PUBLIC "-//W3C//TEXT copyright//EN" "http://www.w3.org/xmlspec/copyright.xml">
 ]>
 <root xmlns="urn:boo" xmlns:foo="urn:foo" class="foo bar"
-      foo:bar="bar">
+      foo:bar="bar" id="id-of-root">
   &entity;
   &#x1F602;
   <!-- &c; -->
   <foo:foo id="id-of-foo">
     <foo:bar value="foo-bar" />
-  </foo:foo><!-- Comment2 --><boo>value</boo>
+  </foo:foo><!-- Comment2 --><boo id="id-of-boo">value</boo>
   <![CDATA[ cdata section ]]>
 </root>

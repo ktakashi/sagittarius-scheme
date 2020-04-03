@@ -74,7 +74,14 @@
 		(map node-node-name
 		     (node-list->list
 		      (document:get-elements-by-class-name document "foo"))))
-  (test-assert (element? (document:get-element-by-id document "id-of-foo")))
+  (let ()
+    (define (test-get-document-by-id id tag)
+      (let ((e (document:get-element-by-id document id)))
+	(test-assert id (element? e))
+	(test-equal tag (element-local-name e))))
+    (test-get-document-by-id "id-of-root" "root")
+    (test-get-document-by-id "id-of-foo" "foo")
+    (test-get-document-by-id "id-of-boo" "boo"))
   (test-assert (not (document:get-element-by-id document "no-such-id")))
 
   (let ()

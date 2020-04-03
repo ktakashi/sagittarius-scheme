@@ -524,7 +524,7 @@
 	   (lambda (child)
 	     (let ((result (filter what-to-show child)))
 	       (if (accepted? result)
-		   (values node result #t)
+		   (values child result #t)
 		   (find-child child result)))))
 	  (else (values node result #f))))
   (define (find-sibling temporary)
@@ -1143,10 +1143,16 @@
     (if (equal? (element-id node) id)
 	+node-filter-filter-accept+
 	+node-filter-filter-skip+))
-  (let ((tw (document:create-tree-walker document
-					 (document-document-element document)
-					 +node-filter-show-element+ id-filter)))
-    (tree-walker:next-node tw)))
+  ;; This implemnetation traverses entire tree, so not really
+  ;; efficient as it can be O(1) if we use identifier storage.
+  ;; (which puts a lot more complexity though).
+  (let ((root-element (document-document-element document)))
+    (if (equal? (element-id root-element) id)
+	root-element
+	(let ((tw (document:create-tree-walker document
+		   (document-document-element document)
+		   +node-filter-show-element+ id-filter)))
+	  (tree-walker:next-node tw)))))
 
 (define (document:create-element document local-name :optional (option #f))
   (let ((node (make-element #f #f local-name)))
