@@ -1461,11 +1461,12 @@
      (unless (variable? name) (syntax-error "malformed define" oform))
      (unless (or (null? expr) (null? (cdr expr)))
        (syntax-error "malformed define" oform))
-     (check-direct-variable name p1env oform #f)
      (let ((id (if (identifier? name)
 		   ;; this renames all the same identifier
 		   (rename-pending-identifier! name)
 		   (make-identifier name '() library))))
+       ;; must be check after the identifier is renamed
+       (check-direct-variable (id-name id) p1env oform #f)
        (library-defined-add! library (id-name id))
        ($define oform flags
 		id

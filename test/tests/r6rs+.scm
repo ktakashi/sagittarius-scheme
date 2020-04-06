@@ -590,4 +590,14 @@
 		     foo)
 		  (environment '(rnrs))))
 
+(test-assert (eval '(library (foo)
+		      (export)
+		      (import (rnrs))
+		      (define-syntax foo
+			(syntax-rules ()
+			  ((foo)
+			   (define set! 42))))
+		      (foo))
+		   (environment '(core) '(sagittarius))))
+
 (test-end)

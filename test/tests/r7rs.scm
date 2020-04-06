@@ -274,4 +274,15 @@
 	 (mac-sub1 x1 y1 z1)))))
   (test-equal 6 (mac-main1 x2 1 2 3)))
 
+(test-assert (eval '(define-library (foo)
+		      (import (scheme base))
+		      (export)
+		      (begin
+			(define-syntax foo
+			  (syntax-rules ()
+			    ((foo)
+			     (define set! 42))))
+			(foo)))
+		   (environment '(sagittarius))))
+
 (test-end)
