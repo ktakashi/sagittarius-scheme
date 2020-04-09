@@ -83,6 +83,7 @@
 	    element:closest element:matches?
 	    element:get-elements-by-tag-name element:get-elements-by-tag-name-ns
 	    element:get-elements-by-class-name
+	    element:namespace-nodes ;; non dom
 
 	    attr? attr-namespace-uri attr-prefix attr-local-name
 	    attr-name attr-value attr-owner-element attr-specified?
@@ -183,6 +184,9 @@
 	    element-type? element-type-name element-type-spec
 	    node-children
 	    +element-type-node+
+
+	    namespace? namespace-prefix namespace-uri namespace-parent
+	    +namespace-node+
 	    )
     (import (rnrs)
 	    (sagittarius) ;; for define-constant
@@ -249,6 +253,7 @@
 (define-constant +notation-node+               12) ;; historical
 
 (define-constant +element-type-node+           101) ;; non dom
+(define-constant +namespace-node+              102) ;; non dom
 
 (define-constant +document-position-disconnected+ #x01)
 (define-constant +document-position-preceding+    #x02)
@@ -667,6 +672,17 @@
 		((n +element-type-node+ :node-name name) spec)))))
 (define element-type-name node-node-name)
 
+;;; Non DOM Namespace (needed for XPath Data Model)
+(define-record-type namespace
+  (parent node)
+  (fields prefix
+	  uri)
+  (protocol (lambda (n)
+	      (lambda (prefix uri element)
+		((n +namespace-node+ :node-name prefix :parent-node element)
+		 prefix uri)))))
+(define namespace-parent node-parent-node)
+
 ;;; Element
 (define-record-type element
   (parent node)
@@ -870,6 +886,16 @@
 					   +node-filter-show-element+
 					   filter)))
     (node-iterator->node-list ni)))
+
+;; TODO not sure if this is correct...
+(define (element:namespace-nodes e)
+  (list->node-list
+   (named-node-map:fold
+    (element-attributes e) '()
+    (lambda (n a acc)
+      (if (string-prefix? "xmlns" (attr-name a))
+	  (cons (make-namespace (attr-prefix a) (attr-value a) e) acc)
+	  acc)))))
 
 ;;; Attr
 (define-record-type attr

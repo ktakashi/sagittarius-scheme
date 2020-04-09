@@ -36,12 +36,6 @@
     (export xpath-dm:string-value)
     (import (rnrs)
 	    (text xml dom nodes))
-;; Namespace node
-;; I'm not sure how it should be handled, but we just check
-;; if it's a URI looks like string
-(define namespace? string?) ;; for now
-
-
 ;;; 5 Accessors
 
 ;;;; 5.12 string-value Accessor
@@ -49,15 +43,16 @@
 (define (xpath-dm:string-value n)
   (cond ((document? n) (xpath-dm:document-string-value n))
 	((element? n)  (xpath-dm:element-string-value n))
-;;	((attr? n)     (xpath-dm:attribute-string-value n))
-;;	((processing-instruction? n) (xpath-dm:processing-instruction-content n))
-;;	((comment? n)  (xpath-dm:comment-content n))
+	((attr? n)     (xpath-dm:attribute-string-value n))
+	((processing-instruction? n) (xpath-dm:processing-instruction-content n))
+	((comment? n)  (xpath-dm:comment-content n))
 	((text? n)     (xpath-dm:text-content n))
-;;	((namespace? n) (xpath-dm:namespace-uri n))
+	((namespace? n) (xpath-dm:namespace-uri n))
 	(else (assertion-violation 'xpath-dm:string-value "Unknown node" n))))
 
 
 ;;; 6 Nodes
+;; Underlying node property accessor.
 ;;;; 6.1 Document Nodes
 (define (xpath-dm:document-string-value d)
   (define itr (document:create-node-iterator d (document-document-element d)
@@ -69,6 +64,21 @@
   (define itr (document:create-node-iterator (node-owner-document e) e
 					     +node-filter-show-text+))
   (text-node-iterator->string itr))
+
+;;;; 6.3 Attribute Nodes
+;; NOTE: attribute nodes properties are described a bit vaguely, so
+;;       not entirely sure if these're correct or not.
+(define (xpath-dm:attribute-string-value a) (attr-value a))
+
+;;;; 6.4 Namespace Nodes
+(define (xpath-dm:namespace-uri n) (namespace-uri n))
+
+;;;; 6.5 Processing Instruction Nodes
+(define (xpath-dm:processing-instruction-content pi)
+  (character-data-data pi))
+
+;;;; 6.6 Comment Nodes
+(define (xpath-dm:comment-content c) (character-data-data c))
 
 ;;;; 6.7 Text Nodes
 (define (xpath-dm:text-content t) (text-whole-text t))
