@@ -106,6 +106,7 @@
 	    character-data:insert-data!
 	    character-data:delete-data!
 	    character-data:replace-data!
+	    text-whole-text
 	    
 	    processing-instruction-target
 
