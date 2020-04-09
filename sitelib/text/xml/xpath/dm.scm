@@ -48,7 +48,7 @@
 ;;;; dm:string-value($n as node()) as xs:string
 (define (xpath-dm:string-value n)
   (cond ((document? n) (xpath-dm:document-string-value n))
-;;	((element? n)  (xpath-dm:element-string-value n))
+	((element? n)  (xpath-dm:element-string-value n))
 ;;	((attr? n)     (xpath-dm:attribute-string-value n))
 ;;	((processing-instruction? n) (xpath-dm:processing-instruction-content n))
 ;;	((comment? n)  (xpath-dm:comment-content n))
@@ -62,12 +62,22 @@
 (define (xpath-dm:document-string-value d)
   (define itr (document:create-node-iterator d (document-document-element d)
 					     +node-filter-show-text+))
-  (let-values (((out e) (open-string-output-port)))
-    (do ((n (node-iterator:next-node itr) (node-iterator:next-node itr)))
-	((not n) (e))
-      (put-string out (xpath-dm:string-value n)))))
+  (text-node-iterator->string itr))
+
+;;;; 6.2 Element Nodes
+(define (xpath-dm:element-string-value e)
+  (define itr (document:create-node-iterator (node-owner-document e) e
+					     +node-filter-show-text+))
+  (text-node-iterator->string itr))
 
 ;;;; 6.7 Text Nodes
 (define (xpath-dm:text-content t) (text-whole-text t))
 
+
+;;; Helpers
+(define (text-node-iterator->string itr)
+  (let-values (((out e) (open-string-output-port)))
+    (do ((n (node-iterator:next-node itr) (node-iterator:next-node itr)))
+	((not n) (e))
+      (put-string out (xpath-dm:string-value n)))))
 )
