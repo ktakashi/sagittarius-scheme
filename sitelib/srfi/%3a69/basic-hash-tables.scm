@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!nounbound
 (library (srfi :69 basic-hash-tables)
   (export make-hash-table (rename (hashtable? hash-table?))
 	  alist->hash-table
@@ -55,6 +56,7 @@
 		  (eq-hash    hash-by-identity))
 	  string-hash string-ci-hash)
   (import (rnrs)
+	  (prefix (scheme base) r7rs:)
 	  ;; make-string-hashtable and make-equal-hashtable
 	  (sagittarius)
 	  (sagittarius control)
@@ -68,6 +70,7 @@
       (cond ((eq? eql? eq?)         (make-eq-hashtable))
 	    ((eq? eql? eqv?)        (make-eqv-hashtable))
 	    ((eq? eql? equal?)      (make-equal-hashtable))
+	    ((eq? eql? r7rs:equal?) (make-equal-hashtable))
 	    ((eq? eql? string=?)    (make-string-hashtable))
 	    ((eq? eql? string-ci=?) (make-hashtable string-ci=? string-ci-hash))
 	    (else
