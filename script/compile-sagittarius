@@ -43,7 +43,7 @@ DONT_TRANSLATE=${DONT_TRANSLATE:-""}
 
 ME=$(basename $0)
 
-while getopts :A:D:I:o name
+while getopts :A:D:I:o: name
 do
     case $name in
 	A) LOADPATH="$LOADPATH -A $OPTARG" ;;
@@ -64,8 +64,10 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
+set +e
 SCHEME2C=`which sagittarius-scheme2c`
 if [ $? -ne 0 -o x"$DONT_TRANSLATE" != x"" ]; then
+    set -e
     INVOKE_OPTION="-t"
     
     if [ x"$ME" = x"compile-r7rs" ]; then
@@ -81,6 +83,7 @@ EOF
     cat "$1" >>"$OUTPUT"
     chmod a+x "$OUTPUT"
 else
+    set -e
     TMPFILE=$(mktemp /tmp/scheme2c.XXXXXX.c)
     $SCHEME2C -o $TMPFILE $LOADPATH -e $1
     COMPILER_FLAGS=`sagittarius-config -L -I -l --c-flags`
