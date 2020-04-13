@@ -32,12 +32,29 @@
 ;;  XQuery and XPath Data Model 3.1
 ;;  https://www.w3.org/TR/xpath-datamodel-31/
 
+#!nounbound
 (library (text xml xpath dm)
-    (export xpath-dm:string-value)
+    (export xpath-dm:node-name
+	    xpath-dm:string-value)
     (import (rnrs)
 	    (text xml dom nodes))
+;; NOTE
+;; xs:Qname = string
+
 ;;; 5 Accessors
 
+;;;; 5.12 string-value Accessor
+(define (xpath-dm:node-name n)
+  (cond ((element? n) (xpath-dm:element-node-name n))
+	((attr? n)    (xpath-dm:attribute-node-name n))
+	((namespace? n)
+	 (let ((p (namespace-prefix n)))
+	   (if (and p (not (zero? (string-length p))))
+	       p
+	       '())))
+	((processing-instruction? n) (xpath-dm:processing-instruction-target n))
+	(else '())))
+    
 ;;;; 5.12 string-value Accessor
 ;;;; dm:string-value($n as node()) as xs:string
 (define (xpath-dm:string-value n)
@@ -65,23 +82,26 @@
 					     +node-filter-show-text+))
   (text-node-iterator->string itr))
 
+(define xpath-dm:element-node-name node-node-name)
+
 ;;;; 6.3 Attribute Nodes
 ;; NOTE: attribute nodes properties are described a bit vaguely, so
 ;;       not entirely sure if these're correct or not.
-(define (xpath-dm:attribute-string-value a) (attr-value a))
+(define xpath-dm:attribute-string-value attr-value)
+(define xpath-dm:attribute-node-name attr-name)
 
 ;;;; 6.4 Namespace Nodes
-(define (xpath-dm:namespace-uri n) (namespace-uri n))
+(define xpath-dm:namespace-uri namespace-uri)
 
 ;;;; 6.5 Processing Instruction Nodes
-(define (xpath-dm:processing-instruction-content pi)
-  (character-data-data pi))
+(define xpath-dm:processing-instruction-content character-data-data)
+(define xpath-dm:processing-instruction-target processing-instruction-target)
 
 ;;;; 6.6 Comment Nodes
-(define (xpath-dm:comment-content c) (character-data-data c))
+(define xpath-dm:comment-content character-data-data)
 
 ;;;; 6.7 Text Nodes
-(define (xpath-dm:text-content t) (text-whole-text t))
+(define xpath-dm:text-content text-whole-text)
 
 
 ;;; Helpers

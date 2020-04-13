@@ -8,13 +8,23 @@
 
 (test-begin "XPath Data Model")
 
-(let* ((xml "<foo xmlns:ns=\"ns-foo\">foo<bar><baz id='child'>baz</baz>abc</bar></foo>")
+(let* ((xml "<ns:foo xmlns:ns=\"ns-foo\">foo<bar><baz id='child'>baz</baz>abc</bar></ns:foo>")
        (dom (string->dom xml))
-       (e (document:get-element-by-id dom "child")))
+       (e (document:get-element-by-id dom "child"))
+       (attr (element:get-attribute-node e "id")))
+  (test-equal "xpath-dm:node-name" () (xpath-dm:node-name dom))
+  (test-equal "xpath-dm:node-name" "baz" (xpath-dm:node-name e))
+  (test-equal "xpath-dm:node-name" "ns:foo"
+	      (xpath-dm:node-name (document-document-element dom)))
+  (test-equal "xpath-dm:node-name" "id" (xpath-dm:node-name attr))
+  (test-equal "xpath-dm:node-name" "ns"
+	      (xpath-dm:node-name
+	       (node-list:item
+		(element:namespace-nodes (document-document-element dom)) 0)))
+  
   (test-equal "xpath-dm:string-value" "foobazabc" (xpath-dm:string-value dom))
   (test-equal "xpath-dm:string-value" "baz" (xpath-dm:string-value e))
-  (test-equal "xpath-dm:string-value" "child"
-	      (xpath-dm:string-value (element:get-attribute-node e "id")))
+  (test-equal "xpath-dm:string-value" "child" (xpath-dm:string-value attr))
   (test-equal "xpath-dm:string-value" "ns-foo"
 	      (xpath-dm:string-value
 	       (node-list:item
@@ -26,16 +36,19 @@
 (let* ((xml "<foo><!-- comment --></foo>")
        (dom (string->dom xml))
        (c (node-first-child (document-document-element dom))))
+  (test-equal "xpath-dm:node-name" '() (xpath-dm:node-name c))
   (test-equal "xpath-dm:string-value" " comment " (xpath-dm:string-value c)))
 
 (let* ((xml "<foo>text</foo>")
        (dom (string->dom xml))
        (c (node-first-child (document-document-element dom))))
+  (test-equal "xpath-dm:node-name" '() (xpath-dm:node-name c))
   (test-equal "xpath-dm:string-value" "text" (xpath-dm:string-value c)))
 
 (let* ((xml "<foo><?sample-pi content?></foo>")
        (dom (string->dom xml))
        (c (node-first-child (document-document-element dom))))
+  (test-equal "xpath-dm:node-name" "sample-pi" (xpath-dm:node-name c))
   (test-equal "xpath-dm:string-value" "content" (xpath-dm:string-value c)))
 
 (test-end)

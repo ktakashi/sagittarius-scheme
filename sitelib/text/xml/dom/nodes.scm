@@ -890,12 +890,10 @@
 ;; TODO not sure if this is correct...
 (define (element:namespace-nodes e)
   (list->node-list
-   (named-node-map:fold
-    (element-attributes e) '()
-    (lambda (n a acc)
-      (if (string-prefix? "xmlns" (attr-name a))
-	  (cons (make-namespace (attr-prefix a) (attr-value a) e) acc)
-	  acc)))))
+   (cond ((element-prefix e) =>
+	  (lambda (p)
+	    (list (make-namespace p (element-namespace-uri e) e))))
+	 (else '()))))
 
 ;;; Attr
 (define-record-type attr
