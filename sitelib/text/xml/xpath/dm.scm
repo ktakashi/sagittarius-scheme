@@ -35,7 +35,8 @@
 #!nounbound
 (library (text xml xpath dm)
     (export xpath-dm:node-name
-	    xpath-dm:string-value)
+	    xpath-dm:string-value
+	    xpath-dm:typed-value)
     (import (rnrs)
 	    (text xml dom nodes))
 ;; NOTE
@@ -68,6 +69,17 @@
 	(else (assertion-violation 'xpath-dm:string-value "Unknown node" n))))
 
 
+;;;; 5.14 typed-value Accessor
+(define (xpath-dm:typed-value n)
+  (cond ((document? n) (xpath-dm:document-typed-value n))
+	((element? n)  (xpath-dm:element-typed-value n))
+	((attr? n)     (xpath-dm:attribute-typed-value n))
+	((processing-instruction? n) (xpath-dm:processing-instruction-content n))
+	((comment? n)  (xpath-dm:comment-content n))
+	((text? n)     (xpath-dm:text-content n))
+	((namespace? n) (xpath-dm:namespace-uri n))
+	(else (assertion-violation 'xpath-dm:string-value "Unknown node" n))))
+
 ;;; 6 Nodes
 ;; Underlying node property accessor.
 ;;;; 6.1 Document Nodes
@@ -75,12 +87,19 @@
   (define itr (document:create-node-iterator d (document-document-element d)
 					     +node-filter-show-text+))
   (text-node-iterator->string itr))
+;; from Construction from an Inforset
+;; typed-value
+;;   The attribute’s typed-value is its dm:string-value as an xs:untypedAtomic.
+;; TODO should we wrap with xs:untypedAtomic?
+(define xpath-dm:document-typed-value xpath-dm:document-string-value)
 
 ;;;; 6.2 Element Nodes
 (define (xpath-dm:element-string-value e)
   (define itr (document:create-node-iterator (node-owner-document e) e
 					     +node-filter-show-text+))
   (text-node-iterator->string itr))
+;; TODO should we wrap with xs:untypedAtomic?
+(define xpath-dm:element-typed-value xpath-dm:element-string-value)
 
 (define xpath-dm:element-node-name node-node-name)
 
@@ -88,6 +107,8 @@
 ;; NOTE: attribute nodes properties are described a bit vaguely, so
 ;;       not entirely sure if these're correct or not.
 (define xpath-dm:attribute-string-value attr-value)
+;; TODO should we wrap with xs:untypedAtomic?
+(define xpath-dm:attribute-typed-value xpath-dm:attribute-string-value)
 (define xpath-dm:attribute-node-name attr-name)
 
 ;;;; 6.4 Namespace Nodes
