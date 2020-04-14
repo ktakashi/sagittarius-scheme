@@ -34,15 +34,22 @@
 
 #!nounbound
 (library (text xml xpath dm)
-    (export xpath-dm:node-name
+    (export xpath-dm:attributes
+	    xpath-dm:node-name
 	    xpath-dm:string-value
 	    xpath-dm:typed-value)
     (import (rnrs)
-	    (text xml dom nodes))
+	    (text xml dom nodes)
+	    (srfi :13 strings))
 ;; NOTE
 ;; xs:Qname = string
 
 ;;; 5 Accessors
+;;;; 5.1 attributes Accessor
+(define (xpath-dm:attributes n)
+  (if (element? n)
+      (xpath-dm:element-attributes n)
+      '()))
 
 ;;;; 5.12 string-value Accessor
 (define (xpath-dm:node-name n)
@@ -100,8 +107,14 @@
   (text-node-iterator->string itr))
 ;; TODO should we wrap with xs:untypedAtomic?
 (define xpath-dm:element-typed-value xpath-dm:element-string-value)
-
 (define xpath-dm:element-node-name node-node-name)
+(define (xpath-dm:element-attributes e)
+  (named-node-map:fold (element-attributes e) '()
+		       (lambda (k v r)
+			 (if (string-prefix? "xmlns" (attr-name k))
+			     r
+			     (cons k r)))))
+			     
 
 ;;;; 6.3 Attribute Nodes
 ;; NOTE: attribute nodes properties are described a bit vaguely, so

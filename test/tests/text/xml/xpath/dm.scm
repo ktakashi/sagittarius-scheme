@@ -12,6 +12,17 @@
        (dom (string->dom xml))
        (e (document:get-element-by-id dom "child"))
        (attr (element:get-attribute-node e "id")))
+  (test-equal "xpath-dm:attributes (1)" '() (xpath-dm:attributes dom))
+  (test-equal "xpath-dm:attributes (2)" '("id")
+	      (map attr-name (xpath-dm:attributes e)))
+  (test-equal "xpath-dm:attributes (3)" '()
+	      (xpath-dm:attributes (document-document-element dom)))
+  (test-equal "xpath-dm:attributes (4)" '() (xpath-dm:attributes attr))
+  (test-equal "xpath-dm:attributes (5)" '()
+	      (xpath-dm:attributes
+	       (node-list:item
+		(element:namespace-nodes (document-document-element dom)) 0)))
+  
   (test-equal "xpath-dm:node-name" () (xpath-dm:node-name dom))
   (test-equal "xpath-dm:node-name" "baz" (xpath-dm:node-name e))
   (test-equal "xpath-dm:node-name" "ns:foo"
@@ -49,6 +60,7 @@
 (let* ((xml "<foo><!-- comment --></foo>")
        (dom (string->dom xml))
        (c (node-first-child (document-document-element dom))))
+  (test-equal "xpath-dm:attributes" '() (xpath-dm:attributes c))
   (test-equal "xpath-dm:node-name" '() (xpath-dm:node-name c))
   (test-equal "xpath-dm:string-value" " comment " (xpath-dm:string-value c))
   (test-equal "xpath-dm:typed-value" " comment " (xpath-dm:typed-value c)))
@@ -56,6 +68,7 @@
 (let* ((xml "<foo>text</foo>")
        (dom (string->dom xml))
        (c (node-first-child (document-document-element dom))))
+  (test-equal "xpath-dm:attributes" '() (xpath-dm:attributes c))
   (test-equal "xpath-dm:node-name" '() (xpath-dm:node-name c))
   (test-equal "xpath-dm:string-value" "text" (xpath-dm:string-value c))
   (test-equal "xpath-dm:typed-value" "text" (xpath-dm:typed-value c)))
@@ -63,6 +76,7 @@
 (let* ((xml "<foo><?sample-pi content?></foo>")
        (dom (string->dom xml))
        (c (node-first-child (document-document-element dom))))
+  (test-equal "xpath-dm:attributes" '() (xpath-dm:attributes c))
   (test-equal "xpath-dm:node-name" "sample-pi" (xpath-dm:node-name c))
   (test-equal "xpath-dm:string-value" "content" (xpath-dm:string-value c))
   (test-equal "xpath-dm:typed-value" "content" (xpath-dm:typed-value c)))

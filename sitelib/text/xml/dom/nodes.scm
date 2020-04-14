@@ -96,6 +96,7 @@
 	    named-node-map:remove-named-item!
 	    named-node-map:remove-named-item-ns!
 	    named-node-map->node-list
+	    named-node-map:fold
 
 	    entity-reference?
 	    character-data? text? cdata-section? comment?
