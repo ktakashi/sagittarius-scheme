@@ -1,4 +1,5 @@
 (import (rnrs)
+	(util file)
 	(text xml dom factory)
 	(text xml dom nodes)
 	(srfi :64))
@@ -7,7 +8,10 @@
 
 (test-begin "DOM factory")
 
-(test-assert (document? (xml-file->dom-tree xml-file)))
+(let ((doc (xml-file->dom-tree xml-file)))
+  (test-assert (document? doc))
+  (test-equal (absolute-path xml-file) (document-document-uri doc)))
+  
 (test-assert (document? (call-with-input-file xml-file input-port->dom-tree)))
 
 (test-end)

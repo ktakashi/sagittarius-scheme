@@ -99,9 +99,9 @@
 (define *factory-options* (make-parameter #f))
 (define *root-document* (make-parameter #f))
 
-(define (input-port->dom-tree in :optional (option +default-factory-option+))
+(define (input-port->dom-tree in :key (option +default-factory-option+) (uri #f))
   (let ((parsed (parse-xml in))
-	(document (make-xml-document #f)))
+	(document (make-xml-document uri)))
     (parameterize ((*factory-options* option)
 		   (*root-document* document))
       (dispatch-factory parsed)
@@ -109,7 +109,7 @@
 
 (define (xml-file->dom-tree file . opt)
   (call-with-input-file file
-    (lambda (in) (apply input-port->dom-tree in opt))))
+    (lambda (in) (apply input-port->dom-tree in :uri (absolute-path file) opt))))
 
 (define *factory-table* (make-eq-hashtable))
 (define (dispatch-factory tree)

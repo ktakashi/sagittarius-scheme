@@ -103,4 +103,8 @@
   (test-equal "xpath-dm:string-value" "content" (xpath-dm:string-value c))
   (test-equal "xpath-dm:typed-value" "content" (xpath-dm:typed-value c)))
 
+(let* ((xml-file (string-append (current-directory) "/test/data/test-xml.xml"))
+       (doc (xml-file->dom-tree xml-file)))
+  (test-equal (absolute-path xml-file) (xpath-dm:base-uri doc)))
+
 (test-end)
