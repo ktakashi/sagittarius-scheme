@@ -35,6 +35,8 @@
 #!nounbound
 (library (text xml xpath dm)
     (export xpath-dm:attributes
+	    xpath-dm:base-uri
+	    xpath-dm:children
 	    xpath-dm:node-name
 	    xpath-dm:string-value
 	    xpath-dm:typed-value)
@@ -51,6 +53,26 @@
       (xpath-dm:element-attributes n)
       '()))
 
+;;;; 5.2 base-uri Accessor
+(define (xpath-dm:base-uri n)
+  (cond ((document? n) (xpath-dm:document-base-uri n))
+	((element? n) (xpath-dm:element-base-uri n))
+	((or (attr? n) (comment? n) (text? n))
+	 (cond ((node-parent-node n) => xpath-dm:base-uri)
+	       (else '())))
+	((namespace? n) '())
+	((processing-instruction? n)
+	 (xpath-dm:processing-instruction-base-uri n))
+	(else (assertion-violation 'xpath-dm:base-uri "Unknown node" n))))
+
+;;;; 5.3 children Accessor
+(define (xpath-dm:children n)
+  (cond ((document? n) (xpath-dm:document-children n))
+	((element? n)  (xpath-dm:element-children n))
+	((or (attr? n) (processing-instruction? n)
+	     (comment? n) (text? n) (namespace? n)) '())
+	(else (assertion-violation 'xpath-dm:children "Unknown node" n))))  
+
 ;;;; 5.12 string-value Accessor
 (define (xpath-dm:node-name n)
   (cond ((element? n) (xpath-dm:element-node-name n))
@@ -61,7 +83,8 @@
 	       p
 	       '())))
 	((processing-instruction? n) (xpath-dm:processing-instruction-target n))
-	(else '())))
+	((or (document? n) (comment? n) (text? n)) '())
+	(else (assertion-violation 'xpath-dm:node-name "Unknown node" n))))
     
 ;;;; 5.12 string-value Accessor
 ;;;; dm:string-value($n as node()) as xs:string
@@ -85,9 +108,13 @@
 	((comment? n)  (xpath-dm:comment-content n))
 	((text? n)     (xpath-dm:text-content n))
 	((namespace? n) (xpath-dm:namespace-uri n))
-	(else (assertion-violation 'xpath-dm:string-value "Unknown node" n))))
+	(else (assertion-violation 'xpath-dm:typed-value "Unknown node" n))))
 
 ;;; 6 Nodes
+(define (base-uri/empty n)
+  (cond ((node-base-uri n))
+	(else '())))
+(define (children n) (node-list->list (node-child-nodes n)))
 ;; Underlying node property accessor.
 ;;;; 6.1 Document Nodes
 (define (xpath-dm:document-string-value d)
@@ -99,6 +126,8 @@
 ;;   The attribute’s typed-value is its dm:string-value as an xs:untypedAtomic.
 ;; TODO should we wrap with xs:untypedAtomic?
 (define xpath-dm:document-typed-value xpath-dm:document-string-value)
+(define xpath-dm:document-base-uri base-uri/empty)
+(define xpath-dm:document-children children)
 
 ;;;; 6.2 Element Nodes
 (define (xpath-dm:element-string-value e)
@@ -114,7 +143,8 @@
 			 (if (string-prefix? "xmlns" (attr-name k))
 			     r
 			     (cons k r)))))
-			     
+(define xpath-dm:element-base-uri base-uri/empty)
+(define xpath-dm:element-children children)
 
 ;;;; 6.3 Attribute Nodes
 ;; NOTE: attribute nodes properties are described a bit vaguely, so
@@ -130,6 +160,7 @@
 ;;;; 6.5 Processing Instruction Nodes
 (define xpath-dm:processing-instruction-content character-data-data)
 (define xpath-dm:processing-instruction-target processing-instruction-target)
+(define xpath-dm:processing-instruction-base-uri base-uri/empty)
 
 ;;;; 6.6 Comment Nodes
 (define xpath-dm:comment-content character-data-data)
@@ -144,4 +175,5 @@
     (do ((n (node-iterator:next-node itr) (node-iterator:next-node itr)))
 	((not n) (e))
       (put-string out (xpath-dm:string-value n)))))
+
 )

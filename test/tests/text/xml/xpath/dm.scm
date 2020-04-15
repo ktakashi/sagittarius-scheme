@@ -22,6 +22,28 @@
 	      (xpath-dm:attributes
 	       (node-list:item
 		(element:namespace-nodes (document-document-element dom)) 0)))
+
+  (test-equal "xpath-dm:base-uri (1)" '() (xpath-dm:base-uri dom))
+  (test-equal "xpath-dm:base-uri (2)" '() (xpath-dm:base-uri e))
+  (test-equal "xpath-dm:base-uri (3)" '()
+	      (xpath-dm:base-uri (document-document-element dom)))
+  (test-equal "xpath-dm:base-uri (4)" '() (xpath-dm:base-uri attr))
+  (test-equal "xpath-dm:base-uri (5)" '()
+	      (xpath-dm:base-uri
+	       (node-list:item
+		(element:namespace-nodes (document-document-element dom)) 0)))
+
+  (test-equal "xpath-dm:children (1)" '("ns:foo")
+	      (map node-node-name (xpath-dm:children dom)))
+  (test-equal "xpath-dm:children (2)" '("#text")
+	      (map node-node-name (xpath-dm:children e)))
+  (test-equal "xpath-dm:children (3)" '("#text" "bar")
+	      (map node-node-name (xpath-dm:children (document-document-element dom))))
+  (test-equal "xpath-dm:children (4)" '() (xpath-dm:children attr))
+  (test-equal "xpath-dm:children (5)" '()
+	      (xpath-dm:children
+	       (node-list:item
+		(element:namespace-nodes (document-document-element dom)) 0)))
   
   (test-equal "xpath-dm:node-name" () (xpath-dm:node-name dom))
   (test-equal "xpath-dm:node-name" "baz" (xpath-dm:node-name e))

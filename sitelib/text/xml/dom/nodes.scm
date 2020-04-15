@@ -1073,7 +1073,7 @@
 	      (lambda (:key (data "")
 			    (type +text-node+) ;; for CDATA...
 			    )
-		((n type data))))))
+		((n type data :node-name "#text"))))))
 (define (text-whole-text text) (character-data-data text))
 
 (define (text:split-text text offset))
