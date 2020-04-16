@@ -37,6 +37,10 @@
     (export xpath-dm:attributes
 	    xpath-dm:base-uri
 	    xpath-dm:children
+	    xpath-dm:document-uri
+	    xpath-dm:is-id
+	    xpath-dm:is-idrefs
+	    xpath-dm:namespace-nodes
 	    xpath-dm:node-name
 	    xpath-dm:string-value
 	    xpath-dm:typed-value)
@@ -72,6 +76,36 @@
 	((or (attr? n) (processing-instruction? n)
 	     (comment? n) (text? n) (namespace? n)) '())
 	(else (assertion-violation 'xpath-dm:children "Unknown node" n))))  
+
+;;;; 5.4 document-uri Accessor
+(define (xpath-dm:document-uri n)
+  (cond ((document? n) (xpath-dm:document-base-uri n)) ;; it's the same
+	((or (element? n) (attr? n) (processing-instruction? n)
+	     (comment? n) (text? n) (namespace? n)) '())
+	(else (assertion-violation 'xpath-dm:document-uri "Unknown node" n))))
+
+;;;; 5.5 is-id Accessor
+(define (xpath-dm:is-id n)
+  (cond ((element? n) (xpath-dm:element-is-id n))
+	((attr? n)    (xpath-dm:attribute-is-id n))
+	((or (document? n) (comment? n) (text? n) (namespace? n)
+	     (processing-instruction? n)) '())
+	(else (assertion-violation 'xpath-dm:is-id "Unknown node" n))))
+
+;;;; 5.6 is-idrefs Accessor
+(define (xpath-dm:is-idrefs n)
+  (cond ((element? n) (xpath-dm:element-is-idrefs n))
+	((attr? n)    (xpath-dm:attribute-is-idrefs n))
+	((or (document? n) (comment? n) (text? n) (namespace? n)
+	     (processing-instruction? n)) '())
+	(else (assertion-violation 'xpath-dm:is-idrefs "Unknown node" n))))
+
+;;;; 5.7 namespace-nodes Accessor
+(define (xpath-dm:namespace-nodes n)
+  (cond ((element? n) (xpath-dm:element-namespace-nodes n))
+	((or (document? n) (attr? n) (comment? n) (text? n) (namespace? n)
+	     (processing-instruction? n)) '())
+	(else (assertion-violation 'xpath-dm:namespace-nodes "Unknown node" n))))
 
 ;;;; 5.12 string-value Accessor
 (define (xpath-dm:node-name n)
@@ -145,6 +179,10 @@
 			     (cons k r)))))
 (define xpath-dm:element-base-uri base-uri/empty)
 (define xpath-dm:element-children children)
+(define (xpath-dm:element-is-id e) #f) ;; for now
+(define (xpath-dm:element-is-idrefs e) #f) ;; for now
+(define (xpath-dm:element-namespace-nodes e)
+  (node-list->list (element:namespace-nodes e)))
 
 ;;;; 6.3 Attribute Nodes
 ;; NOTE: attribute nodes properties are described a bit vaguely, so
@@ -153,6 +191,8 @@
 ;; TODO should we wrap with xs:untypedAtomic?
 (define xpath-dm:attribute-typed-value xpath-dm:attribute-string-value)
 (define xpath-dm:attribute-node-name attr-name)
+(define (xpath-dm:attribute-is-id attr) #f) ;; for now
+(define (xpath-dm:attribute-is-idrefs attr) #f) ;; for now
 
 ;;;; 6.4 Namespace Nodes
 (define xpath-dm:namespace-uri namespace-uri)
