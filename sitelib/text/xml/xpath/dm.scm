@@ -46,6 +46,7 @@
 	    xpath-dm:node-name
 	    xpath-dm:parent
 	    xpath-dm:string-value
+	    xpath-dm:type-name
 	    xpath-dm:typed-value)
     (import (rnrs)
 	    (text xml dom nodes)
@@ -150,7 +151,7 @@
 	((comment? n)  (xpath-dm:comment-parent n))
 	((text? n)     (xpath-dm:text-parent n))
 	((namespace? n) (xpath-dm:namespace-parent n))
-	(else (assertion-violation 'xpath-dm:string-value "Unknown node" n))))
+	(else (assertion-violation 'xpath-dm:parent "Unknown node" n))))
 
 ;;;; 5.12 string-value Accessor
 ;;;; dm:string-value($n as node()) as xs:string
@@ -164,6 +165,13 @@
 	((namespace? n) (xpath-dm:namespace-uri n))
 	(else (assertion-violation 'xpath-dm:string-value "Unknown node" n))))
 
+;;;; 5.13 type-name Accessor
+(define (xpath-dm:type-name n)
+  (cond ((element? n)  (xpath-dm:element-type-name n))
+	((attr? n)     (xpath-dm:attribute-type-name n))
+	((or (document? n) (comment? n) (text? n) (namespace? n)
+	     (processing-instruction? n)) '())
+	(else (assertion-violation 'xpath-dm:type-name "Unknown node" n))))
 
 ;;;; 5.14 typed-value Accessor
 (define (xpath-dm:typed-value n)
@@ -218,6 +226,8 @@
   (node-list->list (element:namespace-nodes e)))
 (define (xpath-dm:element-nilled e) #f) ;; for now
 (define xpath-dm:element-parent parent-node)
+;; not sure what to do with this as we don't support type atm
+(define (xpath-dm:element-type-name attr) 'xs:untypedAtomic)
 
 ;;;; 6.3 Attribute Nodes
 ;; NOTE: attribute nodes properties are described a bit vaguely, so
@@ -229,6 +239,8 @@
 (define (xpath-dm:attribute-is-id attr) #f) ;; for now
 (define (xpath-dm:attribute-is-idrefs attr) #f) ;; for now
 (define xpath-dm:attribute-parent attr-owner-element)
+;; not sure what to do with this as we don't support type atm
+(define (xpath-dm:attribute-type-name attr) 'xs:untypedAtomic)
 
 ;;;; 6.4 Namespace Nodes
 (define xpath-dm:namespace-uri namespace-uri)

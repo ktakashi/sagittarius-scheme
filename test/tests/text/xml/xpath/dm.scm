@@ -129,6 +129,13 @@
 	      (xpath-dm:string-value
 	       (document:create-document-type dom "public-id" "system-id")))
 
+  (test-equal "xpath-dm:type-name (1)" '() (xpath-dm:type-name dom))
+  (test-assert "xpath-dm:type-name (2)" (xpath-dm:type-name e))
+  (test-assert "xpath-dm:type-name (3)" (xpath-dm:type-name attr))
+  (test-equal "xpath-dm:type-name (4)" '()
+	      (xpath-dm:type-name
+	       (node-list:item
+		(element:namespace-nodes (document-document-element dom)) 0)))
 
   (test-equal "xpath-dm:typed-value" "foobazabc" (xpath-dm:typed-value dom))
   (test-equal "xpath-dm:typed-value" "baz" (xpath-dm:typed-value e))
@@ -156,6 +163,7 @@
   (test-equal "xpath-dm:node-kind" "comment" (xpath-dm:node-kind c))
   (test-equal "xpath-dm:parent" "foo" (xpath-dm:node-name (xpath-dm:parent c)))
   (test-equal "xpath-dm:string-value" " comment " (xpath-dm:string-value c))
+  (test-equal "xpath-dm:type-name" '() (xpath-dm:type-name c))
   (test-equal "xpath-dm:typed-value" " comment " (xpath-dm:typed-value c)))
 
 (let* ((xml "<foo>text</foo>")
@@ -172,6 +180,7 @@
   (test-equal "xpath-dm:node-kind" "text" (xpath-dm:node-kind c))
   (test-equal "xpath-dm:parent" "foo" (xpath-dm:node-name (xpath-dm:parent c)))
   (test-equal "xpath-dm:string-value" "text" (xpath-dm:string-value c))
+  (test-equal "xpath-dm:type-name" '() (xpath-dm:type-name c))
   (test-equal "xpath-dm:typed-value" "text" (xpath-dm:typed-value c)))
 
 (let* ((xml "<foo><?sample-pi content?></foo>")
@@ -188,6 +197,7 @@
   (test-equal "xpath-dm:node-kind" "processing-instruction" (xpath-dm:node-kind c))
   (test-equal "xpath-dm:parent" "foo" (xpath-dm:node-name (xpath-dm:parent c)))
   (test-equal "xpath-dm:string-value" "content" (xpath-dm:string-value c))
+  (test-equal "xpath-dm:type-name" '() (xpath-dm:type-name c))
   (test-equal "xpath-dm:typed-value" "content" (xpath-dm:typed-value c)))
 
 (let* ((xml-file (string-append (current-directory) "/test/data/test-xml.xml"))
