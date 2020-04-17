@@ -80,6 +80,22 @@
 	      (xpath-dm:namespace-nodes
 	       (node-list:item
 		(element:namespace-nodes (document-document-element dom)) 0)))
+
+  (test-equal "xpath-dm:nilled (1)" '() (xpath-dm:nilled dom))
+  (test-equal "xpath-dm:nilled (2)" #f (xpath-dm:nilled e))
+  (test-equal "xpath-dm:nilled (3)" '() (xpath-dm:nilled attr))
+  (test-equal "xpath-dm:nilled (4)" '()
+	      (xpath-dm:nilled
+	       (node-list:item
+		(element:namespace-nodes (document-document-element dom)) 0)))
+
+  (test-equal "xpath-dm:node-kind (1)" "document" (xpath-dm:node-kind dom))
+  (test-equal "xpath-dm:node-kind (2)" "element" (xpath-dm:node-kind e))
+  (test-equal "xpath-dm:node-kind (3)" "attribute" (xpath-dm:node-kind attr))
+  (test-equal "xpath-dm:node-kind (4)" "namespace"
+	      (xpath-dm:node-kind
+	       (node-list:item
+		(element:namespace-nodes (document-document-element dom)) 0)))
   
   (test-equal "xpath-dm:node-name" () (xpath-dm:node-name dom))
   (test-equal "xpath-dm:node-name" "baz" (xpath-dm:node-name e))
@@ -90,6 +106,17 @@
 	      (xpath-dm:node-name
 	       (node-list:item
 		(element:namespace-nodes (document-document-element dom)) 0)))
+
+  (test-equal "xpath-dm:parent (1)" '() (xpath-dm:parent dom))
+  (test-equal "xpath-dm:parent (2)" "bar"
+	      (xpath-dm:node-name (xpath-dm:parent e)))
+  (test-equal "xpath-dm:parent (3)" "baz"
+	      (xpath-dm:node-name (xpath-dm:parent attr)))
+  (test-equal "xpath-dm:parent (4)" "ns:foo"
+	      (xpath-dm:node-name
+	       (xpath-dm:parent
+		(node-list:item
+		 (element:namespace-nodes (document-document-element dom)) 0))))
   
   (test-equal "xpath-dm:string-value" "foobazabc" (xpath-dm:string-value dom))
   (test-equal "xpath-dm:string-value" "baz" (xpath-dm:string-value e))
@@ -125,6 +152,9 @@
   (test-equal "xpath-dm:document-uri" '() (xpath-dm:document-uri c))
   (test-equal "xpath-dm:is-id" '() (xpath-dm:is-id c))
   (test-equal "xpath-dm:is-idrefs" '() (xpath-dm:is-idrefs c))
+  (test-equal "xpath-dm:nilled" '() (xpath-dm:nilled c))
+  (test-equal "xpath-dm:node-kind" "comment" (xpath-dm:node-kind c))
+  (test-equal "xpath-dm:parent" "foo" (xpath-dm:node-name (xpath-dm:parent c)))
   (test-equal "xpath-dm:string-value" " comment " (xpath-dm:string-value c))
   (test-equal "xpath-dm:typed-value" " comment " (xpath-dm:typed-value c)))
 
@@ -138,6 +168,9 @@
   (test-equal "xpath-dm:document-uri" '() (xpath-dm:document-uri c))
   (test-equal "xpath-dm:is-id" '() (xpath-dm:is-id c))
   (test-equal "xpath-dm:is-idrefs" '() (xpath-dm:is-idrefs c))
+  (test-equal "xpath-dm:nilled" '() (xpath-dm:nilled c))
+  (test-equal "xpath-dm:node-kind" "text" (xpath-dm:node-kind c))
+  (test-equal "xpath-dm:parent" "foo" (xpath-dm:node-name (xpath-dm:parent c)))
   (test-equal "xpath-dm:string-value" "text" (xpath-dm:string-value c))
   (test-equal "xpath-dm:typed-value" "text" (xpath-dm:typed-value c)))
 
@@ -151,6 +184,9 @@
   (test-equal "xpath-dm:document-uri" '() (xpath-dm:document-uri c))
   (test-equal "xpath-dm:is-id" '() (xpath-dm:is-id c))
   (test-equal "xpath-dm:is-idrefs" '() (xpath-dm:is-idrefs c))
+  (test-equal "xpath-dm:nilled" '() (xpath-dm:nilled c))
+  (test-equal "xpath-dm:node-kind" "processing-instruction" (xpath-dm:node-kind c))
+  (test-equal "xpath-dm:parent" "foo" (xpath-dm:node-name (xpath-dm:parent c)))
   (test-equal "xpath-dm:string-value" "content" (xpath-dm:string-value c))
   (test-equal "xpath-dm:typed-value" "content" (xpath-dm:typed-value c)))
 

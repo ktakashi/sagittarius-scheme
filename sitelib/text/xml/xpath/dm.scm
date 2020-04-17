@@ -41,7 +41,10 @@
 	    xpath-dm:is-id
 	    xpath-dm:is-idrefs
 	    xpath-dm:namespace-nodes
+	    xpath-dm:nilled
+	    xpath-dm:node-kind
 	    xpath-dm:node-name
+	    xpath-dm:parent
 	    xpath-dm:string-value
 	    xpath-dm:typed-value)
     (import (rnrs)
@@ -107,7 +110,25 @@
 	     (processing-instruction? n)) '())
 	(else (assertion-violation 'xpath-dm:namespace-nodes "Unknown node" n))))
 
-;;;; 5.12 string-value Accessor
+;;;; 5.8 nilled Accessor
+(define (xpath-dm:nilled n)
+  (cond ((element? n) (xpath-dm:element-nilled n))
+	((or (document? n) (attr? n) (comment? n) (text? n) (namespace? n)
+	     (processing-instruction? n)) '())
+	(else (assertion-violation 'xpath-dm:nilled "Unknown node" n))))
+
+;;;; 5.9 node-kind Accessor
+(define (xpath-dm:node-kind n)
+  (cond ((document? n) "document")
+	((element? n)  "element")
+	((attr? n)     "attribute")
+	((processing-instruction? n) "processing-instruction")
+	((comment? n)  "comment")
+	((text? n)     "text")
+	((namespace? n) "namespace")
+	(else (assertion-violation 'xpath-dm:string-value "Unknown node" n))))
+
+;;;; 5.10 string-name Accessor
 (define (xpath-dm:node-name n)
   (cond ((element? n) (xpath-dm:element-node-name n))
 	((attr? n)    (xpath-dm:attribute-node-name n))
@@ -119,7 +140,18 @@
 	((processing-instruction? n) (xpath-dm:processing-instruction-target n))
 	((or (document? n) (comment? n) (text? n)) '())
 	(else (assertion-violation 'xpath-dm:node-name "Unknown node" n))))
-    
+
+;;;; 5.11 parent Accessor
+(define (xpath-dm:parent n)
+  (cond ((document? n) '())
+	((element? n)  (xpath-dm:element-parent n))
+	((attr? n)     (xpath-dm:attribute-parent n))
+	((processing-instruction? n) (xpath-dm:processing-instruction-parent n))
+	((comment? n)  (xpath-dm:comment-parent n))
+	((text? n)     (xpath-dm:text-parent n))
+	((namespace? n) (xpath-dm:namespace-parent n))
+	(else (assertion-violation 'xpath-dm:string-value "Unknown node" n))))
+
 ;;;; 5.12 string-value Accessor
 ;;;; dm:string-value($n as node()) as xs:string
 (define (xpath-dm:string-value n)
@@ -149,6 +181,7 @@
   (cond ((node-base-uri n))
 	(else '())))
 (define (children n) (node-list->list (node-child-nodes n)))
+(define (parent-node n) (cond ((node-parent-node n)) (else '())))
 ;; Underlying node property accessor.
 ;;;; 6.1 Document Nodes
 (define (xpath-dm:document-string-value d)
@@ -183,6 +216,8 @@
 (define (xpath-dm:element-is-idrefs e) #f) ;; for now
 (define (xpath-dm:element-namespace-nodes e)
   (node-list->list (element:namespace-nodes e)))
+(define (xpath-dm:element-nilled e) #f) ;; for now
+(define xpath-dm:element-parent parent-node)
 
 ;;;; 6.3 Attribute Nodes
 ;; NOTE: attribute nodes properties are described a bit vaguely, so
@@ -193,21 +228,25 @@
 (define xpath-dm:attribute-node-name attr-name)
 (define (xpath-dm:attribute-is-id attr) #f) ;; for now
 (define (xpath-dm:attribute-is-idrefs attr) #f) ;; for now
+(define xpath-dm:attribute-parent attr-owner-element)
 
 ;;;; 6.4 Namespace Nodes
 (define xpath-dm:namespace-uri namespace-uri)
+(define xpath-dm:namespace-parent parent-node)
 
 ;;;; 6.5 Processing Instruction Nodes
 (define xpath-dm:processing-instruction-content character-data-data)
 (define xpath-dm:processing-instruction-target processing-instruction-target)
 (define xpath-dm:processing-instruction-base-uri base-uri/empty)
+(define xpath-dm:processing-instruction-parent parent-node)
 
 ;;;; 6.6 Comment Nodes
 (define xpath-dm:comment-content character-data-data)
+(define xpath-dm:comment-parent parent-node)
 
 ;;;; 6.7 Text Nodes
 (define xpath-dm:text-content text-whole-text)
-
+(define xpath-dm:text-parent parent-node)
 
 ;;; Helpers
 (define (text-node-iterator->string itr)
