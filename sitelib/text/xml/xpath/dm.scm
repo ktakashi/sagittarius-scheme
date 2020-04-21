@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
-;;; text/xml/xpath/dm.scm - XPath datamodel
+;;; text/xml/xpath/dm.scm - XPath Data Model
 ;;;
 ;;;   Copyright (c) 2020  Takashi Kato  <ktakashi@ymail.com>
 ;;;
