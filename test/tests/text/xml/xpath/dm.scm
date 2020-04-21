@@ -203,6 +203,13 @@
 (let* ((xml-file (string-append (current-directory) "/test/data/test-xml.xml"))
        (doc (xml-file->dom-tree xml-file)))
   (test-equal (absolute-path xml-file) (xpath-dm:base-uri doc))
-  (test-equal (absolute-path xml-file) (xpath-dm:document-uri doc)))
+  (test-equal (absolute-path xml-file) (xpath-dm:document-uri doc))
+  (test-equal "-//W3C//TEXT copyright//EN"
+	      (xpath-dm:unparsed-entity-public-id doc "c"))
+  (test-equal "http://www.w3.org/xmlspec/copyright.xml"
+	      (xpath-dm:unparsed-entity-system-id doc "c"))
+  (test-equal '() (xpath-dm:unparsed-entity-public-id doc "entity"))
+  (test-equal '() (xpath-dm:unparsed-entity-system-id doc "entity"))
+  )
 
 (test-end)

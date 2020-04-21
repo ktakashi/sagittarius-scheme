@@ -47,7 +47,9 @@
 	    xpath-dm:parent
 	    xpath-dm:string-value
 	    xpath-dm:type-name
-	    xpath-dm:typed-value)
+	    xpath-dm:typed-value
+	    xpath-dm:unparsed-entity-public-id
+	    xpath-dm:unparsed-entity-system-id)
     (import (rnrs)
 	    (text xml dom nodes)
 	    (srfi :13 strings))
@@ -57,9 +59,10 @@
 ;;; 5 Accessors
 ;;;; 5.1 attributes Accessor
 (define (xpath-dm:attributes n)
-  (if (element? n)
-      (xpath-dm:element-attributes n)
-      '()))
+  (cond ((element? n) (xpath-dm:element-attributes n))
+	((or (document? n) (attr? n) (comment? n) (text? n) (namespace? n)
+	     (processing-instruction? n)) '())
+	(else (assertion-violation 'xpath-dm:nilled "Unknown node" n))))
 
 ;;;; 5.2 base-uri Accessor
 (define (xpath-dm:base-uri n)
@@ -184,12 +187,35 @@
 	((namespace? n) (xpath-dm:namespace-uri n))
 	(else (assertion-violation 'xpath-dm:typed-value "Unknown node" n))))
 
+;;;; 5.15 unparsed-entity-public-id Accessor
+;;;; dm:unparsed-entity-public-id($node       as node(),
+;;;;                              $entityname as xs:string) as xs:string?
+(define (xpath-dm:unparsed-entity-public-id n entity-name)
+  (cond ((document? n)
+	 (xpath-dm:document-unparsed-entity-public-id n entity-name))
+	((or (element? n) (attr? n) (processing-instruction? n)
+	     (comment? n) (text? n) (namespace? n)) '())
+	(else (assertion-violation 'xpath-dm:document-unparsed-entity-public-id
+				   "Unknown node" n))))
+
+;;;; 5.16 unparsed-entity-system-id Accessor
+;;;; dm:unparsed-entity-system-id($node       as node(),
+;;;;                              $entityname as xs:string) as xs:anyURI?
+(define (xpath-dm:unparsed-entity-system-id n entity-name)
+  (cond ((document? n)
+	 (xpath-dm:document-unparsed-entity-system-id n entity-name))
+	((or (element? n) (attr? n) (processing-instruction? n)
+	     (comment? n) (text? n) (namespace? n)) '())
+	(else (assertion-violation 'xpath-dm:document-unparsed-entity-system-id
+				   "Unknown node" n))))
+
 ;;; 6 Nodes
-(define (base-uri/empty n)
-  (cond ((node-base-uri n))
-	(else '())))
+(define (value/empty-sequence proc)
+  (lambda (n)
+    (cond ((proc n)) (else '()))))
+(define base-uri/empty (value/empty-sequence node-base-uri))
 (define (children n) (node-list->list (node-child-nodes n)))
-(define (parent-node n) (cond ((node-parent-node n)) (else '())))
+(define parent-node (value/empty-sequence node-parent-node))
 ;; Underlying node property accessor.
 ;;;; 6.1 Document Nodes
 (define (xpath-dm:document-string-value d)
@@ -204,6 +230,20 @@
 (define xpath-dm:document-base-uri base-uri/empty)
 (define xpath-dm:document-children children)
 
+(define public-id (value/empty-sequence entity-public-id))
+(define system-id (value/empty-sequence entity-system-id))
+(define (xpath-dm:document-unparsed-entity-public-id d name)
+  (cond ((get-entity d name) => public-id)
+	(else '())))
+(define (xpath-dm:document-unparsed-entity-system-id d name)
+  (cond ((get-entity d name) => system-id)
+	(else '())))
+
+(define (get-entity d name)
+  (define doctype (document-doctype d))
+  (define entities (document-type-entities doctype))
+  (hashtable-ref entities name #f))
+  
 ;;;; 6.2 Element Nodes
 (define (xpath-dm:element-string-value e)
   (define itr (document:create-node-iterator (node-owner-document e) e
