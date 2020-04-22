@@ -182,10 +182,10 @@
 	  (else (assertion-violation '!doctype "Invalid external ID" id))))
   (define (handle-subset doctype subset)
     (define (set-it table e)
-      (define key (node-node-name e))
-      (if (hashtable-contains? table key)
-	  (assertion-violation '!doctype "Duplicate definition" key e)
-	  (hashtable-set! table key e)))
+      (if (named-node-map:contains? table e)
+	  (assertion-violation '!doctype "Duplicate definition"
+			       (node-node-type e) e)
+	  (named-node-map:set-named-item! table e)))
     (let ((e (dispatch-factory subset)))
       (cond ((entity? e) (set-it (document-type-entities doctype) e))
 	    ((element-type? e) (set-it (document-type-elements doctype) e))
@@ -321,7 +321,7 @@
 (define (expand-entity root-document entity-ref)
   (define name (cadr entity-ref))
   (let ((entities (document-type-entities (document-doctype root-document))))
-    (cond ((hashtable-ref entities name) =>
+    (cond ((named-node-map:get-named-item entities name) =>
 	   (lambda (e)
 	     (cond ((entity-entity-value e))
 		   (else (assertion-violation

@@ -97,6 +97,7 @@
 	    named-node-map:remove-named-item-ns!
 	    named-node-map->node-list
 	    named-node-map:fold
+	    named-node-map:contains?
 
 	    entity-reference?
 	    character-data? text? cdata-section? comment?
@@ -684,13 +685,20 @@
 		 prefix uri)))))
 (define namespace-parent node-parent-node)
 
+(define-record-type namespace-aware
+  (parent node)
+  (fields namespace-uri	;; DOMString?
+	  prefix	;; DOMString?
+	  local-name)	;; DOMString?
+  (protocol (lambda (p)
+	      (lambda (node-type node-name namespace-uri prefix local-name . opt)
+		((apply p node-type :node-name node-name opt)
+		 namespace-uri prefix local-name)))))
+
 ;;; Element
 (define-record-type element
-  (parent node)
-  (fields namespace-uri ;; DOMString?
-	  prefix	;; DOMString?
-	  local-name	;; DOMString
-	  (mutable class-list)	;; DOMTokenList
+  (parent namespace-aware)
+  (fields (mutable class-list)	;; DOMTokenList
 	  attributes ;; NamedNodeMap (hashtable)
 	  shadow-root	;; ShadowRoot? (not supported)
 	  )
@@ -724,8 +732,8 @@
      
      (lambda (namespace-uri prefix local-name)
        (let ((e ((n +element-node+
-		    :node-name (->tagname prefix local-name))
-		 namespace-uri prefix local-name
+		    (->tagname prefix local-name)
+		    namespace-uri prefix local-name)
 		 '()
 		 (make-named-node-map attr-compare)
 		 #f ;; shadow-root later
@@ -744,6 +752,10 @@
   (and (equal? (element-namespace-uri element) (element-namespace-uri child))
        (equal? (element-prefix element) (element-prefix child))
        (remove-xmlns! child)))
+
+(define element-namespace-uri namespace-aware-namespace-uri)
+(define element-prefix        namespace-aware-prefix)
+(define element-local-name    namespace-aware-local-name)
 
 (define (element-namespace-normalizer element event target)
   (when (element? target)
@@ -898,11 +910,8 @@
 
 ;;; Attr
 (define-record-type attr
-  (parent node)
-  (fields namespace-uri ;; DOMString?
-	  prefix	;; DOMString?
-	  local-name	;; DOMString
-	  (mutable owner-element) ;; Element
+  (parent namespace-aware)
+  (fields (mutable owner-element) ;; Element
 	  specified?	;; boolean (useless always returns true)
 	  )
   (protocol (lambda (n)
@@ -911,16 +920,19 @@
 		      (else (string-append prefix ":" local-name))))
 	      (lambda (namespace-uri prefix local-name)
 		((n +attribute-node+
-		    :node-name (->qualified-name prefix local-name)
+		    (->qualified-name prefix local-name)
+		    namespace-uri prefix local-name
 		    :node-value ""
-		    :text-content "")
-		 namespace-uri prefix local-name #f #t)))))
+		    :text-content "") #f #t)))))
 (define attr-name node-node-name)
 (define attr-value node-node-value)
 (define (attr-value-set! attr value)
   (node-node-value-set! attr value)
   (node-text-content-set! attr value))
 (define attr-qualified-name node-node-name)
+(define attr-namespace-uri namespace-aware-namespace-uri)
+(define attr-prefix        namespace-aware-prefix)
+(define attr-local-name    namespace-aware-local-name)
 
 ;;; NamedNodeMap
 ;; Internally, it's a treemap using as a set.
@@ -935,21 +947,25 @@
 
 (define (named-node-map:get-named-item map qualified-name)
   (treemap-find (lambda (attr)
-		  (string=? (attr-qualified-name attr) qualified-name))
+		  (string=? (node-node-name attr) qualified-name))
 		(named-node-map-values map)))
 
 (define (named-node-map:get-named-item-ns map namespace local-name)
-  (treemap-find (lambda (attr)
-		  (and (equal? namespace (attr-namespace-uri attr))
-		       (equal? local-name (attr-local-name attr))))
+  (treemap-find (lambda (v)
+		  (if (namespace-aware? v)
+		      (and (equal? namespace (namespace-aware-namespace-uri v))
+			   (equal? local-name (namespace-aware-local-name v)))
+		      ;; well, for now
+		      (string=? (node-node-name v)
+				(string-append namespace ":" local-name))))
 		(named-node-map-values map)))
 
-(define (named-node-map:set-named-item! map attr)
-  (treemap-set! (named-node-map-values map) attr attr))
+(define (named-node-map:set-named-item! map item)
+  (treemap-set! (named-node-map-values map) item item))
 
-(define (named-node-map:set-named-item-ns! map attr)
+(define (named-node-map:set-named-item-ns! map item)
   ;; TODO maybe check namespace-uri?
-  (treemap-set! (named-node-map-values map) attr attr))
+  (treemap-set! (named-node-map-values map) attr item))
 (define (named-node-map:remove-named-item! map qualified-name)
   (cond ((named-node-map:get-named-item map qualified-name) =>
 	 (lambda (attr) (named-node-map:remove-item! map attr)))))
@@ -962,6 +978,8 @@
   (treemap-delete! (named-node-map-values map) attr))
 (define (named-node-map:fold map seed proc)
   (treemap-fold proc (named-node-map-values map) seed))
+(define (named-node-map:contains? map name)
+  (treemap-contains? (named-node-map-values map) name))
 
 (define (named-node-map->node-list map)
   (make-node-list (treemap-values (named-node-map-values map))))
@@ -978,17 +996,23 @@
   (parent node)
   (fields public-id ;; DOMString
 	  system-id ;; DOMString
-	  entities  ;; internal
-	  elements  ;; internal (need this?)
-	  notations ;; internal (need this?)
+	  entities  ;; NamedNodeMap (from DOM 3)
+	  elements  ;; NamedNodeMap (need this?)
+	  notations ;; NamedNodeMap (from DOM 3)
 	  )
   (protocol (lambda (n)
+	      (define (proc< v) -1)
+	      (define (proc= v) 0)
+	      (define (proc> v) 1)
+	      (define (name-compare a b)
+		(string-compare (node-node-name a)
+				(node-node-name b) proc< proc= proc>))
 	      (lambda (name public-id system-id)
 		((n +document-type-node+ :node-name name)
 		 public-id system-id
-		 (make-string-hashtable)
-		 (make-string-hashtable)
-		 (make-string-hashtable))))))
+		 (make-named-node-map name-compare)
+		 (make-named-node-map name-compare)
+		 (make-named-node-map name-compare))))))
 
 (define (document-type-name dt) (node-node-name dt))
 ;;; CharacterData

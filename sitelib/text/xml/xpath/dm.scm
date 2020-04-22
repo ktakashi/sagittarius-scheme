@@ -242,7 +242,7 @@
 (define (get-entity d name)
   (define doctype (document-doctype d))
   (define entities (document-type-entities doctype))
-  (hashtable-ref entities name #f))
+  (named-node-map:get-named-item entities name))
   
 ;;;; 6.2 Element Nodes
 (define (xpath-dm:element-string-value e)
