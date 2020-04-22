@@ -1,4 +1,5 @@
 (import (rnrs)
+	(text xml schema)
 	(text xml xpath dm)
 	(text xml dom)
 	(srfi :64))
@@ -6,7 +7,12 @@
 (define (string->dom xml)
   (input-port->dom-tree (open-string-input-port xml)))
 
+(define (node->node-name node)
+  (xs:qname->node-name (xpath-dm:node-name node)))
+  
 (test-begin "XPath Data Model")
+
+
 
 (let* ((xml "<ns:foo xmlns:ns=\"ns-foo\">foo<bar><baz id='child'>baz</baz>abc</bar></ns:foo>")
        (dom (string->dom xml))
@@ -74,7 +80,8 @@
   (test-equal "xpath-dm:namespace-nodes (1)" '() (xpath-dm:namespace-nodes dom))
   (test-equal "xpath-dm:namespace-nodes (2)" '() (xpath-dm:namespace-nodes e))
   (test-equal "xpath-dm:namespace-nodes (3)" '("ns")
-	      (map xpath-dm:node-name (xpath-dm:namespace-nodes (document-document-element dom))))
+	      (map node->node-name
+		   (xpath-dm:namespace-nodes (document-document-element dom))))
   (test-equal "xpath-dm:namespace-nodes (4)" '() (xpath-dm:namespace-nodes attr))
   (test-equal "xpath-dm:namespace-nodes (5)" '()
 	      (xpath-dm:namespace-nodes
@@ -97,23 +104,27 @@
 	       (node-list:item
 		(element:namespace-nodes (document-document-element dom)) 0)))
   
-  (test-equal "xpath-dm:node-name" () (xpath-dm:node-name dom))
-  (test-equal "xpath-dm:node-name" "baz" (xpath-dm:node-name e))
-  (test-equal "xpath-dm:node-name" "ns:foo"
-	      (xpath-dm:node-name (document-document-element dom)))
-  (test-equal "xpath-dm:node-name" "id" (xpath-dm:node-name attr))
-  (test-equal "xpath-dm:node-name" "ns"
-	      (xpath-dm:node-name
-	       (node-list:item
-		(element:namespace-nodes (document-document-element dom)) 0)))
+  (test-equal "xpath-dm:node-name (1)" () (xpath-dm:node-name dom))
+  (test-equal "xpath-dm:node-name (2)" "baz"
+	      (xs:qname->node-name (xpath-dm:node-name e)))
+  (test-equal "xpath-dm:node-name (3)" "ns:foo"
+	      (xs:qname->node-name
+	       (xpath-dm:node-name (document-document-element dom))))
+  (test-equal "xpath-dm:node-name (4)" "id"
+	      (xs:qname->node-name (xpath-dm:node-name attr)))
+  (test-equal "xpath-dm:node-name (5)" "ns"
+	      (xs:qname->node-name
+	       (xpath-dm:node-name
+		(node-list:item
+		 (element:namespace-nodes (document-document-element dom)) 0))))
 
   (test-equal "xpath-dm:parent (1)" '() (xpath-dm:parent dom))
   (test-equal "xpath-dm:parent (2)" "bar"
-	      (xpath-dm:node-name (xpath-dm:parent e)))
+	      (node->node-name (xpath-dm:parent e)))
   (test-equal "xpath-dm:parent (3)" "baz"
-	      (xpath-dm:node-name (xpath-dm:parent attr)))
+	      (node->node-name (xpath-dm:parent attr)))
   (test-equal "xpath-dm:parent (4)" "ns:foo"
-	      (xpath-dm:node-name
+	      (node->node-name
 	       (xpath-dm:parent
 		(node-list:item
 		 (element:namespace-nodes (document-document-element dom)) 0))))
@@ -161,7 +172,7 @@
   (test-equal "xpath-dm:is-idrefs" '() (xpath-dm:is-idrefs c))
   (test-equal "xpath-dm:nilled" '() (xpath-dm:nilled c))
   (test-equal "xpath-dm:node-kind" "comment" (xpath-dm:node-kind c))
-  (test-equal "xpath-dm:parent" "foo" (xpath-dm:node-name (xpath-dm:parent c)))
+  (test-equal "xpath-dm:parent" "foo" (node->node-name (xpath-dm:parent c)))
   (test-equal "xpath-dm:string-value" " comment " (xpath-dm:string-value c))
   (test-equal "xpath-dm:type-name" '() (xpath-dm:type-name c))
   (test-equal "xpath-dm:typed-value" " comment " (xpath-dm:typed-value c)))
@@ -178,7 +189,7 @@
   (test-equal "xpath-dm:is-idrefs" '() (xpath-dm:is-idrefs c))
   (test-equal "xpath-dm:nilled" '() (xpath-dm:nilled c))
   (test-equal "xpath-dm:node-kind" "text" (xpath-dm:node-kind c))
-  (test-equal "xpath-dm:parent" "foo" (xpath-dm:node-name (xpath-dm:parent c)))
+  (test-equal "xpath-dm:parent" "foo" (node->node-name (xpath-dm:parent c)))
   (test-equal "xpath-dm:string-value" "text" (xpath-dm:string-value c))
   (test-equal "xpath-dm:type-name" '() (xpath-dm:type-name c))
   (test-equal "xpath-dm:typed-value" "text" (xpath-dm:typed-value c)))
@@ -187,15 +198,17 @@
        (dom (string->dom xml))
        (c (node-first-child (document-document-element dom))))
   (test-equal "xpath-dm:attributes" '() (xpath-dm:attributes c))
-  (test-equal "xpath-dm:node-name" "sample-pi" (xpath-dm:node-name c))
+  (test-equal "xpath-dm:node-name" "sample-pi"
+	      (xs:qname->node-name (xpath-dm:node-name c)))
   (test-equal "xpath-dm:base-uri" '() (xpath-dm:base-uri c))
   (test-equal "xpath-dm:children" '() (xpath-dm:children c))
   (test-equal "xpath-dm:document-uri" '() (xpath-dm:document-uri c))
   (test-equal "xpath-dm:is-id" '() (xpath-dm:is-id c))
   (test-equal "xpath-dm:is-idrefs" '() (xpath-dm:is-idrefs c))
   (test-equal "xpath-dm:nilled" '() (xpath-dm:nilled c))
-  (test-equal "xpath-dm:node-kind" "processing-instruction" (xpath-dm:node-kind c))
-  (test-equal "xpath-dm:parent" "foo" (xpath-dm:node-name (xpath-dm:parent c)))
+  (test-equal "xpath-dm:node-kind" "processing-instruction"
+	      (xpath-dm:node-kind c))
+  (test-equal "xpath-dm:parent" "foo" (node->node-name (xpath-dm:parent c)))
   (test-equal "xpath-dm:string-value" "content" (xpath-dm:string-value c))
   (test-equal "xpath-dm:type-name" '() (xpath-dm:type-name c))
   (test-equal "xpath-dm:typed-value" "content" (xpath-dm:typed-value c)))

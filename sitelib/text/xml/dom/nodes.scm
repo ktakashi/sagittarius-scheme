@@ -65,6 +65,10 @@
 	    entity-notation-name entity-input-encoding
 	    entity-xml-encoding entity-xml-version
 
+	    namespace-aware namespace-aware?
+	    namespace-aware-namespace-uri namespace-aware-local-name
+	    namespace-aware-prefix
+
 	    element? element-namespace-uri element-prefix
 	    element-local-name element-tag-name element-id
 	    element-class-name element-class-list

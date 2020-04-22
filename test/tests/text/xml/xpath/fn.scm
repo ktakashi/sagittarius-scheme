@@ -2,6 +2,7 @@
 	(text xml dom)
 	(text xml errors)
 	(text xml xpath fn)
+	(text xml schema)
 	(srfi :64))
 
 (test-begin "XPath functions and operators")
@@ -14,7 +15,8 @@
   (test-group "xpath-fn:node-name"
     (test-equal '() (xpath-fn:node-name '()))
     (test-error xqt-error? (xpath-fn:node-name "not a node"))
-    (test-equal "root" (xpath-fn:node-name root-element)))
+    (test-equal "root"
+		(xs:qname->node-name (xpath-fn:node-name root-element))))
 
   (test-group "xpath-fn:nilled"
     (test-equal '() (xpath-fn:nilled '()))

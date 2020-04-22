@@ -61,6 +61,7 @@
 	       (else (proc arg))))))))
 
 ;;;; 2.1 fn:node-name
+;;;; fn:node-name($arg as node()?) as xs:QName?
 (define xpath-fn:node-name (dm:delegate xpath-fn:node-name xpath-dm:node-name))
 
 ;;;; 2.2 fn:nilled

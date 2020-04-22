@@ -52,12 +52,24 @@
 	    xpath-dm:unparsed-entity-system-id)
     (import (rnrs)
 	    (text xml dom nodes)
+	    (text xml schema)
 	    (srfi :13 strings))
+
+;;; 2.7.2 Predefined Types
+(define-record-type xs:untyped
+  (parent xs:any-type))
+
+;; not sure if this is correct...
+(define-record-type xs:untyped-atomic
+  (parent xs:any-atomic-type)
+  (fields raw-value))
+
 ;; NOTE
 ;; xs:Qname = string
 
 ;;; 5 Accessors
 ;;;; 5.1 attributes Accessor
+;;;; dm:attributes($n as node()) as attribute()*
 (define (xpath-dm:attributes n)
   (cond ((element? n) (xpath-dm:element-attributes n))
 	((or (document? n) (attr? n) (comment? n) (text? n) (namespace? n)
@@ -65,6 +77,7 @@
 	(else (assertion-violation 'xpath-dm:nilled "Unknown node" n))))
 
 ;;;; 5.2 base-uri Accessor
+;;;; dm:base-uri($n as node()) as xs:anyURI?
 (define (xpath-dm:base-uri n)
   (cond ((document? n) (xpath-dm:document-base-uri n))
 	((element? n) (xpath-dm:element-base-uri n))
@@ -77,6 +90,7 @@
 	(else (assertion-violation 'xpath-dm:base-uri "Unknown node" n))))
 
 ;;;; 5.3 children Accessor
+;;;; dm:children($n as node()) as node()*
 (define (xpath-dm:children n)
   (cond ((document? n) (xpath-dm:document-children n))
 	((element? n)  (xpath-dm:element-children n))
@@ -85,6 +99,7 @@
 	(else (assertion-violation 'xpath-dm:children "Unknown node" n))))  
 
 ;;;; 5.4 document-uri Accessor
+;;;; dm:document-uri($node as node()) as xs:anyURI?
 (define (xpath-dm:document-uri n)
   (cond ((document? n) (xpath-dm:document-base-uri n)) ;; it's the same
 	((or (element? n) (attr? n) (processing-instruction? n)
@@ -92,6 +107,7 @@
 	(else (assertion-violation 'xpath-dm:document-uri "Unknown node" n))))
 
 ;;;; 5.5 is-id Accessor
+;;;; dm:is-id($node as node()) as xs:boolean?
 (define (xpath-dm:is-id n)
   (cond ((element? n) (xpath-dm:element-is-id n))
 	((attr? n)    (xpath-dm:attribute-is-id n))
@@ -100,6 +116,7 @@
 	(else (assertion-violation 'xpath-dm:is-id "Unknown node" n))))
 
 ;;;; 5.6 is-idrefs Accessor
+;;;; dm:is-idrefs($node as node()) as xs:boolean?
 (define (xpath-dm:is-idrefs n)
   (cond ((element? n) (xpath-dm:element-is-idrefs n))
 	((attr? n)    (xpath-dm:attribute-is-idrefs n))
@@ -108,6 +125,7 @@
 	(else (assertion-violation 'xpath-dm:is-idrefs "Unknown node" n))))
 
 ;;;; 5.7 namespace-nodes Accessor
+;;;; dm:namespace-nodes($n as node()) as node()*
 (define (xpath-dm:namespace-nodes n)
   (cond ((element? n) (xpath-dm:element-namespace-nodes n))
 	((or (document? n) (attr? n) (comment? n) (text? n) (namespace? n)
@@ -115,6 +133,7 @@
 	(else (assertion-violation 'xpath-dm:namespace-nodes "Unknown node" n))))
 
 ;;;; 5.8 nilled Accessor
+;;;; dm:nilled($n as node()) as xs:boolean?
 (define (xpath-dm:nilled n)
   (cond ((element? n) (xpath-dm:element-nilled n))
 	((or (document? n) (attr? n) (comment? n) (text? n) (namespace? n)
@@ -122,6 +141,7 @@
 	(else (assertion-violation 'xpath-dm:nilled "Unknown node" n))))
 
 ;;;; 5.9 node-kind Accessor
+;;;; dm:node-kind($n as node()) as xs:string
 (define (xpath-dm:node-kind n)
   (cond ((document? n) "document")
 	((element? n)  "element")
@@ -132,20 +152,18 @@
 	((namespace? n) "namespace")
 	(else (assertion-violation 'xpath-dm:string-value "Unknown node" n))))
 
-;;;; 5.10 string-name Accessor
+;;;; 5.10 node-name Accessor
+;;;; dm:node-name($n as node()) as xs:QName?
 (define (xpath-dm:node-name n)
   (cond ((element? n) (xpath-dm:element-node-name n))
 	((attr? n)    (xpath-dm:attribute-node-name n))
-	((namespace? n)
-	 (let ((p (namespace-prefix n)))
-	   (if (and p (not (zero? (string-length p))))
-	       p
-	       '())))
-	((processing-instruction? n) (xpath-dm:processing-instruction-target n))
+	((namespace? n) (xpath-dm:namespace-node-name n))
+	((processing-instruction? n) (xpath-dm:processing-instruction-node-name n))
 	((or (document? n) (comment? n) (text? n)) '())
 	(else (assertion-violation 'xpath-dm:node-name "Unknown node" n))))
 
 ;;;; 5.11 parent Accessor
+;;;; dm:parent($n as node()) as node()?
 (define (xpath-dm:parent n)
   (cond ((document? n) '())
 	((element? n)  (xpath-dm:element-parent n))
@@ -169,6 +187,7 @@
 	(else (assertion-violation 'xpath-dm:string-value "Unknown node" n))))
 
 ;;;; 5.13 type-name Accessor
+;;;; dm:type-name($n as node()) as xs:QName?
 (define (xpath-dm:type-name n)
   (cond ((element? n)  (xpath-dm:element-type-name n))
 	((attr? n)     (xpath-dm:attribute-type-name n))
@@ -177,6 +196,7 @@
 	(else (assertion-violation 'xpath-dm:type-name "Unknown node" n))))
 
 ;;;; 5.14 typed-value Accessor
+;;;; dm:typed-value($n as node()) as xs:anyAtomicType*
 (define (xpath-dm:typed-value n)
   (cond ((document? n) (xpath-dm:document-typed-value n))
 	((element? n)  (xpath-dm:element-typed-value n))
@@ -216,6 +236,11 @@
 (define base-uri/empty (value/empty-sequence node-base-uri))
 (define (children n) (node-list->list (node-child-nodes n)))
 (define parent-node (value/empty-sequence node-parent-node))
+(define (namespace-aware->qname na)
+  (xs:make-qname (namespace-aware-namespace-uri na)
+		 (namespace-aware-local-name na)
+		 (cond ((namespace-aware-prefix na))
+		       (else ""))))
 ;; Underlying node property accessor.
 ;;;; 6.1 Document Nodes
 (define (xpath-dm:document-string-value d)
@@ -251,7 +276,7 @@
   (text-node-iterator->string itr))
 ;; TODO should we wrap with xs:untypedAtomic?
 (define xpath-dm:element-typed-value xpath-dm:element-string-value)
-(define xpath-dm:element-node-name node-node-name)
+(define xpath-dm:element-node-name namespace-aware->qname)
 (define (xpath-dm:element-attributes e)
   (named-node-map:fold (element-attributes e) '()
 		       (lambda (k v r)
@@ -275,7 +300,7 @@
 (define xpath-dm:attribute-string-value attr-value)
 ;; TODO should we wrap with xs:untypedAtomic?
 (define xpath-dm:attribute-typed-value xpath-dm:attribute-string-value)
-(define xpath-dm:attribute-node-name attr-name)
+(define xpath-dm:attribute-node-name namespace-aware->qname)
 (define (xpath-dm:attribute-is-id attr) #f) ;; for now
 (define (xpath-dm:attribute-is-idrefs attr) #f) ;; for now
 (define xpath-dm:attribute-parent attr-owner-element)
@@ -285,10 +310,18 @@
 ;;;; 6.4 Namespace Nodes
 (define xpath-dm:namespace-uri namespace-uri)
 (define xpath-dm:namespace-parent parent-node)
+(define (xpath-dm:namespace-node-name n)
+  (let ((p (namespace-prefix n)))
+    (if (and p (not (zero? (string-length p))))
+	(xs:make-qname "" p)
+	'())))
 
 ;;;; 6.5 Processing Instruction Nodes
 (define xpath-dm:processing-instruction-content character-data-data)
-(define xpath-dm:processing-instruction-target processing-instruction-target)
+(define (xpath-dm:processing-instruction-node-name pi)
+  (let ((t (processing-instruction-target pi)))
+    (xs:make-qname "" t)))
+  
 (define xpath-dm:processing-instruction-base-uri base-uri/empty)
 (define xpath-dm:processing-instruction-parent parent-node)
 

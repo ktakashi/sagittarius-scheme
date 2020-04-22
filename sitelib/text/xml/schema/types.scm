@@ -49,7 +49,8 @@
 	    
 	    xs:qname xs:qname? (rename make-xs:qname xs:make-qname)
 	    xs:qname-namespace-uri xs:qname-local-part xs:qname-prefix
-	    
+	    xs:qname->node-name xs:qname->expanded-qname
+
 	    )
     (import (rnrs))
 
@@ -67,19 +68,19 @@
 (define-record-type xs:duration
   (parent xs:any-atomic-type)
   (fields months seconds)
-  (protocl (lambda (p)
-	     (lambda (m s)
-	       (when (or (and (negative? m) (positive? s))
-			 (and (positive? m) (negative? s)))
-		 (assertion-violation 'xs:make-duration
-				      "Invalid months and seconds" m s))
-	       ((p) m s)))))
+  (protocol (lambda (p)
+	      (lambda (m s)
+		(when (or (and (negative? m) (positive? s))
+			  (and (positive? m) (negative? s)))
+		  (assertion-violation 'xs:make-duration
+				       "Invalid months and seconds" m s))
+		((p) m s)))))
 (define-record-type xs:day-time-duration
   (parent xs:duration)
-  (protocl (lambda (p) (lambda (s) ((p 0 s))))))
+  (protocol (lambda (p) (lambda (s) ((p 0 s))))))
 (define-record-type xs:year-month-duration
   (parent xs:duration)
-  (protocl (lambda (p) (lambda (m) ((p m 0))))))
+  (protocol (lambda (p) (lambda (m) ((p m 0))))))
 
 
 (define-record-type xs:qname
@@ -88,11 +89,21 @@
   ;; we take these fields from common sense
   (fields namespace-uri
 	  local-part
-	  prefix)
+	  prefix
+	  ;; cache
+	  >node-name
+	  >expanded-qname)
   (protocol (lambda (p)
+	      (define (make namespace-uri local-part prefix)
+		((p) namespace-uri local-part prefix
+		     (if (zero? (string-length prefix))
+			 local-part
+			 (string-append prefix ":" local-part))
+		     (list prefix namespace-uri local-part)))
 	      (case-lambda
-	       ((namespace-uri local-part) ((p) namespace-uri local-part ""))
+	       ((namespace-uri local-part)
+		(make namespace-uri local-part ""))
 	       ((namespace-uri local-part prefix)
-		((p) namespace-uri local-part prefix))))))
+		(make namespace-uri local-part prefix))))))
 
 )
