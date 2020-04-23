@@ -63,5 +63,29 @@
     (test-error xqt-error? (xpath-fn:document-uri 'symbol))
     )
   )
+(define (test-xqt-error-runner code thunk)
+  (guard (e ((xqt-error? e)
+	     (test-equal code (xqt-error-code e)))
+	    (else
+	     (test-assert (condition-message e) #f)))
+    (thunk)
+    (test-assert "must be an error" #f)))
+(define-syntax test-xqt-error
+  (syntax-rules ()
+    ((_ code expr)
+     (test-xqt-error-runner 'code (lambda () expr)))))
+
+(test-group "Errors and diagnostics"
+  (test-group "fn:error"
+    (test-xqt-error FOER0000 (xpath-fn:error))
+    (test-xqt-error Unknown
+		    (xpath-fn:error
+		     (xs:make-qname "don't care for now" "Unknown")))
+    ))
+
 
 (test-end)
+
+;; Local Variables:
+;; eval: (put 'test-group 'scheme-indent-function 1)
+;; End:

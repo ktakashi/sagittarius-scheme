@@ -39,7 +39,8 @@
 	    xpath-fn:string
 	    xpath-fn:data
 	    xpath-fn:base-uri
-	    xpath-fn:document-uri)
+	    xpath-fn:document-uri
+	    xpath-fn:error)
     (import (rnrs)
 	    (text xml errors)
 	    (text xml dom)
@@ -91,6 +92,34 @@
 ;;;; 2.6 fn:document-uri
 (define xpath-fn:document-uri
   (dm:delegate xpath-fn:document-uri xpath-dm:document-uri))
+
+;;; 3 Errors and diagnostics
+;;;; 3.1.1 fn:error
+;;;; fn:error() as none
+;;;; fn:error($code as xs:QName?) as none
+;;;; fn:error($code as xs:QName?, $description as xs:string) as none
+;;;; fn:error($code         as xs:QName?,
+;;;;          $description  as xs:string,
+;;;;          $error-object as item()*) as none
+(define +default-error-code+
+  (xs:make-qname "http://www.w3.org/2005/xqt-errors" "FOER0000" "err"))
+(define (search-error-description type)
+  (cond ((assq (string->symbol type) +xqt-errors+) => cadr)
+	(else "Unknown reason")))
+(define xpath-fn:error
+  (case-lambda
+   (() (xpath-fn:error +default-error-code+))
+   ((qname)
+    (xpath-fn:error qname
+		    (search-error-description (xs:qname-local-part qname)) '()))
+   ((qname description error-object)
+    ;; TODO should we check the namespace?
+    (if (null? error-object)
+	(xqt-error (string->symbol (xs:qname-local-part qname))
+		   'xpath-fn:error description)
+	(xqt-error (string->symbol (xs:qname-local-part qname))
+		   'xpath-fn:error description error-object)))))
+   
 
 ;;;; 19 Casting
 (define (atomic->string who atomic)
