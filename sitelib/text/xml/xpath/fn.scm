@@ -43,6 +43,7 @@
     (import (rnrs)
 	    (text xml errors)
 	    (text xml dom)
+	    (text xml schema)
 	    (text xml xpath dm))
 
 ;;; 2 Accessors
@@ -72,7 +73,7 @@
   (let ((delegate (dm:delegate xpath-fn:string xpath-dm:string-value)))
     (lambda (arg)
       (cond ((null? arg) "")
-	    ((atomic? arg) (atomic->string 'xpath-fn:string arg))
+	    ((xs:any-atomic-type? arg) (atomic->string 'xpath-fn:string arg))
 	    (else (delegate arg))))))
 
 ;;;; 2.4 fn:data
@@ -81,7 +82,7 @@
     (lambda (arg)
       (cond ((pair? arg) (map xpath-fn:data arg))
 	    ;; ((array? args) ...)
-	    ((atomic? arg) arg) ;; correct?
+	    ((xs:any-atomic-type? arg) arg) ;; correct?
 	    (else (delegate arg))))))
 
 ;;;; 2.5 fn:base-uri
@@ -92,14 +93,11 @@
   (dm:delegate xpath-fn:document-uri xpath-dm:document-uri))
 
 ;;;; 19 Casting
-;;; we don't do much here for now
-(define (atomic? arg)
-  ;; TODO what do we want to support?
-  (or (string? arg) (integer? arg) (flonum? arg) (boolean? arg)))
-
 (define (atomic->string who atomic)
   (cond ((string? atomic) atomic)
 	((or (integer? atomic) (flonum? atomic)) (number->string atomic))
+	;; this may loose the original information when the value is
+	;; either 0 or 1...
 	((boolean? atomic) (if atomic "true" "false"))
 	(else (xpty0004-error who atomic))))
 

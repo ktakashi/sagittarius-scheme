@@ -62,8 +62,18 @@
 (define-record-type xs:any-simple-type
   (parent xs:any-type))
 
-(define-record-type xs:any-atomic-type
+(define-record-type (xs:any-atomic-type dummy %any-atomic-type?)
   (parent xs:any-simple-type))
+
+(define (xs:any-atomic-type? o)
+  (or (%any-atomic-type? o)
+      (string? o)  ;; anyURI base64Binary string
+      (integer? o) ;; decimal and its hierarchies
+      (real? o)	   ;; float double
+      (boolean? o) ;; boolean
+      ;; TODO date and dateTime (maybe srfi 19?)
+      ))
+
 
 (define-record-type xs:duration
   (parent xs:any-atomic-type)
