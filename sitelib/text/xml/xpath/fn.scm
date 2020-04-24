@@ -40,7 +40,14 @@
 	    xpath-fn:data
 	    xpath-fn:base-uri
 	    xpath-fn:document-uri
-	    xpath-fn:error)
+	    xpath-fn:error
+	    xpath-fn:trace
+	    xpath-op:numeric-add
+	    xpath-op:numeric-subtract
+	    xpath-op:numeric-multiply
+	    xpath-op:numeric-divide
+	    xpath-op:numeric-integer-divide
+	    )
     (import (rnrs)
 	    (text xml errors)
 	    (text xml dom)
@@ -119,9 +126,42 @@
 		   'xpath-fn:error description)
 	(xqt-error (string->symbol (xs:qname-local-part qname))
 		   'xpath-fn:error description error-object)))))
-   
 
-;;;; 19 Casting
+;;;; 3.2.1 fn:trace
+(define (xpath-fn:trace . args)
+  (raise (condition (make-implementation-restriction-violation)
+		    (make-who-condition 'xpath-fn:trace)
+		    (make-message-condition "xpath-fn:trace is not supported"))))
+
+;;; 4 Functions and operators on numerics
+(define-syntax fn:delegate-numeric-op
+  (syntax-rules ()
+    ((_ op) (lambda (v1 v2) (op v1 v2)))))
+;;;; 4.2.1 op:numeric-add
+(define xpath-op:numeric-add (fn:delegate-numeric-op +))
+;;;; 4.2.2 op:numeric-subtract
+(define xpath-op:numeric-subtract (fn:delegate-numeric-op -))
+;;;; 4.2.3 op:numeric-multiply
+(define xpath-op:numeric-multiply (fn:delegate-numeric-op *))
+;;;; 4.2.4 op:numeric-divide
+(define (xpath-op:numeric-divide v1 v2)
+  (and (integer? v2) (zero? v2)
+       (xqt-error 'FOAR0001 'xpath-op:numeric-divide "Dividing by 0" v1 v2))
+  (div v1 v2))
+;;;; 4.2.5 op:numeric-integer-divide
+(define (xpath-op:numeric-integer-divide x y)
+  (when (zero? y)
+    (xqt-error 'FOAR0001 'xpath-op:numeric-integer-divide "Dividing by 0" x y))
+  (when (infinite? x)
+    (xqt-error 'FOAR0002 'xpath-op:numeric-integer-divide "Argument is INF" x y))
+  (if (infinite? x)
+      0
+      (let ((r (/ x y)))
+	(if (negative? r)
+	    (exact (ceiling r))
+	    (exact (floor r))))))
+      
+;;; 19 Casting
 (define (atomic->string who atomic)
   (cond ((string? atomic) atomic)
 	((or (integer? atomic) (flonum? atomic)) (number->string atomic))

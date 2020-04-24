@@ -81,8 +81,37 @@
     (test-xqt-error Unknown
 		    (xpath-fn:error
 		     (xs:make-qname "don't care for now" "Unknown")))
-    ))
+    )
+  (test-group "fn:trace"
+    (test-error implementation-restriction-violation?
+		(xpath-fn:trace)))
+  )
 
+(test-group "Functions and operators on numerics"
+  (test-group "op:numeric-add"
+    (test-equal 2 (xpath-op:numeric-add 1 1)))
+  (test-group "op:numeric-subtract"
+    (test-equal 0 (xpath-op:numeric-subtract 1 1)))
+  (test-group "op:numeric-multiply"
+    (test-equal 1 (xpath-op:numeric-multiply 1 1)))
+  (test-group "op:numeric-divide"
+    (test-equal 1 (xpath-op:numeric-divide 2 2)))
+
+  (test-group "op:numeric-integer-divide"
+    (test-equal 3 (xpath-op:numeric-integer-divide 10 3))
+    (test-equal -1 (xpath-op:numeric-integer-divide 3 -2))
+    (test-equal -1 (xpath-op:numeric-integer-divide -3 2))
+    (test-equal 1 (xpath-op:numeric-integer-divide 3 2))
+    (test-equal 3 (xpath-op:numeric-integer-divide 9.0 3))
+    (test-equal -1 (xpath-op:numeric-integer-divide -3.5 3))
+    (test-equal 0 (xpath-op:numeric-integer-divide 3.0 4))
+    (test-equal 5 (xpath-op:numeric-integer-divide 3.1e1 6))
+    (test-equal 4 (xpath-op:numeric-integer-divide 3.1e1 7))
+    (test-xqt-error FOAR0001 (xpath-op:numeric-integer-divide 1 0))
+    (test-xqt-error FOAR0002 (xpath-op:numeric-integer-divide +inf.0 1))
+    )
+  
+  )
 
 (test-end)
 
