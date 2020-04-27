@@ -110,7 +110,22 @@
     (test-xqt-error FOAR0001 (xpath-op:numeric-integer-divide 1 0))
     (test-xqt-error FOAR0002 (xpath-op:numeric-integer-divide +inf.0 1))
     )
-  
+
+  (test-group "op:numeric-mod"
+    (test-equal 1   (xpath-op:numeric-mod 10 3))
+    (test-equal 0   (xpath-op:numeric-mod 6 -2))
+    (test-approximate 0.9 (xpath-op:numeric-mod 4.5 1.2) 0.0000005)
+    (test-equal 3.0 (xpath-op:numeric-mod 1.23e2 0.6e1))
+    (test-xqt-error FOAR0001 (xpath-op:numeric-mod 1 0)))
+
+  (test-group "op:numeric-unary-plus"
+    (test-equal 1 (xpath-op:numeric-unary-plus 1)))
+
+  (test-group "op:numeric-unary-minus"
+    (test-equal 0 (xpath-op:numeric-unary-minus 0))
+    (test-equal -0.0 (xpath-op:numeric-unary-minus 0.0))
+    (test-equal +nan.0 (xpath-op:numeric-unary-minus +nan.0))
+    (test-equal -inf.0 (xpath-op:numeric-unary-minus +inf.0)))
   )
 
 (test-end)

@@ -47,6 +47,9 @@
 	    xpath-op:numeric-multiply
 	    xpath-op:numeric-divide
 	    xpath-op:numeric-integer-divide
+	    xpath-op:numeric-mod
+	    xpath-op:numeric-unary-plus
+	    xpath-op:numeric-unary-minus
 	    )
     (import (rnrs)
 	    (text xml errors)
@@ -160,7 +163,17 @@
 	(if (negative? r)
 	    (exact (ceiling r))
 	    (exact (floor r))))))
-      
+;;;; 4.2.6 op:numeric-mod
+(define (xpath-op:numeric-mod v1 v2)
+  (and (zero? v2)
+       (xqt-error 'FOAR0001 'xpath-op:numeric-divide "Dividing by 0" v1 v2))
+  (mod v1 v2))
+
+;;;; 4.2.7 op:numeric-unary-plus
+(define (xpath-op:numeric-unary-plus x) (+ x))
+;;;; 4.2.8 op:numeric-unary-minus
+(define (xpath-op:numeric-unary-minus x) (- x))
+
 ;;; 19 Casting
 (define (atomic->string who atomic)
   (cond ((string? atomic) atomic)
