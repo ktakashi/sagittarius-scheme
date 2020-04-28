@@ -88,44 +88,96 @@
   )
 
 (test-group "Functions and operators on numerics"
-  (test-group "op:numeric-add"
-    (test-equal 2 (xpath-op:numeric-add 1 1)))
-  (test-group "op:numeric-subtract"
-    (test-equal 0 (xpath-op:numeric-subtract 1 1)))
-  (test-group "op:numeric-multiply"
-    (test-equal 1 (xpath-op:numeric-multiply 1 1)))
-  (test-group "op:numeric-divide"
-    (test-equal 1 (xpath-op:numeric-divide 2 2)))
+  (test-group "Arithmetic operators on numeric values"
+    (test-group "op:numeric-add"
+      (test-equal 2 (xpath-op:numeric-add 1 1)))
+    (test-group "op:numeric-subtract"
+      (test-equal 0 (xpath-op:numeric-subtract 1 1)))
+    (test-group "op:numeric-multiply"
+      (test-equal 1 (xpath-op:numeric-multiply 1 1)))
+    (test-group "op:numeric-divide"
+      (test-equal 1 (xpath-op:numeric-divide 2 2)))
 
-  (test-group "op:numeric-integer-divide"
-    (test-equal 3 (xpath-op:numeric-integer-divide 10 3))
-    (test-equal -1 (xpath-op:numeric-integer-divide 3 -2))
-    (test-equal -1 (xpath-op:numeric-integer-divide -3 2))
-    (test-equal 1 (xpath-op:numeric-integer-divide 3 2))
-    (test-equal 3 (xpath-op:numeric-integer-divide 9.0 3))
-    (test-equal -1 (xpath-op:numeric-integer-divide -3.5 3))
-    (test-equal 0 (xpath-op:numeric-integer-divide 3.0 4))
-    (test-equal 5 (xpath-op:numeric-integer-divide 3.1e1 6))
-    (test-equal 4 (xpath-op:numeric-integer-divide 3.1e1 7))
-    (test-xqt-error FOAR0001 (xpath-op:numeric-integer-divide 1 0))
-    (test-xqt-error FOAR0002 (xpath-op:numeric-integer-divide +inf.0 1))
+    (test-group "op:numeric-integer-divide"
+      (test-equal 3 (xpath-op:numeric-integer-divide 10 3))
+      (test-equal -1 (xpath-op:numeric-integer-divide 3 -2))
+      (test-equal -1 (xpath-op:numeric-integer-divide -3 2))
+      (test-equal 1 (xpath-op:numeric-integer-divide 3 2))
+      (test-equal 3 (xpath-op:numeric-integer-divide 9.0 3))
+      (test-equal -1 (xpath-op:numeric-integer-divide -3.5 3))
+      (test-equal 0 (xpath-op:numeric-integer-divide 3.0 4))
+      (test-equal 5 (xpath-op:numeric-integer-divide 3.1e1 6))
+      (test-equal 4 (xpath-op:numeric-integer-divide 3.1e1 7))
+      (test-xqt-error FOAR0001 (xpath-op:numeric-integer-divide 1 0))
+      (test-xqt-error FOAR0002 (xpath-op:numeric-integer-divide +inf.0 1))
+      )
+
+    (test-group "op:numeric-mod"
+      (test-equal 1   (xpath-op:numeric-mod 10 3))
+      (test-equal 0   (xpath-op:numeric-mod 6 -2))
+      (test-approximate 0.9 (xpath-op:numeric-mod 4.5 1.2) 0.0000005)
+      (test-equal 3.0 (xpath-op:numeric-mod 1.23e2 0.6e1))
+      (test-xqt-error FOAR0001 (xpath-op:numeric-mod 1 0)))
+
+    (test-group "op:numeric-unary-plus"
+      (test-equal 1 (xpath-op:numeric-unary-plus 1)))
+
+    (test-group "op:numeric-unary-minus"
+      (test-equal 0 (xpath-op:numeric-unary-minus 0))
+      (test-equal -0.0 (xpath-op:numeric-unary-minus 0.0))
+      (test-equal +nan.0 (xpath-op:numeric-unary-minus +nan.0))
+      (test-equal -inf.0 (xpath-op:numeric-unary-minus +inf.0)))
+    )
+  
+  (test-group "Comparison operators on numeric values"
+    (test-group "op:numeric-equal"
+      (test-assert (xpath-op:numeric-equal +inf.0 +inf.0))
+      (test-assert (xpath-op:numeric-equal -inf.0 -inf.0))
+      (test-assert (xpath-op:numeric-equal 0.0 -0.0))
+      (test-assert (not (xpath-op:numeric-equal +nan.0 +nan.0))))
+  
+    (test-group "op:numeric-less-than"
+      (test-assert (xpath-op:numeric-less-than 100 +inf.0))
+      (test-assert (xpath-op:numeric-less-than -inf.0 100))
+      (test-assert (not (xpath-op:numeric-less-than 0 +nan.0)))
+      (test-assert (not (xpath-op:numeric-less-than +nan.0 0))))
+
+    (test-group "op:numeric-greater-than"
+      (test-assert (xpath-op:numeric-greater-than +inf.0 100))
+      (test-assert (xpath-op:numeric-greater-than 100 -inf.0))
+      (test-assert (not (xpath-op:numeric-greater-than 0 +nan.0)))
+      (test-assert (not (xpath-op:numeric-greater-than +nan.0 0))))
     )
 
-  (test-group "op:numeric-mod"
-    (test-equal 1   (xpath-op:numeric-mod 10 3))
-    (test-equal 0   (xpath-op:numeric-mod 6 -2))
-    (test-approximate 0.9 (xpath-op:numeric-mod 4.5 1.2) 0.0000005)
-    (test-equal 3.0 (xpath-op:numeric-mod 1.23e2 0.6e1))
-    (test-xqt-error FOAR0001 (xpath-op:numeric-mod 1 0)))
+  (test-group "Functions on numeric values"
+    (test-group "fn:abs"
+      (test-equal 10.5 (xpath-fn:abs 10.5))
+      (test-equal 10.5 (xpath-fn:abs -10.5)))
 
-  (test-group "op:numeric-unary-plus"
-    (test-equal 1 (xpath-op:numeric-unary-plus 1)))
+    (test-group "fn:ceiling"
+      (test-equal 11.0 (xpath-fn:ceiling 10.5))
+      (test-equal -10.0 (xpath-fn:ceiling -10.5)))
+    
+    (test-group "fn:floor"
+      (test-equal 10.0 (xpath-fn:floor 10.5))
+      (test-equal -11.0 (xpath-fn:floor -10.5)))
+    
+    (test-group "fn:round"
+      (test-equal 3.0 (xpath-fn:round 2.5))
+      (test-equal 2.0 (xpath-fn:round 2.49999))
+      (test-equal -2.0 (xpath-fn:round -2.5))
+      )
 
-  (test-group "op:numeric-unary-minus"
-    (test-equal 0 (xpath-op:numeric-unary-minus 0))
-    (test-equal -0.0 (xpath-op:numeric-unary-minus 0.0))
-    (test-equal +nan.0 (xpath-op:numeric-unary-minus +nan.0))
-    (test-equal -inf.0 (xpath-op:numeric-unary-minus +inf.0)))
+    (test-group "fn:round-half-to-even"
+      (test-equal 0.0 (xpath-fn:round-half-to-even 0.5))
+      (test-equal 2.0 (xpath-fn:round-half-to-even 1.5))
+      (test-equal 2.0 (xpath-fn:round-half-to-even 2.5))
+      (test-equal 3567.81 (xpath-fn:round-half-to-even 3.567812e3 2))
+      (test-equal 0.0 (xpath-fn:round-half-to-even 4.7564e-3 2))
+      (test-equal 35600.0 (xpath-fn:round-half-to-even 35612.25 -2))
+      )
+    )
+  
   )
 
 (test-end)

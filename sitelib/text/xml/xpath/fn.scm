@@ -50,8 +50,17 @@
 	    xpath-op:numeric-mod
 	    xpath-op:numeric-unary-plus
 	    xpath-op:numeric-unary-minus
+	    xpath-op:numeric-equal
+	    xpath-op:numeric-less-than
+	    xpath-op:numeric-greater-than
+	    xpath-fn:abs
+	    xpath-fn:ceiling
+	    xpath-fn:floor
+	    xpath-fn:round
+	    xpath-fn:round-half-to-even
 	    )
     (import (rnrs)
+	    (srfi :144 flonums)
 	    (text xml errors)
 	    (text xml dom)
 	    (text xml schema)
@@ -173,6 +182,40 @@
 (define (xpath-op:numeric-unary-plus x) (+ x))
 ;;;; 4.2.8 op:numeric-unary-minus
 (define (xpath-op:numeric-unary-minus x) (- x))
+
+;;;; 4.3.1 op:numeric-equal
+(define xpath-op:numeric-equal (fn:delegate-numeric-op =))
+;;;; 4.3.2 op:numeric-less-than
+(define xpath-op:numeric-less-than (fn:delegate-numeric-op <))
+;;;; 4.3.3 op:numeric-greater-than
+(define xpath-op:numeric-greater-than (fn:delegate-numeric-op >))
+
+(define-syntax fn:delegate-numeric-unary-fn
+  (syntax-rules ()
+    ;; TODO type check but which error?
+    ((_ fn) (lambda (v1) (fn v1)))))
+;;;; 4.4.1 fn:abs
+(define xpath-fn:abs (fn:delegate-numeric-unary-fn abs))
+;;;; 4.4.2 fn:ceiling
+(define xpath-fn:ceiling (fn:delegate-numeric-unary-fn ceiling))
+;;;; 4.4.3 fn:floor
+(define xpath-fn:floor (fn:delegate-numeric-unary-fn floor))
+;;;; 4.4.4 fn:round
+(define xpath-fn:round
+  (case-lambda
+   ((arg) (xpath-fn:round arg 0))
+   ((arg precision)
+    ;; for now it's not a good way of doing it :(
+    (let ((lift (expt 10.0 precision)))
+      (let-values (((i f) (flinteger-fraction (* arg lift))))
+	(/ (if (>= f 0.5) (+ i 1) i) lift))))))
+;;;; 4.4.5 fn:round-half-to-even
+(define xpath-fn:round-half-to-even
+  (case-lambda
+   ((arg) (xpath-fn:round-half-to-even arg 0))
+   ((arg precision)
+    (let ((lift (expt 10.0 precision)))
+      (/ (round (* arg lift)) lift)))))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
