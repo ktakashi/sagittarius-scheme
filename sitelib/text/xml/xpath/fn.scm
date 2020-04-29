@@ -58,6 +58,14 @@
 	    xpath-fn:floor
 	    xpath-fn:round
 	    xpath-fn:round-half-to-even
+	    xpath-fn:number
+	    xpath-fn:format-integer
+	    xpath-fn:format-number
+	    xpath-math:pi
+	    xpath-math:exp
+	    xpath-math:exp10
+	    xpath-math:log
+	    xpath-math:log10
 	    )
     (import (rnrs)
 	    (srfi :144 flonums)
@@ -216,6 +224,51 @@
    ((arg precision)
     (let ((lift (expt 10.0 precision)))
       (/ (round (* arg lift)) lift)))))
+
+;;;; 4.5.1 fn:number
+;;;; fn:number($arg as xs:anyAtomicType?) as xs:double
+(define (xpath-fn:number arg)
+  (cond ((string->number (xpath-fn:string arg)) => inexact)
+	(else +nan.0)))
+
+;;;; 4.6.1 fn:format-integer
+(define xpath-fn:format-integer
+  (case-lambda
+   ((value picture)
+    (xpath-fn:format-integer value picture "en"))
+   ((value picture lang)
+    (raise (condition (make-implementation-restriction-violation)
+		      (make-who-condition 'xpath-fn:format-integer)
+		      (make-message-condition "Not supported yet"))))))
+
+;;;; 4.7.2 fn:format-number
+(define xpath-fn:format-number
+  (case-lambda
+   ((value picture)
+    (xpath-fn:format-number value picture "default"))
+   ((value picture decimal-format-name)
+    (raise (condition (make-implementation-restriction-violation)
+		      (make-who-condition 'xpath-fn:format-number)
+		      (make-message-condition "Not supported yet"))))))
+
+;;;; 4.8.1 math:pi
+(define (xpath-math:pi) fl-pi)
+
+(define-syntax math:delegate-unary-fun
+  (identifier-syntax fn:delegate-numeric-unary-fn))
+;;;; 4.8.2 math:exp
+(define (xpath-math:exp x) (exp (inexact x)))
+;;;; 4.8.3 math:exp10
+(define (xpath-math:exp10 x) (expt 10.0 x))
+;;;; 4.8.4 math:log
+(define (xpath-math:log x)
+  (let ((r (log (inexact x))))
+    (if (real? r) r +nan.0)))
+	       
+;;;; 4.8.5 math:log10
+(define (xpath-math:log10 x)
+  (let ((r (log (inexact x) 10)))
+    (if (real? r) r +nan.0)))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

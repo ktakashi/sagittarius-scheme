@@ -177,7 +177,75 @@
       (test-equal 35600.0 (xpath-fn:round-half-to-even 35612.25 -2))
       )
     )
-  
+
+  (test-group "Parsing numbers"
+    (test-equal 1.5e1 (xpath-fn:number "15")))
+
+  (test-group "Formatting integers"
+    (test-assert "at least exported" xpath-fn:format-integer)
+    (test-expect-fail 5)
+    (test-equal "0123" (xpath-fn:format-integer 123 "0000"))
+    (test-equal "21st" (xpath-fn:format-integer 21 "1;o" "en"))
+    (test-equal "g" (xpath-fn:format-integer 7 "a"))
+    (test-equal "LVII" (xpath-fn:format-integer 57 "I"))
+    (test-equal "1;234" (xpath-fn:format-integer 123 "#;##0;"))
+    )
+
+  (test-group "Formatting numbers"
+    (test-assert "at least exported" xpath-fn:format-number)
+    (test-expect-fail 5)
+    (test-equal "12,345.60" (xpath-fn:format-number 12345.6 "#,###.00"))
+    (test-equal "12,345,678.90" (xpath-fn:format-number 12345678.9 "9,999.99"))
+    (test-equal "0124" (xpath-fn:format-number 123.9 "9,999.99"))
+    (test-equal "14%" (xpath-fn:format-number 0.14 "01%"))
+    (test-equal "-006" (xpath-fn:format-number -6 "000"))
+    ;; TODO should we support fortran at least?
+    )
+
+  (test-group "Trigonometric and exponential functions"
+    (test-group "math:pi"
+      (test-approximate 3.1415 (xpath-math:pi) 0.0001))
+    
+    (test-group "math:exp"
+      (test-equal 1.0 (xpath-math:exp 0))
+      (test-approximate 2.718281828 (xpath-math:exp 1) 0.000000001)
+      (test-equal 7.38905609893065e0 (xpath-math:exp 2))
+      (test-equal 0.36787944117144233e0 (xpath-math:exp -1))
+      (test-equal 23.140692632779267e0 (xpath-math:exp (xpath-math:pi)))
+      (test-equal +nan.0 (xpath-math:exp +nan.0))
+      (test-equal +inf.0 (xpath-math:exp +inf.0))
+      (test-equal 0.0 (xpath-math:exp -inf.0)))
+      
+    (test-group "math:exp10"
+      (test-equal 1.0 (xpath-math:exp10 0))
+      (test-equal 1.0e1 (xpath-math:exp10 1))
+      (test-equal 3.1622776601683795e0 (xpath-math:exp10 0.5))
+      (test-equal 1.0e-1 (xpath-math:exp10 -1))
+      (test-equal +nan.0 (xpath-math:exp10 +nan.0))
+      (test-equal +inf.0 (xpath-math:exp10 +inf.0))
+      (test-equal 0.0 (xpath-math:exp10 -inf.0)))
+
+    (test-group "math:log"
+      (test-equal -inf.0 (xpath-math:log 0))
+      (test-equal 1.0e0 (xpath-math:log (xpath-math:exp 1)))
+      (test-equal -6.907755278982137e0 (xpath-math:log 1.0e-3))
+      (test-equal 0.6931471805599453e0 (xpath-math:log 2))
+      (test-equal +nan.0 (xpath-math:log -1))
+      (test-equal +nan.0 (xpath-math:log +nan.0))
+      (test-equal +inf.0 (xpath-math:log +inf.0))
+      (test-equal +nan.0 (xpath-math:log -inf.0)))
+
+    (test-group "math:log10"
+      (test-equal -inf.0 (xpath-math:log10 0))
+      ;; bah
+      (test-approximate 3.0e0 (xpath-math:log10 1.0e3) 0.00000000000001)
+      (test-approximate -3.0e0 (xpath-math:log10 1.0e-3) 0.00000000000001)
+      (test-approximate 0.3010299956639812e0 (xpath-math:log10 2) 0.000000000001)
+      (test-equal +nan.0 (xpath-math:log10 -1))
+      (test-equal +nan.0 (xpath-math:log10 +nan.0))
+      (test-equal +inf.0 (xpath-math:log10 +inf.0))
+      (test-equal +nan.0 (xpath-math:log10 -inf.0)))
+    )
   )
 
 (test-end)
