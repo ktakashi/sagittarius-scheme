@@ -2290,4 +2290,8 @@
   (test-equal "ÿ is not \xff;" expected
 	      (call-with-input-file tmp get-bytevector-all :transcoder #f)))
 
+;; special case of (expt -0.0 x)
+(test-equal -0.0 (expt -0.0 3))
+(test-equal 0.0 (expt -0.0 4))
+
 (test-end)

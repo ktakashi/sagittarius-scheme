@@ -2641,9 +2641,15 @@ static SgObject expt_body(SgObject x, SgObject y)
 {
   if (SG_FLONUMP(x) && SG_FLONUM_VALUE(x) == 0.0) {
     if (SG_COMPLEXP(y)) {
-      if (Sg_PositiveP(SG_COMPLEX(y)->real)) return Sg_MakeFlonum(0.0);
+      if (Sg_PositiveP(SG_COMPLEX(y)->real)) return SG_FL_POSITIVE_ZERO;
     } else {
-      if (Sg_PositiveP(y)) return Sg_MakeFlonum(0.0);
+      if (Sg_PositiveP(y)) {
+	int exp, sign;
+	Sg_DecodeFlonum(SG_FLONUM_VALUE(x), &exp, &sign);
+	if (sign < 0)
+	  return Sg_OddP(y) ? SG_FL_NEGATIVE_ZERO : SG_FL_POSITIVE_ZERO;
+	return SG_FL_POSITIVE_ZERO;
+      }
     }
   }
   if (Sg_ExactP(y)) {
