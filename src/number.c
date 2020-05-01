@@ -2637,6 +2637,17 @@ SgObject Sg_Modulo(SgObject x, SgObject y, int remp)
 #undef do_complex
 }
 
+static double cos_pi(double x)
+{
+  return cos(M_PI * x);
+}
+
+static double sin_pi(double x)
+{
+  return sin(M_PI * x);
+}
+
+
 static SgObject expt_body(SgObject x, SgObject y)
 {
   if (SG_FLONUMP(x) && SG_FLONUM_VALUE(x) == 0.0) {
@@ -2686,9 +2697,15 @@ static SgObject expt_body(SgObject x, SgObject y)
     else goto bad_arg;
   } else {
     if (SG_FLONUMP(y)) {
-      if (SG_REALP(x) && !Sg_NegativeP(x)) {
+      if (SG_REALP(x)) {
 	double n = SG_FLONUM_VALUE(y);
-	return Sg_MakeFlonum(pow(Sg_GetDouble(x), n));
+	double m = Sg_GetDouble(x);
+	if (n < 0 && !Sg_IntegerP(x)) {
+	  /* x^y = exp(y * log(x)) = exp(y*log(|x|))*exp(y*arg(x)*i) */
+	  double mag = exp(n * log(-m));
+	  return Sg_MakeComplex(Sg_MakeFlonum(mag * cos_pi(n)),
+				Sg_MakeFlonum(mag * sin_pi(n)));
+	} else return Sg_MakeFlonum(pow(m, n));
       }
       else return Sg_Exp(Sg_Mul(y, Sg_Log(x)));
     } else {
