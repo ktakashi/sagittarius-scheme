@@ -66,6 +66,7 @@
 	    xpath-math:exp10
 	    xpath-math:log
 	    xpath-math:log10
+	    xpath-math:pow
 	    )
     (import (rnrs)
 	    (srfi :144 flonums)
@@ -264,11 +265,13 @@
 (define (xpath-math:log x)
   (let ((r (log (inexact x))))
     (if (real? r) r +nan.0)))
-	       
 ;;;; 4.8.5 math:log10
 (define (xpath-math:log10 x)
   (let ((r (log (inexact x) 10)))
     (if (real? r) r +nan.0)))
+;;;; 4.8.6 math:pow
+(define (xpath-math:pow x y)
+  (inexact (expt x y)))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

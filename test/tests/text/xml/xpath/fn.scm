@@ -245,6 +245,27 @@
       (test-equal +nan.0 (xpath-math:log10 +nan.0))
       (test-equal +inf.0 (xpath-math:log10 +inf.0))
       (test-equal +nan.0 (xpath-math:log10 -inf.0)))
+
+    (test-group "math:pow"
+      (test-equal 8.0 (xpath-math:pow 2 3))
+      (test-equal -8.0 (xpath-math:pow -2 3))
+      (test-equal 0.125 (xpath-math:pow 2 -3))
+      (test-equal -0.125 (xpath-math:pow -2 -3))
+      (test-equal 1.0 (xpath-math:pow 2 0))
+      (test-equal 1.0 (xpath-math:pow 0 0))
+      (test-equal 1.0 (xpath-math:pow +inf.0 0))
+      (test-equal 1.0 (xpath-math:pow +nan.0 0))
+      (test-equal 1.0 (xpath-math:pow (- (xpath-math:pi)) 0))
+      (test-equal 0.0 (xpath-math:pow 0 3))
+      (test-equal 0.0 (xpath-math:pow 0 4))
+      (test-equal -0.0 (xpath-math:pow -0.0 3))
+      (test-equal +inf.0 (xpath-math:pow 0.0 -3))
+      (test-equal +inf.0 (xpath-math:pow 0.0 -4))
+      (test-equal -inf.0 (xpath-math:pow -0.0 -3))
+      (test-equal +inf.0 (xpath-math:pow 0.0 -3.1))
+      (test-equal +inf.0 (xpath-math:pow -0.0 -3.1))
+      )
+    
     )
   )
 
