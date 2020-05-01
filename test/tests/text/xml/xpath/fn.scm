@@ -264,8 +264,27 @@
       (test-equal -inf.0 (xpath-math:pow -0.0 -3))
       (test-equal +inf.0 (xpath-math:pow 0.0 -3.1))
       (test-equal +inf.0 (xpath-math:pow -0.0 -3.1))
+      (test-equal 0.0 (xpath-math:pow 0.0 3.1))
+      (test-equal -0.0 (xpath-math:pow -0.0 3.0))
+      (test-equal 1.0 (xpath-math:pow -1 +inf.0))
+      (test-equal 1.0 (xpath-math:pow -1 -inf.0))
+      (test-equal 1.0 (xpath-math:pow 1 +inf.0))
+      (test-equal 1.0 (xpath-math:pow 1 -inf.0))
+      (test-equal 1.0 (xpath-math:pow 1 +nan.0))
+      (test-equal 6.25 (xpath-math:pow -2.5 2.0))
+      (test-equal +nan.0 (xpath-math:pow -2.5 2.00000001e0))
       )
-    
+
+    (test-group "math:sqrt"
+      (test-equal 0.0 (xpath-math:sqrt 0.0))
+      (test-equal -0.0 (xpath-math:sqrt -0.0))
+      (test-equal 1.0e3 (xpath-math:sqrt 1.0e6))
+      (test-equal 1.4142135623730951e0 (xpath-math:sqrt 2.0))
+      (test-equal +nan.0 (xpath-math:sqrt -2.0))
+      (test-equal +nan.0 (xpath-math:sqrt +nan.0))
+      (test-equal +inf.0 (xpath-math:sqrt +inf.0))
+      (test-equal +nan.0 (xpath-math:sqrt -inf.0))
+      )
     )
   )
 

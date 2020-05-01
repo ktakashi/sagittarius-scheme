@@ -67,6 +67,7 @@
 	    xpath-math:log
 	    xpath-math:log10
 	    xpath-math:pow
+	    xpath-math:sqrt
 	    )
     (import (rnrs)
 	    (srfi :144 flonums)
@@ -255,23 +256,24 @@
 ;;;; 4.8.1 math:pi
 (define (xpath-math:pi) fl-pi)
 
-(define-syntax math:delegate-unary-fun
-  (identifier-syntax fn:delegate-numeric-unary-fn))
 ;;;; 4.8.2 math:exp
 (define (xpath-math:exp x) (exp (inexact x)))
 ;;;; 4.8.3 math:exp10
 (define (xpath-math:exp10 x) (expt 10.0 x))
+(define-syntax ->nan
+  (syntax-rules ()
+    ((_ exp)
+     (let ((r exp)) (if (real? r) r +nan.0)))))
 ;;;; 4.8.4 math:log
-(define (xpath-math:log x)
-  (let ((r (log (inexact x))))
-    (if (real? r) r +nan.0)))
+(define (xpath-math:log x) (->nan (log (inexact x))))
 ;;;; 4.8.5 math:log10
-(define (xpath-math:log10 x)
-  (let ((r (log (inexact x) 10)))
-    (if (real? r) r +nan.0)))
+(define (xpath-math:log10 x) (->nan (log (inexact x) 10)))
 ;;;; 4.8.6 math:pow
 (define (xpath-math:pow x y)
   (inexact (expt x y)))
+;;;; 4.8.7 math:sqrt
+(define (xpath-math:sqrt x) (->nan (inexact (sqrt x))))
+
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
