@@ -68,6 +68,13 @@
 	    xpath-math:log10
 	    xpath-math:pow
 	    xpath-math:sqrt
+	    xpath-math:sin
+	    xpath-math:cos
+	    xpath-math:tan
+	    xpath-math:asin
+	    xpath-math:acos
+	    xpath-math:atan
+	    xpath-math:atan2
 	    )
     (import (rnrs)
 	    (srfi :144 flonums)
@@ -273,6 +280,20 @@
   (inexact (expt x y)))
 ;;;; 4.8.7 math:sqrt
 (define (xpath-math:sqrt x) (->nan (inexact (sqrt x))))
+;;;; 4.8.8 math:sin
+(define (xpath-math:sin x) (->nan (inexact (sin x))))
+;;;; 4.8.9 math:cos
+(define (xpath-math:cos x) (->nan (inexact (cos x))))
+;;;; 4.8.10 math:tan
+(define (xpath-math:tan x) (->nan (inexact (tan x))))
+;;;; 4.8.11 math:asin
+(define (xpath-math:asin x) (->nan (inexact (asin x))))
+;;;; 4.8.12 math:acos
+(define (xpath-math:acos x) (->nan (inexact (acos x))))
+;;;; 4.8.13 math:atan
+(define (xpath-math:atan x) (->nan (inexact (atan x))))
+;;;; 4.8.14 math:atan2
+(define (xpath-math:atan2 x y) (->nan (inexact (atan x y))))
 
 
 ;;; 19 Casting

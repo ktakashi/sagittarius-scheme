@@ -285,6 +285,77 @@
       (test-equal +inf.0 (xpath-math:sqrt +inf.0))
       (test-equal +nan.0 (xpath-math:sqrt -inf.0))
       )
+
+    (test-group "math:sin"
+      (test-equal 0.0 (xpath-math:sin 0))
+      (test-equal -0.0 (xpath-math:sin -0.0))
+      (test-equal 1.0 (xpath-math:sin (/ (xpath-math:pi) 2)))
+      (test-equal -1.0 (xpath-math:sin (/ (- (xpath-math:pi)) 2)))
+      (test-approximate 0.0 (xpath-math:sin (xpath-math:pi)) 0.1e-10)
+      (test-equal +nan.0 (xpath-math:sin +nan.0))
+      (test-equal +nan.0 (xpath-math:sin +inf.0))
+      (test-equal +nan.0 (xpath-math:sin -inf.0)))
+
+    (test-group "math:cos"
+      (test-equal 1.0 (xpath-math:cos 0))
+      (test-equal 1.0 (xpath-math:cos -0.0))
+      (test-approximate 0.0 (xpath-math:cos (/ (xpath-math:pi) 2)) 0.1e-10)
+      (test-approximate 0.0 (xpath-math:cos (/ (- (xpath-math:pi)) 2)) 0.1e-10)
+      (test-approximate -1.0 (xpath-math:cos (xpath-math:pi)) 0.1e-10)
+      (test-equal +nan.0 (xpath-math:cos +nan.0))
+      (test-equal +nan.0 (xpath-math:cos +inf.0))
+      (test-equal +nan.0 (xpath-math:cos -inf.0)))
+
+    (test-group "math:tan"
+      (test-equal 0.0 (xpath-math:tan 0))
+      (test-equal -0.0 (xpath-math:tan -0.0))
+      (test-approximate 0.0 (/ 1 (xpath-math:tan (/ (xpath-math:pi) 2))) 0.1e-10)
+      (test-approximate -0.0 (/ 1 (xpath-math:tan (/ (- (xpath-math:pi)) 2))) 0.1e-10)
+      (test-approximate 0.0 (xpath-math:tan (xpath-math:pi)) 0.1e-10)
+      (test-equal +nan.0 (xpath-math:tan +nan.0))
+      (test-equal +nan.0 (xpath-math:tan +inf.0))
+      (test-equal +nan.0 (xpath-math:tan -inf.0)))
+
+    (test-group "math:asin"
+      (test-equal 0.0 (xpath-math:asin 0))
+      (test-equal -0.0 (xpath-math:asin -0.0))
+      (test-equal 1.5707963267948966e0 (xpath-math:asin 1.0))
+      (test-equal -1.5707963267948966e0 (xpath-math:asin -1.0))
+      (test-equal +nan.0 (xpath-math:asin 2.0))
+      (test-equal +nan.0 (xpath-math:asin +nan.0))
+      (test-equal +nan.0 (xpath-math:asin +inf.0))
+      (test-equal +nan.0 (xpath-math:asin -inf.0)))
+
+    (test-group "math:acos"
+      (test-approximate 1.5707963267948966e0 (xpath-math:acos 0) 0.1e-10)
+      (test-approximate 1.5707963267948966e0 (xpath-math:acos -0.0) 0.1e-10)
+      (test-equal 0.0 (xpath-math:acos 1.0))
+      (test-approximate 3.141592653589793e0 (xpath-math:acos -1.0) 0.1e-10)
+      (test-equal +nan.0 (xpath-math:acos 2.0))
+      (test-equal +nan.0 (xpath-math:acos +nan.0))
+      (test-equal +nan.0 (xpath-math:acos +inf.0))
+      (test-equal +nan.0 (xpath-math:acos -inf.0)))
+
+    (test-group "math:atan"
+      (test-equal 0.0 (xpath-math:atan 0))
+      (test-equal -0.0 (xpath-math:atan -0.0))
+      (test-approximate 0.7853981633974483e0 (xpath-math:atan 1.0) 0.1e-10)
+      (test-approximate -0.7853981633974483e0 (xpath-math:atan -1.0) 0.1e-10)
+      (test-equal +nan.0 (xpath-math:atan +nan.0))
+      (test-approximate 1.5707963267948966e0 (xpath-math:atan +inf.0) 0.1e-10)
+      (test-approximate -1.5707963267948966e0 (xpath-math:atan -inf.0) 0.1e-10))
+
+    (test-group "math:atan2"
+      (test-equal 0.0 (xpath-math:atan2 0.0 0.0))
+      (test-equal -0.0 (xpath-math:atan2 -0.0 0.0))
+      (test-approximate 3.141592653589793e0 (xpath-math:atan2 0.0 -0.0) 0.1e-10)
+      (test-approximate -3.141592653589793e0 (xpath-math:atan2 -0.0 -0.0) 0.1e-10)
+      (test-approximate -1.5707963267948966e0 (xpath-math:atan2 -1 0.0) 0.1e-10)
+      (test-approximate 1.5707963267948966e0 (xpath-math:atan2 1 0.0) 0.1e-10)
+      (test-approximate -3.141592653589793e0 (xpath-math:atan2 -0.0 -1) 0.1e-10)
+      (test-approximate 3.141592653589793e0 (xpath-math:atan2 0.0 -1) 0.1e-10)
+      (test-equal -0.0 (xpath-math:atan2 -0.0 1))
+      (test-equal 0.0 (xpath-math:atan2 0.0 1)))
     )
   )
 
