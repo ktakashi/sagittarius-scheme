@@ -75,6 +75,7 @@
 	    xpath-math:acos
 	    xpath-math:atan
 	    xpath-math:atan2
+	    xpath-fn:random-number-generator
 	    )
     (import (rnrs)
 	    (srfi :144 flonums)
@@ -295,6 +296,11 @@
 ;;;; 4.8.14 math:atan2
 (define (xpath-math:atan2 x y) (->nan (inexact (atan x y))))
 
+;;;; 4.9.1 fn:random-number-generator
+(define (xpath-fn:random-number-generator seed)
+  (raise (condition (make-implementation-restriction-violation)
+		    (make-who-condition 'xpath-fn:random-number-generator)
+		    (make-message-condition "Not supported"))))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
