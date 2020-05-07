@@ -76,11 +76,14 @@
 	    xpath-math:atan
 	    xpath-math:atan2
 	    xpath-fn:random-number-generator
+	    xpath-fn:codepoints-to-string
 	    )
     (import (rnrs)
+	    (srfi :14 char-sets)
 	    (srfi :144 flonums)
 	    (text xml errors)
 	    (text xml dom)
+	    (only (text xml dom parser) +xml:char-set+)
 	    (text xml schema)
 	    (text xml xpath dm))
 
@@ -301,6 +304,17 @@
   (raise (condition (make-implementation-restriction-violation)
 		    (make-who-condition 'xpath-fn:random-number-generator)
 		    (make-message-condition "Not supported"))))
+
+;;; 5 Functions on strings
+;;;; 5.2.1 fn:codepoints-to-string
+(define (xpath-fn:codepoints-to-string codepoints)
+  (define (integer->xml-char i)
+    (let ((c (integer->char i)))
+      (unless (char-set-contains? +xml:char-set+ c)
+	(xqt-error 'FOCH0001 'xpath-fn:codepoints-to-string
+		   "Invalid XML char" c))
+      c))
+  (list->string (map integer->xml-char codepoints)))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

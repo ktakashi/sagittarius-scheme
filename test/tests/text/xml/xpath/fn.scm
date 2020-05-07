@@ -1,3 +1,4 @@
+;;; -*- mode: scheme; coding: utf-8 -*-
 (import (rnrs)
 	(text xml dom)
 	(text xml errors)
@@ -357,6 +358,14 @@
       (test-equal -0.0 (xpath-math:atan2 -0.0 1))
       (test-equal 0.0 (xpath-math:atan2 0.0 1)))
     )
+  )
+
+(test-group "Functions on strings"
+  (test-group "fn:codepoints-to-string"
+    (test-equal "BACH" (xpath-fn:codepoints-to-string '(66 65 67 72)))
+    (test-equal "अशॊक" (xpath-fn:codepoints-to-string '(2309 2358 2378 2325)))
+    (test-equal "" (xpath-fn:codepoints-to-string '()))
+    (test-xqt-error FOCH0001 (xpath-fn:codepoints-to-string '(0))))
   )
 
 (test-end)
