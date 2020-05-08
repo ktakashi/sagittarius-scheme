@@ -77,6 +77,7 @@
 	    xpath-math:atan2
 	    xpath-fn:random-number-generator
 	    xpath-fn:codepoints-to-string
+	    xpath-fn:string-to-codepoints
 	    )
     (import (rnrs)
 	    (srfi :14 char-sets)
@@ -315,6 +316,10 @@
 		   "Invalid XML char" c))
       c))
   (list->string (map integer->xml-char codepoints)))
+
+;;;; fn:string-to-codepoints
+(define (xpath-fn:string-to-codepoints str)
+  (map char->integer (string->list str)))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

@@ -366,6 +366,10 @@
     (test-equal "अशॊक" (xpath-fn:codepoints-to-string '(2309 2358 2378 2325)))
     (test-equal "" (xpath-fn:codepoints-to-string '()))
     (test-xqt-error FOCH0001 (xpath-fn:codepoints-to-string '(0))))
+
+  (test-group "fn:string-to-codepoints"
+    (test-equal '(84 104 233 114 232 115 101) (xpath-fn:string-to-codepoints "Thérèse")))
+  
   )
 
 (test-end)
