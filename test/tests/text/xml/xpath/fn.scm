@@ -369,7 +369,20 @@
 
   (test-group "fn:string-to-codepoints"
     (test-equal '(84 104 233 114 232 115 101) (xpath-fn:string-to-codepoints "Thérèse")))
-  
+
+  (test-group "fn:compare"
+    (test-equal 0 (xpath-fn:compare "abc" "abc"))
+    (test-equal 1 (xpath-fn:compare "Strassen" "Strasse"))
+    ;; for now
+    (test-xqt-error FOCH0002 (xpath-fn:compare "" "" "http://www.w3.org/2013/colltion/UCA?lang=de;strength=primary"))
+    )
+
+  (test-group "fn:codepoint-equal"
+    (test-assert (xpath-fn:codepoint-equal "abcd" "abcd"))
+    (test-assert (not (xpath-fn:codepoint-equal "abcd" "abcd ")))
+    (test-assert (xpath-fn:codepoint-equal "" ""))
+    (test-equal '() (xpath-fn:codepoint-equal "" '()))
+    (test-equal '() (xpath-fn:codepoint-equal '() '())))
   )
 
 (test-end)

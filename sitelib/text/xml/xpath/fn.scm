@@ -78,8 +78,13 @@
 	    xpath-fn:random-number-generator
 	    xpath-fn:codepoints-to-string
 	    xpath-fn:string-to-codepoints
+	    xpath-fn:compare
+	    xpath-fn:codepoint-equal
+	    xpath-fn:collation-key
+	    xpath-fn:contains-token
 	    )
     (import (rnrs)
+	    (srfi :13 strings)
 	    (srfi :14 char-sets)
 	    (srfi :144 flonums)
 	    (text xml errors)
@@ -163,9 +168,8 @@
 
 ;;;; 3.2.1 fn:trace
 (define (xpath-fn:trace . args)
-  (raise (condition (make-implementation-restriction-violation)
-		    (make-who-condition 'xpath-fn:trace)
-		    (make-message-condition "xpath-fn:trace is not supported"))))
+  (implementation-restriction-violation 'xpath-fn:trace
+					"xpath-fn:trace is not supported"))
 
 ;;; 4 Functions and operators on numerics
 (define-syntax fn:delegate-numeric-op
@@ -251,9 +255,8 @@
    ((value picture)
     (xpath-fn:format-integer value picture "en"))
    ((value picture lang)
-    (raise (condition (make-implementation-restriction-violation)
-		      (make-who-condition 'xpath-fn:format-integer)
-		      (make-message-condition "Not supported yet"))))))
+    (implementation-restriction-violation 'xpath-fn:format-integer
+					  "Not supported yet"))))
 
 ;;;; 4.7.2 fn:format-number
 (define xpath-fn:format-number
@@ -261,9 +264,8 @@
    ((value picture)
     (xpath-fn:format-number value picture "default"))
    ((value picture decimal-format-name)
-    (raise (condition (make-implementation-restriction-violation)
-		      (make-who-condition 'xpath-fn:format-number)
-		      (make-message-condition "Not supported yet"))))))
+    (implementation-restriction-violation 'xpath-fn:format-number
+					  "Not supported yet"))))
 
 ;;;; 4.8.1 math:pi
 (define (xpath-math:pi) fl-pi)
@@ -302,9 +304,8 @@
 
 ;;;; 4.9.1 fn:random-number-generator
 (define (xpath-fn:random-number-generator seed)
-  (raise (condition (make-implementation-restriction-violation)
-		    (make-who-condition 'xpath-fn:random-number-generator)
-		    (make-message-condition "Not supported"))))
+  (implementation-restriction-violation 'xpath-fn:random-number-generator
+					"Not supported"))
 
 ;;; 5 Functions on strings
 ;;;; 5.2.1 fn:codepoints-to-string
@@ -317,9 +318,40 @@
       c))
   (list->string (map integer->xml-char codepoints)))
 
-;;;; fn:string-to-codepoints
+;;;; 5.2.2 fn:string-to-codepoints
 (define (xpath-fn:string-to-codepoints str)
   (map char->integer (string->list str)))
+
+;;;; 5.3.6 fn:compare
+(define xpath-fn:compare
+  (case-lambda
+   ((arg0 arg1) (xpath-fn:compare arg0 arg1 "default"))
+   ((s0 s1 collation)
+    ;; TODO support collation
+    (unless (string=? collation "default")
+      (xqt-error 'FOCH0002 'xpath-fn:compare "Not supported" collation))
+    (string-compare s0 s1 (lambda (_) -1) (lambda (_) 0) (lambda (_) 1)))))
+
+;;;; 5.3.7 fn:codepoint-equal
+(define (xpath-fn:codepoint-equal s1 s2)
+  (if (or (null? s1) (null? s2))
+      '()
+      (string=? s1 s2)))
+
+;;;; 5.3.8 fn:collation-key
+(define xpath-fn:collation-key
+  (case-lambda
+   ((key) (xpath-fn:collation-key key "default"))
+   ((key collation)
+    (implementation-restriction-violation 'xpath-fn:collation-key "Not supported yet"))))
+
+;;;; 5.3.9 fn:contains-token
+(define xpath-fn:contains-token
+  (case-lambda
+   ((input token) (xpath-fn:contains-token input token "default"))
+   ((input token collation)
+    (implementation-restriction-violation 'xpath-fn:collation-token
+					  "Not supported yet"))))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
@@ -329,5 +361,10 @@
 	;; either 0 or 1...
 	((boolean? atomic) (if atomic "true" "false"))
 	(else (xpty0004-error who atomic))))
+
+(define (implementation-restriction-violation who msg)
+  (raise (condition (make-implementation-restriction-violation)
+		    (make-who-condition who)
+		    (make-message-condition msg))))
 
 )
