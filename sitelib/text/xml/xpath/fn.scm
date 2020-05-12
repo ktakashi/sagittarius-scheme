@@ -82,8 +82,12 @@
 	    xpath-fn:codepoint-equal
 	    xpath-fn:collation-key
 	    xpath-fn:contains-token
+	    xpath-fn:concat
+	    xpath-fn:string-join
+	    xpath-fn:substring
 	    )
     (import (rnrs)
+	    (srfi :1 lists)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
 	    (srfi :144 flonums)
@@ -353,9 +357,49 @@
     (implementation-restriction-violation 'xpath-fn:collation-token
 					  "Not supported yet"))))
 
+;;;; 5.4.1 fn:concat
+(define (xpath-fn:concat s1 s2 . s*)
+  ;; TODO very inefficient...
+  (string-concatenate
+   (map (lambda (e) (atomic->string 'xpath-fn:concat e)) (cons* s1 s2 s*))))
+
+;;;; 5.4.2 fn:string-join
+(define xpath-fn:string-join
+  (case-lambda
+   ((s*) (xpath-fn:string-join s* ""))
+   ((s* delim)
+    (string-join (map (lambda (e) (atomic->string 'xpath-fn:string-join e)) s*) delim))))
+
+;;;; 5.4.3 fn:substring
+(define xpath-fn:substring
+  (case-lambda
+   ((src start)
+    (let ((len (string-length src)))
+      (xpath-fn:substring src start (+ (- len start) 1))))
+   ((src start length)
+    (define s (xpath-fn:round start))
+    (define l (xpath-fn:round length))
+    (cond ((null? src) "")
+	  ((or (nan? s) (nan? l)) "")
+	  (else
+	   (let ((start (max 1 s))
+		 (end   (max start (+ s l))))
+	     (cond ((nan? end) "") ;; (+ +inf.0 -inf.0) 
+		   ((infinite? start) "")
+		   (else
+		    (let* ((s (exact start))
+			   (e (if (infinite? end)
+				  ;; handling inifinate is a bit silly here...
+				  (if (negative? end)
+				      s
+				      (+ (- (string-length src) (- s 1)) 1))
+				  (exact end))))
+		      (substring src (- s 1) (- e 1)))))))))))
+
 ;;; 19 Casting
 (define (atomic->string who atomic)
   (cond ((string? atomic) atomic)
+	((null? atomic) "")
 	((or (integer? atomic) (flonum? atomic)) (number->string atomic))
 	;; this may loose the original information when the value is
 	;; either 0 or 1...

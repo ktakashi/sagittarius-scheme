@@ -383,6 +383,43 @@
     (test-assert (xpath-fn:codepoint-equal "" ""))
     (test-equal '() (xpath-fn:codepoint-equal "" '()))
     (test-equal '() (xpath-fn:codepoint-equal '() '())))
+
+  (test-group "fn:concat"
+    (test-equal "ungrateful" (xpath-fn:concat "un" "grateful"))
+    (test-equal "Thy old groans ring yet in my ancient ears."
+		(xpath-fn:concat "Thy " '() "old " "groans" "" " ring"
+				 " yet" " in" " my" " ancient" " ears."))
+    (test-equal "Ciao!" (xpath-fn:concat "Ciao!" '()))
+    (test-equal "Ingratitude, thou marble-hearted fiend!"
+		(xpath-fn:concat "Ingratitude, " "thou " "marble-hearted" " fiend!"))
+    (test-equal "1234true" (xpath-fn:concat 01 02 03 04 #t))
+    )
+
+  (test-group "fn:string-join"
+    (test-equal "123456789" (xpath-fn:string-join '(1 2 3 4 5 6 7 8 9)))
+    (test-equal "Now is the time ..."
+		(xpath-fn:string-join '("Now" "is" "the" "time" "...") " "))
+    (test-equal "Blow, blow, thou winter wind!"
+		(xpath-fn:string-join '("Blow, " "blow, " "thou " "winter " "wind!") ""))
+    (test-equal "" (xpath-fn:string-join '(()) "separator"))
+    (test-equal "1, 2, 3, 4, 5" (xpath-fn:string-join '(1 2 3 4 5) ", "))
+    )
+
+  (test-group "fn:substring"
+    (test-equal " car" (xpath-fn:substring "motor car" 6))
+    (test-equal "ada" (xpath-fn:substring "metadata" 4 3))
+    (test-equal "234" (xpath-fn:substring "12345" 1.5 2.6))
+    (test-equal "12" (xpath-fn:substring "12345" 0 3))
+    (test-equal "" (xpath-fn:substring "12345" 5 -3))
+    (test-equal "1" (xpath-fn:substring "12345" -3 5))
+    (test-equal "" (xpath-fn:substring "12345" +nan.0 3))
+    (test-equal "" (xpath-fn:substring "12345" 1 +nan.0))
+    (test-equal "" (xpath-fn:substring '() 1 3))
+    (test-equal "12345" (xpath-fn:substring "12345" -42 (/ 1 0.0)))
+    (test-equal "" (xpath-fn:substring "12345" (/ -1 0.0) (/ -1 0.0)))
+    )
+  
+    
   )
 
 (test-end)
