@@ -418,8 +418,15 @@
     (test-equal "12345" (xpath-fn:substring "12345" -42 (/ 1 0.0)))
     (test-equal "" (xpath-fn:substring "12345" (/ -1 0.0) (/ -1 0.0)))
     )
-  
-    
+
+  (test-group "fn:string-length"
+    (test-equal 45 (xpath-fn:string-length "Harp not on that string, madam; that is past."))
+    (test-equal 0 (xpath-fn:string-length '())))
+
+  (test-group "fn:normalize-space"
+    (test-equal "The wealthy curled darlings of our nation."
+		(xpath-fn:normalize-space " The    wealthy curled darlings                                         of    our    nation. "))
+    (test-equal "" (xpath-fn:normalize-space '())))
   )
 
 (test-end)

@@ -58,7 +58,7 @@
 	    $xml:char-ref $xml:entity-ref $xml:reference $xml:pe-reference
 	    $xml:entity-value
 
-	    $xml:ncname $xml:s
+	    $xml:ncname
 	    
 	    ;; for factory
 	    qname? qname-prefix qname-namespace qname-local-part

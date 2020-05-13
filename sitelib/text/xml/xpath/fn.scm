@@ -85,6 +85,8 @@
 	    xpath-fn:concat
 	    xpath-fn:string-join
 	    xpath-fn:substring
+	    xpath-fn:string-length
+	    xpath-fn:normalize-space
 	    )
     (import (rnrs)
 	    (srfi :1 lists)
@@ -395,6 +397,29 @@
 				      (+ (- (string-length src) (- s 1)) 1))
 				  (exact end))))
 		      (substring src (- s 1) (- e 1)))))))))))
+
+;;;; 5.4.4 fn:string-length
+(define (xpath-fn:string-length arg)
+  (if (null? arg)
+      0
+      (string-length arg)))
+
+;;;; 5.4.5 fn:normalize-space
+(define (xpath-fn:normalize-space arg)
+  (define (space? c) (memv c '(#\x20 #\x9 #\xD #\xA)))
+  (if (null? arg)
+      ""
+      (let-values (((out e) (open-string-output-port)))
+	;; TODO a bit inefficient...
+	(define str (string-trim-both arg space?))
+	;; TODO maybe should use cursor SRFI for better portability
+	;; but no plan to make this portable so forget about it for now
+	(let loop ((i 0) (prev-space? #f))
+	  (cond ((= (string-length str) i) (e))
+		((space? (string-ref str i))
+		 (unless prev-space? (put-char out #\x20))
+		 (loop (+ i 1) #t))
+		(else (put-char out (string-ref str i)) (loop (+ i 1) #f)))))))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
