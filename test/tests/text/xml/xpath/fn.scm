@@ -427,6 +427,9 @@
     (test-equal "The wealthy curled darlings of our nation."
 		(xpath-fn:normalize-space " The    wealthy curled darlings                                         of    our    nation. "))
     (test-equal "" (xpath-fn:normalize-space '())))
+
+  (test-group "fn:normalize-unicode"
+    (test-xqt-error FOCH0003 (xpath-fn:normalize-unicode "foo" "bar")))
   )
 
 (test-end)

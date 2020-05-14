@@ -87,6 +87,7 @@
 	    xpath-fn:substring
 	    xpath-fn:string-length
 	    xpath-fn:normalize-space
+	    xpath-fn:normalize-unicode
 	    )
     (import (rnrs)
 	    (srfi :1 lists)
@@ -420,6 +421,19 @@
 		 (unless prev-space? (put-char out #\x20))
 		 (loop (+ i 1) #t))
 		(else (put-char out (string-ref str i)) (loop (+ i 1) #f)))))))
+
+;;;; 5.4.6 fn:normalize-unicode
+(define xpath-fn:normalize-unicode
+  (case-lambda
+   ((arg) (xpath-fn:normalize-unicode arg "NFC"))
+   ((arg form)
+    (case (string->symbol form)
+      ((NFC) (string-normalize-nfc arg))
+      ((NFD) (string-normalize-nfd arg))
+      ((NFKC) (string-normalize-nfkc arg))
+      ((NFKD) (string-normalize-nfkd arg))
+      (else (xqt-error 'FOCH0003 'xpath-fn:normalize-unicode
+		       "Unsupported normalization" form))))))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
