@@ -440,7 +440,112 @@
     (test-equal "BAr" (xpath-fn:translate "bar" "abc" "ABC"))
     (test-equal "AAA" (xpath-fn:translate "--aaa--" "abc-" "ABC"))
     (test-equal "ABdAB" (xpath-fn:translate "abcdabc" "abc" "AB")))
-  
+
+  (test-group "fn:contains"
+    (test-assert (xpath-fn:contains "tattoo" "t"))
+    (test-assert (not (xpath-fn:contains "tattoo" "ttt")))
+    (test-assert (xpath-fn:contains "" '()))
+
+    (test-expect-fail 4)
+    (test-assert
+     (xpath-fn:contains "abcdefghi" "-d-e-f-"
+      "http://www.w3.org/2013/collation/UCA?lang=en;alternate=blanked;strength=primary"))
+    (test-assert
+     (xpath-fn:contains "a*b*c*d*e*f*g*h*i*" "d-ef-"
+      "http://www.w3.org/2013/collation/UCA?lang=en;alternate=blanked;strength=primary"))
+    (test-assert
+     (xpath-fn:contains "abcd***e---f*--*ghi" "def"
+      "http://www.w3.org/2013/collation/UCA?lang=en;alternate=blanked;strength=primary"))
+    (test-assert
+     (xpath-fn:contains '() "--***-*---"
+      "http://www.w3.org/2013/collation/UCA?lang=en;alternate=blanked;strength=primary"))
+    )
+
+  (test-group "fn:starts-with"
+    (test-assert (xpath-fn:starts-with "tattoo" "t"))
+    (test-assert (not (xpath-fn:starts-with "tattoo" "att")))
+    (test-assert (xpath-fn:starts-with '() '()))
+
+    (test-expect-fail 5)
+    (test-assert
+     (xpath-fn:starts-with "abcdefghi" "-d-e-f-"
+      "http://www.w3.org/2013/collation/UCA?lang=en;alternate=blanked;strength=primary"))
+    (test-assert
+     (xpath-fn:starts-with "a*b*c*d*e*f*g*h*i*" "a-bc-"
+      "http://www.w3.org/2013/collation/UCA?lang=en;alternate=blanked;strength=primary"))
+    (test-assert
+     (xpath-fn:starts-with "abcd***e---f*--*ghi" "abcdef"
+      "http://www.w3.org/2013/collation/UCA?lang=en;alternate=blanked;strength=primary"))
+    (test-assert
+     (xpath-fn:starts-with '() "--***-*---"
+      "http://www.w3.org/2013/collation/UCA?lang=en;alternate=blanked;strength=primary"))
+    (test-assert
+     (xpath-fn:starts-with "-abcdefghi" "-abc"
+      "http://www.w3.org/2013/collation/UCA?lang=en;alternate=blanked;strength=primary"))
+    )
+
+  (test-group "fn:ends-with"
+    (test-assert (xpath-fn:ends-with "tattoo" "tattoo"))
+    (test-assert (not (xpath-fn:ends-with "tattoo" "atto")))
+    (test-assert (xpath-fn:ends-with '() '()))
+
+    (test-expect-fail 5)
+    (test-assert
+     (xpath-fn:ends-with "abcdefghi" "-g-h-i-"
+      "http://www.w3.org/2013/collation/UCA?lang=en;alternate=blanked;strength=primary"))
+    (test-assert
+     (xpath-fn:ends-with "a*b*c*d*e*f*g*h*i*" "defghi"
+      "http://www.w3.org/2013/collation/UCA?lang=en;alternate=blanked;strength=primary"))
+    (test-assert
+     (xpath-fn:ends-with "abcd***e---f*--*ghi" "defghi"
+      "http://www.w3.org/2013/collation/UCA?lang=en;alternate=blanked;strength=primary"))
+    (test-assert
+     (xpath-fn:ends-with '() "--***-*---"
+      "http://www.w3.org/2013/collation/UCA?lang=en;alternate=blanked;strength=primary"))
+    (test-assert
+     (xpath-fn:ends-with "abcdefghi" "ghi-"
+      "http://www.w3.org/2013/collation/UCA?lang=en;alternate=blanked;strength=primary"))
+    )
+
+  (test-group "fn:substring-before"
+    (test-equal "t" (xpath-fn:substring-before "tattoo" "attoo"))
+    (test-equal ""  (xpath-fn:substring-before "tattoo" "tatto"))
+    (test-equal ""  (xpath-fn:substring-before '() '()))
+
+    (test-expect-fail 4)
+    (test-equal "abc"
+     (xpath-fn:substring-before "abcdefghi" "--d-e-"
+      "http://www.w3.org/2013/collation/UCA?lang=en;alternate=blanked;strength=primary"))
+    (test-equal "abc--"
+     (xpath-fn:substring-before "abc--d-e-fghi" "--d-e-"
+      "http://www.w3.org/2013/collation/UCA?lang=en;alternate=blanked;strength=primary"))
+    (test-equal "a*b*"
+     (xpath-fn:substring-before "a*b*c*d*e*f*g*h*i*" "***cde"
+      "http://www.w3.org/2013/collation/UCA?lang=en;alternate=blanked;strength=primary"))
+    (test-equal ""
+     (xpath-fn:substring-before "Eureka!" "--***-*---"
+      "http://www.w3.org/2013/collation/UCA?lang=en;alternate=blanked;strength=primary"))
+    )
+
+  (test-group "fn:substring-after"
+    (test-equal "too" (xpath-fn:substring-after "tattoo" "tat"))
+    (test-equal "" (xpath-fn:substring-after "tattoo" "tattoo"))
+    (test-equal "" (xpath-fn:substring-after '() '()))
+
+    (test-expect-fail 4)
+    (test-equal "fghi"
+     (xpath-fn:substring-after "abcdefghi" "--d-e-"
+      "http://www.w3.org/2013/collation/UCA?lang=en;alternate=blanked;strength=primary"))
+    (test-equal "-fghi"
+     (xpath-fn:substring-after "abc--d-e-fghi" "--d-e-"
+      "http://www.w3.org/2013/collation/UCA?lang=en;alternate=blanked;strength=primary"))
+    (test-equal "*f*g*h*i*"
+     (xpath-fn:substring-after "a*b*c*d*e*f*g*h*i*" "***cde"
+      "http://www.w3.org/2013/collation/UCA?lang=en;alternate=blanked;strength=primary"))
+    (test-equal "Eureka!"
+     (xpath-fn:substring-after "Eureka!" "--***-*---"
+      "http://www.w3.org/2013/collation/UCA?lang=en;alternate=blanked;strength=primary"))
+    )
   )
 
 (test-end)

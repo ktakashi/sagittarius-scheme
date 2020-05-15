@@ -91,6 +91,11 @@
 	    xpath-fn:upper-case
 	    xpath-fn:lower-case
 	    xpath-fn:translate
+	    xpath-fn:contains
+	    xpath-fn:starts-with
+	    xpath-fn:ends-with
+	    xpath-fn:substring-before
+	    xpath-fn:substring-after
 	    )
     (import (rnrs)
 	    (srfi :1 lists)
@@ -332,13 +337,15 @@
 (define (xpath-fn:string-to-codepoints str)
   (map char->integer (string->list str)))
 
+
+(define +default-collation+ "default")
 ;;;; 5.3.6 fn:compare
 (define xpath-fn:compare
   (case-lambda
-   ((arg0 arg1) (xpath-fn:compare arg0 arg1 "default"))
+   ((arg0 arg1) (xpath-fn:compare arg0 arg1 +default-collation+))
    ((s0 s1 collation)
     ;; TODO support collation
-    (unless (string=? collation "default")
+    (unless (string=? collation +default-collation+)
       (xqt-error 'FOCH0002 'xpath-fn:compare "Not supported" collation))
     (string-compare s0 s1 (lambda (_) -1) (lambda (_) 0) (lambda (_) 1)))))
 
@@ -351,14 +358,14 @@
 ;;;; 5.3.8 fn:collation-key
 (define xpath-fn:collation-key
   (case-lambda
-   ((key) (xpath-fn:collation-key key "default"))
+   ((key) (xpath-fn:collation-key key +default-collation+))
    ((key collation)
     (implementation-restriction-violation 'xpath-fn:collation-key "Not supported yet"))))
 
 ;;;; 5.3.9 fn:contains-token
 (define xpath-fn:contains-token
   (case-lambda
-   ((input token) (xpath-fn:contains-token input token "default"))
+   ((input token) (xpath-fn:contains-token input token +default-collation+))
    ((input token collation)
     (implementation-restriction-violation 'xpath-fn:collation-token
 					  "Not supported yet"))))
@@ -453,6 +460,68 @@
 	      ((and i (>= i (string-length trans-s))) #f)
 	      (else c)))) (string->list arg))))
 	    
+;;;; 5.5.1 fn:contains
+(define xpath-fn:contains
+  (case-lambda
+   ((s1 s2) (xpath-fn:contains s1 s2 +default-collation+))
+   ((s1 s2 collation)
+    (unless (string=? collation +default-collation+)
+      (xqt-error 'FOCH0004 'xpath-fn:contains "Not supported" collation))
+    (cond ((and (null? s1) (null? s2))) ;; "" contains ""
+	  ((null? s2))			;; s1 contains ""
+	  ((null? s1) #f)		;; "" contains s2
+	  (else (and (string-contains s1 s2) #t))))))
+
+;;;; 5.5.2 fn:starts-with
+(define xpath-fn:starts-with
+  (case-lambda
+   ((s1 s2) (xpath-fn:starts-with s1 s2 +default-collation+))
+   ((s1 s2 collation)
+    (unless (string=? collation +default-collation+)
+      (xqt-error 'FOCH0004 'xpath-fn:starts-with "Not supported" collation))
+    (cond ((and (null? s1) (null? s2))) ;; "" starts with ""
+	  ((null? s2))			;; s1 starts with ""
+	  ((null? s1) #f)		;; "" starts with s2
+	  (else (string-prefix? s2 s1))))))
+
+;;;; 5.5.3 fn:ends-with
+(define xpath-fn:ends-with
+  (case-lambda
+   ((s1 s2) (xpath-fn:ends-with s1 s2 +default-collation+))
+   ((s1 s2 collation)
+    (unless (string=? collation +default-collation+)
+      (xqt-error 'FOCH0004 'xpath-fn:ends-with "Not supported" collation))
+    (cond ((and (null? s1) (null? s2))) ;; "" ends with ""
+	  ((null? s2))			;; s1 ends with ""
+	  ((null? s1) #f)		;; "" ends with s2
+	  (else (string-suffix? s2 s1))))))
+
+;;;; 5.5.4 fn:substring-before
+(define xpath-fn:substring-before
+  (case-lambda
+   ((s1 s2) (xpath-fn:substring-before s1 s2 +default-collation+))
+   ((s1 s2 collation)
+    (unless (string=? collation +default-collation+)
+      (xqt-error 'FOCH0004 'xpath-fn:substring-before "Not supported" collation))
+    (cond ((and (null? s1) (null? s2)) "") ;; "" substring before ""
+	  ((null? s2) "")		   ;; s1 substring before ""
+	  ((null? s1) "")		   ;; "" substring before s2
+	  ((string-contains s1 s2) => (lambda (i) (substring s1 0 i)))
+	  (else "")))))
+
+;;;; 5.5.5 fn:substring-after
+(define xpath-fn:substring-after
+  (case-lambda
+   ((s1 s2) (xpath-fn:substring-after s1 s2 +default-collation+))
+   ((s1 s2 collation)
+    (unless (string=? collation +default-collation+)
+      (xqt-error 'FOCH0004 'xpath-fn:substring-after "Not supported" collation))
+    (cond ((and (null? s1) (null? s2)) "") ;; "" substring before ""
+	  ((null? s2) "")		   ;; s1 substring before ""
+	  ((null? s1) "")		   ;; "" substring before s2
+	  ((string-contains s1 s2) =>
+	   (lambda (i) (substring s1 (+ i (string-length s2)) (string-length s1))))
+	  (else "")))))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
