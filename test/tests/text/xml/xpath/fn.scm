@@ -430,6 +430,17 @@
 
   (test-group "fn:normalize-unicode"
     (test-xqt-error FOCH0003 (xpath-fn:normalize-unicode "foo" "bar")))
+
+  (test-group "fn:upper-case"
+    (test-equal "ABCD0" (xpath-fn:upper-case "abCd0")))
+  (test-group "fn:lower-case"
+    (test-equal "abc!d" (xpath-fn:lower-case "ABc!D")))
+
+  (test-group "fn:translate"
+    (test-equal "BAr" (xpath-fn:translate "bar" "abc" "ABC"))
+    (test-equal "AAA" (xpath-fn:translate "--aaa--" "abc-" "ABC"))
+    (test-equal "ABdAB" (xpath-fn:translate "abcdabc" "abc" "AB")))
+  
   )
 
 (test-end)

@@ -88,6 +88,9 @@
 	    xpath-fn:string-length
 	    xpath-fn:normalize-space
 	    xpath-fn:normalize-unicode
+	    xpath-fn:upper-case
+	    xpath-fn:lower-case
+	    xpath-fn:translate
 	    )
     (import (rnrs)
 	    (srfi :1 lists)
@@ -434,6 +437,22 @@
       ((NFKD) (string-normalize-nfkd arg))
       (else (xqt-error 'FOCH0003 'xpath-fn:normalize-unicode
 		       "Unsupported normalization" form))))))
+
+;;;; 5.4.7 fn:upper-case
+(define (xpath-fn:upper-case arg) (string-upcase arg))
+;;;; 5.4.8 fn:lower-case
+(define (xpath-fn:lower-case arg) (string-downcase arg))
+
+;;;; 5.4.9 fn:translate
+(define (xpath-fn:translate arg map-s trans-s)
+  (list->string
+   (filter-map
+    (lambda (c)
+      (let ((i (string-index map-s c)))
+	(cond ((and i (< i (string-length trans-s)) (string-ref trans-s i)))
+	      ((and i (>= i (string-length trans-s))) #f)
+	      (else c)))) (string->list arg))))
+	    
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
