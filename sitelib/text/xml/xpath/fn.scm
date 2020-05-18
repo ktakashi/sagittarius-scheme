@@ -97,6 +97,7 @@
 	    xpath-fn:substring-before
 	    xpath-fn:substring-after
 	    xpath-fn:matches
+	    xpath-fn:replace
 	    )
     (import (rnrs)
 	    (sagittarius regex)
@@ -525,23 +526,37 @@
 	   (lambda (i) (substring s1 (+ i (string-length s2)) (string-length s1))))
 	  (else "")))))
 
-;;;; 5.6.3 fn:matches
+;; helper
 (define +regex-flags+
   `((#\s . ,DOTALL)
     (#\m . ,MULTILINE)
     (#\i . ,CASE-INSENSITIVE)
     (#\x . ,COMMENTS)
     (#\q . ,LITERAL)))
+(define (->regex-flag who c)
+  (cond ((assv c +regex-flags+) => cdr)
+	(else (xqt-error 'FORX0001 who "Invalid flag" c))))
+(define (string-flags->flags who flags)
+  (define (->flag c) (->regex-flag who c))
+  (fold-left bitwise-ior 0 (map ->flag (string->list flags))))
+;;;; 5.6.3 fn:matches
 (define xpath-fn:matches
   (case-lambda
    ((input pattern) (xpath-fn:matches input pattern ""))
    ((input pattern flags)
-    (define (->flag c)
-      (cond ((assv c +regex-flags+) => cdr)
-	    (else (xqt-error 'FORX0001 'xpath-fn:matches "Invalid flag" c))))
-    (let ((flags (map ->flag (string->list flags))))
+    (let ((flags (string-flags->flags 'xpath-fn:matches flags)))
       (guard (e (else (xqt-error 'FORX0002 'xpath-fn:matches "Invalid pattern" pattern)))
-	(looking-at (regex pattern (fold-left bitwise-ior 0 flags)) input))))))
+	(looking-at (regex pattern flags) input))))))
+
+;;;; 5.6.4 fn:replace
+(define xpath-fn:replace
+  (case-lambda
+   ((input pattern replacement) (xpath-fn:replace input pattern replacement ""))
+   ((input pattern replacement flags)
+    (let ((flags (string-flags->flags 'xpath-fn:replace flags)))
+      ;; TODO not really correct..
+      (guard (e (else (xqt-error 'FORX0004 'xpath-fn:replace (condition-message e))))
+	(regex-replace-all (regex pattern flags) input replacement))))))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

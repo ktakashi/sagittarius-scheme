@@ -557,6 +557,19 @@
       (test-assert (xpath-fn:matches s "^Kaum.*gesehen,$" "m"))
       (test-assert (not (xpath-fn:matches s "^Kaum.*gesehen,$")))
       (test-assert (xpath-fn:matches s "kiki" "i"))))
+
+  (test-group "fn:replace"
+    (test-equal "a*cada*" (xpath-fn:replace "abracadabra" "bra" "*"))
+    (test-equal "*" (xpath-fn:replace "abracadabra" "a.*a" "*"))
+    (test-equal "*c*bra" (xpath-fn:replace "abracadabra" "a.*?a" "*"))
+    (test-equal "brcdbr" (xpath-fn:replace "abracadabra" "a" ""))
+    (test-equal "abbraccaddabbra" (xpath-fn:replace "abracadabra" "a(.)" "a$1$1"))
+    (test-xqt-error FORX0004 (xpath-fn:replace "abracadabra" ".*?" "$1"))
+    (test-equal "b" (xpath-fn:replace "AAAA" "A+" "b"))
+    (test-equal "bbbb" (xpath-fn:replace "AAAA" "A+?" "b"))
+    (test-equal "carted" (xpath-fn:replace "darted" "^(.*?)d(.*)$" "$1c$2"))
+    )
+  
   )
 
 (test-end)
