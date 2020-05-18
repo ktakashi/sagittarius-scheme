@@ -96,8 +96,10 @@
 	    xpath-fn:ends-with
 	    xpath-fn:substring-before
 	    xpath-fn:substring-after
+	    xpath-fn:matches
 	    )
     (import (rnrs)
+	    (sagittarius regex)
 	    (srfi :1 lists)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
@@ -522,6 +524,24 @@
 	  ((string-contains s1 s2) =>
 	   (lambda (i) (substring s1 (+ i (string-length s2)) (string-length s1))))
 	  (else "")))))
+
+;;;; 5.6.3 fn:matches
+(define +regex-flags+
+  `((#\s . ,DOTALL)
+    (#\m . ,MULTILINE)
+    (#\i . ,CASE-INSENSITIVE)
+    (#\x . ,COMMENTS)
+    (#\q . ,LITERAL)))
+(define xpath-fn:matches
+  (case-lambda
+   ((input pattern) (xpath-fn:matches input pattern ""))
+   ((input pattern flags)
+    (define (->flag c)
+      (cond ((assv c +regex-flags+) => cdr)
+	    (else (xqt-error 'FORX0001 'xpath-fn:matches "Invalid flag" c))))
+    (let ((flags (map ->flag (string->list flags))))
+      (guard (e (else (xqt-error 'FORX0002 'xpath-fn:matches "Invalid pattern" pattern)))
+	(looking-at (regex pattern (fold-left bitwise-ior 0 flags)) input))))))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

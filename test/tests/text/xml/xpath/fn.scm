@@ -546,6 +546,17 @@
      (xpath-fn:substring-after "Eureka!" "--***-*---"
       "http://www.w3.org/2013/collation/UCA?lang=en;alternate=blanked;strength=primary"))
     )
+
+  (test-group "fn:matches"
+    (test-assert (xpath-fn:matches "abracadabra" "bra"))
+    (test-assert (xpath-fn:matches "abracadabra" "^a.*a$"))
+    (test-assert (not (xpath-fn:matches "abracadabra" "^bra")))
+    (let ((s "Kaum hat dies der Hahn gesehen,\nFängt er auch schon an zu krähen:\nKikeriki! Kikikerikih!!\nTak, tak, tak! - da kommen sie."))
+      (test-assert (not (xpath-fn:matches s "Kaum.*krähen")))
+      (test-assert (xpath-fn:matches s "Kaum.*krähen" "s"))
+      (test-assert (xpath-fn:matches s "^Kaum.*gesehen,$" "m"))
+      (test-assert (not (xpath-fn:matches s "^Kaum.*gesehen,$")))
+      (test-assert (xpath-fn:matches s "kiki" "i"))))
   )
 
 (test-end)
