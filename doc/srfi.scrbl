@@ -18,17 +18,21 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-2/srfi-2.html"]{SRFI-2}}
     @td{(srfi :2 and-let*)}}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-4/srfi-4.html"]{SRFI-4}}
-    @td{(srfi :4)
-
-        This SRFI also contains reader macro described below this section.}}
+    @td{(srfi :4 numeric-vectors)
+        This SRFI also contains reader macro described below this section.
+    }}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-6/srfi-6.html"]{SRFI-6}}
     @td{(srfi :6 basic-string-ports)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-8/srfi-8.html"]{SRFI-8}}
     @td{(srfi :8 receive)}}
+@tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-11/srfi-11.html"]{SRFI-11}}
+    @td{(srfi :11 let-values)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-13/srfi-13.html"]{SRFI-13}}
     @td{(srfi :13 strings)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-14/srfi-14.html"]{SRFI-14}}
     @td{(srfi :14 char-set)}}
+@tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-16/srfi-16.html"]{SRFI-16}}
+    @td{(srfi :16 case-lambda)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-17/srfi-17.html"]{SRFI-17}}
     @td{(srfi :17 generalized-set!)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-18/srfi-18.html"]{SRFI-18}}
@@ -176,14 +180,7 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     The name @code{comparators} is taken from its name.
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-115/srfi-115.html"]{SRFI-115}}
-    @td{(srfi :115 regexp)
-
-    The long name is Sagittarius specific and the specified library name 
-    is @code{(srfi :115)}. So for the portability it's better to use the
-    @code{(srfi :115)}.
-
-    The name @code{regexp} is taken from reference implementation provided
-    on Chibi Scheme.
+    @td{(srfi :115 regex)
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-116/srfi-116.html"]{SRFI-116}}
     @td{(srfi :116 ilists)
@@ -195,13 +192,7 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     The name @code{ilists} is taken from sample implementation.
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-117/srfi-117.html"]{SRFI-117}}
-    @td{(srfi :117 list-queue)
-
-    The long name is Sagittarius specific and the specified library name 
-    is @code{(srfi :117)}. So for the portability it's better to use the
-    @code{(srfi :117)}.
-
-    The name @code{list-queue} is taken from sample implementation.
+    @td{(srfi :117 list-queues)
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-120/srfi-120.html"]{SRFI-120}}
     @td{(srfi :120 timer)
@@ -244,89 +235,31 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     Chibi has. It is described in the SRFI document.
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-125/srfi-125.html"]{SRFI-125}}
-    @td{(srfi :125 intermediate-hash-tables)
-
-    The long name is Sagittarius specific and the specified library name 
-    is @code{(srfi :125)}. So for the portability it's better to use the
-    @code{(srfi :125)}.
-
-    The name @code{intermediate-hash-tables} is taken from the SRFI's
-    description: Intermediate hash tables. It is constructed with the
-    same manner as SRFI-69.
+    @td{(srfi :125 hashtables)
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-126/srfi-126.html"]{SRFI-126}}
-    @td{(srfi :126 hashtables)
-
-    The long name is Sagittarius specific and the specified library name 
-    is @code{(srfi :126)}. So for the portability it's better to use the
-    @code{(srfi :126)}.
+    @td{(srfi :126 r6rs-hashtables)
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-127/srfi-127.html"]{SRFI-127}}
-    @td{(srfi :127 lseqs)
-
-    The long name is Sagittarius specific and the specified library name 
-    is @code{(srfi :127)}. So for the portability it's better to use the
-    @code{(srfi :127)}.
-
-    The name @code{lseqs} is taken from sample implementation.
+    @td{(srfi :127 lazy-sequences)
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-128/srfi-128.html"]{SRFI-128}}
     @td{(srfi :128 comparators)
-
-    The long name is Sagittarius specific and the specified library name 
-    is @code{(srfi :128)}. So for the portability it's better to use the
-    @code{(srfi :128)}.
-
-    The name @code{comparators} is taken from sample implementation.
-
-    The library is implemented on top of SRFI-114. So comparators created
-    by this SRFI's API can be used SRFI-114 APIs. But not other way around.
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-129/srfi-129.html"]{SRFI-129}}
     @td{(srfi :129 titlecase)
-
-    The long name is Sagittarius specific and the specified library name 
-    is @code{(srfi :129)}. So for the portability it's better to use the
-    @code{(srfi :129)}.
-
-    The name @code{titlecase} is taken from sample implementation.
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-130/srfi-130.html"]{SRFI-130}}
-    @td{(srfi :130 strings)
-
-    The long name is Sagittarius specific and the specified library name 
-    is @code{(srfi :130)}. So for the portability it's better to use the
-    @code{(srfi :130)}.
-
-    The name @code{strings} is taken from SRFI-13 since this SRFI is based
-    on SRFI-13.
+    @td{(srfi :130 string-cursors)
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-131/srfi-131.html"]{SRFI-131}}
     @td{(srfi :131 records)
-
-    The long name is Sagittarius specific and the specified library name 
-    is @code{(srfi :131)}. So for the portability it's better to use the
-    @code{(srfi :131)}.
-
-    The name @code{records} is taken from sample implementation.
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-132/srfi-132.html"]{SRFI-132}}
     @td{(srfi :132 sorting)
-
-    The long name is Sagittarius specific and the specified library name 
-    is @code{(srfi :132)}. So for the portability it's better to use the
-    @code{(srfi :132)}.
-
-    The name @code{sorting} is taken from sample implementation.
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-133/srfi-133.html"]{SRFI-133}}
     @td{(srfi :133 vectors)
-
-    The long name is Sagittarius specific and the specified library name 
-    is @code{(srfi :133)}. So for the portability it's better to use the
-    @code{(srfi :133)}.
-
-    The name @code{vectors} is taken from sample implementation.
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-134/srfi-134.html"]{SRFI-134}}
     @td{(srfi :134 ideque)
@@ -357,12 +290,6 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-141/srfi-141.html"]{SRFI-141}}
     @td{(srfi :141 integer-division)
-
-    The long name is Sagittarius specific and the specified library name 
-    is @code{(srfi :141)}. So for the portability it's better to use the
-    @code{(srfi :141)}.
-
-    The name @code{integer-division} is taken from the name of the SRFI.
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-142/srfi-142.html"]{SRFI-142}}
     @td{(srfi :142 bitwise)
@@ -377,12 +304,6 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-143/srfi-143.html"]{SRFI-143}}
     @td{(srfi :143 fixnums)
-
-    The long name is Sagittarius specific and the specified library name 
-    is @code{(srfi :143)}. So for the portability it's better to use the
-    @code{(srfi :143)}.
-
-    The name @code{fixnums} is taken from the name of the SRFI.
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-144/srfi-144.html"]{SRFI-144}}
     @td{(srfi :144 flonums)
@@ -395,12 +316,6 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-145/srfi-145.html"]{SRFI-145}}
     @td{(srfi :145 assumptions)
-
-    The long name is Sagittarius specific and the specified library name 
-    is @code{(srfi :145)}. So for the portability it's better to use the
-    @code{(srfi :145)}.
-
-    The name @code{assumptions} is taken from the name of the SRFI.
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-146/srfi-146.html"]{SRFI-146}}
     @td{(srfi :146 mapping) and (srfi :146 hash)
@@ -411,45 +326,18 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     The name @code{mapping} is taken from the name of the SRFI.
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-151/srfi-151.html"]{SRFI-151}}
-    @td{(srfi :151 bitwise)
-
-    The long name is Sagittarius specific and the specified library name 
-    is @code{(srfi :151)}. So for the portability it's better to use the
-    @code{(srfi :151)}.
-
-    The name @code{bitwise} is taken from the name of the SRFI.
+    @td{(srfi :151 bitwise-operations)
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-152/srfi-152.html"]{SRFI-152}}
     @td{(srfi :152 strings)
-
-    The long name is Sagittarius specific and the specified library name 
-    is @code{(srfi :152)}. So for the portability it's better to use the
-    @code{(srfi :152)}.
-
-    The name @code{strings} is taken from the name of the SRFI.
-
     This library doesn't extend comparisons, thus it behaves as the SRFI specifies.
     (e.g. Passing 0 or 1 argument to @code{string=?} raises an error)
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-156/srfi-156.html"]{SRFI-156}}
-    @td{(srfi :156 infix-predicates)
-
-    The long name is Sagittarius specific and the specified library name 
-    is @code{(srfi :156)}. So for the portability it's better to use the
-    @code{(srfi :156)}.
-
-    The name @code{infix-predicates} is taken from the meaning of
-    the SRFI.
+    @td{(srfi :156 predicate-combiners)
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-158/srfi-158.html"]{SRFI-158}}
     @td{(srfi :158 generators-and-accumulators)
-
-    The long name is Sagittarius specific and the specified library name 
-    is @code{(srfi :158)}. So for the portability it's better to use the
-    @code{(srfi :158)}.
-
-    The name @code{generators-and-accumulators} is taken from the name of
-    the SRFI.
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-159/srfi-159.html"]{SRFI-159}}
     @td{(srfi :159)}
