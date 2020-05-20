@@ -98,12 +98,15 @@
 	    xpath-fn:substring-after
 	    xpath-fn:matches
 	    xpath-fn:replace
+	    xpath-fn:tokenize
+	    xpath-fn:analyze-string
 	    )
     (import (rnrs)
 	    (sagittarius regex)
 	    (srfi :1 lists)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
+	    (srfi :115 regexp)
 	    (srfi :144 flonums)
 	    (text xml errors)
 	    (text xml dom)
@@ -548,16 +551,40 @@
       (guard (e (else (xqt-error 'FORX0002 'xpath-fn:matches "Invalid pattern" pattern)))
 	(looking-at (regex pattern flags) input))))))
 
+(define (check-pattern who input pattern flags)
+  (when (looking-at (regex pattern flags) "")
+    (xqt-error 'FORX0003 who "Pattern matches empty string" pattern)))
 ;;;; 5.6.4 fn:replace
 (define xpath-fn:replace
   (case-lambda
    ((input pattern replacement) (xpath-fn:replace input pattern replacement ""))
    ((input pattern replacement flags)
     (let ((flags (string-flags->flags 'xpath-fn:replace flags)))
+      (check-pattern 'xpath-fn:replace input pattern flags)
       ;; TODO not really correct..
       (guard (e (else (xqt-error 'FORX0004 'xpath-fn:replace (condition-message e))))
 	(regex-replace-all (regex pattern flags) input replacement))))))
 
+;;;; 5.6.5 fn:tokenize
+(define xpath-fn:tokenize
+  (case-lambda
+   ((input) (xpath-fn:tokenize (xpath-fn:normalize-space input) " "))
+   ((input pattern) (xpath-fn:tokenize input pattern ""))
+   ((input pattern flags) 
+    (let ((flags (string-flags->flags 'xpath-fn:tokenize flags)))
+      (check-pattern 'xpath-fn:tokenize input pattern flags)
+      (guard (e (else (xqt-error 'FORX0002 'xpath-fn:tokenize (condition-message e))))
+	(regexp-split (regex pattern flags) input))))))
+
+;;;; 5.6.6 fn:analyze-string
+(define xpath-fn:analyze-string
+  (case-lambda
+   ((input pattern) (xpath-fn:analyze-string input pattern ""))
+   ((input pattern flags)
+    (string-flags->flags 'xpath-fn:analyze-string flags) ;; for fun
+    (implementation-restriction-violation 'xpath-fn:analyze-string "Not supported"))))
+
+   
 ;;; 19 Casting
 (define (atomic->string who atomic)
   (cond ((string? atomic) atomic)

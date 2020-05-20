@@ -64,9 +64,9 @@
     (test-error xqt-error? (xpath-fn:document-uri 'symbol))
     )
   )
-(define (test-xqt-error-runner code thunk)
+(define (test-xqt-error-runner msg code thunk)
   (guard (e ((xqt-error? e)
-	     (test-equal code (xqt-error-code e)))
+	     (test-equal msg code (xqt-error-code e)))
 	    (else
 	     (test-assert (condition-message e) #f)))
     (thunk)
@@ -74,7 +74,7 @@
 (define-syntax test-xqt-error
   (syntax-rules ()
     ((_ code expr)
-     (test-xqt-error-runner 'code (lambda () expr)))))
+     (test-xqt-error-runner 'expr 'code (lambda () expr)))))
 
 (test-group "Errors and diagnostics"
   (test-group "fn:error"
@@ -564,12 +564,25 @@
     (test-equal "*c*bra" (xpath-fn:replace "abracadabra" "a.*?a" "*"))
     (test-equal "brcdbr" (xpath-fn:replace "abracadabra" "a" ""))
     (test-equal "abbraccaddabbra" (xpath-fn:replace "abracadabra" "a(.)" "a$1$1"))
-    (test-xqt-error FORX0004 (xpath-fn:replace "abracadabra" ".*?" "$1"))
+    (test-xqt-error FORX0003 (xpath-fn:replace "abracadabra" ".*?" "$1"))
     (test-equal "b" (xpath-fn:replace "AAAA" "A+" "b"))
     (test-equal "bbbb" (xpath-fn:replace "AAAA" "A+?" "b"))
     (test-equal "carted" (xpath-fn:replace "darted" "^(.*?)d(.*)$" "$1c$2"))
     )
-  
+
+  (test-group "fn:tokenize"
+    (test-equal '("" "r" "c" "d" "r" "") (xpath-fn:tokenize "abracadabra" "(ab)|(a)"))
+    (test-equal '("red" "green" "blue") (xpath-fn:tokenize " red green blue "))
+    (test-equal '("The" "cat" "sat" "on" "the" "mat") (xpath-fn:tokenize "The cat sat on the mat" "\\s+"))
+    (test-equal '("" "red" "green" "blue" "") (xpath-fn:tokenize " red green blue " "\\s+"))
+    (test-equal '("1" "15" "24" "50") (xpath-fn:tokenize "1, 15, 24, 50" ",\\s*"))
+    (test-equal '("1" "15" "" "24" "50" "") (xpath-fn:tokenize "1,15,,24,50," ","))
+    (test-xqt-error FORX0003 (xpath-fn:tokenize "abba" ".?"))
+    (test-equal '("Some unparsed" "HTML" "text") (xpath-fn:tokenize "Some unparsed <br> HTML <BR> text" "\\s*<br>\\s*" "i"))
+    )
+
+  (test-group "fn:analyze-string"
+    (test-xqt-error FORX0001 (xpath-fn:analyze-string "input" "pattern" "bn")))
   )
 
 (test-end)
