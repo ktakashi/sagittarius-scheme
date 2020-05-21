@@ -585,6 +585,15 @@
     (test-xqt-error FORX0001 (xpath-fn:analyze-string "input" "pattern" "bn")))
   )
 
+(test-group "Functions that manipulate URIs"
+  (test-group "fn:resolve-uri"
+    (test-equal '() (xpath-fn:resolve-uri '()))
+    (test-equal "foo:ok" (xpath-fn:resolve-uri "foo:ok"))
+    (test-xqt-error FONS0005 (xpath-fn:resolve-uri "not-ok"))
+    (test-equal "http://a/b/c/g" (xpath-fn:resolve-uri "g" "http://a/b/c/d;p?q")))
+
+  )
+
 (test-end)
 
 ;; Local Variables:

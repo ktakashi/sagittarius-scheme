@@ -100,8 +100,10 @@
 	    xpath-fn:replace
 	    xpath-fn:tokenize
 	    xpath-fn:analyze-string
+	    xpath-fn:resolve-uri
 	    )
     (import (rnrs)
+	    (rfc uri)
 	    (sagittarius regex)
 	    (srfi :1 lists)
 	    (srfi :13 strings)
@@ -583,6 +585,21 @@
    ((input pattern flags)
     (string-flags->flags 'xpath-fn:analyze-string flags) ;; for fun
     (implementation-restriction-violation 'xpath-fn:analyze-string "Not supported"))))
+
+;;;; 6.1 fn:resolve-uri
+(define not-supplied (list '()))
+(define xpath-fn:resolve-uri
+  (case-lambda
+   ((relative) (xpath-fn:resolve-uri relative not-supplied))
+   ((relative base)
+    (define (absoluete-iri? uri)
+      (let-values (((scheme specific) (uri-scheme&specific uri)))
+	(and scheme #t)))
+    (cond ((null? relative) '())
+	  ((absoluete-iri? relative) relative)
+	  ((eq? not-supplied base)
+	   (xqt-error 'FONS0005 xpath-fn:resolve-uri "Base is not provided" relative))
+	  (else (uri-merge base relative))))))
 
    
 ;;; 19 Casting
