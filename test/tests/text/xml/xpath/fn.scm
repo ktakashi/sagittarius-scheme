@@ -592,6 +592,12 @@
     (test-xqt-error FONS0005 (xpath-fn:resolve-uri "not-ok"))
     (test-equal "http://a/b/c/g" (xpath-fn:resolve-uri "g" "http://a/b/c/d;p?q")))
 
+  (test-group "fn:encode-for-uri"
+    (test-equal
+     "http%3A%2F%2Fwww.example.com%2F00%2FWeather%2FCA%2FLos%2520Angeles%23ocean"
+     (xpath-fn:encode-for-uri "http://www.example.com/00/Weather/CA/Los%20Angeles#ocean"))
+    (test-equal "~b%C3%A9b%C3%A9" (xpath-fn:encode-for-uri "~bébé"))
+    (test-equal "100%25%20organic" (xpath-fn:encode-for-uri "100% organic")))
   )
 
 (test-end)

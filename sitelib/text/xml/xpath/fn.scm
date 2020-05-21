@@ -101,6 +101,7 @@
 	    xpath-fn:tokenize
 	    xpath-fn:analyze-string
 	    xpath-fn:resolve-uri
+	    xpath-fn:encode-for-uri
 	    )
     (import (rnrs)
 	    (rfc uri)
@@ -601,7 +602,13 @@
 	   (xqt-error 'FONS0005 xpath-fn:resolve-uri "Base is not provided" relative))
 	  (else (uri-merge base relative))))))
 
-   
+;;;; 6.2 fn:encode-for-uri
+(define (xpath-fn:encode-for-uri uri-part)
+  (if (null? uri-part)
+      ""
+      (uri-encode-string uri-part)))
+  
+
 ;;; 19 Casting
 (define (atomic->string who atomic)
   (cond ((string? atomic) atomic)
