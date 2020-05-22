@@ -598,6 +598,12 @@
      (xpath-fn:encode-for-uri "http://www.example.com/00/Weather/CA/Los%20Angeles#ocean"))
     (test-equal "~b%C3%A9b%C3%A9" (xpath-fn:encode-for-uri "~bébé"))
     (test-equal "100%25%20organic" (xpath-fn:encode-for-uri "100% organic")))
+
+  (test-group "fn:iri-to-uri"
+    (test-equal "http://www.example.com/00/Weather/CA/Los%20Angeles#ocean"
+		(xpath-fn:iri-to-uri "http://www.example.com/00/Weather/CA/Los%20Angeles#ocean"))
+    (test-equal "http://www.example.com/~b%C3%A9b%C3%A9"
+		(xpath-fn:iri-to-uri "http://www.example.com/~bébé")))
   )
 
 (test-end)

@@ -102,7 +102,7 @@
 	    xpath-fn:analyze-string
 	    xpath-fn:resolve-uri
 	    xpath-fn:encode-for-uri
-	    )
+	    xpath-fn:iri-to-uri)
     (import (rnrs)
 	    (rfc uri)
 	    (sagittarius regex)
@@ -607,7 +607,20 @@
   (if (null? uri-part)
       ""
       (uri-encode-string uri-part)))
-  
+
+;;;; 6.3 fn:iri-to-uri
+(define (xpath-fn:iri-to-uri iri)
+  (if (null? iri)
+      ""
+      (let*-values (((scheme specific) (uri-scheme&specific iri))
+		    ((auth path query frag) (uri-decompose-hierarchical specific)))
+	(define (encode p) (uri-encode-string (uri-decode-string p)))
+	(uri-compose :scheme scheme
+		     :authority auth
+		     :path (and path
+				(string-join (map encode (string-split path "/")) "/"))
+		     :query (and query (uri-encode-string query))
+		     :fragment (and frag (uri-encode-string frag))))))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
