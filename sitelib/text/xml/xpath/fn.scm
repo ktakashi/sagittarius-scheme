@@ -102,7 +102,8 @@
 	    xpath-fn:analyze-string
 	    xpath-fn:resolve-uri
 	    xpath-fn:encode-for-uri
-	    xpath-fn:iri-to-uri)
+	    xpath-fn:iri-to-uri
+	    xpath-fn:escape-html-uri)
     (import (rnrs)
 	    (rfc uri)
 	    (sagittarius regex)
@@ -621,6 +622,13 @@
 				(string-join (map encode (string-split path "/")) "/"))
 		     :query (and query (uri-encode-string query))
 		     :fragment (and frag (uri-encode-string frag))))))
+
+;;;; 6.4 fn:escape-html-uri
+(define us-ascii-printables (char-set-intersection char-set:ascii char-set:printing))
+(define (xpath-fn:escape-html-uri uri)
+  (if (null? uri)
+      ""
+      (uri-encode-string uri :noescape us-ascii-printables)))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

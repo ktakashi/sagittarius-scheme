@@ -604,6 +604,12 @@
 		(xpath-fn:iri-to-uri "http://www.example.com/00/Weather/CA/Los%20Angeles#ocean"))
     (test-equal "http://www.example.com/~b%C3%A9b%C3%A9"
 		(xpath-fn:iri-to-uri "http://www.example.com/~bébé")))
+
+  (test-group "fn:escape-html-uri"
+    (test-equal "http://www.example.com/00/Weather/CA/Los Angeles#ocean"
+		(xpath-fn:escape-html-uri "http://www.example.com/00/Weather/CA/Los Angeles#ocean"))
+    (test-equal "javascript:if (navigator.browserLanguage == 'fr') window.open('http://www.example.com/~b%C3%A9b%C3%A9');"
+		(xpath-fn:escape-html-uri "javascript:if (navigator.browserLanguage == 'fr') window.open('http://www.example.com/~bébé');")))
   )
 
 (test-end)
