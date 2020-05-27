@@ -612,6 +612,45 @@
 		(xpath-fn:escape-html-uri "javascript:if (navigator.browserLanguage == 'fr') window.open('http://www.example.com/~bébé');")))
   )
 
+(test-group "Functions and operators on Boolean values"
+  (test-group "fn:true"
+    (test-assert (xpath-fn:true)))
+  (test-group "fn:false"
+    (test-assert (not (xpath-fn:false))))
+  (test-group "op:boolean-equal"
+    (test-assert (xpath-op:boolean-equal #t #t))
+    (test-assert (xpath-op:boolean-equal #f #f))
+    (test-assert (not (xpath-op:boolean-equal #t #f)))
+    (test-assert (not (xpath-op:boolean-equal #f #t))))
+  (test-group "op:boolean-less-than"
+    (test-assert (xpath-op:boolean-less-than #f #t))
+    (test-assert (not (xpath-op:boolean-less-than #t #t)))
+    (test-assert (not (xpath-op:boolean-less-than #t #f)))
+    (test-assert (not (xpath-op:boolean-less-than #f #f))))
+  (test-group "op:boolean-greater-than"
+    (test-assert (xpath-op:boolean-greater-than #t #f))
+    (test-assert (not (xpath-op:boolean-greater-than #t #t)))
+    (test-assert (not (xpath-op:boolean-greater-than #f #t)))
+    (test-assert (not (xpath-op:boolean-greater-than #f #f))))
+
+  (test-group "fn:boolean"
+    (test-xqt-error FORG0006 (xpath-fn:boolean '("a" "b" "c")))
+    (test-assert (xpath-fn:boolean "a"))
+    (test-assert (xpath-fn:boolean 1))
+    (test-assert (not (xpath-fn:boolean 0)))
+    (test-assert (not (xpath-fn:boolean '())))
+    (test-assert (not (xpath-fn:boolean ""))))
+
+  (test-group "fn:not"
+    (test-xqt-error FORG0006 (xpath-fn:not '("a" "b" "c")))
+    (test-assert (not (xpath-fn:not "a")))
+    (test-assert (not (xpath-fn:not 1)))
+    (test-assert (xpath-fn:not 0))
+    (test-assert (xpath-fn:not '()))
+    (test-assert (xpath-fn:not "")))
+  
+  )
+
 (test-end)
 
 ;; Local Variables:

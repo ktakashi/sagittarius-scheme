@@ -103,7 +103,14 @@
 	    xpath-fn:resolve-uri
 	    xpath-fn:encode-for-uri
 	    xpath-fn:iri-to-uri
-	    xpath-fn:escape-html-uri)
+	    xpath-fn:escape-html-uri
+	    xpath-fn:true
+	    xpath-fn:false
+	    xpath-op:boolean-equal
+	    xpath-op:boolean-less-than
+	    xpath-op:boolean-greater-than
+	    xpath-fn:boolean
+	    xpath-fn:not)
     (import (rnrs)
 	    (rfc uri)
 	    (sagittarius regex)
@@ -629,6 +636,29 @@
   (if (null? uri)
       ""
       (uri-encode-string uri :noescape us-ascii-printables)))
+
+;;;; 7.1.1 fn:true
+(define (xpath-fn:true) #t)
+;;;; 7.1.2 fn:false
+(define (xpath-fn:false) #f)
+;;;; 7.2.1 op:boolean-equal
+(define (xpath-op:boolean-equal v1 v2) (boolean=? v1 v2))
+;;;; 7.2.2 op:boolean-less-than
+(define (xpath-op:boolean-less-than v1 v2)
+  (and (boolean=? v1 #f) (boolean=? v2 #t)))
+;;;; 7.2.3 op:boolean-greater-than
+(define (xpath-op:boolean-greater-than v1 v2)
+  (xpath-op:boolean-less-than v2 v1))
+;;;; 7.3.1 fn:boolean
+(define (xpath-fn:boolean arg*)
+  (cond ((null? arg*) #f)
+	((and (pair? arg*) (node? (car arg*))))
+	((boolean? arg*) arg*)
+	((string? arg*) (not (zero? (string-length arg*))))
+	((number? arg*) (not (or (zero? arg*) (nan? arg*))))
+	(else (xqt-error 'FORG0006 'xpath-fn:boolean "Unknown value" arg*))))
+;;;; 7.3.2 fn:not
+(define (xpath-fn:not arg*) (not (xpath-fn:boolean arg*)))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
