@@ -44,7 +44,7 @@
 	    xs:day-time-duration xs:day-time-duration?
 	    (rename make-xs:day-time-duration xs:make-day-time-duration)
 
-	    xs:year-month-duration xs:year-month-duration
+	    xs:year-month-duration xs:year-month-duration?
 	    (rename make-xs:year-month-duration xs:make-year-month-duration)
 	    
 	    xs:qname xs:qname? (rename make-xs:qname xs:make-qname)

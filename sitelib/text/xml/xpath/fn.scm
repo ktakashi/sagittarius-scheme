@@ -110,7 +110,11 @@
 	    xpath-op:boolean-less-than
 	    xpath-op:boolean-greater-than
 	    xpath-fn:boolean
-	    xpath-fn:not)
+	    xpath-fn:not
+	    xpath-op:year-month-duration-less-than
+	    xpath-op:year-month-duration-greater-than
+	    xpath-op:day-time-duration-less-than
+	    xpath-op:day-time-duration-greater-than)
     (import (rnrs)
 	    (rfc uri)
 	    (sagittarius regex)
@@ -659,6 +663,21 @@
 	(else (xqt-error 'FORG0006 'xpath-fn:boolean "Unknown value" arg*))))
 ;;;; 7.3.2 fn:not
 (define (xpath-fn:not arg*) (not (xpath-fn:boolean arg*)))
+
+
+;;;; 8.2.1 op:yearMonthDuration-less-than
+(define (xpath-op:year-month-duration-less-than v1 v2)
+  ;; TODO type check
+  (< (xs:duration-months v1) (xs:duration-months v2)))
+;;;; 8.2.2 op:yearMonthDuration-greater-than
+(define (xpath-op:year-month-duration-greater-than v1 v2)
+  (xpath-op:year-month-duration-less-than v2 v1))
+;;;; 8.2.3 op:dayTimeDuration-less-than
+(define (xpath-op:day-time-duration-less-than v1 v2)
+  (< (xs:duration-seconds v1) (xs:duration-seconds v2)))
+;;;; 8.2.4 op:dayTimeDuration-greater-than
+(define (xpath-op:day-time-duration-greater-than v1 v2)
+  (xpath-op:day-time-duration-less-than v2 v1))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

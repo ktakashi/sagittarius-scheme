@@ -647,8 +647,53 @@
     (test-assert (not (xpath-fn:not 1)))
     (test-assert (xpath-fn:not 0))
     (test-assert (xpath-fn:not '()))
-    (test-assert (xpath-fn:not "")))
-  
+    (test-assert (xpath-fn:not "")))  
+  )
+
+(test-group "8 Functions and operators on durations"
+  (test-group "op:yearMonthDuration-less-than"
+    (test-assert (xpath-op:year-month-duration-less-than
+		  (xs:make-year-month-duration 1)
+		  (xs:make-year-month-duration 2)))
+    (test-assert (not (xpath-op:year-month-duration-less-than
+		       (xs:make-year-month-duration 2)
+		       (xs:make-year-month-duration 1))))
+    (test-assert (not (xpath-op:year-month-duration-less-than
+		       (xs:make-year-month-duration 1)
+		       (xs:make-year-month-duration 1)))))
+
+  (test-group "op:yearMonthDuration-greater-than"
+    (test-assert (xpath-op:year-month-duration-greater-than
+		  (xs:make-year-month-duration 2)
+		  (xs:make-year-month-duration 1)))
+    (test-assert (not (xpath-op:year-month-duration-greater-than
+		       (xs:make-year-month-duration 1)
+		       (xs:make-year-month-duration 2))))
+    (test-assert (not (xpath-op:year-month-duration-greater-than
+		       (xs:make-year-month-duration 1)
+		       (xs:make-year-month-duration 1)))))
+
+  (test-group "op:dayTimeDuration-less-than"
+    (test-assert (xpath-op:day-time-duration-less-than
+		  (xs:make-day-time-duration 1)
+		  (xs:make-day-time-duration 2)))
+    (test-assert (not (xpath-op:day-time-duration-less-than
+		       (xs:make-day-time-duration 2)
+		       (xs:make-day-time-duration 1))))
+    (test-assert (not (xpath-op:day-time-duration-less-than
+		       (xs:make-day-time-duration 1)
+		       (xs:make-day-time-duration 1)))))
+
+  (test-group "op:dayTimeDuration-greater-than"
+    (test-assert (xpath-op:day-time-duration-greater-than
+		  (xs:make-day-time-duration 2)
+		  (xs:make-day-time-duration 1)))
+    (test-assert (not (xpath-op:day-time-duration-greater-than
+		       (xs:make-day-time-duration 1)
+		       (xs:make-day-time-duration 2))))
+    (test-assert (not (xpath-op:day-time-duration-greater-than
+		       (xs:make-day-time-duration 1)
+		       (xs:make-day-time-duration 1)))))
   )
 
 (test-end)
