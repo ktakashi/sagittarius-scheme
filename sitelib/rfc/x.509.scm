@@ -512,7 +512,7 @@
     (let ((time (date->time-utc date)))
       (when (time>? time (date->time-utc (x509-certificate-get-not-after cert)))
 	(assertion-violation 'check-veridity
-			     "certificate expored"
+			     "certificate expired"
 			     (x509-certificate-get-not-after cert)))
       (when (time<? time
 		    (date->time-utc (x509-certificate-get-not-before cert)))

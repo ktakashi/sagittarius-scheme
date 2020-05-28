@@ -819,14 +819,10 @@
 			   "invalid time format" s))
     (make <der-generalized-time> :time s))
   (define-method make-der-generalized-time ((b <bytevector>))
-    (let ((s (utf8->string b)))
-      (unless (get-time s)
-	(assertion-violation 'make-der-generalized-time
-			     "invalid time format" s))
-      (make <der-generalized-time> :time s)))
+    (make-der-generalized-time (utf8->string b)))
   (define-method make-der-generalized-time ((t <date>))
     (make <der-generalized-time>
-      :time (date->string t "~Y~m~d~H~M~S'~z'")))
+      :time (date->string t "~Y~m~d~H~M~S~z")))
   (define-method der-encode ((o <der-generalized-time>) (p <port>))
     (der-write-encoded GENERALIZED-TIME (string->utf8 (slot-ref o 'time)) p))
   (define-method write-object ((o <der-generalized-time>) (p <port>))
@@ -840,8 +836,8 @@
     (define (get-format time)
       (cond ((string-suffix? "Z" time)
 	     (if (has-fraction-seconds time)
-		 "~Y~m~d~H~M~S.~~~~~~'~z'"
-		 "~Y~m~d~H~M~S'~z'"))
+		 "~Y~m~d~H~M~S.~~~~~~~z"
+		 "~Y~m~d~H~M~S~z"))
 	    ((or (string-index time #\-)
 		 (string-index time #\+))
 	     (assertion-violation 'der-time->date
