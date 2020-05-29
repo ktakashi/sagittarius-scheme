@@ -52,7 +52,8 @@
 	    xs:qname->node-name xs:qname->expanded-qname
 
 	    )
-    (import (rnrs))
+    (import (rnrs)
+	    (srfi :115 regexp))
 
 ;; 3 Built-in Datatypes and Their Definitions
 ;; for now, I implement what we need
@@ -74,6 +75,35 @@
       ;; TODO date and dateTime (maybe srfi 19?)
       ))
 
+
+(define +duration-regex+
+  (regexp
+   '(: (? #\-) "P"
+       (or (: (or (: ($ (+ (/ "09"))) "Y"
+		     (? ($ (+ (/ "09"))) "M")
+		     (? ($ (+ (/ "09"))) "D"))
+		  (: ($ (+ (/ "09"))) "M"
+		     (? ($ (+ (/ "09"))) "D"))
+		  (: ($ (+ (/ "09"))) "D"))
+	      (? "T"
+		 (or (: ($ (+ (/ "09"))) "H"
+			(? ($ (+ (/ "09"))) "M")
+			(? ($ (+ (/ "09")))
+			   (? "." ($ (+ (/ "09")))) "S"))
+		     (: ($ (+ (/ "09"))) "M"
+			(? ($ (+ (/ "09")))
+			   (? "." ($ (+ (/ "09")))) "S"))
+		     (: ($ (+ (/ "09")))
+			(? "." ($ (+ (/ "09")))) "S"))))
+	   (: "T" (or (: ($ (+ (/ "09"))) "H"
+			 (? ($ (+ (/ "09"))) "M")
+			 (? ($ (+ (/ "09")))
+			    (? "." ($ (+ (/ "09")))) "S"))
+		      (: ($ (+ (/ "09"))) "M"
+			 (? ($ (+ (/ "09")))
+			    (? "." ($ (+ (/ "09")))) "S"))
+		      (: ($ (+ (/ "09")))
+			 (? "." ($ (+ (/ "09")))) "S")))))))
 
 (define-record-type xs:duration
   (parent xs:any-atomic-type)
