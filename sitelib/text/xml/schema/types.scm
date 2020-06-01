@@ -79,42 +79,97 @@
 (define +duration-regex+
   (regexp
    '(: (? #\-) "P"
-       (or (: (or (: ($ (+ (/ "09"))) "Y"
-		     (? ($ (+ (/ "09"))) "M")
-		     (? ($ (+ (/ "09"))) "D"))
-		  (: ($ (+ (/ "09"))) "M"
-		     (? ($ (+ (/ "09"))) "D"))
-		  (: ($ (+ (/ "09"))) "D"))
+       (or (: (or (: ($ (+ (/ "09"))) "Y"      ;; 1
+		     (? ($ (+ (/ "09"))) "M")  ;; 2
+		     (? ($ (+ (/ "09"))) "D")) ;; 3
+		  (: ($ (+ (/ "09"))) "M"      ;; 4
+		     (? ($ (+ (/ "09"))) "D")) ;; 5
+		  (: ($ (+ (/ "09"))) "D"))    ;; 6
 	      (? "T"
-		 (or (: ($ (+ (/ "09"))) "H"
-			(? ($ (+ (/ "09"))) "M")
-			(? ($ (+ (/ "09")))
-			   (? "." ($ (+ (/ "09")))) "S"))
-		     (: ($ (+ (/ "09"))) "M"
-			(? ($ (+ (/ "09")))
-			   (? "." ($ (+ (/ "09")))) "S"))
-		     (: ($ (+ (/ "09")))
-			(? "." ($ (+ (/ "09")))) "S"))))
-	   (: "T" (or (: ($ (+ (/ "09"))) "H"
-			 (? ($ (+ (/ "09"))) "M")
-			 (? ($ (+ (/ "09")))
-			    (? "." ($ (+ (/ "09")))) "S"))
-		      (: ($ (+ (/ "09"))) "M"
-			 (? ($ (+ (/ "09")))
-			    (? "." ($ (+ (/ "09")))) "S"))
-		      (: ($ (+ (/ "09")))
-			 (? "." ($ (+ (/ "09")))) "S")))))))
+		 (or (: ($ (+ (/ "09"))) "H"		  ;; 7 
+			(? ($ (+ (/ "09"))) "M")	  ;; 8
+			(? ($ (+ (/ "09")))		  ;; 9
+			   (? "." ($ (+ (/ "09")))) "S")) ;; 10
+		     (: ($ (+ (/ "09"))) "M"		  ;; 11
+			(? ($ (+ (/ "09")))		  ;; 12
+			   (? "." ($ (+ (/ "09")))) "S")) ;; 13
+		     (: ($ (+ (/ "09")))		  ;; 14
+			(? "." ($ (+ (/ "09")))) "S"))))  ;; 15
+
+	   (: "T" (or (: ($ (+ (/ "09"))) "H"		     ;; 16
+			 (? ($ (+ (/ "09"))) "M")	     ;; 17
+			 (? ($ (+ (/ "09")))		     ;; 18
+			    (? "." ($ (+ (/ "09")))) "S"))   ;; 19
+		      (: ($ (+ (/ "09"))) "M"		     ;; 20
+			 (? ($ (+ (/ "09")))		     ;; 21
+			    (? "." ($ (+ (/ "09")))) "S"))   ;; 22
+		      (: ($ (+ (/ "09")))		     ;; 23
+			 (? "." ($ (+ (/ "09")))) "S"))))))) ;; 24
+(define +duration-ymd-matches+
+  '((1  2  3)
+    (4  5 #f)
+    (6 #f #f)))
+(define +duration-hms-matches+
+  '(( 7  8  9 10)
+    (11 12 13 #f)
+    (14 15 #f #f)
+    (16 17 18 19)
+    (20 21 22 #f)
+    (23 24 #f #f)))
+
+(define (parse-duration duration rx ymd hms)
+  (define (submatch m n rest)
+    (cond ((regexp-match-submatch m n) => (lambda (s) (cons* m s rest)))
+	  (else #f)))
+  
+  (define (return r&n*)
+    (let ((m (car r&n*))
+	  (r (cadr r&n*))
+	  (n* (cddr r&n*)))
+      (apply values r
+	     (map (lambda (n) (and n (regexp-match-submatch m n))) n*))))
+  
+  (define (parse m matchers)
+    (define sample (car matchers))
+    (or (exists (lambda (p)
+		  (cond ((submatch m (car p) (cdr p)) => return)
+			(else #f))) matchers)
+	(apply values (map (lambda (_) #f) sample))))
+    
+  (cond ((regexp-matches +duration-regex+ duration) =>
+	 (lambda (m)
+	   (let-values (((y mo d) (parse m ymd))
+			((t mi s f) (parse m hms)))		     
+	     (define neg? (char=? (string-ref duration 0) #\-))
+	     (define (neg n) (if neg? (- n) n))
+	     (values (neg (+ (or (and y (* 12 (string->number y))) 0)
+			     (or (and mo (string->number mo)) 0)))
+		     (neg (+ (or (and d (* 24 60 60 (string->number d))) 0)
+			     (or (and t (* 60 60 (string->number d))) 0)
+			     (or (and mi (* 60 (string->number mi))) 0)
+			     (or (and s (string->number s)) 0)
+			     ;; fraction?
+			     (or (and f (div (string->number f) 1000)) 0)))))))
+	(else (assertion-violation 'parse-duration "Invalid duration"
+				   duration))))
 
 (define-record-type xs:duration
   (parent xs:any-atomic-type)
   (fields months seconds)
   (protocol (lambda (p)
-	      (lambda (m s)
+	      (define (ctr m s)
 		(when (or (and (negative? m) (positive? s))
 			  (and (positive? m) (negative? s)))
 		  (assertion-violation 'xs:make-duration
 				       "Invalid months and seconds" m s))
-		((p) m s)))))
+		((p) m s))
+	      (case-lambda
+	       ((s)
+		(let-values (((m s) (parse-duration s +duration-regex+
+						    +duration-ymd-matches+
+						    +duration-hms-matches+)))
+		  (ctr m s)))
+	       ((m s) (ctr m s))))))
 (define-record-type xs:day-time-duration
   (parent xs:duration)
   (protocol (lambda (p) (lambda (s) ((p 0 s))))))
