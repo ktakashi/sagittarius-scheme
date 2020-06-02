@@ -694,6 +694,17 @@
     (test-assert (not (xpath-op:day-time-duration-greater-than
 		       (xs:make-day-time-duration 1)
 		       (xs:make-day-time-duration 1)))))
+
+  (test-group "op:duration-equal"
+    (test-assert (xpath-op:duration-equal (xs:make-duration "P1Y") (xs:make-duration "P12M")))
+    (test-assert (xpath-op:duration-equal (xs:make-duration "PT24H") (xs:make-duration "P1D")))
+    (test-assert (not (xpath-op:duration-equal (xs:make-duration "P1Y") (xs:make-duration "P365D"))))
+    (test-assert (xpath-op:duration-equal (xs:make-year-month-duration "P0Y") (xs:make-day-time-duration "P0D")))
+    (test-assert (not (xpath-op:duration-equal (xs:make-year-month-duration "P1Y") (xs:make-day-time-duration "P365D"))))
+    (test-assert (xpath-op:duration-equal (xs:make-year-month-duration "P2Y") (xs:make-year-month-duration "P24M")))
+    (test-assert (xpath-op:duration-equal (xs:make-day-time-duration "P10D") (xs:make-day-time-duration "PT240H")))
+    (test-assert (xpath-op:duration-equal (xs:make-duration "P2Y0M0DT0H0M0S") (xs:make-year-month-duration "P24M")))
+    (test-assert (xpath-op:duration-equal (xs:make-duration "P0Y0M10D") (xs:make-duration "PT240H"))))
   )
 
 (test-end)

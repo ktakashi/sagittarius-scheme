@@ -114,7 +114,8 @@
 	    xpath-op:year-month-duration-less-than
 	    xpath-op:year-month-duration-greater-than
 	    xpath-op:day-time-duration-less-than
-	    xpath-op:day-time-duration-greater-than)
+	    xpath-op:day-time-duration-greater-than
+	    xpath-op:duration-equal)
     (import (rnrs)
 	    (rfc uri)
 	    (sagittarius regex)
@@ -678,6 +679,14 @@
 ;;;; 8.2.4 op:dayTimeDuration-greater-than
 (define (xpath-op:day-time-duration-greater-than v1 v2)
   (xpath-op:day-time-duration-less-than v2 v1))
+;;;; 8.2.5 op:duration-equal
+(define (xpath-op:duration-equal v1 v2)
+  (unless (and (xs:duration? v1) (xs:duration? v2))
+    ;; FIXME which error?
+    (assertion-violation 'xpath-op:duration-equal "Invalid arguments" v1 v2))
+  (and (= (xs:duration-months v1) (xs:duration-months v2))
+       (= (xs:duration-seconds v1) (xs:duration-seconds v2))))
+
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
