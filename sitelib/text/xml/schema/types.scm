@@ -107,45 +107,43 @@
 			 (? "." ($ (+ (/ "09")))) "S"))))))) ;; 24
 (define +duration-ymd-matches+
   '((1  2  3)
-    (4  5 #f)
-    (6 #f #f)))
+    (#f 4  5)
+    (#f #f 6)))
 (define +duration-hms-matches+
   '(( 7  8  9 10)
-    (11 12 13 #f)
-    (14 15 #f #f)
+    (#f 11 12 13)
+    (#f #f 14 15)
     (16 17 18 19)
-    (20 21 22 #f)
-    (23 24 #f #f)))
+    (#f 20 21 22)
+    (#f #f 23 24)))
 
 (define (parse-duration duration rx ymd hms)
-  (define (submatch m n rest)
-    (cond ((regexp-match-submatch m n) => (lambda (s) (cons* m s rest)))
-	  (else #f)))
-  
-  (define (return r&n*)
-    (let ((m (car r&n*))
-	  (r (cadr r&n*))
-	  (n* (cddr r&n*)))
-      (apply values r
-	     (map (lambda (n) (and n (regexp-match-submatch m n))) n*))))
+  (define (submatch m p)
+    ;; it's a bit of waste
+    (let loop ((r '()) (p p) (matched? #f))
+      (cond ((null? p) (and matched? (reverse r)))
+	    ((not (car p)) (loop (cons #f r) (cdr p) matched?))
+	    ((regexp-match-submatch m (car p)) =>
+	     (lambda (v)
+	       (loop (cons v r) (cdr p) #t)))
+	    (else (loop (cons #f r) (cdr p) matched?)))))
   
   (define (parse m matchers)
     (define sample (car matchers))
-    (or (exists (lambda (p)
-		  (cond ((submatch m (car p) (cdr p)) => return)
-			(else #f))) matchers)
-	(apply values (map (lambda (_) #f) sample))))
+    (cond ((exists (lambda (p) (submatch m p)) matchers) =>
+	   (lambda (result) (apply values result)))
+	  (else (apply values (map (lambda (_) #f) sample)))))
     
   (cond ((regexp-matches +duration-regex+ duration) =>
 	 (lambda (m)
 	   (let-values (((y mo d) (parse m ymd))
-			((t mi s f) (parse m hms)))		     
+			((h mi s f) (parse m hms)))		     
 	     (define neg? (char=? (string-ref duration 0) #\-))
 	     (define (neg n) (if neg? (- n) n))
 	     (values (neg (+ (or (and y (* 12 (string->number y))) 0)
 			     (or (and mo (string->number mo)) 0)))
 		     (neg (+ (or (and d (* 24 60 60 (string->number d))) 0)
-			     (or (and t (* 60 60 (string->number d))) 0)
+			     (or (and h (* 60 60 (string->number h))) 0)
 			     (or (and mi (* 60 (string->number mi))) 0)
 			     (or (and s (string->number s)) 0)
 			     ;; fraction?
@@ -170,13 +168,36 @@
 						    +duration-hms-matches+)))
 		  (ctr m s)))
 	       ((m s) (ctr m s))))))
+
 (define-record-type xs:day-time-duration
   (parent xs:duration)
-  (protocol (lambda (p) (lambda (s) ((p 0 s))))))
+  (protocol (lambda (p)
+	      (case-lambda 
+	       ((d)
+		(let-values (((m s) (if (string? d)
+					(parse-duration d +duration-regex+
+							+duration-ymd-matches+
+							+duration-hms-matches+)
+					(values 0 d))))
+		  (unless (zero? m)
+		    (assertion-violation 'xs:make-day-time-duration
+					 "Month must not be specified" d))
+		  ((p 0 s))))))))
+
 (define-record-type xs:year-month-duration
   (parent xs:duration)
-  (protocol (lambda (p) (lambda (m) ((p m 0))))))
-
+  (protocol (lambda (p)
+	      (case-lambda
+	       ((d)
+		(let-values (((m s) (if (string? d)
+					(parse-duration d +duration-regex+
+							+duration-ymd-matches+
+							+duration-hms-matches+)
+					(values d 0))))
+		  (unless (zero? s)
+		    (assertion-violation 'xs:make-year-month-duration
+					 "Second must not be specified" d))
+		  ((p m 0))))))))
 
 (define-record-type xs:qname
   (parent xs:any-atomic-type)
