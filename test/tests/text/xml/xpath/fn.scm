@@ -696,15 +696,71 @@
 		       (xs:make-day-time-duration 1)))))
 
   (test-group "op:duration-equal"
-    (test-assert (xpath-op:duration-equal (xs:make-duration "P1Y") (xs:make-duration "P12M")))
-    (test-assert (xpath-op:duration-equal (xs:make-duration "PT24H") (xs:make-duration "P1D")))
-    (test-assert (not (xpath-op:duration-equal (xs:make-duration "P1Y") (xs:make-duration "P365D"))))
-    (test-assert (xpath-op:duration-equal (xs:make-year-month-duration "P0Y") (xs:make-day-time-duration "P0D")))
-    (test-assert (not (xpath-op:duration-equal (xs:make-year-month-duration "P1Y") (xs:make-day-time-duration "P365D"))))
-    (test-assert (xpath-op:duration-equal (xs:make-year-month-duration "P2Y") (xs:make-year-month-duration "P24M")))
-    (test-assert (xpath-op:duration-equal (xs:make-day-time-duration "P10D") (xs:make-day-time-duration "PT240H")))
-    (test-assert (xpath-op:duration-equal (xs:make-duration "P2Y0M0DT0H0M0S") (xs:make-year-month-duration "P24M")))
-    (test-assert (xpath-op:duration-equal (xs:make-duration "P0Y0M10D") (xs:make-duration "PT240H"))))
+    (test-assert (xpath-op:duration-equal (xs:make-duration "P1Y")
+					  (xs:make-duration "P12M")))
+    (test-assert (xpath-op:duration-equal (xs:make-duration "PT24H")
+					  (xs:make-duration "P1D")))
+    (test-assert (not (xpath-op:duration-equal (xs:make-duration "P1Y")
+					       (xs:make-duration "P365D"))))
+    (test-assert (xpath-op:duration-equal (xs:make-year-month-duration "P0Y")
+					  (xs:make-day-time-duration "P0D")))
+    (test-assert (not (xpath-op:duration-equal
+		       (xs:make-year-month-duration "P1Y")
+		       (xs:make-day-time-duration "P365D"))))
+    (test-assert (xpath-op:duration-equal (xs:make-year-month-duration "P2Y")
+					  (xs:make-year-month-duration "P24M")))
+    (test-assert (xpath-op:duration-equal (xs:make-day-time-duration "P10D")
+					  (xs:make-day-time-duration "PT240H")))
+    (test-assert (xpath-op:duration-equal (xs:make-duration "P2Y0M0DT0H0M0S")
+					  (xs:make-year-month-duration "P24M")))
+    (test-assert (xpath-op:duration-equal (xs:make-duration "P0Y0M10D")
+					  (xs:make-duration "PT240H"))))
+
+  (test-group "fn:years-from-duration"
+    (test-equal 21 (xpath-fn:years-from-duration
+		    (xs:make-year-month-duration "P20Y15M")))
+    (test-equal -1 (xpath-fn:years-from-duration
+		    (xs:make-year-month-duration "-P15M")))
+    (test-equal 0 (xpath-fn:years-from-duration
+		   (xs:make-day-time-duration "-P2DT15H"))))
+
+  (test-group "fn:months-from-duration"
+    (test-equal 3 (xpath-fn:months-from-duration
+		   (xs:make-year-month-duration "P20Y15M")))
+    (test-equal -6 (xpath-fn:months-from-duration
+		    (xs:make-year-month-duration "-P20Y18M")))
+    (test-equal 0 (xpath-fn:months-from-duration
+		   (xs:make-day-time-duration "-P2DT15H0M0S"))))
+
+  (test-group "fn:days-from-duration"
+    (test-equal 3 (xpath-fn:days-from-duration
+		   (xs:make-day-time-duration "P3DT10H")))
+    (test-equal 5 (xpath-fn:days-from-duration
+		   (xs:make-day-time-duration "P3DT55H")))
+    (test-equal 0 (xpath-fn:days-from-duration
+		   (xs:make-year-month-duration "P3Y5M"))))
+
+  (test-group "fn:hours-from-duration"
+    (test-equal 10 (xpath-fn:hours-from-duration
+		   (xs:make-day-time-duration "P3DT10H")))
+    (test-equal 12 (xpath-fn:hours-from-duration
+		    (xs:make-day-time-duration "P3DT12H32M12S")))
+    (test-equal 3 (xpath-fn:hours-from-duration
+		   (xs:make-day-time-duration "PT123H")))
+    (test-equal -10 (xpath-fn:hours-from-duration
+		     (xs:make-day-time-duration "-P3DT10H"))))
+
+  (test-group "fn:minutes-from-duration"
+    (test-equal 0 (xpath-fn:minutes-from-duration
+		   (xs:make-day-time-duration "P3DT10H")))
+    (test-equal -30 (xpath-fn:minutes-from-duration
+		     (xs:make-day-time-duration "-P5DT12H30M"))))
+
+  (test-group "fn:seconds-from-duration"
+    (test-equal 12.5 (xpath-fn:seconds-from-duration
+		      (xs:make-day-time-duration "P3DT10H12.5S")))
+    (test-equal -16.0 (xpath-fn:seconds-from-duration
+		       (xs:make-day-time-duration "-PT256S"))))
   )
 
 (test-end)

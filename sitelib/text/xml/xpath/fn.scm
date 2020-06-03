@@ -115,8 +115,15 @@
 	    xpath-op:year-month-duration-greater-than
 	    xpath-op:day-time-duration-less-than
 	    xpath-op:day-time-duration-greater-than
-	    xpath-op:duration-equal)
+	    xpath-op:duration-equal
+	    xpath-fn:years-from-duration
+	    xpath-fn:months-from-duration
+	    xpath-fn:days-from-duration
+	    xpath-fn:hours-from-duration
+	    xpath-fn:minutes-from-duration
+	    xpath-fn:seconds-from-duration)
     (import (rnrs)
+	    (rnrs r5rs)
 	    (rfc uri)
 	    (sagittarius regex)
 	    (srfi :1 lists)
@@ -686,6 +693,39 @@
     (assertion-violation 'xpath-op:duration-equal "Invalid arguments" v1 v2))
   (and (= (xs:duration-months v1) (xs:duration-months v2))
        (= (xs:duration-seconds v1) (xs:duration-seconds v2))))
+
+;;;; 8.3.1 fn:years-from-duration
+(define (xpath-fn:years-from-duration arg)
+  (if (xs:day-time-duration? arg)
+      0
+      (quotient (xs:duration-months arg) 12)))
+;;;; 8.3.2 fn:months-from-duration
+(define (xpath-fn:months-from-duration arg)
+  (if (xs:day-time-duration? arg)
+      0
+      (remainder (xs:duration-months arg) 12)))
+(define (exact-floor d) (exact (floor d)))
+;;;; 8.3.3 fn:days-from-duration
+(define (xpath-fn:days-from-duration arg)
+  (if (xs:year-month-duration? arg)
+      0
+      (quotient (exact-floor (xs:duration-seconds arg)) 86400)))
+;;;; 8.3.4 fn:hours-from-duration
+(define (xpath-fn:hours-from-duration arg)
+  (if (xs:year-month-duration? arg)
+      0
+      (quotient (remainder (exact-floor (xs:duration-seconds arg)) 86400) 3600)))
+;;;; 8.3.5 fn:minutes-from-duration
+(define (xpath-fn:minutes-from-duration arg)
+  (if (xs:year-month-duration? arg)
+      0
+      (quotient (remainder (exact-floor (xs:duration-seconds arg)) 3600) 60)))
+;;;; 8.3.6 fn:seconds-from-duration
+(define (xpath-fn:seconds-from-duration arg)
+  (if (xs:year-month-duration? arg)
+      0
+      (let-values (((s f) (flinteger-fraction (xs:duration-seconds arg))))
+	(+ (remainder s 60) f))))
 
 
 ;;; 19 Casting

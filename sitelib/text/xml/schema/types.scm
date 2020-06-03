@@ -147,7 +147,8 @@
 			     (or (and mi (* 60 (string->number mi))) 0)
 			     (or (and s (string->number s)) 0)
 			     ;; fraction?
-			     (or (and f (div (string->number f) 1000)) 0)))))))
+			     (or (and f (string->number (string-append "0." f)))
+				 0.0)))))))
 	(else (assertion-violation 'parse-duration "Invalid duration"
 				   duration))))
 
@@ -193,11 +194,11 @@
 					(parse-duration d +duration-regex+
 							+duration-ymd-matches+
 							+duration-hms-matches+)
-					(values d 0))))
+					(values d 0.0))))
 		  (unless (zero? s)
 		    (assertion-violation 'xs:make-year-month-duration
 					 "Second must not be specified" d))
-		  ((p m 0))))))))
+		  ((p m 0.0))))))))
 
 (define-record-type xs:qname
   (parent xs:any-atomic-type)
