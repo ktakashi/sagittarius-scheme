@@ -410,7 +410,7 @@
 ;; utilities
 (define unique?
   (case-lambda
-   ((v) (unique? v equal?))
+   ((v) (unique? v json=?))
    ((v =) (equal? v (delete-duplicates v =)))))
 (define (json=? a b)
   (define (entry=? a b)
