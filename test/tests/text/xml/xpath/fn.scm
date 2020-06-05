@@ -761,6 +761,74 @@
 		      (xs:make-day-time-duration "P3DT10H12.5S")))
     (test-equal -16.0 (xpath-fn:seconds-from-duration
 		       (xs:make-day-time-duration "-PT256S"))))
+
+  (test-group "op:add-yearMonthDurations"
+    (test-assert
+     (xpath-op:duration-equal
+      (xs:make-year-month-duration "P6Y2M")
+      (xpath-op:add-year-month-durations (xs:make-year-month-duration "P2Y11M")
+					 (xs:make-year-month-duration "P3Y3M")))))
+
+  (test-group "op:subtract-yearMonthDurations"
+    (test-assert
+     (xpath-op:duration-equal
+      (xs:make-year-month-duration "-P4M")
+      (xpath-op:subtract-year-month-durations
+       (xs:make-year-month-duration "P2Y11M")
+       (xs:make-year-month-duration "P3Y3M")))))
+
+  (test-group "op:multiply-yearMonthDurations"
+    (test-assert
+     (xpath-op:duration-equal
+      (xs:make-year-month-duration "P6Y9M")
+      (xpath-op:multiply-year-month-duration
+       (xs:make-year-month-duration "P2Y11M") 2.3))))
+
+  (test-group "op:divide-yearMonthDurations"
+    (test-assert
+     (xpath-op:duration-equal
+      (xs:make-year-month-duration "P1Y11M")
+      (xpath-op:divide-year-month-duration
+       (xs:make-year-month-duration "P2Y11M") 1.5))))
+
+  (test-group "op:divide-yearMonthDuration-by-yearMonthDuration"
+    (test-equal -2.5 (xpath-op:divide-year-month-duration-by-year-month-duration
+		      (xs:make-year-month-duration "P3Y4M")
+		      (xs:make-year-month-duration "-P1Y4M"))))
+
+  (test-group "op:add-dayTimeDurations"
+    (test-assert
+     (xpath-op:duration-equal
+      (xs:make-day-time-duration "P8DT5M")
+      (xpath-op:add-day-time-durations (xs:make-day-time-duration "P2DT12H5M")
+					 (xs:make-day-time-duration "P5DT12H")))))
+
+  (test-group "op:subtract-dayTimeDurations"
+    (test-assert
+     (xpath-op:duration-equal
+      (xs:make-day-time-duration "P1DT1H30M")
+      (xpath-op:subtract-day-time-durations
+       (xs:make-day-time-duration "P2DT12H")
+       (xs:make-day-time-duration "P1DT10H30M")))))
+
+  (test-group "op:multiply-dayTimeDurations"
+    (test-assert
+     (xpath-op:duration-equal
+      (xs:make-day-time-duration "PT4H33M")
+      (xpath-op:multiply-day-time-duration
+       (xs:make-day-time-duration "PT2H10M") 2.1))))
+
+  (test-group "op:divide-dayTimeDurations"
+    (test-assert
+     (xpath-op:duration-equal
+      (xs:make-day-time-duration "PT17H40M7S")
+      (xpath-op:divide-day-time-duration
+       (xs:make-day-time-duration "P1DT2H30M10.5S") 1.5))))
+
+  (test-group "op:divide-dayTimeDuration-by-dayTimeDuration"
+    (test-equal 175991.0 (xpath-op:divide-day-time-duration-by-day-time-duration
+			  (xs:make-day-time-duration "P2DT53M11S")
+			  (xs:make-day-time-duration "PT1S"))))
   )
 
 (test-end)

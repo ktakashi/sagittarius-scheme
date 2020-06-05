@@ -121,7 +121,17 @@
 	    xpath-fn:days-from-duration
 	    xpath-fn:hours-from-duration
 	    xpath-fn:minutes-from-duration
-	    xpath-fn:seconds-from-duration)
+	    xpath-fn:seconds-from-duration
+	    xpath-op:add-year-month-durations
+	    xpath-op:subtract-year-month-durations
+	    xpath-op:multiply-year-month-duration
+	    xpath-op:divide-year-month-duration
+	    xpath-op:divide-year-month-duration-by-year-month-duration
+	    xpath-op:add-day-time-durations
+	    xpath-op:subtract-day-time-durations
+	    xpath-op:multiply-day-time-duration
+	    xpath-op:divide-day-time-duration
+	    xpath-op:divide-day-time-duration-by-day-time-duration)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (rfc uri)
@@ -229,7 +239,10 @@
 (define (xpath-op:numeric-divide v1 v2)
   (and (integer? v2) (zero? v2)
        (xqt-error 'FOAR0001 'xpath-op:numeric-divide "Dividing by 0" v1 v2))
-  (div v1 v2))
+  (let ((r (/ v1 v2)))
+    (if (and (not (flonum? r)) (not (= (denominator r) 1)))
+	(inexact r)
+	r)))
 ;;;; 4.2.5 op:numeric-integer-divide
 (define (xpath-op:numeric-integer-divide x y)
   (when (zero? y)
@@ -245,7 +258,7 @@
 ;;;; 4.2.6 op:numeric-mod
 (define (xpath-op:numeric-mod v1 v2)
   (and (zero? v2)
-       (xqt-error 'FOAR0001 'xpath-op:numeric-divide "Dividing by 0" v1 v2))
+       (xqt-error 'FOAR0001 'xpath-op:numeric-mod "Dividing by 0" v1 v2))
   (mod v1 v2))
 
 ;;;; 4.2.7 op:numeric-unary-plus
@@ -727,6 +740,57 @@
       (let-values (((s f) (flinteger-fraction (xs:duration-seconds arg))))
 	(+ (remainder s 60) f))))
 
+(define-syntax define-duration-arithmetic-operators
+  (lambda (x)
+    (define (op-name k type op plural)
+      (datum->syntax k
+       (string->symbol (string-append "xpath-op:" op "-"
+				      (symbol->string (syntax->datum type))
+				      plural))))
+    (define (div-by-name k type)
+      (define type-str (symbol->string (syntax->datum type)))
+      (datum->syntax k
+       (string->symbol 
+	(string-append "xpath-op:divide-" type-str "-by-" type-str))))
+    (define (ctr-name k type)
+      (datum->syntax k
+       (string->symbol 
+	(string-append "xs:make-" (symbol->string (syntax->datum type))))))
+    (syntax-case x ()
+      ((k type getter)
+       (with-syntax ((add (op-name #'k #'type "add" "s"))
+		     (sub (op-name #'k #'type "subtract" "s"))
+		     (mul (op-name #'k #'type "multiply" ""))
+		     (div (op-name #'k #'type "divide" ""))
+		     (div-by (div-by-name #'k #'type))
+		     (make (ctr-name #'k #'type)))
+	 #'(begin
+	     (define (add v1 v2) (make (+ (getter v1) (getter v2))))
+	     (define (sub v1 v2) (make (- (getter v1) (getter v2))))
+	     (define (mul v1 arg)
+	       (when (nan? arg)
+		 (xqt-error 'FOCA0005 'mul
+			    "Multiplier must be a real number" arg))
+	       (make (exact (ceiling (* (getter v1) arg)))))
+	     (define (div v1 arg)
+	       (when (nan? arg)
+		 (xqt-error 'FOCA0005 'div
+			    "Multiplier must be a real number" arg))
+	       (make (exact (xpath-fn:round (/ (getter v1) arg)))))
+	     (define (div-by v1 v2)
+	       (xpath-op:numeric-divide (getter v1) (getter v2)))))))))
+;;;; 8.4.1 op:add-yearMonthDurations
+;;;; 8.4.2 op:subtract-yearMonthDurations
+;;;; 8.4.3 op:multiply-yearMonthDuration
+;;;; 8.4.4 op:divide-yearMonthDuration
+;;;; 8.4.5 op:divide-yearMonthDuration-by-yearMonthDuration
+(define-duration-arithmetic-operators year-month-duration xs:duration-months)
+;;;; 8.4.6 op:add-dayTimeDurations
+;;;; 8.4.7 op:subtract-dayTimeDurations
+;;;; 8.4.8 op:multiply-dayTimeDuration
+;;;; 8.4.9 op:divide-dayTimeDuration
+;;;; 8.4.10 op:divide-dayTimeDuration-by-dayTimeDuration
+(define-duration-arithmetic-operators day-time-duration xs:duration-seconds)
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
