@@ -83,13 +83,15 @@ Rule	GB-Eire	1921	only	-	Oct	 3	2:00s	0	GMT
       )
   ;; These 2 will fail due to the comment above
   ;; Remove when it started to pass.
-  (test-expect-fail 2)
+  ;; It seems it's resolveb (2020-06-08)
+  ;; (test-expect-fail 2)
   (test-equal "timezone-short-name (1)" "IST/GMT" (timezone-short-name tz now))
   (test-equal "timezone-short-name (2)" "IST/GMT" (timezone-short-name tz no-rule-past))
   (test-equal "timezone-offset (1)" 3600 (timezone-offset tz no-rule-past))
 
   ;; Ditto
-  (test-expect-fail 1)
+  ;; It seems it's resolveb (2020-06-08)
+  ;; (test-expect-fail 1)
   (test-equal "timezone-raw-offset (1)" 3600 (timezone-raw-offset tz))
   (test-equal "timezone-raw-offset (2)" 3600 (timezone-raw-offset tz no-rule-past))
 
