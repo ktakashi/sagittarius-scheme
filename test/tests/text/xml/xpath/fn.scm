@@ -831,6 +831,22 @@
 			  (xs:make-day-time-duration "PT1S"))))
   )
 
+(test-group "Functions and operators on dates and times"
+  (define (datetime=? a b)
+    (and (= (xs:datetime-year a) (xs:datetime-year b))
+	 (= (xs:datetime-month a) (xs:datetime-month b))
+	 (= (xs:datetime-day a) (xs:datetime-day b))
+	 (= (xs:datetime-hour a) (xs:datetime-hour b))
+	 (= (xs:datetime-minute a) (xs:datetime-minute b))
+	 (= (xs:datetime-second a) (xs:datetime-second b))
+	 (eqv? (xs:datetime-timezone-offset a) (xs:datetime-timezone-offset b))))
+
+  (test-group "fn:dateTime"
+    (test-assert
+     (datetime=? (xpath-fn:date-time
+		  (xs:make-date "1999-12-31") (xs:make-time "12:00:00"))
+		 (xs:make-datetime "1999-12-31T12:00:00"))))
+  )
 (test-end)
 
 ;; Local Variables:

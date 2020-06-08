@@ -131,7 +131,8 @@
 	    xpath-op:subtract-day-time-durations
 	    xpath-op:multiply-day-time-duration
 	    xpath-op:divide-day-time-duration
-	    xpath-op:divide-day-time-duration-by-day-time-duration)
+	    xpath-op:divide-day-time-duration-by-day-time-duration
+	    xpath-fn:date-time)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (rfc uri)
@@ -791,6 +792,15 @@
 ;;;; 8.4.9 op:divide-dayTimeDuration
 ;;;; 8.4.10 op:divide-dayTimeDuration-by-dayTimeDuration
 (define-duration-arithmetic-operators day-time-duration xs:duration-seconds)
+
+
+;;;; 9.3.1 fn:dateTime
+(define (xpath-fn:date-time d t)
+  (unless (eqv? (xs:date-timezone-offset d) (xs:time-timezone-offset t))
+    (xqt-error 'FORG0008 "Date and time has different timezones" d t))
+  (xs:make-datetime (xs:date-year d) (xs:date-month d) (xs:date-day d)
+		    (xs:time-hour t) (xs:time-minute t) (xs:time-second t)
+		    (xs:date-timezone-offset d)))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

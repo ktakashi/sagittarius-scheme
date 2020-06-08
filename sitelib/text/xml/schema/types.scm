@@ -51,8 +51,28 @@
 	    xs:qname-namespace-uri xs:qname-local-part xs:qname-prefix
 	    xs:qname->node-name xs:qname->expanded-qname
 
+	    xs:time xs:time? (rename make-xs:time xs:make-time)
+	    xs:date xs:date? (rename make-xs:date xs:make-date)
+	    xs:datetime xs:datetime? (rename make-xs:datetime xs:make-datetime)
+	    (rename (xs:base-date-hour            xs:time-hour)
+		    (xs:base-date-minute          xs:time-minute)
+		    (xs:base-date-second          xs:time-second)
+		    (xs:base-date-timezone-offset xs:time-timezone-offset)
+		    (xs:base-date-year            xs:date-year)
+		    (xs:base-date-month           xs:date-month)
+		    (xs:base-date-day             xs:date-day)
+		    (xs:base-date-timezone-offset xs:date-timezone-offset)
+		    (xs:base-date-year            xs:datetime-year)
+		    (xs:base-date-month           xs:datetime-month)
+		    (xs:base-date-day             xs:datetime-day)
+		    (xs:base-date-hour            xs:datetime-hour)
+		    (xs:base-date-minute          xs:datetime-minute)
+		    (xs:base-date-second          xs:datetime-second)
+		    (xs:base-date-timezone-offset xs:datetime-timezone-offset))
 	    )
     (import (rnrs)
+	    (sagittarius timezone)
+	    (srfi :19 time)
 	    (srfi :115 regexp))
 
 ;; 3 Built-in Datatypes and Their Definitions
@@ -222,5 +242,89 @@
 		(make namespace-uri local-part ""))
 	       ((namespace-uri local-part prefix)
 		(make namespace-uri local-part prefix))))))
+
+(define-record-type xs:base-date
+  (parent xs:any-atomic-type)
+  (fields date))
+(define-syntax define-base-date-accessor
+  (lambda (x)
+    (define (gen k prop)
+      (define s (symbol->string (syntax->datum prop)))
+      (datum->syntax k
+       (list (string->symbol (string-append "xs:base-date-" s))
+	     (string->symbol (string-append "date-" s)))))
+    (syntax-case x ()
+      ((k prop)
+       (with-syntax (((name acc) (gen #'k #'prop)))
+	 #'(k name acc)))
+      ((k name acc)
+       #'(define (name d) (acc (xs:base-date-date d)))))))
+(define-base-date-accessor year)
+(define-base-date-accessor month)
+(define-base-date-accessor day)
+(define-base-date-accessor hour)
+(define-base-date-accessor minute)
+(define-base-date-accessor second)
+(define (date-timezone-offset d) (/ (date-zone-offset d) 60))
+(define-base-date-accessor timezone-offset)
+
+;; maybe we should use calander libraryy...
+(define-record-type xs:time
+  (parent xs:base-date)
+  (protocol (lambda (p)
+	      (case-lambda
+	       ((s)
+		(cond ((string? s)
+		       ;; HH:MM:SSZ?
+		       (if (> (string-length s) 8)
+			   ((p (string->date s "~H:~M:~S~z")))
+			   ((p (string->date s "~H:~M:~S")))))
+		      ((date? s) ((p s)))
+		      (else (assertion-violation 'xs:make-date
+						 "Invalid argument" s))))
+	       ((h m s . offset)
+		(let ((off (if (null? offset)
+			       (timezone-offset (local-timezone))
+			       (* (car offset) 60))))
+		  ((p (make-date 0 s m h 0 0 0 off)))))))))
+
+(define-record-type xs:date
+  (parent xs:base-date)
+  (protocol (lambda (p)
+	      (case-lambda
+	       ((s)
+		(cond ((string? s)
+		       ;; yyyy-mm-ddZ?
+		       (if (> (string-length s) 10)
+			   ((p (string->date s "~Y-~m-~d~z")))
+			   ((p (string->date s "~Y-~m-~d")))))
+		      ((date? s) ((p s)))
+		      (else (assertion-violation 'xs:make-date
+						 "Invalid argument" s))))
+	       ((y m d . offset)
+		(let ((off (if (null? offset)
+			       (timezone-offset (local-timezone))
+			       (* (car offset) 60))))
+		  ((p (make-date 0 0 0 0 d m y off)))))))))
+
+(define-record-type xs:datetime
+  (parent xs:date)
+  (protocol (lambda (p)
+	      (case-lambda
+	       ((s)
+		(cond ((string? s)
+		       ;; yyyy-mm-ddTHH:MM:DDZ?
+		       ;; for now ignore endOfDayFrag
+		       (if (> (string-length s) 19)
+			   ((p (string->date s "~Y-~m-~dT~H:~M:~S~z")))
+			   ((p (string->date s "~Y-~m-~dT~H:~M:~S")))))
+		      ((date? s) ((p s)))
+		      (else (assertion-violation 'xs:make-datetime
+						 "Invalid argument" s))))
+	       ((y m d h mi s . offset)
+		(let ((off (if (null? offset)
+			       (timezone-offset (local-timezone))
+			       (* (car offset) 60))))
+		  ((p (make-date 0 s mi h d m y off)))))))))
 
 )
