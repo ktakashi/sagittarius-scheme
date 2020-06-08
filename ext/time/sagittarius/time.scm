@@ -1081,14 +1081,14 @@
   (define (year-read? f) (vector-ref f 6))
   (define (offset-read? f) (vector-ref f 7))
   
-  (define (nanosecod-read! f) (vector-set! f 0 #f))
-  (define (second-read! f) (vector-set! f 1 #f))
-  (define (minute-read! f) (vector-set! f 2 #f))
-  (define (hour-read! f) (vector-set! f 3 #f))
-  (define (day-read! f) (vector-set! f 4 #f))
-  (define (month-read! f) (vector-set! f 5 #f))
-  (define (year-read! f) (vector-set! f 6 #f))
-  (define (offset-read! f) (vector-set! f 7 #f))
+  (define (nanosecod-read! f) (vector-set! f 0 #t))
+  (define (second-read! f) (vector-set! f 1 #t))
+  (define (minute-read! f) (vector-set! f 2 #t))
+  (define (hour-read! f) (vector-set! f 3 #t))
+  (define (day-read! f) (vector-set! f 4 #t))
+  (define (month-read! f) (vector-set! f 5 #t))
+  (define (year-read! f) (vector-set! f 6 #t))
+  (define (offset-read! f) (vector-set! f 7 #t))
   
   (define tm:read-directives
     (let ( (ireader4 (tm:make-integer-reader 4))
