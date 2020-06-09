@@ -50,4 +50,12 @@
 (month-year-duration-test "P1M" 1 0.0)
 (test-error assertion-violation? (xs:make-year-month-duration "P1D"))
 
+(test-assert (xs:datetime? (xs:make-datetime "1999-12-31T24:00:00")))
+(let ((dt (xs:make-datetime "1999-12-31T24:00:00")))
+  (test-equal "normalized year" 2000 (xs:datetime-year dt))
+  (test-equal "normalized month" 1 (xs:datetime-month dt))
+  (test-equal "normalized day" 1 (xs:datetime-day dt))
+  (test-equal "normalized hour" 0 (xs:datetime-hour dt)))
+  
+
 (test-end)

@@ -117,7 +117,12 @@
   (fields absolute-date ;; 1 = 1/1/1 12:00:00
 	  timezone ;; timezone
 	  calendar ;; calendar-type
-	  ))
+	  >time-utc ;; cache
+	  )
+  (protocol (lambda (p)
+	      (lambda (absolute-date timezone calendar)
+		(p absolute-date timezone calendar
+		   (absolute->time-utc absolute-date timezone))))))
 
 (define (%make-calendar-date calendar . components)
   (let-values (((absolute tz)
@@ -138,11 +143,6 @@
     (assertion-violation 'time-utc->calendar "invalid time type" time))
   (let ((absolute (time-utc->absolute time timezone)))
     (make-calendar-date absolute timezone calendar)))
-
-(define (calendar-date->time-utc cd)
-  (let ((absolute (calendar-date-absolute-date cd))
-	(timezone (calendar-date-timezone cd)))
-    (absolute->time-utc absolute timezone)))
 
 (define (calendar-date->julian-day cd)
   (+ (calendar-date-absolute-date cd) +julian-day-offset+))

@@ -289,9 +289,12 @@
 				  (date-minute d) (date-hour d)
 				  (date-day d) (date-month d)
 				  (date-year d)
-				  (timezone-offset tz))))))
-	 ((p) nd (and off #t)
-	  (time-utc->calendar-date (date->time-utc nd) tz)))))))
+				  (timezone-offset tz)))))
+	      (cd (time-utc->calendar-date (date->time-utc nd) tz)))
+	 ((p)
+	  (time-utc->date (calendar-date->time-utc cd) (timezone-offset tz))
+	  (and off #t) cd))))))
+
 (define-syntax define-base-date-accessor
   (lambda (x)
     (define (gen k prop)
