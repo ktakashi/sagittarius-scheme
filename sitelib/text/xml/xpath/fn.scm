@@ -132,7 +132,8 @@
 	    xpath-op:multiply-day-time-duration
 	    xpath-op:divide-day-time-duration
 	    xpath-op:divide-day-time-duration-by-day-time-duration
-	    xpath-fn:datetime)
+	    xpath-fn:datetime
+	    xpath-op:datetime-equal)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (rfc uri)
@@ -802,6 +803,9 @@
   (xs:make-datetime (xs:date-year d) (xs:date-month d) (xs:date-day d)
 		    (xs:time-hour t) (xs:time-minute t) (xs:time-second t)
 		    (xs:date-timezone-offset d)))
+
+;;;; 9.4.1 op:dateTime-equal
+(define (xpath-op:datetime-equal d1 d2) (xs:datetime=? d1 d2))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

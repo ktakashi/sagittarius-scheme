@@ -850,6 +850,28 @@
      (datetime=? (xpath-fn:datetime
 		  (xs:make-date "1999-12-31") (xs:make-time "24:00:00"))
 		 (xs:make-datetime "1999-12-31T00:00:00"))))
+
+  (test-group "op:dateTime-equal"
+    (test-assert (xpath-op:datetime-equal
+		  (xs:make-datetime "2002-04-02T12:00:00-01:00")
+		  (xs:make-datetime "2002-04-02T17:00:00+04:00")))
+    (test-expect-fail 1) ;; this doesn't make sense
+    (test-assert (xpath-op:datetime-equal
+		  (xs:make-datetime "2002-04-02T12:00:00")
+		  (xs:make-datetime "2002-04-02T00:00:00+06:00")))
+    (test-assert (not (xpath-op:datetime-equal
+		       (xs:make-datetime "2002-04-02T12:00:00")
+		       (xs:make-datetime "2002-04-02T17:00:00"))))
+    (test-assert (xpath-op:datetime-equal
+		  (xs:make-datetime "2002-04-02T12:00:00")
+		  (xs:make-datetime "2002-04-02T12:00:00")))
+    (test-assert (xpath-op:datetime-equal
+		  (xs:make-datetime "2002-04-02T23:00:00-04:00")
+		  (xs:make-datetime "2002-04-03T02:00:00-01:00")))
+    #;(test-assert (xpath-op:datetime-equal
+		  (xs:make-datetime "1999-12-31T24:00:00")
+		  (xs:make-datetime "2000-01-01T00:00:00")))
+    )
   )
 (test-end)
 

@@ -58,17 +58,26 @@
 		    (xs:base-date-minute          xs:time-minute)
 		    (xs:base-date-second          xs:time-second)
 		    (xs:base-date-timezone-offset xs:time-timezone-offset)
+		    (xs:base-date=?               xs:time=?)
+		    (xs:base-date<?               xs:time<?)
+		    (xs:base-date>?               xs:time>?)
 		    (xs:base-date-year            xs:date-year)
 		    (xs:base-date-month           xs:date-month)
 		    (xs:base-date-day             xs:date-day)
 		    (xs:base-date-timezone-offset xs:date-timezone-offset)
+		    (xs:base-date=?               xs:date=?)
+		    (xs:base-date<?               xs:date<?)
+		    (xs:base-date>?               xs:date>?)
 		    (xs:base-date-year            xs:datetime-year)
 		    (xs:base-date-month           xs:datetime-month)
 		    (xs:base-date-day             xs:datetime-day)
 		    (xs:base-date-hour            xs:datetime-hour)
 		    (xs:base-date-minute          xs:datetime-minute)
 		    (xs:base-date-second          xs:datetime-second)
-		    (xs:base-date-timezone-offset xs:datetime-timezone-offset))
+		    (xs:base-date-timezone-offset xs:datetime-timezone-offset)
+		    (xs:base-date=?               xs:datetime=?)
+		    (xs:base-date<?               xs:datetime<?)
+		    (xs:base-date>?               xs:datetime>?))
 	    )
     (import (rnrs)
 	    (sagittarius timezone)
@@ -92,7 +101,6 @@
       (integer? o) ;; decimal and its hierarchies
       (real? o)	   ;; float double
       (boolean? o) ;; boolean
-      ;; TODO date and dateTime (maybe srfi 19?)
       ))
 
 
@@ -245,7 +253,18 @@
 
 (define-record-type xs:base-date
   (parent xs:any-atomic-type)
-  (fields date))
+  (fields date absolute-time)
+  (protocol (lambda (p)
+	      (lambda (d)
+		((p) d
+		 (date->time-utc
+		  (if (date-zone-offset d)
+		      d
+		      (make-date (date-nanosecond d) (date-second d)
+				 (date-minute d) (date-hour d)
+				 (date-day d) (date-month d)
+				 (date-year d)
+				 (timezone-offset (local-timezone))))))))))
 (define-syntax define-base-date-accessor
   (lambda (x)
     (define (gen k prop)
@@ -270,6 +289,17 @@
     (and o (/ o 60))))
 (define-base-date-accessor timezone-offset)
 
+(define (xs:base-date=? d1 d2)
+  (and
+   (or (and (not (xs:base-date-timezone-offset d1))
+	    (not (xs:base-date-timezone-offset d2)))
+       (and (xs:base-date-timezone-offset d1)
+	    (xs:base-date-timezone-offset d2)))
+   (time=? (xs:base-date-absolute-time d1) (xs:base-date-absolute-time d2))))
+(define (xs:base-date<? d1 d2)
+  (time<? (xs:base-date-absolute-time d1) (xs:base-date-absolute-time d2)))
+(define (xs:base-date>? d1 d2) (xs:base-date<? d2 d1))
+
 (define (make-date-argument->date who len fmt)
   (define fmt/tz (string-append fmt "~z"))
   (define (normalize d s)
@@ -280,7 +310,7 @@
       (cond ((< hour 24) d)
 	    ((and (= hour 24) (zero? mins) (zero? secs))
 	     (make-date 0 0 0 0
-			(date-day d)  (date-month d)
+			(date-day d) (date-month d)
 			(date-year d) (date-zone-offset d)))
 	    (else
 	     ;; error
