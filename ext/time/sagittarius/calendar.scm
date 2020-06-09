@@ -47,6 +47,11 @@
 	    calendar-date->julian-day
 	    
 	    calendar-date-add  calendar-date-subtract
+	    calendar-date=?
+	    calendar-date<?
+	    calendar-date<=?
+	    calendar-date>?
+	    calendar-date>=?
 	    +calendar-unit:nanosecond+
 	    +calendar-unit:second+
 	    +calendar-unit:minute+
@@ -141,6 +146,17 @@
 
 (define (calendar-date->julian-day cd)
   (+ (calendar-date-absolute-date cd) +julian-day-offset+))
+
+(define (calendar-date=? cd1 cd2)
+  (time=? (calendar-date->time-utc cd1) (calendar-date->time-utc cd2)))
+(define (calendar-date<? cd1 cd2)
+  (time<? (calendar-date->time-utc cd1) (calendar-date->time-utc cd2)))
+(define (calendar-date<=? cd1 cd2)
+  (time<=? (calendar-date->time-utc cd1) (calendar-date->time-utc cd2)))
+(define (calendar-date>? cd1 cd2)
+  (time>? (calendar-date->time-utc cd1) (calendar-date->time-utc cd2)))
+(define (calendar-date>=? cd1 cd2)
+  (time>=? (calendar-date->time-utc cd1) (calendar-date->time-utc cd2)))
 
 ;; API
 (define (calendar-date-add calendar-date unit amount)

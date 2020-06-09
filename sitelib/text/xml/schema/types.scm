@@ -80,7 +80,9 @@
 		    (xs:base-date>?               xs:datetime>?))
 	    )
     (import (rnrs)
+	    (sagittarius calendar)
 	    (sagittarius timezone)
+	    (srfi :13 strings)
 	    (srfi :19 time)
 	    (srfi :115 regexp))
 
@@ -253,18 +255,43 @@
 
 (define-record-type xs:base-date
   (parent xs:any-atomic-type)
-  (fields date absolute-time)
-  (protocol (lambda (p)
-	      (lambda (d)
-		((p) d
-		 (date->time-utc
-		  (if (date-zone-offset d)
-		      d
-		      (make-date (date-nanosecond d) (date-second d)
-				 (date-minute d) (date-hour d)
-				 (date-day d) (date-month d)
-				 (date-year d)
-				 (timezone-offset (local-timezone))))))))))
+  (fields date has-tz? calendar-date)
+  (protocol
+   (lambda (p)
+     (define (normalize d)
+       ;; check 24:00:00
+       (let ((hour (date-hour d))   
+	     (mins (date-minute d))
+	     (secs (date-second d)))
+	 (cond ((< hour 24) d)
+	       ((and (= hour 24) (zero? mins) (zero? secs))
+		(make-date 0 0 0 0
+			   (if (zero? (date-day d))
+			       0
+			       (+ (date-day d) 1))
+			   (date-month d)
+			   (date-year d) (date-zone-offset d)))
+	       (else
+		;; error
+		(assertion-violation 'xs:normalize-date "Invalid time" d)))))
+     (define (find-etc/gmt tz*)
+       (or (find (lambda (tz) (string-prefix? "Etc" (timezone-name tz))) tz*)
+	   (car tz*)))
+     (lambda (d)
+       (let* ((off (date-zone-offset d))
+	      (tz (if off
+		      (find-etc/gmt (zone-offset->timezones off))
+		      (local-timezone)))
+	      (nd (normalize
+		   (if off
+		       d
+		       (make-date (date-nanosecond d) (date-second d)
+				  (date-minute d) (date-hour d)
+				  (date-day d) (date-month d)
+				  (date-year d)
+				  (timezone-offset tz))))))
+	 ((p) nd (and off #t)
+	  (time-utc->calendar-date (date->time-utc nd) tz)))))))
 (define-syntax define-base-date-accessor
   (lambda (x)
     (define (gen k prop)
@@ -284,10 +311,9 @@
 (define-base-date-accessor hour)
 (define-base-date-accessor minute)
 (define-base-date-accessor second)
-(define (date-timezone-offset d)
-  (let ((o (date-zone-offset d)))
-    (and o (/ o 60))))
-(define-base-date-accessor timezone-offset)
+(define (xs:base-date-timezone-offset xd)
+  (and (xs:base-date-has-tz? xd)
+       (/ (date-zone-offset (xs:base-date-date xd)) 60)))
 
 (define (xs:base-date=? d1 d2)
   (and
@@ -295,39 +321,26 @@
 	    (not (xs:base-date-timezone-offset d2)))
        (and (xs:base-date-timezone-offset d1)
 	    (xs:base-date-timezone-offset d2)))
-   (time=? (xs:base-date-absolute-time d1) (xs:base-date-absolute-time d2))))
+   (calendar-date=? (xs:base-date-calendar-date d1)
+		    (xs:base-date-calendar-date d2))))
 (define (xs:base-date<? d1 d2)
-  (time<? (xs:base-date-absolute-time d1) (xs:base-date-absolute-time d2)))
+  (calendar-date<? (xs:base-date-calendar-date d1)
+		   (xs:base-date-calendar-date d2)))
 (define (xs:base-date>? d1 d2) (xs:base-date<? d2 d1))
 
 (define (make-date-argument->date who len fmt)
   (define fmt/tz (string-append fmt "~z"))
-  (define (normalize d s)
-    ;; check 24:00:00
-    (let ((hour (date-hour d))   
-	  (mins (date-minute d))
-	  (secs (date-second d)))
-      (cond ((< hour 24) d)
-	    ((and (= hour 24) (zero? mins) (zero? secs))
-	     (make-date 0 0 0 0
-			(date-day d) (date-month d)
-			(date-year d) (date-zone-offset d)))
-	    (else
-	     ;; error
-	     (assertion-violation who "Invalid time" s)))))
   (lambda (s)
     (cond ((string? s)
-	   (normalize
-	    (if (> (string-length s) len)
-		(string->date s fmt/tz)
-		;; string->date without tz converts local tz
-		;; but we don't want to it, so recreate
-		(let ((d (string->date s fmt)))
-		  (make-date (date-nanosecond d) (date-second d)
-			     (date-minute d) (date-hour d)
-			     (date-day d) (date-month d) (date-year d)
-			     #f)))
-	    s))
+	   (if (> (string-length s) len)
+	       (string->date s fmt/tz)
+	       ;; string->date without tz converts local tz
+	       ;; but we don't want to it, so recreate
+	       (let ((d (string->date s fmt)))
+		 (make-date (date-nanosecond d) (date-second d)
+			    (date-minute d) (date-hour d)
+			    (date-day d) (date-month d) (date-year d)
+			    #f))))
 	  ((date? s) s)
 	  (else (assertion-violation who "Invalid argument" s)))))
 (define (get-offset maybe-offset)
