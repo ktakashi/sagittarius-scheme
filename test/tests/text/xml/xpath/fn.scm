@@ -843,11 +843,11 @@
 
   (test-group "fn:dateTime"
     (test-assert
-     (datetime=? (xpath-fn:date-time
+     (datetime=? (xpath-fn:datetime
 		  (xs:make-date "1999-12-31") (xs:make-time "12:00:00"))
 		 (xs:make-datetime "1999-12-31T12:00:00")))
     (test-assert
-     (datetime=? (xpath-fn:date-time
+     (datetime=? (xpath-fn:datetime
 		  (xs:make-date "1999-12-31") (xs:make-time "24:00:00"))
 		 (xs:make-datetime "1999-12-31T00:00:00"))))
   )
