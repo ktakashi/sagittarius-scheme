@@ -265,66 +265,79 @@
 (define-base-date-accessor hour)
 (define-base-date-accessor minute)
 (define-base-date-accessor second)
-(define (date-timezone-offset d) (/ (date-zone-offset d) 60))
+(define (date-timezone-offset d)
+  (let ((o (date-zone-offset d)))
+    (and o (/ o 60))))
 (define-base-date-accessor timezone-offset)
+
+(define (make-date-argument->date who len fmt)
+  (define fmt/tz (string-append fmt "~z"))
+  (define (normalize d s)
+    ;; check 24:00:00
+    (let ((hour (date-hour d))   
+	  (mins (date-minute d))
+	  (secs (date-second d)))
+      (cond ((< hour 24) d)
+	    ((and (= hour 24) (zero? mins) (zero? secs))
+	     (make-date 0 0 0 0
+			(date-day d)  (date-month d)
+			(date-year d) (date-zone-offset d)))
+	    (else
+	     ;; error
+	     (assertion-violation who "Invalid time" s)))))
+  (lambda (s)
+    (cond ((string? s)
+	   (normalize
+	    (if (> (string-length s) len)
+		(string->date s fmt/tz)
+		;; string->date without tz converts local tz
+		;; but we don't want to it, so recreate
+		(let ((d (string->date s fmt)))
+		  (make-date (date-nanosecond d) (date-second d)
+			     (date-minute d) (date-hour d)
+			     (date-day d) (date-month d) (date-year d)
+			     #f)))
+	    s))
+	  ((date? s) s)
+	  (else (assertion-violation who "Invalid argument" s)))))
+(define (get-offset maybe-offset)
+  (cond ((null? maybe-offset) #f)
+	((not (car maybe-offset)) #f)
+	(else (* (car maybe-offset) 60))))
 
 ;; maybe we should use calander libraryy...
 (define-record-type xs:time
   (parent xs:base-date)
   (protocol (lambda (p)
+	      (define ->date
+		(make-date-argument->date 'xs:make-time 8 "~H:~M:~S"))
 	      (case-lambda
-	       ((s)
-		(cond ((string? s)
-		       ;; HH:MM:SSZ?
-		       (if (> (string-length s) 8)
-			   ((p (string->date s "~H:~M:~S~z")))
-			   ((p (string->date s "~H:~M:~S")))))
-		      ((date? s) ((p s)))
-		      (else (assertion-violation 'xs:make-date
-						 "Invalid argument" s))))
+	       ((s) ((p (->date s))))
 	       ((h m s . offset)
-		(let ((off (if (null? offset)
-			       (timezone-offset (local-timezone))
-			       (* (car offset) 60))))
+		(let ((off (get-offset offset)))
 		  ((p (make-date 0 s m h 0 0 0 off)))))))))
 
 (define-record-type xs:date
   (parent xs:base-date)
   (protocol (lambda (p)
+	      (define ->date
+		(make-date-argument->date 'xs:make-date 10 "~Y-~m-~d"))
 	      (case-lambda
-	       ((s)
-		(cond ((string? s)
-		       ;; yyyy-mm-ddZ?
-		       (if (> (string-length s) 10)
-			   ((p (string->date s "~Y-~m-~d~z")))
-			   ((p (string->date s "~Y-~m-~d")))))
-		      ((date? s) ((p s)))
-		      (else (assertion-violation 'xs:make-date
-						 "Invalid argument" s))))
+	       ((s) ((p (->date s))))
 	       ((y m d . offset)
-		(let ((off (if (null? offset)
-			       (timezone-offset (local-timezone))
-			       (* (car offset) 60))))
+		(let ((off (get-offset offset)))
 		  ((p (make-date 0 0 0 0 d m y off)))))))))
 
 (define-record-type xs:datetime
   (parent xs:date)
   (protocol (lambda (p)
+	      (define ->date
+		(make-date-argument->date 'xs:make-datetime 19
+					  "~Y-~m-~dT~H:~M:~S"))
 	      (case-lambda
-	       ((s)
-		(cond ((string? s)
-		       ;; yyyy-mm-ddTHH:MM:DDZ?
-		       ;; for now ignore endOfDayFrag
-		       (if (> (string-length s) 19)
-			   ((p (string->date s "~Y-~m-~dT~H:~M:~S~z")))
-			   ((p (string->date s "~Y-~m-~dT~H:~M:~S")))))
-		      ((date? s) ((p s)))
-		      (else (assertion-violation 'xs:make-datetime
-						 "Invalid argument" s))))
+	       ((s) ((p (->date s))))
 	       ((y m d h mi s . offset)
-		(let ((off (if (null? offset)
-			       (timezone-offset (local-timezone))
-			       (* (car offset) 60))))
+		(let ((off (get-offset offset)))
 		  ((p (make-date 0 s mi h d m y off)))))))))
 
 )
