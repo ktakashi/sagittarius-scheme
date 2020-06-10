@@ -872,6 +872,68 @@
 		  (xs:make-datetime "1999-12-31T24:00:00")
 		  (xs:make-datetime "2000-01-01T00:00:00")))
     )
+  (test-group "op:dateTime-less-than"
+    (test-assert (xpath-op:datetime-less-than
+		  (xs:make-datetime "2002-04-02T11:00:00-01:00")
+		  (xs:make-datetime "2002-04-02T17:00:00+04:00"))))
+  (test-group "op:dateTime-greater-than"
+    (test-assert (xpath-op:datetime-greater-than
+		  (xs:make-datetime "2002-04-02T17:00:00+04:00")
+		  (xs:make-datetime "2002-04-02T11:00:00-01:00"))))
+
+  (test-group "op:date-equal"
+    (test-assert (not (xpath-op:date-equal
+		       (xs:make-date "2004-12-25Z")
+		       (xs:make-date "2004-12-25+07:00"))))
+    (test-assert (xpath-op:date-equal
+		  (xs:make-date "2004-12-25-12:00")
+		  (xs:make-date "2004-12-26+12:00"))))
+  (test-group "op:date-less-than"
+    (test-assert (xpath-op:date-less-than
+		  (xs:make-date "2004-12-25Z")
+		  (xs:make-date "2004-12-25-05:00")))
+    (test-assert (not (xpath-op:date-less-than
+		       (xs:make-date "2004-12-25-12:00")
+		       (xs:make-date "2004-12-26+12:00"))))
+    )
+  (test-group "op:date-greater-than"
+    (test-assert (xpath-op:date-greater-than
+		  (xs:make-date "2004-12-25Z")
+		  (xs:make-date "2004-12-25+07:00")))
+    (test-assert (not (xpath-op:date-greater-than
+		       (xs:make-date "2004-12-25-12:00")
+		       (xs:make-date "2004-12-26+12:00"))))
+    )
+
+  (test-group "op:time-equal"
+    (test-assert (not (xpath-op:time-equal
+		       (xs:make-time "08:00:00+09:00")
+		       (xs:make-time "17:00:00-06:00"))))
+    (test-assert (xpath-op:time-equal
+		  (xs:make-time "21:30:00+10:30")
+		  (xs:make-time "06:00:00-05:00")))
+    (test-assert (xpath-op:time-equal
+		  (xs:make-time "24:00:00+01:00")
+		  (xs:make-time "00:00:00+01:00"))))
+  (test-group "op:time-less-than"
+    ;; we, CEST, are +02:00, unfortunately not -06:00
+    (test-expect-fail 1)
+    (test-assert (not (xpath-op:time-less-than
+		       (xs:make-time "12:00:00")
+		       (xs:make-time "23:00:00+06:00"))))
+    ;; what if local timezone is +09:00?? I think it's an invalid case
+    ;; but it works on CEST so it's okayish...
+    (test-assert (xpath-op:time-less-than
+		  (xs:make-time "11:00:00")
+		  (xs:make-time "17:00:00Z")))
+    (test-assert (not (xpath-op:time-less-than
+		       (xs:make-time "23:59:59")
+		       (xs:make-time "24:00:00")))))
+
+  (test-group "op:time-greater-than"
+    (test-assert (not (xpath-op:time-greater-than
+		       (xs:make-time "08:00:00+09:00")
+		       (xs:make-time "17:00:00-06:00")))))
   )
 (test-end)
 

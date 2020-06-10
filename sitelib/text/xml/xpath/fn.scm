@@ -133,7 +133,15 @@
 	    xpath-op:divide-day-time-duration
 	    xpath-op:divide-day-time-duration-by-day-time-duration
 	    xpath-fn:datetime
-	    xpath-op:datetime-equal)
+	    xpath-op:datetime-equal
+	    xpath-op:datetime-less-than
+	    xpath-op:datetime-greater-than
+	    xpath-op:date-equal
+	    xpath-op:date-less-than
+	    xpath-op:date-greater-than
+	    xpath-op:time-equal
+	    xpath-op:time-less-than
+	    xpath-op:time-greater-than)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (rfc uri)
@@ -804,8 +812,34 @@
 		    (xs:time-hour t) (xs:time-minute t) (xs:time-second t)
 		    (xs:date-timezone-offset d)))
 
+(define-syntax define-date-comparison
+  (lambda (x)
+    (define (gen k type)
+      (define name (symbol->string (syntax->datum type)))
+      (datum->syntax k
+       (map (lambda (suffix op)
+	      (list (string->symbol (string-append "xpath-op:" name suffix))
+		    (string->symbol (string-append "xs:" name op))))
+	    '("-equal" "-less-than" "-greater-than")
+	    '("=?" "<?" ">?"))))	     
+    (syntax-case x ()
+      ((k type)
+       (with-syntax ((((name op) ...) (gen #'k #'type)))
+	 #'(begin
+	     (define (name d1 d2) (op d1 d2))
+	     ...))))))
 ;;;; 9.4.1 op:dateTime-equal
-(define (xpath-op:datetime-equal d1 d2) (xs:datetime=? d1 d2))
+;;;; 9.4.2 op:dateTime-less-than
+;;;; 9.4.3 op:dateTime-greater-than
+(define-date-comparison datetime)
+;;;; 9.4.4 op:date-equal
+;;;; 9.4.5 op:date-less-than
+;;;; 9.4.6 op:date-greater-than
+(define-date-comparison date)
+;;;; 9.4.7 op:time-equal
+;;;; 9.4.8 op:time-less-than
+;;;; 9.4.9 op:time-greater-than
+(define-date-comparison time)
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
