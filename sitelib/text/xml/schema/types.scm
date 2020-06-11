@@ -78,6 +78,26 @@
 		    (xs:base-date=?               xs:datetime=?)
 		    (xs:base-date<?               xs:datetime<?)
 		    (xs:base-date>?               xs:datetime>?))
+	    xs:g-year xs:g-year? (rename make-xs:g-year xs:make-g-year)
+	    xs:g-year-month xs:g-year-month?
+	    (rename make-xs:g-year-month xs:make-g-year-month)
+	    xs:g-month xs:g-month? (rename make-xs:g-month xs:make-g-month)
+	    xs:g-month-day xs:g-month-day?
+	    (rename make-xs:g-month-day xs:make-g-month-day)
+	    xs:g-day xs:g-day? (rename make-xs:g-day xs:make-g-day)
+	    (rename
+	     (xs:base-date-year            xs:g-year-year)
+	     (xs:base-date-timezone-offset xs:g-year-timezone-offset)
+	     (xs:base-date-year            xs:g-year-month-year)
+	     (xs:base-date-month           xs:g-year-month-month)
+	     (xs:base-date-timezone-offset xs:g-year-month-timezone-offset)
+	     (xs:base-date-month           xs:g-month-month)
+	     (xs:base-date-timezone-offset xs:g-month-timezone-offset)
+	     (xs:base-date-month           xs:g-month-day-month)
+	     (xs:base-date-day             xs:g-month-day-day)
+	     (xs:base-date-timezone-offset xs:g-month-day-timezone-offset)
+	     (xs:base-date-day             xs:g-day-day)
+	     (xs:base-date-timezone-offset xs:g-day-timezone-offset))
 	    )
     (import (rnrs)
 	    (sagittarius calendar)
@@ -385,5 +405,58 @@
 	       ((y m d h mi s . offset)
 		(let ((off (get-offset offset)))
 		  ((p (make-date 0 s mi h d m y off)))))))))
+
+(define-record-type xs:g-year
+  (parent xs:base-date)
+  (protocol (lambda (p)
+	      (define ->date
+		(make-date-argument->date 'xs:make-g-year 4 "~Y"))
+	      (case-lambda
+	       ((s) ((p (->date s))))
+	       ((y . offset)
+		(let ((off (get-offset offset)))
+		  ((p (make-date 0 0 0 0 0 0 y off)))))))))
+(define-record-type xs:g-year-month
+  (parent xs:base-date)
+  (protocol (lambda (p)
+	      (define ->date
+		(make-date-argument->date 'xs:make-g-year-month 7 "~Y-~m"))
+	      (case-lambda
+	       ((s) ((p (->date s))))
+	       ((y m . offset)
+		(let ((off (get-offset offset)))
+		  ((p (make-date 0 0 0 0 0 m y off)))))))))
+(define-record-type xs:g-month
+  (parent xs:base-date)
+  (protocol (lambda (p)
+	      (define ->date
+		(make-date-argument->date 'xs:make-g-month 4 "--~m"))
+	      (case-lambda
+	       ((s) ((p (->date s))))
+	       ((m . offset)
+		(let ((off (get-offset offset)))
+		  ((p (make-date 0 0 0 0 0 m 0 off)))))))))
+
+(define-record-type xs:g-month-day
+  (parent xs:base-date)
+  (protocol (lambda (p)
+	      (define ->date
+		(make-date-argument->date 'xs:make-g-month 7 "--~m-~d"))
+	      (case-lambda
+	       ((s) ((p (->date s))))
+	       ((m d . offset)
+		(let ((off (get-offset offset)))
+		  ((p (make-date 0 0 0 0 d m 0 off)))))))))
+
+(define-record-type xs:g-day
+  (parent xs:base-date)
+  (protocol (lambda (p)
+	      (define ->date
+		(make-date-argument->date 'xs:make-g-day 5 "---~d"))
+	      (case-lambda
+	       ((s) ((p (->date s))))
+	       ((d . offset)
+		(let ((off (get-offset offset)))
+		  ((p (make-date 0 0 0 0 d 0 0 off)))))))))
 
 )
