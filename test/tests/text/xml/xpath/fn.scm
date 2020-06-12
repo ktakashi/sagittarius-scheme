@@ -934,6 +934,53 @@
     (test-assert (not (xpath-op:time-greater-than
 		       (xs:make-time "08:00:00+09:00")
 		       (xs:make-time "17:00:00-06:00")))))
+
+  (test-group "op:gYearMonth-equal"
+    (test-assert (not (xpath-op:g-year-month-equal
+		       (xs:make-g-year-month "1986-02")
+		       (xs:make-g-year-month "1986-03"))))
+    (test-assert (not (xpath-op:g-year-month-equal
+		       (xs:make-g-year-month "1978-03")
+		       (xs:make-g-year-month "1986-03Z")))))
+
+  (test-group "op:gYear-equal"
+    (test-assert (not (xpath-op:g-year-equal
+		       (xs:make-g-year "2005-12:00")
+		       (xs:make-g-year "2005+12:00"))))
+    (test-expect-fail 1) ;; this must not be true...
+    (test-assert (xpath-op:g-year-equal
+		  (xs:make-g-year "1976-05:00")
+		  (xs:make-g-year "1976"))))
+
+  (test-group "op:gMonthDay-equal"
+    ;; we don't handle -14:00 as a timezone which doesn't exist
+    ;; though +14:00 does exist, so might be my misunderstanding
+    ;; of the XML date...
+    (test-expect-fail 1)
+    (test-assert (xpath-op:g-month-day-equal
+		  (xs:make-g-month-day "--12-25-14:00")
+		  (xs:make-g-month-day "--12-26+10:00")))
+    (test-assert (xpath-op:g-month-day-equal
+		  (xs:make-g-month-day "--12-25-12:00")
+		  (xs:make-g-month-day "--12-26+12:00")))
+    (test-assert (not (xpath-op:g-month-day-equal
+		       (xs:make-g-month-day "--12-25")
+		       (xs:make-g-month-day "--12-26Z")))))
+
+  (test-group "op:gMonth-equal"
+    ;; we don't handle -14:00 as a timezone which doesn't exist
+    ;; though +14:00 does exist, so might be my misunderstanding
+    ;; of the XML date...
+    (test-expect-fail 1)
+    (test-assert (not (xpath-op:g-month-equal
+		       (xs:make-g-month "--12-14:00")
+		       (xs:make-g-month "--12+10:00"))))
+    (test-assert (not (xpath-op:g-month-equal
+		       (xs:make-g-month "--12-12:00")
+		       (xs:make-g-month "--12+12:00"))))
+    (test-assert (not (xpath-op:g-month-equal
+		       (xs:make-g-month "--12")
+		       (xs:make-g-month "--12Z")))))
   )
 (test-end)
 

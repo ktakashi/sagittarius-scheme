@@ -141,7 +141,13 @@
 	    xpath-op:date-greater-than
 	    xpath-op:time-equal
 	    xpath-op:time-less-than
-	    xpath-op:time-greater-than)
+	    xpath-op:time-greater-than
+	    xpath-op:g-year-month-equal
+	    xpath-op:g-year-equal
+	    xpath-op:g-month-day-equal
+	    xpath-op:g-month-equal
+	    xpath-op:g-day-equal
+	    )
     (import (rnrs)
 	    (rnrs r5rs)
 	    (rfc uri)
@@ -840,6 +846,18 @@
 ;;;; 9.4.8 op:time-less-than
 ;;;; 9.4.9 op:time-greater-than
 (define-date-comparison time)
+
+;; we define extra procedures but don't export it ;)
+;;;; 9.4.10 op:gYearMonth-equal
+(define-date-comparison g-year-month)
+;;;; 9.4.11 op:gYear-equal
+(define-date-comparison g-year)
+;;;; 9.4.12 op:gMonthDay-equal
+(define-date-comparison g-month-day)
+;;;; 9.4.13 op:gMonth-equal
+(define-date-comparison g-month)
+;;;; 9.4.14 op:gDay-equal
+(define-date-comparison g-day)
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
