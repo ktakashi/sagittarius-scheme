@@ -1,5 +1,6 @@
 (import (rnrs)
 	(text xml schema)
+	(sagittarius time)
 	(srfi :64))
 
 (test-begin "XML Schema")
@@ -56,6 +57,21 @@
   (test-equal "normalized month" 1 (xs:datetime-month dt))
   (test-equal "normalized day" 1 (xs:datetime-day dt))
   (test-equal "normalized hour" 0 (xs:datetime-hour dt)))
-  
+
+(test-assert (xs:g-year? (xs:make-g-year "2020")))
+(test-assert (xs:g-year? (xs:make-g-year "2020Z")))
+(test-error "error (1)" time-error? (xs:make-g-year "2020-12"))
+(test-assert (xs:g-year-month? (xs:make-g-year-month "2020-12")))
+(test-assert (xs:g-year-month? (xs:make-g-year-month "2020-12Z")))
+(test-error "error (2)" time-error? (xs:make-g-year-month "2020-12-01"))
+(test-assert (xs:g-month? (xs:make-g-month "--12")))
+(test-assert (xs:g-month? (xs:make-g-month "--12Z")))
+(test-error "error (3)" time-error? (xs:make-g-month "2020-12"))
+(test-assert (xs:g-month-day? (xs:make-g-month-day "--12-01")))
+(test-assert (xs:g-month-day? (xs:make-g-month-day "--12-01Z")))
+(test-error "error (4)" time-error? (xs:make-g-month-day "2020-12"))
+(test-assert (xs:g-day? (xs:make-g-day "---01")))
+(test-assert (xs:g-day? (xs:make-g-day "---01Z")))
+(test-error "error (5)" time-error? (xs:make-g-day "2020-12"))
 
 (test-end)

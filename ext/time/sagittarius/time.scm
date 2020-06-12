@@ -136,6 +136,8 @@
 	    <local-date> local-date? make-local-date
 	    local-date-day local-date-month local-date-year
 	    local-date=? local-time=?
+
+	    &time-error time-error? time-error-type 
 	    )
     (import (core)
 	    (core base)
