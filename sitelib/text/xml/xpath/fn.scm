@@ -147,11 +147,28 @@
 	    xpath-op:g-month-day-equal
 	    xpath-op:g-month-equal
 	    xpath-op:g-day-equal
-	    )
+	    xpath-fn:year-from-datetime
+	    xpath-fn:month-from-datetime
+	    xpath-fn:day-from-datetime
+	    xpath-fn:hours-from-datetime
+	    xpath-fn:minutes-from-datetime
+	    xpath-fn:seconds-from-datetime
+	    xpath-fn:timezone-from-datetime
+	    xpath-fn:year-from-date
+	    xpath-fn:month-from-date
+	    xpath-fn:day-from-date
+	    xpath-fn:timezone-from-date
+	    xpath-fn:hours-from-time
+	    xpath-fn:minutes-from-time
+	    xpath-fn:seconds-from-time
+	    xpath-fn:timezone-from-time
+	    
+	    xpath-fn:adjust-datetime-to-timezone)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (rfc uri)
 	    (sagittarius regex)
+	    (sagittarius timezone)
 	    (srfi :1 lists)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
@@ -455,7 +472,7 @@
 	  (else
 	   (let ((start (max 1 s))
 		 (end   (max start (+ s l))))
-	     (cond ((nan? end) "") ;; (+ +inf.0 -inf.0) 
+	     (cond ((nan? end) "") ;; (+ +inf.0 -inf.0)
 		   ((infinite? start) "")
 		   (else
 		    (let* ((s (exact start))
@@ -517,7 +534,7 @@
 	(cond ((and i (< i (string-length trans-s)) (string-ref trans-s i)))
 	      ((and i (>= i (string-length trans-s))) #f)
 	      (else c)))) (string->list arg))))
-	    
+
 ;;;; 5.5.1 fn:contains
 (define xpath-fn:contains
   (case-lambda
@@ -622,7 +639,7 @@
   (case-lambda
    ((input) (xpath-fn:tokenize (xpath-fn:normalize-space input) " "))
    ((input pattern) (xpath-fn:tokenize input pattern ""))
-   ((input pattern flags) 
+   ((input pattern flags)
     (let ((flags (string-flags->flags 'xpath-fn:tokenize flags)))
       (check-pattern 'xpath-fn:tokenize input pattern flags)
       (guard (e (else (xqt-error 'FORX0002 'xpath-fn:tokenize (condition-message e))))
@@ -766,11 +783,11 @@
     (define (div-by-name k type)
       (define type-str (symbol->string (syntax->datum type)))
       (datum->syntax k
-       (string->symbol 
+       (string->symbol
 	(string-append "xpath-op:divide-" type-str "-by-" type-str))))
     (define (ctr-name k type)
       (datum->syntax k
-       (string->symbol 
+       (string->symbol
 	(string-append "xs:make-" (symbol->string (syntax->datum type))))))
     (syntax-case x ()
       ((k type getter)
@@ -827,7 +844,7 @@
 	      (list (string->symbol (string-append "xpath-op:" name suffix))
 		    (string->symbol (string-append "xs:" name op))))
 	    '("-equal" "-less-than" "-greater-than")
-	    '("=?" "<?" ">?"))))	     
+	    '("=?" "<?" ">?"))))
     (syntax-case x ()
       ((k type)
        (with-syntax ((((name op) ...) (gen #'k #'type)))
@@ -858,6 +875,107 @@
 (define-date-comparison g-month)
 ;;;; 9.4.14 op:gDay-equal
 (define-date-comparison g-day)
+
+(define-syntax define-date-accessor
+  (lambda (x)
+    (define (gen k type prop1 prop2)
+      (define t (symbol->string (syntax->datum type)))
+      (define p1 (symbol->string (syntax->datum prop1)))
+      (define p2 (symbol->string (syntax->datum prop2)))
+      (datum->syntax k
+       (list (string->symbol (string-append "xpath-fn:" p2 "-from-" t))
+	     (string->symbol (string-append "xs:" t "-" p1)))))
+    (syntax-case x ()
+      ((k type (prop1 prop2) prop* ...)
+       (with-syntax (((name acc) (gen #'k #'type #'prop1 #'prop2)))
+	 #'(begin
+	     (define (name o) (acc o))
+	     (k type prop* ...))))
+      ((k type prop prop* ...) #'(k type (prop prop) prop* ...))
+      ((k type)                #'(begin)))))
+
+
+;;;; 9.5.1 fn:year-from-dateTime
+;;;; 9.5.2 fn:month-from-dateTime
+;;;; 9.5.3 fn:day-from-dateTime
+;;;; 9.5.4 fn:hours-from-dateTime
+;;;; 9.5.5 fn:minutes-from-dateTime
+;;;; 9.5.6 fn:seconds-from-dateTime
+(define-date-accessor datetime year month day
+  (hour hours) (minute minutes) (second seconds))
+
+(define-syntax define-timezone-from-*
+  (syntax-rules ()
+    ((_ name acc)
+     (define (name dt)
+       (let ((tz (acc dt)))
+	 (if (not tz)
+	     '()
+	     (xs:make-day-time-duration (* tz 60))))))))
+;;;; 9.5.7 fn:timezone-from-dateTime
+(define-timezone-from-* xpath-fn:timezone-from-datetime
+  xs:datetime-timezone-offset)
+
+;;;; 9.5.8 fn:year-from-date
+;;;; 9.5.9 fn:month-from-date
+;;;; 9.5.10 fn:day-from-date
+(define-date-accessor date year month day)
+;;;; 9.5.11 fn:timezone-from-date
+(define-timezone-from-* xpath-fn:timezone-from-date xs:date-timezone-offset)
+
+;;;; 9.5.12 fn:hours-from-time
+;;;; 9.5.13 fn:minutes-from-time
+;;;; 9.5.14 fn:seconds-from-time
+(define-date-accessor time (hour hours) (minute minutes) (second seconds))
+;;;; 9.5.15 fn:timezone-from-time
+(define-timezone-from-* xpath-fn:timezone-from-time xs:time-timezone-offset)
+
+;;;; 9.6.1 fn:adjust-dateTime-to-timezone
+(define (adjust-datetime dt offset)
+  (if (null? dt)
+      '()
+      (let ((zone (xs:datetime-timezone-offset dt)))
+	(cond ((and (null? offset) (not zone)) '())
+	      ((and (null? offset) zone)
+	       (xs:make-datetime (xs:datetime-year dt)
+				 (xs:datetime-month dt)
+				 (xs:datetime-day dt)
+				 (xs:datetime-hour dt)
+				 (xs:datetime-minute dt)
+				 (xs:datetime-second dt)))
+	      ((not zone)
+	       (xs:make-datetime (xs:datetime-year dt)
+				 (xs:datetime-month dt)
+				 (xs:datetime-day dt)
+				 (xs:datetime-hour dt)
+				 (xs:datetime-minute dt)
+				 (xs:datetime-second dt)
+				 (div offset 60)))
+	      (else
+	       (let* ((new-off (div offset 60))
+		      (diff (- zone new-off)))
+		 (xs:make-datetime (xs:datetime-year dt)
+				   (xs:datetime-month dt)
+				   (xs:datetime-day dt)
+				   (xs:datetime-hour dt)
+				   (- (xs:datetime-minute dt) diff)
+				   (xs:datetime-second dt)
+				   new-off)))))))
+  
+(define xpath-fn:adjust-datetime-to-timezone
+  (case-lambda
+   ((dt) (adjust-datetime dt (timezone-offset (local-timezone))))
+   ((dt dtd)
+    (cond ((null? dtd) (adjust-datetime dt dtd))
+	  (else
+	   (unless (xs:day-time-duration? dtd)
+	     (assertion-violation 'xpath-fn:adjust-datetime-to-timezone
+				  "DayTimeDuration required" dtd))
+	   (let ((sec (xs:duration-seconds dtd)))
+	     (when (or (<  sec (* -14 3600)) (< (* 14 3600) sec))
+	       (xqt-error 'FODT0003 'xpath-fn:adjust-datetime-to-timezone
+			  "Range error (-PT14H < n < PT14H)" dtd))
+	     (adjust-datetime dt sec)))))))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

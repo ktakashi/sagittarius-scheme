@@ -244,7 +244,7 @@
 					(parse-duration d +duration-regex+
 							+duration-ymd-matches+
 							+duration-hms-matches+)
-					(values 0 d))))
+					(values 0 (inexact d)))))
 		  (unless (zero? m)
 		    (assertion-violation 'xs:make-day-time-duration
 					 "Month must not be specified" d))
@@ -368,19 +368,25 @@
 		   (xs:base-date-calendar-date d2)))
 (define (xs:base-date>? d1 d2) (xs:base-date<? d2 d1))
 
-(define (make-date-argument->date who len fmt)
+(define (make-date-argument->date who len fmt handle-nagative?)
   (define fmt/tz (string-append fmt "~z"))
+  (define (parse-date s)
+    (define negative? (and handle-nagative? (eqv? (string-ref s 0) #\-)))
+    (define str (if negative?
+		    (substring s 1 (string-length s))
+		    s))
+    (let-values (((d has-zone?) (if (> (string-length str) len)
+				    ;; string->date without tz converts local tz
+				    ;; but we don't want to it, so recreate
+				    (values (string->date str fmt/tz) #t)
+				    (values (string->date str fmt) #f))))
+      (make-date (date-nanosecond d) (date-second d)
+		 (date-minute d) (date-hour d)
+		 (date-day d) (date-month d)
+		 (or (and negative? (- (date-year d))) (date-year d))
+		 (if has-zone? (date-zone-offset d) #f))))
   (lambda (s)
-    (cond ((string? s)
-	   (if (> (string-length s) len)
-	       (string->date s fmt/tz)
-	       ;; string->date without tz converts local tz
-	       ;; but we don't want to it, so recreate
-	       (let ((d (string->date s fmt)))
-		 (make-date (date-nanosecond d) (date-second d)
-			    (date-minute d) (date-hour d)
-			    (date-day d) (date-month d) (date-year d)
-			    #f))))
+    (cond ((string? s) (parse-date s))
 	  ((date? s) s)
 	  (else (assertion-violation who "Invalid argument" s)))))
 (define (get-offset maybe-offset)
@@ -393,7 +399,7 @@
   (parent xs:base-date)
   (protocol (lambda (p)
 	      (define ->date
-		(make-date-argument->date 'xs:make-time 8 "~H:~M:~S"))
+		(make-date-argument->date 'xs:make-time 8 "~H:~M:~S" #f))
 	      (case-lambda
 	       ((s) ((p (->date s))))
 	       ((h m s . offset)
@@ -404,7 +410,7 @@
   (parent xs:base-date)
   (protocol (lambda (p)
 	      (define ->date
-		(make-date-argument->date 'xs:make-date 10 "~Y-~m-~d"))
+		(make-date-argument->date 'xs:make-date 10 "~Y-~m-~d" #t))
 	      (case-lambda
 	       ((s) ((p (->date s))))
 	       ((y m d . offset)
@@ -416,7 +422,7 @@
   (protocol (lambda (p)
 	      (define ->date
 		(make-date-argument->date 'xs:make-datetime 19
-					  "~Y-~m-~dT~H:~M:~S"))
+					  "~Y-~m-~dT~H:~M:~S" #t))
 	      (case-lambda
 	       ((s) ((p (->date s))))
 	       ((y m d h mi s . offset)
@@ -427,7 +433,7 @@
   (parent xs:base-date)
   (protocol (lambda (p)
 	      (define ->date
-		(make-date-argument->date 'xs:make-g-year 4 "~Y"))
+		(make-date-argument->date 'xs:make-g-year 4 "~Y" #t))
 	      (case-lambda
 	       ((s) ((p (->date s))))
 	       ((y . offset)
@@ -437,7 +443,7 @@
   (parent xs:base-date)
   (protocol (lambda (p)
 	      (define ->date
-		(make-date-argument->date 'xs:make-g-year-month 7 "~Y-~m"))
+		(make-date-argument->date 'xs:make-g-year-month 7 "~Y-~m" #t))
 	      (case-lambda
 	       ((s) ((p (->date s))))
 	       ((y m . offset)
@@ -447,7 +453,7 @@
   (parent xs:base-date)
   (protocol (lambda (p)
 	      (define ->date
-		(make-date-argument->date 'xs:make-g-month 4 "--~m"))
+		(make-date-argument->date 'xs:make-g-month 4 "--~m" #f))
 	      (case-lambda
 	       ((s) ((p (->date s))))
 	       ((m . offset)
@@ -458,7 +464,7 @@
   (parent xs:base-date)
   (protocol (lambda (p)
 	      (define ->date
-		(make-date-argument->date 'xs:make-g-month 7 "--~m-~d"))
+		(make-date-argument->date 'xs:make-g-month 7 "--~m-~d" #f))
 	      (case-lambda
 	       ((s) ((p (->date s))))
 	       ((m d . offset)
@@ -469,7 +475,7 @@
   (parent xs:base-date)
   (protocol (lambda (p)
 	      (define ->date
-		(make-date-argument->date 'xs:make-g-day 5 "---~d"))
+		(make-date-argument->date 'xs:make-g-day 5 "---~d" #f))
 	      (case-lambda
 	       ((s) ((p (->date s))))
 	       ((d . offset)

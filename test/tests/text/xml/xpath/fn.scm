@@ -855,7 +855,7 @@
     (test-assert (xpath-op:datetime-equal
 		  (xs:make-datetime "2002-04-02T12:00:00-01:00")
 		  (xs:make-datetime "2002-04-02T17:00:00+04:00")))
-    (test-expect-fail 1) ;; this doesn't make sense
+    (test-expect-fail 1) ;; We can't make contextual timezone to -5:00
     (test-assert (xpath-op:datetime-equal
 		  (xs:make-datetime "2002-04-02T12:00:00")
 		  (xs:make-datetime "2002-04-02T00:00:00+06:00")))
@@ -916,8 +916,7 @@
 		  (xs:make-time "24:00:00+01:00")
 		  (xs:make-time "00:00:00+01:00"))))
   (test-group "op:time-less-than"
-    ;; we, CEST, are +02:00, unfortunately not -06:00
-    (test-expect-fail 1)
+    (test-expect-fail 1) ;; we can't make contextual timezone to -5:00
     (test-assert (not (xpath-op:time-less-than
 		       (xs:make-time "12:00:00")
 		       (xs:make-time "23:00:00+06:00"))))
@@ -947,7 +946,7 @@
     (test-assert (not (xpath-op:g-year-equal
 		       (xs:make-g-year "2005-12:00")
 		       (xs:make-g-year "2005+12:00"))))
-    (test-expect-fail 1) ;; this must not be true...
+    (test-expect-fail 1)  ;; we can't make contextual timezone to -5:00
     (test-assert (xpath-op:g-year-equal
 		  (xs:make-g-year "1976-05:00")
 		  (xs:make-g-year "1976"))))
@@ -993,6 +992,74 @@
     (test-assert (not (xpath-op:g-day-equal
 		       (xs:make-g-day "---12")
 		       (xs:make-g-day "---12Z")))))
+
+  (test-group "fn:year-from-dateTime"
+    (test-equal 1999 (xpath-fn:year-from-datetime
+		      (xs:make-datetime "1999-05-31T13:20:00-05:00")))
+    (test-equal 1999 (xpath-fn:year-from-datetime
+		      (xs:make-datetime "1999-05-31T21:30:00-05:00")))
+    (test-equal 1999 (xpath-fn:year-from-datetime
+		      (xs:make-datetime "1999-12-31T19:20:00")))
+    (test-equal 2000 (xpath-fn:year-from-datetime
+		      (xs:make-datetime "1999-12-31T24:00:00")))
+    (test-equal -2   (xpath-fn:year-from-datetime
+		      (xs:make-datetime "-0002-06-06T00:00:00"))))
+
+  (test-group "fn:month-from-dateTime"
+    (test-equal 5 (xpath-fn:month-from-datetime
+		   (xs:make-datetime "1999-05-31T13:20:00-05:00")))
+    (test-equal 12 (xpath-fn:month-from-datetime
+		    (xs:make-datetime "1999-12-31T19:20:00-05:00")))
+    (test-equal 1 (xpath-fn:month-from-datetime
+		   (xpath-fn:adjust-datetime-to-timezone
+		    (xs:make-datetime "1999-12-31T19:20:00-05:00")
+		    (xs:make-day-time-duration "PT0S")))))
+  (test-group "fn:day-from-dateTime"
+    (test-equal 31 (xpath-fn:day-from-datetime
+		    (xs:make-datetime "1999-05-31T13:20:00-05:00")))
+    (test-equal 31 (xpath-fn:day-from-datetime
+		    (xs:make-datetime "1999-12-31T20:00:00-05:00")))
+    (test-equal 1 (xpath-fn:day-from-datetime
+		   (xpath-fn:adjust-datetime-to-timezone
+		    (xs:make-datetime "1999-12-31T19:20:00-05:00")
+		    (xs:make-day-time-duration "PT0S")))))
+
+  (test-group "fn:hours-from-dateTime"
+    (test-equal 8 (xpath-fn:hours-from-datetime
+		   (xs:make-datetime "1999-05-31T08:20:00-05:00")))
+    (test-equal 21 (xpath-fn:hours-from-datetime
+		    (xs:make-datetime "1999-12-31T21:20:00-05:00")))
+    (test-equal 2 (xpath-fn:hours-from-datetime
+		   (xpath-fn:adjust-datetime-to-timezone
+		    (xs:make-datetime "1999-12-31T21:20:00-05:00")
+		    (xs:make-day-time-duration "PT0S"))))
+    (test-equal 12 (xpath-fn:hours-from-datetime
+		    (xs:make-datetime "1999-12-31T12:00:00")))
+    (test-equal 0 (xpath-fn:hours-from-datetime
+		   (xs:make-datetime "1999-12-31T24:00:00"))))
+
+  (test-group "fn:minutes-from-dateTime"
+    (test-equal 20 (xpath-fn:minutes-from-datetime
+		    (xs:make-datetime "1999-05-31T13:20:00-05:00")))
+    (test-equal 30 (xpath-fn:minutes-from-datetime
+		    (xs:make-datetime "1999-05-31T13:30:00+05:30"))))
+
+  (test-group "fn:seconds-from-dateTime"
+    (test-equal 0 (xpath-fn:seconds-from-datetime
+		   (xs:make-datetime "1999-05-31T13:20:00-05:00"))))
+
+  (test-group "fn:timezone-from-dateTime"
+    (test-equal (xs:duration-seconds (xs:make-day-time-duration "-PT5H"))
+		(xs:duration-seconds
+		 (xpath-fn:timezone-from-datetime
+		  (xs:make-datetime "1999-05-31T13:20:00-05:00"))))  
+    (test-equal (xs:duration-seconds (xs:make-day-time-duration "PT0S"))
+		(xs:duration-seconds
+		 (xpath-fn:timezone-from-datetime
+		  (xs:make-datetime "2000-06-12T13:20:00Z"))))
+    (test-equal '()
+		(xpath-fn:timezone-from-datetime
+		 (xs:make-datetime "2004-08-27T00:00:00"))))
   )
 (test-end)
 
