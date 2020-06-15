@@ -317,6 +317,10 @@
 	(eof-object)))
   (define (resolve-reference object)
     (define len (vector-length object))
+    (define ($ref? v)
+      (and (vector? v)
+	   (vector-fold (lambda (acc e)
+			  (or acc (string=? "$ref" (car e)))) #f v)))
     (define (handle-recursive-$ref v)
       (cond ((not (string? v)))
 	    ((hashtable-ref seen v #f))
@@ -336,7 +340,9 @@
 	    (cond ((hashtable-ref seen2 e #f) (loop (+ i 1) refs))
 		  (else
 		   (hashtable-set! seen2 e #t)
-		   (cond ((string=? "$ref" (car e))
+		   ;; simple way of detecting property named $ref
+		   ;; containint an actual $ref case.
+		   (cond ((and (string=? "$ref" (car e)) (not ($ref? (cdr e))))
 			  (let ((resolved (handle-recursive-$ref (cdr e))))
 			    (cond ((or (json-pointer-not-found? resolved)
 				       (eof-object? resolved))
