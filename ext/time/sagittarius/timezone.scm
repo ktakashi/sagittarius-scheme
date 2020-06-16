@@ -42,6 +42,7 @@
 	    ;; utilities
 	    timezone-name-list
 	    zone-offset->timezones
+	    zone-offset->timezones*
 	    
 	    ;; for debug
 	    timezone-rules
@@ -165,6 +166,17 @@
     ;; it'll cache everything...
     (filter values (map ->timezone
 			(vector->list (vector-ref +tzdata+ +tz-zone+)))))
+
+  ;; this creates anonymous timezone with name of Etc/GMT*
+  (define (zone-offset->timezones* offset :optional (when (current-time)))
+    (let ((tz* (zone-offset->timezones offset when)))
+      (if (null? tz*)
+	  ;; I trust user to put some meaningful offset here
+	  (let* ((n (inexact (/ offset 3600)))
+		 (en (if (integer? n) (exact n) n))
+		 (name (string-append "Etc/GMT" (number->string en))))
+	    (list (make-timezone name name offset #f #f '() '() #f)))
+	  tz*)))
   
   ;; this considers DST.
   (define (timezone-offset tz :optional (when (current-time)))

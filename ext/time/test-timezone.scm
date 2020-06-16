@@ -136,5 +136,12 @@ Rule	GB-Eire	1921	only	-	Oct	 3	2:00s	0	GMT
 
 (test-equal 3600 (timezone-offset (timezone "Etc/GMT-1")))
 
+(let ((tz* (zone-offset->timezones* -50400)))
+  (test-assert "zone-offset->timezones* (not null)" (not (null? tz*)))
+  (test-equal "zone-offset->timezones* (offset)" -50400
+	      (timezone-offset (car tz*)))
+  (test-equal "zone-offset->timezones* (name)" "Etc/GMT-14"
+	      (timezone-name (car tz*))))
+
 (test-end)
 

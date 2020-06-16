@@ -134,7 +134,7 @@
 	    (srfi :115 regexp))
 
 (define (timezone:find-etc/gmt off)
-  (let ((tz* (zone-offset->timezones off)))
+  (let ((tz* (zone-offset->timezones* off)))
     (and (not (null? tz*))
 	 (or (find (lambda (tz) (string-prefix? "Etc" (timezone-name tz))) tz*)
 	     (car tz*)))))
