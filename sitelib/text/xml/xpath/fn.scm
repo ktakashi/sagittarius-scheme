@@ -844,7 +844,7 @@
 	      (list (string->symbol (string-append "xpath-op:" name suffix))
 		    (string->symbol (string-append "xs:" name op))))
 	    '("-equal" "-less-than" "-greater-than")
-	    '("=?" "<?" ">?"))))
+	    '("-w/o-tz=?" "<?" ">?"))))
     (syntax-case x ()
       ((k type)
        (with-syntax ((((name op) ...) (gen #'k #'type)))

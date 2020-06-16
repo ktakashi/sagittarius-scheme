@@ -4,6 +4,8 @@
 	(text xml errors)
 	(text xml xpath fn)
 	(text xml schema)
+	(sagittarius timezone)
+	(srfi :39)
 	(srfi :64))
 
 (test-begin "XPath functions and operators")
@@ -852,25 +854,22 @@
 		 (xs:make-datetime "1999-12-31T00:00:00"))))
 
   (test-group "op:dateTime-equal"
-    (test-assert (xpath-op:datetime-equal
-		  (xs:make-datetime "2002-04-02T12:00:00-01:00")
-		  (xs:make-datetime "2002-04-02T17:00:00+04:00")))
-    (test-expect-fail 1) ;; We can't make contextual timezone to -5:00
-    (test-assert (xpath-op:datetime-equal
-		  (xs:make-datetime "2002-04-02T12:00:00")
-		  (xs:make-datetime "2002-04-02T00:00:00+06:00")))
-    (test-assert (not (xpath-op:datetime-equal
-		       (xs:make-datetime "2002-04-02T12:00:00")
-		       (xs:make-datetime "2002-04-02T17:00:00"))))
-    (test-assert (xpath-op:datetime-equal
-		  (xs:make-datetime "2002-04-02T12:00:00")
-		  (xs:make-datetime "2002-04-02T12:00:00")))
-    (test-assert (xpath-op:datetime-equal
-		  (xs:make-datetime "2002-04-02T23:00:00-04:00")
-		  (xs:make-datetime "2002-04-03T02:00:00-01:00")))
-    (test-assert (xpath-op:datetime-equal
-		  (xs:make-datetime "1999-12-31T24:00:00")
-		  (xs:make-datetime "2000-01-01T00:00:00")))
+    (parameterize ((*xs:dynamic-timezone* (* -5 3600)))
+      (test-assert (xpath-op:datetime-equal
+		    (xs:make-datetime "2002-04-02T12:00:00-01:00")
+		    (xs:make-datetime "2002-04-02T17:00:00+04:00")))
+      (test-assert (xpath-op:datetime-equal
+		    (xs:make-datetime "2002-04-02T12:00:00")
+		    (xs:make-datetime "2002-04-02T23:00:00+06:00")))
+      (test-assert (xpath-op:datetime-equal
+		    (xs:make-datetime "2002-04-02T12:00:00")
+		    (xs:make-datetime "2002-04-02T12:00:00")))
+      (test-assert (xpath-op:datetime-equal
+		    (xs:make-datetime "2002-04-02T23:00:00-04:00")
+		    (xs:make-datetime "2002-04-03T02:00:00-01:00")))
+      (test-assert (xpath-op:datetime-equal
+		    (xs:make-datetime "1999-12-31T24:00:00")
+		    (xs:make-datetime "2000-01-01T00:00:00"))))
     )
   (test-group "op:dateTime-less-than"
     (test-assert (xpath-op:datetime-less-than
@@ -916,18 +915,16 @@
 		  (xs:make-time "24:00:00+01:00")
 		  (xs:make-time "00:00:00+01:00"))))
   (test-group "op:time-less-than"
-    (test-expect-fail 1) ;; we can't make contextual timezone to -5:00
-    (test-assert (not (xpath-op:time-less-than
-		       (xs:make-time "12:00:00")
-		       (xs:make-time "23:00:00+06:00"))))
-    ;; what if local timezone is +09:00?? I think it's an invalid case
-    ;; but it works on CEST so it's okayish...
-    (test-assert (xpath-op:time-less-than
-		  (xs:make-time "11:00:00")
-		  (xs:make-time "17:00:00Z")))
-    (test-assert (not (xpath-op:time-less-than
-		       (xs:make-time "23:59:59")
-		       (xs:make-time "24:00:00")))))
+    (parameterize ((*xs:dynamic-timezone* (* -5 3600)))
+      (test-assert (not (xpath-op:time-less-than
+			 (xs:make-time "12:00:00")
+			 (xs:make-time "23:00:00+06:00"))))
+      (test-assert (xpath-op:time-less-than
+		    (xs:make-time "11:00:00")
+		    (xs:make-time "17:00:00Z")))
+      (test-assert (not (xpath-op:time-less-than
+			 (xs:make-time "23:59:59")
+			 (xs:make-time "24:00:00"))))))
 
   (test-group "op:time-greater-than"
     (test-assert (not (xpath-op:time-greater-than
@@ -943,13 +940,13 @@
 		       (xs:make-g-year-month "1986-03Z")))))
 
   (test-group "op:gYear-equal"
-    (test-assert (not (xpath-op:g-year-equal
-		       (xs:make-g-year "2005-12:00")
-		       (xs:make-g-year "2005+12:00"))))
-    (test-expect-fail 1)  ;; we can't make contextual timezone to -5:00
-    (test-assert (xpath-op:g-year-equal
-		  (xs:make-g-year "1976-05:00")
-		  (xs:make-g-year "1976"))))
+    (parameterize ((*xs:dynamic-timezone* (* -5 3600)))
+      (test-assert (not (xpath-op:g-year-equal
+			 (xs:make-g-year "2005-12:00")
+			 (xs:make-g-year "2005+12:00"))))
+      (test-assert (xpath-op:g-year-equal
+		    (xs:make-g-year "1976-05:00")
+		    (xs:make-g-year "1976")))))
 
   (test-group "op:gMonthDay-equal"
     ;; we don't handle -14:00 as a timezone which doesn't exist

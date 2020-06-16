@@ -59,6 +59,7 @@
 		    (xs:base-date-second          xs:time-second)
 		    (xs:base-date-timezone-offset xs:time-timezone-offset)
 		    (xs:base-date=?               xs:time=?)
+		    (xs:base-date-w/o-timezone=?  xs:time-w/o-tz=?)
 		    (xs:base-date<?               xs:time<?)
 		    (xs:base-date>?               xs:time>?)
 		    (xs:base-date-year            xs:date-year)
@@ -66,6 +67,7 @@
 		    (xs:base-date-day             xs:date-day)
 		    (xs:base-date-timezone-offset xs:date-timezone-offset)
 		    (xs:base-date=?               xs:date=?)
+		    (xs:base-date-w/o-timezone=?  xs:date-w/o-tz=?)
 		    (xs:base-date<?               xs:date<?)
 		    (xs:base-date>?               xs:date>?)
 		    (xs:base-date-year            xs:datetime-year)
@@ -76,6 +78,7 @@
 		    (xs:base-date-second          xs:datetime-second)
 		    (xs:base-date-timezone-offset xs:datetime-timezone-offset)
 		    (xs:base-date=?               xs:datetime=?)
+		    (xs:base-date-w/o-timezone=?  xs:datetime-w/o-tz=?)
 		    (xs:base-date<?               xs:datetime<?)
 		    (xs:base-date>?               xs:datetime>?))
 	    xs:g-year xs:g-year? (rename make-xs:g-year xs:make-g-year)
@@ -89,37 +92,66 @@
 	     (xs:base-date-year            xs:g-year-year)
 	     (xs:base-date-timezone-offset xs:g-year-timezone-offset)
 	     (xs:base-date=?               xs:g-year=?)
+	     (xs:base-date-w/o-timezone=?  xs:g-year-w/o-tz=?)
 	     (xs:base-date<?               xs:g-year<?)
 	     (xs:base-date>?               xs:g-year>?)
 	     (xs:base-date-year            xs:g-year-month-year)
 	     (xs:base-date-month           xs:g-year-month-month)
 	     (xs:base-date-timezone-offset xs:g-year-month-timezone-offset)
 	     (xs:base-date=?               xs:g-year-month=?)
+	     (xs:base-date-w/o-timezone=?  xs:g-year-month-w/o-tz=?)
 	     (xs:base-date<?               xs:g-year-month<?)
 	     (xs:base-date>?               xs:g-year-month>?)
 	     (xs:base-date-month           xs:g-month-month)
 	     (xs:base-date-timezone-offset xs:g-month-timezone-offset)
 	     (xs:base-date=?               xs:g-month=?)
+	     (xs:base-date-w/o-timezone=?  xs:g-month-w/o-tz=?)
 	     (xs:base-date<?               xs:g-month<?)
 	     (xs:base-date>?               xs:g-month>?)
 	     (xs:base-date-month           xs:g-month-day-month)
 	     (xs:base-date-day             xs:g-month-day-day)
 	     (xs:base-date-timezone-offset xs:g-month-day-timezone-offset)
 	     (xs:base-date=?               xs:g-month-day=?)
+	     (xs:base-date-w/o-timezone=?  xs:g-month-day-w/o-tz=?)
 	     (xs:base-date<?               xs:g-month-day<?)
 	     (xs:base-date>?               xs:g-month-day>?)
 	     (xs:base-date-day             xs:g-day-day)
 	     (xs:base-date-timezone-offset xs:g-day-timezone-offset)
 	     (xs:base-date=?               xs:g-day=?)
+	     (xs:base-date-w/o-timezone=?  xs:g-day-w/o-tz=?)
 	     (xs:base-date<?               xs:g-day<?)
 	     (xs:base-date>?               xs:g-day>?))
+
+	    ;; dynaic parameters...
+	    *xs:dynamic-timezone*
 	    )
     (import (rnrs)
 	    (sagittarius calendar)
 	    (sagittarius timezone)
 	    (srfi :13 strings)
 	    (srfi :19 time)
+	    (srfi :39 parameters)
 	    (srfi :115 regexp))
+
+(define (timezone:find-etc/gmt off)
+  (let ((tz* (zone-offset->timezones off)))
+    (and (not (null? tz*))
+	 (or (find (lambda (tz) (string-prefix? "Etc" (timezone-name tz))) tz*)
+	     (car tz*)))))
+
+(define (timezone-converter tz)
+  (let ((v (cond ((integer? tz) (timezone:find-etc/gmt tz))
+		 ((timezone? tz) tz)
+		 ((eqv? tz #f) tz)
+		 (else #f))))
+    (unless (or (eqv? tz #f) (timezone? v))
+      (assertion-violation '*xs:dynamic-timezone*
+			   "Timezone object or valid offset or #f is required"
+			   tz))
+    v))
+	 
+;; contextual timezone (default #f, then local timezone)
+(define *xs:dynamic-timezone* (make-parameter #f timezone-converter))
 
 ;; 3 Built-in Datatypes and Their Definitions
 ;; for now, I implement what we need
@@ -288,6 +320,9 @@
 	       ((namespace-uri local-part prefix)
 		(make namespace-uri local-part prefix))))))
 
+(define (get-dynamic-timezone)
+  (or (*xs:dynamic-timezone*) (local-timezone)))
+
 (define-record-type xs:base-date
   (parent xs:any-atomic-type)
   (fields date has-tz? calendar-date)
@@ -310,15 +345,14 @@
 		;; error
 		(assertion-violation 'xs:normalize-date "Invalid time" d)))))
      (define (find-etc/gmt off)
-       (let ((tz* (zone-offset->timezones off)))
-	 (when (null? tz*)
+       (let ((tz (timezone:find-etc/gmt off)))
+	 (unless tz
 	   ;; maybe we should raise XQT error here
 	   (error 'xs:make-base-date "Invalid timezone offset" off))
-	 (or (find (lambda (tz) (string-prefix? "Etc" (timezone-name tz))) tz*)
-	     (car tz*))))
+	 tz))
      (lambda (d)
        (let* ((off (date-zone-offset d))
-	      (tz (if off (find-etc/gmt off) (local-timezone)))
+	      (tz (if off (find-etc/gmt off) (get-dynamic-timezone)))
 	      (nd (normalize
 		   (if off
 		       d
@@ -355,14 +389,16 @@
   (and (xs:base-date-has-tz? xd)
        (/ (date-zone-offset (xs:base-date-date xd)) 60)))
 
+(define (xs:base-date-w/o-timezone=? d1 d2)
+  (calendar-date=? (xs:base-date-calendar-date d1)
+		   (xs:base-date-calendar-date d2)))
 (define (xs:base-date=? d1 d2)
   (and
    (or (and (not (xs:base-date-timezone-offset d1))
 	    (not (xs:base-date-timezone-offset d2)))
        (and (xs:base-date-timezone-offset d1)
 	    (xs:base-date-timezone-offset d2)))
-   (calendar-date=? (xs:base-date-calendar-date d1)
-		    (xs:base-date-calendar-date d2))))
+   (xs:base-date-w/o-timezone=? d1 d2)))
 (define (xs:base-date<? d1 d2)
   (calendar-date<? (xs:base-date-calendar-date d1)
 		   (xs:base-date-calendar-date d2)))
