@@ -935,7 +935,7 @@
   (if (null? dt)
       '()
       (let ((zone (xs:datetime-timezone-offset dt)))
-	(cond ((and (null? offset) (not zone)) '())
+	(cond ((and (null? offset) (not zone)) dt)
 	      ((and (null? offset) zone)
 	       (xs:make-datetime (xs:datetime-year dt)
 				 (xs:datetime-month dt)
@@ -964,7 +964,9 @@
   
 (define xpath-fn:adjust-datetime-to-timezone
   (case-lambda
-   ((dt) (adjust-datetime dt (timezone-offset (local-timezone))))
+   ((dt)
+    (adjust-datetime dt (timezone-offset (or (*xs:dynamic-timezone*)
+					     (local-timezone)))))
    ((dt dtd)
     (cond ((null? dtd) (adjust-datetime dt dtd))
 	  (else

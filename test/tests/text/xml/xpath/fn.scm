@@ -833,6 +833,7 @@
 			  (xs:make-day-time-duration "PT1S"))))
   )
 
+(import (clos user))
 (test-group "Functions and operators on dates and times"
   (define (datetime=? a b)
     (and (= (xs:datetime-year a) (xs:datetime-year b))
@@ -1057,6 +1058,42 @@
     (test-equal '()
 		(xpath-fn:timezone-from-datetime
 		 (xs:make-datetime "2004-08-27T00:00:00"))))
+
+  (test-group "fn:adjust-dateTime-to-timezone"
+    (parameterize ((*xs:dynamic-timezone* (* -5 3600)))
+      (test-assert (xs:datetime=?
+		    (xs:make-datetime "2002-03-07T10:00:00-05:00")
+		    (xpath-fn:adjust-datetime-to-timezone
+		     (xs:make-datetime "2002-03-07T10:00:00"))))
+      (test-assert (xs:datetime=?
+		    (xs:make-datetime "2002-03-07T12:00:00-05:00")
+		    (xpath-fn:adjust-datetime-to-timezone
+		     (xs:make-datetime "2002-03-07T10:00:00-07:00"))))
+      (test-assert (xs:datetime=?
+		    (xs:make-datetime "2002-03-07T10:00:00-10:00")
+		    (xpath-fn:adjust-datetime-to-timezone
+		     (xs:make-datetime "2002-03-07T10:00:00")
+		     (xs:make-day-time-duration "-PT10H"))))
+      (test-assert (xs:datetime=?
+		    (xs:make-datetime "2002-03-07T07:00:00-10:00")
+		    (xpath-fn:adjust-datetime-to-timezone
+		     (xs:make-datetime "2002-03-07T10:00:00-07:00")
+		     (xs:make-day-time-duration "-PT10H"))))
+      (test-assert (xs:datetime=?
+		    (xs:make-datetime "2002-03-08T03:00:00+10:00")
+		    (xpath-fn:adjust-datetime-to-timezone
+		     (xs:make-datetime "2002-03-07T10:00:00-07:00")
+		     (xs:make-day-time-duration "PT10H"))))
+      (test-assert (xs:datetime=?
+		    (xs:make-datetime "2002-03-07T10:00:00")
+		    (xpath-fn:adjust-datetime-to-timezone
+		     (xs:make-datetime "2002-03-07T10:00:00")
+		     '())))
+      (test-assert (xs:datetime=?
+		    (xs:make-datetime "2002-03-07T10:00:00")
+		    (xpath-fn:adjust-datetime-to-timezone
+		     (xs:make-datetime "2002-03-07T10:00:00-07:00")
+		     '())))))
   )
 (test-end)
 
