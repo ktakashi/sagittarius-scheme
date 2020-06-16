@@ -950,46 +950,49 @@
 		    (xs:make-g-year "1976")))))
 
   (test-group "op:gMonthDay-equal"
-    ;; we don't handle -14:00 as a timezone which doesn't exist
-    ;; though +14:00 does exist, so might be my misunderstanding
-    ;; of the XML date...
-    (test-expect-fail 1)
-    (test-assert (xpath-op:g-month-day-equal
-		  (xs:make-g-month-day "--12-25-14:00")
-		  (xs:make-g-month-day "--12-26+10:00")))
-    (test-assert (xpath-op:g-month-day-equal
-		  (xs:make-g-month-day "--12-25-12:00")
-		  (xs:make-g-month-day "--12-26+12:00")))
-    (test-assert (not (xpath-op:g-month-day-equal
-		       (xs:make-g-month-day "--12-25")
-		       (xs:make-g-month-day "--12-26Z")))))
+    (parameterize ((*xs:dynamic-timezone* (* -5 3600)))
+      ;; we don't handle -14:00 as a timezone which doesn't exist
+      ;; though +14:00 does exist, so might be my misunderstanding
+      ;; of the XML date...
+      (test-expect-fail 1)
+      (test-assert (xpath-op:g-month-day-equal
+		    (xs:make-g-month-day "--12-25-14:00")
+		    (xs:make-g-month-day "--12-26+10:00")))
+      (test-assert (xpath-op:g-month-day-equal
+		    (xs:make-g-month-day "--12-25-12:00")
+		    (xs:make-g-month-day "--12-26+12:00")))
+      (test-assert (not (xpath-op:g-month-day-equal
+			 (xs:make-g-month-day "--12-25")
+			 (xs:make-g-month-day "--12-26Z"))))))
 
   (test-group "op:gMonth-equal"
-    ;; we don't handle -14:00 as a timezone which doesn't exist
-    ;; though +14:00 does exist, so might be my misunderstanding
-    ;; of the XML date...
-    (test-expect-fail 1)
-    (test-assert (not (xpath-op:g-month-equal
-		       (xs:make-g-month "--12-14:00")
-		       (xs:make-g-month "--12+10:00"))))
-    (test-assert (not (xpath-op:g-month-equal
-		       (xs:make-g-month "--12-12:00")
-		       (xs:make-g-month "--12+12:00"))))
-    (test-assert (not (xpath-op:g-month-equal
-		       (xs:make-g-month "--12")
-		       (xs:make-g-month "--12Z")))))
+    (parameterize ((*xs:dynamic-timezone* (* -5 3600)))
+      ;; we don't handle -14:00 as a timezone which doesn't exist
+      ;; though +14:00 does exist, so might be my misunderstanding
+      ;; of the XML date...
+      (test-expect-fail 1)
+      (test-assert (not (xpath-op:g-month-equal
+			 (xs:make-g-month "--12-14:00")
+			 (xs:make-g-month "--12+10:00"))))
+      (test-assert (not (xpath-op:g-month-equal
+			 (xs:make-g-month "--12-12:00")
+			 (xs:make-g-month "--12+12:00"))))
+      (test-assert (not (xpath-op:g-month-equal
+			 (xs:make-g-month "--12")
+			 (xs:make-g-month "--12Z"))))))
 
   (test-group "op:gDay-equal"
-    ;; we don't handle -14:00 as a timezone which doesn't exist
-    ;; though +14:00 does exist, so might be my misunderstanding
-    ;; of the XML date...
-    (test-expect-fail 1)
-    (test-assert (not (xpath-op:g-day-equal
-		       (xs:make-g-day "---25-14:00")
-		       (xs:make-g-day "---25+10:00"))))
-    (test-assert (not (xpath-op:g-day-equal
-		       (xs:make-g-day "---12")
-		       (xs:make-g-day "---12Z")))))
+    (parameterize ((*xs:dynamic-timezone* (* -5 3600)))
+      ;; we don't handle -14:00 as a timezone which doesn't exist
+      ;; though +14:00 does exist, so might be my misunderstanding
+      ;; of the XML date...
+      (test-expect-fail 1)
+      (test-assert (not (xpath-op:g-day-equal
+			 (xs:make-g-day "---25-14:00")
+			 (xs:make-g-day "---25+10:00"))))
+      (test-assert (not (xpath-op:g-day-equal
+			 (xs:make-g-day "---12")
+			 (xs:make-g-day "---12Z"))))))
 
   (test-group "fn:year-from-dateTime"
     (test-equal 1999 (xpath-fn:year-from-datetime
