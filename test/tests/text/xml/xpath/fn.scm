@@ -1114,6 +1114,40 @@
 		    (xs:make-date "2002-03-07")
 		    (xpath-fn:adjust-date-to-timezone
 		     (xs:make-date "2002-03-07-07:00") '())))))
+
+  (test-group "fn:;adjust-time-to-timezone"
+    (parameterize ((*xs:dynamic-timezone* (* -5 3600)))
+      (test-assert (xs:time=?
+		    (xs:make-time "10:00:00-05:00")
+		    (xpath-fn:adjust-time-to-timezone
+		     (xs:make-time "10:00:00"))))
+      (test-assert (xs:time=?
+		    (xs:make-time "12:00:00-05:00")
+		    (xpath-fn:adjust-time-to-timezone
+		     (xs:make-time "10:00:00-07:00"))))
+      (test-assert (xs:time=?
+		    (xs:make-time "10:00:00-10:00")
+		    (xpath-fn:adjust-time-to-timezone
+		     (xs:make-time "10:00:00")
+		     (xs:make-day-time-duration "-PT10H"))))
+      (test-assert (xs:time=?
+		    (xs:make-time "07:00:00-10:00")
+		    (xpath-fn:adjust-time-to-timezone
+		     (xs:make-time "10:00:00-07:00")
+		     (xs:make-day-time-duration "-PT10H"))))
+      (test-assert (xs:time=?
+		    (xs:make-time "10:00:00")
+		    (xpath-fn:adjust-time-to-timezone
+		     (xs:make-time "10:00:00") '())))
+      (test-assert (xs:time=?
+		    (xs:make-time "10:00:00")
+		    (xpath-fn:adjust-time-to-timezone
+		     (xs:make-time "10:00:00-07:00") '())))
+      (test-assert (xs:time=?
+		    (xs:make-time "03:00:00+10:00")
+		    (xpath-fn:adjust-time-to-timezone
+		     (xs:make-time "10:00:00-07:00")
+		     (xs:make-day-time-duration "PT10H"))))))
   )
 (test-end)
 

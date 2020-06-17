@@ -164,7 +164,8 @@
 	    xpath-fn:timezone-from-time
 	    
 	    xpath-fn:adjust-datetime-to-timezone
-	    xpath-fn:adjust-date-to-timezone)
+	    xpath-fn:adjust-date-to-timezone
+	    xpath-fn:adjust-time-to-timezone)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (rfc uri)
@@ -1006,6 +1007,36 @@
       (xs:make-date (xs:datetime-year adt) (xs:datetime-month adt)
 		    (xs:datetime-day adt)
 		    (xs:date-timezone-offset adt))))))
+
+;;;; 9.6.3 fn:adjust-time-to-timezone
+#|
+* Let $dt be the xs:dateTime value fn:dateTime(xs:date('1972-12-31'), $arg). 
+* Let $adt be the value of fn:adjust-dateTime-to-timezone($dt, $timezone) 
+* The function returns the xs:time value xs:time($adt). 
+|#
+(define xpath-fn:adjust-time-to-timezone
+  (case-lambda
+   ((t)
+    (let* ((dt (xs:make-datetime 1972 12 31
+				 (xs:time-hour t)
+				 (xs:time-minute t)
+				 (xs:time-second t)
+				 (xs:time-timezone-offset t)))
+	   (adt (xpath-fn:adjust-datetime-to-timezone dt)))
+      (xs:make-time (xs:datetime-hour adt) (xs:datetime-minute adt)
+		    (xs:datetime-second adt)
+		    (xs:date-timezone-offset adt))))
+   ((t tz)
+    (let* ((dt (xs:make-datetime 1972 12 31
+				 (xs:time-hour t)
+				 (xs:time-minute t)
+				 (xs:time-second t)
+				 (xs:time-timezone-offset t)))
+	   (adt (xpath-fn:adjust-datetime-to-timezone dt tz)))
+      (xs:make-time (xs:datetime-hour adt) (xs:datetime-minute adt)
+		    (xs:datetime-second adt)
+		    (xs:date-timezone-offset adt))))))
+
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
