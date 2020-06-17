@@ -833,7 +833,7 @@
 			  (xs:make-day-time-duration "PT1S"))))
   )
 
-(import (clos user))
+(import (clos user) (sagittarius calendar))
 (test-group "Functions and operators on dates and times"
   (define (datetime=? a b)
     (and (= (xs:datetime-year a) (xs:datetime-year b))
@@ -1085,6 +1085,35 @@
 		    (xpath-fn:adjust-datetime-to-timezone
 		     (xs:make-datetime "2002-03-07T10:00:00-07:00")
 		     '())))))
+  
+  (test-group "fn:;adjust-date-to-timezone"
+    (parameterize ((*xs:dynamic-timezone* (* -5 3600)))
+      (test-assert (xs:date=?
+		    (xs:make-date "2002-03-07-05:00")
+		    (xpath-fn:adjust-date-to-timezone
+		     (xs:make-date "2002-03-07"))))
+      (test-assert (xs:date=?
+		    (xs:make-date "2002-03-07-05:00")
+		    (xpath-fn:adjust-date-to-timezone
+		     (xs:make-date "2002-03-07-07:00"))))
+      (test-assert (xs:date=?
+		    (xs:make-date "2002-03-07-10:00")
+		    (xpath-fn:adjust-date-to-timezone
+		     (xs:make-date "2002-03-07")
+		     (xs:make-day-time-duration "-PT10H"))))
+      (test-assert (xs:date=?
+		    (xs:make-date "2002-03-06-10:00")
+		    (xpath-fn:adjust-date-to-timezone
+		     (xs:make-date "2002-03-07-07:00")
+		     (xs:make-day-time-duration "-PT10H"))))
+      (test-assert (xs:date=?
+		    (xs:make-date "2002-03-07")
+		    (xpath-fn:adjust-date-to-timezone
+		     (xs:make-date "2002-03-07") '())))
+      (test-assert (xs:date=?
+		    (xs:make-date "2002-03-07")
+		    (xpath-fn:adjust-date-to-timezone
+		     (xs:make-date "2002-03-07-07:00") '())))))
   )
 (test-end)
 
