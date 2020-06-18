@@ -64,7 +64,7 @@ according to the @var{when}. Following is the example of timezone history:
       ;; 0:00	GB-Eire	GMT/IST	1968 Oct 27
       (rule-past (date->time-utc (make-date 0 0 0 0 24 7 1968 0))))
   (timezone-short-name tz now)          ;; => "GMT/IST"
-  (timezone-short-name tz no-rule-past) ;; => "IST
+  (timezone-short-name tz no-rule-past) ;; => "IST"
 
   ;; no DST
   (timezone-offset tz no-rule-past)     ;; => 3600 
@@ -92,4 +92,24 @@ list doesn't contain some of timezones (e.g. Amsterdam).
 
 The optional argument @var{when} specifies the time to consider. If it's not
 specified, then the returning value of @code{current-time} is used.
+
+@codeblock{
+(zone-offset->timezones 3600) ;; => '(#<timezone Etc/GMT-1> ...)
+;; offset +15:00 doesn't exist
+(zone-offset->timezones (* 15 3600)) ;; => '()
+}
+
+}
+
+@define[Function]{@name{zone-offset->timezones*} @args{offset :optional when}}
+@desc{Similar with @code{zone-offset->timezones*}, the difference is
+this procedure creates an anonymous timezone if there's no registered timezone
+matching with the given @var{offset}.
+
+@codeblock{
+(zone-offset->timezones* 3600) ;; => '(#<timezone Etc/GMT-1> ...)
+;; offset +15:00 doesn't exist
+(zone-offset->timezones* (* 15 3600)) ;; => '(#<timezone +15:00>)
+}
+
 }
