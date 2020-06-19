@@ -165,7 +165,10 @@
 	    
 	    xpath-fn:adjust-datetime-to-timezone
 	    xpath-fn:adjust-date-to-timezone
-	    xpath-fn:adjust-time-to-timezone)
+	    xpath-fn:adjust-time-to-timezone
+	    xpath-op:subtract-datetimes
+	    xpath-op:subtract-dates
+	    xpath-op:subtract-times)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (rfc uri)
@@ -1037,6 +1040,22 @@
 		    (xs:datetime-second adt)
 		    (xs:date-timezone-offset adt))))))
 
+;;;; 9.7.2 op:subtract-dateTimes
+(define (xpath-op:subtract-datetimes dt1 dt2)
+  (unless (and (xs:datetime? dt1) (xs:datetime? dt2))
+    (assertion-violation 'xpath-op:subtract-datetimes "Datetime required"
+			 dt1 dt2))
+  (xs:datetime-subtract dt1 dt2))
+;;;; 9.7.3 op:subtract-dates
+(define (xpath-op:subtract-dates d1 d2)
+  (unless (and (xs:date? d1) (xs:date? d1))
+    (assertion-violation 'xpath-op:subtract-dates "Date required" d1 d2))
+  (xs:date-subtract d1 d2))
+;;;; 9.7.4 op:subtract-times
+(define (xpath-op:subtract-times t1 t2)
+  (unless (and (xs:time? t1) (xs:time? t2))
+    (assertion-violation 'xpath-op:subtract-dates "Time required" t1 t2))
+  (xs:time-subtract t1 t2))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

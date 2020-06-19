@@ -1148,6 +1148,21 @@
 		    (xpath-fn:adjust-time-to-timezone
 		     (xs:make-time "10:00:00-07:00")
 		     (xs:make-day-time-duration "PT10H"))))))
+
+  (test-group "op:subtract-dateTimes"
+    (parameterize ((*xs:dynamic-timezone* (* -5 3600)))
+      (test-assert (xpath-op:duration-equal
+		    (xs:make-day-time-duration "P337DT2H12M")
+		    (xpath-op:subtract-datetimes
+		     (xs:make-datetime "2000-10-30T06:12:00")
+		     (xs:make-datetime "1999-11-28T09:00:00Z"))))))
+  (test-group "op:subtract-dates"
+    (parameterize ((*xs:dynamic-timezone* (* -5 3600)))
+      (test-assert (xpath-op:duration-equal
+		    (xs:make-day-time-duration "P5DT7H")
+		    (xpath-op:subtract-dates
+		     (xs:make-date "2000-10-15-05:00")
+		     (xs:make-date "2000-10-10+02:00"))))))
   )
 (test-end)
 

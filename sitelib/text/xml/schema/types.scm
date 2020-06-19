@@ -122,6 +122,9 @@
 	     (xs:base-date<?               xs:g-day<?)
 	     (xs:base-date>?               xs:g-day>?))
 
+	    (rename (xs:base-date-subtract xs:datetime-subtract)
+		    (xs:base-date-subtract xs:date-subtract)
+		    (xs:base-date-subtract xs:time-subtract))
 	    ;; dynaic parameters...
 	    *xs:dynamic-timezone*
 	    )
@@ -403,6 +406,15 @@
   (calendar-date<? (xs:base-date-calendar-date d1)
 		   (xs:base-date-calendar-date d2)))
 (define (xs:base-date>? d1 d2) (xs:base-date<? d2 d1))
+
+(define (xs:base-date-subtract dt bd)
+  (let* ((diff (time-difference (calendar-date->time-utc
+				 (xs:base-date-calendar-date dt))
+				(calendar-date->time-utc
+				 (xs:base-date-calendar-date bd))))
+	 (sec (time-second diff))
+	 (nsec (time-nanosecond diff)))
+    (make-xs:day-time-duration (+ sec (/ nsec 1000000000)))))
 
 (define (make-date-argument->date who len fmt handle-nagative?)
   (define fmt/tz (string-append fmt "~z"))
