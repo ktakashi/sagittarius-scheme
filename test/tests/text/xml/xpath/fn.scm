@@ -1163,6 +1163,29 @@
 		    (xpath-op:subtract-dates
 		     (xs:make-date "2000-10-15-05:00")
 		     (xs:make-date "2000-10-10+02:00"))))))
+  (test-group "op:subtract-times"
+    (parameterize ((*xs:dynamic-timezone* (* -5 3600)))
+      (test-assert (xpath-op:duration-equal
+		    (xs:make-day-time-duration "PT2H12M")
+		    (xpath-op:subtract-times
+		     (xs:make-time "11:12:00Z")
+		     (xs:make-time "04:00:00"))))
+      (test-assert (xpath-op:duration-equal
+		    (xs:make-day-time-duration "PT0S")
+		    (xpath-op:subtract-times
+		     (xs:make-time "11:00:00-05:00")
+		     (xs:make-time "21:30:00+05:30"))))
+      (test-assert (xpath-op:duration-equal
+		    (xs:make-day-time-duration "P1D")
+		    (xpath-op:subtract-times
+		     (xs:make-time "17:00:00-06:00")
+		     (xs:make-time "08:00:00+09:00"))))
+      (test-assert (xpath-op:duration-equal
+		    (xs:make-day-time-duration "-PT23H59M59S")
+		    (xpath-op:subtract-times
+		     (xs:make-time "24:00:00")
+		     (xs:make-time "23:59:59"))))))
+  
   )
 (test-end)
 
