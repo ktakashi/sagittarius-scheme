@@ -181,9 +181,12 @@
 		    (absolute->gregorian-components absolute *timezone/gmt*)))
 	(case unit
 	  ((month)
-	   (let ((mm (+ M (mod amount 12)))
-		 (yy (+ y (div amount 12))))
-	     (gregorian-components->absolute n s m h d mm yy gmt)))
+	   ;; the gregorian-components->absolute check leap year
+	   ;; so we need to keep the month between 1 to 12 (inclusive)
+	   (let* ((mm (+ M amount))
+		  (M (mod mm 12))
+		  (y (+ y (div mm 12))))
+	     (gregorian-components->absolute n s m h d M y gmt)))
 	  ((year)
 	   (gregorian-components->absolute n s m h d M (+ y amount) gmt))))))
 )

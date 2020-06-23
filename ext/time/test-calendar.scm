@@ -53,6 +53,13 @@
   (test-assert "adding month"
 	       (calendar-date=? expected
 				(calendar-date-add cd +calendar-unit:month+ 14))))
+(let ((cd (make-gregorian-calendar-date 0 0 12 11 30 10 2000
+					(timezone "Etc/GMT-2")))
+      (expected (make-gregorian-calendar-date 0 0 12 11 30 1 2002
+					      (timezone "Etc/GMT-2"))))
+  (test-assert "adding month"
+	       (calendar-date=? expected
+				(calendar-date-add cd +calendar-unit:month+ 15))))
 
 (test-assert (gregorian-leap-year? 4))
 (test-assert (not (gregorian-leap-year? 2100)))
