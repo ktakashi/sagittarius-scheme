@@ -137,6 +137,7 @@
 	    )
     (import (rnrs)
 	    (sagittarius calendar)
+	    (sagittarius calendar gregorian)
 	    (sagittarius timezone)
 	    (srfi :13 strings)
 	    (srfi :19 time)
@@ -432,29 +433,26 @@
 	 (nsec (time-nanosecond diff)))
     (make-xs:day-time-duration (+ sec (/ nsec 1000000000)))))
 
-(define (xs:base-date-add-duration bd d)
-  (define (second&nanosecond s)
-    (let-values (((s mil) (flinteger-fraction s)))
-      ;; for now...
-      (values (exact s) 0)))
-  ;; lazy...
-  (let ((cd (xs:base-date-calendar-date bd))
-	(m  (xs:duration-months d)))
-    (let-values (((s nsec) (second&nanosecond (xs:duration-seconds d))))
-      ;; return calendar-date
-      (calendar-date-add
-       (calendar-date-add
-	(calendar-date-add cd +calendar-unit:nanosecond+ nsec)
-	+calendar-unit:second+ s)
-       +calendar-unit:month+ m))))
-(define (xs:base-date-subtract-duration bd d)
-  ;; lazy...
-  (let ((cd (xs:base-date-calendar-date bd))
-	(m  (xs:duration-months d))
-	(s  (xs:duration-seconds d)))
-    ;; return calendar-date
-    (calendar-date-subtract (calendar-date-subtract cd +calendar-unit:second+ s)
-			    +calendar-unit:month+ m)))
+(define-syntax define-add/sub-duration
+  (syntax-rules ()
+    ((_ name op)
+     (define (name bd d)
+       (define (second&nanosecond s)
+	 (let-values (((s mil) (flinteger-fraction s)))
+	   ;; for now...
+	   (values (exact s) 0)))
+       ;; lazy...
+       (let ((cd (xs:base-date-calendar-date bd))
+	     (m  (xs:duration-months d)))
+	 (let-values (((s nsec) (second&nanosecond (xs:duration-seconds d))))
+	   ;; return calendar-date
+	   (op
+	    (op
+	     (op cd +calendar-unit:nanosecond+ nsec)
+	     +calendar-unit:second+ s)
+	    +calendar-unit:month+ m)))))))
+(define-add/sub-duration xs:base-date-add-duration calendar-date-add)
+(define-add/sub-duration xs:base-date-subtract-duration calendar-date-subtract)
 
 (define (make-date-argument->date who len fmt handle-nagative?)
   (define fmt/tz (string-append fmt "~z"))
@@ -482,7 +480,7 @@
 	((not (car maybe-offset)) #f)
 	(else (* (car maybe-offset) 60))))
 
-;; maybe we should use calander libraryy...
+(define *gmt* (timezone "GMT"))
 (define-record-type xs:time
   (parent xs:base-date)
   (protocol (lambda (p)
@@ -491,6 +489,15 @@
 	      (case-lambda
 	       ((s) ((p (->date s))))
 	       ((cd has-tz?) ((p cd has-tz?)))
+	       #;((cd has-tz?)
+		;; the calendar-date must be gregorian calendar
+		;; so use absolute->gregorian
+		(let ((absolute (calendar-date->gregorian-day cd))
+		      (tz (calendar-date-timezone cd)))
+		  (let-values (((n s m h d M y)
+				(absolute->gregorian-components absolute tz)))
+		    ((p (make-gregorian-calendar-date 0 s m h 0 0 0 tz)
+			has-tz?)))))
 	       ((h m s . offset)
 		(let ((off (get-offset offset)))
 		  ((p (make-date 0 s m h 0 0 0 off)))))))))
@@ -506,7 +513,17 @@
 		(make-date-argument->date 'xs:make-date 10 "~Y-~m-~d" #t))
 	      (case-lambda
 	       ((s) ((p (->date s))))
-	       ((cd has-tz?) ((p cd has-tz?)))
+	       ;;((cd has-tz?) ((p cd has-tz?)))
+	       ((cd has-tz?)
+		;; the calendar-date must be gregorian calendar
+		;; so use absolute->gregorian
+		(let ((absolute (calendar-date->gregorian-day cd))
+		      (tz (calendar-date-timezone cd)))
+		  (let-values (((n s m h d M y)
+				;; use GMT as the absolute is already adjusted
+				(absolute->gregorian-components absolute *gmt*)))
+		    ((p (make-date 0 0 0 0 d M y
+				   (and has-tz? (timezone-offset tz))))))))
 	       ((y m d . offset)
 		(let ((off (get-offset offset)))
 		  ((p (make-date 0 0 0 0 d m y off)))))))))
@@ -516,7 +533,7 @@
   (make-xs:date (xs:base-date-subtract-duration t d) (xs:base-date-has-tz? t)))
 
 (define-record-type xs:datetime
-  (parent xs:date)
+  (parent xs:base-date)
   (protocol (lambda (p)
 	      (define ->date
 		(make-date-argument->date 'xs:make-datetime 19

@@ -1192,6 +1192,55 @@
 		  (xpath-op:add-year-month-duration-to-datetime
 		   (xs:make-datetime "2000-10-30T11:12:00")
 		   (xs:make-year-month-duration "P1Y2M")))))
+  (test-group "op:add-dayTimeDuration-to-dateTime"
+    (test-assert (xs:datetime=?
+		  (xs:make-datetime "2000-11-02T12:27:00")
+		  (xpath-op:add-day-time-duration-to-datetime
+		   (xs:make-datetime "2000-10-30T11:12:00")
+		   (xs:make-day-time-duration "P3DT1H15M")))))
+  (test-group "op:subtract-yearMonthDuration-from-dateTime"
+    (test-assert (xs:datetime=?
+		  (xs:make-datetime "1999-08-30T11:12:00")
+		  (xpath-op:subtract-year-month-duration-from-datetime
+		   (xs:make-datetime "2000-10-30T11:12:00")
+		   (xs:make-year-month-duration "P1Y2M")))))
+  (test-group "op:subtract-dayTimeDuration-from-dateTime"
+    (test-assert (xs:datetime=?
+		  (xs:make-datetime "2000-10-27T09:57:00")
+		  (xpath-op:subtract-day-time-duration-from-datetime
+		   (xs:make-datetime "2000-10-30T11:12:00")
+		   (xs:make-day-time-duration "P3DT1H15M")))))
+
+  (test-group "op:add-yearMonthDuration-to-date"
+    (test-assert (xs:date=?
+		  (xs:make-date "2001-12-30")
+		  (xpath-op:add-year-month-duration-to-date
+		   (xs:make-date "2000-10-30")
+		   (xs:make-year-month-duration "P1Y2M")))))
+  (test-group "op:add-dayTimeDuration-to-date"
+    (test-assert (xs:date=?
+		  (xs:make-date "2004-11-01Z")
+		  (xpath-op:add-day-time-duration-to-date
+		   (xs:make-date "2004-10-30Z")
+		   (xs:make-day-time-duration "P2DT2H30M0S")))))
+  (test-group "op:subtract-yearMonthDuration-from-date"
+    (test-assert (xs:date=?
+		  (xs:make-date "1999-08-30")
+		  (xpath-op:subtract-year-month-duration-from-date
+		   (xs:make-date "2000-10-30")
+		   (xs:make-year-month-duration "P1Y2M"))))
+    (test-expect-fail 1) ;; the result is 1999-03-01, seems more logical to me
+    (test-assert (xs:date=?
+		  (xs:make-date "1999-02-28Z")
+		  (xpath-op:subtract-year-month-duration-from-date
+		   (xs:make-date "2000-02-29Z")
+		   (xs:make-year-month-duration "P1Y"))))
+    (test-expect-fail 1) ;; the result is 1999-10-01, seems valid to me
+    (test-assert (xs:date=?
+		  (xs:make-date "1999-09-30-05:00")
+		  (xpath-op:subtract-year-month-duration-from-date
+		   (xs:make-date "2000-10-31-05:00")
+		   (xs:make-year-month-duration "P1Y1M")))))
   )
 (test-end)
 

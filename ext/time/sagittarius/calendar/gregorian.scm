@@ -1,20 +1,20 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
 ;;; sagittarius/calendar/gregorian.scm - Gregorian calculation
-;;;  
+;;;
 ;;;   Copyright (c) 2018  Takashi Kato  <ktakashi@ymail.com>
-;;;   
+;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
 ;;;   are met:
-;;;   
+;;;
 ;;;   1. Redistributions of source code must retain the above copyright
 ;;;      notice, this list of conditions and the following disclaimer.
-;;;  
+;;;
 ;;;   2. Redistributions in binary form must reproduce the above copyright
 ;;;      notice, this list of conditions and the following disclaimer in the
 ;;;      documentation and/or other materials provided with the distribution.
-;;;  
+;;;
 ;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 ;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 ;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -26,10 +26,10 @@
 ;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-;;;  
+;;;
 
 ;; reference
-;; * Calendrical Calculations - Nachum Dershowitz and Edward M. Reingold 
+;; * Calendrical Calculations - Nachum Dershowitz and Edward M. Reingold
 ;;   http://reingold.co/cc-paper.pdf
 ;; * Calendrical Calculations, II: Three Historical Calendars
 ;;     Edward M. Reingold, Nachum Dershowitz, and Stewart M. Clamen
@@ -38,17 +38,24 @@
 ;;   https://en.wikipedia.org/wiki/Year_zero
 (library (sagittarius calendar gregorian)
     (export gregorian->absolute absolute->gregorian
-	    (rename (make-local-time make-gregorian-local-time)
-		    (make-local-date make-gregorian-local-date)
-		    (local-time? gregorian-local-time?)
-		    (local-date? gregorian-local-date?))
+	    (rename (make-local-time       make-gregorian-local-time)
+		    (local-time?           gregorian-local-time?)
+		    (local-time-hour       gregorian-local-time-hour)
+		    (local-time-minute	   gregorian-local-time-minute)
+		    (local-time-second	   gregorian-local-time-second)
+		    (local-time-nanosecond gregorian-local-time-nanosecond)
+		    (make-local-date  make-gregorian-local-date)
+		    (local-date?      gregorian-local-date?)
+		    (local-date-day   gregorian-local-date-day)
+		    (local-date-month gregorian-local-date-month)
+		    (local-date-year  gregorian-local-date-year))
 	    gregorian-components->absolute
 	    absolute->gregorian-components
 
 	    +gregorian-calendar-unit+
 	    gregorian-calendar-add-unit
-	    
-	    ;; helpers for other calendars	    
+
+	    ;; helpers for other calendars
 	    gregorian-leap-year? absolute->gregorian-year
 	    gregorian-new-year gregorian-end-of-year
 	    +gregorian-epoch+)
@@ -190,4 +197,3 @@
 	  ((year)
 	   (gregorian-components->absolute n s m h d M (+ y amount) gmt))))))
 )
-

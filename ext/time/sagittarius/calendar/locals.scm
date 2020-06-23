@@ -135,7 +135,7 @@
 	tm:sid)))
 
 (define (nanosecond->day nsec) (/ nsec tm:nano (* 60 60 24)))
-(define (second->day sec)      (/ sec (* 60 60 24)))
+(define (second->day sec)      (/ sec tm:sid))
 (define (minute->day min)      (/ min (* 60 24)))
 (define (hour->day hour)       (/ hour 24))
 (define (day->nanosecond day)  (* day (* 24 60 60 tm:nano)))

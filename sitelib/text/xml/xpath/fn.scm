@@ -173,6 +173,10 @@
 	    xpath-op:add-day-time-duration-to-datetime
 	    xpath-op:subtract-year-month-duration-from-datetime
 	    xpath-op:subtract-day-time-duration-from-datetime
+	    xpath-op:add-year-month-duration-to-date
+	    xpath-op:add-day-time-duration-to-date
+	    xpath-op:subtract-year-month-duration-from-date
+	    xpath-op:subtract-day-time-duration-from-date
 	    )
     (import (rnrs)
 	    (rnrs r5rs)
@@ -1084,12 +1088,17 @@
 	     (define (ymd-sub dt d) (d-sub dt d))
 	     (define (dt-sub dt d) (d-sub dt d))))))))
 	 
-
 ;;;; 9.7.5 op:add-yearMonthDuration-to-dateTime
 ;;;; 9.7.6 op:add-dayTimeDuration-to-dateTime
 ;;;; 9.7.7 op:subtract-yearMonthDuration-from-dateTime
 ;;;; 9.7.8 op:subtract-dayTimeDuration-from-dateTime
 (define-date-add/sub-duration datetime)
+
+;;;; 9.7.9 op:add-yearMonthDuration-to-date
+;;;; 9.7.10 op:add-dayTimeDuration-to-date
+;;;; 9.7.11 op:subtract-yearMonthDuration-from-date
+;;;; 9.7.12 op:subtract-dayTimeDuration-from-date
+(define-date-add/sub-duration date)
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
