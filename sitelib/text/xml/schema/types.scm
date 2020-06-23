@@ -125,6 +125,13 @@
 	    (rename (xs:base-date-subtract xs:datetime-subtract)
 		    (xs:base-date-subtract xs:date-subtract)
 		    (xs:base-date-subtract xs:time-subtract))
+	    xs:datetime-add-duration
+	    xs:date-add-duration
+	    xs:time-add-duration
+	    xs:datetime-subtract-duration
+	    xs:date-subtract-duration
+	    xs:time-subtract-duration
+	    
 	    ;; dynaic parameters...
 	    *xs:dynamic-timezone*
 	    )
@@ -134,7 +141,8 @@
 	    (srfi :13 strings)
 	    (srfi :19 time)
 	    (srfi :39 parameters)
-	    (srfi :115 regexp))
+	    (srfi :115 regexp)
+	    (srfi :144 flonums))
 
 (define (timezone:find-etc/gmt off)
   (let ((tz* (zone-offset->timezones* off)))
@@ -353,7 +361,8 @@
 	   ;; maybe we should raise XQT error here
 	   (error 'xs:make-base-date "Invalid timezone offset" off))
 	 tz))
-     (lambda (d)
+     (case-lambda
+      ((d)
        (let* ((off (date-zone-offset d))
 	      (tz (if off (find-etc/gmt off) (get-dynamic-timezone)))
 	      (nd (normalize
@@ -367,7 +376,14 @@
 	      (cd (time-utc->calendar-date (date->time-utc nd) tz)))
 	 ((p)
 	  (time-utc->date (calendar-date->time-utc cd) (timezone-offset tz))
-	  (and off #t) cd))))))
+	  (and off #t) cd)))
+      ;; 
+      ((cd has-tz?)
+       ;; unfortunately, we can't use timezone of calendar-date all time..
+       ((p)
+	(time-utc->date (calendar-date->time-utc cd)
+			(timezone-offset (calendar-date-timezone cd)))
+	has-tz? cd))))))
 
 (define-syntax define-base-date-accessor
   (lambda (x)
@@ -416,6 +432,30 @@
 	 (nsec (time-nanosecond diff)))
     (make-xs:day-time-duration (+ sec (/ nsec 1000000000)))))
 
+(define (xs:base-date-add-duration bd d)
+  (define (second&nanosecond s)
+    (let-values (((s mil) (flinteger-fraction s)))
+      ;; for now...
+      (values (exact s) 0)))
+  ;; lazy...
+  (let ((cd (xs:base-date-calendar-date bd))
+	(m  (xs:duration-months d)))
+    (let-values (((s nsec) (second&nanosecond (xs:duration-seconds d))))
+      ;; return calendar-date
+      (calendar-date-add
+       (calendar-date-add
+	(calendar-date-add cd +calendar-unit:nanosecond+ nsec)
+	+calendar-unit:second+ s)
+       +calendar-unit:month+ m))))
+(define (xs:base-date-subtract-duration bd d)
+  ;; lazy...
+  (let ((cd (xs:base-date-calendar-date bd))
+	(m  (xs:duration-months d))
+	(s  (xs:duration-seconds d)))
+    ;; return calendar-date
+    (calendar-date-subtract (calendar-date-subtract cd +calendar-unit:second+ s)
+			    +calendar-unit:month+ m)))
+
 (define (make-date-argument->date who len fmt handle-nagative?)
   (define fmt/tz (string-append fmt "~z"))
   (define (parse-date s)
@@ -450,9 +490,14 @@
 		(make-date-argument->date 'xs:make-time 8 "~H:~M:~S" #f))
 	      (case-lambda
 	       ((s) ((p (->date s))))
+	       ((cd has-tz?) ((p cd has-tz?)))
 	       ((h m s . offset)
 		(let ((off (get-offset offset)))
 		  ((p (make-date 0 s m h 0 0 0 off)))))))))
+(define (xs:time-add-duration t d)
+  (make-xs:time (xs:base-date-add-duration t d) (xs:base-date-has-tz? t)))
+(define (xs:time-subtract-duration t d)
+  (make-xs:time (xs:base-date-subtract-duration t d) (xs:base-date-has-tz? t)))
 
 (define-record-type xs:date
   (parent xs:base-date)
@@ -461,9 +506,14 @@
 		(make-date-argument->date 'xs:make-date 10 "~Y-~m-~d" #t))
 	      (case-lambda
 	       ((s) ((p (->date s))))
+	       ((cd has-tz?) ((p cd has-tz?)))
 	       ((y m d . offset)
 		(let ((off (get-offset offset)))
 		  ((p (make-date 0 0 0 0 d m y off)))))))))
+(define (xs:date-add-duration t d)
+  (make-xs:date (xs:base-date-add-duration t d) (xs:base-date-has-tz? t)))
+(define (xs:date-subtract-duration t d)
+  (make-xs:date (xs:base-date-subtract-duration t d) (xs:base-date-has-tz? t)))
 
 (define-record-type xs:datetime
   (parent xs:date)
@@ -473,9 +523,15 @@
 					  "~Y-~m-~dT~H:~M:~S" #t))
 	      (case-lambda
 	       ((s) ((p (->date s))))
+	       ((cd has-tz?) ((p cd has-tz?)))
 	       ((y m d h mi s . offset)
 		(let ((off (get-offset offset)))
 		  ((p (make-date 0 s mi h d m y off)))))))))
+(define (xs:datetime-add-duration t d)
+  (make-xs:datetime (xs:base-date-add-duration t d) (xs:base-date-has-tz? t)))
+(define (xs:datetime-subtract-duration t d)
+  (make-xs:datetime (xs:base-date-subtract-duration t d)
+		    (xs:base-date-has-tz? t)))
 
 (define-record-type xs:g-year
   (parent xs:base-date)

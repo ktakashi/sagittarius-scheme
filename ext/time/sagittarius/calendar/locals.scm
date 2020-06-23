@@ -95,9 +95,10 @@
 (define (absolute->day&nanosecond gd)
   (if (integer? gd)
       (values (exact gd) 0)
-      (let* ((igd (inexact gd))
-	     (fgd (floor igd)))
-	(values (exact fgd) (exact (* 24 3600 tm:nano (- igd fgd)))))))
+      (let* ((egd (exact gd)) ;; make sure it's exact number...
+	     (n (numerator egd))
+	     (d (denominator egd)))
+	(values (div n d) (* 24 3600 tm:nano (/ (mod n d) d))))))
 
 ;; not sure if we should put it here
 (define (absolute->time-components day tz)

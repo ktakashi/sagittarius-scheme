@@ -833,7 +833,7 @@
 			  (xs:make-day-time-duration "PT1S"))))
   )
 
-(import (clos user) (sagittarius calendar))
+(import (clos user) (sagittarius calendar) (srfi :19))
 (test-group "Functions and operators on dates and times"
   (define (datetime=? a b)
     (and (= (xs:datetime-year a) (xs:datetime-year b))
@@ -1185,7 +1185,13 @@
 		    (xpath-op:subtract-times
 		     (xs:make-time "24:00:00")
 		     (xs:make-time "23:59:59"))))))
-  
+
+  (test-group "op:add-yearMonthDuration-to-dateTime"
+    (test-assert (xs:datetime=?
+		  (xs:make-datetime "2001-12-30T11:12:00")
+		  (xpath-op:add-year-month-duration-to-datetime
+		   (xs:make-datetime "2000-10-30T11:12:00")
+		   (xs:make-year-month-duration "P1Y2M")))))
   )
 (test-end)
 

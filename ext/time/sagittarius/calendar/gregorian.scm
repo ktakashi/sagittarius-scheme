@@ -181,7 +181,9 @@
 		    (absolute->gregorian-components absolute *timezone/gmt*)))
 	(case unit
 	  ((month)
-	   (gregorian-components->absolute n s m h d (+ M amount) y gmt))
+	   (let ((mm (+ M (mod amount 12)))
+		 (yy (+ y (div amount 12))))
+	     (gregorian-components->absolute n s m h d mm yy gmt)))
 	  ((year)
 	   (gregorian-components->absolute n s m h d M (+ y amount) gmt))))))
 )

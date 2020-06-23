@@ -46,6 +46,14 @@
   (test-equal (+ (calendar-date->gregorian-day gc) (/ 1 (* 24 60 60 tm:nano)))
 	      (->day (calendar-date-add gc +calendar-unit:nanosecond+ 1))))
 
+(let ((cd (make-gregorian-calendar-date 0 0 12 11 30 10 2000
+					(timezone "Etc/GMT-2")))
+      (expected (make-gregorian-calendar-date 0 0 12 11 30 12 2001
+					      (timezone "Etc/GMT-2"))))
+  (test-assert "adding month"
+	       (calendar-date=? expected
+				(calendar-date-add cd +calendar-unit:month+ 14))))
+
 (test-assert (gregorian-leap-year? 4))
 (test-assert (not (gregorian-leap-year? 2100)))
 (test-equal '(0 0 0 12 1 1 1)

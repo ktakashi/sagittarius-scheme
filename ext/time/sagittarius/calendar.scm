@@ -162,6 +162,9 @@
 (define (calendar-date-add calendar-date unit amount)
   (define calendar (calendar-date-calendar calendar-date))
   (define absolute (calendar-date-absolute-date calendar-date))
+  (unless (and (exact? amount) (integer? amount))
+    (assertion-violation 'calendar-date-add "Amount must be an exact integer"
+			 amount))
   (let ((new-absolute ((calendar-add-unit calendar) absolute unit amount)))
     (make-calendar-date new-absolute (calendar-date-timezone calendar-date)
 			calendar)))

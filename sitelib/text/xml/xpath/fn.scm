@@ -168,7 +168,12 @@
 	    xpath-fn:adjust-time-to-timezone
 	    xpath-op:subtract-datetimes
 	    xpath-op:subtract-dates
-	    xpath-op:subtract-times)
+	    xpath-op:subtract-times
+	    xpath-op:add-year-month-duration-to-datetime
+	    xpath-op:add-day-time-duration-to-datetime
+	    xpath-op:subtract-year-month-duration-from-datetime
+	    xpath-op:subtract-day-time-duration-from-datetime
+	    )
     (import (rnrs)
 	    (rnrs r5rs)
 	    (rfc uri)
@@ -1056,6 +1061,35 @@
   (unless (and (xs:time? t1) (xs:time? t2))
     (assertion-violation 'xpath-op:subtract-dates "Time required" t1 t2))
   (xs:time-subtract t1 t2))
+
+
+(define-syntax define-date-add/sub-duration
+  (lambda (x)
+    (define (gen-name k type op conj)
+      (define t (symbol->string (syntax->datum type)))
+      (datum->syntax k
+       (map string->symbol 
+	    (list
+	     (string-append "xpath-op:" op "-year-month-duration-" conj "-" t)
+	     (string-append "xpath-op:" op "-day-time-duration-" conj "-" t)
+	     (string-append "xs:" t "-" op "-duration")))))
+    (syntax-case x ()
+      ((k type)
+       (with-syntax (((ymd-add dt-add d-add) (gen-name #'k #'type "add" "to"))
+		     ((ymd-sub dt-sub d-sub)
+		      (gen-name #'k #'type "subtract" "from")))
+	 #'(begin
+	     (define (ymd-add dt d) (d-add dt d))
+	     (define (dt-add dt d) (d-add dt d))
+	     (define (ymd-sub dt d) (d-sub dt d))
+	     (define (dt-sub dt d) (d-sub dt d))))))))
+	 
+
+;;;; 9.7.5 op:add-yearMonthDuration-to-dateTime
+;;;; 9.7.6 op:add-dayTimeDuration-to-dateTime
+;;;; 9.7.7 op:subtract-yearMonthDuration-from-dateTime
+;;;; 9.7.8 op:subtract-dayTimeDuration-from-dateTime
+(define-date-add/sub-duration datetime)
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
