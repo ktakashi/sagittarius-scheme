@@ -177,6 +177,8 @@
 	    xpath-op:add-day-time-duration-to-date
 	    xpath-op:subtract-year-month-duration-from-date
 	    xpath-op:subtract-day-time-duration-from-date
+	    xpath-op:add-day-time-duration-to-time
+	    xpath-op:subtract-day-time-duration-from-time
 	    )
     (import (rnrs)
 	    (rnrs r5rs)
@@ -1097,8 +1099,12 @@
 ;;;; 9.7.9 op:add-yearMonthDuration-to-date
 ;;;; 9.7.10 op:add-dayTimeDuration-to-date
 ;;;; 9.7.11 op:subtract-yearMonthDuration-from-date
-;;;; 9.7.12 op:subtract-dayTimeDuration-from-date
+;;;; 9.7.12 op:subtract-dayTimeDuration-from-datew
 (define-date-add/sub-duration date)
+
+;;;; 9.7.13 op:add-dayTimeDuration-to-time
+;;;; 9.7.14 op:subtract-dayTimeDuration-from-time
+(define-date-add/sub-duration time)
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

@@ -1241,6 +1241,30 @@
 		  (xpath-op:subtract-year-month-duration-from-date
 		   (xs:make-date "2000-10-31-05:00")
 		   (xs:make-year-month-duration "P1Y1M")))))
+
+  (test-group "op:add-dayTimeDuration-to-time"
+    (test-assert (xs:time=?
+		  (xs:make-time "12:27:00")
+		  (xpath-op:add-day-time-duration-to-time
+		   (xs:make-time "11:12:00")
+		   (xs:make-day-time-duration "P3DT1H15M"))))
+    (test-assert (xs:time=?
+		  (xs:make-time "02:27:00+03:00")
+		  (xpath-op:add-day-time-duration-to-time
+		   (xs:make-time "23:12:00+03:00")
+		   (xs:make-day-time-duration "P1DT3H15M")))))
+  (test-group "op:subtract-dayTimeDuration-from-time"
+    (test-assert (xs:time=?
+		  (xs:make-time "09:57:00")
+		  (xpath-op:subtract-day-time-duration-from-time
+		   (xs:make-time "11:12:00")
+		   (xs:make-day-time-duration "P3DT1H15M"))))
+    (test-assert (xs:time=?
+		  (xs:make-time "22:10:00-05:00")
+		  (xpath-op:subtract-day-time-duration-from-time
+		   (xs:make-time "08:20:00-05:00")
+		   (xs:make-day-time-duration "P23DT10H10M")))))
+  
   )
 (test-end)
 

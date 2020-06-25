@@ -488,8 +488,7 @@
 		(make-date-argument->date 'xs:make-time 8 "~H:~M:~S" #f))
 	      (case-lambda
 	       ((s) ((p (->date s))))
-	       ((cd has-tz?) ((p cd has-tz?)))
-	       #;((cd has-tz?)
+	       ((cd has-tz?)
 		;; the calendar-date must be gregorian calendar
 		;; so use absolute->gregorian
 		(let ((absolute (calendar-date->gregorian-day cd))
