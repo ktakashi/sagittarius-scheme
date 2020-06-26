@@ -1264,6 +1264,25 @@
 		  (xpath-op:subtract-day-time-duration-from-time
 		   (xs:make-time "08:20:00-05:00")
 		   (xs:make-day-time-duration "P23DT10H10M")))))
+
+  #;
+  (test-group "fn:parse-ietf-date"
+    (test-assert (xs:datetime=?
+		  (xs:make-datetime "1994-06-06T07:29:35Z")
+		  (xpath-fn:parse-ietf-date "Wed, 06 Jun 1994 07:29:35 GMT")))
+    (test-assert (xs:datetime=?
+		  (xs:make-datetime "1994-06-06T07:29:35Z")
+		  (xpath-fn:parse-ietf-date "Wed, 6 Jun 94 07:29:35 GMT")))
+    (print (xpath-fn:parse-ietf-date "Wed Jun 06 11:54:45 EST 2013"))
+    (test-assert (xs:datetime=?
+		  (xs:make-datetime "2013-06-06T11:54:45-05:00")
+		  (xpath-fn:parse-ietf-date "Wed Jun 06 11:54:45 EST 2013")))
+    (test-assert (xs:datetime=?
+		  (xs:make-datetime "1994-11-06T08:49:37Z")
+		  (xpath-fn:parse-ietf-date "Sunday, 06-Nov-94 08:49:37 GMT")))
+    (test-assert (xs:datetime=?
+		  (xs:make-datetime "1994-06-06T07:29:35+05:00")
+		  (xpath-fn:parse-ietf-date "Wed, 6 Jun 94 07:29:35 +0500"))))
   
   )
 (test-end)

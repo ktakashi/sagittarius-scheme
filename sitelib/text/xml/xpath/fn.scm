@@ -179,17 +179,25 @@
 	    xpath-op:subtract-day-time-duration-from-date
 	    xpath-op:add-day-time-duration-to-time
 	    xpath-op:subtract-day-time-duration-from-time
-	    )
+	    
+	    xpath-fn:format-datetime
+	    xpath-fn:format-date
+	    xpath-fn:format-time
+	    xpath-fn:parse-ietf-date)
     (import (rnrs)
 	    (rnrs r5rs)
+	    (peg)
+	    (peg chars)
 	    (rfc uri)
+	    (sagittarius generators)
 	    (sagittarius regex)
 	    (sagittarius timezone)
 	    (srfi :1 lists)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
 	    (srfi :115 regexp)
-	    (srfi :144 flonums)
+	    (srfi :127 lseqs)
+	    (srfi :144 flonums)	    
 	    (text xml errors)
 	    (text xml dom)
 	    (only (text xml dom parser) +xml:char-set+)
@@ -1105,6 +1113,155 @@
 ;;;; 9.7.13 op:add-dayTimeDuration-to-time
 ;;;; 9.7.14 op:subtract-dayTimeDuration-from-time
 (define-date-add/sub-duration time)
+
+;;;; 9.8.1 fn:format-dateTime
+;;;; 9.8.2 fn:format-date
+;;;; 9.8.3 fn:format-time
+(define (xpath-fn:format-datetime . args)
+  (implementation-restriction-violation 'xpath-fn:format-datetime
+					"Not supported yet"))
+(define (xpath-fn:format-date . args)
+  (implementation-restriction-violation 'xpath-fn:format-date
+					"Not supported yet"))
+(define (xpath-fn:format-time . args)
+  (implementation-restriction-violation 'xpath-fn:format-time
+					"Not supported yet"))
+
+;;;; 9.9.1 fn:parse-ietf-date
+;; apparently, the definition doesn't meet with the RFC 5322, so
+;; we define it separately... damn another date format...
+;;; S ::= ( x09 | x0A | x0D | x20 )+
+(define $xpath:S ($or ($eqv? #\x09) ($eqv? #\x0A) ($eqv? #\x0D) ($eqv? #\x20)))
+;;; digit ::= [0-9]
+(define $xpath:digit
+  ($or ($eqv? #\0) ($eqv? #\1) ($eqv? #\2) ($eqv? #\3) ($eqv? #\4)
+       ($eqv? #\5) ($eqv? #\6) ($eqv? #\7) ($eqv? #\8) ($eqv? #\9)))
+;;; hours ::= digit digit?
+(define $xpath:hours
+  ($let ((d0 $xpath:digit)
+	 (d1 ($optional $xpath:digit #f)))
+   ($return (if d1 (string->number (string d0 d1)) (- (char->integer d0) 48)))))
+;;; minutes ::= digit digit
+(define $xpath:minutes
+  ($let ((d0 $xpath:digit)
+	 (d1 $xpath:digit))
+   ($return (string->number (string d0 d1)))))
+;;; seconds ::= digit digit ("." digit+)?
+(define $xpath:seconds
+  ($let ((d0 $xpath:digit)
+	 (d1 $xpath:digit)
+	 (d2 ($optional ($seq ($eqv? #\.) ($many $xpath:digit)) #f)))
+   ($return (list (string->number (string d0 d1))
+		  (and d2 (string->number (list->string d2)))))))
+;;; year ::= digit digit (digit digit)?
+(define $xpath:year
+  ($let ((d0 $xpath:digit)
+	 (d1 $xpath:digit)
+	 (d2-3 ($optional ($repeat $xpath:digit 2) #f)))
+    ($return (if d2-3
+		 (string->number (apply string d0 d1 d2-3))
+		 (+ 1900 (string->number (string d0 d1)))))))
+;;; daynum ::= digit digit?
+(define $xpath:daynum $xpath:hours)
+;;; dayname ::= "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat" | "Sun" |
+;;;             "Monday | "Tuesday" | "Wednesday" | "Thursday" | "Friday" |
+;;;             "Saturday" | "Sunday"
+(define $xpath:dayname
+  ($or ($token "Mon") ($token "Tue") ($token "Wed") ($token "Thu")
+       ($token "Fri") ($token "Sat") ($token "Sun")
+       ($token "Monday") ($token "Tuesday") ($token "Wednesday")
+       ($token "Thursday") ($token "Friday") ($token "Saturday")
+       ($token "Sunday")))
+;;; dsep ::= S | (S? "-" S?)
+(define $xpath:desp
+  ($or $xpath:S
+       ($seq ($optional $xpath:S) ($eqv? #\-) ($optional $xpath:S))))
+;;; monthname ::= "Jan" | "Feb" | "Mar" | "Apr" | "May" | "Jun" |
+;;;               "Jul" | "Aug" | "Sep" | "Oct" | "Nov" | "Dec"
+(define $xpath:monthname
+  ($or ($seq ($token "Jan") ($return 1)) ($seq ($token "Feb") ($return 2))
+       ($seq ($token "Mar") ($return 3)) ($seq ($token "Apr") ($return 4))
+       ($seq ($token "May") ($return 5)) ($seq ($token "Jun") ($return 6))
+       ($seq ($token "Jul") ($return 7)) ($seq ($token "Aug") ($return 8))
+       ($seq ($token "Sep") ($return 9)) ($seq ($token "Oct") ($return 10))
+       ($seq ($token "Nov") ($return 11)) ($seq ($token "Dec") ($return 12))))
+;;; datespec ::= daynum dsep monthname dsep year
+(define $xpath:datespec
+  ($let ((d $xpath:daynum)
+	 $xpath:desp
+	 (m $xpath:monthname)
+	 $xpath:desp
+	 (y $xpath:year))
+   ($return (list y m d))))
+;;; tzoffset ::= ("+"|"-") hours ":"? minutes?
+(define $xpath:tzoffset
+  ($let ((s ($or ($eqv? #\+) ($eqv? #\-)))
+	 (h $xpath:hours)
+	 (($optional ($eqv? #\:)))
+	 (m ($optional $xpath:minutes)))
+   (let ((off (+ (* h 60) m))) ;; offset of XML date...
+     (if (eqv? #\- s)
+	 ($return (- off))
+	 ($return off)))))
+;;; tzname ::= "UT" | "UTC" | "GMT" | "EST" | "EDT"
+;;;          | "CST" | "CDT" | "MST" | "MDT" | "PST" | "PDT"
+(define $xpath:tzname
+  ($or ($seq ($token "UT")  ($return 0)) ($seq ($token "UTC") ($return 0))
+       ($seq ($token "GMT") ($return 0))
+       ($seq ($token "EST") ($return -500)) ($seq ($token "EDT") ($return -400))
+       ($seq ($token "CST") ($return -600)) ($seq ($token "CDT") ($return -500))
+       ($seq ($token "MST") ($return -700)) ($seq ($token "MDT") ($return -600))
+       ($seq ($token "PST") ($return -800)) ($seq ($token "PDT") ($return -700)))
+  )
+;;; timezone ::= tzname | tzoffset (S? "(" S? tzname S? ")")?
+(define $xpath:timezone
+  ($or $xpath:tzname
+       ($let ((off $xpath:tzoffset)
+	      (($optional ($let ($xpath:S
+				 (($eqv? #\())
+				 (n $xpath:tzname)
+				 (($eqv? #\))))
+			    n) #f)))
+	 ($return off))))
+;;; time ::= hours ":" minutes (":" seconds)? (S? timezone)?
+(define $xpath:time
+  ($let ((h $xpath:hours)
+	 (($eqv? #\:))
+	 (m $xpath:minutes)
+	 (s ($optional ($seq ($eqv? #\:) $xpath:seconds) #f))
+	 (t ($optional ($seq ($optional $xpath:S) $xpath:timezone) #f)))
+    ($return (list h m s t))))
+;;; asctime ::= monthname dsep daynum S time S year
+(define $xpath:asctime
+  ($let ((m $xpath:monthname)
+	 $xpath:desp
+	 (d $xpath:daynum)
+	 $xpath:S
+	 (t $xpath:time)
+	 $xpath:S
+	 (y $xpath:year))
+   ($return `(,y ,m ,d ,@t))))
+;;; input ::= S? (dayname ","? S)? ((datespec S time) | asctime) S?
+(define $xpath:input
+  ($let ((($optional $xpath:S))
+	 (dow ($optional ($let ((d $xpath:dayname)
+				(($optional ($eqv? #\,)))
+				$xpath:S) ($return d)) #f))
+	 (t ($or ($let ((s $xpath:datespec)
+			$xpath:S
+			(t $xpath:time))
+		   ($return `(,@s ,@t)))
+		 $xpath:asctime))
+	 (($optional $xpath:S)))
+    ($return t)))
+
+(define (xpath-fn:parse-ietf-date value)
+  #;(let-values (((year month day hour minute second offset dow)
+		(rfc5322-parse-date value)))
+    (display (list year month day hour minute second offset dow)) (newline)
+    (xs:make-datetime  year month day hour minute (or second 0)
+		       (or (and offset (* offset 36)) 0))))
+				     
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
