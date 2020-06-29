@@ -1265,7 +1265,6 @@
 		   (xs:make-time "08:20:00-05:00")
 		   (xs:make-day-time-duration "P23DT10H10M")))))
 
-  #;
   (test-group "fn:parse-ietf-date"
     (test-assert (xs:datetime=?
 		  (xs:make-datetime "1994-06-06T07:29:35Z")
@@ -1273,7 +1272,6 @@
     (test-assert (xs:datetime=?
 		  (xs:make-datetime "1994-06-06T07:29:35Z")
 		  (xpath-fn:parse-ietf-date "Wed, 6 Jun 94 07:29:35 GMT")))
-    (print (xpath-fn:parse-ietf-date "Wed Jun 06 11:54:45 EST 2013"))
     (test-assert (xs:datetime=?
 		  (xs:make-datetime "2013-06-06T11:54:45-05:00")
 		  (xpath-fn:parse-ietf-date "Wed Jun 06 11:54:45 EST 2013")))

@@ -479,7 +479,15 @@
   (cond ((null? maybe-offset) #f)
 	((not (car maybe-offset)) #f)
 	(else (* (car maybe-offset) 60))))
-
+(define (get-second&nanosecond s)
+  (cond ((inexact? s) (get-second&nanosecond (exact s)))
+	((zero? s) (values 0 0))
+	(else (let ((n (numerator s))
+		    (d (denominator s)))
+		(if (= d 1)
+		    (values s 0)
+		    (values (div n d) (* (expt 10 9) (/ (mod n d) d))))))))
+  
 (define *gmt* (timezone "GMT"))
 (define-record-type xs:time
   (parent xs:base-date)
@@ -542,7 +550,8 @@
 	       ((cd has-tz?) ((p cd has-tz?)))
 	       ((y m d h mi s . offset)
 		(let ((off (get-offset offset)))
-		  ((p (make-date 0 s mi h d m y off)))))))))
+		  (let-values (((sec nano) (get-second&nanosecond s)))
+		    ((p (make-date nano sec mi h d m y off))))))))))
 (define (xs:datetime-add-duration t d)
   (make-xs:datetime (xs:base-date-add-duration t d) (xs:base-date-has-tz? t)))
 (define (xs:datetime-subtract-duration t d)

@@ -1151,8 +1151,9 @@
   ($let ((d0 $xpath:digit)
 	 (d1 $xpath:digit)
 	 (d2 ($optional ($seq ($eqv? #\.) ($many $xpath:digit)) #f)))
-   ($return (list (string->number (string d0 d1))
-		  (and d2 (string->number (list->string d2)))))))
+   (if d2
+       ($return (string->number (apply string d0 d1 #\. d2)))
+       ($return (string->number (string d0 d1 #\.))))))
 ;;; year ::= digit digit (digit digit)?
 (define $xpath:year
   ($let ((d0 $xpath:digit)
@@ -1167,11 +1168,11 @@
 ;;;             "Monday | "Tuesday" | "Wednesday" | "Thursday" | "Friday" |
 ;;;             "Saturday" | "Sunday"
 (define $xpath:dayname
-  ($or ($token "Mon") ($token "Tue") ($token "Wed") ($token "Thu")
-       ($token "Fri") ($token "Sat") ($token "Sun")
-       ($token "Monday") ($token "Tuesday") ($token "Wednesday")
+  ($or ($token "Monday") ($token "Tuesday") ($token "Wednesday")
        ($token "Thursday") ($token "Friday") ($token "Saturday")
-       ($token "Sunday")))
+       ($token "Sunday")
+       ($token "Mon") ($token "Tue") ($token "Wed") ($token "Thu")
+       ($token "Fri") ($token "Sat") ($token "Sun")))
 ;;; dsep ::= S | (S? "-" S?)
 (define $xpath:desp
   ($or $xpath:S
@@ -1208,10 +1209,10 @@
 (define $xpath:tzname
   ($or ($seq ($token "UT")  ($return 0)) ($seq ($token "UTC") ($return 0))
        ($seq ($token "GMT") ($return 0))
-       ($seq ($token "EST") ($return -500)) ($seq ($token "EDT") ($return -400))
-       ($seq ($token "CST") ($return -600)) ($seq ($token "CDT") ($return -500))
-       ($seq ($token "MST") ($return -700)) ($seq ($token "MDT") ($return -600))
-       ($seq ($token "PST") ($return -800)) ($seq ($token "PDT") ($return -700)))
+       ($seq ($token "EST") ($return -300)) ($seq ($token "EDT") ($return -240))
+       ($seq ($token "CST") ($return -360)) ($seq ($token "CDT") ($return -300))
+       ($seq ($token "MST") ($return -420)) ($seq ($token "MDT") ($return -360))
+       ($seq ($token "PST") ($return -480)) ($seq ($token "PDT") ($return -420)))
   )
 ;;; timezone ::= tzname | tzoffset (S? "(" S? tzname S? ")")?
 (define $xpath:timezone
@@ -1228,9 +1229,9 @@
   ($let ((h $xpath:hours)
 	 (($eqv? #\:))
 	 (m $xpath:minutes)
-	 (s ($optional ($seq ($eqv? #\:) $xpath:seconds) #f))
+	 (s ($optional ($seq ($eqv? #\:) $xpath:seconds) 0))
 	 (t ($optional ($seq ($optional $xpath:S) $xpath:timezone) #f)))
-    ($return (list h m s t))))
+    ($return `(,h ,m ,s ,t))))
 ;;; asctime ::= monthname dsep daynum S time S year
 (define $xpath:asctime
   ($let ((m $xpath:monthname)
@@ -1256,6 +1257,11 @@
     ($return t)))
 
 (define (xpath-fn:parse-ietf-date value)
+  (define lseq (generator->lseq (string->generator value)))
+  (let-values (((s v nl) ($xpath:input lseq)))
+    (unless (parse-success? s)
+      (assertion-violation 'xpath-fn:parse-ietf-date "Invalid format" value))
+    (apply xs:make-datetime v))
   #;(let-values (((year month day hour minute second offset dow)
 		(rfc5322-parse-date value)))
     (display (list year month day hour minute second offset dow)) (newline)
