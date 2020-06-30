@@ -833,7 +833,6 @@
 			  (xs:make-day-time-duration "PT1S"))))
   )
 
-(import (clos user) (sagittarius calendar) (srfi :19))
 (test-group "Functions and operators on dates and times"
   (define (datetime=? a b)
     (and (= (xs:datetime-year a) (xs:datetime-year b))
@@ -1283,6 +1282,21 @@
 		  (xpath-fn:parse-ietf-date "Wed, 6 Jun 94 07:29:35 +0500"))))
   
   )
+
+(define (qname->list qname)
+  (list (xs:qname-namespace-uri qname)
+	(xs:qname-local-part qname)
+	(xs:qname-prefix qname)))
+(test-group "Functions related to QNames"
+  (test-group "fn:QName"
+    (test-equal '("http://www.example.com/example" "person" "")
+		(qname->list
+		 (xpath-fn:qname "http://www.example.com/example" "person")))
+    (test-equal '("http://www.example.com/example" "person" "ht")
+		(qname->list
+		 (xpath-fn:qname "http://www.example.com/example" "ht:person")))
+    ))
+  
 (test-end)
 
 ;; Local Variables:

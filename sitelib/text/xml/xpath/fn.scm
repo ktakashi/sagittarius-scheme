@@ -183,7 +183,9 @@
 	    xpath-fn:format-datetime
 	    xpath-fn:format-date
 	    xpath-fn:format-time
-	    xpath-fn:parse-ietf-date)
+	    xpath-fn:parse-ietf-date
+	    xpath-fn:resolve-qname
+	    xpath-fn:qname)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -1261,13 +1263,22 @@
   (let-values (((s v nl) ($xpath:input lseq)))
     (unless (parse-success? s)
       (assertion-violation 'xpath-fn:parse-ietf-date "Invalid format" value))
-    (apply xs:make-datetime v))
-  #;(let-values (((year month day hour minute second offset dow)
-		(rfc5322-parse-date value)))
-    (display (list year month day hour minute second offset dow)) (newline)
-    (xs:make-datetime  year month day hour minute (or second 0)
-		       (or (and offset (* offset 36)) 0))))
-				     
+    (apply xs:make-datetime v)))
+
+;;;; 10.1.1 fn:resolve-QName
+(define (xpath-fn:resolve-qname qname element)
+  (if (null? qname)
+      '()
+      ;; no idea what to do here. finding the prefix?
+      (implementation-restriction-violation 'xpath-fn:resolve-qname "Not yet")))
+
+;;;; 10.1.2 fn:QName
+(define (xpath-fn:qname uri name)
+  (cond ((string-index name #\:) =>
+	 (lambda (index)
+	   (xs:make-qname uri (substring name (+ index 1) (string-length name))
+			  (substring name 0 index))))
+	(else (xs:make-qname uri name))))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
