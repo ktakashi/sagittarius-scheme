@@ -1274,6 +1274,8 @@
 
 ;;;; 10.1.2 fn:QName
 (define (xpath-fn:qname uri name)
+  (when (or (null? uri) (zero? (string-length uri)))
+    (xqt-error 'FOCA0002 "Namespace URI must not be empty" uri))
   (cond ((string-index name #\:) =>
 	 (lambda (index)
 	   (xs:make-qname uri (substring name (+ index 1) (string-length name))
