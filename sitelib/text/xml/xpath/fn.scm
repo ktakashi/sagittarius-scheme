@@ -185,7 +185,11 @@
 	    xpath-fn:format-time
 	    xpath-fn:parse-ietf-date
 	    xpath-fn:resolve-qname
-	    xpath-fn:qname)
+	    xpath-fn:qname
+	    xpath-op:qname-equal
+	    xpath-fn:prefix-from-qname
+	    xpath-fn:local-name-from-qnambe
+	    xpath-fn:namespace-uri-from-qname)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -1281,6 +1285,30 @@
 	   (xs:make-qname uri (substring name (+ index 1) (string-length name))
 			  (substring name 0 index))))
 	(else (xs:make-qname uri name))))
+
+;;;; 10.2.1 op:QName-equal
+(define (xpath-op:qname-equal qn1 qn2)
+  (and (equal? (xs:qname-namespace-uri qn1) (xs:qname-namespace-uri qn2))
+       (equal? (xs:qname-local-part qn1) (xs:qname-local-part qn2))))
+
+;;;; 10.2.2 fn:prefix-from-QName
+(define (xpath-fn:prefix-from-qname qn)
+  (cond ((null? qn) '())
+	((xs:qname-prefix qn) =>
+	 (lambda (p)
+	   (if (zero? (string-length p))
+	       '()
+	       p)))))
+
+;;;; 10.2.3 fn:local-name-from-QName
+(define (xpath-fn:local-name-from-qnambe qn)
+  (cond ((null? qn) '())
+	((xs:qname-local-part qn))))
+
+;;;; 10.2.4 fn:namespace-uri-from-QName
+(define (xpath-fn:namespace-uri-from-qname qn)
+  (cond ((null? qn) '())
+	((xs:qname-namespace-uri qn))))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

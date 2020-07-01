@@ -1295,7 +1295,30 @@
     (test-equal '("http://www.example.com/example" "person" "ht")
 		(qname->list
 		 (xpath-fn:qname "http://www.example.com/example" "ht:person")))
-    ))
+    )
+  (test-group "op:QName-equal"
+    (test-assert (xpath-op:qname-equal
+		  (xpath-fn:qname "http://www.example.com/example" "ht:person")
+		  (xpath-fn:qname "http://www.example.com/example" "person"))))
+  (test-group "fn:prefix-from-QName"
+    (test-equal "ht"
+		(xpath-fn:prefix-from-qname
+		 (xpath-fn:qname "http://www.example.com/example" "ht:person")))
+    (test-equal '()
+		(xpath-fn:prefix-from-qname
+		 (xpath-fn:qname "http://www.example.com/example" "person")))
+    (test-equal '()
+		(xpath-fn:prefix-from-qname '())))
+  (test-group "fn:local-name-from-QName"
+    (test-equal "person"
+		(xpath-fn:local-name-from-qnambe
+		 (xpath-fn:qname "http://www.example.com/example" "person"))))
+  (test-group "fn:namespace-uri-from-QName"
+    (test-equal "http://www.example.com/example"
+		(xpath-fn:namespace-uri-from-qname
+		 (xpath-fn:qname "http://www.example.com/example" "person"))))
+
+  )
   
 (test-end)
 
