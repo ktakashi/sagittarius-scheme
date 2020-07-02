@@ -646,7 +646,9 @@
 	    (current (*current-namespaces*)))
 	;; it's a bit too ad-hoc but I'm lazy for now...
 	;; this is incase of "urn:foo:&amp;bla" or so
-	(let ((uri (if (null? (cdr uri)) (car uri) uri)))
+	(let ((uri (cond ((null? uri) '"") ;; xmlns="" case...
+			 ((null? (cdr uri)) (car uri))
+			 (else uri))))
 	  ;; we don't remove, but first found one is the one to be used.
 	  (*current-namespaces* (cons (cons prefix uri) current)))
 	(cons name uri)))

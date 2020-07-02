@@ -258,7 +258,8 @@
 	    (for-each write-it val)
 	    (extract))))
     (define (set-value attr)
-      (attr-value-set! attr (merge-attribute-value (cdr attribute)))
+      (unless (null? (cdr attribute)) ;; attr="" case
+	(attr-value-set! attr (merge-attribute-value (cdr attribute))))
       attr)
     (let ((name (car attribute)))
       (cond ((qname? name)

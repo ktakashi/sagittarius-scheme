@@ -904,7 +904,11 @@
 					   filter)))
     (node-iterator->node-list ni)))
 
-;; TODO not sure if this is correct...
+;; FIXME apparently this is not correct, we need to return all
+;; [in-scope namespaces]. This means we need to get all xmlns
+;; attributes plus parent elements' xmlns
+;; 
+;; ref: http://courses.ischool.berkeley.edu/i290-14/s05/lecture-3/slide16.xhtml
 (define (element:namespace-nodes e)
   (list->node-list
    (cond ((element-prefix e) =>
