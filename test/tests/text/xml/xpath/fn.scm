@@ -1287,6 +1287,10 @@
   (list (xs:qname-namespace-uri qname)
 	(xs:qname-local-part qname)
 	(xs:qname-prefix qname)))
+
+(define (string->dom xml)
+  (input-port->dom-tree (open-string-input-port xml)))
+
 (test-group "Functions related to QNames"
   (test-group "fn:QName"
     (test-equal '("http://www.example.com/example" "person" "")
@@ -1317,6 +1321,23 @@
     (test-equal "http://www.example.com/example"
 		(xpath-fn:namespace-uri-from-qname
 		 (xpath-fn:qname "http://www.example.com/example" "person"))))
+
+  (test-group "fn:namespace-uri-for-prefix"
+    (let* ((dom (string->dom "<z:a xmlns=\"http://example.org/one\" xmlns:z=\"http://example.org/two\">
+  <b xmlns=\"\"/>
+</z:a>"))
+	   (e (document-document-element dom)))
+      (xpath-fn:namespace-uri-for-prefix "z" e)
+      (test-equal "http://example.org/two"
+		  (xpath-fn:namespace-uri-for-prefix "z" e))
+      (test-equal "http://example.org/one"
+		  (xpath-fn:namespace-uri-for-prefix "" e))
+      (test-equal "http://example.org/one"
+		  (xpath-fn:namespace-uri-for-prefix '() e))
+      (test-equal "http://www.w3.org/XML/1998/namespace"
+		  (xpath-fn:namespace-uri-for-prefix "xml" e))
+      (test-equal "http://www.w3.org/2000/xmlns/"
+		  (xpath-fn:namespace-uri-for-prefix "xmlns" e))))
 
   )
   

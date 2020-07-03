@@ -904,17 +904,46 @@
 					   filter)))
     (node-iterator->node-list ni)))
 
-;; FIXME apparently this is not correct, we need to return all
-;; [in-scope namespaces]. This means we need to get all xmlns
-;; attributes plus parent elements' xmlns
+;; we need to return all [in-scope namespaces]. This means we need to
+;; get all xmlns attributes plus parent elements' xmlns
 ;; 
 ;; ref: http://courses.ischool.berkeley.edu/i290-14/s05/lecture-3/slide16.xhtml
 (define (element:namespace-nodes e)
-  (list->node-list
-   (cond ((element-prefix e) =>
-	  (lambda (p)
-	    (list (make-namespace p (element-namespace-uri e) e))))
-	 (else '()))))
+  (define ns-set (list-queue))
+  (define seen (make-hashtable string-hash string=?))
+  (define (add-namespace ns-set ns)
+    (unless (hashtable-contains? seen (namespace-prefix ns))
+      (list-queue-add-back! ns-set ns)
+      (hashtable-set! seen (namespace-prefix ns) ns)))
+  ;; we don't keep namespace node separately, in case this element is
+  ;; appended to the other node or so. so we compute each time
+  (define (do-collect e ns-set)
+    (let ((attrs (list-sort string<
+			    (filter (lambda (n) (string-prefix? "xmlns" n))
+				    (element:get-attribute-names e)))))
+      (for-each (lambda (a)
+		  (let ((prefix (if (= (string-length a) 5)
+				    "" ;; xmlns
+				    (substring a 6 (string-length a)))))
+		    (add-namespace ns-set
+				   (make-namespace prefix
+						   (element:get-attribute e a)
+						   e)))) attrs)))
+      
+  (define (collect-namespace n ns-set)
+    (cond ((document? n)
+	   ;; add xml and xmlns, implicit ones
+	   (let ((xml (make-namespace "xml"
+				      "http://www.w3.org/XML/1998/namespace" n))
+		 (xmlns (make-namespace "xmlns"
+					"http://www.w3.org/2000/xmlns/" n)))
+	     (add-namespace ns-set xml)
+	     (add-namespace ns-set xmlns)))
+	  ((element? n)
+	   (do-collect n ns-set)
+	   (collect-namespace (node-parent-node n) ns-set))))
+  (collect-namespace e ns-set)
+  (make-node-list ns-set))
 
 ;;; Attr
 (define-record-type attr

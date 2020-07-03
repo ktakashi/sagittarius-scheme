@@ -78,8 +78,9 @@
 		(element:namespace-nodes (document-document-element dom)) 0)))
 
   (test-equal "xpath-dm:namespace-nodes (1)" '() (xpath-dm:namespace-nodes dom))
-  (test-equal "xpath-dm:namespace-nodes (2)" '() (xpath-dm:namespace-nodes e))
-  (test-equal "xpath-dm:namespace-nodes (3)" '("ns")
+  (test-equal "xpath-dm:namespace-nodes (2)" '("ns" "xml" "xmlns")
+	      (map node->node-name (xpath-dm:namespace-nodes e)))
+  (test-equal "xpath-dm:namespace-nodes (3)" '("ns" "xml" "xmlns")
 	      (map node->node-name
 		   (xpath-dm:namespace-nodes (document-document-element dom))))
   (test-equal "xpath-dm:namespace-nodes (4)" '() (xpath-dm:namespace-nodes attr))

@@ -189,7 +189,8 @@
 	    xpath-op:qname-equal
 	    xpath-fn:prefix-from-qname
 	    xpath-fn:local-name-from-qnambe
-	    xpath-fn:namespace-uri-from-qname)
+	    xpath-fn:namespace-uri-from-qname
+	    xpath-fn:namespace-uri-for-prefix)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -1309,6 +1310,16 @@
 (define (xpath-fn:namespace-uri-from-qname qn)
   (cond ((null? qn) '())
 	((xs:qname-namespace-uri qn))))
+
+;;;; 10.2.5 fn:namespace-uri-for-prefix
+(define (xpath-fn:namespace-uri-for-prefix prefix element)
+  (define fixed-up (if (null? prefix) "" prefix))
+  (define (prefix=? n)
+    (and (equal? (namespace-prefix n) fixed-up)
+	 (namespace-uri n)))
+  (let ((namespaces (node-list->list (element:namespace-nodes element))))
+    (cond ((exists prefix=? namespaces))
+	  (else '()))))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
