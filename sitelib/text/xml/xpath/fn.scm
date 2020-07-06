@@ -190,7 +190,8 @@
 	    xpath-fn:prefix-from-qname
 	    xpath-fn:local-name-from-qnambe
 	    xpath-fn:namespace-uri-from-qname
-	    xpath-fn:namespace-uri-for-prefix)
+	    xpath-fn:namespace-uri-for-prefix
+	    xpath-fn:in-scope-prefixes)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -1320,6 +1321,16 @@
   (let ((namespaces (node-list->list (element:namespace-nodes element))))
     (cond ((exists prefix=? namespaces))
 	  (else '()))))
+
+;;;; 10.2.6 fn:in-scope-prefixes
+(define (xpath-fn:in-scope-prefixes element*)
+  (if (null? element*)
+      '()
+      (delete-duplicates
+       (append-map (lambda (e)
+		     (map namespace-prefix
+			  (node-list->list (element:namespace-nodes e))))
+		   element*))))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

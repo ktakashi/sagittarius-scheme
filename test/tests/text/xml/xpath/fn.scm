@@ -1327,7 +1327,6 @@
   <b xmlns=\"\"/>
 </z:a>"))
 	   (e (document-document-element dom)))
-      (xpath-fn:namespace-uri-for-prefix "z" e)
       (test-equal "http://example.org/two"
 		  (xpath-fn:namespace-uri-for-prefix "z" e))
       (test-equal "http://example.org/one"
@@ -1339,6 +1338,12 @@
       (test-equal "http://www.w3.org/2000/xmlns/"
 		  (xpath-fn:namespace-uri-for-prefix "xmlns" e))))
 
+  (test-group "fn:in-scope-prefixes"
+    (let* ((dom (string->dom "<z:a xmlns=\"http://example.org/one\" xmlns:z=\"http://example.org/two\">
+  <b xmlns=\"\"/>
+</z:a>"))
+	   (e (document-document-element dom)))
+      (test-equal '("" "z" "xml" "xmlns") (xpath-fn:in-scope-prefixes (list e)))))
   )
   
 (test-end)
