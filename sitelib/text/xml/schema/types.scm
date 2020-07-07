@@ -178,10 +178,11 @@
 
 (define (xs:any-atomic-type? o)
   (or (%any-atomic-type? o)
-      (string? o)  ;; anyURI base64Binary string
-      (integer? o) ;; decimal and its hierarchies
-      (real? o)	   ;; float double
-      (boolean? o) ;; boolean
+      (string? o)     ;; anyURI base64Binary string
+      (integer? o)    ;; decimal and its hierarchies
+      (real? o)	      ;; float double
+      (boolean? o)    ;; boolean
+      (bytevector? o) ;; hexBinary
       ))
 
 

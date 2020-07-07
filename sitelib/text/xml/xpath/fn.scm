@@ -191,11 +191,18 @@
 	    xpath-fn:local-name-from-qnambe
 	    xpath-fn:namespace-uri-from-qname
 	    xpath-fn:namespace-uri-for-prefix
-	    xpath-fn:in-scope-prefixes)
+	    xpath-fn:in-scope-prefixes
+	    xpath-op:hex-binary-equal
+	    xpath-op:hex-binary-less-than
+	    xpath-op:hex-binary-greater-than
+	    xpath-op:base64-binary-equal
+	    xpath-op:base64-binary-less-than
+	    xpath-op:base64-binary-greater-than)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
 	    (peg chars)
+	    (rfc base64)
 	    (rfc uri)
 	    (sagittarius generators)
 	    (sagittarius regex)
@@ -210,7 +217,8 @@
 	    (text xml dom)
 	    (only (text xml dom parser) +xml:char-set+)
 	    (text xml schema)
-	    (text xml xpath dm))
+	    (text xml xpath dm)
+	    (util bytevector))
 
 ;;; 2 Accessors
 ;;; All accessor requires the $arg argument, the XPath evaluator
@@ -1331,6 +1339,25 @@
 		     (map namespace-prefix
 			  (node-list->list (element:namespace-nodes e))))
 		   element*))))
+
+;;;; 11.1.1 op:hexBinary-equal
+(define xpath-op:hex-binary-equal bytevector=?)
+;;;; 11.1.2 op:hexBinary-less-than
+(define xpath-op:hex-binary-less-than bytevector<?)
+;;;; 11.1.3 op:hexBinary-greater-than
+(define xpath-op:hex-binary-greater-than bytevector>?)
+
+(define (base64-binary-comparison =)
+  (lambda (a b)
+    (= (base64-decode (string->utf8 a))
+       (base64-decode (string->utf8 b)))))
+;;;; 11.1.4 op:base64Binary-equal
+(define xpath-op:base64-binary-equal (base64-binary-comparison bytevector=?))
+;;;; 11.1.5 op:base64Binary-less-than
+(define xpath-op:base64-binary-less-than (base64-binary-comparison bytevector<?))
+;;;; 11.1.6 op:base64Binary-greater-than
+(define xpath-op:base64-binary-greater-than
+  (base64-binary-comparison bytevector>?))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

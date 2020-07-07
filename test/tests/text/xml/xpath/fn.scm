@@ -1345,6 +1345,22 @@
 	   (e (document-document-element dom)))
       (test-equal '("" "z" "xml" "xmlns") (xpath-fn:in-scope-prefixes (list e)))))
   )
+
+(test-group "Operators on base64Binary and hexBinary"
+  (test-group "op:hexBinary-equal"
+    (test-assert (xpath-op:hex-binary-equal #vu8(1 2) #vu8(1 2))))
+  (test-group "op:hexBinary-less-than"
+    (test-assert (xpath-op:hex-binary-less-than #vu8(1 1) #vu8(1 2))))
+  (test-group "op:hexBinary-greater-than"
+    (test-assert (xpath-op:hex-binary-greater-than #vu8(1 2) #vu8(1 1))))
+
+  (test-group "op:base64Binary-equal"
+    (test-assert (xpath-op:base64-binary-equal "AQI=" "AQI=")))
+  (test-group "op:base64Binary-less-than"
+    (test-assert (xpath-op:base64-binary-less-than "AQI=" "AgE=")))
+  (test-group "op:base64Binary-greater-than"
+    (test-assert (xpath-op:base64-binary-greater-than "AgE=" "AQI=")))
+  )
   
 (test-end)
 
