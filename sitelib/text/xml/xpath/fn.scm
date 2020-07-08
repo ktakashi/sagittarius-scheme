@@ -1377,7 +1377,7 @@
       (let ((n (xpath-dm:node-name arg)))
 	(if (null? n)
 	    ""
-	    (qname-local-part n)))))
+	    (xs:qname-local-part n)))))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
