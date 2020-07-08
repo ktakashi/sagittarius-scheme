@@ -188,7 +188,7 @@
 	    xpath-fn:qname
 	    xpath-op:qname-equal
 	    xpath-fn:prefix-from-qname
-	    xpath-fn:local-name-from-qnambe
+	    xpath-fn:local-name-from-qname
 	    xpath-fn:namespace-uri-from-qname
 	    xpath-fn:namespace-uri-for-prefix
 	    xpath-fn:in-scope-prefixes
@@ -197,7 +197,10 @@
 	    xpath-op:hex-binary-greater-than
 	    xpath-op:base64-binary-equal
 	    xpath-op:base64-binary-less-than
-	    xpath-op:base64-binary-greater-than)
+	    xpath-op:base64-binary-greater-than
+	    xpath-op:notation-equal
+	    xpath-fn:name
+	    xpath-fn:local-name)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -1311,7 +1314,7 @@
 	       p)))))
 
 ;;;; 10.2.3 fn:local-name-from-QName
-(define (xpath-fn:local-name-from-qnambe qn)
+(define (xpath-fn:local-name-from-qname qn)
   (cond ((null? qn) '())
 	((xs:qname-local-part qn))))
 
@@ -1358,6 +1361,23 @@
 ;;;; 11.1.6 op:base64Binary-greater-than
 (define xpath-op:base64-binary-greater-than
   (base64-binary-comparison bytevector>?))
+
+;;;; 12.1 op:NOTATION-equal
+(define (xpath-op:notation-equal arg1 arg2)
+  (implementation-restriction-violation 'xpath-op:notation-equal
+					"Not supported yet"))
+
+;;;; 13.1 fn:name
+(define (xpath-fn:name arg) (xpath-fn:string (xpath-fn:node-name arg)))
+
+;;;; 13.2 fn:local-name
+(define (xpath-fn:local-name arg)
+  (if (null? arg)
+      ""
+      (let ((n (xpath-dm:node-name arg)))
+	(if (null? n)
+	    ""
+	    (qname-local-part n)))))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

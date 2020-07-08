@@ -1315,7 +1315,7 @@
 		(xpath-fn:prefix-from-qname '())))
   (test-group "fn:local-name-from-QName"
     (test-equal "person"
-		(xpath-fn:local-name-from-qnambe
+		(xpath-fn:local-name-from-qname
 		 (xpath-fn:qname "http://www.example.com/example" "person"))))
   (test-group "fn:namespace-uri-from-QName"
     (test-equal "http://www.example.com/example"
