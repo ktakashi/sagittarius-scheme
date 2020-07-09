@@ -1361,9 +1361,34 @@
   (test-group "op:base64Binary-greater-than"
     (test-assert (xpath-op:base64-binary-greater-than "AgE=" "AQI=")))
   )
+
+
+(test-group "Functions and operators on nodes"
+  (test-group "fn:lang"
+    (letrec ((check-lang (lambda (s lang)
+			   (let* ((dom (string->dom s))
+				  (e (document-document-element dom)))
+			     (xpath-fn:lang lang e)))))
+      (test-assert (check-lang "<para xml:lang=\"en\"/>" "en"))
+      (test-assert (check-lang "<div xml:lang=\"en\"><para>And now, and forever!</para></div>" "en"))
+      (test-assert (check-lang "<para xml:lang=\"EN\"/>" "en"))
+      (test-assert (check-lang "<para xml:lang=\"en-us\"/>" "en"))
+      (test-assert (not (check-lang "<para xml:lang=\"EN\"/>" "fr")))))
+  (test-group "fn:root"
+    (let* ((idoc (string->dom "<tool>wrench</tool>"))
+	   (i (document-document-element idoc))
+	   (odoc (string->dom "<order> <tool>wrench</tool> <quantity>5</quantity> </order>"))
+	   (o (document-document-element odoc))
+	   (o/quantity (node-list:item (document:get-elements-by-tag-name odoc "quantity") 0))
+	   (newi (node-list:item (document:get-elements-by-tag-name odoc "tool") 0)))
+      ;; DOM always contains document so fn:root always returns root document...
+      (test-equal idoc (xpath-fn:root i))
+      (test-equal odoc (xpath-fn:root o/quantity)))))
+	  
   
 (test-end)
 
 ;; Local Variables:
 ;; eval: (put 'test-group 'scheme-indent-function 1)
 ;; End:
+

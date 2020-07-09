@@ -39,8 +39,8 @@
     (do ((len (node-list-length node-list)) (i 0 (+ i 1))
 	 (res '() (cons (node-node-name (node-list:item node-list i)) res)))
 	((= len i) (reverse res))))
-  (test-equal '("bar" "foo") (ansestor-selector (xml:ancestor element?) elm))
-  (test-equal '("baz" "bar" "foo")
+  (test-equal '("foo" "bar") (ansestor-selector (xml:ancestor element?) elm))
+  (test-equal '("foo" "bar" "baz")
 	      (ansestor-selector (xml:ancestor-or-self element?) elm)))
 
 

@@ -87,7 +87,7 @@
 	(xml:map-union (xml:ancestor pred?) node)
 	(do ((res '() (if (pred? parent) (cons parent res) res))
 	     (parent (node-parent-node node) (node-parent-node parent)))
-	    ((not parent) (list->node-list (reverse! res)))))))
+	    ((not parent) (list->node-list res))))))
 
 ;; ancestor-or-self
 (define (xml:ancestor-or-self pred?)
@@ -96,7 +96,7 @@
 	(xml:map-union (xml:ancestor-or-self pred?) node)
 	(do ((res '() (if (pred? parent) (cons parent res) res))
 	     (parent node (node-parent-node parent)))
-	    ((not parent) (list->node-list (reverse! res)))))))
+	    ((not parent) (list->node-list res))))))
 
 (define (xml:map-union proc node-list)
   (define len (node-list-length node-list))

@@ -200,7 +200,10 @@
 	    xpath-op:base64-binary-greater-than
 	    xpath-op:notation-equal
 	    xpath-fn:name
-	    xpath-fn:local-name)
+	    xpath-fn:local-name
+	    xpath-fn:namespace-uri
+	    xpath-fn:lang
+	    xpath-fn:root)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -221,6 +224,7 @@
 	    (only (text xml dom parser) +xml:char-set+)
 	    (text xml schema)
 	    (text xml xpath dm)
+	    (text xml xpath tools)
 	    (util bytevector))
 
 ;;; 2 Accessors
@@ -1378,6 +1382,31 @@
 	(if (null? n)
 	    ""
 	    (xs:qname-local-part n)))))
+
+;;;; 13.3 fn:namespace-uri
+(define (xpath-fn:namespace-uri arg)
+  (xs:qname-namespace-uri (xpath-dm:node-name arg)))
+
+;;;; 13.4 fn:lang	     
+(define (xpath-fn:lang testlang node)
+  (define lang (string-downcase testlang))
+  (define (has-testlang n)
+    (exists (lambda (attr)
+	      (and (string=? (attr-name attr) "xml:lang")
+		   (string-prefix? lang (string-downcase (attr-value attr)))))
+	    (xpath-dm:attributes n)))
+  (let ((selector (xml:ancestor-or-self has-testlang)))
+      ;; (ansestor-or-self::*/@xml:lang)[last()] = testlang
+    (let ((nl (selector node)))
+      (not (zero? (node-list-length nl))))))
+
+;;;; 13.5 fn:root
+(define xpath-fn:root
+  (let ((selector (xml:ancestor-or-self node?)))
+    (lambda (arg)
+      ;; (ansestor-or-self::node())[1]
+      (let ((node-list (selector arg)))
+	(node-list:item node-list 0)))))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
