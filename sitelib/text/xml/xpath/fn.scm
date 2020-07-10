@@ -204,7 +204,9 @@
 	    xpath-fn:namespace-uri
 	    xpath-fn:lang
 	    xpath-fn:root
-	    xpath-fn:path)
+	    xpath-fn:path
+	    xpath-fn:has-children
+	    xpath-fn:outermost)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -1419,6 +1421,13 @@
        ;; = fn:exists($node/child::node())
        (not (zero? (node-list-length (node-child-nodes node))))))
 
+;;;; 13.8 fn:innermost
+(define (xpath-fn:innermost nodes)
+  (implementation-restriction-violation 'xpath-fn:innermost "Not supported yet"))
+
+;;;; 13.9 fn:outermost
+(define (xpath-fn:outermost nodes)
+  (implementation-restriction-violation 'xpath-fn:outermost "Not supported yet"))
 
 
 ;;; 19 Casting
