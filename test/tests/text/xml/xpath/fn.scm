@@ -1383,7 +1383,10 @@
 	   (newi (node-list:item (document:get-elements-by-tag-name odoc "tool") 0)))
       ;; DOM always contains document so fn:root always returns root document...
       (test-equal idoc (xpath-fn:root i))
-      (test-equal odoc (xpath-fn:root o/quantity)))))
+      (test-equal odoc (xpath-fn:root o/quantity))))
+    
+
+  )
 	  
   
 (test-end)

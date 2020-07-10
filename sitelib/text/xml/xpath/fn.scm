@@ -203,7 +203,8 @@
 	    xpath-fn:local-name
 	    xpath-fn:namespace-uri
 	    xpath-fn:lang
-	    xpath-fn:root)
+	    xpath-fn:root
+	    xpath-fn:path)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -1407,6 +1408,18 @@
       ;; (ansestor-or-self::node())[1]
       (let ((node-list (selector arg)))
 	(node-list:item node-list 0)))))
+
+;;;; 13.6 fn:path
+(define (xpath-fn:path node)
+  (implementation-restriction-violation 'xpath-fn:path "Not supported yet"))
+
+;;;; 13.7 fn:has-children
+(define (xpath-fn:has-children node)
+  (and (not (null? node))
+       ;; = fn:exists($node/child::node())
+       (not (zero? (node-list-length (node-child-nodes node))))))
+
+
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
