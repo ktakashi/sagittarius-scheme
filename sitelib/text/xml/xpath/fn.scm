@@ -206,7 +206,11 @@
 	    xpath-fn:root
 	    xpath-fn:path
 	    xpath-fn:has-children
-	    xpath-fn:outermost)
+	    xpath-fn:outermost
+	    xpath-fn:empty
+	    xpath-fn:exists
+	    xpath-fn:head
+	    xpath-fn:tail)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -1428,6 +1432,25 @@
 ;;;; 13.9 fn:outermost
 (define (xpath-fn:outermost nodes)
   (implementation-restriction-violation 'xpath-fn:outermost "Not supported yet"))
+
+
+;;;; 14.1.1 fn:empty
+(define (xpath-fn:empty arg) (null? arg))
+
+;;;; 14.1.2 fn:exists
+(define (xpath-fn:exists arg*) (not (null? arg*)))
+
+;;;; 14.1.3 fn:head
+(define (xpath-fn:head arg)
+  (cond ((null? arg) '())
+	((pair? arg) (car arg))
+	(else arg)))
+
+;;;; 14.1.4 fn:tail
+(define (xpath-fn:tail arg)
+  (cond ((null? arg) '())
+	((pair? arg) (cdr arg))
+	(else '())))
 
 
 ;;; 19 Casting

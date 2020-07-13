@@ -1383,9 +1383,26 @@
 	   (newi (node-list:item (document:get-elements-by-tag-name odoc "tool") 0)))
       ;; DOM always contains document so fn:root always returns root document...
       (test-equal idoc (xpath-fn:root i))
-      (test-equal odoc (xpath-fn:root o/quantity))))
-    
+      (test-equal odoc (xpath-fn:root o/quantity))))    
+  )
 
+(test-group "Functions and operators on sequences"
+  (test-group "fn:empty"
+    (test-assert (xpath-fn:empty '())))
+  (test-group "fn:exists"
+    (test-assert (xpath-fn:exists '(1)))
+    (test-assert (xpath-fn:exists "")))
+  (test-group "fn:head"
+    (test-equal 1 (xpath-fn:head '(1 2 3 4 5)))
+    (test-equal "a" (xpath-fn:head '("a" "b" "c")))
+    (test-equal '() (xpath-fn:head '()))
+    (test-equal '#(1 2 3) (xpath-fn:head '#(1 2 3))))
+  (test-group "fn:tail"
+    (test-equal '(2 3 4 5) (xpath-fn:tail '(1 2 3 4 5)))
+    (test-equal '("b" "c") (xpath-fn:tail '("a" "b" "c")))
+    (test-equal '() (xpath-fn:tail '("a")))
+    (test-equal '() (xpath-fn:tail '()))
+    (test-equal '() (xpath-fn:tail '#(1 2 3))))
   )
 	  
   
