@@ -210,7 +210,9 @@
 	    xpath-fn:empty
 	    xpath-fn:exists
 	    xpath-fn:head
-	    xpath-fn:tail)
+	    xpath-fn:tail
+	    xpath-fn:insert-before
+	    xpath-fn:remove)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -1452,6 +1454,21 @@
 	((pair? arg) (cdr arg))
 	(else '())))
 
+;;;; 14.1.5 fn:insert-before
+(define (xpath-fn:insert-before target position inserts)
+  ;; lazy implementation
+  (let-values (((f e) (split-at target (max 0 (- position 1)))))
+    (if (pair? inserts)
+	`(,@f ,@inserts ,@e)
+	`(,@f ,inserts ,@e))))
+
+;;;; 14.1.6 fn:remove
+(define (xpath-fn:remove target position)
+  (define p (max 0 (- position 1)))
+  (let loop ((r '()) (t target) (i 0))
+    (cond ((null? t) (reverse! r))
+	  ((= i p) (loop r (cdr t) (+ i 1)))
+	  (else (loop (cons (car t) r) (cdr t) (+ i 1))))))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

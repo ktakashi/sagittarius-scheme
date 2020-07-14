@@ -1403,6 +1403,19 @@
     (test-equal '() (xpath-fn:tail '("a")))
     (test-equal '() (xpath-fn:tail '()))
     (test-equal '() (xpath-fn:tail '#(1 2 3))))
+  (test-group "fn:insert-before"
+    (let ((abc '("a" "b" "c")))
+      (test-equal '("z" "a" "b" "c") (xpath-fn:insert-before abc 0 "z"))
+      (test-equal '("z" "a" "b" "c") (xpath-fn:insert-before abc 1 "z"))
+      (test-equal '("a" "z" "b" "c") (xpath-fn:insert-before abc 2 "z"))
+      (test-equal '("a" "b" "z" "c") (xpath-fn:insert-before abc 3 "z"))
+      (test-equal '("a" "b" "c" "z") (xpath-fn:insert-before abc 4 "z"))))
+  (test-group "fn:remove"
+    (let ((abc '("a" "b" "c")))
+      (test-group '("a" "b" "c") (xpath-fn:remove abc 0))
+      (test-group '("b" "c") (xpath-fn:remove abc 1))
+      (test-group '("a" "b" "c") (xpath-fn:remove abc 6))
+      (test-group '() (xpath-fn:remove '() 3))))
   )
 	  
   
