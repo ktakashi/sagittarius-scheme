@@ -215,7 +215,9 @@
 	    xpath-fn:remove
 	    xpath-fn:reverse
 	    xpath-fn:subsequence
-	    xpath-fn:unordered)
+	    xpath-fn:unordered
+	    xpath-fn:distinct-values
+	    xpath-fn:index-of)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -1492,6 +1494,23 @@
 ;; this is still permutation of the input list...
 (define (xpath-fn:unordered args) args)
 
+;;;; 14.2.1 fn:distinct-values
+(define xpath-fn:distinct-values
+  (case-lambda
+   ((args) (delete-duplicates args equal?))
+   ((args collation) (xpath-fn:distinct-values args))))
+
+;;;; 14.2.2 fn:index-of
+(define xpath-fn:index-of
+  (case-lambda
+   ((seq search)
+    (if (pair? seq)
+	(do ((r '() (if (equal? (car seq) search) (cons i r) r))
+	     (i 1 (+ i 1))
+	     (seq seq (cdr seq)))
+	    ((null? seq) (reverse! r)))
+	'()))
+   ((seq search collation) (xpath-fn:index-of seq search))))
 
 
 ;;; 19 Casting

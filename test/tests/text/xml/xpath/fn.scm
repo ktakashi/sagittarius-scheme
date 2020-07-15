@@ -1430,6 +1430,19 @@
   (test-group "fn:unordered"
     (let ((l '(1 2 3 4 5)))
       (test-assert (lset= eqv? l (xpath-fn:unordered l)))))
+
+  (test-group "fn:distinct-values"
+    (test-assert (lset= equal? '(1 3 2.0) (xpath-fn:distinct-values '(1 2.0 3))))
+    (test-assert (lset= equal? '("cherry" "plum")
+			(xpath-fn:distinct-values '("cherry" "plum" "plum")))))
+  (test-group "fn:index-of"
+    (test-equal '() (xpath-fn:index-of '(10 20 30 40 50) 35))
+    (test-equal '(2 5) (xpath-fn:index-of '(10 20 30 30 20 10) 20))
+    (test-equal '(1 4) (xpath-fn:index-of '("a" "sport" "and" "a" "pasttime") "a"))
+    (test-equal '() (xpath-fn:index-of (xs:make-date "2002-03-07-07:00") 23))
+    ;; not working yet
+    (test-expect-fail 1)
+    (test-equal '(3 4) (xpath-fn:index-of '#(1 #(5 6) #(6 7)) 6)))
   )
 	  
   
