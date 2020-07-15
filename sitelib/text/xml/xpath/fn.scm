@@ -212,7 +212,10 @@
 	    xpath-fn:head
 	    xpath-fn:tail
 	    xpath-fn:insert-before
-	    xpath-fn:remove)
+	    xpath-fn:remove
+	    xpath-fn:reverse
+	    xpath-fn:subsequence
+	    xpath-fn:unordered)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -1464,11 +1467,32 @@
 
 ;;;; 14.1.6 fn:remove
 (define (xpath-fn:remove target position)
-  (define p (max 0 (- position 1)))
-  (let loop ((r '()) (t target) (i 0))
-    (cond ((null? t) (reverse! r))
-	  ((= i p) (loop r (cdr t) (+ i 1)))
-	  (else (loop (cons (car t) r) (cdr t) (+ i 1))))))
+  (define p (- position 1))
+  (if (negative? p)
+      target
+      (let loop ((r '()) (t target) (i 0))
+	(cond ((null? t) (reverse! r))
+	      ((= i p) (loop r (cdr t) (+ i 1)))
+	      (else (loop (cons (car t) r) (cdr t) (+ i 1)))))))
+
+;;;; 14.1.7 fn:reverse
+(define (xpath-fn:reverse args) (if (pair? args) (reverse args) args))
+
+;;;; 14.1.8 fn:subsequence
+(define xpath-fn:subsequence
+  (case-lambda
+   ((l start n)
+    (define offset (- start 1))
+    (take (drop l offset) n))
+   ((l start)
+    (define offset (- start 1))
+    (drop l offset))))
+
+;;;; 14.1.9 fn:unordered
+;; this is still permutation of the input list...
+(define (xpath-fn:unordered args) args)
+
+
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

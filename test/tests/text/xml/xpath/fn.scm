@@ -5,6 +5,7 @@
 	(text xml xpath fn)
 	(text xml schema)
 	(sagittarius timezone)
+	(srfi :1)
 	(srfi :39)
 	(srfi :64))
 
@@ -1412,10 +1413,23 @@
       (test-equal '("a" "b" "c" "z") (xpath-fn:insert-before abc 4 "z"))))
   (test-group "fn:remove"
     (let ((abc '("a" "b" "c")))
-      (test-group '("a" "b" "c") (xpath-fn:remove abc 0))
-      (test-group '("b" "c") (xpath-fn:remove abc 1))
-      (test-group '("a" "b" "c") (xpath-fn:remove abc 6))
-      (test-group '() (xpath-fn:remove '() 3))))
+      (test-equal '("a" "b" "c") (xpath-fn:remove abc 0))
+      (test-equal '("b" "c") (xpath-fn:remove abc 1))
+      (test-equal '("a" "b" "c") (xpath-fn:remove abc 6))
+      (test-equal '() (xpath-fn:remove '() 3))))
+  (test-group "fn:reverse"
+    (let ((abc '("a" "b" "c")))
+      (test-equal '("c" "b" "a") (xpath-fn:reverse abc))
+      (test-equal '("hello") (xpath-fn:reverse '("hello")))
+      (test-equal '#(1 2 3) (xpath-fn:reverse '#(1 2 3)))
+      (test-equal '(#(4 5 6) #(1 2 3)) (xpath-fn:reverse '(#(1 2 3) #(4 5 6))))))
+  (test-group "fn:subsequence"
+    (let (($seq '("item1" "item2" "item3" "item4" "item5")))
+      (test-equal '("item4" "item5") (xpath-fn:subsequence $seq 4))
+      (test-equal '("item3" "item4") (xpath-fn:subsequence $seq 3 2))))
+  (test-group "fn:unordered"
+    (let ((l '(1 2 3 4 5)))
+      (test-assert (lset= eqv? l (xpath-fn:unordered l)))))
   )
 	  
   
