@@ -217,7 +217,8 @@
 	    xpath-fn:subsequence
 	    xpath-fn:unordered
 	    xpath-fn:distinct-values
-	    xpath-fn:index-of)
+	    xpath-fn:index-of
+	    xpath-fn:deep-equal)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -230,6 +231,7 @@
 	    (srfi :1 lists)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
+	    (srfi :43 vectors)
 	    (srfi :115 regexp)
 	    (srfi :127 lseqs)
 	    (srfi :144 flonums)	    
@@ -1512,6 +1514,58 @@
 	'()))
    ((seq search collation) (xpath-fn:index-of seq search))))
 
+;;;; 14.2.3 fn:deep-equal
+(define (%xpath-fn:deep-equal a b)
+  (cond ((and (null? a) (null? b)))
+	((and (pair? a) (pair? b))
+	 (and (= (length a) (length b))
+	      (for-all %xpath-fn:deep-equal a b)))
+	((equal? a b)) ;; atomic can be compared like this ;)
+	((and (vector? a) (vector? b))
+	 (vector= %xpath-fn:deep-equal a b))
+	((and (hashtable? a) (hashtable? b))
+	 (and (= (hashtable-size a) (hashtable-size b))
+	      (for-all (lambda (k)
+			 (%xpath-fn:deep-equal (hashtable-ref a k #f)
+					       (hashtable-ref b k #f)))
+		       (vector->list (hashtable-keys a)))))
+	((and (node? a) (node? b))
+	 (and (eqv? (node-node-type a) (node-node-type b))
+	      (cond ((document? a)
+		     (string=? (xpath-dm:string-value a)
+			       (xpath-dm:string-value b)))
+		    ((element? a)
+		     (implementation-restriction-violation 'xpath-fn:deep-equal
+							   "not yet"))
+		    ((attr? a)
+		     (implementation-restriction-violation 'xpath-fn:deep-equal
+							   "not yet"))
+		    ((processing-instruction? a)
+		     (and (xpath-op:qname-equal (xpath-dm:node-name a)
+						(xpath-dm:node-name b))
+			  (string=? (xpath-dm:string-value a)
+				    (xpath-dm:string-value b))))
+		    ((namespace? a)
+		     (and (%xpath-fn:deep-equal (xpath-dm:node-name a)
+						(xpath-dm:node-name b))
+			  (string=? (xpath-dm:string-value a)
+				    (xpath-dm:string-value b))))
+		    ((text? a)
+		     (string=? (xpath-dm:string-value a)
+			       (xpath-dm:string-value b)))
+		    (else #f))))
+	((and (xs:qname? a) (xs:qname? b))
+	 ;; not sure how it suppose to be
+	 (and (xpath-op:qname-equal a b)
+	      (equal? (xs:qname-prefix a) (xs:qname-prefix b))))
+	(else #f)))
+	
+	
+(define xpath-fn:deep-equal
+  (case-lambda
+   ((a b) (%xpath-fn:deep-equal a b))
+   ;; ignore collation for now
+   ((a b collation) (%xpath-fn:deep-equal a b))))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

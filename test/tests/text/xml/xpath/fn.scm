@@ -4,6 +4,7 @@
 	(text xml errors)
 	(text xml xpath fn)
 	(text xml schema)
+	(util hashtables)
 	(sagittarius timezone)
 	(srfi :1)
 	(srfi :39)
@@ -1443,6 +1444,14 @@
     ;; not working yet
     (test-expect-fail 1)
     (test-equal '(3 4) (xpath-fn:index-of '#(1 #(5 6) #(6 7)) 6)))
+
+  (test-group "fn:deep-equal"
+    (let ((map1 (alist->hashtable '((1 . "a") (2 . "b"))))
+	  (map2 (alist->hashtable '((2 . "b") (1 . "a")))))
+      ;; TODO add element and others...
+      (test-assert (xpath-fn:deep-equal map1 map2))
+      (test-assert (xpath-fn:deep-equal '#(1 2 3) '#(1 2 3)))
+      (test-assert (not (xpath-fn:deep-equal '(1 2 3) '#(1 2 3))))))
   )
 	  
   
