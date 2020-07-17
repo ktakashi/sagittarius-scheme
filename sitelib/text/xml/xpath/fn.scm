@@ -218,7 +218,10 @@
 	    xpath-fn:unordered
 	    xpath-fn:distinct-values
 	    xpath-fn:index-of
-	    xpath-fn:deep-equal)
+	    xpath-fn:deep-equal
+	    xpath-fn:zero-or-one
+	    xpath-fn:one-or-more
+	    xpath-fn:exactly-one)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -1559,13 +1562,32 @@
 	 (and (xpath-op:qname-equal a b)
 	      (equal? (xs:qname-prefix a) (xs:qname-prefix b))))
 	(else #f)))
-	
-	
+
 (define xpath-fn:deep-equal
   (case-lambda
    ((a b) (%xpath-fn:deep-equal a b))
    ;; ignore collation for now
    ((a b collation) (%xpath-fn:deep-equal a b))))
+
+;;;; 14.3.1 fn:zero-or-one
+(define (xpath-fn:zero-or-one arg)
+  (cond ((null? arg) arg)
+	((and (pair? arg) (null? (cdr arg))) arg)
+	(else (xqt-error 'FORG0003 'xpath-fn:zero-or-one
+			 "More than one or not a sequence" arg))))
+
+;;;; 14.3.2 fn:one-or-more
+(define (xpath-fn:one-or-more arg)
+  (if (and (pair? arg) (not (null? arg)))
+      arg
+      (xqt-error 'FORG0004 'xpath-fn:one-or-more "Empty or not a sequence" arg)))
+
+;;;; 14.3.3 fn:exactly-one
+(define (xpath-fn:exactly-one arg)
+  (if (and (pair? arg) (= 1 (length arg)))
+      arg
+      (xqt-error 'FORG0005 'xpath-fn:exactly-one
+		 "Not an exacely one element sequence" arg)))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

@@ -1452,6 +1452,21 @@
       (test-assert (xpath-fn:deep-equal map1 map2))
       (test-assert (xpath-fn:deep-equal '#(1 2 3) '#(1 2 3)))
       (test-assert (not (xpath-fn:deep-equal '(1 2 3) '#(1 2 3))))))
+
+  (test-group "fn:zero-or-one"
+    (test-equal '() (xpath-fn:zero-or-one '()))
+    (test-equal '(1) (xpath-fn:zero-or-one '(1)))
+    (test-xqt-error FORG0003 (xpath-fn:zero-or-one '(1 2))))
+
+  (test-group "fn:one-or-more"
+    (test-equal '(1) (xpath-fn:one-or-more '(1)))
+    (test-equal '(1 2) (xpath-fn:one-or-more '(1 2)))
+    (test-xqt-error FORG0004 (xpath-fn:one-or-more '())))
+
+  (test-group "fn:exactly-one"
+    (test-equal '(1) (xpath-fn:exactly-one'(1)))
+    (test-xqt-error FORG0005 (xpath-fn:exactly-one '(1 2)))
+    (test-xqt-error FORG0005 (xpath-fn:exactly-one '())))
   )
 	  
   
