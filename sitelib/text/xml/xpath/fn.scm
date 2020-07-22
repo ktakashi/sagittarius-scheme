@@ -221,7 +221,8 @@
 	    xpath-fn:deep-equal
 	    xpath-fn:zero-or-one
 	    xpath-fn:one-or-more
-	    xpath-fn:exactly-one)
+	    xpath-fn:exactly-one
+	    xpath-fn:count)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -1588,6 +1589,12 @@
       arg
       (xqt-error 'FORG0005 'xpath-fn:exactly-one
 		 "Not an exacely one element sequence" arg)))
+
+;;;; 14.4.1 fn:count
+(define (xpath-fn:count arg)
+  (if (pair? arg)
+      (length arg)
+      1))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
