@@ -1467,6 +1467,29 @@
     (test-equal '(1) (xpath-fn:exactly-one'(1)))
     (test-xqt-error FORG0005 (xpath-fn:exactly-one '(1 2)))
     (test-xqt-error FORG0005 (xpath-fn:exactly-one '())))
+
+  (test-group "fn:count"
+    (let (($seq1 '($item1 $item2))
+	  ($seq2 '(98.5 98.3 98.9))
+	  ($seq3 '()))
+      (test-equal 2 (xpath-fn:count $seq1))
+      (test-equal 0 (xpath-fn:count $seq3))
+      (test-equal 3 (xpath-fn:count $seq2))
+      (test-equal 1 (xpath-fn:count '#()))
+      (test-equal 1 (xpath-fn:count '#(1 2 3)))))
+
+  (test-group "fn:avg"
+    (let (($d1 (xs:make-year-month-duration "P20Y"))
+	  ($d2 (xs:make-year-month-duration "P10M"))
+	  ($seq3 '(3 4 5)))
+      (test-equal 4.0 (xpath-fn:avg $seq3))
+      (test-assert (xpath-op:duration-equal
+		    (xs:make-year-month-duration "P10Y5M")
+		    (xpath-fn:avg (list $d1 $d2))))
+      (test-xqt-error FORG0006 (xpath-fn:avg (list $d1 $seq3)))
+      (test-equal '() (xpath-fn:avg '()))
+      (test-equal +nan.0 (xpath-fn:avg '(+inf.0 -inf.0)))
+      (test-equal +nan.0 (xpath-fn:avg `(,@$seq3 +nan.0)))))
   )
 	  
   

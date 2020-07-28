@@ -222,7 +222,8 @@
 	    xpath-fn:zero-or-one
 	    xpath-fn:one-or-more
 	    xpath-fn:exactly-one
-	    xpath-fn:count)
+	    xpath-fn:count
+	    xpath-fn:avg)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -1592,9 +1593,26 @@
 
 ;;;; 14.4.1 fn:count
 (define (xpath-fn:count arg)
-  (if (pair? arg)
-      (length arg)
-      1))
+  (cond ((pair? arg) (length arg))
+	((null? arg) 0)
+	(else 1)))
+
+;;;; 14.4.2 fn:avg
+(define (xpath-fn:avg arg)
+  (cond ((null? arg) arg)
+	((for-all number? arg) (/ (fold-left + 0.0 arg) (length arg)))
+	((for-all xs:year-month-duration? arg)
+	 (let loop ((m 0) (n 0) (arg arg))
+	   (if (null? arg)
+	       (xs:make-year-month-duration (/ m n))
+	       (loop (+ m (xs:duration-months (car arg))) (+ n 1) (cdr arg)))))
+	((for-all xs:day-time-duration? arg)
+	 (let loop ((s 0.0) (n 0) (arg arg))
+	   (if (null? arg)
+	       (xs:make-day-time-duration (/ s n))
+	       (loop (+ s (xs:duration-seconds (car arg))) (+ n 1) (cdr arg)))))
+	(else (xqt-error 'FORG0006 'xpath-fn:avg "Invalid type" arg))))
+		 
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
