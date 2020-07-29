@@ -223,7 +223,8 @@
 	    xpath-fn:one-or-more
 	    xpath-fn:exactly-one
 	    xpath-fn:count
-	    xpath-fn:avg)
+	    xpath-fn:avg
+	    xpath-fn:max)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -1612,7 +1613,26 @@
 	       (xs:make-day-time-duration (/ s n))
 	       (loop (+ s (xs:duration-seconds (car arg))) (+ n 1) (cdr arg)))))
 	(else (xqt-error 'FORG0006 'xpath-fn:avg "Invalid type" arg))))
-		 
+
+;;;; 14.4.3 fn:max
+(define (xpath-fn:max arg)
+  (define (compute-max arg <)
+    (let loop ((v (car arg)) (arg (cdr arg)))
+      (cond ((null? arg) v)
+	    ((< v (car arg)) (loop (car arg) (cdr arg)))
+	    (else (loop v (cdr arg))))))
+  (cond ((null?  arg) arg)
+	((vector? arg) (xpath-fn:max (vector->list arg)))
+	((for-all number? arg) (apply max arg))
+	((for-all xs:year-month-duration? arg)
+	 (compute-max arg xpath-op:year-month-duration-less-than))
+	((for-all xs:day-time-duration? arg)
+	 (compute-max arg xpath-op:day-time-duration-less-than))
+	((for-all string? arg) (compute-max arg string<))
+	((for-all xs:date? arg) (compute-max arg xs:date<?))
+	;; TBD
+	(else
+	 (xqt-error 'FORG0006 'xpath-fn:avg "Invalid type" arg))))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

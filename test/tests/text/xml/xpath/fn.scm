@@ -7,6 +7,7 @@
 	(util hashtables)
 	(sagittarius timezone)
 	(srfi :1)
+	(srfi :19)
 	(srfi :39)
 	(srfi :64))
 
@@ -1490,6 +1491,16 @@
       (test-equal '() (xpath-fn:avg '()))
       (test-equal +nan.0 (xpath-fn:avg '(+inf.0 -inf.0)))
       (test-equal +nan.0 (xpath-fn:avg `(,@$seq3 +nan.0)))))
+
+  (test-group "fn:max"
+    (test-equal 5 (xpath-fn:max '(3 4 5)))
+    (test-equal 5 (xpath-fn:max '#(3 4 5)))
+    (test-equal 5.0 (xpath-fn:max '(5 5.0 0)))
+    (test-xqt-error FORG0006 (xpath-fn:max '(3.14 "Zero")))
+    (test-assert (xs:date=? (xs:make-date "2100-01-01")
+			    (xpath-fn:max (list (xs:make-date (current-date))
+						(xs:make-date "2100-01-01")))))
+    (test-equal "c" (xpath-fn:max '("a" "b" "c"))))
   )
 	  
   
