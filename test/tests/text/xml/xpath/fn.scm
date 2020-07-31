@@ -1501,6 +1501,17 @@
 			    (xpath-fn:max (list (xs:make-date (current-date))
 						(xs:make-date "2100-01-01")))))
     (test-equal "c" (xpath-fn:max '("a" "b" "c"))))
+
+  (test-group "fn:min"
+    (test-equal 3 (xpath-fn:min '(3 4 5)))
+    (test-equal 3 (xpath-fn:min '#(3 4 5)))
+    (test-equal 5.0 (xpath-fn:min '(5 5.0 10)))
+    (test-equal -0.0 (xpath-fn:min '(-0.0 0.0))) ;; for now first comes ;)
+    (test-xqt-error FORG0006 (xpath-fn:min '(3.14 "Zero")))
+    (test-assert (xs:date=? (xs:make-date "1900-01-01")
+			    (xpath-fn:min (list (xs:make-date (current-date))
+						(xs:make-date "1900-01-01")))))
+    (test-equal "a" (xpath-fn:min '("a" "b" "c"))))
   )
 	  
   

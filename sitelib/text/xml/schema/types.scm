@@ -46,10 +46,23 @@
 
 	    xs:year-month-duration xs:year-month-duration?
 	    (rename make-xs:year-month-duration xs:make-year-month-duration)
-	    
+
 	    xs:qname xs:qname? (rename make-xs:qname xs:make-qname)
 	    xs:qname-namespace-uri xs:qname-local-part xs:qname-prefix
 	    xs:qname->node-name xs:qname->expanded-qname
+
+	    ;; date time seven property model
+	    xs:base-date?
+	    xs:base-date-hour
+	    xs:base-date-minute
+	    xs:base-date-second
+	    xs:base-date-timezone-offset
+	    xs:base-date-hour
+	    xs:base-date-minute
+	    xs:base-date-second
+	    xs:base-date=?
+	    xs:base-date<?
+	    xs:base-date>?
 
 	    xs:time xs:time? (rename make-xs:time xs:make-time)
 	    xs:date xs:date? (rename make-xs:date xs:make-date)
@@ -131,7 +144,7 @@
 	    xs:datetime-subtract-duration
 	    xs:date-subtract-duration
 	    xs:time-subtract-duration
-	    
+
 	    ;; dynaic parameters...
 	    *xs:dynamic-timezone*
 	    )
@@ -161,7 +174,7 @@
 			   "Timezone object or valid offset or #f is required"
 			   tz))
     v))
-	 
+
 ;; contextual timezone (default #f, then local timezone)
 (define *xs:dynamic-timezone* (make-parameter #f timezone-converter))
 
@@ -196,7 +209,7 @@
 		     (? ($ (+ (/ "09"))) "D")) ;; 5
 		  (: ($ (+ (/ "09"))) "D"))    ;; 6
 	      (? "T"
-		 (or (: ($ (+ (/ "09"))) "H"		  ;; 7 
+		 (or (: ($ (+ (/ "09"))) "H"		  ;; 7
 			(? ($ (+ (/ "09"))) "M")	  ;; 8
 			(? ($ (+ (/ "09")))		  ;; 9
 			   (? "." ($ (+ (/ "09")))) "S")) ;; 10
@@ -237,17 +250,17 @@
 	     (lambda (v)
 	       (loop (cons v r) (cdr p) #t)))
 	    (else (loop (cons #f r) (cdr p) matched?)))))
-  
+
   (define (parse m matchers)
     (define sample (car matchers))
     (cond ((exists (lambda (p) (submatch m p)) matchers) =>
 	   (lambda (result) (apply values result)))
 	  (else (apply values (map (lambda (_) #f) sample)))))
-    
+
   (cond ((regexp-matches +duration-regex+ duration) =>
 	 (lambda (m)
 	   (let-values (((y mo d) (parse m ymd))
-			((h mi s f) (parse m hms)))		     
+			((h mi s f) (parse m hms)))
 	     (define neg? (char=? (string-ref duration 0) #\-))
 	     (define (neg n) (if neg? (- n) n))
 	     (values (neg (+ (or (and y (* 12 (string->number y))) 0)
@@ -283,7 +296,7 @@
 (define-record-type xs:day-time-duration
   (parent xs:duration)
   (protocol (lambda (p)
-	      (case-lambda 
+	      (case-lambda
 	       ((d)
 		(let-values (((m s) (if (string? d)
 					(parse-duration d +duration-regex+
@@ -343,7 +356,7 @@
    (lambda (p)
      (define (normalize d)
        ;; check 24:00:00
-       (let ((hour (date-hour d))   
+       (let ((hour (date-hour d))
 	     (mins (date-minute d))
 	     (secs (date-second d)))
 	 (cond ((< hour 24) d)
@@ -379,7 +392,7 @@
 	 ((p)
 	  (time-utc->date (calendar-date->time-utc cd) (timezone-offset tz))
 	  (and off #t) cd)))
-      ;; 
+      ;;
       ((cd has-tz?)
        ;; unfortunately, we can't use timezone of calendar-date all time..
        ((p)
@@ -488,7 +501,7 @@
 		(if (= d 1)
 		    (values s 0)
 		    (values (div n d) (* (expt 10 9) (/ (mod n d) d))))))))
-  
+
 (define *gmt* (timezone "GMT"))
 (define-record-type xs:time
   (parent xs:base-date)
