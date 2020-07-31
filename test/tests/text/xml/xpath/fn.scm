@@ -1512,8 +1512,26 @@
 			    (xpath-fn:min (list (xs:make-date (current-date))
 						(xs:make-date "1900-01-01")))))
     (test-equal "a" (xpath-fn:min '("a" "b" "c"))))
+
+  (test-group "fn:sum"
+    (let (($d1 (xs:make-year-month-duration "P20Y"))
+	  ($d2 (xs:make-year-month-duration "P10M"))
+	  ($seq3 '(3 4 5)))
+      (test-assert (xpath-op:duration-equal
+		    (xs:make-year-month-duration "P20Y10M")
+		    (xpath-fn:sum (list $d1 $d2))))
+      (test-assert (xpath-op:duration-equal
+		    (xs:make-year-month-duration "P0M")
+		    (xpath-fn:sum (list (xs:make-year-month-duration "P0M")))))
+
+      (test-equal 12 (xpath-fn:sum $seq3))
+      (test-equal 0 (xpath-fn:sum '()))
+      
+      (test-xqt-error FORG0006 (xpath-fn:sum (list $d1 $seq3)))
+      (test-equal +nan.0 (xpath-fn:sum '(+inf.0 -inf.0)))
+      (test-equal +nan.0 (xpath-fn:sum `(,@$seq3 +nan.0)))))
   )
-	  
+
   
 (test-end)
 

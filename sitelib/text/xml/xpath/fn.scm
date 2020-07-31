@@ -225,7 +225,8 @@
 	    xpath-fn:count
 	    xpath-fn:avg
 	    xpath-fn:max
-	    xpath-fn:min)
+	    xpath-fn:min
+	    xpath-fn:sum)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -1656,6 +1657,25 @@
 	;; TBD
 	(else
 	 (xqt-error 'FORG0006 'xpath-fn:min "Invalid type" arg))))
+
+;;;; 14.4.5 fn:sum
+(define xpath-fn:sum
+  (case-lambda
+   ((arg) (xpath-fn:sum arg 0))
+   ((arg zero)
+    (cond ((null? arg) zero)
+	  ((for-all number? arg) (fold-left + zero arg))
+	  ((for-all xs:year-month-duration? arg)
+	   (let loop ((m 0) (arg arg))
+	     (if (null? arg)
+		 (xs:make-year-month-duration m)
+		 (loop (+ m (xs:duration-months (car arg))) (cdr arg)))))
+	  ((for-all xs:day-time-duration? arg)
+	   (let loop ((s 0.0) (arg arg))
+	     (if (null? arg)
+		 (xs:make-day-time-duration s)
+		 (loop (+ s (xs:duration-seconds (car arg))) (cdr arg)))))
+	  (else (xqt-error 'FORG0006 'xpath-fn:sum "Invalid type" arg))))))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
