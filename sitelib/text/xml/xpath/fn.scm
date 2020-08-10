@@ -226,7 +226,11 @@
 	    xpath-fn:avg
 	    xpath-fn:max
 	    xpath-fn:min
-	    xpath-fn:sum)
+	    xpath-fn:sum
+	    xpath-fn:id
+	    xpath-fn:element-with-id
+	    xpath-fn:idref
+	    xpath-fn:generate-id)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -1676,6 +1680,34 @@
 		 (xs:make-day-time-duration s)
 		 (loop (+ s (xs:duration-seconds (car arg))) (cdr arg)))))
 	  (else (xqt-error 'FORG0006 'xpath-fn:sum "Invalid type" arg))))))
+
+;;;; 14.5.1 fn:id
+(define (xpath-fn:id str node)
+  (unless (node? node)
+    (xqt-error 'XPTY0004 'xpath-fn:id "Node required" node))
+  (implementation-restriction-violation 'xpath-fn:id "Not yet"))
+
+;;;; 14.5.2 fn:element-with-id
+(define (xpath-fn:element-with-id str node)
+  (unless (node? node)
+    (xqt-error 'XPTY0004 'xpath-fn:element-with-id "Node required" node))
+  (implementation-restriction-violation 'xpath-fn:element-with-id "Not yet"))
+
+;;;; 14.5.3 fn:idref
+(define (xpath-fn:idref str node)
+  (unless (node? node)
+    (xqt-error 'XPTY0004 'xpath-fn:idref "Node required" node))
+  (implementation-restriction-violation 'xpath-fn:idref "Not yet"))
+
+;;;; 14.5.4 fn:generate-id
+(define (xpath-fn:generate-id node)
+  (cond ((null? node) "")
+	((not (node? node))
+	 (xqt-error 'XPTY0004 'xpath-fn:generate-id "Node required" node))
+	(else
+	 ;; How to generate? Digest or something?
+	 (implementation-restriction-violation 'xpath-fn:generate-id
+					       "Not yet"))))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

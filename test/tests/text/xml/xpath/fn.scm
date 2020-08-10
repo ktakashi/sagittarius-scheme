@@ -1530,6 +1530,16 @@
       (test-xqt-error FORG0006 (xpath-fn:sum (list $d1 $seq3)))
       (test-equal +nan.0 (xpath-fn:sum '(+inf.0 -inf.0)))
       (test-equal +nan.0 (xpath-fn:sum `(,@$seq3 +nan.0)))))
+
+  (test-group "fn:id"
+    (test-xqt-error XPTY0004 (xpath-fn:id "str" 'dummy)))
+  (test-group "fn:element-with-id"
+    (test-xqt-error XPTY0004 (xpath-fn:element-with-id "str" 'dummy)))
+  (test-group "fn:idref"
+    (test-xqt-error XPTY0004 (xpath-fn:idref "str" 'dummy)))
+  (test-group "fn:generate-id"
+    (test-equal "" (xpath-fn:generate-id '()))
+    (test-xqt-error XPTY0004 (xpath-fn:generate-id 'dummy)))
   )
 
   
