@@ -1366,6 +1366,7 @@
   )
 
 
+(define plain-file (string-append (current-directory) "/test/data/text.txt"))
 (test-group "Functions and operators on nodes"
   (test-group "fn:lang"
     (letrec ((check-lang (lambda (s lang)
@@ -1540,6 +1541,20 @@
   (test-group "fn:generate-id"
     (test-equal "" (xpath-fn:generate-id '()))
     (test-xqt-error XPTY0004 (xpath-fn:generate-id 'dummy)))
+
+  (test-group "fn:unparsed-text"
+    (test-equal "this is a text file\r\nof multiple lines.\r\nhahaha\r\n"
+		(xpath-fn:unparsed-text plain-file)))
+  (test-group "fn:unparsed-text-lines"
+    (test-equal '("this is a text file"
+		  "of multiple lines."
+		  "hahaha")
+		(xpath-fn:unparsed-text-lines plain-file)))
+
+  (test-group "fn:environment-variable"
+    (test-assert (xpath-fn:environment-variable "PATH")))
+  (test-group "fn:environment-variables"
+    (test-assert (member "PATH" (xpath-fn:environment-variables))))
   )
 
   

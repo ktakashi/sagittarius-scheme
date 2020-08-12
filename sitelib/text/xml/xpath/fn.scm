@@ -230,7 +230,15 @@
 	    xpath-fn:id
 	    xpath-fn:element-with-id
 	    xpath-fn:idref
-	    xpath-fn:generate-id)
+	    xpath-fn:generate-id
+	    xpath-fn:doc
+	    xpath-fn:doc-available
+	    xpath-fn:collection
+	    xpath-fn:uri-collection
+	    xpath-fn:unparsed-text
+	    xpath-fn:unparsed-text-lines
+	    xpath-fn:environment-variable
+	    xpath-fn:environment-variables)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -240,10 +248,12 @@
 	    (sagittarius generators)
 	    (sagittarius regex)
 	    (sagittarius timezone)
+	    (only (scheme base) read-line)
 	    (srfi :1 lists)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
 	    (srfi :43 vectors)
+	    (srfi :98 os-environment-variables)
 	    (srfi :115 regexp)
 	    (srfi :127 lseqs)
 	    (srfi :144 flonums)	    
@@ -253,7 +263,8 @@
 	    (text xml schema)
 	    (text xml xpath dm)
 	    (text xml xpath tools)
-	    (util bytevector))
+	    (util bytevector)
+	    (util file))
 
 ;;; 2 Accessors
 ;;; All accessor requires the $arg argument, the XPath evaluator
@@ -1708,6 +1719,51 @@
 	 ;; How to generate? Digest or something?
 	 (implementation-restriction-violation 'xpath-fn:generate-id
 					       "Not yet"))))
+
+;;;; 14.6.1 fn:doc
+(define (xpath-fn:doc uri)
+  ;; TODO check validity of given URI and if it's not value raise FODC0005
+  (xqt-error 'FODC0003 'xpath-fn:doc "More or less not supported" uri))
+
+;;;; 14.6.2 fn:doc-available
+(define (xpath-fn:doc-available uri) #f) ;; not really supported
+
+;;;; 14.6.3 fn:collection  
+(define (xpath-fn:collection arg)
+  (xqt-error 'FODC0003 'xpath-fn:collection "More or less not supported" arg))
+
+;;;; 14.6.4 fn:uri-collection
+(define (xpath-fn:uri-collection arg)
+  (xqt-error 'FODC0003 'xpath-fn:uri-collection "More or less not supported"
+	     arg))
+
+;;;; 14.6.5 fn:unparsed-text
+(define default-transcoder
+  (make-transcoder (utf-8-codec) (eol-style none)))
+(define xpath-fn:unparsed-text
+  (case-lambda
+   ((href) (call-with-input-file href get-string-all
+				 :transcoder default-transcoder))
+   ;; TODO should we care the encoding?
+   ((href encoding) (call-with-input-file href get-string-all
+					  :transcoder default-transcoder))))
+
+;;;; 14.6.6 fn:unparsed-text-lines
+(define xpath-fn:unparsed-text-lines
+  (case-lambda
+   ((href) (file->list read-line href
+		       :transcoder default-transcoder))
+   ;; TODO should we care the encoding?
+   ((href encoding) (file->list read-line href 
+				:transcoder default-transcoder))))
+
+;;;; 14.6.8 fn:environment-variable
+(define (xpath-fn:environment-variable name)
+  (get-environment-variable name))
+
+;;;; 14.6.8 fn:environment-variables
+(define (xpath-fn:environment-variables)
+  (map car (get-environment-variables)))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
