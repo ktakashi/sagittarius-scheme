@@ -256,7 +256,10 @@
       (if (or scheme (not root-scheme))
 	  (if frag id (string-append id "#"))
 	  (uri-compose :scheme root-scheme :authority root-auth
-		       :path (or path current-path)
+		       :path (or (and current-path path
+				      (uri-merge current-path path))
+				 path
+				 current-path)
 		       :query query :fragment frag))))
   (define (collect-ids object)
     (define (collect-id parent-object id)
@@ -267,11 +270,11 @@
 			       "$id should not be an empty string or '#'" id))
 	;; root-id might be #f so use equal? instead of string=?
 	(unless (equal? id root-id)
-	  (hashtable-set! ids (merge-id id) parent-object)
-	  ;; FIXME parsing twice...
-	  (let-values (((scheme auth path query frag) (parse-id id)))
-	    ;; if we have path, then this object belongs to the path
-	    (when path (set! current-path path))))))
+	  (let ((new-id (merge-id id)))
+	    (hashtable-set! ids new-id parent-object)
+	    (let-values (((scheme auth path query frag) (parse-id new-id)))
+	      ;; if we have path, then this object belongs to the path
+	      (when path (set! current-path path)))))))
     (let (($id (value-of "$id" object)))
       (when $id (collect-id object $id))
       (vector-for-each (lambda (e)
@@ -288,7 +291,7 @@
 				       json-read))
 	       ($id (value-of "$id" schema)))
 	  (resolve-$ref $id schema))))
-    (define (refer-absolute id maybe-external?)
+    (define (refer-absolute id)
       (or (hashtable-ref ids id)
 	  (hashtable-ref ids (string-append id "#")) ;; check with fragment
 	  (and (*json-schema:resolve-external-schema?*)
@@ -297,25 +300,25 @@
 	(let-values (((scheme auth path query frag)
 		      (parse-id ref)))
 	  (cond (scheme
-		 (or (refer-absolute ref #t)
+		 (or (refer-absolute ref)
 		     ;; okay as it as doesn't exist so try JSON pointer
 		     (let* ((uri (uri-compose :scheme scheme :authority auth
 					      :path path :query query))
-			    (obj (refer-absolute uri #t)))
+			    (obj (refer-absolute uri)))
 		       (if obj
 			   (or (and frag ((json-pointer frag) obj)) obj)
 			   (eof-object)))))
 		(path
-		 (let ((obj (refer-absolute (merge-id path) #f)))
+		 (let ((obj (refer-absolute (merge-id path))))
 		   (if obj
 		       (or (and frag ((json-pointer frag) obj)) obj)
 		       (eof-object))))
-		(frag (or (refer-absolute ref #t)
+		(frag (or (refer-absolute ref)
 			  ((json-pointer frag) schema)))
 		;; should not happen, ...I think...
-		(else (or (refer-absolute ref #f) (eof-object)))))
+		(else (or (refer-absolute ref) (eof-object)))))
 	(eof-object)))
-  (define (resolve-reference object)
+  (define (resolve-reference object current-id)
     (define len (vector-length object))
     (define ($ref? v)
       (and (vector? v)
@@ -326,18 +329,16 @@
 	    ((hashtable-ref seen v #f))
 	    (else
 	     (let ((resolved (handle-$ref v)))
-	       (hashtable-set! seen v resolved)
-	       (if (vector? resolved)
-		   (resolve-reference resolved)
-		   resolved)))))
+	       (unless (eof-object? resolved) (hashtable-set! seen v resolved))
+	       resolved))))
 
-    (let loop ((i 0) (refs '()))
+    (let loop ((i 0) (refs '()) (current-id current-id))
       (if (= len i)
 	  (if (null? refs)
 	      object
 	      (vector-concatenate refs))
 	  (let ((e (vector-ref object i)))
-	    (cond ((hashtable-ref seen2 e #f) (loop (+ i 1) refs))
+	    (cond ((hashtable-ref seen2 e #f) (loop (+ i 1) refs current-id))
 		  (else
 		   (hashtable-set! seen2 e #t)
 		   ;; simple way of detecting property named $ref
@@ -346,25 +347,38 @@
 			  (let ((resolved (handle-recursive-$ref (cdr e))))
 			    (cond ((or (json-pointer-not-found? resolved)
 				       (eof-object? resolved))
-				   (loop (+ i 1) refs))
+				   (hashtable-delete! seen2 e)
+				   (loop (+ i 1) refs current-id))
 				  ((boolean? resolved)
 				   ;; for covenience
 				   (if resolved
-				       (loop (+ i 1) refs)
+				       (loop (+ i 1) refs current-id)
 				       (loop (+ i 1)
-					     (cons '#(("not" . #())) refs))))
+					     (cons '#(("not" . #())) refs)
+					     current-id)))
 				  (else
-				   (loop (+ i 1) (cons resolved refs))))))
+				   (loop (+ i 1) (cons resolved refs)
+					 current-id)))))
+			 ((and (string=? "$id" (car e)) (string? (cdr e)))
+			  (let ((old current-path)
+				(new-id (merge-id (cdr e))))
+			    (let-values (((s a path q f) (parse-id new-id)))
+			      (set! current-path path)
+			      (let ((r (loop (+ i 1) refs new-id)))
+				(set! current-path old)
+				r))))
 			 ((vector? (cdr e))
-			  (set-cdr! e (resolve-reference (cdr e)))
-			  (loop (+ i 1) refs))
+			  (set-cdr! e (resolve-reference (cdr e) current-id))
+			  (loop (+ i 1) refs current-id))
 			 ((and (list? (cdr e)) (for-all vector? (cdr e)))
-			  (set-cdr! e (map resolve-reference (cdr e)))
-			  (loop (+ i 1) refs))
-			 (else (loop (+ i 1) refs)))))))))
+			  (set-cdr! e
+			    (map (lambda (o) (resolve-reference o current-id))
+				 (cdr e)))
+			  (loop (+ i 1) refs current-id))
+			 (else (loop (+ i 1) refs current-id)))))))))
   (when root-id (hashtable-set! ids root-id schema))
   (collect-ids schema)
-  (resolve-reference schema))
+  (resolve-reference schema root-id))
 
 (define (->json-validator schema)
   (define referencing-validators (*referencing-validators*))
