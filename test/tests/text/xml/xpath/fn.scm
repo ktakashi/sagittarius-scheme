@@ -1554,7 +1554,7 @@
   (test-group "fn:environment-variable"
     (test-assert (xpath-fn:environment-variable "PATH")))
   (test-group "fn:environment-variables"
-    (test-assert (member "PATH" (xpath-fn:environment-variables))))
+    (test-assert (member "PATH" (xpath-fn:environment-variables) string-ci=?)))
   )
 
   
