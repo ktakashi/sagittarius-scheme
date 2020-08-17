@@ -33,6 +33,8 @@
     (export input-port->dom-tree
 	    xml-file->dom-tree
 	    ;; sxml->dom-tree
+	    input-port->tolerant-dom-tree
+	    xml-file->tolerant-dom-tree
 
 	    ;; write-dom-tree
 
@@ -49,14 +51,17 @@
 	    (srfi :39 parameters)
 	    (srfi :127 lseqs))
 
-;;; utility 
+;;; utility
+(define (lseq->xml in)
+  (let-values (((s v n) ($xml:document in)))
+    (if (parse-success? s)
+	(values v n)
+	(error 'parse-xml "Failed to parse XML document" v))))
 (define (parse-xml in)
-  (let-values (((s v n)
-		($xml:document (generator->lseq (port->char-generator in)))))
-    (cond ((and (parse-success? s) (null? n)) v)
-	  ((and (parse-success? s) (not (null? n)))
-	   (error 'parse-xml "XML document contains extra data" n))
-	  (else (error 'parse-xml "Failed to parse XML document" v)))))
+  (let-values (((v nl) (lseq->xml (generator->lseq (port->char-generator in)))))
+    (if (not (null? nl))
+	(error 'parse-xml "XML document contains extra data" nl)
+	v)))
 
 ;; TODO maybe this should be move to constructing part
 (define-record-type xml-document-factory-options
@@ -107,9 +112,27 @@
       (dispatch-factory parsed)
       document)))
 
+(define (input-port->tolerant-dom-tree in :key (option +default-factory-option+)
+				       (uri #f))
+  (define document (make-xml-document uri))
+  (define lseq (generator->lseq (port->char-generator in)))
+  (let loop ((lseq lseq))
+    (if (null? lseq)
+	document
+	(let-values (((v nl) (lseq->xml lseq)))
+	  (parameterize ((*factory-options* option)
+			 (*root-document* document))
+	    (dispatch-factory v)
+	    (loop nl))))))
+
 (define (xml-file->dom-tree file . opt)
   (call-with-input-file file
     (lambda (in) (apply input-port->dom-tree in :uri (absolute-path file) opt))))
+
+(define (xml-file->tolerant-dom-tree file . opt)
+  (call-with-input-file file
+    (lambda (in) (apply input-port->tolerant-dom-tree in
+			:uri (absolute-path file) opt))))
 
 (define *factory-table* (make-eq-hashtable))
 (define (dispatch-factory tree)

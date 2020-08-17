@@ -42,4 +42,6 @@
 	    (text xml dom nodes)
 	    (only (text xml dom factory)
 		  input-port->dom-tree
-		  xml-file->dom-tree)))
+		  xml-file->dom-tree
+		  input-port->tolerant-dom-tree
+		  xml-file->tolerant-dom-tree)))

@@ -1,6 +1,7 @@
 ;;; -*- mode: scheme; coding: utf-8 -*-
 (import (rnrs)
 	(text xml dom)
+	(text xml dom writer)
 	(text xml errors)
 	(text xml xpath fn)
 	(text xml schema)
@@ -1555,6 +1556,22 @@
     (test-assert (xpath-fn:environment-variable "PATH")))
   (test-group "fn:environment-variables"
     (test-assert (member "PATH" (xpath-fn:environment-variables) string-ci=?)))
+
+  (test-group "fn:parse-xml"
+    (test-assert (document? (xpath-fn:parse-xml "<alpha>abcd</alpha>")))
+    (test-xqt-error FODC0006  (xpath-fn:parse-xml "<alpha>abcd</alph>")))
+
+  (test-group "fn:parse-xml-fragment"
+    (let ((doc (xpath-fn:parse-xml-fragment
+		"<alpha>abcd</alpha><beta>abcd</beta>")))
+      (test-assert (document? doc))
+      (test-assert 2 (node-list-length (node-child-nodes doc))))
+    ;; can't do it yet
+    #;(let ((doc (xpath-fn:parse-xml-fragment
+		"He was <i>so</i> kind")))
+      (test-assert (document? doc))
+      (test-assert 3 (node-list-length (node-child-nodes doc)))))
+  
   )
 
   

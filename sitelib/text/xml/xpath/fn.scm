@@ -238,7 +238,9 @@
 	    xpath-fn:unparsed-text
 	    xpath-fn:unparsed-text-lines
 	    xpath-fn:environment-variable
-	    xpath-fn:environment-variables)
+	    xpath-fn:environment-variables
+	    xpath-fn:parse-xml
+	    xpath-fn:parse-xml-fragment)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -1764,6 +1766,18 @@
 ;;;; 14.6.8 fn:environment-variables
 (define (xpath-fn:environment-variables)
   (map car (get-environment-variables)))
+
+;;;; 14.7.1 fn:parse-xml
+(define (xpath-fn:parse-xml arg)
+  (guard (e (else (xqt-error 'FODC0006 'xpath-fn:parse-xml
+			     (condition-message e) arg)))
+    (input-port->dom-tree (open-string-input-port arg))))
+
+;;;; 14.7.2 fn:parse-xml-fragment
+(define (xpath-fn:parse-xml-fragment arg)
+  (guard (e (else (xqt-error 'FODC0006 'xpath-fn:parse-xml-fragment
+			     (condition-message e) arg)))
+    (input-port->tolerant-dom-tree (open-string-input-port arg))))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
