@@ -30,15 +30,69 @@
 
 #!nounbound
 (library (text xml dom writer)
-    (export make-dom-writer)
+    (export make-dom-writer
+	    make-xml-write-options)
     (import (rnrs)
 	    (text xml dom nodes)
 	    (srfi :14 char-sets)
 	    (srfi :117 list-queues))
 
+;;; taken from the option list of fn:serialize
+;;; https://www.w3.org/TR/xpath-functions-31/#func-serialize
 (define-record-type xml-write-options
-  (fields emit-internal-dtd?
-	  strict?))
+  (fields emit-internal-dtd? ;; keep
+	  strict?	     ;; keep
+
+	  allow-duplicate-names?	; default #f
+	  byte-order-mark?		; default #f
+	  cdata-section-elements	; default '()
+	  doctype-public		; default absent, #f
+	  doctype-system		; default absent, #f
+	  encoding			; default "utf-8"
+	  escape-uri-attribute? 	; default #t
+	  html-version			; default 5
+	  include-content-type?		; default #t
+	  indent?			; default #f
+	  item-separator		; default absent, #f
+	  json-node-output-method	; default xml
+	  media-type			; text/xml?
+	  normalization-form		; default none
+	  omit-xml-declaration?		; default #t
+	  standalone?			; default '(), omit
+	  suppress-indentation		; default '()
+	  undeclare-prefixes?		; default #f
+	  use-character-maps		; default empty map
+	  version			; default "1.0"
+	  )
+  (protocol (lambda (p)
+	      (lambda (emit-internal-dtd? strict?
+		       :key (allow-duplicate-names #f)
+			    (byte-order-mark #f)
+			    (cdata-section-elements '())
+			    (doctype-public #f)
+			    (doctype-system #f)
+			    (encoding "utf-8")
+			    (escape-uri-attribute #t)
+			    (html-version 5)
+			    (include-content-type #t)
+			    (indent #f)
+			    (item-separator #f)
+			    (json-node-output-method "xml")
+			    (media-type "xml")
+			    (normalization-form "none")
+			    (omit-xml-declaration #t)
+			    (standalone '())
+			    (suppress-indentation '())
+			    (undeclare-prefixes #f)
+			    (use-character-maps (make-eq-hashtable))
+			    (version "1.0"))
+		(p emit-internal-dtd? strict?
+		   allow-duplicate-names byte-order-mark cdata-section-elements
+		   doctype-public doctype-system encoding escape-uri-attribute
+		   html-version include-content-type indent item-separator
+		   json-node-output-method media-type normalization-form
+		   omit-xml-declaration standalone suppress-indentation
+		   undeclare-prefixes use-character-maps version)))))
 
 ;; for now not strict by default
 (define *default-options* (make-xml-write-options #f #f))
@@ -62,20 +116,28 @@
       (write-node tree options out)))
 
 (define (write-xml-decl tree options out)
-  (put-string out "<?xml")
-  (when (document-xml-version tree)
+  (define (get-version tree options)
+    (cond ((document-xml-version tree))
+	  (else (xml-write-options-version options))))
+  (unless (xml-write-options-omit-xml-declaration? options)
+    (put-string out "<?xml")
     (put-string out " version=\"")
-    (put-string out (document-xml-version tree))
-    (put-string out "\""))
-  (put-string out " encoding=\"")
-  (put-string out (document-character-set tree))
-  (put-string out "\"")
+    (put-string out (get-version tree options))
+    (put-string out "\"")
+    ;; not sure how to handle encoding, should we use value from the option?
+    (put-string out " encoding=\"")
+    (put-string out (document-character-set tree))
+    (put-string out "\"")
 
-  (put-string out " standalone=\"")
-  (put-string out (if (document-xml-standalone? tree) "yes" "no"))
-  (put-string out "\"")
-  
-  (put-string out "?>"))
+    (unless (null? (xml-write-options-standalone? options))
+      (put-string out " standalone=\"")
+      (put-string out (if (or (document-xml-standalone? tree)
+			      (xml-write-options-standalone? options))
+			  "yes"
+			  "no"))
+      (put-string out "\""))
+    
+    (put-string out "?>")))
 
 (define (write-node tree options out)
   (cond ((hashtable-ref *writer-table* (node-node-type tree) #f) =>
@@ -168,22 +230,33 @@
   (put-string out (character-data-data pi))
   (put-string out "?>"))
 (define-node-writer +document-type-node+ (doctype-writer doctype options out)
+  (define (emit-doctype-public&system public-id system-id)
+    (put-string out "<!DOCTYPE ")
+    (put-string out (document-type-name doctype))
+    (put-string out " PUBLIC ")
+    (put-string out (document-type-public-id doctype))
+    (put-string out " ")
+    (put-string out (document-type-system-id doctype))
+    (put-string out ">"))
+  (define (emit-doctype-system system-id)
+    (put-string out "<!DOCTYPE ")
+    (put-string out (document-type-name doctype))
+    (put-string out " SYSTEM ")
+    (put-string out (document-type-system-id doctype))
+    ;; TODO intSubst?
+    (put-string out ">"))
   (cond ((and (document-type-public-id doctype)
 	      (document-type-system-id doctype))
-	 (put-string out "<!DOCTYPE ")
-	 (put-string out (document-type-name doctype))
-	 (put-string out " PUBLIC ")
-	 (put-string out (document-type-public-id doctype))
-	 (put-string out " ")
-	 (put-string out (document-type-system-id doctype))
-	 (put-string out ">"))
+	 (emit-doctype-public&system (document-type-public-id doctype)
+				     (document-type-system-id doctype)))
 	((document-type-system-id doctype)
-	 (put-string out "<!DOCTYPE ")
-	 (put-string out (document-type-name doctype))
-	 (put-string out " SYSTEM ")
-	 (put-string out (document-type-system-id doctype))
-	 ;; TODO intSubst?
-	 (put-string out ">"))
+	 (emit-doctype-system (document-type-system-id doctype)))
+	((and (xml-write-options-doctype-public options)
+	      (xml-write-options-doctype-system options))
+	 (emit-doctype-public&system (xml-write-options-doctype-public options)
+				     (xml-write-options-doctype-system options)))
+	((xml-write-options-doctype-system options)
+	 (emit-doctype-system (xml-write-options-doctype-system options)))
 	((xml-write-options-emit-internal-dtd? options)
 	 (assertion-violation 'doctype-writer "not supported yet"))))
 

@@ -240,13 +240,15 @@
 	    xpath-fn:environment-variable
 	    xpath-fn:environment-variables
 	    xpath-fn:parse-xml
-	    xpath-fn:parse-xml-fragment)
+	    xpath-fn:parse-xml-fragment
+	    xpath-fn:serialize)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
 	    (peg chars)
 	    (rfc base64)
 	    (rfc uri)
+	    (sagittarius)
 	    (sagittarius generators)
 	    (sagittarius regex)
 	    (sagittarius timezone)
@@ -262,6 +264,7 @@
 	    (text xml errors)
 	    (text xml dom)
 	    (only (text xml dom parser) +xml:char-set+)
+	    (text xml dom writer)
 	    (text xml schema)
 	    (text xml xpath dm)
 	    (text xml xpath tools)
@@ -1778,6 +1781,75 @@
   (guard (e (else (xqt-error 'FODC0006 'xpath-fn:parse-xml-fragment
 			     (condition-message e) arg)))
     (input-port->tolerant-dom-tree (open-string-input-port arg))))
+
+;;;; 14.7.3 fn:serialize
+(define default-write-options (make-xml-write-options #f #f))
+(define (yes-no-converter v) (string=? "yes" (car v)))
+(define (yes-no-omit-converter v*)
+  (define v (car v*)) ;; use first value
+  (cond ((string=? "yes" v))
+	((string=? "omit" v) '())
+	(else #f)))
+(define (single-value v*) (car v*))
+(define (single-string->number v*) (string->number (car v*)))
+(define +options+
+  `(("allow-duplicate-names"   . ,yes-no-converter)
+    ("byte-order-mark"	       . ,yes-no-converter)
+    ("cdata-section-elements"  . ,single-value)
+    ("doctype-public"	       . ,single-value)
+    ("doctype-system"	       . ,single-value)
+    ("encoding"		       . ,single-value)
+    ("escape-uri-attribute"    . ,yes-no-converter)
+    ("html-version"	       . ,single-string->number)
+    ("include-content-type"    . ,yes-no-converter)
+    ("indent"		       . ,yes-no-converter)
+    ("item-separator"	       . ,values)
+    ("json-node-output-method" . ,single-value)
+    ("media-type"	       . ,single-value)
+    ("normalization-form"      . ,single-value)
+    ("omit-xml-declaration"    . ,yes-no-converter)
+    ("standalone"	       . ,yes-no-omit-converter)
+    ("suppress-indentation"    . ,values)
+    ("undeclare-prefixes"      . ,yes-no-converter)
+    ("use-character-maps"      . ,values) ;; FIXME
+    ("version"                 . ,single-value)))
+(define (serialization-parameters->options params)
+  (define get-elements element:get-elements-by-tag-name-ns)
+  (define serialization-ns "http://www.w3.org/2010/xslt-xquery-serialization")
+  (define (get-element-value parameters name conv)
+    (let ((e (get-elements parameters serialization-ns name)))
+      (if (zero? (node-list-length e))
+	  '()
+	  (let* ((v* (filter-map (lambda (e) (element:get-attribute e "value"))
+				 (node-list->list e))))
+	    (if (null? v*)
+		'()
+		(list (string->keyword name) (conv v*)))))))
+  (define (->options element)
+    (define (collect&make parameter)
+      (apply make-xml-write-options #f #f
+	     (append-map
+	      (lambda (name&conv)
+		(get-element-value parameter (car name&conv) (cdr name&conv)))
+	      +options+)))
+    (define parameters
+      (get-elements element serialization-ns "serialization-parameters"))
+    (if (zero? (node-list-length parameters))
+	default-write-options
+	(collect&make (node-list:item parameters 0))))
+  (cond ((null? params) default-write-options)
+	((element? params) (->options params))
+	;; TODO how should we handle if the document has more than one child...
+	((document? params) (->options (document-document-element params)))
+	(else default-write-options)))
+(define xpath-fn:serialize
+  (case-lambda
+   ((arg) (xpath-fn:serialize arg '()))
+   ((arg params)
+    (define options (serialization-parameters->options params))
+    (let-values (((out extract) (open-string-output-port)))
+      ((make-dom-writer options) arg out)
+      (extract)))))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

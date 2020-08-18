@@ -1571,7 +1571,15 @@
 		"He was <i>so</i> kind")))
       (test-assert (document? doc))
       (test-assert 3 (node-list-length (node-child-nodes doc)))))
-  
+
+  (test-group "fn:serialize"
+    (let (($params (string->dom "
+<output:serialization-parameters 
+        xmlns:output=\"http://www.w3.org/2010/xslt-xquery-serialization\">
+  <output:omit-xml-declaration value=\"yes\"/>
+</output:serialization-parameters>"))
+	  ($data (string->dom "<a b=\"3\"/>")))
+      (test-equal "<a b=\"3\"/>" (xpath-fn:serialize $data $params))))
   )
 
   

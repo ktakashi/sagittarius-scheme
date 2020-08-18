@@ -11,6 +11,13 @@
     ;;(write (begin (proc out) (extract))) (newline)
     (test-equal expected (begin (proc out) (extract)))))
 
+;; historical reason...
+(define legazy-options
+  (make-xml-write-options #f #f
+			  :omit-xml-declaration #f
+			  :standalone #f))
+(define xml-writer (make-dom-writer legazy-options))
+
 (writer-test
  "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\
   <foo:foo xmlns:foo=\"urn:foo\" foo:bla=\"blabla\" foo:buz=\"buzzz\">\
@@ -24,7 +31,7 @@
      (element:set-attribute! e "foo:buz" "buzzz")
      (node:append-child! e (document:create-element-ns document
 						       "urn:foo" "foo:bar"))
-     ((make-dom-writer) document out))))
+     (xml-writer document out))))
 
 ;; it's rather weird to put here to test insert/replace node but
 ;; it's easier to do it here.
@@ -44,19 +51,19 @@
      "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\
       <!--boo-->\
       <foo><foo3/><foo4/><foo2/><foo5/></foo>"
-     (lambda (out)((make-dom-writer) document out)))
+     (lambda (out)(xml-writer document out)))
     (node:replace-child! e e5 (document:create-element document "foo6"))
     (writer-test
      "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\
       <!--boo-->\
       <foo><foo3/><foo4/><foo2/><foo6/></foo>"
-     (lambda (out)((make-dom-writer) document out)))
+     (lambda (out)(xml-writer document out)))
     (node:remove-child! e e2)
     (writer-test
      "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\
       <!--boo-->\
       <foo><foo3/><foo4/><foo6/></foo>"
-     (lambda (out)((make-dom-writer) document out)))
+     (lambda (out)(xml-writer document out)))
     ))
 
 (test-end)
