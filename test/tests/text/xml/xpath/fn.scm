@@ -7,6 +7,7 @@
 	(text xml schema)
 	(util hashtables)
 	(sagittarius timezone)
+	(sagittarius calendar)
 	(srfi :1)
 	(srfi :19)
 	(srfi :39)
@@ -1580,6 +1581,26 @@
 </output:serialization-parameters>"))
 	  ($data (string->dom "<a b=\"3\"/>")))
       (test-equal "<a b=\"3\"/>" (xpath-fn:serialize $data $params))))
+  )
+
+(test-group "Context functions"
+  (test-group "fn:current-dateTime, fn:current-date fn:current-time"
+    (let ((cd (current-calendar-date)))
+      (test-assert (xs:datetime? (xpath-fn:current-datetime)))
+      (test-assert (xs:date=? (xs:make-date cd #t) (xpath-fn:current-date)))
+      (test-assert (xs:time? (xpath-fn:current-time)))))
+
+  (test-group "fn:implicit-timezone"
+    (test-equal (inexact (timezone-offset (local-timezone)))
+		(xs:duration-seconds (xpath-fn:implicit-timezone))))
+
+  (test-group "fn:default-collation"
+    (test-equal "http://www.w3.org/2005/xpath-functions/collation/codepoint"
+		(xpath-fn:default-collation)))
+  (test-group "fn:default-language"
+    (test-equal "en" (xpath-fn:default-language)))
+  (test-group "fn:static-base-uri"
+    (test-equal '() (xpath-fn:static-base-uri)))
   )
 
   

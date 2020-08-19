@@ -241,7 +241,16 @@
 	    xpath-fn:environment-variables
 	    xpath-fn:parse-xml
 	    xpath-fn:parse-xml-fragment
-	    xpath-fn:serialize)
+	    xpath-fn:serialize
+	    xpath-fn:position
+	    xpath-fn:last
+	    xpath-fn:current-datetime
+	    xpath-fn:current-date
+	    xpath-fn:current-time
+	    xpath-fn:implicit-timezone
+	    xpath-fn:default-collation
+	    xpath-fn:default-language
+	    xpath-fn:static-base-uri)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -249,6 +258,7 @@
 	    (rfc base64)
 	    (rfc uri)
 	    (sagittarius)
+	    (sagittarius calendar)
 	    (sagittarius generators)
 	    (sagittarius regex)
 	    (sagittarius timezone)
@@ -1850,6 +1860,33 @@
     (let-values (((out extract) (open-string-output-port)))
       ((make-dom-writer options) arg out)
       (extract)))))
+
+;; we can't implement context related procedure without context :)
+;;;; 15.1 fn:position
+(define (xpath-fn:position)
+  (implementation-restriction-violation 'xpath-fn:position "not yet"))
+;;;; 15.2 fn:last
+(define (xpath-fn:last)
+  (implementation-restriction-violation 'xpath-fn:last "not yet"))
+
+;;;; 15.3 fn:current-dateTime
+(define (xpath-fn:current-datetime)
+  (xs:make-datetime (current-calendar-date) #t))
+;;;; 15.4 fn:current-date
+(define (xpath-fn:current-date) (xs:make-date (current-calendar-date) #t))
+;;;; 15.5 fn:current-time
+(define (xpath-fn:current-time) (xs:make-time (current-calendar-date) #t))
+;;;; 15.6 fn:implicit-timezone
+(define (xpath-fn:implicit-timezone)
+  (let ((offset (timezone-offset (local-timezone))))
+    (xs:make-day-time-duration offset)))
+;;;; 15.7 fn:default-collation
+(define (xpath-fn:default-collation)
+  "http://www.w3.org/2005/xpath-functions/collation/codepoint")
+;;;; 15.8 fn:default-language
+(define (xpath-fn:default-language) "en")
+;;;; 15.9 fn:static-base-uri
+(define (xpath-fn:static-base-uri) '())
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

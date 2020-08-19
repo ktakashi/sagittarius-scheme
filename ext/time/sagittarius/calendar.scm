@@ -39,7 +39,7 @@
 	    (rename (calendar-date <calendar-date>))
 	    make-calendar-date calendar-date? 
 	    make-gregorian-calendar-date make-iso-calendar-date
-	    time-utc->calendar-date calendar-date->time-utc
+	    time-utc->calendar-date calendar-date->time-utc current-calendar-date
 	    calendar-date-calendar
 	    (rename (calendar-date-absolute-date calendar-date->gregorian-day))
 	    calendar-date-timezone
@@ -143,6 +143,9 @@
     (assertion-violation 'time-utc->calendar "invalid time type" time))
   (let ((absolute (time-utc->absolute time timezone)))
     (make-calendar-date absolute timezone calendar)))
+
+(define (current-calendar-date :optional (calendar calendar:gregorian))
+  (time-utc->calendar-date (current-time) (local-timezone) calendar))
 
 (define (calendar-date->julian-day cd)
   (+ (calendar-date-absolute-date cd) +julian-day-offset+))
