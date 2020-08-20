@@ -1584,6 +1584,11 @@
   )
 
 (test-group "Context functions"
+  (test-group "fn:position"
+    (test-xqt-error XPDY0002 (xpath-fn:position)))
+  (test-group "fn:last"
+    (test-xqt-error XPDY0002 (xpath-fn:last)))
+  
   (test-group "fn:current-dateTime, fn:current-date fn:current-time"
     (let ((cd (current-calendar-date)))
       (test-assert (xs:datetime? (xpath-fn:current-datetime)))

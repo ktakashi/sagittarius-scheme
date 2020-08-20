@@ -1864,10 +1864,10 @@
 ;; we can't implement context related procedure without context :)
 ;;;; 15.1 fn:position
 (define (xpath-fn:position)
-  (implementation-restriction-violation 'xpath-fn:position "not yet"))
+  (xqt-error 'XPDY0002 'xpath-fn:position "No context"))
 ;;;; 15.2 fn:last
 (define (xpath-fn:last)
-  (implementation-restriction-violation 'xpath-fn:last "not yet"))
+  (xqt-error 'XPDY0002 'xpath-fn:last "No context"))
 
 ;;;; 15.3 fn:current-dateTime
 (define (xpath-fn:current-datetime)
