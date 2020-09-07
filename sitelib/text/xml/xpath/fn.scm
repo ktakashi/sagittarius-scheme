@@ -250,7 +250,12 @@
 	    xpath-fn:implicit-timezone
 	    xpath-fn:default-collation
 	    xpath-fn:default-language
-	    xpath-fn:static-base-uri)
+	    xpath-fn:static-base-uri
+	    xpath-fn:function-lookup
+	    xpath-fn:function-name
+	    xpath-fn:function-arity
+	    xpath-fn:for-each
+	    xpath-fn:filter)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -1887,6 +1892,23 @@
 (define (xpath-fn:default-language) "en")
 ;;;; 15.9 fn:static-base-uri
 (define (xpath-fn:static-base-uri) '())
+
+
+;;;; 16.1.1 fn:function-lookup
+(define (xpath-fn:function-lookup name arity)
+  (implementation-restriction-violation 'xpath-fn:function-lookup "not yet"))
+;;;; 16.1.2 fn:function-name
+(define (xpath-fn:function-name func)
+  (implementation-restriction-violation 'xpath-fn:function-name "not yet"))
+;;;; 16.1.3 fn:function-arity
+(define (xpath-fn:function-arity func)
+  (implementation-restriction-violation 'xpath-fn:function-arity "not yet"))
+
+;;;; 16.2.1 fn:for-each
+(define (xpath-fn:for-each seq action)
+  (append-map (lambda (e) (let ((r (action e))) (if (pair? r) r `(,r)))) seq))
+;;;; 16.2.2 fn:filter
+(define (xpath-fn:filter seq pred) (filter pred seq))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

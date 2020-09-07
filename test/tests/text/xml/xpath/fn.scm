@@ -1608,6 +1608,21 @@
     (test-equal '() (xpath-fn:static-base-uri)))
   )
 
+(test-group "Higher-order functions"
+  (test-group "fn:for-each"
+    (test-equal '(1 4 9 16 25)
+		(xpath-fn:for-each '(1 2 3 4 5) (lambda (x) (* x x))))
+    (test-equal '(106 111 104 110 106 97 110 101)
+		(xpath-fn:for-each '("john" "jane")
+				   xpath-fn:string-to-codepoints))
+    ;; should be xs:int...
+    (test-equal '(23 29) (xpath-fn:for-each '("23" "29") string->number)))
+
+  (test-group "fn:filter"
+    (test-equal '(2 4 6 8 10)
+		(xpath-fn:filter (iota 10 1) (lambda (e) (zero? (mod e 2))))))
+  )
+
   
 (test-end)
 
