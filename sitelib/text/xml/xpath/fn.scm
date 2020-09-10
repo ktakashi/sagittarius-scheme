@@ -255,7 +255,10 @@
 	    xpath-fn:function-name
 	    xpath-fn:function-arity
 	    xpath-fn:for-each
-	    xpath-fn:filter)
+	    xpath-fn:filter
+	    xpath-fn:fold-left
+	    xpath-fn:fold-right
+	    xpath-fn:for-each-pair)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -1909,6 +1912,15 @@
   (append-map (lambda (e) (let ((r (action e))) (if (pair? r) r `(,r)))) seq))
 ;;;; 16.2.2 fn:filter
 (define (xpath-fn:filter seq pred) (filter pred seq))
+;;;; 16.2.3 fn:fold-left
+(define (xpath-fn:fold-left seq zero f) (fold-left f zero seq))
+;;;; 16.2.4 fn:fold-right
+(define (xpath-fn:fold-right seq zero f) (fold-right f zero seq))
+;;;; 16.2.5 fn:for-each-pair
+(define (xpath-fn:for-each-pair seq1 seq2 f)
+  (append-map (lambda (e1 e2) (let ((r (f e1 e2))) (if (pair? r) r `(,r))))
+	      seq1 seq2))
+
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

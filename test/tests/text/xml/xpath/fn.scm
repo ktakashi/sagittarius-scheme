@@ -1621,6 +1621,30 @@
   (test-group "fn:filter"
     (test-equal '(2 4 6 8 10)
 		(xpath-fn:filter (iota 10 1) (lambda (e) (zero? (mod e 2))))))
+
+  (test-group "fn:fold-left"
+    (test-equal 15 (xpath-fn:fold-left (iota 5 1) 0 (lambda (a b) (+ a b))))
+    (test-equal 210 (xpath-fn:fold-left '(2 3 5 7) 1 (lambda (a b) (* a b))))
+    (test-equal #t (xpath-fn:fold-left '(#t #f #f #f) #f (lambda (a b) (or a b))))
+    (test-equal '(5 4 3 2 1)
+		(xpath-fn:fold-left (iota 5 1) '() (lambda (a b) (cons b a))))
+    (test-equal ".1.2.3.4.5"
+		(xpath-fn:fold-left (iota 5 1) ""
+				    (lambda (a b) (xpath-fn:concat a "." b)))))
+
+  (test-group "fn:fold-right"
+    (test-equal 15 (xpath-fn:fold-right (iota 5 1) 0 (lambda (a b) (+ a b))))
+    (test-equal "1.2.3.4.5."
+		(xpath-fn:fold-right (iota 5 1) ""
+				    (lambda (a b) (xpath-fn:concat a "." b)))))
+
+  (test-group "fn:for-each-pair"
+    (test-equal '("ax" "by" "cz")
+		(xpath-fn:for-each-pair '("a" "b" "c") '("x" "y" "z")
+					xpath-fn:concat))
+    (let ((s (iota 8 1)))
+      (test-equal '(2 6 12 20 30 42 56) (xpath-fn:for-each-pair s (cdr s) *)))
+    )
   )
 
   
