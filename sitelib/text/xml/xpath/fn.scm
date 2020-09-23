@@ -258,7 +258,8 @@
 	    xpath-fn:filter
 	    xpath-fn:fold-left
 	    xpath-fn:fold-right
-	    xpath-fn:for-each-pair)
+	    xpath-fn:for-each-pair
+	    xpath-fn:sort)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -1717,27 +1718,23 @@
 
 ;;;; 14.5.1 fn:id
 (define (xpath-fn:id str node)
-  (unless (node? node)
-    (xqt-error 'XPTY0004 'xpath-fn:id "Node required" node))
+  (unless (node? node) (xpty0004-error 'xpath-fn:id node))
   (implementation-restriction-violation 'xpath-fn:id "Not yet"))
 
 ;;;; 14.5.2 fn:element-with-id
 (define (xpath-fn:element-with-id str node)
-  (unless (node? node)
-    (xqt-error 'XPTY0004 'xpath-fn:element-with-id "Node required" node))
+  (unless (node? node) (xpty0004-error 'xpath-fn:element-with-id node))
   (implementation-restriction-violation 'xpath-fn:element-with-id "Not yet"))
 
 ;;;; 14.5.3 fn:idref
 (define (xpath-fn:idref str node)
-  (unless (node? node)
-    (xqt-error 'XPTY0004 'xpath-fn:idref "Node required" node))
+  (unless (node? node) (xpty0004-error 'xpath-fn:idref node))
   (implementation-restriction-violation 'xpath-fn:idref "Not yet"))
 
 ;;;; 14.5.4 fn:generate-id
 (define (xpath-fn:generate-id node)
   (cond ((null? node) "")
-	((not (node? node))
-	 (xqt-error 'XPTY0004 'xpath-fn:generate-id "Node required" node))
+	((not (node? node)) (xpty0004-error 'xpath-fn:generate-id node))
 	(else
 	 ;; How to generate? Digest or something?
 	 (implementation-restriction-violation 'xpath-fn:generate-id
@@ -1921,6 +1918,40 @@
   (append-map (lambda (e1 e2) (let ((r (f e1 e2))) (if (pair? r) r `(,r))))
 	      seq1 seq2))
 
+;;;; 16.2.6 fn:sort
+(define (deep-less-than a b c)
+  (define (type=? type? a b) (and (type? a) (type? b)))
+  (define (lt a b)
+    (cond ((type=? number? a b) (xpath-op:numeric-less-than a b))
+	  ((type=? boolean? a b) (xpath-op:boolean-less-than a b))
+	  ((type=? xs:year-month-duration? a b)
+	   (xpath-op:year-month-duration-less-than a b))
+	  ((type=? xs:day-time-duration? a b)
+	   (xpath-op:day-time-duration-less-than a b))
+	  ((type=? xs:datetime? a b) (xpath-op:datetime-less-than a b))
+	  ((type=? xs:date? a b) (xpath-op:date-less-than a b))
+	  ((type=? xs:time? a b) (xpath-op:time-less-than a b))
+	  ((type=? bytevector? a b) (xpath-op:hex-binary-less-than a b))
+	  ;; TODO this doesn't work...
+	  ((type=? string? a b) (xpath-op:base64-binary-less-than a b))
+	  (else (xpty0004-error 'deep-less-than `(,a ,b)))))
+  (cond ((null? a) (xpath-fn:exists b))
+	((xpath-fn:deep-equal (xpath-fn:head a) (xpath-fn:head b) c)
+	 (deep-less-than (xpath-fn:tail a) (xpath-fn:tail b) c))
+	((and (number? (xpath-fn:head a))
+	      (not (= (xpath-fn:head a) (xpath-fn:head a))))
+	 ;; NaN
+	 #t)
+	((type=? string? (xpath-fn:head a) (xpath-fn:head b))
+	 (< (xpath-fn:compare (xpath-fn:head a) (xpath-fn:head b) c) 0))
+	(else (lt (xpath-fn:head a) (xpath-fn:head b)))))
+(define xpath-fn:sort
+  (case-lambda
+   ((v) (xpath-fn:sort v '()))
+   ((v c) (xpath-fn:sort v c values))
+   ((v c key)
+    (list-sort (lambda (a b) (deep-less-than (key a) (key b) c)) v))))
+		 
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

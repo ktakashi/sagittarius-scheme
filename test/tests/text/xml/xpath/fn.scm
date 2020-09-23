@@ -1645,6 +1645,11 @@
     (let ((s (iota 8 1)))
       (test-equal '(2 6 12 20 30 42 56) (xpath-fn:for-each-pair s (cdr s) *)))
     )
+
+  (test-group "fn:sort"
+    (test-equal '(1 3 4 5 6) (xpath-fn:sort '(1 4 6 5 3)))
+    (test-equal '(1 -2 5 8 10 -10 10)
+		(xpath-fn:sort '(1 -2 5 10 -10 10 8) '() xpath-fn:abs)))
   )
 
   
