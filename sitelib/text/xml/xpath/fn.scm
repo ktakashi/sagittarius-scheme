@@ -266,7 +266,15 @@
 	    xpath-op:same-key
 	    xpath-fn:map
 	    xpath-map:merge
-	    xpath-map:entry)
+	    xpath-map:size
+	    xpath-map:keys
+	    xpath-map:contains
+	    xpath-map:get
+	    xpath-map:find
+	    xpath-map:put
+	    xpath-map:entry
+	    xpath-map:remove
+	    xpath-map:for-each)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -2046,8 +2054,44 @@
 	       (hashtable-set! r k v)))
 	 (car map*)))))))
 
+;;;; 17.1.3 map:size
+(define (xpath-map:size v) (hashtable-size v))
+;;;; 17.1.4 map:keys
+(define (xpath-map:keys v) (hashtable-keys-list v))
+;;;; 17.1.5 map:contains
+(define (xpath-map:contains v k) (hashtable-contains? v k))
+;;;; 17.1.6 map:get
+(define (xpath-map:get v k) (hashtable-ref v k '()))
+;;;; 17.1.7 map:find
+(define (xpath-map:find input* k)
+  (define (find-inner input k acc)
+    (cond ((hashtable-contains? input k)
+	   (cons (hashtable-ref input k #f) acc))
+	  (else acc)))
+  (do ((r '() (find-inner (car input*) k r))
+       (input* input* (cdr input*)))
+      ((null? input*) (list->vector (reverse! r)))))
+;;;; 17.1.8 map:put
+(define (xpath-map:put m k v)
+  (let ((r (xpath-map:merge (list m))))
+    (hashtable-set! r k v)
+    r))
 ;;;; 17.1.9 map:entry
 (define (xpath-map:entry k value) (xpath-fn:map k value))
+;;;; 17.1.10 map:remove
+(define (xpath-map:remove m keys)
+  (let ((r (xpath-map:merge (list m))))
+    (cond ((null? keys))
+	  ((pair? keys)
+	   (for-each (lambda (k) (hashtable-delete! r k)) keys))
+	  (else (hashtable-delete! r keys)))
+    r))
+;;;; 17.1.11 map:for-each
+(define (xpath-map:for-each map action)
+  (let ((r (hashtable-map action map)))
+    (if (for-all hashtable? r)
+	(xpath-map:merge r)
+	r)))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

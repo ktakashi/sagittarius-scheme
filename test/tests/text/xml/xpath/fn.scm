@@ -1706,7 +1706,96 @@
 		    (xpath-map:merge (list $week (xpath-fn:map 6 "Sonnabend"))
 				     (xpath-fn:map "duplicates" "combine")))))
     )
-    
+
+  (test-group "map:size"
+    (test-equal 0 (xpath-map:size (xpath-fn:map)))
+    (test-equal 2 (xpath-map:size (xpath-fn:map "true" 1 "false" 2))))
+
+  (test-group "map:keys"
+    (test-assert (lset= = '(1 2) (xpath-map:keys (xpath-fn:map 1 "yes" 2 "no")))))
+  
+  (test-group "map:contains"
+    (let (($week (xpath-fn:map 0 "Sonntag" 1 "Montag" 2 "Dienstag"
+			       3 "Mittwoch" 4 "Donnerstag" 5 "Freitag"
+			       6 "Sammstag")))
+      (test-assert (xpath-map:contains $week 2))
+      (test-assert (not (xpath-map:contains $week 9)))
+      (test-assert (not (xpath-map:contains (xpath-fn:map) "xyz")))
+      (test-assert (xpath-map:contains (xpath-fn:map "xyz" 23) "xyz"))
+      (test-assert (xpath-map:contains (xpath-fn:map "abc" 23 "xyz" '()) "xyz"))
+      ))
+
+  (test-group "map:get"
+    (let (($week (xpath-fn:map 0 "Sonntag" 1 "Montag" 2 "Dienstag"
+			       3 "Mittwoch" 4 "Donnerstag" 5 "Freitag"
+			       6 "Sammstag")))
+      (test-equal "Donnerstag" (xpath-map:get $week 4))
+      (test-equal '() (xpath-map:get $week 9))))
+
+  (test-group "map:find"
+    (let (($response (list (xpath-fn:map 0 "no" 1 "yes")
+			   (xpath-fn:map 0 "non" 1 "oui")
+			   (xpath-fn:map 0 "nein" 1 '("ja" "doch")))))
+      (test-equal '#("no" "non" "nein") (xpath-map:find $response 0))
+      (test-equal '#("yes" "oui" ("ja" "doch")) (xpath-map:find $response 1))
+      (test-equal '#() (xpath-map:find $response 02)))
+    )
+  
+  (test-group "map:put"
+    (let (($week (xpath-fn:map 0 "Sonntag" 1 "Montag" 2 "Dienstag"
+			       3 "Mittwoch" 4 "Donnerstag" 5 "Freitag"
+			       6 "Sammstag")))
+      (test-assert (xpath-fn:deep-equal
+		    (xpath-fn:map 0 "Sonntag" 1 "Montag" 2 "Dienstag"
+				  3 "Mittwoch" 4 "Donnerstag" 5 "Freitag"
+				  6 "Sonnabend")
+		    (xpath-map:put $week 6 "Sonnabend")))
+      (test-assert (xpath-fn:deep-equal
+		    (xpath-fn:map 0 "Sonntag" 1 "Montag" 2 "Dienstag"
+				  3 "Mittwoch" 4 "Donnerstag" 5 "Freitag"
+				  6 "Sammstag" -1 "Unbekannt")
+		    (xpath-map:put $week -1 "Unbekannt"))))
+    )
+  (test-group "map:entry"
+    (test-assert (xpath-fn:deep-equal (xpath-fn:map "M" "Monday")
+				      (xpath-map:entry "M" "Monday"))))
+  (test-group "map:remove"
+    (let (($week (xpath-fn:map 0 "Sonntag" 1 "Montag" 2 "Dienstag"
+			       3 "Mittwoch" 4 "Donnerstag" 5 "Freitag"
+			       6 "Sammstag")))
+      (test-assert (xpath-fn:deep-equal
+		    (xpath-fn:map 0 "Sonntag" 1 "Montag" 2 "Dienstag"
+				  3 "Mittwoch" 5 "Freitag"
+				  6 "Sammstag")
+		    (xpath-map:remove $week 4)))
+      (test-assert (xpath-fn:deep-equal
+		    (xpath-fn:map 0 "Sonntag" 1 "Montag" 2 "Dienstag"
+				  3 "Mittwoch" 4 "Donnerstag" 5 "Freitag"
+				  6 "Sammstag")
+		    (xpath-map:remove $week 23)))
+      (test-assert (xpath-fn:deep-equal
+		    (xpath-fn:map 1 "Montag" 2 "Dienstag"
+				  3 "Mittwoch" 4 "Donnerstag" 5 "Freitag")
+		    (xpath-map:remove $week '(0 6 7))))
+      (test-assert (xpath-fn:deep-equal
+		    (xpath-fn:map 0 "Sonntag" 1 "Montag" 2 "Dienstag"
+				  3 "Mittwoch" 4 "Donnerstag" 5 "Freitag"
+				  6 "Sammstag")
+		    (xpath-map:remove $week '())))
+      )
+    )
+  (test-group "map:for-each"
+    (test-assert (lset= = '(1 2) (xpath-map:for-each (xpath-fn:map 1 "yes" 2 "no")
+						     (lambda (k v) k))))
+    (test-assert (lset= string=? '("yes" "no")
+			(xpath-map:for-each (xpath-fn:map 1 "yes" 2 "no")
+					    (lambda (k v) v))))
+    (test-assert (xpath-fn:deep-equal
+		  (xpath-fn:map "a" 2 "b" 3)
+		  (xpath-map:for-each (xpath-fn:map "a" 1 "b" 2)
+				      (lambda (k v)
+					(xpath-map:entry k (+ v 1))))))
+    )
   )
   
 (test-end)
