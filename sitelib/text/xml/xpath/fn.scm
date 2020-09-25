@@ -259,7 +259,11 @@
 	    xpath-fn:fold-left
 	    xpath-fn:fold-right
 	    xpath-fn:for-each-pair
-	    xpath-fn:sort)
+	    xpath-fn:sort
+	    xpath-fn:apply
+	    xpath-fn:load-xquery-module
+	    xpath-fn:transform
+	    xpath-op:same-key)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -1951,7 +1955,34 @@
    ((v c) (xpath-fn:sort v c values))
    ((v c key)
     (list-sort (lambda (a b) (deep-less-than (key a) (key b) c)) v))))
-		 
+
+;;;; 16.2.7 fn:apply
+(define (xpath-fn:apply fn arr)
+  ;; TODO raise FOAP0001, when arity is not the same
+  (apply fn (vector->list arr)))
+
+;;;; 16.3.1 fn:load-xquery-module
+(define (xpath-fn:load-xquery-module uri . options)
+  (implementation-restriction-violation 'xpath-fn:load-xquery-module
+					"Not supported"))
+;;;; 16.3.2 fn:transform
+(define (xpath-fn:transform options)
+  (implementation-restriction-violation 'xpath-fn:transform
+					"Not supported"))
+
+;;;; 17.1.1 op:same-key
+(define (xpath-op:same-key key1 key2)
+  (cond ((and (string? key1) (string? key2)) (string=? key1 key2))
+	((and (number? key1) (number? key2)) (= key1 key2))
+	((and (xs:base-date? key1) (xs:base-date? key2))
+	 (xs:base-date=? key1 key2))
+	((or (and (boolean? key1) (boolean? key2))
+	     (and (bytevector? key1) (bytevector? key2))
+	     (and (xs:duration? key1) (xs:duration? key2))
+	     ;; TODO base64Binary and notation
+	     )
+	 (xpath-fn:deep-equal key1 key2))
+	(else #f)))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

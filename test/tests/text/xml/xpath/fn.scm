@@ -1650,6 +1650,11 @@
     (test-equal '(1 3 4 5 6) (xpath-fn:sort '(1 4 6 5 3)))
     (test-equal '(1 -2 5 8 10 -10 10)
 		(xpath-fn:sort '(1 -2 5 10 -10 10 8) '() xpath-fn:abs)))
+
+  (test-group "fn:apply"
+    (test-equal "abc" (xpath-fn:apply xpath-fn:concat #("a" "b" "c")))
+
+    (xpath-fn:apply xpath-fn:sort #("a" "b" "c" "c")))
   )
 
   
