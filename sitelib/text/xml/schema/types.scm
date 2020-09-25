@@ -47,6 +47,14 @@
 	    xs:year-month-duration xs:year-month-duration?
 	    (rename make-xs:year-month-duration xs:make-year-month-duration)
 
+	    xs:base64-binary xs:base64-binary?
+	    (rename make-xs:base64-binary xs:make-base64-binary)
+	    xs:base64-binary-string-value
+	    xs:base64-binary-bytevector-value
+	    xs:base64-binary=?
+	    xs:base64-binary<?
+	    xs:base64-binary>?
+	    
 	    xs:qname xs:qname? (rename make-xs:qname xs:make-qname)
 	    xs:qname-namespace-uri xs:qname-local-part xs:qname-prefix
 	    xs:qname->node-name xs:qname->expanded-qname
@@ -149,6 +157,7 @@
 	    *xs:dynamic-timezone*
 	    )
     (import (rnrs)
+	    (rfc base64)
 	    (sagittarius calendar)
 	    (sagittarius calendar gregorian)
 	    (sagittarius timezone)
@@ -156,7 +165,8 @@
 	    (srfi :19 time)
 	    (srfi :39 parameters)
 	    (srfi :115 regexp)
-	    (srfi :144 flonums))
+	    (srfi :144 flonums)
+	    (util bytevector))
 
 (define (timezone:find-etc/gmt off)
   (let ((tz* (zone-offset->timezones* off)))
@@ -322,6 +332,30 @@
 		    (assertion-violation 'xs:make-year-month-duration
 					 "Second must not be specified" d))
 		  ((p m 0.0))))))))
+
+(define-record-type xs:base64-binary
+  (parent xs:any-atomic-type)
+  (fields string-value
+	  bytevector-value)
+  (protocol (lambda (p)
+	      (lambda (v)
+		(cond ((string? v)
+		       ((p) v (base64-decode (string->utf8 v))))
+		      ((bytevector? v)
+		       ((p) (utf8->string (base64-encode v)) v))
+		      (else
+		       (assertion-violation 'xs:make-base64-binary
+					    "string or bytevector required" v)))
+		))))
+(define (xs:base64-binary=? a b)
+  (bytevector=? (xs:base64-binary-bytevector-value a)
+		(xs:base64-binary-bytevector-value b)))
+(define (xs:base64-binary<? a b)
+  (bytevector<? (xs:base64-binary-bytevector-value a)
+		(xs:base64-binary-bytevector-value b)))
+(define (xs:base64-binary>? a b)
+  (bytevector>? (xs:base64-binary-bytevector-value a)
+		(xs:base64-binary-bytevector-value b)))
 
 (define-record-type xs:qname
   (parent xs:any-atomic-type)

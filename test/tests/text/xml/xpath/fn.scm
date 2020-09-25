@@ -1360,11 +1360,18 @@
     (test-assert (xpath-op:hex-binary-greater-than #vu8(1 2) #vu8(1 1))))
 
   (test-group "op:base64Binary-equal"
-    (test-assert (xpath-op:base64-binary-equal "AQI=" "AQI=")))
+    (test-assert (xpath-op:base64-binary-equal (xs:make-base64-binary "AQI=")
+					       (xs:make-base64-binary "AQI=")))
+    (test-assert (xpath-op:base64-binary-equal (xs:make-base64-binary "AQI")
+					       (xs:make-base64-binary "AQI="))))
   (test-group "op:base64Binary-less-than"
-    (test-assert (xpath-op:base64-binary-less-than "AQI=" "AgE=")))
+    (test-assert (xpath-op:base64-binary-less-than
+		  (xs:make-base64-binary "AQI=")
+		  (xs:make-base64-binary "AgE="))))
   (test-group "op:base64Binary-greater-than"
-    (test-assert (xpath-op:base64-binary-greater-than "AgE=" "AQI=")))
+    (test-assert (xpath-op:base64-binary-greater-than
+		  (xs:make-base64-binary "AgE=")
+		  (xs:make-base64-binary "AQI="))))
   )
 
 
@@ -1652,11 +1659,20 @@
 		(xpath-fn:sort '(1 -2 5 10 -10 10 8) '() xpath-fn:abs)))
 
   (test-group "fn:apply"
-    (test-equal "abc" (xpath-fn:apply xpath-fn:concat #("a" "b" "c")))
-
-    (xpath-fn:apply xpath-fn:sort #("a" "b" "c" "c")))
+    (test-equal "abc" (xpath-fn:apply xpath-fn:concat #("a" "b" "c"))))
   )
 
+(test-group "Maps and Arrays"
+  (test-group "op:same-key"
+    (test-assert (xpath-op:same-key "abc" "abc"))
+    (test-assert (xpath-op:same-key 1 1))
+    (test-assert (xpath-op:same-key 1 1.0))
+    (test-assert (xpath-op:same-key +nan.0 +nan.0))
+    (test-assert (xpath-op:same-key +inf.0 +inf.0))
+    (test-assert (not (xpath-op:same-key +inf.0 -inf.0)))
+    (test-assert (xpath-op:same-key (xs:make-base64-binary "AQI")
+				    (xs:make-base64-binary "AQI="))))
+  )
   
 (test-end)
 

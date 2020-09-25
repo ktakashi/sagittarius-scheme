@@ -268,7 +268,6 @@
 	    (rnrs r5rs)
 	    (peg)
 	    (peg chars)
-	    (rfc base64)
 	    (rfc uri)
 	    (sagittarius)
 	    (sagittarius calendar)
@@ -1421,17 +1420,12 @@
 ;;;; 11.1.3 op:hexBinary-greater-than
 (define xpath-op:hex-binary-greater-than bytevector>?)
 
-(define (base64-binary-comparison =)
-  (lambda (a b)
-    (= (base64-decode (string->utf8 a))
-       (base64-decode (string->utf8 b)))))
 ;;;; 11.1.4 op:base64Binary-equal
-(define xpath-op:base64-binary-equal (base64-binary-comparison bytevector=?))
+(define xpath-op:base64-binary-equal xs:base64-binary=?)
 ;;;; 11.1.5 op:base64Binary-less-than
-(define xpath-op:base64-binary-less-than (base64-binary-comparison bytevector<?))
+(define xpath-op:base64-binary-less-than xs:base64-binary<?)
 ;;;; 11.1.6 op:base64Binary-greater-than
-(define xpath-op:base64-binary-greater-than
-  (base64-binary-comparison bytevector>?))
+(define xpath-op:base64-binary-greater-than xs:base64-binary>?)
 
 ;;;; 12.1 op:NOTATION-equal
 (define (xpath-op:notation-equal arg1 arg2)
@@ -1572,6 +1566,15 @@
 	 (and (= (length a) (length b))
 	      (for-all %xpath-fn:deep-equal a b)))
 	((equal? a b)) ;; atomic can be compared like this ;)
+	((and (xs:base64-binary? a) (xs:base64-binary? b))
+	 (xs:base64-binary=? a b))
+	((and (xs:base-date? a) (xs:base-date? b))
+	 ;; TODO check type...
+	 (xs:base-date=? a b))
+	((and (xs:duration? a) (xs:duration? b))
+	 ;; TODO check type
+	 (and (= (xs:duration-seconds a) (xs:duration-seconds b))
+	      (= (xs:duration-months a) (xs:duration-months b))))
 	((and (vector? a) (vector? b))
 	 (vector= %xpath-fn:deep-equal a b))
 	((and (hashtable? a) (hashtable? b))
@@ -1936,8 +1939,8 @@
 	  ((type=? xs:date? a b) (xpath-op:date-less-than a b))
 	  ((type=? xs:time? a b) (xpath-op:time-less-than a b))
 	  ((type=? bytevector? a b) (xpath-op:hex-binary-less-than a b))
-	  ;; TODO this doesn't work...
-	  ((type=? string? a b) (xpath-op:base64-binary-less-than a b))
+	  ((type=? xs:base64-binary? a b)
+	   (xpath-op:base64-binary-less-than a b))
 	  (else (xpty0004-error 'deep-less-than `(,a ,b)))))
   (cond ((null? a) (xpath-fn:exists b))
 	((xpath-fn:deep-equal (xpath-fn:head a) (xpath-fn:head b) c)
@@ -1973,13 +1976,16 @@
 ;;;; 17.1.1 op:same-key
 (define (xpath-op:same-key key1 key2)
   (cond ((and (string? key1) (string? key2)) (string=? key1 key2))
-	((and (number? key1) (number? key2)) (= key1 key2))
+	((and (number? key1) (number? key2))
+	 (or (and (nan? key1) (nan? key2))
+	     (= key1 key2)))
 	((and (xs:base-date? key1) (xs:base-date? key2))
 	 (xs:base-date=? key1 key2))
 	((or (and (boolean? key1) (boolean? key2))
 	     (and (bytevector? key1) (bytevector? key2))
+	     (and (xs:base64-binary? key1) (xs:base64-binary? key2))
 	     (and (xs:duration? key1) (xs:duration? key2))
-	     ;; TODO base64Binary and notation
+	     ;; TODO  notation
 	     )
 	 (xpath-fn:deep-equal key1 key2))
 	(else #f)))
