@@ -263,7 +263,10 @@
 	    xpath-fn:apply
 	    xpath-fn:load-xquery-module
 	    xpath-fn:transform
-	    xpath-op:same-key)
+	    xpath-op:same-key
+	    xpath-fn:map
+	    xpath-map:merge
+	    xpath-map:entry)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -291,7 +294,8 @@
 	    (text xml xpath dm)
 	    (text xml xpath tools)
 	    (util bytevector)
-	    (util file))
+	    (util file)
+	    (util hashtables))
 
 ;;; 2 Accessors
 ;;; All accessor requires the $arg argument, the XPath evaluator
@@ -1989,6 +1993,61 @@
 	     )
 	 (xpath-fn:deep-equal key1 key2))
 	(else #f)))
+(define (xpath-op:hash value)
+  (unless (xs:any-atomic-type? value)
+    (assertion-violation 'xpath-op:hash "Invalid type" value))
+  ;; for now
+  (equal-hash value))
+
+;;;;; well define it here for convenience...
+;; k&v* ::= [key value]*
+;; this one isn't there but we can use as map{} constructor ;)
+(define (xpath-fn:map . k&v*)
+  (do ((r (make-hashtable xpath-op:hash xpath-op:same-key))
+       (k&v* k&v* (cddr k&v*)))
+      ((null? k&v*) r)
+    (let ((k (car k&v*))
+	  (v (cadr k&v*)))
+      (hashtable-set! r k v))))
+
+;;;; 17.1.2 map:merge
+(define default-operation (lambda (a b) a))
+(define *operations*
+  `(("use-first" . ,default-operation)
+    ("use-last"  . ,(lambda (a b) b))
+    ("combine"   . ,(lambda (a b)
+		      (if (pair? a)
+			  `(,@a ,b)
+			  (list a b))))
+    ("reject"    . ,(lambda (a b)
+		      (xqt-error 'FOJS0003
+				 'xpath-map:merge "Duplicate key" a b)))
+    ("use-any"   . ,(lambda (a b) a))))
+(define default-operation
+  (alist->hashtable '(("duplicates" . "use-first"))))
+(define xpath-map:merge 
+  (case-lambda
+   ((map*) (xpath-map:merge map* default-operation))
+   ((map* options)
+    (define (get-duplicate-handler op)
+      (cond ((hashtable-ref op "duplicates" #f) =>
+	     (lambda (key)
+	       (cond ((assoc key *operations*) => cdr)
+		     (else (xqt-error 'FOJS0005 'xpath-map:merge
+				      "Non supported key" key)))))
+	    (else default-operation)))
+    (let ((duplicate-handler (get-duplicate-handler options)))
+      (do ((r (xpath-fn:map)) (map* map* (cdr map*)))
+	  ((null? map*) r)
+	(hashtable-for-each
+	 (lambda (k v)
+	   (if (hashtable-contains? r k)
+	       (hashtable-set! r k (duplicate-handler (hashtable-ref r k) v))
+	       (hashtable-set! r k v)))
+	 (car map*)))))))
+
+;;;; 17.1.9 map:entry
+(define (xpath-map:entry k value) (xpath-fn:map k value))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

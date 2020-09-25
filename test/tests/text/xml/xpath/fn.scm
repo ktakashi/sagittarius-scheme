@@ -1672,6 +1672,41 @@
     (test-assert (not (xpath-op:same-key +inf.0 -inf.0)))
     (test-assert (xpath-op:same-key (xs:make-base64-binary "AQI")
 				    (xs:make-base64-binary "AQI="))))
+
+  (test-group "map:merge"
+    (test-assert (xpath-fn:deep-equal (xpath-fn:map) (xpath-map:merge '())))
+    (test-assert (xpath-fn:deep-equal
+		  (xpath-fn:map 0 "no" 1 "yes")
+		  (xpath-map:merge (list (xpath-map:entry 0 "no")
+					 (xpath-map:entry 1 "yes")))))
+    (let (($week (xpath-fn:map 0 "Sonntag" 1 "Montag" 2 "Dienstag"
+			       3 "Mittwoch" 4 "Donnerstag" 5 "Freitag"
+			       6 "Sammstag")))
+      (test-assert (xpath-fn:deep-equal
+		    (xpath-fn:map 0 "Sonntag" 1 "Montag" 2 "Dienstag"
+				  3 "Mittwoch" 4 "Donnerstag" 5 "Freitag"
+				  6 "Sammstag" 7 "Unbekannt")
+		    (xpath-map:merge (list $week (xpath-fn:map 7 "Unbekannt")))))
+      (test-assert (xpath-fn:deep-equal
+		    (xpath-fn:map 0 "Sonntag" 1 "Montag" 2 "Dienstag"
+				  3 "Mittwoch" 4 "Donnerstag" 5 "Freitag"
+				  6 "Sonnabend")
+		    (xpath-map:merge (list $week (xpath-fn:map 6 "Sonnabend"))
+				     (xpath-fn:map "duplicates" "use-last"))))
+      (test-assert (xpath-fn:deep-equal
+		    (xpath-fn:map 0 "Sonntag" 1 "Montag" 2 "Dienstag"
+				  3 "Mittwoch" 4 "Donnerstag" 5 "Freitag"
+				  6 "Sammstag")
+		    (xpath-map:merge (list $week (xpath-fn:map 6 "Sonnabend"))
+				     (xpath-fn:map "duplicates" "use-first"))))
+      (test-assert (xpath-fn:deep-equal
+		    (xpath-fn:map 0 "Sonntag" 1 "Montag" 2 "Dienstag"
+				  3 "Mittwoch" 4 "Donnerstag" 5 "Freitag"
+				  6 '("Sammstag" "Sonnabend"))
+		    (xpath-map:merge (list $week (xpath-fn:map 6 "Sonnabend"))
+				     (xpath-fn:map "duplicates" "combine")))))
+    )
+    
   )
   
 (test-end)
