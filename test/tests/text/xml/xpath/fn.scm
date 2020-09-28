@@ -1796,6 +1796,88 @@
 				      (lambda (k v)
 					(xpath-map:entry k (+ v 1))))))
     )
+
+  (test-group "array:size"
+    (test-equal 3 (xpath-array:size '#("a" "b" "c")))
+    (test-equal 2 (xpath-array:size '#("a" #("b" "c"))))
+    (test-equal 0 (xpath-array:size '#()))
+    (test-equal 1 (xpath-array:size '#(#()))))
+  
+  (test-group "array:get"
+    (test-equal "b" (xpath-array:get '#("a" "b" "c") 2))
+    (test-equal '#("b" "c") (xpath-array:get '#("a" #("b" "c")) 2))
+    (test-xqt-error FOAY0001 (xpath-array:get '#("a" "b" "c") 0))
+    (test-xqt-error FOAY0001 (xpath-array:get '#("a" "b" "c") 4)))
+
+  (test-group "array:put"
+    (test-equal '#("a" "d" "c") (xpath-array:put '#("a" "b" "c") 2 "d"))
+    (test-equal '#("a" #("d" "e") "c")
+		(xpath-array:put '#("a" "b" "c") 2 '#("d" "e")))
+    (test-equal '#(#("d" "e")) (xpath-array:put '#("a") 1 '#("d" "e")))
+    (test-xqt-error FOAY0001 (xpath-array:put '#() 0 "a"))
+    (test-xqt-error FOAY0001 (xpath-array:put '#("a" "b" "c") 0 "d"))
+    (test-xqt-error FOAY0001 (xpath-array:put '#("a" "b" "c") 4 "d")))
+
+  (test-group "array:append"
+    (test-equal '#("a" "b" "c" "d") (xpath-array:append '#("a" "b" "c") "d"))
+    (test-equal '#("a" "b" "c" ("d" "e"))
+		(xpath-array:append '#("a" "b" "c") '("d" "e")))
+    (test-equal '#("a" "b" "c" #("d" "e"))
+		(xpath-array:append '#("a" "b" "c") '#("d" "e"))))
+
+  (test-group "array:subarray"
+    (test-equal '#("b" "c" "d") (xpath-array:subarray '#("a" "b" "c" "d") 2))
+    (test-equal '#() (xpath-array:subarray '#("a" "b" "c" "d") 5))
+    (test-equal '#() (xpath-array:subarray '#("a" "b" "c" "d") 2 0))
+    (test-equal '#("b") (xpath-array:subarray '#("a" "b" "c" "d") 2 1))
+    (test-equal '#("b" "c") (xpath-array:subarray '#("a" "b" "c" "d") 2 2))
+    (test-equal '#() (xpath-array:subarray '#("a" "b" "c" "d") 5 0))
+    (test-equal '#() (xpath-array:subarray '#() 1 0))
+    )
+
+  (test-group "array:remove"
+    (test-equal '#("b" "c" "d") (xpath-array:remove '#("a" "b" "c" "d") 1))
+    (test-equal '#("a" "c" "d" ) (xpath-array:remove '#("a" "b" "c" "d") 2))
+    (test-equal '#() (xpath-array:remove '#("a") 1))
+    (test-equal '#("d") (xpath-array:remove '#("a" "b" "c" "d") '(1 2 3)))
+    (test-equal '#("a" "b" "c" "d") (xpath-array:remove '#("a" "b" "c" "d") ()))
+    )
+
+  (test-group "array:insert-before"
+    (test-equal '#("a" "b" ("x" "y") "c" "d")
+		(xpath-array:insert-before '#("a" "b" "c" "d") 3 '("x" "y")))
+    (test-equal '#("a" "b" "c" "d" ("x" "y"))
+		(xpath-array:insert-before '#("a" "b" "c" "d") 5 '("x" "y")))
+    (test-equal '#("a" "b" #("x" "y") "c" "d")
+		(xpath-array:insert-before '#("a" "b" "c" "d") 3 '#("x" "y")))
+    )
+
+  (test-group "array:head"
+    (test-equal 5 (xpath-array:head '#(5 6 7 8)))
+    (test-equal '#("a" "b") (xpath-array:head '#(#("a" "b") #("c" "d"))))
+    (test-equal '("a" "b") (xpath-array:head '#(("a" "b") ("c" "d"))))
+    )
+  (test-group "array:tail"
+    (test-equal '#(6 7 8) (xpath-array:tail '#(5 6 7 8)))
+    (test-equal '#() (xpath-array:tail '#(5)))
+    )
+  (test-group "array:reverse"
+    (test-equal '#("d" "c" "b" "a") (xpath-array:reverse '#("a" "b" "c" "d")))
+    (test-equal '#(("c" "d") ("a" "b"))
+		(xpath-array:reverse '#(("a" "b") ("c" "d"))))
+    (test-equal '#((1 2 3 4 5)) (xpath-array:reverse '#((1 2 3 4 5))))
+    (test-equal '#() (xpath-array:reverse '#()))
+    )
+
+  (test-group "array:join"
+    (test-equal '#() (xpath-array:join '()))
+    (test-equal '#(1 2 3) (xpath-array:join '#(1 2 3)))
+    (test-equal '#("a" "b" "c" "d") (xpath-array:join '(#("a" "b") #("c" "d"))))
+    (test-equal '#("a" "b" "c" "d")
+		(xpath-array:join '(#("a" "b") #("c" "d") #())))
+    (test-equal '#("a" "b" "c" "d" '#("e" "f"))
+		(xpath-array:join '(#("a" "b") #("c" "d") #('#("e" "f")))))
+    )
   )
   
 (test-end)

@@ -274,7 +274,18 @@
 	    xpath-map:put
 	    xpath-map:entry
 	    xpath-map:remove
-	    xpath-map:for-each)
+	    xpath-map:for-each
+	    xpath-array:size
+	    xpath-array:get
+	    xpath-array:put
+	    xpath-array:append
+	    xpath-array:subarray
+	    xpath-array:remove
+	    xpath-array:insert-before
+	    xpath-array:head
+	    xpath-array:tail
+	    xpath-array:reverse
+	    xpath-array:join)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -2092,6 +2103,84 @@
     (if (for-all hashtable? r)
 	(xpath-map:merge r)
 	r)))
+
+;;;; 17.3.1 array:size
+(define (xpath-array:size array) (vector-length array))
+;;;; 17.3.2 array:get
+(define (array:check-index who array i)
+  (unless (<= 1 i (vector-length array))
+    (xqt-error 'FOAY0001 'who "Index out of bound" i)))
+(define (xpath-array:get array i)
+  (array:check-index 'xpath-array:get array i)
+  (vector-ref array (- i 1)))
+;;;; 17.3.3 array:put
+(define (xpath-array:put array i v)
+  (array:check-index 'xpath-array:put array i)
+  (let ((r (vector-copy array)))
+    (vector-set! r (- i 1) v)
+    r))
+;;;; 17.3.4 array:append
+(define (xpath-array:append array v)
+  (vector-append array (vector v)))
+;;;; 17.3.5 array:subarray
+(define xpath-array:subarray
+  (case-lambda
+   ((array start)
+    (xpath-array:subarray array start
+			  (max 0 (- (vector-length array) (- start 1)))))
+   ((array start length)
+    (unless (<= 1 start (+ (vector-length array) 1))
+      (xqt-error 'FOAY0001 'xpath-array:subarray
+		 "Start is less than 1 or greater than size+1" start))
+    (when (negative? length)
+      (xqt-error 'FOAY0002 'xpath-array:subarray "Negative length subarray"))
+    (vector-copy array (- start 1) (+ (- start 1) length)))))
+;;;; 17.3.6 array:remove
+(define (xpath-array:remove array pos*)
+  (cond ((null? pos*) array)
+	((integer? pos*) (xpath-array:remove array (list pos*)))
+	(else
+	 (for-each (lambda (pos)
+		     (array:check-index xpath-array:remove array pos)) pos*)
+	 (let* ((l (length pos*))
+		(ol (vector-length array))
+		(size (- ol l))
+		(r (make-vector size)))
+	   (let loop ((i 0) (j 0))
+	     (cond ((= j ol) r)
+		   ((memv (+ j 1) pos*) (loop i (+ j 1)))
+		   (else
+		    (vector-set! r i (vector-ref array j))
+		    (loop (+ i 1) (+ j 1)))))))))
+;;;; 17.3.7 array:insert-before
+(define (xpath-array:insert-before array pos v)
+  (unless (<= 1 pos (+ (vector-length array) 1))
+    (xqt-error 'FOAY0001 'who "Position is less than 1 or greater than size+1"
+	       pos))
+  (let* ((len (vector-length array))
+	 (ind (- pos 1)))
+    (if (= ind len)
+	(xpath-array:append array v)
+	(let ((vec (make-vector (+ len 1))))
+	  (let loop ((i 0) (j 0))
+	    (cond ((= j len) vec)
+		  ((= i ind)
+		   (vector-set! vec i v)
+		   (loop (+ i 1) j))
+		  (else
+		   (vector-set! vec i (vector-ref array j))
+		   (loop (+ i 1) (+ j 1)))))))))
+;;;; 17.3.8 array:head
+(define (xpath-array:head array) (xpath-array:get array 1))
+;;;; 17.3.9 array:tail
+(define (xpath-array:tail array) (xpath-array:remove array 1))
+;;;; 17.3.10 array:reverse
+(define (xpath-array:reverse array) (vector-reverse array))
+;;;; 17.3.11 array:join
+(define (xpath-array:join array*)
+  (if (vector? array*)
+      array*
+      (vector-concatenate array*)))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)
