@@ -285,7 +285,14 @@
 	    xpath-array:head
 	    xpath-array:tail
 	    xpath-array:reverse
-	    xpath-array:join)
+	    xpath-array:join
+	    xpath-array:for-each
+	    xpath-array:filter
+	    xpath-array:fold-left
+	    xpath-array:fold-right
+	    xpath-array:for-each-pair
+	    xpath-array:sort
+	    xpath-array:flatten)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -314,7 +321,8 @@
 	    (text xml xpath tools)
 	    (util bytevector)
 	    (util file)
-	    (util hashtables))
+	    (util hashtables)
+	    (util vector))
 
 ;;; 2 Accessors
 ;;; All accessor requires the $arg argument, the XPath evaluator
@@ -779,7 +787,10 @@
     (let ((flags (string-flags->flags 'xpath-fn:tokenize flags)))
       (check-pattern 'xpath-fn:tokenize input pattern flags)
       (guard (e (else (xqt-error 'FORX0002 'xpath-fn:tokenize (condition-message e))))
-	(regexp-split (regex pattern flags) input))))))
+	(let ((r (regexp-split (regex pattern flags) input)))
+	  (if (null? (cdr r))
+	      (car r)
+	      r)))))))
 
 ;;;; 5.6.6 fn:analyze-string
 (define xpath-fn:analyze-string
@@ -1512,10 +1523,11 @@
 
 
 ;;;; 14.1.1 fn:empty
-(define (xpath-fn:empty arg) (null? arg))
+(define (xpath-fn:empty arg)
+  (or (null? arg) (and (vector? arg) (zero? (vector-length arg)))))
 
 ;;;; 14.1.2 fn:exists
-(define (xpath-fn:exists arg*) (not (null? arg*)))
+(define (xpath-fn:exists arg*) (not (xpath-fn:empty arg*)))
 
 ;;;; 14.1.3 fn:head
 (define (xpath-fn:head arg)
@@ -1951,36 +1963,37 @@
 ;;;; 16.2.6 fn:sort
 (define (deep-less-than a b c)
   (define (type=? type? a b) (and (type? a) (type? b)))
-  (define (lt a b)
-    (cond ((type=? number? a b) (xpath-op:numeric-less-than a b))
-	  ((type=? boolean? a b) (xpath-op:boolean-less-than a b))
-	  ((type=? xs:year-month-duration? a b)
-	   (xpath-op:year-month-duration-less-than a b))
-	  ((type=? xs:day-time-duration? a b)
-	   (xpath-op:day-time-duration-less-than a b))
-	  ((type=? xs:datetime? a b) (xpath-op:datetime-less-than a b))
-	  ((type=? xs:date? a b) (xpath-op:date-less-than a b))
-	  ((type=? xs:time? a b) (xpath-op:time-less-than a b))
-	  ((type=? bytevector? a b) (xpath-op:hex-binary-less-than a b))
-	  ((type=? xs:base64-binary? a b)
-	   (xpath-op:base64-binary-less-than a b))
-	  (else (xpty0004-error 'deep-less-than `(,a ,b)))))
-  (cond ((null? a) (xpath-fn:exists b))
-	((xpath-fn:deep-equal (xpath-fn:head a) (xpath-fn:head b) c)
-	 (deep-less-than (xpath-fn:tail a) (xpath-fn:tail b) c))
-	((and (number? (xpath-fn:head a))
-	      (not (= (xpath-fn:head a) (xpath-fn:head a))))
-	 ;; NaN
-	 #t)
-	((type=? string? (xpath-fn:head a) (xpath-fn:head b))
-	 (< (xpath-fn:compare (xpath-fn:head a) (xpath-fn:head b) c) 0))
-	(else (lt (xpath-fn:head a) (xpath-fn:head b)))))
+  (cond ((type=? string? a b) (< (xpath-fn:compare a b c) 0))
+	((type=? number? a b) (xpath-op:numeric-less-than a b))
+	((type=? boolean? a b) (xpath-op:boolean-less-than a b))
+	((type=? xs:year-month-duration? a b)
+	 (xpath-op:year-month-duration-less-than a b))
+	((type=? xs:day-time-duration? a b)
+	 (xpath-op:day-time-duration-less-than a b))
+	((type=? xs:datetime? a b) (xpath-op:datetime-less-than a b))
+	((type=? xs:date? a b) (xpath-op:date-less-than a b))
+	((type=? xs:time? a b) (xpath-op:time-less-than a b))
+	((type=? bytevector? a b) (xpath-op:hex-binary-less-than a b))
+	((type=? xs:base64-binary? a b)
+	 (xpath-op:base64-binary-less-than a b))
+	((type=? pair? a b)
+	 (or (deep-less-than (xpath-fn:head a) (xpath-fn:head b) c)
+	     (deep-less-than (xpath-fn:tail a) (xpath-fn:tail b) c)))
+	((type=? vector? a b)
+	 (and (not (zero? (vector-length a)))
+	      (not (zero? (vector-length b)))
+	      (or (deep-less-than (xpath-array:head a) (xpath-array:head b) c)
+		  (deep-less-than (xpath-array:tail a) (xpath-array:tail b) c)))
+	 )
+	((eq? a b) #f) ;; lazy... though this would handle symbol, should we?
+	(else (xpty0004-error 'deep-less-than `(,a ,b)))))
 (define xpath-fn:sort
   (case-lambda
    ((v) (xpath-fn:sort v '()))
    ((v c) (xpath-fn:sort v c values))
    ((v c key)
-    (list-sort (lambda (a b) (deep-less-than (key a) (key b) c)) v))))
+    (list-sort
+     (lambda (a b) (deep-less-than (key a) (key b) c)) v))))
 
 ;;;; 16.2.7 fn:apply
 (define (xpath-fn:apply fn arr)
@@ -2181,7 +2194,42 @@
   (if (vector? array*)
       array*
       (vector-concatenate array*)))
-
+;;;; 17.3.12 array:for-each
+(define (xpath-array:for-each array action)
+  (vector-map (lambda (i e) (action e)) array))
+;;;; 17.3.13 array:filter
+(define (xpath-array:filter array action)
+  (vector-filter action array))
+;;;; 17.3.14 array:fold-left
+(define (xpath-array:fold-left array nil action)
+  (vector-fold (lambda (i a b) (action a b)) nil array))
+;;;; 17.3.15 array:fold-right
+(define (xpath-array:fold-right array nil action)
+  (vector-fold-right (lambda (i b a) (action a b)) nil array))
+;;;; 17.3.16 array:for-each-pair
+(define (xpath-array:for-each-pair array1 array2 action)
+  (vector-map (lambda (i e1 e2) (action e1 e2)) array1 array2))
+;;;; 17.3.17 array:sort
+(define xpath-array:sort
+  (case-lambda
+   ((v) (xpath-array:sort v '()))
+   ((v c) (xpath-array:sort v c values))
+   ((v c key)
+    (vector-sort
+     (lambda (a b) (deep-less-than (key a) (key b) c)) v))))
+;;;; 17.3.18 array:flatten
+(define (xpath-array:flatten array*)
+  (define (->list array*)
+    (if (vector? array*)
+	(->list (vector->list array*))
+	(map (lambda (e) (if (vector? e) (->list (vector->list e)) e)) array*)))
+  (define (flatten l)
+    (cond ((null? l) '())
+	  ((not (pair? l)) (list l))
+	  (else (append (flatten (car l)) (flatten (cdr l))))))
+  (flatten (->list array*)))
+   
+  
 ;;; 19 Casting
 (define (atomic->string who atomic)
   (cond ((string? atomic) atomic)

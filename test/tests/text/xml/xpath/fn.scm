@@ -1878,6 +1878,56 @@
     (test-equal '#("a" "b" "c" "d" '#("e" "f"))
 		(xpath-array:join '(#("a" "b") #("c" "d") #('#("e" "f")))))
     )
+
+  (test-group "array:for-each"
+    (test-equal '#(#f #f #t #t) (xpath-array:for-each '#("A" "B" 1 2) number?))
+    (test-equal '#(("the" "cat") "sat" ("on" "the" "mat"))
+		(xpath-array:for-each '#("the cat" "sat" "on the mat")
+				      xpath-fn:tokenize)))
+
+  (test-group "array:filter"
+    (test-equal '#(1 2) (xpath-array:filter '#("A" "B" 1 2) number?))
+    (test-equal '#("the cat" "on the mat")
+		(xpath-array:filter
+		 '#("the cat" "sat" "on the mat")
+		 (lambda (e) (> (xpath-fn:count (xpath-fn:tokenize e)) 1))))
+    (test-equal '#("A" "B" 1)
+		(xpath-array:filter '#("A" "B" "" 0 1) xpath-fn:boolean))
+    )
+  (test-group "array:fold-left"
+    (test-assert (not (xpath-array:fold-left '#(#t #t #f) #f
+					     (lambda (a b) (and a b)))))
+    (test-assert (xpath-array:fold-left '#(#t #t #f) #t (lambda (a b) (or a b))))
+    (test-equal '#(#(#(#() 1) 2) 3)
+		(xpath-array:fold-left '#(1 2 3) '#() (lambda (a b) `#(,a ,b)))))
+  (test-group "array:fold-right"
+    (test-assert (not (xpath-array:fold-right '#(#t #t #f) #f
+					     (lambda (a b) (and a b)))))
+    (test-assert (xpath-array:fold-right '#(#t #t #f) #t (lambda (a b) (or a b))))
+    (test-equal '#(1 #(2 #(3 #())))
+		(xpath-array:fold-right '#(1 2 3) '#() (lambda (a b) `#(,a ,b)))))
+  (test-group "array:for-each-pair"
+    (test-equal '#(#("A" 1) #("B" 2) #("C" 3))
+		(xpath-array:for-each-pair '#("A" "B" "C") '#(1 2 3)
+					   (lambda (a b) (vector a b))))
+    (let (($A '#("A" "B" "C" "D")))
+      (test-equal '#("AB" "BC" "CD")
+		  (xpath-array:for-each-pair $A (xpath-array:tail $A)
+					     xpath-fn:concat))))
+
+  (test-group "array:sort"
+    (test-equal '#(1 3 4 5 6) (xpath-array:sort '#(1 4 6 5 3)))
+    (test-equal '#(1 -2 5 8 10 -10 10)
+		(xpath-array:sort '#(1 -2 5 10 -10 10 8) '() xpath-fn:abs))
+    (test-equal '#((00) (01) (10) (11))
+		(xpath-array:sort '#((10) (11) (01) (00)))))
+
+  (test-group "array:flatten"
+    (test-equal '(1 4 6 5 3) (xpath-array:flatten '#(1 4 6 5 3)))
+    (test-equal '(1 2 5 10 11 12 13)
+		(xpath-array:flatten '(#(1 2 5) #((10 11) 12) #() 13)))
+    (test-equal '(1 0 1 1 0 1 0 0)
+		(xpath-array:flatten '#((1 0) (1 1) (0 1) (0 0)))))
   )
   
 (test-end)
