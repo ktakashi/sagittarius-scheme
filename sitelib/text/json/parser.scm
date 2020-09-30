@@ -34,7 +34,7 @@
 #!nounbound
 (library (text json parser)
     (export json:parser
-	    json-error?
+	    json-error?	      ;; for backward compatibility
 	    json-parse-error?
 	    *json:escape-required*
 	    *json:raise-error?*
@@ -53,7 +53,9 @@
 	    (sagittarius generators)
 	    (srfi :14 char-sets)
 	    (srfi :39 parameters)
-	    (srfi :127 lseqs))
+	    (srfi :127 lseqs)
+	    (text json errors)
+	    (text json parser-parameters))
 #|
 ;; Ironically this is slower than PEG...
 ;; convert lazy sequence to input port.
@@ -83,12 +85,8 @@
     (let ((r (json-read in)))
       (return-result r (nl)))))
 |#
-
-(define-condition-type &json &error
-  make-json-error json-error?)
 (define-condition-type &json-parse &json
   make-json-parse-error json-parse-error?)
-
 ;; If the JSON is embedded to somewhere (i.e. JMESPath) it may require
 ;; extra escape rule.
 (define *json:escape-required* (make-parameter #f))
