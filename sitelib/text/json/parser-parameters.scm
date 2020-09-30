@@ -30,17 +30,21 @@
 
 ;; For flexibile object construction
 (library (text json parser-parameters)
-    (export *json:array-start*
-	    *json:array-end*
-	    *json:object-start*
-	    *json:object-end*)
+    (export *json:array-handler*
+	    *json:object-handler*
+	    *json:null-handler*
+	    *json:boolean-handler*
+	    *json:number-handler*
+	    *json:string-handler*)
     (import (rnrs)
 	    (srfi :39 parameters))
 
-(define *json:array-start* (make-parameter #f))
-(define *json:array-end* (make-parameter #f))
-(define *json:object-start* (make-parameter #f))
-(define *json:object-end* (make-parameter #f))
+(define *json:array-handler* (make-parameter (lambda (v) v)))
+(define *json:object-handler* (make-parameter (lambda (v) (list->vector v))))
+(define *json:null-handler* (make-parameter (lambda () 'null)))
+(define *json:boolean-handler* (make-parameter (lambda (v) v)))
+(define *json:number-handler* (make-parameter (lambda (v) v)))
+(define *json:string-handler* (make-parameter (lambda (v) v)))
 ;; maybe null and boolean handler?
   
   )

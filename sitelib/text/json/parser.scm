@@ -39,6 +39,14 @@
 	    *json:escape-required*
 	    *json:raise-error?*
 
+	    ;; for convenience ;)
+	    *json:array-handler*
+	    *json:object-handler*
+	    *json:null-handler*
+	    *json:boolean-handler*
+	    *json:number-handler*
+	    *json:string-handler*
+	    
 	    json:null
 	    json:number
 	    json:string
@@ -126,9 +134,9 @@
   ($or ($token s)
        ($error (string-append "Unexpected character for token " s))))
 
-(define json:true  ($do ((token "true")) ($return #t)))
-(define json:false ($do ((token "false")) ($return #f)))
-(define json:null  ($do ((token "null")) ($return 'null)))
+(define json:true  ($seq (token "true") ($return ((*json:boolean-handler*) #t))))
+(define json:false ($seq (token "false") ($return ((*json:boolean-handler*) #f))))
+(define json:null  ($seq (token "null") ($return ((*json:null-handler*)))))
 
 (define num-set
   ($cs (char-set #\- #\+ #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9 #\. #\e #\E)))
@@ -141,7 +149,8 @@
   ($do (c* ($many num-set 1))
        ($return (let* ((s (list->string c*))
 		       (v (string->number s)))
-		  (or v (json-parse-error "Invalid JSON number" s))))))
+		  (or ((*json:number-handler*) v)
+		      (json-parse-error "Invalid JSON number" s))))))
 
 ;;; This is more acculate and follows specification but slow
 ;;; (5% slower than above)
@@ -221,7 +230,7 @@
   ($do (($eqv? #\"))
        (c* ($many json:char))
        (($eqv? #\"))
-       ($return (list->string c*))))
+       ($return ((*json:string-handler*) (list->string c*)))))
 
 (define array-values
   ($optional ($do (($not ($eqv? #\])))
@@ -233,7 +242,7 @@
   ($do begin-array
        (v* array-values)
        (($or end-array ($error "Invalid JSON array")))
-       ($return v*)))
+       ($return ((*json:array-handler*) v*))))
 
 (define json:member
   ($do (k json:string) name-separactor (v json:value) ($return (cons k v))))
@@ -247,7 +256,7 @@
   ($do begin-object
        (v* object-values)
        (($or end-object ($error "Invalid JSON object")))
-       ($return (list->vector v*))))
+       ($return ((*json:object-handler*) v*))))
 
 (define json:value
   ($lazy

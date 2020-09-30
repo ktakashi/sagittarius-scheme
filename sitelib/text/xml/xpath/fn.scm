@@ -292,7 +292,8 @@
 	    xpath-array:fold-right
 	    xpath-array:for-each-pair
 	    xpath-array:sort
-	    xpath-array:flatten)
+	    xpath-array:flatten
+	    xpath-fn:parse-json)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -307,11 +308,13 @@
 	    (srfi :1 lists)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
+	    (srfi :39 parameters)
 	    (srfi :43 vectors)
 	    (srfi :98 os-environment-variables)
 	    (srfi :115 regexp)
 	    (srfi :127 lseqs)
-	    (srfi :144 flonums)	    
+	    (srfi :144 flonums)
+	    (text json parser)
 	    (text xml errors)
 	    (text xml dom)
 	    (only (text xml dom parser) +xml:char-set+)
@@ -2218,17 +2221,41 @@
     (vector-sort
      (lambda (a b) (deep-less-than (key a) (key b) c)) v))))
 ;;;; 17.3.18 array:flatten
+(define (flatten l)
+  (cond ((null? l) '())
+	((not (pair? l)) (list l))
+	(else (append (flatten (car l)) (flatten (cdr l))))))
 (define (xpath-array:flatten array*)
   (define (->list array*)
     (if (vector? array*)
 	(->list (vector->list array*))
 	(map (lambda (e) (if (vector? e) (->list (vector->list e)) e)) array*)))
-  (define (flatten l)
-    (cond ((null? l) '())
-	  ((not (pair? l)) (list l))
-	  (else (append (flatten (car l)) (flatten (cdr l))))))
   (flatten (->list array*)))
-   
+
+;;;; 17.5.1 fn:parse-json
+(define default-json-operation
+  (alist->hashtable
+   `(("liberal" . #f)
+     ("duplicates" . "use-first")
+     ("escape" . #t)
+     ("fallback" . ,(lambda (s) "&\xFFFD;")))))
+(define (xml-array-handler v) (list->vector v))
+(define (xml-object-handler v) (apply xpath-fn:map (flatten v)))
+(define (xml-number-handler v) (inexact v))
+  
+(define xpath-fn:parse-json
+  (case-lambda
+   ((text) (xpath-fn:parse-json text default-json-operation))
+   ((text options)
+    ;; TODO setup handlers here
+    (let ((lseq (generator->lseq (string->generator text))))
+      (parameterize ((*json:array-handler* xml-array-handler)
+		     (*json:object-handler* xml-object-handler)
+		     (*json:number-handler* xml-number-handler))
+      (let-values (((s v nl) (json:parser lseq)))
+	(if (parse-success? s)
+	    v
+	    (xqt-error 'FOJS0001 'xpath-fn:parse-json "Invalid JSON" text))))))))
   
 ;;; 19 Casting
 (define (atomic->string who atomic)

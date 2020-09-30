@@ -1928,6 +1928,11 @@
 		(xpath-array:flatten '(#(1 2 5) #((10 11) 12) #() 13)))
     (test-equal '(1 0 1 1 0 1 0 0)
 		(xpath-array:flatten '#((1 0) (1 1) (0 1) (0 0)))))
+
+  (test-group "fn:parse-json"
+    (test-assert (xpath-fn:deep-equal
+		  (xpath-fn:map "x" 1e0 "y" '#(3e0 4e0 5e0))
+		  (xpath-fn:parse-json "{\"x\": 1, \"y\": [3, 4, 5]}"))))
   )
   
 (test-end)
