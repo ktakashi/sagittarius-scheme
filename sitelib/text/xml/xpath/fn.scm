@@ -293,7 +293,8 @@
 	    xpath-array:for-each-pair
 	    xpath-array:sort
 	    xpath-array:flatten
-	    xpath-fn:parse-json)
+	    xpath-fn:parse-json
+	    xpath-fn:json-doc)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -2233,16 +2234,32 @@
   (flatten (->list array*)))
 
 ;;;; 17.5.1 fn:parse-json
-(define default-json-operation
-  (alist->hashtable
-   `(("liberal" . #f)
-     ("duplicates" . "use-first")
-     ("escape" . #t)
-     ("fallback" . ,(lambda (s) "&\xFFFD;")))))
+(define default-json-operation (make-eq-hashtable))
 (define (xml-array-handler v) (list->vector v))
-(define (xml-object-handler v) (apply xpath-fn:map (flatten v)))
+(define (xml-object-handler opt)
+  (lambda (v) (apply xpath-fn:map (flatten v))))
 (define (xml-number-handler v) (inexact v))
-  
+(define (xml-string-handler opt)
+  (define escape? (hashtable-ref opt "escape" #f))
+  (define fallback (hashtable-ref opt "fallback" (lambda (s) "\xFFFD;")))
+  (define (escape-char c)
+    (define (pad s)
+      (let-values (((out e) (open-string-output-port)))
+	(do ((len (- 4 (string-length s))) (i 0 (+ i 1)))
+	    ((= i len) (put-string out s) (e))
+	  (put-char out #\0))))
+    (string-append "\\u" (pad (number->string (char->integer c) 16))))
+  (lambda (v)
+    (let-values (((out e) (open-string-output-port)))
+      (do ((len (string-length v)) (i 0 (+ i 1)))
+	  ((= len i) (e))
+	(let ((c (string-ref v i)))
+	  (if (char-set-contains? +xml:char-set+ c)
+	      (put-char out c)
+	      (if escape?
+		  (put-string out (escape-char c))
+		  (put-string out (fallback (escape-char c))))))))))
+
 (define xpath-fn:parse-json
   (case-lambda
    ((text) (xpath-fn:parse-json text default-json-operation))
@@ -2250,13 +2267,21 @@
     ;; TODO setup handlers here
     (let ((lseq (generator->lseq (string->generator text))))
       (parameterize ((*json:array-handler* xml-array-handler)
-		     (*json:object-handler* xml-object-handler)
-		     (*json:number-handler* xml-number-handler))
+		     (*json:object-handler* (xml-object-handler options))
+		     (*json:number-handler* xml-number-handler)
+		     (*json:string-handler* (xml-string-handler options)))
       (let-values (((s v nl) (json:parser lseq)))
 	(if (parse-success? s)
 	    v
 	    (xqt-error 'FOJS0001 'xpath-fn:parse-json "Invalid JSON" text))))))))
-  
+;;;; 17.5.2 fn:json-doc
+(define xpath-fn:json-doc
+  (case-lambda
+   ((href) (xpath-fn:json-doc href default-json-operation))
+   ((href options)
+    (let ((t (xpath-fn:unparsed-text href)))
+      (xpath-fn:parse-json t options)))))
+
 ;;; 19 Casting
 (define (atomic->string who atomic)
   (cond ((string? atomic) atomic)
