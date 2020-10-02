@@ -1934,6 +1934,7 @@
 		  (xpath-fn:map "x" 1e0 "y" '#(3e0 4e0 5e0))
 		  (xpath-fn:parse-json "{\"x\": 1, \"y\": [3, 4, 5]}")))
     (test-equal "abcd" (xpath-fn:parse-json "\"abcd\""))
+    (test-equal '() (xpath-fn:parse-json "null"))
     (test-assert (xpath-fn:deep-equal
 		  (xpath-fn:map "x" "\\" "y" "%")
 		  (xpath-fn:parse-json "{\"x\": \"\\\\\", \"y\": \"\\u0025\"}")))
@@ -1960,6 +1961,8 @@
     (let ()
       (define writer (make-dom-writer))
       (writer (xpath-fn:json-to-xml "{\"x\": 1, \"y\": [3, 4, 5]}")) (newline)
+      (writer (xpath-fn:json-to-xml "null"))
+      (writer (xpath-fn:json-to-xml "\"abcd\""))
       (writer (xpath-fn:json-to-xml "{\"x\": \"\\\\\", \"y\": \"\\u0025\"}")) (newline))
     )
   )
