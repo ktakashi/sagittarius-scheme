@@ -294,7 +294,8 @@
 	    xpath-array:sort
 	    xpath-array:flatten
 	    xpath-fn:parse-json
-	    xpath-fn:json-doc)
+	    xpath-fn:json-doc
+	    xpath-fn:json-to-xml)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (peg)
@@ -2254,11 +2255,11 @@
       (do ((len (string-length v)) (i 0 (+ i 1)))
 	  ((= len i) (e))
 	(let ((c (string-ref v i)))
-	  (if (char-set-contains? +xml:char-set+ c)
-	      (put-char out c)
-	      (if escape?
-		  (put-string out (escape-char c))
-		  (put-string out (fallback (escape-char c))))))))))
+	  (cond ((and escape? (char=? c #\\)) (put-string out "\\\\"))
+		;; TODO handle control characters...
+		((char-set-contains? +xml:char-set+ c) (put-char out c))
+		(escape? (put-string out (escape-char c)))
+		(else (put-string out (fallback (escape-char c))))))))))
 
 (define xpath-fn:parse-json
   (case-lambda
@@ -2281,6 +2282,62 @@
    ((href options)
     (let ((t (xpath-fn:unparsed-text href)))
       (xpath-fn:parse-json t options)))))
+
+;;;; 17.5.3 fn:json-to-xml
+(define +xpath-functions:namespace+ "http://www.w3.org/2005/xpath-functions")
+(define (json->xml json)
+  (define doc (make-xml-document #f))
+  (define (make-element doc name)
+    (document:create-element-ns doc +xpath-functions:namespace+ name))
+  (define (create-text-node-w/value doc name val)
+    (let ((e (make-element doc name))
+	  (t (document:create-text-node doc val)))
+      (node:append-child! e t)
+      e))
+  (define (null->xml-node json doc)
+    (document:create-element-ns doc +xpath-functions:namespace+ "null"))
+  (define (boolean->xml-node json doc)
+    (create-text-node-w/value doc "boolean" (if json "true" "false")))
+  (define (number->xml-node json doc)
+    (let ((n (if (integer? json) (exact json) json)))
+      (create-text-node-w/value doc "number" (number->string n))))
+  (define (string->xml-node json doc)
+    (define escaped? (string-contains json "\\u")) ;; a bit naive
+    (let ((e (create-text-node-w/value doc "string" json)))
+      (when escaped?
+	(element:set-attribute! e "escaped" "true"))
+      e))
+  (define (array->xml-node json doc)
+    (define e (make-element doc "array"))
+    (do ((len (vector-length json)) (i 0 (+ i 1)))
+	((= len i) e)
+      (node:append-child! e (json->xml-node (vector-ref json i) doc))))
+  (define (object->xml-node json doc)
+    (define e (make-element doc "map"))
+    (hashtable-for-each
+     (lambda (k v)
+       (let ((v (json->xml-node v doc)))
+	 (element:set-attribute! v "key" k)
+	 (node:append-child! e v)))
+     json)
+    e)
+  (define (json->xml-node json doc)
+    (cond ((hashtable? json) (object->xml-node json doc))
+	  ((vector? json)    (array->xml-node json doc))
+	  ((string? json)    (string->xml-node json doc))
+	  ((number? json)    (number->xml-node json doc))
+	  ((boolean? json)   (boolean->xml-node json doc))
+	  ((eq? 'null json)  (null->xml-node json doc))
+	  (else (assertion-violation 'json->xml "Unknown type" json))))
+  (let ((element (json->xml-node json doc)))
+    (node:append-child! doc element)
+    doc))
+(define xpath-fn:json-to-xml
+  (case-lambda
+   ((text) (xpath-fn:json-to-xml text default-json-operation))
+   ((text options)
+    (let ((json (xpath-fn:parse-json text options)))
+      (json->xml json)))))
 
 ;;; 19 Casting
 (define (atomic->string who atomic)

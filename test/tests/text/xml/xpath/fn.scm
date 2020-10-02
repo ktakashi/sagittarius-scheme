@@ -1938,7 +1938,7 @@
 		  (xpath-fn:map "x" "\\" "y" "%")
 		  (xpath-fn:parse-json "{\"x\": \"\\\\\", \"y\": \"\\u0025\"}")))
     (test-assert (xpath-fn:deep-equal
-		  (xpath-fn:map "x" "\\" "y" "%")
+		  (xpath-fn:map "x" "\\\\" "y" "%")
 		  (xpath-fn:parse-json "{\"x\": \"\\\\\", \"y\": \"\\u0025\"}"
 				       (xpath-fn:map "escape" #t))))
     (test-assert (xpath-fn:deep-equal
@@ -1946,11 +1946,7 @@
 				(xpath-fn:codepoints-to-string '(65533)))
 		  (xpath-fn:parse-json "{\"x\": \"\\\\\", \"y\": \"\\u0000\"}")))
     (test-assert (xpath-fn:deep-equal
-		  (xpath-fn:map "x" "\\" "y" "\\u0000")
-		  (xpath-fn:parse-json "{\"x\": \"\\\\\", \"y\": \"\\u0000\"}"
-				       (xpath-fn:map "escape" #t))))
-    (test-assert (xpath-fn:deep-equal
-		  (xpath-fn:map "x" "\\" "y" "\\u0000")
+		  (xpath-fn:map "x" "\\\\" "y" "\\u0000")
 		  (xpath-fn:parse-json "{\"x\": \"\\\\\", \"y\": \"\\u0000\"}"
 				       (xpath-fn:map "escape" #t))))
     (test-assert (xpath-fn:deep-equal
@@ -1958,6 +1954,13 @@
 		  (xpath-fn:parse-json "{\"x\": \"\\\\\", \"y\": \"\\u0000\"}"
 		   (xpath-fn:map "fallback"
 				 (lambda (s) (string-append "[" s "]"))))))
+    )
+
+  #;(test-group "fn:json-to-xml"
+    (let ()
+      (define writer (make-dom-writer))
+      (writer (xpath-fn:json-to-xml "{\"x\": 1, \"y\": [3, 4, 5]}")) (newline)
+      (writer (xpath-fn:json-to-xml "{\"x\": \"\\\\\", \"y\": \"\\u0025\"}")) (newline))
     )
   )
   
