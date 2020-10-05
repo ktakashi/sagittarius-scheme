@@ -20,7 +20,7 @@
 
 (writer-test
  "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\
-  <foo:foo xmlns:foo=\"urn:foo\" foo:bla=\"blabla\" foo:buz=\"buzzz\">\
+  <foo:foo xmlns:foo=\"urn:foo\" foo:buz=\"buzzz\" foo:bla=\"blabla\">\
     <foo:bar/>\
   </foo:foo>"
  (lambda (out)
