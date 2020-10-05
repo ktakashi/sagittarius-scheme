@@ -732,7 +732,14 @@
 	      (compare-string (attr-name aa) (attr-name ab)))
 	     ((string-prefix? "xmlns" (attr-name aa)) -1) 
 	     ((string-prefix? "xmlns" (attr-name ab)) 1)
-	     (else (compare-string (attr-name aa) (attr-name ab)))))
+	     (else
+	      ;; the primary key is uri, not prefix
+	      ;; See Note of https://www.w3.org/TR/xml-c14n/#Example-SETags
+	      (let ((r (compare-string (attr-namespace-uri aa)
+				       (attr-namespace-uri ab))))
+		(if (zero? r)
+		    (compare-string (attr-local-name aa) (attr-local-name ab))
+		    r)))))
      
      (lambda (namespace-uri prefix local-name)
        (let ((e ((n +element-node+

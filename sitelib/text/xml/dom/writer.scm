@@ -31,7 +31,9 @@
 #!nounbound
 (library (text xml dom writer)
     (export make-dom-writer
-	    make-xml-write-options)
+	    make-xml-write-options
+	    *xml:default-options*
+	    *xml:c14n*)
     (import (rnrs)
 	    (text xml dom nodes)
 	    (srfi :14 char-sets)
@@ -63,6 +65,8 @@
 	  undeclare-prefixes?		; default #f
 	  use-character-maps		; default empty map
 	  version			; default "1.0"
+	  ;; for canonicalisation
+	  use-inline-element?		; default #t
 	  )
   (protocol (lambda (p)
 	      (lambda (emit-internal-dtd? strict?
@@ -85,21 +89,26 @@
 			    (suppress-indentation '())
 			    (undeclare-prefixes #f)
 			    (use-character-maps (make-eq-hashtable))
-			    (version "1.0"))
+			    (version "1.0")
+			    (use-inline-element? #t))
 		(p emit-internal-dtd? strict?
 		   allow-duplicate-names byte-order-mark cdata-section-elements
 		   doctype-public doctype-system encoding escape-uri-attribute
 		   html-version include-content-type indent item-separator
 		   json-node-output-method media-type normalization-form
 		   omit-xml-declaration standalone suppress-indentation
-		   undeclare-prefixes use-character-maps version)))))
+		   undeclare-prefixes use-character-maps version
+		   use-inline-element?)))))
 
 ;; for now not strict by default
-(define *default-options* (make-xml-write-options #f #f))
+(define *xml:default-options* (make-xml-write-options #f #f))
+(define *xml:c14n* (make-xml-write-options #f #f
+				       :use-inline-element? #f
+				       ))
 
 (define make-dom-writer
   (case-lambda
-   (() (make-dom-writer *default-options*))
+   (() (make-dom-writer *xml:default-options*))
    ((options)
     (case-lambda
      ((tree) (write-dom tree options (current-output-port)))
@@ -164,7 +173,13 @@
 	  (put-char out #\space)
 	  (write-node (named-node-map:item attrs i) options out))))
     (let ((content (list-queue-list (node-children e))))
-      (cond ((null? content) (put-string out "/>"))
+      (cond ((null? content)
+	     (if (xml-write-options-use-inline-element? options)
+		 (put-string out "/>")
+		 (begin
+		   (put-string out "></")
+		   (put-string out name)
+		   (put-char out #\>))))
 	    (else
 	     (put-char out #\>)
 	     (for-each (lambda (child) (write-node child options out)) content)
@@ -173,17 +188,17 @@
 	     (put-char out #\>))))))
 
 (define (make-write/escape attr?)
-  (define (write/attr out ch alt)
+  (define (write/attr out s alt)
     (if attr?
 	(put-string out alt)
-	(put-char out ch)))
+	(put-string out s)))
   (lambda (out ch)
     (case ch
-      ((#\<) (put-string out "&lt;"))
-      ((#\>) (put-string out "&gt;"))
-      ((#\&) (put-string out "&amp;"))
-      ((#\") (write/attr out ch "&quot;"))
-      ((#\') (write/attr out ch "&apos;"))
+      ((#\<) (write/attr out "&lt;" "<"))
+      ((#\>) (write/attr out "&gt;" ">"))
+      ((#\&) (write/attr out "&amp;" "&"))
+      ((#\") (write/attr out "\"" "&quot;"))
+      ((#\') (put-char out ch))		; should we use &apos; for text?
       (else (put-char out ch)))))
 (define write/attr-escape (make-write/escape #t))
 
