@@ -1964,6 +1964,16 @@
       (writer (xpath-fn:json-to-xml "null"))
       (writer (xpath-fn:json-to-xml "\"abcd\""))
       (writer (xpath-fn:json-to-xml "{\"x\": \"\\\\\", \"y\": \"\\u0025\"}")) (newline))
+  )
+	  
+  (test-group "fn:xml-to-json"
+    (let ((node (string->dom "<array xmlns=\"http://www.w3.org/2005/xpath-functions\"><number>1</number><string>is</string><boolean>1</boolean></array>")))
+      (test-equal "[1,\"is\",true]" (xpath-fn:xml-to-json node)))
+    (let ((node (string->dom "<map xmlns=\"http://www.w3.org/2005/xpath-functions\"><number key=\"Sunday\">1</number><number key=\"Monday\">2</number></map>")))
+      (test-equal "{\"Sunday\":1,\"Monday\":2}" (xpath-fn:xml-to-json node)))
+    #;
+    (let ((node (string->dom "<map xmlns=\"http://www.w3.org/2005/xpath-functions\"><number key=\"Sunday\">1</number><number key=\"Monday\">2</number><array key=\"array\"><number>1</number><string>is</string><boolean>1</boolean><map><number key=\"Sunday\">1</number><number key=\"Monday\">2</number></map></array></map>")))
+      (print (xpath-fn:xml-to-json node (xpath-fn:map "indent" #t))))
     )
   )
   
