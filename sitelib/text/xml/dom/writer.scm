@@ -67,6 +67,8 @@
 	  version			; default "1.0"
 	  ;; for canonicalisation
 	  use-inline-element?		; default #t
+	  write-comment?		; default #t
+	  write-doctype?		; default #t
 	  )
   (protocol (lambda (p)
 	      (lambda (emit-internal-dtd? strict?
@@ -90,7 +92,10 @@
 			    (undeclare-prefixes #f)
 			    (use-character-maps (make-eq-hashtable))
 			    (version "1.0")
-			    (use-inline-element? #t))
+			    (use-inline-element? #t)
+			    (write-comment? #t)
+			    (write-doctype? #t)
+			    )
 		(p emit-internal-dtd? strict?
 		   allow-duplicate-names byte-order-mark cdata-section-elements
 		   doctype-public doctype-system encoding escape-uri-attribute
@@ -98,13 +103,16 @@
 		   json-node-output-method media-type normalization-form
 		   omit-xml-declaration standalone suppress-indentation
 		   undeclare-prefixes use-character-maps version
-		   use-inline-element?)))))
+		   
+		   use-inline-element? write-comment? write-doctype?)))))
 
 ;; for now not strict by default
 (define *xml:default-options* (make-xml-write-options #f #f))
+;; canonicalisation options
 (define *xml:c14n* (make-xml-write-options #f #f
 				       :use-inline-element? #f
-				       ))
+				       :write-comment? #f
+				       :write-doctype? #f))
 
 (define make-dom-writer
   (case-lambda
@@ -115,38 +123,45 @@
      ((tree out) (write-dom tree options out))))))
    
 (define (write-dom tree options out)
-  (when (document? tree)
-    (if  (xml-write-options-strict? options)
-	 (assertion-violation 'write-dom "DOM document is required" tree)
+  (define (emit-xml-decl tree options out)
+    (and (not (xml-write-options-omit-xml-declaration? options))
 	 (write-xml-decl tree options out)))
+  (when (and (not (document? tree))
+	     (xml-write-options-strict? options))
+    (assertion-violation 'write-dom "DOM document is required" tree))
+
   (if (document? tree)
-      (for-each (lambda (child) (write-node child options out))
-		(list-queue-list (node-children tree)))
+      (let ((children (node-children tree)))
+	(let-values (((out-tmp e) (open-string-output-port)))
+	  (let loop ((nodes (list-queue-list children))
+		     (written? (emit-xml-decl tree options out)))
+	    (unless (null? nodes)
+	      (let ((r (write-node (car nodes) options out-tmp)))
+		(and written? r (put-char out #\newline))
+		(put-string out (e))
+		(loop (cdr nodes) (or written? r)))))))
       (write-node tree options out)))
 
 (define (write-xml-decl tree options out)
   (define (get-version tree options)
     (cond ((document-xml-version tree))
 	  (else (xml-write-options-version options))))
-  (unless (xml-write-options-omit-xml-declaration? options)
-    (put-string out "<?xml")
-    (put-string out " version=\"")
-    (put-string out (get-version tree options))
-    (put-string out "\"")
-    ;; not sure how to handle encoding, should we use value from the option?
-    (put-string out " encoding=\"")
-    (put-string out (document-character-set tree))
-    (put-string out "\"")
-
-    (unless (null? (xml-write-options-standalone? options))
-      (put-string out " standalone=\"")
-      (put-string out (if (or (document-xml-standalone? tree)
-			      (xml-write-options-standalone? options))
-			  "yes"
-			  "no"))
-      (put-string out "\""))
-    
-    (put-string out "?>")))
+  (put-string out "<?xml")
+  (put-string out " version=\"")
+  (put-string out (get-version tree options))
+  (put-string out "\"")
+  ;; not sure how to handle encoding, should we use value from the option?
+  (put-string out " encoding=\"")
+  (put-string out (document-character-set tree))
+  (put-string out "\"")
+  (unless (null? (xml-write-options-standalone? options))
+    (put-string out " standalone=\"")
+    (put-string out (if (or (document-xml-standalone? tree)
+			    (xml-write-options-standalone? options))
+			"yes"
+			"no"))
+    (put-string out "\""))
+  (put-string out "?>"))
 
 (define (write-node tree options out)
   (cond ((hashtable-ref *writer-table* (node-node-type tree) #f) =>
@@ -162,7 +177,29 @@
 	 (hashtable-set! *writer-table* type name)
 	 name)))))
 (define-node-writer +element-node+ (element-writer e options out)
-  (let ((name (node-node-name e)))
+  (define doc (node-owner-document e))
+  (define doctype (document-doctype doc))
+  ;; TODO: might be better to put default value during construction?
+  (define (check-default-attribute doctype e)
+    (define element-types (document-type-elements doctype))
+    (define element-type (named-node-map:get-named-item element-types
+							(node-node-name e)))
+    (and element-type
+	 (let ((attlist (element-type-attlist element-type))
+	       (tobe-removed (list-queue)))
+	   (node-list-for-each
+	    (lambda (attdef)
+	      ;; we only handle CDATA for now 
+	      (when (and (eq? (attdef-att-type attdef) 'cdata)
+			 (attdef-att-value attdef))
+		(let ((n (attdef-name attdef)))
+		  (element:set-attribute! e n (attdef-att-value attdef))
+		  (list-queue-add-back! tobe-removed n))))
+	    attlist)
+	   tobe-removed)))
+	
+  (let ((name (node-node-name e))
+	(names (and doctype (check-default-attribute doctype e))))
     (put-char out #\<)
     (put-string out name)
     (when (element:has-attributes? e)
@@ -172,6 +209,8 @@
 	    ((= i len))
 	  (put-char out #\space)
 	  (write-node (named-node-map:item attrs i) options out))))
+    (when names
+      (list-queue-for-each (lambda (n) (element:remove-attribute! e n)) names))
     (let ((content (list-queue-list (node-children e))))
       (cond ((null? content)
 	     (if (xml-write-options-use-inline-element? options)
@@ -235,14 +274,17 @@
   (put-char out #\;))
 
 (define-node-writer +comment-node+ (comment-writer tree options out)
-  (put-string out "<!--")
-  (put-string out (character-data-data tree))
-  (put-string out "-->"))
+  (and (xml-write-options-write-comment? options)
+       (put-string out "<!--")
+       (put-string out (character-data-data tree))
+       (put-string out "-->")))
 (define-node-writer +processing-instruction-node+ (pi-writer pi options out)
   (put-string out "<?")
   (put-string out (processing-instruction-target pi))
-  (put-string out " ")
-  (put-string out (character-data-data pi))
+  (let ((data (character-data-data pi)))
+    (unless (zero? (string-length data))
+      (put-string out " ")
+      (put-string out data)))
   (put-string out "?>"))
 (define-node-writer +document-type-node+ (doctype-writer doctype options out)
   (define (emit-doctype-public&system public-id system-id)
@@ -260,19 +302,21 @@
     (put-string out (document-type-system-id doctype))
     ;; TODO intSubst?
     (put-string out ">"))
-  (cond ((and (document-type-public-id doctype)
-	      (document-type-system-id doctype))
-	 (emit-doctype-public&system (document-type-public-id doctype)
-				     (document-type-system-id doctype)))
-	((document-type-system-id doctype)
-	 (emit-doctype-system (document-type-system-id doctype)))
-	((and (xml-write-options-doctype-public options)
-	      (xml-write-options-doctype-system options))
-	 (emit-doctype-public&system (xml-write-options-doctype-public options)
-				     (xml-write-options-doctype-system options)))
-	((xml-write-options-doctype-system options)
-	 (emit-doctype-system (xml-write-options-doctype-system options)))
-	((xml-write-options-emit-internal-dtd? options)
-	 (assertion-violation 'doctype-writer "not supported yet"))))
+  (and (xml-write-options-write-doctype? options)
+       (cond ((and (document-type-public-id doctype)
+		   (document-type-system-id doctype))
+	      (emit-doctype-public&system (document-type-public-id doctype)
+					  (document-type-system-id doctype)))
+	     ((document-type-system-id doctype)
+	      (emit-doctype-system (document-type-system-id doctype)))
+	     ((and (xml-write-options-doctype-public options)
+		   (xml-write-options-doctype-system options))
+	      (emit-doctype-public&system
+	       (xml-write-options-doctype-public options)
+	       (xml-write-options-doctype-system options)))
+	     ((xml-write-options-doctype-system options)
+	      (emit-doctype-system (xml-write-options-doctype-system options)))
+	     ((xml-write-options-emit-internal-dtd? options)
+	      (assertion-violation 'doctype-writer "not supported yet")))))
 
 )

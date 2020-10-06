@@ -43,6 +43,7 @@
 	    xml-document-factory-options?)
     (import (rnrs)
 	    (peg)
+	    (match)
 	    (text xml dom parser)
 	    (text xml dom nodes)
 	    (sagittarius)
@@ -209,9 +210,20 @@
 	  (assertion-violation '!doctype "Duplicate definition"
 			       (node-node-type e) e)
 	  (named-node-map:set-named-item! table e)))
+    (define (ensure-entry table name)
+      (let ((et (named-node-map:get-named-item table name)))
+	(cond (et)
+	      (else
+	       (set-it table (document:create-element-type root-document
+							   name '()))
+	       (ensure-entry table name)))))
     (let ((e (dispatch-factory subset)))
       (cond ((entity? e) (set-it (document-type-entities doctype) e))
 	    ((element-type? e) (set-it (document-type-elements doctype) e))
+	    ((and (pair? e) (attdef? (cdr e)))
+	     (let* ((e* (document-type-elements doctype))
+		    (et (ensure-entry e* (car e))))
+	       (element-type-attlist-append! et (cdr e))))
 	    ;; TODO the rest
 	    )))
   (let ((name (cadr !doctype))
@@ -221,7 +233,12 @@
       (let ((doctype (document:create-document-type root-document
 						    name public-id system-id)))
 	(for-each (lambda (subset) (handle-subset doctype subset))
-		  (cdr subsets))
+		  ;; !element needs to be handled first...
+		  (list-sort (lambda (a b)
+			       (cond ((eq? '!element (car a)) #t)
+				     ((eq? '!element (car b)) #f)
+				     (else #f))) ;; don't care
+			       (cdr subsets)))
 	doctype))))
 
 (define-factory (!entity root-document)
@@ -253,6 +270,23 @@
   (if (eq? 'pe (cadr !entity))
       (handle-parameter-entity (cddr !entity))
       (handle-general-entity (cddr !entity))))
+
+(define-factory (!attlist root-document)
+  (define (make-it def)
+    (define (parse def)
+      (match def
+	((_ 'required) (values 'required #f))
+	((_ 'implied)  (values 'implied #f))
+	((_ 'fixed v)  (values 'fixed v))
+	((_ v)         (values #f v))
+	(_ (assertion-violation 'att-value "Unknown format" def))))
+    (let ((n (cadr def))
+	  (t (caddr def)))
+      (let-values (((decl-type default-value) (parse (cadddr def))))
+	(make-attdef n t decl-type default-value))))
+  (let ((element-name (cadr !attlist))
+	(att-def (make-it (caddr !attlist))))
+    (cons element-name att-def)))
 
 (define-factory (!element root-document)
   (let ((name (cadr !element))

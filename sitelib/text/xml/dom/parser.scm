@@ -575,11 +575,11 @@
 
 ;; [60] DefaultDecl ::=	'#REQUIRED' | '#IMPLIED' | (('#FIXED' S)? AttValue)
 (define $xml:default-decl
-  ($or ($do (($token "#REQUIRED")) ($return 'required))
-       ($do (($token "#IMPLIED")) ($return 'implied))
-       ($do (($optional ($seq ($token "#FIXED") $xml:s)))
+  ($or ($seq ($token "#REQUIRED") ($return 'required))
+       ($seq ($token "#IMPLIED") ($return 'implied))
+       ($do (fixed? ($optional ($seq ($token "#FIXED") $xml:s)))
 	    (v $xml:att-value)
-	    ($return `(fixed ,v)))))
+	    ($return (if fixed? `(fixed ,v) v)))))
 ;; [53] AttDef ::= S Name S AttType S DefaultDecl
 (define $xml:att-def
   ($do $xml:s

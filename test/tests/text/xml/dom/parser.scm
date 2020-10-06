@@ -157,7 +157,7 @@
 (test-parser '(!attlist "list"
 			(att-def "type"
 				 ("bullets" "ordered" "glossary")
-				 (fixed (att-value "ordered"))))
+				 (att-value "ordered")))
 	     ($xml:attlist-decl (string->lseq "<!ATTLIST list type (bullets|ordered|glossary)  \"ordered\">")))
 (test-parser '(!attlist "form"
 			(att-def "method" cdata (fixed (att-value "POST"))))

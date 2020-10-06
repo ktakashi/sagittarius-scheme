@@ -190,6 +190,12 @@
 	    element-type? element-type-name element-type-spec
 	    node-children
 	    +element-type-node+
+	    element-type-attlist element-type-attlist-append!
+
+	    attdef? make-attdef
+	    attdef-name attdef-required? attdef-implied? attdef-fixed?
+	    attdef-att-type attdef-att-value
+	    +attdef-node+
 
 	    namespace? namespace-prefix namespace-uri namespace-parent
 	    +namespace-node+
@@ -260,6 +266,7 @@
 
 (define-constant +element-type-node+           101) ;; non dom
 (define-constant +namespace-node+              102) ;; non dom
+(define-constant +attdef-node+                 103) ;; non dom
 
 (define-constant +document-position-disconnected+ #x01)
 (define-constant +document-position-preceding+    #x02)
@@ -672,11 +679,34 @@
 
 (define-record-type element-type
   (parent node)
-  (fields spec)
+  (fields spec
+	  att-list)
   (protocol (lambda (n)
 	      (lambda (name spec)
-		((n +element-type-node+ :node-name name) spec)))))
+		((n +element-type-node+ :node-name name) spec (list-queue))))))
 (define element-type-name node-node-name)
+(define (element-type-attlist et)
+  (make-node-list (element-type-att-list et)))
+(define (element-type-attlist-append! et at)
+  (unless (attdef? at)
+    (assertion-violation 'element-type-attlist-append! "attdef required" at))
+  (list-queue-add-back! (element-type-att-list et) at))
+
+(define-record-type attdef
+  (parent node)
+  (fields att-type  ;; CDATA etc.
+	  decl-type ;; #REQUIRED, #IMPLIED or #FIXED
+	  	    ;; (required, implied, fixed or #f)
+	  att-value ;; default value if there
+	  )
+  (protocol (lambda (n)
+	      (lambda (name att-type decl-type att-value)
+		((n +attdef-node+ :node-name name)
+		 att-type decl-type att-value)))))
+(define attdef-name node-node-name)
+(define (attdef-required? attdef) (eq? 'required (attdef-decl-type attdef)))
+(define (attdef-implied? attdef)  (eq? 'implied (attdef-decl-type attdef)))
+(define (attdef-fixed? attdef)    (eq? 'fixed (attdef-decl-type attdef)))
 
 ;;; Non DOM Namespace (needed for XPath Data Model)
 (define-record-type namespace
@@ -1043,6 +1073,7 @@
 	  entities  ;; NamedNodeMap (from DOM 3)
 	  elements  ;; NamedNodeMap (need this?)
 	  notations ;; NamedNodeMap (from DOM 3)
+	  attlists  ;; NamedNodeMap (non DOM)
 	  )
   (protocol (lambda (n)
 	      (define (proc< v) -1)
@@ -1054,6 +1085,7 @@
 	      (lambda (name public-id system-id)
 		((n +document-type-node+ :node-name name)
 		 public-id system-id
+		 (make-named-node-map name-compare)
 		 (make-named-node-map name-compare)
 		 (make-named-node-map name-compare)
 		 (make-named-node-map name-compare))))))
