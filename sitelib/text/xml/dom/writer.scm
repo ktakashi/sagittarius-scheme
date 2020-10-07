@@ -36,6 +36,7 @@
 	    *xml:c14n*)
     (import (rnrs)
 	    (text xml dom nodes)
+	    (srfi :13 strings)
 	    (srfi :14 char-sets)
 	    (srfi :117 list-queues))
 
@@ -177,29 +178,23 @@
 	 (hashtable-set! *writer-table* type name)
 	 name)))))
 (define-node-writer +element-node+ (element-writer e options out)
-  (define doc (node-owner-document e))
-  (define doctype (document-doctype doc))
-  ;; TODO: might be better to put default value during construction?
-  (define (check-default-attribute doctype e)
-    (define element-types (document-type-elements doctype))
-    (define element-type (named-node-map:get-named-item element-types
-							(node-node-name e)))
-    (and element-type
-	 (let ((attlist (element-type-attlist element-type))
-	       (tobe-removed (list-queue)))
-	   (node-list-for-each
-	    (lambda (attdef)
-	      ;; we only handle CDATA for now 
-	      (when (and (eq? (attdef-att-type attdef) 'cdata)
-			 (attdef-att-value attdef))
-		(let ((n (attdef-name attdef)))
-		  (element:set-attribute! e n (attdef-att-value attdef))
-		  (list-queue-add-back! tobe-removed n))))
-	    attlist)
-	   tobe-removed)))
-	
-  (let ((name (node-node-name e))
-	(names (and doctype (check-default-attribute doctype e))))
+  (define (skip-namespace? attr)
+    (define (check-element attr e)
+      (cond ((document? e)
+	     (and (equal? "xmlns" (attr-name attr))
+		  (zero? (string-length (attr-value attr)))))
+	    ((element? e)
+	     (let ((ns (named-node-map:get-named-item (element-attributes e)
+						      (attr-name attr))))
+	       (if ns
+		   (equal? (attr-value attr) (attr-value ns))
+		   (check-element attr (node-parent-node e)))))
+	    ;; ???
+	    (else #f)))
+    (and (string-prefix? "xmlns" (attr-name attr))
+	 ;; check 
+	 (check-element attr (node-parent-node e))))
+  (let ((name (node-node-name e)))
     (put-char out #\<)
     (put-string out name)
     (when (element:has-attributes? e)
@@ -207,10 +202,10 @@
 	(do ((len (named-node-map-length attrs))
 	     (i 0 (+ i 1)))
 	    ((= i len))
-	  (put-char out #\space)
-	  (write-node (named-node-map:item attrs i) options out))))
-    (when names
-      (list-queue-for-each (lambda (n) (element:remove-attribute! e n)) names))
+	  (let ((attr (named-node-map:item attrs i)))
+	    (unless (skip-namespace? attr)
+	      (put-char out #\space)
+	      (write-node attr options out))))))
     (let ((content (list-queue-list (node-children e))))
       (cond ((null? content)
 	     (if (xml-write-options-use-inline-element? options)

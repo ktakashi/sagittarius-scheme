@@ -171,7 +171,7 @@
    </mixed>
 </doc>")
 
-#;(test-canonicalization c14n-write input-section-3.3
+(test-canonicalization c14n-write input-section-3.3
 		       "<doc>
    <e1></e1>
    <e2></e2>

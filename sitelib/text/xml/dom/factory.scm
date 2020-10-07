@@ -294,6 +294,22 @@
     (document:create-element-type root-document name spec)))
     
 (define-factory (element root-document)
+  (define doctype (document-doctype root-document))
+  (define (check-default-attribute doctype e)
+    (define element-types (document-type-elements doctype))
+    (define element-type (named-node-map:get-named-item element-types
+							(node-node-name e)))
+    (and element-type
+	 (let ((attlist (element-type-attlist element-type)))
+	   (node-list-for-each
+	    (lambda (attdef)
+	      ;; we only handle CDATA for now 
+	      (when (and (eq? (attdef-att-type attdef) 'cdata)
+			 (attdef-att-value attdef))
+		(let ((n (attdef-name attdef)))
+		  (element:set-attribute! e n (attdef-att-value attdef)))))
+	    attlist))))
+
   (define (make-element name)
     (if (qname? name)
 	(document:create-element-qname root-document
@@ -364,6 +380,7 @@
 	(attributes (caddr element))
 	(content (cdddr element)))
     (define elm (make-element name))
+    (when doctype (check-default-attribute doctype elm))
     (for-each (lambda (attr) (element:set-attribute-node-ns! elm attr))
 	      (filter-map ->attribute-node (cdr attributes)))
     (for-each (lambda (node) (node:append-child! elm node))
