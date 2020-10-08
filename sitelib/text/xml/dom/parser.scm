@@ -533,7 +533,7 @@
 
 
 ;; [55] StringType ::= 'CDATA'
-(define $xml:string-type ($do (($token "CDATA")) ($return 'cdata)))
+(define $xml:string-type ($seq ($token "CDATA") ($return 'cdata)))
 ;; [56] TokenizedType ::= 'ID'
 ;; 			| 'IDREF'
 ;; 			| 'IDREFS'
@@ -542,13 +542,13 @@
 ;; 			| 'NMTOKEN'
 ;; 			| 'NMTOKENS'
 (define $xml:tokenized-type
-  ($or ($do (($token "ID")) ($return 'id))
-       ($do (($token "IDREF")) ($return 'idref))
-       ($do (($token "IDREFS")) ($return 'idrefs))
-       ($do (($token "ENTITY")) ($return 'entity))
-       ($do (($token "ENTITIES")) ($return 'entities))
-       ($do (($token "NMTOKEN")) ($return 'nmtoken))
-       ($do (($token "NMTOKENS")) ($return 'nmtokens))))
+  ($or ($seq ($token "ID") ($return 'id))
+       ($seq ($token "IDREF") ($return 'idref))
+       ($seq ($token "IDREFS") ($return 'idrefs))
+       ($seq ($token "ENTITY") ($return 'entity))
+       ($seq ($token "ENTITIES") ($return 'entities))
+       ($seq ($token "NMTOKENS") ($return 'nmtokens))
+       ($seq ($token "NMTOKEN") ($return 'nmtoken))))
 
 ;; [58] NotationType ::= 'NOTATION' S '(' S? Name (S? '|' S? Name)* S? ')'
 (define $xml:notation-type

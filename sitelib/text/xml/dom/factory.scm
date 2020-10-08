@@ -49,6 +49,7 @@
 	    (sagittarius)
 	    (sagittarius generators)
 	    (srfi :1 lists)
+	    (srfi :13 strings)
 	    (srfi :39 parameters)
 	    (srfi :127 lseqs))
 
@@ -57,7 +58,7 @@
   (let-values (((s v n) ($xml:document in)))
     (if (parse-success? s)
 	(values v n)
-	(error 'parse-xml "Failed to parse XML document" v))))
+	(error 'parse-xml "Failed to parse XML document" v (list->string n)))))
 (define (parse-xml in)
   (let-values (((v nl) (lseq->xml (generator->lseq (port->char-generator in)))))
     (if (not (null? nl))
@@ -275,8 +276,8 @@
   (define (make-it def)
     (define (parse def)
       (match def
-	((_ 'required) (values 'required #f))
-	((_ 'implied)  (values 'implied #f))
+	('required (values 'required #f))
+	('implied  (values 'implied #f))
 	((_ 'fixed v)  (values 'fixed v))
 	((_ v)         (values #f v))
 	(_ (assertion-violation 'att-value "Unknown format" def))))
@@ -295,10 +296,13 @@
     
 (define-factory (element root-document)
   (define doctype (document-doctype root-document))
-  (define (check-default-attribute doctype e)
-    (define element-types (document-type-elements doctype))
-    (define element-type (named-node-map:get-named-item element-types
-							(node-node-name e)))
+  (define element-types (and doctype (document-type-elements doctype)))
+
+  (define (check-default-attribute e)
+    (define element-type
+      (and element-types
+	   (named-node-map:get-named-item element-types
+					  (node-node-name e))))
     (and element-type
 	 (let ((attlist (element-type-attlist element-type)))
 	   (node-list-for-each
@@ -308,6 +312,31 @@
 			 (attdef-att-value attdef))
 		(let ((n (attdef-name attdef)))
 		  (element:set-attribute! e n (attdef-att-value attdef)))))
+	    attlist))))
+  
+  (define (normalize-attr-values e)
+    (define element-type
+      (and element-types
+	   (named-node-map:get-named-item element-types
+					  (node-node-name e))))
+    (define (normalize-value v)
+      (let-values (((out e) (open-string-output-port)))
+	(let loop ((l (string->list (string-trim-both v))) (space? #f))
+	  (cond ((null? l) (e))
+		((char=? #\space (car l))
+		 (unless space? (put-char out #\space))
+		 (loop (cdr l) #t))
+		(else (put-char out (car l)) (loop (cdr l) #f))))))
+    (and element-type
+	 (let ((attlist (element-type-attlist element-type)))
+	   (node-list-for-each
+	    (lambda (attdef)
+	      ;; we only handle CDATA for now 
+	      (when (memq (attdef-att-type attdef) '(id nmtoken nmtokens))
+		(cond ((element:get-attribute-node e (attdef-name attdef)) =>
+		       (lambda (attr)
+			 (attr-value-set! attr
+			  (normalize-value (attr-value attr))))))))
 	    attlist))))
 
   (define (make-element name)
@@ -326,8 +355,11 @@
 	      (cond ((string? v) (put-string out v))
 		    ((and (pair? v) (eq? 'entity-ref (car v)))
 		     (put-string out (expand-entity root-document v)))
+		    ;; we use expand char-ref in attributes
+		    ((and (pair? v) (eq? 'char-ref (car v)))
+		     (put-char out (integer->char (caddr v))))
 		    (else (assertion-violation
-			   'element "Invalid attribute value" val))))
+			   'element "Invalid attribute value" v val))))
 	    (for-each write-it val)
 	    (extract))))
     (define (set-value attr)
@@ -380,11 +412,12 @@
 	(attributes (caddr element))
 	(content (cdddr element)))
     (define elm (make-element name))
-    (when doctype (check-default-attribute doctype elm))
+    (when doctype (check-default-attribute elm))
     (for-each (lambda (attr) (element:set-attribute-node-ns! elm attr))
 	      (filter-map ->attribute-node (cdr attributes)))
     (for-each (lambda (node) (node:append-child! elm node))
 	      (merge-text (map dispatch-factory content)))
+    (normalize-attr-values elm)
     elm))
 
 (define-constant +predefined-entities+

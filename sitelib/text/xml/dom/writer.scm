@@ -33,7 +33,8 @@
     (export make-dom-writer
 	    make-xml-write-options
 	    *xml:default-options*
-	    *xml:c14n*)
+	    *xml:c14n*
+	    *xml:c14n-w/comment*)
     (import (rnrs)
 	    (text xml dom nodes)
 	    (srfi :13 strings)
@@ -70,6 +71,7 @@
 	  use-inline-element?		; default #t
 	  write-comment?		; default #t
 	  write-doctype?		; default #t
+	  write-cdata?			; default #t
 	  )
   (protocol (lambda (p)
 	      (lambda (emit-internal-dtd? strict?
@@ -96,6 +98,7 @@
 			    (use-inline-element? #t)
 			    (write-comment? #t)
 			    (write-doctype? #t)
+			    (write-cdata? #t)
 			    )
 		(p emit-internal-dtd? strict?
 		   allow-duplicate-names byte-order-mark cdata-section-elements
@@ -105,7 +108,8 @@
 		   omit-xml-declaration standalone suppress-indentation
 		   undeclare-prefixes use-character-maps version
 		   
-		   use-inline-element? write-comment? write-doctype?)))))
+		   use-inline-element? write-comment? write-doctype?
+		   write-cdata?)))))
 
 ;; for now not strict by default
 (define *xml:default-options* (make-xml-write-options #f #f))
@@ -113,8 +117,12 @@
 (define *xml:c14n* (make-xml-write-options #f #f
 				       :use-inline-element? #f
 				       :write-comment? #f
-				       :write-doctype? #f))
-
+				       :write-doctype? #f
+				       :write-cdata? #f))
+(define *xml:c14n-w/comment* (make-xml-write-options #f #f
+						     :use-inline-element? #f
+						     :write-doctype? #f
+						     :write-cdata? #f))
 (define make-dom-writer
   (case-lambda
    (() (make-dom-writer *xml:default-options*))
@@ -228,12 +236,25 @@
 	(put-string out s)))
   (lambda (out ch)
     (case ch
-      ((#\<) (write/attr out "&lt;" "<"))
-      ((#\>) (write/attr out "&gt;" ">"))
-      ((#\&) (write/attr out "&amp;" "&"))
+      ((#\<)
+       ;; canonical form escapes < on attribute, so for now
+       ;;(write/attr out "&lt;" "<")
+       (put-string out "&lt;"))
+      ((#\>)
+       (write/attr out "&gt;" ">"))
+      ((#\&) (put-string out "&amp;"))
       ((#\") (write/attr out "\"" "&quot;"))
       ((#\') (put-char out ch))		; should we use &apos; for text?
-      (else (put-char out ch)))))
+      ;; handle newline differently, this will be shown in the text without
+      ;; escaped (not in attribute though)
+      ((#\newline) (write/attr out "\n" "&#xA;"))
+      (else
+       (if (char-set-contains? char-set:iso-control ch)
+	   (let ((hex (number->string (char->integer ch) 16)))
+	     (put-string out "&#x")
+	     (put-string out (string-upcase hex))
+	     (put-char out #\;))
+	   (put-char out ch))))))
 (define write/attr-escape (make-write/escape #t))
 
 (define-node-writer +attribute-node+ (attribute-write a options out)
@@ -259,9 +280,13 @@
       (string-for-each write-it (character-data-data t))))
 
 (define-node-writer +cdata-section-node+ (cdata-writer t options out)
-  (put-string out "<![CDATA[")
-  (put-string out (character-data-data t))
-  (put-string out "]]>"))
+  (define (write-it ch) (write/escape out ch))
+  (cond ((xml-write-options-write-cdata? options)
+	 (put-string out "<![CDATA[")
+	 (put-string out (character-data-data t))
+	 (put-string out "]]>"))
+	(else
+	 (string-for-each write-it (character-data-data t)))))
 
 (define-node-writer +entity-reference-node+ (entity-reference er options out)
   (put-char out #\&)

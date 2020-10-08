@@ -69,6 +69,7 @@
 
 ;; canonicalisation
 (define c14n-write (make-dom-writer *xml:c14n*))
+(define c14n/comment-write (make-dom-writer *xml:c14n-w/comment*))
 (define input-section-3.1
   "<?xml version=\"1.0\"?>
 
@@ -151,12 +152,23 @@
   (let-values (((out e) (open-string-output-port)))
     (writer (string->dom input) out)
     (let ((r (e)))
+      (unless (string=? expect r)
+	(display expect) (newline)
+	(display r) (newline))
       (test-equal input expect r))))
 (test-canonicalization c14n-write input-section-3.1
 		       "<?xml-stylesheet href=\"doc.xsl\"
    type=\"text/xsl\"   ?>
 <doc>Hello, world!</doc>
 <?pi-without-data?>")
+
+(test-canonicalization c14n/comment-write input-section-3.1
+		       "<?xml-stylesheet href=\"doc.xsl\"
+   type=\"text/xsl\"   ?>
+<doc>Hello, world!<!-- Comment 1 --></doc>
+<?pi-without-data?>
+<!-- Comment 2 -->
+<!-- Comment 3 -->")
 
 (test-canonicalization c14n-write input-section-3.2
 		       "<doc>
@@ -187,5 +199,16 @@
    </e6>
 </doc>")
 
+(test-canonicalization c14n-write input-section-3.4
+		       "<doc>
+   <text>First line&#xD;
+Second line</text>
+   <value>2</value>
+   <compute>value&gt;\"0\" &amp;&amp; value&lt;\"10\" ?\"valid\":\"error\"</compute>
+   <compute expr=\"value>&quot;0&quot; &amp;&amp; value&lt;&quot;10&quot; ?&quot;valid&quot;:&quot;error&quot;\">valid</compute>
+   <norm attr=\" '    &#xD;&#xA;&#x9;   ' \"></norm>
+   <normNames attr=\"A &#xD;&#xA;&#x9; B\"></normNames>
+   <normId id=\"' &#xD;&#xA;&#x9; '\"></normId>
+</doc>")
 (test-end)
 
