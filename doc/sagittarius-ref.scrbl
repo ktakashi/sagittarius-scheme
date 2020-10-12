@@ -297,6 +297,36 @@ files' absolute path. So it is important that users' libraries are already
 installed before precompiling, otherwise Sagittarius won't use the precompiled
 cache files.
 
+@subsubsection{Deviate}
+
+Some of the behaviours are not compliant or deviate from other implementations.
+Here, we list some of them.
+
+@sub*section{Macro expansion}
+
+The following code will print @code{#t} instead of @code{#f} with @code{-r6}
+command line option or doing it on a library:
+@codeblock{
+(import (rnrs) (for (rnrs eval) expand))
+
+(define-syntax foo
+  (lambda(ctx)
+    (syntax-case ctx ()
+      ((_ id)
+       (free-identifier=?
+	#'id
+	(eval '(datum->syntax #'k 'bar) (environment '(rnrs))))))))
+
+(define bar)
+
+(display (foo bar))
+}
+This is because, Sagittarius doesn't have separated phases of macro expansion
+and compilation. When @code{foo} is expanded, then the @code{bar} is not defined
+yet or at least it's not visible during the macro expansion. So, both @var{bar}s
+are not bound, then @code{free-identifier=?} will consider them the same
+identifiers.
+
 @include-section["r6rs.scrbl"]
 @include-section["r7rs.scrbl"]
 @include-section["clos.scrbl"]
