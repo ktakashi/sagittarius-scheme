@@ -1381,7 +1381,12 @@
       node)))
 
 (define (document:create-attribute-qname document namespace prefix local-part)
-  (let ((node (make-attr namespace prefix local-part)))
+  (let ((node (make-attr (or namespace
+			     ;; a bit ugly but xml is sort of default namespace
+			     (and (equal? prefix "xml")
+				  "http://www.w3.org/XML/1998/namespace")
+			     "")
+			 prefix local-part)))
     (node-owner-document-set! node document)
     node))
 

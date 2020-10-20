@@ -33,6 +33,7 @@
 (library (reactive stream)
     (export observable?
 	    generator->observable
+	    observable-wait!
 	    reactive-stream (rename (reactive-stream $))
 	    -> ? !)
     (import (rnrs)
@@ -51,6 +52,9 @@
 	    (subscriber v2)))
 	(loop (gen)))))
   (make-observable (make-shared-queue-channel-actor task)))
+
+(define (observable-wait! observable . timeout)
+  (apply actor-wait! (observable-actor observable) timeout))
 
 (define-syntax -> (syntax-rules ()))
 (define-syntax ?  (syntax-rules ()))
