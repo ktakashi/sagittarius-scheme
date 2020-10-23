@@ -36,6 +36,8 @@
 (library (text xml dsig types)
     (export +xml:dsig-namespace+
 	    ds:element? ds:element-id ds:element-tag-name
+	    ds:element->dom-node
+	    
 	    ds:signature? (rename (make-ds:signature ds:make-signature))
 	    ds:signature-signed-info ds:signature-signature-value
 	    ds:signature-key-info ds:signature-object ds:signature-id
@@ -67,18 +69,23 @@
 	    )
     (import (rnrs)
 	    (srfi :1 lists)
-	    (srfi :117 list-queues))
+	    (srfi :117 list-queues)
+	    (text xml dom))
 
 (define +xml:dsig-namespace+ "http://www.w3.org/2000/09/xmldsig#")
 
 ;; base record
 (define-record-type ds:element
   (fields id				; optional attribute
-	  tag-name)
+	  tag-name
+	  ->dom)
   (protocol (lambda (p)
 	      (case-lambda
-	       ((tag-name) (p #f tag-name))
-	       ((id tag-name) (p id tag-name))))))
+	       ((tag-name ->dom) (p #f tag-name ->dom))
+	       ((id tag-name ->dom) (p id tag-name ->dom))))))
+
+(define (ds:element->dom-node ds:element document)
+  ((ds:element->dom ds:element) ds:element document))
 
 
 ;; 4.2 The Signature Element
@@ -91,10 +98,12 @@
 	  )
   (protocol (lambda (n)
 	      (case-lambda
-	       ((si sv) ((n "Signature") si sv #f '()))
-	       ((si sv ki) ((n "Signature") si sv ki '()))
-	       ((si sv ki o) ((n "Signature") si sv ki o))
-	       ((si sv ki o id) ((n id "Signature") si sv ki o))))))
+	       ((si sv) ((n "Signature" ds:signature->dom) si sv #f '()))
+	       ((si sv ki) ((n "Signature" ds:signature->dom) si sv ki '()))
+	       ((si sv ki o) ((n "Signature" ds:signature->dom) si sv ki o))
+	       ((si sv ki o id)
+		((n id "Signature" ds:signature->dom) si sv ki o))))))
+(define (ds:signature->dom ds:signature document) )
 
 ;; 4.3 The Signaturevalue Element
 (define-record-type ds:signature-value
@@ -103,8 +112,11 @@
 	  )
   (protocol (lambda (n)
 	      (case-lambda
-	       ((content) ((n "SignatureValue") content))
-	       ((content id) ((n id "SignatureValue") content))))))
+	       ((content)
+		((n "SignatureValue" ds:signature-value->dom) content))
+	       ((content id)
+		((n id "SignatureValue" ds:signature-value->dom) content))))))
+(define (ds:signature-value->dom ds:signature-value document) )
 
 ;; 4.4 The SignedInfo Element
 (define-record-type ds:signed-info
@@ -115,8 +127,10 @@
 	  )
   (protocol (lambda (n)
 	      (case-lambda
-	       ((cm sm ref) ((n "SignedInfo") cm sm ref))
-	       ((cm sm ref id) ((n id "SignedInfo") cm sm ref))))))
+	       ((cm sm ref) ((n "SignedInfo" ds:signed-info->dom) cm sm ref))
+	       ((cm sm ref id)
+		((n id "SignedInfo" ds:signed-info->dom) cm sm ref))))))
+(define (ds:signed-info->dom ds:signed-info document) )
 
 ;;; 4.4.3 The Reference Element
 (define-record-type ds:reference
@@ -129,12 +143,16 @@
 	  )
   (protocol (lambda (n)
 	      (case-lambda
-	       ((dm dv) ((n "Reference") '() dm dv #f #f))
-	       ((dm dv trns) ((n "Reference") trns dm dv #f #f))
-	       ((dm dv trns id) ((n id "Reference") trns dm dv #f #f))
-	       ((dm dv trns id url) ((n id "Reference") trns dm dv url #f))
-	       ((dm dv trns id url type) ((n id "Reference")
-					  trns dm dv url type))))))
+	       ((dm dv) ((n "Reference" ds:reference->dom) '() dm dv #f #f))
+	       ((dm dv trns)
+		((n "Reference" ds:reference->dom) trns dm dv #f #f))
+	       ((dm dv trns id)
+		((n id "Reference" ds:reference->dom) trns dm dv #f #f))
+	       ((dm dv trns id url)
+		((n id "Reference" ds:reference->dom) trns dm dv url #f))
+	       ((dm dv trns id url type)
+		((n id "Reference" ds:reference->dom) trns dm dv url type))))))
+(define (ds:reference->dom ds:reference document) )
 
 ;;; TBD 4.4.3.4 The Transforms Element
 
@@ -160,8 +178,9 @@
 			(for-each (lambda (n) (list-queue-add-back! q n)) add)
 			(loop (cdr n*) next)))))
 	      (case-lambda
-	       ((c) ((n "KeyInfo") (order-it c)))
-	       ((c id) ((n id "KeyInfo") (order-id c)))))))
+	       ((c) ((n "KeyInfo" ds:key-info->dom) (order-it c)))
+	       ((c id) ((n id "KeyInfo" ds:key-info->dom) (order-id c)))))))
+(define (ds:key-info->dom ds:key-info document) )
 
 ;;; 4.5.1 The KeyName Element
 (define-record-type ds:key-name
@@ -169,7 +188,8 @@
   (fields value)
   (protocol (lambda (n)
 	      (lambda (v)
-		((n "KeyName") v)))))
+		((n "KeyName" ds:key-name->dom) v)))))
+(define (ds:key-name->dom ds:key-name document))
 
 ;;; 4.5.1 The KeyValue Element
 (define-record-type ds:key-value
@@ -177,7 +197,8 @@
   (fields content)			; choice
   (protocol (lambda (n)
 	      (lambda (c)
-		((n "KeyValue") c)))))
+		((n "KeyValue" ds:key-value->dom) c)))))
+(define (ds:key-value->dom ds:key-value document) )
 
 ;;; TBD 4.5.2.1 The DSAKeyValue Element
 
@@ -188,6 +209,7 @@
 	  exponent)
   (protocol (lambda (n)
 	      (lambda (m e)
-		((n "RSAKeyValue") m e)))))
+		((n "RSAKeyValue" ds:rsa-key-value->dom) m e)))))
+(define (ds:rsa-key-value->dom ds:rsa-key-value document) )
 
 )
