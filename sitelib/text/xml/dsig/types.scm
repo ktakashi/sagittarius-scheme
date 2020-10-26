@@ -33,6 +33,7 @@
 ;;; Section 4: Core Signature Syntax
 ;;; - URL https://www.w3.org/TR/xmldsig-core1/
 
+#!nounbound
 (library (text xml dsig types)
     (export +xml:dsig-namespace+
 	    ds:element? ds:element-id ds:element-tag-name
@@ -40,7 +41,7 @@
 	    
 	    ds:signature? (rename (make-ds:signature ds:make-signature))
 	    ds:signature-signed-info ds:signature-signature-value
-	    ds:signature-key-info ds:signature-object ds:signature-id
+	    ds:signature-key-info ds:signature-object
 
 	    ds:signature-value?
 	    (rename (make-ds:signature-value ds:make-signature-value))
@@ -52,7 +53,7 @@
 
 	    ds:reference? (rename (make-ds:reference ds:make-reference))
 	    ds:reference-transforms ds:reference-digest-method
-	    ds:reference-digest-value ds:reference-url ds:reference-type
+	    ds:reference-digest-value ds:reference-uri ds:reference-type
 
 	    ds:key-info? (rename (make-ds:key-info ds:make-key-info))
 	    ds:key-info-elements
@@ -73,12 +74,14 @@
 	    (text xml dom))
 
 (define +xml:dsig-namespace+ "http://www.w3.org/2000/09/xmldsig#")
+(define (ds:create-element doc name)
+  (document:create-element-ns doc +xml:dsig-namespace+ name))
 
 ;; base record
 (define-record-type ds:element
   (fields id				; optional attribute
 	  tag-name
-	  ->dom)
+	  >dom)
   (protocol (lambda (p)
 	      (case-lambda
 	       ((tag-name ->dom) (p #f tag-name ->dom))
@@ -86,7 +89,11 @@
 
 (define (ds:element->dom-node ds:element document)
   ((ds:element->dom ds:element) ds:element document))
-
+(define (ds:element-create-self-element e doc)
+  (let ((elm (ds:create-element doc (ds:element-tag-name e))))
+    (cond ((ds:element-id e) =>
+	   (lambda (id) (element:set-attribute! elm "Id" id))))
+    elm))
 
 ;; 4.2 The Signature Element
 (define-record-type ds:signature
@@ -103,7 +110,16 @@
 	       ((si sv ki o) ((n "Signature" ds:signature->dom) si sv ki o))
 	       ((si sv ki o id)
 		((n id "Signature" ds:signature->dom) si sv ki o))))))
-(define (ds:signature->dom ds:signature document) )
+(define (ds:signature->dom sig document)
+  (define sig-elem (ds:element-create-self-element sig document))
+  (define (append-child ds:elm)
+    (node:append-child! sig-elem (ds:element->dom-node ds:elm document)))
+
+  (append-child (ds:signature-signed-info sig))
+  (append-child (ds:signature-signature-value sig))
+  (cond ((ds:signature-key-info sig) => append-child))
+  (for-each append-child (ds:signature-object sig))
+  sig-elem)
 
 ;; 4.3 The Signaturevalue Element
 (define-record-type ds:signature-value
@@ -116,7 +132,12 @@
 		((n "SignatureValue" ds:signature-value->dom) content))
 	       ((content id)
 		((n id "SignatureValue" ds:signature-value->dom) content))))))
-(define (ds:signature-value->dom ds:signature-value document) )
+(define (ds:signature-value->dom sv document)
+  (define sv-elem (ds:element-create-self-element sv document))
+  (let ((text (ds:signature-value-content sv)))
+    (node:append-child! sv-elem
+			(document:create-text-node document text))
+    sv-elem))
 
 ;; 4.4 The SignedInfo Element
 (define-record-type ds:signed-info
@@ -130,7 +151,20 @@
 	       ((cm sm ref) ((n "SignedInfo" ds:signed-info->dom) cm sm ref))
 	       ((cm sm ref id)
 		((n id "SignedInfo" ds:signed-info->dom) cm sm ref))))))
-(define (ds:signed-info->dom ds:signed-info document) )
+(define (ds:signed-info->dom si doc)
+  (define si-elm (ds:element-create-self-element si doc))
+  (define cm (ds:create-element doc "CanonicalizationMethod"))
+  (define sm (ds:create-element doc "SignatureMethod"))
+  (define (set-algorithm e v) (element:set-attribute! e "Algorithm" v))
+  
+  (set-algorithm cm (ds:signed-info-canonicalization-method si))
+  (set-algorithm sm (ds:signed-info-signature-method si))
+  (node:append-child! si-elm cm)
+  (node:append-child! si-elm sm)
+  (for-each (lambda (ref)
+	      (node:append-child! si-elm (ds:element->dom-node ref doc)))
+	    (ds:signed-info-reference si))
+  si-elm)
 
 ;;; 4.4.3 The Reference Element
 (define-record-type ds:reference
@@ -138,7 +172,7 @@
   (fields transforms			; element *
 	  digest-method			; element
 	  digest-value			; element
-	  url				; optional attribute
+	  uri				; optional attribute
 	  type				; optional attribute
 	  )
   (protocol (lambda (n)
@@ -148,11 +182,26 @@
 		((n "Reference" ds:reference->dom) trns dm dv #f #f))
 	       ((dm dv trns id)
 		((n id "Reference" ds:reference->dom) trns dm dv #f #f))
-	       ((dm dv trns id url)
-		((n id "Reference" ds:reference->dom) trns dm dv url #f))
-	       ((dm dv trns id url type)
-		((n id "Reference" ds:reference->dom) trns dm dv url type))))))
-(define (ds:reference->dom ds:reference document) )
+	       ((dm dv trns id uri)
+		((n id "Reference" ds:reference->dom) trns dm dv uri #f))
+	       ((dm dv trns id uri type)
+		((n id "Reference" ds:reference->dom) trns dm dv uri type))))))
+(define (ds:reference->dom ref doc)
+  (define ref-elm (ds:element-create-self-element ref doc))
+  (for-each (lambda (t) (node:append-child! ref-elm (ds:element->dom-node t)))
+	    (ds:reference-transforms ref))
+  (let ((dm (ds:create-element doc "DigestMethod")))
+    (element:set-attribute! dm "Algorithm" (ds:reference-digest-method ref))
+    (node:append-child! ref-elm dm))
+  (let ((dv (ds:create-element doc "DigestValue"))
+	(v (document:create-text-node doc (ds:reference-digest-value ref))))
+    (node:append-child! dv v)
+    (node:append-child! ref-elm dv))
+  (cond ((ds:reference-uri ref) =>
+	 (lambda (uri) (element:set-attribute! ref-elm "URI" uri))))
+  (cond ((ds:reference-type ref) =>
+	 (lambda (type) (element:set-attribute! ref-elm "Type" type))))
+  ref-elm)
 
 ;;; TBD 4.4.3.4 The Transforms Element
 
@@ -165,7 +214,7 @@
   (fields elements			; choice unbounded...
 	  )
   (protocol (lambda (n)
-	      (define (order-id c)
+	      (define (order-it c)
 		(define q (list-queue))
 		(define (pred name)
 		  (lambda (e) (equal? name (ds:element-tag-name e))))
@@ -179,7 +228,7 @@
 			(loop (cdr n*) next)))))
 	      (case-lambda
 	       ((c) ((n "KeyInfo" ds:key-info->dom) (order-it c)))
-	       ((c id) ((n id "KeyInfo" ds:key-info->dom) (order-id c)))))))
+	       ((c id) ((n id "KeyInfo" ds:key-info->dom) (order-it c)))))))
 (define (ds:key-info->dom ds:key-info document) )
 
 ;;; 4.5.1 The KeyName Element
