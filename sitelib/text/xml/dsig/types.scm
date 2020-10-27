@@ -82,21 +82,16 @@
 ;; TODO make better API on base64 side
 (define (ds:encode-base64 bv)
   (define (make-put out)
-    (lambda (i)
-      (if (negative? i)
-	  (begin (put-u8 out #x0d) (put-u8 out #x0a))
-	  (put-u8 out (vector-ref *base64-encode-table* i)))))
+    (lambda (v)
+      (if v
+	  (put-u8 out v)
+	  (begin (put-u8 out #x0d) (put-u8 out #x0a)))))
   (let-values (((out e) (open-bytevector-output-port)))
     (define in (open-bytevector-input-port bv))
-    (define encoder (make-base64-encoder (make-put out) 76 #t))
-    (let loop ()
-      (let* ((b0 (get-u8 in))
-	     (b1 (get-u8 in))
-	     (b2 (get-u8 in)))
-	(cond ((eof-object? b0))
-	      ((eof-object? b1) (encoder b0 -1 -1))
-	      ((eof-object? b2) (encoder b0 b1 -1))
-	      (else (encoder b0 b1 b2) (loop)))))
+    (define encoder
+      (make-base64-encoder (make-put out) 76 #t *base64-encode-table*))
+    (define drainer (make-base64-encode-drainer encoder))
+    (drainer in)
     (e)))
 
 

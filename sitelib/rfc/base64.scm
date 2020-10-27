@@ -52,6 +52,7 @@
 		    (*decode-url-table* *base64-decode-url-table*)
 		    (*encode-url-table* *base64-encode-url-table*))
 	    make-base64-decoder make-base64-encoder
+	    make-base64-encode-drainer ;; wtf
 	    )
     (import (rnrs)
 	    (sagittarius))
@@ -183,41 +184,43 @@
 	 (if (bytevector? in)
 	     (name (open-bytevector-input-port in) 
 			    :line-width line-width :padding? padding?)
-	     (call-with-bytevector-output-port
-	      (lambda (out)
-		(base64-encode-impl in out line-width padding? table))))))))
+	     (let-values (((out e) (open-bytevector-output-port)))
+	       (base64-encode-impl in out line-width padding? table)
+	       (e)))))))
   (define-encode base64-encode *encode-table* 76 #t)
   (define-encode base64url-encode *encode-url-table* #f #f)
 
+  (define (make-base64-encode-drainer encoder)
+    (lambda (in)
+      (let loop ()
+	(let* ((b0 (get-u8 in))
+	       (b1 (get-u8 in))
+	       (b2 (get-u8 in)))
+	  (cond ((eof-object? b0))
+		((eof-object? b1) (encoder b0 -1 -1))
+		((eof-object? b2) (encoder b0 b1 -1))
+		(else (encoder b0 b1 b2) (loop)))))))
+  
   (define (base64-encode-impl in out line-width padding? encode-table)
-    (define (put i)
-      (if (negative? i)
-	  (put-u8 out #x0a)
-	  (put-u8 out (vector-ref encode-table i))))
-    (define encoder (make-base64-encoder put line-width padding?))
-    (let loop ()
-      (let* ((b0 (get-u8 in))
-	     (b1 (get-u8 in))
-	     (b2 (get-u8 in)))
-	(cond ((eof-object? b0))
-	      ((eof-object? b1) (encoder b0 -1 -1))
-	      ((eof-object? b2) (encoder b0 b1 -1))
-	      (else (encoder b0 b1 b2) (loop))))))
+    (define (put v) (put-u8 out (or v #x0a)))
+    (define encoder (make-base64-encoder put line-width padding? encode-table))
+    (define drainer (make-base64-encode-drainer encoder))
+    (drainer in))
 
   ;; basically the same as above but it input length is unknown
   ;; always encode 3 bytes to 4 bytes
-  (define (make-base64-encoder real-put line-width padding?)
+  (define (make-base64-encoder real-put line-width padding? encode-table)
     (define max-col (and line-width (> line-width 0) (- line-width 1)))
     (define col 0)
     (define (check-col)
       (when max-col
 	(if (= col max-col)
 	    (begin
-	      (real-put -1) ;; so that implementation may choose end line
+	      (real-put #f) ;; so that implementation may choose end line
 	      (set! col 0))
 	    (set! col (+ col 1)))))
     (define (put i)
-      (real-put i)
+      (real-put (vector-ref encode-table i))
       (check-col))
 
     (lambda (b0 b1 b2)
@@ -258,11 +261,8 @@
       (set! buffer-count (+ buffer-count size))
       size)
 
-    (define (put i) 
-      (if (negative? i)
-	  (put-u8 sink #x0a)
-	  (put-u8 sink (vector-ref encode-table i))))
-    (define encoder (make-base64-encoder put line-width padding?))
+    (define (put v) (put-u8 sink (or v #x0a)))
+    (define encoder (make-base64-encoder put line-width padding? encode-table))
 
     (define (process-encode)
       (define (get n)
@@ -314,14 +314,11 @@
       (bytevector-copy! buffer size buffer 0 buffer-count)
       size)
 
-    (define (put i)
-      (bytevector-u8-set! buffer buffer-count 
-			  (if (negative? i)
-			      #x0a
-			      (vector-ref encode-table i)))
+    (define (put v)
+      (bytevector-u8-set! buffer buffer-count (or v #x0a))
       (set! buffer-count (+ buffer-count 1)))
 
-    (define encoder (make-base64-encoder put line-width padding?))
+    (define encoder (make-base64-encoder put line-width padding? encode-table))
 
     (define (process-encode)
       (define (get prev) 
