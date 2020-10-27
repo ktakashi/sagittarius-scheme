@@ -69,6 +69,8 @@
 	    ds:rsa-key-value-modulus ds:rsa-key-value-exponent
 	    )
     (import (rnrs)
+	    (rfc base64)
+	    (sagittarius)
 	    (srfi :1 lists)
 	    (srfi :117 list-queues)
 	    (text xml dom))
@@ -76,6 +78,27 @@
 (define +xml:dsig-namespace+ "http://www.w3.org/2000/09/xmldsig#")
 (define (ds:create-element doc name)
   (document:create-element-ns doc +xml:dsig-namespace+ name))
+
+;; TODO make better API on base64 side
+(define (ds:encode-base64 bv)
+  (define (make-put out)
+    (lambda (i)
+      (if (negative? i)
+	  (begin (put-u8 out #x0d) (put-u8 out #x0a))
+	  (put-u8 out (vector-ref *base64-encode-table* i)))))
+  (let-values (((out e) (open-bytevector-output-port)))
+    (define in (open-bytevector-input-port bv))
+    (define encoder (make-base64-encoder (make-put out) 76 #t))
+    (let loop ()
+      (let* ((b0 (get-u8 in))
+	     (b1 (get-u8 in))
+	     (b2 (get-u8 in)))
+	(cond ((eof-object? b0))
+	      ((eof-object? b1) (encoder b0 -1 -1))
+	      ((eof-object? b2) (encoder b0 b1 -1))
+	      (else (encoder b0 b1 b2) (loop)))))
+    (e)))
+
 
 ;; base record
 (define-record-type ds:element
@@ -229,7 +252,12 @@
 	      (case-lambda
 	       ((c) ((n "KeyInfo" ds:key-info->dom) (order-it c)))
 	       ((c id) ((n id "KeyInfo" ds:key-info->dom) (order-it c)))))))
-(define (ds:key-info->dom ds:key-info document) )
+(define (ds:key-info->dom ki document)
+  (define ki-elm (ds:element-create-self-element ki document))
+  (for-each (lambda (e)
+	      (node:append-child! ki-elm (ds:element->dom-node e document)))
+	    (ds:key-info-elements ki))
+  ki-elm)
 
 ;;; 4.5.1 The KeyName Element
 (define-record-type ds:key-name
@@ -238,7 +266,11 @@
   (protocol (lambda (n)
 	      (lambda (v)
 		((n "KeyName" ds:key-name->dom) v)))))
-(define (ds:key-name->dom ds:key-name document))
+(define (ds:key-name->dom kn document)
+  (define kn-elm (ds:element-create-self-element kn document))
+  (let ((text (document:create-text-node document (ds:key-name-value kn))))
+    (node:append-child! kn-elm text))
+  kn-elm)
 
 ;;; 4.5.1 The KeyValue Element
 (define-record-type ds:key-value
@@ -247,7 +279,11 @@
   (protocol (lambda (n)
 	      (lambda (c)
 		((n "KeyValue" ds:key-value->dom) c)))))
-(define (ds:key-value->dom ds:key-value document) )
+(define (ds:key-value->dom kv document)
+  (define kv-elm (ds:element-create-self-element kv document))
+  (let ((kv-impl (ds:element->dom-node (ds:key-value-content kv) document)))
+    (node:append-child! kv-elm kv-impl))
+  kv-elm)
 
 ;;; TBD 4.5.2.1 The DSAKeyValue Element
 
@@ -259,6 +295,18 @@
   (protocol (lambda (n)
 	      (lambda (m e)
 		((n "RSAKeyValue" ds:rsa-key-value->dom) m e)))))
-(define (ds:rsa-key-value->dom ds:rsa-key-value document) )
+(define (ds:rsa-key-value->dom rkv document)
+  (define rkv-elm (ds:element-create-self-element rkv document))
+  (define m (ds:create-element document "Modulus"))
+  (define e (ds:create-element document "Exponent"))
+  (define (b64 i) (utf8->string (ds:encode-base64 (integer->bytevector i))))
+  (define (set-value e v)
+    (let ((v (document:create-text-node document (b64 v))))
+      (node:append-child! e v)))
+  (set-value m (ds:rsa-key-value-modulus rkv))
+  (set-value e (ds:rsa-key-value-exponent rkv))
+  (node:append-child! rkv-elm m)
+  (node:append-child! rkv-elm e)
+  rkv-elm)
 
 )

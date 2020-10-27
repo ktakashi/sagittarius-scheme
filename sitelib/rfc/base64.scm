@@ -44,7 +44,15 @@
 	    open-base64-decode-output-port
 	    open-base64-decode-input-port
 	    open-base64url-decode-output-port
-	    open-base64url-decode-input-port)
+	    open-base64url-decode-input-port
+
+	    ;; For custom encoder/decoder
+	    (rename (*decode-table* *base64-decode-table*)
+		    (*encode-table* *base64-encode-table*)
+		    (*decode-url-table* *base64-decode-url-table*)
+		    (*encode-url-table* *base64-encode-url-table*))
+	    make-base64-decoder make-base64-encoder
+	    )
     (import (rnrs)
 	    (sagittarius))
 

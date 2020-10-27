@@ -3,6 +3,7 @@
 ;;; rsa.scm Cryptographic library
 ;;; 
 #!core
+#!nounbound
 (library (crypto rsa)
     (export ;; padding block type
 	    pkcs-v1.5-padding
@@ -18,6 +19,14 @@
 	    ;; marker
 	    RSA
 
+	    rsa-private-key? 
+	    rsa-private-key-modulus rsa-private-key-private-exponent
+	    rsa-private-crt-key?
+	    rsa-private-crt-key-public-exponent
+	    rsa-private-crt-key-p rsa-private-crt-key-q rsa-private-crt-key-dP
+	    rsa-private-crt-key-dQ rsa-private-crt-key-qP
+	    rsa-public-key? rsa-public-key-modulus rsa-public-key-exponent
+	    
 	    ;; CLOS
 	    <rsa-private-key> <rsa-private-crt-key>
 	    <rsa-public-key>
@@ -40,20 +49,21 @@
 	    (sagittarius crypto))
 
   (define-class <rsa-private-key> (<private-key>)
-    ((modulus :init-keyword :modulus)
-     (private-exponent :init-keyword :private-exponent)))
+    ((modulus :init-keyword :modulus :reader rsa-private-key-modulus)
+     (private-exponent :init-keyword :private-exponent
+		       :reader rsa-private-key-private-exponent)))
   (define (make-rsa-private-key m pe)
-    (make <rsa-private-key>
-      :modulus m :private-exponent pe))
+    (make <rsa-private-key> :modulus m :private-exponent pe))
   (define (rsa-private-key? o) (is-a? o <rsa-private-key>))
 
   (define-class <rsa-private-crt-key> (<rsa-private-key>)
-    ((public-exponent :init-keyword :public-exponent)
-     (p :init-keyword :p)	;; prime factor 1  
-     (q :init-keyword :q)	;; prime factor 2  
-     (dP :init-keyword :dP)	;; e*dP = 1 mod p-1P
-     (dQ :init-keyword :dQ)	;; e*dQ = 1 mod q-1
-     (qP :init-keyword :qP)))	;; q*qP = 1/q mod p
+    ((public-exponent :init-keyword :public-exponent
+		      :reader rsa-private-crt-key-public-exponent)
+     (p :init-keyword :p :reader rsa-private-crt-key-p)	;; prime factor 1  
+     (q :init-keyword :q :reader rsa-private-crt-key-q)	;; prime factor 2  
+     (dP :init-keyword :dP :reader rsa-private-crt-key-dP) ;; e*dP = 1 mod p-1P
+     (dQ :init-keyword :dQ :reader rsa-private-crt-key-dQ) ;; e*dQ = 1 mod q-1
+     (qP :init-keyword :qP :reader rsa-private-crt-key-qP))) ;; q*qP = 1/q mod p
   (define (make-rsa-private-crt-key m e d p q
 				    :key (dP (mod d (- p 1)))
 					 (dQ (mod d (- q 1)))
@@ -94,8 +104,8 @@
       (display buf p)))
 
   (define-class <rsa-public-key> (<public-key>)
-    ((modulus :init-keyword :modulus)
-     (exponent :init-keyword :exponent)))
+    ((modulus :init-keyword :modulus :reader rsa-public-key-modulus)
+     (exponent :init-keyword :exponent :reader rsa-public-key-exponent)))
   (define (make-rsa-public-key m e)
     (make <rsa-public-key> :modulus m :exponent e))
   (define (rsa-public-key? o) (is-a? o <rsa-public-key>))
