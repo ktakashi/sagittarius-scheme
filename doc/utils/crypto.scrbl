@@ -192,7 +192,16 @@ accept keyword argument @var{encode}.
 
 @var{encode} specifies the encoder. The default encoder is
 @code{pkcs1-emsa-pss-encode}. And the rest keyword arguments will be passed to
-encoder. Supported encoders are described below.
+the encoder. Supported encoders are described below.
+
+The following shows how to implement @code{SHA256WithRSA} signature
+@codeblock{
+;; Importing a RSA private key.
+(define private-key (import-private-key RSA #vu8(...)))
+
+(define signer (make-cipher RSA private-key))
+(cipher-signature signer #vu8() :encode pkcs1-emsa-v1.5-encode :hash SHA-256)
+}
 }
 
 @define[Function]{@name{cipher-verify} @args{public-cipher M S :optional opt}}
