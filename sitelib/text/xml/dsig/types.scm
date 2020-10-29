@@ -87,11 +87,12 @@
 	  (put-u8 out v)
 	  (begin (put-u8 out #x0d) (put-u8 out #x0a)))))
   (let-values (((out e) (open-bytevector-output-port)))
-    (define in (open-bytevector-input-port bv))
+    (define inp (open-bytevector-input-port bv))
+    (define (in) (get-u8 inp))
     (define encoder
-      (make-base64-encoder (make-put out) 76 #t *base64-encode-table*))
-    (define drainer (make-base64-encode-drainer encoder))
-    (drainer in)
+      (make-base64-encoder 76 #t *base64-encode-table*))
+    (define pipe (make-base64-encode-pipe encoder))
+    (pipe in (make-put out))
     (e)))
 
 

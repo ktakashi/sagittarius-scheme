@@ -52,7 +52,7 @@
 		    (*decode-url-table* *base64-decode-url-table*)
 		    (*encode-url-table* *base64-encode-url-table*))
 	    make-base64-decoder make-base64-encoder
-	    make-base64-encode-drainer ;; wtf
+	    make-base64-encode-pipe
 	    )
     (import (rnrs)
 	    (sagittarius))
@@ -144,7 +144,7 @@
 
   (define (base64-decode-impl in out decode-table)
     (define (put b) (put-u8 out b))
-    (define decoder (make-base64-decoder put))
+    (define decoder (make-base64-decoder))
     (define (get in)
       (let loop ((b (get-u8 in)))
 	(cond ((eof-object? b) -1)
@@ -156,10 +156,10 @@
 	     (b2 (get in))
 	     (b3 (get in)))
 	(cond ((< b0 0))
-	      ((< b1 0) (decoder b0 -1 -1 -1))
-	      ((< b2 0) (decoder b0 b1 -1 -1))
-	      ((< b3 0) (decoder b0 b1 b2 -1))
-	      (else     (decoder b0 b1 b2 b3) (loop))))))
+	      ((< b1 0) (decoder put b0 -1 -1 -1))
+	      ((< b2 0) (decoder put b0 b1 -1 -1))
+	      ((< b3 0) (decoder put b0 b1 b2 -1))
+	      (else     (decoder put b0 b1 b2 b3) (loop))))))
 
   (define-syntax define-encode-string
     (syntax-rules ()
@@ -190,40 +190,40 @@
   (define-encode base64-encode *encode-table* 76 #t)
   (define-encode base64url-encode *encode-url-table* #f #f)
 
-  (define (make-base64-encode-drainer encoder)
-    (lambda (in)
+  (define (make-base64-encode-pipe encoder)
+    (lambda (get put)
       (let loop ()
-	(let* ((b0 (get-u8 in))
-	       (b1 (get-u8 in))
-	       (b2 (get-u8 in)))
+	(let* ((b0 (get))
+	       (b1 (get))
+	       (b2 (get)))
 	  (cond ((eof-object? b0))
-		((eof-object? b1) (encoder b0 -1 -1))
-		((eof-object? b2) (encoder b0 b1 -1))
-		(else (encoder b0 b1 b2) (loop)))))))
+		((eof-object? b1) (encoder put b0 -1 -1))
+		((eof-object? b2) (encoder put b0 b1 -1))
+		(else (encoder put b0 b1 b2) (loop)))))))
   
-  (define (base64-encode-impl in out line-width padding? encode-table)
+  (define (base64-encode-impl inp out line-width padding? encode-table)
     (define (put v) (put-u8 out (or v #x0a)))
-    (define encoder (make-base64-encoder put line-width padding? encode-table))
-    (define drainer (make-base64-encode-drainer encoder))
-    (drainer in))
+    (define (in) (get-u8 inp))
+    (define encoder (make-base64-encoder line-width padding? encode-table))
+    (define pipe (make-base64-encode-pipe encoder))
+    (pipe in put))
 
-  ;; basically the same as above but it input length is unknown
-  ;; always encode 3 bytes to 4 bytes
-  (define (make-base64-encoder real-put line-width padding? encode-table)
+  (define (make-base64-encoder line-width padding? encode-table)
     (define max-col (and line-width (> line-width 0) (- line-width 1)))
     (define col 0)
-    (define (check-col)
-      (when max-col
-	(if (= col max-col)
-	    (begin
-	      (real-put #f) ;; so that implementation may choose end line
-	      (set! col 0))
-	    (set! col (+ col 1)))))
-    (define (put i)
-      (real-put (vector-ref encode-table i))
-      (check-col))
 
-    (lambda (b0 b1 b2)
+    (lambda (real-put b0 b1 b2)
+      (define (check-col)
+	(when max-col
+	  (if (= col max-col)
+	      (begin
+		(real-put #f) ;; so that implementation may choose end line
+		(set! col 0))
+	      (set! col (+ col 1)))))
+      (define (put i)
+	(real-put (vector-ref encode-table i))
+	(check-col))
+
       (define lshift bitwise-arithmetic-shift-left)
       (define rshift bitwise-arithmetic-shift-right)
 
@@ -262,7 +262,7 @@
       size)
 
     (define (put v) (put-u8 sink (or v #x0a)))
-    (define encoder (make-base64-encoder put line-width padding? encode-table))
+    (define encoder (make-base64-encoder line-width padding? encode-table))
 
     (define (process-encode)
       (define (get n)
@@ -270,7 +270,7 @@
       (define b0 (get 0))
       (define b1 (get 1))
       (define b2 (get 2))
-      (encoder b0 b1 b2)
+      (encoder put b0 b1 b2)
       (set! buffer-count 0))
 
     (define (write! bv start count) 
@@ -318,7 +318,7 @@
       (bytevector-u8-set! buffer buffer-count (or v #x0a))
       (set! buffer-count (+ buffer-count 1)))
 
-    (define encoder (make-base64-encoder put line-width padding? encode-table))
+    (define encoder (make-base64-encoder line-width padding? encode-table))
 
     (define (process-encode)
       (define (get prev) 
@@ -332,7 +332,7 @@
       (define b1 (get b0))
       (define b2 (get b1))
 		    
-      (encoder b0 b1 b2))
+      (encoder put b0 b1 b2))
 
     (define (read! bv start count) 
       (let loop ((start start) (set 0))
@@ -352,8 +352,8 @@
 				   read! #f #f close))
 
   ;; decode port
-  (define (make-base64-decoder put)
-    (lambda (b0 b1 b2 b3)
+  (define (make-base64-decoder)
+    (lambda (put b0 b1 b2 b3)
       (define (check b) (>= b 0))
       (define lshift bitwise-arithmetic-shift-left)
       (define rshift bitwise-arithmetic-shift-right)
@@ -380,7 +380,7 @@
     (define (put b)
       (bytevector-u8-set! output-buffer output-buffer-size b)
       (set! output-buffer-size (+ output-buffer-size 1)))
-    (define decoder (make-base64-decoder put))
+    (define decoder (make-base64-decoder))
     ;; Should we raise an error if the input is not multiple of 4?
     (define (decode1)
       (define (get)
@@ -392,7 +392,7 @@
       (define b1 (get))
       (define b2 (get))
       (define b3 (get))
-      (decoder b0 b1 b2 b3)
+      (decoder put b0 b1 b2 b3)
       output-buffer-size)
 
     (define (read! bv start count)
@@ -431,7 +431,7 @@
   (define (open-base64-decode-output-port/decode-table sink decode-table
 						       :key (owner? #f))
     (define (put b) (put-u8 sink b))
-    (define decoder (make-base64-decoder put))
+    (define decoder (make-base64-decoder))
     
     (define buffer (make-bytevector 4))
     (define buffer-size 0)
@@ -450,7 +450,8 @@
     (define (write! bv start count)
       (let loop ((i start) (set 0))
 	(cond ((= buffer-size 4)
-	       (decoder (bytevector-u8-ref buffer 0)
+	       (decoder put
+			(bytevector-u8-ref buffer 0)
 			(bytevector-u8-ref buffer 1)
 			(bytevector-u8-ref buffer 2)
 			(bytevector-u8-ref buffer 3))
@@ -465,7 +466,7 @@
       (define (get n)
 	(or (and (> buffer-size n) (bytevector-u8-ref buffer n)) -1))
       (unless (zero? buffer-size)
-	(decoder (get 0) (get 1) (get 2) (get 3)))
+	(decoder put (get 0) (get 1) (get 2) (get 3)))
       (flush-output-port sink)
       (when owner? (close-port sink)))
 
