@@ -122,3 +122,69 @@ The @code{open-base64url-decode-input-port} and
 value.
 }
 
+@subsubsection{Low level APIs}
+
+Both encode and decode procedures are using encoder and decoder. Both
+encoder and decoder are just a procedure which takes 2 arguments
+@var{get} and @var{put} and not reentrant as they have own internal
+buffer to process the input.
+
+@define[Function]{@name{make-base64-encoder}
+ @args{:key (encode-table *base64-encode-table*) (line-width 76) (padding? #t)}}
+@desc{
+Creates a Base64 encoder. An encoder is a procedure which takes 2
+arguments @var{get} and @var{put}.
+
+@var{get} must be a procedure takes 0 argument and it must return one
+of the followings; a fixnum of range 0 to 255, EOF object, or negative
+integer. The fixnum value is treated as an input of the encoding
+value. The negative integer value is treated as a continue
+marker. When the encoder receives this value, then it won't encode
+until the next value is available.
+
+@var{put} must be a procedure takes 1 argument which is either a
+fixnum of range 0 to 255 or @code{#f}. The fixnum is the encoded value
+of the input. @code{#f} indicates line break point, so user can
+determine which line break this encoder should use.
+
+The following shows how to make Base64 encoder with line break of CRLF.
+
+@codeblock{
+(define (base64-encode-w/crlf bv)
+  (let-values (((out e) (open-bytevector-output-port)))
+    (define (put v)
+      (if v
+	  (put-u8 out v)
+	  (begin (put-u8 out #x0d) (put-u8 out #x0a))))
+    (define inp (open-bytevector-input-port bv))
+    (define (in) (get-u8 inp))
+    (define encoder (make-base64-encoder))
+    (do () ((encoder in put)))
+    (e)))
+}
+
+}
+
+@define[Function]{@name{make-base64-decoder}
+ @args{:key (decode-table *base64-decode-table*)}}
+@desc{
+Creates a Base64 decoder. A decoder is a procedure which takes 2
+arguments @var{get} and @var{put}.
+
+@var{get} is the same as the one from encoder.
+
+@var{put} must be a procedure takes 1 arguments which is a fixnm of
+range 0 to 255. The value is always a decoded byte.
+
+}
+
+@define[Constant]{@name{*base64-encode-table*}}
+@define[Constant]{@name{*base64-decode-table*}}
+@define[Constant]{@name{*base64-encode-url-table*}}
+@define[Constant]{@name{*base64-decode-url-table*}}
+@desc{
+
+Default encode or decode tables. If the name contains @code{url}, then it
+is suitable for "base64url".
+
+}
