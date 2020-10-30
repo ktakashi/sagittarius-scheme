@@ -34,7 +34,9 @@
 	    make-xml-write-options
 	    *xml:default-options*
 	    *xml:c14n*
-	    *xml:c14n-w/comment*)
+	    *xml:c14n-w/comment*
+	    *xml:exc-c14n*
+	    *xml:exc-c14n-w/comment*)
     (import (rnrs)
 	    (text xml dom nodes)
 	    (srfi :13 strings)
@@ -72,6 +74,7 @@
 	  write-comment?		; default #t
 	  write-doctype?		; default #t
 	  write-cdata?			; default #t
+	  exclusive?			; default #t
 	  )
   (protocol (lambda (p)
 	      (lambda (emit-internal-dtd? strict?
@@ -99,6 +102,7 @@
 			    (write-comment? #t)
 			    (write-doctype? #t)
 			    (write-cdata? #t)
+			    (exclusive? #t)
 			    )
 		(p emit-internal-dtd? strict?
 		   allow-duplicate-names byte-order-mark cdata-section-elements
@@ -109,7 +113,7 @@
 		   undeclare-prefixes use-character-maps version
 		   
 		   use-inline-element? write-comment? write-doctype?
-		   write-cdata?)))))
+		   write-cdata? exclusive?)))))
 
 ;; for now not strict by default
 (define *xml:default-options* (make-xml-write-options #f #f))
@@ -118,11 +122,25 @@
 				       :use-inline-element? #f
 				       :write-comment? #f
 				       :write-doctype? #f
-				       :write-cdata? #f))
+				       :write-cdata? #f
+				       :exclusive? #f))
+(define *xml:exc-c14n* (make-xml-write-options #f #f
+					       :use-inline-element? #f
+					       :write-comment? #f
+					       :write-doctype? #f
+					       :write-cdata? #f
+					       :exclusive? #t))
 (define *xml:c14n-w/comment* (make-xml-write-options #f #f
 						     :use-inline-element? #f
 						     :write-doctype? #f
-						     :write-cdata? #f))
+						     :write-cdata? #f
+						     :exclusive? #f))
+(define *xml:exc-c14n-w/comment* (make-xml-write-options #f #f
+							 :use-inline-element? #f
+							 :write-doctype? #f
+							 :write-cdata? #f
+							 :exclusive? #t))
+
 (define make-dom-writer
   (case-lambda
    (() (make-dom-writer *xml:default-options*))
@@ -186,24 +204,40 @@
 	 (hashtable-set! *writer-table* type name)
 	 name)))))
 
-(define (collect-parent-namespaces e)
+(define (collect-parent-namespaces e options)
+  (define exclusive? (xml-write-options-exclusive? options))
   (define (rec e r)
     (if (or (document? e) (not e))
 	r
 	(let ((r (named-node-map:fold (element-attributes e) r
-				      (lambda (k v r)
-					(let ((name (attr-name k)))
-					  ;; not sure why but seems
-					  ;; we need to put xml:base as well
-					  (if (or (string-prefix? "xmlns" name)
-						  (string=? "xml:base" name))
-					      (cons k r)
-					      r))))))
+		   (lambda (k v r)
+		     (let ((name (attr-name k)))
+		       ;; not sure why but seems
+		       ;; we need to put xml:base as well
+		       (if (or (string-prefix? "xmlns" name)
+			       (and (not exclusive?)
+				    (string-prefix? "xml:" name)))
+			   (cons k r)
+			   r))))))
 	  (rec (node-parent-node e) r))))
   (rec (node-parent-node e) '()))
 
 (define-node-writer +element-node+ (element-writer root e options out)
-  (define (skip-namespace? attr)
+  (define exclusive? (xml-write-options-exclusive? options))
+  (define partial-element?
+    (not (eq? root (document-document-element (node-owner-document root)))))
+  (define (skip-namespace? e attr)
+    (define (namespace-used-in-children? attr)
+      (define ns (attr-value attr))
+      (define (check e)
+	(if (equal? (element-namespace-uri e) ns)
+	    +node-filter-filter-accept+
+	    +node-filter-filter-skip+))
+      (define tw (document:create-tree-walker (node-owner-document e)
+					      e +node-filter-show-element+
+					      check))
+      (tree-walker:next-node tw))
+      
     (define (ancestor-of? root e) ;; check if e is ancestor of root or not
       (cond ((eq? root e) #f)
 	    ((document? e) #t)
@@ -215,14 +249,19 @@
 	    ((element? e2)
 	     (let ((ns (named-node-map:get-named-item (element-attributes e2)
 						      (attr-name attr))))
-	       (if ns
-		   (equal? (attr-value attr) (attr-value ns))
-		   (check-element attr (node-parent-node e2)))))
+	       (cond (ns (equal? (attr-value attr) (attr-value ns)))
+		     
+		     (else (check-element attr (node-parent-node e2))))))
 	    ;; ???
 	    (else #f)))
     (and (string-prefix? "xmlns" (attr-name attr))
-	 ;; check 
-	 (check-element attr (node-parent-node e))))
+	 ;; check
+	 (or (and exclusive?
+		  ;; 3. Specification of Exclusive XML Canonicalization
+		  ;; of https://www.w3.org/TR/xml-exc-c14n
+		  partial-element?
+		  (not (namespace-used-in-children? attr)))
+	     (check-element attr (node-parent-node e)))))
 
   (define (do-it e options out)
     (let ((name (node-node-name e)))
@@ -234,7 +273,7 @@
 	       (i 0 (+ i 1)))
 	      ((= i len))
 	    (let ((attr (named-node-map:item attrs i)))
-	      (unless (skip-namespace? attr)
+	      (unless (skip-namespace? e attr)
 		(put-char out #\space)
 		(write-node root attr options out))))))
       (let ((content (list-queue-list (node-children e))))
@@ -253,7 +292,7 @@
 	       (put-string out name)
 	       (put-char out #\>))))))
   (if (eq? root e)
-      (let ((ns (collect-parent-namespaces e)))
+      (let ((ns (collect-parent-namespaces e options)))
 	;; might be too much...
 	(dynamic-wind
 	    (lambda ()
