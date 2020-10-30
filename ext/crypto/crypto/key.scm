@@ -10,7 +10,7 @@
 	    generate-private-key
 	    generate-public-key
 
-	    keypair?
+	    keypair? make-keypair
 	    keypair-private
 	    keypair-public
 	    <private-key>

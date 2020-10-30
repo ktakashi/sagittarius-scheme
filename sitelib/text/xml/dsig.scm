@@ -30,4 +30,6 @@
 
 (library (text xml dsig)
     (export :all)
-    (import (text xml dsig types)))
+    (import (text xml dsig types)
+	    (text xml dsig algorithms)
+	    ))

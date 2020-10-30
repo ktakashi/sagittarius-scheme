@@ -53,7 +53,8 @@
 
 	    ds:reference? (rename (make-ds:reference ds:make-reference))
 	    ds:reference-transforms ds:reference-digest-method
-	    ds:reference-digest-value ds:reference-uri ds:reference-type
+	    ds:reference-digest-value ds:reference-digest-value-set!
+	    ds:reference-uri ds:reference-type
 
 	    ds:key-info? (rename (make-ds:key-info ds:make-key-info))
 	    ds:key-info-elements
@@ -186,21 +187,20 @@
   (parent ds:element)
   (fields transforms			; element *
 	  digest-method			; element
-	  digest-value			; element
+	  (mutable digest-value)	; element (will only be set from DOM)
 	  uri				; optional attribute
 	  type				; optional attribute
 	  )
   (protocol (lambda (n)
 	      (case-lambda
-	       ((dm dv) ((n "Reference" ds:reference->dom) '() dm dv #f #f))
-	       ((dm dv trns)
-		((n "Reference" ds:reference->dom) trns dm dv #f #f))
-	       ((dm dv trns id)
-		((n id "Reference" ds:reference->dom) trns dm dv #f #f))
-	       ((dm dv trns id uri)
-		((n id "Reference" ds:reference->dom) trns dm dv uri #f))
-	       ((dm dv trns id uri type)
-		((n id "Reference" ds:reference->dom) trns dm dv uri type))))))
+	       ((dm uri)
+		((n "Reference" ds:reference->dom) '() dm "" uri #f))
+	       ((dm uri trns)
+		((n "Reference" ds:reference->dom) trns dm "" uri #f))
+	       ((dm uri trns id)
+		((n id "Reference" ds:reference->dom) trns dm "" uri #f))
+	       ((dm uri trns id type)
+		((n id "Reference" ds:reference->dom) trns dm "" uri type))))))
 (define (ds:reference->dom ref doc)
   (define ref-elm (ds:element-create-self-element ref doc))
   (for-each (lambda (t) (node:append-child! ref-elm (ds:element->dom-node t)))
