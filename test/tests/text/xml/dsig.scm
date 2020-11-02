@@ -38,7 +38,7 @@
   (define sc (apply ds:make-signing-context "" algos))
   (define si (xmldsig:make-signed-info sc))
 
-  (test-equal "Result DOM" dom (xmldsig:sign dom si keypair))
+  (test-equal "Result DOM" dom (xmldsig:sign! dom si keypair))
   (let ((sig (document:get-elements-by-tag-name dom "SignatureValue")))
     (test-assert (node-list? sig))
     (test-equal 1 (node-list-length sig))

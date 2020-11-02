@@ -41,7 +41,7 @@
 
 	    xmldsig:signed-info? xmldsig:make-signed-info
 	    
-	    xmldsig:sign
+	    xmldsig:sign!
 	    )
     (import (rnrs)
 	    (crypto)
@@ -77,7 +77,7 @@
 			      (ds:method-uri sm)
 			      (list ref))))
 ;; API
-(define (xmldsig:sign dom si/sc keypair)
+(define (xmldsig:sign! dom si/sc keypair)
   (define private-key (keypair-private keypair))
   (define-values (si sc)
     (if (ds:signing-context? si/sc)
