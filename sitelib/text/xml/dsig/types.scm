@@ -38,35 +38,50 @@
     (export +xml:dsig-namespace+
 	    ds:element? ds:element-id ds:element-tag-name
 	    ds:element->dom-node
+	    (rename (ds:element <ds:element>))
 	    
-	    ds:signature? (rename (make-ds:signature ds:make-signature))
+	    ds:signature?
+	    (rename (ds:signature <ds:signature>) 
+		    (make-ds:signature ds:make-signature))
 	    ds:signature-signed-info ds:signature-signature-value
 	    ds:signature-key-info ds:signature-object
 
 	    ds:signature-value?
-	    (rename (make-ds:signature-value ds:make-signature-value))
+	    (rename (ds:signature-value <ds:signature-value>)
+		    (make-ds:signature-value ds:make-signature-value))
 	    ds:signature-value-content
 
-	    ds:signed-info? (rename (make-ds:signed-info ds:make-signed-info))
+	    ds:signed-info?
+	    (rename (ds:signed-info <ds:signed-info>)
+		    (make-ds:signed-info ds:make-signed-info))
 	    ds:signed-info-canonicalization-method
 	    ds:signed-info-signature-method ds:signed-info-reference
 
-	    ds:reference? (rename (make-ds:reference ds:make-reference))
+	    ds:reference?
+	    (rename (ds:reference <ds:reference>)
+		    (make-ds:reference ds:make-reference))
 	    ds:reference-transforms ds:reference-digest-method
 	    ds:reference-digest-value ds:reference-digest-value-set!
 	    ds:reference-uri ds:reference-type
 
-	    ds:key-info? (rename (make-ds:key-info ds:make-key-info))
+	    ds:key-info?
+	    (rename (ds:key-info <ds:key-info>)
+		    (make-ds:key-info ds:make-key-info))
 	    ds:key-info-elements
 
-	    ds:key-name? (rename (make-ds:key-name ds:make-key-name))
+	    ds:key-name?
+	    (rename (ds:key-name ds:key-name)
+		    (make-ds:key-name ds:make-key-name))
 	    ds:key-name-value
 
-	    ds:key-value? (rename (make-ds:key-value ds:make-key-value))
+	    ds:key-value?
+	    (rename (ds:key-value <ds:key-value>)
+		    (make-ds:key-value ds:make-key-value))
 	    ds:key-value-content
 
 	    ds:rsa-key-value?
-	    (rename (make-ds:rsa-key-value ds:make-rsa-key-value))
+	    (rename (ds:rsa-key-value <ds:rsa-key-value>)
+		    (make-ds:rsa-key-value ds:make-rsa-key-value))
 	    ds:rsa-key-value-modulus ds:rsa-key-value-exponent
 	    )
     (import (rnrs)

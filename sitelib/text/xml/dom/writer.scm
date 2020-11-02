@@ -35,6 +35,8 @@
 	    *xml:default-options*
 	    *xml:c14n*
 	    *xml:c14n-w/comment*
+	    (rename (*xml:c14n* *xml:c14n11*)
+		    (*xml:c14n-w/comment* *xml:c14n11-w/comment*))
 	    *xml:exc-c14n*
 	    *xml:exc-c14n-w/comment*)
     (import (rnrs)

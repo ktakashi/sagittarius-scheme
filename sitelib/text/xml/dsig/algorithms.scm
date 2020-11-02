@@ -107,7 +107,7 @@
 (define *xmldsig:canonicalization-c14n*
   `("http://www.w3.org/TR/2001/REC-xml-c14n-20010315" ,*xml:c14n*))
 (define *xmldsig:canonicalization-c14n11*
-  `("http://www.w3.org/2006/12/xml-c14n11" ,*xml:c14n*))
+  `("http://www.w3.org/2006/12/xml-c14n11" ,*xml:c14n11*))
 (define *xmldsig:canonicalization-exc-c14n*
   `("http://www.w3.org/2001/10/xml-exc-c14n#" ,*xml:exc-c14n*))
 (define *xmldsig:canonicalization-c14n-w/comment*
@@ -115,7 +115,7 @@
     ,*xml:c14n-w/comment*))
 (define *xmldsig:canonicalization-c14n11-w/comment*
   `("http://www.w3.org/2006/12/xml-c14n11#WithComments"
-    ,*xml:c14n-w/comment*))
+    ,*xml:c14n11-w/comment*))
 (define *xmldsig:canonicalization-exc-c14n-w/comment*
   `("http://www.w3.org/2001/10/xml-exc-c14n#WithComments"
     ,*xml:exc-c14n-w/comment*))
