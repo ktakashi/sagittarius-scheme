@@ -62,5 +62,12 @@
  *xmldsig:digest-sha256*
  *xmldsig:rsa-sha256*)
 
+(test-xml-signature
+ "test1.xml"
+ "gtO//R5NtfeFDp5+U0z5gYEDLHElJqTOX/I8cfqMoatc2jj7suYkFdyGHBK4zFmSC039tV8biclvgxeNn67phQ=="
+ *xmldsig:canonicalization-c14n*
+ *xmldsig:digest-sha512*
+ *xmldsig:rsa-sha256*)
+
 ;;; TODO test the rest of the algorithms...
 (test-end)

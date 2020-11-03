@@ -85,28 +85,15 @@
 	    ds:rsa-key-value-modulus ds:rsa-key-value-exponent
 	    )
     (import (rnrs)
-	    (rfc base64)
 	    (sagittarius)
 	    (srfi :1 lists)
 	    (srfi :117 list-queues)
-	    (text xml dom))
+	    (text xml dom)
+	    (text xml dsig utils))
 
 (define +xml:dsig-namespace+ "http://www.w3.org/2000/09/xmldsig#")
 (define (ds:create-element doc name)
   (document:create-element-ns doc +xml:dsig-namespace+ name))
-
-;; TODO make better API on base64 side
-(define (ds:encode-base64 bv)
-  (let-values (((out e) (open-bytevector-output-port)))
-    (define (put v)
-      (if v
-	  (put-u8 out v)
-	  (begin (put-u8 out #x0d) (put-u8 out #x0a))))
-    (define inp (open-bytevector-input-port bv))
-    (define (in) (get-u8 inp))
-    (define encoder (make-base64-encoder))
-    (do () ((encoder in put)))
-    (e)))
 
 ;; base record
 (define-record-type ds:element

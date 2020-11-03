@@ -46,12 +46,12 @@
     (import (rnrs)
 	    (crypto)
 	    (math)
-	    (rfc base64)
 	    (sagittarius control) ;; for define-values
 	    (text xml dom)
 	    (text xml dom writer)
 	    (text xml dsig types) 
-	    (text xml dsig algorithms))
+	    (text xml dsig algorithms)
+	    (text xml dsig utils))
 
 (define-record-type ds:signing-context
   (fields reference-uri
@@ -112,10 +112,10 @@
      (document:create-text-node dom text)))
   ;; add ds:signature
   (node:append-child! (document-document-element dom) signature)
-  (let ((digest (utf8->string (base64-encode (digest (canonicalise dom))))))
+  (let ((digest (utf8->string (ds:encode-base64 (digest (canonicalise dom))))))
     ;; now get SignedInfo/DigestValue and set the above as a child text node
     (append-text signature "DigestValue" digest))
-  (let ((dsig (utf8->string (base64-encode
+  (let ((dsig (utf8->string (ds:encode-base64
 			     (sign private-key (canonicalise signed-info))))))
     (append-text signature "SignatureValue" dsig))
   dom)
