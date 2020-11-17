@@ -750,7 +750,7 @@
        (unless (eq? (attr-owner-element aa) (attr-owner-element ab))
 	 (assertion-violation 'element:named-node-map
 			      "invalid element is set to the attribute"
-			      aa ab))
+			      (attr-name aa) (attr-name ab)))
        ;; order:
        ;;  1 xmlns
        ;;  2 alphabetical

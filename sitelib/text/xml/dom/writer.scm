@@ -206,8 +206,15 @@
 	 (hashtable-set! *writer-table* type name)
 	 name)))))
 
-(define (collect-parent-namespaces e options)
+(define (collect-parent-namespaces e0 options)
   (define exclusive? (xml-write-options-exclusive? options))
+  (define doc (node-owner-document e0))
+  (define (clone-attr a)
+    (let ((c (document:create-attribute-ns doc (attr-namespace-uri a)
+					   (attr-name a))))
+      (attr-value-set! c (attr-value a))
+      c))
+    
   (define (rec e r)
     (if (or (document? e) (not e))
 	r
@@ -219,10 +226,10 @@
 		       (if (or (string-prefix? "xmlns" name)
 			       (and (not exclusive?)
 				    (string-prefix? "xml:" name)))
-			   (cons k r)
+			   (cons (clone-attr k) r)
 			   r))))))
 	  (rec (node-parent-node e) r))))
-  (rec (node-parent-node e) '()))
+  (rec (node-parent-node e0) '()))
 
 (define-node-writer +element-node+ (element-writer root e options out)
   (define exclusive? (xml-write-options-exclusive? options))
