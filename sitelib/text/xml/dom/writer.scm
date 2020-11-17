@@ -223,7 +223,8 @@
 		     (let ((name (attr-name k)))
 		       ;; not sure why but seems
 		       ;; we need to put xml:base as well
-		       (if (or (string-prefix? "xmlns" name)
+		       (if (or (and (string-prefix? "xmlns" name)
+				    (not (element:has-attribute? e0 name)))
 			       (and (not exclusive?)
 				    (string-prefix? "xml:" name)))
 			   (cons (clone-attr k) r)
