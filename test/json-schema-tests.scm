@@ -45,6 +45,10 @@
   (find-files (build-path* data-directory "optional" "format")
 	      :recursive #f :pattern "\\.json$"))
 
+;; the *will not be supported/fixed* test names
+(define *known-incompatible-tests*
+  '("match the enum exactly"))
+
 ;; FIXME copy&paste...
 (define (key=? key) (lambda (e) (and (pair? e) (string=? (car e) key) e)))
 (define value-of
@@ -63,7 +67,8 @@
       (define test-description (value-of "description" test))
       (define data (value-of "data" test))
       (define valid? (value-of "valid" test))
-      (test-equal eqv? test-description valid? (validate-json validator data)))
+      (unless (member test-description *known-incompatible-tests*)
+	(test-equal eqv? test-description valid? (validate-json validator data))))
     (test-group description
       (let ((validator (json-schema->json-validator schema)))
 	(for-each (lambda (test) (run-validator validator test)) tests))))
@@ -80,6 +85,13 @@
   ;; (for-each run-schema-tests format-files)
   )
 (server-stop! server)
+
+(display "##############################################") (newline)
+(display "These test cases are skipped") (newline)
+(for-each (lambda (test) (display "- ") (display test) (newline))
+	  *known-incompatible-tests*)
+(display "##############################################") (newline)
+(newline)
 
 (test-end)
 (test-exit)
