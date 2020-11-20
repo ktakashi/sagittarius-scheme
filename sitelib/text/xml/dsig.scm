@@ -32,4 +32,5 @@
     (export :all)
     (import (text xml dsig types)
 	    (text xml dsig algorithms)
-	    (text xml dsig signer)))
+	    (text xml dsig signer)
+	    (text xml dsig verifier)))
