@@ -47,7 +47,10 @@
 		 (xpath-dm:string-value (node-list:item sig 0))))
 
     (test-assert "Self verify"
-		 (xmldsig:verify dom (lambda (ki) verify-key)))))
+		 (xmldsig:verify dom (lambda (ki) verify-key)))
+    (test-assert "Self verify (key value)"
+		 (xmldsig:verify dom xmldsig:key-value-key-selector))
+    ))
 
 (test-begin "XML signature")
 

@@ -38,6 +38,7 @@
 (library (text xml dsig verifier)
     (export xmldsig:verify
 	    *xmldsig:default-verification-context*
+	    xmldsig:key-value-key-selector
 
 	    xmldsig:verification-context?
 	    (rename (make-xmldsig:verification-context
@@ -47,6 +48,7 @@
 	    +xmldsig:default-digest-methods+
 	    )
     (import (rnrs)
+	    (sagittarius) ;; for bytevector->integer
 	    (crypto)
 	    (math)
 	    (rfc base64)
@@ -104,9 +106,6 @@
      (document:get-elements-by-tag-name-ns dom +xml:dsig-namespace+ "Signature")
      0))
 
-  (define (get-element e name)
-    (node-list:item
-     (element:get-elements-by-tag-name-ns e +xml:dsig-namespace+ name) 0))
   (define (get-algorithm e) (element:get-attribute e "Algorithm"))
   (define (search-method methods name)
     (find (lambda (method) (string=? (ds:method-uri method) name)) methods))
@@ -168,4 +167,32 @@
 		   :hash (ds:signature-method-digest sm)))
   (check-digest dom dm)
   (check-signature si sm))
+
+(define (xmldsig:key-value-key-selector ki)
+  (define kv (get-element ki "KeyValue"))
+  (define (get-value e name)
+    (bytevector->integer
+     (base64-decode-string (xpath-dm:string-value (get-element e name))
+			   :transcoder #f)))
+  (define writer (make-dom-writer))
+
+  (and kv 
+       (cond ((get-element kv "DSAKeyValue") =>
+	      (lambda (dsa)
+		(error 'xmldsig:key-value-key-selector "not yet")))
+	     ((get-element kv "RSAKeyValue") =>
+	      (lambda (rsa)
+		(generate-public-key RSA
+				     (get-value rsa "Modulus")
+				     (get-value rsa "Exponent"))))
+	     (else
+	      ;; TODO invalid format, should we raise an error here?
+	      #f))))
+
+
+;;; helper
+(define (get-element e name)
+  (let ((nl (element:get-elements-by-tag-name-ns e +xml:dsig-namespace+ name)))
+    (and (not (zero? (node-list-length nl)))
+	 (node-list:item nl 0))))
 )
