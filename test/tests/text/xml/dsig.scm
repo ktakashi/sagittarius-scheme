@@ -44,7 +44,10 @@
     (test-equal 1 (node-list-length sig))
     (test-equal (base64-decode-string expected-sig)
 		(base64-decode-string
-		 (xpath-dm:string-value (node-list:item sig 0))))))
+		 (xpath-dm:string-value (node-list:item sig 0))))
+
+    (test-assert "Self verify"
+		 (xmldsig:verify dom (lambda (ki) verify-key)))))
 
 (test-begin "XML signature")
 
