@@ -333,6 +333,13 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     This library doesn't extend comparisons, thus it behaves as the SRFI specifies.
     (e.g. Passing 0 or 1 argument to @code{string=?} raises an error)
     }}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-154/srfi-154.html"]{SRFI-154}}
+    @td{(srfi :154 dynamic-extents)
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :154)}. So for the portability it's better to use them.
+
+    The name @code{dynamic-extents} is taken from the name of the SRFI.
+    }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-156/srfi-156.html"]{SRFI-156}}
     @td{(srfi :156 predicate-combiners)
     }}
