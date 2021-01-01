@@ -32,64 +32,38 @@
 FIND_PACKAGE(PkgConfig)
 PKG_CHECK_MODULES(PC_LIBFFI QUIET libffi)
 
-FIND_PATH(LIB_FFI_INCLUDE_DIR ffi.h
+FIND_PATH(LIBFFI_INCLUDE_DIR ffi.h
   HINTS ${PC_LIBFFI_INCLUDEDIR} ${PC_LIBFFI_INCLUDE_DIRS})
 
-IF (LIB_FFI_INCLUDE_DIR)
-  FIND_LIBRARY(LIB_FFI_LIBRARIES NAMES ffi
+IF (LIBFFI_INCLUDE_DIR)
+  FIND_LIBRARY(LIBFFI_LIBRARIES NAMES ffi
     HINTS ${PC_LIBFFI_LIBDIR} ${PC_LIBFFI_LIBRARY_DIRS})
 ENDIF()
 
-IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin" AND NOT LIB_FFI_INCLUDE_DIR)
-  # OK workaround for OS X.
-  # For some what I don't know reason, Homebrew doesn't link libffi
-  # to /usr/local, thus pkg-config can't find it. There's workaround
-  # that users can explicitly specify the path to libffi, however it's
-  # rather inconvenient and if the version is bumped up then the build
-  # process needs to adjust (which I don't want to do it on CI). So
-  # we will detect libffi using
-  SET(LIBFFI_CELLER "/usr/local/Cellar/libffi")
-  MESSAGE(STATUS "Searching ${LIBFFI_CELLER} directory")
-
-  FILE(GLOB LIBFFI_CELLER_DIRS "${LIBFFI_CELLER}/*")
-  # is there a better to sort in desc?
-  LIST(SORT LIBFFI_CELLER_DIRS)
-  LIST(REVERSE LIBFFI_CELLER_DIRS)
-  # logging
-  FOREACH(DIR ${LIBFFI_CELLER_DIRS}) 
-    MESSAGE(STATUS "Found candidate libffi directory - ${DIR}")
-  ENDFOREACH()
-  FOREACH(DIR ${LIBFFI_CELLER_DIRS}) 
-    IF(IS_DIRECTORY ${DIR}/lib)
-      SET(LIBFFI_CELLER_DIR ${DIR}/lib)
-      BREAK()
-    ENDIF()
-  ENDFOREACH()
-
-  # I hope this is the latest installed version
-  IF (LIBFFI_CELLER_DIR)
-    MESSAGE(STATUS "Looking for Celler directory of libffi - ${LIBFFI_CELLER_DIR}")
-    FILE(GLOB LIB_FFI_INCLUDE_DIR "${LIBFFI_CELLER_DIR}/libffi-*/include")
-
-    IF (LIB_FFI_INCLUDE_DIR)
-      MESSAGE(STATUS "Looking for libffi include dir - ${LIB_FFI_INCLUDE_DIR}")
-      FIND_LIBRARY(LIB_FFI_LIBRARIES NAMES ffi HINTS ${LIBFFI_CELLER_DIR})
-      IF (LIB_FFI_LIBRARIES)
-	MESSAGE(STATUS "Looking for libffi library - ${LIB_FFI_LIBRARIES}")
-      ELSE()
-	MESSAGE(STATUS "Looking for libffi library - Not found")
-      ENDIF()
-    ELSE()
-      MESSAGE(STATUS "Looking for libffi include dir - Not found")
-    ENDIF()
-  ELSE()
-    MESSAGE(STATUS "Lokking for Celler directory of libffi - Not found")
+IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin" AND NOT LIBFFI_INCLUDE_DIR)
+  MESSAGE(STATUS "Trying to use homebrew version of LibFFI")
+  EXECUTE_PROCESS(COMMAND brew --prefix libffi
+    OUTPUT_VARIABLE HOMWBREW_LIBFFI_DIR)
+  STRING(STRIP ${HOMWBREW_LIBFFI_DIR} HOMWBREW_LIBFFI_DIR)
+  MESSAGE(STATUS "Homebrew LibFFI directory ${HOMWBREW_LIBFFI_DIR}")
+  SET(HOMEBREW_LIBFFI_INCDIR ${HOMWBREW_LIBFFI_DIR}/include)
+  SET(HOMEBREW_LIBFFI_LIBDIR ${HOMWBREW_LIBFFI_DIR}/lib)
+  
+  FIND_FILE(HAVE_HOMEBREW_FFI_H ffi.h
+    PATHS ${HOMEBREW_LIBFFI_INCDIR}
+    HINTS ${HOMEBREW_LIBFFI_INCDIR})
+  FIND_LIBRARY(HOMEBREW_LIBFFI_LIBRARIES NAMES ffi
+    HINTS ${HOMEBREW_LIBFFI_LIBDIR})
+  MESSAGE(STATUS "Homebrew libffi: ${HOMEBREW_LIBFFI_LIBRARIES}")
+  IF (HAVE_HOMEBREW_FFI_H AND HOMEBREW_LIBFFI_LIBRARIES)
+    SET(LIBFFI_LIBRARIES ${HOMEBREW_LIBFFI_LIBRARIES})
+    SET(LIBFFI_INCLUDE_DIR ${HOMEBREW_LIBFFI_INCDIR})
   ENDIF()
 ENDIF()
 
 INCLUDE(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(Lib_FFI DEFAULT_MSG
-                                  LIB_FFI_LIBRARIES LIB_FFI_INCLUDE_DIR)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(LibFFI DEFAULT_MSG
+  LIBFFI_LIBRARIES LIBFFI_INCLUDE_DIR)
 
-MARK_AS_ADVANCED(LIB_FFI_INCLUDE_DIR LIB_FFI_LIBRARIES)
+MARK_AS_ADVANCED(LIBFFI_INCLUDE_DIR LIBFFI_LIBRARIES)
 

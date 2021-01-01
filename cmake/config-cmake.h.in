@@ -37,6 +37,10 @@
 #cmakedefine HAVE_FEATURES_H
 #cmakedefine HAVE_PTHREAD_H
 
+/* C11 features */
+#cmakedefine HAVE_UCHAR_H
+#cmakedefine HAVE_STDNORETURN_H
+
 #cmakedefine HAVE_TIMESPEC
 
 #cmakedefine HAVE_ALLOCA
@@ -54,6 +58,8 @@
 #cmakedefine HAVE_BACKTRACE_SYMBOL_FD
 #cmakedefine HAVE_UTIMENSAT
 #cmakedefine HAVE_UTIMES
+/* C11 feature for MSVC as wchar_t is 16bits... */
+#cmakedefine HAVE_CHAR32_T
 
 #cmakedefine HAVE_MUTEX_RECURSIVE
 #cmakedefine HAVE_MUTEX_RECURSIVE_NP
