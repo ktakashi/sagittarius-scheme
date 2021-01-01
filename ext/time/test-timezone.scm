@@ -128,11 +128,11 @@ Rule	GB-Eire	1921	only	-	Oct	 3	2:00s	0	GMT
       (tz3 (timezone "Indian/Cocos")))
   (test-equal (list tz2 tz3) (zone-offset->timezones 23400))
   (test-equal '()
-	      (zone-offset->timezones -52 (make-time time-utc 0 -1643759947)))
+	      (zone-offset->timezones -52 (make-time time-utc 0 -1709337547)))
   (test-equal (list tz)
-	      (zone-offset->timezones -52 (make-time time-utc 0 -1643759948)))
+	      (zone-offset->timezones -52 (make-time time-utc 0 -1709337548)))
   (test-equal (list tz)
-	      (zone-offset->timezones -52 (make-time time-utc 0 -1643759949))))
+	      (zone-offset->timezones -52 (make-time time-utc 0 -1709337549))))
 
 (test-equal 3600 (timezone-offset (timezone "Etc/GMT-1")))
 
