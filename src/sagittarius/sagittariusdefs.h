@@ -152,8 +152,10 @@ typedef uint32_t _W64 uintptr_t;
 #  include <stdnoreturn.h>
 #  define SG_NO_RETURN _Noreturn
 # else
-#  define SG_NO_RETURN 		/* nothing */
+#  define SG_NO_RETURN /* nothing */
 # endif
+#else		       /* NOT C11 */
+#  define SG_NO_RETURN /* nothing */
 #endif
 
 /* we need to include config.h here */
