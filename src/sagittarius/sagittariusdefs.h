@@ -251,7 +251,7 @@ char *alloca ();
 
 typedef unsigned char SgByte;
 typedef intptr_t      SgWord;
-#if SG_USE_CHAR32_T
+#ifdef SG_USE_CHAR32_T
   typedef char32_t      SgChar;
 #else
   typedef int32_t       SgChar;
