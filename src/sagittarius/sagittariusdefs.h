@@ -274,11 +274,11 @@ typedef struct readtable_rec_t readtable_t;
 #ifdef SG_USE_CHAR32_T
 # define UC_(x) U##x
 # define UC(x)  (const SgChar*)(UC_(x))
-#elif USE_UCS4_CPP
+#elif defined(USE_UCS4_CPP)
 SG_CDECL_BEGIN
 SG_EXTERN const SgChar* UC(const char *str);
 SG_CDECL_END
-#elif defined (__CYGWIN__) || defined (_WIN32)
+#elif defined(__CYGWIN__) || defined(_WIN32)
 # define UC_(x) L##x
 # define UC(x)  (const SgChar*)(UC_(x)L"\0")
 #else
