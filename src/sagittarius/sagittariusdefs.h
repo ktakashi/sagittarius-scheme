@@ -1,6 +1,6 @@
 /* sagittariusdefs.h                               -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -76,7 +76,6 @@
 
 #define array_sizeof(a) ((int)(sizeof(a)/sizeof(a[0])))
 
-
 /* to use limited macros */
 #ifdef HAVE_STDINT_H
 # include <stdint.h>
@@ -142,6 +141,21 @@ typedef uint32_t _W64 uintptr_t;
 # ifndef __cplusplus
 #  define inline /* nothing */
 # endif
+#endif
+
+#if __STDC_VERSION__ >= 201112L
+# if defined(HAVE_UCHAR_H) && defined(HAVE_CHAR32_T)
+#  include <uchar.h>
+#  define SG_USE_CHAR32_T
+# endif
+# if defined(HAVE_STDNORETURN_H)
+#  include <stdnoreturn.h>
+#  define SG_NO_RETURN _Noreturn
+# else
+#  define SG_NO_RETURN /* nothing */
+# endif
+#else		       /* NOT C11 */
+#  define SG_NO_RETURN /* nothing */
 #endif
 
 /* we need to include config.h here */
@@ -239,7 +253,11 @@ char *alloca ();
 
 typedef unsigned char SgByte;
 typedef intptr_t      SgWord;
-typedef int32_t       SgChar;
+#ifdef SG_USE_CHAR32_T
+  typedef char32_t      SgChar;
+#else
+  typedef int32_t       SgChar;
+#endif
 typedef void*         SgObject;
 /* typedef uintptr_t SgHeader; */
 /* A common header for heap-allocated objects */
@@ -255,11 +273,14 @@ typedef struct readtable_rec_t readtable_t;
 /* 
    The idea from Mosh
  */
-#ifdef USE_UCS4_CPP
+#ifdef SG_USE_CHAR32_T
+# define UC_(x) U##x
+# define UC(x)  (const SgChar*)(UC_(x))
+#elif defined(USE_UCS4_CPP)
 SG_CDECL_BEGIN
 SG_EXTERN const SgChar* UC(const char *str);
 SG_CDECL_END
-#elif defined (__CYGWIN__) || defined (_WIN32)
+#elif defined(__CYGWIN__) || defined(_WIN32)
 # define UC_(x) L##x
 # define UC(x)  (const SgChar*)(UC_(x)L"\0")
 #else
