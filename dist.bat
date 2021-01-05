@@ -20,7 +20,7 @@ set RETRY=0
 set COMMAND=%1
 shift
 :retry
-%SASH% -L../sitelib %COMMAND% %*
+%SASH% %COMMAND% %*
 if %errorlevel% neq 0 (
     set /a RETRY=%RETRY%+1
     if %RETRY% neq %MAX_RETRY% goto retry
@@ -43,6 +43,12 @@ cd src
 call :invoke genlib %1
 cd ..
 call :insn dummy %1
+cd script
+echo "Generating builtin keywords"
+call :invoke builtin-keywords.scm
+echo "Generating builtin symbols"
+call :invoke builtin-symbols.scm
+cd  ..
 goto:eof
 
 rem stub
