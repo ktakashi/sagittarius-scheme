@@ -44,9 +44,6 @@ typedef void (*SgFinalizerProc)(SgObject z, void *data);
 #define SG_MAIN_THREAD_STACK_SIZE_LIMIT  0x100000
 #define SG_CHILD_THREAD_STACK_SIZE_LIMIT 0x10000
 
-/* alien thread invocation */
-typedef void* (*SgAlienThreadInvokeFunc)(void *data);
-
 SG_CDECL_BEGIN
 
 SG_EXTERN void  Sg_Init();
@@ -64,8 +61,7 @@ SG_EXTERN void 	Sg_RegisterFinalizer(SgObject z, SgFinalizerProc finalizer,
 				     void *data);
 SG_EXTERN void 	Sg_UnregisterFinalizer(SgObject z);
 SG_EXTERN int   Sg_FinalizerRegisteredP(SgObject z);
-SG_EXTERN void 	Sg_RegisterDL(void *data_start, void *data_end,
-			      void *bss_start, void *bss_end);
+
 SG_EXTERN void 	Sg_RegisterDisappearingLink(void **p, void *value);
 SG_EXTERN void 	Sg_UnregisterDisappearingLink(void **p);
 SG_EXTERN void* Sg_GCBase(void *value);
@@ -78,9 +74,6 @@ SG_EXTERN int   Sg_GCStackBase(uintptr_t *base);
 SG_EXTERN intptr_t   Sg_AvailableStackSize(uintptr_t csp);
 
 /* experimental */
-SG_EXTERN void  Sg_AddGCRoots(void *start, void *end);
-SG_EXTERN void* Sg_InvokeOnAlienThread(SgAlienThreadInvokeFunc func,
-				       void *data);
 
 /* cond-expand */
 SG_EXTERN void  Sg_AddCondFeature(const SgChar *feature);

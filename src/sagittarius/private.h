@@ -1,5 +1,5 @@
 /*
- * sagittarius.h: Sagittarius scheme system private header.
+ * sagittarius/private.h: Sagittarius scheme system private header.
  *
  *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
@@ -31,6 +31,14 @@
 #ifndef SAGITTARIUS_PRIVATE_H_
 #define SAGITTARIUS_PRIVATE_H_
 
+/* 
+   !CAUTION!
+   The C APIs listed in the below files subjected to change anytime
+   without warnings. Please use it with your responsibility.
+
+   If you want to avoid the backward incompatibility, please use the
+   public APIs.
+ */
 #include "private/sagittariusdefs.h"
 #include "private/bignum.h"
 #include "private/bytevector.h"

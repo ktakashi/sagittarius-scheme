@@ -33,6 +33,7 @@
 # include <unistd.h>
 #endif
 #define LIBSAGITTARIUS_BODY
+#include "sagittarius/gc.h"
 #include "sagittarius/private.h"
 #include "sagittarius/private/core.h"
 #include "sagittarius/private/vm.h"
@@ -97,8 +98,6 @@ extern void Sg__Init_sagittarius_compiler();
 extern void Sg__Init_core_errors();
 extern void Sg__Init_core_arithmetic();
 extern void Sg__Init_core_program();
-/* extern void Sg__Init_match_core(); */
-/* extern void Sg__Init_sagittarius_interactive(); */
 
 extern void Sg__InitExtFeatures();
 extern void Sg__InitComparator();
@@ -117,7 +116,7 @@ void Sg_GCSetPrintWarning(int onP)
 {
   /*  */
   if (onP) {
-#if GC_VERSION_MAJOR >= 7 && GC_VERSION_MINOR >= 2
+#if (GC_VERSION_MAJOR == 7 && GC_VERSION_MINOR >= 2) || GC_VERSION_MAJOR > 7
     GC_set_warn_proc(warn_proc);
 #endif
   } else {
@@ -133,7 +132,7 @@ void Sg_Init()
 #ifdef USE_BOEHM_GC
   GC_INIT();
   GC_allow_register_threads();
-#if GC_VERSION_MAJOR >= 7 && GC_VERSION_MINOR >= 2
+#if (GC_VERSION_MAJOR == 7 && GC_VERSION_MINOR >= 2) || (GC_VERSION_MAJOR > 7)
   GC_set_oom_fn(oom_handler);
   GC_set_finalize_on_demand(TRUE);
   GC_set_finalizer_notifier(finalizable);
@@ -283,7 +282,7 @@ size_t Sg_GetTotalBytes()
 }
 uintptr_t Sg_GcCount()
 {
-#if GC_VERSION_MAJOR >= 7 && GC_VERSION_MINOR >= 2
+#if (GC_VERSION_MAJOR == 7 && GC_VERSION_MINOR >= 2) || GC_VERSION_MAJOR > 7
   return GC_get_gc_no();
 #else
   return GC_gc_no;
@@ -478,7 +477,7 @@ void Sg_AddGCRoots(void *start, void *end)
 #endif
 }
 
-void* Sg_InvokeOnAlienThread(SgAlienThreadInvokeFunc func, void *data)
+void* Sg_InvokeOnAlienThread(void * (*func)(void *data), void *data)
 {
 #ifdef USE_BOEHM_GC
   /* the func is called here and from here, the memory is managed by the GC */

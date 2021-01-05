@@ -1,5 +1,4 @@
-/*
- * sagittarius.h: Sagittarius scheme system header.
+/* platform.h                                     -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
@@ -25,24 +24,39 @@
  *   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  *   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  *   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- *  $Id: $
  */
-#ifndef SAGITTARIUS_H_
-#define SAGITTARIUS_H_
+#ifndef SAGITTARIUS_PLATFORM_H_
+#define SAGITTARIUS_PLATFORM_H_
 
-/* TODO this will be removed after 0.9.8 */
-#include "sagittarius/private.h"
-
-/* C APIs */
-#include "sagittarius/platform.h"
-#include "sagittarius/gc.h"
-
-#endif /* SAGITTARIUS_H_ */
-
+/* Platform specific C macro */
 /*
-  end of file
-  Local Variables:
-  coding: utf-8-unix
-  End:
-*/
+  Macro Definitions and typedefs
+ */
+#if defined(__MINGW32__) || defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
+#define SAGITTARIUS_WINDOWS 1
+#endif
+
+#undef SG_EXTERN
+#if defined(__CYGWIN__) || defined(SAGITTARIUS_WINDOWS)
+# if defined(LIBSAGITTARIUS_BODY)
+#  define SG_EXPORT __declspec(dllexport)
+# else
+#  define SG_EXPORT __declspec(dllimport)
+# endif
+# define SG_EXTERN extern SG_EXPORT
+#else
+# define SG_EXPORT 
+# define SG_EXTERN extern
+#endif
+
+#ifdef __cplusplus
+# define __STDC_LIMIT_MACROS
+# define SG_CDECL_BEGIN extern "C" {
+# define SG_CDECL_END }
+#else
+# define SG_CDECL_BEGIN
+# define SG_CDECL_END
+#endif
+
+
+#endif	/* SAGITTARIUS_PLATFORM_H_ */

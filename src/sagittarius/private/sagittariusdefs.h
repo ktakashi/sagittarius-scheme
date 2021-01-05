@@ -30,38 +30,12 @@
 #ifndef SAGITTARIUS_PRIVATE_DEFS_H_
 #define SAGITTARIUS_PRIVATE_DEFS_H_
 
-/*
-  Macro Definitions and typedefs
- */
-#if defined(__MINGW32__) || defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
-#define SAGITTARIUS_WINDOWS 1
-#endif
+#include <sagittarius/platform.h>
 
 #ifdef SAGITTARIUS_WINDOWS
 #include "win-compat.h"
 #endif
 
-#undef SG_EXTERN
-#if defined(__CYGWIN__) || defined(SAGITTARIUS_WINDOWS)
-# if defined(LIBSAGITTARIUS_BODY)
-#  define SG_EXPORT __declspec(dllexport)
-# else
-#  define SG_EXPORT __declspec(dllimport)
-# endif
-# define SG_EXTERN extern SG_EXPORT
-#else
-# define SG_EXPORT 
-# define SG_EXTERN extern
-#endif
-
-#ifdef __cplusplus
-# define __STDC_LIMIT_MACROS
-# define SG_CDECL_BEGIN extern "C" {
-# define SG_CDECL_END }
-#else
-# define SG_CDECL_BEGIN
-# define SG_CDECL_END
-#endif
 
 /* for convenience */
 #ifndef FALSE
