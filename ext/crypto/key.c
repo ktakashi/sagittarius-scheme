@@ -29,10 +29,10 @@
  *
  *  $Id: $
  */
-#include <sagittarius.h>
+#include <sagittarius/private.h>
 #define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
-#include <sagittarius/builtin-keywords.h>
+#include <sagittarius/private/builtin-keywords.h>
 #include "crypto.h"
 
 SgClass *Sg__KeyCPL[] = {

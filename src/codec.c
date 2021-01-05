@@ -1,6 +1,6 @@
 /* codec.c                                         -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -28,17 +28,17 @@
  *  $Id: $
  */
 #define LIBSAGITTARIUS_BODY
-#include "sagittarius/codec.h"
-#include "sagittarius/core.h"
-#include "sagittarius/bytevector.h"
-#include "sagittarius/port.h"
-#include "sagittarius/error.h"
-#include "sagittarius/string.h"
-#include "sagittarius/symbol.h"
-#include "sagittarius/subr.h"
-#include "sagittarius/unicode.h"
-#include "sagittarius/writer.h"
-#include "sagittarius/vm.h"
+#include "sagittarius/private/codec.h"
+#include "sagittarius/private/core.h"
+#include "sagittarius/private/bytevector.h"
+#include "sagittarius/private/port.h"
+#include "sagittarius/private/error.h"
+#include "sagittarius/private/string.h"
+#include "sagittarius/private/symbol.h"
+#include "sagittarius/private/subr.h"
+#include "sagittarius/private/unicode.h"
+#include "sagittarius/private/writer.h"
+#include "sagittarius/private/vm.h"
 
 static SgClass *codec_cpl[] = {
   SG_CLASS_CODEC,

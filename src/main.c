@@ -1,6 +1,6 @@
 /* main.c                                          -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -28,9 +28,7 @@
  *  $Id: $
  */
 #include <string.h>
-#include "sagittarius.h"
-#include "sagittarius/cache.h"	/* this is not included in sagittarius.h */
-
+#include "sagittarius/private.h"
 
 /* should we use _WIN32? */
 #if defined(_MSC_VER)

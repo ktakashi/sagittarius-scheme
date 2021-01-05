@@ -1,6 +1,6 @@
 /* number.c                                        -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -32,23 +32,23 @@
 #include <math.h>
 #include <ctype.h>
 #define LIBSAGITTARIUS_BODY
-#include "sagittarius/number.h"
-#include "sagittarius/bignum.h"
-#include "sagittarius/string.h"
-#include "sagittarius/symbol.h"
-#include "sagittarius/pair.h"
-#include "sagittarius/port.h"
-#include "sagittarius/core.h"
-#include "sagittarius/exceptions.h"
-#include "sagittarius/clos.h"
-#include "sagittarius/unicode.h"
-#include "sagittarius/error.h"
-#include "sagittarius/numconst.h"
-#include "sagittarius/arith.h"
-#include "sagittarius/bits.h"
-#include "sagittarius/values.h"
-#include "sagittarius/vm.h"
-#include "sagittarius/writer.h"
+#include "sagittarius/private/number.h"
+#include "sagittarius/private/bignum.h"
+#include "sagittarius/private/string.h"
+#include "sagittarius/private/symbol.h"
+#include "sagittarius/private/pair.h"
+#include "sagittarius/private/port.h"
+#include "sagittarius/private/core.h"
+#include "sagittarius/private/exceptions.h"
+#include "sagittarius/private/clos.h"
+#include "sagittarius/private/unicode.h"
+#include "sagittarius/private/error.h"
+#include "sagittarius/private/numconst.h"
+#include "sagittarius/private/arith.h"
+#include "sagittarius/private/bits.h"
+#include "sagittarius/private/values.h"
+#include "sagittarius/private/vm.h"
+#include "sagittarius/private/writer.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846

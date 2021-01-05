@@ -1,6 +1,6 @@
 /* treemap.c                                              -*- coding: utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -28,15 +28,15 @@
  *  $Id: $
  */
 #define LIBSAGITTARIUS_BODY
-#include "sagittarius/treemap.h"
-#include "sagittarius/collection.h"
-#include "sagittarius/error.h"
-#include "sagittarius/pair.h"
-#include "sagittarius/string.h"
-#include "sagittarius/symbol.h"
-#include "sagittarius/values.h"
-#include "sagittarius/vm.h"
-#include "sagittarius/writer.h"
+#include "sagittarius/private/treemap.h"
+#include "sagittarius/private/collection.h"
+#include "sagittarius/private/error.h"
+#include "sagittarius/private/pair.h"
+#include "sagittarius/private/string.h"
+#include "sagittarius/private/symbol.h"
+#include "sagittarius/private/values.h"
+#include "sagittarius/private/vm.h"
+#include "sagittarius/private/writer.h"
 
 static void treemap_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {

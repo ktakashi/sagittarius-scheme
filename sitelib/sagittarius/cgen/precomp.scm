@@ -262,7 +262,10 @@
 		    initfun-name))
 	(parameterize ((cgen-current-unit u))
 	  (for-each cgen-define predef-syms)
-	  (cgen-include "<sagittarius.h>")))))
+	  (cgen-include "<sagittarius.h>")
+	  ;; For precompiled source, we need private structures
+	  ;; I don't expect users to do precompile...
+	  (cgen-include "<sagittarius/private.h>")))))
   
   (define-cgen-literal <cgen-scheme-code> <code-builder>
     ((code-name :init-keyword :code-name)

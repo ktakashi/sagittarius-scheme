@@ -1,13 +1,12 @@
 ;; -*- scheme -*-
-;; for Ypsilon
 #!compatible
 (library (sagittarius vm)
     (export :all)
     (import :none)
   (decl-code
    (.define "LIBSAGITTARIUS_BODY")
-   (.include <sagittarius.h>
-	     <sagittarius/instruction.h>))
+   (.include <sagittarius/private.h>
+	     <sagittarius/private/instruction.h>))
 
   ;; TODO duplicated definition in Scheme
   (decl-code

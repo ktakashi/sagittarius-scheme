@@ -1,6 +1,6 @@
 /* compare.c                                       -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -28,24 +28,24 @@
  *  $Id: $
  */
 #define LIBSAGITTARIUS_BODY
-#include "sagittarius/compare.h"
-#include "sagittarius/codec.h"
-#include "sagittarius/clos.h"
-#include "sagittarius/error.h"
-#include "sagittarius/identifier.h"
-#include "sagittarius/instruction.h"
-#include "sagittarius/library.h"
-#include "sagittarius/number.h"
-#include "sagittarius/pair.h"
-#include "sagittarius/bytevector.h"
-#include "sagittarius/record.h"
-#include "sagittarius/string.h"
-#include "sagittarius/subr.h"
-#include "sagittarius/symbol.h"
-#include "sagittarius/vector.h"
-#include "sagittarius/hashtable.h"
-#include "sagittarius/vm.h"	/* for box */
-#include "sagittarius/writer.h"
+#include "sagittarius/private/compare.h"
+#include "sagittarius/private/codec.h"
+#include "sagittarius/private/clos.h"
+#include "sagittarius/private/error.h"
+#include "sagittarius/private/identifier.h"
+#include "sagittarius/private/instruction.h"
+#include "sagittarius/private/library.h"
+#include "sagittarius/private/number.h"
+#include "sagittarius/private/pair.h"
+#include "sagittarius/private/bytevector.h"
+#include "sagittarius/private/record.h"
+#include "sagittarius/private/string.h"
+#include "sagittarius/private/subr.h"
+#include "sagittarius/private/symbol.h"
+#include "sagittarius/private/vector.h"
+#include "sagittarius/private/hashtable.h"
+#include "sagittarius/private/vm.h"	/* for box */
+#include "sagittarius/private/writer.h"
 
 /* #undef INSPECT_RECORD_FIELD */
 #define INSPECT_RECORD_FIELD

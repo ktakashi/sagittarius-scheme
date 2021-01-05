@@ -1,6 +1,6 @@
 ;; lib_treemap.stub                           -*- mode:scheme; coding:utf-8; -*-
 ;;
-;;  Copyright (c) 2010-2017  Takashi Kato <ktakashi@ymail.com>
+;;  Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
 ;;
 ;;  Redistribution and use in source and binary forms, with or without
 ;;  modification, are permitted provided that the following conditions
@@ -30,7 +30,7 @@
 
 (decl-code
  (.define "LIBSAGITTARIUS_BODY")
- (.include <sagittarius.h>))
+ (.include <sagittarius/private.h>))
 ;; tree-map, only expose default implementation for now (rb-tree)
 (define-c-proc make-rb-treemap (cmp::<procedure>) :no-side-effect
   Sg_MakeSchemeRBTreeMap)

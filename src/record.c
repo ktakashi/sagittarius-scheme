@@ -1,6 +1,6 @@
 /* record.c                                        -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -28,12 +28,12 @@
  *  $Id: $
  */
 #define LIBSAGITTARIUS_BODY
-#include "sagittarius/record.h"
-#include "sagittarius/clos.h"
-#include "sagittarius/library.h"
-#include "sagittarius/port.h"
-#include "sagittarius/symbol.h"
-#include "sagittarius/writer.h"
+#include "sagittarius/private/record.h"
+#include "sagittarius/private/clos.h"
+#include "sagittarius/private/library.h"
+#include "sagittarius/private/port.h"
+#include "sagittarius/private/symbol.h"
+#include "sagittarius/private/writer.h"
 
 static SgClass *Sg_RTMCPL[] = {
   SG_CLASS_CLASS,

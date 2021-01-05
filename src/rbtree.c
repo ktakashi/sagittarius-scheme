@@ -1,6 +1,6 @@
 /* rbtree.c                                               -*- coding: utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -28,9 +28,9 @@
  *  $Id: $
  */
 #define LIBSAGITTARIUS_BODY
-#include "sagittarius/treemap.h"
-#include "sagittarius/error.h"
-#include "sagittarius/vm.h"
+#include "sagittarius/private/treemap.h"
+#include "sagittarius/private/error.h"
+#include "sagittarius/private/vm.h"
 
 /* 
    Based on Java's implementation

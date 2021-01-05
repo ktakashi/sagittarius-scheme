@@ -1,6 +1,6 @@
 /* bytevector.c                                    -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -32,19 +32,19 @@
 #define LIBSAGITTARIUS_BODY
 /* for warning */
 #define NO_NTZ
-#include "sagittarius/sagittariusdefs.h"
-#include "sagittarius/arith.h"
-#include "sagittarius/bytevector.h"
-#include "sagittarius/bignum.h"
-#include "sagittarius/bits.h"
-#include "sagittarius/collection.h"
-#include "sagittarius/number.h"
-#include "sagittarius/pair.h"
-#include "sagittarius/port.h"
-#include "sagittarius/string.h"
-#include "sagittarius/error.h"
-#include "sagittarius/symbol.h"
-#include "sagittarius/vm.h"
+#include "sagittarius/private/sagittariusdefs.h"
+#include "sagittarius/private/arith.h"
+#include "sagittarius/private/bytevector.h"
+#include "sagittarius/private/bignum.h"
+#include "sagittarius/private/bits.h"
+#include "sagittarius/private/collection.h"
+#include "sagittarius/private/number.h"
+#include "sagittarius/private/pair.h"
+#include "sagittarius/private/port.h"
+#include "sagittarius/private/string.h"
+#include "sagittarius/private/error.h"
+#include "sagittarius/private/symbol.h"
+#include "sagittarius/private/vm.h"
 
 static void bvector_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {

@@ -1,6 +1,6 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
 (decl-code
- (.include <sagittarius.h>)
+ (.include <sagittarius/private.h>)
  (.define "LIBSAGITTARIUS_EXT_BODY")
  (.include <sagittarius/extend.h>
 	   <sagittarius-math.h>))

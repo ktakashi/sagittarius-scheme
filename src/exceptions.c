@@ -1,6 +1,6 @@
 /* exceptions.c                                    -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -28,21 +28,21 @@
  *  $Id: $
  */
 #define LIBSAGITTARIUS_BODY
-#include "sagittarius/exceptions.h"
-#include "sagittarius/subr.h"
-#include "sagittarius/pair.h"
-#include "sagittarius/symbol.h"
-#include "sagittarius/writer.h"
-#include "sagittarius/port.h"
-#include "sagittarius/string.h"
-#include "sagittarius/vm.h"
-#include "sagittarius/vector.h"
-#include "sagittarius/record.h"
-#include "sagittarius/error.h"
-#include "sagittarius/library.h"
-#include "sagittarius/keyword.h"
-#include "sagittarius/string.h"
-#include "sagittarius/number.h"
+#include "sagittarius/private/exceptions.h"
+#include "sagittarius/private/subr.h"
+#include "sagittarius/private/pair.h"
+#include "sagittarius/private/symbol.h"
+#include "sagittarius/private/writer.h"
+#include "sagittarius/private/port.h"
+#include "sagittarius/private/string.h"
+#include "sagittarius/private/vm.h"
+#include "sagittarius/private/vector.h"
+#include "sagittarius/private/record.h"
+#include "sagittarius/private/error.h"
+#include "sagittarius/private/library.h"
+#include "sagittarius/private/keyword.h"
+#include "sagittarius/private/string.h"
+#include "sagittarius/private/number.h"
 
 static SgClass *Sg_ConditionCPL[] = {
   SG_CLASS_CONDITION,

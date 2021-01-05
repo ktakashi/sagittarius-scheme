@@ -1,6 +1,6 @@
 ;; flonum.stub                                -*- mode:scheme; coding:utf-8; -*-
 ;;
-;;  Copyright (c) 2017  Takashi Kato <ktakashi@ymail.com>
+;;  Copyright (c) 2017-2021  Takashi Kato <ktakashi@ymail.com>
 ;;
 ;;  Redistribution and use in source and binary forms, with or without
 ;;  modification, are permitted provided that the following conditions
@@ -32,9 +32,9 @@
     (import (core))
 (decl-code
  (.define "LIBSAGITTARIUS_BODY")
- (.include <sagittarius.h>
-	   <sagittarius/cache.h>
-	   <sagittarius/numconst.h>
+ (.include <sagittarius/private.h>
+	   <sagittarius/private/cache.h>
+	   <sagittarius/private/numconst.h>
 	   "c99_flonum.h"))
 
 (define-type <flonum> "double" "flonum" "SG_FLONUMP" "SG_FLONUM_VALUE"

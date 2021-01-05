@@ -1,6 +1,6 @@
 /* keyword.c                                       -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -28,16 +28,16 @@
  *  $Id: $
  */
 #define LIBSAGITTARIUS_BODY
-#include "sagittarius/keyword.h"
-#include "sagittarius/error.h"
-#include "sagittarius/hashtable.h"
-#include "sagittarius/pair.h"
-#include "sagittarius/port.h"
-#include "sagittarius/string.h"
-#include "sagittarius/symbol.h"
-#include "sagittarius/thread.h"
-#include "sagittarius/writer.h"
-#include "sagittarius/builtin-keywords.h"
+#include "sagittarius/private/keyword.h"
+#include "sagittarius/private/error.h"
+#include "sagittarius/private/hashtable.h"
+#include "sagittarius/private/pair.h"
+#include "sagittarius/private/port.h"
+#include "sagittarius/private/string.h"
+#include "sagittarius/private/symbol.h"
+#include "sagittarius/private/thread.h"
+#include "sagittarius/private/writer.h"
+#include "sagittarius/private/builtin-keywords.h"
 
 #include "gc-incl.inc"
 
@@ -57,7 +57,7 @@ static void keyword_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_KeywordClass, keyword_print);
 
 #ifdef USE_WEAK_KEYWORD
-# include "sagittarius/weak.h"
+# include "sagittarius/private/weak.h"
 # define Sg_HashTableRef Sg_WeakHashTableRef
 # define Sg_HashTableSet Sg_WeakHashTableSet
 #endif

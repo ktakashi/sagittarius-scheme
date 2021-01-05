@@ -1,4 +1,4 @@
-/* regex_priv.c                                    -*- mode:c; coding: utf-8; -*-
+/* regex_priv.c                                   -*- mode:c; coding: utf-8; -*-
  *
  *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
  *

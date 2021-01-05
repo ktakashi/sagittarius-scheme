@@ -1,6 +1,6 @@
 /* load.c                                          -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -30,25 +30,25 @@
 #include <string.h>
 #include <ctype.h>
 #define LIBSAGITTARIUS_BODY
-#include "sagittarius/load.h"
-#include "sagittarius/core.h"
-#include "sagittarius/codec.h"
-#include "sagittarius/error.h"
-#include "sagittarius/file.h"
-#include "sagittarius/gloc.h"
-#include "sagittarius/library.h"
-#include "sagittarius/number.h"
-#include "sagittarius/pair.h"
-#include "sagittarius/port.h"
-#include "sagittarius/reader.h"
-#include "sagittarius/string.h"
-#include "sagittarius/symbol.h"
-#include "sagittarius/system.h"
-#include "sagittarius/transcoder.h"
-#include "sagittarius/writer.h"
-#include "sagittarius/vm.h"
-#include "sagittarius/thread.h"
-#include "sagittarius/unicode.h"
+#include "sagittarius/private/load.h"
+#include "sagittarius/private/core.h"
+#include "sagittarius/private/codec.h"
+#include "sagittarius/private/error.h"
+#include "sagittarius/private/file.h"
+#include "sagittarius/private/gloc.h"
+#include "sagittarius/private/library.h"
+#include "sagittarius/private/number.h"
+#include "sagittarius/private/pair.h"
+#include "sagittarius/private/port.h"
+#include "sagittarius/private/reader.h"
+#include "sagittarius/private/string.h"
+#include "sagittarius/private/symbol.h"
+#include "sagittarius/private/system.h"
+#include "sagittarius/private/transcoder.h"
+#include "sagittarius/private/writer.h"
+#include "sagittarius/private/vm.h"
+#include "sagittarius/private/thread.h"
+#include "sagittarius/private/unicode.h"
 
 /* need to redirect dlopen */
 #include "gc-incl.inc"

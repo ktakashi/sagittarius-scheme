@@ -1,6 +1,6 @@
 /* thread.c                                         -*- mode:c; coding:utf-8 -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -30,14 +30,14 @@
 #include <math.h>
 #include <windows.h>
 #define LIBSAGITTARIUS_BODY
-#include <sagittarius/thread.h>
-#include <sagittarius/system.h>
-#include <sagittarius/error.h>
-#include <sagittarius/pair.h>
-#include <sagittarius/string.h>
-#include <sagittarius/symbol.h>
-#include <sagittarius/unicode.h>
-#include <sagittarius/vm.h>
+#include <sagittarius/private/thread.h>
+#include <sagittarius/private/system.h>
+#include <sagittarius/private/error.h>
+#include <sagittarius/private/pair.h>
+#include <sagittarius/private/string.h>
+#include <sagittarius/private/symbol.h>
+#include <sagittarius/private/unicode.h>
+#include <sagittarius/private/vm.h>
 
 #include "../../gc-incl.inc"
 #include "win_util.c"

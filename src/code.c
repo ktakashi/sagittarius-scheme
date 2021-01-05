@@ -1,6 +1,6 @@
 /* code.c                                          -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -29,17 +29,17 @@
  */
 #include <string.h>
 #define LIBSAGITTARIUS_BODY
-#include "sagittarius/code.h"
-#include "sagittarius/core.h"
-#include "sagittarius/closure.h"
-#include "sagittarius/error.h"
-#include "sagittarius/number.h"
-#include "sagittarius/pair.h"
-#include "sagittarius/port.h"
-#include "sagittarius/instruction.h"
-#include "sagittarius/vector.h"
-#include "sagittarius/vm.h"
-#include "sagittarius/writer.h"
+#include "sagittarius/private/code.h"
+#include "sagittarius/private/core.h"
+#include "sagittarius/private/closure.h"
+#include "sagittarius/private/error.h"
+#include "sagittarius/private/number.h"
+#include "sagittarius/private/pair.h"
+#include "sagittarius/private/port.h"
+#include "sagittarius/private/instruction.h"
+#include "sagittarius/private/vector.h"
+#include "sagittarius/private/vm.h"
+#include "sagittarius/private/writer.h"
 
 #define INIT_CODE_PACKET(p, t, inst, a0, a1, o)		\
   do {							\

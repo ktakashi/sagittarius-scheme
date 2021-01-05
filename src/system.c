@@ -1,6 +1,6 @@
 /* system.c                                        -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -30,14 +30,14 @@
 #include <float.h>
 #include <math.h>
 #define LIBSAGITTARIUS_BODY
-#include "sagittarius/system.h"
-#include "sagittarius/clos.h"
-#include "sagittarius/error.h"
-#include "sagittarius/number.h"
-#include "sagittarius/library.h"
-#include "sagittarius/symbol.h"
-#include "sagittarius/writer.h"
-#include "sagittarius/values.h"
+#include "sagittarius/private/system.h"
+#include "sagittarius/private/clos.h"
+#include "sagittarius/private/error.h"
+#include "sagittarius/private/number.h"
+#include "sagittarius/private/library.h"
+#include "sagittarius/private/symbol.h"
+#include "sagittarius/private/writer.h"
+#include "sagittarius/private/values.h"
 
 static void time_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {

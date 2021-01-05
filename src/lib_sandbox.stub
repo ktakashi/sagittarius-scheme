@@ -2,7 +2,7 @@
 ;;;
 ;;; lib_sandbox.stub - sandbox
 ;;;  
-;;;   Copyright (c) 2017  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2017-2021  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -37,8 +37,8 @@
 
 (decl-code
    (.define "LIBSAGITTARIUS_BODY")
-   (.include <sagittarius.h>
-	     <sagittarius/cache.h>))
+   (.include <sagittarius/private.h>
+	     <sagittarius/private/cache.h>))
 
 (define-c-proc enable-sandbox! () ::<void> Sg_EnableSandbox)
 (define-c-proc disable-sandbox! () ::<void> Sg_DisableSandbox)

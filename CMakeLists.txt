@@ -457,7 +457,7 @@ SET(SAGITTARIUS_EXT_FEATURES ${PROJECT_BINARY_DIR}/build/src/ext-features.c)
 # FIXME this is ugly
 FILE(WRITE ${SAGITTARIUS_EXT_FEATURES}
   "#define LIBSAGITTARIUS_BODY
-#include <sagittarius/core.h>
+#include <sagittarius/private/core.h>
 void Sg__InitExtFeatures()
 {
 ")

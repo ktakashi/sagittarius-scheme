@@ -28,7 +28,7 @@
     :name "vminsn"
     :preamble *preamble*
     :c-file   "vminsn.c"
-    :h-file   "sagittarius/instruction.h"
+    :h-file   "sagittarius/private/instruction.h"
     :init-prologue ""
     :init-epilogue ""))
 

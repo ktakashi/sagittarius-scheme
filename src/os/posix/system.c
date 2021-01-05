@@ -1,6 +1,6 @@
 /* system.c                                        -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -87,20 +87,20 @@
 #endif
 
 #define LIBSAGITTARIUS_BODY
-#include <sagittarius/system.h>
-#include <sagittarius/core.h>
-#include <sagittarius/file.h>
-#include <sagittarius/unicode.h>
-#include <sagittarius/string.h>
-#include <sagittarius/pair.h>
-#include <sagittarius/keyword.h>
-#include <sagittarius/builtin-keywords.h>
-#include <sagittarius/port.h>
-#include <sagittarius/error.h>
-#include <sagittarius/values.h>
-#include <sagittarius/number.h>
-#include <sagittarius/bytevector.h>
-#include <sagittarius/vector.h>
+#include <sagittarius/private/system.h>
+#include <sagittarius/private/core.h>
+#include <sagittarius/private/file.h>
+#include <sagittarius/private/unicode.h>
+#include <sagittarius/private/string.h>
+#include <sagittarius/private/pair.h>
+#include <sagittarius/private/keyword.h>
+#include <sagittarius/private/builtin-keywords.h>
+#include <sagittarius/private/port.h>
+#include <sagittarius/private/error.h>
+#include <sagittarius/private/values.h>
+#include <sagittarius/private/number.h>
+#include <sagittarius/private/bytevector.h>
+#include <sagittarius/private/vector.h>
 
 #ifndef __APPLE__ 
 extern char** environ;

@@ -1,6 +1,6 @@
 /* regex_match.c                                          -*- coding: utf-8; -*-
  *
- *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -31,19 +31,19 @@
 #include <string.h>
 #include <ctype.h>
 #define LIBSAGITTARIUS_BODY
-#include "sagittarius/pair.h"
-#include "sagittarius/regex.h"
-#include "sagittarius/error.h"
-#include "sagittarius/port.h"
-#include "sagittarius/symbol.h"
-#include "sagittarius/cache.h"
+#include "sagittarius/private/pair.h"
+#include "sagittarius/private/regex.h"
+#include "sagittarius/private/error.h"
+#include "sagittarius/private/port.h"
+#include "sagittarius/private/symbol.h"
+#include "sagittarius/private/cache.h"
 
 
 #include "regex_priv.inc"
 
 #ifdef BINARY_MATCHER
 /* binary */
-  #include "sagittarius/bytevector.h"
+  #include "sagittarius/private/bytevector.h"
   typedef uint8_t char_t;
   typedef SgByteVector text_t;
   #define matcher_t  SgBinaryMatcher
@@ -74,7 +74,7 @@
   #define ALLOC_TEXT Sg_MakeByteVector
 #else
 /* string */
-  #include "sagittarius/string.h"
+  #include "sagittarius/private/string.h"
   typedef SgChar char_t;
   typedef SgString text_t;
   #define matcher_t  SgTextMatcher

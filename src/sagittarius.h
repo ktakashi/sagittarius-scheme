@@ -1,7 +1,7 @@
 /*
  * sagittarius.h: Sagittarius scheme system header.
  *
- *   Copyright (c) 2010-2016  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -31,61 +31,10 @@
 #ifndef SAGITTARIUS_H_
 #define SAGITTARIUS_H_
 
-/*
-  Basic strategy for API.
-  
-  I don't like to think about so much compiler compatibility.
-  So API must be written in C. Then it's much easier.
-  In execute file, in this case sagittarius.exe(may not be this
-  name) can be written in C++, because I don't have to consider
-  the compatibility. (Nobody's gonna use exe file as library,
-  right?)
-*/
+/* TODO this will be removed after 0.9.8 */
+#include "sagittarius/private.h"
 
-/* basic definition for sagittarius scheme. */
-#include "sagittarius/sagittariusdefs.h"
-/* sagittarius scheme types */
-#include "sagittarius/bignum.h"
-#include "sagittarius/bytevector.h"
-#include "sagittarius/charset.h"
-#include "sagittarius/cache.h"
-#include "sagittarius/clos.h"
-#include "sagittarius/closure.h"
-#include "sagittarius/code.h"
-#include "sagittarius/codec.h"
-#include "sagittarius/compare.h"
-#include "sagittarius/core.h"
-#include "sagittarius/error.h"
-#include "sagittarius/exceptions.h"
-#include "sagittarius/file.h"
-#include "sagittarius/generic.h"
-#include "sagittarius/gloc.h"
-#include "sagittarius/hashtable.h"
-#include "sagittarius/identifier.h"
-#include "sagittarius/keyword.h"
-#include "sagittarius/library.h"
-#include "sagittarius/load.h"
-#include "sagittarius/macro.h"
-#include "sagittarius/number.h"
-#include "sagittarius/pair.h"
-#include "sagittarius/port.h"
-#include "sagittarius/profiler.h"
-#include "sagittarius/reader.h"
-#include "sagittarius/record.h"
-#include "sagittarius/regex.h"
-#include "sagittarius/string.h"
-#include "sagittarius/symbol.h"
-#include "sagittarius/subr.h"
-#include "sagittarius/system.h"
-#include "sagittarius/thread.h"
-#include "sagittarius/transcoder.h"
-#include "sagittarius/treemap.h"
-#include "sagittarius/unicode.h"
-#include "sagittarius/weak.h"
-#include "sagittarius/writer.h"
-#include "sagittarius/values.h"
-#include "sagittarius/vector.h"
-#include "sagittarius/vm.h"
+/* TBD here there will be some public C APIs */
 
 #endif /* SAGITTARIUS_H_ */
 

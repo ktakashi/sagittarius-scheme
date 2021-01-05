@@ -1,6 +1,6 @@
 /*  file.c                                         -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -34,17 +34,17 @@
 #include <errno.h>
 
 #define LIBSAGITTARIUS_BODY
-#include <sagittarius/file.h>
-#include <sagittarius/codec.h>
-#include <sagittarius/port.h>
-#include <sagittarius/pair.h>
-#include <sagittarius/transcoder.h>
-#include <sagittarius/string.h>
-#include <sagittarius/error.h>
-#include <sagittarius/symbol.h>
-#include <sagittarius/system.h>
-#include <sagittarius/unicode.h>
-#include <sagittarius/number.h>
+#include <sagittarius/private/file.h>
+#include <sagittarius/private/codec.h>
+#include <sagittarius/private/port.h>
+#include <sagittarius/private/pair.h>
+#include <sagittarius/private/transcoder.h>
+#include <sagittarius/private/string.h>
+#include <sagittarius/private/error.h>
+#include <sagittarius/private/symbol.h>
+#include <sagittarius/private/system.h>
+#include <sagittarius/private/unicode.h>
+#include <sagittarius/private/number.h>
 
 #include "shared.h"
 

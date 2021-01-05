@@ -13,7 +13,7 @@
 
   (decl-code
    (.define "LIBSAGITTARIUS_BODY")
-   (.include <sagittarius.h> <sagittarius/generic.h>))
+   (.include <sagittarius/private.h> <sagittarius/private/generic.h>))
 
   (define-c-proc %add-direct-subclass! (super::<class> sub::<class>) ::<void>
     Sg_AddDirectSubclass)

@@ -1,6 +1,6 @@
 /* bits.c                                          -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -30,8 +30,8 @@
 #define LIBSAGITTARIUS_BODY
 #define NO_NLZ
 #define NO_NTZ
-#include "sagittarius/bits.h"
-#include "sagittarius/arith.h"
+#include "sagittarius/private/bits.h"
+#include "sagittarius/private/arith.h"
 
 long Sg_BitsCount0(const unsigned long *bits, long start, long end)
 {

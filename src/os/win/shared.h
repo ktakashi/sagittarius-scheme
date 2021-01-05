@@ -1,6 +1,6 @@
 /*  shared.h                                       -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2018  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -30,7 +30,7 @@
 #define SAGITTARIUS_WIN_SHARED_H
 
 #include <windows.h>
-#include <sagittarius/string.h>
+#include <sagittarius/private/string.h>
 
 typedef struct {
   DWORD major;

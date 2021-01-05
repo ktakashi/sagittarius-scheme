@@ -1,6 +1,6 @@
 /* regex2.c                                               -*- coding: utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -30,13 +30,13 @@
 #include <string.h>
 #include <ctype.h>
 #define LIBSAGITTARIUS_BODY
-#include "sagittarius/pair.h"
-#include "sagittarius/regex.h"
-#include "sagittarius/error.h"
-#include "sagittarius/port.h"
-#include "sagittarius/string.h"
-#include "sagittarius/symbol.h"
-#include "sagittarius/cache.h"
+#include "sagittarius/private/pair.h"
+#include "sagittarius/private/regex.h"
+#include "sagittarius/private/error.h"
+#include "sagittarius/private/port.h"
+#include "sagittarius/private/string.h"
+#include "sagittarius/private/symbol.h"
+#include "sagittarius/private/cache.h"
 
 #include "shortnames.incl"
 

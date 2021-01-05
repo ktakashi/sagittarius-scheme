@@ -1,6 +1,6 @@
 /* identifier.c                                    -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -28,16 +28,16 @@
  *  $Id: $
  */
 #define LIBSAGITTARIUS_BODY
-#include "sagittarius/identifier.h"
-#include "sagittarius/symbol.h"
-#include "sagittarius/library.h"
-#include "sagittarius/pair.h"
-#include "sagittarius/vector.h"
-#include "sagittarius/hashtable.h"
-#include "sagittarius/writer.h"
-#include "sagittarius/port.h"
-#include "sagittarius/reader.h"
-#include "sagittarius/vm.h"
+#include "sagittarius/private/identifier.h"
+#include "sagittarius/private/symbol.h"
+#include "sagittarius/private/library.h"
+#include "sagittarius/private/pair.h"
+#include "sagittarius/private/vector.h"
+#include "sagittarius/private/hashtable.h"
+#include "sagittarius/private/writer.h"
+#include "sagittarius/private/port.h"
+#include "sagittarius/private/reader.h"
+#include "sagittarius/private/vm.h"
 
 static void id_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {

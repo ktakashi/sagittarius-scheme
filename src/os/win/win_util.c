@@ -1,8 +1,6 @@
-/* -*- C -*- */
-/*
- * win_util.c
+/* win_util.c                                      -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -32,10 +30,10 @@
 
 #include <math.h>
 #include <string.h>
-#include <sagittarius/transcoder.h>
-#include <sagittarius/codec.h>
-#include <sagittarius/string.h>
-#include <sagittarius/port.h>
+#include <sagittarius/private/transcoder.h>
+#include <sagittarius/private/codec.h>
+#include <sagittarius/private/string.h>
+#include <sagittarius/private/port.h>
 
 #define F_OK 0
 #define W_OK 2

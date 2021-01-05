@@ -1,6 +1,6 @@
 ;; flonum.stub                                -*- mode:scheme; coding:utf-8; -*-
 ;;
-;;  Copyright (c) 2017  Takashi Kato <ktakashi@ymail.com>
+;;  Copyright (c) 2017-2021  Takashi Kato <ktakashi@ymail.com>
 ;;
 ;;  Redistribution and use in source and binary forms, with or without
 ;;  modification, are permitted provided that the following conditions
@@ -33,9 +33,9 @@
 
 (decl-code
  (.define "LIBSAGITTARIUS_BODY")
- (.include <sagittarius.h>
-	   <sagittarius/instruction.h>
-	   <sagittarius/builtin-symbols.h>
+ (.include <sagittarius/private.h>
+	   <sagittarius/private/instruction.h>
+	   <sagittarius/private/builtin-symbols.h>
 	   "number.inc"))
     
 (define-cise-stmt assertion-violation
@@ -300,8 +300,8 @@
 
 ;; needs nbits and so
 (decl-code
- (.include <sagittarius/bits.h>
-	   <sagittarius/arith.h>))
+ (.include <sagittarius/private/bits.h>
+	   <sagittarius/private/arith.h>))
 
 (define-c-proc fxbit-count (fx::<fixnum>) ::<fixnum> :no-side-effect
   (if (>= fx 0)

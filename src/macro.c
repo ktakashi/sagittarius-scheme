@@ -1,6 +1,6 @@
 /* macro.c                                         -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -28,22 +28,22 @@
  *  $Id: $
  */
 #define LIBSAGITTARIUS_BODY
-#include "sagittarius/macro.h"
-#include "sagittarius/clos.h"
-#include "sagittarius/closure.h"
-#include "sagittarius/identifier.h"
-#include "sagittarius/pair.h"
-#include "sagittarius/port.h"
-#include "sagittarius/vector.h"
-#include "sagittarius/symbol.h"
-#include "sagittarius/code.h"
-#include "sagittarius/library.h"
-#include "sagittarius/subr.h"
-#include "sagittarius/reader.h"
-#include "sagittarius/vm.h"
-#include "sagittarius/gloc.h"
-#include "sagittarius/writer.h"
-#include "sagittarius/builtin-symbols.h"
+#include "sagittarius/private/macro.h"
+#include "sagittarius/private/clos.h"
+#include "sagittarius/private/closure.h"
+#include "sagittarius/private/identifier.h"
+#include "sagittarius/private/pair.h"
+#include "sagittarius/private/port.h"
+#include "sagittarius/private/vector.h"
+#include "sagittarius/private/symbol.h"
+#include "sagittarius/private/code.h"
+#include "sagittarius/private/library.h"
+#include "sagittarius/private/subr.h"
+#include "sagittarius/private/reader.h"
+#include "sagittarius/private/vm.h"
+#include "sagittarius/private/gloc.h"
+#include "sagittarius/private/writer.h"
+#include "sagittarius/private/builtin-symbols.h"
 
 static void syntax_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {

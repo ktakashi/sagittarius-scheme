@@ -1,6 +1,6 @@
 /* hashtable.c                                     -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -28,22 +28,22 @@
  *  $Id: $
  */
 #define LIBSAGITTARIUS_BODY
-#include "sagittarius/hashtable.h"
-#include "sagittarius/bytevector.h"
-#include "sagittarius/collection.h"
-#include "sagittarius/compare.h"
-#include "sagittarius/error.h"
-#include "sagittarius/pair.h"
-#include "sagittarius/port.h"
-#include "sagittarius/string.h"
-#include "sagittarius/number.h"
-#include "sagittarius/symbol.h"
-#include "sagittarius/keyword.h"
-#include "sagittarius/vector.h"
-#include "sagittarius/vm.h"
-#include "sagittarius/writer.h"
-#include "sagittarius/cache.h"
-#include "sagittarius/generic.h"
+#include "sagittarius/private/hashtable.h"
+#include "sagittarius/private/bytevector.h"
+#include "sagittarius/private/collection.h"
+#include "sagittarius/private/compare.h"
+#include "sagittarius/private/error.h"
+#include "sagittarius/private/pair.h"
+#include "sagittarius/private/port.h"
+#include "sagittarius/private/string.h"
+#include "sagittarius/private/number.h"
+#include "sagittarius/private/symbol.h"
+#include "sagittarius/private/keyword.h"
+#include "sagittarius/private/vector.h"
+#include "sagittarius/private/vm.h"
+#include "sagittarius/private/writer.h"
+#include "sagittarius/private/cache.h"
+#include "sagittarius/private/generic.h"
 
 
 typedef struct EntryRec

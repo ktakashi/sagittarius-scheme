@@ -1,6 +1,6 @@
 /* string.c                                        -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -29,17 +29,17 @@
  */
 #include <string.h>
 #define LIBSAGITTARIUS_BODY
-#include "sagittarius/string.h"
-#include "sagittarius/collection.h"
-#include "sagittarius/hashtable.h"
-#include "sagittarius/unicode.h"
-#include "sagittarius/pair.h"
-#include "sagittarius/port.h"
-#include "sagittarius/error.h"
-#include "sagittarius/number.h"
-#include "sagittarius/thread.h"
-#include "sagittarius/values.h"
-#include "sagittarius/writer.h"
+#include "sagittarius/private/string.h"
+#include "sagittarius/private/collection.h"
+#include "sagittarius/private/hashtable.h"
+#include "sagittarius/private/unicode.h"
+#include "sagittarius/private/pair.h"
+#include "sagittarius/private/port.h"
+#include "sagittarius/private/error.h"
+#include "sagittarius/private/number.h"
+#include "sagittarius/private/thread.h"
+#include "sagittarius/private/values.h"
+#include "sagittarius/private/writer.h"
 
 static void string_print(SgObject o, SgPort *port, SgWriteContext *ctx)
 {

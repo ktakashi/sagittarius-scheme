@@ -1,6 +1,6 @@
 /* transcoder.c                                    -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -29,15 +29,15 @@
  */
 #include <string.h>
 #define LIBSAGITTARIUS_BODY
-#include "sagittarius/transcoder.h"
-#include "sagittarius/codec.h"
-#include "sagittarius/port.h"
-#include "sagittarius/symbol.h"
-#include "sagittarius/builtin-symbols.h"
-#include "sagittarius/core.h"
-#include "sagittarius/number.h"
-#include "sagittarius/vm.h"
-#include "sagittarius/error.h"
+#include "sagittarius/private/transcoder.h"
+#include "sagittarius/private/codec.h"
+#include "sagittarius/private/port.h"
+#include "sagittarius/private/symbol.h"
+#include "sagittarius/private/builtin-symbols.h"
+#include "sagittarius/private/core.h"
+#include "sagittarius/private/number.h"
+#include "sagittarius/private/vm.h"
+#include "sagittarius/private/error.h"
 
 #include "shortnames.incl"
 

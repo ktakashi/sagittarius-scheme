@@ -1,6 +1,6 @@
 /* cache.c                                         -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2018  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -31,34 +31,34 @@
 #include <ctype.h>
 #include <string.h>
 #define LIBSAGITTARIUS_BODY
-#include "sagittarius/bignum.h"
-#include "sagittarius/cache.h"
-#include "sagittarius/bytevector.h"
-#include "sagittarius/closure.h"
-#include "sagittarius/code.h"
-#include "sagittarius/core.h"
-#include "sagittarius/error.h"
-#include "sagittarius/file.h"
-#include "sagittarius/gloc.h"
-#include "sagittarius/hashtable.h"
-#include "sagittarius/identifier.h"
-#include "sagittarius/instruction.h"
-#include "sagittarius/keyword.h"
-#include "sagittarius/library.h"
-#include "sagittarius/macro.h"
-#include "sagittarius/number.h"
-#include "sagittarius/pair.h"
-#include "sagittarius/port.h"
-#include "sagittarius/reader.h"	/* for shared reference */
-#include "sagittarius/string.h"
-#include "sagittarius/symbol.h"
-#include "sagittarius/system.h"
-#include "sagittarius/thread.h"
-#include "sagittarius/transcoder.h"
-#include "sagittarius/unicode.h"
-#include "sagittarius/vector.h"
-#include "sagittarius/vm.h"
-#include "sagittarius/writer.h"
+#include "sagittarius/private/bignum.h"
+#include "sagittarius/private/cache.h"
+#include "sagittarius/private/bytevector.h"
+#include "sagittarius/private/closure.h"
+#include "sagittarius/private/code.h"
+#include "sagittarius/private/core.h"
+#include "sagittarius/private/error.h"
+#include "sagittarius/private/file.h"
+#include "sagittarius/private/gloc.h"
+#include "sagittarius/private/hashtable.h"
+#include "sagittarius/private/identifier.h"
+#include "sagittarius/private/instruction.h"
+#include "sagittarius/private/keyword.h"
+#include "sagittarius/private/library.h"
+#include "sagittarius/private/macro.h"
+#include "sagittarius/private/number.h"
+#include "sagittarius/private/pair.h"
+#include "sagittarius/private/port.h"
+#include "sagittarius/private/reader.h"	/* for shared reference */
+#include "sagittarius/private/string.h"
+#include "sagittarius/private/symbol.h"
+#include "sagittarius/private/system.h"
+#include "sagittarius/private/thread.h"
+#include "sagittarius/private/transcoder.h"
+#include "sagittarius/private/unicode.h"
+#include "sagittarius/private/vector.h"
+#include "sagittarius/private/vm.h"
+#include "sagittarius/private/writer.h"
 
 /* #define USE_UTF8_STRING 1 */
 #define STORE_SOURCE_INFO 1

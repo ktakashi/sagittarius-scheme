@@ -4,9 +4,9 @@
     (import :none)
   (decl-code
    (.define "LIBSAGITTARIUS_BODY")
-   (.include <sagittarius.h>
-	     <sagittarius/instruction.h>
-	     <sagittarius/builtin-symbols.h>
+   (.include <sagittarius/private.h>
+	     <sagittarius/private/instruction.h>
+	     <sagittarius/private/builtin-symbols.h>
 	     ;; need this...
 	     "shortnames.incl"
 	     "gc-incl.inc"))

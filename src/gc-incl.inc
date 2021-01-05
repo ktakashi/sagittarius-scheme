@@ -1,6 +1,6 @@
 /* gc-incl.inc                                      -*- mode:c; coding:utf-8 -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -69,7 +69,7 @@
 /* #define DEBUG_CONSTANT_COUNT */
 
 #if defined(DEBUG_CONSTANT_COUNT)
-# include "sagittarius/core.h"
+# include "sagittarius/private/core.h"
 # if defined(USE_WEAK_CONSTANT)
 #  define DEFINE_DEBUG_DUMPER(type, table)				\
   static void SG_CPP_CAT(type, _dumper)(void *data) {			\

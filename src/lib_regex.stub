@@ -12,7 +12,8 @@
 
   (decl-code
    (.define "LIBSAGITTARIUS_BODY")
-   (.include <sagittarius.h> <sagittarius/regex.h>))
+   (.include <sagittarius/private.h>
+	     <sagittarius/private/regex.h>))
 
   (define-c-proc compile-regex (p::<string> :optional
 					    (flags::<fixnum> 0)

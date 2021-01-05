@@ -1,6 +1,6 @@
 /* core.c                                          -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -33,11 +33,11 @@
 # include <unistd.h>
 #endif
 #define LIBSAGITTARIUS_BODY
-#include "sagittarius.h"
-#include "sagittarius/core.h"
-#include "sagittarius/vm.h"
-#include "sagittarius/builtin-symbols.h"
-#include "sagittarius/keyword.h"
+#include "sagittarius/private.h"
+#include "sagittarius/private/core.h"
+#include "sagittarius/private/vm.h"
+#include "sagittarius/private/builtin-symbols.h"
+#include "sagittarius/private/keyword.h"
 
 #include "gc-incl.inc"
 

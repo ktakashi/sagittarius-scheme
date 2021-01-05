@@ -1,5 +1,5 @@
 /* closure.c                                       -*- mode:c; coding:utf-8; -*-
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -27,14 +27,14 @@
  *  $Id: $
  */
 #define LIBSAGITTARIUS_BODY
-#include "sagittarius/closure.h"
-#include "sagittarius/code.h"
-#include "sagittarius/core.h"
-#include "sagittarius/instruction.h"
-#include "sagittarius/gloc.h"
-#include "sagittarius/library.h"
-#include "sagittarius/identifier.h"
-#include "sagittarius/pair.h"
+#include "sagittarius/private/closure.h"
+#include "sagittarius/private/code.h"
+#include "sagittarius/private/core.h"
+#include "sagittarius/private/instruction.h"
+#include "sagittarius/private/gloc.h"
+#include "sagittarius/private/library.h"
+#include "sagittarius/private/identifier.h"
+#include "sagittarius/private/pair.h"
 
 /* #define DEBUG_CHECK 1 */
 #define CHECK_CLOSURE_TRANSPARENCY

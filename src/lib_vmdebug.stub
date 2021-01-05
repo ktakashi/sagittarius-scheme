@@ -10,7 +10,7 @@
 
   (decl-code
    (.define "LIBSAGITTARIUS_BODY")
-   (.include <sagittarius.h>))
+   (.include <sagittarius/private.h>))
 
   (define-c-proc vm-dump-code (cb::<code-builder>) ::<void> Sg_VMDumpCode)
 
