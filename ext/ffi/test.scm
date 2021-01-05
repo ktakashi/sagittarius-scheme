@@ -15,7 +15,9 @@
   (define ffi-test-lib
     (open-shared-library
      (cond-expand
-      (darwin (string-append build-directory-path "/test-lib.dylib"))
+      (darwin
+       "build/test-lib.dylib"
+       #;(string-append build-directory-path "/test-lib.dylib"))
       (else (string-append build-directory-path "/test-lib.so")))))
 
   ;; originally this was array but now it must be an

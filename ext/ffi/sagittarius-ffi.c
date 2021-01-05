@@ -1393,19 +1393,12 @@ static void set_callback_result(SgCallback *callback, SgObject ret,
   switch (callback->returnType) {    
   case FFI_RETURN_TYPE_BOOL:
     /* somehow, on my envionment(X86 windows cygwin) I needed this. why? */
-    cif->flags = FFI_TYPE_INT;
     *((ffi_sarg *) result) = !SG_FALSEP(ret);
     break;
   case FFI_RETURN_TYPE_INT:
-    cif->flags = FFI_TYPE_INT;
-    goto signed_entry;
   case FFI_RETURN_TYPE_INT8_T:
-    cif->flags = FFI_TYPE_SINT8;
-    goto signed_entry;
   case FFI_RETURN_TYPE_INT16_T:
   case FFI_RETURN_TYPE_SHORT:
-    cif->flags = FFI_TYPE_SINT16;
-  signed_entry:
     if (!SG_NUMBERP(ret)) goto ret0;
     *((ffi_sarg *) result) = SG_INT_VALUE(ret);
     break;
@@ -1417,21 +1410,14 @@ static void set_callback_result(SgCallback *callback, SgObject ret,
     goto int64_entry;
 #endif
   case FFI_RETURN_TYPE_INT32_T:
-    cif->flags = FFI_TYPE_INT;
     if (!SG_NUMBERP(ret)) goto ret0;
     *((ffi_sarg *) result) = Sg_GetIntegerClamp(ret, SG_CLAMP_NONE, NULL);
     break;
   case FFI_RETURN_TYPE_UINT:
   case FFI_RETURN_TYPE_SIZE_T:
-    cif->flags = FFI_TYPE_INT;
-    goto unsigned_entry;
   case FFI_RETURN_TYPE_UINT8_T:
-    cif->flags = FFI_TYPE_UINT8;
-    goto unsigned_entry;
   case FFI_RETURN_TYPE_UINT16_T:
   case FFI_RETURN_TYPE_USHORT:
-    cif->flags = FFI_TYPE_UINT16;
-  unsigned_entry:
     if (!SG_NUMBERP(ret)) goto ret0;
     *((ffi_arg *) result) = SG_INT_VALUE(ret);
     break;
@@ -1443,17 +1429,14 @@ static void set_callback_result(SgCallback *callback, SgObject ret,
     goto uint64_entry;
 #endif
   case FFI_RETURN_TYPE_UINT32_T:
-    cif->flags = FFI_TYPE_INT;
     if (!SG_NUMBERP(ret)) goto ret0;
     *((ffi_arg *) result) = Sg_GetUIntegerClamp(ret, SG_CLAMP_NONE, NULL);
     break;
   case FFI_RETURN_TYPE_FLOAT:
-    cif->flags = FFI_TYPE_FLOAT;
     if (!SG_NUMBERP(ret)) goto ret0;
     *((float *) result) = (float)Sg_GetDouble(ret);
     break;
   case FFI_RETURN_TYPE_DOUBLE:
-    cif->flags = FFI_TYPE_DOUBLE;
     if (!SG_NUMBERP(ret)) goto ret0;
     *((double *) result) = Sg_GetDouble(ret);
     break;
@@ -1461,7 +1444,6 @@ static void set_callback_result(SgCallback *callback, SgObject ret,
   int64_entry:
 #endif
   case FFI_RETURN_TYPE_INT64_T:
-    cif->flags = FFI_TYPE_SINT64;
     if (!SG_NUMBERP(ret)) goto ret0;
     *((int64_t *) result) = Sg_GetIntegerS64Clamp(ret, SG_CLAMP_NONE, NULL);
     break;
@@ -1469,14 +1451,12 @@ static void set_callback_result(SgCallback *callback, SgObject ret,
   uint64_entry:
 #endif
   case FFI_RETURN_TYPE_UINT64_T:
-    cif->flags = FFI_TYPE_UINT64;
     if (!SG_NUMBERP(ret)) goto ret0;
     *((uint64_t *) result) = Sg_GetIntegerU64Clamp(ret, SG_CLAMP_NONE, NULL);
     break;
   case FFI_RETURN_TYPE_POINTER:
   case FFI_RETURN_TYPE_INTPTR:
   case FFI_RETURN_TYPE_UINTPTR:
-    cif->flags = FFI_TYPE_POINTER;
     if (SG_EXACT_INTP(ret)) {
       if (SG_BIGNUMP(ret)) {
 	*((ffi_arg *) result)
@@ -1491,7 +1471,6 @@ static void set_callback_result(SgCallback *callback, SgObject ret,
     }
     /* fall through */
   case FFI_RETURN_TYPE_VOID:
-    cif->flags = FFI_TYPE_VOID;
   ret0:
   default:
     *((ffi_arg *) result) = 0;
