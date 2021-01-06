@@ -123,7 +123,7 @@ typedef uint32_t _W64 uintptr_t;
 #if __STDC_VERSION__ >= 201112L
 # if defined(HAVE_UCHAR_H) && defined(HAVE_CHAR32_T)
 #  include <uchar.h>
-#  define SG_USE_CHAR32_T
+#  define SG_USE_UCHAR_FEATURE
 # endif
 # if defined(HAVE_STDNORETURN_H)
 #  include <stdnoreturn.h>
@@ -227,11 +227,8 @@ char *alloca ();
 
 typedef unsigned char SgByte;
 typedef intptr_t      SgWord;
-#ifdef SG_USE_CHAR32_T
-  typedef char32_t      SgChar;
-#else
-  typedef int32_t       SgChar;
-#endif
+/* SgChar must be signed so can't use char32_t which is unsigned */
+typedef int32_t       SgChar;
 typedef void*         SgObject;
 /* typedef uintptr_t SgHeader; */
 /* A common header for heap-allocated objects */
@@ -247,7 +244,7 @@ typedef struct readtable_rec_t readtable_t;
 /* 
    The idea from Mosh
  */
-#ifdef SG_USE_CHAR32_T
+#ifdef SG_USE_UCHAR_FEATURE
 # define UC_(x) U##x
 # define UC(x)  (const SgChar*)(UC_(x))
 #elif defined(USE_UCS4_CPP)

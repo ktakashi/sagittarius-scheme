@@ -105,6 +105,9 @@ extern void Sg__InitComparator();
 extern void Sg__PostInitVM();
 extern void Sg__PostInitCache();
 
+#define IS_NEW_GC_VERSION (GC_VERSION_MAJOR == 7 && GC_VERSION_MINOR >= 2) \
+  || GC_VERSION_MAJOR > 7
+
 #ifdef USE_BOEHM_GC
 static GC_warn_proc warn_proc = NULL;
 static void no_warning(char * msg, GC_word arg)
@@ -116,7 +119,7 @@ void Sg_GCSetPrintWarning(int onP)
 {
   /*  */
   if (onP) {
-#if (GC_VERSION_MAJOR == 7 && GC_VERSION_MINOR >= 2) || GC_VERSION_MAJOR > 7
+#if IS_NEW_GC_VERSION
     GC_set_warn_proc(warn_proc);
 #endif
   } else {
@@ -132,7 +135,7 @@ void Sg_Init()
 #ifdef USE_BOEHM_GC
   GC_INIT();
   GC_allow_register_threads();
-#if (GC_VERSION_MAJOR == 7 && GC_VERSION_MINOR >= 2) || (GC_VERSION_MAJOR > 7)
+#if IS_NEW_GC_VERSION
   GC_set_oom_fn(oom_handler);
   GC_set_finalize_on_demand(TRUE);
   GC_set_finalizer_notifier(finalizable);
@@ -282,7 +285,7 @@ size_t Sg_GetTotalBytes()
 }
 uintptr_t Sg_GcCount()
 {
-#if (GC_VERSION_MAJOR == 7 && GC_VERSION_MINOR >= 2) || GC_VERSION_MAJOR > 7
+#if IS_NEW_GC_VERSION
   return GC_get_gc_no();
 #else
   return GC_gc_no;
