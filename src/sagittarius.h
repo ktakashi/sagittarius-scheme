@@ -37,6 +37,7 @@
 /* C APIs */
 #include "sagittarius/platform.h"
 #include "sagittarius/gc.h"
+#include "sagittarius/alloc.h"
 
 #endif /* SAGITTARIUS_H_ */
 

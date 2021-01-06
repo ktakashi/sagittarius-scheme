@@ -1,4 +1,4 @@
-/* gc.h                                     -*- mode:c; coding:utf-8; -*-
+/* alloc.h                                     -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
@@ -25,42 +25,27 @@
  *   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  *   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-#ifndef SAGITTARIUS_GC_H_
-#define SAGITTARIUS_GC_H_
+#ifndef SAGITTARIUS_ALLOC_H_
+#define SAGITTARIUS_ALLOC_H_
 
 #include "sagittarius/platform.h"
 
 SG_CDECL_BEGIN
 
 /* 
-   Adds data and bss ranges to GC roots
+   Allocate GC managed memory
 
-   @param data_start starting pointer of the data section
-   @param data_end   end pointer of the data section
-   @param bss_start  starting pointer of the bss section
-   @param bss_end    end pointer of the bss section
+   @param size the size of the allocating memory
  */
-SG_EXTERN void 	Sg_RegisterDL(void *data_start, void *data_end,
-			      void *bss_start, void *bss_end);
+SG_EXTERN void* Sg_malloc(size_t size);
 /* 
-   Adds the given range of the memory section to GC roots
+   Allocate GC managed memory whose space will be collected by GC
+   even the allocated space is still alive.
 
-   @param start starting pointer
-   @param end   end pointer
+   @param size size of the allocating memory
  */
-SG_EXTERN void  Sg_AddGCRoots(void *start, void *end);
-
-/*
-  Invokes the given callback function in the managed GC memory space.
-
-  @param func a callback function which accepts one arguments
-  @param data user data which will be passed to the given `func`
- */
-SG_EXTERN void* Sg_InvokeOnAlienThread(void * (*func)(void *data), void *data);
-
+SG_EXTERN void* Sg_malloc_atomic(size_t size);
 
 SG_CDECL_END
 
-
-#endif	/* SAGITTARIUS_GC_H_ */
+#endif	/* SAGITTARIUS_PLATFORM_H_ */

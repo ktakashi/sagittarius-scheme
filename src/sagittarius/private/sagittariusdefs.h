@@ -117,6 +117,9 @@ typedef uint32_t _W64 uintptr_t;
 # endif
 #endif
 
+/* we need to include config.h here */
+#include <sagittarius/config.h>
+
 #if __STDC_VERSION__ >= 201112L
 # if defined(HAVE_UCHAR_H) && defined(HAVE_CHAR32_T)
 #  include <uchar.h>
@@ -131,9 +134,6 @@ typedef uint32_t _W64 uintptr_t;
 #else		       /* NOT C11 */
 #  define SG_NO_RETURN /* nothing */
 #endif
-
-/* we need to include config.h here */
-#include <sagittarius/config.h>
 
 /* alloca things */
 #ifndef __GNUC__
@@ -463,13 +463,8 @@ do {									\
   }									\
  } while(0)
 
-/* for convenience */
-SG_CDECL_BEGIN
-
-SG_EXTERN void* Sg_malloc(size_t size);
-SG_EXTERN void* Sg_malloc_atomic(size_t size);
-
-SG_CDECL_END
+/* For convenience */
+#include <sagittarius/alloc.h>
 
 #endif /* SAGITTARIUS_DEFS_H_ */
 
