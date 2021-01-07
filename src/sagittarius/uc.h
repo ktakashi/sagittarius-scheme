@@ -1,4 +1,4 @@
-/* platform.h                                     -*- mode:c; coding:utf-8; -*-
+/* strings.h                                     -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *
@@ -25,45 +25,39 @@
  *   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  *   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef SAGITTARIUS_PLATFORM_H_
-#define SAGITTARIUS_PLATFORM_H_
 
-/* Platform specific C macro */
-/*
-  Macro Definitions and typedefs
- */
-#if defined(__MINGW32__) || defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
-#define SAGITTARIUS_WINDOWS 1
-#endif
+#ifndef SAGITTARIUS_UC_H_
+#define SAGITTARIUS_UC_H_
 
-#undef SG_EXTERN
-#if defined(__CYGWIN__) || defined(SAGITTARIUS_WINDOWS)
-# if defined(LIBSAGITTARIUS_BODY)
-#  define SG_EXPORT __declspec(dllexport)
-# else
-#  define SG_EXPORT __declspec(dllimport)
+#include <sagittarius/config.h>
+#include "sagittarius/platform.h"
+
+#if __STDC_VERSION__ >= 201112L
+# if defined(HAVE_UCHAR_H) && defined(HAVE_CHAR32_T)
+#  define SG_USE_UCHAR_FEATURE
 # endif
-# define SG_EXTERN extern SG_EXPORT
-#else
-# define SG_EXPORT 
-# define SG_EXTERN extern
 #endif
 
-#ifdef __cplusplus
-# define __STDC_LIMIT_MACROS
-# define SG_CDECL_BEGIN extern "C" {
-# define SG_CDECL_END }
+#if defined(USE_UCS4_CPP)
+#  ifdef SG_USE_UCHAR_FEATURE && !defined(SG_DONT_USE_UCS_LITERAL)
+#   define UC_(x) U##x
+#   define UC(x)  (const SgChar*)(UC_(x))
+#  else
+#   define UC(x)  (const SgChar*)(Sg_CharsToSgChars(x))
+#  endif
+SG_CDECL_BEGIN
+SG_EXTERN const SgChar* Sg_CharsToSgChars(const char *str);
+SG_CDECL_END
+
+#elif defined(SG_USE_UCHAR_FEATURE)
+# define UC_(x) U##x
+# define UC(x)  (const SgChar*)(UC_(x))
+#elif defined(__CYGWIN__) || defined(_WIN32)
+# define UC_(x) L##x
+# define UC(x)  (const SgChar*)(UC_(x)L"\0")
 #else
-# define SG_CDECL_BEGIN
-# define SG_CDECL_END
+# define UC_(x) L##x
+# define UC(x)  (const SgChar*)(UC_(x))
 #endif
 
-#include <stdint.h>
-
-/* Types */
-typedef unsigned char SgByte;
-typedef int32_t       SgChar;	/* UCS32 character */
-typedef void*         SgObject;	/* Generic object */
-
-
-#endif	/* SAGITTARIUS_PLATFORM_H_ */
+#endif	/* SAGITTARIUS_UC_H_ */

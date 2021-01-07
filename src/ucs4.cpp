@@ -38,7 +38,7 @@
 #include <map>
 #include <list>
 #include <vector>
-const SgChar* UC(const char *str)
+const SgChar* Sg_CharsToUCSs(const char *str)
 {
   typedef std::map<const char *, SgChar*> Hash;
   typedef std::list<std::vector<SgChar> > Data;

@@ -121,10 +121,6 @@ typedef uint32_t _W64 uintptr_t;
 #include <sagittarius/config.h>
 
 #if __STDC_VERSION__ >= 201112L
-# if defined(HAVE_UCHAR_H) && defined(HAVE_CHAR32_T)
-#  include <uchar.h>
-#  define SG_USE_UCHAR_FEATURE
-# endif
 # if defined(HAVE_STDNORETURN_H)
 #  include <stdnoreturn.h>
 #  define SG_NO_RETURN _Noreturn
@@ -201,7 +197,7 @@ char *alloca ();
 # define BOOST_LITTLE_ENDIAN
 # define BOOST_BYTE_ORDER 1234
 #else
-# error The file boost/detail/endian.hpp needs to be set up for your CPU type.
+# error Failed to detect endian
 #endif
 
 /* TODO is detecting apple universal build ok? */
@@ -224,40 +220,19 @@ char *alloca ();
 #define SG_NEW_ATOMIC(type)         ((type*)(SG_MALLOC_ATOMIC(sizeof(type))))
 #define SG_NEW_ATOMIC2(type, size)  ((type)(SG_MALLOC_ATOMIC(size)))
 
-
-typedef unsigned char SgByte;
 typedef intptr_t      SgWord;
-/* SgChar must be signed so can't use char32_t which is unsigned */
-typedef int32_t       SgChar;
-typedef void*         SgObject;
-/* typedef uintptr_t SgHeader; */
 /* A common header for heap-allocated objects */
 typedef struct SgHeaderRec
 {
   SgByte *tag;
 } SgHeader;
 
+#include <sagittarius/uc.h>
 
 /* read macro */
 typedef struct readtable_rec_t readtable_t;
 
-/* 
-   The idea from Mosh
- */
-#ifdef SG_USE_UCHAR_FEATURE
-# define UC_(x) U##x
-# define UC(x)  (const SgChar*)(UC_(x))
-#elif defined(USE_UCS4_CPP)
-SG_CDECL_BEGIN
-SG_EXTERN const SgChar* UC(const char *str);
-SG_CDECL_END
-#elif defined(__CYGWIN__) || defined(_WIN32)
-# define UC_(x) L##x
-# define UC(x)  (const SgChar*)(UC_(x)L"\0")
-#else
-# define UC_(x) L##x
-# define UC(x)  (const SgChar*)(UC_(x))
-#endif
+
 /*
   Sagittarius Tag construction
   
