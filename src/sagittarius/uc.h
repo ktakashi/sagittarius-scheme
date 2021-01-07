@@ -39,7 +39,7 @@
 #endif
 
 #if defined(USE_UCS4_CPP)
-#  ifdef SG_USE_UCHAR_FEATURE && !defined(SG_DONT_USE_UCS_LITERAL)
+#  if defined(SG_USE_UCHAR_FEATURE) && !defined(SG_DONT_USE_UCS_LITERAL)
 #   define UC_(x) U##x
 #   define UC(x)  (const SgChar*)(UC_(x))
 #  else
