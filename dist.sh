@@ -20,6 +20,13 @@ precomp()
     $SASH genlib $1
     echo generating instruction
     geninsn $1
+
+    cd script
+    echo generating builtin keyword
+    $SASH builtin-keywords.scm
+    echo generating builtin symbol
+    $SASH builtin-symbols.scm
+    cd ..
     # done :)
 }
 
