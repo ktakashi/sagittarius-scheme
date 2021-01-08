@@ -24,14 +24,13 @@
  *   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  *   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  *   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- *  $Id: $
  */
 #ifndef SAGITTARIUS_PRIVATE_PAIR_H_
 #define SAGITTARIUS_PRIVATE_PAIR_H_
 
 #include "sagittariusdefs.h"
 #include "clos.h"
+#include <sagittarius/lists.h>
 
 struct SgPairRec
 {
@@ -114,7 +113,6 @@ enum {
 
 SG_CDECL_BEGIN
 
-SG_EXTERN SgObject Sg_Cons(SgObject car, SgObject cdr);
 SG_EXTERN SgObject Sg_Acons(SgObject caar, SgObject cdar, SgObject cdr);
 SG_EXTERN SgObject Sg_List(SgObject elt, ...);
 SG_EXTERN SgObject Sg_VaList(va_list elts);
@@ -122,8 +120,6 @@ SG_EXTERN SgObject Sg_ArrayToList(SgObject *array, int nelts);
 SG_EXTERN SgObject Sg_ArrayToListWithTail(SgObject *array, int nelts, SgObject tail);
 SG_EXTERN SgObject* Sg_ListToArray(SgObject list, int nullTermP);
 
-SG_EXTERN SgObject Sg_Car(SgObject obj);
-SG_EXTERN SgObject Sg_Cdr(SgObject obj);
 SG_EXTERN SgObject Sg_Caar(SgObject obj);
 SG_EXTERN SgObject Sg_Cadr(SgObject obj);
 SG_EXTERN SgObject Sg_Cdar(SgObject obj);
@@ -132,9 +128,7 @@ SG_EXTERN long     Sg_Length(SgObject obj);
 SG_EXTERN SgObject Sg_CopyList(SgObject list);
 SG_EXTERN SgObject Sg_Append2X(SgObject list, SgObject obj);
 SG_EXTERN SgObject Sg_Append2(SgObject list, SgObject obj);
-SG_EXTERN SgObject Sg_Append(SgObject args);
 SG_EXTERN SgObject Sg_ReverseX(SgObject list);
-SG_EXTERN SgObject Sg_Reverse(SgObject list);
 SG_EXTERN SgObject Sg_LastPair(SgObject list);
 SG_EXTERN SgObject Sg_ListTail(SgObject list, long i, SgObject fallback);
 SG_EXTERN SgObject Sg_ListRef(SgObject list, long i, SgObject fallback);

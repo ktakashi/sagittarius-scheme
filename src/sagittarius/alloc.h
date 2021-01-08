@@ -32,17 +32,19 @@
 
 SG_CDECL_BEGIN
 
-/* 
+/**
    Allocate GC managed memory
 
    @param size the size of the allocating memory
+   @return Allocated memory of give size, if it failed then NULL
  */
 SG_EXTERN void* Sg_malloc(size_t size);
-/* 
+/**
    Allocate GC managed memory whose space will be collected by GC
    even the allocated space is still alive.
 
    @param size size of the allocating memory
+   @return Allocated memory of give size, if it failed then NULL
  */
 SG_EXTERN void* Sg_malloc_atomic(size_t size);
 

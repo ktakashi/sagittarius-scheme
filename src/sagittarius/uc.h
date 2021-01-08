@@ -1,4 +1,4 @@
-/* strings.h                                     -*- mode:c; coding:utf-8; -*-
+/* uc.h                                     -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
  *

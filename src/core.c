@@ -364,18 +364,17 @@ void Sg_GC()
 #endif
 }
 
-void Sg_RegisterFinalizer(SgObject z, SgFinalizerProc finalizer, void *data)
+void Sg_RegisterFinalizer(void *z, void(*finalizer)(void *, void *), void *data)
 {
 #ifdef USE_BOEHM_GC
   GC_finalization_proc ofn; void *ocd;
-  GC_REGISTER_FINALIZER_NO_ORDER(z, (GC_finalization_proc)finalizer,
-				 data, &ofn, &ocd);
+  GC_REGISTER_FINALIZER_NO_ORDER(z, finalizer, data, &ofn, &ocd);
 #else
   /* for now do nothing */
 #endif
 }
 
-void Sg_UnregisterFinalizer(SgObject z)
+void Sg_UnregisterFinalizer(void *z)
 {
 #ifdef USE_BOEHM_GC
   GC_finalization_proc ofn; void *ocd;
@@ -384,6 +383,11 @@ void Sg_UnregisterFinalizer(SgObject z)
 #else
   /* for now do nothing */
 #endif
+}
+
+int Sg_IsFinalizerRegistered(void *z)
+{
+  return Sg_FinalizerRegisteredP(z);
 }
 
 int Sg_FinalizerRegisteredP(SgObject z)

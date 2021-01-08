@@ -33,7 +33,7 @@
 
 SG_CDECL_BEGIN
 
-/* 
+/**
    Adds data and bss ranges to GC roots
 
    @param data_start starting pointer of the data section
@@ -43,7 +43,7 @@ SG_CDECL_BEGIN
  */
 SG_EXTERN void 	Sg_RegisterDL(void *data_start, void *data_end,
 			      void *bss_start, void *bss_end);
-/* 
+/**
    Adds the given range of the memory section to GC roots
 
    @param start starting pointer
@@ -51,14 +51,37 @@ SG_EXTERN void 	Sg_RegisterDL(void *data_start, void *data_end,
  */
 SG_EXTERN void  Sg_AddGCRoots(void *start, void *end);
 
-/*
+/**
   Invokes the given callback function in the managed GC memory space.
 
   @param func a callback function which accepts one arguments
   @param data user data which will be passed to the given `func`
+  @return The result of the invocation function
  */
 SG_EXTERN void* Sg_InvokeOnAlienThread(void * (*func)(void *data), void *data);
 
+/**
+   Register a finalizer to the given object.
+
+   @param z the target memory allocated by the Sg_alloc or Sg_alloc_atomic
+   @param proc the finalizer function which takes one argument, user data
+   @param data user data can be used during the finalisation
+ */
+SG_EXTERN void 	Sg_RegisterFinalizer(void *z, void (*proc)(void *z, void *data),
+				     void *data);
+/**
+   Unregister the finalizer from the given object.
+
+   @param z the target memory which has finalizer registered
+ */
+SG_EXTERN void 	Sg_UnregisterFinalizer(void *z);
+/**
+   Checks if a finalizer is registered on this address.
+
+   @param z the target memory to check
+   @return 1: registered 0: not registered
+ */
+SG_EXTERN int   Sg_IsFinalizerRegistered(void *z);
 
 SG_CDECL_END
 

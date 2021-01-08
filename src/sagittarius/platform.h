@@ -62,8 +62,8 @@
 
 /* Types */
 typedef unsigned char SgByte;
-typedef int32_t       SgChar;	/* UCS32 character */
-typedef void*         SgObject;	/* Generic object */
+typedef int32_t       SgChar;	/** UCS32 character */
+typedef void*         SgObject;	/** Generic object */
 
 
 #endif	/* SAGITTARIUS_PLATFORM_H_ */

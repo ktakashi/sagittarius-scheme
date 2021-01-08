@@ -31,9 +31,7 @@
 #define SAGITTARIUS_PRIVATE_CORE_H_
 
 #include "sagittariusdefs.h"
-
-/* finalizer proc */
-typedef void (*SgFinalizerProc)(SgObject z, void *data);
+#include <sagittarius/gc.h>
 
 /* 
    Main ans child thread must have different stack size
@@ -57,9 +55,6 @@ SG_EXTERN void 	Sg_Panic(const char* msg, ...);
 SG_EXTERN void 	Sg_Abort(const char* msg);
 /* gc wrappers */
 SG_EXTERN void 	Sg_GC();
-SG_EXTERN void 	Sg_RegisterFinalizer(SgObject z, SgFinalizerProc finalizer,
-				     void *data);
-SG_EXTERN void 	Sg_UnregisterFinalizer(SgObject z);
 SG_EXTERN int   Sg_FinalizerRegisteredP(SgObject z);
 
 SG_EXTERN void 	Sg_RegisterDisappearingLink(void **p, void *value);
