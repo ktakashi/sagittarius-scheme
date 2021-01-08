@@ -20,7 +20,7 @@ precomp()
     $SASH genlib $1
     echo generating instruction
     geninsn $1
-    
+
     cd script
     echo generating builtin keyword
     $SASH builtin-keywords.scm
