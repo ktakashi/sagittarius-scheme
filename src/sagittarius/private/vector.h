@@ -33,6 +33,8 @@
 #include "sagittariusdefs.h"
 #include "clos.h"
 
+#include <sagittarius/vectors.h>
+
 SG_CLASS_DECL(Sg_VectorClass);
 #define SG_CLASS_VECTOR (&Sg_VectorClass)
 
@@ -57,18 +59,6 @@ struct SgVectorRec
 
 SG_CDECL_BEGIN
 
-SG_EXTERN SgObject Sg_MakeVector(long size, SgObject fill);
-SG_EXTERN SgObject Sg_VectorRef(SgVector *vec, long i, SgObject fallback);
-SG_EXTERN SgObject Sg_VectorSet(SgVector *vec, long i, SgObject obj);
-SG_EXTERN SgObject Sg_VectorFill(SgVector *vec, SgObject fill,
-				 long start, long end);
-
-SG_EXTERN SgObject Sg_ListToVector(SgObject l,  long start, long end);
-SG_EXTERN SgObject Sg_VectorToList(SgVector *v, long start, long end);
-SG_EXTERN SgObject Sg_VectorCopy(SgVector *vec, long start, long end,
-				 SgObject fill);
-
-SG_EXTERN SgObject Sg_VectorConcatenate(SgObject vecList);
 SG_EXTERN SgObject Sg_VectorReverseX(SgObject vec, long start, long end);
 
 SG_CDECL_END

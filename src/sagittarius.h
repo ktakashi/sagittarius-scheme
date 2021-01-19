@@ -38,6 +38,9 @@
 #include "sagittarius/platform.h"
 #include "sagittarius/gc.h"
 #include "sagittarius/alloc.h"
+#include "sagittarius/uc.h"
+#include "sagittarius/lists.h"
+#include "sagittarius/vectors.h"
 
 #endif /* SAGITTARIUS_H_ */
 

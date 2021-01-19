@@ -65,19 +65,30 @@ SgObject Sg_MakeVector(long size, SgObject fill)
   return SG_OBJ(v);
 }
 
-SgObject Sg_VectorRef(SgVector *vec, long i, SgObject fallback)
+int Sg_IsVector(SgObject obj)
 {
-  if (i < 0 || i >= vec->size) return fallback;
-  return vec->elements[i];
+  return SG_VECTORP(obj);
 }
 
-SgObject Sg_VectorSet(SgVector *vec, long i, SgObject obj)
+long Sg_VectorLength(SgObject vec)
 {
-  if (i >= 0 && i < vec->size) vec->elements[i] = obj;
+  /* TODO should we check the type here? */
+  return SG_VECTOR_SIZE(vec);
+}
+
+SgObject Sg_VectorRef(SgObject vec, long i, SgObject fallback)
+{
+  if (i < 0 || i >= SG_VECTOR_SIZE(vec)) return fallback;
+  return SG_VECTOR_ELEMENT(vec, i);
+}
+
+SgObject Sg_VectorSet(SgObject vec, long i, SgObject obj)
+{
+  if (i >= 0 && i < SG_VECTOR_SIZE(vec)) SG_VECTOR_ELEMENT(vec, i) = obj;
   return obj;
 }
 
-SgObject Sg_VectorFill(SgVector *vec, SgObject fill, long start, long end)
+SgObject Sg_VectorFill(SgObject vec, SgObject fill, long start, long end)
 {
   long i, len = SG_VECTOR_SIZE(vec);
   SG_CHECK_START_END(start, end, len);
@@ -89,7 +100,7 @@ SgObject Sg_VectorFill(SgVector *vec, SgObject fill, long start, long end)
 
 SgObject Sg_ListToVector(SgObject l, long start, long end)
 {
-  SgVector *v;
+  SgObject v;
   SgObject e;
   long i;
 
@@ -112,7 +123,7 @@ SgObject Sg_ListToVector(SgObject l, long start, long end)
   return SG_OBJ(v);
 }
 
-SgObject Sg_VectorToList(SgVector *v, long start, long end)
+SgObject Sg_VectorToList(SgObject v, long start, long end)
 {
   long len = SG_VECTOR_SIZE(v);
   SgObject h = SG_NIL, t = SG_NIL;
@@ -125,10 +136,10 @@ SgObject Sg_VectorToList(SgVector *v, long start, long end)
   return h;
 }
 
-SgObject Sg_VectorCopy(SgVector *vec, long start, long end, SgObject fill)
+SgObject Sg_VectorCopy(SgObject vec, long start, long end, SgObject fill)
 {
   long i, len = SG_VECTOR_SIZE(vec);
-  SgVector *v = NULL;
+  SgObject v = NULL;
   if (end < 0) end = len;
   if (end < start) {
     Sg_Error(UC("vector-copy: start (%d) is greater then end (%d)"),
@@ -187,6 +198,12 @@ SgObject Sg_VectorReverseX(SgObject vec, long start, long end)
     SG_VECTOR_ELEMENT(vec, e) = t;
   }
   return vec;
+}
+
+SgObject Sg_VectorReverse(SgObject vec, long start, long end)
+{
+  SgObject cp = Sg_VectorCopy(vec, 0, SG_VECTOR_SIZE(vec), SG_UNBOUND);
+  return Sg_VectorReverseX(cp, start, end);
 }
 
 /*
