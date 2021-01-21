@@ -40,6 +40,12 @@ SG_CDECL_BEGIN
  */
 SG_EXTERN SgObject Sg_Cons(SgObject car, SgObject cdr);
 /**
+   Check if given object is a pair.
+   @param obj an object
+   @return 1 obj is a pair, 0 obj is not a pair
+ */
+SG_EXTERN int      Sg_IsPair(SgObject obj);
+/**
    Get the first part of the given pair.
    
    @param obj a pair object

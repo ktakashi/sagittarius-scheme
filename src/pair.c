@@ -64,6 +64,12 @@ SgObject Sg_Cons(SgObject car, SgObject cdr)
   return SG_OBJ(z);
 }
 
+/* Public API */
+int  Sg_IsPair(SgObject obj)
+{
+  return SG_PAIRP(obj);
+}
+
 SgObject Sg_Acons(SgObject caar, SgObject cdar, SgObject cdr)
 {
   SgPair *y = make_pair();
