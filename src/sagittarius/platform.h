@@ -65,5 +65,91 @@ typedef unsigned char SgByte;
 typedef int32_t       SgChar;	/** UCS32 character */
 typedef void*         SgObject;	/** Generic object */
 
+SG_CDECL_BEGIN
+
+/* Boolean */
+/**
+   Make boolean object.
+
+   @param value to be boolean. 0 = #f, otherwise #t
+   @return boolean object
+ */
+SG_EXTERN SgObject Sg_MakeBoolean(int value);
+/**
+   Check if the given object is boolean object.
+
+   @param obj an object
+   @return 1 obj is a boolean, 0 obj is not a boolean
+ */
+SG_EXTERN int      Sg_IsBoolean(SgObject obj);
+/**
+   Returns boolean value.
+   This function handles object like in Scheme world.
+   This means as long as an object is not #f, then it's
+   a true value.
+   @param obj an object
+   @return 0 obj is #f, 1 obj is not #f
+ */
+SG_EXTERN int      Sg_BooleanValue(SgObject obj);
+/**
+   Returns #f object
+   @return #f scheme object
+ */
+SG_EXTERN SgObject Sg_False();
+/**
+   Check is the given object is #f.
+   @param obj an object
+   @return 1 obj is #f, 0 obj is not #f
+ */
+SG_EXTERN int      Sg_IsFalse(SgObject obj);
+/**
+   Returns #t object
+   @return #t scheme object
+ */
+SG_EXTERN SgObject Sg_True();
+/**
+   Check is the given object is #t.
+   @param obj an object
+   @return 1 obj is #t, 0 obj is not #t
+ */
+SG_EXTERN int      Sg_IsTrue(SgObject obj);
+/* '() */
+/**
+   Returns '() nil object
+   @return '() scheme object
+ */
+SG_EXTERN SgObject Sg_Nil();
+/**
+   Check is the given object is '().
+   @param obj an object
+   @return 1 obj is '(), 0 obj is not '()
+ */
+SG_EXTERN int      Sg_IsNull(SgObject obj);
+/* EOF */
+/**
+   Returns EOF object
+   @return EOF scheme object
+ */
+SG_EXTERN SgObject Sg_Eof();
+/**
+   Check is the given object is EOF object.
+   @param obj an object
+   @return 1 obj is EOF object, 0 obj is not EOF object
+ */
+SG_EXTERN int      Sg_IsEof(SgObject obj);
+/* Undef */
+/**
+   Returns undefined object
+   @return scheme undefined object
+ */
+SG_EXTERN SgObject Sg_Undefined();
+/**
+   Check is the given object is undefined object.
+   @param obj an object
+   @return 1 obj is undefined object, 0 obj is not undefined object
+ */
+SG_EXTERN int      Sg_IsUndefined(SgObject obj);
+
+SG_CDECL_END
 
 #endif	/* SAGITTARIUS_PLATFORM_H_ */

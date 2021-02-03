@@ -87,6 +87,9 @@ SET(SAGITTARIUS_LIB_SOURCE
   ${MATCHER_SOURCES}
 
   system.c
+
+  # wrapper for public C APIs
+  wrappers.c
   # libraries
   ${STUB_SOURCES}
   ${BUILTIN_SOURCES}
