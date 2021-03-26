@@ -207,7 +207,6 @@
   (test-assert (oauth-connection? (close-oauth-connection! conn)))
   (test-assert (http-connection? (oauth-connection-http-connection conn))))
 
-
 (let ()
   (define consumer-key "consumer-key")
   (define consumer-secret "consumer-secret")
@@ -222,6 +221,7 @@
   (define config (make-server-config :shutdown-port +shutdown-port+
 				     :secure? #t
 				     :use-ipv6? #t
+				     :exception-handler print
 				     :certificates (list cert)))
   (define temporary_credential
     #*"oauth_callback_confirmed=true&oauth_token=oauth_toke&oauth_token_secret=oauth_token_secret")

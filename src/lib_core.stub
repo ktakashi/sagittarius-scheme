@@ -573,13 +573,11 @@
   (define-c-proc string-ref (s::<string> k::<fixnum> :optional fallback)
     :constant
     (setter string-set!)
-    (cond ((and (>= k 0) (< k (SG_STRING_SIZE s)))
-	   (result (SG_MAKE_CHAR (SG_STRING_VALUE_AT s k))))
-	  (else 
-	   (when (SG_UNBOUNDP fallback)
-	     (assertion-violation 'string-ref "index out of bounds"
-				  (SG_LIST2 s (SG_MAKE_INT k))))
-	   (result fallback))))
+    (cond ((SG_UNBOUNDP fallback)
+	   (result (SG_MAKE_CHAR (Sg_StringRef s k))))
+	  ((and (<= 0 k) (< k (SG_STRING_SIZE s)))
+	   (result (SG_MAKE_CHAR (Sg_StringRef s k))))
+	  (else (result fallback))))
 
   ;; string compares
   (define-c-proc string=? (s1::<string> s2::<string> :rest rest)
@@ -2753,20 +2751,7 @@
 
   ;; 18 mutable strings
   (define-c-proc string-set! (s::<string> k::<fixnum> c::<char>) ::<void>
-    (when (< k 0)
-      (wrong-type-of-argument-violation 'string-set!
-					"non negative exact integer"
-					(SG_MAKE_INT k)
-					(SG_LIST3 s (SG_MAKE_INT k)
-						  (SG_MAKE_CHAR c))))
-    (when (> k (SG_STRING_SIZE s))
-      (assertion-violation 'string-set! "index out of bounds"
-			   (SG_LIST3 s (SG_MAKE_INT k) (SG_MAKE_CHAR c))))
-    (when (SG_IMMUTABLE_STRINGP s)
-      (assertion-violation 'string-set!
-			   "attempted to modify an immutable string"
-			   s))
-    (set! (SG_STRING_VALUE_AT s k) c))
+    Sg_StringSet)
   
   ;; we take start and end as optional arguments for srfi-13
   (define-c-proc string-fill! (s::<string> c::<char> :optional

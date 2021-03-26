@@ -32,6 +32,7 @@
 
 #include "sagittariusdefs.h"
 #include "clos.h"
+#include <sagittarius/strings.h>
 
 SG_CLASS_DECL(Sg_StringClass);
 #define SG_CLASS_STRING (&Sg_StringClass)
@@ -117,7 +118,6 @@ SG_EXTERN SgObject Sg_StringAppendC(SgString *a, const SgChar *s, long size);
 SG_EXTERN SgObject Sg_StringAppend(SgObject args);
 SG_EXTERN SgObject Sg_CopyString(SgString *a);
 
-SG_EXTERN SgChar   Sg_StringRef(SgString *s, long k);
 /* search */
 SG_EXTERN SgObject Sg_StringScan(SgString *s1, SgString *s2, int retmode);
 SG_EXTERN SgObject Sg_StringScanChar(SgString *s1, SgChar ch, int retmode);
@@ -126,7 +126,6 @@ SG_EXTERN SgObject Sg_StringSplitChar(SgString *s1, SgChar ch);
 
 /* modify */
 SG_EXTERN SgObject Sg_Substring(SgString *x, long start, long end);
-SG_EXTERN void     Sg_StringSet(SgString *s, long k, SgChar c);
 SG_EXTERN void     Sg_StringFill(SgString *s, SgChar c, long start, long end);
 /* for srfi-13 */
 SG_EXTERN SgObject Sg_MaybeSubstring(SgString *s, long start, long end);

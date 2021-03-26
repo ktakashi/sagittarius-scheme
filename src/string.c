@@ -37,6 +37,7 @@
 #include "sagittarius/private/port.h"
 #include "sagittarius/private/error.h"
 #include "sagittarius/private/number.h"
+#include "sagittarius/private/symbol.h"
 #include "sagittarius/private/thread.h"
 #include "sagittarius/private/values.h"
 #include "sagittarius/private/writer.h"
@@ -403,14 +404,6 @@ SgObject Sg_CopyString(SgString *a)
   return SG_OBJ(s);
 }
 
-SgChar Sg_StringRef(SgString *s, long k)
-{
-  if (k > SG_STRING_SIZE(s) || k < 0) {
-    Sg_Error(UC("string-ref: index out of bounds. %S %d"), s, k);
-  }
-  return SG_STRING_VALUE_AT(s, k);
-}
-
 static inline long boyer_moore(const SgChar *ss1, long siz1,
                               const SgChar *ss2, long siz2)
 {
@@ -547,14 +540,6 @@ SgObject Sg_Substring(SgString *x, long start, long end)
   return ret;
 }
 
-void Sg_StringSet(SgString *s, long k, SgChar c)
-{
-  if (SG_IMMUTABLE_STRINGP(s)) {
-    Sg_Error(UC("attemped to modify a immutable string %S"), s);
-  }
-  SG_STRING_VALUE_AT(s, k) = c;
-}
-
 void Sg_StringFill(SgString *s, SgChar c, long start, long end)
 {
   long size = s->size, i;
@@ -570,14 +555,64 @@ SgObject Sg_MaybeSubstring(SgString *s, long start, long end)
   return Sg_Substring(s, start, end);
 }
 
-#define STRING_HASH(hv, chars, size)				\
-  do {								\
-    long i_ = (size);						\
-    (hv) = 0;							\
-    while (i_-- > 0) {						\
-      (hv) = ((hv) << 5) - (hv) + ((unsigned char)*chars++);	\
-    }								\
-  } while (0)
+
+SgObject Sg_AsciiToString(const char *s, size_t len)
+{
+  SgObject ss = Sg_ReserveString(len, 0);
+  size_t i;
+  for (i = 0; i < len; i++) {
+    SG_STRING_VALUE_AT(ss, i) = s[i];
+  }
+  return ss;
+}
+
+SgObject Sg_Utf8ToString(const char *s, size_t len)
+{
+  /* just forward */
+  return Sg_Utf8sToUtf32s(s, len);
+}
+
+int Sg_IsString(SgObject obj)
+{
+  return SG_STRINGP(obj);
+}
+long Sg_StringLength(SgObject s)
+{
+  return SG_STRING_SIZE(s);
+}
+SgChar Sg_StringRef(SgObject s, long k)
+{
+  if (k > SG_STRING_SIZE(s) || k < 0) {
+    Sg_AssertionViolation(SG_INTERN("string-ref"),
+			  SG_MAKE_STRING("index out of bounds"),
+			  SG_LIST2(s, SG_MAKE_INT(k)));
+  }
+  return SG_STRING_VALUE_AT(s, k);
+}
+
+void Sg_StringSet(SgObject s, long k, SgChar c)
+{
+  if (k < 0) {
+    Sg_WrongTypeOfArgumentViolation(
+      SG_INTERN("string-set!"),
+      SG_MAKE_STRING("non negative exact integer"),
+      SG_MAKE_INT(k),
+      SG_LIST3(s, SG_MAKE_INT(k), SG_MAKE_CHAR(c)));
+  }
+  if (k > SG_STRING_SIZE(s)) {
+    Sg_AssertionViolation(SG_INTERN("string-set!"),
+			  SG_MAKE_STRING("index out of bounds"),
+			  SG_LIST2(s, SG_MAKE_INT(k)));
+  }
+  if (SG_IMMUTABLE_STRINGP(s)) {
+    Sg_AssertionViolation(
+      SG_INTERN("string-set!"),
+      SG_MAKE_STRING("attempted to modify an immutable string"),
+      s);
+  }
+  SG_STRING_VALUE_AT(s, k) = c;
+}
+
 
 #ifdef USE_WEAK_STRING
 DEFINE_DEBUG_DUMPER(string, stable)
