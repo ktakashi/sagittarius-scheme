@@ -58,6 +58,18 @@ int      Sg_IsTrue(SgObject obj)
 {
   return SG_TRUEP(obj);
 }
+SgObject Sg_MakeChar(SgChar c)
+{
+  return SG_MAKE_CHAR(c);
+}
+int      Sg_IsChar(SgObject c)
+{
+  return SG_CHARP(c);
+}
+SgChar   Sg_CharValue(SgObject c)
+{
+  return SG_CHAR_VALUE(c);
+}
 SgObject Sg_Nil()
 {
   return SG_NIL;

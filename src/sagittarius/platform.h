@@ -113,6 +113,28 @@ SG_EXTERN SgObject Sg_True();
    @return 1 obj is #t, 0 obj is not #t
  */
 SG_EXTERN int      Sg_IsTrue(SgObject obj);
+
+/* char */
+/**
+   Make a character object.
+
+   @param c to be a character.
+   @return character object
+ */
+SG_EXTERN SgObject Sg_MakeChar(SgChar c);
+/**
+   Check is the given object is a char.
+   @param obj an object
+   @return 1 obj is a char, 0 obj is not a char
+ */
+SG_EXTERN int      Sg_IsChar(SgObject c);
+/**
+   Returns character value.
+   @param c a character
+   @return UCS32 character value
+ */
+SG_EXTERN SgChar   Sg_CharValue(SgObject c);
+
 /* '() */
 /**
    Returns '() nil object
