@@ -79,8 +79,6 @@
 	    tls-server-handshake
 	    tls-client-handshake
 
-	    ;; for testing
-	    ;; *cipher-suites*
 	    ;; socket conversion
 	    socket->tls-socket
 
@@ -136,7 +134,7 @@
     (let ((s (apply make-client-socket server service opt)))
       (socket->tls-socket s :certificates certificates
 			  :private-key private-key
-			  :handshake #t
+			  :handshake handshake
 			  :client-socket #t
 			  :hello-extensions hello-extensions
 			  :peer-certificate-required? #t

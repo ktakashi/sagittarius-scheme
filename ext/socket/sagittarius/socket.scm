@@ -39,12 +39,15 @@
 	    socket-port socket-input-port socket-output-port
 	    shutdown-port shutdown-input-port shutdown-output-port
 	    
+	    create-socket ;; for convenience
+	    
 	    socket-setsockopt!
 	    socket-getsockopt
 	    socket-connect!
 	    socket-bind!
 	    socket-listen!
 	    socket-error-message
+	    socket-last-error
 
 	    socket-accept
 	    socket-send socket-sendto
@@ -106,6 +109,8 @@
 	    IP_ADD_MEMBERSHIP IP_DROP_MEMBERSHIP
 	    IP_MULTICAST_IF
 
+	    ;; errno
+	    EAGAIN EWOULDBLOCK EPIPE EINTR ETIMEDOUT EINPROGRESS
 	    ;; addrinfo
 	    addrinfo? make-addrinfo make-hint-addrinfo get-addrinfo
 	    next-addrinfo addrinfo-sockaddr
@@ -207,7 +212,7 @@
 	   (info (get-addrinfo node service hints)))
       (let loop ((socket (create-socket info)) (info info))
 	(define (retry info)
-	  (let ((next (slot-ref info 'next)))
+	  (let ((next (next-addrinfo info)))
 	    (if next
 		(loop (create-socket next) next)
 		(raise (condition (make-host-not-found-error node service)
@@ -239,7 +244,7 @@
 	   (info (get-addrinfo #f service hints)))
       (let loop ((socket (create-socket info)) (info info))
 	(define (retry info)
-	  (let ((next (slot-ref info 'next)))
+	  (let ((next (next-addrinfo info)))
 	    (if next
 		(loop (create-socket next) next)
 		(raise (condition (make-host-not-found-error #f service)

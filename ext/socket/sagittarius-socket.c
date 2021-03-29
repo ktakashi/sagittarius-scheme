@@ -483,16 +483,39 @@ static void disable_nagle(SOCKET fd)
 #endif
 }
 
-SgObject Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo)
+SgObject Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo,
+			  SgObject timeout)
 {
   struct addrinfo *p = addrinfo->ai;
-  if (connect(socket->socket, p->ai_addr, (int)p->ai_addrlen) == 0) {
-    disable_nagle(socket->socket);
-    socket->type = SG_SOCKET_CLIENT;
-    socket->address = SG_SOCKADDR(ai_addr(addrinfo));
-    socket->node = addrinfo->node;
-    socket->service = addrinfo->service;
-    return socket;
+  int rc;
+  if (!SG_FALSEP(timeout)) {
+    Sg_SocketNonblocking(socket);
+  }
+  rc = connect(socket->socket, p->ai_addr, (int)p->ai_addrlen);
+  if (rc < 0) {
+    int ec = last_error;
+    if (ec == EINPROGRESS || ec == EWOULDBLOCK) {
+      SgObject wfd = Sg_SocketsToFdSet(SG_LIST1(socket));
+      SgObject res = Sg_SocketSelectX(SG_FALSE, wfd, SG_FALSE, timeout);
+      if (!SG_EQ(res, SG_MAKE_INT(1))) {
+	goto err;
+      }
+      Sg_SocketBlocking(socket);
+    } else {
+      goto err;
+    }
+  }
+
+  disable_nagle(socket->socket);
+  socket->type = SG_SOCKET_CLIENT;
+  socket->address = SG_SOCKADDR(ai_addr(addrinfo));
+  socket->node = addrinfo->node;
+  socket->service = addrinfo->service;
+  return socket;
+    
+ err:
+  if (!SG_FALSEP(timeout)) {
+    Sg_SocketBlocking(socket);
   }
   socket->lastError = last_error;
   return SG_FALSE;
@@ -506,7 +529,7 @@ SgObject Sg_SocketBind(SgSocket *socket, SgAddrinfo* addrinfo)
     socklen_t len = p->ai_addrlen;
     int r = getsockname(socket->socket, (struct sockaddr *)&name, &len);
     if (r != 0) {
-      raise_socket_error(SG_INTERN("socket-connect!"),
+      raise_socket_error(SG_INTERN("socket-bind!"),
 			 Sg_GetLastErrorMessageWithErrorCode(last_error),
 			 Sg_MakeConditionSocket(socket), socket);
       return SG_FALSE;		/* dummy */
@@ -551,6 +574,19 @@ SgObject Sg_SocketSetopt(SgSocket *socket, int level, int name, SgObject value)
   } else if (SG_INTP(value) || SG_BIGNUMP(value)) {
     long v = Sg_GetInteger(value);
     r = setsockopt(socket->socket, level, name, (const char *)&v, sizeof(int));
+  } else if (SG_TIMEP(value)) {
+#ifdef _WIN32
+    DWORD v;
+    v = SG_TIME(value)->sec*1000 + SG_TIME(value)->nsec/1000000
+    r = setsockopt(socket->socket, level, name, (const char *)&v,
+		   sizeof(DWORD));
+#else
+    struct timeval v;
+    v.tv_sec = SG_TIME(value)->sec;
+    v.tv_usec = SG_TIME(value)->nsec/1000;
+    r = setsockopt(socket->socket, level, name, (const char *)&v,
+		   sizeof(struct timeval));
+#endif
   } else {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("socket-setsockopt!"),
 				    SG_MAKE_STRING("bytevector or integer"),
@@ -2034,6 +2070,39 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__socket()
 #endif
   ARCH_CCONST(SOMAXCONN);
 
+
+  /* errno */
+#ifdef EAGAIN
+  ARCH_CCONST(EAGAIN);
+#else
+  ARCH_CFALSE(EAGAIN);
+#endif
+#ifdef EWOULDBLOCK
+  ARCH_CCONST(EWOULDBLOCK);
+#else
+  ARCH_CFALSE(EWOULDBLOCK);  
+#endif
+#ifdef EPIPE
+  ARCH_CCONST(EPIPE);
+#else
+  ARCH_CFALSE(EPIPE);
+#endif
+#ifdef EINTR
+  ARCH_CCONST(EINTR);
+#else
+  ARCH_CFALSE(EINTR);
+#endif
+#ifdef ETIMEDOUT
+  ARCH_CCONST(ETIMEDOUT);
+#else
+  ARCH_CFALSE(ETIMEDOUT);
+#endif
+#ifdef EINPROGRESS
+  ARCH_CCONST(EINPROGRESS);
+#else
+  ARCH_CFALSE(EINPROGRESS);
+#endif
+  
 #undef ARCH_CCONST
 #undef ARCH_CFALSE
 

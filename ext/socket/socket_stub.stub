@@ -39,7 +39,7 @@
   (socket::<socket> level::<ifixnum> name::<ifixnum> size::<ifixnum>)
   Sg_SocketGetopt)
 
-(define-c-proc socket-connect! (socket::<socket> info::<addrinfo>)
+(define-c-proc socket-connect! (socket::<socket> info::<addrinfo> :optional (timeout #f))
   Sg_SocketConnect)
 (define-c-proc socket-bind! (socket::<socket> info::<addrinfo>) Sg_SocketBind)
 (define-c-proc socket-listen! (socket::<socket> backlog::<ifixnum>)
@@ -48,6 +48,8 @@
 ;;; error message
 (define-c-proc socket-error-message (socket::<socket>) :no-side-effect
   Sg_SocketErrorMessage)
+(define-c-proc socket-last-error (socket::<socket>) ::<fixnum> :no-side-effect
+  (result (-> socket lastError)))
 
 (define-c-proc socket? (o) ::<boolean> :constant SG_SOCKETP)
 
