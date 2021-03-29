@@ -577,7 +577,7 @@ SgObject Sg_SocketSetopt(SgSocket *socket, int level, int name, SgObject value)
   } else if (SG_TIMEP(value)) {
 #ifdef _WIN32
     DWORD v;
-    v = SG_TIME(value)->sec*1000 + SG_TIME(value)->nsec/1000000
+    v = SG_TIME(value)->sec*1000 + SG_TIME(value)->nsec/1000000;
     r = setsockopt(socket->socket, level, name, (const char *)&v,
 		   sizeof(DWORD));
 #else
