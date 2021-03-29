@@ -82,6 +82,9 @@
 (define-c-proc tls-socket-peer-certificate  (o::<tls-socket>)
   Sg_TLSSocketPeerCertificate)
 
+(define-c-proc tls-socket-selected-alpn  (o::<tls-socket>)
+  (result (-> o selectedALPN)))
+
 (define-c-proc tls-socket-authorities-set! (o::<tls-socket> certs) ::<void>
   (unless (or (SG_PAIRP certs) (SG_NULLP certs))
     (Sg_AssertionViolation 'tls-socket-authorities-set!

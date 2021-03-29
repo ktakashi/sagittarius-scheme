@@ -40,6 +40,7 @@
 	    tls-socket-peer-certificate-verifier
 	    tls-socket-peer-certificate-verifier-set!
 	    tls-socket-peer-certificate-required?
+	    tls-socket-selected-alpn
 	    tls-socket-authorities
 	    tls-socket-authorities-set!
 	    <tls-socket>)

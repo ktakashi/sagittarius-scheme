@@ -48,6 +48,7 @@
 	    tls-socket-info-values
 	    call-with-tls-socket
 	    tls-socket-peer-certificate
+	    tls-socket-selected-alpn
 	    <tls-socket>
 	    ;; blocking
 	    tls-socket-nonblocking!

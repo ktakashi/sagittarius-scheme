@@ -128,6 +128,7 @@ static SgTLSSocket* make_tls_socket(SgSocket *socket, SSL_CTX *ctx,
   r->peerCertificateRequiredP = FALSE;
   r->peerCertificateVerifier = SG_UNDEF;
   r->authorities = SG_NIL;
+  r->selectedALPN = SG_FALSE;
   data->ctx = ctx;
   data->rootServerSocketP = rootServerSocketP;
   data->ssl = NULL;
@@ -255,6 +256,23 @@ static void handle_accept_error(SgTLSSocket *tlsSocket, int r)
 		     Sg_MakeIntegerU(err));
 }
 
+static void lookup_alpn(SgTLSSocket *tlsSocket)
+{
+  const unsigned char *alpn = NULL;
+  unsigned int alpnlen = 0;
+  OpenSSLData *data = (OpenSSLData *)tlsSocket->data;
+  
+  SSL_get0_next_proto_negotiated(data->ssl, &alpn, &alpnlen);
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
+  if (alpn == NULL) {
+    SSL_get0_alpn_selected(data->ssl, &alpn, &alpnlen);
+  }
+#endif // OPENSSL_VERSION_NUMBER >= 0x10002000L
+  if (alpn != NULL) {
+    tlsSocket->selectedALPN = Sg_AsciiToString((const char *)alpn, alpnlen);
+  }
+}
+
 int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
 			SgObject domainName,
 			SgObject alpn)
@@ -294,6 +312,9 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
   SSL_set_fd(data->ssl, socket->socket);
   r = SSL_connect(data->ssl);
   /* We care verification result only if the verifier is not #f */
+  if (r == 1) {
+    lookup_alpn(tlsSocket);
+  }
   if (!SG_FALSEP(tlsSocket->peerCertificateVerifier)) {
     cert = SSL_get_verify_result(data->ssl);
     if (cert != X509_V_OK) {
@@ -343,6 +364,7 @@ SgObject Sg_TLSServerSocketHandshake(SgTLSSocket *tlsSocket)
     }
   }
   if (r <= 0) handle_accept_error(tlsSocket, r);
+  lookup_alpn(tlsSocket);
   return tlsSocket;
 }
 

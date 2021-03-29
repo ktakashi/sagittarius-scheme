@@ -161,6 +161,7 @@
 	    tls-socket-info-values
 	    call-with-tls-socket
 	    tls-socket-peer-certificate
+	    tls-socket-selected-alpn
 	    ;; blocking
 	    tls-socket-nonblocking!
 	    tls-socket-blocking!
@@ -168,9 +169,13 @@
 	    tls-socket-nonblocking!
 	    tls-socket-blocking!
 
-	    tls-socket-port socket-port
-	    tls-socket-input-port socket-input-port
-	    tls-socket-output-port socket-output-port
+	    tls-socket-port
+	    tls-socket-input-port
+	    tls-socket-output-port
+
+	    make-hello-extension
+	    make-server-name-indication
+	    make-protocol-name-list
 	    )
     (import (rnrs)
 	    (record builder)
@@ -261,7 +266,11 @@
 	  certificate-verifier))
 (define-syntax tls-socket-options-builder
   (make-record-builder tls-socket-options
-		       ((handshake #t)
+		       ((ai-family AF_INET)
+			(ai-socktype SOCK_STREAM)
+			(ai-flags (+ (or AI_V4MAPPED 0) (or AI_ADDRCONFIG 0)))
+			(ai-protocol 0)
+			(handshake #t)
 			(certificates '())
 			(hello-extensions '()))))
 

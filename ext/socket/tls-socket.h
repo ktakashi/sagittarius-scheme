@@ -39,6 +39,7 @@ typedef struct SgTLSSocketRec
   SgObject authorities;
   int peerCertificateRequiredP;
   SgObject peerCertificateVerifier;
+  SgObject selectedALPN;
 } SgTLSSocket;
 
 SG_CLASS_DECL(Sg_TLSSocketClass);
