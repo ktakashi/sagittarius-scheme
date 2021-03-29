@@ -1155,7 +1155,6 @@ int Sg_SocketNonblocking(SgSocket *socket)
   if (ioctlsocket(socket->socket, FIONBIO, &val) != 0) {
     goto err;
   }
-  socket->nonblocking = 1;
 #else
   int flags = fcntl(socket->socket, F_GETFL, 0);
   flags &= ~O_SYNC;
@@ -1163,6 +1162,7 @@ int Sg_SocketNonblocking(SgSocket *socket)
     goto err;
   }
 #endif
+  socket->nonblocking = 1;
   return TRUE;
  err:
   raise_socket_error(SG_INTERN("socket-nonblocking!"), 
@@ -1178,7 +1178,6 @@ int Sg_SocketBlocking(SgSocket *socket)
   if ((err = ioctlsocket(socket->socket, FIONBIO, &val)) != 0) {
     goto err;
   }
-  socket->nonblocking = 0;
 #else
   int flags = fcntl(socket->socket, F_GETFL, 0);
   flags &= ~O_NONBLOCK;
@@ -1186,6 +1185,7 @@ int Sg_SocketBlocking(SgSocket *socket)
     goto err;
   }
 #endif
+  socket->nonblocking = 0;
   return TRUE;
  err:
   raise_socket_error(SG_INTERN("socket-blocking!"), 

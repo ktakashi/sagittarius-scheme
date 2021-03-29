@@ -84,7 +84,7 @@
 			   flags
 			   addr)))
 
-(define-c-proc socket-recv (o::<socket> len::<fixnum>
+(define-c-proc %socket-recv (o::<socket> len::<fixnum>
 					:optional (flags::<ifixnum> 0)) 
   (let ((data (Sg_MakeByteVector len 0))
 	(res::long (Sg_SocketReceive (SG_SOCKET o)
@@ -100,7 +100,7 @@
 	     (result r))))))
 
 ;; destructive
-(define-c-proc socket-recv! 
+(define-c-proc %socket-recv! 
   (o::<socket> bv::<bytevector> start::<fixnum> len::<fixnum>
 	       :optional (flags::<ifixnum> 0)) ::<fixnum>
   ;; sanity check
@@ -158,6 +158,8 @@
   Sg_SocketNonblocking)
 (define-c-proc socket-blocking! (o::<socket>) ::<boolean>
   Sg_SocketBlocking)
+(define-c-proc nonblocking-socket? (o::<socket>) ::<boolean>
+  (result (-> o nonblocking)))
 
 (define-c-proc make-fdset () :no-side-effect Sg_MakeFdSet)
 (define-c-proc fdset? (o) ::<boolean> :constant SG_FDSETP)

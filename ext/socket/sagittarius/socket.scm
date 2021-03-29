@@ -64,6 +64,7 @@
 	    socket-error-select
 	    socket-nonblocking!
 	    socket-blocking!
+	    nonblocking-socket?
 	    ;; addrinfo
 	    make-addrinfo
 
@@ -121,6 +122,9 @@
 	    socket-peer
 	    socket-name
 	    socket-info
+	    socket-info-hostname
+	    socket-info-ip-address
+	    socket-info-port
 	    socket-info-values
 	    ;; ip-address
 	    ip-address?
@@ -148,6 +152,9 @@
 	    
 	    &socket-connection socket-connection-error? 
 	    make-socket-connection-error
+
+	    &socket-read-timeout socket-read-timeout-error?
+	    make-socket-read-timeout-error
 	    
 	    &socket-closed socket-closed-error? make-socket-closed-error
 	    &socket-port socket-port-error? make-socket-port-error
@@ -176,6 +183,24 @@
   (define-condition-accessor socket-error-socket &socket &socket-error-socket)
   (define-condition-accessor socket-error-port &socket-port &socket-error-port)
 
+  (define-condition-type &socket-read-timeout &socket
+    make-socket-read-timeout-error socket-read-timeout-error?)
+
+  (define (socket-recv! sock bv start len :optional (flags 0))
+    (let ((r (%socket-recv! sock bv start len flags)))
+      (unless (or r (nonblocking-socket? sock))
+	(raise (condition (make-socket-read-timeout-error sock)
+			  (make-who-condition 'socket-recv!)
+			  (make-message-condition "Read timeout!"))))
+      r))
+  (define (socket-recv sock len :optional (flags 0))
+    (let ((r (%socket-recv sock len flags)))
+      (unless (or r (nonblocking-socket? sock))
+	(raise (condition (make-socket-read-timeout-error sock)
+			  (make-who-condition 'socket-recv)
+			  (make-message-condition "Read timeout!"))))
+      r))
+  
   (define (call-with-socket socket proc)
     (receive args (proc socket)
       (socket-close socket)
@@ -294,4 +319,8 @@
 		  (slot-ref peer 'ip-address)
 		  (slot-ref peer 'port))
 	  (values #f #f #f))))
+
+  (define (socket-info-hostname si) (slot-ref si 'hostname))
+  (define (socket-info-ip-address si) (slot-ref si 'ip-address))
+  (define (socket-info-port si) (slot-ref si 'port))
 )

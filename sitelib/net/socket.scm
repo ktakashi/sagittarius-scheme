@@ -85,6 +85,15 @@
 	    socket-error-select
 	    socket-nonblocking!
 	    socket-blocking!
+	    nonblocking-socket?
+
+	    socket-info?
+	    socket-peer
+	    socket-name
+	    socket-info
+	    socket-info-hostname
+	    socket-info-ip-address
+	    socket-info-port
 	    
 	    AF_UNSPEC AF_INET AF_INET6
 
@@ -139,6 +148,9 @@
 	    
 	    &socket-connection socket-connection-error? 
 	    make-socket-connection-error
+
+	    &socket-read-timeout socket-read-timeout-error?
+	    make-socket-read-timeout-error
 	    
 	    &socket-closed socket-closed-error? make-socket-closed-error
 	    &socket-port socket-port-error? make-socket-port-error

@@ -74,9 +74,7 @@ typedef struct SgSocketRec
   int lastError;
   SgSocketType type;
   SgSockaddr *address;		/* for sockaddr */
-#ifdef _WIN32
   int nonblocking;		/* blocking or not */
-#endif
   SgObject node;
   SgObject service;
 } SgSocket;

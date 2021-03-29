@@ -41,7 +41,7 @@
 			    (cast int (SG_BVECTOR_SIZE bv))
 			    flags)))
 
-(define-c-proc tls-socket-recv (o::<tls-socket> len::<ifixnum>
+(define-c-proc %tls-socket-recv (o::<tls-socket> len::<ifixnum>
 						:optional (flags::<ifixnum> 0)) 
   (let ((data (Sg_MakeByteVector len 0))
 	(res::int (Sg_TLSSocketReceive (SG_TLS_SOCKET o)
@@ -57,7 +57,7 @@
 	     (result r))))))
 
 ;; destructive
-(define-c-proc tls-socket-recv! 
+(define-c-proc %tls-socket-recv! 
   (o::<tls-socket> bv::<bytevector> start::<fixnum> len::<fixnum>
 	       :optional (flags::<ifixnum> 0)) ::<fixnum>
   ;; sanity check

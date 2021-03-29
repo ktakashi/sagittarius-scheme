@@ -44,7 +44,25 @@
 	    tls-socket-authorities
 	    tls-socket-authorities-set!
 	    <tls-socket>)
-    (import (only (sagittarius socket)) ;; to load the dynamic module. sucks...
+    (import (core)
+	    (core errors)
+	    (only (sagittarius socket)
+		  nonblocking-socket? make-socket-read-timeout-error)
 	    (sagittarius dynamic-module))
 (load-dynamic-module "sagittarius--tls-socket")
+
+(define (tls-socket-recv! sock bv start len :optional (flags 0))
+  (let ((r (%tls-socket-recv! sock bv start len flags)))
+    (unless (or r (nonblocking-socket? sock))
+      (raise (condition (make-socket-read-timeout-error sock)
+			(make-who-condition 'tls-socket-recv!)
+			(make-message-condition "Read timeout!"))))
+    r))
+(define (tls-socket-recv sock len :optional (flags 0))
+  (let ((r (%tls-socket-recv sock len flags)))
+    (unless (or r (nonblocking-socket? sock))
+      (raise (condition (make-socket-read-timeout-error sock)
+			(make-who-condition 'tls-socket-recv)
+			(make-message-condition "Read timeout!"))))
+    r))
 )

@@ -45,28 +45,60 @@
   (socket-shutdown s SHUT_RDWR)
   (socket-close s))
 
-(define echo-server-socket (make-server-socket "5000"))
+(define echo-server-socket (make-server-socket "0"))
 ;; addr is client socket
-(define (server-run)
-  (guard (e (else #t))
-    (let ((addr (socket-accept echo-server-socket)))
-      (thread-sleep! 1)
-      (call-with-socket addr
-	(lambda (sock)
-	  (let ((p (socket-port sock)))
-	    (call-with-port p
-	      (lambda (p)
-		(put-bytevector p #*"hello")))))))))
-(define server-thread (make-thread server-run))
-(thread-start! server-thread)
+(define (server-run wait)
+  (lambda ()
+    (guard (e (else #t))
+      (let ((addr (socket-accept echo-server-socket)))
+	(thread-sleep! wait)
+	(call-with-socket addr
+	  (lambda (sock)
+	    (let ((p (socket-port sock)))
+	      (call-with-port p
+		(lambda (p)
+		  (put-bytevector p #*"hello"))))))))))
+(define port
+  (number->string (socket-info-port (socket-info echo-server-socket))))
 
-(let ((client-socket (make-client-socket "localhost" "5000"
-					 (socket-options (read-timeout 100)))))
-  (test-equal #f (socket-recv client-socket 5))
-  (test-equal EWOULDBLOCK (socket-last-error client-socket))
-  (socket-shutdown client-socket SHUT_RDWR)
-  (socket-close client-socket)
-  )
+
+(let ()
+  (define server-thread (make-thread (server-run 1)))
+  (thread-start! server-thread)
+
+  (let ((client-socket (make-client-socket "localhost" port
+					   (socket-options (read-timeout 10)))))
+    (test-error socket-read-timeout-error? (socket-recv client-socket 5))
+    (test-equal EWOULDBLOCK (socket-last-error client-socket))
+    (socket-shutdown client-socket SHUT_RDWR)
+    (socket-close client-socket)
+    ))
+;; nonblocking
+(let ()
+  (define server-thread (make-thread (server-run 1)))
+  (thread-start! server-thread)
+
+  (let ((client-socket (make-client-socket "localhost" port
+					   (socket-options
+					    (non-blocking? #t)))))
+    (test-equal #f (socket-recv client-socket 5))
+    (test-equal EWOULDBLOCK (socket-last-error client-socket))
+    (socket-shutdown client-socket SHUT_RDWR)
+    (socket-close client-socket)
+    ))
+
+;; normal
+(let ()
+  (define server-thread (make-thread (server-run 0)))
+  (thread-start! server-thread)
+
+  (let ((client-socket (make-client-socket "localhost" port
+					   (socket-options
+					    (read-timeout 1000)))))
+    (test-equal #*"hello" (socket-recv client-socket 5))
+    (socket-shutdown client-socket SHUT_RDWR)
+    (socket-close client-socket)
+    ))
 
 (test-end)
 
