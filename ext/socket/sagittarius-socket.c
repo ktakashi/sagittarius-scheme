@@ -55,6 +55,7 @@ typedef long suseconds_t;
 # define EAGAIN WSATRY_AGAIN
 # define EWOULDBLOCK WSAEWOULDBLOCK
 # define EPIPE WSAEINVAL
+# define EINPROGRESS WSAEINPROGRESS
 #endif
 
 #ifndef MSG_NOSIGNAL
