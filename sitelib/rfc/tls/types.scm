@@ -357,8 +357,7 @@
 	      (lambda (out) 
 		(for-each (lambda (n) (write-tls-packet n out))
 			  (~ o 'protocol-name-list))))
-      ;; why the hell?
-      (write-tls-packet (make-variable-vector 2
+      (write-tls-packet (make-variable-vector 4
 		          (call-with-bytevector-output-port
 			   (lambda (out)
 			     (write-tls-packet (make-variable-vector 2 bv)

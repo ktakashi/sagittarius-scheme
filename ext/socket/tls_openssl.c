@@ -294,15 +294,18 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
     SSL_set_tlsext_host_name(data->ssl, hostname);
   }
   /* For now we expect the argument to be properly formatted TLS packet. */
-  if (SG_BVECTORP(alpn) && SG_BVECTOR_SIZE(alpn) > 4) {
+  /* first variable vector is 4, then length 2 = 6 */
+#define LENGTH_PREFIX 6
+  if (SG_BVECTORP(alpn) && SG_BVECTOR_SIZE(alpn) > LENGTH_PREFIX) {
 #ifdef HAVE_SSL_SET_ALPN_PROTOS
-    SSL_set_alpn_protos(data->ssl, SG_BVECTOR_ELEMENTS(alpn) + 4,
-			(int)SG_BVECTOR_SIZE(alpn) - 4);
+    SSL_set_alpn_protos(data->ssl, SG_BVECTOR_ELEMENTS(alpn) + LENGTH_PREFIX,
+			(int)SG_BVECTOR_SIZE(alpn) - LENGTH_PREFIX);
 #else
     if (SSL_set_alpn_protos_fn) {
       /* remove prefix */
-      SSL_set_alpn_protos_fn(data->ssl, SG_BVECTOR_ELEMENTS(alpn) + 4,
-			     (int)SG_BVECTOR_SIZE(alpn) - 4);
+      SSL_set_alpn_protos_fn(data->ssl,
+			     SG_BVECTOR_ELEMENTS(alpn) + LENGTH_PREFIX,
+			     (int)SG_BVECTOR_SIZE(alpn) - LENGTH_PREFIX);
     } else {
       Sg_Warn(UC("ALPN is not supported on this version of OpenSSL."));
       Sg_Warn(UC("Please consider to update your OpenSSL runtime."));
