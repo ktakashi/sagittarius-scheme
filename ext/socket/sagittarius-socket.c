@@ -56,6 +56,7 @@ typedef long suseconds_t;
 # define EWOULDBLOCK WSAEWOULDBLOCK
 # define EPIPE WSAEINVAL
 # define EINPROGRESS WSAEINPROGRESS
+# define ETIMEDOUT WSAETIMEDOUT
 #endif
 
 #ifndef MSG_NOSIGNAL
@@ -2102,6 +2103,11 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__socket()
   ARCH_CCONST(EINPROGRESS);
 #else
   ARCH_CFALSE(EINPROGRESS);
+#endif
+#ifdef ETIMEDOUT
+  ARCH_CCONST(ETIMEDOUT);
+#else
+  ARCH_CFALSE(ETIMEDOUT);
 #endif
   
 #undef ARCH_CCONST

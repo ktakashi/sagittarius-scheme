@@ -112,6 +112,7 @@
 
 	    ;; errno
 	    EAGAIN EWOULDBLOCK EPIPE EINTR ETIMEDOUT EINPROGRESS
+	    ETIMEDOUT
 	    ;; addrinfo
 	    addrinfo? make-addrinfo make-hint-addrinfo get-addrinfo
 	    next-addrinfo addrinfo-sockaddr

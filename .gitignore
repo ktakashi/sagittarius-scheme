@@ -3,7 +3,11 @@ syntax: glob
 build/
 CMakeFiles/
 unicode/
+.vs/
+.DS_Store
+.idea/
 CMakeCache.txt
+CMakeSettings.json
 cmake_install.cmake
 cmake_uninstall.cmake
 
@@ -12,3 +16,4 @@ cmake_uninstall.cmake
 *.orig
 *.log
 *.tmp
+*.iml

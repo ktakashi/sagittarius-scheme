@@ -139,6 +139,7 @@
 
 	    ;; errno
 	    EAGAIN EWOULDBLOCK EPIPE EINTR ETIMEDOUT EINPROGRESS
+	    ETIMEDOUT
 	    
 	    &host-not-found host-not-found-error? make-host-not-found-error
 	    host-not-found-error-node host-not-found-error-service
