@@ -206,7 +206,8 @@
 	;; supports only one server for now...
 	(let ((lis (filter-map (lambda (s)
 				 (and (eqv? *host-name* (slot-ref s 'name-type))
-				      (slot-ref s 'name)))
+				      (utf8->string
+				       (slot-ref (slot-ref s 'name) 'value))))
 			       (slot-ref snil 'server-name-list))))
 	  (car lis)))
       (define (retrieve-alpn alpn)
