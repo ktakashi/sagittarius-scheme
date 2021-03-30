@@ -443,6 +443,7 @@ static SgTLSSocket * make_tls_socket(SgSocket *socket, WinTLSContext *ctx)
   r->authorities = SG_NIL;
   r->peerCertificateRequiredP = FALSE;
   r->peerCertificateVerifier = SG_FALSE;
+  r->selectedALPN = SG_FALSE;
   data->tlsContext = context;
   if (!ctx) {
     context->certificateCount = 0;
@@ -779,6 +780,19 @@ static SgObject pccert_context_to_bytevector(PCCERT_CONTEXT cc)
   return bv;
 }
 
+static void set_nagotiated_alpn(SgTLSSocket* tlsSocket)
+{
+  WinTLSData* data = (WinTLSData*)tlsSocket->data;
+  SecPkgContext_ApplicationProtocol alpn;
+  SECURITY_STATUS r = SEC_E_OK;
+  r = QueryContextAttributes(&data->context, SECPKG_ATTR_APPLICATION_PROTOCOL,
+    (PVOID)&alpn);
+  if (r == SEC_E_OK &&
+      alpn.ProtoNegoStatus == SecApplicationProtocolNegotiationStatus_Success) {
+    tlsSocket->selectedALPN = Sg_AsciiToString((const char *)alpn.ProtocolId, alpn.ProtocolIdSize);
+  }
+}
+
 static int verify_certificate(SgTLSSocket *tlsSocket, SgObject who)
 {
   WinTLSData *data = (WinTLSData *)tlsSocket->data;
@@ -829,12 +843,14 @@ static int verify_certificate(SgTLSSocket *tlsSocket, SgObject who)
   } else if (cc != NULL) {
     CertFreeCertificateContext(cc);
   }
+
+  set_nagotiated_alpn(tlsSocket);
   /* default */
   return TRUE;
 }
 
-static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
-				   SgObject sni,
+static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,			
+                                   SgObject sni,
 				   SgObject alpn,
 				   DWORD sspiFlags)
 {
@@ -843,7 +859,6 @@ static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
   SecBufferDesc sbout, sbin;
   SecBuffer bufso, bufsi;
   wchar_t *dn = NULL;
-  int use_alpn = FALSE;
   DWORD sspiOutFlags = 0;
   SECURITY_STATUS ss;
 
@@ -853,11 +868,36 @@ static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
     dn = (SG_FALSEP(socket->node)) ? NULL : Sg_StringToWCharTs(socket->node);
   }
   /* for now, we expect the proper protocol name list value. */
-  if (SG_BVECTORP(alpn)) {
-    use_alpn = TRUE;
+  if (SG_BVECTORP(alpn) && SG_BVECTOR_SIZE(alpn) >= 6) {
+    /* Damn, little endian... */
+    unsigned char default_buffer[128], *buffer;
+    int total_size = SG_BVECTOR_SIZE(alpn) + sizeof(unsigned int);
+    int cur = 0;
+    unsigned short list_size = (unsigned short)SG_BVECTOR_SIZE(alpn) - 6;
+    buffer = default_buffer;
+    if (total_size > array_sizeof(default_buffer)) {
+      buffer = SG_NEW_ATOMIC2(unsigned char*, total_size);
+    }
+    /* original size + 4 - 4 (the first size indicator isn't counted) */
+    *(unsigned int *)&buffer[cur] = SG_BVECTOR_SIZE(alpn);
+    cur += sizeof(unsigned int);
+    *(unsigned int *)&buffer[cur]
+      = SecApplicationProtocolNegotiationExt_ALPN;
+    cur += sizeof(unsigned int);
+    *(unsigned short*)&buffer[cur] = (unsigned short)SG_BVECTOR_SIZE(alpn) - 6;
+    cur += sizeof(unsigned short);
+    memcpy(buffer + cur,
+      SG_BVECTOR_ELEMENTS(alpn) + 6, SG_BVECTOR_SIZE(alpn) - 6);
+    /*
+    for (int i = 0; i < total_size; i++) {
+      fprintf(stderr, "%x ", buffer[i]);
+    }
+    */
     INIT_SEC_BUFFER(&bufsi, SECBUFFER_APPLICATION_PROTOCOLS,
-		    SG_BVECTOR_ELEMENTS(alpn),
-		    SG_BVECTOR_SIZE(alpn));
+		    buffer, total_size);
+    INIT_SEC_BUFFER_DESC(&sbin, &bufsi, 1);
+  } else {
+    INIT_SEC_BUFFER(&bufsi, SECBUFFER_EMPTY, NULL, 0);
     INIT_SEC_BUFFER_DESC(&sbin, &bufsi, 1);
   }
   INIT_SEC_BUFFER(&bufso, SECBUFFER_TOKEN, NULL, 0);
@@ -869,7 +909,7 @@ static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
 				  sspiFlags,
 				  0,
 				  0,
-				  use_alpn ? &sbin : NULL,
+				  &sbin,
 				  0,
 				  &data->context,
 				  &sbout,
