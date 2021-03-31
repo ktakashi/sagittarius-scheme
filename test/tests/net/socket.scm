@@ -70,7 +70,7 @@
     (thread-start! server-thread)
 
     (let ((client-socket (make-client-socket "localhost" port
-					     (socket-options (read-timeout 10)))))
+					     (socket-options (read-timeout 100)))))
       (test-error socket-read-timeout-error? (socket-recv client-socket 5))
       ;; On windows, this is ETIMEDOUT, so don't rely on it
       ;; (test-equal EWOULDBLOCK (socket-last-error client-socket))
@@ -188,7 +188,7 @@
 
     ;; it's okey to use socket-options ;)
     (let ((client-socket (make-client-tls-socket "localhost" port
-			   (socket-options (read-timeout 10)))))
+			   (socket-options (read-timeout 100)))))
       (test-error socket-read-timeout-error? (tls-socket-recv client-socket 5))
       (shutdown&close client-socket))))
   

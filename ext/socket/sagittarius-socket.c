@@ -649,6 +649,7 @@ SgObject Sg_SocketGetopt(SgSocket *socket, int level, int name, int rsize)
 	}								\
 	break;								\
       case NON_BLOCKING_CASE:						\
+      case ETIMEDOUT:/* Windows, maybe we should raise an error here*/	\
 	/* most probably non-blocking socket */				\
 	return (r);							\
       }									\
