@@ -293,25 +293,26 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
     const char *hostname = Sg_Utf32sToUtf8s(SG_STRING(socket->node));
     SSL_set_tlsext_host_name(data->ssl, hostname);
   }
-  /* For now we expect the argument to be properly formatted TLS packet. */
-  /* first variable vector is 4, then length 2 = 6 */
-#define LENGTH_PREFIX 6
-  if (SG_BVECTORP(alpn) && SG_BVECTOR_SIZE(alpn) > LENGTH_PREFIX) {
+  /* ALPN is a bytevector of protocol-name-list */
+#define PREFIX_LENGTH 2
+  if (SG_BVECTORP(alpn) && SG_BVECTOR_SIZE(alpn) > PREFIX_LENGTH) {
 #ifdef HAVE_SSL_SET_ALPN_PROTOS
-    SSL_set_alpn_protos(data->ssl, SG_BVECTOR_ELEMENTS(alpn) + LENGTH_PREFIX,
-			(int)SG_BVECTOR_SIZE(alpn) - LENGTH_PREFIX);
+    SSL_set_alpn_protos(data->ssl, SG_BVECTOR_ELEMENTS(alpn) + PREFIX_LENGTH,
+			(int)SG_BVECTOR_SIZE(alpn) - PREFIX_LENGTH);
 #else
     if (SSL_set_alpn_protos_fn) {
       /* remove prefix */
       SSL_set_alpn_protos_fn(data->ssl,
-			     SG_BVECTOR_ELEMENTS(alpn) + LENGTH_PREFIX,
-			     (int)SG_BVECTOR_SIZE(alpn) - LENGTH_PREFIX);
+			     SG_BVECTOR_ELEMENTS(alpn) + PREFIX_LENGTH,
+			     (int)SG_BVECTOR_SIZE(alpn) - PREFIX_LENGTH);
     } else {
       Sg_Warn(UC("ALPN is not supported on this version of OpenSSL."));
       Sg_Warn(UC("Please consider to update your OpenSSL runtime."));
     }
 #endif
   }
+#undef PREFIX_LENGTH
+  
   SSL_set_fd(data->ssl, socket->socket);
   r = SSL_connect(data->ssl);
   /* We care verification result only if the verifier is not #f */

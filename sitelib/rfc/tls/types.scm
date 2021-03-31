@@ -357,12 +357,7 @@
 	      (lambda (out) 
 		(for-each (lambda (n) (write-tls-packet n out))
 			  (~ o 'protocol-name-list))))
-      (write-tls-packet (make-variable-vector 4
-		          (call-with-bytevector-output-port
-			   (lambda (out)
-			     (write-tls-packet (make-variable-vector 2 bv)
-					       out))))
-			out)))
+      (write-tls-packet (make-variable-vector 2 bv) out)))
   (define-class <protocol-name-list> (<tls-packet-component>)
     ((protocol-name-list :init-keyword :protocol-name-list :init-value #f))
     :packet-writer write-tls-protocol-name-list)

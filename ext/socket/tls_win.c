@@ -868,26 +868,29 @@ static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
     dn = (SG_FALSEP(socket->node)) ? NULL : Sg_StringToWCharTs(socket->node);
   }
   /* for now, we expect the proper protocol name list value. */
-  if (SG_BVECTORP(alpn) && SG_BVECTOR_SIZE(alpn) >= 6) {
+#define PREFIX_LENGTH 2
+  if (SG_BVECTORP(alpn) && SG_BVECTOR_SIZE(alpn) > PREFIX_LENGTH) {
     /* Damn, little endian... */
     unsigned char default_buffer[128], *buffer;
     int total_size = SG_BVECTOR_SIZE(alpn) + sizeof(unsigned int);
     int cur = 0;
-    unsigned short list_size = (unsigned short)SG_BVECTOR_SIZE(alpn) - 6;
+    unsigned short list_size =
+      (unsigned short)SG_BVECTOR_SIZE(alpn) - PREFIX_LENGTH;
+    
     buffer = default_buffer;
     if (total_size > array_sizeof(default_buffer)) {
       buffer = SG_NEW_ATOMIC2(unsigned char*, total_size);
     }
-    /* original size + 4 - 4 (the first size indicator isn't counted) */
-    *(unsigned int *)&buffer[cur] = SG_BVECTOR_SIZE(alpn);
+    
+    /* original size + sizeof(SecApplicationProtocolNegotiationExt_ALPN) */
+    *(unsigned int *)&buffer[cur] = SG_BVECTOR_SIZE(alpn) + sizeof(unsigned int);
     cur += sizeof(unsigned int);
     *(unsigned int *)&buffer[cur]
       = SecApplicationProtocolNegotiationExt_ALPN;
     cur += sizeof(unsigned int);
-    *(unsigned short*)&buffer[cur] = (unsigned short)SG_BVECTOR_SIZE(alpn) - 6;
+    *(unsigned short*)&buffer[cur] = list_size;
     cur += sizeof(unsigned short);
-    memcpy(buffer + cur,
-      SG_BVECTOR_ELEMENTS(alpn) + 6, SG_BVECTOR_SIZE(alpn) - 6);
+    memcpy(buffer + cur, SG_BVECTOR_ELEMENTS(alpn) + PREFIX_LENGTH, list_size);
     /*
     for (int i = 0; i < total_size; i++) {
       fprintf(stderr, "%x ", buffer[i]);
@@ -900,6 +903,7 @@ static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
     INIT_SEC_BUFFER(&bufsi, SECBUFFER_EMPTY, NULL, 0);
     INIT_SEC_BUFFER_DESC(&sbin, &bufsi, 1);
   }
+#undef PREFIX_LENGTH
   INIT_SEC_BUFFER(&bufso, SECBUFFER_TOKEN, NULL, 0);
   INIT_SEC_BUFFER_DESC(&sbout, &bufso, 1);
   
