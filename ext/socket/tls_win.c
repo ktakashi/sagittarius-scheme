@@ -874,7 +874,7 @@ static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
   if (SG_BVECTORP(alpn) && SG_BVECTOR_SIZE(alpn) > PREFIX_LENGTH) {
     /* Damn, little endian... */
     unsigned char default_buffer[128], *buffer;
-    int total_size = SG_BVECTOR_SIZE(alpn) + sizeof(unsigned int);
+    int total_size = SG_BVECTOR_SIZE(alpn) + sizeof(unsigned int) + sizeof(unsigned int);
     int cur = 0;
     unsigned short list_size =
       (unsigned short)SG_BVECTOR_SIZE(alpn) - PREFIX_LENGTH;
