@@ -53,6 +53,7 @@
 	    ;; blocking
 	    tls-socket-nonblocking!
 	    tls-socket-blocking!
+	    tls-socket-set-read-timeout!
 	    nonblocking-tls-socket?	    
 
 	    ;; for the user who wants to specify TSL version
@@ -75,6 +76,7 @@
 	    socket-nonblocking!
 	    socket-blocking!
 	    nonblocking-socket?
+	    socket-set-read-timeout!
 	    socket-read-select
 	    socket-write-select
 	    socket-error-select
@@ -255,6 +257,8 @@
     (socket-blocking! (~ socket 'raw-socket)))
   (define (nonblocking-tls-socket? socket)
     (nonblocking-socket? (~ socket 'raw-socket)))
+  (define (tls-socket-set-read-timeout! tls-socket timeout)
+    (socket-set-read-timeout! (slot-ref tls-socket 'raw-socket) timeout))
 
   ;; to make call-with-socket available for tls-socket
   (define-method socket-close ((o <tls-socket>))
@@ -294,6 +298,8 @@
     (tls-socket-blocking! o))
   (define-method nonblocking-socket? ((o <tls-socket>))
     (nonblocking-tls-socket? o))
+  (define-method socket-set-read-timeout! ((o <tls-socket>) timeout)
+    (tls-socket-set-read-timeout! o timeout))
   
   (define (select-sockets selector timeout sockets)
     (define mapping (make-eq-hashtable))

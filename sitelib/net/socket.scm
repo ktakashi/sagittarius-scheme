@@ -40,17 +40,24 @@
 	    socket-options-ai-socktype socket-options-ai-flags
 	    socket-options-ai-protocol
 
-	    make-client-socket
+	    make-client-socket make-server-socket
 	    
 	    ;; TLSs
 	    tls-socket-options? make-tls-socket-options
 	    (rename (tls-socket-options <tls-socket-options>)
 		    (tls-socket-options-builder tls-socket-options))
+	    
 	    tls-socket-options-handshake tls-socket-options-certificates
 	    tls-socket-options-private-key tls-socket-options-hello-extensions
 	    tls-socket-options-certificate-verifier
+
+	    server-tls-socket-options? make-server-tls-socket-options
+	    (rename (server-tls-socket-options <server-tls-socket-options>)
+		    (server-tls-options-builder server-tls-socket-options))
+	    server-tls-socket-options-trusted-certificates
+	    server-tls-socket-options-client-certificate-required?
 	    
-	    make-client-tls-socket
+	    make-client-tls-socket make-server-tls-socket
 
 	    ;; re-export from (sagittarius socket)
 	    ;; make-server-socket ;; TODO how should we do this?
@@ -85,6 +92,7 @@
 	    socket-error-select
 	    socket-nonblocking!
 	    socket-blocking!
+	    socket-set-read-timeout!
 	    nonblocking-socket?
 
 	    socket-info?
@@ -181,7 +189,8 @@
 
 	    tls-socket-nonblocking!
 	    tls-socket-blocking!
-
+	    tls-socket-set-read-timeout!
+	    
 	    tls-socket-port
 	    tls-socket-input-port
 	    tls-socket-output-port
@@ -193,8 +202,12 @@
     (import (rnrs)
 	    (record builder)
 	    (sagittarius time) ;; for time
-	    (except (sagittarius socket) make-client-socket)
-	    (except (rfc tls) make-client-tls-socket))
+	    (rename (except (sagittarius socket) make-client-socket)
+		    (make-server-socket socket:make-server-socket))
+	    (except (rfc tls) make-client-tls-socket
+		    make-server-tls-socket)
+	    (rfc x.509)
+	    (crypto))
 
 (define-record-type socket-options
   (fields non-blocking?
@@ -217,15 +230,7 @@
   (let ((read-timeout (socket-options-read-timeout options))
 	(non-blocking? (socket-options-non-blocking? options)))
     (when non-blocking? (socket-nonblocking! socket))
-    (when read-timeout
-      (cond ((and (exact? read-timeout) (integer? read-timeout))
-	     ;; in millis
-	     (let ((time (make-time time-duration
-				    (* (mod read-timeout 1000) 1000000)
-				    (div read-timeout 1000))))
-	       (socket-setsockopt! socket SOL_SOCKET SO_RCVTIMEO time)))
-	    ((time? read-timeout)
-	     (socket-setsockopt! socket SOL_SOCKET SO_RCVTIMEO read-timeout))))
+    (when read-timeout (socket-set-read-timeout! socket read-timeout))
     socket))
 
 ;; TODO make better name...
@@ -270,6 +275,14 @@
 			    (make-irritants-condition 
 			       (list node service))))))))
 
+(define (make-server-socket service :optional (options (socket-options-builder)))
+  (define ai-family (socket-options-ai-family options))
+  (define ai-socktype (socket-options-ai-socktype options))
+  (define ai-protocol (socket-options-ai-protocol options))
+  (setup-socket
+   (socket:make-server-socket service ai-family ai-socktype ai-protocol)
+   options))
+
 (define-record-type tls-socket-options
   (parent socket-options)
   (fields handshake
@@ -291,28 +304,74 @@
 			(alpn* '())
 			(hello-extensions '()))))
 
+(define-record-type server-tls-socket-options
+  (parent tls-socket-options)
+  (fields client-certificate-required?
+	  trusted-certificates))
+(define-syntax server-tls-options-builder
+  (make-record-builder server-tls-socket-options
+		       ((ai-family AF_INET)
+			(ai-socktype SOCK_STREAM)
+			(ai-protocol 0)
+			(certificate-verifier #t)
+			(certificates '()) ;; in case...
+			(trusted-certificates '()))))
+
+
 (define (make-client-tls-socket server service
-			:optional (options (tls-socket-options-builder)))
-  (define sni* (tls-socket-options-sni* options))
-  (define alpn* (tls-socket-options-alpn* options))
-  (define extensions (tls-socket-options-hello-extensions options))
+				:optional (options (tls-socket-options-builder)))
+  (define (get-option getter default)
+    (if (tls-socket-options? options)
+	(getter options)
+	default))
+  (define sni* (get-option tls-socket-options-sni* '()))
+  (define alpn* (get-option tls-socket-options-alpn* '()))
+  (define extensions (get-option tls-socket-options-hello-extensions '()))
   (define (make-extension ctr v*)
     (if (null? v*)
 	v*
 	(list (ctr v*))))
   (let ((s (make-client-socket server service options)))
+    (socket->tls-socket
+     s
+     :certificates (get-option tls-socket-options-certificates '())
+     :private-key (get-option tls-socket-options-private-key #f)
+     :handshake (get-option tls-socket-options-handshake #t)
+     :client-socket #t
+     :hello-extensions `(,@extensions
+			 ,@(make-extension
+			    make-server-name-indication sni*)
+			 ,@(make-extension
+			    make-protocol-name-list alpn*))
+     :peer-certificate-required? #t
+     :certificate-verifier
+     ;; default #f to allow self signed certificate
+       (get-option tls-socket-options-certificate-verifier #f))))
+
+(define (make-server-tls-socket port options)
+  (define certificates (tls-socket-options-certificates options))
+  (define private-key (tls-socket-options-private-key options))
+  (define client-cert-needed?
+    (and (server-tls-socket-options? options)
+	 (server-tls-socket-options-client-certificate-required? options)))
+  (define trusted-certificates
+    (or (and (server-tls-socket-options? options)
+	     (server-tls-socket-options-trusted-certificates options))
+	'()))
+  (when (or (null? certificates) (not (for-all x509-certificate? certificates)))
+    (assertion-violation 'make-server-tls-socket
+			 "Certificates are empty or non X509 certificates"
+			 certificates))
+  (unless (private-key? private-key)
+    (assertion-violation 'make-server-tls-socket
+			 "Private key is missing" private-key))
+  (let ((s (make-server-socket port options)))
     (socket->tls-socket s
-			:certificates (tls-socket-options-certificates options)
-			:private-key (tls-socket-options-private-key options)
-			:handshake (tls-socket-options-handshake options)
-			:client-socket #t
-			:hello-extensions `(,@extensions
-					    ,@(make-extension
-					       make-server-name-indication sni*)
-					    ,@(make-extension
-					       make-protocol-name-list alpn*))
-			:peer-certificate-required? #t
-			:certificate-verifier
-			  (tls-socket-options-certificate-verifier options))))
+     :certificates certificates
+     :private-key private-key
+     :client-socket #f
+     :peer-certificate-required? client-cert-needed?
+     :authorities '()
+     :certificate-verifier (tls-socket-options-certificate-verifier options))))
 
 )

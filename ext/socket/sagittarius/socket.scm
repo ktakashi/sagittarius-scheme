@@ -64,6 +64,7 @@
 	    socket-error-select
 	    socket-nonblocking!
 	    socket-blocking!
+	    socket-set-read-timeout!
 	    nonblocking-socket?
 	    ;; addrinfo
 	    make-addrinfo
@@ -166,6 +167,7 @@
 	    (core conditions)
 	    (clos user)
 	    (sagittarius)
+	    (only (sagittarius time) time? make-time time-duration) ;; damn
 	    (sagittarius dynamic-module)
 	    )
   (load-dynamic-module "sagittarius--socket")
@@ -201,6 +203,19 @@
 			  (make-who-condition 'socket-recv)
 			  (make-message-condition "Read timeout!"))))
       r))
+
+  (define (socket-set-read-timeout! socket read-timeout)
+    (cond ((and (integer? read-timeout) (exact? read-timeout))
+	   ;; in millis
+	   (let ((time (make-time time-duration
+				  (* (mod read-timeout 1000) 1000000)
+				  (div read-timeout 1000))))
+	     (socket-set-read-timeout! socket time)))
+	  ((time? read-timeout)
+	   (socket-setsockopt! socket SOL_SOCKET SO_RCVTIMEO read-timeout))
+	  (else (assertion-violation 'socket-set-read-timeout!
+		  "Timeout value must be an exact integer (ms) or time"
+		  read-timeout))))
   
   (define (call-with-socket socket proc)
     (receive args (proc socket)

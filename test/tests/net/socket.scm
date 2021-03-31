@@ -1,8 +1,10 @@
 #!read-macro=sagittarius/bv-string
 (import (rnrs)
 	(net socket)
-	(only (sagittarius socket) make-server-socket)
+	(crypto)
+	(rfc x.509)
 	(srfi :18)
+	(srfi :19)
 	(srfi :64))
 
 (test-begin "(net socket): Supposed to be modern socket library")
@@ -45,61 +47,150 @@
   (socket-shutdown s SHUT_RDWR)
   (socket-close s))
 
-(define echo-server-socket (make-server-socket "0"))
-;; addr is client socket
-(define (server-run wait)
-  (lambda ()
+(let ()
+  (define server-socket (make-server-socket "0"))
+  ;; addr is client socket
+  (define (server-run wait)
+    (lambda ()
+      (guard (e (else #t))
+	(let ((addr (socket-accept server-socket)))
+	  (thread-sleep! wait)
+	  (call-with-socket addr
+	    (lambda (sock)
+	      (let ((p (socket-port sock)))
+		(call-with-port p
+		  (lambda (p)
+		    (put-bytevector p #*"hello"))))))))))
+  (define port
+    (number->string (socket-info-port (socket-info server-socket))))
+
+
+  (let ()
+    (define server-thread (make-thread (server-run 1)))
+    (thread-start! server-thread)
+
+    (let ((client-socket (make-client-socket "localhost" port
+					     (socket-options (read-timeout 10)))))
+      (test-error socket-read-timeout-error? (socket-recv client-socket 5))
+      ;; On windows, this is ETIMEDOUT, so don't rely on it
+      ;; (test-equal EWOULDBLOCK (socket-last-error client-socket))
+      (socket-shutdown client-socket SHUT_RDWR)
+      (socket-close client-socket)
+      ))
+  ;; nonblocking
+  (let ()
+    (define server-thread (make-thread (server-run 1)))
+    (thread-start! server-thread)
+
+    (let ((client-socket (make-client-socket "localhost" port
+					     (socket-options
+					      (non-blocking? #t)))))
+      (test-equal #f (socket-recv client-socket 5))
+      ;; (test-equal EWOULDBLOCK (socket-last-error client-socket))
+      (socket-shutdown client-socket SHUT_RDWR)
+      (socket-close client-socket)
+      ))
+
+  ;; normal
+  (let ()
+    (define server-thread (make-thread (server-run 0)))
+    (thread-start! server-thread)
+
+    (let ((client-socket (make-client-socket "localhost" port
+					     (socket-options
+					      (read-timeout 1000)))))
+      (test-equal #*"hello" (socket-recv client-socket 5))
+      (socket-shutdown client-socket SHUT_RDWR)
+      (socket-close client-socket)
+      ))
+
+  (socket-shutdown server-socket SHUT_RDWR)
+  (socket-close server-socket)
+  )
+
+;; server read timeout
+(let ()
+  (define server-socket (make-server-socket "0"))
+  (define (server-run)
     (guard (e (else #t))
-      (let ((addr (socket-accept echo-server-socket)))
-	(thread-sleep! wait)
+      (let ((addr (socket-accept server-socket)))
+	(socket-set-read-timeout! addr 100)
 	(call-with-socket addr
 	  (lambda (sock)
-	    (let ((p (socket-port sock)))
-	      (call-with-port p
-		(lambda (p)
-		  (put-bytevector p #*"hello"))))))))))
-(define port
-  (number->string (socket-info-port (socket-info echo-server-socket))))
+	    (guard (e (else e))
+	      (socket-send sock (socket-recv sock 5))))))))
+  (define port
+    (number->string (socket-info-port (socket-info server-socket))))
+  (let ()
+    (define server-thread (make-thread server-run))
+    (thread-start! server-thread)
+    
+    (let ((client-socket (make-client-socket "localhost" port
+					     (socket-options
+					      (read-timeout 1000)))))
+      (thread-sleep! 0.2)
+      (let ((r (thread-join! server-thread)))
+	(test-assert (socket-read-timeout-error? r)))
+      (socket-shutdown client-socket SHUT_RDWR)
+      (socket-close client-socket)
+      ))
+  (socket-shutdown server-socket SHUT_RDWR)
+  (socket-close server-socket)
+  )
 
+;; TLS
+(define keypair (generate-key-pair RSA :size 1024))
+(define 1year (make-time time-duration 0 (* 1 60 60 24 365)))
+;; NB timezone must be set (probably with Z), so specifying zone offset 0.
+(define cert (make-x509-basic-certificate keypair 1
+              (make-x509-issuer '((C . "NL")))
+              (make-validity (current-date 0)
+			     (time-utc->date
+			      (add-duration! (current-time) 1year) 0))
+              (make-x509-issuer '((C . "NL")))))
+
+(define client-keypair (generate-key-pair RSA :size 1024))
+(define client-cert (make-x509-basic-certificate client-keypair 2
+		     (make-x509-issuer '((C . "NL")))
+		     (make-validity (current-date 0)
+				    (time-utc->date
+				     (add-duration! (current-time) 1year) 0))
+		     (make-x509-issuer '((C . "NL")))))
 
 (let ()
-  (define server-thread (make-thread (server-run 1)))
-  (thread-start! server-thread)
+  (define (shutdown&close s)
+    (tls-socket-shutdown s SHUT_RDWR)
+    (tls-socket-close s))
 
-  (let ((client-socket (make-client-socket "localhost" port
-					   (socket-options (read-timeout 10)))))
-    (test-error socket-read-timeout-error? (socket-recv client-socket 5))
-    ;; On windows, this is ETIMEDOUT, so don't rely on it
-    ;; (test-equal EWOULDBLOCK (socket-last-error client-socket))
-    (socket-shutdown client-socket SHUT_RDWR)
-    (socket-close client-socket)
-    ))
-;; nonblocking
-(let ()
-  (define server-thread (make-thread (server-run 1)))
-  (thread-start! server-thread)
+  (define options (server-tls-socket-options
+		   (certificates (list cert))
+		   (trusted-certificates (list client-cert))
+		   (private-key (keypair-private keypair))
+		   (certificate-verifier #t)))
+  (define server-socket (make-server-tls-socket "0" options))
+  (define port
+    (number->string (socket-info-port (socket-info server-socket))))
+  (define (server-run wait)
+    (lambda ()
+      (guard (e (else #t))
+	(let ((addr (socket-accept server-socket)))
+	  (thread-sleep! wait)
+	  (call-with-socket addr
+	    (lambda (sock)
+	      (let ((p (socket-port sock)))
+		(call-with-port p
+		  (lambda (p)
+		    (put-bytevector p #*"hello"))))))))))
 
-  (let ((client-socket (make-client-socket "localhost" port
-					   (socket-options
-					    (non-blocking? #t)))))
-    (test-equal #f (socket-recv client-socket 5))
-    ;; (test-equal EWOULDBLOCK (socket-last-error client-socket))
-    (socket-shutdown client-socket SHUT_RDWR)
-    (socket-close client-socket)
-    ))
+  (let ()
+    (define server-thread (make-thread (server-run 1)))
+    (thread-start! server-thread)
 
-;; normal
-(let ()
-  (define server-thread (make-thread (server-run 0)))
-  (thread-start! server-thread)
-
-  (let ((client-socket (make-client-socket "localhost" port
-					   (socket-options
-					    (read-timeout 1000)))))
-    (test-equal #*"hello" (socket-recv client-socket 5))
-    (socket-shutdown client-socket SHUT_RDWR)
-    (socket-close client-socket)
-    ))
-
+    ;; it's okey to use socket-options ;)
+    (let ((client-socket (make-client-tls-socket "localhost" port
+			   (socket-options (read-timeout 10)))))
+      (test-error socket-read-timeout-error? (tls-socket-recv client-socket 5))
+      (shutdown&close client-socket))))
+  
 (test-end)
 
