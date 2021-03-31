@@ -275,8 +275,10 @@
   (fields handshake
 	  certificates
 	  private-key
-	  hello-extensions
-	  certificate-verifier))
+	  certificate-verifier
+	  sni*				; list of sni
+	  alpn*				; list of alpn
+	  hello-extensions))
 (define-syntax tls-socket-options-builder
   (make-record-builder tls-socket-options
 		       ((ai-family AF_INET)
@@ -285,18 +287,30 @@
 			(ai-protocol 0)
 			(handshake #t)
 			(certificates '())
+			(sni* '())
+			(alpn* '())
 			(hello-extensions '()))))
 
 (define (make-client-tls-socket server service
 			:optional (options (tls-socket-options-builder)))
+  (define sni* (tls-socket-options-sni* options))
+  (define alpn* (tls-socket-options-alpn* options))
+  (define extensions (tls-socket-options-hello-extensions options))
+  (define (make-extension ctr v*)
+    (if (null? v*)
+	v*
+	(list (ctr v*))))
   (let ((s (make-client-socket server service options)))
     (socket->tls-socket s
 			:certificates (tls-socket-options-certificates options)
 			:private-key (tls-socket-options-private-key options)
 			:handshake (tls-socket-options-handshake options)
 			:client-socket #t
-			:hello-extensions
-			  (tls-socket-options-hello-extensions options)
+			:hello-extensions `(,@extensions
+					    ,@(make-extension
+					       make-server-name-indication sni*)
+					    ,@(make-extension
+					       make-protocol-name-list alpn*))
 			:peer-certificate-required? #t
 			:certificate-verifier
 			  (tls-socket-options-certificate-verifier options))))

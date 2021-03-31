@@ -867,7 +867,9 @@ static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
   } else if (SG_UNBOUNDP(sni)) {
     dn = (SG_FALSEP(socket->node)) ? NULL : Sg_StringToWCharTs(socket->node);
   }
-  /* for now, we expect the proper protocol name list value. */
+  /* ALPN is a bytevector of protocol-name-list
+     So first 2 bytes are length
+   */
 #define PREFIX_LENGTH 2
   if (SG_BVECTORP(alpn) && SG_BVECTOR_SIZE(alpn) > PREFIX_LENGTH) {
     /* Damn, little endian... */
