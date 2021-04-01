@@ -64,7 +64,6 @@
   (define port
     (number->string (socket-info-port (socket-info server-socket))))
 
-
   (let ()
     (define server-thread (make-thread (server-run 1)))
     (thread-start! server-thread)

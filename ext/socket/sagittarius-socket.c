@@ -81,21 +81,30 @@ static SgString* get_address_string_rec(const struct sockaddr *addr,
   char ip[NI_MAXHOST];
   char serv[NI_MAXSERV];
   char name[NI_MAXSERV + (NI_MAXHOST<<1) + 1];
-  do {
-    ret = getnameinfo(addr,
-		      addrlen,
-		      host, sizeof(host),
-		      serv, sizeof(serv), 
-		      NI_NUMERICSERV);
-  } while (EAI_AGAIN == ret);
-  do {
-    ret = getnameinfo(addr,
-		      addrlen,
-		      ip, sizeof(ip),
-		      serv, sizeof(serv), 
-		      NI_NUMERICSERV | NI_NUMERICHOST);
-  } while (EAI_AGAIN == ret);
+
+  ret = getnameinfo(addr,
+		    addrlen,
+		    host, sizeof(host),
+		    serv, sizeof(serv), 
+		    NI_NUMERICSERV);
+  if (ret == EAI_AGAIN) {
+    /* on linux it won't fallback to numeric host so get it specifically */
+    do {
+      ret = getnameinfo(addr,
+			addrlen,
+			host, sizeof(host),
+			serv, sizeof(serv), 
+			NI_NUMERICSERV | NI_NUMERICHOST);
+    } while (EAI_AGAIN == ret);
+  }
   if (port_p) {
+    do {
+      ret = getnameinfo(addr,
+			addrlen,
+			ip, sizeof(ip),
+			serv, sizeof(serv), 
+			NI_NUMERICSERV | NI_NUMERICHOST);
+    } while (EAI_AGAIN == ret);
     snprintf(name, sizeof(name), "%s(%s):%s", host, ip, serv);
   } else {
     snprintf(name, sizeof(name), "%s", host);
