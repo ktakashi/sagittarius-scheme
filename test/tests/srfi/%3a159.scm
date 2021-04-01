@@ -1,4 +1,6 @@
 (import (rnrs)
+	(rnrs mutable-pairs)
+	(only (scheme base) list-set!)
 	(only (srfi 1) circular-list)
 	(srfi :159)
 	(srfi :64))

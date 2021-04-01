@@ -189,7 +189,12 @@
     (let ((client-socket (make-client-tls-socket "localhost" port
 			   (socket-options (read-timeout 100)))))
       (test-error socket-read-timeout-error? (tls-socket-recv client-socket 5))
-      (shutdown&close client-socket))))
+      (thread-sleep! 1)
+      ;; to avoid SIGPIPE...
+      (tls-socket-recv client-socket 5)
+      (shutdown&close client-socket)))
+  (shutdown&close server-socket)
+  )
   
 (test-end)
 
