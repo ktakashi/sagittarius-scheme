@@ -60,7 +60,6 @@
 	    make-client-tls-socket make-server-tls-socket
 
 	    ;; re-export from (sagittarius socket)
-	    ;; make-server-socket ;; TODO how should we do this?
 	    call-with-socket
 	    shutdown-output-port
 	    socket?
@@ -166,8 +165,6 @@
 	    socket-error-port
 
 	    ;; from (rfc tls)
-	    make-server-tls-socket
-
 	    tls-socket?
 	    tls-socket-send
 	    tls-socket-recv
