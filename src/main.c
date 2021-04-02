@@ -510,6 +510,13 @@ int main(int argc, char **argv)
 #if 0
   sigaction(SIGINT,  &sa, NULL );
 #endif
+  /* 
+     Accessing peer closed socket on Linux causes SIGPIPE.
+     And there's no way to avoid, so we just ignore...
+   */
+#ifdef SIGPIPE
+  signal(SIGPIPE, SIG_IGN);
+#endif
   return real_main(argc, argv);
 }
 
