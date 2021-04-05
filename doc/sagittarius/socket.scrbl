@@ -282,8 +282,12 @@ This procedure is a thin wrapper of @code{socket (2)}.
 }
 
 @define[Function]{@name{socket-connect!} @args{socket addrinfo}}
+@define[Function]{@name{socket-connect!} @args{socket addrinfo timeout}}
 @desc{Initiate connection on the given @var{socket} with given
 addrinfo @var{addrinfo}.
+
+If the second form is used, then argument @var{timeout} represents a
+connection timeout. The value must be a timeout value of @code{socket-select}.
 
 This procedure is a thin wrapper of @code{connect (2)}.
 }
@@ -379,6 +383,13 @@ an integer value.
 @define[Function]{@name{socket-blocking!} @args{socket}}
 @desc{Converts given socket to nonblocking socket and blocking socket,
 respectively.
+}
+
+@define[Function]{@name{socket-set-read-timeout!} @args{socket timeout}}
+@desc{Sets read timeout of @var{timeout} to the given @var{socket}.
+
+The @var{timeout} must be either an exact integer represents milliseconds,
+or a time object.
 }
 
 @define[Function]{@name{socket-select} @args{rfds wfds efds timeout}}
@@ -507,6 +518,7 @@ The condition hierarchy is the following:
  + &socket (socket)
     + &socket-connection
     + &socket-closed
+    + &socket-read-timeout
     + &socket-port (port)
 }
 
@@ -535,6 +547,11 @@ does not exist.
 @define[Function]{@name{socket-closed-error?} @args{obj}}
 @define[Function]{@name{make-socket-closed-error} @args{socket}}
 @desc{This condition describes socket closed error.}
+
+@define["Condition Type"]{@name{&socket-read-timeout}}
+@define[Function]{@name{socket-closed-error?} @args{obj}}
+@define[Function]{@name{make-socket-closed-error} @args{socket}}
+@desc{This condition describes socket read timeout error.}
 
 @define["Condition Type"]{@name{&socket-port}}
 @define[Function]{@name{socket-port-error?} @args{obj}}

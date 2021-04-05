@@ -924,10 +924,15 @@ static struct timeval *select_timeval(SgObject timeout, struct timeval *tm)
     tm->tv_sec = isec;
     tm->tv_usec = (suseconds_t)iusec;
     return tm;
+  } else if (SG_TIMEP(timeout)) {
+    tm->tv_sec = SG_TIME(timeout)->sec;
+    tm->tv_usec = SG_TIME(timeout)->nsec/1000;
+    return tm;
   }
  badtv:
-  Sg_Error(UC("timeval needs to be a real number (in microseconds) or a list"
-	      " of two integers (seconds and microseconds), but got %S"),
+  Sg_Error(UC("timeval needs to be a real number (in microseconds), a list "
+	      "of two integers (seconds and microseconds), or a time object "
+	      "but got %S"),
 	   timeout);
   return NULL;                /* dummy */
 }
