@@ -59,6 +59,8 @@
 	    
 	    make-client-tls-socket make-server-tls-socket
 
+	    socket-options->client-socket
+
 	    ;; re-export from (sagittarius socket)
 	    call-with-socket
 	    shutdown-output-port
@@ -370,5 +372,14 @@
      :peer-certificate-required? client-cert-needed?
      :authorities '()
      :certificate-verifier (tls-socket-options-certificate-verifier options))))
+
+;; For convenience
+(define (socket-options->client-socket option node service)
+  (cond ((tls-socket-options? option)
+	 (make-client-tls-socket node service option))
+	((socket-options? option)
+	 (make-client-socket node service option))
+	(else (assertion-violation 'socket-options->client-socket
+				   "Not a socket-options" option))))
 
 )
