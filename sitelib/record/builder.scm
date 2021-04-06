@@ -40,11 +40,21 @@
       (string->symbol
        (string-append
 	(symbol->string (syntax->datum rt)) "-builder")))
+    (define (collect-defaults k fields)
+      (let loop ((acc '()) (fields fields))
+	(syntax-case fields ()
+	  (((field default-value) rest ...)
+	   (loop (cons (list #'field #'default-value #f) acc) #'(rest ...)))
+	  (((field default-value conv) rest ...)
+	   (loop (cons (list #'field #'default-value #'conv) acc) #'(rest ...)))
+	  (() acc))))
     (syntax-case xx ()
       ((k ?record-type)
        #'(k ?record-type ()))
-      ((kk ?record-type ((?field ?default-value) ...))
+      ((kk ?record-type ((?fields ...) ...))
        (with-syntax ((?name (datum->syntax #'kk (->name #'?record-type)))
+		     (((?field ?default-value ?converter) ...)
+		      (collect-defaults #'kk #'((?fields ...) ...)))
 		     ((rtd) (generate-temporaries '("rtd"))))
 	 #'(lambda (x)
 	     (syntax-case x ()
@@ -55,15 +65,22 @@
 		    (define ctr (record-constructor rcd))
 		    (apply ctr
 			   (sort-values rtd
-			    (list (cons '?field ?default-value) ...)
+			    (list (cons* '?field ?default-value ?converter) ...)
 			    (list (cons 'name value) (... ...)))))))))))))
 
 (define (sort-values rtd default-values provided-values)
   (define fields (collect-fields rtd))
   (define (emit fields values)
     (define (find-value field values)
-      (cond ((assq field values) => cdr)
-	    ((assq field default-values) => cdr)
+      (cond ((assq field values) =>
+	     (lambda (slot)
+	       (let ((v (cdr slot)))
+		 (cond ((assq field default-values) =>
+			(lambda (d)
+			  (let ((conv (cddr d)))
+			    (if conv (conv v) v))))
+		       (else v)))))
+	    ((assq field default-values) => cadr)
 	    (else #f)))
     (do ((fields fields (cdr fields))
 	 (acc '() (cons (find-value (car fields) values) acc)))
