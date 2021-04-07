@@ -29,6 +29,7 @@
 ;;;  
 
 #!read-macro=sagittarius/bv-string
+#!nounbound
 (library (rfc http2 client)
     (export http2-client-connection?
 	    make-http2-client-connection
@@ -64,10 +65,9 @@
 	    (rnrs mutable-pairs)
 	    (sagittarius)
 	    (sagittarius control)
-	    (sagittarius socket)
 	    (binary io)
 	    (match)
-	    (rfc tls)
+	    (net socket)
 	    (rfc uri)
 	    (rfc http2 frame)
 	    (rfc http2 conditions)
@@ -99,19 +99,18 @@
 	    ;; belows are for reconnection/debugging
 	    server		       ; request server
 	    port		       ; request port
-	    secure?		       ; TLS or not
+	    options		       ; TLS or not
 	    )
     (protocol
      (lambda (n)
-       (lambda (server port secure? user-agent)
-	 (let ((socket (if secure?
-			   (make-client-tls-socket 
-			    server port
-			    ;; at least try to use ALPN
-			    :hello-extensions 
-			    (list (make-server-name-indication (list server))
-				  (make-protocol-name-list (list "h2"))))
-			   (make-client-socket server port))))
+       (lambda (server port secure?/option user-agent)
+	 (let* ((option (cond ((socket-options? secure?/option) secure?/option)
+			      (secure?/option
+			       (tls-socket-options
+				(alpn* '("h2"))
+				(sni* (list server))))
+			      (else (socket-options))))
+		(socket (socket-options->client-socket option server port)))
 	   ;; TODO check TLS socket extension. 
 	   ;; (though, we can't do anything here since this only does HTTP2...)
 	   (n (make-hpack-context 4096)
@@ -123,7 +122,7 @@
 	      65535			; initial value 
 	      (make-mutex)
 	      user-agent
-	      server port secure?))))))
+	      server port option))))))
 
   (define (stream-not-opened-error-raiser stream-id)
     (lambda (stream converter)
@@ -201,8 +200,8 @@
     (identifier-syntax http2-client-connection-request-hpack-context))
   (define-syntax %h2-res-hpack
     (identifier-syntax http2-client-connection-response-hpack-context))
-  (define-syntax %h2-secure?
-    (identifier-syntax http2-client-connection-secure?))
+  (define-syntax %h2-options
+    (identifier-syntax http2-client-connection-options))
   (define-syntax %h2-agent
     (identifier-syntax http2-client-connection-user-agent))
 
@@ -488,9 +487,9 @@
   (define (http2-construct-header stream . extras)
     (define conn (http2-stream-connection stream))
     (define ->bv string->utf8)
-    (let1 secure? (%h2-secure? conn)
+    (let1 options (%h2-options conn)
       `((#*":method" ,(->bv (symbol->string (http2-stream-method stream))))
-	(#*":scheme" ,(if secure? #*"https" #*"http"))
+	(#*":scheme" ,(if (tls-socket-options? options) #*"https" #*"http"))
 	(#*":path"   ,(->bv (http2-stream-uri stream)))
 	(#*":authority" ,(->bv (http2-client-connection-server conn)))
 	(#*"user-agent" ,(->bv (%h2-agent conn)))
