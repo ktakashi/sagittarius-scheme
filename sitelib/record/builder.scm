@@ -80,7 +80,11 @@
 			  (let ((conv (cddr d)))
 			    (if conv (conv v) v))))
 		       (else v)))))
-	    ((assq field default-values) => cadr)
+	    ((assq field default-values) =>
+	     (lambda (fvd)
+	       (let ((v (cadr fvd))
+		     (conv (cddr fvd)))
+		 (if conv (conv v) v))))
 	    (else #f)))
     (do ((fields fields (cdr fields))
 	 (acc '() (cons (find-value (car fields) values) acc)))

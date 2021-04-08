@@ -1,0 +1,94 @@
+;;; -*- mode:scheme;coding:utf-8 -*-
+;;;
+;;; net/http-client/request.scm - HTTP request/response of HTTP client
+;;;  
+;;;   Copyright (c) 2021  Takashi Kato  <ktakashi@ymail.com>
+;;;   
+;;;   Redistribution and use in source and binary forms, with or without
+;;;   modification, are permitted provided that the following conditions
+;;;   are met:
+;;;   
+;;;   1. Redistributions of source code must retain the above copyright
+;;;      notice, this list of conditions and the following disclaimer.
+;;;  
+;;;   2. Redistributions in binary form must reproduce the above copyright
+;;;      notice, this list of conditions and the following disclaimer in the
+;;;      documentation and/or other materials provided with the distribution.
+;;;  
+;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+;;;   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+;;;   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+;;;   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+;;;   TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+;;;   PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+;;;  
+
+#!nounbound
+(library (net http-client request)
+    (export http:request? http:request-builder
+	    (rename (http:request <http:request>))
+	    http:request-uri http:request-method
+	    http:request-content-type
+	    http:request-headers
+	    http:request-body
+	    http:request-timeout
+
+	    http:response? http:response-builder
+	    (rename (http:response <http:response>))
+	    http:response-status http:response-headers
+	    http:response-body
+
+	    http:headers?
+	    http:headers-ref* http:headers-ref
+	    http:headers-names
+	    )
+    (import (rnrs)
+	    (record builder)
+	    (net uri))
+
+;;; TODO maybe should make a record for this
+(define (list->headers l)
+  (define ht (make-hashtable string-ci-hash string-ci=?))
+  (for-each (lambda (kv)
+	      (hashtable-update! ht (car kv) (lambda (v) (cons (cdr kv) v)) '()))
+	    l)
+  ht)
+
+(define http:headers? hashtable?)
+(define (http:headers-ref* h k) (hashtable-ref h k '()))
+(define (http:headers-ref h k) (cond ((hashtable-ref h k #f) => car)
+				     (else #f)))
+(define (http:headers-names header) (vector->list (hashtable-keys header)))
+
+(define-record-type http:request
+  (fields uri
+	  method
+	  content-type
+	  headers
+	  body
+	  timeout ;; request timeout
+	  ))
+(define-syntax http:request-builder
+  (make-record-builder http:request
+		       ((uri #f string->uri)
+			(timeout #f)
+			(content-type "application/octet-stream")
+			(body #f)
+			(headers '() list->headers))))
+
+(define-record-type http:response
+  (fields status
+	  headers
+	  body))
+(define-syntax http:response-builder
+  (make-record-builder http:response
+		       ((body #f)
+			;; let it fail if no header is provided...
+			(headers #f list->headers))))
+
+)

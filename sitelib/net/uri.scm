@@ -36,7 +36,7 @@
 
 	    uri?
 	    uri-scheme uri-specific uri-authority
-	    uri-user-info uri-host uri-port uri-path uri-fragment
+	    uri-user-info uri-host uri-port uri-path uri-query uri-fragment
 	    )
     (import (rnrs)
 	    (rfc uri))
