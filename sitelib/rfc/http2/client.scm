@@ -103,14 +103,8 @@
 	    )
     (protocol
      (lambda (n)
-       (lambda (server port secure?/option user-agent)
-	 (let* ((option (cond ((socket-options? secure?/option) secure?/option)
-			      (secure?/option
-			       (tls-socket-options
-				(alpn* '("h2"))
-				(sni* (list server))))
-			      (else (socket-options))))
-		(socket (socket-options->client-socket option server port)))
+       (lambda (server port option user-agent)
+	 (let ((socket (socket-options->client-socket option server port)))
 	   ;; TODO check TLS socket extension. 
 	   ;; (though, we can't do anything here since this only does HTTP2...)
 	   (n (make-hpack-context 4096)
@@ -214,7 +208,13 @@
   (define (make-http2-client-connection server port :key (secure? #f)
 					(negotiate? #t)
 					(user-agent +http2-default-user-agent+))
-    (rlet1 conn (%make-http2-client-connection server port secure? user-agent)
+    (rlet1 conn (%make-http2-client-connection server port
+					       (if secure?
+						   (tls-socket-options
+						    (alpn* '("h2"))
+						    (sni* (list server)))
+						   (socket-options))
+					       user-agent)
       (when negotiate?
 	(http2-send-preface conn)
 	(http2-send-settings conn
