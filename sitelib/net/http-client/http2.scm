@@ -215,9 +215,28 @@
   
 
 ;;; helpers
+(define *no-body-methods* (http-method-set CONNECT GET HEAD OPTIONS TRACE))
 (define (stream:request->data-frame-sender stream request)
-  ;; for now
-  #f)
+  (define method (http:request-method request))
+  (define (->data-frame-sender stream request)
+    (define body (http:request-body request))
+    ;; (define window-size (http2:stream-window-size stream))
+    ;; TODO consider window-size
+    (define (bytevector->data-frame-sender stream bv)
+      (lambda ()
+	(let ((frame (make-http2-frame-data 0 (http2-stream-id stream) bv)))
+	  (http2-write-stream stream frame #t))))
+    (define (input-port->data-frame-sender stream bin)
+      (assertion-violation 'stream:request->data-frame-sender
+			   "Not yet" bin))
+    (cond ((bytevector? body)
+	   (bytevector->data-frame-sender stream body))
+	  ((and (input-port? body) (binary-port? body))
+	   (input-port->data-frame-sender stream body))
+	  (else (assertion-violation 'stream:request->data-frame-sender
+				     "Unknown body type" body))))
+  (and (not (enum-set-member? method *no-body-methods*))
+       (->data-frame-sender stream request)))
 
 (define (stream:request->header-frame stream request)
   (define id (http2-stream-id stream))

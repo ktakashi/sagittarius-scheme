@@ -36,7 +36,6 @@
 	    http:request-content-type
 	    http:request-headers
 	    http:request-body
-	    http:request-timeout
 
 	    http:response? http:response-builder
 	    (rename (http:response <http:response>))
@@ -46,6 +45,9 @@
 	    http:headers?
 	    http:headers-ref* http:headers-ref
 	    http:headers-names
+
+	    http:method
+	    http-method-set
 	    )
     (import (rnrs)
 	    (record builder)
@@ -65,18 +67,19 @@
 				     (else #f)))
 (define (http:headers-names header) (vector->list (hashtable-keys header)))
 
+(define-enumeration http:method
+  (CONNECT DELETE GET HEAD OPTIONS PATCH POST PUT TRACE)
+  http-method-set)
+
 (define-record-type http:request
   (fields uri
 	  method
 	  content-type
 	  headers
-	  body
-	  timeout ;; request timeout
-	  ))
+	  body))
 (define-syntax http:request-builder
   (make-record-builder http:request
 		       ((uri #f string->uri)
-			(timeout #f)
 			(content-type "application/octet-stream")
 			(body #f)
 			(headers '() list->headers))))

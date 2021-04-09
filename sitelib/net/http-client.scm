@@ -39,6 +39,8 @@
 	    http:response-body
 	    http:headers?
 	    http:headers-names http:headers-ref* http:headers-ref
+	    http:method
+	    http-method-set
 	    
 	    http:client? http:client-builder
 	    (rename (http:client <http:client>))
@@ -59,7 +61,8 @@
 	    (scheme lazy))
 
 (define-record-type http:client
-  (fields timeout
+  (fields connection-timeout
+	  read-timeout
 	  follow-redirects
 	  cookie-handler     ;; reserved...
 	  connection-manager ;; reserved...
@@ -68,8 +71,7 @@
 	  ))
 (define-syntax http:client-builder
   (make-record-builder http:client
-		       ((timeout #f)
-			;; by default we don't follow
+		       (;; by default we don't follow
 			(follow-redirects (http:redirect never))
 			(version (http:version http/2)))))
 
@@ -135,16 +137,19 @@
   (define host (uri-host uri))
   (define port (uri-port uri))
   (define (get-option scheme host client)
-    (define timeout (http:client-timeout client))
+    (define connection-timeout (http:client-connection-timeout client))
+    (define read-timeout (http:client-read-timeout client))
     (define alpn
       (if (eq? (http:client-version client) 'http/2)
 	  '("h2")
 	  '()))
     (if (string=? scheme "https")
-	(tls-socket-options (connection-timeout timeout)
+	(tls-socket-options (connection-timeout connection-timeout)
+			    (read-timeout read-timeout)
 			    (sni* (list host))
 			    (alpn* alpn))
-	(socket-options (connection-timeout timeout))))
+	(socket-options (connection-timeout connection-timeout)
+			(read-timeout read-timeout))))
   (let ((option (get-option scheme host client))
 	(service (or port scheme)))
     (values (socket-options->client-socket option host service)
