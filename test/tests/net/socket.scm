@@ -97,7 +97,7 @@
 
     (let ((client-socket (make-client-socket "localhost" port
 					     (socket-options
-					      (read-timeout 1000)))))
+					      (read-timeout 1000000)))))
       (test-equal #*"hello" (socket-recv client-socket 5))
       (socket-shutdown client-socket SHUT_RDWR)
       (socket-close client-socket)
@@ -113,7 +113,7 @@
   (define (server-run)
     (guard (e (else #t))
       (let ((addr (socket-accept server-socket)))
-	(socket-set-read-timeout! addr 100)
+	(socket-set-read-timeout! addr 100) ;; 100us
 	(call-with-socket addr
 	  (lambda (sock)
 	    (guard (e (else e))
@@ -124,9 +124,7 @@
     (define server-thread (make-thread server-run))
     (thread-start! server-thread)
     
-    (let ((client-socket (make-client-socket "localhost" port
-					     (socket-options
-					      (read-timeout 1000)))))
+    (let ((client-socket (make-client-socket "localhost" port)))
       (thread-sleep! 0.2)
       (let ((r (thread-join! server-thread)))
 	(test-assert (socket-read-timeout-error? r)))
@@ -189,12 +187,7 @@
     (let ((client-socket (make-client-tls-socket "localhost" port
 			   (socket-options (read-timeout 100)))))
       (test-error socket-read-timeout-error? (tls-socket-recv client-socket 5))
-      (thread-sleep! 1)
-      ;; to avoid SIGPIPE...
-      (tls-socket-recv client-socket 5)
-      (shutdown&close client-socket)))
-  (shutdown&close server-socket)
-  )
+      (shutdown&close client-socket))))
   
 (test-end)
 
