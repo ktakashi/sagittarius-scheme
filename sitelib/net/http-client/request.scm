@@ -48,6 +48,7 @@
 
 	    http:method
 	    http-method-set
+	    http:no-body-method?
 	    )
     (import (rnrs)
 	    (record builder)
@@ -70,6 +71,10 @@
 (define-enumeration http:method
   (CONNECT DELETE GET HEAD OPTIONS PATCH POST PUT TRACE)
   http-method-set)
+(define *http:no-body-methods*
+  (http-method-set CONNECT GET HEAD OPTIONS TRACE))
+(define (http:no-body-method? method)
+  (enum-set-member? method *http:no-body-methods*))
 
 (define-record-type http:request
   (fields uri
@@ -87,11 +92,13 @@
 (define-record-type http:response
   (fields status
 	  headers
+	  cookies
 	  body))
 (define-syntax http:response-builder
   (make-record-builder http:response
 		       ((body #f)
 			;; let it fail if no header is provided...
-			(headers #f list->headers))))
+			(headers #f list->headers)
+			(cookies '()))))
 
 )

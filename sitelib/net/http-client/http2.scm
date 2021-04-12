@@ -215,7 +215,6 @@
   
 
 ;;; helpers
-(define *no-body-methods* (http-method-set CONNECT GET HEAD OPTIONS TRACE))
 (define (stream:request->data-frame-sender stream request)
   (define method (http:request-method request))
   (define (->data-frame-sender stream request)
@@ -235,7 +234,7 @@
 	   (input-port->data-frame-sender stream body))
 	  (else (assertion-violation 'stream:request->data-frame-sender
 				     "Unknown body type" body))))
-  (and (not (enum-set-member? method *no-body-methods*))
+  (and (not (http:no-body-method? method))
        (->data-frame-sender stream request)))
 
 (define (stream:request->header-frame stream request)
