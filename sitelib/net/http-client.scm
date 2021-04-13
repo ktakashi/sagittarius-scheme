@@ -52,6 +52,7 @@
     (import (rnrs)
 	    (net http-client request)
 	    (net http-client connection)
+	    (net http-client http1)
 	    (net http-client http2)
 	    (record builder)
 	    (net socket)
@@ -113,6 +114,7 @@
       (put-bytevector out data)
       (when end? (mutable-response-body-set! response (extract))))
     (define (response-retriever)
+      ;; TODO build cookies here
       (http:response-builder (status (mutable-response-status response))
 			     (headers (mutable-response-headers response))
 			     (body (mutable-response-body response))))
@@ -123,10 +125,7 @@
   (let-values (((socket host service option) (uri->socket uri client)))
     (if (http2? socket)
 	(socket->http2-connection socket option host service)
-	(begin
-	  (socket-shutdown socket SHUT_RDWR)
-	  (socket-close socket)
-	  (error 'get-connection "HTTP/1.1 is not supported yet" uri)))))
+	(socket->http1-connection socket option host service))))
 
 (define (http2? socket)
   (and (tls-socket? socket)
