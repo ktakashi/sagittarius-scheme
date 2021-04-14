@@ -30,10 +30,12 @@
 
 #!nounbound
 (library (record builder)
-    (export make-record-builder)
+    (export make-record-builder from)
     (import (rnrs)
-	    (rnrs r5rs))
+	    (srfi :1 lists) ;; for lset-difference
+	    )
 
+(define-syntax from (syntax-rules ()))
 (define-syntax make-record-builder
   (lambda (xx)
     (define (->name rt)
@@ -57,16 +59,42 @@
 		      (collect-defaults #'kk #'((?fields ...) ...)))
 		     ((rtd) (generate-temporaries '("rtd"))))
 	 #'(lambda (x)
-	     (syntax-case x ()
+	     (syntax-case x (from)
+	       ((k (from record) (name value) (... ...))
+		#'(apply (record-constructor
+			  (record-constructor-descriptor ?record-type))
+			 (sort-values (record-type-descriptor ?record-type)
+			  (list (cons* '?field ?default-value ?converter) ...)
+			  (merge-values
+			   (record-type-descriptor ?record-type)
+			   record
+			   (list (cons 'name value) (... ...))))))
 	       ((k (name value) (... ...))
-		#'(let ()
-		    (define rtd (record-type-descriptor ?record-type))
-		    (define rcd (record-constructor-descriptor ?record-type))
-		    (define ctr (record-constructor rcd))
-		    (apply ctr
-			   (sort-values rtd
-			    (list (cons* '?field ?default-value ?converter) ...)
-			    (list (cons 'name value) (... ...)))))))))))))
+		#'(apply (record-constructor
+			  (record-constructor-descriptor ?record-type))
+			 (sort-values
+			  (record-type-descriptor ?record-type)
+			  (list (cons* '?field ?default-value ?converter) ...)
+			  (list (cons 'name value) (... ...))))))))))))
+
+(define (merge-values rtd record provided-values)
+  (define (collect-fields&value rtd record)
+    (let loop ((rtd rtd) (r '()))
+      (if rtd
+	  (do ((i 0 (+ i 1))
+	       (fields (record-type-field-names rtd))
+	       (r r (cons (cons (vector-ref fields i)
+				((record-accessor rtd i) record))
+			  r)))
+	      ((eq? i (vector-length fields))
+	       (loop (record-type-parent rtd) r)))
+	  r)))
+  ;; is this actually valid in R6RS?
+  (unless (eq? (record-rtd record) rtd)
+    (assertion-violation 'record-builder "Wrong record type" record))
+  (let ((record-values (collect-fields&value rtd record)))
+    (lset-union (lambda (a b) (eq? (car a) (car b)))
+		provided-values record-values)))
 
 (define (sort-values rtd default-values provided-values)
   (define fields (collect-fields rtd))
@@ -89,6 +117,10 @@
     (do ((fields fields (cdr fields))
 	 (acc '() (cons (find-value (car fields) values) acc)))
 	((null? fields) (reverse acc))))
+  (let ((non-exists (lset-difference eq? (map car provided-values) fields)))
+    (unless (null? non-exists)
+      (assertion-violation 'record-builder
+			   "Unknown fields" non-exists)))
   (emit fields provided-values))
 
 (define (collect-fields rtd)
