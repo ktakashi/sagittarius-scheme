@@ -57,6 +57,10 @@
 	    (record builder)
 	    (net socket)
 	    (net uri)
+	    (binary io)
+	    (rfc zlib)
+	    (rfc gzip)
+	    (rfc :5322)
 	    ;; for now
 	    ;; TODO implement completable future...
 	    (scheme lazy))
@@ -88,11 +92,23 @@
   (http:client-send-async client request))
 
 (define (http:client-send-async client request)
+  (define (adjust-request conn request)
+    (let* ((copy (http:request-builder (from request)))
+	   (headers (http:request-headers copy)))
+      (unless (http:headers-contains? headers "User-Agent")
+	(http:headers-set! headers "User-Agent"
+			   (http-connection-user-agent conn)))
+      (unless (http:headers-contains? headers "Accept")
+	(http:headers-set! headers "Accept" "*/*"))
+      (http:headers-set! headers "Accept-Encoding" "gzip, deflate")
+      copy))
+  
   (let ((conn (get-http-connection client request)))
     (let-values (((header-handler body-handler response-retriever)
 		  (make-handlers)))
       ;; TODO make it async here
-      (http-connection-send-request! conn request header-handler body-handler)
+      (http-connection-send-request! conn (adjust-request conn request)
+				     header-handler body-handler)
       (delay-force
        (begin (http-connection-receive-response! conn)
 	      ;; TODO redirect
@@ -106,18 +122,38 @@
 
 (define (make-handlers)
   (define response (make-mutable-response #f #f #f))
-  (let-values (((out extract) (open-bytevector-output-port)))
+  (define (decompress headers body)
+    (define (get-input headers body)
+      (case (string->symbol
+	     (rfc5322-header-ref headers "content-encoding" "none"))
+	((gzip) (open-gzip-input-port body :owner? #t))
+	((deflate) (open-inflating-input-port body :owner? #t))
+	((none) body)
+	;; TODO proper error
+	(else
+	 => (lambda (v)
+	      (error 'http-client
+		     "Content-Encoding contains unsupported value" v)))))
+    (call-with-port (get-input headers body)
+      (lambda (in) (get-bytevector-all in))))
+		    
+  (let ((in/out (open-chunked-binary-input/output-port)))
     (define (header-handler status headers)
       (mutable-response-status-set! response status)
       (mutable-response-headers-set! response headers))
     (define (body-handler data end?)
-      (put-bytevector out data)
-      (when end? (mutable-response-body-set! response (extract))))
+      (put-bytevector in/out data)
+      (when end?
+	(set-port-position! in/out 0)
+	(let* ((headers (mutable-response-headers response))
+	       (body (decompress headers in/out)))
+	  (mutable-response-body-set! response body))))
     (define (response-retriever)
       ;; TODO build cookies here
       (http:response-builder (status (mutable-response-status response))
 			     (headers (mutable-response-headers response))
 			     (body (mutable-response-body response))))
+    (mutable-response-body-set! response in/out)
     (values header-handler body-handler response-retriever)))
       
 (define (get-http-connection client request)

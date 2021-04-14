@@ -32,6 +32,8 @@
   (let ((c (child-builder (from (child-builder (a 'a) (b 'b))) (a 'c))))
     (test-equal 'c (base-a c))
     (test-equal 'b (base-b c)))
+  (test-error "Conversion error" (base-builder (from (base-builder))))
+  (test-error "Type error" (child-builder (from (base-builder))))
   
   )
 

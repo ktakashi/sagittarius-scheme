@@ -265,10 +265,6 @@
 	       => (lambda (type)
 		    `((#*"content-type" ,(->bv type)))))
 	      (else '()))
-      (#*"user-agent" ,(->bv (or (http:headers-ref headers "user-agent")
-				 (http-connection-user-agent conn))))
-      (#*"accept-encoding"
-	 ,(->bv (or (http:headers-ref headers "accept-encoding") "gzip")))
       ,@(apply append (headers->http2-headers headers))))
   (let ((headers (request->headers stream request)))
     (make-http2-frame-headers 0 id #f #f headers)))

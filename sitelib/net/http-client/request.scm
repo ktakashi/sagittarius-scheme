@@ -48,6 +48,7 @@
 	    +http:managed-headers+
 	    http:headers?
 	    http:headers-ref* http:headers-ref http:headers-contains?
+	    http:headers-set! http:headers-add!
 	    http:headers-names
 
 	    http:method
@@ -59,18 +60,21 @@
 	    (net uri))
 
 ;;; TODO maybe should make a record for this
-(define (list->headers l)
-  (define ht (make-hashtable string-ci-hash string-ci=?))
-  (for-each (lambda (kv)
-	      (hashtable-update! ht (car kv) (lambda (v) (cons (cdr kv) v)) '()))
-	    l)
-  ht)
+(define (->headers l)
+  (if (http:headers? l)
+      (hashtable-copy l #t)
+      (let ((ht (make-hashtable string-ci-hash string-ci=?)))
+	(for-each (lambda (kv) (http:headers-add! ht (car kv) (cdr kv))) l)
+	ht)))
 
 (define http:headers? hashtable?)
 (define (http:headers-ref* h k) (hashtable-ref h k '()))
 (define (http:headers-ref h k) (cond ((hashtable-ref h k #f) => car)
 				     (else #f)))
 (define (http:headers-contains? h k) (hashtable-contains? h k))
+(define (http:headers-set! h k v) (hashtable-set! h k (list v)))
+(define (http:headers-add! h k v)
+  (hashtable-update! h k (lambda (v*) (cons v v*)) '()))
 (define (http:headers-names header) (vector->list (hashtable-keys header)))
 
 (define-enumeration http:method
@@ -87,16 +91,20 @@
 	  content-type
 	  headers
 	  body))
+(define (->uri uri)
+  (if (uri? uri)
+      uri
+      (string->uri uri)))
 (define-syntax http:request-builder
   (make-record-builder http:request
-		       ((uri #f string->uri)
+		       ((uri #f ->uri)
 			(content-type "application/octet-stream")
 			(body #f)
-			(headers '() list->headers))))
+			(headers '() ->headers))))
 
 (define (http:request->request-uri request)
   (define uri (http:request-uri request))
-  (let ((path (uri-path uri))
+  (let ((path (or (uri-path uri) "/"))
 	(query (uri-query uri)))
     ;; encode?
     (if query
@@ -112,7 +120,7 @@
   (make-record-builder http:response
 		       ((body #f)
 			;; let it fail if no header is provided...
-			(headers #f list->headers)
+			(headers #f ->headers)
 			(cookies '()))))
 
 ;; Managed headers (these headers are ignored if user set)
@@ -123,7 +131,6 @@
     "content-length"
     "content-type"
     "transfer-encoding"
-    "accept-encoding"
     "connection"))
 
 )

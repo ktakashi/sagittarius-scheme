@@ -180,11 +180,6 @@
 		  (or (http:headers-ref headers "Host")
 		      (uri-host uri)
 		      (http-connection-node connection)))
-    (write-header out "User-Agent"
-		  (or (http:headers-ref headers "User-Agent")
-		      (http-connection-user-agent connection)))
-    (write-header out "Accept-Encoding"
-		  (or (http:headers-ref headers "Accept-Encoding") "gzip"))
     (write-header out "Connection" "keep-alive")
     
     (for-each (lambda (name)
