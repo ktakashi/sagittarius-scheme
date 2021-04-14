@@ -174,7 +174,7 @@
 			   "Content-Length"
 			   (number->string (bytevector-length body))))
 	    ((port? body)
-	     (write-header out "Transfer-Encoding" "gzip, chunked"))))
+	     (write-header out "Transfer-Encoding" "chunked"))))
     
     (write-header out "Host"
 		  (or (http:headers-ref headers "Host")
@@ -183,6 +183,8 @@
     (write-header out "User-Agent"
 		  (or (http:headers-ref headers "User-Agent")
 		      (http-connection-user-agent connection)))
+    (write-header out "Accept-Encoding"
+		  (or (http:headers-ref headers "Accept-Encoding") "gzip"))
     (write-header out "Connection" "keep-alive")
     
     (for-each (lambda (name)
@@ -203,7 +205,7 @@
 	(cond ((zero? n)
 	       (put-bytevector out #*"0\r\n\r\n"))
 	      (else
-	       (put-bytevector out (number->string n))
+	       (put-bytevector out (string->utf8 (number->string n)))
 	       (put-bytevector out #*"\r\n")
 	       (put-bytevector out buffer 0 n)
 	       (put-bytevector out #*"\r\n")
