@@ -239,26 +239,16 @@
 
 (define (stream:request->header-frame stream request)
   (define id (http2-stream-id stream))
-  (define (request->path request)
-    (define uri (http:request-uri request))
-    (let ((path (uri-path uri))
-	  (query (uri-query uri)))
-      ;; encode?
-      (if query
-	  (string-append path "?" query)
-	  path)))
   (define (request->headers stream request)
     (define conn (http2-stream-connection stream))
     (define options (http-connection-socket-options conn))
     (define headers (http:request-headers request))
     (define ->bv string->utf8)
     (define (headers->http2-headers headers)
-      (define (->lower s) (string-downcase s))
       ;; headers is multi valued map
       (map (lambda (name)
-	     (let ((k (->lower name)))
-	       (if (or (string=? k "user-agent") ;; skip these
-		       (string=? k "content-type"))
+	     (let ((k (string-downcase name)))
+	       (if (memp (lambda (n) (string=? k n)) +http:managed-headers+)
 		   '()
 		   (map (lambda (v) (list (->bv name) (->bv v)))
 			(http:headers-ref* headers name)))))
@@ -266,8 +256,10 @@
       
     `((#*":method" ,(->bv (symbol->string (http:request-method request))))
       (#*":scheme" ,(if (tls-socket-options? options) #*"https" #*"http"))
-      (#*":authority" ,(->bv (http-connection-node conn)))
-      (#*":path"   ,(->bv (request->path request)))
+      (#*":authority" ,(->bv (or (http:headers-ref headers "host")
+				 (uri-host (http:request-uri request))
+				 (http-connection-node conn))))
+      (#*":path"   ,(->bv (http:request->request-uri request)))
       ,@(cond ((and (http:request-body request)
 		    (http:request-content-type request))
 	       => (lambda (type)

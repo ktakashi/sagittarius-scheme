@@ -105,7 +105,7 @@
     (get-line port))
 
   (define (rfc5322-read-headers in :optional (strict? #f)
-				     (reader (cut rfc5322-line-reader <>)))
+				(reader rfc5322-line-reader))
     (define (accum name bodies r)
       ;; simple optimisation, check length (20% performance improvement)
       (if (null? (cdr bodies))
