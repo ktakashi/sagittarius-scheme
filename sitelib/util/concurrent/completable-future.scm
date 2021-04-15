@@ -1,8 +1,8 @@
-;;; -*- mode:scheme; coding:utf-8 -*-
+;;; -*- mode:scheme;coding:utf-8 -*-
 ;;;
-;;; util/concurrent.scm - Concurrent library
+;;; util/concurrent/completable-future.scm - Completable future
 ;;;  
-;;;   Copyright (c) 2014-2017  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2021  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -28,13 +28,34 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-;; This is not portable but it's super easy to make it
-;; R6RS+SRFI portable.
-(library (util concurrent)
-    (export :all)
-    (import (util concurrent future)
-	    (util concurrent executor)
-	    (util concurrent shared-queue)
-	    (util concurrent thread-pool)
-	    (util concurrent completable-future)
-	    (util concurrent actor)))
+;; not sure if we should make separate library for this...
+#!nounbound
+(library (util concurrent completable-future)
+    (export thunk->future future-map!)
+    (import (rnrs)
+	    (srfi :39 parameters)
+	    (util concurrent future)
+	    (util concurrent executor))
+
+(define *completable-future:default-executor*
+  (make-parameter (make-thread-pool-executor 5 push-future-handler)))
+
+(define thunk->future
+  (case-lambda
+   ((thunk) (thunk->future thunk (*completable-future:default-executor*)))
+   ((thunk executor)
+    (executor-submit! executor thunk))))
+
+(define (future-map! proc future)
+  (let ((result (future-result future)))
+    (future-result-set! future
+			(lambda (future . opt)
+			  (proc (cond ((shared-box? result)
+				       (apply shared-box-get! result opt))
+				      ((procedure? result)
+				       (apply result future opt))
+				      (else result)))))
+    future))
+
+  
+)

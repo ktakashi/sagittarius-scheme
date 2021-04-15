@@ -61,9 +61,11 @@
 	    (rfc zlib)
 	    (rfc gzip)
 	    (rfc :5322)
-	    ;; for now
-	    ;; TODO implement completable future...
-	    (scheme lazy))
+	    (srfi :39 parameters)
+	    (util concurrent))
+
+(define *http-client:default-executor*
+  (make-parameter (make-thread-pool-executor 5 push-future-handler)))
 
 (define-record-type http:client
   (fields connection-timeout
@@ -72,13 +74,14 @@
 	  cookie-handler     ;; reserved...
 	  connection-manager ;; reserved...
 	  version	     ;;
-	  executor	     ;; TBD
+	  executor
 	  ))
 (define-syntax http:client-builder
   (make-record-builder http:client
 		       (;; by default we don't follow
 			(follow-redirects (http:redirect never))
-			(version (http:version http/2)))))
+			(version (http:version http/2))
+			(executor (*http-client:default-executor*)))))
 
 (define-enumeration http:version
   (http/1.1 http/2)
@@ -88,8 +91,7 @@
   http-redirect)
 
 (define (http:client-send client request)
-  ;; TODO convert a future (or something similar) to a response
-  (http:client-send-async client request))
+  (future-get (http:client-send-async client request)))
 
 (define (http:client-send-async client request)
   (define (adjust-request conn request)
@@ -109,10 +111,12 @@
       ;; TODO make it async here
       (http-connection-send-request! conn (adjust-request conn request)
 				     header-handler body-handler)
-      (delay-force
-       (begin (http-connection-receive-response! conn)
-	      ;; TODO redirect
-	      (response-retriever))))))
+      (thunk->future
+       (lambda ()
+	 (http-connection-receive-response! conn)
+	 ;; TODO redirect
+	 (response-retriever))
+       (http:client-executor client)))))
 
 ;;; helper
 (define-record-type mutable-response
