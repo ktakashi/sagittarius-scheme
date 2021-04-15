@@ -705,10 +705,13 @@ given @var{executor} otherwise @code{*completable-future:default-executor*}
 will be used.
 }
 
+@define[Function]{@name{future-map} @args{proc future}}
 @define[Function]{@name{future-map!} @args{proc future}}
 @desc{Apply the procedure @var{proc} to the result of the @var{future}.
 And return the given @var{future}.
 
-The @code{future-map!} returns immediately and the computation of
+These procedures return immediately and the computation of
 @var{proc} will be done in some future.
+
+@code{future-map!} modifies the given @var{future} destructively.
 }

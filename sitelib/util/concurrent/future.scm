@@ -86,10 +86,10 @@
 	       (cond ((mutex-unlock! (%sb-lock sb) (%sb-cv sb) timeout)
 		      (mutex-lock! (%sb-lock sb))
 		      (loop))
-		     (else timeout-value)))
+		     (else (values timeout-value #t))))
 	      (else 
 	       (mutex-unlock! (%sb-lock sb))
-	       r)))))
+	       (values r #f))))))
 
   (define-condition-type &future-terminated &error
     make-future-terminated future-terminated?
@@ -149,16 +149,18 @@
 	  r))
     (when (eq? (future-state future) 'terminated)
       (raise-future-terminated future))
-    (let ((state (future-state future)))
-      (let ((r (future-result future)))
-	(finish 
-	 (cond ((and (not (eq? state 'done)) (shared-box? r))
-		(future-result-set! future (apply shared-box-get! r opt))
-		(future-result future))
-	       ((and (not (eq? state 'done)) (procedure? r))
-		(future-result-set! future (apply r future opt))
-		(future-result future))
-	       (else r))))))
+    (let* ((state (future-state future))
+	   (r (future-result future)))
+      (cond ((and (not (eq? state 'done)) (shared-box? r))
+	     (let-values (((v timeout?) (apply shared-box-get! r opt)))
+	       (cond (timeout? v)
+		     (else
+		      (future-result-set! future v)
+		      (finish (future-result future))))))
+	    ((and (not (eq? state 'done)) (procedure? r))
+	     (future-result-set! future (apply r future opt))
+	     (finish (future-result future)))
+	    (else (finish r)))))
   ;; kinda dummy
   (define (future-cancel future)
     (unless (eq? (future-state future) 'done)
