@@ -302,6 +302,17 @@
   ;; (test-error "future-cancel" condition? (future-cancel future))
   )
 
+;; completable future
+(letrec* ((v '())
+	  (f (thunk->future (lambda () (set! v (cons 1 v)) 1))))
+  (let ((f2
+	 (future-map (lambda (r) (thread-sleep! 0.1) (set! v (cons 4 v)) 4)
+	  (future-map (lambda (r) (thread-sleep! 0.1) (set! v (cons 3 v)) 3)
+	   (future-map (lambda (r) (thread-sleep! 0.1) (set! v (cons 2 v)) 2) f)))))
+  (thread-sleep! 0.5)
+  (test-equal 4 (future-get f2))
+  (test-equal '(4 3 2 1) v)))
+
 (let ((e (make-executor 1))
       (f1 (future (class <executor-future>) 1))
       (f2 (future (class <executor-future>) (thread-sleep! 10)))
