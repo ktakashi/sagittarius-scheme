@@ -691,3 +691,24 @@ resource if it's needed.
 @; TBD
 @; write low level API of actor:
 @; make-actor, make-shared-priority-queue-channel etc.
+
+@define[Library]{@name{(util concurrent completable-future)}}
+@desc{A sub library of @code{(util concurrent)}. This library provides
+Java's CompletableFuture like interface}
+
+@define[Function]{@name{thunk->future} @args{thunk}}
+@define[Function]{@name{thunk->future} @args{thunk executor}}
+@desc{Provide a future whose value supplier is the @var{thunk}.
+
+If the second form is used, then the execution will be done by the
+given @var{executor} otherwise @code{*completable-future:default-executor*}
+will be used.
+}
+
+@define[Function]{@name{future-map!} @args{proc future}}
+@desc{Apply the procedure @var{proc} to the result of the @var{future}.
+And return the given @var{future}.
+
+The @code{future-map!} returns immediately and the computation of
+@var{proc} will be done in some future.
+}
