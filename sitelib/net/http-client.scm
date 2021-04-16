@@ -176,8 +176,13 @@
   (define host (uri-host uri))
   (define port (uri-port uri))
   (define (get-option scheme host client)
-    (define connection-timeout (http:client-connection-timeout client))
-    (define read-timeout (http:client-read-timeout client))
+    (define (milli->micro v) (* v 1000))
+    (define connection-timeout
+      (cond ((http:client-connection-timeout client) => milli->micro)
+	    (else #f)))
+    (define read-timeout
+      (cond ((http:client-read-timeout client)=> milli->micro)
+	    (else #f)))
     (define alpn
       (if (eq? (http:client-version client) 'http/2)
 	  '("h2")

@@ -78,6 +78,11 @@
 			  (list (cons 'name value) (... ...))))))))))))
 
 (define (merge-values rtd record provided-values)
+  (define (child-of? rtd record)
+    (let loop ((child (record-rtd record)))
+      (cond ((not child) #f)
+	    ((eq? child rtd))
+	    (else (loop (record-type-parent child))))))
   (define (collect-fields&value rtd record)
     (let loop ((rtd rtd) (r '()))
       (if rtd
@@ -90,7 +95,7 @@
 	       (loop (record-type-parent rtd) r)))
 	  r)))
   ;; is this actually valid in R6RS?
-  (unless (eq? (record-rtd record) rtd)
+  (unless (child-of? rtd record)
     (assertion-violation 'record-builder "Wrong record type" record))
   (let ((record-values (collect-fields&value rtd record)))
     (lset-union (lambda (a b) (eq? (car a) (car b)))

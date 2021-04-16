@@ -34,7 +34,6 @@
     (test-equal 'b (base-b c)))
   (test-error "Conversion error" (base-builder (from (base-builder))))
   (test-error "Type error" (child-builder (from (base-builder))))
-  
-  )
+  (test-assert (base-builder (from (child-builder)) (c 'c))))
 
 (test-end)

@@ -31,7 +31,7 @@
 ;; not sure if we should make separate library for this...
 #!nounbound
 (library (util concurrent completable-future)
-    (export thunk->future future-map! future-map)
+    (export thunk->future future-map)
     (import (rnrs)
 	    (srfi :39 parameters)
 	    (util concurrent future)
@@ -54,22 +54,6 @@
     (let ((future (make-completable-future thunk executor)))
       (execute-future! executor future)
       future))))
-
-(define (future-map! proc future)
-  (let* ((result (future-result future))
-	 (new-future (thunk->future
-		      (lambda opt
-			(proc (cond ((shared-box? result)
-				     (apply shared-box-get! result opt))
-				    ((procedure? result)
-				     (apply result future opt))
-				    (else result))))
-		      (if (completable-future? future)
-			  (completable-future-executor future)
-			  (*completable-future:default-executor*)))))
-    (future-result-set! future (lambda (future . opt)
-				 (apply future-get new-future opt)))
-    future))
 
 (define (future-map proc future)
   (thunk->future (lambda opt (proc (apply future-get future opt)))

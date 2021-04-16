@@ -200,6 +200,7 @@
 	    )
     (import (rnrs)
 	    (record builder)
+	    (clos core)
 	    (sagittarius time) ;; for time
 	    (rename (except (sagittarius socket) make-client-socket)
 		    (make-server-socket socket:make-server-socket))
@@ -316,7 +317,6 @@
 			(certificates '()) ;; in case...
 			(trusted-certificates '()))))
 
-
 (define (make-client-tls-socket server service
 				:optional (options (tls-socket-options-builder)))
   (define (get-option getter default)
@@ -330,22 +330,28 @@
     (if (null? v*)
 	v*
 	(list (ctr v*))))
-  (let ((s (make-client-socket server service options)))
-    (socket->tls-socket
-     s
-     :certificates (get-option tls-socket-options-certificates '())
-     :private-key (get-option tls-socket-options-private-key #f)
-     :handshake (get-option tls-socket-options-handshake #t)
-     :client-socket #t
-     :hello-extensions `(,@extensions
-			 ,@(make-extension
-			    make-server-name-indication sni*)
-			 ,@(make-extension
-			    make-protocol-name-list alpn*))
-     :peer-certificate-required? #t
-     :certificate-verifier
-     ;; default #f to allow self signed certificate
-       (get-option tls-socket-options-certificate-verifier #f))))
+  (let ((s (make-client-socket server service
+			       (socket-options-builder
+				(from options)
+				(read-timeout #f)
+				(non-blocking? #f)))))
+    (setup-socket
+     (socket->tls-socket
+      s
+      :certificates (get-option tls-socket-options-certificates '())
+      :private-key (get-option tls-socket-options-private-key #f)
+      :handshake (get-option tls-socket-options-handshake #t)
+      :client-socket #t
+      :hello-extensions `(,@extensions
+			  ,@(make-extension
+			     make-server-name-indication sni*)
+			  ,@(make-extension
+			     make-protocol-name-list alpn*))
+      :peer-certificate-required? #t
+      :certificate-verifier
+        ;; default #f to allow self signed certificate
+        (get-option tls-socket-options-certificate-verifier #f))
+     options)))
 
 (define (make-server-tls-socket port options)
   (define certificates (tls-socket-options-certificates options))
@@ -364,14 +370,20 @@
   (unless (private-key? private-key)
     (assertion-violation 'make-server-tls-socket
 			 "Private key is missing" private-key))
-  (let ((s (make-server-socket port options)))
-    (socket->tls-socket s
-     :certificates certificates
-     :private-key private-key
-     :client-socket #f
-     :peer-certificate-required? client-cert-needed?
-     :authorities '()
-     :certificate-verifier (tls-socket-options-certificate-verifier options))))
+  (let ((s (make-server-socket port (socket-options-builder
+				     (from options)
+				     (read-timeout #f)
+				     (non-blocking? #f)))))
+    (setup-socket
+     (socket->tls-socket
+      s
+      :certificates certificates
+      :private-key private-key
+      :client-socket #f
+      :peer-certificate-required? client-cert-needed?
+      :authorities '()
+      :certificate-verifier (tls-socket-options-certificate-verifier options))
+     options)))
 
 ;; For convenience
 (define (socket-options->client-socket option node service)
