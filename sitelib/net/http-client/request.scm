@@ -46,7 +46,7 @@
 	    http:response-body
 
 	    +http:managed-headers+
-	    http:headers?
+	    http:make-headers http:headers?
 	    http:headers-ref* http:headers-ref http:headers-contains?
 	    http:headers-set! http:headers-add!
 	    http:headers-names
@@ -63,10 +63,11 @@
 (define (->headers l)
   (if (http:headers? l)
       (hashtable-copy l #t)
-      (let ((ht (make-hashtable string-ci-hash string-ci=?)))
+      (let ((ht (http:make-headers)))
 	(for-each (lambda (kv) (http:headers-add! ht (car kv) (cdr kv))) l)
 	ht)))
 
+(define (http:make-headers) (make-hashtable string-ci-hash string-ci=?))
 (define http:headers? hashtable?)
 (define (http:headers-ref* h k) (hashtable-ref h k '()))
 (define (http:headers-ref h k) (cond ((hashtable-ref h k #f) => car)
@@ -126,8 +127,7 @@
 ;; Managed headers (these headers are ignored if user set)
 ;; Host is not listed here deliberately
 (define +http:managed-headers+
-  '("user-agent" ;; this is handled separately but user can stil specify ;)
-    "host"	 ;; so is this
+  '("host"	 ;; this is handled separately but user can stil specify ;)
     "content-length"
     "content-type"
     "transfer-encoding"

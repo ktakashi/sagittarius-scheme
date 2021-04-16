@@ -83,7 +83,8 @@
   ;; 4. close connection if needed
   (http-connection-open! connection)
   (send-request! connection request)
-  (let ((keep? (receive-request! connection header-handler data-handler)))
+  (let ((keep? (receive-response! connection request
+				  header-handler data-handler)))
     (cond (keep? connection)
 	  (else (http-connection-close! connection)))))
 
@@ -105,7 +106,7 @@
       (if (= r size)
 	  buf
 	  (loop (+ s r) (- size r))))))
-(define (receive-request! connection header-handler data-handler)
+(define (receive-response! connection request header-handler data-handler)
   (define in (http-connection-input connection))
   (define (check-connection headers)
     ;; TODO we need to tell connection manager how long we can
@@ -128,7 +129,13 @@
 		      (check-connection headers))
 		     (else
 		      (data-handler (get-bytevector-all in) #t)
-		      #f))))))))
+		      #f))))
+	    ;; no body, so it's okay
+	    ((or (eq? 'HEAD (http:request-method request))
+		 ;; 204 (no content) 304 (not modified)
+		 (and code (memq (string->number code) '(204 304)))))
+	    ;; very bad behaving server...
+	    (else (data-handler (get-bytevector-all in) #t) #f)))))
 
 (define (read-chunked data-handler in)
   (let ((line (read-one-line in)))

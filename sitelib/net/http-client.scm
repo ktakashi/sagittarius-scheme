@@ -61,6 +61,7 @@
 	    (rfc zlib)
 	    (rfc gzip)
 	    (rfc :5322)
+	    (rfc uri)
 	    (srfi :39 parameters)
 	    (util concurrent))
 
@@ -94,30 +95,71 @@
   (future-get (http:client-send-async client request)))
 
 (define (http:client-send-async client request)
-  (define (adjust-request conn request)
-    (let* ((copy (http:request-builder (from request)))
-	   (headers (http:request-headers copy)))
-      (unless (http:headers-contains? headers "User-Agent")
-	(http:headers-set! headers "User-Agent"
-			   (http-connection-user-agent conn)))
-      (unless (http:headers-contains? headers "Accept")
-	(http:headers-set! headers "Accept" "*/*"))
-      (http:headers-set! headers "Accept-Encoding" "gzip, deflate")
-      copy))
-  
+  (thunk->future
+   (lambda () (send-request/response client request))
+   (http:client-executor client)))
+
+;;; helper
+(define (send-request/response client request)
+  (define (handle-redirect client request response)
+    (define (get-location response)
+      (http:headers-ref (http:response-headers response) "Location"))
+    (define (check-scheme request response)
+      (let ((uri (string->uri (get-location response)))
+	    (request-scheme (uri-scheme (http:request-uri request))))
+	(or (not (uri-scheme uri))
+	    (equal? (uri-scheme uri) request-scheme)
+	    ;; http -> https: ok
+	    ;; https -> http: not ok
+	    (equal? "http" request-scheme))))
+    (define (do-redirect client request response)
+      (define request-uri (http:request-uri request))
+      (define (get-next-uri)
+	(let ((uri (string->uri (get-location response))))
+	  (string->uri
+	   (uri-compose :scheme (or (uri-scheme uri) (uri-scheme request-uri))
+			:authority (or (uri-authority uri)
+				       (uri-authority request-uri))
+			:path (uri-path uri)
+			:query (uri-query uri)))))
+      (let ((next (get-next-uri)))
+	(send-request/response client (http:request-builder
+				       (from request)
+				       (uri next)))))
+    (case (http:client-follow-redirects client)
+      ((never) response)
+      ((always) (do-redirect client request response))
+      ((normal) (and (check-scheme request response)
+		     (do-redirect client request response)))
+      ;; well, just return...
+      (else response)))
+       
   (let ((conn (get-http-connection client request)))
     (let-values (((header-handler body-handler response-retriever)
 		  (make-handlers)))
-      (thunk->future
-       (lambda ()
-	 (http-connection-send-request! conn (adjust-request conn request)
-					header-handler body-handler)
-	 (http-connection-receive-response! conn)
-	 ;; TODO redirect
-	 (response-retriever))
-       (http:client-executor client)))))
+      (http-connection-send-request! conn (adjust-request conn request)
+				     header-handler body-handler)
+      (http-connection-receive-response! conn)
+      ;; for now close connection
+      ;; TODO implement connection pool
+      (http-connection-close! conn)
+      (let* ((response (response-retriever))
+	     (status (http:response-status response)))
+	(if (and status (char=? #\3 (string-ref status 0)))
+	    (handle-redirect client request response)
+	    response)))))
+  
+(define (adjust-request conn request)
+  (let* ((copy (http:request-builder (from request)))
+	 (headers (http:request-headers copy)))
+    (unless (http:headers-contains? headers "User-Agent")
+      (http:headers-set! headers "User-Agent"
+			 (http-connection-user-agent conn)))
+    (unless (http:headers-contains? headers "Accept")
+      (http:headers-set! headers "Accept" "*/*"))
+    (http:headers-set! headers "Accept-Encoding" "gzip, deflate")
+    copy))
 
-;;; helper
 (define-record-type mutable-response
   (fields (mutable status)
 	  (mutable headers)
@@ -152,9 +194,16 @@
 	       (body (decompress headers in/out)))
 	  (mutable-response-body-set! response body))))
     (define (response-retriever)
+      (define headers (http:make-headers))
+      ;; stored headers are RFC 5322 alist, so conver it here
+      (for-each (lambda (kv)
+		  (for-each (lambda (v)
+			      (http:headers-add! headers (car kv) v))
+			    (cdr kv)))
+		(mutable-response-headers response))
       ;; TODO build cookies here
       (http:response-builder (status (mutable-response-status response))
-			     (headers (mutable-response-headers response))
+			     (headers headers)
 			     (body (mutable-response-body response))))
     (mutable-response-body-set! response in/out)
     (values header-handler body-handler response-retriever)))
