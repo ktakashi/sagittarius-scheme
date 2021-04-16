@@ -43,7 +43,7 @@
 	    http:response? http:response-builder
 	    (rename (http:response <http:response>))
 	    http:response-status http:response-headers
-	    http:response-body
+	    http:response-cookies http:response-body
 
 	    +http:managed-headers+
 	    http:make-headers http:headers?

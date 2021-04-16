@@ -36,7 +36,7 @@
     (export http:request? http:request-builder <http:request>
 	    http:response?
 	    http:response-status http:response-headers
-	    http:response-body
+	    http:response-cookies http:response-body
 	    http:headers?
 	    http:headers-names http:headers-ref* http:headers-ref
 	    http:method
@@ -46,6 +46,8 @@
 	    (rename (http:client <http:client>))
 	    http:version
 	    http:redirect
+
+	    http:make-default-cookie-handler
 	    
 	    http:client-send
 	    http:client-send-async)
@@ -58,6 +60,7 @@
 	    (net socket)
 	    (net uri)
 	    (binary io)
+	    (rfc cookie)
 	    (rfc zlib)
 	    (rfc gzip)
 	    (rfc :5322)
@@ -83,6 +86,9 @@
 			(follow-redirects (http:redirect never))
 			(version (http:version http/2))
 			(executor (*http-client:default-executor*)))))
+
+;; for now
+(define (http:make-default-cookie-handler) (make-cookie-jar))
 
 (define-enumeration http:version
   (http/1.1 http/2)
@@ -137,7 +143,7 @@
   (let ((conn (get-http-connection client request)))
     (let-values (((header-handler body-handler response-retriever)
 		  (make-handlers)))
-      (http-connection-send-request! conn (adjust-request conn request)
+      (http-connection-send-request! conn (adjust-request client conn request)
 				     header-handler body-handler)
       (http-connection-receive-response! conn)
       ;; for now close connection
@@ -145,11 +151,13 @@
       (http-connection-close! conn)
       (let* ((response (response-retriever))
 	     (status (http:response-status response)))
+	(when (http:client-cookie-handler client)
+	  (add-cookie! client (http:response-cookies response)))
 	(if (and status (char=? #\3 (string-ref status 0)))
 	    (handle-redirect client request response)
 	    response)))))
   
-(define (adjust-request conn request)
+(define (adjust-request client conn request)
   (let* ((copy (http:request-builder (from request)))
 	 (headers (http:request-headers copy)))
     (unless (http:headers-contains? headers "User-Agent")
@@ -158,7 +166,19 @@
     (unless (http:headers-contains? headers "Accept")
       (http:headers-set! headers "Accept" "*/*"))
     (http:headers-set! headers "Accept-Encoding" "gzip, deflate")
+    (cond ((http:client-cookie-handler client) =>
+	   (lambda (jar)
+	     (define uri (http:request-uri request))
+	     ;; okay add cookie here
+	     (let ((cookies (cookie-jar->cookies jar (cookie-jar-selector uri))))
+	       (unless (null? cookies)
+		 (http:headers-add! headers "Cookie"
+				    (cookies->string cookies)))))))
     copy))
+
+(define (add-cookie! client cookies)
+  (unless (null? cookies)
+    (apply cookie-jar-add-cookie! (http:client-cookie-handler client) cookies)))
 
 (define-record-type mutable-response
   (fields (mutable status)
@@ -201,10 +221,13 @@
 			      (http:headers-add! headers (car kv) v))
 			    (cdr kv)))
 		(mutable-response-headers response))
-      ;; TODO build cookies here
-      (http:response-builder (status (mutable-response-status response))
-			     (headers headers)
-			     (body (mutable-response-body response))))
+      (let ((cookies (map parse-cookie-string
+			  (http:headers-ref* headers "Set-Cookie"))))
+	;; TODO build cookies here
+	(http:response-builder (status (mutable-response-status response))
+			       (headers headers)
+			       (cookies cookies)
+			       (body (mutable-response-body response)))))
     (mutable-response-body-set! response in/out)
     (values header-handler body-handler response-retriever)))
       

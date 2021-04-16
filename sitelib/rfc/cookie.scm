@@ -57,12 +57,15 @@
 	    cookie-http-only? cookie-http-only-set!
 	    cookie-extension cookie-extension-add!
 
+	    cookie-expired?
+	    
 	    (rename (cookie-jar <cookie-jar>))
 	    make-cookie-jar cookie-jar?
 	    cookie-jar-size
 	    cookie-jar-add-cookie!
 	    cookie-jar-delete-cookie!
 	    cookie-jar->cookies
+	    cookie-jar-selector
 	    )
     (import (rnrs)
 	    (sagittarius) ;; for format
@@ -74,7 +77,8 @@
 	    (srfi :128 comparators)
 	    (text parse)
 	    (util hashtables)
-	    (clos user))
+	    (clos user)
+	    (net uri))
 
 (define-class <cookie> ()
   (;; required, we don't  allow users to change name. or should we?
@@ -94,6 +98,7 @@
 	   :reader cookie-secure? :writer cookie-secure-set!)
    (http-only :init-keyword :http-only :init-value #f
 	      :reader cookie-http-only? :writer cookie-http-only-set!)
+   (created :init-keyword :created :reader cookie-created)
    ;; TODO can extension-av appear multiple times?
    ;; (I think so)
    (extension :init-keyword :extension
@@ -112,7 +117,7 @@
 	  (if (cookie-http-only? o) " httpOnly" "")))
 
 (define (make-cookie name value . opt)
-  (apply make <cookie> :name name :value value opt))
+  (apply make <cookie> :name name :value value :created (current-time) opt))
 (define (cookie? o) (is-a? o <cookie>))
 
 (define (cookie-extension-add! cookie name value)
@@ -461,19 +466,49 @@
 	      (cdr cookies))
     (extract)))
 
+;; 5.1.3.  Domain Matching
+;;    A string domain-matches a given domain string if at least one of the
+;;    following conditions hold:
+;;    o  The domain string and the string are identical.  (Note that both
+;;       the domain string and the string will have been canonicalized to
+;;       lower case at this point.)
+;;    o  All of the following conditions hold:
+;;       *  The domain string is a suffix of the string.
+;;       *  The last character of the string that is not included in the
+;;          domain string is a %x2E (".") character.
+;;       *  The string is a host name (i.e., not an IP address).
+;; For now we do extremely simple
+(define (cookie-domain-match? cookie host)
+  (define domain (cookie-domain cookie))
+  (and domain host
+       (string-suffix? domain host)))
+
+(define (cookie-expired? cookie)
+  (define max-age (cookie-max-age cookie))
+  (define expires (cookie-expires cookie))
+  (cond (max-age
+	 (or (zero? max-age)
+	     (time>? (current-time)
+		     (add-duration (cookie-created cookie)
+				   (make-time time-duration 0 max-age)))))
+	(expires (time>? (current-time) (date->time-utc expires)))
+	(else #f)))
+
 (define cookie-comparator
   (make-comparator cookie?
 		   (lambda (c1 c2)
 		     (and (equal? (cookie-name c1) (cookie-name c2))
+			  (equal? (cookie-domain c1) (cookie-domain c2))
 			  (equal? (cookie-path c1) (cookie-path c2))))
 		   #f
 		   (lambda (c)
+		     (define (hasher prev v)
+		       (cond (v (+ (* prev 37) (string-hash v)))
+			     (else prev)))
 		     (let* ((hash (* 17 37))
 			    (name-hash (+ hash (string-hash (cookie-name c)))))
-		       (cond ((cookie-path c) =>
-			      (lambda (path)
-				(+ (* name-hash 37) (string-hash path))))
-			     (else name-hash))))))
+		       (hasher (hasher name-hash (cookie-path c))
+			       (cookie-domain c))))))
 		     
 (define-record-type cookie-jar
   (fields cookies)
@@ -493,5 +528,13 @@
     (set-fold (lambda (cookie acc)
 		(if (predicate cookie) (cons cookie acc) acc))
 	      '() (cookie-jar-cookies cookie-jar))))
+
+(define (cookie-jar-selector uri)
+  (define host (uri-host uri))
+  (define secure? (equal? "https" (uri-scheme uri)))
+  (lambda (cookie)
+    (and (or (not secure?) (cookie-secure? cookie))
+	 (cookie-domain-match? cookie host)
+	 (not (cookie-expired? cookie)))))
 
 )
