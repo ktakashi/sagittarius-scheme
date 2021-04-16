@@ -108,11 +108,10 @@
   (let ((conn (get-http-connection client request)))
     (let-values (((header-handler body-handler response-retriever)
 		  (make-handlers)))
-      ;; TODO make it async here
-      (http-connection-send-request! conn (adjust-request conn request)
-				     header-handler body-handler)
       (thunk->future
        (lambda ()
+	 (http-connection-send-request! conn (adjust-request conn request)
+					header-handler body-handler)
 	 (http-connection-receive-response! conn)
 	 ;; TODO redirect
 	 (response-retriever))

@@ -712,3 +712,15 @@ And return the given @var{future}.
 These procedures return immediately and the computation of
 @var{proc} will be done in some future.
 }
+
+@define[Function]{@name{future-guard} @args{proc future}}
+@desc{Guards the @var{future} and apply the raised condition to @var{proc}.
+
+@codeblock[=> 'ok]{
+(future-get (future-guard (lambda (e) 'ok)
+                          (thunk->future (lambda () (raise 'boo)))))
+}
+
+These procedures return immediately and the computation of
+@var{proc} will be done in some future.
+}

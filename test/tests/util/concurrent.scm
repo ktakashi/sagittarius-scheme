@@ -313,6 +313,10 @@
   (test-equal 4 (future-get f2))
   (test-equal '(4 3 2 1) v)))
 
+(test-equal 'ok (future-get (future-guard
+			     (lambda (e) 'ok)
+			     (thunk->future (lambda () (raise 'boo))))))
+
 (let ((e (make-executor 1))
       (f1 (future (class <executor-future>) 1))
       (f2 (future (class <executor-future>) (thread-sleep! 10)))
