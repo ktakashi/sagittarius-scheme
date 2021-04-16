@@ -72,7 +72,7 @@
   (let ((results (handle-requests connection requests)))
     (hashtable-clear! requests)
     ;; TODO check reconnectability
-    #f))
+    (fold-left (lambda (acc conn) (and acc conn)) #t (vector->list results))))
 
 (define (http1-resquest/response connection request header-handler data-handler)
   ;; 1. ensure connection (some bad server may not allow us to reuse the
@@ -86,7 +86,7 @@
   (let ((keep? (receive-response! connection request
 				  header-handler data-handler)))
     (cond (keep? connection)
-	  (else (http-connection-close! connection)))))
+	  (else (http-connection-close! connection) #f))))
 
 (define (read-one-line in)
   ;; \r\n would be \r for binary:get-line so trim it

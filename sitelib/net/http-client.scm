@@ -48,12 +48,22 @@
 	    http:redirect
 
 	    http:make-default-cookie-handler
+
+	    make-http-default-connection-manager
 	    
+	    make-http-ephemeral-connection-mamager
+	    http-ephemeral-connection-mamager?
+	    
+	    make-http-pooling-connection-mamager
+	    http-pooling-connection-mamager?
+
+	    http:client-shutdown!
 	    http:client-send
 	    http:client-send-async)
     (import (rnrs)
 	    (net http-client request)
 	    (net http-client connection)
+	    (net http-client connection-manager)
 	    (net http-client http1)
 	    (net http-client http2)
 	    (record builder)
@@ -75,15 +85,16 @@
   (fields connection-timeout
 	  read-timeout
 	  follow-redirects
-	  cookie-handler     ;; reserved...
+	  cookie-handler
 	  connection-manager ;; reserved...
-	  version	     ;;
+	  version
 	  executor
 	  ))
 (define-syntax http:client-builder
   (make-record-builder http:client
 		       (;; by default we don't follow
 			(follow-redirects (http:redirect never))
+			(connection-manager (make-http-default-connection-manager))
 			(version (http:version http/2))
 			(executor (*http-client:default-executor*)))))
 
@@ -96,6 +107,9 @@
 (define-enumeration http:redirect
   (never always normal)
   http-redirect)
+
+(define (http:client-shutdown! client)
+  (http-connection-manager-shutdown! (http:client-connection-manager client)))
 
 (define (http:client-send client request)
   (future-get (http:client-send-async client request)))
@@ -140,15 +154,13 @@
       ;; well, just return...
       (else response)))
        
-  (let ((conn (get-http-connection client request)))
+  (let ((conn (lease-http-connection client request)))
     (let-values (((header-handler body-handler response-retriever)
 		  (make-handlers)))
       (http-connection-send-request! conn (adjust-request client conn request)
 				     header-handler body-handler)
-      (http-connection-receive-response! conn)
-      ;; for now close connection
-      ;; TODO implement connection pool
-      (http-connection-close! conn)
+      (let ((reuse? (http-connection-receive-response! conn)))
+	(release-http-connection client conn reuse?))
       (let* ((response (response-retriever))
 	     (status (http:response-status response)))
 	(when (http:client-cookie-handler client)
@@ -223,7 +235,6 @@
 		(mutable-response-headers response))
       (let ((cookies (map parse-cookie-string
 			  (http:headers-ref* headers "Set-Cookie"))))
-	;; TODO build cookies here
 	(http:response-builder (status (mutable-response-status response))
 			       (headers headers)
 			       (cookies cookies)
@@ -231,21 +242,10 @@
     (mutable-response-body-set! response in/out)
     (values header-handler body-handler response-retriever)))
       
-(define (get-http-connection client request)
+(define (lease-http-connection client request)
   (define uri (http:request-uri request))
-  (let-values (((socket host service option) (uri->socket uri client)))
-    (if (http2? socket)
-	(socket->http2-connection socket option host service)
-	(socket->http1-connection socket option host service))))
-
-(define (http2? socket)
-  (and (tls-socket? socket)
-       (equal? (tls-socket-selected-alpn socket) "h2")))
-  
-(define (uri->socket uri client)
   (define scheme (uri-scheme uri))
   (define host (uri-host uri))
-  (define port (uri-port uri))
   (define (get-option scheme host client)
     (define (milli->micro v) (* v 1000))
     (define connection-timeout
@@ -265,9 +265,11 @@
 			    (alpn* alpn))
 	(socket-options (connection-timeout connection-timeout)
 			(read-timeout read-timeout))))
-  (let ((option (get-option scheme host client))
-	(service (or port scheme)))
-    (values (socket-options->client-socket option host service)
-	    host service option)))
-
+  (http-connection-manager-lease-connection
+   (http:client-connection-manager client)
+   request (get-option scheme host client)))
+(define (release-http-connection client connection reuse?)
+  (http-connection-manager-release-connection
+   (http:client-connection-manager client)
+   connection reuse?))
 )
