@@ -35,10 +35,12 @@
     (import (rnrs)
 	    (srfi :39 parameters)
 	    (util concurrent future)
-	    (util concurrent executor))
+	    (util concurrent executor)
+	    (scheme lazy))
 
 (define *completable-future:default-executor*
-  (make-parameter (make-thread-pool-executor 5 push-future-handler)))
+  ;; Let's not create an executor during library load
+  (delay-force (make-thread-pool-executor 5 push-future-handler)))
 
 (define-record-type completable-future
   (parent <executor-future>)
@@ -49,7 +51,7 @@
 
 (define thunk->future
   (case-lambda
-   ((thunk) (thunk->future thunk (*completable-future:default-executor*)))
+   ((thunk) (thunk->future thunk (force *completable-future:default-executor*)))
    ((thunk executor)
     (let ((future (make-completable-future thunk executor)))
       (execute-future! executor future)
@@ -59,7 +61,7 @@
   (thunk->future (lambda opt (proc (apply future-get future opt)))
 		 (if (completable-future? future)
 		     (completable-future-executor future)
-		     (*completable-future:default-executor*))))
+		     (force *completable-future:default-executor*))))
 
 (define (future-guard proc future)
   (thunk->future
@@ -68,5 +70,5 @@
        (apply future-get future opt)))
    (if (completable-future? future)
        (completable-future-executor future)
-       (*completable-future:default-executor*))))
+       (force *completable-future:default-executor*))))
 )
