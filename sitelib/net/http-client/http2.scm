@@ -159,6 +159,15 @@
 	(cond ((http2-frame-settings? frame)
 	       (http2-apply-server-settings connection frame)
 	       (loop))
+	      ((http2-frame-ping? frame)
+	       (write-http2-frame
+		(http-connection-output connection)
+		(http2-connection-buffer connection)
+		(make-http2-frame-ping 1 sid
+				       (http2-frame-ping-opaque-data frame))
+		#t
+		(http2-connection-request-hpack-context connection))
+	       (loop))
 	      ((http2-frame-goaway? frame)
 	       (http-connection-close! connection)
 	       (let ((msg? (http2-frame-goaway-data frame)))

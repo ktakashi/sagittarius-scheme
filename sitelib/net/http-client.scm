@@ -51,11 +51,14 @@
 
 	    make-http-default-connection-manager
 	    
-	    make-http-ephemeral-connection-mamager
-	    http-ephemeral-connection-mamager?
+	    make-http-ephemeral-connection-manager
+	    http-ephemeral-connection-manager?
 	    
-	    make-http-pooling-connection-mamager
-	    http-pooling-connection-mamager?
+	    make-http-pooling-connection-manager
+	    http-pooling-connection-manager?
+	    http-connection-pooling-config?
+	    http-connection-pooling-config-builder
+	    build-http-pooling-connection-manager
 
 	    http:client-shutdown!
 	    http:client-send

@@ -371,7 +371,7 @@
 	     (let ((hour (string->number (m 1)))
 		   (min  (string->number (m 2)))
 		   (sec  (string->number (m 3))))
-	       (unless (<= 1 hour 23)
+	       (unless (<= 0 hour 23)
 		 (assertion-violation 'parse-date "invalid hour" hour))
 	       (unless (<= 0 min 59)
 		 (assertion-violation 'parse-date "invalid minute" min))

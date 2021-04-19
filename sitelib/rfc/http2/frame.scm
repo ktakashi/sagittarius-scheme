@@ -368,8 +368,16 @@
 	       (loop (cdr settings)))))))
 ;;   (define-buffer-converter +http2-frame-type-push-promise+
 ;;     (buffer-converter-push-promise frame buffer end? ctx))
-;;   (define-buffer-converter +http2-frame-type-ping+
-;;     (buffer-converter-ping frame buffer end? ctx))
+   (define-buffer-converter +http2-frame-type-ping+
+     (buffer-converter-ping frame buffer end? ctx)
+     (let ((data (http2-frame-ping-opaque-data frame))
+	   (si (http2-frame-stream-identifier frame))
+	   (flags (http2-frame-flags frame)))
+       (put-frame-common buffer (bytevector-length data) +http2-frame-type-ping+
+			 flags si)
+       (binary-pre-allocated-buffer-put-bytevector! buffer data)
+       #f))
+   
    (define-buffer-converter +http2-frame-type-goaway+
      (buffer-converter-goaway frame buffer end? ctx)
      (let ((lsi (http2-frame-goaway-last-stream-id frame))

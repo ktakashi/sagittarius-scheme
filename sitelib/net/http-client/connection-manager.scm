@@ -35,13 +35,16 @@
 	    http-connection-manager-shutdown!
 
 	    ;; default no pooling?
-	    (rename (make-http-ephemeral-connection-mamager
+	    (rename (make-http-ephemeral-connection-manager
 		     make-http-default-connection-manager))
-	    make-http-ephemeral-connection-mamager
-	    http-ephemeral-connection-mamager?
+	    make-http-ephemeral-connection-manager
+	    http-ephemeral-connection-manager?
 	    
-	    make-http-pooling-connection-mamager
-	    http-pooling-connection-mamager?
+	    make-http-pooling-connection-manager
+	    http-pooling-connection-manager?
+	    http-connection-pooling-config?
+	    http-connection-pooling-config-builder
+	    build-http-pooling-connection-manager
 	    )
     (import (rnrs)
 	    (net socket)
@@ -50,7 +53,9 @@
 	    (net http-client request)
 	    (net http-client http1)
 	    (net http-client http2)
+	    (record builder)
 	    (srfi :18 multithreading)
+	    (srfi :19 time)
 	    (util concurrent))
 
 (define-record-type connection-manager
@@ -68,7 +73,7 @@
   ((connection-manager-shutdown manager) manager))
 
 ;;; ephemeral (no pooling)
-(define-record-type http-ephemeral-connection-mamager
+(define-record-type http-ephemeral-connection-manager
   (parent connection-manager)
   (protocol (lambda (n)
 	      (lambda ()
@@ -98,34 +103,53 @@
 	    host service option)))
 
 ;;; pooling
-(define-record-type http-pooling-connection-mamager
+(define-record-type http-pooling-connection-manager
   (parent connection-manager)
   (fields connection-request-timeout
 	  max-connection-per-route
+	  time-to-live
 	  ;; these are private
 	  available
 	  leasing
 	  ephemeral-manager
 	  lock)
   (protocol (lambda (n)
-	      (lambda (timeout max-connection-per-route)
+	      (lambda (timeout max-connection-per-route ttl)
 		((n pooling-lease-connection pooling-release-connection
 		    pooling-shutdown)
 		 timeout
 		 max-connection-per-route
+		 ttl
 		 (make-hashtable string-hash string=?)
 		 (make-hashtable string-hash string=?)
-		 (make-http-ephemeral-connection-mamager)
+		 (make-http-ephemeral-connection-manager)
 		 (make-mutex))))))
 
+(define-record-type http-connection-pooling-config
+  (fields connection-request-timeout
+	  max-connection-per-route
+	  time-to-live))
+(define-syntax http-connection-pooling-config-builder
+  (make-record-builder http-connection-pooling-config
+		       ;; random numbers ;-)
+		       ((max-connection-per-route 5)
+			(time-to-live 2))))
+(define (build-http-pooling-connection-manager config)
+  (make-http-pooling-connection-manager
+   (http-connection-pooling-config-connection-request-timeout config)
+   (http-connection-pooling-config-max-connection-per-route config)
+   (http-connection-pooling-config-time-to-live config)))
+
 (define (pooling-shutdown manager)
-  (define available (http-pooling-connection-mamager-available manager))
-  (define leasing (http-pooling-connection-mamager-leasing manager))
+  (define available (http-pooling-connection-manager-available manager))
+  (define leasing (http-pooling-connection-manager-leasing manager))
   (define (do-shutdown table)
     (let-values (((keys values) (hashtable-entries table)))
       (vector-for-each
        (lambda (sq)
-	 (for-each http-connection-close! (shared-queue->list sq))
+	 (for-each (lambda (e)
+		     (http-connection-close! (pooling-entry-connection e)))
+		   (shared-queue->list sq))
 	 (shared-queue-clear! sq))
        values))
     (hashtable-clear! table))
@@ -133,34 +157,62 @@
   (do-shutdown leasing)
   #t)
 
+(define-record-type pooling-entry
+  (fields expires
+	  connection)
+  (protocol (lambda (p)
+	      (lambda (ttl conn)
+		(p (add-duration (current-time)
+				 (make-time time-duration 0 ttl))
+		   conn)))))
+(define (pooling-entry-expired? entry)
+  (time>=? (current-time) (pooling-entry-expires entry)))
+
 (define (pooling-lease-connection manager request option)
-  (define available (http-pooling-connection-mamager-available manager))
-  (define leasing (http-pooling-connection-mamager-leasing manager))
-  (define lock (http-pooling-connection-mamager-lock manager))
+  (define available (http-pooling-connection-manager-available manager))
+  (define leasing (http-pooling-connection-manager-leasing manager))
+  (define lock (http-pooling-connection-manager-lock manager))
   (define timeout
-    (http-pooling-connection-mamager-connection-request-timeout manager))
+    (http-pooling-connection-manager-connection-request-timeout manager))
   (define max-per-route
-    (http-pooling-connection-mamager-max-connection-per-route manager))
+    (http-pooling-connection-manager-max-connection-per-route manager))
   (define delegate
-    (http-pooling-connection-mamager-ephemeral-manager manager))
+    (http-pooling-connection-manager-ephemeral-manager manager))
+  (define ttl
+    (http-pooling-connection-manager-time-to-live manager))
   (define (ensure-queue table route max)
     (cond ((hashtable-ref table route #f))
 	  (else (let ((q (make-shared-queue max)))
 		  (hashtable-set! table route q)
 		  q))))
+  
   (define (get-connection leased avail)
     (cond ((and (not (shared-queue-empty? avail))
-		(shared-queue-get! avail timeout)))
+		;; TODO maybe we need to do LIFO instead of FIFO for
+		;;      better reusability
+		(shared-queue-get! avail timeout))
+	   => (lambda (entry)
+		;; okay check if it's expired or not
+		(cond ((pooling-entry-expired? entry)
+		       (http-connection-manager-release-connection delegate
+			(pooling-entry-connection entry) #f)
+		       (get-connection leased avail))
+		      (else
+		       (shared-queue-put! leased entry)
+		       (pooling-entry-connection entry)))))
 	  ((and (shared-queue-empty? avail)
 		(< (+ (shared-queue-size leased) (shared-queue-size avail))
 		   max-per-route))
 	   (let ((conn (http-connection-manager-lease-connection delegate
 								 request
 								 option)))
-	     (shared-queue-put! leased conn)
+	     (shared-queue-put! leased (make-pooling-entry ttl conn))
 	     conn))
 	  ;; okay, just create
-	  (else (http-connection-manager-lease-connection delegate))))
+	  (else (http-connection-manager-lease-connection delegate
+							  request
+							  option))))
+
   (let ((route (get-route request)))
     (mutex-lock! lock)
     (let* ((leased (ensure-queue leasing route -1))
@@ -170,26 +222,34 @@
       conn)))
 
 (define (pooling-release-connection manager connection reuse?)
-  (define available (http-pooling-connection-mamager-available manager))
-  (define leasing (http-pooling-connection-mamager-leasing manager))
-  (define lock (http-pooling-connection-mamager-lock manager))
+  (define available (http-pooling-connection-manager-available manager))
+  (define leasing (http-pooling-connection-manager-leasing manager))
+  (define lock (http-pooling-connection-manager-lock manager))
   (define delegate
-    (http-pooling-connection-mamager-ephemeral-manager manager))
+    (http-pooling-connection-manager-ephemeral-manager manager))
   (define (->route connection)
     (define host (http-connection-node connection))
     (define service (http-connection-service connection))
     (define port (cond ((get-default-port service))
 		       (else service)))
     (string-append host ":" port))
+  (define (remove-entry sq conn)
+    (cond ((shared-queue-find sq (lambda (e)
+				   (eq? (pooling-entry-connection e) conn)))
+	   => (lambda (e) (shared-queue-remove! sq e) e))
+	  (else #f)))
   
   (mutex-lock! lock)
   (let* ((route (->route connection))
 	 (leased (hashtable-ref leasing route #f)))
     ;; must not be #f (if so it's a bug...)
-    (if (and leased (shared-queue-remove! leased connection) reuse?)
-	(let ((avail (hashtable-ref available route #f)))
-	  (and avail (shared-queue-put! avail connection)))
-	(http-connection-manager-release-connection delegate connection #f)))
+    (cond ((and leased (remove-entry leased connection)) =>
+	   (lambda (entry)
+	     (when reuse?
+	       (let ((avail (hashtable-ref available route #f)))
+		 (and avail (shared-queue-put! avail entry))))))
+	  (else
+	   (http-connection-manager-release-connection delegate connection #f))))
   (mutex-unlock! lock))
 
 (define (get-route request)
