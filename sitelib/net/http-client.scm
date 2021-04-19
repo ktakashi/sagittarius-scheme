@@ -78,11 +78,13 @@
 	    (rfc gzip)
 	    (rfc :5322)
 	    (rfc uri)
-	    (srfi :39 parameters)
-	    (util concurrent))
+	    (util concurrent)
+	    (scheme lazy))
 
 (define *http-client:default-executor*
-  (make-parameter (make-thread-pool-executor 5 push-future-handler)))
+  ;; Don't create during the library loading
+  (delay-force
+   (make-thread-pool-executor 5 push-future-handler)))
 
 (define-record-type http:client
   (fields connection-timeout
@@ -97,9 +99,10 @@
   (make-record-builder http:client
 		       (;; by default we don't follow
 			(follow-redirects (http:redirect never))
-			(connection-manager (make-http-default-connection-manager))
+			(connection-manager
+			 (make-http-default-connection-manager))
 			(version (http:version http/2))
-			(executor (*http-client:default-executor*)))))
+			(executor (force *http-client:default-executor*)))))
 
 ;; for now
 (define (http:make-default-cookie-handler) (make-cookie-jar))
@@ -111,8 +114,14 @@
   (never always normal)
   http-redirect)
 
-(define (http:client-shutdown! client)
-  (http-connection-manager-shutdown! (http:client-connection-manager client)))
+(define http:client-shutdown!
+  (case-lambda
+   ((client)
+    (http:client-shutdown! client #t))
+   ((client shutdown-executor?)
+    (http-connection-manager-shutdown! (http:client-connection-manager client))
+    (when (and shutdown-executor? (not (default-executor? client)))
+      (shutdown-executor! (http:client-executor client))))))
 
 (define (http:client-send client request)
   (future-get (http:client-send-async client request)))
@@ -123,6 +132,8 @@
    (http:client-executor client)))
 
 ;;; helper
+(define (default-executor? client)
+  (eq? (http:client-executor client) (force *http-client:default-executor*)))
 (define (send-request/response client request)
   (define (handle-redirect client request response)
     (define (get-location response)
