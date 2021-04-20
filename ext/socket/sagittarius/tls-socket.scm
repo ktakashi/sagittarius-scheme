@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!nounbound
 (library (sagittarius tls-socket)
     (export socket->tls-socket tls-socket?
 	    tls-socket-connect! ;; client handshake
@@ -54,16 +55,18 @@
 
 (define (tls-socket-recv! sock bv start len :optional (flags 0))
   (let ((r (%tls-socket-recv! sock bv start len flags)))
-    (unless (or (>= r 0) (nonblocking-socket? (slot-ref sock 'raw-socket)))
+    (when (and (< r 0) (not (nonblocking-socket? (slot-ref sock 'raw-socket))))
       (raise (condition (make-socket-read-timeout-error sock)
 			(make-who-condition 'tls-socket-recv!)
-			(make-message-condition "Read timeout!"))))
+			(make-message-condition "Read timeout!")
+			(make-irritants-condition r))))
     r))
 (define (tls-socket-recv sock len :optional (flags 0))
   (let ((r (%tls-socket-recv sock len flags)))
-    (unless (or (>= r 0) (nonblocking-socket? (slot-ref sock 'raw-socket)))
+    (unless (or r (nonblocking-socket? (slot-ref sock 'raw-socket)))
       (raise (condition (make-socket-read-timeout-error sock)
 			(make-who-condition 'tls-socket-recv)
-			(make-message-condition "Read timeout!"))))
+			(make-message-condition "Read timeout!")
+			(make-irritants-condition r))))
     r))
 )

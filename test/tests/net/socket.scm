@@ -69,8 +69,11 @@
     (thread-start! server-thread)
 
     (let ((client-socket (make-client-socket "localhost" port
-					     (socket-options (read-timeout 100)))))
+			     (socket-options (read-timeout 100))))
+	  (buffer (make-bytevector 5)))
       (test-error socket-read-timeout-error? (socket-recv client-socket 5))
+      (test-error socket-read-timeout-error?
+		  (socket-recv! client-socket buffer 0 5))
       ;; On windows, this is ETIMEDOUT, so don't rely on it
       ;; (test-equal EWOULDBLOCK (socket-last-error client-socket))
       (socket-shutdown client-socket SHUT_RDWR)
@@ -185,8 +188,11 @@
 
     ;; it's okey to use socket-options ;)
     (let ((client-socket (make-client-tls-socket "localhost" port
-			   (socket-options (read-timeout 100)))))
+			   (socket-options (read-timeout 100))))
+	  (buffer (make-bytevector 5)))
       (test-error socket-read-timeout-error? (tls-socket-recv client-socket 5))
+      (test-error socket-read-timeout-error?
+		  (tls-socket-recv! client-socket buffer 0 5))
       (shutdown&close client-socket))))
   
 (test-end)

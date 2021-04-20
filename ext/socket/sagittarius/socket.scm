@@ -191,7 +191,7 @@
 
   (define (socket-recv! sock bv start len :optional (flags 0))
     (let ((r (%socket-recv! sock bv start len flags)))
-      (unless (or r (nonblocking-socket? sock))
+      (when (and (< r 0) (not (nonblocking-socket? sock)))
 	(raise (condition (make-socket-read-timeout-error sock)
 			  (make-who-condition 'socket-recv!)
 			  (make-message-condition "Read timeout!"))))
