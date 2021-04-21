@@ -30,6 +30,7 @@
 @include-section["utils/pkcs/5.scrbl"]
 @include-section["utils/pkcs/12.scrbl"]
 @include-section["utils/queue.scrbl"]
+@include-section["utils/record/builder.scrbl"]
 @include-section["utils/rfc/5322.scrbl"]
 @include-section["utils/rfc/base64.scrbl"]
 @include-section["utils/rfc/cmac.scrbl"]
