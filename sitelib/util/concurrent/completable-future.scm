@@ -31,7 +31,9 @@
 ;; not sure if we should make separate library for this...
 #!nounbound
 (library (util concurrent completable-future)
-    (export thunk->future future-map future-guard)
+    (export thunk->future future-map future-guard
+
+	    *completable-future:default-executor*)
     (import (rnrs)
 	    (srfi :39 parameters)
 	    (util concurrent future)
@@ -40,7 +42,13 @@
 
 (define *completable-future:default-executor*
   ;; Let's not create an executor during library load
-  (delay-force (make-thread-pool-executor 5 push-future-handler)))
+  (make-parameter
+   (delay-force (make-thread-pool-executor 5 push-future-handler))
+   (lambda (v)
+     (cond ((promise? v) v)
+	   ((executor? v) (delay v))
+	   (else (assertion-violation '*completable-future:default-executor*
+				      "Promise or executor required" v))))))
 
 (define-record-type completable-future
   (parent <executor-future>)
@@ -51,7 +59,8 @@
 
 (define thunk->future
   (case-lambda
-   ((thunk) (thunk->future thunk (force *completable-future:default-executor*)))
+   ((thunk)
+    (thunk->future thunk (force (*completable-future:default-executor*))))
    ((thunk executor)
     (let ((future (make-completable-future thunk executor)))
       (execute-future! executor future)
@@ -61,7 +70,7 @@
   (thunk->future (lambda opt (proc (apply future-get future opt)))
 		 (if (completable-future? future)
 		     (completable-future-executor future)
-		     (force *completable-future:default-executor*))))
+		     (force (*completable-future:default-executor*)))))
 
 (define (future-guard proc future)
   (thunk->future
@@ -70,5 +79,5 @@
        (apply future-get future opt)))
    (if (completable-future? future)
        (completable-future-executor future)
-       (force *completable-future:default-executor*))))
+       (force (*completable-future:default-executor*)))))
 )
