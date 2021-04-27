@@ -207,6 +207,9 @@
 	    (date->string (make-date 0 0 0 0 2 12 1981 3600)
 			  "~Y/~m/~d ~H:~M:~S")
 	    )
+(test-equal "date->string (~k)"
+	    " 3" (date->string (make-date 0 0 0 3 2 12 1981 3600) "~k"))
+
 ;; XSD dateTime extension
 (test-equal "date->string ~6(1)"
 	    "1981-12-02T00:00:00Z"

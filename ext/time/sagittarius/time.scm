@@ -752,7 +752,7 @@
                           port)))
      (cons #\k (lambda (date pad-with port)
                  (display (tm:padding (date-hour date)
-                                      #\0 2)
+                                      #\space 2)
                           port)))
      (cons #\l (lambda (date pad-with port)
                  (let ((hr (if (> (date-hour date) 12)
@@ -840,7 +840,7 @@
      ;; I want something that can specify timezone offset printer
      ;; other than #\z but almost all chars are occupied...
      (cons #\6 (lambda (date pad-with port)
-                 (display (date->string date "~Y-~m-~dT~k:~M:~S") port)
+                 (display (date->string date "~Y-~m-~dT~H:~M:~S") port)
 		 (tm:tz-printer (date-zone-offset date) port #\:)))
      ))
 
