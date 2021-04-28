@@ -32,6 +32,7 @@
 ;;     means there's no actual specification but usecase on RFC
 ;;     see: https://tools.ietf.org/html/rfc7165
 
+#!nounbound
 (library (rfc jose)
     (export (rename (jose-header <jose-header>))
 	    make-jose-header jose-header?
@@ -39,11 +40,12 @@
 
 	    (rename (jose-crypto-header <jose-crypto-header>))
 	    make-jose-crypto-header jose-crypto-header?
-	    jose-crypt-header-alg jose-crypt-header-jku
-	    jose-crypt-header-jwk jose-crypt-header-kid
-	    jose-crypt-header-x5u jose-crypt-header-x5c
-	    jose-crypt-header-x5t jose-crypt-header-x5t-s256
-	    jose-crypt-header-crit
+	    jose-crypto-header-alg jose-crypto-header-jku
+	    jose-crypto-header-jwk jose-crypto-header-kid
+	    jose-crypto-header-x5u jose-crypto-header-x5c
+	    jose-crypto-header-x5t jose-crypto-header-x5t-s256
+	    jose-crypto-header-crit
+	    jose-crypto-header-custom-parameters
 
 	    x5c-parameter->x509-certificates
 	    )
@@ -57,7 +59,7 @@
   ;; TODO should we define this in (rfc jws)?
   (define-record-type jose-crypto-header
     (parent jose-header)
-    (fields alg jku jwk kid x5u x5c x5t x5t-s256 crit))
+    (fields alg jku jwk kid x5u x5c x5t x5t-s256 crit custom-parameters))
 
   (define (x5c-parameter->x509-certificates x5c)
     (map make-x509-certificate x5c))
