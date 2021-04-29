@@ -52,12 +52,60 @@
 
 	    jws-signed-object? (rename (jws-signed-object <jws-signed-object>))
 	    jws-signed-object-signature
+
+	    jws:parse
 	    )
     (import (rnrs)
-	    (rfc jose))
+	    (rfc jose)
+	    (rfc jwk)
+	    (rfc base64)
+	    (record builder)
+	    (srfi :13 strings)
+	    (srfi :14 char-sets)
+	    (srfi :39 parameters)
+	    (text json)
+	    (text json object-builder))
 
 (define-record-type jws-header
   (parent <jose-crypto-header>))
+(define-syntax jws-header-builder (make-record-builder jws-header))
+		       
+
+;; (define-enumeration jws:algorithm
+;;   (HS256 HS384 HS512 RS256 RS384 RS512 ES256 ES384 ES512 PS256 PS384 PS512)
+;;  jws-algorithm)
+
+(define (string->jws-algorithm s) (string->symbol s)) ;; for now
+(define jws-header-object-builder
+  (json-object-builder
+   (make-jws-header
+    (? "typ" #f string->symbol)
+    (? "cty" #f)
+    ("alg" string->jws-algorithm)
+    (? "jku" #f)
+    (? "jwk" #f json-string->jwk)
+    (? "kid" #f)
+    (? "x5u" #f) ;; TODO convert it to certificate
+    (? "x5c" '());; TODO convert it to certificate chain
+    (? "x5t" #f) ;; TODO convert it fingerprint (bytevector)
+    (? "x5t#S256" #f) ;; ditto
+    (? "crit" #f)
+    ;; dummy custom-parameters
+    (? "___" #f)
+    )))
+
+(define (json->jws-header json)
+  (define custom-parameters (make-hashtable string-hash string=?))
+  (define (parameter-handler k v) (hashtable-set! custom-parameters k v))
+  (define (post-object-build obj)
+    (if (jws-header? obj)
+	(jws-header-builder (from obj) (custom-parameters custom-parameters))))
+  (parameterize ((*post-json-object-build* post-object-build))
+    (json->object json jws-header-object-builder parameter-handler)))
+
+(define (read-jws-header port) (json->jws-header (json-read port)))
+(define (json-string->jws-header json-string)
+  (read-jws-header (open-string-input-port json-string)))
 
 (define-record-type jws-object
   (fields header
@@ -67,4 +115,19 @@
   (parent jws-object)
   (fields signature))
 
+(define *base64url-charset*
+  (list->char-set (map integer->char (vector->list *base64-encode-url-table*))))
+
+(define (jws:parse s)
+  (define (string->json s) (json-read (open-string-input-port s)))
+  (let ((part* (string-tokenize s *base64url-charset*)))
+    (unless (= (length part*) 3)
+      (assertion-violation 'jws:parse "Invalid JWS format" s))
+    (let ((header (base64url-decode-string (car part*)))
+	  ;; we hold the below as bytevectors (for convenience)
+	  (payload (base64url-decode (string->utf8 (cadr part*))))
+	  (signature (base64url-decode (string->utf8 (caddr part*)))))
+      (make-jws-signed-object
+       (json-string->jws-header header) payload signature))))
+  
 )

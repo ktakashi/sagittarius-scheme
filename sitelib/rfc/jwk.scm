@@ -37,6 +37,8 @@
 	    jwk-set-keys jwk-set? make-jwk-set
 	    
 	    ;; keys
+	    json-string->jwk read-jwk json->jwk
+	    jwk->json-string write-jwk jwk->json
 	    jwk? jwk-use jwk-kid jwk-kty jwk-alg jwk-x5c
 	    ;; EC
 	    jwk:ec? make-jwk:ec jwk:ec-crv jwk:ec-x jwk:ec-y
@@ -101,21 +103,25 @@
 
   (define (base64-url-string->bytevector s) (base64url-decode (string->utf8 s)))
   (define (base64-string->bytevector s) (base64-decode-string s :transcoder #f))
+  
   (define jwk-builder
+    (json-object-builder
+     (make-jwk
+      ("kty" string->symbol)
+      (? "use" #f)
+      (? "key-ops" '() (@ list))
+      (? "alg" #f string->symbol)
+      (? "kid" #f)
+      (? "x5u" #f)
+      (? "x5c" '() (@ list base64-string->bytevector))
+      (? "x5t" #f)
+      (? "x5t#S256" #f))))
+  
+  (define jwks-builder
     (json-object-builder
      (make-jwk-set
       ("keys"
-       (@ list
-	  (make-jwk
-	   ("kty" string->symbol)
-	   (? "use" #f)
-	   (? "key-ops" '() (@ list))
-	   (? "alg" #f string->symbol)
-	   (? "kid" #f)
-	   (? "x5u" #f)
-	   (? "x5c" '() (@ list base64-string->bytevector))
-	   (? "x5t" #f)
-	   (? "x5t#S256" #f)))))))
+       (@ list jwk-builder)))))
 
   ;; the RFC should've make separate key material object so that
   ;; we could make our life much easier but no choice. fxxk!!!
@@ -179,14 +185,34 @@
 	    r)
 	  obj))
     (parameterize ((*post-json-object-build* post-object-build))
-      (json->object json jwk-builder parameter-handler)))
-  
+      (json->object json jwks-builder parameter-handler)))
+
   (define (read-jwk-set port)
     (json->jwk-set (json-read port)))
     
   (define (json-string->jwk-set json-string)
     (read-jwk-set (open-string-input-port json-string)))
 
+  (define (json->jwk json)
+    (define key-parameters (make-eq-hashtable))
+    (define (parameter-handler k v)
+      (hashtable-set! key-parameters (string->symbol k) v))
+    
+    (define (post-object-build obj)
+      (if (jwk? obj)
+	  (let ((r (make-jwk-by-type obj key-parameters)))
+	    (hashtable-clear! key-parameters)
+	    r)
+	  obj))
+    (parameterize ((*post-json-object-build* post-object-build))
+      (json->object json jwk-builder parameter-handler)))
+
+  (define (read-jwk port)
+    (json->jwk (json-read port)))
+    
+  (define (json-string->jwk json-string)
+    (read-jwk (open-string-input-port json-string)))
+  
   (define (bytevector->b64-string bv)
     (utf8->string (base64-encode bv :line-width #f)))
   (define-syntax jwk-serializer
@@ -263,6 +289,17 @@
       (write-jwk-set jwk-set out)
       (extract)))
 
+  (define (jwk->json jwk)
+    (object->json jwk (json-object-serializer dispatch-jwk)))
+  (define write-jwk
+    (case-lambda
+     ((jwk) (write-jwk jwk (current-output-port)))
+     ((jwk out)(json-write (jwk->json jwk) out))))
+  (define (jwk->json-string jwk)
+    (let-values (((out extract) (open-string-output-port)))
+      (write-jwk jwk out)
+      (extract)))
+  
   ;; usages
   (define (jwk->certificate-chain jwk)
     (x5c-parameter->x509-certificates (jwk-x5c jwk)))
