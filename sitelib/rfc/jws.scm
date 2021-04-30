@@ -46,14 +46,18 @@
 		    (jose-crypto-header-crit jws-header-crit)
 		    (jose-crypto-header-custom-parameters
 		     jws-header-custom-parameters))
+	    jws-header->json write-jws-header jws-header->json-string
+	    json->jws-header read-jws-header json-string->jws-header
+	    
 
-	    jws-object? (rename (jws-object <jws-object>))
+	    make-jws-object jws-object? (rename (jws-object <jws-object>))
 	    jws-object-header jws-object-payload
 
 	    jws-signed-object? (rename (jws-signed-object <jws-signed-object>))
 	    jws-signed-object-signature
+	    jws-object->string
 
-	    jws:parse
+	    jws:parse jws:sign jws:verify
 	    )
     (import (rnrs)
 	    (rfc jose)
@@ -86,12 +90,28 @@
     (? "jwk" #f json-string->jwk)
     (? "kid" #f)
     (? "x5u" #f) ;; TODO convert it to certificate
-    (? "x5c" '());; TODO convert it to certificate chain
+    (? "x5c" #f) ;; TODO convert it to certificate chain
     (? "x5t" #f) ;; TODO convert it fingerprint (bytevector)
     (? "x5t#S256" #f) ;; ditto
     (? "crit" #f)
     ;; dummy custom-parameters
     (? "___" #f)
+    )))
+(define (jws-algorithm->string s) (symbol->string s))
+(define jws-header-serializer
+  (json-object-serializer
+   ((? "typ" #f jose-header-typ symbol->string)
+    (? "cty" #f jose-header-cty)
+    ("alg" jose-crypto-header-alg jws-algorithm->string)
+    (? "jku" #f jose-crypto-header-jku)
+    (? "jwk" #f jose-crypto-header-jwk)
+    (? "kid" #f jose-crypto-header-kid)
+    (? "x5u" #f jose-crypto-header-x5u)
+    (? "x5c" #f jose-crypto-header-x5c)
+    (? "x5t" #f jose-crypto-header-x5t)
+    (? "x5t#S256" #f jose-crypto-header-x5t-s256)
+    (? "crit" #f jose-crypto-header-crit)
+    ;; TODO custom parameter
     )))
 
 (define (json->jws-header json)
@@ -107,6 +127,21 @@
 (define (json-string->jws-header json-string)
   (read-jws-header (open-string-input-port json-string)))
 
+(define (jws-header->json jws-header)
+  (object->json jws-header jws-header-serializer))
+(define write-jws-header
+  (case-lambda
+   ((jws-header) (write-jws-header jws-header (current-output-port)))
+   ((jws-header port)
+    (json-write (jws-header->json jws-header) port))))
+(define (jws-header->json-string jws-header)
+  (let-values (((out e) (open-string-output-port)))
+    (write-jws-header jws-header out)
+    (e)))
+(define (jws-header->base64url jws-header)
+  (let ((json (jws-header->json-string jws-header)))
+    (base64url-encode-string json)))
+
 (define-record-type jws-object
   (fields header
 	  payload))
@@ -117,6 +152,15 @@
 
 (define *base64url-charset*
   (list->char-set (map integer->char (vector->list *base64-encode-url-table*))))
+
+(define (jws-object->string jws-object)
+  (define (->base64url bv) (utf8->string (base64url-encode bv)))
+  (let ((header (jws-header->base64url (jws-object-header jws-object)))
+	(payload (->base64url (jws-object-payload jws-object))))
+    (if (jws-signed-object? jws-object)
+	(string-append header "." payload "."
+		       (->base64url (jws-signed-object-signature jws-object)))
+	(string-append header "." payload))))
 
 (define (jws:parse s)
   (define (string->json s) (json-read (open-string-input-port s)))
@@ -129,5 +173,11 @@
 	  (signature (base64url-decode (string->utf8 (caddr part*)))))
       (make-jws-signed-object
        (json-string->jws-header header) payload signature))))
-  
+
+(define (jws:sign jws-object)
+  (error 'jws:sign "not yet"))
+
+(define (jws:verify jws-object)
+  (error 'jws:verify "not yet"))
+
 )
