@@ -57,7 +57,7 @@
 	    jws-signed-object-signature
 	    jws-object->string
 
-	    jws:parse jws:sign jws:verify
+	    jws:parse jws:serialize jws:sign jws:verify
 	    )
     (import (rnrs)
 	    (rfc jose)
@@ -133,7 +133,7 @@
   (case-lambda
    ((jws-header) (write-jws-header jws-header (current-output-port)))
    ((jws-header port)
-    (json-write (jws-header->json jws-header) port))))
+    (json-write/normalized (jws-header->json jws-header) port))))
 (define (jws-header->json-string jws-header)
   (let-values (((out e) (open-string-output-port)))
     (write-jws-header jws-header out)
@@ -162,17 +162,33 @@
 		       (->base64url (jws-signed-object-signature jws-object)))
 	(string-append header "." payload))))
 
-(define (jws:parse s)
-  (define (string->json s) (json-read (open-string-input-port s)))
-  (let ((part* (string-tokenize s *base64url-charset*)))
-    (unless (= (length part*) 3)
-      (assertion-violation 'jws:parse "Invalid JWS format" s))
-    (let ((header (base64url-decode-string (car part*)))
-	  ;; we hold the below as bytevectors (for convenience)
-	  (payload (base64url-decode (string->utf8 (cadr part*))))
-	  (signature (base64url-decode (string->utf8 (caddr part*)))))
-      (make-jws-signed-object
-       (json-string->jws-header header) payload signature))))
+(define (jws:serialize jws-object)
+  (unless (jws-signed-object? jws-object)
+    (assertion-violation 'jws:serialize "Unsigned object can't be serialized"
+			 jws-object))
+  (jws-object->string jws-object))
+
+;; allow user to provide payload in case of no payload form
+(define jws:parse
+  (case-lambda
+   ((s) (jws:parse s #f))
+   ((s maybe-paylod)
+    (define (string->json s) (json-read (open-string-input-port s)))
+    (define (get-payload input maybe-payload)
+      (if maybe-payload
+	  (if (and (zero? (string-length input)) (bytevector? maybe-payload))
+	      maybe-payload
+	      (assertion-violation 'jws:parse "Input contains payload" input))
+	  (base64url-decode (string->utf8 input))))
+    (let ((part* (string-tokenize s *base64url-charset*)))
+      (unless (= (length part*) 3)
+	(assertion-violation 'jws:parse "Invalid JWS format" s))
+      (let ((header (base64url-decode-string (car part*)))
+	    ;; we hold the below as bytevectors (for convenience)
+	    (payload (get-payload (cadr part*)))
+	    (signature (base64url-decode (string->utf8 (caddr part*)))))
+	(make-jws-signed-object
+	 (json-string->jws-header header) payload signature))))))
 
 (define (jws:sign jws-object)
   (error 'jws:sign "not yet"))

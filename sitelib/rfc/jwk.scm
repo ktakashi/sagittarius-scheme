@@ -282,8 +282,7 @@
   (define write-jwk-set
     (case-lambda
      ((jwk-set) (write-jwk-set jwk-set (current-output-port)))
-     ((jwk-set out)
-      (json-write (jwk-set->json jwk-set) out))))
+     ((jwk-set out) (json-write/normalized (jwk-set->json jwk-set) out))))
   (define (jwk-set->json-string jwk-set)
     (let-values (((out extract) (open-string-output-port)))
       (write-jwk-set jwk-set out)
@@ -294,7 +293,7 @@
   (define write-jwk
     (case-lambda
      ((jwk) (write-jwk jwk (current-output-port)))
-     ((jwk out)(json-write (jwk->json jwk) out))))
+     ((jwk out) (json-write/normalized (jwk->json jwk) out))))
   (define (jwk->json-string jwk)
     (let-values (((out extract) (open-string-output-port)))
       (write-jwk jwk out)
