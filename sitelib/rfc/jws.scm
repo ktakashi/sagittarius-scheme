@@ -63,6 +63,7 @@
 	    (rfc jose)
 	    (rfc jwk)
 	    (rfc base64)
+	    (record accessor)
 	    (record builder)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
@@ -72,8 +73,18 @@
 
 (define-record-type jws-header
   (parent <jose-crypto-header>))
-(define-syntax jws-header-builder (make-record-builder jws-header))
-		       
+(define-syntax jws-header-builder
+  (make-record-builder jws-header
+   ((custom-parameters (make-hashtable string-hash string=?)))))
+
+;; internal use ;)
+(define-record-type parsed-jws-header
+  (parent jws-header)
+  (fields parsed-base64-url)
+  (protocol (lambda (n)
+	      (lambda (header parsed-base64-url)
+		(display (record->list header)) (newline)
+		((apply n (record->list header)) parsed-base64-url)))))
 
 ;; (define-enumeration jws:algorithm
 ;;   (HS256 HS384 HS512 RS256 RS384 RS512 ES256 ES384 ES512 PS256 PS384 PS512)
@@ -98,6 +109,8 @@
     (? "___" #f)
     )))
 (define (jws-algorithm->string s) (symbol->string s))
+(define custom-serializer
+  (make-hashtable-serializer jose-crypto-header-custom-parameters))
 (define jws-header-serializer
   (json-object-serializer
    ((? "typ" #f jose-header-typ symbol->string)
@@ -111,7 +124,7 @@
     (? "x5t" #f jose-crypto-header-x5t)
     (? "x5t#S256" #f jose-crypto-header-x5t-s256)
     (? "crit" #f jose-crypto-header-crit)
-    ;; TODO custom parameter
+    custom-serializer
     )))
 
 (define (json->jws-header json)
@@ -172,7 +185,7 @@
 (define jws:parse
   (case-lambda
    ((s) (jws:parse s #f))
-   ((s maybe-paylod)
+   ((s maybe-payload)
     (define (string->json s) (json-read (open-string-input-port s)))
     (define (get-payload input maybe-payload)
       (if maybe-payload
@@ -185,10 +198,11 @@
 	(assertion-violation 'jws:parse "Invalid JWS format" s))
       (let ((header (base64url-decode-string (car part*)))
 	    ;; we hold the below as bytevectors (for convenience)
-	    (payload (get-payload (cadr part*)))
+	    (payload (get-payload (cadr part*) maybe-payload))
 	    (signature (base64url-decode (string->utf8 (caddr part*)))))
 	(make-jws-signed-object
-	 (json-string->jws-header header) payload signature))))))
+	 (make-parsed-jws-header (json-string->jws-header header) (car part*))
+	 payload signature))))))
 
 (define (jws:sign jws-object)
   (error 'jws:sign "not yet"))

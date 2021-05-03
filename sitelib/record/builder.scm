@@ -32,6 +32,7 @@
 (library (record builder)
     (export make-record-builder from)
     (import (rnrs)
+	    (record accessor)
 	    (srfi :1 lists) ;; for lset-difference
 	    )
 
@@ -83,6 +84,7 @@
       (cond ((not child) #f)
 	    ((eq? child rtd))
 	    (else (loop (record-type-parent child))))))
+  ;; TODO replace with record-type-all-field-name&accessors
   (define (collect-fields&value rtd record)
     (let loop ((rtd rtd) (r '()))
       (if rtd
@@ -102,7 +104,7 @@
 		provided-values record-values)))
 
 (define (sort-values rtd default-values provided-values)
-  (define fields (collect-fields rtd))
+  (define fields (record-type-all-field-names rtd))
   (define (emit fields values)
     (define (find-value field values)
       (cond ((assq field values) =>
@@ -127,12 +129,4 @@
       (assertion-violation 'record-builder
 			   "Unknown fields" non-exists)))
   (emit fields provided-values))
-
-(define (collect-fields rtd)
-  (let loop ((fields-list '()) (rtd rtd))
-    (if rtd
-	(loop (cons (vector->list (record-type-field-names rtd)) fields-list)
-	      (record-type-parent rtd))
-	(apply append fields-list))))
-
 )
