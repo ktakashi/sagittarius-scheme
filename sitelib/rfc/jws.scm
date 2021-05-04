@@ -31,7 +31,7 @@
 ;; ref: https://tools.ietf.org/html/rfc7515
 #!nounbound
 (library (rfc jws)
-    (export jws-header?
+    (export jws-header? jws-header-builder
 	    (rename (jws-header <jws-header>)
 		    (jose-header-typ jws-header-typ)
 		    (jose-header-cty jws-header-cty)
@@ -58,6 +58,8 @@
 	    jws-object->string
 
 	    jws:parse jws:serialize jws:sign jws:verify
+	    ;; for convenience
+	    jws:algorithm
 	    )
     (import (rnrs)
 	    (rfc jose)
@@ -73,9 +75,19 @@
 
 (define-record-type jws-header
   (parent <jose-crypto-header>))
+(define (->custom-parameter v)
+  (cond ((hashtable? v) (hashtable-copy v)) ;; make it immutable
+	((pair? v)
+	 (let ((ht (make-hashtable string-hash string=?)))
+	   (for-each (lambda (slot)
+		       (hashtable-set! ht (car slot) (cadr slot))) v)
+	   (->custom-parameter ht)))
+	(else (assertion-violation 'jws-header-builder
+				   "Custom parameter must be alist or hashtable"
+				   v))))
 (define-syntax jws-header-builder
   (make-record-builder jws-header
-   ((custom-parameters (make-hashtable string-hash string=?)))))
+   ((custom-parameters '() ->custom-parameter))))
 
 ;; internal use ;)
 (define-record-type parsed-jws-header
@@ -85,9 +97,9 @@
 	      (lambda (header parsed-base64-url)
 		((apply n (record->list header)) parsed-base64-url)))))
 
-;; (define-enumeration jws:algorithm
-;;   (HS256 HS384 HS512 RS256 RS384 RS512 ES256 ES384 ES512 PS256 PS384 PS512)
-;;  jws-algorithm)
+(define-enumeration jws:algorithm
+  (HS256 HS384 HS512 RS256 RS384 RS512 ES256 ES384 ES512 PS256 PS384 PS512)
+  jws-algorithm)
 
 (define (string->jws-algorithm s) (string->symbol s)) ;; for now
 (define jws-header-object-builder
@@ -156,19 +168,28 @@
       (let ((json (jws-header->json-string jws-header)))
 	(base64url-encode-string json))))
 
+(define (->base64url bv) (utf8->string (base64url-encode bv)))
 (define-record-type jws-object
   (fields header
-	  payload))
+	  payload
+	  signing-input)
+  (protocol (lambda (p)
+	      (lambda (header payload)
+		(p header payload
+		   (string-append (jws-header->base64url header) "."
+				  (->base64url payload)))))))
 
 (define-record-type jws-signed-object
   (parent jws-object)
-  (fields signature))
+  (fields signature)
+  (protocol (lambda (n)
+	      (lambda (header payload signature)
+		((n header payload) signature)))))
 
 (define *base64url-charset*
   (list->char-set (map integer->char (vector->list *base64-encode-url-table*))))
 
 (define (jws-object->string jws-object)
-  (define (->base64url bv) (utf8->string (base64url-encode bv)))
   (let ((header (jws-header->base64url (jws-object-header jws-object)))
 	(payload (->base64url (jws-object-payload jws-object))))
     (if (jws-signed-object? jws-object)
@@ -176,11 +197,18 @@
 		       (->base64url (jws-signed-object-signature jws-object)))
 	(string-append header "." payload))))
 
-(define (jws:serialize jws-object)
-  (unless (jws-signed-object? jws-object)
-    (assertion-violation 'jws:serialize "Unsigned object can't be serialized"
-			 jws-object))
-  (jws-object->string jws-object))
+(define jws:serialize
+  (case-lambda
+   ((jws-object) (jws:serialize jws-object #f))
+   ((jws-object detach-payload?)
+    (unless (jws-signed-object? jws-object)
+      (assertion-violation 'jws:serialize "Unsigned object can't be serialized"
+			   jws-object))
+    (if detach-payload?
+	(string-append (jws-header->base64url (jws-object-header jws-object))
+		       ".."
+		       (->base64url (jws-signed-object-signature jws-object)))
+	(jws-object->string jws-object)))))
 
 ;; allow user to provide payload in case of no payload form
 (define jws:parse
@@ -205,10 +233,16 @@
 	 (make-parsed-jws-header (json-string->jws-header header) (car part*))
 	 payload signature))))))
 
-(define (jws:sign jws-object)
+(define (jws:sign jws-object siner)
   (error 'jws:sign "not yet"))
 
-(define (jws:verify jws-object)
-  (error 'jws:verify "not yet"))
+(define (jws:verify jws-object verifier)
+  (unless (jws-signed-object? jws-object)
+    (assertion-violation 'jws:verify "JWS object is not signed" jws-object))
+  (let ((signing-input (jws-object-signing-input jws-object))
+	(signature (jws-signed-object-signature jws-object)))
+    (verifier (jws-object-header jws-object)
+	      (string->utf8 signing-input)
+	      signature)))
 
 )
