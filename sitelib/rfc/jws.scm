@@ -57,6 +57,8 @@
 	    jws-signed-object-signature
 	    jws-object->string
 
+	    make-rsa-verifier
+	    
 	    jws:parse jws:serialize jws:sign jws:verify
 	    ;; for convenience
 	    jws:algorithm
@@ -67,6 +69,8 @@
 	    (rfc base64)
 	    (record accessor)
 	    (record builder)
+	    (crypto)
+	    (math)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
 	    (srfi :39 parameters)
@@ -244,5 +248,38 @@
     (verifier (jws-object-header jws-object)
 	      (string->utf8 signing-input)
 	      signature)))
+
+;;; verifiers (maybe separate to different library?)
+(define make-rsa-verifier
+  (case-lambda
+   ((key) (make-rsa-verifier key '()))
+   ((key critical-headers)
+    (let* ((public-key (cond ((jwk? key) (jwk->public-key key))
+			     ((public-key? key) key)
+			     (else (assertion-violation 'make-rsa-verifier
+							"Public key required"
+							key))))
+	   (->rsa-verifier (make->rsa-verifier public-key)))
+      (lambda (header signed-content signature)
+	(define rsa-verifier (->rsa-verifier (jose-crypto-header-alg header)))
+	(rsa-verifier signed-content signature))))))
+
+(define (make->rsa-verifier key)
+  (let ((rsa-cipher (make-cipher RSA key)))
+    (define (get-algorithm alg)
+      (case alg
+	((RS256) (values (hash-algorithm SHA-256) pkcs1-emsa-v1.5-verify))
+	((RS384) (values (hash-algorithm SHA-384) pkcs1-emsa-v1.5-verify))
+	((RS512) (values (hash-algorithm SHA-512) pkcs1-emsa-v1.5-verify))
+	((PS256) (values (hash-algorithm SHA-256) pkcs1-emsa-pss-verify))
+	((PS384) (values (hash-algorithm SHA-384) pkcs1-emsa-pss-verify))
+	((PS512) (values (hash-algorithm SHA-512) pkcs1-emsa-pss-verify))
+	(else
+	 (assertion-violation 'make-rsa-verifier "Unknown algorithm" alg))))
+    (lambda (alg)
+      (let-values (((hash-algo verify) (get-algorithm alg)))
+	(lambda (content signature)
+	  (cipher-verify rsa-cipher content signature
+			 :hash hash-algo :verify verify))))))
 
 )
