@@ -39,7 +39,6 @@
 ;; returns field value sorted by field name declaration order
 (define (record->list r)
   (define rtd (record-rtd r))
-  (display (record-type-all-field-names rtd)) (newline)
   (map (lambda (a) (a r)) (record-type-all-field-accessors rtd)))
 
 (define (record-type-all-field-name&accessors rtd) 

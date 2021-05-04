@@ -83,7 +83,6 @@
   (fields parsed-base64-url)
   (protocol (lambda (n)
 	      (lambda (header parsed-base64-url)
-		(display (record->list header)) (newline)
 		((apply n (record->list header)) parsed-base64-url)))))
 
 ;; (define-enumeration jws:algorithm
@@ -152,8 +151,10 @@
     (write-jws-header jws-header out)
     (e)))
 (define (jws-header->base64url jws-header)
-  (let ((json (jws-header->json-string jws-header)))
-    (base64url-encode-string json)))
+  (if (parsed-jws-header? jws-header)
+      (parsed-jws-header-parsed-base64-url jws-header)
+      (let ((json (jws-header->json-string jws-header)))
+	(base64url-encode-string json))))
 
 (define-record-type jws-object
   (fields header
