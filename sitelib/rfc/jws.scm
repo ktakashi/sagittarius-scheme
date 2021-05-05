@@ -57,6 +57,7 @@
 	    jws-signed-object-signature
 	    jws-object->string
 
+	    make-mac-verifier make-mac-signer
 	    make-rsa-verifier make-rsa-signer
 	    
 	    jws:parse jws:serialize jws:sign jws:verify
@@ -67,6 +68,7 @@
 	    (rfc jose)
 	    (rfc jwk)
 	    (rfc base64)
+	    (rfc hmac)
 	    (record accessor)
 	    (record builder)
 	    (crypto)
@@ -255,6 +257,30 @@
 	      signature)))
 
 ;;; verifiers (maybe separate to different library?)
+(define (check-critical-headers critical-headers jws-header)
+  (let ((crit (jose-crypto-header-crit jws-header)))
+    (or (not crit) (null? crit)
+	(for-all (lambda (l) (or (string=? "b64" l)
+				 (find (lambda (v) (string=? v l))
+				       critical-headers)))
+		 crit))))
+(define make-mac-verifier
+  (case-lambda
+   ((key) (make-mac-verifier key '()))
+   ((key critical-headers)
+    (lambda (header signed-content signature)
+      (define (get-algorithm alg)
+	(case alg
+	  ((HS256) (hash-algorithm SHA-256))
+	  ((HS384) (hash-algorithm SHA-384))
+	  ((HS512) (hash-algorithm SHA-512))
+	  (else
+	   (assertion-violation 'make-mac-verifier "Unknown algorithm" alg))))
+      (let ((algo (get-algorithm (jose-crypto-header-alg header))))
+	(and (check-critical-headers critical-headers header)
+	     (verify-mac HMAC signed-content signature
+			 :key key :hash algo)))))))
+
 (define make-rsa-verifier
   (case-lambda
    ((key) (make-rsa-verifier key '()))
@@ -267,7 +293,8 @@
 	   (->rsa-verifier (make->rsa-verifier public-key)))
       (lambda (header signed-content signature)
 	(define rsa-verifier (->rsa-verifier (jose-crypto-header-alg header)))
-	(rsa-verifier signed-content signature))))))
+	(and (check-critical-headers critical-headers header)
+	     (rsa-verifier signed-content signature)))))))
 
 (define (make->rsa-verifier key)
   (let ((rsa-cipher (make-cipher RSA key)))
@@ -288,6 +315,18 @@
 			 :hash hash-algo :verify verify))))))
 
 ;;; signers (ditto)
+(define (make-mac-signer key)
+  (lambda (header signing-content)
+    (define (get-algorithm alg)
+	(case alg
+	  ((HS256) (hash-algorithm SHA-256))
+	  ((HS384) (hash-algorithm SHA-384))
+	  ((HS512) (hash-algorithm SHA-512))
+	  (else
+	   (assertion-violation 'make-mac-signer "Unknown algorithm" alg))))
+    (let ((algo (get-algorithm (jose-crypto-header-alg header))))
+      (hash HMAC signing-content :key key :hash algo))))
+
 (define (make-rsa-signer key)
   (let* ((private-key (cond ((jwk? key) (jwk->private-key key))
 			    ((private-key? key) key)

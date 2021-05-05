@@ -37,13 +37,13 @@
 
 (define (test-jws jws-string public-key private-key)
   (define (get-verifier key)
-    (if (rsa-public-key? key)
-	(make-rsa-verifier key)
-	(error 'test-jws "not yet")))
+    (cond ((rsa-public-key? key) (make-rsa-verifier key))
+	  ((bytevector? key) (make-mac-verifier key))
+	  (else (error 'test-jws "not yet"))))
   (define (get-signer key)
-    (if (rsa-private-key? key)
-	(make-rsa-signer key)
-	(error 'test-jws "not yet")))
+    (cond ((rsa-private-key? key) (make-rsa-signer key))
+	  ((bytevector? key) (make-mac-signer key))
+	  (else (error 'test-jws "not yet"))))
   (let ((jws (jws:parse jws-string))
 	(verifier (get-verifier public-key)))
     (test-assert (list 'jws:verify (jws-header-alg (jws-object-header jws)))
@@ -112,5 +112,16 @@ jg/3747WSsf/zBTcHihTRBdAv6OmdhV4/dD5YBfLAkLrd+mX7iE=
 (test-jws "eyJhbGciOiJQUzM4NCIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.MqF1AKsJkijKnfqEI3VA1OnzAL2S4eIpAuievMgD3tEFyFMU67gCbg-fxsc5dLrxNwdZEXs9h0kkicJZ70mp6p5vdv-j2ycDKBWg05Un4OhEl7lYcdIsCsB8QUPmstF-lQWnNqnq3wra1GynJrOXDL27qIaJnnQKlXuayFntBF0j-82jpuVdMaSXvk3OGaOM-7rCRsBcSPmocaAO-uWJEGPw_OWVaC5RRdWDroPi4YL4lTkDEC-KEvVkqCnFm_40C-T_siXquh5FVbpJjb3W2_YvcqfDRj44TsRrpVhk6ohsHMNeUad_cxnFnpolIKnaXq_COv35e9EgeQIPAbgIeg"
 	  rsa-public-key
 	  rsa-private-key)
+
+#!read-macro=sagittarius/bv-string
+(test-jws "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+	  #*"your-256-bit-secret"
+	  #*"your-256-bit-secret")
+(test-jws "eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.bQTnz6AuMJvmXXQsVPrxeQNvzDkimo7VNXxHeSBfClLufmCVZRUuyTwJF311JHuh"
+	  #*"your-384-bit-secret"
+	  #*"your-384-bit-secret")
+(test-jws "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.VFb0qJ1LRg_4ujbZoRMXnVkUgiuKq5KxWqNdbKq_G9Vvz-S1zZa9LPxtHWKa64zDl2ofkT8F6jBt_K4riU-fPg"
+	  #*"your-512-bit-secret"
+	  #*"your-512-bit-secret")
 
 (test-end)
