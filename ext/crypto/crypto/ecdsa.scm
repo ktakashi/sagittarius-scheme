@@ -368,7 +368,7 @@
 	(assertion-violation 'import-private-key "invalid sequence size" in))
       (unless (and (is-a? (car objs) <asn.1-sequence>)
 		   (is-a? (cadr objs) <der-bit-string>))
-	(assertion-violation who "bad component" in))
+	(assertion-violation 'import-public-key "bad component" in))
       (let* ((aid (car objs))
 	     (spk (cadr objs))
 	     (ec-param (cadr (slot-ref aid 'sequence)))

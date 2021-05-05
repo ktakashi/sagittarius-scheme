@@ -75,8 +75,8 @@
 	:key-data (asn.1-sequence-get s 1))))
   (define-method asn.1-encodable->asn.1-object ((o <subject-public-key-info>))
     (make-der-sequence
-     (slot-ref o 'algorithm-identifier)
-     (slot-ref o 'key-data)))
+     (asn.1-encodable->asn.1-object (slot-ref o 'algorithm-identifier))
+     (asn.1-encodable->asn.1-object (slot-ref o 'key-data))))
   (define (subject-public-key-info-key-data o) (~ o 'key-data))
   
   #|
@@ -143,12 +143,13 @@
       ("1.2.840.10040.4.1" .
        ,(lambda (pki)
 	  (import-public-key DSA (slot-ref (slot-ref pki 'key-data) 'data))))
-      ;; for now, I don't remember how it was...
-      #;("1.2.840.10045.2.1" .
+      ("1.2.840.10045.2.1" .
        ,(lambda (pki)
-	  ;; awkward way to make it consistant...
-	  (import-private-key ECDSA (slot-ref pki 'private-key)
-	    (algorithm-identifier-parameters (slot-ref pki 'id)))))))
+	  ;; For some reason, old me thought importing ECPublicKey
+	  ;; from SubjectPublicKeyInfo directly in the (crypto ecdsa)
+	  ;; so make the pki ASN.1 object
+	  (import-public-key ECDSA (asn.1-encodable->asn.1-object pki))))))
+			     
   (define (subject-public-key-info->public-key spki)
     (let ((oid (algorithm-identifier-id (slot-ref spki 'algorithm-identifier))))
       (cond ((assoc oid *oid-marker*) => (lambda (s) ((cdr s) spki)))
