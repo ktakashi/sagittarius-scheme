@@ -57,7 +57,7 @@
 	    jws-signed-object-signature
 	    jws-object->string
 
-	    make-rsa-verifier
+	    make-rsa-verifier make-rsa-signer
 	    
 	    jws:parse jws:serialize jws:sign jws:verify
 	    ;; for convenience
@@ -237,8 +237,13 @@
 	 (make-parsed-jws-header (json-string->jws-header header) (car part*))
 	 payload signature))))))
 
-(define (jws:sign jws-object siner)
-  (error 'jws:sign "not yet"))
+(define (jws:sign jws-object signer)
+  (let* ((signing-input (jws-object-signing-input jws-object))
+	 (signature (signer (jws-object-header jws-object)
+			    (string->utf8 signing-input))))
+    (unless (bytevector? signature)
+      (assertion-violation 'jws:sign "Signer returned non signature" signature))
+    (jws:parse (string-append signing-input "." (->base64url signature)))))
 
 (define (jws:verify jws-object verifier)
   (unless (jws-signed-object? jws-object)
@@ -282,4 +287,32 @@
 	  (cipher-verify rsa-cipher content signature
 			 :hash hash-algo :verify verify))))))
 
+;;; signers (ditto)
+(define (make-rsa-signer key)
+  (let* ((private-key (cond ((jwk? key) (jwk->private-key key))
+			    ((private-key? key) key)
+			    (else (assertion-violation 'make-rsa-signer
+						       "Private key required"
+						       key))))
+	 (->rsa-signer (make->rsa-signer private-key)))
+    (lambda (header signing-content)
+      (define rsa-signer (->rsa-signer (jose-crypto-header-alg header)))
+      (rsa-signer signing-content))))
+(define (make->rsa-signer key)
+  (let ((rsa-cipher (make-cipher RSA key)))
+    (define (get-algorithm alg)
+      (case alg
+	((RS256) (values (hash-algorithm SHA-256) pkcs1-emsa-v1.5-encode))
+	((RS384) (values (hash-algorithm SHA-384) pkcs1-emsa-v1.5-encode))
+	((RS512) (values (hash-algorithm SHA-512) pkcs1-emsa-v1.5-encode))
+	((PS256) (values (hash-algorithm SHA-256) pkcs1-emsa-pss-encode))
+	((PS384) (values (hash-algorithm SHA-384) pkcs1-emsa-pss-encode))
+	((PS512) (values (hash-algorithm SHA-512) pkcs1-emsa-pss-encode))
+	(else
+	 (assertion-violation 'make-rsa-verifier "Unknown algorithm" alg))))
+    (lambda (alg)
+      (let-values (((hash-algo encode) (get-algorithm alg)))
+	(lambda (content)
+	  (cipher-signature rsa-cipher content 
+			    :hash hash-algo :encode encode))))))
 )
