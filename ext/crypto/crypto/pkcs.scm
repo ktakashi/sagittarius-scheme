@@ -91,10 +91,14 @@
 	  (let* ((db-mask (mgf H (- em-len hash-len 1) algo))
 		 ;; xor
 		 (masked-db (bytevector-xor DB db-mask))
-		 (limit (- (* em-len 8) em-bits)))
-	    (do ((i 0 (+ i 1)))
-		((= i limit) #t)
-	      (bytevector-u8-set! masked-db i 0))
+		 (bit-mask (bitwise-arithmetic-shift-right
+			    #xFF (- (* em-len 8) em-bits))))
+	    ;; step 11
+	    ;; Set the leftmost 8emLen - emBits bits of the leftmost octet
+	    ;; in maskedDB to zero.
+	    (bytevector-u8-set! masked-db 0
+				(bitwise-and (bytevector-u8-ref masked-db 0)
+					     bit-mask))
 	    (let* ((m-len (bytevector-length masked-db))
 		   (h-len (bytevector-length H))
 		   (EM (make-bytevector (+ m-len h-len 1) #xBC)))
@@ -119,22 +123,26 @@
 	     (mask-len (- em-len hash-len 1))
 	     (masked-db (make-bytevector mask-len 0))
 	     (H (make-bytevector hash-len 0))
-	     (limit (- (* 8 em-len) em-bits)))
+	     (bit-mask (bitwise-arithmetic-shift-right
+			#xFF (- (* 8 em-len) em-bits))))
 	;; step 5
 	(bytevector-copy! em 0 masked-db 0 mask-len)
 	(bytevector-copy! em mask-len H 0 hash-len)
 	;; step 6
-	;; check 8emLen - emBits of maskedDB
-	(do ((i 0 (+ i 1)))
-	    ((= i limit) #t)
-	  (unless (zero? (bytevector-u8-ref masked-db i))
-	    (raise-decode-error 'pkcs1-emsa-pss-verify "inconsistent")))
+	;; If the leftmost 8emLen - emBits bits of the leftmost octet in
+	;; maskedDB are not all equal to zero, output "inconsistent" and
+	;; stop.
+	(unless (zero? (bitwise-and (bytevector-u8-ref masked-db 0)
+				    (bitwise-not bit-mask)))
+	  (raise-decode-error 'pkcs1-emsa-pss-verify "inconsistent"))
 	(let* ((db-mask (mgf H mask-len algo))
 	       (DB (bytevector-xor masked-db db-mask))
 	       (limit2 (- em-len hash-len salt-length 2)))
-	  (do ((i 0 (+ i 1)))
-	      ((= i limit) #t)
-	    (bytevector-u8-set! DB i 0))
+	  ;; step 9
+	  ;; Set the leftmost 8emLen - emBits bits of the leftmost octet
+	  ;; in DB to zero.
+	  (bytevector-u8-set! DB 0
+			      (bitwise-and (bytevector-u8-ref DB 0) bit-mask))
 	  ;; check emLen - hLen - sLen - 2 leftmost octers
 	  (do ((i 0 (+ i 1)))
 	      ((= i limit2) #t)
