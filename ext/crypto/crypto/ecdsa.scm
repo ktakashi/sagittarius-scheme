@@ -34,8 +34,8 @@
 #!nounbound
 (library (crypto ecdsa)
     (export ECDSA
-	    <ecdsa-private-key>
-	    <ecdsa-public-key>
+	    <ecdsa-private-key> ecdsa-private-key?
+	    <ecdsa-public-key> ecdsa-public-key?
 
 	    ;; NIST parameters
 	    NIST-P-192
@@ -93,9 +93,11 @@
     ((d :init-keyword :d)		   ;; private key
      (parameter :init-keyword :parameter :init-keyword #f) ;; domain parameter
      (public-key :init-keyword :public-key :init-value #f))) ;; public key
+  (define (ecdsa-private-key? o) (is-a? o <ecdsa-private-key>))
   (define-class <ecdsa-public-key> (<public-key>)
     ((Q :init-keyword :Q)
      (parameter :init-keyword :parameter :init-keyword #f))) ;; domain parameter
+  (define (ecdsa-public-key? o) (is-a? o <ecdsa-public-key>))
 
   (define (describe-ec-point point out indent)
     (define (put-indent)
@@ -425,7 +427,7 @@
   (define-method import-public-key ((marker (eql ECDSA)) (in <asn.1-sequence>))
     (let ((objs (slot-ref in 'sequence)))
       (unless (= (length objs) 2)
-	(assertion-violation 'import-private-key "invalid sequence size" in))
+	(assertion-violation 'import-public-key "invalid sequence size" in))
       (unless (and (is-a? (car objs) <asn.1-sequence>)
 		   (is-a? (cadr objs) <der-bit-string>))
 	(assertion-violation 'import-public-key "bad component" in))
@@ -489,7 +491,7 @@
 		   (slot-ref obj 'obj))) objs))
   (define-method import-private-key ((marker (eql ECDSA)) (in <asn.1-sequence>))
     (let ((objs (slot-ref in 'sequence)))
-      (when (< (length objs) 2) 
+      (when (< (length objs) 2)
 	(assertion-violation 'import-private-key "invalid sequence size" in))
       (unless (= 1 (der-integer->integer (car objs)))
 	(assertion-violation 'import-private-key "invalid version"))
