@@ -14,6 +14,7 @@
 ;; F2m is
 ;;   y^2 + xy = x^3 + ax^2 + b (mod p)
 #!core
+#!nounbound
 (library (math ec)
     (export make-ec-point ec-point-infinity?
 	    ec-point?
@@ -49,7 +50,7 @@
 	    ;; SEC 2 parameters
 	    sect113r1
 
-	    ;; ellitic curve accessors
+	    ;; elliptic curve accessors
 	    elliptic-curve?
 	    elliptic-curve-field
 	    elliptic-curve-a
@@ -466,7 +467,7 @@
   (define (ec-parameter-h o)     (vector-ref o 4))
   (define (ec-parameter-seed o)  (vector-ref o 5))
   (define (ec-parameter-oid o)   (vector-ref o 6))
- 
+  
   ;;; Parameters
   (define *lookup-table* (make-string-hashtable))
   (define (register-ec-parameter oid value)
