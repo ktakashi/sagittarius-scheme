@@ -42,8 +42,12 @@
 	    x509-certificate-get-signature
 	    x509-certificate-get-signature-algorithm
 	    x509-certificate-get-public-key
-	    verify
-	    check-validity
+	    x509:verify
+	    x509:check-validity
+	    ;; for backward compatibility
+	    (rename (x509:verify verify)
+		    (x509:check-validity check-validity))
+
 	    ;; certificate generation
 	    make-x509-issuer
 	    make-validity
@@ -409,28 +413,10 @@
   (define (x509-certificate-get-signature-algorithm cert)
     (~ cert 'c 'algorithm-identifier 'object-id 'identifier))
 
-  (define *rsa-oids*
-    `(,(make-der-object-identifier "1.2.840.113549.1.1.1")
-      ,(make-der-object-identifier "1.2.840.113549.1.1.2")
-      ,(make-der-object-identifier "1.2.840.113549.1.1.3")
-      ,(make-der-object-identifier "1.2.840.113549.1.1.4")
-      ,(make-der-object-identifier "1.2.840.113549.1.1.5")
-      ,(make-der-object-identifier "1.2.840.113549.1.1.7")
-      ,(make-der-object-identifier "1.2.840.113549.1.1.10")
-      ,(make-der-object-identifier "1.2.840.113549.1.1.11")
-      ,(make-der-object-identifier "2.5.8.1.1")
-      ))
-
   (define (x509-certificate-get-public-key cert)
     (let* ((c (~ cert 'c 'tbs-cert))
-	   (info (~ c 'subject-public-key-info))
-	   (oid (~ info 'algorithm-identifier 'object-id)))
-      ;; we only support RSA
-      (if (member oid *rsa-oids*)
-	  (import-public-key RSA (open-bytevector-input-port
-				  (~ info 'key-data 'data)))
-	  (assertion-violation 'x509-certificate-get-public-key
-			       "not supported public key oid"))))
+	   (info (~ c 'subject-public-key-info)))
+      (subject-public-key-info->public-key info)))
 
   (define-syntax ash (identifier-syntax bitwise-arithmetic-shift))
   (define-method write-object ((o <x509-certificate>) (p <port>))
@@ -499,16 +485,16 @@
   ;; TODO for now we only support RSA
   ;;      currently user needs to do more task like choose hash algorithm
   ;;      and verifier. this must be done by the process.
-  (define (verify cert message signature
-		  :key (verify pkcs1-emsa-v1.5-verify)
-		       (hash (hash-algorithm SHA-1)))
+  (define (x509:verify cert message signature
+		       :key (verify pkcs1-emsa-v1.5-verify)
+			    (hash (hash-algorithm SHA-1)))
     (let* ((public-key (x509-certificate-get-public-key cert))
 	   (rsa-cipher (cipher RSA public-key)))
       ;; TODO check certificate encoder
       (crypto:verify rsa-cipher message signature
 		     :verify verify :hash hash)))
 
-  (define (check-validity cert :optional (date (current-date)))
+  (define (x509:check-validity cert :optional (date (current-date)))
     (let ((time (date->time-utc date)))
       (when (time>? time (date->time-utc (x509-certificate-get-not-after cert)))
 	(assertion-violation 'check-veridity

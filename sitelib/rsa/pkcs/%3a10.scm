@@ -136,13 +136,22 @@
     (asn.1-encode (asn.1-encodable->asn.1-object in)))
 
   ;; FIXME loads of duplicates....
+  (define (pki->rsa-public-key pki)
+    (import-public-key RSA (slot-ref (slot-ref pki 'key-data) 'data)))
+  (define (pki->dsa-public-key pki)
+    (import-public-key DSA (slot-ref (slot-ref pki 'key-data) 'data)))
   (define *oid-marker*
-    `(("1.2.840.113549.1.1.1" .
-       ,(lambda (pki)
-	  (import-public-key RSA (slot-ref (slot-ref pki 'key-data) 'data))))
-      ("1.2.840.10040.4.1" .
-       ,(lambda (pki)
-	  (import-public-key DSA (slot-ref (slot-ref pki 'key-data) 'data))))
+    `(("1.2.840.113549.1.1.1" . ,pki->rsa-public-key)
+      ("1.2.840.113549.1.1.2" . ,pki->rsa-public-key)
+      ("1.2.840.113549.1.1.3" . ,pki->rsa-public-key)
+      ("1.2.840.113549.1.1.4" . ,pki->rsa-public-key)
+      ("1.2.840.113549.1.1.5" . ,pki->rsa-public-key)
+      ("1.2.840.113549.1.1.7" . ,pki->rsa-public-key)
+      ("1.2.840.113549.1.1.10" . ,pki->rsa-public-key)
+      ("1.2.840.113549.1.1.11" . ,pki->rsa-public-key)
+      ("2.5.8.1.1" . ,pki->rsa-public-key)
+      ("1.2.840.10040.4.1" . ,pki->dsa-public-key)
+      ("1.2.840.10040.4.3" . ,pki->dsa-public-key)
       ("1.2.840.10045.2.1" .
        ,(lambda (pki)
 	  ;; For some reason, old me thought importing ECPublicKey
