@@ -98,7 +98,8 @@
       (string->uri uri)))
 (define-syntax http:request-builder
   (make-record-builder http:request
-		       ((uri #f ->uri)
+		       ((method 'GET)
+			(uri #f ->uri)
 			(content-type "application/octet-stream")
 			(body #f)
 			(headers '() ->headers))))
