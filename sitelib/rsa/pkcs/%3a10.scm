@@ -149,6 +149,7 @@
       ("1.2.840.113549.1.1.7" . ,pki->rsa-public-key)
       ("1.2.840.113549.1.1.10" . ,pki->rsa-public-key)
       ("1.2.840.113549.1.1.11" . ,pki->rsa-public-key)
+      ("1.2.840.113549.1.1.12" . ,pki->rsa-public-key)
       ("2.5.8.1.1" . ,pki->rsa-public-key)
       ("1.2.840.10040.4.1" . ,pki->dsa-public-key)
       ("1.2.840.10040.4.3" . ,pki->dsa-public-key)

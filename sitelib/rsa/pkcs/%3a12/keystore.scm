@@ -71,7 +71,7 @@
 	    (rename (rsa pkcs :10) (algorithm-identifier-id get-id))
 	    (rsa pkcs :12 cipher)
 	    (rfc hmac)
-	    (rename (rfc x.509) (verify x509-verity))
+	    (rename (rfc x.509) (verify x509-verify))
 	    (crypto)
 	    (math)
 	    (asn.1)
@@ -915,7 +915,7 @@
 	;; verify raises an error when failed...
 	(define (verify c msg sig)
 	  (guard (e (else #f))
-	    (x509-verity c msg sig)))
+	    (x509-verify c msg sig)))
 	(let ((issuer-dn (x509-certificate-get-issuer-dn c))
 	      (subject-dn (x509-certificate-get-subject-dn c)))
 	  (if (equal? issuer-dn subject-dn)

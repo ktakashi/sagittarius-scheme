@@ -44,6 +44,7 @@
 	    x509-certificate-get-public-key
 	    x509:verify
 	    x509:check-validity
+	    x509:verify-certificate
 	    ;; for backward compatibility
 	    (rename (x509:verify verify)
 		    (x509:check-validity check-validity))
@@ -72,7 +73,8 @@
 	    (srfi :26 cut)
 	    (math)
 	    (asn.1)
-	    (rsa pkcs :10))
+	    (rsa pkcs :10)
+	    (security signature))
   ;; these might be somewhere
   (define-class <rdn> (<asn.1-encodable>)
     ((values :init-keyword :values)))
@@ -485,15 +487,29 @@
   ;; TODO for now we only support RSA
   ;;      currently user needs to do more task like choose hash algorithm
   ;;      and verifier. this must be done by the process.
+  ;; **DEPRECATED** It's a wrong idea to use certificate to verify a signature
+  ;; use (security signature) instead
   (define (x509:verify cert message signature
 		       :key (verify pkcs1-emsa-v1.5-verify)
-			    (hash (hash-algorithm SHA-1)))
+		       (hash (hash-algorithm SHA-1)))
+    (define algo (~ cert 'c 'algorithm-identifier))
+    (define verifier-provider
+      (algorithm-identifier->signature-verifier-provider algo))
+    
     (let* ((public-key (x509-certificate-get-public-key cert))
 	   (rsa-cipher (cipher RSA public-key)))
       ;; TODO check certificate encoder
       (crypto:verify rsa-cipher message signature
 		     :verify verify :hash hash)))
 
+  (define (x509:verify-certificate cert public-key)
+    (define algo (~ cert 'c 'algorithm-identifier))
+    (define sig  (x509-certificate-get-signature cert))
+    (define verifier-provider
+      (algorithm-identifier->signature-verifier-provider algo))
+    (let ((verifier (verifier-provider public-key)))
+      (verifier (x509-certificate->bytevector cert) sig)))
+  
   (define (x509:check-validity cert :optional (date (current-date)))
     (let ((time (date->time-utc date)))
       (when (time>? time (date->time-utc (x509-certificate-get-not-after cert)))

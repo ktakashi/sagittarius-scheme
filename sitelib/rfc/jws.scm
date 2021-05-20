@@ -72,6 +72,7 @@
 	    (rfc hmac)
 	    (record accessor)
 	    (record builder)
+	    (security signature)
 	    (crypto)
 	    (math)
 	    (srfi :13 strings)
@@ -286,31 +287,26 @@
   (case-lambda
    ((key) (make-rsa-verifier key '()))
    ((key critical-headers)
-    (define (make->rsa-verifier key)
-      (let ((rsa-cipher (make-cipher RSA key)))
-	(define (get-algorithm alg)
-	  (case alg
-	    ((RS256) (values (hash-algorithm SHA-256) pkcs1-emsa-v1.5-verify))
-	    ((RS384) (values (hash-algorithm SHA-384) pkcs1-emsa-v1.5-verify))
-	    ((RS512) (values (hash-algorithm SHA-512) pkcs1-emsa-v1.5-verify))
-	    ((PS256) (values (hash-algorithm SHA-256) pkcs1-emsa-pss-verify))
-	    ((PS384) (values (hash-algorithm SHA-384) pkcs1-emsa-pss-verify))
-	    ((PS512) (values (hash-algorithm SHA-512) pkcs1-emsa-pss-verify))
-	    (else
-	     (assertion-violation 'make-rsa-verifier "Unknown algorithm" alg))))
-	(lambda (alg)
-	  (let-values (((hash-algo verify) (get-algorithm alg)))
-	    (lambda (content signature)
-	      (cipher-verify rsa-cipher content signature
-			     :hash hash-algo :verify verify))))))
-    (let* ((public-key (cond ((jwk? key) (jwk->public-key key))
-			     ((public-key? key) key)
-			     (else (assertion-violation 'make-rsa-verifier
-							"Public key required"
-							key))))
-	   (->rsa-verifier (make->rsa-verifier public-key)))
+    (define (get-verifier alg)
+      (case alg
+	((RS256) (*rsa/sha256-verifier-provider* key))
+	((RS384) (*rsa/sha384-verifier-provider* key))
+	((RS512) (*rsa/sha512-verifier-provider* key))
+	((PS256)
+	 (*rsassa-pss-verifier-provider* key :digest SHA-256 :salt-length 32))
+	((PS384)
+	 (*rsassa-pss-verifier-provider* key :digest SHA-384 :salt-length 48))
+	((PS512)
+	 (*rsassa-pss-verifier-provider* key :digest SHA-512 :salt-length 64))
+	(else
+	 (assertion-violation 'make-rsa-verifier "Unknown algorithm" alg))))
+    (let ((public-key (cond ((jwk? key) (jwk->public-key key))
+			    ((public-key? key) key)
+			    (else (assertion-violation 'make-rsa-verifier
+						       "Public key required"
+						       key)))))
       (lambda (header signed-content signature)
-	(define rsa-verifier (->rsa-verifier (jose-crypto-header-alg header)))
+	(define rsa-verifier (get-verifier (jose-crypto-header-alg header)))
 	(and (check-critical-headers critical-headers header)
 	     (rsa-verifier signed-content signature)))))))
 
@@ -318,31 +314,21 @@
   (case-lambda
    ((key) (make-ecdsa-verifier key '()))
    ((key critical-headers)
-    (define (make->ecdsa-verifier key)
-      (let ((ecdsa-cipher (make-cipher ECDSA key)))
-	(define (get-algorithm alg)
-	  (case alg
-	    ((ES256) (hash-algorithm SHA-256))
-	    ((ES384) (hash-algorithm SHA-384))
-	    ((ES512) (hash-algorithm SHA-512))
-	    (else
-	     (assertion-violation 'make-ecdsa-verifier
-				  "Unknown algorithm" alg))))
-	(lambda (alg)
-	  (let ((hash-algo (get-algorithm alg)))
-	    (lambda (content signature)
-	      (cipher-verify ecdsa-cipher content signature
-			     :hash hash-algo
-			     :der-encode #f))))))
-    (let* ((public-key (cond ((jwk? key) (jwk->public-key key))
-			     ((public-key? key) key)
-			     (else (assertion-violation 'make-ecdsa-verifier
-							"Public key required"
-							key))))
-	   (->ecdsa-verifier (make->ecdsa-verifier public-key)))
+    (define (get-verifier alg)
+      (case alg
+	((ES256) (*ecdsa/sha256-verifier-provider* key :der-encode #f))
+	((ES384) (*ecdsa/sha384-verifier-provider* key :der-encode #f))
+	((ES512) (*ecdsa/sha512-verifier-provider* key :der-encode #f))
+	(else
+	 (assertion-violation 'make-ecdsa-verifier
+			      "Unknown algorithm" alg))))
+    (let ((public-key (cond ((jwk? key) (jwk->public-key key))
+			    ((public-key? key) key)
+			    (else (assertion-violation 'make-ecdsa-verifier
+						       "Public key required"
+						       key)))))
       (lambda (header signed-content signature)
-	(define ecdsa-verifier
-	  (->ecdsa-verifier (jose-crypto-header-alg header)))
+	(define ecdsa-verifier (get-verifier (jose-crypto-header-alg header)))
 	(and (check-critical-headers critical-headers header)
 	     (ecdsa-verifier signed-content signature)))))))
 
