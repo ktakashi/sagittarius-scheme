@@ -335,10 +335,13 @@
   (define-class <x509-certificate> ()
     ((c :init-keyword :c)
      (basic-constraints :init-keyword :basic-constraints)
-     (key-usage :init-keyword :key-usage)))
+     (key-usage :init-keyword :key-usage)
+     (encoded :init-keyword :encoded :init-value #f)))
   (define-generic make-x509-certificate)
   (define-method make-x509-certificate ((bv <bytevector>))
-    (make-x509-certificate (open-bytevector-input-port bv)))
+    (let ((r (make-x509-certificate (open-bytevector-input-port bv))))
+      (slot-set! r 'encoded bv)
+      r))
   (define-method make-x509-certificate ((p <port>))
     (make-x509-certificate (read-asn.1-object p)))
   (define-method make-x509-certificate ((s <asn.1-sequence>))
@@ -386,9 +389,10 @@
       (make <x509-certificate>
 	:c c
 	:basic-constraints constraints
-	:key-usage key-usage)))
+	:key-usage key-usage
+	:encoded (encode s))))
   (define (x509-certificate? o) (is-a? o <x509-certificate>))
-  (define (x509-certificate->bytevector o) (encode (~ o 'c)))
+  (define (x509-certificate->bytevector o) (~ o 'encoded))
 
   ;; accessor
   (define (x509-certificate-get-version cert)
@@ -508,7 +512,8 @@
     (define verifier-provider
       (algorithm-identifier->signature-verifier-provider algo))
     (let ((verifier (verifier-provider public-key)))
-      (verifier (x509-certificate->bytevector cert) sig)))
+      (verifier (encode (asn.1-sequence-get (~ cert 'c 'sequence) 0))
+		sig)))
   
   (define (x509:check-validity cert :optional (date (current-date)))
     (let ((time (date->time-utc date)))
