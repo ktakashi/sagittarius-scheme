@@ -376,7 +376,9 @@
 		       (jwk-config-builder)))
     (define (x5c->fingerprint x5c algo)
       (and (not (null? x5c))
-	   (hash algo (car (x509-certificate->bytevector (car x5c))))))
+	   (utf8->string
+	    (base64-encode
+	     (hash algo (x509-certificate->bytevector (car x5c)))))))
     (define (rsa-public-key->jwk public-key)
       (make-jwk:rsa 'RSA
 		    (jwk:config-use config)
