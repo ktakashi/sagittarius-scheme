@@ -30,6 +30,7 @@
 
 ;; ref: https://tools.ietf.org/html/rfc7517
 
+#!nounbound
 (library (rfc jwk)
     (export json-string->jwk-set read-jwk-set json->jwk-set
 	    jwk-set->json-string write-jwk-set jwk-set->json
@@ -50,12 +51,15 @@
 	    jwk:rsa-crt-private-p  jwk:rsa-crt-private-q jwk:rsa-crt-private-dp
 	    jwk:rsa-crt-private-dq jwk:rsa-crt-private-qi
 	    ;; oct
-	    jwk:oct? make-jwk:oct jwk-oct-k
+	    jwk:oct? make-jwk:oct jwk:oct-k
 
 	    jwk->certificate-chain
 	    jwk->public-key
 	    jwk->private-key
 	    jwk->octet-key
+
+	    jwk-config-builder jwk:config?
+	    public-key->jwk
 	    )
     (import (rnrs)
 	    (text json parse)
@@ -64,7 +68,12 @@
 	    (rfc jose)
 	    (rfc jwa)
 	    (rfc base64)
-	    (srfi :39))
+	    (rfc x.509)
+	    (srfi :39)
+	    (record builder)
+	    (crypto)
+	    (math)
+	    (math ec))
 
   (define-record-type jwk
     ;; sort of similar to JOSE header but different record type
@@ -79,16 +88,20 @@
   (define-record-type jwk:ec
     (parent jwk)
     (fields crv x y))
+
   (define-record-type jwk:ec-private
     (parent jwk:ec)
     (fields d))
+
   ;; RSA
   (define-record-type jwk:rsa
     (parent jwk)
     (fields n e))
+
   (define-record-type jwk:rsa-private
     (parent jwk:rsa)
     (fields d))
+
   (define-record-type jwk:rsa-crt-private
     (parent jwk:rsa-private)
     ;; TODO support other prime factor
@@ -96,6 +109,7 @@
     ;; e.g. the RFC says JSON array but seems JSON object so
     ;;      not sure what it is
     (fields p q dp dq qi))
+
   ;; Symmetric key
   (define-record-type jwk:oct
     (parent jwk)
@@ -343,5 +357,56 @@
 	(jwk:oct-k jwk)
 	(assertion-violation 'jwk->secret-key
 			     "given JWK object is not a oct type object" jwk)))
+
+  (define (oid->curv&alg oid)
+    (cond ((string=? oid "1.2.840.10045.3.1.7") (values 'P-256 'ES256))
+	  ((string=? oid "1.3.132.0.34") (values 'P-384 'ES384))
+	  ((string=? oid "1.3.132.0.35") (values 'P-521 'ES521))
+	  (else (assertion-violation 'oid->curv "Unknown JWK curv OID" oid))))
+
+  (define-record-type jwk:config
+    (fields use key-ops alg kid x5u x5c))
+  (define-syntax jwk-config-builder
+    (make-record-builder jwk:config
+			 ((key-ops '())
+			  (x5c '()))))
+  (define (public-key->jwk public-key . maybe-config)
+    (define config (if (not (null? maybe-config))
+		       (car maybe-config)
+		       (jwk-config-builder)))
+    (define (x5c->fingerprint x5c algo)
+      (and (not (null? x5c))
+	   (hash algo (car (x509-certificate->bytevector (car x5c))))))
+    (define (rsa-public-key->jwk public-key)
+      (make-jwk:rsa 'RSA
+		    (jwk:config-use config)
+		    (jwk:config-key-ops config)
+		    (or (jwk:config-alg config) 'RS256) ;; should we?
+		    (jwk:config-kid config)
+		    (jwk:config-x5u config)
+		    (map x509-certificate->bytevector (jwk:config-x5c config))
+		    (x5c->fingerprint (jwk:config-x5c config) SHA-1)
+		    (x5c->fingerprint (jwk:config-x5c config) SHA-256)
+       (rsa-public-key-modulus public-key)
+       (rsa-public-key-exponent public-key)))
+    (define (ecdsa-public-key->jwk public-key)
+      (define ec-param (ecdsa-public-key-parameter public-key))
+      (define oid (ec-parameter-oid ec-param))
+      (define Q (ecdsa-public-key-Q public-key))
+      (let-values (((curv alg) (oid->curv&alg oid)))
+	(make-jwk:ec 'EC
+		     (jwk:config-use config)
+		     (jwk:config-key-ops config)
+		     (or (jwk:config-alg config) alg) ;; should we?
+		     (jwk:config-kid config)
+		     (jwk:config-x5u config)
+		     (map x509-certificate->bytevector (jwk:config-x5c config))
+		     (x5c->fingerprint (jwk:config-x5c config) SHA-1)
+		     (x5c->fingerprint (jwk:config-x5c config) SHA-256)
+		     curv (ec-point-x Q) (ec-point-y Q))))
+    (cond ((rsa-public-key? public-key) (rsa-public-key->jwk public-key))
+	  ((ecdsa-public-key? public-key) (ecdsa-public-key->jwk public-key))
+	  (else (assertion-violation 'public-key->jwk "Unsupported key"
+				     public-key))))
   
   )

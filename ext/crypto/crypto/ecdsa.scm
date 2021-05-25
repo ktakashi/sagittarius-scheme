@@ -35,7 +35,10 @@
 (library (crypto ecdsa)
     (export ECDSA
 	    <ecdsa-private-key> ecdsa-private-key?
+	    ecdsa-private-key-d ecdsa-private-key-parameter
+	    ecdsa-private-key-public-key
 	    <ecdsa-public-key> ecdsa-public-key?
+	    ecdsa-public-key-Q ecdsa-public-key-parameter
 
 	    ;; NIST parameters
 	    NIST-P-192
@@ -90,13 +93,16 @@
   (define ECDSA :ecdsa)
 
   (define-class <ecdsa-private-key> (<private-key>)
-    ((d :init-keyword :d)		   ;; private key
-     (parameter :init-keyword :parameter :init-keyword #f) ;; domain parameter
-     (public-key :init-keyword :public-key :init-value #f))) ;; public key
+    ((d :init-keyword :d :reader ecdsa-private-key-d) ;; private key
+     (parameter :init-keyword :parameter :init-keyword #f
+		:reader ecdsa-private-key-parameter) ;; domain parameter
+     (public-key :init-keyword :public-key :init-value #f
+		 :reader ecdsa-private-key-public-key))) ;; public key
   (define (ecdsa-private-key? o) (is-a? o <ecdsa-private-key>))
   (define-class <ecdsa-public-key> (<public-key>)
-    ((Q :init-keyword :Q)
-     (parameter :init-keyword :parameter :init-keyword #f))) ;; domain parameter
+    ((Q :init-keyword :Q :reader ecdsa-public-key-Q)
+     (parameter :init-keyword :parameter :init-keyword #f
+		:reader ecdsa-public-key-parameter))) ;; domain parameter
   (define (ecdsa-public-key? o) (is-a? o <ecdsa-public-key>))
 
   (define (describe-ec-point point out indent)
