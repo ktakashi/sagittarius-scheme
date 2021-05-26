@@ -98,6 +98,7 @@ typedef struct SgBuiltinHashAlgoRec
   int        initialized;
   int        index;
   hash_state state;
+  SgObject   oid;
 } SgBuiltinHashAlgo;
 
 typedef struct SgUserHashAlgoRec

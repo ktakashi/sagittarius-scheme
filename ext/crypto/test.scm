@@ -378,6 +378,9 @@
   (for-each (lambda (algo out) (test-blake2 algo #*"abc" out)) algos abcs)
   (for-each (lambda (algo out) (test-blake2 algo #*"" out)) algos empties))
 
+(test-equal (hash SHA-256 #vu8())
+	    (hash (oid->hash-algorithm "2.16.840.1.101.3.4.2.1") #vu8()))
+
 ;; mgf-1 test
 (define mgf-result-sha1
   (integer->bytevector #x5f8de105b5e96b2e490ddecbd147dd1def7e3b8e0e6a26eb7b956ccb8b3bdc1ca975bc57c3989e8fbad31a224655d800c46954840ff32052cdf0d640562bdfadfa263cfccf3c52b29f2af4a1869959bc77f854cf15bd7a25192985a842dbff8e13efee5b7e7e55bbe4d389647c686a9a9ab3fb889b2d7767d3837eea4e0a2f04))

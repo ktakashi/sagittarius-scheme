@@ -69,6 +69,32 @@ static SgBuiltinHashAlgo* make_hash(SgString *name)
   return h;
 }
 
+static void setup_oid(SgBuiltinHashAlgo *algo)
+{
+  unsigned int index = SG_BUILTIN_HASH(algo)->index, i;
+  unsigned long *OID = hash_descriptor[index].OID;
+  unsigned long len = hash_descriptor[index].OIDlen;
+  /* construct oid string */
+  SgObject h = SG_NIL, t = SG_NIL;
+  SgObject s = SG_UNDEF, cp;	/* return string */
+  SgString *dot = SG_MAKE_STRING(".");
+  
+  if (len == 0) {
+     /* given hash algorithm does not have OID */
+    algo->oid = SG_FALSE;
+    return;
+  }
+  for (i = 0; i < len; i++) {
+    SG_APPEND1(h, t, Sg_Sprintf(UC("%A"), Sg_MakeIntegerU(OID[i])));
+  }
+  s = SG_CAR(h);
+  SG_FOR_EACH(cp, SG_CDR(h)) {
+    s = Sg_StringAppend2(SG_STRING(s), dot);
+    s = Sg_StringAppend2(SG_STRING(s), SG_STRING(SG_CAR(cp)));
+  }
+  algo->oid = s;
+}
+
 SgObject Sg_MakeHash(SgString *name)
 {
   SgBuiltinHashAlgo *hash;
@@ -81,6 +107,7 @@ SgObject Sg_MakeHash(SgString *name)
   hash = make_hash(name);
   hash->index = index;
   hash_descriptor[index].init(&hash->state);
+  setup_oid(hash);
   hash->initialized = TRUE;
   return SG_OBJ(hash);
 }
@@ -224,26 +251,8 @@ SgObject Sg_HashSize(SgObject algo)
 
 SgObject Sg_HashOid(SgObject algo)
 {
-
   if (SG_BUILTIN_HASH_P(algo)) {
-    unsigned int index = SG_BUILTIN_HASH(algo)->index, i;
-    unsigned long *OID = hash_descriptor[index].OID;
-    unsigned long len = hash_descriptor[index].OIDlen;
-    /* construct oid string */
-    SgObject h = SG_NIL, t = SG_NIL;
-    SgObject s = SG_UNDEF, cp;	/* return string */
-    SgString *dot = SG_MAKE_STRING(".");
-
-    if (len == 0) return SG_FALSE; /* given hash algorithm does not have OID */
-    for (i = 0; i < len; i++) {
-      SG_APPEND1(h, t, Sg_Sprintf(UC("%A"), Sg_MakeIntegerU(OID[i])));
-    }
-    s = SG_CAR(h);
-    SG_FOR_EACH(cp, SG_CDR(h)) {
-      s = Sg_StringAppend2(SG_STRING(s), dot);
-      s = Sg_StringAppend2(SG_STRING(s), SG_STRING(SG_CAR(cp)));
-    }
-    return s;
+    return SG_BUILTIN_HASH(algo)->oid;
   } else {
     return SG_USER_HASH(algo)->oid;
   }  

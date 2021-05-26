@@ -19,6 +19,8 @@
 	    MD5 MD4 MD2
 	    BLAKE2s-128 BLAKE2s-160 BLAKE2s-224 BLAKE2s-256
 	    BLAKE2b-160 BLAKE2b-256 BLAKE2b-384 BLAKE2b-512
+
+	    oid->hash-algorithm
 	    
 	    ;; for convenience
 	    hash hash!
@@ -30,8 +32,8 @@
 	    )
 
     (import (core)
+	    (core base)
 	    (clos core)
-	    (sagittarius control)
 	    (sagittarius math))
 
   (define (hash-algorithm name . opts)
@@ -63,4 +65,22 @@
       (hash-process! algo bv)
       (hash-done! algo out)
       out))
+
+  (define *oid/algorithm*
+    (filter values
+	    (map (lambda (name)
+		   (let ((algo (hash-algorithm name)))
+		     (cons (hash-oid algo) algo)))
+		 (list WHIRLPOOL SHA-512 SHA-384 RIPEMD-320
+		       SHA-256 RIPEMD-256 SHA-224 SHA-512/224 SHA-512/256
+		       SHA-3-224 SHA-3-256 SHA-3-384 SHA-3-512
+		       Tiger-192 SHA-1 RIPEMD-160 RIPEMD-128
+		       MD5 MD4 MD2
+		       BLAKE2s-128 BLAKE2s-160 BLAKE2s-224 BLAKE2s-256
+		       BLAKE2b-160 BLAKE2b-256 BLAKE2b-384 BLAKE2b-512))))
+  (define (oid->hash-algorithm oid)
+    ;; we don't do user hash for now...
+    (cond ((assoc oid *oid/algorithm*) => cdr)
+	  (else #f)))
+  
 )
