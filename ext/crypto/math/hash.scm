@@ -37,7 +37,8 @@
 	    (sagittarius math))
 
   (define (hash-algorithm name . opts)
-    (cond ((lookup-hash name)
+    (cond ((hash-algorithm? name) name) ;; for convenience
+	  ((lookup-hash name)
 	   => (lambda (clazz)
 		(if (boolean? clazz)
 		    (make-hash-algorithm name)

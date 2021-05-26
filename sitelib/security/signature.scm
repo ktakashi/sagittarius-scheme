@@ -68,14 +68,25 @@
 	    *ecdsa/sha512-signer-provider*
 	    )
     (import (rnrs)
+	    (clos core)
 	    (crypto)
 	    (math)
+	    (asn.1)
 	    (rsa pkcs :10))
 
+(define *rsassa-pss-oid* "1.2.840.113549.1.1.10")
 (define (algorithm-identifier->signature-verifier-provider aid)
   (define oid (algorithm-identifier-id aid))
   ;; TODO parameter for RSAPSS
-  (cond ((assp (lambda (known-oid) (string=? oid known-oid))
+  (cond ((string=? oid *rsassa-pss-oid*)
+	 (let-values (((algo mgf salt-len) (parse-rsassa-pss-parameter aid)))
+	   ;; wrap it
+	   (lambda (public-key . parameters)
+	     (*rsassa-pss-verifier-provider* public-key
+					     :digest algo
+					     :mgf mgf
+					     :salt-length salt-len))))
+	((assp (lambda (known-oid) (string=? oid known-oid))
 	       *provider-oid-map*) => cadr)
 	(else
 	 (assertion-violation 'algorithm-identifier->signature-verifier-provider
@@ -89,6 +100,41 @@
 	(else
 	 (assertion-violation 'algorithm-identifier->signature-signer-provider
 			      "Not supported OID" oid))))
+
+#|
+      RSASSA-PSS-params  ::=  SEQUENCE  {
+         hashAlgorithm      [0] HashAlgorithm DEFAULT
+                                   sha1Identifier,
+         maskGenAlgorithm   [1] MaskGenAlgorithm DEFAULT
+                                   mgf1SHA1Identifier,
+         saltLength         [2] INTEGER DEFAULT 20,
+         trailerField       [3] INTEGER DEFAULT 1  }
+|#
+
+(define (parse-rsassa-pss-parameter aid)
+  (define param (algorithm-identifier-parameters aid))
+  (define (find-tag param tag)
+    (define (check-tag o)
+      (and (is-a? o <asn.1-tagged-object>)
+	   (equal? tag (slot-ref o 'tag-no))))
+    (do ((len (asn.1-sequence-size param))
+	 (i 0 (+ i 1)))
+	((or (= i len) (check-tag (asn.1-sequence-get param i)))
+	 (and (not (= i len))
+	      (slot-ref (asn.1-sequence-get param i) 'obj)))))
+  (unless (is-a? param <asn.1-sequence>)
+    (assertion-violation 'parse-rsassa-pss-parameter
+			 "Invalid rsassa-pss parameter" aid))
+  (let ((hash-func-aid (make-algorithm-identifier (find-tag param 0)))
+	(mask-gen-func-aid (make-algorithm-identifier (find-tag param 1)))
+	(salt-len (find-tag param 2)))
+    (unless (string=? (algorithm-identifier-id mask-gen-func-aid)
+		      "1.2.840.113549.1.1.8")
+      (assertion-violation 'parse-rsassa-pss-parameter
+			   "Unknown MGF OID" mask-gen-func-aid))
+    (values (oid->hash-algorithm (algorithm-identifier-id hash-func-aid))
+	    mgf-1
+	    (der-integer->integer salt-len))))
 
 ;;; verifier providers
 (define (make-rsa-verifier-provider digest verify)
@@ -196,7 +242,7 @@
     ("1.2.840.113549.1.1.16" ,*rsa/sha512/256-verifier-provider*
 			     ,*rsa/sha512/256-signer-provider*)
     ;; RSA PSSSSA-PSS
-    ("1.2.840.113549.1.1.10" ,*rsassa-pss-verifier-provider*
+    (,*rsassa-pss-oid*       ,*rsassa-pss-verifier-provider*
 			     ,*rsassa-pss-signer-provider*)
     ;; DSA
     ;; ECDSA
