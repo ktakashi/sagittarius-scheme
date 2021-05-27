@@ -77,15 +77,15 @@
 (define *rsassa-pss-oid* "1.2.840.113549.1.1.10")
 (define (algorithm-identifier->signature-verifier-provider aid)
   (define oid (algorithm-identifier-id aid))
-  ;; TODO parameter for RSAPSS
   (cond ((string=? oid *rsassa-pss-oid*)
 	 (let-values (((algo mgf salt-len) (parse-rsassa-pss-parameter aid)))
 	   ;; wrap it
 	   (lambda (public-key . parameters)
-	     (*rsassa-pss-verifier-provider* public-key
-					     :digest algo
-					     :mgf mgf
-					     :salt-length salt-len))))
+	     (apply *rsassa-pss-verifier-provider* public-key
+		    :digest algo
+		    :mgf mgf
+		    :salt-length salt-len
+		    parameters))))
 	((assp (lambda (known-oid) (string=? oid known-oid))
 	       *provider-oid-map*) => cadr)
 	(else
@@ -94,8 +94,16 @@
 
 (define (algorithm-identifier->signature-signer-provider aid)
   (define oid (algorithm-identifier-id aid))
-  ;; TODO parameter for RSAPSS
-  (cond ((assp (lambda (known-oid) (string=? oid known-oid))
+  (cond ((string=? oid *rsassa-pss-oid*)
+	 (let-values (((algo mgf salt-len) (parse-rsassa-pss-parameter aid)))
+	   ;; wrap it
+	   (lambda (private-key . parameters)
+	     (apply *rsassa-pss-signer-provider* private-key
+		    :digest algo
+		    :mgf mgf
+		    :salt-length salt-len
+		    parameters))))
+	((assp (lambda (known-oid) (string=? oid known-oid))
 	       *provider-oid-map*) => caddr)
 	(else
 	 (assertion-violation 'algorithm-identifier->signature-signer-provider

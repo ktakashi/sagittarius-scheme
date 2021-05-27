@@ -2,6 +2,7 @@
 	(rfc jwk)
 	(srfi :64)
 	(rfc x.509)
+	(rfc pem)
 	(crypto))
 
 (test-begin "RFC - JWK")
@@ -233,5 +234,19 @@
     (test-jwk jwk)
     (test-equal "jwk->json jwk:ec" jwk-json (jwk->json jwk))))
 
+(let ()
+  (define cert (string-append (current-directory)
+			      "/test/data/certs/EE.cer"))
+  (define ca-cert (string-append (current-directory)
+				 "/test/data/certs/CA.cer"))
+  (define (->certificate file)
+    (let-values (((param content) (parse-pem-file file)))
+      (make-x509-certificate content)))
+  (let ((cert (->certificate cert))
+	(ca (->certificate ca-cert)))
+    (let ((jwk (public-key->jwk (x509-certificate-get-public-key cert)
+				(jwk-config-builder
+				 (x5c (list cert ca))))))
+      (test-assert (jwk:rsa? jwk)))))
 
 (test-end)
