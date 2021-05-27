@@ -107,47 +107,12 @@
   )
 
 (let ()
-  (define cert "-----BEGIN CERTIFICATE-----
-MIIDFjCCAc0CFB4LLlNT9Ju1ZHqjOGIltmQrLX34MD4GCSqGSIb3DQEBCjAxoA0w
-CwYJYIZIAWUDBAIBoRowGAYJKoZIhvcNAQEIMAsGCWCGSAFlAwQCAaIEAgIA3jAN
-MQswCQYDVQQDDAJDQTAeFw0yMTA1MjUxODI2MTlaFw0yMTA2MjQxODI2MTlaMCIx
-IDAeBgNVBAMMF3NhZ2l0dGFyaXVzLXNjaGVtZS10ZXN0MIIBIDALBgkqhkiG9w0B
-AQoDggEPADCCAQoCggEBAK+KEHYsl65M6HMYL9pmuqqAgtJ0fJ3tSnNFK1gR6a7u
-21zDGLpSdO4XA/Shrqf0svzC4QrOVh7XZ9uIFOfp2WwR3Q3JUrPDK6x8MsDLV/Vl
-S2CQAptBLqZnPGEu4gFkz4GGBR6QwCyjnx9yNXpkaRHlIV72j0kt+zdgjykX4cPP
-HCZwvHne9oshOodFwjwc385pl7rRnFR7T+eGBKIwmzU/GuWvn1XBkHpj7eDeOtx4
-H/5eAdoeA1loNKnLu4xW62ZGaTmhiDlaAvF1ENLCJJM8ZVSut2fk+221arL70dvd
-GEumHhHqr5kN5tzRUBPkrwdnEIIPzX4B1dXx8XjFWIUCAwEAATA+BgkqhkiG9w0B
-AQowMaANMAsGCWCGSAFlAwQCAaEaMBgGCSqGSIb3DQEBCDALBglghkgBZQMEAgGi
-BAICAN4DggEBAGoeDbXSs0PKYSNbUXSjwXySKN7reFD+wIrHI9UbS1fbusEOUmY7
-5fmb6BGkFPN8wMvI33/qkzwrVKlx2SKRIq2wPSRVq/Ir702Kds9rog4lexIMIKzs
-bkUi5hY7bddRZeDNJIPNZ/uxuywkY2d5U4wvmv1cOjhaVLkbUt2BLVZAKsHtXW3f
-5XM5RwxAejuB+9sN5AkjBTTxx5byslAJPgVT8bC9siARiLNSgKMHDEo7okLmW1k5
-exxnVrQCVb2ZV5Dw2DXLgp/y5ZJwWN7hLs+STXofwxosOyQ8uQ/l2cYk7QiesiOb
-02B5oKmq6fqr3jWXNzsMhE7xg8AcEpm65Xc=
------END CERTIFICATE-----")
-  (define ca-cert "-----BEGIN CERTIFICATE-----
-MIIDWzCCAhKgAwIBAgIUZJMFS/qyis7N/WB900YOeZzzJlowPgYJKoZIhvcNAQEK
-MDGgDTALBglghkgBZQMEAgGhGjAYBgkqhkiG9w0BAQgwCwYJYIZIAWUDBAIBogQC
-AgDeMA0xCzAJBgNVBAMMAkNBMB4XDTIxMDUyNTE4MjMzOVoXDTIxMDYyNDE4MjMz
-OVowDTELMAkGA1UEAwwCQ0EwggEgMAsGCSqGSIb3DQEBCgOCAQ8AMIIBCgKCAQEA
-vlli8oJPmnIEzPAzoiHM9OhkDwdtdCEaDoLcHOvFbhP9NZ/5T/QT+pxOCpAxZ6op
-+Mb0hy2eB8eycmDJnx8AKoO6pWWrBh2TRLkZVfpLiuyfm+NRBxkAFa8GZ7bvYbN7
-/IhTN5kU/qEOVbVwC3U5huqrWf+2CF0RP+JuvG6ORq8WqhRaJJC/0hMIGSZUW14h
-kMEOR1F3IyTlkFty68wUQQWkVdOd40WDMGe0CXOBQ2rbGlYC3dSRlepvQi/P8ssA
-V76ir6rMNGabLBfh3owu7BAL8kSLjqDMVhfuQEMurzx/XYogoSmxzBar0NSncDBD
-V2FLv2jh/wxCRu/PEILIjQIDAQABo1MwUTAdBgNVHQ4EFgQUBhazEC0vLruOuXLx
-WGFKGAo1BBowHwYDVR0jBBgwFoAUBhazEC0vLruOuXLxWGFKGAo1BBowDwYDVR0T
-AQH/BAUwAwEB/zA+BgkqhkiG9w0BAQowMaANMAsGCWCGSAFlAwQCAaEaMBgGCSqG
-SIb3DQEBCDALBglghkgBZQMEAgGiBAICAN4DggEBALM/Luineq3/CwpItNT63tdN
-COMJJvDqtCTVInizmWpwJOxL780Lpm2j0mX9O5qNnlMuAlhYK4HxHjDjv12X2CFg
-wbA8Ny7CU/vxCmPzwci7/MkNFVTuaD6fWS0WpB3k7T6qSW+M2ShogM7Q4Zw1pJhy
-owWjWOqxibtsCpmeTrcCuA3lvrJpPUdpTpbg7Oh7yVzS2quP/LapottfYjBzCFza
-LDCa44pYOpeQpMG5eOaTw2VXzGlPvwdusmMTqxp1aXLsk+tiS3jEAuKS0+q3qdtN
-RibZ62DoxRmJC/mOLiFVwPFLZqJrtzO7/aJ2QBGBiKLnW6KnAKyrRsilNpQAR6c=
------END CERTIFICATE-----")
+  (define cert (string-append (current-directory)
+			      "/test/data/certs/EE.cer"))
+  (define ca-cert (string-append (current-directory)
+			      "/test/data/certs/CA.cer"))
   (define (->certificate file)
-    (let-values (((param content) (parse-pem-string file)))
+    (let-values (((param content) (parse-pem-file file)))
       (make-x509-certificate content)))
   (test-assert "RSASSA-PSS signature certificate verify"
    (x509:verify-certificate (->certificate cert)
