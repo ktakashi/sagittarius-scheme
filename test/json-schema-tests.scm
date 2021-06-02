@@ -46,12 +46,8 @@
 	      :recursive #f :pattern "\\.json$"))
 
 ;; the *will not be supported/fixed* test names
-(define *known-incompatible-tests*
-  '("match the enum exactly"
-    "do not evaluate the $ref inside the enum, definition exact match"))
-(define *ignoring-scenarios*
-  ;; The test contains https ref, it's rather difficult to make it work...
-  '("id inside an enum is not a real identifier"))
+(define *known-incompatible-tests* '())
+(define *ignoring-scenarios* '())
 
 ;; FIXME copy&paste...
 (define (key=? key) (lambda (e) (and (pair? e) (string=? (car e) key) e)))

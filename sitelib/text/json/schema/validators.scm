@@ -2,7 +2,7 @@
 ;;;
 ;;; text/json/schema/validators.scm - JSON schema validators
 ;;;
-;;;   Copyright (c) 2018  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2018-2021  Takashi Kato  <ktakashi@ymail.com>
 ;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -87,8 +87,6 @@
 	    *json-schema:report-port*
 
 	    +json-schema-uri+
-	    ;; for testing
-	    resolve-$ref
 	    )
     (import (rnrs)
 	    (rnrs mutable-pairs)
@@ -99,12 +97,14 @@
 	    (sagittarius)
 	    (sagittarius regex)
 	    (sagittarius control)
+	    (scheme lazy)
 	    (rfc uri)
 	    (rfc uri-template)
 	    (rfc smtp format) ;; for smtp-valid-address?
 	    (util uri)
 	    (srfi :1 lists)
 	    (srfi :39 parameters)
+	    (srfi :117 list-queues)
 	    (srfi :133 vectors))
 
 (define *json-schema:resolve-external-schema?* (make-parameter #f))
@@ -113,10 +113,14 @@
 ;; ('format') keyword.
 (define *json-schema:validate-format?* (make-parameter #t))
 
+(define *json-schema:version* (make-parameter #f))
+
 ;; internal parameter to handle shared structure
 ;; for unit test we need to have default hashtable
 (define *validators* (make-parameter (make-eq-hashtable)))
 (define *referencing-validators* (make-parameter (make-eq-hashtable)))
+(define *context* (make-parameter #f))
+(define *lazy-queue* (make-parameter #f))
 
 ;; reporting parameter
 ;; json pointer
@@ -158,7 +162,7 @@
        (lambda () (validator e))))))
 (define-record-type json-schema-validator
   (parent <json-validator>)
-  (fields source ;; RAW sexp JSON (vector)
+  (fields source ;; Raw sexp JSON (vector)
 	  schema ;; $schema
 	  id	 ;; $id
 	  )
@@ -175,13 +179,14 @@
 	  (else default)))))
 
 (define +json-schema-uri+  "http://json-schema.org/schema#")
+
 (define (json-schema->json-validator schema . referencing-validators)
   (define (convert schema)
-    (let ((r (alist-json->vector-json schema)))
-      (unless (vector? r)
-	(assertion-violation 'json-schema->json-validator
-			     "JSON object is required" schema))
-      r))
+  (let ((r (alist-json->vector-json schema)))
+    (unless (vector? r)
+      (assertion-violation 'json-schema->json-validator
+			   "JSON object is required" schema))
+    r))
   (define (->validator-map)
     (unless (for-all json-schema-validator? referencing-validators)
       (assertion-violation 'json-schema->json-validator
@@ -195,202 +200,113 @@
       ht))
 
   (cond ((vector? schema)
-	 (let* (($schema (value-of "$schema" schema +json-schema-uri+))
-		($id (value-of "$id" schema))
-		(resolved-schema (resolve-$ref $id (deep-copy schema))))
-	   (parameterize ((*validators* (make-eq-hashtable))
-			  (*referencing-validators* (->validator-map)))
-	     (make-json-schema-validator (->json-validator resolved-schema)
-					 schema $schema $id))))
+	 (parameterize ((*validators* (make-eq-hashtable))
+			(*referencing-validators* (->validator-map))
+			(*lazy-queue* (list-queue))
+			(*context* #f))
+	   (let (($schema (value-of "$schema" schema +json-schema-uri+))
+		 ($id (value-of "$id" schema))
+		 (v (schema->validator 'json-schema->json-validator schema)))
+	     (for-each force (list-queue-list (*lazy-queue*)))
+	     (make-json-schema-validator v schema $schema $id))))
 	((boolean? schema)
-	 ;; boolean is also a valid schema
 	 (make-json-schema-validator (boolean->validator schema)
 				     schema +json-schema-uri+ #f))
 	(else (json-schema->json-validator (convert schema)))))
 
-;; internal
-(define (deep-copy e)
-  ;; we copy the JSON object structure completely so that we can
-  ;; modify the vector destructively
-  (cond ((vector? e) (vector-map deep-copy e))
-	((pair? e) (cons (deep-copy (car e)) (deep-copy (cdr e))))
-	(else e)))
-		       
-;; The $ref resolution takes the following 2 passes:
-;;   1. collect and merge all $id's
-;;   2. resolve $ref (incl. removing other properties)
-;; The first pass collects and stores the absolute id of the target
-;; JSON object which contains the id.
-;; The second pass resolves the '$ref's as either JSON pointer or
-;; absolute id.
-;;
-;; NOTE: 
-;; The specification is rather vague for $id and $ref, especially
-;; merging URI. For example, 2 of the online validator behave
-;; differently. We only merge URI to root id, iff it has hostname, and
-;; if there's an $id with hostname, we treat it as if it's just an
-;; absolute URI.
-;;
-;; NOTE 2:
-;; An absolute URI in this case is an URI containing scheme.
-;;
-;; FIXME: This followes the tree twice 
-(define (resolve-$ref root-id schema)
-  (define seen (make-hashtable string-hash string=?))
-  (define seen2 (make-eq-hashtable))
-  (define (parse-id id)
-    (if id
-	(let*-values (((scheme specific) (uri-scheme&specific id))
-		      ((auth path query frag)
-		       (uri-decompose-hierarchical specific)))
-	  ;; decode fragment for relative JSON pointer.
-	  (values scheme auth path query (and frag (uri-decode-string frag))))
-	(values #f #f #f #f #f)))
-  (define-values (root-scheme root-auth root-path root-query root-frag)
-    (parse-id root-id))
-  (define current-path root-path)
-  ;; absolute id storage
-  (define ids (make-hashtable string-hash string=?))
-  (define (merge-id id)
-    (let-values (((scheme auth path query frag) (parse-id id)))
-      (if (or scheme (not root-scheme))
-	  (if frag id (string-append id "#"))
-	  (uri-compose :scheme root-scheme :authority root-auth
-		       :path (or (and current-path path
-				      (uri-merge current-path path))
-				 path
-				 current-path)
-		       :query query :fragment frag))))
-  (define (collect-ids object)
-    (define (collect-id parent-object id)
-      ;; maybe $id as propery so we don't throw if it's not a string
-      (when (string? id)
-	(when (or (string=? "" id) (string=? "#" id))
-	  (assertion-violation 'json-schema->json-validator
-			       "$id should not be an empty string or '#'" id))
-	;; root-id might be #f so use equal? instead of string=?
-	(unless (equal? id root-id)
-	  (let ((new-id (merge-id id)))
-	    (hashtable-set! ids new-id parent-object)
-	    (let-values (((scheme auth path query frag) (parse-id new-id)))
-	      ;; if we have path, then this object belongs to the path
-	      (when path (set! current-path path)))))))
-    (let (($id (value-of "$id" object)))
-      (when $id (collect-id object $id))
-      (vector-for-each (lambda (e)
-			 (when (vector? (cdr e))
-			   (let ((current current-path)) 
-			     (collect-ids (cdr e))
-			     (set! current-path current))))
-		       object)))
-  (define (handle-$ref ref)
-    (define (retrieve-from-uri uri)
-      (guard (e (else #f))
-	(let* ((schema (call-with-port (transcoded-port (open-uri uri)
-							(native-transcoder))
-				       json-read))
-	       ($id (value-of "$id" schema)))
-	  (resolve-$ref $id schema))))
-    (define (refer-absolute id)
-      (or (hashtable-ref ids id)
-	  (hashtable-ref ids (string-append id "#")) ;; check with fragment
-	  (and (*json-schema:resolve-external-schema?*)
-	       (retrieve-from-uri id))))
-    (if (string? ref)
-	(let-values (((scheme auth path query frag)
-		      (parse-id ref)))
-	  (cond (scheme
-		 (or (refer-absolute ref)
-		     ;; okay as it as doesn't exist so try JSON pointer
-		     (let* ((uri (uri-compose :scheme scheme :authority auth
-					      :path path :query query))
-			    (obj (refer-absolute uri)))
-		       (if obj
-			   (or (and frag ((json-pointer frag) obj)) obj)
-			   (eof-object)))))
-		(path
-		 (let ((obj (refer-absolute (merge-id path))))
-		   (if obj
-		       (or (and frag ((json-pointer frag) obj)) obj)
-		       (eof-object))))
-		(frag (or (refer-absolute ref)
-			  ((json-pointer frag) schema)))
-		;; should not happen, ...I think...
-		(else (or (refer-absolute ref) (eof-object)))))
-	(eof-object)))
-  (define (resolve-reference object current-id)
-    (define len (vector-length object))
-    (define ($ref? v)
-      (and (vector? v)
-	   (vector-fold (lambda (acc e)
-			  (or acc (string=? "$ref" (car e)))) #f v)))
-    (define (handle-recursive-$ref v)
-      (cond ((not (string? v)))
-	    ((hashtable-ref seen v #f))
-	    (else
-	     (let ((resolved (handle-$ref v)))
-	       (unless (eof-object? resolved) (hashtable-set! seen v resolved))
-	       resolved))))
+;;; internal
+(define-record-type context
+  (fields schema
+	  id
+	  ids
+	  ref-cache
+	  schema-parents
+	  parent)
+  (protocol (lambda (p)
+	      (define (collect c)
+		(collect-ids c)
+		c)
+	      (lambda (schema parent)
+		(collect (p schema
+			    (and (vector? schema) (value-of "$id" schema))
+			    (or (and parent (context-ids parent))
+				(make-hashtable string-hash string=?))
+			    (or (and parent (context-ref-cache parent))
+				(make-hashtable string-hash string=?))
+			    (or (and parent (context-schema-parents parent))
+				(make-eq-hashtable))
+			    parent))))))
+(define (root-context context)
+  (let loop ((c context))
+    (if (not (context-parent c))
+	c
+	(loop (context-parent c)))))
 
-    (let loop ((i 0) (refs '()) (current-id current-id))
-      (if (= len i)
-	  (if (null? refs)
-	      object
-	      (vector-concatenate refs))
-	  (let ((e (vector-ref object i)))
-	    (cond ((hashtable-ref seen2 e #f) (loop (+ i 1) refs current-id))
-		  (else
-		   (hashtable-set! seen2 e #t)
-		   ;; simple way of detecting property named $ref
-		   ;; containint an actual $ref case.
-		   (cond ((and (string=? "$ref" (car e)) (not ($ref? (cdr e))))
-			  (let ((resolved (handle-recursive-$ref (cdr e))))
-			    (cond ((or (json-pointer-not-found? resolved)
-				       (eof-object? resolved))
-				   (hashtable-delete! seen2 e)
-				   (loop (+ i 1) refs current-id))
-				  ((boolean? resolved)
-				   ;; for covenience
-				   (if resolved
-				       (loop (+ i 1) refs current-id)
-				       (loop (+ i 1)
-					     (cons '#(("not" . #())) refs)
-					     current-id)))
-				  (else
-				   (loop (+ i 1) (cons resolved refs)
-					 current-id)))))
-			 ((and (string=? "$id" (car e)) (string? (cdr e)))
-			  (let ((old current-path)
-				(new-id (merge-id (cdr e))))
-			    (let-values (((s a path q f) (parse-id new-id)))
-			      (set! current-path path)
-			      (let ((r (loop (+ i 1) refs new-id)))
-				(set! current-path old)
-				r))))
-			 ((vector? (cdr e))
-			  (set-cdr! e (resolve-reference (cdr e) current-id))
-			  (loop (+ i 1) refs current-id))
-			 ((and (list? (cdr e)) (for-all vector? (cdr e)))
-			  (set-cdr! e
-			    (map (lambda (o) (resolve-reference o current-id))
-				 (cdr e)))
-			  (loop (+ i 1) refs current-id))
-			 (else (loop (+ i 1) refs current-id)))))))))
-  (when root-id (hashtable-set! ids root-id schema))
-  (collect-ids schema)
-  (resolve-reference schema root-id))
+;; this is for sure only called the schema is an object
+(define (parse-uri id)
+  (let*-values (((scheme specific) (uri-scheme&specific id))
+		((auth path query frag)
+		 (uri-decompose-hierarchical specific)))
+    ;; decode fragment for relative JSON pointer.
+    (values scheme auth path query (and frag (uri-decode-string frag)))))
 
+(define (collect-ids context)
+  (define root-schema (context-schema context))
+  (define root-id (context-id context))
+  ;; TODO $defs is the latest... fuck
+  (define $defs "definitions")
+  (define schema-validators
+    (or (*json-schema:version*) +json-schema-draft-7-validators+))
+  (define ids (context-ids context))
+  (define schema-parents (context-schema-parents context))
+  (define (check-id schema root-id ids)
+    (let (($id (value-of "$id" schema)))
+      (if (and $id (not (zero? (string-length $id))) (not (equal? "#" $id)))
+	  (let-values (((scheme auth path q frag) (parse-uri $id)))
+	    (hashtable-set! ids $id schema)
+	    (cond (scheme
+		   ;; switch root-id
+		   (uri-compose :scheme scheme :authority auth
+				:path path :query q))
+		  (path
+		   (let-values (((rscheme rauth rpath rq rfrag)
+				 (parse-uri root-id)))
+		     (let ((id (uri-compose :scheme rscheme :authority rauth
+					    :path path :query rq)))
+		       (hashtable-set! ids id schema)
+		       id)))
+		  (frag
+		   (let ((id (string-append (or root-id "") $id)))
+		     (hashtable-set! ids id schema)
+		     root-id))
+		  ;; somethng is wrong but proceed
+		  (else root-id)))
+	  root-id)))
+  
+  (define (check-$defs schema root-id ids)
+    (let ((defs (value-of $defs schema)))
+      (when (vector? defs)
+	(vector-for-each (lambda (e)
+			   (when (vector? (cdr e))
+			     (hashtable-set! schema-parents (cdr e) schema)
+			     (let ((id (check-id (cdr e) root-id ids)))
+			       (check-$defs (cdr e) id ids))))
+			 defs))))
+
+  (when (vector? root-schema)
+    (let ((base-id (check-id root-schema root-id ids)))
+      (check-$defs root-schema base-id ids))))
+				
 (define (->json-validator schema)
-  (define referencing-validators (*referencing-validators*))
+  (define schema-validators
+    (or (*json-schema:version*) +json-schema-draft-7-validators+))
   (define (generate-validator schema)
     (define ignore (make-hashtable string-hash string=?))
-    (define (reference-validator id)
-      (hashtable-ref referencing-validators id #f))
     (vector-fold
      (lambda (combined-validator e)
        ;; TODO consider schema version
        (cond ((and (not (hashtable-contains? ignore (car e)))
-		   (assoc (car e) +json-schema-validators+)) =>
+		   (assoc (car e) schema-validators)) =>
 	      (lambda (slot)
 		(cond ((cadr slot) =>
 		       (lambda (g)
@@ -405,11 +321,9 @@
 			     (and (combined-validator e) (validator e))))))
 		      ;; for unknown property we ignore
 		      (else combined-validator))))
-	     ((and (equal? (car e) "$ref") (reference-validator (cdr e))) =>
-	      (lambda (validator)
-		(lambda (e) (and (combined-validator e) (validator e)))))
 	     (else combined-validator)))
      (lambda (e) #t) schema))
+  
   (define validators (*validators*))
   (cond ((hashtable-ref validators schema #f))
 	(else
@@ -422,10 +336,139 @@
 
 (define (schema? v) (or (boolean? v) (vector? v)))
 (define (schema->validator who schema)
-  (cond ((boolean? schema) (boolean->validator schema))
-	((vector? schema) (->json-validator schema))
-	(else
-	 (assertion-violation who "JSON schema is required" schema))))
+  (parameterize ((*context* (make-context schema (*context*))))
+    (cond ((boolean? schema) (boolean->validator schema))
+	  ((vector? schema)
+	   (or ($ref->validator who schema) (->json-validator schema)))
+	  (else
+	   (assertion-violation who "JSON schema is required" schema)))))
+
+(define ($ref->validator who schema)
+  (define (handle-$ref $ref)
+    (define context (*context*))
+    (define ids (context-ids context))
+    (define ref-cache (context-ref-cache context))
+    (define (->validator schema) (schema->validator who schema))
+    
+    (define (retrieve-from-uri uri frag)
+      (define (read-from-http uri)
+	(call-with-port (transcoded-port (open-uri uri)
+					 (native-transcoder))
+			json-read))
+      (guard (e (else #f))
+	(let ((schema (cond ((hashtable-ref ref-cache uri #f))
+			    (else
+			     (let ((s (read-from-http uri)))
+			       (hashtable-set! ref-cache uri s)
+			       s)))))
+	  (if frag
+	      (parameterize ((*context* (make-context schema #f)))
+		(handle-$ref (string-append "#" frag)))
+	      ;; TODO referencing validator?
+	      (let ((v (json-schema->json-validator schema)))
+		(lambda (e) (validate-json v e)))))))
+    
+    (define (search-parent-schema child)
+      (define schema-parents (context-schema-parents context))
+      (cond ((hashtable-ref schema-parents child #f) =>
+	     ;; okay we know this one already
+	     (lambda (schema)
+	       (if (value-of "$id" schema)
+		   schema
+		   (search-parent-schema schema))))
+	    (else
+	     (let loop ((context context))
+	       (cond ((not (context-parent context)) (context-schema context))
+		     ((context-id context) (context-schema context))
+		     (else (loop (context-parent context))))))))
+    
+    (define (search-parent-id child)
+      (define schema-parents (context-schema-parents child))
+      (define (handle-context context)
+	(let loop ((context context) (r ""))
+	  (cond ((not context) r)
+		((context-id context) =>
+		 (lambda (id)
+		   (let-values (((scheme auth path q frag) (parse-uri id)))
+		     (cond (scheme (uri-compose :scheme scheme
+						:authority auth
+						:path r
+						:query q))
+			   (path (loop (context-parent context)
+				       (uri-merge r path)))
+			   ;; should we?
+			   (else id)))))
+		(else (loop (context-parent context) r)))))
+      (define (handle-known schema)
+	(let loop ((schema schema) (r ""))
+	  (if schema
+	      (let ((id (value-of "$id" schema)))
+		(if id
+		    (let-values (((scheme auth path query frag) (parse-uri id)))
+		      (cond (scheme
+			     (uri-compose :scheme scheme
+					  :authority auth
+					  :path r
+					  :query query))
+			    (path (loop (hashtable-ref schema-parents schema #f)
+					(uri-merge r path)))
+			    (else id)))
+		    (loop (hashtable-ref schema-parents schema #f) r)))
+	      r)))
+      ;; parent of the child = e.g. #(("$ref" . "boo")) might be
+      ;; in the schema-parents
+      (let ((parent-schema (cond ((context-parent child) => context-schema)
+				 (else #f))))
+	(if (hashtable-contains? schema-parents parent-schema)
+	    (handle-known parent-schema)
+	    (handle-context child))))
+    ;; Handling $id
+    ;; ref:
+    ;; https://datatracker.ietf.org/doc/html/draft-handrews-json-schema-01
+    ;; section 8.2.4
+    (define (handle-ref $ref)
+      (let-values (((scheme auth path query frag) (parse-uri $ref)))
+	(cond (scheme
+	       (and (*json-schema:resolve-external-schema?*)
+		    (retrieve-from-uri (uri-compose :scheme scheme
+						    :authority auth
+						    :path path
+						    :query query)
+				       frag)))
+	      
+	      (path
+	       ;; this is wrong in case of under different id's
+	       ;; definition
+	       (let ((root-id (search-parent-id context)))
+		 (let-values (((scheme auth p q f)
+			       (parse-uri root-id)))
+		   (let ((id (uri-compose :scheme scheme
+					  :authority auth
+					  :path (or (and p (uri-merge p path))
+						    path)
+					  :query query)))
+		     (cond ((hashtable-ref ids id #f) => ->validator)
+			   ((and (*json-schema:resolve-external-schema?*)
+				 (retrieve-from-uri id frag)))
+			   (else #f))))))
+	      (frag
+	       (let* ((parent (search-parent-schema schema))
+		      (s ((json-pointer frag) parent)))
+		 (and (not (json-pointer-not-found? s))
+		      (->validator s))))
+	      (else #f))))
+    (cond ((hashtable-ref ids $ref #f) => ->validator)
+	  ((handle-ref $ref))
+	  (else
+	   ;; suppose this is a reference used before the definition
+	   ;; make it lazy evaluated
+	   (let ((v (delay
+		      (cond ((hashtable-ref ids $ref #f) => ->validator)
+			    (else (lambda (e) #t))))))
+	     (list-queue-add-front! (*lazy-queue*) v)
+	     (lambda (e) ((force v) e))))))
+  (cond ((and (vector? schema) (value-of "$ref" schema)) => handle-$ref)
+	(else #f)))
 
 ;; utilities
 (define unique?
@@ -587,9 +630,7 @@
 	 (lambda (e*) (or (null? e*) items (report e* `(items ,items)))))
 	((and (list? items) (for-all schema? items))
 	 (let ((additional-validator (get-additional-validator schema))
-	       (validators
-		(map (lambda (i) (schema->validator 'json-schema:items i))
-		     items)))
+	       (validators (map (lambda (i) (->validator i)) items)))
 	   (lambda (e*)
 	     (define current-path (*current-path*))
 	     (let loop ((i 0) (e* e*) (validators validators))
@@ -930,14 +971,17 @@
     ))
 
 (define (boolean->validator b) (if b (lambda (_) #t) (lambda (_) #f)))
+
 (define (type-wrap type? validator)
   (lambda (e) (or (not (type? e)) (validator e))))
 ;; simple wrap 
 (define (s/w simple-validator-generator)
-  (lambda (schema v) (simple-validator-generator v)))
+  (lambda (schema v)
+    (simple-validator-generator v)))
 ;; type check
 (define (t/w type? simple-validator-generator)
-  (lambda (schema v) (type-wrap type? (simple-validator-generator v))))
+  (lambda (schema v)
+    (type-wrap type? (simple-validator-generator v))))
 ;; JSON schema of true/false is {} or { "not": {} }
 (define (a/w type? schema-validator-generator)
   (lambda (schema v)
@@ -1005,7 +1049,7 @@
     ("oneOf" ,(s/w json-schema:one-of))
     ("not" ,(s/w json-schema:not))
     ))
-(define +json-schema-validators+
+(define +json-schema-draft-7-validators+
   `(
     ,@+json-schema-any-instance-validators+
     ,@+json-schema-numeric-instance-validators+
