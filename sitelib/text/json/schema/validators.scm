@@ -452,11 +452,14 @@
 				 (retrieve-from-uri id frag)))
 			   (else #f))))))
 	      (frag
-	       (let* ((parent (search-parent-schema schema))
-		      (s ((json-pointer frag) parent)))
-		 (and (not (json-pointer-not-found? s))
-		      (->validator s))))
+	       ;; must be a valid json pointer, otherwise an ID (or anchor)
+	       (and (eqv? #\/ (string-ref frag 0)) 
+		    (let* ((parent (search-parent-schema schema))
+			   (s ((json-pointer frag) parent)))
+		      (and (not (json-pointer-not-found? s))
+			   (->validator s)))))
 	      (else #f))))
+
     (cond ((hashtable-ref ids $ref #f) => ->validator)
 	  ((handle-ref $ref))
 	  (else

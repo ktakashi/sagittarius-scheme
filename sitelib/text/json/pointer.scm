@@ -65,7 +65,7 @@
 	(generator->lseq (port->char-generator p))
 	(string->list p)))
   (let-values (((s v nl) (root (->lseq p))))
-    (if (parse-success? s)
+    (if (and (parse-success? s) (null? nl))
 	v
 	(error 'json-pointer "Failed to parse JSON pointer"))))
 
