@@ -453,7 +453,8 @@
 			   (else #f))))))
 	      (frag
 	       ;; must be a valid json pointer, otherwise an ID (or anchor)
-	       (and (eqv? #\/ (string-ref frag 0)) 
+	       (and (or (zero? (string-length frag))
+			(eqv? #\/ (string-ref frag 0)))
 		    (let* ((parent (search-parent-schema schema))
 			   (s ((json-pointer frag) parent)))
 		      (and (not (json-pointer-not-found? s))
