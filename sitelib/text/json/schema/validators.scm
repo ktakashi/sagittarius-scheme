@@ -38,6 +38,8 @@
 	    json-schema-validator-id json-schema-validator-schema
 	    json-schema-validator-source
 
+	    json-schema:version *json-schema:version*
+
 	    ;; simple validators
 	    json-schema:type
 	    json-schema:enum
@@ -85,8 +87,6 @@
 	    json-schema-report-parameter
 	    simple-json-schema-error-reporter
 	    *json-schema:report-port*
-
-	    +json-schema-uri+
 	    )
     (import (rnrs)
 	    (rnrs mutable-pairs)
@@ -107,13 +107,49 @@
 	    (srfi :117 list-queues)
 	    (srfi :133 vectors))
 
+(define-enumeration json-schema:version
+  (draft-7 2019-09 2020-12)
+  json-schema-version)
+(define +json-schema-version-settings+
+  `(
+    (,(json-schema:version draft-7)
+     "http://json-schema.org/draft-07/schema#"
+     ,(lambda () +json-schema-draft-7-validators+)
+     ("definitions"))
+    
+    (,(json-schema:version 2019-09)
+     ;; not sure if we should use this
+     "https://json-schema.org/draft/2019-09/schema"
+     ,(lambda () +json-schema-draft-7-validators+)
+     ("$defs" "definitions"))
+    
+    (,(json-schema:version 2020-12)
+     ;; not sure if we should use this
+     "https://json-schema.org/draft/2020-12/schema"
+     ,(lambda () +json-schema-draft-7-validators+)
+     ("$defs" "definitions")))
+  )
+
+(define (json-schema:version-schema version)
+  (cond ((assq version +json-schema-version-settings+) => cadr)
+	(else (assertion-violation 'json-schema:version-definitions
+				   "Unknown version" version))))
+;; damn...
+(define (json-schema:version-schema-validators version)
+  ((cond ((assq version +json-schema-version-settings+) => caddr)
+	 (else (assertion-violation 'json-schema:version-schema-validators
+				    "Unknown version" version)))))
+(define (json-schema:version-definitions version)
+  (cond ((assq version +json-schema-version-settings+) => cadddr)
+	(else (assertion-violation 'json-schema:version-definitions
+				   "Unknown version" version))))
+;; default draft-7
+(define *json-schema:version* (make-parameter (json-schema:version draft-7)))
 (define *json-schema:resolve-external-schema?* (make-parameter #f))
 ;;; 7.2. Implementation Requirements
 ;; they SHOULD offer an option to disable validation for this
 ;; ('format') keyword.
 (define *json-schema:validate-format?* (make-parameter #t))
-
-(define *json-schema:version* (make-parameter #f))
 
 ;; internal parameter to handle shared structure
 ;; for unit test we need to have default hashtable
@@ -178,9 +214,9 @@
     (cond ((vector-any (key=? key) schema) => cdr)
 	  (else default)))))
 
-(define +json-schema-uri+  "http://json-schema.org/schema#")
-
 (define (json-schema->json-validator schema . referencing-validators)
+  (define default-schema
+    (json-schema:version-schema (*json-schema:version*)))
   (define (convert schema)
   (let ((r (alist-json->vector-json schema)))
     (unless (vector? r)
@@ -204,14 +240,14 @@
 			(*referencing-validators* (->validator-map))
 			(*lazy-queue* (list-queue))
 			(*context* #f))
-	   (let (($schema (value-of "$schema" schema +json-schema-uri+))
+	   (let (($schema (value-of "$schema" schema default-schema))
 		 ($id (value-of "$id" schema))
 		 (v (schema->validator 'json-schema->json-validator schema)))
 	     (for-each force (list-queue-list (*lazy-queue*)))
 	     (make-json-schema-validator v schema $schema $id))))
 	((boolean? schema)
 	 (make-json-schema-validator (boolean->validator schema)
-				     schema +json-schema-uri+ #f))
+				     schema default-schema #f))
 	(else (json-schema->json-validator (convert schema)))))
 
 ;;; internal
@@ -254,9 +290,9 @@
   (define root-schema (context-schema context))
   (define root-id (context-id context))
   ;; TODO $defs is the latest... fuck
-  (define $defs "definitions")
+  (define $defs (json-schema:version-definitions (*json-schema:version*)))
   (define schema-validators
-    (or (*json-schema:version*) +json-schema-draft-7-validators+))
+    (json-schema:version-schema-validators (*json-schema:version*)))
   (define ids (context-ids context))
   (define schema-parents (context-schema-parents context))
   (define (check-id schema root-id ids)
@@ -284,14 +320,15 @@
 	  root-id)))
   
   (define (check-$defs schema root-id ids)
-    (let ((defs (value-of $defs schema)))
-      (when (vector? defs)
-	(vector-for-each (lambda (e)
-			   (when (vector? (cdr e))
-			     (hashtable-set! schema-parents (cdr e) schema)
-			     (let ((id (check-id (cdr e) root-id ids)))
-			       (check-$defs (cdr e) id ids))))
-			 defs))))
+    (let ((defs (map (lambda (d) (value-of d schema)) $defs)))
+      (for-each (lambda (def)
+		  (when (vector? def)
+		    (vector-for-each
+		     (lambda (e)
+		       (when (vector? (cdr e))
+			 (hashtable-set! schema-parents (cdr e) schema)
+			 (let ((id (check-id (cdr e) root-id ids)))
+			   (check-$defs (cdr e) id ids)))) def))) defs)))
 
   (when (vector? root-schema)
     (let ((base-id (check-id root-schema root-id ids)))
@@ -299,7 +336,7 @@
 				
 (define (->json-validator schema)
   (define schema-validators
-    (or (*json-schema:version*) +json-schema-draft-7-validators+))
+    (json-schema:version-schema-validators (*json-schema:version*)))
   (define (generate-validator schema)
     (define ignore (make-hashtable string-hash string=?))
     (vector-fold
@@ -460,7 +497,7 @@
 		      (and (not (json-pointer-not-found? s))
 			   (->validator s)))))
 	      (else #f))))
-
+    
     (cond ((hashtable-ref ids $ref #f) => ->validator)
 	  ((handle-ref $ref))
 	  (else

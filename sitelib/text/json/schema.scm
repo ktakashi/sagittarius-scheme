@@ -36,16 +36,16 @@
     (export json-schema->json-validator json-schema-validator?
 	    json-schema-validator-id json-schema-validator-schema
 	    json-schema-validator-source
+	    json-schema:version
 	    
 	    *json-schema:resolve-external-schema?*
 	    *json-schema:validate-format?*
 	    *json-schema:lint-mode?*
 	    *json-schema:validator-error-reporter*
 	    *json-schema:report-port*
+	    *json-schema:version*
 
 	    simple-json-schema-error-reporter
-
-	    +json-schema-uri+
 	    )
     ;; TODO add hyperlink and so
     (import (text json schema validators)))
