@@ -110,39 +110,7 @@
 (define-enumeration json-schema:version
   (draft-7 2019-09 2020-12)
   json-schema-version)
-(define +json-schema-version-settings+
-  `(
-    (,(json-schema:version draft-7)
-     "http://json-schema.org/draft-07/schema#"
-     ,(lambda () +json-schema-draft-7-validators+)
-     ("definitions"))
-    
-    (,(json-schema:version 2019-09)
-     ;; not sure if we should use this
-     "https://json-schema.org/draft/2019-09/schema"
-     ,(lambda () +json-schema-draft-7-validators+)
-     ("$defs" "definitions"))
-    
-    (,(json-schema:version 2020-12)
-     ;; not sure if we should use this
-     "https://json-schema.org/draft/2020-12/schema"
-     ,(lambda () +json-schema-draft-7-validators+)
-     ("$defs" "definitions")))
-  )
 
-(define (json-schema:version-schema version)
-  (cond ((assq version +json-schema-version-settings+) => cadr)
-	(else (assertion-violation 'json-schema:version-definitions
-				   "Unknown version" version))))
-;; damn...
-(define (json-schema:version-schema-validators version)
-  ((cond ((assq version +json-schema-version-settings+) => caddr)
-	 (else (assertion-violation 'json-schema:version-schema-validators
-				    "Unknown version" version)))))
-(define (json-schema:version-definitions version)
-  (cond ((assq version +json-schema-version-settings+) => cadddr)
-	(else (assertion-violation 'json-schema:version-definitions
-				   "Unknown version" version))))
 ;; default draft-7
 (define *json-schema:version* (make-parameter (json-schema:version draft-7)))
 (define *json-schema:resolve-external-schema?* (make-parameter #f))
@@ -291,8 +259,6 @@
   (define root-id (context-id context))
   ;; TODO $defs is the latest... fuck
   (define $defs (json-schema:version-definitions (*json-schema:version*)))
-  (define schema-validators
-    (json-schema:version-schema-validators (*json-schema:version*)))
   (define ids (context-ids context))
   (define schema-parents (context-schema-parents context))
   (define (check-id schema root-id ids)
@@ -1100,4 +1066,38 @@
     ,@+json-schema-conditional-validators+
     ,@+json-schema-boolean-logic-validators+
     ))
+
+
+(define +json-schema-version-settings+
+  `(
+    (,(json-schema:version draft-7)
+     "http://json-schema.org/draft-07/schema#"
+     ,+json-schema-draft-7-validators+
+     ("definitions"))
+    
+    (,(json-schema:version 2019-09)
+     ;; not sure if we should use this
+     "https://json-schema.org/draft/2019-09/schema"
+     ,+json-schema-draft-7-validators+
+     ("$defs" "definitions"))
+    
+    (,(json-schema:version 2020-12)
+     ;; not sure if we should use this
+     "https://json-schema.org/draft/2020-12/schema"
+     ,+json-schema-draft-7-validators+
+     ("$defs" "definitions")))
+  )
+
+(define (json-schema:version-schema version)
+  (cond ((assq version +json-schema-version-settings+) => cadr)
+	(else (assertion-violation 'json-schema:version-definitions
+				   "Unknown version" version))))
+(define (json-schema:version-schema-validators version)
+  (cond ((assq version +json-schema-version-settings+) => caddr)
+	(else (assertion-violation 'json-schema:version-schema-validators
+				   "Unknown version" version))))
+(define (json-schema:version-definitions version)
+  (cond ((assq version +json-schema-version-settings+) => cadddr)
+	(else (assertion-violation 'json-schema:version-definitions
+				   "Unknown version" version))))
 )
