@@ -951,8 +951,11 @@
 (define (json-schema:format-json-pointer v)
   (guard (e (else #f)) (json-pointer v)))
 (define (json-schema:format-relative-json-pointer v)
+  ;; very simple check
+  ;; TODO make relative JSON pointer parser
   (and (string->number (string (string-ref v 0)))
-       (guard (e (else #f)) (json-pointer v))))
+       (or (eqv? #\# (string-ref v (- (string-length v) 1)))
+	   (guard (e (else #f)) (json-pointer (string-append "/" v))))))
 (define (json-schema:format-regex v)
   (guard (e (else  #f)) (regex v)))
 
