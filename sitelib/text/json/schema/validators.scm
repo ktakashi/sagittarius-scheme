@@ -183,8 +183,8 @@
 	  (else default)))))
 
 (define (json-schema->json-validator schema . referencing-validators)
-  (define default-schema
-    (json-schema:version-schema (*json-schema:version*)))
+  (define default-version (*json-schema:version*))
+  (define default-schema (json-schema:version-schema default-version))
   (define (convert schema)
   (let ((r (alist-json->vector-json schema)))
     (unless (vector? r)
@@ -204,15 +204,18 @@
       ht))
 
   (cond ((vector? schema)
-	 (parameterize ((*validators* (make-eq-hashtable))
-			(*referencing-validators* (->validator-map))
-			(*lazy-queue* (list-queue))
-			(*context* #f))
-	   (let (($schema (value-of "$schema" schema default-schema))
-		 ($id (value-of "$id" schema))
-		 (v (schema->validator 'json-schema->json-validator schema)))
-	     (for-each force (list-queue-list (*lazy-queue*)))
-	     (make-json-schema-validator v schema $schema $id))))
+	 (let (($schema (value-of "$schema" schema default-schema))
+	       ($id (value-of "$id" schema)))
+	   (parameterize ((*validators* (make-eq-hashtable))
+			  (*referencing-validators* (->validator-map))
+			  (*lazy-queue* (list-queue))
+			  (*context* #f)
+			  (*json-schema:version*
+			   (or (json-schema:version-by-schema $schema)
+			       default-version)))
+	     (let ((v (schema->validator 'json-schema->json-validator schema)))
+	       (for-each force (list-queue-list (*lazy-queue*)))
+	       (make-json-schema-validator v schema $schema $id)))))
 	((boolean? schema)
 	 (make-json-schema-validator (boolean->validator schema)
 				     schema default-schema #f))
@@ -255,35 +258,13 @@
     (values scheme auth path query (and frag (uri-decode-string frag)))))
 
 (define (collect-ids context)
+  (define version (*json-schema:version*))
   (define root-schema (context-schema context))
   (define root-id (context-id context))
-  ;; TODO $defs is the latest... fuck
-  (define $defs (json-schema:version-definitions (*json-schema:version*)))
+  (define $defs (json-schema:version-definitions version))
   (define ids (context-ids context))
   (define schema-parents (context-schema-parents context))
-  (define (check-id schema root-id ids)
-    (let (($id (value-of "$id" schema)))
-      (if (and $id (not (zero? (string-length $id))) (not (equal? "#" $id)))
-	  (let-values (((scheme auth path q frag) (parse-uri $id)))
-	    (hashtable-set! ids $id schema)
-	    (cond (scheme
-		   ;; switch root-id
-		   (uri-compose :scheme scheme :authority auth
-				:path path :query q))
-		  (path
-		   (let-values (((rscheme rauth rpath rq rfrag)
-				 (parse-uri root-id)))
-		     (let ((id (uri-compose :scheme rscheme :authority rauth
-					    :path path :query rq)))
-		       (hashtable-set! ids id schema)
-		       id)))
-		  (frag
-		   (let ((id (string-append (or root-id "") $id)))
-		     (hashtable-set! ids id schema)
-		     root-id))
-		  ;; somethng is wrong but proceed
-		  (else root-id)))
-	  root-id)))
+  (define check-id (json-schema:version-$id-handler version))
   
   (define (check-$defs schema root-id ids)
     (let ((defs (map (lambda (d) (value-of d schema)) $defs)))
@@ -1071,24 +1052,80 @@
     ))
 
 
+;;; draft-7
+(define (draft-7-check-id schema root-id ids)
+  (let (($id (value-of "$id" schema)))
+    (if (and $id (not (zero? (string-length $id))) (not (equal? "#" $id)))
+	(let-values (((scheme auth path q frag) (parse-uri $id)))
+	  (hashtable-set! ids $id schema)
+	  (cond (scheme
+		 ;; switch root-id
+		 (uri-compose :scheme scheme :authority auth
+			      :path path :query q))
+		(path
+		 (let-values (((rscheme rauth rpath rq rfrag)
+			       (parse-uri root-id)))
+		   (let ((id (uri-compose :scheme rscheme :authority rauth
+					  :path path :query rq)))
+		     (hashtable-set! ids id schema)
+		     id)))
+		(frag
+		 (let ((id (string-append (or root-id "") $id)))
+		   (hashtable-set! ids id schema)
+		   root-id))
+		;; somethng is wrong but proceed
+		(else root-id)))
+	root-id)))
+
+;;; draft 2019-09, 2020-12 and later?
+(define (anchor-aware-check-id schema root-id ids)
+  (let (($id (value-of "$id" schema))
+	($anchor (value-of "$anchor" schema)))
+    (if (and $id (not (zero? (string-length $id))) (not (equal? "#" $id)))
+	(let-values (((scheme auth path q frag) (parse-uri $id)))
+	  (when (and frag (not (zero? (string-length frag))))
+	    (assertion-violation '$id-handler
+				 "$id must not contain fragment" $id))
+	  (hashtable-set! ids $id schema)
+	  (cond (scheme
+		 ;; switch root-id
+		 (uri-compose :scheme scheme :authority auth
+			      :path path :query q
+			      :fragment $anchor))
+		(path
+		 (let-values (((rscheme rauth rpath rq rfrag)
+			       (parse-uri root-id)))
+		   (let ((id (uri-compose :scheme rscheme :authority rauth
+					  :path path :query rq
+					  :fragment $anchor)))
+		     (hashtable-set! ids id schema)
+		     id)))
+		(frag #f)
+		;; something is wrong but proceed
+		(else root-id)))
+	root-id)))
+
 (define +json-schema-version-settings+
   `(
     (,(json-schema:version draft-7)
      "http://json-schema.org/draft-07/schema#"
      ,+json-schema-draft-7-validators+
-     ("definitions"))
+     ("definitions")
+     ,draft-7-check-id)
     
     (,(json-schema:version 2019-09)
      ;; not sure if we should use this
      "https://json-schema.org/draft/2019-09/schema"
      ,+json-schema-draft-7-validators+
-     ("$defs" "definitions"))
+     ("$defs" "definitions")
+     ,anchor-aware-check-id)
     
     (,(json-schema:version 2020-12)
      ;; not sure if we should use this
      "https://json-schema.org/draft/2020-12/schema"
      ,+json-schema-draft-7-validators+
-     ("$defs" "definitions")))
+     ("$defs" "definitions")
+     ,anchor-aware-check-id))
   )
 
 (define (json-schema:version-schema version)
@@ -1103,4 +1140,15 @@
   (cond ((assq version +json-schema-version-settings+) => cadddr)
 	(else (assertion-violation 'json-schema:version-definitions
 				   "Unknown version" version))))
+
+(define (caddddr o) (car (cddddr o)))
+(define (json-schema:version-$id-handler version)
+  (cond ((assq version +json-schema-version-settings+) => caddddr)
+	(else (assertion-violation 'json-schema:version-$id-handler
+				   "Unknown version" version))))
+
+(define (json-schema:version-by-schema uri)
+  (cond ((memp (lambda (s) (equal? (cadr s) uri))
+	       +json-schema-version-settings+) => caar)
+	(else #f)))
 )
