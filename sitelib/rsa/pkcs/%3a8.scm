@@ -195,10 +195,11 @@
 	    
   ;; for now we only support RSA
   ;; FIXME kinda silly
+  (define (pki->rsa-private-key pki)
+    (import-private-key RSA (slot-ref pki 'private-key)))
   (define *oid-marker*
-    `(("1.2.840.113549.1.1.1"
-       . ,(lambda (pki)
-	    (import-private-key RSA (slot-ref pki 'private-key))))
+    `(("1.2.840.113549.1.1.1" . ,pki->rsa-private-key)
+      ("1.2.840.113549.1.1.10" . ,pki->rsa-private-key)
       ("1.2.840.10040.4.1" .
        ,(lambda (pki)
 	  (import-private-key DSA (slot-ref pki 'private-key))))

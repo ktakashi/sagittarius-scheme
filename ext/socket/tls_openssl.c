@@ -29,6 +29,7 @@
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include <openssl/evp.h>
 #if (SSLEAY_VERSION_NUMBER >= 0x0907000L)
 # include <openssl/conf.h>
 #endif
@@ -196,11 +197,25 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
     loaded |= CERTIFICATE_LOADED;
   }
   if (privateKey) {
-    int r = SSL_CTX_use_RSAPrivateKey_ASN1(ctx, SG_BVECTOR_ELEMENTS(privateKey),
-					   SG_BVECTOR_SIZE(privateKey));
-    if (r != 1) goto err;
+    EVP_PKEY *pkey = NULL;
+    int r;
+
+    pkey = d2i_AutoPrivateKey(NULL,
+			      (const unsigned char **)&SG_BVECTOR_ELEMENTS(privateKey),
+			      SG_BVECTOR_SIZE(privateKey));
+    if (!pkey) goto err;
+    
+    r = SSL_CTX_use_PrivateKey(ctx, pkey);
+    if (r != 1) {
+      EVP_PKEY_free(pkey);
+      goto err;
+    }
     r = SSL_CTX_check_private_key(ctx);
-    if (r != 1) goto err;
+    if (r != 1) {
+      EVP_PKEY_free(pkey);
+      goto err;
+    }
+    EVP_PKEY_free(pkey);
     loaded |= PRIVATE_KEY_LOADED;
   }
   if (socket->type == SG_SOCKET_SERVER && loaded != SERVER_READY) {
@@ -217,7 +232,7 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
     SSL_CTX_free(ctx);
     Sg_AssertionViolation(SG_INTERN("socket->tls-socket"),
 			  Sg_Utf8sToUtf32s(msg, strlen(msg)),
-			  SG_NIL);
+			  SG_LIST1(SG_MAKE_INT(e)));
   }
   return NULL;			/* dummy */
 }
