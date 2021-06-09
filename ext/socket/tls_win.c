@@ -347,6 +347,8 @@ typedef struct WinTLSDataRec
   uint8_t *pendingData;
   int closed;
   WinTLSContext *tlsContext;
+  /* for reconnection */
+  wchar_t *dn;
 } WinTLSData;
 
 /* #define IMPL_NAME UNISP_NAME_W */
@@ -849,10 +851,18 @@ static int verify_certificate(SgTLSSocket *tlsSocket, SgObject who)
   return TRUE;
 }
 
+#define SSPI_FLAGS  ISC_REQ_MANUAL_CRED_VALIDATION | \
+  ISC_REQ_SEQUENCE_DETECT    |			     \
+  ISC_REQ_REPLAY_DETECT      |			     \
+  ISC_REQ_CONFIDENTIALITY    |			     \
+  ISC_RET_EXTENDED_ERROR     |			     \
+  ISC_REQ_ALLOCATE_MEMORY    |			     \
+  /* ISC_REQ_USE_SUPPLIED_CREDS | */		     \
+  ISC_REQ_STREAM				     \
+
 static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,			
                                    SgObject sni,
-				   SgObject alpn,
-				   DWORD sspiFlags)
+				   SgObject alpn)
 {
   SgSocket *socket = tlsSocket->socket;
   WinTLSData *data = (WinTLSData *)tlsSocket->data;
@@ -861,12 +871,14 @@ static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
   wchar_t *dn = NULL;
   DWORD sspiOutFlags = 0;
   SECURITY_STATUS ss;
-
+  DWORD sspiFlags = SSPI_FLAGS;
+  
   if (SG_STRINGP(sni)) {
     dn = Sg_StringToWCharTs(SG_STRING(sni));
   } else if (SG_UNBOUNDP(sni)) {
     dn = (SG_FALSEP(socket->node)) ? NULL : Sg_StringToWCharTs(socket->node);
   }
+  data->dn = dn;
   /* ALPN is a bytevector of protocol-name-list
      So first 2 bytes are length
    */
@@ -975,37 +987,44 @@ typedef union {
   } while(0)
 
 static int client_handshake1(SgTLSSocket *tlsSocket, wchar_t *dn,
-			     DWORD sspiFlags)
+			     int readInitialP)
 {
   SgSocket *socket = tlsSocket->socket;
   SECURITY_STATUS ss = SEC_I_CONTINUE_NEEDED;
   WinTLSData *data = (WinTLSData *)tlsSocket->data;
   SecBufferDesc sbout, sbin;
   SecBuffer bufso[2], bufsi[2];
+  DWORD sspiFlags = SSPI_FLAGS;
+  int doRead = readInitialP;
+
   
   for (;;) {
     DWORD sspiOutFlags = 0;
-    int rval, i;
-    uint8_t *content;
+    int rval = 0, i;
+    uint8_t *content = NULL;
     
     if (ss != SEC_I_CONTINUE_NEEDED &&
 	ss != SEC_E_INCOMPLETE_MESSAGE &&
 	ss != SEC_I_INCOMPLETE_CREDENTIALS)
       break;
     
-    if (ss != SEC_I_INCOMPLETE_CREDENTIALS) {
-      READ_RECORD(socket, rval, content);
-      if (rval < 0) return FALSE;	/* non blocking */
-    
-      INIT_SEC_BUFFER(&bufso[0], SECBUFFER_TOKEN, NULL, 0);
-      /* INIT_SEC_BUFFER(&bufso[1], SECBUFFER_ALERT, NULL, 0); */
-      INIT_SEC_BUFFER(&bufso[1], SECBUFFER_EMPTY, NULL, 0);
-      INIT_SEC_BUFFER_DESC(&sbout, bufso, array_sizeof(bufso));
-
-      INIT_SEC_BUFFER(&bufsi[0], SECBUFFER_TOKEN, content, rval);
-      INIT_SEC_BUFFER(&bufsi[1], SECBUFFER_EMPTY, NULL, 0);
-      INIT_SEC_BUFFER_DESC(&sbin, bufsi, 2);
+    if (ss == SEC_E_INCOMPLETE_MESSAGE) {
+      if (doRead) {
+	READ_RECORD(socket, rval, content);
+	if (rval < 0) return FALSE;	/* non blocking */
+      } else {
+	doRead = TRUE;
+      }
     }
+    
+    INIT_SEC_BUFFER(&bufso[0], SECBUFFER_TOKEN, NULL, 0);
+    /* INIT_SEC_BUFFER(&bufso[1], SECBUFFER_ALERT, NULL, 0); */
+    INIT_SEC_BUFFER(&bufso[1], SECBUFFER_EMPTY, NULL, 0);
+    INIT_SEC_BUFFER_DESC(&sbout, bufso, array_sizeof(bufso));
+    
+    INIT_SEC_BUFFER(&bufsi[0], SECBUFFER_TOKEN, content, rval);
+    INIT_SEC_BUFFER(&bufsi[1], SECBUFFER_EMPTY, NULL, 0);
+    INIT_SEC_BUFFER_DESC(&sbin, bufsi, 2);
     
     ss = InitializeSecurityContextW(&data->credential,
 				    &data->context,
@@ -1032,18 +1051,39 @@ static int client_handshake1(SgTLSSocket *tlsSocket, wchar_t *dn,
     if (ss == SEC_E_OK || ss == SEC_I_CONTINUE_NEEDED) {
       for (i = 0; i < array_sizeof(bufso); i++) {
 	if (bufso[i].BufferType == SECBUFFER_TOKEN) {
-	  send_sec_buffer(SG_INTERN("tls-socket-connect!"), tlsSocket, &bufso[i]);
+	  send_sec_buffer(SG_INTERN("tls-socket-connect!"),
+			  tlsSocket, &bufso[i]);
 	} else if (bufso[i].pvBuffer != NULL) {
 	  FreeContextBuffer(bufso[i].pvBuffer);
 	}
       }
     }
     DUMP_CTX_HANDLE(&data->context);
+
+    if (ss == SEC_I_INCOMPLETE_CREDENTIALS) {
+      /* if server ask client certificate but we don't have it,
+         just proceed the process */
+      doRead = FALSE;
+      continue;
+    }
     
     if (ss == S_OK) {
+      /* TODO handle extra buffer? */
+      /* if (bufsi[1].BufferType == SECBUFFER_EXTRA) { */
+      /* 	  fprintf(stderr, "here %d\n", bufsi[1].cbBuffer); */
+      /* } */
+      
       return verify_certificate(tlsSocket,
 				SG_INTERN("tls-socket-client-handshake"));
     }
+
+    /* if (bufsi[1].BufferType == SECBUFFER_EXTRA) { */
+    /*   memcpy(buffer, buffer + (bufferCount - bufsi[1].cbBuffer), */
+    /* 	     bufsi[1].cbBuffer); */
+    /*   bufferCount = bufsi[1].cbBuffer; */
+    /* } else { */
+    /*   bufferCount = 0; */
+    /* } */
   }
   return FALSE;
 }
@@ -1052,16 +1092,8 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
 			SgObject domainName,
 			SgObject alpn)
 {
-  DWORD sspiFlags = ISC_REQ_MANUAL_CRED_VALIDATION |
-    ISC_REQ_SEQUENCE_DETECT    |
-    ISC_REQ_REPLAY_DETECT      |
-    ISC_REQ_CONFIDENTIALITY    |
-    ISC_RET_EXTENDED_ERROR     |
-    ISC_REQ_ALLOCATE_MEMORY    |
-    /* ISC_REQ_USE_SUPPLIED_CREDS | */
-    ISC_REQ_STREAM;
-  wchar_t *dn = client_handshake0(tlsSocket, domainName, alpn, sspiFlags);
-  return client_handshake1(tlsSocket, dn, sspiFlags);
+  wchar_t *dn = client_handshake0(tlsSocket, domainName, alpn);
+  return client_handshake1(tlsSocket, dn, TRUE);
 }
 
 static SgTLSSocket * to_server_socket(SgTLSSocket *parent, SgSocket *sock)
@@ -1348,7 +1380,7 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
 
     ss = DecryptMessage(&data->context, &sbin, 0, NULL);
     if (ss == SEC_I_CONTEXT_EXPIRED) return 0; /* server sent end session */
-    if (ss != SEC_E_OK) {
+    if (ss != SEC_E_OK && ss != SEC_I_RENEGOTIATE) {
       raise_socket_error(SG_INTERN("tls-socket-recv!"),
 			 Sg_GetLastErrorMessageWithErrorCode(ss),
 			 Sg_MakeConditionSocket(tlsSocket),
@@ -1358,11 +1390,11 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
     for (i = 1; i < sizeof(buffers); i++) {
       if (buffer == NULL && buffers[i].BufferType == SECBUFFER_DATA)
 	buffer = &buffers[i];
-      if (extra == NULL && buffers[i].BufferType == SECBUFFER_EXTRA)
+      if (extra == NULL && buffers[i].BufferType == SECBUFFER_EXTRA) 
 	extra = &buffers[i];
     }
     /* Data buffer not found */
-    if (buffer == NULL || buffer->BufferType != SECBUFFER_DATA) {
+    if (buffer == NULL) {
       return 0;
     }
 
@@ -1377,6 +1409,16 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
       data->pendingData = SG_NEW_ATOMIC2(uint8_t *, s);
       memcpy(data->pendingData, (uint8_t *)buffer->pvBuffer + size, s);
       read += size;
+    }
+
+    if (ss == SEC_I_RENEGOTIATE) {
+      /* TODO check socket type */
+      if (!client_handshake1(tlsSocket, data->dn, FALSE)) {
+	raise_socket_error(SG_INTERN("tls-socket-recv!"),
+			   SG_MAKE_STRING("Failed to renegotiate"),
+			   Sg_MakeConditionSocket(tlsSocket),
+			   Sg_MakeIntegerU(ss));
+      }
     }
     return read;
   }
