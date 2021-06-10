@@ -1419,6 +1419,8 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
 			   Sg_MakeConditionSocket(tlsSocket),
 			   Sg_MakeIntegerU(ss));
       }
+      /* we just got SEC_I_RENEGOTIATE */
+      if (read == 0) continue;
     }
     return read;
   }
