@@ -58,7 +58,7 @@ References:
 # pragma comment(lib, "ncrypt.lib")
 #endif
 
-/* 
+/*
 some of the environment (e.g. Cygwin) doesn't have this. so define it
 https://msdn.microsoft.com/en-us/library/windows/desktop/aa379814(v=vs.85).aspx
 */
@@ -112,11 +112,13 @@ static LPWSTR SERVER_KEY_CONTAINER_NAME =
   L"Sagittarius (" W(SAGITTARIUS_TRIPLE) L" " W(SAGITTARIUS_VERSION) L") SSL Server Socket Key Container";
 static LPWSTR CLIENT_KEY_CONTAINER_NAME =
   L"Sagittarius (" W(SAGITTARIUS_TRIPLE) L" " W(SAGITTARIUS_VERSION) L") SSL Client Socket Key Container";
-static LPWSTR KEY_PROVIDER = MS_DEF_RSA_SCHANNEL_PROV;
+static LPWSTR RSA_KEY_PROVIDER = MS_DEF_RSA_SCHANNEL_PROV;
+static LPWSTR DH_KEY_PROVIDER = MS_DEF_DH_SCHANNEL_PROV;
 #else
 static LPWSTR SERVER_KEY_CONTAINER_NAME = NULL;
 static LPWSTR CLIENT_KEY_CONTAINER_NAME = NULL;
-static LPWSTR KEY_PROVIDER = NULL;
+static LPWSTR RSA_KEY_PROVIDER = NULL;
+static LPWSTR DH_KEY_PROVIDER = NULL;
 #endif
 
 /* enable them if you want to debug */
@@ -139,7 +141,7 @@ static void dump_hex(void *data, int size)
 #else
 # define fmt_dump(fmt, ...)
 # define msg_dump(msg)
-# define hex_dump(hex, size) 
+# define hex_dump(hex, size)
 #endif
 
 #ifdef  DEBUG_TLS_HANDLES
@@ -464,9 +466,9 @@ static void load_certificates(WinTLSData *data, SgObject certificates)
 
   context->certificateCount = len;
   fmt_dump("# of certificates to be loaded %d\n", len);
-  
+
   if (!len) return;
-  
+
   context->certificates = SG_NEW_ARRAY(PCCERT_CONTEXT, len);
   msg_dump("Loading certificate ... ");
   SG_FOR_EACH(cp, certificates) {
@@ -515,75 +517,89 @@ static DWORD add_private_key(WinTLSData *data,
     BOOL callerFree;
     CRYPT_KEY_PROV_INFO provInfo;
 
-    if (!CryptDecodeObjectEx(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
-			     PKCS_RSA_PRIVATE_KEY,
-			     SG_BVECTOR_ELEMENTS(privateKey),
-			     SG_BVECTOR_SIZE(privateKey),
-			     0, NULL, NULL, &cbKeyBlob)) {
-      return GetLastError();
-    }
-    pbKeyBlob = ALLOCA(LPBYTE, cbKeyBlob);
-    if (!CryptDecodeObjectEx(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
-			     PKCS_RSA_PRIVATE_KEY,
-			     SG_BVECTOR_ELEMENTS(privateKey),
-			     SG_BVECTOR_SIZE(privateKey),
-			     CRYPT_DECODE_NOCOPY_FLAG,
-			     NULL, pbKeyBlob, &cbKeyBlob)) {
-      return GetLastError();
-    }
-    if (!CryptAcquireContext(&hProv,
-			     containerName,
-			     KEY_PROVIDER,
-			     PROV_RSA_SCHANNEL,
-			     CRYPT_NEWKEYSET)) {
-      if (NTE_EXISTS == GetLastError()) {
-	if (!CryptAcquireContext(&hProv, containerName,
-				 KEY_PROVIDER, PROV_RSA_SCHANNEL, 0)) {
-	  return GetLastError();
-	}
-      } else {
-	return GetLastError();
-      }
-    }
-    /* CryptSetProvParam(hProv, PP_DELETEKEY, NULL, 0); */
-    if (!CryptImportKey(hProv, pbKeyBlob, cbKeyBlob,
-			NULL, 0, &context->privateKey)) {
-      CryptReleaseContext(hProv, 0);
-      return GetLastError();
-    }
+#define DECODE_OBJECT(structType)					\
+    do {								\
+      if (!CryptDecodeObjectEx(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,	\
+			       (structType),				\
+			       SG_BVECTOR_ELEMENTS(privateKey),		\
+			       SG_BVECTOR_SIZE(privateKey),		\
+			       0, NULL, NULL, &cbKeyBlob)) {		\
+	return GetLastError();						\
+      }									\
+      pbKeyBlob = ALLOCA(LPBYTE, cbKeyBlob);				\
+      if (!CryptDecodeObjectEx(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,	\
+			       (structType),				\
+			       SG_BVECTOR_ELEMENTS(privateKey),		\
+			       SG_BVECTOR_SIZE(privateKey),		\
+			       CRYPT_DECODE_NOCOPY_FLAG,		\
+			       NULL, pbKeyBlob, &cbKeyBlob)) {		\
+	return GetLastError();						\
+      }									\
+    } while(0)
 
-    provInfo.pwszContainerName = containerName;
-    provInfo.pwszProvName = KEY_PROVIDER;
-    provInfo.dwProvType = PROV_RSA_SCHANNEL;
-    provInfo.dwFlags = CERT_SET_KEY_CONTEXT_PROP_ID;
-    provInfo.dwKeySpec = AT_KEYEXCHANGE;
-    provInfo.cProvParam = 0;
-    if (!CertSetCertificateContextProperty(ctx, CERT_KEY_PROV_INFO_PROP_ID, 0,
-					   (const void *)&provInfo)) {
-      return GetLastError();
-    }
+#define IMPORT_PRIVATE_KEY(structType, keyProvider, cryptoProvider)	\
+    do {								\
+      DECODE_OBJECT(structType);					\
+      if (!CryptAcquireContext(&hProv,					\
+			       containerName,				\
+			       (keyProvider),				\
+			       (cryptoProvider),			\
+			       CRYPT_NEWKEYSET)) {			\
+	if (NTE_EXISTS == GetLastError()) {				\
+	  if (!CryptAcquireContext(&hProv, containerName,		\
+				   (keyProvider),			\
+				   (cryptoProvider), 0)) {		\
+	    return GetLastError();					\
+	  }								\
+	} else {							\
+	  return GetLastError();					\
+	}								\
+      }									\
+      /* CryptSetProvParam(hProv, PP_DELETEKEY, NULL, 0); */		\
+      if (!CryptImportKey(hProv, pbKeyBlob, cbKeyBlob,			\
+			  NULL, 0, &context->privateKey)) {		\
+	CryptReleaseContext(hProv, 0);					\
+	return GetLastError();						\
+      }									\
+      provInfo.pwszContainerName = containerName;			\
+      provInfo.pwszProvName = (keyProvider);				\
+      provInfo.dwProvType = (cryptoProvider);				\
+      provInfo.dwFlags = CERT_SET_KEY_CONTEXT_PROP_ID;			\
+      provInfo.dwKeySpec = AT_KEYEXCHANGE;				\
+      provInfo.cProvParam = 0;						\
+      if (!CertSetCertificateContextProperty(ctx,			\
+					     CERT_KEY_PROV_INFO_PROP_ID, \
+					     0,				\
+					     (const void *)&provInfo)) { \
+	CryptReleaseContext(hProv, 0);					\
+	return GetLastError();						\
+      }									\
+      keyCtx.cbSize = sizeof(CERT_KEY_CONTEXT);				\
+      keyCtx.hCryptProv = hProv;					\
+      keyCtx.dwKeySpec = AT_KEYEXCHANGE;				\
+      if (!CertSetCertificateContextProperty(ctx,			\
+					     CERT_KEY_CONTEXT_PROP_ID,	\
+					     0,				\
+					     (const void *)&keyCtx)) {	\
+	CryptReleaseContext(hProv, 0);					\
+	return GetLastError();						\
+      }									\
+      DUMP_CERT_CONTEXT(ctx);						\
+      /* check */							\
+      if (!CryptAcquireCertificatePrivateKey(ctx, 0, NULL,		\
+					     &c, &spec, &callerFree)) {	\
+	CryptReleaseContext(hProv, 0);					\
+	return GetLastError();						\
+      }									\
+      if (callerFree) {							\
+	if (spec == CERT_NCRYPT_KEY_SPEC) NCryptFreeObject(c);		\
+	else CryptReleaseContext(c, 0);					\
+      }									\
+      return S_OK;							\
+    } while(0)
 
-    keyCtx.cbSize = sizeof(CERT_KEY_CONTEXT);
-    keyCtx.hCryptProv = hProv;
-    keyCtx.dwKeySpec = AT_KEYEXCHANGE;
-    if (!CertSetCertificateContextProperty(ctx, CERT_KEY_CONTEXT_PROP_ID, 0,
-					   (const void *)&keyCtx)) {
-      CryptReleaseContext(hProv, 0);
-      return GetLastError();
-    }
-
-    DUMP_CERT_CONTEXT(ctx);
-    /* check */
-    if (!CryptAcquireCertificatePrivateKey(ctx, 0, NULL,
-					   &c, &spec, &callerFree)) {
-      return GetLastError();
-    }
-
-    if (callerFree) {
-      if (spec == CERT_NCRYPT_KEY_SPEC) NCryptFreeObject(c);
-      else CryptReleaseContext(c, 0);
-    }
-    return S_OK;
+    IMPORT_PRIVATE_KEY(PKCS_RSA_PRIVATE_KEY, RSA_KEY_PROVIDER,
+		       PROV_RSA_SCHANNEL);
   }
   return E_NOTIMPL;
 }
@@ -720,12 +736,12 @@ static SgObject get_certificate_chain(PCCERT_CONTEXT cc,
 			 (LPSTR)szOID_SERVER_GATED_CRYPTO,
 			 (LPSTR)szOID_SGC_NETSCAPE };
   DWORD cUsages = array_sizeof(rgszUsages);
-  
+
   chainPara.cbSize = sizeof(CERT_CHAIN_PARA);
   chainPara.RequestedUsage.dwType = USAGE_MATCH_TYPE_OR;
   chainPara.RequestedUsage.Usage.cUsageIdentifier = cUsages;
   chainPara.RequestedUsage.Usage.rgpszUsageIdentifier = rgszUsages;
-  
+
   if (!CertGetCertificateChain(NULL, cc, NULL, cc->hCertStore, &chainPara,
 			       0, NULL, chainCtx)) {
     return Sg_GetLastErrorMessageWithErrorCode(GetLastError());
@@ -742,15 +758,15 @@ static SgObject default_verify_certificate(PCCERT_CONTEXT cc,
   CERT_CHAIN_POLICY_STATUS policyStatus = { 0 };
   int isClientCert = tlsSocket->socket->type == SG_SOCKET_CLIENT;
   SgObject errMsg = SG_FALSE;
-  
+
   errMsg = get_certificate_chain(cc, tlsSocket, &chainCtx);
   if (!SG_FALSEP(errMsg)) return errMsg;
-  
+
   polHttps.cbStruct = sizeof(HTTPSPolicyCallbackData);
   polHttps.dwAuthType = isClientCert ? AUTHTYPE_CLIENT : AUTHTYPE_SERVER;
   polHttps.fdwChecks = 0;
   polHttps.pwszServerName = NULL;
-  
+
   policyPara.cbSize = sizeof(CERT_CHAIN_POLICY_PARA);
   policyPara.pvExtraPolicyPara = &polHttps;
 
@@ -761,12 +777,12 @@ static SgObject default_verify_certificate(PCCERT_CONTEXT cc,
     errMsg = Sg_GetLastErrorMessageWithErrorCode(GetLastError());
     goto cleanup;
   }
-  
+
   if (policyStatus.dwError) {
     errMsg = Sg_GetLastErrorMessageWithErrorCode(policyStatus.dwError);
     goto cleanup;
   }
-  
+
 cleanup:
   if (chainCtx) CertFreeCertificateChain(chainCtx);
   return errMsg;
@@ -800,7 +816,7 @@ static int verify_certificate(SgTLSSocket *tlsSocket, SgObject who)
   WinTLSData *data = (WinTLSData *)tlsSocket->data;
   PCCERT_CONTEXT cc = NULL;
   SgObject verifier = tlsSocket->peerCertificateVerifier;
-  
+
   QueryContextAttributes(&data->context, SECPKG_ATTR_REMOTE_CERT_CONTEXT,
 			 (PVOID)&cc);
   if (tlsSocket->peerCertificateRequiredP) {
@@ -822,7 +838,7 @@ static int verify_certificate(SgTLSSocket *tlsSocket, SgObject who)
 	errMsg = SG_FALSE;
       }
     }
-    
+
     /* TODO get certificate chain here */
     if (SG_PROCEDUREP(verifier)) {
       SG_UNWIND_PROTECT {
@@ -836,7 +852,7 @@ static int verify_certificate(SgTLSSocket *tlsSocket, SgObject who)
 	errMsg = SG_MAKE_STRING("An error occurred during certificate veirfication");
       } SG_END_PROTECT;
     }
-    
+
     CertFreeCertificateContext(cc);
     if (!SG_FALSEP(errMsg)) {
       raise_socket_error(who, errMsg,
@@ -860,7 +876,7 @@ static int verify_certificate(SgTLSSocket *tlsSocket, SgObject who)
   /* ISC_REQ_USE_SUPPLIED_CREDS | */		     \
   ISC_REQ_STREAM				     \
 
-static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,			
+static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
                                    SgObject sni,
 				   SgObject alpn)
 {
@@ -872,7 +888,7 @@ static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
   DWORD sspiOutFlags = 0;
   SECURITY_STATUS ss;
   DWORD sspiFlags = SSPI_FLAGS;
-  
+
   if (SG_STRINGP(sni)) {
     dn = Sg_StringToWCharTs(SG_STRING(sni));
   } else if (SG_UNBOUNDP(sni)) {
@@ -890,12 +906,12 @@ static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
     int cur = 0;
     unsigned short list_size =
       (unsigned short)SG_BVECTOR_SIZE(alpn) - PREFIX_LENGTH;
-    
+
     buffer = default_buffer;
     if (total_size > array_sizeof(default_buffer)) {
       buffer = SG_NEW_ATOMIC2(unsigned char*, total_size);
     }
-    
+
     /* original size + sizeof(SecApplicationProtocolNegotiationExt_ALPN) */
     *(unsigned int *)&buffer[cur] = SG_BVECTOR_SIZE(alpn) + sizeof(unsigned int);
     cur += sizeof(unsigned int);
@@ -920,7 +936,7 @@ static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
 #undef PREFIX_LENGTH
   INIT_SEC_BUFFER(&bufso, SECBUFFER_TOKEN, NULL, 0);
   INIT_SEC_BUFFER_DESC(&sbout, &bufso, 1);
-  
+
   ss = InitializeSecurityContextW(&data->credential,
 				  NULL,
 				  dn,
@@ -955,7 +971,7 @@ static int read_n(SgSocket *socket, uint8_t *buf, int count)
   }
   return read;
 }
-/* 
+/*
    reference
    - https://tools.ietf.org/html/rfc5246#section-6.2
    TLS record structure is:
@@ -997,17 +1013,17 @@ static int client_handshake1(SgTLSSocket *tlsSocket, wchar_t *dn,
   DWORD sspiFlags = SSPI_FLAGS;
   int doRead = readInitialP;
 
-  
+
   for (;;) {
     DWORD sspiOutFlags = 0;
     int rval = 0, i;
     uint8_t *content = NULL;
-    
+
     if (ss != SEC_I_CONTINUE_NEEDED &&
 	ss != SEC_E_INCOMPLETE_MESSAGE &&
 	ss != SEC_I_INCOMPLETE_CREDENTIALS)
       break;
-    
+
     if (ss == SEC_E_INCOMPLETE_MESSAGE) {
       if (doRead) {
 	READ_RECORD(socket, rval, content);
@@ -1016,16 +1032,16 @@ static int client_handshake1(SgTLSSocket *tlsSocket, wchar_t *dn,
 	doRead = TRUE;
       }
     }
-    
+
     INIT_SEC_BUFFER(&bufso[0], SECBUFFER_TOKEN, NULL, 0);
     /* INIT_SEC_BUFFER(&bufso[1], SECBUFFER_ALERT, NULL, 0); */
     INIT_SEC_BUFFER(&bufso[1], SECBUFFER_EMPTY, NULL, 0);
     INIT_SEC_BUFFER_DESC(&sbout, bufso, array_sizeof(bufso));
-    
+
     INIT_SEC_BUFFER(&bufsi[0], SECBUFFER_TOKEN, content, rval);
     INIT_SEC_BUFFER(&bufsi[1], SECBUFFER_EMPTY, NULL, 0);
     INIT_SEC_BUFFER_DESC(&sbin, bufsi, 2);
-    
+
     ss = InitializeSecurityContextW(&data->credential,
 				    &data->context,
 				    dn,
@@ -1066,13 +1082,13 @@ static int client_handshake1(SgTLSSocket *tlsSocket, wchar_t *dn,
       doRead = FALSE;
       continue;
     }
-    
+
     if (ss == S_OK) {
       /* TODO handle extra buffer? */
       /* if (bufsi[1].BufferType == SECBUFFER_EXTRA) { */
       /* 	  fprintf(stderr, "here %d\n", bufsi[1].cbBuffer); */
       /* } */
-      
+
       return verify_certificate(tlsSocket,
 				SG_INTERN("tls-socket-client-handshake"));
     }
@@ -1157,7 +1173,7 @@ static int server_handshake(SgTLSSocket *tlsSocket)
       || !SG_FALSEP(tlsSocket->peerCertificateVerifier)) {
     sspiFlags |= ASC_REQ_MUTUAL_AUTH;
   }
-  
+
   for (;;) {
     DWORD sspiOutFlags = 0;
     int rval = 0, i;
@@ -1168,7 +1184,7 @@ static int server_handshake(SgTLSSocket *tlsSocket)
       break;
     READ_RECORD(socket, rval, content);
     if (rval < 0) return FALSE;	/* non blocking... */
-    
+
     INIT_SEC_BUFFER(&bufsi[0], SECBUFFER_TOKEN, content, rval);
     INIT_SEC_BUFFER(&bufsi[1], SECBUFFER_EMPTY, NULL, 0);
     INIT_SEC_BUFFER_DESC(&sbin, bufsi, 2);
@@ -1176,7 +1192,7 @@ static int server_handshake(SgTLSSocket *tlsSocket)
     INIT_SEC_BUFFER(&bufso[0], SECBUFFER_TOKEN, NULL, 0);
     INIT_SEC_BUFFER(&bufso[1], SECBUFFER_EMPTY, NULL, 0);
     INIT_SEC_BUFFER_DESC(&sbout, bufso, array_sizeof(bufso));
-    
+
     ss = AcceptSecurityContext(&data->credential,
 			       initialised ? &data->context : NULL,
 			       &sbin,
@@ -1205,13 +1221,13 @@ static int server_handshake(SgTLSSocket *tlsSocket)
     if (ss == SEC_I_CONTINUE_NEEDED
 	|| ss == SEC_I_INCOMPLETE_CREDENTIALS
 	|| ss == SEC_E_INCOMPLETE_MESSAGE) continue;
-    
+
     if (FAILED(ss)) {
       raise_socket_error(SG_INTERN("tls-socket-server-handshake"),
 			 Sg_GetLastErrorMessageWithErrorCode(ss),
 			 Sg_MakeConditionSocket(tlsSocket),
 			 Sg_MakeIntegerU(ss));
-    }    
+    }
   }
 
   return verify_certificate(tlsSocket,
@@ -1238,7 +1254,7 @@ SgObject Sg_TLSServerSocketHandshake(SgTLSSocket *tlsSocket)
   return tlsSocket;
 }
 
-/* 
+/*
 https://msdn.microsoft.com/en-us/library/windows/desktop/aa380138(v=vs.85).aspx
  */
 static void tls_socket_shutdown(SgTLSSocket *tlsSocket)
@@ -1250,7 +1266,7 @@ static void tls_socket_shutdown(SgTLSSocket *tlsSocket)
 
   INIT_SEC_BUFFER(&buffer, SECBUFFER_TOKEN, &type, sizeof(type));
   INIT_SEC_BUFFER_DESC(&sbout, &buffer, 1);
-  
+
   do {
     SECURITY_STATUS ss = ApplyControlToken(&data->context, &sbout);
     SgSocket *socket;
@@ -1390,7 +1406,7 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
     for (i = 1; i < sizeof(buffers); i++) {
       if (buffer == NULL && buffers[i].BufferType == SECBUFFER_DATA)
 	buffer = &buffers[i];
-      if (extra == NULL && buffers[i].BufferType == SECBUFFER_EXTRA) 
+      if (extra == NULL && buffers[i].BufferType == SECBUFFER_EXTRA)
 	extra = &buffers[i];
     }
     /* Data buffer not found */
@@ -1439,7 +1455,7 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
 
   ss = QueryContextAttributes(&data->context, SECPKG_ATTR_STREAM_SIZES, &sizes);
   if (FAILED(ss)) goto err;
-  
+
   mmsg = ALLOCA(uint8_t *, min(sizes.cbMaximumMessage, (unsigned int)size));
   mhdr = ALLOCA(uint8_t *, sizes.cbHeader);
   mtrl = ALLOCA(uint8_t *, sizes.cbTrailer);
@@ -1469,7 +1485,7 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
     send(bufs[1]);
     send(bufs[2]);
 #undef send
-    
+
     sent += portion;
     rest -= portion;
     b    += portion;
@@ -1489,7 +1505,7 @@ SgObject Sg_TLSSocketPeerCertificate(SgTLSSocket *tlsSocket)
   SECURITY_STATUS ss;
   PCCERT_CONTEXT cc = NULL;
   SgObject cert = SG_FALSE;
-  
+
   ss = QueryContextAttributes(&data->context, SECPKG_ATTR_REMOTE_CERT_CONTEXT,
 			      (PVOID)&cc);
 
@@ -1543,9 +1559,13 @@ static void cleanup_keyset(void *data)
 {
   /* Delete key set*/
   HCRYPTPROV hProv;
-  CryptAcquireContext(&hProv, SERVER_KEY_CONTAINER_NAME, KEY_PROVIDER,
+  CryptAcquireContext(&hProv, SERVER_KEY_CONTAINER_NAME, RSA_KEY_PROVIDER,
 		      PROV_RSA_SCHANNEL, CRYPT_DELETEKEYSET);
-  CryptAcquireContext(&hProv, CLIENT_KEY_CONTAINER_NAME, KEY_PROVIDER,
+  CryptAcquireContext(&hProv, CLIENT_KEY_CONTAINER_NAME, RSA_KEY_PROVIDER,
+		      PROV_RSA_SCHANNEL, CRYPT_DELETEKEYSET);
+  CryptAcquireContext(&hProv, SERVER_KEY_CONTAINER_NAME, DH_KEY_PROVIDER,
+		      PROV_RSA_SCHANNEL, CRYPT_DELETEKEYSET);
+  CryptAcquireContext(&hProv, CLIENT_KEY_CONTAINER_NAME, DH_KEY_PROVIDER,
 		      PROV_RSA_SCHANNEL, CRYPT_DELETEKEYSET);
 }
 
@@ -1561,11 +1581,13 @@ void Sg_InitTLSImplementation()
     SG_MAKE_STRING("CYGWIN Sagittarius ("
 		   SAGITTARIUS_TRIPLE " " SAGITTARIUS_VERSION
 		   ") SSL Client Socket Key Container");
-  SgObject provName = SG_MAKE_STRING(MS_DEF_RSA_SCHANNEL_PROV_A);
+  SgObject rsaProvName = SG_MAKE_STRING(MS_DEF_RSA_SCHANNEL_PROV_A);
+  SgObject dhProvName = SG_MAKE_STRING(MS_DEF_DH_SCHANNEL_PROV_A);
   SgObject implName = SG_MAKE_STRING(SCHANNEL_NAME_A);
   SERVER_KEY_CONTAINER_NAME = Sg_StringToWCharTs(serverKeyContainer);
   CLIENT_KEY_CONTAINER_NAME = Sg_StringToWCharTs(clientKeyContainer);
-  KEY_PROVIDER = Sg_StringToWCharTs(provName);
+  RSA_KEY_PROVIDER = Sg_StringToWCharTs(rsaProvName);
+  DH_KEY_PROVIDER = Sg_StringToWCharTs(rsaProvName);
   IMPL_NAME = Sg_StringToWCharTs(implName);
 #endif
   fmt_dump("Key provider: '%S'\n", KEY_PROVIDER);
