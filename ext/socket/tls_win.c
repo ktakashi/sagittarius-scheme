@@ -332,6 +332,12 @@ static void dump_cert_context(PCCERT_CONTEXT cert)
 # define DUMP_CERT_CONTEXT(cert)
 #endif
 
+typedef enum KEY_TYPE_TAG {
+  RSA,
+  ECC
+} KEY_TYPE;
+
+
 typedef struct WinTLSContextRec
 {
   /* we don't support CA/trusted certificates for now. */
@@ -339,6 +345,8 @@ typedef struct WinTLSContextRec
   int certificateCount;
   PCCERT_CONTEXT *certificates;
   HCRYPTKEY privateKey;
+  HCRYPTPROV hProv;
+  KEY_TYPE keyType;
 } WinTLSContext;
 
 typedef struct WinTLSDataRec
@@ -414,15 +422,33 @@ static void free_context(WinTLSContext *context)
     context->certificateCount = 0;
     context->certificates = NULL;
   }
-  if (context->privateKey) {
-    CryptDestroyKey(context->privateKey);
-    context->privateKey = NULL;
+  if (context->keyType == RSA) {
+    if (context->privateKey) {
+      CryptDestroyKey(context->privateKey);
+      context->privateKey = NULL;
+    }
+    if (context->hProv != 0) {
+      CryptReleaseContext(context->hProv, 0);
+    }
   }
-  Sg_UnregisterFinalizer(context);
+#if _MSC_VER > 1500
+  if (context->keyType == ECC) {
+    if (context->privateKey) {
+      NCryptFreeObject(context->privateKey);
+      context->privateKey = NULL;
+    }
+    if (context->hProv != 0) {
+      NCryptFreeObject(context->hProv);
+    }
+  }
+#endif
+
   if (context->certStore) {
     CertCloseStore(context->certStore, 0);
     context->certStore = NULL;
   }
+
+  Sg_UnregisterFinalizer(context);
 }
 
 static void tls_socket_finalizer(SgObject self, void *data)
@@ -452,6 +478,7 @@ static SgTLSSocket * make_tls_socket(SgSocket *socket, WinTLSContext *ctx)
   if (!ctx) {
     context->certificateCount = 0;
     context->privateKey = NULL;
+    context->hProv = 0;
     Sg_RegisterFinalizer(context, tls_context_finalize, NULL);
   }
   return r;
@@ -502,104 +529,211 @@ static void load_certificates(WinTLSData *data, SgObject certificates)
   msg_dump("Done!\n");
 }
 
+static LPBYTE decode_private_key(SgByteVector *privateKey,
+				 DWORD *resultBlobSize,
+				 KEY_TYPE *resultKeyType)
+{
+  LPCSTR keyType = PKCS_RSA_PRIVATE_KEY;
+  DWORD blobSize = 0;
+  LPBYTE blob;
+  unsigned char *rawKey = SG_BVECTOR_ELEMENTS(privateKey);
+  int rawKeySize = SG_BVECTOR_SIZE(privateKey);
+
+  if (!CryptDecodeObjectEx(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+			   keyType, rawKey, rawKeySize,
+			   0, NULL, NULL, &blobSize)) {
+#if _MSC_VER > 1500
+    keyType = X509_ECC_PRIVATE_KEY;
+    if (!CryptDecodeObjectEx(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+			     keyType, rawKey, rawKeySize,
+			     0, NULL, NULL, &blobSize)) {
+      return NULL;
+    } else {
+      *resultKeyType = ECC;
+    }
+#else
+    return NULL;
+#endif
+  } else {
+    *resultKeyType = RSA;
+  }
+  blob = SG_NEW_ATOMIC2(LPBYTE, blobSize);
+  if (!CryptDecodeObjectEx(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+			   keyType, rawKey, rawKeySize,
+			   0, NULL, blob, &blobSize)) {
+    return NULL;
+  } else {
+    *resultBlobSize = blobSize;
+  }
+  return blob;
+}
+
+static DWORD check_integrity(WinTLSContext *context)
+{
+  PCCERT_CONTEXT ctx = context->certificates[0];
+  HCRYPTKEY c;
+  DWORD spec;
+  BOOL callerFree;
+  /* check */
+  if (!CryptAcquireCertificatePrivateKey(ctx, 0, NULL,
+					 &c, &spec, &callerFree)) {
+    return GetLastError();
+  }
+  if (callerFree) {
+    if (spec == CERT_NCRYPT_KEY_SPEC) NCryptFreeObject(c);
+    else CryptReleaseContext(c, 0);
+  }
+  return S_OK;
+}
+
+static DWORD add_rsa_private_key(WinTLSContext *context,
+				 LPWSTR containerName,
+				 LPBYTE keyBlob,
+				 DWORD keyBlobSize)
+{
+  PCCERT_CONTEXT ctx = context->certificates[0];
+  CERT_KEY_CONTEXT keyCtx = {0};
+  CRYPT_KEY_PROV_INFO provInfo;
+
+  if (!CryptAcquireContext(&context->hProv, containerName, RSA_KEY_PROVIDER,
+			   PROV_RSA_SCHANNEL, CRYPT_NEWKEYSET)) {
+    if (NTE_EXISTS == GetLastError()) {
+      if (!CryptAcquireContext(&context->hProv, containerName, RSA_KEY_PROVIDER,
+			       PROV_RSA_SCHANNEL, 0)) {
+	return GetLastError();
+      }
+    } else {
+      return GetLastError();
+    }
+  }
+  /* CryptSetProvParam(hProv, PP_DELETEKEY, NULL, 0); */
+  if (!CryptImportKey(context->hProv, keyBlob, keyBlobSize,
+		      NULL, 0, &context->privateKey)) {
+    CryptReleaseContext(context->hProv, 0);
+    return GetLastError();
+  }
+  
+  provInfo.pwszContainerName = containerName;
+  provInfo.pwszProvName = RSA_KEY_PROVIDER;
+  provInfo.dwProvType = PROV_RSA_SCHANNEL;
+  provInfo.dwFlags = CERT_SET_KEY_CONTEXT_PROP_ID;
+  provInfo.dwKeySpec = AT_KEYEXCHANGE;
+  provInfo.cProvParam = 0;
+  if (!CertSetCertificateContextProperty(ctx, CERT_KEY_PROV_INFO_PROP_ID, 0,
+					 (const void *)&provInfo)) {
+    return GetLastError();
+  }
+  keyCtx.cbSize = sizeof(CERT_KEY_CONTEXT);
+  keyCtx.hCryptProv = context->hProv;
+  keyCtx.dwKeySpec = AT_KEYEXCHANGE;
+  if (!CertSetCertificateContextProperty(ctx, CERT_KEY_CONTEXT_PROP_ID, 0,
+					 (const void *)&keyCtx)) {
+    return GetLastError();
+  }
+  DUMP_CERT_CONTEXT(ctx);
+  
+  return check_integrity(context);
+}
+
+static DWORD add_ecc_private_key(WinTLSContext *context,
+				 LPWSTR containerName,
+				 LPBYTE keyBlob)
+{
+#if _MSC_VER > 1500
+# define ECC_256_MAGIC_NUMBER        0x20
+# define ECC_384_MAGIC_NUMBER        0x30
+  SECURITY_STATUS ss;
+  PCCERT_CONTEXT ctx = context->certificates[0];
+  CRYPT_ECC_PRIVATE_KEY_INFO *pPrivKeyInfo =
+    (CRYPT_ECC_PRIVATE_KEY_INFO *)keyBlob;
+  CRYPT_BIT_BLOB *pPubKeyBlob = &ctx->pCertInfo->SubjectPublicKeyInfo.PublicKey;
+  DWORD pubSize = pPubKeyBlob->cbData - 1;
+  DWORD privSize = pPrivKeyInfo->PrivateKey.cbData;
+  DWORD keyBlobSize = sizeof(BCRYPT_ECCKEY_BLOB) + pubSize + privSize;
+  BYTE *pubKeyBuf = pPubKeyBlob->pbData + 1;
+  BYTE *privKeyBuf = pPrivKeyInfo->PrivateKey.pbData;
+  BCRYPT_ECCKEY_BLOB *pKeyBlob =
+    SG_NEW_ATOMIC2(BCRYPT_ECCKEY_BLOB *, keyBlobSize);
+  HCRYPTKEY key;
+
+  CERT_KEY_CONTEXT keyCtx = {0};
+  CRYPT_KEY_PROV_INFO provInfo;
+  
+  pKeyBlob->dwMagic = privSize == ECC_256_MAGIC_NUMBER
+    ? BCRYPT_ECDSA_PRIVATE_P256_MAGIC
+    : privSize == ECC_384_MAGIC_NUMBER
+      ? BCRYPT_ECDSA_PRIVATE_P384_MAGIC
+      : BCRYPT_ECDSA_PRIVATE_P521_MAGIC;
+  pKeyBlob->cbKey = privSize;
+  memcpy((BYTE *)(pKeyBlob + 1), pubKeyBuf, pubSize);
+  memcpy((BYTE *)(pKeyBlob + 1) + pubSize, privKeyBuf, privSize);
+  
+  ss = NCryptOpenStorageProvider(&context->hProv, MS_KEY_STORAGE_PROVIDER, 0);
+  if (ss != ERROR_SUCCESS) {
+    fmt_dump("  Failed NCryptOpenStorageProvider [%d]\n", ss);
+    return ss;
+  }
+  ss = NCryptImportKey(context->hProv, 0, BCRYPT_ECCPRIVATE_BLOB, NULL, &key,
+		       (BYTE*)pKeyBlob, keyBlobSize,
+		       NCRYPT_OVERWRITE_KEY_FLAG);
+  if (ss != ERROR_SUCCESS) {
+    fmt_dump("  Failed NCryptImportKey [%d]\n", ss);
+    return GetLastError();
+  }
+  NCryptFreeObject(key);
+  if (NCryptFreeObject(context->hProv) == ERROR_SUCCESS) {
+    context->hProv = 0;
+  }
+  
+  provInfo.pwszContainerName = containerName;
+  provInfo.pwszProvName = MS_KEY_STORAGE_PROVIDER;
+  provInfo.dwProvType = 0;
+  provInfo.dwFlags = 0;
+  provInfo.cProvParam = 0;
+  provInfo.rgProvParam = NULL;
+  provInfo.dwKeySpec = 0;
+  
+  if (!CertSetCertificateContextProperty(ctx, CERT_KEY_PROV_INFO_PROP_ID, 0,
+					 (const void *)&provInfo)) {
+    fmt_dump("  Failed CertSetCertificateContextProperty [%d]\n", ss);
+    return GetLastError();
+  }
+  
+  keyCtx.cbSize = sizeof(CERT_KEY_CONTEXT);
+  keyCtx.hCryptProv = context->hProv;
+  keyCtx.dwKeySpec = AT_KEYEXCHANGE;
+  if (!CertSetCertificateContextProperty(ctx, CERT_KEY_CONTEXT_PROP_ID, 0,
+					 (const void *)&keyCtx)) {
+    return GetLastError();
+  }
+  return S_OK;
+#else
+  return E_NOINTERFACE;
+#endif
+  
+}
+
 static DWORD add_private_key(WinTLSData *data,
 			     SgByteVector *privateKey,
 			     LPWSTR containerName)
 {
   WinTLSContext *context = data->tlsContext;
   if (privateKey && context->certificateCount > 0) {
-    PCCERT_CONTEXT ctx = context->certificates[0];
-    HCRYPTPROV hProv = 0;
-    HCRYPTKEY c;
-    CERT_KEY_CONTEXT keyCtx = {0};
-    DWORD spec, cbKeyBlob;
-    LPBYTE pbKeyBlob = NULL;
-    BOOL callerFree;
-    CRYPT_KEY_PROV_INFO provInfo;
-
-#define DECODE_OBJECT(structType)					\
-    do {								\
-      if (!CryptDecodeObjectEx(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,	\
-			       (structType),				\
-			       SG_BVECTOR_ELEMENTS(privateKey),		\
-			       SG_BVECTOR_SIZE(privateKey),		\
-			       0, NULL, NULL, &cbKeyBlob)) {		\
-	return GetLastError();						\
-      }									\
-      pbKeyBlob = ALLOCA(LPBYTE, cbKeyBlob);				\
-      if (!CryptDecodeObjectEx(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,	\
-			       (structType),				\
-			       SG_BVECTOR_ELEMENTS(privateKey),		\
-			       SG_BVECTOR_SIZE(privateKey),		\
-			       CRYPT_DECODE_NOCOPY_FLAG,		\
-			       NULL, pbKeyBlob, &cbKeyBlob)) {		\
-	return GetLastError();						\
-      }									\
-    } while(0)
-
-#define IMPORT_PRIVATE_KEY(structType, keyProvider, cryptoProvider)	\
-    do {								\
-      DECODE_OBJECT(structType);					\
-      if (!CryptAcquireContext(&hProv,					\
-			       containerName,				\
-			       (keyProvider),				\
-			       (cryptoProvider),			\
-			       CRYPT_NEWKEYSET)) {			\
-	if (NTE_EXISTS == GetLastError()) {				\
-	  if (!CryptAcquireContext(&hProv, containerName,		\
-				   (keyProvider),			\
-				   (cryptoProvider), 0)) {		\
-	    return GetLastError();					\
-	  }								\
-	} else {							\
-	  return GetLastError();					\
-	}								\
-      }									\
-      /* CryptSetProvParam(hProv, PP_DELETEKEY, NULL, 0); */		\
-      if (!CryptImportKey(hProv, pbKeyBlob, cbKeyBlob,			\
-			  NULL, 0, &context->privateKey)) {		\
-	CryptReleaseContext(hProv, 0);					\
-	return GetLastError();						\
-      }									\
-      provInfo.pwszContainerName = containerName;			\
-      provInfo.pwszProvName = (keyProvider);				\
-      provInfo.dwProvType = (cryptoProvider);				\
-      provInfo.dwFlags = CERT_SET_KEY_CONTEXT_PROP_ID;			\
-      provInfo.dwKeySpec = AT_KEYEXCHANGE;				\
-      provInfo.cProvParam = 0;						\
-      if (!CertSetCertificateContextProperty(ctx,			\
-					     CERT_KEY_PROV_INFO_PROP_ID, \
-					     0,				\
-					     (const void *)&provInfo)) { \
-	CryptReleaseContext(hProv, 0);					\
-	return GetLastError();						\
-      }									\
-      keyCtx.cbSize = sizeof(CERT_KEY_CONTEXT);				\
-      keyCtx.hCryptProv = hProv;					\
-      keyCtx.dwKeySpec = AT_KEYEXCHANGE;				\
-      if (!CertSetCertificateContextProperty(ctx,			\
-					     CERT_KEY_CONTEXT_PROP_ID,	\
-					     0,				\
-					     (const void *)&keyCtx)) {	\
-	CryptReleaseContext(hProv, 0);					\
-	return GetLastError();						\
-      }									\
-      DUMP_CERT_CONTEXT(ctx);						\
-      /* check */							\
-      if (!CryptAcquireCertificatePrivateKey(ctx, 0, NULL,		\
-					     &c, &spec, &callerFree)) {	\
-	CryptReleaseContext(hProv, 0);					\
-	return GetLastError();						\
-      }									\
-      if (callerFree) {							\
-	if (spec == CERT_NCRYPT_KEY_SPEC) NCryptFreeObject(c);		\
-	else CryptReleaseContext(c, 0);					\
-      }									\
-      return S_OK;							\
-    } while(0)
-
-    IMPORT_PRIVATE_KEY(PKCS_RSA_PRIVATE_KEY, RSA_KEY_PROVIDER,
-		       PROV_RSA_SCHANNEL);
+    KEY_TYPE keyType;
+    DWORD keyBlobSize;
+    LPBYTE keyBlob = decode_private_key(privateKey, &keyBlobSize,
+					&context->keyType);
+    if (keyBlob == NULL) {
+      return GetLastError();
+    }
+    if (context->keyType == RSA) {
+      msg_dump("  Private key is RSA\n");
+      return add_rsa_private_key(context, containerName, keyBlob, keyBlobSize);
+    } else if (context->keyType == ECC) {
+      msg_dump("  Private key is ECC\n");
+      return add_ecc_private_key(context, containerName, keyBlob);
+    }
+    return GetLastError();
   }
   return E_NOTIMPL;
 }
@@ -645,14 +779,16 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 
   load_certificates(data, certificates);
 
-  msg_dump("Loading private key and initialising socket ... ");
+  msg_dump("Loading private key and initialising socket ... \n");
   switch (socket->type) {
   case SG_SOCKET_CLIENT:
     result = add_private_key(data, privateKey, CLIENT_KEY_CONTAINER_NAME);
+    fmt_dump("Client private key loading process is done -- %x\n", result);
     client_init(r);
     break;
   case SG_SOCKET_SERVER:
     result = add_private_key(data, privateKey, SERVER_KEY_CONTAINER_NAME);
+    fmt_dump("Server private key loading process is done -- %x\n", result);
     serverP = server_init(r);
     break;
   default:
@@ -662,7 +798,6 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
       socket);
     return NULL;		/* dummy */
   }
-  fmt_dump("Done! -- %x\n", result);
 
   if (serverP && FAILED(result) && result != E_NOTIMPL) {
     Sg_TLSSocketClose(r);
@@ -689,7 +824,7 @@ static int socket_readable(SOCKET socket)
   tv.tv_usec = 0;		/* seems okay like this */
 #endif
   total = select(socket+1, &rfds, NULL, NULL, &tv);
-  return total == 1;
+  return total == (SOCKET)1;
 }
 
 static void send_sec_buffer(SgObject who, SgTLSSocket *tlsSocket,
@@ -1054,8 +1189,9 @@ static int client_handshake1(SgTLSSocket *tlsSocket, wchar_t *dn,
 				    &sbout,
 				    &sspiOutFlags,
 				    NULL);
-    /* sorry we can't handle this */
+
     fmt_dump("[client] ss = %lx\n", ss);
+
     if (ss == SEC_E_INCOMPLETE_MESSAGE) continue;
     if (FAILED(ss)) {
       raise_socket_error(SG_INTERN("tls-socket-connect!"),
@@ -1429,6 +1565,7 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
 
     if (ss == SEC_I_RENEGOTIATE) {
       /* TODO check socket type */
+      msg_dump("Start renegotiation\n");
       if (!client_handshake1(tlsSocket, data->dn, FALSE)) {
 	raise_socket_error(SG_INTERN("tls-socket-recv!"),
 			   SG_MAKE_STRING("Failed to renegotiate"),
@@ -1590,7 +1727,8 @@ void Sg_InitTLSImplementation()
   DH_KEY_PROVIDER = Sg_StringToWCharTs(rsaProvName);
   IMPL_NAME = Sg_StringToWCharTs(implName);
 #endif
-  fmt_dump("Key provider: '%S'\n", KEY_PROVIDER);
+  fmt_dump("RSA Key provider: '%S'\n", RSA_KEY_PROVIDER);
+  fmt_dump("DH Key provider: '%S'\n", DH_KEY_PROVIDER);
   fmt_dump("Service provider: '%S'\n", IMPL_NAME);
   fmt_dump("Client key container: '%S'\n", CLIENT_KEY_CONTAINER_NAME);
   fmt_dump("Server key container: '%S'\n", SERVER_KEY_CONTAINER_NAME);
