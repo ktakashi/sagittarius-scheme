@@ -46,6 +46,7 @@ References:
 #include <ncrypt.h>
 /* #include <security.h> */
 #include <sspi.h>
+#include <wchar.h>
 #include <sagittarius.h>
 #include "sagittarius-socket.h"
 #define LIBSAGITTARIUS_EXT_BODY
@@ -122,8 +123,8 @@ static LPWSTR DH_KEY_PROVIDER = NULL;
 #endif
 
 /* enable them if you want to debug */
-/* #define DEBUG_DUMP */
-/* #define DEBUG_TLS_HANDLES */
+#define DEBUG_DUMP
+#define DEBUG_TLS_HANDLES
 
 #ifdef DEBUG_DUMP
 # define fmt_dump(fmt, ...) fprintf(stderr, fmt, __VA_ARGS__)
@@ -158,6 +159,10 @@ static void dump_ctx_handle(CtxtHandle *ctx)
   fmt_dump("Protocol: 0x%x\n", ci.dwProtocol);
   fmt_dump("Cipher: 0x%x\n", ci.aiCipher);
   fmt_dump("Cipher strength: %d\n", ci.dwCipherStrength);
+  fmt_dump("Hash algorithm: 0x%x\n", ci.aiHash);
+  fmt_dump("Hash algorithm strength: %d\n", ci.dwHashStrength);
+  fmt_dump("Key exchange algorithm: 0x%x\n", ci.aiExch);
+  fmt_dump("Key exchange algorithm strength: %d\n", ci.dwExchStrength);
 }
 
 static void dump_cred_handle(CredHandle *cred)
@@ -165,7 +170,8 @@ static void dump_cred_handle(CredHandle *cred)
   SECURITY_STATUS ss;
   SecPkgCred_SupportedAlgs sa;
   SecPkgCred_SupportedProtocols sp;
-  ss = QueryCredentialsAttributes(cred, SECPKG_ATTR_SUPPORTED_ALGS, (void *)&sa);
+  SecPkgCredentials_NamesA sn;
+  ss = QueryCredentialsAttributesA(cred, SECPKG_ATTR_SUPPORTED_ALGS, (void *)&sa);
   if (!FAILED(ss)) {
     int i;
     fmt_dump("# of Supported algorithms %d\n", sa.cSupportedAlgs);
@@ -175,7 +181,7 @@ static void dump_cred_handle(CredHandle *cred)
     SgObject msg = Sg_GetLastErrorMessageWithErrorCode(ss);
     fmt_dump("[%lx] %s\n", ss, Sg_Utf32sToUtf8s(SG_STRING(msg)));
   }
-  ss = QueryCredentialsAttributes(cred, SECPKG_ATTR_SUPPORTED_PROTOCOLS, (void *)&sp);
+  ss = QueryCredentialsAttributesA(cred, SECPKG_ATTR_SUPPORTED_PROTOCOLS, (void *)&sp);
   if (!FAILED(ss)) {
 #define if_supported(v)							\
     do {								\
@@ -189,6 +195,14 @@ static void dump_cred_handle(CredHandle *cred)
     if_supported(SP_PROT_SSL2_CLIENT);
     if_supported(SP_PROT_SSL2_SERVER);
 #undef is_supported
+  } else {
+    SgObject msg = Sg_GetLastErrorMessageWithErrorCode(ss);
+    fmt_dump("[%lx] %s\n", ss, Sg_Utf32sToUtf8s(SG_STRING(msg)));
+  }
+
+  ss = QueryCredentialsAttributesA(cred, SECPKG_CRED_ATTR_NAMES, (void *)&sn);
+  if (!FAILED(ss)) {
+    fmt_dump("Credential name: %s\n", sn.sUserName);
   } else {
     SgObject msg = Sg_GetLastErrorMessageWithErrorCode(ss);
     fmt_dump("[%lx] %s\n", ss, Sg_Utf32sToUtf8s(SG_STRING(msg)));
@@ -224,7 +238,7 @@ static void dump_cert_context(PCCERT_CONTEXT cert)
 			     &container, &provName, &provType)) {
       fmt_dump("Provider name: %S\n", provName);
       fmt_dump("Container name: %S\n", container);
-      fmt_dump("Provider type: %ld\n", provType);
+      fmt_dump("Provider type: %lx\n", provType);
       fmt_dump("Key spec: %ld\n", keySpec);
       freeCryptProvFromCert(FALSE, prov, provName, provType, container);
     } else {
@@ -319,6 +333,9 @@ static void dump_cert_context(PCCERT_CONTEXT cert)
 	}
       }
       LocalFree(pvData);
+    } else {
+      fmt_dump("Failed to get certificate context property: %lx\n",
+	       GetLastError());
     }
   }
 }
@@ -334,6 +351,7 @@ static void dump_cert_context(PCCERT_CONTEXT cert)
 
 typedef enum KEY_TYPE_TAG {
   RSA,
+  PKCS8,
   ECC
 } KEY_TYPE;
 
@@ -400,8 +418,6 @@ static void client_init(SgTLSSocket *r)
 				     NULL,
 				     &data->credential,
 				     NULL);
-  DUMP_CRED_HANDLE(&data->credential);
-
   if (status != S_OK) {
     FreeCredentialsHandle(&data->credential);
     raise_socket_error(SG_INTERN("socket->tls-socket"),
@@ -409,6 +425,7 @@ static void client_init(SgTLSSocket *r)
 		       Sg_MakeConditionSocket(r),
 		       Sg_MakeIntegerU(status));
   }
+  DUMP_CRED_HANDLE(&data->credential);
 }
 
 static void free_context(WinTLSContext *context)
@@ -542,18 +559,26 @@ static LPBYTE decode_private_key(SgByteVector *privateKey,
   if (!CryptDecodeObjectEx(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
 			   keyType, rawKey, rawKeySize,
 			   0, NULL, NULL, &blobSize)) {
-#if _MSC_VER > 1500
-    keyType = X509_ECC_PRIVATE_KEY;
+    keyType = PKCS_PRIVATE_KEY_INFO;
     if (!CryptDecodeObjectEx(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
 			     keyType, rawKey, rawKeySize,
 			     0, NULL, NULL, &blobSize)) {
-      return NULL;
-    } else {
-      *resultKeyType = ECC;
-    }
+#if _MSC_VER > 1500
+      keyType = X509_ECC_PRIVATE_KEY;
+      if (!CryptDecodeObjectEx(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+			       keyType, rawKey, rawKeySize,
+			       0, NULL, NULL, &blobSize)) {
+	return NULL;
+      } else {
+	*resultKeyType = ECC;
+      }
 #else
-    return NULL;
+      return NULL;
 #endif
+    } else {
+      *resultKeyType = PKCS8;
+    }
+
   } else {
     *resultKeyType = RSA;
   }
@@ -654,10 +679,11 @@ static DWORD add_ecc_private_key(WinTLSContext *context,
   BYTE *privKeyBuf = pPrivKeyInfo->PrivateKey.pbData;
   BCRYPT_ECCKEY_BLOB *pKeyBlob =
     SG_NEW_ATOMIC2(BCRYPT_ECCKEY_BLOB *, keyBlobSize);
-  HCRYPTKEY key;
-
   CERT_KEY_CONTEXT keyCtx = {0};
-  CRYPT_KEY_PROV_INFO provInfo;
+  wchar_t keyName[64] = {0};
+
+  fmt_dump("  ECC key version: %x, curve OID: %s\n",
+	   pPrivKeyInfo->dwVersion, pPrivKeyInfo->szCurveOid);
   
   pKeyBlob->dwMagic = privSize == ECC_256_MAGIC_NUMBER
     ? BCRYPT_ECDSA_PRIVATE_P256_MAGIC
@@ -670,43 +696,32 @@ static DWORD add_ecc_private_key(WinTLSContext *context,
   
   ss = NCryptOpenStorageProvider(&context->hProv, MS_KEY_STORAGE_PROVIDER, 0);
   if (ss != ERROR_SUCCESS) {
-    fmt_dump("  Failed NCryptOpenStorageProvider [%d]\n", ss);
+    fmt_dump("  Failed NCryptOpenStorageProvider [%lx]\n", ss);
     return ss;
   }
-  ss = NCryptImportKey(context->hProv, 0, BCRYPT_ECCPRIVATE_BLOB, NULL, &key,
+  
+  ss = NCryptImportKey(context->hProv, 0, BCRYPT_ECCPRIVATE_BLOB,
+		       NULL, &context->privateKey,
 		       (BYTE*)pKeyBlob, keyBlobSize,
-		       NCRYPT_OVERWRITE_KEY_FLAG);
+		       NCRYPT_OVERWRITE_KEY_FLAG | NCRYPT_SILENT_FLAG);
   if (ss != ERROR_SUCCESS) {
-    fmt_dump("  Failed NCryptImportKey [%d]\n", ss);
+    fmt_dump("  Failed NCryptImportKey [%lx]\n", ss);
     return GetLastError();
   }
-  NCryptFreeObject(key);
-  if (NCryptFreeObject(context->hProv) == ERROR_SUCCESS) {
-    context->hProv = 0;
-  }
-  
-  provInfo.pwszContainerName = containerName;
-  provInfo.pwszProvName = MS_KEY_STORAGE_PROVIDER;
-  provInfo.dwProvType = 0;
-  provInfo.dwFlags = 0;
-  provInfo.cProvParam = 0;
-  provInfo.rgProvParam = NULL;
-  provInfo.dwKeySpec = 0;
-  
-  if (!CertSetCertificateContextProperty(ctx, CERT_KEY_PROV_INFO_PROP_ID, 0,
-					 (const void *)&provInfo)) {
-    fmt_dump("  Failed CertSetCertificateContextProperty [%d]\n", ss);
-    return GetLastError();
-  }
-  
+
   keyCtx.cbSize = sizeof(CERT_KEY_CONTEXT);
-  keyCtx.hCryptProv = context->hProv;
-  keyCtx.dwKeySpec = AT_KEYEXCHANGE;
+  keyCtx.hNCryptKey = context->privateKey;
+  keyCtx.dwKeySpec = CERT_NCRYPT_KEY_SPEC;
   if (!CertSetCertificateContextProperty(ctx, CERT_KEY_CONTEXT_PROP_ID, 0,
-					 (const void *)&keyCtx)) {
+  					 (const void *)&keyCtx)) {
+    fmt_dump("  Failed CertSetCertificateContextProperty[keyCtx] [%lx]\n",
+	     GetLastError());
     return GetLastError();
   }
-  return S_OK;
+
+  DUMP_CERT_CONTEXT(ctx);
+  
+  return check_integrity(context);
 #else
   return E_NOINTERFACE;
 #endif
@@ -719,7 +734,6 @@ static DWORD add_private_key(WinTLSData *data,
 {
   WinTLSContext *context = data->tlsContext;
   if (privateKey && context->certificateCount > 0) {
-    KEY_TYPE keyType;
     DWORD keyBlobSize;
     LPBYTE keyBlob = decode_private_key(privateKey, &keyBlobSize,
 					&context->keyType);
@@ -732,6 +746,9 @@ static DWORD add_private_key(WinTLSData *data,
     } else if (context->keyType == ECC) {
       msg_dump("  Private key is ECC\n");
       return add_ecc_private_key(context, containerName, keyBlob);
+    } else if (context->keyType == PKCS8) {
+      msg_dump("  Private key is PKCS8\n");
+      return E_NOINTERFACE;	/* not yet ;) */
     }
     return GetLastError();
   }
