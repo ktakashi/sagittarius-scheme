@@ -123,8 +123,8 @@ static LPWSTR DH_KEY_PROVIDER = NULL;
 #endif
 
 /* enable them if you want to debug */
-#define DEBUG_DUMP
-#define DEBUG_TLS_HANDLES
+/* #define DEBUG_DUMP */
+/* #define DEBUG_TLS_HANDLES */
 
 #ifdef DEBUG_DUMP
 # define fmt_dump(fmt, ...) fprintf(stderr, fmt, __VA_ARGS__)
@@ -379,18 +379,13 @@ typedef struct WinTLSDataRec
   wchar_t *dn;
 } WinTLSData;
 
-/* #define IMPL_NAME UNISP_NAME_W */
-#ifdef USE_UCS4_CPP
-# define IMPL_NAME SCHANNEL_NAME_W
-#else
-static wchar_t *IMPL_NAME = NULL;
-#endif
+#define IMPL_NAME UNISP_NAME_W
+/* #define IMPL_NAME SCHANNEL_NAME_W */
 
 static void client_init(SgTLSSocket *r)
 {
   SECURITY_STATUS status;
   SCHANNEL_CRED credData = {0};
-  wchar_t *name = IMPL_NAME;
   WinTLSData *data = (WinTLSData *)r->data;
   WinTLSContext *context = data->tlsContext;
 
@@ -410,7 +405,7 @@ static void client_init(SgTLSSocket *r)
   credData.paCred = context->certificates;
 
   status = AcquireCredentialsHandleW(NULL,
-				     name,
+				     IMPL_NAME,
 				     SECPKG_CRED_OUTBOUND,
 				     NULL,
 				     &credData,
@@ -419,6 +414,7 @@ static void client_init(SgTLSSocket *r)
 				     &data->credential,
 				     NULL);
   if (status != S_OK) {
+    fmt_dump("Failed AcquireCredentialsHandleW [%lx]\n", status);
     FreeCredentialsHandle(&data->credential);
     raise_socket_error(SG_INTERN("socket->tls-socket"),
 		       Sg_GetLastErrorMessageWithErrorCode(status),
@@ -596,12 +592,14 @@ static LPBYTE decode_private_key(SgByteVector *privateKey,
 static DWORD check_integrity(WinTLSContext *context)
 {
   PCCERT_CONTEXT ctx = context->certificates[0];
-  HCRYPTKEY c;
+  HCRYPTPROV_OR_NCRYPT_KEY_HANDLE c;
   DWORD spec;
   BOOL callerFree;
   /* check */
-  if (!CryptAcquireCertificatePrivateKey(ctx, 0, NULL,
-					 &c, &spec, &callerFree)) {
+  if (!CryptAcquireCertificatePrivateKey(ctx,
+					 CRYPT_ACQUIRE_USE_PROV_INFO_FLAG |
+					 CRYPT_ACQUIRE_PREFER_NCRYPT_KEY_FLAG,
+					 NULL, &c, &spec, &callerFree)) {
     return GetLastError();
   }
   if (callerFree) {
@@ -671,7 +669,7 @@ static DWORD add_ecc_private_key(WinTLSContext *context,
   PCCERT_CONTEXT ctx = context->certificates[0];
   CRYPT_ECC_PRIVATE_KEY_INFO *pPrivKeyInfo =
     (CRYPT_ECC_PRIVATE_KEY_INFO *)keyBlob;
-  CRYPT_BIT_BLOB *pPubKeyBlob = &ctx->pCertInfo->SubjectPublicKeyInfo.PublicKey;
+  CRYPT_BIT_BLOB *pPubKeyBlob = &pPrivKeyInfo->PublicKey;
   DWORD pubSize = pPubKeyBlob->cbData - 1;
   DWORD privSize = pPrivKeyInfo->PrivateKey.cbData;
   DWORD keyBlobSize = sizeof(BCRYPT_ECCKEY_BLOB) + pubSize + privSize;
@@ -679,9 +677,13 @@ static DWORD add_ecc_private_key(WinTLSContext *context,
   BYTE *privKeyBuf = pPrivKeyInfo->PrivateKey.pbData;
   BCRYPT_ECCKEY_BLOB *pKeyBlob =
     SG_NEW_ATOMIC2(BCRYPT_ECCKEY_BLOB *, keyBlobSize);
-  CERT_KEY_CONTEXT keyCtx = {0};
+  /* CERT_KEY_CONTEXT keyCtx = {0}; */
+  CRYPT_KEY_PROV_INFO provInfo;
   wchar_t keyName[64] = {0};
 
+  NCryptBuffer ncBuf = {0};
+  NCryptBufferDesc ncBufDesc = {0};
+  
   fmt_dump("  ECC key version: %x, curve OID: %s\n",
 	   pPrivKeyInfo->dwVersion, pPrivKeyInfo->szCurveOid);
   
@@ -691,24 +693,54 @@ static DWORD add_ecc_private_key(WinTLSContext *context,
       ? BCRYPT_ECDSA_PRIVATE_P384_MAGIC
       : BCRYPT_ECDSA_PRIVATE_P521_MAGIC;
   pKeyBlob->cbKey = privSize;
-  memcpy((BYTE *)(pKeyBlob + 1), pubKeyBuf, pubSize);
-  memcpy((BYTE *)(pKeyBlob + 1) + pubSize, privKeyBuf, privSize);
+  /* Format of the BLOB */
+  /* https://docs.microsoft.com/en-us/windows/win32/api/bcrypt/ns-bcrypt-bcrypt_ecckey_blob */
+#define offset(blob) ((blob) + 1)
+  memcpy((BYTE *)offset(pKeyBlob), pubKeyBuf, pubSize);
+  memcpy((BYTE *)offset(pKeyBlob) + pubSize, privKeyBuf, privSize);
   
   ss = NCryptOpenStorageProvider(&context->hProv, MS_KEY_STORAGE_PROVIDER, 0);
   if (ss != ERROR_SUCCESS) {
     fmt_dump("  Failed NCryptOpenStorageProvider [%lx]\n", ss);
     return ss;
   }
+
+  swprintf(keyName, sizeof(keyName), L"%lx", pPrivKeyInfo);
+
+  /* import with key name */
+  ncBuf.cbBuffer = wcslen(keyName) * sizeof(wchar_t);
+  ncBuf.BufferType = NCRYPTBUFFER_PKCS_KEY_NAME;
+  ncBuf.pvBuffer = keyName;
+  ncBufDesc.ulVersion = 0;
+  ncBufDesc.cBuffers = 1;
+  ncBufDesc.pBuffers = &ncBuf;
   
   ss = NCryptImportKey(context->hProv, 0, BCRYPT_ECCPRIVATE_BLOB,
-		       NULL, &context->privateKey,
-		       (BYTE*)pKeyBlob, keyBlobSize,
-		       NCRYPT_OVERWRITE_KEY_FLAG | NCRYPT_SILENT_FLAG);
+		       &ncBufDesc, &context->privateKey,
+		       (BYTE *)pKeyBlob, keyBlobSize,
+		       NCRYPT_OVERWRITE_KEY_FLAG);
   if (ss != ERROR_SUCCESS) {
     fmt_dump("  Failed NCryptImportKey [%lx]\n", ss);
+    return ss;
+  }
+  
+  provInfo.pwszContainerName = keyName;
+  provInfo.pwszProvName = MS_KEY_STORAGE_PROVIDER;
+  provInfo.dwProvType = 0;
+  provInfo.dwFlags = 0;
+  provInfo.dwKeySpec = 0;
+  provInfo.cProvParam = 0;
+
+  if (!CertSetCertificateContextProperty(ctx, CERT_KEY_PROV_INFO_PROP_ID, 0,
+					 (const void *)&provInfo)) {
     return GetLastError();
   }
 
+  if (!CertSetCertificateContextProperty(ctx, CERT_NCRYPT_KEY_HANDLE_PROP_ID, 0,
+					 (const void *)context->privateKey)) {
+    return GetLastError();
+  }
+  /*  
   keyCtx.cbSize = sizeof(CERT_KEY_CONTEXT);
   keyCtx.hNCryptKey = context->privateKey;
   keyCtx.dwKeySpec = CERT_NCRYPT_KEY_SPEC;
@@ -718,7 +750,7 @@ static DWORD add_ecc_private_key(WinTLSContext *context,
 	     GetLastError());
     return GetLastError();
   }
-
+  */
   DUMP_CERT_CONTEXT(ctx);
   
   return check_integrity(context);
@@ -1271,7 +1303,6 @@ static SgTLSSocket * to_server_socket(SgTLSSocket *parent, SgSocket *sock)
   SgTLSSocket *s = make_tls_socket(sock, pData->tlsContext);
   WinTLSData *data = (WinTLSData *)s->data;
   SCHANNEL_CRED credData = {0};
-  wchar_t *name = IMPL_NAME;
   SECURITY_STATUS ss;
 
   data->closed = FALSE;
@@ -1291,7 +1322,7 @@ static SgTLSSocket * to_server_socket(SgTLSSocket *parent, SgSocket *sock)
   /* credData.hRootStore = data->tlsContext->certStore; */
 
   ss = AcquireCredentialsHandleW(NULL,
-				 name,
+				 IMPL_NAME,
 				 SECPKG_CRED_INBOUND,
 				 NULL,
 				 &credData,
@@ -1737,12 +1768,10 @@ void Sg_InitTLSImplementation()
 		   ") SSL Client Socket Key Container");
   SgObject rsaProvName = SG_MAKE_STRING(MS_DEF_RSA_SCHANNEL_PROV_A);
   SgObject dhProvName = SG_MAKE_STRING(MS_DEF_DH_SCHANNEL_PROV_A);
-  SgObject implName = SG_MAKE_STRING(SCHANNEL_NAME_A);
   SERVER_KEY_CONTAINER_NAME = Sg_StringToWCharTs(serverKeyContainer);
   CLIENT_KEY_CONTAINER_NAME = Sg_StringToWCharTs(clientKeyContainer);
   RSA_KEY_PROVIDER = Sg_StringToWCharTs(rsaProvName);
   DH_KEY_PROVIDER = Sg_StringToWCharTs(rsaProvName);
-  IMPL_NAME = Sg_StringToWCharTs(implName);
 #endif
   fmt_dump("RSA Key provider: '%S'\n", RSA_KEY_PROVIDER);
   fmt_dump("DH Key provider: '%S'\n", DH_KEY_PROVIDER);
