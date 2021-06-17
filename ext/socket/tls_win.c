@@ -677,7 +677,6 @@ static DWORD add_ecc_private_key(WinTLSContext *context,
   BYTE *privKeyBuf = pPrivKeyInfo->PrivateKey.pbData;
   BCRYPT_ECCKEY_BLOB *pKeyBlob =
     SG_NEW_ATOMIC2(BCRYPT_ECCKEY_BLOB *, keyBlobSize);
-  /* CERT_KEY_CONTEXT keyCtx = {0}; */
   CRYPT_KEY_PROV_INFO provInfo;
   wchar_t keyName[64] = {0};
 
@@ -708,7 +707,11 @@ static DWORD add_ecc_private_key(WinTLSContext *context,
   swprintf(keyName, sizeof(keyName), L"%lx", pPrivKeyInfo);
 
   /* import with key name */
-  ncBuf.cbBuffer = wcslen(keyName) * sizeof(wchar_t);
+  /* https://stackoverflow.com/questions/12076096/ncryptopenkey
+     For some reason extra 2 is needed, no idea why.
+     Found out from the above.
+   */
+  ncBuf.cbBuffer = wcslen(keyName) * sizeof(wchar_t) + 2;
   ncBuf.BufferType = NCRYPTBUFFER_PKCS_KEY_NAME;
   ncBuf.pvBuffer = keyName;
   ncBufDesc.ulVersion = 0;
@@ -740,17 +743,7 @@ static DWORD add_ecc_private_key(WinTLSContext *context,
 					 (const void *)context->privateKey)) {
     return GetLastError();
   }
-  /*  
-  keyCtx.cbSize = sizeof(CERT_KEY_CONTEXT);
-  keyCtx.hNCryptKey = context->privateKey;
-  keyCtx.dwKeySpec = CERT_NCRYPT_KEY_SPEC;
-  if (!CertSetCertificateContextProperty(ctx, CERT_KEY_CONTEXT_PROP_ID, 0,
-  					 (const void *)&keyCtx)) {
-    fmt_dump("  Failed CertSetCertificateContextProperty[keyCtx] [%lx]\n",
-	     GetLastError());
-    return GetLastError();
-  }
-  */
+
   DUMP_CERT_CONTEXT(ctx);
   
   return check_integrity(context);
