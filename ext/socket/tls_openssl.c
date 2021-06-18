@@ -99,6 +99,9 @@
 /* should we disable SHA1 as well? */
 #define CIPHER_LIST "HIGH:!aNULL:!PSK:!SRP:!MD5:!RC4"
 
+/* will be initialised during the initialisation */
+static int callback_data_index;
+
 typedef int (*SSL_ALPN_FN)(SSL *, const unsigned char *, unsigned int);
 #ifndef HAVE_SSL_SET_ALPN_PROTOS
 static SSL_ALPN_FN SSL_set_alpn_protos_fn = NULL;
@@ -130,10 +133,14 @@ static SgTLSSocket* make_tls_socket(SgSocket *socket, SSL_CTX *ctx,
   r->peerCertificateVerifier = SG_UNDEF;
   r->authorities = SG_NIL;
   r->selectedALPN = SG_FALSE;
+  r->clientCertificateCallback = SG_FALSE;
   data->ctx = ctx;
   data->rootServerSocketP = rootServerSocketP;
   data->ssl = NULL;
   data->peerCertificate = SG_FALSE;
+  /* we set socket as data for convenience */
+  SSL_CTX_set_ex_data(data->ctx, callback_data_index, r);
+  
   Sg_RegisterFinalizer(r, tls_socket_finalizer, NULL);
   return r;
 }
@@ -497,9 +504,6 @@ SgObject Sg_TLSSocketPeerCertificate(SgTLSSocket *tlsSocket)
   return tlsData->peerCertificate;
 }
 
-/* will be initialised during the initialisation */
-static int callback_data_index;
-
 static int verify_callback(int previously_ok, X509_STORE_CTX *x509_store_ctx)
 {
   SgTLSSocket *socket;
@@ -569,8 +573,6 @@ void Sg_TLSSocketPeerCertificateVerifier(SgTLSSocket *tlsSocket)
   }
   /* we do only for context level */
   SSL_CTX_set_verify(tlsData->ctx, mode, verify_callback);
-  /* we set socket as data for convenience */
-  SSL_CTX_set_ex_data(tlsData->ctx, callback_data_index, tlsSocket);
 }
 
 int Sg_X509VerifyCertificate(SgObject bv)
@@ -581,6 +583,52 @@ int Sg_X509VerifyCertificate(SgObject bv)
   /* call X509_verify_cert */
   /* check the stored result  y calling X509_STORE_CTX_get_error */
   return TRUE;
+}
+
+
+int client_cert_callback(SSL *ssl, X509 **x509, EVP_PKEY **pkey)
+{
+  SSL_CTX *ctx = SSL_get_SSL_CTX(ssl);
+  SgTLSSocket *socket =
+    (SgTLSSocket *)SSL_CTX_get_ex_data(ctx, callback_data_index);
+
+  SG_UNWIND_PROTECT {
+    SgObject r = Sg_Apply1(socket->clientCertificateCallback, socket);
+    /* A list of (priv-key x509 ca-certs ...)*/
+    SgObject bvX509, priv;
+    EVP_PKEY *er;
+    X509 *xr;
+    int len = Sg_Length(r);
+    if (len < 2 || !SG_BVECTORP(SG_CAR(r)) || !SG_BVECTORP(SG_CADR(r))) {
+      return 0;
+    }
+    priv = SG_CAR(r);
+    bvX509 = SG_CADR(r);
+
+    er = d2i_AutoPrivateKey(pkey,
+			    (const unsigned char **)&SG_BVECTOR_ELEMENTS(priv),
+			    SG_BVECTOR_SIZE(priv));
+    xr = d2i_X509(x509, (const unsigned char **)&SG_BVECTOR_ELEMENTS(bvX509),
+		  SG_BVECTOR_SIZE(bvX509));
+    /* TODO use SSL_CTX_add_extra_chain_cert */
+  } SG_WHEN_ERROR {
+    /* we don't want to signal error here */
+    return 0;
+  }
+  SG_END_PROTECT;
+  return 1;
+}
+
+void Sg_TLSSocketSetClientCertificateCallback(SgTLSSocket *tlsSocket,
+					      SgObject callback)
+{
+  OpenSSLData *tlsData = (OpenSSLData *)tlsSocket->data;
+  tlsSocket->clientCertificateCallback = callback;
+  if (SG_FALSEP(callback)) {
+    SSL_CTX_set_client_cert_cb(tlsData->ctx, NULL);
+  } else {
+    SSL_CTX_set_client_cert_cb(tlsData->ctx, client_cert_callback);
+  }
 }
 
 #ifndef HAVE_SSL_SET_ALPN_PROTOS

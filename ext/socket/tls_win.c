@@ -123,7 +123,7 @@ static LPWSTR DH_KEY_PROVIDER = NULL;
 #endif
 
 /* enable them if you want to debug */
-/* #define DEBUG_DUMP */
+#define DEBUG_DUMP
 /* #define DEBUG_TLS_HANDLES */
 
 #ifdef DEBUG_DUMP
@@ -487,6 +487,7 @@ static SgTLSSocket * make_tls_socket(SgSocket *socket, WinTLSContext *ctx)
   r->peerCertificateRequiredP = FALSE;
   r->peerCertificateVerifier = SG_FALSE;
   r->selectedALPN = SG_FALSE;
+  r->clientCertificateCallback = SG_FALSE;
   data->tlsContext = context;
   if (!ctx) {
     context->certificateCount = 0;
@@ -1727,6 +1728,13 @@ void Sg_TLSSocketPeerCertificateVerifier(SgTLSSocket *tlsSocket)
   /*   load_authorities(tlsSocket); */
   /* } */
 }
+
+void Sg_TLSSocketSetClientCertificateCallback(SgTLSSocket *tlsSocket,
+					      SgObject callback)
+{
+  tlsSocket->clientCertificateCallback = callback;
+}
+
 
 int Sg_X509VerifyCertificate(SgObject bv)
 {

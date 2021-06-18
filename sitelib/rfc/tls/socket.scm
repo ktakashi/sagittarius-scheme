@@ -1,20 +1,20 @@
 ;;; -*- Scheme -*-
 ;;;
 ;;; rfc/tls/socket.scm - TLS 1.0 - 1.2 protocol library.
-;;;  
+;;;
 ;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
-;;;   
+;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
 ;;;   are met:
-;;;   
+;;;
 ;;;   1. Redistributions of source code must retain the above copyright
 ;;;      notice, this list of conditions and the following disclaimer.
-;;;  
+;;;
 ;;;   2. Redistributions in binary form must reproduce the above copyright
 ;;;      notice, this list of conditions and the following disclaimer in the
 ;;;      documentation and/or other materials provided with the distribution.
-;;;  
+;;;
 ;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 ;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 ;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -26,7 +26,7 @@
 ;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-;;;  
+;;;
 
 ;; Caution this library is not well tested and not well secure yet.
 #!nounbound
@@ -54,7 +54,8 @@
 	    tls-socket-nonblocking!
 	    tls-socket-blocking!
 	    tls-socket-set-read-timeout!
-	    nonblocking-tls-socket?	    
+	    nonblocking-tls-socket?
+	    tls-socket-client-certificate-callback-set!
 
 	    ;; for the user who wants to specify TSL version
 	    *tls-version-1.2*
@@ -99,7 +100,9 @@
 	    (rename (sagittarius tls-socket)
 		    (socket->tls-socket tls:socket->tls-socket)
 		    (tls-server-socket-handshake tls-server-handshake)
-		    (tls-socket-peer-certificate %tls-socket-peer-certificate))
+		    (tls-socket-peer-certificate %tls-socket-peer-certificate)
+		    (tls-socket-client-certificate-callback-set!
+		     tls:tls-socket-client-certificate-callback-set!))
 	    (sagittarius socket)
 	    (prefix (only (sagittarius socket)
 			  socket-read-select
@@ -158,7 +161,7 @@
 
   (define 1year (make-time time-duration 0 (* 1 60 60 24 365)))
   (define (socket->tls-socket socket
-			      :key (client-socket #t) 
+			      :key (client-socket #t)
 				   (handshake #t)
 				   (hello-extensions '())
 				   (certificates '())
@@ -236,7 +239,15 @@
   (define (tls-socket-peer-certificate socket)
     (let ((bv (%tls-socket-peer-certificate socket)))
       (and bv (make-x509-certificate bv))))
-  
+
+  (define (tls-socket-client-certificate-callback-set! socket callback)
+    (tls:tls-socket-client-certificate-callback-set! socket
+     (lambda (socket)
+       (let ((r (callback socket)))
+	 (cons (export-private-key (car r))
+	       (map x509-certificate->bytevector (cdr r)))))))
+
+
   (define (call-with-tls-socket socket proc)
     (let-values ((args (proc socket)))
       (tls-socket-close socket)
@@ -251,9 +262,9 @@
   (define (tls-socket-info-values socket :key (type 'peer))
     (socket-info-values (~ socket 'raw-socket) :type type))
 
-  (define (tls-socket-nonblocking! socket) 
+  (define (tls-socket-nonblocking! socket)
     (socket-nonblocking! (~ socket 'raw-socket)))
-  (define (tls-socket-blocking! socket) 
+  (define (tls-socket-blocking! socket)
     (socket-blocking! (~ socket 'raw-socket)))
   (define (nonblocking-tls-socket? socket)
     (nonblocking-socket? (~ socket 'raw-socket)))
@@ -300,7 +311,7 @@
     (nonblocking-tls-socket? o))
   (define-method socket-set-read-timeout! ((o <tls-socket>) timeout)
     (tls-socket-set-read-timeout! o timeout))
-  
+
   (define (select-sockets selector timeout sockets)
     (define mapping (make-eq-hashtable))
     (for-each (lambda (s)

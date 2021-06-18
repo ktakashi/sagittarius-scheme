@@ -49,6 +49,7 @@
 	    
 	    tls-socket-options-handshake tls-socket-options-certificates
 	    tls-socket-options-private-key tls-socket-options-hello-extensions
+	    tls-socket-options-client-certificate-provider
 	    tls-socket-options-certificate-verifier
 
 	    server-tls-socket-options? make-server-tls-socket-options
@@ -289,6 +290,7 @@
 	  certificates
 	  private-key
 	  certificate-verifier
+	  client-certificate-provider
 	  sni*				; list of sni
 	  alpn*				; list of alpn
 	  hello-extensions))
@@ -330,28 +332,41 @@
     (if (null? v*)
 	v*
 	(list (ctr v*))))
+  (define (maybe-handshake? socket provider? extension)
+    (if provider?
+	(begin
+	  (tls-socket-client-certificate-callback-set! socket provider?)
+	  (tls-client-handshake socket :hello-extensions extension))
+	socket))
   (let ((s (make-client-socket server service
 			       (socket-options-builder
 				(from options)
 				(read-timeout #f)
-				(non-blocking? #f)))))
-    (setup-socket
-     (socket->tls-socket
-      s
-      :certificates (get-option tls-socket-options-certificates '())
-      :private-key (get-option tls-socket-options-private-key #f)
-      :handshake (get-option tls-socket-options-handshake #t)
-      :client-socket #t
-      :hello-extensions `(,@extensions
-			  ,@(make-extension
-			     make-server-name-indication sni*)
-			  ,@(make-extension
-			     make-protocol-name-list alpn*))
-      :peer-certificate-required? #t
-      :certificate-verifier
-        ;; default #f to allow self signed certificate
-        (get-option tls-socket-options-certificate-verifier #f))
-     options)))
+				(non-blocking? #f))))
+	;; if provider is here, we don't do handshake yet
+	(provider
+	 (get-option tls-socket-options-client-certificate-provider #f))
+	(hello-extension  `(,@extensions
+			    ,@(make-extension
+			       make-server-name-indication sni*)
+			    ,@(make-extension
+			       make-protocol-name-list alpn*))))
+    (maybe-handshake? 
+     (setup-socket
+      (socket->tls-socket
+       s
+       :certificates (get-option tls-socket-options-certificates '())
+       :private-key (get-option tls-socket-options-private-key #f)
+       :handshake (get-option tls-socket-options-handshake #t)
+       :client-socket #t
+       :hello-extensions hello-extension
+       :peer-certificate-required? #t
+       :handshake (not provider)
+       :certificate-verifier
+         ;; default #f to allow self signed certificate
+         (get-option tls-socket-options-certificate-verifier #f))
+      options)
+     provider hello-extension)))
 
 (define (make-server-tls-socket port options)
   (define certificates (tls-socket-options-certificates options))

@@ -44,6 +44,7 @@
 	    tls-socket-selected-alpn
 	    tls-socket-authorities
 	    tls-socket-authorities-set!
+	    tls-socket-client-certificate-callback-set!
 	    <tls-socket>)
     (import (core)
 	    (core errors)

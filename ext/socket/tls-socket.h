@@ -40,6 +40,7 @@ typedef struct SgTLSSocketRec
   int peerCertificateRequiredP;
   SgObject peerCertificateVerifier;
   SgObject selectedALPN;
+  SgObject clientCertificateCallback;
 } SgTLSSocket;
 
 SG_CLASS_DECL(Sg_TLSSocketClass);
@@ -77,6 +78,8 @@ SG_EXTERN void      Sg_InitTLSImplementation();
 
 SG_EXTERN SgObject  Sg_TLSSocketPeerCertificate(SgTLSSocket *tlsSocket);
 SG_EXTERN void      Sg_TLSSocketPeerCertificateVerifier(SgTLSSocket *tlsSocket);
+
+SG_EXTERN void      Sg_TLSSocketSetClientCertificateCallback(SgTLSSocket *tlsSocket, SgObject callback);
 
 /* TODO we may want to extract this to ext/x509 */
 SG_EXTERN int Sg_X509VerifyCertificate(SgObject bv);

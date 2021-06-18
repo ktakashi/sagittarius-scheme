@@ -85,6 +85,14 @@
 (define-c-proc tls-socket-selected-alpn  (o::<tls-socket>)
   (result (-> o selectedALPN)))
 
+(define-c-proc tls-socket-client-certificate-callback-set!
+  (o::<tls-socket> callback) ::<void>
+  (unless (or (SG_FALSEP callback) (SG_PROCEDUREP callback))
+    (Sg_AssertionViolation 'tls-socket-client-certificate-callback-set!
+      (SG_MAKE_STRING "Procedure or #f is required")
+      callback))
+  (Sg_TLSSocketSetClientCertificateCallback o callback))
+
 (define-c-proc tls-socket-authorities-set! (o::<tls-socket> certs) ::<void>
   (unless (or (SG_PAIRP certs) (SG_NULLP certs))
     (Sg_AssertionViolation 'tls-socket-authorities-set!
