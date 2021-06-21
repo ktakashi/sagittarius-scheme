@@ -123,7 +123,7 @@ static LPWSTR DH_KEY_PROVIDER = NULL;
 #endif
 
 /* enable them if you want to debug */
-#define DEBUG_DUMP
+/* #define DEBUG_DUMP */
 /* #define DEBUG_TLS_HANDLES */
 
 #ifdef DEBUG_DUMP
@@ -827,7 +827,7 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
   case SG_SOCKET_CLIENT:
     result = add_private_key(data, privateKey, CLIENT_KEY_CONTAINER_NAME);
     fmt_dump("Client private key loading process is done -- %x\n", result);
-    client_init(r);
+    /* client_init(r); */
     break;
   case SG_SOCKET_SERVER:
     result = add_private_key(data, privateKey, SERVER_KEY_CONTAINER_NAME);
@@ -1180,6 +1180,28 @@ typedef union {
     }									\
   } while(0)
 
+static int try_load_client_certificate(SgTLSSocket *tlsSocket)
+{
+  SgObject callback = tlsSocket->clientCertificateCallback;
+  if (SG_PROCEDUREP(callback)) {
+    SgObject r = Sg_Apply1(callback, socket);
+    int len = Sg_Length(r);
+    WinTLSData *data = (WinTLSData *)tlsSocket->data;
+    DWORD result;
+    if (len < 2 || !SG_BVECTORP(SG_CAR(r)) || !SG_BVECTORP(SG_CADR(r))) {
+      return FALSE;
+    }
+    load_certificates(data, SG_CDR(r));
+    result = add_private_key(data, SG_BVECTOR(SG_CAR(r)),
+			     CLIENT_KEY_CONTAINER_NAME);
+    /* if (SEC_E_OK == result) { */
+    /*   client_init(tlsSocket); */
+    /* } */
+    return SEC_E_OK == result;
+  }
+  return FALSE;
+}
+
 static int client_handshake1(SgTLSSocket *tlsSocket, wchar_t *dn,
 			     int readInitialP)
 {
@@ -1287,7 +1309,15 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
 			SgObject domainName,
 			SgObject alpn)
 {
-  wchar_t *dn = client_handshake0(tlsSocket, domainName, alpn);
+  wchar_t *dn;
+  /* 
+     On Windows, there's no way to add client certifucate after 
+     acquiring a credential. So do it here. 
+     This means, the callback is *always* called if set on Windows.
+  */
+  try_load_client_certificate(tlsSocket);
+  client_init(tlsSocket);
+  dn = client_handshake0(tlsSocket, domainName, alpn);
   return client_handshake1(tlsSocket, dn, TRUE);
 }
 
