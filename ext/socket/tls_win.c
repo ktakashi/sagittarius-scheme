@@ -827,7 +827,6 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
   case SG_SOCKET_CLIENT:
     result = add_private_key(data, privateKey, CLIENT_KEY_CONTAINER_NAME);
     fmt_dump("Client private key loading process is done -- %x\n", result);
-    /* client_init(r); */
     break;
   case SG_SOCKET_SERVER:
     result = add_private_key(data, privateKey, SERVER_KEY_CONTAINER_NAME);
@@ -1184,7 +1183,7 @@ static int try_load_client_certificate(SgTLSSocket *tlsSocket)
 {
   SgObject callback = tlsSocket->clientCertificateCallback;
   if (SG_PROCEDUREP(callback)) {
-    SgObject r = Sg_Apply1(callback, socket);
+    SgObject r = Sg_Apply1(callback, tlsSocket);
     int len = Sg_Length(r);
     WinTLSData *data = (WinTLSData *)tlsSocket->data;
     DWORD result;
@@ -1194,9 +1193,6 @@ static int try_load_client_certificate(SgTLSSocket *tlsSocket)
     load_certificates(data, SG_CDR(r));
     result = add_private_key(data, SG_BVECTOR(SG_CAR(r)),
 			     CLIENT_KEY_CONTAINER_NAME);
-    /* if (SEC_E_OK == result) { */
-    /*   client_init(tlsSocket); */
-    /* } */
     return SEC_E_OK == result;
   }
   return FALSE;

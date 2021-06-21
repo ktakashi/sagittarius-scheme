@@ -591,31 +591,25 @@ int client_cert_callback(SSL *ssl, X509 **x509, EVP_PKEY **pkey)
   SSL_CTX *ctx = SSL_get_SSL_CTX(ssl);
   SgTLSSocket *socket =
     (SgTLSSocket *)SSL_CTX_get_ex_data(ctx, callback_data_index);
-
-  SG_UNWIND_PROTECT {
-    SgObject r = Sg_Apply1(socket->clientCertificateCallback, socket);
-    /* A list of (priv-key x509 ca-certs ...)*/
-    SgObject bvX509, priv;
-    EVP_PKEY *er;
-    X509 *xr;
-    int len = Sg_Length(r);
-    if (len < 2 || !SG_BVECTORP(SG_CAR(r)) || !SG_BVECTORP(SG_CADR(r))) {
-      return 0;
-    }
-    priv = SG_CAR(r);
-    bvX509 = SG_CADR(r);
-
-    er = d2i_AutoPrivateKey(pkey,
-			    (const unsigned char **)&SG_BVECTOR_ELEMENTS(priv),
-			    SG_BVECTOR_SIZE(priv));
-    xr = d2i_X509(x509, (const unsigned char **)&SG_BVECTOR_ELEMENTS(bvX509),
-		  SG_BVECTOR_SIZE(bvX509));
-    /* TODO use SSL_CTX_add_extra_chain_cert */
-  } SG_WHEN_ERROR {
-    /* we don't want to signal error here */
+  SgObject r = Sg_Apply1(socket->clientCertificateCallback, socket);
+  /* A list of (priv-key x509 ca-certs ...)*/
+  SgObject bvX509, priv;
+  EVP_PKEY *er;
+  X509 *xr;
+  int len = Sg_Length(r);
+  if (len < 2 || !SG_BVECTORP(SG_CAR(r)) || !SG_BVECTORP(SG_CADR(r))) {
     return 0;
   }
-  SG_END_PROTECT;
+  priv = SG_CAR(r);
+  bvX509 = SG_CADR(r);
+  
+  er = d2i_AutoPrivateKey(pkey,
+			  (const unsigned char **)&SG_BVECTOR_ELEMENTS(priv),
+			  SG_BVECTOR_SIZE(priv));
+  xr = d2i_X509(x509, (const unsigned char **)&SG_BVECTOR_ELEMENTS(bvX509),
+		SG_BVECTOR_SIZE(bvX509));
+  if (!er || !xr) return 0;
+  /* TODO use SSL_CTX_add_extra_chain_cert */
   return 1;
 }
 
