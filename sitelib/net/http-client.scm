@@ -60,6 +60,12 @@
 	    http-connection-pooling-config-builder
 	    build-http-pooling-connection-manager
 
+	    list->key-manager make-key-manager key-manager
+	    key-manager? 
+	    key-provider? <key-provider>
+	    make-keystore-key-provider keystore-key-provider?
+	    keystore-key-proider-add-key-retriever!
+	    
 	    http:client-shutdown!
 	    http:client-send
 	    http:client-send-async)
@@ -67,6 +73,7 @@
 	    (net http-client request)
 	    (net http-client connection)
 	    (net http-client connection-manager)
+	    (net http-client key-manager)
 	    (net http-client http1)
 	    (net http-client http2)
 	    (record builder)
@@ -91,7 +98,8 @@
 	  read-timeout
 	  follow-redirects
 	  cookie-handler
-	  connection-manager ;; reserved...
+	  connection-manager
+	  key-manager
 	  version
 	  executor
 	  ))
@@ -272,9 +280,12 @@
       (if (eq? (http:client-version client) 'http/2)
 	  '("h2")
 	  '()))
+    (define km (http:client-key-manager client))
     (if (string=? scheme "https")
 	(tls-socket-options (connection-timeout connection-timeout)
 			    (read-timeout read-timeout)
+			    (client-certificate-provider
+			     (and km (key-manager->certificate-callback km)))
 			    (sni* (list host))
 			    (alpn* alpn))
 	(socket-options (connection-timeout connection-timeout)
