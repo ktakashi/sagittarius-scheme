@@ -146,7 +146,8 @@
 
 (let* ((ks (make-pkcs12-keystore))
        (keypair (generate-key-pair RSA))
-       (keypair2 (generate-key-pair RSA)))
+       (keypair2 (generate-key-pair RSA))
+       #;(keypair3 (generate-key-pair ECDSA)))
   (define cert (make-x509-basic-certificate keypair 0
 		 (make-x509-issuer 
 		  '((C . "foo")
@@ -162,6 +163,14 @@
 		  (make-validity (current-date)
 				 (current-date))
 		  (make-x509-issuer '((DN . "buzz2")))))
+  
+  #;(define cert3 (make-x509-basic-certificate keypair3 0
+		  (make-x509-issuer 
+		   '((C . "foo-ec")
+		     (O . "bar-ec")))
+		  (make-validity (current-date)
+				 (current-date))
+		  (make-x509-issuer '((DN . "buzz")))))
   (test-assert "store key"
 	       (pkcs12-keystore-set-key! ks "key" 
 					 (keypair-private keypair)
@@ -181,6 +190,12 @@
   (test-assert "chain" 
 	       (not (null? (pkcs12-keystore-get-certificate-chain ks "cert"))))
 
+  #;(test-assert "store key (ec)"
+	       (pkcs12-keystore-set-key! ks "eckey"
+					 (keypair-private keypair3)
+					 "test-ec"
+					 (list cert3)))
+  
   (let ((file "test.p12"))
     (when (file-exists? file) (delete-file file))
     ;; test storing, we can put different password now
@@ -188,6 +203,8 @@
     (let ((ks (load-pkcs12-keystore-file file "test3")))
       (test-assert "pkcs12-keystore-get-key"
 		   (private-key? (pkcs12-keystore-get-key ks "key" "test3")))
+      #;(test-assert "pkcs12-keystore-get-key"
+		   (private-key? (pkcs12-keystore-get-key ks "eckey" "test-ec")))
       (test-assert "pkcs12-keystore-get-certificate"
 		   (x509-certificate?
 		    (pkcs12-keystore-get-certificate ks "cert"))))

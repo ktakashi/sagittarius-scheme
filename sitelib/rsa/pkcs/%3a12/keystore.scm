@@ -639,14 +639,7 @@
 
   ;; this is also used on cert-id
   (define (create-subject-key-id pubkey)
-    (let ((info (make-subject-public-key-info
-		 (make-der-sequence
-		  (make-algorithm-identifier
-		   *rsa-private-key-oid*
-		   (make-der-null))
-		  (read-asn.1-object 
-		   (open-bytevector-input-port
-		    (export-public-key pubkey)))))))
+    (let ((info (make-subject-public-key-info pubkey)))
       (make-subject-key-identifier
        (hash SHA-1 (encode (subject-public-key-info-key-data info))))))
   (define (store-pkcs12-keystore keystore out password)
@@ -876,10 +869,7 @@
 	     (pbe-cipher (cipher alg-name k :parameter param)))
 	(encrypt pbe-cipher key-bv)))
     (define (make-encrypted-key-content key)
-      (encode
-       (make-private-key-info 
-	(make-algorithm-identifier *rsa-private-key-oid* (make-der-null))
-	key)))
+      (encode (make-private-key-info key)))
     (define (->epki key password)
       (let* ((salt (read-random-bytes prng salt-size))
 	     (param (make-pkcs12-pbe-params salt min-iteration))

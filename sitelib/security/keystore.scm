@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!nounbound
 (library (security keystore)
     (export load-keystore load-keystore-file make-keystore
 	    <keystore> keystore?

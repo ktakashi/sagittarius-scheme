@@ -73,6 +73,16 @@
 				  id
 				  (make-algorithm-identifier id))
 	:key-data (asn.1-sequence-get s 1))))
+  (define-method make-subject-public-key-info ((pk <rsa-public-key>))
+    (make-subject-public-key-info
+     (make-der-sequence
+      (make-algorithm-identifier "1.2.840.113549.1.1.1" (make-der-null))
+      (read-asn.1-object (open-bytevector-input-port (export-public-key pk))))))
+  (define-method make-subject-public-key-info ((pk <ecdsa-public-key>))
+    (make-subject-public-key-info
+     (make-der-sequence
+      (make-algorithm-identifier "1.2.840.10045.2.1" (make-der-null))
+      (read-asn.1-object (open-bytevector-input-port (export-public-key pk))))))
   (define-method asn.1-encodable->asn.1-object ((o <subject-public-key-info>))
     (make-der-sequence
      (asn.1-encodable->asn.1-object (slot-ref o 'algorithm-identifier))

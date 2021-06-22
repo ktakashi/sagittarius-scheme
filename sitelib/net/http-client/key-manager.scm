@@ -57,7 +57,8 @@
   (define providers (key-manager-key-providers key-manager))
   (define key-retrievers
     (append-map list-queue-list (map key-provider-key-retrievers providers)))
-  (lambda (socket) (exists (lambda (r) (r socket)) key-retrievers)))
+  (lambda (socket)
+    (exists (lambda (r) (r socket)) key-retrievers)))
 
 (define-record-type key-provider
   (fields key-retrievers)
