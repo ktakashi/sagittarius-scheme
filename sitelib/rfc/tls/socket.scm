@@ -244,8 +244,10 @@
     (tls:tls-socket-client-certificate-callback-set! socket
      (lambda (socket)
        (let ((r (callback socket)))
-	 (cons (export-private-key (car r))
-	       (map x509-certificate->bytevector (cdr r)))))))
+	 (and (pair? r) (private-key? (car r))
+	      (pair? (cdr r)) (for-all x509-certificate? (cdr r))
+	      (cons (export-private-key (car r))
+		    (map x509-certificate->bytevector (cdr r))))))))
 
 
   (define (call-with-tls-socket socket proc)

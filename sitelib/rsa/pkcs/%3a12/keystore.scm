@@ -2,7 +2,7 @@
 ;;;
 ;;; pkcs 12 keystore.scm - PKCS#12 library.
 ;;;  
-;;;   Copyright (c) 2010-2012  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2021  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -29,7 +29,7 @@
 ;;;  
 
 ;; only the part I want, for now
-
+#!nounbound
 (library (rsa pkcs :12 keystore)
     (export <pkcs12-keystore> pkcs12-keystore? make-pkcs12-keystore
 	    load-pkcs12-keystore-file load-pkcs12-keystore
@@ -383,8 +383,6 @@
     (unwrap-key (slot-ref epki 'id) (slot-ref epki 'data) password))
   
   (define (pkcs12-keystore-get-key keystore name password)
-    
-
     (let ((keys (slot-ref keystore 'keys)))
       (cond ((hashtable-ref keys name #f)
 	     => (lambda (pki)
@@ -401,11 +399,10 @@
     (let ((certs (slot-ref keystore 'certs)))
       (cond ((hashtable-ref certs name #f))
 	    (else 
-	     (let ((key-certs (slot-ref keystore 'key-certs))
-		   (id (cond ((hashtable-ref 
-			       (local-ids (slot-ref keystore 'local-ids))
-			       name #f))
-			     (else name))))
+	     (let* ((key-certs (slot-ref keystore 'key-certs))
+		    (local-ids (slot-ref keystore 'local-ids))
+		    (id (cond ((hashtable-ref local-ids name #f))
+			      (else name))))
 	       (hashtable-ref key-certs id #f))))))
 
   (define (pkcs12-keystore-contains-alias? keystore name)
@@ -496,29 +493,29 @@
 	  (values #f #f)))
     (define (process-shrouded-key-bag b keystore unwrap?)
       (let ((private-key (if unwrap?
-			     (let ((e-in (make-encrypted-private-key-info 
-					  (slot-ref b 'value))))
-			       ;; just return this
-			       e-in)
+			     ;; just return this
+			     (make-encrypted-private-key-info
+			      (slot-ref b 'value))
 			     ;; just return this
 			     (make-private-key-info (slot-ref b 'value)))))
-	 (let-values (((local-id alias)
-		       (process-attributes private-key keystore
-			 (slot-ref b 'attributes)
-			 (lambda (alias)
-			   (hashtable-set! (slot-ref keystore 'keys) alias
-					   private-key)))))
-	   (if local-id
-	       (let ((name (format "~X" (bytevector->integer
-					 (slot-ref local-id 'string)))))
-		 (if alias
-		     (hashtable-set! (slot-ref keystore 'local-ids)
-				     alias 
-				     name)
-		     (hashtable-set! (slot-ref keystore 'keys) name
-				     private-key)))
-	       (hashtable-set! (slot-ref keystore 'keys) "unmarkded"
-			       private-key)))))
+	(let-values (((local-id alias)
+		      (process-attributes private-key keystore
+			(slot-ref b 'attributes)
+			(lambda (alias)
+			  (hashtable-set! (slot-ref keystore 'keys) alias
+					  private-key)))))
+	  (display local-id) (newline)
+	  (if local-id
+	      (let ((name (format "~X" (bytevector->integer
+					(slot-ref local-id 'string)))))
+		(if alias
+		    (hashtable-set! (slot-ref keystore 'local-ids)
+				    alias 
+				    name)
+		    (hashtable-set! (slot-ref keystore 'keys) name
+				    private-key)))
+	      (hashtable-set! (slot-ref keystore 'keys) "unmarkded"
+			      private-key)))))
 
     (define (process-data c keystore)
       (let* ((obj (read-asn.1-object 
@@ -583,7 +580,7 @@
 				 (append! chain 
 					  (process-encrypted-data c keystore)
 					  )))
-			  (else 
+			  (else
 			   ;; FIXME what should we do?
 			   (extra-data-handler c)
 			   (loop (+ i 1) chain)))))))
