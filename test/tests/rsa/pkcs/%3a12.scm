@@ -148,21 +148,22 @@
        (keypair (generate-key-pair RSA))
        (keypair2 (generate-key-pair RSA))
        (keypair3 (generate-key-pair ECDSA)))
-  (define cert (make-x509-basic-certificate keypair 0
-		 (make-x509-issuer 
-		  '((C . "foo")
-		    (O . "bar")))
-		 (make-validity (current-date)
-				(current-date))
-		 (make-x509-issuer '((DN . "buzz")))))
-  ;; chain certs
+    ;; chain certs
   (define cert2 (make-x509-basic-certificate keypair2 0
-		  (make-x509-issuer 
-		   '((C . "foo2")
-		     (O . "bar2")))
+		  (make-x509-issuer '((DN . "buzz2")))
 		  (make-validity (current-date)
 				 (current-date))
-		  (make-x509-issuer '((DN . "buzz2")))))
+		  (make-x509-issuer 
+		   '((C . "foo2")
+		     (O . "bar2")))))
+  (define cert (make-x509-simple-certificate
+		(keypair-public keypair) 0
+		(make-x509-issuer 
+		 '((C . "foo")
+		   (O . "bar")))
+		(make-validity (current-date)
+			       (current-date))
+		cert2 (keypair-private keypair2)))
   
   (define cert3 (make-x509-basic-certificate keypair3 0
 		  (make-x509-issuer 
@@ -171,16 +172,21 @@
 		  (make-validity (current-date)
 				 (current-date))
 		  (make-x509-issuer '((DN . "buzz")))))
+  (test-assert "verify issuer"
+   (x509:verify-certificate cert (x509-certificate-get-public-key cert2)))
+
   (test-assert "store key"
 	       (pkcs12-keystore-set-key! ks "key" 
 					 (keypair-private keypair)
 					 "test3"
 					 (list cert cert2)
 					 ))
+  
+  (test-equal "cert chain" (list cert cert2)
+	      (pkcs12-keystore-get-certificate-chain ks "key"))
   (test-error "store key without cert" condition?
 	      (pkcs12-keystore-set-key! ks "key" (keypair-private keypair)
 					"test3" '()))
-  
   (test-assert "store cert"
 	       (pkcs12-keystore-set-certificate! ks "cert" cert))
 
@@ -209,7 +215,7 @@
       (test-assert "pkcs12-keystore-get-certificate"
 		   (x509-certificate?
 		    (pkcs12-keystore-get-certificate ks "cert"))))
-    (delete-file file)
+    ;;(delete-file file)
     )
 
   )

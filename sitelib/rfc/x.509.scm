@@ -52,7 +52,11 @@
 	    ;; certificate generation
 	    make-x509-issuer
 	    make-validity
-	    make-x509-basic-certificate
+	    make-x509-simple-certificate
+	    make-x509-self-signed-certificate
+	    ;; for backward compatibility
+	    (rename (make-x509-self-signed-certificate
+		     make-x509-basic-certificate))
 
 	    ;; etc
 	    <subject-key-identifier>
@@ -95,6 +99,8 @@
     ;; unfortunately ASN.1 serise aren't implemented with object-equal?
     ;; so we need to compare encoded bytevector
     (bytevector=? (encode (~ a 'values)) (encode (~ b 'values))))
+  (define-method asn.1-encodable->asn.1-object ((o <rdn>))
+    (slot-ref o 'values))
 
   (define *default-symbols*
     `((,(make-der-object-identifier "2.5.4.6") . C)
@@ -123,7 +129,8 @@
 	(vector-set! rdns i (make-rdn (asn.1-sequence-get s i))))
       (make <x500-name> :rdns rdns)))
   (define-method asn.1-encodable->asn.1-object ((o <x500-name>))
-    (apply make-der-sequence (vector->list (~ o 'rdns))))
+    (apply make-der-sequence
+	   (map asn.1-encodable->asn.1-object (vector->list (~ o 'rdns)))))
   (define-method write-object ((o <x500-name>) p)
     (define (print-type-and-value p out)
       (let ((type (car p))
@@ -594,8 +601,8 @@ Section 4.1
   (define +sha256-with-ecsa-encryption+
     (make-algorithm-identifier "1.2.840.10045.4.3.2"))
 
-  (define (make-x509-basic-certificate keypair serial-number
-				       issuer validity subject)
+  (define (make-x509-self-signed-certificate keypair serial-number
+					     issuer validity subject)
     (define private-key (keypair-private keypair))
     (define public-key (keypair-public keypair))
     (define aid
@@ -618,6 +625,40 @@ Section 4.1
 	(asn.1-sequence-add tbs subject)
 	;; public key
 	(let1 spki (make-subject-public-key-info (keypair-public keypair))
+	  (asn.1-sequence-add tbs (asn.1-encodable->asn.1-object spki)))
+	tbs))
+    (let* ((tbs (generate-tbs))
+	   (cert (make-der-sequence tbs (generate-signature-algorithm)
+				    (let1 signature (signer (encode tbs))
+				      (make-der-bit-string signature)))))
+      (make-x509-certificate cert)))
+
+  (define (make-x509-simple-certificate public-key
+					serial-number subject validity
+					issuer-cert issuer-private-key )
+    (define private-key issuer-private-key)
+    (define aid
+      (cond ((rsa-private-key? private-key) +sha256-with-rsa-encryption+)
+	    ((ecdsa-private-key? private-key) +sha256-with-ecsa-encryption+)
+	    (else (assertion-violation 'make-x509-simple-certificate
+				       "Private key not supported"
+				       private-key))))
+    (define signer
+      ((algorithm-identifier->signature-signer-provider aid) private-key))
+    (define (generate-signature-algorithm) (asn.1-encodable->asn.1-object aid))
+    (define (generate-tbs)
+      (let1 tbs (make-der-sequence)
+	;; basic should be v1
+	;; serialnumber
+	(asn.1-sequence-add tbs (make-der-integer serial-number))
+	(asn.1-sequence-add tbs (generate-signature-algorithm))
+	;; CA certificate issuer
+	(asn.1-sequence-add tbs
+	 (asn.1-encodable->asn.1-object (~ issuer-cert 'c 'tbs-cert 'subject)))
+	(asn.1-sequence-add tbs validity)
+	(asn.1-sequence-add tbs subject)
+	;; public key
+	(let1 spki (make-subject-public-key-info public-key)
 	  (asn.1-sequence-add tbs (asn.1-encodable->asn.1-object spki)))
 	tbs))
     (let* ((tbs (generate-tbs))
