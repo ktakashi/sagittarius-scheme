@@ -903,23 +903,22 @@
     (define (process-chain c acc)
       (define (find-by-issuer-dn c)
 	;; verify raises an error when failed...
-	(define (verify c msg sig)
+	(define (verify c pk)
 	  (guard (e (else #f))
-	    (x509-verify c msg sig)))
+	    (x509:verify-certificate c pk)))
 	(let ((issuer-dn (x509-certificate-get-issuer-dn c))
 	      (subject-dn (x509-certificate-get-subject-dn c)))
 	  (if (equal? issuer-dn subject-dn)
 	      #f
 	      (let ((certs (hashtable->alist (slot-ref keystore 'chain-certs))))
-		(find 
+		(exists 
 		 (lambda (k&v)
 		   (and-let* ((crt (cdr k&v))
 			      ( (equal? issuer-dn
 					(x509-certificate-get-subject-dn crt)) )
 			      (pk (x509-certificate-get-public-key crt))
 			      ;; is this correct?
-			      ( (verify c (export-public-key pk) 
-					(x509-certificate-get-signature c))) )
+			      ( (verify c pk)) )
 		     crt))
 		 certs)))))
       (if c
@@ -928,9 +927,9 @@
 	    (process-chain next-c (cons c acc)))
 	  (reverse! acc)))
     (if (hashtable-contains? (slot-ref keystore 'keys) alias)
-	'()
 	(let ((c (pkcs12-keystore-get-certificate keystore alias)))
-	  (process-chain c '()))))
+	  (process-chain c '()))
+	'()))
 
   (define (pkcs12-keystore-aliases keystore)
     (let ((ca (hashtable-keys-list (slot-ref keystore 'certs)))
