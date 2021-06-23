@@ -146,21 +146,23 @@
   (let* ((ks (make-keystore type))
 	 (keypair (generate-key-pair RSA))
 	 (keypair2 (generate-key-pair RSA)))
-    (define cert (make-x509-basic-certificate keypair 0
-		   (make-x509-issuer 
-		    '((C . "foo")
-		      (O . "bar")))
-		   (make-validity (current-date)
-				  (current-date))
-		   (make-x509-issuer '((DN . "buzz")))))
-    ;; chain certs
+    ;; CA cert
     (define cert2 (make-x509-basic-certificate keypair2 0
-		    (make-x509-issuer 
-		     '((C . "foo2")
-		       (O . "bar2")))
-		    (make-validity (current-date)
-				   (current-date))
-		    (make-x509-issuer '((DN . "buzz2")))))
+		  (make-x509-issuer '((DN . "buzz2")))
+		  (make-validity (current-date)
+				 (current-date))
+		  (make-x509-issuer 
+		   '((C . "foo2")
+		     (O . "bar2")))))
+    (define cert (make-x509-simple-certificate
+		  (keypair-public keypair) 0
+		  (make-x509-issuer 
+		   '((C . "foo")
+		     (O . "bar")))
+		  (make-validity (current-date)
+				 (current-date))
+		  cert2 (keypair-private keypair2)))
+  
     (test-assert (format "store key ~a" type)
 		 (keystore-set-key! ks "key" 
 				    (keypair-private keypair)
@@ -175,8 +177,8 @@
     (test-assert (format "store cert ~a" type)
 		 (keystore-set-certificate! ks "cert" cert))
 
-    (test-assert (format "chain ~a" type)
-		 (not (null? (keystore-get-certificate-chain ks "cert"))))
+    (test-equal (format "cert chain ~a" type)
+		(list cert cert2) (keystore-get-certificate-chain ks "key"))
 
     (test-assert (format "contains? ~a" type)
 		 (keystore-contains-alias? ks "cert"))

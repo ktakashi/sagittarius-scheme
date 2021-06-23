@@ -215,7 +215,7 @@
       (test-assert "pkcs12-keystore-get-certificate"
 		   (x509-certificate?
 		    (pkcs12-keystore-get-certificate ks "cert"))))
-    ;;(delete-file file)
+    (delete-file file)
     )
 
   )
