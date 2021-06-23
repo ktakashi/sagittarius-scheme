@@ -147,7 +147,7 @@
 (let* ((ks (make-pkcs12-keystore))
        (keypair (generate-key-pair RSA))
        (keypair2 (generate-key-pair RSA))
-       #;(keypair3 (generate-key-pair ECDSA)))
+       (keypair3 (generate-key-pair ECDSA)))
   (define cert (make-x509-basic-certificate keypair 0
 		 (make-x509-issuer 
 		  '((C . "foo")
@@ -164,7 +164,7 @@
 				 (current-date))
 		  (make-x509-issuer '((DN . "buzz2")))))
   
-  #;(define cert3 (make-x509-basic-certificate keypair3 0
+  (define cert3 (make-x509-basic-certificate keypair3 0
 		  (make-x509-issuer 
 		   '((C . "foo-ec")
 		     (O . "bar-ec")))
@@ -187,10 +187,11 @@
   (test-assert "aliases" 
 	       (lset= string=? '("key" "cert") (pkcs12-keystore-aliases ks)))
 
-  (test-assert "chain" 
-	       (not (null? (pkcs12-keystore-get-certificate-chain ks "cert"))))
+  ;; trusted certificates don't have chain
+  (test-assert "chain"
+	       (null? (pkcs12-keystore-get-certificate-chain ks "cert")))
 
-  #;(test-assert "store key (ec)"
+  (test-assert "store key (ec)"
 	       (pkcs12-keystore-set-key! ks "eckey"
 					 (keypair-private keypair3)
 					 "test-ec"
@@ -203,7 +204,7 @@
     (let ((ks (load-pkcs12-keystore-file file "test3")))
       (test-assert "pkcs12-keystore-get-key"
 		   (private-key? (pkcs12-keystore-get-key ks "key" "test3")))
-      #;(test-assert "pkcs12-keystore-get-key"
+      (test-assert "pkcs12-keystore-get-key"
 		   (private-key? (pkcs12-keystore-get-key ks "eckey" "test-ec")))
       (test-assert "pkcs12-keystore-get-certificate"
 		   (x509-certificate?

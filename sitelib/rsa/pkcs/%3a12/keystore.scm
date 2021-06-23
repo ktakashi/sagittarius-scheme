@@ -71,7 +71,7 @@
 	    (rename (rsa pkcs :10) (algorithm-identifier-id get-id))
 	    (rsa pkcs :12 cipher)
 	    (rfc hmac)
-	    (rename (rfc x.509) (verify x509-verify))
+	    (rfc x.509)
 	    (crypto)
 	    (math)
 	    (asn.1)
@@ -87,9 +87,7 @@
       ("1.2.840.113549.1.12.1.6" . ,pbe-with-sha-and-40bit-rc2-cbc)))
   ;; for storing
   (define *reverse-mapping*
-    `((,pbe-with-sha-and3-keytripledes-cbc . "1.2.840.113549.1.12.1.3")
-      (,pbe-with-sha-and2-keytripledes-cbc . "1.2.840.113549.1.12.1.4")
-      (,pbe-with-sha-and-40bit-rc2-cbc . "1.2.840.113549.1.12.1.6")))
+    (map (lambda (s) (cons (cdr s) (car s))) *mapping*))
 
   (define-class <content-info> (<asn.1-encodable>)
     ((content-type :init-keyword :content-type)
@@ -917,7 +915,6 @@
 			      ( (equal? issuer-dn
 					(x509-certificate-get-subject-dn crt)) )
 			      (pk (x509-certificate-get-public-key crt))
-			      ;; is this correct?
 			      ( (verify c pk)) )
 		     crt))
 		 certs)))))

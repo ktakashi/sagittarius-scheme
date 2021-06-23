@@ -587,19 +587,25 @@ Section 4.1
   ;; we don't check
   (define (make-validity start end)
     (make-der-sequence (make-der-utc-time start) (make-der-utc-time end)))
-  ;; for now we only use sha1withRSAEncryption as signature algorithm
-  ;; OID 1 2 840 113549 1 1 5
-  (define +sha1-with-rsa-encryption+
-    (make-der-object-identifier "1.2.840.113549.1.1.5"))
-  ;; for now we only use rsaEncryption as subject public key info
-  ;; OID 1 2 840 113549 1 1 1
-  (define +rsa-encryption+
-    (make-der-object-identifier "1.2.840.113549.1.1.1"))
+  ;; for now we only use sha256withRSAEncryption as signature algorithm
+  ;; OID 1 2 840 113549 1 1 11
+  (define +sha256-with-rsa-encryption+
+    (make-algorithm-identifier "1.2.840.113549.1.1.11"))
+  (define +sha256-with-ecsa-encryption+
+    (make-algorithm-identifier "1.2.840.10045.4.3.2"))
+
   (define (make-x509-basic-certificate keypair serial-number
 				       issuer validity subject)
-    (define (make-algorithm-id oid) (make-der-sequence oid (make-der-null)))
-    (define (generate-signature-algorithm)
-      (make-algorithm-id +sha1-with-rsa-encryption+))
+    (define private-key (keypair-private keypair))
+    (define public-key (keypair-public keypair))
+    (define aid
+      (cond ((rsa-private-key? private-key) +sha256-with-rsa-encryption+)
+	    ((ecdsa-private-key? private-key) +sha256-with-ecsa-encryption+)
+	    (else (assertion-violation 'make-x509-basic-certificate
+				       "Keypair not supported" keypair))))
+    (define signer
+      ((algorithm-identifier->signature-signer-provider aid) private-key))
+    (define (generate-signature-algorithm) (asn.1-encodable->asn.1-object aid))
     (define (generate-tbs)
       (let1 tbs (make-der-sequence)
 	;; basic should be v1
@@ -611,16 +617,12 @@ Section 4.1
 	(asn.1-sequence-add tbs validity)
 	(asn.1-sequence-add tbs subject)
 	;; public key
-	(let1 spki (make-der-sequence)
-	  (asn.1-sequence-add spki (make-algorithm-id +rsa-encryption+))
-	  (let1 pbkey (make-der-bit-string
-		       (export-public-key RSA (keypair-public keypair)))
-	    (asn.1-sequence-add spki pbkey)
-	    (asn.1-sequence-add tbs spki)))
+	(let1 spki (make-subject-public-key-info (keypair-public keypair))
+	  (asn.1-sequence-add tbs (asn.1-encodable->asn.1-object spki)))
 	tbs))
     (let* ((tbs (generate-tbs))
 	   (cert (make-der-sequence tbs (generate-signature-algorithm)
-				    (let1 signature (hash SHA-1 (encode tbs))
+				    (let1 signature (signer (encode tbs))
 				      (make-der-bit-string signature)))))
       (make-x509-certificate cert)))
 

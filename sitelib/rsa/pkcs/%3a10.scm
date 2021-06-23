@@ -65,6 +65,10 @@
      (key-data :init-keyword :key-data)))
   (define (subject-public-key-info? o) (is-a? o <subject-public-key-info>))
   (define-generic make-subject-public-key-info)
+  (define-method make-subject-public-key-info ((bv <bytevector>))
+    (make-subject-public-key-info (open-bytevector-input-port bv)))
+  (define-method make-subject-public-key-info ((port <port>))
+    (make-subject-public-key-info (read-asn.1-object port)))
   (define-method make-subject-public-key-info ((s <asn.1-sequence>))
     ;; TODO check length
     (let ((id (asn.1-sequence-get s 0)))
@@ -77,12 +81,10 @@
     (make-subject-public-key-info
      (make-der-sequence
       (make-algorithm-identifier "1.2.840.113549.1.1.1" (make-der-null))
-      (read-asn.1-object (open-bytevector-input-port (export-public-key pk))))))
+      (make-der-bit-string (export-public-key pk)))))
   (define-method make-subject-public-key-info ((pk <ecdsa-public-key>))
-    (make-subject-public-key-info
-     (make-der-sequence
-      (make-algorithm-identifier "1.2.840.10045.2.1" (make-der-null))
-      (read-asn.1-object (open-bytevector-input-port (export-public-key pk))))))
+    ;; for some weird reason, ecdsa key exports SPKI form, so use it
+    (make-subject-public-key-info (export-public-key pk)))
   (define-method asn.1-encodable->asn.1-object ((o <subject-public-key-info>))
     (make-der-sequence
      (asn.1-encodable->asn.1-object (slot-ref o 'algorithm-identifier))
@@ -120,6 +122,8 @@
     (make <algorithm-identifier> 
       :object-id (make-der-object-identifier oid)
       :parameters param))
+  (define-method make-algorithm-identifier ((oid <string>))
+    (make <algorithm-identifier> :object-id (make-der-object-identifier oid)))
   (define-method asn.1-encodable->asn.1-object ((o <algorithm-identifier>))
     (make-der-sequence (slot-ref o 'object-id)
 		       (cond ((slot-ref o 'parameters))
