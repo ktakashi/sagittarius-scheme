@@ -504,7 +504,6 @@
 			(lambda (alias)
 			  (hashtable-set! (slot-ref keystore 'keys) alias
 					  private-key)))))
-	  (display local-id) (newline)
 	  (if local-id
 	      (let ((name (format "~X" (bytevector->integer
 					(slot-ref local-id 'string)))))
