@@ -153,6 +153,10 @@
 
 (define-c-proc socket-fd (o::<socket>) ::<fixnum> :no-side-effect
   (result (-> o socket)))
+(define-c-proc socket-node (o::<socket>) :no-side-effect
+  (result (-> o node)))
+(define-c-proc socket-service (o::<socket>) :no-side-effect
+  (result (-> o service)))
 
 (define-c-proc socket-nonblocking! (o::<socket>) ::<boolean>
   Sg_SocketNonblocking)

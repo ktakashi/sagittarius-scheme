@@ -34,10 +34,19 @@
 	    (rename (make-key-manager list->key-manager)
 		    (%key-manager key-manager))
 	    key-manager? key-manager->certificate-callback
+
+	    socket-parameter?
+	    socket-parameter-socket-hostname
+	    socket-parameter-socket-ip-address
+	    socket-parameter-socket-node
+	    socket-parameter-socket-service
+	    
 	    key-provider? (rename (key-provider <key-provider>))
 	    make-keystore-key-provider keystore-key-provider?
 	    keystore-key-proider-add-key-retriever!)
     (import (rnrs)
+	    (net socket)
+	    (record builder)
 	    (srfi :1 lists)
 	    (srfi :117 list-queues)
 	    (security keystore))
@@ -51,6 +60,12 @@
 				       "List of key-provider is required"
 				       providers))
 		(p providers)))))
+(define-record-type socket-parameter
+  (fields socket-node socket-service 
+	  socket-hostname socket-ip-address))
+(define-syntax socket-parameter-builder
+  (make-record-builder socket-parameter))
+
 (define (%key-manager . providers) (make-key-manager providers))
 
 (define (key-manager->certificate-callback key-manager)
@@ -58,7 +73,14 @@
   (define key-retrievers
     (append-map list-queue-list (map key-provider-key-retrievers providers)))
   (lambda (socket)
-    (exists (lambda (r) (r socket)) key-retrievers)))
+    (define info (socket-peer socket))
+    (define parameter
+      (socket-parameter-builder
+       (socket-node (socket-node socket))
+       (socket-service (socket-service socket))
+       (socket-hostname (socket-info-hostname info))
+       (socket-ip-address (socket-info-ip-address info))))
+    (exists (lambda (r) (r parameter)) key-retrievers)))
 
 (define-record-type key-provider
   (fields key-retrievers)
@@ -69,9 +91,8 @@
 		  (p key-retrievers))))))
 
 (define (->keystore-get-key keystore password alias-provider)
-  ;; for now passing raw tls-socket
-  (lambda (socket)
-    (cond ((alias-provider socket) =>
+  (lambda (parameter)
+    (cond ((alias-provider parameter) =>
 	   (lambda (alias)
 	     (cons* (keystore-get-key keystore alias password)
 		    (keystore-get-certificate keystore alias)

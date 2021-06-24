@@ -2,7 +2,7 @@
 ;;;
 ;;; socket.scm - socket library
 ;;;  
-;;;   Copyright (c) 2010-2015  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2021  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -55,6 +55,8 @@
 	    socket-shutdown
 	    socket-close
 	    socket-fd
+	    socket-node
+	    socket-service
 
 	    ;; select
 	    socket-select

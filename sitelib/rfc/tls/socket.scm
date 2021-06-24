@@ -44,6 +44,8 @@
 	    tls-socket-accept
 	    tls-socket-peer
 	    tls-socket-name
+	    tls-socket-node
+	    tls-socket-service
 	    tls-socket-info
 	    tls-socket-info-values
 	    call-with-tls-socket
@@ -72,6 +74,8 @@
 	    call-with-socket
 	    socket-peer
 	    socket-name
+	    socket-node
+	    socket-service
 	    socket-info
 	    socket-info-values
 	    socket-nonblocking!
@@ -259,6 +263,10 @@
     (socket-peer (~ socket 'raw-socket)))
   (define (tls-socket-name socket)
     (socket-name (~ socket 'raw-socket)))
+  (define (tls-socket-node socket)
+    (socket-node (~ socket 'raw-socket)))
+  (define (tls-socket-service socket)
+    (socket-service (~ socket 'raw-socket)))
   (define (tls-socket-info socket)
     (socket-info (~ socket 'raw-socket)))
   (define (tls-socket-info-values socket :key (type 'peer))
@@ -300,6 +308,10 @@
     (tls-socket-peer o))
   (define-method socket-name ((o <tls-socket>))
     (tls-socket-name o))
+  (define-method socket-node ((o <tls-socket>))
+    (tls-socket-node o))
+  (define-method socket-service ((o <tls-socket>))
+    (tls-socket-service o))
   (define-method socket-info ((o <tls-socket>))
     (tls-socket-info o))
   (define-method socket-info-values ((o <tls-socket>) . opt)

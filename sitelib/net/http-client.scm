@@ -61,7 +61,12 @@
 	    build-http-pooling-connection-manager
 
 	    list->key-manager make-key-manager key-manager
-	    key-manager? 
+	    key-manager?
+	    socket-parameter-socket-hostname
+	    socket-parameter-socket-ip-address
+	    socket-parameter-socket-node
+	    socket-parameter-socket-service
+
 	    key-provider? <key-provider>
 	    make-keystore-key-provider keystore-key-provider?
 	    keystore-key-proider-add-key-retriever!

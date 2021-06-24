@@ -85,6 +85,8 @@
 	    socket-shutdown
 	    socket-close
 	    socket-fd
+	    socket-node
+	    socket-service
 
 	    ;; select
 	    ;;socket-select ;; should we expose fd set here?
