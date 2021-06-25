@@ -69,7 +69,7 @@
 
 	    key-provider? <key-provider>
 	    make-keystore-key-provider keystore-key-provider?
-	    keystore-key-proider-add-key-retriever!
+	    keystore-key-provider-add-key-retriever!
 	    
 	    http:client-shutdown!
 	    http:client-send
@@ -209,7 +209,8 @@
 	   (lambda (jar)
 	     (define uri (http:request-uri request))
 	     ;; okay add cookie here
-	     (let ((cookies (cookie-jar->cookies jar (cookie-jar-selector uri))))
+	     (let ((cookies (cookie-jar->cookies jar
+						 (cookie-jar-selector uri))))
 	       (unless (null? cookies)
 		 (http:headers-add! headers "Cookie"
 				    (cookies->string cookies)))))))

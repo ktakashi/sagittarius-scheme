@@ -43,7 +43,7 @@
 	    
 	    key-provider? (rename (key-provider <key-provider>))
 	    make-keystore-key-provider keystore-key-provider?
-	    keystore-key-proider-add-key-retriever!)
+	    keystore-key-provider-add-key-retriever!)
     (import (rnrs)
 	    (net socket)
 	    (record builder)
@@ -106,9 +106,9 @@
 		((n (->keystore-get-key keystore password alias-provider))
 		 keystore)))))
 
-(define (keystore-key-proider-add-key-retriever! kp password alias-provider)
+(define (keystore-key-provider-add-key-retriever! kp password alias-provider)
   (let ((ks (keystore-key-provider-keystore kp)))
-    (list-queue-add-front! (key-provider-key-retrievers key-provider)
+    (list-queue-add-front! (key-provider-key-retrievers kp)
 			   (->keystore-get-key ks password alias-provider))
-    key-provider))
+    kp))
 )

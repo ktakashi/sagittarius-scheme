@@ -219,6 +219,18 @@ IP address and port number. These information is retrieved from getpeername(2).
 Returns the name string of socket or #f if the socket doesn't have name.
 }
 
+@define[Function]{@name{socket-node} @args{socket}}
+@desc{@var{Socket} must be a socket object.
+
+Returns the node string of socket. Returns #f for server socket.
+}
+
+@define[Function]{@name{socket-service} @args{socket}}
+@desc{@var{Socket} must be a socket object.
+
+Returns the service string of socket.
+}
+
 @define[Function]{@name{socket-info} @args{socket}}
 @desc{@var{Socket} must be a socket object.
 

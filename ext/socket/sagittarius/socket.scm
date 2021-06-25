@@ -208,7 +208,7 @@
 
   (define (socket-set-read-timeout! socket read-timeout)
     (cond ((and (integer? read-timeout) (exact? read-timeout) )
-	   ;; in millis
+	   ;; in micro seconds
 	   (let ((time (make-time time-duration
 				  (* (mod read-timeout 1000000) 1000)
 				  (div read-timeout 1000000))))
