@@ -22,6 +22,7 @@
 @include-section["utils/logging.scrbl"]
 @include-section["utils/math.scrbl"]
 @include-section["utils/net/amqp.scrbl"]
+@include-section["utils/net/http-client.scrbl"]
 @include-section["utils/net/mqtt.scrbl"]
 @include-section["utils/net/oauth.scrbl"]
 @include-section["utils/net/server.scrbl"]
