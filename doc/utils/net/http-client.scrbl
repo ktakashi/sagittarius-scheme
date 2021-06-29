@@ -80,4 +80,82 @@ insecure redirection may happen (i.e. HTTPS to HTTP)
 @code{normal} redirects 3xx status if the scheme is the same or more secure.
 }
 
+
+@subsubsection{HTTP request and response}
+
+@define[Function]{@name{http:request?} @args{o}}
+@desc{Returns #t if the given @var{o} is an HTTP request object, otherwise #f.}
+
+@define[Macro]{@name{http:request-builder} @args{field* @dots{}}}
+@desc{Builds a HTTP request object.
+
+The @code{field} must be one or more the followings.
+@dl-list[
+  @dl-item[uri]{The URI of the request, it has to be an URI object of @code{(net uri)} or valid URI string. This field is mandatory.}
+  @dl-item[method]{A valid HTTP method. Default value is @code{GET}.}
+  @dl-item[content-type]{A content type header, this is used when the method is allowed to have body. Default value @code{"application/octet-stream"}.}
+  @dl-item[body]{Content of the request. The value must be either a bytevector ot binary input port.}
+  @dl-item[headers]{A list of headers or a HTTP header object. If it's a list of header, then the element must contain a pair of name and values.}
+]
+
+}
+
+@define[Function]{@name{http:headers?} @args{o}}
+@desc{Returns #t if the given @var{o} is a HTTP headers object, otherwise #f.}
+
+@define[Function]{@name{http:make-headers}}
+@desc{Make a HTTP headers object.
+
+A HTTP headers object can contain multiple values on one headers.
+}
+
+@define[Function]{@name{http:headers-ref*} @args{headers name}}
+@desc{Retrieve a list of value of the header @var{name} from @var{headers}.
+
+If the @var{name} doesn't exists, then it returns @code{()}.}
+
+@define[Function]{@name{http:headers-ref} @args{headers name}}
+@desc{Retrieve the first value of the header @var{name} from @var{headers}.
+
+If the @var{name} doesn't exists, then it returns @code{#f}.}
+
+@define[Function]{@name{http:headers-set!} @args{headers name value}}
+@desc{Sets the single value of @var{value} into the @var{headers} with
+header name of @var{name}.}
+
+@define[Function]{@name{http:headers-add!} @args{headers name value}}
+@desc{Adds the @var{value} in the @var{headers} to the header value
+list of @var{name}.
+
+If the @var{name} doesn't exist, then it works the same as
+@code{http:headers-set!}.
+}
+
+@define[Function]{@name{http:headers-names} @args{headers}}
+@desc{Returns a list of header names of the given @var{headers}}
+
+
+@define[Function]{@name{http:response?} @args{o}}
+@desc{Returns #t if the given @var{o} is an HTTP response object, otherwise #f.}
+
+@define[Function]{@name{http:response-status} @args{response}}
+@desc{Returns the response HTTP status code.
+
+The code is a string.
+}
+
+@define[Function]{@name{http:response-headers} @args{response}}
+@desc{Returns the response HTTP headers object.}
+
+@define[Function]{@name{http:response-cookies} @args{response}}
+@desc{Returns a list of the response cookie, if exists.
+
+The element of the list is a cookie object of @code{(rfc cookie)}.
+}
+
+@define[Function]{@name{http:response-body} @args{response}}
+@desc{Returns the body of the response.
+The value is bytevector.
+}
+
 @; TBD the rest...

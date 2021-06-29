@@ -37,7 +37,7 @@
 	    http:response?
 	    http:response-status http:response-headers
 	    http:response-cookies http:response-body
-	    http:headers?
+	    http:headers? http:make-headers
 	    http:headers-names http:headers-ref* http:headers-ref
 	    http:method
 	    http-method-set
