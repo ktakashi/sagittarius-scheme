@@ -53,6 +53,10 @@
 	    
 	    make-http-ephemeral-connection-manager
 	    http-ephemeral-connection-manager?
+
+	    ;; delegate connection manager provider
+	    default-delegate-connection-manager-provider
+	    make-logging-delegate-connection-provider
 	    
 	    make-http-pooling-connection-manager
 	    http-pooling-connection-manager?
@@ -60,6 +64,9 @@
 	    http-connection-pooling-config-builder
 	    build-http-pooling-connection-manager
 
+	    http-client-logger?
+	    http-client-logger-builder
+	    
 	    list->key-manager make-key-manager key-manager
 	    key-manager?
 	    socket-parameter-socket-hostname
@@ -81,6 +88,7 @@
 	    (net http-client key-manager)
 	    (net http-client http1)
 	    (net http-client http2)
+	    (net http-client logging)
 	    (record builder)
 	    (net socket)
 	    (net uri)

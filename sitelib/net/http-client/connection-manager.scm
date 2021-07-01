@@ -45,6 +45,9 @@
 	    http-connection-pooling-config?
 	    http-connection-pooling-config-builder
 	    build-http-pooling-connection-manager
+	    (rename (make-http-ephemeral-connection-manager
+		     default-delegate-connection-manager-provider))
+	    make-logging-delegate-connection-provider
 	    )
     (import (rnrs)
 	    (net socket)
@@ -102,6 +105,28 @@
     (values (socket-options->client-socket option host service)
 	    host service option)))
 
+(define-record-type http-logging-connection-manager
+  (parent connection-manager)
+  (protocol (lambda (n)
+	      (lambda (logger)
+		((n (make-logging-lease-connection logger)
+		    (make-logging-release-connection logger)
+		    (lambda (m) #t)))))))
+
+(define (make-logging-lease-connection logger)
+  (lambda (manager request option)
+    (let ((conn (ephemeral-lease-connection manager request option)))
+      ;; TODO maybe log here?
+      (make-http-logging-connection conn logger))))
+(define (make-logging-release-connection logger)
+  (lambda (manager connection reuseable?)
+    ;; TODO maybe log here?
+    (ephemeral-lease-connection connection)))
+
+(define (make-logging-delegate-connection-provider logger)
+  (lambda ()
+    (make-http-logging-connection-manager logger)))
+
 ;;; pooling
 (define-record-type http-pooling-connection-manager
   (parent connection-manager)
@@ -111,10 +136,10 @@
 	  ;; these are private
 	  available
 	  leasing
-	  ephemeral-manager
+	  delegate
 	  lock)
   (protocol (lambda (n)
-	      (lambda (timeout max-connection-per-route ttl)
+	      (lambda (timeout max-connection-per-route ttl delegate-provider)
 		((n pooling-lease-connection pooling-release-connection
 		    pooling-shutdown)
 		 timeout
@@ -122,23 +147,27 @@
 		 ttl
 		 (make-hashtable string-hash string=?)
 		 (make-hashtable string-hash string=?)
-		 (make-http-ephemeral-connection-manager)
+		 (delegate-provider)
 		 (make-mutex))))))
 
 (define-record-type http-connection-pooling-config
   (fields connection-request-timeout
 	  max-connection-per-route
-	  time-to-live))
+	  time-to-live
+	  delegate-provider))
 (define-syntax http-connection-pooling-config-builder
   (make-record-builder http-connection-pooling-config
 		       ;; random numbers ;-)
 		       ((max-connection-per-route 5)
-			(time-to-live 2))))
+			(time-to-live 2)
+			(delegate-provider
+			 make-http-ephemeral-connection-manager))))
 (define (build-http-pooling-connection-manager config)
   (make-http-pooling-connection-manager
    (http-connection-pooling-config-connection-request-timeout config)
    (http-connection-pooling-config-max-connection-per-route config)
-   (http-connection-pooling-config-time-to-live config)))
+   (http-connection-pooling-config-time-to-live config)
+   (http-connection-pooling-config-delegate-provider config)))
 
 (define (pooling-shutdown manager)
   (define available (http-pooling-connection-manager-available manager))
@@ -177,7 +206,7 @@
   (define max-per-route
     (http-pooling-connection-manager-max-connection-per-route manager))
   (define delegate
-    (http-pooling-connection-manager-ephemeral-manager manager))
+    (http-pooling-connection-manager-delegate manager))
   (define ttl
     (http-pooling-connection-manager-time-to-live manager))
   (define (ensure-queue table route max)
@@ -226,7 +255,7 @@
   (define leasing (http-pooling-connection-manager-leasing manager))
   (define lock (http-pooling-connection-manager-lock manager))
   (define delegate
-    (http-pooling-connection-manager-ephemeral-manager manager))
+    (http-pooling-connection-manager-delegate manager))
   (define (->route connection)
     (define host (http-connection-node connection))
     (define service (http-connection-service connection))

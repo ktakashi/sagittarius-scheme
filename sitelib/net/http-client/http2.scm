@@ -33,7 +33,7 @@
 #!nounbound
 #!read-macro=sagittarius/bv-string
 (library (net http-client http2)
-    (export http2-connection?
+    (export http2-connection-context?
 	    socket->http2-connection)
     (import (rnrs)
 	    (net http-client connection)
@@ -45,8 +45,8 @@
 	    (rfc http2 hpack)
 	    (srfi :18 multithreading))
   
-(define-record-type http2-connection
-  (parent <http-connection>)
+(define-record-type http2-connection-context
+  (parent <http-connection-context>)
   (fields streams
 	  request-hpack-context
 	  response-hpack-context
@@ -55,8 +55,8 @@
 	  (mutable next-id)
 	  (mutable window-size))
   (protocol (lambda (n)
-	      (lambda (socket option node service)
-		((n node service option socket http2-request http2-response)
+	      (lambda ()
+		((n)
 		 (make-eqv-hashtable)
 		 (make-hpack-context 4096)
 		 (make-hpack-context 4096)
@@ -64,6 +64,10 @@
 		 (make-mutex)
 		 1
 		 65535)))))
+(define (make-http2-connection socket socket-option node service)
+  (make-http-connection node service socket-option
+			socket http2-request http2-response
+			(make-http2-connection-context)))
 
 (define-enumeration http2:stream-state
   (idel reserved open half-closed closed)
@@ -80,10 +84,11 @@
   (protocol (lambda (p)
 	      (lambda (connection header-handler data-handler)
 		(define id (http2-next-stream-id connection))
+		(define ctx (http-connection-context-data connection))
 		(let ((r (p id connection header-handler data-handler
 			    (http2:stream-state idel)
-			    (http2-connection-window-size connection))))
-		  (hashtable-set! (http2-connection-streams connection) id r)
+			    (http2-connection-context-window-size ctx))))
+		  (hashtable-set! (http2-connection-context-streams ctx) id r)
 		  r)))))
 
 (define +client-window-size+ (- (expt 2 31) 1))
@@ -115,13 +120,14 @@
 ;; http2-request will only send a request, to receive a response,
 ;; this is needed
 (define (http2-response connection)
-  (define streams (http2-connection-streams connection))
+  (define context (http-connection-context-data connection))
+  (define streams (http2-connection-context-streams context))
   
   (define (send-frame connection frame end?)
+    (define context (http-connection-context-data connection))
     (define out (http-connection-output connection))
-    (write-http2-frame out (http2-connection-buffer connection)
-		       frame end?
-		       (http2-connection-request-hpack-context connection)))
+    (write-http2-frame out (http2-connection-context-buffer context)
+      frame end? (http2-connection-context-request-hpack-context context)))
   (define (send-goaway connection e ec stream-id)
     (send-frame connection
 		(make-http2-frame-goaway 
@@ -138,15 +144,17 @@
     (http2-remove-stream! connection stream-id))
   
   (define (read-frame connection)
+    (define context (http-connection-context-data connection))
     (define in (http-connection-input connection))
-    (define res-hpack (http2-connection-response-hpack-context connection))
+    (define res-hpack (http2-connection-context-response-hpack-context context))
     (guard (e ((http2-error? e)
 	       ;; treat as connection error.
 	       (send-goaway connection e (http2-error-code e) 0))
 	      (else
 	       ;; internal error. just close the session
 	       (send-goaway connection e +http2-error-code-internal-error+ 0)))
-      (read-http2-frame in (http2-connection-buffer connection) res-hpack)))
+      (read-http2-frame in (http2-connection-context-buffer context)
+			res-hpack)))
   
   (define used-window-sizes (make-eqv-hashtable))
   (let loop ()
@@ -162,11 +170,11 @@
 	      ((http2-frame-ping? frame)
 	       (write-http2-frame
 		(http-connection-output connection)
-		(http2-connection-buffer connection)
+		(http2-connection-context-buffer context)
 		(make-http2-frame-ping 1 sid
 				       (http2-frame-ping-opaque-data frame))
 		#t
-		(http2-connection-request-hpack-context connection))
+		(http2-connection-context-request-hpack-context context))
 	       (loop))
 	      ((http2-frame-goaway? frame)
 	       (http-connection-close! connection)
@@ -189,7 +197,8 @@
 					 +http2-error-code-protocol-error+
 					 sid))
 		       ((zero? sid)
-			(http2-connection-window-size-set! connection size))
+			(http2-connection-context-window-size-set!
+			 context size))
 		       (else
 			(http2-stream-window-size-set! stream size))))
 	       (loop))
@@ -282,22 +291,25 @@
 
 (define (http2-write-stream stream frame end?)
   (define conn (http2-stream-connection stream))
+  (define context (http-connection-context-data conn))
   (define out (http-connection-output conn))
-  (write-http2-frame out (http2-connection-buffer conn)
+  (write-http2-frame out (http2-connection-context-buffer context)
 		     frame end?
-		     (http2-connection-request-hpack-context conn)))
+		     (http2-connection-context-request-hpack-context context)))
 
 (define (http2-remove-stream! conn id)
-  (define streams (http2-connection-streams conn))
+  (define context (http-connection-context-data conn))
+  (define streams (http2-connection-context-streams context))
   (hashtable-delete! streams id))
 
 (define (http2-next-stream-id conn)
+  (define context (http-connection-context-data conn))
   ;; I don't think with this http-client we share connection among threads
   ;; so this may not needed, but not sure at this moment
-  (mutex-lock! (http2-connection-mutex conn))
-  (let ((next-id (http2-connection-next-id conn)))
-    (http2-connection-next-id-set! conn (+ next-id 2))
-    (mutex-unlock! (http2-connection-mutex conn))
+  (mutex-lock! (http2-connection-context-mutex context))
+  (let ((next-id (http2-connection-context-next-id context)))
+    (http2-connection-context-next-id-set! context (+ next-id 2))
+    (mutex-unlock! (http2-connection-context-mutex context))
     next-id))
 
 (define +http2-preface+ #*"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n")
@@ -305,18 +317,21 @@
   (let ((out (http-connection-output conn)))
     (put-bytevector out +http2-preface+)))
 (define (http2-send-settings conn flags settings)
+  (define context (http-connection-context-data conn))
   (let ((out (http-connection-output conn)))
-    (write-http2-frame out (http2-connection-buffer conn)
+    (write-http2-frame out (http2-connection-context-buffer context)
 		       (make-http2-frame-settings flags 0 settings)
 		       ;; we know context is not needed and 
 		       ;; this won't be the end of stream
 		       #f #f)))
 (define (http2-handle-server-settings conn)
+  (define context (http-connection-context-data conn))
   (let ((in (http-connection-input conn)))
     (http2-apply-server-settings 
-     conn (read-http2-frame in (http2-connection-buffer conn) #f))))
+     conn (read-http2-frame in (http2-connection-context-buffer context) #f))))
 
 (define (http2-apply-server-settings conn frame)
+  (define ctx (http-connection-context-data conn))
   (define out (http-connection-output conn))
   (define settings (http2-frame-settings-settings frame))
   ;; Ignore ACK SETTINGS
@@ -328,11 +343,12 @@
 		(cond ((= (caar settings) +http2-settings-header-table-size+)
 		       ;; initial request HPACK table size.
 		       (update-hpack-table-size!
-			(http2-connection-request-hpack-context conn) 
+			(http2-connection-context-request-hpack-context ctx) 
 			(cadar settings)))
 		      ((= (caar settings)
 			  +http2-settings-initial-window-size+)
-		       (http2-connection-window-size-set! conn (cdar settings))))
+		       (http2-connection-context-window-size-set! ctx
+			(cdar settings))))
 		(loop (cdr settings)))))))
 
 

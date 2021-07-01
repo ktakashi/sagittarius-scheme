@@ -30,27 +30,42 @@
 
 #!nounbound
 (library (net http-client connection)
-    (export http-connection? (rename http-connection <http-connection>)
+    (export make-http-connection
+	    http-connection? (rename (http-connection <http-connection>))
 	    http-connection-node http-connection-service
 	    http-connection-socket-options
 	    http-connection-socket
 	    http-connection-input http-connection-output
 	    http-connection-user-agent
+	    http-connection-context-data
 
+	    http-logging-connection
+	    (rename (http-logging-connection <http-logging-connection>))
+	    make-http-logging-connection
+	    http-logging-connection-logger
+	    
 	    http-connection-open?
 	    http-connection-open! http-connection-close!
 	    http-connection-send-request! http-connection-receive-response!
 
 	    *http-client-user-agent*
+
+	    ;; for internal or extra http version
+	    http-connection-context?
+	    (rename (http-connection-context <http-connection-context>))
+	    
 	    )
     (import (rnrs)
 	    (net socket)
+	    (net http-client logging)
 	    (sagittarius) ;; for sagittarius-version
 	    (srfi :39 parameters))
 
 (define *http-client-user-agent*
   (make-parameter
    (string-append "sagittarius-" (sagittarius-version) "/http-client")))
+
+(define-record-type http-connection-context)
 
 (define-record-type http-connection
   (fields node
@@ -61,9 +76,10 @@
 	  (mutable socket)
 	  (mutable input)
 	  (mutable output)
-	  user-agent)
+	  user-agent
+	  context-data)
   (protocol (lambda (p)
-	      (lambda (node service option socket request response)
+	      (lambda (node service option socket request response data)
 		(unless (or (not socket)
 			    (or (socket? socket) (tls-socket? socket)))
 		  (assertion-violation 'make-http-connection
@@ -71,10 +87,58 @@
 		(unless (socket-options? option)
 		  (assertion-violation 'make-http-connection
 				       "<socket-options> is required" option))
+		(unless (http-connection-context? data)
+		  (assertion-violation 'make-http-connection
+				       "<http-connection-context> is required"
+				       data))
 		(p node service option request response socket
 		   (and socket (socket-input-port socket))
 		   (and socket (socket-output-port socket))
-		   (*http-client-user-agent*))))))
+		   (*http-client-user-agent*)
+		   data)))))
+
+(define-record-type http-logging-connection
+  (parent http-connection)
+  (fields logger)
+  (protocol
+   (lambda (n)
+     (lambda (conn logger)
+       (let ((c ((n (http-connection-node conn)
+		    (http-connection-service conn)
+		    (http-connection-socket-options conn)
+		    (http-connection-socket conn)
+		    (http-connection-request-sender conn)
+		    (http-connection-response-receiver conn)
+		    (http-connection-context-data conn))
+		 logger)))
+	 (let ((in (http-connection-input c))
+	       (out (http-connection-output c)))
+	   (http-connection-input-set! c (->logging-input-port in logger))
+	   (http-connection-output-set! c (->logging-output-port out logger)))
+	 c)))))
+
+(define (->logging-input-port in logger)
+  (define wire-logger (http-client-logger-wire-logger logger))
+  (define (read! bv start count)
+    (let ((ret (get-bytevector-n! in bv start count)))
+      (http-wire-logger-write-log wire-logger "IN" bv start ret)
+      ret))
+  (define (close) (close-port in))
+  (define (ready) (port-ready? in))
+  (make-custom-binary-input-port
+   "logging-binary-input-port"
+   read! #f #f close ready))
+
+(define (->logging-output-port out logger)
+  (define wire-logger (http-client-logger-wire-logger logger))
+  (define (write! bv start count)
+    (http-wire-logger-write-log wire-logger "OUT" bv start count)
+    (put-bytevector out bv start count)
+    count)
+  (define (close) (close-port out))
+  (make-custom-binary-output-port
+   "logging-binary-output-port"
+   write! #f #f close))
 
 (define (http-connection-open? conn)
   (and (http-connection-socket conn) #t))

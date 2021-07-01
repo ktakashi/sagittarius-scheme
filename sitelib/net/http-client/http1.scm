@@ -32,7 +32,7 @@
 #!read-macro=sagittarius/bv-string
 #!read-macro=sagittarius/regex
 (library (net http-client http1)
-    (export http1-connection?
+    (export http1-connection-context?
 	    socket->http1-connection)
     (import (rnrs)
 	    (net http-client connection)
@@ -44,26 +44,31 @@
 	    (prefix (binary io) binary:)
 	    (util bytevector))
 
-(define-record-type http1-connection
-  (parent <http-connection>)
+(define-record-type http1-connection-context
+  (parent <http-connection-context>)
   (fields requests
 	  buffer)
   (protocol (lambda (n)
-	      (lambda (socket option node service)
-		((n node service option socket http1-request http1-response)
-		 (make-eq-hashtable)
-		 (make-bytevector 4096))))))
+	      (lambda ()
+		((n) (make-eq-hashtable) (make-bytevector 4096))))))
+
+(define (make-http1-connection socket socket-option node service)
+  (make-http-connection node service socket-option socket
+			http1-request http1-response
+			(make-http1-connection-context)))
 
 (define (socket->http1-connection socket socket-option node service)
   (make-http1-connection socket socket-option node service))
 
 (define (http1-request connection request header-handler data-handler)
+  (define context (http-connection-context-data connection))
   ;; here we only push the request
-  (hashtable-set! (http1-connection-requests connection)
+  (hashtable-set! (http1-connection-context-requests context)
 		  request (list header-handler data-handler)))
 
 (define (http1-response connection)
-  (define requests (http1-connection-requests connection))
+  (define context (http-connection-context-data connection))
+  (define requests (http1-connection-context-requests context))
   (define (handle-requests connection requests)
     (let-values (((keys values) (hashtable-entries requests)))
       (vector-map (lambda (request handlers)
@@ -154,6 +159,7 @@
 	  (else (error 'read-chunked "bad line in chunked data" line)))))
 
 (define (send-request! connection request)
+  (define context (http-connection-context-data connection))
   (define out (http-connection-output connection))
   (define method (http:request-method request))
   (define body (http:request-body request))
@@ -201,7 +207,7 @@
 
   (define (send-body out request)
     (define (send-chunked out in)
-      (define buffer (http1-connection-buffer connection))
+      (define buffer (http1-connection-context-buffer context))
       (define buffer-size (bytevector-length buffer))
       (let loop ((n (get-bytevector-n! in buffer 0 buffer-size)))
 	(cond ((zero? n)
