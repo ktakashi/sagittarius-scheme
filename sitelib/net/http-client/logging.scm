@@ -32,25 +32,59 @@
 (library (net http-client logging)
     (export http-client-logger?
 	    http-client-logger-builder
+	    http-client-logger-connection-logger
 	    http-client-logger-wire-logger
 
+	    http-connection-logger?
+	    http-connection-logger-builder
+	    http-connection-logger-write-log
+	    
+	    http-wire-logger?
+	    http-wire-logger-builder
 	    http-wire-logger-write-log)
     (import (rnrs)
 	    (sagittarius)
 	    (record builder)
-	    (clos user)
 	    (util logging))
 
 (define-record-type http-client-logger
-  (fields wire-logger)
+  (fields connection-logger
+	  wire-logger)
   (protocol (lambda (p)
-	      (lambda (wire-logger)
-		(p wire-logger)))))
+	      (lambda (logger wire-logger)
+		(p logger wire-logger)))))
 
 (define-syntax http-client-logger-builder
   (make-record-builder http-client-logger))
 
-(define (http-wire-logger-write-log wire-logger message bv start size)
-  (when (and wire-logger (logger-debug? wire-logger))
-    (debug-log wire-logger message (bytevector-copy bv start (+ start size)))))
+(define-record-type http-connection-logger
+  (fields logger))
+(define-syntax http-connection-logger-builder
+  (make-record-builder http-connection-logger))
+(define-syntax http-connection-logger-write-log
+  (syntax-rules ()
+    ((_ connection-logger msg exp ...)
+     (when connection-logger
+       (let ((logger (http-connection-logger-logger connection-logger)))
+	 (when (logger-debug? logger)
+	   (debug-log logger msg exp ...)))))))
+
+(define-record-type http-wire-logger
+  (fields logger
+	  data-formatter))
+(define-syntax http-wire-logger-builder
+  (make-record-builder http-wire-logger
+		       ((data-formatter values))))
+
+(define-syntax http-wire-logger-write-log
+  (syntax-rules ()
+    ((_ wire-logger message bv-exp)
+     (when wire-logger 
+       (let ((logger (http-wire-logger-logger wire-logger))
+	     (formatter (http-wire-logger-data-formatter wire-logger)))
+	 (when (logger-debug? logger)
+	   (let ((bv bv-exp))
+	     (debug-log logger 
+			(format "~a (~a)" message (bytevector-length bv))
+			(formatter bv)))))))))
 )

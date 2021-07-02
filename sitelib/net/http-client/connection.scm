@@ -39,7 +39,7 @@
 	    http-connection-user-agent
 	    http-connection-context-data
 
-	    http-logging-connection
+	    http-logging-connection?
 	    (rename (http-logging-connection <http-logging-connection>))
 	    make-http-logging-connection
 	    http-logging-connection-logger
@@ -53,6 +53,9 @@
 	    ;; for internal or extra http version
 	    http-connection-context?
 	    (rename (http-connection-context <http-connection-context>))
+
+	    http-connection-write-log
+	    http-connection-write-header-log
 	    
 	    )
     (import (rnrs)
@@ -117,11 +120,24 @@
 	   (http-connection-output-set! c (->logging-output-port out logger)))
 	 c)))))
 
+(define-syntax http-connection-write-log
+  (syntax-rules ()
+    ((_ conn exp ...)
+     (let ((c conn))
+       (when (http-logging-connection? c)
+	 (http-connection-logger-write-log
+	  (http-client-logger-connection-logger
+	   (http-logging-connection-logger c))
+	  exp ...))))))
+(define (http-connection-write-header-log conn name value)
+  (http-connection-write-log conn (string-append "[Header] " name ": " value)))
+
 (define (->logging-input-port in logger)
   (define wire-logger (http-client-logger-wire-logger logger))
   (define (read! bv start count)
     (let ((ret (get-bytevector-n! in bv start count)))
-      (http-wire-logger-write-log wire-logger "IN" bv start ret)
+      (http-wire-logger-write-log wire-logger "IN" 
+       (bytevector-copy bv start (+ start ret)))
       ret))
   (define (close) (close-port in))
   (define (ready) (port-ready? in))
@@ -132,7 +148,8 @@
 (define (->logging-output-port out logger)
   (define wire-logger (http-client-logger-wire-logger logger))
   (define (write! bv start count)
-    (http-wire-logger-write-log wire-logger "OUT" bv start count)
+    (http-wire-logger-write-log wire-logger "OUT"
+     (bytevector-copy bv start (+ start count)))
     (put-bytevector out bv start count)
     count)
   (define (close) (close-port out))

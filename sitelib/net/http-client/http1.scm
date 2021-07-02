@@ -80,9 +80,9 @@
     (fold-left (lambda (acc conn) (and acc conn)) #t (vector->list results))))
 
 (define (http1-resquest/response connection request header-handler data-handler)
-  ;; 1. ensure connection (some bad server may not allow us to reuse the
-  ;;    connection (i.e. no content-length or no transfer-encoding, or keep-alive
-  ;;    closed specified)
+  ;; 1. ensure connection (some bad server may not allow us to reuse
+  ;;    the connection (i.e. no content-length or no
+  ;;    transfer-encoding, or keep-alive closed specified)
   ;; 2. send request
   ;; 3. receive response
   ;; 4. close connection if needed
@@ -164,6 +164,12 @@
   (define method (http:request-method request))
   (define body (http:request-body request))
   (define (send-first-line out request)
+    (http-connection-write-log connection
+     (string-append
+      "[Request-Line] "
+      (symbol->string method) " "
+      (http:request->request-uri request)
+      "HTTP/1.1"))
     (put-bytevector out (string->utf8 (symbol->string method)))
     (put-bytevector out #*" ")
     (put-bytevector out (string->utf8 (http:request->request-uri request)))
@@ -173,6 +179,7 @@
     (define headers (http:request-headers request))
     (define uri (http:request-uri request))
     (define (write-header out name value)
+      (http-connection-write-header-log connection name value)
       (put-bytevector out (string->utf8 name))
       (put-bytevector out #*": ")
       (put-bytevector out (string->utf8 value))
@@ -225,7 +232,6 @@
       (cond ((bytevector? body) (put-bytevector out body))
 	    ((port? body) (send-chunked out body)))
       (flush-output-port out)))
-  
   (send-first-line out request)
   (send-headers out request)
   (send-body out request)

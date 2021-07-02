@@ -39,12 +39,17 @@
 		     make-http-default-connection-manager))
 	    make-http-ephemeral-connection-manager
 	    http-ephemeral-connection-manager?
+
+	    ;; for logging
+	    make-http-logging-connection-manager
+	    http-logging-connection-manager?
 	    
 	    make-http-pooling-connection-manager
 	    http-pooling-connection-manager?
 	    http-connection-pooling-config?
 	    http-connection-pooling-config-builder
 	    build-http-pooling-connection-manager
+
 	    (rename (make-http-ephemeral-connection-manager
 		     default-delegate-connection-manager-provider))
 	    make-logging-delegate-connection-provider
@@ -121,7 +126,7 @@
 (define (make-logging-release-connection logger)
   (lambda (manager connection reuseable?)
     ;; TODO maybe log here?
-    (ephemeral-lease-connection connection)))
+    (ephemeral-release-connection manager connection reuseable?)))
 
 (define (make-logging-delegate-connection-provider logger)
   (lambda ()

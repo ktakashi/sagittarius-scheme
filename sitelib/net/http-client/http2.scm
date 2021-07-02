@@ -111,6 +111,13 @@
   (define header-frame (stream:request->header-frame stream request))
   (define data-frame-sender (stream:request->data-frame-sender stream request))
 
+  ;; FIXME I don't want to do this check
+  (when (http-logging-connection? connection)
+    (for-each (lambda (hv)
+		(http-connection-write-header-log connection
+						  (utf8->string (car hv))
+						  (utf8->string (cadr hv))))
+	      (http2-frame-headers-headers header-frame)))
   (http2-write-stream stream header-frame (and (not data-frame-sender) #t))
   (when data-frame-sender (data-frame-sender))
   (http2-stream-state-set! stream (http2:stream-state half-closed))

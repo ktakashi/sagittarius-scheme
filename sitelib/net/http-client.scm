@@ -54,6 +54,9 @@
 	    make-http-ephemeral-connection-manager
 	    http-ephemeral-connection-manager?
 
+	    make-http-logging-connection-manager
+	    http-logging-connection-manager?
+
 	    ;; delegate connection manager provider
 	    default-delegate-connection-manager-provider
 	    make-logging-delegate-connection-provider
@@ -66,6 +69,10 @@
 
 	    http-client-logger?
 	    http-client-logger-builder
+	    http-connection-logger?
+	    http-connection-logger-builder
+	    http-wire-logger?
+	    http-wire-logger-builder
 	    
 	    list->key-manager make-key-manager key-manager
 	    key-manager?
