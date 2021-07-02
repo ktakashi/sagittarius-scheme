@@ -91,11 +91,11 @@ insecure redirection may happen (i.e. HTTPS to HTTP)
 
 The @code{field} must be one or more the followings.
 @dl-list[
-  @dl-item[uri]{The URI of the request, it has to be an URI object of @code{(net uri)} or valid URI string. This field is mandatory.}
-  @dl-item[method]{A valid HTTP method. Default value is @code{GET}.}
-  @dl-item[content-type]{A content type header, this is used when the method is allowed to have body. Default value @code{"application/octet-stream"}.}
-  @dl-item[body]{Content of the request. The value must be either a bytevector ot binary input port.}
-  @dl-item[headers]{A list of headers or a HTTP header object. If it's a list of header, then the element must contain a pair of name and values.}
+  @dl-item[@code{uri}]{The URI of the request, it has to be an URI object of @code{(net uri)} or valid URI string. This field is mandatory.}
+  @dl-item[@code{method}]{A valid HTTP method. Default value is @code{GET}.}
+  @dl-item[@code{content-type}]{A content type header, this is used when the method is allowed to have body. Default value @code{"application/octet-stream"}.}
+  @dl-item[@code{body}]{Content of the request. The value must be either a bytevector ot binary input port.}
+  @dl-item[@code{headers}]{A list of headers or a HTTP header object. If it's a list of header, then the element must contain a pair of name and values.}
 ]
 
 }
