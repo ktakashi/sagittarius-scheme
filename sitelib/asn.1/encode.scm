@@ -2,7 +2,7 @@
 ;;;
 ;;; encode.scm - ASN.1 encoder
 ;;;
-;;;   Copyright (c) 2009-2012  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2009-2021  Takashi Kato  <ktakashi@ymail.com>
 ;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -29,14 +29,15 @@
 ;;;
 
 ;; For now we just implemented only the part which RKCS#1 v1.5 encode requires.
+#!nounbound
 (library (asn.1 encode)
     (export asn.1-encode (rename (asn.1-encode encode)))
     (import (rnrs)
 	    (asn.1 der encode))
   (define (asn.1-encode obj :key (encoder der-encode))
-    (call-with-bytevector-output-port
-     (lambda (p)
-       (encoder obj p)))))
+    (let-values (((out e) (open-bytevector-output-port)))
+      (encoder obj out)
+      (e))))
 
 ;; Local Variables:
 ;; coding: utf-8
