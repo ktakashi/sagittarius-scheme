@@ -24,13 +24,17 @@ AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
-DefaultDirName={pf}\{#MyAppName}
+DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
+DisableDirPage=auto
+AlwaysShowDirOnReadyPage=yes
+PrivilegesRequiredOverridesAllowed=commandline dialog
 LicenseFile={#SrcDir}\COPYING
 OutputBaseFilename=setup_sagittarius_{#MyAppVersion}{#TargetArch}
 Compression=lzma
 SolidCompression=yes
 ChangesAssociations=yes
+WizardStyle=modern
 @SAGITTARIUS_INSTALLER_MODE@
 @SAGITTARIUS_INSTALLER_ARCH@
 
@@ -40,11 +44,11 @@ Name: "jp"; MessagesFile: "compiler:Languages\Japanese.isl"
 
 [CustomMessages]
 AdditionalRegistry=Registry association:
-jp.AdditionalRegistry=ÉåÉWÉXÉgÉäÇ…ìoò^Ç∑ÇÈ:
+jp.AdditionalRegistry=„É¨„Ç∏„Çπ„Éà„É™„Å´ÁôªÈå≤„Åô„Çã:
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 0,6.1
+Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 6.1
 Name: "registry"; Description: "{cm:AssocFileExtension, {#MyAppName}, .scm}"; GroupDescription: "{cm:AdditionalRegistry}"; Flags: unchecked
 
 [Files]
