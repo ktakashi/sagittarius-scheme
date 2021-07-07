@@ -137,6 +137,7 @@
 
 	    script-apply-digit-substitution
 
+	    (rename (usp10 *windows-usp10-module*))
 	    )
     (import (rnrs)
 	    (sagittarius)

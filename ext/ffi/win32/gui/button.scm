@@ -37,6 +37,7 @@
 	    (win32 user)
 	    (win32 defs)
 	    (win32 kernel)
+	    (win32 common-control)
 	    (win32 gui api)
 	    (sagittarius ffi)
 	    (sagittarius object)
@@ -65,6 +66,6 @@
 	((= code BN_KILLFOCUS) 'blur)
 	(else code)))
 
-(inherit-window-class  "BUTTON" *win32-default-button-class-name* WM_NCCREATE)
+(inherit-window-class WC_BUTTON *win32-default-button-class-name* WM_NCCREATE)
 
 )

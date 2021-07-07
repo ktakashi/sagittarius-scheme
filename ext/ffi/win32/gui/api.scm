@@ -37,6 +37,7 @@
 	    win32-common-dispatch
 	    win32-translate-notification
 	    win32-before-drawing
+	    win32-handle-notify
 	    win32-generate-unique-id ;; util
 	    win32-loword win32-hiword
 	    win32-require-hwnd
@@ -320,7 +321,8 @@
 
 (define-method win32-translate-notification ((w <win32-component>) code) code)
 (define-method win32-before-drawing ((w <win32-component>) hdc) #f)
-
+;; def
+(define-method win32-handle-notify ((w <win32-component>) wparam lparam) #f)
 ;; from minwindef.h
 ;; seems doesn't matter the size of wparam
 (define-syntax win32-loword
@@ -405,6 +407,10 @@
 	((= imsg WM_SETFOCUS)
 	 (let ((w (win32-get-component hwnd)))
 	   (win32-handle-event (make-win32-event w 'focus wparam lparam))))
+	((= imsg WM_NOTIFY)
+	 (let* ((w (win32-get-component hwnd))
+		(c (lookup-control w wparam)))
+	   (and c (win32-handle-notify c wparam lparam))))
 	;; TODO add more
 	(else #f)))
 
@@ -424,7 +430,7 @@
 		    (let ((c (pointer->object w))) (set! (~ c 'hwnd) hwnd))
 		    (call-next)))
 		 ;; handle user defined message
-		 (else 
+		 (else
 		  (win32-common-dispatch hwnd imsg wparam lparam)
 		  (call-next))))
 	 (define-values (system-callback window-class)

@@ -2,7 +2,7 @@
 ;;;
 ;;; kernel.scm - Win32 API wrapper library
 ;;;  
-;;;   Copyright (c) 2010-2015  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2021  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -29,12 +29,19 @@
 ;;;  
 
 ;; based on Cygwin's winbase.h
-
+#!nounbound
 (library (win32 kernel)
     (export FILETIME PFILETIME LPFILETIME
 	    BY_HANDLE_FILE_INFORMATION LPBY_HANDLE_FILE_INFORMATION
 	    get-module-handle
-	    get-last-error)
+	    get-current-process
+	    get-last-error
+
+	    get-console-window
+
+	    	    ;; for custom extension
+	    (rename (kernel32 *windows-kernel32-module*))
+	    )
     (import (core)
 	    (sagittarius ffi)
 	    (win32 defs))
@@ -64,7 +71,11 @@
     (c-function kernel32
 		HMODULE GetModuleHandleW (LPCWSTR)))
 
+  (define get-current-process
+    (c-function kernel32 HANDLE GetCurrentProcess ()))
+
   (define get-last-error
     (c-function kernel32 DWORD GetLastError ()))
 
+  (define get-console-window (c-function kernel32 HWND GetConsoleWindow ()))
 )

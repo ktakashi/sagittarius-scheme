@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!nounbound
 (library (win32 gui window)
     (export make-win32-window
 	    <win32-window> win32-window?
@@ -87,8 +88,7 @@
 	       1)))
 	((= imsg WM_DESTROY)
 	 (let ((w (win32-get-component hwnd)))
-	   (cond ((or (not (win32-window? w)) ;; why this happens?
-		      (not (~ w 'owner))) 
+	   (cond ((or (not (win32-window? w)) (not (~ w 'owner)))
 		  (post-quit-message 0) 0)
 		 (else 1))))
 	((win32-common-dispatch hwnd imsg wparam lparam) 1)
@@ -105,6 +105,12 @@
 (define-method object-apply ((o <win32-window>))
   (win32-show o)
   (win32-message-loop))
+
+#;(define-method win32-handle-notify ((o <win32-window>) wparam lparam)
+  (fold-left (lambda (a c)
+	       (and (win32-handle-notify c wparam lparam) a))
+	     #t
+	     (~ o 'components)))
 
 ;;; Menu
 ;; the menu component has very close connection with window

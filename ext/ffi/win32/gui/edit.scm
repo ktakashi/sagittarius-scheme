@@ -43,6 +43,7 @@
 	    (sagittarius)
 	    (sagittarius ffi)
 	    (win32 user)
+	    (win32 common-control)
 	    (win32 defs)
 	    (win32 gdi)
 	    (win32 gui api)
@@ -121,6 +122,6 @@
   )
   
 
-(inherit-window-class  "EDIT" *win32-default-edit-class-name* WM_NCCREATE)
+(inherit-window-class WC_EDIT *win32-default-edit-class-name* WM_NCCREATE)
 
 )

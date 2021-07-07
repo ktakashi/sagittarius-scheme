@@ -66,7 +66,10 @@
 	    OFN_SHAREWARN
 
 	    get-open-file-name
-	    get-save-file-name)
+	    get-save-file-name
+
+	    (rename (comdlg32 *windows-comdlg32-module*))
+	    )
     (import (core)
 	    (sagittarius)
 	    (sagittarius ffi)

@@ -29,6 +29,7 @@
 ;;;
 
 ;; based on Cygwin's winuser.h
+#!nounbound
 (library (win32 user)
     (export WNDPROC
 	    IDI_APPLICATION IDI_HAND IDI_QUESTION IDI_EXCLAMATION
@@ -36,7 +37,7 @@
 
 	    IDC_ARROW IDC_IBEAM IDC_WAIT IDC_CROSS IDC_UPARROW
 	    IDC_SIZE IDC_ICON IDC_SIZENWSE IDC_SIZENESW IDC_SIZEWE
-v	    IDC_SIZENS IDC_SIZEALL IDC_NO IDC_HAND IDC_APPSTARTING
+	    IDC_SIZENS IDC_SIZEALL IDC_NO IDC_HAND IDC_APPSTARTING
 	    IDC_HELP
 
 	    WNDCLASSEX
@@ -44,6 +45,7 @@ v	    IDC_SIZENS IDC_SIZEALL IDC_NO IDC_HAND IDC_APPSTARTING
 	    MSG
 	    CREATESTRUCT
 	    MENUITEMINFO
+	    NMHDR
 	    message-box
 	    create-window-ex
 	    create-window
@@ -57,6 +59,8 @@ v	    IDC_SIZENS IDC_SIZEALL IDC_NO IDC_HAND IDC_APPSTARTING
 	    call-window-proc
 	    show-window
 	    update-window
+	    is-window-visible
+	    get-parent
 	    get-message
 	    peek-message
 	    translate-message
@@ -88,6 +92,8 @@ v	    IDC_SIZENS IDC_SIZEALL IDC_NO IDC_HAND IDC_APPSTARTING
 	    set-window-text
 	    get-window-text
 	    get-window-text-length
+	    get-window-rect
+	    set-window-pos
 	    set-cursor
 	    get-cusor-pos
 	    set-capture
@@ -119,6 +125,9 @@ v	    IDC_SIZENS IDC_SIZEALL IDC_NO IDC_HAND IDC_APPSTARTING
 
 	    screen-to-client
 	    get-key-state
+
+	    ;; for custom extension
+	    (rename (user32 *windows-user32-module*))
 	    )
     (import (rnrs)
 	    (rename (sagittarius) (define-constant defconst))
@@ -712,6 +721,12 @@ v	    IDC_SIZENS IDC_SIZEALL IDC_NO IDC_HAND IDC_APPSTARTING
     (HBITMAP hbmpItem))
   (define-constant LPMENUITEMINFO void*)
 
+  (define-c-struct NMHDR
+    (HWND hwndFrom)
+    (UINT idFrom)
+    (UINT code))
+  (define-constant LPNMHDR void*)
+  
   (define message-box
     (c-function user32
 		int MessageBoxW (HWND LPCWSTR LPCWSTR UINT)))
@@ -757,6 +772,10 @@ v	    IDC_SIZENS IDC_SIZEALL IDC_NO IDC_HAND IDC_APPSTARTING
   (define show-window (c-function user32 BOOL ShowWindow (HWND int)))
 
   (define update-window (c-function user32 BOOL UpdateWindow (HWND)))
+
+  (define get-parent (c-function user32 HWND GetParent (HWND)))
+
+  (define is-window-visible (c-function user32 HWND IsWindowVisible (HWND)))
 
   (define get-message 
     (c-function user32 int GetMessageW (LPMSG HWND UINT UINT)))
@@ -831,6 +850,12 @@ v	    IDC_SIZENS IDC_SIZEALL IDC_NO IDC_HAND IDC_APPSTARTING
 
   (define get-window-text-length
     (c-function user32 int GetWindowTextLengthW (HWND)))
+
+  (define get-window-rect
+    (c-function user32 BOOL GetWindowRect (HWND LPRECT)))
+
+  (define set-window-pos
+    (c-function user32 BOOL SetWindowPos (HWND HWND int int int int UINT)))
 
   (define set-cursor (c-function user32 HCURSOR SetCursor (HCURSOR)))
   (define get-cusor-pos (c-function user32 BOOL GetCursorPos (LPPOINT)))

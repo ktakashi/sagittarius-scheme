@@ -95,6 +95,8 @@
 	    create-rect-rgn-indirect
 	    combine-rgn
 	    invalidate-rgn
+
+	    (rename (gdi32 *windows-gdil32-module*))
 	    )
     (import (core)
 	    (core syntax)
