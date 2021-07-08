@@ -48,14 +48,13 @@
 	    (sagittarius control)
 	    (sagittarius object))
 
-(define-class <win32-tab-panel> (<win32-container>) 
-  ((border :init-keyword :border :init-value WS_BORDER)))
+(define-class <win32-tab-panel> (<win32-container>) ())
 (define (win32-tab-panel? o) (is-a? o <win32-tab-panel>))
 (define (make-win32-tab-panel . args) (apply make <win32-tab-panel> args))
 (define-method initialize ((o <win32-tab-panel>) initargs)
   (call-next-method)
-  (unless (slot-bound? o 'class-name) (set! (~ o 'class-name) WC_STATIC))
-  (set! (~ o 'style) (bitwise-ior (~ o 'style) (~ o 'border)))
+  (unless (slot-bound? o 'class-name) (set! (~ o 'class-name) WC_PAGESCROLLER))
+  (set! (~ o 'style) (bitwise-ior (~ o 'style)))
   o)
 
 (define *win32-default-tab-control-class-name*
@@ -81,77 +80,58 @@
 		       WS_CHILD WS_CLIPSIBLINGS WS_VISIBLE)))
   o)
 
-(define dummy
-  (let ()
-    (define (default-button-proc hwnd imsg wparam lparam)
-      (define (call-next) 
-	(call-window-proc system-callback hwnd imsg wparam lparam))
-      (cond ((= imsg WM_NCCREATE)
-	     ;; save the lpCreateParams of CREATESTRUCT
-	     (let ((w (c-struct-ref lparam CREATESTRUCT 'lpCreateParams)))
-	       (set-window-long-ptr hwnd GWLP_USERDATA w)
-	       (let ((c (pointer->object w))) (set! (~ c 'hwnd) hwnd))
-	       (call-next)))
-	    ((= imsg WM_SIZE)
-	     (let ((w (win32-get-component hwnd))
-		   (r (call-next)))
-	       (and w
-		    (let* ((lp (pointer->integer lparam))
-			   (width (win32-loword lp))
-			   (height (win32-hiword lp)))
-		      (set-window-pos (~ w 'hwnd)
-				      null-pointer ;; = HWND_TOP
-				      0 0 width height #x0040)
-		      (for-each (lambda (c)
-				  (when (and (win32-auto-resize? c)
-					     (~ c 'hwnd))
-				    (move-window (~ c 'hwnd)
-						 (~ c 'x)
-						 (~ c 'y)
-						 width
-						 height
-						 (~ c 'repaint?))))
-				(~ w 'tabs))))
-	       r))
-	    ((= imsg WM_NOTIFY)
-	     (let ((w (win32-get-component hwnd)))
-	       (and w (win32-handle-notify w wparam lparam) 1)))
-	    (else (call-next))))
-    (define-values (system-callback window-class)
-      (let ((w (allocate-c-struct WNDCLASSEX)))
-	(c-struct-set! w WNDCLASSEX 'cbSize (size-of-c-struct WNDCLASSEX))
-	(unless (get-class-info-ex +the-win32-process+ WC_TABCONTROL w)
-	  (error 'win32-default-button-class
-		 "Failed to retrieve system class info"
-		 (get-last-error)
-		 WC_TABCONTROL))
-	(let ((callback
-	       (c-callback LRESULT 
-			   (HWND UINT WPARAM LPARAM) default-button-proc))
-	      (orig (c-struct-ref w WNDCLASSEX 'lpfnWndProc)))
-	  (values 
-	   (c-struct-ref w WNDCLASSEX 'lpfnWndProc)
-	   (wndclassex->win32-window-class
-	    *win32-default-tab-control-class-name* callback w)))))
-    (win32-register-class window-class)))
-#;(inherit-window-class WC_TABCONTROL *win32-default-tab-control-class-name*
+(inherit-window-class WC_TABCONTROL *win32-default-tab-control-class-name*
 		      WM_NCCREATE)
 
 (define-method win32-handle-notify ((w <win32-tab-container>) wparam lparam)
-  (let ((code (c-struct-ref lparam NMHDR 'code)))
-    ;; (display code) (newline)
-    #;(for-each (lambda (tab)
-		(show-window (~ tab 'hwmd) SW_HIDE)) (~ w 'tabs))
-    )
+  (resize-tab-panel w 0 0) ;; for now
+  ;; return #f to let Windows handle the rest
   #f)
+
+(define (resize-tab-panel w width height)
+  ;; get currently selected one
+  (let ((index (pointer->integer (tab-ctrl-get-cur-sel (~ w 'hwnd))))
+	(rect (allocate-c-struct RECT)))
+    (get-window-rect (~ w 'hwnd) rect)
+    (c-struct-set! rect RECT 'left 0)
+    (c-struct-set! rect RECT 'top 0)
+    (tab-ctrl-adjust-rect (~ w 'hwnd) 0 rect)
+    ;; get adjusted size here
+    (do ((i 0 (+ i 1)) (tabs (~ w 'tabs) (cdr tabs))
+	 (selected (if (negative? index) 0 index)))
+	((null? tabs))
+      (let ((tab (car tabs)))
+	(win32-require-hwnd tab
+	 (cond ((= i selected)
+		(show-window (~ tab 'hwnd) SW_SHOW)
+		(set-window-pos (~ tab 'hwnd)
+				null-pointer
+				(c-struct-ref rect RECT 'left)
+				(c-struct-ref rect RECT 'top)
+				(- (c-struct-ref rect RECT 'right)
+				   (c-struct-ref rect RECT 'left))
+				(- (c-struct-ref rect RECT 'bottom)
+				   (c-struct-ref rect RECT 'top))
+				SWP_SHOWWINDOW))
+	       (else (show-window (~ tab 'hwnd) SW_HIDE))))))))
+(define-method win32-handle-size ((w <win32-tab-container>) width height)
+  (when (win32-auto-resize? w)
+    #;(move-window (~ w 'hwnd) (~ w 'x) (~ w 'y)  width height (~ w 'repaint?))
+    (set-window-pos (~ w 'hwnd)
+		    null-pointer ;; = HWND_TOP
+		    0 0 width height SWP_SHOWWINDOW))
+  (resize-tab-panel w width height))
 
 (define-method win32-add-component!
   ((o <win32-tab-container>) (t <win32-tab-panel>))
   (call-next-method)
-  (set! (~ o 'tabs) (cons t (~ o 'tabs))))
+  ;; it's bit costly...
+  (set! (~ o 'tabs) (append (~ o 'tabs) (list t)))
+  (win32-insert-tab! o t (length (~ o 'tabs))))
+
 (define-method win32-show ((o <win32-tab-container>))
   (call-next-method)
-  (do ((i 1 (+ i 1)) (tabs (~ o 'tabs) (cdr tabs)))
+  #;(do ((i 1 (+ i 1)) (tabs (~ o 'tabs) (cdr tabs)))
       ((null? tabs))
     (win32-insert-tab! o (car tabs) i)))
 

@@ -43,6 +43,12 @@
 
 	    TCM_ADJUSTRECT
 
+	    TCN_KEYDOWN
+	    TCN_SELCHANGE
+	    TCN_SELCHANGING
+	    TCN_GETOBJECT
+	    TCN_FOCUSCHANGE
+
 	    TCS_SCROLLOPPOSITE
 	    TCS_BOTTOM
 	    TCS_RIGHT
@@ -109,6 +115,13 @@
     (int    cchTextMax)
     (int    iImage)
     (LPARAM lParam))
+
+  (define-constant TCN_FIRST               #xfffffdda) ;; (0U-550U)
+  (define-constant TCN_KEYDOWN             (- TCN_FIRST 0))
+  (define-constant TCN_SELCHANGE           (- TCN_FIRST 1))
+  (define-constant TCN_SELCHANGING         (- TCN_FIRST 2))
+  (define-constant TCN_GETOBJECT           (- TCN_FIRST 3))
+  (define-constant TCN_FOCUSCHANGE         (- TCN_FIRST 4))
 
   (define-constant TCS_SCROLLOPPOSITE      #x0001)
   (define-constant TCS_BOTTOM              #x0002)

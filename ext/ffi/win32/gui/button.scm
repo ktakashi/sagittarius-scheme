@@ -52,7 +52,7 @@
     (unless (slot-bound? b 'class-name)
       (set! (~ b 'class-name) *win32-default-button-class-name*))
     (set! (~ b 'style) style)
-    (when (zero? (~ b 'window-style))
+    #;(when (zero? (~ b 'window-style))
       (set! (~ b 'window-style) WS_EX_STATICEDGE)))
   b)
 

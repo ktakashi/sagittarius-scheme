@@ -1,8 +1,8 @@
 ;;; -*- mode: scheme; coding: utf-8; -*-
 ;;;
-;;; win32/gui.scm - Win32 GUI
+;;; win32/gui/tab.scm - Win32 Tab component
 ;;;  
-;;;   Copyright (c) 2015  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2021  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -28,17 +28,18 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-;; This library is CLOS based Win32 GUI library.
-;; The base concept is the same as sagittarius-turquoise but
-;; only Windows specific.
+#!nounbound
+(library (win32 richedit)
+    (export MSFTEDIT_CLASS
+	    (rename (msftedit *windows-msftedit-module*)))
+    (import (rnrs)
+	    (sagittarius)
+	    (win32 defs))
 
-(library (win32 gui)
-    (export :all)
-    (import (win32 gui api)
-	    (win32 gui window)
-	    (win32 gui button)
-	    (win32 gui file-select)
-	    (win32 gui edit)
-	    (win32 gui text-view)
-	    (win32 gui tab)
-	    (win32 gui label)))
+(define msftedit (open-win32-module "Msftedit.dll"))
+(define richedit (open-win32-module "Riched20.dll")) ;; do we need this?
+
+(define-constant RICHEDIT_CLASS "RichEdit20W")
+(define-constant MSFTEDIT_CLASS "RICHEDIT50W")
+
+)

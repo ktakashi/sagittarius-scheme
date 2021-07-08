@@ -31,12 +31,16 @@
 (library (win32 gui edit)
     (export <win32-edit>
 	    <win32-text-edit> win32-text-edit?
-	    make-win32-text-edit
+	    make-win32-text-edit 
+	    
 	    <win32-multi-text-edit> win32-multi-text-edit?
 	    make-win32-multi-text-edit
 	    win32-draw-edit
 
 	    win32-edit-set-font ;; external api
+	    win32-edit-set-text!
+	    win32-edit-append-text!
+	    win32-edit-get-text
 	    win32-edit-update-font ;; internal api
 	    )
     (import (rnrs)
@@ -46,6 +50,7 @@
 	    (win32 common-control)
 	    (win32 defs)
 	    (win32 gdi)
+	    (win32 richedit)
 	    (win32 gui api)
 	    (clos user)
 	    (sagittarius object))
@@ -91,12 +96,43 @@
   (win32-edit-update-font e) ;; now update font info
   (send-message (~ e 'hwnd) WM_SETFONT font (if redraw? 1 0)))
 
+(define (win32-edit-set-text! e text)
+  (set! (~ e 'value) text)
+  (set-window-text (~ e 'hwnd) text))
+
+(define (win32-edit-get-text e)
+  (let ((len (get-window-text-length (~ e 'hwnd))))
+    (if (zero? len)
+	(begin (set! (~ e 'value) "") "")
+	(let* ((len+1 (+ len 1)) ;; add null...
+	       ;; it's  wchar_t
+	       (p (allocate-pointer (* len+1 size-of-wchar_t))))
+	  (get-window-text (~ e 'hwnd) p len+1)
+	  (let ((s (wchar-pointer->string p)))
+	    (set! (~ e 'value) s)
+	    s)))))
+
+
 ;; as the final goal, we provide all edit control from win32 api. however 
 ;; for now it's only what we need.
 
 (define-class <win32-text-edit> (<win32-edit>) ())
 (define (win32-text-edit? o) (is-a? o <win32-text-edit>))
 (define (make-win32-text-edit . opt) (apply make <win32-text-edit> opt))
+(define-method initialize ((t <win32-text-edit>) initargs)
+  (call-next-method)
+  ;; TODO correct?
+  (set! (~ t 'style) (bitwise-ior (~ t 'style) ES_AUTOHSCROLL))
+  t)
+(define-method win32-edit-append-text! ((e <win32-text-edit>) text)
+  (define hwnd (~ e 'hwnd))
+  ;; TODO should we?
+  ;; (set! (~ e 'value) (string-append (~ e 'value text)))
+  (let ((len (get-window-text-length hwnd)))
+    (send-message hwnd EM_SETSEL len (integer->pointer len))
+    (send-message hwnd EM_REPLACESEL 0
+		  (string->utf16 (string-append text "\x0;")
+				 (endianness native)))))
 
 (define-class <win32-multi-text-edit> (<win32-text-edit>) ())
 (define (win32-multi-text-edit? o) (is-a? o <win32-multi-text-edit>))
@@ -109,9 +145,14 @@
   (set! (~ t 'style) (bitwise-ior (~ t 'style)
 				  ES_MULTILINE
 				  ES_WANTRETURN
-				  WS_VSCROLL WS_HSCROLL
+				  WS_VSCROLL
 				  ES_AUTOVSCROLL))
   t)
+
+(define-method win32-edit-append-text! ((e <win32-multi-text-edit>) text)
+  (define hwnd (~ e 'hwnd))
+  (call-next-method)
+  (send-message hwnd WM_VSCROLL SB_BOTTOM null-pointer))
 
 (define-method win32-before-drawing ((t <win32-edit>) hdc)
   (win32-draw-edit t hdc))
@@ -120,8 +161,7 @@
   (select-object hdc (~ edit 'font))
   (set-bk-mode hdc TRANSPARENT)
   )
-  
 
-(inherit-window-class WC_EDIT *win32-default-edit-class-name* WM_NCCREATE)
-
+(inherit-window-class MSFTEDIT_CLASS *win32-default-edit-class-name*
+		      WM_NCCREATE)
 )

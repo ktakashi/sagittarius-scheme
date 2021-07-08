@@ -94,6 +94,7 @@
 	    get-window-text-length
 	    get-window-rect
 	    set-window-pos
+
 	    set-cursor
 	    get-cusor-pos
 	    set-capture
@@ -543,6 +544,47 @@
   (define-constant ES_WANTRETURN  #x1000)
   (define-constant ES_NUMBER      #x2000)
 
+  (define-constant EM_GETSEL               #x00B0)
+  (define-constant EM_SETSEL               #x00B1)
+  (define-constant EM_GETRECT              #x00B2)
+  (define-constant EM_SETRECT              #x00B3)
+  (define-constant EM_SETRECTNP            #x00B4)
+  (define-constant EM_SCROLL               #x00B5)
+  (define-constant EM_LINESCROLL           #x00B6)
+  (define-constant EM_SCROLLCARET          #x00B7)
+  (define-constant EM_GETMODIFY            #x00B8)
+  (define-constant EM_SETMODIFY            #x00B9)
+  (define-constant EM_GETLINECOUNT         #x00BA)
+  (define-constant EM_LINEINDEX            #x00BB)
+  (define-constant EM_SETHANDLE            #x00BC)
+  (define-constant EM_GETHANDLE            #x00BD)
+  (define-constant EM_GETTHUMB             #x00BE)
+  (define-constant EM_LINELENGTH           #x00C1)
+  (define-constant EM_REPLACESEL           #x00C2)
+  (define-constant EM_GETLINE              #x00C4)
+  (define-constant EM_LIMITTEXT            #x00C5)
+  (define-constant EM_CANUNDO              #x00C6)
+  (define-constant EM_UNDO                 #x00C7)
+  (define-constant EM_FMTLINES             #x00C8)
+  (define-constant EM_LINEFROMCHAR         #x00C9)
+  (define-constant EM_SETTABSTOPS          #x00CB)
+  (define-constant EM_SETPASSWORDCHAR      #x00CC)
+  (define-constant EM_EMPTYUNDOBUFFER      #x00CD)
+  (define-constant EM_GETFIRSTVISIBLELINE  #x00CE)
+  (define-constant EM_SETREADONLY          #x00CF)
+  (define-constant EM_SETWORDBREAKPROC     #x00D0)
+  (define-constant EM_GETWORDBREAKPROC     #x00D1)
+  (define-constant EM_GETPASSWORDCHAR      #x00D2)
+  (define-constant EM_SETMARGINS           #x00D3)
+  (define-constant EM_GETMARGINS           #x00D4)
+  (define-constant EM_SETLIMITTEXT         EM_LIMITTEXT) ;win40 Name change
+  (define-constant EM_GETLIMITTEXT         #x00D5)
+  (define-constant EM_POSFROMCHAR          #x00D6)
+  (define-constant EM_CHARFROMPOS          #x00D7)
+  (define-constant EM_SETIMESTATUS         #x00D8)
+  (define-constant EM_GETIMESTATUS         #x00D9)
+  (define-constant EM_ENABLEFEATURE        #x00DA)
+
   (define-constant EN_SETFOCUS     #x0100)
   (define-constant EN_KILLFOCUS    #x0200)
   (define-constant EN_CHANGE 	   #x0300)
@@ -726,7 +768,7 @@
     (UINT idFrom)
     (UINT code))
   (define-constant LPNMHDR void*)
-  
+
   (define message-box
     (c-function user32
 		int MessageBoxW (HWND LPCWSTR LPCWSTR UINT)))
@@ -766,7 +808,7 @@
     (c-function user32 LRESULT DefWindowProcW (HWND UINT WPARAM LPARAM)))
 
   (define call-window-proc
-    (c-function user32 
+    (c-function user32
 		LRESULT CallWindowProcW (WNDPROC HWND UINT WPARAM LPARAM)))
 
   (define show-window (c-function user32 BOOL ShowWindow (HWND int)))
@@ -777,17 +819,17 @@
 
   (define is-window-visible (c-function user32 HWND IsWindowVisible (HWND)))
 
-  (define get-message 
+  (define get-message
     (c-function user32 int GetMessageW (LPMSG HWND UINT UINT)))
 
-  (define peek-message 
+  (define peek-message
     (c-function user32 BOOL GetMessageW (LPMSG HWND UINT UINT UINT)))
 
   (define translate-message (c-function user32 BOOL TranslateMessage (void*)))
 
   (define dispatch-message (c-function user32 LONG DispatchMessageW (void*)))
 
-  (define tabbed-text-out 
+  (define tabbed-text-out
     (c-function user32 LONG TabbedTextOutW
 		(HDC int int LPCWSTR int int LPINT int)))
 
@@ -1232,8 +1274,8 @@
   (define-constant COLOR_3DHILIGHT COLOR_BTNHIGHLIGHT)
   (define-constant COLOR_BTNHILIGHT COLOR_BTNHIGHLIGHT)
 
-  (define get-sys-color (c-function user32 DWORD GetSysColor (int)))  
-  (define get-sys-color-brush 
+  (define get-sys-color (c-function user32 DWORD GetSysColor (int)))
+  (define get-sys-color-brush
     (c-function user32 HBRUSH GetSysColorBrush (int)))
   (define set-sys-colors
     ;; int, CONST INT *, CONST COLORREF *
@@ -1255,9 +1297,9 @@
   (define-constant SIF_POS #x0004)
   (define-constant SIF_DISABLENOSCROLL #x0008)
   (define-constant SIF_TRACKPOS #x0010)
-  (define-constant SIF_ALL (bitwise-ior SIF_RANGE 
-					SIF_PAGE 
-					SIF_POS 
+  (define-constant SIF_ALL (bitwise-ior SIF_RANGE
+					SIF_PAGE
+					SIF_POS
 					SIF_TRACKPOS))
 
   (define-constant SW_SCROLLCHILDREN #x0001)
@@ -1265,10 +1307,10 @@
   (define-constant SW_ERASE #x0004)
   (define-constant SW_SMOOTHSCROLL #x0010)
 
-  (define get-scroll-info 
+  (define get-scroll-info
     (c-function user32 BOOL GetScrollInfo (HWND int LPCSCROLLINFO)))
 
-  (define set-scroll-info 
+  (define set-scroll-info
     (c-function user32 int SetScrollInfo (HWND int LPCSCROLLINFO BOOL)))
   (define scroll-window-ex
     (c-function user32 int ScrollWindowEx
@@ -1539,6 +1581,21 @@
   (define-constant MA_NOACTIVATE 3)
   (define-constant MA_NOACTIVATEANDEAT 4)
 
+  (define-constant SWP_ASYNCWINDOWPOS	#x4000)
+  (define-constant SWP_DEFERERASE	#x2000)
+  (define-constant SWP_DRAWFRAME	#x0020)
+  (define-constant SWP_FRAMECHANGED	#x0020)
+  (define-constant SWP_HIDEWINDOW	#x0080)
+  (define-constant SWP_NOACTIVATE	#x0010)
+  (define-constant SWP_NOCOPYBITS	#x0100)
+  (define-constant SWP_NOMOVE		#x0002)
+  (define-constant SWP_NOOWNERZORDER	#x0200)
+  (define-constant SWP_NOREDRAW		#x0008)
+  (define-constant SWP_NOREPOSITION	#x0200)
+  (define-constant SWP_NOSENDCHANGING	#x0400)
+  (define-constant SWP_NOSIZE		#x0001)
+  (define-constant SWP_NOZORDER		#x0004)
+  (define-constant SWP_SHOWWINDOW	#x0040)
 
   (define create-caret
     (c-function user32 BOOL CreateCaret (HWND HBITMAP int int)))

@@ -30,7 +30,7 @@
 
 ;; this library provides generic methods and base classes
 (library (win32 gui api)
-    (export win32-create win32-show
+    (export win32-create win32-show win32-hide
 	    win32-register-class
 	    win32-message-loop
 	    win32-get-component
@@ -41,6 +41,8 @@
 	    win32-generate-unique-id ;; util
 	    win32-loword win32-hiword
 	    win32-require-hwnd
+
+	    
 
 	    <win32-window-class> win32-window-class?
 	    make-win32-window-class
@@ -56,7 +58,7 @@
 	    <win32-sizable>
 	    <win32-component>    win32-component?
 	    <win32-container>    win32-container?
-	    win32-add-component!
+	    win32-add-component! win32-handle-size
 
 	    <win32-auto-resize> win32-auto-resize?
 
@@ -284,6 +286,8 @@
 		    (~ o 'hwnd)))))
     (show-window hwnd SW_SHOW)
     (update-window hwnd)))
+(define-method win32-hide  ((o <win32-component>))
+  (win32-require-hwnd o (show-window (~ o 'hwnd) SW_HIDE)))
 
 (define-method object-apply ((o <win32-component>)) (win32-show o))
 
@@ -344,6 +348,14 @@
   ((repaint? :init-value #t)))
 (define (win32-auto-resize? o) (is-a? o <win32-auto-resize>))
 
+(define-method win32-handle-size (w width height) #f)
+(define-method win32-handle-size ((w <win32-container>) width height)
+  (for-each (lambda (c)
+	      (when (and (win32-auto-resize? c) (~ c 'hwnd))
+		(move-window (~ c 'hwnd) (~ c 'x) (~ c 'y)
+			     width height (~ c 'repaint?)))) (~ w 'components))
+  #t)
+
 (define (win32-common-dispatch hwnd imsg wparam lparam)
   (define (handle-menu id)
     (and-let* ((c (win32-find-menu-control (win32-get-component hwnd) id)))
@@ -387,22 +399,11 @@
 	   ;; lparam can be data for this event.
 	   (and w (win32-handle-event (make-win32-event w sym #f lparam)))))
 	((= imsg WM_SIZE)
-	 (let ((w (win32-get-component hwnd)))
-	   (if (win32-container? w)
-	       (let* ((lp (pointer->integer lparam))
-		      (width (win32-loword lp))
-		      (height (win32-hiword lp)))
-		 (for-each (lambda (c)
-			     (when (and (win32-auto-resize? c) (~ c 'hwnd))
-			       (move-window (~ c 'hwnd)
-					    (~ c 'x)
-					    (~ c 'y)
-					    width
-					    height
-					    (~ c 'repaint?))))
-			   (~ w 'components))
-		 #t)
-	       #f)))
+	 (let* ((w (win32-get-component hwnd))
+		(lp (pointer->integer lparam))
+		(width (win32-loword lp))
+		(height (win32-hiword lp)))
+	   (win32-handle-size w width height)))
 	;; should we handle WM_MOVE?
 	((= imsg WM_SETFOCUS)
 	 (let ((w (win32-get-component hwnd)))

@@ -78,8 +78,11 @@
 	  (for-each (lambda (str)
 		      (put-bytevector out 
 				      (string->utf16 str (endianness little)))
-		      (put-u8 out 0))
+		      (put-u8 out 0)
+		      (put-u8 out 0)
+		      )
 		    args)
+	  (put-u8 out 0)
 	  (put-u8 out 0)
 	  (extract))))
   (define (get-flags select)

@@ -102,15 +102,13 @@
 	     :window-proc *window-proc*)))
     (win32-register-class c)))
 
+(define-method win32-create ((o <win32-window>))
+  (call-next-method)
+  (set-window-text (~ o 'hwnd) (~ o 'name)))
+
 (define-method object-apply ((o <win32-window>))
   (win32-show o)
   (win32-message-loop))
-
-#;(define-method win32-handle-notify ((o <win32-window>) wparam lparam)
-  (fold-left (lambda (a c)
-	       (and (win32-handle-notify c wparam lparam) a))
-	     #t
-	     (~ o 'components)))
 
 ;;; Menu
 ;; the menu component has very close connection with window

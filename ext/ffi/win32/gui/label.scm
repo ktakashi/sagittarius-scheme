@@ -1,8 +1,8 @@
 ;;; -*- mode: scheme; coding: utf-8; -*-
 ;;;
-;;; win32/gui.scm - Win32 GUI
+;;; win32/gui/label.scm - Win32 Label component
 ;;;  
-;;;   Copyright (c) 2015  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2021  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -28,17 +28,40 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-;; This library is CLOS based Win32 GUI library.
-;; The base concept is the same as sagittarius-turquoise but
-;; only Windows specific.
+#!nounbound
+(library (win32 gui label)
+    (export make-win32-label <win32-label>
+	    win32-label?
+	    win32-label-set-text!
 
-(library (win32 gui)
-    (export :all)
-    (import (win32 gui api)
-	    (win32 gui window)
-	    (win32 gui button)
-	    (win32 gui file-select)
-	    (win32 gui edit)
-	    (win32 gui text-view)
-	    (win32 gui tab)
-	    (win32 gui label)))
+	    )
+    (import (rnrs)
+	    (sagittarius)
+	    (sagittarius ffi)
+	    (win32 kernel)
+	    (win32 user)
+	    (win32 defs)
+	    (win32 common-control)
+	    (win32 gui api)
+	    (clos user)
+	    (sagittarius control)
+	    (sagittarius object))
+  
+(define *win32-default-label-class-name* "sagittarius-default-label-class")
+(define-class <win32-label> (<win32-component>) ())
+(define (win32-label? o) (is-a? o <win32-label>))
+(define (make-win32-label . args) (apply make <win32-label> args))
+(define-method initialize ((o <win32-label>) initargs)
+  (call-next-method)
+  (unless (slot-bound? o 'class-name)
+    (set! (~ o 'class-name) *win32-default-label-class-name*))
+  o)
+
+(define (win32-label-set-text! l text)
+  (set! (~ l 'name) text)
+  (set-window-text (~ l 'hwnd) text))
+
+(inherit-window-class WC_STATIC *win32-default-label-class-name* WM_NCCREATE)
+
+
+)
