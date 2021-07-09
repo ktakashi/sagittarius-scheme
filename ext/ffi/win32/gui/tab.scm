@@ -34,7 +34,7 @@
 	    win32-tab-contaier?
 
 	    make-win32-tab-panel <win32-tab-panel>
-	    win32-tab-panel?
+	    win32-tab-panel? win32-tab-panel-set-tab-name!
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -48,17 +48,34 @@
 	    (sagittarius control)
 	    (sagittarius object))
 
-(define-class <win32-tab-panel> (<win32-container>) ())
+(define *win32-default-tab-panel-class-name*
+  "sagittarius-default-tab-panel-class")
+(define-class <win32-tab-panel> (<win32-container>)
+  ((tab-name :init-keyword :tab-name)))
 (define (win32-tab-panel? o) (is-a? o <win32-tab-panel>))
 (define (make-win32-tab-panel . args) (apply make <win32-tab-panel> args))
 (define-method initialize ((o <win32-tab-panel>) initargs)
   (call-next-method)
-  (unless (slot-bound? o 'class-name) (set! (~ o 'class-name) WC_PAGESCROLLER))
+  (unless (slot-bound? o 'class-name)
+    (set! (~ o 'class-name) *win32-default-tab-panel-class-name*))
+  (unless (slot-bound? o 'tab-name)
+    (set! (~ o 'tab-name) (~ o 'name)))
+  (set! (~ o 'name) "")
   (set! (~ o 'style) (bitwise-ior (~ o 'style)))
   o)
 
+(define (win32-tab-panel-set-tab-name! tab name)
+  (set! (~ tab 'tab-name) name)
+  ;; if owner isn't there, then just slot set is fine
+  (cond ((~ tab 'owner) =>
+	 (lambda (c)
+	   (let ((pos (win32-get-tab-position c tab)))
+	     (when (>= pos 0) (win32-set-tab! c tab pos)))))))
+
 (define *win32-default-tab-control-class-name*
   "sagittarius-default-tab-control-class")
+(inherit-window-class WC_STATIC *win32-default-tab-panel-class-name*
+		      WM_NCCREATE)
 
 (define-class <win32-tab-container> (<win32-container>)
   ((tabs :init-value '())
@@ -129,20 +146,33 @@
   (set! (~ o 'tabs) (append (~ o 'tabs) (list t)))
   (win32-insert-tab! o t (length (~ o 'tabs))))
 
-(define-method win32-show ((o <win32-tab-container>))
-  (call-next-method)
-  #;(do ((i 1 (+ i 1)) (tabs (~ o 'tabs) (cdr tabs)))
-      ((null? tabs))
-    (win32-insert-tab! o (car tabs) i)))
-
 (define (win32-insert-tab! c tab pos)
   (win32-require-hwnd c
    (let ((ti (allocate-c-struct TC_ITEM))
 	 (hwnd (~ c 'hwnd))
-	 (name (~ tab 'name)))
+	 (name (~ tab 'tab-name)))
      (c-struct-set! ti TC_ITEM 'mask TCIF_TEXT)
      (c-struct-set! ti TC_ITEM 'pszText name)
      (c-struct-set! ti TC_ITEM 'cchTextMax name)
+     (when (and (~ c 'hwnd) (not (~ tab 'hwnd)))
+       (win32-create tab))
      (tab-ctrl-insert-item hwnd pos ti))))
+
+(define (win32-get-tab-position c tab)
+  (do ((i 0 (+ i 1)) (tabs (~ c 'tabs) (cdr tabs)))
+      ((or (null? tabs) (eq? tab (car tabs)))
+       (if (null? tabs) -1 i))))
+
+(define (win32-set-tab! c tab pos)
+  (win32-require-hwnd c
+   (let ((ti (allocate-c-struct TC_ITEM))
+	 (hwnd (~ c 'hwnd))
+	 (name (~ tab 'tab-name)))
+     (c-struct-set! ti TC_ITEM 'mask TCIF_TEXT)
+     (c-struct-set! ti TC_ITEM 'pszText name)
+     (c-struct-set! ti TC_ITEM 'cchTextMax name)
+     (tab-ctrl-set-item hwnd pos ti)
+     (let ((index (pointer->integer (tab-ctrl-get-cur-sel (~ c 'hwnd)))))
+       (when (= pos index) (win32-show tab))))))
 
 )

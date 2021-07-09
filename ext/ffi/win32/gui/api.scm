@@ -105,7 +105,8 @@
       (wnd-set! lpszMenuName  (~ window-class 'menu-name))
       (wnd-set! hIconSm (~ window-class 'small-icon))
       (when (zero? (register-class-ex wnd))
-	(error 'win32-register-class "Failed to register WNDCLASS"))
+	(error 'win32-register-class "Failed to register WNDCLASS"
+	       (~ window-class 'name)))
       window-class)))
 
 (define (win32-message-loop)
@@ -287,7 +288,9 @@
     (show-window hwnd SW_SHOW)
     (update-window hwnd)))
 (define-method win32-hide  ((o <win32-component>))
-  (win32-require-hwnd o (show-window (~ o 'hwnd) SW_HIDE)))
+  (win32-require-hwnd o 
+   (show-window (~ o 'hwnd) SW_HIDE)
+   (update-window (~ o 'hwnd))))
 
 (define-method object-apply ((o <win32-component>)) (win32-show o))
 
@@ -316,6 +319,9 @@
 (define-method win32-show ((o <win32-container>))
   (call-next-method)
   (for-each win32-show (~ o 'components)))
+(define-method win32-hide ((o <win32-container>))
+  (call-next-method)
+  (for-each win32-hide (~ o 'components)))
 
 (define (win32-get-component hwnd)
   (let ((p (get-window-long-ptr hwnd GWLP_USERDATA)))
