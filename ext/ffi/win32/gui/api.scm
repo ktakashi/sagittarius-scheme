@@ -43,7 +43,8 @@
 	    win32-require-hwnd
 
 	    
-
+	    win32-set-size!
+	    
 	    <win32-window-class> win32-window-class?
 	    make-win32-window-class
 	    wndclassex->win32-window-class
@@ -291,6 +292,26 @@
   (win32-require-hwnd o 
    (show-window (~ o 'hwnd) SW_HIDE)
    (update-window (~ o 'hwnd))))
+
+(define-method win32-set-size! ((o <win32-component>) width height)
+  (win32-require-hwnd o
+   (let ((rect (allocate-c-struct RECT)))
+     (get-window-rect (~ o 'hwnd) rect)
+     (move-window (~ o 'hwnd)
+		  (c-struct-ref rect RECT 'left)
+		  (c-struct-ref rect RECT 'top)
+		  width height #t))))
+(define-method win32-set-position ((o <win32-component>) x y)
+  (win32-require-hwnd o
+   (let ((rect (allocate-c-struct RECT)))
+     (get-window-rect (~ o 'hwnd) rect)
+     (move-window (~ o 'hwnd)
+		  x y
+		  (- (c-struct-ref rect RECT 'right)
+		     (c-struct-ref rect RECT 'left))
+		  (- (c-struct-ref rect RECT 'bottom)
+		     (c-struct-ref rect RECT 'top))
+		  #t))))
 
 (define-method object-apply ((o <win32-component>)) (win32-show o))
 
