@@ -33,7 +33,7 @@
 (library (win32 user)
     (export WNDPROC
 	    IDI_APPLICATION IDI_HAND IDI_QUESTION IDI_EXCLAMATION
-	    IDI_ASTERISK IDI_WINLOGO
+	    IDI_ASTERISK IDI_WINLOGO IDI_SHIELD
 
 	    IDC_ARROW IDC_IBEAM IDC_WAIT IDC_CROSS IDC_UPARROW
 	    IDC_SIZE IDC_ICON IDC_SIZENWSE IDC_SIZENESW IDC_SIZEWE
@@ -671,6 +671,7 @@
   (define IDI_EXCLAMATION (integer->pointer 32515))
   (define IDI_ASTERISK (integer->pointer 32516))
   (define IDI_WINLOGO (integer->pointer 32517))
+  (define IDI_SHIELD (integer->pointer 32518))
 
   (define-constant MIIM_STATE 1)
   (define-constant MIIM_ID 2)

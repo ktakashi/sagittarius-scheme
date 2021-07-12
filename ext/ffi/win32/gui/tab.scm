@@ -31,7 +31,7 @@
 #!nounbound
 (library (win32 gui tab)
     (export make-win32-tab-container <win32-tab-container>
-	    win32-tab-contaier?
+	    win32-tab-container? win32-tab-container-set-image-list!
 
 	    make-win32-tab-panel <win32-tab-panel>
 	    win32-tab-panel? win32-tab-panel-set-tab-name!
@@ -44,6 +44,7 @@
 	    (win32 defs)
 	    (win32 common-control)
 	    (win32 gui api)
+	    (win32 gui image)
 	    (clos user)
 	    (sagittarius control)
 	    (sagittarius object))
@@ -51,7 +52,8 @@
 (define *win32-default-tab-panel-class-name*
   "sagittarius-default-tab-panel-class")
 (define-class <win32-tab-panel> (<win32-container>)
-  ((tab-name :init-keyword :tab-name)))
+  ((tab-name :init-keyword :tab-name)
+   (tab-image :init-keyword :tab-image :init-value #f)))
 (define (win32-tab-panel? o) (is-a? o <win32-tab-panel>))
 (define (make-win32-tab-panel . args) (apply make <win32-tab-panel> args))
 (define-method initialize ((o <win32-tab-panel>) initargs)
@@ -79,8 +81,9 @@
 
 (define-class <win32-tab-container> (<win32-container>)
   ((tabs :init-value '())
-   (fixed-width? :init-keyword :fixed-width? :init-value #f)))
-(define (win32-tab-contaier? o) (is-a? o <win32-tab-container>))
+   (fixed-width? :init-keyword :fixed-width? :init-value #f)
+   (image-list :init-keyword :image-list :init-value #f)))
+(define (win32-tab-container? o) (is-a? o <win32-tab-container>))
 (define (make-win32-tab-container . args)
   (apply make <win32-tab-container> args))
 (define-method initialize ((o <win32-tab-container>) initargs)
@@ -99,6 +102,18 @@
 
 (inherit-window-class WC_TABCONTROL *win32-default-tab-control-class-name*
 		      WM_NCCREATE)
+
+(define-method win32-create ((o <win32-tab-container>))
+  (when (~ o 'image-list) (win32-create (~ o 'image-list)))
+  (call-next-method))
+
+(define (win32-tab-container-set-image-list! w il)
+  (unless (and (win32-tab-container? w) (win32-image-list? il))
+    (assertion-violation 'win32-tab-container-set-image-list!
+			 "Tab container and image list required" w il))
+  (set! (~ w 'image-list) il)
+  (win32-require-hwnd w
+   (send-message (~ w 'hwnd) TCM_SETIMAGELIST 0 (~ il 'himl))))
 
 (define-method win32-handle-notify ((w <win32-tab-container>) wparam lparam)
   (resize-tab-panel w 0 0) ;; for now
@@ -142,14 +157,22 @@
   (set! (~ o 'tabs) (append (~ o 'tabs) (list t)))
   (win32-insert-tab! o t (length (~ o 'tabs))))
 
+;; make sure
+(define (find-image tab il)
+  (let ((image (~ tab 'tab-image)))
+    (do ((i 0 (+ i 1)) (images (~ il 'images) (cdr images)))
+	((or (null? images) (eq? (car images) image))
+	 (if (null? images) -1 i)))))
 (define (win32-insert-tab! c tab pos)
   (win32-require-hwnd c
    (let ((ti (allocate-c-struct TC_ITEM))
 	 (hwnd (~ c 'hwnd))
-	 (name (~ tab 'tab-name)))
-     (c-struct-set! ti TC_ITEM 'mask TCIF_TEXT)
+	 (name (~ tab 'tab-name))
+	 (image (find-image tab (~ c 'image-list))))
+     (c-struct-set! ti TC_ITEM 'mask (bitwise-ior TCIF_TEXT TCIF_IMAGE))
      (c-struct-set! ti TC_ITEM 'pszText name)
      (c-struct-set! ti TC_ITEM 'cchTextMax name)
+     (c-struct-set! ti TC_ITEM 'iImage image)
      (when (and (~ c 'hwnd) (not (~ tab 'hwnd)))
        (win32-create tab))
      (tab-ctrl-insert-item hwnd pos ti))))
@@ -163,14 +186,17 @@
   (win32-require-hwnd c
    (let ((ti (allocate-c-struct TC_ITEM))
 	 (hwnd (~ c 'hwnd))
-	 (name (~ tab 'tab-name)))
-     (c-struct-set! ti TC_ITEM 'mask TCIF_TEXT)
+	 (name (~ tab 'tab-name))
+	 (image (find-image tab (~ c 'image-list))))
+     (c-struct-set! ti TC_ITEM 'mask (bitwise-ior TCIF_TEXT TCIF_IMAGE))
      (c-struct-set! ti TC_ITEM 'pszText name)
      (c-struct-set! ti TC_ITEM 'cchTextMax name)
+     (c-struct-set! ti TC_ITEM 'iImage image)
      (tab-ctrl-set-item hwnd pos ti)
      (let ((index (pointer->integer (tab-ctrl-get-cur-sel (~ c 'hwnd)))))
        (when (= pos index) (win32-show tab)))
-
+     ;; we need to re-render the tab to make the components
+     ;; be rendered properly... no idea why...
      (let ((rect (allocate-c-struct RECT)))
        (get-window-rect (~ c 'hwnd) rect)
        (tab-ctrl-adjust-rect (~ c 'hwnd) 0 rect)

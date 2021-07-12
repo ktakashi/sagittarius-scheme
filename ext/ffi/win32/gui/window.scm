@@ -164,6 +164,12 @@
     (set! (~ item 'hmenu) (integer->pointer (win32-generate-unique-id))))
   (set! (~ root 'items) (cons item (~ root 'items))))
 
+(define-method win32-add-component! ((b <win32-menu-bar>) (m <win32-menu>))
+  (win32-add-menu! b m))
+(define-method win32-add-component!
+  ((w <win32-menu>) (m <win32-menu-component>))
+  (win32-add-menu-item! w m))
+
 (define-class <win32-menu-item> (<win32-menu-component>) ())
 (define (win32-menu-item? o) (is-a? o <win32-menu-item>))
 (define-method win32-create ((o <win32-menu-item>)) 
@@ -189,7 +195,7 @@
 			(= id (pointer->integer (~ item 'hmenu)))) 
 		   item)
 		  ((win32-menu? item)
-		   (or (loop (~ item 'items))
-		       (loop (cdr menu))))
-		  (else (cdr menu))))))))
+		   ;; first menu items, then the rest of menu
+		   (or (loop (~ item 'items)) (loop (cdr menu))))
+		  (else (loop (cdr menu)))))))))
 )

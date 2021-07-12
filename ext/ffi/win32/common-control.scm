@@ -36,11 +36,29 @@
 	    WC_STATIC WC_EDIT WC_LISTBOX WC_COMBOBOX
 	    WC_SCROLLBAR
 
+	    HIMAGELIST
+	    image-list-create image-list-destroy image-list-get-image-count
+	    image-list-set-image-count image-list-add image-list-replace-icon
+	    image-list-set-bk-color image-list-get-bk-color
+	    image-list-set-overlay-image image-list-add-icon
+	    ILC_MASK
+	    ILC_COLOR
+	    ILC_COLORDDB
+	    ILC_COLOR4
+	    ILC_COLOR8
+	    ILC_COLOR16
+	    ILC_COLOR24
+	    ILC_COLOR32
+	    ILC_PALETTE
+	    ILC_MIRROR
+	    ILC_ORIGINALSIZE
+	    ILC_HIGHQUALITYSCALE
+
 	    TC_ITEM
+	    TCM_GETIMAGELIST TCM_SETIMAGELIST TCM_GETITEMCOUNT
 	    TCM_GETITEM TCM_SETITEM TCM_INSERTITEM
 	    TCM_DELETEITEM TCM_DELETEALLITEM TCM_GETITEMRECT
-	    TCM_GETCURSEL TCM_SETCURSEL
-
+	    TCM_GETCURSEL TCM_SETCURSEL TCM_HITTEST TCM_SETITEMEXTRA
 	    TCM_ADJUSTRECT
 
 	    TCN_KEYDOWN
@@ -90,6 +108,8 @@
 	    (win32 defs)
 	    (win32 user))
 
+  (define comctl32 (open-win32-module "comctl32.dll"))
+
   (define-constant WC_HEADER "SysHeader")
   (define-constant WC_LINK "SysLink")
   (define-constant WC_LISTVIEW "SysListView32")
@@ -105,6 +125,43 @@
   (define-constant WC_LISTBOX "ListBox")
   (define-constant WC_COMBOBOX "ComboBox")
   (define-constant WC_SCROLLBAR "ScrollBar")
+
+  (define HIMAGELIST void*) ;; the same...
+
+  (define-constant ILC_MASK                #x00000001)
+  (define-constant ILC_COLOR               #x00000000)
+  (define-constant ILC_COLORDDB            #x000000FE)
+  (define-constant ILC_COLOR4              #x00000004)
+  (define-constant ILC_COLOR8              #x00000008)
+  (define-constant ILC_COLOR16             #x00000010)
+  (define-constant ILC_COLOR24             #x00000018)
+  (define-constant ILC_COLOR32             #x00000020)
+  (define-constant ILC_PALETTE             #x00000800)
+  (define-constant ILC_MIRROR              #x00002000)
+  (define-constant ILC_ORIGINALSIZE        #x00010000)
+  (define-constant ILC_HIGHQUALITYSCALE    #x00020000)
+
+  (define image-list-create
+    (c-function comctl32 HIMAGELIST ImageList_Create (int int UINT int int)))
+  (define image-list-destroy
+    (c-function comctl32 BOOL ImageList_Destroy (HIMAGELIST)))
+  (define image-list-get-image-count
+    (c-function comctl32 int ImageList_GetImageCount (HIMAGELIST)))
+  (define image-list-set-image-count
+    (c-function comctl32 BOOL ImageList_SetImageCount (HIMAGELIST UINT)))
+  (define image-list-add
+    (c-function comctl32 int ImageList_Add (HIMAGELIST HBITMAP HBITMAP)))
+  (define image-list-replace-icon
+    (c-function comctl32 int ImageList_ReplaceIcon (HIMAGELIST int HICON)))
+  (define image-list-set-bk-color
+    (c-function comctl32 COLORREF ImageList_SetBkColor (HIMAGELIST COLORREF)))
+  (define image-list-get-bk-color
+    (c-function comctl32 COLORREF ImageList_GetBkColor (HIMAGELIST)))
+  (define image-list-set-overlay-image
+    (c-function comctl32 BOOL ImageList_SetOverlayImage (HIMAGELIST int int)))
+  (define (image-list-add-icon himl hicon)
+    (image-list-replace-icon himl -1 hicon))
+
 
   (define-c-struct TC_ITEM
     (UINT   mask)
@@ -151,6 +208,9 @@
   (define-constant TCIF_STATE              #x0010)
 
   (define-constant TCM_FIRST   #x1300)
+  (define-constant TCM_GETIMAGELIST (+ TCM_FIRST 2))
+  (define-constant TCM_SETIMAGELIST (+ TCM_FIRST 3))
+  (define-constant TCM_GETITEMCOUNT (+ TCM_FIRST 4))
   (define-constant TCM_GETITEM (+ TCM_FIRST 60))
   (define-constant TCM_SETITEM (+ TCM_FIRST 61))
   (define-constant TCM_INSERTITEM (+ TCM_FIRST 62))
@@ -161,6 +221,9 @@
   (define-constant TCM_GETITEMRECT (+ TCM_FIRST 10))
   (define-constant TCM_GETCURSEL (+ TCM_FIRST 11))
   (define-constant TCM_SETCURSEL (+ TCM_FIRST 12))
+
+  (define-constant TCM_HITTEST (+ TCM_FIRST 13))
+  (define-constant TCM_SETITEMEXTRA (+ TCM_FIRST 14))
 
   (define-constant TCM_ADJUSTRECT (+ TCM_FIRST 40))
 
@@ -181,6 +244,8 @@
       ((_ name tcm wparam lparam)
        (define-tcm-command-aux name tcm (wparam lparam) (wparam lparam)))))
 
+  (define-tcm-command tab-ctrl-get-image-list TCM_GETITEMRECT)
+  ;; (define-tcm-command tab-ctrl-set-image-list TCM_SETITEMRECT himl)
   (define-tcm-command tab-ctrl-get-item TCM_GETITEM iItme pitem)
   (define-tcm-command tab-ctrl-set-item TCM_SETITEM iItme pitem)
   (define-tcm-command tab-ctrl-insert-item TCM_INSERTITEM iItme pitem)

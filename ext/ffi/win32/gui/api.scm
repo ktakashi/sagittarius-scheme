@@ -57,6 +57,7 @@
 
 	    <win32-positionable>
 	    <win32-sizable>
+	    <win32-lazy-init>
 	    <win32-component>    win32-component?
 	    <win32-container>    win32-container?
 	    win32-add-component! win32-handle-size
@@ -229,6 +230,9 @@
   ((width  :init-keyword :width  :init-value CW_USEDEFAULT)
    (height :init-keyword :height :init-value CW_USEDEFAULT)))
 
+(define-class <win32-lazy-init> ()
+  ((action-queue :init-value '())))
+
 (define win32-generate-unique-id
   (let ((id 0)
 	(lock (make-mutex)))
@@ -240,7 +244,7 @@
 	r))))
 
 (define-class <win32-component> 
-  (<win32-positionable> <win32-sizable> <win32-event-aware>)
+  (<win32-positionable> <win32-sizable> <win32-event-aware> <win32-lazy-init>)
   ((name :init-keyword :name :init-value "undefined")
    (hwnd  :init-keyword :hwnd :init-value #f)
    (owner :init-keyword :owner :init-value #f)
@@ -250,12 +254,16 @@
    (hinstance :init-keyword :hinstance :init-value +hinstance+)
    (hmenu :init-keyword :hmenu :init-value #f)
    ;; if hwnd is required but called before it's created
-   (action-queue :init-value '())
    (lock  :init-form (make-mutex))))
 
 (define (win32-component? o) (is-a? o <win32-component>))
 
-;;(define-method initialize ((o <win32-component>) initargs) (call-next-method))
+(define-method win32-create ((o <win32-lazy-init>))
+  ;; ok invoke queue
+  (let loop ()
+    (unless (null? (~ o 'action-queue))
+      ((pop! (~ o 'action-queue)))
+      (loop))))
 
 (define-method win32-create ((o <win32-component>))
   (let* ((owner (~ o 'owner))
@@ -275,11 +283,7 @@
 		 ;; pass self to wndproc's lparam
 		 (object->pointer o))))
     (set! (~ o 'hwnd) hwnd)
-    ;; ok invoke queue
-    (let loop ()
-      (unless (null? (~ o 'action-queue))
-	((pop! (~ o 'action-queue)))
-	(loop)))))
+    (call-next-method)))
 
 (define-method win32-show ((o <win32-component>))
   (let ((hwnd (or (~ o 'hwnd)
