@@ -688,6 +688,32 @@
 	  (test-equal "non-packed-p-ref (3)" 4 (pointer->integer (non-packed-p-ref np)))))
       )
     )
+
+  ;; bug...
+  (let ()
+    (define-c-struct a
+      (int a))
+    (define-c-struct b
+      (int a)
+      (void* b)
+      ;; here must be either 8 (on 32 bit) or 16 (on 64 bit)
+      (struct a c)
+      (long d))
+
+    (let ((bp (allocate-c-struct b))
+	  (ap (allocate-c-struct a)))
+      (c-struct-set! ap a 'a #x0A1B2C3D)
+      (c-struct-set! bp b 'b (integer->pointer #xFFFFFF))
+      (c-struct-set! bp b 'c ap)
+      (test-equal "c-struct-ref (struct)"
+		  #x0A1B2C3D (c-struct-ref (c-struct-ref bp b 'c) a 'a))
+      (let ((b-offset size-of-void*))
+	;; 'b' must be on the boundary
+	(test-equal "saninty alignment check"
+		    #xFFFFFF (pointer-ref-c-int32_t bp b-offset))
+	;; 'c' must be next
+	(test-equal #x0A1B2C3D (pointer-ref-c-int32_t bp (* b-offset 2))))))
+
   )
  (else
   #t))

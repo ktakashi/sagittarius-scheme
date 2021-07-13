@@ -2,7 +2,7 @@
 ;;;
 ;;; common-control.scm - Win32 API wrapper library
 ;;;
-;;;   Copyright (c) 2010-2015  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2021  Takashi Kato  <ktakashi@ymail.com>
 ;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -41,6 +41,11 @@
 	    image-list-set-image-count image-list-add image-list-replace-icon
 	    image-list-set-bk-color image-list-get-bk-color
 	    image-list-set-overlay-image image-list-add-icon
+	    image-list-draw
+	    IMAGEINFO PIMAGEINFO
+	    image-list-get-icon-size image-list-set-icon-size
+	    image-list-get-image-info
+	    
 	    ILC_MASK
 	    ILC_COLOR
 	    ILC_COLORDDB
@@ -53,6 +58,22 @@
 	    ILC_MIRROR
 	    ILC_ORIGINALSIZE
 	    ILC_HIGHQUALITYSCALE
+	    ILD_NORMAL
+	    ILD_TRANSPARENT
+	    ILD_MASK
+	    ILD_IMAGE
+	    ILD_ROP
+	    ILD_BLEND25
+	    ILD_BLEND50
+	    ILD_OVERLAYMASK
+	    INDEXTOOVERLAYMASK
+	    ILD_PRESERVEALPHA
+	    ILD_SCALE
+	    ILD_DPISCALE
+	    ILD_ASYNC
+	    ILD_SELECTED
+	    ILD_FOCUS
+	    ILD_BLEND
 
 	    TC_ITEM
 	    TCM_GETIMAGELIST TCM_SETIMAGELIST TCM_GETITEMCOUNT
@@ -94,6 +115,7 @@
 	    TCIF_PARAM
 	    TCIF_STATE
 
+	    tab-ctrl-get-image-list
 	    tab-ctrl-get-item
 	    tab-ctrl-set-item tab-ctrl-insert-item
 	    tab-ctrl-delete-item tab-ctrl-delete-all-item
@@ -161,7 +183,41 @@
     (c-function comctl32 BOOL ImageList_SetOverlayImage (HIMAGELIST int int)))
   (define (image-list-add-icon himl hicon)
     (image-list-replace-icon himl -1 hicon))
+  (define image-list-draw
+    (c-function comctl32 BOOL ImageList_Draw (HIMAGELIST int HDC int int UINT)))
 
+  (define-constant ILD_NORMAL              #x00000000)
+  (define-constant ILD_TRANSPARENT         #x00000001)
+  (define-constant ILD_MASK                #x00000010)
+  (define-constant ILD_IMAGE               #x00000020)
+  (define-constant ILD_ROP                 #x00000040)
+  (define-constant ILD_BLEND25             #x00000002)
+  (define-constant ILD_BLEND50             #x00000004)
+  (define-constant ILD_OVERLAYMASK         #x00000F00)
+  (define (INDEXTOOVERLAYMASK i) (bitwise-arithmetic-shift-left i 8))
+  (define-constant ILD_PRESERVEALPHA       #x00001000)
+  (define-constant ILD_SCALE               #x00002000)
+  (define-constant ILD_DPISCALE            #x00004000)
+  (define-constant ILD_ASYNC               #x00008000)
+  (define-constant ILD_SELECTED            ILD_BLEND50)
+  (define-constant ILD_FOCUS               ILD_BLEND25)
+  (define-constant ILD_BLEND               ILD_BLEND50)
+
+  (define-c-struct IMAGEINFO
+    (HBITMAP     hbmImage)
+    (HBITMAP     hbmMask)
+    (int         unused1)
+    (int         unused2)
+    (struct RECT rcImage))
+  (define PIMAGEINFO void*)
+  
+  (define image-list-get-icon-size
+    ;; (HIMAGELIST, int *, int *)
+    (c-function comctl32 BOOL ImageList_GetIconSize (HIMAGELIST void* void*)))
+  (define image-list-set-icon-size
+    (c-function comctl32 BOOL ImageList_SetIconSize (HIMAGELIST int int)))
+  (define image-list-get-image-info
+    (c-function comctl32 BOOL ImageList_GetImageInfo (HIMAGELIST int PIMAGEINFO)))
 
   (define-c-struct TC_ITEM
     (UINT   mask)
@@ -244,7 +300,7 @@
       ((_ name tcm wparam lparam)
        (define-tcm-command-aux name tcm (wparam lparam) (wparam lparam)))))
 
-  (define-tcm-command tab-ctrl-get-image-list TCM_GETITEMRECT)
+  (define-tcm-command tab-ctrl-get-image-list TCM_GETIMAGELIST)
   ;; (define-tcm-command tab-ctrl-set-image-list TCM_SETITEMRECT himl)
   (define-tcm-command tab-ctrl-get-item TCM_GETITEM iItme pitem)
   (define-tcm-command tab-ctrl-set-item TCM_SETITEM iItme pitem)

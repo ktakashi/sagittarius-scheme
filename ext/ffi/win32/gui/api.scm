@@ -38,6 +38,7 @@
 	    win32-translate-notification
 	    win32-before-drawing
 	    win32-handle-notify
+	    win32-handle-draw-item
 	    win32-generate-unique-id ;; util
 	    win32-loword win32-hiword
 	    win32-require-hwnd
@@ -387,6 +388,8 @@
 			     width height (~ c 'repaint?)))) (~ w 'components))
   #t)
 
+(define-method win32-handle-draw-item (w lparam) #f)
+
 (define (win32-common-dispatch hwnd imsg wparam lparam)
   (define (handle-menu id)
     (and-let* ((c (win32-find-menu-control (win32-get-component hwnd) id)))
@@ -416,6 +419,10 @@
 		      (make-win32-event b
 		       (win32-translate-notification b op) #f #f)))))))
 	((= imsg WM_ERASEBKGND) #t)
+	((= imsg WM_DRAWITEM)
+	 (let* ((w (win32-get-component hwnd))
+		(e (lookup-control w wparam)))
+	   (win32-handle-draw-item e lparam)))
 	((= imsg WM_CTLCOLOREDIT)
 	 (let* ((w (win32-get-component hwnd))
 		(id (get-window-long-ptr lparam GWLP_ID))

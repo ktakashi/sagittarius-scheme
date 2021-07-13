@@ -46,6 +46,7 @@
 	    CREATESTRUCT
 	    MENUITEMINFO
 	    NMHDR
+	    DRAWITEMSTRUCT
 	    message-box
 	    create-window-ex
 	    create-window
@@ -89,6 +90,7 @@
 	    set-menu
 	    draw-menu-bar
 	    insert-menu-item
+	    draw-text
 	    set-window-text
 	    get-window-text
 	    get-window-text-length
@@ -188,6 +190,18 @@
   (define-constant WM_NEXTDLGCTL #x0028)
   (define-constant WM_SPOOLERSTATUS #x002A)
   (define-constant WM_DRAWITEM #x002B)
+
+  (define-c-struct DRAWITEMSTRUCT
+    (UINT        CtlType)
+    (UINT        CtlID)
+    (UINT        itemID)
+    (UINT        itemAction)
+    (UINT        itemState)
+    (HWND        hwndItem)
+    (HDC         hDC)
+    (struct RECT rcItem)
+    (ULONG_PTR   itemData))
+
   (define-constant WM_MEASUREITEM #x002C)
   (define-constant WM_DELETEITEM #x002D)
   (define-constant WM_VKEYTOITEM #x002E)
@@ -885,6 +899,34 @@
   (define insert-menu-item
     (c-function user32 BOOL InsertMenuItemW (HMENU UINT BOOL LPMENUITEMINFO)))
 
+  (define draw-text
+    (c-function user32 int DrawTextW (HDC LPCWSTR int LPRECT UINT)))
+
+  (define-constant DT_TOP                      #x00000000)
+  (define-constant DT_LEFT                     #x00000000)
+  (define-constant DT_CENTER                   #x00000001)
+  (define-constant DT_RIGHT                    #x00000002)
+  (define-constant DT_VCENTER                  #x00000004)
+  (define-constant DT_BOTTOM                   #x00000008)
+  (define-constant DT_WORDBREAK                #x00000010)
+  (define-constant DT_SINGLELINE               #x00000020)
+  (define-constant DT_EXPANDTABS               #x00000040)
+  (define-constant DT_TABSTOP                  #x00000080)
+  (define-constant DT_NOCLIP                   #x00000100)
+  (define-constant DT_EXTERNALLEADING          #x00000200)
+  (define-constant DT_CALCRECT                 #x00000400)
+  (define-constant DT_NOPREFIX                 #x00000800)
+  (define-constant DT_INTERNAL                 #x00001000)
+  (define-constant DT_EDITCONTROL              #x00002000)
+  (define-constant DT_PATH_ELLIPSIS            #x00004000)
+  (define-constant DT_END_ELLIPSIS             #x00008000)
+  (define-constant DT_MODIFYSTRING             #x00010000)
+  (define-constant DT_RTLREADING               #x00020000)
+  (define-constant DT_WORD_ELLIPSIS            #x00040000)
+  (define-constant DT_NOFULLWIDTHCHARBREAK     #x00080000)
+  (define-constant DT_HIDEPREFIX               #x00100000)
+  (define-constant DT_PREFIXONLY               #x00200000)
+  
   (define set-window-text
     (c-function user32 BOOL SetWindowTextW (HWND LPCWSTR)))
 

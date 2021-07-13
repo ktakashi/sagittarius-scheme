@@ -43,6 +43,7 @@
 	    (win32 user)
 	    (win32 defs)
 	    (win32 common-control)
+	    (win32 gdi)
 	    (win32 gui api)
 	    (win32 gui image)
 	    (clos user)
@@ -53,7 +54,8 @@
   "sagittarius-default-tab-panel-class")
 (define-class <win32-tab-panel> (<win32-container>)
   ((tab-name :init-keyword :tab-name)
-   (tab-image :init-keyword :tab-image :init-value #f)))
+   (tab-image :init-keyword :tab-image :init-value #f)
+   (tab-color :init-keyword :tab-color :init-value #f)))
 (define (win32-tab-panel? o) (is-a? o <win32-tab-panel>))
 (define (make-win32-tab-panel . args) (apply make <win32-tab-panel> args))
 (define-method initialize ((o <win32-tab-panel>) initargs)
@@ -74,6 +76,7 @@
 	   (let ((pos (win32-get-tab-position c tab)))
 	     (when (>= pos 0) (win32-set-tab! c tab pos)))))))
 
+
 (define *win32-default-tab-control-class-name*
   "sagittarius-default-tab-control-class")
 (inherit-window-class WC_STATIC *win32-default-tab-panel-class-name*
@@ -92,7 +95,8 @@
   (unless (slot-bound? o 'class-name)
     (set! (~ o 'class-name) *win32-default-tab-control-class-name*))
   ;; if user didn't specify
-  (when (zero? (~ o 'window-style)) (set! (~ o 'window-style) WS_EX_APPWINDOW))
+  (when (zero? (~ o 'window-style))
+    (set! (~ o 'window-style) WS_EX_APPWINDOW))
   (let ((s (~ o 'style))
 	(fx? (~ o 'fixed-width?)))
     (set! (~ o 'style)
@@ -119,6 +123,12 @@
   (resize-tab-panel w 0 0) ;; for now
   ;; return #f to let Windows handle the rest
   #f)
+
+(define-method win32-handle-draw-item ((w <win32-tab-container>) lparam)
+  (define pos (c-struct-ref lparam DRAWITEMSTRUCT 'itemID))
+  (let ((tab (list-ref (~ w 'tabs) pos)))
+    (win32-draw-tab w tab lparam))
+  #t)
 
 (define (resize-tab-panel w width height)
   ;; get currently selected one
@@ -159,10 +169,12 @@
 
 ;; make sure
 (define (find-image tab il)
-  (let ((image (~ tab 'tab-image)))
-    (do ((i 0 (+ i 1)) (images (~ il 'images) (cdr images)))
-	((or (null? images) (eq? (car images) image))
-	 (if (null? images) -1 i)))))
+  (if il
+      (let ((image (~ tab 'tab-image)))
+	(do ((i 0 (+ i 1)) (images (~ il 'images) (cdr images)))
+	    ((or (null? images) (eq? (car images) image))
+	     (if (null? images) -1 i))))
+      -1))
 (define (win32-insert-tab! c tab pos)
   (win32-require-hwnd c
    (let ((ti (allocate-c-struct TC_ITEM))
@@ -209,5 +221,59 @@
 		       (c-struct-ref rect RECT 'top))
 		    #t))
      )))
+
+(define-method win32-draw-tab ((t <win32-tab-container>)
+			       (p <win32-tab-panel>) lparam)
+
+  (define rect (c-struct-ref lparam DRAWITEMSTRUCT 'rcItem))
+  (define item-id (c-struct-ref lparam DRAWITEMSTRUCT 'itemID))
+  (define hdc (c-struct-ref lparam DRAWITEMSTRUCT 'hDC))
+  (define selected? (= (pointer->integer (tab-ctrl-get-cur-sel (~ t 'hwnd)))
+		       item-id))
+  (define image-list (tab-ctrl-get-image-list (~ t 'hwnd)))
+  
+  (define padding 3) ;; maybe get from panel?
+  (define bottom (c-struct-ref rect RECT 'bottom))
+  (define left (c-struct-ref rect RECT 'left))
+  (define top(c-struct-ref rect RECT 'top))
+  (define right (c-struct-ref rect RECT 'right))
+
+  (c-struct-set! rect RECT 'bottom (+ bottom (if selected? -1 2)))
+  
+  (let ((brush (create-solid-brush
+		(cond ((~ p 'tab-color))
+		      (else (get-sys-color COLOR_BTNFACE))))))
+    (fill-rect hdc rect brush)
+    (delete-object brush))
+
+  (c-struct-set! rect RECT 'left (+ left padding))
+  (c-struct-set! rect RECT 'top (+ top padding (if selected? 1 0)))
+  
+  (let ((oldbk (set-bk-mode hdc TRANSPARENT)))
+    (let ((ti (allocate-c-struct TC_ITEM)))
+      (c-struct-set! ti TC_ITEM 'mask  TCIF_IMAGE)
+      (tab-ctrl-get-item (~ t 'hwnd) item-id ti)
+      (when (and (not (null-pointer? image-list))
+		 (>= (c-struct-ref ti TC_ITEM 'iImage) 0))
+	(let ((ii (allocate-c-struct IMAGEINFO))
+	      (pos (c-struct-ref ti TC_ITEM 'iImage)))
+	  (image-list-get-image-info image-list pos ii)
+	  (image-list-draw image-list pos hdc
+			   (c-struct-ref rect RECT 'left)
+			   (c-struct-ref rect RECT 'top)
+			   ILD_TRANSPARENT)
+	  (let ((rc (c-struct-ref ii IMAGEINFO 'rcImage)))
+	    (c-struct-set! rect RECT 'left
+			   (+ (c-struct-ref rect RECT 'left)
+			      (- (c-struct-ref rc RECT 'right)
+				 (c-struct-ref rc RECT 'left))
+			      padding))))))
+
+    (c-struct-set! rect RECT 'right (- right padding))    
+    (let ((oldtx (set-text-color hdc (rgb 0 0 0))))
+      (draw-text hdc (~ p 'tab-name) (string-length (~ p 'tab-name)) rect
+		 (bitwise-ior DT_CENTER DT_SINGLELINE DT_VCENTER))
+      (set-text-color hdc oldtx)
+      (set-bk-mode hdc oldbk))))
 
 )

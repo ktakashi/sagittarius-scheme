@@ -29,6 +29,7 @@
 ;;;
 
 ;; based on Cygwin's wingdi.h
+#!nounbound
 (library (win32 gdi)
     (export WHITE_BRUSH
 	    LTGRAY_BRUSH
@@ -101,6 +102,7 @@
     (import (core)
 	    (core syntax)
 	    (core errors)
+	    (sagittarius fixnums)
 	    (sagittarius)
 	    (sagittarius ffi)
 	    (win32 defs))
