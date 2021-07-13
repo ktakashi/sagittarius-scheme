@@ -381,11 +381,12 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int alignment)
     SgObject layout = SG_CAR(cp);
     int type;
     ffi_type *ffi;
-    size_t array_off = 0;
+    size_t array_off = 0, a_size = 0;
     ASSERT(SG_INTP(SG_CADR(layout)));
 
     st->layouts[index].name = SG_CAR(layout);
     st->layouts[index].array = -1;
+    /* Sg_Printf(Sg_StandardErrorPort(), UC("%S\n"), SG_CAR(layout)); */
     if (SG_PAIRP(SG_CDDR(layout))) {
       if (SG_EQ(SYMBOL_STRUCT, SG_CAR(SG_CDDR(layout)))) {
 	SgObject st2;
@@ -401,6 +402,10 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int alignment)
 	size += SG_CSTRUCT(st2)->type.size;
 	padding = compute_padding(size, SG_CSTRUCT(st2)->type.alignment, alignment);
 	size += padding;
+	/* Sg_Printf(Sg_StandardErrorPort(), */
+	/* 	  UC("%S[%d, %d], size=%d, pad=%d, offset=%d\n"), */
+	/* 	  st2, SG_CSTRUCT(st2)->type.size, */
+	/* 	  SG_CSTRUCT(st2)->type.alignment, size, padding, offset); */
 
 	if (alignment < 0) {
 	  offset = compute_offset(offset, SG_CSTRUCT(st2)->type.alignment);
@@ -411,6 +416,7 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int alignment)
 	st->layouts[index].offset = offset;
 	if (SG_CSTRUCT(st2)->type.alignment > max_type) 
 	  max_type = SG_CSTRUCT(st2)->type.alignment;
+	a_size = SG_CSTRUCT(st2)->type.size;
       } else if (SG_EQ(SYMBOL_BIT_FIELD, SG_CAR(layout))) {
 	type = SG_INT_VALUE(SG_CADR(layout));
 	ffi = lookup_ffi_return_type(type);
@@ -418,6 +424,7 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int alignment)
 	st->layouts[index].name = SG_CDDR(layout);
 	check_bif_field_size(SG_CDDR(layout), ffi->size);
 	size += ffi->size;
+	a_size = ffi->size;
 	goto primitive_type;
       } else if (SG_INTP(SG_CAR(SG_CDDR(layout)))) {
 	int asize = SG_INT_VALUE(SG_CAR(SG_CDDR(layout)));
@@ -427,6 +434,7 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int alignment)
 	size += array_off;
 	st->layouts[index].array = array_off;
 	array_off -= ffi->alignment;
+	a_size = array_off;
 	goto primitive_type;
       } else {
 	Sg_Error(UC("invalid struct layout %S"), layouts);
@@ -435,6 +443,7 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int alignment)
       type = SG_INT_VALUE(SG_CADR(layout));
       ffi = lookup_ffi_return_type(type);
       size += ffi->size;
+      a_size = ffi->size;
     primitive_type:
       if (ffi->size > max_type) max_type = ffi->size;
       /* compute new offset */
@@ -443,7 +452,7 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int alignment)
       /* padded size - alignment is offset ... */
       /* offset = compute_offset(offset + 1, ffi->alignment); */
       offset = size - ffi->alignment - array_off;
-
+      /* fprintf(stderr, "size=%d, offset=%d\n", size, offset); */
       st->type.elements[index] = ffi;
       st->layouts[index].type = ffi;
       st->layouts[index].cstruct = NULL;
@@ -451,7 +460,7 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int alignment)
       st->layouts[index].offset = offset;
     }
     /* next rough offset  */
-    offset += size;
+    offset += a_size;
     index++;
   }
 
