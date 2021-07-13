@@ -35,6 +35,9 @@
 
 	    make-win32-tab-panel <win32-tab-panel>
 	    win32-tab-panel? win32-tab-panel-set-tab-name!
+
+	    <win32-closable-tab-panel> win32-closable-tab-panel?
+	    make-win32-closable-tab-panel
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -65,8 +68,25 @@
   (unless (slot-bound? o 'tab-name)
     (set! (~ o 'tab-name) (~ o 'name)))
   (set! (~ o 'name) "")
-  (set! (~ o 'style) (bitwise-ior (~ o 'style)))
   o)
+
+(define-class <win32-closable-tab-panel> (<win32-tab-panel>)
+  ((close-button :init-keyword :close-button :init-value #f)
+   (image-list :init-value #f)))
+(define (make-win32-closable-tab-panel . args)
+  (apply make <win32-closable-tab-panel> args))
+(define (win32-closable-tab-panel? o) (is-a? o <win32-closable-tab-panel>))
+
+(define-method initialize ((o <win32-closable-tab-panel>) initargs)
+  (call-next-method)
+  (when (win32-image? (~ o 'close-button))
+    (set! (~ o 'image-list)
+	  (make <win32-image-list> :images (list (~ o 'close-button))
+		:width 16 :height 16))))
+(define-method win32-create ((ct <win32-closable-tab-panel>))
+  (call-next-method)
+  (when (~ ct 'image-list)
+    (win32-create (~ ct 'image-list))))
 
 (define (win32-tab-panel-set-tab-name! tab name)
   (set! (~ tab 'tab-name) name)
@@ -167,6 +187,17 @@
   (set! (~ o 'tabs) (append (~ o 'tabs) (list t)))
   (win32-insert-tab! o t (length (~ o 'tabs))))
 
+(define-method win32-add-component!
+  ((o <win32-tab-container>) (t <win32-closable-tab-panel>))
+  (call-next-method)
+  (when (zero? (bitwise-and (~ o 'style) TCS_OWNERDRAWFIXED))
+    (win32-require-hwnd o
+     (let ((l (pointer->integer (get-window-long-ptr (~ o 'hwnd) GWL_STYLE))))
+       (set-window-long-ptr (~ o 'hwnd) GWL_STYLE
+			    (integer->pointer
+			     (bitwise-ior l TCS_OWNERDRAWFIXED)))
+       (set! (~ o 'style) (bitwise-ior l TCS_OWNERDRAWFIXED))))))
+
 ;; make sure
 (define (find-image tab il)
   (if il
@@ -175,19 +206,27 @@
 	    ((or (null? images) (eq? (car images) image))
 	     (if (null? images) -1 i))))
       -1))
+(define (need-close-button? p)
+  (and (win32-closable-tab-panel? p) (~ p 'image-list)))
+
+(define (make-tc-item c tab)
+  (let ((ti (allocate-c-struct TC_ITEM))
+	(hwnd (~ c 'hwnd))
+	(name (if (need-close-button? tab)
+		  (string-append (~ tab 'tab-name) "     ")
+		  (~ tab 'tab-name)))
+	(image (find-image tab (~ c 'image-list))))
+    (c-struct-set! ti TC_ITEM 'mask (bitwise-ior TCIF_TEXT TCIF_IMAGE))
+    (c-struct-set! ti TC_ITEM 'pszText name)
+    (c-struct-set! ti TC_ITEM 'cchTextMax (string-length name))
+    (c-struct-set! ti TC_ITEM 'iImage image)
+    ti))
 (define (win32-insert-tab! c tab pos)
   (win32-require-hwnd c
-   (let ((ti (allocate-c-struct TC_ITEM))
-	 (hwnd (~ c 'hwnd))
-	 (name (~ tab 'tab-name))
-	 (image (find-image tab (~ c 'image-list))))
-     (c-struct-set! ti TC_ITEM 'mask (bitwise-ior TCIF_TEXT TCIF_IMAGE))
-     (c-struct-set! ti TC_ITEM 'pszText name)
-     (c-struct-set! ti TC_ITEM 'cchTextMax name)
-     (c-struct-set! ti TC_ITEM 'iImage image)
+   (let ((ti (make-tc-item c tab)))
      (when (and (~ c 'hwnd) (not (~ tab 'hwnd)))
        (win32-create tab))
-     (tab-ctrl-insert-item hwnd pos ti))))
+     (tab-ctrl-insert-item (~ c 'hwnd) pos ti))))
 
 (define (win32-get-tab-position c tab)
   (do ((i 0 (+ i 1)) (tabs (~ c 'tabs) (cdr tabs)))
@@ -196,15 +235,8 @@
 
 (define (win32-set-tab! c tab pos)
   (win32-require-hwnd c
-   (let ((ti (allocate-c-struct TC_ITEM))
-	 (hwnd (~ c 'hwnd))
-	 (name (~ tab 'tab-name))
-	 (image (find-image tab (~ c 'image-list))))
-     (c-struct-set! ti TC_ITEM 'mask (bitwise-ior TCIF_TEXT TCIF_IMAGE))
-     (c-struct-set! ti TC_ITEM 'pszText name)
-     (c-struct-set! ti TC_ITEM 'cchTextMax name)
-     (c-struct-set! ti TC_ITEM 'iImage image)
-     (tab-ctrl-set-item hwnd pos ti)
+   (let ((ti (make-tc-item TC_ITEM)))
+     (tab-ctrl-set-item (~ c 'hwnd) pos ti)
      (let ((index (pointer->integer (tab-ctrl-get-cur-sel (~ c 'hwnd)))))
        (when (= pos index) (win32-show tab)))
      ;; we need to re-render the tab to make the components
@@ -221,6 +253,23 @@
 		       (c-struct-ref rect RECT 'top))
 		    #t))
      )))
+
+(define (win32-tab-get-close-button-rect tc index p rect selected?)
+  (define rc (allocate-c-struct RECT))
+  (let ((ii (allocate-c-struct IMAGEINFO)))
+    (image-list-get-image-info (~ p 'image-list 'himl) 0 ii)
+    (let ((rcImage (c-struct-ref ii IMAGEINFO 'rcImage)))
+      (c-struct-set! rc RECT 'top (+ (c-struct-ref rect RECT 'top) 3))
+      (c-struct-set! rc RECT 'bottom (+ (c-struct-ref rc RECT 'top)
+					(- (c-struct-ref rcImage RECT 'bottom)
+					   (c-struct-ref rcImage RECT 'top))))
+      (c-struct-set! rc RECT 'right (- (c-struct-ref rect RECT 'right) 3))
+      (c-struct-set! rc RECT 'left (- (c-struct-ref rc RECT 'right)
+				      (- (c-struct-ref rcImage RECT 'right)
+					 (c-struct-ref rcImage RECT 'left))))
+      (when selected?
+	(c-struct-set! rc RECT 'left (+ (c-struct-ref rc RECT 'left) 1)))))
+  rc)
 
 (define-method win32-draw-tab ((t <win32-tab-container>)
 			       (p <win32-tab-panel>) lparam)
@@ -250,6 +299,7 @@
   (c-struct-set! rect RECT 'top (+ top padding (if selected? 1 0)))
   
   (let ((oldbk (set-bk-mode hdc TRANSPARENT)))
+    ;; Draw image left side (icon)
     (let ((ti (allocate-c-struct TC_ITEM)))
       (c-struct-set! ti TC_ITEM 'mask  TCIF_IMAGE)
       (tab-ctrl-get-item (~ t 'hwnd) item-id ti)
@@ -269,6 +319,17 @@
 				 (c-struct-ref rc RECT 'left))
 			      padding))))))
 
+    ;; Draw close button
+    (when (need-close-button? p)
+      (let ((rc (win32-tab-get-close-button-rect t item-id p rect selected?)))
+	(image-list-draw (~ p 'image-list 'himl) 0 hdc
+			 (c-struct-ref rc RECT 'left)
+			 (c-struct-ref rc RECT 'top)
+			 ILD_TRANSPARENT)
+	(set! right (- (c-struct-ref rc RECT 'left) padding))
+	;; TODO need padding?
+	))
+    ;; Draw text
     (c-struct-set! rect RECT 'right (- right padding))    
     (let ((oldtx (set-text-color hdc (rgb 0 0 0))))
       (draw-text hdc (~ p 'tab-name) (string-length (~ p 'tab-name)) rect
