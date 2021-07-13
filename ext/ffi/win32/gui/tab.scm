@@ -87,6 +87,10 @@
   (call-next-method)
   (when (~ ct 'image-list)
     (win32-create (~ ct 'image-list))))
+(define-method win32-destroy ((ct <win32-closable-tab-panel>))
+  (when (~ ct 'image-list)
+    (win32-destroy (~ ct 'image-list)))
+  (call-next-method))
 
 (define (win32-tab-panel-set-tab-name! tab name)
   (set! (~ tab 'tab-name) name)
@@ -129,8 +133,7 @@
     (set! (~ tc 'tabs) (remq tab (~ tc 'tabs)))
     (tab-ctrl-delete-item (~ tc 'hwnd) index)
     (resize-tab-panel tc 0 0)
-    ;; TODO
-    #;(win32-close tab))
+    (win32-destroy tab))
     
   (define (maybe-close? tc tab x y)
     (define index (win32-get-tab-position tc tab))
@@ -163,6 +166,10 @@
 
 (define-method win32-create ((o <win32-tab-container>))
   (when (~ o 'image-list) (win32-create (~ o 'image-list)))
+  (call-next-method))
+(define-method win32-destroy ((ct <win32-closable-tab-panel>))
+  (when (and (~ ct 'image-list) (~ ct 'destroy-children?))
+    (win32-destroy (~ ct 'image-list)))
   (call-next-method))
 
 (define (win32-tab-container-set-image-list! w il)

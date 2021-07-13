@@ -73,6 +73,9 @@
 (define (make-win32-image-list . args) (apply make <win32-image-list> args))
 (define (win32-image-list? o) (is-a? o <win32-image-list>))
 
+(define-method win32-destroy ((o <win32-image-list>))
+  (when (~ o 'himl) (image-list-destroy (~ o 'himl))))
+
 (define-syntax win32-require-himl
   (syntax-rules ()
     ((_ c expr ...)

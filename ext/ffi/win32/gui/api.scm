@@ -30,7 +30,7 @@
 
 ;; this library provides generic methods and base classes
 (library (win32 gui api)
-    (export win32-create win32-show win32-hide
+    (export win32-create win32-show win32-hide win32-destroy
 	    win32-register-class
 	    win32-message-loop
 	    win32-get-component
@@ -298,6 +298,9 @@
    (show-window (~ o 'hwnd) SW_HIDE)
    (update-window (~ o 'hwnd))))
 
+(define-method win32-destroy ((o <win32-component>))
+  (destroy-window (~ o 'hwnd)))
+
 (define-method win32-set-size! ((o <win32-component>) width height)
   (win32-require-hwnd o
    (let ((rect (allocate-c-struct RECT)))
@@ -329,7 +332,8 @@
 	   (push! (~ cm 'action-queue) (lambda () expr ...)))))))
 
 (define-class <win32-container> (<win32-component>)
-  ((components :init-keyword :components :init-value '())))
+  ((components :init-keyword :components :init-value '())
+   (destroy-children? :init-keyword :destroy-children? :init-value #f)))
 (define (win32-container? o) (is-a? o <win32-container>))
 (define-method win32-add-component! ((container <win32-container>) component)
   (set! (~ component 'owner) container)
@@ -348,6 +352,9 @@
 (define-method win32-hide ((o <win32-container>))
   (call-next-method)
   (for-each win32-hide (~ o 'components)))
+(define-method win32-destroy ((o <win32-container>))
+  (when (~ o 'destroy-children?) (for-each win32-destroy (~ o 'components)))
+  (call-next-method))
 
 (define (win32-get-component hwnd)
   (let ((p (get-window-long-ptr hwnd GWLP_USERDATA)))
