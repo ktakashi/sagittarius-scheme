@@ -457,6 +457,8 @@
 (define-syntax inherit-window-class
   (syntax-rules (events)
     ((_ name new-name wm_create)
+     (inherit-window-class name new-name wm_create win32-common-dispatch))
+    ((_ name new-name wm_create custom-dispatch)
      (define dummy
        (let ()
 	 (define (default-button-proc hwnd imsg wparam lparam)
@@ -470,7 +472,7 @@
 		    (call-next)))
 		 ;; handle user defined message
 		 (else
-		  (win32-common-dispatch hwnd imsg wparam lparam)
+		  (custom-dispatch hwnd imsg wparam lparam)
 		  (call-next))))
 	 (define-values (system-callback window-class)
 	   (let ((w (allocate-c-struct WNDCLASSEX)))

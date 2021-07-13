@@ -124,8 +124,42 @@
 		       WS_CHILD WS_CLIPSIBLINGS WS_VISIBLE)))
   o)
 
+(define (tab-container-dispatch hwnd imsg wparam lparam)
+  (define (close-tab tc tab index)
+    (set! (~ tc 'tabs) (remq tab (~ tc 'tabs)))
+    (tab-ctrl-delete-item (~ tc 'hwnd) index)
+    (resize-tab-panel tc 0 0)
+    ;; TODO
+    #;(win32-close tab))
+    
+  (define (maybe-close? tc tab x y)
+    (define index (win32-get-tab-position tc tab))
+    (define rc (allocate-c-struct RECT))
+    (tab-ctrl-get-item-rect hwnd index rc)
+    (inflate-rect rc 2 2)
+    (let* ((selected? (= index (pointer->integer (tab-ctrl-get-cur-sel hwnd))))
+	   (b-rc (win32-tab-get-close-button-rect tc index tab rc selected?)))
+      (and (position-in-rect b-rc x y)
+	   (close-tab tc tab index))))
+  (define (cont)
+    ;; let the common one handle it
+    (win32-common-dispatch hwnd imsg wparam lparam))
+  (cond ((= imsg WM_LBUTTONUP)
+	 (let* ((w (win32-get-component hwnd))
+		(p (pointer->integer lparam))
+		(x (win32-loword p))
+		(y (win32-hiword p)))
+	   (cond ((get-tab-under-point w x y) =>
+		  (lambda (tab)
+		    (if (win32-closable-tab-panel? tab)
+			(or (maybe-close? w tab x y)
+			    (cont))
+			(cont))))
+		 (else (cont)))))
+	(else (cont))))
+
 (inherit-window-class WC_TABCONTROL *win32-default-tab-control-class-name*
-		      WM_NCCREATE)
+		      WM_NCCREATE tab-container-dispatch)
 
 (define-method win32-create ((o <win32-tab-container>))
   (when (~ o 'image-list) (win32-create (~ o 'image-list)))
@@ -140,7 +174,16 @@
    (send-message (~ w 'hwnd) TCM_SETIMAGELIST 0 (~ il 'himl))))
 
 (define-method win32-handle-notify ((w <win32-tab-container>) wparam lparam)
-  (resize-tab-panel w 0 0) ;; for now
+  (define code (c-struct-ref lparam NMHDR 'code))
+  (cond ((= code TCN_SELCHANGE) (resize-tab-panel w 0 0)) ;; for now
+	;; get-message-pos returns global position, so it's rather
+	;; difficult to adjust...
+	#;((= code NM_CLICK)
+	 (let* ((p (get-message-pos))
+		(x (win32-loword p))
+		(y (win32-hiword p)))
+	   (cond ((get-tab-under-point w x y) =>
+		  (lambda (tab)  (display tab) (newline)))))))
   ;; return #f to let Windows handle the rest
   #f)
 
@@ -149,6 +192,19 @@
   (let ((tab (list-ref (~ w 'tabs) pos)))
     (win32-draw-tab w tab lparam))
   #t)
+
+(define (position-in-rect rc x y)
+  (and (< (c-struct-ref rc RECT 'left) x (c-struct-ref rc RECT 'right))
+       (< (c-struct-ref rc RECT 'top) y (c-struct-ref rc RECT 'bottom))))
+(define (get-tab-under-point tc x y)
+  (define rc (allocate-c-struct RECT)) ;; reuse...
+  (define (in-position tab pos)
+    (tab-ctrl-get-item-rect (~ tc 'hwnd) pos rc)
+    (inflate-rect rc 2 2)
+    (position-in-rect rc x y))
+  (do ((i 0 (+ i 1)) (tabs (~ tc 'tabs) (cdr tabs)))
+      ((or (null? tabs) (in-position (car tabs) i))
+       (if (null? tabs) #f (car tabs)))))
 
 (define (resize-tab-panel w width height)
   ;; get currently selected one
@@ -224,9 +280,10 @@
 (define (win32-insert-tab! c tab pos)
   (win32-require-hwnd c
    (let ((ti (make-tc-item c tab)))
-     (when (and (~ c 'hwnd) (not (~ tab 'hwnd)))
-       (win32-create tab))
-     (tab-ctrl-insert-item (~ c 'hwnd) pos ti))))
+     (unless (~ tab 'hwnd) (win32-create tab))
+     (let ((index (pointer->integer (tab-ctrl-insert-item (~ c 'hwnd) pos ti))))
+       (tab-ctrl-set-cur-sel (~ c 'hwnd) index)
+       (resize-tab-panel c 0 0)))))
 
 (define (win32-get-tab-position c tab)
   (do ((i 0 (+ i 1)) (tabs (~ c 'tabs) (cdr tabs)))
@@ -235,7 +292,7 @@
 
 (define (win32-set-tab! c tab pos)
   (win32-require-hwnd c
-   (let ((ti (make-tc-item TC_ITEM)))
+   (let ((ti (make-tc-item c tab)))
      (tab-ctrl-set-item (~ c 'hwnd) pos ti)
      (let ((index (pointer->integer (tab-ctrl-get-cur-sel (~ c 'hwnd)))))
        (when (= pos index) (win32-show tab)))

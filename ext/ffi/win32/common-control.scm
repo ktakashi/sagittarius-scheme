@@ -36,6 +36,29 @@
 	    WC_STATIC WC_EDIT WC_LISTBOX WC_COMBOBOX
 	    WC_SCROLLBAR
 
+	    NM_OUTOFMEMORY
+	    NM_CLICK
+	    NM_DBLCLK
+	    NM_RETURN
+	    NM_RCLICK
+	    NM_RDBLCLK
+	    NM_SETFOCUS
+	    NM_KILLFOCUS
+	    NM_CUSTOMDRAW
+	    NM_HOVER
+	    NM_NCHITTEST
+	    NM_KEYDOWN
+	    NM_RELEASEDCAPTURE
+	    NM_SETCURSOR
+	    NM_CHAR
+	    NM_TOOLTIPSCREATED
+	    NM_LDOWN
+	    NM_RDOWN
+	    NM_THEMECHANGED
+	    NM_FONTCHANGED
+	    NM_CUSTOMTEXT
+	    NM_TVSTATEIMAGECHANGING
+
 	    HIMAGELIST
 	    image-list-create image-list-destroy image-list-get-image-count
 	    image-list-set-image-count image-list-add image-list-replace-icon
@@ -45,7 +68,7 @@
 	    IMAGEINFO PIMAGEINFO
 	    image-list-get-icon-size image-list-set-icon-size
 	    image-list-get-image-info
-	    
+
 	    ILC_MASK
 	    ILC_COLOR
 	    ILC_COLORDDB
@@ -150,6 +173,30 @@
 
   (define HIMAGELIST void*) ;; the same...
 
+  (define-constant NM_FIRST                (expt 2 32)) ;; (0U-0U)...
+  (define-constant NM_OUTOFMEMORY          (- NM_FIRST 1))
+  (define-constant NM_CLICK                (- NM_FIRST 2))
+  (define-constant NM_DBLCLK               (- NM_FIRST 3))
+  (define-constant NM_RETURN               (- NM_FIRST 4))
+  (define-constant NM_RCLICK               (- NM_FIRST 5))
+  (define-constant NM_RDBLCLK              (- NM_FIRST 6))
+  (define-constant NM_SETFOCUS             (- NM_FIRST 7))
+  (define-constant NM_KILLFOCUS            (- NM_FIRST 8))
+  (define-constant NM_CUSTOMDRAW           (- NM_FIRST 12))
+  (define-constant NM_HOVER                (- NM_FIRST 13))
+  (define-constant NM_NCHITTEST            (- NM_FIRST 14))
+  (define-constant NM_KEYDOWN              (- NM_FIRST 15))
+  (define-constant NM_RELEASEDCAPTURE      (- NM_FIRST 16))
+  (define-constant NM_SETCURSOR            (- NM_FIRST 17))
+  (define-constant NM_CHAR                 (- NM_FIRST 18))
+  (define-constant NM_TOOLTIPSCREATED      (- NM_FIRST 19))
+  (define-constant NM_LDOWN                (- NM_FIRST 20))
+  (define-constant NM_RDOWN                (- NM_FIRST 21))
+  (define-constant NM_THEMECHANGED         (- NM_FIRST 22))
+  (define-constant NM_FONTCHANGED          (- NM_FIRST 23))
+  (define-constant NM_CUSTOMTEXT           (- NM_FIRST 24))
+  (define-constant NM_TVSTATEIMAGECHANGING (- NM_FIRST 24))
+
   (define-constant ILC_MASK                #x00000001)
   (define-constant ILC_COLOR               #x00000000)
   (define-constant ILC_COLORDDB            #x000000FE)
@@ -210,7 +257,7 @@
     (int         unused2)
     (struct RECT rcImage))
   (define PIMAGEINFO void*)
-  
+
   (define image-list-get-icon-size
     ;; (HIMAGELIST, int *, int *)
     (c-function comctl32 BOOL ImageList_GetIconSize (HIMAGELIST void* void*)))
@@ -312,7 +359,7 @@
   (define-tcm-command tab-ctrl-get-item-rect TCM_GETITEMRECT iItem prc)
 
   (define-tcm-command tab-ctrl-get-cur-sel TCM_GETCURSEL)
-  (define-tcm-command tab-ctrl-set-cur-sel TCM_SETCURSEL)
+  (define-tcm-command tab-ctrl-set-cur-sel TCM_SETCURSEL iItem)
 
   (define-tcm-command tab-ctrl-adjust-rect TCM_ADJUSTRECT target prc)
 )

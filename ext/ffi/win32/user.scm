@@ -66,6 +66,7 @@
 	    peek-message
 	    translate-message
 	    dispatch-message
+	    get-message-pos
 	    tabbed-text-out
 	    get-dc
 	    get-dc-ex
@@ -75,6 +76,7 @@
 	    get-client-rect
 	    get-update-rect
 	    invalidate-rect
+	    inflate-rect
 	    is-rect-empty
 	    fill-rect
 	    set-rect
@@ -779,9 +781,9 @@
   (define-constant LPMENUITEMINFO void*)
 
   (define-c-struct NMHDR
-    (HWND hwndFrom)
-    (UINT idFrom)
-    (UINT code))
+    (HWND     hwndFrom)
+    (UINT_PTR idFrom)
+    (UINT     code))
   (define-constant LPNMHDR void*)
 
   (define message-box
@@ -844,6 +846,8 @@
 
   (define dispatch-message (c-function user32 LONG DispatchMessageW (void*)))
 
+  (define get-message-pos (c-function user32 DWORD GetMessagePos ()))
+  
   (define tabbed-text-out
     (c-function user32 LONG TabbedTextOutW
 		(HDC int int LPCWSTR int int LPINT int)))
@@ -864,6 +868,8 @@
     (c-function user32 BOOL GetUpdateRect (HWND LPRECT BOOL)))
   (define invalidate-rect
     (c-function user32 BOOL InvalidateRect (HWND LPRECT BOOL)))
+  (define inflate-rect
+    (c-function user32 BOOL InflateRect (LPRECT int int)))
 
   (define is-rect-empty (c-function user32 BOOL IsRectEmpty (LPRECT)))
 
