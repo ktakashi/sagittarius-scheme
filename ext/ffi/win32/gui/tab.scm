@@ -154,7 +154,7 @@
 		(y (win32-hiword p)))
 	   (cond ((get-tab-under-point w x y) =>
 		  (lambda (tab)
-		    (if (win32-closable-tab-panel? tab)
+		    (if (need-close-button? tab)
 			(or (maybe-close? w tab x y)
 			    (cont))
 			(cont))))

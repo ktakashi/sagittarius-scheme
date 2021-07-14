@@ -44,7 +44,7 @@
 	    win32-require-hwnd
 
 	    
-	    win32-set-size!
+	    win32-set-size! win32-set-position!
 	    
 	    <win32-window-class> win32-window-class?
 	    make-win32-window-class
@@ -309,7 +309,7 @@
 		  (c-struct-ref rect RECT 'left)
 		  (c-struct-ref rect RECT 'top)
 		  width height #t))))
-(define-method win32-set-position ((o <win32-component>) x y)
+(define-method win32-set-position! ((o <win32-component>) x y)
   (win32-require-hwnd o
    (let ((rect (allocate-c-struct RECT)))
      (get-window-rect (~ o 'hwnd) rect)

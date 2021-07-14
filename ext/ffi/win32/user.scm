@@ -51,6 +51,7 @@
 	    create-window-ex
 	    create-window
 	    load-icon
+	    destroy-icon
 	    load-cursor
 	    load-image
 	    register-class-ex
@@ -86,6 +87,7 @@
 	    post-message
 	    create-menu
 	    create-popup-menu
+	    destroy-menu
 	    append-menu
 	    delete-menu
 	    get-system-menu
@@ -147,6 +149,12 @@
        (begin
 	 (export name)
 	 (defconst name value)))))
+  (define-syntax define-export
+    (syntax-rules ()
+      ((_ name value)
+       (begin
+	 (export name)
+	 (define name value)))))
 
   ;; windows messages
   (define-constant WM_NULL #x0000)
@@ -679,7 +687,81 @@
   (define-constant IMAGE_CURSOR 2)
   (define-constant IMAGE_ENHMETAFILE 3)
 
-  (define-constant LR_LOADFROMFILE 16)
+  ;; OEM images
+  (define-export OBM_CLOSE           (integer->pointer 32754))
+  (define-export OBM_UPARROW         (integer->pointer 32753))
+  (define-export OBM_DNARROW         (integer->pointer 32752))
+  (define-export OBM_RGARROW         (integer->pointer 32751))
+  (define-export OBM_LFARROW         (integer->pointer 32750))
+  (define-export OBM_REDUCE          (integer->pointer 32749))
+  (define-export OBM_ZOOM            (integer->pointer 32748))
+  (define-export OBM_RESTORE         (integer->pointer 32747))
+  (define-export OBM_REDUCED         (integer->pointer 32746))
+  (define-export OBM_ZOOMD           (integer->pointer 32745))
+  (define-export OBM_RESTORED        (integer->pointer 32744))
+  (define-export OBM_UPARROWD        (integer->pointer 32743))
+  (define-export OBM_DNARROWD        (integer->pointer 32742))
+  (define-export OBM_RGARROWD        (integer->pointer 32741))
+  (define-export OBM_LFARROWD        (integer->pointer 32740))
+  (define-export OBM_MNARROW         (integer->pointer 32739))
+  (define-export OBM_COMBO           (integer->pointer 32738))
+  (define-export OBM_UPARROWI        (integer->pointer 32737))
+  (define-export OBM_DNARROWI        (integer->pointer 32736))
+  (define-export OBM_RGARROWI        (integer->pointer 32735))
+  (define-export OBM_LFARROWI        (integer->pointer 32734))
+  (define-export OBM_OLD_CLOSE       (integer->pointer 32767))
+  (define-export OBM_SIZE            (integer->pointer 32766))
+  (define-export OBM_OLD_UPARROW     (integer->pointer 32765))
+  (define-export OBM_OLD_DNARROW     (integer->pointer 32764))
+  (define-export OBM_OLD_RGARROW     (integer->pointer 32763))
+  (define-export OBM_OLD_LFARROW     (integer->pointer 32762))
+  (define-export OBM_BTSIZE          (integer->pointer 32761))
+  (define-export OBM_CHECK           (integer->pointer 32760))
+  (define-export OBM_CHECKBOXES      (integer->pointer 32759))
+  (define-export OBM_BTNCORNERS      (integer->pointer 32758))
+  (define-export OBM_OLD_REDUCE      (integer->pointer 32757))
+  (define-export OBM_OLD_ZOOM        (integer->pointer 32756))
+  (define-export OBM_OLD_RESTORE     (integer->pointer 32755))
+  (define-export OCR_NORMAL          (integer->pointer 32512))
+  (define-export OCR_IBEAM           (integer->pointer 32513))
+  (define-export OCR_WAIT            (integer->pointer 32514))
+  (define-export OCR_CROSS           (integer->pointer 32515))
+  (define-export OCR_UP              (integer->pointer 32516))
+  (define-export OCR_SIZE            (integer->pointer 32640)) ;/* OBSOLETE: use OCR_SIZEALL */
+  (define-export OCR_ICON            (integer->pointer 32641)) ;/* OBSOLETE: use OCR_NORMAL */
+  (define-export OCR_SIZENWSE        (integer->pointer 32642))
+  (define-export OCR_SIZENESW        (integer->pointer 32643))
+  (define-export OCR_SIZEWE          (integer->pointer 32644))
+  (define-export OCR_SIZENS          (integer->pointer 32645))
+  (define-export OCR_SIZEALL         (integer->pointer 32646))
+  (define-export OCR_ICOCUR          (integer->pointer 32647)) ;/* OBSOLETE: use OIC_WINLOGO */
+  (define-export OCR_NO              (integer->pointer 32648))
+  (define-export OCR_HAND            (integer->pointer 32649))
+  (define-export OCR_APPSTARTING     (integer->pointer 32650))
+  (define-export OIC_SAMPLE          (integer->pointer 32512))
+  (define-export OIC_HAND            (integer->pointer 32513))
+  (define-export OIC_QUES            (integer->pointer 32514))
+  (define-export OIC_BANG            (integer->pointer 32515))
+  (define-export OIC_NOTE            (integer->pointer 32516))
+  (define-export OIC_WINLOGO         (integer->pointer 32517))
+  (define-export OIC_WARNING         OIC_BANG)
+  (define-export OIC_ERROR           OIC_HAND)
+  (define-export OIC_INFORMATION     OIC_NOTE)
+  (define-export OIC_SHIELD          (integer->pointer 32518))
+
+  (define-constant LR_DEFAULTCOLOR     #x00000000)
+  (define-constant LR_MONOCHROME       #x00000001)
+  (define-constant LR_COLOR            #x00000002)
+  (define-constant LR_COPYRETURNORG    #x00000004)
+  (define-constant LR_COPYDELETEORG    #x00000008)
+  (define-constant LR_LOADFROMFILE     #x00000010)
+  (define-constant LR_LOADTRANSPARENT  #x00000020)
+  (define-constant LR_DEFAULTSIZE      #x00000040)
+  (define-constant LR_VGACOLOR         #x00000080)
+  (define-constant LR_LOADMAP3DCOLORS  #x00001000)
+  (define-constant LR_CREATEDIBSECTION #x00002000)
+  (define-constant LR_COPYFROMRESOURCE #x00004000)
+  (define-constant LR_SHARED           #x00008000)
 
   (define IDI_APPLICATION (integer->pointer 32512))
   (define IDI_HAND (integer->pointer 32513))
@@ -802,6 +884,8 @@
   (define load-icon
     (c-function user32
 		HICON LoadIconW (HINSTANCE LPCWSTR)))
+  (define destroy-icon
+    (c-function user32 BOOL DestroyIcon (HICON)))
 
   (define load-cursor
     (c-function user32
@@ -890,6 +974,8 @@
   (define create-menu (c-function user32 HMENU CreateMenu ()))
 
   (define create-popup-menu (c-function user32 HMENU CreateMenu ()))
+
+  (define destroy-menu (c-function user32 BOOL DestroyMenu (HMENU)))
 
   (define append-menu
     (c-function user32 BOOL AppendMenuW (HMENU UINT UINT_PTR LPCWSTR)))

@@ -106,6 +106,11 @@
   (call-next-method)
   (set-window-text (~ o 'hwnd) (~ o 'name)))
 
+(define-method win32-destroy ((o <win32-window>))
+  (when (and (~ o 'destroy-children?) (~ o 'menu))
+    (win32-destroy (~ o 'menu)))
+  (call-next-method))
+
 (define-method object-apply ((o <win32-window>))
   (win32-show o)
   (win32-message-loop))
@@ -128,6 +133,9 @@
     (for-each win32-create (reverse (~ o 'menus)))
     ;; assume owner is there
     (set-menu (~ owner 'hwnd) hwnd)))
+(define-method win32-destroy ((o <win32-menu-bar>))
+  (for-each win32-destroy (~ o 'menus))
+  (destroy-menu (~ o 'hwnd)))
 
 (define-class <win32-menu-component> (<win32-component>) ())
 (define-class <win32-menu> (<win32-menu-component>)
@@ -147,6 +155,8 @@
 		 (bitwise-ior MF_POPUP MF_STRING)
 		 (pointer->uinteger hwnd)
 		 (~ o 'name))))
+(define-method win32-destroy ((o <win32-menu>))
+  (destroy-menu (~ o 'hwnd)))
 
 (define-method win32-show ((o <win32-menu>))
   (call-next-method)

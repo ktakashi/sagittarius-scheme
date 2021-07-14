@@ -33,6 +33,8 @@
     (export win32-image? <win32-image>
 	    win32-icon? <win32-icon> make-win32-icon
 	    win32-system-icon? load-system-icon
+
+	    win32-bitmap-image? <win32-bitmap-image>
 	    
 	    make-win32-image-list <win32-image-list>
 	    win32-image-list?
@@ -44,6 +46,7 @@
 	    (win32 kernel)
 	    (win32 user)
 	    (win32 defs)
+	    (win32 gdi)
 	    (win32 common-control)
 	    (win32 gui api)
 	    (clos user)
@@ -54,11 +57,19 @@
   ())
 (define (win32-image? o) (is-a? o <win32-image>))
 
+(define-class <win32-bitmap-image> (<win32-image>)
+  ((hbitmap :init-keyword :hbitmap :init-value #f)))
+(define (win32-bitmap-image? o) (is-a? o <win32-bitmap-image>))
+(define-method win32-destroy ((o <win32-bitmap-image>))
+  (when (~ o 'hbitmap) (delete-object (~ o 'hbitmap))))
+
 (define-class <win32-icon> (<win32-image>)
   ((hicon :init-keyword :hicon :init-value #f)))
 
 (define (win32-icon? o) (is-a? o <win32-icon>))
 (define (make-win32-icon . args) (apply make <win32-icon> args))
+(define-method win32-destroy ((o <win32-icon>))
+  (when (~ o 'hicon) (destroy-icon (~ o 'hicon))))
 
 (define-class <win32-system-icon> (<win32-icon>) ())
 (define (win32-system-icon? o) (is-a? o <win32-system-icon>))
@@ -100,6 +111,10 @@
   (set! (~ o 'images) (cons i (~ o 'images)))
   (win32-image-list-add-internal! o i))
 
+(define-method win32-image-list-add-internal!
+  ((o <win32-image-list>) (i <win32-bitmap-image>))
+  (win32-require-himl o
+   (image-list-add (~ o 'himl) (~ i 'hbitmap) null-pointer)))
 (define-method win32-image-list-add-internal!
   ((o <win32-image-list>) (i <win32-icon>))
   (win32-require-himl o (image-list-add-icon (~ o 'himl) (~ i 'hicon))))
