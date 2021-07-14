@@ -918,7 +918,7 @@
 
   (define get-parent (c-function user32 HWND GetParent (HWND)))
 
-  (define is-window-visible (c-function user32 HWND IsWindowVisible (HWND)))
+  (define is-window-visible (c-function user32 BOOL IsWindowVisible (HWND)))
 
   (define get-message
     (c-function user32 int GetMessageW (LPMSG HWND UINT UINT)))

@@ -37,7 +37,7 @@
 	    LPCCH PCSTR LPCSTR
 	    LPWSTR LPCWSTR
 	    WORD PWORD LPWORD
-	    SHORT PSHORT
+	    SHORT USHORT PSHORT
 	    HALF_PTR PHALF_PTR UHALF_PTR PUHALF_PTR
 	    FLOAT PFLOAT
 	    INT PINT LPINT UINT PUINT LPUINT
@@ -90,7 +90,7 @@
   (define-c-typedef wchar_t* LPWSTR LPCWSTR)
 
   ;; short
-  (define-c-typedef unsigned-short WORD (* PWORD) (* LPWORD))
+  (define-c-typedef unsigned-short WORD USHORT(* PWORD) (* LPWORD))
   (define-c-typedef short SHORT (* PSHORT))
   (define-c-typedef void* HALF_PTR (* PHALF_PTR))
   (define-c-typedef void* UHALF_PTR (* PUHALF_PTR))
