@@ -62,7 +62,7 @@
 (define-c-typedef ITEMIDLIST ITEMIDLIST_ABSOLUTE
   (* PCIDLIST_ABSOLUTE)
   (* PIDLIST_ABSOLUTE))
-(define-c-typedef void* BFFCALLBACK) ;; for convenience
+(define-c-typedef callback BFFCALLBACK)
 
 (define-c-struct BROWSERINFO
   (HWND              hwndOwner)
