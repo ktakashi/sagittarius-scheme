@@ -52,6 +52,53 @@
 	    DC_BRUSH
 	    DC_PEN
 
+	    BS_SOLID
+	    BS_NULL
+	    BS_HOLLOW
+	    BS_HATCHED
+	    BS_PATTERN
+	    BS_INDEXED
+	    BS_DIBPATTERN
+	    BS_DIBPATTERNPT
+	    BS_PATTERN8X8
+	    BS_DIBPATTERN8X8
+	    BS_MONOPATTERN
+
+	    HS_HORIZONTAL
+	    HS_VERTICAL
+	    HS_FDIAGONAL
+	    HS_BDIAGONAL
+	    HS_CROSS
+	    HS_DIAGCROSS
+	    HS_API_MAX
+
+	    PS_SOLID
+	    PS_DASH
+	    PS_DOT
+	    PS_DASHDOT
+	    PS_DASHDOTDOT
+	    PS_NULL
+	    PS_INSIDEFRAME
+	    PS_USERSTYLE
+	    PS_ALTERNATE
+	    PS_STYLE_MASK
+	    PS_ENDCAP_ROUND
+	    PS_ENDCAP_SQUARE
+	    PS_ENDCAP_FLAT
+	    PS_ENDCAP_MASK
+	    PS_JOIN_ROUND
+	    PS_JOIN_BEVEL
+	    PS_JOIN_MITER
+	    PS_JOIN_MASK
+	    PS_COSMETIC
+	    PS_GEOMETRIC
+	    PS_TYPE_MASK
+
+	    LOGBRUSH PLOGBRUSH NPLOGBRUSH LPLOGBRUSH
+	    create-pen
+	    ext-create-pen
+	    move-to-ex
+	    line-to
 	    ;; struct
 	    TEXTMETRIC
 	    ;; macro
@@ -154,6 +201,69 @@
   (define-constant DC_BRUSH 18)
   (define-constant DC_PEN 19)
 
+  ;; Brush Styles
+  (define-constant BS_SOLID            0)
+  (define-constant BS_NULL             1)
+  (define-constant BS_HOLLOW           BS_NULL)
+  (define-constant BS_HATCHED          2)
+  (define-constant BS_PATTERN          3)
+  (define-constant BS_INDEXED          4)
+  (define-constant BS_DIBPATTERN       5)
+  (define-constant BS_DIBPATTERNPT     6)
+  (define-constant BS_PATTERN8X8       7)
+  (define-constant BS_DIBPATTERN8X8    8)
+  (define-constant BS_MONOPATTERN      9)
+
+  ;;  Hatch Styles
+  (define-constant HS_HORIZONTAL       0 ) ; /* ----- */
+  (define-constant HS_VERTICAL         1 ) ; /* ||||| */
+  (define-constant HS_FDIAGONAL        2 ) ; /* \\\\\ */
+  (define-constant HS_BDIAGONAL        3 ) ; /* ///// */
+  (define-constant HS_CROSS            4 ) ; /* +++++ */
+  (define-constant HS_DIAGCROSS        5 ) ; /* xxxxx */
+  (define-constant HS_API_MAX          12)
+
+  ;; Pen Styles
+  (define-constant PS_SOLID            0)
+  (define-constant PS_DASH             1) ; /* -------  */
+  (define-constant PS_DOT              2) ; /* .......  */
+  (define-constant PS_DASHDOT          3) ; /* _._._._  */
+  (define-constant PS_DASHDOTDOT       4) ; /* _.._.._  */
+  (define-constant PS_NULL             5)
+  (define-constant PS_INSIDEFRAME      6)
+  (define-constant PS_USERSTYLE        7)
+  (define-constant PS_ALTERNATE        8)
+  (define-constant PS_STYLE_MASK       #x0000000F)
+  (define-constant PS_ENDCAP_ROUND     #x00000000)
+  (define-constant PS_ENDCAP_SQUARE    #x00000100)
+  (define-constant PS_ENDCAP_FLAT      #x00000200)
+  (define-constant PS_ENDCAP_MASK      #x00000F00)
+  (define-constant PS_JOIN_ROUND       #x00000000)
+  (define-constant PS_JOIN_BEVEL       #x00001000)
+  (define-constant PS_JOIN_MITER       #x00002000)
+  (define-constant PS_JOIN_MASK        #x0000F000)
+  (define-constant PS_COSMETIC         #x00000000)
+  (define-constant PS_GEOMETRIC        #x00010000)
+  (define-constant PS_TYPE_MASK        #x000F0000)
+
+  (define-c-struct LOGBRUSH
+    (UINT      lbStyle)
+    (COLORREF  lbColor)
+    (ULONG_PTR lbHatch))
+  (define-c-typedef LOGBRUSH (* PLOGBRUSH) (* NPLOGBRUSH) (* LPLOGBRUSH))
+
+  (define create-pen
+    (c-function gdi32 HPEN CreatePen (int int COLORREF)))
+  (define ext-create-pen
+    ;; DWORD, DWORD, const LOGBRUSH *, DWORD, const DWORD *
+    (c-function gdi32 HPEN ExtCreatePen (DWORD DWORD void* DWORD void*)))
+
+  (define line-to
+    (c-function gdi32 BOOL LineTo (HDC int int)))
+
+  (define move-to-ex
+    (c-function gdi32 BOOL MoveToEx (HDC int int LPPOINT)))
+  
   (define text-out
     (c-function gdi32
 		BOOL TextOutW (HDC int int LPCWSTR int)))

@@ -38,6 +38,9 @@
 
 	    <win32-closable-tab-panel> win32-closable-tab-panel?
 	    make-win32-closable-tab-panel
+
+	    *win32-tab-panel-default-close-button-width*
+	    *win32-tab-panel-default-close-button-height*
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -51,7 +54,13 @@
 	    (win32 gui image)
 	    (clos user)
 	    (sagittarius control)
-	    (sagittarius object))
+	    (sagittarius object)
+	    (srfi :39 parameters))
+
+(define *win32-tab-panel-default-close-button-width*
+  (make-parameter 15))
+(define *win32-tab-panel-default-close-button-height*
+  (make-parameter 15))
 
 (define *win32-default-tab-panel-class-name*
   "sagittarius-default-tab-panel-class")
@@ -269,8 +278,7 @@
 	    ((or (null? images) (eq? (car images) image))
 	     (if (null? images) -1 i))))
       -1))
-(define (need-close-button? p)
-  (and (win32-closable-tab-panel? p) (~ p 'image-list)))
+(define (need-close-button? p) (win32-closable-tab-panel? p))
 
 (define (make-tc-item c tab)
   (let ((ti (allocate-c-struct TC_ITEM))
@@ -320,20 +328,70 @@
 
 (define (win32-tab-get-close-button-rect tc index p rect selected?)
   (define rc (allocate-c-struct RECT))
-  (let ((ii (allocate-c-struct IMAGEINFO)))
-    (image-list-get-image-info (~ p 'image-list 'himl) 0 ii)
-    (let ((rcImage (c-struct-ref ii IMAGEINFO 'rcImage)))
-      (c-struct-set! rc RECT 'top (+ (c-struct-ref rect RECT 'top) 3))
-      (c-struct-set! rc RECT 'bottom (+ (c-struct-ref rc RECT 'top)
-					(- (c-struct-ref rcImage RECT 'bottom)
-					   (c-struct-ref rcImage RECT 'top))))
-      (c-struct-set! rc RECT 'right (- (c-struct-ref rect RECT 'right) 3))
-      (c-struct-set! rc RECT 'left (- (c-struct-ref rc RECT 'right)
-				      (- (c-struct-ref rcImage RECT 'right)
-					 (c-struct-ref rcImage RECT 'left))))
-      (when selected?
-	(c-struct-set! rc RECT 'left (+ (c-struct-ref rc RECT 'left) 1)))))
+  (define pad 3)
+  (if (~ p 'image-list)
+      (let ((ii (allocate-c-struct IMAGEINFO)))
+	(image-list-get-image-info (~ p 'image-list 'himl) 0 ii)
+	(let ((rcImage (c-struct-ref ii IMAGEINFO 'rcImage)))
+	  (c-struct-set! rc RECT 'top (+ (c-struct-ref rect RECT 'top) pad))
+	  (c-struct-set! rc RECT 'bottom
+			 (+ (c-struct-ref rc RECT 'top)
+			    (- (c-struct-ref rcImage RECT 'bottom)
+			       (c-struct-ref rcImage RECT 'top))))
+	  (c-struct-set! rc RECT 'right (- (c-struct-ref rect RECT 'right) pad))
+	  (c-struct-set! rc RECT 'left
+			 (- (c-struct-ref rc RECT 'right)
+			    (- (c-struct-ref rcImage RECT 'right)
+			       (c-struct-ref rcImage RECT 'left))))))
+      ;; okay just return a fixed range
+      (let ((width (*win32-tab-panel-default-close-button-width*))
+	    (height (*win32-tab-panel-default-close-button-height*)))
+	(c-struct-set! rc RECT 'top (c-struct-ref rect RECT 'top))
+	(c-struct-set! rc RECT 'bottom (+ (c-struct-ref rc RECT 'top)
+					  height))
+	(c-struct-set! rc RECT 'right (- (c-struct-ref rect RECT 'right) pad))
+	(c-struct-set! rc RECT 'left (- (c-struct-ref rc RECT 'right)
+					width))))
+  (when selected?
+    (c-struct-set! rc RECT 'left (- (c-struct-ref rc RECT 'left) 1))
+    (c-struct-set! rc RECT 'right (- (c-struct-ref rc RECT 'right) 1)))
   rc)
+
+(define (draw-default-close-button hdc rc)
+  (define (create-pen)
+    (define brush (allocate-c-struct LOGBRUSH))
+    (c-struct-set! brush LOGBRUSH 'lbStyle BS_SOLID)
+    (c-struct-set! brush LOGBRUSH 'lbColor (rgb #xff #xff #xff))
+    (ext-create-pen PS_COSMETIC 1 brush 0 null-pointer))
+  
+  (define hpen (create-pen))
+  (define old-hpen (select-object hdc hpen))
+  (define pad 2)
+  (define brush (create-solid-brush (rgb #xff 0 0)))
+    
+  (fill-rect hdc rc brush)
+  (delete-object brush)
+  (inflate-rect rc (- pad) (- pad))
+  ;; draw left diagonal line
+  (move-to-ex hdc
+	      (c-struct-ref rc RECT 'left)
+	      (c-struct-ref rc RECT 'top)
+	      null-pointer)
+  (line-to hdc
+	   (c-struct-ref rc RECT 'right)
+	   (c-struct-ref rc RECT 'bottom))
+  ;; draw right diagonal line
+  (move-to-ex hdc
+	      (c-struct-ref rc RECT 'right)
+	      (c-struct-ref rc RECT 'top)
+	      null-pointer)
+  (line-to hdc
+	   (c-struct-ref rc RECT 'left)
+	   (c-struct-ref rc RECT 'bottom))
+  
+  (inflate-rect rc pad pad)
+  (select-object hdc old-hpen)
+  (delete-object hpen))
 
 (define-method win32-draw-tab ((t <win32-tab-container>)
 			       (p <win32-tab-panel>) lparam)
@@ -386,10 +444,12 @@
     ;; Draw close button
     (when (need-close-button? p)
       (let ((rc (win32-tab-get-close-button-rect t item-id p rect selected?)))
-	(image-list-draw (~ p 'image-list 'himl) 0 hdc
-			 (c-struct-ref rc RECT 'left)
-			 (c-struct-ref rc RECT 'top)
-			 ILD_TRANSPARENT)
+	(if (~ p 'image-list)
+	    (image-list-draw (~ p 'image-list 'himl) 0 hdc
+			     (c-struct-ref rc RECT 'left)
+			     (c-struct-ref rc RECT 'top)
+			     ILD_TRANSPARENT)
+	    (draw-default-close-button hdc rc))
 	(set! right (- (c-struct-ref rc RECT 'left) padding))
 	;; TODO need padding?
 	))
