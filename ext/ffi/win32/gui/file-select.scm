@@ -28,11 +28,15 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!nounbound
 (library (win32 gui file-select)
     (export <win32-file-select> win32-file-select? make-win32-file-select
 	    <win32-save-select> win32-save-select? make-win32-save-select
+	    <win32-directory-select> win32-directory-select?
+	    make-win32-directory-select
 	    
-	    win32-open-file-select)
+	    win32-open-file-select
+	    win32-open-directory-select)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius)
@@ -41,6 +45,7 @@
 	    (win32 user)
 	    (win32 defs)
 	    (win32 common-dialog)
+	    (win32 shell)
 	    (win32 gui api)
 	    (srfi :13 strings))
 
@@ -69,6 +74,7 @@
 (define-method win32-file-select-open ((o <win32-save-select>) ofn) 
   (get-save-file-name ofn))
 
+(define (strip-null s) (string-trim-right s #\null))
 (define (win32-open-file-select select window)
   (define hwnd (if window (~ window 'hwnd) null-pointer))
   (define (create-filter args)
@@ -91,7 +97,6 @@
 		 (if (~ select 'show-readonly)
 		     0
 		     OFN_HIDEREADONLY)))
-  (define (strip-null s) (string-trim-right s #\null))
 	      
   (let ((ofn (allocate-c-struct OPENFILENAME))
 	(name (make-bytevector (~ select 'buffer-size))))
@@ -110,5 +115,39 @@
     ;; TODO more?
     (and-let* ((r (win32-file-select-open select ofn)))
       (strip-null (utf16->string name (endianness little))))))
+
+(define-class <win32-directory-select> ()
+  ((title :init-keyword :title :init-value "No title")
+   (display-name-handler :init-keyword :display-name-handler :init-value #f)))
+(define (win32-directory-select? o) (is-a? o <win32-directory-select>))
+(define (make-win32-directory-select . args)
+  (apply make <win32-directory-select> args))
+
+(define (win32-open-directory-select select window)
+  (define display-name-handler (~ select 'display-name-handler))
+  (define hwnd (if window (~ window 'hwnd) null-pointer))
+  (define max-path (* 1024 2))
+  (let ((bi (allocate-c-struct BROWSERINFO))
+	(display-name (if display-name-handler
+			  (make-bytevector max-path)
+			  null-pointer)))
+    (c-struct-set! bi BROWSERINFO 'hwndOwner hwnd)
+    (c-struct-set! bi BROWSERINFO 'pidlRoot null-pointer)
+    (c-struct-set! bi BROWSERINFO 'pszDisplayName display-name)
+    (c-struct-set! bi BROWSERINFO 'lpszTitle (~ select 'title))
+    (c-struct-set! bi BROWSERINFO 'ulFlags
+		   (bitwise-ior BIF_USENEWUI BIF_RETURNONLYFSDIRS))
+    ;; TODO filter
+    ;; (c-struct-set! bi BROWSERINFO 'lpfn null-pointer)
+    (c-struct-set! bi BROWSERINFO 'lParam null-pointer)
+    (c-struct-set! bi BROWSERINFO 'iImage 0)
+    (let ((pidl (sh-browse-for-folder bi)))
+      (and (not (null-pointer? pidl))
+	   (let ((buf (make-bytevector max-path)))
+	     (sh-get-path-from-id-list pidl buf)
+	     (when display-name-handler
+	       (display-name-handler
+		(strip-null (utf16->string display-name (endianness little)))))
+	     (strip-null (utf16->string buf (endianness little))))))))
 
 )
