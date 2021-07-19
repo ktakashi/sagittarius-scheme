@@ -40,6 +40,7 @@
 	    <win32-menu>       win32-menu?
 	    make-win32-menu
 	    win32-add-menu-item!
+	    win32-menu-set-text!
 
 	    <win32-menu-item>  win32-menu-item?
 	    make-win32-menu-item)
@@ -47,6 +48,7 @@
 	    (sagittarius)
 	    (sagittarius ffi)
 	    (win32 user)
+	    (win32 kernel)
 	    (win32 defs)
 	    (win32 gui api)
 	    (clos user)
@@ -173,6 +175,29 @@
   (unless (~ item 'hmenu)
     (set! (~ item 'hmenu) (integer->pointer (win32-generate-unique-id))))
   (set! (~ root 'items) (cons item (~ root 'items))))
+
+(define (win32-menu-set-text! menu name)
+  (define (search-hmenu menu)
+    (if (win32-menu? menu)
+	(~ menu 'hwnd)
+	(search-hmenu (~ menu 'owner))))
+  (define (search-window menu)
+    (cond ((win32-menu-bar? (~ menu 'owner))
+	   (~ menu 'owner 'owner 'hwnd))
+	  ((not (~ menu 'owner))
+	   (error 'win32-menu-set-name! "something is wrong"))
+	  ((search-window (~ menu 'owner)))))
+  (set! (~ menu 'name) name)
+  (let ((lpmii (allocate-c-struct MENUITEMINFO)))
+    (c-struct-set! lpmii MENUITEMINFO 'cbSize (size-of-c-struct MENUITEMINFO))
+    (c-struct-set! lpmii MENUITEMINFO 'fMask MIIM_STRING)
+    (c-struct-set! lpmii MENUITEMINFO 'dwTypeData name)
+    (set-menu-item-info (search-hmenu menu)
+			(if (win32-menu? menu)
+			    (pointer->uinteger (~ menu 'hwnd))
+			    (pointer->uinteger (~ menu 'hmenu)))
+			#f lpmii))
+  (draw-menu-bar (search-window menu)))
 
 (define-method win32-add-component! ((b <win32-menu-bar>) (m <win32-menu>))
   (win32-add-menu! b m))

@@ -94,6 +94,8 @@
 	    set-menu
 	    draw-menu-bar
 	    insert-menu-item
+	    set-menu-item-info
+	    
 	    draw-text
 	    set-window-text
 	    get-window-text
@@ -848,20 +850,30 @@
   (define-constant LPCREATESTRUCT void*)
 
   (define-c-struct MENUITEMINFO
-    (UINT cbSize)
-    (UINT fMask)
-    (UINT fType)
-    (UINT fState)
-    (UINT wID)
-    (HMENU hSubMenu)
-    (HBITMAP hbmpChecked)
-    (HBITMAP hbmpUnchecked)
-    (DWORD dwItemData)
-    (LPWSTR dwTypeData)
-    (UINT cch)
-    (HBITMAP hbmpItem))
-  (define-constant LPMENUITEMINFO void*)
-
+    (UINT      cbSize)
+    (UINT      fMask)
+    (UINT      fType)
+    (UINT      fState)
+    (UINT      wID)
+    (HMENU     hSubMenu)
+    (HBITMAP   hbmpChecked)
+    (HBITMAP   hbmpUnchecked)
+    (ULONG_PTR dwItemData)
+    (LPWSTR    dwTypeData)
+    (UINT      cch)
+    (HBITMAP   hbmpItem))
+  (define-c-typedef MENUITEMINFO (* LPMENUITEMINFO) (* LPCMENUITEMINFO))
+  
+  (define-constant MIIM_STATE       #x00000001)
+  (define-constant MIIM_ID          #x00000002)
+  (define-constant MIIM_SUBMENU     #x00000004)
+  (define-constant MIIM_CHECKMARKS  #x00000008)
+  (define-constant MIIM_TYPE        #x00000010)
+  (define-constant MIIM_DATA        #x00000020)
+  (define-constant MIIM_STRING      #x00000040)
+  (define-constant MIIM_BITMAP      #x00000080)
+  (define-constant MIIM_FTYPE       #x00000100)
+  
   (define-c-struct NMHDR
     (HWND     hwndFrom)
     (UINT_PTR idFrom)
@@ -990,6 +1002,9 @@
 
   (define insert-menu-item
     (c-function user32 BOOL InsertMenuItemW (HMENU UINT BOOL LPMENUITEMINFO)))
+
+  (define set-menu-item-info
+    (c-function user32 BOOL SetMenuItemInfoW (HMENU UINT BOOL LPCMENUITEMINFO)))
 
   (define draw-text
     (c-function user32 int DrawTextW (HDC LPCWSTR int LPRECT UINT)))
