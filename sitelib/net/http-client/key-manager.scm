@@ -94,9 +94,9 @@
   (lambda (parameter)
     (cond ((alias-provider parameter) =>
 	   (lambda (alias)
-	     (cons* (keystore-get-key keystore alias password)
-		    (keystore-get-certificate keystore alias)
-		    (or (keystore-get-certificate-chain keystore alias) '()))))
+	     (cons (keystore-get-key keystore alias password)
+		   (or (keystore-get-certificate-chain keystore alias)
+		       (list (keystore-get-certificate keystore alias))))))
 	  (else #f))))
 (define-record-type keystore-key-provider
   (parent key-provider)
