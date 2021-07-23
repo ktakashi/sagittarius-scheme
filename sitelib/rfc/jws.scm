@@ -194,9 +194,6 @@
 	      (lambda (header payload signature)
 		((n header payload) signature)))))
 
-(define *base64url-charset*
-  (list->char-set (map integer->char (vector->list *base64-encode-url-table*))))
-
 (define (jws-object->string jws-object)
   (let ((header (jws-header->base64url (jws-object-header jws-object)))
 	(payload (->base64url (jws-object-payload jws-object))))
@@ -218,6 +215,8 @@
 		       (->base64url (jws-signed-object-signature jws-object)))
 	(jws-object->string jws-object)))))
 
+(define *base64url-charset*
+  (list->char-set (map integer->char (vector->list *base64-encode-url-table*))))
 ;; allow user to provide payload in case of no payload form
 (define jws:parse
   (case-lambda
@@ -225,13 +224,24 @@
    ((s maybe-payload)
     (define (string->json s) (json-read (open-string-input-port s)))
     (define (get-payload input maybe-payload)
-      (if maybe-payload
-	  (if (and (zero? (string-length input)) (bytevector? maybe-payload))
-	      maybe-payload
-	      (assertion-violation 'jws:parse "Input contains payload" input))
-	  (base64url-decode (string->utf8 input))))
-    (let ((part* (string-tokenize s *base64url-charset*)))
-      (unless (= (length part*) 3)
+      (cond (maybe-payload
+	     (if (and (string-null? input) (bytevector? maybe-payload))
+		 maybe-payload
+		 (assertion-violation 'jws:parse "Input contains payload"
+				      input)))
+	    ((string-null? input) #vu8()) ;; shortcut
+	    (else (base64url-decode (string->utf8 input)))))
+    (define (parse-input s)
+      (define left-index (string-index s #\.))
+      (define right-index (string-index-right s #\.))
+      (when (or (< left-index 0) (< right-index 0) (= left-index right-index))
+	(assertion-violation 'jws:parse "Invalid JWS format" s))
+      (list (substring s 0 left-index)
+	    (substring s (+ left-index 1) right-index)
+	    (substring s (+ right-index 1) (string-length s))))
+    (let ((part* (parse-input s)))
+      (unless (for-all (lambda (s) (string-every *base64url-charset* s))
+		       part*)
 	(assertion-violation 'jws:parse "Invalid JWS format" s))
       (let ((header (base64url-decode-string (car part*)))
 	    ;; we hold the below as bytevectors (for convenience)

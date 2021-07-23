@@ -9,7 +9,21 @@
 
 (test-begin "JWS")
 
-(test-error "Invalid JWS" (jws:parse "abc.def"))
+(test-error "Invalid JWS (0)" (jws:parse "abc.def"))
+(test-error "Invalid JWS (1)" (jws:parse "abc...def"))
+(test-error "Invalid JWS (2)" (jws:parse "ab\\+c..def"))
+
+(test-assert "No body JWS"
+	     (jws-object?
+	      (jws:parse "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..d5JVICI5HVHxe9Qn7Q9rEyZzWhQriuSJBXzyh7_gXEM")))
+(test-error "Body with maybe-payload"
+	    (jws:parse "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.abc.d5JVICI5HVHxe9Qn7Q9rEyZzWhQriuSJBXzyh7_gXEM" #vu8(1 2 3)))
+
+(let ((jws (jws:parse "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..d5JVICI5HVHxe9Qn7Q9rEyZzWhQriuSJBXzyh7_gXEM")))
+  (test-equal #vu8() (jws-object-payload jws)))
+
+(let ((jws (jws:parse "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..d5JVICI5HVHxe9Qn7Q9rEyZzWhQriuSJBXzyh7_gXEM" #vu8(1 2 3))))
+  (test-equal #vu8(1 2 3) (jws-object-payload jws)))
 
 (define jws-string "eyJhbGciOiJQUzI1NiIsInR5cCI6IkpXVCIsImNyaXQiOlsidXJpOmF1ZCJdLCJ1cmk6YXVkIjoibWUifQ.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.ISbe0I5T6w7mkxxdovu9ozCqg0YyWlNhhI99Z9UaBnB5elYq0df_FJNHMAIKBLRzSW9QdPW6AnFedGD4vWxuGHi_1pN3pl87G2dAVSpT6UQUs1vmodVy60cRGVVA2g4TN9V61bqDHHw74b4Aie1eOR4CkPx7tr4CrAFhRPrJWjnVgksSTE1pvjmxG7q2AJr3xF4gr2MgGKQSJquO5nhtoiSL_AgM0p8nV-Yl0QYKwRXxMPxicKD_zjSwT2aMDdIoDYm5Uze0Fb__4W-ZOkU5dHf_lQA-PSkPOfc-HXyDvOpUmWhb14hVwPZUYivMZM3yxHHiVQ5QAWNLNku_VYZC_Q")
 

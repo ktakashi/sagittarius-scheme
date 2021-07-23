@@ -34,8 +34,11 @@
 	    (rename (http:request <http:request>))
 	    http:request-uri http:request-method
 	    http:request-content-type
+	    http:request-auth
 	    http:request-headers
 	    http:request-body
+	    http:request-basic-auth
+	    http:request-bearer-auth
 	    
 	    ;; helper
 	    http:request->request-uri
@@ -57,6 +60,7 @@
 	    )
     (import (rnrs)
 	    (record builder)
+	    (rfc base64)
 	    (net uri))
 
 ;;; TODO maybe should make a record for this
@@ -97,6 +101,7 @@
   (fields uri
 	  method
 	  content-type
+	  auth
 	  headers
 	  body))
 (define (->uri uri)
@@ -110,6 +115,15 @@
 			(content-type "application/octet-stream")
 			(body #f)
 			(headers '() ->headers))))
+
+(define (http:request-basic-auth username password)
+  (let* ((cred (base64-encode-string (string-append username ":" password)))
+	 (value (string-append "Basic " cred)))
+    (lambda () value)))
+
+(define (http:request-bearer-auth token)
+  (let ((value (string-append "Bearer " token)))
+    (lambda () value)))
 
 (define (http:request->request-uri request)
   (define uri (http:request-uri request))

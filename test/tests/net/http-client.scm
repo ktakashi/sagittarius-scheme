@@ -82,4 +82,25 @@
   (run-test "https://client.badssl.com/")
   )
 
+(let ()
+  (define basic-api "https://httpbin.org/basic-auth/foo/bar")
+  (define bearer-api "https://httpbin.org/bearer")
+  (define (run url auth)
+    (define request (http:request-builder (uri url) (auth auth)))
+    (http:client-send client request))
+
+  (define (test-status status res)
+    (test-equal "Auth" status (http:response-status res)))
+  
+  (define client (http:client-builder
+		  (cookie-handler (http:make-default-cookie-handler))
+		  (key-manager (test-key-manager))
+		  (connection-manager
+		   (build-http-pooling-connection-manager pooling-config))
+		  (follow-redirects (http:redirect normal))))
+  (test-status "200" (run basic-api (http:request-basic-auth "foo" "bar")))
+  (test-status "401" (run basic-api (http:request-basic-auth "foo" "baz")))
+  (test-status "200" (run bearer-api (http:request-bearer-auth "foo")))
+  )
+
 (test-end)

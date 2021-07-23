@@ -41,6 +41,9 @@
 	    http:headers-names http:headers-ref* http:headers-ref
 	    http:method
 	    http-method-set
+
+	    http:request-basic-auth
+	    http:request-bearer-auth
 	    
 	    http:client? http:client-builder
 	    (rename (http:client <http:client>))
@@ -220,6 +223,10 @@
     (unless (http:headers-contains? headers "Accept")
       (http:headers-set! headers "Accept" "*/*"))
     (http:headers-set! headers "Accept-Encoding" "gzip, deflate")
+    (cond ((http:request-auth request) =>
+	   (lambda (provider)
+	     (when (procedure? provider)
+	       (http:headers-set! headers "Authorization" (provider))))))
     (cond ((http:client-cookie-handler client) =>
 	   (lambda (jar)
 	     (define uri (http:request-uri request))
