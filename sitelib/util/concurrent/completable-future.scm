@@ -31,7 +31,8 @@
 ;; not sure if we should make separate library for this...
 #!nounbound
 (library (util concurrent completable-future)
-    (export thunk->future future-map future-guard
+    (export thunk->future future-map future-flatmap
+	    future-guard
 
 	    *completable-future:default-executor*)
     (import (rnrs)
@@ -68,6 +69,13 @@
 
 (define (future-map proc future)
   (thunk->future (lambda opt (proc (apply future-get future opt)))
+		 (if (completable-future? future)
+		     (completable-future-executor future)
+		     (force (*completable-future:default-executor*)))))
+
+;; For now very naive implementation...
+(define (future-flatmap proc future)
+  (thunk->future (lambda opt (future-get (proc (apply future-get future opt))))
 		 (if (completable-future? future)
 		     (completable-future-executor future)
 		     (force (*completable-future:default-executor*)))))
