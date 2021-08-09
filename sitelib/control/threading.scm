@@ -29,17 +29,25 @@
 ;;;  
 
 (library (control threading)
-    (export ~>)
-    (import (rnrs))
+    (export ~> lazy~>
+	    force ;; for convenience
+	    )
+    (import (rnrs)
+	    (scheme lazy))
 
+;; full execution
 (define-syntax ~>
   (syntax-rules ()
-    ((_ "thread" seed)
-     (let ((v seed)) v))
+    ((_ seed exp* ...)
+     (force (lazy~> seed exp* ...)))))
+
+(define-syntax lazy~>
+  (syntax-rules ()
+    ((_ "thread" seed) seed) ;; returns promise here ;)
     ((_ "thread" seed exp exp* ...)
      (let ((v seed)
 	   (proc exp))
-       (~> "thread" (proc v) exp* ...)))
+       (lazy~> "thread" (delay-force (proc (force v))) exp* ...)))
     ((_ seed exp* ...)
-     (~> "thread" seed exp* ...))))
+     (lazy~> "thread" (delay-force seed) exp* ...))))
 )
