@@ -370,7 +370,12 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     }
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-197/srfi-197.html"]{SRFI-197}}
-    @td{(srfi :197 pipeline)}}
+    @td{(srfi :197 pipeline)
+
+        The long name is Sagittarius specific and the specified library name 
+	is @code{(srfi :197)}. So for the portability it's better to use the
+    	@code{(srfi :197)}.
+    }}
 @; > In order to facilitate writing sophisticated custom macro transformers, it
 @; > is allowed that a transformer spec expands into a sequence of multiple
 @; > definitions eventually followed by a transformer spec (whose expansion may
