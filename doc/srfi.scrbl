@@ -347,7 +347,7 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     @td{(srfi :158 generators-and-accumulators)
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-159/srfi-159.html"]{SRFI-159}}
-    @td{(srfi :159)}
+    @td{(srfi :159)}}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-160/srfi-160.html"]{SRFI-160}}
     @td{(srfi :160)
 
@@ -369,6 +369,8 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     @item{(srfi :160 c128)}
     }
     }}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-197/srfi-197.html"]{SRFI-197}}
+    @td{(srfi :197 pipeline)}}
 @; > In order to facilitate writing sophisticated custom macro transformers, it
 @; > is allowed that a transformer spec expands into a sequence of multiple
 @; > definitions eventually followed by a transformer spec (whose expansion may
