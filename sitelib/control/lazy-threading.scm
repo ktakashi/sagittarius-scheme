@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme;coding:utf-8 -*-
 ;;;
-;;; control/theading.scm - Threading macro
+;;; control/lazy-theading.scm - Lazy Threading macro
 ;;;  
 ;;;   Copyright (c) 2021  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -28,50 +28,56 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+;; sort of threading macros for promise
+
 #!nounbound
-(library (control threading)
-    (export ~> lazy~> if~> cond~> 
+(library (control lazy-threading)
+    (export lazy-chain lazy-if lazy-cond
+	    lazy-guard
 	    => else force ;; for convenience
 	    )
     (import (rnrs)
 	    (scheme lazy))
 
-;; full execution
-(define-syntax ~>
-  (syntax-rules ()
-    ((_ seed exp* ...)
-     (force (lazy~> seed exp* ...)))))
-
-(define-syntax lazy~>
-  (syntax-rules ()
+(define-syntax lazy-chain
+  (syntax-rules (lazy-guard)
     ((_ "thread" seed) seed) ;; returns promise here ;)
+    ((_ "thread" seed (lazy-guard exp) exp* ...)
+     (lazy-chain "thread" (lazy-guard seed exp) exp* ...))
     ((_ "thread" seed exp exp* ...)
      (let ((v seed)
 	   (proc exp))
-       (lazy~> "thread" (delay-force (proc (force v))) exp* ...)))
+       (lazy-chain "thread" (delay-force (proc (force v))) exp* ...)))
     ((_ seed exp* ...)
-     (lazy~> "thread" (delay-force seed) exp* ...))))
+     (lazy-chain "thread" (delay-force seed) exp* ...))))
 
-(define-syntax if~>
+(define-syntax lazy-if
   (syntax-rules ()
-    ((_ seed pred then) (if~> seed pred then (lambda (v) #f)))
+    ((_ seed pred then) (lazy-if seed pred then (lambda (v) #f)))
     ((_ seed pred then else)
      (let ((p pred) (t then) (e else))
-       (lazy~> seed (lambda (v) (if (p v) (t v) (e v))))))))
+       (lazy-chain seed (lambda (v) (if (p v) (t v) (e v))))))))
 
-(define-syntax cond~>
+(define-syntax lazy-cond
   (syntax-rules (=> else)
     ((_ "parse" seed ((pred exp* ...)))
-     (let ((t (lambda (v) (lazy~> v exp* ...))))
-       (if~> seed pred t)))
+     (let ((t (lambda (v) (lazy-chain v exp* ...))))
+       (lazy-if seed pred t)))
     ((_ "parse" seed ((pred exp* ...) (else exp2* ...)))
-     (let ((t (lambda (v) (lazy~> v exp* ...)))
-	   (e (lambda (v) (lazy~> v exp2* ...))))
-       (if~> seed pred t e)))
+     (let ((t (lambda (v) (lazy-chain v exp* ...)))
+	   (e (lambda (v) (lazy-chain v exp2* ...))))
+       (lazy-if seed pred t e)))
     ((_ "parse" seed ((pred exp* ...) clause* ...))
-     (let ((t (lambda (v) (lazy~> v exp* ...))))
-       (if~> seed pred t (cond~> "parse" seed (clause* ...)))))
+     (let ((t (lambda (v) (lazy-chain v exp* ...))))
+       (lazy-if seed pred t (lazy-cond "parse" seed (clause* ...)))))
     ((_ seed clause* ...)
-     (cond~> "parse" seed (clause* ...)))))
+     (lazy-cond "parse" seed (clause* ...)))))
+
+(define-syntax lazy-guard
+  (syntax-rules ()
+    ((_ seed exp)
+     (let ((v seed)
+	   (proc exp))
+       (delay-force (guard (e (else (proc e))) (force v)))))))
 
 )
