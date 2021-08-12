@@ -39,7 +39,46 @@
     (import (rnrs)
 	    (scheme lazy))
 
+;; inspired by SRFI-197
+;; promise only supports single value return, so no need for multiple value
+;; consideration ;)
 (define-syntax lazy-chain
+  (lambda (x)
+    (define (next k seed p step)
+      (with-syntax (((t) (generate-temporaries '(t))))
+	(let loop ((out '()) (vars '()) (in step))
+	  (syntax-case in ()
+	    ((u . rest)
+	     (and (identifier? #'u) (free-identifier=? #'u p))
+	     (loop (cons #'t out) (cons #'t vars) #'rest))
+	    ((x . rest)
+	     (loop (cons #'x out) vars #'rest))
+	    (()
+	     (with-syntax ((result (reverse out))
+			   (seed seed))
+	       (syntax-case vars ()
+		 ;; discard the result
+		 (() #'(begin (force seed) result))
+		 ;; use the result
+		 ;; (a _ _ _) => (let ((x (force seed))) (a x x x))
+		 ((x . r) #'(let ((x (force seed))) result)))))
+	    (v
+	     (identifier? #'v)
+	     (with-syntax ((seed seed))
+	       #'(v (force seed))))))))
+		   
+    (syntax-case x ()
+      ((_ seed (step ...) ...)
+       #'(lazy-chain seed _ (step ...) ...))
+      
+      ((_ seed placeholder)
+       (and (identifier? #'placeholder))
+       #'(delay-force seed))
+      
+      ((k seed placeholder step rest ...)
+       (with-syntax ((n (next #'k #'(delay-force seed) #'placeholder #'step)))
+	 #'(lazy-chain n placeholder rest ...))))))
+#;(define-syntax lazy-chain
   (syntax-rules (lazy-guard)
     ((_ "thread" seed) seed) ;; returns promise here ;)
     ((_ "thread" seed (lazy-guard exp) exp* ...)
