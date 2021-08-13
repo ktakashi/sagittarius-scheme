@@ -32,8 +32,10 @@
 
 #!nounbound
 (library (control lazy-threading)
-    (export lazy-chain lazy-if lazy-cond
-	    lazy-guard
+    (export lazy-chain
+	    (rename (lazy-if lazy-chain-if)
+		    (lazy-cond lazy-chain-cond)
+		    (lazy-guard lazy-chain-guard))
 	    => else force ;; for convenience
 	    )
     (import (rnrs)
@@ -44,18 +46,21 @@
 ;; consideration ;)
 (define-syntax lazy-chain
   (lambda (x)
-    (define (next k seed p step)
-      (with-syntax (((t) (generate-temporaries '(t))))
+    (define (next seed p step)
+      (with-syntax (((t) (generate-temporaries '(t)))
+		    (seed seed))
 	(let loop ((out '()) (vars '()) (in step))
-	  (syntax-case in ()
+	  (syntax-case in (lazy-guard)
+	    ((lazy-guard guard ...)
+	     (with-syntax ((p p))
+	       #'(lazy-guard seed p guard ...)))
 	    ((u . rest)
 	     (and (identifier? #'u) (free-identifier=? #'u p))
 	     (loop (cons #'t out) (cons #'t vars) #'rest))
 	    ((x . rest)
 	     (loop (cons #'x out) vars #'rest))
 	    (()
-	     (with-syntax ((result (reverse out))
-			   (seed seed))
+	     (with-syntax ((result (reverse out)))
 	       (syntax-case vars ()
 		 ;; discard the result
 		 (() #'(begin (force seed) result))
@@ -64,8 +69,7 @@
 		 ((x . r) #'(let ((x (force seed))) result)))))
 	    (v
 	     (identifier? #'v)
-	     (with-syntax ((seed seed))
-	       #'(v (force seed))))))))
+	     #'(v (force seed)))))))
 		   
     (syntax-case x ()
       ((_ seed (step ...) ...)
@@ -75,48 +79,57 @@
        (and (identifier? #'placeholder))
        #'(delay-force seed))
       
-      ((k seed placeholder step rest ...)
-       (with-syntax ((n (next #'k #'(delay-force seed) #'placeholder #'step)))
+      ((_ seed placeholder step rest ...)
+       (with-syntax ((n (next #'seed #'placeholder #'step)))
 	 #'(lazy-chain n placeholder rest ...))))))
-#;(define-syntax lazy-chain
-  (syntax-rules (lazy-guard)
-    ((_ "thread" seed) seed) ;; returns promise here ;)
-    ((_ "thread" seed (lazy-guard exp) exp* ...)
-     (lazy-chain "thread" (lazy-guard seed exp) exp* ...))
-    ((_ "thread" seed exp exp* ...)
-     (let ((v seed)
-	   (proc exp))
-       (lazy-chain "thread" (delay-force (proc (force v))) exp* ...)))
-    ((_ seed exp* ...)
-     (lazy-chain "thread" (delay-force seed) exp* ...))))
 
 (define-syntax lazy-if
   (syntax-rules ()
-    ((_ seed pred then) (lazy-if seed pred then (lambda (v) #f)))
-    ((_ seed pred then else)
-     (let ((p pred) (t then) (e else))
-       (lazy-chain seed (lambda (v) (if (p v) (t v) (e v))))))))
+    ((_ seed (pred ...) then)
+     (lazy-if seed (pred ...) then (values #f)))
+    ((_ seed (pred ...) then else)
+     (lazy-if seed _ (pred ...) then else))
+    ((_ seed placeholder pred then else)
+     (delay-force
+      (let ((v (force seed)))
+	(if (force (lazy-chain v placeholder pred))
+	    (lazy-chain v placeholder then)
+	    (lazy-chain v placeholder else)))))))
 
 (define-syntax lazy-cond
   (syntax-rules (=> else)
-    ((_ "parse" seed ((pred exp* ...)))
-     (let ((t (lambda (v) (lazy-chain v exp* ...))))
-       (lazy-if seed pred t)))
-    ((_ "parse" seed ((pred exp* ...) (else exp2* ...)))
-     (let ((t (lambda (v) (lazy-chain v exp* ...)))
-	   (e (lambda (v) (lazy-chain v exp2* ...))))
-       (lazy-if seed pred t e)))
-    ((_ "parse" seed ((pred exp* ...) clause* ...))
-     (let ((t (lambda (v) (lazy-chain v exp* ...))))
-       (lazy-if seed pred t (lazy-cond "parse" seed (clause* ...)))))
-    ((_ seed clause* ...)
-     (lazy-cond "parse" seed (clause* ...)))))
+    ((_ "parse" seed p ((pred exp* ...)))
+     (lazy-if seed p pred (lazy-chain seed p exp* ...) (values #f)))
+    ((_ "parse" seed p ((pred => exp)))
+     (let ((v (force (lazy-chain seed p pred))))
+       (if v
+	   (lazy-chain v p (exp p)))))
+    ((_ "parse" seed p ((pred exp* ...) (else exp2* ...)))
+     (lazy-if seed p pred
+	      (lazy-chain seed p exp* ...)
+	      (lazy-chain seed p exp2* ...)))
+    ((_ "parse" seed p ((pred => exp) clause* ...))
+     (let ((v (force (lazy-chain seed p pred))))
+       (if v
+	   (lazy-chain v p (exp p))
+	   (lazy-cond "parse" seed p (clause* ...)))))
+    ((_ "parse" seed p ((pred exp* ...) clause* ...))
+     (lazy-if seed p pred (lazy-chain seed p exp* ...)
+	      (lazy-cond "parse" seed p (clause* ...))))
+    ((_ seed (guard? exp ...) ...)
+     (lazy-cond seed _ (guard? exp ...) ...))
+    ((_ seed placeholder (guard? exp ...) ...)
+     (delay-force
+      (let ((v (force seed)))
+	(lazy-cond "parse" v placeholder ((guard? exp ...) ...)))))))
 
 (define-syntax lazy-guard
   (syntax-rules ()
-    ((_ seed exp)
-     (let ((v seed)
-	   (proc exp))
-       (delay-force (guard (e (else (proc e))) (force v)))))))
+    ((_ seed (exp ...) ...)
+     (lazy-guard seed _ (exp ...) ...))
+    ((_ seed placeholder exp rest ...)
+     (delay-force
+      (guard (e (else (lazy-chain e placeholder exp rest ...)))
+	(force seed))))))
 
 )

@@ -20,7 +20,9 @@
   (define (eager expr) (promise #t expr))
 
   (define-syntax delay-force
-    (syntax-rules ()
+    (syntax-rules (delay-force)
+      ;; simple optimisation for the result of macro expansion
+      ((_ (delay-force expr)) (delay-force expr))
       ((_ expr)
        (promise #f (lambda () expr)))))
 
