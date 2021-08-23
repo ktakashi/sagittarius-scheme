@@ -36,7 +36,7 @@
 	    (rename (lazy-if lazy-chain-if)
 		    (lazy-cond lazy-chain-cond)
 		    (lazy-guard lazy-chain-guard))
-	    => else force ;; for convenience
+	    _ => else force ;; for convenience
 	    )
     (import (rnrs)
 	    (scheme lazy))
@@ -98,24 +98,37 @@
 
 (define-syntax lazy-cond
   (syntax-rules (=> else)
-    ((_ "parse" seed p ((pred exp* ...)))
-     (lazy-if seed p pred (lazy-chain seed p exp* ...) (values #f)))
     ((_ "parse" seed p ((pred => exp)))
      (let ((v (force (lazy-chain seed p pred))))
        (if v
-	   (lazy-chain v p (exp p)))))
+	   (lazy-chain v p exp))))
+    ((_ "parse" seed p ((pred exp* ...)))
+     (let ((v (force (lazy-chain seed p pred))))
+       (if v
+	   (lazy-chain seed p exp* ...))))
+    
+    ((_ "parse" seed p ((pred => exp) (else exp2* ...)))
+     (let ((v (force (lazy-chain seed p pred))))
+       (if v
+	   (lazy-chain v p exp)
+	   (lazy-chain seed p exp2* ...))))
     ((_ "parse" seed p ((pred exp* ...) (else exp2* ...)))
-     (lazy-if seed p pred
-	      (lazy-chain seed p exp* ...)
-	      (lazy-chain seed p exp2* ...)))
+     (let ((v (force (lazy-chain seed p pred))))
+       (if v
+	   (lazy-chain seed p exp* ...)
+	   (lazy-chain seed p exp2* ...))))
+    
     ((_ "parse" seed p ((pred => exp) clause* ...))
      (let ((v (force (lazy-chain seed p pred))))
        (if v
-	   (lazy-chain v p (exp p))
+	   (lazy-chain v p exp)
 	   (lazy-cond "parse" seed p (clause* ...)))))
     ((_ "parse" seed p ((pred exp* ...) clause* ...))
-     (lazy-if seed p pred (lazy-chain seed p exp* ...)
-	      (lazy-cond "parse" seed p (clause* ...))))
+     (let ((v (force (lazy-chain seed p pred))))
+       (if v
+	   (lazy-chain seed p exp* ...)
+	   (lazy-cond "parse" seed p (clause* ...)))))
+    
     ((_ seed (guard? exp ...) ...)
      (lazy-cond seed _ (guard? exp ...) ...))
     ((_ seed placeholder (guard? exp ...) ...)
