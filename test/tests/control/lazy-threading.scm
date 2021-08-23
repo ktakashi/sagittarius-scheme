@@ -13,6 +13,20 @@
 (test-equal "lazy-chain (2)" 4
 	    (force (lazy-chain (+ 1 1) (* _ _))))
 
+(let ((t '()))
+  (define (update! v n)
+    (set! t (cons n t))
+    v)
+  (let ((p (lazy-chain (begin (set! t (cons 1 t)) (+ 1 1))
+		       (update! _ 2)
+		       (* _ _)
+		       (update! _ 3))))
+    (test-equal '() t)
+    (test-equal 4 (force p))
+    (test-equal '(3 2 1) t)
+    (test-equal 4 (force p))
+    (test-equal '(3 2 1 3 2 1) t)))
+
 ;; some tests from SRFI-197 tests
 (define (exclamation x) (string-append x "!"))
 (test-equal "lazy-chain" "bazbarfoo!"
@@ -22,7 +36,7 @@
 	       (string-append "bar" _)
 	       (string-append "baz" _)
 	       (exclamation _))))
-  
+
 (test-equal "lazy-chain with mixed _ position" "barfoobaz"
   (force
    (lazy-chain ""
