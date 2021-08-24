@@ -2294,4 +2294,6 @@
 (test-equal -0.0 (expt -0.0 3))
 (test-equal 0.0 (expt -0.0 4))
 
+(test-equal 0.0 (abs -0.0))
+
 (test-end)
