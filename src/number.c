@@ -3119,7 +3119,7 @@ SgObject Sg_Abs(SgObject obj)
     }
   } else if (SG_FLONUMP(obj)) {
     double v = SG_FLONUM_VALUE(obj);
-    if (v < 0) return Sg_MakeFlonum(-v);
+    if (signbit(v)) return Sg_MakeFlonum(-v);
   } else if (SG_RATIONALP(obj)) {
     if (Sg_Sign(SG_RATIONAL(obj)->numerator) < 0) {
       obj = Sg_MakeRational(Sg_Negate(SG_RATIONAL(obj)->numerator),
