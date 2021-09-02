@@ -67,18 +67,35 @@
       (execute-future! executor future)
       future))))
 
-(define (future-map proc future)
-  (thunk->future (lambda opt (proc (apply future-get future opt)))
-		 (if (completable-future? future)
-		     (completable-future-executor future)
-		     (force (*completable-future:default-executor*)))))
+(define (search-executor future future*)
+  (cond ((completable-future? future)
+	 (completable-future-executor future))
+	((filter completable-future? future*) =>
+	 (lambda (f*) (completable-future-executor (car f*))))
+	(else (force (*completable-future:default-executor*)))))
+(define (future-map proc future . future*)
+  (thunk->future (if (null? future*)
+		     (lambda opt (proc (apply future-get future opt)))
+		     (lambda opt
+		       (apply proc
+			      (cons (apply future-get future opt)
+				    (map (lambda (f)
+					   (apply future-get f opt))
+					 future*)))))
+		 (search-executor future future*)
+		 ))
 
 ;; For now very naive implementation...
-(define (future-flatmap proc future)
-  (thunk->future (lambda opt (future-get (proc (apply future-get future opt))))
-		 (if (completable-future? future)
-		     (completable-future-executor future)
-		     (force (*completable-future:default-executor*)))))
+(define (future-flatmap proc future . future*)
+  (thunk->future
+   (if (null? future*)
+       (lambda opt (future-get (proc (apply future-get future opt))))
+       (lambda opt (future-get (apply proc
+				      (cons (apply future-get future opt)
+					    (map (lambda (f)
+						   (apply future-get f opt))
+						 future*))))))
+   (search-executor future future*)))
 
 (define (future-guard proc future)
   (thunk->future
