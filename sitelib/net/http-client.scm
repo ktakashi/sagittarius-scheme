@@ -113,7 +113,7 @@
 
 (define *http-client:default-executor*
   ;; Don't create during the library loading
-  (delay (make-thread-pool-executor 5 push-future-handler)))
+  (delay (make-thread-pool-executor 10 push-future-handler)))
 
 (define-record-type http:client
   (fields follow-redirects
@@ -121,7 +121,19 @@
 	  connection-manager
 	  version
 	  executor
-	  ))
+	  ;; internal 
+	  (mutable lease-option)
+	  )
+  (protocol (lambda (p)
+	      (lambda args
+		(let ((hc (apply p args)))
+		  ;; set lease option here
+		  (http:client-lease-option-set! hc
+		   (http-connection-lease-option-builder
+		    (alpn (if (eq? (http:client-version hc) 'http/2)
+			      '("h2") '()))
+		    (executor (http:client-executor hc))))
+		  hc)))))
 (define-syntax http:client-builder
   (make-record-builder http:client
 		       (;; by default we don't follow
@@ -299,7 +311,7 @@
   (http-connection-manager-lease-connection
    (http:client-connection-manager client)
    request
-   (if (eq? (http:client-version client) 'http/2) '("h2") '())))
+   (http:client-lease-option client)))
 (define (release-http-connection client connection reuse?)
   (http-connection-manager-release-connection
    (http:client-connection-manager client)

@@ -62,6 +62,8 @@
 
 	    socket-options->client-socket
 
+	    default-dns-resolver
+	    
 	    ;; re-export from (sagittarius socket)
 	    call-with-socket
 	    shutdown-output-port
@@ -220,7 +222,8 @@
 	  ai-family
 	  ai-socktype
 	  ai-flags
-	  ai-protocol))
+	  ai-protocol
+	  dns-resolver))
 
 (define-syntax socket-options-builder
   (make-record-builder socket-options
@@ -237,14 +240,24 @@
     socket))
 
 ;; TODO make better name...
-(define (make-client-socket node service
-			    :optional (options (socket-options-builder)))
+(define (default-dns-resolver node service options)
   (define ai-family (socket-options-ai-family options))
   (define ai-socktype (socket-options-ai-socktype options))
   (define ai-flags (socket-options-ai-flags options))
   (define ai-protocol (socket-options-ai-protocol options))
-  (define timeout (socket-options-connection-timeout options))
 
+  (let ((hints (make-hint-addrinfo :family ai-family
+				   :socktype ai-socktype
+				   :flags ai-flags
+				   :protocol ai-protocol)))
+    (get-addrinfo node service hints)))
+
+(define (make-client-socket node service
+			    :optional (options (socket-options-builder)))
+  (define ai-flags (socket-options-ai-flags options))
+  (define timeout (socket-options-connection-timeout options))
+  (define dns-resolver (or (socket-options-dns-resolver options)
+			   default-dns-resolver))
   (define (setup socket)
     (when socket (setup-socket socket options))
     socket)
@@ -252,11 +265,7 @@
   (unless (zero? (bitwise-and ai-flags AI_PASSIVE))
     (assertion-violation 'make-client-socket
 			 "client socket must not have AI_PASSIVE"))
-  (let* ((hints (make-hint-addrinfo :family ai-family
-				    :socktype ai-socktype
-				    :flags ai-flags
-				    :protocol ai-protocol))
-	 (info (get-addrinfo node service hints)))
+  (let ((info (dns-resolver node service options)))
     (let loop ((socket (create-socket info)) (info info))
       (define (retry info)
 	(let ((next (next-addrinfo info)))

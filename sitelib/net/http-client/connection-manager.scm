@@ -54,6 +54,9 @@
 	    (rename (make-http-ephemeral-connection-manager
 		     default-delegate-connection-manager-provider))
 	    make-logging-delegate-connection-provider
+
+	    ;; internal 
+	    http-connection-lease-option-builder
 	    )
     (import (rnrs)
 	    (net socket)
@@ -73,16 +76,24 @@
 	  release
 	  shutdown
 	  key-manager
+	  dns-timeout
 	  read-timeout
 	  connection-timeout))
 
 (define-record-type http-connection-config
   (fields key-manager
+	  dns-timeout
 	  read-timeout
 	  connection-timeout))
 
 (define-syntax http-connection-config-builder
   (make-record-builder http-connection-config))
+
+(define-record-type http-connection-lease-option
+  (fields alpn
+	  executor))
+(define-syntax http-connection-lease-option-builder
+  (make-record-builder http-connection-lease-option))
 
 (define (http-connection-manager-lease-connection manager request option)
   ((connection-manager-lease manager) manager request option))
@@ -93,18 +104,45 @@
 (define (http-connection-manager-shutdown! manager)
   ((connection-manager-shutdown manager) manager))
 
-(define (http-connection-manager->socket-option cm request alpn)
+(define-condition-type &dns-timeout &error
+  make-dns-timeout-error dns-timeout-error?
+  (node dns-timeout-node)
+  (service dns-timeout-service))
+
+(define (http-connection-manager->socket-option cm request option)
   (define uri (http:request-uri request))
   (define scheme (uri-scheme uri))
   (define host (uri-host uri))
 
   (define (milli->micro v) (* v 1000))
+  (define (milli->time v)
+    (let ((n (* v 1000000)))
+      (add-duration (current-time) (make-time time-duration n 0))))
   (define connection-timeout
     (cond ((connection-manager-connection-timeout cm) => milli->micro)
 	  (else #f)))
   (define read-timeout
-      (cond ((connection-manager-read-timeout cm)=> milli->micro)
+    (cond ((connection-manager-read-timeout cm)=> milli->micro)
 	    (else #f)))
+  (define dns-timeout
+    (cond ((connection-manager-dns-timeout cm) => milli->time)
+	  (else #f)))
+  (define executor (http-connection-lease-option-executor option))
+  
+  (define (make-dns-resolver)
+    (define (dns-resolver node service options)
+      (let ((f (thunk->future
+		(lambda () (default-dns-resolver node service options))
+		executor)))
+	
+	(or (future-get f dns-timeout)
+	    (raise (condition
+		    (make-dns-timeout-error node service)
+		    (make-who-condition 'http-connection-manager->socket-option)
+		    (make-message-condition "DNS lookup timeout")
+		    (make-irritants-condition (list node service)))))))
+    (and dns-timeout dns-resolver))
+  
   (define km (connection-manager-key-manager cm))
   (if (string=? scheme "https")
       (tls-socket-options (connection-timeout connection-timeout)
@@ -112,9 +150,11 @@
 			  (client-certificate-provider
 			   (and km (key-manager->certificate-callback km)))
 			  (sni* (list host))
-			  (alpn* alpn))
+			  (alpn* (http-connection-lease-option-alpn option))
+			  (dns-resolver (make-dns-resolver)))
       (socket-options (connection-timeout connection-timeout)
-		      (read-timeout read-timeout))))
+		      (read-timeout read-timeout)
+		      (dns-resolver (make-dns-resolver)))))
 
 ;;; ephemeral (no pooling)
 (define-record-type http-ephemeral-connection-manager
@@ -124,6 +164,7 @@
 		((n ephemeral-lease-connection ephemeral-release-connection
 		    (lambda (m) #t)
 		    (http-connection-config-key-manager config)
+		    (http-connection-config-dns-timeout config)
 		    (http-connection-config-read-timeout config)
 		    (http-connection-config-connection-timeout config)
 		    ))))))
@@ -161,6 +202,7 @@
 		    (make-logging-release-connection logger)
 		    (lambda (m) #t)
 		    (http-connection-config-key-manager config)
+		    (http-connection-config-dns-timeout config)
 		    (http-connection-config-read-timeout config)
 		    (http-connection-config-connection-timeout config)))))))
 
@@ -195,6 +237,7 @@
        ((n pooling-lease-connection pooling-release-connection
 	   pooling-shutdown
 	   (http-connection-config-key-manager config)
+	   (http-connection-config-dns-timeout config)
 	   (http-connection-config-read-timeout config)
 	   (http-connection-config-connection-timeout config))
 	(http-pooling-connection-config-connection-request-timeout config)
