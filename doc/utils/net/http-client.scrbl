@@ -93,6 +93,7 @@ The @code{field} must be one or more the followings.
   @dl-item[@code{content-type}]{A content type header, this is used when the method is allowed to have body. Default value @code{"application/octet-stream"}.}
   @dl-item[@code{body}]{Content of the request. The value must be either a bytevector ot binary input port.}
   @dl-item[@code{headers}]{A list of headers or a HTTP header object. If it's a list of header, then the element must contain a pair of name and values.}
+  @dl-item[@code{cookies}]{A list of cookies. The elements must be cookie object of @code{(rfc cookie)}}
 ]
 
 }

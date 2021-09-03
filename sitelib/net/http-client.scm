@@ -39,6 +39,7 @@
 	    http:response-cookies http:response-body
 	    http:headers? http:make-headers
 	    http:headers-names http:headers-ref* http:headers-ref
+	    http:headers->alist
 	    http:method
 	    http-method-set
 
@@ -222,6 +223,10 @@
 	   (lambda (provider)
 	     (when (procedure? provider)
 	       (http:headers-set! headers "Authorization" (provider))))))
+    (let ((request-cookies (http:request-cookies request)))
+      (unless (null? request-cookies)
+	(http:headers-add! headers "Cookie"
+			   (cookies->string request-cookies))))
     (cond ((http:client-cookie-handler client) =>
 	   (lambda (jar)
 	     (define uri (http:request-uri request))
@@ -257,7 +262,10 @@
 	      (error 'http-client
 		     "Content-Encoding contains unsupported value" v)))))
     (call-with-port (get-input headers body)
-      (lambda (in) (get-bytevector-all in))))
+      (lambda (in) 
+	(let ((v (get-bytevector-all in)))
+	  (cond ((eof-object? v) #vu8())
+		(else v))))))
 		    
   (let ((in/out (open-chunked-binary-input/output-port)))
     (define (header-handler status headers)

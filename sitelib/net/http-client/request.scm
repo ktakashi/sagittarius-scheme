@@ -36,6 +36,7 @@
 	    http:request-content-type
 	    http:request-auth
 	    http:request-headers
+	    http:request-cookies
 	    http:request-body
 	    http:request-basic-auth
 	    http:request-bearer-auth
@@ -53,6 +54,7 @@
 	    http:headers-ref* http:headers-ref http:headers-contains?
 	    http:headers-set! http:headers-add!
 	    http:headers-names
+	    http:headers->alist
 
 	    http:method
 	    http-method-set
@@ -61,7 +63,9 @@
     (import (rnrs)
 	    (record builder)
 	    (rfc base64)
-	    (net uri))
+	    (rfc cookie)
+	    (net uri)
+	    (util hashtables))
 
 ;;; TODO maybe should make a record for this
 (define (->headers l)
@@ -78,6 +82,12 @@
 		  l)
 	ht)))
 
+(define (->cookies l)
+  (define (->cookie v)
+    (or (and (cookie? v) v)
+	(assertion-violation '->cookies "Unknown type" v)))
+  (map ->cookie l))
+
 (define (http:make-headers) (make-hashtable string-ci-hash string-ci=?))
 (define http:headers? hashtable?)
 (define (http:headers-ref* h k) (hashtable-ref h k '()))
@@ -88,6 +98,7 @@
 (define (http:headers-add! h k v)
   (hashtable-update! h k (lambda (v*) (cons v v*)) '()))
 (define (http:headers-names header) (vector->list (hashtable-keys header)))
+(define (http:headers->alist header) (hashtable->alist header))
 
 (define-enumeration http:method
   (CONNECT DELETE GET HEAD OPTIONS PATCH POST PUT TRACE)
@@ -103,6 +114,7 @@
 	  content-type
 	  auth
 	  headers
+	  cookies
 	  body))
 (define (->uri uri)
   (if (uri? uri)
@@ -114,7 +126,8 @@
 			(uri #f ->uri)
 			(content-type "application/octet-stream")
 			(body #f)
-			(headers '() ->headers))))
+			(headers '() ->headers)
+			(cookies '() ->cookies))))
 
 (define (http:request-basic-auth username password)
   (let* ((cred (base64-encode-string (string-append username ":" password)))
