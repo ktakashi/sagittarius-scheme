@@ -66,9 +66,8 @@
 	    
 	    make-http-pooling-connection-manager
 	    http-pooling-connection-manager?
-	    http-connection-pooling-config?
-	    http-connection-pooling-config-builder
-	    build-http-pooling-connection-manager
+	    http-pooling-connection-config?
+	    http-pooling-connection-config-builder
 
 	    http-client-logger?
 	    http-client-logger-builder
@@ -84,7 +83,7 @@
 	    socket-parameter-socket-node
 	    socket-parameter-socket-service
 
-	    key-provider? <key-provider>
+	    key-provider? <key-provider> key-provider-key-retrievers
 	    make-keystore-key-provider keystore-key-provider?
 	    keystore-key-provider-add-key-retriever!
 	    
@@ -113,16 +112,12 @@
 
 (define *http-client:default-executor*
   ;; Don't create during the library loading
-  (delay-force
-   (make-thread-pool-executor 5 push-future-handler)))
+  (delay (make-thread-pool-executor 5 push-future-handler)))
 
 (define-record-type http:client
-  (fields connection-timeout
-	  read-timeout
-	  follow-redirects
+  (fields follow-redirects
 	  cookie-handler
 	  connection-manager
-	  key-manager
 	  version
 	  executor
 	  ))
@@ -293,34 +288,10 @@
     (values header-handler body-handler response-retriever)))
       
 (define (lease-http-connection client request)
-  (define uri (http:request-uri request))
-  (define scheme (uri-scheme uri))
-  (define host (uri-host uri))
-  (define (get-option scheme host client)
-    (define (milli->micro v) (* v 1000))
-    (define connection-timeout
-      (cond ((http:client-connection-timeout client) => milli->micro)
-	    (else #f)))
-    (define read-timeout
-      (cond ((http:client-read-timeout client)=> milli->micro)
-	    (else #f)))
-    (define alpn
-      (if (eq? (http:client-version client) 'http/2)
-	  '("h2")
-	  '()))
-    (define km (http:client-key-manager client))
-    (if (string=? scheme "https")
-	(tls-socket-options (connection-timeout connection-timeout)
-			    (read-timeout read-timeout)
-			    (client-certificate-provider
-			     (and km (key-manager->certificate-callback km)))
-			    (sni* (list host))
-			    (alpn* alpn))
-	(socket-options (connection-timeout connection-timeout)
-			(read-timeout read-timeout))))
   (http-connection-manager-lease-connection
    (http:client-connection-manager client)
-   request (get-option scheme host client)))
+   request
+   (if (eq? (http:client-version client) 'http/2) '("h2") '())))
 (define (release-http-connection client connection reuse?)
   (http-connection-manager-release-connection
    (http:client-connection-manager client)

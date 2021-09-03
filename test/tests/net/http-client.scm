@@ -8,29 +8,11 @@
 	(crypto)
 	(net http-client)
 	(util concurrent)
-	;; (util logging)
+	(util logging)
 	(security keystore)
 	(srfi :64))
 
 (test-begin "HTTP client")
-
-#;(define (bytevector-formatter bv)
-  (map (lambda (u8) (string-append "0x" (number->string u8 16)))
-       (bytevector->uint-list bv (endianness little) 1)))
-(define pooling-config
-  (http-connection-pooling-config-builder
-   (connection-request-timeout 100)
-   (time-to-live 3)
-   #;(delegate-provider
-    (make-logging-delegate-connection-provider
-     (http-client-logger-builder
-      (connection-logger
-       (http-connection-logger-builder
-	(logger (make-logger +debug-level+ (make-appender "~m ~a[0]")))))
-      (wire-logger
-       (http-wire-logger-builder
-	(logger (make-logger +debug-level+ (make-appender "~m")))
-	(data-formatter bytevector-formatter))))))))
 
 (define (idrix-eu p)
   (define node (socket-parameter-socket-node p))
@@ -62,6 +44,26 @@
        strategy)))
   (make-key-manager (map ->keystore-key-provider keystores)))
 
+(define (bytevector-formatter bv)
+  (map (lambda (u8) (string-append "0x" (number->string u8 16)))
+       (bytevector->uint-list bv (endianness little) 1)))
+(define pooling-config
+  (http-pooling-connection-config-builder
+   (connection-request-timeout 100)
+   (time-to-live 3)
+   (key-manager (test-key-manager))
+   #;(delegate-provider
+    (make-logging-delegate-connection-provider
+     (http-client-logger-builder
+      (connection-logger
+       (http-connection-logger-builder
+	(logger (make-logger +debug-level+ (make-appender "~m ~a[0]")))))
+      (wire-logger
+       (http-wire-logger-builder
+	(logger (make-logger +debug-level+ (make-appender "~m")))
+	(data-formatter bytevector-formatter))))))))
+
+
 (let ()
   (define (test-future f)
     (let ((res (future-get f)))
@@ -72,9 +74,8 @@
   
   (define client (http:client-builder
 		  (cookie-handler (http:make-default-cookie-handler))
-		  (key-manager (test-key-manager))
 		  (connection-manager
-		   (build-http-pooling-connection-manager pooling-config))
+		   (make-http-pooling-connection-manager pooling-config))
 		  (follow-redirects (http:redirect normal))))
 
   (test-assert (http:client? client))
@@ -94,9 +95,8 @@
   
   (define client (http:client-builder
 		  (cookie-handler (http:make-default-cookie-handler))
-		  (key-manager (test-key-manager))
 		  (connection-manager
-		   (build-http-pooling-connection-manager pooling-config))
+		   (make-http-pooling-connection-manager pooling-config))
 		  (follow-redirects (http:redirect normal))))
   (test-status "200" (run basic-api (http:request-basic-auth "foo" "bar")))
   (test-status "401" (run basic-api (http:request-basic-auth "foo" "baz")))

@@ -34,21 +34,22 @@
 	    http-connection-manager-release-connection
 	    http-connection-manager-shutdown!
 
-	    ;; default no pooling?
-	    (rename (make-http-ephemeral-connection-manager
-		     make-http-default-connection-manager))
+	    make-http-default-connection-manager
+
+	    http-connection-config?
+	    http-connection-config-builder
+
 	    make-http-ephemeral-connection-manager
 	    http-ephemeral-connection-manager?
-
+	    
 	    ;; for logging
 	    make-http-logging-connection-manager
 	    http-logging-connection-manager?
 	    
 	    make-http-pooling-connection-manager
 	    http-pooling-connection-manager?
-	    http-connection-pooling-config?
-	    http-connection-pooling-config-builder
-	    build-http-pooling-connection-manager
+	    http-pooling-connection-config?
+	    http-pooling-connection-config-builder
 
 	    (rename (make-http-ephemeral-connection-manager
 		     default-delegate-connection-manager-provider))
@@ -58,6 +59,7 @@
 	    (net socket)
 	    (net uri)
 	    (net http-client connection)
+	    (net http-client key-manager)
 	    (net http-client request)
 	    (net http-client http1)
 	    (net http-client http2)
@@ -69,7 +71,18 @@
 (define-record-type connection-manager
   (fields lease
 	  release
-	  shutdown))
+	  shutdown
+	  key-manager
+	  read-timeout
+	  connection-timeout))
+
+(define-record-type http-connection-config
+  (fields key-manager
+	  read-timeout
+	  connection-timeout))
+
+(define-syntax http-connection-config-builder
+  (make-record-builder http-connection-config))
 
 (define (http-connection-manager-lease-connection manager request option)
   ((connection-manager-lease manager) manager request option))
@@ -80,16 +93,44 @@
 (define (http-connection-manager-shutdown! manager)
   ((connection-manager-shutdown manager) manager))
 
+(define (http-connection-manager->socket-option cm request alpn)
+  (define uri (http:request-uri request))
+  (define scheme (uri-scheme uri))
+  (define host (uri-host uri))
+
+  (define (milli->micro v) (* v 1000))
+  (define connection-timeout
+    (cond ((connection-manager-connection-timeout cm) => milli->micro)
+	  (else #f)))
+  (define read-timeout
+      (cond ((connection-manager-read-timeout cm)=> milli->micro)
+	    (else #f)))
+  (define km (connection-manager-key-manager cm))
+  (if (string=? scheme "https")
+      (tls-socket-options (connection-timeout connection-timeout)
+			  (read-timeout read-timeout)
+			  (client-certificate-provider
+			   (and km (key-manager->certificate-callback km)))
+			  (sni* (list host))
+			  (alpn* alpn))
+      (socket-options (connection-timeout connection-timeout)
+		      (read-timeout read-timeout))))
+
 ;;; ephemeral (no pooling)
 (define-record-type http-ephemeral-connection-manager
   (parent connection-manager)
   (protocol (lambda (n)
-	      (lambda ()
+	      (lambda (config)
 		((n ephemeral-lease-connection ephemeral-release-connection
-		    (lambda (m) #t)))))))
+		    (lambda (m) #t)
+		    (http-connection-config-key-manager config)
+		    (http-connection-config-read-timeout config)
+		    (http-connection-config-connection-timeout config)
+		    ))))))
 
-(define (ephemeral-lease-connection manager request option)
+(define (ephemeral-lease-connection manager request alpn)
   (define uri (http:request-uri request))
+  (define option (http-connection-manager->socket-option manager request alpn))
   (define (http2? socket)
     (and (tls-socket? socket)
 	 (equal? (tls-socket-selected-alpn socket) "h2")))
@@ -101,6 +142,8 @@
 
 (define (ephemeral-release-connection manager connection reuseable?)
   (http-connection-close! connection))
+(define (make-http-default-connection-manager)
+  (make-http-ephemeral-connection-manager (http-connection-config-builder)))
 
 (define (uri->socket uri option)
   (define scheme (uri-scheme uri))
@@ -113,10 +156,13 @@
 (define-record-type http-logging-connection-manager
   (parent connection-manager)
   (protocol (lambda (n)
-	      (lambda (logger)
+	      (lambda (config logger)
 		((n (make-logging-lease-connection logger)
 		    (make-logging-release-connection logger)
-		    (lambda (m) #t)))))))
+		    (lambda (m) #t)
+		    (http-connection-config-key-manager config)
+		    (http-connection-config-read-timeout config)
+		    (http-connection-config-connection-timeout config)))))))
 
 (define (make-logging-lease-connection logger)
   (lambda (manager request option)
@@ -129,8 +175,8 @@
     (ephemeral-release-connection manager connection reuseable?)))
 
 (define (make-logging-delegate-connection-provider logger)
-  (lambda ()
-    (make-http-logging-connection-manager logger)))
+  (lambda (config)
+    (make-http-logging-connection-manager config logger)))
 
 ;;; pooling
 (define-record-type http-pooling-connection-manager
@@ -143,36 +189,35 @@
 	  leasing
 	  delegate
 	  lock)
-  (protocol (lambda (n)
-	      (lambda (timeout max-connection-per-route ttl delegate-provider)
-		((n pooling-lease-connection pooling-release-connection
-		    pooling-shutdown)
-		 timeout
-		 max-connection-per-route
-		 ttl
-		 (make-hashtable string-hash string=?)
-		 (make-hashtable string-hash string=?)
-		 (delegate-provider)
-		 (make-mutex))))))
+  (protocol
+   (lambda (n)
+     (lambda (config)
+       ((n pooling-lease-connection pooling-release-connection
+	   pooling-shutdown
+	   (http-connection-config-key-manager config)
+	   (http-connection-config-read-timeout config)
+	   (http-connection-config-connection-timeout config))
+	(http-pooling-connection-config-connection-request-timeout config)
+	(http-pooling-connection-config-max-connection-per-route config)
+	(http-pooling-connection-config-time-to-live config)
+	(make-hashtable string-hash string=?)
+	(make-hashtable string-hash string=?)
+	((http-pooling-connection-config-delegate-provider config) config)
+	(make-mutex))))))
 
-(define-record-type http-connection-pooling-config
+(define-record-type http-pooling-connection-config
+  (parent http-connection-config)
   (fields connection-request-timeout
 	  max-connection-per-route
 	  time-to-live
 	  delegate-provider))
-(define-syntax http-connection-pooling-config-builder
-  (make-record-builder http-connection-pooling-config
+(define-syntax http-pooling-connection-config-builder
+  (make-record-builder http-pooling-connection-config
 		       ;; random numbers ;-)
 		       ((max-connection-per-route 5)
 			(time-to-live 2)
 			(delegate-provider
 			 make-http-ephemeral-connection-manager))))
-(define (build-http-pooling-connection-manager config)
-  (make-http-pooling-connection-manager
-   (http-connection-pooling-config-connection-request-timeout config)
-   (http-connection-pooling-config-max-connection-per-route config)
-   (http-connection-pooling-config-time-to-live config)
-   (http-connection-pooling-config-delegate-provider config)))
 
 (define (pooling-shutdown manager)
   (define available (http-pooling-connection-manager-available manager))
