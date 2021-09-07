@@ -70,6 +70,9 @@
 	    http-pooling-connection-config?
 	    http-pooling-connection-config-builder
 
+	    ;; executor parameter for DNS lookup timeout
+	    *http-connection-manager:default-executor* 
+	    
 	    http-client-logger?
 	    http-client-logger-builder
 	    http-connection-logger?
@@ -132,7 +135,8 @@
 		   (http-connection-lease-option-builder
 		    (alpn (if (eq? (http:client-version hc) 'http/2)
 			      '("h2") '()))
-		    (executor (http:client-executor hc))))
+		    (executor
+		     (force (*http-connection-manager:default-executor*)))))
 		  hc)))))
 (define-syntax http:client-builder
   (make-record-builder http:client

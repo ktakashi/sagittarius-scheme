@@ -55,7 +55,8 @@
 		     default-delegate-connection-manager-provider))
 	    make-logging-delegate-connection-provider
 
-	    ;; internal 
+	    *http-connection-manager:default-executor*
+	    ;; internal
 	    http-connection-lease-option-builder
 	    )
     (import (rnrs)
@@ -67,8 +68,10 @@
 	    (net http-client http1)
 	    (net http-client http2)
 	    (record builder)
+	    (scheme lazy)
 	    (srfi :18 multithreading)
 	    (srfi :19 time)
+	    (srfi :39 parameters)
 	    (util concurrent))
 
 (define-record-type connection-manager
@@ -94,6 +97,18 @@
 	  executor))
 (define-syntax http-connection-lease-option-builder
   (make-record-builder http-connection-lease-option))
+
+(define *http-connection-manager:default-executor*
+  (make-parameter
+   ;; Don't create during the library loading
+  
+   (delay (make-thread-pool-executor 10 push-future-handler))
+   (lambda (v)
+     (cond ((promise? v) v)
+	   ((executor? v) (delay v))
+	   (else (assertion-violation '*http-connection-manager:default-executor*
+				      "Promise or executor required" v))))))
+
 
 (define (http-connection-manager-lease-connection manager request option)
   ((connection-manager-lease manager) manager request option))
@@ -134,7 +149,6 @@
       (let ((f (thunk->future
 		(lambda () (default-dns-resolver node service options))
 		executor)))
-	
 	(or (future-get f dns-timeout)
 	    (raise (condition
 		    (make-dns-timeout-error node service)
