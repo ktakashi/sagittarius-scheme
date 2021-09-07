@@ -85,6 +85,7 @@
   (parent <jose-crypto-header>))
 (define (->custom-parameter v)
   (cond ((hashtable? v) (hashtable-copy v)) ;; make it immutable
+	((null? v) (->custom-parameter (make-hashtable string-hash string=?)))
 	((pair? v)
 	 (let ((ht (make-hashtable string-hash string=?)))
 	   (for-each (lambda (slot)
