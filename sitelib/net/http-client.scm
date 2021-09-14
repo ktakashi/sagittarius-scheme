@@ -167,7 +167,7 @@
       (shutdown-executor! (http:client-executor client))))))
 
 (define (http:client-send client request)
-  (future-get (http:client-send-async client request)))
+  (send-request/response client request))
 
 (define (http:client-send-async client request)
   (thunk->future
@@ -210,7 +210,7 @@
 		     (do-redirect client request response)))
       ;; well, just return...
       (else response)))
-       
+
   (let ((conn (lease-http-connection client request)))
     (let-values (((header-handler body-handler response-retriever)
 		  (make-handlers)))

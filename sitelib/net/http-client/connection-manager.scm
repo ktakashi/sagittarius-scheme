@@ -351,11 +351,12 @@
 
   (let ((route (get-route request)))
     (mutex-lock! lock)
-    (let* ((leased (ensure-queue leasing route -1))
-	   (avail (ensure-queue available route max-per-route))
-	   (conn (get-connection leased avail)))
-      (mutex-unlock! lock)
-      conn)))
+    (guard (e (else (mutex-unlock! lock) (raise e)))
+      (let* ((leased (ensure-queue leasing route -1))
+	     (avail (ensure-queue available route max-per-route))
+	     (conn (get-connection leased avail)))
+	(mutex-unlock! lock)
+	conn))))
 
 (define (pooling-release-connection manager connection reuse?)
   (define available (http-pooling-connection-manager-available manager))
@@ -376,17 +377,19 @@
 	  (else #f)))
   
   (mutex-lock! lock)
-  (let* ((route (->route connection))
-	 (leased (hashtable-ref leasing route #f)))
-    ;; must not be #f (if so it's a bug...)
-    (cond ((and leased (remove-entry leased connection)) =>
-	   (lambda (entry)
-	     (when reuse?
-	       (let ((avail (hashtable-ref available route #f)))
-		 (and avail (shared-queue-put! avail entry))))))
-	  (else
-	   (http-connection-manager-release-connection delegate connection #f))))
-  (mutex-unlock! lock))
+  (guard (e (else (mutex-unlock! lock) (raise e)))
+    (let* ((route (->route connection))
+	   (leased (hashtable-ref leasing route #f)))
+      ;; must not be #f (if so it's a bug...)
+      (cond ((and leased (remove-entry leased connection)) =>
+	     (lambda (entry)
+	       (when reuse?
+		 (let ((avail (hashtable-ref available route #f)))
+		   (and avail (shared-queue-put! avail entry))))))
+	    (else
+	     (http-connection-manager-release-connection
+	      delegate connection #f))))
+    (mutex-unlock! lock)))
 
 (define (get-route request)
   (define uri (http:request-uri request))
