@@ -42,6 +42,8 @@
 	  thread-pool-thread-id
 	  thread-pool-thread-task-running?
 	  thread-pool-current-thread-id
+
+	  *thread-pool-thread-name-prefix*
 	  )
   (import (rnrs)
 	  (srfi :18)
@@ -51,6 +53,8 @@
 (define *thread-pool-current-thread-id* (make-parameter #f))
 ;; make it readonly
 (define (thread-pool-current-thread-id) (*thread-pool-current-thread-id*))
+
+(define *thread-pool-thread-name-prefix* (make-parameter "thread-pool-"))
 
 (define (make-executor idlings i queue error-handler)
   (lambda ()
@@ -98,12 +102,16 @@
 		      (thread-yield!)
 		      (thread-sleep! 0.1)
 		      (loop)))))
-	   (let ((q (make-shared-queue)))
+	   (let ((q (make-shared-queue))
+		 (thread-name-prefix (*thread-pool-thread-name-prefix*)))
 	     (vector-set! queues i q)
 	     (vector-set! threads i
 			  (thread-start!
 			   (make-thread (make-executor idlings i q
-						       error-handler)))))))))))
+						       error-handler)
+					(string-append thread-name-prefix
+						       (number->string i)
+						       )))))))))))
 
 ;; returns actual thread associated with given thread id
 (define (thread-pool-thread tp id) (vector-ref (<thread-pool>-threads tp) id))

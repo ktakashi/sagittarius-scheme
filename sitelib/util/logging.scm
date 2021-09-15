@@ -1,20 +1,20 @@
 ;;; -*- mode:scheme; coding:utf-8 -*-
 ;;;
 ;;; util/logging.scm - Logging utilities
-;;;  
+;;;
 ;;;   Copyright (c) 2010-2019  Takashi Kato  <ktakashi@ymail.com>
-;;;   
+;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
 ;;;   are met:
-;;;   
+;;;
 ;;;   1. Redistributions of source code must retain the above copyright
 ;;;      notice, this list of conditions and the following disclaimer.
-;;;  
+;;;
 ;;;   2. Redistributions in binary form must reproduce the above copyright
 ;;;      notice, this list of conditions and the following disclaimer in the
 ;;;      documentation and/or other materials provided with the distribution.
-;;;  
+;;;
 ;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 ;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 ;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -26,7 +26,7 @@
 ;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-;;;  
+;;;
 
 #!nounbound
 (library (util logging)
@@ -41,12 +41,12 @@
 	    +error-level+ error-log logger-error?
 	    +fatal-level+ fatal-log logger-fatal?
 	    terminate-logger!
-	    
+
 	    ;; Appenders
 	    <appender> make-appender appender?
-	    <file-appender> make-file-appender file-appender? 
+	    <file-appender> make-file-appender file-appender?
 	    file-appender-filename
-	    <rolling-file-appender> make-rolling-file-appender 
+	    <rolling-file-appender> make-rolling-file-appender
 	    rolling-file-appender?
 	    <daily-rolling-file-appender> make-daily-rolling-file-appender
 	    daily-rolling-file-appender?
@@ -55,10 +55,11 @@
 	    push-log
 	    append-log
 	    appender-finish
-	    
+
 	    format-log (rename (appender-format appender-log-format))
-	    <log> make-log log? ;; for push-log
-	    log-when log-level log-message log-arguments
+	    (rename (log <log>))
+	    make-log log? ;; for push-log
+	    log-when log-level log-message log-arguments log-thread-name
 
 	    ;; logger storage
 	    define-logger-storage loggers
@@ -73,13 +74,15 @@
 
 ;; Log object.
 (define-record-type (<log> make-log log?)
-  (fields (immutable when log-when)
-	  (immutable level log-level)
-	  (immutable message log-message)
-	  (immutable arguments log-arguments))
+  (fields (immutable when        log-when)
+	  (immutable level	 log-level)
+	  (immutable message	 log-message)
+	  (immutable arguments	 log-arguments)
+	  (immutable thread-name log-thread-name))
   (protocol (lambda (p)
 	      (lambda (wh level msg . rest)
-		(p wh level msg (list->vector rest))))))
+		(p wh level msg (list->vector rest)
+		   (thread-name (current-thread)))))))
 
 ;; Log formatter. It handles log object
 (define (builtin-format-log log format)
@@ -87,6 +90,7 @@
   (define level (log-level log))
   (define message (log-message log))
   (define arguments (log-arguments log))
+  (define thread-name (log-thread-name log))
   (define in (open-string-input-port format))
   (define (read-date-format in)
     (get-char in)
@@ -113,9 +117,9 @@
 	      #f)
 	  (string-append "a[" v))))
   (define (put out msg)
-    (if (string? msg)
-	(put-string out msg)
-	(put-datum out msg)))
+    (cond ((string? msg) (put-string out msg))
+	  ((condition? msg) (report-error msg out))
+	  (else (put-datum out msg))))
 
   (let-values (((out extract) (open-string-output-port)))
     (do ((c (get-char in) (get-char in)))
@@ -131,12 +135,13 @@
 		(else
 		 (put-string out (date->string when (string #\~ c2)))))))
 	   ((#\l) (put-string out (symbol->string level)))
+	   ((#\t) (put-string out thread-name))
 	   ((#\m) (put out message))
 	   ((#\a)
 	    (let ((c2 (lookahead-char in)))
 	      (case c2
 		((#\[) (cond ((get-argument in) => (lambda (v) (put out v)))))
-		(else  (put-datum out arguments)))))
+		(else  (vector-for-each (lambda (a) (put out a)) arguments)))))
 	   (else => (lambda (c2)
 		      (put-char out #\~)
 		      (put-char out c2)))))
@@ -177,7 +182,7 @@
   (file-appender-path appender))
 
 (define-method append-log ((appender <file-appender>) log)
-  (call-with-port (open-file-output-port 
+  (call-with-port (open-file-output-port
 		   (file-appender-filename appender)
 		   (file-options no-fail no-truncate append)
 		   (buffer-mode block)
@@ -206,7 +211,7 @@
 	(rename-file file backup)))
     file))
 
-(define-record-type (<daily-rolling-file-appender> 
+(define-record-type (<daily-rolling-file-appender>
 		     make-daily-rolling-file-appender
 		     daily-rolling-file-appender?)
   (fields (immutable date-pattern daily-rolling-file-appender-date-pattern))
@@ -296,7 +301,7 @@
       ((k level)
        (with-syntax ((c (->level-constant #'k #'level))
 		     ((check logging proc-name) (make-names #'k #'level)))
-		      
+
 	 #'(begin
 	     (define (check logger) (>= c (logger-threshold logger)))
 	     (define (proc-name logger msg . args)

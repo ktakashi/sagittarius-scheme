@@ -112,11 +112,14 @@
 	    (rfc :5322)
 	    (rfc uri)
 	    (util concurrent)
-	    (scheme lazy))
+	    (scheme lazy)
+	    (srfi :39 parameters))
 
 (define *http-client:default-executor*
   ;; Don't create during the library loading
-  (delay (make-thread-pool-executor 10 push-future-handler)))
+  (delay
+    (parameterize ((*thread-pool-thread-name-prefix* "http-client-"))
+      (make-thread-pool-executor 10 push-future-handler))))
 
 (define-record-type http:client
   (fields follow-redirects

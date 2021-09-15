@@ -62,6 +62,7 @@
     (import (rnrs)
 	    (net socket)
 	    (net uri)
+	    (net http-client logging)
 	    (net http-client connection)
 	    (net http-client key-manager)
 	    (net http-client request)
@@ -101,13 +102,15 @@
 (define *http-connection-manager:default-executor*
   (make-parameter
    ;; Don't create during the library loading
-  
-   (delay (make-thread-pool-executor 10 push-future-handler))
+   (delay
+     (parameterize ((*thread-pool-thread-name-prefix* "dns-resolver-"))
+       (make-thread-pool-executor 10 push-future-handler)))
    (lambda (v)
      (cond ((promise? v) v)
 	   ((executor? v) (delay v))
-	   (else (assertion-violation '*http-connection-manager:default-executor*
-				      "Promise or executor required" v))))))
+	   (else (assertion-violation
+		  '*http-connection-manager:default-executor*
+		  "Promise or executor required" v))))))
 
 
 (define (http-connection-manager-lease-connection manager request option)
@@ -221,13 +224,34 @@
 		    (http-connection-config-connection-timeout config)))))))
 
 (define (make-logging-lease-connection logger)
+  (define connection-logger
+    (and logger (http-client-logger-connection-logger logger)))
   (lambda (manager request option)
-    (let ((conn (ephemeral-lease-connection manager request option)))
-      ;; TODO maybe log here?
-      (make-http-logging-connection conn logger))))
+    (define uri (http:request-uri request))
+    (guard (e (else
+	       (http-connection-logger-write-log connection-logger
+		(string-append 
+		 "[Lease Connection] Failed to acquire a connection: "
+		 (condition-message e))
+		e)
+	       (raise e)))
+      (let ((conn (ephemeral-lease-connection manager request option)))
+	(http-connection-logger-write-log connection-logger
+	 (string-append "[Lease Connection] Connected to "
+			"service: " (uri-scheme uri) ", "
+			"node: " (uri-host uri) ", "
+			"port: " (or (uri-port uri) "?")))
+	(make-http-logging-connection conn logger)))))
+
 (define (make-logging-release-connection logger)
+  (define connection-logger
+    (and logger (http-client-logger-connection-logger logger)))
   (lambda (manager connection reuseable?)
-    ;; TODO maybe log here?
+    (http-connection-logger-write-log connection-logger
+     (string-append 
+      "[Release Connection] Releasing a connection of "
+      "node: " (http-connection-node connection) ", "
+      "service: " (http-connection-service connection)))
     (ephemeral-release-connection manager connection reuseable?)))
 
 (define (make-logging-delegate-connection-provider logger)
