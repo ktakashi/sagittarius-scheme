@@ -119,7 +119,7 @@
   ;; Don't create during the library loading
   (delay
     (parameterize ((*thread-pool-thread-name-prefix* "http-client-"))
-      (make-thread-pool-executor 10 push-future-handler))))
+      (make-thread-pool-executor 5 push-future-handler))))
 
 (define-record-type http:client
   (fields follow-redirects

@@ -118,7 +118,7 @@
 	  (string-append "a[" v))))
   (define (put out msg)
     (cond ((string? msg) (put-string out msg))
-	  ((condition? msg) (report-error msg out))
+	  ((condition? msg) #f) ;; skip
 	  (else (put-datum out msg))))
 
   (let-values (((out extract) (open-string-output-port)))
@@ -141,7 +141,23 @@
 	    (let ((c2 (lookahead-char in)))
 	      (case c2
 		((#\[) (cond ((get-argument in) => (lambda (v) (put out v)))))
-		(else  (vector-for-each (lambda (a) (put out a)) arguments)))))
+		(else (vector-for-each
+		       (lambda (a) (and (put out a) (put-char out #\space)))
+		       arguments)))))
+	   ((#\e)
+	    (let ((c2 (lookahead-char in)))
+	      (case c2
+		((#\0)
+		 (get-char in)
+		 (vector-for-each
+		  (lambda (a)
+		    (and (condition? a)
+			 (put-char out #\newline)
+			 (put-string out (describe-condition a)))) arguments))
+		(else
+		 (vector-for-each
+		  (lambda (a)
+		    (and (condition? a) (report-error a))) arguments)))))
 	   (else => (lambda (c2)
 		      (put-char out #\~)
 		      (put-char out c2)))))
