@@ -79,6 +79,8 @@
 	    sect283r1
 	    sect409r1
 	    sect571r1
+
+	    curve25519
 	    )
     (import (rnrs)
 	    (sagittarius)

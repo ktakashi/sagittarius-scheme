@@ -1300,6 +1300,34 @@ PpO1zqk5Ua50RLuhFKj9n+0OuD5pCnwPEizvsoh69jdEN9f/cRdU8Iusln42clM=")
   (test-assert "ECDSA sign&verify"
 	       (cipher-verify ec-verifier (string->utf8 msg) signature)))
 
+;; Curve25519 (ECDSA, experimental support)
+(let ()
+  ;;(define keypair (generate-key-pair ECDSA :ec-parameter curve25519))
+  (define private-key
+    (generate-private-key ECDSA
+     #x7db02f79be391155563a1d505606c90a7bbf1e572d3f0b675750d90955aab1c
+     curve25519))
+  (define public-key
+    (generate-public-key ECDSA
+     #x71b71c091f5bf57e4025712f8544f0135b6e4a75a37afc7e6440a50792619d9e
+     #x45a799c07c0d4c38f0e6f73c7eb91b8f212f1b33b7ef4a8dd90a56baf75ff88e
+     curve25519))
+  (define msg "this message requires digital signature")
+  ;; #x3044022004670fbb5c5e62ac270ba3915b9260d527045b172ea0e1fbf05c9caeb33943e902200ea21f512349ac489f234f445724ee4045be4b76b2efb91e260c8e4c0f30f4d2
+  (define bc-signature
+    #vu8(48 68 2 32 4 103 15 187 92 94 98 172 39 11 163 145 91 146 96 213 39 4 91 23 46 160 225 251 240 92 156 174 179 57 67 233 2 32 14 162 31 81 35 73 172 72 159 35 79 68 87 36 238 64 69 190 75 118 178 239 185 30 38 12 142 76 15 48 244 210))
+  (define ec-signer (make-cipher ECDSA private-key))
+  (define signature (cipher-signature ec-signer (string->utf8 msg)
+				      :hash SHA-256))
+  (define ec-verifier (make-cipher ECDSA public-key))
+
+  (test-assert "ECDSA (curve25519) sign&verify (BC)"
+	       (cipher-verify ec-verifier (string->utf8 msg) bc-signature
+			      :hash SHA-256))
+  (test-assert "ECDSA (curve25519) sign&verify"
+	       (cipher-verify ec-verifier (string->utf8 msg) signature
+			      :hash SHA-256)))
+
 ;; no hash
 (define-syntax define-no-hash
   (syntax-rules ()
