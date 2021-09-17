@@ -34,6 +34,12 @@
 #include <sagittarius/extend.h>
 #include "sagittarius-math.h"
 
+struct shake_aware_hash_descriptor_rec {
+  int (*done)(hash_state *hash, unsigned char *out, unsigned long outlen);
+} shake_aware_hash_descriptor[TAB_SIZE] = {
+ { NULL }
+};
+
 static SgObject hash_allocate(SgClass *klass, SgObject initargs);
 
 static void hash_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
@@ -127,7 +133,7 @@ SgObject Sg_VMHashInit(SgObject algo)
     SG_BUILTIN_HASH(algo)->initialized = TRUE;
     return SG_TRUE;
   } else {
-    /* should check by i'm lazy... */
+    /* should check the init object but i'm lazy... */
     return Sg_VMApply1(SG_USER_HASH(algo)->init, algo);
   }
 }
@@ -184,13 +190,23 @@ SgObject Sg_VMHashDone(SgObject algo, SgByteVector *out, int start, int end)
       Sg_Error(UC("%A is not initialized"), algo);
     } else {
       int index = SG_BUILTIN_HASH(algo)->index;
-      int err, size;
-      size = hash_descriptor[index].hashsize;
-      if (end-start < size) {
-	Sg_Error(UC("hash-done!: Out of range. (%d - %d)"), start, end);
+      int err;
+
+      if (hash_descriptor[index].done) {
+	int size = hash_descriptor[index].hashsize;
+	if (end-start < size) {
+	  Sg_Error(UC("hash-done!: Out of range. (%d - %d)"), start, end);
+	}
+	err = hash_descriptor[index].done(&SG_BUILTIN_HASH(algo)->state,
+					  SG_BVECTOR_ELEMENTS(out)+start);
+      } else if (shake_aware_hash_descriptor[index].done) {
+	err = shake_aware_hash_descriptor[index].done(&SG_BUILTIN_HASH(algo)->state,
+						      SG_BVECTOR_ELEMENTS(out)+start,
+						      end-start);
+      } else {
+	err = CRYPT_INVALID_HASH;
       }
-      err = hash_descriptor[index].done(&SG_BUILTIN_HASH(algo)->state,
-					SG_BVECTOR_ELEMENTS(out)+start);
+    
       if (err != CRYPT_OK) {
 	Sg_Error(UC("%A"), Sg_MakeStringC(error_to_string(err)));
       }
@@ -405,6 +421,46 @@ static SgSlotAccessor user_hash_slots[] = {
   { { NULL } }
 };
 
+/* custom descriptor for SHAKE128 and SHAKE256 */
+static int shake_128_init(hash_state *md)
+{
+  return sha3_shake_init(md, 128);
+}
+  
+const struct ltc_hash_descriptor shake_128_desc =
+{
+ "shake-128",
+ 101,
+ 0,	       /* size of digest in octets can't be determined here */
+ 128,
+ { 2,16,840,1,101,3,4,2,11 },
+ 9,
+ &shake_128_init,
+ &sha3_process,
+ NULL,
+ &sha3_shake_test,
+ NULL
+};
+
+static int shake_256_init(hash_state *md)
+{
+  return sha3_shake_init(md, 256);
+}
+const struct ltc_hash_descriptor shake_256_desc =
+{
+ "shake-256",
+ 102,
+ 0,	       /* size of digest in octets can't be determined here */
+ 128,
+ { 2,16,840,1,101,3,4,2,12 },
+ 9,
+ &shake_256_init,
+ &sha3_process,
+ NULL,
+ &sha3_shake_test,
+ NULL
+};
+
 
 void Sg__InitHash(SgLibrary *lib)
 {
@@ -415,6 +471,16 @@ void Sg__InitHash(SgLibrary *lib)
     Sg_Warn(UC("Unable to register %S hash algorithm "),		\
 	    Sg_MakeStringC((hash)->name));				\
   }
+  
+#define REGISTER_HASHX(hash, done_)					\
+  do {									\
+    int index = register_hash(hash);					\
+    if (index == -1) {							\
+      Sg_Warn(UC("Unable to register %S hash algorithm "),		\
+	      Sg_MakeStringC((hash)->name));				\
+    }									\
+    shake_aware_hash_descriptor[index].done = (done_);			\
+  } while (0)
   
   REGISTER_HASH(&whirlpool_desc);
   REGISTER_HASH(&tiger_desc);
@@ -451,6 +517,11 @@ void Sg__InitHash(SgLibrary *lib)
   REGISTER_HASH(&blake2s_160_desc);
   REGISTER_HASH(&blake2s_224_desc);
   REGISTER_HASH(&blake2s_256_desc);
+  /* TAB_SIZE = 32, so we still have some space... */
+  /* SHAKE */
+  REGISTER_HASHX(&shake_128_desc, &sha3_shake_done);
+  REGISTER_HASHX(&shake_256_desc, &sha3_shake_done);
+
   
   Sg_InitStaticClass(SG_CLASS_HASH, UC("<hash-algorithm>"), lib, NULL, 0);
   Sg_InitStaticClass(SG_CLASS_BUILTIN_HASH, UC("<builtin-hash-algorithm>"),

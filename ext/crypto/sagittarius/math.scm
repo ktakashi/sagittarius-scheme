@@ -27,6 +27,8 @@
 	    MD5 MD4 MD2
 	    BLAKE2s-128 BLAKE2s-160 BLAKE2s-224 BLAKE2s-256
 	    BLAKE2b-160 BLAKE2b-256 BLAKE2b-384 BLAKE2b-512
+
+	    SHAKE128 SHAKE256
 	    ;; clos
 	    <prng> <user-prng> <builtin-prng> <secure-random>
 	    <hash-algorithm> <user-hash-algorithm>
@@ -83,4 +85,7 @@
   (define-constant BLAKE2b-256 "blake2b-256")
   (define-constant BLAKE2b-384 "blake2b-384")
   (define-constant BLAKE2b-512 "blake2b-512")
+
+  (define-constant SHAKE128  "shake-128")
+  (define-constant SHAKE256  "shake-256")
 )

@@ -301,6 +301,35 @@
   (for-each (lambda (algo out) (test-sha3 algo #*"abc" out)) algorithmes abcs)
   (for-each (lambda (algo out) (test-sha3 algo #*"" out)) algorithmes empties))
 
+;; SHAKE128
+(let ()
+  (define (convert v)
+    (list (car v) (integer->bytevector (cadr v))))
+  (define digests-shake-128
+    (map convert
+	 '((#vu8() #x7f9c2ba4e88f827d616045507605853e)
+	   (#vu8(#x0e) #xfa996dafaa208d72287c23bc4ed4bfd5)
+	   (#vu8(#xd9 #xe8) #xc7211512340734235bb8d3c4651495aa)
+	   (#vu8(#x1b #x3b #x6e) #xd7335497e4cd3666885edbb0824d7a75))))
+  (define digests-shake-256
+    (map convert
+	 '((#vu8()
+	    #x46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762f)
+	   (#vu8(#x0f)
+	    #xaabb07488ff9edd05d6a603b7791b60a16d45093608f1badc0c9cc9a9154f215)
+	   (#vu8(#x0d #xc1)
+	    #x8e2df9d379bb034aee064e965f960ebb418a9bb535025fb96427f678cf207877)
+ 	   (#vu8(#x21 #xed #xa6)
+	    #xf7d02b4512be5ddcc25d148c71664dfd34e16abea26d6e7287f45e08ed6fcd87)
+	   )))
+  (define (test algo size test-data)
+    (let ((v (hash algo (car test-data) :size size)))
+      (test-equal (cadr test-data) v)))
+  (for-each (lambda (td) (test SHAKE128 16 td)) digests-shake-128)
+  (for-each (lambda (td) (test SHAKE256 32 td)) digests-shake-256)
+  )
+  
+
 ;; BLAKE2s
 (let ((algos (list BLAKE2s-256 BLAKE2s-224 BLAKE2s-160 BLAKE2s-128
 		   BLAKE2b-512 BLAKE2b-384 BLAKE2b-256 BLAKE2b-160)))

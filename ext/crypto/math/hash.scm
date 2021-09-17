@@ -19,7 +19,7 @@
 	    MD5 MD4 MD2
 	    BLAKE2s-128 BLAKE2s-160 BLAKE2s-224 BLAKE2s-256
 	    BLAKE2b-160 BLAKE2b-256 BLAKE2b-384 BLAKE2b-512
-
+	    SHAKE128 SHAKE256
 	    oid->hash-algorithm
 	    
 	    ;; for convenience
@@ -47,11 +47,17 @@
 	   (assertion-violation 'hash-algorithm
 				"unknown hash" name))))
 
+  (define (get-size algo :key (size (hash-block-size algo)))
+    (define hsize (hash-size algo))
+    (if (zero? hsize)
+	size
+	hsize))
+  
   (define (hash type bv . opts)
     (let* ((algo (if (hash-algorithm? type)
 		     type
 		     (apply hash-algorithm type opts)))
-	   (out (make-bytevector (hash-size algo))))
+	   (out (make-bytevector (apply get-size algo opts))))
       (apply hash! algo out bv opts)))
 
   (define (hash! type out bv . opts)
@@ -59,7 +65,7 @@
 		     type
 		     (apply hash-algorithm type opts)))
 	   (size (hash-size algo)))
-      (when (< (bytevector-length out) size)
+      (when (and (> size 0) (< (bytevector-length out) size))
 	(assertion-violation 'hash!
 			     "output buffer is too short"))
       (hash-init! algo)
