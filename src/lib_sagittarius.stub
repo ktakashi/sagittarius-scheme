@@ -1327,6 +1327,50 @@
     :constant
     Sg_ByteVectorToIntegerS)
 
+  (define-c-proc bytevector->integer/endian
+    (bv::<bytevector> endian::<symbol> :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    :constant
+    (cond ((SG_EQ endian 'big)
+	   (result (Sg_ByteVectorToIntegerBig bv start end)))
+	  ((SG_EQ endian 'little)
+	   (result (Sg_ByteVectorToIntegerLittle bv start end)))
+	  ((SG_EQ endian 'native)
+	   (.if "defined(WORDS_BIGENDIAN)"
+		(result (Sg_ByteVectorToIntegerBig bv start end))
+		(result (Sg_ByteVectorToIntegerLittle bv start end))))
+	  (else (assertion-violation 'bytevector->integer/endian
+				     "unsupported endianness" 
+				     endian))))
+  ;; explicit sign
+  (define-c-proc bytevector->uinteger/endian
+    (bv::<bytevector> endian::<symbol> :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    :constant
+    (cond ((SG_EQ endian 'big)
+	   (result (Sg_ByteVectorToIntegerBig bv start end)))
+	  ((SG_EQ endian 'little)
+	   (result (Sg_ByteVectorToIntegerLittle bv start end)))
+	  ((SG_EQ endian 'native)
+	   (.if "defined(WORDS_BIGENDIAN)"
+		(result (Sg_ByteVectorToIntegerBig bv start end))
+		(result (Sg_ByteVectorToIntegerLittle bv start end))))
+	  (else (assertion-violation 'bytevector->uinteger/endian
+				     "unsupported endianness" 
+				     endian))))
+  (define-c-proc bytevector->sinteger/endian
+    (bv::<bytevector> endian::<symbol> :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    :constant
+    (cond ((SG_EQ endian 'big)
+	   (result (Sg_ByteVectorToIntegerSBig bv start end)))
+	  ((SG_EQ endian 'little)
+	   (result (Sg_ByteVectorToIntegerSLittle bv start end)))
+	  ((SG_EQ endian 'native)
+	   (.if "defined(WORDS_BIGENDIAN)"
+		(result (Sg_ByteVectorToIntegerSBig bv start end))
+		(result (Sg_ByteVectorToIntegerSLittle bv start end))))
+	  (else (assertion-violation 'bytevector->sinteger/endian
+				     "unsupported endianness" 
+				     endian))))
+
   (define-c-proc integer->bytevector 
     (n::<integer> :optional (size::<fixnum> -1)) :no-side-effect
     Sg_IntegerToByteVector)
@@ -1337,6 +1381,50 @@
   (define-c-proc sinteger->bytevector 
     (n::<integer> :optional (size::<fixnum> -1)) :no-side-effect
     Sg_SIntegerToByteVector)
+
+  (define-c-proc integer->bytevector/endian
+    (n::<integer> endian::<symbol> :optional (size::<fixnum> -1))
+    :no-side-effect
+    (cond ((SG_EQ endian 'big)
+	   (result (Sg_IntegerToByteVectorBig n size)))
+	  ((SG_EQ endian 'little)
+	   (result (Sg_IntegerToByteVectorLittle n size)))
+	  ((SG_EQ endian 'native)
+	   (.if "defined(WORDS_BIGENDIAN)"
+		(result (Sg_IntegerToByteVectorBig n size))
+		(result (Sg_IntegerToByteVectorLittle n size))))
+	  (else (assertion-violation 'integer->bytevector/endian
+				     "unsupported endianness" 
+				     endian))))
+  ;; explicit sign
+  (define-c-proc uinteger->bytevector/endian
+    (n::<integer> endian::<symbol> :optional (size::<fixnum> -1))
+    :no-side-effect
+    (cond ((SG_EQ endian 'big)
+	   (result (Sg_IntegerToByteVectorBig n size)))
+	  ((SG_EQ endian 'little)
+	   (result (Sg_IntegerToByteVectorLittle n size)))
+	  ((SG_EQ endian 'native)
+	   (.if "defined(WORDS_BIGENDIAN)"
+		(result (Sg_IntegerToByteVectorBig n size))
+		(result (Sg_IntegerToByteVectorLittle n size))))
+	  (else (assertion-violation 'uinteger->bytevector/endian
+				     "unsupported endianness" 
+				     endian))))
+  (define-c-proc sinteger->bytevector/endian
+    (n::<integer> endian::<symbol> :optional (size::<fixnum> -1))
+    :no-side-effect
+    (cond ((SG_EQ endian 'big)
+	   (result (Sg_SIntegerToByteVectorBig n size)))
+	  ((SG_EQ endian 'little)
+	   (result (Sg_SIntegerToByteVectorLittle n size)))
+	  ((SG_EQ endian 'native)
+	   (.if "defined(WORDS_BIGENDIAN)"
+		(result (Sg_SIntegerToByteVectorBig n size))
+		(result (Sg_SIntegerToByteVectorLittle n size))))
+	  (else (assertion-violation 'sinteger->bytevector/endian
+				     "unsupported endianness" 
+				     endian))))
 
   (define-c-proc bytevector-append (:rest bv-list) :no-side-effect
     Sg_ByteVectorConcatenate)

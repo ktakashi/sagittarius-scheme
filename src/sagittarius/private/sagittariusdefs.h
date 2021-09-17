@@ -200,7 +200,6 @@ char *alloca ();
 # error Failed to detect endian
 #endif
 
-/* TODO is detecting apple universal build ok? */
 #if defined BOOST_BIG_ENDIAN
 # ifdef MAC
 #  if defined __BIG_ENDIAN__
