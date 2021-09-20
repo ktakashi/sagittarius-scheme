@@ -94,6 +94,7 @@
 	    (core syntax)
 	    (core inline)
 	    (core record)
+	    (core misc) ;; for defaine-vector-type
 	    (sagittarius))
 
   ;; modular arithmetic
@@ -121,40 +122,6 @@
   ;; EC Curve
   ;; curve is a vector which contains type and parameters
   ;; for the curve.
-
-  ;; make my life easier
-  (define-syntax define-vector-type
-    (lambda (x)
-      (define (order-args args fs)
-	(map (lambda (a) 
-	       (cond ((memp (lambda (f) (bound-identifier=? a f)) fs) => car)
-		     (else
-		      (syntax-violation 'define-vector-type "unknown tag" a))))
-	     args))
-      (define (generate-accessor k acc)
-	;; starting from 1 because 0 is type tag
-	(let loop ((r '()) (i 1) (acc acc))
-	  (syntax-case acc ()
-	    ((name rest ...)
-	     (with-syntax ((n (datum->syntax k i)))
-	       (loop (cons #'(define (name o) (vector-ref o n)) r)
-		     (+ i 1)
-		     #'(rest ...))))
-	    (() r))))
-      (syntax-case x ()
-	((k type (ctr args ...) pred
-	    (field accessor) ...)
-	 (and (identifier? #'pred) (identifier? #'type) (identifier? #'ctr))
-	 (with-syntax (((ordered-args ...)
-			(order-args #'(args ...) #'(field ...)))
-		       ((acc ...) (generate-accessor #'k #'(accessor ...))))
-	 #'(begin
-	     (define (ctr args ...) (vector 'type ordered-args ...))
-	     (define (pred o) 
-	       (and (vector? o)
-		    (= (vector-length o) (+ (length #'(field ...)) 1))
-		    (eq? (vector-ref o 0) 'type)))
-	     acc ...))))))
 
   ;;; Finite field
   ;; Fp

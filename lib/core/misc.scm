@@ -1,18 +1,12 @@
 ;; -*- scheme -*-
 (library (core misc)
     (export unique-id-list?
-	    define-macro)
+	    define-macro
+	    define-vector-type)
     (import (core)
-	    (only (core base) er-macro-transformer)
+	    (core syntax)
+	    (core base)
 	    (sagittarius))
-
-  (define (unique-id-list? lst)
-    (and (list? lst)
-	 (not (let loop ((lst lst))
-		(and (pair? lst)
-		     (or (not (symbol? (car lst)))
-			 (memq (car lst) (cdr lst))
-			 (loop (cdr lst))))))))
 
   (define-syntax define-macro
     (er-macro-transformer
@@ -31,4 +25,39 @@
 		  (,_er-macro-transformer
 		   (,_lambda (,_form rename compare)
 		     (,_apply ,(car body) (,_cdr ,_form)))))))))))
+
+  ;; TODO we may want to export this from somewhere else
+  ;; (it seems pretty handy to have this)
+  (define-syntax define-vector-type
+    (lambda (x)
+      (define (order-args args fs)
+	(map (lambda (a) 
+	       (cond ((memp (lambda (f) (bound-identifier=? a f)) fs) => car)
+		     (else
+		      (syntax-violation 'define-vector-type "unknown tag" a))))
+	     args))
+      (define (generate-accessor k acc)
+	;; starting from 1 because 0 is type tag
+	(let loop ((r '()) (i 1) (acc acc))
+	  (syntax-case acc ()
+	    ((name rest ...)
+	     (with-syntax ((n (datum->syntax k i)))
+	       (loop (cons #'(define (name o) (vector-ref o n)) r)
+		     (+ i 1)
+		     #'(rest ...))))
+	    (() r))))
+      (syntax-case x ()
+	((k type (ctr args ...) pred
+	    (field accessor) ...)
+	 (and (identifier? #'pred) (identifier? #'type) (identifier? #'ctr))
+	 (with-syntax (((ordered-args ...)
+			(order-args #'(args ...) #'(field ...)))
+		       ((acc ...) (generate-accessor #'k #'(accessor ...))))
+	 #'(begin
+	     (define (ctr args ...) (vector 'type ordered-args ...))
+	     (define (pred o) 
+	       (and (vector? o)
+		    (= (vector-length o) (+ (length #'(field ...)) 1))
+		    (eq? (vector-ref o 0) 'type)))
+	     acc ...))))))
 )
