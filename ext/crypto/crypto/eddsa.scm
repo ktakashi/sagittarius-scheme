@@ -40,6 +40,8 @@
 	    <eddsa-public-key> eddsa-public-key?
 	    eddsa-public-key-data
 
+	    ;; low level APIs?
+	    ed25519-pure-scheme make-eddsa-signer make-eddsa-verifier
 	    )
     (import (rnrs)
 	    (clos user)
@@ -49,6 +51,7 @@
 	    (sagittarius) ;; for bytevector->integer/endian
 	    (core misc)	  ;; for define-vector-type;
 	    (util bytevector)
+	    (srfi :2 and-let*)
 	    )
 ;;; Interfaces
 (define EdDSA :eddsa)
@@ -122,10 +125,7 @@
       ;; 1
       (bytevector-copy! h 0 l 0 32)
       ;; 2
-      (bytevector-u8-set! l 0  (bitwise-and #xF8 (bytevector-u8-ref l 0)))
-      (bytevector-u8-set! l 31
-			  (bitwise-ior #x40
-			   (bitwise-and #x7F (bytevector-u8-ref l 31))))
+      (eddsa-clamp! l 3 254 256)
       ;; 3
       (let* ((s (bytevector->integer/endian l (endianness little)))
 	     (sB (ed-point-mul ed25519-parameter
@@ -139,26 +139,22 @@
     (make <eddsa-private-key> :curve curve25519
 	  :random random :public-key pub)))
 
-;; (define-vector-type eddsa-scheme
-;;   (make-eddsa-scheme parameter prehash inithash) eddsa-scheme?
-;;   (parameter eddsa-scheme-parameter)
-;;   (prehash eddsa-scheme-prehash)
-;;   (inithash eddsa-scheme-inithash))
+(define (eddsa-clamp! a c n b)
+  (do ((i 0 (+ i 1)))
+      ((= i c))
+    (bytevector-u8-set! a (div i 8)
+     (bitwise-and (bytevector-u8-ref a (div i 8))
+		  (bitwise-not (bitwise-arithmetic-shift-left 1 (mod i 8))))))
+  (bytevector-u8-set! a (div n 8)
+   (bitwise-ior (bytevector-u8-ref a (div n 8))
+		(bitwise-arithmetic-shift-left 1 (mod n 8))))
+  (do ((i (+ n 1) (+ i 1)))
+      ((= i b) a)
+    (bytevector-u8-set! a (div i 8)
+     (bitwise-and (bytevector-u8-ref a (div i 8))
+		  (bitwise-not (bitwise-arithmetic-shift-left 1 (mod i 8)))))))
 
-;; (define ed25519-pure-scheme
-;;   (make-eddsa-scheme ed25519-parameter
-;;    values (lambda (data) (hash SHA-512 data))))
-
-
-;; (define (ed25519-sign bv key :key (scheme ed25519-pure-scheme) (context #f))
-;;   (define prehash (eddsa-scheme-prehash scheme))
-;;   (define inithash (eddsa-scheme-inithash scheme))
-;;   (define parameter (eddsa-scheme-parameter scheme))
-;;   (define (sign
-;;   )
-
-;;; Twisted Edwards curve computation
-;;; TODO should we make (math ed) and export them from there
+;;; Ed25519 parameters
 (define-vector-type eddsa-parameter
   (make-eddsa-parameter name p b c n d a B L) eddsa-parameter?
   (name eddsa-parameter-name)
@@ -171,6 +167,119 @@
   (B eddsa-parameter-B)
   (L eddsa-parameter-L))
 
+;; 5.1 Ed25519ph, Ed25519ctx, and Ed25519
+(define ed25519-parameter
+  (let ((xb #x216936d3cd6e53fec0a4e231fdd6dc5c692cc7609525a7b2c9562d608f25d51a)
+	(yb #x6666666666666666666666666666666666666666666666666666666666666658)
+	(p (ec-field-fp-p
+	    (elliptic-curve-field (ec-parameter-curve curve25519))))
+	(d #x52036cee2b6ffe738cc740797779e89800700a4d4141d8ab75eb4dca135978a3))
+    (make-eddsa-parameter
+     'ed25519
+     p	 ;; p = 2^255 - 19
+     256 ;; b
+     3	 ;; c 
+     254 ;; n
+     d	 ;; d
+     -1	 ;; a
+     (make-ed-point xb yb 1 (mod (* xb yb) p)) ;; B (x y z t)
+     (ec-parameter-n curve25519) ;; L (ec-parameter-n = order)
+     )))
+
+(define-vector-type eddsa-scheme
+  (make-eddsa-scheme parameter prehash inithash) eddsa-scheme?
+  (parameter eddsa-scheme-parameter)
+  (prehash eddsa-scheme-prehash)
+  (inithash eddsa-scheme-inithash))
+
+(define ed25519-pure-scheme
+  (make-eddsa-scheme ed25519-parameter
+    #f (lambda (data ctx hflag)
+	 (when (or hflag (and ctx (> (bytevector-length ctx) 0)))
+	   (assertion-violation 'ed25519 "Context/hashes not supported"))
+	 (hash SHA-512 data))))
+
+
+(define (make-eddsa-signer scheme)
+  (lambda (bv key :key (context #f))
+    (define prehash (eddsa-scheme-prehash scheme))
+    
+    (define (sign msg key ctx scheme)
+      (define prehash (eddsa-scheme-prehash scheme))
+      (define inithash (eddsa-scheme-inithash scheme))
+      (define parameter (eddsa-scheme-parameter scheme))
+      (define l (eddsa-parameter-L parameter))
+      (define c (eddsa-parameter-c parameter))
+      (define n (eddsa-parameter-n parameter))
+      (define b (eddsa-parameter-b parameter))
+      (define B (eddsa-parameter-B parameter))
+      (define pub-key
+	(eddsa-public-key-data (eddsa-private-key-public-key key)))
+      
+      (let* ((khash (inithash (eddsa-private-key-random key) #f prehash))
+	     (a (bytevector->integer/endian
+		 (eddsa-clamp! (bytevector-copy khash 0 (div b 8)) c n b)
+		 (endianness little)))
+	     (seed (bytevector-copy khash (div b 8)))
+	     (r (bytevector->integer/endian
+		 (inithash (bytevector-append seed msg) ctx prehash)
+		 (endianness little)))
+	     (R (ed-point-encode-base parameter (ed-point-mul parameter B r) b))
+	     (h (mod (bytevector->integer/endian
+		      (inithash (bytevector-append R pub-key msg) ctx prehash)
+		      (endianness little))
+		     l))
+	     (S (integer->bytevector/endian (mod (+ r (* h a)) l)
+					    (endianness little)
+					    (div b 8))))
+	(bytevector-append R S)))
+    (let ((ctx (or context #vu8())))
+      (sign (or (and prehash (prehash bv ctx)) bv) key ctx scheme))))
+
+(define (make-eddsa-verifier scheme)
+  (lambda (msg sig key :key (context #f))
+    (define prehash (eddsa-scheme-prehash scheme))
+        
+    (define (verify msg sig key ctx scheme)
+      (define prehash (eddsa-scheme-prehash scheme))
+      (define inithash (eddsa-scheme-inithash scheme))
+      (define parameter (eddsa-scheme-parameter scheme))
+      (define l (eddsa-parameter-L parameter))
+      (define c (eddsa-parameter-c parameter))
+      (define n (eddsa-parameter-n parameter))
+      (define b (eddsa-parameter-b parameter))
+      (define B (eddsa-parameter-B parameter))
+      (define pub-key (eddsa-public-key-data key))
+
+      (define b/8 (div b 8))
+      ;; sanity check
+      (unless (and (= (bytevector-length sig) (div b 4))
+		   (= (bytevector-length pub-key) b/8))
+	(error 'eddsa-verifier "inconsistent"))
+      (let* ((r-raw (bytevector-copy sig 0 b/8))
+	     (s-raw (bytevector-copy sig b/8))
+	     (R (ed-point-decode-base parameter r-raw b))
+	     (S (bytevector->integer/endian s-raw (endianness little)))
+	     (A (ed-point-decode-base parameter pub-key b)))
+	(unless (and R A (< S l))
+	  (error 'eddsa-verifier "inconsistent"))
+	(let* ((h (mod (bytevector->integer/endian
+			(inithash (bytevector-append r-raw pub-key msg)
+				  ctx prehash)
+			(endianness little))
+		       l))
+	       (rhs (ed-point-add parameter R (ed-point-mul parameter A h)))
+	       (lhs (ed-point-mul parameter B S)))
+	  (do ((i 0 (+ i 1))
+	       (lhs lhs (ed-point-double parameter lhs))
+	       (rhs rhs (ed-point-double parameter rhs)))
+	      ((= i c) (or (ed-point=? parameter lhs rhs)
+			   (error 'eddsa-verifier "inconsistent")))))))
+    (let ((ctx (or context #vu8())))
+      (verify (or (and prehash (prehash msg ctx)) msg) sig key ctx scheme))))
+
+;;; Twisted Edwards curve computation
+;;; TODO should we make (math ed) and export them from there
 (define-vector-type ed-point
   (make-ed-point x y z t) ed-point?
   (x ed-point-x)
@@ -185,6 +294,28 @@
 (define (ed-field-mul p x y) (mod (* x y) p))
 (define (ed-field-inv p x)   (mod (mod-expt x (- p 2) p) p))
 (define (ed-field-div p x y) (ed-field-mul p x (ed-field-inv p y)))
+(define (ed-field-zero? p x) (zero? x))
+(define (ed-field-sign p x)  (mod x 2))
+(define (ed-field-negate p x) (mod (- p x) p))
+(define (ed-field-sqrt p x)
+  (define (sqrt4k3 x p) (mod-expt x (div (+ p 1) 4) p))
+  (define (sqrt8k5 x p)
+    (let ((y (mod-expt x (div (+ p 3) 8) p)))
+      (if (= (mod (* y y) p) (mod x p))
+	  y
+	  (let ((z (mod-expt 2 (div (- p 1) 4) p)))
+	    (mod (* y z) p)))))
+  (let ((y (mod (cond ((= (mod p 4) 3) (sqrt4k3 x p))
+		      ((= (mod p 8) 5) (sqrt8k5 x p))
+		      (else
+		       (assertion-violation 'ed-field-sqrt "Not implemented")))
+		p)))
+    (and (= x (ed-field-mul p y y)) y)))
+	
+(define (bytevector->ed-field p bv b)
+  (let ((rv (mod (bytevector->integer/endian bv (endianness little))
+		 (expt 2 (- b 1)))))
+    (and (< rv p) rv)))
 
 ;; Ed point calculation
 (define ed-point-zero
@@ -254,6 +385,32 @@
        (k k (bitwise-arithmetic-shift-right k 1)))
       ((<= k 0) r)))
 
+(define (ed-point=? parameter x y)
+  (define p (eddsa-parameter-p parameter))
+  (define xx (ed-point-x x))
+  (define xy (ed-point-y x))
+  (define xz (ed-point-z x))
+  (define yx (ed-point-x y))
+  (define yy (ed-point-y y))
+  (define yz (ed-point-z y))
+  (let ((xn1 (ed-field-mul p xx yz))
+	(xn2 (ed-field-mul p yx xz))
+	(yn1 (ed-field-mul p xy yz))
+	(yn2 (ed-field-mul p yy xz)))
+    (and (= xn1 xn2) (= yn1 yn2))))
+
+(define (ed-point-solve-x2 parameter x y)
+  (case (eddsa-parameter-name parameter)
+    ((ed25519) (ed25519-point-solve-x2 parameter x y))
+    (else (assertion-violation 'ed-point-double "Not supported"
+			       (eddsa-parameter-name parameter)))))
+(define (ed25519-point-solve-x2 parameter x y)
+  (define p (eddsa-parameter-p parameter))
+  (define d (eddsa-parameter-d parameter))
+  (ed-field-div p
+		(ed-field-sub p (ed-field-mul p y y) 1)
+		(ed-field-add p (ed-field-mul p (ed-field-mul p d y) y) 1)))
+
 ;; encode
 (define (ed-point-encode-base parameter point b)
   (define p (eddsa-parameter-p parameter))
@@ -270,25 +427,19 @@
 	  (bitwise-arithmetic-shift-left 1 (mod (- b 1) 8)))))
       s)))
 
-;;; Ed25519 parameters
-;; 5.1 Ed25519ph, Ed25519ctx, and Ed25519
-(define ed25519-parameter
-  (let ((xb #x216936d3cd6e53fec0a4e231fdd6dc5c692cc7609525a7b2c9562d608f25d51a)
-	(yb #x6666666666666666666666666666666666666666666666666666666666666658)
-	(p (ec-field-fp-p
-	    (elliptic-curve-field (ec-parameter-curve curve25519))))
-	(d #x52036cee2b6ffe738cc740797779e89800700a4d4141d8ab75eb4dca135978a3))
-    (make-eddsa-parameter
-     'ed25519
-     p	 ;; p = 2^255 - 19
-     256 ;; b
-     3	 ;; c 
-     254 ;; n
-     d	 ;; d
-     -1	 ;; a
-     (make-ed-point xb yb 1 (mod (* xb yb) p)) ;; B (x y z t)
-     (ec-parameter-n curve25519) ;; n = order
-     )))
-
-
+;; decode
+(define (ed-point-decode-base parameter s b)
+  (define p (eddsa-parameter-p parameter))
+  (and-let* (( (= (bytevector-length s) (div b 8)) )
+	     (xs (bitwise-arithmetic-shift-right
+		  (bytevector-u8-ref s (div (- b 1) 8))
+		  (bitwise-and (- b 1) 7)))
+	     (y (bytevector->ed-field p s b))
+	     (x (ed-field-sqrt p (ed-point-solve-x2 parameter s y)))
+	     ( (not (and (ed-field-zero? p x)
+			 (not (= xs (ed-field-sign p x))))) )
+	     (x (if (= (ed-field-sign p x) xs) x (ed-field-negate p x))))
+    ;; NOTE: t is only used on Ed25519, Ed448 doesn't use it
+    (make-ed-point x y 1 (ed-field-mul p x y))))
+    
 )
