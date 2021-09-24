@@ -1,3 +1,12 @@
+(define (%test-ecdhc name n param x y d z)
+  (test-equal (format "~a ~a" name n) z
+	      (ecdhc-calculate-agreement param d (make-ec-point x y))))
+
+(define-syntax test-ecdhc
+  (syntax-rules ()
+    ((_ param count QCAVSx QCAVSy dIUT QIUTx QIUTy ZIUT)
+     (%test-ecdhc 'param count param QCAVSx QCAVSy dIUT ZIUT))))
+
 ;; [B-163]
 #|
   COUNT = 0

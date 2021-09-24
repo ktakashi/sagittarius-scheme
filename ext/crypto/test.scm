@@ -1410,22 +1410,8 @@ PpO1zqk5Ua50RLuhFKj9n+0OuD5pCnwPEizvsoh69jdEN9f/cRdU8Iusln42clM=")
 				    :hash algo
 				    :der-encode #f))))))
 
-(define-syntax test-ecdsa
-  (syntax-rules ()
-    ((_ param hash msg d Qx Qy k R S)
-     (%test-ecdsa 'param param hash msg d Qx Qy k R S))))
-
+(include "test-eddsa.scm")
 (include "test-ecdsa.scm")
-
-(define (%test-ecdhc name n param x y d z)
-  (test-equal (format "~a ~a" name n) z
-	      (ecdhc-calculate-agreement param d (make-ec-point x y))))
-
-(define-syntax test-ecdhc
-  (syntax-rules ()
-    ((_ param count QCAVSx QCAVSy dIUT QIUTx QIUTy ZIUT)
-     (%test-ecdhc 'param count param QCAVSx QCAVSy dIUT ZIUT))))
-
 (include "test-ecdhc.scm")
 
 ;; key wrap

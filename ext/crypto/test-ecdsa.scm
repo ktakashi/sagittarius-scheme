@@ -1,3 +1,8 @@
+(define-syntax test-ecdsa
+  (syntax-rules ()
+    ((_ param hash msg d Qx Qy k R S)
+     (%test-ecdsa 'param param hash msg d Qx Qy k R S))))
+
 (include "test-b-163.scm")
 (include "test-b-233.scm")
 (include "test-b-283.scm")
