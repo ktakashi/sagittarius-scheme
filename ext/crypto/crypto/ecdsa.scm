@@ -275,9 +275,9 @@
       (slot-set! o 'name 'ECDSA)
       (slot-set! o 'key key)
       (slot-set! o 'encrypt 
-		 (lambda ignore (error 'encrypt "not supported in DSA")))
+		 (lambda ignore (error 'encrypt "not supported in EcDSA")))
       (slot-set! o 'decrypt
-		 (lambda ignore (error 'decrypt "not supported in DSA")))
+		 (lambda ignore (error 'decrypt "not supported in EcDSA")))
       (slot-set! o 'padder #f)
       (slot-set! o 'signer ecdsa-sign)
       (slot-set! o 'verifier ecdsa-verify)

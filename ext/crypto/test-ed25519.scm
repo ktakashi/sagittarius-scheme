@@ -1,5 +1,5 @@
-(define ed25519-signer (make-eddsa-signer ed25519-pure-scheme))
-(define ed25519-verifier (make-eddsa-verifier ed25519-pure-scheme))
+(define ed25519-signer (make-eddsa-signer ed25519-scheme))
+(define ed25519-verifier (make-eddsa-verifier ed25519-scheme))
 
 (define test-ed25519 (make-test-eddsa Ed25519 ed25519-signer ed25519-verifier))
 

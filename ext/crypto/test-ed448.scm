@@ -1,5 +1,5 @@
-(define ed448-signer (make-eddsa-signer ed448-pure-scheme))
-(define ed448-verifier (make-eddsa-verifier ed448-pure-scheme))
+(define ed448-signer (make-eddsa-signer ed448-scheme))
+(define ed448-verifier (make-eddsa-verifier ed448-scheme))
 
 (define test-ed448 (make-test-eddsa Ed448 ed448-signer ed448-verifier))
 

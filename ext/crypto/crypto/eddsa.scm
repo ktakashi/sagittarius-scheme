@@ -34,8 +34,9 @@
 #!read-macro=sagittarius/bv-string
 (library (crypto eddsa)
     (export EdDSA
-	    Ed25519
-	    Ed448
+	    Ed25519 Ed25519ctx Ed25519ph 
+	    Ed448 Ed448ph
+	    
 	    <eddsa-key> eddsa-key?
 	    eddsa-key-parameter
 	    <eddsa-private-key> eddsa-private-key?
@@ -45,14 +46,15 @@
 
 	    ;; low level APIs?
 	    make-eddsa-signer make-eddsa-verifier
-	    ed25519-pure-scheme
-	    ed448-pure-scheme 
+	    ed25519-scheme ed25519ctx-scheme ed25519ph-scheme
+	    ed448-scheme ed448ph-scheme
 	    )
     (import (rnrs)
 	    (clos user)
 	    (math)
 	    (math ec)
 	    (crypto key pair)
+	    (sagittarius crypto)
 	    (sagittarius) ;; for bytevector->integer/endian
 	    (core misc)	  ;; for define-vector-type;
 	    (util bytevector)
@@ -61,10 +63,13 @@
 ;;; Interfaces
 (define EdDSA :eddsa)
 (define Ed25519 :ed25519)
+(define Ed25519ctx :ed25519ctx)
+(define Ed25519ph :ed25519ph)
 (define Ed448 :ed448)
+(define Ed448ph :ed448ph)
 
 (define-class <eddsa-key> ()
-  ((parameter :init-keyword :curve :reader eddsa-key-parameter)))
+  ((parameter :init-keyword :parameter :reader eddsa-key-parameter)))
 (define (eddsa-key? o) (is-a? o <eddsa-key>))
 
 (define-class <eddsa-private-key> (<private-key> <eddsa-key>)
@@ -76,6 +81,42 @@
   ((data :init-keyword :data :reader eddsa-public-key-data)))
 (define (eddsa-public-key? o) (is-a? o <eddsa-public-key>))
 
+(define-class <eddsa-cipher-spi> (<cipher-spi>) ())
+(define-method initialize ((o <eddsa-cipher-spi>) initargs)
+  (define (ed25519? key)
+    (eq? 'ed25519 (eddsa-parameter-name (eddsa-key-parameter key))))
+  (define (ed448? key)
+    (eq? 'ed448 (eddsa-parameter-name (eddsa-key-parameter key))))
+  (define (check-ed25519 key)
+    (unless (ed25519? key)
+      (assertion-violation 'eddsa-cipher "Wrong type for the key")))
+  (define (check-ed448 key)
+    (unless (ed448? key)
+      (assertion-violation 'eddsa-cipher "Wrong type for the key")))
+  (define (type->scheme type key)
+    (cond ((eq? type Ed25519)    (check-ed25519 key) ed25519-scheme)
+	  ((eq? type Ed25519ctx) (check-ed25519 key) ed25519ctx-scheme)
+	  ((eq? type Ed25519ph)  (check-ed25519 key) ed25519ph-scheme)
+	  ((eq? type Ed448)   (check-ed448 key) ed448-scheme)
+	  ((eq? type Ed448ph) (check-ed448 key) ed448ph-scheme)
+	  (else (if (ed25519? key) ed25519-scheme ed448-scheme))))
+  (let ((key (car initargs)))
+    (let-keywords (cdr initargs)
+	((type #f) . ignore)
+      (let ((scheme (type->scheme type key)))
+	(slot-set! o 'name 'EdDSA)
+	(slot-set! o 'key key)
+	(slot-set! o 'encrypt 
+		   (lambda ignore (error 'encrypt "not supported in EdDSA")))
+	(slot-set! o 'decrypt
+		   (lambda ignore (error 'decrypt "not supported in EdDSA")))
+	(slot-set! o 'padder #f)
+	(slot-set! o 'signer (make-eddsa-signer scheme))
+	(slot-set! o 'verifier (make-eddsa-verifier scheme))
+	(slot-set! o 'keysize #f)))))
+(register-spi EdDSA <eddsa-cipher-spi>)
+
+;;; Ed25519 Framework
 (define-method generate-public-key ((m (eql Ed25519)) data)
   (generate-ed25519-public-key data))
 
@@ -85,12 +126,73 @@
 (define-method generate-key-pair ((m (eql Ed25519))
 				  ;; should we start using ChaCha20?
 				  :key (prng (secure-random RC4)))
+  (generate-ed25519-key-pair prng))
+(define-class <ed25519-cipher-spi> (<cipher-spi>) ())
+(define-method initialize ((o <ed25519-cipher-spi>) initargs)
+  (let ((key (car initargs)))
+    (slot-set! o 'name 'Ed25519)
+    (slot-set! o 'key key)
+    (slot-set! o 'encrypt 
+	       (lambda ignore (error 'encrypt "not supported in Ed25519")))
+    (slot-set! o 'decrypt
+	       (lambda ignore (error 'decrypt "not supported in Ed25519")))
+    (slot-set! o 'padder #f)
+    (slot-set! o 'signer (make-eddsa-signer ed25519-scheme))
+    (slot-set! o 'verifier (make-eddsa-verifier ed25519-scheme))
+    (slot-set! o 'keysize #f)))
+(register-spi Ed25519 <ed25519-cipher-spi>)
 
-  (let* ((random (read-random-bytes prng 32))
-	 (private-key (generate-ed25519-private-key random)))
-    (make-keypair private-key
-		  (eddsa-private-key-public-key private-key))))
+;;; Ed25519ctx Framework
+(define-method generate-public-key ((m (eql Ed25519ctx)) data)
+  (generate-ed25519-public-key data))
 
+(define-method generate-private-key ((m (eql Ed25519ctx)) random)
+  (generate-ed25519-private-key random))
+
+(define-method generate-key-pair ((m (eql Ed25519ctx))
+				  :key (prng (secure-random RC4)))
+  (generate-ed25519-key-pair prng))
+(define-class <ed25519ctx-cipher-spi> (<cipher-spi>) ())
+(define-method initialize ((o <ed25519ctx-cipher-spi>) initargs)
+  (let ((key (car initargs)))
+    (slot-set! o 'name 'Ed25519)
+    (slot-set! o 'key key)
+    (slot-set! o 'encrypt 
+	       (lambda ignore (error 'encrypt "not supported in Ed25519ctx")))
+    (slot-set! o 'decrypt
+	       (lambda ignore (error 'decrypt "not supported in Ed25519ctx")))
+    (slot-set! o 'padder #f)
+    (slot-set! o 'signer (make-eddsa-signer ed25519ctx-scheme))
+    (slot-set! o 'verifier (make-eddsa-verifier ed25519ctx-scheme))
+    (slot-set! o 'keysize #f)))
+(register-spi Ed25519ctx <ed25519ctx-cipher-spi>)
+
+;;; Ed25519ph Framework
+(define-method generate-public-key ((m (eql Ed25519ph)) data)
+  (generate-ed25519-public-key data))
+
+(define-method generate-private-key ((m (eql Ed25519ph)) random)
+  (generate-ed25519-private-key random))
+
+(define-method generate-key-pair ((m (eql Ed25519ph))
+				  :key (prng (secure-random RC4)))
+  (generate-ed25519-key-pair prng))
+(define-class <ed25519ph-cipher-spi> (<cipher-spi>) ())
+(define-method initialize ((o <ed25519ph-cipher-spi>) initargs)
+  (let ((key (car initargs)))
+    (slot-set! o 'name 'Ed25519)
+    (slot-set! o 'key key)
+    (slot-set! o 'encrypt 
+	       (lambda ignore (error 'encrypt "not supported in Ed25519ph")))
+    (slot-set! o 'decrypt
+	       (lambda ignore (error 'decrypt "not supported in Ed25519ph")))
+    (slot-set! o 'padder #f)
+    (slot-set! o 'signer (make-eddsa-signer ed25519ph-scheme))
+    (slot-set! o 'verifier (make-eddsa-verifier ed25519ph-scheme))
+    (slot-set! o 'keysize #f)))
+(register-spi Ed25519ph <ed25519ph-cipher-spi>)
+
+;; Ed448 Framework
 (define-method generate-public-key ((m (eql Ed448)) data)
   (generate-ed448-public-key data))
 
@@ -100,15 +202,56 @@
 (define-method generate-key-pair ((m (eql Ed448))
 				  ;; should we start using ChaCha20?
 				  :key (prng (secure-random RC4)))
+  (generate-ed448-key-pair prng))
+(define-class <ed448-cipher-spi> (<cipher-spi>) ())
+(define-method initialize ((o <ed448-cipher-spi>) initargs)
+  (let ((key (car initargs)))
+    (slot-set! o 'name 'Ed25519)
+    (slot-set! o 'key key)
+    (slot-set! o 'encrypt 
+	       (lambda ignore (error 'encrypt "not supported in Ed448")))
+    (slot-set! o 'decrypt
+	       (lambda ignore (error 'decrypt "not supported in Ed448")))
+    (slot-set! o 'padder #f)
+    (slot-set! o 'signer (make-eddsa-signer ed448-scheme))
+    (slot-set! o 'verifier (make-eddsa-verifier ed448-scheme))
+    (slot-set! o 'keysize #f)))
+(register-spi Ed448 <ed448-cipher-spi>)
 
-  (let* ((random (read-random-bytes prng 57))
-	 (private-key (generate-ed448-private-key random)))
-    (make-keypair private-key
-		  (eddsa-private-key-public-key private-key))))
+;; Ed448ph Framework
+(define-method generate-public-key ((m (eql Ed448ph)) data)
+  (generate-ed448-public-key data))
 
+(define-method generate-private-key ((m (eql Ed448ph)) random)
+  (generate-ed448-private-key random))
+
+(define-method generate-key-pair ((m (eql Ed448ph))
+				  ;; should we start using ChaCha20?
+				  :key (prng (secure-random RC4)))
+  (generate-ed448-key-pair prng))
+(define-class <ed448ph-cipher-spi> (<cipher-spi>) ())
+(define-method initialize ((o <ed448ph-cipher-spi>) initargs)
+  (let ((key (car initargs)))
+    (slot-set! o 'name 'Ed448)
+    (slot-set! o 'key key)
+    (slot-set! o 'encrypt 
+	       (lambda ignore (error 'encrypt "not supported in Ed448ph")))
+    (slot-set! o 'decrypt
+	       (lambda ignore (error 'decrypt "not supported in Ed448ph")))
+    (slot-set! o 'padder #f)
+    (slot-set! o 'signer (make-eddsa-signer ed448ph-scheme))
+    (slot-set! o 'verifier (make-eddsa-verifier ed448ph-scheme))
+    (slot-set! o 'keysize #f)))
+(register-spi Ed448ph <ed448ph-cipher-spi>)
 
 
 ;;; Ed25519 implementations
+(define (generate-ed25519-key-pair prng)
+  (let* ((random (read-random-bytes prng 32))
+	 (private-key (generate-ed25519-private-key random)))
+    (make-keypair private-key
+		  (eddsa-private-key-public-key private-key))))
+
 (define (generate-ed25519-public-key data)
   (make <eddsa-public-key> :data data :parameter ed25519-parameter))
 
@@ -163,6 +306,11 @@
     (make <eddsa-private-key> :parameter ed25519-parameter
 	  :random random :public-key pub)))
 
+(define (generate-ed448-key-pair prng)
+  (let* ((random (read-random-bytes prng 57))
+	 (private-key (generate-ed448-private-key random)))
+    (make-keypair private-key
+		  (eddsa-private-key-public-key private-key))))
 (define (generate-ed448-public-key data)
   (make <eddsa-public-key> :data data :parameter ed448-parameter))
 (define (generate-ed448-private-key random)
@@ -285,27 +433,52 @@
   (prehash eddsa-scheme-prehash)
   (inithash eddsa-scheme-inithash))
 
-(define ed25519-pure-scheme
+(define ed25519-scheme
   (make-eddsa-scheme ed25519-parameter
     #f (lambda (data ctx hflag)
 	 (when (or hflag (and ctx (> (bytevector-length ctx) 0)))
 	   (assertion-violation 'ed25519 "Context/hashes not supported"))
 	 (hash SHA-512 data))))
 
-(define ed448-pure-scheme
+(define (ed25519ctx-inithash data ctx hflag)
+  (let ((dom-prefix (if ctx
+			(if (< (bytevector-length ctx) 256)
+			    (bytevector-append
+			     #*"SigEd25519 no Ed25519 collisions"
+			     (if hflag #vu8(1) #vu8(0))
+			     (make-bytevector 1 (bytevector-length ctx))
+			     ctx)
+			    (assertion-violation 'Ed25519
+						 "Context too big"))
+			#vu8())))
+    (hash SHA-512 (bytevector-append dom-prefix data))))
+  
+(define ed25519ctx-scheme
+  (make-eddsa-scheme ed25519-parameter #f ed25519ctx-inithash))
+
+(define ed25519ph-scheme
+  (make-eddsa-scheme ed25519-parameter
+		     (lambda (x y) (hash SHA-512 x))
+		     ed25519ctx-inithash))
+
+(define (ed448-inithash data ctx hflag)
+  (let ((dom-prefix (if ctx
+			(if (< (bytevector-length ctx) 256)
+			    (bytevector-append
+			     #*"SigEd448"
+			     (if hflag #vu8(1) #vu8(0))
+			     (make-bytevector 1 (bytevector-length ctx))
+			     ctx)
+			    (assertion-violation 'Ed448
+						 "Context too big"))
+			#vu8())))
+    (hash SHAKE256 (bytevector-append dom-prefix data) :size 114)))
+(define ed448-scheme
+  (make-eddsa-scheme ed448-parameter #f ed448-inithash))
+(define ed448ph-scheme
   (make-eddsa-scheme ed448-parameter
-    #f (lambda (data ctx hflag)
-	 (let ((dom-prefix (if ctx
-			       (if (< (bytevector-length ctx) 256)
-				   (bytevector-append
-				    #*"SigEd448"
-				    (if hflag #vu8(1) #vu8(0))
-				    (make-bytevector 1 (bytevector-length ctx))
-				    ctx)
-				   (assertion-violation 'Ed448
-							"Context too big"))
-			       #vu8())))
-	   (hash SHAKE256 (bytevector-append dom-prefix data) :size 114)))))
+		     (lambda (data ctx) (hash SHAKE256 data :size 64))
+		     ed448-inithash))
 
 
 (define (make-eddsa-signer scheme)
