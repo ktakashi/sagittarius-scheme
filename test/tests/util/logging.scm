@@ -51,10 +51,10 @@
     (with-output-to-string
       (lambda ()
 	(apply info-log logger msg args))))
-  (test-equal "argument-ref(1)" "#()\n"        (log-it "dummy"))
-  (test-equal "argument-ref(2)" "a#(a)\n"      (log-it "dummy" 'a))
-  (test-equal "argument-ref(3)" "ab#(a b)\n"   (log-it "dummy" 'a 'b))
-  (test-equal "argument-ref(4)" "ab#(a b c)\n" (log-it "dummy" 'a 'b 'c)))
+  (test-equal "argument-ref(1)" "\n"        (log-it "dummy"))
+  (test-equal "argument-ref(2)" "aa\n"      (log-it "dummy" 'a))
+  (test-equal "argument-ref(3)" "aba b\n"   (log-it "dummy" 'a 'b))
+  (test-equal "argument-ref(4)" "aba b c\n" (log-it "dummy" 'a 'b 'c)))
 
 (let ((file  "log.log"))
   (when (file-exists? file) (delete-file file))

@@ -141,9 +141,11 @@
 	    (let ((c2 (lookahead-char in)))
 	      (case c2
 		((#\[) (cond ((get-argument in) => (lambda (v) (put out v)))))
-		(else (vector-for-each
-		       (lambda (a) (and (put out a) (put-char out #\space)))
-		       arguments)))))
+		(else
+		 (let loop ((i 0) (written? #f))
+		   (unless (= i (vector-length arguments))
+		     (and written? (put-char out #\space))
+		     (loop (+ i 1) (put out (vector-ref arguments i)))))))))
 	   ((#\e)
 	    (let ((c2 (lookahead-char in)))
 	      (case c2
