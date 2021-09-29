@@ -3,7 +3,8 @@
 	(srfi :64)
 	(rfc x.509)
 	(rfc pem)
-	(crypto))
+	(crypto)
+	(text json compare))
 
 (test-begin "RFC - JWK")
 
@@ -248,5 +249,63 @@
 				(jwk-config-builder
 				 (x5c (list cert ca))))))
       (test-assert (jwk:rsa? jwk)))))
+
+;; from RFC 8037 Appendix A.1
+(let ((json #(("keys"
+	       #(("kty" . "OKP")
+		 ("crv" . "Ed25519")
+		 ("d" . "nWGxne_9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A")
+		 ("x" . "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"))))))
+  (define (test-jwk jwk)
+    (test-assert (jwk? jwk))
+    (test-assert (jwk:okp? jwk))
+    (test-assert (jwk:okp-private? jwk))
+    (test-equal 'Ed25519 (jwk:okp-crv jwk))
+    (test-equal "Ed25519 OKP x"
+     (integer->bytevector
+      #xd75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a)
+     (jwk:okp-x jwk))
+    (test-equal "Ed25519 OKP d"
+     (integer->bytevector
+      #x9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60)
+     (jwk:okp-private-d jwk))
+    (test-assert (public-key? (jwk->public-key jwk)))
+    (test-assert (private-key? (jwk->private-key jwk))))
+  (test-assert "OKP Ed25519 private" (jwk-set? (json->jwk-set json)))
+  (let ((jwk-set (json->jwk-set json)))
+    (test-assert (list? (jwk-set-keys jwk-set)))
+    (test-equal 1 (length (jwk-set-keys jwk-set)))
+    (let ((jwk (car (jwk-set-keys jwk-set))))
+      (test-jwk jwk)))
+  (let* ((jwk-json (cadr (vector-ref json 0)))
+	 (jwk (json->jwk jwk-json)))
+    (test-jwk jwk)
+    (test-assert "jwk->json jwk:okp-private" (json=? jwk-json (jwk->json jwk)))))
+
+(let ((json #(("keys"
+	       #(("kty" . "OKP")
+		 ("crv" . "Ed25519")
+		 ("x" . "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"))))))
+  (define (test-jwk jwk)
+    (test-assert (jwk? jwk))
+    (test-assert (jwk:okp? jwk))
+    (test-assert (not (jwk:okp-private? jwk)))
+    (test-equal 'Ed25519 (jwk:okp-crv jwk))
+    (test-equal "Ed25519 OKP x"
+     (integer->bytevector
+      #xd75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a)
+     (jwk:okp-x jwk))
+    (test-assert (public-key? (jwk->public-key jwk)))
+    (test-error (private-key? (jwk->private-key jwk))))
+  (test-assert "OKP Ed25519 public" (jwk-set? (json->jwk-set json)))
+  (let ((jwk-set (json->jwk-set json)))
+    (test-assert (list? (jwk-set-keys jwk-set)))
+    (test-equal 1 (length (jwk-set-keys jwk-set)))
+    (let ((jwk (car (jwk-set-keys jwk-set))))
+      (test-jwk jwk)))
+  (let* ((jwk-json (cadr (vector-ref json 0)))
+	 (jwk (json->jwk jwk-json)))
+    (test-jwk jwk)
+    (test-assert "jwk->json jwk:okp" (json=? jwk-json (jwk->json jwk)))))
 
 (test-end)

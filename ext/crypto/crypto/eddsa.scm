@@ -44,6 +44,8 @@
 	    <eddsa-public-key> eddsa-public-key?
 	    eddsa-public-key-data
 
+	    ed25519-key? ed448-key?
+	    
 	    ;; low level APIs?
 	    make-eddsa-signer make-eddsa-verifier
 	    ed25519-scheme ed25519ctx-scheme ed25519ph-scheme
@@ -81,17 +83,18 @@
   ((data :init-keyword :data :reader eddsa-public-key-data)))
 (define (eddsa-public-key? o) (is-a? o <eddsa-public-key>))
 
+(define (ed25519-key? key)
+  (eq? 'ed25519 (eddsa-parameter-name (eddsa-key-parameter key))))
+(define (ed448-key? key)
+  (eq? 'ed448 (eddsa-parameter-name (eddsa-key-parameter key))))
+
 (define-class <eddsa-cipher-spi> (<cipher-spi>) ())
 (define-method initialize ((o <eddsa-cipher-spi>) initargs)
-  (define (ed25519? key)
-    (eq? 'ed25519 (eddsa-parameter-name (eddsa-key-parameter key))))
-  (define (ed448? key)
-    (eq? 'ed448 (eddsa-parameter-name (eddsa-key-parameter key))))
   (define (check-ed25519 key)
-    (unless (ed25519? key)
+    (unless (ed25519-key? key)
       (assertion-violation 'eddsa-cipher "Wrong type for the key")))
   (define (check-ed448 key)
-    (unless (ed448? key)
+    (unless (ed448-key? key)
       (assertion-violation 'eddsa-cipher "Wrong type for the key")))
   (define (type->scheme type key)
     (cond ((eq? type Ed25519)    (check-ed25519 key) ed25519-scheme)
@@ -99,7 +102,7 @@
 	  ((eq? type Ed25519ph)  (check-ed25519 key) ed25519ph-scheme)
 	  ((eq? type Ed448)   (check-ed448 key) ed448-scheme)
 	  ((eq? type Ed448ph) (check-ed448 key) ed448ph-scheme)
-	  (else (if (ed25519? key) ed25519-scheme ed448-scheme))))
+	  (else (if (ed25519-key? key) ed25519-scheme ed448-scheme))))
   (let ((key (car initargs)))
     (let-keywords (cdr initargs)
 	((type #f) . ignore)

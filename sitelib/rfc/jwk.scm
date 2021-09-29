@@ -52,6 +52,9 @@
 	    jwk:rsa-crt-private-dq jwk:rsa-crt-private-qi
 	    ;; oct
 	    jwk:oct? make-jwk:oct jwk:oct-k
+	    ;; OKP
+	    jwk:okp? make-jwk:okp jwk:okp-crv jwk:okp-x
+	    jwk:okp-private? make-jwk:okp-private jwk:okp-private-d
 
 	    jwk->certificate-chain
 	    jwk->public-key
@@ -115,6 +118,15 @@
     (parent jwk)
     (fields k))
 
+  ;; https://datatracker.ietf.org/doc/html/rfc8037
+  ;; OKP
+  (define-record-type jwk:okp
+    (parent jwk)
+    (fields crv x))
+  (define-record-type jwk:okp-private
+    (parent jwk:okp)
+    (fields d))
+  
   (define (base64-url-string->bytevector s) (base64url-decode (string->utf8 s)))
   (define (base64-string->bytevector s) (base64-decode-string s :transcoder #f))
   
@@ -143,6 +155,7 @@
     (define (ctr&params jwk key-param)
       (define decode-b64 base64-url-string->bytevector)
       (define (pref k) (hashtable-ref key-param k #f))
+      (define (maybe->bytevector v) (and v (decode-b64 v)))
       (define (maybe->integer v)
 	(and v (bytevector->integer (decode-b64 v))))
       (case (jwk-kty jwk)
@@ -177,6 +190,13 @@
 			  (else (values make-jwk:rsa-private n e d)))))
 		 (else (values make-jwk:rsa n e)))))
 	((oct) (values make-jwk:oct (decode-b64 (pref 'k))))
+	((OKP)
+	 (let ((crv (string->symbol (hashtable-ref key-param 'crv)))
+	       (x (maybe->bytevector (pref 'x))))
+	   (cond ((pref 'd) =>
+		  (lambda (d)
+		    (values make-jwk:okp-private crv x (maybe->bytevector d))))
+		 (else (values make-jwk:okp crv x)))))
 	(else => (lambda (t) (error 'read-jwk-set "unsupported key type" t)))))
     (let-values (((ctr . param) (ctr&params jwk key-param)))
       (let ((use (jwk-use jwk))
@@ -278,7 +298,16 @@
   ;; oct
   (define jwk:oct-serializer
     (jwk-serializer ("k" jwk:oct-k bytevector->b64u-string)))
-
+  
+  ;; OKP
+  (define jwk:okp-serializer
+    (jwk-serializer ("crv" jwk:okp-crv symbol->string)
+		    ("x" jwk:okp-x bytevector->b64u-string)))
+  (define jwk:okp-private-serializer
+    (jwk-serializer ("crv" jwk:okp-crv symbol->string)
+		    ("x" jwk:okp-x bytevector->b64u-string)
+		    ("d" jwk:okp-private-d bytevector->b64u-string)))
+  
   (define (dispatch-jwk o)
     (cond ((jwk:ec-private? o) (object->json o jwk:ec-private-serializer))
 	  ((jwk:ec? o) (object->json o jwk:ec-serializer))
@@ -287,6 +316,8 @@
 	  ((jwk:rsa-private? o) (object->json o jwk:rsa-private-serializer))
 	  ((jwk:rsa? o) (object->json o jwk:rsa-serializer))
 	  ((jwk:oct? o) (object->json o jwk:oct-serializer))
+	  ((jwk:okp-private? o) (object->json o jwk:okp-private-serializer))
+	  ((jwk:okp? o) (object->json o jwk:okp-serializer))
 	  (else (error 'jwk-set-serializer "unknown object" o))))
   (define jwk-set-serializer
     (json-object-serializer
@@ -326,6 +357,14 @@
 	  ((jwk:rsa? jwk)
 	   (jwa:make-rsa-public-key
 	    (jwk:rsa-n jwk) (jwk:rsa-e jwk)))
+	  ((jwk:okp? jwk)
+	   (case (jwk:okp-crv jwk)
+	     ((Ed25519) (jwa:make-ed25519-public-key (jwk:okp-x jwk)))
+	     ((Ed448) (jwa:make-ed448-public-key (jwk:okp-x jwk)))
+	     (else
+	      (assertion-violation 'jwk->public-key
+				   "given OKP crv is not supported"
+				   (jwk:okp-crv jwk)))))
 	  (else
 	   (assertion-violation 'jwk->public-key
 				"given JWK object is not a public key" jwk))))
@@ -349,6 +388,14 @@
 		  (jwk:rsa-crt-private-dq jwk)
 		  (jwk:rsa-crt-private-qi jwk))
 		 (jwa:make-rsa-private-key n e d))))
+	  ((jwk:okp-private? jwk)
+	   (case (jwk:okp-crv jwk)
+	     ((Ed25519) (jwa:make-ed25519-private-key (jwk:okp-private-d jwk)))
+	     ((Ed448) (jwa:make-ed448-private-key (jwk:okp-private-d jwk)))
+	     (else
+	      (assertion-violation 'jwk->private-key
+				   "given OKP crv is not supported"
+				   (jwk:okp-crv jwk)))))
 	  (else
 	   (assertion-violation 'jwk->private-key
 				"given JWK object is not a private key" jwk))))
@@ -406,8 +453,21 @@
 		     (x5c->fingerprint (jwk:config-x5c config) SHA-1)
 		     (x5c->fingerprint (jwk:config-x5c config) SHA-256)
 		     curv (ec-point-x Q) (ec-point-y Q))))
+    (define (eddsa-public-key->jwk public-key)
+      (make-jwk:okp
+       (jwk:config-use config)
+       (jwk:config-key-ops config)
+       (or (jwk:config-alg config) 'EdDSA) ;; should we?
+       (jwk:config-kid config)
+       (jwk:config-x5u config)
+       (map x509-certificate->bytevector (jwk:config-x5c config))
+       (x5c->fingerprint (jwk:config-x5c config) SHA-1)
+       (x5c->fingerprint (jwk:config-x5c config) SHA-256)
+       (if (ed25519-key? public-key) 'Ed25519 'Ed448)
+       (bytevector->integer (eddsa-public-key-data public-key))))
     (cond ((rsa-public-key? public-key) (rsa-public-key->jwk public-key))
 	  ((ecdsa-public-key? public-key) (ecdsa-public-key->jwk public-key))
+	  ((eddsa-public-key? public-key) (eddsa-public-key->jwk public-key))
 	  (else (assertion-violation 'public-key->jwk "Unsupported key"
 				     public-key))))
   

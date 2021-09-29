@@ -15,6 +15,7 @@
 	    (crypto rsa)
 	    (crypto dsa)
 	    (crypto ecdsa)
+	    (crypto eddsa)
 	    (crypto k-generator)
 	    (crypto ecdh)
 	    (crypto wrap)

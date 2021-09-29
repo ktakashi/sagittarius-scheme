@@ -28,7 +28,9 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-;; ref: https://tools.ietf.org/html/rfc7518
+;; ref
+;; - https://tools.ietf.org/html/rfc7518
+;; - https://tools.ietf.org/html/rfc8037
 (library (rfc jwa)
     (export jwa:make-ec-public-key
 	    jwa:make-ec-private-key
@@ -36,8 +38,10 @@
 	    jwa:make-rsa-private-key
 	    jwa:make-rsa-crt-private-key
 
-
 	    jwa:a128kw jwa:a192kw jwa:a256kw jwa:aes-key-wrap
+
+	    jwa:make-ed25519-public-key jwa:make-ed25519-private-key
+	    jwa:make-ed448-public-key jwa:make-ed448-private-key
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -83,6 +87,12 @@
     (jwa:aes-key-wrap wrapping-key key-material))
   (define (jwa:aes-key-wrap wrapping-key key-material)
     ((make-aes-key-wrap wrapping-key) key-material))
-  
+
+
+  ;; RFC 8037
+  (define (jwa:make-ed25519-public-key x)  (generate-public-key Ed25519 x))
+  (define (jwa:make-ed25519-private-key d) (generate-private-key Ed25519 d))
+  (define (jwa:make-ed448-public-key x)  (generate-public-key Ed448 x))
+  (define (jwa:make-ed448-private-key d) (generate-private-key Ed448 d))
   )
 
