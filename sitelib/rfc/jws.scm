@@ -60,6 +60,7 @@
 	    make-mac-verifier make-mac-signer
 	    make-rsa-verifier make-rsa-signer
 	    make-ecdsa-verifier make-ecdsa-signer
+	    make-eddsa-verifier make-eddsa-signer
 	    
 	    jws:parse jws:serialize jws:sign jws:verify
 	    ;; for convenience
@@ -73,7 +74,7 @@
 	    (record accessor)
 	    (record builder)
 	    (security signature)
-	    (crypto)
+	    (except (crypto) make-eddsa-verifier make-eddsa-signer)
 	    (math)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
@@ -343,6 +344,27 @@
 	(and (check-critical-headers critical-headers header)
 	     (ecdsa-verifier signed-content signature)))))))
 
+(define make-eddsa-verifier
+  (case-lambda
+   ((key) (make-ecdsa-verifier key '()))
+   ((key critical-headers)
+    (define (get-verifier alg)
+      (case alg
+	((EdDSA) (*eddsa-verifier-provider* key))
+	(else
+	 (assertion-violation 'make-ecdsa-verifier
+			      "Unknown algorithm" alg))))
+    (let ((public-key (cond ((jwk? key) (jwk->public-key key))
+			    ((public-key? key) key)
+			    (else (assertion-violation 'make-eddsa-verifier
+						       "Public key required"
+						       key)))))
+      (lambda (header signed-content signature)
+	(define eddsa-verifier
+	  (get-verifier (jose-crypto-header-alg header)))
+	(and (check-critical-headers critical-headers header)
+	     (eddsa-verifier signed-content signature)))))))
+
 ;;; signers (ditto)
 (define (make-mac-signer key)
   (lambda (header signing-content)
@@ -395,4 +417,19 @@
     (lambda (header signing-content)
       (define ecdsa-signer (get-signer (jose-crypto-header-alg header)))
       (ecdsa-signer signing-content))))
+
+(define (make-eddsa-signer key)
+  (define (get-signer alg)
+    (case alg
+      ((EdDSA) (*eddsa-signer-provider* key))
+      (else
+       (assertion-violation 'make-eddsa-signer "Unknown algorithm" alg))))
+  (let ((private-key (cond ((jwk? key) (jwk->private-key key))
+			   ((private-key? key) key)
+			   (else (assertion-violation 'make-ecdsa-signer
+						      "Private key required"
+						      key)))))
+    (lambda (header signing-content)
+      (define eddsa-signer (get-signer (jose-crypto-header-alg header)))
+      (eddsa-signer signing-content))))
 )

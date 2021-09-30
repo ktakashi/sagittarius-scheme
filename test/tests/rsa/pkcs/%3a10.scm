@@ -28,4 +28,18 @@ lb/N
 			  <rsa-public-key>))
       (test-equal bv (export-public-key spki)))))
 
+(let ()
+  (define key-pem
+    "-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEAGb9ECWmEzf6FQbrBZ9w7lshQhqowtrbLDFw4rXAxZuE=
+-----END PUBLIC KEY-----")
+  (let-values (((param content) (parse-pem-string key-pem)))
+    (let* ((spki (import-public-key PKCS10 content))
+	   (bv (asn.1-encode (asn.1-encodable->asn.1-object spki))))
+      (test-assert (subject-public-key-info? spki))
+      (test-assert (public-key? (subject-public-key-info->public-key spki)))
+      (test-assert (is-a? (subject-public-key-info->public-key spki)
+			  <eddsa-public-key>))
+      (test-equal bv (export-public-key spki)))))
+
 (test-end)

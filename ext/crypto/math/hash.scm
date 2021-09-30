@@ -47,7 +47,7 @@
 	   (assertion-violation 'hash-algorithm
 				"unknown hash" name))))
 
-  (define (get-size algo :key (size (hash-block-size algo)))
+  (define (get-size algo :key (size (hash-block-size algo)) :allow-other-keys)
     (define hsize (hash-size algo))
     (if (zero? hsize)
 	size

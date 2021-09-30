@@ -119,9 +119,16 @@
 	(slot-set! o 'keysize #f)))))
 (register-spi EdDSA <eddsa-cipher-spi>)
 
+;; this is super generic ;)
+(define-method export-public-key ((key <eddsa-public-key>))
+  (eddsa-public-key-data key))
 ;;; Ed25519 Framework
 (define-method generate-public-key ((m (eql Ed25519)) data)
   (generate-ed25519-public-key data))
+(define-method import-public-key ((m (eql Ed25519)) data)
+  (generate-ed25519-public-key data))
+(define-method export-public-key ((m (eql Ed25519)) (key <eddsa-public-key>))
+  (eddsa-public-key-data key))
 
 (define-method generate-private-key ((m (eql Ed25519)) random)
   (generate-ed25519-private-key random))
@@ -148,6 +155,10 @@
 ;;; Ed25519ctx Framework
 (define-method generate-public-key ((m (eql Ed25519ctx)) data)
   (generate-ed25519-public-key data))
+(define-method import-public-key ((m (eql Ed25519ctx)) data)
+  (generate-ed25519-public-key data))
+(define-method export-public-key ((m (eql Ed25519ctx)) (key <eddsa-public-key>))
+  (eddsa-public-key-data key))
 
 (define-method generate-private-key ((m (eql Ed25519ctx)) random)
   (generate-ed25519-private-key random))
@@ -173,6 +184,10 @@
 ;;; Ed25519ph Framework
 (define-method generate-public-key ((m (eql Ed25519ph)) data)
   (generate-ed25519-public-key data))
+(define-method import-public-key ((m (eql Ed25519ph)) data)
+  (generate-ed25519-public-key data))
+(define-method export-public-key ((m (eql Ed25519ph)) (key <eddsa-public-key>))
+  (eddsa-public-key-data key))
 
 (define-method generate-private-key ((m (eql Ed25519ph)) random)
   (generate-ed25519-private-key random))
@@ -198,6 +213,10 @@
 ;; Ed448 Framework
 (define-method generate-public-key ((m (eql Ed448)) data)
   (generate-ed448-public-key data))
+(define-method import-public-key ((m (eql Ed448)) data)
+  (generate-ed448-public-key data))
+(define-method export-public-key ((m (eql Ed448)) (key <eddsa-public-key>))
+  (eddsa-public-key-data key))
 
 (define-method generate-private-key ((m (eql Ed448)) random)
   (generate-ed448-private-key random))
@@ -224,6 +243,10 @@
 ;; Ed448ph Framework
 (define-method generate-public-key ((m (eql Ed448ph)) data)
   (generate-ed448-public-key data))
+(define-method import-public-key ((m (eql Ed448ph)) data)
+  (generate-ed448-public-key data))
+(define-method export-public-key ((m (eql Ed448ph)) (key <eddsa-public-key>))
+  (eddsa-public-key-data key))
 
 (define-method generate-private-key ((m (eql Ed448ph)) random)
   (generate-ed448-private-key random))

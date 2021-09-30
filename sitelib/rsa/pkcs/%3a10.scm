@@ -28,6 +28,11 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+;; ref
+;; - https://datatracker.ietf.org/doc/html/rfc2986
+;; - https://datatracker.ietf.org/doc/html/rfc3279
+;; - https://datatracker.ietf.org/doc/html/rfc8410
+#!nounbound
 (library (rsa pkcs :10)
     (export <subject-public-key-info>
 	    subject-public-key-info?
@@ -172,7 +177,17 @@
 	  ;; For some reason, old me thought importing ECPublicKey
 	  ;; from SubjectPublicKeyInfo directly in the (crypto ecdsa)
 	  ;; so make the pki ASN.1 object
-	  (import-public-key ECDSA (asn.1-encodable->asn.1-object pki))))))
+	  (import-public-key ECDSA (asn.1-encodable->asn.1-object pki))))
+      
+      ;; RFC 8410
+      ;; TODO X25519 and X448
+      ("1.3.101.112" .
+       ,(lambda (pki)
+	  (import-public-key Ed25519 (slot-ref (slot-ref pki 'key-data) 'data))))
+      ("1.3.101.113" .
+       ,(lambda (pki)
+	  (import-public-key Ed448 (slot-ref (slot-ref pki 'key-data) 'data))))
+      ))
 			     
   (define (subject-public-key-info->public-key spki)
     (let ((oid (algorithm-identifier-id (slot-ref spki 'algorithm-identifier))))

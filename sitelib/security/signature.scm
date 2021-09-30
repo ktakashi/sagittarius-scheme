@@ -50,6 +50,8 @@
 	    *ecdsa/sha384-verifier-provider*
 	    *ecdsa/sha512-verifier-provider*
 
+	    *eddsa-verifier-provider*
+
 	    ;; named signers
 	    *rsa/sha1-signer-provider*
 	    *rsa/sha256-signer-provider*
@@ -66,6 +68,8 @@
 	    *ecdsa/sha256-signer-provider*
 	    *ecdsa/sha384-signer-provider*
 	    *ecdsa/sha512-signer-provider*
+
+	    *eddsa-signer-provider*
 	    )
     (import (rnrs)
 	    (clos core)
@@ -189,6 +193,12 @@
 (define *ecdsa/sha384-verifier-provider* (make-ecdsa-verifier-provider SHA-384))
 (define *ecdsa/sha512-verifier-provider* (make-ecdsa-verifier-provider SHA-512))
 
+(define (*eddsa-verifier-provider* public-key . opts)
+  (define cipher (apply make-cipher EdDSA public-key opts))
+  (lambda (message signature)
+    ;; it's a bit ugly to handle context
+    (apply cipher-verify cipher message signature opts)))
+
 ;; signer providers
 (define (make-rsa-signer-provider digest encode)
   (lambda (private-key . parameter)
@@ -232,6 +242,11 @@
 (define *ecdsa/sha256-signer-provider* (make-ecdsa-signer-provider SHA-256))
 (define *ecdsa/sha384-signer-provider* (make-ecdsa-signer-provider SHA-384))
 (define *ecdsa/sha512-signer-provider* (make-ecdsa-signer-provider SHA-512))
+
+(define (*eddsa-signer-provider* private-key . opts)
+  (define cipher (apply make-cipher EdDSA private-key opts))
+  (lambda (message)
+    (apply cipher-signature cipher message opts)))
 
 (define *provider-oid-map*
   `(;; RSA PKCS v1.5
