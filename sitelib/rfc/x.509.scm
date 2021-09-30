@@ -600,6 +600,11 @@ Section 4.1
     (make-algorithm-identifier "1.2.840.113549.1.1.11"))
   (define +sha256-with-ecsa-encryption+
     (make-algorithm-identifier "1.2.840.10045.4.3.2"))
+  (define +eddsa-ed25519-encryption+
+    (make-algorithm-identifier "1.3.101.112"))
+  (define +eddsa-ed448-encryption+
+    (make-algorithm-identifier "1.3.101.113"))
+  
 
   (define (make-x509-self-signed-certificate keypair serial-number
 					     issuer validity subject)
@@ -608,6 +613,10 @@ Section 4.1
     (define aid
       (cond ((rsa-private-key? private-key) +sha256-with-rsa-encryption+)
 	    ((ecdsa-private-key? private-key) +sha256-with-ecsa-encryption+)
+	    ((eddsa-private-key? private-key)
+	     (if (ed25519-key? private-key)
+		 +eddsa-ed25519-encryption+
+		 +eddsa-ed448-encryption+))
 	    (else (assertion-violation 'make-x509-basic-certificate
 				       "Keypair not supported" keypair))))
     (define signer
@@ -635,11 +644,15 @@ Section 4.1
 
   (define (make-x509-simple-certificate public-key
 					serial-number subject validity
-					issuer-cert issuer-private-key )
+					issuer-cert issuer-private-key)
     (define private-key issuer-private-key)
     (define aid
       (cond ((rsa-private-key? private-key) +sha256-with-rsa-encryption+)
 	    ((ecdsa-private-key? private-key) +sha256-with-ecsa-encryption+)
+	    ((eddsa-private-key? private-key)
+	     (if (ed25519-key? private-key)
+		 +eddsa-ed25519-encryption+
+		 +eddsa-ed448-encryption+))
 	    (else (assertion-violation 'make-x509-simple-certificate
 				       "Private key not supported"
 				       private-key))))

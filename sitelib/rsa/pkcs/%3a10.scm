@@ -90,6 +90,12 @@
   (define-method make-subject-public-key-info ((pk <ecdsa-public-key>))
     ;; for some weird reason, ecdsa key exports SPKI form, so use it
     (make-subject-public-key-info (export-public-key pk)))
+  (define-method make-subject-public-key-info ((pk <eddsa-public-key>))
+    (make-subject-public-key-info
+     (make-der-sequence
+      (make-algorithm-identifier
+       (if (ed25519-key? pk) "1.3.101.112" "1.3.101.113"))
+      (make-der-bit-string (export-public-key pk)))))
   (define-method asn.1-encodable->asn.1-object ((o <subject-public-key-info>))
     (make-der-sequence
      (asn.1-encodable->asn.1-object (slot-ref o 'algorithm-identifier))

@@ -274,6 +274,12 @@
 			     ,*ecdsa/sha384-signer-provider*)
     ("1.2.840.10045.4.3.4"   ,*ecdsa/sha512-verifier-provider*
 			     ,*ecdsa/sha512-signer-provider*)
+
+    ;; EdDSA
+    ("1.3.101.112" ,*eddsa-verifier-provider*
+		   ,*eddsa-signer-provider*)
+    ("1.3.101.113" ,*eddsa-verifier-provider*
+		   ,*eddsa-signer-provider*)
     ))
 
 )
