@@ -28,6 +28,10 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+;; ref
+;; - https://datatracker.ietf.org/doc/html/rfc5208
+;; - https://datatracker.ietf.org/doc/html/rfc5958
+#!nounbound
 (library (rsa pkcs :8)
     (export <private-key-info>
 	    private-key-info?
@@ -77,20 +81,49 @@
      (attributes :init-keyword :attributes)
      (private-key :init-keyword :private-key)))
   (define (private-key-info? o) (is-a? o <private-key-info>))
+  #|
+     OneAsymmetricKey ::= SEQUENCE {
+       version                   Version,
+       privateKeyAlgorithm       PrivateKeyAlgorithmIdentifier,
+       privateKey                PrivateKey,
+       attributes            [0] Attributes OPTIONAL,
+       ...,
+       [[2: publicKey        [1] PublicKey OPTIONAL ]],
+       ...
+     }
+     PublicKey ::= BIT STRING
+               -- Content varies based on type of key.  The
+               -- algorithm identifier dictates the format of
+               -- the key.
+  |#
+  (define-class <one-asymmetric-key> (<private-key-info>)
+    ((public-key :init-keyword :public-key :init-value #f)))
+  
   (define-generic make-private-key-info)
   (define-method make-private-key-info ((s <asn.1-sequence>))
-    (unless (zero? (der-integer->integer (asn.1-sequence-get s 0)))
-      (assertion-violation 'make-private-key-info
-			   "wrong version for private key info"))
-    (let* ((id (make-algorithm-identifier (asn.1-sequence-get s 1)))
+    (define (->public-key aid p)
+      ;; a bit inefficient
+      (subject-public-key-info->public-key 
+       (make <subject-public-key-info> :algorithm-identifier aid
+	     :key-data (make-der-bit-string p #f))))
+    (let* ((version (der-integer->integer (asn.1-sequence-get s 0)))
+	   (id (make-algorithm-identifier (asn.1-sequence-get s 1)))
 	   (ain (open-bytevector-input-port
 		 (slot-ref (asn.1-sequence-get s 2) 'string)))
 	   (priv-key (read-asn.1-object ain))
-	   (attributes (if (> (asn.1-sequence-size s) 3)
-			   (make-der-set (asn.1-sequence-get s 3))
-			   #f)))
-      (make <private-key-info> :id id :attributes attributes 
-	    :private-key priv-key)))
+	   (attributes (asn.1-collection-find-tag s 0)))
+      (case version
+	((0)
+	 (make <private-key-info> :id id :attributes attributes 
+	       :private-key priv-key))
+	((1)
+	 (let ((public-key (asn.1-collection-find-tag s 1)))
+	   (make <one-asymmetric-key> :id id :attributes attributes
+		 :private-key priv-key
+		 :public-key (and public-key (->public-key id public-key)))))
+	(else
+	 (assertion-violation 'make-private-key-info
+			      "wrong version for private key info")))))
   (define-method make-private-key-info ((bv <bytevector>))
     (let ((o (read-asn.1-object (open-bytevector-input-port bv))))
       (make-private-key-info o)))
@@ -115,13 +148,32 @@
      (make-algorithm-identifier "1.2.840.10045.2.1"
       (slot-ref (asn.1-sequence-get exported 2) 'obj))
      key))
+  (define-method make-private-key-info ((key <eddsa-private-key>))
+    ;; assume it as tag[0]
+    (make-private-key-info 
+     (make-algorithm-identifier
+      (if (ed25519-key? key) "1.3.101.112" "1.3.101.113"))
+     key))
 
-
+  (define (encode-private-key-info o version)
+    (let ((a (slot-ref o 'attributes))
+	  (s (make-der-sequence
+	      (make-der-integer version)
+	      (asn.1-encodable->asn.1-object (slot-ref o 'id))
+	      (make-der-octet-string (slot-ref o 'private-key)))))
+      (when a (asn.1-sequence-add s a))
+      s))
   (define-method asn.1-encodable->asn.1-object ((o <private-key-info>))
-    (make-der-sequence
-     (make-der-integer 0)
-     (slot-ref o 'id)
-     (make-der-octet-string (slot-ref o 'private-key))))
+    (encode-private-key-info o 0))
+  (define-method asn.1-encodable->asn.1-object ((o <one-asymmetric-key>))
+    (let ((s (encode-private-key-info o 1))
+	  (pk (slot-ref o 'public-key)))
+      (when pk
+	(asn.1-sequence-add s 
+	 (make-der-tagged-object #f 1
+	  (make-der-octet-string (export-public-key pk)))))
+      s))
+      
   #|
       EncryptedPrivateKeyInfo ::= SEQUENCE {
         encryptionAlgorithm  EncryptionAlgorithmIdentifier,
@@ -192,6 +244,10 @@
 	    (asn.1-sequence-get s 1)
 	    (asn.1-sequence-get s 3)))
 	  (asn.1-encode s))))
+  (define-method %export-private-key ((key <eddsa-private-key>))
+    (let ((k (export-private-key key)))
+      ;; make it octet string
+      (asn.1-encode (make-der-octet-string k))))
 	    
   ;; for now we only support RSA
   ;; FIXME kinda silly
@@ -207,7 +263,16 @@
        ,(lambda (pki)
 	  ;; awkward way to make it consistant...
 	  (import-private-key ECDSA (slot-ref pki 'private-key)
-	    (algorithm-identifier-parameters (slot-ref pki 'id)))))))
+	    (algorithm-identifier-parameters (slot-ref pki 'id)))))
+      ("1.3.101.112" .
+       ,(lambda (pki)
+	  (import-private-key Ed25519
+	    (slot-ref (slot-ref pki 'private-key) 'string))))
+      ("1.3.101.113" .
+       ,(lambda (pki)
+	  (import-private-key Ed448
+	    (slot-ref (slot-ref pki 'private-key) 'string))))
+      ))
 
   (define (private-key-info->private-key pki)
     (let ((oid (algorithm-identifier-id (slot-ref pki 'id))))

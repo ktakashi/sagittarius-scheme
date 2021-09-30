@@ -122,6 +122,9 @@
 ;; this is super generic ;)
 (define-method export-public-key ((key <eddsa-public-key>))
   (eddsa-public-key-data key))
+(define-method export-private-key ((key <eddsa-private-key>))
+  (eddsa-private-key-random key))
+
 ;;; Ed25519 Framework
 (define-method generate-public-key ((m (eql Ed25519)) data)
   (generate-ed25519-public-key data))
@@ -132,6 +135,10 @@
 
 (define-method generate-private-key ((m (eql Ed25519)) random)
   (generate-ed25519-private-key random))
+(define-method import-private-key ((m (eql Ed25519)) random)
+  (generate-ed25519-private-key random))
+(define-method export-private-key ((m (eql Ed25519)) (key <eddsa-private-key>))
+  (eddsa-private-key-random key))
 
 (define-method generate-key-pair ((m (eql Ed25519))
 				  ;; should we start using ChaCha20?
@@ -162,6 +169,10 @@
 
 (define-method generate-private-key ((m (eql Ed25519ctx)) random)
   (generate-ed25519-private-key random))
+(define-method import-private-key ((m (eql Ed25519ctx)) random)
+  (generate-ed25519-private-key random))
+(define-method export-private-key ((m (eql Ed25519ctx)) (key <eddsa-private-key>))
+  (eddsa-private-key-random key))
 
 (define-method generate-key-pair ((m (eql Ed25519ctx))
 				  :key (prng (secure-random RC4)))
@@ -191,6 +202,10 @@
 
 (define-method generate-private-key ((m (eql Ed25519ph)) random)
   (generate-ed25519-private-key random))
+(define-method import-private-key ((m (eql Ed25519ph)) random)
+  (generate-ed25519-private-key random))
+(define-method export-private-key ((m (eql Ed25519ph)) (key <eddsa-private-key>))
+  (eddsa-private-key-random key))
 
 (define-method generate-key-pair ((m (eql Ed25519ph))
 				  :key (prng (secure-random RC4)))
@@ -220,6 +235,10 @@
 
 (define-method generate-private-key ((m (eql Ed448)) random)
   (generate-ed448-private-key random))
+(define-method import-private-key ((m (eql Ed448)) random)
+  (generate-ed448-private-key random))
+(define-method export-private-key ((m (eql Ed448)) (key <eddsa-private-key>))
+  (eddsa-private-key-random key))
 
 (define-method generate-key-pair ((m (eql Ed448))
 				  ;; should we start using ChaCha20?
@@ -250,6 +269,10 @@
 
 (define-method generate-private-key ((m (eql Ed448ph)) random)
   (generate-ed448-private-key random))
+(define-method import-private-key ((m (eql Ed448ph)) random)
+  (generate-ed448-private-key random))
+(define-method export-private-key ((m (eql Ed448ph)) (key <eddsa-private-key>))
+  (eddsa-private-key-random key))
 
 (define-method generate-key-pair ((m (eql Ed448ph))
 				  ;; should we start using ChaCha20?

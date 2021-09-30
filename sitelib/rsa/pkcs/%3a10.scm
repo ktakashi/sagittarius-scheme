@@ -130,9 +130,10 @@
   (define-method make-algorithm-identifier ((oid <string>))
     (make <algorithm-identifier> :object-id (make-der-object-identifier oid)))
   (define-method asn.1-encodable->asn.1-object ((o <algorithm-identifier>))
-    (make-der-sequence (slot-ref o 'object-id)
-		       (cond ((slot-ref o 'parameters))
-			     (else (make-der-null)))))
+    (let ((p (slot-ref o 'parameters)))
+      (if p
+	  (make-der-sequence (slot-ref o 'object-id) p)
+	  (make-der-sequence (slot-ref o 'object-id)))))
 
   (define-method write-object ((o <algorithm-identifier>) (p <port>))
     (format p "#<algorithm-identifier ~a~%~a>" (algorithm-identifier-id o)

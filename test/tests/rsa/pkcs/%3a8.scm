@@ -31,6 +31,24 @@
 		(export-private-key
 		 (make-private-key-info (private-key-info->private-key pki))))))
 
-
+(test-group "EdDSA Private key"
+  (define key
+    (base64-decode-string
+     "MHICAQEwBQYDK2VwBCIEINTuctv5E1hK1bbY8fdp+K06/nwoy/HU++CXqI9EdVhC\
+      oB8wHQYKKoZIhvcNAQkJFDEPDA1DdXJkbGUgQ2hhaXJzgSEAGb9ECWmEzf6FQbrB\
+      Z9w7lshQhqowtrbLDFw4rXAxZuE="
+     :transcoder #f))
+  (let ((pki (import-private-key PKCS8 key)))
+    (test-assert "EdDSA private-key-info?" (private-key-info? pki))
+    (test-assert "EdDSA private-key?"
+		 (private-key? (private-key-info->private-key pki)))
+    (test-assert "EdDSA is-a?" (is-a? (private-key-info->private-key pki)
+				      <eddsa-private-key>))
+    (test-equal "EdDSA export" key (export-private-key pki))
+    ;; the below can't be achieved as we don't hold attributes
+    ;; and the test data from RFC contains attributes...
+    #;(test-equal "EdDSA export(2)" key
+		(export-private-key
+		 (make-private-key-info (private-key-info->private-key pki))))))
 
 (test-end)

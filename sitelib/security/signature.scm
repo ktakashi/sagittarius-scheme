@@ -126,14 +126,9 @@
 (define (parse-rsassa-pss-parameter aid)
   (define param (algorithm-identifier-parameters aid))
   (define (find-tag param tag)
-    (define (check-tag o)
-      (and (is-a? o <asn.1-tagged-object>)
-	   (equal? tag (slot-ref o 'tag-no))))
-    (do ((len (asn.1-sequence-size param))
-	 (i 0 (+ i 1)))
-	((or (= i len) (check-tag (asn.1-sequence-get param i)))
-	 (and (not (= i len))
-	      (slot-ref (asn.1-sequence-get param i) 'obj)))))
+    (cond ((asn.1-collection-find-tag param tag) =>
+	   (lambda (tag) (slot-ref tag 'obj)))
+	  (else #f)))
   (unless (is-a? param <asn.1-sequence>)
     (assertion-violation 'parse-rsassa-pss-parameter
 			 "Invalid rsassa-pss parameter" aid))
