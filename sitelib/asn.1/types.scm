@@ -118,6 +118,9 @@
 	    (rename (generic-write der-generic-write))
 	    der-list->string
 	    der-octet-string-octets
+
+	    asn.1-collection-find
+	    asn.1-collection-find-tag
 	    )
     (import (except (rnrs) bytevector->string)
 	    (clos user)
@@ -289,9 +292,15 @@
      (explicit? :init-keyword :explicit? :init-value #t)
      (obj       :init-keyword :obj)))
 
+  ;; Abstract class
+  (define-class <asn.1-collection> (<asn.1-object>) ())
+  (define-generic asn.1-collection-elements)
+  
   ;; ASN1Sequence
-  (define-class <asn.1-sequence> (<asn.1-object>)
+  (define-class <asn.1-sequence> (<asn.1-collection>)
     ((sequence :init-keyword :sequence :init-value '())))
+  (define-method asn.1-collection-elements ((o <asn.1-sequence>))
+    (slot-ref o 'sequence))
   (define-method asn.1-sequence-add ((self <asn.1-sequence>)
 				     (o <der-encodable>))
     (slot-set! self 'sequence
@@ -312,8 +321,11 @@
   ;; ASN1Set
   (define-class <asn.1-set> (<asn.1-object>)
     ((set :init-keyword :set :init-value '())))
+  (define-method asn.1-collection-elements ((o <asn.1-set>))
+    (slot-ref o 'set))
   (define-method asn.1-set-add ((self <asn.1-set>)
 				(o <der-encodable>))
+    ;; FIXME this must remove duplicates!
     (slot-set! self 'set (append (slot-ref self 'set) (list o))))
   (define-method asn.1-set-get ((self <asn.1-set>)
 				(i <integer>))
@@ -891,9 +903,9 @@
 	  (if (~ o 'explicit?)
 	      (der-write-encoded (bitwise-ior CONSTRUCTED TAGGED)
 				 (~ o 'tag-no) bytes p)
-	      (let1 flag (cond ((zero? (bitwise-and
-					(bytevector-u8-ref bytes 0)
-					CONSTRUCTED))
+	      (let1 flag (cond ((not (zero? (bitwise-and
+					     (bytevector-u8-ref bytes 0)
+					     CONSTRUCTED)))
 				(bitwise-ior CONSTRUCTED TAGGED))
 			       (else TAGGED))
 		(der-write-tag flag (~ o 'tag-no) p)
@@ -979,7 +991,16 @@
 			   (slot-ref o 'tag)
 			   (slot-ref o 'data))
 		   p))
-    )
+
+  (define (asn.1-collection-find pred collection)
+    (find pred (asn.1-collection-elements collection)))
+
+  (define (asn.1-collection-find-tag collection tag)
+    (define (check-tag o)
+      (and (is-a? o <asn.1-tagged-object>)
+	   (equal? tag (slot-ref o 'tag-no))))
+    (asn.1-collection-find check-tag collection))
+  )
 
 ;; Local Variables:
 ;; coding: utf-8
