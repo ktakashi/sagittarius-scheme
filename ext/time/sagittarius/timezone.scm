@@ -132,7 +132,10 @@
 		     (loop (cdr h) (car h) 
 			   (cons `(,@(drop-last p) ,(cadddr c)) r)))))
 	      (else (loop (cdr h) (car h) r)))))
-    (and-let* ((zone (binary-search (vector-ref +tzdata+ +tz-zone+) name))
+    ;; search the alias first to avoid missing histories and do
+    ;; e.g. Asia/Kashgar is an alias of Asia/Urumqi, but it has own history
+    (and-let* ((zone (or (binary-search (vector-ref +tzdata+ +tz-zone+) alias)
+			 (binary-search (vector-ref +tzdata+ +tz-zone+) name)))
 	       (rules (find-rules (cdr zone)))
 	       (shifted (shiftup-histories (cdr zone)))
 	       (current (car shifted))
