@@ -57,6 +57,8 @@
 	    jws-signed-object-signature
 	    jws-object->string
 
+	    public-key->jws-verifier
+	    private-key->jws-signer
 	    make-mac-verifier make-mac-signer
 	    make-rsa-verifier make-rsa-signer
 	    make-ecdsa-verifier make-ecdsa-signer
@@ -346,7 +348,7 @@
 
 (define make-eddsa-verifier
   (case-lambda
-   ((key) (make-ecdsa-verifier key '()))
+   ((key) (make-eddsa-verifier key '()))
    ((key critical-headers)
     (define (get-verifier alg)
       (case alg
@@ -432,4 +434,27 @@
     (lambda (header signing-content)
       (define eddsa-signer (get-signer (jose-crypto-header-alg header)))
       (eddsa-signer signing-content))))
+
+(define (public-key->jws-verifier key)
+  (if (jwk? key)
+      (public-key->jws-verifier (jwk->public-key key))
+      (cond ((rsa-public-key? key) (make-rsa-verifier key))
+	    ((bytevector? key) (make-mac-verifier key))
+	    ((ecdsa-public-key? key) (make-ecdsa-verifier key))
+	    ((eddsa-public-key? key) (make-eddsa-verifier key))
+	    (else
+	     (assertion-violation
+	      'public-key->jws-verifier "Unknown public key" key)))))
+
+(define (private-key->jws-signer key)
+  (if (jwk? key)
+      (private-key->jws-signer (jwk->private-key key))
+      (cond ((rsa-private-key? key) (make-rsa-signer key))
+	    ((bytevector? key) (make-mac-signer key))
+	    ((ecdsa-private-key? key) (make-ecdsa-signer key))
+	    ((eddsa-private-key? key) (make-eddsa-signer key))
+	    (else
+	     (assertion-violation 'private-key->jws-signer
+				  "Unknown private key" key)))))
+
 )

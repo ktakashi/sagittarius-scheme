@@ -1,5 +1,6 @@
 (import (rnrs)
 	(rfc jws)
+	(rfc jwk)
 	(text json compare)
 	(crypto)
 	(rfc pem)
@@ -53,16 +54,8 @@
     (import-private-key RSA content)))
 
 (define (test-jws jws-string public-key private-key)
-  (define (get-verifier key)
-    (cond ((rsa-public-key? key) (make-rsa-verifier key))
-	  ((bytevector? key) (make-mac-verifier key))
-	  ((ecdsa-public-key? key) (make-ecdsa-verifier key))
-	  (else (error 'test-jws "(public key) not yet"))))
-  (define (get-signer key)
-    (cond ((rsa-private-key? key) (make-rsa-signer key))
-	  ((bytevector? key) (make-mac-signer key))
-	  ((ecdsa-private-key? key) (make-ecdsa-signer key))
-	  (else (error 'test-jws "not yet"))))
+  (define get-verifier public-key->jws-verifier)
+  (define get-signer private-key->jws-signer)
   (let ((jws (jws:parse jws-string))
 	(verifier (get-verifier public-key)))
     (test-assert (list 'jws:verify (jws-header-alg (jws-object-header jws)))
@@ -221,5 +214,18 @@ VtfBW48kPOmvkY4WlqP5bAwCXwbsKrCgk6xbsp12ew==
 (test-jws "eyJhbGciOiJFUzUxMiIsInR5cCI6IkpXVCIsImtpZCI6InhaRGZacHJ5NFA5dlpQWnlHMmZOQlJqLTdMejVvbVZkbTd0SG9DZ1NOZlkifQ.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.AP_CIMClixc5-BFflmjyh_bRrkloEvwzn8IaWJFfMz13X76PGWF0XFuhjJUjp7EYnSAgtjJ-7iJG4IP7w3zGTBk_AUdmvRCiWp5YAe8S_Hcs8e3gkeYoOxiXFZlSSAx0GfwW1cZ0r67mwGtso1I3VXGkSjH5J0Rk6809bn25GoGRjOPu"
 	  ec-public-key-p512
 	  ec-private-key-p512)
+
+(define ed25519-okp
+  (json->jwk #(("kty" . "OKP")
+	       ("crv" . "Ed25519")
+	       ("d" . "nWGxne_9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A")
+	       ("x" . "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"))))
+(define ed25519-private-key (jwk->private-key ed25519-okp))
+(define ed25519-public-key (jwk->public-key ed25519-okp))
+
+(test-jws "eyJhbGciOiJFZERTQSJ9.RXhhbXBsZSBvZiBFZDI1NTE5IHNpZ25pbmc.hgyY0il_MGCjP0JzlnLWG1PPOt7-09PGcvMg3AIbQR6dWbhijcNR4ki4iylGjg5BhVsPt9g7sVvpAr_MuM0KAg"
+	  ed25519-public-key
+	  ed25519-private-key)
+	  
 
 (test-end)
