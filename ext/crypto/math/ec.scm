@@ -94,27 +94,9 @@
 	    (core syntax)
 	    (core inline)
 	    (core record)
-	    (core misc) ;; for defaine-vector-type
+	    (core misc)	   ;; for defaine-vector-type
+	    (math modular) ;; these are needed on for Fp
 	    (sagittarius))
-
-  ;; modular arithmetic
-  ;; these are needed on for Fp
-  ;; a + b (mod p)
-  (define (mod-add a b p) (mod (+ a b) p))
-  ;; a - b (mod p)
-  (define (mod-sub a b p) (mod (- a b) p))
-  ;; a * b (mod p)
-  ;;(define (mod-mul a b p) (mod (* a b) p))
-  (define (mod-mul a b p) (* (mod a p) (mod b p)))
-  ;; a / b (mod p)
-  (define (mod-div a b p) (mod (* a (mod-inverse b p)) p))
-  ;; a^2 (mod p)
-  (define (mod-square a p) (mod-expt a 2 p))
-  ;; -a (mod p)
-  (define (mod-negate a p) (mod (- a) p))
-  ;; mod-inverse is defined in (sagittarius)
-  ;; mod-expt is defined in (sagittarius)
-
 
   ;; to make constant foldable, we use vectors to represent
   ;; data structure
