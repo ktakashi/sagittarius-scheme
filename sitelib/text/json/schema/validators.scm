@@ -265,9 +265,16 @@
   (define ids (context-ids context))
   (define schema-parents (context-schema-parents context))
   (define check-id (json-schema:version-$id-handler version))
+  (define schema-keywords (json-schema:version-schema-keywords version))
   
   (define (check-$defs schema root-id ids)
-    (let ((defs (map (lambda (d) (value-of d schema)) $defs)))
+    (let ((defs (filter-map (lambda (d) (value-of d schema)) $defs))
+	  (possible-schemata
+	   (filter-map (lambda (k)
+			 (cond ((value-of k schema) =>
+				(lambda (v) (and (vector? v) v)))
+			       (else #f)))
+		       schema-keywords)))
       (for-each (lambda (def)
 		  (when (vector? def)
 		    (vector-for-each
@@ -275,7 +282,9 @@
 		       (when (vector? (cdr e))
 			 (hashtable-set! schema-parents (cdr e) schema)
 			 (let ((id (check-id (cdr e) root-id ids)))
-			   (check-$defs (cdr e) id ids)))) def))) defs)))
+			   (check-$defs (cdr e) id ids)))) def))) defs)
+      (for-each (lambda (schema) (check-$defs schema root-id ids))
+		possible-schemata)))
 
   (when (vector? root-schema)
     (let ((base-id (check-id root-schema root-id ids)))
@@ -444,7 +453,6 @@
 		      (and (not (json-pointer-not-found? s))
 			   (->validator s)))))
 	      (else #f))))
-    
     (cond ((hashtable-ref ids $ref #f) => ->validator)
 	  ((handle-ref $ref))
 	  (else
@@ -1063,10 +1071,11 @@
 		 (uri-compose :scheme scheme :authority auth
 			      :path path :query q))
 		(path
-		 (let-values (((rscheme rauth rpath rq rfrag)
-			       (parse-uri root-id)))
+		 (let*-values (((rscheme rauth rpath rq rfrag)
+				(parse-uri root-id)))
 		   (let ((id (uri-compose :scheme rscheme :authority rauth
-					  :path path :query rq)))
+					  :path (uri-merge rpath path)
+					  :query rq)))
 		     (hashtable-set! ids id schema)
 		     id)))
 		(frag
@@ -1096,7 +1105,8 @@
 		 (let-values (((rscheme rauth rpath rq rfrag)
 			       (parse-uri root-id)))
 		   (let ((id (uri-compose :scheme rscheme :authority rauth
-					  :path path :query rq
+					  :path (uri-merge rpath path)
+					  :query rq
 					  :fragment $anchor)))
 		     (hashtable-set! ids id schema)
 		     id)))
@@ -1111,21 +1121,26 @@
      "http://json-schema.org/draft-07/schema#"
      ,+json-schema-draft-7-validators+
      ("definitions")
-     ,draft-7-check-id)
+     ,draft-7-check-id
+     ;; may contain schema, not sure how many of them we need to support
+     ("not" "if" "then" "else")
+     )
     
     (,(json-schema:version 2019-09)
      ;; not sure if we should use this
      "https://json-schema.org/draft/2019-09/schema"
      ,+json-schema-draft-7-validators+
      ("$defs" "definitions")
-     ,anchor-aware-check-id)
+     ,anchor-aware-check-id
+     ("not" "if" "then" "else"))
     
     (,(json-schema:version 2020-12)
      ;; not sure if we should use this
      "https://json-schema.org/draft/2020-12/schema"
      ,+json-schema-draft-7-validators+
      ("$defs" "definitions")
-     ,anchor-aware-check-id))
+     ,anchor-aware-check-id
+     ("not" "if" "then" "else")))
   )
 
 (define (json-schema:version-schema version)
@@ -1142,9 +1157,14 @@
 				   "Unknown version" version))))
 
 (define (caddddr o) (car (cddddr o)))
+(define (cadddddr o) (cadr (cddddr o)))
 (define (json-schema:version-$id-handler version)
   (cond ((assq version +json-schema-version-settings+) => caddddr)
 	(else (assertion-violation 'json-schema:version-$id-handler
+				   "Unknown version" version))))
+(define (json-schema:version-schema-keywords version)
+  (cond ((assq version +json-schema-version-settings+) => cadddddr)
+	(else (assertion-violation 'json-schema:version-schema-keywords
 				   "Unknown version" version))))
 
 (define (json-schema:version-by-schema uri)
