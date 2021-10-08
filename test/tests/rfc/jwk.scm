@@ -4,6 +4,7 @@
 	(rfc x.509)
 	(rfc pem)
 	(crypto)
+	(sagittarius combinators)
 	(text json compare))
 
 (test-begin "RFC - JWK")
@@ -41,7 +42,18 @@
   (let* ((jwk-json (cadr (vector-ref json 0)))
 	 (jwk (json->jwk jwk-json)))
     (test-jwk jwk)
-    (test-equal "jwk->json jwk:ec" jwk-json (jwk->json jwk))))
+    (test-equal "jwk->json jwk:ec" jwk-json (jwk->json jwk)))
+
+  (let ((jwks (json->jwk-set json))
+	(matcher (compose (jwk-matcher:kty 'EC)
+			  (jwk-matcher:crv 'P-256))))
+    (test-assert (jwk? (jwk-set:find-key jwks matcher)))
+    (test-assert (jwk? (jwk-set:find-key jwks
+					 (compose matcher
+						  (jwk-matcher:kid "1")))))
+    (test-assert (not (jwk-set:find-key jwks
+					(compose matcher
+						  (jwk-matcher:kid "2")))))))
 
 ;; jwk:ec-private
 (let ((json #(("keys"

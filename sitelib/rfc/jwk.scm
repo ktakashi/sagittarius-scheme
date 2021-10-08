@@ -36,6 +36,11 @@
 	    jwk-set->json-string write-jwk-set jwk-set->json
 	    ;; key set
 	    jwk-set-keys jwk-set? make-jwk-set
+	    jwk-set:find-key
+	    jwk-matcher:kty jwk-matcher:use jwk-matcher:key-ops jwk-matcher:alg
+	    jwk-matcher:kid jwk-matcher:x5t jwk-matcher:x5t-s256
+	    jwk-matcher:crv
+	    jwk-matcher:rsa jwk-matcher:ec jwk-matcher:oct jwk-matcher:okp
 	    
 	    ;; keys
 	    json-string->jwk read-jwk json->jwk
@@ -85,6 +90,50 @@
   (define-record-type jwk-set
     (fields keys))
 
+  (define (jwk-set:find-key jwks matcher)
+    (find matcher (jwk-set-keys jwks)))
+
+  (define-syntax define-jwk-matcher
+    (lambda (x)
+      (define (generate-name* k f)
+	(define n (symbol->string (syntax->datum f)))
+	(datum->syntax
+	 k
+	 (list (string->symbol (string-append "jwk-matcher:" n))
+	       (string->symbol (string-append "jwk-" n)))))
+      (syntax-case x ()
+	((k field) #'(k field equal?))
+	((k field comp=)
+	 (with-syntax (((name acc) (generate-name* #'k #'field)))
+	   #'(define (name field)
+	       (lambda (jwk)
+		 ;; to make composable
+		 (and (jwk? jwk)
+		      (comp= field (acc jwk))
+		      jwk))))))))
+  (define-jwk-matcher kty)
+  (define-jwk-matcher use)
+  (define-jwk-matcher key-ops member)
+  (define-jwk-matcher alg)
+  (define-jwk-matcher kid)
+  ;; we don't compare x5u and x5c, these are actual certificates
+  (define-jwk-matcher x5t)
+  (define-jwk-matcher x5t-s256)
+
+  ;; others
+  (define (jwk-matcher:crv crv)
+    (lambda (jwk)
+      (cond ((jwk:ec? jwk)
+	     (and (equal? (jwk:ec-crv jwk) crv) jwk))
+	    ((jwk:okp? jwk)
+	     (and (equal? (jwk:okp-crv jwk) crv) jwk))
+	    (else #f))))
+  (define jwk-matcher:rsa (jwk-matcher:kty 'RSA))
+  (define jwk-matcher:ec (jwk-matcher:kty 'EC))
+  (define jwk-matcher:oct (jwk-matcher:kty 'oct))
+  (define jwk-matcher:okp (jwk-matcher:kty 'OKP))
+
+  
   ;;; implementation specific record
   ;; ref: https://tools.ietf.org/html/rfc7518#section-6.1
   ;; EC
