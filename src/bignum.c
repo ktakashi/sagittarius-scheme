@@ -2337,6 +2337,7 @@ static ulong * odd_mod_expt_rec(SgBignum *x, SgBignum *exp, SgBignum *mod,
 
   wbits = 0;
   ebits = Sg_BignumBitSize(exp);
+  /* fprintf(stderr, "modlen = %ld\n", modlen); */
   if ((ebits != 17) ||
       (SG_BIGNUM_GET_COUNT(exp) != 1 && exp->elements[0] != 65537)) {
     while ((unsigned long)ebits > exp_mod_threadh_table[wbits]) {
@@ -2348,6 +2349,10 @@ static ulong * odd_mod_expt_rec(SgBignum *x, SgBignum *exp, SgBignum *mod,
   /* convert x to montgomery form */
   ALLOC_TEMP_BIGNUM(tb, SG_BIGNUM_GET_COUNT(x) + modlen);
   /* BIGNUM_CLEAR_LEFT(tb, modlen); */
+  /* mp_lshift(tb->elements, SG_BIGNUM_GET_COUNT(tb), */
+  /* 	    x->elements, SG_BIGNUM_GET_COUNT(x), */
+  /* 	    modlen << SHIFT_MAGIC); */
+  /* Above is the proper one, but below is also fine (and faster...) */
   for (i = 0; i < SG_BIGNUM_GET_COUNT(x); i++) {
     tb->elements[i+modlen] = x->elements[i];
   }
@@ -2384,7 +2389,7 @@ static ulong * odd_mod_expt_rec(SgBignum *x, SgBignum *exp, SgBignum *mod,
   }
   /* hmm, let me make a new scope... */
   bitpos = 1UL << ((ebits-1) & (WORD_BITS-1));
-    
+  
   for (i = 0; i <= wbits; i++) {
     buf = (buf << 1) | ((*e & bitpos) != 0);
     bitpos >>= 1;
@@ -2484,10 +2489,11 @@ static SgObject odd_mod_expt(SgBignum *x, SgBignum *exp, SgBignum *mod)
   t = b+modlen;
   for (i = 0; i < modlen; i++) {
     b[i] = t[i];
-    t[i] = 0;
+    t[i] = 0;			/* free up higher half of t */
   }
   mp_mont_reduce(b, buflen, mod->elements, modlen, inv);
-
+  
+  /* get higher half of the result */
   for (i = 0; i < modlen; i++) {
     r->elements[i] = t[i];
   }

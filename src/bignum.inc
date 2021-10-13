@@ -483,7 +483,7 @@ static void karatsuba(ulong *rp, ulong rsize,
   ulong n = max(xsize, ysize)/2, apblen, cpdlen, adbclen;
   ulong n2 = n<<1;
   ulong *a, *b, *c, *d;
-  ulong *bd, *apb, *cpd, *adbc;
+  ulong *bd, *apb, *cpd, *adbc, *ac;
   ulong alen, clen, aclen;
 
   /* split given argument into 2 parts
@@ -502,12 +502,10 @@ static void karatsuba(ulong *rp, ulong rsize,
   aclen = alen+clen;
 
   /* initialise termpoary buffer */
-  /* allocate adbc with extra space (n) so that combination can
-     use this without allocating extra memory. */
+  /* allocate adbc with extra space (n) so that we don't have to do
+     the part of (* (expt B ...) ..) part. */
   ALLOC_BUFFER(adbc, ulong, adbclen+n, stack_size);
-  /* we can reuse rp as ac since rp must have enough space to hold
-     the entire result. */
-  /* ALLOC_TEMP_BUFFER(ac, ulong, aclen+n2); */
+  ALLOC_BUFFER(ac, ulong, aclen+n2, stack_size);
   ALLOC_BUFFER(bd, ulong, n2, stack_size);
 
   /* these can be intact during allocation. */
@@ -520,20 +518,11 @@ static void karatsuba(ulong *rp, ulong rsize,
   cpd[cpdlen-1] = 0L;
   
   /* prepare for 3 (a + b) and  (c + d) */
-  /* these check are necessary. there's a condition both a and c are
-     greater than n. e.g.) xsize = 33, ysize = 33 */
-  if (alen >= n) {
-    mp_add(apb, apblen, a, alen, b, n);
-  } else {
-    mp_add(apb, apblen, b, n, a, alen);
-  }
-  if (clen >= n) {
-    mp_add(cpd, cpdlen, c, clen, d, n);
-  } else {
-    mp_add(cpd, cpdlen, d, n, c, clen);
-  }
+  mp_add(apb, apblen, a, alen, b, n);
+  mp_add(cpd, cpdlen, c, clen, d, n);
+
   /* dump_xarray(cpd, cpdlen); */
-  mp_mul_rec(rp+n2, aclen, a, alen, c, clen, stack_size); /* recursive 1 */
+  mp_mul_rec(ac+n2, aclen, a, alen, c, clen, stack_size); /* recursive 1 */
   /* dump_xarray(ac+n2, aclen); */
   mp_mul_rec(bd, n2, b, n, d, n, stack_size); /* recursive 2 */
   /* dump_xarray(bd, n2); */
@@ -542,13 +531,13 @@ static void karatsuba(ulong *rp, ulong rsize,
   /* dump_xarray(adbc+n, adbclen); */
   /* 3 - 1 - 2 */
   /* abdc > ac so carry won't happen */
-  mp_sub(adbc+n, adbclen, adbc+n, adbclen, rp+n2, aclen);
+  mp_sub(adbc+n, adbclen, adbc+n, adbclen, ac+n2, aclen);
   mp_sub(adbc+n, adbclen, adbc+n, adbclen, bd, n2);
 
   /* combine 16^n*ac + 16^(n/2)*(ad + bc) + bd */
   /* now br must have sufficient size to put */
   /* (should always be) aclen+n2 > adbclen+n */
-  mp_add(rp, rsize, rp, aclen+n2, adbc, adbclen+n);
+  mp_add(rp, rsize, ac, aclen+n2, adbc, adbclen+n);
   mp_add(rp, rsize, rp, rsize, bd, n2);
 }
 
@@ -567,11 +556,11 @@ static int can_karatsuba_square(ulong len)
   x = a*B^(n/2) + b
   n = xsize
   B = WORD_BITS
-  x*y = (a*B^(n/2) + b) * (a*B^(n/2) + b)
+  x*x = (a*B^(n/2) + b) * (a*B^(n/2) + b)
       = B^n*a^2 + B^(n/2)*2ab + b^2
 
   2ab = (a+b)^2 - (a^2 + b^2)  
-  x*y = B^n*a^2 + B^(n/2)*((a+b)^ - (a^2 + b^2)) + b^2
+  x*x = B^n*a^2 + B^(n/2)*((a+b)^ - (a^2 + b^2)) + b^2
       = B^(n/2)(B^(n/2)*a^2 + ((a+b)^ - (a^2 + b^2))) + b^2
 */
 static void karatsuba_square(ulong *rp, ulong rsize,
@@ -1207,10 +1196,8 @@ static int ulong_array_cmp_to_len(ulong *arg1, ulong *arg2, long len)
 {
   long i;
   for (i = len-1; i >= 0; i--) {
-    if (arg1[i] != arg2[i]) {
-      if (arg1[i] < arg2[i]) return -1;
-      else return 1;
-    }
+    if (arg1[i] < arg2[i]) return -1;
+    if (arg1[i] > arg2[i]) return 1;
   }
   return 0;
 }
