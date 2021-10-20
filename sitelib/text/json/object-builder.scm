@@ -31,7 +31,7 @@
 #!nounbound
 (library (text json object-builder)
     (export json-string->object read-object-from-json
-	    json:builder? @ ?
+	    json:builder? @ ? parent 
 	    json-object-builder
 
 	    object->json-string write-object-as-json
@@ -182,29 +182,38 @@
  (define-syntax ? (syntax-rules ()))
  
  (define-syntax json-object-object-builder
-   (syntax-rules (?)
-     ((_ "parse" ctr n (mapping ...) ((? key default spec) rest ...))
-      (json-object-object-builder "parse" ctr (+ n 1)
+   (syntax-rules (? parent)
+     ((_ "parse" ctr n pt (mapping ...) ((? key default spec) rest ...))
+      (json-object-object-builder "parse" ctr (+ n 1) pt
         (mapping ... (n key (json-object-builder spec) #t default))
 	(rest ...)))
-     ((_ "parse" ctr n (mapping ...) ((? key default) rest ...))
-      (json-object-object-builder "parse" ctr (+ n 1)
+     ((_ "parse" ctr n pt (mapping ...) ((? key default) rest ...))
+      (json-object-object-builder "parse" ctr (+ n 1) pt
         (mapping ... (n key simple-json-builder #t default))
 	(rest ...)))
-     ((_ "parse" ctr n (mapping ...) ((key spec) rest ...))
-      (json-object-object-builder "parse" ctr (+ n 1)
+     ((_ "parse" ctr n pt (mapping ...) ((key spec) rest ...))
+      (json-object-object-builder "parse" ctr (+ n 1) pt
         (mapping ... (n key (json-object-builder spec) #f #f))
 	(rest ...)))
-     ((_ "parse" ctr n (mapping ...) (key rest ...))
-      (json-object-object-builder "parse" ctr (+ n 1)
+     ((_ "parse" ctr n pt (mapping ...) (key rest ...))
+      (json-object-object-builder "parse" ctr (+ n 1) pt
 	(mapping ... (n key simple-json-builder #f #f))
 	(rest ...)))
-     ((_ "parse" ctr n ((order key builder optional? default) ...) ())
-      (make-json:object-builder ctr
-	(list (make-json:builder-mapping order key builder optional? default)
+     ((_ "parse" ctr n pt ((order key builder optional? default) ...) ())
+      (let ((m*
+	     (list
+	      (make-json:builder-mapping order key builder optional? default)
 	      ...)))
+	(if pt
+	    (make-json:object-builder ctr (append pt m*))
+	    (make-json:object-builder ctr m*))))
+     ((_ ctr (parent builder) spec ...)
+      (let* ((b builder)
+	     (m (json:object-builder-mappings b))
+	     (n (length m)))
+	(json-object-object-builder "parse" ctr n m () (spec ...))))
      ((_ ctr spec ...)
-      (json-object-object-builder "parse" ctr 0 () (spec ...)))))
+      (json-object-object-builder "parse" ctr 0 #f () (spec ...)))))
  
  (define-syntax json-object-builder
    (syntax-rules (@)

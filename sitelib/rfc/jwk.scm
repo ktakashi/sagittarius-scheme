@@ -73,7 +73,6 @@
 	    (text json parse)
 	    (text json object-builder)
 	    (sagittarius)
-	    (rfc jose)
 	    (rfc jwa)
 	    (rfc base64)
 	    (rfc x.509)
@@ -395,7 +394,7 @@
   
   ;; usages
   (define (jwk->certificate-chain jwk)
-    (x5c-parameter->x509-certificates (jwk-x5c jwk)))
+    (x5c->x509-certificates (jwk-x5c jwk)))
 
   (define (jwk->public-key jwk)
     ;; jwk:ec-private or jwk:rsa-private can also be a public key

@@ -113,24 +113,9 @@
   (HS256 HS384 HS512 RS256 RS384 RS512 ES256 ES384 ES512 PS256 PS384 PS512)
   jws-algorithm)
 
-(define (string->jws-algorithm s) (string->symbol s)) ;; for now
 (define jws-header-object-builder
   (json-object-builder
-   (make-jws-header
-    (? "typ" #f string->symbol)
-    (? "cty" #f)
-    ("alg" string->jws-algorithm)
-    (? "jku" #f)
-    (? "jwk" #f json-string->jwk)
-    (? "kid" #f)
-    (? "x5u" #f) ;; TODO convert it to certificate
-    (? "x5c" #f) ;; TODO convert it to certificate chain
-    (? "x5t" #f) ;; TODO convert it fingerprint (bytevector)
-    (? "x5t#S256" #f) ;; ditto
-    (? "crit" #f)
-    ;; dummy custom-parameters
-    (? "___" #f)
-    )))
+   (make-jws-header (parent jose-crypto-header-object-builder))))
 (define (jws-algorithm->string s) (symbol->string s))
 (define custom-serializer
   (make-hashtable-serializer jose-crypto-header-custom-parameters))
