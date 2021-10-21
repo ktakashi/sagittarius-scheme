@@ -37,6 +37,7 @@
     (export (rename (jose-header <jose-header>))
 	    make-jose-header jose-header?
 	    jose-header-typ jose-header-cty
+	    jose-header-custom-parameters
 
 	    (rename (jose-crypto-header <jose-crypto-header>))
 	    make-jose-crypto-header jose-crypto-header?
@@ -45,31 +46,54 @@
 	    jose-crypto-header-x5u jose-crypto-header-x5c
 	    jose-crypto-header-x5t jose-crypto-header-x5t-s256
 	    jose-crypto-header-crit
-	    jose-crypto-header-custom-parameters
 
 	    ;; for header serialization and deserialization
 	    jose-header-object-builder
 	    jose-crypto-header-object-builder
+
+	    jose-header-serializer
+	    jose-crypto-header-serializer
+
+	    make-json->header
+	    
+	    ;; for record builder
+	    ->jose-header-custom-parameter
 	    )
     (import (rnrs)
 	    (rfc x.509)
-	    (rfc jwk) ;; it might look weird but we need jwk here
+	    (rfc jwk) ;; it might look weird but we need JWK for jwk parameter
+	    (srfi :39 parameters)
 	    (text json object-builder))
 
 (define-record-type jose-header
-  ;; only these 2 are the same amoung JWS, JWS and JWE
-  (fields typ cty))
+  ;; only these 2 are the same amoung JWT, JWS and JWE
+  (fields typ cty custom-parameters))
 
-;; TODO should we define this in (rfc jws)?
 (define-record-type jose-crypto-header
   (parent jose-header)
-  (fields alg jku jwk kid x5u x5c x5t x5t-s256 crit custom-parameters))
+  (fields alg jku jwk kid x5u x5c x5t x5t-s256 crit))
+
+(define (->jose-header-custom-parameter v)
+  (cond ((hashtable? v) (hashtable-copy v)) ;; make it immutable
+	((null? v)
+	 (->jose-header-custom-parameter (make-hashtable string-hash string=?)))
+	((pair? v)
+	 (let ((ht (make-hashtable string-hash string=?)))
+	   (for-each (lambda (slot)
+		       (hashtable-set! ht (car slot) (cadr slot))) v)
+	   (->jose-header-custom-parameter ht)))
+	(else (assertion-violation '->jose-header-custom-parameter
+				   "Custom parameter must be alist or hashtable"
+				   v))))
 
 (define jose-header-object-builder
   (json-object-builder
    (make-jose-header
     (? "typ" #f string->symbol)
-    (? "cty" #f))))
+    (? "cty" #f)
+    ;; dummy custom-parameters
+    (? "___" #f))))
+
 (define jose-crypto-header-object-builder
   (json-object-builder
    (make-jose-crypto-header
@@ -82,28 +106,36 @@
     (? "x5c" #f) ;; TODO convert it to certificate chain
     (? "x5t" #f) ;; TODO convert it fingerprint (bytevector)
     (? "x5t#S256" #f) ;; ditto
-    (? "crit" #f)
-    ;; dummy custom-parameters
-    (? "___" #f))))
+    (? "crit" #f))))
 
-;; (define jose-header-serializer
-;;   (json-object-serializer
-;;    ((? "typ" #f jose-header-typ symbol->string)
-;;     (? "cty" #f jose-header-cty))))
+(define custom-serializer
+  (make-hashtable-serializer jose-header-custom-parameters))
+(define jose-header-serializer
+  (json-object-serializer
+   ((? "typ" #f jose-header-typ symbol->string)
+    (? "cty" #f jose-header-cty)
+    custom-serializer)))
 
-;; (define custom-serializer
-;;   (make-hashtable-serializer jose-crypto-header-custom-parameters))
-;; (define jose-crypto-header-serializer
-;;   (json-object-serializer (parent jose-header-serializer)
-;;    ("alg" jose-crypto-header-alg jws-algorithm->string)
-;;     (? "jku" #f jose-crypto-header-jku)
-;;     (? "jwk" #f jose-crypto-header-jwk)
-;;     (? "kid" #f jose-crypto-header-kid)
-;;     (? "x5u" #f jose-crypto-header-x5u)
-;;     (? "x5c" #f jose-crypto-header-x5c)
-;;     (? "x5t" #f jose-crypto-header-x5t)
-;;     (? "x5t#S256" #f jose-crypto-header-x5t-s256)
-;;     (? "crit" #f jose-crypto-header-crit)
-;;     custom-serializer))
+(define jose-crypto-header-serializer
+  (json-object-serializer 
+   (jose-header-serializer
+    ("alg" jose-crypto-header-alg symbol->string) ;; for now
+    (? "jku" #f jose-crypto-header-jku)
+    (? "jwk" #f jose-crypto-header-jwk)
+    (? "kid" #f jose-crypto-header-kid)
+    (? "x5u" #f jose-crypto-header-x5u)
+    (? "x5c" #f jose-crypto-header-x5c)
+    (? "x5t" #f jose-crypto-header-x5t)
+    (? "x5t#S256" #f jose-crypto-header-x5t-s256)
+    (? "crit" #f jose-crypto-header-crit))))
+
+(define (make-json->header builder post-build)
+  (lambda (json)
+    (define custom-parameters (make-hashtable string-hash string=?))
+    (define (parameter-handler k v) (hashtable-set! custom-parameters k v))
+    (define (post-object-build obj)
+      (post-build obj custom-parameters))
+    (parameterize ((*post-json-object-build* post-object-build))
+      (json->object json builder parameter-handler))))
 
 )
