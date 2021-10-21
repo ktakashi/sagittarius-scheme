@@ -72,7 +72,8 @@
     (? "cty" #f))))
 (define jose-crypto-header-object-builder
   (json-object-builder
-   (make-jose-crypto-header (parent jose-header-object-builder)
+   (make-jose-crypto-header
+    jose-header-object-builder
     ("alg" string->symbol) ;; for now
     (? "jku" #f)
     (? "jwk" #f json-string->jwk)

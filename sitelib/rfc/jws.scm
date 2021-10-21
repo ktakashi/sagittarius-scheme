@@ -115,7 +115,7 @@
 
 (define jws-header-object-builder
   (json-object-builder
-   (make-jws-header (parent jose-crypto-header-object-builder))))
+   (make-jws-header jose-crypto-header-object-builder)))
 (define (jws-algorithm->string s) (symbol->string s))
 (define custom-serializer
   (make-hashtable-serializer jose-crypto-header-custom-parameters))

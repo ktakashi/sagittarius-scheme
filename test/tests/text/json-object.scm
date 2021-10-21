@@ -193,10 +193,18 @@
 (let ()
   (define-record-type base (fields base))
   (define-record-type sub (fields sub) (parent base))
+  (define base-builder (json-object-builder (make-base "base")))
+  (define sub-builder (json-object-builder (make-sub base-builder "sub")))
+  
   (define base-serializer (json-object-serializer (("base" base-base))))
   (define sub-serializer (json-object-serializer
 			  (base-serializer ("sub" sub-sub))))
   (test-equal '#(("base" . "base") ("sub" . "sub"))
-	      (object->json (make-sub "base" "sub") sub-serializer)))
+	      (object->json (make-sub "base" "sub") sub-serializer))
+  (let ((s (json->object '#(("base" . "base") ("sub" . "sub")) sub-builder)))
+    (test-assert (sub? s))
+    (test-equal "base" (base-base s))
+    (test-equal "sub" (sub-sub s)))
+  )
 
 (test-end)
