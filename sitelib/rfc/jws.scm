@@ -181,14 +181,11 @@
 		       (->base64url (jws-signed-object-signature jws-object)))
 	(jws-object->string jws-object)))))
 
-(define *base64url-charset*
-  (list->char-set (map integer->char (vector->list *base64-encode-url-table*))))
 ;; allow user to provide payload in case of no payload form
 (define jws:parse
   (case-lambda
    ((s) (jws:parse s #f))
    ((s maybe-payload)
-    (define (string->json s) (json-read (open-string-input-port s)))
     (define (get-payload input maybe-payload)
       (cond (maybe-payload
 	     (if (and (string-null? input) (bytevector? maybe-payload))
@@ -197,18 +194,10 @@
 				      input)))
 	    ((string-null? input) #vu8()) ;; shortcut
 	    (else (base64url-decode (string->utf8 input)))))
-    (define (parse-input s)
-      (define left-index (string-index s #\.))
-      (define right-index (string-index-right s #\.))
-      (when (or (< left-index 0) (< right-index 0) (= left-index right-index))
-	(assertion-violation 'jws:parse "Invalid JWS format" s))
-      (list (substring s 0 left-index)
-	    (substring s (+ left-index 1) right-index)
-	    (substring s (+ right-index 1) (string-length s))))
-    (let ((part* (parse-input s)))
-      (unless (for-all (lambda (s) (string-every *base64url-charset* s))
-		       part*)
-	(assertion-violation 'jws:parse "Invalid JWS format" s))
+    (let ((part* (jose-split s)))
+      (unless (= 3 (length part*))
+	(assertion-violation 'jws:parse "Invalid JWS format, parts must be 3"
+			     part*))
       (let ((header (base64url-decode-string (car part*)))
 	    ;; we hold the below as bytevectors (for convenience)
 	    (payload (get-payload (cadr part*) maybe-payload))

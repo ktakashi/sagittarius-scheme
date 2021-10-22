@@ -55,13 +55,18 @@
 	    jose-crypto-header-serializer
 
 	    make-json->header
-	    
+
+	    jose-split
 	    ;; for record builder
 	    ->jose-header-custom-parameter
 	    )
     (import (rnrs)
 	    (rfc x.509)
 	    (rfc jwk) ;; it might look weird but we need JWK for jwk parameter
+	    (rfc base64)
+	    (srfi :1 lists) ;; for reverse!
+	    (srfi :13 strings)
+	    (srfi :14 char-sets)
 	    (srfi :39 parameters)
 	    (text json object-builder))
 
@@ -137,5 +142,21 @@
       (post-build obj custom-parameters))
     (parameterize ((*post-json-object-build* post-object-build))
       (json->object json builder parameter-handler))))
+
+(define *base64url-charset*
+  (list->char-set (map integer->char (vector->list *base64-encode-url-table*))))
+(define (jose-split s)
+  (define (split-by-dot s)
+    (let loop ((offset 0) (e* '()))
+      (cond ((string-index s #\. offset) =>
+	     (lambda (index)
+	       (loop (+ index 1)
+		     (cons (substring s offset index) e*))))
+	    (else
+	     (reverse! (cons (substring s offset (string-length s)) e*))))))
+  (let ((e* (split-by-dot s)))
+    (unless (for-all (lambda (s) (string-every *base64url-charset* s)) e*)
+      (assertion-violation 'jose-split "Invalid JWS/JWE format" s))
+    e*))
 
 )
