@@ -51,6 +51,7 @@
 	    
 	    make-jws-object jws-object? (rename (jws-object <jws-object>))
 	    jws-object-header jws-object-payload
+	    (rename (jose-object-parts jws-object-parts))
 
 	    jws-signed-object? (rename (jws-signed-object <jws-signed-object>))
 	    jws-signed-object-signature
@@ -144,21 +145,27 @@
 
 (define (->base64url bv) (utf8->string (base64url-encode bv)))
 (define-record-type jws-object
+  (parent <jose-object>)
   (fields header
 	  payload
 	  signing-input)
-  (protocol (lambda (p)
-	      (lambda (header payload)
-		(p header payload
-		   (string-append (jws-header->base64url header) "."
-				  (->base64url payload)))))))
-
+  (protocol (lambda (n)
+	      (case-lambda
+	       ((header payload)
+		((n '()) header payload
+		 (string-append (jws-header->base64url header) "."
+				(->base64url payload))))
+	       ((parts header payload)
+		((n parts) header payload
+		 (string-append (jws-header->base64url header) "."
+				(->base64url payload))))))))
+  
 (define-record-type jws-signed-object
   (parent jws-object)
   (fields signature)
   (protocol (lambda (n)
-	      (lambda (header payload signature)
-		((n header payload) signature)))))
+	      (lambda (parts header payload signature)
+		((n parts header payload) signature)))))
 
 (define (jws-object->string jws-object)
   (let ((header (jws-header->base64url (jws-object-header jws-object)))
@@ -202,7 +209,7 @@
 	    ;; we hold the below as bytevectors (for convenience)
 	    (payload (get-payload (cadr part*) maybe-payload))
 	    (signature (base64url-decode (string->utf8 (caddr part*)))))
-	(make-jws-signed-object
+	(make-jws-signed-object part*
 	 (make-parsed-jws-header (json-string->jws-header header) (car part*))
 	 payload signature))))))
 

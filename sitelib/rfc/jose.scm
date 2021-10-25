@@ -47,6 +47,10 @@
 	    jose-crypto-header-x5t jose-crypto-header-x5t-s256
 	    jose-crypto-header-crit
 
+	    (rename (jose-object <jose-object>))
+	    jose-object?
+	    jose-object-parts
+	    
 	    ;; for header serialization and deserialization
 	    jose-header-object-builder
 	    jose-crypto-header-object-builder
@@ -77,6 +81,10 @@
 (define-record-type jose-crypto-header
   (parent jose-header)
   (fields alg jku jwk kid x5u x5c x5t x5t-s256 crit))
+
+;; sort of base object
+(define-record-type jose-object
+  (fields parts))
 
 (define (->jose-header-custom-parameter v)
   (cond ((hashtable? v) (hashtable-copy v)) ;; make it immutable
