@@ -450,7 +450,7 @@
   (define (jwk->octet-key jwk)
     (if (jwk:oct? jwk)
 	(jwk:oct-k jwk)
-	(assertion-violation 'jwk->secret-key
+	(assertion-violation 'jwk->octet-key
 			     "given JWK object is not a oct type object" jwk)))
 
   (define (oid->curv&alg oid)

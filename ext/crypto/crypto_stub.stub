@@ -15,6 +15,10 @@
 (define-c-proc cipher? (o) ::<boolean> :constant SG_CIPHERP)
 (define-c-proc key? (o) ::<boolean> :constant
   (result (Sg_TypeP o SG_CLASS_KEY)))
+(define-c-proc symmetric-key? (o) ::<boolean> :constant
+  (result (Sg_TypeP o SG_CLASS_SYMMETRIC_KEY)))
+(define-c-proc asymmetric-key? (o) ::<boolean> :constant
+  (result (Sg_TypeP o SG_CLASS_ASYMMETRIC_KEY)))
 
 ;; key
 ;; this is now generic

@@ -5,6 +5,8 @@
 #!core
 (library (crypto key)
     (export key?
+	    symmetric-key?
+	    asymmetric-key?
 	    generate-secret-key
 	    generate-key-pair
 	    generate-private-key
