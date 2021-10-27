@@ -20,6 +20,11 @@
 (define-c-proc asymmetric-key? (o) ::<boolean> :constant
   (result (Sg_TypeP o SG_CLASS_ASYMMETRIC_KEY)))
 
+(define-c-proc builtin-symmetric-key-raw-key (key::<builtin-symmetric-key>)
+  ::<bytevector> :no-side-effect
+  ;; copy the key in case of unwanted modification
+  (result (Sg_ByteVectorCopy (-> key secretKey) 0 -1)))
+
 ;; key
 ;; this is now generic
 ;;(define-c-proc generate-secret-key (type::<string> key::<bytevector>) 
