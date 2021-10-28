@@ -26,6 +26,7 @@
 	    key?
 	    symmetric-key?
 	    asymmetric-key?
+	    builtin-symmetric-key-raw-key
 	    generate-secret-key
 	    ;; supported modes
 	    MODE_ECB
