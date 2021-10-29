@@ -57,6 +57,9 @@
 	    
 	    jwe:parse
 
+	    jwe:decrypt
+	    make-direct-decryptor
+	    
 	    jwe:encrypt
 	    make-direct-encryptor
 	    
@@ -178,6 +181,58 @@
 (define default-iv-generator
   (make-random-iv-generator (secure-random ChaCha20)))
 
+;; decryptors
+(define (make-direct-decryptor key :key (strict? #t))
+  (lambda (jwe-header encrypted-key iv cipher-text auth-tag)
+    (when (and strict? (not (eq? (jose-crypto-header-alg jwe-header) 'dir)))
+      (assertion-violation 'direct-decryptor "Alg must be 'dir'"
+			   (jose-crypto-header-alg jwe-header)))
+    (core-decrypt jwe-header key iv cipher-text auth-tag)))
+
+(define (core-decrypt jwe-header key iv cipher-text auth-tag)
+  (define enc (jwe-header-enc jwe-header))
+  (define aad (jwe-header->aad jwe-header))
+  (case enc
+    ((A128CBC-HS256)
+     (decrypt-aes-hmac key 128 SHA-256 aad iv cipher-text auth-tag))
+    ((A192CBC-HS384)
+     (decrypt-aes-hmac key 192 SHA-384 aad iv cipher-text auth-tag))
+    ((A256CBC-HS512)
+     (decrypt-aes-hmac key 256 SHA-512 aad iv cipher-text auth-tag))
+    ((A128GCM) (decrypt-aes-gcm key 128 aad iv cipher-text auth-tag))
+    ((A192GCM) (decrypt-aes-gcm key 192 aad iv cipher-text auth-tag))
+    ((A256GCM) (decrypt-aes-gcm key 256 aad iv cipher-text auth-tag))
+    (else (assertion-violation 'get-cipher "Unsupported enc type" enc))))
+
+(define (decrypt-aes-hmac key key-size digest aad iv cipher-text auth-tag)
+  (let-values (((mac-key dec-key) (aes-hmac-derive-keys key key-size)))
+    (define mode-parameter (make-composite-parameter
+			    (make-iv-parameter iv)
+			    (make-mode-name-parameter MODE_CBC)
+			    (make-padding-parameter pkcs5-padder)))
+    (define dec-cipher (make-cipher AES dec-key :mode-parameter mode-parameter))
+    (let ((tag (aes-hmac-compute-tag digest mac-key aad iv cipher-text)))
+      
+      (unless (bytevector=? auth-tag tag)
+	;; TODO maybe we should make an specific condition for this
+	(assertion-violation 'decrypt-aes-hmac "Incorrect MAC"))
+      (cipher-decrypt dec-cipher cipher-text))))
+
+(define (decrypt-aes-gcm key key-size aad iv cipher-text auth-tag)
+  (check-key-size 'decrypt-aes-gcm (div key-size 8) (symmetric-key-raw-key key))
+  (let ()
+    (define mode-parameter (make-composite-parameter
+			    (make-iv-parameter iv)
+			    (make-mode-name-parameter MODE_GCM)))
+    (define dec-cipher (make-cipher AES key :mode-parameter mode-parameter))
+    (cipher-update-aad! dec-cipher aad)
+    (let-values (((pt tag) (cipher-decrypt/tag dec-cipher cipher-text)))
+      (unless (bytevector=? auth-tag tag)
+	;; TODO maybe we should make an specific condition for this
+	(assertion-violation 'decrypt-aes-gcm "Incorrect MAC"))
+      pt)))
+
+;; encryptors
 (define (make-direct-encryptor key :key (iv-generator default-iv-generator))
   (cond ((symmetric-key? key)
 	 (lambda (jwe-header payload)
@@ -202,16 +257,10 @@
     ((A128GCM) (aes-gcm-encryptor key 128 iv-generator))
     ((A192GCM) (aes-gcm-encryptor key 192 iv-generator))
     ((A256GCM) (aes-gcm-encryptor key 256 iv-generator))
-    (else (assertion-violation 'get-cipher "Unsupported cipher type" enc))))
+    (else (assertion-violation 'get-cipher "Unsupported enc type" enc))))
 
 (define (aes-hmac-encryptor key key-size digest iv-generator)
-  (define size/2 (div key-size 8))
-  (define size (* size/2 2))
-  (define raw-key (symmetric-key-raw-key key))
-  (check-key-size 'aes-hmac-encryptor size raw-key)
-  (let ()
-    (define mac-key (bytevector-copy raw-key 0 size/2))
-    (define enc-key (generate-secret-key AES (bytevector-copy raw-key size/2)))
+  (let-values (((mac-key enc-key) (aes-hmac-derive-keys key key-size)))
     (define iv (iv-generator 16))
     (define mode-parameter (make-composite-parameter
 			    (make-iv-parameter iv)
@@ -221,15 +270,9 @@
     ;; aad, payload -> (iv, cipher-text, auth-tag)
     (lambda (aad payload)
       (let ((cipher-text (cipher-encrypt enc-cipher payload))
-	    (md (hash-algorithm HMAC :key mac-key :hash digest))
-	    (auth-tag (make-bytevector size/2)))
-	(hash-init! md)
-	(hash-process! md aad)
-	(hash-process! md iv)
-	(hash-process! md cipher-text)
-	(hash-process! md (aad-compute-length aad))
-	(hash-done! md auth-tag)
-	(values iv cipher-text auth-tag)))))
+	    (md (hash-algorithm HMAC :key mac-key :hash digest)))
+	(values iv cipher-text
+		(aes-hmac-compute-tag digest mac-key aad iv cipher-text))))))
 
 (define (aes-gcm-encryptor key key-size iv-generator)
   (define size (div key-size 8))
@@ -246,7 +289,29 @@
       (cipher-update-aad! enc-cipher aad)
       (let-values (((cipher-text auth-tag)
 		    (cipher-encrypt/tag enc-cipher payload)))
-	(values (cipher-iv enc-cipher) cipher-text auth-tag)))))
+	(values iv cipher-text auth-tag)))))
+
+;; utilities
+(define (aes-hmac-compute-tag digest mac-key aad iv cipher-text)
+  ;; tag length = lengt(mac-key)
+  (let ((tag (make-bytevector (bytevector-length mac-key)))
+	(md (hash-algorithm HMAC :key mac-key :hash digest)))
+    (hash-init! md)
+    (hash-process! md aad)
+    (hash-process! md iv)
+    (hash-process! md cipher-text)
+    (hash-process! md (aad-compute-length aad))
+    (hash-done! md tag)
+    tag))
+    
+
+(define (aes-hmac-derive-keys key key-size)
+  (define size/2 (div key-size 8))
+  (define size (* size/2 2))
+  (define raw-key (symmetric-key-raw-key key))
+  (check-key-size 'aes-hmac-derive-keys size raw-key)
+  (values (bytevector-copy raw-key 0 size/2)
+	  (generate-secret-key AES (bytevector-copy raw-key size/2))))
 
 (define (check-key-size who size raw-key)
   (unless (= size (bytevector-length raw-key))
