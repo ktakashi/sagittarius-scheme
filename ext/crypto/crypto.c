@@ -78,6 +78,21 @@ static int gcm_setiv(unsigned char *IV, unsigned long *len,
   return gcm_add_iv(&gcm->gcm, IV, *len);
 }
 
+static int gcm_getiv(unsigned char *IV, unsigned long *len, 
+		     cipher_gcm_state *gcm)
+{
+  /* should we do this way? */
+  SgObject iv = gcm->spi->iv;
+  if (SG_BVECTOR_SIZE(iv) > *len) {
+    *len = SG_BVECTOR_SIZE(iv);
+    return CRYPT_BUFFER_OVERFLOW;
+  }
+  
+  memcpy(IV, SG_BVECTOR_ELEMENTS(iv), SG_BVECTOR_SIZE(iv));
+  *len = SG_BVECTOR_SIZE(iv);
+  return CRYPT_OK;
+}
+
 static int fake_gcm_done(cipher_gcm_state *gcm)
 {
   gcm_reset(&gcm->gcm);		/* at least reset it */
@@ -245,11 +260,12 @@ SgObject Sg_MakeBuiltinCipherSpi(SgString *name, SgCryptoMode mode,
     }
     err = gcm_init(&spi->skey.cipher_gcm.gcm, cipher, 
 		   SG_BVECTOR_ELEMENTS(key), SG_BVECTOR_SIZE(key));
+    spi->iv = iv;
     if (err == CRYPT_OK) {
       err = gcm_add_iv(&spi->skey.cipher_gcm.gcm, 
 		       SG_BVECTOR_ELEMENTS(iv), SG_BVECTOR_SIZE(iv));
     }
-    SG_INIT_CIPHER(spi, gcm_encrypt, gcm_decrypt, NULL, gcm_setiv,
+    SG_INIT_CIPHER(spi, gcm_encrypt, gcm_decrypt, gcm_getiv, gcm_setiv,
 		   fake_gcm_done, keysize);
     spi->update_aad = (update_aad_proc)gcm_update_aad;
     spi->skey.cipher_gcm.spi = spi;
