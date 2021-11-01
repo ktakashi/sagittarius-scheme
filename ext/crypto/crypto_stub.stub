@@ -23,7 +23,7 @@
 (define-c-proc builtin-symmetric-key-raw-key (key::<builtin-symmetric-key>)
   ::<bytevector> :no-side-effect
   ;; copy the key in case of unwanted modification
-  (result (Sg_ByteVectorCopy (-> key secretKey) 0 -1)))
+  (result (cast SgByteVector* (Sg_ByteVectorCopy (-> key secretKey) 0 -1))))
 
 ;; key
 ;; this is now generic
