@@ -183,12 +183,20 @@
 
 ;; decryptors
 (define (make-direct-decryptor key :key (strict? #t))
-  (lambda (jwe-header encrypted-key iv cipher-text auth-tag)
-    (when (and strict? (not (eq? (jose-crypto-header-alg jwe-header) 'dir)))
-      (assertion-violation 'direct-decryptor "Alg must be 'dir'"
-			   (jose-crypto-header-alg jwe-header)))
-    (core-decrypt jwe-header key iv cipher-text auth-tag)))
-
+  (cond ((symmetric-key? key)
+	 (lambda (jwe-header encrypted-key iv cipher-text auth-tag)
+	   (when (and strict?
+		      (not (eq? (jose-crypto-header-alg jwe-header) 'dir)))
+	     (assertion-violation 'direct-decryptor "Alg must be 'dir'"
+				  (jose-crypto-header-alg jwe-header)))
+	   (core-decrypt jwe-header key iv cipher-text auth-tag)))
+	((jwk? key)
+	 (make-direct-decryptor (generate-secret-key AES (jwk->octet-key key))
+				:strict? strict?))
+	(else
+	 (assertion-violation 'make-direct-decryptor
+			      "Symmetric key or JWK is required" key))))
+	
 (define (core-decrypt jwe-header key iv cipher-text auth-tag)
   (define enc (jwe-header-enc jwe-header))
   (define aad (jwe-header->aad jwe-header))
@@ -237,8 +245,9 @@
   (cond ((symmetric-key? key)
 	 (lambda (jwe-header payload)
 	   (core-encryptor key #vu8() jwe-header payload iv-generator)))
-	((jwk:oct? key)
-	 (make-direct-encryptor (generate-secret-key AES (jwk->octet-key key))))
+	((jwk? key)
+	 (make-direct-encryptor (generate-secret-key AES (jwk->octet-key key))
+				:iv-generator iv-generator))
 	(else (assertion-violation 'make-direct-encryptor
 				   "Unsupported type" key))))
 
