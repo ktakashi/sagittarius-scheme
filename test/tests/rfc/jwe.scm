@@ -179,8 +179,8 @@
    (alg 'PBES2-HS256+A128KW)   
    (enc 'A128CBC-HS256)
    (cty "jwk+jwon")
-   (custom-parameters `(("p2s" "2WCTcJZ1Rvd_CJuJripQ1w")
-			("p2c" 4096)))))
+   (p2s "2WCTcJZ1Rvd_CJuJripQ1w")
+   (p2c 4096)))
 
 (define (fixed-cek-generator size)
   #vu8(111 27 25 52 66 29 20 78 92 176 56 240 65 208 82 112

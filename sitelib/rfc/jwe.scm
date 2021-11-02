@@ -83,19 +83,14 @@
 
 (define-record-type jwe-header
   (parent <jose-crypto-header>)
-  (fields enc zip))
+  (fields enc zip p2s p2c))
 
+(define (maybe-base64url-string->bytevector bv)
+  (and bv (base64url-string->bytevector bv)))
 (define-syntax jwe-header-builder
   (make-record-builder jwe-header
-   ((custom-parameters '() ->jose-header-custom-parameter))))
-
-(define jwe-header-param-ref
-  (case-lambda
-   ((jwe-header key)
-    (jwe-header-param-ref jwe-header key #f))
-   ((jwe-header key default)
-    (let ((custom-parameters (jose-header-custom-parameters jwe-header)))
-      (hashtable-ref custom-parameters key default)))))
+   ((custom-parameters '() ->jose-header-custom-parameter)
+    (p2s #f maybe-base64url-string->bytevector))))
 
 (define-record-type jwe-object
   (parent <jose-object>)
@@ -125,13 +120,17 @@
    (make-jwe-header
     jose-crypto-header-object-builder
     ("enc" string->symbol)
-    (? "zip" #f string->symbol))))
+    (? "zip" #f string->symbol)
+    (? "p2s" #f base64url-string->bytevector)
+    (? "p2c" #f))))
 
 (define jwe-header-serializer
   (json-object-serializer
    (jose-crypto-header-serializer
     ("enc" jwe-header-enc symbol->string)
-    (? "zip" #f jwe-header-zip symbol->string))))
+    (? "zip" #f jwe-header-zip symbol->string)
+    (? "p2s" #f jwe-header-p2s bytevector->base64url-string)
+    (? "p2c" #f jwe-header-p2c))))
 
 (define json->jwe-header
   (make-json->header
@@ -196,16 +195,15 @@
 (define (make-pbes2-decryptor password)
   (lambda (jwe-header encrypted-key iv cipher-text auth-tag)
     (define alg (jose-crypto-header-alg jwe-header))
-    (define p2s (jwe-header-param-ref jwe-header "p2s"))
-    (define p2c (jwe-header-param-ref jwe-header "p2c"))
+    (define p2s (jwe-header-p2s jwe-header))
+    (define p2c (jwe-header-p2c jwe-header))
     (unless (memq alg
 		  '(PBES2-HS256+A128KW PBES2-HS384+A192KW PBES2-HS512+A256KW))
       (assertion-violation 'pbes2-decryptor "Alg must be one of PBES2-*" alg))
     (unless (and p2s p2c)
       (assertion-violation 'pbes2-decryptor
 			   "Parameter 'p2s' and 'p2c' must be presented"))
-    (let* ((ps-key (pbes2-derive-kek alg password
-		    (base64url-decode-string p2s :transcoder #f) p2c))
+    (let* ((ps-key (pbes2-derive-kek alg password  p2s p2c))
 	   (raw-cek (aes-key-unwrap ps-key encrypted-key)))
       (core-decrypt jwe-header (generate-secret-key AES raw-cek) iv
 		    cipher-text auth-tag))))
@@ -291,11 +289,10 @@
 ;;; Utility API
 (define (jwe-header->salt-generator jwe-header
 				    :key (prng (secure-random ChaCha20)))
-  (define p2s (jwe-header-param-ref jwe-header "p2s"))
-  (define p2c (jwe-header-param-ref jwe-header "p2c"))
+  (define p2s (jwe-header-p2s jwe-header))
+  (define p2c (jwe-header-p2c jwe-header))
   (lambda ()
-    (values (or (and p2s (base64url-decode-string p2s :transcoder #f))
-		(read-random-bytes prng +default-salt-size+))
+    (values (or p2s (read-random-bytes prng +default-salt-size+))
 	    (or p2c +default-iteration-counnt+))))
 
 (define default-cek-generator (make-random-generator (secure-random ChaCha20)))
@@ -311,10 +308,8 @@
     (let-values (((raw-salt iteration) (salt-generator)))
       (let ((ps-key (pbes2-derive-kek alg password raw-salt iteration))
 	    (new-header (jwe-header-builder (from jwe-header)
-			 (custom-parameters 
-			`(("p2s" ,(utf8->string
-				   (base64url-encode raw-salt)))
-			  ("p2c" ,iteration)))))
+			 (p2s raw-salt)
+			 (p2c iteration)))
 	    (raw-cek (cek-generator (get-cek-byte-size enc))))
 	(core-encryptor (generate-secret-key AES raw-cek)
 			(aes-key-wrap ps-key raw-cek)
