@@ -60,8 +60,10 @@
 	    jwe:decrypt
 	    make-direct-decryptor
 	    
+	    make-random-generator
 	    jwe:encrypt
 	    make-direct-encryptor
+	    make-pbes-encryptor make-salt-generator jwe-header->salt-generator
 	    
 	    )
     (import (rnrs)
@@ -69,6 +71,7 @@
 	    (rfc jwk)
 	    (rfc base64)
 	    (rfc hmac)
+	    (rsa pkcs :5)
 	    (crypto)
 	    (math)
 	    (record accessor)
@@ -85,6 +88,13 @@
   (make-record-builder jwe-header
    ((custom-parameters '() ->jose-header-custom-parameter))))
 
+(define jwe-header-param-ref
+  (case-lambda
+   ((jwe-header key)
+    (jwe-header-param-ref jwe-header key #f))
+   ((jwe-header key default)
+    (let ((custom-parameters (jose-header-custom-parameters jwe-header)))
+      (hashtable-ref custom-parameters key default)))))
 
 (define-record-type jwe-object
   (parent <jose-object>)
@@ -175,11 +185,11 @@
 (define (jwe:encrypt encryptor jwe-header payload)
   (encryptor jwe-header payload))
 
-(define (make-random-iv-generator prng)
+(define (make-random-generator prng)
   (lambda (size)
     (read-random-bytes prng size)))
 (define default-iv-generator
-  (make-random-iv-generator (secure-random ChaCha20)))
+  (make-random-generator (secure-random ChaCha20)))
 
 ;; decryptors
 (define (make-direct-decryptor key :key (strict? #t))
@@ -240,7 +250,68 @@
 	(assertion-violation 'decrypt-aes-gcm "Incorrect MAC"))
       pt)))
 
+(define +default-salt-size+ 16)
+(define +default-iteration-counnt+ 4096)
+
+(define (make-salt-generator size iteration
+			     :key (prng (secure-random ChaCha20)))
+  (when (or (< size 8) (< iteration 1000))
+    (assertion-violation 'make-salt-generator
+			 "Salt size or iterationn is too small" size iteration))
+  (lambda ()
+    (values (read-random-bytes prng size) iteration)))
+
+(define default-salt-generator
+  (make-salt-generator +default-salt-size+ +default-iteration-counnt+))
+;; Utility API
+(define (jwe-header->salt-generator jwe-header
+				    :key (prng (secure-random ChaCha20)))
+  (define p2s (jwe-header-param-ref jwe-header "p2s"))
+  (define p2c (jwe-header-param-ref jwe-header "p2c"))
+  (lambda ()
+    (values (or (and p2s (base64url-decode-string p2s :transcoder #f))
+		(read-random-bytes prng +default-salt-size+))
+	    (or p2c +default-iteration-counnt+))))
+
+(define default-cek-generator (make-random-generator (secure-random ChaCha20)))
+
 ;; encryptors
+(define (make-pbes-encryptor password 
+			     :key (salt-generator default-salt-generator)
+			          (cek-generator default-cek-generator)
+			          (iv-generator default-iv-generator))
+  (define bv-password
+    (cond ((string? password) (string->utf8 password))
+	  ((bytevector? password) password)
+	  (else (assertion-violation 'make-pbes-encryptor
+		 "password must be a string or bytevector"))))
+  (define (format-salt alg salt)
+    (bytevector-append (string->utf8 (symbol->string alg)) #vu8(0) salt))
+  (define (prf-param alg)
+    (case alg
+      ((PBES2-HS256+A128KW) (values 16 SHA-256))
+      ((PBES2-HS384+A192KW) (values 24 SHA-384))
+      ((PBES2-HS512+A256KW) (values 32 SHA-256))
+      (else (assertion-violation 'pbes-encryptor "Unknown algorithm" alg))))
+
+  (lambda (jwe-header payload)
+    (define alg (jose-crypto-header-alg jwe-header))
+    (define enc (jwe-header-enc jwe-header))
+    (let-values (((raw-salt iteration) (salt-generator))
+		 ((dk-len digest) (prf-param alg)))
+      (let* ((salt (format-salt alg raw-salt))
+	     (key (pbkdf-2 bv-password salt iteration dk-len :hash digest)))
+	(let ((new-header (jwe-header-builder (from jwe-header)
+			   (custom-parameters 
+			    `(("p2s" ,(utf8->string
+				       (base64url-encode raw-salt)))
+			      ("p2c" ,iteration)))))
+	      (ps-key (generate-secret-key AES key))
+	      (raw-cek (cek-generator (get-cek-byte-size enc))))
+	  (core-encryptor (generate-secret-key AES raw-cek)
+			  (aes-key-wrap ps-key raw-cek)
+			  new-header payload iv-generator))))))
+
 (define (make-direct-encryptor key :key (iv-generator default-iv-generator))
   (cond ((symmetric-key? key)
 	 (lambda (jwe-header payload)
@@ -250,6 +321,10 @@
 				:iv-generator iv-generator))
 	(else (assertion-violation 'make-direct-encryptor
 				   "Unsupported type" key))))
+
+(define (aes-key-wrap key pt)
+  (define aes-cipher (make-cipher AES key))
+  (cipher-encrypt aes-cipher pt))
 
 (define (core-encryptor key encrypted-key jwe-header payload iv-generator)
   (define enc (jwe-header-enc jwe-header))
@@ -267,6 +342,13 @@
     ((A192GCM) (aes-gcm-encryptor key 192 iv-generator))
     ((A256GCM) (aes-gcm-encryptor key 256 iv-generator))
     (else (assertion-violation 'get-cipher "Unsupported enc type" enc))))
+
+(define (get-cek-byte-size enc)
+  (case enc
+    ((A128CBC-HS256 A128GCM) 16)
+    ((A192CBC-HS384 A192GCM) 24)
+    ((A256CBC-HS512 A256GCM) 32)
+    (else (assertion-violation 'get-cek-byte-size "Unsupported enc type" enc))))
 
 (define (aes-hmac-encryptor key key-size digest iv-generator)
   (let-values (((mac-key enc-key) (aes-hmac-derive-keys key key-size)))
