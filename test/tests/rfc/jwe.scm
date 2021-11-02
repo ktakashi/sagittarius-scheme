@@ -192,14 +192,13 @@
 
 (define password "Thus from my lips, by yours, my sin is purged.")
 (define pbes-encryptor
-  (make-pbes-encryptor password
+  (make-pbes2-encryptor password
 		       :salt-generator salt-generator
 		       :cek-generator fixed-cek-generator
 		       :iv-generator iv-generatlr))
-
-(let ((jwe-object (jwe:encrypt pbes-encryptor
-			       jwe-header
-			       (u8-list->bytevector plain-text))))
+(define pbes-decryptor (make-pbes2-decryptor password))
+(define bv-plain-text (u8-list->bytevector plain-text))
+(let ((jwe-object (jwe:encrypt pbes-encryptor jwe-header bv-plain-text)))
   (define expected-cipher-text
     "AwhB8lxrlKjFn02LGWEqg27H4Tg9fyZAbFv3p5ZicHpj64QyHC44qqlZ3JEmnZTgQo
      wIqZJ13jbyHB8LgePiqUJ1hf6M2HPLgzw8L-mEeQ0jvDUTrE07NtOerBk8bwBQyZ6g
@@ -242,6 +241,8 @@
   ;; (test-equal "PBES2-HS256+A128KW (auth tag)"
   ;; 	      (base64url-decode-string "0HFmhOzsQ98nNWJjIHkR7A" :transcoder #f)
   ;; 	      (jwe-object-authentication-tag jwe-object))
+  (test-equal "PBES2-HS256+A128KW (decrypt)" bv-plain-text
+	      (jwe:decrypt pbes-decryptor jwe-object))
   )
 )
 

@@ -59,11 +59,12 @@
 
 	    jwe:decrypt
 	    make-direct-decryptor
+	    make-pbes2-decryptor
 	    
 	    make-random-generator
 	    jwe:encrypt
 	    make-direct-encryptor
-	    make-pbes-encryptor make-salt-generator jwe-header->salt-generator
+	    make-pbes2-encryptor make-salt-generator jwe-header->salt-generator
 	    
 	    )
     (import (rnrs)
@@ -174,24 +175,41 @@
 		  (cdr part*))))))
 
 ;; (decryptor, jwe-object) -> bytevector
-(define (jwe:decrypt decryptor jwe-object)
-  (decryptor (jwe-object-header jwe-object)
-	     (jwe-object-encrypted-key jwe-object)
-	     (jwe-object-iv jwe-object)
-	     (jwe-object-cipher-text jwe-object)
-	     (jwe-object-authentication-tag jwe-object)))
+(define jwe:decrypt
+  (case-lambda
+   ((decryptor jwe-object)
+    (jwe:decrypt decryptor jwe-object '()))
+   ((decryptor jwe-object critical-headers)
+    (define jwe-header (jwe-object-header jwe-object))
+    (jose-crypto-header-check-critical-headers jwe-header critical-headers)
+    (decryptor (jwe-object-header jwe-object)
+	       (jwe-object-encrypted-key jwe-object)
+	       (jwe-object-iv jwe-object)
+	       (jwe-object-cipher-text jwe-object)
+	       (jwe-object-authentication-tag jwe-object)))))
 
 ;; (encryptor, jwe-header, payload) -> jwe-object
 (define (jwe:encrypt encryptor jwe-header payload)
   (encryptor jwe-header payload))
 
-(define (make-random-generator prng)
-  (lambda (size)
-    (read-random-bytes prng size)))
-(define default-iv-generator
-  (make-random-generator (secure-random ChaCha20)))
-
 ;; decryptors
+(define (make-pbes2-decryptor password)
+  (lambda (jwe-header encrypted-key iv cipher-text auth-tag)
+    (define alg (jose-crypto-header-alg jwe-header))
+    (define p2s (jwe-header-param-ref jwe-header "p2s"))
+    (define p2c (jwe-header-param-ref jwe-header "p2c"))
+    (unless (memq alg
+		  '(PBES2-HS256+A128KW PBES2-HS384+A192KW PBES2-HS512+A256KW))
+      (assertion-violation 'pbes2-decryptor "Alg must be one of PBES2-*" alg))
+    (unless (and p2s p2c)
+      (assertion-violation 'pbes2-decryptor
+			   "Parameter 'p2s' and 'p2c' must be presented"))
+    (let* ((ps-key (pbes2-derive-kek alg password
+		    (base64url-decode-string p2s :transcoder #f) p2c))
+	   (raw-cek (aes-key-unwrap ps-key encrypted-key)))
+      (core-decrypt jwe-header (generate-secret-key AES raw-cek) iv
+		    cipher-text auth-tag))))
+
 (define (make-direct-decryptor key :key (strict? #t))
   (cond ((symmetric-key? key)
 	 (lambda (jwe-header encrypted-key iv cipher-text auth-tag)
@@ -206,7 +224,7 @@
 	(else
 	 (assertion-violation 'make-direct-decryptor
 			      "Symmetric key or JWK is required" key))))
-	
+
 (define (core-decrypt jwe-header key iv cipher-text auth-tag)
   (define enc (jwe-header-enc jwe-header))
   (define aad (jwe-header->aad jwe-header))
@@ -250,6 +268,13 @@
 	(assertion-violation 'decrypt-aes-gcm "Incorrect MAC"))
       pt)))
 
+;; encryptors utils
+(define (make-random-generator prng)
+  (lambda (size)
+    (read-random-bytes prng size)))
+(define default-iv-generator
+  (make-random-generator (secure-random ChaCha20)))
+
 (define +default-salt-size+ 16)
 (define +default-iteration-counnt+ 4096)
 
@@ -263,7 +288,7 @@
 
 (define default-salt-generator
   (make-salt-generator +default-salt-size+ +default-iteration-counnt+))
-;; Utility API
+;;; Utility API
 (define (jwe-header->salt-generator jwe-header
 				    :key (prng (secure-random ChaCha20)))
   (define p2s (jwe-header-param-ref jwe-header "p2s"))
@@ -276,41 +301,24 @@
 (define default-cek-generator (make-random-generator (secure-random ChaCha20)))
 
 ;; encryptors
-(define (make-pbes-encryptor password 
-			     :key (salt-generator default-salt-generator)
-			          (cek-generator default-cek-generator)
-			          (iv-generator default-iv-generator))
-  (define bv-password
-    (cond ((string? password) (string->utf8 password))
-	  ((bytevector? password) password)
-	  (else (assertion-violation 'make-pbes-encryptor
-		 "password must be a string or bytevector"))))
-  (define (format-salt alg salt)
-    (bytevector-append (string->utf8 (symbol->string alg)) #vu8(0) salt))
-  (define (prf-param alg)
-    (case alg
-      ((PBES2-HS256+A128KW) (values 16 SHA-256))
-      ((PBES2-HS384+A192KW) (values 24 SHA-384))
-      ((PBES2-HS512+A256KW) (values 32 SHA-256))
-      (else (assertion-violation 'pbes-encryptor "Unknown algorithm" alg))))
-
+(define (make-pbes2-encryptor password 
+			      :key (salt-generator default-salt-generator)
+			           (cek-generator default-cek-generator)
+				   (iv-generator default-iv-generator))
   (lambda (jwe-header payload)
     (define alg (jose-crypto-header-alg jwe-header))
     (define enc (jwe-header-enc jwe-header))
-    (let-values (((raw-salt iteration) (salt-generator))
-		 ((dk-len digest) (prf-param alg)))
-      (let* ((salt (format-salt alg raw-salt))
-	     (key (pbkdf-2 bv-password salt iteration dk-len :hash digest)))
-	(let ((new-header (jwe-header-builder (from jwe-header)
-			   (custom-parameters 
-			    `(("p2s" ,(utf8->string
-				       (base64url-encode raw-salt)))
-			      ("p2c" ,iteration)))))
-	      (ps-key (generate-secret-key AES key))
-	      (raw-cek (cek-generator (get-cek-byte-size enc))))
-	  (core-encryptor (generate-secret-key AES raw-cek)
-			  (aes-key-wrap ps-key raw-cek)
-			  new-header payload iv-generator))))))
+    (let-values (((raw-salt iteration) (salt-generator)))
+      (let ((ps-key (pbes2-derive-kek alg password raw-salt iteration))
+	    (new-header (jwe-header-builder (from jwe-header)
+			 (custom-parameters 
+			`(("p2s" ,(utf8->string
+				   (base64url-encode raw-salt)))
+			  ("p2c" ,iteration)))))
+	    (raw-cek (cek-generator (get-cek-byte-size enc))))
+	(core-encryptor (generate-secret-key AES raw-cek)
+			(aes-key-wrap ps-key raw-cek)
+			new-header payload iv-generator)))))
 
 (define (make-direct-encryptor key :key (iv-generator default-iv-generator))
   (cond ((symmetric-key? key)
@@ -325,6 +333,10 @@
 (define (aes-key-wrap key pt)
   (define aes-cipher (make-cipher AES key))
   (cipher-encrypt aes-cipher pt))
+
+(define (aes-key-unwrap key ct)
+  (define aes-cipher (make-cipher AES key))
+  (cipher-decrypt aes-cipher ct))
 
 (define (core-encryptor key encrypted-key jwe-header payload iv-generator)
   (define enc (jwe-header-enc jwe-header))
@@ -403,6 +415,26 @@
   (check-key-size 'aes-hmac-derive-keys size raw-key)
   (values (bytevector-copy raw-key 0 size/2)
 	  (generate-secret-key AES (bytevector-copy raw-key size/2))))
+
+(define (pbes2-prf-param alg)
+    (case alg
+      ((PBES2-HS256+A128KW) (values 16 SHA-256))
+      ((PBES2-HS384+A192KW) (values 24 SHA-384))
+      ((PBES2-HS512+A256KW) (values 32 SHA-256))
+      (else (assertion-violation 'pbes2-prf-param "Unknown algorithm" alg))))
+
+(define (pbes2-derive-kek alg password raw-salt iteration)
+  (define bv-password
+    (cond ((string? password) (string->utf8 password))
+	  ((bytevector? password) password)
+	  (else (assertion-violation 'pbes2-derive-kek
+		 "password must be a string or bytevector"))))
+  (define (format-salt alg salt)
+    (bytevector-append (string->utf8 (symbol->string alg)) #vu8(0) salt))
+  (let-values (((dk-len digest) (pbes2-prf-param alg)))
+    (let* ((salt (format-salt alg raw-salt))
+	   (key (pbkdf-2 bv-password salt iteration dk-len :hash digest)))
+      (generate-secret-key AES key))))
 
 (define (check-key-size who size raw-key)
   (unless (= size (bytevector-length raw-key))

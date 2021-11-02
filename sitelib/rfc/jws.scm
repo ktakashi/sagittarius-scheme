@@ -232,12 +232,8 @@
 
 ;;; verifiers (maybe separate to different library?)
 (define (check-critical-headers critical-headers jws-header)
-  (let ((crit (jose-crypto-header-crit jws-header)))
-    (or (not crit) (null? crit)
-	(for-all (lambda (l) (or (string=? "b64" l)
-				 (find (lambda (v) (string=? v l))
-				       critical-headers)))
-		 crit))))
+  (jose-crypto-header-check-critical-headers jws-header critical-headers))
+
 (define make-mac-verifier
   (case-lambda
    ((key) (make-mac-verifier key '()))

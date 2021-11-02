@@ -63,6 +63,8 @@
 	    jose-split
 	    ;; for record builder
 	    ->jose-header-custom-parameter
+
+	    jose-crypto-header-check-critical-headers
 	    )
     (import (rnrs)
 	    (rfc x.509)
@@ -98,6 +100,14 @@
 	(else (assertion-violation '->jose-header-custom-parameter
 				   "Custom parameter must be alist or hashtable"
 				   v))))
+
+(define (jose-crypto-header-check-critical-headers jose-header critical-headers)
+  (let ((crit (jose-crypto-header-crit jose-header)))
+    (or (not crit) (null? crit)
+	(for-all (lambda (l)
+		   (or (string=? "b64" l)
+		       (find (lambda (v) (string=? v l)) critical-headers)))
+		 crit))))
 
 (define jose-header-object-builder
   (json-object-builder
