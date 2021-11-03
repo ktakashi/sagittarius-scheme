@@ -65,6 +65,7 @@
 	    jwe:encrypt
 	    make-direct-encryptor
 	    make-pbes2-encryptor make-salt-generator jwe-header->salt-generator
+	    make-aeskw-encryptor
 	    
 	    )
     (import (rnrs)
@@ -298,6 +299,35 @@
 (define default-cek-generator (make-random-generator (secure-random ChaCha20)))
 
 ;; encryptors
+(define (make-aeskw-encryptor kek :key (cek-generator default-cek-generator)
+			               (iv-generator default-iv-generator))
+  (define (aeskw-encrypt kek size jwe-header payload)
+    (define raw-key (symmetric-key-raw-key kek))
+    (define enc (jwe-header-enc jwe-header))
+    (unless (= (bytevector-length raw-key) size)
+      (assertion-violation 'aeskw-encryptor "Wrong key size for the algorithm"
+			   (jose-crypto-header-alg jwe-header)
+			   (bytevector-length raw-key)))
+    (let ((raw-cek (cek-generator (get-cek-byte-size enc))))
+      (core-encryptor (generate-secret-key AES raw-cek)
+		      (aes-key-wrap kek raw-cek)
+		      jwe-header payload iv-generator)))
+  (cond ((symmetric-key? kek)
+	 (lambda (jwe-header payload)
+	   (define alg (jose-crypto-header-alg jwe-header))
+	   (case alg
+	     ((A128KW) (aeskw-encrypt kek 16 jwe-header payload))
+	     ((A192KW) (aeskw-encrypt kek 24 jwe-header payload))
+	     ((A256KW) (aeskw-encrypt kek 32 jwe-header payload))
+	     (else (assertion-violation
+		    'aeskw-encryptor "Unknown algorithm" alg)))))
+	((jwk? kek)
+	 (make-aeskw-encryptor (generate-secret-key AES (jwk->octet-key kek))
+			       :iv-generator iv-generator
+			       :cek-generator cek-generator))
+	(else (assertion-violation 'make-aeskw-encryptor
+				   "Unsupported KEK type" kek))))
+
 (define (make-pbes2-encryptor password 
 			      :key (salt-generator default-salt-generator)
 			           (cek-generator default-cek-generator)
@@ -323,7 +353,7 @@
 	 (make-direct-encryptor (generate-secret-key AES (jwk->octet-key key))
 				:iv-generator iv-generator))
 	(else (assertion-violation 'make-direct-encryptor
-				   "Unsupported type" key))))
+				   "Unsupported key" key))))
 
 (define (aes-key-wrap key pt)
   (define aes-cipher (make-cipher AES key))

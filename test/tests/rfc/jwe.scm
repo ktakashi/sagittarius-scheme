@@ -62,9 +62,9 @@
  "5eym8TW_c8SuK0ltJ3rpYIzOeDQz7TALvtu6UG9oMo4vpzs9tX_EFShS8iB7j6jiSdiwkIr3ajwQzaBtQD_A"
  "XFBoMYUZodetZdvTiFvSkQ")
 
+(define (string->json s) (json-read (open-string-input-port s)))
 (let ()
 ;; PBES-HS256+A128KW (from RFC7517 appendix C)
-(define (string->json s) (json-read (open-string-input-port s)))
 (define plain-text
   (string->json "
    [123, 34, 107, 116, 121, 34, 58, 34, 82, 83, 65, 34, 44, 34, 107,
@@ -245,6 +245,45 @@
 	      (jwe:decrypt pbes-decryptor jwe-object))
   )
 )
+
+;; AESKW
+(let ()
+(define jwe-header
+  (json-string->jwe-header
+   (base64url-decode-string
+    "eyJhbGciOiJBMTI4S1ciLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0")))
+
+(define (fixed-cek-generator size)
+  #vu8(4 211 31 197 84 157 252 254 11 100 157 250 63 170 106
+       206 107 124 212 45 111 107 9 219 200 177 0 240 143 156
+       44 207))
+
+(define kek
+  (json-string->jwk
+   "{\"kty\":\"oct\",\"k\":\"GawgguFyGrWKav7AX4VKUg\"}"))
+
+(define salt-generator (jwe-header->salt-generator jwe-header))
+(define (iv-generatlr size)
+  (base64url-decode-string "AxY8DCtDaGlsbGljb3RoZQ" :transcoder #f))
+
+(define plain-text
+  (string->utf8 "Live long and prosper."))
+
+(define aeskw-encryptor
+  (make-aeskw-encryptor kek
+			:cek-generator fixed-cek-generator
+			:iv-generator iv-generatlr))
+
+(let ((jwe-object (jwe:encrypt aeskw-encryptor jwe-header plain-text)))
+  (test-equal "cipher-text (AES128KW)"
+	      "KDlTtXchhZTGufMYmOYGS4HffxPSUrfmqCHXaI9wOGY"
+	      (utf8->string (base64url-encode
+			     (jwe-object-cipher-text jwe-object))))
+  (test-equal "auth tag (AES128KW)"
+	      "U0m_YmjN04DJvceFICbCVQ"
+	      (utf8->string (base64url-encode
+			     (jwe-object-authentication-tag jwe-object))))
+  ))
 
 (test-end)
 
