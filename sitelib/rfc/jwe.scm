@@ -60,6 +60,7 @@
 	    jwe:decrypt
 	    make-direct-decryptor
 	    make-pbes2-decryptor
+	    make-aeskw-decryptor
 	    
 	    make-random-generator
 	    jwe:encrypt
@@ -193,6 +194,28 @@
   (encryptor jwe-header payload))
 
 ;; decryptors
+(define (make-aeskw-decryptor kek)
+  (cond ((symmetric-key? kek)
+	 (lambda (jwe-header encrypted-key iv cipher-text auth-tag)
+	   (define alg (jose-crypto-header-alg jwe-header))
+	   (define (aeskw-decrypt size)
+	     (define enc (jwe-header-enc jwe-header))
+	     (define raw-key (symmetric-key-raw-key kek))
+	     (check-key-size 'aeskw-encryptor size raw-key)
+	     (let ((raw-cek (aes-key-unwrap kek encrypted-key)))
+	       (core-decrypt jwe-header (generate-secret-key AES raw-cek)
+			     iv cipher-text auth-tag)))
+	   (case alg
+	     ((A128KW) (aeskw-decrypt 16))
+	     ((A192KW) (aeskw-decrypt 24))
+	     ((A256KW) (aeskw-decrypt 32))
+	     (else (assertion-violation
+		    'aeskw-decryptor "Unknown algorithm" alg)))))
+	((jwk? kek)
+	 (make-aeskw-decryptor (generate-secret-key AES (jwk->octet-key kek))))
+	(else
+	 (assertion-violation 'make-aeskw-decryptor "Unknown key" kek))))
+
 (define (make-pbes2-decryptor password)
   (lambda (jwe-header encrypted-key iv cipher-text auth-tag)
     (define alg (jose-crypto-header-alg jwe-header))
@@ -304,10 +327,7 @@
   (define (aeskw-encrypt kek size jwe-header payload)
     (define raw-key (symmetric-key-raw-key kek))
     (define enc (jwe-header-enc jwe-header))
-    (unless (= (bytevector-length raw-key) size)
-      (assertion-violation 'aeskw-encryptor "Wrong key size for the algorithm"
-			   (jose-crypto-header-alg jwe-header)
-			   (bytevector-length raw-key)))
+    (check-key-size 'aeskw-encryptor size raw-key)
     (let ((raw-cek (cek-generator (get-cek-byte-size enc))))
       (core-encryptor (generate-secret-key AES raw-cek)
 		      (aes-key-wrap kek raw-cek)
@@ -356,12 +376,12 @@
 				   "Unsupported key" key))))
 
 (define (aes-key-wrap key pt)
-  (define aes-cipher (make-cipher AES key))
-  (cipher-encrypt aes-cipher pt))
+  (define wrapper (make-aes-key-wrap key))
+  (wrapper pt))
 
 (define (aes-key-unwrap key ct)
-  (define aes-cipher (make-cipher AES key))
-  (cipher-decrypt aes-cipher ct))
+  (define unwrapper (make-aes-key-unwrap key))
+  (unwrapper ct))
 
 (define (core-encryptor key encrypted-key jwe-header payload iv-generator)
   (define enc (jwe-header-enc jwe-header))
