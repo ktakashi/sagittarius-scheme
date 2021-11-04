@@ -47,6 +47,8 @@
 		    (jose-crypto-header-x5t-s256 jwe-header-x5t-s256)
 		    (jose-crypto-header-crit jwe-header-crit))
 	    jwe-header-enc jwe-header-zip
+	    jwe-header-p2s jwe-header-p2c ;; PBEES2
+	    jwe-header-iv jwe-header-tag  ;; AESGCMKW
 	    jwe-header->json jwe-header->json-string write-jwe-header
 	    json->jwe-header json-string->jwe-header read-jwe-header
 
@@ -85,14 +87,16 @@
 
 (define-record-type jwe-header
   (parent <jose-crypto-header>)
-  (fields enc zip p2s p2c))
+  (fields enc zip p2s p2c iv tag))
 
 (define (maybe-base64url-string->bytevector bv)
   (and bv (base64url-string->bytevector bv)))
 (define-syntax jwe-header-builder
   (make-record-builder jwe-header
    ((custom-parameters '() ->jose-header-custom-parameter)
-    (p2s #f maybe-base64url-string->bytevector))))
+    (p2s #f maybe-base64url-string->bytevector)
+    (iv #f maybe-base64url-string->bytevector)
+    (tag #f maybe-base64url-string->bytevector))))
 
 (define-record-type jwe-object
   (parent <jose-object>)
@@ -124,7 +128,10 @@
     ("enc" string->symbol)
     (? "zip" #f string->symbol)
     (? "p2s" #f base64url-string->bytevector)
-    (? "p2c" #f))))
+    (? "p2c" #f)
+    (? "iv" #f base64url-string->bytevector)
+    (? "tag" #f base64url-string->bytevector)
+    )))
 
 (define jwe-header-serializer
   (json-object-serializer
@@ -132,7 +139,10 @@
     ("enc" jwe-header-enc symbol->string)
     (? "zip" #f jwe-header-zip symbol->string)
     (? "p2s" #f jwe-header-p2s bytevector->base64url-string)
-    (? "p2c" #f jwe-header-p2c))))
+    (? "p2c" #f jwe-header-p2c)
+    (? "iv" #f jwe-header-p2s bytevector->base64url-string)
+    (? "tag" #f jwe-header-p2s bytevector->base64url-string)
+    )))
 
 (define json->jwe-header
   (make-json->header
@@ -205,10 +215,21 @@
 	     (let ((raw-cek (aes-key-unwrap kek encrypted-key)))
 	       (core-decrypt jwe-header (generate-secret-key AES raw-cek)
 			     iv cipher-text auth-tag)))
+
+	   (define (aesgcmkw-decrypt size)
+	     (define enc (jwe-header-enc jwe-header))
+	     (define cek-iv (jwe-header-iv jwe-header))
+	     (define tag (jwe-header-tag jwe-header))
+	     (let ((raw-cek (decrypt-aes-gcm kek (get-aes-key-byte-size alg)
+					     #vu8() cek-iv encrypted-key tag)))
+	       (core-decrypt jwe-header
+			     (generate-secret-key AES raw-cek)
+			     iv cipher-text auth-tag)))
 	   (case alg
-	     ((A128KW) (aeskw-decrypt 16))
-	     ((A192KW) (aeskw-decrypt 24))
-	     ((A256KW) (aeskw-decrypt 32))
+	     ((A128KW A192KW A256KW)
+	      (aeskw-decrypt (get-aes-key-byte-size alg)))
+	     ((A128GCMKW A192GCMKW A256GCMKW)
+	      (aesgcmkw-decrypt (get-aes-key-byte-size alg)))
 	     (else (assertion-violation
 		    'aeskw-decryptor "Unknown algorithm" alg)))))
 	((jwk? kek)
@@ -257,9 +278,9 @@
      (decrypt-aes-hmac key 192 SHA-384 aad iv cipher-text auth-tag))
     ((A256CBC-HS512)
      (decrypt-aes-hmac key 256 SHA-512 aad iv cipher-text auth-tag))
-    ((A128GCM) (decrypt-aes-gcm key 128 aad iv cipher-text auth-tag))
-    ((A192GCM) (decrypt-aes-gcm key 192 aad iv cipher-text auth-tag))
-    ((A256GCM) (decrypt-aes-gcm key 256 aad iv cipher-text auth-tag))
+    ((A128GCM A192GCM A256GCM)
+     (decrypt-aes-gcm key (get-aes-key-byte-size enc)
+		      aad iv cipher-text auth-tag))
     (else (assertion-violation 'get-cipher "Unsupported enc type" enc))))
 
 (define (decrypt-aes-hmac key key-size digest aad iv cipher-text auth-tag)
@@ -270,14 +291,13 @@
 			    (make-padding-parameter pkcs5-padder)))
     (define dec-cipher (make-cipher AES dec-key :mode-parameter mode-parameter))
     (let ((tag (aes-hmac-compute-tag digest mac-key aad iv cipher-text)))
-      
       (unless (bytevector=? auth-tag tag)
 	;; TODO maybe we should make an specific condition for this
 	(assertion-violation 'decrypt-aes-hmac "Incorrect MAC"))
       (cipher-decrypt dec-cipher cipher-text))))
 
 (define (decrypt-aes-gcm key key-size aad iv cipher-text auth-tag)
-  (check-key-size 'decrypt-aes-gcm (div key-size 8) (symmetric-key-raw-key key))
+  (check-key-size 'decrypt-aes-gcm key-size (symmetric-key-raw-key key))
   (let ()
     (define mode-parameter (make-composite-parameter
 			    (make-iv-parameter iv)
@@ -323,28 +343,51 @@
 
 ;; encryptors
 (define (make-aeskw-encryptor kek :key (cek-generator default-cek-generator)
-			               (iv-generator default-iv-generator))
+			               (iv-generator default-iv-generator)
+				       (kek-iv-generator default-iv-generator))
   (define (aeskw-encrypt kek size jwe-header payload)
     (define raw-key (symmetric-key-raw-key kek))
     (define enc (jwe-header-enc jwe-header))
     (check-key-size 'aeskw-encryptor size raw-key)
-    (let ((raw-cek (cek-generator (get-cek-byte-size enc))))
+    (let ((raw-cek (cek-generator (get-aes-key-byte-size enc))))
       (core-encryptor (generate-secret-key AES raw-cek)
 		      (aes-key-wrap kek raw-cek)
 		      jwe-header payload iv-generator)))
+
+  (define (aesgcmkw-encrypt kek size jwe-header payload)
+    ;; if the header already has iv, use it
+    ;; NOTE: we can't use tag as it'd be generated
+    (define kek-iv-g
+      (cond ((jwe-header-iv jwe-header) => (lambda (iv) (lambda (size) iv)))
+	    (else kek-iv-generator)))
+    (define cek-key-encryptor (aes-gcm-encryptor kek size kek-iv-g))
+    (define enc (jwe-header-enc jwe-header))
+    (let ((raw-cek (cek-generator (get-aes-key-byte-size enc))))
+      (let-values (((iv encrypted-cek tag) (cek-key-encryptor #vu8() raw-cek)))
+	(let ((new-header (jwe-header-builder (from jwe-header)
+			   (iv iv)
+			   (tag tag))))
+	  (core-encryptor (generate-secret-key AES raw-cek)
+			  encrypted-cek
+			  new-header payload iv-generator)))))
+
   (cond ((symmetric-key? kek)
 	 (lambda (jwe-header payload)
 	   (define alg (jose-crypto-header-alg jwe-header))
 	   (case alg
-	     ((A128KW) (aeskw-encrypt kek 16 jwe-header payload))
-	     ((A192KW) (aeskw-encrypt kek 24 jwe-header payload))
-	     ((A256KW) (aeskw-encrypt kek 32 jwe-header payload))
+	     ((A128KW A192KW A256KW)
+	      (aeskw-encrypt kek (get-aes-key-byte-size alg)
+			     jwe-header payload))
+	     ((A128GCMKW A192GCMKW A256GCMKW)
+	      (aesgcmkw-encrypt kek (get-aes-key-byte-size alg)
+				jwe-header payload))
 	     (else (assertion-violation
 		    'aeskw-encryptor "Unknown algorithm" alg)))))
 	((jwk? kek)
 	 (make-aeskw-encryptor (generate-secret-key AES (jwk->octet-key kek))
 			       :iv-generator iv-generator
-			       :cek-generator cek-generator))
+			       :cek-generator cek-generator
+			       :kek-iv-generator kek-iv-generator))
 	(else (assertion-violation 'make-aeskw-encryptor
 				   "Unsupported KEK type" kek))))
 
@@ -360,7 +403,7 @@
 	    (new-header (jwe-header-builder (from jwe-header)
 			 (p2s raw-salt)
 			 (p2c iteration)))
-	    (raw-cek (cek-generator (get-cek-byte-size enc))))
+	    (raw-cek (cek-generator (get-aes-key-byte-size enc))))
 	(core-encryptor (generate-secret-key AES raw-cek)
 			(aes-key-wrap ps-key raw-cek)
 			new-header payload iv-generator)))))
@@ -395,17 +438,18 @@
     ((A128CBC-HS256) (aes-hmac-encryptor key 128 SHA-256 iv-generator))
     ((A192CBC-HS384) (aes-hmac-encryptor key 192 SHA-384 iv-generator))
     ((A256CBC-HS512) (aes-hmac-encryptor key 256 SHA-512 iv-generator))
-    ((A128GCM) (aes-gcm-encryptor key 128 iv-generator))
-    ((A192GCM) (aes-gcm-encryptor key 192 iv-generator))
-    ((A256GCM) (aes-gcm-encryptor key 256 iv-generator))
+    ((A128GCM A192GCM A256GCM)
+     (aes-gcm-encryptor key (get-aes-key-byte-size enc) iv-generator))
+
     (else (assertion-violation 'get-cipher "Unsupported enc type" enc))))
 
-(define (get-cek-byte-size enc)
+(define (get-aes-key-byte-size enc)
   (case enc
-    ((A128CBC-HS256 A128GCM) 16)
-    ((A192CBC-HS384 A192GCM) 24)
-    ((A256CBC-HS512 A256GCM) 32)
-    (else (assertion-violation 'get-cek-byte-size "Unsupported enc type" enc))))
+    ((A128CBC-HS256 A128GCM A128KW A128GCMKW) 16)
+    ((A192CBC-HS384 A192GCM A192KW A192GCMKW) 24)
+    ((A256CBC-HS512 A256GCM A256KW A256GCMKW) 32)
+    (else (assertion-violation 
+	   'get-aes-key-byte-size "Unsupported alg/enc type" enc))))
 
 (define (aes-hmac-encryptor key key-size digest iv-generator)
   (let-values (((mac-key enc-key) (aes-hmac-derive-keys key key-size)))
@@ -423,10 +467,9 @@
 		(aes-hmac-compute-tag digest mac-key aad iv cipher-text))))))
 
 (define (aes-gcm-encryptor key key-size iv-generator)
-  (define size (div key-size 8))
   (define raw-key (symmetric-key-raw-key key))
   ;; TODO should we check
-  (check-key-size 'aes-gcm-encryptor size raw-key)
+  (check-key-size 'aes-gcm-encryptor key-size raw-key)
   (let ()
     (define iv (iv-generator 12))
     (define mode-parameter (make-composite-parameter

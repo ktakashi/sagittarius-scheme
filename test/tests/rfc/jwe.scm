@@ -308,6 +308,44 @@
 
   )
 )
+
+;; A128GEMKW
+;; data from here
+;; https://bitbucket.org/b_c/jose4j/issues/170/a128gcmkw-with-a128gcm-content-encryption
+;; though above is an invalid data, so adjusted a bit
+(let ()
+(define jwk
+  (json-string->jwk "{\"k\":\"XIy6sXcvHiiS0QHePnb58w\",\"kty\":\"oct\"}"))
+
+(define plain-text
+  (string->utf8
+   "{\"iss\":\"joe\",\"exp\":1300819380,\"http://example.com/is_root\":true}"))
+
+(define jwe-header
+  (jwe-header-builder
+   (alg 'A128GCMKW)
+   (enc 'A128GCM)
+   (iv "eVfciwe9cJs7k1JL")))
+
+(define (cek-generator size)
+  #vu8(4 211 31 197 84 157 252 254 11 100 157 250 63 170 106 206))
+(define (iv-generator size)
+  (base64url-decode-string "QzaKcPLWj8A1wY7W" :transcoder #f))
+(define aesgcmkw-encryptor
+  (make-aeskw-encryptor jwk :cek-generator cek-generator
+			:iv-generator iv-generator))
+(define aesgcmkw-decryptor (make-aeskw-decryptor jwk))
+  
+(let ((jwe-object (jwe:encrypt aesgcmkw-encryptor jwe-header plain-text)))
+  (test-equal "L0iBWem899_gOBjN_lHAHkJDlOU66jJXHP6wjCG7zsfRqQa9wW8JvP1EeE7yAsZ4zNSSDdCaIiSUFKcQbrPvxA"
+	      (utf8->string
+	       (base64url-encode (jwe-object-cipher-text jwe-object))))
+  (test-equal "KkzMXPRJcPtnHC9X-IFe3Q"
+	      (utf8->string
+	       (base64url-encode (jwe-object-encrypted-key jwe-object))))
+  (test-equal plain-text  (jwe:decrypt aesgcmkw-decryptor jwe-object))
+  )
+)
 (test-end)
 
 
