@@ -63,12 +63,14 @@
 	    make-direct-decryptor
 	    make-pbes2-decryptor
 	    make-aeskw-decryptor
+	    make-rsa-decryptor
 	    
 	    make-random-generator
 	    jwe:encrypt
 	    make-direct-encryptor
 	    make-pbes2-encryptor make-salt-generator jwe-header->salt-generator
 	    make-aeskw-encryptor
+	    make-rsa-encryptor
 	    
 	    )
     (import (rnrs)
@@ -207,6 +209,28 @@
 
 ;;;; Cryptographic implementations 
 ;;; Decryptors
+;; RSA key unwrap
+(define (make-rsa-decryptor key)
+  (cond ((rsa-private-key? key)
+	 (lambda (jwe-header encrypted-key iv cipher-text auth-tag)
+	   (define alg (jose-crypto-header-alg jwe-header))
+	   (define (rsa-decryptor padding)
+	     (define rsa-cipher (make-cipher RSA key :padding padding))
+	     (define enc (jwe-header-enc jwe-header))
+	     (let ((raw-cek (cipher-decrypt rsa-cipher encrypted-key)))
+	       (core-decrypt jwe-header
+			     (generate-secret-key AES raw-cek)
+			     iv cipher-text auth-tag)))
+	   (case alg
+	     ((RSA1_5) (rsa-decryptor pkcs-v1.5-padding))
+	     ((RSA-OAEP) (rsa-decryptor (rsa-oaep-padding SHA-1)))
+	     ((RSA-OAEP-256) (rsa-decryptor (rsa-oaep-padding SHA-256)))
+	     (else (assertion-violation 'make-rsa-encryptor
+					"Unknown alg" alg)))))
+	((jwk? key)
+	 (make-rsa-decryptor (jwk->private-key key)))
+	(else (assertion-violation 'make-rsa-decryptor
+				   "RSA private key is required" key))))
 ;; AES key unwrap
 (define (make-aeskw-decryptor kek)
   (cond ((symmetric-key? kek)
@@ -348,6 +372,36 @@
 	    (or p2c +default-iteration-counnt+))))
 
 (define default-cek-generator (make-random-generator (secure-random ChaCha20)))
+
+;; RSA key wrap
+(define (make-rsa-encryptor key :key (cek-generator default-cek-generator)
+			             (iv-generator default-iv-generator))
+  (define (rsa-encryptor key jwe-header payload padding)
+    (define rsa-cipher (make-cipher RSA key :padding padding))
+    (define enc (jwe-header-enc jwe-header))
+    (let ((raw-cek (cek-generator (get-aes-key-byte-size enc))))
+      (core-encryptor (generate-secret-key AES raw-cek)
+		      (cipher-encrypt rsa-cipher raw-cek)
+		      jwe-header payload iv-generator)))
+  
+  (cond ((rsa-public-key? key)
+	 (lambda (jwe-header payload)
+	   (define alg (jose-crypto-header-alg jwe-header))
+	   (case alg
+	     ((RSA1_5)
+	      (rsa-encryptor key jwe-header payload pkcs-v1.5-padding))
+	     ((RSA-OAEP)
+	      (rsa-encryptor key jwe-header payload (rsa-oaep-padding SHA-1)))
+	     ((RSA-OAEP-256)
+	      (rsa-encryptor key jwe-header payload (rsa-oaep-padding SHA-256)))
+	     (else (assertion-violation 'make-rsa-encryptor
+					"Unknown alg" alg)))))
+	((jwk? key)
+	 (make-rsa-encryptor (jwk->public-key key)
+			     :cek-generator cek-generator
+			     :iv-generator iv-generator))
+	(else (assertion-violation 'make-rsa-encryptor
+				   "Key must be RSA public key" key))))
 
 ;; AES key wrap
 (define (make-aeskw-encryptor kek :key (cek-generator default-cek-generator)
