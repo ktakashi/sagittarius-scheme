@@ -185,6 +185,7 @@
 	     (map (lambda (s) (base64url-decode (string->utf8 s)))
 		  (cdr part*))))))
 
+;;;; Interface APIs
 ;; (decryptor, jwe-object) -> bytevector
 (define jwe:decrypt
   (case-lambda
@@ -203,7 +204,10 @@
 (define (jwe:encrypt encryptor jwe-header payload)
   (encryptor jwe-header payload))
 
-;; decryptors
+
+;;;; Cryptographic implementations 
+;;; Decryptors
+;; AES key unwrap
 (define (make-aeskw-decryptor kek)
   (cond ((symmetric-key? kek)
 	 (lambda (jwe-header encrypted-key iv cipher-text auth-tag)
@@ -237,6 +241,7 @@
 	(else
 	 (assertion-violation 'make-aeskw-decryptor "Unknown key" kek))))
 
+;; PBE key unwrap
 (define (make-pbes2-decryptor password)
   (lambda (jwe-header encrypted-key iv cipher-text auth-tag)
     (define alg (jose-crypto-header-alg jwe-header))
@@ -253,6 +258,7 @@
       (core-decrypt jwe-header (generate-secret-key AES raw-cek) iv
 		    cipher-text auth-tag))))
 
+;; Direct decryption
 (define (make-direct-decryptor key :key (strict? #t))
   (cond ((symmetric-key? key)
 	 (lambda (jwe-header encrypted-key iv cipher-text auth-tag)
@@ -268,21 +274,20 @@
 	 (assertion-violation 'make-direct-decryptor
 			      "Symmetric key or JWK is required" key))))
 
+;; Decryption utilities
 (define (core-decrypt jwe-header key iv cipher-text auth-tag)
   (define enc (jwe-header-enc jwe-header))
   (define aad (jwe-header->aad jwe-header))
   (case enc
-    ((A128CBC-HS256)
-     (decrypt-aes-hmac key 128 SHA-256 aad iv cipher-text auth-tag))
-    ((A192CBC-HS384)
-     (decrypt-aes-hmac key 192 SHA-384 aad iv cipher-text auth-tag))
-    ((A256CBC-HS512)
-     (decrypt-aes-hmac key 256 SHA-512 aad iv cipher-text auth-tag))
+    ((A128CBC-HS256 A192CBC-HS384 A256CBC-HS512)
+     (decrypt-aes-hmac key (get-aes-key-byte-size enc)
+		       (get-hmac-digest enc) aad iv cipher-text auth-tag))
     ((A128GCM A192GCM A256GCM)
      (decrypt-aes-gcm key (get-aes-key-byte-size enc)
 		      aad iv cipher-text auth-tag))
     (else (assertion-violation 'get-cipher "Unsupported enc type" enc))))
 
+;; AES-CBC-HMAC
 (define (decrypt-aes-hmac key key-size digest aad iv cipher-text auth-tag)
   (let-values (((mac-key dec-key) (aes-hmac-derive-keys key key-size)))
     (define mode-parameter (make-composite-parameter
@@ -296,6 +301,7 @@
 	(assertion-violation 'decrypt-aes-hmac "Incorrect MAC"))
       (cipher-decrypt dec-cipher cipher-text))))
 
+;; AES GCM
 (define (decrypt-aes-gcm key key-size aad iv cipher-text auth-tag)
   (check-key-size 'decrypt-aes-gcm key-size (symmetric-key-raw-key key))
   (let ()
@@ -310,7 +316,9 @@
 	(assertion-violation 'decrypt-aes-gcm "Incorrect MAC"))
       pt)))
 
-;; encryptors utils
+
+;;; Encryptors
+;; Random generators
 (define (make-random-generator prng)
   (lambda (size)
     (read-random-bytes prng size)))
@@ -330,7 +338,7 @@
 
 (define default-salt-generator
   (make-salt-generator +default-salt-size+ +default-iteration-counnt+))
-;;; Utility API
+
 (define (jwe-header->salt-generator jwe-header
 				    :key (prng (secure-random ChaCha20)))
   (define p2s (jwe-header-p2s jwe-header))
@@ -341,7 +349,7 @@
 
 (define default-cek-generator (make-random-generator (secure-random ChaCha20)))
 
-;; encryptors
+;; AES key wrap
 (define (make-aeskw-encryptor kek :key (cek-generator default-cek-generator)
 			               (iv-generator default-iv-generator)
 				       (kek-iv-generator default-iv-generator))
@@ -391,6 +399,7 @@
 	(else (assertion-violation 'make-aeskw-encryptor
 				   "Unsupported KEK type" kek))))
 
+;; PBE key wrap
 (define (make-pbes2-encryptor password 
 			      :key (salt-generator default-salt-generator)
 			           (cek-generator default-cek-generator)
@@ -408,6 +417,7 @@
 			(aes-key-wrap ps-key raw-cek)
 			new-header payload iv-generator)))))
 
+;; Direct encryption
 (define (make-direct-encryptor key :key (iv-generator default-iv-generator))
   (cond ((symmetric-key? key)
 	 (lambda (jwe-header payload)
@@ -418,6 +428,7 @@
 	(else (assertion-violation 'make-direct-encryptor
 				   "Unsupported key" key))))
 
+;; Encryption utilities
 (define (aes-key-wrap key pt)
   (define wrapper (make-aes-key-wrap key))
   (wrapper pt))
@@ -435,9 +446,9 @@
 
 (define (get-encryptor enc key iv-generator)
   (case enc
-    ((A128CBC-HS256) (aes-hmac-encryptor key 128 SHA-256 iv-generator))
-    ((A192CBC-HS384) (aes-hmac-encryptor key 192 SHA-384 iv-generator))
-    ((A256CBC-HS512) (aes-hmac-encryptor key 256 SHA-512 iv-generator))
+    ((A128CBC-HS256 A192CBC-HS384 A256CBC-HS512)
+     (aes-hmac-encryptor key (get-aes-key-byte-size enc)
+			 (get-hmac-digest enc) iv-generator))
     ((A128GCM A192GCM A256GCM)
      (aes-gcm-encryptor key (get-aes-key-byte-size enc) iv-generator))
 
@@ -450,6 +461,12 @@
     ((A256CBC-HS512 A256GCM A256KW A256GCMKW) 32)
     (else (assertion-violation 
 	   'get-aes-key-byte-size "Unsupported alg/enc type" enc))))
+(define (get-hmac-digest enc)
+  (case enc
+    ((A128CBC-HS256) SHA-256)
+    ((A192CBC-HS384) SHA-384)
+    ((A256CBC-HS512) SHA-512)
+    (else (assertion-violation 'get-hmac-digest "Unsupported enc type" enc))))
 
 (define (aes-hmac-encryptor key key-size digest iv-generator)
   (let-values (((mac-key enc-key) (aes-hmac-derive-keys key key-size)))
@@ -468,7 +485,6 @@
 
 (define (aes-gcm-encryptor key key-size iv-generator)
   (define raw-key (symmetric-key-raw-key key))
-  ;; TODO should we check
   (check-key-size 'aes-gcm-encryptor key-size raw-key)
   (let ()
     (define iv (iv-generator 12))
@@ -494,15 +510,13 @@
     (hash-process! md (aad-compute-length aad))
     (hash-done! md tag)
     tag))
-    
 
 (define (aes-hmac-derive-keys key key-size)
-  (define size/2 (div key-size 8))
-  (define size (* size/2 2))
+  (define size (* key-size 2))
   (define raw-key (symmetric-key-raw-key key))
   (check-key-size 'aes-hmac-derive-keys size raw-key)
-  (values (bytevector-copy raw-key 0 size/2)
-	  (generate-secret-key AES (bytevector-copy raw-key size/2))))
+  (values (bytevector-copy raw-key 0 key-size)
+	  (generate-secret-key AES (bytevector-copy raw-key key-size))))
 
 (define (pbes2-prf-param alg)
     (case alg
