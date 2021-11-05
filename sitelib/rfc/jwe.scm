@@ -49,6 +49,7 @@
 	    jwe-header-enc jwe-header-zip
 	    jwe-header-p2s jwe-header-p2c ;; PBEES2
 	    jwe-header-iv jwe-header-tag  ;; AESGCMKW
+	    jwe-header-apu jwe-header-apv jwe-header-epk
 	    jwe-header->json jwe-header->json-string write-jwe-header
 	    json->jwe-header json-string->jwe-header read-jwe-header
 
@@ -71,6 +72,7 @@
 	    make-pbes2-encryptor make-salt-generator jwe-header->salt-generator
 	    make-aeskw-encryptor
 	    make-rsa-encryptor
+	    make-ecdh-encryptor
 	    
 	    )
     (import (rnrs)
@@ -81,6 +83,7 @@
 	    (rsa pkcs :5)
 	    (crypto)
 	    (math)
+	    (math ec)
 	    (record accessor)
 	    (record builder)
 	    (sagittarius)
@@ -89,16 +92,19 @@
 
 (define-record-type jwe-header
   (parent <jose-crypto-header>)
-  (fields enc zip p2s p2c iv tag))
+  (fields enc zip p2s p2c iv tag apu apv epk))
 
 (define (maybe-base64url-string->bytevector bv)
   (and bv (base64url-string->bytevector bv)))
+(define (maybe-json->jwk json) (and json (json->jwk json)))
 (define-syntax jwe-header-builder
   (make-record-builder jwe-header
    ((custom-parameters '() ->jose-header-custom-parameter)
     (p2s #f maybe-base64url-string->bytevector)
     (iv #f maybe-base64url-string->bytevector)
-    (tag #f maybe-base64url-string->bytevector))))
+    (tag #f maybe-base64url-string->bytevector)
+    (apu #f maybe-base64url-string->bytevector)
+    (apv #f maybe-base64url-string->bytevector))))
 
 (define-record-type jwe-object
   (parent <jose-object>)
@@ -133,7 +139,9 @@
     (? "p2c" #f)
     (? "iv" #f base64url-string->bytevector)
     (? "tag" #f base64url-string->bytevector)
-    )))
+    (? "apu" #f base64url-string->bytevector)
+    (? "apv" #f base64url-string->bytevector)
+    (? "epk" #f json->jwk))))
 
 (define jwe-header-serializer
   (json-object-serializer
@@ -142,8 +150,11 @@
     (? "zip" #f jwe-header-zip symbol->string)
     (? "p2s" #f jwe-header-p2s bytevector->base64url-string)
     (? "p2c" #f jwe-header-p2c)
-    (? "iv" #f jwe-header-p2s bytevector->base64url-string)
-    (? "tag" #f jwe-header-p2s bytevector->base64url-string)
+    (? "iv" #f jwe-header-iv bytevector->base64url-string)
+    (? "tag" #f jwe-header-tag bytevector->base64url-string)
+    (? "apu" #f jwe-header-apu bytevector->base64url-string)
+    (? "apv" #f jwe-header-apv bytevector->base64url-string)
+    (? "epk" #f jwe-header-epk jwk->json)
     )))
 
 (define json->jwe-header
@@ -373,6 +384,60 @@
 
 (define default-cek-generator (make-random-generator (secure-random ChaCha20)))
 
+(define (default-ec-keypair-generator ec-parameter)
+  (let ((kp (generate-key-pair ECDSA ec-parameter)))
+    (values (keypair-private kp) (keypair-public kp))))
+
+;; ECDH-ES key wrap
+(define (make-ecdh-encryptor key :key
+			     (ec-keypair-generator default-ec-keypair-generator)
+			     (cek-generator default-cek-generator)
+			     (iv-generator default-iv-generator))
+  (cond ((ecdsa-public-key? key)
+	 (lambda (jwe-header payload)
+	   (define alg (jose-crypto-header-alg jwe-header))
+	   (define enc (jwe-header-enc jwe-header))
+	   
+	   (define (ecdh-direct shared-key)
+	     (values (generate-secret-key AES shared-key) #vu8()))
+	   (define (ecdh-aes-wrap shared-key)
+	     (let ((kek (generate-secret-key AES shared-key))
+		   (cek (cek-generator (get-aes-key-byte-size enc))))
+	       (values (generate-secret-key AES cek)
+		       (aes-key-wrap kek cek))))
+	   
+	   (define (ecdh-encryptor mode)
+	     (define public-key-parameter (ecdsa-public-key-parameter key))
+	     (let-values (((priv pub)
+			   (ec-keypair-generator public-key-parameter)))
+	       (let ((param (ecdsa-private-key-parameter priv)))
+		 (unless (equal? (ec-parameter-curve param)
+				 (ec-parameter-curve public-key-parameter))
+		   (assertion-violation 'ecdh-encryptor
+					"Wrong EC key parameter"))
+		 (let ((z (ecdhc-calculate-agreement param
+						     (ecdsa-private-key-d priv)
+						     (ecdsa-public-key-Q key)))
+		       (new-header (jwe-header-builder (from jwe-header)
+				    (epk (public-key->jwk pub)))))
+		   (let-values (((cek encrypted-key)
+				 (mode (ecdh-derive-shared-key new-header z))))
+		     (core-encryptor cek encrypted-key new-header
+				     payload iv-generator))))))
+	   (case alg
+	     ((ECDH-ES) (ecdh-encryptor ecdh-direct))
+	     ((ECDH-ES+A128KW ECDH-ES+A198KW ECDH-ES+A256KW)
+	      (ecdh-encryptor ecdh-aes-wrap))
+	     (else 
+	      (assertion-violation 'ecdh-encryptor "Unknown alg" alg)))))
+	((jwk? key)
+	 (make-ecdh-encryptor (jwk->public-key key)
+			      :cek-generator cek-generator
+			      :iv-generator iv-generator
+			      :ec-keypair-generator ec-keypair-generator))
+	(else (assertion-violation 'make-ecdh-encryptor
+				   "Key must be an ECDSA public key" key))))
+
 ;; RSA key wrap
 (define (make-rsa-encryptor key :key (cek-generator default-cek-generator)
 			             (iv-generator default-iv-generator))
@@ -401,7 +466,7 @@
 			     :cek-generator cek-generator
 			     :iv-generator iv-generator))
 	(else (assertion-violation 'make-rsa-encryptor
-				   "Key must be RSA public key" key))))
+				   "Key must be an RSA public key" key))))
 
 ;; AES key wrap
 (define (make-aeskw-encryptor kek :key (cek-generator default-cek-generator)
@@ -483,6 +548,55 @@
 				   "Unsupported key" key))))
 
 ;; Encryption utilities
+(define (ecdh-derive-shared-key jwe-header z)
+  (define alg (jose-crypto-header-alg jwe-header))
+  (define enc (jwe-header-enc jwe-header))
+  (define alg-id
+    (case alg
+      ((ECDH-ES) enc)
+      ((ECDH-ES+A128KW ECDH-ES+A198KW ECDH-ES+A256KW) alg-id)
+      (else (assertion-violation 'ecdh-derive-shared-key
+				 "Unknown alg, bug?" alg))))
+  (let ((key-length (* (if (eq? alg 'ECDH-ES)
+			   (get-aes-key-byte-size enc)
+			   (get-aes-key-byte-size alg))
+		       8)))
+    (concat-kdf SHA-256
+		(integer->bytevector z)
+		key-length
+		(encode-data/length (string->utf8 (symbol->string alg-id)))
+		(encode-data/length (jwe-header-apu jwe-header))
+		(encode-data/length (jwe-header-apv jwe-header))
+		(integer->bytevector key-length 4))))
+
+(define (encode-data/length bv)
+  (bytevector-append (integer->bytevector (bytevector-length bv) 4) bv))
+;; This is defined in NIST 800-56A, so maybe better to make a separate library
+;; ref:
+;; https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-56Cr1.pdf
+(define (concat-kdf digest z key-size . rest)
+  (define (derive-key algo z key-size otherinfo)
+    (define hsize (hash-size algo))
+    (define hash-bits (* hsize 8))
+    (define reps (div (- (+ key-size hash-bits) 1) hash-bits))
+    (when (> reps (- (expt 2 32) 1))
+      (assertion-violation 'concat-kdf "Too big key size"))
+    (hash-init! algo)
+    (let ((buf (make-bytevector hsize)))
+      (let-values (((out e) (open-bytevector-output-port)))
+	(do ((i 1 (+ i 1)))
+	    ((> i reps))
+	  (hash-process! algo (integer->bytevector i 4))
+	  (hash-process! algo z)
+	  (hash-process! algo otherinfo)
+	  (hash-done! algo buf)
+	  (put-bytevector out buf))
+	(let ((derived-key-material (e)))
+	  (if (= (bytevector-length derived-key-material) (div key-size 8))
+	      derived-key-material
+	      (bytevector-copy derived-key-material 0 (div key-size 8)))))))
+  (derive-key (hash-algorithm digest) z key-size (bytevector-concatenate rest)))
+
 (define (aes-key-wrap key pt)
   (define wrapper (make-aes-key-wrap key))
   (wrapper pt))
@@ -510,9 +624,9 @@
 
 (define (get-aes-key-byte-size enc)
   (case enc
-    ((A128CBC-HS256 A128GCM A128KW A128GCMKW) 16)
-    ((A192CBC-HS384 A192GCM A192KW A192GCMKW) 24)
-    ((A256CBC-HS512 A256GCM A256KW A256GCMKW) 32)
+    ((A128CBC-HS256 A128GCM A128KW A128GCMKW ECDH-ES+A128KW) 16)
+    ((A192CBC-HS384 A192GCM A192KW A192GCMKW ECDH-ES+A198KW) 24)
+    ((A256CBC-HS512 A256GCM A256KW A256GCMKW ECDH-ES+A256KW) 32)
     (else (assertion-violation 
 	   'get-aes-key-byte-size "Unsupported alg/enc type" enc))))
 (define (get-hmac-digest enc)
