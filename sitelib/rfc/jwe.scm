@@ -65,6 +65,7 @@
 	    make-pbes2-decryptor
 	    make-aeskw-decryptor
 	    make-rsa-decryptor
+	    make-ecdh-decryptor
 	    
 	    make-random-generator
 	    jwe:encrypt
@@ -73,6 +74,9 @@
 	    make-aeskw-encryptor
 	    make-rsa-encryptor
 	    make-ecdh-encryptor
+
+	    ;; For testing...
+	    (rename (ecdh-derive-shared-key jwe:ecdh-derive-shared-key))
 	    
 	    )
     (import (rnrs)
@@ -220,6 +224,49 @@
 
 ;;;; Cryptographic implementations 
 ;;; Decryptors
+;; ECDH-ES key unwrap
+(define (make-ecdh-decryptor key)
+  (cond ((ecdsa-private-key? key)
+	 (lambda (jwe-header encrypted-key iv cipher-text auth-tag)
+	   (define alg (jose-crypto-header-alg jwe-header))
+	   (define enc (jwe-header-enc jwe-header))
+
+	   (define (ecdh-direct share-key dummy)
+	     (generate-secret-key AES share-key))
+	   (define (ecdh-aes-unwrap share-key encrypted-key)
+	     (let ((kek (generate-secret-key AES share-key)))
+	       (generate-secret-key AES (aes-key-unwrap kek encrypted-key))))
+	   
+	   (define (ecdh-decryptor mode)
+	     (define epk (jwe-header-epk jwe-header))
+	     (define pub (and epk (jwk->public-key epk)))
+	     (define ec-param (ecdsa-private-key-parameter key))
+	     
+	     (unless (ecdsa-public-key? pub)
+	       (assertion-violation 'ecdh-decryptor
+				    "epk is not an ECDSA public key"))
+	     (unless (equal? (ec-parameter-curve ec-param)
+			     (ec-parameter-curve
+			      (ecdsa-public-key-parameter pub)))
+		   (assertion-violation 'ecdh-decryptor
+					"Wrong EC key parameter"))
+	     (let* ((z (ecdhc-calculate-agreement ec-param
+						  (ecdsa-private-key-d key)
+						  (ecdsa-public-key-Q pub)))
+		    (cek (mode (ecdh-derive-shared-key jwe-header z)
+			   encrypted-key)))
+	       (core-decrypt jwe-header cek iv cipher-text auth-tag)))
+	   (case alg
+	     ((ECDH-ES) (ecdh-decryptor ecdh-direct))
+	     ((ECDH-ES+A128KW ECDH-ES+A198KW ECDH-ES+A256KW)
+	      (ecdh-decryptor ecdh-aes-unwrap))
+	     (else 
+	      (assertion-violation 'ecdh-decryptor "Unknown alg" alg)))))
+	((jwk? key)
+	 (make-ecdh-decryptor (jwk->private-key key)))
+	(else (assertion-violation 'make-ecdh-decryptor
+				   "ECDSA private key is required" key))))
+
 ;; RSA key unwrap
 (define (make-rsa-decryptor key)
   (cond ((rsa-private-key? key)
@@ -554,7 +601,7 @@
   (define alg-id
     (case alg
       ((ECDH-ES) enc)
-      ((ECDH-ES+A128KW ECDH-ES+A198KW ECDH-ES+A256KW) alg-id)
+      ((ECDH-ES+A128KW ECDH-ES+A198KW ECDH-ES+A256KW) alg)
       (else (assertion-violation 'ecdh-derive-shared-key
 				 "Unknown alg, bug?" alg))))
   (let ((key-length (* (if (eq? alg 'ECDH-ES)

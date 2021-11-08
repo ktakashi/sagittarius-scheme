@@ -3,6 +3,7 @@
 	(rfc jwk)
 	(rfc base64)
 	(text json)
+	(crypto)
 	(srfi :64))
 
 (define jwe-string
@@ -416,6 +417,82 @@
  "9hH0vgRfYgPnAHOd8stkvw"
  "eyJhbGciOiJSU0ExXzUiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0.UGhIOguC7IuEvf_NPVaXsGMoLOmwvc1GyqlIKOK1nN94nHPoltGRhWhw7Zx0-kFm1NJn8LE9XShH59_i8J0PH5ZZyNfGy2xGdULU7sHNF6Gp2vPLgNZ__deLKxGHZ7PcHALUzoOegEI-8E66jX2E4zyJKx-YxzZIItRzC5hlRirb6Y5Cl_p-ko3YvkkysZIFNPccxRU7qve1WYPxqbb2Yw8kZqa2rMWI5ng8OtvzlV7elprCbuPhcCdZ6XDP0_F8rkXds2vE4X-ncOIM8hAYHHi29NX0mcKiRaD0-D-ljQTP-cFPgwCp6X-nZZd9OHBv-B3oWh2TbqmScqXMR4gp_A.AxY8DCtDaGlsbGljb3RoZQ.KDlTtXchhZTGufMYmOYGS4HffxPSUrfmqCHXaI9wOGY.9hH0vgRfYgPnAHOd8stkvw")
  
+)
+
+;; ECDH-ES
+(let ()
+(define jwk-a
+  (json-string->jwk
+   "{\"kty\":\"EC\",
+     \"crv\":\"P-256\",
+     \"x\":\"gI0GAILBdu7T53akrFmMyGcsF3n5dO7MmwNBHKW5SV0\",
+     \"y\":\"SLW_xSffzlPWrHEVI30DHM_4egVwt3NQqeUD7nMFpps\",
+     \"d\":\"0_NxaRPUMQoAJt50Gz8YiTr8gRTwyEaCumd-MToTmIo\"}"))
+
+(define jwk-b
+  (json-string->jwk
+   "{\"kty\":\"EC\",
+     \"crv\":\"P-256\",
+     \"x\":\"weNJy2HscCSM6AEDTDg04biOvhFhyyWvOHQfeF_PxMQ\",
+     \"y\":\"e8lnCO-AlStT-NJVX-crhB7QRYhiix03illJOVAOyck\",
+     \"d\":\"VEmDZpDXXK8p8N0Cndsxs924q6nS1RXFASRl6BfUqdw\"}"))
+
+(define pub-a (jwk->public-key jwk-a))
+(define pri-a (jwk->private-key jwk-a))
+(define pub-b (jwk->public-key jwk-b))
+(define pri-b (jwk->private-key jwk-b))
+
+(define (make-jwe-header alg)
+  (json-string->jwe-header
+   (string-append
+    "{\"alg\":\"" alg  "\"," 
+     "\"enc\":\"A128GCM\",
+      \"apu\":\"QWxpY2U\",
+      \"apv\":\"Qm9i\",
+      \"epk\":
+        {\"kty\":\"EC\",
+         \"crv\":\"P-256\",
+         \"x\":\"gI0GAILBdu7T53akrFmMyGcsF3n5dO7MmwNBHKW5SV0\",
+         \"y\":\"SLW_xSffzlPWrHEVI30DHM_4egVwt3NQqeUD7nMFpps\"
+        }
+      }")))
+(define (test-ecdh-es alg)
+  (define jwe-header (make-jwe-header alg))
+
+  (define (alice-keypair-generator ec-parameter) (values pri-a pub-a))
+  (define ecdsa-encryptor
+    (make-ecdh-encryptor jwk-b
+			 :ec-keypair-generator alice-keypair-generator))
+  (define ecdsa-decryptor (make-ecdh-decryptor jwk-b))
+
+  (define plain-text (string->utf8 "alice to bob"))
+
+  (let ((jwe-object (jwe:encrypt ecdsa-encryptor jwe-header plain-text)))
+    (test-equal alg plain-text (jwe:decrypt ecdsa-decryptor jwe-object))))
+
+(test-ecdh-es "ECDH-ES")
+(test-ecdh-es "ECDH-ES+A128KW")
+(test-ecdh-es "ECDH-ES+A198KW")
+(test-ecdh-es "ECDH-ES+A256KW")
+
+(let ()
+  (define jwe-header (make-jwe-header "ECDH-ES"))
+  (define z0 (ecdhc-calculate-agreement (ecdsa-public-key-parameter pub-b)
+					(ecdsa-private-key-d pri-a)
+					(ecdsa-public-key-Q pub-b)))
+  (define z1 (ecdhc-calculate-agreement (ecdsa-private-key-parameter pri-b)
+					(ecdsa-private-key-d pri-b)
+					(ecdsa-public-key-Q pub-a)))
+
+  (test-equal "Of encryptor" "VqqN6vgjbSBcIijNcacQGg"
+	      (utf8->string
+	       (base64url-encode (jwe:ecdh-derive-shared-key jwe-header z0))))
+  (test-equal "Of decryptor" "VqqN6vgjbSBcIijNcacQGg"
+	      (utf8->string
+	       (base64url-encode (jwe:ecdh-derive-shared-key jwe-header z1))))
+)
+
+
 )
 (test-end)
 
