@@ -12,7 +12,8 @@
 (test-begin "JWE")
 
 (let ((jwe (jwe:parse jwe-string)))
-  (test-assert (jwe-object? jwe)))
+  (test-assert (jwe-object? jwe))
+  (test-equal jwe-string (jwe:serialize jwe)))
 
 (define-syntax test-content-encrypt/decrypt
   (syntax-rules ()
@@ -27,7 +28,7 @@
        (define dir-decryptor
 	 (make-direct-decryptor key :strict? #f))
        (define bv-plain-text (string->utf8 plain-text))
-       (let ((jwe-object (jwe:encrypt dir-encryptor jwe-header bv-plain-text)))
+       (define (test-decrypt jwe-object)
 	 (test-equal cipher-text
 		     (utf8->string
 		      (base64url-encode (jwe-object-cipher-text jwe-object))))
@@ -36,7 +37,11 @@
 		      (base64url-encode
 		       (jwe-object-authentication-tag jwe-object))))
 	 (test-equal plain-text
-		     (utf8->string (jwe:decrypt dir-decryptor jwe-object))))))))
+		     (utf8->string (jwe:decrypt dir-decryptor jwe-object)))
+	 jwe-object)
+       (let ((o (test-decrypt (jwe:encrypt dir-encryptor jwe-header
+					   bv-plain-text))))
+	 (test-decrypt (jwe:parse (jwe:serialize o))))))))
 
 ;; These tests don't respect 'alg' field, so don't do it in a real application
 ;; it's just for test purpose.

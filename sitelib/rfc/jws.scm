@@ -143,7 +143,7 @@
       (let ((json (jws-header->json-string jws-header)))
 	(base64url-encode-string json))))
 
-(define (->base64url bv) (utf8->string (base64url-encode bv)))
+(define ->base64url bytevector->base64url-string)
 (define-record-type jws-object
   (parent <jose-object>)
   (fields header

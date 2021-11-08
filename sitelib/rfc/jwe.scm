@@ -58,7 +58,7 @@
 	    jwe-object-cipher-text jwe-object-authentication-tag
 	    (rename (jose-object-parts jwe-object-parts))
 	    
-	    jwe:parse
+	    jwe:parse jwe:serialize
 
 	    jwe:decrypt
 	    make-direct-decryptor
@@ -201,6 +201,19 @@
 				     (car part*))
 	     (map (lambda (s) (base64url-decode (string->utf8 s)))
 		  (cdr part*))))))
+
+(define (jwe:serialize jwe-object)
+  (define ->base64url bytevector->base64url-string)
+  (let ((header (jwe-header->base64url (jwe-object-header jwe-object)))
+	(encrypted-key (->base64url (jwe-object-encrypted-key jwe-object)))
+	(iv (->base64url (jwe-object-iv jwe-object)))
+	(cipher-text (->base64url (jwe-object-cipher-text jwe-object)))
+	(tag (->base64url (jwe-object-authentication-tag jwe-object))))
+    (string-append header "."
+		   encrypted-key "."
+		   iv "."
+		   cipher-text "."
+		   tag)))
 
 ;;;; Interface APIs
 ;; (decryptor, jwe-object) -> bytevector
