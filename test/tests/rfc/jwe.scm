@@ -24,7 +24,7 @@
 		    `#(("kty" . "oct")
 		       ("k" . ,(utf8->string (base64url-encode raw-key))))))
        (define dir-encryptor
-	 (make-direct-encryptor key :iv-generator iv-generator))
+	 (make-direct-encryptor key :iv-generator iv-generator :strict? #f))
        (define dir-decryptor
 	 (make-direct-decryptor key :strict? #f))
        (define bv-plain-text (string->utf8 plain-text))

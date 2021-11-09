@@ -60,7 +60,7 @@
 
 	    make-json->header
 
-	    jose-split
+	    jose-split jose-part-count
 	    ;; for record builder
 	    ->jose-header-custom-parameter
 
@@ -167,7 +167,7 @@
 
 (define (make-json->header builder post-build)
   (lambda (json)
-    (define custom-parameters (make-hashtable string-hash string=?))
+    (define custom-parameters (make-hashtable string-hash equal?))
     (define (parameter-handler k v) (hashtable-set! custom-parameters k v))
     (define (post-object-build obj)
       (post-build obj custom-parameters))
@@ -189,5 +189,14 @@
     (unless (for-all (lambda (s) (string-every *base64url-charset* s)) e*)
       (assertion-violation 'jose-split "Invalid JWS/JWE format" s))
     e*))
+
+(define (jose-part-count s)
+  (if (zero? (string-length s))
+      0
+      ;; count starts with 1, as long as string isn't empty
+      (let loop ((count 1) (offset 0))
+	(cond ((string-index s #\. offset) =>
+	       (lambda (index) (loop (+ count 1) (+ index 1))))
+	      (else count)))))
 
 )

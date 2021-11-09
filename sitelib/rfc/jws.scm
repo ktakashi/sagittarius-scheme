@@ -209,6 +209,10 @@
 	    ;; we hold the below as bytevectors (for convenience)
 	    (payload (get-payload (cadr part*) maybe-payload))
 	    (signature (base64url-decode (string->utf8 (caddr part*)))))
+	;; we make 'signed-object' even no signature is provided
+	;; in that case, it has to be alg = 'none'.
+	;; NOTE: 'signed-object' != verified. So the caller must verify
+	;;       the object.
 	(make-jws-signed-object part*
 	 (make-parsed-jws-header (json-string->jws-header header) (car part*))
 	 payload signature))))))
@@ -390,25 +394,25 @@
       (eddsa-signer signing-content))))
 
 (define (public-key->jws-verifier key)
-  (if (jwk? key)
-      (public-key->jws-verifier (jwk->public-key key))
-      (cond ((rsa-public-key? key) (make-rsa-verifier key))
-	    ((bytevector? key) (make-mac-verifier key))
-	    ((ecdsa-public-key? key) (make-ecdsa-verifier key))
-	    ((eddsa-public-key? key) (make-eddsa-verifier key))
-	    (else
-	     (assertion-violation
-	      'public-key->jws-verifier "Unknown public key" key)))))
+  (cond ((jwk:oct? key) (public-key->jws-verifier (jwk->octet-key key)))
+	((jwk? key) (public-key->jws-verifier (jwk->public-key key)))
+	((rsa-public-key? key) (make-rsa-verifier key))
+	((bytevector? key) (make-mac-verifier key))
+	((ecdsa-public-key? key) (make-ecdsa-verifier key))
+	((eddsa-public-key? key) (make-eddsa-verifier key))
+	(else
+	 (assertion-violation
+	  'public-key->jws-verifier "Unknown public key" key))))
 
 (define (private-key->jws-signer key)
-  (if (jwk? key)
-      (private-key->jws-signer (jwk->private-key key))
-      (cond ((rsa-private-key? key) (make-rsa-signer key))
-	    ((bytevector? key) (make-mac-signer key))
-	    ((ecdsa-private-key? key) (make-ecdsa-signer key))
-	    ((eddsa-private-key? key) (make-eddsa-signer key))
-	    (else
-	     (assertion-violation 'private-key->jws-signer
-				  "Unknown private key" key)))))
+  (cond ((jwk:oct? key) (private-key->jws-signer (jwk->octet-key key)))
+	((jwk? key) (private-key->jws-signer (jwk->private-key key)))
+	((rsa-private-key? key) (make-rsa-signer key))
+	((bytevector? key) (make-mac-signer key))
+	((ecdsa-private-key? key) (make-ecdsa-signer key))
+	((eddsa-private-key? key) (make-eddsa-signer key))
+	(else
+	 (assertion-violation 'private-key->jws-signer
+			      "Unknown private key" key))))
 
 )

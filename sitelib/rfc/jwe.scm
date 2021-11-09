@@ -597,13 +597,20 @@
 			new-header payload iv-generator)))))
 
 ;; Direct encryption
-(define (make-direct-encryptor key :key (iv-generator default-iv-generator))
+(define (make-direct-encryptor key
+			       :key (iv-generator default-iv-generator)
+				    (strict? #t))
   (cond ((symmetric-key? key)
 	 (lambda (jwe-header payload)
+	   (define alg (jose-crypto-header-alg jwe-header))
+	   (when (and strict? (not (eq? alg 'dir)))
+	     (assertion-violation 'direct-encryptor
+				  "Alg must be 'dir'" jwe-header))
 	   (core-encryptor key #vu8() jwe-header payload iv-generator)))
 	((jwk? key)
 	 (make-direct-encryptor (generate-secret-key AES (jwk->octet-key key))
-				:iv-generator iv-generator))
+				:iv-generator iv-generator
+				:strict? strict?))
 	(else (assertion-violation 'make-direct-encryptor
 				   "Unsupported key" key))))
 
