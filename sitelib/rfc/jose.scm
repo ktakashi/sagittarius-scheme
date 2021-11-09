@@ -167,7 +167,7 @@
 
 (define (make-json->header builder post-build)
   (lambda (json)
-    (define custom-parameters (make-hashtable string-hash equal?))
+    (define custom-parameters (make-hashtable string-hash string=?))
     (define (parameter-handler k v) (hashtable-set! custom-parameters k v))
     (define (post-object-build obj)
       (post-build obj custom-parameters))
