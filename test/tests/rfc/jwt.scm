@@ -180,7 +180,7 @@
    (exp (and exp (add-duration cur (make-time time-duration 0 exp))))
    (jti jti)))
 ;; RSA
-(let ((keypair (generate-key-pair RSA)))
+(let ((keypair (generate-key-pair RSA :size 2048)))
   (let ((claims (build-claims)))
     (test-assert "RS256" (json=? (jwt-claims->json claims)
 				 (jwt-round-trip-test keypair 'RS256 claims)))
@@ -192,8 +192,7 @@
 				 (jwt-round-trip-test keypair 'PS256 claims)))
     (test-assert "PS384" (json=? (jwt-claims->json claims)
 				 (jwt-round-trip-test keypair 'PS384 claims)))
-    ;; FIXME something went wrong
-    #;(test-assert "PS512" (json=? (jwt-claims->json claims)
+    (test-assert "PS512" (json=? (jwt-claims->json claims)
 				 (jwt-round-trip-test keypair 'PS512 claims))))
   ;; required claims validator test
   (test-error "iss" (jwt-round-trip-test keypair 'RS256 (build-claims :iss #f)))

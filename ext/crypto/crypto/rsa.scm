@@ -182,7 +182,7 @@
   (define-method generate-key-pair ((marker (eql RSA)) . args)
     (let-keywords args
 	((e 65537)
-	 (size 1024)
+	 (size 2048)
 	 (prng (secure-random RC4))
 	 . others)
       (rsa-generate-key-pair size prng e)))
