@@ -478,7 +478,7 @@
       (make-jwk:rsa 'RSA
 		    (jwk:config-use config)
 		    (jwk:config-key-ops config)
-		    (or (jwk:config-alg config) 'RS256) ;; should we?
+		    (jwk:config-alg config)
 		    (jwk:config-kid config)
 		    (jwk:config-x5u config)
 		    (map x509-certificate->bytevector (jwk:config-x5c config))
@@ -494,7 +494,7 @@
 	(make-jwk:ec 'EC
 		     (jwk:config-use config)
 		     (jwk:config-key-ops config)
-		     (or (jwk:config-alg config) alg) ;; should we?
+		     (jwk:config-alg config)
 		     (jwk:config-kid config)
 		     (jwk:config-x5u config)
 		     (map x509-certificate->bytevector (jwk:config-x5c config))
@@ -505,7 +505,7 @@
       (make-jwk:okp 'OKP
        (jwk:config-use config)
        (jwk:config-key-ops config)
-       (or (jwk:config-alg config) 'EdDSA) ;; should we?
+       (jwk:config-alg config)
        (jwk:config-kid config)
        (jwk:config-x5u config)
        (map x509-certificate->bytevector (jwk:config-x5c config))
