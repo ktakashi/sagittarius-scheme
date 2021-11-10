@@ -235,12 +235,12 @@
 
 (define jwt:iat-validator 
   (case-lambda
-   ((not-before not-after) (jwt:nbf-validator not-before not-after 0))
+   ((not-before not-after) (jwt:iat-validator not-before not-after 0))
    ((not-before not-after clock-skew)
     (define delta (make-time time-duration 0 clock-skew))
     (define (issued-between iat)
       (define now (add-duration (current-time) delta))
-      (and (time<? not-before now) (time<? now not-after)))
+      (and (time<=? not-before now) (time<=? now not-after)))
     (unless (and (time? not-before) (time? not-after))
       (assertion-violation 'jwt:iat-validator
 			   "not-before and not-after must be a time object"

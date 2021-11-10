@@ -3,8 +3,11 @@
 	(rfc jwk)
 	(rfc jwe)
 	(rfc jws)
+	(rfc uuid)
 	(text json)
 	(record accessor)
+	(except (crypto) make-eddsa-signer make-eddsa-verifier)
+	(srfi :19)
 	(sagittarius combinators)
 	(srfi :64))
 
@@ -123,4 +126,121 @@
 	       (jwt-claims? (json-string->jwt-claims
 			     (jwt-claims->json-string claims)))))
 
+(define (jwt-round-trip-test keypair alg claims)
+  (define jws-header
+    (jws-header-builder
+     (alg alg)))
+  (define payload (string->utf8 (jwt-claims->json-string claims)))
+  (define jws-object (make-jws-object jws-header payload))
+  (define signer (private-key->jws-signer (keypair-private keypair)))
+  (define jwks
+    (make-jwk-set (list (public-key->jwk (keypair-public keypair)))))
+
+  (let* ((jwt-object (jws:sign jws-object signer))
+	 (verifier (public-key->jws-verifier (car (jwk-set-keys jwks))))
+	 (jwt-consumer (jwt-consumer-builder
+			(verifier verifier)
+			(claims-validator
+			 (compose jwt:iss-required-validator
+				  jwt:sub-required-validator
+				  jwt:aud-required-validator
+				  jwt:exp-required-validator
+				  jwt:nbf-required-validator
+				  jwt:iat-required-validator
+				  jwt:jti-required-validator
+				  (jwt:iss-value-validator "Sagittarius Scheme"
+							   "Sagittarius")
+				  (jwt:sub-value-validator "Use Sagittarius")
+				  (jwt:aud-value-validator "Taurus"
+							   "All saints")
+				  (jwt:nbf-validator)
+				  (jwt:exp-validator)
+				  (jwt:iat-validator
+				   (add-duration (current-time)
+						 (make-time time-duration 0 -1))
+				   (add-duration (current-time)
+						 (make-time time-duration 0 1)))
+				  )))))
+    (jwt-claims->json (jwt:consume jwt-consumer jwt-object))))
+(define (build-claims :key
+		      (iss "Sagittarius Scheme")
+		      (aud "All saints")
+		      (sub "Use Sagittarius")
+		      (iat (current-time))
+		      (nbf -10)
+		      (exp 600)
+		      (jti (uuid->string (make-v4-uuid))))
+  (define cur (current-time))
+  (jwt-claims-builder
+   (iss iss)
+   (aud aud)
+   (sub sub)
+   (iat iat)
+   (nbf (and nbf (add-duration cur (make-time time-duration 0 nbf))))
+   (exp (and exp (add-duration cur (make-time time-duration 0 exp))))
+   (jti jti)))
+;; RSA
+(let ((keypair (generate-key-pair RSA)))
+  (let ((claims (build-claims)))
+    (test-assert "RS256" (json=? (jwt-claims->json claims)
+				 (jwt-round-trip-test keypair 'RS256 claims)))
+    (test-assert "RS384" (json=? (jwt-claims->json claims)
+				 (jwt-round-trip-test keypair 'RS384 claims)))
+    (test-assert "RS512" (json=? (jwt-claims->json claims)
+				 (jwt-round-trip-test keypair 'RS512 claims)))
+    (test-assert "PS256" (json=? (jwt-claims->json claims)
+				 (jwt-round-trip-test keypair 'PS256 claims)))
+    (test-assert "PS384" (json=? (jwt-claims->json claims)
+				 (jwt-round-trip-test keypair 'PS384 claims)))
+    ;; FIXME something went wrong
+    #;(test-assert "PS512" (json=? (jwt-claims->json claims)
+				 (jwt-round-trip-test keypair 'PS512 claims))))
+  ;; required claims validator test
+  (test-error "iss" (jwt-round-trip-test keypair 'RS256 (build-claims :iss #f)))
+  (test-error "aud" (jwt-round-trip-test keypair 'RS256 (build-claims :aud #f)))
+  (test-error "sub" (jwt-round-trip-test keypair 'RS256 (build-claims :sub #f)))
+  (test-error "iat" (jwt-round-trip-test keypair 'RS256 (build-claims :iat #f)))
+  (test-error "nbf" (jwt-round-trip-test keypair 'RS256 (build-claims :nbf #f)))
+  (test-error "exp" (jwt-round-trip-test keypair 'RS256 (build-claims :exp #f)))
+  (test-error "jti" (jwt-round-trip-test keypair 'RS256 (build-claims :jti #f)))
+  ;; value check failure
+  (test-assert "iss (ok)" (jwt-round-trip-test keypair 'RS256
+			   (build-claims :iss "Sagittarius")))
+  (test-assert "aud (ok)" (jwt-round-trip-test keypair 'RS256
+			   (build-claims :aud "Taurus")))
+  (test-error "iss" (jwt-round-trip-test keypair 'RS256
+					 (build-claims :iss "Gauche")))
+  (test-error "aud" (jwt-round-trip-test keypair 'RS256
+					 (build-claims :aud "Left")))
+  (test-error "sub" (jwt-round-trip-test keypair 'RS256
+		     (build-claims :sub "Don't use Sagittarius")))
+  (test-error "iat" (jwt-round-trip-test keypair 'RS256
+		     (build-claims :iat (add-duration (current-time) -10))))
+  (test-error "nbf" (jwt-round-trip-test keypair 'RS256 (build-claims :nbf 10)))
+  (test-assert "nbf (ok)"
+	       (jwt-round-trip-test keypair 'RS256 (build-claims :nbf 0)))
+  (test-error "exp" (jwt-round-trip-test keypair 'RS256 (build-claims :exp -1)))
+  )
+;; ES256
+(let ((keypair (generate-key-pair ECDSA :ec-parameter NIST-P-256))
+      (claims (build-claims)))
+  (test-assert "ES256" (json=? (jwt-claims->json claims)
+			       (jwt-round-trip-test keypair 'ES256 claims))))
+;; ES384
+(let ((keypair (generate-key-pair ECDSA :ec-parameter NIST-P-384))
+      (claims (build-claims)))
+  (test-assert "ES384" (json=? (jwt-claims->json claims)
+			       (jwt-round-trip-test keypair 'ES384 claims))))
+;; ES512
+(let ((keypair (generate-key-pair ECDSA :ec-parameter NIST-P-521))
+      (claims (build-claims)))
+  (test-assert "ES512" (json=? (jwt-claims->json claims)
+			       (jwt-round-trip-test keypair 'ES512 claims))))
+;; EdDSA
+(let ((keypair (generate-key-pair Ed25519))
+      (claims (build-claims)))
+  (test-assert "EdDSA" (json=? (jwt-claims->json claims)
+			       (jwt-round-trip-test keypair 'EdDSA claims))))
+  
+  
 (test-end)

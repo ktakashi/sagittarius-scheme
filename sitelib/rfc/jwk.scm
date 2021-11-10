@@ -502,7 +502,7 @@
 		     (x5c->fingerprint (jwk:config-x5c config) SHA-256)
 		     curv (ec-point-x Q) (ec-point-y Q))))
     (define (eddsa-public-key->jwk public-key)
-      (make-jwk:okp
+      (make-jwk:okp 'OKP
        (jwk:config-use config)
        (jwk:config-key-ops config)
        (or (jwk:config-alg config) 'EdDSA) ;; should we?
@@ -512,7 +512,7 @@
        (x5c->fingerprint (jwk:config-x5c config) SHA-1)
        (x5c->fingerprint (jwk:config-x5c config) SHA-256)
        (if (ed25519-key? public-key) 'Ed25519 'Ed448)
-       (bytevector->integer (eddsa-public-key-data public-key))))
+       (eddsa-public-key-data public-key)))
     (cond ((rsa-public-key? public-key) (rsa-public-key->jwk public-key))
 	  ((ecdsa-public-key? public-key) (ecdsa-public-key->jwk public-key))
 	  ((eddsa-public-key? public-key) (eddsa-public-key->jwk public-key))
