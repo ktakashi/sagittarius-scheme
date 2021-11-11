@@ -1464,13 +1464,30 @@ PpO1zqk5Ua50RLuhFKj9n+0OuD5pCnwPEizvsoh69jdEN9f/cRdU8Iusln42clM=")
 	   #x203d494428b8399352665ddca42f9de8fef600908e0d461cb021f8c538345dd77c3e4806e25f46d3315c44e0a5b4371282dd2c8d5be3095f
 	   #x0fbcc2f993cd56d3305b0b7d9e55d4c1a8fb5dbb52f8e9a1e9b6201b165d015894e56c4d3570bee52fe205e28a78b91cdfbde71ce8d157db)
 
-(define (test-key-generation type priv-a pub-a priv-b pub-b K)
+(define (test-key-generation type priv-a pub-a priv-b pub-b k)
   (let ((A (generate-private-key type (integer->bytevector priv-a)))
-	(B (generate-private-key type (integer->bytevector priv-b))))
+	(B (generate-private-key type (integer->bytevector priv-b)))
+	(K (integer->bytevector k)))
     (test-equal (integer->bytevector pub-a)
 		(rfc7748-public-key-data (rfc7748-private-key-public-key A)))
     (test-equal (integer->bytevector pub-b)
-		(rfc7748-public-key-data (rfc7748-private-key-public-key B)))))
+		(rfc7748-public-key-data (rfc7748-private-key-public-key B)))
+    (let ((agreement (if (x25519-private-key? A)
+			 x25519-calculate-agreement
+			 x448-calculate-agreement)))
+      (test-equal "A priv, B pub"
+		  K (agreement (rfc7748-private-key-random A)
+			       (rfc7748-public-key-data
+				(rfc7748-private-key-public-key B))))
+      (test-equal "B priv, A pub"
+		  K (agreement (rfc7748-private-key-random B)
+			       (rfc7748-public-key-data
+				(rfc7748-private-key-public-key A)))))
+    (test-equal "A priv, B pub" K
+		(calculate-key-agreement A (rfc7748-private-key-public-key B)))
+    (test-equal "B priv, A pub" K
+		(calculate-key-agreement B (rfc7748-private-key-public-key A)))
+    ))
 
 (test-key-generation
  X25519

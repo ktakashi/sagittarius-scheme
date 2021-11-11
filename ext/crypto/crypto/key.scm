@@ -32,13 +32,17 @@
 	    split-key
 	    combine-key-components
 	    combine-key-components!
+
+	    ;; key agreement
+	    calculate-key-agreement
 	    )
     (import (rnrs)
 	    (clos user)
 	    (sagittarius crypto)
 	    (crypto key pair)
 	    (crypto key des)
-	    (crypto key component))
+	    (crypto key component)
+	    (crypto key agreement))
 
 (define-generic symmetric-key-raw-key)
 

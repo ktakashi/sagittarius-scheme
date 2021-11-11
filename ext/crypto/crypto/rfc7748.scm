@@ -54,6 +54,7 @@
 	    (math random)
 	    (math modular)
 	    (crypto key pair)
+	    (crypto key agreement)
 	    (sagittarius crypto)
 	    (sagittarius) ;; for bytevector->integer/endian
 	    (core misc) ;; for define-vector-type
@@ -64,7 +65,7 @@
 (define-class <rfc7748-key> ()
   ((parameter :init-keyword :parameter :reader rfc7748-key-parameter)))
 (define-class <rfc7748-private-key> (<rfc7748-key> <private-key>)
-  ((random :init-keyword :parameter :reader rfc7748-private-key-random)
+  ((random :init-keyword :random :reader rfc7748-private-key-random)
    (public-key :init-keyword :public-key
 	       :reader rfc7748-private-key-public-key)))
 
@@ -83,19 +84,33 @@
 (define-class <x448-public-key> (<rfc7748-public-key>) ())
 (define (x448-public-key? o) (is-a? o <x448-public-key>))
 
+(define-method export-public-key ((key <rfc7748-public-key>))
+  (rfc7748-public-key-data key))
+(define-method export-private-key ((key <rfc7748-private-key>))
+  (rfc7748-private-key-random key))
+
 (define-method generate-public-key ((m (eql X25519)) data)
   (make <x25519-public-key> :data data :parameter x25519-curve-parameter))
+(define-method import-public-key ((m (eql X25519)) data)
+  (generate-public-key X25519 data))
 (define-method generate-public-key ((m (eql X448)) data)
   (make <x448-public-key> :data data :parameter x448-curve-parameter))
+(define-method import-public-key ((m (eql X448)) data)
+  (generate-public-key X448 data))
+
 
 (define-method generate-private-key ((m (eql X25519)) random)
   (let ((pub (compute-public-key random x25519-curve-parameter)))
     (make <x25519-private-key> :random random :parameter x25519-curve-parameter
 	  :public-key (generate-public-key X25519 pub))))
+(define-method import-private-key ((m (eql X25519)) random)
+  (generate-private-key X25519 random))
 (define-method generate-private-key ((m (eql X448)) random)
   (let ((pub (compute-public-key random x448-curve-parameter)))
     (make <x448-private-key> :random random :parameter x448-curve-parameter
 	  :public-key (generate-public-key X448 pub))))
+(define-method import-private-key ((m (eql X448)) random)
+  (generate-private-key X448 random))
 
 (define-method generate-key-pair ((m (eql X25519))
 				  :key (prng (secure-random ChaCha20)))
@@ -107,7 +122,17 @@
   (let* ((random (read-random-bytes prng 56))
 	 (private-key (generate-private-key X448 random)))
     (make-keypair private-key (rfc7748-private-key-public-key private-key))))
-    
+
+(define-method calculate-key-agreement ((priv <rfc7748-private-key>)
+					(pub <rfc7748-public-key>))
+  (define parameter (rfc7748-key-parameter priv))
+  (define agreement (curve-parameter-calculate-agreement parameter))
+  (unless (equal? parameter (rfc7748-key-parameter pub))
+    (assertion-violation 'calculate-key-agreement
+			 "Key types are not the same" priv pub))
+  (agreement (rfc7748-private-key-random priv)
+	     (rfc7748-public-key-data pub)))
+
 
 (define (compute-public-key k parameter)
   (define u (curve-parameter-u parameter))
