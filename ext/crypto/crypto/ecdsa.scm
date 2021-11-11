@@ -96,14 +96,14 @@
 
   (define-class <ecdsa-private-key> (<private-key>)
     ((d :init-keyword :d :reader ecdsa-private-key-d) ;; private key
-     (parameter :init-keyword :parameter :init-keyword #f
+     (parameter :init-keyword :parameter :init-value #f
 		:reader ecdsa-private-key-parameter) ;; domain parameter
      (public-key :init-keyword :public-key :init-value #f
 		 :reader ecdsa-private-key-public-key))) ;; public key
   (define (ecdsa-private-key? o) (is-a? o <ecdsa-private-key>))
   (define-class <ecdsa-public-key> (<public-key>)
     ((Q :init-keyword :Q :reader ecdsa-public-key-Q)
-     (parameter :init-keyword :parameter :init-keyword #f
+     (parameter :init-keyword :parameter :init-value #f
 		:reader ecdsa-public-key-parameter))) ;; domain parameter
   (define (ecdsa-public-key? o) (is-a? o <ecdsa-public-key>))
 

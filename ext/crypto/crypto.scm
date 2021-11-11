@@ -16,6 +16,7 @@
 	    (crypto dsa)
 	    (crypto ecdsa)
 	    (crypto eddsa)
+	    (crypto rfc7748)
 	    (crypto k-generator)
 	    (crypto ecdh)
 	    (crypto wrap)

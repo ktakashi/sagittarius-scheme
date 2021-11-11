@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
-;;; crypto/key/eddsa.scm - EdDSA cipher
+;;; crypto/eddsa.scm - EdDSA cipher
 ;;;
 ;;;  Copyright (c) 2021 Takashi Kato. All rights reserved.
 ;;;
