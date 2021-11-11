@@ -253,19 +253,11 @@
 	   (define (ecdh-decryptor mode)
 	     (define epk (jwe-header-epk jwe-header))
 	     (define pub (and epk (jwk->public-key epk)))
-	     (define ec-param (ecdsa-private-key-parameter key))
 	     
 	     (unless (ecdsa-public-key? pub)
 	       (assertion-violation 'ecdh-decryptor
 				    "epk is not an ECDSA public key"))
-	     (unless (equal? (ec-parameter-curve ec-param)
-			     (ec-parameter-curve
-			      (ecdsa-public-key-parameter pub)))
-		   (assertion-violation 'ecdh-decryptor
-					"Wrong EC key parameter"))
-	     (let* ((z (ecdhc-calculate-agreement ec-param
-						  (ecdsa-private-key-d key)
-						  (ecdsa-public-key-Q pub)))
+	     (let* ((z (calculate-key-agreement key pub))
 		    (cek (mode (ecdh-derive-shared-key jwe-header z)
 			   encrypted-key)))
 	       (core-decrypt jwe-header cek iv cipher-text auth-tag)))
@@ -470,20 +462,13 @@
 	     (define public-key-parameter (ecdsa-public-key-parameter key))
 	     (let-values (((priv pub)
 			   (ec-keypair-generator public-key-parameter)))
-	       (let ((param (ecdsa-private-key-parameter priv)))
-		 (unless (equal? (ec-parameter-curve param)
-				 (ec-parameter-curve public-key-parameter))
-		   (assertion-violation 'ecdh-encryptor
-					"Wrong EC key parameter"))
-		 (let ((z (ecdhc-calculate-agreement param
-						     (ecdsa-private-key-d priv)
-						     (ecdsa-public-key-Q key)))
-		       (new-header (jwe-header-builder (from jwe-header)
-				    (epk (public-key->jwk pub)))))
-		   (let-values (((cek encrypted-key)
-				 (mode (ecdh-derive-shared-key new-header z))))
-		     (core-encryptor cek encrypted-key new-header
-				     payload iv-generator))))))
+	       (let ((z (calculate-key-agreement priv key))
+		     (new-header (jwe-header-builder (from jwe-header)
+				  (epk (public-key->jwk pub)))))
+		 (let-values (((cek encrypted-key)
+			       (mode (ecdh-derive-shared-key new-header z))))
+		   (core-encryptor cek encrypted-key new-header
+				   payload iv-generator)))))
 	   (case alg
 	     ((ECDH-ES) (ecdh-encryptor ecdh-direct))
 	     ((ECDH-ES+A128KW ECDH-ES+A198KW ECDH-ES+A256KW)

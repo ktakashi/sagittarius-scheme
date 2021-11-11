@@ -37,7 +37,10 @@
     (export ecdh-calculate-agreement
 	    ecdhc-calculate-agreement)
     (import (rnrs)
-	    (math ec))
+	    (math ec)
+	    (clos user)
+	    (crypto key agreement)
+	    (crypto ecdsa))
   ;; SEC1 v2, section 3.3.1
   ;; ec-param - a curve parameter
   ;; du       - private key d from ec-priavate-key
@@ -60,4 +63,14 @@
     (let ((P (ec-point-mul curve Qv (mod (* du h) n))))
       (when (ec-point-infinity? P) (error 'ecdh-calculate-agreement "invalid"))
       (ec-point-x P)))
+
+  (define-method calculate-key-agreement ((priv <ecdsa-private-key>)
+					  (pub <ecdsa-public-key>))
+    (define param (ecdsa-private-key-parameter priv))
+    (unless (equal? (ec-parameter-curve param)
+		    (ec-parameter-curve (ecdsa-public-key-parameter pub)))
+      (assertion-violation 'calculate-key-agreement
+			   "Key type are not the same"))
+    (ecdhc-calculate-agreement param (ecdsa-private-key-d priv)
+			       (ecdsa-public-key-Q pub)))
 )
