@@ -14,8 +14,8 @@ jobs:
           path: target
       - name: Install dependencies
         run: |
-          apt-get update
-          apt-get -y install libgc-dev zlib1g-dev libffi-dev
+          sudo apt-get update
+          sudo apt-get -y install libgc-dev zlib1g-dev libffi-dev
       - name: Install current sagittarius
         working-directory: current_sagittarius
         run: |
@@ -26,7 +26,7 @@ jobs:
           cmake .
           make -j8 sash
           make
-          make install
+          sudo make install
       - name: Pre-build
         working-directory: target
         run: |
