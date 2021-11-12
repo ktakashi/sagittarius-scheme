@@ -43,6 +43,9 @@
 	    jwa:make-ed25519-public-key jwa:make-ed25519-private-key
 	    jwa:make-ed448-public-key jwa:make-ed448-private-key
 
+	    jwa:make-x25519-public-key jwa:make-x25519-private-key
+	    jwa:make-x448-public-key jwa:make-x448-private-key
+
 	    ;; moved
 	    x5c->x509-certificates
 
@@ -103,5 +106,10 @@
   (define (jwa:make-ed25519-private-key d) (generate-private-key Ed25519 d))
   (define (jwa:make-ed448-public-key x)  (generate-public-key Ed448 x))
   (define (jwa:make-ed448-private-key d) (generate-private-key Ed448 d))
+
+  (define (jwa:make-x25519-public-key x)  (generate-public-key X25519 x))
+  (define (jwa:make-x25519-private-key d) (generate-private-key X25519 d))
+  (define (jwa:make-x448-public-key x)  (generate-public-key X448 x))
+  (define (jwa:make-x448-private-key d) (generate-private-key X448 d))
   )
 

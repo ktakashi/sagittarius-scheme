@@ -281,8 +281,8 @@
      (integer->bytevector
       #x9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60)
      (jwk:okp-private-d jwk))
-    (test-assert (public-key? (jwk->public-key jwk)))
-    (test-assert (private-key? (jwk->private-key jwk))))
+    (test-assert (ed25519-public-key? (jwk->public-key jwk)))
+    (test-assert (ed25519-private-key? (jwk->private-key jwk))))
   (test-assert "OKP Ed25519 private" (jwk-set? (json->jwk-set json)))
   (let ((jwk-set (json->jwk-set json)))
     (test-assert (list? (jwk-set-keys jwk-set)))
@@ -307,7 +307,7 @@
      (integer->bytevector
       #xd75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a)
      (jwk:okp-x jwk))
-    (test-assert (public-key? (jwk->public-key jwk)))
+    (test-assert (ed25519-public-key? (jwk->public-key jwk)))
     (test-error (private-key? (jwk->private-key jwk))))
   (test-assert "OKP Ed25519 public" (jwk-set? (json->jwk-set json)))
   (let ((jwk-set (json->jwk-set json)))
@@ -319,5 +319,39 @@
 	 (jwk (json->jwk jwk-json)))
     (test-jwk jwk)
     (test-assert "jwk->json jwk:okp" (json=? jwk-json (jwk->json jwk)))))
+
+(let ((json #(("kty" . "OKP")
+	      ("crv" . "X25519")
+	      ("kid" . "Bob")
+	      ("x" . "3p7bfXt9wbTTW2HC7OQ1Nz-DQ8hbeGdNrfx-FG-IK08"))))
+  (define (test-jwk jwk)
+    (test-assert (jwk? jwk))
+    (test-assert (jwk:okp? jwk))
+    (test-assert (not (jwk:okp-private? jwk)))
+    (test-equal 'X25519 (jwk:okp-crv jwk))
+    (test-equal "X25519 OKP x"
+     (integer->bytevector
+      #xde9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f)
+     (jwk:okp-x jwk))
+    (test-assert (x25519-public-key? (jwk->public-key jwk)))
+    (test-error (private-key? (jwk->private-key jwk))))
+  (test-jwk (json->jwk json)))
+
+(let ((json #(("kty" . "OKP")
+	      ("crv" . "X448")
+	      ("kid" . "Dave")
+	      ("x" . "PreoKbDNIPW8_AtZm2_sz22kYnEHvbDU80W0MCfYuXL8PjT7QjKhPKcG3LV67D2uB73BxnvzNgk"))))
+  (define (test-jwk jwk)
+    (test-assert (jwk? jwk))
+    (test-assert (jwk:okp? jwk))
+    (test-assert (not (jwk:okp-private? jwk)))
+    (test-equal 'X448 (jwk:okp-crv jwk))
+    (test-equal "X448 OKP x"
+     (integer->bytevector
+      #x3eb7a829b0cd20f5bcfc0b599b6feccf6da4627107bdb0d4f345b43027d8b972fc3e34fb4232a13ca706dcb57aec3dae07bdc1c67bf33609)
+     (jwk:okp-x jwk))
+    (test-assert (x448-public-key? (jwk->public-key jwk)))
+    (test-error (private-key? (jwk->private-key jwk))))
+  (test-jwk (json->jwk json)))
 
 (test-end)

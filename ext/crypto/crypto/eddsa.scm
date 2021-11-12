@@ -44,7 +44,8 @@
 	    <eddsa-public-key> eddsa-public-key?
 	    eddsa-public-key-data
 
-	    ed25519-key? ed448-key?
+	    ed25519-key? ed25519-public-key? ed25519-private-key?
+	    ed448-key? ed448-public-key? ed448-private-key?
 	    
 	    ;; low level APIs?
 	    make-eddsa-signer make-eddsa-verifier
@@ -85,9 +86,19 @@
 (define (eddsa-public-key? o) (is-a? o <eddsa-public-key>))
 
 (define (ed25519-key? key)
-  (eq? 'ed25519 (eddsa-parameter-name (eddsa-key-parameter key))))
+  (and (eddsa-key? key)
+       (eq? 'ed25519 (eddsa-parameter-name (eddsa-key-parameter key)))))
 (define (ed448-key? key)
-  (eq? 'ed448 (eddsa-parameter-name (eddsa-key-parameter key))))
+  (and (eddsa-key? key)
+       (eq? 'ed448 (eddsa-parameter-name (eddsa-key-parameter key)))))
+(define (ed25519-public-key? key)
+  (and (eddsa-public-key? key) (ed25519-key? key)))
+(define (ed25519-private-key? key)
+  (and (eddsa-private-key? key) (ed25519-key? key)))
+(define (ed448-public-key? key)
+  (and (eddsa-public-key? key) (ed448-key? key)))
+(define (ed448-private-key? key)
+  (and (eddsa-private-key? key) (ed448-key? key)))
 
 (define-class <eddsa-cipher-spi> (<cipher-spi>) ())
 (define-method initialize ((o <eddsa-cipher-spi>) initargs)

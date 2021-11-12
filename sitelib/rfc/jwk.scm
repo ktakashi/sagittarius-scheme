@@ -28,7 +28,9 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-;; ref: https://tools.ietf.org/html/rfc7517
+;; ref:
+;; - https://tools.ietf.org/html/rfc7517
+;; - https://datatracker.ietf.org/doc/html/rfc8037
 
 #!nounbound
 (library (rfc jwk)
@@ -409,6 +411,8 @@
 	   (case (jwk:okp-crv jwk)
 	     ((Ed25519) (jwa:make-ed25519-public-key (jwk:okp-x jwk)))
 	     ((Ed448) (jwa:make-ed448-public-key (jwk:okp-x jwk)))
+	     ((X25519) (jwa:make-x25519-public-key (jwk:okp-x jwk)))
+	     ((X448) (jwa:make-x448-public-key (jwk:okp-x jwk)))
 	     (else
 	      (assertion-violation 'jwk->public-key
 				   "given OKP crv is not supported"
@@ -440,6 +444,8 @@
 	   (case (jwk:okp-crv jwk)
 	     ((Ed25519) (jwa:make-ed25519-private-key (jwk:okp-private-d jwk)))
 	     ((Ed448) (jwa:make-ed448-private-key (jwk:okp-private-d jwk)))
+	     ((X25519) (jwa:make-x25519-private-key (jwk:okp-private-d jwk)))
+	     ((X448) (jwa:make-x448-private-key (jwk:okp-private-d jwk)))
 	     (else
 	      (assertion-violation 'jwk->private-key
 				   "given OKP crv is not supported"
