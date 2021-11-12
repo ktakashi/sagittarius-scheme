@@ -1,0 +1,44 @@
+name: Sagittarius CI
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  Ubuntu-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          path: target
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get -y install libgc-dev zlib1g-dev libffi-dev
+      - name: Install current sagittarius
+        working-directory: current_sagittarius
+        run: |
+          curl -L -o version https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/latest-version.txt
+          curl -L -o sagittarius.tar.gz https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/sagittarius-`cat version`.tar.gz
+          tar --no-same-owner -xvf sagittarius.tar.gz
+          cd sagittarius-`cat version`
+          cmake .
+          make -j8 sash
+          make
+          make install
+      - name: Pre-build
+        working-directory: target
+        run: |
+          ./dist.sh gen
+          cmake .
+      - name: Build
+        working-directory: target
+        run: make
+      - name: Test
+        working-directory: target
+        run: make test
+      - name: JSON related tests
+        working-directory: target
+        run: make test-jsons
+          
