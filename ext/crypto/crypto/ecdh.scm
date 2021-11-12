@@ -38,6 +38,7 @@
 	    ecdh-calculate-agreement
 	    ecdhc-calculate-agreement)
     (import (rnrs)
+	    (sagittarius)
 	    (math ec)
 	    (clos user)
 	    (crypto key agreement)
@@ -74,6 +75,10 @@
 		    (ec-parameter-curve (ecdsa-public-key-parameter pub)))
       (assertion-violation 'calculate-key-agreement
 			   "Key type are not the same"))
-    (ecdhc-calculate-agreement param (ecdsa-private-key-d priv)
-			       (ecdsa-public-key-Q pub)))
+    ;; it's rather weird to return integer as secret key
+    ;; so convert it to bytevector.
+    ;; NOTE: actual implementation return integer for whatever the reason
+    (integer->bytevector
+     (ecdhc-calculate-agreement param (ecdsa-private-key-d priv)
+				(ecdsa-public-key-Q pub))))
 )

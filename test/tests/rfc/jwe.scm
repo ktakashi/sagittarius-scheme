@@ -482,20 +482,47 @@
 
 (let ()
   (define jwe-header (make-jwe-header "ECDH-ES"))
-  (define z0 (ecdhc-calculate-agreement (ecdsa-public-key-parameter pub-b)
-					(ecdsa-private-key-d pri-a)
-					(ecdsa-public-key-Q pub-b)))
-  (define z1 (ecdhc-calculate-agreement (ecdsa-private-key-parameter pri-b)
-					(ecdsa-private-key-d pri-b)
-					(ecdsa-public-key-Q pub-a)))
+  (define z0 (calculate-key-agreement ECDH pri-a pub-b))
+  (define z1 (calculate-key-agreement ECDH pri-b pub-a))
 
   (test-equal "Of encryptor" "VqqN6vgjbSBcIijNcacQGg"
 	      (utf8->string
-	       (base64url-encode (jwe:ecdh-derive-shared-key jwe-header z0))))
+	       (base64url-encode
+		(jwe:ecdh-derive-shared-key jwe-header z0))))
   (test-equal "Of decryptor" "VqqN6vgjbSBcIijNcacQGg"
 	      (utf8->string
 	       (base64url-encode (jwe:ecdh-derive-shared-key jwe-header z1))))
 )
+)
+
+(let ()
+;; X25519
+;; there's not complete test vector on RFC 8037
+;; so just doing round trip tests here.
+;; NOTE: computation of Z is tested on crypto library side
+(define (test-ecdh-rfc7748 type alg)
+  (define keypair (generate-key-pair type))
+  (define ecdsa-encryptor (make-ecdh-encryptor (keypair-public keypair)))
+  (define ecdsa-decryptor (make-ecdh-decryptor (keypair-private keypair)))
+
+  (define plain-text (string->utf8 "alice to bob"))
+  (define jwe-header
+    (jwe-header-builder
+     (alg (string->symbol alg))
+     (enc 'A128GCM)
+     (kid "Bob")))
+  (let ((jwe-object (jwe:encrypt ecdsa-encryptor jwe-header plain-text)))
+    (test-equal (list type alg)
+		plain-text (jwe:decrypt ecdsa-decryptor jwe-object))))
+
+(test-ecdh-rfc7748 X25519 "ECDH-ES")
+(test-ecdh-rfc7748 X25519 "ECDH-ES+A128KW")
+(test-ecdh-rfc7748 X25519 "ECDH-ES+A198KW")
+(test-ecdh-rfc7748 X25519 "ECDH-ES+A256KW")
+(test-ecdh-rfc7748 X448 "ECDH-ES")
+(test-ecdh-rfc7748 X448 "ECDH-ES+A128KW")
+(test-ecdh-rfc7748 X448 "ECDH-ES+A198KW")
+(test-ecdh-rfc7748 X448 "ECDH-ES+A256KW")
 
 
 )

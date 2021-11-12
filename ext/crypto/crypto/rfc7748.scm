@@ -40,11 +40,12 @@
 
 	    <x25519-private-key> x25519-private-key?
 	    <x448-private-key> x448-private-key?
+	    rfc7748-private-key?
 	    rfc7748-private-key-random rfc7748-private-key-public-key
 
 	    <x25519-public-key> x25519-public-key?
 	    <x448-public-key> x448-public-key?
-	    rfc7748-public-key-data
+	    rfc7748-public-key? rfc7748-public-key-data
 	    
 	    
 	    x25519-calculate-agreement
@@ -65,10 +66,12 @@
 
 (define-class <rfc7748-key> ()
   ((parameter :init-keyword :parameter :reader rfc7748-key-parameter)))
+(define (rfc7748-key? o) (is-a? o <rfc7748-key>))
 (define-class <rfc7748-private-key> (<rfc7748-key> <private-key>)
   ((random :init-keyword :random :reader rfc7748-private-key-random)
    (public-key :init-keyword :public-key
 	       :reader rfc7748-private-key-public-key)))
+(define (rfc7748-private-key? o) (is-a? o <rfc7748-private-key>))
 
 (define-class <x25519-private-key> (<rfc7748-private-key>) ())
 (define (x25519-private-key? o) (is-a? o <x25519-private-key>))
@@ -79,6 +82,7 @@
 ;;; Public key
 (define-class <rfc7748-public-key> (<rfc7748-key> <public-key>)
   ((data :init-keyword :data :reader rfc7748-public-key-data)))
+(define (rfc7748-public-key? o) (is-a? o <rfc7748-public-key>))
 (define-class <x25519-public-key> (<rfc7748-public-key>) ())
 (define (x25519-public-key? o) (is-a? o <x25519-public-key>))
 

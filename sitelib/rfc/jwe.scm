@@ -239,7 +239,7 @@
 ;;; Decryptors
 ;; ECDH-ES key unwrap
 (define (make-ecdh-decryptor key)
-  (cond ((ecdsa-private-key? key)
+  (cond ((or (ecdsa-private-key? key) (rfc7748-private-key? key))
 	 (lambda (jwe-header encrypted-key iv cipher-text auth-tag)
 	   (define alg (jose-crypto-header-alg jwe-header))
 	   (define enc (jwe-header-enc jwe-header))
@@ -254,9 +254,9 @@
 	     (define epk (jwe-header-epk jwe-header))
 	     (define pub (and epk (jwk->public-key epk)))
 	     
-	     (unless (ecdsa-public-key? pub)
+	     (unless (or (ecdsa-public-key? pub) (rfc7748-public-key? pub))
 	       (assertion-violation 'ecdh-decryptor
-				    "epk is not an ECDSA public key"))
+		 "epk is not an ECDSA, X25519 or X448 public key"))
 	     (let* ((z (calculate-key-agreement ECDH key pub))
 		    (cek (mode (ecdh-derive-shared-key jwe-header z)
 			   encrypted-key)))
@@ -437,7 +437,9 @@
 (define default-cek-generator (make-random-generator (secure-random ChaCha20)))
 
 (define (default-ec-keypair-generator ec-parameter)
-  (let ((kp (generate-key-pair ECDSA ec-parameter)))
+  (let ((kp (cond ((eq? ec-parameter X25519) (generate-key-pair X25519))
+		  ((eq? ec-parameter X448) (generate-key-pair X448))
+		  (else (generate-key-pair ECDSA ec-parameter)))))
     (values (keypair-private kp) (keypair-public kp))))
 
 ;; ECDH-ES key wrap
@@ -445,36 +447,40 @@
 			     (ec-keypair-generator default-ec-keypair-generator)
 			     (cek-generator default-cek-generator)
 			     (iv-generator default-iv-generator))
-  (cond ((ecdsa-public-key? key)
-	 (lambda (jwe-header payload)
-	   (define alg (jose-crypto-header-alg jwe-header))
-	   (define enc (jwe-header-enc jwe-header))
-	   
-	   (define (ecdh-direct shared-key)
-	     (values (generate-secret-key AES shared-key) #vu8()))
-	   (define (ecdh-aes-wrap shared-key)
-	     (let ((kek (generate-secret-key AES shared-key))
-		   (cek (cek-generator (get-aes-key-byte-size enc))))
-	       (values (generate-secret-key AES cek)
-		       (aes-key-wrap kek cek))))
-	   
-	   (define (ecdh-encryptor mode)
-	     (define public-key-parameter (ecdsa-public-key-parameter key))
-	     (let-values (((priv pub)
-			   (ec-keypair-generator public-key-parameter)))
-	       (let ((z (calculate-key-agreement ECDH priv key))
-		     (new-header (jwe-header-builder (from jwe-header)
-				  (epk (public-key->jwk pub)))))
-		 (let-values (((cek encrypted-key)
-			       (mode (ecdh-derive-shared-key new-header z))))
-		   (core-encryptor cek encrypted-key new-header
-				   payload iv-generator)))))
-	   (case alg
-	     ((ECDH-ES) (ecdh-encryptor ecdh-direct))
-	     ((ECDH-ES+A128KW ECDH-ES+A198KW ECDH-ES+A256KW)
-	      (ecdh-encryptor ecdh-aes-wrap))
-	     (else 
-	      (assertion-violation 'ecdh-encryptor "Unknown alg" alg)))))
+  (cond ((or (ecdsa-public-key? key) (rfc7748-public-key? key))
+	 (let ((key-parameter
+		(cond ((ecdsa-public-key? key) (ecdsa-public-key-parameter key))
+		      ((x25519-public-key? key) X25519)
+		      ((x448-public-key? key) X448)
+		      (else (assertion-violation 'make-ecdh-encryptor
+						 "Unknown key" key)))))
+	   (lambda (jwe-header payload)
+	     (define alg (jose-crypto-header-alg jwe-header))
+	     (define enc (jwe-header-enc jwe-header))
+	     
+	     (define (ecdh-direct shared-key)
+	       (values (generate-secret-key AES shared-key) #vu8()))
+	     (define (ecdh-aes-wrap shared-key)
+	       (let ((kek (generate-secret-key AES shared-key))
+		     (cek (cek-generator (get-aes-key-byte-size enc))))
+		 (values (generate-secret-key AES cek)
+			 (aes-key-wrap kek cek))))
+	     
+	     (define (ecdh-encryptor mode)
+	       (let-values (((priv pub) (ec-keypair-generator key-parameter)))
+		 (let ((z (calculate-key-agreement ECDH priv key))
+		       (new-header (jwe-header-builder (from jwe-header)
+				    (epk (public-key->jwk pub)))))
+		   (let-values (((cek encrypted-key)
+				 (mode (ecdh-derive-shared-key new-header z))))
+		     (core-encryptor cek encrypted-key new-header
+				     payload iv-generator)))))
+	     (case alg
+	       ((ECDH-ES) (ecdh-encryptor ecdh-direct))
+	       ((ECDH-ES+A128KW ECDH-ES+A198KW ECDH-ES+A256KW)
+		(ecdh-encryptor ecdh-aes-wrap))
+	       (else 
+		(assertion-violation 'ecdh-encryptor "Unknown alg" alg))))))
 	((jwk? key)
 	 (make-ecdh-encryptor (jwk->public-key key)
 			      :cek-generator cek-generator
@@ -614,7 +620,7 @@
 			   (get-aes-key-byte-size alg))
 		       8)))
     (concat-kdf SHA-256
-		(integer->bytevector z)
+		z
 		key-length
 		(encode-data/length (string->utf8 (symbol->string alg-id)))
 		(encode-data/length (jwe-header-apu jwe-header))
@@ -622,7 +628,9 @@
 		(integer->bytevector key-length 4))))
 
 (define (encode-data/length bv)
-  (bytevector-append (integer->bytevector (bytevector-length bv) 4) bv))
+  (if bv
+      (bytevector-append (integer->bytevector (bytevector-length bv) 4) bv)
+      #vu8()))
 ;; This is defined in NIST 800-56A, so maybe better to make a separate library
 ;; ref:
 ;; https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-56Cr1.pdf

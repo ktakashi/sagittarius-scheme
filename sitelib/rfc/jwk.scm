@@ -519,9 +519,23 @@
        (x5c->fingerprint (jwk:config-x5c config) SHA-256)
        (if (ed25519-key? public-key) 'Ed25519 'Ed448)
        (eddsa-public-key-data public-key)))
+    (define (rfc7748-public-key->jwk public-key)
+      (make-jwk:okp 'OKP
+       (jwk:config-use config)
+       (jwk:config-key-ops config)
+       (jwk:config-alg config)
+       (jwk:config-kid config)
+       (jwk:config-x5u config)
+       (map x509-certificate->bytevector (jwk:config-x5c config))
+       (x5c->fingerprint (jwk:config-x5c config) SHA-1)
+       (x5c->fingerprint (jwk:config-x5c config) SHA-256)
+       (if (x25519-public-key? public-key) 'X25519 'X448)
+       (rfc7748-public-key-data public-key)))
     (cond ((rsa-public-key? public-key) (rsa-public-key->jwk public-key))
 	  ((ecdsa-public-key? public-key) (ecdsa-public-key->jwk public-key))
 	  ((eddsa-public-key? public-key) (eddsa-public-key->jwk public-key))
+	  ((rfc7748-public-key? public-key)
+	   (rfc7748-public-key->jwk public-key))
 	  (else (assertion-violation 'public-key->jwk "Unsupported key"
 				     public-key))))
   
