@@ -32,15 +32,17 @@
 ;;    http://www.secg.org/sec1-v2.pdf
 ;;  - 800-56A
 ;;    http://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-56Ar2.pdf
-
+#!nounbound
 (library (crypto ecdh)
-    (export ecdh-calculate-agreement
+    (export ECDH
+	    ecdh-calculate-agreement
 	    ecdhc-calculate-agreement)
     (import (rnrs)
 	    (math ec)
 	    (clos user)
 	    (crypto key agreement)
 	    (crypto ecdsa))
+  (define ECDH :ecdh)
   ;; SEC1 v2, section 3.3.1
   ;; ec-param - a curve parameter
   ;; du       - private key d from ec-priavate-key
@@ -64,7 +66,8 @@
       (when (ec-point-infinity? P) (error 'ecdh-calculate-agreement "invalid"))
       (ec-point-x P)))
 
-  (define-method calculate-key-agreement ((priv <ecdsa-private-key>)
+  (define-method calculate-key-agreement ((m (eql ECDH))
+					  (priv <ecdsa-private-key>)
 					  (pub <ecdsa-public-key>))
     (define param (ecdsa-private-key-parameter priv))
     (unless (equal? (ec-parameter-curve param)

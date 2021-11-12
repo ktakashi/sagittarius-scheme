@@ -53,6 +53,7 @@
 	    (clos user)
 	    (math random)
 	    (math modular)
+	    (crypto ecdh) ;; for marker
 	    (crypto key pair)
 	    (crypto key agreement)
 	    (sagittarius crypto)
@@ -123,7 +124,8 @@
 	 (private-key (generate-private-key X448 random)))
     (make-keypair private-key (rfc7748-private-key-public-key private-key))))
 
-(define-method calculate-key-agreement ((priv <rfc7748-private-key>)
+(define-method calculate-key-agreement ((m (eql ECDH))
+					(priv <rfc7748-private-key>)
 					(pub <rfc7748-public-key>))
   (define parameter (rfc7748-key-parameter priv))
   (define agreement (curve-parameter-calculate-agreement parameter))

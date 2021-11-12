@@ -1484,9 +1484,11 @@ PpO1zqk5Ua50RLuhFKj9n+0OuD5pCnwPEizvsoh69jdEN9f/cRdU8Iusln42clM=")
 			       (rfc7748-public-key-data
 				(rfc7748-private-key-public-key A)))))
     (test-equal "A priv, B pub" K
-		(calculate-key-agreement A (rfc7748-private-key-public-key B)))
+		(calculate-key-agreement ECDH
+					 A (rfc7748-private-key-public-key B)))
     (test-equal "B priv, A pub" K
-		(calculate-key-agreement B (rfc7748-private-key-public-key A)))
+		(calculate-key-agreement ECDH
+					 B (rfc7748-private-key-public-key A)))
     ))
 
 (test-key-generation

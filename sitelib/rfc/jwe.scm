@@ -257,7 +257,7 @@
 	     (unless (ecdsa-public-key? pub)
 	       (assertion-violation 'ecdh-decryptor
 				    "epk is not an ECDSA public key"))
-	     (let* ((z (calculate-key-agreement key pub))
+	     (let* ((z (calculate-key-agreement ECDH key pub))
 		    (cek (mode (ecdh-derive-shared-key jwe-header z)
 			   encrypted-key)))
 	       (core-decrypt jwe-header cek iv cipher-text auth-tag)))
@@ -462,7 +462,7 @@
 	     (define public-key-parameter (ecdsa-public-key-parameter key))
 	     (let-values (((priv pub)
 			   (ec-keypair-generator public-key-parameter)))
-	       (let ((z (calculate-key-agreement priv key))
+	       (let ((z (calculate-key-agreement ECDH priv key))
 		     (new-header (jwe-header-builder (from jwe-header)
 				  (epk (public-key->jwk pub)))))
 		 (let-values (((cek encrypted-key)
