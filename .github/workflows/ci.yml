@@ -16,6 +16,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get -y install libgc-dev zlib1g-dev libffi-dev curl
+          mkdir current_sagittarius
       - name: Install current sagittarius
         working-directory: current_sagittarius
         run: |
