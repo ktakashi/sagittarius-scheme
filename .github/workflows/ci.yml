@@ -19,8 +19,8 @@ jobs:
       - name: Install current sagittarius
         working-directory: current_sagittarius
         run: |
-          curl -L -o version https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/latest-version.txt
-          curl -L -o sagittarius.tar.gz https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/sagittarius-`cat version`.tar.gz
+          curl -v -L -o version https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/latest-version.txt
+          curl -v -L -o sagittarius.tar.gz https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/sagittarius-`cat version`.tar.gz
           tar --no-same-owner -xvf sagittarius.tar.gz
           cd sagittarius-`cat version`
           cmake .
