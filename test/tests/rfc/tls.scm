@@ -39,7 +39,10 @@
 					      :private-key (keypair-private keypair)
 					      :authorities (list client-cert)
 					      :client-certificate-required? #f
-					      :certificate-verifier #t))
+					      ;; self signed certificate
+					      ;; will be rejected if
+					      ;; we use default verifier
+					      :certificate-verifier #f))
 
 (define (server-run)
   (define end? #f)
