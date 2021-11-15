@@ -326,15 +326,15 @@
 				     close)))
 
   (define (deflate-bytevector bv . args)
-    (call-with-bytevector-output-port
-     (^p (let1 p2 (apply open-deflating-output-port p args)
-	   (put-bytevector p2 bv)
-	   (close-output-port p2)))))
+    (let-values (((out e) (open-bytevector-output-port)))
+      (let ((p (apply open-deflating-output-port out :owner? #f args)))
+	(put-bytevector p bv)
+	(close-port p)
+	(e))))
 
   (define (inflate-bytevector bv . args)
-    (call-with-bytevector-output-port
-     (^p (let1 p2 (apply open-inflating-input-port p args)
-	   (put-bytevector p2 bv)
-	   (close-output-port p2)))))
+    (let ((p (apply open-inflating-input-port
+		    (open-bytevector-input-port bv) :owner? #t args)))
+      (get-bytevector-all p)))
 	
 )
