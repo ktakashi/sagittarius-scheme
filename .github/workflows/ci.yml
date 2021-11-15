@@ -20,8 +20,8 @@ jobs:
       - name: Install current sagittarius
         working-directory: current_sagittarius
         run: |
-          curl -v -L -o version https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/latest-version.txt
-          curl -v -L -o sagittarius.tar.gz https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/sagittarius-`cat version`.tar.gz
+          curl -L -o version https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/latest-version.txt
+          curl -L -o sagittarius.tar.gz https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/sagittarius-`cat version`.tar.gz
           tar --no-same-owner -xvf sagittarius.tar.gz
           cd sagittarius-`cat version`
           cmake .
@@ -42,4 +42,50 @@ jobs:
       - name: JSON related tests
         working-directory: target
         run: make test-jsons
-          
+
+  Macos-build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          path: target
+        with:
+          path: target
+      - name: Install dependencies
+        run: |
+          echo brew "bdw-gc" >> Brewfile
+          echo brew "libffi" >> Brewfile
+          echo brew "openssl" >> Brewfile
+          echo brew "curl" >> Brewfile
+          brew bundle install --file Brewfile
+          mkdir current_sagittarius
+      # from here is the same, so maybe we should consider to
+      # use composite action described here
+      # https://docs.github.com/en/actions/creating-actions/creating-a-composite-action
+      # but it's rather silly to create a repository to do this...
+      - name: Install current sagittarius
+        working-directory: current_sagittarius
+        run: |
+          curl -L -o version https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/latest-version.txt
+          curl -L -o sagittarius.tar.gz https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/sagittarius-`cat version`.tar.gz
+          tar --no-same-owner -xvf sagittarius.tar.gz
+          cd sagittarius-`cat version`
+          cmake .
+          make -j8 sash
+          make
+          sudo make install
+      - name: Pre-build
+        working-directory: target
+        run: |
+          ./dist.sh gen
+          cmake .
+      - name: Build
+        working-directory: target
+        run: make
+      - name: Test
+        working-directory: target
+        run: make test
+      - name: JSON related tests
+        working-directory: target
+        run: make test-jsons
