@@ -50,8 +50,6 @@ jobs:
         uses: actions/checkout@v2
         with:
           path: target
-        with:
-          path: target
       - name: Install dependencies
         run: |
           echo brew "bdw-gc" >> Brewfile
