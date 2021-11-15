@@ -52,10 +52,10 @@ jobs:
           path: target
       - name: Install dependencies
         run: |
-          echo brew "bdw-gc" >> Brewfile
-          echo brew "libffi" >> Brewfile
-          echo brew "openssl" >> Brewfile
-          echo brew "curl" >> Brewfile
+          echo 'brew "bdw-gc"' >> Brewfile
+          echo 'brew "libffi"' >> Brewfile
+          echo 'brew "openssl"' >> Brewfile
+          echo 'brew "curl"' >> Brewfile
           brew bundle install --file Brewfile
           mkdir current_sagittarius
       # from here is the same, so maybe we should consider to
