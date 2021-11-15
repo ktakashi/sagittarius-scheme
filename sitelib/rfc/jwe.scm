@@ -84,6 +84,7 @@
 	    (rfc jwk)
 	    (rfc base64)
 	    (rfc hmac)
+	    (rfc zlib)
 	    (rsa pkcs :5)
 	    (crypto)
 	    (math)
@@ -365,15 +366,24 @@
 (define (core-decrypt jwe-header key iv cipher-text auth-tag)
   (define enc (jwe-header-enc jwe-header))
   (define aad (jwe-header->aad jwe-header))
-  (case enc
-    ((A128CBC-HS256 A192CBC-HS384 A256CBC-HS512)
-     (decrypt-aes-hmac key (get-aes-key-byte-size enc)
-		       (get-hmac-digest enc) aad iv cipher-text auth-tag))
-    ((A128GCM A192GCM A256GCM)
-     (decrypt-aes-gcm key (get-aes-key-byte-size enc)
-		      aad iv cipher-text auth-tag))
-    (else (assertion-violation 'get-cipher "Unsupported enc type" enc))))
-
+  (define (decrypt enc key aad iv cipher-text auth-tag)
+    (case enc
+      ((A128CBC-HS256 A192CBC-HS384 A256CBC-HS512)
+       (decrypt-aes-hmac key (get-aes-key-byte-size enc)
+			 (get-hmac-digest enc) aad iv cipher-text auth-tag))
+      ((A128GCM A192GCM A256GCM)
+       (decrypt-aes-gcm key (get-aes-key-byte-size enc)
+			aad iv cipher-text auth-tag))
+      (else (assertion-violation 'get-cipher "Unsupported enc type" enc))))
+  (define (decompress jwe-header payload)
+    (case (jwe-header-zip jwe-header)
+      ((DEF) (inflate-bytevector payload))
+      ((#f)  payload)
+      (else (assertion-violation 'core-decrypt
+				 "Unknown 'zip' algorithm"
+				 (jwe-header-zip jwe-header)0))))
+  (decompress jwe-header (decrypt enc key aad iv cipher-text auth-tag)))
+  
 ;; AES-CBC-HMAC
 (define (decrypt-aes-hmac key key-size digest aad iv cipher-text auth-tag)
   (let-values (((mac-key dec-key) (aes-hmac-derive-keys key key-size)))
@@ -669,7 +679,15 @@
   (define enc (jwe-header-enc jwe-header))
   (define encryption-cipher (get-encryptor enc key iv-generator))
   (define aad (jwe-header->aad jwe-header))
-  (let-values (((iv cipher-text auth-tag) (encryption-cipher aad payload)))
+  (define (compress jwe-header payload)
+    (case (jwe-header-zip jwe-header)
+      ((DEF) (deflate-bytevector payload))
+      ((#f)  payload)
+      (else (assertion-violation 'core-encryptor
+				 "Unknown 'zip' algorithm"
+				 (jwe-header-zip jwe-header)))))
+  (let-values (((iv cipher-text auth-tag)
+		(encryption-cipher aad (compress jwe-header payload))))
     (make-jwe-object jwe-header encrypted-key iv cipher-text auth-tag)))
 
 (define (get-encryptor enc key iv-generator)

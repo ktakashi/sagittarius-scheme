@@ -505,15 +505,39 @@
   (define ecdsa-encryptor (make-ecdh-encryptor (keypair-public keypair)))
   (define ecdsa-decryptor (make-ecdh-decryptor (keypair-private keypair)))
 
-  (define plain-text (string->utf8 "alice to bob"))
+  (define plain-text
+    (string->utf8 "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."))
   (define jwe-header
     (jwe-header-builder
      (alg (string->symbol alg))
      (enc 'A128GCM)
      (kid "Bob")))
-  (let ((jwe-object (jwe:encrypt ecdsa-encryptor jwe-header plain-text)))
-    (test-equal (list type alg)
-		plain-text (jwe:decrypt ecdsa-decryptor jwe-object))))
+  (define jwe-header/zip
+    (jwe-header-builder
+     (alg (string->symbol alg))
+     (enc 'A128GCM)
+     (kid "Bob")
+     (zip 'DEF)))
+  (let ((jwe-object (jwe:encrypt ecdsa-encryptor jwe-header plain-text))
+	(jwe-object/zip
+	 (jwe:encrypt ecdsa-encryptor jwe-header/zip plain-text)))
+    (let ((s (jwe:serialize jwe-object))
+	  (s/zip (jwe:serialize jwe-object/zip)))
+      (test-assert "Not the same (zip)" (not (string=? s s/zip)))
+      (test-assert "Compression makes it smaller"
+	   (< (bytevector-length (jwe-object-cipher-text jwe-object/zip))
+	      (bytevector-length (jwe-object-cipher-text jwe-object))))
+      (test-equal (list type alg)
+		  plain-text (jwe:decrypt ecdsa-decryptor jwe-object))
+      (test-equal (list "Full round trip" type alg)
+		  plain-text
+		  (jwe:decrypt ecdsa-decryptor
+			       (jwe:parse (jwe:serialize jwe-object))))
+      (test-equal (list "Full round trip/zip" type alg)
+		  plain-text
+		  (jwe:decrypt ecdsa-decryptor
+			       (jwe:parse (jwe:serialize jwe-object/zip))))
+      )))
 
 (test-ecdh-rfc7748 X25519 "ECDH-ES")
 (test-ecdh-rfc7748 X25519 "ECDH-ES+A128KW")
