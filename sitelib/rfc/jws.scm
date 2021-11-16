@@ -392,16 +392,21 @@
 	(else (assertion-violation 'make-ecdsa-signer
 				   "Private key required" key))))
 
-(define (public-key->jws-verifier key)
-  (cond ((jwk:oct? key) (public-key->jws-verifier (jwk->octet-key key)))
-	((jwk? key) (public-key->jws-verifier (jwk->public-key key)))
-	((rsa-public-key? key) (make-rsa-verifier key))
-	((bytevector? key) (make-mac-verifier key))
-	((ecdsa-public-key? key) (make-ecdsa-verifier key))
-	((eddsa-public-key? key) (make-eddsa-verifier key))
-	(else
-	 (assertion-violation
-	  'public-key->jws-verifier "Unknown public key" key))))
+(define public-key->jws-verifier
+  (case-lambda
+   ((key) (public-key->jws-verifier key #f))
+   ((key critical-heaaders)
+    (cond ((jwk:oct? key)
+	   (public-key->jws-verifier (jwk->octet-key key) critical-heaaders))
+	  ((jwk? key)
+	   (public-key->jws-verifier (jwk->public-key key) critical-heaaders))
+	  ((rsa-public-key? key) (make-rsa-verifier key critical-heaaders))
+	  ((bytevector? key) (make-mac-verifier key critical-heaaders))
+	  ((ecdsa-public-key? key) (make-ecdsa-verifier key critical-heaaders))
+	  ((eddsa-public-key? key) (make-eddsa-verifier key critical-heaaders))
+	  (else
+	   (assertion-violation
+	    'public-key->jws-verifier "Unknown public key" key))))))
 
 (define (private-key->jws-signer key)
   (cond ((jwk:oct? key) (private-key->jws-signer (jwk->octet-key key)))
