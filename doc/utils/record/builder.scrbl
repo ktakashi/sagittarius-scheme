@@ -1,4 +1,4 @@
-@subsection[:tag "record.builderr"]{(record builder) - Record builder}
+@subsection[:tag "record.builder"]{(record builder) - Record builder}
 
 @define[Library]{@name{(record builder)}}
 @desc{Record builder library. This library provides utilities to

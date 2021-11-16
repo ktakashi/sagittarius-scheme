@@ -122,7 +122,10 @@
 	 (jws-header-builder (from obj)(custom-parameters custom-parameters))
 	 (assertion-violation 'json->jws-header "Something was wrong" obj)))))
 
-(define (read-jws-header port) (json->jws-header (json-read port)))
+(define read-jws-header
+  (case-lambda
+   (() (read-jws-header (current-input-port)))
+   ((port) (json->jws-header (json-read port)))))
 (define (json-string->jws-header json-string)
   (read-jws-header (open-string-input-port json-string)))
 
