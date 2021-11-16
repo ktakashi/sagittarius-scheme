@@ -45,19 +45,10 @@
 
 	    jwa:make-x25519-public-key jwa:make-x25519-private-key
 	    jwa:make-x448-public-key jwa:make-x448-private-key
-
-	    ;; moved
-	    x5c->x509-certificates
-
 	    )
     (import (rnrs)
-	    (rfc x.509)
 	    (sagittarius)
 	    (crypto))
-
-  ;; Util
-  (define (x5c->x509-certificates x5c)
-    (map make-x509-certificate x5c))
 
   (define-constant +curve-names+
     `((P-256 ,NIST-P-256)

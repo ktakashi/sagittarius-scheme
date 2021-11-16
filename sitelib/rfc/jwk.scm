@@ -179,7 +179,8 @@
   
   (define (base64-url-string->bytevector s) (base64url-decode (string->utf8 s)))
   (define (base64-string->bytevector s) (base64-decode-string s :transcoder #f))
-  
+  (define (b64-string->x509-certificate s)
+    (make-x509-certificate (base64-string->bytevector s)))
   (define jwk-builder
     (json-object-builder
      (make-jwk
@@ -189,7 +190,7 @@
       (? "alg" #f string->symbol)
       (? "kid" #f)
       (? "x5u" #f)
-      (? "x5c" '() (@ list base64-string->bytevector))
+      (? "x5c" '() (@ list b64-string->x509-certificate))
       (? "x5t" #f)
       (? "x5t#S256" #f))))
   
@@ -299,6 +300,8 @@
   
   (define (bytevector->b64-string bv)
     (utf8->string (base64-encode bv :line-width #f)))
+  (define (x509-certificate->b64-string cert)
+    (bytevector->b64-string (x509-certificate->bytevector cert)))
   (define-syntax jwk-serializer
     (syntax-rules ()
       ((_ (key acc ...) ...)
@@ -310,7 +313,7 @@
 	 (? "alg" #f jwk-alg symbol->string)
 	 (? "kid" #f jwk-kid)
 	 (? "x5u" #f jwk-x5u)
-	 (? "x5c" '() jwk-x5c (-> bytevector->b64-string))
+	 (? "x5c" '() jwk-x5c (-> x509-certificate->b64-string))
 	 (? "x5t" #f jwk-x5t)
 	 (? "x5t#S256" #f jwk-x5t-s256))))))
 
@@ -395,8 +398,7 @@
       (extract)))
   
   ;; usages
-  (define (jwk->certificate-chain jwk)
-    (x5c->x509-certificates (jwk-x5c jwk)))
+  (define (jwk->certificate-chain jwk) (jwk-x5c jwk))
 
   (define (jwk->public-key jwk)
     ;; jwk:ec-private or jwk:rsa-private can also be a public key

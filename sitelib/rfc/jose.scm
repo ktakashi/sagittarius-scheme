@@ -128,6 +128,8 @@
     (? "___" #f))))
 
 (define (b64-string->bytevector s) (base64-decode-string s :transcoder #f))
+(define (b64-string->x509-certificate s)
+  (make-x509-certificate (b64-string->bytevector s)))
 (define jose-crypto-header-object-builder
   (json-object-builder
    (make-jose-crypto-header
@@ -137,7 +139,7 @@
     (? "jwk" #f json-string->jwk)
     (? "kid" #f)
     (? "x5u" #f)
-    (? "x5c" #f (@ list b64-string->bytevector))
+    (? "x5c" #f (@ list b64-string->x509-certificate))
     (? "x5t" #f base64url-string->bytevector)
     (? "x5t#S256" #f base64url-string->bytevector)
     (? "crit" #f))))
@@ -152,6 +154,8 @@
 
 (define (bytevector->b64-string bv)
   (utf8->string (base64-encode bv :line-width #f)))
+(define (x509-certificate->b64-string cert)
+  (bytevector->b64-string (x509-certificate->bytevector cert)))
 (define jose-crypto-header-serializer
   (json-object-serializer 
    (jose-header-serializer
@@ -160,7 +164,7 @@
     (? "jwk" #f jose-crypto-header-jwk jwk->json)
     (? "kid" #f jose-crypto-header-kid)
     (? "x5u" #f jose-crypto-header-x5u)
-    (? "x5c" #f jose-crypto-header-x5c (-> bytevector->b64-string))
+    (? "x5c" #f jose-crypto-header-x5c (-> x509-certificate->b64-string))
     (? "x5t" #f jose-crypto-header-x5t bytevector->base64url-string)
     (? "x5t#S256" #f jose-crypto-header-x5t-s256 bytevector->base64url-string)
     (? "crit" #f jose-crypto-header-crit))))
