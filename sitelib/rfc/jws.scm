@@ -228,107 +228,91 @@
       (assertion-violation 'jws:sign "Signer returned non signature" signature))
     (jws:parse (string-append signing-input "." (->base64url signature)))))
 
-(define (jws:verify jws-object verifier)
-  (unless (jws-signed-object? jws-object)
-    (assertion-violation 'jws:verify "JWS object is not signed" jws-object))
-  (let ((signing-input (jws-object-signing-input jws-object))
-	(signature (jws-signed-object-signature jws-object)))
-    (verifier (jws-object-header jws-object)
-	      (string->utf8 signing-input)
-	      signature)))
+(define jws:verify
+  (case-lambda
+   ((jws-object verifier) (jws:verify jws-object verifier '()))
+   ((jws-object verifier critical-headers)
+    (unless (jws-signed-object? jws-object)
+      (assertion-violation 'jws:verify "JWS object is not signed" jws-object))
+    (let ((signing-input (jws-object-signing-input jws-object))
+	  (signature (jws-signed-object-signature jws-object))
+	  (jws-header (jws-object-header jws-object)))
+      (and (check-critical-headers critical-headers jws-header)
+	   (verifier (jws-object-header jws-object)
+		     (string->utf8 signing-input)
+		     signature))))))
 
 ;;; verifiers (maybe separate to different library?)
 (define (check-critical-headers critical-headers jws-header)
   (jose-crypto-header-check-critical-headers jws-header critical-headers))
 
-(define make-mac-verifier
-  (case-lambda
-   ((key) (make-mac-verifier key '()))
-   ((key critical-headers)
-    (lambda (header signed-content signature)
-      (define (get-algorithm alg)
-	(case alg
-	  ((HS256) (hash-algorithm SHA-256))
-	  ((HS384) (hash-algorithm SHA-384))
-	  ((HS512) (hash-algorithm SHA-512))
-	  (else
-	   (assertion-violation 'make-mac-verifier "Unknown algorithm" alg))))
-      (let ((algo (get-algorithm (jose-crypto-header-alg header))))
-	(and (check-critical-headers critical-headers header)
-	     (verify-mac HMAC signed-content signature
-			 :key key :hash algo)))))))
-
-(define make-rsa-verifier
-  (case-lambda
-   ((key) (make-rsa-verifier key '()))
-   ((key critical-headers)
-    (define (get-verifier alg)
+(define (make-mac-verifier key)
+  (lambda (header signed-content signature)
+    (define (get-algorithm alg)
       (case alg
-	((RS256) (*rsa/sha256-verifier-provider* key))
-	((RS384) (*rsa/sha384-verifier-provider* key))
-	((RS512) (*rsa/sha512-verifier-provider* key))
-	((PS256)
-	 (*rsassa-pss-verifier-provider* key :digest SHA-256 :salt-length 32))
-	((PS384)
-	 (*rsassa-pss-verifier-provider* key :digest SHA-384 :salt-length 48))
-	((PS512)
-	 (*rsassa-pss-verifier-provider* key :digest SHA-512 :salt-length 64))
+	((HS256) (hash-algorithm SHA-256))
+	((HS384) (hash-algorithm SHA-384))
+	((HS512) (hash-algorithm SHA-512))
 	(else
-	 (assertion-violation 'make-rsa-verifier "Unknown algorithm" alg))))
-    (cond ((jwk? key)
-	   (make-rsa-verifier (jwk->public-key key) critical-headers))
-	  ((rsa-public-key? key)
-	   (lambda (header signed-content signature)
-	     (define rsa-verifier
-	       (get-verifier (jose-crypto-header-alg header)))
-	     (and (check-critical-headers critical-headers header)
-		  (rsa-verifier signed-content signature))))
-	  (else (assertion-violation 'make-rsa-verifier
-				     "Public key required" key))))))
+	 (assertion-violation 'make-mac-verifier "Unknown algorithm" alg))))
+    (let ((algo (get-algorithm (jose-crypto-header-alg header))))
+      (verify-mac HMAC signed-content signature :key key :hash algo))))
 
-(define make-ecdsa-verifier
-  (case-lambda
-   ((key) (make-ecdsa-verifier key '()))
-   ((key critical-headers)
-    (define (get-verifier alg)
-      (case alg
-	((ES256) (*ecdsa/sha256-verifier-provider* key :der-encode #f))
-	((ES384) (*ecdsa/sha384-verifier-provider* key :der-encode #f))
-	((ES512) (*ecdsa/sha512-verifier-provider* key :der-encode #f))
-	(else
-	 (assertion-violation 'make-ecdsa-verifier
-			      "Unknown algorithm" alg))))
-    (cond ((jwk? key)
-	   (make-ecdsa-verifier (jwk->public-key key) critical-headers))
-	  ((ecdsa-public-key? key)
-	   (lambda (header signed-content signature)
-	     (define ecdsa-verifier
-	       (get-verifier (jose-crypto-header-alg header)))
-	     (and (check-critical-headers critical-headers header)
-		  (ecdsa-verifier signed-content signature))))
-	  (else (assertion-violation 'make-ecdsa-verifier
-				     "Public key required" key))))))
+(define (make-rsa-verifier key)
+  (define (get-verifier alg)
+    (case alg
+      ((RS256) (*rsa/sha256-verifier-provider* key))
+      ((RS384) (*rsa/sha384-verifier-provider* key))
+      ((RS512) (*rsa/sha512-verifier-provider* key))
+      ((PS256)
+       (*rsassa-pss-verifier-provider* key :digest SHA-256 :salt-length 32))
+      ((PS384)
+       (*rsassa-pss-verifier-provider* key :digest SHA-384 :salt-length 48))
+      ((PS512)
+       (*rsassa-pss-verifier-provider* key :digest SHA-512 :salt-length 64))
+      (else
+       (assertion-violation 'make-rsa-verifier "Unknown algorithm" alg))))
+  (cond ((jwk? key) (make-rsa-verifier (jwk->public-key key)))
+	((rsa-public-key? key)
+	 (lambda (header signed-content signature)
+	   (define rsa-verifier (get-verifier (jose-crypto-header-alg header)))
+	   (rsa-verifier signed-content signature)))
+	(else (assertion-violation 'make-rsa-verifier
+				   "Public key required" key))))
 
-(define make-eddsa-verifier
-  (case-lambda
-   ((key) (make-eddsa-verifier key '()))
-   ((key critical-headers)
-    (define (get-verifier alg)
-      (case alg
-	((EdDSA) (*eddsa-verifier-provider* key))
-	(else
-	 (assertion-violation 'make-ecdsa-verifier
-			      "Unknown algorithm" alg))))
-    (cond ((jwk? key)
-	   (make-eddsa-verifier (jwk->public-key key) critical-headers))
-	  ((public-key? key)
-	   (lambda (header signed-content signature)
-	     (define eddsa-verifier
-	       (get-verifier (jose-crypto-header-alg header)))
-	     (and (check-critical-headers critical-headers header)
-		  (eddsa-verifier signed-content signature))))
-	  (else (assertion-violation 'make-eddsa-verifier
-				     "Public key required" key))))))
+(define (make-ecdsa-verifier key)
+  (define (get-verifier alg)
+    (case alg
+      ((ES256) (*ecdsa/sha256-verifier-provider* key :der-encode #f))
+      ((ES384) (*ecdsa/sha384-verifier-provider* key :der-encode #f))
+      ((ES512) (*ecdsa/sha512-verifier-provider* key :der-encode #f))
+      (else
+       (assertion-violation 'make-ecdsa-verifier
+			    "Unknown algorithm" alg))))
+  (cond ((jwk? key) (make-ecdsa-verifier (jwk->public-key key)))
+	((ecdsa-public-key? key)
+	 (lambda (header signed-content signature)
+	   (define ecdsa-verifier
+	     (get-verifier (jose-crypto-header-alg header)))
+	   (ecdsa-verifier signed-content signature)))
+	(else (assertion-violation 'make-ecdsa-verifier
+				   "Public key required" key))))
+
+(define (make-eddsa-verifier key)
+  (define (get-verifier alg)
+    (case alg
+      ((EdDSA) (*eddsa-verifier-provider* key))
+      (else
+       (assertion-violation 'make-ecdsa-verifier
+			    "Unknown algorithm" alg))))
+  (cond ((jwk? key) (make-eddsa-verifier (jwk->public-key key)))
+	((public-key? key)
+	 (lambda (header signed-content signature)
+	   (define eddsa-verifier
+	     (get-verifier (jose-crypto-header-alg header)))
+	   (eddsa-verifier signed-content signature)))
+	(else (assertion-violation 'make-eddsa-verifier
+				   "Public key required" key))))
 
 ;;; signers (ditto)
 (define (make-mac-signer key)
@@ -395,21 +379,16 @@
 	(else (assertion-violation 'make-ecdsa-signer
 				   "Private key required" key))))
 
-(define public-key->jws-verifier
-  (case-lambda
-   ((key) (public-key->jws-verifier key #f))
-   ((key critical-heaaders)
-    (cond ((jwk:oct? key)
-	   (public-key->jws-verifier (jwk->octet-key key) critical-heaaders))
-	  ((jwk? key)
-	   (public-key->jws-verifier (jwk->public-key key) critical-heaaders))
-	  ((rsa-public-key? key) (make-rsa-verifier key critical-heaaders))
-	  ((bytevector? key) (make-mac-verifier key critical-heaaders))
-	  ((ecdsa-public-key? key) (make-ecdsa-verifier key critical-heaaders))
-	  ((eddsa-public-key? key) (make-eddsa-verifier key critical-heaaders))
-	  (else
-	   (assertion-violation
-	    'public-key->jws-verifier "Unknown public key" key))))))
+(define (public-key->jws-verifier key)
+  (cond ((jwk:oct? key) (public-key->jws-verifier (jwk->octet-key key)))
+	((jwk? key) (public-key->jws-verifier (jwk->public-key key)))
+	((rsa-public-key? key) (make-rsa-verifier key))
+	((bytevector? key) (make-mac-verifier key))
+	((ecdsa-public-key? key) (make-ecdsa-verifier key))
+	((eddsa-public-key? key) (make-eddsa-verifier key))
+	(else
+	 (assertion-violation
+	  'public-key->jws-verifier "Unknown public key" key))))
 
 (define (private-key->jws-signer key)
   (cond ((jwk:oct? key) (private-key->jws-signer (jwk->octet-key key)))
@@ -421,5 +400,4 @@
 	(else
 	 (assertion-violation 'private-key->jws-signer
 			      "Unknown private key" key))))
-
 )
