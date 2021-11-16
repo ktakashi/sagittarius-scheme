@@ -176,7 +176,7 @@
     (if (jws-signed-object? jws-object)
 	(string-append header "." payload "."
 		       (->base64url (jws-signed-object-signature jws-object)))
-	(string-append header "." payload))))
+	(string-append header "." payload "."))))
 
 (define jws:serialize
   (case-lambda
