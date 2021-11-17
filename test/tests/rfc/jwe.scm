@@ -24,9 +24,9 @@
 		    `#(("kty" . "oct")
 		       ("k" . ,(utf8->string (base64url-encode raw-key))))))
        (define dir-encryptor
-	 (make-direct-encryptor key :iv-generator iv-generator :strict? #f))
+	 (make-direct-jwe-encryptor key :iv-generator iv-generator :strict? #f))
        (define dir-decryptor
-	 (make-direct-decryptor key :strict? #f))
+	 (make-direct-jwe-decryptor key :strict? #f))
        (define bv-plain-text (string->utf8 plain-text))
        (define (test-decrypt jwe-object)
 	 (test-equal cipher-text
@@ -198,11 +198,11 @@
 
 (define password "Thus from my lips, by yours, my sin is purged.")
 (define pbes-encryptor
-  (make-pbes2-encryptor password
+  (make-pbes2-jwe-encryptor password
 		       :salt-generator salt-generator
 		       :cek-generator fixed-cek-generator
 		       :iv-generator iv-generatlr))
-(define pbes-decryptor (make-pbes2-decryptor password))
+(define pbes-decryptor (make-pbes2-jwe-decryptor password))
 (define bv-plain-text (u8-list->bytevector plain-text))
 (let ((jwe-object (jwe:encrypt pbes-encryptor jwe-header bv-plain-text)))
   (define expected-cipher-text
@@ -285,10 +285,10 @@
   (string->utf8 "Live long and prosper."))
 
 (define aeskw-encryptor
-  (make-aeskw-encryptor kek
-			:cek-generator fixed-cek-generator
-			:iv-generator iv-generatlr))
-(define aeskw-decryptor (make-aeskw-decryptor kek))
+  (make-aeskw-jwe-encryptor kek
+			    :cek-generator fixed-cek-generator
+			    :iv-generator iv-generatlr))
+(define aeskw-decryptor (make-aeskw-jwe-decryptor kek))
 
 (let ((jwe-object (jwe:encrypt aeskw-encryptor jwe-header plain-text)))
   (test-equal "cipher-text (AES128KW)"
@@ -338,9 +338,9 @@
 (define (iv-generator size)
   (base64url-decode-string "QzaKcPLWj8A1wY7W" :transcoder #f))
 (define aesgcmkw-encryptor
-  (make-aeskw-encryptor jwk :cek-generator cek-generator
-			:iv-generator iv-generator))
-(define aesgcmkw-decryptor (make-aeskw-decryptor jwk))
+  (make-aeskw-jwe-encryptor jwk :cek-generator cek-generator
+				:iv-generator iv-generator))
+(define aesgcmkw-decryptor (make-aeskw-jwe-decryptor jwk))
   
 (let ((jwe-object (jwe:encrypt aesgcmkw-encryptor jwe-header plain-text)))
   (test-equal "L0iBWem899_gOBjN_lHAHkJDlOU66jJXHP6wjCG7zsfRqQa9wW8JvP1EeE7yAsZ4zNSSDdCaIiSUFKcQbrPvxA"
@@ -367,10 +367,11 @@
 	  (base64url-decode-string jwe-header-string)))
        (define (cek-generator size) cek)
        (define (iv-generator size) (base64url-decode-string iv :transcoder #f))
-       (define rsa-encryptor (make-rsa-encryptor jwk
-						 :cek-generator cek-generator
-						 :iv-generator iv-generator))
-       (define rsa-decryptor (make-rsa-decryptor jwk))
+       (define rsa-encryptor
+	 (make-rsa-jwe-encryptor jwk
+				 :cek-generator cek-generator
+				 :iv-generator iv-generator))
+       (define rsa-decryptor (make-rsa-jwe-decryptor jwk))
        (let ((jwe-object (jwe:encrypt rsa-encryptor jwe-header bv-plain-text)))
 	 (test-equal "RSA cipher-text"
 		     expected-cipher-text
@@ -466,9 +467,9 @@
 
   (define (alice-keypair-generator ec-parameter) (values pri-a pub-a))
   (define ecdsa-encryptor
-    (make-ecdh-encryptor jwk-b
+    (make-ecdh-jwe-encryptor jwk-b
 			 :ec-keypair-generator alice-keypair-generator))
-  (define ecdsa-decryptor (make-ecdh-decryptor jwk-b))
+  (define ecdsa-decryptor (make-ecdh-jwe-decryptor jwk-b))
 
   (define plain-text (string->utf8 "alice to bob"))
 
@@ -502,8 +503,8 @@
 ;; NOTE: computation of Z is tested on crypto library side
 (define (test-ecdh-rfc7748 type alg)
   (define keypair (generate-key-pair type))
-  (define ecdsa-encryptor (make-ecdh-encryptor (keypair-public keypair)))
-  (define ecdsa-decryptor (make-ecdh-decryptor (keypair-private keypair)))
+  (define ecdsa-encryptor (make-ecdh-jwe-encryptor (keypair-public keypair)))
+  (define ecdsa-decryptor (make-ecdh-jwe-decryptor (keypair-private keypair)))
 
   (define plain-text
     (string->utf8 "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."))

@@ -59,10 +59,10 @@
 
 	    public-key->jws-verifier
 	    private-key->jws-signer
-	    make-mac-verifier make-mac-signer
-	    make-rsa-verifier make-rsa-signer
-	    make-ecdsa-verifier make-ecdsa-signer
-	    make-eddsa-verifier make-eddsa-signer
+	    make-mac-jws-verifier make-mac-jws-signer
+	    make-rsa-jws-verifier make-rsa-jws-signer
+	    make-ecdsa-jws-verifier make-ecdsa-jws-signer
+	    make-eddsa-jws-verifier make-eddsa-jws-signer
 	    
 	    jws:parse jws:serialize jws:sign jws:verify
 	    ;; for convenience
@@ -246,19 +246,22 @@
 (define (check-critical-headers critical-headers jws-header)
   (jose-crypto-header-check-critical-headers jws-header critical-headers))
 
-(define (make-mac-verifier key)
-  (lambda (header signed-content signature)
-    (define (get-algorithm alg)
-      (case alg
-	((HS256) (hash-algorithm SHA-256))
-	((HS384) (hash-algorithm SHA-384))
-	((HS512) (hash-algorithm SHA-512))
-	(else
-	 (assertion-violation 'make-mac-verifier "Unknown algorithm" alg))))
-    (let ((algo (get-algorithm (jose-crypto-header-alg header))))
-      (verify-mac HMAC signed-content signature :key key :hash algo))))
+(define (make-mac-jws-verifier key)
+  (define (get-algorithm alg)
+    (case alg
+      ((HS256) (hash-algorithm SHA-256))
+      ((HS384) (hash-algorithm SHA-384))
+      ((HS512) (hash-algorithm SHA-512))
+      (else (assertion-violation 'mac-jws-verifier "Unknown algorithm" alg))))
+  (cond ((jwk? key) (make-mac-jws-verifier (jwk->octet-key key)))
+	((bytevector? key)
+	 (lambda (header signed-content signature)
+	   (let ((algo (get-algorithm (jose-crypto-header-alg header))))
+	     (verify-mac HMAC signed-content signature :key key :hash algo))))
+	(else (assertion-violation 'make-mac-jws-verifier
+				   "JWK:OKP or bytevector is required" key))))
 
-(define (make-rsa-verifier key)
+(define (make-rsa-jws-verifier key)
   (define (get-verifier alg)
     (case alg
       ((RS256) (*rsa/sha256-verifier-provider* key))
@@ -270,64 +273,62 @@
        (*rsassa-pss-verifier-provider* key :digest SHA-384 :salt-length 48))
       ((PS512)
        (*rsassa-pss-verifier-provider* key :digest SHA-512 :salt-length 64))
-      (else
-       (assertion-violation 'make-rsa-verifier "Unknown algorithm" alg))))
-  (cond ((jwk? key) (make-rsa-verifier (jwk->public-key key)))
+      (else (assertion-violation 'rsa-jws-verifier "Unknown algorithm" alg))))
+  (cond ((jwk? key) (make-rsa-jws-verifier (jwk->public-key key)))
 	((rsa-public-key? key)
 	 (lambda (header signed-content signature)
 	   (define rsa-verifier (get-verifier (jose-crypto-header-alg header)))
 	   (rsa-verifier signed-content signature)))
-	(else (assertion-violation 'make-rsa-verifier
+	(else (assertion-violation 'make-rsa-jws-verifier
 				   "Public key required" key))))
 
-(define (make-ecdsa-verifier key)
+(define (make-ecdsa-jws-verifier key)
   (define (get-verifier alg)
     (case alg
       ((ES256) (*ecdsa/sha256-verifier-provider* key :der-encode #f))
       ((ES384) (*ecdsa/sha384-verifier-provider* key :der-encode #f))
       ((ES512) (*ecdsa/sha512-verifier-provider* key :der-encode #f))
-      (else
-       (assertion-violation 'make-ecdsa-verifier
-			    "Unknown algorithm" alg))))
-  (cond ((jwk? key) (make-ecdsa-verifier (jwk->public-key key)))
+      (else (assertion-violation 'ecdsa-jws-verifier "Unknown algorithm" alg))))
+  (cond ((jwk? key) (make-ecdsa-jws-verifier (jwk->public-key key)))
 	((ecdsa-public-key? key)
 	 (lambda (header signed-content signature)
 	   (define ecdsa-verifier
 	     (get-verifier (jose-crypto-header-alg header)))
 	   (ecdsa-verifier signed-content signature)))
-	(else (assertion-violation 'make-ecdsa-verifier
+	(else (assertion-violation 'make-ecdsa-jws-verifier
 				   "Public key required" key))))
 
-(define (make-eddsa-verifier key)
+(define (make-eddsa-jws-verifier key)
   (define (get-verifier alg)
     (case alg
       ((EdDSA) (*eddsa-verifier-provider* key))
-      (else
-       (assertion-violation 'make-ecdsa-verifier
-			    "Unknown algorithm" alg))))
-  (cond ((jwk? key) (make-eddsa-verifier (jwk->public-key key)))
+      (else (assertion-violation 'ecdsa-jws-verifier "Unknown algorithm" alg))))
+  (cond ((jwk? key) (make-eddsa-jws-verifier (jwk->public-key key)))
 	((public-key? key)
 	 (lambda (header signed-content signature)
 	   (define eddsa-verifier
 	     (get-verifier (jose-crypto-header-alg header)))
 	   (eddsa-verifier signed-content signature)))
-	(else (assertion-violation 'make-eddsa-verifier
+	(else (assertion-violation 'make-eddsa-jws-verifier
 				   "Public key required" key))))
 
 ;;; signers (ditto)
-(define (make-mac-signer key)
-  (lambda (header signing-content)
-    (define (get-algorithm alg)
-	(case alg
-	  ((HS256) (hash-algorithm SHA-256))
-	  ((HS384) (hash-algorithm SHA-384))
-	  ((HS512) (hash-algorithm SHA-512))
-	  (else
-	   (assertion-violation 'make-mac-signer "Unknown algorithm" alg))))
-    (let ((algo (get-algorithm (jose-crypto-header-alg header))))
-      (hash HMAC signing-content :key key :hash algo))))
+(define (make-mac-jws-signer key)
+  (define (get-algorithm alg)
+    (case alg
+      ((HS256) (hash-algorithm SHA-256))
+      ((HS384) (hash-algorithm SHA-384))
+      ((HS512) (hash-algorithm SHA-512))
+      (else (assertion-violation 'mac-jws-signer "Unknown algorithm" alg))))
+  (cond ((jwk? key) (make-mac-jws-signer (jwk->octet-key key)))
+	((bytevector? key)
+	 (lambda (header signing-content)
+	   (let ((algo (get-algorithm (jose-crypto-header-alg header))))
+	     (hash HMAC signing-content :key key :hash algo))))
+	(else (assertion-violation 'make-mac-jws-signer
+				   "JWK:OCT or bytevector required" key))))
 
-(define (make-rsa-signer key)
+(define (make-rsa-jws-signer key)
   (define (get-signer alg)
     (case alg
       ((RS256) (*rsa/sha256-signer-provider* key))
@@ -339,53 +340,50 @@
        (*rsassa-pss-signer-provider* key :digest SHA-384 :salt-length 48))
       ((PS512)
        (*rsassa-pss-signer-provider* key :digest SHA-512 :salt-length 64))
-      (else
-       (assertion-violation 'make-rsa-signer "Unknown algorithm" alg))))
-  (cond ((jwk? key) (make-rsa-signer (jwk->private-key key)))
+      (else (assertion-violation 'rsa-jws-signer "Unknown algorithm" alg))))
+  (cond ((jwk? key) (make-rsa-jws-signer (jwk->private-key key)))
 	((private-key? key)
 	 (lambda (header signing-content)
 	   (define rsa-signer (get-signer (jose-crypto-header-alg header)))
 	   (rsa-signer signing-content)))
-	(else (assertion-violation 'make-rsa-signer
+	(else (assertion-violation 'make-rsa-jws-signer
 				   "Private key required" key))))
 
-(define (make-ecdsa-signer key)
+(define (make-ecdsa-jws-signer key)
   (define (get-signer alg)
     (case alg
       ((ES256) (*ecdsa/sha256-signer-provider* key :der-encode #f))
       ((ES384) (*ecdsa/sha384-signer-provider* key :der-encode #f))
       ((ES512) (*ecdsa/sha512-signer-provider* key :der-encode #f))
-      (else
-       (assertion-violation 'make-ecdsa-verifier "Unknown algorithm" alg))))
-  (cond ((jwk? key) (make-ecdsa-verifier (jwk->private-key key)))
+      (else (assertion-violation 'ecdsa-jws-verifier "Unknown algorithm" alg))))
+  (cond ((jwk? key) (make-ecdsa-jws-verifier (jwk->private-key key)))
 	((private-key? key)
 	 (lambda (header signing-content)
 	   (define ecdsa-signer (get-signer (jose-crypto-header-alg header)))
 	   (ecdsa-signer signing-content)))
-	(else (assertion-violation 'make-ecdsa-signer
+	(else (assertion-violation 'make-ecdsa-jws-signer
 				   "Private key required" key))))
 
-(define (make-eddsa-signer key)
+(define (make-eddsa-jws-signer key)
   (define (get-signer alg)
     (case alg
       ((EdDSA) (*eddsa-signer-provider* key))
-      (else
-       (assertion-violation 'make-eddsa-signer "Unknown algorithm" alg))))
-  (cond ((jwk? key) (make-eddsa-signer (jwk->private-key key)))
+      (else (assertion-violation 'eddsa-jws-signer "Unknown algorithm" alg))))
+  (cond ((jwk? key) (make-eddsa-jws-signer (jwk->private-key key)))
 	((private-key? key)
 	 (lambda (header signing-content)
 	   (define eddsa-signer (get-signer (jose-crypto-header-alg header)))
 	   (eddsa-signer signing-content)))
-	(else (assertion-violation 'make-ecdsa-signer
+	(else (assertion-violation 'make-ecdsa-jws-signer
 				   "Private key required" key))))
 
 (define (public-key->jws-verifier key)
   (cond ((jwk:oct? key) (public-key->jws-verifier (jwk->octet-key key)))
 	((jwk? key) (public-key->jws-verifier (jwk->public-key key)))
-	((rsa-public-key? key) (make-rsa-verifier key))
-	((bytevector? key) (make-mac-verifier key))
-	((ecdsa-public-key? key) (make-ecdsa-verifier key))
-	((eddsa-public-key? key) (make-eddsa-verifier key))
+	((rsa-public-key? key) (make-rsa-jws-verifier key))
+	((bytevector? key) (make-mac-jws-verifier key))
+	((ecdsa-public-key? key) (make-ecdsa-jws-verifier key))
+	((eddsa-public-key? key) (make-eddsa-jws-verifier key))
 	(else
 	 (assertion-violation
 	  'public-key->jws-verifier "Unknown public key" key))))
@@ -393,10 +391,10 @@
 (define (private-key->jws-signer key)
   (cond ((jwk:oct? key) (private-key->jws-signer (jwk->octet-key key)))
 	((jwk? key) (private-key->jws-signer (jwk->private-key key)))
-	((rsa-private-key? key) (make-rsa-signer key))
-	((bytevector? key) (make-mac-signer key))
-	((ecdsa-private-key? key) (make-ecdsa-signer key))
-	((eddsa-private-key? key) (make-eddsa-signer key))
+	((rsa-private-key? key) (make-rsa-jws-signer key))
+	((bytevector? key) (make-mac-jws-signer key))
+	((ecdsa-private-key? key) (make-ecdsa-jws-signer key))
+	((eddsa-private-key? key) (make-eddsa-jws-signer key))
 	(else
 	 (assertion-violation 'private-key->jws-signer
 			      "Unknown private key" key))))

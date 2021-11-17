@@ -113,9 +113,9 @@ jg/3747WSsf/zBTcHihTRBdAv6OmdhV4/dD5YBfLAkLrd+mX7iE=
   (define jws-header (jws-header-builder (typ 'JWT) (alg 'RS256)))
   (define payload (string->utf8 "aardvark"))
   (define jws-object (make-jws-object jws-header payload))
-  (define rsa-signer (make-rsa-signer rsa-private-key))
+  (define rsa-signer (make-rsa-jws-signer rsa-private-key))
   (let ((jws (jws:sign jws-object rsa-signer)))
-    (define rsa-verifier (make-rsa-verifier rsa-public-key))
+    (define rsa-verifier (make-rsa-jws-verifier rsa-public-key))
     (test-assert (jws:verify jws rsa-verifier))))
 
 (test-jws "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.POstGetfAytaZS82wHcjoTyoqhMyxXiWdR7Nn7A29DNSl0EiXLdwJ6xC6AfgZWF1bOsS_TuYI3OG85AmiExREkrS6tDfTQ2B3WXlrr-wp5AokiRbz3_oB4OxG-W9KcEEbDRcZc0nH3L7LzYptiy1PtAylQGxHTWZXtGz4ht0bAecBgmpdgXMguEIcoqPJ1n3pIWk_dUZegpqx0Lka21H6XxUTxiy8OcaarA8zdnPUnV6AmNP3ecFawIFYdvJB_cm-GvpCSbr8G8y_Mllj8f4x9nBH8pQux89_6gUY618iYv7tuPWBFfEbLxtF2pZS6YC1aSfLQxeNe8djT9YjpvRZA"

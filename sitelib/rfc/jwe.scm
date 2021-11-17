@@ -61,20 +61,22 @@
 	    jwe:parse jwe:serialize
 
 	    jwe:decrypt
-	    make-direct-decryptor
-	    make-pbes2-decryptor
-	    make-aeskw-decryptor
-	    make-rsa-decryptor
-	    make-ecdh-decryptor
+	    make-direct-jwe-decryptor
+	    make-pbes2-jwe-decryptor
+	    make-aeskw-jwe-decryptor
+	    make-rsa-jwe-decryptor
+	    make-ecdh-jwe-decryptor
 	    
-	    make-random-generator
 	    jwe:encrypt
-	    make-direct-encryptor
-	    make-pbes2-encryptor make-salt-generator jwe-header->salt-generator
-	    make-aeskw-encryptor
-	    make-rsa-encryptor
-	    make-ecdh-encryptor
+	    make-direct-jwe-encryptor
+	    make-pbes2-jwe-encryptor
+	    make-aeskw-jwe-encryptor
+	    make-rsa-jwe-encryptor
+	    make-ecdh-jwe-encryptor
 
+	    ;; generators
+	    make-random-generator
+	    make-salt-generator jwe-header->salt-generator
 	    ;; For testing...
 	    (rename (ecdh-derive-shared-key jwe:ecdh-derive-shared-key))
 	    
@@ -239,7 +241,7 @@
 ;;;; Cryptographic implementations 
 ;;; Decryptors
 ;; ECDH-ES key unwrap
-(define (make-ecdh-decryptor key)
+(define (make-ecdh-jwe-decryptor key)
   (cond ((or (ecdsa-private-key? key) (rfc7748-private-key? key))
 	 (lambda (jwe-header encrypted-key iv cipher-text auth-tag)
 	   (define alg (jose-crypto-header-alg jwe-header))
@@ -256,7 +258,7 @@
 	     (define pub (and epk (jwk->public-key epk)))
 	     
 	     (unless (or (ecdsa-public-key? pub) (rfc7748-public-key? pub))
-	       (assertion-violation 'ecdh-decryptor
+	       (assertion-violation 'ecdh-jwe-decryptor
 		 "epk is not an ECDSA, X25519 or X448 public key"))
 	     (let* ((z (calculate-key-agreement ECDH key pub))
 		    (cek (mode (ecdh-derive-shared-key jwe-header z)
@@ -267,14 +269,14 @@
 	     ((ECDH-ES+A128KW ECDH-ES+A198KW ECDH-ES+A256KW)
 	      (ecdh-decryptor ecdh-aes-unwrap))
 	     (else 
-	      (assertion-violation 'ecdh-decryptor "Unknown alg" alg)))))
+	      (assertion-violation 'ecdh-jwe-decryptor "Unknown alg" alg)))))
 	((jwk? key)
-	 (make-ecdh-decryptor (jwk->private-key key)))
-	(else (assertion-violation 'make-ecdh-decryptor
+	 (make-ecdh-jwe-decryptor (jwk->private-key key)))
+	(else (assertion-violation 'make-ecdh-jwe-decryptor
 				   "ECDSA private key is required" key))))
 
 ;; RSA key unwrap
-(define (make-rsa-decryptor key)
+(define (make-rsa-jwe-decryptor key)
   (cond ((rsa-private-key? key)
 	 (lambda (jwe-header encrypted-key iv cipher-text auth-tag)
 	   (define alg (jose-crypto-header-alg jwe-header))
@@ -292,11 +294,11 @@
 	     (else (assertion-violation 'make-rsa-encryptor
 					"Unknown alg" alg)))))
 	((jwk? key)
-	 (make-rsa-decryptor (jwk->private-key key)))
-	(else (assertion-violation 'make-rsa-decryptor
+	 (make-rsa-jwe-decryptor (jwk->private-key key)))
+	(else (assertion-violation 'make-rsa-jwe-decryptor
 				   "RSA private key is required" key))))
 ;; AES key unwrap
-(define (make-aeskw-decryptor kek)
+(define (make-aeskw-jwe-decryptor kek)
   (cond ((symmetric-key? kek)
 	 (lambda (jwe-header encrypted-key iv cipher-text auth-tag)
 	   (define alg (jose-crypto-header-alg jwe-header))
@@ -323,23 +325,25 @@
 	     ((A128GCMKW A192GCMKW A256GCMKW)
 	      (aesgcmkw-decrypt (get-aes-key-byte-size alg)))
 	     (else (assertion-violation
-		    'aeskw-decryptor "Unknown algorithm" alg)))))
+		    'aeskw-jwe-decryptor "Unknown algorithm" alg)))))
 	((jwk? kek)
-	 (make-aeskw-decryptor (generate-secret-key AES (jwk->octet-key kek))))
+	 (make-aeskw-jwe-decryptor
+	  (generate-secret-key AES (jwk->octet-key kek))))
 	(else
-	 (assertion-violation 'make-aeskw-decryptor "Unknown key" kek))))
+	 (assertion-violation 'make-aeskw-jwe-decryptor "Unknown key" kek))))
 
 ;; PBE key unwrap
-(define (make-pbes2-decryptor password)
+(define (make-pbes2-jwe-decryptor password)
   (lambda (jwe-header encrypted-key iv cipher-text auth-tag)
     (define alg (jose-crypto-header-alg jwe-header))
     (define p2s (jwe-header-p2s jwe-header))
     (define p2c (jwe-header-p2c jwe-header))
     (unless (memq alg
 		  '(PBES2-HS256+A128KW PBES2-HS384+A192KW PBES2-HS512+A256KW))
-      (assertion-violation 'pbes2-decryptor "Alg must be one of PBES2-*" alg))
+      (assertion-violation 'pbes2-jwe-decryptor
+			   "Alg must be one of PBES2-*" alg))
     (unless (and p2s p2c)
-      (assertion-violation 'pbes2-decryptor
+      (assertion-violation 'pbes2-jwe-decryptor
 			   "Parameter 'p2s' and 'p2c' must be presented"))
     (let* ((ps-key (pbes2-derive-kek alg password  p2s p2c))
 	   (raw-cek (aes-key-unwrap ps-key encrypted-key)))
@@ -347,19 +351,20 @@
 		    cipher-text auth-tag))))
 
 ;; Direct decryption
-(define (make-direct-decryptor key :key (strict? #t))
+(define (make-direct-jwe-decryptor key :key (strict? #t))
   (cond ((symmetric-key? key)
 	 (lambda (jwe-header encrypted-key iv cipher-text auth-tag)
 	   (when (and strict?
 		      (not (eq? (jose-crypto-header-alg jwe-header) 'dir)))
-	     (assertion-violation 'direct-decryptor "Alg must be 'dir'"
+	     (assertion-violation 'direct-jwe-decryptor "Alg must be 'dir'"
 				  (jose-crypto-header-alg jwe-header)))
 	   (core-decrypt jwe-header key iv cipher-text auth-tag)))
 	((jwk? key)
-	 (make-direct-decryptor (generate-secret-key AES (jwk->octet-key key))
-				:strict? strict?))
+	 (make-direct-jwe-decryptor
+	  (generate-secret-key AES (jwk->octet-key key))
+	  :strict? strict?))
 	(else
-	 (assertion-violation 'make-direct-decryptor
+	 (assertion-violation 'make-direct-jwe-decryptor
 			      "Symmetric key or JWK is required" key))))
 
 ;; Decryption utilities
@@ -453,16 +458,16 @@
     (values (keypair-private kp) (keypair-public kp))))
 
 ;; ECDH-ES key wrap
-(define (make-ecdh-encryptor key :key
-			     (ec-keypair-generator default-ec-keypair-generator)
-			     (cek-generator default-cek-generator)
-			     (iv-generator default-iv-generator))
+(define (make-ecdh-jwe-encryptor
+	 key :key (ec-keypair-generator default-ec-keypair-generator)
+		  (cek-generator default-cek-generator)
+		  (iv-generator default-iv-generator))
   (cond ((or (ecdsa-public-key? key) (rfc7748-public-key? key))
 	 (let ((key-parameter
 		(cond ((ecdsa-public-key? key) (ecdsa-public-key-parameter key))
 		      ((x25519-public-key? key) X25519)
 		      ((x448-public-key? key) X448)
-		      (else (assertion-violation 'make-ecdh-encryptor
+		      (else (assertion-violation 'make-ecdh-jwe-encryptor
 						 "Unknown key" key)))))
 	   (lambda (jwe-header payload)
 	     (define alg (jose-crypto-header-alg jwe-header))
@@ -490,18 +495,18 @@
 	       ((ECDH-ES+A128KW ECDH-ES+A198KW ECDH-ES+A256KW)
 		(ecdh-encryptor ecdh-aes-wrap))
 	       (else 
-		(assertion-violation 'ecdh-encryptor "Unknown alg" alg))))))
+		(assertion-violation 'ecdh-jwe-encryptor "Unknown alg" alg))))))
 	((jwk? key)
-	 (make-ecdh-encryptor (jwk->public-key key)
-			      :cek-generator cek-generator
-			      :iv-generator iv-generator
-			      :ec-keypair-generator ec-keypair-generator))
-	(else (assertion-violation 'make-ecdh-encryptor
+	 (make-ecdh-jwe-encryptor (jwk->public-key key)
+				  :cek-generator cek-generator
+				  :iv-generator iv-generator
+				  :ec-keypair-generator ec-keypair-generator))
+	(else (assertion-violation 'make-ecdh-jwe-encryptor
 				   "Key must be an ECDSA public key" key))))
 
 ;; RSA key wrap
-(define (make-rsa-encryptor key :key (cek-generator default-cek-generator)
-			             (iv-generator default-iv-generator))
+(define (make-rsa-jwe-encryptor key :key (cek-generator default-cek-generator)
+					 (iv-generator default-iv-generator))
   (define (rsa-encryptor key jwe-header payload padding)
     (define rsa-cipher (make-cipher RSA key :padding padding))
     (define enc (jwe-header-enc jwe-header))
@@ -520,23 +525,23 @@
 	      (rsa-encryptor key jwe-header payload (rsa-oaep-padding SHA-1)))
 	     ((RSA-OAEP-256)
 	      (rsa-encryptor key jwe-header payload (rsa-oaep-padding SHA-256)))
-	     (else (assertion-violation 'make-rsa-encryptor
+	     (else (assertion-violation 'make-rsa-jwe-encryptor
 					"Unknown alg" alg)))))
 	((jwk? key)
-	 (make-rsa-encryptor (jwk->public-key key)
-			     :cek-generator cek-generator
-			     :iv-generator iv-generator))
-	(else (assertion-violation 'make-rsa-encryptor
+	 (make-rsa-jwe-encryptor (jwk->public-key key)
+				 :cek-generator cek-generator
+				 :iv-generator iv-generator))
+	(else (assertion-violation 'make-rsa-jwe-encryptor
 				   "Key must be an RSA public key" key))))
 
 ;; AES key wrap
-(define (make-aeskw-encryptor kek :key (cek-generator default-cek-generator)
-			               (iv-generator default-iv-generator)
-				       (kek-iv-generator default-iv-generator))
+(define (make-aeskw-jwe-encryptor kek :key (cek-generator default-cek-generator)
+					   (iv-generator default-iv-generator)
+					   (kek-iv-generator default-iv-generator))
   (define (aeskw-encrypt kek size jwe-header payload)
     (define raw-key (symmetric-key-raw-key kek))
     (define enc (jwe-header-enc jwe-header))
-    (check-key-size 'aeskw-encryptor size raw-key)
+    (check-key-size 'aeskw-jwe-encryptor size raw-key)
     (let ((raw-cek (cek-generator (get-aes-key-byte-size enc))))
       (core-encryptor (generate-secret-key AES raw-cek)
 		      (aes-key-wrap kek raw-cek)
@@ -570,20 +575,21 @@
 	      (aesgcmkw-encrypt kek (get-aes-key-byte-size alg)
 				jwe-header payload))
 	     (else (assertion-violation
-		    'aeskw-encryptor "Unknown algorithm" alg)))))
+		    'aeskw-jwe-encryptor "Unknown algorithm" alg)))))
 	((jwk? kek)
-	 (make-aeskw-encryptor (generate-secret-key AES (jwk->octet-key kek))
-			       :iv-generator iv-generator
-			       :cek-generator cek-generator
-			       :kek-iv-generator kek-iv-generator))
-	(else (assertion-violation 'make-aeskw-encryptor
+	 (make-aeskw-jwe-encryptor
+	  (generate-secret-key AES (jwk->octet-key kek))
+	  :iv-generator iv-generator
+	  :cek-generator cek-generator
+	  :kek-iv-generator kek-iv-generator))
+	(else (assertion-violation 'make-aeskw-jwe-encryptor
 				   "Unsupported KEK type" kek))))
 
 ;; PBE key wrap
-(define (make-pbes2-encryptor password 
-			      :key (salt-generator default-salt-generator)
-			           (cek-generator default-cek-generator)
-				   (iv-generator default-iv-generator))
+(define (make-pbes2-jwe-encryptor password 
+				  :key (salt-generator default-salt-generator)
+				       (cek-generator default-cek-generator)
+				       (iv-generator default-iv-generator))
   (lambda (jwe-header payload)
     (define alg (jose-crypto-header-alg jwe-header))
     (define enc (jwe-header-enc jwe-header))
@@ -598,9 +604,9 @@
 			new-header payload iv-generator)))))
 
 ;; Direct encryption
-(define (make-direct-encryptor key
-			       :key (iv-generator default-iv-generator)
-				    (strict? #t))
+(define (make-direct-jwe-encryptor key
+				   :key (iv-generator default-iv-generator)
+					(strict? #t))
   (cond ((symmetric-key? key)
 	 (lambda (jwe-header payload)
 	   (define alg (jose-crypto-header-alg jwe-header))
@@ -609,10 +615,11 @@
 				  "Alg must be 'dir'" jwe-header))
 	   (core-encryptor key #vu8() jwe-header payload iv-generator)))
 	((jwk? key)
-	 (make-direct-encryptor (generate-secret-key AES (jwk->octet-key key))
-				:iv-generator iv-generator
-				:strict? strict?))
-	(else (assertion-violation 'make-direct-encryptor
+	 (make-direct-jwe-encryptor
+	  (generate-secret-key AES (jwk->octet-key key))
+	  :iv-generator iv-generator
+	  :strict? strict?))
+	(else (assertion-violation 'make-direct-jwe-encryptor
 				   "Unsupported key" key))))
 
 ;; Encryption utilities
