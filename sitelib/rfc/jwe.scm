@@ -102,7 +102,11 @@
   (fields enc zip p2s p2c iv tag apu apv epk))
 
 (define (maybe-base64url-string->bytevector bv)
-  (and bv (base64url-string->bytevector bv)))
+  (and bv
+       (cond ((bytevector? bv) bv)
+	     ((string? bv) (base64url-string->bytevector bv))
+	     (else (assertion-violation 'jwe-header-builder
+		    "bytevector or base64url string required" bv)))))
 (define (maybe-json->jwk json) (and json (json->jwk json)))
 (define-syntax jwe-header-builder
   (make-record-builder jwe-header
