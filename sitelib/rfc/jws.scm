@@ -259,7 +259,7 @@
 	   (let ((algo (get-algorithm (jose-crypto-header-alg header))))
 	     (verify-mac HMAC signed-content signature :key key :hash algo))))
 	(else (assertion-violation 'make-mac-jws-verifier
-				   "JWK:okt or bytevector is required" key))))
+				   "JWK:oct or bytevector is required" key))))
 
 (define (make-rsa-jws-verifier key)
   (define (get-verifier alg)
