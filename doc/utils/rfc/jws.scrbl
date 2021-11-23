@@ -91,9 +91,9 @@ JWS object has 2 fields, @code{header} and @code{payload}.
 @var{payload} must be a bytevector.
 }
 @define[Function]{@name{jws-object-header} @args{jws-object}}
-@desc{Returns the value of @code{header} field of given @var{jws-object}}.
+@desc{Returns the value of @code{header} field of given @var{jws-object}.}
 @define[Function]{@name{jws-object-payload} @args{jws-object}}
-@desc{Returns the value of @code{payload} field of given @var{jws-object}}.
+@desc{Returns the value of @code{payload} field of given @var{jws-object}.}
 
 @define["Record Type"]{@name{<jws-signed-object>}}
 @desc{The record type of signed JWS objects.
@@ -108,7 +108,7 @@ This object can be obtained by @code{jws:sign} or @code{jws:parse}.
 }
 @define[Function]{@name{jws-signed-object-signature} @args{signed-jws-object}}
 @desc{Returns the value of @code{signature} field of
-given @var{signed-jws-object}}.
+given @var{signed-jws-object}.}
 
 @subsubsection{JWS Header}
 

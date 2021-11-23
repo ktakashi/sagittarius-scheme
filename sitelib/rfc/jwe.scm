@@ -175,7 +175,10 @@
      (if (jwe-header? obj)
 	 (jwe-header-builder (from obj) (custom-parameters custom-parameters))
 	 (assertion-violation 'json->jwe-header "Something went wrong" obj)))))
-(define (read-jwe-header port) (json->jwe-header (json-read port)))
+(define read-jwe-header
+  (case-lambda
+   (() (read-jwe-header (current-input-port)))
+   ((port) (json->jwe-header (json-read port)))))
 (define (json-string->jwe-header json-string)
   (read-jwe-header (open-string-input-port json-string)))
 
