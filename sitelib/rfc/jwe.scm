@@ -458,7 +458,7 @@
 (define (default-ec-keypair-generator ec-parameter)
   (let ((kp (cond ((eq? ec-parameter X25519) (generate-key-pair X25519))
 		  ((eq? ec-parameter X448) (generate-key-pair X448))
-		  (else (generate-key-pair ECDSA ec-parameter)))))
+		  (else (generate-key-pair ECDSA :ec-parameter ec-parameter)))))
     (values (keypair-private kp) (keypair-public kp))))
 
 ;; ECDH-ES key wrap

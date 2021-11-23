@@ -38,7 +38,7 @@
 	    jwk-set->json-string write-jwk-set jwk-set->json
 	    ;; key set
 	    jwk-set-keys jwk-set? make-jwk-set
-	    jwk-set:find-key
+	    jwk-set:find-key jwk-set->public-jwk-set
 	    jwk-matcher:kty jwk-matcher:use jwk-matcher:key-ops jwk-matcher:alg
 	    jwk-matcher:kid jwk-matcher:x5t jwk-matcher:x5t-s256
 	    jwk-matcher:crv
@@ -67,6 +67,7 @@
 	    jwk->public-key
 	    jwk->private-key
 	    jwk->octet-key
+	    jwk->public-jwk
 
 	    jwk-config-builder jwk:config?
 	    public-key->jwk
@@ -93,6 +94,9 @@
 
   (define (jwk-set:find-key jwks matcher)
     (find matcher (jwk-set-keys jwks)))
+
+  (define (jwk-set->public-jwk-set jwks)
+    (make-jwk-set (map jwk->public-jwk (jwk-set-keys jwks))))
 
   (define-syntax define-jwk-matcher
     (lambda (x)
@@ -460,6 +464,9 @@
 	(jwk:oct-k jwk)
 	(assertion-violation 'jwk->octet-key
 			     "given JWK object is not a oct type object" jwk)))
+
+  ;; it's a bit inefficient
+  (define (jwk->public-jwk jwk) (public-key->jwk (jwk->public-key jwk)))
 
   (define (oid->curv&alg oid)
     (cond ((string=? oid "1.2.840.10045.3.1.7") (values 'P-256 'ES256))
