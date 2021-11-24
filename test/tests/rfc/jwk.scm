@@ -9,6 +9,27 @@
 
 (test-begin "RFC - JWK")
 
+(define (recovery-test-jwk jwk)
+  (define config (jwk->jwk-config jwk))
+  (when (or (jwk:ec? jwk) (jwk:rsa? jwk) (jwk:okp? jwk))
+    (let ((pub (jwk->public-key jwk)))
+      (test-assert (json=? (jwk->json (jwk->public-jwk jwk))
+			   (jwk->json (key->jwk pub))))))
+  (when (or (jwk:ec-private? jwk) (jwk:rsa-private? jwk)
+	    (jwk:rsa-crt-private? jwk)
+	    (jwk:okp-private? jwk))
+    (let ((pri (jwk->private-key jwk)))
+      (test-assert (json=? (jwk->json jwk)
+			   (jwk->json (key->jwk pri config))))))
+  (when (jwk:oct? jwk)
+    (let ((sec (jwk->octet-key jwk)))
+      (test-assert (json=? (jwk->json jwk)
+			   (jwk->json (key->jwk sec config)))))))
+
+(define (recovery-test json)
+  (define jwks (json->jwk-set json))
+  (for-each recovery-test-jwk (jwk-set-keys jwks)))
+
 ;; jwk:ec
 (let ((json #(("keys"
 	       #(("kty" . "EC")
@@ -53,7 +74,8 @@
 						  (jwk-matcher:kid "1")))))
     (test-assert (not (jwk-set:find-key jwks
 					(compose matcher
-						  (jwk-matcher:kid "2")))))))
+						  (jwk-matcher:kid "2"))))))
+  (recovery-test json))
 
 ;; jwk:ec-private
 (let ((json #(("keys"
@@ -88,11 +110,17 @@
     (test-equal 1 (length (jwk-set-keys jwk-set)))
     (let ((jwk (car (jwk-set-keys jwk-set))))
       (test-jwk jwk))
-    (test-equal "jwk-set->json jwk:ec-private" json (jwk-set->json jwk-set)))
+    (test-equal "jwk-set->json jwk:ec-private" json (jwk-set->json jwk-set))
+
+    (let ((pub-jwks (jwk-set->public-jwk-set jwk-set)))
+      (test-equal '(#t)
+		  (map (lambda (k) (and (jwk:ec? k) (not (jwk:ec-private? k))))
+		       (jwk-set-keys pub-jwks)))))
   (let* ((jwk-json (cadr (vector-ref json 0)))
 	 (jwk (json->jwk jwk-json)))
     (test-jwk jwk)
-    (test-equal "jwk->json jwk:ec" jwk-json (jwk->json jwk))))
+    (test-equal "jwk->json jwk:ec" jwk-json (jwk->json jwk)))
+  (recovery-test json))
 
 ;; jwk:rsa
 (let ((json #(("keys"
@@ -123,7 +151,8 @@
   (let* ((jwk-json (cadr (vector-ref json 0)))
 	 (jwk (json->jwk jwk-json)))
     (test-jwk jwk)
-    (test-equal "jwk->json jwk:ec" jwk-json (jwk->json jwk))))
+    (test-equal "jwk->json jwk:ec" jwk-json (jwk->json jwk)))
+  (recovery-test json))
 
 ;; jwk:rsa-private
 (let ((json #(("keys"
@@ -158,7 +187,8 @@
   (let* ((jwk-json (cadr (vector-ref json 0)))
 	 (jwk (json->jwk jwk-json)))
     (test-jwk jwk)
-    (test-equal "jwk->json jwk:ec" jwk-json (jwk->json jwk))))
+    (test-equal "jwk->json jwk:ec" jwk-json (jwk->json jwk)))
+  (recovery-test json))
 
 ;; jwk:rsa-crt-private
 (let ((json #(("keys"
@@ -210,7 +240,8 @@
   (let* ((jwk-json (cadr (vector-ref json 0)))
 	 (jwk (json->jwk jwk-json)))
     (test-jwk jwk)
-    (test-equal "jwk->json jwk:ec" jwk-json (jwk->json jwk))))
+    (test-equal "jwk->json jwk:ec" jwk-json (jwk->json jwk)))
+  (recovery-test json))
 
 ;; jwk:rsa with x5c
 (let ((json #(("keys"
@@ -245,7 +276,8 @@
   (let* ((jwk-json (cadr (vector-ref json 0)))
 	 (jwk (json->jwk jwk-json)))
     (test-jwk jwk)
-    (test-equal "jwk->json jwk:ec" jwk-json (jwk->json jwk))))
+    (test-equal "jwk->json jwk:ec" jwk-json (jwk->json jwk)))
+  (recovery-test json))
 
 (let ()
   (define cert (string-append (current-directory)
@@ -292,7 +324,8 @@
   (let* ((jwk-json (cadr (vector-ref json 0)))
 	 (jwk (json->jwk jwk-json)))
     (test-jwk jwk)
-    (test-assert "jwk->json jwk:okp-private" (json=? jwk-json (jwk->json jwk)))))
+    (test-assert "jwk->json jwk:okp-private" (json=? jwk-json (jwk->json jwk))))
+  (recovery-test json))
 
 (let ((json #(("keys"
 	       #(("kty" . "OKP")
@@ -318,7 +351,8 @@
   (let* ((jwk-json (cadr (vector-ref json 0)))
 	 (jwk (json->jwk jwk-json)))
     (test-jwk jwk)
-    (test-assert "jwk->json jwk:okp" (json=? jwk-json (jwk->json jwk)))))
+    (test-assert "jwk->json jwk:okp" (json=? jwk-json (jwk->json jwk))))
+  (recovery-test json))
 
 (let ((json #(("kty" . "OKP")
 	      ("crv" . "X25519")
@@ -335,7 +369,9 @@
      (jwk:okp-x jwk))
     (test-assert (x25519-public-key? (jwk->public-key jwk)))
     (test-error (private-key? (jwk->private-key jwk))))
-  (test-jwk (json->jwk json)))
+  (let ((jwk (json->jwk json)))
+    (test-jwk jwk)
+    (recovery-test-jwk jwk)))
 
 (let ((json #(("kty" . "OKP")
 	      ("crv" . "X448")
@@ -352,6 +388,13 @@
      (jwk:okp-x jwk))
     (test-assert (x448-public-key? (jwk->public-key jwk)))
     (test-error (private-key? (jwk->private-key jwk))))
-  (test-jwk (json->jwk json)))
+  (let ((jwk (json->jwk json)))
+    (test-jwk jwk)
+    (recovery-test-jwk jwk)))
+
+(let ((json #(("kty" . "oct")
+	      ("alg" . "A128KW")
+	      ("k" . "GawgguFyGrWKav7AX4VKUg"))))
+  (recovery-test-jwk (json->jwk json)))
 
 (test-end)

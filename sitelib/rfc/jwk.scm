@@ -70,7 +70,12 @@
 	    jwk->public-jwk
 
 	    jwk-config-builder jwk:config?
+
+	    jwk->jwk-config
 	    public-key->jwk
+	    private-key->jwk
+	    secret-key->jwk
+	    key->jwk
 	    )
     (import (rnrs)
 	    (text json parse)
@@ -453,7 +458,7 @@
 	     ((X25519) (jwa:make-x25519-private-key (jwk:okp-private-d jwk)))
 	     ((X448) (jwa:make-x448-private-key (jwk:okp-private-d jwk)))
 	     (else
-	      (assertion-violation 'jwk->private-key
+	      (assertion-violation 'jwk->prviate-key
 				   "given OKP crv is not supported"
 				   (jwk:okp-crv jwk)))))
 	  (else
@@ -475,77 +480,143 @@
 	  (else (assertion-violation 'oid->curv "Unknown JWK curv OID" oid))))
 
   (define-record-type jwk:config
-    (fields use key-ops alg kid x5u x5c))
+    (fields use kid key-ops alg kid x5u x5c e))
   (define-syntax jwk-config-builder
     (make-record-builder jwk:config
 			 ((key-ops '())
-			  (x5c '()))))
-  (define (public-key->jwk public-key . maybe-config)
-    (define config (if (not (null? maybe-config))
-		       (car maybe-config)
-		       (jwk-config-builder)))
-    (define (x5c->fingerprint x5c algo)
-      (and (not (null? x5c))
-	   (utf8->string
-	    (base64-encode
-	     (hash algo (x509-certificate->bytevector (car x5c)))))))
-    (define (rsa-public-key->jwk public-key)
-      (make-jwk:rsa 'RSA
-		    (jwk:config-use config)
-		    (jwk:config-key-ops config)
-		    (jwk:config-alg config)
-		    (jwk:config-kid config)
-		    (jwk:config-x5u config)
-		    (map x509-certificate->bytevector (jwk:config-x5c config))
-		    (x5c->fingerprint (jwk:config-x5c config) SHA-1)
-		    (x5c->fingerprint (jwk:config-x5c config) SHA-256)
-       (rsa-public-key-modulus public-key)
-       (rsa-public-key-exponent public-key)))
-    (define (ecdsa-public-key->jwk public-key)
-      (define ec-param (ecdsa-public-key-parameter public-key))
-      (define oid (ec-parameter-oid ec-param))
-      (define Q (ecdsa-public-key-Q public-key))
-      (let-values (((curv alg) (oid->curv&alg oid)))
-	(make-jwk:ec 'EC
-		     (jwk:config-use config)
-		     (jwk:config-key-ops config)
-		     (jwk:config-alg config)
-		     (jwk:config-kid config)
-		     (jwk:config-x5u config)
-		     (map x509-certificate->bytevector (jwk:config-x5c config))
-		     (x5c->fingerprint (jwk:config-x5c config) SHA-1)
-		     (x5c->fingerprint (jwk:config-x5c config) SHA-256)
-		     curv (ec-point-x Q) (ec-point-y Q))))
-    (define (eddsa-public-key->jwk public-key)
-      (make-jwk:okp 'OKP
-       (jwk:config-use config)
-       (jwk:config-key-ops config)
-       (jwk:config-alg config)
-       (jwk:config-kid config)
-       (jwk:config-x5u config)
-       (map x509-certificate->bytevector (jwk:config-x5c config))
-       (x5c->fingerprint (jwk:config-x5c config) SHA-1)
-       (x5c->fingerprint (jwk:config-x5c config) SHA-256)
-       (if (ed25519-key? public-key) 'Ed25519 'Ed448)
-       (eddsa-public-key-data public-key)))
-    (define (rfc7748-public-key->jwk public-key)
-      (make-jwk:okp 'OKP
-       (jwk:config-use config)
-       (jwk:config-key-ops config)
-       (jwk:config-alg config)
-       (jwk:config-kid config)
-       (jwk:config-x5u config)
-       (map x509-certificate->bytevector (jwk:config-x5c config))
-       (x5c->fingerprint (jwk:config-x5c config) SHA-1)
-       (x5c->fingerprint (jwk:config-x5c config) SHA-256)
-       (if (x25519-public-key? public-key) 'X25519 'X448)
-       (rfc7748-public-key-data public-key)))
-    (cond ((rsa-public-key? public-key) (rsa-public-key->jwk public-key))
-	  ((ecdsa-public-key? public-key) (ecdsa-public-key->jwk public-key))
-	  ((eddsa-public-key? public-key) (eddsa-public-key->jwk public-key))
-	  ((rfc7748-public-key? public-key)
-	   (rfc7748-public-key->jwk public-key))
-	  (else (assertion-violation 'public-key->jwk "Unsupported key"
-				     public-key))))
+			  (x5c '())
+			  ;; very ugry way of handling
+			  ;; non CRT RSA private key which
+			  ;; I don't think exists...
+			  (e 65537))))
+
+  (define (jwk->jwk-config jwk)
+    (jwk-config-builder
+     (use (jwk-use jwk))
+     (kid (jwk-kid jwk))
+     (key-ops (jwk-key-ops jwk))
+     (alg (jwk-alg jwk))
+     (x5u (jwk-x5u jwk))
+     (x5c (jwk-x5c jwk))
+     (e (if (jwk:rsa? jwk) (jwk:rsa-e jwk) 65537))))
   
+  (define (x5c->fingerprint x5c algo)
+    (and (not (null? x5c))
+	 (utf8->string
+	  (base64-encode
+	   (hash algo (x509-certificate->bytevector (car x5c)))))))
+  (define (make-key ctr type config . rest)
+    (apply ctr type
+	   (jwk:config-use config)
+	   (jwk:config-key-ops config)
+	   (jwk:config-alg config)
+	   (jwk:config-kid config)
+	   (jwk:config-x5u config)
+	   (map x509-certificate->bytevector (jwk:config-x5c config))
+	   (x5c->fingerprint (jwk:config-x5c config) SHA-1)
+	   (x5c->fingerprint (jwk:config-x5c config) SHA-256)
+	   rest))
+  (define public-key->jwk
+    (case-lambda
+     ((public-key) (public-key->jwk public-key (jwk-config-builder)))
+     ((public-key config)
+      (define (rsa-public-key->jwk public-key)
+	(make-key make-jwk:rsa 'RSA config
+		  (rsa-public-key-modulus public-key)
+		  (rsa-public-key-exponent public-key)))
+      (define (ecdsa-public-key->jwk public-key)
+	(define ec-param (ecdsa-public-key-parameter public-key))
+	(define oid (ec-parameter-oid ec-param))
+	(define Q (ecdsa-public-key-Q public-key))
+	(let-values (((curv alg) (oid->curv&alg oid)))
+	  (make-key make-jwk:ec 'EC config
+		    curv (ec-point-x Q) (ec-point-y Q))))
+      (define (eddsa-public-key->jwk public-key)
+	(make-key make-jwk:okp 'OKP config
+		  (if (ed25519-key? public-key) 'Ed25519 'Ed448)
+		  (eddsa-public-key-data public-key)))
+      (define (rfc7748-public-key->jwk public-key)
+	(make-key make-jwk:okp 'OKP config
+		  (if (x25519-public-key? public-key) 'X25519 'X448)
+		  (rfc7748-public-key-data public-key)))
+      (cond ((rsa-public-key? public-key) (rsa-public-key->jwk public-key))
+	    ((ecdsa-public-key? public-key) (ecdsa-public-key->jwk public-key))
+	    ((eddsa-public-key? public-key) (eddsa-public-key->jwk public-key))
+	    ((rfc7748-public-key? public-key)
+	     (rfc7748-public-key->jwk public-key))
+	    (else (assertion-violation 'public-key->jwk "Unsupported key"
+				       public-key))))))
+
+  (define private-key->jwk
+    (case-lambda
+     ((private-key) (private-key->jwk private-key (jwk-config-builder)))
+     ((private-key config)
+      (define (rsa-private-key->jwk private-key)
+	(if (rsa-private-crt-key? private-key)
+	    (make-key make-jwk:rsa-crt-private 'RSA config
+		      (rsa-private-key-modulus private-key)
+		      (rsa-private-crt-key-public-exponent private-key)
+		      (rsa-private-key-private-exponent private-key)
+		      (rsa-private-crt-key-p private-key)
+		      (rsa-private-crt-key-q private-key)
+		      (rsa-private-crt-key-dP private-key)
+		      (rsa-private-crt-key-dQ private-key)
+		      (rsa-private-crt-key-qP private-key))
+	    (make-key make-jwk:rsa-private 'RSA config
+		      (rsa-private-key-modulus private-key)
+		      (jwk:config-e config)
+		      (rsa-private-key-private-exponent private-key))))
+      (define (ecdsa-private-key->jwk private-key)
+	(define ec-param (ecdsa-private-key-parameter private-key))
+	(define oid (ec-parameter-oid ec-param))
+	(define public-key (ecdsa-private-key-public-key private-key))
+	(define Q (ecdsa-public-key-Q public-key))
+	(let-values (((curv alg) (oid->curv&alg oid)))
+	  (make-key make-jwk:ec-private 'EC config
+		    curv (ec-point-x Q) (ec-point-y Q)
+		    (ecdsa-private-key-d private-key))))
+      (define (eddsa-private-key->jwk private-key)
+	(define public-key (eddsa-private-key-public-key private-key))
+	(make-key make-jwk:okp-private 'OKP config
+		  (if (ed25519-key? private-key) 'Ed25519 'Ed448)
+		  (eddsa-public-key-data public-key)
+		  (eddsa-private-key-random private-key)))
+      (define (rfc7748-private-key->jwk private-key)
+	(define public-key (rfc7748-private-key-public-key private-key))
+	(make-key make-jwk:okp-private 'OKP config
+		  (if (x25519-private-key? private-key) 'X25519 'X448)
+		  (rfc7748-public-key-data public-key)
+		  (rfc7748-private-key-random private-key)))
+      (cond ((rsa-private-key? private-key) (rsa-private-key->jwk private-key))
+	    ((ecdsa-private-key? private-key)
+	     (ecdsa-private-key->jwk private-key))
+	    ((eddsa-private-key? private-key)
+	     (eddsa-private-key->jwk private-key))
+	    ((rfc7748-private-key? private-key)
+	     (rfc7748-private-key->jwk private-key))
+	    (else (assertion-violation 'private-key->jwk "Unsupported key"
+				       private-key))))))
+
+  (define secret-key->jwk
+    (case-lambda
+     ((secret-key) (secret-key->jwk secret-key (jwk-config-builder)))
+     ((secret-key config)
+      (cond ((bytevector? secret-key)
+	     (make-key make-jwk:oct 'oct config secret-key))
+	    ((symmetric-key? secret-key)
+	     (make-key make-jwk:oct 'oct config
+		       (symmetric-key-raw-key secret-key)))
+	    (else (assertion-violation 'secret-key->jwk "Unsupported key"
+				       secret-key))))))
+
+  (define key->jwk
+    (case-lambda
+     ((key) (key->jwk key (jwk-config-builder)))
+     ((key config)
+      (cond ((public-key? key) (public-key->jwk key config))
+	    ((private-key? key) (private-key->jwk key config))
+	    ((or (bytevector? key) (symmetric-key? key))
+	     (secret-key->jwk key config))
+	    (else (assertion-violation 'key->jwk "Unsupported key" key))))))
+    
   )
