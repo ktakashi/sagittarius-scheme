@@ -47,7 +47,8 @@
 	    ;; keys
 	    json-string->jwk read-jwk json->jwk
 	    jwk->json-string write-jwk jwk->json
-	    jwk? jwk-use jwk-kid jwk-kty jwk-alg jwk-x5c
+	    jwk? jwk-kty jwk-use jwk-key-ops jwk-alg jwk-kid
+	    jwk-x5u jwk-x5c jwk-x5t jwk-x5t-s256
 	    ;; EC
 	    jwk:ec? make-jwk:ec jwk:ec-crv jwk:ec-x jwk:ec-y
 	    jwk:ec-private? make-jwk:ec-private jwk:ec-private-d
@@ -195,13 +196,13 @@
      (make-jwk
       ("kty" string->symbol)
       (? "use" #f string->symbol)
-      (? "key-ops" '() (@ list))
+      (? "key-ops" '() (@ list string->symbol))
       (? "alg" #f string->symbol)
       (? "kid" #f)
       (? "x5u" #f)
       (? "x5c" '() (@ list b64-string->x509-certificate))
-      (? "x5t" #f)
-      (? "x5t#S256" #f))))
+      (? "x5t" #f base64-url-string->bytevector)
+      (? "x5t#S256" #f base64-url-string->bytevector))))
   
   (define jwks-builder
     (json-object-builder
@@ -303,14 +304,17 @@
     (parameterize ((*post-json-object-build* post-object-build))
       (json->object json jwk-builder parameter-handler)))
 
-  (define (read-jwk port)
-    (json->jwk (json-read port)))
+  (define read-jwk
+    (case-lambda
+     (() (read-jwk (current-input-port)))
+     ((port) (json->jwk (json-read port)))))
     
   (define (json-string->jwk json-string)
     (read-jwk (open-string-input-port json-string)))
   
   (define (bytevector->b64-string bv)
     (utf8->string (base64-encode bv :line-width #f)))
+  (define (bytevector->b64url-string bv) (utf8->string (base64url-encode bv)))
   (define (x509-certificate->b64-string cert)
     (bytevector->b64-string (x509-certificate->bytevector cert)))
   (define-syntax jwk-serializer
@@ -320,13 +324,13 @@
 	(("kty" jwk-kty symbol->string)
 	 (key acc ...) ...
 	 (? "use" #f jwk-use symbol->string)
-	 (? "key_ops" '() jwk-key-ops (->))
+	 (? "key_ops" '() jwk-key-ops (-> symbol->string))
 	 (? "alg" #f jwk-alg symbol->string)
 	 (? "kid" #f jwk-kid)
 	 (? "x5u" #f jwk-x5u)
 	 (? "x5c" '() jwk-x5c (-> x509-certificate->b64-string))
-	 (? "x5t" #f jwk-x5t)
-	 (? "x5t#S256" #f jwk-x5t-s256))))))
+	 (? "x5t" #f jwk-x5t bytevector->b64url-string)
+	 (? "x5t#S256" #f jwk-x5t-s256 bytevector->b64url-string))))))
 
   (define (bytevector->b64u-string bv)
     (utf8->string (base64url-encode bv)))
