@@ -6,7 +6,7 @@
 @hyperlink[:href "https://datatracker.ietf.org/doc/html/rfc7516"]{RFC 7516}.
 }
 
-The following examples show how to exchange key.
+The following example shows how to exchange secret key.
 @codeblock{
 (import (rnrs)
         (rfc jwe)

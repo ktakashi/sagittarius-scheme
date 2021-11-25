@@ -194,7 +194,7 @@
     (json-object-builder
      (make-jwk
       ("kty" string->symbol)
-      (? "use" #f)
+      (? "use" #f string->symbol)
       (? "key-ops" '() (@ list))
       (? "alg" #f string->symbol)
       (? "kid" #f)
@@ -281,8 +281,10 @@
     (parameterize ((*post-json-object-build* post-object-build))
       (json->object json jwks-builder parameter-handler)))
 
-  (define (read-jwk-set port)
-    (json->jwk-set (json-read port)))
+  (define read-jwk-set
+    (case-lambda
+     (() (read-jwk-set (current-input-port)))
+     ((port) (json->jwk-set (json-read port)))))
     
   (define (json-string->jwk-set json-string)
     (read-jwk-set (open-string-input-port json-string)))
@@ -317,7 +319,7 @@
        (json-object-serializer
 	(("kty" jwk-kty symbol->string)
 	 (key acc ...) ...
-	 (? "use" #f jwk-use)
+	 (? "use" #f jwk-use symbol->string)
 	 (? "key_ops" '() jwk-key-ops (->))
 	 (? "alg" #f jwk-alg symbol->string)
 	 (? "kid" #f jwk-kid)
