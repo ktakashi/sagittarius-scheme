@@ -1,8 +1,8 @@
 @; -*- coding: utf-8 -*-
 @subsection[:tag "rfc.jwe"]{(rfc jwe) - Json Web Encryption}
 
-@define[Library][@name{(rfc jws)}]
-@desc{This library provides Json Web Signature (JWS) APIs. JWS is defined in
+@define[Library][@name{(rfc jwe)}]
+@desc{This library provides Json Web Encryption (JWE) APIs. JWE is defined in
 @hyperlink[:href "https://datatracker.ietf.org/doc/html/rfc7516"]{RFC 7516}.
 }
 
