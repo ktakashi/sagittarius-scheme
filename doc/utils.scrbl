@@ -42,6 +42,7 @@
 @include-section["utils/rfc/http-connections.scrbl"]
 @include-section["utils/rfc/json-pointer.scrbl"]
 @include-section["utils/rfc/jwe.scrbl"]
+@include-section["utils/rfc/jwk.scrbl"]
 @include-section["utils/rfc/jws.scrbl"]
 @include-section["utils/rfc/pem.scrbl"]
 @include-section["utils/rfc/otp.scrbl"]

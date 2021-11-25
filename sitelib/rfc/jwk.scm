@@ -413,7 +413,6 @@
   
   (define (jwk->public-key jwk)
     ;; jwk:ec-private or jwk:rsa-private can also be a public key
-    ;; TODO should it?
     (cond ((jwk:ec? jwk)
 	   (jwa:make-ec-public-key
 	    (jwk:ec-crv jwk) (jwk:ec-x jwk) (jwk:ec-y jwk)))
