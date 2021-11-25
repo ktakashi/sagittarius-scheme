@@ -53,7 +53,7 @@ The following examples show how to interact with @code{(crypto)} keys.
 (jwk->private-key jwk)  ;; -> ECDSA private key
 }
 
-@subsection{JWK Set}
+@subsubsection{JWK Set}
 
 JWK Set (JWKS) is an object represents a set of JWKs.
 
@@ -71,8 +71,8 @@ JWK Set (JWKS) is an object represents a set of JWKs.
 
 
 @define[Function]{@name{json->jwk-set} @args{obj}}
-@define[Function]{@name{read-jwk-set} @args{}}
-@define[Function]{@name{read-jwk-set} @args{:optional port}}
+@define[Function]{@name{read-jwk-set}}
+@define[Function]{@name{read-jwk-set} @args{port}}
 @define[Function]{@name{json-string->jwk-set} @args{string}}
 @desc{Construct JWKS from S-exp JSON representation of @var{obj},
 from input port @var{port} or a string @var{string}.
@@ -95,7 +95,7 @@ serialized JWK set to current output port.
 @define[Function]{@name{jwk-set:find-key} @args{jwk-set jwk-matcher}}
 @desc{Finds a key which matches to @var{jwk-matcher} from given @var{jwk-set}.}
 
-@subsection{JWK Matcher}
+@subsubsection{JWK Matcher}
 
 A JWK matcher is a procedure takes one argument, @var{jwk}, and returns
 the given @var{jwk} if it matches the condition otherwise returns #f.
@@ -134,7 +134,7 @@ target JWK contains given @var{obj}.}
 @desc{Convenient JWK matchers which check @code{kty} to be @code{RSA},
 @code{EC}, @code{oct} or @code{OKP}, respectively.}
 
-@subsection{JWK}
+@subsubsection{JWK}
 
 JWK is an object which contains key information. The object contains
 the following fields:

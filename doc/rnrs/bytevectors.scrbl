@@ -338,7 +338,7 @@ invalid or incomplete character encoding is encountered, then the replacement
 character U+FFFD is appended to the string being generated, an appropriate number
 of bytes are ignored, and decoding continues with the following bytes.
 
-@define[Function]{@name{string->utf8} @args{string :optional start end}
+@define[Function]{@name{string->utf8} @args{string :optional start end}}
 @desc{[R6RS+] [R7RS] Returns a newly allocated (unless empty) bytevector that
 contains the UTF-8 encoding of the given @var{string}.
 

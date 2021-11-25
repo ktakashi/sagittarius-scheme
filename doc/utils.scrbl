@@ -44,6 +44,7 @@
 @include-section["utils/rfc/jwe.scrbl"]
 @include-section["utils/rfc/jwk.scrbl"]
 @include-section["utils/rfc/jws.scrbl"]
+@include-section["utils/rfc/jwt.scrbl"]
 @include-section["utils/rfc/pem.scrbl"]
 @include-section["utils/rfc/otp.scrbl"]
 @include-section["utils/rfc/quoted-printable.scrbl"]

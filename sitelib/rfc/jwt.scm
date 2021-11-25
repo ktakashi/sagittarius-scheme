@@ -122,7 +122,10 @@
   (parameterize ((*post-json-object-build* post-object-build))
     (json->object json jwt-claims-object-builder parameter-handler)))
 
-(define (read-jwt-claims port) (json->jwt-claims (json-read port)))
+(define read-jwt-claims
+  (case-lambda
+   (() (read-jwt-claims (current-input-port)))
+   ((port) (json->jwt-claims (json-read port)))))
 (define (json-string->jwt-claims json-string)
   (read-jwt-claims (open-string-input-port json-string)))
 

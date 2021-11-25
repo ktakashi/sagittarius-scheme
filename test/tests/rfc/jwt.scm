@@ -240,6 +240,36 @@
       (claims (build-claims)))
   (test-assert "EdDSA" (json=? (jwt-claims->json claims)
 			       (jwt-round-trip-test keypair 'EdDSA claims))))
-  
-  
+(let ((keypair (generate-key-pair Ed448))
+      (claims (build-claims)))
+  (test-assert "EdDSA" (json=? (jwt-claims->json claims)
+			       (jwt-round-trip-test keypair 'EdDSA claims))))
+
+
+(define (invalid-signature-test alg keytype . rest)
+  (define kp1 (apply generate-key-pair keytype rest))
+  (define kp2 (apply generate-key-pair keytype rest))
+  (define jws-header
+    (jws-header-builder
+     (alg alg)))
+  (define payload (string->utf8 (jwt-claims->json-string (build-claims))))
+  (define signer (private-key->jws-signer (keypair-private kp1)))
+  (define verifier (public-key->jws-verifier (keypair-public kp2)))
+  (let ((jws-object (jws:sign (make-jws-object jws-header payload) signer))
+	(jwt-consumer (jwt-consumer-builder
+		       (verifier verifier))))
+    (test-error keytype (jwt:consume jwt-consumer jws-object))))
+
+(invalid-signature-test 'RS256 RSA)
+(invalid-signature-test 'RS384 RSA)
+(invalid-signature-test 'RS512 RSA)
+(invalid-signature-test 'PS256 RSA)
+(invalid-signature-test 'PS384 RSA)
+(invalid-signature-test 'PS512 RSA)
+(invalid-signature-test 'ES256 ECDSA :ec-parameter NIST-P-256)
+(invalid-signature-test 'ES384 ECDSA :ec-parameter NIST-P-384)
+(invalid-signature-test 'ES512 ECDSA :ec-parameter NIST-P-521)
+(invalid-signature-test 'EdDSA Ed25519)
+(invalid-signature-test 'EdDSA Ed448)
+
 (test-end)
