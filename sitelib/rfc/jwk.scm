@@ -64,7 +64,6 @@
 	    jwk:okp? make-jwk:okp jwk:okp-crv jwk:okp-x
 	    jwk:okp-private? make-jwk:okp-private jwk:okp-private-d
 
-	    jwk->certificate-chain
 	    jwk->public-key
 	    jwk->private-key
 	    jwk->octet-key
@@ -412,9 +411,6 @@
       (write-jwk jwk out)
       (extract)))
   
-  ;; usages
-  (define (jwk->certificate-chain jwk) (jwk-x5c jwk))
-
   (define (jwk->public-key jwk)
     ;; jwk:ec-private or jwk:rsa-private can also be a public key
     ;; TODO should it?
