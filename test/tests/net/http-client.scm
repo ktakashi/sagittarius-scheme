@@ -65,12 +65,12 @@
 
 
 (let ()
-  (define (test-future f)
+  (define (test-future f status)
     (let ((res (future-get f)))
-      (test-equal "200" (http:response-status res))))
-  (define (run-test url)
+      (test-equal status (http:response-status res))))
+  (define (run-test url status)
     (define request (http:request-builder (uri url) (method 'GET)))
-    (test-future (http:client-send-async client request)))
+    (test-future (http:client-send-async client request) status))
   
   (define client (http:client-builder
 		  (cookie-handler (http:make-default-cookie-handler))
@@ -79,8 +79,9 @@
 		  (follow-redirects (http:redirect normal))))
 
   (test-assert (http:client? client))
-  (run-test "https://prod.idrix.eu/secure/")
-  (run-test "https://client.badssl.com/")
+  (run-test "https://prod.idrix.eu/secure/" "200")
+  ;; The certificate is expired as of 26 Nov 2021...
+  (run-test "https://client.badssl.com/" "400")
   )
 
 (let ()
