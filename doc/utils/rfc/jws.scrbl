@@ -3,9 +3,14 @@
 
 @define[Library][@name{(rfc jws)}]
 @desc{This library provides Json Web Signature (JWS) APIs. JWS is defined
-in @hyperlink[:href "https://tools.ietf.org/html/rfc7515"]{RFC 7515}. It
-also supports EdDSA of both Ed25519 and Ed448 defined in
-@hyperlink[:href "https://datatracker.ietf.org/doc/html/rfc8037"]{RFC 0837}.
+in @hyperlink[:href "https://tools.ietf.org/html/rfc7515"]{RFC 7515}.
+
+The library supports @code{ES256K} defined in
+@hyperlink[:href "https://datatracker.ietf.org/doc/html/rfc8812"]{RFC 8812}
+section 3.1.
+
+It also supports EdDSA of both Ed25519 and Ed448 defined in
+@hyperlink[:href "https://datatracker.ietf.org/doc/html/rfc8037"]{RFC 8037}.
 }
 
 The following examples show how to sign and verify JWS token

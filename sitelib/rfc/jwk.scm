@@ -478,6 +478,7 @@
     (cond ((string=? oid "1.2.840.10045.3.1.7") (values 'P-256 'ES256))
 	  ((string=? oid "1.3.132.0.34") (values 'P-384 'ES384))
 	  ((string=? oid "1.3.132.0.35") (values 'P-521 'ES521))
+	  ((string=? oid "1.3.132.0.10") (values 'sectp256k1 'ES256K))
 	  (else (assertion-violation 'oid->curv "Unknown JWK curv OID" oid))))
 
   (define-record-type jwk:config

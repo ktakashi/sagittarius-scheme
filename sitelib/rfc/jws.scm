@@ -285,7 +285,7 @@
 (define (make-ecdsa-jws-verifier key)
   (define (get-verifier alg)
     (case alg
-      ((ES256) (*ecdsa/sha256-verifier-provider* key :der-encode #f))
+      ((ES256 ES256K) (*ecdsa/sha256-verifier-provider* key :der-encode #f))
       ((ES384) (*ecdsa/sha384-verifier-provider* key :der-encode #f))
       ((ES512) (*ecdsa/sha512-verifier-provider* key :der-encode #f))
       (else (assertion-violation 'ecdsa-jws-verifier "Unknown algorithm" alg))))
@@ -352,11 +352,11 @@
 (define (make-ecdsa-jws-signer key)
   (define (get-signer alg)
     (case alg
-      ((ES256) (*ecdsa/sha256-signer-provider* key :der-encode #f))
+      ((ES256 ES256K) (*ecdsa/sha256-signer-provider* key :der-encode #f))
       ((ES384) (*ecdsa/sha384-signer-provider* key :der-encode #f))
       ((ES512) (*ecdsa/sha512-signer-provider* key :der-encode #f))
       (else (assertion-violation 'ecdsa-jws-verifier "Unknown algorithm" alg))))
-  (cond ((jwk? key) (make-ecdsa-jws-verifier (jwk->private-key key)))
+  (cond ((jwk? key) (make-ecdsa-jws-signer (jwk->private-key key)))
 	((private-key? key)
 	 (lambda (header signing-content)
 	   (define ecdsa-signer (get-signer (jose-crypto-header-alg header)))
