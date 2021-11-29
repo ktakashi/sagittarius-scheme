@@ -32,10 +32,13 @@
 ;; what's the structure of the document.
 ;; Basically a document is a sxml with schema.
 ;; - `document`: the root element
-;;   - `table-of-contents`: table of contents, must appear max once
-;;                          right after `document`
-;;   - `secton`*          : a container, may appear multiple times
-;;   - `appendix`         : appendix
+;;   - `info`   : document info, e.g. copy right
+;;   - `content`: document itself
+;;
+;; - `content`
+;;   - `section`* : document section
+;;   - `appendix`*: appendix
+;;   - any*       : anything
 ;; 
 ;; The above tags can contain inline tags
 ;; - header (@ (level "1"))         : H1, level can be up to 6 (h6)
@@ -56,19 +59,28 @@
 (library (sagittarius document)
     (export file->document
 	    port->document
-	    write-document)
+	    write-document
+
+	    &document document-error?
+	    &document-input document-input-error?
+	    )
     (import (rnrs)
 	    (rnrs eval)
-	    (sagittarius))
+	    (sagittarius)
+	    (sagittarius document conditions)
+	    (sagittarius document input))
 
-(define (file->document type file)
-  (call-with-input-file file (lambda (p) (port->document type p))))
+(define (file->document type file . rest)
+  (parse-document type (apply file->document-input file rest)))
 
-(define (port->document type port)
+(define (port->document type port . rest)
+  (parse-document type (apply port->document-input port rest)))
+
+(define (parse-document type input)
   (define name (string->symbol
 		(string-append (symbol->string type) "->document")))
   (let ((proc (load-procedure type name)))
-    (proc port)))
+    (proc input)))
 
 (define write-document
   (case-lambda
