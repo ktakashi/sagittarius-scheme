@@ -295,6 +295,7 @@ static SgObject argsToList(int argc, int optind_s, tchar** argv)
   for (i = optind_s; i < argc; i++) {
     SG_APPEND1(h, t, make_scheme_string(argv[i]));
   }
+  if (SG_NULLP(h)) return SG_LIST1(SG_MAKE_STRING(""));
   return h;
 }
 
