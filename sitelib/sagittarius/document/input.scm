@@ -36,7 +36,7 @@
     (export file->document-input
 	    port->document-input
 
-	    $location
+	    $location $input-eqv? $input-pred $input-token
 	    document:simple-lexer ;; for convenence
 	    
 	    document-input-error
@@ -93,11 +93,26 @@
 	  (else (values c 1 #f)))))
 
 (define ($location l)
-  (let* ((v (lseq-car l))
-	 (loc (cdr v)))
-    (values +parse-success+ `((file ,(cadr loc))
-			      (line ,(caar loc))
-			      (column ,(cdar loc)))
-	    l)))
+  (if (null? l)
+      (values +parse-expect+ "Unexpected EOF" l)
+      (let* ((v (lseq-car l))
+	     (loc (cdr v)))
+	(values +parse-success+ `((file ,(cadr loc))
+				  (line ,(caar loc))
+				  (column ,(cdar loc)))
+		l))))
 
+(define ($input-eqv? v) ($satisfy (lambda (c) (eqv? (car c) v)) v))
+(define ($input-pred pred) ($satisfy (lambda (c) (pred (car c)))))
+
+(define ($input-token token)
+  (let ((c* (if (string? token) (string->list token) #f)))
+    (lambda (l)
+      (define r (if (string? token) token (token)))
+      (let loop ((c* (or c* (string->list r))) (nl l))
+	(cond ((null? c*) (return-result r nl))
+	      ((null? nl) (return-expect r l))
+	      ((eqv? (car c*) (car (lseq-car nl)))
+	       (loop (cdr c*) (lseq-cdr nl)))
+	      (else (return-expect r l)))))))
 )
