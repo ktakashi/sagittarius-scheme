@@ -36,6 +36,8 @@
     (export file->document-input
 	    port->document-input
 
+	    input-char input-loc input-file
+
 	    $location $input-eqv? $input-pred $input-token
 	    document:simple-lexer ;; for convenence
 	    
@@ -102,6 +104,10 @@
 				  (column ,(cdar loc)))
 		l))))
 
+(define (input-char l) (car (lseq-car l)))
+(define (input-loc l) (cadr (lseq-car l)))
+(define (input-file l) (caddr (lseq-car l)))
+
 (define ($input-eqv? v) ($satisfy (lambda (c) (eqv? (car c) v)) v))
 (define ($input-pred pred) ($satisfy (lambda (c) (pred (car c)))))
 
@@ -112,7 +118,7 @@
       (let loop ((c* (or c* (string->list r))) (nl l))
 	(cond ((null? c*) (return-result r nl))
 	      ((null? nl) (return-expect r l))
-	      ((eqv? (car c*) (car (lseq-car nl)))
+	      ((eqv? (car c*) (input-char nl))
 	       (loop (cdr c*) (lseq-cdr nl)))
 	      (else (return-expect r l)))))))
 )
