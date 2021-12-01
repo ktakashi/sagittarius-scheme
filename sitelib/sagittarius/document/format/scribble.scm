@@ -252,10 +252,22 @@
 	      ( ($input-eqv? #\") ))
 	 ($return (list (list->string (map car c*)))))))
 
+(define $comment
+  ($seq ($input-token "@;")
+	($or ($let (( ($input-eqv? #\{) )
+		    (c* ($many ($notp ($input-token ";}"))))
+		    ( ($input-token ";}") ))
+	       ($return `(comment ,(list->string (map car c*)))))
+	     ($let ((c* ($many ($notp ($input-eqv? #\newline))))
+		    ( ($input-eqv? #\newline) ))
+	       ($return `(comment ,(list->string (map car c*))))))))
+	     
+
 (define $scribble-token
   ($let* ((loc $location))
     ($or ($let* ((escape $escape)) ($return `(token (@ ,@loc) ,@escape)))
-	 ($let* ((token ($or $command
+	 ($let* ((token ($or $comment
+			     $command
 			     $text
 			     ($seq ($input-eqv? #\newline) ($return "\n")))))
 	   ($return `(token (@ ,@loc) ,token))))))
@@ -287,9 +299,10 @@
     (match v
       (('token ('@ loc ...) ((? quotes? x) rest))
        `(,x ,(strip-info `(token (@ ,@loc) ,rest))))
+      (('token ('@ loc ...) ('comment s )) #f)
       (('token ('@ loc ...) (cmd datum text))
        (if (and datum text)
-	   (let ((str* (merge-string (map strip-info text))))
+	   (let ((str* (merge-string (filter-map strip-info text))))
 	     (if cmd
 		 `(,cmd ,@datum ,@str*)
 		 `(,@datum ,@str*)))
@@ -299,8 +312,9 @@
       (('token ('@ loc ...) cmd) cmd)))
   
   (let-values (((s v n) ($scribble-token* (input document:simple-lexer))))
+    ;; (write v) (newline)
     (if (parse-success? s)
-	(map strip-info v)
+	(filter-map strip-info v)
 	(document-input-error 'scribble-parse
 			      "Failed to parse scribble file"
 			      n))))
