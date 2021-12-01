@@ -75,7 +75,7 @@
   (define in (open-string-input-port s))
   (guard (e (else (document-input-error '$datum
 					"Invalid S-exp datum"
-					loc)))
+					s loc)))
     (let loop ((r '()))
       (let ((d (get-datum in)))
 	(if (eof-object? d)
@@ -138,19 +138,33 @@
 
 (define $text ($let ((c* $text-chars)) ($return (list->string c*))))
 
-(define $cmd
-  ($let* ((loc $location)
-	  ( $@ ))
-    ($or ($let* (( ($input-eqv? #\() )
-		 (text ($many ($notp ($input-eqv? #\)))))
-		 ( ($input-eqv? #\)) ))
-	   ($return (string->datum loc (list->string (map car text)))))
-	 ($let* ((cmd ($many $command-chars 1)))
-	   ($return (string->symbol (list->string (map car cmd))))))))
-(define $datum ($let* ((loc $location)
-		       ( ($input-eqv? #\[) )
-		       (datum ($many ($notp ($input-eqv? #\]))))
-		       ( ($input-eqv? #\]) ))
+;; not a good way of handling this, but the same as $text-chars...
+(define ($parentheses l)
+  (let loop ((nl l) (depth 0) (r '()))
+    (if (null? nl)
+	(return-expect "Non closed ()" l)
+	(let ((c (input-char nl)))
+	  (case c
+	    ((#\)) (if (zero? depth)
+		       (return-result (list->string (reverse! r)) nl)
+		       (loop (lseq-cdr nl) (- depth 1) (cons c r))))
+	    ((#\() (loop (lseq-cdr nl) (+ depth 1) (cons c r)))
+	    (else (loop (lseq-cdr nl) depth (cons c r))))))))
+
+(define $cmd-body
+  ($or ($let ((loc $location)
+	      ( ($input-eqv? #\() )
+	      (text $parentheses)
+	      ( ($input-eqv? #\)) ))
+	  ($return (string->datum loc text)))
+       ($let ((cmd ($many $command-chars 1)))
+	  ($return (string->symbol (list->string (map car cmd)))))))
+(define $cmd ($seq $@ $cmd-body))
+
+(define $datum ($let ((loc $location)
+		      ( ($input-eqv? #\[) )
+		      (datum ($many ($notp ($input-eqv? #\]))))
+		      ( ($input-eqv? #\]) ))
 		 ($return (string->datum loc (list->string (map car datum))))))
 
 (define $text-body
@@ -186,8 +200,40 @@
   ($parameterize ((*escape* "") (*in-escape?* #f))
     ($or $escaped-body $text-body)))
 
+(define $quote ($seq ($input-eqv? #\') ($return 'quote)))
+(define $quasiquote ($seq ($input-eqv? #\`) ($return 'quasiquote)))
+(define $unquote ($seq ($input-eqv? #\,) ($return 'unquote)))
+(define $unquote-splicing
+  ($seq ($input-token ",@") ($return 'unquote-splicing)))
+
+(define $quote+
+  ($many ($or $quote $quasiquote $unquote-splicing $unquote) 1))
+
+(define (merge-quote quote* cmd datum text)
+  (let loop ((quote* quote*))
+    (if (null? quote*)
+	(list cmd datum text)
+	(list (car quote*) (loop (cdr quote*))))))
+  
+
+(define $quoted-command
+  ($let (( $@ )
+	 (quote+ $quote+))
+    ($or ($let ((cmd $cmd-body) (d $datum) (t $command-body))
+	   ($return (merge-quote quote+ cmd d t)))
+	 ($let ((cmd $cmd-body) (d $datum))
+	   ($return (merge-quote quote+ cmd d '())))
+	 ($let ((cmd $cmd-body) (t $command-body))
+	   ($return (merge-quote quote+ cmd '() t)))
+	 ($let ((d $datum))
+	   ($return (merge-quote quote+ #f d '())))
+	 ($let ((t $command-body))
+	   ($return (merge-quote quote+ #f '() t)))
+	 ($let ((cmd $cmd-body)) ($return (merge-quote quote+ cmd #f #f))))))
+
 (define $command
-  ($or ($let ((cmd $cmd) (datum $datum) (text $command-body))
+  ($or $quoted-command
+       ($let ((cmd $cmd) (datum $datum) (text $command-body))
 	 ($return `(,cmd ,datum ,text)))
        ($let ((cmd $cmd) (datum $datum)) ($return `(,cmd ,datum ())))
        ($let ((cmd $cmd) (text $command-body)) ($return `(,cmd () ,text)))
@@ -237,7 +283,12 @@
 		 (loop (cdr texts) (cons (car texts) r))))
 	    (else (loop (cdr texts) (cons (car texts) r))))))
   (define (strip-info v)
+    (define (quotes? v)
+      (or (eq? v 'quote) (eq? v 'unquote) (eq? v 'unquote-splicing)
+	  (eq? v 'quasiquote)))
     (match v
+      (('token ('@ loc ...) ((? quotes? x) rest))
+       `(,x ,(strip-info `(token (@ ,@loc) ,rest))))
       (('token ('@ loc ...) (cmd datum text))
        (if (and datum text)
 	   (let ((str* (merge-string (map strip-info text))))
