@@ -54,9 +54,8 @@
 (define *in-escape?* (make-parameter #f))
 (define *open-puncture* (make-parameter ""))
 (define *close-puncture* (make-parameter ""))
-(define *escape* (make-parameter ""))
 (define $@
-  ($let* (( ($input-token *escape*) )
+  ($let* (( ($if (*in-escape?*) $vertical-bar ($empty "")) )
 	  ( ($input-eqv? #\@) ))
     ($return '@))) ;; won't be used anyway...
 
@@ -100,8 +99,8 @@
         ((equal? (car prefix) (car ls)) (list-prefix? (cdr prefix) (cdr ls)))
         (else #f)))
 (define ($text-chars l)
-  (define escape (reverse! (string->list (*escape*))))
-  (define punc (string->list (string-append (*close-puncture*) (*escape*))))
+  (define escape (if (*in-escape?*) '(#\|) '()))
+  (define punc `(,@(string->list (*close-puncture*)) . ,escape))
   (define (return r nl)
     (if (null? r)
 	(return-expect "Text char" l)
@@ -188,7 +187,6 @@
 	  ;;( $open-brace)
 	  (body ($parameterize ((*open-puncture* (list->string punc))
 				(*close-puncture* (mirror punc))
-				(*escape* "|")
 				(*in-escape?* #t))
 		  $text-body))
 	  ;;( $close-brace )
@@ -197,7 +195,7 @@
 
 (define $command-body
   ;; After |@, these 2 parameters must be reset...
-  ($parameterize ((*escape* "") (*in-escape?* #f))
+  ($parameterize ((*in-escape?* #f))
     ($or $escaped-body $text-body)))
 
 (define $quote ($seq ($input-eqv? #\') ($return 'quote)))
