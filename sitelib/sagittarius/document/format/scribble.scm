@@ -160,11 +160,12 @@
 	  ($return (string->symbol (list->string (map car cmd)))))))
 (define $cmd ($seq $@ $cmd-body))
 
-(define $datum ($let ((loc $location)
-		      ( ($input-eqv? #\[) )
-		      (datum ($many ($notp ($input-eqv? #\]))))
-		      ( ($input-eqv? #\]) ))
-		 ($return (string->datum loc (list->string (map car datum))))))
+(define $datum 
+  ($let ((loc $location)
+	 ( ($input-eqv? #\[) )
+	 (datum ($many ($notp ($input-eqv? #\]))))
+	 ( ($input-eqv? #\]) ))
+    ($return (string->datum loc (list->string (map car datum))))))
 
 (define $text-body
   ($let* (( $open-brace )
@@ -229,8 +230,20 @@
 	   ($return (merge-quote quote+ #f '() t)))
 	 ($let ((cmd $cmd-body)) ($return (merge-quote quote+ cmd #f #f))))))
 
+;; Not supported, the document says
+;; 'no special rules for using @ in the command itself'
+;; so, we don't do
+(define $command-in-command
+  ($or ($let (( $@ ) (c ($lazy $command)) (datum $datum) (text $command-body))
+	 ($return `(,c ,datum ,text)))
+       ($let (( $@ ) (c ($lazy $command)) (datum $datum)) 
+	 ($return `(,c ,datum ())))
+       ($let (( $@ ) (c ($lazy $command)) (text $command-body)) 
+	 ($return `(,c () ,text)))))
+
 (define $command
   ($or $quoted-command
+
        ($let ((cmd $cmd) (datum $datum) (text $command-body))
 	 ($return `(,cmd ,datum ,text)))
        ($let ((cmd $cmd) (datum $datum)) ($return `(,cmd ,datum ())))
@@ -281,9 +294,13 @@
 
 (define (scribble-parse input)
   (define (merge-string texts)
+    (define (finish r)
+      (if (for-all (lambda (v) (and (string? v) (string=? "\n" v))) r)
+	  '()
+	  r))
     (let loop ((texts texts) (r '()))
-      (cond ((null? texts) (reverse! r))
-	    ((null? (cdr texts)) (reverse! (cons (car texts) r)))
+      (cond ((null? texts) (finish (reverse! r)))
+	    ((null? (cdr texts)) (finish (reverse! (cons (car texts) r))))
 	    ((and (string? (car texts)) (string? (cadr texts)))
 	     (if (and (not (string=? "\n" (car texts)))
 		      (not (string=? "\n" (cadr texts))))
