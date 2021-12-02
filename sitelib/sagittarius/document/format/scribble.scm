@@ -83,59 +83,49 @@
 
 (define ($notp parser) ($seq ($peek ($not parser)) $any))
 
-(define command-char-set
-  (char-set-complement (string->char-set "[]{}()|\"")))
-(define (command-char? c)
-  (and (not (char-whitespace? c))
-       (char-set-contains? command-char-set c)))
-  
-(define $command-chars ($input-pred command-char?))
-
+(define (mirror-char ch)
+  ;; TODO do we need to do this, ')(', kind of mirro? 
+  (case ch ((#\() #\)) ((#\[) #\]) ((#\{) #\}) ((#\<) #\>) (else ch)))
 ;; FIXME better not to have this but at this moment
 ;;       I don't have better idea
-(define (list-prefix? prefix ls)
-  (cond ((null? prefix) #t)
-        ((null? ls) #f)
-        ((equal? (car prefix) (car ls)) (list-prefix? (cdr prefix) (cdr ls)))
-        (else #f)))
-(define ($text-chars l)
-  (define escape (if (*in-escape?*) '(#\|) '()))
-  (define punc `(,@(string->list (*close-puncture*)) . ,escape))
-  (define (return r nl)
-    (if (null? r)
-	(return-expect "Text char" l)
-	(return-result r nl)))
-  (define (check-escape c nl)
-    (let lp ((nl2 nl) (escape escape))
-      (cond ((null? escape)
-	     (and (not (null? nl2)) (eqv? (input-char nl2) #\@)))
-	    ((null? nl2) #f)
-	    ((eqv? (car escape) (input-char nl2))
-	     (lp (lseq-cdr nl2) (cdr escape)))
-	    (else #f))))
-	
-  (let loop ((nl l) (depth 0) (r '()))
-    (if (null? nl)
-	(return (reverse! r) nl)
-	(let ((c (input-char nl)))
-	  (if (check-escape c nl)
-	      (return (reverse! r) nl)
-	      (case c
-		((#\{) (loop (lseq-cdr nl) (+ depth 1) (cons c r)))
-		((#\})
-		 (if (zero? depth)
-		     (let lp ((p punc) (nl2 (lseq-cdr nl)))
-		       (cond ((null? p) (return (reverse! r) nl))
-			     ((null? nl2) (return (reverse! r) nl))
-			     ((eqv? (car p) (input-char nl2))
-			      (lp (cdr p) (lseq-cdr nl2)))
-			     (else
-			      (loop (lseq-cdr nl) (- depth 1) (cons c r)))))
-		     (loop (lseq-cdr nl) (- depth 1) (cons c r))))
-		((#\newline) (return (reverse! r) nl))
-		(else (loop (lseq-cdr nl) depth (cons c r)))))))))
+(define ($text-chars open)
+  (define close (mirror-char open))
+  (lambda (l)
+    (define escape (if (*in-escape?*) '(#\|) '()))
+    (define punc `(,@(string->list (*close-puncture*)) . ,escape))
+    (define (return r nl)
+      (if (null? r)
+	  (return-expect "Text char" l)
+	  (return-result r nl)))
+    (define (check-escape c nl)
+      (let lp ((nl2 nl) (escape escape))
+	(cond ((null? escape)
+	       (and (not (null? nl2)) (eqv? (input-char nl2) #\@)))
+	      ((null? nl2) #f)
+	      ((eqv? (car escape) (input-char nl2))
+	       (lp (lseq-cdr nl2) (cdr escape)))
+	      (else #f))))
+    
+    (let loop ((nl l) (depth 0) (r '()))
+      (if (null? nl)
+	  (return (reverse! r) nl)
+	  (let ((c (input-char nl)))
+	    (cond ((check-escape c nl) (return (reverse! r) nl))
+		  ((eqv? c open) (loop (lseq-cdr nl) (+ depth 1) (cons c r)))
+		  ((eqv? c close)
+		   (if (zero? depth)
+		       (let lp ((p punc) (nl2 (lseq-cdr nl)))
+			 (cond ((null? p) (return (reverse! r) nl))
+			       ((null? nl2) (return (reverse! r) nl))
+			       ((eqv? (car p) (input-char nl2))
+				(lp (cdr p) (lseq-cdr nl2)))
+			       (else
+				(loop (lseq-cdr nl) (- depth 1) (cons c r)))))
+		       (loop (lseq-cdr nl) (- depth 1) (cons c r))))
+		  ((eqv? c #\newline) (return (reverse! r) nl))
+		  (else (loop (lseq-cdr nl) depth (cons c r)))))))))
 
-(define $text ($let ((c* $text-chars)) ($return (list->string c*))))
+(define $text ($let ((c* ($text-chars #\{))) ($return (list->string c*))))
 
 ;; not a good way of handling this, but the same as $text-chars...
 (define ($parentheses l)
@@ -150,6 +140,13 @@
 	    ((#\() (loop (lseq-cdr nl) (+ depth 1) (cons c r)))
 	    (else (loop (lseq-cdr nl) depth (cons c r))))))))
 
+(define command-char-set
+  (char-set-complement (string->char-set "[]{}()|\"")))
+(define (command-char? c)
+  (and (not (char-whitespace? c))
+       (char-set-contains? command-char-set c)))
+  
+(define $command-chars ($input-pred command-char?))
 (define $cmd-body
   ($or ($let ((loc $location)
 	      ( ($input-eqv? #\() )
@@ -160,9 +157,12 @@
 	  ($return (string->symbol (list->string (map car cmd)))))))
 (define $cmd ($seq $@ $cmd-body))
 
+(define $sexp-text ($let ((c* ($text-chars #\[))) ($return (list->string c*))))
+
 (define $datum 
   ($let ((loc $location)
 	 ( ($input-eqv? #\[) )
+	 ;;(datum ($many ($or ($lazy $command))))
 	 (datum ($many ($notp ($input-eqv? #\]))))
 	 ( ($input-eqv? #\]) ))
     ($return (string->datum loc (list->string (map car datum))))))
@@ -178,10 +178,7 @@
 	 (c* ($many ($notp $open-brace))))
     ($return (map car c*))))
 (define (mirror punc)
-  (define (reflect ch)
-    ;; TODO do we need to do this, ')(', kind of mirro? 
-    (case ch ((#\() #\)) ((#\[) #\]) ((#\{) #\}) ((#\<) #\>) (else ch)))
-  (list->string (map reflect punc)))
+  (list->string (map mirror-char punc)))
 (define $escaped-body
   ($let* ((punc ($peek $puncture))
 	  ;; $text-body contains $open and $close brace
@@ -265,16 +262,16 @@
 	      ( ($input-eqv? #\") ))
 	 ($return (list (list->string (map car c*)))))))
 
+(define $nl ($input-eqv? #\newline))
 (define $comment
   ($seq ($input-token "@;")
 	($or ($let (( ($input-eqv? #\{) )
 		    (c* ($many ($notp ($input-token ";}"))))
 		    ( ($input-token ";}") ))
 	       ($return `(comment ,(list->string (map car c*)))))
-	     ($let ((c* ($many ($notp ($input-eqv? #\newline))))
-		    ( ($input-eqv? #\newline) ))
+	     ($let ((c* ($many ($notp $nl)))
+		    ( $nl ))
 	       ($return `(comment ,(list->string (map car c*))))))))
-	     
 
 (define $scribble-token
   ($let* ((loc $location))
@@ -282,7 +279,7 @@
 	 ($let* ((token ($or $comment
 			     $command
 			     $text
-			     ($seq ($input-eqv? #\newline) ($return "\n")))))
+			     ($seq $nl ($return "\n")))))
 	   ($return `(token (@ ,@loc) ,token))))))
 
 (define $scribble-token* ($many $scribble-token))
