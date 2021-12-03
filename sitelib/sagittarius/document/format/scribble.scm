@@ -105,27 +105,42 @@
 	      ((eqv? (car escape) (input-char nl2))
 	       (lp (lseq-cdr nl2) (cdr escape)))
 	      (else #f))))
-    
-    (let loop ((nl l) (depth 0) (r '()))
+    (define (merge-buf buf r)
+      (let ((s (list->string (reverse! buf))))
+	(if (zero? (string-length s))
+	    r
+	    (cons s r))))
+    (let loop ((nl l) (depth 0) (buf '()) (r '()))
       (if (null? nl)
-	  (return (reverse! r) nl)
+	  (return (reverse! (merge-buf buf r)) nl)
 	  (let ((c (input-char nl)))
-	    (cond ((check-escape c nl) (return (reverse! r) nl))
-		  ((eqv? c open) (loop (lseq-cdr nl) (+ depth 1) (cons c r)))
+	    (cond ((check-escape c nl)
+		   (return (reverse! (merge-buf buf r)) nl))
+		  ((eqv? c open)
+		   (loop (lseq-cdr nl) (+ depth 1) (cons c buf) r))
 		  ((eqv? c close)
 		   (if (zero? depth)
 		       (let lp ((p punc) (nl2 (lseq-cdr nl)))
-			 (cond ((null? p) (return (reverse! r) nl))
-			       ((null? nl2) (return (reverse! r) nl))
+			 (cond ((null? p)
+				(return (reverse! (merge-buf buf r)) nl))
+			       ((null? nl2)
+				(return (reverse! (merge-buf buf r)) nl))
 			       ((eqv? (car p) (input-char nl2))
 				(lp (cdr p) (lseq-cdr nl2)))
 			       (else
-				(loop (lseq-cdr nl) (- depth 1) (cons c r)))))
-		       (loop (lseq-cdr nl) (- depth 1) (cons c r))))
-		  ((eqv? c #\newline) (return (reverse! r) nl))
-		  (else (loop (lseq-cdr nl) depth (cons c r)))))))))
+				(loop (lseq-cdr nl) (- depth 1)
+				      (cons c buf) r))))
+		       (loop (lseq-cdr nl) (- depth 1) (cons c buf) r)))
+		  ((eqv? c #\newline)
+		   (let ((r (merge-buf buf r)))
+		     (if (zero? depth)
+			 (return (reverse! r) nl)
+			 (loop (lseq-cdr nl) depth '() (cons "\n" r)))))
+		  (else (loop (lseq-cdr nl) depth (cons c buf) r))))))))
 
-(define $text ($let ((c* ($text-chars #\{))) ($return (list->string c*))))
+(define $text
+  ($let ((loc $location) (c* ($text-chars #\{)))
+    ($return `(text (@ ,@loc) ,@c*))))
 
 ;; not a good way of handling this, but the same as $text-chars...
 (define ($parentheses l)
@@ -227,6 +242,14 @@
 	   ($return (merge-quote quote+ #f '() t)))
 	 ($let ((cmd $cmd-body)) ($return (merge-quote quote+ cmd #f #f))))))
 
+(define $normal-command
+  ($or ($let ((cmd $cmd) (datum $datum) (text $command-body))
+	 ($return `(,cmd ,datum ,text)))
+       ($let ((cmd $cmd) (datum $datum)) ($return `(,cmd ,datum ())))
+       ($let ((cmd $cmd) (text $command-body)) ($return `(,cmd () ,text)))
+       ($let (( $@ ) (text $text-body)) ($return `(#f () ,text)))
+       ($let (( $@ ) (datum $datum)) ($return `(#f ,datum ())))
+       ($let ((cmd $cmd)) ($return `(,cmd #f #f)))))
 ;; Not supported, the document says
 ;; 'no special rules for using @ in the command itself'
 ;; so, we don't do
@@ -239,15 +262,10 @@
 	 ($return `(,c () ,text)))))
 
 (define $command
-  ($or $quoted-command
-
-       ($let ((cmd $cmd) (datum $datum) (text $command-body))
-	 ($return `(,cmd ,datum ,text)))
-       ($let ((cmd $cmd) (datum $datum)) ($return `(,cmd ,datum ())))
-       ($let ((cmd $cmd) (text $command-body)) ($return `(,cmd () ,text)))
-       ($let (( $@ ) (text $text-body)) ($return `(#f () ,text)))
-       ($let (( $@ ) (datum $datum)) ($return `(#f ,datum ())))
-       ($let ((cmd $cmd)) ($return `(,cmd #f #f)))))
+  ($let ((loc $location)
+	 (command ($or $quoted-command
+		       $normal-command)))
+    ($return `(command (@ ,@loc) ,command))))
 
 (define $escape
   ($or ($let ((loc $location)
@@ -260,26 +278,29 @@
 	      ( ($input-eqv? #\") )
 	      (c* ($many ($notp ($input-eqv? #\"))))
 	      ( ($input-eqv? #\") ))
-	 ($return (list (list->string (map car c*)))))))
+	 ($return (list->string (map car c*))))))
 
-(define $nl ($input-eqv? #\newline))
+(define $nl ($seq ($input-eqv? #\newline) ($return '(text (@) "\n"))))
 (define $comment
-  ($seq ($input-token "@;")
-	($or ($let (( ($input-eqv? #\{) )
-		    (c* ($many ($notp ($input-token ";}"))))
-		    ( ($input-token ";}") ))
-	       ($return `(comment ,(list->string (map car c*)))))
-	     ($let ((c* ($many ($notp $nl)))
-		    ( $nl ))
-	       ($return `(comment ,(list->string (map car c*))))))))
+  ($let ((loc $location)
+	 ( ($input-token "@;") ))
+     ($or ($let (( ($input-eqv? #\{) )
+		 (c* ($many ($notp ($input-token ";}"))))
+		 ( ($input-token ";}") ))
+	    ($return `(comment (@ ,@loc) ,(list->string (map car c*)))))
+	  ($let ((c* ($many ($notp $nl)))
+		 ( $nl ))
+	    ($return `(comment (@ ,@loc) ,(list->string (map car c*))))))))
 
 (define $scribble-token
   ($let* ((loc $location))
-    ($or ($let* ((escape $escape)) ($return `(token (@ ,@loc) ,@escape)))
+    ($or ($let* ((escape $escape)) 
+	   ($return `(token (@ ,@loc) (escape (@ ,@loc) ,escape))))
 	 ($let* ((token ($or $comment
 			     $command
 			     $text
-			     ($seq $nl ($return "\n")))))
+			     ;; This has to be an indivisual token...
+			     $nl)))
 	   ($return `(token (@ ,@loc) ,token))))))
 
 (define $scribble-token* ($many $scribble-token))
@@ -290,45 +311,79 @@
     ($return `(document (@ ,@loc) (content ,@tokens)))))
 
 (define (scribble-parse input)
-  (define (merge-string texts)
-    (define (finish r)
-      (if (for-all (lambda (v) (and (string? v) (string=? "\n" v))) r)
-	  '()
-	  r))
-    (let loop ((texts texts) (r '()))
-      (cond ((null? texts) (finish (reverse! r)))
-	    ((null? (cdr texts)) (finish (reverse! (cons (car texts) r))))
-	    ((and (string? (car texts)) (string? (cadr texts)))
-	     (if (and (not (string=? "\n" (car texts)))
-		      (not (string=? "\n" (cadr texts))))
-		 (loop (cons (string-append (car texts) (cadr texts))
-			     (cddr texts))
-		       r)
-		 (loop (cdr texts) (cons (car texts) r))))
-	    (else (loop (cdr texts) (cons (car texts) r))))))
-  (define (strip-info v)
-    (define (quotes? v)
-      (or (eq? v 'quote) (eq? v 'unquote) (eq? v 'unquote-splicing)
-	  (eq? v 'quasiquote)))
+  (define (quotes? v)
+    (or (eq? v 'quote) (eq? v 'unquote) (eq? v 'unquote-splicing)
+	(eq? v 'quasiquote)))
+  (define (merge-string command)
+    (define (do-merge cmd datum texts)
+      (define (merge s*)
+	(define (finish r)
+	  (if (for-all (lambda (v) (and (string? v) (string=? "\n" v))) r)
+	      '()
+	      r))
+	(define (concat-buf buf)
+	  (if (null? buf)
+	      #f
+	      (string-concatenate (reverse! buf))))
+	;; (write s*) (newline)
+	(let loop ((s* s*) (buf '()) (r '()))
+	  (if (null? s*)
+	      (let ((t (concat-buf buf)))
+		(finish (reverse! (if t (cons t r) r))))
+	      (let ((d (car s*)))
+		(if (string? d)
+		    (if (string=? "\n" d)
+			(let ((s (concat-buf buf)))
+			  (loop (cdr s*) '() (cons "\n" (if s (cons s r) r))))
+			(loop (cdr s*) (cons d buf) r))
+		    (let ((s (concat-buf buf)))
+		      (loop (cdr s*) '() (cons d (if s (cons s r) r)))))))))
+      ;; (write texts) (newline)
+      (let loop ((texts texts) (r '()))
+	(match texts
+	  (() (if cmd `(,cmd ,@datum ,@(merge r)) `(,@datum ,@(merge r))))
+	  ((((? string? s) ...) rest ...)
+	   (loop rest `(,@r . ,s)))
+	  ((('escape text ...) rest ...) (loop rest `(,@r . ,text)))
+	  ;; escaped datum
+	  ((((datum ...)) rest ...) (loop rest `(,@r . ,datum)))
+	  ((cmd rest ...)
+	   (loop rest `(,@r ,(merge-string cmd))))
+	  (else (error 'merge-string texts)))))
+    ;; (write command) (newline)
+    (match command
+      (((? quotes? x) datum) `(,x ,(merge-string datum)))
+      (((? string? s)) s) ;; top level text token
+      (('escape datum ...) datum)
+      (((? symbol? cmd) datum ... ('text texts ...)) (do-merge cmd datum texts))
+      ((datum ... ('text texts ...)) (do-merge #f datum texts))
+      (else command)))
+  
+  (define (strip-command v)
+    ;;(write v) (newline)
     (match v
-      (('token ('@ loc ...) ((? quotes? x) rest))
-       `(,x ,(strip-info `(token (@ ,@loc) ,rest))))
-      (('token ('@ loc ...) ('comment s )) #f)
-      (('token ('@ loc ...) (cmd datum text))
+      (('command ('@ loc ...) ((? quotes? x) rest))
+       `(,x ,(strip-command `(command (@ ,@loc) ,rest))))
+      (('command ('@ loc ...) (cmd datum text))
        (if (and datum text)
-	   (let ((str* (merge-string (filter-map strip-info text))))
+	   (let ((str* (filter-map strip-token text)))
 	     (if cmd
-		 `(,cmd ,@datum ,@str*)
-		 `(,@datum ,@str*)))
-	   ;; (cmd #f #f) must be just `cmd`
+		 `(,cmd ,@datum (text ,@str*))
+		 `(,@datum (text ,@str*))))
 	   cmd))
-      ;; text case
-      (('token ('@ loc ...) cmd) cmd)))
+      (('command ('@ loc ...) (? symbol? cmd)) cmd)
+      (('comment ('@ loc ...) s) #f)
+      (('text ('@ loc ...) s* ...) s*)
+      (('escape ('@ loc ...) s* ...) s*)
+      (else (error 'strip-command "unknown" v))))
+  (define (strip-token v)
+    (match v
+      (('token ('@ loc ...) cmd) (strip-command cmd))
+      (else (error 'strip-token "unknown" v))))
   
   (let-values (((s v n) ($scribble-token* (input document:simple-lexer))))
-    ;; (write v) (newline)
     (if (parse-success? s)
-	(filter-map strip-info v)
+	(map merge-string (filter-map strip-token v))
 	(document-input-error 'scribble-parse
 			      "Failed to parse scribble file"
 			      n))))
