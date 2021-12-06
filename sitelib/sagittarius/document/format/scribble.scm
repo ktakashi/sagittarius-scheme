@@ -56,8 +56,11 @@
 (define *close-puncture* (make-parameter ""))
 (define $hash ($input-eqv? #\#))
 (define $: ($input-eqv? #\:))
+
+(define $ver+punc
+  ($seq $vertical-bar ($input-token *open-puncture*)))
 (define $@
-  ($let* (( ($if (*in-escape?*) $vertical-bar ($empty "")) )
+  ($let* (( ($if (*in-escape?*) $ver+punc ($empty "")) )
 	  ( ($input-eqv? #\@) ))
     ($return '@))) ;; won't be used anyway...
 
@@ -93,7 +96,9 @@
 (define ($text-chars open)
   (define close (mirror-char open))
   (lambda (l)
-    (define escape (if (*in-escape?*) '(#\|) '()))
+    (define escape (if (*in-escape?*)
+		       `(#\| . ,(string->list (*open-puncture*)))
+		       '()))
     (define punc `(,@(string->list (*close-puncture*)) . ,escape))
     (define (return r nl)
       (if (null? r)
@@ -186,9 +191,11 @@
 			($seq ($input-token "\\\"") ($return #\")))
 		   1)))
     ($return (make-keyword (list->string s)))))
+
+(define (number-pred c) (or (char-numeric? c) (eqv? c #\.)))
 (define $number
   ;; TODO #x #o #b, +/- and floating number
-  ($let ((n ($many ($input-pred (lambda (c) (char-numeric? c))) 1)))
+  ($let ((n ($many ($input-pred number-pred) 1)))
     ($return (string->number (list->string (map car n))))))
 
 
@@ -264,8 +271,8 @@
 	      (d ($many $sexp))
 	      ( ($input-eqv? #\)) ))
 	  ($return d))
-       ($let ((cmd ($many $command-chars 1)))
-	  ($return (string->symbol (list->string (map car cmd)))))))
+       $number
+       $symbol))
 (define $cmd ($seq $@ $cmd-body))
 
 (define $datum 
@@ -282,9 +289,18 @@
 	  ( $close-brace ))
    ($return datum)))
 
+(define puncture-chars
+  (char-set-difference
+   (char-set-intersection char-set:ascii
+			  char-set:printing)
+   char-set:letter
+   char-set:whitespace
+   (string->char-set "{@")))
+(define $punc
+  ($input-pred (lambda (c) (char-set-contains? puncture-chars c))))
 (define $puncture
   ($let (( $vertical-bar )
-	 (c* ($many ($notp $open-brace))))
+	 (c* ($many $punc)))
     ($return (map car c*))))
 (define (mirror punc)
   (list->string (map mirror-char punc)))
@@ -301,8 +317,8 @@
    ($return body)))
 
 (define $command-body
-  ;; After |@, these 2 parameters must be reset...
-  ($parameterize ((*in-escape?* #f))
+  ;; After |@, all parameters must be reset
+  ($parameterize ((*open-puncture* "") (*close-puncture* "") (*in-escape?* #f))
     ($or $escaped-body $text-body)))
 
 (define $quote+
@@ -384,6 +400,7 @@
 
 (define $scribble-token
   ($let* ((loc $location)
+	  ;; ( ($peek ($or ($debug $@) $any)) )
 	  (token ($or $comment
 		      $command
 		      $escape
