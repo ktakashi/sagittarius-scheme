@@ -54,6 +54,8 @@
 (define *in-escape?* (make-parameter #f))
 (define *open-puncture* (make-parameter ""))
 (define *close-puncture* (make-parameter ""))
+(define $hash ($input-eqv? #\#))
+(define $: ($input-eqv? #\:))
 (define $@
   ($let* (( ($if (*in-escape?*) $vertical-bar ($empty "")) )
 	  ( ($input-eqv? #\@) ))
@@ -155,6 +157,100 @@
 	    ((#\() (loop (lseq-cdr nl) (+ depth 1) (cons c r)))
 	    (else (loop (lseq-cdr nl) depth (cons c r))))))))
 
+;;(define $sexp-text ($let ((c* ($text-chars #\[))) ($return (list->string c*))))
+(define symbol-set
+  (char-set-difference char-set:printing
+		       char-set:whitespace
+		       (string->char-set "()[]{}|]\"',")))
+(define $non-first-symbol-char
+  ($or ($input-pred char-numeric?) $: $hash))
+
+(define $symbol-char
+  ($input-pred (lambda (c) (char-set-contains? symbol-set c))))
+(define $symbol-string
+  ($or ($let ((c* ($many $symbol-char 1)))
+	 ($return (list->string (map car c*))))
+       ;; TODO |...| symbol
+       ))
+(define $symbol
+  ($let (( ($not ($peek $non-first-symbol-char)) )
+	 (s $symbol-string))
+    ($return (string->symbol s))))
+(define $keyword
+  ($let (( $: )
+	 (s $symbol))
+    ($return (make-keyword s))))
+(define $string
+  ($let (( ($input-eqv? #\") )
+	 (s ($many ($or ($let ((c ($notp ($input-eqv? #\")))) ($return (car c)))
+			($seq ($input-token "\\\"") ($return #\")))
+		   1)))
+    ($return (make-keyword (list->string s)))))
+(define $number
+  ;; TODO #x #o #b, +/- and floating number
+  ($let ((n ($many ($input-pred (lambda (c) (char-numeric? c))) 1)))
+    ($return (string->number (list->string (map car n))))))
+
+
+(define $boolean
+  ($or ($seq $hash ($or ($input-token "true") ($input-eqv? #\t)) ($return #t))
+       ($seq $hash ($or ($input-token "false") ($input-eqv? #\f)) ($return #f))))
+
+(define $bytevector
+  ;; TODO dotted list
+  ($let (( ($or ($input-token "#vu8(") ($input-token "#u8(" )) )
+	 (l ($many ($lazy $sexp)))
+	 ( ($input-eqv? #\)) ))
+    ($return (u8-list->bytevector (reverse! l)))))
+
+(define $vector
+  ;; TODO dotted list
+  ($let (( ($input-token "#(") )
+	 (l ($many ($lazy $sexp)) )
+	 ( ($input-eqv? #\)) ))
+    ($return (list->vector l))))
+
+(define $ws+ ($many $whitespace 1))
+(define $ws* ($many $whitespace))
+
+(define $list
+  ($or ($let (( ($input-eqv? #\() )
+	      (l ($many ($lazy $sexp)))
+	      ( ($input-eqv? #\)) ))
+	 ($return l))
+       ($let (( ($input-eqv? #\() )
+	      (a* ($many ($lazy $sexp) 1))
+	      ( $ws+ )
+	      ( ($input-eqv? #\.) )
+	      (d ($lazy $sexp))
+	      ( ($input-eqv? #\)) ))
+	     ($return (cons a* d)))))
+
+(define $quote ($seq ($input-eqv? #\') ($return 'quote)))
+(define $quasiquote ($seq ($input-eqv? #\`) ($return 'quasiquote)))
+(define $unquote ($seq ($input-eqv? #\,) ($return 'unquote)))
+(define $unquote-splicing
+  ($seq ($input-token ",@") ($return 'unquote-splicing)))
+(define $abbrev ($or $quote $quasiquote $unquote-splicing $unquote))
+(define $abbreviations
+  ($let ((a $abbrev)
+	 (d ($lazy $sexp)))
+    ($return (list a d))))
+
+(define $sexp
+  ($seq $ws*
+	($or $number
+	     $boolean
+	     $keyword
+	     $string
+	     $abbreviations
+	     $list
+	     $vector
+	     $bytevector
+	     ($lazy $command) ;; symbol may take @ so must be here
+	     $symbol
+	     )))
+
 (define command-char-set
   (char-set-complement (string->char-set "[]{}()|\"")))
 (define (command-char? c)
@@ -165,22 +261,20 @@
 (define $cmd-body
   ($or ($let ((loc $location)
 	      ( ($input-eqv? #\() )
-	      (text $parentheses)
+	      (d ($many $sexp))
 	      ( ($input-eqv? #\)) ))
-	  ($return (string->datum loc text)))
+	  ($return d))
        ($let ((cmd ($many $command-chars 1)))
 	  ($return (string->symbol (list->string (map car cmd)))))))
 (define $cmd ($seq $@ $cmd-body))
 
-(define $sexp-text ($let ((c* ($text-chars #\[))) ($return (list->string c*))))
-
 (define $datum 
   ($let ((loc $location)
 	 ( ($input-eqv? #\[) )
-	 ;;(datum ($many ($or ($lazy $command))))
-	 (datum ($many ($notp ($input-eqv? #\]))))
+	 (datum ($many $sexp))
+	 ;; (datum ($many ($notp ($input-eqv? #\]))))
 	 ( ($input-eqv? #\]) ))
-    ($return (string->datum loc (list->string (map car datum))))))
+    ($return datum)))
 
 (define $text-body
   ($let* (( $open-brace )
@@ -211,14 +305,8 @@
   ($parameterize ((*in-escape?* #f))
     ($or $escaped-body $text-body)))
 
-(define $quote ($seq ($input-eqv? #\') ($return 'quote)))
-(define $quasiquote ($seq ($input-eqv? #\`) ($return 'quasiquote)))
-(define $unquote ($seq ($input-eqv? #\,) ($return 'unquote)))
-(define $unquote-splicing
-  ($seq ($input-token ",@") ($return 'unquote-splicing)))
-
 (define $quote+
-  ($many ($or $quote $quasiquote $unquote-splicing $unquote) 1))
+  ($many $abbrev 1))
 
 (define (merge-quote quote* cmd datum text)
   (let loop ((quote* quote*))
@@ -273,12 +361,14 @@
 	      ( $vertical-bar )
 	      (s* ($many ($notp $vertical-bar)))
 	      ( $vertical-bar ))
-	 ($return (string->datum loc (list->string (map car s*)))))
-       ($let (( $@ )
+	 ($return `(escape (@ ,@loc) 
+			   ,(string->datum loc (list->string (map car s*))))))
+       ($let ((loc $location)
+	      ( $@ )
 	      ( ($input-eqv? #\") )
 	      (c* ($many ($notp ($input-eqv? #\"))))
 	      ( ($input-eqv? #\") ))
-	 ($return (list->string (map car c*))))))
+	 ($return `(escape (@ ,@loc) ,(list->string (map car c*)))))))
 
 (define $nl ($seq ($input-eqv? #\newline) ($return '(text (@) "\n"))))
 (define $comment
@@ -293,15 +383,14 @@
 	    ($return `(comment (@ ,@loc) ,(list->string (map car c*))))))))
 
 (define $scribble-token
-  ($let* ((loc $location))
-    ($or ($let* ((escape $escape)) 
-	   ($return `(token (@ ,@loc) (escape (@ ,@loc) ,escape))))
-	 ($let* ((token ($or $comment
-			     $command
-			     $text
-			     ;; This has to be an indivisual token...
-			     $nl)))
-	   ($return `(token (@ ,@loc) ,token))))))
+  ($let* ((loc $location)
+	  (token ($or $comment
+		      $command
+		      $escape
+		      $text
+		      ;; This has to be an indivisual token...
+		      $nl)))
+    ($return `(token (@ ,@loc) ,token))))
 
 (define $scribble-token* ($many $scribble-token))
 
@@ -355,27 +444,36 @@
       (((? quotes? x) datum) `(,x ,(merge-string datum)))
       (((? string? s)) s) ;; top level text token
       (('escape datum ...) datum)
-      (((? symbol? cmd) datum ... ('text texts ...)) (do-merge cmd datum texts))
+      (((? symbol? cmd) datum ... ('text texts ...))
+       (do-merge cmd (map merge-string datum) texts))
       ((datum ... ('text texts ...)) (do-merge #f datum texts))
-      (else command)))
-  
+      (else (if (pair? command) (map merge-string command) command))))
+  (define (filter-comment v*)
+    ;; we can't use filter, so manual
+    (define (comment? v)
+      (and (pair? v) (eq? (car v) 'comment)))
+    (do ((v* v* (cdr v*)) (r '() (if (comment? (car v*)) r (cons (car v*) r))))
+	((null? v*) (reverse! r))))
   (define (strip-command v)
     ;;(write v) (newline)
     (match v
       (('command ('@ loc ...) ((? quotes? x) rest))
        `(,x ,(strip-command `(command (@ ,@loc) ,rest))))
       (('command ('@ loc ...) (cmd datum text))
-       (if (and datum text)
-	   (let ((str* (filter-map strip-token text)))
-	     (if cmd
-		 `(,cmd ,@datum (text ,@str*))
-		 `(,@datum (text ,@str*))))
-	   cmd))
+       (cond ((and datum text)
+	      (let ((d* (map (match-lambda (('datum d) d) (e e))
+			     (filter-comment (map strip-command datum))))
+		    (str* (filter-comment (map strip-token text))))
+		(if cmd
+		    `(,cmd ,@d* (text ,@str*))
+		    `(,@d* (text ,@str*)))))
+	     ((pair? cmd) (map strip-command cmd))
+	     (else cmd)))
       (('command ('@ loc ...) (? symbol? cmd)) cmd)
-      (('comment ('@ loc ...) s) #f)
+      ;; (('comment ('@ loc ...) s) #f)
       (('text ('@ loc ...) s* ...) s*)
       (('escape ('@ loc ...) s* ...) s*)
-      (else (error 'strip-command "unknown" v))))
+      (else v)))
   (define (strip-token v)
     (match v
       (('token ('@ loc ...) cmd) (strip-command cmd))
@@ -383,7 +481,7 @@
   
   (let-values (((s v n) ($scribble-token* (input document:simple-lexer))))
     (if (parse-success? s)
-	(map merge-string (filter-map strip-token v))
+	(map merge-string (filter-comment (map strip-token v)))
 	(document-input-error 'scribble-parse
 			      "Failed to parse scribble file"
 			      n))))
