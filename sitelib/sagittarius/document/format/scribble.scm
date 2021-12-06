@@ -49,6 +49,9 @@
 
 
 (define $whitespace ($input-pred char-whitespace?))
+(define $ws+ ($many $whitespace 1))
+(define $ws* ($many $whitespace))
+
 (define $vertical-bar ($input-eqv? #\|))
 
 (define *in-escape?* (make-parameter #f))
@@ -162,6 +165,8 @@
 	    ((#\() (loop (lseq-cdr nl) (+ depth 1) (cons c r)))
 	    (else (loop (lseq-cdr nl) depth (cons c r))))))))
 
+(define ($close/ws* char) ($seq $ws* ($input-eqv? char)))
+
 ;;(define $sexp-text ($let ((c* ($text-chars #\[))) ($return (list->string c*))))
 (define symbol-set
   (char-set-difference char-set:printing
@@ -189,8 +194,9 @@
   ($let (( ($input-eqv? #\") )
 	 (s ($many ($or ($let ((c ($notp ($input-eqv? #\")))) ($return (car c)))
 			($seq ($input-token "\\\"") ($return #\")))
-		   1)))
-    ($return (make-keyword (list->string s)))))
+		   1))
+	 ( ($input-eqv? #\") ))
+    ($return (list->string s))))
 
 (define (number-pred c) (or (char-numeric? c) (eqv? c #\.)))
 (define $number
@@ -203,35 +209,35 @@
   ($or ($seq $hash ($or ($input-token "true") ($input-eqv? #\t)) ($return #t))
        ($seq $hash ($or ($input-token "false") ($input-eqv? #\f)) ($return #f))))
 
+(define $open-parenthsis
+  ($let ((c ($or ($input-eqv? #\() ($input-eqv? #\[) ($input-eqv? #\{))))
+    ($return (car c))))
+
 (define $bytevector
-  ;; TODO dotted list
-  ($let (( ($or ($input-token "#vu8(") ($input-token "#u8(" )) )
-	 (l ($many ($lazy $sexp)))
-	 ( ($input-eqv? #\)) ))
+  ($let* (( ($or ($input-token "#vu8") ($input-token "#u8" )) )
+	  (p $open-parenthsis)
+	  (l ($many ($lazy $sexp)))
+	  ( ($close/ws* (mirror-char p) )))
     ($return (u8-list->bytevector (reverse! l)))))
 
 (define $vector
-  ;; TODO dotted list
-  ($let (( ($input-token "#(") )
-	 (l ($many ($lazy $sexp)) )
-	 ( ($input-eqv? #\)) ))
+  ($let* ((p ($seq ($input-eqv? #\#) $open-parenthsis))
+	  (l ($many ($lazy $sexp)))
+	  ( ($close/ws* (mirror-char p)) ))
     ($return (list->vector l))))
 
-(define $ws+ ($many $whitespace 1))
-(define $ws* ($many $whitespace))
-
 (define $list
-  ($or ($let (( ($input-eqv? #\() )
-	      (l ($many ($lazy $sexp)))
-	      ( ($input-eqv? #\)) ))
+  ($or ($let* ((p $open-parenthsis)
+	       (l ($many ($lazy $sexp)))
+	       ( ($close/ws* (mirror-char p)) ))
 	 ($return l))
-       ($let (( ($input-eqv? #\() )
-	      (a* ($many ($lazy $sexp) 1))
-	      ( $ws+ )
-	      ( ($input-eqv? #\.) )
-	      (d ($lazy $sexp))
-	      ( ($input-eqv? #\)) ))
-	     ($return (cons a* d)))))
+       ($let* ((p $open-parenthsis)
+	       (a* ($many ($lazy $sexp) 1))
+	       ( $ws+ )
+	       ( ($input-eqv? #\.) )
+	       (d ($lazy $sexp))
+	       ( ($close/ws* (mirror-char p)) ))
+	 ($return (cons a* d)))))
 
 (define $quote ($seq ($input-eqv? #\') ($return 'quote)))
 (define $quasiquote ($seq ($input-eqv? #\`) ($return 'quasiquote)))
@@ -375,10 +381,9 @@
   ($or ($let ((loc $location)
 	      ( $@ )
 	      ( $vertical-bar )
-	      (s* ($many ($notp $vertical-bar)))
-	      ( $vertical-bar ))
-	 ($return `(escape (@ ,@loc) 
-			   ,(string->datum loc (list->string (map car s*))))))
+	      (s* ($many $sexp))
+	      ( ($seq $ws* $vertical-bar) ))
+	 ($return `(escape (@ ,@loc) ,s*)))
        ($let ((loc $location)
 	      ( $@ )
 	      ( ($input-eqv? #\") )
@@ -433,18 +438,21 @@
 	      (string-concatenate (reverse! buf))))
 	;; (write s*) (newline)
 	(let loop ((s* s*) (buf '()) (r '()))
-	  (if (null? s*)
-	      (let ((t (concat-buf buf)))
-		(finish (reverse! (if t (cons t r) r))))
-	      (let ((d (car s*)))
-		(if (string? d)
-		    (if (string=? "\n" d)
-			(let ((s (concat-buf buf)))
-			  (loop (cdr s*) '() (cons "\n" (if s (cons s r) r))))
-			(loop (cdr s*) (cons d buf) r))
-		    (let ((s (concat-buf buf)))
-		      (loop (cdr s*) '() (cons d (if s (cons s r) r)))))))))
-      ;; (write texts) (newline)
+	  (match s*
+	    (() (let ((t (concat-buf buf)))
+		  (finish (reverse! (if t (cons t r) r)))))
+	    (((? string? d) rest ...)
+	     (if (string=? "\n" d)
+		 (let ((s (concat-buf buf)))
+		   (loop rest '() (cons "\n" (if s (cons s r) r))))
+		 (loop rest (cons d buf) r)))
+	    ((('datum d* ...) rest ...)
+	     (let ((s (concat-buf buf)))
+	       (loop rest '() `(,@(reverse! d*) ,@(if s (cons s r) r)))))
+	    ((d rest ...)
+	     (let ((s (concat-buf buf)))
+	       (loop rest '() (cons d (if s (cons s r) r))))))))
+      ;;(write texts) (newline)
       (let loop ((texts texts) (r '()))
 	(match texts
 	  (() (if cmd `(,cmd ,@datum ,@(merge r)) `(,@datum ,@(merge r))))
@@ -452,7 +460,7 @@
 	   (loop rest `(,@r . ,s)))
 	  ((('escape text ...) rest ...) (loop rest `(,@r . ,text)))
 	  ;; escaped datum
-	  ((((datum ...)) rest ...) (loop rest `(,@r . ,datum)))
+	  ((((datum ...)) rest ...) (loop rest `(,@r (datum ,@datum))))
 	  ((cmd rest ...)
 	   (loop rest `(,@r ,(merge-string cmd))))
 	  (else (error 'merge-string texts)))))
@@ -460,10 +468,11 @@
     (match command
       (((? quotes? x) datum) `(,x ,(merge-string datum)))
       (((? string? s)) s) ;; top level text token
-      (('escape datum ...) datum)
       (((? symbol? cmd) datum ... ('text texts ...))
        (do-merge cmd (map merge-string datum) texts))
       ((datum ... ('text texts ...)) (do-merge #f datum texts))
+      ;; toplevel escaped datum
+      (((datum ...)) (do-merge #f '() (merge-string datum)))
       (else (if (pair? command) (map merge-string command) command))))
   (define (filter-comment v*)
     ;; we can't use filter, so manual
@@ -472,7 +481,7 @@
     (do ((v* v* (cdr v*)) (r '() (if (comment? (car v*)) r (cons (car v*) r))))
 	((null? v*) (reverse! r))))
   (define (strip-command v)
-    ;;(write v) (newline)
+    ;; (write v) (newline)
     (match v
       (('command ('@ loc ...) ((? quotes? x) rest))
        `(,x ,(strip-command `(command (@ ,@loc) ,rest))))
@@ -487,7 +496,6 @@
 	     ((pair? cmd) (map strip-command cmd))
 	     (else cmd)))
       (('command ('@ loc ...) (? symbol? cmd)) cmd)
-      ;; (('comment ('@ loc ...) s) #f)
       (('text ('@ loc ...) s* ...) s*)
       (('escape ('@ loc ...) s* ...) s*)
       (else v)))
