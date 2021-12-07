@@ -48,9 +48,7 @@ static void keyword_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
     Sg_Puts(port, k->name);
   } else {
     Sg_Putc(port, ':');
-    Sg_WriteSymbolName(k->name, port, ctx,
-		       (SG_SYMBOL_WRITER_NOESCAPE_INITIAL
-			|SG_SYMBOL_WRITER_NOESCAPE_EMPTY));
+    Sg_WriteSymbolName(k->name, port, ctx, 0);
   }
 }
 
