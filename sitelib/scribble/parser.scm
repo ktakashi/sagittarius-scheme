@@ -1,5 +1,6 @@
 ;; -*- mode: scheme; coding: utf-8 -*- 
 
+#!nounbound
 (library (scribble parser)
     (export scribble-parse
 	    scribble-read)

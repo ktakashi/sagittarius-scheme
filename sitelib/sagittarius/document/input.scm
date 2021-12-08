@@ -36,6 +36,11 @@
     (export file->document-input
 	    port->document-input
 
+	    document-input?
+	    document-input-port
+	    document-input-filename
+	    document-input->lseq
+
 	    input-char input-loc input-file
 
 	    $location $input-eqv? $input-pred $input-token
@@ -62,6 +67,11 @@
 			(make-message-condition msg)
 			(make-irritants-condition irr)))))
 
+(define-record-type document-input
+  (fields port proc filename))
+(define (document-input->lseq document-input lexer)
+  ((document-input-proc document-input) lexer))
+
 (define file->document-input
   (case-lambda
    ((file) (file->document-input file (native-transcoder)))
@@ -74,19 +84,22 @@
    ((port) (port->document-input port (or (port-filename port) "<unknown>")))
    ((port filename) (port->document-input port filename #f))
    ((port filename owner?)
-    (lambda (lexer)
-      (let ((column 0)
-	    (line 1))
-	(define (return-value c) (list c (cons line column) filename))
-	(generator->lseq
-	 (lambda ()
-	   (let-values (((c nc nl) (lexer port)))
-	     (cond ((eof-object? c) (when owner? (close-port port)) c)
-		   (else
-		    (let ((r (return-value c)))
-		      (cond (nl (set! line (+ line nl)) (set! column 0))
-			    (else (set! column (+ column nc))))
-		      r)))))))))))
+    (make-document-input
+     port
+     (lambda (lexer)
+       (let ((column 0)
+	     (line 1))
+	 (define (return-value c) (list c (cons line column) filename))
+	 (generator->lseq
+	  (lambda ()
+	    (let-values (((c nc nl) (lexer port)))
+	      (cond ((eof-object? c) (when owner? (close-port port)) c)
+		    (else
+		     (let ((r (return-value c)))
+		       (cond (nl (set! line (+ line nl)) (set! column 0))
+			     (else (set! column (+ column nc))))
+		       r))))))))
+     filename))))
 
 (define (document:simple-lexer port)
   (let ((c (get-char port)))
