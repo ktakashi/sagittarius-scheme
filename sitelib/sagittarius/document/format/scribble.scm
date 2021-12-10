@@ -37,7 +37,14 @@
 	    (scribble parser))
 
 (define (scribble->document input)
-  ;; TODO convert it
-  (scribble-parse (document-input-port input)))
+  `(document
+    (info
+     (source ,(document-input-filename input)))
+    (content
+     ,@(scribble-token*->content
+	(scribble-parse (document-input-port input))))))
+
+(define (scribble-token*->content token*)
+  token*)
 
 )
