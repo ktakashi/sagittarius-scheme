@@ -48,6 +48,7 @@
 ;; - dlist                          : <dl>
 ;;   - term                         : <dt>
 ;;   - desc                         : <dd>
+;; - define                         : <dfn>
 ;; ... TODO
 ;;
 ;; All tags can contain attributes. The following attributes are

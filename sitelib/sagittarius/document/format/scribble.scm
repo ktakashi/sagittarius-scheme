@@ -34,6 +34,7 @@
     (import (rnrs)
 	    (sagittarius)
 	    (sagittarius document input)
+	    (match)
 	    ;; We use this for simplicity...
 	    (scribble parser)
 	    (scribble convert)
@@ -62,13 +63,59 @@
 	 (case (car token)
 	   ((section subsection subsubsection sub*section)
 	    (handle-section token next* acc))
-	   ((code)
-	    (values next*
-		    (cons `(code (@)
-				 ,@(scribble-token*->content (cdr token)))
-			  acc)))
+	   ((code var) (simple-handler token next* acc))
+	   ((dots) (values next* (cons "..." acc)))
+	   ((atmark) (values next* (cons "..." acc)))
+	   ((itemlist) (handle-itemlist token next* acc))
+	   ((define) (handle-define token next* acc))
+	   ((desc) (handle-desc token next* acc))
 	   (else (values next* (cons token acc)))))
 	(else (values next* (cons token acc)))))
+
+(define (handle-desc token next* acc)
+  ;; TODO I think 'description' should be psuedo...
+  (values next*
+	  (cons `(description (@)
+		  ,@(scribble-token*->content (cdr token)))
+		acc)))
+
+(define (handle-define token next* acc)
+  (define (strip-string body) (remove string? body))
+  (match token
+    (('define category body ...)
+     (let ((cmd* (strip-string body)))
+       (match cmd*
+	 ((('name name ...))
+	  (values next*
+		  (cons `(define (@ (category ,(format "~a" category)))
+			   ,@(scribble-token*->content name))
+			acc)))
+	 ((('name name ...) ('args args ...))
+	  (values next*
+		  (cons `(define (@ (category ,(format "~a" category)))
+			   ,@(scribble-token*->content name)
+			   ,@(scribble-token*->content args))
+			acc)))
+	 (else (assertion-violation 'handle-define
+				    "Unknotn body format" token)))))
+    (else (assertion-violation 'handle-define
+			       "Unknotn format" token))))
+
+
+(define (simple-handler token next* acc)
+  (values next*
+	  (cons `(,(car token) (@)
+		  ,@(scribble-token*->content (cdr token)))
+		acc)))
+
+(define (handle-itemlist token next* acc)
+  (define (handle-item item)
+    (unless (eq? 'item (car item))
+      (assertion-violation 'handle-itemlist "Invalid @itemlist format"
+			   token))
+    `(item (@) ,@(scribble-token*->content (cdr item))))
+  (values next* (cons `(list (@ (style "bullet"))
+			     ,@(map handle-item (cdr token))) acc)))
 
 (define (handle-section token next* acc0)
   (define section (car token))
