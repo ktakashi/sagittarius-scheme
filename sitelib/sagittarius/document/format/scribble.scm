@@ -32,9 +32,12 @@
 (library (sagittarius document format scribble)
     (export scribble->document)
     (import (rnrs)
+	    (sagittarius)
 	    (sagittarius document input)
 	    ;; We use this for simplicity...
-	    (scribble parser))
+	    (scribble parser)
+	    (scribble convert)
+	    (srfi :1 lists))
 
 (define (scribble->document input)
   `(document
@@ -45,6 +48,67 @@
 	(scribble-parse (document-input-port input))))))
 
 (define (scribble-token*->content token*)
-  token*)
+  (let loop ((token* token*) (acc '()))
+      (if (null? token*)
+	  (reverse! acc)
+	  (let-values (((next* next-acc)
+			(consume-token* (car token*) (cdr token*) acc)))
+	    (loop next* next-acc)))))
+
+;; We need to do sort of the same as scribble->html unfortunately
+(define (consume-token* token next* acc)
+  ;; (write token) (newline)
+  (cond ((pair? token)
+	 (case (car token)
+	   ((section subsection subsubsection sub*section)
+	    (handle-section token next* acc))
+	   ((code)
+	    (values next*
+		    (cons `(code (@)
+				 ,@(scribble-token*->content (cdr token)))
+			  acc)))
+	   (else (values next* (cons token acc)))))
+	(else (values next* (cons token acc)))))
+
+(define (handle-section token next* acc0)
+  (define section (car token))
+  (define (section->level section)
+    (case section
+      ((section)       1)
+      ((subsection)    2)
+      ((subsubsection) 3)
+      ((sub*section)   4)
+      (else #f)))
+  (define section-level (section->level section))
+  (define (consume cur next*)
+    (let loop ((acc '()) (next* next*))
+      (if (null? next*)
+	  (values next* (reverse! acc))
+	  (let ((token (car next*)) (next* (cdr next*)))
+	    (cond ((and (pair? token) (section->level (car token))) =>
+		   (lambda (level)
+		     (if (< cur level)
+			 ;; okey sub section can be in this section
+			 (let-values (((next* next-acc)
+				       (consume-token* token next* acc)))
+			   (loop next-acc next*))
+			 ;; put it back :)
+			 (values (cons token next*) (reverse! acc)))))
+		  (else
+		   (let-values (((next* next-acc)
+				 (consume-token* token next* acc)))
+		     (loop next-acc next*))))))))
+
+  (unless section-level
+    (assertion-violation 'handle-section "Unknown section" section token))
+
+  (let-values (((attr content) (scribble-parse-attribute (cdr token)))
+	       ((next* acc) (consume section-level next*)))
+    (values next*
+	    (cons `(section (@)
+			    (header (@ (level ,(number->string section-level)))
+				    ,@(scribble-token*->content content))
+			    ,@acc)
+		  acc0))))
 
 )

@@ -94,7 +94,7 @@
 (define (load-procedure type name)
   (define fmt
     "(sagittarius document format ~a) doesn't exist or ~a isn't defined")
-  (guard (e (else (error type (format fmt type name))))
+  (guard (e (else (error type (format fmt type name) e)))
     (eval name (environment `(sagittarius document format ,type)))))
 
 )
