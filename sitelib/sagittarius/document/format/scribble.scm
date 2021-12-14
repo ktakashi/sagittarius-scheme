@@ -38,7 +38,8 @@
 	    ;; We use this for simplicity...
 	    (scribble parser)
 	    (scribble convert)
-	    (srfi :1 lists))
+	    (srfi :1 lists)
+	    (srfi :13 strings))
 
 (define (scribble->document input)
   `(document
@@ -69,8 +70,75 @@
 	   ((itemlist) (handle-itemlist token next* acc))
 	   ((define) (handle-define token next* acc))
 	   ((desc) (handle-desc token next* acc))
-	   (else (values next* (cons token acc)))))
+	   ((codeblock) (handle-codeblock "block" token next* acc))
+	   ((snipet) (handle-codeblock "inline" token next* acc))
+	   ((include-section) (handle-include-section token next* acc))
+	   ((secref) (handle-secref token next* acc))
+	   ((dl-list) (handle-dl-list token next* acc))
+	   ((string) (handle-string token next* acc))
+	   ((b) (handle-emphasize 'strong token next* acc))
+	   (else (assertion-violation 'consume-token* "Unknown token" token))))
 	(else (values next* (cons token acc)))))
+
+(define (handle-emphasize tag token next* acc)
+  (values next*
+	  (cons `(,tag (@) ,@(scribble-token*->content (cdr token))) acc)))
+;; no idea what I was thinking...
+(define (handle-string token next* acc)
+  (values next* `(,@(scribble-token*->content (cdr token)) . ,acc)))
+
+(define (handle-dl-list token next* acc)
+  (define (->title item)
+    `(title (@) ,@(scribble-token*->content (list item))))
+  (define (handle-item item)
+    (cond ((pair? item)
+	   (case (car item)
+	     ((dl-item)
+	      `(item (@)
+		     ,(->title (cadr item))
+		     ,@(scribble-token*->content (cddr item))))
+	     ((dl-itemx)
+	      (let ((n (cadr item)))
+		(let-values (((title* body) (split-at (cddr item) n)))
+		  `(item (@)
+			 ,@(map ->title title*)
+			 ,@(scribble-token*->content body)))))
+	     (else
+	      (assertion-violation 'handle-dl-list
+				   "Invalid @dl-list format" item))))
+	  ((string? item)
+	   (unless (string-every char-whitespace? item)
+	     (assertion-violation 'handle-dl-list
+				  "@dl-list contains non space string"
+				  item))
+	   #f)
+	  (else #f)))
+  (values next* (cons
+		 `(dlist (@)
+		   ,@(filter-map handle-item (cdr token))) 
+		 acc)))
+
+(define (handle-secref token next* acc)
+  (values next* (cons `(link (@ (anchar ,(cadr token)))
+			     ,@(scribble-token*->content (cddr token)))
+		      acc)))
+
+(define (handle-include-section token next* acc)
+  (define file (cadr token))
+  (values next*
+	  (cons `(link (@ (source ,file) (format scribble)) ,file) acc))) 
+
+(define (handle-codeblock style token next* acc)
+  (define args (cdr token))
+  (let-values (((e body)
+		(if (eq? (car args) '=>)
+		    (values (cadr args) (cddr args))
+		    (values #f args))))
+    (values next*
+	    (cons `(codeblock (@ (style ,style))
+		    ,@(if e `((output (@) ,e)) '())
+		    ,@(scribble-token*->content body))
+		  acc))))
 
 (define (handle-desc token next* acc)
   ;; TODO I think 'description' should be psuedo...
@@ -110,12 +178,19 @@
 
 (define (handle-itemlist token next* acc)
   (define (handle-item item)
-    (unless (eq? 'item (car item))
-      (assertion-violation 'handle-itemlist "Invalid @itemlist format"
-			   token))
-    `(item (@) ,@(scribble-token*->content (cdr item))))
+    (or (and (pair? item)
+	     (or (eq? 'item (car item))
+		 (assertion-violation 'handle-itemlist
+				      "Invalid @itemlist format"
+				      token))
+	     `(item (@) ,@(scribble-token*->content (cdr item))))
+	(and (string? item)
+	     (not (string-every char-whitespace? item))
+	     (assertion-violation 'handle-itemlist
+				  "@itemlist contains non space string"
+				  item))))
   (values next* (cons `(list (@ (style "bullet"))
-			     ,@(map handle-item (cdr token))) acc)))
+			     ,@(filter-map handle-item (cdr token))) acc)))
 
 (define (handle-section token next* acc0)
   (define section (car token))
@@ -152,7 +227,7 @@
   (let-values (((attr content) (scribble-parse-attribute (cdr token)))
 	       ((next* acc) (consume section-level next*)))
     (values next*
-	    (cons `(section (@)
+	    (cons `(section (@ ,@attr)
 			    (header (@ (level ,(number->string section-level)))
 				    ,@(scribble-token*->content content))
 			    ,@acc)
