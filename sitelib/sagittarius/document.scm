@@ -62,6 +62,9 @@
 	    port->document
 	    write-document
 
+	    document-output-options?
+	    document-output-options-builder
+	    
 	    &document document-error?
 	    &document-input document-input-error?
 	    )
@@ -69,7 +72,8 @@
 	    (rnrs eval)
 	    (sagittarius)
 	    (sagittarius document conditions)
-	    (sagittarius document input))
+	    (sagittarius document input)
+	    (sagittarius document output))
 
 (define (file->document type file . rest)
   (parse-document type (apply file->document-input file rest)))
@@ -85,12 +89,15 @@
 
 (define write-document
   (case-lambda
-   ((type document) (write-document type document (current-output-port)))
-   ((type document out)
+   ((type document)
+    (write-document type document (document-output-options-builder)))
+   ((type document options)
+    (write-document type document options (current-output-port)))
+   ((type document options out)
     (define name (string->symbol
 		  (string-append "document->" (symbol->string type))))
     (let ((proc (load-procedure type name)))
-      (proc document out)))))
+      (proc document options out)))))
 
 (define (load-procedure type name)
   (define fmt
