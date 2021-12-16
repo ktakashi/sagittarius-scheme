@@ -196,7 +196,7 @@ or if the given @var{array/expr} is not an array of string or function
 reference.
 }
 
-@define["JMESPath Function"]{@name{array_of} @args{any} @dots{}}
+@define["JMESPath Function"]{@name{array_of} @args{any @dots{}}}
 @desc{Returns array of given arguments @var{any}.
 
 @snipet[=> '(1 2 3)]{((jmespath "array_of(`1`, `2`, `3`)") 'null)}

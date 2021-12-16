@@ -44,7 +44,7 @@ The value must be private key object described in @secref["crypto"]{"(crypto)"}.
 This is needed if the target server only supports RSA key exchange protocol.
 }
 
-@define[Function]{@name{tls-client-handshake @args{tls-socket}}}
+@define[Function]{@name{tls-client-handshake} @args{tls-socket}}
 @desc{Do client side handshake and return a TLS socket. The procedure must
 *NOT* be called if the socket is created with @var{handshake} keyword argument
 #t.
@@ -81,7 +81,7 @@ CAUTION: the @var{authorities} keyword argument currently doesn't check
 the certificate signature but only issuer DN.
 }
 
-@define[Function]{@name{tls-socket-send @args{tls-socket bytevector flags}}}
+@define[Function]{@name{tls-socket-send} @args{tls-socket bytevector flags}}
 @desc{@var{tls-socket} must be the socket created by the procedure
 @code{make-client-tls-socket}.
 
@@ -92,7 +92,7 @@ the section @secref["lib.sagittarius.socket"]{(sagittarius socket)}. The packet
 will be encrypted by @var{tls-socket}.
 }
 
-@define[Function]{@name{tls-socket-recv @args{tls-socket size flags}}}
+@define[Function]{@name{tls-socket-recv} @args{tls-socket size flags}}
 @desc{@var{tls-socket} must be the socket created by the procedure
 @code{make-client-tls-socket}.
 

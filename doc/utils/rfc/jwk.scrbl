@@ -1,7 +1,7 @@
 @; -*- coding: utf-8 -*-
 @subsection[:tag "rfc.jwk"]{(rfc jwk) - Json Web Key}
 
-@define[Library][@name{(rfc jwk)}]
+@define[Library]{@name{(rfc jwk)}}
 @desc{This library provides Json Web Key (JWK) APIs. JWS is defined in
 @hyperlink[:href "https://datatracker.ietf.org/doc/html/rfc7517"]{RFC 7517}.
 

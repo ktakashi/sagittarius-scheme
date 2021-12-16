@@ -1,7 +1,7 @@
 @; -*- coding: utf-8 -*-
 @subsection[:tag "rfc.jwt"]{(rfc jwt) - Json Web Token}
 
-@define[Library][@name{(rfc jwt)}]
+@define[Library]{@name{(rfc jwt)}}
 @desc{This library provides Json Web Token (JWT) APIs. JWT is defined
 in @hyperlink[:href "https://tools.ietf.org/html/rfc7519"]{RFC 7519}.
 }

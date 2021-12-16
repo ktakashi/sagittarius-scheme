@@ -360,7 +360,7 @@ source ends in an infinite sequence of end-of-file objects.
 
 It is unspecified whether a character encoding consisting of several bytes may
 have an end of file between the bytes. If, for example, @code{get-char} raises
-an @cpde{&i/o-decoding} exception because the character encoding at the port's
+an @code{&i/o-decoding} exception because the character encoding at the port's
 position is incomplete up to the next end of file, a subsequent call to
 @code{get-char} may successfully decode a character if bytes completing the
 encoding are available after the end of file.

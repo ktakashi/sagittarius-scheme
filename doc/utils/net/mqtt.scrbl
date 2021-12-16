@@ -64,8 +64,8 @@ given, then first 3 must be strings and @var{keep-alive} must be an integer.
 @var{version} keyword argument is switches which version it should use.
 The value must be one of the followings;
 
-@define[Constant]{+mqtt-3.1+}
-@define[Constant]{+mqtt-3.1.1+}
+@define[Constant]{@name{+mqtt-3.1+}}
+@define[Constant]{@name{+mqtt-3.1.1+}}
 
 By default it uses @code{+mqtt-3.1.1+}.
 
@@ -101,9 +101,9 @@ The @var{topic} must be a string. The @var{message} must be a bytevector.
 
 If keyword argument @var{qos} is specified, it must be one of the followings.
 
-@define[Constant]{+qos-at-most-once+}
-@define[Constant]{+qos-at-least-once+}
-@define[Constant]{+qos-exactly-once+}
+@define[Constant]{@name{+qos-at-most-once+}}
+@define[Constant]{@name{+qos-at-least-once+}}
+@define[Constant]{@name{+qos-exactly-once+}}
 
 By default, it uses @code{+qos-at-most-once+}.
 }

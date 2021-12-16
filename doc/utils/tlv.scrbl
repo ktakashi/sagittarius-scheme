@@ -35,11 +35,11 @@ constructed, otherwise #f.}
 @desc{Returns TLV components of given TLV object @var{tlv}. If the @var{tlv}
 is not constructed, this returns @code{()}.}
 
-@define[Function]{@name{tlv->bytevector} @agrs{tlv}}
+@define[Function]{@name{tlv->bytevector} @args{tlv}}
 @desc{Converts given TLV object @var{tlv} to bytevector.}
 
 @define[Function]{@name{write-tlv}
- @agrs{tlv :optional (out (current-output-port))}}
+ @args{tlv :optional (out (current-output-port))}}
 @desc{@var{out} must be binary output port.
 
 Writes given TLV object @var{tlv} to @var{out} as TLV data.

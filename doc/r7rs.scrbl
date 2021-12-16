@@ -123,7 +123,7 @@ This is defined in @secref["lib.sagittarius"]{(sagittarius)};
 
 @sub*section{Bytevectors}
 
-@define[Function]{@name{bytevector} @args{bytes @args{}}}
+@define[Function]{@name{bytevector} @args{bytes @dots{}}}
 @desc{@var{bytes} must be a list of non negative exact integer and its
 value is up to 255.
 
@@ -352,7 +352,7 @@ respectively. Otherwise #f.
 }
 
 @define[Function]{@name{u8-ready?} @args{input-port}}
-@define[Function]{@name{char-ready? @args{input-port}}}
+@define[Function]{@name{char-ready?} @args{input-port}}
 @desc{Renaming export of @code{port-ready?}.
 }
 

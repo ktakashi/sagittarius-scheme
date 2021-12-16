@@ -206,7 +206,7 @@ and the given @var{obj} using @code{eqv?}.
 If the comparison result is @code{#t}, then it returns successful.
 
 This procedure is equivalent with the following:
-@codeblogk{
+@codeblock{
 (define ($eqv? v) ($satisfy (lambda (e) (eqv? e v))))
 }
 }
@@ -230,7 +230,7 @@ The parser parses input exactly @var{n} times and returns a list of
 result value if the given @var{parser} returns @var{n} times successful.
 
 This is equivalent with the following code:
-@codeblogk{
+@codeblock{
 (define ($repeat parser n) ($many parser n n))
 }
 }

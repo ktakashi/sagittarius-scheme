@@ -358,13 +358,13 @@ Element types and attribute names must match the production QName,
 defined below.
 }
 
-@define[Function]{@var{ssax:read-NCName} @args{port}}
+@define[Function]{@name{ssax:read-NCName} @args{port}}
 @desc{
 Read a NCName starting from the current position in the @var{port} and
 preturn it as a symbol.
 }
 
-@define[Function]{@name{ssax:read-QName} @var{port}}
+@define[Function]{@name{ssax:read-QName} @args{port}}
 @desc{
 Read a (namespace-) Qualified Name, QName, from the current
 position in the @var{port}.
@@ -453,7 +453,7 @@ character right after '?>' combination that terminates PI.
 @snipet{[16] PI ::= '<?' PITarget (S (Char* - (Char* '?>' Char*)))? '?>'}
 }
 
-@define[Function]{@Name{ssax:skip-internal-dtd} @args{port}}
+@define[Function]{@name{ssax:skip-internal-dtd} @args{port}}
 @desc{
 The current pos in the port is inside an internal DTD subset
 (e.g., after reading #\[ that begins an internal DTD subset)
@@ -602,7 +602,7 @@ This procedure tests for the namespace constraints:
 @define[Function]{@name{ssax:uri-string->symbol} @args{uri-str}}
 @desc{Convert a URI-STR to an appropriate symbol}
 
-@define[Function]{@name{ssax:complete-start-tag @args{tag port elems entities namespaces}}}
+@define[Function]{@name{ssax:complete-start-tag} @args{tag port elems entities namespaces}}
 @desc{
 This procedure is to complete parsing of a start-tag markup. The
 procedure must be called after the start tag token has been

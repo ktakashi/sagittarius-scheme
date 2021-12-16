@@ -206,7 +206,7 @@ to indexed file and new log file named @var{filename} is created.
 appender otherwise #f.
 }
 
-@define["Record Type"}{<daily-rolling-file-appender>}
+@define["Record Type"}{@name{<daily-rolling-file-appender>}}
 @define[Function}{@name{make-daily-rolling-file-appender}
  @args{log-format filename :optional (date-pattern "~Y-~m-~d")}}
 @define[Function}{@name{daily-rolling-file-appender?} @args{obj}}

@@ -89,7 +89,7 @@ should not mutate @var{list}.
 Each of these procedures returns a list of the elements of @var{list} that do not
 satisfy a given condition. The @code{remp} procedure applies @var{proc} to each
 element of @var{list} and returns a list of the elements of @var{list} for which
-@var{proc} returned #f. The @code{remove}, @cpde{remv}, and @code{remq} procedures
+@var{proc} returned #f. The @code{remove}, @code{remv}, and @code{remq} procedures
 return a list of the elements that are not @var{obj}. The @code{remq} procedure
 uses @code{eq?} to compare @var{obj} with the elements of @var{list}, while
 @code{remv} uses @code{eqv?} and @code{remove} uses @code{equal?}. The elements
@@ -134,7 +134,7 @@ If no pair in @var{alist} satisfies the condition, then #f is returned. The
 @code{assoc}, @code{assv}, and @code{assq} procedures look for a pair that has
 @var{obj} as its car. The @code{assoc} procedure uses @code{equal?} or if @var{=}
 is given use it to compare @var{obj} with the car fields of the pairs in @var{alist},
-while @code{assv} uses @code{eqv?} and @code{assq} uses @cpde{eq?}.
+while @code{assv} uses @code{eqv?} and @code{assq} uses @code{eq?}.
 
 Note: @code{member} and @code{assoc} procedures are the same behaviour as SRFI-1.
 }

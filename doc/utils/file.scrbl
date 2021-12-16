@@ -121,7 +121,7 @@ with following meaning;
 The keyword arguments:
 @dl-list{
 @dl-item["file-only"]{If this is #t, then the @var{proc} is only given a file.
-Otherwise all file types.}p
+Otherwise all file types.}
 @dl-item["absolute-path"]{If this is #t, then the @var{proc} is given absolute
 path. Otherwise only the filename.}
 @dl-item["stop-on-false"]{If this is #t, then when @var{proc} returns #f the

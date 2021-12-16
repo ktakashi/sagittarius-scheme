@@ -249,7 +249,7 @@ how to retrieve the car part and cdr part, and how to check if the object
 is empty or not, respectively. If these are not given then the macro
 uses @code{car}, @code{cdr} and @code{null?}.
 
-@code{@atmar{}} indicates that the given object is a vectorlike object which
+@code{@atmark{}} indicates that the given object is a vectorlike object which
 can be accessed randomly. @var{ref} and @var{length} specifies how to access
 the element of the object, and how to retrieve the length of the object,
 respectively. If these are not given then the macro uses @code{vector-ref},

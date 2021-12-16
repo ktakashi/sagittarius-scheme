@@ -214,7 +214,7 @@ key algorithm.
 
 @var{S} is signed message.
 
-The @cod{verity} procedure verifies two messages.
+The @code{verity} procedure verifies two messages.
 
 @var{opt} can specify the verifier behaviour. Default supported RSA cipher can
 accept keyword argument @var{verify}.

@@ -147,7 +147,7 @@ portability, it's better to use @code{gensym} in @code{(sagittarius)} library.
 
 @define[Macro]{@name{with-syntax} @args{((pattern expression) @dots{}) body}}
 @desc{[R6RS] The @code{with-syntax} form is used to bind pattern variables, just
-as @cde{let} is used to bind variables. This allows a transformer to construct
+as @code{let} is used to bind variables. This allows a transformer to construct
 its output in separate pieces, then put the pieces together.
 
 Each @var{pattern} is identical in form to a @code{syntax-case} pattern. The

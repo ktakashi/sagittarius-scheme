@@ -1,7 +1,7 @@
 @; -*- coding: utf-8 -*-
 @subsection[:tag "rfc.jws"]{(rfc jws) - Json Web Signature}
 
-@define[Library][@name{(rfc jws)}]
+@define[Library]{@name{(rfc jws)}}
 @desc{This library provides Json Web Signature (JWS) APIs. JWS is defined
 in @hyperlink[:href "https://tools.ietf.org/html/rfc7515"]{RFC 7515}.
 
@@ -199,7 +199,7 @@ Otherwise, it may return #f or signals an error, depending on the
 underlying verifier.
 
 If the second form of @code{jws:verify} is used, then it uses the given
-@ver{critical-headers} list to check @code{crit} header value.
+@var{critical-headers} list to check @code{crit} header value.
 }
 
 @subsubsection{JWS Verifiers}

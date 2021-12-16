@@ -64,8 +64,12 @@
 	 (case (car token)
 	   ((section subsection subsubsection sub*section)
 	    (handle-section token next* acc))
-	   ((code var) (simple-handler token next* acc))
+	   ((code var blockquote) (simple-handler token next* acc))
+	   ((math) (simple-handler (cons 'var (cdr token)) next* acc))
+	   ((see) (simple-handler (cons 'code (cdr token)) next* acc))
+	   ((scheme) (simple-handler (cons 'code (cdr token)) next* acc))
 	   ((dots) (values next* (cons "..." acc)))
+	   ((dot) (values next* (cons "." acc)))
 	   ((atmark) (values next* (cons "@" acc)))
 	   ((itemlist) (handle-itemlist token next* acc))
 	   ((define) (handle-define token next* acc))
@@ -75,18 +79,31 @@
 	   ((include-section) (handle-include-section token next* acc))
 	   ((secref) (handle-secref token next* acc))
 	   ((dl-list) (handle-dl-list token next* acc))
-	   ((string) (handle-string token next* acc))
-	   ((b) (handle-emphasize 'strong token next* acc))
+	   ((string p) (handle-noreason token next* acc))
+	   ((b bold strong) (handle-emphasize 'strong token next* acc))
+	   ((italic) (handle-emphasize 'italic token next* acc))
 	   ((hyperlink) (handle-hyperlink token next* acc))
 	   ((table) (handle-table token next* acc))
 	   ((title) (handle-title token next* acc))
 	   ((eval) (handle-eval token next* acc))
+	   ((table-of-contents)
+	    (handle-marker 'table-of-contents token next* acc))
+	   ((index-table) (handle-marker 'index-table token next* acc))
+	   ((author) (handle-marker 'author token next* acc))
 	   (else (assertion-violation 'consume-token* "Unknown token" token))))
 	(else (values next* (cons token acc)))))
 
+;; this is a marker tag
+(define (handle-marker type token next* acc)
+  (let-values (((attr content) (scribble-parse-attribute (cdr token))))
+    (values next*
+	    (cons `(,type (@ ,@attr) ,@(scribble-token*->content content))
+		  acc))))
+
 (define (handle-title token next* acc)
   (values next*
-	  (cons `(title (@) ,@(scribble-token*->content (cdr token))) acc)))
+	  (cons `(header (@ (level "1"))
+			 ,@(scribble-token*->content (cdr token))) acc)))
 
 (define (handle-eval token next* acc)
   (values next*
@@ -110,7 +127,7 @@
   (values next*
 	  (cons `(,tag (@) ,@(scribble-token*->content (cdr token))) acc)))
 ;; no idea what I was thinking...
-(define (handle-string token next* acc)
+(define (handle-noreason token next* acc)
   (values next* `(,@(scribble-token*->content (cdr token)) . ,acc)))
 
 (define (handle-dl-list token next* acc)
@@ -229,10 +246,10 @@
   (define section (car token))
   (define (section->level section)
     (case section
-      ((section)       1)
-      ((subsection)    2)
-      ((subsubsection) 3)
-      ((sub*section)   4)
+      ((section)       2)
+      ((subsection)    3)
+      ((subsubsection) 4)
+      ((sub*section)   5)
       (else #f)))
   (define section-level (section->level section))
   (define (consume cur next*)
