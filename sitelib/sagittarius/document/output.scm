@@ -31,14 +31,27 @@
 #!nounbound
 (library (sagittarius document output)
     (export document-output-options?
-	    document-output-options-builder)
+	    document-output-options-default-codeblock-language
+	    document-output-options-builder
+
+	    document-decompose
+	    document-element-of?)
     (import (rnrs)
-	    (record builder))
+	    (record builder)
+	    (text sxml tools))
 
 (define-record-type document-output-options
-  (fields ))
+  (fields default-codeblock-language))
 
 (define-syntax document-output-options-builder
   (make-record-builder document-output-options))
 
+(define (document-decompose doc)
+  (let ((name (car doc))
+	(attr (sxml:attr-list doc))
+	(content (sxml:content doc)))
+    (values name attr content)))
+
+(define (document-element-of? e name)
+  (and (pair? e) (eq? (car e) name)))
 )
