@@ -79,21 +79,32 @@
 	   ((b) (handle-emphasize 'strong token next* acc))
 	   ((hyperlink) (handle-hyperlink token next* acc))
 	   ((table) (handle-table token next* acc))
+	   ((title) (handle-title token next* acc))
+	   ((eval) (handle-eval token next* acc))
 	   (else (assertion-violation 'consume-token* "Unknown token" token))))
 	(else (values next* (cons token acc)))))
+
+(define (handle-title token next* acc)
+  (values next*
+	  (cons `(title (@) ,@(scribble-token*->content (cdr token))) acc)))
+
+(define (handle-eval token next* acc)
+  (values next*
+	  (cons `(eval (@) ,@(scribble-token*->content (cdr token))) acc)))
 
 (define (handle-table token next* acc)
   (define (->cell cell)
     (define name (car cell))
     (let ((type (if (eq? 'th name) 'header 'cell)))
-      (let-values (((attr value) (scribble-parse-attribute cell)))
+      (let-values (((attr value) (scribble-parse-attribute (cdr cell))))
 	`(,type (@ ,@attr) ,@(scribble-token*->content value)))))
   (define (->row row)
-    (let-values (((attr cells) (scribble-parse-attribute row)))
+    (let-values (((attr cells) (scribble-parse-attribute (cdr row))))
       `(row (@ ,@attr) ,@(map ->cell (filter pair? cells)))))
-  (let-values (((attr content) (scribble-parse-attribute token)))
+  (let-values (((attr content) (scribble-parse-attribute (cdr token))))
     (values next*
-	    `(table (@ ,@attr) ,@(map ->row (filter pair? content))))))
+	    (cons `(table (@ ,@attr) ,@(map ->row (filter pair? content)))
+		  acc))))
 
 (define (handle-emphasize tag token next* acc)
   (values next*
@@ -158,7 +169,7 @@
 		    (values #f args))))
     (values next*
 	    (cons `(codeblock (@ (style ,style))
-		    ,@(if e `((output (@) ,e)) '())
+		    ,@(if e `((output (@) ,(format "~a" e))) '())
 		    ,@(scribble-token*->content body))
 		  acc))))
 
