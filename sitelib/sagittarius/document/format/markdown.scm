@@ -60,10 +60,14 @@
 	     ((dlist) (write-dlist attr content options out))
 	     ((codeblock) (write-codeblock attr content options out))
 	     ((link) (write-link attr content options out))
-	     (else
-	      (assertion-violation 'write-markdown "Unknown element" e)))))
+	     (else (put-datum out e)
+	      #;(assertion-violation 'write-markdown "Unknown element" e)))))
 	(else (put-datum out e))))
 
+(define default-callback (document-output:make-file-link-callback ".md"))
+(define (get-callback options)
+  (cond ((document-output-options-link-source-callback options))
+	(else default-callback)))
 (define (write-link attr content options out)
   (define (write-it content link)
     (put-string out "[")
@@ -73,13 +77,11 @@
     (put-char out #\)))
   (let ((source (cond ((assq 'source attr) => cadr) (else #f)))
 	(format (cond ((assq 'format attr) => cadr) (else #f)))
-	(href (cond ((assq 'href attr) => cadr) (else #f))))
-    (cond (source
-	   ;; TODO handle included document
-	   (let* ((file (path-sans-extension source))
-		  (md (string-append file ".md")))
-	     (write-it (list md) md)))
+	(href (cond ((assq 'href attr) => cadr) (else #f)))
+	(anchor (cond ((assq 'anchor attr) => cadr) (else #f))))
+    (cond (source ((get-callback options) source format write-it))
 	  (href (write-it content href))
+	  (anchor (write-it content (string-append "#" anchor)))
 	  (else (assertion-violation 'write-link
 				     "Link doesn't have source or href"
 				     `(link (@ ,@attr) ,@content))))))
@@ -89,15 +91,14 @@
   (define (output? e) (document-element-of? e 'output))
   (define (write-output output options out)
     (define (write-it e)
-      (if (pair? e)
-	  (begin
-	    (put-char out #\()
-	    (write-markdown (car e) options out)
-	    (for-each (lambda (e)
-			(put-char out #\space)
-			(write-markdown e options out)) (cdr e))
-	    (put-char out #\)))
-	  (write-markdown e options out)))
+      (cond ((pair? e)
+	     (put-char out #\()
+	     (write-markdown (car e) options out)
+	     (for-each (lambda (e)
+			 (put-char out #\space)
+			 (write-markdown e options out)) (cdr e))
+	     (put-char out #\)))
+	    (else (write-markdown e options out))))
     ;; output may contain sexp so sxml:content my filter them out
     (match output
       (('output ('@) e) (write-it e))

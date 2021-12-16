@@ -545,7 +545,7 @@ does not exist.
 }
 
 @define["Condition Type"]{@name{&socket}}
-@define[Function]{@name{socket-error? @args{obj}}
+@define[Function]{@name{socket-error?} @args{obj}}
 @define[Function]{@name{make-socket-error} @args{socket}}
 @define[Function]{@name{socket-error-socket} @args{socket-error}}
 @desc{This condition describes general socket operation error.}

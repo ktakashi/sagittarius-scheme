@@ -77,8 +77,23 @@
 	   ((dl-list) (handle-dl-list token next* acc))
 	   ((string) (handle-string token next* acc))
 	   ((b) (handle-emphasize 'strong token next* acc))
+	   ((hyperlink) (handle-hyperlink token next* acc))
+	   ((table) (handle-table token next* acc))
 	   (else (assertion-violation 'consume-token* "Unknown token" token))))
 	(else (values next* (cons token acc)))))
+
+(define (handle-table token next* acc)
+  (define (->cell cell)
+    (define name (car cell))
+    (let ((type (if (eq? 'th name) 'header 'cell)))
+      (let-values (((attr value) (scribble-parse-attribute cell)))
+	`(,type (@ ,@attr) ,@(scribble-token*->content value)))))
+  (define (->row row)
+    (let-values (((attr cells) (scribble-parse-attribute row)))
+      `(row (@ ,@attr) ,@(map ->cell (filter pair? cells)))))
+  (let-values (((attr content) (scribble-parse-attribute token)))
+    (values next*
+	    `(table (@ ,@attr) ,@(map ->row (filter pair? content))))))
 
 (define (handle-emphasize tag token next* acc)
   (values next*
@@ -118,15 +133,22 @@
 		   ,@(filter-map handle-item (cdr token))) 
 		 acc)))
 
+(define (handle-hyperlink token next* acc)
+  (let-values (((attr content) (scribble-parse-attribute (cdr token))))
+    (values next* (cons `(link (@ (href ,(cond ((assq 'href token) => cadr)
+					       (else ""))))
+			       ,@(scribble-token*->content (cddr token)))
+			acc))))
+
 (define (handle-secref token next* acc)
-  (values next* (cons `(link (@ (anchar ,(cadr token)))
+  (values next* (cons `(link (@ (anchor ,(cadr token)))
 			     ,@(scribble-token*->content (cddr token)))
 		      acc)))
 
 (define (handle-include-section token next* acc)
   (define file (cadr token))
   (values next*
-	  (cons `(link (@ (source ,file) (format scribble)) ,file) acc))) 
+	  (cons `(link (@ (source ,file) (format "scribble")) ,file) acc))) 
 
 (define (handle-codeblock style token next* acc)
   (define args (cdr token))

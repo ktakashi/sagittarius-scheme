@@ -298,7 +298,7 @@ Created callbacks are stored intarnal static storage to avoid to get GCed.
 This is because C functions which accept callback may hold the given callback
 in their storage which could be outside of Sagittarius GC root. So it is
 users' responsibility to release created callback to avoid memory leak. To
-release callbacks, you need to use @coe{free-c-callback}.
+release callbacks, you need to use @code{free-c-callback}.
 }
 
 @define[Macro]{@name{make-c-callback}

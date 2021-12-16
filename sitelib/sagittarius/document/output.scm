@@ -32,19 +32,29 @@
 (library (sagittarius document output)
     (export document-output-options?
 	    document-output-options-default-codeblock-language
+	    document-output-options-link-source-callback
 	    document-output-options-builder
 
+	    document-output:make-file-link-callback
 	    document-decompose
 	    document-element-of?)
     (import (rnrs)
 	    (record builder)
-	    (text sxml tools))
+	    (text sxml tools)
+	    (util file))
 
 (define-record-type document-output-options
-  (fields default-codeblock-language))
+  (fields default-codeblock-language
+	  link-source-callback))
 
 (define-syntax document-output-options-builder
   (make-record-builder document-output-options))
+
+(define (document-output:make-file-link-callback ext)
+  (lambda (source format writer)
+    (let ((file (string-append (path-sans-extension source) ext)))
+      (when writer (writer (list file) file))
+      file)))
 
 (define (document-decompose doc)
   (let ((name (car doc))

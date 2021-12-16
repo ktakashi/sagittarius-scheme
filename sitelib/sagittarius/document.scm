@@ -64,6 +64,7 @@
 
 	    document-output-options?
 	    document-output-options-builder
+	    document-output:make-file-link-callback
 	    
 	    &document document-error?
 	    &document-input document-input-error?

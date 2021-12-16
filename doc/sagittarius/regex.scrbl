@@ -294,7 +294,7 @@ flag}
      The upper case charset contains @code{Zs}, @code{Zl} and @code{Zp}.
    }
    @dl-item["[[:cntrl:]]"]{
-     The upper case charset contains @code{Cc}, @code{Cf}, @code{Co}, @cod{Cs},
+     The upper case charset contains @code{Cc}, @code{Cf}, @code{Co}, @code{Cs},
      and @code{Cn}.
    }
   ]}
