@@ -128,7 +128,7 @@
 	  (cons `(,tag (@) ,@(scribble-token*->content (cdr token))) acc)))
 ;; no idea what I was thinking...
 (define (handle-noreason token next* acc)
-  (values next* `(,@(scribble-token*->content (cdr token)) . ,acc)))
+  (values next* `(,@(reverse! (scribble-token*->content (cdr token))) . ,acc)))
 
 (define (handle-dl-list token next* acc)
   (define (->title item)
@@ -176,7 +176,9 @@
 (define (handle-include-section token next* acc)
   (define file (cadr token))
   (values next*
-	  (cons `(link (@ (source ,file) (format "scribble")) ,file) acc))) 
+	  (cons `(list (@)
+		  (item (@)
+		   (link (@ (source ,file) (format "scribble")) ,file))) acc)))
 
 (define (handle-codeblock style token next* acc)
   (define args (cdr token))
@@ -184,11 +186,15 @@
 		(if (eq? (car args) '=>)
 		    (values (cadr args) (cddr args))
 		    (values #f args))))
-    (values next*
-	    (cons `(codeblock (@ (style ,style))
+    (define (do-handle lang body)
+      (values next*
+	    (cons `(codeblock (@ (style ,style) ,@lang)
 		    ,@(if e `((output (@) ,(format "~a" e))) '())
 		    ,@(scribble-token*->content body))
-		  acc))))
+		  acc)))
+    (match body
+      ((('lang lang) body ...) (do-handle `((lang ,lang)) body))
+      ((body ...) (do-handle '() body)))))
 
 (define (handle-desc token next* acc)
   ;; TODO I think 'description' should be psuedo...

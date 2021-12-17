@@ -77,11 +77,11 @@ returned as the results of the procedure call.
 
 @snipet[=> "a procedure"]{(lambda (x) (+ x x))}
 @snipet[=> 8]{((lambda (x) (+ x x)) 4)}
-@snipet[=> 11]{@codeblock{
+@codeblock[=> 11]{
 ((lambda (x)
    (define (p y) (+ y 1))
-   (+ (p x) x)) 5)}}
-
+   (+ (p x) x)) 5)
+}
 @snipet{(define reverse-subtract (lambda (x y) (- y x)))}
 @snipet[=> 3]{(reverse-subtract 7 10)}
 

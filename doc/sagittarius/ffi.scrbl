@@ -12,42 +12,7 @@ it might cause SEGV or unexpected behaviours. It is users responsibility to
 avoid those errors.
 
 Following is the simple example to use;
-@codeblock[=> #vu8(1 2 3 4 5 6 7 8 9)]{
-;; Scheme file
-;; load shared library (on Windows the extension might be '.dll')
-;; On Unix like environment, the shared library must be full path or
-;; located in the same directory as the script.
-;; On Windows it can be on PATH environment variable as well.
-(define so-library (open-shared-library "my-quick-sort.so"))
-(define quick-sort 
-  (c-function so-library ;; shared library
-              void       ;; return type
-              quicksort  ;; exported symbol
-              ;; argument types
-              ;; if you need pass a callback procedure, 'callback' mark needs to
-              ;; be passed to the arguments list
-              (void* size_t size_t callback)))
-
-(let ((array (u8-list->bytevector '(9 3 7 5 2 6 1 4 8)))
-      ;; callback procedure
-      (compare (c-callback int           ;; return type
-                           (void* void*) ;; argument types
-                           (lambda (a b)
-                             (- (pointer-ref-c-uint8 x 0)
-                                (pointer-ref-c-uint8 y 0))))))
-  ;; call c function. all loaded c functions are treated the same as
-  ;; usual procedures.
-  (quick-sort array (bytevector-length array) 1 compare)
-  ;; release callback procedure.
-  ;; NOTE: callback won't be GCed so users need to release it manually
-  (free-c-callback compare)
-  array)
-
-;; Close shared library.
-(close-shared-library so-library)
-
-;; End of Scheme file
-
+@codeblock{@lang{c}
 /* C file, must be compiled as a shared library and named 'my-quick-sort.so' */
 #include <stdlib.h>
 #include <string.h>
@@ -104,7 +69,40 @@ EXPORT int quicksort(void *base, const size_t num, const size_t size,
   free(temp);
   return 0;
 }
+}
+@codeblock[=> #vu8(1 2 3 4 5 6 7 8 9)]{
+;; Scheme file
+;; load shared library (on Windows the extension might be '.dll')
+;; On Unix like environment, the shared library must be full path or
+;; located in the same directory as the script.
+;; On Windows it can be on PATH environment variable as well.
+(define so-library (open-shared-library "my-quick-sort.so"))
+(define quick-sort 
+  (c-function so-library ;; shared library
+              void       ;; return type
+              quicksort  ;; exported symbol
+              ;; argument types
+              ;; if you need pass a callback procedure, 'callback' mark needs to
+              ;; be passed to the arguments list
+              (void* size_t size_t callback)))
 
+(let ((array (u8-list->bytevector '(9 3 7 5 2 6 1 4 8)))
+      ;; callback procedure
+      (compare (c-callback int           ;; return type
+                           (void* void*) ;; argument types
+                           (lambda (a b)
+                             (- (pointer-ref-c-uint8 x 0)
+                                (pointer-ref-c-uint8 y 0))))))
+  ;; call c function. all loaded c functions are treated the same as
+  ;; usual procedures.
+  (quick-sort array (bytevector-length array) 1 compare)
+  ;; release callback procedure.
+  ;; NOTE: callback won't be GCed so users need to release it manually
+  (free-c-callback compare)
+  array)
+
+;; Close shared library.
+(close-shared-library so-library)
 }
 The document describes higher APIs to lower APIs.
 

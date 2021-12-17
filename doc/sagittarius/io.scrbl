@@ -49,7 +49,7 @@ Sagittarius provides means to create user defined ports. One of the ways
 is using R6RS custom port procedures. The other one is extending custom
 port class. The followings show how to extend it.
 
-@code{
+@codeblock{
 ;; example for input port
 (import (rnrs) (sagittarius io) (clos user))
 
@@ -60,7 +60,7 @@ port class. The followings show how to extend it.
                 1)))
 }
 
-@code{
+@codeblock{
 ;; example for output port
 (import (rnrs) (sagittarius io) (clos user))
 

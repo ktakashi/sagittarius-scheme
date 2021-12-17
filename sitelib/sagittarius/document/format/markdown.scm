@@ -36,7 +36,9 @@
 	    (util file)
 	    (sagittarius)
 	    (sagittarius document output)
-	    (srfi :1 lists))
+	    (srfi :1 lists)
+	    (srfi :13 strings)
+	    (util port))
 
 (define (document->markdown doc options out)
   (with-exception-handler
@@ -69,7 +71,7 @@
 	     ((link) (write-link attr content options out))
 	     ((table) (write-table attr content options out))
 	     ((header) (write-header attr content options out))
-	     ((eval) (write-evel attr content options out))
+	     ((eval) (write-eval attr content options out))
 	     ((table-of-contents)
 	      (write-marker 'table-of-contents attr content options out))
 	     ((index-table)
@@ -92,17 +94,13 @@
 
 
 (define (write-marker type attr content options out)
-  (put-string out "<!-- (")
-  (format out "(type ~a) (attr ~s) (content ~s)" type attr content)
-  (put-string out ") -->"))
+  (format out "<!-- (~a ~s ~s) -->" type attr content))
 
-(define (write-evel attr content options out)
-  ;; let's do ```eval then
-  (put-string out "```eval")
-  (put-char out #\newline)
+(define (write-eval attr content options out)
+  (put-string out "<!-- (")
+  (put-string out "eval ")
   (for-each (lambda (e) (write-markdown e options out)) content)
-  (put-char out #\newline)
-  (put-string out "```"))
+  (put-string out ") -->"))
 
 (define (write-table attr content options out)
   (define (->cell cell)
@@ -113,6 +111,8 @@
 	      ((eof-object? c) (e))
 	    (case c
 	      ((#\newline) (put-string out "<br>"))
+	      ((#\\) (put-string out "\\\\"))
+	      ((#\|) (put-string out "\\|"))
 	      (else (put-char out c)))))))
     (let-values (((n attr content) (document-decompose cell))
 		 ((out e) (open-string-output-port)))
@@ -166,6 +166,7 @@
 	 (rows (map ->row content))
 	 (row-length (length (car rows)))
 	 (cell-size* (compute-cell-size* row-length rows)))
+    (put-char out #\newline)
     (fold-left (lambda (header-written? row)
 		 (let ((r (write-row out row cell-size* header-written?)))
 		   (put-char out #\newline)
@@ -221,22 +222,25 @@
     (let-values (((output code) (partition output? content)))
       (case style
 	((block)
+	 (put-char out #\newline)
 	 (put-string out "```")
 	 (when lang (put-string out lang))
 	 (put-char out #\newline)
 	 (for-each (lambda (e) (write-markdown e options out)) code)
-	 (put-string out "```")
-	 (put-char out #\newline))
+	 (put-char out #\newline)
+	 (put-string out "```"))
 	(else
 	 (put-string out "``")
 	 (for-each (lambda (e) (write-markdown e options out)) code)
 	 (put-string out "``")))
       (unless (null? output)
-	(unless (eq? style 'block) (put-char out #\space))
+	(if (eq? style 'block)
+	    (put-char out #\newline)
+	    (put-char out #\space))
 	(put-string out "=> ``")
 	(for-each (lambda (e) (write-output e options out)) output)
-	(put-string out "``")
-	(when (eq? style 'block) (put-char out #\newline))))))
+	(put-string out "``"))
+      (put-char out #\newline))))
 
 (define (write-dlist attr content options out)
   ;; using definition lists
@@ -254,10 +258,14 @@
 		    (put-char out #\newline)) title*)
 	(put-string out ": ")
 	(unless (null? desc)
-	  (write-markdown (car desc) options out)
+	  (write-trimmed-string out (lambda (out)
+				      (write-markdown (car desc) options out)))
 	  (for-each (lambda (e)
+		      (put-char out #\newline)
 		      (put-string out "  ")
-		      (write-markdown e options out)) (cdr desc)))))
+		      (write-trimmed-string out
+		       (lambda (out) (write-markdown e options out))))
+		    (cdr desc)))))
     (put-char out #\newline)
     (put-char out #\newline))
   (put-char out #\newline)
@@ -294,7 +302,9 @@
   (put-string out s))
 
 (define (write-description attr content options out)
-  (for-each (lambda (e) (write-markdown e options out)) content))
+  (write-trimmed-string out
+   (lambda (out)
+     (for-each (lambda (e) (write-markdown e options out)) content))))
 
 (define (write-define attr content options out)
   (define (write-it category name args)
@@ -316,6 +326,13 @@
 (define (write-section attr content options out)
   (match content
     ((('header h ...) content ...)
+     (cond ((assq 'tag attr) =>
+	    (lambda (slot)
+	      (let ((tag (cadr slot)))
+		(put-string out "<a name=\"")
+		(put-string out tag)
+		(put-string out "\"></a>")
+		(put-char out #\newline)))))
      (let-values (((n a c) (document-decompose (cons 'header h))))
        (write-header a c options out))
      (for-each (lambda (e) (write-markdown e options out)) content))
@@ -340,5 +357,28 @@
 	   (put-char out #\newline))))
   (let ((level (cond ((assq 'level attr) => cadr) (else "1"))))
     (write-it level content)))
+
+(define (write-trimmed-string out proc)
+  (let-values (((o e) (open-string-output-port)))
+    (proc o)
+    (put-string out (trim-string* (e)))))
+
+(define (trim-string* s)
+  (define (check-space s) (cond ((string-skip s char-whitespace?)) (else 0)))
+  (define (string-drop-while s pred max)
+    ;; we use string-ref as Sagittarius does O(1) access :)
+    ;; good boys shouldn't do it
+    (do ((i 0 (+ i 1)))
+	((or (= i max) (not (pred (string-ref s i))))
+	 (substring s i (string-length s)))))
+  (let ((lines (port->string-list (open-string-input-port s))))
+    (if (null? lines)
+	""
+	;; max length to remove space
+	(let ((space (check-space (car lines))))
+	  (string-join
+	   (map (lambda (s) (string-drop-while s char-whitespace? space))
+		lines) "\n")))))
+      
 
 )

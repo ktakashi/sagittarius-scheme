@@ -216,7 +216,9 @@ syntax please see the R6RS document described in bellow sections.
   (export bar)
   (import (rnrs))
 
- (define bar 'bar) ) } The library named @code{(foo)} must be saved the file
+ (define bar 'bar) )
+}
+The library named @code{(foo)} must be saved the file
 named @code{foo.scm}, @code{foo.ss}, @code{foo.sls} or @code{foo.sld} (I use
 @code{.scm} for all examples) and located on the loading path, the value is
 returned by calling @code{add-load-path} with 0 length string.

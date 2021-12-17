@@ -186,25 +186,8 @@ The following table explains predefined reader macros.
      Returns @code{(unsyntax-splicing @var{expr})} if next character was
      @code{@atmark{}}, otherwise @code{(unsyntax @var{expr})}}}
 @tr{@td{#\!}
- @td{Reads next expression and set flags described below.
-  @dl-list{
-    @dl-item["#!r6rs"]{Switches to R6RS mode}
-    @dl-item["#!r7rs"]{Switches to R7RS mode}
-    @dl-item["#!compatible"]{Switches to compatible mode}
-    @dl-item["#!no-overwrite"]{Sets no-overwrite flag that does not allow user
-    to overwrite exported variables.}
-    @dl-item["#!nocache"]{Sets disable cache flag on the current loading file}
-    @dl-item["#!deprecated"]{Display warning message of deprecated library.}
-    @dl-item["#!reader=name"]{
-	Replace reader with library @var{name}. The @var{name} must be converted
-	with the naming convention described below. For more details, see
-	@secref["sagittarius.name.convention"]{Naming convention}}
-    @dl-item["#!read-macro=name"]{
-	The same as @code{#< @var{name} >} but this is more for compatibility.
-	@var{name} must be converted with the naming convention described below.
-	For more details, see	
-	@secref["sagittarius.name.convention"]{Naming convention}}
-  }}}
+ @td{Reads next expression and set flags.
+     The details are described the below section}}
 @tr{@td{#\v}
  @td{Checks if the next 2 characters are @code{u} and @code{8} and reads
  a bytevector.}}
@@ -282,6 +265,28 @@ define
 use the one defined in @code{(srfi :49)} library. For compatibility of the other
 Scheme implementation, we chose not to use the library name itself but a bit
 converted name.
+
+This is the list of @code{#!} flags:
+@dl-list{
+  @dl-item["#!r6rs"]{Switches to R6RS mode}
+  @dl-item["#!r7rs"]{Switches to R7RS mode}
+  @dl-item["#!compatible"]{Switches to compatible mode}
+  @dl-item["#!no-overwrite"]{Sets no-overwrite flag that does not allow user
+  to overwrite exported variables.}
+  @dl-item["#!nocache"]{Sets disable cache flag on the current loading file}
+  @dl-item["#!deprecated"]{Display warning message of deprecated library.}
+  @dl-item["#!reader=name"]{
+	Replace reader with library @var{name}. The @var{name} must be converted
+	with the naming convention described below. For more details, see
+	@secref["sagittarius.name.convention"]{Naming convention}
+  }
+  @dl-item["#!read-macro=name"]{
+	The same as @code{#< @var{name} >} but this is more for compatibility.
+	@var{name} must be converted with the naming convention described below.
+	For more details, see	
+	@secref["sagittarius.name.convention"]{Naming convention}
+  }
+}
 
 @sub*section[:tag "sagittarius.name.convention"]{Naming convention}
 
