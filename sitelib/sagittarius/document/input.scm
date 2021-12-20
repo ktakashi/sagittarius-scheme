@@ -44,6 +44,7 @@
 	    input-char input-loc input-file
 
 	    $location $input-eqv? $input-pred $input-token
+	    $input-char-set-contains
 	    document:simple-lexer ;; for convenence
 	    
 	    document-input-error
@@ -53,6 +54,7 @@
 	    (sagittarius)
 	    (sagittarius document conditions)
 	    (peg)
+	    (srfi :14 char-sets)
 	    (srfi :127 lseqs))
 
 (define-condition-type &document-input &document
@@ -123,15 +125,10 @@
 
 (define ($input-eqv? v) ($satisfy (lambda (c) (eqv? (car c) v)) v))
 (define ($input-pred pred) ($satisfy (lambda (c) (pred (car c)))))
-
+(define ($input-char-set-contains set)
+  ($input-pred (lambda (c) (char-set-contains? set c))))
 (define ($input-token token)
-  (let ((c* (if (string? token) (string->list token) #f)))
-    (lambda (l)
-      (define r (if (string? token) token (token)))
-      (let loop ((c* (or c* (string->list r))) (nl l))
-	(cond ((null? c*) (return-result r nl))
-	      ((null? nl) (return-expect r l))
-	      ((eqv? (car c*) (input-char nl))
-	       (loop (cdr c*) (lseq-cdr nl)))
-	      (else (return-expect r l)))))))
+  (let ((c* (map $input-eqv? (string->list token))))
+    ($seq (apply $seq c*) ($return token))))
+
 )
