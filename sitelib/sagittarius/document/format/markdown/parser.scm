@@ -49,7 +49,8 @@
 (define $ws ($input-eqv? #\space))
 (define $ws* ($many ($input-eqv? #\space) 0))
 (define $ws+ ($many ($input-eqv? #\space) 1))
-(define $non-indent-space ($or ($many $ws 0 3)))
+(define $non-indent-space ($many $ws 0 3))
+(define $indent-space ($repeat $ws 4))
 
 (define *title-char-set*
   (char-set-difference char-set:full char-set:iso-control))
@@ -113,19 +114,50 @@
   ($or $atx-heading
        $setext-heading))
 
-#;(define $code-block
-  ($or $indented-code-block
-       $fenced-code-block))
-
 ;; 4.9 Blank lines
 (define $blank-line
   ($or ($seq $ws* $nl ($return #f))
-       ($seq $ws+ ($return #f))))
+       ($seq $ws+ $eof ($return #f))))
+
+;; 4.4 Indented code blocks
+(define $indented-code-block
+  ($let ((loc $location)
+	 ( ($many $blank-line) )
+	 (lines ($many ($seq $indent-space $line) 1))
+	 ( ($many $blank-line) ))
+    ($return `(code_block (@ ,@loc) ,@lines))))
+
+;; 4.5 Fenced code blocks
+(define $fence
+  ($or ($many ($input-eqv? #\~) 3)
+       ($many ($input-eqv? #\`) 3)))
+(define ($close-fence fence)
+  (write fence) (newline)
+  ($many ($input-eqv? (caar fence)) (length fence)))
+(define $fenced-code-block
+  ($let* ((loc $location)
+	  (maybe-space $non-indent-space)
+	  (fence $fence)
+	  (info ($debug ($optional ($many ($seq ($not $eol) $any) 1))))
+	  ( $eol )
+	  (lines ($many ($seq ($peek ($not ($close-fence fence))) $line)))
+	  ( $non-indent-space )
+	  ( ($close-fence fence) )
+	  ( $eol ))
+    ($return `(code-block (@ ,@loc 
+			     ,@(if info
+				   `((style ,(list->string (map car info))))
+				   '()))
+		,@lines))))
+
+(define $code-block
+  ($or $indented-code-block
+       $fenced-code-block))
 
 (define $leaf-block
   ($or $thematic-break
        $heading
-       ;; $code-block
+       $code-block
        ;; $html-block
        ;; $link-reference-definition
        ;; $paragraph
