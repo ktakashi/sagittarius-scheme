@@ -34,15 +34,20 @@
     (export parse-markdown)
     (import (rnrs)
 	    (peg)
+	    (srfi :1 lists)
 	    (srfi :14 char-sets)
+	    (srfi :39 parameters)
 	    (sagittarius document input))
 
 (define *namespace* '(xmlns "http://commonmark.org/xml/1.0"))
+(define *markdown:tab-size* (make-parameter 4)) ;; 4 but maybe ppl want 8 or 2?
 
 (define $nl ($or ($input-eqv? #\newline)
-		 ($input-eqv? #\return) ($optional ($input-eqv? #\newline))))
+		 ($seq ($input-eqv? #\return)
+		       ($optional ($input-eqv? #\newline)))))
 (define $eol ($or $eof $nl))
 (define $ws ($input-eqv? #\space))
+(define $ws* ($many ($input-eqv? #\space) 0))
 (define $ws+ ($many ($input-eqv? #\space) 1))
 (define $non-indent-space ($or ($many $ws 0 3)))
 
@@ -55,6 +60,12 @@
 (define ($string p at-least)
   ($let ((c* ($many p at-least))) ($return (list->string (map car c*)))))
 
+(define $line
+  ($let ((c* ($many ($seq ($peek ($not $eol)) $any) 1))
+	 ( $eol ))
+    ($return (list->string (map car c*)))))
+
+;; 4.1 Thematic breaks
 (define $thematic-break
   ($let ((loc $location)
 	 ( $non-indent-space )
@@ -64,6 +75,7 @@
 	 ( $eol ))
     ($return `(thematic_break (@ ,@loc)))))
 
+;; 4.2 ATX headings
 (define $atx-heading
   ($let ((loc $location)
 	 ( $non-indent-space )
@@ -82,41 +94,82 @@
 	 ( $eol ))
    ($return `(heading (@ ,@loc (level ,level) ,@(if id `((id ,id)) '()))
 	       ,title))))
-			      
 
+;; 4.3 Setext headings
+(define $setext-heading-mark
+  ($or ($many ($input-eqv? #\=) 1)
+       ($many ($input-eqv? #\-) 1)))
+(define $setext-heading
+  ($let ((loc $location)
+	 (lines ($many ($seq ($peek $non-indent-space)
+			     ($not $setext-heading-mark)
+			     $line) 1))
+	 (sep ($seq $non-indent-space $setext-heading-mark)))
+    ($return `(heading (@ ,@loc (level ,(if (eqv? #\= (caar sep)) 1 2)))
+		;; will be resolved later
+		,@lines))))
+			 
 (define $heading
   ($or $atx-heading
-       ;; $setext-heading
-       ))
+       $setext-heading))
+
+#;(define $code-block
+  ($or $indented-code-block
+       $fenced-code-block))
+
+;; 4.9 Blank lines
+(define $blank-line
+  ($or ($seq $ws* $nl ($return #f))
+       ($seq $ws+ ($return #f))))
 
 (define $leaf-block
   ($or $thematic-break
-       $heading))
+       $heading
+       ;; $code-block
+       ;; $html-block
+       ;; $link-reference-definition
+       ;; $paragraph
+       $blank-line
+       ))
 
 (define $container-block
   ($or ;; $block-quote
-       ;; $list
-       ;; $code-block
-       ;; $paragraph
-       ;; $html-block
+       ;; $lists
+       ;; $list-items (must be in $list)
        ;; $custom-block
    ))
 
 (define $block
-  ($or $leaf-block
-       $container-block))
+  ($seq ($not $eof) ;; To avoid infinite loop on $blank-line
+	($or $leaf-block $container-block)))
 
 (define $markdown
   ($let ((loc $location)
 	 (block* ($many $block)))
-    ($return `(document (@ ,*namespace* ,@loc) ,@block*))))
+    ($return `(document (@ ,*namespace* ,@loc) ,@(filter values block*)))))
   
 (define (parse-markdown input)
-  (define lseq (document-input->lseq input document:simple-lexer))
+  (define lseq (document-input->lseq input (markdown:make-lexer)))
   (let-values (((s v nl) ($markdown lseq)))
     (if (and (parse-success? s) (null? nl))
 	v
 	(document-input-error 'parse-markdown "Failed to parse Markdown"
 			      (document-input-filename input)))))
+
+(define (markdown:make-lexer)
+  (let ((buffer-count 0)
+	(tab-count (*markdown:tab-size*)))
+    (lambda (port)
+      (cond ((zero? buffer-count)
+	     (let ((c (get-char port)))
+	       (cond ((eof-object? c) (values c 0 #f))
+		     ((eqv? c #\tab)
+		      (set! buffer-count (- tab-count 1))
+		      (values #\space 1 #f))
+		     ((eqv? c #\newline) (values c 0 1))
+		     (else (values c 1 #f)))))
+	    (else
+	     (set! buffer-count (- buffer-count 1))
+	     (values #\space 1 #f))))))
 
 )
