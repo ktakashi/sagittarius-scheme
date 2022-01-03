@@ -43,7 +43,7 @@
 
 	    input-char input-loc input-file
 
-	    $location $input-eqv? $input-pred $input-token
+	    $location $input-eqv? $input-pred $input-token $input-token-ci
 	    $input-char-set-contains
 	    document:simple-lexer ;; for convenence
 	    
@@ -129,6 +129,12 @@
   ($input-pred (lambda (c) (char-set-contains? set c))))
 (define ($input-token token)
   (let ((c* (map $input-eqv? (string->list token))))
+    ($seq (apply $seq c*) ($return token))))
+
+(define ($input-token-ci token)
+  (let ((c* (map (lambda (t) ($input-pred (lambda (c) (char-ci=? c t))))
+		 (string->list token))))
+    ;; TODO we need to return the actual value
     ($seq (apply $seq c*) ($return token))))
 
 )

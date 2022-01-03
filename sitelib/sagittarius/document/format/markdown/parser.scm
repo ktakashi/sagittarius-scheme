@@ -31,24 +31,28 @@
 #!nounbound
 ;; we return SXML based on CommonMark.dtd
 (library (sagittarius document format markdown parser)
-    (export parse-markdown)
+    (export parse-markdown
+	    ;; maybe useful?
+	    *markdown:tab-size*)
     (import (rnrs)
 	    (peg)
 	    (srfi :1 lists)
 	    (srfi :14 char-sets)
 	    (srfi :39 parameters)
+	    (srfi :127 lseqs)
 	    (sagittarius document input))
 
 (define *namespace* '(xmlns "http://commonmark.org/xml/1.0"))
 (define *markdown:tab-size* (make-parameter 4)) ;; 4 but maybe ppl want 8 or 2?
+(define *link-definitions* (make-parameter #f))
 
 (define $nl ($or ($input-eqv? #\newline)
 		 ($seq ($input-eqv? #\return)
 		       ($optional ($input-eqv? #\newline)))))
 (define $eol ($or $eof $nl))
 (define $ws ($input-eqv? #\space))
-(define $ws* ($many ($input-eqv? #\space) 0))
-(define $ws+ ($many ($input-eqv? #\space) 1))
+(define $ws* ($many $ws 0))
+(define $ws+ ($many $ws 1))
 (define $non-indent-space ($many $ws 0 3))
 (define $indent-space ($repeat $ws 4))
 
@@ -61,6 +65,21 @@
 (define ($string p at-least)
   ($let ((c* ($many p at-least))) ($return (list->string (map car c*)))))
 
+(define ($char . delimiters)
+  (define (check cs c)
+    (if (char-set? cs)
+	(char-set-contains? cs c)
+	(eqv? cs c)))
+  (lambda (l)
+    (if (null? l)
+	(return-expect "EOF" l)
+	(let ((c (input-char l))
+	      (nl (lseq-cdr l)))
+	  (cond ((memp (lambda (c2) (check c2 c)) delimiters)
+		 (return-expect "Non delimiter" l))
+		((eqv? c #\\) (return-result (input-char nl) (lseq-cdr nl)))
+		(else (return-result c nl)))))))
+  
 (define $line
   ($let ((c* ($many ($seq ($peek ($not $eol)) $any) 1))
 	 ( $eol ))
@@ -152,6 +171,91 @@
   ($or $indented-code-block
        $fenced-code-block))
 
+;; 4.6 HTML blocks
+(define $< ($input-eqv? #\<))
+(define $> ($input-eqv? #\>))
+(define $dquote ($input-eqv? #\"))
+(define $squote ($input-eqv? #\'))
+(define $html-attr-value
+  ($or ($let (( $dquote )
+	      (v ($many ($char #\" #\< #\&)))
+	      ( $dquote ))
+	  ($return (list->string v)))
+       ($let (( $squote )
+	      (v ($many ($char #\' #\< #\&)))
+	      ( $squote ))
+	  ($return (list->string v)))))
+(define $html-attr
+  ($let ((n ($many ($char #\=) 1))
+	 ( ($input-eqv? #\=) )
+	 (v $html-attr-value))
+    ($return (cons (list->string n) v))))
+(define $html-attrs ($many ($seq $ws+ $html-attr)))
+(define ($html-block-closed-tag . tags)
+  (define $tag* (map $input-token-ci tags))
+  (define ($end-tag t)
+    ($input-token-ci (string-append "</" t ">")))
+  (define parser
+    ($let* (( $< )
+	    (tag (apply $or $tag*))
+	    (attr ($optional $html-attrs '()))
+	    ( $>)
+	    (c* ($many ($seq ($not ($end-tag tag)) ($char))))
+	    ( ($end-tag tag) ))
+      ($return #t)))
+  ($let ((r ($raw parser))) ($return (list->string (map car r)))))
+
+(define ($html-start-end start end)
+  (define $end ($input-token end))
+  (define $inner
+    ($seq ($input-token start)
+	  ($many ($seq ($peek ($not $end)) $any))
+	  $end))
+  ($let ((c ($raw $inner))) ($return (list->string (map car c)))))
+(define $html-comment ($html-start-end "<!--" "-->"))
+(define $html-cdata ($html-start-end "<![CDATA[" "]]>"))
+(define $html-pi ($html-start-end "<?" "?>"))
+;; e.g. DOCTYPE, ELEMENT etc
+(define $html-decl ($html-start-end "<!" ">"))
+
+(define $html-block
+  ($let ((b ($or ($html-block-closed-tag "pre" "script" "style" "textarea")
+		 $html-comment
+		 $html-cdata
+		 $html-pi
+		 $html-decl ;; this must be below comment and cdata
+		 )))
+    ($return `(html_block ,b))))
+
+;; 6.3 Links
+(define *link-definition-char-set*
+  (char-set-union char-set:iso-control (char-set #\space)))
+(define $link-destination
+  ($or ($let (( $< )
+	      (n ($many ($char #\>)))
+	      ( $> ))
+	 ($return (list->string n)))
+       ($let (( $ws* )
+	      (n ($many ($char *link-definition-char-set*) 1)))
+	 ($return (list->string n)))))
+
+(define $link-title ($or )) ;; TODO
+
+;; 4.7 Link reference definitions
+;; we just need to store the definition into the storage,
+;; then return #f
+(define $link-reference-definition
+  ($let (( ($input-eqv? #\[) )
+	 (c* ($many ($char #\]) 1))
+	 ( ($input-token "]:") )
+	 (url $link-destination)
+	 (title ($optional $link-title)))
+    (let ((n (list->string c*)))
+      ;; we only use the first one
+      (hashtable-update! (*link-definitions*) n (lambda (v) v) `(,url ,title))
+      ($return #f))))
+
+;; 4.8 Paragraphs
 (define $paragraph
   ($let ((c* ($many ($seq ($not $blank-line) $line) 1)))
     ($return `(paragraph ,@c*))))
@@ -160,8 +264,8 @@
   ($or $thematic-break
        $heading
        $code-block
-       ;; $html-block
-       ;; $link-reference-definition
+       $html-block
+       $link-reference-definition
        $paragraph
        $blank-line
        ))
@@ -184,11 +288,13 @@
   
 (define (parse-markdown input)
   (define lseq (document-input->lseq input (markdown:make-lexer)))
-  (let-values (((s v nl) ($markdown lseq)))
-    (if (and (parse-success? s) (null? nl))
-	v
-	(document-input-error 'parse-markdown "Failed to parse Markdown"
-			      (document-input-filename input)))))
+  (parameterize ((*link-definitions*
+		  (make-hashtable string-ci-hash string-ci=?)))
+    (let-values (((s v nl) ($markdown lseq)))
+      (if (and (parse-success? s) (null? nl))
+	  v
+	  (document-input-error 'parse-markdown "Failed to parse Markdown"
+				(document-input-filename input))))))
 
 (define (markdown:make-lexer)
   (let ((buffer-count 0)

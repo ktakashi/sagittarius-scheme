@@ -34,7 +34,7 @@
 	    $eof $any $empty
 	    $satisfy $not
 	    $seq $or $many
-	    $peek
+	    $peek $raw
 
 	    $debug
 	    ;; value returning
@@ -244,6 +244,15 @@
       (display "result : ") (write v) (newline)
       (display "rest   : ") (write s) (newline)
       (values r v s))))
+
+(define ($raw parser)
+  (lambda (l)
+    (let-values (((s v nl) (parser l)))
+      (if (parse-success? s)
+	  ;; okay just take entire content from `l` to `nl`
+	  (do ((r '() (cons (lseq-car l) r)) (l l (lseq-cdr l)))
+	      ((eq? l nl) (return-result (reverse! r) nl)))
+	  (return-expect parser l)))))
 
 )
 	    
