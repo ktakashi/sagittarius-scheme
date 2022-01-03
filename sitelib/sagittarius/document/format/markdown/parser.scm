@@ -77,15 +77,14 @@
     ($return `(thematic_break (@ ,@loc)))))
 
 ;; 4.2 ATX headings
+(define $atx-marker
+  ($let ((m ($many ($input-eqv? #\#) 1 6))
+	 ( $ws+ ))
+    ($return (length m))))
 (define $atx-heading
   ($let ((loc $location)
 	 ( $non-indent-space )
-	 (level ($or ($seq ($input-eqv? #\#) $ws+ ($return 1))
-		     ($seq ($input-token "##") $ws+ ($return 2))
-		     ($seq ($input-token "###") $ws+ ($return 3))
-		     ($seq ($input-token "####") $ws+ ($return 4))
-		     ($seq ($input-token "#####") $ws+ ($return 5))
-		     ($seq ($input-token "######") $ws+ ($return 6))))
+	 (level $atx-marker)
 	 (title ($string $title-char 1))
 	 (id ($optional ($let (( $ws+ )
 			       ( ($input-token "{#") )
@@ -132,13 +131,12 @@
   ($or ($many ($input-eqv? #\~) 3)
        ($many ($input-eqv? #\`) 3)))
 (define ($close-fence fence)
-  (write fence) (newline)
   ($many ($input-eqv? (caar fence)) (length fence)))
 (define $fenced-code-block
   ($let* ((loc $location)
 	  (maybe-space $non-indent-space)
 	  (fence $fence)
-	  (info ($debug ($optional ($many ($seq ($not $eol) $any) 1))))
+	  (info ($optional ($many ($seq ($not $eol) $any) 1)))
 	  ( $eol )
 	  (lines ($many ($seq ($peek ($not ($close-fence fence))) $line)))
 	  ( $non-indent-space )
@@ -154,13 +152,17 @@
   ($or $indented-code-block
        $fenced-code-block))
 
+(define $paragraph
+  ($let ((c* ($many ($seq ($not $blank-line) $line) 1)))
+    ($return `(paragraph ,@c*))))
+
 (define $leaf-block
   ($or $thematic-break
        $heading
        $code-block
        ;; $html-block
        ;; $link-reference-definition
-       ;; $paragraph
+       $paragraph
        $blank-line
        ))
 
