@@ -28,7 +28,9 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;
 
-;; ref: https://tools.ietf.org/html/rfc7515
+;; refs
+;;  - https://tools.ietf.org/html/rfc7515
+;;  - https://datatracker.ietf.org/doc/html/rfc7797 (for b64)
 #!nounbound
 (library (rfc jws)
     (export jws-header? jws-header-builder
@@ -46,6 +48,7 @@
 		    (jose-crypto-header-x5t jws-header-x5t)
 		    (jose-crypto-header-x5t-s256 jws-header-x5t-s256)
 		    (jose-crypto-header-crit jws-header-crit))
+	    jws-header-b64
 	    jws-header->json write-jws-header jws-header->json-string
 	    json->jws-header read-jws-header json-string->jws-header
 	    
@@ -85,11 +88,13 @@
 	    (text json object-builder))
 
 (define-record-type jws-header
-  (parent <jose-crypto-header>))
+  (parent <jose-crypto-header>)
+  (fields b64))
 
 (define-syntax jws-header-builder
   (make-record-builder jws-header
-   ((custom-parameters '() ->jose-header-custom-parameter))))
+   ((custom-parameters '() ->jose-header-custom-parameter)
+    (b64 #t))))
 
 ;; internal use ;)
 (define-record-type parsed-jws-header
@@ -109,10 +114,13 @@
 
 (define jws-header-object-builder
   (json-object-builder
-   (make-jws-header jose-crypto-header-object-builder)))
+   (make-jws-header
+    jose-crypto-header-object-builder
+    (? "b64" #t)))) ;; default #t
 (define jws-header-serializer
   (json-object-serializer
-   (jose-crypto-header-serializer)))
+   (jose-crypto-header-serializer
+    (? "b64" #t jws-header-b64))))
 
 (define json->jws-header
   (make-json->header
@@ -147,6 +155,13 @@
 	(base64url-encode-string json))))
 
 (define ->base64url bytevector->base64url-string)
+(define (make-signing-input header payload)
+  (if (jws-header-b64 header)
+      (string-append (jws-header->base64url header) "."
+		     (->base64url payload))
+      (string-append (jws-header->base64url header) "."
+		     (utf8->string payload))))
+  
 (define-record-type jws-object
   (parent <jose-object>)
   (fields header
@@ -155,13 +170,10 @@
   (protocol (lambda (n)
 	      (case-lambda
 	       ((header payload)
-		((n '()) header payload
-		 (string-append (jws-header->base64url header) "."
-				(->base64url payload))))
+		((n '()) header payload (make-signing-input header payload)))
 	       ((parts header payload)
-		((n parts) header payload
-		 (string-append (jws-header->base64url header) "."
-				(->base64url payload))))))))
+		((n parts)
+		 header payload (make-signing-input header payload)))))))
   
 (define-record-type jws-signed-object
   (parent jws-object)
@@ -182,10 +194,19 @@
   (case-lambda
    ((jws-object) (jws:serialize jws-object #f))
    ((jws-object detach-payload?)
+    ;; RFC 7797 4.2
+    (define (check-b64 jws-object)
+      ;; #x2e = #\.
+      (define (dot? i) (eqv? (bytevector-u8-ref payload i) #x2e))
+      (define header (jws-object-header jws-object))
+      (define payload (jws-object-payload jws-object))
+      (and (not (jws-header-b64 header))
+	   (do ((i 0 (+ i 1)) (len (bytevector-length payload)))
+	       ((or (= i len) (dot? i)) (and (not (= i len)) (dot? i))))))
     (unless (jws-signed-object? jws-object)
       (assertion-violation 'jws:serialize "Unsigned object can't be serialized"
 			   jws-object))
-    (if detach-payload?
+    (if (or detach-payload? (check-b64 jws-object))
 	(string-append (jws-header->base64url (jws-object-header jws-object))
 		       ".."
 		       (->base64url (jws-signed-object-signature jws-object)))
@@ -226,7 +247,14 @@
 			    (string->utf8 signing-input))))
     (unless (bytevector? signature)
       (assertion-violation 'jws:sign "Signer returned non signature" signature))
-    (jws:parse (string-append signing-input "." (->base64url signature)))))
+    ;; (jws:parse (string-append signing-input "." (->base64url signature)))
+    (let* ((h&p (jose-split signing-input #f))
+	   (h (car h&p))
+	   (p (cadr h&p)))
+      (make-jws-signed-object (list h p (->base64url signature))
+       (make-parsed-jws-header 
+	(json-string->jws-header (base64url-decode-string h)) h)
+       (jws-object-payload jws-object) signature))))
 
 (define jws:verify
   (case-lambda

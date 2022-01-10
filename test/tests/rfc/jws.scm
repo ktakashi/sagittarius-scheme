@@ -3,6 +3,7 @@
 	(rfc jwk)
 	(text json compare)
 	(crypto)
+	(rfc base64)
 	(rfc pem)
 	(rsa pkcs :8)
 	(rsa pkcs :10)
@@ -226,6 +227,20 @@ VtfBW48kPOmvkY4WlqP5bAwCXwbsKrCgk6xbsp12ew==
 (test-jws "eyJhbGciOiJFZERTQSJ9.RXhhbXBsZSBvZiBFZDI1NTE5IHNpZ25pbmc.hgyY0il_MGCjP0JzlnLWG1PPOt7-09PGcvMg3AIbQR6dWbhijcNR4ki4iylGjg5BhVsPt9g7sVvpAr_MuM0KAg"
 	  ed25519-public-key
 	  ed25519-private-key)
-	  
+
+;; RFC 7797
+(let* ((jwk (json->jwk #(("kty" . "oct")
+			 ("k" . "AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow"))))
+       (jws (make-jws-object (jws-header-builder (alg 'HS256))
+			     (base64url-decode-string "JC4wMg" :transcoder #f)))
+       (jws-b64 (jws:parse
+		 "eyJhbGciOiJIUzI1NiIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il19..A5dxf2s96_n5FLueVuW1Z_vh161FwXZC4YLPff6dmDY"
+		 (string->utf8 "$.02")))
+       (signer (private-key->jws-signer jwk)))
+  (test-equal "eyJhbGciOiJIUzI1NiJ9.JC4wMg.5mvfOroL-g7HyqJoozehmsaqmvTYGEq5jTI1gVvoEoQ"
+	      (jws:serialize (jws:sign jws signer)))
+  (test-equal "eyJhbGciOiJIUzI1NiIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il19..A5dxf2s96_n5FLueVuW1Z_vh161FwXZC4YLPff6dmDY"
+	      (jws:serialize jws-b64)))
+      
 
 (test-end)

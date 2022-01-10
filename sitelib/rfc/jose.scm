@@ -180,19 +180,23 @@
 
 (define *base64url-charset*
   (list->char-set (map integer->char (vector->list *base64-encode-url-table*))))
-(define (jose-split s)
-  (define (split-by-dot s)
-    (let loop ((offset 0) (e* '()))
-      (cond ((string-index s #\. offset) =>
-	     (lambda (index)
-	       (loop (+ index 1)
-		     (cons (substring s offset index) e*))))
-	    (else
-	     (reverse! (cons (substring s offset (string-length s)) e*))))))
-  (let ((e* (split-by-dot s)))
-    (unless (for-all (lambda (s) (string-every *base64url-charset* s)) e*)
-      (assertion-violation 'jose-split "Invalid JWS/JWE format" s))
-    e*))
+(define jose-split
+  (case-lambda
+   ((s) (jose-split s #t))
+   ((s check-char-set?)
+    (define (split-by-dot s)
+      (let loop ((offset 0) (e* '()))
+	(cond ((string-index s #\. offset) =>
+	       (lambda (index)
+		 (loop (+ index 1)
+		       (cons (substring s offset index) e*))))
+	      (else
+	       (reverse! (cons (substring s offset (string-length s)) e*))))))
+    (let ((e* (split-by-dot s)))
+      (when check-char-set?
+	(unless (for-all (lambda (s) (string-every *base64url-charset* s)) e*)
+	  (assertion-violation 'jose-split "Invalid JWS/JWE format" s)))
+      e*))))
 
 (define (jose-part-count s)
   (if (zero? (string-length s))
