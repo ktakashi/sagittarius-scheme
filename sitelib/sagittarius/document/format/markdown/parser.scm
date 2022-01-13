@@ -224,6 +224,7 @@
 		 $html-cdata
 		 $html-pi
 		 $html-decl ;; this must be below comment and cdata
+		 ;; TODO support 4.6 item 5 and 6
 		 )))
     ($return `(html_block ,b))))
 
@@ -270,8 +271,29 @@
        $blank-line
        ))
 
+(define $continuable-block
+  ($or $thematic-break
+       $heading
+       $code-block
+       $html-block
+       ;;$link-reference-definition
+       $blank-line))
+;; 5.1 Block quotes
+(define $quote1
+  ($let (( $non-indent-space )
+	 ( $> )
+	 (l $line)
+	 (l* ($many ($seq ($not $continuable-block)
+			  ($not ($lazy $block-quote))
+			  $line))))
+    ($return (cons l l*))))
+(define $block-quote
+  ($let ((b* ($many $quote1 1)))
+    ;; TODO b* must be parsed as block-quote may contain blocks
+    ($return `(block_quote ,@(concatenate b*)))))
+
 (define $container-block
-  ($or ;; $block-quote
+  ($or $block-quote
        ;; $lists
        ;; $list-items (must be in $list)
        ;; $custom-block
@@ -279,7 +301,7 @@
 
 (define $block
   ($seq ($not $eof) ;; To avoid infinite loop on $blank-line
-	($or $leaf-block $container-block)))
+	($or $container-block $leaf-block)))
 
 (define $markdown
   ($let ((loc $location)
