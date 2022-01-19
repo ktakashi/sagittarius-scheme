@@ -32,7 +32,7 @@
 ;;  - https://dom.spec.whatwg.org/
 ;; mainly section 4
 ;; we don't implement shadow tree for now
-
+#!nounbound
 (library (text xml dom nodes)
     (export node-list? node-list-length node-list:item make-node-list
 	    list->node-list node-list-sub-list node-list-append
@@ -118,7 +118,7 @@
 	    processing-instruction-target
 
 	    (rename (make-document make-xml-document))
-	    document? document-uri document-document-uri document-origin
+	    document? document-url document-document-uri document-origin
 	    document-compat-mode document-character-set document-charset
 	    document-input-encoding document-content-type
 	    document-doctype document-document-element document-xml-standalone?
