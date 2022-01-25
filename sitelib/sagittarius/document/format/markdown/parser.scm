@@ -37,6 +37,7 @@
     (import (rnrs)
 	    (peg)
 	    (srfi :1 lists)
+	    (srfi :13 strings)
 	    (srfi :14 char-sets)
 	    (srfi :39 parameters)
 	    (srfi :127 lseqs)
@@ -278,6 +279,11 @@
        $html-block
        ;;$link-reference-definition
        $blank-line))
+
+(define (parse-string s* file)
+  (let ((in (open-string-input-port (string-join s* "\n"))))
+    (parse-markdown (port->document-input in file))))
+
 ;; 5.1 Block quotes
 (define $quote1
   ($let (( $non-indent-space )
@@ -288,9 +294,10 @@
 			  $line))))
     ($return (cons l l*))))
 (define $block-quote
-  ($let ((b* ($many $quote1 1)))
+  ($let ((file $location-file)
+	 (b* ($many $quote1 1)))
     ;; TODO b* must be parsed as block-quote may contain blocks
-    ($return `(block_quote ,@(concatenate b*)))))
+    ($return `(block_quote ,@(parse-string (concatenate b*) file)))))
 
 (define $container-block
   ($or $block-quote

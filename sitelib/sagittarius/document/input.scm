@@ -43,7 +43,8 @@
 
 	    input-char input-loc input-file
 
-	    $location $input-eqv? $input-pred $input-token $input-token-ci
+	    $location $location-file
+	    $input-eqv? $input-pred $input-token $input-token-ci
 	    $input-char-set-contains
 	    document:simple-lexer ;; for convenence
 	    
@@ -118,6 +119,12 @@
 				  (line ,(caar loc))
 				  (column ,(cdar loc)))
 		l))))
+(define ($location-file l)
+  (if (null? l)
+      (values +parse-expect+ "Unexpected EOF" l)
+      (let* ((v (lseq-car l))
+	     (loc (cdr v)))
+	(values +parse-success+ (cadr loc) l))))
 
 (define (input-char l) (car (lseq-car l)))
 (define (input-loc l) (cadr (lseq-car l)))
