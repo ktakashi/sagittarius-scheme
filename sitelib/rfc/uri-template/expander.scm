@@ -34,7 +34,8 @@
 ;; section 3
 #!nounbound
 (library (rfc uri-template expander)
-    (export expand-uri-template
+    (export uri-template->uri-string
+	    expand-uri-template
 	    &uri-template-unknown-value uri-template-unknown-value-error?
 	    uri-template-error-unknown-value
 	    &uri-template-unknown-operator uri-template-unknown-operator-error?
@@ -53,6 +54,10 @@
 (define-condition-type &uri-template-unknown-operator &uri-template
   make-uri-template-unknown-operator-error uri-template-unknown-operator-error?
   (unknown-operator uri-template-error-unknown-operator))
+
+(define (uri-template->uri-string uri-template parameters)
+  (let ((parsed (parse-uri-template (open-string-input-port uri-template))))
+    (expand-uri-template parsed parameters)))
 
 ;; parameter must be a vector represented JSON
 (define (expand-uri-template uri-template parameters)
