@@ -31,6 +31,7 @@
 #!nounbound
 (library (text markdown parser blocks)
     (export make-parser-state parser-state?
+	    parser-state-document
 	    parser-state-line parser-state-line-set!
 	    parser-state-index parser-state-index-set!
 	    parser-state-next-non-space-index
@@ -51,18 +52,26 @@
 	    block-parser:close-block
 	    block-parser:parse-inlines
 
-	    paragraph-parser?
+	    make-matched-block-parser matched-block-parser?
+	    matched-block-parser:get
+	    matched-block-parser:paragraph-lines
+
+	    make-paragraph-parser paragraph-parser?
 	    paragraph-parser-paragraph-lines
 	    paragraph-parser-definitions
+
+	    make-heading-parser heading-parser?
 	    )
     (import (rnrs)
 	    (core misc)
-	    (text markdown parser nodes))
+	    (text markdown parser nodes)
+	    (text markdown parser source))
 ;; parser state
 ;; mutaable object passed from document-parser
 (define-vector-type parser-state 
-  (make-parser-state line index next-non-space-index column indent blank?)
+  (make-parser-state document line index next-non-space-index column indent blank?)
   parser-state?
+  (document parser-state-document) ;; Markdown document
   (line parser-state-line parser-state-line-set!)
   (index parser-state-index parser-state-index-set!)
   (next-non-space-index parser-state-next-non-space-index
@@ -103,6 +112,16 @@
 (define (block-parser:close-block bp) ((block-parser:close-block bp) bp))
 (define (block-parser:parse-inlines bp inline-parser)
   ((block-parser-parse-inlines bp) bp inline-parser))
+
+(define-record-type matched-block-parser
+  (fields block-parser))
+(define (matched-block-parser:get mbs)
+  (matched-block-parser-block-parser mbs))
+(define (matched-block-parser:paragraph-lines mbs)
+  (let ((bs (matched-block-parser:get mbs)))
+    (if (paragraph-parser? bs)
+	(paragraph-parser-paragraph-lines bs)
+	(source-lines:empty))))
 
 (define (false _) #f) ;; for convenience
 
@@ -151,16 +170,14 @@
   (protocol
    (lambda (n)
      (lambda (document level content)
-       (let ((node (make-heading-node document)))
-	 (markdown-node:set-attribute! node "level" level)
-	 ((n node #f #f false
-	     (lambda (self line) (block-continue:none))
-	     (lambda (self span) )
-	     (lambda (self) )
-	     (lambda (self inline-parser)
-	       ;; TODO
-	       #;(inline-parser:parse-inlines inline-parser
-	       (heading-parser-content self) (block-parser-block self))))
-	  content))))))
+       ((n (make-heading-node document (number->string level)) #f #f false
+	   (lambda (self line) (block-continue:none))
+	   (lambda (self span) )
+	   (lambda (self) )
+	   (lambda (self inline-parser)
+	     ;; TODO
+	     #;(inline-parser:parse-inlines inline-parser
+	     (heading-parser-content self) (block-parser-block self))))
+	content)))))
 
 )

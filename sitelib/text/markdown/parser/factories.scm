@@ -1,0 +1,96 @@
+;;; -*- mode:scheme; coding:utf-8 -*-
+;;;
+;;; text/markdown/parser/factories.scm - Parser factories
+;;;  
+;;;   Copyright (c) 2022  Takashi Kato  <ktakashi@ymail.com>
+;;;   
+;;;   Redistribution and use in source and binary forms, with or without
+;;;   modification, are permitted provided that the following conditions
+;;;   are met:
+;;;   
+;;;   1. Redistributions of source code must retain the above copyright
+;;;      notice, this list of conditions and the following disclaimer.
+;;;  
+;;;   2. Redistributions in binary form must reproduce the above copyright
+;;;      notice, this list of conditions and the following disclaimer in the
+;;;      documentation and/or other materials provided with the distribution.
+;;;  
+;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+;;;   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+;;;   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+;;;   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+;;;   TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+;;;   PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+;;;  
+
+#!nounbound
+(library (text markdown parser factories)
+    (export block-start?
+	    block-start:of block-start:none
+	    block-start:at-index
+	    block-start:at-column
+	    block-start:replace-active-block-parser
+
+	    try-start-heading)
+    (import (rnrs)
+	    (core misc)
+	    (srfi :197 pipeline)
+	    (text markdown parser source)
+	    (text markdown parser blocks))
+(define-vector-type block-start 
+  (make-block-start parsers new-index new-column replace-active-block-parser?)
+  block-start?
+  (parsers    block-start-parsers)
+  (new-index  block-start-new-index block-start-new-index-set!)
+  (new-column block-start-new-column block-start-new-column-set!)
+  (replace-active-block-parser? block-start-replace-active-block-parser?
+				block-start-replace-active-block-parser?-set!))
+
+(define (block-start:none) #f)
+(define (block-start:of parsers ...)
+  (make-block-start parsers -1 -1 #f))
+(define (block-start:at-index bs new-index)
+  (block-start-new-index-set! bs new-index)
+  bs)
+(define (block-start:at-column bs new-column)
+  (block-start-new-column-set! bs new-column)
+  bs)
+(define (block-start:replace-active-block-parser bs)
+  (block-start-replace-active-block-parser?-set! bs #t)
+  bs)
+
+;; Maybe move to somewhere
+(define code-block-indent 4)
+
+(define (try-start-heading parser-state matched-block-parser)
+  (if (>= (parser-state-index parser-state) code-block-indent)
+      (block-start:none)
+      (let* ((line (parser-state-line parser-state))
+	     (nns (parser-state-next-non-space-index parser-state)))
+	(cond ((and (eqv? (source-line:char-at line nns) #\#)
+		    (atx-heading (source-line:substring line nns))) =>
+	       (lambda (p)
+		 (chain (block-start:of p)
+			(block-start:at-index _ (source-line:length line)))))
+	      ((setex-heading-level line nns) =>
+	       (lambda (level)
+		 (let ((lines (matched-block-parser:paragraph-lines
+			       matched-block-parser)))
+		   (if (source-lines:empty? lines)
+		       (block-start:none)
+		       (chain (block-start:of
+			       (make-heading-parser
+				(parser-state-document parser-state)
+				level lines))
+			      (block-start:at-index _ (source-line:length line))
+			      (block-start:replace-active-block-parser _))))))
+	      (else (block-start:none))))))
+(define (atx-heading line) )
+(define (setex-heading-level sl next-non-space-index) )
+
+)

@@ -36,16 +36,21 @@
 	    make-block-quote-node block-quote-node?
 	    make-list-node list-node?
 	    make-code-block-node code-block-node?
+	    
 	    make-heading-node heading-node?
+	    heading-node-level heading-node-level-set!
+	    
 	    make-thematic-break-node thematic-break-node?
 	    make-html-block-node html-block-node?
 	    make-custom-block-node custom-block-node?
 
 	    *commonmark-namespace*
 	    (rename (node:append-child! markdown-node:append-child!))
+	    markdown-node:get-attribute
 	    markdown-node:set-attribute!
 	    )
     (import (rnrs)
+	    (srfi :1 lists)
 	    (text xml dom))
 
 (define *commonmark-namespace* "http://commonmark.org/xml/1.0")
@@ -66,29 +71,76 @@
 			       (syntax->datum x)
 			       (syntax->datum clause*)))))
       (rec clause* #'*commonmark-namespace* name))
+    
+    (define (identifier->string n) (symbol->string (syntax->datum n)))
+    (define (string->identifier k n) (datum->syntax k (string->symbol n)))
     (define (make-ctr&pred k name)
-      (define n (symbol->string (syntax->datum name)))
-      (datum->syntax k (map string->symbol
-			    (list (string-append "make-" n "-node")
-				  (string-append n "-node?")))))
+      (define n (identifier->string name))
+      (map (lambda (s) (string->identifier k s))
+	   (list (string-append "make-" n "-node")
+		 (string-append n "-node?"))))
+    
+    (define (make-accessors&setters k ns node fields)
+      (define node-name (identifier->string node))
+      (define (rec k fields acc)
+	(define (make-names field)
+	  (define n (identifier->string field))
+	  (cons n
+		(map (lambda (s) (string->identifier k s))
+		     (list (string-append node-name "-node-" n)
+			   (string-append node-name "-node-" n "-set!")))))
+	(syntax-case fields ()
+	  (() (reverse! acc))
+	  ((field rest* ...)
+	   (with-syntax (((name getter setter) (make-names #'field))
+			 (ns ns))
+	     (rec k #'(rest* ...)
+		  (cons #'(name getter setter) acc))))))
+      (rec k fields '()))
     (syntax-case x ()
       ((k name)
-       #'(k name (namespace *commonmark-namespace*) (element name)))
+       (identifier? #'name)
+       #'(k (name)))
+      ((k (name fields ...))
+       #'(k (name fields ...)
+	    (namespace *commonmark-namespace*) (element name)))
+      ;; Full
       ((k name clause* ...)
-       (with-syntax (((ns element) (parse-clause #'name #'(clause* ...)))
-		     ((ctr pred) (make-ctr&pred #'k #'name)))
-	 #'(begin
-	     (define element-name (symbol->string 'element))
-	     (define (ctr parent)
-	       (define doc (if (document? parent)
-			       parent
-			       (node-owner-document parent)))
-	       (document:create-element-ns doc ns element-name))
-	     (define (pred e)
-	       (and (element? e)
-		    (equal? (element-namespace-uri e) ns)
-		    (equal? (element-local-name e) element-name)))))))))
+       (identifier? #'name)
+       #'(k (name) clause* ...))
+      
+      ((k (name fields ...) clause* ...)
+       (with-syntax (((ns element) (parse-clause #'name #'(clause* ...))))
+	 (with-syntax (((ctr pred) (make-ctr&pred #'k #'name))
+		       (((fname acc set) ...)
+			(make-accessors&setters #'k #'ns #'name
+						#'(fields ...))))
+	   #'(begin
+	       (define element-name (symbol->string 'element))
+	       (define (ctr parent fields ...)
+		 (define doc (if (document? parent)
+				 parent
+				 (node-owner-document parent)))
+		 (let ((e (document:create-element-ns doc ns element-name)))
+		   (set e fields) ...
+		   e))
+	       (define (pred e)
+		 (and (element? e)
+		      (equal? (element-namespace-uri e) ns)
+		      (equal? (element-local-name e) element-name)))
+	       (begin
+		 (define (acc node)
+		   (markdown-node:get-attribute node ns fname))
+		 (define (set node v)
+		   (markdown-node:set-attribute! node ns fname v)))
+	       ...)))))))
 
+(define markdown-node:get-attribute
+  (case-lambda
+   ((node name value)
+    (markdown-node:get-attribute node *commonmark-namespace* name value))
+   ((node ns name value)
+    (element:get-attribute-ns node ns name))))
 (define markdown-node:set-attribute!
   (case-lambda
    ((node name value)
@@ -106,7 +158,7 @@
 (define-markdown-node block-quote (element block_quote))
 (define-markdown-node list)
 (define-markdown-node code-block (element code_block))
-(define-markdown-node heading)
+(define-markdown-node (heading level))
 (define-markdown-node thematic-break (element thematic_break))
 (define-markdown-node html-block)
 (define-markdown-node custom-block (element custom_block))

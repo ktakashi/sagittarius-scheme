@@ -35,36 +35,64 @@
 	    source-line-content
 	    source-line-location
 	    source-line:substring
+	    source-line:char-at
+	    source-line:length
 
 	    source-location:of
 	    source-location?
 	    source-location-line
 	    source-location-column
-	    source-location-length)
+	    source-location-length
+
+	    source-lines:of source-lines?
+	    source-lines:empty source-lines:empty?
+
+	    )
     (import (rnrs)
 	    (core misc) ;; for define-vector-type
-	    (srfi :13 strings))
+	    (srfi :13 strings)
+	    (srfi :117 list-queues))
 
 (define-vector-type source-line (source-line:of content location) source-line?
   (content  source-line-content)
   (location source-line-location))
 
-(define (source-line:substring sl start end)
-  (define content (source-line-content sl))
-  (define loc (source-line-location sl))
-  (define (compute-loc loc start end)
-    (and loc
-	 (not (= start end))
-	 (source-location:of (source-location-line loc)
-			     (+ (source-location-column loc)  start)
-			     (- end start))))
-  (let ((c (substring content start end)))
-    (source-line:of c (compute-loc loc start end))))
+(define source-line:substring
+  (case-lambda
+   ((sl start) (source-line:substring sl start (source-line:length sl)))
+   ((sl start end)
+    (define content (source-line-content sl))
+    (define loc (source-line-location sl))
+    (define (compute-loc loc start end)
+      (and loc
+	   (not (= start end))
+	   (source-location:of (source-location-line loc)
+			       (+ (source-location-column loc)  start)
+			       (- end start))))
+    (let ((c (substring content start end)))
+      (source-line:of c (compute-loc loc start end))))))
+
+(define (source-line:char-at sl index)
+  (let ((content (source-line-content sl)))
+    ;; we use string-ref here as it's O(1) anyway
+    (string-ref content index)))
+(define (source-line:length sl)
+  (string-length (source-line-content sl)))
 
 (define-vector-type source-location (source-location:of line column length)
   source-location?
   (line   source-location-line)
   (column source-location-column)
   (length source-location-length))
-  
+
+(define-vector-type source-lines (make-source-lines lines) source-lines?
+  (lines source-lines-lines))
+(define (source-lines:of line)
+  (cond ((list-queue? line) (make-source-lines line))
+	((source-line? line) (make-source-lines (list-queue line)))
+	(else (assertion-violation 'source-lines:of "Unsupported value" line))))
+(define (source-lines:empty) (make-source-lines (list-queue)))
+(define (source-lines:empty? sl*)
+  (list-queue-empty? (source-lines-lines sl*)))
+
 )
