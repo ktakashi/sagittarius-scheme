@@ -37,6 +37,7 @@
 	    source-line:substring
 	    source-line:char-at
 	    source-line:length
+	    source-line:prefix?
 
 	    source-location:of
 	    source-location?
@@ -46,7 +47,7 @@
 
 	    source-lines:of source-lines?
 	    source-lines:empty source-lines:empty?
-
+	    source-lines->vector ;; for scanner
 	    )
     (import (rnrs)
 	    (core misc) ;; for define-vector-type
@@ -78,6 +79,9 @@
     (string-ref content index)))
 (define (source-line:length sl)
   (string-length (source-line-content sl)))
+(define (source-line:prefix? sl s . start&end)
+  (apply string-prefix? s (source-line-content s) 0 (string-length s)
+	 start&end))
 
 (define-vector-type source-location (source-location:of line column length)
   source-location?
@@ -94,5 +98,7 @@
 (define (source-lines:empty) (make-source-lines (list-queue)))
 (define (source-lines:empty? sl*)
   (list-queue-empty? (source-lines-lines sl*)))
+(define (source-lines->vector sl*)
+  (list->vector (list-queue-list (source-lines-lines sl*))))
 
 )

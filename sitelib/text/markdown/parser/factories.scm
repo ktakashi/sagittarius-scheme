@@ -41,6 +41,7 @@
 	    (core misc)
 	    (srfi :197 pipeline)
 	    (text markdown parser source)
+	    (text markdown parser scanner)
 	    (text markdown parser blocks))
 (define-vector-type block-start 
   (make-block-start parsers new-index new-column replace-active-block-parser?)
