@@ -1,0 +1,69 @@
+;;; -*- mode:scheme; coding:utf-8 -*-
+;;;
+;;; text/markdown/parser/link-reference.scm - Link reference definition parser
+;;;  
+;;;   Copyright (c) 2022  Takashi Kato  <ktakashi@ymail.com>
+;;;   
+;;;   Redistribution and use in source and binary forms, with or without
+;;;   modification, are permitted provided that the following conditions
+;;;   are met:
+;;;   
+;;;   1. Redistributions of source code must retain the above copyright
+;;;      notice, this list of conditions and the following disclaimer.
+;;;  
+;;;   2. Redistributions in binary form must reproduce the above copyright
+;;;      notice, this list of conditions and the following disclaimer in the
+;;;      documentation and/or other materials provided with the distribution.
+;;;  
+;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+;;;   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+;;;   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+;;;   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+;;;   TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+;;;   PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+;;;  
+
+#!nounbound
+(library (text markdown parser link-reference)
+    (export make-link-reference-definition-parser
+	    link-reference-definition-parser?
+
+	    link-reference-definition-parser:parse!
+	    link-reference-definition-parser:add-source-span!
+	    link-reference-definition-parser:paragraph-lines
+	    link-reference-definition-parser:definitions)
+    (import (rnrs)
+	    (srfi :117 list-queues)
+	    (text markdown parser source))
+
+(define-record-type link-reference-definition-parser
+  (fields paragraph-lines
+	  definitions
+	  source-spans)
+  (protocol
+   (lambda (p)
+     (lambda ()
+       (p (list-queue) (list-queue) (list-queue))))))
+
+(define (link-reference-definition-parser:parse! lrp line)
+  (define pl (link-reference-definition-parser-paragraph-lines lrp))
+  (list-queue-add-back! pl line)
+  ;; TODO do parse
+  )
+
+(define (link-reference-definition-parser:add-source-span! lrp sp)
+  (define sp* (link-reference-definition-parser-source-spans lrp))
+  (list-queue-add-back! sp* sp))
+
+(define (link-reference-definition-parser:paragraph-lines lrp)
+  (source-lines:of (link-reference-definition-parser-paragraph-lines lrp)))
+
+(define (link-reference-definition-parser:definitions lrp)
+  (list-queue-list (link-reference-definition-parser-definitions lrp)))
+
+)

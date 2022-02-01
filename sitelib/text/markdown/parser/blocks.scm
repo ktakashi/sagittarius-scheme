@@ -65,7 +65,8 @@
     (import (rnrs)
 	    (core misc)
 	    (text markdown parser nodes)
-	    (text markdown parser source))
+	    (text markdown parser source)
+	    (text markdown parser link-reference))
 ;; parser state
 ;; mutaable object passed from document-parser
 (define-vector-type parser-state 
@@ -139,18 +140,11 @@
 		 (block-continue:at-index (parser-state-indent ps))
 		 (block-continue:none)))
 	   (lambda (self line)
-	     ;; TODO
-	     #|
 	     (let ((p (paragraph-parser-link-reference-definition-parser self)))
-	       (link-reference-definition-parser:parse p line))
-	     |#)
+	       (link-reference-definition-parser:parse! p line)))
 	   (lambda (self sp)
-	     ;; TODO
-	     #|
 	     (let ((p (paragraph-parser-link-reference-definition-parser self)))
-	       (link-reference-definition-parser:add-source-span p sp))
-	     |#
-	     )
+	       (link-reference-definition-parser:add-source-span! p sp)))
 	   (lambda (self)
 	     ;; unlink or adding source span from
 	     ;; link-reference-definition-parser
@@ -158,10 +152,13 @@
 	   (lambda (bp inline-parser)
 	     ;; TODO parse lines
 	     ))
-	;; TODO create it
-	#f)))))
-(define (paragraph-parser-paragraph-lines) '())
-(define (paragraph-parser-definitions) '())
+	(make-link-reference-definition-parser))))))
+(define (paragraph-parser-paragraph-lines pl)
+  (define lrdp (paragraph-parser-link-reference-definition-parser pl))
+  (link-reference-definition-parser:paragraph-lines lrdp))
+(define (paragraph-parser-definitions pl)
+  (define lrdp (paragraph-parser-link-reference-definition-parser pl))
+  (link-reference-definition-parser:definitions lrdp))
 
 ;;; heading parser
 (define-record-type heading-parser
