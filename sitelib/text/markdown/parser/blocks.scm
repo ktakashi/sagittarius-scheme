@@ -33,6 +33,7 @@
     (export make-parser-state parser-state?
 	    parser-state-document
 	    parser-state-line parser-state-line-set!
+	    parser-state-line-index parser-state-line-index-set!
 	    parser-state-index parser-state-index-set!
 	    parser-state-next-non-space-index
 	    parser-state-next-non-space-index-set!
@@ -40,6 +41,11 @@
 	    parser-state-indent parser-state-indent-set!
 	    parser-state-blank? parser-state-blank?-set!
 
+	    block-continue?
+	    block-continue-index
+	    block-continue-column
+	    block-continue-finalize?
+	    
 	    (rename (block-parser <block-parser>))
 	    block-parser?
 	    block-parser-block
@@ -56,6 +62,8 @@
 	    matched-block-parser:get
 	    matched-block-parser:paragraph-lines
 
+	    make-document-block-parser document-block-parser?
+	    
 	    make-paragraph-parser paragraph-parser?
 	    paragraph-parser-paragraph-lines
 	    paragraph-parser-definitions
@@ -70,14 +78,18 @@
 ;; parser state
 ;; mutaable object passed from document-parser
 (define-vector-type parser-state 
-  (make-parser-state document line index next-non-space-index column indent blank?)
+  (make-parser-state document line line-index
+		     index column
+		     next-non-space-index
+		     indent blank?)
   parser-state?
   (document parser-state-document) ;; Markdown document
   (line parser-state-line parser-state-line-set!)
+  (line-index parser-state-line-index parser-state-line-index-set!)
   (index parser-state-index parser-state-index-set!)
+  (column parser-state-column parser-state-column-set!)
   (next-non-space-index parser-state-next-non-space-index
 			parser-state-next-non-space-index-set!)
-  (column parser-state-column parser-state-column-set!)
   (indent parser-state-indent parser-state-indent-set!)
   (blank? parser-state-blank? parser-state-blank?-set!))
 
@@ -125,7 +137,25 @@
 	(source-lines:empty))))
 
 (define (false _) #f) ;; for convenience
+(define (true _) #f) ;; for convenience
+(define (default-add-line! self line) )
+;; TODO add to block
+(define (default-add-location! self loc) )
+(define (default-close-block! self) )
+(define (default-parse-inlines! self inline-parser) )
 
+;;; document block parser
+(define-record-type document-block-parser
+  (parent block-parser)
+  (protocol
+   (lambda (n)
+     (lambda ()
+       ((n (make-markdown-document) #t #f true
+	   (lambda (self ps) (block-continue:at-index (parser-state-index ps)))
+	   default-add-line!
+	   default-add-location!
+	   default-close-block!
+	   default-parse-inlines!))))))
 
 ;;; paragraph parser
 (define-record-type paragraph-parser
@@ -137,7 +167,7 @@
        ((n (make-paragraph-node document) #f #t false
 	   (lambda (self ps)
 	     (if (parser-state-blank? ps)
-		 (block-continue:at-index (parser-state-indent ps))
+		 (block-continue:at-index (parser-state-index ps))
 		 (block-continue:none)))
 	   (lambda (self line)
 	     (let ((p (paragraph-parser-link-reference-definition-parser self)))
@@ -169,8 +199,9 @@
      (lambda (document level content)
        ((n (make-heading-node document (number->string level)) #f #f false
 	   (lambda (self line) (block-continue:none))
-	   (lambda (self loc) )
-	   (lambda (self) )
+	   default-add-line!
+	   default-add-location!
+	   default-close-block!
 	   (lambda (self inline-parser)
 	     ;; TODO
 	     #;(inline-parser:parse-inlines inline-parser

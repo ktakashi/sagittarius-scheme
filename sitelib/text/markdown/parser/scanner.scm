@@ -161,21 +161,29 @@
   (define end-index (position-index end))
   (define begin-line-index (position-line-index begin))
   (define end-line-index (position-line-index end))
+  (define lines (scanner-lines s))
   (if (= begin-line-index end-line-index)
-      (let* ((line (vector-ref (scanner-lines s) begin-line-index))
+      (let* ((line (vector-ref lines begin-line-index))
 	     (content (source-line:substring line begin-index end-index))
 	     (loc (source-line-location line)))
 	(source-lines:of
 	 (source-line:of
-	  content
+	  (source-line-content content) ;; to add location
 	  (and loc
 	       (source-location:of
 		(source-location-line loc)
 		(+ (source-location-column loc) begin-index)
 		(string-length content))))))
-      (let ((lines (source-lines:empty)))
-	;; TODO
-	lines)))
+      (let ((source-lines (source-lines:empty))
+	    (first-line (vector-ref lines begin-line-index)))
+	(source-lines:add-line! source-lines
+				(source-line:substring first-line begin-index))
+	(do ((i (+ begin-line-index 1) (+ i 1)))
+	    ((= i (- end-line-index 1))
+	     (let ((last-line (vector-ref lines end-line-index)))
+	       (source-lines:add-line! source-lines
+		(source-line:substring last-line 0 end-index))))
+	  (source-lines:add-line! source-lines (vector-ref lines i))))))
 
 ;; private
 (define (scanner:set-line! s line)

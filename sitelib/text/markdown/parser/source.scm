@@ -48,6 +48,7 @@
 	    source-lines:of source-lines?
 	    source-lines:empty source-lines:empty?
 	    source-lines:content
+	    source-lines:add-line!
 	    source-lines->vector ;; for scanner
 	    )
     (import (rnrs)
@@ -105,4 +106,7 @@
   (define lines (source-lines-lines sl*))
   (string-join (map source-line-content (list-queue-list lines)) "\n"))
 
+(define (source-lines:add-line! sl* line)
+  (list-queue-add-back! (source-lines-lines sl*) line)
+  sl*)
 )
