@@ -47,8 +47,8 @@
 	    block-parser-allow-lazy-continuation-line?
 	    block-parser:can-contain?
 	    block-parser:try-continue
-	    block-parser:add-line
-	    block-parser:add-source-span
+	    block-parser:add-line!
+	    block-parser:add-source-location!
 	    block-parser:close-block
 	    block-parser:parse-inlines
 
@@ -99,17 +99,17 @@
 	  can-contain?
 	  try-continue
 	  add-line
-	  add-source-span
+	  add-source-location
 	  close-block
 	  parse-inlines))
 (define (block-parser:can-contain? bp child)
   ((block-parser-can-contain? bp) bp child))
 (define (block-parser:try-continue bp parser-state)
   ((block-parser-try-continue bp) bp parser-state))
-(define (block-parser:add-line bp line)
+(define (block-parser:add-line! bp line)
   ((block-parser-add-line bp) bp line))
-(define (block-parser:add-source-span bp source-span)
-  ((block-parser-add-source-span bp) bp source-span))
+(define (block-parser:add-source-location! bp source-location)
+  ((block-parser-add-source-location bp) bp source-location))
 (define (block-parser:close-block bp) ((block-parser:close-block bp) bp))
 (define (block-parser:parse-inlines bp inline-parser)
   ((block-parser-parse-inlines bp) bp inline-parser))
@@ -142,11 +142,11 @@
 	   (lambda (self line)
 	     (let ((p (paragraph-parser-link-reference-definition-parser self)))
 	       (link-reference-definition-parser:parse! p line)))
-	   (lambda (self sp)
+	   (lambda (self loc)
 	     (let ((p (paragraph-parser-link-reference-definition-parser self)))
-	       (link-reference-definition-parser:add-source-span! p sp)))
+	       (link-reference-definition-parser:add-source-location! p loc)))
 	   (lambda (self)
-	     ;; unlink or adding source span from
+	     ;; unlink or adding source location from
 	     ;; link-reference-definition-parser
 	     )
 	   (lambda (bp inline-parser)
@@ -169,7 +169,7 @@
      (lambda (document level content)
        ((n (make-heading-node document (number->string level)) #f #f false
 	   (lambda (self line) (block-continue:none))
-	   (lambda (self span) )
+	   (lambda (self loc) )
 	   (lambda (self) )
 	   (lambda (self inline-parser)
 	     ;; TODO

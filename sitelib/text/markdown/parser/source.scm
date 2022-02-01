@@ -47,12 +47,8 @@
 
 	    source-lines:of source-lines?
 	    source-lines:empty source-lines:empty?
+	    source-lines:content
 	    source-lines->vector ;; for scanner
-
-	    source-span:of source-span?
-	    source-span-line-index
-	    source-span-column-index
-	    source-span-length
 	    )
     (import (rnrs)
 	    (core misc) ;; for define-vector-type
@@ -105,12 +101,8 @@
   (list-queue-empty? (source-lines-lines sl*)))
 (define (source-lines->vector sl*)
   (list->vector (list-queue-list (source-lines-lines sl*))))
-
-
-(define-vector-type source-span (source-span:of line-index column-index length)
-  source-span?
-  (line-index source-span-line-index)
-  (column-index source-span-column-index)
-  (length source-span-length))
+(define (source-lines:content sl*)
+  (define lines (source-lines-lines sl*))
+  (string-join (map source-line-content (list-queue-list lines)) "\n"))
 
 )

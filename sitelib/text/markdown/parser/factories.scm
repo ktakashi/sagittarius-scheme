@@ -39,6 +39,7 @@
 	    try-start-heading)
     (import (rnrs)
 	    (core misc)
+	    (srfi :13 strings)
 	    (srfi :197 pipeline)
 	    (text markdown parser source)
 	    (text markdown parser scanner)
@@ -74,11 +75,11 @@
       (let* ((line (parser-state-line parser-state))
 	     (nns (parser-state-next-non-space-index parser-state)))
 	(cond ((and (eqv? (source-line:char-at line nns) #\#)
-		    (atx-heading (source-line:substring line nns))) =>
-	       (lambda (p)
-		 (chain (block-start:of p)
-			(block-start:at-index _ (source-line:length line)))))
-	      ((setex-heading-level line nns) =>
+		    (atx-heading parser-state (source-line:substring line nns)))
+	       => (lambda (p)
+		    (chain (block-start:of p)
+			   (block-start:at-index _ (source-line:length line)))))
+	      ((setex-heading-level parser-state line nns) =>
 	       (lambda (level)
 		 (let ((lines (matched-block-parser:paragraph-lines
 			       matched-block-parser)))
@@ -91,7 +92,48 @@
 			      (block-start:at-index _ (source-line:length line))
 			      (block-start:replace-active-block-parser _))))))
 	      (else (block-start:none))))))
-(define (atx-heading line) )
-(define (setex-heading-level sl next-non-space-index) )
+(define (atx-heading parser-state line)
+  (define scanner (scanner:of (source-lines:of line)))
+  (let ((level (scanner:match-char scanner #\#)))
+    (cond ((or (zero? level) (> level 6)) #f)
+	  ((not (scanner:has-next? scanner))
+	   (make-heading-parser (parser-state-document parser-state)
+				level (source-lines:empty)))
+	  ((not (memv (scanner:peek scanner) '(#\space #\tab))) #f)
+	  (else
+	   (scanner:whitespace scanner) ;; skip
+	   (let ((start (scanner:position scanner)))
+	     (let loop ((end start) (hash-can-end? #t))
+	       (if (scanner:has-next? scanner)
+		   (let ((c (scanner:peek scanner)))
+		     (case c
+		       ((#\#)
+			(cond (hash-can-end?
+			       (scanner:match-char scanner #\#)
+			       (let ((ws (scanner:whitespace scanner)))
+				 (loop (if (scanner:has-next? scanner)
+					   (scanner:position scanner)
+					   end)
+				       (positive? ws))))
+			      (else
+			       (scanner:next! scanner)
+			       (loop (scanner:position scanner)
+				     hash-can-end?))))
+		       ((#\space #\tab)
+			(scanner:next! scanner)
+			(loop end #t))
+		       (else
+			(scanner:next! scanner)
+			(loop (scanner:position scanner) #f))))
+		   (let* ((source (scanner:source scanner start end))
+			  (content (source-lines:content source)))
+		     (if (string-null? content)
+			 (make-heading-parser
+			  (parser-state-document parser-state)
+			  level (source-lines:empty))
+			 (make-heading-parser
+			  (parser-state-document parser-state)
+			  level source))))))))))
+(define (setex-heading-level parser-state sl next-non-space-index) )
 
 )

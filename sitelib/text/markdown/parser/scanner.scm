@@ -35,8 +35,10 @@
 	    scanner:has-next? scanner:next!
 	    scanner:next-char? scanner:next-string?
 	    scanner:match-char scanner:match-charset
+	    scanner:whitespace
 	    scanner:find-char scanner:find-charset
 	    scanner:position scanner:position!
+	    scanner:source
 
 	    position?
 	    )
@@ -153,6 +155,27 @@
   (scanner-index-set! s pindex)
   (scanner-line-index-set! s pline-index)
   (scanner:set-line! s (vector-ref (scanner-lines s) pline-index)))
+
+(define (scanner:source s begin end)
+  (define begin-index (position-index begin))
+  (define end-index (position-index end))
+  (define begin-line-index (position-line-index begin))
+  (define end-line-index (position-line-index end))
+  (if (= begin-line-index end-line-index)
+      (let* ((line (vector-ref (scanner-lines s) begin-line-index))
+	     (content (source-line:substring line begin-index end-index))
+	     (loc (source-line-location line)))
+	(source-lines:of
+	 (source-line:of
+	  content
+	  (and loc
+	       (source-location:of
+		(source-location-line loc)
+		(+ (source-location-column loc) begin-index)
+		(string-length content))))))
+      (let ((lines (source-lines:empty)))
+	;; TODO
+	lines)))
 
 ;; private
 (define (scanner:set-line! s line)

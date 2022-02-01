@@ -34,7 +34,7 @@
 	    link-reference-definition-parser?
 
 	    link-reference-definition-parser:parse!
-	    link-reference-definition-parser:add-source-span!
+	    link-reference-definition-parser:add-source-location!
 	    link-reference-definition-parser:paragraph-lines
 	    link-reference-definition-parser:definitions)
     (import (rnrs)
@@ -44,7 +44,7 @@
 (define-record-type link-reference-definition-parser
   (fields paragraph-lines
 	  definitions
-	  source-spans)
+	  source-locations)
   (protocol
    (lambda (p)
      (lambda ()
@@ -56,9 +56,9 @@
   ;; TODO do parse
   )
 
-(define (link-reference-definition-parser:add-source-span! lrp sp)
-  (define sp* (link-reference-definition-parser-source-spans lrp))
-  (list-queue-add-back! sp* sp))
+(define (link-reference-definition-parser:add-source-location! lrp loc)
+  (define sp* (link-reference-definition-parser-source-locations lrp))
+  (list-queue-add-back! sp* loc))
 
 (define (link-reference-definition-parser:paragraph-lines lrp)
   (source-lines:of (link-reference-definition-parser-paragraph-lines lrp)))
