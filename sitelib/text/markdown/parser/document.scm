@@ -96,7 +96,7 @@
 	1 ;; document-block-parser would always match so skip ;)
 	(let loop ((matches 1)
 		   (i 1)
-		   (obp* (cdr (list-queue-length open-block-parsers))))
+		   (obp* (cdr (list-queue-list open-block-parsers))))
 	  (if (null? obp*)
 	      matches
 	      (let ((bp (open-block-parser-block-parser (car obp*)))
@@ -149,7 +149,7 @@
 	  (cond ((null? factories) #f)
 		(((car factories) (document-parser-state document-parser) mbp))
 		(else (loop (cdr factories)))))))
-		 
+    
     
     (let loop ((unmatched (- (list-queue-length open-block-parsers) matches))
 	       (block-parser block-parser)
@@ -169,35 +169,40 @@
 	     (values last-index started-new-block? unmatched block-parser))
 	    ((find-block-start document-parser block-parser) =>
 	     (lambda (block-start)
-	       ;; okay, from now on always new block started
-	       (when (positive? unmatched)
-		 ;; close open block here as we are handling a new block
-		 (document-parser:close-block-parsers!
-		  document-parser unmatched))
-	       (cond ((not (= (block-start-new-index block-start) -1))
-		      (document-parser:set-new-index! document-parser
-		       (block-start-new-index block-start)))
-		     ((not (= (block-start-new-column block-start) -1))
-		      (document-parser:set-new-column! document-parser
-		       (block-start-new-column block-start))))
-	       (let ((replaced-source-locs
-		      (get-replaced-source-locs document-parser block-start)))
-		 (let lp2 ((new-bp* (block-start-parsers block-start))
-			   (block-parser block-parser)
-			   (try-block-starts? try-block-starts?))
-		   (if (null? new-bp*)
-		       (loop 0
-			     block-parser
-			     (parser-state-index state)
-			     #t
-			     try-block-starts?)
-		       (let ((new-block-parser (car new-bp*)))
-			 (markdown-node:source-locations-set!
-			  (block-parser-block new-block-parser)
-			  replaced-source-locs)
-			 (lp2 (cdr new-bp*)
-			      new-block-parser
-			      (block-parser-container? new-block-parser))))))))
+	       (let ((source-index (parser-state-index state)))
+		 ;; okay, from now on always new block started
+		 (when (positive? unmatched)
+		   ;; close open block here as we are handling a new block
+		   (document-parser:close-block-parsers!
+		    document-parser unmatched))
+		 (cond ((not (= (block-start-new-index block-start) -1))
+			(document-parser:set-new-index! document-parser
+			 (block-start-new-index block-start)))
+		       ((not (= (block-start-new-column block-start) -1))
+			(document-parser:set-new-column! document-parser
+			 (block-start-new-column block-start))))
+		 (let ((replaced-source-locs
+			(get-replaced-source-locs document-parser block-start)))
+		   (let lp2 ((new-bp* (block-start-parsers block-start))
+			     (block-parser block-parser)
+			     (try-block-starts? try-block-starts?))
+		     (if (null? new-bp*)
+			 (loop 0
+			       block-parser
+			       (parser-state-index state)
+			       #t
+			       try-block-starts?)
+			 (let ((new-block-parser (car new-bp*)))
+			   (document-parser:add-child! document-parser
+			    (make-open-block-parser new-block-parser 
+						    source-index))
+			   (markdown-node:source-locations-set!
+			    (block-parser-block new-block-parser)
+			    replaced-source-locs)
+			   (lp2 (cdr new-bp*)
+				new-block-parser
+				(block-parser-container? new-block-parser))))))
+		 )))
 	    (else
 	     (document-parser:set-new-index! document-parser
 	      (parser-state-next-non-space-index state))
@@ -285,7 +290,7 @@
   (define column-in-tab?
     (document-parser-column-in-tab? document-parser))
   (define (get-content)
-    (cond ((column-in-tab?)
+    (cond (column-in-tab?
 	   (let* ((after-tab (+  1))
 		  (rest (source-line:substring line after-tab))
 		  (space (parsing:columns->next-tab-stop
@@ -363,7 +368,7 @@
   (define open-block-parsers
     (document-parser-open-block-parsers document-parser))
   (let-values (((first last) (list-queue-first-last open-block-parsers)))
-    (car last)))
+    (open-block-parser-block-parser (if (null? last) first (car last)))))
 
 (define (document-parser:activate-block-parser! document-parser
 						open-block-parser)

@@ -136,8 +136,8 @@
 	(paragraph-parser-paragraph-lines bs)
 	(source-lines:empty))))
 
-(define (false _) #f) ;; for convenience
-(define (true _) #f) ;; for convenience
+(define (false . ignore) #f) ;; for convenience
+(define (true . ignore) #t) ;; for convenience
 (define (default-add-line! self line) )
 (define (default-add-location! self loc)
   (markdown-node:add-source-location! (block-parser-block self) loc))
