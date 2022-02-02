@@ -48,6 +48,7 @@
 	    (rename (node:append-child! markdown-node:append-child!))
 	    markdown-node:get-attribute
 	    markdown-node:set-attribute!
+	    markdown-node:unlink!
 	    markdown-node:source-locations
 	    markdown-node:add-source-location!
 	    markdown-node:source-locations-set!
@@ -150,6 +151,12 @@
     (markdown-node:set-attribute! node *commonmark-namespace* name value))
    ((node ns name value)
     (element:set-attribute-ns! node ns name value))))
+
+(define (markdown-node:unlink! node)
+  ;; Should be fine like this
+  (let ((p (node-parent-node node)))
+    (node:remove-child! p node)))
+    
 
 ;; TODO
 (define (markdown-node:add-source-location! node loc) )

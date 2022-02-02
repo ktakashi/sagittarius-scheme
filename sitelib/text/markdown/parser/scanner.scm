@@ -173,7 +173,7 @@
 	       (source-location:of
 		(source-location-line loc)
 		(+ (source-location-column loc) begin-index)
-		(string-length content))))))
+		(source-line:length content))))))
       (let ((source-lines (source-lines:empty))
 	    (first-line (vector-ref lines begin-line-index)))
 	(source-lines:add-line! source-lines

@@ -35,6 +35,7 @@
 	    block-start:at-index
 	    block-start:at-column
 	    block-start:replace-active-block-parser
+	    block-start-parsers
 	    block-start-new-index
 	    block-start-new-column
 	    block-start-replace-active-block-parser?
@@ -58,7 +59,7 @@
 				block-start-replace-active-block-parser?-set!))
 
 (define (block-start:none) #f)
-(define (block-start:of parsers ...)
+(define (block-start:of . parsers)
   (make-block-start parsers -1 -1 #f))
 (define (block-start:at-index bs new-index)
   (block-start-new-index-set! bs new-index)

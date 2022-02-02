@@ -55,8 +55,8 @@
 	    block-parser:try-continue
 	    block-parser:add-line!
 	    block-parser:add-source-location!
-	    block-parser:close-block
-	    block-parser:parse-inlines
+	    block-parser:close-block!
+	    block-parser:parse-inlines!
 
 	    make-matched-block-parser matched-block-parser?
 	    matched-block-parser:get
@@ -122,8 +122,8 @@
   ((block-parser-add-line bp) bp line))
 (define (block-parser:add-source-location! bp source-location)
   ((block-parser-add-source-location bp) bp source-location))
-(define (block-parser:close-block bp) ((block-parser:close-block bp) bp))
-(define (block-parser:parse-inlines bp inline-parser)
+(define (block-parser:close-block! bp) ((block-parser-close-block bp) bp))
+(define (block-parser:parse-inlines! bp inline-parser)
   ((block-parser-parse-inlines bp) bp inline-parser))
 
 (define-record-type matched-block-parser
