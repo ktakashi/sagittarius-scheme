@@ -139,8 +139,8 @@
 (define (false _) #f) ;; for convenience
 (define (true _) #f) ;; for convenience
 (define (default-add-line! self line) )
-;; TODO add to block
-(define (default-add-location! self loc) )
+(define (default-add-location! self loc)
+  (markdown-node:add-source-location! (block-parser-block self) loc))
 (define (default-close-block! self) )
 (define (default-parse-inlines! self inline-parser) )
 

@@ -35,8 +35,11 @@
     (import (rnrs)
 	    (core misc)
 	    (srfi :117 list-queues)
-	    (text markdown parser source)
 	    (text markdown parser blocks)
+	    (text markdown parser factories)
+	    (text markdown parser nodes)
+	    (text markdown parser parsing)
+	    (text markdown parser source)
 	    (util port))
 
 (define-vector-type open-block-parser 
@@ -105,7 +108,7 @@
 			  (car obp*)
 			  (parser-state-index state))
 			 (cond ((block-continue-finalize? bc)
-				(document-parser-add-source-location!
+				(document-parser:add-source-location!
 				 document-parser)
 				(document-parser:close-block-parsers!
 				 document-parser
@@ -123,11 +126,106 @@
 				(loop (+ matches 1) (+ i 1) (cdr obp*))))))
 		      (else matches)))))))
 
+  (define (check-new-blocks document-parser block-parser matches)
+    (define state (document-parser-state document-parser))
+    (define (get-replaced-source-locs document-parser block-start)
+      (and (block-start-replace-active-block-parser? block-start)
+	   (let ((replaced-block
+		  (document-parser:prepare-active-block-parser!
+		   document-parser)))
+	     (markdown-node:source-locations replaced-block))))
+    (define (find-block-start document-parser block-parser)
+      (let ((mbp (make-matched-block-parser block-parser)))
+	(let loop ((factories
+		    (document-parser-block-parser-factories document-parser)))
+	  (cond ((null? factories) #f)
+		(((car factories) (document-parser-state document-parser) mbp))
+		(else (loop (cdr factories)))))))
+		 
+    
+    (let loop ((unmatched (- (list-queue-length open-block-parsers) matches))
+	       (block-parser block-parser)
+	       (last-index (parser-state-index state))
+	       (started-new-block? #f)
+	       (try-block-starts?
+		(or (paragraph-node? (block-parser-block block-parser))
+		    (block-parser-container? block-parser))))
+      (document-parser:find-next-non-space! document-parser)
+      (cond ((or (parser-state-blank? state)
+		 (and (< (parser-state-index state) +parsing-code-block-indent+)
+		      (source-line:letter?
+		       (parser-state-line state)
+		       (parser-state-next-non-space-index state))))
+	     (document-parser:set-new-index! document-parser
+	      (parser-state-next-non-space-index state))
+	     (values last-index started-new-block? unmatched block-parser))
+	    ((find-block-start document-parser block-parser) =>
+	     (lambda (block-start)
+	       ;; okay, from now on always new block started
+	       (when (positive? unmatched)
+		 ;; close open block here as we are handling a new block
+		 (document-parser:close-block-parsers!
+		  document-parser unmatched))
+	       (cond ((not (= (block-start-new-index block-start) -1))
+		      (document-parser:set-new-index! document-parser
+		       (block-start-new-index block-start)))
+		     ((not (= (block-start-new-column block-start) -1))
+		      (document-parser:set-new-column! document-parser
+		       (block-start-new-column block-start))))
+	       (let ((replaced-source-locs
+		      (get-replaced-source-locs document-parser block-start)))
+		 (let lp2 ((new-bp* (block-start-parsers block-start))
+			   (block-parser block-parser)
+			   (try-block-starts? try-block-starts?))
+		   (if (null? new-bp*)
+		       (loop 0
+			     block-parser
+			     (last-index (parser-state-index state))
+			     #t
+			     try-block-starts?)
+		       (let ((new-block-parser (car new-bp*)))
+			 (markdown-node:source-locations-set!
+			  (block-parser-block new-block-parser)
+			  replaced-source-locs)
+			 (lp2 (cdr new-bp*)
+			      new-block-parser
+			      (block-parser-container? new-block-parser))))))))
+	    (else
+	     (document-parser:set-new-index! document-parser
+	      (parser-state-next-non-space-index state))
+	     (values last-index started-new-block? unmatched block-parser)))))
+  
   (document-parser:set-line! document-parser line)
   (let ((matches (check-open-block-parser document-parser open-block-parsers)))
     (when matches
-      ))
-  )
+      (let-values (((last-index started-new-block? unmatched block-parser)
+		    (check-new-blocks document-parser
+		     (list-ref (list-queue-list open-block-parsers)
+			       (- matches 1))
+		     matches)))
+	(cond ((and (not started-new-block?)
+		    (not (parser-state-blank? state))
+		    (block-parser-allow-lazy-continuation-line?
+		     (document-parser:active-block-parser document-parser)))
+	       (let ((obp (list-ref (list-queue-list open-block-parsers)
+			    (- (list-queue-length open-block-parsers) 1))))
+		 (open-block-parser-source-index-set! obp last-index)
+		 (document-parser:add-line! document-parser)))
+	      (else
+	       (when (> unmatched 0)
+		 (document-parser:close-block-parsers!
+		  document-parser unmatched))
+	       (cond ((block-parser-container? block-parser)
+		      (document-parser:add-line! document-parser))
+		     ((parser-state-blank? state)
+		      (let ((pb (make-paragraph-parser
+				 (parser-state-document state))))
+			(document-parser:add-child! document-parser
+			 (make-open-block-parser pb last-index))
+			(document-parser:add-line! document-parser)))
+		     (else
+		      (document-parser:add-source-location! document-parser)))
+	       ))))))
 
 (define (document-parser:finalize document-parser)
   )
@@ -209,14 +307,9 @@
 	(parser-state-column-set! state (parsing:columns->next-tab-stop column))
 	(parser-state-column-set! state (+ column 1)))))
 
-(define (document-parser-add-source-location! document-parser)
+(define (document-parser:add-source-location! document-parser)
   )
 (define (document-parser:close-block-parsers! document-parser size)
   )
-
-;; TODO move to different library
-(define (parsing:columns->next-tab-stop column)
-  ;; TODO parameterise the tab size
-  (- 4 (mod column 4)))
 
 )

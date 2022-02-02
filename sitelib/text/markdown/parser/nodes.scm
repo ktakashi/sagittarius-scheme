@@ -48,6 +48,9 @@
 	    (rename (node:append-child! markdown-node:append-child!))
 	    markdown-node:get-attribute
 	    markdown-node:set-attribute!
+	    markdown-node:source-locations
+	    markdown-node:add-source-location!
+	    markdown-node:source-locations-set!
 	    )
     (import (rnrs)
 	    (srfi :1 lists)
@@ -147,6 +150,11 @@
     (markdown-node:set-attribute! node *commonmark-namespace* name value))
    ((node ns name value)
     (element:set-attribute-ns! node ns name value))))
+
+;; TODO
+(define (markdown-node:add-source-location! node loc) )
+(define (markdown-node:source-locations-set! node loc) )
+(define (markdown-node:source-locations node) #f)
 
 (define-markdown-node document)
 (define (make-markdown-document)

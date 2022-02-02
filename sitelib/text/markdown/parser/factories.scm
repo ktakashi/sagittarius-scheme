@@ -35,12 +35,16 @@
 	    block-start:at-index
 	    block-start:at-column
 	    block-start:replace-active-block-parser
+	    block-start-new-index
+	    block-start-new-column
+	    block-start-replace-active-block-parser?
 
 	    try-start-heading)
     (import (rnrs)
 	    (core misc)
 	    (srfi :13 strings)
 	    (srfi :197 pipeline)
+	    (text markdown parser parsing)
 	    (text markdown parser source)
 	    (text markdown parser scanner)
 	    (text markdown parser blocks))
@@ -66,11 +70,8 @@
   (block-start-replace-active-block-parser?-set! bs #t)
   bs)
 
-;; Maybe move to somewhere
-(define code-block-indent 4)
-
 (define (try-start-heading parser-state matched-block-parser)
-  (if (>= (parser-state-index parser-state) code-block-indent)
+  (if (>= (parser-state-index parser-state) +parsing-code-block-indent+)
       (block-start:none)
       (let* ((line (parser-state-line parser-state))
 	     (nns (parser-state-next-non-space-index parser-state)))

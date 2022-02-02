@@ -38,6 +38,7 @@
 	    source-line:char-at
 	    source-line:length
 	    source-line:prefix?
+	    source-line:letter?
 
 	    source-location:of
 	    source-location?
@@ -54,6 +55,7 @@
     (import (rnrs)
 	    (core misc) ;; for define-vector-type
 	    (srfi :13 strings)
+	    (srfi :14 char-sets)
 	    (srfi :117 list-queues))
 
 (define-vector-type source-line (source-line:of content location) source-line?
@@ -84,6 +86,8 @@
 (define (source-line:prefix? sl s . start&end)
   (apply string-prefix? s (source-line-content s) 0 (string-length s)
 	 start&end))
+(define (source-line:letter? sl index)
+  (char-set-contains? char-set:letter (source-line:char-at sl index)))
 
 (define-vector-type source-location (source-location:of line column length)
   source-location?
