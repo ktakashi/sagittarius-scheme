@@ -32,7 +32,7 @@
 (library (text markdown parser link-reference)
     (export make-link-reference-definition-parser
 	    link-reference-definition-parser?
-
+	    link-reference-definition-parser-source-locations
 	    link-reference-definition-parser:parse!
 	    link-reference-definition-parser:add-source-location!
 	    link-reference-definition-parser:paragraph-lines

@@ -177,12 +177,19 @@
 	     (let ((p (paragraph-parser-link-reference-definition-parser self)))
 	       (link-reference-definition-parser:add-source-location! p loc)))
 	   (lambda (self)
-	     ;; unlink or adding source location from
-	     ;; link-reference-definition-parser
-	     )
+	     (let* ((p (paragraph-parser-link-reference-definition-parser self))
+		    (l* (link-reference-definition-parser:paragraph-lines p))
+		    (b (block-parser-block self)))
+	       (if (source-lines:empty? l*)
+		   (markdown-node:unlink! b)
+		   (markdown-node:source-locations-set! b
+		    (link-reference-definition-parser-source-locations p)))))
 	   (lambda (bp inline-parser)
-	     ;; TODO parse lines
-	     ))
+	     (let* ((p (paragraph-parser-link-reference-definition-parser bp))
+		    (l* (link-reference-definition-parser:paragraph-lines p)))
+	       (unless (source-lines:empty? l*)
+		 (inline-parser:parse! inline-parser l*
+				       (block-parser-block bp))))))
 	(make-link-reference-definition-parser))))))
 (define (paragraph-parser-paragraph-lines pl)
   (define lrdp (paragraph-parser-link-reference-definition-parser pl))

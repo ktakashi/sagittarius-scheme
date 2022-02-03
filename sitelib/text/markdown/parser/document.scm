@@ -233,9 +233,9 @@
 	       (when (> unmatched 0)
 		 (document-parser:close-block-parsers!
 		  document-parser unmatched))
-	       (cond ((block-parser-container? block-parser)
+	       (cond ((not (block-parser-container? block-parser))
 		      (document-parser:add-line! document-parser))
-		     ((parser-state-blank? state)
+		     ((not (parser-state-blank? state))
 		      (let ((pb (make-paragraph-parser
 				 (parser-state-document state))))
 			(document-parser:add-child! document-parser
@@ -255,7 +255,7 @@
     (list-queue-for-each
      (lambda (bp) (block-parser:parse-inlines! bp inline-parser))
      (document-parser-block-parsers document-parser)))
-  
+
   (document-parser:close-block-parsers! document-parser
 					(list-queue-length open-block-parsers))
   (process-inlines document-parser)
@@ -309,7 +309,7 @@
 	     (string-append (make-string space #\space)
 			    (source-line-content rest))))
 	  ((zero? index) (source-line-content line))
-	  (else (source-line-content (source-line:substring index line)))))
+	  (else (source-line-content (source-line:substring line index)))))
   (let* ((content (get-content))
 	 (loc (source-location:of (parser-state-line-index state) index
 				  (string-length content))))
