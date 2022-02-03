@@ -44,6 +44,13 @@
 	    make-html-block-node html-block-node?
 	    make-custom-block-node custom-block-node?
 
+	    make-text-node text-node?
+	    text-node ;; for convenience
+	    text-node:content!
+
+	    make-linebreak-node linebreak-node?
+	    make-softbreak-node softbreak-node?
+	    
 	    *commonmark-namespace*
 	    (rename (node:append-child! markdown-node:append-child!))
 	    markdown-node:get-attribute
@@ -159,8 +166,8 @@
     
 
 ;; TODO
-(define (markdown-node:add-source-location! node loc) )
-(define (markdown-node:source-locations-set! node loc) )
+(define (markdown-node:add-source-location! node loc) node)
+(define (markdown-node:source-locations-set! node loc) node)
 (define (markdown-node:source-locations node) #f)
 
 (define-markdown-node document)
@@ -179,5 +186,17 @@
 (define-markdown-node custom-block (element custom_block))
 
 ;; TODO inline block
+(define-markdown-node text)
+(define (text-node document content)
+  (define text (make-text-node document))
+  (text-node:content! text content))
 
+(define (text-node:content! text content)
+  (define doc (node-owner-document text))
+  (let ((data (document:create-text-node doc content)))
+    (node:append-child! text data)
+    text))
+
+(define-markdown-node linebreak)
+(define-markdown-node softbreak)
 )

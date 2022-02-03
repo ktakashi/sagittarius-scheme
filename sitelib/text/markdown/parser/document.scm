@@ -37,6 +37,7 @@
 	    (srfi :117 list-queues)
 	    (text markdown parser blocks)
 	    (text markdown parser factories)
+	    (text markdown parser inlines)
 	    (text markdown parser nodes)
 	    (text markdown parser parsing)
 	    (text markdown parser source)
@@ -58,6 +59,7 @@
 	  state
 	  (mutable column-in-tab?)
 	  (mutable next-non-space-column)
+	  block-parsers ;; for inline parser
 	  )
   (protocol
    (lambda (p)
@@ -79,7 +81,8 @@
 	     #f	;; blank
 	     )
 	    #f
-	    0))))))
+	    0
+	    (list-queue)))))))
 
 (define (document-parser:parse document-parser input-port)
   (port-for-each (lambda (line)
@@ -245,9 +248,17 @@
 (define (document-parser:finalize document-parser)
   (define open-block-parsers
     (document-parser-open-block-parsers document-parser))
+  (define (process-inlines document-parser)
+    ;; TODO
+    (define context (make-inline-parser-context '() '()))
+    (define inline-parser (make-inline-parser context))
+    (list-queue-for-each
+     (lambda (bp) (block-parser:parse-inlines! bp inline-parser))
+     (document-parser-block-parsers document-parser)))
+  
   (document-parser:close-block-parsers! document-parser
 					(list-queue-length open-block-parsers))
-  ;; TODO process inline
+  (process-inlines document-parser)
   (block-parser-block (document-parser-document-block-parser document-parser)))
 
 ;; private
@@ -388,13 +399,13 @@
     (when (paragraph-parser? bp)
       (document-parser:add-definition-form! document-parser bp))
     (block-parser:close-block! bp))
+  (define all-block-parsers (document-parser-block-parsers document-parser))
   (do ((i 0 (+ i 1)))
       ((= i size))
     (let* ((obp (document-parser:deactivate-block-parser! document-parser))
 	   (bp (open-block-parser-block-parser obp)))
       (finalize document-parser bp)
-      ;; TODO rembmer it for inline
-      )))
+      (list-queue-add-back! all-block-parsers bp))))
 
 (define (document-parser:add-definition-form! document-parser old)
   )

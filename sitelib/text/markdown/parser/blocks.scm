@@ -72,6 +72,7 @@
 	    )
     (import (rnrs)
 	    (core misc)
+	    (text markdown parser inlines)
 	    (text markdown parser nodes)
 	    (text markdown parser source)
 	    (text markdown parser link-reference))
@@ -203,9 +204,8 @@
 	   default-add-location!
 	   default-close-block!
 	   (lambda (self inline-parser)
-	     ;; TODO
-	     #;(inline-parser:parse-inlines inline-parser
-	     (heading-parser-content self) (block-parser-block self))))
+	     (inline-parser:parse! inline-parser
+	      (heading-parser-content self) (block-parser-block self))))
 	content)))))
 
 )

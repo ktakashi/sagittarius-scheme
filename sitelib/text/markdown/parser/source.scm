@@ -51,9 +51,11 @@
 	    source-lines:content
 	    source-lines:add-line!
 	    source-lines->vector ;; for scanner
+	    source-lines:source-loactions
 	    )
     (import (rnrs)
 	    (core misc) ;; for define-vector-type
+	    (srfi :1 lists)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
 	    (srfi :117 list-queues))
@@ -113,4 +115,7 @@
 (define (source-lines:add-line! sl* line)
   (list-queue-add-back! (source-lines-lines sl*) line)
   sl*)
+
+(define (source-lines:source-loactions sl*)
+  (filter-map source-line-location (list-queue-list (source-lines-lines sl*))))
 )

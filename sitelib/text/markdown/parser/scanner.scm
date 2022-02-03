@@ -70,7 +70,7 @@
 	(line-length (scanner-line-length s)))
     (cond ((< index line-length)
 	   (source-line:char-at (scanner-current-line s) index))
-	  ((< (scanner-line-index s) (scanner-line-count s)) #\newline)
+	  ((< (scanner-line-index s) (- (scanner-line-count s) 1)) #\newline)
 	  (else #f))))
 
 (define (scanner:peek-previous s)
@@ -93,7 +93,7 @@
     (if (> next-index (scanner-line-length s))
 	(let ((next-line-index (+ (scanner-line-index s) 1)))
 	  (scanner-line-index-set! s next-line-index)
-	  (if (< line-index (scanner-line-count s))
+	  (if (< next-line-index (scanner-line-count s))
 	      (scanner:set-line! s
 				 (vector-ref (scanner-lines s) next-line-index))
 	      (scanner:set-line! s (source-line:of "" #f)))
