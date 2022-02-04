@@ -69,6 +69,8 @@
 	    paragraph-parser-definitions
 
 	    make-heading-parser heading-parser?
+
+	    make-thematic-break-parser thematic-break-parser?
 	    )
     (import (rnrs)
 	    (core misc)
@@ -215,4 +217,16 @@
 	      (heading-parser-content self) (block-parser-block self))))
 	content)))))
 
+;;; thematic break parser
+(define-record-type thematic-break-parser
+  (parent block-parser)
+  (protocol
+   (lambda (n)
+     (lambda (document)
+       ((n (make-thematic-break-node document)) #f #f false
+	(lambda (self line) (block-continue:none))
+	default-add-line!
+	default-add-location!
+	default-close-block!
+	default-parse-inlines!)))))
 )

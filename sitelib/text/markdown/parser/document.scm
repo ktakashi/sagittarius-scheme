@@ -178,12 +178,12 @@
 		   ;; close open block here as we are handling a new block
 		   (document-parser:close-block-parsers!
 		    document-parser unmatched))
-		 (cond ((not (= (block-start-new-index block-start) -1))
-			(document-parser:set-new-index! document-parser
-			 (block-start-new-index block-start)))
-		       ((not (= (block-start-new-column block-start) -1))
-			(document-parser:set-new-column! document-parser
-			 (block-start-new-column block-start))))
+		 (cond ((block-start-new-index block-start) =>
+			(lambda (i)
+			  (document-parser:set-new-index! document-parser i)))
+		       ((block-start-new-column block-start) =>
+			(lambda (c)
+			  (document-parser:set-new-column! document-parser c))))
 		 (let ((replaced-source-locs
 			(get-replaced-source-locs document-parser block-start)))
 		   (let lp2 ((new-bp* (block-start-parsers block-start))
@@ -342,7 +342,8 @@
     (let loop ()
       (when (and (< (parser-state-index state) index)
 		 (not (= (parser-state-index state) len)))
-	(document-parser:advance! document-parser)))
+	(document-parser:advance! document-parser)
+	(loop)))
     (document-parser-column-in-tab?-set! document-parser #f)))
 
 (define (document-parser:set-new-column! document-parser column)

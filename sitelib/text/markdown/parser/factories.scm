@@ -40,10 +40,12 @@
 	    block-start-new-column
 	    block-start-replace-active-block-parser?
 
-	    try-start-heading)
+	    try-start-heading
+	    try-start-thematic-break)
     (import (rnrs)
 	    (core misc)
 	    (srfi :13 strings)
+	    (srfi :14 char-sets)
 	    (srfi :197 pipeline)
 	    (text markdown parser parsing)
 	    (text markdown parser source)
@@ -60,7 +62,7 @@
 
 (define (block-start:none) #f)
 (define (block-start:of . parsers)
-  (make-block-start parsers -1 -1 #f))
+  (make-block-start parsers #f #f #f))
 (define (block-start:at-index bs new-index)
   (block-start-new-index-set! bs new-index)
   bs)
@@ -149,5 +151,30 @@
     ((#\=) (and (setex-heading-rest? sl (+ index 1) #\=) 1))
     ((#\-) (and (setex-heading-rest? sl (+ index 1) #\-) 2))
     (else #f)))
+
+(define *dash&space-set* (char-set #\- #\space #\tab))
+(define *underscore&space-set* (char-set #\_ #\space #\tab))
+(define *asterisk&space-set* (char-set #\* #\space #\tab))
+(define (try-start-thematic-break parser-state matched-block-parser)
+  (define (thematic-break? line index)
+    (define scanner (scanner:of (source-lines:of line)))
+    (define pos (scanner:position scanner))
+    (define (try-scan scanner pos set)
+      (scanner:position! scanner pos)
+      (scanner:match-charset scanner set))
+    (or (>= (try-scan scanner pos *dash&space-set*) 3)
+	(>= (try-scan scanner pos *underscore&space-set*) 3)
+	(>= (try-scan scanner pos *asterisk&space-set*) 3)))
+  
+  (if (>= (parser-state-indent parser-state) +parsing-code-block-indent+)
+      (block-start:none)
+      (let ((next-non-space (parser-state-next-non-space-index parser-state))
+	    (line (parser-state-line parser-state)))
+	(if (thematic-break? line next-non-space)
+	    (chain (block-start:of (make-thematic-break-parser
+				    (parser-state-document parser-state)))
+		   (block-start:at-index _ (source-line:length line)))
+	    (block-start:none)))))
+			    
 
 )
