@@ -39,6 +39,7 @@
 	    (core misc)
 	    (srfi :13 strings)
 	    (text markdown parser nodes)
+	    (text markdown parser parsing)
 	    (text markdown parser scanner)
 	    (text markdown parser source))
 
@@ -150,7 +151,7 @@
 	       r))
 	    ((not c)
 	     ;; for the last line, both tabs and spaces are trimmed
-	     (string-trim-right content (lambda (c) (memv c '(#\space #\tab)))))
+	     (string-trim-right content parsing:space/tab?))
 	    (else content))))
   (let* ((start (scanner:position scanner))
 	 (c (scan-until-special-char inline-parser scanner))

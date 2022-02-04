@@ -168,8 +168,8 @@
        ((n (make-paragraph-node document) #f #t false
 	   (lambda (self ps)
 	     (if (parser-state-blank? ps)
-		 (block-continue:at-index (parser-state-index ps))
-		 (block-continue:none)))
+		 (block-continue:none)
+		 (block-continue:at-index (parser-state-index ps))))
 	   (lambda (self line)
 	     (let ((p (paragraph-parser-link-reference-definition-parser self)))
 	       (link-reference-definition-parser:parse! p line)))

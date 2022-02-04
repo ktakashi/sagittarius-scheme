@@ -120,9 +120,10 @@
   (do ((i 0 (+ i 1)))
       ((not (eqv? (scanner:peek s) c)) i)
     (scanner:next! s)))
-(define (scanner:match-charset s c)
+(define (scanner:match-charset s cset)
   (do ((i 0 (+ i 1)))
-      ((not (char-set-contains? c (scanner:peek s))) i)
+      ((not (let ((c (scanner:peek s)))
+	      (and c (char-set-contains? cset c)))) i)
     (scanner:next! s)))
 (define *markdown:whitespace*
   (char-set-intersection char-set:whitespace char-set:ascii))

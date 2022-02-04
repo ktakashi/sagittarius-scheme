@@ -136,6 +136,18 @@
 			 (make-heading-parser
 			  (parser-state-document parser-state)
 			  level source))))))))))
-(define (setex-heading-level parser-state sl next-non-space-index) )
+(define (setex-heading-level parser-state sl index)
+  (define (setex-heading-rest? sl index marker)
+    (let* ((content (source-line-content sl))
+	   (last (string-length content))
+	   (after-marker (or (string-skip content marker index) last))
+	   (after-space (or (string-skip content parsing:space/tab?
+					 after-marker)
+			    last)))
+      (>= after-space after-marker)))
+  (case (source-line:char-at sl index)
+    ((#\=) (and (setex-heading-rest? sl (+ index 1) #\=) 1))
+    ((#\-) (and (setex-heading-rest? sl (+ index 1) #\-) 2))
+    (else #f)))
 
 )

@@ -31,7 +31,8 @@
 #!nounbound
 (library (text markdown parser parsing)
     (export +parsing-code-block-indent+
-	    parsing:columns->next-tab-stop)
+	    parsing:columns->next-tab-stop
+	    parsing:space/tab?)
     (import (rnrs))
 
 (define +parsing-code-block-indent+ 4) ;; constant
@@ -39,5 +40,7 @@
 (define (parsing:columns->next-tab-stop column)
   ;; TODO parameterise the tab size
   (- 4 (mod column 4)))
+
+(define (parsing:space/tab? c) (case c ((#\space #\tab) #t) (else #f)))
 
 )
