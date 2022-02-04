@@ -30,8 +30,7 @@
 
 #!nounbound
 (library (text markdown parser nodes)
-    (export (rename (document? markdown-document?))
-	    make-markdown-document
+    (export make-markdown-document
 	    make-paragraph-node paragraph-node?
 	    make-block-quote-node block-quote-node?
 	    make-list-node list-node?
@@ -44,30 +43,48 @@
 	    make-html-block-node html-block-node?
 	    make-custom-block-node custom-block-node?
 
-	    make-text-node text-node?
-	    text-node ;; for convenience
+	    (rename (text-node make-text-node)) text-node?
 	    text-node:content!
 
 	    make-linebreak-node linebreak-node?
 	    make-softbreak-node softbreak-node?
 	    
 	    *commonmark-namespace*
-	    (rename (node:append-child! markdown-node:append-child!))
+	    markdown-node:append-child!
 	    markdown-node:get-attribute
 	    markdown-node:set-attribute!
+	    markdown-node:remove-attribute!
 	    markdown-node:unlink!
 	    markdown-node:source-locations
 	    markdown-node:add-source-location!
 	    markdown-node:source-locations-set!
+
+	    (rename (markdown-node-element markdown-node->dom-tree))
 	    )
     (import (rnrs)
 	    (srfi :1 lists)
+	    (srfi :117 list-queues)
 	    (text xml dom))
 
 (define *commonmark-namespace* "http://commonmark.org/xml/1.0")
 
+;; The node structure will be kept on XML DOM
+;; the wrapper node only managed necessary structure and meta data
+(define-record-type markdown-node
+  (fields element ;; xml element
+	  source-locations
+	  ;; below are for future convenience
+	  ;; if we want to manipulate node programatically
+	  (mutable parent)   ;; parent markdown node (#f = stray or root)
+	  children	     ;; child markdown nodes
+	  )
+  (protocol (lambda (p)
+	      (lambda (element)
+		(p element (list-queue) #f (list-queue))))))
+
 (define-syntax namespace (syntax-rules ()))
 (define-syntax element (syntax-rules ()))
+(define-syntax attribute (syntax-rules ()))
 (define-syntax define-markdown-node
   (lambda (x)
     (define (parse-clause name clause*)
@@ -81,120 +98,156 @@
 	  (_ (syntax-violation 'define-markdown-node "malformed clause"
 			       (syntax->datum x)
 			       (syntax->datum clause*)))))
-      (rec clause* #'*commonmark-namespace* name))
+      (with-syntax ((e name))
+	(rec clause* #'*commonmark-namespace*
+	     #'(symbol->string 'e))))
     
     (define (identifier->string n) (symbol->string (syntax->datum n)))
     (define (string->identifier k n) (datum->syntax k (string->symbol n)))
-    (define (make-ctr&pred k name)
+    (define (make-record-type-name k name)
       (define n (identifier->string name))
-      (map (lambda (s) (string->identifier k s))
-	   (list (string-append "make-" n "-node")
-		 (string-append n "-node?"))))
+      (string->identifier k (string-append n "-node")))
+
+    (define (process-fields k type ns f*)
+      (define type-name (identifier->string type))
+      (define (make-getter&setter k f setter-prefix)
+	(define n (identifier->string f))
+	(map (lambda (v) (string->identifier k v))
+	     (list (string-append type-name "-" n)
+		   (string-append setter-prefix type-name "-" n "-set!"))))
+      (define (make-mutator k f setter)
+	(define n (identifier->string f))
+	(with-syntax ((mut (string->identifier k
+			    (string-append type-name "-" n "-set!")))
+		      (set setter)
+		      (ns ns)
+		      (name n))
+	  #'(define (mut node v)
+	      (set node v)
+	      (if v
+		  (markdown-node:set-attribute! node ns name v)
+		  (markdown-node:remove-attribute! node ns name)))))
+      (let loop ((r '()) (f* f*))
+	(syntax-case f* (attribute)
+	  (() (reverse! r))
+	  (((attribute f) rest ...)
+	   (with-syntax (((get set) (make-getter&setter k #'f "%")))
+	     (with-syntax ((mut (make-mutator k #'f #'set)))
+	       (loop (cons #'(f get set mut) r) #'(rest ...)))))
+	  ((f rest ...)
+	   (with-syntax (((get set) (make-getter&setter k #'f "")))
+	     (loop (cons #'(f get set #'(begin)) r) #'(rest ...)))))))
     
-    (define (make-accessors&setters k ns node fields)
-      (define node-name (identifier->string node))
-      (define (rec k fields acc)
-	(define (make-names field)
-	  (define n (identifier->string field))
-	  (cons n
-		(map (lambda (s) (string->identifier k s))
-		     (list (string-append node-name "-node-" n)
-			   (string-append node-name "-node-" n "-set!")))))
-	(syntax-case fields ()
-	  (() (reverse! acc))
-	  ((field rest* ...)
-	   (with-syntax (((name getter setter) (make-names #'field))
-			 (ns ns))
-	     (rec k #'(rest* ...)
-		  (cons #'(name getter setter) acc))))))
-      (rec k fields '()))
     (syntax-case x ()
       ((k name)
        (identifier? #'name)
        #'(k (name)))
       ((k (name fields ...))
        #'(k (name fields ...)
-	    (namespace *commonmark-namespace*) (element name)))
+	    (namespace *commonmark-namespace*)
+	    (element (symbol->string 'name))))
       ;; Full
       ((k name clause* ...)
        (identifier? #'name)
        #'(k (name) clause* ...))
       
-      ((k (name fields ...) clause* ...)
-       (with-syntax (((ns element) (parse-clause #'name #'(clause* ...))))
-	 (with-syntax (((ctr pred) (make-ctr&pred #'k #'name))
-		       (((fname acc set) ...)
-			(make-accessors&setters #'k #'ns #'name
-						#'(fields ...))))
+      ((k (name f* ...) clause* ...)
+       (with-syntax (((ns element) (parse-clause #'name #'(clause* ...)))
+		     (type-name (make-record-type-name #'k #'name)))
+	 (with-syntax ((((f get set mut) ...)
+			(process-fields #'k #'type-name #'ns #'(f* ...))))
 	   #'(begin
-	       (define element-name (symbol->string 'element))
-	       (define (ctr parent fields ...)
-		 (define doc (if (document? parent)
-				 parent
-				 (node-owner-document parent)))
-		 (let ((e (document:create-element-ns doc ns element-name)))
-		   (set e fields) ...
-		   e))
-	       (define (pred e)
-		 (and (element? e)
-		      (equal? (element-namespace-uri e) ns)
-		      (equal? (element-local-name e) element-name)))
-	       (begin
-		 (define (acc node)
-		   (markdown-node:get-attribute node ns fname))
-		 (define (set node v)
-		   (markdown-node:set-attribute! node ns fname v)))
-	       ...)))))))
+	       (define elm-name element)
+	       (define-record-type type-name
+		 (parent markdown-node)
+		 (fields (mutable f get set) ...)
+		 (protocol
+		  (lambda (n)
+		    (lambda (doc f ...)
+		      (define xml-doc
+			(if (document? doc)
+			    doc
+			    (node-owner-document (markdown-node-element doc))))
+		      (let ((e (document:create-element-ns xml-doc
+							   ns elm-name)))
+			((n e) f ...))))))
+	       mut ...)))))))
+
+(define (markdown-node:append-child! node child)
+  (markdown-node-parent-set! child node)
+  (list-queue-add-back! (markdown-node-children node) child)
+  (node:append-child! (markdown-node-element node)
+		      (markdown-node-element child))
+  node)
 
 (define markdown-node:get-attribute
   (case-lambda
-   ((node name value)
-    (markdown-node:get-attribute node *commonmark-namespace* name value))
-   ((node ns name value)
-    (element:get-attribute-ns node ns name))))
+   ((node name)
+    (markdown-node:get-attribute node *commonmark-namespace* name))
+   ((node ns name)
+    (element:get-attribute-ns (markdown-node-element node) ns name))))
 (define markdown-node:set-attribute!
   (case-lambda
    ((node name value)
     (markdown-node:set-attribute! node *commonmark-namespace* name value))
    ((node ns name value)
-    (element:set-attribute-ns! node ns name value))))
+    (element:set-attribute-ns! (markdown-node-element node) ns name value))))
+
+(define markdown-node:remove-attribute!
+  (case-lambda
+   ((node name)
+    (markdown-node:remove-attribute! node *commonmark-namespace* name))
+   ((node ns name)
+    (element:remove-attribute-ns! (markdown-node-element node) ns name))))
 
 (define (markdown-node:unlink! node)
-  ;; Should be fine like this
-  (let ((p (node-parent-node node)))
-    (node:remove-child! p node)))
-    
+  (define elm (markdown-node-element node))
+  (let ((p (node-parent-node elm)))
+    (node:remove-child! p elm))
+  (let* ((p (markdown-node-parent node))
+	 (children (markdown-node-children p)))
+    (list-queue-set-list! children
+     (remove! (lambda (e) (eq? e node)) (list-queue-list children)))
+    (markdown-node-parent-set! node #f)
+    node))
 
-;; TODO
-(define (markdown-node:add-source-location! node loc) node)
-(define (markdown-node:source-locations-set! node loc) node)
-(define (markdown-node:source-locations node) #f)
+(define (markdown-node:add-source-location! node loc)
+  (list-queue-add-back! (markdown-node-source-locations node) loc)
+  node)
+(define (markdown-node:source-locations-set! node loc)
+  (when (list-queue? loc)
+    (list-queue-set-list! (markdown-node-source-locations node)
+			  (list-queue-list loc)))
+  node)
+(define (markdown-node:source-locations node)
+  (markdown-node-source-locations node))
 
 (define-markdown-node document)
 (define (make-markdown-document)
   (let* ((doc (make-xml-document))
 	 (e (make-document-node doc)))
-    (node:append-child! doc e)
+    (node:append-child! doc (markdown-node-element e))
     e))
 (define-markdown-node paragraph)
-(define-markdown-node block-quote (element block_quote))
+(define-markdown-node block-quote (element "block_quote"))
 (define-markdown-node list)
-(define-markdown-node code-block (element code_block))
-(define-markdown-node (heading level))
-(define-markdown-node thematic-break (element thematic_break))
+(define-markdown-node (code-block (attribute info)) (element "code_block"))
+(define-markdown-node (heading (attribute level)))
+(define-markdown-node thematic-break (element "thematic_break"))
 (define-markdown-node html-block)
-(define-markdown-node custom-block (element custom_block))
+(define-markdown-node custom-block (element "custom_block"))
 
 ;; TODO inline block
-(define-markdown-node text)
+(define-markdown-node (text content))
 (define (text-node document content)
-  (define text (make-text-node document))
+  (define text (make-text-node document content))
   (text-node:content! text content))
 
 (define (text-node:content! text content)
-  (define doc (node-owner-document text))
+  (define elm (markdown-node-element text))
+  (define doc (node-owner-document elm))
   (let ((data (document:create-text-node doc content)))
-    (node:append-child! text data)
+    (node:append-child! elm data)
     text))
 
 (define-markdown-node linebreak)

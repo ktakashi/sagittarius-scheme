@@ -156,8 +156,8 @@
   (let* ((start (scanner:position scanner))
 	 (c (scan-until-special-char inline-parser scanner))
 	 (source (scanner:source scanner start (scanner:position scanner)))
-	 (text (text-node (inline-parser-state-block state)
-			  (get-content c source))))
+	 (text (make-text-node (inline-parser-state-block state)
+			       (get-content c source))))
     (markdown-node:source-locations-set! text
      (source-lines:source-loactions source))))
 
