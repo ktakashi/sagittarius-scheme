@@ -56,7 +56,7 @@
 	  delimiter-processors
 	  document-block-parser
 	  open-block-parsers
-	  state
+	  (mutable state)
 	  (mutable column-in-tab?)
 	  (mutable next-non-space-column)
 	  block-parsers ;; for inline parser
@@ -66,23 +66,27 @@
      (lambda (block-parser-factories
 	      inline-parser-factories
 	      delimiter-processors)
-       (let ((document-block-parser (make-document-block-parser)))
-	 (p block-parser-factories inline-parser-factories
-	    delimiter-processors document-block-parser
-	    (list-queue (make-open-block-parser document-block-parser 0))
-	    (make-parser-state
-	     (block-parser-block document-block-parser)
-	     #f ;; line
-	     -1 ;; line-index
-	     0  ;; index
-	     0	;; column
-	     0  ;; next-non-space-index
-	     0	;; indent
-	     #f	;; blank
-	     )
-	    #f
-	    0
-	    (list-queue)))))))
+       (let* ((document-block-parser (make-document-block-parser))
+	      (r (p block-parser-factories inline-parser-factories
+		    delimiter-processors document-block-parser
+		    (list-queue (make-open-block-parser
+				 document-block-parser 0))
+		    #f ;; state
+		    #f
+		    0
+		    (list-queue)))
+	      (state (make-parser-state
+		      (block-parser-block document-block-parser)
+		      #f ;; line
+		      -1 ;; line-index
+		      0  ;; index
+		      0	;; column
+		      0  ;; next-non-space-index
+		      0	;; indent
+		      #f	;; blank
+		      (lambda () (document-parser:active-block-parser r)))))
+	 (document-parser-state-set! r state)
+	 r)))))
 
 (define (document-parser:parse document-parser input-port)
   (port-for-each (lambda (line)
@@ -152,8 +156,7 @@
 	  (cond ((null? factories) #f)
 		(((car factories) (document-parser-state document-parser) mbp))
 		(else (loop (cdr factories)))))))
-    
-    
+
     (let loop ((unmatched (- (list-queue-length open-block-parsers) matches))
 	       (block-parser block-parser)
 	       (last-index (parser-state-index state))
@@ -163,7 +166,8 @@
 		    (block-parser-container? block-parser))))
       (document-parser:find-next-non-space! document-parser)
       (cond ((or (parser-state-blank? state)
-		 (and (< (parser-state-index state) +parsing-code-block-indent+)
+		 (and (< (parser-state-indent state)
+			 +parsing-code-block-indent+)
 		      (source-line:letter?
 		       (parser-state-line state)
 		       (parser-state-next-non-space-index state))))

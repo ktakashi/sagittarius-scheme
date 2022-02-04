@@ -35,6 +35,12 @@
 	    make-block-quote-node block-quote-node?
 	    make-list-node list-node?
 	    make-code-block-node code-block-node?
+	    code-block-node-info code-block-node-info-set!
+	    code-block-node:literal-set! code-block-node:literal
+	    make-fenced-code-block-node fenced-code-block-node?
+	    fenced-code-block-node-fence-char
+	    fenced-code-block-node-fence-length
+	    fenced-code-block-node-fence-indent
 	    
 	    make-heading-node heading-node?
 	    heading-node-level heading-node-level-set!
@@ -44,12 +50,14 @@
 	    make-custom-block-node custom-block-node?
 
 	    (rename (text-node make-text-node)) text-node?
-	    text-node:content!
+	    text-node:content-set!
 
 	    make-linebreak-node linebreak-node?
 	    make-softbreak-node softbreak-node?
 	    
 	    *commonmark-namespace*
+
+	    define-markdown-node ;; for custom node
 	    markdown-node:append-child!
 	    markdown-node:get-attribute
 	    markdown-node:set-attribute!
@@ -58,6 +66,9 @@
 	    markdown-node:source-locations
 	    markdown-node:add-source-location!
 	    markdown-node:source-locations-set!
+
+	    markdown-node:set-text!
+	    markdown-node:get-text
 
 	    (rename (markdown-node-element markdown-node->dom-tree))
 	    )
@@ -108,7 +119,7 @@
       (define n (identifier->string name))
       (string->identifier k (string-append n "-node")))
 
-    (define (process-fields k type ns f*)
+    (define (process-fields k type ns instance elm-name f*)
       (define type-name (identifier->string type))
       (define (make-getter&setter k f setter-prefix)
 	(define n (identifier->string f))
@@ -117,26 +128,29 @@
 		   (string-append setter-prefix type-name "-" n "-set!"))))
       (define (make-mutator k f setter)
 	(define n (identifier->string f))
-	(with-syntax ((mut (string->identifier k
-			    (string-append type-name "-" n "-set!")))
-		      (set setter)
-		      (ns ns)
-		      (name n))
-	  #'(define (mut node v)
-	      (set node v)
-	      (if v
-		  (markdown-node:set-attribute! node ns name v)
-		  (markdown-node:remove-attribute! node ns name)))))
+	(string->identifier k (string-append type-name "-" n "-set!")))
       (let loop ((r '()) (f* f*))
 	(syntax-case f* (attribute)
 	  (() (reverse! r))
 	  (((attribute f) rest ...)
 	   (with-syntax (((get set) (make-getter&setter k #'f "%")))
-	     (with-syntax ((mut (make-mutator k #'f #'set)))
-	       (loop (cons #'(f get set mut) r) #'(rest ...)))))
+	     (with-syntax ((mut (make-mutator k #'f #'set))
+			   (ns ns)
+			   (instance instance)
+			   (elm-name elm-name))
+	       (loop (cons #'(f get set
+				(define (mut node v)
+				  (set node v)
+				  (if v
+				      (markdown-node:set-attribute!
+				       node ns elm-name v)
+				      (markdown-node:remove-attribute!
+				       node ns elm-name)))
+				(mut instance f))
+			   r) #'(rest ...)))))
 	  ((f rest ...)
 	   (with-syntax (((get set) (make-getter&setter k #'f "")))
-	     (loop (cons #'(f get set #'(begin)) r) #'(rest ...)))))))
+	     (loop (cons #'(f get set #'(begin) #'(begin)) r) #'(rest ...)))))))
     
     (syntax-case x ()
       ((k name)
@@ -153,9 +167,13 @@
       
       ((k (name f* ...) clause* ...)
        (with-syntax (((ns element) (parse-clause #'name #'(clause* ...)))
-		     (type-name (make-record-type-name #'k #'name)))
-	 (with-syntax ((((f get set mut) ...)
-			(process-fields #'k #'type-name #'ns #'(f* ...))))
+		     (type-name (make-record-type-name #'k #'name))
+		     ((instance elm-name)
+		      (generate-temporaries '(instance elm-name))))
+	 (with-syntax ((((f get set mut init) ...)
+			(process-fields #'k #'type-name #'ns
+					#'instance #'elm-name
+					#'(f* ...))))
 	   #'(begin
 	       (define elm-name element)
 	       (define-record-type type-name
@@ -170,8 +188,11 @@
 			    (node-owner-document (markdown-node-element doc))))
 		      (let ((e (document:create-element-ns xml-doc
 							   ns elm-name)))
-			((n e) f ...))))))
-	       mut ...)))))))
+			(let ((instance ((n e) f ...)))
+			  init ...
+			  instance))))))
+	       mut
+	       ...)))))))
 
 (define (markdown-node:append-child! node child)
   (markdown-node-parent-set! child node)
@@ -199,6 +220,17 @@
     (markdown-node:remove-attribute! node *commonmark-namespace* name))
    ((node ns name)
     (element:remove-attribute-ns! (markdown-node-element node) ns name))))
+
+(define (markdown-node:set-text! node text)
+  (define elm (markdown-node-element node))
+  (define doc (node-owner-document elm))
+  (let ((data (document:create-text-node doc text)))
+    (node:append-child! elm data)
+    node))
+
+(define (markdown-node:get-text node)
+  (define elm (markdown-node-element node))
+  (node-text-content elm))
 
 (define (markdown-node:unlink! node)
   (define elm (markdown-node-element node))
@@ -232,6 +264,19 @@
 (define-markdown-node block-quote (element "block_quote"))
 (define-markdown-node list)
 (define-markdown-node (code-block (attribute info)) (element "code_block"))
+(define (code-block-node:literal-set! node literal)
+  (markdown-node:set-text! node literal))
+(define (code-block-node:literal node)
+  (markdown-node:get-text node))
+(define-record-type fenced-code-block-node
+  (parent code-block-node)
+  (fields fence-char
+	  fence-length
+	  fence-indent)
+  (protocol (lambda (n)
+	      (lambda (doc info fc fl fi)
+		((n doc info) fc fl fi)))))
+
 (define-markdown-node (heading (attribute level)))
 (define-markdown-node thematic-break (element "thematic_break"))
 (define-markdown-node html-block)
@@ -241,15 +286,12 @@
 (define-markdown-node (text content))
 (define (text-node document content)
   (define text (make-text-node document content))
-  (text-node:content! text content))
+  (text-node:content-set! text content))
 
-(define (text-node:content! text content)
-  (define elm (markdown-node-element text))
-  (define doc (node-owner-document elm))
-  (let ((data (document:create-text-node doc content)))
-    (node:append-child! elm data)
-    text))
+(define (text-node:content-set! text content)
+  (markdown-node:set-text! text content))
 
 (define-markdown-node linebreak)
 (define-markdown-node softbreak)
+
 )

@@ -41,16 +41,18 @@
 	    block-start-replace-active-block-parser?
 
 	    try-start-heading
-	    try-start-thematic-break)
+	    try-start-thematic-break
+	    try-start-indented-code-block)
     (import (rnrs)
 	    (core misc)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
 	    (srfi :197 pipeline)
+	    (text markdown parser blocks)
+	    (text markdown parser nodes)
 	    (text markdown parser parsing)
 	    (text markdown parser source)
-	    (text markdown parser scanner)
-	    (text markdown parser blocks))
+	    (text markdown parser scanner))
 (define-vector-type block-start 
   (make-block-start parsers new-index new-column replace-active-block-parser?)
   block-start?
@@ -177,4 +179,15 @@
 	    (block-start:none)))))
 			    
 
+(define (try-start-indented-code-block parser-state make-thematic-break-parser)
+  (if (and (>= (parser-state-indent parser-state) +parsing-code-block-indent+)
+	   (not (parser-state-blank? parser-state))
+	   (not (paragraph-node?
+		 (block-parser-block
+		  (parser-state:active-block-parser parser-state)))))
+      (chain (block-start:of (make-indented-code-block-parser
+			      (parser-state-document parser-state)))
+	     (block-start:at-column _ (+ (parser-state-column parser-state)
+					 +parsing-code-block-indent+)))
+      (block-start:none)))
 )

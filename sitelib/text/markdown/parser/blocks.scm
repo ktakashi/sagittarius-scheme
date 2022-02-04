@@ -40,6 +40,7 @@
 	    parser-state-column parser-state-column-set!
 	    parser-state-indent parser-state-indent-set!
 	    parser-state-blank? parser-state-blank?-set!
+	    parser-state:active-block-parser
 
 	    block-continue?
 	    block-continue-index
@@ -69,13 +70,17 @@
 	    paragraph-parser-definitions
 
 	    make-heading-parser heading-parser?
-
 	    make-thematic-break-parser thematic-break-parser?
+	    make-indented-code-block-parser indented-code-block-parser?
 	    )
     (import (rnrs)
 	    (core misc)
+	    (srfi :1 lists)
+	    (srfi :13 strings)
+	    (srfi :117 list-queues)
 	    (text markdown parser inlines)
 	    (text markdown parser nodes)
+	    (text markdown parser parsing)
 	    (text markdown parser source)
 	    (text markdown parser link-reference))
 ;; parser state
@@ -84,7 +89,8 @@
   (make-parser-state document line line-index
 		     index column
 		     next-non-space-index
-		     indent blank?)
+		     indent blank?
+		     active-block-parser)
   parser-state?
   (document parser-state-document) ;; Markdown document
   (line parser-state-line parser-state-line-set!)
@@ -94,7 +100,10 @@
   (next-non-space-index parser-state-next-non-space-index
 			parser-state-next-non-space-index-set!)
   (indent parser-state-indent parser-state-indent-set!)
-  (blank? parser-state-blank? parser-state-blank?-set!))
+  (blank? parser-state-blank? parser-state-blank?-set!)
+  (active-block-parser parser-state-active-block-parser))
+(define (parser-state:active-block-parser ps)
+  ((parser-state-active-block-parser ps)))
 
 (define-vector-type block-continue (make-block-continue index column finished?)
   block-continue?
@@ -208,7 +217,7 @@
    (lambda (n)
      (lambda (document level content)
        ((n (make-heading-node document (number->string level)) #f #f false
-	   (lambda (self line) (block-continue:none))
+	   (lambda (self ps) (block-continue:none))
 	   default-add-line!
 	   default-add-location!
 	   default-close-block!
@@ -223,10 +232,47 @@
   (protocol
    (lambda (n)
      (lambda (document)
-       ((n (make-thematic-break-node document)) #f #f false
-	(lambda (self line) (block-continue:none))
+       ((n (make-thematic-break-node document) #f #f false
+	(lambda (self ps) (block-continue:none))
 	default-add-line!
 	default-add-location!
 	default-close-block!
-	default-parse-inlines!)))))
+	default-parse-inlines!))))))
+
+;;; indented code block parser
+(define-record-type indented-code-block-parser
+  (parent block-parser)
+  (fields lines)
+  (protocol
+   (lambda (n)
+     (lambda (document)
+       ((n (make-code-block-node document #f) #f #f false
+	(lambda (self ps)
+	  (cond ((>= (parser-state-indent ps) +parsing-code-block-indent+)
+		 (block-continue:at-column (+ (parser-state-column ps)
+					      +parsing-code-block-indent+)))
+		((parser-state-blank? ps)
+		 (block-continue:at-index
+		  (parser-state-next-non-space-index ps)))
+		(else (block-continue:none))))
+	(lambda (self line)
+	  (let ((lines (indented-code-block-parser-lines self)))
+	    (list-queue-add-back! lines (source-line-content line))))
+	default-add-location!
+	(lambda (self)
+	  (define (strip-last-blanks lines)
+	    (let loop ((lines (reverse! (list-queue-list lines))))
+	      (cond ((null? lines) '())
+		    ((string-index (car lines)
+				   (lambda (c) (not (char-whitespace? c))))
+		     (reverse! lines))
+		    (else (loop (cdr lines))))))
+	      
+	  (let ((lines (strip-last-blanks
+			 (indented-code-block-parser-lines self))))
+	    (code-block-node:literal-set! (block-parser-block self)
+					  (string-join lines "\n"))))
+	default-parse-inlines!)
+	(list-queue))))))
+
 )
