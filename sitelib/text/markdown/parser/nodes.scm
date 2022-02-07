@@ -133,7 +133,8 @@
 	(syntax-case f* (attribute)
 	  (() (reverse! r))
 	  (((attribute f) rest ...)
-	   (with-syntax (((get set) (make-getter&setter k #'f "%")))
+	   (with-syntax (((get set) (make-getter&setter k #'f "%"))
+			 (attr (identifier->string #'f)))
 	     (with-syntax ((mut (make-mutator k #'f #'set))
 			   (ns ns)
 			   (instance instance)
@@ -143,9 +144,9 @@
 				  (set node v)
 				  (if v
 				      (markdown-node:set-attribute!
-				       node ns elm-name v)
+				       node ns attr v)
 				      (markdown-node:remove-attribute!
-				       node ns elm-name)))
+				       node ns attr)))
 				(mut instance f))
 			   r) #'(rest ...)))))
 	  ((f rest ...)

@@ -42,7 +42,8 @@
 
 	    try-start-heading
 	    try-start-thematic-break
-	    try-start-indented-code-block)
+	    try-start-indented-code-block
+	    try-start-fenced-code-block)
     (import (rnrs)
 	    (core misc)
 	    (srfi :13 strings)
@@ -190,4 +191,30 @@
 	     (block-start:at-column _ (+ (parser-state-column parser-state)
 					 +parsing-code-block-indent+)))
       (block-start:none)))
+
+(define (try-start-fenced-code-block parser-state make-thematic-break-parser)
+  (define (check-opener line index indent)
+    (define scanner (scanner:of (source-lines:of line)))
+    (define (try-scan scanner pos c)
+      (scanner:position! scanner pos)
+      (scanner:match-char scanner c))
+    (define (make fc fl indent)
+      (cons (make-fenced-code-block-parser (parser-state-document parser-state)
+					   fc fl indent)
+	    fl))
+    (do ((i 0 (+ i 1)))
+	((= i index))
+      (scanner:next! scanner))
+    (let ((pos (scanner:position scanner)))
+      (cond ((try-scan scanner pos #\`) => (lambda (n) (make #\` n indent)))
+	    ((try-scan scanner pos #\~) => (lambda (n) (make #\~ n indent)))
+	    (else #f))))
+  (let ((indent (parser-state-indent parser-state))
+	(nns (parser-state-next-non-space-index parser-state)))
+    (cond ((>= indent +parsing-code-block-indent+) (block-start:none))
+	  ((check-opener (parser-state-line parser-state) nns indent) =>
+	   (lambda (bp&c)
+	     (chain (block-start:of (car bp&c))
+		    (block-start:at-index _ (+ nns (cdr bp&c))))))
+	  (else (block-start:none)))))
 )

@@ -72,6 +72,7 @@
 	    make-heading-parser heading-parser?
 	    make-thematic-break-parser thematic-break-parser?
 	    make-indented-code-block-parser indented-code-block-parser?
+	    make-fenced-code-block-parser fenced-code-block-parser?
 	    )
     (import (rnrs)
 	    (core misc)
@@ -274,5 +275,70 @@
 					  (string-join lines "\n"))))
 	default-parse-inlines!)
 	(list-queue))))))
+
+;;; fenced code block parser
+(define-record-type fenced-code-block-parser
+  (parent block-parser)
+  (fields (mutable first-line)
+	  other-lines)
+  (protocol
+   (lambda (n)
+     (lambda (document fence-char fence-length fence-indent)
+       (define (closing? block line index)
+	 (define fc (fenced-code-block-node-fence-char block))
+	 (define fl (fenced-code-block-node-fence-length block))
+	 (define content (source-line-content line))
+	 (define e (string-length content))
+	 (let ((fences (- (or (string-skip content fc index) e) index)))
+	   (and (< fences fl)
+		(let ((after (or (string-skip content parsing:space/tab?
+					      (+ index fences))
+				 e)))
+		  (= after e)))))
+       (define (adjust-index block line new-index)
+	 (define fi (fenced-code-block-node-fence-indent block))
+	 (do ((i fi (- i 1)) (ni new-index (+ new-index))
+	      (len (source-line:length line)))
+	     ((or (<= i 0) (<= len ni)
+		  (not (eqv? (source-line:char-at line ni) #\space)))
+	      ni)))
+	     
+       ((n (make-fenced-code-block-node document #f
+					fence-char fence-indent fence-length)
+	   #f #f false
+	   (lambda (self ps)
+	     (let ((nns (parser-state-next-non-space-index ps))
+		   (ni (parser-state-index ps))
+		   (line (parser-state-line ps))
+		   (block (block-parser-block self)))
+	       (if (and (< (parser-state-indent ps) +parsing-code-block-indent+)
+			(< nns (source-line:length line))
+			(eqv? (source-line:char-at line nns)
+			      (fenced-code-block-node-fence-char block))
+			(closing? block line nns))
+		   (block-continue:finished)
+		   (block-continue:at-index (adjust-index block line ni)))))
+	   (lambda (self line)
+	     (let ((c (source-line-content line)))
+	       (if (fenced-code-block-parser-first-line self)
+		   (list-queue-add-back!
+		    (fenced-code-block-parser-other-lines self) c)
+		   (fenced-code-block-parser-first-line-set! self c))))
+	   default-add-location!
+	   (lambda (self)
+	     (let ((block (block-parser-block self))
+		   (first
+		    (string-trim-both
+		     (fenced-code-block-parser-first-line self)))
+		   (others (fenced-code-block-parser-other-lines self)))
+	       ;; TODO escape entity...
+	       (code-block-node-info-set! block (and (not (string-null? first))
+						     first))
+	       (code-block-node:literal-set! block (string-join
+						    (list-queue-list others)
+						    "\n"))))
+	   default-parse-inlines!)
+	#f (list-queue))))))
+		   
 
 )
