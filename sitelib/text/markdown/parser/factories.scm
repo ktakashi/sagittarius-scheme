@@ -43,7 +43,8 @@
 	    try-start-heading
 	    try-start-thematic-break
 	    try-start-indented-code-block
-	    try-start-fenced-code-block)
+	    try-start-fenced-code-block
+	    try-start-block-quote-block)
     (import (rnrs)
 	    (core misc)
 	    (srfi :13 strings)
@@ -217,4 +218,20 @@
 	     (chain (block-start:of (car bp&c))
 		    (block-start:at-index _ (+ nns (cdr bp&c))))))
 	  (else (block-start:none)))))
+
+(define (try-start-block-quote-block parser-state make-thematic-break-parser)
+  (let ((nns (parser-state-next-non-space-index parser-state)))
+    (if (block-quote-parser:marker? parser-state nns)
+	(let ((col (+ (parser-state-column parser-state)
+		      (parser-state-indent parser-state)
+		      1))
+	      (line (parser-state-line parser-state)))
+	  (chain (block-start:of (make-block-quote-parser
+				  (parser-state-document parser-state)))
+		 (block-start:at-column _ (if (parsing:space/tab?
+					       (source-line:char-at line
+								    (+ nns 1)))
+					      (+ col 1)
+					      col))))
+	(block-start:none))))
 )

@@ -73,6 +73,8 @@
 	    make-thematic-break-parser thematic-break-parser?
 	    make-indented-code-block-parser indented-code-block-parser?
 	    make-fenced-code-block-parser fenced-code-block-parser?
+	    make-block-quote-parser block-quote-parser?
+	    block-quote-parser:marker?
 	    )
     (import (rnrs)
 	    (core misc)
@@ -339,6 +341,36 @@
 						    "\n"))))
 	   default-parse-inlines!)
 	#f (list-queue))))))
-		   
 
+;;; Container blocks
+;;; Block quote parser
+(define (block-quote-parser:marker? ps index)
+  (let ((line (parser-state-line ps))
+	(index (parser-state-index ps)))
+    (and (< (parser-state-indent ps) +parsing-code-block-indent+)
+	 (< index (source-line:length line))
+	 (eqv? (source-line:char-at line index) #\>))))
+(define-record-type block-quote-parser
+  (parent block-parser)
+  (protocol
+   (lambda (n)
+     (lambda (document)
+       ((n (make-block-quote-node document) #t #f true
+	   (lambda (self ps)
+	     (let ((nns (parser-state-next-non-space-index ps)))
+	       (if (block-quote-parser:marker? ps nns)
+		   (let ((col (+ (parser-state-column ps)
+				 (parser-state-indent ps)
+				 1))
+			 (line (parser-state-line ps)))
+		     (block-continue:at-column
+		      (if (parsing:space/tab?
+			   (source-line:char-at line (+ nns 1)))
+			  (+ col 1)
+			  col)))
+		   (block-continue:none))))
+	   default-add-line!
+	   default-add-location!
+	   default-close-block!
+	   default-parse-inlines!))))))
 )

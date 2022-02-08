@@ -82,14 +82,17 @@
 (define (source-line:char-at sl index)
   (let ((content (source-line-content sl)))
     ;; we use string-ref here as it's O(1) anyway
-    (string-ref content index)))
+    (and (< index (string-length content))
+	 (string-ref content index))))
 (define (source-line:length sl)
   (string-length (source-line-content sl)))
 (define (source-line:prefix? sl s . start&end)
   (apply string-prefix? s (source-line-content s) 0 (string-length s)
 	 start&end))
 (define (source-line:letter? sl index)
-  (char-set-contains? char-set:letter (source-line:char-at sl index)))
+  (cond ((source-line:char-at sl index) =>
+	 (lambda (c) (char-set-contains? char-set:letter c)))
+	(else #f)))
 
 (define-vector-type source-location (source-location:of line column length)
   source-location?
