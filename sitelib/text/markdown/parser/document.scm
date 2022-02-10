@@ -165,7 +165,9 @@
 		(or (paragraph-node? (block-parser-block block-parser))
 		    (block-parser-container? block-parser))))
       (document-parser:find-next-non-space! document-parser)
-      (cond ((or (parser-state-blank? state)
+      (cond ((not try-block-starts?)
+	     (values last-index started-new-block? unmatched block-parser))
+	    ((or (parser-state-blank? state)
 		 (and (< (parser-state-indent state)
 			 +parsing-code-block-indent+)
 		      (source-line:letter?

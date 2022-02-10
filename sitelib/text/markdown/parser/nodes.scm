@@ -47,6 +47,7 @@
 	    
 	    make-thematic-break-node thematic-break-node?
 	    make-html-block-node html-block-node?
+	    html-block-node:literal-set! html-block-node:literal
 	    make-custom-block-node custom-block-node?
 
 	    (rename (text-node make-text-node)) text-node?
@@ -280,7 +281,11 @@
 
 (define-markdown-node (heading (attribute level)))
 (define-markdown-node thematic-break (element "thematic_break"))
-(define-markdown-node html-block)
+(define-markdown-node html-block (element "html_block"))
+(define (html-block-node:literal-set! node literal)
+  (markdown-node:set-text! node literal))
+(define (html-block-node:literal node)
+  (markdown-node:get-text node))
 (define-markdown-node custom-block (element "custom_block"))
 
 ;; TODO inline block

@@ -73,13 +73,15 @@
 	    make-thematic-break-parser thematic-break-parser?
 	    make-indented-code-block-parser indented-code-block-parser?
 	    make-fenced-code-block-parser fenced-code-block-parser?
+	    make-html-block-parser html-block-parser?
 	    make-block-quote-parser block-quote-parser?
-	    block-quote-parser:marker?
+	    block-quote-parser:marker?	    
 	    )
     (import (rnrs)
 	    (core misc)
 	    (srfi :1 lists)
 	    (srfi :13 strings)
+	    (srfi :115 regexp)
 	    (srfi :117 list-queues)
 	    (text markdown parser inlines)
 	    (text markdown parser nodes)
@@ -341,6 +343,38 @@
 						    "\n"))))
 	   default-parse-inlines!)
 	#f (list-queue))))))
+
+;;; HTML block parser
+(define-record-type html-block-parser
+  (parent block-parser)
+  (fields closing-pattern
+	  (mutable finished?)
+	  content)
+  (protocol
+   (lambda (n)
+     (lambda (document closing-pattern)
+       ((n (make-html-block-node document) #f #f false
+	   (lambda (self ps)
+	     (if (or (html-block-parser-finished? self)
+		     (and (parser-state-blank? ps)
+			  (not (html-block-parser-closing-pattern self))))
+		 (block-continue:none)
+		 (block-continue:at-index (parser-state-index ps))))
+	   (lambda (self line)
+	     (define str (source-line-content line))
+	     (list-queue-add-back! (html-block-parser-content self) str)
+	     (let ((re (html-block-parser-closing-pattern self)))
+	       (when (and (regexp? re) (regexp-search re str))
+		 (html-block-parser-finished?-set! self #t))))
+	   default-add-location!
+	   (lambda (self)
+	     (let ((block (block-parser-block self))
+		   (content (html-block-parser-content self)))
+	       (html-block-node:literal-set! block
+		(string-join (list-queue-list content) "\n"))))
+	   default-parse-inlines!)
+	closing-pattern #f (list-queue))))))
+		    
 
 ;;; Container blocks
 ;;; Block quote parser

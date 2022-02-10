@@ -44,11 +44,13 @@
 	    try-start-thematic-break
 	    try-start-indented-code-block
 	    try-start-fenced-code-block
+	    try-start-html-block
 	    try-start-block-quote-block)
     (import (rnrs)
 	    (core misc)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
+	    (srfi :115 regexp)
 	    (srfi :197 pipeline)
 	    (text markdown parser blocks)
 	    (text markdown parser nodes)
@@ -181,7 +183,7 @@
 	    (block-start:none)))))
 			    
 
-(define (try-start-indented-code-block parser-state make-thematic-break-parser)
+(define (try-start-indented-code-block parser-state matched-block-parser)
   (if (and (>= (parser-state-indent parser-state) +parsing-code-block-indent+)
 	   (not (parser-state-blank? parser-state))
 	   (not (paragraph-node?
@@ -193,12 +195,13 @@
 					 +parsing-code-block-indent+)))
       (block-start:none)))
 
-(define (try-start-fenced-code-block parser-state make-thematic-break-parser)
+(define (try-start-fenced-code-block parser-state matched-block-parser)
   (define (check-opener line index indent)
     (define scanner (scanner:of (source-lines:of line)))
     (define (try-scan scanner pos c)
       (scanner:position! scanner pos)
-      (scanner:match-char scanner c))
+      (let ((n (scanner:match-char scanner c)))
+	(and n (>= n 3) n)))
     (define (make fc fl indent)
       (cons (make-fenced-code-block-parser (parser-state-document parser-state)
 					   fc fl indent)
@@ -219,7 +222,80 @@
 		    (block-start:at-index _ (+ nns (cdr bp&c))))))
 	  (else (block-start:none)))))
 
-(define (try-start-block-quote-block parser-state make-thematic-break-parser)
+(define html-block-patterns
+  `#(
+     (#f #f) ;; block type 0, not used
+     (,(rx "<" (w/nocase (|\|| "script" "pre" "style" "textarea"))
+	   (|\|| space ">" eol))
+      ,(rx "</" (w/nocase (|\|| "script" "pre" "style" "textarea")) ">"))
+     (,(rx bol "<!--")        ,(rx "-->")) ;; comment
+     (,(rx bol "<?")          ,(rx "?>"))  ;; PI
+     (,(rx bol "<!" (/ "AZ")) ,(rx ">"))	  ;; <!ATTR ... > or so
+     (,(rx bol "<![CDATA[")   ,(rx "]]>")) ;; <![CDATA[ ... ]]>
+     (,(rx "<" (? "/")
+	   (w/nocase
+	    (|\||
+	     "address" "article" "aside"
+	     "base" "basefont" "blockquote" "body"
+	     "caption" "center" "col" "colgroup"
+	     "dd" "details" "dialog" "dir" "div" "dl" "dt"
+	     "fieldset" "figcaption" "figure" "footer" "from" "frame" "frameset"
+	     "h1" "h2" "h3" "h4" "h5" "h6" "head" "header" "hr" "html"
+	     "iframe"
+	     "legend" "li" "link"
+	     "main" "menu" "menuitem"
+	     "nav" "noframes"
+	     "ol" "optgroup" "option"
+	     "p" "param"
+	     "section" "source" "summary"
+	     "table" "tbody" "td" "tfoot" "thead" "title" "tr" "track"
+	     "ul"))
+	   (|\|| space (: (? "/") ">") eol))
+      #t)
+     (,(rx bol (|\||
+		(w/nocase "<" (/ "AZaz") (* (/ "AZaz09"))
+			  ;; attribute
+			  (: (+ space) (/ "AZaz_:") (* (/ "AZaz09:._-")) ;; name
+			     (* space) "=" (* space)
+			     (|\|| (+ (~ ("\"'=<>`") (/ #\x0 #\x20)))
+				   (: #\' (~ #\') #\')
+				   (: #\' (~ #\") #\')))
+			  (* space) (? #\/) ">")
+		(w/nocase "</" (/ "AZaz") (* (/ "AZaz09") (* space) ">")))
+	   (* space) eol)
+      #t)))
+(define (try-start-html-block parser-state matched-block-parser)
+  (define (check-lazy)
+    (define bp (matched-block-parser:get matched-block-parser))
+    (or (paragraph-node? (block-parser-block bp))
+	(block-parser-allow-lazy-continuation-line?
+	 (parser-state:active-block-parser parser-state))))
+  (define (check-match i line)
+    (let ((o&c (vector-ref html-block-patterns i)))
+      (and (regexp-search (car o&c) line)
+	   (cadr o&c))))
+  (let* ((nns (parser-state-next-non-space-index parser-state))
+	 (indent (parser-state-indent parser-state))
+	 (source (parser-state-line parser-state))
+	 (line (source-line-content (source-line:substring source nns)))
+	 (size (vector-length html-block-patterns)))
+
+    (if (and (< indent +parsing-code-block-indent+)
+	     (eqv? (source-line:char-at source nns) #\<))
+	(let loop ((i 1))
+	  (cond ((and (= i 7) (check-lazy)) (block-start:none))
+		((and (< i size) (check-match i line)) =>
+		 (lambda (closer?)
+		   (let ((doc (parser-state-document parser-state))
+			 (index (parser-state-index parser-state))
+			 (closer (and (regexp? closer?) closer?)))
+		     (chain (block-start:of (make-html-block-parser doc closer))
+			    (block-start:at-index _ index)))))
+		((< i size) (loop (+ i 1)))
+		(else (block-start:none))))
+	(block-start:none))))
+
+(define (try-start-block-quote-block parser-state matched-block-parser)
   (let ((nns (parser-state-next-non-space-index parser-state)))
     (if (block-quote-parser:marker? parser-state nns)
 	(let ((col (+ (parser-state-column parser-state)
