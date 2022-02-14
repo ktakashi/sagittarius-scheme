@@ -75,7 +75,10 @@
 	    make-fenced-code-block-parser fenced-code-block-parser?
 	    make-html-block-parser html-block-parser?
 	    make-block-quote-parser block-quote-parser?
-	    block-quote-parser:marker?	    
+	    block-quote-parser:marker?
+
+	    make-list-block-parser list-block-parser?
+	    make-list-item-parser list-item-parser?
 	    )
     (import (rnrs)
 	    (core misc)
@@ -407,4 +410,76 @@
 	   default-add-location!
 	   default-close-block!
 	   default-parse-inlines!))))))
+
+;;; List block parser
+(define-record-type list-block-parser
+  (parent block-parser)
+  (fields (mutable had-blank-line?)
+	  (mutable lines-after-blank))
+  (protocol
+   (lambda (n)
+     (lambda (list-block)
+       ((n list-block #t #f
+	   (lambda (self block)
+	     (define (update! self block)
+	       (when (and (list-block-parser-had-blank-line? self)
+			  (= (list-block-parser-lines-after-blank self) 1))
+		 (list-node-tight-set! block "false")
+		 (list-block-parser-had-blank-line?-set! self #f))
+	       #t)
+	     (and (item-node? block)
+		  (update! self (block-parser-block self))))
+	   (lambda (self ps)
+	     (cond ((parser-state-blank? ps)
+		    (list-block-parser-had-blank-line?-set! self #t)
+		    (list-block-parser-lines-after-blank-set! self 0))
+		   ((list-block-parser-had-blank-line? self)
+		    (let ((n (list-block-parser-lines-after-blank self)))
+		      (list-block-parser-lines-after-blank-set! self (+ n 1)))))
+	     (block-continue:at-index (parser-state-index ps)))
+	   default-add-line!
+	   default-add-location!
+	   default-close-block!
+	   default-parse-inlines!)
+	#f -1)))))
+
+(define-record-type list-item-parser
+  (parent block-parser)
+  (fields content-indent
+	  (mutable had-blank-line?))
+  (protocol
+   (lambda (n)
+     (lambda (document content-indent)
+       ((n (make-item-node document) #t #f
+	   (lambda (self block)
+	     (when (list-item-parser-had-blank-line? self)
+	       (let ((parent (markdown-node-parent (block-parser-block block))))
+		 (when (list-node? parent)
+		   (list-node-tight-set! parent "false")))
+	       #t))
+	   (lambda (self ps)
+	     (cond ((parser-state-blank? ps)
+		    (let ((block (block-parser-block self)))
+		      (if (list-queue-empty? (markdown-node-children block))
+			  (block-continue:none)
+			  (let ((active-block
+				 (block-parser-block
+				  (parser-state:active-block-parser ps))))
+			    (list-item-parser-had-blank-line?-set! self
+			     (or (paragraph-node? active-block)
+				 (item-node? active-block)))
+			    (block-continue:at-index
+			     (parser-state-next-non-space-index ps))))))
+		   ((> (parser-state-indent ps)
+		       (list-item-parser-content-indent self))
+		    (block-continue:at-column
+		     (+ (parser-state-column ps)
+			(list-item-parser-content-indent self))))
+		   (else (block-continue:none))))
+	   default-add-line!
+	   default-add-location!
+	   default-close-block!
+	   default-parse-inlines!)
+	content-indent #f)))))
+				 
 )

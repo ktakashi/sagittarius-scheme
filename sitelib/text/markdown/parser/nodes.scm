@@ -33,7 +33,14 @@
     (export make-markdown-document
 	    make-paragraph-node paragraph-node?
 	    make-block-quote-node block-quote-node?
-	    make-list-node list-node?
+	    ;; make-list-node
+	    list-node? list-node-tight list-node-tight-set!
+	    list-node-type
+	    make-ordered-list-node ordered-list-node?
+	    ordered-list-node-start-number ordered-list-node-delimiter
+	    make-bullet-list-node bullet-list-node?
+	    bullet-list-node-bullet-marker
+	    make-item-node item-node?
 	    make-code-block-node code-block-node?
 	    code-block-node-info code-block-node-info-set!
 	    code-block-node:literal-set! code-block-node:literal
@@ -59,6 +66,8 @@
 	    *commonmark-namespace*
 
 	    define-markdown-node ;; for custom node
+	    markdown-node-parent
+	    markdown-node-children
 	    markdown-node:append-child!
 	    markdown-node:get-attribute
 	    markdown-node:set-attribute!
@@ -83,7 +92,7 @@
 ;; The node structure will be kept on XML DOM
 ;; the wrapper node only managed necessary structure and meta data
 (define-record-type markdown-node
-  (fields element ;; xml element
+  (fields element
 	  source-locations
 	  ;; below are for future convenience
 	  ;; if we want to manipulate node programatically
@@ -264,7 +273,20 @@
     e))
 (define-markdown-node paragraph)
 (define-markdown-node block-quote (element "block_quote"))
-(define-markdown-node list)
+(define-markdown-node (list (attribute type) (attribute tight)))
+(define-record-type ordered-list-node
+  (parent list-node)
+  (fields start-number delimiter)
+  (protocol (lambda (n)
+	      (lambda (doc number delimiter)
+		((n doc "ordered" "true") number delimiter)))))
+(define-record-type bullet-list-node
+  (parent list-node)
+  (fields bullet-marker)
+  (protocol (lambda (n)
+	      (lambda (doc marker)
+		((n doc "bullet" "true") marker)))))
+(define-markdown-node item)
 (define-markdown-node (code-block (attribute info)) (element "code_block"))
 (define (code-block-node:literal-set! node literal)
   (markdown-node:set-text! node literal))

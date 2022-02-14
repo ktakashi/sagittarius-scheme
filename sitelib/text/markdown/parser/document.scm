@@ -217,7 +217,7 @@
 	      (parser-state-next-non-space-index state))
 	     (values last-index started-new-block? unmatched block-parser)))))
   (define state (document-parser-state document-parser))
-  
+
   (document-parser:set-line! document-parser line)
   (let ((matches (check-open-block-parser document-parser open-block-parsers)))
     (when matches
@@ -344,13 +344,12 @@
     (parser-state-index-set! state next-non-space)
     (let ((col (document-parser-next-non-space-column document-parser)))
       (parser-state-column-set! state col)))
-  (let ((len (source-line:length (parser-state-line state))))
-    (let loop ()
-      (when (and (< (parser-state-index state) index)
-		 (not (= (parser-state-index state) len)))
-	(document-parser:advance! document-parser)
-	(loop)))
-    (document-parser-column-in-tab?-set! document-parser #f)))
+
+  (do ((len (source-line:length (parser-state-line state))))
+      ((or (>= (parser-state-index state) index)
+	   (= (parser-state-index state) len)))
+    (document-parser:advance! document-parser))
+  (document-parser-column-in-tab?-set! document-parser #f))
 
 (define (document-parser:set-new-column! document-parser column)
   (define state (document-parser-state document-parser))
@@ -359,17 +358,16 @@
   (when (>= column next-non-space-column)
     (parser-state-index-set! state (parser-state-next-non-space-index state))
     (parser-state-column-set! state next-non-space-column))
-  (let ((len (source-line:length (parser-state-line state))))
-    (let loop ()
-      (when (and (< (parser-state-column state) column)
-		 (not (= (parser-state-index state) len)))
-	(document-parser:advance! document-parser)))
-    (cond ((> (parser-state-column state) column)
-	   (parser-state-index-set! state (- (parser-state-index state) 1))
-	   (parser-state-column-set! state column)
-	   (document-parser-column-in-tab?-set! document-parser #t))
-	  (else
-	   (document-parser-column-in-tab?-set! document-parser #f)))))
+  (do ((len (source-line:length (parser-state-line state))))
+      ((or (>= (parser-state-column state) column)
+	   (= (parser-state-index state) len)))
+    (document-parser:advance! document-parser))
+  (cond ((> (parser-state-column state) column)
+	 (parser-state-index-set! state (- (parser-state-index state) 1))
+	 (parser-state-column-set! state column)
+	 (document-parser-column-in-tab?-set! document-parser #t))
+	(else
+	 (document-parser-column-in-tab?-set! document-parser #f))))
 
 (define (document-parser:advance! document-parser)
   (define state (document-parser-state document-parser))

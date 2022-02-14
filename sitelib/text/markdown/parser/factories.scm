@@ -45,7 +45,8 @@
 	    try-start-indented-code-block
 	    try-start-fenced-code-block
 	    try-start-html-block
-	    try-start-block-quote-block)
+	    try-start-block-quote-block
+	    try-start-list-block)
     (import (rnrs)
 	    (core misc)
 	    (srfi :13 strings)
@@ -310,4 +311,102 @@
 					      (+ col 1)
 					      col))))
 	(block-start:none))))
+
+(define (try-start-list-block ps matched-block-parser)
+  (define matched (matched-block-parser:get matched-block-parser))
+  (define (in-paragraph? matched-block-parser)
+    (not (source-lines:empty?
+	  (matched-block-parser:paragraph-lines matched-block-parser))))
+  (define (list-match? a b)
+    (or (and (bullet-list-node? a) (bullet-list-node? b)
+	     (eqv? (bullet-list-node-bullet-marker a)
+		   (bullet-list-node-bullet-marker b)))
+	(and (ordered-list-node? a) (ordered-list-node? b)
+	     (eqv? (ordered-list-node-delimiter a)
+		   (ordered-list-node-delimiter b)))))
+  (cond ((>= (parser-state-indent ps) +parsing-code-block-indent+)
+	 (block-start:none))
+	((parse-list (parser-state-document ps)
+		     (parser-state-line ps)
+		     (parser-state-next-non-space-index ps)
+		     (+ (parser-state-column ps) (parser-state-indent ps))
+		     (in-paragraph? matched-block-parser)) =>
+	 (lambda (list-data)
+	   (define col (car list-data))
+	   (define lip (make-list-item-parser
+			(parser-state-document ps)
+			(- col (parser-state-column ps))))
+	   (define block (cdr list-data))
+	   (if (or (not (list-block-parser? matched))
+		   (not (list-match? (block-parser-block matched) block)))
+	       (let ((lbp (make-list-block-parser block)))
+		 (list-node-tight-set! block "true")
+		 (chain (block-start:of lbp lip)
+			(block-start:at-column _ col)))
+	       (chain (block-start:of lip)
+		      (block-start:at-column _ col)))))
+	(else (block-start:none))))
+
+(define (parse-list doc line marker-index marker-column in-paragraph?)
+  (define (space-tab-end? line index)
+    (or (< index (source-line:length line))
+	(parsing:space/tab? (source-line:char-at line index))))
+  (define (parse-ordered-list doc line index)
+    (define scanner (scanner:of (source-lines:of line)))
+    (do ((i 0 (+ i 1))) ((= i index)) (scanner:next! scanner))
+    (let ((digits (scanner:match-charset scanner char-set:digit)))
+      (and (not (> digits 9))
+	   (let ((c (scanner:peek scanner)))
+	     (case c
+	       ((#\. #\))
+		(and (>= digits 1)
+		     (space-tab-end? line (+ digits index 1))
+		     (let ((n (source-line:substring line index
+						     (+ digits index))))
+		       (cons (make-ordered-list-node doc
+			      (string->number (source-line-content n)) c)
+			     (+ digits index 1)))))
+	       (else #f))))))
+  (define (parse-list-marker doc line index)
+    (let ((c (source-line:char-at line index)))
+      (case c
+	((#\- #\+ #\*)
+	 (and (space-tab-end? line (+ index 1))
+	      (cons (make-bullet-list-node doc c) (+ index 1))))
+	(else (parse-ordered-list doc line index)))))
+
+  (cond ((parse-list-marker doc line marker-index) =>
+	 (lambda (list-marker)
+	   (define block (car list-marker))
+	   (define index-after-marker (cdr list-marker))
+	   (define marker-length (+ index-after-marker marker-index))
+	   (define column-after-marker (+ marker-column marker-length))
+	   (define (check-content line content-column index-after-marker)
+	     (define len (source-line:length line))
+	     (let loop ((i index-after-marker) (cc content-column))
+	       (if (= i len)
+		   (values cc #f)
+		   (case (source-line:char-at line i)
+		     ((#\tab)
+		      (loop (+ i 1) (+ cc (parsing:columns->next-tab-stop cc))))
+		     ((#\space) (loop (+ i 1) (+ cc 1)))
+		     (else (values cc #t))))))
+	   (let-values (((content-column has-content?)
+			 (check-content line
+					column-after-marker
+					index-after-marker)))
+	     (if (and in-paragraph?
+		      (or (and (ordered-list-node? block)
+			       (not (= (ordered-list-node-start-number block)
+				       1)))
+			  (not has-content?)))
+		 #f
+		 (let ((cc (if (or (not has-content?)
+				   (> (- content-column column-after-marker)
+				      +parsing-code-block-indent+))
+			       (+ column-after-marker 1)
+			       content-column)))
+		   (cons cc block))))))
+	(else #f)))
+		   
 )
