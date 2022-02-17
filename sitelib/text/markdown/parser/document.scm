@@ -38,6 +38,7 @@
 	    (text markdown parser blocks)
 	    (text markdown parser factories)
 	    (text markdown parser inlines)
+	    (text markdown parser link-reference)
 	    (text markdown parser nodes)
 	    (text markdown parser parsing)
 	    (text markdown parser source)
@@ -60,6 +61,7 @@
 	  (mutable column-in-tab?)
 	  (mutable next-non-space-column)
 	  block-parsers ;; for inline parser
+	  definitions
 	  )
   (protocol
    (lambda (p)
@@ -74,7 +76,8 @@
 		    #f ;; state
 		    #f
 		    0
-		    (list-queue)))
+		    (list-queue)
+		    (make-link-reference-definitions)))
 	      (state (make-parser-state
 		      (block-parser-block document-block-parser)
 		      #f ;; line
@@ -139,7 +142,7 @@
       (let* ((obp (document-parser:deactivate-block-parser! document-parser))
 	     (old (open-block-parser-block-parser obp)))
 	(when (paragraph-parser? old)
-	  (document-parser:add-definition-form! document-parser old))
+	  (document-parser:add-definition-from! document-parser old))
 	(block-parser:close-block! old)
 	(let ((block (block-parser-block old)))
 	  (markdown-node:unlink! block)
@@ -398,11 +401,23 @@
   (list-queue-remove-back! open-block-parsers))
 
 (define (document-parser:add-source-location! document-parser)
-  )
+  (define open-block-parsers
+    (document-parser-open-block-parsers document-parser))
+  (define state (document-parser-state document-parser))
+  (do ((obp (cdr (list-queue-list open-block-parsers)) (cdr obp)))
+      ((null? obp))
+    (let* ((block-index (open-block-parser-source-index (car obp)))
+	   (len (- (source-line:length (parser-state-line state)) block-index)))
+      (unless (zero? len)
+	(block-parser:add-source-location!
+	 (open-block-parser-block-parser (car obp))
+	 (source-location:of (parser-state-line-index state)
+			     block-index len))))))
+
 (define (document-parser:close-block-parsers! document-parser size)
   (define (finalize document-parser bp)
     (when (paragraph-parser? bp)
-      (document-parser:add-definition-form! document-parser bp))
+      (document-parser:add-definition-from! document-parser bp))
     (block-parser:close-block! bp))
   (define all-block-parsers (document-parser-block-parsers document-parser))
   (do ((i 0 (+ i 1)))
@@ -412,6 +427,12 @@
       (finalize document-parser bp)
       (list-queue-add-back! all-block-parsers bp))))
 
-(define (document-parser:add-definition-form! document-parser old)
-  )
+(define (document-parser:add-definition-from! document-parser old)
+  (define definition* (paragraph-parser-definitions old))
+  (define definitions (document-parser-definitions document-parser))
+  ;; (define definitions (document-parser-d
+  (do ((d* definition* (cdr d*)))
+      ((null? d*))
+    ;; We can't add definition to the block as it's not a defined node.
+    (link-reference-definitions:add! definitions (car d*))))
 )

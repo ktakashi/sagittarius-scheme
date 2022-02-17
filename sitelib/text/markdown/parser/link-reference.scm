@@ -30,7 +30,17 @@
 
 #!nounbound
 (library (text markdown parser link-reference)
-    (export make-link-reference-definition-parser
+    (export make-link-reference-definition link-reference-definition?
+	    link-reference-definition-label
+	    link-reference-definition-destination
+	    link-reference-definition-title
+	    
+	    make-link-reference-definitions
+	    link-reference-definitions?
+	    link-reference-definitions:add!
+	    link-reference-definitions:get
+
+	    make-link-reference-definition-parser
 	    link-reference-definition-parser?
 	    link-reference-definition-parser-source-locations
 	    link-reference-definition-parser:parse!
@@ -40,6 +50,28 @@
     (import (rnrs)
 	    (srfi :117 list-queues)
 	    (text markdown parser source))
+
+(define-record-type link-reference-definition
+  (fields label destination title))
+  
+(define-record-type link-reference-definitions
+  (fields definitions)
+  (protocol (lambda (p)
+	      (lambda ()
+		(p (make-hashtable string-hash string=?))))))
+(define (link-reference-definitions:add! lrd def)
+  ;; TODO normalize label
+  (hashtable-update! (link-reference-definitions-definitions lrd)
+		     (link-reference-definition-label def)
+		     (lambda (k v) v) ;; so it doesn't update anything
+		     def))
+
+(define (link-reference-definitions:get lrd label)
+  ;; TODO normalize label
+  (hashtable-ref (link-reference-definitions-definitions lrd)
+		 label
+		 #f))
+
 
 (define-record-type link-reference-definition-parser
   (fields paragraph-lines
