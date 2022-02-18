@@ -49,6 +49,7 @@
 	    link-reference-definition-parser:definitions)
     (import (rnrs)
 	    (srfi :117 list-queues)
+	    (text markdown parser escaping)
 	    (text markdown parser source))
 
 (define-record-type link-reference-definition
@@ -60,16 +61,15 @@
 	      (lambda ()
 		(p (make-hashtable string-hash string=?))))))
 (define (link-reference-definitions:add! lrd def)
-  ;; TODO normalize label
+  (define label (link-reference-definition-label def))
   (hashtable-update! (link-reference-definitions-definitions lrd)
-		     (link-reference-definition-label def)
+		     (escaping:normalize-label label)
 		     (lambda (k v) v) ;; so it doesn't update anything
 		     def))
 
 (define (link-reference-definitions:get lrd label)
-  ;; TODO normalize label
   (hashtable-ref (link-reference-definitions-definitions lrd)
-		 label
+		 (escaping:normalize-label label)
 		 #f))
 
 

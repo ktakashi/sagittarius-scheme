@@ -51,7 +51,7 @@
   (fields include-source-locations?
 	  (mutable trailing-spaces)
 	  (mutable last-delimiter)
-	  (mutable last-braket)))
+	  (mutable last-bracket)))
 
 (define-vector-type inline-parser-context
   (make-inline-parser-context delimiter-processors definitions)
@@ -119,9 +119,105 @@
 		))
 	     (else (list (inline-parser:parse-text inline-parser))))))))
 
-(define (inline-parser:parse-open-blacket inline-parser) )
-(define (inline-parser:parse-bang inline-parser))
-(define (inline-parser:parse-close-blacket inline-parser))
+(define (inline-parser:text inline-parser source-lines)
+  (define state (inline-parser-parsing-state inline-parser))
+  (define block (inline-parser-state-block state))
+  (let ((t (make-text-node block (source-lines:content source-lines))))
+    (markdown-node:source-locations-set! t 
+     (source-lines:source-loactions source-lines))
+    t))
+(define (inline-parser:add-bracket! inline-parser braket)
+  (define state (inline-parser-parsing-state inline-parser))
+  (define last-braket (parsing-state-last-bracket state))
+  (when last-braket
+    (bracket-bracket-after?-set! last-braket #t))
+  (parsing-state-last-bracket-set! state braket))
+
+(define (inline-parser:remove-last-bracket! inline-parser)
+  (define state (inline-parser-parsing-state inline-parser))
+  (define last-braket (parsing-state-last-bracket state))
+  (parsing-state-last-bracket-set! state (bracket-previous last-braket)))
+
+(define (inline-parser:parse-open-blacket inline-parser)
+  (define state (inline-parser-parsing-state inline-parser))
+  (define scanner (inline-parser-state-scanner state))
+  (define start (scanner:position scanner))
+  (scanner:next! scanner)
+  (let* ((p (scanner:position scanner))
+	 (source (scanner:source scanner start p))
+	 (t (inline-parser:text inline-parser source)))
+    (display state) (newline)
+    (inline-parser:add-bracket! inline-parser 
+     (bracket:link t start p
+		   (parsing-state-last-bracket state)
+		   (parsing-state-last-delimiter state)))
+    t))
+
+(define (inline-parser:parse-bang inline-parser)
+  (define state (inline-parser-parsing-state inline-parser))
+  (define scanner (inline-parser-state-scanner state))
+  (define start (scanner:position scanner))
+  (scanner:next! scanner)
+  (if (scanner:next-char? scanner  #\[)
+      (let* ((p (scanner:position scanner))
+	     (source (scanner:source scanner start p))
+	     (t (inline-parser:text inline-parser source)))
+	(inline-parser:add-bracket! inline-parser 
+	 (bracket:link t start p
+		       (parsing-state-last-bracket state)
+		       (parsing-state-last-delimiter state)))
+	t)
+      (let* ((p (scanner:position scanner))
+	     (source (scanner:source scanner start p)))
+	(inline-parser:text inline-parser source))))
+
+(define (inline-parser:parse-close-blacket inline-parser)
+  (define (check-inline-link scanner after-close)
+    (define (parse-link-destination scanner)
+      (define delim (scanner:peek scanner))
+      (define start (scanner:position scanner))
+      
+      )
+    (define (parse-link-title scanner)
+      )
+    (define (finish scanner dest title)
+      (cond ((not (scanner:next-char? scanner #\)))
+	     (scanner:position! scanner after-close)
+	     (values #f #f))
+	    (else (values dest title))))
+    (cond ((scanner:next-char? scanner #\()
+	   (scanner:whitespace scanner)
+	   (cond ((parse-link-destination scanner) =>
+		  (lambda (dest)
+		    (if (>= (scanner:whitespace scanner) 1)
+			(let ((title (parse-link-title scanner)))
+			  (scanner:whitespace scanner)
+			  (finish scanner dest title))
+			(finish scanner dest #f))))
+		 (else
+		  (scanner:position! scanner after-close)
+		  (values #f #f))))
+	  (else (values #f #f))))
+  
+  (define state (inline-parser-parsing-state inline-parser))
+  (define scanner (inline-parser-state-scanner state))
+  (define before-close (scanner:position scanner))
+
+  (scanner:next! scanner)
+  (let ((after-close scanner:position)
+	(opener (parsing-state-last-bracket state)))
+    (cond ((not opener)
+	   (inline-parser:text inline-parser
+	     (scanner:source scanner before-close after-close)))
+	  ((not (bracket-allowed? opener))
+	   (inline-parser:remove-last-bracket! inline-parser)
+	   (inline-parser:text inline-parser
+	     (scanner:source scanner before-close after-close)))
+	  (else
+	   (let-values (((dest title) (check-inline-link scanner after-close)))
+	     )
+	   ))))
+
 (define (inline-parser:parse-line-break inline-parser)
   (define state (inline-parser-parsing-state inline-parser))
   (define scanner (inline-parser-state-scanner state))
@@ -173,5 +269,28 @@
   (or (memv c '(#\[ #\] #\! #\newline))
       (hashtable-ref parsers c #f)
       (hashtable-ref processors c #f)))
+
+;; bracket
+(define-vector-type bracket 
+  (make-bracket node mark-position content-position previous 
+		previous-delimiter image? allowed? barcket-after?)
+  bracket?
+  (node bracket-node)
+  (mark-position bracket-mark-position)
+  (content-position bracket-content-position)
+  (previous bracket-previous)
+  (previous-delimiter bracket-previous-delimiter)
+  (image? bracket-image?)
+  (allowed? bracket-allowed? bracket-allowed?-set!)
+  (barcket-after? bracket-bracket-after? bracket-bracket-after?-set!))
+
+(define (bracket:link node mark-position content-position previous
+		      previous-delimiter)
+  (make-bracket node mark-position content-position
+		previous previous-delimiter #f #t #f))
+(define (bracket:image node mark-position content-position previous
+		       previous-delimiter)
+  (make-bracket node mark-position content-position
+		previous previous-delimiter #t #t #f))
 
 )
