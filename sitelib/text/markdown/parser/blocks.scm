@@ -86,6 +86,7 @@
 	    (srfi :13 strings)
 	    (srfi :115 regexp)
 	    (srfi :117 list-queues)
+	    (text markdown parser escaping)
 	    (text markdown parser inlines)
 	    (text markdown parser nodes)
 	    (text markdown parser parsing)
@@ -338,9 +339,9 @@
 		    (string-trim-both
 		     (fenced-code-block-parser-first-line self)))
 		   (others (fenced-code-block-parser-other-lines self)))
-	       ;; TODO escape entity...
-	       (code-block-node-info-set! block (and (not (string-null? first))
-						     first))
+
+	       (code-block-node-info-set! block
+		(escaping:unescape (and (not (string-null? first)) first)))
 	       (code-block-node:literal-set! block (string-join
 						    (list-queue-list others)
 						    "\n"))))

@@ -32,7 +32,8 @@
 (library (text markdown parser parsing)
     (export +parsing-code-block-indent+
 	    parsing:columns->next-tab-stop
-	    parsing:space/tab?)
+	    parsing:space/tab?
+	    parsing:escapable?)
     (import (rnrs))
 
 (define +parsing-code-block-indent+ 4) ;; constant
@@ -42,5 +43,10 @@
   (- 4 (mod column 4)))
 
 (define (parsing:space/tab? c) (case c ((#\space #\tab) #t) (else #f)))
+
+(define *escapable-chars*
+  (string->list "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"))
+(define (parsing:escapable? c) (memv c *escapable-chars*))
+  
 
 )

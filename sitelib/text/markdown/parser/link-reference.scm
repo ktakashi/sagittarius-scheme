@@ -34,6 +34,11 @@
 	    link-reference-definition-label
 	    link-reference-definition-destination
 	    link-reference-definition-title
+
+	    link-scanner:scan-link-label-content!
+	    link-scanner:scan-link-destination!
+	    link-scanner:scan-link-title!
+	    link-scanner:scan-link-title-content!
 	    
 	    make-link-reference-definitions
 	    link-reference-definitions?
@@ -48,13 +53,103 @@
 	    link-reference-definition-parser:paragraph-lines
 	    link-reference-definition-parser:definitions)
     (import (rnrs)
+	    (srfi :14 char-sets)
 	    (srfi :117 list-queues)
 	    (text markdown parser escaping)
+	    (text markdown parser parsing)
+	    (text markdown parser scanner)
 	    (text markdown parser source))
 
 (define-record-type link-reference-definition
   (fields label destination title))
-  
+
+(define (link-scanner:scan-link-label-content! scanner)
+  (let loop ()
+    (if (scanner:has-next? scanner)
+	(case (scanner:peek scanner)
+	  ((#\\)
+	   (scanner:next! scanner)
+	   (when (parsing:escapable? (scanner:peek scanner))
+	     (scanner:next! scanner))
+	   (loop))
+	  ((#\]) #t)
+	  ((#\[) #f)
+	  (else (scanner:next! scanner) (loop)))
+	#t)))
+
+(define (link-scanner:scan-link-destination! scanner)
+  (define (balanced-paren scanner)
+    (let loop ((depth 0) (empty? #t))
+      (if (scanner:has-next? scanner)
+	  (let ((c (scanner:peek scanner)))
+	    (case c
+	      ((#\space) (not empty?))
+	      ((#\\)
+	       (scanner:next! scanner)
+	       (when (parsing:escapable? (scanner:peek scanner))
+		 (scanner:next! scanner))
+	       (loop depth #f))
+	      ((#\() (scanner:next! scanner) (loop (+ depth 1) #f))
+	      ((#\))
+	       (cond ((zero? depth) #t)
+		     (else
+		      (scanner:next! scanner)
+		      (loop (- depth 1) empty?))))
+	      (else
+	       (cond ((char-set-contains? char-set:iso-control c)
+		      (not empty?))
+		     (else
+		      (scanner:next! scanner)
+		      (loop depth #f))))))
+	  #t)))
+  (cond ((not (scanner:has-next? scanner)) #f)
+	((scanner:next-char? scanner #\<)
+	 (let loop ()
+	   (if (scanner:has-next? scanner)
+	       (case (scanner:peek scanner)
+		 ((#\\)
+		  (scanner:next! scanner)
+		  (when (parsing:escapable? (scanner:peek scanner))
+		    (scanner:next! scanner))
+		  (loop))
+		 ((#\newline #\<) #f)
+		 ((#\>) (scanner:next! scanner) #t)
+		 (else (scanner:next! scanner) (loop)))
+	       #f)))
+	(else
+	 (balanced-paren scanner))))
+
+(define (link-scanner:scan-link-title! scanner)
+  (define (check-end-delimiter scanner)
+    (case (scanner:peek scanner)
+      ((#\") #\")
+      ((#\') #\')
+      ((#\() #\))
+      (else #f)))
+  (cond ((not (scanner:has-next? scanner)) #f)
+	((check-end-delimiter scanner) =>
+	 (lambda (end-delimiter)
+	   (scanner:next! scanner)
+	   (cond ((not (link-scanner:scan-link-title-content!
+			scanner end-delimiter)) #f)
+		 ((not (scanner:has-next? scanner)) #f)
+		 (else (scanner:next! scanner) #t))))
+	(else #f)))
+
+(define (link-scanner:scan-link-title-content! scanner end-delimiter)
+  (let loop ()
+    (if (scanner:has-next? scanner)
+	(let ((c (scanner:peek scanner)))
+	  (cond ((eqv? c #\\)
+		 (scanner:next! scanner)
+		 (when (parsing:escapable? (scanner:peek scanner))
+		   (scanner:next! scanner))
+		 (loop))
+		((eqv? c end-delimiter))
+		((and (eqv? end-delimiter #\)) (eqv? c #\))) #f)
+		(else (scanner:next! scanner) (loop))))
+	#t)))
+
 (define-record-type link-reference-definitions
   (fields definitions)
   (protocol (lambda (p)

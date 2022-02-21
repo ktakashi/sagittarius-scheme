@@ -1,20 +1,20 @@
 ;;; -*- mode:scheme; coding:utf-8 -*-
 ;;;
 ;;; text/markdown/parser/inlines.scm - Inline parsers
-;;;  
+;;;
 ;;;   Copyright (c) 2022  Takashi Kato  <ktakashi@ymail.com>
-;;;   
+;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
 ;;;   are met:
-;;;   
+;;;
 ;;;   1. Redistributions of source code must retain the above copyright
 ;;;      notice, this list of conditions and the following disclaimer.
-;;;  
+;;;
 ;;;   2. Redistributions in binary form must reproduce the above copyright
 ;;;      notice, this list of conditions and the following disclaimer in the
 ;;;      documentation and/or other materials provided with the distribution.
-;;;  
+;;;
 ;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 ;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 ;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -26,7 +26,7 @@
 ;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-;;;  
+;;;
 
 #!nounbound
 (library (text markdown parser inlines)
@@ -37,7 +37,10 @@
 	    make-inline-parser inline-parser?)
     (import (rnrs)
 	    (core misc)
+	    (srfi :2 and-let*)
 	    (srfi :13 strings)
+	    (text markdown parser escaping)
+	    (text markdown parser link-reference)
 	    (text markdown parser nodes)
 	    (text markdown parser parsing)
 	    (text markdown parser scanner)
@@ -123,7 +126,7 @@
   (define state (inline-parser-parsing-state inline-parser))
   (define block (inline-parser-state-block state))
   (let ((t (make-text-node block (source-lines:content source-lines))))
-    (markdown-node:source-locations-set! t 
+    (markdown-node:source-locations-set! t
      (source-lines:source-loactions source-lines))
     t))
 (define (inline-parser:add-bracket! inline-parser braket)
@@ -146,8 +149,7 @@
   (let* ((p (scanner:position scanner))
 	 (source (scanner:source scanner start p))
 	 (t (inline-parser:text inline-parser source)))
-    (display state) (newline)
-    (inline-parser:add-bracket! inline-parser 
+    (inline-parser:add-bracket! inline-parser
      (bracket:link t start p
 		   (parsing-state-last-bracket state)
 		   (parsing-state-last-delimiter state)))
@@ -162,7 +164,7 @@
       (let* ((p (scanner:position scanner))
 	     (source (scanner:source scanner start p))
 	     (t (inline-parser:text inline-parser source)))
-	(inline-parser:add-bracket! inline-parser 
+	(inline-parser:add-bracket! inline-parser
 	 (bracket:link t start p
 		       (parsing-state-last-bracket state)
 		       (parsing-state-last-delimiter state)))
@@ -176,10 +178,24 @@
     (define (parse-link-destination scanner)
       (define delim (scanner:peek scanner))
       (define start (scanner:position scanner))
-      
-      )
+      (define (parse-destination scanner delim start)
+	(let ((dest (source-lines:content
+		     (scanner:source scanner start
+				     (scanner:position scanner)))))
+	  (if (eqv? delim #\<)
+	      (substring dest 1 (- (string-length dest) 1))
+	      dest)))
+      (and (link-scanner:scan-link-destination! scanner)
+	   (let ((dest (parse-destination scanner delim start)))
+	     (escaping:unescape dest))))
     (define (parse-link-title scanner)
-      )
+      (define start (scanner:position scanner))
+      (and (link-scanner:scan-link-title! scanner)
+	   (let ((title (source-lines:content
+			 (scanner:source scanner start
+					 (scanner:position scanner)))))
+	     (escaping:unescape (substring title 1
+					   (- (string-length title) 1))))))
     (define (finish scanner dest title)
       (cond ((not (scanner:next-char? scanner #\)))
 	     (scanner:position! scanner after-close)
@@ -198,6 +214,31 @@
 		  (scanner:position! scanner after-close)
 		  (values #f #f))))
 	  (else (values #f #f))))
+
+  (define (check-label scanner opener after-close dest title)
+    (define (parse-link-label scanner)
+      (and-let* (( (scanner:next-char? scanner #\[) )
+		 (start (scanner:position scanner))
+		 ( (link-scanner:scan-link-label-content! scanner) )
+		 (end (scanner:position scanner))
+		 ( (scanner:next-char? scanner #\]) )
+		 (content (source-lines:content
+			   (scanner:source scanner start end)))
+		 ;; at most 999 characters, so less than 1000
+		 ( (< (string-length content) 1000) ))
+	content))
+    (if dest
+	(let ((ref (parse-link-label scanner)))
+	  (unless ref (scanner:position! scanner after-close))
+	  (let ((ref (if (and (or (not ref) (zero? (string-length ref)))
+			      (not (bracket-bracket-after? opener)))
+			 (source-lines:content
+			  (scanner:source scanner
+					  (bracket-content-position opener)
+					  before-close))
+			 ref)))
+	  ))
+	(values dest title)))
   
   (define state (inline-parser-parsing-state inline-parser))
   (define scanner (inline-parser-state-scanner state))
@@ -214,7 +255,9 @@
 	   (inline-parser:text inline-parser
 	     (scanner:source scanner before-close after-close)))
 	  (else
-	   (let-values (((dest title) (check-inline-link scanner after-close)))
+	   (let*-values (((dest title) (check-inline-link scanner after-close))
+			 ((dest title)
+			  (check-label scanner opener after-close dest title)))
 	     )
 	   ))))
 
@@ -271,8 +314,8 @@
       (hashtable-ref processors c #f)))
 
 ;; bracket
-(define-vector-type bracket 
-  (make-bracket node mark-position content-position previous 
+(define-vector-type bracket
+  (make-bracket node mark-position content-position previous
 		previous-delimiter image? allowed? barcket-after?)
   bracket?
   (node bracket-node)

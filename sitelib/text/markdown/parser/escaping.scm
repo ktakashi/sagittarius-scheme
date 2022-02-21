@@ -30,7 +30,8 @@
 
 #!nounbound
 (library (text markdown parser escaping)
-    (export escaping:normalize-label)
+    (export escaping:normalize-label
+	    escaping:unescape)
     (import (rnrs)
 	    (srfi :13 strings)
 	    (srfi :115 regexp))
@@ -38,5 +39,7 @@
 (define (escaping:normalize-label label)
   (let ((s (string-upcase (string-downcase (string-trim-both label)))))
     (regexp-replace-all (rx (+ space)) s " ")))
+
+(define (escaping:unescape str) str) ;; dummy for now
 
 )
