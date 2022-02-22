@@ -62,11 +62,15 @@
 
 	    make-linebreak-node linebreak-node?
 	    make-softbreak-node softbreak-node?
+	    make-link-node link-node? link-node-destination link-node-title
+	    make-image-node image-node? image-node-destination image-node-title
 	    
 	    *commonmark-namespace*
 
 	    define-markdown-node ;; for custom node
 	    markdown-node-parent
+	    markdown-node-prev
+	    markdown-node-next
 	    markdown-node-children
 	    markdown-node:append-child!
 	    markdown-node:get-attribute
@@ -97,11 +101,13 @@
 	  ;; below are for future convenience
 	  ;; if we want to manipulate node programatically
 	  (mutable parent)   ;; parent markdown node (#f = stray or root)
+	  (mutable prev)
+	  (mutable next)
 	  children	     ;; child markdown nodes
 	  )
   (protocol (lambda (p)
 	      (lambda (element)
-		(p element (list-queue) #f (list-queue))))))
+		(p element (list-queue) #f #f #f (list-queue))))))
 
 (define-syntax namespace (syntax-rules ()))
 (define-syntax element (syntax-rules ()))
@@ -206,8 +212,14 @@
 	       ...)))))))
 
 (define (markdown-node:append-child! node child)
+  (define children (markdown-node-children node))
+  (markdown-node:unlink! child)
   (markdown-node-parent-set! child node)
-  (list-queue-add-back! (markdown-node-children node) child)
+  (unless (list-queue-empty? children)
+    (let ((last (list-queue-back children)))
+      (markdown-node-next-set! last child)
+      (markdown-node-prev-set! child last)))
+  (list-queue-add-back! children child)
   (node:append-child! (markdown-node-element node)
 		      (markdown-node-element child))
   node)
@@ -245,14 +257,15 @@
 
 (define (markdown-node:unlink! node)
   (define elm (markdown-node-element node))
-  (let ((p (node-parent-node elm)))
-    (node:remove-child! p elm))
-  (let* ((p (markdown-node-parent node))
-	 (children (markdown-node-children p)))
-    (list-queue-set-list! children
-     (remove! (lambda (e) (eq? e node)) (list-queue-list children)))
-    (markdown-node-parent-set! node #f)
-    node))
+  (cond ((node-parent-node elm) =>
+	 (lambda (p) (node:remove-child! p elm))))
+  (cond ((markdown-node-parent node) =>
+	 (lambda (p)
+	   (let ((children (markdown-node-children p)))
+	     (list-queue-set-list! children
+	      (remove! (lambda (e) (eq? e node)) (list-queue-list children)))
+	     (markdown-node-parent-set! node #f)))))
+  node)
 
 (define (markdown-node:add-source-location! node loc)
   (list-queue-add-back! (markdown-node-source-locations node) loc)
@@ -321,5 +334,7 @@
 
 (define-markdown-node linebreak)
 (define-markdown-node softbreak)
+(define-markdown-node (link (attribute destination) (attribute title)))
+(define-markdown-node (image (attribute destination) (attribute title)))
 
 )

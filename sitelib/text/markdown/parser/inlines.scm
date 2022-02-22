@@ -62,6 +62,10 @@
   (delimiter-processors inline-parser-context-processors)
   (definitions inline-parser-context-definitions))
 
+(define (inline-parser-context:get-deffinition context label)
+  (link-reference-definitions:get (inline-parser-context-definitions context)
+				  label))
+
 (define-record-type inline-parser
   (fields (mutable parsing-state)
 	  context
@@ -96,7 +100,7 @@
 			 (markdown-node:append-child! block node))
 		       nodes)
 	     (loop)))))
-  (inline-parser:process-delimiters inline-parser #f)
+  (inline-parser:process-delimiters! inline-parser #f)
   (inline-parser:merge-text-nodes! inline-parser block))
 
 (define (inline-parser:parse-inline! inline-parser)
@@ -216,6 +220,7 @@
 	  (else (values #f #f))))
 
   (define (check-label scanner opener after-close dest title)
+    (define context (inline-parser-context inline-parser))
     (define (parse-link-label scanner)
       (and-let* (( (scanner:next-char? scanner #\[) )
 		 (start (scanner:position scanner))
@@ -227,7 +232,7 @@
 		 ;; at most 999 characters, so less than 1000
 		 ( (< (string-length content) 1000) ))
 	content))
-    (if dest
+    (if (not dest)
 	(let ((ref (parse-link-label scanner)))
 	  (unless ref (scanner:position! scanner after-close))
 	  (let ((ref (if (and (or (not ref) (zero? (string-length ref)))
@@ -237,7 +242,12 @@
 					  (bracket-content-position opener)
 					  before-close))
 			 ref)))
-	  ))
+	    (cond ((and ref
+			(inline-parser-context:get-deffinition context ref)) =>
+		   (lambda (destination)
+		     (values (link-reference-definition-destination destination)
+			     (link-reference-definition-title destination))))
+		  (else (values dest title)))))
 	(values dest title)))
   
   (define state (inline-parser-parsing-state inline-parser))
@@ -245,7 +255,7 @@
   (define before-close (scanner:position scanner))
 
   (scanner:next! scanner)
-  (let ((after-close scanner:position)
+  (let ((after-close (scanner:position scanner))
 	(opener (parsing-state-last-bracket state)))
     (cond ((not opener)
 	   (inline-parser:text inline-parser
@@ -258,8 +268,38 @@
 	   (let*-values (((dest title) (check-inline-link scanner after-close))
 			 ((dest title)
 			  (check-label scanner opener after-close dest title)))
-	     )
-	   ))))
+	     (if dest
+		 (let ((link/image ((if (bracket-image? opener)
+					make-image-node
+					make-link-node)
+				    (inline-parser-state-block state)
+				    dest title)))
+		   (do ((node (markdown-node-next (bracket-node opener))
+			      (markdown-node-next node)))
+		       ((not node))
+		     (markdown-node:append-child! link/image node))
+		   (markdown-node:source-locations-set! link/image
+		    (source-lines:source-loactions
+		     (scanner:source scanner 
+				     (bracket-mark-position opener)
+				     (scanner:position scanner))))
+		   (inline-parser:process-delimiters! inline-parser
+		    (bracket-previous-delimiter opener))
+		   (inline-parser:merge-text-nodes! inline-parser link/image)
+		   (markdown-node:unlink! (bracket-node opener))
+		   (inline-parser:remove-last-bracket! inline-parser)
+		   (unless (bracket-image? opener)
+		     (do ((bracket (parsing-state-last-bracket state)
+				   (bracket-previous bracket)))
+			 ((not bracket))
+		       (unless (bracket-image? bracket)
+			 (bracket-allowed?-set! bracket #f))))
+		   link/image)
+		 (begin
+		   (inline-parser:remove-last-bracket! inline-parser)
+		   (scanner:position! scanner after-close)
+		   (inline-parser:text inline-parser
+		    (scanner:source scanner before-close after-close)))))))))
 
 (define (inline-parser:parse-line-break inline-parser)
   (define state (inline-parser-parsing-state inline-parser))
@@ -300,7 +340,7 @@
     (markdown-node:source-locations-set! text
      (source-lines:source-loactions source))))
 
-(define (inline-parser:process-delimiters inline-parser stack-bottom)
+(define (inline-parser:process-delimiters! inline-parser stack-bottom)
   )
 
 (define (inline-parser:merge-text-nodes! inline-parser block)
