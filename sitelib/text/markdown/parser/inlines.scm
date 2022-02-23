@@ -33,12 +33,18 @@
     (export inline-parser:parse!
 
 	    make-inline-parser-context inline-parser-context?
+	    
+	    make-inline-parser inline-parser?
+
+	    inline-parser-state?
 	    inline-parser-state-scanner
-	    make-inline-parser inline-parser?)
+	    inline-parser-state-block)
     (import (rnrs)
 	    (core misc)
 	    (srfi :2 and-let*)
 	    (srfi :13 strings)
+	    (srfi :117 list-queues)
+	    (text markdown parser inlines contents)
 	    (text markdown parser escaping)
 	    (text markdown parser link-reference)
 	    (text markdown parser nodes)
@@ -46,11 +52,8 @@
 	    (text markdown parser scanner)
 	    (text markdown parser source))
 
-(define-record-type inline-parser-state
-  (fields block
-	  (mutable scanner)))
 (define-record-type parsing-state
-  (parent inline-parser-state)
+  (parent <inline-parser-state>)
   (fields include-source-locations?
 	  (mutable trailing-spaces)
 	  (mutable last-delimiter)
@@ -108,6 +111,22 @@
   (define scanner (inline-parser-state-scanner state))
   (define parsers (inline-parser-parsers inline-parser))
   (define processors (inline-parser-processors inline-parser))
+
+  (define (parser-match parsers)
+    (define pos (scanner:position scanner))
+    (let loop ((p* parsers))
+      (cond ((null? p*) #f)
+	    (((car p*) state) =>
+	     (lambda (parsed-inline)
+	       (let ((node (parsed-inline-node parsed-inline)))
+		 (scanner:position! scanner pos)
+		 (let ((source (markdown-node:source-locations node)))
+		   (unless (list-queue-empty? source)
+		     (markdown-node:source-locations-set! node source)))
+		 (list node))))
+	    (else (loop (cdr p*))))))
+  (define (processor-match processors)
+    #f)
   (let ((c (scanner:peek scanner)))
     (case c
       ((#\[) (list (inline-parser:parse-open-blacket inline-parser)))
@@ -115,16 +134,13 @@
       ((#\]) (list (inline-parser:parse-close-blacket inline-parser)))
       ((#\newline) (list (inline-parser:parse-line-break inline-parser)))
       (else
-       (cond ((not c) #f)
-	     ((hashtable-ref parsers c #f) =>
-	      (lambda (parser)
-		;; DO IT
-		))
-	     ((hashtable-ref processors c #f) =>
-	      (lambda (processor)
-		;; DO IT
-		))
-	     (else (list (inline-parser:parse-text inline-parser))))))))
+       (if (not c)
+	   #f
+	   (or (cond ((hashtable-ref parsers c #f) => parser-match)
+		       (else #f))
+	       (cond ((hashtable-ref processors c #f) => processor-match)
+		     (else #f))
+	       (list (inline-parser:parse-text inline-parser))))))))
 
 (define (inline-parser:text inline-parser source-lines)
   (define state (inline-parser-parsing-state inline-parser))
