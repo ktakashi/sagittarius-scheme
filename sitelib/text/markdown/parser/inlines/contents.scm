@@ -37,9 +37,17 @@
 
 	    parsed-inline:none parsed-inline:of
 	    parsed-inline? parsed-inline-node parsed-inline-position
+
+	    try-parse-backslash
+	    try-parse-backticks
 	    )
     (import (rnrs)
-	    (core misc))
+	    (core misc)
+	    (srfi :13 strings)
+	    (text markdown parser nodes)
+	    (text markdown parser parsing)
+	    (text markdown parser scanner)
+	    (text markdown parser source))
 
 (define-record-type inline-parser-state
   (fields block scanner))
@@ -51,4 +59,58 @@
 
 (define (parsed-inline:none) #f)
 
+(define (try-parse-backslash state)
+  (define scanner (inline-parser-state-scanner state))
+  (define block (inline-parser-state-block state))
+  (scanner:next! scanner) ;; #\\
+  (let ((c (scanner:peek scanner)))
+    (cond ((eqv? c #\newline)
+	   (scanner:next! scanner)
+	   (parsed-inline:of (make-linebreak-node block)
+			     (scanner:position scanner)))
+	  ((or (eqv? c #\-) (parsing:escapable? c))
+	   (scanner:next! scanner)
+	   (parsed-inline:of (make-text-node block (string c))
+			     (scanner:position scanner)))
+	  (else
+	   (parsed-inline:of (make-text-node block "\\")
+			     (scanner:position scanner))))))
+
+(define (try-parse-backticks state)
+  (define scanner (inline-parser-state-scanner state))
+  (define block (inline-parser-state-block state))
+  (define start (scanner:position scanner))
+  (define open-ticks (scanner:match-char scanner #\`))
+
+  (define (strip content)
+    (define len (string-length content))
+    (if (and (>= len 3)
+	     (eqv? (string-ref content 0) #\space)
+	     (eqv? (string-ref content (- len 1)) #\space)
+	     (string-any (lambda (c) (not (eqv? c #\space))) content))
+	(substring content 1 (- len 1))
+	content))
+  (let ((after-opening (scanner:position scanner)))
+    (let loop ()
+      (cond ((positive? (scanner:find-char scanner #\`))
+	     (let* ((before-closing (scanner:position scanner))
+		    (count (scanner:match-char scanner #\`)))
+	       (if (= open-ticks count)
+		   (let* ((source (scanner:source scanner
+						  after-opening
+						  before-closing))
+			  (content (string-map
+				    (lambda (c) (if (eqv? c #\newline)
+						    #\space
+						    c))
+				    (source-lines:content source))))
+		     (parsed-inline:of
+		      (make-code-node block (strip content))
+		      (scanner:position scanner)))
+		   (loop))))
+	    (else
+	     (let ((source (scanner:source scanner start after-opening)))
+	       (parsed-inline:of
+		(make-text-node block (source-line-content source))
+		after-opening)))))))
 )

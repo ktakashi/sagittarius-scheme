@@ -64,6 +64,8 @@
 	    make-softbreak-node softbreak-node?
 	    make-link-node link-node? link-node-destination link-node-title
 	    make-image-node image-node? image-node-destination image-node-title
+	    (rename (code-node make-code-node))
+	    code-node? code-node:literal-set! code-node:literal
 	    
 	    *commonmark-namespace*
 
@@ -328,7 +330,6 @@
 (define (text-node document content)
   (define text (make-text-node document content))
   (text-node:content-set! text content))
-
 (define (text-node:content-set! text content)
   (markdown-node:set-text! text content))
 
@@ -336,5 +337,11 @@
 (define-markdown-node softbreak)
 (define-markdown-node (link (attribute destination) (attribute title)))
 (define-markdown-node (image (attribute destination) (attribute title)))
-
+(define-markdown-node code)
+(define (code-node doc literal)
+  (let ((node (make-code-node doc)))
+    (code-node:literal-set! node literal)))
+(define (code-node:literal-set! node literal)
+  (markdown-node:set-text! node literal))
+(define (code-node:literal node) (markdown-node:get-text node))
 )

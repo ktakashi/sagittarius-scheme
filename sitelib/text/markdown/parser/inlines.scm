@@ -79,6 +79,8 @@
 	      (lambda (context)
 		(let ((parsers (make-eqv-hashtable)))
 		  ;; TODO setup inline parsers
+		  (hashtable-set! parsers #\\ (list try-parse-backslash))
+		  (hashtable-set! parsers #\` (list try-parse-backticks))
 		  (p #f
 		     context
 		     (calculate-delimiter-processors
@@ -119,13 +121,15 @@
 	    (((car p*) state) =>
 	     (lambda (parsed-inline)
 	       (let ((node (parsed-inline-node parsed-inline)))
-		 (scanner:position! scanner pos)
+		 (scanner:position! scanner
+				    (parsed-inline-position parsed-inline))
 		 (let ((source (markdown-node:source-locations node)))
 		   (unless (list-queue-empty? source)
 		     (markdown-node:source-locations-set! node source)))
 		 (list node))))
 	    (else (loop (cdr p*))))))
   (define (processor-match processors)
+    
     #f)
   (let ((c (scanner:peek scanner)))
     (case c
@@ -134,13 +138,12 @@
       ((#\]) (list (inline-parser:parse-close-blacket inline-parser)))
       ((#\newline) (list (inline-parser:parse-line-break inline-parser)))
       (else
-       (if (not c)
-	   #f
-	   (or (cond ((hashtable-ref parsers c #f) => parser-match)
-		       (else #f))
-	       (cond ((hashtable-ref processors c #f) => processor-match)
-		     (else #f))
-	       (list (inline-parser:parse-text inline-parser))))))))
+       (and c
+	    (or (cond ((hashtable-ref parsers c #f) => parser-match)
+		      (else #f))
+		(cond ((hashtable-ref processors c #f) => processor-match)
+		      (else #f))
+		(list (inline-parser:parse-text inline-parser))))))))
 
 (define (inline-parser:text inline-parser source-lines)
   (define state (inline-parser-parsing-state inline-parser))
