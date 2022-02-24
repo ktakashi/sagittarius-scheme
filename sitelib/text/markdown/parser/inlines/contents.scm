@@ -40,14 +40,18 @@
 
 	    try-parse-backslash
 	    try-parse-backticks
+	    try-parse-entity
 	    )
     (import (rnrs)
 	    (core misc)
+	    (srfi :2 and-let*)
 	    (srfi :13 strings)
+	    (srfi :14 char-sets)
 	    (text markdown parser nodes)
 	    (text markdown parser parsing)
 	    (text markdown parser scanner)
-	    (text markdown parser source))
+	    (text markdown parser source)
+	    (text xml entities))
 
 (define-record-type inline-parser-state
   (fields block scanner))
@@ -113,4 +117,56 @@
 	       (parsed-inline:of
 		(make-text-node block (source-line-content source))
 		after-opening)))))))
+
+(define ascii:hex-digit
+  (char-set-intersection char-set:hex-digit char-set:ascii))
+(define ascii:digit (char-set-intersection char-set:digit char-set:ascii))
+(define ascii:letter (char-set-intersection char-set:letter char-set:ascii))
+(define ascii:letter+digit
+  (char-set-intersection char-set:letter+digit char-set:ascii))
+(define (try-parse-entity state)
+  (define scanner (inline-parser-state-scanner state))
+  (define start (scanner:position scanner))
+
+  (define (entity scanner start)
+    (define block (inline-parser-state-block state))
+    (define position (scanner:position scanner))
+    (define source (scanner:source scanner start position))
+    (define (resolve-entity text)
+      (if (and (string-prefix? "&" text) (string-suffix? ";" text))
+	  (let ((v (substring text 1 (- (string-length text) 1))))
+	    (cond ((string-prefix? "#" v)
+		   (let ((n (if (memv (string-ref v 1) '(#\x #\X))
+				(string->number v)
+				(let ((v (substring v 1 (string-length v))))
+				  (string->number v)))))
+		     (or (and n (string (integer->char n)))
+			 "\xFFFD;")))
+		  ((xml-entity-name->char v) => string)
+		  (else text)))
+	  text))
+    (let ((text (source-lines:content source)))
+      (parsed-inline:of (make-text-node block (resolve-entity text)) position)))
+    
+  (scanner:next! scanner) ;; skip #\&
+  (let ((c (scanner:peek scanner)))
+    (cond ((eqv? c #\#)
+	   (scanner:next! scanner)
+	   (let-values (((cset bound)
+			 (if (or (scanner:next-char? scanner #\x)
+				 (scanner:next-char? scanner #\X))
+			     (values char-set:hex-digit 6)
+			     (values char-set:digit 7))))
+	     (or (and-let* ((n (scanner:match-charset scanner cset))
+			    ( (<= 1 n bound) )
+			    ( (scanner:next-char? scanner #\;) ))
+		   (entity scanner start))
+		 (parsed-inline:none))))
+	  ((char-set-contains? ascii:letter c)
+	   (scanner:match-charset scanner ascii:letter+digit)
+	   (if (scanner:next-char? scanner #\;)
+	       (entity scanner start)
+	       (parsed-inline:none)))
+	  (else (parsed-inline:none)))))
+	  
 )

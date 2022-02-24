@@ -60,6 +60,13 @@ unicode()
     $SASH ./script/compile-unicode.scm $1
 }
 
+html()
+{
+    echo Generating HTML entities
+    $SASH ./script/html-entities.scm -o sitelib/text/xml/entities-list.scm $1
+}
+
+
 dist() {
     if [ $# -ne 1 ]; then
 	echo Usage: $0 src-dir
@@ -115,6 +122,7 @@ usage()
     echo "    srfi:       generates R7RS style SRFI libraries"
     echo "    tz:         generates TZ database"
     echo "    unicode:    generates Unicode code points"
+    echo "    html:       generates HTML entities"
     echo "    clean:      cleans generated files"
 }
 
@@ -126,14 +134,15 @@ if [ $# -ge 1 ] ; then
     case $name in
 	dist)    dist $1;;
 	stub)    stub $1;;
-	gen)     stub $1; precomp $1; srfi; tzdata; unicode;;
+	gen)     stub $1; precomp $1; srfi; tzdata; unicode; html;; 
 	srfi)    srfi $1;;
 	tz)      tzdata $1;;
 	unicode) unicode $1;;
+	html)    html $1;;
 	precomp) precomp $1;;
 	clean)   
 	    stub "-c"; precomp "-c"; srfi "-c" ; 
-	    tzdata "-c"; unicode "-c";;
+	    tzdata "-c"; unicode "-c"; html "-c";;
 	insn)    geninsn $1;;
 	*)       usage ;;
     esac

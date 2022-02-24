@@ -81,6 +81,7 @@
 		  ;; TODO setup inline parsers
 		  (hashtable-set! parsers #\\ (list try-parse-backslash))
 		  (hashtable-set! parsers #\` (list try-parse-backticks))
+		  (hashtable-set! parsers #\& (list try-parse-entity))
 		  (p #f
 		     context
 		     (calculate-delimiter-processors
@@ -127,9 +128,10 @@
 		   (unless (list-queue-empty? source)
 		     (markdown-node:source-locations-set! node source)))
 		 (list node))))
-	    (else (loop (cdr p*))))))
+	    (else
+	     (scanner:position! scanner pos)
+	     (loop (cdr p*))))))
   (define (processor-match processors)
-    
     #f)
   (let ((c (scanner:peek scanner)))
     (case c
@@ -331,6 +333,7 @@
 (define (inline-parser:parse-text inline-parser)
   (define state (inline-parser-parsing-state inline-parser))
   (define scanner (inline-parser-state-scanner state))
+  (define start (scanner:position scanner))
   (define (scan-until-special-char inline-parser scanner)
     (let loop ((c (scanner:peek scanner)))
       (if (or (not c) (inline-parser:special-char? inline-parser c))
@@ -351,8 +354,8 @@
 	     ;; for the last line, both tabs and spaces are trimmed
 	     (string-trim-right content parsing:space/tab?))
 	    (else content))))
-  (let* ((start (scanner:position scanner))
-	 (c (scan-until-special-char inline-parser scanner))
+  (scanner:next! scanner)
+  (let* ((c (scan-until-special-char inline-parser scanner))
 	 (source (scanner:source scanner start (scanner:position scanner)))
 	 (text (make-text-node (inline-parser-state-block state)
 			       (get-content c source))))
