@@ -77,6 +77,12 @@ echo "Generating Unicode codepoints"
 call :invoke ./script/compile-unicode.scm %1
 goto:eof
 
+rem html
+:html
+echo "Generating HTML entries"
+call :invoke ./script/html-entries.scm -o sitelib/text/xml/entities-list.scm %1
+goto:eof
+
 rem gen
 :gen
 call :stub
@@ -84,6 +90,7 @@ call :precomp
 call :srfi
 call :tz
 call :unicode
+call :html
 goto:eof
 
 rem clean
@@ -93,6 +100,7 @@ call :precomp "-c"
 call :srfi "-c"
 call :tz "-c"
 call :unicode "-c"
+call :html "-c"
 goto:eof
 
 rem entry point
@@ -110,6 +118,7 @@ echo "    stub:       generates stub files"
 echo "    srfi:       generates R7RS style SRFI libraries"
 echo "    tz:         generates TZ database"
 echo "    unicode:    generates Unicode codepoints"
+echo "    html:       generates HTML entries"
 echo "    clean:      cleasn generated files"
 
 goto :end
