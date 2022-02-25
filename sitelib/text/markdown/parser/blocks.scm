@@ -341,7 +341,8 @@
 		   (others (fenced-code-block-parser-other-lines self)))
 
 	       (code-block-node-info-set! block
-		(escaping:unescape (and (not (string-null? first)) first)))
+		(escaping:unescape 
+		 (or (and (not (string-null? first)) first) "")))
 	       (code-block-node:literal-set! block (string-join
 						    (list-queue-list others)
 						    "\n"))))

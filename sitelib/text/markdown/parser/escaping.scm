@@ -31,15 +31,51 @@
 #!nounbound
 (library (text markdown parser escaping)
     (export escaping:normalize-label
-	    escaping:unescape)
+	    escaping:unescape
+	    escaping:resolve-entity)
     (import (rnrs)
 	    (srfi :13 strings)
-	    (srfi :115 regexp))
+	    (srfi :115 regexp)
+	    (text markdown parser parsing)
+	    (text xml entities))
 
 (define (escaping:normalize-label label)
   (let ((s (string-upcase (string-downcase (string-trim-both label)))))
     (regexp-replace-all (rx (+ space)) s " ")))
 
-(define (escaping:unescape str) str) ;; dummy for now
+(define entity/escape
+  (rx (w/nocase (or ($ #\\ any)
+		    ($ #\& (or (: "#x" (** 1 6 hex-digit))
+			       (w/ascii (** 1 7 num))
+			       (w/ascii (** 1 31 alnum)))
+		       #\;)))))
+(define (escaping:unescape str)
+  (define (replace-all str)
+    (regexp-replace-all entity/escape str
+     (lambda (m)
+       (let ((s (regexp-match-submatch m 0)))
+	 (cond ((and (= (string-length s) 2) (eq? (string-ref s 0) #\\))
+		(let ((c (string-ref s 1)))
+		  (if (parsing:escapable? c)
+		      (string c)
+		      s)))
+	       (else (escaping:resolve-entity s)))))))
+  (cond ((string-any (lambda (c) (or (eqv? c #\&) (eqv? c #\\))) str)
+	 (replace-all str))
+	(else str)))
+
+(define (escaping:resolve-entity str)
+  (if (and (string-prefix? "&" str) (string-suffix? ";" str))
+      (let ((v (substring str 1 (- (string-length str) 1))))
+	(cond ((string-prefix? "#" v)
+	       (let ((n (if (memv (string-ref v 1) '(#\x #\X))
+			    (string->number v)
+			    (let ((v (substring v 1 (string-length v))))
+			      (string->number v)))))
+		 (or (and n (string (integer->char n)))
+		     "\xFFFD;")))
+	      ((xml-entity-name->char v) => string)
+	      (else str)))
+      str))
 
 )

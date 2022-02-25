@@ -226,16 +226,16 @@
 (define html-block-patterns
   `#(
      (#f #f) ;; block type 0, not used
-     (,(rx "<" (w/nocase (|\|| "script" "pre" "style" "textarea"))
-	   (|\|| space ">" eol))
-      ,(rx "</" (w/nocase (|\|| "script" "pre" "style" "textarea")) ">"))
+     (,(rx "<" (w/nocase (or "script" "pre" "style" "textarea"))
+	   (or space ">" eol))
+      ,(rx "</" (w/nocase (or "script" "pre" "style" "textarea")) ">"))
      (,(rx bol "<!--")        ,(rx "-->")) ;; comment
      (,(rx bol "<?")          ,(rx "?>"))  ;; PI
      (,(rx bol "<!" (/ "AZ")) ,(rx ">"))	  ;; <!ATTR ... > or so
      (,(rx bol "<![CDATA[")   ,(rx "]]>")) ;; <![CDATA[ ... ]]>
      (,(rx "<" (? "/")
 	   (w/nocase
-	    (|\||
+	    (or
 	     "address" "article" "aside"
 	     "base" "basefont" "blockquote" "body"
 	     "caption" "center" "col" "colgroup"
@@ -251,16 +251,16 @@
 	     "section" "source" "summary"
 	     "table" "tbody" "td" "tfoot" "thead" "title" "tr" "track"
 	     "ul"))
-	   (|\|| space (: (? "/") ">") eol))
+	   (or space (: (? "/") ">") eol))
       #t)
-     (,(rx bol (|\||
+     (,(rx bol (or
 		(w/nocase "<" (/ "AZaz") (* (/ "AZaz09"))
 			  ;; attribute
 			  (: (+ space) (/ "AZaz_:") (* (/ "AZaz09:._-")) ;; name
 			     (* space) "=" (* space)
-			     (|\|| (+ (~ ("\"'=<>`") (/ #\x0 #\x20)))
-				   (: #\' (~ #\') #\')
-				   (: #\' (~ #\") #\')))
+			     (or (+ (~ ("\"'=<>`") (/ #\x0 #\x20)))
+				 (: #\' (~ #\') #\')
+				 (: #\' (~ #\") #\')))
 			  (* space) (? #\/) ">")
 		(w/nocase "</" (/ "AZaz") (* (/ "AZaz09") (* space) ">")))
 	   (* space) eol)
