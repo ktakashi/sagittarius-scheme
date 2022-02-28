@@ -66,6 +66,9 @@
 	    make-image-node image-node? image-node-destination image-node-title
 	    (rename (code-node make-code-node))
 	    code-node? code-node:literal-set! code-node:literal
+	    (rename (html-inline make-html-inline-node))
+	    html-inline-node?
+	    html-inline-node:literal-set! html-inline-node:literal
 	    
 	    *commonmark-namespace*
 
@@ -344,4 +347,12 @@
 (define (code-node:literal-set! node literal)
   (markdown-node:set-text! node literal))
 (define (code-node:literal node) (markdown-node:get-text node))
+
+(define-markdown-node html-inline)
+(define (html-inline doc literal)
+  (let ((node (make-html-inline-node doc)))
+    (html-inline-node:literal-set! node literal)))
+(define (html-inline-node:literal-set! node literal)
+  (markdown-node:set-text! node literal))
+(define (html-inline-node:literal node) (markdown-node:get-text node))
 )

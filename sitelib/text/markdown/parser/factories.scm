@@ -229,10 +229,14 @@
      (,(rx "<" (w/nocase (or "script" "pre" "style" "textarea"))
 	   (or space ">" eol))
       ,(rx "</" (w/nocase (or "script" "pre" "style" "textarea")) ">"))
-     (,(rx bol "<!--")        ,(rx "-->")) ;; comment
-     (,(rx bol "<?")          ,(rx "?>"))  ;; PI
-     (,(rx bol "<!" (/ "AZ")) ,(rx ">"))	  ;; <!ATTR ... > or so
-     (,(rx bol "<![CDATA[")   ,(rx "]]>")) ;; <![CDATA[ ... ]]>
+     (,*parsing:html-comment-open-pattern*
+      ,*parsing:html-comment-close-pattern*) ;; comment
+     (,*parsing:html-pi-open-pattern*
+      ,*parsing:html-pi-close-pattern*)	   ;; PI
+     (,*parsing:html-declaration-open-pattern*
+      ,*parsing:html-declaration-close-pattern*) ;; <!ATTR ... > or so
+     (,*parsing:html-cdata-open-pattern*
+      ,*parsing:html-cdata-close-pattern*) ;; <![CDATA[ ... ]]>
      (,(rx "<" (? "/")
 	   (w/nocase
 	    (or
@@ -253,16 +257,8 @@
 	     "ul"))
 	   (or space (: (? "/") ">") eol))
       #t)
-     (,(rx bol (or
-		(w/nocase "<" (/ "AZaz") (* (/ "AZaz09"))
-			  ;; attribute
-			  (: (+ space) (/ "AZaz_:") (* (/ "AZaz09:._-")) ;; name
-			     (* space) "=" (* space)
-			     (or (+ (~ ("\"'=<>`") (/ #\x0 #\x20)))
-				 (: #\' (~ #\') #\')
-				 (: #\' (~ #\") #\')))
-			  (* space) (? #\/) ">")
-		(w/nocase "</" (/ "AZaz") (* (/ "AZaz09") (* space) ">")))
+     (,(rx (or ,*parsing:html-open-tag-pattern*
+	       ,*parsing:html-close-tag-pattern*)
 	   (* space) eol)
       #t)))
 (define (try-start-html-block parser-state matched-block-parser)

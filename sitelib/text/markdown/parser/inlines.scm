@@ -43,8 +43,9 @@
 	    (core misc)
 	    (srfi :2 and-let*)
 	    (srfi :13 strings)
+	    (srfi :14 char-sets)
+	    (srfi :115 regexp)
 	    (srfi :117 list-queues)
-	    (text markdown parser inlines contents)
 	    (text markdown parser escaping)
 	    (text markdown parser link-reference)
 	    (text markdown parser nodes)
@@ -52,8 +53,11 @@
 	    (text markdown parser scanner)
 	    (text markdown parser source))
 
+(define-record-type inline-parser-state
+  (fields block scanner))
+
 (define-record-type parsing-state
-  (parent <inline-parser-state>)
+  (parent inline-parser-state)
   (fields include-source-locations?
 	  (mutable trailing-spaces)
 	  (mutable last-delimiter)
@@ -73,20 +77,13 @@
   (fields (mutable parsing-state)
 	  context
 	  processors ;; delimiter processors
-	  parsers    ;; inline parsers
 	  )
   (protocol (lambda (p)
 	      (lambda (context)
-		(let ((parsers (make-eqv-hashtable)))
-		  ;; TODO setup inline parsers
-		  (hashtable-set! parsers #\\ (list try-parse-backslash))
-		  (hashtable-set! parsers #\` (list try-parse-backticks))
-		  (hashtable-set! parsers #\& (list try-parse-entity))
-		  (p #f
-		     context
-		     (calculate-delimiter-processors
-		      (inline-parser-context-processors context))
-		     parsers))))))
+		(p #f
+		   context
+		   (calculate-delimiter-processors
+		    (inline-parser-context-processors context)))))))
 
 (define (calculate-delimiter-processors processors)
   (let ((processors (make-eqv-hashtable (length processors))))
@@ -112,38 +109,32 @@
 (define (inline-parser:parse-inline! inline-parser)
   (define state (inline-parser-parsing-state inline-parser))
   (define scanner (inline-parser-state-scanner state))
-  (define parsers (inline-parser-parsers inline-parser))
   (define processors (inline-parser-processors inline-parser))
-
-  (define (parser-match parsers)
-    (define pos (scanner:position scanner))
-    (let loop ((p* parsers))
-      (cond ((null? p*) #f)
-	    (((car p*) state) =>
-	     (lambda (parsed-inline)
-	       (let ((node (parsed-inline-node parsed-inline)))
-		 (scanner:position! scanner
-				    (parsed-inline-position parsed-inline))
-		 (let ((source (markdown-node:source-locations node)))
-		   (unless (list-queue-empty? source)
-		     (markdown-node:source-locations-set! node source)))
-		 (list node))))
-	    (else
-	     (scanner:position! scanner pos)
-	     (loop (cdr p*))))))
+  (define (single-char inline-parser scanner)
+    (let ((s (scanner:position scanner)))
+      (scanner:next! scanner)
+      (let ((e (scanner:position scanner)))
+	(inline-parser:text inline-parser (scanner:source scanner s e)))))
   (define (processor-match processors)
     #f)
+
   (let ((c (scanner:peek scanner)))
     (case c
       ((#\[) (list (inline-parser:parse-open-blacket inline-parser)))
       ((#\!) (list (inline-parser:parse-bang inline-parser)))
       ((#\]) (list (inline-parser:parse-close-blacket inline-parser)))
       ((#\newline) (list (inline-parser:parse-line-break inline-parser)))
+      ((#\\) (list (inline-parser:parse-backslash inline-parser)))
+      ((#\`) (list (inline-parser:parse-backticks inline-parser)))
+      ((#\&) (list (inline-parser:parse-entity inline-parser)))
+      ((#\<)
+       (cond ((hashtable-ref processors c #f) => processor-match) ;; TODO
+	     (else (list (or (inline-parser:parse-auto-link inline-parser)
+			     (inline-parser:parse-html-inline inline-parser)
+			     (single-char inline-parser scanner))))))
       (else
        (and c
-	    (or (cond ((hashtable-ref parsers c #f) => parser-match)
-		      (else #f))
-		(cond ((hashtable-ref processors c #f) => processor-match)
+	    (or (cond ((hashtable-ref processors c #f) => processor-match)
 		      (else #f))
 		(list (inline-parser:parse-text inline-parser))))))))
 
@@ -330,6 +321,180 @@
       (make-linebreak-node (inline-parser-state-block state))
       (make-softbreak-node (inline-parser-state-block state))))
 
+(define (inline-parser:parse-backslash inline-parser)
+  (define state (inline-parser-parsing-state inline-parser))
+  (define scanner (inline-parser-state-scanner state))
+  (define block (inline-parser-state-block state))
+  (scanner:next! scanner) ;; #\\
+  (let ((c (scanner:peek scanner)))
+    (cond ((eqv? c #\newline)
+	   (scanner:next! scanner)
+	   (make-linebreak-node block))
+	  ((or (eqv? c #\-) (parsing:escapable? c))
+	   (scanner:next! scanner)
+	   (make-text-node block (string c)))
+	  (else
+	   (make-text-node block "\\")))))
+
+(define (inline-parser:parse-backticks inline-parser)
+  (define state (inline-parser-parsing-state inline-parser))
+  (define scanner (inline-parser-state-scanner state))
+  (define block (inline-parser-state-block state))
+  (define start (scanner:position scanner))
+  (define open-ticks (scanner:match-char scanner #\`))
+
+  (define (strip content)
+    (define len (string-length content))
+    (if (and (>= len 3)
+	     (eqv? (string-ref content 0) #\space)
+	     (eqv? (string-ref content (- len 1)) #\space)
+	     (string-any (lambda (c) (not (eqv? c #\space))) content))
+	(substring content 1 (- len 1))
+	content))
+  (let ((after-opening (scanner:position scanner)))
+    (let loop ()
+      (cond ((positive? (scanner:find-char scanner #\`))
+	     (let* ((before-closing (scanner:position scanner))
+		    (count (scanner:match-char scanner #\`)))
+	       (if (= open-ticks count)
+		   (let* ((source (scanner:source scanner
+						  after-opening
+						  before-closing))
+			  (content (string-map
+				    (lambda (c) (if (eqv? c #\newline)
+						    #\space
+						    c))
+				    (source-lines:content source))))
+		     (make-code-node block (strip content)))
+		   (loop))))
+	    (else
+	     (let ((source (scanner:source scanner start after-opening)))
+	       (scanner:position! scanner after-opening)
+	       (inline-parser:text inline-parser source)))))))
+
+(define ascii:hex-digit
+  (char-set-intersection char-set:hex-digit char-set:ascii))
+(define ascii:digit (char-set-intersection char-set:digit char-set:ascii))
+(define ascii:letter (char-set-intersection char-set:letter char-set:ascii))
+(define ascii:letter+digit
+  (char-set-intersection char-set:letter+digit char-set:ascii))
+
+(define (inline-parser:parse-entity inline-parser)
+  (define state (inline-parser-parsing-state inline-parser))
+  (define scanner (inline-parser-state-scanner state))
+  (define start (scanner:position scanner))
+
+  (define (entity scanner start)
+    (define block (inline-parser-state-block state))
+    (define position (scanner:position scanner))
+    (define source (scanner:source scanner start position))
+    (let ((text (source-lines:content source)))
+      (make-text-node block (escaping:resolve-entity text))))
+
+  (scanner:next! scanner) ;; skip #\&
+  (let ((c (scanner:peek scanner))
+	(pos (scanner:position scanner)))
+    (define (not-entity)
+      (scanner:position! scanner pos)
+      (inline-parser:text inline-parser (scanner:source scanner start pos)))
+    (cond ((eqv? c #\#)
+	   (scanner:next! scanner)
+	   (let-values (((cset bound)
+			 (if (or (scanner:next-char? scanner #\x)
+				 (scanner:next-char? scanner #\X))
+			     (values char-set:hex-digit 6)
+			     (values char-set:digit 7))))
+	     (or (and-let* ((n (scanner:match-charset scanner cset))
+			    ( (<= 1 n bound) )
+			    ( (scanner:next-char? scanner #\;) ))
+		   (entity scanner start))
+		 (not-entity))))
+	  ((char-set-contains? ascii:letter c)
+	   (scanner:match-charset scanner ascii:letter+digit)
+	   (if (scanner:next-char? scanner #\;)
+	       (entity scanner start)
+	       (not-entity)))
+	  (else (not-entity)))))
+
+(define *uri*
+  (rx (: (/ "az") (** 1 31 (or (/ "azAZ09") ".+-")) #\:
+	 (* (~ #\< #\> space control)))))
+(define *email*
+  (rx (: (+ (or (/ "azAZ09") ".!#$%&'*+/=?^_`{|}~-")) #\@
+	 (/ "azAZ09")
+	 (? (** 0 61 (or (/ "azAZ09") #\-) (/ "azAZ09"))
+	    (* (: #\. (/ "azAZ09")
+		  (? (** 0 61 (or (/ "azAZ09") #\-) (/ "azAZ09")))))))))
+(define (inline-parser:parse-auto-link inline-parser)
+  (define state (inline-parser-parsing-state inline-parser))
+  (define scanner (inline-parser-state-scanner state))
+  (define start (scanner:position scanner))
+  (define (uri/email c)
+    (cond ((regexp-matches *uri* c) c)
+	  ((regexp-matches *email* c) (string-append "mailto:" c))
+	  (else #f)))
+  (define (rollback) (scanner:position! scanner start) #f)
+  (scanner:next! scanner)
+  (let ((s (scanner:position scanner)))
+    (or (and (scanner:find-char scanner #\>)
+	     (let* ((e (scanner:position scanner))
+		    (source (scanner:source scanner s e))
+		    (c (source-lines:content source)))
+	       (scanner:next! scanner)
+	       (cond ((uri/email c) =>
+		      (lambda (dest)
+			(let* ((block (inline-parser-state-block state))
+			       (link (make-link-node block dest #f))
+			       (text (make-text-node link c)))
+			  (markdown-node:source-locations-set!
+			   text (source-lines:source-loactions source))
+			  (markdown-node:append-child! link text)
+			  link)))
+		     (else #f))))
+	(rollback))))
+
+(define (open-close-pattern open close)
+  (rx ,open (+ (: (neg-look-ahead ,close) any)) ,close))
+(define *html-comment-pattern*
+  (open-close-pattern *parsing:html-comment-open-pattern*
+		      *parsing:html-comment-close-pattern*))
+(define *html-cdata-pattern*
+  (open-close-pattern *parsing:html-cdata-open-pattern*
+		      *parsing:html-cdata-close-pattern*))
+(define *html-pi-pattern*
+  (open-close-pattern *parsing:html-pi-open-pattern*
+		      *parsing:html-pi-close-pattern*))
+(define *html-declaration-pattern*
+  (open-close-pattern *parsing:html-declaration-open-pattern*
+		      *parsing:html-declaration-close-pattern*))
+
+(define *html-tag-pattern*
+  (rx ($ (or ,*html-comment-pattern*
+	     ,*html-cdata-pattern*
+	     ,*html-pi-pattern*
+	     ,*html-declaration-pattern*
+	     ,*parsing:html-open-tag-pattern*
+	     ,*parsing:html-close-tag-pattern*))))
+
+(define (inline-parser:parse-html-inline inline-parser)
+  (define state (inline-parser-parsing-state inline-parser))
+  (define scanner (inline-parser-state-scanner state))
+  (define start (scanner:position scanner))
+  (define (open-tag? scanner)
+    (let ((c (scanner:content scanner start)))
+      (cond ((regexp-search *html-tag-pattern* c) =>
+	     (lambda (m)
+	       (let ((v (regexp-match-submatch m 1)))
+		 ;; ugly...
+		 (do ((i 0 (+ i 1)) (len (string-length v)))
+		     ((= i len) v)
+		   (scanner:next! scanner)))))
+	    (else #f))))
+  (cond ((open-tag? scanner) =>
+	 (lambda (c)
+	   (make-html-inline-node (inline-parser-state-block state) c)))
+	(else #f)))
+
 (define (inline-parser:parse-text inline-parser)
   (define state (inline-parser-parsing-state inline-parser))
   (define scanner (inline-parser-state-scanner state))
@@ -369,10 +534,8 @@
   )
 
 (define (inline-parser:special-char? inline-parser c)
-  (define parsers (inline-parser-parsers inline-parser))
   (define processors (inline-parser-processors inline-parser))
-  (or (memv c '(#\[ #\] #\! #\newline))
-      (hashtable-ref parsers c #f)
+  (or (memv c '(#\[ #\] #\! #\newline #\` #\\ #\& #\<))
       (hashtable-ref processors c #f)))
 
 ;; bracket

@@ -39,11 +39,13 @@
 	    scanner:find-char scanner:find-charset
 	    scanner:position scanner:position!
 	    scanner:source
+	    scanner:content
 
 	    position?
 	    )
     (import (rnrs)
 	    (core misc)
+	    (srfi :13 strings)
 	    (srfi :14 char-sets)
 	    (text markdown parser source))
 
@@ -133,13 +135,13 @@
 (define (scanner:find-char s c)
   (let loop ((i 0))
     (let ((pc (scanner:peek s)))
-      (cond ((not pc) -1)
+      (cond ((not pc) #f)
 	    ((eqv? pc c) i)
 	    (else (scanner:next! s) (loop (+ i 1)))))))
 (define (scanner:find-charset s c)
   (let loop ((i 0))
     (let ((pc (scanner:peek s)))
-      (cond ((not pc) -1)
+      (cond ((not pc) #f)
 	    ((char-set-contains? c pc) i)
 	    (else (scanner:next! s) (loop (+ i 1)))))))
 
@@ -185,6 +187,25 @@
 	       (source-lines:add-line! source-lines
 		(source-line:substring last-line 0 end-index))))
 	  (source-lines:add-line! source-lines (vector-ref lines i))))))
+
+(define scanner:content
+  (case-lambda
+   ((scanner)
+    (string-join (map source-line-content
+		      (vector->list (scanner-lines scanner))) "\n"))
+   ((scanner begin)
+    (let ((begin-index (position-index begin))
+	  (begin-line-index (position-line-index begin))
+	  (lines (scanner-lines scanner)))
+      (let ((first-line (source-line-content
+			 (source-line:substring
+			  (vector-ref lines begin-line-index)
+			  begin-index)))
+	    (rest (vector->list (scanner-lines scanner)
+				(+ begin-line-index 1))))
+	(string-join (cons first-line (map source-line-content rest)) "\n"))))
+   ((scanner begin end)
+    (source-lines:content (scanner:source begin end)))))
 
 ;; private
 (define (scanner:set-line! s line)

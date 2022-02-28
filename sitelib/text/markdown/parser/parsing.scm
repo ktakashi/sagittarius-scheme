@@ -33,8 +33,21 @@
     (export +parsing-code-block-indent+
 	    parsing:columns->next-tab-stop
 	    parsing:space/tab?
-	    parsing:escapable?)
-    (import (rnrs))
+	    parsing:escapable?
+
+	    *parsing:html-comment-open-pattern*
+	    *parsing:html-comment-close-pattern*
+	    *parsing:html-pi-open-pattern*
+	    *parsing:html-pi-close-pattern*
+	    *parsing:html-declaration-open-pattern*
+	    *parsing:html-declaration-close-pattern*
+	    *parsing:html-cdata-open-pattern*
+	    *parsing:html-cdata-close-pattern*
+	    *parsing:html-open-tag-pattern*
+	    *parsing:html-close-tag-pattern*
+	    )
+    (import (rnrs)
+	    (srfi :115 regexp))
 
 (define +parsing-code-block-indent+ 4) ;; constant
 
@@ -47,6 +60,25 @@
 (define *escapable-chars*
   (string->list "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"))
 (define (parsing:escapable? c) (memv c *escapable-chars*))
-  
+
+(define *parsing:html-comment-open-pattern* (rx bol "<!--"))
+(define *parsing:html-comment-close-pattern* (rx "-->"))
+(define *parsing:html-pi-open-pattern* (rx bol "<?"))
+(define *parsing:html-pi-close-pattern* (rx "?>"))
+(define *parsing:html-declaration-open-pattern* (rx bol "<!" (/ "AZ")))
+(define *parsing:html-declaration-close-pattern* (rx ">"))
+(define *parsing:html-cdata-open-pattern* (rx bol "<![CDATA["))
+(define *parsing:html-cdata-close-pattern* (rx "]]>"))
+(define *parsing:html-open-tag-pattern*
+  (rx bol (w/nocase "<" (/ "AZaz") (* (/ "AZaz09"))
+		    ;; attribute
+		    (: (+ space) (/ "AZaz_:") (* (/ "AZaz09:._-")) ;; name
+		       (* space) "=" (* space)
+		       (or (+ (~ ("\"'=<>`") (/ #\x0 #\x20)))
+			   (: #\' (~ #\') #\')
+			   (: #\' (~ #\") #\')))
+		    (* space) (? #\/) ">")))
+(define *parsing:html-close-tag-pattern*
+  (rx bol (w/nocase "</" (/ "AZaz") (* (/ "AZaz09") (* space) ">"))))
 
 )
