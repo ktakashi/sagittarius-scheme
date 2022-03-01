@@ -34,11 +34,7 @@
 
 	    make-inline-parser-context inline-parser-context?
 	    
-	    make-inline-parser inline-parser?
-
-	    inline-parser-state?
-	    inline-parser-state-scanner
-	    inline-parser-state-block)
+	    make-inline-parser inline-parser?)
     (import (rnrs)
 	    (core misc)
 	    (srfi :2 and-let*)
@@ -53,15 +49,47 @@
 	    (text markdown parser scanner)
 	    (text markdown parser source))
 
-(define-record-type inline-parser-state
-  (fields block scanner))
 
-(define-record-type parsing-state
-  (parent inline-parser-state)
-  (fields include-source-locations?
-	  (mutable trailing-spaces)
-	  (mutable last-delimiter)
-	  (mutable last-bracket)))
+(define-record-type delimiter-processor
+  (fields opening-character
+	  closing-character
+	  (mutable min-length)
+	  process))
+(define-record-type staggered-delimiter-processor
+  (parent delimiter-processor)
+  (fields processors)
+  (protocol (lambda (n)
+	      (lambda (delim)
+		((n delim delim 0 staggered-delimiter-processor:process)
+		 (list-queue))))))
+
+(define (delimiter-processor:process dp opening-run closing-run)
+  (define process (delimiter-processor-process dp))
+  (process dp opening-run closing-run))
+
+;; TODO
+(define (staggered-delimiter-processor:process dp opening-run closing-run)
+  (define processors (staggered-delimiter-processor-processors dp))
+  (list-queue-front processors))
+(define (staggered-delimiter-processor:add! dp) #f)
+
+(define-vector-type inline-parser-state
+  (make-inline-parser-state block
+			    scanner
+			    include-source-locations?
+			    trailing-spaces
+			    last-delimiter
+			    last-bracket)
+  inline-parser-state
+  (block inline-parser-state-block)
+  (scanner inline-parser-state-scanner)
+  ;; FIXME
+  (include-source-locations? parsing-state-include-source-locations?)
+  (trailing-spaces parsing-state-trailing-spaces
+		   parsing-state-trailing-spaces-set!)
+  (last-delimiter parsing-state-last-delimiter
+		  parsing-state-last-delimiter-set!)
+  (last-bracket parsing-state-last-bracket parsing-state-last-bracket-set!))
 
 (define-vector-type inline-parser-context
   (make-inline-parser-context delimiter-processors definitions)
@@ -93,8 +121,8 @@
 (define (inline-parser:parse! inline-parser source-lines block)
   (define scanner (scanner:of source-lines))
   (define locs (source-lines:source-loactions source-lines))
-  (define state (make-parsing-state block scanner (not (null? locs))
-				    0 #f #f))
+  (define state (make-inline-parser-state block scanner (not (null? locs))
+					  0 #f #f))
   (inline-parser-parsing-state-set! inline-parser state)
   (let loop ()
     (cond ((inline-parser:parse-inline! inline-parser) =>
