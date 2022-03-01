@@ -31,6 +31,10 @@
   (define-syntax define-vector-type
     (lambda (x)
       (define (order-args args fs)
+	(unless (= (length args) (length fs))
+	  (syntax-violation 'define-vector-type
+	   "Constructor argument count doesn't match with field count"
+	   (syntax->datum args) (syntax->datum fs)))
 	(map (lambda (a) 
 	       (cond ((memp (lambda (f) (bound-identifier=? a f)) fs) => car)
 		     (else

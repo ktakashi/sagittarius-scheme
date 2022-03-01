@@ -49,6 +49,28 @@
 	    (text markdown parser scanner)
 	    (text markdown parser source))
 
+(define-vector-type delimiter
+  (%make-delimiter characters
+		   char
+		   original-length
+		   can-open?
+		   can-close?
+		   previous
+		   next)
+  delimiter?
+  (characters delimiter-characters)
+  (char delimiter-char)
+  (original-length delimiter-original-length)
+  (can-open? delimiter-can-open?)
+  (can-close? delimiter-can-close?)
+  (previous delimiter-previous delimiter-previous-set!)
+  (next delimiter-next delimiter-next-set!))
+
+(define (make-delimiter characters char can-open? can-close? previous)
+  (%make-delimiter characters char (list-queue-length characters)
+		   can-open? can-close? previous #f))
+(define (delimiter:length delimiter)
+  (list-queue-length (delimiter-characters delimiter)))
 
 (define-record-type delimiter-processor
   (fields opening-character
@@ -70,7 +92,14 @@
 ;; TODO
 (define (staggered-delimiter-processor:process dp opening-run closing-run)
   (define processors (staggered-delimiter-processor-processors dp))
-  (list-queue-front processors))
+  (define len (delimiter:length opening-run))
+  (define (find-processor len)
+    (let loop ((p* (list-queue-list processors)))
+      (cond ((null? p*) (list-queue-front processors))
+	    ((= (delimiter-processor-min-length (car p*)) len) (car p*))
+	    (else (loop (cdr p*))))))
+  (delimiter-processor:process (find-processor (delimiter:length opening-run))
+			       opening-run closing-run))
 (define (staggered-delimiter-processor:add! dp) #f)
 
 (define-vector-type inline-parser-state
