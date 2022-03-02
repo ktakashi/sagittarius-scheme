@@ -47,7 +47,8 @@
 	    (text markdown parser nodes)
 	    (text markdown parser parsing)
 	    (text markdown parser scanner)
-	    (text markdown parser source))
+	    (text markdown parser source)
+	    (util flexible-vector))
 
 (define-vector-type delimiter
   (%make-delimiter characters

@@ -32,13 +32,24 @@
 #!nounbound
 (library (util flexible-vector)
     (export flexible-vector?
+	    
+	    make-flexible-vector
 	    flexible-vector-size
-	    make-flexible-vector 
+	    (rename (flexible-vector-size flexible-vector-length)
+		    (%flexible-vector flexible-vector))
+	    flexible-vector-append flexible-vector-concatenate
 	    vector->flexible-vector list->flexible-vector
 	    flexible-vector->vector flexible-vector->list
 
-	    flexible-vector-ref flexible-vector-set!
-	    flexible-vector-insert! flexible-vector-delete!)
+	    flexible-vector-ref flexible-vector-front flexible-vector-back
+
+	    flexible-vector-set!
+	    flexible-vector-insert! flexible-vector-delete!
+	    flexible-vector-copy! flexible-vector-append!
+
+	    flexible-vector-index flexible-vector-index-right
+	    flexible-vector-any flexible-vector-every
+	    )
     (import (rnrs)
 	    (srfi :1 lists) ;; for reverse!
 	    (srfi :133 vectors))
@@ -54,11 +65,24 @@
 		  (assertion-violation 'make-flexible-vector
 		    "Initial capacity must be a fixnum" capacity))
 		(p (make-vector capacity default) 0 default)))))
+
+;;; constructors
+(define (%flexible-vector . args)
+  (let ((fv (make-flexible-vector (length args))))
+    (apply flexible-vector-insert! fv 0 args)))
+
+(define (flexible-vector-append . fv*) (flexible-vector-concatenate fv*))
+
+(define (flexible-vector-concatenate fv*)
+  (let ((e (apply vector-append (map flexible-vector-elements fv*))))
+    (vector->flexible-vector e)))
+
 (define (vector->flexible-vector vec . maybe-default)
   (let ((fv (apply make-flexible-vector 0 maybe-default)))
     (%fv-elements-set! fv (vector-copy vec))
     (%fv-size-set! fv (vector-length vec))
     fv))
+
 (define (list->flexible-vector l . maybe-default)
   (let* ((len (length l))
 	 (fv (apply make-flexible-vector len maybe-default))
@@ -67,8 +91,10 @@
     (do ((i 0 (+ i 1)) (l l (cdr l)))
 	((= i len) fv)
       (vector-set! e* i (car l)))))
+
 (define (flexible-vector->vector fv)
   (vector-copy (flexible-vector-elements fv) 0 (flexible-vector-size fv)))
+
 (define (flexible-vector->list fv)
   (do ((i 0 (+ i 1)) (r '() (cons (vector-ref e* i) r))
        (len (flexible-vector-size fv)) (e* (flexible-vector-elements fv)))
@@ -85,33 +111,95 @@
   (when (< current-size size) (expand fv size))
   fv)
 
+;;; accessors
 (define (flexible-vector-ref fv index)
   (when (>= index (flexible-vector-size fv))
     (assertion-violation 'flexible-vector-ref "Index out of bound" fv index))
   (vector-ref (flexible-vector-elements fv) index))
+
+(define (flexible-vector-front fv) (flexible-vector-ref fv 0))
+(define (flexible-vector-back fv)
+  (flexible-vector-ref fv (- (flexible-vector-size fv) 1)))
+
 (define (flexible-vector-set! fv index value)
-  (flexible-vector-ensure-size! fv (+ index 1))
-  (vector-set! (flexible-vector-elements fv) index value)
-  (let ((size (flexible-vector-size fv)))
-    (when (< size (+ index 1))
-      (%fv-size-set! fv (+ index 1)))))
-(define (flexible-vector-insert! fv index value)
   (define current-size (flexible-vector-size fv))
+  (flexible-vector-ensure-size! fv (+ index 1))
+  (let* ((elements (flexible-vector-elements fv))
+	 (r (if (not (= current-size index)) (vector-ref elements index))))
+    (vector-set! elements index value)
+    (let ((size (flexible-vector-size fv)))
+      (when (< size (+ index 1))
+	(%fv-size-set! fv (+ index 1))))
+    r))
+
+(define (flexible-vector-insert! fv index value . value*)
+  (define current-size (flexible-vector-size fv))
+  (define count (+ 1 (length value*)))
   (flexible-vector-ensure-size! fv (if (< index current-size)
-				       (+ current-size 1)
-				       (+ index 1)))
+				       (+ current-size count)
+				       (+ index count)))
   (let ((elements (flexible-vector-elements fv)))
     (when (< index current-size)
-      (vector-copy! elements (+ index 1) elements index current-size))
+      (vector-copy! elements (+ index count) elements index current-size))
     (vector-set! elements index value)
-    (%fv-size-set! fv (+ (if (< index current-size) current-size index) 1))))
+    (unless (null? value*)
+      (do ((i (+ index 1) (+ i 1)) (value* value* (cdr value*)))
+	  ((null? value*))
+	(vector-set! elements i (car value*))))
+    (%fv-size-set! fv (+ (if (< index current-size) current-size index) count))
+    fv))
+
+;; SRFI-43 order (not bytevector-copy!)
+(define flexible-vector-copy!
+  (case-lambda
+   ((dst dstart src) (flexible-vector-copy! dst dstart src 0))
+   ((dst dstart src sstart)
+    (flexible-vector-copy! dst dstart src sstart (flexible-vector-size src)))
+   ((dst dstart src sstart send)
+    (flexible-vector-ensure-size! dst (+ dstart send))
+    (vector-copy! (flexible-vector-elements dst) dstart
+		  (flexible-vector-elements src) sstart send)
+    (%fv-size-set! dst (+ (flexible-vector-size dst) send))
+    dst)))
+
+(define (flexible-vector-append! fv . fv*)
+  (if (null? fv*)
+      fv
+      (let* ((size (fold-left (lambda (acc fv)
+				(+ (flexible-vector-size fv) acc))
+			      (flexible-vector-size fv) fv*))
+	     (fv (flexible-vector-ensure-size! fv size)))
+	(do ((index (flexible-vector-size fv) (flexible-vector-size fv))
+	     (fv* fv* (cdr fv*)))
+	    ((null? fv*) fv)
+	  (flexible-vector-copy! fv index (car fv*))))))
+
 (define (flexible-vector-delete! fv index)
   (define current-size (flexible-vector-size fv))
   (when (or (< index 0) (> index current-size) (zero? current-size))
     (assertion-violation 'flexible-vector-delete!
 			 "Index out of bound" fv index))
-  (let ((elements (flexible-vector-elements fv)))
+  (let* ((elements (flexible-vector-elements fv))
+	 (r (vector-ref elements index)))
     (unless (= current-size (+ index 1))
       (vector-copy! elements index elements (+ index 1) current-size))
-    (%fv-size-set! fv (- current-size 1))))
+    (%fv-size-set! fv (- current-size 1))
+    r))
+
+(define (flexible-vector-clear! fv) (%fv-size-set! fv 0) fv)
+
+;;; filter
+(define (flexible-vector-index pred fx . fx*)
+  ;; lazy...
+  (apply vector-index pred (map flexible-vector-elements (cons fx fx*))))
+(define (flexible-vector-index-right pred fx . fx*)
+  ;; lazy...
+  (apply vector-index-right pred (map flexible-vector-elements (cons fx fx*))))
+(define (flexible-vector-any pred fx . fx*)
+  ;; lazy...
+  (apply vector-any pred (map flexible-vector-elements (cons fx fx*))))
+
+(define (flexible-vector-every pred fx . fx*)
+  ;; lazy...
+  (apply vector-every pred (map flexible-vector-elements (cons fx fx*))))
 )

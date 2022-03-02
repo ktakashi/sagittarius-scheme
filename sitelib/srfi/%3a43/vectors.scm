@@ -310,9 +310,9 @@
 	       (vectors (cons vec vectors)))
 	  (let loop ((i 0))
 	    (and (not (= i len))
-		(if (= i len-1)
-		    (apply pred? (vectors-ref vectors i))
-		    (or (apply pred? (vectors-ref vectors i))
+		 (if (= i len-1)
+		     (apply pred? (vectors-ref vectors i))
+		     (or (apply pred? (vectors-ref vectors i))
 			 (loop (+ i 1)))))))))
 
   (define (vector-every pred? vec . vectors)
