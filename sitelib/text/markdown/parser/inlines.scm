@@ -794,7 +794,9 @@
 	  (else (loop (delimiter-next closer))))))
 
 (define (inline-parser:merge-text-nodes! inline-parser block)
-  )
+  (when (markdown-node:first-child block)
+    ;; TODO
+    ))
 
 (define (inline-parser:special-char? inline-parser c)
   (define processors (inline-parser-processors inline-parser))
@@ -846,7 +848,7 @@
       (let ((opener (delimiter:opener opening-run))
 	    (closer (delimiter:closer closing-run))
 	    (locations (source-locations:empty)))
-	(let-values (((empasis used-delimiters)
+	(let-values (((emphasis used-delimiters)
 		      (if (and (>= (delimiter:length opening-run) 2)
 			       (>= (delimiter:length closing-run) 2))
 			  (values (make-strong-emphasis-node
@@ -857,11 +859,14 @@
 	    (source-locations:add! locations
 				   (markdown-node:source-locations n)))
 	  (for-each add! (delimiter:opener* opening-run used-delimiters))
-	  (generator-for-each add! (markdown-node-between opener closer))
+	  (generator-for-each (lambda (n)
+				(markdown-node:append-child! emphasis n)
+				(add! n))
+			      (markdown-node-between opener closer))
 	  (for-each add! (delimiter:closer* closing-run used-delimiters))
-	  (markdown-node:source-locations-set! empasis
+	  (markdown-node:source-locations-set! emphasis
 	   (source-locations:locations locations))
-	  (markdown-node:insert-after! opener empasis)
+	  (markdown-node:insert-after! opener emphasis)
 	  used-delimiters))))
 
 (define-record-type asterisk-delimiter-processor

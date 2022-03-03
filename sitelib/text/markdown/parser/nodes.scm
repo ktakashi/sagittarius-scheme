@@ -58,7 +58,7 @@
 	    make-custom-block-node custom-block-node?
 
 	    (rename (%text-node make-text-node)) text-node?
-	    text-node:content-set!
+	    text-node:content text-node:content-set!
 
 	    make-linebreak-node linebreak-node?
 	    make-softbreak-node softbreak-node?
@@ -81,6 +81,8 @@
 	    markdown-node-prev
 	    markdown-node-next
 	    markdown-node-children
+	    markdown-node:first-child
+	    markdown-node:last-child
 	    markdown-node:append-child!
 	    markdown-node:insert-after!
 	    markdown-node:get-attribute
@@ -224,6 +226,15 @@
 	       mut
 	       ...)))))))
 
+(define (markdown-node:first-child node)
+  (define children (markdown-node-children node))
+  (and (not (list-queue-empty? children))
+       (list-queue-front children)))
+(define (markdown-node:last-child node)
+  (define children (markdown-node-children node))
+  (and (not (list-queue-empty? children))
+       (list-queue-back children)))
+
 (define (markdown-node:append-child! node child)
   (define children (markdown-node-children node))
   (markdown-node:unlink! child)
@@ -238,20 +249,20 @@
   node)
 
 (define (markdown-node:insert-after! node sibling)
+  (define parent (markdown-node-parent node))
   (markdown-node:unlink! sibling)
   (markdown-node-next-set! sibling (markdown-node-next node))
   (when (markdown-node-next sibling)
     (markdown-node-prev-set! (markdown-node-next sibling) sibling))
   (markdown-node-prev-set! sibling node)
   (markdown-node-next-set! node sibling)
-  (markdown-node-parent-set! sibling (markdown-node-parent node))
+  (markdown-node-parent-set! sibling parent)
   (unless (markdown-node-next sibling)
-    (markdown-node-parent node)
-    (list-queue-add-back!
-     (markdown-node-children (markdown-node-parent sibling)) sibling))
-  (node:insert-before! (markdown-node-element node)
-		       (markdown-node-element sibling)
-		       (node-next-sibling (markdown-node-element node)))
+    (list-queue-add-back! (markdown-node-children parent) sibling))
+  (let ((n (markdown-node-element node)))
+    (node:insert-before! (node-parent-node n)
+			 (node-next-sibling n)
+			 (markdown-node-element sibling)))
   node)
 
 (define markdown-node:get-attribute
@@ -310,10 +321,10 @@
 
 (define (markdown-node-between start end)
   (make-unfold-generator
-   (lambda (s) (eq? s end))
+   (lambda (s) (or (not s) (eq? s end)))
    values
    (lambda (s) (markdown-node-next s))
-   start))
+   (markdown-node-next start)))
 
 
 (define-markdown-node document)
@@ -369,6 +380,7 @@
 (define (text-node:content-set! text content)
   (text-node-content-set! text content)
   (markdown-node:set-text! text content))
+(define (text-node:content text) (text-node-content text))
 
 (define-markdown-node linebreak)
 (define-markdown-node softbreak)
@@ -381,7 +393,7 @@
 (define (code-node:literal-set! node literal)
   (code-node-literal-set! node literal)
   (markdown-node:set-text! node literal))
-(define (code-node:literal node) (markdown-node:get-text node))
+(define (code-node:literal node) (code-node-literal node))
 
 (define-markdown-node html-inline (element "html_inline"))
 (define (%html-inline doc literal)

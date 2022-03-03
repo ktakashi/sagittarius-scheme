@@ -254,7 +254,8 @@
 	    (else (ancestor-of? root (node-parent-node e)))))
 	  
     (define (check-element attr e2)
-      (cond ((document? e2) (zero? (string-length (attr-value attr))))
+      (cond ((not e2) #f) ;; doesn't have parent yet
+	    ((document? e2) (zero? (string-length (attr-value attr))))
 	    ((ancestor-of? root e2) #f)
 	    ((element? e2)
 	     (let ((ns (named-node-map:get-named-item (element-attributes e2)
