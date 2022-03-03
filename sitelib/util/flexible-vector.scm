@@ -35,6 +35,7 @@
 	    
 	    make-flexible-vector
 	    flexible-vector-size
+	    flexible-vector-empty?
 	    (rename (flexible-vector-size flexible-vector-length)
 		    (%flexible-vector flexible-vector))
 	    flexible-vector-append flexible-vector-concatenate
@@ -44,7 +45,9 @@
 	    flexible-vector-ref flexible-vector-front flexible-vector-back
 
 	    flexible-vector-set!
-	    flexible-vector-insert! flexible-vector-delete!
+	    flexible-vector-insert!
+	    flexible-vector-insert-front! flexible-vector-insert-back!
+	    flexible-vector-delete!
 	    flexible-vector-copy! flexible-vector-append!
 
 	    flexible-vector-index flexible-vector-index-right
@@ -66,10 +69,14 @@
 		    "Initial capacity must be a fixnum" capacity))
 		(p (make-vector capacity default) 0 default)))))
 
+(define (flexible-vector-empty? fv) (zero? (flexible-vector-size fv)))
+
 ;;; constructors
 (define (%flexible-vector . args)
   (let ((fv (make-flexible-vector (length args))))
-    (apply flexible-vector-insert! fv 0 args)))
+    (if (null? args)
+	fv
+	(apply flexible-vector-insert! fv 0 args))))
 
 (define (flexible-vector-append . fv*) (flexible-vector-concatenate fv*))
 
@@ -148,6 +155,12 @@
 	(vector-set! elements i (car value*))))
     (%fv-size-set! fv (+ (if (< index current-size) current-size index) count))
     fv))
+
+;; Apparently, we need this for Markdown parser...
+(define (flexible-vector-insert-front! fv value . value*)
+  (apply flexible-vector-insert! fv 0 value value*))
+(define (flexible-vector-insert-back! fv value . value*)
+  (apply flexible-vector-insert! fv (flexible-vector-size fv) value value*))
 
 ;; SRFI-43 order (not bytevector-copy!)
 (define flexible-vector-copy!

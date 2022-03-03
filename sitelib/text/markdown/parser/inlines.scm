@@ -33,15 +33,20 @@
     (export inline-parser:parse!
 
 	    make-inline-parser-context inline-parser-context?
-	    
-	    make-inline-parser inline-parser?)
+	    make-inline-parser inline-parser?
+
+	    (rename (delimiter-processor <delimiter-processor>))
+	    delimiter-processor?
+	    )
     (import (rnrs)
 	    (core misc)
+	    (srfi :1 lists)
 	    (srfi :2 and-let*)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
 	    (srfi :115 regexp)
 	    (srfi :117 list-queues)
+	    (srfi :158 generators-and-accumulators)
 	    (text markdown parser escaping)
 	    (text markdown parser link-reference)
 	    (text markdown parser nodes)
@@ -68,10 +73,32 @@
   (next delimiter-next delimiter-next-set!))
 
 (define (make-delimiter characters char can-open? can-close? previous)
-  (%make-delimiter characters char (list-queue-length characters)
+  (%make-delimiter characters char (flexible-vector-size characters)
 		   can-open? can-close? previous #f))
 (define (delimiter:length delimiter)
-  (list-queue-length (delimiter-characters delimiter)))
+  (flexible-vector-size (delimiter-characters delimiter)))
+(define (delimiter:opener delimiter)
+  (flexible-vector-back (delimiter-characters delimiter)))
+(define (delimiter:opener* delimiter length)
+  (define len (delimiter:length delimiter))
+  (unless (<= 1 length len)
+    (assertion-violation 'delimiter:opener*
+			 (string-append "Length must be between 1 and "
+					(number->string len)
+					", was " (number->string len))))
+  (let ((chars (flexible-vector->list (delimiter-characters delimiter))))
+    (drop chars (- len length))))
+(define (delimiter:closer delimiter)
+  (flexible-vector-front (delimiter-characters delimiter)))
+(define (delimiter:closer* delimiter length)
+  (define len (delimiter:length delimiter))
+  (unless (<= 1 length len)
+    (assertion-violation 'delimiter:opener*
+			 (string-append "Length must be between 1 and "
+					(number->string len)
+					", was " (number->string len))))
+  (let ((chars (flexible-vector->list (delimiter-characters delimiter))))
+    (take chars length)))
 
 (define-record-type delimiter-processor
   (fields opening-character
@@ -84,24 +111,39 @@
   (protocol (lambda (n)
 	      (lambda (delim)
 		((n delim delim 0 staggered-delimiter-processor:process)
-		 (list-queue))))))
+		 (flexible-vector))))))
 
 (define (delimiter-processor:process dp opening-run closing-run)
   (define process (delimiter-processor-process dp))
   (process dp opening-run closing-run))
 
-;; TODO
 (define (staggered-delimiter-processor:process dp opening-run closing-run)
   (define processors (staggered-delimiter-processor-processors dp))
   (define len (delimiter:length opening-run))
   (define (find-processor len)
-    (let loop ((p* (list-queue-list processors)))
-      (cond ((null? p*) (list-queue-front processors))
-	    ((= (delimiter-processor-min-length (car p*)) len) (car p*))
-	    (else (loop (cdr p*))))))
+    (or (flexible-vector-any (lambda (p) (delimiter-processor-min-length p) len)
+			     processors)
+	(flexible-vector-front processors)))
   (delimiter-processor:process (find-processor (delimiter:length opening-run))
 			       opening-run closing-run))
-(define (staggered-delimiter-processor:add! dp) #f)
+(define (staggered-delimiter-processor:add! sdp dp)
+  (define processors (staggered-delimiter-processor-processors sdp))
+  (define len (delimiter-processor-min-length dp))
+  (define (add fv i)
+    (and (not (= i len))
+	 (let* ((p (flexible-vector-ref fv i))
+		(plen (delimiter-processor-min-length p)))
+	   (cond ((> len plen) (flexible-vector-insert! fv i dp))
+		 ((= len plen)
+		  (assertion-violation 'staggered-delimiter-processor:add!
+		   "Cannot add delimiter processors for the char and the minimum length"
+		   `((char . ,(delimiter-processor-opening-character sdp))
+		     (min-length . ,len))))
+		 (else (add fv (+ i 1)))))))
+  (unless (add processors 0)
+    (flexible-vector-insert-back! processors dp)
+    (delimiter-processor-min-length-set! sdp len))
+  sdp)
 
 (define-vector-type inline-parser-state
   (make-inline-parser-state block
@@ -144,9 +186,39 @@
 		    (inline-parser-context-processors context)))))))
 
 (define (calculate-delimiter-processors processors)
-  (let ((processors (make-eqv-hashtable (length processors))))
-    ;; TODO
-    processors))
+  (define (add-processor-for-char char p ht)
+    (define (check v)
+      (when v
+	(assertion-violation 'make-inline-parser
+	 "Delimiter processor conflict with the delimiter char" char))
+      p)
+    (hashtable-update! ht char check #f))
+  (define (add-processors ht processors)
+    (define (add-processor p)
+      (define opening (delimiter-processor-opening-character p))
+      (define closing (delimiter-processor-closing-character p))
+      (define (staggered old)
+	(if (staggered-delimiter-processor? old)
+	    old
+	    (let ((s (make-staggered-delimiter-processor opening)))
+	      (staggered-delimiter-processor:add! s old))))
+      (if (eqv? opening closing)
+	  (let ((old (hashtable-ref ht opening)))
+	    (if (and old (eqv? (delimiter-processor-opening-character old)
+			       (delimiter-processor-closing-character p)))
+		(let ((s (staggered old)))
+		  (hashtable-set! ht opening
+				  (staggered-delimiter-processor:add! s p)))
+		(add-processor-for-char opening p ht)))
+	  (begin
+	    (add-processor-for-char closing p ht)
+	    (add-processor-for-char closing p ht))))
+    (for-each add-processor processors))
+  (let ((ht (make-eqv-hashtable (length processors))))
+    (add-processors ht (list (make-asterisk-delimiter-processor)
+     			     (make-underscore-delimiter-processor)))
+    (add-processors ht processors)
+    ht))
 
 (define (inline-parser:parse! inline-parser source-lines block)
   (define scanner (scanner:of source-lines))
@@ -173,29 +245,41 @@
       (scanner:next! scanner)
       (let ((e (scanner:position scanner)))
 	(inline-parser:text inline-parser (scanner:source scanner s e)))))
-  (define (processor-match processors)
-    #f)
 
+  (define (parse-delimiters processor c)
+    (let-values (((chars can-open? can-close?)
+		  (inline-parser:scan-delimiters inline-parser processor c)))
+      (and chars
+	   (let ((d (make-delimiter chars c can-open? can-close?
+				    (parsing-state-last-delimiter state))))
+	     (parsing-state-last-delimiter-set! state d)
+	     (when (delimiter-previous d)
+	       (delimiter-next-set! (delimiter-previous d) d))
+	     (flexible-vector->list chars)))))
+  
   (let ((c (scanner:peek scanner)))
-    (case c
-      ((#\[) (list (inline-parser:parse-open-blacket inline-parser)))
-      ((#\!) (list (inline-parser:parse-bang inline-parser)))
-      ((#\]) (list (inline-parser:parse-close-blacket inline-parser)))
-      ((#\newline) (list (inline-parser:parse-line-break inline-parser)))
-      ((#\\) (list (inline-parser:parse-backslash inline-parser)))
-      ((#\`) (list (inline-parser:parse-backticks inline-parser)))
-      ((#\&) (list (inline-parser:parse-entity inline-parser)))
-      ((#\<)
-       (cond ((hashtable-ref processors c #f) => processor-match) ;; TODO
-	     (else (list (or (inline-parser:parse-auto-link inline-parser)
-			     (inline-parser:parse-html-inline inline-parser)
-			     (single-char inline-parser scanner))))))
-      (else
-       (and c
-	    (or (cond ((hashtable-ref processors c #f) => processor-match)
-		      (else #f))
-		(list (inline-parser:parse-text inline-parser))))))))
-
+    (define (processor-match processor) (parse-delimiters processor c))
+    ;; make delimiter processor higher prio
+    (and c
+	 (or
+	  (cond ((hashtable-ref processors c #f) => processor-match)
+		(else #f))
+	  (case c
+	    ((#\[) (list (inline-parser:parse-open-blacket inline-parser)))
+	    ((#\!) (list (inline-parser:parse-bang inline-parser)))
+	    ((#\]) (list (inline-parser:parse-close-blacket inline-parser)))
+	    ((#\newline) (list (inline-parser:parse-line-break inline-parser)))
+	    ((#\\) (list (inline-parser:parse-backslash inline-parser)))
+	    ((#\`) (list (inline-parser:parse-backticks inline-parser)))
+	    ((#\&) (list (inline-parser:parse-entity inline-parser)))
+	    ((#\<)
+	     (cond ((hashtable-ref processors c #f) => processor-match)
+		   (else
+		    (list (or (inline-parser:parse-auto-link inline-parser)
+			      (inline-parser:parse-html-inline inline-parser)
+			      (single-char inline-parser scanner))))))
+	    (else (list (inline-parser:parse-text inline-parser))))))))
+  
 (define (inline-parser:text inline-parser source-lines)
   (define state (inline-parser-parsing-state inline-parser))
   (define block (inline-parser-state-block state))
@@ -214,6 +298,15 @@
   (define state (inline-parser-parsing-state inline-parser))
   (define last-braket (parsing-state-last-bracket state))
   (parsing-state-last-bracket-set! state (bracket-previous last-braket)))
+
+(define (inline-parser:remove-delimiter! inline-parser delim)
+  (define state (inline-parser-parsing-state inline-parser))
+  (when (delimiter-previous delim)
+    (delimiter-next-set! (delimiter-previous delim) (delimiter-next delim)))
+  (if (not (delimiter-next delim))
+      (parsing-state-last-delimiter-set! state (delimiter-previous delim))
+      (delimiter-previous-set! (delimiter-next delim)
+			       (delimiter-previous delim))))
 
 (define (inline-parser:parse-open-blacket inline-parser)
   (define state (inline-parser-parsing-state inline-parser))
@@ -585,8 +678,120 @@
     (markdown-node:source-locations-set! text
      (source-lines:source-loactions source))))
 
+(define (inline-parser:scan-delimiters inline-parser processor c)
+  (define state (inline-parser-parsing-state inline-parser))
+  (define scanner (inline-parser-state-scanner state))
+  (define before (scanner:peek-previous scanner))
+  (define start (scanner:position scanner))
+  (define (check scanner c before after dp)
+    (let ((punc-b (and before (char-set-contains? char-set:punctuation before)))
+	  (ws-b (and before (char-set-contains? char-set:whitespace before)))
+	  (punc-a (and after (char-set-contains? char-set:punctuation after)))
+	  (ws-a (and after (char-set-contains? char-set:whitespace after))))
+      (let ((left (and (not ws-a) (or (not punc-a) ws-b punc-b)))
+	    (right (and (not ws-b) (or (not punc-b) ws-a punc-a))))
+	(if (eqv? c #\_)
+	    (values (and left (or (not right) punc-b))
+		    (and right (or (not left) punc-a)))
+	    (values
+	     (and left (eqv? c (delimiter-processor-opening-character dp)))
+	     (and right (eqv? c (delimiter-processor-closing-character dp))))
+	    ))))
+  (let ((count (scanner:match-char scanner c)))
+    (cond ((< count (delimiter-processor-min-length processor))
+	   (scanner:position! scanner start)
+	   (values #f #f #f))
+	  (else
+	   (let ((delimiters (flexible-vector)))
+	     (scanner:position! scanner start)
+	     (do ((pos start (scanner:position scanner)))
+		 ((not (scanner:next-char? scanner c)))
+	       (let ((s (scanner:source scanner pos
+					(scanner:position scanner))))
+		 (flexible-vector-insert-back! delimiters
+		  (inline-parser:text inline-parser s))))
+	     (let ((after (scanner:peek-previous scanner)))
+	       (let-values (((can-open? can-close?)
+			     (check scanner c before after processor)))
+		 (values delimiters can-open? can-close?))))))))
+
 (define (inline-parser:process-delimiters! inline-parser stack-bottom)
-  )
+  (define state (inline-parser-parsing-state inline-parser))
+  (define processors (inline-parser-processors inline-parser))
+  (define opener-bottom (make-eqv-hashtable))
+
+  (define (get-closer state)
+    (define last-delimiter (parsing-state-last-delimiter state))
+    (do ((closer last-delimiter (delimiter-previous closer)))
+	((or (not closer) (eq? (delimiter-previous closer) stack-bottom))
+	 closer)))
+
+  (define (find-opener dp closer open-char)
+    (define delim-char (delimiter-char closer))
+    (let loop ((opener (delimiter-previous closer))
+	       (potential-found? #f)
+	       (used-delims 0))
+
+      (if (or (not opener) (eq? opener stack-bottom)
+	      (eq? opener (hashtable-ref opener-bottom delim-char #f)))
+	  (values #f opener potential-found? used-delims)
+	  (cond ((and (delimiter-can-open? opener)
+		      (eqv? (delimiter-char opener) open-char))
+		 (let ((used-delims
+			(delimiter-processor:process dp opener closer)))
+		   (if (> used-delims 0)
+		       (values #t opener #t used-delims)
+		       (loop (delimiter-previous opener) #t used-delims))))
+		(else (loop (delimiter-previous opener) #t used-delims))))))
+
+  (let loop ((closer (get-closer state)))
+    (cond ((not closer)
+	   (let loop ()
+	     (let ((last (parsing-state-last-delimiter state)))
+	       (unless (or (not last) (eq? last stack-bottom))
+		 (inline-parser:remove-delimiter! inline-parser last)))))
+	  ((hashtable-ref processors (delimiter-char closer) #f) =>
+	   (lambda (dp)
+	     (let ((open-char (delimiter-processor-opening-character dp)))
+	       (let-values (((found? opener potential-found? used-delim)
+			     (find-opener dp closer open-char)))
+		 (cond ((not found?)
+			(unless potential-found?
+			  (hashtable-set! opener-bottom
+					  (delimiter-char closer)
+					  (delimiter-previous closer))
+			  (unless (delimiter-can-open? closer)
+			    (inline-parser:remove-delimiter!
+			     inline-parser closer))
+			  (loop (delimiter-next closer))))
+		       (else
+			(do ((character (delimiter-characters opener))
+			     (i 0 (+ i 1)))
+			    ((= i used-delim))
+			  (let ((size (flexible-vector-size character)))
+			    (markdown-node:unlink!
+			     (flexible-vector-delete! character (- size 1)))))
+			(do ((character (delimiter-characters closer))
+			     (i 0 (+ i 1)))
+			    ((= i used-delim))
+			  (let ((size (flexible-vector-size character)))
+			    (markdown-node:unlink!
+			     (flexible-vector-delete! character 0))))
+			(let loop ((d (delimiter-previous closer)))
+			  (unless (or (not d) (eq? d opener))
+			    (let ((save (delimiter-previous d)))
+			      (inline-parser:remove-delimiter! inline-parser d)
+			      (loop save))))
+			(when (zero? (delimiter:length opener))
+			  (inline-parser:remove-delimiter!
+			   inline-parser opener))
+			(if (zero? (delimiter:length closer))
+			    (let ((save (delimiter-next closer)))
+			      (inline-parser:remove-delimiter! inline-parser
+							      closer)
+			      (loop save))
+			    (loop closer))))))))
+	  (else (loop (delimiter-next closer))))))
 
 (define (inline-parser:merge-text-nodes! inline-parser block)
   )
@@ -618,5 +823,52 @@
 		       previous-delimiter)
   (make-bracket node mark-position content-position
 		previous previous-delimiter #t #t #f))
+
+;;; default delimiter processors
+(define-record-type emphasis-delimiter-processor
+  (parent delimiter-processor)
+  (protocol (lambda (n)
+	      (lambda (delimiter-char)
+		((n delimiter-char delimiter-char 1)
+		 emphasis-delimiter-processor:process)))))
+(define (emphasis-delimiter-processor:process dp opening-run closing-run)
+  (define opening-can-close? (delimiter-can-close? opening-run))
+  (define closing-can-open? (delimiter-can-open? closing-run))
+  (define opening-original-length (delimiter-original-length opening-run))
+  (define closing-original-length (delimiter-original-length closing-run))
+  (define delimiter-char (delimiter-processor-opening-character dp))
+
+  (if (and (or opening-can-close? closing-can-open?)
+	   (not (zero? (mod closing-original-length 3)))
+	   (zero? (+ opening-original-length
+		     (not (zero? (mod closing-original-length 3))))))
+      0
+      (let ((opener (delimiter:opener opening-run))
+	    (closer (delimiter:closer closing-run))
+	    (locations (source-locations:empty)))
+	(let-values (((empasis used-delimiters)
+		      (if (and (>= (delimiter:length opening-run) 2)
+			       (>= (delimiter:length closing-run) 2))
+			  (values (make-strong-emphasis-node
+				   opener delimiter-char) 2)
+			  (values (make-emphasis-node
+				   opener delimiter-char) 1))))
+	  (define (add! n)
+	    (source-locations:add! locations
+				   (markdown-node:source-locations n)))
+	  (for-each add! (delimiter:opener* opening-run used-delimiters))
+	  (generator-for-each add! (markdown-node-between opener closer))
+	  (for-each add! (delimiter:closer* closing-run used-delimiters))
+	  (markdown-node:source-locations-set! empasis
+	   (source-locations:locations locations))
+	  (markdown-node:insert-after! opener empasis)
+	  used-delimiters))))
+
+(define-record-type asterisk-delimiter-processor
+  (parent emphasis-delimiter-processor)
+  (protocol (lambda (n) (lambda () ((n #\*))))))
+(define-record-type underscore-delimiter-processor
+  (parent emphasis-delimiter-processor)
+  (protocol (lambda (n) (lambda () ((n #\_))))))
 
 )

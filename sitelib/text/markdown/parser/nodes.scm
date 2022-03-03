@@ -57,18 +57,22 @@
 	    html-block-node:literal-set! html-block-node:literal
 	    make-custom-block-node custom-block-node?
 
-	    (rename (text-node make-text-node)) text-node?
+	    (rename (%text-node make-text-node)) text-node?
 	    text-node:content-set!
 
 	    make-linebreak-node linebreak-node?
 	    make-softbreak-node softbreak-node?
 	    make-link-node link-node? link-node-destination link-node-title
 	    make-image-node image-node? image-node-destination image-node-title
-	    (rename (code-node make-code-node))
+	    (rename (%code-node make-code-node))
 	    code-node? code-node:literal-set! code-node:literal
-	    (rename (html-inline make-html-inline-node))
+	    (rename (%html-inline make-html-inline-node))
 	    html-inline-node?
 	    html-inline-node:literal-set! html-inline-node:literal
+
+	    make-emphasis-node emphasis-node? emphasis-node-delimiter
+	    make-strong-emphasis-node strong-emphasis-node?
+	    strong-emphasis-node-delimiter
 	    
 	    *commonmark-namespace*
 
@@ -78,6 +82,7 @@
 	    markdown-node-next
 	    markdown-node-children
 	    markdown-node:append-child!
+	    markdown-node:insert-after!
 	    markdown-node:get-attribute
 	    markdown-node:set-attribute!
 	    markdown-node:remove-attribute!
@@ -89,11 +94,14 @@
 	    markdown-node:set-text!
 	    markdown-node:get-text
 
+	    markdown-node-between
+
 	    (rename (markdown-node-element markdown-node->dom-tree))
 	    )
     (import (rnrs)
 	    (srfi :1 lists)
 	    (srfi :117 list-queues)
+	    (srfi :158 generators-and-accumulators)
 	    (text xml dom))
 
 (define *commonmark-namespace* "http://commonmark.org/xml/1.0")
@@ -229,6 +237,23 @@
 		      (markdown-node-element child))
   node)
 
+(define (markdown-node:insert-after! node sibling)
+  (markdown-node:unlink! sibling)
+  (markdown-node-next-set! sibling (markdown-node-next node))
+  (when (markdown-node-next sibling)
+    (markdown-node-prev-set! (markdown-node-next sibling) sibling))
+  (markdown-node-prev-set! sibling node)
+  (markdown-node-next-set! node sibling)
+  (markdown-node-parent-set! sibling (markdown-node-parent node))
+  (unless (markdown-node-next sibling)
+    (markdown-node-parent node)
+    (list-queue-add-back!
+     (markdown-node-children (markdown-node-parent sibling)) sibling))
+  (node:insert-before! (markdown-node-element node)
+		       (markdown-node-element sibling)
+		       (node-next-sibling (markdown-node-element node)))
+  node)
+
 (define markdown-node:get-attribute
   (case-lambda
    ((node name)
@@ -283,6 +308,14 @@
 (define (markdown-node:source-locations node)
   (markdown-node-source-locations node))
 
+(define (markdown-node-between start end)
+  (make-unfold-generator
+   (lambda (s) (eq? s end))
+   values
+   (lambda (s) (markdown-node-next s))
+   start))
+
+
 (define-markdown-node document)
 (define (make-markdown-document)
   (let* ((doc (make-xml-document))
@@ -330,29 +363,34 @@
 
 ;; TODO inline block
 (define-markdown-node (text content))
-(define (text-node document content)
+(define (%text-node document content)
   (define text (make-text-node document content))
   (text-node:content-set! text content))
 (define (text-node:content-set! text content)
+  (text-node-content-set! text content)
   (markdown-node:set-text! text content))
 
 (define-markdown-node linebreak)
 (define-markdown-node softbreak)
 (define-markdown-node (link (attribute destination) (attribute title)))
 (define-markdown-node (image (attribute destination) (attribute title)))
-(define-markdown-node code)
-(define (code-node doc literal)
-  (let ((node (make-code-node doc)))
+(define-markdown-node (code literal))
+(define (%code-node doc literal)
+  (let ((node (make-code-node doc literal)))
     (code-node:literal-set! node literal)))
 (define (code-node:literal-set! node literal)
+  (code-node-literal-set! node literal)
   (markdown-node:set-text! node literal))
 (define (code-node:literal node) (markdown-node:get-text node))
 
-(define-markdown-node html-inline)
-(define (html-inline doc literal)
+(define-markdown-node html-inline (element "html_inline"))
+(define (%html-inline doc literal)
   (let ((node (make-html-inline-node doc)))
     (html-inline-node:literal-set! node literal)))
 (define (html-inline-node:literal-set! node literal)
   (markdown-node:set-text! node literal))
 (define (html-inline-node:literal node) (markdown-node:get-text node))
+
+(define-markdown-node (emphasis delimiter) (element "emph"))
+(define-markdown-node (strong-emphasis delimiter) (element "strong"))
 )

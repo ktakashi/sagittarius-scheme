@@ -46,6 +46,11 @@
 	    source-location-column
 	    source-location-length
 
+	    source-locations?
+	    source-locations:empty
+	    source-locations:add!
+	    source-locations:locations
+
 	    source-lines:of source-lines?
 	    source-lines:empty source-lines:empty?
 	    source-lines:content
@@ -58,7 +63,8 @@
 	    (srfi :1 lists)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
-	    (srfi :117 list-queues))
+	    (srfi :117 list-queues)
+	    (util flexible-vector))
 
 (define-vector-type source-line (source-line:of content location) source-line?
   (content  source-line-content)
@@ -99,6 +105,33 @@
   (line   source-location-line)
   (column source-location-column)
   (length source-location-length))
+
+(define-vector-type source-locations (make-source-locations locations)
+  source-locations?
+  (locations source-locations-locations))
+(define (source-locations:empty) (make-source-locations (flexible-vector)))
+(define (source-locations:locations locs)
+  (make-list-queue (flexible-vector->list (source-locations-locations locs))))
+(define (source-locations:add! locs loc*)
+  (define fv (source-locations-locations locs))
+  (cond ((list-queue-empty? loc*))
+	((flexible-vector-empty? fv)
+	 (apply flexible-vector-insert-back! fv (list-queue-list loc*)))
+	(else
+	 (let* ((last-index (- (flexible-vector-size fv) 1))
+		(loc-list (list-queue-list loc*))
+		(a (flexible-vector-ref fv last-index))
+		(b (car loc-list)))
+	   (if (and (= (source-location-line a) (source-location-line b))
+		    (= (+ (source-location-column a) (source-location-length a))
+		       (source-location-column b)))
+	       (let ((sl (source-location:of (source-location-line a)
+					     (source-location-column a)
+					     (+ (source-location-length a)
+						(source-location-length b)))))
+		 (flexible-vector-set! fv last-index sl)
+		 (apply flexible-vector-insert-back! fv (cdr loc-list)))
+	       (apply flexible-vector-insert-back! fv loc-list))))))
 
 (define-vector-type source-lines (make-source-lines lines) source-lines?
   (lines source-lines-lines))
