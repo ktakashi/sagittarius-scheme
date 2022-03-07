@@ -260,6 +260,9 @@
   (unless (markdown-node-next sibling)
     (list-queue-add-back! (markdown-node-children parent) sibling))
   (let ((n (markdown-node-element node)))
+    ;; this works even `node-next-sibling` returns #f as `node:insert-before!`
+    ;; searches the second argumemt from the children of first argument
+    ;; and if it's not found, then it pushed to the last
     (node:insert-before! (node-parent-node n)
 			 (node-next-sibling n)
 			 (markdown-node-element sibling)))
