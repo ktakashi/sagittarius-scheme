@@ -291,9 +291,13 @@
 (define (markdown-node:set-text! node text)
   (define elm (markdown-node-element node))
   (define doc (node-owner-document elm))
-  (let ((data (document:create-text-node doc text)))
-    (node:append-child! elm data)
-    node))
+  (cond ((node-first-child elm) =>
+	 ;; must be text
+	 (lambda (t) (character-data-data-set! t text)))
+	(else
+	 (let ((data (document:create-text-node doc text)))
+	   (node:append-child! elm data))))
+  node)
 
 (define (markdown-node:get-text node)
   (define elm (markdown-node-element node))
@@ -301,8 +305,14 @@
 
 (define (markdown-node:unlink! node)
   (define elm (markdown-node-element node))
-  (cond ((node-parent-node elm) =>
-	 (lambda (p) (node:remove-child! p elm))))
+  (cond ((node-parent-node elm) => (lambda (p) (node:remove-child! p elm))))
+  (when (markdown-node-prev node)
+    (markdown-node-next-set! (markdown-node-prev node)
+			     (markdown-node-next node)))
+  (when (markdown-node-next node)
+    (markdown-node-prev-set! (markdown-node-next node)
+			     (markdown-node-prev node)))
+  
   (cond ((markdown-node-parent node) =>
 	 (lambda (p)
 	   (let ((children (markdown-node-children p)))

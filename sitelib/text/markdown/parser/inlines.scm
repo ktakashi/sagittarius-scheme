@@ -731,7 +731,6 @@
     (let loop ((opener (delimiter-previous closer))
 	       (potential-found? #f)
 	       (used-delims 0))
-
       (if (or (not opener) (eq? opener stack-bottom)
 	      (eq? opener (hashtable-ref opener-bottom delim-char #f)))
 	  (values #f opener potential-found? used-delims)
@@ -742,7 +741,9 @@
 		   (if (> used-delims 0)
 		       (values #t opener #t used-delims)
 		       (loop (delimiter-previous opener) #t used-delims))))
-		(else (loop (delimiter-previous opener) #t used-delims))))))
+		(else (loop (delimiter-previous opener)
+			    potential-found?
+			    used-delims))))))
 
   (let loop ((closer (get-closer state)))
     (cond ((not closer)
@@ -750,7 +751,8 @@
 	     (let ((last (parsing-state-last-delimiter state)))
 	       (unless (or (not last) (eq? last stack-bottom))
 		 (inline-parser:remove-delimiter! inline-parser last)))))
-	  ((hashtable-ref processors (delimiter-char closer) #f) =>
+	  ((and (delimiter-can-close? closer)
+		(hashtable-ref processors (delimiter-char closer) #f)) =>
 	   (lambda (dp)
 	     (let ((open-char (delimiter-processor-opening-character dp)))
 	       (let-values (((found? opener potential-found? used-delim)
@@ -829,7 +831,7 @@
 			    (merge! first last len)
 			    (inline-parser:merge-text-nodes! inline-parser node)
 			    (values #f #f 0)))))
-	  (if (eq? node to)
+	  (if (or (not node) (eq? node to))
 	      (merge! first last len)
 	      (loop (markdown-node-next node) first last len)))))))
 
@@ -886,10 +888,11 @@
 	(let-values (((emphasis used-delimiters)
 		      (if (and (>= (delimiter:length opening-run) 2)
 			       (>= (delimiter:length closing-run) 2))
-			  (values (make-strong-emphasis-node
-				   opener delimiter-char) 2)
+			  (values (make-strong-emphasis-node opener
+				   (string delimiter-char delimiter-char))
+				  2)
 			  (values (make-emphasis-node
-				   opener delimiter-char) 1))))
+				   opener (string delimiter-char)) 1))))
 	  (define (add! n)
 	    (source-locations:add! locations
 				   (markdown-node:source-locations n)))
