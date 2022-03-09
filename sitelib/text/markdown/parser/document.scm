@@ -259,8 +259,8 @@
     (document-parser-open-block-parsers document-parser))
   (define (process-inlines document-parser)
     (define definitions (document-parser-definitions document-parser))
-    ;; TODO processors
-    (define context (make-inline-parser-context '() definitions))
+    (define processors (document-parser-delimiter-processors document-parser))
+    (define context (make-inline-parser-context processors definitions))
     (define inline-parser (make-inline-parser context))
     (list-queue-for-each
      (lambda (bp) (block-parser:parse-inlines! bp inline-parser))

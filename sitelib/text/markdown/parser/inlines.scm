@@ -37,6 +37,13 @@
 
 	    (rename (delimiter-processor <delimiter-processor>))
 	    delimiter-processor?
+
+	    delimiter?
+	    delimiter-characters delimiter-char delimiter-original-length
+	    delimiter-can-open? delimiter-can-close?
+	    delimiter:length
+	    delimiter:opener delimiter:opener*
+	    delimiter:closer delimiter:closer*
 	    )
     (import (rnrs)
 	    (core misc)

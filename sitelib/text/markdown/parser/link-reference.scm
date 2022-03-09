@@ -53,6 +53,7 @@
 	    link-reference-definition-parser:paragraph-lines
 	    link-reference-definition-parser:definitions)
     (import (rnrs)
+	    (srfi :13 strings)
 	    (srfi :14 char-sets)
 	    (srfi :117 list-queues)
 	    (text markdown parser escaping)
@@ -171,17 +172,107 @@
 (define-record-type link-reference-definition-parser
   (fields paragraph-lines
 	  definitions
-	  source-locations)
+	  source-locations
+	  ;; stateful parser...
+	  (mutable label)
+	  (mutable destination)
+	  (mutable title-delimiter)
+	  (mutable title)
+	  (mutable valid?)
+	  (mutable state)
+	  )
   (protocol
    (lambda (p)
      (lambda ()
-       (p (list-queue) (list-queue) (list-queue))))))
+       (p (list-queue) (list-queue) (list-queue) #f #f #f #f #f 'start)))))
+
+(define (string-builder:append! l s) (list-queue-add-back! l s))
+(define (string-builder:length sb)
+  (fold-left (lambda (acc s) (+ acc (string-length s))) 0
+	     (list-queue-list sb)))
+(define (string-builder->string sb) (string-join (list-queue-list sb) ""))
 
 (define (link-reference-definition-parser:parse! lrp line)
   (define pl (link-reference-definition-parser-paragraph-lines lrp))
+  (define state (link-reference-definition-parser-state lrp))
+
+  (define (start-definition lrp scanner)
+    (scanner:whitespace scanner)
+    (and (scanner:next-char? scanner #\[)
+	 (link-reference-definition-parser-state-set! lrp 'label)
+	 ;; Use list queue as a string buffer (will be joined with "")
+	 (let ((sb (list-queue)))
+	   (link-reference-definition-parser-label-set! lrp sb)
+	   (unless (scanner:has-next? scanner)
+	     (string-builder:append! sb "\n")))
+	 #t))
+	 
+  (define (label lrp scanner)
+    (define start (scanner:position scanner))
+    (define label (link-reference-definition-parser-label lrp))
+    (define (check-label-length label) (> (string-builder:length label) 999))
+    (and (link-scanner:scan-link-label-content! scanner)
+	 (let* ((p (scanner:position scanner))
+		(s (scanner:source scanner start p)))
+	   (list-queue-add-back! label (source-lines:content s))
+	   (cond ((not (scanner:has-next? scanner))
+		  (list-queue-add-back! label "\n")
+		  #t)
+		 ((scanner:next-char? scanner #\])
+		  ;; end of label
+		  (cond ((not (scanner:next-char? scanner #\:)) #f)
+			((check-label-length label) #f)
+			((string-null? (escaping:normalize-label
+					(string-builder->string label))) #f)
+			(else
+			 (link-reference-definition-parser-state-set! lrp
+			  'destination)
+			 (scanner:whitespace scanner)
+			 #t)))
+		 (else #f)))))
+  (define (destination lrp scanner)
+    (scanner:whitespace scanner)
+    (let ((start (scanner:position scanner)))
+      (and (link-scanner:scan-link-destination! scanner)
+	   (let* ((p (scanner:position scanner))
+		  (s (source-lines:content (scanner:source scanner start p))))
+	     (link-reference-definition-parser-destination-set! lrp
+	      (if (eqv? (string-ref s 0) #\<)
+		  (substring s 1 (- (string-length s) 1))
+		  s))
+	     (let ((ws (scanner:whitespace scanner)))
+	       (cond ((not (scanner:has-next? scanner))
+		      (link-reference-definition-parser-valid?-set! lrp #t)
+		      (list-queue-clear!
+		       (link-reference-definition-parser-paragraph-lines lrp))
+		      (link-reference-definition-parser-state-set! lrp
+		       'start-title)
+		      #t)
+		     ((zero? ws) #f)
+		     (else
+		      (link-reference-definition-parser-state-set! lrp
+		       'start-title)
+		      #t)))))))
+		      
+  (define (start-title lrp scanner) )
+  (define (title lrp scanner) )
+  
+  (define (try-parse state scanner)
+    (case state
+      ((start) (start-definition lrp scanner))
+      ((label) (label lrp scanner))
+      ((destination) (destination lrp scanner))
+      ((start-title) (start-title lrp scanner))
+      ((title) (title lrp scanner))
+      (else (assertion-violation 'link-reference-definition-parser:parse!:
+				 "[BUG] Unknown parsing state" state))))
   (list-queue-add-back! pl line)
-  ;; TODO do parse
-  )
+  (unless (eq? state 'paragraph)
+    (let loop ((scanner (scanner:of (source-lines:of line))))
+      (cond ((not (scanner:has-next? scanner))) ;; no more input
+	    ((try-parse state scanner) (loop scanner))
+	    (else
+	     (link-reference-definition-parser-state-set! lrp 'paragraph))))))
 
 (define (link-reference-definition-parser:add-source-location! lrp loc)
   (define sp* (link-reference-definition-parser-source-locations lrp))
