@@ -98,8 +98,13 @@
 
 	    markdown-node-between
 
-	    (rename (markdown-node-element markdown-node->dom-tree))
-	    )
+	    (rename (markdown-node-element markdown-node->dom-tree)
+		    (source-aware <source-aware>)
+		    (markdown-node:source-locations source-aware:locations)
+		    (markdown-node:add-source-location!
+		     source-aware:add-location!)
+		    (markdown-node:source-locations-set!
+		     source-aware:locations-set!)))
     (import (rnrs)
 	    (srfi :1 lists)
 	    (srfi :117 list-queues)
@@ -110,9 +115,15 @@
 
 ;; The node structure will be kept on XML DOM
 ;; the wrapper node only managed necessary structure and meta data
+(define-record-type source-aware
+  (fields locations)
+  (protocol (lambda (p)
+	      (lambda ()
+		(p (list-queue))))))
+  
 (define-record-type markdown-node
+  (parent source-aware)
   (fields element
-	  source-locations
 	  ;; below are for future convenience
 	  ;; if we want to manipulate node programatically
 	  (mutable parent)   ;; parent markdown node (#f = stray or root)
@@ -120,9 +131,10 @@
 	  (mutable next)
 	  children	     ;; child markdown nodes
 	  )
-  (protocol (lambda (p)
+  (protocol (lambda (n)
 	      (lambda (element)
-		(p element (list-queue) #f #f #f (list-queue))))))
+		((n) element #f #f #f (list-queue))))))
+(define markdown-node-source-locations source-aware-locations)
 
 (define-syntax namespace (syntax-rules ()))
 (define-syntax element (syntax-rules ()))
