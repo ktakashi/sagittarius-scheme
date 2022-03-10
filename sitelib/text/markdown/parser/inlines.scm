@@ -721,7 +721,7 @@
 					(scanner:position scanner))))
 		 (flexible-vector-insert-back! delimiters
 		  (inline-parser:text inline-parser s))))
-	     (let ((after (scanner:peek-previous scanner)))
+	     (let ((after (scanner:peek scanner)))
 	       (let-values (((can-open? can-close?)
 			     (check scanner c before after processor)))
 		 (values delimiters can-open? can-close?))))))))
@@ -775,8 +775,8 @@
 					  (delimiter-previous closer))
 			  (unless (delimiter-can-open? closer)
 			    (inline-parser:remove-delimiter!
-			     inline-parser closer))
-			  (loop (delimiter-next closer))))
+			     inline-parser closer)))
+			  (loop (delimiter-next closer)))
 		       (else
 			(do ((character (delimiter-characters opener))
 			     (i 0 (+ i 1)))
@@ -891,7 +891,7 @@
   (if (and (or opening-can-close? closing-can-open?)
 	   (not (zero? (mod closing-original-length 3)))
 	   (zero? (+ opening-original-length
-		     (not (zero? (mod closing-original-length 3))))))
+		     (mod closing-original-length 3))))
       0
       (let ((opener (delimiter:opener opening-run))
 	    (closer (delimiter:closer closing-run))
