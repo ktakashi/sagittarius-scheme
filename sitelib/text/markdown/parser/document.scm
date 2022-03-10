@@ -53,7 +53,7 @@
 
 (define-record-type document-parser
   (fields block-parser-factories
-	  inline-parser-factories
+	  inline-parser-factory
 	  delimiter-processors
 	  document-block-parser
 	  open-block-parsers
@@ -66,10 +66,10 @@
   (protocol
    (lambda (p)
      (lambda (block-parser-factories
-	      inline-parser-factories
+	      inline-parser-factory
 	      delimiter-processors)
        (let* ((document-block-parser (make-document-block-parser))
-	      (r (p block-parser-factories inline-parser-factories
+	      (r (p block-parser-factories inline-parser-factory
 		    delimiter-processors document-block-parser
 		    (list-queue (make-open-block-parser
 				 document-block-parser 0))
@@ -261,7 +261,8 @@
     (define definitions (document-parser-definitions document-parser))
     (define processors (document-parser-delimiter-processors document-parser))
     (define context (make-inline-parser-context processors definitions))
-    (define inline-parser (make-inline-parser context))
+    (define inline-parser
+      ((document-parser-inline-parser-factory document-parser) context))
     (list-queue-for-each
      (lambda (bp) (block-parser:parse-inlines! bp inline-parser))
      (document-parser-block-parsers document-parser)))

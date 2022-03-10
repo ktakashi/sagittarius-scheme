@@ -73,6 +73,13 @@
 	    make-emphasis-node emphasis-node? emphasis-node-delimiter
 	    make-strong-emphasis-node strong-emphasis-node?
 	    strong-emphasis-node-delimiter
+
+	    custom-inline-node?
+
+	    (rename (custom-block-node <custom-block-node>)
+		    (custom-inline-node <custom-inline-node>))
+	    define-markdown-node
+	    namespace element attribute
 	    
 	    *commonmark-namespace*
 
@@ -153,7 +160,8 @@
 			       (syntax->datum x)
 			       (syntax->datum clause*)))))
       (with-syntax ((e name))
-	(rec clause* #'*commonmark-namespace*
+	(rec clause*
+	     #'*commonmark-namespace*
 	     #'(symbol->string 'e))))
     
     (define (identifier->string n) (symbol->string (syntax->datum n)))
@@ -430,4 +438,5 @@
 
 (define-markdown-node (emphasis delimiter) (element "emph"))
 (define-markdown-node (strong-emphasis delimiter) (element "strong"))
+(define-markdown-node custom-inline (element "custom_inline"))
 )

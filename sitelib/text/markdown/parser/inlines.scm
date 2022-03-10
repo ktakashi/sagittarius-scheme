@@ -875,8 +875,8 @@
   (parent delimiter-processor)
   (protocol (lambda (n)
 	      (lambda (delimiter-char)
-		((n delimiter-char delimiter-char 1)
-		 emphasis-delimiter-processor:process)))))
+		((n delimiter-char delimiter-char 1
+		    emphasis-delimiter-processor:process))))))
 (define (emphasis-delimiter-processor:process dp opening-run closing-run)
   (define opening-can-close? (delimiter-can-close? opening-run))
   (define closing-can-open? (delimiter-can-open? closing-run))

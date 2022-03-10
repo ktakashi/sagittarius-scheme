@@ -49,6 +49,7 @@
 	    source-locations?
 	    source-locations:empty
 	    source-locations:add!
+	    source-locations:add-all!
 	    source-locations:locations
 
 	    source-lines:of source-lines?
@@ -112,6 +113,9 @@
 (define (source-locations:empty) (make-source-locations (flexible-vector)))
 (define (source-locations:locations locs)
   (make-list-queue (flexible-vector->list (source-locations-locations locs))))
+(define (source-locations:add-all! locs loc*)
+  (define (add! loc) (source-locations:add! locs loc))
+  (for-each add! loc*))
 (define (source-locations:add! locs loc*)
   (define fv (source-locations-locations locs))
   (cond ((list-queue-empty? loc*))
