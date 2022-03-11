@@ -46,6 +46,10 @@
 	    block-continue-index
 	    block-continue-column
 	    block-continue-finalize?
+	    block-continue:none
+	    block-continue:at-index
+	    block-continue:at-column
+	    block-continue:finished
 	    
 	    (rename (block-parser <block-parser>))
 	    block-parser?

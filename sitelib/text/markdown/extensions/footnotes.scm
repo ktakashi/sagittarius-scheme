@@ -32,11 +32,15 @@
 
 #!nounbound
 (library (text markdown extensions footnotes)
-    (export )
+    (export footnotes-extension)
     (import (rnrs)
+	    (srfi :115 regexp)
 	    (srfi :117 list-queues)
-	    (srfi :158 generators-and-accumulators)
+	    ;; (srfi :158 generators-and-accumulators)
+	    (srfi :197 pipeline)
+	    (text markdown extensions api)
 	    (text markdown parser blocks)
+	    (text markdown parser factories) ;; FIXME
 	    (text markdown parser inlines)	    
 	    (text markdown parser nodes)
 	    (text markdown parser parsing)
@@ -44,7 +48,8 @@
 
 (define *footnotes-namespace* "urn:markdown.sagittarius/footnotes")
 
-(define-markdown-node footnote-block (namespace *footnotes-namespace*)
+(define-markdown-node (footnote-block (attribute label "notes:label"))
+  (namespace *footnotes-namespace*)
   (element "notes:footnote-block"))
 (define-markdown-node footnote (namespace *footnotes-namespace*)
   (element "notes:footnote"))
@@ -54,8 +59,8 @@
   (fields content)
   (protocol
    (lambda (n)
-     (lambda (document)
-       ((n (make-footnote-block document) #t #f (lambda ignore #f)
+     (lambda (document label)
+       ((n (make-footnote-block-node document label) #t #f
 	   (lambda ignore #t)
 	   (lambda (self ps)
 	     (define nnsi (parser-state-next-non-space-index ps))
@@ -80,6 +85,26 @@
 	   (lambda (self inline-parser)
 	     ;; TODO
 	     ))
-	(list-queues))))))
+	(list-queue))))))
+
+(define footnote-define-pattern
+  (rx "[^" (* space) ($ (* any)) (* space) "]:"))
+(define (try-start-footnote parser-state matched-block-parser)
+  (if (>= (parser-state-indent parser-state) +parsing-code-block-indent+)
+      (block-start:none)
+      (let ((line (parser-state-line parser-state))
+	    (nns (parser-state-next-non-space-index parser-state)))
+	(cond ((source-line:regexp-search line footnote-define-pattern nns) =>
+	       (lambda (m)
+		 (let ((text (regexp-match-submatch m 1))
+		       (end (regexp-match-submatch-end m 0)))
+		   (chain (block-start:of (make-footnote-block-parser
+					   (parser-state-document parser-state)
+					   text))
+			  (block-start:at-index _ end)))))
+	      (else (block-start:none))))))
+(define footnotes-extension
+  (markdown-extension-builder
+   (custom-block-factories `(,try-start-footnote))))
 
 )

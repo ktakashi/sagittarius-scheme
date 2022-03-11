@@ -242,7 +242,8 @@
 		     (if (= (length field-values) argc)
 			 (%make-record rtd field-values)
 			 (assertion-violation "record constructor"
-					      "wrong number of arguments"
+			  (format "wrong number of arguments, required ~d but got ~d"
+				  argc (length field-values))
 					      field-values)))))))))))
   
   (define (make-simple-conser desc rtd argc)
@@ -251,7 +252,8 @@
        (if (= (length field-values) argc)
 	   (%make-record rtd field-values)
 	   (assertion-violation "record constructor"
-				"wrong number of arguments"
+	    (format "wrong number of arguments, required ~d but got ~d"
+		    argc (length field-values))
 				field-values)))))
   
   (define (default-protocol rtd)

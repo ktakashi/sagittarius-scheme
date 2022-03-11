@@ -39,6 +39,7 @@
 	    source-line:length
 	    source-line:prefix?
 	    source-line:letter?
+	    source-line:regexp-search
 
 	    source-location:of
 	    source-location?
@@ -64,6 +65,7 @@
 	    (srfi :1 lists)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
+	    (srfi :115 regexp)
 	    (srfi :117 list-queues)
 	    (util flexible-vector))
 
@@ -94,12 +96,15 @@
 (define (source-line:length sl)
   (string-length (source-line-content sl)))
 (define (source-line:prefix? sl s . start&end)
-  (apply string-prefix? s (source-line-content s) 0 (string-length s)
+  (apply string-prefix? s (source-line-content sl) 0 (string-length s)
 	 start&end))
 (define (source-line:letter? sl index)
   (cond ((source-line:char-at sl index) =>
 	 (lambda (c) (char-set-contains? char-set:letter c)))
 	(else #f)))
+(define (source-line:regexp-search sl rx . start&end)
+  (apply regexp-search rx (source-line-content sl) start&end))
+
 
 (define-vector-type source-location (source-location:of line column length)
   source-location?
