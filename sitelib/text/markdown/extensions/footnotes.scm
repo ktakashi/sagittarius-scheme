@@ -32,8 +32,7 @@
 
 #!nounbound
 (library (text markdown extensions footnotes)
-    (export make-strikethrough-delimiter-processor
-	    strikethrough-delimiter-processor?)
+    (export )
     (import (rnrs)
 	    (srfi :117 list-queues)
 	    (srfi :158 generators-and-accumulators)

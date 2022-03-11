@@ -30,10 +30,12 @@
 
 #!nounbound
 (library (text markdown extensions gfm)
-    (export make-strikethrough-delimiter-processor
-	    strikethrough-delimiter-processor?)
+    (export gfm-extensions
+	    strikethrough-extension
+	    )
     (import (rnrs)
 	    (srfi :158 generators-and-accumulators)
+	    (text markdown extensions api)
 	    (text markdown parser inlines)
 	    (text markdown parser nodes)
 	    (text markdown parser source))
@@ -69,4 +71,12 @@
 	(markdown-node:insert-after! opener strike)
 	2)
       0))
+
+(define strikethrough-extension
+  (markdown-extension-builder
+   (custom-delimiter-processors `(,make-strikethrough-delimiter-processor))))
+
+(define gfm-extensions
+  (combine-markdown-extensions strikethrough-extension))
+
 )
