@@ -33,6 +33,7 @@
     (export markdown-extension-builder
 	    markdown-extension?
 	    markdown-extension-custom-block-factories
+	    markdown-extension-custom-inline-content-factories
 	    markdown-extension-custom-delimiter-processors
 	    markdown-extension-custom-reference-processors
 	    
@@ -44,6 +45,7 @@
 
 (define-record-type markdown-extension
   (fields custom-block-factories
+	  custom-inline-content-factories
 	  custom-delimiter-processors
 	  custom-reference-processors))
 (define (make-check-list who)
@@ -54,6 +56,8 @@
 (define-syntax markdown-extension-builder
   (make-record-builder markdown-extension
    ((custom-block-factories '() (make-check-list 'custom-block-factories))
+    (custom-inline-content-factories '()
+     (make-check-list 'custom-inline-content-factories))
     (custom-delimiter-processors '() 
      (make-check-list 'custom-delimiter-processors))
     (custom-reference-processors '()

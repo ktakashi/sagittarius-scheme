@@ -46,6 +46,7 @@
 	    (text markdown parser link-reference)
 	    (text markdown parser nodes)
 	    (text markdown parser parsing)
+	    (text markdown parser scanner)
 	    (text markdown parser source))
 
 (define *footnotes-namespace* "urn:markdown.sagittarius/footnotes")
@@ -124,18 +125,48 @@
 
 (define (footnote-reference-processor ref text? image?)
   (define label (reference-definition-label ref))
-  ;; TODO check ^ on label
   (and (footnote-reference-definition? ref)
        (eqv? (string-ref label 0) #\^)
        (not text?) (not image?)
        (lambda (parent)
-	 (make-footnote-node parent
-			     (substring label 1 (string-length label))))))
-	
+	  (make-footnote-node parent
+			      (substring label 1 (string-length label))))))
+
+(define-record-type inline-footnote-parser
+  (parent <inline-content-parser>)
+  (fields (mutable label))
+  (protocol (lambda (n)
+	      (lambda ()
+		((n #\^ inline-footnote-parser:try-parse) 1)))))
+
+(define (inline-footnote-parser:try-parse ifp inline-parser c)
+  (define state (inline-parser-parsing-state inline-parser))
+  (define scanner (inline-parser-state-scanner state))
+  (scanner:next! scanner) ;; skip ^
+  (and (scanner:next-char? scanner #\[)
+       (let ((s (scanner:position scanner)))
+	 (and (scanner:find-char scanner #\])
+	      (let* ((e (scanner:position scanner))
+		     (source (scanner:source scanner s e))
+		     (l (inline-footnote-parser-label ifp))
+		     ;; current block
+		     (cb (inline-parser-state-block state))
+		     (fn (make-footnote-block-node cb (number->string l)))
+		     (pp (make-paragraph-parser fn)))
+		(scanner:next! scanner) ;; discards #\]
+		(source-lines:for-each (lambda (sl)
+					 (block-parser:add-line! pp sl)) source)
+		(block-parser:close-block! pp)
+		(block-parser:parse-inlines! pp inline-parser)
+		(markdown-node:append-child! fn (block-parser-block pp))
+		(inline-footnote-parser-label-set! ifp (+ l 1))
+		(markdown-node:insert-after! cb fn)
+		(list (make-footnote-node cb (number->string l))))))))
 
 (define footnotes-extension
   (markdown-extension-builder
    (custom-block-factories `(,try-start-footnote))
+   (custom-inline-content-factories `(,make-inline-footnote-parser))
    (custom-reference-processors `(,footnote-reference-processor))
    ))
 

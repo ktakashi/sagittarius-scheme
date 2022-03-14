@@ -59,6 +59,7 @@
 	    source-lines:add-line!
 	    source-lines->vector ;; for scanner
 	    source-lines:source-loactions
+	    source-lines:for-each
 	    )
     (import (rnrs)
 	    (core misc) ;; for define-vector-type
@@ -163,4 +164,7 @@
 
 (define (source-lines:source-loactions sl*)
   (filter-map source-line-location (list-queue-list (source-lines-lines sl*))))
+
+(define (source-lines:for-each proc sl*)
+  (list-queue-for-each proc (source-lines-lines sl*)))
 )

@@ -34,6 +34,14 @@
 
 	    make-inline-parser-context inline-parser-context?
 	    make-inline-parser inline-parser?
+	    inline-parser-parsing-state
+	    
+	    inline-parser-state?
+	    inline-parser-state-block
+	    inline-parser-state-scanner
+
+	    (rename (inline-content-parser <inline-content-parser>))
+	    inline-content-parser?
 
 	    (rename (delimiter-processor <delimiter-processor>))
 	    delimiter-processor?
@@ -159,10 +167,9 @@
 			    trailing-spaces
 			    last-delimiter
 			    last-bracket)
-  inline-parser-state
+  inline-parser-state?
   (block inline-parser-state-block)
   (scanner inline-parser-state-scanner)
-  ;; FIXME
   (include-source-locations? parsing-state-include-source-locations?)
   (trailing-spaces parsing-state-trailing-spaces
 		   parsing-state-trailing-spaces-set!)
@@ -171,13 +178,27 @@
   (last-bracket parsing-state-last-bracket parsing-state-last-bracket-set!))
 
 (define-vector-type inline-parser-context
-  (make-inline-parser-context delimiter-processors
+  (make-inline-parser-context content-parsers
+			      delimiter-processors
 			      definitions
 			      reference-processors)
   inline-parser-context?
+  (content-parsers inline-parser-context-content-parsers)
   (delimiter-processors inline-parser-context-processors)
   (definitions inline-parser-context-definitions)
   (reference-processors inline-parser-context-reference-processors))
+
+(define-record-type inline-content-parser
+  (fields marker try-parse))
+(define (inline-content-parser:parse content-parser inline-parser c)
+  (define try-parse (inline-content-parser-try-parse content-parser))
+  (define state (inline-parser-parsing-state inline-parser))
+  (define scanner (inline-parser-state-scanner state))
+  (define save (scanner:position scanner))
+  (cond ((try-parse content-parser inline-parser c))
+	(else
+	 (scanner:position! scanner save)
+	 #f)))
 
 (define (inline-parser-context:get-definition context label)
   (reference-definitions:get (inline-parser-context-definitions context) label))
@@ -185,16 +206,27 @@
 (define-record-type inline-parser
   (fields (mutable parsing-state)
 	  context
-	  processors ;; delimiter processors
+	  content-parsers ;; inline-content-parsers
+	  processors	  ;; delimiter processors
 	  reference-processors
 	  )
   (protocol (lambda (p)
 	      (lambda (context)
 		(p #f
 		   context
+		   (calculate-inline-content-parsers
+		    (inline-parser-context-content-parsers context))
 		   (calculate-delimiter-processors
 		    (inline-parser-context-processors context))
 		   (inline-parser-context-reference-processors context))))))
+(define (calculate-inline-content-parsers content-parsers)
+  (define (add-parsers ht parsers)
+    (define (add-parser parser)
+      (hashtable-set! ht (inline-content-parser-marker parser) parser))
+    (for-each add-parser parsers))
+  (let ((ht (make-eqv-hashtable (length content-parsers))))
+    (add-parsers ht content-parsers)
+    ht))
 
 (define (calculate-delimiter-processors processors)
   (define (add-processor-for-char char p ht)
@@ -251,12 +283,15 @@
   (define state (inline-parser-parsing-state inline-parser))
   (define scanner (inline-parser-state-scanner state))
   (define processors (inline-parser-processors inline-parser))
+  (define content-parsers (inline-parser-content-parsers inline-parser))
   (define (single-char inline-parser scanner)
     (let ((s (scanner:position scanner)))
       (scanner:next! scanner)
       (let ((e (scanner:position scanner)))
 	(inline-parser:text inline-parser (scanner:source scanner s e)))))
 
+  (define (parse-inline-content parser c)
+    (inline-content-parser:parse parser inline-parser c))
   (define (parse-delimiters processor c)
     (let-values (((chars can-open? can-close?)
 		  (inline-parser:scan-delimiters inline-parser processor c)))
@@ -269,12 +304,16 @@
 	     (flexible-vector->list chars)))))
   
   (let ((c (scanner:peek scanner)))
+    (define (content-parser-match parser) (parse-inline-content parser c))
     (define (processor-match processor) (parse-delimiters processor c))
     ;; make delimiter processor higher prio
     (and c
 	 (or
+	  (cond ((hashtable-ref content-parsers c #f) => content-parser-match)
+		(else #f))
 	  (cond ((hashtable-ref processors c #f) => processor-match)
 		(else #f))
+	  
 	  (case c
 	    ((#\[) (list (inline-parser:parse-open-blacket inline-parser)))
 	    ((#\!) (list (inline-parser:parse-bang inline-parser)))
@@ -876,9 +915,11 @@
 	      (loop (markdown-node-next node) first last len)))))))
 
 (define (inline-parser:special-char? inline-parser c)
+  (define content-parser (inline-parser-content-parsers inline-parser))
   (define processors (inline-parser-processors inline-parser))
   (or (memv c '(#\[ #\] #\! #\newline #\` #\\ #\& #\<))
-      (hashtable-ref processors c #f)))
+      (hashtable-contains? content-parser c)
+      (hashtable-contains? processors c)))
 
 ;; bracket
 (define-vector-type bracket
