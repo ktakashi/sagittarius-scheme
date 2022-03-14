@@ -34,14 +34,16 @@
 (library (text markdown extensions footnotes)
     (export footnotes-extension)
     (import (rnrs)
+	    (srfi :13 strings)
 	    (srfi :115 regexp)
 	    (srfi :117 list-queues)
-	    ;; (srfi :158 generators-and-accumulators)
+	    (srfi :158 generators-and-accumulators)
 	    (srfi :197 pipeline)
 	    (text markdown extensions api)
 	    (text markdown parser blocks)
 	    (text markdown parser factories) ;; FIXME
-	    (text markdown parser inlines)	    
+	    (text markdown parser inlines)
+	    (text markdown parser link-reference)
 	    (text markdown parser nodes)
 	    (text markdown parser parsing)
 	    (text markdown parser source))
@@ -51,11 +53,20 @@
 (define-markdown-node (footnote-block (attribute label "notes:label"))
   (namespace *footnotes-namespace*)
   (element "notes:footnote-block"))
-(define-markdown-node footnote (namespace *footnotes-namespace*)
+(define-markdown-node (footnote (attribute label "notes:label"))
+  (namespace *footnotes-namespace*)
   (element "notes:footnote"))
 
+(define-record-type footnote-reference-definition
+  (parent <reference-definition>)
+  (fields content)
+  (protocol (lambda (n)
+	      (lambda (label content)
+		((n label) content)))))
+  
+
 (define-record-type footnote-block-parser
-  (parent <block-parser>)
+  (parent <definition-parser>)
   (fields content)
   (protocol
    (lambda (n)
@@ -85,7 +96,14 @@
 	   (lambda (self inline-parser)
 	     ;; TODO
 	     ))
+	footnote-block-parser:definitions
 	(list-queue))))))
+(define (footnote-block-parser:definitions fbp)
+  (define block (block-parser-block fbp))
+  (list
+   (make-footnote-reference-definition
+    (string-append "^" (footnote-block-node-label block))
+    (footnote-block-parser-content fbp))))
 
 (define footnote-define-pattern
   (rx "[^" (* space) ($ (* any)) (* space) "]:"))
@@ -103,8 +121,22 @@
 					   text))
 			  (block-start:at-index _ end)))))
 	      (else (block-start:none))))))
+
+(define (footnote-reference-processor ref text? image?)
+  (define label (reference-definition-label ref))
+  ;; TODO check ^ on label
+  (and (footnote-reference-definition? ref)
+       (eqv? (string-ref label 0) #\^)
+       (not text?) (not image?)
+       (lambda (parent)
+	 (make-footnote-node parent
+			     (substring label 1 (string-length label))))))
+	
+
 (define footnotes-extension
   (markdown-extension-builder
-   (custom-block-factories `(,try-start-footnote))))
+   (custom-block-factories `(,try-start-footnote))
+   (custom-reference-processors `(,footnote-reference-processor))
+   ))
 
 )

@@ -34,6 +34,7 @@
 	    markdown-extension?
 	    markdown-extension-custom-block-factories
 	    markdown-extension-custom-delimiter-processors
+	    markdown-extension-custom-reference-processors
 	    
 	    combine-markdown-extensions)
     (import (rnrs)
@@ -43,7 +44,8 @@
 
 (define-record-type markdown-extension
   (fields custom-block-factories
-	  custom-delimiter-processors))
+	  custom-delimiter-processors
+	  custom-reference-processors))
 (define (make-check-list who)
   (lambda (v)
     (unless (or (null? v) (pair? v))
@@ -53,7 +55,9 @@
   (make-record-builder markdown-extension
    ((custom-block-factories '() (make-check-list 'custom-block-factories))
     (custom-delimiter-processors '() 
-     (make-check-list 'custom-delimiter-processors)))))
+     (make-check-list 'custom-delimiter-processors))
+    (custom-reference-processors '()
+     (make-check-list 'custom-reference-processors)))))
 
 (define *markdown-extension-accessors*
   (record-type-all-field-accessors (record-type-descriptor markdown-extension)))

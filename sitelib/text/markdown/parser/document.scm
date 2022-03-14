@@ -55,6 +55,7 @@
   (fields block-parser-factories
 	  inline-parser-factory
 	  delimiter-processors
+	  reference-processors
 	  document-block-parser
 	  open-block-parsers
 	  (mutable state)
@@ -67,17 +68,19 @@
    (lambda (p)
      (lambda (block-parser-factories
 	      inline-parser-factory
-	      delimiter-processors)
+	      delimiter-processors
+	      reference-processors)
        (let* ((document-block-parser (make-document-block-parser))
 	      (r (p block-parser-factories inline-parser-factory
-		    delimiter-processors document-block-parser
+		    delimiter-processors reference-processors
+		    document-block-parser
 		    (list-queue (make-open-block-parser
 				 document-block-parser 0))
 		    #f ;; state
 		    #f
 		    0
 		    (list-queue)
-		    (make-link-reference-definitions)))
+		    (make-reference-definitions)))
 	      (state (make-parser-state
 		      (block-parser-block document-block-parser)
 		      #f ;; line
@@ -141,7 +144,7 @@
     (define (prepare-active-block-parser! document-parser)
       (let* ((obp (document-parser:deactivate-block-parser! document-parser))
 	     (old (open-block-parser-block-parser obp)))
-	(when (paragraph-parser? old)
+	(when (definition-parser? old)
 	  (document-parser:add-definition-from! document-parser old))
 	(block-parser:close-block! old)
 	(let ((block (block-parser-block old)))
@@ -260,7 +263,9 @@
   (define (process-inlines document-parser)
     (define definitions (document-parser-definitions document-parser))
     (define processors (document-parser-delimiter-processors document-parser))
-    (define context (make-inline-parser-context processors definitions))
+    (define references (document-parser-reference-processors document-parser))
+    (define context (make-inline-parser-context processors definitions
+						references))
     (define inline-parser
       ((document-parser-inline-parser-factory document-parser) context))
     (list-queue-for-each
@@ -418,7 +423,7 @@
 
 (define (document-parser:close-block-parsers! document-parser size)
   (define (finalize document-parser bp)
-    (when (paragraph-parser? bp)
+    (when (definition-parser? bp)
       (document-parser:add-definition-from! document-parser bp))
     (block-parser:close-block! bp))
   (define all-block-parsers (document-parser-block-parsers document-parser))
@@ -430,11 +435,11 @@
       (list-queue-add-back! all-block-parsers bp))))
 
 (define (document-parser:add-definition-from! document-parser old)
-  (define definition* (paragraph-parser-definitions old))
+  (define definition* (definition-parser:definitions old))
   (define definitions (document-parser-definitions document-parser))
   ;; (define definitions (document-parser-d
   (do ((d* definition* (cdr d*)))
       ((null? d*))
     ;; We can't add definition to the block as it's not a defined node.
-    (link-reference-definitions:add! definitions (car d*))))
+    (reference-definitions:add! definitions (car d*))))
 )

@@ -63,6 +63,10 @@
 	    block-parser:close-block!
 	    block-parser:parse-inlines!
 
+	    (rename (definition-parser <definition-parser>))
+	    definition-parser?
+	    definition-parser:definitions
+
 	    make-matched-block-parser matched-block-parser?
 	    matched-block-parser:get
 	    matched-block-parser:paragraph-lines
@@ -71,8 +75,8 @@
 	    
 	    make-paragraph-parser paragraph-parser?
 	    paragraph-parser-paragraph-lines
-	    paragraph-parser-definitions
-
+	    ;; paragraph-parser-definitions
+	    
 	    make-heading-parser heading-parser?
 	    make-thematic-break-parser thematic-break-parser?
 	    make-indented-code-block-parser indented-code-block-parser?
@@ -183,8 +187,14 @@
 	   default-parse-inlines!))))))
 
 ;;; paragraph parser
-(define-record-type paragraph-parser
+(define-record-type definition-parser
   (parent block-parser)
+  (fields get-definitions))
+(define (definition-parser:definitions p)
+  ((definition-parser-get-definitions p) p))
+
+(define-record-type paragraph-parser
+  (parent definition-parser)
   (fields link-reference-definition-parser)
   (protocol
    (lambda (n)
@@ -214,6 +224,7 @@
 	       (unless (source-lines:empty? l*)
 		 (inline-parser:parse! inline-parser l*
 				       (block-parser-block bp))))))
+	paragraph-parser-definitions
 	(make-link-reference-definition-parser))))))
 (define (paragraph-parser-paragraph-lines pl)
   (define lrdp (paragraph-parser-link-reference-definition-parser pl))

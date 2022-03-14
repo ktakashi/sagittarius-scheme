@@ -30,8 +30,11 @@
 
 #!nounbound
 (library (text markdown parser link-reference)
-    (export make-link-reference-definition link-reference-definition?
-	    link-reference-definition-label
+    (export (rename (reference-definition <reference-definition>))
+	    reference-definition?
+	    reference-definition-label
+	    
+	    make-link-reference-definition link-reference-definition?
 	    link-reference-definition-destination
 	    link-reference-definition-title
 
@@ -40,10 +43,10 @@
 	    link-scanner:scan-link-title!
 	    link-scanner:scan-link-title-content!
 	    
-	    make-link-reference-definitions
-	    link-reference-definitions?
-	    link-reference-definitions:add!
-	    link-reference-definitions:get
+	    make-reference-definitions
+	    reference-definitions?
+	    reference-definitions:add!
+	    reference-definitions:get
 
 	    make-link-reference-definition-parser
 	    link-reference-definition-parser?
@@ -62,12 +65,19 @@
 	    (text markdown parser scanner)
 	    (text markdown parser source))
 
-(define-record-type link-reference-definition
+(define-record-type reference-definition
   (parent <source-aware>)
-  (fields label destination title)
+  (fields label)
+  (protocol (lambda (n)
+	      (lambda (label)
+		((n) label)))))
+  
+(define-record-type link-reference-definition
+  (parent reference-definition)
+  (fields destination title)
   (protocol (lambda (n)
 	      (lambda (label destination title)
-		((n) label destination title)))))
+		((n label) destination title)))))
 
 (define (link-scanner:scan-link-label-content! scanner)
   (let loop ()
@@ -156,20 +166,20 @@
 		(else (scanner:next! scanner) (loop))))
 	#t)))
 
-(define-record-type link-reference-definitions
+(define-record-type reference-definitions
   (fields definitions)
   (protocol (lambda (p)
 	      (lambda ()
 		(p (make-hashtable string-hash string=?))))))
-(define (link-reference-definitions:add! lrd def)
-  (define label (link-reference-definition-label def))
-  (hashtable-update! (link-reference-definitions-definitions lrd)
+(define (reference-definitions:add! lrd def)
+  (define label (reference-definition-label def))
+  (hashtable-update! (reference-definitions-definitions lrd)
 		     (escaping:normalize-label label)
 		     (lambda (v) v) ;; so it doesn't update anything
 		     def))
 
-(define (link-reference-definitions:get lrd label)
-  (hashtable-ref (link-reference-definitions-definitions lrd)
+(define (reference-definitions:get lrd label)
+  (hashtable-ref (reference-definitions-definitions lrd)
 		 (escaping:normalize-label label)
 		 #f))
 
