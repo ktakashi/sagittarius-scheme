@@ -78,10 +78,18 @@
        ((n dlist-block-node #t #f
 	   (lambda (self block) (definition-item-node? block))
 	   (lambda (self ps) (block-continue:at-index (parser-state-index ps)))
-	   (lambda (self line) ) ;; Do nothing
-	   (lambda (self loc) )
-	   (lambda (self) )
-	   (lambda (self inline-parser) )))))))
+	   block-parser-default-add-line!
+	   block-parser-default-add-location!
+	   (lambda (self)
+	     (define block (block-parser-block self))
+	     (define prev (markdown-node-prev block))
+	     ;; Merge two definition-list-block if they are direct siblings
+	     (when (definition-list-block-node? prev)
+	       (for-each (lambda (item)
+			   (markdown-node:append-child! prev item))
+			 (markdown-node:children block))
+	       (markdown-node:unlink! block)))
+	   block-parser-default-parse-inlines!))))))
 
 (define-record-type definition-item-parser
   (parent <block-parser>)
@@ -93,17 +101,18 @@
 	     (or (definition-term-node? block)
 		 (definition-description-node? block)))
 	   (lambda (self ps) (block-continue:at-index (parser-state-index ps)))
-	   (lambda (self line) ) ;; Do nothing
-	   (lambda (self loc) )
-	   (lambda (self) )
-	   (lambda (self inline-parser) )))))))
+	   block-parser-default-add-line!
+	   block-parser-default-add-location!
+	   block-parser-default-close-block!
+	   block-parser-default-parse-inlines!))))))
 
 (define-record-type definition-description-parser
   (parent <block-parser>)
-  (fields source-lines)
+  (fields content-indent
+	  source-lines)
   (protocol
    (lambda (n)
-     (lambda (document)
+     (lambda (document content-indent)
        ((n (make-definition-description-node document (list-queue)) #f #f
 	   (lambda (self block) #t)
 	   (lambda (self ps)
@@ -117,39 +126,43 @@
 	   (lambda (self line)
 	     (define lines (definition-description-parser-source-lines self))
 	     (define block (block-parser-block self))
-	     (list-queue-add-back! lines line)
-	     (list-queue-add-back!
-	      (definition-description-node-description block) line))
-	   (lambda (self loc)
-	     (define block (block-parser-block self))
-	     (markdown-node:add-source-location! block loc))
-	   (lambda (self) )
+	     (define indent (definition-description-parser-content-indent self))
+	     (define (drop-leading-whitespace line count)
+	       (do ((i 0 (+ i 1)))
+		   ((or (= i count) (not (source-line:whitespace? line i)))
+		    (source-line:substring line i))))
+	     (let ((line (drop-leading-whitespace line indent)))
+	       (list-queue-add-back! lines line)
+	       (list-queue-add-back!
+		(definition-description-node-description block) line)))
+	   block-parser-default-add-location!
+	   block-parser-default-close-block!
 	   (lambda (self inline-parser)
 	     (define lines (definition-description-parser-source-lines self))
 	     (inline-parser:parse! inline-parser
 				   (source-lines:of lines)
 				   (block-parser-block self))))
+	content-indent
 	(list-queue))))))
   
 (define (try-start-definition-list ps mbp)
   (define (search-non-space line start)
     (do ((len (source-line:length line))
 	 (i start (+ i 1)))
-	((or (= i len) (source-line:letter? line i)) i)))
+	((or (= i len) (not (source-line:whitespace? line i))) i)))
   (if (>= (parser-state-index ps) +parsing-code-block-indent+)
       (block-start:none)
       (let ((line (parser-state-line ps))
 	    (nns (parser-state-next-non-space-index ps)))
-	;; TODO check if the matched parser is definition-list-block-parser
-	;; or not to merge the item
 	(if (eqv? #\: (source-line:char-at line nns))
 	    (let ((lines (matched-block-parser:paragraph-lines mbp))
 		  (doc (parser-state-document ps))
 		  (matched (matched-block-parser:get mbp)))
 	      (if (source-lines:empty? lines)
 		  (if (definition-item-parser? matched)
-		      (let ((ddp (make-definition-description-parser doc))
-			    (nns2 (search-non-space line (+ nns 1))))
+		      (let* ((nns2 (search-non-space line (+ nns 1)))
+			     (ddp (make-definition-description-parser doc
+				   (- nns2 nns))))
 			(chain (block-start:of ddp)
 			       (block-start:at-column _
 				(+ (parser-state-column ps) nns2))))
@@ -157,8 +170,9 @@
 		  (let* ((dlb (make-definition-list-block-node doc))
 			 (dlbp (make-definition-list-block-parser dlb))
 			 (dip (make-definition-item-parser doc lines))
-			 (ddp (make-definition-description-parser doc))
-			 (nns2 (search-non-space line (+ nns 1))))
+			 (nns2 (search-non-space line (+ nns 1)))
+			 (ddp (make-definition-description-parser doc
+			       (- nns2 nns))))
 		    (markdown-node:append-child! dlb (block-parser-block dip))
 		    (chain (block-start:of dlbp dip ddp)
 			   (block-start:at-column _

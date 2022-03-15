@@ -63,6 +63,11 @@
 	    block-parser:close-block!
 	    block-parser:parse-inlines!
 
+	    (rename (default-add-location! block-parser-default-add-location!)
+		    (default-parse-inlines! block-parser-default-parse-inlines!)
+		    (default-add-line! block-parser-default-add-line!)
+		    (default-close-block! block-parser-default-close-block!))
+
 	    (rename (definition-parser <definition-parser>))
 	    definition-parser?
 	    definition-parser:definitions
@@ -477,7 +482,7 @@
 	   (lambda (self ps)
 	     (cond ((parser-state-blank? ps)
 		    (let ((block (block-parser-block self)))
-		      (if (list-queue-empty? (markdown-node-children block))
+		      (if (null? (markdown-node:children block))
 			  (block-continue:none)
 			  (let ((active-block
 				 (block-parser-block

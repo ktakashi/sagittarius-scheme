@@ -87,7 +87,7 @@
 	    markdown-node-parent
 	    markdown-node-prev
 	    markdown-node-next
-	    markdown-node-children
+	    markdown-node:children
 	    markdown-node:first-child
 	    markdown-node:last-child
 	    markdown-node:append-child!
@@ -250,6 +250,8 @@
 	       mut
 	       ...)))))))
 
+(define (markdown-node:children node)
+  (list-queue-list (markdown-node-children node)))
 (define (markdown-node:first-child node)
   (define children (markdown-node-children node))
   (and (not (list-queue-empty? children))

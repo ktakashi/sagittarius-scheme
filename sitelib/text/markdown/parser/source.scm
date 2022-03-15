@@ -39,6 +39,7 @@
 	    source-line:length
 	    source-line:prefix?
 	    source-line:letter?
+	    source-line:whitespace?
 	    source-line:regexp-search
 
 	    source-location:of
@@ -103,6 +104,10 @@
   (cond ((source-line:char-at sl index) =>
 	 (lambda (c) (char-set-contains? char-set:letter c)))
 	(else #f)))
+(define (source-line:whitespace? sl index)
+  (cond ((source-line:char-at sl index) => char-whitespace?)
+	(else #f)))
+
 (define (source-line:regexp-search sl rx . start&end)
   (apply regexp-search rx (source-line-content sl) start&end))
 

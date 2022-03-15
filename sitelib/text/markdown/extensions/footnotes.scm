@@ -90,10 +90,9 @@
 	   (lambda (self line)
 	     (let ((content (footnote-block-parser-content self)))
 	       (list-queue-add-back! content (source-line-content line))))
-	   (lambda (self loc)
-	     (markdown-node:add-source-location! (block-parser-block self) loc))
-	   (lambda (self) )
-	   (lambda (self inline-parser) ))
+	   block-parser-default-add-location!
+	   block-parser-default-close-block!
+	   block-parser-default-parse-inlines!)
 	footnote-block-parser:definitions
 	(list-queue))))))
 (define (footnote-block-parser:definitions fbp)

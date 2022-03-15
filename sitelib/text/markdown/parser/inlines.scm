@@ -579,7 +579,7 @@
 	content))
   (let ((after-opening (scanner:position scanner)))
     (let loop ()
-      (cond ((positive? (scanner:find-char scanner #\`))
+      (cond ((scanner:find-char scanner #\`)
 	     (let* ((before-closing (scanner:position scanner))
 		    (count (scanner:match-char scanner #\`)))
 	       (if (= open-ticks count)
