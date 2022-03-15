@@ -49,14 +49,15 @@
 	    (text markdown parser scanner)
 	    (text markdown parser source))
 
-(define *footnotes-namespace* "urn:markdown.sagittarius/footnotes")
+(define *footnotes-namespace* 
+  "https://markdown.sagittarius-scheme.io/footnotes")
 
 (define-markdown-node (footnote-block (attribute label "notes:label"))
   (namespace *footnotes-namespace*)
-  (element "notes:footnote-block"))
+  (element "notes:footnote"))
 (define-markdown-node (footnote (attribute label "notes:label"))
   (namespace *footnotes-namespace*)
-  (element "notes:footnote"))
+  (element "notes:footnote-ref"))
 
 (define-record-type footnote-reference-definition
   (parent <reference-definition>)
@@ -91,12 +92,8 @@
 	       (list-queue-add-back! content (source-line-content line))))
 	   (lambda (self loc)
 	     (markdown-node:add-source-location! (block-parser-block self) loc))
-	   (lambda (self)
-	     ;; TODO
-	     )
-	   (lambda (self inline-parser)
-	     ;; TODO
-	     ))
+	   (lambda (self) )
+	   (lambda (self inline-parser) ))
 	footnote-block-parser:definitions
 	(list-queue))))))
 (define (footnote-block-parser:definitions fbp)
