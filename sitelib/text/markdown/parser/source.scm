@@ -41,6 +41,7 @@
 	    source-line:letter?
 	    source-line:whitespace?
 	    source-line:regexp-search
+	    source-line:index
 
 	    source-location:of
 	    source-location?
@@ -107,9 +108,10 @@
 (define (source-line:whitespace? sl index)
   (cond ((source-line:char-at sl index) => char-whitespace?)
 	(else #f)))
-
 (define (source-line:regexp-search sl rx . start&end)
   (apply regexp-search rx (source-line-content sl) start&end))
+(define (source-line:index sl char . start&end)
+  (apply string-index (source-line-content sl) char start&end))
 
 
 (define-vector-type source-location (source-location:of line column length)

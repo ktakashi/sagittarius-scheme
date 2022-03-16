@@ -36,9 +36,12 @@
     (import (rnrs)
 	    (srfi :158 generators-and-accumulators)
 	    (text markdown extensions api)
+	    (text markdown parser blocks)
+	    (text markdown parser factories)
 	    (text markdown parser inlines)
 	    (text markdown parser nodes)
-	    (text markdown parser source))
+	    (text markdown parser source)
+	    (util flexible-vector))
 
 (define *gfm-namespace* "https://github.github.com/gfm/")
 
@@ -71,6 +74,42 @@
 	(markdown-node:insert-after! opener strike)
 	2)
       0))
+
+;; Table
+(define-markdown-node table-block (namespace *gfm-namespace*)
+  (element "gfm:table"))
+(define-markdown-node table-head (namespace *gfm-namespace*)
+  (element "gfm:thead"))
+(define-markdown-node table-body (namespace *gfm-namespace*)
+  (element "gfm:tbody"))
+(define-markdown-node table-row (namespace *gfm-namespace*)
+  (element "gfm:trow"))
+(define-markdown-node (table-cell header? (attribute alignment "gfm:alignment"))
+  (namespace *gfm-namespace*)
+  (element "gfm:tcell"))
+
+(define-record-type table-block-parser
+  (parent <block-parser>)
+  (fields row-lines
+	  columns)
+  (protocol
+   (lambda (n)
+     (lambda (document columns header-line)
+       ((n (make-table-block-node document) #f #t (lambda ignore #f)
+	   (lambda (self ps)
+	     (if (source-line:index (parser-state-line ps) #\|)
+		 (block-continue:at-index (parser-state-index ps))
+		 (block-continue:none)))
+	   (lambda (self line)
+	     (define row-lines (table-block-parser-row-lines self))
+	     (flexible-vector-insert-back! row-lines line))
+	   block-parser-default-add-location!
+	   block-parser-default-close-block!
+	   (lambda (self inline)
+	     ;; TODO
+	     ))
+	(flexible-vector header-line)
+	columns)))))
 
 (define strikethrough-extension
   (markdown-extension-builder
