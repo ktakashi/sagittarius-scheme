@@ -35,6 +35,7 @@
 	    )
     (import (rnrs)
 	    (srfi :158 generators-and-accumulators)
+	    (srfi :197 pipeline)
 	    (text markdown extensions api)
 	    (text markdown parser blocks)
 	    (text markdown parser factories)
@@ -75,6 +76,10 @@
 	2)
       0))
 
+(define strikethrough-extension
+  (markdown-extension-builder
+   (custom-delimiter-processors `(,make-strikethrough-delimiter-processor))))
+
 ;; Table
 (define-markdown-node table-block (namespace *gfm-namespace*)
   (element "gfm:table"))
@@ -111,11 +116,76 @@
 	(flexible-vector header-line)
 	columns)))))
 
-(define strikethrough-extension
+(define (split-source-line paragraph) '())
+
+(define (try-start-gfm-table-block ps mbp)
+  (define paragraph-lines (matched-block-parser:paragraph-lines mbp))
+  (define (parse-separator line)
+    (define len (source-line:length line))
+    (define columns (flexible-vector))
+    
+    (define (check-dash i line len)
+      (let loop ((i i) (have-dash? #f))
+	(cond ((= i len) (values i have-dash?))
+	      ((eqv? (source-line:char-at line i) #\-) (loop (+ i 1) #t))
+	      (else (values i have-dash?)))))
+    (define (check-right i line len)
+      (if (and (< i len) (eqv? (source-line:char-at line i) #\:))
+	  (values (+ i 1) #t)
+	  (values i #f)))
+    (define (get-alignment left? right?)
+      (cond ((and left? right?) 'center)
+	    (left? 'left)
+	    (right? 'right)
+	    (else #f)))
+    (let loop ((i 0) (valid? #f) (pipes 0))
+      (if (= i len)
+	  (and valid? (not (flexible-vector-empty? columns)) columns)
+	  (let ((c (source-line:char-at line i)))
+	    (case c
+	      ((#\|)
+	       (let ((new-pipe (+ pipes 1)))
+		 (and (<= new-pipe 1) ;; More than one adjacent pipe not allowed
+		      (loop (+ i 1) #t new-pipe))))
+	      ((#\- #\:)
+	       (and (or (> pipes 0) (flexible-vector-empty? columns))
+		    (let*-values (((i left?) (if (eqv? c #\:)
+						 (values (+ i 1) #t)
+						 (values i #f)))
+				  ((i have-dash?) (check-dash i line len)))
+		      (and have-dash?
+			   (let-values (((i right?) (check-right i line len)))
+			     (let ((align (get-alignment left? right?)))
+			       (flexible-vector-insert-back! columns align)
+			       (loop i valid? 0)))))))
+	      ((#\space #\tab) (loop (+ i 1) valid? pipes))
+	      (else #f))))))
+  (define (check ps mbp)
+    (let* ((line (parser-state-line ps))
+	   (separator (source-line:substring line (parser-state-index ps))))
+      (cond ((parse-separator separator) =>
+	     (lambda (columns)
+	       (let* ((paragraph (source-lines:first paragraph-lines))
+		      (header-cells (split-source-line paragraph))
+		      (doc (parser-state-document ps)))
+		 (display (flexible-vector->list columns)) (newline)
+		 (and (>= (flexible-vector-size columns) (length header-cells))
+		      (chain (block-start:of
+			      (make-table-block-parser doc columns paragraph))
+			     (block-start:at-index _ (parser-state-index ps))
+			     (block-start:replace-active-block-parser _))))))
+	    (else #f))))
+  (if (and (= (source-lines:size paragraph-lines) 1)
+	   (source-line:index (source-lines:first paragraph-lines) #\|))
+      (cond ((check ps mbp))
+	    (else (block-start:none)))
+      (block-start:none)))
+
+(define table-extensions
   (markdown-extension-builder
-   (custom-delimiter-processors `(,make-strikethrough-delimiter-processor))))
+   (custom-block-factories `(,try-start-gfm-table-block))))
 
 (define gfm-extensions
-  (combine-markdown-extensions strikethrough-extension))
+  (combine-markdown-extensions strikethrough-extension table-extensions))
 
 )

@@ -57,6 +57,9 @@
 
 	    source-lines:of source-lines?
 	    source-lines:empty source-lines:empty?
+	    source-lines:size
+	    source-lines:first
+	    source-lines:last
 	    source-lines:content
 	    source-lines:add-line!
 	    source-lines->vector ;; for scanner
@@ -159,6 +162,12 @@
 (define (source-lines:empty) (make-source-lines (list-queue)))
 (define (source-lines:empty? sl*)
   (list-queue-empty? (source-lines-lines sl*)))
+(define (source-lines:size sl*)
+  (list-queue-length (source-lines-lines sl*)))
+(define (source-lines:first sl*)
+  (list-queue-front (source-lines-lines sl*)))
+(define (source-lines:last sl*)
+  (list-queue-back (source-lines-lines sl*)))
 (define (source-lines->vector sl*)
   (list->vector (list-queue-list (source-lines-lines sl*))))
 (define (source-lines:content sl*)
