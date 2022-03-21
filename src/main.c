@@ -212,9 +212,9 @@ static int getopt_long(int argc, tchar **argv, const tchar *optstring,
   return optopt_s;
 }
 
-static void show_usage()
+static void show_usage(int errorp)
 {
-  fprintf(stderr,
+  fprintf(errorp? stderr : stdout,
 	  "Usage: "PROGRAM_NAME" [-hvicdtn][-L<path>][-D<path>][-f<flag>][-I<library>]"
 	  "[-E<flags>][-p<file>][--] [file]\n"
 	  "options:\n"
@@ -697,7 +697,7 @@ int real_main(int argc, tchar **argv)
       version();
       break;
     case 'h':
-      show_usage();
+      show_usage(FALSE);
       break;
     case 'i':
       if (standard_given == 6) {
@@ -737,7 +737,7 @@ int real_main(int argc, tchar **argv)
   usage:
 #endif
       tfprintf(stderr, t("invalid option -- %c\n"), opt);
-      show_usage();
+      show_usage(TRUE);
       break;
     }
   }
