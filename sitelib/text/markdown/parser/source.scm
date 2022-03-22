@@ -42,6 +42,7 @@
 	    source-line:whitespace?
 	    source-line:regexp-search
 	    source-line:index
+	    source-line:index-right
 
 	    source-location:of
 	    source-location?
@@ -115,6 +116,8 @@
   (apply regexp-search rx (source-line-content sl) start&end))
 (define (source-line:index sl char . start&end)
   (apply string-index (source-line-content sl) char start&end))
+(define (source-line:index-right sl char . start&end)
+  (apply string-index-right (source-line-content sl) char start&end))
 
 
 (define-vector-type source-location (source-location:of line column length)
