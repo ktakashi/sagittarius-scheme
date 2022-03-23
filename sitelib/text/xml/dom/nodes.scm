@@ -831,12 +831,18 @@
 	(else #f)))
 (define (element:set-attribute! element qualified-name value)
   (define doc (node-owner-document element))
+  (unless (string? value)
+    (assertion-violation 'element:set-attribute! "XML attribute must be string"
+			 value))
   (let ((attr (document:create-attribute doc qualified-name)))
     (attr-value-set! attr value)
     (element:set-attribute-node! element attr)))
 
 (define (element:set-attribute-ns! element namespace qualified-name value)
   (define doc (node-owner-document element))
+  (unless (string? value)
+    (assertion-violation 'element:set-attribute-ns!
+			 "XML attribute must be string" value))
   (let-values (((prefix local-name) (split-qualified-name qualified-name)))
     (let ((attr (document:create-attribute-ns doc namespace qualified-name))
 	  (xmlns (make-xmlns-attr doc prefix namespace)))
