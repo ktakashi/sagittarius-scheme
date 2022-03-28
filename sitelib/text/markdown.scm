@@ -36,7 +36,7 @@
 	    markdown-sexp->sxml
 	    markdown-sexp->string
 	    ;; parser itself, i'm not sure if we need to export this
-	    markdown-parser
+	    ;; markdown-parser
 	    ;; parser condition accessor
 	    markdown-parser-error?
 	    markdown-parser-position
