@@ -665,8 +665,11 @@
 ; ATTENTION: character escaping for namespace URI may be improper, study this
 ;  issue
 (define (srl:namespace-decl->str-lst prefix-string namespace-uri)
-  (list " xmlns:" prefix-string "=\""
-        (srl:string->att-value namespace-uri) "\""))
+  ;; Sagittarius
+  (if prefix-string
+      (list " xmlns:" prefix-string "=\""
+	    (srl:string->att-value namespace-uri) "\"")
+      (list " xmlns" "=\"" (srl:string->att-value namespace-uri) "\"")))
 
 ; According to SXML specification,
 ;  <comment> ::=  ( *COMMENT* "comment string" )
@@ -782,8 +785,16 @@
         (n-parts (srl:split-name name)))
     (cond
       ((not (car n-parts))  ; no namespace-id => no namespace
-       (values #f #f (cdr n-parts)  ; name as a string
-               #f))
+       ;; Sagittarius, handling *default* namespace
+       (cond ((or (assq '*default* namespace-assoc)
+		  (assq '*default* ns-prefix-assig)) =>
+	      (lambda (slot)
+		(values #f (cadr slot) (cdr n-parts)
+			(not (srl:assoc-cdr-string= (cadr slot)
+						    declared-ns-prefixes)))))
+	     (else
+	      (values #f #f (cdr n-parts)  ; name as a string
+		      #f))))
       ((string-ci=? (car n-parts) "xml")  ; reserved XML namespace
        (values (car n-parts) "http://www.w3.org/XML/1998/namespace"
                (cdr n-parts) #f))
