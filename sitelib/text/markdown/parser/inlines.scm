@@ -643,7 +643,7 @@
 	  (else (not-entity)))))
 
 (define *uri*
-  (rx (: (/ "az") (** 1 31 (or (/ "azAZ09") ".+-")) #\:
+  (rx (: (/ "azAZ") (** 1 31 (or (/ "azAZ09") ".+-")) #\:
 	 (* (~ #\< #\> space control)))))
 (define *email*
   (rx (: (+ (or (/ "azAZ09") ".!#$%&'*+/=?^_`{|}~-")) #\@
