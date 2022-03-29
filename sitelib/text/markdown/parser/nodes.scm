@@ -106,6 +106,7 @@
 	    markdown-node-between
 
 	    (rename (markdown-node-element markdown-node->dom-tree)
+		    (document-node-xml-document markdown-document->xml-document)
 		    (source-aware <source-aware>)
 		    (markdown-node:source-locations source-aware:locations)
 		    (markdown-node:add-source-location!
@@ -366,10 +367,10 @@
    (markdown-node-next start)))
 
 
-(define-markdown-node document)
+(define-markdown-node (document xml-document))
 (define (make-markdown-document)
   (let* ((doc (make-xml-document))
-	 (e (make-document-node doc)))
+	 (e (make-document-node doc doc)))
     (node:append-child! doc (markdown-node-element e))
     e))
 (define-markdown-node paragraph)

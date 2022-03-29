@@ -31,7 +31,6 @@
 #!nounbound
 (library (text markdown extensions gfm)
     (export gfm-extensions
-	    *gfm-namespace*
 	    (rename (strikethrough-extension gfm-strikethrough-extension)
 		    (table-extensions gfm-table-extensions)))
     (import (rnrs)
@@ -82,8 +81,7 @@
 
 (define strikethrough-extension
   (markdown-extension-builder
-   (custom-delimiter-processors `(,make-strikethrough-delimiter-processor))
-   (node-namespace-prefixes `((gfm . ,*gfm-namespace*)))))
+   (custom-delimiter-processors `(,make-strikethrough-delimiter-processor))))
 
 ;; Table
 (define-markdown-node table-block (namespace *gfm-namespace*)
@@ -269,8 +267,7 @@
 
 (define table-extensions
   (markdown-extension-builder
-   (custom-block-factories `(,try-start-gfm-table-block))
-   (node-namespace-prefixes `((gfm . ,*gfm-namespace*)))))
+   (custom-block-factories `(,try-start-gfm-table-block))))
 
 (define gfm-extensions
   (combine-markdown-extensions strikethrough-extension table-extensions))

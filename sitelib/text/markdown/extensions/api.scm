@@ -36,7 +36,6 @@
 	    markdown-extension-custom-inline-content-factories
 	    markdown-extension-custom-delimiter-processors
 	    markdown-extension-custom-reference-processors
-	    markdown-extension-node-namespace-prefixes
 	    
 	    combine-markdown-extensions)
     (import (rnrs)
@@ -48,8 +47,7 @@
   (fields custom-block-factories
 	  custom-inline-content-factories
 	  custom-delimiter-processors
-	  custom-reference-processors
-	  node-namespace-prefixes))
+	  custom-reference-processors))
 (define (make-check-list who)
   (lambda (v)
     (unless (or (null? v) (pair? v))
@@ -63,9 +61,7 @@
     (custom-delimiter-processors '() 
      (make-check-list 'custom-delimiter-processors))
     (custom-reference-processors '()
-     (make-check-list 'custom-reference-processors))
-    (node-namespace-prefixes '()
-     (make-check-list 'node-namespace-prefixes)))))
+     (make-check-list 'custom-reference-processors)))))
 
 (define *markdown-extension-accessors*
   (record-type-all-field-accessors (record-type-descriptor markdown-extension)))

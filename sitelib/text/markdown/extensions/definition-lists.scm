@@ -30,8 +30,7 @@
 
 #!nounbound
 (library (text markdown extensions definition-lists)
-    (export definition-lists-extension
-	    *definition-list-namespace*)
+    (export definition-lists-extension)
     (import (rnrs)
 	    (srfi :117 list-queues)
 	    (srfi :197 pipeline)
@@ -183,6 +182,5 @@
 
 (define definition-lists-extension
   (markdown-extension-builder
-   (custom-block-factories `(,try-start-definition-list))
-   (node-namespace-prefixes `((dl . ,*definition-list-namespace*)))))
+   (custom-block-factories `(,try-start-definition-list))))
 )

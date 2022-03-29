@@ -68,10 +68,11 @@
    ((dom) (dom->sxml dom default-option))
    ((dom options)
     (define (emit dom body)
-      ;; TODO collect namespace from the document
-      `(*TOP* 
-	      ;; TODO emit xml decl here
-	      ,body))
+      (if (document? dom)
+	  ;; TODO collect namespace from the document
+	  ;; TODO emit xml decl here
+	  `(*TOP* ,@body)
+	  body))
     (let ((prefix? (dom->sxml-options-use-prefix? options))
 	  (node-processor (option->node-processor options)))
       (node-processor
@@ -80,7 +81,7 @@
 	   (emit doc
 	    (if (document? doc)     
 		(filter-map (lambda (node)
-			      (node->sxml doc node
+			      (node->sxml node node
 					  tag-emitter
 					  node-processor))
 			    (list-queue-list (node-children doc)))
