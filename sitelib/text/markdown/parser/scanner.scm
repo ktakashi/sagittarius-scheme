@@ -182,7 +182,7 @@
 	(source-lines:add-line! source-lines
 				(source-line:substring first-line begin-index))
 	(do ((i (+ begin-line-index 1) (+ i 1)))
-	    ((= i (- end-line-index 1))
+	    ((> i end-line-index)
 	     (let ((last-line (vector-ref lines end-line-index)))
 	       (source-lines:add-line! source-lines
 		(source-line:substring last-line 0 end-index))))

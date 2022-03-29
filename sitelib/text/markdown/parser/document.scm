@@ -1,20 +1,20 @@
 ;;; -*- mode:scheme; coding:utf-8 -*-
 ;;;
 ;;; text/markdown/parser/document.scm - Document parser
-;;;  
+;;;
 ;;;   Copyright (c) 2022  Takashi Kato  <ktakashi@ymail.com>
-;;;   
+;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
 ;;;   are met:
-;;;   
+;;;
 ;;;   1. Redistributions of source code must retain the above copyright
 ;;;      notice, this list of conditions and the following disclaimer.
-;;;  
+;;;
 ;;;   2. Redistributions in binary form must reproduce the above copyright
 ;;;      notice, this list of conditions and the following disclaimer in the
 ;;;      documentation and/or other materials provided with the distribution.
-;;;  
+;;;
 ;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 ;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 ;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -26,7 +26,7 @@
 ;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-;;;  
+;;;
 
 #!nounbound
 (library (text markdown parser document)
@@ -44,7 +44,7 @@
 	    (text markdown parser source)
 	    (util port))
 
-(define-vector-type open-block-parser 
+(define-vector-type open-block-parser
   (make-open-block-parser block-parser source-index)
   open-block-parser?
   (block-parser open-block-parser-block-parser)
@@ -212,7 +212,7 @@
 			       try-block-starts?)
 			 (let ((new-block-parser (car new-bp*)))
 			   (document-parser:add-child! document-parser
-			    (make-open-block-parser new-block-parser 
+			    (make-open-block-parser new-block-parser
 						    source-index))
 			   (markdown-node:source-locations-set!
 			    (block-parser-block new-block-parser)
@@ -275,7 +275,7 @@
 						references))
     (define inline-parser
       ((document-parser-inline-parser-factory document-parser) context))
-    
+
     (list-queue-for-each
      (lambda (bp) (block-parser:parse-inlines! bp inline-parser))
      (document-parser-block-parsers document-parser)))
@@ -294,7 +294,7 @@
     (parser-state-next-non-space-index-set! state i)
     (document-parser-next-non-space-column-set! document-parser cols)
     (parser-state-indent-set! state (- cols (parser-state-column state))))
-  
+
   (parser-state-blank?-set! state #t)
   (let loop ((i (parser-state-index state)) (cols (parser-state-column state)))
     (if (< i len)

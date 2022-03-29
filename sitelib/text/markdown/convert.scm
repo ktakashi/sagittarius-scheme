@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!nounbound
 (library (text markdown convert)
     (export markdown-sexp->sxml
 	    markdown-sexp->string)
@@ -39,38 +40,38 @@
 	    (srfi :13 strings)
 	    (srfi :26 cut)
 	    (text sxml serializer)
-	    (text markdown parser)
-	    (pp))
+	    (text sxml tools))
 
-  ;; or should we make <ast> from the beginning?
-  ;;
-  ;; structure of input sexp
-  ;; :doc
-  ;;  - :blockquote
-  ;;  - :verbatim
-  ;;  - :note
-  ;;  - :reference
-  ;;  - :line
-  ;;  - :header
-  ;;  - :ordered-list
-  ;;  - :bullet-list
-  ;;  - :paragraph
-  ;;  - :plain
-  ;;  ;; - :html-block  - not yet
-  ;;  ;; - :style-block - not yet
-  ;; First we need to collect :reference to make link work properly and check
-  ;; the validity.
-  ;; Second convert to sxml (shtml)
-  ;; style keyword arguments must be alist with these structure keyword and
-  ;; detail keywords (ex :inline) to specify its style.
-  (define (markdown-sexp->sxml sexp :key (style #f) ;; for the top most
-			                 (class #f)
-					 (no-reference #t)
-					 (no-notes #f)
-			            :allow-other-keys attributes)
-    ;; under the :doc
-    (define (collect-reference&notes sexp)
-      (let loop ((sexp sexp) (acc '()) (ref '()) (notes '()))
+
+;; or should we make <ast> from the beginning?
+;;
+;; structure of input sexp
+;; :doc
+;;  - :blockquote
+;;  - :verbatim
+;;  - :note
+;;  - :reference
+;;  - :line
+;;  - :header
+;;  - :ordered-list
+;;  - :bullet-list
+;;  - :paragraph
+;;  - :plain
+;;  ;; - :html-block  - not yet
+;;  ;; - :style-block - not yet
+;; First we need to collect :reference to make link work properly and check
+;; the validity.
+;; Second convert to sxml (shtml)
+;; style keyword arguments must be alist with these structure keyword and
+;; detail keywords (ex :inline) to specify its style.
+(define (markdown-sexp->sxml sexp :key (style #f) ;; for the top most
+			               (class #f)
+				       (no-reference #t)
+				       (no-notes #f)
+			          :allow-other-keys attributes)
+  ;; under the :doc
+  (define (collect-reference&notes sexp)
+    (let loop ((sexp sexp) (acc '()) (ref '()) (notes '()))
 	(cond ((null? sexp) (values (reverse! acc) ref notes))
 	      ((and (pair? (car sexp)) (keyword? (caar sexp)))
 	       (case (caar sexp)
@@ -89,8 +90,8 @@
 	       ;; invalid list
 	       (assertion-violation 'markdown-sexp->sxml
 				    "invalid markdown list" sexp)))))
-    (define (alist->attr alist)
-      (let loop ((alist alist) (r '()))
+  (define (alist->attr alist)
+    (let loop ((alist alist) (r '()))
 	(cond ((null? alist) (reverse! r))
 	      ((and (string? (caar alist)) (string? (cdar alist)))
 	       (loop (cdr alist) (cons (list (string->symbol (caar alist))
@@ -100,26 +101,26 @@
 		'markdown-sexp->sxml
 		"invalid html attribute, must be alist of strings" alist)))))
 
-    (unless (and (pair? sexp) (eq? (car sexp) :doc))
-      (assertion-violation 'markdown-sexp->sxml
+  (unless (and (pair? sexp) (eq? (car sexp) :doc))
+    (assertion-violation 'markdown-sexp->sxml
 			   "invalid keyword in the given list"
 			   (car sexp) sexp))
-    (let-values (((sexp refs notes) (collect-reference&notes (cdr sexp))))
-      (define (lookup-reference ref)
+  (let-values (((sexp refs notes) (collect-reference&notes (cdr sexp))))
+    (define (lookup-reference ref)
 	(cond ((assoc ref refs) => cdr)
 	      (else
 	       (assertion-violation 'markdown-sexp->sxml
 				    "invalid reference"
 				    ref sexp))))
 
-      (define (get-attribute key)
+    (define (get-attribute key)
 	(cond ((get-keyword key attributes #f)
 	       => (cut append '(@) <>))
 	      (else '(@))))
-      (define note-prefix "fnref_")
-      (define sup-prefix "fn_")
-      (define note-refs '())
-      (define (find-note ref)
+    (define note-prefix "fnref_")
+    (define sup-prefix "fn_")
+    (define note-refs '())
+    (define (find-note ref)
 	(let loop ((notes notes))
 	  (if (null? notes)
 	      '("")
@@ -128,7 +129,7 @@
 		    (cddr note)
 		    (loop (cdr notes)))))))
 
-      (define (detail->sxml sexp)
+    (define (detail->sxml sexp)
 	(define (strip note)
 	  (let loop ((note note) (r '()))
 	    (if (null? note)
@@ -217,7 +218,7 @@
 	    ((('& entity) . rest) (loop rest (cons (car sexp) acc)))
 	    (_ (assertion-violation 'markdown-sexp->sxml
 				    "invalid inline sexp form" sexp)))))
-      (define (gen-notes notes)
+    (define (gen-notes notes)
 	(define (format-notes notes)
 	  (map (lambda (note)
 		 (cons (cadr (cadr note)) (cddr note))) notes))
@@ -247,7 +248,7 @@
 		  `((ol (@ (id "notes"))
 			,(get-attribute :notes) ,@notes))))))
 
-      (define (gen-reference refs)
+    (define (gen-reference refs)
 	(define (gen refs)
 	  (fold (lambda (ref acc)
 		  (match ref
@@ -268,8 +269,8 @@
 				  '((id "references")))
 			 ,@refs))))))
 
-      ;; TODO refactor
-      (define (rec sexp in-html?)
+    ;; TODO refactor
+    (define (rec sexp in-html?)
 	(let loop ((sexp sexp) (acc '()))
 	  ;; TODO add style
 	  (match sexp
@@ -330,14 +331,14 @@
 	    (_ (assertion-violation 'markdown-sexp->sxml
 				    "invalid block sexp form" sexp))
 	    )))
-      (rec sexp #f)
-      ))
+    (rec sexp #f)
+    ))
 
-  (define (markdown-sexp->string sexp :key (no-indent #f) 
-				 :allow-other-keys opts)
-    (let ((sxml (apply markdown-sexp->sxml sexp opts)))
-      (if no-indent
-	   (srl:sxml->html-noindent sxml)
-	   (srl:sxml->html sxml))))
+(define (markdown-sexp->string sexp :key (no-indent #f) 
+			       :allow-other-keys opts)
+  (let ((sxml (apply markdown-sexp->sxml sexp opts)))
+    (if no-indent
+	(srl:sxml->html-noindent sxml)
+	(srl:sxml->html sxml))))
 
   )

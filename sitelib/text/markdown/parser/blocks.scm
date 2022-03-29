@@ -475,7 +475,7 @@
        ((n (make-item-node document) #t #f
 	   (lambda (self block)
 	     (when (list-item-parser-had-blank-line? self)
-	       (let ((parent (markdown-node-parent (block-parser-block block))))
+	       (let ((parent (markdown-node-parent (block-parser-block self))))
 		 (when (list-node? parent)
 		   (list-node-tight-set! parent "false")))
 	       #t))
