@@ -41,6 +41,7 @@
 	    *xml:exc-c14n-w/comment*)
     (import (rnrs)
 	    (text xml dom nodes)
+	    (text xml dom util)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
 	    (srfi :117 list-queues))
@@ -208,71 +209,12 @@
 
 (define (collect-parent-namespaces e0 options)
   (define exclusive? (xml-write-options-exclusive? options))
-  (define doc (node-owner-document e0))
-  (define (clone-attr a)
-    (let ((c (document:create-attribute-ns doc (attr-namespace-uri a)
-					   (attr-name a))))
-      (attr-value-set! c (attr-value a))
-      c))
-    
-  (define (rec e r)
-    (if (or (document? e) (not e))
-	r
-	(let ((r (named-node-map:fold (element-attributes e) r
-		   (lambda (k v r)
-		     (let ((name (attr-name k)))
-		       ;; not sure why but seems
-		       ;; we need to put xml:base as well
-		       (if (or (and (string-prefix? "xmlns" name)
-				    (not (element:has-attribute? e0 name)))
-			       (and (not exclusive?)
-				    (string-prefix? "xml:" name)))
-			   (cons (clone-attr k) r)
-			   r))))))
-	  (rec (node-parent-node e) r))))
-  (rec (node-parent-node e0) '()))
+  (element:collect-parent-namespaces e0 exclusive?))
 
 (define-node-writer +element-node+ (element-writer root e options out)
   (define exclusive? (xml-write-options-exclusive? options))
-  (define partial-element?
-    (not (eq? root (document-document-element (node-owner-document root)))))
   (define (skip-namespace? e attr)
-    (define (namespace-used-in-children? attr)
-      (define ns (attr-value attr))
-      (define (check e)
-	(if (equal? (element-namespace-uri e) ns)
-	    +node-filter-filter-accept+
-	    +node-filter-filter-skip+))
-      (define tw (document:create-tree-walker (node-owner-document e)
-					      e +node-filter-show-element+
-					      check))
-      (tree-walker:next-node tw))
-      
-    (define (ancestor-of? root e) ;; check if e is ancestor of root or not
-      (cond ((eq? root e) #f)
-	    ((document? e) #t)
-	    (else (ancestor-of? root (node-parent-node e)))))
-	  
-    (define (check-element attr e2)
-      (cond ((not e2) #f) ;; doesn't have parent yet
-	    ((document? e2) (zero? (string-length (attr-value attr))))
-	    ((ancestor-of? root e2) #f)
-	    ((element? e2)
-	     (let ((ns (named-node-map:get-named-item (element-attributes e2)
-						      (attr-name attr))))
-	       (cond (ns (equal? (attr-value attr) (attr-value ns)))
-		     
-		     (else (check-element attr (node-parent-node e2))))))
-	    ;; ???
-	    (else #f)))
-    (and (string-prefix? "xmlns" (attr-name attr))
-	 ;; check
-	 (or (and exclusive?
-		  ;; 3. Specification of Exclusive XML Canonicalization
-		  ;; of https://www.w3.org/TR/xml-exc-c14n
-		  partial-element?
-		  (not (namespace-used-in-children? attr)))
-	     (check-element attr (node-parent-node e)))))
+    (element:skip-namespace? e attr root exclusive?))
 
   (define (do-it e options out)
     (let ((name (node-node-name e)))
@@ -304,13 +246,16 @@
 	       (put-char out #\>))))))
   (if (eq? root e)
       (let ((ns (collect-parent-namespaces e options)))
-	;; might be too much...
-	(dynamic-wind
-	    (lambda ()
-	      (for-each (lambda (a) (element:set-attribute-node! e a)) ns))
-	    (lambda () (do-it e options out))
-	    (lambda ()
-	      (for-each (lambda (a) (element:remove-attribute-node! e a)) ns))))
+	(if (null? ns)
+	    (do-it e options out)
+	    ;; might be too much...
+	    (dynamic-wind
+		(lambda ()
+		  (for-each (lambda (a) (element:set-attribute-node! e a)) ns))
+		(lambda () (do-it e options out))
+		(lambda ()
+		  (for-each (lambda (a) (element:remove-attribute-node! e a))
+			    ns)))))
       (do-it e options out)))
 
 (define (make-write/escape attr?)
