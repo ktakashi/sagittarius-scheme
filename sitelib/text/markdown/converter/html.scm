@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding:utf-8 -*-
 ;;;
-;;; text/markdown/converter.scm - Markdown node converter
+;;; text/markdown/converter/html.scm - Markdown->html converter
 ;;;  
 ;;;   Copyright (c) 2022  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -28,39 +28,33 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-;; wrapper library 
 #!nounbound
-(library (text markdown converter)
-    (export markdown-node->sxml
-	    markdown-document->sxml
-
-	    markdown->html-converter
-	    markdown-converter:convert
-	    )
+(library (text markdown converter html)
+    (export document-conversion
+	    paragraph-conversion
+	    text-conversion
+	    code-conversion)
     (import (rnrs)
 	    (text markdown parser nodes)
-	    (text markdown converter api)
-	    (text markdown converter html)
-	    (text xml dom converter))
+	    (text markdown converter api))
 
-(define default-options
-  (dom->sxml-options-builder (use-prefix? #t)))
-  
-(define markdown-node->sxml
-  (case-lambda
-   ((node) (markdown-node->sxml node default-options))
-   ((node options) (dom->sxml (markdown-node->dom-tree node) options))))
+(define (convert-document document next)
+  (map next (markdown-node:children document)))
 
-(define markdown-document->sxml
-  (case-lambda
-   ((node) (markdown-document->sxml node default-options))
-   ((node options) (dom->sxml (markdown-document->xml-document node) options))))
+(define (convert-paragraph paragraph next)
+  `(p ,@(map next (markdown-node:children paragraph))))
 
-(define markdown->html-converter
-  (make-markdown-converter
-   (list document-conversion
-	 paragraph-conversion
-	 text-conversion
-	 code-conversion)))
+(define (convert-text text next) (text-node:content text))
 
+(define (convert-code code next) `(code ,(code-node:literal code)))
+
+(define document-conversion
+  (make-markdown-conversion 'html document-node? convert-document))
+(define paragraph-conversion
+  (make-markdown-conversion 'html paragraph-node? convert-paragraph))
+(define text-conversion
+  (make-markdown-conversion 'html text-node? convert-text))
+(define code-conversion
+  (make-markdown-conversion 'html code-node? convert-code))
+			    
 )

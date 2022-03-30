@@ -31,6 +31,7 @@
 #!nounbound
 (library (text markdown parser nodes)
     (export make-markdown-document
+	    document-node?
 	    make-paragraph-node paragraph-node?
 	    make-block-quote-node block-quote-node?
 	    ;; make-list-node
