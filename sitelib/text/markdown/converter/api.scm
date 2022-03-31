@@ -36,10 +36,13 @@
 	    (rename (markdown-conversion <markdown-conversion>))
 	    make-markdown-conversion markdown-conversion?
 
+	    define-markdown-converter
 	    markdown-converter:convert
+	    markdown-converter:merge
 	    )
     (import (rnrs)
 	    (record builder)
+	    (srfi :1 lists)
 	    (text markdown parser nodes))
 
 (define-record-type markdown-conversion
@@ -86,5 +89,18 @@
 		   (lambda (handler) (handler node)))
 		  (else (default-unknown-node-handler node))))))
     (convert node))))
-  
+
+(define (markdown-converter:merge converter . converter*)
+  (if (null? converter*)
+      converter
+      (make-markdown-converter
+       (append-map markdown-converter-processors (cons converter converter*)))))
+
+(define-syntax define-markdown-converter
+  (syntax-rules ()
+    ((_ name type (pred proc) ...)
+     (define name
+       (make-markdown-converter
+	(list (make-markdown-conversion 'type pred proc) ...))))))
+
 )

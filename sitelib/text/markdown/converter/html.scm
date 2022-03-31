@@ -30,10 +30,7 @@
 
 #!nounbound
 (library (text markdown converter html)
-    (export document-conversion
-	    paragraph-conversion
-	    text-conversion
-	    code-conversion)
+    (export markdown->html-converter)
     (import (rnrs)
 	    (text markdown parser nodes)
 	    (text markdown converter api))
@@ -48,13 +45,10 @@
 
 (define (convert-code code next) `(code ,(code-node:literal code)))
 
-(define document-conversion
-  (make-markdown-conversion 'html document-node? convert-document))
-(define paragraph-conversion
-  (make-markdown-conversion 'html paragraph-node? convert-paragraph))
-(define text-conversion
-  (make-markdown-conversion 'html text-node? convert-text))
-(define code-conversion
-  (make-markdown-conversion 'html code-node? convert-code))
+(define-markdown-converter markdown->html-converter html
+  (document-node? convert-document)
+  (paragraph-node? convert-paragraph)
+  (text-node? convert-text)
+  (code-node? convert-code))
 			    
 )

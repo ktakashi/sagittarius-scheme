@@ -56,11 +56,4 @@
    ((node) (markdown-document->sxml node default-options))
    ((node options) (dom->sxml (markdown-document->xml-document node) options))))
 
-(define markdown->html-converter
-  (make-markdown-converter
-   (list document-conversion
-	 paragraph-conversion
-	 text-conversion
-	 code-conversion)))
-
 )
