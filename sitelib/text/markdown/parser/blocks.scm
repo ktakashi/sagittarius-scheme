@@ -320,7 +320,7 @@
 	 (define content (source-line-content line))
 	 (define e (string-length content))
 	 (let ((fences (- (or (string-skip content fc index) e) index)))
-	   (and (< fences fl)
+	   (and (<= fences fl)
 		(let ((after (or (string-skip content parsing:space/tab?
 					      (+ index fences))
 				 e)))
@@ -334,7 +334,7 @@
 	      ni)))
 	     
        ((n (make-fenced-code-block-node document #f
-					fence-char fence-indent fence-length)
+					fence-char fence-length fence-indent)
 	   #f #f false
 	   (lambda (self ps)
 	     (let ((nns (parser-state-next-non-space-index ps))
@@ -356,18 +356,20 @@
 		   (fenced-code-block-parser-first-line-set! self c))))
 	   default-add-location!
 	   (lambda (self)
+	     (define (get-info first)
+	       (let ((escaped (escaping:unescape 
+			       (or (and (not (string-null? first)) first) ""))))
+		 (and (> (string-length escaped) 0)
+		      escaped)))
+	     (define (get-literal others)
+	       (string-append (string-join (list-queue-list others) "\n") "\n"))
 	     (let ((block (block-parser-block self))
 		   (first
 		    (string-trim-both
 		     (fenced-code-block-parser-first-line self)))
 		   (others (fenced-code-block-parser-other-lines self)))
-
-	       (code-block-node-info-set! block
-		(escaping:unescape 
-		 (or (and (not (string-null? first)) first) "")))
-	       (code-block-node:literal-set! block (string-join
-						    (list-queue-list others)
-						    "\n"))))
+	       (code-block-node-info-set! block (get-info first))
+	       (code-block-node:literal-set! block (get-literal others))))
 	   default-parse-inlines!)
 	#f (list-queue))))))
 
