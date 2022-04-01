@@ -326,7 +326,7 @@
     (document-parser-column-in-tab? document-parser))
   (define (get-content)
     (cond (column-in-tab?
-	   (let* ((after-tab (+  1))
+	   (let* ((after-tab (+ index 1))
 		  (rest (source-line:substring line after-tab))
 		  (space (parsing:columns->next-tab-stop
 			  (parser-state-column state))))
@@ -395,7 +395,8 @@
   (let ((c (source-line:char-at line index)))
     (parser-state-index-set! state (+ index 1))
     (if (eqv? c #\tab)
-	(parser-state-column-set! state (parsing:columns->next-tab-stop column))
+	(parser-state-column-set! state
+	  (+ column (parsing:columns->next-tab-stop column)))
 	(parser-state-column-set! state (+ column 1)))))
 
 (define (document-parser:active-block-parser document-parser)
