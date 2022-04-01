@@ -479,8 +479,8 @@
 	     (when (list-item-parser-had-blank-line? self)
 	       (let ((parent (markdown-node-parent (block-parser-block self))))
 		 (when (list-node? parent)
-		   (list-node-tight-set! parent "false")))
-	       #t))
+		   (list-node-tight-set! parent "false"))))
+	     #t)
 	   (lambda (self ps)
 	     (cond ((parser-state-blank? ps)
 		    (let ((block (block-parser-block self)))
@@ -494,8 +494,8 @@
 				 (item-node? active-block)))
 			    (block-continue:at-index
 			     (parser-state-next-non-space-index ps))))))
-		   ((> (parser-state-indent ps)
-		       (list-item-parser-content-indent self))
+		   ((>= (parser-state-indent ps)
+			(list-item-parser-content-indent self))
 		    (block-continue:at-column
 		     (+ (parser-state-column ps)
 			(list-item-parser-content-indent self))))

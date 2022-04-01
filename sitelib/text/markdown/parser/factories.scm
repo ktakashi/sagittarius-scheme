@@ -377,7 +377,7 @@
 	 (lambda (list-marker)
 	   (define block (car list-marker))
 	   (define index-after-marker (cdr list-marker))
-	   (define marker-length (+ index-after-marker marker-index))
+	   (define marker-length (- index-after-marker marker-index))
 	   (define column-after-marker (+ marker-column marker-length))
 	   (define (check-content line content-column index-after-marker)
 	     (define len (source-line:length line))
