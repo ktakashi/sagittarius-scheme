@@ -300,7 +300,9 @@
 	  (let ((lines (strip-last-blanks
 			 (indented-code-block-parser-lines self))))
 	    (code-block-node:literal-set! (block-parser-block self)
-					  (string-join lines "\n"))))
+					  (string-append
+					   (string-join lines "\n")
+					   "\n"))))
 	default-parse-inlines!)
 	(list-queue))))))
 
