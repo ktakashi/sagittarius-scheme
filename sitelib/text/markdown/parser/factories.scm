@@ -153,7 +153,7 @@
 	   (after-space (or (string-skip content parsing:space/tab?
 					 after-marker)
 			    last)))
-      (>= after-space after-marker)))
+      (>= after-space last)))
   (case (source-line:char-at sl index)
     ((#\=) (and (setex-heading-rest? sl (+ index 1) #\=) 1))
     ((#\-) (and (setex-heading-rest? sl (+ index 1) #\-) 2))
