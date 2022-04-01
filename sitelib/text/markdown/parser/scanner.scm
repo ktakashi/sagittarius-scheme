@@ -91,7 +91,8 @@
 (define (scanner:next! s)
   (let* ((index (scanner-index s))
 	 (line-index (scanner-line-index s))
-	 (next-index (+ index 1)))
+	 (next-index (+ index 1))
+	 (c (scanner:peek s))) ;; FIXME...
     (if (> next-index (scanner-line-length s))
 	(let ((next-line-index (+ (scanner-line-index s) 1)))
 	  (scanner-line-index-set! s next-line-index)
@@ -102,7 +103,7 @@
 	  (scanner-index-set! s 0))
 	(scanner-index-set! s next-index))
     ;; for convenience
-    #t))
+    c))
 
 (define (scanner:next-char? s c)
   (and (eqv? (scanner:peek s) c)
