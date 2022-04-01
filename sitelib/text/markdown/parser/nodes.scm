@@ -285,8 +285,13 @@
   (markdown-node-prev-set! sibling node)
   (markdown-node-next-set! node sibling)
   (markdown-node-parent-set! sibling parent)
-  (unless (markdown-node-next sibling)
-    (list-queue-add-back! (markdown-node-children parent) sibling))
+  ;; maybe we should use flexible-vector
+  (let ((children (markdown-node-children parent)))
+    (let loop ((r '()) (c* (list-queue-list children)))
+      (cond ((null? c*) (list-queue-set-list! children (reverse! r)))
+	    ((eq? (car c*) node)
+	     (loop (cons sibling (cons node r)) (cdr c*)))
+	    (else (loop (cons (car c*) r) (cdr c*))))))
   (let ((n (markdown-node-element node)))
     ;; this works even `node-next-sibling` returns #f as `node:insert-before!`
     ;; searches the second argumemt from the children of first argument
