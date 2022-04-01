@@ -329,7 +329,8 @@
 
 (define (markdown-node:get-text node)
   (define elm (markdown-node-element node))
-  (node-text-content elm))
+  (let ((t (node-first-child elm)))
+    (character-data-data t)))
 
 (define (markdown-node:unlink! node)
   (define elm (markdown-node-element node))
