@@ -70,15 +70,15 @@
 (define *parsing:html-cdata-open-pattern* (rx bol "<![CDATA["))
 (define *parsing:html-cdata-close-pattern* (rx "]]>"))
 (define *parsing:html-open-tag-pattern*
-  (rx bol (w/nocase "<" (/ "AZaz") (* (/ "AZaz09"))
-		    ;; attribute
-		    (: (+ space) (/ "AZaz_:") (* (/ "AZaz09:._-")) ;; name
-		       (* space) "=" (* space)
-		       (or (+ (~ ("\"'=<>`") (/ #\x0 #\x20)))
-			   (: #\' (~ #\') #\')
-			   (: #\' (~ #\") #\')))
-		    (* space) (? #\/) ">")))
+  (rx (w/nocase "<" (/ "AZaz") (* (/ "AZaz09"))
+		;; attribute
+		(* (: (+ space) (/ "AZaz_:") (* (/ "AZaz09:._-")) ;; name
+		      (* space) "=" (* space)
+		      (or (+ (~ ("\"'=<>`") (/ #\x0 #\x20)))
+			  (: #\' (* (~ #\')) #\')
+			  (: #\" (* (~ #\")) #\"))))
+		(* space) (? #\/) ">")))
 (define *parsing:html-close-tag-pattern*
-  (rx bol (w/nocase "</" (/ "AZaz") (* (/ "AZaz09") (* space) ">"))))
+  (rx (w/nocase "</" (/ "AZaz") (* (/ "AZaz09") (* space) ">"))))
 
 )
