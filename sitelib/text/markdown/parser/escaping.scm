@@ -74,7 +74,7 @@
 			      (string->number v)))))
 		 (or (and n (string (integer->char n)))
 		     "\xFFFD;")))
-	      ((xml-entity-name->char v) => string)
+	      ((xml-entity-name->char v) => list->string)
 	      (else str)))
       str))
 

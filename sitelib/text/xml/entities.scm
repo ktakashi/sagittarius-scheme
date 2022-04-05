@@ -37,7 +37,7 @@
 (define-constant *entities* (include "entities-list.scm"))
 
 (define (xml-entity-name->char name)
-  (cond ((assoc name *entities*) => (lambda (e) (integer->char (cdr e))))
+  (cond ((assoc name *entities*) => (lambda (e) (map integer->char (cdr e))))
 	(else #f)))
 
 )
