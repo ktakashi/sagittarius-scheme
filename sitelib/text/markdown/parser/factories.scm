@@ -259,10 +259,12 @@
 	     "ul"))
 	   (or space (: (? "/") ">") eol))
       #t)
-     (,(rx (or ,*parsing:html-open-tag-pattern*
+     (,(rx bol
+	   (or ,*parsing:html-open-tag-pattern*
 	       ,*parsing:html-close-tag-pattern*)
 	   (* space) eol)
-      #t)))
+      #t))
+  )
 (define (try-start-html-block parser-state matched-block-parser)
   (define (check-lazy)
     (define bp (matched-block-parser:get matched-block-parser))
