@@ -169,7 +169,8 @@
 	(let ((c (scanner:next! scanner)))
 	  (cond ((eqv? c char) (loop (+ count 1)))
 		((memv c '(#\space #\tab)) (loop count))
-		(else count)))))
+		((not c) count)
+		(else -1)))))
     
     (or (>= (try-scan scanner pos #\-) 3)
 	(>= (try-scan scanner pos #\_) 3)
