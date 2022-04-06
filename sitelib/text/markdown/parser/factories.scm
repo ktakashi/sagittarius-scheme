@@ -349,8 +349,9 @@
 
 (define (parse-list doc line marker-index marker-column in-paragraph?)
   (define (space-tab-end? line index)
-    (or (< index (source-line:length line))
-	(parsing:space/tab? (source-line:char-at line index))))
+    (if (< index (source-line:length line))
+	(parsing:space/tab? (source-line:char-at line index))
+	#t))
   (define (parse-ordered-list doc line index)
     (define scanner (scanner:of (source-lines:of line)))
     (do ((i 0 (+ i 1))) ((= i index)) (scanner:next! scanner))
