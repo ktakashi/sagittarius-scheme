@@ -72,7 +72,10 @@
 			    (string->number v)
 			    (let ((v (substring v 1 (string-length v))))
 			      (string->number v)))))
-		 (or (and n (string (integer->char n)))
+		 (or (and n
+			  (if (zero? n)
+			      "\xFFFD;"
+			      (string (integer->char n))))
 		     "\xFFFD;")))
 	      ((xml-entity-name->char v) => list->string)
 	      (else str)))
