@@ -81,7 +81,7 @@
   bs)
 
 (define (try-start-heading parser-state matched-block-parser)
-  (if (>= (parser-state-index parser-state) +parsing-code-block-indent+)
+  (if (>= (parser-state-indent parser-state) +parsing-code-block-indent+)
       (block-start:none)
       (let* ((line (parser-state-line parser-state))
 	     (nns (parser-state-next-non-space-index parser-state)))
@@ -162,7 +162,6 @@
 (define (try-start-thematic-break parser-state matched-block-parser)
   (define (thematic-break? line index)
     (define scanner (scanner:of (source-lines:of line)))
-    (define pos (scanner:position scanner))
     (define (try-scan scanner pos char)
       (scanner:position! scanner pos)
       (let loop ((count 0))
@@ -171,10 +170,11 @@
 		((memv c '(#\space #\tab)) (loop count))
 		((not c) count)
 		(else -1)))))
-    
-    (or (>= (try-scan scanner pos #\-) 3)
-	(>= (try-scan scanner pos #\_) 3)
-	(>= (try-scan scanner pos #\*) 3)))
+    ;; skip until index
+    (let ((pos (scanner:position (scanner:skip! scanner index))))
+      (or (>= (try-scan scanner pos #\-) 3)
+	  (>= (try-scan scanner pos #\_) 3)
+	  (>= (try-scan scanner pos #\*) 3))))
   
   (if (>= (parser-state-indent parser-state) +parsing-code-block-indent+)
       (block-start:none)
@@ -214,7 +214,12 @@
 	((= i index))
       (scanner:next! scanner))
     (let ((pos (scanner:position scanner)))
-      (cond ((try-scan scanner pos #\`) => (lambda (n) (make #\` n indent)))
+      (cond ((try-scan scanner pos #\`) =>
+	     (lambda (n)
+	       ;; If the infor string comes after a backtick fence,
+	       ;; it may not contain backtick characters
+	       (and (not (scanner:find-char scanner #\`))
+		    (make #\` n indent))))
 	    ((try-scan scanner pos #\~) => (lambda (n) (make #\~ n indent)))
 	    (else #f))))
   (let ((indent (parser-state-indent parser-state))

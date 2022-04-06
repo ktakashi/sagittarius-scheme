@@ -35,6 +35,7 @@
 	    scanner:has-next? scanner:next!
 	    scanner:next-char? scanner:next-string?
 	    scanner:match-char scanner:match-charset
+	    scanner:skip!
 	    scanner:whitespace
 	    scanner:find-char scanner:find-charset
 	    scanner:position scanner:position!
@@ -104,6 +105,11 @@
 	(scanner-index-set! s next-index))
     ;; for convenience
     c))
+
+(define (scanner:skip! s count)
+  (do ((i 0 (+ i 1)))
+      ((= i count) s)
+    (scanner:next! s)))
 
 (define (scanner:next-char? s c)
   (and (eqv? (scanner:peek s) c)
@@ -183,7 +189,7 @@
 	(source-lines:add-line! source-lines
 				(source-line:substring first-line begin-index))
 	(do ((i (+ begin-line-index 1) (+ i 1)))
-	    ((> i end-line-index)
+	    ((>= i end-line-index)
 	     (let ((last-line (vector-ref lines end-line-index)))
 	       (source-lines:add-line! source-lines
 		(source-line:substring last-line 0 end-index))))

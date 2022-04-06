@@ -320,14 +320,14 @@
 	 (define content (source-line-content line))
 	 (define e (string-length content))
 	 (let ((fences (- (or (string-skip content fc index) e) index)))
-	   (and (<= fences fl)
+	   (and (>= fences fl)
 		(let ((after (or (string-skip content parsing:space/tab?
 					      (+ index fences))
 				 e)))
 		  (= after e)))))
        (define (adjust-index block line new-index)
 	 (define fi (fenced-code-block-node-fence-indent block))
-	 (do ((i fi (- i 1)) (ni new-index (+ new-index))
+	 (do ((i fi (- i 1)) (ni new-index (+ ni 1))
 	      (len (source-line:length line)))
 	     ((or (<= i 0) (<= len ni)
 		  (not (eqv? (source-line:char-at line ni) #\space)))
@@ -362,7 +362,10 @@
 		 (and (> (string-length escaped) 0)
 		      escaped)))
 	     (define (get-literal others)
-	       (string-append (string-join (list-queue-list others) "\n") "\n"))
+	       (define s* (list-queue-list others))
+	       (if (null? s*)
+		   ""
+		   (string-append (string-join s* "\n") "\n")))
 	     (let ((block (block-parser-block self))
 		   (first
 		    (string-trim-both
