@@ -38,13 +38,23 @@
 	    markdown-sexp->string
 
 	    markdown-parser
+	    commonmark-parser
+
+	    markdown->html-converter
+	    markdown->sxml-converter
+	    markdown->sexp-converter ;; legaxy
+	    markdown-converter:convert
+	    markdown-converter:merge
+	    markdown-conversion-options?
+	    markdown-conversion-options-builder
+	    ;; for convenience
+	    (rename (default-converter default-markdown-converter))
 
 	    ;; For backward compatibility
 	    markdown-parser-error?
 	    markdown-parser-position
 	    markdown-parser-expected)
     (import (rnrs)
-	    (core errors)
 	    (text markdown parser)
 	    (text markdown converter)
 	    ;; these two extensions are needed for backward compatibility
@@ -83,7 +93,9 @@
 
 ;; for now just stub
 (define (markdown-write . ignore)
-  (implementation-restriction-violation 'markdown-write
-					"not supported yet"))
+  (raise (condition
+	  (make-implementation-restriction-violation)
+	  (make-who-condition 'markdown-write)
+	  (make-message-condition "not supported yet"))))
 
-  )
+)

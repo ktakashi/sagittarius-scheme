@@ -1,8 +1,65 @@
 (import (rnrs)
+	(sagittarius) 
 	(text markdown)
-	(srfi :64))
+	(text markdown converter html)
 
-(test-begin "Markdown")
+	(text json)
+	(text json pointer)
+	(text sxml serializer)
+
+	(util file)
+	(srfi :64)
+	(srfi :39))
+
+(test-begin "Markdown - New")
+
+(define markdown-data-dir (string-append (current-directory)
+					 "/test/data/markdown/"))
+
+(define examples-to-ignore
+  ;; Basically the closing tag which we don't have much control
+  ;; as we put markdown node into SXML instead of emitting string
+  '(
+    79			    ;; <h2></h2> or <h2 />
+    280 281 282 283 284 315 ;; <li></li> or <li />
+    483 486		    ;; <a></a> or <a />
+    ))
+
+(define (test-commonmark file)
+  (define test-cases (call-with-input-file file json-read))
+  (define markdown-pointer (json-pointer "/markdown"))
+  (define html-pointer (json-pointer "/html"))
+  (define example-pointer (json-pointer "/example"))
+  (define options (markdown-conversion-options-builder
+		   (context-data (markdown-html-conversion-context-builder
+				  (url-encoder commonmark-url-encoder)))))
+
+  (define (test-markdown test)
+    (define markdown (markdown-pointer test))
+    (define html (html-pointer test))
+    (define example (example-pointer test))  
+    
+    (let* ((e (parse-markdown commonmark-parser
+			      (open-string-input-port markdown)))
+	   (sxml (markdown-converter:convert default-markdown-converter
+					     'html e options))
+	   (result (srl:sxml->html-noindent sxml)))
+      (when (memv example examples-to-ignore)
+	(test-expect-fail 1))
+      (test-equal (format "Example ~d" example) html result)))
+  (test-group file (for-each test-markdown test-cases)))
+
+(parameterize ((*srl:empty-elements* '()) ;; to XHTMLish
+	       (*srl:escape-alist-char-data*
+		(cons '(#\" . "&quot;") (*srl:escape-alist-char-data*))))
+  (test-group "Commonmark"
+   (for-each test-commonmark (find-files markdown-data-dir))))
+
+(test-end)
+
+(test-runner-reset (test-runner-current))
+
+(test-begin "Markdown - Legacy")
 
 (define-syntax test-parser
   (syntax-rules ()
