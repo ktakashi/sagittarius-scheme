@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding:utf-8 -*-
 ;;;
-;;; text/markdown/converter.scm - Markdown node converter
+;;; text/markdown/converter/sxml.scm - Markdown->sxml converter
 ;;;  
 ;;;   Copyright (c) 2022  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -29,14 +29,28 @@
 ;;;  
 
 #!nounbound
-(library (text markdown converter)
-    (export markdown->html-converter
-	    markdown->sxml-converter
-	    markdown-converter:convert
-
-	    markdown-conversion-options?
-	    markdown-conversion-options-builder)
+(library (text markdown converter sxml)
+    (export markdown->sxml-converter)
     (import (rnrs)
 	    (text markdown converter api)
-	    (text markdown converter html)
-	    (text markdown converter sxml)))
+	    (text xml dom converter))
+
+(define default-options
+  (dom->sxml-options-builder (use-prefix? #t)))
+
+(define (convert-document node data next)
+  (if (dom->sxml-options? data)
+      (dom->sxml (markdown-document->xml-document node) data)
+      (dom->sxml (markdown-document->xml-document node) default-options)))
+
+(define (convert-markdown-node node data next)
+  (if (dom->sxml-options? data)
+      (dom->sxml (markdown-node->dom-tree node) data)
+      (dom->sxml (markdown-node->dom-tree node) default-options)))
+
+(define-markdown-converter markdown->sxml-converter sxml
+  (document-node? convert-document)
+  (markdown-node? convert-markdown-node)
+
+
+)

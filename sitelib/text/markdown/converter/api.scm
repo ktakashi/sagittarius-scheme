@@ -36,6 +36,9 @@
 	    (rename (markdown-conversion <markdown-conversion>))
 	    make-markdown-conversion markdown-conversion?
 
+	    markdown-conversion-options?
+	    markdown-conversion-options-builder
+	    
 	    define-markdown-converter
 	    markdown-converter:convert
 	    markdown-converter:merge

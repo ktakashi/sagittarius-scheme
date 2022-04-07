@@ -30,14 +30,47 @@
 
 #!nounbound
 (library (text markdown converter html)
-    (export markdown->html-converter)
+    (export markdown->html-converter
+	    markdown-html-conversion-context-builder
+	    commonmark-url-encoder
+	    )
     (import (rnrs)
+	    (record builder)
+	    (rfc uri)
 	    (srfi :1 lists)
 	    (srfi :13 strings)
+	    (srfi :14 char-sets)
 	    (text markdown parser nodes)
 	    (text markdown converter api)
 	    (text sxml tools))
 
+(define-record-type markdown-html-conversion-context
+  (fields user-attributes
+	  url-encoder
+	  url-sanitizer))
+
+;; This is basically only for passing tests
+(define (commonmark-url-encoder url)
+  (let-values (((out e) (open-string-output-port)))
+    (string-for-each (lambda (c)
+		       (case c
+			 ((#\") (put-string out "%22"))
+			 ((#\\) (put-string out "%5C"))
+			 ((#\`) (put-string out "%60"))
+			 ((#\[) (put-string out "%5B"))
+			 ((#\]) (put-string out "%5D"))
+			 ((#\space) (put-string out "%20"))
+			 (else
+			  (if (char-set-contains? char-set:ascii c)
+			      (put-char out c)
+			      ;; TODO inefficient
+			      (put-string out
+					  (uri-encode-string (string c)))))))
+		     url)
+    (e)))
+
+(define-syntax markdown-html-conversion-context-builder
+  (make-record-builder markdown-html-conversion-context))
 
 (define (convert-document document data next)
   (let ((r (append-convert next (markdown-node:children document))))
@@ -107,11 +140,17 @@
     (list "\n" r "\n")))
 
 (define (convert-link node data next)
-  `((a (@ (href ,(link-node-destination node))
-	  ,@(cond ((link-node-title node) => (lambda (title) `((title ,title))))
-		  (else '()))
-	  ,@(get-attribute data node 'a))
-       ,@(append-convert next (markdown-node:children node)))))
+  (let-values (((url sanitized?)
+		(sanitize-url data (link-node-destination node))))
+    `((a (@ ,@(if sanitized?
+		  '((rel "nofollow"))
+		  '())
+	    (href ,(encode-url data url))
+	    ,@(cond ((link-node-title node) =>
+		     (lambda (title) `((title ,title))))
+		    (else '()))
+	    ,@(get-attribute data node 'a))
+	 ,@(append-convert next (markdown-node:children node))))))
 
 (define (convert-image node data next)
   (let-values (((out e) (open-string-output-port)))
@@ -123,12 +162,13 @@
 			    (markdown-node:children node)))))
     (alt-text-converter node)
     (let ((alt-text (e)))
-      `((img (@ (src ,(image-node-destination node))
-		(alt ,alt-text)
-		,@(cond ((image-node-title node) =>
-			 (lambda (title) `((title ,title))))
-			(else '()))
-		,@(get-attribute data node 'img)))))))
+      (let-values (((url _) (sanitize-url data (image-node-destination node))))
+	`((img (@ (src ,(encode-url data url))
+		  (alt ,alt-text)
+		  ,@(cond ((image-node-title node) =>
+			   (lambda (title) `((title ,title))))
+			  (else '()))
+		  ,@(get-attribute data node 'img))))))))
 
 (define (convert-thematic-break thematic-break data next)
   `("\n" (hr (@ ,@(get-attribute data thematic-break 'hr))) "\n"))
@@ -178,9 +218,27 @@
 (define (convert-text text data next) (list (text-node:content text)))
 
 (define (get-attribute data node tag)
-  (cond ((hashtable? data) (hashtable-ref data tag '()))
-	((procedure? data) (or (data node tag) '()))
-	(else '())))
+  (if (procedure? data)
+      (or (data node tag) '())
+      (let ((attribute
+	     (and (markdown-html-conversion-context? data)
+		  (markdown-html-conversion-context-user-attributes data))))
+	(or (and (hashtable? data) (hashtable-ref data tag '()))
+	    '()))))
+
+(define (encode-url data url)
+  (define encoder (and (markdown-html-conversion-context? data)
+		       (markdown-html-conversion-context-url-encoder data)))
+  (if (procedure? encoder)
+      (encoder url)
+      url))
+
+(define (sanitize-url data url)
+  (define sanitizer (and (markdown-html-conversion-context? data)
+			 (markdown-html-conversion-context-url-sanitizer data)))
+  (if (procedure? sanitizer)
+      (values (sanitizer url) #t)
+      (values url #f)))
 
 (define (append-convert next node*)
   (define (strip-linefeed r prev)

@@ -85,6 +85,7 @@
 	    *commonmark-namespace*
 
 	    define-markdown-node ;; for custom node
+	    markdown-node?
 	    markdown-node-parent
 	    markdown-node-prev
 	    markdown-node-next
