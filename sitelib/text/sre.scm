@@ -30,6 +30,7 @@
 
 ;; SRE -- S-expression regexp notation
 ;;   http://www.scsh.net/docu/post/sre.html
+#!nounbound
 (library (text sre)
     (export &sre-parse-error sre-parse-error?
 	    sre->regex
@@ -228,6 +229,8 @@
 	((? symbol?)      (parse-symbol sre))
 	;; ("abc") pattern
 	(((? string? cset)) (string->char-set cset))
+	;; (char-set "abc")
+	(('char-set (? string? cset)) (string->char-set cset))
 	;; SRFI-115 doesn't have this?
 	(('~) (parse 'any))
 	(('~ cset ..1)
@@ -438,6 +441,7 @@
     ((or 'everything
 	 (? char?)
 	 (? char-set?)
+	 ('char-set (? string?))
 	 ('inverted-char-class (? cset-sre?)))
      #t)
     (else #f)))
@@ -445,6 +449,7 @@
 (define (cset-sre->char-set sre)
   (match sre
     ('everything char-set:full)
+    (('char-set (? string? cs)) (string->char-set cs))
     ((? char?) (char-set sre))
     ((? char-set?) sre)
     (('inverted-char-class (? cset-sre? cs))
