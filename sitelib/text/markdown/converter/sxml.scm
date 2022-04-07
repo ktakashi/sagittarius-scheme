@@ -32,6 +32,7 @@
 (library (text markdown converter sxml)
     (export markdown->sxml-converter)
     (import (rnrs)
+	    (text markdown parser nodes)
 	    (text markdown converter api)
 	    (text xml dom converter))
 
@@ -50,7 +51,7 @@
 
 (define-markdown-converter markdown->sxml-converter sxml
   (document-node? convert-document)
-  (markdown-node? convert-markdown-node)
+  (markdown-node? convert-markdown-node))
 
 
 )

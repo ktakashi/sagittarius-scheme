@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!nounbound
 (library (text markdown)
     (export markdown-read
 	    string->markdown
@@ -35,32 +36,54 @@
 	    parse-markdown
 	    markdown-sexp->sxml
 	    markdown-sexp->string
-	    ;; parser itself, i'm not sure if we need to export this
-	    ;; markdown-parser
-	    ;; parser condition accessor
+
+	    markdown-parser
+
+	    ;; For backward compatibility
 	    markdown-parser-error?
 	    markdown-parser-position
 	    markdown-parser-expected)
     (import (rnrs)
-	    (clos user)
 	    (core errors)
 	    (text markdown parser)
+	    (text markdown converter)
+	    ;; these two extensions are needed for backward compatibility
+	    (text markdown extensions gfm)
+	    (text markdown extensions footnotes)
+	    ;; For backward compatibility
 	    (text markdown convert))
 
-  (define (markdown-read p :key (as 'sxml) :allow-other-keys opt)
-    (let ((sexp (apply parse-markdown p opt)))
-      (case as
-	((sxml) (apply markdown-sexp->sxml sexp opt))
-	((html) (apply markdown-sexp->string sexp opt))
-	((sexp) sexp)
-	(else (assertion-violation 'markdown-read "unsupported type" as)))))
 
-  (define (string->markdown s . opt)
-    (apply markdown-read (open-string-input-port s) opt))
+;;; Old APIs
+(define (markdown-read p :key (as 'sxml) (parser markdown-parser)
+			 :allow-other-keys keys)
+  (let ((node (parse-markdown p parser)))
+    (case as
+      ((sxml)
+       (apply markdown-sexp->sxml
+	      (markdown-converter:convert default-converter 'sexp node)
+	      keys))
+      ((html)
+       (apply markdown-sexp->string
+	      (markdown-converter:convert default-converter 'sexp node)
+	      keys))
+      ((sexp)
+       (markdown-converter:convert default-converter 'sexp node))
+      (else (assertion-violation 'markdown-read "unsupported type" as)))))
 
-  ;; for now just stub
-  (define (markdown-write . ignore)
-    (implementation-restriction-violation 'markdown-write
-					  "not supported yet"))
+(define default-converter
+  (markdown-converter:merge markdown->html-converter
+			    markdown->sxml-converter
+			    markdown->sexp-converter
+			    gfm-markdown-converter
+			    footnotes-markdown-converter))
+
+(define (string->markdown s . opt)
+  (apply markdown-read (open-string-input-port s) opt))
+
+;; for now just stub
+(define (markdown-write . ignore)
+  (implementation-restriction-violation 'markdown-write
+					"not supported yet"))
 
   )

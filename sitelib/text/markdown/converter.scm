@@ -32,11 +32,15 @@
 (library (text markdown converter)
     (export markdown->html-converter
 	    markdown->sxml-converter
+	    markdown->sexp-converter
+
 	    markdown-converter:convert
+	    markdown-converter:merge
 
 	    markdown-conversion-options?
 	    markdown-conversion-options-builder)
     (import (rnrs)
 	    (text markdown converter api)
 	    (text markdown converter html)
-	    (text markdown converter sxml)))
+	    (text markdown converter sxml)
+	    (text markdown converter legacy)))

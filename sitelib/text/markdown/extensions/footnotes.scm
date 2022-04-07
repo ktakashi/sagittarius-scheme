@@ -32,7 +32,8 @@
 
 #!nounbound
 (library (text markdown extensions footnotes)
-    (export footnotes-extension)
+    (export footnotes-extension
+	    footnotes-markdown-converter)
     (import (rnrs)
 	    (srfi :13 strings)
 	    (srfi :115 regexp)
@@ -165,5 +166,25 @@
    (custom-inline-content-factories `(,make-inline-footnote-parser))
    (custom-reference-processors `(,footnote-reference-processor))
    ))
+
+(define (convert-html-footnote-block node data next)
+  ;; TODO
+  '())
+(define-markdown-converter fn->html-converter html
+  (footnote-block-node? convert-html-footnote-block))
+
+(define (convert-sexp-footnote-block node data next)
+  `(:note (:ref ,(footnote-block-node-label node))
+	  ,@(map next (markdown-node:children node))))
+(define (convert-sexp-footnote node data next)
+  `(:note ,(footnote-node-label node)))
+(define-markdown-converter fn->sexp-converter sexp
+  (footnote-block-node? convert-sexp-footnote-block)
+  (footnote-node? convert-sexp-footnote)
+  )
+
+(define footnotes-markdown-converter
+  (markdown-converter:merge fn->html-converter fn->sexp-converter))
+
 
 )

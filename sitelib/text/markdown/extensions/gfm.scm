@@ -32,7 +32,8 @@
 (library (text markdown extensions gfm)
     (export gfm-extensions
 	    (rename (strikethrough-extension gfm-strikethrough-extension)
-		    (table-extensions gfm-table-extensions)))
+		    (table-extensions gfm-table-extensions))
+	    gfm-markdown-converter)
     (import (rnrs)
 	    (srfi :1 lists)
 	    (srfi :117 list-queues)
@@ -271,5 +272,21 @@
 
 (define gfm-extensions
   (combine-markdown-extensions strikethrough-extension table-extensions))
+
+;; Converters
+(define (convert-html-strikethrough node data next)
+  ;; TODO
+  '())
+(define-markdown-converter gfm->html-converter html
+  (strikethrough-node? convert-html-strikethrough))
+
+(define (convert-sexp-strikethrough node data next)
+  `(:strike ,@(map next (markdown-node:children node))))
+(define-markdown-converter gfm->sexp-converter sexp
+  (strikethrough-node? convert-sexp-strikethrough)
+  )
+
+(define gfm-markdown-converter
+  (markdown-converter:merge gfm->html-converter gfm->sexp-converter))
 
 )

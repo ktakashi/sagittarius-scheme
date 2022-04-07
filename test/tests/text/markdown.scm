@@ -7,7 +7,8 @@
 (define-syntax test-parser
   (syntax-rules ()
     ((_ expected str)
-     (test-equal str expected (parse-markdown (open-string-input-port str))))))
+     (test-equal str expected
+		 (markdown-read (open-string-input-port str) :as 'sexp)))))
 
 (test-parser '(:doc (:header :h6 "hoge")) "###### hoge\n")
 (test-parser '(:doc (:header :h6 "hoge__a")) "###### hoge__a\n")
@@ -27,11 +28,11 @@
 (test-parser '(:doc (:header :h1 (:link (:label "http://hogehoge")
 				"http://hogehoge" "")))
 	     "# <http://hogehoge>\n")
-(test-parser '(:doc (:header :h1 (:link (:label "mailto:ktakashi@ymail.com")
-				"ktakashi@ymail.com" "")))
+(test-parser '(:doc (:header :h1 (:link (:label "ktakashi@ymail.com")
+				"mailto:ktakashi@ymail.com" "")))
 	     "# <ktakashi@ymail.com>\n")
 (test-parser '(:doc (:header :h1 (:link (:label "mailto:ktakashi@ymail.com")
-				"ktakashi@ymail.com" "")))
+				"mailto:ktakashi@ymail.com" "")))
 	     "# <mailto:ktakashi@ymail.com>\n")
 
 ;; explicit link
@@ -41,9 +42,9 @@
 	     "# [link](source \"title\")\n")
 
 ;; strike
-(test-parser '(:doc (:plain (:strike "stike") " " "strike"))
+(test-parser '(:doc (:plain (:strike "stike") " strike"))
 	     "~~stike~~ strike")
-(test-parser '(:doc (:plain (:strike (:code "code") " " "ok")))
+(test-parser '(:doc (:plain (:strike (:code "code") " ok")))
 	     "~~`code` ok~~")
 
 ;; image
@@ -51,44 +52,46 @@
 	    "# ![link](source 'title')\n")
 
 ;; note
-(test-parser '(:doc (:note (:ref "note") "note"))
+(test-parser '(:doc (:note (:ref "note") (:plain "note")))
 	     "[^note]: note\n")
-(test-parser '(:doc (:note (:ref "note") "note" :eol "note2"))
+(test-parser '(:doc (:note (:ref "note") (:plain "note" :eol "note2")))
 	     "[^note]: note\n    note2\n")
-(test-parser '(:doc (:note (:ref "note") "note" :eol "note2" :eol "note3"))
+(test-parser '(:doc (:note (:ref "note") (:plain "note" :eol "note2") (:plain "note3")))
 	     "[^note]: note\n    note2\n \n    note3\n")
 ;; note with code
-(test-parser '(:doc (:note (:ref "note") "note" " " (:code "code")))
+(test-parser '(:doc (:note (:ref "note") (:plain "note " (:code "code"))))
 	     "[^note]: note `code`\n")
 
 ;; inline note
-(test-parser '(:doc (:plain (:note "note"))) "^[note]")
+(test-parser '(:doc (:plain (:note "1")) (:note (:ref "1") (:plain "note"))) "^[note]")
 
 ;; inline note
-(test-parser '(:doc (:header :h1 (:note "note"))) "# ^[note]\n")
+(test-parser '(:doc (:header :h1 (:note "1")) (:note (:ref "1") (:plain "note"))) "# ^[note]\n")
 
 ;; block quote
-(test-parser '(:doc (:blockquote "hoge" :eol "fuga" :eol)) ">hoge\n>fuga\n\n")
-(test-parser '(:doc (:blockquote "hoge" :eol "fuga" :eol)) ">hoge\nfuga\n\n")
+(test-parser '(:doc (:blockquote (:plain "hoge" :eol "fuga"))) ">hoge\n>fuga\n\n")
+(test-parser '(:doc (:blockquote (:plain "hoge" :eol "fuga"))) ">hoge\nfuga\n\n")
 
 ;; paragraph
-(test-parser '(:doc (:paragraph "hogehoge" :eol "fugafuga" :eol)) 
+(test-parser '(:doc (:plain "hogehoge" :eol "fugafuga")) 
 	     "hogehoge\nfugafuga\n\n")
 
 ;; plain
-(test-parser '(:doc (:plain "#" " " "____" "****")) "# ____****")
+(test-parser '(:doc (:header :h1 "____****")) "# ____****")
 
 ;; verbatim
-(test-parser '(:doc (:verbatim "hogehoge\nfugafuga"))
+(test-parser '(:doc (:verbatim "hogehoge\nfugafuga\n"))
 	     "    hogehoge\n    fugafuga\n")
 ;; ``` style
-(test-parser '(:doc (:verbatim "hogehoge\nfugafuga"))
+(test-parser '(:doc (:verbatim "hogehoge\nfugafuga\n"))
 	     "```\nhogehoge\nfugafuga\n```\n")
 ;; call #136
-(test-parser '(:doc (:verbatim "hogehoge\n\nfugafuga"))
+(test-parser '(:doc (:verbatim "hogehoge\n\nfugafuga\n"))
 	     "```\nhogehoge\n\nfugafuga\n```\n")
 
 ;; reference
+;; reference won't work as we eliminate them
+#|
 (test-parser '(:doc (:reference (:label "ref") "source" "")) "[ref]: source\n")
 (test-parser '(:doc (:reference (:label "ref") "source" ""))
 	     "[ref]: source \"\"\n")
@@ -98,14 +101,15 @@
 	     "[ref]: source 'title'\n")
 (test-parser '(:doc (:reference (:label "ref") "source" "title"))
 	     "[ref]: source (title)\n")
+|#
 
 ;; list
-(test-parser '(:doc (:ordered-list (:item "item1") (:item "item2")))
+(test-parser '(:doc (:ordered-list (:item (:plain "item1")) (:item (:plain "item2"))))
 	     "1. item1\n2. item2\n")
-(test-parser '(:doc (:bullet-list (:item "item1") (:item "item2")))
+(test-parser '(:doc (:bullet-list (:item (:plain "item1")) (:item (:plain "item2"))))
 	     "* item1\n* item2\n")
 ;; list with inline
-(test-parser '(:doc (:bullet-list (:item "item1" " " (:code "code"))))
+(test-parser '(:doc (:bullet-list (:item (:plain "item1 " (:code "code")))))
 	     "* item1 `code`\n")
 
 ;; inline code
@@ -119,10 +123,10 @@
 (test-parser '(:doc (:plain "\x12345;")) "&#x12345;")
 (test-parser '(:doc (:plain "\x12345;")) "&#X12345;")
 (test-parser '(:doc (:plain " ")) "&#32;")
-(test-parser '(:doc (:plain (& "yen"))) "&yen;")
+(test-parser '(:doc (:plain "¥")) "&yen;")
 
 ;; escaped char
-(test-parser '(:doc (:plain (& "yen") "&" "yen;")) "&yen;\\&yen;")
+(test-parser '(:doc (:plain  "¥&yen;")) "&yen;\\&yen;")
 
 ;; converter
 (define-syntax test-converter
@@ -211,7 +215,7 @@
 (define-syntax test-reader
   (syntax-rules ()
     ((_ expected str opts ...)
-     (test-equal str expected (string->markdown str opts ...)))))
+     (test-equal expected expected (string->markdown str opts ...)))))
 
 (test-reader '(div (@) (h1 (@) "header")) "# header\n")
 (test-reader "<div><h1>header</h1></div>" "# header\n" :as 'html :no-indent #t)

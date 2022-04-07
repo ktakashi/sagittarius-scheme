@@ -37,11 +37,16 @@
 	    markdown-extension-custom-delimiter-processors
 	    markdown-extension-custom-reference-processors
 	    
-	    combine-markdown-extensions)
+	    combine-markdown-extensions
+
+	    define-markdown-converter
+	    markdown-converter:merge
+	    )
     (import (rnrs)
 	    (record accessor)
 	    (record builder)
-	    (srfi :1 lists))
+	    (srfi :1 lists)
+	    (text markdown converter api))
 
 (define-record-type markdown-extension
   (fields custom-block-factories
@@ -63,16 +68,17 @@
     (custom-reference-processors '()
      (make-check-list 'custom-reference-processors)))))
 
+(define empty-extension (markdown-extension-builder))
+
 (define *markdown-extension-accessors*
   (record-type-all-field-accessors (record-type-descriptor markdown-extension)))
-(define (combine-markdown-extensions extension . extension*)
+(define (combine-markdown-extensions . extension*)
   (define (combine-fields e*)
     (map (lambda (accessor) (append-map accessor e*))
 	 *markdown-extension-accessors*))
   (if (null? extension*)
-      extension
-      (apply make-markdown-extension 
-	     (combine-fields (cons extension extension*)))))
+      empty-extension
+      (apply make-markdown-extension (combine-fields extension*))))
 
 )
     
