@@ -5,6 +5,8 @@
 
 	(text json)
 	(text json pointer)
+
+	(text sxml ssax)
 	(text sxml serializer)
 
 	(util file)
@@ -16,7 +18,7 @@
 (define markdown-data-dir (string-append (current-directory)
 					 "/test/data/markdown/"))
 
-(define examples-to-ignore
+(define closing-tag-mismatches
   ;; Basically the closing tag which we don't have much control
   ;; as we put markdown node into SXML instead of emitting string
   '(
@@ -44,9 +46,14 @@
 	   (sxml (markdown-converter:convert default-markdown-converter
 					     'html e options))
 	   (result (srl:sxml->html-noindent sxml)))
-      (when (memv example examples-to-ignore)
-	(test-expect-fail 1))
-      (test-equal (format "Example ~d" example) html result)))
+      (if (memv example closing-tag-mismatches)
+	  ;; okay, let's parse the expected HTML and compare
+	  (let ((shtml (ssax:xml->sxml (open-string-input-port html) '())))
+	    (test-equal (format "Example ~d (Closing tag)" example) shtml
+			;; We need to re-parse as converted SXML contains
+			;; newlines
+			(ssax:xml->sxml (open-string-input-port result) '())))
+	  (test-equal (format "Example ~d" example) html result))))
   (test-group file (for-each test-markdown test-cases)))
 
 (parameterize ((*srl:empty-elements* '()) ;; to XHTMLish
