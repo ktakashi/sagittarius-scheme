@@ -57,7 +57,7 @@
 ;;; Old APIs
 (define (markdown-read p :key (as 'sxml) (parser markdown-parser)
 			 :allow-other-keys keys)
-  (let ((node (parse-markdown p parser)))
+  (let ((node (parse-markdown parser p)))
     (case as
       ((sxml)
        (apply markdown-sexp->sxml

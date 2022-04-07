@@ -115,11 +115,10 @@
 (define commonmark-parser
   (markdown-parser-builder:build (%markdown-parser-builder (extensions '()))))
 
-;; The argument order is due to the backward compatibility
 (define parse-markdown
   (case-lambda
-   ((input-port) (parse-markdown input-port default-markdown-parser))
-   ((input-port parser)
+   ((input-port) (parse-markdown default-markdown-parser input-port))
+   ((parser input-port)
     (define document-parser ((markdown-parser-parser-producer parser)))
     (document-parser:parse document-parser input-port))))
 
