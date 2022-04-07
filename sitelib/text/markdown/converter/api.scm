@@ -54,7 +54,8 @@
   (fields processors))
 
 (define-record-type markdown-conversion-options
-  (fields unknown-node-handler))
+  (fields unknown-node-handler
+	  context-data))
 
 (define-syntax markdown-conversion-options-builder
   (make-record-builder markdown-conversion-options))
@@ -68,6 +69,7 @@
     (define processors
       (filter (lambda (p) (eq? type (markdown-conversion-type p)))
 	      (markdown-converter-processors converter)))
+    (define context-data (markdown-conversion-options-context-data options))
     
     (define (default-unknown-node-handler node)
       (raise-continuable
@@ -82,7 +84,7 @@
     
     (define (convert node)
       (define (process processor node)
-	((markdown-conversion-processor processor) node convert))
+	((markdown-conversion-processor processor) node context-data convert))
       (let ((processor (find-processor processors node)))
 	(or (and processor (process processor node))
 	    (cond ((markdown-conversion-options-unknown-node-handler options) =>

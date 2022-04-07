@@ -411,8 +411,7 @@
 ;;; Container blocks
 ;;; Block quote parser
 (define (block-quote-parser:marker? ps index)
-  (let ((line (parser-state-line ps))
-	(index (parser-state-index ps)))
+  (let ((line (parser-state-line ps)))
     (and (< (parser-state-indent ps) +parsing-code-block-indent+)
 	 (< index (source-line:length line))
 	 (eqv? (source-line:char-at line index) #\>))))

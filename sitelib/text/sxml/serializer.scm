@@ -9,11 +9,49 @@
 	    srl:parameterizable
 	    srl:sxml->string
 	    srl:display-sxml
-	    srl:conventional-ns-prefixes)
+	    srl:conventional-ns-prefixes
+	    ;; Sagittarius
+	    *srl:empty-elements*
+	    *srl:escape-alist-char-data*
+	    *srl:escape-alist-att-value*
+	    *srl:escape-alist-html-att*)
     (import (rnrs)
 	    (sagittarius)
 	    (srfi :0 cond-expand)
-	    (srfi :1 lists))
+	    (srfi :1 lists)
+	    (srfi :39 parameters))
+
+(define *srl:empty-elements*
+  (make-parameter '("area" "base" "basefont" "br" "col"
+		    "frame" "hr" "img" "input" "isindex"
+		    "link" "meta" "param")))
+(define *srl:boolean-attributes*
+  (make-parameter '(allowfullscreen
+		    allowpaymentrequest
+		    async
+		    autofocus
+		    autoplay
+		    checked
+		    controls
+		    default
+		    defer
+		    disabled
+		    formnovalidate
+		    hidden
+		    ismap
+		    itemscope
+		    loop
+		    multiple
+		    muted
+		    nomodule
+		    novalidate
+		    open
+		    playsinline
+		    readonly
+		    required
+		    reversed
+		    selected
+		    truespeed)))
 
 ;; SXML serializer into XML and HTML
 ;
@@ -532,15 +570,17 @@
 
 ; Associative lists of characters to be escaped in XML character data and
 ; attribute values respectively [2]
-(define srl:escape-alist-char-data
-  '((#\& . "&amp;") (#\< . "&lt;") (#\> . "&gt;")))
-(define srl:escape-alist-att-value
-  (append `((#\' . "&apos;") (#\" . "&quot;")
-            ; Escaping the newline character in attribute value
-            (,srl:char-nl . "&#10;"))
-          srl:escape-alist-char-data))
-(define srl:escape-alist-html-att
-  '((#\& . "&amp;") (#\> . "&gt;") (#\' . "&apos;") (#\" . "&quot;")))
+(define *srl:escape-alist-char-data*
+  (make-parameter '((#\& . "&amp;") (#\< . "&lt;") (#\> . "&gt;"))))
+(define *srl:escape-alist-att-value*
+  (make-parameter 
+   (append `((#\' . "&apos;") (#\" . "&quot;")
+	     ;; Escaping the newline character in attribute value
+	     (,srl:char-nl . "&#10;"))
+	   (*srl:escape-alist-char-data*))))
+(define *srl:escape-alist-html-att*
+  (make-parameter
+   '((#\& . "&amp;") (#\> . "&gt;") (#\' . "&apos;") (#\" . "&quot;"))))
 
 ; Escape a string with the `srl:xml-char-escaped' and with the `escape-alist'
 ; supplied
@@ -586,11 +626,11 @@
              res)))))
        
 (define (srl:string->char-data str)
-  (srl:string->escaped str srl:escape-alist-char-data #f))
+  (srl:string->escaped str (*srl:escape-alist-char-data*) #f))
 (define (srl:string->att-value str)
-  (srl:string->escaped str srl:escape-alist-att-value #f))
+  (srl:string->escaped str (*srl:escape-alist-att-value*) #f))
 (define (srl:string->html-att str)
-  (srl:string->escaped str srl:escape-alist-html-att #t))
+  (srl:string->escaped str (*srl:escape-alist-html-att*) #t))
 
 ;-------------------------------------------------
 ; Serializing entities produced by HtmlPrag
@@ -654,7 +694,9 @@
                   srl:string->att-value) attval)
              "\""))
       ((eq? method 'html)
-       (if (string=? local-part attval)  ; boolean attribute
+       ;; (if (string=? local-part attval)  ; boolean attribute
+       ;; Change for Sagittarius, we do properly
+       (if (memq (string->symbol local-part) (*srl:boolean-attributes*))
            (list " " local-part)
            (list " " local-part "=\"" (srl:string->html-att attval) "\"")))
       (else  ; unprefixed attribute, XML output method
@@ -752,6 +794,17 @@
                 (if (eq? method 'html) ">" "?>")))
          (else  ; should probably signal of an error
           '()))))))
+
+;;; Sagittarius specific
+;; In some cases, we want to hold broken/partial HTML on SXML tree
+;; e.g. Markdown node. This special marker holds this kind of content
+;; and dumps as it is. Means no escaping nor sanitisation
+;; <raw-html> ::= ( *RAW-HTML* raw-html-string )
+(define (srl:raw-html->str-lst raw-html-node)
+  (if (and (= (length raw-html-node) 2)
+	   (string? (cadr raw-html-node)))
+      (cadr raw-html-node)
+      '()))
 
 ;-------------------------------------------------
 ; SXML element
@@ -876,9 +929,7 @@
                                 elem-local
                                 ; ATTENTION: should probably move this list
                                 ; to a global const
-                                '("area" "base" "basefont" "br" "col"
-                                  "frame" "hr" "img" "input" "isindex"
-                                  "link" "meta" "param"))))
+                                (*srl:empty-elements*))))
                       '(">") '(" />")))
                     (ns-prefix-assig ns-prefix-assig)
                     (namespace-assoc namespace-assoc)
@@ -964,6 +1015,8 @@
       (srl:shtml-entity->char-data node))
      ((*DECL*)  ; recovering for non-SXML nodes
       '())
+     ((*RAW-HTML*)
+      (srl:raw-html->str-lst node))
      (else  ; otherwise - an element node
       (call-with-values
        (lambda ()
@@ -1062,6 +1115,9 @@
       (display (srl:shtml-entity->char-data node) port))
      ((*DECL*)  ; recovering for non-SXML nodes
       #f)
+     ((*RAW-HTML*)
+      (for-each (lambda (x) (display x port))
+		(srl:raw-html->str-lst node)))
      (else  ; otherwise - an element node
       (call-with-values
        (lambda ()

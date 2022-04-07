@@ -382,9 +382,9 @@
 	     (source (scanner:source scanner start p))
 	     (t (inline-parser:text inline-parser source)))
 	(inline-parser:add-bracket! inline-parser
-	 (bracket:link t start p
-		       (parsing-state-last-bracket state)
-		       (parsing-state-last-delimiter state)))
+	 (bracket:image t start p
+			(parsing-state-last-bracket state)
+			(parsing-state-last-delimiter state)))
 	t)
       (let* ((p (scanner:position scanner))
 	     (source (scanner:source scanner start p)))
@@ -643,14 +643,14 @@
 	  (else (not-entity)))))
 
 (define *uri*
-  (rx (: (/ "azAZ") (** 1 31 (or (/ "azAZ09") ".+-")) #\:
+  (rx (: (/ "azAZ") (** 1 31 (or (/ "azAZ09") (".+-"))) #\:
 	 (* (~ #\< #\> space control)))))
 (define *email*
-  (rx (: (+ (or (/ "azAZ09") ".!#$%&'*+/=?^_`{|}~-")) #\@
+  (rx (: (+ (or (/ "azAZ09") (".!#$%&'*+/=?^_`{|}~-"))) #\@
 	 (/ "azAZ09")
-	 (? (** 0 61 (or (/ "azAZ09") #\-) (/ "azAZ09"))
-	    (* (: #\. (/ "azAZ09")
-		  (? (** 0 61 (or (/ "azAZ09") #\-) (/ "azAZ09")))))))))
+	 (? (** 0 61 (or (/ "azAZ09") #\-)) (/ "azAZ09"))
+	 (* (: #\. (/ "azAZ09")
+	       (? (** 0 61 (or (/ "azAZ09") #\-)) (/ "azAZ09")))))))
 (define (inline-parser:parse-auto-link inline-parser)
   (define state (inline-parser-parsing-state inline-parser))
   (define scanner (inline-parser-state-scanner state))
@@ -681,9 +681,16 @@
 
 (define (open-close-pattern open close)
   (rx ,open (+ (: (neg-look-ahead ,close) any)) ,close))
+
+(define *html-comment-text*
+  (rx (neg-look-ahead (or ">" "->"))
+      (* (: (neg-look-ahead "--") any))
+      (neg-look-behind "-")))
+
 (define *html-comment-pattern*
-  (open-close-pattern *parsing:html-comment-open-pattern*
-		      *parsing:html-comment-close-pattern*))
+  (rx ,*parsing:html-comment-open-pattern*
+      ,*html-comment-text*
+      ,*parsing:html-comment-close-pattern*))
 (define *html-cdata-pattern*
   (open-close-pattern *parsing:html-cdata-open-pattern*
 		      *parsing:html-cdata-close-pattern*))
@@ -695,12 +702,12 @@
 		      *parsing:html-declaration-close-pattern*))
 
 (define *html-tag-pattern*
-  (rx ($ (or ,*html-comment-pattern*
-	     ,*html-cdata-pattern*
-	     ,*html-pi-pattern*
-	     ,*html-declaration-pattern*
-	     ,*parsing:html-open-tag-pattern*
-	     ,*parsing:html-close-tag-pattern*))))
+  (rx bol ($ (or ,*html-comment-pattern*
+		 ,*html-cdata-pattern*
+		 ,*html-pi-pattern*
+		 ,*html-declaration-pattern*
+		 ,*parsing:html-open-tag-pattern*
+		 ,*parsing:html-close-tag-pattern*))))
 
 (define (inline-parser:parse-html-inline inline-parser)
   (define state (inline-parser-parsing-state inline-parser))
@@ -711,10 +718,8 @@
       (cond ((regexp-search *html-tag-pattern* c) =>
 	     (lambda (m)
 	       (let ((v (regexp-match-submatch m 1)))
-		 ;; ugly...
-		 (do ((i 0 (+ i 1)) (len (string-length v)))
-		     ((= i len) v)
-		   (scanner:next! scanner)))))
+		 (scanner:skip! scanner (string-length v))
+		 v)))
 	    (else #f))))
   (cond ((open-tag? scanner) =>
 	 (lambda (c)
@@ -960,8 +965,7 @@
 
   (if (and (or opening-can-close? closing-can-open?)
 	   (not (zero? (mod closing-original-length 3)))
-	   (zero? (+ opening-original-length
-		     (mod closing-original-length 3))))
+	   (zero? (mod (+ opening-original-length closing-original-length) 3)))
       0
       (let ((opener (delimiter:opener opening-run))
 	    (closer (delimiter:closer closing-run))

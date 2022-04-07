@@ -237,13 +237,13 @@
      (,(rx "<" (w/nocase (or "script" "pre" "style" "textarea"))
 	   (or space ">" eol))
       ,(rx "</" (w/nocase (or "script" "pre" "style" "textarea")) ">"))
-     (,*parsing:html-comment-open-pattern*
+     (,(rx bol ,*parsing:html-comment-open-pattern*)
       ,*parsing:html-comment-close-pattern*) ;; comment
-     (,*parsing:html-pi-open-pattern*
+     (,(rx bol ,*parsing:html-pi-open-pattern*)
       ,*parsing:html-pi-close-pattern*)	   ;; PI
-     (,*parsing:html-declaration-open-pattern*
+     (,(rx bol ,*parsing:html-declaration-open-pattern*)
       ,*parsing:html-declaration-close-pattern*) ;; <!ATTR ... > or so
-     (,*parsing:html-cdata-open-pattern*
+     (,(rx bol ,*parsing:html-cdata-open-pattern*)
       ,*parsing:html-cdata-close-pattern*) ;; <![CDATA[ ... ]]>
      (,(rx "<" (? "/")
 	   (w/nocase

@@ -70,7 +70,8 @@
 (define ascii?          (make-parameter #f))
 (define no-capture?     (make-parameter #f))
 
-(define (sre->regex sre) (compile-regex-ast (sre-parse sre) UNICODE))
+(define (sre->regex sre)
+  (compile-regex-ast (sre-parse sre) (bitwise-ior UNICODE DOTALL)))
 
 ;; (define %sre->regex #'sre->regex)
 ;; (define-macro (rx . sre)
