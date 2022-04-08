@@ -100,7 +100,7 @@
   (make-markdown-parser
    (lambda ()
      (make-document-parser
-      `(,@(markdown-extension-block-factories extensions)
+      `(,@(run-factories (markdown-extension-block-factories extensions))
 	,@(markdown-parser-builder-block-parsers builder))
       (markdown-parser-builder-inline-parser-producer builder)
       (run-factories (markdown-extension-inline-content-factories extensions))

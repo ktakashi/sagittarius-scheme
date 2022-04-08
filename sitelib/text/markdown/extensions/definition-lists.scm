@@ -184,7 +184,7 @@
 
 (define definition-lists-extension
   (markdown-extension-builder
-   (block-factories `(,try-start-definition-list))))
+   (block-factories `(,(lambda () try-start-definition-list)))))
 
 (define (convert-definition-list-block node data next)
   `("\n"

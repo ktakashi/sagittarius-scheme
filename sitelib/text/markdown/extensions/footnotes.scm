@@ -35,6 +35,7 @@
     (export footnotes-extension
 	    footnotes-markdown-converter)
     (import (rnrs)
+	    (rfc uuid)
 	    (srfi :13 strings)
 	    (srfi :115 regexp)
 	    (srfi :117 list-queues)
@@ -48,24 +49,29 @@
 	    (text markdown parser nodes)
 	    (text markdown parser parsing)
 	    (text markdown parser scanner)
-	    (text markdown parser source))
+	    (text markdown parser source)
+	    (text markdown converter html))
 
 (define *footnotes-namespace* 
   "https://markdown.sagittarius-scheme.io/footnotes")
 
-(define-markdown-node (footnote-block (attribute label "notes:label"))
+(define-markdown-node (footnote-block (attribute label "notes:label")
+				      (attribute number "notes:number")
+				      anchor)
   (namespace *footnotes-namespace*)
   (element "notes:footnote"))
-(define-markdown-node (footnote (attribute label "notes:label"))
+(define-markdown-node (footnote (attribute label "notes:label")
+				(attribute number "notes:number")
+				anchor)
   (namespace *footnotes-namespace*)
   (element "notes:footnote-ref"))
 
 (define-record-type footnote-reference-definition
   (parent <reference-definition>)
-  (fields content)
+  (fields content number anchor)
   (protocol (lambda (n)
-	      (lambda (label content)
-		((n label) content)))))
+	      (lambda (label content number anchor)
+		((n label) content number anchor)))))
   
 
 (define-record-type footnote-block-parser
@@ -73,8 +79,11 @@
   (fields content)
   (protocol
    (lambda (n)
-     (lambda (document label)
-       ((n (make-footnote-block-node document label) #t #f
+     (lambda (document label number)
+       ((n (make-footnote-block-node document label (number->string number)
+				     (string-downcase
+				      (uuid->string (make-v4-uuid))))
+	   #t #f
 	   (lambda ignore #t)
 	   (lambda (self ps)
 	     (define nnsi (parser-state-next-non-space-index ps))
@@ -101,33 +110,41 @@
   (list
    (make-footnote-reference-definition
     (string-append "^" (footnote-block-node-label block))
-    (footnote-block-parser-content fbp))))
+    (footnote-block-parser-content fbp)
+    (string->number (footnote-block-node-number block))
+    (footnote-block-node-anchor block))))
 
 (define footnote-define-pattern
   (rx "[^" (* space) ($ (* any)) (* space) "]:"))
-(define (try-start-footnote parser-state matched-block-parser)
-  (if (>= (parser-state-indent parser-state) +parsing-code-block-indent+)
-      (block-start:none)
-      (let ((line (parser-state-line parser-state))
-	    (nns (parser-state-next-non-space-index parser-state)))
-	(cond ((source-line:regexp-search line footnote-define-pattern nns) =>
-	       (lambda (m)
-		 (let ((text (regexp-match-submatch m 1))
-		       (end (regexp-match-submatch-end m 0)))
-		   (chain (block-start:of (make-footnote-block-parser
-					   (parser-state-document parser-state)
-					   text))
-			  (block-start:at-index _ end)))))
-	      (else (block-start:none))))))
+(define (make-footnotes-factory)
+  (define number 0)
+  (lambda (parser-state matched-block-parser)
+    (if (>= (parser-state-indent parser-state) +parsing-code-block-indent+)
+	(block-start:none)
+	(let ((line (parser-state-line parser-state))
+	      (nns (parser-state-next-non-space-index parser-state)))
+	  (cond ((source-line:regexp-search line footnote-define-pattern nns) =>
+		 (lambda (m)
+		   (let ((text (regexp-match-submatch m 1))
+			 (end (regexp-match-submatch-end m 0)))
+		     (set! number (+ number 1))
+		     (chain (block-start:of
+			     (make-footnote-block-parser
+			      (parser-state-document parser-state) text number))
+			    (block-start:at-index _ end)))))
+		(else (block-start:none)))))))
 
 (define (footnote-reference-processor ref text? image?)
   (define label (reference-definition-label ref))
   (and (footnote-reference-definition? ref)
        (eqv? (string-ref label 0) #\^)
-       (not text?) (not image?)
+       (not text?)
+       (not image?)
        (lambda (parent)
-	  (make-footnote-node parent
-			      (substring label 1 (string-length label))))))
+	 (make-footnote-node parent
+	  (substring label 1 (string-length label))
+	  (number->string (footnote-reference-definition-number ref))
+	  (footnote-reference-definition-anchor ref)))))
 
 (define-record-type inline-footnote-parser
   (parent <inline-content-parser>)
@@ -162,21 +179,35 @@
 
 (define footnotes-extension
   (markdown-extension-builder
-   (block-factories `(,try-start-footnote))
+   (block-factories `(,make-footnotes-factory))
    (inline-content-factories `(,make-inline-footnote-parser))
    (reference-processors `(,footnote-reference-processor))))
 
 (define (convert-html-footnote-block node data next)
-  ;; TODO
-  '())
+  `("\n"
+    (ol (@ (start ,(footnote-block-node-number node))
+	   ,@(html-attribute node data 'ol))
+	"\n"
+	(li (@ (id ,(string-append "fn-" (footnote-block-node-anchor node)))
+	       ,@(html-attribute node data 'li))
+	    ,@(convert-nodes next (markdown-node:children node))))
+    "\n"))
+(define (convert-html-footnote node data next)
+  `((a (@ (href ,(string-append "#fn-" (footnote-node-anchor node)))
+	  ,@(html-attribute node data 'a))
+       (sup (@ ,@(html-attribute node data 'sup))
+	    ,(footnote-node-number node)))))
+
 (define-markdown-converter fn->html-converter html
-  (footnote-block-node? convert-html-footnote-block))
+  (footnote-block-node? convert-html-footnote-block)
+  (footnote-node? convert-html-footnote))
 
 (define (convert-sexp-footnote-block node data next)
   `(:note (:ref ,(footnote-block-node-label node))
 	  ,@(map next (markdown-node:children node))))
 (define (convert-sexp-footnote node data next)
   `(:note ,(footnote-node-label node)))
+
 (define-markdown-converter fn->sexp-converter sexp
   (footnote-block-node? convert-sexp-footnote-block)
   (footnote-node? convert-sexp-footnote)

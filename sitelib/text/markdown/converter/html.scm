@@ -248,7 +248,7 @@
     ;; FIXME this doesn't handle <softbreak /><softbreak /> case
     ;; though that shouldn't be done, as far as I know, by parser
     (if (null? r)
-	r
+	(values r "")
 	(let ((first (car r)))
 	  (cond ((and (string? prev) (> (string-length prev) 0)
 		      (string? first))

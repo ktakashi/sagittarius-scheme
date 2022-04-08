@@ -283,7 +283,7 @@
 
 (define table-extension
   (markdown-extension-builder
-   (block-factories `(,try-start-gfm-table-block))))
+   (block-factories `(,(lambda () try-start-gfm-table-block)))))
 
 ;;; Task list
 (define-markdown-node (task-list-item-marker (attribute checked "gfm:checked"))
