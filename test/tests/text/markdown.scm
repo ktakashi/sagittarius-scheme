@@ -15,9 +15,42 @@
 
 (test-begin "Markdown - New")
 
-(define markdown-data-dir (string-append (current-directory)
-					 "/test/data/markdown/"))
+(define (make-markdoen-tester parser closing-tag-mismatches)
+  (lambda (file)
+    (define test-cases (call-with-input-file file json-read))
+    (define markdown-pointer (json-pointer "/markdown"))
+    (define html-pointer (json-pointer "/html"))
+    (define example-pointer (json-pointer "/example"))
+    (define options (markdown-conversion-options-builder
+		     (context-data (markdown-html-conversion-context-builder
+				    (url-encoder commonmark-url-encoder)))))
+    
+    (define (test-markdown test)
+      (define markdown (markdown-pointer test))
+      (define html (html-pointer test))
+      (define example (example-pointer test))  
+      
+      (let* ((e (parse-markdown parser
+				(open-string-input-port markdown)))
+	     (sxml (markdown-converter:convert default-markdown-converter
+					       'html e options))
+	     (result (srl:sxml->html-noindent sxml)))
+	(if (memv example closing-tag-mismatches)
+	    ;; okay, let's parse the expected HTML and compare
+	    (let ((shtml (ssax:xml->sxml (open-string-input-port html) '())))
+	      (test-equal (format "Example ~d (Closing tag)" example) shtml
+			  ;; We need to re-parse as converted SXML contains
+			  ;; newlines
+			  (ssax:xml->sxml (open-string-input-port result) '())))
+	    (begin
+	      (unless (equal? html result)
+		(write html) (newline)
+		(write result) (newline))
+	      (test-equal (format "Example ~d" example) html result)))))
+    (test-group file (for-each test-markdown test-cases))))
 
+(define commonmark-data-dir (string-append (current-directory)
+					   "/test/data/markdown/commonmark"))
 (define closing-tag-mismatches
   ;; Basically the closing tag which we don't have much control
   ;; as we put markdown node into SXML instead of emitting string
@@ -26,41 +59,20 @@
     280 281 282 283 284 315 ;; <li></li> or <li />
     483 486		    ;; <a></a> or <a />
     ))
-
-(define (test-commonmark file)
-  (define test-cases (call-with-input-file file json-read))
-  (define markdown-pointer (json-pointer "/markdown"))
-  (define html-pointer (json-pointer "/html"))
-  (define example-pointer (json-pointer "/example"))
-  (define options (markdown-conversion-options-builder
-		   (context-data (markdown-html-conversion-context-builder
-				  (url-encoder commonmark-url-encoder)))))
-
-  (define (test-markdown test)
-    (define markdown (markdown-pointer test))
-    (define html (html-pointer test))
-    (define example (example-pointer test))  
-    
-    (let* ((e (parse-markdown commonmark-parser
-			      (open-string-input-port markdown)))
-	   (sxml (markdown-converter:convert default-markdown-converter
-					     'html e options))
-	   (result (srl:sxml->html-noindent sxml)))
-      (if (memv example closing-tag-mismatches)
-	  ;; okay, let's parse the expected HTML and compare
-	  (let ((shtml (ssax:xml->sxml (open-string-input-port html) '())))
-	    (test-equal (format "Example ~d (Closing tag)" example) shtml
-			;; We need to re-parse as converted SXML contains
-			;; newlines
-			(ssax:xml->sxml (open-string-input-port result) '())))
-	  (test-equal (format "Example ~d" example) html result))))
-  (test-group file (for-each test-markdown test-cases)))
-
+(define test-commonmark (make-markdoen-tester commonmark-parser
+					      closing-tag-mismatches))
 (parameterize ((*srl:empty-elements* '()) ;; to XHTMLish
 	       (*srl:escape-alist-char-data*
 		(cons '(#\" . "&quot;") (*srl:escape-alist-char-data*))))
   (test-group "Commonmark"
-   (for-each test-commonmark (find-files markdown-data-dir))))
+   (for-each test-commonmark (find-files commonmark-data-dir))))
+
+(define gfm-data-dir (string-append (current-directory)
+				    "/test/data/markdown/gfm"))
+(define test-gfm (make-markdoen-tester markdown-parser '(5 7)))
+
+(parameterize ((*srl:boolean-attributes* '())) ;; GFM says disabled=""
+  (test-group "GFM" (for-each test-gfm (find-files gfm-data-dir))))
 
 (test-end)
 

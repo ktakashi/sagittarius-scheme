@@ -52,6 +52,4 @@
 (define-markdown-converter markdown->sxml-converter sxml
   (document-node? convert-document)
   (markdown-node? convert-markdown-node))
-
-
 )

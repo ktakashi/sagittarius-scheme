@@ -63,7 +63,8 @@
     (cond ((find-spec node spec*) =>
 	   (lambda (spec)
 	     ((post-processor-spec-processor spec) node visit-children)))
-	  (else (visit-children node))))
+	  (else (visit-children node)))
+    node)
   process)
 
 )

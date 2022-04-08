@@ -92,6 +92,7 @@
 	    markdown-node:children
 	    markdown-node:first-child
 	    markdown-node:last-child
+	    markdown-node:prepend-child!
 	    markdown-node:append-child!
 	    markdown-node:insert-after!
 	    markdown-node:get-attribute
@@ -263,6 +264,20 @@
   (define children (markdown-node-children node))
   (and (not (list-queue-empty? children))
        (list-queue-back children)))
+
+(define (markdown-node:prepend-child! node child)
+  (define children (markdown-node-children node))
+  (markdown-node:unlink! child)
+  (markdown-node-parent-set! child node)
+  (cond ((markdown-node:first-child node) =>
+	 (lambda (first-child)
+	   (markdown-node-prev-set! first-child child)
+	   (markdown-node-next-set! child first-child))))
+  (node:insert-before! (markdown-node-element node)
+		       (node-first-child (markdown-node-element node))
+		       (markdown-node-element child))
+  (list-queue-add-front! children child)
+  node)
 
 (define (markdown-node:append-child! node child)
   (define children (markdown-node-children node))

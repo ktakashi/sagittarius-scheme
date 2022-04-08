@@ -14,7 +14,8 @@
 	    *srl:empty-elements*
 	    *srl:escape-alist-char-data*
 	    *srl:escape-alist-att-value*
-	    *srl:escape-alist-html-att*)
+	    *srl:escape-alist-html-att*
+	    *srl:boolean-attributes*)
     (import (rnrs)
 	    (sagittarius)
 	    (srfi :0 cond-expand)

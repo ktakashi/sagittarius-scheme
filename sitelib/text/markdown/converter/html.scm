@@ -33,6 +33,9 @@
     (export markdown->html-converter
 	    markdown-html-conversion-context-builder
 	    commonmark-url-encoder
+	    (rename (append-convert convert-nodes)
+		    (get-attribute html-attribute))
+	    
 	    )
     (import (rnrs)
 	    (record builder)

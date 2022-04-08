@@ -1,0 +1,62 @@
+[
+    {
+	"markdown": "| foo | bar |\n| --- | --- |\n| baz | bim |",
+	"html": "<table>\n<thead>\n<tr>\n<th>foo</th>\n<th>bar</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>baz</td>\n<td>bim</td>\n</tr>\n</tbody>\n</table>\n",
+	"example": 1
+    },
+    {
+	"markdown": "| abc | defghi |\n:-: | -----------:\nbar | baz",
+	"html": "<table>\n<thead>\n<tr>\n<th align=\"center\">abc</th>\n<th align=\"right\">defghi</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td align=\"center\">bar</td>\n<td align=\"right\">baz</td>\n</tr>\n</tbody>\n</table>\n",
+	"example": 2
+    },
+    {
+	"markdown": "| f\\|oo  |\n| ------ |\n| b `\\|` az |\n| b **\\|** im |",
+	"html": "<table>\n<thead>\n<tr>\n<th>f|oo</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>b <code>|</code> az</td>\n</tr>\n<tr>\n<td>b <strong>|</strong> im</td>\n</tr>\n</tbody>\n</table>\n",
+	"example": 3
+    },
+    {
+	"markdown": "| abc | def |\n| --- | --- |\n| bar | baz |\n> bar",
+	"html": "<table>\n<thead>\n<tr>\n<th>abc</th>\n<th>def</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>bar</td>\n<td>baz</td>\n</tr>\n</tbody>\n</table>\n<blockquote>\n<p>bar</p>\n</blockquote>\n",
+	"example": 4
+    },
+    {
+	"markdown": "| abc | def |\n| --- | --- |\n| bar | baz |\nbar\n\nbar",
+	"html": "<table>\n<thead>\n<tr>\n<th>abc</th>\n<th>def</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>bar</td>\n<td>baz</td>\n</tr>\n<tr>\n<td>bar</td>\n<td></td>\n</tr>\n</tbody>\n</table>\n<p>bar</p>\n",
+	"example": 5
+    },
+    {
+	"markdown": "| abc | def |\n| --- |\n| bar |",
+	"html": "<p>| abc | def |\n| --- |\n| bar |</p>\n",
+	"example": 6
+    },
+    {
+	"markdown": "| abc | def |\n| --- | --- |\n| bar |\n| bar | baz | boo |",
+	"html": "<table>\n<thead>\n<tr>\n<th>abc</th>\n<th>def</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>bar</td>\n<td></td>\n</tr>\n<tr>\n<td>bar</td>\n<td>baz</td>\n</tr>\n</tbody>\n</table>\n",
+	"example": 7
+    },
+    {
+	"markdown": "| abc | def |\n| --- | --- |",
+	"html": "<table>\n<thead>\n<tr>\n<th>abc</th>\n<th>def</th>\n</tr>\n</thead>\n</table>\n",
+	"example": 8
+    },
+    {
+	"markdown": "- [ ] foo\n- [x] bar",
+	"html": "<ul>\n<li><input disabled=\"\" type=\"checkbox\"> foo</li>\n<li><input checked=\"\" disabled=\"\" type=\"checkbox\"> bar</li>\n</ul>\n",
+	"example": 9
+    },
+    {
+	"markdown": "- [x] foo\n  - [ ] bar\n  - [x] baz\n- [ ] bim",
+	"html": "<ul>\n<li><input checked=\"\" disabled=\"\" type=\"checkbox\"> foo\n<ul>\n<li><input disabled=\"\" type=\"checkbox\"> bar</li>\n<li><input checked=\"\" disabled=\"\" type=\"checkbox\"> baz</li>\n</ul>\n</li>\n<li><input disabled=\"\" type=\"checkbox\"> bim</li>\n</ul>\n",
+	"example": 9
+    },
+    {
+	"markdown": "~~Hi~~ Hello, world!",
+	"html": "<p><del>Hi</del> Hello, world!</p>\n",
+	"example": 10
+    },
+    {
+	"markdown": "This ~~has a\n\nnew paragraph~~.",
+	"html": "<p>This ~~has a</p>\n<p>new paragraph~~.</p>\n",
+	"example": 11
+    }
+]
