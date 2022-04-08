@@ -96,7 +96,8 @@
 			    markdown->sxml-converter
 			    markdown->sexp-converter
 			    gfm-markdown-converter
-			    footnotes-markdown-converter))
+			    footnotes-markdown-converter
+			    definition-lists-converter))
 
 (define (string->markdown s . opt)
   (apply markdown-read (open-string-input-port s) opt))

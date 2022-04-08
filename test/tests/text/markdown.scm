@@ -35,7 +35,7 @@
 	     (sxml (markdown-converter:convert default-markdown-converter
 					       'html e options))
 	     (result (srl:sxml->html-noindent sxml)))
-	(if (memv example closing-tag-mismatches)
+	(if (member example closing-tag-mismatches)
 	    ;; okay, let's parse the expected HTML and compare
 	    (let ((shtml (ssax:xml->sxml (open-string-input-port html) '())))
 	      (test-equal (format "Example ~d (Closing tag)" example) shtml
@@ -73,6 +73,11 @@
 
 (parameterize ((*srl:boolean-attributes* '())) ;; GFM says disabled=""
   (test-group "GFM" (for-each test-gfm (find-files gfm-data-dir))))
+
+(define other-data-dir (string-append (current-directory)
+				      "/test/data/markdown/others"))
+;; It's not GFM specific perser, so just like this is fine
+(test-group "Others" (for-each test-gfm (find-files other-data-dir)))
 
 (test-end)
 

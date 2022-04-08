@@ -1,0 +1,22 @@
+[
+    {
+	"markdown": "Foo\n: bar",
+	"html": "<dl>\n<dt>Foo</dt>\n<dd>bar</dd>\n</dl>\n",
+	"example": "dl-1"
+    },
+    {
+	"markdown": "Foo\n: bar\n\nBaz\n: bim",
+	"html": "<dl>\n<dt>Foo</dt>\n<dd>bar</dd>\n<dt>Baz</dt>\n<dd>bim</dd>\n</dl>\n",
+	"example": "dl-2"
+    },
+    {
+	"markdown": "Foo\nBaz\n: bar",
+	"html": "<dl>\n<dt>Foo</dt>\n<dt>Baz</dt>\n<dd>bar</dd>\n</dl>\n",
+	"example": "dl-3"
+    },
+    {
+	"markdown": "Foo\n\nBaz\n: bar",
+	"html": "<p>Foo</p>\n<dl>\n<dt>Baz</dt>\n<dd>bar</dd>\n</dl>\n",
+	"example": "dl-4"
+    }
+]

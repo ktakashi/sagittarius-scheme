@@ -30,7 +30,8 @@
 
 #!nounbound
 (library (text markdown extensions definition-lists)
-    (export definition-lists-extension)
+    (export definition-lists-extension
+	    definition-lists-converter)
     (import (rnrs)
 	    (srfi :117 list-queues)
 	    (srfi :197 pipeline)
@@ -40,7 +41,8 @@
 	    (text markdown parser inlines)
 	    (text markdown parser nodes)
 	    (text markdown parser parsing)
-	    (text markdown parser source))
+	    (text markdown parser source)
+	    (text markdown converter html))
 
 (define *definition-list-namespace* 
   "https://markdown.sagittarius-scheme.io/definition-list")
@@ -183,4 +185,31 @@
 (define definition-lists-extension
   (markdown-extension-builder
    (block-factories `(,try-start-definition-list))))
+
+(define (convert-definition-list-block node data next)
+  `("\n"
+    (dl (@ ,@(html-attribute node data 'dl))
+	,@(convert-nodes next (markdown-node:children node)))
+    "\n"))
+
+(define (convert-definition-item node data next)
+  ;; This doesn't have HTML tag, so just proceed to children
+  (convert-nodes next (markdown-node:children node)))
+
+(define (convert-definition-term node data next)
+  `("\n"
+    (dt (@ ,@(html-attribute node data 'dt))
+	,(definition-term-node-term node))
+    "\n"))
+(define (convert-definition-description node data next)
+  `("\n"
+    (dd (@ ,@(html-attribute node data 'dd))
+	,@(convert-nodes next (markdown-node:children node)))
+    "\n"))
+
+(define-markdown-converter definition-lists-converter html
+  (definition-list-block-node? convert-definition-list-block)
+  (definition-item-node? convert-definition-item)
+  (definition-term-node? convert-definition-term)
+  (definition-description-node? convert-definition-description))
 )
