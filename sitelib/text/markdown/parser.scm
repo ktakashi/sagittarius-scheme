@@ -33,14 +33,14 @@
 
 (library (text markdown parser)
     (export markdown-parser?
-	    (rename (default-markdown-parser markdown-parser))
-	    default-markdown-parser
+
 	    commonmark-parser ;; For testing
 	    
 	    parse-markdown
 
 	    (rename (%markdown-parser-builder markdown-parser-builder))
 	    markdown-parser-builder?
+	    markdown-parser-builder:build
 
 	    ;; Below procedures are only for backward compatibility
 	    markdown-parser-error?
@@ -52,11 +52,8 @@
 	    (text markdown parser factories)
 	    (text markdown parser inlines)
 	    (text markdown parser document)
-	    (text markdown extensions api)
-	    (text markdown extensions gfm)
-	    (text markdown extensions footnotes)
-	    (text markdown extensions definition-lists)
-	    )
+	    ;; a bit ugly
+	    (text markdown extensions))
 
 ;; For backward compatibility, this will never be raised
 (define-condition-type &markdown-parser-error &error
@@ -65,11 +62,13 @@
   (expected markdown-parser-expected))
 
 (define-record-type markdown-parser
-  (fields parser-producer))
+  (fields document-parser-producer
+	  post-processors))
 
 (define-record-type markdown-parser-builder
   (fields block-parsers
 	  inline-parser-producer
+	  post-processors
 	  extensions))
 (define default-block-parsers
   `(
@@ -81,18 +80,13 @@
     ,try-start-list-block
     ,try-start-indented-code-block
     ))
-(define default-extensions
-  `(
-    ,gfm-extensions
-    ,footnotes-extension
-    ,definition-lists-extension
-    ))
 
 (define-syntax %markdown-parser-builder
   (make-record-builder markdown-parser-builder
    ((block-parsers default-block-parsers)
     (inline-parser-producer make-inline-parser)
-    (extensions default-extensions))))
+    (post-processors '())
+    (extensions '()))))
 (define (markdown-parser-builder:build builder)
   (define (run-factories f*) (map (lambda (f) (f)) f*))
   (define extensions
@@ -101,25 +95,26 @@
   (make-markdown-parser
    (lambda ()
      (make-document-parser
-      `(,@(markdown-extension-custom-block-factories extensions)
+      `(,@(markdown-extension-block-factories extensions)
 	,@(markdown-parser-builder-block-parsers builder))
       (markdown-parser-builder-inline-parser-producer builder)
-      (run-factories
-       (markdown-extension-custom-inline-content-factories extensions))
-      (run-factories
-       (markdown-extension-custom-delimiter-processors extensions))
-      (markdown-extension-custom-reference-processors extensions)))))
+      (run-factories (markdown-extension-inline-content-factories extensions))
+      (run-factories (markdown-extension-delimiter-processors extensions))
+      (markdown-extension-reference-processors extensions)))
+   `(,@(markdown-extension-post-processors extensions)
+     ,@(markdown-parser-builder-post-processors builder))))
 
-(define default-markdown-parser
-  (markdown-parser-builder:build (%markdown-parser-builder)))
 (define commonmark-parser
-  (markdown-parser-builder:build (%markdown-parser-builder (extensions '()))))
+  (markdown-parser-builder:build (%markdown-parser-builder)))
 
 (define parse-markdown
   (case-lambda
    ((input-port) (parse-markdown default-markdown-parser input-port))
    ((parser input-port)
-    (define document-parser ((markdown-parser-parser-producer parser)))
-    (document-parser:parse document-parser input-port))))
+    (define document-parser ((markdown-parser-document-parser-producer parser)))
+    (post-process parser (document-parser:parse document-parser input-port)))))
 
+(define (post-process parser node)
+  (fold-left (lambda (node processor) (processor node))
+	     node (markdown-parser-post-processors parser)))
 )

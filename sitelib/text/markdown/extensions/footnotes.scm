@@ -162,10 +162,9 @@
 
 (define footnotes-extension
   (markdown-extension-builder
-   (custom-block-factories `(,try-start-footnote))
-   (custom-inline-content-factories `(,make-inline-footnote-parser))
-   (custom-reference-processors `(,footnote-reference-processor))
-   ))
+   (block-factories `(,try-start-footnote))
+   (inline-content-factories `(,make-inline-footnote-parser))
+   (reference-processors `(,footnote-reference-processor))))
 
 (define (convert-html-footnote-block node data next)
   ;; TODO

@@ -57,12 +57,22 @@
     (import (rnrs)
 	    (text markdown parser)
 	    (text markdown converter)
-	    ;; these two extensions are needed for backward compatibility
 	    (text markdown extensions gfm)
 	    (text markdown extensions footnotes)
+	    (text markdown extensions definition-lists)
 	    ;; For backward compatibility
 	    (text markdown convert))
 
+(define sagittarius-extensions
+  `(
+    ,gfm-extensions
+    ,footnotes-extension
+    ,definition-lists-extension
+    ))
+
+(define markdown-parser
+  (markdown-parser-builder:build
+   (markdown-parser-builder (extensions sagittarius-extensions))))
 
 ;;; Old APIs
 (define (markdown-read p :key (as 'sxml) (parser markdown-parser)

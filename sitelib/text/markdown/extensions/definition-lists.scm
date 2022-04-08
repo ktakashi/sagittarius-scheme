@@ -182,5 +182,5 @@
 
 (define definition-lists-extension
   (markdown-extension-builder
-   (custom-block-factories `(,try-start-definition-list))))
+   (block-factories `(,try-start-definition-list))))
 )

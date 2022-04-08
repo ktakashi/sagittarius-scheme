@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding:utf-8 -*-
 ;;;
-;;; text/markdown/extensions/api.scm - Extension API
+;;; text/markdown/extensions.scm - Extension API
 ;;;  
 ;;;   Copyright (c) 2022  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -29,7 +29,7 @@
 ;;;  
 
 #!nounbound
-(library (text markdown extensions api)
+(library (text markdown extensions)
     (export markdown-extension-builder
 	    markdown-extension?
 	    markdown-extension-block-factories
@@ -38,47 +38,6 @@
 	    markdown-extension-reference-processors
 	    markdown-extension-post-processors
 	    
-	    combine-markdown-extensions
-
-	    define-markdown-converter
-	    markdown-converter:merge
-	    )
-    (import (rnrs)
-	    (record accessor)
-	    (record builder)
-	    (srfi :1 lists)
-	    (text markdown converter api))
-
-(define-record-type markdown-extension
-  (fields block-factories
-	  inline-content-factories
-	  delimiter-processors
-	  reference-processors
-	  post-processors))
-(define (make-check-list who)
-  (lambda (v)
-    (unless (or (null? v) (pair? v))
-      (assertion-violation who "Must be a list" v))
-    v))
-(define-syntax markdown-extension-builder
-  (make-record-builder markdown-extension
-   ((block-factories '() (make-check-list 'block-factories))
-    (inline-content-factories '() (make-check-list 'inline-content-factories))
-    (delimiter-processors '() (make-check-list 'delimiter-processors))
-    (reference-processors '() (make-check-list 'reference-processors))
-    (post-processors '() (make-check-list 'post-processors)))))
-
-(define empty-extension (markdown-extension-builder))
-
-(define *markdown-extension-accessors*
-  (record-type-all-field-accessors (record-type-descriptor markdown-extension)))
-(define (combine-markdown-extensions . extension*)
-  (define (combine-fields e*)
-    (map (lambda (accessor) (append-map accessor e*))
-	 *markdown-extension-accessors*))
-  (if (null? extension*)
-      empty-extension
-      (apply make-markdown-extension (combine-fields extension*))))
-
-)
+	    combine-markdown-extensions)
+    (import (text markdown extensions api)))
     
