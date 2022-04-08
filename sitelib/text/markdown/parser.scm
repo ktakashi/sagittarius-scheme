@@ -42,6 +42,10 @@
 	    markdown-parser-builder?
 	    markdown-parser-builder:build
 
+	    make-post-processor
+	    make-post-processor-spec
+	    post-processor-spec?
+	    
 	    ;; Below procedures are only for backward compatibility
 	    markdown-parser-error?
 	    markdown-parser-position
@@ -52,6 +56,7 @@
 	    (text markdown parser factories)
 	    (text markdown parser inlines)
 	    (text markdown parser document)
+	    (text markdown parser post-processor)
 	    ;; a bit ugly
 	    (text markdown extensions))
 
