@@ -30,7 +30,7 @@
 
 
 ;; For now only needed part is implemented.
-
+#!nounbound
 (library (text markdown parser)
     (export markdown-parser?
 
@@ -107,12 +107,9 @@
 (define commonmark-parser
   (markdown-parser-builder:build (%markdown-parser-builder)))
 
-(define parse-markdown
-  (case-lambda
-   ((input-port) (parse-markdown default-markdown-parser input-port))
-   ((parser input-port)
-    (define document-parser ((markdown-parser-document-parser-producer parser)))
-    (post-process parser (document-parser:parse document-parser input-port)))))
+(define (parse-markdown parser input-port)
+  (define document-parser ((markdown-parser-document-parser-producer parser)))
+  (post-process parser (document-parser:parse document-parser input-port)))
 
 (define (post-process parser node)
   (fold-left (lambda (node processor) (processor node))
