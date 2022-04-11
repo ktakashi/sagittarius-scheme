@@ -176,9 +176,8 @@
 (define (handle-include-section token next* acc)
   (define file (cadr token))
   (values next*
-	  (cons `(list (@)
-		  (item (@)
-		   (link (@ (source ,file) (format "scribble")) ,file))) acc)))
+	  (cons `(include
+		  (link (@ (source ,file) (format "scribble")) ,file)) acc)))
 
 (define (handle-codeblock style token next* acc)
   (define args (cdr token))

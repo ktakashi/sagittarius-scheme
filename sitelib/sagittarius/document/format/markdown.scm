@@ -72,6 +72,7 @@
 	     ((table) (write-table attr content options out))
 	     ((header) (write-header attr content options out))
 	     ((eval) (write-eval attr content options out))
+	     ((include) (write-include attr content options out))
 	     ((table-of-contents)
 	      (write-marker 'table-of-contents attr content options out))
 	     ((index-table)
@@ -101,6 +102,13 @@
   (put-string out "eval ")
   (for-each (lambda (e) (write-markdown e options out)) content)
   (put-string out ") -->"))
+
+(define (write-include attr content options out)
+  (put-string out "@[")
+  (for-each (lambda (e) (write-markdown e options out)) content)
+  (put-char out #\])
+  (newline out))
+	      
 
 (define (write-table attr content options out)
   (define (->cell cell)
@@ -223,12 +231,12 @@
       (case style
 	((block)
 	 (put-char out #\newline)
-	 (put-string out "```")
+	 (put-string out "``````````")
 	 (when lang (put-string out lang))
 	 (put-char out #\newline)
 	 (for-each (lambda (e) (write-markdown e options out)) code)
 	 (put-char out #\newline)
-	 (put-string out "```"))
+	 (put-string out "``````````"))
 	(else
 	 (put-string out "``")
 	 (for-each (lambda (e) (write-markdown e options out)) code)
@@ -308,17 +316,16 @@
 
 (define (write-define attr content options out)
   (define (write-it category name args)
-    (put-string out "###### _")
+    (put-string out "###### [!")
     (put-string out category)
-    (put-string out "_ `")
+    (put-string out "] `")
     (write-markdown name options out)
+    (put-string out "`")
     (when args
       (for-each (lambda (e)
-		  (put-char out #\space)
-		  (write-markdown e options out)) args))
-    (put-string out "` {#")
-    (write-markdown name options out)
-    (put-char out #\})    
+		  (put-string out " _")
+		  (write-markdown e options out)
+		  (put-char out #\_)) args))
     (put-char out #\newline))
   (let ((category (cond ((assq 'category attr) => cadr) (else #f))))
     (write-it category (car content) (cdr content))))
@@ -326,16 +333,16 @@
 (define (write-section attr content options out)
   (match content
     ((('header h ...) content ...)
-     (cond ((assq 'tag attr) =>
-	    (lambda (slot)
-	      (let ((tag (cadr slot)))
-		(put-string out "<a name=\"")
-		(put-string out tag)
-		(put-string out "\"></a>")
-		(put-char out #\newline)))))
-     (let-values (((n a c) (document-decompose (cons 'header h))))
-       (write-header a c options out))
-     (for-each (lambda (e) (write-markdown e options out)) content))
+     (let ((tag (cond ((assq 'tag attr) => cadr)
+		      (else #f))))
+       (let-values (((n a c)
+		     (document-decompose
+		      (cons 'header
+			    (if tag
+				(append h (list (string-append " {#" tag "}")))
+				h)))))
+	 (write-header a c options out))
+       (for-each (lambda (e) (write-markdown e options out)) content)))
     (else (document-output-error 'write-section "Unknown element" content))))
 
 (define (write-header attr content options out)
