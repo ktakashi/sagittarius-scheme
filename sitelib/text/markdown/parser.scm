@@ -49,7 +49,10 @@
 	    ;; Below procedures are only for backward compatibility
 	    markdown-parser-error?
 	    markdown-parser-position
-	    markdown-parser-expected)
+	    markdown-parser-expected
+
+	    markdown-document->xml-document
+	    )
     (import (rnrs)
 	    (record builder)
 	    (text markdown parser nodes)
