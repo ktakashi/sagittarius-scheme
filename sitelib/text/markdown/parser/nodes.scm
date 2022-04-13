@@ -317,6 +317,26 @@
 			 (markdown-node-element sibling)))
   node)
 
+(define (markdown-node:unlink! node)
+  (define elm (markdown-node-element node))
+  (cond ((node-parent-node elm) => (lambda (p) (node:remove-child! p elm))))
+  (when (markdown-node-prev node)
+    (markdown-node-next-set! (markdown-node-prev node)
+			     (markdown-node-next node)))
+  (when (markdown-node-next node)
+    (markdown-node-prev-set! (markdown-node-next node)
+			     (markdown-node-prev node)))
+  (cond ((markdown-node-parent node) =>
+	 (lambda (p)
+	   (let ((children (markdown-node-children p)))
+	     (list-queue-set-list! children
+	      (remove! (lambda (e) (eq? e node)) 
+		       (list-queue-list children)))))))
+  (markdown-node-parent-set! node #f)
+  ;;(markdown-node-prev-set! node #f)
+  ;;(markdown-node-next-set! node #f)
+  node)
+
 (define markdown-node:get-attribute
   (case-lambda
    ((node name)
@@ -352,24 +372,6 @@
   (define elm (markdown-node-element node))
   (let ((t (node-first-child elm)))
     (character-data-data t)))
-
-(define (markdown-node:unlink! node)
-  (define elm (markdown-node-element node))
-  (cond ((node-parent-node elm) => (lambda (p) (node:remove-child! p elm))))
-  (when (markdown-node-prev node)
-    (markdown-node-next-set! (markdown-node-prev node)
-			     (markdown-node-next node)))
-  (when (markdown-node-next node)
-    (markdown-node-prev-set! (markdown-node-next node)
-			     (markdown-node-prev node)))
-  
-  (cond ((markdown-node-parent node) =>
-	 (lambda (p)
-	   (let ((children (markdown-node-children p)))
-	     (list-queue-set-list! children
-	      (remove! (lambda (e) (eq? e node)) (list-queue-list children)))
-	     (markdown-node-parent-set! node #f)))))
-  node)
 
 (define (markdown-node:add-source-location! node loc)
   (list-queue-add-back! (markdown-node-source-locations node) loc)

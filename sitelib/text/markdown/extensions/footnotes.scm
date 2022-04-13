@@ -163,9 +163,11 @@
 	      (let* ((e (scanner:position scanner))
 		     (source (scanner:source scanner s e))
 		     (l (inline-footnote-parser-label ifp))
+		     (label (number->string l))
 		     ;; current block
 		     (cb (inline-parser-state-block state))
-		     (fn (make-footnote-block-node cb (number->string l)))
+		     (id (string-downcase (uuid->string (make-v4-uuid))))
+		     (fn (make-footnote-block-node cb label label id))
 		     (pp (make-paragraph-parser fn)))
 		(scanner:next! scanner) ;; discards #\]
 		(source-lines:for-each (lambda (sl)
@@ -175,7 +177,7 @@
 		(markdown-node:append-child! fn (block-parser-block pp))
 		(inline-footnote-parser-label-set! ifp (+ l 1))
 		(markdown-node:insert-after! cb fn)
-		(list (make-footnote-node cb (number->string l))))))))
+		(list (make-footnote-node cb label label id)))))))
 
 (define footnotes-extension
   (markdown-extension-builder

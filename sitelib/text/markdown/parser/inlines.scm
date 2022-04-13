@@ -905,19 +905,21 @@
 		 (first #f)
 		 (last #f)
 		 (len 0))
-	(let-values (((first last len)
-		      (if (text-node? node)
-			  (values (or first node)
-				  node
-				  (+ len (string-length
-					  (text-node:content node))))
-			  (begin
-			    (merge! first last len)
-			    (inline-parser:merge-text-nodes! inline-parser node)
-			    (values #f #f 0)))))
-	  (if (or (not node) (eq? node to))
-	      (merge! first last len)
-	      (loop (markdown-node-next node) first last len)))))))
+	(when node
+	  (let-values (((first last len)
+			(if (text-node? node)
+			    (values (or first node)
+				    node
+				    (+ len (string-length
+					    (text-node:content node))))
+			    (begin
+			      (merge! first last len)
+			      (inline-parser:merge-text-nodes!
+			       inline-parser node)
+			      (values #f #f 0)))))
+	    (if (or (not node) (eq? node to))
+		(merge! first last len)
+		(loop (markdown-node-next node) first last len))))))))
 
 (define (inline-parser:special-char? inline-parser c)
   (define content-parser (inline-parser-content-parsers inline-parser))
