@@ -273,20 +273,20 @@
 	 (lambda (first-child)
 	   (markdown-node-prev-set! first-child child)
 	   (markdown-node-next-set! child first-child))))
+  (list-queue-add-front! children child)
   (node:insert-before! (markdown-node-element node)
 		       (node-first-child (markdown-node-element node))
 		       (markdown-node-element child))
-  (list-queue-add-front! children child)
   node)
 
 (define (markdown-node:append-child! node child)
   (define children (markdown-node-children node))
   (markdown-node:unlink! child)
   (markdown-node-parent-set! child node)
-  (unless (list-queue-empty? children)
-    (let ((last (list-queue-back children)))
-      (markdown-node-next-set! last child)
-      (markdown-node-prev-set! child last)))
+  (cond ((markdown-node:last-child node) =>
+	 (lambda (last)
+	   (markdown-node-next-set! last child)
+	   (markdown-node-prev-set! child last))))
   (list-queue-add-back! children child)
   (node:append-child! (markdown-node-element node)
 		      (markdown-node-element child))
@@ -320,6 +320,8 @@
 (define (markdown-node:unlink! node)
   (define elm (markdown-node-element node))
   (cond ((node-parent-node elm) => (lambda (p) (node:remove-child! p elm))))
+
+  ;; [p] -> [t] -> [n] => [p] -> [n]
   (when (markdown-node-prev node)
     (markdown-node-next-set! (markdown-node-prev node)
 			     (markdown-node-next node)))
@@ -328,13 +330,15 @@
 			     (markdown-node-prev node)))
   (cond ((markdown-node-parent node) =>
 	 (lambda (p)
-	   (let ((children (markdown-node-children p)))
-	     (list-queue-set-list! children
-	      (remove! (lambda (e) (eq? e node)) 
-		       (list-queue-list children)))))))
+	   (let* ((children (markdown-node-children p))
+		  (e* (list-queue-list children)))
+	     (if (or (null? e*) (null? (cdr e*))) ;; minor optimisation
+		 (list-queue-set-list! children '())
+		 (list-queue-set-list! children
+		  (remove! (lambda (e) (eq? e node)) e*)))))))
   (markdown-node-parent-set! node #f)
-  ;;(markdown-node-prev-set! node #f)
-  ;;(markdown-node-next-set! node #f)
+  (markdown-node-prev-set! node #f)
+  (markdown-node-next-set! node #f)
   node)
 
 (define markdown-node:get-attribute

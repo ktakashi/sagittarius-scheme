@@ -46,7 +46,7 @@
 	      (unless (equal? html result)
 		(write html) (newline)
 		(write result) (newline))
-	      (test-equal (format "Example ~d" example) html result)))))
+	      (test-equal (format "Example ~d (~s)" example markdown) html result)))))
     (test-group file (for-each test-markdown test-cases))))
 
 (define commonmark-data-dir (string-append (current-directory)

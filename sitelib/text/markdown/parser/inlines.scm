@@ -273,8 +273,7 @@
     (cond ((inline-parser:parse-inline! inline-parser) =>
 	   (lambda (nodes)
 	     (for-each (lambda (node)
-			 (markdown-node:append-child! block node))
-		       nodes)
+			 (markdown-node:append-child! block node)) nodes)
 	     (loop)))))
   (inline-parser:process-delimiters! inline-parser #f)
   (inline-parser:merge-text-nodes! inline-parser block))
@@ -471,10 +470,11 @@
   (define (handle-reference inline-parser scanner opener after-close refnode)
     (define state (inline-parser-parsing-state inline-parser))
     (cond (refnode
-	   (do ((node (markdown-node-next (bracket-node opener))
-		      (markdown-node-next node)))
-	       ((not node))
-	     (markdown-node:append-child! refnode node))
+	   (let loop ((node (markdown-node-next (bracket-node opener))))
+	     (when node
+	       (let ((next (markdown-node-next node)))
+		 (markdown-node:append-child! refnode node)
+		 (loop next))))
 	   (markdown-node:source-locations-set! refnode
 	    (source-lines:source-loactions
 	     (scanner:source scanner 
@@ -905,21 +905,20 @@
 		 (first #f)
 		 (last #f)
 		 (len 0))
-	(when node
-	  (let-values (((first last len)
-			(if (text-node? node)
-			    (values (or first node)
-				    node
-				    (+ len (string-length
-					    (text-node:content node))))
-			    (begin
-			      (merge! first last len)
-			      (inline-parser:merge-text-nodes!
-			       inline-parser node)
-			      (values #f #f 0)))))
-	    (if (or (not node) (eq? node to))
-		(merge! first last len)
-		(loop (markdown-node-next node) first last len))))))))
+	(let-values (((first last len)
+		      (if (text-node? node)
+			  (values (or first node)
+				  node
+				  (+ len (string-length
+					  (text-node:content node))))
+			  (begin
+			    (merge! first last len)
+			    (inline-parser:merge-text-nodes!
+			     inline-parser node)
+			    (values #f #f 0)))))
+	  (if (or (not node) (eq? node to))
+	      (merge! first last len)
+	      (loop (markdown-node-next node) first last len)))))))
 
 (define (inline-parser:special-char? inline-parser c)
   (define content-parser (inline-parser-content-parsers inline-parser))
