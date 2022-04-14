@@ -18,5 +18,10 @@
 	"markdown": "Foo\n\nBaz\n: bar",
 	"html": "<p>Foo</p>\n<dl>\n<dt>Baz</dt>\n<dd>bar</dd>\n</dl>\n",
 	"example": "dl-4"
+    },
+    {
+	"markdown": "_emph_\n: buz",
+	"html": "<dl>\n<dt><em>emph</em></dt>\n<dd>buz</dd>\n</dl>\n",
+	"example": "dl-5"
     }
 ]

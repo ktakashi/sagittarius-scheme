@@ -95,16 +95,16 @@
 
 
 (define (write-marker type attr content options out)
-  (format out "<!-- (~a ~s ~s) -->" type attr content))
+  (format out "{{~s}}" type #|attr content|#))
 
 (define (write-eval attr content options out)
-  (put-string out "<!-- (")
+  (put-string out "@@(")
   (put-string out "eval ")
   (for-each (lambda (e) (write-markdown e options out)) content)
-  (put-string out ") -->"))
+  (put-string out ")@@"))
 
 (define (write-include attr content options out)
-  (put-string out "@[")
+  (put-string out "- @[")
   (for-each (lambda (e) (write-markdown e options out)) content)
   (put-char out #\])
   (newline out))
@@ -269,10 +269,12 @@
 	  (write-trimmed-string out (lambda (out)
 				      (write-markdown (car desc) options out)))
 	  (for-each (lambda (e)
-		      (put-char out #\newline)
-		      (put-string out "  ")
-		      (write-trimmed-string out
-		       (lambda (out) (write-markdown e options out))))
+		      (let ((s (trim-markdown
+				(lambda (out) (write-markdown e options out)))))
+			(unless (zero? (string-length s))
+			  (put-char out #\newline)
+			  (put-string out "  ")
+			  (put-string out s))))
 		    (cdr desc)))))
     (put-char out #\newline)
     (put-char out #\newline))
@@ -366,9 +368,12 @@
     (write-it level content)))
 
 (define (write-trimmed-string out proc)
+  (put-string out (trim-markdown proc)))
+
+(define (trim-markdown proc)
   (let-values (((o e) (open-string-output-port)))
     (proc o)
-    (put-string out (trim-string* (e)))))
+    (trim-string* (e))))
 
 (define (trim-string* s)
   (define (check-space s) (cond ((string-skip s char-whitespace?)) (else 0)))

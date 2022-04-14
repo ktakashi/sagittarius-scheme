@@ -68,7 +68,7 @@
     item))
 (define (definition-item:add-term! item term)
   (let ((term-node (make-definition-term-node item term)))
-    (markdown-node:set-text! term-node term)
+    ;;(markdown-node:set-text! term-node term)
     (markdown-node:append-child! item term-node)
     item))
 
@@ -106,7 +106,16 @@
 	   block-parser-default-add-line!
 	   block-parser-default-add-location!
 	   block-parser-default-close-block!
-	   block-parser-default-parse-inlines!))))))
+	   (lambda (self inline-parser)
+	     (define terms
+	       (filter definition-term-node?
+		       (markdown-node:children (block-parser-block self))))
+	     (for-each (lambda (term)
+			 (let ((line (definition-term-node-term term)))
+			   (inline-parser:parse! inline-parser
+			    (source-lines:of (source-line:of line #f))
+			    term))) terms))
+	   #;block-parser-default-parse-inlines!))))))
 
 (define-record-type definition-description-parser
   (parent <block-parser>)
@@ -199,7 +208,7 @@
 (define (convert-definition-term node data next)
   `("\n"
     (dt (@ ,@(html-attribute node data 'dt))
-	,(definition-term-node-term node))
+	,@(convert-nodes next (markdown-node:children node)))
     "\n"))
 (define (convert-definition-description node data next)
   `("\n"
