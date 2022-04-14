@@ -60,11 +60,21 @@
 (library (sagittarius document)
     (export file->document
 	    port->document
+	    parse-document
 	    write-document
 
+
+	    file->document-input
+	    port->document-input
+
+	    <document-output-options>
 	    document-output-options?
 	    document-output-options-builder
 	    document-output:make-file-link-callback
+
+	    <document-input-options>
+	    document-input-options?
+	    document-input-options-builder
 	    
 	    &document document-error?
 	    &document-input document-input-error?
@@ -77,16 +87,16 @@
 	    (sagittarius document output))
 
 (define (file->document type file . rest)
-  (parse-document type (apply file->document-input file rest)))
+  (apply parse-document type (file->document-input file) rest))
 
 (define (port->document type port . rest)
-  (parse-document type (apply port->document-input port rest)))
+  (apply parse-document type (port->document-input port) rest))
 
-(define (parse-document type input)
+(define (parse-document type input . opt)
   (define name (string->symbol
 		(string-append (symbol->string type) "->document")))
   (let ((proc (load-procedure type name)))
-    (proc input)))
+    (apply proc input opt)))
 
 (define write-document
   (case-lambda

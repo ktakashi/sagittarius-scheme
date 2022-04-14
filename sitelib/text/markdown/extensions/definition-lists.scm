@@ -31,7 +31,13 @@
 #!nounbound
 (library (text markdown extensions definition-lists)
     (export definition-lists-extension
-	    definition-lists-converter)
+	    definition-lists-converter
+
+	    ;; For custom converter
+	    definition-list-block-node?
+	    definition-item-node?
+	    definition-term-node?
+	    definition-description-node?)
     (import (rnrs)
 	    (srfi :117 list-queues)
 	    (srfi :197 pipeline)
@@ -114,8 +120,7 @@
 			 (let ((line (definition-term-node-term term)))
 			   (inline-parser:parse! inline-parser
 			    (source-lines:of (source-line:of line #f))
-			    term))) terms))
-	   #;block-parser-default-parse-inlines!))))))
+			    term))) terms))))))))
 
 (define-record-type definition-description-parser
   (parent <block-parser>)

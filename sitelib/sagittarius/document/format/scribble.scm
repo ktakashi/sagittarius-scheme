@@ -41,7 +41,7 @@
 	    (srfi :1 lists)
 	    (srfi :13 strings))
 
-(define (scribble->document input)
+(define (scribble->document input . options)
   `(document
     (info
      (source ,(document-input-filename input)))
@@ -196,9 +196,8 @@
       ((body ...) (do-handle '() body)))))
 
 (define (handle-desc token next* acc)
-  ;; TODO I think 'description' should be psuedo...
   (values next*
-	  (cons `(description (@)
+	  (cons `(paragraph (@)
 		  ,@(scribble-token*->content (cdr token)))
 		acc)))
 

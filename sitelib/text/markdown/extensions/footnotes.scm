@@ -33,7 +33,18 @@
 #!nounbound
 (library (text markdown extensions footnotes)
     (export footnotes-extension
-	    footnotes-markdown-converter)
+	    footnotes-markdown-converter
+
+	    ;; For custom converter
+	    footnote-block-node?
+	    footnote-block-node-label
+	    footnote-block-node-number
+	    footnote-block-node-anchor
+	    footnote-node?
+	    footnote-node-label
+	    footnote-node-number
+	    footnote-node-anchor
+	    )
     (import (rnrs)
 	    (rfc uuid)
 	    (srfi :13 strings)

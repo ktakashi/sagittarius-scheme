@@ -41,6 +41,10 @@
 	    document-input-filename
 	    document-input->lseq
 
+	    (rename (document-input-options <document-input-options>))
+	    document-input-options?
+	    document-input-options-builder
+
 	    input-char input-loc input-file
 
 	    $location $location-file
@@ -52,6 +56,7 @@
 	    &document-input make-document-input-error document-input-error?
 	    )
     (import (rnrs)
+	    (record builder)
 	    (sagittarius)
 	    (sagittarius document conditions)
 	    (peg)
@@ -69,6 +74,11 @@
 			(make-who-condition who)
 			(make-message-condition msg)
 			(make-irritants-condition irr)))))
+
+(define-record-type document-input-options
+  (fields expand-include?))
+(define-syntax document-input-options-builder
+  (make-record-builder document-input-options))
 
 (define-record-type document-input
   (fields port proc filename))

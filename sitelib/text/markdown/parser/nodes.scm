@@ -95,6 +95,7 @@
 	    markdown-node:prepend-child!
 	    markdown-node:append-child!
 	    markdown-node:insert-after!
+	    markdown-node:insert-before!
 	    markdown-node:get-attribute
 	    markdown-node:set-attribute!
 	    markdown-node:remove-attribute!
@@ -290,6 +291,30 @@
   (list-queue-add-back! children child)
   (node:append-child! (markdown-node-element node)
 		      (markdown-node-element child))
+  node)
+
+(define (markdown-node:insert-before! node sibling)
+  (define parent (markdown-node-parent node))
+  (markdown-node:unlink! sibling)
+  (markdown-node-prev-set! sibling (markdown-node-prev node))
+  (when (markdown-node-prev sibling)
+    (markdown-node-next-set! (markdown-node-prev sibling) sibling))
+  (markdown-node-next-set! sibling node)
+  (markdown-node-prev-set! node sibling)
+  (markdown-node-parent-set! sibling parent)
+  (let ((children (markdown-node-children parent)))
+    (let loop ((r '()) (c* (list-queue-list children)))
+      (cond ((null? c*) (list-queue-set-list! children (reverse! r)))
+	    ((eq? (car c*) node)
+	     (loop (cons node (cons sibling r)) (cdr c*)))
+	    (else (loop (cons (car c*) r) (cdr c*))))))
+  (let ((n (markdown-node-element node)))
+    ;; this works even `node-next-sibling` returns #f as `node:insert-before!`
+    ;; searches the second argumemt from the children of first argument
+    ;; and if it's not found, then it pushed to the last
+    (node:insert-before! (node-parent-node n)
+			 n
+			 (markdown-node-element sibling)))
   node)
 
 (define (markdown-node:insert-after! node sibling)

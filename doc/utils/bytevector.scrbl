@@ -49,7 +49,7 @@ make sure the returned value is a bytevector and the size is @var{k}.
 }
 }
 
-@define[Function]{@name{bytevector-split-at*} @args{bv k :key (padding #f)}}w
+@define[Function]{@name{bytevector-split-at*} @args{bv k :key (padding #f)}}
 @desc{Splits bytevector into 2 bytevectors and returns 2 values of bytevectors.
 
 The first returned bytevector size will be @var{k} and its content is given

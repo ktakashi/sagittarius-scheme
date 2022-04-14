@@ -34,7 +34,22 @@
 	    (rename (strikethrough-extension gfm-strikethrough-extension)
 		    (table-extension gfm-table-extension)
 		    (task-list-extension gfm-task-list-extension))
-	    gfm-markdown-converter)
+	    gfm-markdown-converter
+
+	    ;; For custom converter
+	    (rename (strikethrough-node? gfm:strikethrough-node?)
+		    (task-list-item-marker-node?
+		     gfm:task-list-item-marker-node?)
+		    (task-list-item-marker-node-checked
+		     gfm:task-list-item-marker-node-checked)
+		    (table-block-node? gfm:table-block-node?)
+		    (table-head-node? gfm:table-head-node?)
+		    (table-body-node? gfm:table-body-node?)
+		    (table-row-node? gfm:table-row-node?)
+		    (table-cell-node? gfm:table-cell-node?)
+		    (table-cell-node-alignment gfm:table-cell-node-alignment))
+	    
+	    )
     (import (rnrs)
 	    (srfi :1 lists)
 	    (srfi :115 regexp)

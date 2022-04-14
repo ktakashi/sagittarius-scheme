@@ -30,7 +30,8 @@
 
 #!nounbound
 (library (sagittarius document output)
-    (export document-output-options?
+    (export (rename (document-output-options <document-output-options>))
+	    document-output-options?
 	    document-output-options-default-codeblock-language
 	    document-output-options-link-source-callback
 	    document-output-options-exception-handler

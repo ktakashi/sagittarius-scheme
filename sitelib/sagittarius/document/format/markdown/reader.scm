@@ -1,0 +1,262 @@
+;;; -*- mode: scheme; coding: utf-8 -*-
+;;;
+;;; sagittarius/document/format/markdown/reader.scm - Markdown reader
+;;;  
+;;;   Copyright (c) 2022  Takashi Kato  <ktakashi@ymail.com>
+;;;   
+;;;   Redistribution and use in source and binary forms, with or without
+;;;   modification, are permitted provided that the following conditions
+;;;   are met:
+;;;   
+;;;   1. Redistributions of source code must retain the above copyright
+;;;      notice, this list of conditions and the following disclaimer.
+;;;  
+;;;   2. Redistributions in binary form must reproduce the above copyright
+;;;      notice, this list of conditions and the following disclaimer in the
+;;;      documentation and/or other materials provided with the distribution.
+;;;  
+;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+;;;   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+;;;   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+;;;   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+;;;   TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+;;;   PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+;;;  
+
+#!nounbound
+(library (sagittarius document format markdown reader)
+    (export read-markdown
+	    )
+    (import (rnrs)
+	    (sagittarius document input)
+	    (srfi :13 strings)
+	    (srfi :115 regexp)
+	    (text markdown parser)
+	    (text markdown parser nodes)
+	    (text markdown parser post-processor)
+	    (text markdown converter api)
+	    (rename (text markdown converter html)
+		    (convert-nodes append-map))
+	    (text markdown extensions)
+	    (text markdown extensions gfm)
+	    (text markdown extensions definition-lists)
+	    (text sxml tools))
+
+(define read-markdown 
+  (case-lambda
+   ((input) (read-markdown input (document-input-options-builder)))
+   ((input options)
+    (define sagittarius-document-parser
+      (markdown-parser-builder:build
+       (markdown-parser-builder
+	(extensions (list gfm-extensions
+			  definition-lists-extension
+			  ;; TODO marker handler
+			  ))
+	(post-processors (list code-output-port-processor)))))
+    (let ((e (parse-markdown sagittarius-document-parser
+			     (document-input-port input))))
+      (markdown-node:set-attribute! e "filename"
+				    (document-input-filename input))
+      (markdown-converter:convert markdown->document-converter 'document e)))))
+
+;; post processors
+(define-markdown-node (output-code code output block?)
+  (namespace "https://markdown.sagittarius-scheme.io/output-code")
+  (element "oc:output-code"))
+(define *output-marker* (rx (* space) "=>" (* space)))
+(define (code-output-processor node visit-children)
+  (define (check-code node)
+    (let ((next (markdown-node-next node)))
+      (and (code-node? next)
+	   (cond ((code-node? (markdown-node-prev node))
+		  (cons (markdown-node-prev node) next))
+		 ((and (paragraph-node? (markdown-node-parent node))
+		       (code-block-node? (markdown-node-prev
+					  (markdown-node-parent node))))
+		  (cons (markdown-node-prev
+			 (markdown-node-parent node)) next))
+		 (else #f)))))
+  (when (regexp-matches *output-marker* (text-node:content node))
+    ;; <code> => <code>: snipet
+    ;; <codeblock> => <code>: block
+    (cond ((check-code node) =>
+	   (lambda (code&output)
+	     (let* ((code (car code&output))
+		    (out  (cdr code&output))
+		    (parent (markdown-node-parent code))
+		    (output-code (make-output-code-node parent code out
+				  (code-block-node? code))))
+	       (markdown-node:insert-before! code output-code)
+	       (markdown-node:append-child! output-code code)
+	       (markdown-node:append-child! output-code out)
+	       (markdown-node:unlink! node)))))))
+  
+(define code-output-port-processor
+  (make-post-processor
+   (make-post-processor-spec text-node? code-output-processor)))
+
+;; Converters
+(define (convert-document document data next)
+  `(document
+    (info (source ,(markdown-node:get-attribute document "filename")))
+    (content ,@(append-map next (markdown-node:children document)))))
+
+(define (convert-paragraph paragraph data next)
+  (convert-container 'paragraph paragraph data next))
+(define (convert-heading node data next)
+  `("\n"    
+    (header (@ (level ,(heading-node-level node)))
+	    ,@(append-map next (markdown-node:children node)))
+    "\n"))
+
+(define (convert-block-quote node data next)
+  (convert-container 'blockquote node data next))
+(define (convert-bullet-list node data next)
+  `("\n"
+    (list (@ (style "bullet"))
+	  ,@(append-map next (markdown-node:children node)))
+    "\n"))
+(define (convert-ordered-list node data next)
+  `("\n"
+    (list (@ (style "number")
+	     (start ,(number->string (ordered-list-node-start-number node))))
+	  ,@(append-map next (markdown-node:children node)))
+    "\n"))
+
+(define (convert-item node data next)
+  (define (next-paragraph-strip node)
+      (let ((r (next node)))
+	;; to strip paragraph, it looks like this
+	;; ("\n" (p ...) "\n")
+	(if (and (string? (car r))
+		 (string=? (car r) "\n")
+		 (pair? (cadr r))
+		 (eq? (caadr r) 'paragraph))
+	    (sxml:content (cadr r))
+	    r)))
+  `((item (@) ,@(append-map next-paragraph-strip (markdown-node:children node)))))
+
+(define (convert-container tag node data next)
+  `("\n"
+    (,tag (@) ,@(append-map next (markdown-node:children node)))
+    "\n"))
+
+(define (convert-link node data next)
+  `((link (@ (href ,(link-node-destination node)))
+	  ,@(append-map next (markdown-node:children node)))))
+
+(define (convert-image node data next)
+  (let-values (((out e) (open-string-output-port)))
+    (define (alt-text-converter node)
+      (cond ((or (linebreak-node? node) (softbreak-node? node))
+	     (put-string out "\n"))
+	    ((text-node? node) (put-string out (text-node:content node)))
+	    (else (for-each alt-text-converter
+			    (markdown-node:children node)))))
+    (alt-text-converter node)
+    (let ((alt-text (e)))
+      `((image (@ (src ,(image-node-destination node))
+		  (alt ,alt-text)
+		  ,@(cond ((image-node-title node) =>
+			   (lambda (title) `((title ,title))))
+			  (else '()))))))))
+
+(define (convert-thematic-break thematic-break data next)
+  '((thematic-break (@)) "\n"))
+
+(define (trim-info info)
+  (let ((lang (cond ((string-index info #\space) =>
+		     (lambda (i) (substring info 0 i)))
+		    (else info))))
+    lang))
+(define (convert-code-block code-block data next)
+  (let ((style (cond ((code-block-node-info code-block) => trim-info)
+		     (else ""))))
+    `((codeblock (@ (lang ,style)
+		    (style "block"))
+		 ,(code-block-node:literal code-block))
+      "\n")))
+
+(define (convert-output-code node data next)
+  (define code (output-code-node-code node))
+  (define output (code-node:literal (output-code-node-output node)))
+  (let ((style (if (output-code-node-block? node) "block" "snipet"))
+	(lang (cond ((and (code-block-node? code) (code-block-node-info code))
+		     => trim-info)
+		    (else ""))))
+    `((codeblock (@ (lang ,lang)
+		    (style ,style))
+		 (output ,output)
+		 ,(if (code-block-node? code)
+		      (code-block-node:literal code)
+		      (code-node:literal code)))
+      "\n")))
+
+(define (convert-code code data next)
+  `((code (@) ,(code-node:literal code))))
+
+(define (convert-softbreak node data next) '("\n"))
+
+(define (convert-html-block node data next)
+  `((*RAW-HTML* ,(html-block-node:literal node))))
+
+(define (convert-html-inline node data next)
+  `((*RAW-HTML* ,(html-inline-node:literal node))))
+
+(define (convert-linebreak node data next) '((br)))
+
+(define (convert-emphasis node data next)
+  (convert-inline 'italic node data next))
+(define (convert-strong-emphasis node data next)
+  (convert-inline 'strong node data next))
+(define (convert-inline tag node data next)
+  `((,tag (@) ,@(append-map next (markdown-node:children node)))))
+
+(define (convert-text text data next) (list (text-node:content text)))
+
+(define (convert-definition-list-block node data next)
+  `((dlist (@) ,@(append-map next (markdown-node:children node))))
+  #;(convert-container 'dlist node data next))
+(define (convert-definition-item node data next)
+  `((ditem (@) ,@(append-map next (markdown-node:children node))))
+  #;(convert-container 'ditem node data next))
+(define (convert-definition-term node data next)
+  `((title (@) ,@(append-map next (markdown-node:children node))))
+  #;(convert-container 'title node data next))
+(define (convert-definition-description node data next)
+  (append-map next (markdown-node:children node)))
+
+
+(define-markdown-converter markdown->document-converter document
+  (document-node? convert-document)
+  (paragraph-node? convert-paragraph)
+  (code-block-node? convert-code-block)
+  (thematic-break-node? convert-thematic-break)
+  (bullet-list-node? convert-bullet-list)
+  (ordered-list-node? convert-ordered-list)
+  (item-node? convert-item)
+  (block-quote-node? convert-block-quote)
+  (heading-node? convert-heading)
+  (link-node? convert-link)
+  (image-node? convert-image)
+  (text-node? convert-text)
+  (code-node? convert-code)
+  (html-block-node? convert-html-block)
+  (html-inline-node? convert-html-inline)
+  (softbreak-node? convert-softbreak)
+  (linebreak-node? convert-linebreak)
+  (emphasis-node? convert-emphasis)
+  (strong-emphasis-node? convert-strong-emphasis)
+  (definition-list-block-node? convert-definition-list-block)
+  (definition-item-node? convert-definition-item)
+  (definition-term-node? convert-definition-term)
+  (definition-description-node? convert-definition-description)
+  (output-code-node? convert-output-code))
+
+)
