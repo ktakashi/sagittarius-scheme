@@ -34,6 +34,7 @@
 	    )
     (import (rnrs)
 	    (sagittarius document input)
+	    (srfi :2 and-let*)
 	    (srfi :13 strings)
 	    (srfi :115 regexp)
 	    (text markdown parser)
@@ -56,19 +57,18 @@
        (markdown-parser-builder
 	(extensions (list gfm-extensions
 			  definition-lists-extension
-			  ;; TODO marker handler
-			  ))
-	(post-processors (list code-output-port-processor)))))
+			  document-extension)))))
     (let ((e (parse-markdown sagittarius-document-parser
 			     (document-input-port input))))
       (markdown-node:set-attribute! e "filename"
 				    (document-input-filename input))
       (markdown-converter:convert markdown->document-converter 'document e)))))
 
+(define *document-namespace* "https://markdown.sagittarius-scheme.io/document")
 ;; post processors
 (define-markdown-node (output-code code output block?)
-  (namespace "https://markdown.sagittarius-scheme.io/output-code")
-  (element "oc:output-code"))
+  (namespace *document-namespace*)
+  (element "doc:output-code"))
 (define *output-marker* (rx (* space) "=>" (* space)))
 (define (code-output-processor node visit-children)
   (define (check-code node)
@@ -97,9 +97,39 @@
 	       (markdown-node:append-child! output-code out)
 	       (markdown-node:unlink! node)))))))
   
-(define code-output-port-processor
+(define code-output-post-processor
   (make-post-processor
    (make-post-processor-spec text-node? code-output-processor)))
+
+(define-markdown-node (include (attribute file "doc:file"))
+  (namespace *document-namespace*)
+  (element "doc:include"))
+(define (include-processor node visit-children)
+  (define child (markdown-node:first-child node))
+  (when (paragraph-node? child)
+    (and-let* ((text (markdown-node:first-child child))
+	       ( (text-node? text) )
+	       ( (string=? "@[" (text-node:content text)) )
+	       (link (markdown-node-next text))
+	       ( (link-node? link) )
+	       (close (markdown-node-next link))
+	       ( (text-node? close) )
+	       ( (string=? "]" (text-node:content close)) )
+	       (parent (markdown-node-parent node)))
+      (let ((include-node (make-include-node (markdown-node-parent parent)
+					     (link-node-destination link))))
+	(markdown-node:unlink! node)
+	(markdown-node:insert-before! parent include-node)
+	(unless (markdown-node:first-child parent)
+	  (markdown-node:unlink! parent))))))
+
+(define include-post-processor
+  (make-post-processor
+   (make-post-processor-spec item-node? include-processor)))
+
+(define document-extension
+  (markdown-extension-builder
+   (post-processors (list code-output-post-processor include-post-processor))))
 
 ;; Converters
 (define (convert-document document data next)
@@ -109,11 +139,35 @@
 
 (define (convert-paragraph paragraph data next)
   (convert-container 'paragraph paragraph data next))
+
+(define *category* (rx "[!" ($ (+ (~ #\]))) "]" (* space)))
 (define (convert-heading node data next)
-  `("\n"    
-    (header (@ (level ,(heading-node-level node)))
-	    ,@(append-map next (markdown-node:children node)))
-    "\n"))
+  (define (check-define node)
+    (define fc (markdown-node:first-child node))
+    (write (text-node:content fc)) (newline)
+    (cond ((and (string=? "6" (heading-node-level node))
+		(text-node? fc)
+		(regexp-matches *category* (text-node:content fc))) =>
+	   (lambda (m)
+	     (let ((category (regexp-match-submatch m 1)))
+	       (and (code-node? (markdown-node-next fc))
+		    (cons* category
+			   (code-node:literal (markdown-node-next fc))
+			   (cddr (markdown-node:children node)))))))
+	  (else #f)))
+    
+  (cond ((check-define node) =>
+	 (lambda (category&name&args)
+	   `("\n"
+	     (define (@ (category ,(car category&name&args)))
+	       ,(cadr category&name&args)
+	       ,@(append-map next (cddr category&name&args)))
+	     "\n")))
+	(else
+	 `("\n"    
+	   (header (@ (level ,(heading-node-level node)))
+		   ,@(append-map next (markdown-node:children node)))
+	   "\n"))))
 
 (define (convert-block-quote node data next)
   (convert-container 'blockquote node data next))
@@ -232,6 +286,9 @@
 (define (convert-definition-description node data next)
   (append-map next (markdown-node:children node)))
 
+(define (convert-include node data next)
+  (define file (include-node-file node))
+  `((include (link (@ (source ,file) (format "markdown")) ,file))))
 
 (define-markdown-converter markdown->document-converter document
   (document-node? convert-document)
@@ -257,6 +314,7 @@
   (definition-item-node? convert-definition-item)
   (definition-term-node? convert-definition-term)
   (definition-description-node? convert-definition-description)
-  (output-code-node? convert-output-code))
+  (output-code-node? convert-output-code)
+  (include-node? convert-include))
 
 )
