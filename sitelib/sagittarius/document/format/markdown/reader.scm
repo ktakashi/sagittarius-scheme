@@ -34,6 +34,7 @@
 	    )
     (import (rnrs)
 	    (sagittarius document input)
+	    (srfi :1 lists)
 	    (srfi :2 and-let*)
 	    (srfi :13 strings)
 	    (srfi :115 regexp)
@@ -41,8 +42,7 @@
 	    (text markdown parser nodes)
 	    (text markdown parser post-processor)
 	    (text markdown converter api)
-	    (rename (text markdown converter html)
-		    (convert-nodes append-map))
+	    ;; (text markdown converter html)
 	    (text markdown extensions)
 	    (text markdown extensions gfm)
 	    (text markdown extensions definition-lists)
@@ -158,48 +158,28 @@
     
   (cond ((check-define node) =>
 	 (lambda (category&name&args)
-	   `("\n"
-	     (define (@ (category ,(car category&name&args)))
+	   `((define (@ (category ,(car category&name&args)))
 	       ,(cadr category&name&args)
-	       ,@(append-map next (cddr category&name&args)))
-	     "\n")))
+	       ,@(append-map next (cddr category&name&args))))))
 	(else
-	 `("\n"    
-	   (header (@ (level ,(heading-node-level node)))
-		   ,@(append-map next (markdown-node:children node)))
-	   "\n"))))
+	 `((header (@ (level ,(heading-node-level node)))
+		   ,@(append-map next (markdown-node:children node)))))))
 
 (define (convert-block-quote node data next)
   (convert-container 'blockquote node data next))
 (define (convert-bullet-list node data next)
-  `("\n"
-    (list (@ (style "bullet"))
-	  ,@(append-map next (markdown-node:children node)))
-    "\n"))
+  `((list (@ (style "bullet"))
+	  ,@(append-map next (markdown-node:children node)))))
 (define (convert-ordered-list node data next)
-  `("\n"
-    (list (@ (style "number")
+  `((list (@ (style "number")
 	     (start ,(number->string (ordered-list-node-start-number node))))
-	  ,@(append-map next (markdown-node:children node)))
-    "\n"))
+	  ,@(append-map next (markdown-node:children node)))))
 
 (define (convert-item node data next)
-  (define (next-paragraph-strip node)
-      (let ((r (next node)))
-	;; to strip paragraph, it looks like this
-	;; ("\n" (p ...) "\n")
-	(if (and (string? (car r))
-		 (string=? (car r) "\n")
-		 (pair? (cadr r))
-		 (eq? (caadr r) 'paragraph))
-	    (sxml:content (cadr r))
-	    r)))
-  `((item (@) ,@(append-map next-paragraph-strip (markdown-node:children node)))))
+  `((item (@) ,@(append-map next (markdown-node:children node)))))
 
 (define (convert-container tag node data next)
-  `("\n"
-    (,tag (@) ,@(append-map next (markdown-node:children node)))
-    "\n"))
+  `((,tag (@) ,@(append-map next (markdown-node:children node)))))
 
 (define (convert-link node data next)
   `((link (@ (href ,(link-node-destination node)))
@@ -222,7 +202,7 @@
 			  (else '()))))))))
 
 (define (convert-thematic-break thematic-break data next)
-  '((thematic-break (@)) "\n"))
+  '((thematic-break (@))))
 
 (define (trim-info info)
   (let ((lang (cond ((string-index info #\space) =>
@@ -234,8 +214,7 @@
 		     (else ""))))
     `((codeblock (@ (lang ,style)
 		    (style "block"))
-		 ,(code-block-node:literal code-block))
-      "\n")))
+		 ,(code-block-node:literal code-block)))))
 
 (define (convert-output-code node data next)
   (define code (output-code-node-code node))
@@ -249,8 +228,7 @@
 		 (output ,output)
 		 ,(if (code-block-node? code)
 		      (code-block-node:literal code)
-		      (code-node:literal code)))
-      "\n")))
+		      (code-node:literal code))))))
 
 (define (convert-code code data next)
   `((code (@) ,(code-node:literal code))))
@@ -275,14 +253,11 @@
 (define (convert-text text data next) (list (text-node:content text)))
 
 (define (convert-definition-list-block node data next)
-  `((dlist (@) ,@(append-map next (markdown-node:children node))))
-  #;(convert-container 'dlist node data next))
+  `((dlist (@) ,@(append-map next (markdown-node:children node)))))
 (define (convert-definition-item node data next)
-  `((ditem (@) ,@(append-map next (markdown-node:children node))))
-  #;(convert-container 'ditem node data next))
+  `((ditem (@) ,@(append-map next (markdown-node:children node)))))
 (define (convert-definition-term node data next)
-  `((title (@) ,@(append-map next (markdown-node:children node))))
-  #;(convert-container 'title node data next))
+  `((title (@) ,@(append-map next (markdown-node:children node)))))
 (define (convert-definition-description node data next)
   (append-map next (markdown-node:children node)))
 
