@@ -42,7 +42,6 @@
 	    (text markdown parser nodes)
 	    (text markdown parser post-processor)
 	    (text markdown converter api)
-	    ;; (text markdown converter html)
 	    (text markdown extensions)
 	    (text markdown extensions gfm)
 	    (text markdown extensions definition-lists)
@@ -144,7 +143,7 @@
 (define (convert-heading node data next)
   (define (check-define node)
     (define fc (markdown-node:first-child node))
-    (write (text-node:content fc)) (newline)
+    ;; (write (text-node:content fc)) (newline)
     (cond ((and (string=? "6" (heading-node-level node))
 		(text-node? fc)
 		(regexp-matches *category* (text-node:content fc))) =>
@@ -155,12 +154,18 @@
 			   (code-node:literal (markdown-node-next fc))
 			   (cddr (markdown-node:children node)))))))
 	  (else #f)))
-    
+  (define (nonempty-text-node? n)
+    (define (empty/space? s)
+      (or (string-null? s)
+	  (string-every char-whitespace? s)))
+    (or (not (text-node? n))
+	(not (empty/space? (text-node:content n)))))
   (cond ((check-define node) =>
 	 (lambda (category&name&args)
 	   `((define (@ (category ,(car category&name&args)))
 	       ,(cadr category&name&args)
-	       ,@(append-map next (cddr category&name&args))))))
+	       ,@(append-map next (filter nonempty-text-node?
+					  (cddr category&name&args)))))))
 	(else
 	 `((header (@ (level ,(heading-node-level node)))
 		   ,@(append-map next (markdown-node:children node)))))))

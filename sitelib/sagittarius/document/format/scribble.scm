@@ -42,12 +42,25 @@
 	    (srfi :13 strings))
 
 (define (scribble->document input . options)
-  `(document
-    (info
-     (source ,(document-input-filename input)))
-    (content
-     ,@(scribble-token*->content
-	(scribble-parse (document-input-port input))))))
+  (define (normalize token*)
+    (guard (e (else (write token*) (newline) (raise e)))
+    (let loop ((token* token*) (prev #f))
+      (cond ((null? token*) '())
+	    ((not (pair? token*)) token*)  ;; (a . b) ...
+	    ((and (pair? prev) (equal? "\n" (car token*)))
+	     ;; skip empty newline right after the node looks like
+	     (loop (cdr token*) prev))
+	    ((pair? (car token*))
+	     (let ((token (normalize (car token*))))
+	       (cons token (loop (cdr token*) token))))
+	    (else (cons (car token*) (loop  (cdr token*) (car token*)))))))
+)
+  (let ((token* (normalize (scribble-parse (document-input-port input)))))
+    `(document
+      (info
+       (source ,(document-input-filename input)))
+      (content
+       ,@(scribble-token*->content token*)))))
 
 (define (scribble-token*->content token*)
   (let loop ((token* token*) (acc '()))
@@ -59,7 +72,6 @@
 
 ;; We need to do sort of the same as scribble->html unfortunately
 (define (consume-token* token next* acc)
-  ;; (write token) (newline)
   (cond ((pair? token)
 	 (case (car token)
 	   ((section subsection subsubsection sub*section)
@@ -198,7 +210,8 @@
 (define (handle-desc token next* acc)
   (values next*
 	  (cons `(paragraph (@)
-		  ,@(scribble-token*->content (cdr token)))
+		  ,@(scribble-token*->content (cdr token))
+		  "\n")
 		acc)))
 
 (define (handle-define token next* acc)
