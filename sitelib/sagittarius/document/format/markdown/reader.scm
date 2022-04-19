@@ -38,7 +38,9 @@
 	    (srfi :2 and-let*)
 	    (srfi :13 strings)
 	    (srfi :115 regexp)
+	    (srfi :158 generators-and-accumulators)
 	    (text markdown parser)
+	    (text markdown parser inlines)
 	    (text markdown parser nodes)
 	    (text markdown parser post-processor)
 	    (text markdown converter api)
@@ -126,8 +128,42 @@
   (make-post-processor
    (make-post-processor-spec item-node? include-processor)))
 
+(define-markdown-node eval (namespace *document-namespace*)
+  (element "doc:eval"))
+(define-record-type eval-delimiter-processor
+  (parent <delimiter-processor>)
+  (protocol (lambda (n)
+	      (lambda ()
+		((n #\@ #\@ 2
+		    (make-delimiter-processor:process make-eval-node)))))))
+(define-markdown-node marker (namespace *document-namespace*)
+  (element "doc:marker"))
+(define-record-type marker-delimiter-processor
+  (parent <delimiter-processor>)
+  (protocol (lambda (n)
+	      (lambda ()
+		((n #\{ #\} 2
+		    (make-delimiter-processor:process make-marker-node)))))))
+(define (make-delimiter-processor:process make-node)
+  (lambda (dp opening closing)
+    (if (and (>= (delimiter:length opening) 2)
+	     (>= (delimiter:length closing) 2))
+	(let* ((opener (delimiter:opener opening))
+	       (closer (delimiter:closer closing))
+	       (enode (make-node opener)))
+	  (generator-for-each (lambda (n)
+				(let ((loc (markdown-node:source-locations n)))
+				  (markdown-node:append-child! enode n)))
+			      (markdown-node-between opener closer))
+	  (markdown-node:insert-after! opener enode)
+	  2)
+	0)))
+
+
 (define document-extension
   (markdown-extension-builder
+   (delimiter-processors (list make-eval-delimiter-processor
+			       make-marker-delimiter-processor))
    (post-processors (list code-output-post-processor include-post-processor))))
 
 ;; Converters
@@ -270,6 +306,13 @@
   (define file (include-node-file node))
   `((include (link (@ (source ,file) (format "markdown")) ,file))))
 
+(define (convert-eval node data next)
+  `((eval ,@(append-map next (markdown-node:children node)))))
+
+(define (convert-marker node data next)
+  (let ((marker (append-map next (markdown-node:children node))))
+    `((,(string->symbol (string-join marker))))))
+
 (define-markdown-converter markdown->document-converter document
   (document-node? convert-document)
   (paragraph-node? convert-paragraph)
@@ -295,6 +338,8 @@
   (definition-term-node? convert-definition-term)
   (definition-description-node? convert-definition-description)
   (output-code-node? convert-output-code)
-  (include-node? convert-include))
+  (include-node? convert-include)
+  (eval-node? convert-eval)
+  (marker-node? convert-marker))
 
 )

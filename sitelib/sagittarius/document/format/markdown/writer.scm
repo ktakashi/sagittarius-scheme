@@ -42,7 +42,8 @@
 	    (srfi :1 lists)
 	    (srfi :13 strings)
 	    (util file)
-	    (util port))
+	    (util port)
+	    (pp))
 
 (define-record-type markdown-writer
   (fields output-port
@@ -63,8 +64,15 @@
   (let ((s (apply sg:format fmt args)))
     (put-string writer s)))
 
+(define (put-escaped-string out e)
+  (string-for-each (lambda (c)
+		     (case c
+		       ((#\` #\_ #\* #\\ #\<)
+			(put-char out #\\) (put-char out c))
+		       (else (put-char out c)))) e))
+
 (define (write-markdown e options out)
-  (cond ((string? e) (put-string out e))
+  (cond ((string? e) (put-escaped-string out e))
 	((pair? e)
 	 (let-values (((name attr content) (document-decompose e)))
 	   (case name
@@ -83,6 +91,7 @@
 	     ((header) (write-header attr content options out))
 	     ((eval) (write-eval attr content options out))
 	     ((include) (write-include attr content options out))
+	     ((thematic-break) (put-string out "---"))
 	     ((table-of-contents)
 	      (write-marker 'table-of-contents attr content options out))
 	     ((index-table)
@@ -115,16 +124,15 @@
   (put-char out #\newline))
 
 (define (write-eval attr content options out)
-  (put-string out "@@(")
-  (put-string out "eval ")
+  (put-string out "@@")
   (for-each (lambda (e) (write-markdown e options out)) content)
-  (put-string out ")@@"))
+  (put-string out "@@"))
 
 (define (write-include attr content options out)
   (put-string out "- @[")
   (for-each (lambda (e) (write-markdown e options out)) content)
-  (put-char out #\])
-  (put-char out #\newline))
+  ;; bah...
+  (put-string out "]\n"))
 
 (define (write-table attr content options out)
   (define (->cell cell)
@@ -135,9 +143,7 @@
 	      ((eof-object? c) (e))
 	    (case c
 	      ((#\newline) (r6:put-string out "<br>"))
-	      ((#\\) (r6:put-string out "\\\\"))
 	      ((#\|) (r6:put-string out "\\|"))
-	      ((#\`) (r6:put-string out "\\`"))
 	      (else (r6:put-char out c)))))))
     (let-values (((n attr content) (document-decompose cell))
 		 ((out e) (open-string-output-port)))
@@ -187,7 +193,6 @@
 	    (l (vector-ref cell-size* i)))
 	(unless (zero? i) (put-char out #\space))
 	(write-cell out c l (and (eq? (caar c*) 'header) header-written?)))))
-
   (newline out)
   (let* ((title (cond ((assq 'title attr) => cadr) (else #f)))
 	 (rows (map ->row content))
@@ -318,7 +323,11 @@
     (let-values (((n a c) (document-decompose i)))
       (unless (eq? n 'item)
 	(document-output-error 'write-list "Unknown item" i))
-      (for-each (lambda (e) (write-markdown e options out)) c))
+      (let-values (((o e) (open-string-output-port)))
+	(let ((writer (make-markdown-writer o)))
+	  (for-each (lambda (e) (write-markdown e options writer)) c)
+	  ;; The first letter and the last letters are #\newline
+	  (put-string out (string-trim-both (e))))))
     (put-char out #\newline))
   (let* ((style (string->symbol
 		 (cond ((assq 'style attr) => cadr) (else "bullet"))))
