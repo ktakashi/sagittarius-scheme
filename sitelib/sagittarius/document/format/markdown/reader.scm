@@ -277,12 +277,12 @@
 (define (convert-softbreak node data next) '("\n"))
 
 (define (convert-html-block node data next)
-  `((*RAW-HTML* ,(html-block-node:literal node))))
+  `((html ,(html-block-node:literal node))))
 
 (define (convert-html-inline node data next)
-  `((*RAW-HTML* ,(html-inline-node:literal node))))
+  `((html ,(html-inline-node:literal node))))
 
-(define (convert-linebreak node data next) '((br)))
+(define (convert-linebreak node data next) '((linebreak)))
 
 (define (convert-emphasis node data next)
   (convert-inline 'italic node data next))
@@ -313,6 +313,20 @@
   (let ((marker (append-map next (markdown-node:children node))))
     `((,(string->symbol (string-join marker))))))
 
+(define (convert-table-block node data next)
+  `((table (@) ,@(append-map next (markdown-node:children node)))))
+(define (convert-table-head node data next)
+  (append-map next (markdown-node:children node)))
+(define (convert-table-body node data next)
+  (append-map next (markdown-node:children node)))
+(define (convert-table-row node data next)
+  `((row ,@(append-map next (markdown-node:children node)))))
+(define (convert-table-cell node data next)
+  (define tag (if (gfm:table-cell-node-header? node) 'header 'cell))
+  ;; TODO alignment
+  `((,tag (@) ,@(append-map next (markdown-node:children node)))))
+
+
 (define-markdown-converter markdown->document-converter document
   (document-node? convert-document)
   (paragraph-node? convert-paragraph)
@@ -340,6 +354,11 @@
   (output-code-node? convert-output-code)
   (include-node? convert-include)
   (eval-node? convert-eval)
-  (marker-node? convert-marker))
+  (marker-node? convert-marker)
+  (gfm:table-block-node? convert-table-block)
+  (gfm:table-head-node? convert-table-head)
+  (gfm:table-body-node? convert-table-body)
+  (gfm:table-row-node? convert-table-row)
+  (gfm:table-cell-node? convert-table-cell))
 
 )

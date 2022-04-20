@@ -47,6 +47,7 @@
 		    (table-body-node? gfm:table-body-node?)
 		    (table-row-node? gfm:table-row-node?)
 		    (table-cell-node? gfm:table-cell-node?)
+		    (table-cell-node-header? gfm:table-cell-node-header?)
 		    (table-cell-node-alignment gfm:table-cell-node-alignment))
 	    
 	    )

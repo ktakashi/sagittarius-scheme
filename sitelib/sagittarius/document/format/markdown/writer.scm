@@ -35,6 +35,7 @@
     (import (rename (rnrs)
 		    (put-string r6:put-string)
 		    (put-char r6:put-char)
+		    (put-datum r6:put-datum)
 		    (newline r6:newline))
 	    (match)
 	    (rename (sagittarius) (format sg:format)) ;; for format
@@ -42,8 +43,7 @@
 	    (srfi :1 lists)
 	    (srfi :13 strings)
 	    (util file)
-	    (util port)
-	    (pp))
+	    (util port))
 
 (define-record-type markdown-writer
   (fields output-port
@@ -63,6 +63,8 @@
 (define (format writer fmt . args)
   (let ((s (apply sg:format fmt args)))
     (put-string writer s)))
+(define (put-datum writer d)
+  (r6:put-datum (markdown-writer-output-port writer) d))
 
 (define (put-escaped-string out e)
   (string-for-each (lambda (c)
@@ -80,7 +82,6 @@
 	     ((define) (write-define attr content options out))
 	     ((paragraph) (write-description attr content options out))
 	     ((code) (write-wrap "`" attr content options out))
-	     ((var) (write-wrap "_" attr content options out))
 	     ((strong) (write-wrap "**" attr content options out))
 	     ((italic) (write-wrap "_" attr content options out))
 	     ((list) (write-list attr content options out))
@@ -92,6 +93,7 @@
 	     ((eval) (write-eval attr content options out))
 	     ((include) (write-include attr content options out))
 	     ((thematic-break) (put-string out "---"))
+	     ((linebreak) (put-string out "  \n"))
 	     ((table-of-contents)
 	      (write-marker 'table-of-contents attr content options out))
 	     ((index-table)
@@ -99,14 +101,27 @@
 	     ((author)
 	      (write-marker 'author attr content options out))
 	     ((blockquote) (write-blockquote attr content options out))
+	     ((html) (for-each (lambda (c) (put-string out c)) content))
 	     (else
 	      (document-output-error 'write-markdown "Unknown element" e)))))
 	(else (put-datum out e))))
 
 (define (write-blockquote attr content options out)
+  (define (write-it c)
+    (let-values (((o e) (open-string-output-port)))
+      (let ((writer (make-markdown-writer o)))
+	(write-markdown c options writer)
+	(let ((in (open-string-input-port (e))))
+	  (do ((l (get-line in) (get-line in)))
+	      ((eof-object? l))
+	    (unless (string-null? l)
+	      (put-string out "> ")
+	      (put-string out l)
+	      (put-char out #\newline)))))))
   (newline out)
-  (put-string out "> ")
-  (for-each (lambda (e)
+  (for-each write-it content)
+  #;(put-string out "> ")
+  #;(for-each (lambda (e)
 	      (write-markdown e options out)
 	      (when (equal? "\n" e)
 		(put-string out "> ")))
@@ -312,7 +327,8 @@
   (define (bullet-render out)
     (put-string out "- "))
   (define number-render
-    (let ((n (cond ((assq 'start attr) => string->number)
+    (let ((n (cond ((assq 'start attr) =>
+		    (lambda (s) (string->number (cadr s))))
 		   (else 1))))
       (lambda (out)
 	(put-string out (number->string n))
