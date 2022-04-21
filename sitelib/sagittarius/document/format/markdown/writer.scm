@@ -400,7 +400,7 @@
 			    (if tag
 				(append h (list (string-append " {#" tag "}")))
 				h)))))
-	 (write-header a c options out))
+	 (write-header a (cons "§ " c) options out))
        (newline out)
        (for-each (lambda (e) (write-markdown e options out)) content)))
     (else (document-output-error 'write-section "Unknown element" content))))

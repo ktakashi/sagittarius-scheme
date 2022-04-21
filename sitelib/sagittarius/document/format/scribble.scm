@@ -76,7 +76,7 @@
 	 (case (car token)
 	   ((section subsection subsubsection sub*section)
 	    (handle-section token next* acc))
-	   ((code blockquote) (simple-handler token next* acc))
+	   ((code var blockquote) (simple-handler token next* acc))
 	   ((see) (simple-handler (cons 'code (cdr token)) next* acc))
 	   ((scheme) (simple-handler (cons 'code (cdr token)) next* acc))
 	   ((dots) (values next* (cons "..." acc)))
