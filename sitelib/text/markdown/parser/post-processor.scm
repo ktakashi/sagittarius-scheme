@@ -58,9 +58,8 @@
     ;; In case of unlink or other modification, we need do via prev/next
     (let loop ((child (markdown-node:first-child node)))
       (when child
-	(let ((next (markdown-node-next child)))
-	  (process child)
-	  (loop next)))))
+	(process child)
+	(loop (markdown-node-next child)))))
   (define (process node)
     (cond ((find-spec node spec*) =>
 	   (lambda (spec)

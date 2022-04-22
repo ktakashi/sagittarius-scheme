@@ -61,9 +61,40 @@
 			  document-extension)))))
     (let ((e (parse-markdown sagittarius-document-parser
 			     (document-input-port input))))
+      (for-each (lambda (processor) (processor e))
+		adjust-section-processors)
       (markdown-node:set-attribute! e "filename"
 				    (document-input-filename input))
       (markdown-converter:convert markdown->document-converter 'document e)))))
+
+(define (section-level-of level)
+  (define l (number->string level))
+  (lambda (node)
+    (and (section-node? node)
+	 (equal? (section-node-level node) l))))
+
+(define (adjust-section node visit-children)
+  (define l (section-node-level node))
+  (define n (string->number l))
+  (define same? (section-level-of (string->number l)))
+  (define (higher? node) (> (string->number (section-node-level node)) n))
+  (define (continue? node) (and (same? node) (not (higher? node))))
+  (let loop ((sib (markdown-node-next node)))
+    (unless (or (not sib) (continue? sib))
+      (let ((next (markdown-node-next sib)))
+	(markdown-node:append-child! node sib)
+	(loop next)))))
+
+(define adjust-section-processors
+  ;; order is important (top to bottom)
+  (list (make-post-processor
+	 (make-post-processor-spec (section-level-of 1) adjust-section))
+	(make-post-processor
+	 (make-post-processor-spec (section-level-of 2) adjust-section))
+	(make-post-processor
+	 (make-post-processor-spec (section-level-of 3) adjust-section))
+	(make-post-processor
+	 (make-post-processor-spec (section-level-of 4) adjust-section))))
 
 (define *document-namespace* "https://markdown.sagittarius-scheme.io/document")
 ;; post processors
@@ -107,26 +138,46 @@
   (element "doc:include"))
 (define (include-processor node visit-children)
   (define child (markdown-node:first-child node))
-  (when (paragraph-node? child)
-    (and-let* ((text (markdown-node:first-child child))
-	       ( (text-node? text) )
-	       ( (string=? "@[" (text-node:content text)) )
-	       (link (markdown-node-next text))
-	       ( (link-node? link) )
-	       (close (markdown-node-next link))
-	       ( (text-node? close) )
-	       ( (string=? "]" (text-node:content close)) )
-	       (parent (markdown-node-parent node)))
-      (let ((include-node (make-include-node (markdown-node-parent parent)
-					     (link-node-destination link))))
-	(markdown-node:unlink! node)
-	(markdown-node:insert-before! parent include-node)
-	(unless (markdown-node:first-child parent)
-	  (markdown-node:unlink! parent))))))
+  (and-let* (( (paragraph-node? child) )
+	     (text (markdown-node:first-child child))
+	     ( (text-node? text) )
+	     ( (string=? "@[" (text-node:content text)) )
+	     (link (markdown-node-next text))
+	     ( (link-node? link) )
+	     (close (markdown-node-next link))
+	     ( (text-node? close) )
+	     ( (string=? "]" (text-node:content close)) )
+	     (parent (markdown-node-parent node)))
+    (let ((include-node (make-include-node (markdown-node-parent parent)
+					   (link-node-destination link))))
+      (markdown-node:unlink! node)
+      (markdown-node:insert-before! parent include-node)
+      (unless (markdown-node:first-child parent)
+	(markdown-node:unlink! parent)))))
 
 (define include-post-processor
   (make-post-processor
    (make-post-processor-spec item-node? include-processor)))
+
+(define-markdown-node (section (attribute level "doc:level"))
+  (namespace *document-namespace*)
+  (element "doc:section"))
+
+(define *section* (rx "[§" ($ (/ "14") ) "]" (+ space) ($ (+ any))))
+(define (section-processor node visit-children)
+  (define child (markdown-node:first-child node))
+  (and-let* (( (text-node? child) )
+	     (text (text-node:content child))
+	     (m (regexp-matches *section* text))
+	     (level (m 1))
+	     (new-text (m 2))
+	     (section (make-section-node (markdown-node-parent node) level)))
+    (text-node:content-set! child new-text)
+    (markdown-node:insert-before! node section)))
+
+(define section-post-processor
+  (make-post-processor
+   (make-post-processor-spec heading-node? section-processor)))
 
 (define-markdown-node eval (namespace *document-namespace*)
   (element "doc:eval"))
@@ -164,7 +215,9 @@
   (markdown-extension-builder
    (delimiter-processors (list make-eval-delimiter-processor
 			       make-marker-delimiter-processor))
-   (post-processors (list code-output-post-processor include-post-processor))))
+   (post-processors (list code-output-post-processor
+			  include-post-processor
+			  section-post-processor))))
 
 ;; Converters
 (define (convert-document document data next)
@@ -313,6 +366,14 @@
   (let ((marker (append-map next (markdown-node:children node))))
     `((,(string->symbol (string-join marker))))))
 
+(define (convert-section node data next)
+  (let ((level (section-node-level node)))
+    ;; (write `(section (@ (level ,level))
+    ;; 		     ,@(append-map next (markdown-node:children node))))
+    ;; (newline)
+    `((section (@ (level ,level))
+	       ,@(append-map next (markdown-node:children node))))))
+
 (define (convert-table-block node data next)
   `((table (@) ,@(append-map next (markdown-node:children node)))))
 (define (convert-table-head node data next)
@@ -355,6 +416,7 @@
   (include-node? convert-include)
   (eval-node? convert-eval)
   (marker-node? convert-marker)
+  (section-node? convert-section)
   (gfm:table-block-node? convert-table-block)
   (gfm:table-head-node? convert-table-head)
   (gfm:table-body-node? convert-table-body)

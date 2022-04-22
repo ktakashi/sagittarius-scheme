@@ -144,7 +144,7 @@
   (put-string out "@@"))
 
 (define (write-include attr content options out)
-  (put-string out "- @[")
+  (put-string out "* @[")
   (for-each (lambda (e) (write-markdown e options out)) content)
   ;; bah...
   (put-string out "]\n"))
@@ -392,7 +392,9 @@
   (match content
     ((('header h ...) content ...)
      (let ((tag (cond ((assq 'tag attr) => cadr)
-		      (else #f))))
+		      (else #f)))
+	   (level (cond ((assq 'level attr) => cadr)
+		      (else "1"))))
        (newline out)
        (let-values (((n a c)
 		     (document-decompose
@@ -400,7 +402,7 @@
 			    (if tag
 				(append h (list (string-append " {#" tag "}")))
 				h)))))
-	 (write-header a (cons "§ " c) options out))
+	 (write-header a (cons (string-append "[§" level "] ") c) options out))
        (newline out)
        (for-each (lambda (e) (write-markdown e options out)) content)))
     (else (document-output-error 'write-section "Unknown element" content))))

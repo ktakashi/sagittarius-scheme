@@ -36,14 +36,14 @@
 	    (match)
 	    (sagittarius document output)
 	    (sagittarius document format markdown writer)
-	    (sagittarius document format markdown reader)
-	    (pp))
+	    (sagittarius document format markdown reader))
 
 (define (document->markdown doc options orig-out)
   (with-exception-handler
    (document-output-options-exception-handler options)
    (lambda ()
      (define out (output-port->markdown-writer orig-out))
+     ;; (pp doc)
      (match doc
        (('document ('info info) ('content elm ...))
 	(for-each (lambda (e) (write-markdown e options out)) elm))

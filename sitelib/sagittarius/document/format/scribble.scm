@@ -53,8 +53,7 @@
 	    ((pair? (car token*))
 	     (let ((token (normalize (car token*))))
 	       (cons token (loop (cdr token*) token))))
-	    (else (cons (car token*) (loop  (cdr token*) (car token*)))))))
-)
+	    (else (cons (car token*) (loop  (cdr token*) (car token*))))))))
   (let ((token* (normalize (scribble-parse (document-input-port input)))))
     `(document
       (info
@@ -76,7 +75,7 @@
 	 (case (car token)
 	   ((section subsection subsubsection sub*section)
 	    (handle-section token next* acc))
-	   ((code var blockquote) (simple-handler token next* acc))
+	   ((code blockquote) (simple-handler token next* acc))
 	   ((see) (simple-handler (cons 'code (cdr token)) next* acc))
 	   ((scheme) (simple-handler (cons 'code (cdr token)) next* acc))
 	   ((dots) (values next* (cons "..." acc)))
@@ -262,10 +261,10 @@
   (define section (car token))
   (define (section->level section)
     (case section
-      ((section)       2)
-      ((subsection)    3)
-      ((subsubsection) 4)
-      ((sub*section)   5)
+      ((section)       1)
+      ((subsection)    2)
+      ((subsubsection) 3)
+      ((sub*section)   4)
       (else #f)))
   (define section-level (section->level section))
   (define (consume cur next*)
@@ -293,7 +292,8 @@
   (let-values (((attr content) (scribble-parse-attribute (cdr token)))
 	       ((next* acc) (consume section-level next*)))
     (values next*
-	    (cons `(section (@ ,@attr)
+	    (cons `(section (@ ,@attr
+			       (level ,(number->string section-level)))
 			    (header (@ (level ,(number->string section-level)))
 				    ,@(scribble-token*->content content))
 			    ,@acc)
