@@ -55,11 +55,12 @@
   (define (find-spec node spec*)
     (find (lambda (spec) ((post-processor-spec-predicate spec) node)) spec*))
   (define (visit-children node)
-    ;; In case of unlink or other modification, we need do via prev/next
-    (let loop ((child (markdown-node:first-child node)))
-      (when child
-	(process child)
-	(loop (markdown-node-next child)))))
+    ;; we want to process only the siblings so get all the children,
+    ;; then check if the parent is still the given `node` or not
+    (for-each (lambda (child)
+		(when (eq? node (markdown-node-parent child))
+		  (process child)))
+	      (markdown-node:children node)))
   (define (process node)
     (cond ((find-spec node spec*) =>
 	   (lambda (spec)
