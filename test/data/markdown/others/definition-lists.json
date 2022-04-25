@@ -1,27 +1,47 @@
 [
     {
 	"markdown": "Foo\n: bar",
-	"html": "<dl>\n<dt>Foo</dt>\n<dd>bar</dd>\n</dl>\n",
+	"html": "<dl>\n<dt>Foo</dt>\n<dd>\n<p>bar</p>\n</dd>\n</dl>\n",
 	"example": "dl-1"
     },
     {
 	"markdown": "Foo\n: bar\n\nBaz\n: bim",
-	"html": "<dl>\n<dt>Foo</dt>\n<dd>bar</dd>\n<dt>Baz</dt>\n<dd>bim</dd>\n</dl>\n",
+	"html": "<dl>\n<dt>Foo</dt>\n<dd>\n<p>bar</p>\n</dd>\n<dt>Baz</dt>\n<dd>\n<p>bim</p>\n</dd>\n</dl>\n",
 	"example": "dl-2"
     },
     {
 	"markdown": "Foo\nBaz\n: bar",
-	"html": "<dl>\n<dt>Foo</dt>\n<dt>Baz</dt>\n<dd>bar</dd>\n</dl>\n",
+	"html": "<dl>\n<dt>Foo</dt>\n<dt>Baz</dt>\n<dd>\n<p>bar</p>\n</dd>\n</dl>\n",
 	"example": "dl-3"
     },
     {
 	"markdown": "Foo\n\nBaz\n: bar",
-	"html": "<p>Foo</p>\n<dl>\n<dt>Baz</dt>\n<dd>bar</dd>\n</dl>\n",
+	"html": "<p>Foo</p>\n<dl>\n<dt>Baz</dt>\n<dd>\n<p>bar</p>\n</dd>\n</dl>\n",
 	"example": "dl-4"
     },
     {
 	"markdown": "_emph_\n: buz",
-	"html": "<dl>\n<dt><em>emph</em></dt>\n<dd>buz</dd>\n</dl>\n",
+	"html": "<dl>\n<dt><em>emph</em></dt>\n<dd>\n<p>buz</p>\n</dd>\n</dl>\n",
 	"example": "dl-5"
+    },
+    {
+	"markdown": "loose\n: foo\n  \n  bar",
+	"html": "<dl>\n<dt>loose</dt>\n<dd>\n<p>foo</p>\n<p>bar</p>\n</dd>\n</dl>\n",
+	"example": "dl-6"
+    },
+    {
+	"markdown": "loose\n:  foo\n   \n   bar",
+	"html": "<dl>\n<dt>loose</dt>\n<dd>\n<p>foo</p>\n<p>bar</p>\n</dd>\n</dl>\n",
+	"example": "dl-7"
+    },
+    {
+	"markdown": "block\n: foo\n  ```\n  ok\n  ```\n",
+	"html": "<dl>\n<dt>block</dt>\n<dd>\n<p>foo</p>\n<pre><code>ok\n</code></pre>\n</dd>\n</dl>\n",
+	"example": "dl-8"
+    },
+    {
+	"markdown": "stop\n: foo\n\nbar",
+	"html": "<dl>\n<dt>stop</dt>\n<dd>\n<p>foo</p>\n</dd>\n</dl>\n<p>bar</p>\n",
+	"example": "dl-9"
     }
 ]

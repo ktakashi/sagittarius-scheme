@@ -129,35 +129,25 @@
   (protocol
    (lambda (n)
      (lambda (document content-indent)
-       ((n (make-definition-description-node document (list-queue)) #f #f
+       ((n (make-definition-description-node document (list-queue)) #t #f
 	   (lambda (self block) #t)
 	   (lambda (self ps)
 	     (define line (parser-state-line ps))
 	     (define nns (parser-state-next-non-space-index ps))
-	     (cond ((parser-state-blank? ps) (block-continue:none))
+	     (cond ((parser-state-blank? ps)
+		    (if (>= (source-line:length line)
+			    (definition-description-parser-content-indent self))
+			(block-continue:at-column
+			 (definition-description-parser-content-indent self))
+			(block-continue:none)))
 		   ((eqv? #\: (source-line:char-at line nns))
 		    (block-continue:none))
 		   (else (block-continue:at-column
 			  (parser-state-column ps)))))
-	   (lambda (self line)
-	     (define lines (definition-description-parser-source-lines self))
-	     (define block (block-parser-block self))
-	     (define indent (definition-description-parser-content-indent self))
-	     (define (drop-leading-whitespace line count)
-	       (do ((i 0 (+ i 1)))
-		   ((or (= i count) (not (source-line:whitespace? line i)))
-		    (source-line:substring line i))))
-	     (let ((line (drop-leading-whitespace line indent)))
-	       (list-queue-add-back! lines line)
-	       (list-queue-add-back!
-		(definition-description-node-description block) line)))
+	   block-parser-default-add-line!
 	   block-parser-default-add-location!
 	   block-parser-default-close-block!
-	   (lambda (self inline-parser)
-	     (define lines (definition-description-parser-source-lines self))
-	     (inline-parser:parse! inline-parser
-				   (source-lines:of lines)
-				   (block-parser-block self))))
+	   block-parser-default-parse-inlines!)
 	content-indent
 	(list-queue))))))
   
