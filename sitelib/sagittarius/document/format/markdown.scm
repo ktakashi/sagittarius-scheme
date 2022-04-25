@@ -38,20 +38,16 @@
 	    (sagittarius document format markdown writer)
 	    (sagittarius document format markdown reader))
 
-(define (document->markdown doc options orig-out)
-  (with-exception-handler
-   (document-output-options-exception-handler options)
-   (lambda ()
-     (define out (output-port->markdown-writer orig-out))
-     ;; (pp doc)
-     (match doc
-       (('document ('info info) ('content elm ...))
-	(for-each (lambda (e) (write-markdown e options out)) elm))
-       (('document ('@ attr) ('info info) ('content elm ...))
-	(for-each (lambda (e) (write-markdown e options out)) elm))
-       (else
-	;; This is obvious violation, so not recoverable
-	(assertion-violation 'document->markdown "Unknown document" doc))))))
+(define (document->markdown doc options out)
+  (define writer (output-port->markdown-writer out options))
+  (match doc
+    (('document ('info info) ('content elm ...))
+     (for-each (lambda (e) (traverse-document writer e)) elm))
+    (('document ('@ attr) ('info info) ('content elm ...))
+     (for-each (lambda (e) (traverse-document writer e)) elm))
+    (else
+     ;; This is obvious violation, so not recoverable
+     (assertion-violation 'document->markdown "Unknown document" doc))))
 
 ;;; parser
 (define (markdown->document input . options)

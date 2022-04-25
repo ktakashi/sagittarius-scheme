@@ -330,10 +330,10 @@
 (define (convert-softbreak node data next) '("\n"))
 
 (define (convert-html-block node data next)
-  `((html ,(html-block-node:literal node))))
+  `((raw-string ,(html-block-node:literal node))))
 
 (define (convert-html-inline node data next)
-  `((html ,(html-inline-node:literal node))))
+  `((raw-string ,(html-inline-node:literal node))))
 
 (define (convert-linebreak node data next) '((linebreak)))
 

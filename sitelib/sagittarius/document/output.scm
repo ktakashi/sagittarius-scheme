@@ -34,7 +34,7 @@
 	    document-output-options?
 	    document-output-options-default-codeblock-language
 	    document-output-options-link-source-callback
-	    document-output-options-exception-handler
+	    document-output-options-unknown-node-handler
 	    document-output-options-builder
 
 	    document-output:make-file-link-callback
@@ -42,6 +42,17 @@
 	    document-element-of?
 
 	    document-output-error document-output-error? &document-output
+
+	    ;; For writer implementation
+	    (rename (document-writer <document-writer>))
+	    document-writer?
+	    document-writer-output-port
+	    document-writer-options
+	    document-writer-node-handlers
+	    document-writer-string-handler
+	    document-writer-datum-handler
+	    default-unknown-node-handler
+	    traverse-document
 	    )
     (import (rnrs)
 	    (record builder)
@@ -52,21 +63,23 @@
 (define-condition-type &document-output &document
   make-document-output-error document-output-error?)
 (define (document-output-error who message . irr)
-  ;; Let's mark this recoverable and let exception handler decide
-  (raise-continuable (condition (make-document-output-error)
-				(make-who-condition who)
-				(make-message-condition message)
-				(make-irritants-condition irr))))
-
+  (raise (condition (make-document-output-error)
+		    (make-who-condition who)
+		    (make-message-condition message)
+		    (make-irritants-condition irr))))
 
 (define-record-type document-output-options
   (fields default-codeblock-language
 	  link-source-callback
-	  exception-handler))
+	  unknown-node-handler))
+
+(define (default-unknown-node-handler writer name attr content travarse)
+  (document-output-error 'write-markdown "Unknown element"
+			 (cons* name attr content)))
 
 (define-syntax document-output-options-builder
   (make-record-builder document-output-options
-    ((exception-handler raise))))
+    ((unknown-node-handler default-unknown-node-handler))))
 
 (define (document-output:make-file-link-callback ext)
   (lambda (source format writer)
@@ -82,4 +95,31 @@
 
 (define (document-element-of? e name)
   (and (pair? e) (eq? (car e) name)))
+
+(define-record-type document-writer
+  (fields output-port
+	  options
+	  node-handlers
+	  string-handler
+	  datum-handler))
+
+(define (traverse-document writer e)
+  (define (noop e))
+  (define (call-node-handler writer name attr content)
+    (define node-handlers (document-writer-node-handlers writer))
+    (let ((handler (cond ((assq name node-handlers) => cadr)
+			 (else (document-output-options-unknown-node-handler
+				(document-writer-options writer))))))
+      (handler writer name attr content traverse)))
+  (define (traverse e)
+    (cond ((string? e)
+	   ((document-writer-string-handler writer) writer e noop))
+	  ((pair? e)
+	   (let-values (((name attr content) (document-decompose e)))
+	     (call-node-handler writer name attr content)))
+	  (else
+	   ((document-writer-datum-handler writer) writer e noop))))
+  (traverse e))
+
+
 )
