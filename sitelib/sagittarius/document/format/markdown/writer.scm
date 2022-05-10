@@ -45,11 +45,10 @@
 
 (define-record-type markdown-writer
   (parent <document-writer>)
-  (fields (mutable last-char)
-	  (mutable last-string))
+  (fields (mutable last-string))
   (protocol (lambda (p)
 	      (lambda args
-		((apply p args) #f "")))))
+		((apply p args) "")))))
 
 (define (output-port->markdown-writer output-port options)
   (make-markdown-writer output-port options
@@ -61,15 +60,21 @@
 
 (define (put-string writer s)
   (define port (document-writer-output-port writer))
+  (define last (markdown-writer-last-string writer))
+  
   (if (and (= (string-length s) 1) (eqv? (string-ref s 0) #\newline))
-      (markdown-writer-last-char-set! writer #\newline)
-      (markdown-writer-last-char-set! writer #\A))
-  (markdown-writer-last-string-set! writer s)
+      (if (or (string-null? last)
+	      (eqv? (string-ref last (- (string-length last) 1)) #\newline))
+	  (markdown-writer-last-string-set! writer s) ;; ok
+	  ;; make it a line
+	  (markdown-writer-last-string-set! writer (string-append last s)))
+      (markdown-writer-last-string-set! writer s))
+  
   (r6:put-string port s))
 (define (put-char writer c) (put-string writer (string c)))
 (define (newline writer)
-  (define last-char (markdown-writer-last-char writer))
-  (unless (or (not last-char) (eqv? #\newline last-char))
+  (define last (markdown-writer-last-string writer))
+  (unless (string=? last "\n")
     (put-string writer (string #\newline))))
 (define (format writer fmt . args)
   (let ((s (apply sg:format fmt args)))
@@ -382,11 +387,13 @@
     (when args
       (put-char out #\space)
       (for-each (lambda (e)
-		  (cond ((pair? e) (next e))
-			(else
+		  (cond ((string? e)
 			 (put-string out " _")
-			 (next e)
-			 (put-char out #\_)))) args))
+			 (put-string out e)
+			 (put-char out #\_))
+			(else
+			 (put-string out " ")
+			 (next e)))) args))
     (put-char out #\newline))
   (let ((category (cond ((assq 'category attr) => cadr) (else #f))))
     (write-it category (car content) (cdr content))))
@@ -466,7 +473,7 @@
   (let-values (((o e) (open-string-output-port)))
     (let ((out (output-port->markdown-writer o (document-writer-options out))))
       (for-each (lambda (e) (traverse-document out e)) content)
-      (trim-string* (e)))))
+      (drop-while string-null? (trim-string* (e))))))
 
 (define (trim-string* s)
   (define (check-space s) (cond ((string-skip s char-whitespace?)) (else 0)))

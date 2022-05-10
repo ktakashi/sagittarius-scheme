@@ -34,6 +34,7 @@
     (import (rnrs)
 	    (sagittarius)
 	    (sagittarius document input)
+	    (sagittarius regex)
 	    (match)
 	    ;; We use this for simplicity...
 	    (scribble parser)
@@ -214,6 +215,11 @@
 
 (define (handle-define token next* acc)
   (define (strip-string body) (remove string? body))
+  (define (split-args args)
+    (append-map (lambda (arg)
+		  (if (string? arg)
+		      (string-split arg #\space)
+		      (list arg))) args))
   (match token
     (('define category body ...)
      (let ((cmd* (strip-string body)))
@@ -224,11 +230,12 @@
 			   ,@(scribble-token*->content name))
 			acc)))
 	 ((('name name ...) ('args args ...))
-	  (values next*
-		  (cons `(define (@ (category ,(format "~a" category)))
-			   ,@(scribble-token*->content name)
-			   ,@(scribble-token*->content args))
-			acc)))
+	  (let ((args (split-args args)))
+	    (values next*
+		    (cons `(define (@ (category ,(format "~a" category)))
+			     ,@(scribble-token*->content name)
+			     ,@(scribble-token*->content args))
+			  acc))))
 	 (else (assertion-violation 'handle-define
 				    "Unknotn body format" token)))))
     (else (assertion-violation 'handle-define
