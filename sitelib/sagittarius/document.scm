@@ -80,9 +80,8 @@
 	    &document-input document-input-error?
 	    )
     (import (rnrs)
-	    (rnrs eval)
-	    (sagittarius)
 	    (sagittarius document conditions)
+	    (sagittarius document loader)
 	    (sagittarius document input)
 	    (sagittarius document output))
 
@@ -93,10 +92,8 @@
   (apply parse-document type (port->document-input port) rest))
 
 (define (parse-document type input . opt)
-  (define name (string->symbol
-		(string-append (symbol->string type) "->document")))
-  (let ((proc (load-procedure type name)))
-    (apply proc input opt)))
+  (let ((proc (load-reader-procedure type)))
+    (apply parse-document-input proc input opt)))
 
 (define write-document
   (case-lambda
@@ -105,15 +102,6 @@
    ((type document options)
     (write-document type document options (current-output-port)))
    ((type document options out)
-    (define name (string->symbol
-		  (string-append "document->" (symbol->string type))))
-    (let ((proc (load-procedure type name)))
+    (let ((proc (load-writer-procedure type)))
       (proc document options out)))))
-
-(define (load-procedure type name)
-  (define fmt
-    "(sagittarius document format ~a) doesn't exist or ~a isn't defined")
-  (guard (e (else (error type (format fmt type name) e)))
-    (eval name (environment `(sagittarius document format ,type)))))
-
 )

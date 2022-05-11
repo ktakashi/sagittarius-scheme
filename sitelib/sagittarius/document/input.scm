@@ -36,6 +36,8 @@
     (export file->document-input
 	    port->document-input
 
+	    parse-document-input
+
 	    document-input?
 	    document-input-port
 	    document-input-filename
@@ -59,6 +61,9 @@
 	    (record builder)
 	    (sagittarius)
 	    (sagittarius document conditions)
+	    (sagittarius document loader)
+	    (sagittarius document tools)
+	    (text sxml tools)
 	    (peg)
 	    (srfi :14 char-sets)
 	    (srfi :127 lseqs))
@@ -76,12 +81,55 @@
 			(make-irritants-condition irr)))))
 
 (define-record-type document-input-options
-  (fields expand-include?))
+  (fields include-expander))
 (define-syntax document-input-options-builder
   (make-record-builder document-input-options))
 
 (define-record-type document-input
   (fields port proc filename))
+
+(define (parse-document-input parser input . maybe-options)
+  (define options (if (null? maybe-options) #f (car maybe-options)))
+  (define (expand depth expander doc options)
+    (define (call-include-expander include-expander source parser options)
+      (include-expander depth
+       (lambda (source options)
+	 (let ((next (parser source options)))
+	   (expand (+ depth 1) include-expander next options)))
+       source options))
+    (cond ((null? doc) '())
+	  ((pair? doc)
+	   (if (pair? (car doc))
+	       (cons (expand depth expander (car doc) options)
+		     (cdr (expand depth expander doc options)))
+	       (let ((content (sxml:content doc)))
+		 (or (and-let* (( (eq? (sxml:name doc) 'include) )
+				( (not (null? content)) )
+				( (null? (cdr content)) )
+				(link (car content))
+				(source (sxml:attr link 'source))
+				(format (sxml:attr link 'format))
+				(new-parser
+				 (load-reader-procedure
+				  (string->symbol format)))
+				(expanded (call-include-expander
+					   expander source new-parser options)))
+		       (cond ((document:content expanded) =>
+			      (lambda (c)
+				`(included (@ (source ,source)) ,@c)))
+			     (else #f)))
+		     (let ((c (map (lambda (c)
+				     (expand depth expander c options))
+				   content)))
+		       (sxml:change-content doc c))))))
+	  (else doc)))
+  
+  (let ((r (apply parser input maybe-options)))
+    (cond ((and options (document-input-options-include-expander options)) =>
+	   (lambda (expander) (expand 0 expander r options)))
+	  (else r))))
+
+
 (define (document-input->lseq document-input lexer)
   ((document-input-proc document-input) lexer))
 

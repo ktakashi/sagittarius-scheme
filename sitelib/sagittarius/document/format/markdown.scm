@@ -33,21 +33,17 @@
     (export document->markdown
 	    markdown->document)
     (import (rnrs)
-	    (match)
 	    (sagittarius document output)
+	    (sagittarius document tools)
 	    (sagittarius document format markdown writer)
 	    (sagittarius document format markdown reader))
 
 (define (document->markdown doc options out)
   (define writer (output-port->markdown-writer out options))
-  (match doc
-    (('document ('info info) ('content elm ...))
-     (for-each (lambda (e) (traverse-document writer e)) elm))
-    (('document ('@ attr) ('info info) ('content elm ...))
-     (for-each (lambda (e) (traverse-document writer e)) elm))
-    (else
-     ;; This is obvious violation, so not recoverable
-     (assertion-violation 'document->markdown "Unknown document" doc))))
+  (let ((content (document:content doc)))
+    (unless content
+      (assertion-violation 'document->markdown "Unknown document" doc))
+    (for-each (lambda (e) (traverse-document writer e)) content)))
 
 ;;; parser
 (define (markdown->document input . options)

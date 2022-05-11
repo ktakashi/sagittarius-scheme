@@ -445,6 +445,9 @@
   (put-char out #\newline)
   (put-char out #\newline))
 
+;; Basically ignore the info
+(define (included-handler out n attr content next) (for-each next content))
+
 (define node-handlers
   `((header ,header-handler)
     (section ,section-handler)
@@ -466,7 +469,8 @@
     (linebreak ,linebreak-handler)
     (index-table ,marker-handler)
     (author ,marker-handler)
-    (thematic-break ,thematic-break-handler)))
+    (thematic-break ,thematic-break-handler)
+    (included ,included-handler)))
 
 (define (->markdown-lines out content)
   (let-values (((o e) (open-string-output-port)))

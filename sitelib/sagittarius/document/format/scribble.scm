@@ -174,9 +174,9 @@
 
 (define (handle-hyperlink token next* acc)
   (let-values (((attr content) (scribble-parse-attribute (cdr token))))
-    (values next* (cons `(link (@ (href ,(cond ((assq 'href token) => cadr)
+    (values next* (cons `(link (@ (href ,(cond ((assq 'href attr) => cadr)
 					       (else ""))))
-			       ,@(scribble-token*->content (cddr token)))
+			       ,@(scribble-token*->content content))
 			acc))))
 
 (define (handle-secref token next* acc)
