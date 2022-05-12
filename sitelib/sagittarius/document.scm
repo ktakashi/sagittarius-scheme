@@ -83,7 +83,8 @@
 	    (sagittarius document conditions)
 	    (sagittarius document loader)
 	    (sagittarius document input)
-	    (sagittarius document output))
+	    (rename (sagittarius document output)
+		    (write-document output:write-document)))
 
 (define (file->document type file . rest)
   (apply parse-document type (file->document-input file) rest))
@@ -103,5 +104,5 @@
     (write-document type document options (current-output-port)))
    ((type document options out)
     (let ((proc (load-writer-procedure type)))
-      (proc document options out)))))
+      (output:write-document proc document options out)))))
 )

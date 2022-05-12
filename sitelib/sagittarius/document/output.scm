@@ -37,6 +37,8 @@
 	    document-output-options-unknown-node-handler
 	    document-output-options-builder
 
+	    write-document
+
 	    document-output:make-file-link-callback
 	    document-decompose
 	    document-element-of?
@@ -55,9 +57,13 @@
 	    traverse-document
 	    )
     (import (rnrs)
+	    (rnrs eval)
 	    (record builder)
 	    (sagittarius document conditions)
+	    (srfi :1 lists)
+	    (srfi :117 list-queues)
 	    (text sxml tools)
+	    (text sxml sxpath)
 	    (util file))
 
 (define-condition-type &document-output &document
@@ -71,7 +77,88 @@
 (define-record-type document-output-options
   (fields default-codeblock-language
 	  link-source-callback
-	  unknown-node-handler))
+	  unknown-node-handler
+	  resolve-table-of-contents
+	  resolve-index-table?
+	  author-resolver
+	  execute-eval-on))
+
+(define (write-document writer document options out)
+  (define resolve-toc
+    (and options (document-output-options-resolve-table-of-contents options)))
+  (define author-resolver
+    (and options (document-output-options-author-resolver options)))
+  (define execute-eval-on
+    (and options (document-output-options-execute-eval-on options)))
+  (define resolve-index-table?
+    (and options (document-output-options-resolve-index-table? options)))
+  (if (or resolve-toc author-resolver execute-eval-on)
+      (let ((resolved (resolve-marker document resolve-toc
+				      resolve-index-table?
+				      author-resolver execute-eval-on)))
+	(writer resolved options out))
+      (writer document options out)))
+
+(define (resolve-marker document resolve-toc index-table?
+			author-resolver eval-env)
+  (define (collect-toc e depth)
+    (define (do-collect)
+      (define (id/tag header)
+	(string-append "#" (cond ((sxml:attr header 'tag))
+				 ((sxml:attr header 'id))
+				 (else "this-should-not-happen"))))
+      (let loop ((current 1)
+		 (items (list-queue))
+		 (headers ((sxpath '(// section header)) `(*TOP* ,document))))
+	(if (null? headers)
+	    (values (list-queue-list items) headers)
+	    (let* ((header (car headers))
+		   (level (string->number (sxml:attr header 'level))))
+	      (cond ((> level depth) (loop current items (cdr headers)))
+		    ((> level current)
+		     ;; dive in
+		     (let-values (((children next)
+				   (loop level (list-queue) (cdr headers))))
+		       (let ((last (list-queue-remove-back! items)))
+			 (list-queue-add-back! items
+			  (append last 
+				  `((list (@ (style "number")) ,@children))))
+			 (loop current items next))))
+		    ((= level current)
+		     (list-queue-add-back! items
+		      `(item (@)
+			     (link (@ (href ,(id/tag header)))
+				   ,@(sxml:content header))))
+		     (loop current items (cdr headers)))
+		    ((< level current)
+		     (values (list-queue-list items) headers)))))))
+    (let-values (((r ignore) (do-collect)))
+      `(list (@ (id "table-of-contents")
+		(style "number"))
+	     ,@r)))
+  (define (do-eval e env)
+    (let ((content (sxml:content e)))
+      (eval (get-datum (open-string-input-port (car content)))
+	    env)))
+  (define (collect-indice e)
+    e)
+    ;; TODO 
+  ;; We do stupidly here...
+  (let loop ((document document))
+    (cond ((null? document) '())
+	  ((pair? document)
+	   (case (car document)
+	     ((table-of-contents)
+	      (if resolve-toc (collect-toc document resolve-toc) document))
+	     ((eval)
+	      (if eval-env (do-eval document eval-env) document))
+	     ((index-table)
+	      (if index-table? (collect-indice document) document))
+	     ((author)
+	      (if author-resolver (author-resolver document) document))
+	     (else (let ((content (sxml:content document)))
+		     (sxml:change-content document (map loop content))))))
+	  (else document))))
 
 (define (default-unknown-node-handler writer name attr content travarse)
   (document-output-error 'write-markdown "Unknown element"

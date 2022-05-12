@@ -47,6 +47,7 @@
 	    (text markdown extensions)
 	    (text markdown extensions gfm)
 	    (text markdown extensions definition-lists)
+	    (text markdown extensions heading-anchor)
 	    (text sxml tools))
 
 (define read-markdown 
@@ -58,14 +59,18 @@
        (markdown-parser-builder
 	(extensions (list gfm-extensions
 			  definition-lists-extension
-			  document-extension)))))
+			  document-extension
+			  heading-anchor-extension)))))
     (let ((e (parse-markdown sagittarius-document-parser
-			     (document-input-port input))))
+			     (document-input-port input)))
+	  (option (markdown-conversion-options-builder
+		   (context-data (make-heading-anchor-attribute-resolver #f)))))
       (for-each (lambda (processor) (processor e))
 		adjust-section-processors)
       (markdown-node:set-attribute! e "filename"
 				    (document-input-filename input))
-      (markdown-converter:convert markdown->document-converter 'document e)))))
+      (markdown-converter:convert markdown->document-converter 'document e
+				  option)))))
 
 (define (section-level-of level)
   (define l (number->string level))
@@ -256,7 +261,10 @@
 	       ,@(append-map next (filter nonempty-text-node?
 					  (cddr category&name&args)))))))
 	(else
-	 `((header (@ (level ,(heading-node-level node)))
+	 `((header (@ (level ,(heading-node-level node))
+		      ,@(cond ((markdown-node:get-attribute node "id") =>
+			       (lambda (tag) `((tag ,tag))))
+			      (else (data node 'header))))
 		   ,@(append-map next (markdown-node:children node)))))))
 
 (define (convert-block-quote node data next)
