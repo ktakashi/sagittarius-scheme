@@ -83,7 +83,7 @@
 (define (put-escaped-string out e)
   (string-for-each (lambda (c)
 		     (case c
-		       ((#\` #\_ #\* #\\ #\<)
+		       ((#\` #\* #\\ #\<)
 			(put-char out #\\) (put-char out c))
 		       (else (put-char out c)))) e))
 
@@ -381,7 +381,9 @@
     (put-string out "###### [!")
     (put-string out category)
     (put-string out "] `")
-    (next name)
+    (if (string? name)
+	(put-string out name)
+	(next name))
     (put-string out "`")
     (when args
       (put-char out #\space)
