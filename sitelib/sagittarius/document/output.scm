@@ -36,7 +36,13 @@
 	    document-output-options-link-source-callback
 	    document-output-options-unknown-node-handler
 	    document-output-options-builder
-
+	    
+	    (rename (make-table-of-contents-resolver
+		     make-default-table-of-contents-resolver)
+		    (make-eval-resolver make-default-eval-resolver)
+		    (make-index-table-resolver
+		     make-default-index-table-resolver))
+	    
 	    write-document
 
 	    document-output:make-file-link-callback
@@ -82,10 +88,10 @@
   (fields default-codeblock-language
 	  link-source-callback
 	  unknown-node-handler
-	  resolve-table-of-contents
-	  resolve-index-table?
+	  table-of-contents-resolver
+	  index-table-resolver
 	  author-resolver
-	  execute-eval-on))
+	  eval-executor))
 
 (define-syntax document-output-options-builder
   (make-record-builder document-output-options
@@ -103,16 +109,14 @@
   (define resolver (make-document-marker-resolver document))
   (define ht (document-marker-resolver-resolvers resolver))
   (when options
-    (cond ((document-output-options-resolve-table-of-contents options) =>
-	   (lambda (depth)
-	     (hashtable-set! ht 'table-of-contents
-			     (make-table-of-contents-resolver depth)))))
+    (cond ((document-output-options-table-of-contents-resolver options) =>
+	   (lambda (proc) (hashtable-set! ht 'table-of-contents proc))))
     (cond ((document-output-options-author-resolver options) =>
-	   (lambda (resolver) (hashtable-set! ht 'author resolver))))
-    (cond ((document-output-options-execute-eval-on options) =>
-	   (lambda (env) (hashtable-set! ht 'eval (make-eval-resolver env)))))
-    (cond ((document-output-options-resolve-index-table? options)
-	   (hashtable-set! ht 'index-table index-table-resolver))))
+	   (lambda (proc) (hashtable-set! ht 'author proc))))
+    (cond ((document-output-options-eval-executor options) =>
+	   (lambda (proc) (hashtable-set! ht 'eval proc))))
+    (cond ((document-output-options-index-table-resolver options) =>
+	   (lambda (proc) (hashtable-set! ht 'index-table proc)))))
   (parameterize ((*document-output-resolver* resolver))
     (writer document options out)))
 
@@ -133,8 +137,12 @@
   (string-append "#" (cond ((sxml:attr header 'tag))
 			   ((sxml:attr header 'id))
 			   (else "this-should-not-happen"))))
+(define (default-attribute-retriever for) '())
 
-(define (make-table-of-contents-resolver depth)
+(define (make-table-of-contents-resolver depth . maybe-attribute-retriever)
+  (define attribute-retriever (if (null? maybe-attribute-retriever)
+				  default-attribute-retriever
+				  (car maybe-attribute-retriever)))
   (lambda (document)
     (define (do-collect)
       (let loop ((current 1)
@@ -152,22 +160,25 @@
 		       (let ((last (list-queue-remove-back! items)))
 			 (list-queue-add-back! items
 			  (append last 
-				  `((list (@ (style "number")) ,@children))))
+			   `((list (@ (style "number")
+				      ,@(attribute-retriever 'nested-toc))
+				   ,@children))))
 			 (loop current items next))))
 		    ((= level current)
 		     ;; (section (@ ...) (header ...) elem ...)
 		     ;; it's expensive to do (if-car-sxpath '(section header))
 		     (let ((header (car (sxml:content section))))
 		       (list-queue-add-back! items
-			`(item (@)
-			       (link (@ (href ,(id/tag header)))
+			`(item (@ ,@(attribute-retriever 'toc-item))
+			       (link (@ (href ,(id/tag header))
+					,@(attribute-retriever 'toc-link))
 				     ,@(sxml:content header)))))
 		     (loop current items (cdr sections)))
 		    ((< level current)
 		     (values (list-queue-list items) sections)))))))
     (let-values (((r ignore) (do-collect)))
-      `(list (@ (id "table-of-contents")
-		(style "number"))
+      `(list (@ (style "number")
+		,@(attribute-retriever 'toc-root))
 	     ,@r))))
 
 (define (make-eval-resolver env)
@@ -175,70 +186,77 @@
     (let ((content (sxml:content e)))
       (eval (get-datum (open-string-input-port (car content))) env))))
 
-(define (index-table-resolver document)
-  (define (collect-definitions)
-    (let loop ((defs '())
-	       (current-section #f)
-	       (content (document:content document)))
-      (cond ((null? content) defs)
-	    ((pair? content)
-	     (case (sxml:name content)
-	       ((define) (cons (cons content current-section) defs))
-	       ((section)
-		(fold-left (lambda (defs c) (loop defs content c))
-			   defs (sxml:content content)))
-	       (else
-		(fold-left (lambda (defs c) (loop defs current-section c))
-			   defs (sxml:content content)))))
-	    (else defs))))
-  (define (def-name e) (car (sxml:content e)))
-  (define (name< a b) (string-ci<? (def-name (car a)) (def-name (car b))))
-  (define (->index-tables defs)
-    (define (->index-table defs)
-      (define (->row n def)
-	(define (name->href n name)
-	  (define suffix (number->string n))
-	  (string-append "#" name "_" suffix))
-	(define (section->href section) (id/tag (caddr section)))
-	(define (section-name section)
-	  (car (sxml:content (caddr section))))
-	(let* ((name (def-name (car def)))
-	       (section (cdr def))
-	       (def-href (name->href n name)))
-	  ;; update define element
-	  (sxml:set-attr! (car def) (list 'name def-href))
-	  `(row (@)
-		(cell (@ (class "index-name"))
-		      (link (@ (href ,def-href)) ,name))
-		(cell (@ (class "index-section"))
-		      (link (@ (href ,(section->href section)))
-			    ,(section-name section))))))
-      (define letter
-	(string (char-upcase (string-ref (def-name (caar defs)) 0))))
-      (let loop ((n 0) (defs defs) (r '()))
+(define (make-index-table-resolver . maybe-attribute-retriever)
+  (define attribute-retriever (if (null? maybe-attribute-retriever)
+				  default-attribute-retriever
+				  (car maybe-attribute-retriever)))
+  (lambda (document)
+    (define (collect-definitions)
+      (let loop ((defs '())
+		 (current-section #f)
+		 (content (document:content document)))
+	(cond ((null? content) defs)
+	      ((pair? content)
+	       (case (sxml:name content)
+		 ((define) (cons (cons content current-section) defs))
+		 ((section)
+		  (fold-left (lambda (defs c) (loop defs content c))
+			     defs (sxml:content content)))
+		 (else
+		  (fold-left (lambda (defs c) (loop defs current-section c))
+			     defs (sxml:content content)))))
+	      (else defs))))
+    (define (def-name e) (car (sxml:content e)))
+    (define (name< a b) (string-ci<? (def-name (car a)) (def-name (car b))))
+    (define (->index-tables defs)
+      (define (->index-table defs)
+	(define (->row n def)
+	  (define (name->href n name)
+	    (define suffix (number->string n))
+	    (string-append "#" name "_" suffix))
+	  (define (section->href section) (id/tag (caddr section)))
+	  (define (section-name section)
+	    (car (sxml:content (caddr section))))
+	  (let* ((name (def-name (car def)))
+		 (section (cdr def))
+		 (def-href (name->href n name)))
+	    ;; update define element
+	    (sxml:set-attr! (car def) (list 'name def-href))
+	    `(row (@)
+		  (cell (@ ,@(attribute-retriever 'index-name))
+			(link (@ (href ,def-href)
+				 ,@(attribute-retriever 'index-name-link))
+			      ,name))
+		  (cell (@ ,@(attribute-retriever 'index-section))
+			(link (@ (href ,(section->href section))
+				 ,@(attribute-retriever 'index-section-link))
+			      ,(section-name section))))))
+	(define letter
+	  (string (char-upcase (string-ref (def-name (caar defs)) 0))))
+	(let loop ((n 0) (defs defs) (r '()))
+	  (if (null? defs)
+	      `(paragraph (@ ,@(attribute-retriever 'index-table-fragment))
+			  (header (@ (level "5")
+				     (name ,(string-append "index-" letter))
+				     ,@(attribute-retriever 'index-letter))
+				  ,letter)
+			  (table (@ ,@(attribute-retriever 'index-table))
+				 ,@(reverse! r)))
+	      (let* ((def (car defs))
+		     (d (car def)))
+		(loop (+ n 1) (cdr defs) (cons (->row n def) r))))))
+      (define (first-char=? e)
+	(define c (char-upcase (string-ref (def-name (car e)) 0)))
+	(lambda (d)
+	  (eqv? c (char-upcase (string-ref (def-name (car d)) 0)))))
+      (let loop ((defs defs) (r '()))
 	(if (null? defs)
-	    `(paragraph (@ (class "index-table-fragment"))
-			(header (@ (class "index-letter")
-				   (level "5")
-				   (name ,(string-append "index-" letter)))
-				,letter)
-			(table (@ (class "index-table"))
-			       ,@(reverse! r)))
-	    (let* ((def (car defs))
-		   (d (car def)))
-	      (loop (+ n 1) (cdr defs) (cons (->row n def) r))))))
-    (define (first-char=? e)
-      (define c (char-upcase (string-ref (def-name (car e)) 0)))
-      (lambda (d)
-	(eqv? c (char-upcase (string-ref (def-name (car d)) 0)))))
-    (let loop ((defs defs) (r '()))
-      (if (null? defs)
-	  (reverse! r)
-	  (let ((e (car defs)))
-	    (let-values (((this rest) (span (first-char=? e) defs)))
-	      (loop rest (cons (->index-table this) r)))))))
-  (let ((defs (list-sort name< (collect-definitions))))
-    `(paragraph (@ (class "index")) ,@(->index-tables defs))))
+	    (reverse! r)
+	    (let ((e (car defs)))
+	      (let-values (((this rest) (span (first-char=? e) defs)))
+		(loop rest (cons (->index-table this) r)))))))
+    (let ((defs (list-sort name< (collect-definitions))))
+      `(paragraph (@ ,@(attribute-retriever 'index)) ,@(->index-tables defs)))))
 
 (define (default-unknown-node-handler writer name attr content travarse)
   (document-output-error 'write-markdown "Unknown element"

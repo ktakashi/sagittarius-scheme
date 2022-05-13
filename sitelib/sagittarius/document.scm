@@ -71,6 +71,9 @@
 	    document-output-options?
 	    document-output-options-builder
 	    document-output:make-file-link-callback
+	    make-default-table-of-contents-resolver
+	    make-default-eval-resolver
+	    make-default-index-table-resolver
 
 	    <document-input-options>
 	    document-input-options?
