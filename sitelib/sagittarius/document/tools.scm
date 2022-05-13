@@ -33,18 +33,22 @@
     (export document:content
 	    document:info)
     (import (rnrs)
-	    (match))
+	    (match)
+	    (text sxml tools))
 
 (define (document:content document)
   (match document
-    (('document ('info info) ('content elm ...)) elm)
-    (('document ('@ attr) ('info info) ('content elm ...)) elm)
+    (('document ('info info ...) ('content elm ...))
+     (cons 'content elm))
+    (('document ('@ attr) ('info info ...) ('content elm ...))
+     (cons 'content elm))
     (else #f)))
 
 (define (document:info document)
   (match document
-    (('document ('info info) ('content elm ...)) info)
-    (('document ('@ attr) ('info info) ('content elm ...)) info)
+    (('document ('info info ...) ('content elm ...)) (cons 'info info))
+    (('document ('@ attr) ('info info ...) ('content elm ...))
+     (cons 'info info))
     (else #f)))
 
 )

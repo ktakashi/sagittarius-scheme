@@ -36,14 +36,16 @@
 	    (sagittarius document output)
 	    (sagittarius document tools)
 	    (sagittarius document format markdown writer)
-	    (sagittarius document format markdown reader))
+	    (sagittarius document format markdown reader)
+	    (text sxml tools))
 
 (define (document->markdown doc options out)
   (define writer (output-port->markdown-writer out options))
   (let ((content (document:content doc)))
     (unless content
       (assertion-violation 'document->markdown "Unknown document" doc))
-    (for-each (lambda (e) (traverse-document writer e)) content)))
+    (for-each (lambda (e) (traverse-document writer e))
+	      (sxml:content content))))
 
 ;;; parser
 (define (markdown->document input . options)
