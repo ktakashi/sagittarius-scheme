@@ -74,7 +74,8 @@
 	    (srfi :117 list-queues)
 	    (text sxml tools)
 	    (text sxml sxpath)
-	    (util file))
+	    (util file)
+	    (pp))
 
 (define-condition-type &document-output &document
   make-document-output-error document-output-error?)
@@ -91,7 +92,8 @@
 	  table-of-contents-resolver
 	  index-table-resolver
 	  author-resolver
-	  eval-executor))
+	  eval-executor
+	  section-splitter))
 
 (define-syntax document-output-options-builder
   (make-record-builder document-output-options
@@ -118,7 +120,83 @@
     (cond ((document-output-options-index-table-resolver options) =>
 	   (lambda (proc) (hashtable-set! ht 'index-table proc)))))
   (parameterize ((*document-output-resolver* resolver))
-    (writer document options out)))
+    (cond ((document-output-options-section-splitter options) =>
+	   (lambda (splitter)
+	     ;; we can't generate ToC, so ignore it
+	     (hashtable-set! ht 'table-of-contents (lambda (e) ""))
+	     (let ((q (list-queue)))
+	       (write-splitted-sections! q document
+					 writer splitter options out)
+	       (for-each (lambda (proc) (proc writer)) (list-queue-list q)))))
+	  (else (writer document options out)))))
+
+(define (write-splitted-sections! queue document writer splitter options out)
+  (define toc-resolver
+    ;; assume the config is right...
+    (or (document-output-options-table-of-contents-resolver options)
+	(make-table-of-contents-resolver 1)))
+  (define section-path (sxpath '(* section)))
+  (define (collect&replace-sections level document)
+    (define (strip-section sections)
+      (filter-map (lambda (section)
+		    (let ((l (sxml:attr section 'level)))
+		      (and (eqv? (string->number l) (+ (length level) 1))
+			   section)))
+		  sections))
+    (define (replace-section document toc)
+      (let loop ((c (sxml:content document)) (replaced? #f) (r '()))
+	(cond ((null? c) (sxml:change-content document (reverse! r)))
+	      ((pair? (car c))
+	       (if (eq? 'section (sxml:name (car c)))
+		   (if replaced?
+		       (loop (cdr c) replaced? r)
+		       (loop (cdr c) #t (cons toc r)))
+		   (loop (cdr c) replaced? (cons (car c) r))))
+	      (else (loop (cdr c) replaced? (cons c r))))))
+    ;; Do a bit of trick to decive the resolver
+    (let ((toc (toc-resolver `(dummy ,@(cdr document)))))
+      (values (replace-section document toc)
+	      (section-path `(*TOP* ,document)))))
+    
+  (define (continue level section)
+    (splitter level (make-accept level section) (make-stop section)))
+  (define (do-accept level document)
+    (let-values (((new-doc sections) (collect&replace-sections level document)))
+      (do ((i 1 (+ i 1)) (sections sections (cdr sections)))
+	  ((null? sections) new-doc)
+	(continue (cons i level) (car sections)))))
+
+  (define (make-executor sec file-name pre post)
+    (define document `(document (info) (content ,sec)))
+    (lambda (writer)
+      (call-with-output-file file-name
+	(lambda (out)
+	  (pre out)
+	  (writer document options out)
+	  (post out)))))
+  (define (make-root-executor document pre post)
+    (lambda (writer)
+      (pre out)
+      (writer document options out)
+      (post out)))
+  (define (make-accept level document)
+    (lambda (filename pre post)
+      (let ((doc (do-accept level document)))
+	(list-queue-add-back! queue (make-executor doc filename pre post)))))
+  (define (make-stop document)
+    (lambda (filename pre post)
+      (list-queue-add-back! queue (make-executor document filename pre post))))
+
+  (define (root-accept filename pre post)
+    (let* ((content (document:content document))
+	   (new (do-accept '() content)))
+      ;; we ignore the filename as it's already provided
+      (list-queue-add-back! queue (make-root-executor
+				   (document:change-content document new)
+				   pre post))))
+  (define (root-stop filename pre post)
+    (list-queue-add-back! queue (make-root-executor document pre post)))
+  (splitter '() root-accept root-stop))
 
 (define (document-output:resolve-marker marker)
   (define resolver (*document-output-resolver*))
@@ -157,13 +235,16 @@
 		     ;; dive in
 		     (let-values (((children next)
 				   (loop level (list-queue) sections)))
-		       (let ((last (list-queue-remove-back! items)))
-			 (list-queue-add-back! items
-			  (append last 
-			   `((list (@ (style "number")
-				      ,@(attribute-retriever 'nested-toc))
-				   ,@children))))
-			 (loop current items next))))
+		       (let ((item `(list (@ (style "number")
+					     ,@(attribute-retriever
+						'nested-toc))
+					  ,@children)))
+		       (if (list-queue-empty? items)
+			   (list-queue-add-back! items item)
+			   (let ((last (list-queue-remove-back! items)))
+			     (list-queue-add-back! items
+						   (append last `(,item)))))
+		       (loop current items next))))
 		    ((= level current)
 		     ;; (section (@ ...) (header ...) elem ...)
 		     ;; it's expensive to do (if-car-sxpath '(section header))

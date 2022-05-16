@@ -116,7 +116,8 @@
 					   expander source new-parser options)))
 		       (cond ((document:content expanded) =>
 			      (lambda (c)
-				`(included (@ (source ,source)) ,@c)))
+				`(included (@ (source ,source))
+					   ,@(sxml:content c))))
 			     (else #f)))
 		     (let ((c (map (lambda (c)
 				     (expand depth expander c options))
@@ -126,7 +127,8 @@
   
   (let ((r (apply parser input maybe-options)))
     (cond ((and options (document-input-options-include-expander options)) =>
-	   (lambda (expander) (expand 0 expander r options)))
+	   (lambda (expander)
+	     (document:adjust-sections (expand 0 expander r options))))
 	  (else r))))
 
 

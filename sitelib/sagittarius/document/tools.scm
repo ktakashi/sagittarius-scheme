@@ -31,9 +31,13 @@
 #!nounbound
 (library (sagittarius document tools)
     (export document:content
-	    document:info)
+	    document:change-content
+	    document:info
+
+	    document:adjust-sections)
     (import (rnrs)
 	    (match)
+	    (srfi :1 lists)
 	    (text sxml tools))
 
 (define (document:content document)
@@ -44,11 +48,67 @@
      (cons 'content elm))
     (else #f)))
 
+(define (document:change-content document content)
+  (match document
+    (('document ('info info ...) ('content elm ...))
+     `(document (info ,@info) ,content))
+    (('document ('@ attr) ('info info ...) ('content elm ...))
+     `(document (@ ,attr)(info ,@info) ,content))
+    (else #f)))
+
 (define (document:info document)
   (match document
     (('document ('info info ...) ('content elm ...)) (cons 'info info))
     (('document ('@ attr) ('info info ...) ('content elm ...))
      (cons 'info info))
     (else #f)))
+
+(define (document:adjust-sections document)
+  (define (adjust-sections content)
+    (let loop ((elements (list content))
+	       (contents (sxml:content content))
+	       (r '()))
+      (if (null? contents)
+	  (values (sxml:change-content (car elements) (reverse! r))
+		  (cdr elements)
+		  contents)
+	  (let ((e (car contents)))
+	    (if (pair? e) ;; an element
+		(case (sxml:name e)
+		  ((included) ;; put the content before the current content
+		   (loop elements (append (sxml:content e) (cdr contents)) r))
+		  ((section)
+		   (let ((l (string->number (sxml:attr e 'level)))
+			 (cur (- (length elements) 1))
+			 (c* (sxml:content e)))
+		     (write (caddr e)) (display " ")
+		     (display l) (display ":") (display cur) (newline)
+		     (cond ((> l cur)
+			    (let-values (((ne elements next)
+					  (loop (cons e elements) c* '())))
+			      (loop elements (append next (cdr contents))
+				    (cons ne r))))
+			   ((= l cur)
+			    (values (sxml:change-content (car elements)
+							 (reverse! r))
+				    (cdr elements)
+				    (cdr contents)))
+			   (else
+			    ;; l = 2
+			    ;; cur = 4
+			    ;; len = 5
+			    ;; elements = (4 3 2 1 0)
+			    (let ((ne (sxml:change-content (car elements)
+							   (reverse! r))))
+			      (values ne
+				      (cdr elements) ;;(drop elements (- cur l))
+				      contents))))))
+		  (else
+		   ;; there should not be any section in other tags (I hope...)
+		   (loop elements (cdr contents) (cons e r))))
+		(loop elements (cdr contents) (cons e r)))))))
+  (let ((content (document:content document)))
+    (let-values (((new-content ignore1 ignroe2) (adjust-sections content)))
+      (document:change-content document new-content))))
 
 )
