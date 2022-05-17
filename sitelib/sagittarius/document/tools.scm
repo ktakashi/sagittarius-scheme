@@ -81,8 +81,8 @@
 		   (let ((l (string->number (sxml:attr e 'level)))
 			 (cur (- (length elements) 1))
 			 (c* (sxml:content e)))
-		     (write (caddr e)) (display " ")
-		     (display l) (display ":") (display cur) (newline)
+		     (display l) (display ":") (display cur) (display " ")
+		     (write (caddr e)) (newline)
 		     (cond ((> l cur)
 			    (let-values (((ne elements next)
 					  (loop (cons e elements) c* '())))
@@ -92,17 +92,11 @@
 			    (values (sxml:change-content (car elements)
 							 (reverse! r))
 				    (cdr elements)
-				    (cdr contents)))
+				    contents))
 			   (else
-			    ;; l = 2
-			    ;; cur = 4
-			    ;; len = 5
-			    ;; elements = (4 3 2 1 0)
 			    (let ((ne (sxml:change-content (car elements)
 							   (reverse! r))))
-			      (values ne
-				      (cdr elements) ;;(drop elements (- cur l))
-				      contents))))))
+			      (values ne (cdr elements) contents))))))
 		  (else
 		   ;; there should not be any section in other tags (I hope...)
 		   (loop elements (cdr contents) (cons e r))))
