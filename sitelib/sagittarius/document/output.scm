@@ -2,7 +2,7 @@
 ;;;
 ;;; sagittarius/document/output.scm - Document output
 ;;;  
-;;;   Copyright (c) 2021  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2021-2022  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -75,8 +75,7 @@
 	    (srfi :117 list-queues)
 	    (text sxml tools)
 	    (text sxml sxpath)
-	    (util file)
-	    (pp))
+	    (util file))
 
 (define-condition-type &document-output &document
   make-document-output-error document-output-error?)
@@ -168,7 +167,8 @@
 		    (sxml:set-attr! link (list 'href (uri-merge file href)))))
 		links (list-queue-list files))))
   (define (continue files level section)
-    (splitter level
+    (splitter (car (sxml:content (car (sxml:content section)))) ;; passing title
+	      level
 	      (make-accept files level section)
 	      (make-stop files section)))
   (define (do-accept level document)
@@ -184,12 +184,12 @@
     (lambda (writer)
       (call-with-output-file file-name
 	(lambda (out)
-	  (pre out)
+	  (pre document out)
 	  (writer document options out)
 	  (post out)))))
   (define (make-root-executor document pre post)
     (lambda (writer)
-      (pre out)
+      (pre document out)
       (writer document options out)
       (post out)))
   (define (make-accept files level document)
@@ -211,7 +211,7 @@
 				    pre post))))
   (define (root-stop filename pre post)
     (list-queue-add-front! queue (make-root-executor document pre post)))
-  (splitter '() root-accept root-stop))
+  (splitter #f '() root-accept root-stop))
 
 (define (document-output:resolve-marker marker)
   (define resolver (*document-output-resolver*))
@@ -415,6 +415,4 @@
 	  (else
 	   ((document-writer-datum-handler writer) writer e noop))))
   (traverse e))
-
-
 )
