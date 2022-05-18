@@ -46,8 +46,8 @@
 	    write-document
 
 	    document-output:make-file-link-callback
-	    ;; document-output:resolve-marker
-	    ;; document-output:eval
+	    document-output:resolve-marker
+	    document-output:eval
 	    document-decompose
 	    document-element-of?
 
@@ -55,6 +55,7 @@
 
 	    ;; For writer implementation
 	    (rename (document-writer <document-writer>))
+	    make-document-writer
 	    document-writer?
 	    document-writer-output-port
 	    document-writer-options

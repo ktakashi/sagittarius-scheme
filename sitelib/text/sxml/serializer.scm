@@ -803,8 +803,8 @@
 ;; <raw-html> ::= ( *RAW-HTML* raw-html-string )
 (define (srl:raw-html->str-lst raw-html-node)
   (if (and (= (length raw-html-node) 2)
-	   (string? (cadr raw-html-node)))
-      (cadr raw-html-node)
+	   (for-all string? (cdr raw-html-node)))
+      (cdr raw-html-node)
       '()))
 
 ;-------------------------------------------------
