@@ -83,7 +83,7 @@
     (list-queue-list words)))
 
 (define *allowed-chars*
-  (char-set-union char-set:letter (string->char-set "-_")))
+  (char-set-union char-set:letter+digit (string->char-set "-_")))
 (define (generate-id words id-spec id-map)
   (define (normalize-text words id-spec)
     (define (emit-word word out)

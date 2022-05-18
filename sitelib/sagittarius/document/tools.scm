@@ -81,8 +81,6 @@
 		   (let ((l (string->number (sxml:attr e 'level)))
 			 (cur (- (length elements) 1))
 			 (c* (sxml:content e)))
-		     (display l) (display ":") (display cur) (display " ")
-		     (write (caddr e)) (newline)
 		     (cond ((> l cur)
 			    (let-values (((ne elements next)
 					  (loop (cons e elements) c* '())))
