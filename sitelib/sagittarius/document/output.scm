@@ -195,13 +195,15 @@
       (post out)))
   (define (make-accept files level document)
     (lambda (filename pre post)
-      (list-queue-add-back! files filename)
+      (list-queue-add-back! files (cadr filename))
       (let ((doc (do-accept level document)))
-	(list-queue-add-front! queue (make-executor doc filename pre post)))))
+	(list-queue-add-front! queue
+			       (make-executor doc (car filename) pre post)))))
   (define (make-stop files document)
     (lambda (filename pre post)
-      (list-queue-add-back! files filename)
-      (list-queue-add-front! queue (make-executor document filename pre post))))
+      (list-queue-add-back! files (cadr filename))
+      (list-queue-add-front! queue
+			     (make-executor document (car filename) pre post))))
 
   (define (root-accept filename pre post)
     (let* ((content (document:content document))

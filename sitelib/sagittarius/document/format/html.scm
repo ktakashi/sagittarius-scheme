@@ -181,7 +181,7 @@
 (define (table-handler element options)
   (define (->cell cell)
     (let ((tag (sxml:name cell)))
-      `(,(if (eq? tag 'header) 'th 'tr)
+      `(,(if (eq? tag 'header) 'th 'td)
 	(@ ,@(options->attribute options (symbol-append 'table- tag)))
 	,@(map (lambda (e) (->html e options)) (sxml:content cell)))))
   (define (->row row)
