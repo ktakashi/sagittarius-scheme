@@ -74,7 +74,7 @@
 	;; TODO meta thing from options
 	(title ,(search-title doc options)))
        (body
-	,@(map (lambda (e) (->html e options)) (sxml:content content))))
+	,@(map (->html options) (sxml:content content))))
      out)))
 
 (define heading1-path
@@ -85,7 +85,7 @@
 	 (html-output-options-default-title options))
 	(else "no title")))
 
-(define (->html element options)
+(define ((->html options) element)
   (cond ((string? element) element)
 	((pair? element) (element->html element options))
 	(else (assertion-violation 'document->html "Unknown document element"
@@ -110,27 +110,26 @@
 	 (a (@ ,@(options->attribute options 'header-anchor)
 	       ,@(let ((name (id/tag element)))
 		   (if name `((name ,name)) '())))
-	    ,@(map (lambda (e) (->html e options)) (sxml:content element)))))
+	    ,@(map (->html options) (sxml:content element)))))
 
 (define (paragraph-handler element options)
   `(p (@ ,@(options->attribute options 'paragraph))
-      ,@(map (lambda (e) (->html e options)) (sxml:content element))))
+      ,@(map (->html options) (sxml:content element))))
 
 (define (eval-handler element options)
   (document-output:eval element (car (sxml:content element))))
 
 (define (marker-handler element options)
   (cond ((document-output:resolve-marker (sxml:name element)) =>
-	 (lambda (e) (->html e options)))
+	 (->html options))
 	(else element)))
 
 (define (list-handler element options)
-  (define (->item tag)
-    (lambda (item)
-      (unless (eq? 'item (sxml:name item))
-	(assertion-violation 'html-list-handler "Unknown item" element))
-      `(li (@ ,@(options->attribute options 'list-item))
-	   ,@(map (lambda (e) (->html e options)) (sxml:content item)))))
+  (define ((->item tag) item)
+    (unless (eq? 'item (sxml:name item))
+      (assertion-violation 'html-list-handler "Unknown item" element))
+    `(li (@ ,@(options->attribute options 'list-item))
+	 ,@(map (->html options) (sxml:content item))))
     
   (let* ((style (string->symbol (cond ((sxml:attr element 'style))
 				      (else "bullet"))))
@@ -153,7 +152,7 @@
   (define (create content link)
     `(a (@ (href ,link)
 	    ,@(options->attribute options 'link))
-	 ,@(map (lambda (e) (->html e options)) content)))
+	 ,@(map (->html options) content)))
   (define (put-channel content link)
     (list-queue-add-front! channel (create content link)))
   (let ((source (sxml:attr element 'source))
@@ -173,8 +172,7 @@
 	 (marker (string->symbol (string-append "section-" level))))
     `(a (@ (name ,(id/tag element)))
 	(section (@ ,@(options->attribute options marker))
-		 ,@(map (lambda (e) (->html e options))
-			(sxml:content element))))))
+		 ,@(map (->html options) (sxml:content element))))))
 
 (define (symbol-append . s*)
   (string->symbol (string-join (map symbol->string s*) "")))
@@ -183,7 +181,7 @@
     (let ((tag (sxml:name cell)))
       `(,(if (eq? tag 'header) 'th 'td)
 	(@ ,@(options->attribute options (symbol-append 'table- tag)))
-	,@(map (lambda (e) (->html e options)) (sxml:content cell)))))
+	,@(map (->html options) (sxml:content cell)))))
   (define (->row row)
     `(tr (@ ,@(options->attribute options 'table-row))
 	 ,@(map ->cell (sxml:content row))))
@@ -198,16 +196,17 @@
 
 (define ((emphasis-handler orig tag) element options) ;; SRFI-219 style :)
   `(,tag (@ ,@(options->attribute options orig))
-	 ,@(map (lambda (e) (->html e options)) (sxml:content element))))
+	 ,@(map (->html options) (sxml:content element))))
 
 (define (raw-string-handler element options)
   `(*RAW-HTML* ,@(sxml:content element)))
 
 (define (code-handler element options)
   `(code (@ ,@(options->attribute options 'code))
-	 ,@(map (lambda (e) (->html e options)) (sxml:content element))))
+	 ,@(map (->html options) (sxml:content element))))
 
 (define (define-handler element options)
+  (define conv (->html options))
   (let ((category (or (sxml:attr element 'category) "Unknown"))
 	(tag (or (sxml:attr element 'name) (symbol->string (gensym))))
 	(content (sxml:content element)))
@@ -215,10 +214,10 @@
 	  (span ,@(options->attribute options 'define-catetory) ,category)
 	  (a (@ (name ,tag))
 	     (span (@ ,@(options->attribute options 'define-name))
-		   ,(->html (car content) options))
+		   ,(conv (car content)))
 	     ,@(map (lambda (e)
 		      `(span (@ ,@(options->attribute options 'define-arg))
-			     ,(->html e options)))
+			     ,(conv e)))
 		    (cdr content))))))
 
 (define (codeblock-handler element options)
@@ -226,7 +225,7 @@
   (define (codeblock lang code)
     `(pre (@ ,@(if lang `((lang ,lang)) '())
 	     ,@(options->attribute options 'codeblock))
-	  (code ,@(map (lambda (e) (->html e options)) code))))
+	  (code ,@(map (->html options) code))))
   (let-values (((output code) (partition output? (sxml:content element))))
     (let ((lang (sxml:attr element 'lang))
 	  (style (sxml:attr element 'style)))
@@ -240,24 +239,24 @@
 		(span (@ ,@(options->attribute options 'codeblock-arrow)))
 		(span (@ ,@(options->attribute options 'codeblock-result))
 		      ,@(append-map (lambda (o)
-				      (map (lambda (e) (->html e options))
-					   (sxml:content o)))
+				      (map (->html options) (sxml:content o)))
 				    output)))))))
 
 (define (blockquote-handler element options)
   `(blockquote (@ ,@(options->attribute options 'blockquote))
-	       ,@(map (lambda (e) (->html e options)) (sxml:content element))))
+	       ,@(map (->html options) (sxml:content element))))
 
 (define (dlist-handler element options)
+  (define e->html (->html options))
   (define (->ditem e)
     (define (title? e) (document-element-of? e 'title))
     (define (->dt title)
       `(dt (@ ,@(options->attribute options 'dlist-title))
-	   ,@(map (lambda (e) (->html e options)) (sxml:content title))))
+	   ,@(map e->html (sxml:content title))))
     (let-values (((title* desc) (partition title? (sxml:content e))))
       `(,@(map ->dt title*)
 	(dd (@ ,@(options->attribute options 'dlist-description))
-	    ,@(map (lambda (e) (->html e options)) desc)))))
+	    ,@(map e->html desc)))))
   `(dl (@ ,@(options->attribute options 'dlist))
        ,@(append-map ->ditem (sxml:content element))))
 
