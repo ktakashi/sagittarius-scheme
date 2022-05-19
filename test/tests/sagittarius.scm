@@ -2229,7 +2229,12 @@
 (test-i/o-error (file-stat-ctime "doesn't-exist"))
 (test-i/o-error (file-stat-mtime "doesn't-exist"))
 (test-i/o-error (file-stat-atime "doesn't-exist"))
-(test-i/o-error (create-symbolic-link "" "no:such:path"))
+(cond-expand
+ ((not darwin)
+  ;; This test case doesn't work on Mac, which creates a symlink against
+  ;; a file with empty name... nice...
+  (test-i/o-error (create-symbolic-link "" "no:such:path")))
+ (else 'ignore))
 (test-i/o-error (rename-file "doesn't-exist" "no:such:path"))
 (test-i/o-error (change-file-mode "doesn't-exist" #o666))
 (test-i/o-error (delete-directory "doesn't-exist"))
