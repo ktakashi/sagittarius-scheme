@@ -3332,6 +3332,14 @@
     (let ((frame (car (p1env-frames p1env))))
       (set-cdr! frame (append! (cdr frame) (list p)))
       p1env))
+  (define (convert-define oform)
+    (let loop ((form oform))
+      (smatch form
+	((- (name . args) . body)
+	 (loop `(define ,name ,($src `(,lambda. ,args ,@body) oform))))
+	((- var . init)
+	 ($src `(,var ,(if (null? init) (undefined) (car init))) oform))
+	(- (syntax-error "malformed internal define" oform)))))
   (smatch exprs
     ((((op . args) . env/path) . rest)
      (let ((env (if (string? env/path) p1env env/path)))
@@ -3347,18 +3355,8 @@
 		      ((syntax? head)
 		       (pass1/body-finish oexpr intdefs exprs env))
 		      ((global-eq? head 'define p1env)
-		       (let* ((def (smatch args
-				     (((name . formals) . body)
-				      ($src `(,name (,lambda. ,formals ,@body))
-					    (caar exprs)))
-				     ((var . init)
-				      ($src `(,var ,(if (null? init)
-							(undefined)
-							(car init)))
-					    (caar exprs)))
-				     (- (syntax-error 
-					 "malformed internal define"
-					 (caar exprs)))))
+		       
+		       (let* ((def (convert-define (caar exprs)))
 			      (frame (cons (car def) (make-lvar (car def)))))
 			 (pass1/body-rec oexpr rest 
 					 (cons (cons* def frame env) intdefs)

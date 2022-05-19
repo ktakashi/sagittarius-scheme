@@ -2303,4 +2303,8 @@
 
 (test-equal 0.0 (abs -0.0))
 
+(let ()
+  (define ((*n n) v) (* n v))
+  (test-equal '(2 4 6 8) (map (*n 2) '(1 2 3 4))))
+
 (test-end)
