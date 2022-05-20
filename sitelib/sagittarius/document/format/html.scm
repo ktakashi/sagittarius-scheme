@@ -208,7 +208,7 @@
 (define (define-handler element options)
   (define conv (->html options))
   (let ((category (or (sxml:attr element 'category) "Unknown"))
-	(tag (or (sxml:attr element 'name) (symbol->string (gensym))))
+	(tag (or (sxml:attr element 'tag) (symbol->string (gensym))))
 	(content (sxml:content element)))
     `(div (@ ,@(options->attribute options 'define))
 	  (span ,@(options->attribute options 'define-catetory) ,category)

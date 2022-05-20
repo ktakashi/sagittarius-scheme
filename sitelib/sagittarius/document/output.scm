@@ -72,6 +72,7 @@
 	    (sagittarius document conditions)
 	    (sagittarius document tools)
 	    (srfi :1 lists)
+	    (srfi :13 strings)
 	    (srfi :39 parameters)
 	    (srfi :117 list-queues)
 	    (text sxml tools)
@@ -101,6 +102,10 @@
     ((unknown-node-handler default-unknown-node-handler))))
 
 (define *document-output-resolver* (make-parameter #f))
+(define *document-links* (make-parameter #f))
+(define *document-tags/files* (make-parameter #f))
+(define link-path (sxpath '(// link)))
+
 (define-record-type document-marker-resolver
   (fields document
 	  resolvers)
@@ -120,15 +125,20 @@
 	   (lambda (proc) (hashtable-set! ht 'eval proc))))
     (cond ((document-output-options-index-table-resolver options) =>
 	   (lambda (proc) (hashtable-set! ht 'index-table proc)))))
-  (parameterize ((*document-output-resolver* resolver))
+  (parameterize ((*document-output-resolver* resolver)
+		 (*document-links* '())
+		 (*document-tags/files* '()))
     (let ((document (resolve-marker-partially document)))
       (cond ((document-output-options-section-splitter options) =>
 	     (lambda (splitter)
+	       ;; now we need to collect all link elements for later
+	       (*document-links* (link-path `(*TOP* ,document)))
 	       ;; we can't generate ToC, so ignore it
 	       (hashtable-set! ht 'table-of-contents (lambda (e) ""))
 	       (let ((q (list-queue)))
 		 (write-splitted-sections! q document
 					   writer splitter options out)
+		 (update-links! (*document-links*) (*document-tags/files*))
 		 (for-each (lambda (proc) (proc writer)) (list-queue-list q)))))
 	    (else (writer document options out))))))
 
@@ -137,6 +147,8 @@
      (if (pair? e)
 	(let-values (((name attr content) (document-decompose e)))
 	  (case name
+	    ;; we update the attribute destructively, thus we can't reconstruct
+	    ((define) e) 
 	    ;; We can't resolve table-of-contents in case of
 	    ;; split
 	    ((index-table author)
@@ -146,6 +158,33 @@
 	    (else (cons* name `(@ . ,attr) (map traverse content)))))
 	e))
   (traverse document))
+(define (update-links! links tag/files)
+  ;; (for-each (lambda (s) (write s) (newline)) tag/files)
+  (let loop ((links links))
+    (unless (null? links)
+      (let* ((link (car links))
+	     (href (sxml:attr link 'href)))
+	(when (string-prefix? "#" href)
+	  (cond ((assoc href tag/files) =>
+		 (lambda (s)
+		   (sxml:set-attr! link `(href ,(uri-merge (cdr s) href)))))))
+	(loop (cdr links))))))
+
+(define section/define-path (sxpath '(// (*or* header define))))
+(define (collect-references! filename document)
+  (define (id/tag target)
+    (define (append-hash v) (string-append "#" v))
+    ;; (write target) (newline)
+    (cond ((sxml:attr target 'tag) => append-hash)
+	  ((sxml:attr target 'id) => append-hash)
+	  (else #f)))
+  (define (collect filename document acc)
+    (let loop ((targets (section/define-path `(*TOP* ,document))) (acc acc))
+      (define (add ref) (loop (cdr targets) (cons (cons ref filename) acc)))
+      (cond ((null? targets) acc)
+	    ((id/tag (car targets)) => add)
+	    (else (loop (cdr targets) acc)))))
+  (*document-tags/files* (collect filename document (*document-tags/files*))))
 
 (define (write-splitted-sections! queue document writer splitter options out)
   (define toc-resolver
@@ -153,7 +192,6 @@
     (or (document-output-options-table-of-contents-resolver options)
 	(make-table-of-contents-resolver 1)))
   (define section-path (sxpath '(* section)))
-  (define link-path (sxpath '(// link)))
   (define (collect&replace-sections level document)
     (define (strip-section sections)
       (filter-map (lambda (section)
@@ -181,7 +219,7 @@
     (let ((links (link-path `(*TOP* ,toc))))
       (for-each (lambda (link file)
 		  (let ((href (sxml:attr link 'href)))
-		    (sxml:set-attr! link (list 'href (uri-merge file href)))))
+		    (sxml:set-attr! link (list 'href file))))
 		links (list-queue-list files))))
   (define (continue files level section)
     (splitter (car (sxml:content (car (sxml:content section)))) ;; passing title
@@ -196,10 +234,13 @@
 	  ((null? sections) (replace-href! toc files) new-doc)
 	(continue files (cons i level) (car sections)))))
 
-  (define (make-executor sec file-name pre post)
+  (define (make-executor sec filename pre post)
     (define document `(document (info) (content ,sec)))
+    ;; This document only contains own sections, so here is the place to
+    ;; collect sections and definitions
+    (collect-references! (cadr filename) document)
     (lambda (writer)
-      (call-with-output-file file-name
+      (call-with-output-file (car filename)
 	(lambda (out)
 	  (pre document out)
 	  (writer document options out)
@@ -214,12 +255,11 @@
       (list-queue-add-back! files (cadr filename))
       (let ((doc (do-accept level document)))
 	(list-queue-add-front! queue
-			       (make-executor doc (car filename) pre post)))))
+			       (make-executor doc filename pre post)))))
   (define (make-stop files document)
     (lambda (filename pre post)
       (list-queue-add-back! files (cadr filename))
-      (list-queue-add-front! queue
-			     (make-executor document (car filename) pre post))))
+      (list-queue-add-front! queue (make-executor document filename pre post))))
 
   (define (root-accept filename pre post)
     (let* ((content (document:content document))
@@ -255,13 +295,13 @@
   (define attribute-retriever (if (null? maybe-attribute-retriever)
 				  default-attribute-retriever
 				  (car maybe-attribute-retriever)))
-  (define section-path (sxpath '(// section)))
   (define (check-level sections)
     (if (null? sections)
 	(values sections 1)
 	(let ((level (string->number (sxml:attr (car sections) 'level))))
 	  (values sections level))))
-
+  (define section-path (sxpath '(// section)))
+  
   (lambda (document)
     (define (do-collect)
       (let-values (((sections highest-level)
@@ -334,17 +374,18 @@
     (define (->index-tables defs)
       (define (->index-table defs)
 	(define (->row n def)
-	  (define (name->href n name)
+	  (define (name->tag n name)
 	    (define suffix (number->string n))
-	    (string-append "#" name "_" suffix))
+	    (string-append name "_" suffix))
 	  (define (section->href section) (id/tag (caddr section)))
 	  (define (section-name section)
 	    (car (sxml:content (caddr section))))
 	  (let* ((name (def-name (car def)))
 		 (section (cdr def))
-		 (def-href (name->href n name)))
+		 (def-tag (name->tag n name))
+		 (def-href (string-append "#" def-tag)))
 	    ;; update define element
-	    (sxml:set-attr! (car def) (list 'name def-href))
+	    (sxml:set-attr! (car def) (list 'tag def-tag))
 	    `(row (@)
 		  (cell (@ ,@(attribute-retriever 'index-name))
 			(link (@ (href ,def-href)
