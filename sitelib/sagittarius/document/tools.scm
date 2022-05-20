@@ -44,7 +44,7 @@
   (match document
     (('document ('info info ...) ('content elm ...))
      (cons 'content elm))
-    (('document ('@ attr) ('info info ...) ('content elm ...))
+    (('document ('@ attr ...) ('info info ...) ('content elm ...))
      (cons 'content elm))
     (else #f)))
 
@@ -52,14 +52,14 @@
   (match document
     (('document ('info info ...) ('content elm ...))
      `(document (info ,@info) ,content))
-    (('document ('@ attr) ('info info ...) ('content elm ...))
-     `(document (@ ,attr)(info ,@info) ,content))
+    (('document ('@ attr ...) ('info info ...) ('content elm ...))
+     `(document (@ ,attr) (info ,@info) ,content))
     (else #f)))
 
 (define (document:info document)
   (match document
     (('document ('info info ...) ('content elm ...)) (cons 'info info))
-    (('document ('@ attr) ('info info ...) ('content elm ...))
+    (('document ('@ attr ...) ('info info ...) ('content elm ...))
      (cons 'info info))
     (else #f)))
 

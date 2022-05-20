@@ -121,15 +121,31 @@
     (cond ((document-output-options-index-table-resolver options) =>
 	   (lambda (proc) (hashtable-set! ht 'index-table proc)))))
   (parameterize ((*document-output-resolver* resolver))
-    (cond ((document-output-options-section-splitter options) =>
-	   (lambda (splitter)
-	     ;; we can't generate ToC, so ignore it
-	     (hashtable-set! ht 'table-of-contents (lambda (e) ""))
-	     (let ((q (list-queue)))
-	       (write-splitted-sections! q document
-					 writer splitter options out)
-	       (for-each (lambda (proc) (proc writer)) (list-queue-list q)))))
-	  (else (writer document options out)))))
+    (let ((document (resolve-marker-partially document)))
+      (cond ((document-output-options-section-splitter options) =>
+	     (lambda (splitter)
+	       ;; we can't generate ToC, so ignore it
+	       (hashtable-set! ht 'table-of-contents (lambda (e) ""))
+	       (let ((q (list-queue)))
+		 (write-splitted-sections! q document
+					   writer splitter options out)
+		 (for-each (lambda (proc) (proc writer)) (list-queue-list q)))))
+	    (else (writer document options out))))))
+
+(define (resolve-marker-partially document)
+  (define (traverse e)
+     (if (pair? e)
+	(let-values (((name attr content) (document-decompose e)))
+	  (case name
+	    ;; We can't resolve table-of-contents in case of
+	    ;; split
+	    ((index-table author)
+	     (cond ((document-output:resolve-marker name))
+		   (else e)))
+	    ((eval) (document-output:eval e e))
+	    (else (cons* name `(@ . ,attr) (map traverse content)))))
+	e))
+  (traverse document))
 
 (define (write-splitted-sections! queue document writer splitter options out)
   (define toc-resolver
