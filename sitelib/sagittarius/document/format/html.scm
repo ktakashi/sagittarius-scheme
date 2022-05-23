@@ -47,8 +47,7 @@
 	    (srfi :117 list-queues)
 	    (text sxml serializer)
 	    (text sxml sxpath)
-	    (text sxml tools)
-	    (pp))
+	    (text sxml tools))
 
 (define-record-type html-output-options
   (parent <document-output-options>)

@@ -83,8 +83,7 @@
 	    (srfi :117 list-queues)
 	    (text sxml tools)
 	    (text sxml sxpath)
-	    (util file)
-	    (pp))
+	    (util file))
 
 (define-condition-type &document-output &document
   make-document-output-error document-output-error?)
