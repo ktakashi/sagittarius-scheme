@@ -113,7 +113,8 @@
 	    ,@(map (->html options) (sxml:content element)))))
 
 (define (paragraph-handler element options)
-  `(p (@ ,@(options->attribute options 'paragraph))
+  `(p (@ ,@(sxml:attr-list element)
+	 ,@(options->attribute options 'paragraph))
       ,@(map (->html options) (sxml:content element))))
 
 (define (eval-handler element options)

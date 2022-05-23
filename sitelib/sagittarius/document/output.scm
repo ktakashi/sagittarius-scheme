@@ -42,6 +42,12 @@
 		    (make-eval-resolver make-default-eval-resolver)
 		    (make-index-table-resolver
 		     make-default-index-table-resolver))
+
+	    make-document-link document-link?
+	    document-link-text document-link-absolute document-link-relative
+	    document-navigation?
+	    document-navigation-curr
+	    document-navigation-prev document-navigation-next
 	    
 	    write-document
 
@@ -50,7 +56,7 @@
 	    document-output:eval
 	    document-decompose
 	    document-element-of?
-
+	    	    
 	    document-output-error document-output-error? &document-output
 
 	    ;; For writer implementation
@@ -77,7 +83,8 @@
 	    (srfi :117 list-queues)
 	    (text sxml tools)
 	    (text sxml sxpath)
-	    (util file))
+	    (util file)
+	    (pp))
 
 (define-condition-type &document-output &document
   make-document-output-error document-output-error?)
@@ -104,6 +111,7 @@
 (define *document-output-resolver* (make-parameter #f))
 (define *document-links* (make-parameter #f))
 (define *document-tags/files* (make-parameter #f))
+(define *document-tree* (make-parameter #f))
 (define link-path (sxpath '(// link)))
 
 (define-record-type document-marker-resolver
@@ -112,6 +120,11 @@
   (protocol (lambda (p)
 	      (lambda (doc)
 		(p doc (make-eq-hashtable))))))
+
+(define-record-type document-navigation
+  (fields curr prev next))
+(define-record-type document-link
+  (fields text absolute relative))
 
 (define (write-document writer document options out)
   (define resolver (make-document-marker-resolver document))
@@ -127,7 +140,8 @@
 	   (lambda (proc) (hashtable-set! ht 'index-table proc)))))
   (parameterize ((*document-output-resolver* resolver)
 		 (*document-links* '())
-		 (*document-tags/files* '()))
+		 (*document-tags/files* '())
+		 (*document-tree* '()))
     (let ((document (resolve-marker-partially document)))
       (cond ((document-output-options-section-splitter options) =>
 	     (lambda (splitter)
@@ -139,6 +153,8 @@
 		 (write-splitted-sections! q document
 					   writer splitter options out)
 		 (update-links! (*document-links*) (*document-tags/files*))
+		 (*document-tree* (reverse! (*document-tree*)))
+		 ;; (pp (*document-tree*))
 		 (for-each (lambda (proc) (proc writer)) (list-queue-list q)))))
 	    (else (writer document options out))))))
 
@@ -169,6 +185,23 @@
 		 (lambda (s)
 		   (sxml:set-attr! link `(href ,(uri-merge (cdr s) href)))))))
 	(loop (cdr links))))))
+
+(define (append-file-tree! level filename)
+  (*document-tree* (cons (cons (reverse level) filename) (*document-tree*))))
+
+(define (navigation level curr)
+  (let ((level (reverse level))
+	(n (length level)))
+    (let loop ((prev #f) (tree (*document-tree*)))
+      (cond ((null? tree) #f) ;; should never happen, I think
+	    ((equal? (caar tree) level)
+	     (if (null? (cdr tree))
+		 (make-document-navigation curr prev #f)
+		 (make-document-navigation curr prev (cdadr tree))))
+	    (else
+	     (if (<= (length (caar tree)) n)
+		 (loop (cdar tree) (cdr tree))
+		 (loop prev (cdr tree))))))))
 
 (define section/define-path (sxpath '(// (*or* header define))))
 (define (collect-references! filename document)
@@ -225,7 +258,7 @@
     (splitter (car (sxml:content (car (sxml:content section)))) ;; passing title
 	      level
 	      (make-accept files level section)
-	      (make-stop files section)))
+	      (make-stop files level section)))
   (define (do-accept level document)
     (let-values (((toc new-doc sections)
 		  (collect&replace-sections level document)))
@@ -234,32 +267,35 @@
 	  ((null? sections) (replace-href! toc files) new-doc)
 	(continue files (cons i level) (car sections)))))
 
-  (define (make-executor sec filename pre post)
+  (define (make-executor level sec link pre post)
     (define document `(document (info) (content ,sec)))
     ;; This document only contains own sections, so here is the place to
     ;; collect sections and definitions
-    (collect-references! (cadr filename) document)
+    (collect-references! (document-link-relative link) document)
     (lambda (writer)
-      (call-with-output-file (car filename)
-	(lambda (out)
-	  (pre document out)
-	  (writer document options out)
-	  (post out)))))
+      (let ((navi (navigation level link)))
+	(call-with-output-file (document-link-absolute link)
+	  (lambda (out)
+	    (let ((document (or (and pre (pre document navi out)) document)))
+	      (writer document options out)
+	      (post out)))))))
   (define (make-root-executor document pre post)
     (lambda (writer)
-      (pre document out)
-      (writer document options out)
-      (post out)))
+      ;; TODO maybe we want navigation on the root?
+      (let ((document (or (and pre (pre document #f out)) document)))
+	(writer document options out)
+	(post out))))
   (define (make-accept files level document)
-    (lambda (filename pre post)
-      (list-queue-add-back! files (cadr filename))
+    (lambda (link pre post)
+      (append-file-tree! level link)
+      (list-queue-add-back! files (document-link-relative link))
       (let ((doc (do-accept level document)))
-	(list-queue-add-front! queue
-			       (make-executor doc filename pre post)))))
-  (define (make-stop files document)
-    (lambda (filename pre post)
-      (list-queue-add-back! files (cadr filename))
-      (list-queue-add-front! queue (make-executor document filename pre post))))
+	(list-queue-add-front! queue (make-executor level doc link pre post)))))
+  (define (make-stop files level doc)
+    (lambda (link pre post)
+      (append-file-tree! level link)
+      (list-queue-add-back! files (document-link-relative link))
+      (list-queue-add-front! queue (make-executor level doc link pre post))))
 
   (define (root-accept filename pre post)
     (let* ((content (document:content document))
@@ -272,6 +308,8 @@
     (list-queue-add-front! queue (make-root-executor document pre post)))
   (splitter #f '() root-accept root-stop))
 
+
+;;; Marker resolvers
 (define (document-output:resolve-marker marker)
   (define resolver (*document-output-resolver*))
   (define ht (document-marker-resolver-resolvers resolver))

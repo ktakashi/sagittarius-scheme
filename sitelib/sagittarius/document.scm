@@ -75,9 +75,19 @@
 	    make-default-eval-resolver
 	    make-default-index-table-resolver
 
+	    make-document-link document-link?
+	    document-link-text document-link-absolute document-link-relative
+	    document-navigation?
+	    document-navigation-curr
+	    document-navigation-prev document-navigation-next
+
 	    <document-input-options>
 	    document-input-options?
 	    document-input-options-builder
+
+	    document:content
+	    document:change-content
+	    document:info
 	    
 	    &document document-error?
 	    &document-input document-input-error?
@@ -87,7 +97,8 @@
 	    (sagittarius document loader)
 	    (sagittarius document input)
 	    (rename (sagittarius document output)
-		    (write-document output:write-document)))
+		    (write-document output:write-document))
+	    (sagittarius document tools))
 
 (define (file->document type file . rest)
   (apply parse-document type (file->document-input file) rest))
