@@ -33,9 +33,9 @@
     (export document->html
 	    html->document
 
+	    (rename (html-output-options <html-output-options>))
 	    html-output-options?
-	    html-output-options-builder
-	    )
+	    html-output-options-builder)
     (import (rnrs)
 	    (record builder)
 	    (sagittarius) ;; for gensym
@@ -51,7 +51,8 @@
 
 (define-record-type html-output-options
   (parent <document-output-options>)
-  (fields default-title))
+  (fields default-title
+	  attribute-resolver))
 
 (define-syntax html-output-options-builder
   (make-record-builder html-output-options
@@ -170,9 +171,8 @@
 (define (section-handler element options)
   (let* ((level (sxml:attr element 'level))
 	 (marker (string->symbol (string-append "section-" level))))
-    `(a (@ (name ,(id/tag element)))
-	(section (@ ,@(options->attribute options marker))
-		 ,@(map (->html options) (sxml:content element))))))
+    `(section (@ ,@(options->attribute options marker))
+	      ,@(map (->html options) (sxml:content element)))))
 
 (define (symbol-append . s*)
   (string->symbol (string-join (map symbol->string s*) "")))
@@ -262,9 +262,10 @@
 
 (define ((simple-handler tag) element options) tag)
 
-(define (options->attribute options tag-list)
-  ;; TODO
-  '())
+(define (options->attribute options marker)
+  (let ((resolver (html-output-options-attribute-resolver options)))
+    (or (and resolver (resolver options marker))
+	'())))
 
 (define node-handlers
   `((header ,header-handler)
