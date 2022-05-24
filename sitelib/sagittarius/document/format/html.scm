@@ -52,6 +52,7 @@
 (define-record-type html-output-options
   (parent <document-output-options>)
   (fields default-title
+	  header-populator
 	  attribute-resolver))
 
 (define-syntax html-output-options-builder
@@ -64,6 +65,10 @@
    "HTML to document is not supported"))
 
 (define (document->html doc options out)
+  (define (populate-header options)
+    (define header-populator (html-output-options-header-populator options))
+    (or (and header-populator (header-populator options))
+	'()))
   (let ((content (document:content doc))
 	(info (document:info doc)))
     (unless content
@@ -71,14 +76,14 @@
     (srl:sxml->html
      `(html
        (head
-	;; TODO meta thing from options
+	,@(populate-header options)
 	(title ,(search-title doc options)))
        (body
 	,@(map (->html options) (sxml:content content))))
      out)))
 
 (define heading1-path
-  (if-car-sxpath "//content/header[contains(@level, '1')]/text()"))
+  (if-car-sxpath "//content/header[@level='1']/text()"))
 (define (search-title doc options)
   (cond ((heading1-path doc))
 	((html-output-options? options)

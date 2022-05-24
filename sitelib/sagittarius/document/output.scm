@@ -189,14 +189,19 @@
   (*document-tree* (cons (cons (reverse level) filename) (*document-tree*))))
 
 (define (navigation level curr)
-  (let ((level (reverse level))
-	(n (length level)))
+  (define n (length level))
+  (define (search-next tree)
+    (let loop ((tree tree))
+      (cond ((null? tree) #f) ;; should never happen, I think...
+	    ((<= (length (caar tree)) n) (cdar tree))
+	    (else (loop (cdr tree))))))
+  (let ((level (reverse level)))
     (let loop ((prev #f) (tree (*document-tree*)))
       (cond ((null? tree) #f) ;; should never happen, I think
 	    ((equal? (caar tree) level)
 	     (if (null? (cdr tree))
 		 (make-document-navigation curr prev #f)
-		 (make-document-navigation curr prev (cdadr tree))))
+		 (make-document-navigation curr prev (search-next (cdr tree)))))
 	    (else
 	     (if (<= (length (caar tree)) n)
 		 (loop (cdar tree) (cdr tree))
