@@ -65,18 +65,18 @@
    "HTML to document is not supported"))
 
 (define (document->html doc options out)
-  (define (populate-header options)
+  (define (populate-header options info)
     (define header-populator (html-output-options-header-populator options))
-    (or (and header-populator (header-populator options))
+    (or (and header-populator (header-populator options info))
 	'()))
   (let ((content (document:content doc))
 	(info (document:info doc)))
     (unless content
       (assertion-violation 'document->html "Unknown document" doc))
-    (srl:sxml->html
+    (srl:sxml->xml
      `(html
        (head
-	,@(populate-header options)
+	,@(populate-header options info)
 	(title ,(search-title doc options)))
        (body
 	,@(map (->html options) (sxml:content content))))

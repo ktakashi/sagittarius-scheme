@@ -276,7 +276,7 @@
       (writer document options out)
       (post out)))
   (define (make-executor level sec link pre post)
-    (define document `(document (info) (content ,sec)))
+    (define document `(document (info (@ (generated #t))) (content ,sec)))
     ;; This document only contains own sections, so here is the place to
     ;; collect sections and definitions
     (collect-references! (document-link-relative link) document)
