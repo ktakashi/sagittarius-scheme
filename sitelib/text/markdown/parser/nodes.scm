@@ -67,6 +67,7 @@
 	    make-image-node image-node? image-node-destination image-node-title
 	    (rename (%code-node make-code-node))
 	    code-node? code-node:literal-set! code-node:literal
+	    code-node-ticks
 	    (rename (%html-inline make-html-inline-node))
 	    html-inline-node?
 	    html-inline-node:literal-set! html-inline-node:literal
@@ -480,9 +481,10 @@
 (define-markdown-node softbreak)
 (define-markdown-node (link (attribute destination) (attribute title)))
 (define-markdown-node (image (attribute destination) (attribute title)))
-(define-markdown-node (code literal))
-(define (%code-node doc literal)
-  (let ((node (make-code-node doc literal)))
+(define-markdown-node (code literal ticks))
+(define (%code-node doc literal . maybe-ticks)
+  (define ticks (if (null? maybe-ticks) 1 (car maybe-ticks)))
+  (let ((node (make-code-node doc literal ticks)))
     (code-node:literal-set! node literal)))
 (define (code-node:literal-set! node literal)
   (code-node-literal-set! node literal)

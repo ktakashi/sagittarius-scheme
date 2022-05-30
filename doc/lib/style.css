@@ -13,43 +13,84 @@
     height: 100%;
 }
 body {
+    padding: 10px;
     background-color: #FAEBD7;
 }
 /* end */
 
-h1.title {
+h1 {
     font-size: xx-large;
 }
 
-h2.section {
+section > h1 {
     font-size: xx-large;
     border-bottom: 2px solid;
 }
 
-h3.subsection {
+section > h2 {
     font-size: x-large;
+    border-bottom: 2px solid;
+}
+
+section > h3 {
+    font-size: large;
     text-decoration: underline;
 }
 
-h4.subsubsection {
+h4 {
     font-size: large;
 }
 
-h5.sub-section {
+h5 {
     font-size: large;
 }
 
-span.section-number:after {
-    content: ".";
+p.navigation-container {
+    display: flex;
+    justify-content: space-between;
 }
 
-span.section-number {
-    margin-right: 5px;
+p#index-table {
+    width: 100%;
+    font-size: x-large;
 }
 
-div.desc {
+#index-letters {
+    font-weight: bold;
+    font-size: x-large;
+}
+
+#index-letters:before {
+    content: "Jump to: ";
+}
+
+#index-letters a {
+    width: 15px;
+    font-family: monospace;
+    display: inline-block;
+}
+
+p#index-table ~ h5 {
+    font-size: x-large;
+    font-weight: bold;
+    font-family: monospace;
+    border-top: 2px groove;
     padding-top: 5px;
-    padding-left: 50px;
+    margin: 0px;
+}
+
+p#index-table ~ table {
+    margin-left: 10px;
+    width: 100%;
+}
+
+
+p#index-table ~ table td {
+    width: 50%;
+}
+
+p#index-table ~ table td:nth-child(1) {
+    font-family: monospace;
 }
 
 div.define {
@@ -58,72 +99,73 @@ div.define {
     color: #F5F5F5;
 }
 
-span.define-category {
-    /* text-decoration: underline; */
+div.define > span {
     font-size: large;
     font-weight: bold;
     color: #DDA0DD;
 }
-
-span.define-category:after {
+div.define > span:after {
     content: ":";
 }
 
-span.name {
+div.define > a span:nth-child(1) {
     font-family: monospace;
     font-weight: bold;
 }
 
-span.args {
-    font-style: italic;
-}
-
-/* table of contents style */
-ul.section, ul.sub-section, ul.sub-sub-section, ul.sub-sub-sub-section {
-    list-style-type: none;
-}
-
-div.snipet-box {
-    background-color: #9932CC;
-    color: #F5F5F5;
-    margin: 0px;
-}
-
-pre.snipet {
+pre > code {
     color: #000000;
     background-color: #BED6C9;
-    margin-bottom: 0;
-}
-
-span.snipet-arrow {
-    width: 20px;
-    font-family: monospace;
-}
-
-span.snipet-result {
     width: 100%;
-    font-family: monospace;
+    display: inline-block;
 }
 
-div.codeblock-box {
-    background-color: #9932CC;
-    color: #F5F5F5;
-    margin: 0px;
+div.snipet {
+    display: flex;
+    align-items: flex-start;
 }
 
-pre.codeblock {
+div.snipet > pre {
+    display: inline-block;
     color: #000000;
     background-color: #BED6C9;
-    margin-bottom: 0;
+    margin: 0;
+    padding: 3px;
 }
 
-span.codeblock-arrow {
-    width: 20px;
-    font-family: monospace;
+div.snipet > span:before {
+    content: " => ";
 }
-span.codeblock-result {
-    width: 100%;
+
+div.snipet > span {
     font-family: monospace;
+    background-color: #9932CC;
+    color: #F5F5F5;
+    display: inline-block;
+    padding: 3px;
+}
+
+div.codeblock {
+    
+}
+
+div.codeblock > pre {
+    color: #000000;
+    background-color: #BED6C9;
+    margin: 0;
+    padding: 3px;
+}
+
+div.codeblock > span:before {
+    content: " => ";
+}
+
+div.codeblock > span {
+    display: block;
+    font-family: monospace;
+    background-color: #9932CC;
+    color: #F5F5F5;
+    padding: 3px;
 }
 
 
@@ -177,55 +219,6 @@ a.no-child {
     display: inline-block;
 }
 
-/* index table */
-div#index-table {
-    width: 100%;
-}
-
-div.index-letters:before {
-    content: "Jump to: ";
-}
-
-div.index-letters {
-    width: 100%;
-    padding-bottom: 10px;
-    font-weight: bold;
-    font-size: x-large;
-}
-
-a.index-letter {
-    display: inline-block;
-    width: 15px;
-    font-family: monospace;
-}
-
-div.index-table-fragment {
-    border-top: 2px groove;
-    padding-top: 5px;
-    padding-bottom: 10px;
-    width: 100%;
-}
-
-span.index-title-letter {
-    font-size: x-large;
-    font-weight: bold;
-    font-family: monospace;
-}
-
-table.index-table {
-    margin-left: 10px;
-    width: 100%;
-}
-
-td.index-name {
-    font-family: monospace;
-    width: 50%;
-}
-
-td.index-section {
-    width: 50%;
-}
-
 /* navigator */
 div.navigator {
     background-color: #eeeeee;
@@ -258,38 +251,7 @@ a.navigator {
 section {
     clear: both;
 }
-div.prev-next {
-    width: 100%;
-    position: relative;
-    padding: 10px;
-    
-}
-a.prev {
-    float: left;
-    width: 33%;
-    display: block;
-    text-align: left;
-}
-/* prev has padding */
-span.prev {
-    float: left;
-    margin-left: 33%;
-    display: block;
-    border: 1px solid;
-}
 
-a.next {
-    float: right;
-    width: 33%;
-    display: block;
-    text-align: right;
-}
-a.top {
-    width: 33%;
-    float: left;
-    display: block;
-    text-align: center;
-}
 hr {
     clear: both;
 }

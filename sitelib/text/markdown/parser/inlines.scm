@@ -591,7 +591,7 @@
 						    #\space
 						    c))
 				    (source-lines:content source))))
-		     (make-code-node block (strip content)))
+		     (make-code-node block (strip content) count))
 		   (loop))))
 	    (else
 	     (let ((source (scanner:source scanner start after-opening)))

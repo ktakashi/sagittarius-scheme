@@ -73,7 +73,7 @@
 	(info (document:info doc)))
     (unless content
       (assertion-violation 'document->html "Unknown document" doc))
-    (srl:sxml->xml
+    (srl:sxml->html
      `(html
        (head
 	,@(populate-header options info)
@@ -233,7 +233,8 @@
 	  (code ,@(map (->html options) code))))
   (let-values (((output code) (partition output? (sxml:content element))))
     (let ((lang (sxml:attr element 'lang))
-	  (style (sxml:attr element 'style)))
+	  (style (cond ((sxml:attr element 'style) => string->symbol)
+		       (else 'block))))
       (if (null? output)
 	  (codeblock lang code)
 	  `(div (@ ,@(options->attribute options

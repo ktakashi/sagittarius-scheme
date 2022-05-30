@@ -333,7 +333,11 @@
 		      (code-node:literal code))))))
 
 (define (convert-code code data next)
-  `((code (@) ,(code-node:literal code))))
+  (let ((ticks (code-node-ticks code))
+	(literal (code-node:literal code)))
+    (if (> ticks 1) ;; 2 ticks
+	`((codeblock (@ (style "snipet") (lang "")) ,literal))
+	`((code (@) ,literal)))))
 
 (define (convert-softbreak node data next) '("\n"))
 
