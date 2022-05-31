@@ -37,27 +37,28 @@
 ;; e ::= a e'
 ;; e' ::= a e' | ε
 
-;; expression ::= "@" # current-node
-;;              | "*" # wild card
-;;              | "!" expression # not-expression
-;;              | "(" expression ")" # paren-expression
-;;                # multi-select-list
-;;              | "[" "]" # empty handling specially
-;;              | "[" (expression *( "," expression) ) "]"
-;;                # multi-select-hash
-;;              | "{" (keyval-expr *( "," keyval-expr) ) "}"
-;;                # function-expression
-;;              | unquoted-string ( no-args / one-or-more-args )
-;;              | "`" json-value "`"  # literal
-;;              | "'" *raw-string-char "'" # raw-string
-;;              | identifier !("[" | ".")
-;;              | bracket-specifier # part of index-expression
-;;              | sub-expression # expression "." ( bla ...)
-;;              | index-expression # expression bracket-specifier
-;;              | comparator-expression
-;;              | or-expression
-;;              | and-expression
-;;              | pipe-expression
+;; expression := simple-expression | compound-expression
+;; simple-expression ::= "@" # current-node
+;;                    | "*" # wild card
+;;                    | "!" simple-expression # not-expression
+;;                    | "(" expression ")" # paren-expression
+;;                      # multi-select-list
+;;                    | "[" "]" # empty handling specially
+;;                    | "[" (expression *( "," expression) ) "]"
+;;                      # multi-select-hash
+;;                    | "{" (keyval-expr *( "," keyval-expr) ) "}"
+;;                      # function-expression
+;;                    | unquoted-string ( no-args / one-or-more-args )
+;;                    | "`" json-value "`"  # literal
+;;                    | "'" *raw-string-char "'" # raw-string
+;;                    | identifier !("[" | ".")
+;;                    | bracket-specifier # part of index-expression
+;;                    | sub-expression # expression "." ( bla ...)
+;;                    | index-expression # expression bracket-specifier
+;;                    | comparator-expression
+;; compound-expression ::= or-expression
+;;                      | and-expression
+;;                      | pipe-expression
 ;; sub-expression ::= "." ( identifier
 ;;                        | multi-select-list
 ;;                        | multi-select-hash
@@ -172,7 +173,8 @@
        jmespath:quoted-string))
 
 (define jmespath:not-expression
-  ($do ((op "!")) (e jmespath:expression) ($return `(not ,e))))
+  ($do ((op "!")) (e ($lazy jmespath:simple-expression))
+       ($return `(not ,e))))
 (define jmespath:paren-expression
   ;; mark this is paren
   ($do ((op "(")) (e jmespath:expression) ((op ")")) ($return `($g ,e))))
@@ -272,7 +274,7 @@
        (($eqv? #\')) (($many ws))
        ($return `(quote ,(jmespath:raw-string-char->string c*)))))
 ;; β
-(define beta
+(define jmespath:simple-expression
   ($or star
        ($seq (op "@") ($return '@))
        jmespath:bracket-specifier
@@ -419,7 +421,7 @@
 	 `(,c ,(resolve-operators e0 `(,cmp ,e)) ,@e*)
 	 #;`(,c (,cmp ,e0 ,e) ,@e*))
 	(else (cons* (car e1) e0 (cdr e1)))))
-    ($do (f beta)
+    ($do (f jmespath:simple-expression)
 	 (e* jmespath:expression**)
 	 ($return (resolve-operators f e*)))))
 
