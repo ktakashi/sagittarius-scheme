@@ -191,7 +191,7 @@ Returns the type of _entry_. It is either `file` or
 To support other archive such as RAR, then you need to create a implementation
 library.
 
-###### [!Library] `(archive interface` 
+###### [!Library] `(archive interface)` 
 
 The library defines all abstract class and method for the generic
 archive access.

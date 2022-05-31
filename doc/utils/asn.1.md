@@ -39,92 +39,92 @@ otherwise it raises `&assertion`
 
 This section is incompleted.
 
-###### [!Generic] `make-der-application-specific`  _<boolean>_ _<integer>_ _<bytevector>_
-###### [!Generic] `make-der-application-specific`  _<integer>_ _<bytevector>_
-###### [!Generic] `make-der-application-specific`  _<boolean>_ _<integer>_ _<der-encodable>_
-###### [!Generic] `make-der-application-specific`  _<integer>_ _<der-encodable>_
+###### [!Generic] `make-der-application-specific`  _\<boolean>_ _\<integer>_ _\<bytevector>_
+###### [!Generic] `make-der-application-specific`  _\<integer>_ _\<bytevector>_
+###### [!Generic] `make-der-application-specific`  _\<boolean>_ _\<integer>_ _\<der-encodable>_
+###### [!Generic] `make-der-application-specific`  _\<integer>_ _\<der-encodable>_
 
 Creates a DER application specific object.
 
-###### [!Generic] `make-der-bit-string`  _<bytevector>_ _<integer>_
-###### [!Generic] `make-der-bit-string`  _<bytevector>_
+###### [!Generic] `make-der-bit-string`  _\<bytevector>_ _\<integer>_
+###### [!Generic] `make-der-bit-string`  _\<bytevector>_
 
 Creates a DER bit string object.
 
-###### [!Generic] `make-der-bmp-string`  _<bytevector>_
-###### [!Generic] `make-der-bmp-string`  _<string>_
+###### [!Generic] `make-der-bmp-string`  _\<bytevector>_
+###### [!Generic] `make-der-bmp-string`  _\<string>_
 
 Creates a DER bmp string object.
 
-###### [!Generic] `make-der-octet-string`  _<bytevector>_
-###### [!Generic] `make-der-octet-string`  _<der-encodable>_
+###### [!Generic] `make-der-octet-string`  _\<bytevector>_
+###### [!Generic] `make-der-octet-string`  _\<der-encodable>_
 
 Creates a DER octet string object.
 
-###### [!Generic] `make-der-general-string`  _<string>_
-###### [!Generic] `make-der-general-string`  _<bytevector>_
+###### [!Generic] `make-der-general-string`  _\<string>_
+###### [!Generic] `make-der-general-string`  _\<bytevector>_
 
 Creates a DER general string object.
 
-###### [!Generic] `make-der-ia5-string`  _<string>_
-###### [!Generic] `make-der-ia5-string`  _<string>_ _<boolean>_
-###### [!Generic] `make-der-ia5-string`  _<bytevector>_
+###### [!Generic] `make-der-ia5-string`  _\<string>_
+###### [!Generic] `make-der-ia5-string`  _\<string>_ _\<boolean>_
+###### [!Generic] `make-der-ia5-string`  _\<bytevector>_
 
 Creates a DER IA5 string object.
 
-###### [!Generic] `make-der-numeric-string`  _<string>_
-###### [!Generic] `make-der-numeric-string`  _<string>_ _<boolean>_
-###### [!Generic] `make-der-numeric-string`  _<bytevector>_
+###### [!Generic] `make-der-numeric-string`  _\<string>_
+###### [!Generic] `make-der-numeric-string`  _\<string>_ _\<boolean>_
+###### [!Generic] `make-der-numeric-string`  _\<bytevector>_
 
 Creates a DER numeric string object.
 
-###### [!Generic] `make-der-printable-string`  _<string>_
-###### [!Generic] `make-der-printable-string`  _<string>_ _<boolean>_
-###### [!Generic] `make-der-printable-string`  _<bytevector>_
+###### [!Generic] `make-der-printable-string`  _\<string>_
+###### [!Generic] `make-der-printable-string`  _\<string>_ _\<boolean>_
+###### [!Generic] `make-der-printable-string`  _\<bytevector>_
 
 Creates a DER printable string object.
 
-###### [!Generic] `make-der-t61-string`  _<string>_
-###### [!Generic] `make-der-t61-string`  _<bytevector>_
+###### [!Generic] `make-der-t61-string`  _\<string>_
+###### [!Generic] `make-der-t61-string`  _\<bytevector>_
 
 Creates a DER T61 string object.
 
-###### [!Generic] `make-der-universal-string`  _<bytevector>_
+###### [!Generic] `make-der-universal-string`  _\<bytevector>_
 
 Creates a DER universal string object.
 
-###### [!Generic] `make-der-utf8-string`  _<string>_
-###### [!Generic] `make-der-utf8-string`  _<bytevector>_
+###### [!Generic] `make-der-utf8-string`  _\<string>_
+###### [!Generic] `make-der-utf8-string`  _\<bytevector>_
 
 Creates a DER UTF8 string object.
 
-###### [!Generic] `make-der-visible-string`  _<string>_
-###### [!Generic] `make-der-visible-string`  _<bytevector>_
+###### [!Generic] `make-der-visible-string`  _\<string>_
+###### [!Generic] `make-der-visible-string`  _\<bytevector>_
 
 Creates a DER visible string object.
 
-###### [!Generic] `make-der-boolean`  _<boolean>_
-###### [!Generic] `make-der-boolean`  _<bytevector>_
+###### [!Generic] `make-der-boolean`  _\<boolean>_
+###### [!Generic] `make-der-boolean`  _\<bytevector>_
 
 Creates a DER boolean object.
 
-###### [!Generic] `make-der-enumerated`  _<bytevector>_
-###### [!Generic] `make-der-enumerated`  _<integer>_
+###### [!Generic] `make-der-enumerated`  _\<bytevector>_
+###### [!Generic] `make-der-enumerated`  _\<integer>_
 
 Creates a DER enumerated object.
 
-###### [!Generic] `make-der-integer`  _<integer>_
-###### [!Generic] `make-der-integer`  _<bytevector>_
+###### [!Generic] `make-der-integer`  _\<integer>_
+###### [!Generic] `make-der-integer`  _\<bytevector>_
 
 Creates a DER integer object.
 
-###### [!Generic] `make-der-object-identifier`  _<string>_
-###### [!Generic] `make-der-object-identifier`  _<bytevector>_
+###### [!Generic] `make-der-object-identifier`  _\<string>_
+###### [!Generic] `make-der-object-identifier`  _\<bytevector>_
 
 Creates a DER OID object.
 
 ###### [!Generic] `make-der-sequence` 
-###### [!Generic] `make-der-sequence`  _<der-encodable>_
+###### [!Generic] `make-der-sequence`  _\<der-encodable>_
 ###### [!Generic] `make-der-sequence`  _o_ _..._
 
 Creates a DER sequence object.
@@ -133,7 +133,7 @@ If the third form is used, _o_s must be list of `<der-encodable>`.
 
 
 ###### [!Generic] `make-der-set` 
-###### [!Generic] `make-der-set`  _<der-encodable>_
+###### [!Generic] `make-der-set`  _\<der-encodable>_
 ###### [!Generic] `make-der-set`  _o_ _..._
 
 Creates a DER set object.
@@ -145,52 +145,50 @@ If the third form is used, _o_s must be list of `<der-encodable>`.
 
 Creates a DER null object.
 
-###### [!Generic] `make-der-generalized-time`  _<string>_
-###### [!Generic] `make-der-generalized-time`  _<bytevector>_
-###### [!Generic] `make-der-generalized-time`  _<date>_
+###### [!Generic] `make-der-generalized-time`  _\<string>_
+###### [!Generic] `make-der-generalized-time`  _\<bytevector>_
+###### [!Generic] `make-der-generalized-time`  _\<date>_
 
 Creates a DER generalized time object.
 
-###### [!Generic] `make-der-utc-time`  _<string>_
-###### [!Generic] `make-der-utc-time`  _<bytevector>_
-###### [!Generic] `make-der-utc-time`  _<date>_
+###### [!Generic] `make-der-utc-time`  _\<string>_
+###### [!Generic] `make-der-utc-time`  _\<bytevector>_
+###### [!Generic] `make-der-utc-time`  _\<date>_
 
 Creates a DER UTC time object.
 
-###### [!Generic] `make-der-tagged-object`  _<boolean>_ _<integer>_ _<der-encodable>_
-###### [!Generic] `make-der-tagged-object`  _<integer>_ _<der-encodable>_
-###### [!Generic] `make-der-tagged-object`  _<integer>_
+###### [!Generic] `make-der-tagged-object`  _\<boolean>_ _\<integer>_ _\<der-encodable>_
+###### [!Generic] `make-der-tagged-object`  _\<integer>_ _\<der-encodable>_
+###### [!Generic] `make-der-tagged-object`  _\<integer>_
 
 Creates a DER tagged object.
 
-###### [!Generic] `make-der-external`  _<der-object-identifier>_ _<der-integer>_ _
-_ _<asn.1-object>_ _<der-tagged-object>_
-###### [!Generic] `make-der-external`  _<der-object-identifier>_ _<der-integer>_ _
-_ _<asn.1-object>_ _<integer>_ _<der-object>_
+###### [!Generic] `make-der-external`  _\<der-object-identifier>_ _\<der-integer>_ _\<asn.1-object>_ _\<der-tagged-object>_
+###### [!Generic] `make-der-external`  _\<der-object-identifier>_ _\<der-integer>_ _\<asn.1-object>_ _\<integer>_ _\<der-object>_
 
 Creates a DER external object.
 
-###### [!Generic] `make-ber-constructed-octet-string`  _<bytevector>_
+###### [!Generic] `make-ber-constructed-octet-string`  _\<bytevector>_
 ###### [!Generic] `make-ber-constructed-octet-string`  _l_ _..._
 
 Creates a BER constructed object.
 
-###### [!Generic] `make-ber-application-specific`  _<integer>_ _l_ _..._
+###### [!Generic] `make-ber-application-specific`  _\<integer>_ _l_ _..._
 
 Creates a BER application specific object.
 
-###### [!Generic] `make-ber-tagged-object`  _<boolean>_ _<integer>_ _<der-encodable>_
+###### [!Generic] `make-ber-tagged-object`  _\<boolean>_ _\<integer>_ _\<der-encodable>_
 
 Creates a BER tagged object.
 
-###### [!Generic] `make-ber-sequence`  _l_ _..._
+###### [!Generic] `make-ber-sequence`  _l_ __...__
 
 Creates a BER sequence object.
 
 _l_s must be list of `<der-encodable>`.
 
 
-###### [!Generic] `make-ber-set`  _l_ _..._
+###### [!Generic] `make-ber-set`  _l_ __...__
 
 Creates a BER set object.
 

@@ -240,10 +240,13 @@ corresponding C types. Following describes the conversion;
 `void* char*`
 : `void*` and `char*` are actually treated the same, internally.
   The conversion will be like this;
+
   Scheme string
   : Converts to UTF-8 C char\*
+
   Scheme bytevector
   : Convert to C char\*
+
   Scheme FFI pointer
   : Convert to C void\*
 
