@@ -353,8 +353,9 @@
     (define (do-collect)
       (let-values (((sections highest-level)
 		    (check-level (section-path `(*TOP* ,document)))))
-	(define correct-depth (+ (- highest-level depth) 1))
+	(define correct-depth (+ highest-level (- depth 1)))
 	(define (check-depth level) (> level correct-depth))
+
 	(let loop ((current highest-level)
 		   (items (list-queue))
 		   (sections sections))

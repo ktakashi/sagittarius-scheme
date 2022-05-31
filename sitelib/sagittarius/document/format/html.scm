@@ -174,10 +174,14 @@
 				       element)))))
 
 (define (section-handler element options)
-  (let* ((level (sxml:attr element 'level))
-	 (marker (string->symbol (string-append "section-" level))))
-    `(section (@ ,@(options->attribute options marker))
-	      ,@(map (->html options) (sxml:content element)))))
+  (let ((level (sxml:attr element 'level)))
+    (if level
+	(let ((marker (string->symbol (string-append "section-" level))))
+	  `(section (@ ,@(options->attribute options marker))
+		    ,@(map (->html options) (sxml:content element))))
+	;; section without level = div for now
+	`(div (@ ,@(options->attribute options 'anon-section))
+	      ,@(map (->html options) (sxml:content element))))))
 
 (define (symbol-append . s*)
   (string->symbol (string-join (map symbol->string s*) "")))

@@ -74,7 +74,7 @@
   (define (add-author document)
     (define content (document:content document))
     (let ((c (sxml:content content)))
-      (sxml:change-content! content (append c author))
+      (sxml:change-content! content (append c (list author)))
       (document:change-content document content)))
   (add-author (if navi (add-navigation document navi) document)))
 
@@ -91,7 +91,8 @@
 	     (content   "text/html; charset=utf-8")))
     ,@(if js
 	  `((script (@ (type "text/javascript")
-		       (src ,(if generated? (string-append "../" js) js)) " ")))
+		       (src ,(if generated? (string-append "../" js) js)))
+		    " "))
 	  '())
     ,@(if style
 	  `((link (@ (rel "stylesheet") (type "text/css")
