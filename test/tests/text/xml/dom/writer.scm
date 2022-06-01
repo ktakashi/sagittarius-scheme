@@ -14,9 +14,9 @@
 
 ;; historical reason...
 (define legazy-options
-  (make-xml-write-options #f #f
-			  :omit-xml-declaration #f
-			  :standalone #f))
+  (xml-write-options-builder
+   (omit-xml-declaration? #f)
+   (standalone? #f)))
 (define xml-writer (make-dom-writer legazy-options))
 
 (writer-test
