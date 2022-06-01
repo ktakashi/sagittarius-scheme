@@ -32,6 +32,7 @@
 (library (text xml dom writer)
     (export make-dom-writer
 	    make-xml-write-options
+	    xml-write-options-builder
 	    *xml:default-options*
 	    *xml:c14n*
 	    *xml:c14n-w/comment*
@@ -40,6 +41,7 @@
 	    *xml:exc-c14n*
 	    *xml:exc-c14n-w/comment*)
     (import (rnrs)
+	    (record builder)
 	    (text xml dom nodes)
 	    (text xml dom util)
 	    (srfi :13 strings)
@@ -78,71 +80,54 @@
 	  write-doctype?		; default #t
 	  write-cdata?			; default #t
 	  exclusive?			; default #t
-	  )
-  (protocol (lambda (p)
-	      (lambda (emit-internal-dtd? strict?
-		       :key (allow-duplicate-names #f)
-			    (byte-order-mark #f)
-			    (cdata-section-elements '())
-			    (doctype-public #f)
-			    (doctype-system #f)
-			    (encoding "utf-8")
-			    (escape-uri-attribute #t)
-			    (html-version 5)
-			    (include-content-type #t)
-			    (indent #f)
-			    (item-separator #f)
-			    (json-node-output-method "xml")
-			    (media-type "xml")
-			    (normalization-form "none")
-			    (omit-xml-declaration #t)
-			    (standalone '())
-			    (suppress-indentation '())
-			    (undeclare-prefixes #f)
-			    (use-character-maps (make-eq-hashtable))
-			    (version "1.0")
-			    (use-inline-element? #t)
-			    (write-comment? #t)
-			    (write-doctype? #t)
-			    (write-cdata? #t)
-			    (exclusive? #t)
-			    )
-		(p emit-internal-dtd? strict?
-		   allow-duplicate-names byte-order-mark cdata-section-elements
-		   doctype-public doctype-system encoding escape-uri-attribute
-		   html-version include-content-type indent item-separator
-		   json-node-output-method media-type normalization-form
-		   omit-xml-declaration standalone suppress-indentation
-		   undeclare-prefixes use-character-maps version
-		   
-		   use-inline-element? write-comment? write-doctype?
-		   write-cdata? exclusive?)))))
+	  ))
+
+(define-syntax xml-write-options-builder
+  (make-record-builder xml-write-options
+    ((cdata-section-elements '())
+     (encoding "utf-8")
+     (escape-uri-attribute #t)
+     (html-version 5)
+     (include-content-type #t)
+     (json-node-output-method "xml")
+     (media-type "xml")
+     (normalization-form "none")
+     (omit-xml-declaration #t)
+     (standalone '())
+     (suppress-indentation '())
+     (use-character-maps (make-eq-hashtable))
+     (version "1.0")
+     (use-inline-element? #t)
+     (write-comment? #t)
+     (write-doctype? #t)
+     (write-cdata? #t)
+     (exclusive? #t))))
 
 ;; for now not strict by default
-(define *xml:default-options* (make-xml-write-options #f #f))
+(define *xml:default-options* (xml-write-options-builder))
 ;; canonicalisation options
-(define *xml:c14n* (make-xml-write-options #f #f
-				       :use-inline-element? #f
-				       :write-comment? #f
-				       :write-doctype? #f
-				       :write-cdata? #f
-				       :exclusive? #f))
-(define *xml:exc-c14n* (make-xml-write-options #f #f
-					       :use-inline-element? #f
-					       :write-comment? #f
-					       :write-doctype? #f
-					       :write-cdata? #f
-					       :exclusive? #t))
-(define *xml:c14n-w/comment* (make-xml-write-options #f #f
-						     :use-inline-element? #f
-						     :write-doctype? #f
-						     :write-cdata? #f
-						     :exclusive? #f))
-(define *xml:exc-c14n-w/comment* (make-xml-write-options #f #f
-							 :use-inline-element? #f
-							 :write-doctype? #f
-							 :write-cdata? #f
-							 :exclusive? #t))
+(define *xml:c14n* (xml-write-options-builder
+		    (use-inline-element? #f)
+		    (write-comment? #f)
+		    (write-doctype? #f)
+		    (write-cdata? #f)
+		    (exclusive? #f)))
+(define *xml:exc-c14n* (xml-write-options-builder
+			(use-inline-element? #f)
+			(write-comment? #f)
+			(write-doctype? #f)
+			(write-cdata? #f)
+			(exclusive? #t)))
+(define *xml:c14n-w/comment* (xml-write-options-builder 
+			      (use-inline-element? #f)
+			      (write-doctype? #f)
+			      (write-cdata? #f)
+			      (exclusive? #f)))
+(define *xml:exc-c14n-w/comment* (xml-write-options-builder
+				  (use-inline-element? #f)
+				  (write-doctype? #f)
+				  (write-cdata? #f)
+				  (exclusive? #t)))
 
 (define make-dom-writer
   (case-lambda
