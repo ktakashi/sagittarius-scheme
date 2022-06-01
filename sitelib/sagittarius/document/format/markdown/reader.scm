@@ -48,6 +48,7 @@
 	    (text markdown extensions gfm)
 	    (text markdown extensions definition-lists)
 	    (text markdown extensions heading-anchor)
+	    (text markdown extensions footnotes)
 	    (text sxml tools))
 
 (define read-markdown 
@@ -60,7 +61,8 @@
 	(extensions (list gfm-extensions
 			  definition-lists-extension
 			  document-extension
-			  heading-anchor-extension)))))
+			  heading-anchor-extension
+			  footnotes-extension)))))
     (let ((e (parse-markdown sagittarius-document-parser
 			     (document-input-port input)))
 	  (option (markdown-conversion-options-builder
@@ -399,6 +401,17 @@
   ;; TODO alignment
   `((,tag (@) ,@(append-map next (markdown-node:children node)))))
 
+(define (convert-footnote node data next)
+  `((ref (@ (name ,(footnote-node-anchor node))
+	    (number ,(footnote-node-number node))
+	    (label ,(footnote-node-label node)))
+	 ,(footnote-node-label node))))
+
+(define (convert-footnote-block node data next)
+  `((footnote (@ (name ,(footnote-block-node-anchor node))
+		 (number ,(footnote-block-node-number node))
+		 (label ,(footnote-block-node-label node)))
+	      ,@(append-map next (markdown-node:children node)))))
 
 (define-markdown-converter markdown->document-converter document
   (document-node? convert-document)
@@ -433,6 +446,9 @@
   (gfm:table-head-node? convert-table-head)
   (gfm:table-body-node? convert-table-body)
   (gfm:table-row-node? convert-table-row)
-  (gfm:table-cell-node? convert-table-cell))
+  (gfm:table-cell-node? convert-table-cell)
+  (footnote-node? convert-footnote)
+  (footnote-block-node? convert-footnote-block)
+  )
 
 )

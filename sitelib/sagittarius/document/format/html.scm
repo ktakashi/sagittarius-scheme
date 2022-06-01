@@ -111,14 +111,16 @@
   (define level (sxml:attr element 'level))
   (define tag (string->symbol (string-append "h" level)))
   (define mark (string->symbol (string-append "header-" level)))
-  `(,tag (@ ,@(options->attribute options mark))
+  `(,tag (@ (node-type ,(symbol->string mark))
+	    ,@(options->attribute options mark))
 	 (a (@ ,@(options->attribute options 'header-anchor)
 	       ,@(let ((name (id/tag element)))
 		   (if name `((name ,name)) '())))
 	    ,@(map (->html options) (sxml:content element)))))
 
 (define (paragraph-handler element options)
-  `(p (@ ,@(sxml:attr-list element)
+  `(p (@ (node-type "paragraph")
+	 ,@(sxml:attr-list element)
 	 ,@(options->attribute options 'paragraph))
       ,@(map (->html options) (sxml:content element))))
 
@@ -142,11 +144,11 @@
 	 (start (and (eq? style 'number)
 		     (cond ((sxml:attr element 'start))
 			   (else #f))))
-	 (tag (if (eq? style 'bullet) 'ul 'ol)))
-    `(,tag (@ ,@(if start `((start ,start)) '())
-	      ,@(options->attribute options (if (eq? style 'bullet)
-						'bullet-list
-						'ordered-list)))
+	 (tag (if (eq? style 'bullet) 'ul 'ol))
+	 (marker (if (eq? style 'bullet) 'bullet-list 'ordered-list)))
+    `(,tag (@ (node-type ,(symbol->string marker))
+	      ,@(if start `((start ,start)) '())
+	      ,@(options->attribute options marker))
 	   ,@(map (->item tag) (sxml:content element)))))
 
 (define default-callback (document-output:make-file-link-callback ".html"))
@@ -177,10 +179,12 @@
   (let ((level (sxml:attr element 'level)))
     (if level
 	(let ((marker (string->symbol (string-append "section-" level))))
-	  `(section (@ ,@(options->attribute options marker))
+	  `(section (@ (node-type "section")
+		       ,@(options->attribute options marker))
 		    ,@(map (->html options) (sxml:content element))))
 	;; section without level = div for now
-	`(div (@ ,@(options->attribute options 'anon-section))
+	`(div (@ (node-type "section")
+		 ,@(options->attribute options 'anon-section))
 	      ,@(map (->html options) (sxml:content element))))))
 
 (define (symbol-append . s*)
@@ -196,7 +200,8 @@
 	 ,@(map ->cell (sxml:content row))))
   (let ((title (sxml:attr element 'title))
 	(rows (map ->row (sxml:content element))))
-    `(table (@ ,@(options->attribute options 'table))
+    `(table (@ (node-type "table")
+	       ,@(options->attribute options 'table))
 	    ,@(if title
 		  `((caption (@ ,@(options->attribute options 'table-title))
 			     ,title))
@@ -204,14 +209,16 @@
 	    ,@rows)))
 
 (define ((emphasis-handler orig tag) element options) ;; SRFI-219 style :)
-  `(,tag (@ ,@(options->attribute options orig))
+  `(,tag (@ (node-type ,(symbol->string tag))
+	    ,@(options->attribute options orig))
 	 ,@(map (->html options) (sxml:content element))))
 
 (define (raw-string-handler element options)
   `(*RAW-HTML* ,@(sxml:content element)))
 
 (define (code-handler element options)
-  `(code (@ ,@(options->attribute options 'code))
+  `(code (@ (node-type "code")
+	    ,@(options->attribute options 'code))
 	 ,@(map (->html options) (sxml:content element))))
 
 (define (define-handler element options)
@@ -219,7 +226,8 @@
   (let ((category (or (sxml:attr element 'category) "Unknown"))
 	(tag (or (sxml:attr element 'tag) (symbol->string (gensym))))
 	(content (sxml:content element)))
-    `(div (@ ,@(options->attribute options 'define))
+    `(div (@ (node-type "define")
+	     ,@(options->attribute options 'define))
 	  (span ,@(options->attribute options 'define-catetory) ,category)
 	  (a (@ (name ,tag))
 	     (span (@ ,@(options->attribute options 'define-name))
@@ -231,8 +239,9 @@
 
 (define (codeblock-handler element options)
   (define (output? e) (document-element-of? e 'output))
-  (define (codeblock lang code)
+  (define (codeblock lang code style)
     `(pre (@ ,@(if lang `((lang ,lang)) '())
+	     (node-type ,(symbol->string style))
 	     ,@(options->attribute options 'codeblock))
 	  (code ,@(map (->html options) code))))
   (let-values (((output code) (partition output? (sxml:content element))))
@@ -240,12 +249,13 @@
 	  (style (cond ((sxml:attr element 'style) => string->symbol)
 		       (else 'block))))
       (if (null? output)
-	  (codeblock lang code)
-	  `(div (@ ,@(options->attribute options
+	  (codeblock lang code style)
+	  `(div (@ (node-type ,(symbol->string style))
+		   ,@(options->attribute options
 					 (if (eq? style 'block)
 					     'block-container
 					     'snipet-container)))
-		,(codeblock lang code)
+		,(codeblock lang code style)
 		(span (@ ,@(options->attribute options 'codeblock-arrow)))
 		(span (@ ,@(options->attribute options 'codeblock-result))
 		      ,@(append-map (lambda (o)
@@ -253,7 +263,8 @@
 				    output)))))))
 
 (define (blockquote-handler element options)
-  `(blockquote (@ ,@(options->attribute options 'blockquote))
+  `(blockquote (@ (node-type "blockquote")
+		,@(options->attribute options 'blockquote))
 	       ,@(map (->html options) (sxml:content element))))
 
 (define (dlist-handler element options)
@@ -267,11 +278,31 @@
       `(,@(map ->dt title*)
 	(dd (@ ,@(options->attribute options 'dlist-description))
 	    ,@(map e->html desc)))))
-  `(dl (@ ,@(options->attribute options 'dlist))
+  `(dl (@ (node-type "dlist")
+	  ,@(options->attribute options 'dlist))
        ,@(append-map ->ditem (sxml:content element))))
 
 (define ((simple-handler tag) element options) tag)
 
+(define (ref-handler element options)
+  `(a (@ (node-type "footnote-ref")
+	 (href ,(string-append "#" (sxml:attr element 'name)))
+	 (name ,(string-append (sxml:attr element 'name) "-ref")))
+      (sup (@ ,@(options->attribute options 'ref))
+	   ,((->html options) (sxml:attr element 'label)))))
+
+(define (footnote-handler element options)
+  `(section (@ (node-type "footnote")
+	       (label ,(sxml:attr element 'label))
+	       ,@(options->attribute options 'footnote))
+	    (p (@ (node-type "footnote-item")
+		  ,@(options->attribute options 'footnote-item))
+	       (a (@ (name ,(sxml:attr element 'name))
+		     (href ,(string-append "#"
+					   (sxml:attr element 'name) "-ref")))
+		  ,((->html options) (sxml:attr element 'label)))
+	       (div (@ (node-type "footnote-description"))
+		    ,@(map (->html options) (sxml:content element))))))
 (define (options->attribute options marker)
   (let ((resolver (html-output-options-attribute-resolver options)))
     (or (and resolver (resolver options marker))
@@ -300,7 +331,8 @@
     (author ,marker-handler)
     (table-of-contents ,marker-handler)
     (eval ,eval-handler)
-    
+    (ref ,ref-handler)
+    (footnote ,footnote-handler)
     ))
 
 )

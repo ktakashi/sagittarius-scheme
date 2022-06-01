@@ -145,6 +145,10 @@ div.snipet > span {
     padding: 3px;
 }
 
+code[node-type="code"] {
+    white-space: nowrap;
+}
+
 div.codeblock {
     
 }
@@ -218,54 +222,21 @@ a[href]:hover {
   background-size: 0 3px, 100% 3px;
 }
 
-/* tools.js */
-a.closed {
-    background-image: url("trees.png");
-    background-position: 0 0px;
-    height: 13px;
-    width: 13px;
-    display: inline-block;
+a[node-type="footnote-ref"] {
+    font-size: small;
+    color: red;
 }
 
-a.opened {
-    background-image: url("trees.png");
-    background-position: -13px 0px;
-    height: 13px;
-    width: 13px;
-    display: inline-block;
+section[node-type="footnote"] {
+    font-size: small;
+    display: flex;
 }
-
-a.closedAll {
-    background-image: url("trees.png");
-    background-position: 0 0px;
-    height: 13px;
-    width: 13px;
-    display: inline-block;
+section[node-type="footnote"] > p > a {
+    white-space: nowrap;
+    color: red;
 }
-
-a.closedAll:after {
-    margin-left: 13px;
-    content: "open";
-}
-
-a.openedAll {
-    background-image: url("trees.png");
-    background-position: -13px 0px;
-    height: 13px;
-    width: 13px;
-    display: inline-block;
-}
-a.openedAll:after {
-    margin-left: 13px;
-    content: "close";
-}
-
-a.no-child {
-    background-image: url("trees.png");
-    background-position: -26px 0px;
-    height: 13px;
-    width: 13px;
-    display: inline-block;
+section[node-type="footnote"] > p > a:after {
+    content: ": ";
 }
 
 /* navigator */

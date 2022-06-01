@@ -137,8 +137,9 @@
 	     "[^note]: note\n")
 (test-parser '(:doc (:note (:ref "note") (:plain "note" :eol "note2")))
 	     "[^note]: note\n    note2\n")
-(test-parser '(:doc (:note (:ref "note") (:plain "note" :eol "note2") (:plain "note3")))
-	     "[^note]: note\n    note2\n \n    note3\n")
+(test-parser '(:doc (:note (:ref "note") (:plain "note" :eol "note2")
+			   (:plain "note3")))
+	     "[^note]: note\n         note2\n\n         note3")
 ;; note with code
 (test-parser '(:doc (:note (:ref "note") (:plain "note " (:code "code"))))
 	     "[^note]: note `code`\n")
