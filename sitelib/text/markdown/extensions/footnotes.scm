@@ -87,15 +87,15 @@
 
 (define-record-type footnote-block-parser
   (parent <definition-parser>)
-  (fields content)
+  (fields content-indent content)
   (protocol
    (lambda (n)
-     (lambda (document label number)
+     (lambda (document content-indent label number)
        ((n (make-footnote-block-node document label (number->string number)
 				     (string-downcase
 				      (uuid->string (make-v4-uuid))))
 	   #t #f
-	   (lambda ignore #t)
+	   (lambda (self block) #t)
 	   (lambda (self ps)
 	     (define nnsi (parser-state-next-non-space-index ps))
 	     (cond ((parser-state-blank? ps)
@@ -103,18 +103,20 @@
 			(block-continue:at-index nnsi)
 			;; blank line after empty list item
 			(block-continue:none)))
-		   ((>= (parser-state-indent ps) +parsing-code-block-indent+)
-		    (let ((ci (+ (parser-state-index ps)
-				 +parsing-code-block-indent+)))
-		      (block-continue:at-index ci)))
+		   ((>= (parser-state-indent ps)
+			(footnote-block-parser-content-indent self))
+		    (block-continue:at-column
+		     (+ (parser-state-column ps)
+			(footnote-block-parser-content-indent self))))
 		   (else (block-continue:none))))
 	   (lambda (self line)
 	     (let ((content (footnote-block-parser-content self)))
 	       (list-queue-add-back! content (source-line-content line))))
 	   block-parser-default-add-location!
 	   block-parser-default-close-block!
-	   block-parser-default-parse-inlines!)
-	footnote-block-parser:definitions
+	   block-parser-default-parse-inlines!
+	   footnote-block-parser:definitions)
+	content-indent
 	(list-queue))))))
 (define (footnote-block-parser:definitions fbp)
   (define block (block-parser-block fbp))
@@ -141,7 +143,9 @@
 		     (set! number (+ number 1))
 		     (chain (block-start:of
 			     (make-footnote-block-parser
-			      (parser-state-document parser-state) text number))
+			      (parser-state-document parser-state)
+			      (source-line:index line (lambda (c) (not (char-whitespace? c))) end)
+			      text number))
 			    (block-start:at-index _ end)))))
 		(else (block-start:none)))))))
 
