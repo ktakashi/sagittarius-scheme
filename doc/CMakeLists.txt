@@ -28,6 +28,7 @@ SET(GENDOC ${GENDOC}
   ${HOST_SASH}
   -L${PROJECT_SOURCE_DIR}/lib -L${PROJECT_SOURCE_DIR}/sitelib
   -L${PROJECT_SOURCE_DIR}/ext/time -L${PROJECT_SOURCE_DIR}/ext/crypto
+  -L${PROJECT_SOURCE_DIR}/ext/threads
   -D${PROJECT_BINARY_DIR}/build 
   "${CMAKE_CURRENT_SOURCE_DIR}/gendoc")
 
