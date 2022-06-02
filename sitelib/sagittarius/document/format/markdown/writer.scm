@@ -415,7 +415,9 @@
 			 (cons (string-append "[§" level "] ") c) next)
 	 (newline out))
        (for-each next content)))
-    (else (document-output-error 'write-section "Unknown element" content))))
+    (else
+     (for-each next content) ;; anonymous section
+     #;(document-output-error 'write-section "Unknown element" content))))
 
 (define (header-handler out n attr content next)
   (define (write-it level tag content)
@@ -457,6 +459,30 @@
   (put-char out #\newline)
   (put-char out #\newline))
 
+(define (ref-handler out n attr content next)
+  (put-string out "[^")
+  (for-each next content)
+  (put-char out #\]))
+
+(define (footnote-handler out n attr content next)
+  (put-string out "^[")
+  (let ((label (cond ((assq 'label attr) => cadr)
+		     ((assq 'number attr) => cadr)
+		     ;; no label or number?
+		     (else ""))))
+    (next label)
+    (put-string out "]: ")
+    (let ((n (+ (string-length label) 5))
+	  (lines (->markdown-lines out content)))
+      (unless (null? lines)
+	(put-string out (car lines))
+	(for-each (lambda (c)
+		    (put-char out #\newline)
+		    (do ((i 0 (+ i 1))) ((= i n))
+		      (put-char out #\space))
+		    (put-string out c)) (cdr lines))
+	(put-char out #\newline)))))
+
 (define node-handlers
   `((header ,header-handler)
     (section ,section-handler)
@@ -478,7 +504,9 @@
     (linebreak ,linebreak-handler)
     (index-table ,marker-handler)
     (author ,marker-handler)
-    (thematic-break ,thematic-break-handler)))
+    (thematic-break ,thematic-break-handler)
+    (ref ,ref-handler)
+    (footnote ,footnote-handler)))
 
 (define (->markdown-lines out content)
   (let-values (((o e) (open-string-output-port)))

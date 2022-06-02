@@ -22,20 +22,22 @@
     (create-directory* dir)))
 
 (define (level->filename title level subdir)
-  (define file (string-append "section"
-			      (string-join
-			       (map number->string (reverse level))
-			       "") ".html"))
-  (define (real-file dir)
-    (define relative (if subdir (build-path subdir file) file))
-    (define out-file (build-path* dir "sections" file))
-    (ensure-directory out-file)
-    (when (file-exists? out-file) (delete-file out-file))
-    (make-document-link title out-file (string-append "./" relative)))
-  (define (stdout)
-    (make-document-link title (current-output-port) (string-append "./" file)))
-  (cond ((*output-directory*) => real-file)
-	(else (stdout))))
+  (let-values (((dir file ext) (decompose-path (*output-file*))))
+    (define file (string-append "section"
+				(string-join
+				 (map number->string (reverse level))
+				 "") (string-append "." ext)))
+    (define (real-file dir)
+      (define relative (if subdir (build-path subdir file) file))
+      (define out-file (build-path* dir "sections" file))
+      (ensure-directory out-file)
+      (when (file-exists? out-file) (delete-file out-file))
+      (make-document-link title out-file (string-append "./" relative)))
+    (define (stdout)
+      (make-document-link title (current-output-port)
+			  (string-append "./" file)))
+    (cond ((*output-directory*) => real-file)
+	  (else (stdout)))))
 
 (define author
   `(section (@ (id "author"))
@@ -169,15 +171,15 @@
 	(print "Document is not changed. " output)
 	(exit 0)))))
 
-(define (get-output-directory output)
+(define (get-directory output)
   (and (string? output)
        (let-values (((dir file ext) (decompose-path output)))
 	 dir)))
-(define (get-output-file output)
+(define (get-file output)
   (and (string? output)
        (let-values (((dir file ext) (decompose-path output)))
 	 (string-append file "." ext))))
-
+(import (sagittarius document format markdown))
 (define (main args)
   (with-args args
       ((output     (#\o "output") #t (current-output-port))
@@ -185,21 +187,30 @@
        (javascript (#\j "javascript") #t #f)
        (separate   (#\p "separate") #t #f)
        (lang       (#\l "lang") #t "en")
+       (format     (#\f "format") #t "html")
        . files)
     (unless (file-exists? (cadr files))
       (usage)
       (exit -1))
     (check-older output)
     (when (and (not (port? output)) (file-exists? output)) (delete-file output))
-    (parameterize ((*output-directory* (get-output-directory output))
-		   (*output-file* (get-output-file output)))
-      (let ((options (make-output-options
-		      javascript
-		      style
-		      (and separate (string->number separate))))
-	    (doc (file->document 'markdown (cadr files) input-options)))
-	(if (port? output)
-	    (write-document 'html doc options output)
-	    (call-with-output-file output
-	      (lambda (out) (write-document 'html doc options out))))))))
+    (let ((in-file (cadr files)))
+      (parameterize ((*output-directory* (get-directory output))
+		     (*output-file* (get-file output)))
+	(let ((options (make-output-options
+			javascript
+			style
+			(and separate (string->number separate))))
+	      (doc (call-with-input-file in-file
+		     (lambda (in)
+		       (parameterize ((current-directory
+				       (or (get-directory in-file)
+					   ;; sort of pwd :)
+					   (current-directory))))
+			 (port->document 'markdown in input-options)))))
+	      (fmt (string->symbol format)))
+	  (if (port? output)
+	      (write-document fmt doc options output)
+	      (call-with-output-file output
+		(lambda (out) (write-document fmt doc options out)))))))))
 
