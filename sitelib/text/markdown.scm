@@ -34,16 +34,21 @@
 	    string->markdown
 	    markdown-write
 	    parse-markdown
+	    (rename (parse-markdown markdown-parser:parse))
 	    markdown-sexp->sxml
 	    markdown-sexp->string
 
-	    markdown-parser
+	    markdown-parser markdown-parser?
 	    commonmark-parser
 
+	    markdown-node?
+
+	    markdown-converter?
 	    markdown->html-converter
 	    markdown->sxml-converter
-	    markdown->sexp-converter ;; legaxy
+	    markdown->sexp-converter ;; legacy
 	    markdown-converter:convert
+	    convert-markdown
 	    markdown-converter:merge
 	    markdown-conversion-options?
 	    markdown-conversion-options-builder
@@ -73,6 +78,12 @@
 (define markdown-parser
   (markdown-parser-builder:build
    (markdown-parser-builder (extensions sagittarius-extensions))))
+
+(define convert-markdown 
+  (case-lambda
+   ((node converter type) (markdown-converter:convert converter type node))
+   ((node converter type options)
+    (markdown-converter:convert converter type node options))))
 
 ;;; Old APIs
 (define (markdown-read p :key (as 'sxml) (parser markdown-parser)

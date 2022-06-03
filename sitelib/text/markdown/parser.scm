@@ -33,6 +33,8 @@
 #!nounbound
 (library (text markdown parser)
     (export markdown-parser?
+	    markdown-node?
+	    
 
 	    commonmark-parser ;; For testing
 	    

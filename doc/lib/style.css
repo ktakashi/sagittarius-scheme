@@ -39,10 +39,11 @@ section > h3 {
 
 h4 {
     font-size: large;
+    text-decoration: underline;
 }
 
 h5 {
-    font-size: large;
+    font-size: medium;
 }
 
 p.navigation-container {

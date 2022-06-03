@@ -30,10 +30,9 @@
       (define html (html-pointer test))
       (define example (example-pointer test))  
       
-      (let* ((e (parse-markdown parser
-				(open-string-input-port markdown)))
-	     (sxml (markdown-converter:convert default-markdown-converter
-					       'html e options))
+      (let* ((e (parse-markdown parser (open-string-input-port markdown)))
+	     (sxml (convert-markdown e default-markdown-converter
+				     'html options))
 	     (result (srl:sxml->html-noindent sxml)))
 	(if (member example closing-tag-mismatches)
 	    ;; okay, let's parse the expected HTML and compare

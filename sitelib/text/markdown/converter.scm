@@ -30,7 +30,8 @@
 
 #!nounbound
 (library (text markdown converter)
-    (export markdown->html-converter
+    (export markdown-converter?
+	    markdown->html-converter
 	    markdown->sxml-converter
 	    markdown->sexp-converter
 
