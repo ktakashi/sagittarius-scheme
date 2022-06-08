@@ -140,7 +140,17 @@
 			(block-continue:at-column
 			 (definition-description-parser-content-indent self))
 			(block-continue:none)))
-		   ((eqv? #\: (source-line:char-at line nns))
+		   ((and (eqv? #\: (source-line:char-at line nns))
+			 ;; Check if the active parser is paragraph parser or
+			 ;; not to avoid closing blocks unnecessarily
+			 ;; e.g. inside of a code block
+			 ;; foo
+			 ;; : bar
+			 ;;   ```
+			 ;;   : bla
+			 ;;   ```
+			 (paragraph-parser?
+			  (parser-state:active-block-parser ps)))
 		    (block-continue:none))
 		   (else (block-continue:at-column
 			  (parser-state-column ps)))))

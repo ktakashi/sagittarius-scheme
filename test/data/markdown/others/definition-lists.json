@@ -43,5 +43,16 @@
 	"markdown": "stop\n: foo\n\nbar",
 	"html": "<dl>\n<dt>stop</dt>\n<dd>\n<p>foo</p>\n</dd>\n</dl>\n<p>bar</p>\n",
 	"example": "dl-9"
+    },
+    {
+	"markdown": "define\n: block\n  ```foo\n  bar\n  : baz\n  ```\n",
+	"html": "<dl>\n<dt>define</dt>\n<dd>\n<p>block</p>\n<pre><code class=\"language-foo\">bar\n: baz\n</code></pre>\n</dd>\n</dl>\n",
+	"example": "dl-10"
+    },
+    {
+	"markdown": "```foo\nbar\n: baz\n```\n",
+	"html": "<pre><code class=\"language-foo\">bar\n: baz\n</code></pre>\n",
+	"example": "dl-11"
     }
+
 ]
