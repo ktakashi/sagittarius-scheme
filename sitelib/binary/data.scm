@@ -40,7 +40,8 @@
 	    put-u32 put-s32 get-u32 get-s32
 	    put-u64 put-s64 get-u64 get-s64
 	    put-f32 put-f64 get-f32 get-f64
-	    put-u* put-s* get-u* get-s*)
+	    put-u* put-s* get-u* get-s*
+	    )
     (import (rnrs)
 	    (clos core)
 	    (clos user)

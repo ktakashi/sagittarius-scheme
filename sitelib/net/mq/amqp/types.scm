@@ -467,6 +467,8 @@
     (lambda (x)
       (define (class-name name)
 	(string->symbol (format "<amqp-~a>" (syntax->datum name))))
+      (define (pred-name name)
+	(string->symbol (format "amqp-~a?" (syntax->datum name))))
       (define (descriptor opts)
 	(or (and-let* ((d (get-keyword :descriptor opts #f)))
 	      (list (car d)
@@ -477,6 +479,7 @@
       (syntax-case x ()
 	((k name v . opts)
 	 (with-syntax ((class (datum->syntax #'k (class-name #'name)))
+		       (pred (datum->syntax #'k (pred-name #'name)))
 		       ((provides ...) (datum->syntax #'k
 					(get-keyword :provides #'opts '())))
 		       ((dn dc) (datum->syntax #'k (descriptor #'opts))))
@@ -489,7 +492,8 @@
 	       (define name 
 		 (let ()
 		   (add-class-entry! class 'dn dc)
-		   v))))))))
+		   v))
+	       (define (pred o) (is-a? o class))))))))
 
   (define (write-nothing out v))
   (define (write/condition pred writer)

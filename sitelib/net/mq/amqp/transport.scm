@@ -30,7 +30,7 @@
 
 ;; reference:
 ;; http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-transport-v1.0-os.html
-
+#!nounbound
 (library (net mq amqp transport)
     (export amqp-make-client-connection
 	    open-amqp-connection!
@@ -66,8 +66,9 @@
 	    (sagittarius socket)
 	    (clos user)
 	    (net mq amqp types)
+	    (net mq amqp security)
 	    (rfc tls)
-	    (binary data)
+	    (binary io)
 	    (binary pack)
 	    (math random)
 	    (util bytevector))
@@ -186,13 +187,29 @@
       (put-u8 out revision))
     (let1 header (call-with-bytevector-output-port construct-header)
       (put-bytevector (~ conn 'socket) header)
-      (let1 res (get-bytevector-n (~ conn 'socket) (bytevector-length header))
+      (let1 res (get-bytevector-n/ensured
+		 (~ conn 'socket) (bytevector-length header))
 	(unless (bytevector=? header res)
 	  (error 'negotiate-header "unknown protocol" 
 		 `((request ,(utf8->string header))
 		   (response ,(utf8->string res)))))
-	(set! (~ conn 'state) :hdr-exch))))
-
+	(cond ((= security-mark +no-security+) (set! (~ conn 'state) :hdr-exch))
+	      ((= security-mark +use-sasl+)
+	       (negotiate-sasl conn)
+	       (negotiate-header conn major minor revision 0))
+	      (else
+	       (assertion-violation 'amqp-make-client-connection
+				    "Unsupported security protocol"
+				    security-mark))))))
+  (define (negotiate-sasl conn)
+    (define (read-frame)
+      (let-values (((ext perform payload) (recv-frame&payload conn)))
+	perform))
+    (define (send-frame frame)
+      ;; TBD
+      )
+    (amqp:sasl-negotiation read-frame send-frame))
+  
   ;; misc types
   (define-restricted-type seconds      :uint)
   (define-restricted-type milliseconds :uint)
@@ -270,13 +287,19 @@
       (values ext performative)))
   
   (define (recv-frame&payload conn)
-    (let1 port (~ conn 'socket)
-      (let-values (((size dof type specific) (get-unpack port "!LCCS")))
-	(let* ((ext (get-bytevector-n port (- (* dof 4) 8)))
-	       (data (get-bytevector-n port (- size (* dof 4))))
-	       (in (open-bytevector-input-port data))
-	       (perfom (read-amqp-data in)))
-	  (values ext perfom (get-bytevector-all in))))))
+    (define port (~ conn 'socket))
+    ;; size dof type type-specific = 4 1 1 2
+    (let* ((bv (get-bytevector-n/ensured port (+ 4 1 1 2)))
+	   (size (bytevector-u32-ref bv 0 (endianness big)))
+	   (dof (bytevector-u8-ref bv 4))
+	   (type (bytevector-u8-ref bv 5))
+	   (specific (bytevector-u16-ref bv 6 (endianness big)))
+	   (ext (get-bytevector-n/ensured port (- (* dof 4) 8)))
+	   (data (get-bytevector-n/ensured port (- size (* dof 4))))
+	   (in (open-bytevector-input-port data))
+	   (perfom (read-amqp-data in)))
+
+      (values ext perfom (get-bytevector-all in))))
 
   (define (generate-container-id)
     (format "Sagittarius-~a-~a"
@@ -466,7 +489,7 @@
      (echo             :type :boolean :default #f)
      (properties       :type fields))
     :provides (frame))
-
+  
   ;; well for may laziness...
   ;; TODO this is not correct
   (define (sender-flow-control link flow)
