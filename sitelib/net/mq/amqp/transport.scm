@@ -67,6 +67,7 @@
 	    (clos user)
 	    (net mq amqp types)
 	    (net mq amqp security)
+	    (rfc sasl)
 	    (rfc tls)
 	    (binary io)
 	    (binary pack)
@@ -167,7 +168,7 @@
   (define (amqp-make-client-connection host service
 				       :key (major 1) (minor 0) (revision 0)
 					    ;; not supported yet
-					    (security-level +no-security+)
+					    (security #f)
 				       :allow-other-keys opts)
     
     (let* ((socket (make-client-socket host service))
@@ -175,17 +176,26 @@
 		       :raw-socket socket
 		       :state :start
 		       :hostname host :port service)))
-      (negotiate-header conn major minor revision security-level)
+      (negotiate-header conn major minor revision security)
       (apply open-amqp-connection! conn opts)))
 
-  (define (negotiate-header conn major minor revision security-mark)
-    (define (construct-header out)
-      (put-bytevector out +version-prefix+)
-      (put-u8 out security-mark)
-      (put-u8 out major)
-      (put-u8 out minor)
-      (put-u8 out revision))
-    (let1 header (call-with-bytevector-output-port construct-header)
+  (define (negotiate-header conn major minor revision security)
+    (define (construct-header security-mark)
+      (let-values (((out e) (open-bytevector-output-port)))
+	(put-bytevector out +version-prefix+)
+	(put-u8 out security-mark)
+	(put-u8 out major)
+	(put-u8 out minor)
+	(put-u8 out revision)
+	(e)))
+    (define (security-protocol security)
+      (cond ((sasl-authentication-context? security) +use-sasl+)
+	    ((not security) +no-security+)
+	    (else (assertion-violation 'amqp-make-client-connection
+				       "Unsupported security protocol"
+				       security))))
+    (let* ((security-mark (security-protocol security))
+	   (header (construct-header security-mark)))
       (put-bytevector (~ conn 'socket) header)
       (let1 res (get-bytevector-n/ensured
 		 (~ conn 'socket) (bytevector-length header))
@@ -195,20 +205,18 @@
 		   (response ,(utf8->string res)))))
 	(cond ((= security-mark +no-security+) (set! (~ conn 'state) :hdr-exch))
 	      ((= security-mark +use-sasl+)
-	       (negotiate-sasl conn)
-	       (negotiate-header conn major minor revision 0))
+	       (negotiate-sasl conn security)
+	       (negotiate-header conn major minor revision #f))
 	      (else
 	       (assertion-violation 'amqp-make-client-connection
-				    "Unsupported security protocol"
-				    security-mark))))))
-  (define (negotiate-sasl conn)
+				       "Unsupported security protocol"
+				       security))))))
+  (define (negotiate-sasl conn security)
     (define (read-frame)
       (let-values (((ext perform payload) (recv-frame&payload conn)))
 	perform))
-    (define (send-frame frame)
-      ;; TBD
-      )
-    (amqp:sasl-negotiation read-frame send-frame))
+    (define (send frame) (send-frame conn frame #vu8() 1))
+    (amqp:sasl-negotiation security (~ conn 'hostname) read-frame send))
   
   ;; misc types
   (define-restricted-type seconds      :uint)
@@ -269,14 +277,14 @@
     conn)
 
   ;; wrap with frame
-  (define (send-frame conn performative :optional (payload #vu8()))
+  (define (send-frame conn performative :optional (payload #vu8()) (type 0))
     (let ((bv (amqp-value->bytevector performative))
 	  (port (~ conn 'socket)))
       ;; TODO extra header
       (put-u32 port (+ (bytevector-length bv) (bytevector-length payload) 8)
 	       (endianness big))
       (put-u8 port 2) ;; TODO DOF
-      (put-u8 port 0) ;; AMQP frame
+      (put-u8 port type) ;; AMQP frame
       (put-u16 port 0 (endianness big))
       (put-bytevector port bv)
       (put-bytevector port payload)))

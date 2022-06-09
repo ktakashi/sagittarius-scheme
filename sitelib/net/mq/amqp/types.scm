@@ -30,7 +30,7 @@
 
 ;; reference:
 ;;   http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-types-v1.0-os.html
-
+#!nounbound
 (library (net mq amqp types)
     (export read-amqp-data
 	    write-amqp-data
@@ -78,8 +78,7 @@
 	    (srfi :1)
 	    (srfi :19)
 	    (srfi :26)
-	    (rfc uuid)
-	    (pp))
+	    (rfc uuid))
 
   (define (read-fixed-width-data n)
     (lambda (in subcategory) (get-bytevector-n in n)))
@@ -163,6 +162,9 @@
 	    (make (hashtable-ref *primitive-class-table* code)
 	      :value (reader data))
 	    (error 'read-amqp-data "unknown data" code)))))
+  
+  (define (primitive-class? class) (keyword? (~ *class/type-table* class)))
+  
   (define (construct-composite descriptor compound)
     (define (get-type slot) (slot-definition-option slot :type))
     (define (get-requires slot) (slot-definition-option slot :requires #f))
@@ -174,7 +176,6 @@
       (if (slot-bound? v 'value)
 	  (scheme-value v)
 	  v))
-    (define (primitive-class? class) (keyword? (~ *class/type-table* class)))
     (define (provides? class requires) 
       ;; all AMQP classes are managed in table so search it
       ;; FIXME it's very awkward way to do it...

@@ -53,16 +53,37 @@
     (import (except (rnrs) fields)
 	    (net mq amqp types)
 	    (clos user)
+	    (rfc sasl)
 	    (sagittarius)
 	    (sagittarius object))
 
-(define (amqp:sasl-negotiation receiver sender)
+(define (amqp:sasl-negotiation sasl-context hostname receiver sender)
+  (define (make-init m s h)
+    (make-amqp-sasl-init
+     :mechanism (sasl-authentication-mechanism-name m)
+     :initial-response (sasl-authentication-state-continue-payload s)
+     :hostname h))
   (let ((mechanism (receiver)))
     (unless (amqp-sasl-mechanisms? mechanism)
       (assertion-violation 'amqp:sasl-negotiation "Unexpected frame"
 			   mechanism))
-    ;; TBD
-    ))
+    (let* ((mechanisms (~ mechanism 'sasl-server-mechanisms))
+	   (mechanism (sasl-select-mechanism sasl-context mechanisms))
+	   ;; For AMQP, server-challenge always comes after sasl-init
+	   ;; so I don't think CRAM-MD5 or other server challenge
+	   ;; required mechanism can't be implemented (or we can make
+	   ;; those implementation flexible?)
+	   (initial-state (sasl-start-client-authentication mechanism #f)))
+      (sender (make-init mechanism initial-state hostname))
+      (let loop ((frame (receiver)))
+	(cond ((amqp-sasl-outcome? frame)
+	       (unless (= (~ frame 'code) +sasl-code-ok+)
+		 (assertion-violation 'amqp:sasl-negotiation
+				      "Failed to authenticate"
+				      (~ frame 'code))))
+	      (else
+	       (assertion-violation 'amqp:sasl-negotiation
+				    "Not yet...")))))))
 
 
 ;; Messages
@@ -80,6 +101,8 @@
    (initial-response :type :binary)
    (hostname :type :string))
   :provides (sasl-frame))
+(define-method write-object ((t <amqp-sasl-init>) out)
+  (format out "#<sasl-init ~a>" (~ t 'mechanism)))
 
 (define-composite-type sasl-challenge amqp:sasl-challenge:list
   #x00000000 #x00000042
@@ -103,6 +126,7 @@
   ((code :type sasl-code :mandatory #t)
    (additional-data :type :binary))
   :provides (sasl-frame))
-
+(define-method write-object ((t <amqp-sasl-outcome>) out)
+  (format out "#<sasl-outcome ~a>" (~ t 'code)))
   
 )
