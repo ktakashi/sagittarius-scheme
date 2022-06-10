@@ -44,15 +44,8 @@
 	    sasl-authentication-mechanism-name
 	    
 	    sasl-authentication-state?
-	    *sasl-authentication-state:success*
-	    sasl-authentication-state-success?
-	    
-	    *sasl-authentication-state:failed*
-	    sasl-authentication-state-failed?
-	    
-	    sasl-authentication-state-continue?
-	    sasl-authentication-state-continue-payload
-	    make-sasl-authentication-state-continue
+	    make-sasl-authentication-state
+	    sasl-authentication-state-message
 
 	    sasl-start-client-authentication
 	    sasl-process-client-authentication
@@ -73,21 +66,8 @@
 (define-record-type sasl-authentication-mechanism
   (fields name initial-state))
 
-(define-record-type sasl-authentication-state)
-
-(define *sasl-authentication-state:success*
-  (make-sasl-authentication-state))
-(define (sasl-authentication-state-success? o)
-  (eq? *sasl-authentication-state:success* o))
-
-(define *sasl-authentication-state:failed*
-  (make-sasl-authentication-state))
-(define (sasl-authentication-state-failed? o)
-  (eq? *sasl-authentication-state:failed* o))
-
-(define-record-type sasl-authentication-state-continue
-  (parent sasl-authentication-state)
-  (fields payload next-state-generator))
+(define-record-type sasl-authentication-state
+  (fields message next-state-generator))
 
 (define (sasl-select-mechanism context mechanisms)
   (exists (lambda (m) (sasl-find-mechanism context m)) mechanisms))
@@ -103,7 +83,7 @@
    mechanism initial-challenge))
   
 (define (sasl-process-client-authentication state server-response)
-  
-  )
+  (define generator (sasl-authentication-state-next-state-generator state))
+  (and generator (generator state server-response)))
 
 )

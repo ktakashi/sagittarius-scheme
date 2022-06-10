@@ -53,7 +53,7 @@
   (define authzid (sasl-client-plain-mechanism-authzid mechanism))
   (define authcid (sasl-client-plain-mechanism-authcid mechanism))
   (define password (sasl-client-plain-mechanism-password mechanism))
-  (make-sasl-authentication-state-continue
+  (make-sasl-authentication-state
    (string->utf8 (string-append (or authzid "") "\x0;" authcid "\x0;" password))
    #f))
 

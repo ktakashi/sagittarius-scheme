@@ -47,9 +47,7 @@
 	    +sasl-code-auth+    
 	    +sasl-code-sys+     
 	    +sasl-code-sys-perm+
-	    +sasl-code-sys-temp+
-
-	    )
+	    +sasl-code-sys-temp+)
     (import (except (rnrs) fields)
 	    (net mq amqp types)
 	    (clos user)
@@ -61,7 +59,7 @@
   (define (make-init m s h)
     (make-amqp-sasl-init
      :mechanism (sasl-authentication-mechanism-name m)
-     :initial-response (sasl-authentication-state-continue-payload s)
+     :initial-response (sasl-authentication-state-message s)
      :hostname h))
   (let ((mechanism (receiver)))
     (unless (amqp-sasl-mechanisms? mechanism)
