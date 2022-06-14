@@ -185,7 +185,7 @@
 ;; 	(equal? (amqp-message-message-id message) id))))
 	      
   (define (receive-amqp-message receiver :key (timeout #f) (query #f))
-    (define socket (~ receiver 'session 'connection 'raw-socket))
+    (define socket (~ receiver 'session 'connection 'socket))
     (define (recv)
       (let ((m (recv-transfer receiver disposition-handler :query query)))
 	;; message is just an bytevector so we need to parse it

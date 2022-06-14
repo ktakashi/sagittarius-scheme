@@ -47,9 +47,6 @@
 	    ;; n variable
 	    put-u* put-s* get-u* get-s*
 	    
-	    get-bytevector-n/ensured
-	    get-bytevector-n/ensured!
-
 	    ;; memory efficient(?) ports
 	    input-port->chunked-binary-input-port
 	    ->chunked-binary-input-port
@@ -176,28 +173,6 @@
 
   (define-put&get* u)
   (define-put&get* s)
-
-  (define (get-bytevector-n/ensured in n)
-    (let ((bv (make-bytevector n)))
-      (get-bytevector-n/ensured! in bv 0 n)
-      bv))
-  (define (get-bytevector-n/ensured! in bv start n)
-    (let loop ((i start) (rem n) (is-prev-eof? #f))
-      (if (zero? rem)
-	  n
-	  (let ((read (get-bytevector-n! in bv i rem)))
-	    (if (eof-object? read)
-		(if is-prev-eof? ;; twice in a low, raise an error...
-		    (raise (condition
-			    (make-i/o-read-error)
-			    (make-who-condition 'get-bytevector-n/ensured!)
-			    (make-message-condition
-			     "Port exhausted before reading requierd bytes")
-			    (make-irritants-condition `((port ,in)
-							(read ,(- n rem))
-							(required ,n)))))
-		    (loop i rem #t))
-		(loop (+ i read) (- rem read) #f))))))
   
   ;; built in bytevector input port would requires length of input date
   ;; however it would allocate huge amount of data.

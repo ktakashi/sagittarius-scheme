@@ -67,10 +67,8 @@
 	    (clos user)
 	    (net mq amqp types)
 	    (net mq amqp security)
+	    (net socket)
 	    (rfc sasl)
-	    (rfc tls)
-	    (binary io)
-	    (binary pack)
 	    (math random)
 	    (util bytevector))
 
@@ -98,9 +96,9 @@
   (define-class <amqp-connection> (<state-mixin>)
     ;; should connection manage sessions?
     ((principal  :init-keyword :principal :init-value #f)
-     ;; socket-port
      (socket     :init-keyword :socket)
-     (raw-socket :init-keyword :raw-socket)
+     ;; size dof type type-specific = 4 1 1 2
+     (in-buffer  :init-form (make-bytevector (+ 4 1 1 2)))
      ;; for informations
      (hostname   :init-keyword :hostname)
      (port       :init-keyword :port)
@@ -171,13 +169,25 @@
 					    (security #f)
 				       :allow-other-keys opts)
     
-    (let* ((socket (make-client-socket host service))
-	   (conn (make <amqp-connection> :socket (socket-port socket)
-		       :raw-socket socket
+    (let* ((options (socket-options))
+	   ;; TODO make socket-options->amqp-client-connection
+	   (socket (socket-options->client-socket options host service))
+	   (conn (make <amqp-connection> :socket socket
 		       :state :start
 		       :hostname host :port service)))
       (negotiate-header conn major minor revision security)
       (apply open-amqp-connection! conn opts)))
+
+  (define (ensured-socket-recv socket n)
+    (let ((bv (make-bytevector n)))
+      (ensured-socket-recv! socket bv 0 n)
+      bv))
+  (define (ensured-socket-recv! socket bv start n0)
+    (let loop ((rest n0) (start start))
+      (let ((n (socket-recv! socket bv start rest)))
+	(if (= n rest)
+	    n0
+	    (loop (- rest n) (+ start n))))))
 
   (define (negotiate-header conn major minor revision security)
     (define (construct-header security-mark)
@@ -196,8 +206,8 @@
 				       security))))
     (let* ((security-mark (security-protocol security))
 	   (header (construct-header security-mark)))
-      (put-bytevector (~ conn 'socket) header)
-      (let1 res (get-bytevector-n/ensured
+      (socket-send (~ conn 'socket) header)
+      (let1 res (ensured-socket-recv
 		 (~ conn 'socket) (bytevector-length header))
 	(unless (bytevector=? header res)
 	  (error 'negotiate-header "unknown protocol" 
@@ -211,6 +221,7 @@
 	       (assertion-violation 'amqp-make-client-connection
 				       "Unsupported security protocol"
 				       security))))))
+  
   (define (negotiate-sasl conn security)
     (define (read-frame)
       (let-values (((ext perform payload) (recv-frame&payload conn)))
@@ -278,16 +289,21 @@
 
   ;; wrap with frame
   (define (send-frame conn performative :optional (payload #vu8()) (type 0))
+    (define buf (make-bytevector 4)) ;; u32 size
     (let ((bv (amqp-value->bytevector performative))
-	  (port (~ conn 'socket)))
+	  (sock (~ conn 'socket)))
       ;; TODO extra header
-      (put-u32 port (+ (bytevector-length bv) (bytevector-length payload) 8)
-	       (endianness big))
-      (put-u8 port 2) ;; TODO DOF
-      (put-u8 port type) ;; AMQP frame
-      (put-u16 port 0 (endianness big))
-      (put-bytevector port bv)
-      (put-bytevector port payload)))
+      (bytevector-u32-set! buf 0
+			   (+ (bytevector-length bv)
+			      (bytevector-length payload) 8)
+			   (endianness big))
+      (socket-send sock buf)
+      (bytevector-u8-set! buf 0 2)
+      (bytevector-u8-set! buf 1 type)
+      (bytevector-u16-set! buf 2 0 (endianness big))
+      (socket-send sock buf)
+      (socket-send sock bv)
+      (socket-send sock payload)))
 
   ;; this won't receive payload, internal use only.
   (define (recv-frame conn)
@@ -295,18 +311,17 @@
       (values ext performative)))
   
   (define (recv-frame&payload conn)
-    (define port (~ conn 'socket))
+    (define sock (~ conn 'socket))
     ;; size dof type type-specific = 4 1 1 2
-    (let* ((bv (get-bytevector-n/ensured port (+ 4 1 1 2)))
+    (let* ((bv (ensured-socket-recv sock (+ 4 1 1 2)))
 	   (size (bytevector-u32-ref bv 0 (endianness big)))
 	   (dof (bytevector-u8-ref bv 4))
 	   (type (bytevector-u8-ref bv 5))
 	   (specific (bytevector-u16-ref bv 6 (endianness big)))
-	   (ext (get-bytevector-n/ensured port (- (* dof 4) 8)))
-	   (data (get-bytevector-n/ensured port (- size (* dof 4))))
+	   (ext (ensured-socket-recv sock (- (* dof 4) 8)))
+	   (data (ensured-socket-recv sock (- size (* dof 4))))
 	   (in (open-bytevector-input-port data))
 	   (perfom (read-amqp-data in)))
-
       (values ext perfom (get-bytevector-all in))))
 
   (define (generate-container-id)
@@ -339,8 +354,8 @@
     (recv-close-frame conn)
     (set! (~ conn 'state) :end)
     ;; spec said SHOULD ...
-    (shutdown-port (~ conn 'socket) SHUT_RDWR)
-    (close-port (~ conn 'socket))
+    (socket-shutdown (~ conn 'socket) SHUT_RDWR)
+    (socket-close (~ conn 'socket))
     conn)
 
   (define (send-close-frame conn :key error)
