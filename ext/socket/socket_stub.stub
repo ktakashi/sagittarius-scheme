@@ -104,8 +104,7 @@
   (o::<socket> bv::<bytevector> start::<fixnum> len::<fixnum>
 	       :optional (flags::<ifixnum> 0)) ::<fixnum>
   ;; sanity check
-  (when (or (>= start (SG_BVECTOR_SIZE bv))
-	    (> len (- (SG_BVECTOR_SIZE bv) start)))
+  (when (or (< start 0) (> len (- (SG_BVECTOR_SIZE bv) start)))
     (Sg_AssertionViolation 'socket-recv! 
 			   (SG_MAKE_STRING "out of range")
 			   (SG_LIST4 o bv (SG_MAKE_INT start) 
