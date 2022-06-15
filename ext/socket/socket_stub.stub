@@ -75,6 +75,26 @@
 			 (SG_BVECTOR_SIZE bv)
 			 flags)))
 
+(define-c-proc socket-send/range
+  (o::<socket> bv::<bytevector> 
+   :optional (start::<fixnum> 0) (len::<fixnum> -1) (flags::<ifixnum> 0))
+  ::<fixnum>
+  (when (< len 0) (set! len (SG_BVECTOR_SIZE bv)))
+  (when (< start 0)
+    (Sg_AssertionViolation 'socket-send/range
+			   (SG_MAKE_STRING "start must be non negative")
+			   (SG_LIST4 o bv
+				     (SG_MAKE_INT start)
+				     (SG_MAKE_INT len))))
+  (when (< (- (SG_BVECTOR_SIZE bv) start) len)
+    (Sg_AssertionViolation 'socket-send/range
+			   (SG_MAKE_STRING "Specified length is too big")
+			   (SG_LIST4 o bv
+				     (SG_MAKE_INT start)
+				     (SG_MAKE_INT len))))
+  (result (Sg_SocketSend (SG_SOCKET o)
+			 (+ (SG_BVECTOR_ELEMENTS bv) start) len flags)))
+
 (define-c-proc socket-sendto
   (o::<socket> bv::<bytevector> addr::<sockaddr> :optional (flags::<ifixnum> 0))
   ::<fixnum>
@@ -83,6 +103,27 @@
 			   (SG_BVECTOR_SIZE bv)
 			   flags
 			   addr)))
+
+(define-c-proc socket-sendto/range
+  (o::<socket> bv::<bytevector> addr::<sockaddr> 
+   :optional (start::<fixnum> 0) (len::<fixnum> -1) (flags::<ifixnum> 0))
+  ::<fixnum>
+  (when (< len 0) (set! len (SG_BVECTOR_SIZE bv)))
+  (when (< start 0)
+    (Sg_AssertionViolation 'socket-sendto/range
+			   (SG_MAKE_STRING "start must be non negative")
+			   (SG_LIST4 o bv
+				     (SG_MAKE_INT start)
+				     (SG_MAKE_INT len))))
+  (when (< (- (SG_BVECTOR_SIZE bv) start) len)
+    (Sg_AssertionViolation 'socket-sendto/range
+			   (SG_MAKE_STRING "Specified length is too big")
+			   (SG_LIST4 o bv
+				     (SG_MAKE_INT start)
+				     (SG_MAKE_INT len))))
+  (result (Sg_SocketSendTo (SG_SOCKET o)
+			   (+ (SG_BVECTOR_ELEMENTS bv) start)
+			   len flags addr)))
 
 (define-c-proc %socket-recv (o::<socket> len::<fixnum>
 					:optional (flags::<ifixnum> 0)) 

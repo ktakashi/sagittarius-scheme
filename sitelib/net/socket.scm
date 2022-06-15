@@ -83,6 +83,7 @@
 
 	    socket-accept
 	    socket-send socket-sendto
+	    socket-send/range socket-sendto/range
 	    socket-recv socket-recv! socket-recvfrom
 	    socket-shutdown
 	    socket-close
@@ -173,7 +174,7 @@
 
 	    ;; from (rfc tls)
 	    tls-socket?
-	    tls-socket-send
+	    tls-socket-send tls-socket-send/range
 	    tls-socket-recv
 	    tls-socket-recv!
 	    tls-socket-shutdown

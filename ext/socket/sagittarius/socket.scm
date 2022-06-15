@@ -51,6 +51,7 @@
 
 	    socket-accept
 	    socket-send socket-sendto
+	    socket-send/range socket-sendto/range
 	    socket-recv socket-recv! socket-recvfrom
 	    socket-shutdown
 	    socket-close

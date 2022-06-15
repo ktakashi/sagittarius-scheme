@@ -33,7 +33,7 @@
     (export socket->tls-socket tls-socket?
 	    tls-socket-connect! ;; client handshake
 	    tls-socket-accept   ;; server handshake sort of
-	    tls-socket-send
+	    tls-socket-send tls-socket-send/range
 	    tls-socket-recv tls-socket-recv!
 	    tls-socket-shutdown tls-socket-close tls-socket-closed?
 	    tls-server-socket-handshake

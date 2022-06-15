@@ -41,6 +41,28 @@
 			    (cast int (SG_BVECTOR_SIZE bv))
 			    flags)))
 
+(define-c-proc tls-socket-send/range
+  (o::<tls-socket> bv::<bytevector> 
+   :optional (start::<fixnum> 0) (len::<fixnum> -1) (flags::<ifixnum> 0))
+  ::<fixnum>
+  (when (< len 0) (set! len (SG_BVECTOR_SIZE bv)))
+  (when (< start 0)
+    (Sg_AssertionViolation 'tls-socket-send/range
+			   (SG_MAKE_STRING "start must be non negative")
+			   (SG_LIST4 o bv
+				     (SG_MAKE_INT start)
+				     (SG_MAKE_INT len))))
+  (when (< (- (SG_BVECTOR_SIZE bv) start) len)
+    (Sg_AssertionViolation 'tls-socket-send/range
+			   (SG_MAKE_STRING "Specified length is too big")
+			   (SG_LIST4 o bv
+				     (SG_MAKE_INT start)
+				     (SG_MAKE_INT len))))
+  (result (Sg_TLSSocketSend (SG_TLS_SOCKET o)
+			    (+ (SG_BVECTOR_ELEMENTS bv) start)
+			    (cast int len)
+			    flags)))
+
 (define-c-proc %tls-socket-recv (o::<tls-socket> len::<ifixnum>
 						:optional (flags::<ifixnum> 0)) 
   (let ((data (Sg_MakeByteVector len 0))
