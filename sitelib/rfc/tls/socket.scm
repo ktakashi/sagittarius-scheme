@@ -35,7 +35,7 @@
 	    make-server-tls-socket
 
 	    tls-socket?
-	    tls-socket-send
+	    tls-socket-send tls-socket-send/range
 	    tls-socket-recv
 	    tls-socket-recv!
 	    tls-socket-shutdown
@@ -67,7 +67,7 @@
 	    socket-close
 	    socket-closed?
 	    socket-shutdown
-	    socket-send
+	    socket-send socket-send/range
 	    socket-recv
 	    socket-recv!
 	    socket-accept
@@ -290,6 +290,8 @@
     (tls-socket-shutdown o how))
   (define-method socket-send ((o <tls-socket>) data :optional (flags 0))
     (tls-socket-send o data flags))
+  (define-method socket-send/range ((o <tls-socket>) data . args)
+    (apply tls-socket-send/range o data args))
   (define-method socket-recv ((o <tls-socket>) size :optional (flags 0))
     (tls-socket-recv o size flags))
   (define-method socket-recv! ((o <tls-socket>) bv start len
