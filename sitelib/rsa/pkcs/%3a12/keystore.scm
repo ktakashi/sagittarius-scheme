@@ -84,7 +84,8 @@
   (define *mapping*
     `(("1.2.840.113549.1.12.1.3" . ,pbe-with-sha-and3-keytripledes-cbc)
       ("1.2.840.113549.1.12.1.4" . ,pbe-with-sha-and2-keytripledes-cbc)
-      ("1.2.840.113549.1.12.1.6" . ,pbe-with-sha-and-40bit-rc2-cbc)))
+      ("1.2.840.113549.1.12.1.6" . ,pbe-with-sha-and-40bit-rc2-cbc)
+      ("1.2.840.113549.1.5.13" . ,pbes2)))
   ;; for storing
   (define *reverse-mapping*
     (map (lambda (s) (cons (cdr s) (car s))) *mapping*))
@@ -364,8 +365,6 @@
   (define (make-pkcs12-keystore) (make <pkcs12-keystore>))
   (define (pkcs12-keystore? o) (is-a? o <pkcs12-keystore>))
 
-  (define *rsa-private-key-oid* "1.2.840.113549.1.1.1")
-
   (define (default-extra-data-handler data)
     ;; do nothing
     )
@@ -432,20 +431,23 @@
       (let ((mac-key (derive-mac-key key param)))
 	(hash HMAC data :key mac-key :hash (find-method oid)))))
 
-  (define (cipher-util alg-id password data processer)
+  (define (cipher-util alg-id password data processor)
+    (define (do-pbe alg-name alg-id password data processor)
+      (let* ((param (make-pbe-parameter (slot-ref alg-id 'parameters)))
+	     (k (generate-secret-key alg-name password))
+	     (pbe-cipher (cipher alg-name k :parameter param)))
+	(processor pbe-cipher data)))
+    (define (do-pbes2 alg-name alg-id password data processor)
+      (let* ((param (make-pbes2-parameter (slot-ref alg-id 'parameters))))
+	(assertion-violation 'cipher-util "Not yet" alg-id param)))
     (let ((alg-name (cond ((assoc (get-id alg-id) *mapping*) => cdr)
-			  (else #f)))
-	  (pbe-params (make-pkcs12-pbe-params (slot-ref alg-id 'parameters))))
+			  (else #f))))
       (unless alg-name
 	(assertion-violation 'load-pkcs12-keystore
 			     "unknown algorithm identifier" alg-id))
-      
-      (let* ((param (make-pbe-parameter 
-		     (pkcs12-pbe-params-get-iv pbe-params)
-		     (pkcs12-pbe-params-get-iterations pbe-params)))
-	     (k (generate-secret-key alg-name password))
-	     (pbe-cipher (cipher alg-name k :parameter param)))
-	(processer pbe-cipher data))))
+      (cond ((eq? alg-name pbes2)
+	     (do-pbes2 alg-name alg-id password data processor))
+	    (else (do-pbe alg-name alg-id password data processor)))))
 
   (define (load-pkcs12-keystore in password
 			:key (extra-data-handler default-extra-data-handler))

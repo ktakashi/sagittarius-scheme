@@ -30,21 +30,32 @@
 
 ;; Key derivation, PBES1 and PBES2 are supported.
 ;; MAC is not yet.
+#!nounbound
 (library (rsa pkcs :5)
     (export pbkdf-1 pbkdf-2 derive-key
 	    PKCS5-S1 PKCS5-S2
 	    pbe-with-md5-and-des pbe-with-sha1-and-des
 	    pbe-with-md5-and-rc2 pbe-with-sha1-and-rc2
+	    pbes2
 	    make-pbe-parameter generate-secret-key
+	    make-pbes2-parameter
 	    ;; To reuse cipher, we also need to export this method
 	    derive-key&iv
 	    <pbe-secret-key> <pbe-parameter>
+	    <pbes2-parameter>
+	    
 	    <pbe-cipher-spi>)
-    (import (rnrs) (clos user) (crypto)
+    (import (rnrs)
+	    (asn.1)
+	    (clos user)
+	    (crypto)
+	    (math)
+	    (rsa pkcs :10)
 	    (rfc hmac)
-	    (util bytevector)
 	    (sagittarius)
-	    (math) (sagittarius control))
+	    (sagittarius control)
+	    (sagittarius object)
+	    (util bytevector))
 
   (define (pbkdf-2 P S c dk-len 
 		   :key (algo :hash (hash-algorithm SHA-1))
@@ -121,43 +132,104 @@
      (type     :init-keyword :type)
      (iv-size  :init-keyword :iv-size)
      (length   :init-keyword :length)))
-
-  ;; markers
-  (define-class <pkcs5-s1> () ())
-  (define-class <pkcs5-s2> () ())
-  ;; PKCS#5 defines combination of MD5, SHA1 and DES, RC2.
-  ;;(define-class <pbe-md2-des> () ())
-  (define-class <pbe-md5-des> () ())
-  (define-class <pbe-sha1-des> () ())
-  ;;(define-class <pbe-md2-rc2> () ())
-  (define-class <pbe-md5-rc2> () ())
-  (define-class <pbe-sha1-rc2> () ())
-
-  (define PKCS5-S1 (make <pkcs5-s1>))
-  (define PKCS5-S2 (make <pkcs5-s2>))
+  
+  ;; markers  
+  (define PKCS5-S1 :PKCS5-S1)
+  (define PKCS5-S2 :PKCS5-S2)
   ;; the names are used also for cipher
-  ;;(define pbe-with-md2-and-des (make <pbe-md2-des>))
-  (define pbe-with-md5-and-des (make <pbe-md5-des>))
-  (define pbe-with-sha1-and-des (make <pbe-sha1-des>))
-  ;;(define pbe-with-md2-and-rc2 (make <pbe-md2-rc2>))
-  (define pbe-with-md5-and-rc2 (make <pbe-md5-rc2>))
-  (define pbe-with-sha1-and-rc2 (make <pbe-sha1-rc2>))
-
+  (define pbe-with-md5-and-des  :pbe-with-md5-and-des)
+  (define pbe-with-sha1-and-des :pbe-with-sha1-and-des)
+  (define pbe-with-md5-and-rc2  :pbe-with-md5-and-rc2)
+  (define pbe-with-sha1-and-rc2 :pbe-with-sha1-and-rc2)
+  (define pbes2 :pbes2)
+  
   ;; PBE parameter, it holds salt and iteration count.
-  (define-class <pbe-parameter> ()
+  (define-class <pbe-parameter> (<asn.1-encodable>)
     ((salt      :init-keyword :salt)
      (iteration :init-keyword :iteration)))
-  (define (make-pbe-parameter salt iteration)
-    (unless (bytevector? salt)
-      (assertion-violation 'make-pbe-parameter
-			   "salt must be a bytevector" salt))
+  (define-method make-pbe-parameter ((salt <bytevector>)
+				     (iteration <integer>))
     (unless (and (integer? iteration)
 		 (positive? iteration))
       (assertion-violation 'make-pbe-parameter
 			   "iteration must be a non negative exact integer"
 			   iteration))
     (make <pbe-parameter> :salt salt :iteration iteration))
+  (define-method make-pbe-parameter ((salt <der-octet-string>)
+				     (iteration <der-integer>))
+    (make-pbe-parameter (der-octet-string-octets salt)
+			(der-integer->integer iteration)))
+  (define-method make-pbe-parameter ((seq <asn.1-sequence>))
+    (make-pbe-parameter (asn.1-sequence-get seq 0)
+			(asn.1-sequence-get seq 1)))
+  (define-method der-encodable->der-object ((p <pbe-parameter>))
+    (make-der-sequence (make-der-octet-string (slot-ref p 'salt))
+		       (make-der-integer (slot-ref p 'iterations))))
 
+  ;; PBES2 parameter
+  (define *prf-oids*
+    `(("1.2.840.113549.2.7" . ,SHA-1)
+      ("1.2.840.113549.2.8" . ,SHA-224)
+      ("1.2.840.113549.2.9" . ,SHA-256)
+      ("1.2.840.113549.2.10" . ,SHA-384)
+      ("1.2.840.113549.2.11" . ,SHA-512)
+      ("1.2.840.113549.2.12" . ,SHA-512/224)
+      ("1.2.840.113549.2.13" . ,SHA-512/256)))
+  (define *reverse-prf-oid*
+    (map (lambda (e) (cons (cdr e) (car e))) *prf-oids*))
+  
+  (define-class <pbes2-parameter> ()
+    ((key-derivation    :init-keyword :key-derivation)
+     (encryption-scheme :init-keyword :encryption-scheme)))
+  (define-method make-pbes2-parameter ((seq <asn.1-sequence>))
+    (make <pbes2-parameter>
+      :key-derivation (make-pbkdf2-parameter (asn.1-sequence-get seq 0))
+      :encryption-scheme (make-algorithm-identifier
+			  (asn.1-sequence-get seq 1))))
+  (define-method der-encodable->der-object ((p <pbes2-parameter>))
+    (make-der-sequence (der-encodable->der-object (~ p 'key-derivation))
+		       (der-encodable->der-object (~ p 'encryption-scheme))))
+  (define-method write-object ((o <pbes2-parameter>) out)
+    (format out "#<pbes2-parameter ~a:~a>"
+	    (~ o 'key-derivation)
+	    (~ o 'encryption-scheme)))
+
+  
+  (define-class <pbkdf2-parameter> ()
+    ((salt       :init-keyword :salt)
+     (iteration  :init-keyword :iteration)
+     (key-length :init-keyword :key-length)
+     (prf        :init-keyword :prf)))
+  (define-method make-pbkdf2-parameter ((seq <asn.1-sequence>))
+    (make-pbkdf2-parameter (make-algorithm-identifier seq)))
+  (define-method make-pbkdf2-parameter ((aid <algorithm-identifier>))
+    (unless (equal? (algorithm-identifier-id aid) "1.2.840.113549.1.5.12")
+      (assertion-violation 'make-pbkdf2-parameter "Unknown OID" aid))
+    (let* ((param (~ aid 'parameters))
+	   (salt (asn.1-sequence-get param 0))
+	   (prf (make-algorithm-identifier (asn.1-sequence-get param 3))))
+      (make <pbkdf2-parameter>
+	:salt (if (is-a? salt <der-octet-string>)
+		  (der-octet-string-octets salt)
+		  (assertion-violation 'make-pbkdf2-parameter
+				       "PBKDF2-SaltSources is not supported"
+				       salt))
+	:iteration (der-integer->integer (asn.1-sequence-get param 1))
+	:key-length (der-integer->integer (asn.1-sequence-get param 2))
+	:prf (cond ((assoc (algorithm-identifier-id prf) *prf-oids*) => cdr)
+		   (else (assertion-violation 'make-pbkdf2-parameter
+					    "Unknown PRF OID" prf))))))
+  (define-method der-encodable->der-object ((p <pbkdf2-parameter>))
+    (define (oid->aid oid)
+      (make-algorithm-identifier oid (make-der-null)))
+    (make-der-sequence (make-der-octet-string (~ p 'salt))
+		       (make-der-integer (~ p 'iteration))
+		       (make-der-integer (~ p 'key-length))
+		       (cond ((assq (~ p 'prf) *reverse-prf-oid*) => oid->aid)
+			     (else
+			      (assertion-violation 'der-encodable->der-object
+						   "Unknown PRF" (~ p 'prf))))))
+						   
   ;; secret key generation
   ;; DES: key length 8, iv length 8
 #|
@@ -167,12 +239,12 @@
 	  :scheme DES :iv-size 8 :length 8
 	  :type PKCS5-S1))
 |#
-  (define-method generate-secret-key ((marker <pbe-md5-des>)
+  (define-method generate-secret-key ((m (eql pbe-with-md5-and-des))
 				      (password <string>))
     (make <pbe-secret-key> :password password :hash (hash-algorithm MD5)
 	  :scheme DES :iv-size 8 :length 8
 	  :type PKCS5-S1))
-  (define-method generate-secret-key ((marker <pbe-sha1-des>)
+  (define-method generate-secret-key ((m (eql pbe-with-sha1-and-des))
 				      (password <string>))
     (make <pbe-secret-key> :password password :hash (hash-algorithm SHA-1)
 	  :scheme DES :iv-size 8 :length 8
@@ -185,17 +257,28 @@
 	  :scheme RC2 :iv-size 8 :length 8
 	  :type PKCS5-S1))
 |#
-  (define-method generate-secret-key ((marker <pbe-md5-rc2>)
+  (define-method generate-secret-key ((m (eql pbe-with-md5-and-rc2))
 				      (password <string>))
     (make <pbe-secret-key> :password password :hash (hash-algorithm MD5)
 	  :scheme RC2 :iv-size 8 :length 8
 	  :type PKCS5-S1))
-  (define-method generate-secret-key ((marker <pbe-sha1-rc2>)
+  (define-method generate-secret-key ((m (eql pbe-with-sha1-and-rc2))
 				      (password <string>))
     (make <pbe-secret-key> :password password :hash (hash-algorithm SHA-1)
 	  :scheme RC2 :iv-size 8 :length 8
 	  :type PKCS5-S1))
 
+  (define-method generate-secret-key ((m (eql pbes2))
+				      (password <string>)
+				      (parameter <pbes2-parameter>))
+    (let ((kdf-param (~ parameter 'key-derivation))
+	  (enc-scheme (~ parameter 'encryption-scheme)))
+    (make <pbe-secret-key> :password password
+	  :hash (~ parameter 'prf) :length (~ parameter 'key-length)
+	  :scheme #f ;; TODO get it from the encryption
+	  :iv-size #f
+	  :type PKCS5-S2))
+  
   ;; for pbe-cipher-spi we need derive derived key and iv from given
   ;; secret key and parameter(salt and iteration count)
   ;; see PKCS#5 or RFC2898 section 6.1.1 Encryption Operation
@@ -219,15 +302,21 @@
 	(separate-key-iv derived-key key-len iv-len)))
     (derive-pkcs5-key key param))
 
-  (define-method derive-key&iv ((marker <pkcs5-s1>)
+  (define-method derive-key&iv ((m (eql PKCS5-S1))
 				(key <pbe-secret-key>)
 				(param <pbe-parameter>))
     (derive-key&iv-internal key param :kdf pbkdf-1 :hash (slot-ref key 'hash)))
 
-  (define-method derive-key&iv ((marker <pkcs5-s2>)
+  (define-method derive-key&iv ((m (eql PKCS5-S2))
 				(key <pbe-secret-key>)
 				(param <pbe-parameter>))
     (derive-key&iv-internal key param))
+
+  (define-method derive-key&iv ((m (eql PKCS5-S2))
+				(key <pbe-secret-key>)
+				(param <pbes2-parameter>))
+    (derive-key&iv-internal key param :hash (~ param 'prf)))
+
   ;; The PKCS#5 cipher. This can be used by PKCS#12 too.
   (define-class <pbe-cipher-spi> (<cipher-spi>)
     ((parameter :init-keyword :parameter)
@@ -272,5 +361,7 @@
   ;; RC2
   ;;(register-spi pbe-with-md2-and-rc2 <pbe-cipher-spi>)
   (register-spi pbe-with-md5-and-rc2 <pbe-cipher-spi>)
+  (register-spi pbe-with-sha1-and-rc2 <pbe-cipher-spi>)
+
   (register-spi pbe-with-sha1-and-rc2 <pbe-cipher-spi>)
 )

@@ -34,6 +34,7 @@
 	    pbe-with-sha-and2-keytripledes-cbc
 	    pbe-with-sha-and3-keytripledes-cbc
 	    pbe-with-sha-and-40bit-rc2-cbc
+	    pbes2
 	    ;; for convenience
 	    make-pbe-parameter generate-secret-key
 	    derive-mac-key ;; need this...
@@ -83,6 +84,14 @@
 				      (password <bytevector>))
     (generate-secret-key marker (utf8->string password)))
 
+  (define-method generate-secret-key ((marker (eql pbes2))
+				      (password <string>))
+    (make <pbe-secret-key> :password  password :hash (hash-algorithm SHA-1)
+	  :scheme RC2 :iv-size 8 :length 5
+	  :type PKCS12))
+  (define-method generate-secret-key ((marker (eql pbes2))
+				      (password <bytevector>))
+    (generate-secret-key marker (utf8->string password)))
 
   ;; PKCS#5 and PKCS#12 have defferent key derivation and iv generation
   ;; So we need to define these method
