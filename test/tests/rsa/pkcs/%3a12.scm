@@ -142,8 +142,6 @@
     (delete-file file)
     ))
 
-
-
 (let* ((ks (make-pkcs12-keystore))
        (keypair (generate-key-pair RSA))
        (keypair2 (generate-key-pair RSA))
@@ -218,7 +216,37 @@
     (delete-file file)
     )
 
-  )
+  ;; key and cert algorithm
+  (let ()
+    (define (test-algo algo)
+      (let ((ks (make-pkcs12-keystore :key-algorithm algo
+				      :cert-algorithm algo))
+	    (password "pass"))
+	(test-assert (format "store key with ~a" algo)
+		     (pkcs12-keystore-set-key! ks "key"
+					       (keypair-private keypair3)
+					       "test" (list cert3)))
+	(test-assert (format "store key with ~a" algo)
+		     (pkcs12-keystore-set-certificate! ks "cert" cert))
+	;; write it
+	(let* ((bv (call-with-bytevector-output-port
+		    (lambda (out) (store-pkcs12-keystore ks out password))))
+	       (ks2 (load-pkcs12-keystore (open-bytevector-input-port bv)
+		     password
+		     :key-algorithm pkcs12-pbe/sha1-and-des2-cbc
+		     :cert-algorithm pkcs12-pbe/sha1-and-rc2-40-cbc
+		     )))
+	  (test-assert (private-key? (pkcs12-keystore-get-key ks "key" "test")))
+	  (test-assert (x509-certificate?
+			(pkcs12-keystore-get-certificate ks "cert"))))))
+    (for-each test-algo
+	      (list pkcs12-pbe/sha1-and-des3-cbc
+		    pkcs12-pbe/sha1-and-des2-cbc
+		    pkcs12-pbe/sha1-and-rc2-40-cbc
+		    
+		    pbes2-aes128-cbc-pad/hmac-sha256
+		    pbes2-aes192-cbc-pad/hmac-sha256
+		    pbes2-aes256-cbc-pad/hmac-sha256))))
 
 ;; At this moment, this file uses PBES2 for one of the stored key
 ;; So, test it if we can retrieve it
@@ -234,8 +262,6 @@
     (when (file-exists? out-file) (delete-file out-file))
     (store-pkcs12-keystore-to-file ks out-file out-pass)
     (let ((ks2 (load-pkcs12-keystore-file out-file out-pass)))
-      (private-key?
-		    (pkcs12-keystore-get-key ks2 "eckey.pem" in-pass))
       (test-assert (private-key?
 		    (pkcs12-keystore-get-key ks2 "eckey.pem" in-pass)))
       (test-assert (x509-certificate?

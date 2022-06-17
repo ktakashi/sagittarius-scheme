@@ -29,6 +29,7 @@
 ;;;  
 
 ;; we do not support MAC yet
+#!nounbound
 (library (rsa pkcs :12 cipher)
     (export PKCS12
 	    pbe-with-sha-and2-keytripledes-cbc
@@ -43,6 +44,7 @@
     (import (rnrs)
 	    (sagittarius)
 	    (sagittarius control)
+	    (sagittarius object)
 	    (clos user)
 	    (crypto)
 	    (math)
@@ -100,15 +102,13 @@
   (define-constant *iv-material*  2)
   (define-constant *mac-material* 3)
 
-  (define (derive-pkcs12-key key param in-byte n)
-    (define u (hash-size (slot-ref key 'hash)))
-    (define v (hash-block-size (slot-ref key 'hash)))
+  (define (derive-pkcs12-key hash pw param in-byte n)
+    (define u (hash-size hash))
+    (define v (hash-block-size hash))
     (define salt (slot-ref param 'salt))
     (define iteration (slot-ref param 'iteration))
-    (define password (string->utf16 (string-append (slot-ref key 'password)
-						   "\x0;")
-				    'big))
-    (define hash (slot-ref key 'hash))
+    (define password (string->utf16 (string-append pw "\x0;") 'big))
+
     ;; key derivation
     (define (adjust a a-off b)
       (let* ((b-len (bytevector-length b))
@@ -170,14 +170,15 @@
   (define-method derive-key&iv ((marker (eql PKCS12))
 				(key <pbe-secret-key>)
 				(param <pbe-parameter>))
-    (values (derive-pkcs12-key key param *key-material* (slot-ref key 'length))
-	    (derive-pkcs12-key key param *iv-material*
-			       (slot-ref key 'iv-size))))
+    (let ((d (slot-ref key 'hash))
+	  (p (slot-ref key 'password)))
+      (values (derive-pkcs12-key d p param *key-material* (~ key 'length))
+	      (derive-pkcs12-key d p param *iv-material* (~ key 'iv-size)))))
 
   ;; derive MAC key
-  (define (derive-mac-key key param)
-    (derive-pkcs12-key key param *mac-material*
-		       (hash-size (slot-ref key 'hash))))
+  (define (derive-mac-key hash password param)
+    (let ((algo (hash-algorithm hash)))
+      (derive-pkcs12-key algo password param *mac-material* (hash-size algo))))
 
   (register-spi pbe-with-sha-and3-keytripledes-cbc <pbe-cipher-spi>)
   (register-spi pbe-with-sha-and2-keytripledes-cbc <pbe-cipher-spi>)

@@ -29,6 +29,8 @@
 ;;;  
 
 ;; only the part I want, for now
+;; ref
+;; - https://datatracker.ietf.org/doc/html/rfc7292
 #!nounbound
 (library (rsa pkcs :12 keystore)
     (export <pkcs12-keystore> pkcs12-keystore? make-pkcs12-keystore
@@ -64,7 +66,9 @@
 	    pkcs12-pbe/sha1-and-des2-cbc
 	    pkcs12-pbe/sha1-and-rc2-40-cbc
 	    
-	    
+	    pbes2-aes128-cbc-pad/hmac-sha256
+	    pbes2-aes192-cbc-pad/hmac-sha256
+	    pbes2-aes256-cbc-pad/hmac-sha256
 	    ;; read only accessors 
 	    ;; (for debugging use won't be documented)
 	    pkcs12-keystore-keys pkcs12-keystore-key-certificates
@@ -347,15 +351,15 @@
     (equal-hash (slot-ref a 'id)))
 
   (define-class <pkcs12-keystore> (<keystore>)
-    ;; we are not so flexible for algorithms
-    ((key-algorithm :init-value #;pbes2-aes256-cbc-pad/hmac-sha256
-		    pkcs12-pbe/sha1-and-des3-cbc)
+    ((key-algorithm :init-keyword :key-algorithm
+		    :init-value pbes2-aes256-cbc-pad/hmac-sha256)
      ;; storing encrypted-private-key-info
      (keys      :init-form (make-hashtable string-ci-hash string-ci=?)
 		:reader pkcs12-keystore-keys)
      (key-certs :init-form (make-string-hashtable)
 		:reader pkcs12-keystore-key-certificates)
-     (cert-algorithm :init-value pkcs12-pbe/sha1-and-des3-cbc)
+     (cert-algorithm :init-keyword :cert-algorithm
+		     :init-value pbes2-aes256-cbc-pad/hmac-sha256)
      (mac-algorithm :init-keyword :mac-algorithm :init-value SHA-256)
      (mac-iteration :init-keyword :mac-iteration :init-value 1024)
      (certs     :init-form (make-string-hashtable)
@@ -436,7 +440,7 @@
 	   ;; key derivation doesn't consider encryption scheme
 	   ;; so just use DES for now.
 	   (key (generate-secret-key pbe-with-sha1-and-des password)))
-      (let ((mac-key (derive-mac-key key param)))
+      (let ((mac-key (derive-mac-key digest password param)))
 	(hash HMAC data :key mac-key :hash digest))))
 
   (define (cipher-util alg-id password data processor)
@@ -457,7 +461,8 @@
 	(processor pbe-cipher data))))
 
   (define (load-pkcs12-keystore in password
-			:key (extra-data-handler default-extra-data-handler))
+			:key (extra-data-handler default-extra-data-handler)
+			:allow-other-keys opts)
 
     (define (crypt-data alg-id password data)
       (cipher-util alg-id password data decrypt))
@@ -609,7 +614,7 @@
     (let* ((r (read-asn.1-object in))
 	   (pkcs12 (make-pfx r))
 	   (info   (validate-mac pkcs12 (slot-ref pkcs12 'content-info)))
-	   (keystore (make-pkcs12-keystore))
+	   (keystore (apply make-pkcs12-keystore opts))
 	   ;; first keys
 	   (chain (process-keys keystore info)))
       ;; then certs
