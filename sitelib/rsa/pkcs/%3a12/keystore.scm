@@ -58,6 +58,12 @@
 	    ;; (rsa pkcs :12 cipher) must be extracted to somewhere.
 	    ;; Though the cipher is a part of the PKCS#12 spec...
 	    unwrap-encrypted-private-key-info
+
+	    ;; algorithm-identifier-providers
+	    pkcs12-pbe/sha1-and-des3-cbc
+	    pkcs12-pbe/sha1-and-des2-cbc
+	    pkcs12-pbe/sha1-and-rc2-40-cbc
+	    
 	    
 	    ;; read only accessors 
 	    ;; (for debugging use won't be documented)
@@ -86,10 +92,21 @@
       ("1.2.840.113549.1.12.1.4" . ,pbe-with-sha-and2-keytripledes-cbc)
       ("1.2.840.113549.1.12.1.6" . ,pbe-with-sha-and-40bit-rc2-cbc)
       ("1.2.840.113549.1.5.13" . ,pbes2)))
-  ;; for storing
-  (define *reverse-mapping*
-    (map (lambda (s) (cons (cdr s) (car s))) *mapping*))
 
+  (define ((make-pbe-algorithm-identifier-provider oid salt-size iter) prng)
+    (let* ((salt (read-random-bytes prng salt-size))
+	   (param (make-pbe-parameter salt iter)))
+      (make-algorithm-identifier oid (der-encodable->der-object param))))
+  ;; Those all uses SHA1, so salt size is always 20
+  (define pkcs12-pbe/sha1-and-des3-cbc
+    (make-pbe-algorithm-identifier-provider "1.2.840.113549.1.12.1.3" 20 1000))
+  (define pkcs12-pbe/sha1-and-des2-cbc
+    (make-pbe-algorithm-identifier-provider "1.2.840.113549.1.12.1.4" 20 1000))
+  (define pkcs12-pbe/sha1-and-rc2-40-cbc
+    (make-pbe-algorithm-identifier-provider "1.2.840.113549.1.12.1.6" 20 1000))
+
+  ;; (define ((make-pbes2-algorithm-identifier-provider oid
+  
   (define-class <content-info> (<asn.1-encodable>)
     ((content-type :init-keyword :content-type)
      (content      :init-keyword :content)))
@@ -318,13 +335,13 @@
 
   (define-class <pkcs12-keystore> (<keystore>)
     ;; we are not so flexible for algorithms
-    ((key-algorithm :init-value pbe-with-sha-and3-keytripledes-cbc)
+    ((key-algorithm :init-value pkcs12-pbe/sha1-and-des3-cbc)
      ;; storing encrypted-private-key-info
      (keys      :init-form (make-hashtable string-ci-hash string-ci=?)
 		:reader pkcs12-keystore-keys)
      (key-certs :init-form (make-string-hashtable)
 		:reader pkcs12-keystore-key-certificates)
-     (cert-algorithm :init-value pbe-with-sha-and3-keytripledes-cbc)
+     (cert-algorithm :init-value pkcs12-pbe/sha1-and-des3-cbc)
      (certs     :init-form (make-string-hashtable)
 		:reader pkcs12-keystore-certificates)
      (chain-certs :init-form (make-hashtable cert-id-hash cert-id=?)
@@ -674,12 +691,8 @@
       (define done-certs (make-equal-hashtable))
 
       ;; for encryption
-      (define salt (read-random-bytes prng salt-size))
-      (define param (make-pbe-parameter salt min-iteration))
       (define cert-algorithm (slot-ref keystore 'cert-algorithm))
-      (define alg-id (make-algorithm-identifier 
-		      (cdr (assq cert-algorithm *reverse-mapping*))
-		      (der-encodable->der-object param)))
+      (define alg-id (cert-algorithm prng))
 
       (define (process-keys-certificate keystore keys)
 	(hashtable-for-each
@@ -834,21 +847,14 @@
     (define prng (slot-ref keystore 'prng))
     (define key-algorithm (slot-ref keystore 'key-algorithm))
 
-    (define (wrap-key alg-name key-bv password param)
-      (let* ((k (generate-secret-key alg-name password))
-	     (pbe-cipher (cipher alg-name k :parameter param)))
-	(encrypt pbe-cipher key-bv)))
+    (define (wrap-key alg-id key-bv password)
+      (cipher-util alg-id password key-bv encrypt))
     (define (make-encrypted-key-content key)
       (encode (make-private-key-info key)))
     (define (->epki key password)
-      (let* ((salt (read-random-bytes prng salt-size))
-	     (param (make-pbe-parameter salt min-iteration))
-	     (key-bytes (wrap-key key-algorithm
-				  (make-encrypted-key-content key)
-				  password param))
-	     (alg-id (make-algorithm-identifier 
-		      (cdr (assq key-algorithm *reverse-mapping*))
-		      (der-encodable->der-object param))))
+      (let* ((alg-id (key-algorithm prng))
+	     (key-bytes
+	      (wrap-key alg-id (make-encrypted-key-content key) password)))
 	(make-encrypted-private-key-info alg-id key-bytes)))
 
     (unless (private-key? key)
