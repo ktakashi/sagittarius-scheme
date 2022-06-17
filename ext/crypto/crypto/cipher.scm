@@ -52,6 +52,9 @@
 	    SAFER-K128
 	    SAFER-SK128
 	    AES
+	    AES128
+	    AES192
+	    AES256
 	    Twofish
 	    DES
 	    DES3

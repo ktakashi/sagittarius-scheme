@@ -105,7 +105,23 @@
   (define pkcs12-pbe/sha1-and-rc2-40-cbc
     (make-pbe-algorithm-identifier-provider "1.2.840.113549.1.12.1.6" 20 1000))
 
-  ;; (define ((make-pbes2-algorithm-identifier-provider oid
+  (define ((make-pbes2-algorithm-identifier-provider digest salt-size
+						     iter dk-len enc) prng)
+    (let ((salt (read-random-bytes prng salt-size))
+	  (iv-size (cipher-blocksize enc)))
+      (make-algorithm-identifier "1.2.840.113549.1.5.13"
+       (der-encodable->der-object
+	(make-pbes2-parameter
+	 (make-pbkdf2-parameter salt iter dk-len digest)
+	 (make-encryption-scheme enc (read-random-bytes prng iv-size)))))))
+
+  ;; NIST recommendation of salt size = 16
+  (define pbes2-aes128-cbc-pad/hmac-sha256
+    (make-pbes2-algorithm-identifier-provider SHA-256 16 1000 16 AES128))
+  (define pbes2-aes192-cbc-pad/hmac-sha256
+    (make-pbes2-algorithm-identifier-provider SHA-256 16 1000 26 AES192))
+  (define pbes2-aes256-cbc-pad/hmac-sha256
+    (make-pbes2-algorithm-identifier-provider SHA-256 16 1000 32 AES256))
   
   (define-class <content-info> (<asn.1-encodable>)
     ((content-type :init-keyword :content-type)
@@ -237,9 +253,6 @@
   (define *pkcs-12-cert-bag*
     (make-der-object-identifier "1.2.840.113549.1.12.10.1.3"))
 
-  ;; kinda silly...
-  (define *sha1-oid* "1.3.14.3.2.26")
-
   (define-class <safe-bag> (<asn.1-encodable>)
     ((id    :init-keyword :id)
      (value :init-keyword :value)
@@ -335,13 +348,16 @@
 
   (define-class <pkcs12-keystore> (<keystore>)
     ;; we are not so flexible for algorithms
-    ((key-algorithm :init-value pkcs12-pbe/sha1-and-des3-cbc)
+    ((key-algorithm :init-value #;pbes2-aes256-cbc-pad/hmac-sha256
+		    pkcs12-pbe/sha1-and-des3-cbc)
      ;; storing encrypted-private-key-info
      (keys      :init-form (make-hashtable string-ci-hash string-ci=?)
 		:reader pkcs12-keystore-keys)
      (key-certs :init-form (make-string-hashtable)
 		:reader pkcs12-keystore-key-certificates)
      (cert-algorithm :init-value pkcs12-pbe/sha1-and-des3-cbc)
+     (mac-algorithm :init-keyword :mac-algorithm :init-value SHA-256)
+     (mac-iteration :init-keyword :mac-iteration :init-value 1024)
      (certs     :init-form (make-string-hashtable)
 		:reader pkcs12-keystore-certificates)
      (chain-certs :init-form (make-hashtable cert-id-hash cert-id=?)
@@ -354,10 +370,7 @@
 	   :reader pkcs12-keystore-prng
 	   :writer pkcs12-keystore-set-prng!)))
 
-  (define-constant salt-size 20) ;; SHA-1 hash size
-  (define-constant min-iteration 1024)
-
-  (define (make-pkcs12-keystore) (make <pkcs12-keystore>))
+  (define (make-pkcs12-keystore . opts) (apply make <pkcs12-keystore> opts))
   (define (pkcs12-keystore? o) (is-a? o <pkcs12-keystore>))
 
   (define (default-extra-data-handler data)
@@ -410,21 +423,21 @@
       :transcoder #f))
 
   (define *digest-mapping*
-    `((,*sha1-oid* . ,SHA-1)
-      ("2.16.840.1.101.3.4.2.1" . ,SHA-256)
-      ("2.16.840.1.101.3.4.2.2" . ,SHA-384)
-      ("2.16.840.1.101.3.4.2.3" . ,SHA-512)))
+    (map (lambda (digest) (cons (hash-oid digest) digest))
+	 `(,SHA-1 ,SHA-224 ,SHA-256 ,SHA-384
+	   ,SHA-512 ,SHA-512/224 ,SHA-512/256)))
+
+  (define (oid->digest oid)
+    (cond ((assoc oid *digest-mapping*) => cdr)
+	  (else (error 'oid->digest "Digest OID not supported" oid))))
   
-  (define (compute-mac oid data password salt iteration)
-    (define (find-method oid)
-      (cond ((assoc oid *digest-mapping*) => cdr)
-	    (else (error 'compute-mac "Digest not supported" oid))))
+  (define (compute-mac digest data password salt iteration)
     (let* ((param (make-pbe-parameter salt iteration))
 	   ;; key derivation doesn't consider encryption scheme
 	   ;; so just use DES for now.
 	   (key (generate-secret-key pbe-with-sha1-and-des password)))
       (let ((mac-key (derive-mac-key key param)))
-	(hash HMAC data :key mac-key :hash (find-method oid)))))
+	(hash HMAC data :key mac-key :hash digest))))
 
   (define (cipher-util alg-id password data processor)
     (define (get-param alg-id)
@@ -588,7 +601,7 @@
 	     (count (slot-ref md 'iteration-count))
 	     (data (der-octet-string-octets (slot-ref info 'content))))
 	(unless (bytevector=? (slot-ref di 'digest)
-			      (compute-mac (get-id id)
+			      (compute-mac (oid->digest (get-id id))
 					   data password salt count))
 	  (error 'load-pkcs12-keystore 
 		 "key store mac invalid - wrong password or corrupted file."))
@@ -783,10 +796,13 @@
 	(asn.1-encodable->asn.1-object info)))
 
     (define (compute-mac-data data password)
-      (define salt (read-random-bytes prng salt-size))
-      (let ((res (compute-mac *sha1-oid* data password salt min-iteration))
-	    (alg-id (make-algorithm-identifier *sha1-oid* (make-der-null))))
-	(make-mac-data (make-digest-info alg-id res) salt min-iteration)))
+      (define mac-algorithm (slot-ref keystore 'mac-algorithm))
+      (define mac-iteration (slot-ref keystore 'mac-iteration))
+      (define salt (read-random-bytes prng (hash-size mac-algorithm)))
+      (let ((alg-id (make-algorithm-identifier
+		     (hash-oid mac-algorithm) (make-der-null)))
+	    (res (compute-mac mac-algorithm data password salt mac-iteration)))
+	(make-mac-data (make-digest-info alg-id res) salt mac-iteration)))
 
     (let* ((key-string (process-keys (pkcs12-keystore-keys keystore)))
 	   (cert-string (process-certificates keystore))

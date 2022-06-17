@@ -234,6 +234,8 @@
     (when (file-exists? out-file) (delete-file out-file))
     (store-pkcs12-keystore-to-file ks out-file out-pass)
     (let ((ks2 (load-pkcs12-keystore-file out-file out-pass)))
+      (private-key?
+		    (pkcs12-keystore-get-key ks2 "eckey.pem" in-pass))
       (test-assert (private-key?
 		    (pkcs12-keystore-get-key ks2 "eckey.pem" in-pass)))
       (test-assert (x509-certificate?

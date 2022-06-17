@@ -904,6 +904,34 @@ static SG_DEFINE_METHOD(cipher_blocksize_k_rec,
 			&Sg_GenericCipherBlockSize,
 			1, 0, cipher_blocksize_k_SPEC, &cipher_blocksize_k);
 
+const struct ltc_cipher_descriptor aes128_desc =
+{
+    "aes128",
+    100,
+    16, 16, 16, 10,
+    aes_setup, aes_ecb_encrypt, aes_ecb_decrypt, aes_test, aes_done, aes_keysize,
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
+};
+
+const struct ltc_cipher_descriptor aes192_desc =
+{
+    "aes192",
+    101,
+    24, 24, 16, 10,
+    aes_setup, aes_ecb_encrypt, aes_ecb_decrypt, aes_test, aes_done, aes_keysize,
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
+};
+
+const struct ltc_cipher_descriptor aes256_desc =
+{
+    "aes256",
+    102,
+    32, 32, 16, 10,
+    aes_setup, aes_ecb_encrypt, aes_ecb_decrypt, aes_test, aes_done, aes_keysize,
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
+};
+
+
 extern void Sg__Init_crypto_stub(SgLibrary *lib);
 SG_CDECL_BEGIN
 extern void Sg__InitKey(SgLibrary *lib);
@@ -944,6 +972,9 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__crypto()
   REGISTER_CIPHER(&safer_sk128_desc);
   REGISTER_CIPHER(&saferp_desc);
   REGISTER_CIPHER(&aes_desc);
+  REGISTER_CIPHER(&aes128_desc);
+  REGISTER_CIPHER(&aes192_desc);
+  REGISTER_CIPHER(&aes256_desc);
   REGISTER_CIPHER(&twofish_desc);
   REGISTER_CIPHER(&des_desc);
   REGISTER_CIPHER(&des3_desc);

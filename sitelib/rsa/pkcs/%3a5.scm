@@ -46,6 +46,8 @@
 
 	    generate-secret-key
 	    make-pbes2-parameter pbes2-parameter?
+	    make-pbkdf2-parameter
+	    make-encryption-scheme
 	    ;; To reuse cipher, we also need to export this method
 	    derive-key&iv
 	    <pbe-secret-key> 
@@ -193,31 +195,18 @@
       ("1.2.840.113549.2.13" . ,SHA-512/256)))
   (define *reverse-prf-oid*
     (map (lambda (e) (cons (cdr e) (car e))) *prf-oids*))
-  
-  (define-class <pbes2-parameter> ()
-    ((key-derivation    :init-keyword :key-derivation)
-     (encryption-scheme :init-keyword :encryption-scheme)))
-  (define-method make-pbes2-parameter ((seq <asn.1-sequence>))
-    (make <pbes2-parameter>
-      :key-derivation (make-pbkdf2-parameter (asn.1-sequence-get seq 0))
-      :encryption-scheme (make-encryption-scheme (make-algorithm-identifier
-						  (asn.1-sequence-get seq 1)))))
-  (define (pbes2-parameter? o) (is-a? o <pbes2-parameter>))
-  
-  (define-method der-encodable->der-object ((p <pbes2-parameter>))
-    (make-der-sequence (der-encodable->der-object (~ p 'key-derivation))
-		       (der-encodable->der-object (~ p 'encryption-scheme))))
-  (define-method write-object ((o <pbes2-parameter>) out)
-    (format out "#<pbes2-parameter ~a:~a>"
-	    (~ o 'key-derivation)
-	    (~ o 'encryption-scheme)))
 
-  
   (define-class <pbkdf2-parameter> ()
     ((salt       :init-keyword :salt)
      (iteration  :init-keyword :iteration)
      (key-length :init-keyword :key-length)
      (prf        :init-keyword :prf)))
+  (define-method make-pbkdf2-parameter ((salt <bytevector>)
+					(iteration <integer>)
+					(key-length <integer>)
+					prf)
+    (make <pbkdf2-parameter> :salt salt :iteration iteration
+	  :key-length key-length :prf prf))  
   (define-method make-pbkdf2-parameter ((seq <asn.1-sequence>))
     (make-pbkdf2-parameter (make-algorithm-identifier seq)))
   (define-method make-pbkdf2-parameter ((aid <algorithm-identifier>))
@@ -239,14 +228,15 @@
 					    "Unknown PRF OID" prf))))))
   (define-method der-encodable->der-object ((p <pbkdf2-parameter>))
     (define (oid->aid oid)
-      (make-algorithm-identifier (cdr oid) (make-der-null)))
-    (make-der-sequence (make-der-octet-string (~ p 'salt))
-		       (make-der-integer (~ p 'iteration))
-		       (make-der-integer (~ p 'key-length))
-		       (cond ((assq (~ p 'prf) *reverse-prf-oid*) => oid->aid)
-			     (else
-			      (assertion-violation 'der-encodable->der-object
-						   "Unknown PRF" (~ p 'prf))))))
+      (der-encodable->der-object (make-algorithm-identifier (cdr oid))))
+    (make-algorithm-identifier "1.2.840.113549.1.5.12"
+     (make-der-sequence
+      (make-der-octet-string (~ p 'salt))
+      (make-der-integer (~ p 'iteration))
+      (make-der-integer (~ p 'key-length))
+      (cond ((assq (~ p 'prf) *reverse-prf-oid*) => oid->aid)
+	    (else (assertion-violation 'der-encodable->der-object
+				       "Unknown PRF" (~ p 'prf)))))))
   (define-method write-object ((o <pbkdf2-parameter>) out)
     (format out "#<pbkdf2-parameter> salt=~a, iteration=~a, dkLen=~a prf=~a>"
 	    (~ o 'salt)
@@ -255,19 +245,22 @@
 	    (~ o 'prf)))
 
   (define *enc-oids*
-    `(("2.16.840.1.101.3.4.1.42" . ,AES)))
+    `(("2.16.840.1.101.3.4.1.2" .  ,AES128) ;; AES128-CBC-Pad
+      ("2.16.840.1.101.3.4.1.22" . ,AES192) ;; AES192-CBC-Pad
+      ("2.16.840.1.101.3.4.1.42" . ,AES256) ;; AES256-CBC-Pad
+      ))
+  
   (define *reverse-enc-oids*
     (map (lambda (e) (cons (cdr e) (car e))) *enc-oids*))
   (define-class <pbes2-encryption-scheme> (<asn.1-encodable>)
     ((scheme :init-keyword :scheme)
      (iv :init-keyword :iv)))
-  (define-method der-encodable->der-object ((p <pbes2-encryption-scheme>))
-    (make-algorithm-identifier
-     (cond ((assq (~ p 'scheme) *reverse-enc-oids*) => cdr)
-	   (else
-	    (assertion-violation 'der-encodable->der-object
-				 "Unknown encryption scheme" (~ p 'scheme))))
-     (make-der-octet-string (~ p 'iv))))
+  (define-method make-encryption-scheme (scheme (iv <bytevector>))
+    (unless (assoc scheme *reverse-enc-oids*)
+      (assertion-violation 'make-encryption-scheme
+			   "Encryption scheme not supported" scheme))
+    (make <pbes2-encryption-scheme> :scheme scheme :iv iv))
+
   (define-method make-encryption-scheme ((aid <algorithm-identifier>))
     (make <pbes2-encryption-scheme>
       :scheme (cond ((assoc (algorithm-identifier-id aid) *enc-oids*) => cdr)
@@ -276,8 +269,45 @@
       :iv (and (let ((p (algorithm-identifier-parameters aid)))
 		 (and (is-a? p <der-octet-string>)
 		      (der-octet-string-octets p))))))
+
+  (define-method der-encodable->der-object ((p <pbes2-encryption-scheme>))
+    (der-encodable->der-object
+     (make-algorithm-identifier
+      (cond ((assq (~ p 'scheme) *reverse-enc-oids*) => cdr)
+	    (else
+	     (assertion-violation 'der-encodable->der-object
+				  "Unknown encryption scheme" (~ p 'scheme))))
+      (make-der-octet-string (~ p 'iv)))))
   (define-method write-object ((o <pbes2-encryption-scheme>) out)
     (format out "#<pbes2-encryption-scheme scheme=~a>" (~ o 'scheme)))
+  
+  (define-class <pbes2-parameter> ()
+    ((key-derivation    :init-keyword :key-derivation)
+     (encryption-scheme :init-keyword :encryption-scheme)))
+  (define-method make-pbes2-parameter ((key-derive <pbkdf2-parameter>)
+				       (enc-scheme <pbes2-encryption-scheme>))
+    (make <pbes2-parameter>
+      :key-derivation key-derive :encryption-scheme enc-scheme))
+  (define-method make-pbes2-parameter ((seq <asn.1-sequence>))
+    (make <pbes2-parameter>
+      :key-derivation (make-pbkdf2-parameter (asn.1-sequence-get seq 0))
+      :encryption-scheme (make-encryption-scheme (make-algorithm-identifier
+						  (asn.1-sequence-get seq 1)))))
+  (define (pbes2-parameter? o) (is-a? o <pbes2-parameter>))
+  
+  (define-method der-encodable->der-object ((p <pbes2-parameter>))
+    (make-der-sequence (der-encodable->der-object (~ p 'key-derivation))
+		       (der-encodable->der-object (~ p 'encryption-scheme)))
+    #;(der-encodable->der-object
+     (make-algorithm-identifier
+      "1.2.840.113549.1.5"
+      )))
+  (define-method write-object ((o <pbes2-parameter>) out)
+    (format out "#<pbes2-parameter ~a:~a>"
+	    (~ o 'key-derivation)
+	    (~ o 'encryption-scheme)))
+
+
   ;; secret key generation
   ;; DES: key length 8, iv length 8
 #|
