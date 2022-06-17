@@ -341,7 +341,8 @@ static SgObject sym_after_padding(SgObject data, void **d)
   int err = spi->encrypt(SG_BVECTOR_ELEMENTS(data), SG_BVECTOR_ELEMENTS(ct),
 			 len, &spi->skey);
   if (err != CRYPT_OK) {
-    Sg_Error(UC("cipher-encrypt: %A"), error_to_string(err));
+    Sg_Error(UC("cipher-encrypt: [%d] %A"), err,
+	     Sg_MakeStringC(error_to_string(err)));
     return SG_UNDEF;		/* dummy */
   }
   return SG_OBJ(ct);

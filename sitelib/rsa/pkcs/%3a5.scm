@@ -384,14 +384,14 @@
     (let*-values (((key parameter)
 		   (extract-key&param args <pbe-secret-key> <pbe-parameter>))
 		  ((dkey iv)
-		   (derive-key&iv (slot-ref key 'type) key parameter)))
+		   (derive-key&iv (slot-ref key 'type) key parameter)))      
       (let* ((derived-secret-key
 	      (generate-secret-key (slot-ref key 'scheme) dkey))
 	     (cipher
 	      (make-cipher (slot-ref key 'scheme) derived-secret-key
 		:mode-parameter (make-composite-parameter
 				 (make-mode-name-parameter MODE_CBC)
-				 ;; (make-padding-parameter pkcs5-padder)
+				 (make-padding-parameter pkcs5-padder)
 				 (make-iv-parameter iv)))))
 	(slot-set! spi 'name (format "pbe-~a" (slot-ref key 'scheme)))
 	(slot-set! spi 'key derived-secret-key)

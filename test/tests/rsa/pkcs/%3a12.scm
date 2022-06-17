@@ -220,4 +220,16 @@
 
   )
 
+#;(let ((in-file "test/data/keystores/keystore0.b64")
+      (in-pass "password")
+      (out-file "test.p12")
+      (out-pass "password2"))
+  (let ((ks (load-pkcs12-keystore-file in-file in-pass)))
+    (when (file-exists? out-file) (delete-file out-file))
+    (store-pkcs12-keystore-to-file out-file out-pass)
+    (let ((ks2 (load-pkcs12-keystore-file out-pass out-pass)))
+      (test-assert (private-key?
+		    (pkcs12-keystore-get-key ks2 "eckey.pem" in-pass))))))
+      
+
 (test-end)
