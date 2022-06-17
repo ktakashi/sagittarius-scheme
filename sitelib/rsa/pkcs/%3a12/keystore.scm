@@ -437,11 +437,8 @@
   
   (define (compute-mac digest data password salt iteration)
     (let* ((param (make-pbe-parameter salt iteration))
-	   ;; key derivation doesn't consider encryption scheme
-	   ;; so just use DES for now.
-	   (key (generate-secret-key pbe-with-sha1-and-des password)))
-      (let ((mac-key (derive-mac-key digest password param)))
-	(hash HMAC data :key mac-key :hash digest))))
+	   (mac-key (derive-mac-key digest password param)))
+      (hash HMAC data :key mac-key :hash digest)))
 
   (define (cipher-util alg-id password data processor)
     (define (get-param alg-id)
