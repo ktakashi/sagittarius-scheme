@@ -220,16 +220,21 @@
 
   )
 
-#;(let ((in-file "test/data/keystores/keystore0.b64")
+;; At this moment, this file uses PBES2 for one of the stored key
+;; So, test it if we can retrieve it
+(let ((in-file "test/data/keystores/keystore0.b64")
       (in-pass "password")
       (out-file "test.p12")
       (out-pass "password2"))
-  (let ((ks (load-pkcs12-keystore-file in-file in-pass)))
+  (let ((ks (call-with-input-file in-file
+	      (lambda (in)
+		(load-pkcs12-keystore (open-base64-decode-input-port in)
+				      in-pass))
+	      :transcoder #f)))
     (when (file-exists? out-file) (delete-file out-file))
-    (store-pkcs12-keystore-to-file out-file out-pass)
-    (let ((ks2 (load-pkcs12-keystore-file out-pass out-pass)))
+    (store-pkcs12-keystore-to-file ks out-file out-pass)
+    (let ((ks2 (load-pkcs12-keystore-file out-file out-pass)))
       (test-assert (private-key?
 		    (pkcs12-keystore-get-key ks2 "eckey.pem" in-pass))))))
-      
 
 (test-end)
