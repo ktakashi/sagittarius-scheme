@@ -40,11 +40,18 @@
 	    pbe-with-md5-and-des pbe-with-sha1-and-des
 	    pbe-with-md5-and-rc2 pbe-with-sha1-and-rc2
 	    pbes2
-	    make-pbe-parameter generate-secret-key
-	    make-pbes2-parameter
+
+	    make-pbe-parameter pbe-parameter?
+	    pbe-parameter-salt pbe-parameter-iteration
+
+	    generate-secret-key
+	    make-pbes2-parameter pbes2-parameter?
 	    ;; To reuse cipher, we also need to export this method
 	    derive-key&iv
-	    <pbe-secret-key> <pbe-parameter>
+	    <pbe-secret-key> 
+	    <pbe-parameter>
+	    
+	    
 	    <pbes2-parameter>
 	    
 	    <pbe-cipher-spi>)
@@ -153,8 +160,8 @@
   
   ;; PBE parameter, it holds salt and iteration count.
   (define-class <pbe-parameter> (<asn.1-encodable>)
-    ((salt      :init-keyword :salt)
-     (iteration :init-keyword :iteration)))
+    ((salt      :init-keyword :salt :reader pbe-parameter-salt)
+     (iteration :init-keyword :iteration :reader pbe-parameter-iteration)))
   (define-method make-pbe-parameter ((salt <bytevector>)
 				     (iteration <integer>))
     (unless (and (integer? iteration)
@@ -163,6 +170,7 @@
 			   "iteration must be a non negative exact integer"
 			   iteration))
     (make <pbe-parameter> :salt salt :iteration iteration))
+  (define (pbe-parameter? o) (is-a? o <pbe-parameter>))
   (define-method make-pbe-parameter ((salt <der-octet-string>)
 				     (iteration <der-integer>))
     (make-pbe-parameter (der-octet-string-octets salt)
@@ -172,7 +180,7 @@
 			(asn.1-sequence-get seq 1)))
   (define-method der-encodable->der-object ((p <pbe-parameter>))
     (make-der-sequence (make-der-octet-string (slot-ref p 'salt))
-		       (make-der-integer (slot-ref p 'iterations))))
+		       (make-der-integer (slot-ref p 'iteration))))
 
   ;; PBES2 parameter
   (define *prf-oids*
@@ -194,6 +202,8 @@
       :key-derivation (make-pbkdf2-parameter (asn.1-sequence-get seq 0))
       :encryption-scheme (make-encryption-scheme (make-algorithm-identifier
 						  (asn.1-sequence-get seq 1)))))
+  (define (pbes2-parameter? o) (is-a? o <pbes2-parameter>))
+  
   (define-method der-encodable->der-object ((p <pbes2-parameter>))
     (make-der-sequence (der-encodable->der-object (~ p 'key-derivation))
 		       (der-encodable->der-object (~ p 'encryption-scheme))))

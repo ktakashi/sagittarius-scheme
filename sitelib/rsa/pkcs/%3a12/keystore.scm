@@ -302,28 +302,6 @@
     (make-der-sequence (slot-ref cb 'id) 
 		       (make-der-tagged-object 0 (slot-ref cb 'value))))
 
-
-  (define-class <pkcs12-pbe-params> (<asn.1-encodable>)
-    ((iterations :init-keyword :iterations)
-     (iv :init-keyword :iv)))
-  (define-generic make-pkcs12-pbe-params)
-  (define-method make-pkcs12-pbe-params ((s <asn.1-sequence>))
-    (make <pkcs12-pbe-params>
-      :iv (asn.1-sequence-get s 0)
-      :iterations (asn.1-sequence-get s 1)))
-  (define-method make-pkcs12-pbe-params ((iv <bytevector>)
-					 (iterations <integer>))
-    (make <pkcs12-pbe-params>
-      :iv (make-der-octet-string iv)
-      :iterations (make-der-integer iterations)))
-  (define-method der-encodable->der-object ((p <pkcs12-pbe-params>))
-    (make-der-sequence (slot-ref p 'iv) (slot-ref p 'iterations)))
-
-  (define (pkcs12-pbe-params-get-iterations o)
-    (der-integer->integer (slot-ref o 'iterations)))
-  (define (pkcs12-pbe-params-get-iv o)
-    (slot-ref (slot-ref o 'iv) 'string))
-
   ;; helper class
   (define-class <cert-id> ()
     ((id :init-keyword :id)))
@@ -697,7 +675,7 @@
 
       ;; for encryption
       (define salt (read-random-bytes prng salt-size))
-      (define param (make-pkcs12-pbe-params salt min-iteration))
+      (define param (make-pbe-parameter salt min-iteration))
       (define cert-algorithm (slot-ref keystore 'cert-algorithm))
       (define alg-id (make-algorithm-identifier 
 		      (cdr (assq cert-algorithm *reverse-mapping*))
@@ -856,18 +834,15 @@
     (define prng (slot-ref keystore 'prng))
     (define key-algorithm (slot-ref keystore 'key-algorithm))
 
-    (define (wrap-key alg-name key-bv password pbe-params)
-      (let* ((param (make-pbe-parameter 
-		     (pkcs12-pbe-params-get-iv pbe-params)
-		     (pkcs12-pbe-params-get-iterations pbe-params)))
-	     (k (generate-secret-key alg-name password))
+    (define (wrap-key alg-name key-bv password param)
+      (let* ((k (generate-secret-key alg-name password))
 	     (pbe-cipher (cipher alg-name k :parameter param)))
 	(encrypt pbe-cipher key-bv)))
     (define (make-encrypted-key-content key)
       (encode (make-private-key-info key)))
     (define (->epki key password)
       (let* ((salt (read-random-bytes prng salt-size))
-	     (param (make-pkcs12-pbe-params salt min-iteration))
+	     (param (make-pbe-parameter salt min-iteration))
 	     (key-bytes (wrap-key key-algorithm
 				  (make-encrypted-key-content key)
 				  password param))
