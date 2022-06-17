@@ -30,6 +30,9 @@
 
 ;; Key derivation, PBES1 and PBES2 are supported.
 ;; MAC is not yet.
+;; Ref
+;; - https://datatracker.ietf.org/doc/html/rfc2898 (deprecated)
+;; - https://datatracker.ietf.org/doc/html/rfc8018
 #!nounbound
 (library (rsa pkcs :5)
     (export pbkdf-1 pbkdf-2 derive-key
@@ -47,6 +50,7 @@
 	    <pbe-cipher-spi>)
     (import (rnrs)
 	    (asn.1)
+	    (clos core)
 	    (clos user)
 	    (crypto)
 	    (math)
@@ -125,13 +129,17 @@
 			   "positive integer required for iteration count") c)
     (apply kdf P S c dk-len rest))
 
-  (define-class <pbe-secret-key> (<symmetric-key>)
-    ((password :init-keyword :password)
-     (hash     :init-keyword :hash)
+  (define-class <passward-based-secret-key> (<symmetric-key>)
+    ((password :init-keyword :password)))
+  
+  (define-class <pbe-secret-key> (<passward-based-secret-key>)
+    ((hash     :init-keyword :hash)
      (scheme   :init-keyword :scheme)
      (type     :init-keyword :type)
      (iv-size  :init-keyword :iv-size)
      (length   :init-keyword :length)))
+
+  (define-class <pbes2-secret-key> (<passward-based-secret-key>) ())
   
   ;; markers  
   (define PKCS5-S1 :PKCS5-S1)
@@ -184,8 +192,8 @@
   (define-method make-pbes2-parameter ((seq <asn.1-sequence>))
     (make <pbes2-parameter>
       :key-derivation (make-pbkdf2-parameter (asn.1-sequence-get seq 0))
-      :encryption-scheme (make-algorithm-identifier
-			  (asn.1-sequence-get seq 1))))
+      :encryption-scheme (make-encryption-scheme (make-algorithm-identifier
+						  (asn.1-sequence-get seq 1)))))
   (define-method der-encodable->der-object ((p <pbes2-parameter>))
     (make-der-sequence (der-encodable->der-object (~ p 'key-derivation))
 		       (der-encodable->der-object (~ p 'encryption-scheme))))
@@ -221,7 +229,7 @@
 					    "Unknown PRF OID" prf))))))
   (define-method der-encodable->der-object ((p <pbkdf2-parameter>))
     (define (oid->aid oid)
-      (make-algorithm-identifier oid (make-der-null)))
+      (make-algorithm-identifier (cdr oid) (make-der-null)))
     (make-der-sequence (make-der-octet-string (~ p 'salt))
 		       (make-der-integer (~ p 'iteration))
 		       (make-der-integer (~ p 'key-length))
@@ -229,7 +237,37 @@
 			     (else
 			      (assertion-violation 'der-encodable->der-object
 						   "Unknown PRF" (~ p 'prf))))))
-						   
+  (define-method write-object ((o <pbkdf2-parameter>) out)
+    (format out "#<pbkdf2-parameter> salt=~a, iteration=~a, dkLen=~a prf=~a>"
+	    (~ o 'salt)
+	    (~ o 'iteration)
+	    (~ o 'key-length)
+	    (~ o 'prf)))
+
+  (define *enc-oids*
+    `(("2.16.840.1.101.3.4.1.42" . ,AES)))
+  (define *reverse-enc-oids*
+    (map (lambda (e) (cons (cdr e) (car e))) *enc-oids*))
+  (define-class <pbes2-encryption-scheme> (<asn.1-encodable>)
+    ((scheme :init-keyword :scheme)
+     (iv :init-keyword :iv)))
+  (define-method der-encodable->der-object ((p <pbes2-encryption-scheme>))
+    (make-algorithm-identifier
+     (cond ((assq (~ p 'scheme) *reverse-enc-oids*) => cdr)
+	   (else
+	    (assertion-violation 'der-encodable->der-object
+				 "Unknown encryption scheme" (~ p 'scheme))))
+     (make-der-octet-string (~ p 'iv))))
+  (define-method make-encryption-scheme ((aid <algorithm-identifier>))
+    (make <pbes2-encryption-scheme>
+      :scheme (cond ((assoc (algorithm-identifier-id aid) *enc-oids*) => cdr)
+		    (else (assertion-violation 'make-encryption-scheme
+					       "Unknown encryption OID" aid)))
+      :iv (and (let ((p (algorithm-identifier-parameters aid)))
+		 (and (is-a? p <der-octet-string>)
+		      (der-octet-string-octets p))))))
+  (define-method write-object ((o <pbes2-encryption-scheme>) out)
+    (format out "#<pbes2-encryption-scheme scheme=~a>" (~ o 'scheme)))
   ;; secret key generation
   ;; DES: key length 8, iv length 8
 #|
@@ -268,16 +306,8 @@
 	  :scheme RC2 :iv-size 8 :length 8
 	  :type PKCS5-S1))
 
-  (define-method generate-secret-key ((m (eql pbes2))
-				      (password <string>)
-				      (parameter <pbes2-parameter>))
-    (let ((kdf-param (~ parameter 'key-derivation))
-	  (enc-scheme (~ parameter 'encryption-scheme)))
-    (make <pbe-secret-key> :password password
-	  :hash (~ parameter 'prf) :length (~ parameter 'key-length)
-	  :scheme #f ;; TODO get it from the encryption
-	  :iv-size #f
-	  :type PKCS5-S2))
+  (define-method generate-secret-key ((m (eql pbes2)) (password <string>))
+    (make <pbes2-secret-key> :password password))
   
   ;; for pbe-cipher-spi we need derive derived key and iv from given
   ;; secret key and parameter(salt and iteration count)
@@ -313,46 +343,94 @@
     (derive-key&iv-internal key param))
 
   (define-method derive-key&iv ((m (eql PKCS5-S2))
-				(key <pbe-secret-key>)
+				(key <pbes2-secret-key>)
 				(param <pbes2-parameter>))
-    (derive-key&iv-internal key param :hash (~ param 'prf)))
+    (let* ((derive-param (~ param 'key-derivation))
+	   (enc-param (~ param 'encryption-scheme))
+	   (password (string->utf8 (~ key 'password)))
+	   (derived-key (pbkdf-2 password
+				 (~ derive-param 'salt)
+				 (~ derive-param 'iteration)
+				 (~ derive-param 'key-length)
+				 :hash (~ derive-param 'prf))))
+      (values derived-key (~ enc-param 'iv))))
 
   ;; The PKCS#5 cipher. This can be used by PKCS#12 too.
-  (define-class <pbe-cipher-spi> (<cipher-spi>)
+  (define-class <password-based-cipher-spi> (<cipher-spi>)
     ((parameter :init-keyword :parameter)
      (cipher    :init-keyword :cipher)))
-  (define-method initialize ((spi <pbe-cipher-spi>) initargs)
+
+  (define (extract-key&param initargs key-type parameter-type)
     (let ((key (car initargs))
 	  (rest (cdr initargs)))
-      (unless (is-a? key <pbe-secret-key>)
-	(assertion-violation 'initialize "<pbe-secret-key> required" key))
+      (unless (is-a? key key-type)
+	(assertion-violation 'initialize
+	  (format "key must be an instance of ~a" (class-name key-type)) key))
       (let-keywords* rest
 	  ((parameter #f) . rest)
 	(unless parameter
 	  (assertion-violation 
 	   'initialize
 	   "required keyword argument :parameter is missing"))
-	(unless (is-a? parameter <pbe-parameter>)
+	(unless (is-a? parameter parameter-type)
 	  (assertion-violation 'initialize
-			       "parameter must be instance of <pbe-parameter>"
-			       parameter))
-	(receive (dkey iv) (derive-key&iv (slot-ref key 'type) key parameter)
-	  (let* ((derived-secret-key (generate-secret-key (slot-ref key 'scheme)
-							  dkey))
-		 (real-cipher 
-		  (cipher (slot-ref key 'scheme) derived-secret-key
-			  :mode MODE_CBC
-			  :iv iv)))
-	    (slot-set! spi 'name (format "pbe-~a" (slot-ref key 'scheme)))
-	    (slot-set! spi 'key derived-secret-key)
-	    (slot-set! spi 'encrypt (lambda (pt key)
-				      (encrypt real-cipher pt)))
-	    (slot-set! spi 'decrypt (lambda (ct key)
-				      (decrypt real-cipher ct)))
-	    (slot-set! spi 'padder #f)
-	    (slot-set! spi 'signer #f)
-	    (slot-set! spi 'verifier #f)
-	    (slot-set! spi 'keysize (slot-ref key 'length)))))))
+	    (format "parameter must be an instance of ~a" 
+		    (class-name parameter-type))
+	    parameter))
+	(values key parameter))))
+  
+  (define-class <pbe-cipher-spi> (<password-based-cipher-spi>) ())
+  (define-method initialize ((spi <pbe-cipher-spi>) args)
+    (let*-values (((key parameter)
+		   (extract-key&param args <pbe-secret-key> <pbe-parameter>))
+		  ((dkey iv)
+		   (derive-key&iv (slot-ref key 'type) key parameter)))
+      (let* ((derived-secret-key
+	      (generate-secret-key (slot-ref key 'scheme) dkey))
+	     (cipher
+	      (make-cipher (slot-ref key 'scheme) derived-secret-key
+		:mode-parameter (make-composite-parameter
+				 (make-mode-name-parameter MODE_CBC)
+				 ;; (make-padding-parameter pkcs5-padder)
+				 (make-iv-parameter iv)))))
+	(slot-set! spi 'name (format "pbe-~a" (slot-ref key 'scheme)))
+	(slot-set! spi 'key derived-secret-key)
+	(slot-set! spi 'encrypt (lambda (pt key) (cipher-encrypt cipher pt)))
+	(slot-set! spi 'decrypt (lambda (ct key) (cipher-decrypt cipher ct)))
+	(slot-set! spi 'padder #f)
+	(slot-set! spi 'signer #f)
+	(slot-set! spi 'verifier #f)
+	(slot-set! spi 'keysize (slot-ref key 'length)))))
+
+  (define-class <pbes2-cipher-spi> (<password-based-cipher-spi>) ())
+  (define-method initialize ((spi <pbes2-cipher-spi>) args)
+    (let*-values (((key parameter)
+		   (extract-key&param args <pbes2-secret-key>
+				      <pbes2-parameter>))
+		  ((enc-scheme mode iv key-length)
+		   (extract-pbes2-parameters parameter))
+		  ((dkey iv) (derive-key&iv PKCS5-S2 key parameter)))
+      (let* ((derived-secret-key (generate-secret-key enc-scheme dkey))
+	     (cipher
+	      (make-cipher enc-scheme derived-secret-key
+		:mode-parameter (make-composite-parameter
+				 (make-mode-name-parameter mode)
+				 (make-padding-parameter pkcs5-padder)
+				 (make-iv-parameter iv)))))
+	(slot-set! spi 'name "pbes2-key")
+	(slot-set! spi 'key derived-secret-key)
+	(slot-set! spi 'encrypt (lambda (pt key) (cipher-encrypt cipher pt)))
+	(slot-set! spi 'decrypt (lambda (ct key) (cipher-decrypt cipher ct)))
+	(slot-set! spi 'padder #f)
+	(slot-set! spi 'signer #f)
+	(slot-set! spi 'verifier #f)
+	(slot-set! spi 'keysize key-length))))
+
+  (define (extract-pbes2-parameters parameter)
+    (let ((key-param (~ parameter 'key-derivation))
+	  (enc-param (~ parameter 'encryption-scheme)))
+      (values (~ enc-param 'scheme)
+	      MODE_CBC (~ enc-param 'iv) (~ key-param 'key-length))))
   
   ;; DES
   ;;(register-spi pbe-with-md2-and-des <pbe-cipher-spi>)
@@ -364,4 +442,6 @@
   (register-spi pbe-with-sha1-and-rc2 <pbe-cipher-spi>)
 
   (register-spi pbe-with-sha1-and-rc2 <pbe-cipher-spi>)
+
+  (register-spi pbes2 <pbes2-cipher-spi>)
 )

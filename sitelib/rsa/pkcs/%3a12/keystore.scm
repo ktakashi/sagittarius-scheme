@@ -432,22 +432,21 @@
 	(hash HMAC data :key mac-key :hash (find-method oid)))))
 
   (define (cipher-util alg-id password data processor)
-    (define (do-pbe alg-name alg-id password data processor)
-      (let* ((param (make-pbe-parameter (slot-ref alg-id 'parameters)))
-	     (k (generate-secret-key alg-name password))
+    (define (get-param alg-id)
+      (let ((alg-name (cond ((assoc (get-id alg-id) *mapping*) => cdr)
+			    (else #f))))
+	(unless alg-name
+	  (assertion-violation 'load-pkcs12-keystore
+			       "unknown algorithm identifier" alg-id))
+	(values (cond ((eq? alg-name pbes2)
+		       (make-pbes2-parameter (slot-ref alg-id 'parameters)))
+		      (else
+		       (make-pbe-parameter (slot-ref alg-id 'parameters))))
+		alg-name)))
+    (let-values (((param alg-name) (get-param alg-id)))
+      (let* ((k (generate-secret-key alg-name password))
 	     (pbe-cipher (cipher alg-name k :parameter param)))
-	(processor pbe-cipher data)))
-    (define (do-pbes2 alg-name alg-id password data processor)
-      (let* ((param (make-pbes2-parameter (slot-ref alg-id 'parameters))))
-	(assertion-violation 'cipher-util "Not yet" alg-id param)))
-    (let ((alg-name (cond ((assoc (get-id alg-id) *mapping*) => cdr)
-			  (else #f))))
-      (unless alg-name
-	(assertion-violation 'load-pkcs12-keystore
-			     "unknown algorithm identifier" alg-id))
-      (cond ((eq? alg-name pbes2)
-	     (do-pbes2 alg-name alg-id password data processor))
-	    (else (do-pbe alg-name alg-id password data processor)))))
+	(processor pbe-cipher data))))
 
   (define (load-pkcs12-keystore in password
 			:key (extra-data-handler default-extra-data-handler))

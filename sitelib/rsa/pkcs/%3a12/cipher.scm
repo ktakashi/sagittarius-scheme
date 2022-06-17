@@ -167,7 +167,7 @@
 	d-key))
     (generate-derived-key in-byte n))
 
-  (define-method derive-key&iv ((marker (eql :pkcs12))
+  (define-method derive-key&iv ((marker (eql PKCS12))
 				(key <pbe-secret-key>)
 				(param <pbe-parameter>))
     (values (derive-pkcs12-key key param *key-material* (slot-ref key 'length))
