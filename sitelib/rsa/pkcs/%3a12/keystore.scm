@@ -88,6 +88,7 @@
 	    (util hashtables)
 	    (sagittarius)
 	    (sagittarius control)
+	    (sagittarius object)
 	    (security keystore interface))
 
   ;; oid-cipher mapping
@@ -597,47 +598,49 @@
 	  '()))
     (define (validate-mac pfx info)
       (let* ((md (slot-ref pfx 'mac-data))
-	     (di (slot-ref md 'digest-info))
-	     (id (slot-ref di 'algorithm-identifier))
+	     (di (~ md 'digest-info))
+	     (id (~ di 'algorithm-identifier))
 	     (salt (slot-ref md 'salt))
 	     (count (slot-ref md 'iteration-count))
-	     (data (der-octet-string-octets (slot-ref info 'content))))
+	     (data (der-octet-string-octets (slot-ref info 'content)))
+	     (digest (oid->digest (get-id id))))
 	(unless (bytevector=? (slot-ref di 'digest)
-			      (compute-mac (oid->digest (get-id id))
-					   data password salt count))
+			      (compute-mac digest data password salt count))
 	  (error 'load-pkcs12-keystore 
 		 "key store mac invalid - wrong password or corrupted file."))
-	info))
-    (let* ((r (read-asn.1-object in))
-	   (pkcs12 (make-pfx r))
-	   (info   (validate-mac pkcs12 (slot-ref pkcs12 'content-info)))
-	   (keystore (apply make-pkcs12-keystore opts))
-	   ;; first keys
-	   (chain (process-keys keystore info)))
-      ;; then certs
-      (dolist (b chain)
-	(let ((cb (make-cert-bag (slot-ref b 'value))))
-	  (unless (equal? (slot-ref cb 'id) *pkcs-9-x509-certificate*)
-	    (assertion-violation 'load-pkcs12-keystore
-				 "Unsupported certificate type"
-				 (slot-ref cb 'id)))
-	  (let ((cert (make-x509-certificate 
-		       (slot-ref (slot-ref cb 'value) 'string))))
-	    (let-values (((local-id alias) (process-attributes cert keystore
-					    (slot-ref b 'attributes)
-					    #f)))
-	      ;; associate cert and it's id
-	      (hashtable-set! (slot-ref keystore 'chain-certs)
-			      (make-cert-id
-			       (x509-certificate-get-public-key cert))
-			      cert)
-	      ;; TODO unmarked key
-	      (when local-id
-		(let ((name (format "~X" (slot-ref local-id 'string))))
-		  (hashtable-set! (slot-ref keystore 'key-certs) name cert)))
-	      (when alias
-		(hashtable-set! (slot-ref keystore 'certs) alias cert))))))
-      keystore))
+	(values info digest)))
+    (let ((pkcs12 (make-pfx (read-asn.1-object in))))
+      (let-values (((info digest)
+		    (validate-mac pkcs12 (slot-ref pkcs12 'content-info))))
+	(let* ((keystore (apply make-pkcs12-keystore
+				:mac-algorithm digest
+				opts))
+	       ;; first keys
+	       (chain (process-keys keystore info)))
+	  ;; then certs
+	  (dolist (b chain)
+	    (let ((cb (make-cert-bag (slot-ref b 'value))))
+	      (unless (equal? (slot-ref cb 'id) *pkcs-9-x509-certificate*)
+		(assertion-violation 'load-pkcs12-keystore
+				     "Unsupported certificate type"
+				     (slot-ref cb 'id)))
+	      (let ((cert (make-x509-certificate 
+			   (slot-ref (slot-ref cb 'value) 'string))))
+		(let-values (((local-id alias)
+			      (process-attributes cert keystore
+						  (~ b 'attributes) #f)))
+		  ;; associate cert and it's id
+		  (hashtable-set! (~ keystore 'chain-certs)
+				  (make-cert-id
+				   (x509-certificate-get-public-key cert))
+				  cert)
+		  ;; TODO unmarked key
+		  (when local-id
+		    (let ((name (format "~X" (slot-ref local-id 'string))))
+		      (hashtable-set! (~ keystore 'key-certs) name cert)))
+		  (when alias
+		    (hashtable-set! (~ keystore 'certs) alias cert))))))
+	  keystore))))
 
   ;; Storing PKCS#12 keystore to given output port
   ;; I'm not sure if this is properly implemented...

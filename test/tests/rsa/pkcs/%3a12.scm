@@ -1,12 +1,16 @@
 (import (rnrs)
 	(rsa pkcs :12)
-	(rfc base64)
 	(crypto) ;; for private-key? and so
+	(math)
+	(clos user)
+	(rfc base64)
 	(rfc x.509) ;; for predicate
 	(srfi :1)
 	(srfi :19)
 	(srfi :64))
 
+;; This PKCS12 Base64 is quite old, but some of the parameters
+;; we need to test are in, such as mac-algorithm. So don't change
 (define test-p12
   (base64-decode-string
    (string-append
@@ -128,7 +132,7 @@
   (test-assert "pkcs12-keystore-get-certificate"
 	       (x509-certificate?
 		(pkcs12-keystore-get-certificate keystore "ca")))
-
+  (test-equal "The same mac-algorithm" SHA-1 (slot-ref keystore 'mac-algorithm))
   (let ((file "test.p12"))
     (when (file-exists? file) (delete-file file))
     ;; test storing, we can put different password now
@@ -170,6 +174,8 @@
 		  (make-validity (current-date)
 				 (current-date))
 		  (make-x509-issuer '((DN . "buzz")))))
+  (test-equal "default mac-algorithm (SHA-256)"
+	       SHA-256 (slot-ref ks 'mac-algorithm))
   (test-assert "verify issuer"
    (x509:verify-certificate cert (x509-certificate-get-public-key cert2)))
 
