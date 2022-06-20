@@ -21,13 +21,13 @@
   (define (handler server socket)
     (let ((bv (socket-recv socket 255)))
       (socket-send socket bv)))
-  (define server (make-simple-server "5000" handler))
+  (define server (make-simple-server "0" handler))
   (test-assert "server?" (server? server))
   (server-start! server :background #t)
   ;; wait until it's started
   (thread-sleep! 0.1)
 
-  (let ((sock (make-client-socket "localhost" "5000")))
+  (let ((sock (make-client-socket "localhost" (server-port server))))
     (socket-send sock (string->utf8 "hello"))
     (test-equal "echo back" (string->utf8 "hello") (socket-recv sock 255))
     (socket-close sock))
@@ -45,15 +45,16 @@
   (define (handler server socket)
     (let ((bv (socket-recv socket 255)))
       (socket-send socket bv)))
-  (define server (make-simple-server "5000" handler :config config))
+  (define server (make-simple-server "0" handler :config config))
   (define (test ai-family)
     (let ((t* (map (lambda (_)
 		     (make-thread
 		      (lambda ()
 			;; IPv6 may not be supported
 			(guard (e (else "hello"))
-			  (define sock (make-client-socket "localhost" "5000"
-							   ai-family))
+			  (define sock
+			    (make-client-socket "localhost" (server-port server)
+						ai-family))
 			  (thread-sleep! 0.2)
 			  (socket-send sock (string->utf8 "hello"))
 			  (let ((r (utf8->string (socket-recv sock 255))))
@@ -94,11 +95,12 @@
   (define (handler server socket)
     (let ((bv (socket-recv socket 255)))
       (socket-send socket bv)))
-  (define server (make-simple-server "5000" handler :config config))
+  (define server (make-simple-server "0" handler :config config))
   (define (test ai-family)
     ;; IPv6 may not be supported
     (guard (e (else #t))
-      (let ((sock (make-client-tls-socket "localhost" "5000" ai-family)))
+      (let ((sock (make-client-tls-socket "localhost" (server-port server)
+					  ai-family)))
 	(socket-send sock (string->utf8 "hello"))
 	(test-equal "TLS echo back" 
 		    (string->utf8 "hello") (socket-recv sock 255))

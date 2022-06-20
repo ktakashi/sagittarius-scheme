@@ -21,7 +21,7 @@
   (socket-shutdown s SHUT_RDWR)
   (socket-close s))
 
-(define echo-server-socket (make-server-socket "5000"))
+(define echo-server-socket (make-server-socket "0"))
 (define echo-server-queue (make-shared-queue))
 ;; addr is client socket
 (define (server-run)
@@ -52,14 +52,17 @@
     (unless stop? (loop))))
 (define server-thread (make-thread server-run))
 
+(define server-port
+  (number->string (socket-info-port (socket-info echo-server-socket))))
+
 (test-begin "Sagittarius socket")
 ;; start echo server
 (thread-start! server-thread)
 
 (test-error "ai-passive" assertion-violation?
-	    (make-client-socket #f "5000" 0 0 AI_PASSIVE))
+	    (make-client-socket #f server-port 0 0 AI_PASSIVE))
 
-(let ((client-socket (make-client-socket "localhost" "5000")))
+(let ((client-socket (make-client-socket "localhost" server-port)))
   (test-assert "socket?"(socket? client-socket))
   (test-equal "raw socket-send"
 	      (+ (string-length "push") 2) ;; for \r\n
@@ -139,7 +142,7 @@
       (put-string text-port "test-end\r\n")
       )))
 
-(let ((client-socket (make-client-socket "localhost" "5000")))
+(let ((client-socket (make-client-socket "localhost" server-port)))
   (socket-nonblocking! client-socket)
   (test-equal "raw nonblocking socket-send"
 	      (+ (string-length "wait") 2)
@@ -154,7 +157,7 @@
 
 
 ;; call #125
-(let* ((client-socket (make-client-socket "localhost" "5000"))
+(let* ((client-socket (make-client-socket "localhost" server-port))
        (in/out (socket-port client-socket))
        (msg "hello\n"))
   (define (ensure-n in n)
@@ -176,7 +179,7 @@
   (test-assert "socket-closed? (2)" (socket-closed? client-socket)))
 
 ;; now socket-port creates bidirectional port
-(let ((port (socket-port (make-client-socket "localhost" "5000")))
+(let ((port (socket-port (make-client-socket "localhost" server-port)))
       (text "bidirectional port\r\n"))
   (define recv-thread
     (make-thread
@@ -199,9 +202,10 @@
 (shutdown&close echo-server-socket)
 
 ;; addr info slots
-(let ((info (get-addrinfo "localhost" "5000" (make-hint-addrinfo
-					      :family AF_INET
-					      :socktype SOCK_DGRAM))))
+(let ((info (get-addrinfo "localhost" server-port
+			  (make-hint-addrinfo
+			   :family AF_INET
+			   :socktype SOCK_DGRAM))))
   (test-assert "sockaddr?" (sockaddr? (addrinfo-sockaddr info)))
   (let ((s (make-socket AF_INET SOCK_DGRAM)))
     (test-equal "seocket-sendto" 4 
@@ -214,8 +218,11 @@
 (test-equal "msg-waitall" MSG_WAITALL *msg-waitall*)
 
 ;; blocking retry of get-bytevector-n
+(define (server-service sock)
+  (number->string (socket-info-port (socket-info sock))))
+
 (let ()
-  (define server (make-server-socket "5001"))
+  (define server (make-server-socket "0"))
   
   (define t (make-thread
 	     (lambda ()
@@ -223,7 +230,7 @@
 		 (socket-send s #vu8(0 1 2 3 4))))))
   (thread-start! t)
   (let ()
-    (define client (make-client-socket "localhost" "5001"))
+    (define client (make-client-socket "localhost" (server-service server)))
     (define in (socket-input-port client))
     (define buf (make-bytevector 10))
     (test-equal "get-bytevector-n shouldn't block" #vu8(0 1 2 3 4)
@@ -234,7 +241,7 @@
 ;; thread-interrupt!
 ;; cancelling blocking socket operation in other threads
 (let ()
-  (define server (make-server-socket "5001"))
+  (define server (make-server-socket "0"))
   (define t (make-thread
 	      (lambda ()
 		(socket-read-select #f server))))
@@ -248,7 +255,7 @@
 ;; signal related
 ;; this test case is only relevant on multi core Linux
 (let ()
-  (define server (make-server-socket "5001"))
+  (define server (make-server-socket "0"))
   (define interrupted? #f)
   (define started? #f)
   (define t (thread-start!
@@ -270,7 +277,7 @@
 
 ;; ditto
 (let ()
-  (define server (make-server-socket "5001"))
+  (define server (make-server-socket "0"))
   (define interrupting? #f)
   (define accepted #f)
   (define recieved #f)
@@ -299,7 +306,7 @@
 			   (loop)))))))))
   (invoke-gc)
   (test-assert "not accepted" (not accepted))
-  (let ((client (make-client-socket "localhost" "5001")))
+  (let ((client (make-client-socket "localhost" (server-service server))))
     (yield!)
     (test-assert "accepted" accepted)
     (test-assert "not recieved" (not recieved))
@@ -310,7 +317,7 @@
 
 ;; call #134, socket-select returns incorrect socket
 (let ()
-  (define server (make-server-socket "5001"))
+  (define server (make-server-socket "0"))
   (define vec (make-vector 5))
   (define server-lock (make-mutex))
   (define client-lock (make-mutex))
@@ -332,7 +339,8 @@
 	(apply socket-read-select #f (vector->list vec))))))
   ;; lock it
   (mutex-lock! client-lock)
-  (let ((s* (map (lambda (i) (make-client-socket "localhost" "5001"))
+  (let ((s* (map (lambda (i)
+		   (make-client-socket "localhost" (server-service server)))
 		 ;; whatever is fine
 		 '(1 2 3 4 5))))
     ;; wait until server is done

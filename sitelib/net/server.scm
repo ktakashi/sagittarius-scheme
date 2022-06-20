@@ -32,7 +32,7 @@
 (library (net server)
     (export make-simple-server
 	    make-server-config
-	    server?
+	    server? server-port
 	    server-config? server-config server-context
 	    server-start! on-server-start!
 	    ;; well for multithreading?
@@ -113,6 +113,7 @@
      ;; private slot not to use thread-terminate!
      (stop-request   :init-value #f)
      (port           :init-keyword :port)
+     (running-port   :init-keyword :running-port :reader server-port)
      (dispatch       :init-keyword :dispatch)
      ;; set if non-blocking mode
      (initialiser    :init-value #f)
@@ -245,7 +246,9 @@
 				   ;; must have default config
 			           (config (make-server-config))
 			      :allow-other-keys rest)
-    (define server (apply make server-class :config config :port port rest))
+    (define server (apply make server-class :config config :port port
+			  :running-port port
+			  rest))
     (define dispatch
       (if (~ config 'non-blocking?)
 	  (make-non-blocking-process server handler config)
@@ -320,13 +323,18 @@
 			  (set! stop? #t)
 			  (let ((client-socket (socket-accept socket)))
 			    (cond ((~ server 'stop-request) (stop))
-				  (client-socket (dispatch server client-socket))))))
+				  (client-socket
+				   (dispatch server client-socket))))))
 		    (unless stop? (loop))))))
 	     sockets))
 
       (when (null? sockets)
 	(error 'make-simple-server "failed to create server sockets" port))
-
+      (when (or (not port) (equal? port "0"))
+	(let ((si (socket-info (car sockets))))
+	  (set! (~ server 'running-port)
+		(number->string (socket-info-port si)))))
+	 
       (when (~ server 'initialiser) 
 	((~ server 'initialiser))
 	(set! (~ server 'initialiser) #f))
