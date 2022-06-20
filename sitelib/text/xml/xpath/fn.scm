@@ -1846,7 +1846,7 @@
     (input-port->tolerant-dom-tree (open-string-input-port arg))))
 
 ;;;; 14.7.3 fn:serialize
-(define default-write-options (make-xml-write-options #f #f))
+(define default-write-options *xml:default-options*)
 (define (yes-no-converter v) (string=? "yes" (car v)))
 (define (yes-no-omit-converter v*)
   (define v (car v*)) ;; use first value

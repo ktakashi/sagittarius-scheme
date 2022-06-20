@@ -31,7 +31,7 @@
 #!nounbound
 (library (text xml dom writer)
     (export make-dom-writer
-	    make-xml-write-options
+	    (rename (%make-xml-write-options make-xml-write-options))
 	    xml-write-options-builder
 	    *xml:default-options*
 	    *xml:c14n*
@@ -81,6 +81,38 @@
 	  write-cdata?			; default #t
 	  exclusive?			; default #t
 	  ))
+
+(define (%make-xml-write-options emit-internal-dtd? strict?
+				 :key (allow-duplicate-names #f)
+				      (byte-order-mark #f)
+				      (cdata-section-elements '())
+				      (doctype-public #f)
+				      (doctype-system #f)
+				      (encoding "utf-8")
+				      (escape-uri-attribute #t)
+				      (html-version 5)
+				      (include-content-type #t)
+				      (indent #f)
+				      (item-separator #f)
+				      (json-node-output-method "xml")
+				      (media-type "text/xml")
+				      (normalization-form "none")
+				      (omit-xml-declaration #t)
+				      (standalone '())
+				      (suppress-indentation '())
+				      (undeclare-prefixes #f)
+				      (use-character-maps #f)
+				      (version "1.0"))
+  (make-xml-write-options emit-internal-dtd? strict?
+			  allow-duplicate-names byte-order-mark
+			  cdata-section-elements doctype-public
+			  doctype-system encoding escape-uri-attribute
+			  html-version include-content-type indent
+			  item-separator json-node-output-method
+			  media-type normalization-form omit-xml-declaration
+			  standalone suppress-indentation undeclare-prefixes
+			  use-character-maps version
+			  #t #t #t #t #t))
 
 (define-syntax xml-write-options-builder
   (make-record-builder xml-write-options
