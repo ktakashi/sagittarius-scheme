@@ -61,9 +61,9 @@
 	    SAFER-K128
 	    SAFER-SK128
 	    AES
-	    AES128
-	    AES192
-	    AES256
+	    AES-128
+	    AES-192
+	    AES-256
 	    Twofish
 	    DES
 	    DES3
@@ -158,9 +158,9 @@
   (define-constant SAFER-K128  :safer-k128)
   (define-constant SAFER-SK128 :safer-sk128)
   (define-constant AES         :aes) ;; for backward compatibility
-  (define-constant AES128      :aes128)
-  (define-constant AES192      :aes192)
-  (define-constant AES256      :aes256)
+  (define-constant AES-128     :aes128)
+  (define-constant AES-192     :aes192)
+  (define-constant AES-256     :aes256)
   (define-constant Twofish     :twofish)
   (define-constant DES         :des)
   (define-constant DES3        :3des)

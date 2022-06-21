@@ -48,7 +48,10 @@ The symmetric key algorithms.
 ###### [!Constant] `SAFER-SK64` 
 ###### [!Constant] `SAFER-K128` 
 ###### [!Constant] `SAFER-SK128` 
-###### [!Constant] `AES` 
+###### [!Constant] `AES`
+###### [!Constant] `AES-128`
+###### [!Constant] `AES-192`
+###### [!Constant] `AES-256`
 ###### [!Constant] `Twofish` 
 ###### [!Constant] `DES` 
 ###### [!Constant] `DES3` 
@@ -60,7 +63,13 @@ The symmetric key algorithms.
 ###### [!Constant] `Khazad` 
 ###### [!Constant] `SEED` 
 ###### [!Constant] `KASUMI` 
-###### [!Constant] `Camellia` 
+###### [!Constant] `Camellia`
+
+`AES-128`, `AES-192` and `AES-256` are fixed key size AES algorithms.
+`AES` allows key size of 16, 24 or 32 bytes, however, fixed sized
+version only accepts 16 for `AES-128`, 24 for `AES-192` and 32 for
+`AES-256`.
+
 The public key algorithm
 ###### [!Constant] `DSA` 
 ###### [!Constant] `ECDSA` 
