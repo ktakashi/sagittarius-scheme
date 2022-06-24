@@ -23,14 +23,14 @@
 	    (sagittarius control)
 	    (sagittarius crypto))
 
-  ;; PKCS #5 padding.
+  ;; PKCS #7 padding.
   ;; reference http://www.rsa.com/rsalabs/node.asp?id=2127
+  ;; the name is basically historical reason...
   (define (pkcs5-padder bv block-size pad?)
     (if pad?
 	(let* ((len (bytevector-length bv))
 	       (mod (modulo len block-size))
-	       (t (- block-size mod))
-	       (padding (if (zero? t) 8 t)))
+	       (padding (- block-size mod)))
 	  (let ((new (make-bytevector (+ len padding) padding)))
 	    (bytevector-copy! bv 0 new 0 len)
 	    new))
