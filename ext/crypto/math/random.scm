@@ -22,6 +22,7 @@
 	    prng-state
 	    ;; utility
 	    read-sys-random
+	    read-sys-random!
 	    )
     (import (core)
 	    (math helper)

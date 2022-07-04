@@ -138,6 +138,7 @@ SgObject Sg_VMReadRandomBytes(SgObject prng, int size);
 SgObject Sg_VMReadRandomBytesX(SgObject prng, SgObject buf, int size);
 /* for Scheme secure random creation */
 SgObject Sg_ReadSysRandom(int bits);
+SgObject Sg_ReadSysRandomX(SgByteVector *bv, int start, int len);
 
 SgObject Sg_MakeHash(SgString *name);
 SgObject Sg_VMHashInit(SgObject algo);

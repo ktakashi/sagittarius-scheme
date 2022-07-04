@@ -130,9 +130,23 @@ given _bv_ destructively.
 If the second form is used, _bv_ must have the length at least _size_.
 
 
-###### [!Function] `read-sys-random`  _bis_
+###### [!Function] `read-sys-random` _bits_
 
-Returns given _bits_ bits of random bytevector.
+Returns given the `(+ (* bits 8) (if (zero? (mod bits 8)) 1 0))`
+bits of random bytevector.
+
+###### [!Function] `read-sys-random!` _bv_
+###### [!Function] `read-sys-random!` _bv_ _start_
+###### [!Function] `read-sys-random!` _bv_ _start_ _len_
+
+_bv_ must be a bytevector.  
+_start_ must be an exact non negative integer.  
+_len_ must be an exact non negative integer.  
+
+Reads random bytes from a system random generator and store it into _bv_.  
+If the second form is used, then it stores from the _start_ position.  
+If the third form is used, then it stores the _len_ bytes from the _start_.
+
 
 #### [§4] Custom pseudo random operations
 

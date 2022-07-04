@@ -9,6 +9,7 @@
 	    make-secure-random
 	    %random-seed-set!
 	    read-sys-random
+	    read-sys-random!
 	    Yarrow Fortuna RC4 SOBER-128 System ChaCha20
 	    ;; hash
 	    hash-algorithm?

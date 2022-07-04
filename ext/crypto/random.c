@@ -158,11 +158,26 @@ SgObject Sg_ReadSysRandom(int bits)
   SgObject buf;
   bits = (bits/8)+((bits%8)!=0?1:0);
   buf = Sg_MakeByteVector(bits, 0);
-  if (rng_get_bytes(SG_BVECTOR_ELEMENTS(buf), (unsigned long)bits, NULL) != 
-      (unsigned long)bits) {
-    Sg_Error(UC("failed to read system prng"));
+  return Sg_ReadSysRandomX(buf, 0, bits);
+}
+
+SgObject Sg_ReadSysRandomX(SgByteVector *bv, int start, int len)
+{
+  if (SG_BVECTOR_LITERALP(bv)) {
+    Sg_AssertionViolation(SG_INTERN("read-sys-random!"),
+			  SG_MAKE_STRING("Attempt to modify literal bytevector"),
+			  SG_LIST1(bv));
   }
-  return buf;
+  if (SG_BVECTOR_SIZE(bv) - start < len) {
+    Sg_AssertionViolation(SG_INTERN("read-sys-random!"),
+			  SG_MAKE_STRING("out of range"),
+			  SG_LIST3(bv, SG_MAKE_INT(start), SG_MAKE_INT(len)));
+  }
+  if (rng_get_bytes(SG_BVECTOR_ELEMENTS(bv) + start, (unsigned long)len, NULL)
+      != (unsigned long)len) {
+    Sg_Error(UC("Failed to read system prng"));
+  }
+  return bv;
 }
 
 static SgObject read_random_cc(SgObject result, void **data)

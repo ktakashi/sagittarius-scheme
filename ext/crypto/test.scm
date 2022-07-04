@@ -118,6 +118,16 @@
   (test-assert "secure-random?" (secure-random? (secure-random prng))))
 (for-each test-prng (list Yarrow Fortuna RC4 SOBER-128 System ChaCha20))
 
+(test-equal 8 (bytevector-length (read-sys-random 64)))
+(test-equal 8 (bytevector-length (read-sys-random 63)))
+(let ((bv (make-bytevector 8)))
+  (test-assert (eq? bv (read-sys-random! bv)))
+  (bytevector-u8-set! bv 0 0)
+  (test-assert (eq? bv (read-sys-random! bv 1)))
+  (test-equal 0 (bytevector-u8-ref bv 0))
+  (bytevector-u8-set! bv 7 0)
+  (test-assert (eq? bv (read-sys-random! bv 1 6)))
+  (test-equal 0 (bytevector-u8-ref bv 7)))
 
 (test-assert "cipher-iv" (bytevector? (cipher-iv des-enc/cbc-cipher)))
 (test-equal "cipher-iv (set!)"

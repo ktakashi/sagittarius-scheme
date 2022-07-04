@@ -31,6 +31,10 @@
 (define-c-proc %random-seed-set! (prng::<prng> seed::<bytevector>) Sg_VMSetSeed)
 
 (define-c-proc read-sys-random (bits::<fixnum>) Sg_ReadSysRandom)
+(define-c-proc read-sys-random!
+  (bv::<bytevector> :optional (start::<fixnum> 0)
+			      (len::<fixnum> (SG_MAKE_INT (- (SG_BVECTOR_SIZE bv) start))))
+  Sg_ReadSysRandomX)
 
 (define-c-proc read-random-bytes (prng::<prng> size::<fixnum>) 
   (when (<= size 0)
