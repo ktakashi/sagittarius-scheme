@@ -2312,4 +2312,21 @@
   (define ((*n n) v) (* n v))
   (test-equal '(2 4 6 8) (map (*n 2) '(1 2 3 4))))
 
+(test-error "any1 is not unbound"
+	    syntax-violation?
+ (r6rs:eval '(define-syntax foo
+	       (lambda (x)
+		 (syntax-case x ()
+		   ((_ n)
+		    #'(define-syntax n
+			(lambda (xx)
+			  (syntax-case xx ()
+			    ((_ v (... ...))
+			     #'(lambda (xxx)
+				 (syntax-case xxx ()
+				   ((_ k ((... ...) ...))
+				    (print '(v (... ...))
+					     '(k ((... ...) ...))))))))))))))
+	    (environment '(rnrs))))
+ 
 (test-end)
