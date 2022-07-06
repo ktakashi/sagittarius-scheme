@@ -2784,8 +2784,8 @@
 
 (cond-expand
  (sagittarius.scheme.vm
-  (define (expand-macro form)
-    (define (rec form&envs r expanded?)
+  (define (compile-define-syntax form)
+    (define (rec form&envs r exists?)
       (define (try-expand expr name r expanded? next-form p1env)
 	(or (and-let* ((gloc (cond ((symbol? name)
 				    (find-binding (p1env-library p1env)
@@ -2797,25 +2797,10 @@
 		       (m (gloc-ref gloc))
 		       ( (macro? m) )
 		       (e ($history (call-macro-expander m expr p1env))))
-	      ;; wrap with p1env
-	      (rec next-form (cons (cons e p1env) r) #t))
+	      ;; The macro is expanded, so we need to re-evaluate
+	      ;; the expanded form
+	      (rec (cons (cons e p1env) next-form) r #t))
 	    (rec next-form (cons (cons expr p1env) r) expanded?)))
-      (if (null? form&envs)
-	  (values (reverse! r) expanded?)
-	  (let* ((form&env (car form&envs))
-		 (form (car form&env))
-		 (p1env (cdr form&env)))
-	    ;; toplevel begin forms are eliminated by compile-define-syntax
-	    (smatch form
-	      ((? variable? expr)
-	       (try-expand expr expr r expanded? (cdr form&envs) p1env))
-	      ((? pair? expr)
-	       (try-expand expr (car expr) r expanded? (cdr form&envs) p1env))
-	      ;; not symbol, not identifier and not pair
-	      (- (rec (cdr form&envs) (cons form&env r) expanded?))))))
-    (rec form '() #f))
-  (define (compile-define-syntax form)
-    (define (rec form&envs r exists?)
       (if (null? form&envs)
 	  (values (reverse! r) exists?)
 	  (let* ((form&env (car form&envs))
@@ -2883,18 +2868,23 @@
 		     (let-values (((er e?) (rec exprs r exists?))
 				  ((rr r?) (rec rest '() exists?)))
 		       (values (append! er rr) (or e? r?))))))
+	      ;; Expand toplevel macros
+	      ((? variable? expr)
+	       (try-expand expr expr r exists? (cdr form&envs) p1env))
+	      ((? pair? expr)
+	       (try-expand expr (car expr) r exists? (cdr form&envs) p1env))
+	      ;; not symbol, not identifier and not pair
 	      (else (rec (cdr form&envs) (cons form&env r) exists?))))))
     (rec form '() #f))
 
   ;; given form is like this:
   ;; ((expr . p1env) ...)
   (define (expand-form form)
-    (let*-values (((form exists?) (compile-define-syntax form))
-		  ((form expanded?) (expand-macro form)))
+    (let*-values (((form exists?) (compile-define-syntax form)))
       ;; if define-syntax exists then there might be toplevel macros
       ;; if macro is expanded then it might have some other macro
       ;; definition
-      (if (and (not (null? form)) (or exists? expanded?))
+      (if (and (not (null? form)) exists?)
 	  (expand-form form)
 	  form))))
  (else

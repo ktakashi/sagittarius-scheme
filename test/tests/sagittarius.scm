@@ -2328,5 +2328,32 @@
 				    (print '(v (... ...))
 					     '(k ((... ...) ...))))))))))))))
 	    (environment '(rnrs))))
- 
+
+(test-assert
+ (r6rs:eval
+  '(library (macro-macro)
+       (export define-define)
+       (import (rnrs))
+     (define-syntax define-define
+       (lambda (x)
+	 (syntax-case x ()
+	   ((_ name)
+	    #'(define-syntax name
+		(lambda (xx)
+		  (syntax-case xx ()
+		    ((_)
+		     #'(syntax-rules ()
+			 ((_) 'name)))))))))))
+  (environment '(sagittarius))))
+(test-assert
+ (r6rs:eval
+  '(library (definer)
+       (export definer)
+       (import (rnrs)
+	       (macro-macro))
+     (define-define bar)
+     (define-syntax definer (bar)))
+  (environment '(sagittarius))))
+(test-equal 'bar (r6rs:eval '(definer) (environment '(definer))))
+
 (test-end)
