@@ -122,11 +122,11 @@
 
   ;; NIST recommendation of salt size = 16
   (define pbes2-aes128-cbc-pad/hmac-sha256
-    (make-pbes2-algorithm-identifier-provider SHA-256 16 1000 16 AES128))
+    (make-pbes2-algorithm-identifier-provider SHA-256 16 1000 16 AES-128))
   (define pbes2-aes192-cbc-pad/hmac-sha256
-    (make-pbes2-algorithm-identifier-provider SHA-256 16 1000 26 AES192))
+    (make-pbes2-algorithm-identifier-provider SHA-256 16 1000 26 AES-192))
   (define pbes2-aes256-cbc-pad/hmac-sha256
-    (make-pbes2-algorithm-identifier-provider SHA-256 16 1000 32 AES256))
+    (make-pbes2-algorithm-identifier-provider SHA-256 16 1000 32 AES-256))
   
   (define-class <content-info> (<asn.1-encodable>)
     ((content-type :init-keyword :content-type)
