@@ -110,7 +110,6 @@
 		 (else
 		  (let ((ctr (cond ((assv tag *constructors*) => cdr)
 				   (else #f))))
-		    (unless ctr (display tag) (newline))
 		    (if ctr
 			(apply ctr data)
 			(apply make-der-unknown-tag #f tag data))))))
