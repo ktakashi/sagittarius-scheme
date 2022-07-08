@@ -274,7 +274,7 @@
     (let ((class-bits APPLICATION))
       (when (slot-ref o 'constructed?)
 	(set! class-bits (bitwise-ior class-bits CONSTRUCTED)))
-      (der-write-encoded class-bits (slot-ref o 'tag) (slot-ref o 'octets)))
+      (der-write-encoded class-bits (slot-ref o 'tag) (slot-ref o 'octets) p))
     )
 
   ;; ASN1String
