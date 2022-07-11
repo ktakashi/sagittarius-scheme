@@ -581,7 +581,7 @@
   (define-method make-der-enumerated ((bytes <bytevector>))
     (make <der-enumerated> :bytes bytes))
   (define-method make-der-enumerated ((value <integer>))
-    (make-der-enumerated (integer->bytevector)))
+    (make-der-enumerated (sinteger->bytevector value)))
   (define-method der-encode ((o <der-enumerated>) (p <port>))
     (der-write-encoded ENUMERATED (slot-ref o 'bytes) p))
   (define-method write-object ((o <der-enumerated>) (p <port>))
