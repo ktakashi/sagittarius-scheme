@@ -271,11 +271,10 @@
 
   (define-method der-encode ((o <der-application-specific>) (p <port>))
     ;; assume p is binary port
-    (let ((class-bits APPLICATION))
-      (when (slot-ref o 'constructed?)
-	(set! class-bits (bitwise-ior class-bits CONSTRUCTED)))
-      (der-write-encoded class-bits (slot-ref o 'tag) (slot-ref o 'octets) p))
-    )
+    (let ((class-bits (if (slot-ref o 'constructed?)
+			  (bitwise-ior APPLICATION CONSTRUCTED)
+			  APPLICATION)))
+      (der-write-encoded class-bits (slot-ref o 'tag) (slot-ref o 'octets) p)))
 
   ;; ASN1String
   (define-class <asn.1-string> () ())

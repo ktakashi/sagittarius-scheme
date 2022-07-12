@@ -37,7 +37,8 @@
 	    (util port)
 	    (asn.1 types)
 	    (asn.1 der tags)
-	    (asn.1 ber types))
+	    (asn.1 ber types)
+	    (asn.1 encode))
 
   (define (create-der-bit-string bytes)
       ;; well well
@@ -95,7 +96,14 @@
     (when (eof-object? data)
       (assertion-violation 'build-object "EOF found during reading data"))
     (cond ((not (zero? (bitwise-and b APPLICATION)))
-	   (make-der-application-specific constructed? tag data))
+	   ;; I'm not entirely sure if we will get a list of data here
+	   ;; (I think either primitive or sequence)
+	   ;; so, we can get the first element if the constructed?
+	   ;; is #t
+	   (if constructed?
+	       (make-der-application-specific tag
+		(asn.1-encode (car data)))
+	       (make-der-application-specific constructed? tag data)))
 	  ((not (zero? (bitwise-and b TAGGED)))
 	   (read-tagged-object #f data constructed? tag))
 	  (constructed?

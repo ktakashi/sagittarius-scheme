@@ -77,4 +77,6 @@
   (test-assert (time=? (date->time-utc d)
 		       (date->time-utc (der-time->date (make-der-utc-time "180131000000Z"))))))
 
+(test-assert (is-a? (read-asn.1-object (open-bytevector-input-port #vu8(112 9 48 7 4 5 104 101 108 108 111))) <der-application-specific>))
+
 (test-end)
