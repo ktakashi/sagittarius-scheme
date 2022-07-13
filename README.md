@@ -124,7 +124,11 @@ Make sure you have all the required 32-bit executables and libraries.
 
 ## Building on Mac OS X
 
-Only with Homebrew is tested.
+Only with Homebrew is tested. A user can install sagittarius directly with homebrew, via
+
+    $ brew install sagittarius-scheme
+    
+Alternately, the user can install the following dependencies and then make sagittarius locally.     
 
 Installing libffi, CMake, and Boehm GC.
 
