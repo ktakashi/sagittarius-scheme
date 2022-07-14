@@ -85,7 +85,7 @@
 	(let* ((H (hash algo m-dash))
 	       (PS-len (- em-len salt-length hash-len 2))
 	       (PS (make-bytevector PS-len 0))
-	       (DB (make-bytevector (+ PS-len salt-length 1) #0x1)))
+	       (DB (make-bytevector (+ PS-len salt-length 1) #x01)))
 	  (bytevector-copy! PS 0 DB 0 PS-len)
 	  (bytevector-copy! salt 0 DB (+ PS-len 1) salt-length)
 	  (let* ((db-mask (mgf H (- em-len hash-len 1) algo))

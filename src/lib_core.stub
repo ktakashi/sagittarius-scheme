@@ -865,8 +865,8 @@
   (define-c-proc u8-list->bytevector (lst) :no-side-effect
     (result (Sg_ListToByteVector lst 8 FALSE)))
 
-  (define-c-proc bytevector->u8-list (lst) :no-side-effect
-    (result (Sg_ByteVectorToList lst 8 FALSE)))
+  (define-c-proc bytevector->u8-list (bv::<bytevector>) :no-side-effect
+    (result (Sg_ByteVectorToList bv 8 FALSE)))
 
   (define-cise-stmt bv-check-index
     ((_ name bv index)

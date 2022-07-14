@@ -2356,4 +2356,9 @@
   (environment '(sagittarius))))
 (test-equal 'bar (r6rs:eval '(definer) (environment '(definer))))
 
+;; Missing type check
+(test-error (bytevector->u8-list '(1)))
+;; This caused SEGV
+(test-error (bytevector->u8-list '(1 1)))
+
 (test-end)
