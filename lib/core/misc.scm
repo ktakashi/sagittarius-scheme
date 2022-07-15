@@ -69,7 +69,7 @@
 	     (define (ctr args ...) (vector 'type ordered-args ...))
 	     (define (pred o) 
 	       (and (vector? o)
-		    (= (vector-length o) (+ (length #'(field ...)) 1))
+		    (= (vector-length o) (+ (length '(field ...)) 1))
 		    (eq? (vector-ref o 0) 'type)))
 	     acc ...))))))
 )
