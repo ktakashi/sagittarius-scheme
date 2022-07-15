@@ -158,7 +158,7 @@ SgObject Sg_ReadSysRandom(int bits)
   SgObject buf;
   bits = (bits/8)+((bits%8)!=0?1:0);
   buf = Sg_MakeByteVector(bits, 0);
-  return Sg_ReadSysRandomX(buf, 0, bits);
+  return Sg_ReadSysRandomX(SG_BVECTOR(buf), 0, bits);
 }
 
 SgObject Sg_ReadSysRandomX(SgByteVector *bv, int start, int len)
