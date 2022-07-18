@@ -65,11 +65,11 @@
   (define (pkcs1-emsa-pss-encode m em-bits
 				 :key (algo :hash (hash-algorithm SHA-1))
 				      (mgf mgf-1)
-				      (salt-length #f)
+				      (salt-length (hash-size algo))
 				      (prng (secure-random RC4)))
-    (unless salt-length (set! salt-length (hash-size algo)))
-    (let ((hash-len (hash-size algo))
-	  (em-len (align-size (bit em-bits))))
+    (let* ((hash-len (hash-size algo))
+	   (em-len (align-size (bit em-bits)))
+	   (salt-length (or salt-length hash-len)))
       ;; how can we get max hash input length?
       ;;(when (> (bytevector-length m) hash-len)
       ;; (raise-decode-error 'pkcs1-emsa-pss-encode
@@ -111,12 +111,12 @@
   (define (pkcs1-emsa-pss-verify m em em-bits
 				 :key (algo :hash (hash-algorithm SHA-1))
 				      (mgf mgf-1)
-				      (salt-length #f))
-    (unless salt-length (set! salt-length (hash-size algo)))
-    (let ((hash-len (hash-size algo))
-	  (em-len   (align-size (bit em-bits))))
+				      (salt-length (hash-size algo)))
+    (let* ((hash-len (hash-size algo))
+	   (em-len   (align-size (bit em-bits)))
+	   (salt-length (or salt-length hash-len)))
       (when (or (< em-len (+ hash-len salt-length 2))
-		(not (= #xbc 
+		(not (= #xBC
 			(bytevector-u8-ref em (- (bytevector-length em) 1)))))
 	(raise-decode-error 'pkcs1-emsa-pss-verify "inconsistent"))
       (let* ((m-hash (hash algo m))	; step 2
