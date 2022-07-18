@@ -79,8 +79,8 @@ goto:eof
 
 rem html
 :html
-echo "Generating HTML entries"
-call :invoke ./script/html-entries.scm -o sitelib/text/xml/entities-list.scm %1
+echo "Generating HTML entities"
+call :invoke ./script/html-entities.scm -o sitelib/text/xml/entities-list.scm %1
 goto:eof
 
 rem gen
