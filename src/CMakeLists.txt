@@ -142,12 +142,7 @@ IF(NOT WIN32)
 ENDIF()
 
 IF(${LINK_BOEHM_GC})
-  IF (TARGET ${GC_DEPENDS_TARGET})
-    MESSAGE(STATUS "Adding stupid gc related target: ${GC_DEPENDS_TARGET}")
-    TARGET_LINK_LIBRARIES(sagittarius ${GC_DEPENDS_TARGET})
-  ELSE()
-    TARGET_LINK_LIBRARIES(sagittarius ${BOEHM_GC_LIBRARIES})
-  ENDIF()
+  TARGET_LINK_LIBRARIES(sagittarius ${BOEHM_GC_LIBRARIES})
 ELSE()
   TARGET_LINK_LIBRARIES(sagittarius taurus)
 ENDIF()
@@ -170,12 +165,12 @@ SET_TARGET_PROPERTIES(sash PROPERTIES
 
 TARGET_LINK_LIBRARIES(sash sagittarius)
 
-# copy gcmt-dll.dll to build
-IF (GC_DEPENDS_TARGET)
+# copy gc.dll to build
+IF (COPY_GC_DLL)
   IF (MINGW)
-    SET(GCMT_DLL libgcmt-dll.dll)
+    SET(GCMT_DLL libgc.dll)
   ELSE()
-    SET(GCMT_DLL gcmt-dll.dll)
+    SET(GCMT_DLL gc.dll)
   ENDIF()
   ADD_CUSTOM_TARGET(copy-gc-dll
     COMMAND ${CMAKE_COMMAND} -E copy 

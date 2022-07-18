@@ -83,6 +83,9 @@ IF (NOT ZLIB_FOUND)
     # this must be a bug on zlib but can't do anything so just modify.
     IF (line STREQUAL "if(NOT MINGW)")
       FILE(APPEND ${ZLIB_SRC_DIR}/CMakeLists.txt "if(MSVC)\n")
+    ELSEIF(line MATCHES "^cmake_minimum_required")
+      FILE(APPEND ${ZLIB_SRC_DIR}/CMakeLists.txt
+	"cmake_minimum_required(VERSION 2.8.12)\n")
     ELSE()
       FILE(APPEND ${ZLIB_SRC_DIR}/CMakeLists.txt "${line}\n")
     ENDIF()

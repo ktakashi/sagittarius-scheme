@@ -264,7 +264,7 @@ SET(SAGITTARIUS_INCLUDE_DIR ${SAGITTARIUS_INCLUDE_DIR}
 INCLUDE_DIRECTORIES(${SAGITTARIUS_INCLUDE_DIR})
 
 IF(USE_BOEHM_GC)
-  #SET(GC_DEPENDS_TARGET false)
+  # SET(GC_DEPENDS_TARGET false)
   FIND_PACKAGE(Boehm_GC)
   SET(LINK_BOEHM_GC TRUE)
 
@@ -277,8 +277,8 @@ IF(USE_BOEHM_GC)
     # for now get it from github...
     # SET(GC_URL "https://github.com/ivmai/bdwgc/archive")
     IF (WINDOWS_SUPPORT)
-      SET(USED_GC_VERSION "gc-7.4.2")
-      SET(GC_VERSION "gc-7.4.2")
+      SET(USED_GC_VERSION "gc-8.2.0")
+      SET(GC_VERSION "gc-8.2.0")
       SET(NEED_LIB_ATMIC TRUE)
     ELSE()
       # for qnx we only support until 7.2d (as long as it doesn't support...)
@@ -307,9 +307,10 @@ IF(USE_BOEHM_GC)
       MESSAGE(FATAL_ERROR "First install Boehm GC. Go to gc directory.")
     ENDIF()
 
-    SET(enable_threads ON CACHE BOOL "Enabling Boehm GC thread")
-    SET(enable_parallel_mark ON CACHE BOOL "Enabling Boehm GC parallel marking")
-    ADD_DEFINITIONS("-DLARGE_CONFIG -DGC_DLL")
+    # Since 8.2.0 (or earlier?) only this is OFF
+    SET(enable_large_config ON CACHE BOOL
+      "Enabling Boehm GC large heap or root set")
+
     # OK we don't want to link this for god sake.
     IF (MSVC OR MINGW)
       ADD_DEFINITIONS("-DDONT_USE_USER32_DLL")
@@ -320,77 +321,17 @@ IF(USE_BOEHM_GC)
     # CMakeLists.txt without ADD_SUBDIRECTORY.
     # NOTE: Be aware when GC fixed this problem or changed CMakeLists.txt.
     SET(GC_DIR ${CMAKE_CURRENT_BINARY_DIR}/${GC_VERSION})
-    MESSAGE(STATUS "Rebuilding ${GC_DIR}/CMakeLists.txt")
-    IF (NOT EXISTS ${GC_DIR}/CMakeLists.txt.in)
-      FILE(RENAME ${GC_DIR}/CMakeLists.txt ${GC_DIR}/CMakeLists.txt.in)
-    ENDIF()
-    FILE(REMOVE ${GC_DIR}/CMakeLists.txt)
-    FILE(READ ${GC_DIR}/CMakeLists.txt.in GC_BUILD_LINES)
-    STRING(REGEX REPLACE "ADD_SUBDIRECTORY(.+)" ""
-      GC_BUILD_LINES "${GC_BUILD_LINES}")
-
-    IF (${SAGITTARIUS_OS} STREQUAL "qnx")
-      # Boehm doesn't support qnx by default
-      MESSAGE(STATUS "Adding QNX specific")
-      MESSAGE(STATUS ${CMAKE_USE_PTHREADS_INIT})
-      SET(THREADS_PTHREAD_ARG 
-	"The test always failed"
-	CACHE STRING "Result from TRY_RUN" FORCE)
-      SET(THREADS_HAVE_PTHREAD_ARG 1 FORCE)
-
-      STRING(REGEX REPLACE "ENDIF\\(CMAKE_USE_PTHREADS_INIT\\)"
-	"
-        IF (HOST MATCHES .*-.*-qnx*)
-		MESSAGE(STATUS \"GC for QNX\")
-		SET(SRC \${SRC} gc_dlopen.c)
-		ADD_DEFINITIONS(\"-DGC_QNX_THREADS\")
-		ADD_DEFINITIONS(\"-D_REENTRANT\")
-#		ADD_DEFINITIONS(\"-DPARALLEL_MARK\")
-                ADD_DEFINITIONS(\"-DTHREAD_LOCAL_ALLOC\")
-	ENDIF()
-	MESSAGE(STATUS \${SRC})
-ENDIF(CMAKE_USE_PTHREADS_INIT)"
-	GC_BUILD_LINES "${GC_BUILD_LINES}")
-    ENDIF()
-    IF (MINGW)
-      # for now... could be only on Linux
-      STRING(REGEX REPLACE "gc_cpp.cc" "" GC_BUILD_LINES "${GC_BUILD_LINES}")
-    ENDIF()
-
-    SET(IN_WIN32_TERM FALSE)
-    MESSAGE(STATUS "Appending GC build configuration to temp file.")
-    STRING(REGEX REPLACE ";" "\\\\;" GC_BUILD_LINES "${GC_BUILD_LINES}")
-    STRING(REGEX REPLACE "\n" ";" GC_BUILD_LINES "${GC_BUILD_LINES}")
-    FOREACH(GC_BUILD_LINE ${GC_BUILD_LINES})
-      IF (MSVC
-	  OR MINGW
-	  AND GC_BUILD_LINE STREQUAL "IF(WIN32)")
-	MESSAGE(STATUS "Found IF(WIN32)")
-	SET(IN_WIN32_TERM TRUE)
-      ENDIF()
-      # skip cord
-      IF (IN_WIN32_TERM AND GC_BUILD_LINE STREQUAL "ENDIF(WIN32)")
-	MESSAGE(STATUS "Adding install command")
-	SET(GC_BUILD_LINE "INSTALL(TARGETS gcmt-dll DESTINATION .)")
-	SET(IN_WIN32_TERM FALSE)
-      ENDIF()
-
-      IF (NOT IN_WIN32_TERM)
-	FILE(APPEND ${GC_DIR}/CMakeLists.txt.tmp "${GC_BUILD_LINE}\n")
-      ENDIF()
-    ENDFOREACH()
-
-    FILE(RENAME ${GC_DIR}/CMakeLists.txt.tmp ${GC_DIR}/CMakeLists.txt)
 
     ADD_SUBDIRECTORY(${GC_DIR} build/gc)
     INCLUDE_DIRECTORIES(${GC_DIR}/include)
     SET(HAVE_GC_H 1)
-    SET(GC_DEPENDS_TARGET gcmt-dll)
+    SET(BOEHM_GC_LIBRARIES gc)
+    SET(COPY_GC_DLL true)
     
     IF (NEED_LIB_ATMIC)
       # since 7.4.0 or 7.4.2? Boehm GC separated libatomic_ops so
       # we need to download it separately
-      SET(LIBATOMIC_OPS "libatomic_ops-7.4.0")
+      SET(LIBATOMIC_OPS "libatomic_ops-7.6.12")
       IF (NOT EXISTS "${GC_DIR}/libatomic_ops.tar.gz")
 	MESSAGE(STATUS "Checking libatmic_ops archive file ... not found")
 	MESSAGE(STATUS "Downloading ${GC_URL}/${LIBATOMIC_OPS}.tar.gz")
