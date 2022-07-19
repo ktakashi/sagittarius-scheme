@@ -115,7 +115,8 @@ static long mp_add_n(ulong *rp, ulong *xp, ulong *yp, long len)
 #endif
 }
 
-/* xp + yp -> rp (xsize >= ysize)
+/* 
+   xp + yp -> rp (xsize >= ysize)
    returns carry (0 or 1)
 */
 static int mp_add(ulong *rp, ulong rsize, 
@@ -123,7 +124,11 @@ static int mp_add(ulong *rp, ulong rsize,
 		  ulong *yp, ulong ysize)
 {
   long i;
-  long c = mp_add_n(rp, xp, yp, ysize);
+  long c;
+  if (xsize < ysize) return mp_add(rp, rsize, yp, ysize, xp, xsize);
+  
+  c = mp_add_n(rp, xp, yp, ysize);
+  
   /* do the rest */
   for (i = ysize; i < xsize && c; i++) {
     rp[i] = xp[i] + 1;
@@ -481,7 +486,7 @@ static void karatsuba(ulong *rp, ulong rsize,
 		      ulong *yp, ulong ysize,
 		      intptr_t stack_size)
 {
-  ulong n = max(xsize, ysize)/2, apblen, cpdlen, adbclen;
+  ulong n = (max(xsize, ysize)+1)/2, apblen, cpdlen, adbclen;
   ulong n2 = n<<1;
   ulong *a, *b, *c, *d;
   ulong *bd, *apb, *cpd, *adbc, *ac;
@@ -518,8 +523,13 @@ static void karatsuba(ulong *rp, ulong rsize,
   cpd[cpdlen-1] = 0L;
   
   /* prepare for 3 (a + b) and  (c + d) */
+  /* dump_xarray(a, alen); */
+  /* dump_xarray(b, n); */
+  /* dump_xarray(apb, apblen); */
   mp_add(apb, apblen, a, alen, b, n);
+  /* dump_xarray(apb, apblen); */
   mp_add(cpd, cpdlen, c, clen, d, n);
+  /* dump_xarray(cpd, cpdlen); */
 
   /* dump_xarray(cpd, cpdlen); */
   mp_mul_rec(ac+n2, aclen, a, alen, c, clen, stack_size); /* recursive 1 */
@@ -533,8 +543,11 @@ static void karatsuba(ulong *rp, ulong rsize,
   
   /* 3 - 1 - 2 */
   /* abdc > ac so carry won't happen */
+  /* dump_xarray(ac+n2, aclen); */
   mp_sub(adbc+n, adbclen, adbc+n, adbclen, ac+n2, aclen);
+  /* dump_xarray(adbc+n, adbclen); */
   mp_sub(adbc+n, adbclen, adbc+n, adbclen, bd, n2);
+  /* dump_xarray(adbc+n, adbclen); */
 
   /* combine 16^n*ac + 16^(n/2)*(ad + bc) + bd */
   /* now br must have sufficient size to put */
