@@ -590,8 +590,9 @@ static SgObject read_real(const SgChar **strp, long *lenp,
   }
   if (IS_EXACT(ctx)) {
     /* explicit exact number. */
-    SgObject e = Sg_Mul(fraction, Sg_Expt(SG_MAKE_INT(10),
-					  Sg_MakeInteger(exponent - fracdigs)));
+    SgObject n = Sg_MakeInteger(exponent - fracdigs);
+    SgObject exp = Sg_Expt(SG_MAKE_INT(10), n);
+    SgObject e = Sg_Mul(fraction, exp);
     if (minusp) return Sg_Negate(e);
     else        return e;
   } else if (ctx->exactness == NOEXACT &&

@@ -95,6 +95,11 @@
 #define dump_rec(flag, v) fprintf(stderr, #v" "flag, v)
 #define dump_s(v) dump_rec("%ld\n", v)
 #define dump_u(v) dump_rec("%lu\n", v)
+#if SIZEOF_LONG == 8
+#define dump_x(v) dump_rec("%016lx\n", v)
+#else
+#define dump_x(v) dump_rec("%08lx\n", v)
+#endif
 
 #define dump_bignum_s(b) dump_sarray((b)->elements, (b)->size)
 #define dump_bignum_u(b) dump_uarray((b)->elements, (b)->size)
@@ -111,7 +116,7 @@ static SgBignum *bignum_add_int(SgBignum *br, SgBignum *bx, SgBignum *by);
 static SgBignum* bignum_clear(SgBignum *b, long size)
 {
   long i;
-  for (i = 0; i < size; i++) b->elements[i] = 0L;
+  for (i = 0; i < size; i++) b->elements[i] = 0UL;
   return b;
 }
 
@@ -1481,29 +1486,19 @@ static ulong bignum_sdiv_rec(SgBignum *quotient,
     ulong q = (ulong) (de / divisor);
     ulong r = (ulong) (de - q * divisor);
     quotient->elements[0] = q;
+    quotient->size = 1; 	/* shouldn't be needed but in case */
     return r;
   } else {
     long n = dividend->size - 1;
+    udlong rem = (udlong)0L;
     ulong *pu = dividend->elements;
     ulong *qu = quotient->elements;
-    int shift = nlz(divisor);
-    udlong rem = pu[n];
-    
-    if (rem < divisor) {
-      qu[n] = 0;
-    } else {
-      qu[n] = (ulong)(rem / divisor);
-      rem = (ulong)(rem - ((udlong)qu[n] * divisor));
-    }
-    n--;
     for (; n >= 0; n--) {
-      udlong e = (rem << WORD_BITS) | pu[n];
-      ulong q;
-      q = (ulong)(e/divisor);
-      rem = (ulong)(e - ((udlong)q * divisor));
-      qu[n] = q;
+      rem = (rem << WORD_BITS) | pu[n];
+      qu[n] = rem / divisor;
+      rem = rem % divisor;
     }
-    return (shift>0) ? rem % divisor: rem;
+    return rem;
   }
 #else
   /* only HALF_WORD */
@@ -1552,7 +1547,7 @@ static SgBignum ** bignum_div_rem(SgBignum *a, SgBignum *b, SgBignum **rr)
     rr[1] = a;
     return rr;
   }
-  if (rr[0] && rr[0]->size >= qsize ) {
+  if (rr[0] && rr[0]->size >= qsize) {
     q = rr[0];
   } else {
     q = make_bignum(qsize);
@@ -2033,7 +2028,7 @@ static void schonehage_to_string(SgBignum *b, SgObject out, int radix,
   long bits;
   int n, e;
   SgBignum *v;
-  SgBignum *result[2] = {NULL, };
+  SgBignum *result[2] = {NULL, NULL};
   double lr, l2;
 #ifdef USE_STACK_FOR_SCHONEHAGE
   intptr_t stack_size;
@@ -2075,7 +2070,7 @@ static void schonehage_to_string(SgBignum *b, SgObject out, int radix,
 #endif
 
   bignum_div_rem(b, v, result);
-  e = 1<<n;
+  e = 1<<n;  
   schonehage_to_string(result[0], out, radix, count-e, use_upper, two_exps);
   schonehage_to_string(result[1], out, radix, e, use_upper, two_exps);
 }

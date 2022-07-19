@@ -462,13 +462,14 @@ static long can_karatsuba(ulong xlen, ulong ylen)
 #define ALLOC_BUFFER_REC(r, type, size, stack)			\
   do {								\
     ulong s__ = (size);						\
-    if ((stack) > 0 && (s__)*sizeof(type*) <= (stack)) {	\
+    if ((stack) > 0 && (s__)*sizeof(type) <= (stack)) {		\
       ALLOC_TEMP_BUFFER_REC(r, type, s__);			\
-      (stack) -= s__;						\
+      (stack) -= (s__)*sizeof(type);				\
     } else {							\
-      (r) = SG_NEW_ATOMIC2(type*, sizeof(type*) * s__);		\
+      (r) = SG_NEW_ATOMIC2(type*, sizeof(type) * s__);		\
     }								\
   } while (0)
+
 #define ALLOC_BUFFER(r, type, size, stack)		\
   do {							\
     ALLOC_BUFFER_REC(r, type, size, stack);		\
@@ -509,9 +510,8 @@ static void karatsuba(ulong *rp, ulong rsize,
   ALLOC_BUFFER(bd, ulong, n2, stack_size);
 
   /* these can be intact during allocation. */
-  ALLOC_BUFFER_REC(apb, ulong, apblen, stack_size);
-  ALLOC_BUFFER_REC(cpd, ulong, cpdlen, stack_size);
-
+  ALLOC_BUFFER_REC(apb, ulong, apblen, stack_size); /* a+b */
+  ALLOC_BUFFER_REC(cpd, ulong, cpdlen, stack_size); /* c+d */
   /* we just need to clear most significant byte for addition buffer 
      nb. that's the part for carry. */
   apb[apblen-1] = 0L;
@@ -526,9 +526,11 @@ static void karatsuba(ulong *rp, ulong rsize,
   /* dump_xarray(ac+n2, aclen); */
   mp_mul_rec(bd, n2, b, n, d, n, stack_size); /* recursive 2 */
   /* dump_xarray(bd, n2); */
+  
   /* recursive 3 */
   mp_mul_rec(adbc+n, adbclen, apb, apblen, cpd, cpdlen, stack_size);
   /* dump_xarray(adbc+n, adbclen); */
+  
   /* 3 - 1 - 2 */
   /* abdc > ac so carry won't happen */
   mp_sub(adbc+n, adbclen, adbc+n, adbclen, ac+n2, aclen);
@@ -539,6 +541,7 @@ static void karatsuba(ulong *rp, ulong rsize,
   /* (should always be) aclen+n2 > adbclen+n */
   mp_add(rp, rsize, ac, aclen+n2, adbc, adbclen+n);
   mp_add(rp, rsize, rp, rsize, bd, n2);
+  /* dump_xarray(rp, rsize); */
 }
 
 /* the value is found experimentally. */
