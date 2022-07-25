@@ -856,13 +856,13 @@ SgObject Sg_BignumShiftRight(SgBignum *b, long shift)
 }
 
 #define DEF_BIGNUM_LOG_OP(name, op)					\
-  static inline SgBignum* name(SgBignum *z, SgBignum *x, SgBignum *y,	\
+  static SgBignum* name(SgBignum *z, SgBignum *x, SgBignum *y,		\
 			       int x2sc, int y2sc)			\
   {									\
-    long i;								\
-    long xs = SG_BIGNUM_GET_COUNT(x);					\
-    long ys = SG_BIGNUM_GET_COUNT(y);					\
-    long zs = SG_BIGNUM_GET_COUNT(z);					\
+    int i;								\
+    int xs = (int)SG_BIGNUM_GET_COUNT(x);				\
+    int ys = (int)SG_BIGNUM_GET_COUNT(y);				\
+    int zs = (int)SG_BIGNUM_GET_COUNT(z);				\
     for (i = zs-1; i >= 0; i--) {					\
       ulong lx = (i < xs) ? x->elements[i] : (x2sc ? SG_ULONG_MAX : 0); \
       ulong ly = (i < ys) ? y->elements[i] : (y2sc ? SG_ULONG_MAX : 0); \
