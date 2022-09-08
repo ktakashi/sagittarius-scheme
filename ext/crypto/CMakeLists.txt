@@ -13,21 +13,24 @@ IF (WATCOM)
   ADD_DEFINITIONS(-DLTC_NO_PROTOTYPES)
 ENDIF()
 
-# sagittarius--cipher
+# sagittarius--tomcrypt
 ADD_LIBRARY(sagittarius--tomcrypt MODULE
   sagittarius-tomcrypt.c
-  sagittarius-cipher.c ${CMAKE_CURRENT_BINARY_DIR}/cipher.c)
+  sagittarius-cipher.c ${CMAKE_CURRENT_BINARY_DIR}/cipher.c
+  sagittarius-digest.c ${CMAKE_CURRENT_BINARY_DIR}/digest.c
+  )
 IF (USE_CPP_FOR_BROKEN_LINKER)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(
     sagittarius-tomcrypt.c
-    sagittarius-cipher.c ${CMAKE_CURRENT_BINARY_DIR}/cipher.c 
+    sagittarius-cipher.c ${CMAKE_CURRENT_BINARY_DIR}/cipher.c
+    sagittarius-digest.c ${CMAKE_CURRENT_BINARY_DIR}/digest.c
     PROPERTIES LANGUAGE CXX)
 ENDIF()
 
 ADD_STUBS(sagittarius--tomcrypt
   COMMAND ${GENSTUB}
-  FILES cipher.stub
+  FILES cipher.stub digest.stub
   OUTTREE)
 SET_TARGET_PROPERTIES(sagittarius--tomcrypt PROPERTIES PREFIX "")
 IF(APPLE)

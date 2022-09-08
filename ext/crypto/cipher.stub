@@ -57,7 +57,7 @@
 
 (define-c-proc find-cipher (name::<string>) ::<fixnum> :no-side-effect
   (let ((cipher::int (find_cipher (Sg_Utf32sToUtf8s name))))
-    (when (== cipher -1)
+    (when (< cipher 0)
       (assertion-violation 'find-cipher "Cipher not supported" name))
     (result cipher)))
 

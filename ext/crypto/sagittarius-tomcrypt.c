@@ -29,6 +29,7 @@
 #define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
 #include "sagittarius-cipher.h"
+#include "sagittarius-digest.h"
 
 SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__tomcrypt()
 {
@@ -38,4 +39,5 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__tomcrypt()
   lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius crypto tomcrypt)"),
 				  FALSE));
   Sg_InitCipher(lib);
+  Sg_InitDigest(lib);
 }

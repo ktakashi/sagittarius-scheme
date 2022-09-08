@@ -1,6 +1,6 @@
 /* sagittarius-cipher.h                          -*- mode: c; coding: utf-8; -*-
  *
- *   Copyright (c) 2010-202  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2022  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions

@@ -1,0 +1,119 @@
+;; -*- mode: scheme; coding: utf-8; -*-
+(decl-code
+ (.include <sagittarius/private.h>)
+ (.define "LIBSAGITTARIUS_EXT_BODY")
+ (.include  <sagittarius/extend.h>
+	    <sagittarius-digest.h>))
+
+(define-type <digest> "int" "digest descriptor" "DIGEST_DESCRIPTORP" "SG_INT_VALUE" "SG_MAKE_INT" 0)
+(define-type <digest-state> "SgDigestState *")
+
+(define-cise-stmt assertion-violation
+  ((_ who msg)
+   `(begin (Sg_AssertionViolation ,who (SG_MAKE_STRING ,msg) '())))
+  ((_ who msg irritants)
+   `(begin (Sg_AssertionViolation ,who (SG_MAKE_STRING ,msg) ,irritants))))
+
+(define-cise-stmt check-tomcrypt-error
+  ((_ who err)
+   `(unless (== ,err CRYPT_OK)
+      (Sg_AssertionViolation ,who (Sg_MakeStringC (error_to_string err)) '()))))
+
+(define-cise-stmt check-range
+  ((_ who bv start length)
+   `(when (< (- (SG_BVECTOR_SIZE ,bv) ,start) ,length)
+      (assertion-violation ,who "Length is too long"
+	(SG_LIST3 '<
+		  (SG_MAKE_INT (- (SG_BVECTOR_SIZE ,bv) ,start))
+		  (SG_MAKE_INT ,length))))))
+
+(define-cise-stmt check-start-end
+  ((_ who bv start end)
+   `(when (or (< ,start 0) (< ,end (SG_BVECTOR_SIZE ,bv)))
+      (assertion-violation ,who "Out of the bytevector range"
+	(SG_LIST3 ,bv (SG_MAKE_INT ,start) (SG_MAKE_INT ,end))))))
+
+(define-cise-stmt check-md
+  ((_ who ds)
+   `(when (< (SG_DIGEST_STATE_MD ,ds) 0)
+      (assertion-violation ,who "Invalid digest state for this procedure" ds)))
+  ((_ who ds v)
+   `(unless (== (SG_DIGEST_STATE_MD ,ds) ,v)
+      (assertion-violation ,who "Invalid digest state for this procedure" ds))))
+
+
+(define-c-proc find-digest (name::<string>) ::<digest> :no-side-effect
+  (let ((md::int (find_hash (Sg_Utf32sToUtf8s name))))
+    (when (< md 0)
+      (assertion-violation 'find-digest "Digest not supported" name))
+    (result md)))
+
+(define-c-proc digest-descriptor? (obj) ::<boolean> :no-side-effect
+  DIGEST_DESCRIPTORP)
+(define-c-proc digest-descriptor-name (md::<digest>) :no-side-effect
+  (result (Sg_MakeStringC (DIGEST_DESCRIPTOR_NAME md))))
+(define-c-proc digest-descriptor-digest-size (md::<digest>) ::<fixnum> :no-side-effect
+  DIGEST_DESCRIPTOR_DIGEST_SIZE)
+(define-c-proc digest-descriptor-block-size (md::<digest>) ::<fixnum> :no-side-effect
+  DIGEST_DESCRIPTOR_BLOCK_SIZE)
+(define-c-proc digest-descriptor-oid (md::<digest>) :no-side-effect
+  Sg_DigestDescriptorOID)
+
+(define-c-proc digest-state? (obj) ::<boolean> :no-side-effect
+  SG_DIGEST_STATE_P)
+
+(define-c-proc digest-init (md::<digest>)
+  (let* ((ds (Sg_MakeDigestState md))
+	 (err::int (DIGEST_DESCRIPTOR_INIT md (& (SG_DIGEST_STATE_STATE ds)))))
+    (check-tomcrypt-error 'digest-init err)
+    (result ds)))
+
+(define-c-proc digest-process! (ds::<digest-state> bv::<bytevector>
+				:optional (start::<fixnum> 0)  
+					  (end::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE bv))))
+  (check-md 'digest-process! ds)
+  (check-start-end 'digest-process! bv start end)
+  (let ((err::int (DIGEST_DESCRIPTOR_PROCESS (SG_DIGEST_STATE_MD ds)
+					     (& (SG_DIGEST_STATE_STATE ds))
+					     (+ (SG_BVECTOR_ELEMENTS bv) start)
+					     (- end start))))
+    (check-tomcrypt-error 'digest-process! err)
+    (result ds)))
+
+(define-c-proc digest-done! (ds::<digest-state> out::<bytevector>
+			     :optional (start::<fixnum> 0)) ::<void>
+  (check-md 'digest-done! ds)
+  (check-range 'digest-done! out start (DIGEST_DESCRIPTOR_BLOCK_SIZE (SG_DIGEST_STATE_MD ds)))
+  (let ((err::int (DIGEST_DESCRIPTOR_DONE (SG_DIGEST_STATE_MD ds)
+					  (& (SG_DIGEST_STATE_STATE ds))
+					  (+ (SG_BVECTOR_ELEMENTS out) start))))
+    (check-tomcrypt-error 'digest-done! err)))
+
+;; SHAKE-128 and SHAKE-256
+(define-c-proc sha3-shake-init (num::<fixnum>)
+  (let* ((ds (Sg_MakeDigestState -1))
+	 (err::int (sha3_shake_init (& (SG_DIGEST_STATE_STATE ds)) num)))
+    (check-tomcrypt-error 'sha3-shake-init err)
+    (result ds)))
+
+(define-c-proc sha3-shake-process! (ds::<digest-state> bv::<bytevector>
+				    :optional (start::<fixnum> 0)  
+					      (end::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE bv))))
+  (check-md 'sha3-shake-process! ds -1)
+  (check-start-end 'sha3-shake-process! bv start end)
+  (let ((err::int (sha3_shake_process (& (SG_DIGEST_STATE_STATE ds))
+				      (+ (SG_BVECTOR_ELEMENTS bv) start)
+				      (- end start))))
+    (check-tomcrypt-error 'sha3-shake-process! err)
+    (result ds)))
+
+(define-c-proc sha3-shake-done! (ds::<digest-state> out::<bytevector>
+				 :optional (start::<fixnum> 0)  
+					   (len::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE out)))) ::<void>
+  (check-md 'sha3-shake-process! ds -1)
+  (check-range 'sha3-shake-process! out start len)
+  (let ((err::int (sha3_shake_done (& (SG_DIGEST_STATE_STATE ds))
+				   (+ (SG_BVECTOR_ELEMENTS out) start)
+				   len)))
+    (check-tomcrypt-error 'sha3-shake-done! err)))
+    
