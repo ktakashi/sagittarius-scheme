@@ -1,14 +1,6 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
-#include "tomcrypt.h"
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
+#include "tomcrypt_private.h"
 
 /**
   @file ecb_encrypt.c
@@ -41,21 +33,16 @@ int ecb_encrypt(const unsigned char *pt, unsigned char *ct, unsigned long len, s
    /* check for accel */
    if (cipher_descriptor[ecb->cipher].accel_ecb_encrypt != NULL) {
       return cipher_descriptor[ecb->cipher].accel_ecb_encrypt(pt, ct, len / cipher_descriptor[ecb->cipher].block_length, &ecb->key);
-   } else {
-      while (len) {
-         if ((err = cipher_descriptor[ecb->cipher].ecb_encrypt(pt, ct, &ecb->key)) != CRYPT_OK) {
-            return err;
-         }
-         pt  += cipher_descriptor[ecb->cipher].block_length;
-         ct  += cipher_descriptor[ecb->cipher].block_length;
-         len -= cipher_descriptor[ecb->cipher].block_length;
+   }
+   while (len) {
+      if ((err = cipher_descriptor[ecb->cipher].ecb_encrypt(pt, ct, &ecb->key)) != CRYPT_OK) {
+         return err;
       }
+      pt  += cipher_descriptor[ecb->cipher].block_length;
+      ct  += cipher_descriptor[ecb->cipher].block_length;
+      len -= cipher_descriptor[ecb->cipher].block_length;
    }
    return CRYPT_OK;
 }
 
 #endif
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

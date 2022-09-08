@@ -1,14 +1,6 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
-#include "tomcrypt.h"
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
+#include "tomcrypt_private.h"
 
 /**
    @file lrw_test.c
@@ -88,7 +80,7 @@ int lrw_test(void)
      }
 
      /* check pad against expected tweak */
-     if (XMEMCMP(tests[x].expected_tweak, lrw.pad, 16)) {
+     if (compare_testvector(tests[x].expected_tweak, 16, lrw.pad, 16, "LRW Tweak", x)) {
         lrw_done(&lrw);
         return CRYPT_FAIL_TESTVECTOR;
      }
@@ -99,13 +91,13 @@ int lrw_test(void)
         return err;
      }
 
-     if (XMEMCMP(buf[0], tests[x].C, 16)) {
+     if (compare_testvector(buf[0], 16, tests[x].C, 16, "LRW Encrypt", x)) {
         lrw_done(&lrw);
         return CRYPT_FAIL_TESTVECTOR;
      }
 
      /* process block */
-     if ((err = lrw_setiv(tests[x].IV, 16, &lrw)) != CRYPT_OK) { 
+     if ((err = lrw_setiv(tests[x].IV, 16, &lrw)) != CRYPT_OK) {
         lrw_done(&lrw);
         return err;
      }
@@ -115,22 +107,18 @@ int lrw_test(void)
         return err;
      }
 
-     if (XMEMCMP(buf[1], tests[x].P, 16)) {
+     if (compare_testvector(buf[1], 16, tests[x].P, 16, "LRW Decrypt", x)) {
         lrw_done(&lrw);
         return CRYPT_FAIL_TESTVECTOR;
      }
      if ((err = lrw_done(&lrw)) != CRYPT_OK) {
         return err;
      }
-   }
-   return CRYPT_OK;
+  }
+  return CRYPT_OK;
 #endif
 }
 
 #endif
 
 
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

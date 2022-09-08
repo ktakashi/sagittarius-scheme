@@ -1,14 +1,6 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
-#include "tomcrypt.h"
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
+#include "tomcrypt_private.h"
 
 /**
   @file khazad.c
@@ -32,10 +24,6 @@ const struct ltc_cipher_descriptor khazad_desc = {
 };
 
 #define R      8
-#define KEYSIZE      128
-#define KEYSIZEB   (KEYSIZE/8)
-#define BLOCKSIZE   64
-#define BLOCKSIZEB   (BLOCKSIZE/8)
 
 static const ulong64 T0[256] = {
     CONST64(0xbad3d268bbb96a01), CONST64(0x54fc4d19e59a66b1), CONST64(0x2f71bc93e26514cd), CONST64(0x749ccdb925871b51),
@@ -743,7 +731,7 @@ static void khazad_crypt(const unsigned char *plaintext, unsigned char *cipherte
   @param skey The key as scheduled
   @return CRYPT_OK if successful
 */
-int khazad_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *skey)
+int khazad_ecb_encrypt(const unsigned char *pt, unsigned char *ct, const symmetric_key *skey)
 {
    LTC_ARGCHK(pt   != NULL);
    LTC_ARGCHK(ct   != NULL);
@@ -759,7 +747,7 @@ int khazad_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key
   @param skey The key as scheduled
   @return CRYPT_OK if successful
 */
-int khazad_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_key *skey)
+int khazad_ecb_decrypt(const unsigned char *ct, unsigned char *pt, const symmetric_key *skey)
 {
    LTC_ARGCHK(pt   != NULL);
    LTC_ARGCHK(ct   != NULL);
@@ -810,13 +798,14 @@ int khazad_test(void)
        khazad_setup(tests[x].key, 16, 0, &skey);
        khazad_ecb_encrypt(tests[x].pt, buf[0], &skey);
        khazad_ecb_decrypt(buf[0], buf[1], &skey);
-       if (XMEMCMP(buf[0], tests[x].ct, 8) || XMEMCMP(buf[1], tests[x].pt, 8)) {
+       if (compare_testvector(buf[0], 8, tests[x].ct, 8, "Khazad Encrypt", x) ||
+             compare_testvector(buf[1], 8, tests[x].pt, 8, "Khazad Decrypt", x)) {
           return CRYPT_FAIL_TESTVECTOR;
        }
 
        for (y = 0; y < 1000; y++) khazad_ecb_encrypt(buf[0], buf[0], &skey);
        for (y = 0; y < 1000; y++) khazad_ecb_decrypt(buf[0], buf[0], &skey);
-       if (XMEMCMP(buf[0], tests[x].ct, 8)) {
+       if (compare_testvector(buf[0], 8, tests[x].ct, 8, "Khazad 1000", 1000)) {
           return CRYPT_FAIL_TESTVECTOR;
        }
 
@@ -844,13 +833,8 @@ int khazad_keysize(int *keysize)
    if (*keysize >= 16) {
       *keysize = 16;
       return CRYPT_OK;
-   } else {
-      return CRYPT_INVALID_KEYSIZE;
    }
+   return CRYPT_INVALID_KEYSIZE;
 }
 
 #endif
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

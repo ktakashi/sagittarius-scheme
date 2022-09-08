@@ -1,19 +1,11 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
 
 /**
    @file ocb3_done.c
    OCB implementation, INTERNAL ONLY helper, by Tom St Denis
 */
-#include "tomcrypt.h"
+#include "tomcrypt_private.h"
 
 #ifdef LTC_OCB3_MODE
 
@@ -34,6 +26,12 @@ int ocb3_done(ocb3_state *ocb, unsigned char *tag, unsigned long *taglen)
    LTC_ARGCHK(taglen != NULL);
    if ((err = cipher_is_valid(ocb->cipher)) != CRYPT_OK) {
       goto LBL_ERR;
+   }
+
+   /* check taglen */
+   if ((int)*taglen < ocb->tag_len) {
+      *taglen = (unsigned long)ocb->tag_len;
+      return CRYPT_BUFFER_OVERFLOW;
    }
 
    /* finalize AAD processing */
@@ -66,13 +64,9 @@ int ocb3_done(ocb3_state *ocb, unsigned char *tag, unsigned long *taglen)
    /* tag = tag ^ HASH(K, A) */
    ocb3_int_xor_blocks(tmp, ocb->tag_part, ocb->aSum_current, ocb->block_len);
 
-   /* fix taglen if needed */
-   if ((int)*taglen > ocb->block_len) {
-     *taglen = (unsigned long)ocb->block_len;
-   }
-
    /* copy tag bytes */
-   for(x=0; x<(int)*taglen; x++) tag[x] = tmp[x];
+   for(x = 0; x < ocb->tag_len; x++) tag[x] = tmp[x];
+   *taglen = (unsigned long)ocb->tag_len;
 
    err = CRYPT_OK;
 
@@ -86,7 +80,3 @@ LBL_ERR:
 }
 
 #endif
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

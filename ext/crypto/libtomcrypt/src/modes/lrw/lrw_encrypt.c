@@ -1,14 +1,6 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
-#include "tomcrypt.h"
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
+#include "tomcrypt_private.h"
 
 /**
    @file lrw_encrypt.c
@@ -16,7 +8,7 @@
 */
 
 #ifdef LTC_LRW_MODE
- 
+
 /**
   LRW encrypt blocks
   @param pt     The plaintext
@@ -45,6 +37,3 @@ int lrw_encrypt(const unsigned char *pt, unsigned char *ct, unsigned long len, s
 
 
 #endif
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

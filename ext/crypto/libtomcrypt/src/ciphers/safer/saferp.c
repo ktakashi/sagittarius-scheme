@@ -1,23 +1,15 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
 
 /**
    @file saferp.c
    LTC_SAFER+ Implementation by Tom St Denis
 */
-#include "tomcrypt.h"
+#include "tomcrypt_private.h"
 
 #ifdef LTC_SAFERP
 
-#define __LTC_SAFER_TAB_C__
+#define LTC_SAFER_TAB_C
 #include "safer_tab.c"
 
 const struct ltc_cipher_descriptor saferp_desc =
@@ -145,37 +137,37 @@ const struct ltc_cipher_descriptor saferp_desc =
 
 #ifdef LTC_SMALL_CODE
 
-static void _round(unsigned char *b, int i, symmetric_key *skey)
+static void s_round(unsigned char *b, int i, const symmetric_key *skey)
 {
    ROUND(b, i);
 }
 
-static void _iround(unsigned char *b, int i, symmetric_key *skey)
+static void s_iround(unsigned char *b, int i, const symmetric_key *skey)
 {
    iROUND(b, i);
 }
 
-static void _lt(unsigned char *b, unsigned char *b2)
+static void s_lt(unsigned char *b, unsigned char *b2)
 {
    LT(b, b2);
 }
 
-static void _ilt(unsigned char *b, unsigned char *b2)
+static void s_ilt(unsigned char *b, unsigned char *b2)
 {
    iLT(b, b2);
 }
 
 #undef ROUND
-#define ROUND(b, i) _round(b, i, skey)
+#define ROUND(b, i) s_round(b, i, skey)
 
 #undef iROUND
-#define iROUND(b, i) _iround(b, i, skey)
+#define iROUND(b, i) s_iround(b, i, skey)
 
 #undef LT
-#define LT(b, b2) _lt(b, b2)
+#define LT(b, b2) s_lt(b, b2)
 
 #undef iLT
-#define iLT(b, b2) _ilt(b, b2)
+#define iLT(b, b2) s_ilt(b, b2)
 
 #endif
 
@@ -340,7 +332,7 @@ int saferp_setup(const unsigned char *key, int keylen, int num_rounds, symmetric
   @param skey The key as scheduled
   @return CRYPT_OK if successful
 */
-int saferp_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *skey)
+int saferp_ecb_encrypt(const unsigned char *pt, unsigned char *ct, const symmetric_key *skey)
 {
    unsigned char b[16];
    int x;
@@ -348,6 +340,10 @@ int saferp_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key
    LTC_ARGCHK(pt   != NULL);
    LTC_ARGCHK(ct   != NULL);
    LTC_ARGCHK(skey != NULL);
+
+   if (skey->saferp.rounds < 8 || skey->saferp.rounds > 16) {
+       return CRYPT_INVALID_ROUNDS;
+   }
 
    /* do eight rounds */
    for (x = 0; x < 16; x++) {
@@ -404,7 +400,7 @@ int saferp_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key
   @param skey The key as scheduled
   @return CRYPT_OK if successful
 */
-int saferp_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_key *skey)
+int saferp_ecb_decrypt(const unsigned char *ct, unsigned char *pt, const symmetric_key *skey)
 {
    unsigned char b[16];
    int x;
@@ -412,6 +408,10 @@ int saferp_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_key
    LTC_ARGCHK(pt   != NULL);
    LTC_ARGCHK(ct   != NULL);
    LTC_ARGCHK(skey != NULL);
+
+   if (skey->saferp.rounds < 8 || skey->saferp.rounds > 16) {
+       return CRYPT_INVALID_ROUNDS;
+   }
 
    /* do eight rounds */
    b[0] = ct[0] ^ skey->saferp.K[skey->saferp.rounds*2][0];
@@ -516,7 +516,8 @@ int saferp_test(void)
       saferp_ecb_decrypt(tmp[0], tmp[1], &skey);
 
       /* compare */
-      if (XMEMCMP(tmp[0], tests[i].ct, 16) || XMEMCMP(tmp[1], tests[i].pt, 16)) {
+      if (compare_testvector(tmp[0], 16, tests[i].ct, 16, "Safer+ Encrypt", i) ||
+            compare_testvector(tmp[1], 16, tests[i].pt, 16, "Safer+ Decrypt", i)) {
          return CRYPT_FAIL_TESTVECTOR;
       }
 
@@ -548,8 +549,9 @@ int saferp_keysize(int *keysize)
 {
    LTC_ARGCHK(keysize != NULL);
 
-   if (*keysize < 16)
+   if (*keysize < 16) {
       return CRYPT_INVALID_KEYSIZE;
+   }
    if (*keysize < 24) {
       *keysize = 16;
    } else if (*keysize < 32) {
@@ -563,7 +565,3 @@ int saferp_keysize(int *keysize)
 #endif
 
 
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

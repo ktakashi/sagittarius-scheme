@@ -1,15 +1,7 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
 
-#include "tomcrypt.h"
+#include "tomcrypt_private.h"
 
 /**
    @file tiger.c
@@ -555,19 +547,13 @@ static const ulong64 table[4*256] = {
     CONST64(0xCD56D9430EA8280E) /* 1020 */, CONST64(0xC12591D7535F5065) /* 1021 */,
     CONST64(0xC83223F1720AEF96) /* 1022 */, CONST64(0xC3A0396F7363A51F) /* 1023 */};
 
-#ifdef _MSC_VER
-   #define INLINE __inline
-#else
-   #define INLINE 
-#endif   
-
 /* one round of the hash function */
-INLINE static void tiger_round(ulong64 *a, ulong64 *b, ulong64 *c, ulong64 x, int mul)
+LTC_INLINE static void tiger_round(ulong64 *a, ulong64 *b, ulong64 *c, ulong64 x, int mul)
 {
     ulong64 tmp;
-    tmp = (*c ^= x); 
-           *a -= t1[byte(tmp, 0)] ^ t2[byte(tmp, 2)] ^ t3[byte(tmp, 4)] ^ t4[byte(tmp, 6)];      
-    tmp = (*b += t4[byte(tmp, 1)] ^ t3[byte(tmp, 3)] ^ t2[byte(tmp,5)] ^ t1[byte(tmp,7)]); 
+    tmp = (*c ^= x);
+           *a -= t1[LTC_BYTE(tmp, 0)] ^ t2[LTC_BYTE(tmp, 2)] ^ t3[LTC_BYTE(tmp, 4)] ^ t4[LTC_BYTE(tmp, 6)];
+    tmp = (*b += t4[LTC_BYTE(tmp, 1)] ^ t3[LTC_BYTE(tmp, 3)] ^ t2[LTC_BYTE(tmp,5)] ^ t1[LTC_BYTE(tmp,7)]);
     switch (mul) {
         case 5:  *b = (tmp << 2) + tmp; break;
         case 7:  *b = (tmp << 3) - tmp; break;
@@ -576,43 +562,43 @@ INLINE static void tiger_round(ulong64 *a, ulong64 *b, ulong64 *c, ulong64 x, in
 }
 
 /* one complete pass */
-static void pass(ulong64 *a, ulong64 *b, ulong64 *c, ulong64 *x, int mul)
+static void s_pass(ulong64 *a, ulong64 *b, ulong64 *c, const ulong64 *x, int mul)
 {
-   tiger_round(a,b,c,x[0],mul); 
-   tiger_round(b,c,a,x[1],mul); 
-   tiger_round(c,a,b,x[2],mul); 
-   tiger_round(a,b,c,x[3],mul); 
-   tiger_round(b,c,a,x[4],mul); 
-   tiger_round(c,a,b,x[5],mul); 
-   tiger_round(a,b,c,x[6],mul); 
-   tiger_round(b,c,a,x[7],mul);          
-}   
+   tiger_round(a,b,c,x[0],mul);
+   tiger_round(b,c,a,x[1],mul);
+   tiger_round(c,a,b,x[2],mul);
+   tiger_round(a,b,c,x[3],mul);
+   tiger_round(b,c,a,x[4],mul);
+   tiger_round(c,a,b,x[5],mul);
+   tiger_round(a,b,c,x[6],mul);
+   tiger_round(b,c,a,x[7],mul);
+}
 
 /* The key mixing schedule */
-static void key_schedule(ulong64 *x) 
+static void s_key_schedule(ulong64 *x)
 {
-    x[0] -= x[7] ^ CONST64(0xA5A5A5A5A5A5A5A5); 
-    x[1] ^= x[0];                               
-    x[2] += x[1];                               
-    x[3] -= x[2] ^ ((~x[1])<<19);               
-    x[4] ^= x[3];                               
-    x[5] += x[4];                               
-    x[6] -= x[5] ^ ((~x[4])>>23);               
-    x[7] ^= x[6];                               
-    x[0] += x[7];                               
-    x[1] -= x[0] ^ ((~x[7])<<19);               
-    x[2] ^= x[1];                               
-    x[3] += x[2];                               
-    x[4] -= x[3] ^ ((~x[2])>>23);               
-    x[5] ^= x[4];                               
-    x[6] += x[5];                               
+    x[0] -= x[7] ^ CONST64(0xA5A5A5A5A5A5A5A5);
+    x[1] ^= x[0];
+    x[2] += x[1];
+    x[3] -= x[2] ^ ((~x[1])<<19);
+    x[4] ^= x[3];
+    x[5] += x[4];
+    x[6] -= x[5] ^ ((~x[4])>>23);
+    x[7] ^= x[6];
+    x[0] += x[7];
+    x[1] -= x[0] ^ ((~x[7])<<19);
+    x[2] ^= x[1];
+    x[3] += x[2];
+    x[4] -= x[3] ^ ((~x[2])>>23);
+    x[5] ^= x[4];
+    x[6] += x[5];
     x[7] -= x[6] ^ CONST64(0x0123456789ABCDEF);
-}    
+}
 
 #ifdef LTC_CLEAN_STACK
-static int _tiger_compress(hash_state *md, unsigned char *buf)
+static int ss_tiger_compress(hash_state *md, const unsigned char *buf)
 #else
-static int  tiger_compress(hash_state *md, unsigned char *buf)
+static int  s_tiger_compress(hash_state *md, const unsigned char *buf)
 #endif
 {
     ulong64 a, b, c, x[8];
@@ -626,11 +612,11 @@ static int  tiger_compress(hash_state *md, unsigned char *buf)
     b = md->tiger.state[1];
     c = md->tiger.state[2];
 
-    pass(&a,&b,&c,x,5);
-    key_schedule(x);
-    pass(&c,&a,&b,x,7);
-    key_schedule(x);
-    pass(&b,&c,&a,x,9);
+    s_pass(&a,&b,&c,x,5);
+    s_key_schedule(x);
+    s_pass(&c,&a,&b,x,7);
+    s_key_schedule(x);
+    s_pass(&b,&c,&a,x,9);
 
     /* store state */
     md->tiger.state[0] = a ^ md->tiger.state[0];
@@ -641,10 +627,10 @@ static int  tiger_compress(hash_state *md, unsigned char *buf)
 }
 
 #ifdef LTC_CLEAN_STACK
-static int tiger_compress(hash_state *md, unsigned char *buf)
+static int s_tiger_compress(hash_state *md, const unsigned char *buf)
 {
    int err;
-   err = _tiger_compress(md, buf);
+   err = ss_tiger_compress(md, buf);
    burn_stack(sizeof(ulong64) * 11 + sizeof(unsigned long));
    return err;
 }
@@ -673,7 +659,7 @@ int tiger_init(hash_state *md)
    @param inlen  The length of the data (octets)
    @return CRYPT_OK if successful
 */
-HASH_PROCESS(tiger_process, tiger_compress, tiger, 64)
+HASH_PROCESS(tiger_process, s_tiger_compress, tiger, 64)
 
 /**
    Terminate the hash to get the digest
@@ -703,18 +689,18 @@ int tiger_done(hash_state * md, unsigned char *out)
         while (md->tiger.curlen < 64) {
             md->tiger.buf[md->tiger.curlen++] = (unsigned char)0;
         }
-        tiger_compress(md, md->tiger.buf);
+        s_tiger_compress(md, md->tiger.buf);
         md->tiger.curlen = 0;
     }
 
     /* pad upto 56 bytes of zeroes */
     while (md->tiger.curlen < 56) {
-        md->tiger.buf[md->tiger.curlen++] = (unsigned char)0; 
+        md->tiger.buf[md->tiger.curlen++] = (unsigned char)0;
     }
 
     /* store length */
     STORE64L(md->tiger.length, md->tiger.buf+56);
-    tiger_compress(md, md->tiger.buf);
+    s_tiger_compress(md, md->tiger.buf);
 
     /* copy output */
     STORE64L(md->tiger.state[0], &out[0]);
@@ -730,14 +716,14 @@ int tiger_done(hash_state * md, unsigned char *out)
 /**
   Self-test the hash
   @return CRYPT_OK if successful, CRYPT_NOP if self-tests have been disabled
-*/  
+*/
 int  tiger_test(void)
 {
  #ifndef LTC_TEST
     return CRYPT_NOP;
- #else    
+ #else
   static const struct {
-      char *msg;
+      const char *msg;
       unsigned char hash[24];
   } tests[] = {
     { "",
@@ -773,9 +759,9 @@ int  tiger_test(void)
 
   for (i = 0; i < (int)(sizeof(tests) / sizeof(tests[0])); i++) {
       tiger_init(&md);
-      tiger_process(&md, (unsigned char *)tests[i].msg, (unsigned long)strlen(tests[i].msg));
+      tiger_process(&md, (unsigned char *)tests[i].msg, (unsigned long)XSTRLEN(tests[i].msg));
       tiger_done(&md, tmp);
-      if (XMEMCMP(tmp, tests[i].hash, 24) != 0) {
+      if (compare_testvector(tmp, sizeof(tmp), tests[i].hash, sizeof(tests[i].hash), "TIGER", i)) {
           return CRYPT_FAIL_TESTVECTOR;
       }
   }
@@ -808,7 +794,3 @@ Hash of "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-ABCDEFG
 
 
 
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

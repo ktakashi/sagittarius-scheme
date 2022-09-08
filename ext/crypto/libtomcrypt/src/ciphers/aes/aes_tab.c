@@ -1,13 +1,5 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
 /* The precomputed tables for AES */
 /*
 Te0[x] = S [x].[02, 01, 01, 03];
@@ -23,7 +15,7 @@ Td3[x] = Si[x].[09, 0d, 0b, 0e];
 Td4[x] = Si[x].[01, 01, 01, 01];
 */
 
-#ifdef __LTC_AES_TAB_C__
+#ifdef LTC_AES_TAB_C
 
 /**
   @file aes_tab.c
@@ -96,7 +88,7 @@ static const ulong32 TE0[256] = {
     0x7bb0b0cbUL, 0xa85454fcUL, 0x6dbbbbd6UL, 0x2c16163aUL,
 };
 
-#ifndef PELI_TAB
+#if !defined(PELI_TAB) && defined(LTC_SMALL_CODE)
 static const ulong32 Te4[256] = {
     0x63636363UL, 0x7c7c7c7cUL, 0x77777777UL, 0x7b7b7b7bUL,
     0xf2f2f2f2UL, 0x6b6b6b6bUL, 0x6f6f6f6fUL, 0xc5c5c5c5UL,
@@ -1019,14 +1011,12 @@ static const ulong32 Tks3[] = {
 
 #endif /* SMALL CODE */
 
+#ifndef PELI_TAB
 static const ulong32 rcon[] = {
     0x01000000UL, 0x02000000UL, 0x04000000UL, 0x08000000UL,
     0x10000000UL, 0x20000000UL, 0x40000000UL, 0x80000000UL,
     0x1B000000UL, 0x36000000UL, /* for 128-bit blocks, Rijndael never uses more than 10 rcon values */
 };
+#endif
 
-#endif /* __LTC_AES_TAB_C__ */
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */
+#endif /* LTC_AES_TAB_C */

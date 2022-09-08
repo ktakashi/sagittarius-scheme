@@ -1,19 +1,11 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
 
  /**
    @file twofish.c
    Implementation of Twofish by Tom St Denis
  */
-#include "tomcrypt.h"
+#include "tomcrypt_private.h"
 
 #ifdef LTC_TWOFISH
 
@@ -39,8 +31,12 @@ const struct ltc_cipher_descriptor twofish_desc =
 };
 
 /* the two polynomials */
+#ifndef LTC_TWOFISH_TABLES
 #define MDS_POLY          0x169
+#endif
+#ifndef LTC_TWOFISH_ALL_TABLES
 #define RS_POLY           0x14D
+#endif
 
 /* The 4x8 RS Linear Transform */
 static const unsigned char RS[4][8] = {
@@ -62,7 +58,7 @@ static const unsigned char qord[4][5] = {
 
 #ifdef LTC_TWOFISH_TABLES
 
-#define __LTC_TWOFISH_TAB_C__
+#define LTC_TWOFISH_TAB_C
 #include "twofish_tab.c"
 
 #define sbox(i, x) ((ulong32)SBOX[i][(x)&255])
@@ -87,7 +83,7 @@ static const unsigned char qbox[2][4][16] = {
 
 /* computes S_i[x] */
 #ifdef LTC_CLEAN_STACK
-static ulong32 _sbox(int i, ulong32 x)
+static ulong32 s_sbox(int i, ulong32 x)
 #else
 static ulong32 sbox(int i, ulong32 x)
 #endif
@@ -129,7 +125,7 @@ static ulong32 sbox(int i, ulong32 x)
 static ulong32 sbox(int i, ulong32 x)
 {
    ulong32 y;
-   y = _sbox(i, x);
+   y = s_sbox(i, x);
    burn_stack(sizeof(unsigned char) * 11);
    return y;
 }
@@ -239,29 +235,32 @@ static void rs_mult(const unsigned char *in, unsigned char *out)
 #endif
 
 /* computes h(x) */
-static void h_func(const unsigned char *in, unsigned char *out, unsigned char *M, int k, int offset)
+static void h_func(const unsigned char *in, unsigned char *out, const unsigned char *M, int k, int offset)
 {
   int x;
   unsigned char y[4];
   for (x = 0; x < 4; x++) {
       y[x] = in[x];
- }
+  }
   switch (k) {
      case 4:
             y[0] = (unsigned char)(sbox(1, (ulong32)y[0]) ^ M[4 * (6 + offset) + 0]);
             y[1] = (unsigned char)(sbox(0, (ulong32)y[1]) ^ M[4 * (6 + offset) + 1]);
             y[2] = (unsigned char)(sbox(0, (ulong32)y[2]) ^ M[4 * (6 + offset) + 2]);
             y[3] = (unsigned char)(sbox(1, (ulong32)y[3]) ^ M[4 * (6 + offset) + 3]);
+            /* FALLTHROUGH */
      case 3:
             y[0] = (unsigned char)(sbox(1, (ulong32)y[0]) ^ M[4 * (4 + offset) + 0]);
             y[1] = (unsigned char)(sbox(1, (ulong32)y[1]) ^ M[4 * (4 + offset) + 1]);
             y[2] = (unsigned char)(sbox(0, (ulong32)y[2]) ^ M[4 * (4 + offset) + 2]);
             y[3] = (unsigned char)(sbox(0, (ulong32)y[3]) ^ M[4 * (4 + offset) + 3]);
+            /* FALLTHROUGH */
      case 2:
             y[0] = (unsigned char)(sbox(1, sbox(0, sbox(0, (ulong32)y[0]) ^ M[4 * (2 + offset) + 0]) ^ M[4 * (0 + offset) + 0]));
             y[1] = (unsigned char)(sbox(0, sbox(0, sbox(1, (ulong32)y[1]) ^ M[4 * (2 + offset) + 1]) ^ M[4 * (0 + offset) + 1]));
             y[2] = (unsigned char)(sbox(1, sbox(1, sbox(0, (ulong32)y[2]) ^ M[4 * (2 + offset) + 2]) ^ M[4 * (0 + offset) + 2]));
             y[3] = (unsigned char)(sbox(0, sbox(1, sbox(1, (ulong32)y[3]) ^ M[4 * (2 + offset) + 3]) ^ M[4 * (0 + offset) + 3]));
+            /* FALLTHROUGH */
   }
   mds_mult(y, out);
 }
@@ -277,15 +276,15 @@ static void h_func(const unsigned char *in, unsigned char *out, unsigned char *M
 #endif
 
 /* the G function */
-#define g_func(x, dum)  (S1[byte(x,0)] ^ S2[byte(x,1)] ^ S3[byte(x,2)] ^ S4[byte(x,3)])
-#define g1_func(x, dum) (S2[byte(x,0)] ^ S3[byte(x,1)] ^ S4[byte(x,2)] ^ S1[byte(x,3)])
+#define g_func(x, dum)  (S1[LTC_BYTE(x,0)] ^ S2[LTC_BYTE(x,1)] ^ S3[LTC_BYTE(x,2)] ^ S4[LTC_BYTE(x,3)])
+#define g1_func(x, dum) (S2[LTC_BYTE(x,0)] ^ S3[LTC_BYTE(x,1)] ^ S4[LTC_BYTE(x,2)] ^ S1[LTC_BYTE(x,3)])
 
 #else
 
 #ifdef LTC_CLEAN_STACK
-static ulong32 _g_func(ulong32 x, symmetric_key *key)
+static ulong32 s_g_func(ulong32 x, const symmetric_key *key)
 #else
-static ulong32 g_func(ulong32 x, symmetric_key *key)
+static ulong32 g_func(ulong32 x, const symmetric_key *key)
 #endif
 {
    unsigned char g, i, y, z;
@@ -316,10 +315,10 @@ static ulong32 g_func(ulong32 x, symmetric_key *key)
 #define g1_func(x, key) g_func(ROLc(x, 8), key)
 
 #ifdef LTC_CLEAN_STACK
-static ulong32 g_func(ulong32 x, symmetric_key *key)
+static ulong32 g_func(ulong32 x, const symmetric_key *key)
 {
     ulong32 y;
-    y = _g_func(x, key);
+    y = s_g_func(x, key);
     burn_stack(sizeof(unsigned char) * 4 + sizeof(ulong32));
     return y;
 }
@@ -336,7 +335,7 @@ static ulong32 g_func(ulong32 x, symmetric_key *key)
     @return CRYPT_OK if successful
  */
 #ifdef LTC_CLEAN_STACK
-static int _twofish_setup(const unsigned char *key, int keylen, int num_rounds, symmetric_key *skey)
+static int s_twofish_setup(const unsigned char *key, int keylen, int num_rounds, symmetric_key *skey)
 #else
 int twofish_setup(const unsigned char *key, int keylen, int num_rounds, symmetric_key *skey)
 #endif
@@ -449,7 +448,7 @@ int twofish_setup(const unsigned char *key, int keylen, int num_rounds, symmetri
 int twofish_setup(const unsigned char *key, int keylen, int num_rounds, symmetric_key *skey)
 {
    int x;
-   x = _twofish_setup(key, keylen, num_rounds, skey);
+   x = s_twofish_setup(key, keylen, num_rounds, skey);
    burn_stack(sizeof(int) * 7 + sizeof(unsigned char) * 56 + sizeof(ulong32) * 2);
    return x;
 }
@@ -463,15 +462,16 @@ int twofish_setup(const unsigned char *key, int keylen, int num_rounds, symmetri
   @return CRYPT_OK if successful
 */
 #ifdef LTC_CLEAN_STACK
-static int _twofish_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *skey)
+static int s_twofish_ecb_encrypt(const unsigned char *pt, unsigned char *ct, const symmetric_key *skey)
 #else
-int twofish_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *skey)
+int twofish_ecb_encrypt(const unsigned char *pt, unsigned char *ct, const symmetric_key *skey)
 #endif
 {
-    ulong32 a,b,c,d,ta,tb,tc,td,t1,t2, *k;
+    ulong32 a,b,c,d,ta,tb,tc,td,t1,t2;
+    const ulong32 *k;
     int r;
 #if !defined(LTC_TWOFISH_SMALL) && !defined(__GNUC__)
-    ulong32 *S1, *S2, *S3, *S4;
+    const ulong32 *S1, *S2, *S3, *S4;
 #endif
 
     LTC_ARGCHK(pt   != NULL);
@@ -504,7 +504,7 @@ int twofish_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_ke
         a  = RORc(a ^ (t1 + k[2]), 1);
         b  = ROLc(b, 1) ^ (t2 + t1 + k[3]);
         k += 4;
-   }
+    }
 
     /* output with "undo last swap" */
     ta = c ^ skey->twofish.K[4];
@@ -520,9 +520,9 @@ int twofish_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_ke
 }
 
 #ifdef LTC_CLEAN_STACK
-int twofish_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *skey)
+int twofish_ecb_encrypt(const unsigned char *pt, unsigned char *ct, const symmetric_key *skey)
 {
-   int err = _twofish_ecb_encrypt(pt, ct, skey);
+   int err = s_twofish_ecb_encrypt(pt, ct, skey);
    burn_stack(sizeof(ulong32) * 10 + sizeof(int));
    return err;
 }
@@ -536,15 +536,16 @@ int twofish_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_ke
   @return CRYPT_OK if successful
 */
 #ifdef LTC_CLEAN_STACK
-static int _twofish_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_key *skey)
+static int s_twofish_ecb_decrypt(const unsigned char *ct, unsigned char *pt, const symmetric_key *skey)
 #else
-int twofish_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_key *skey)
+int twofish_ecb_decrypt(const unsigned char *ct, unsigned char *pt, const symmetric_key *skey)
 #endif
 {
-    ulong32 a,b,c,d,ta,tb,tc,td,t1,t2, *k;
+    ulong32 a,b,c,d,ta,tb,tc,td,t1,t2;
+    const ulong32 *k;
     int r;
 #if !defined(LTC_TWOFISH_SMALL) && !defined(__GNUC__)
-    ulong32 *S1, *S2, *S3, *S4;
+    const ulong32 *S1, *S2, *S3, *S4;
 #endif
 
     LTC_ARGCHK(pt   != NULL);
@@ -595,9 +596,9 @@ int twofish_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_ke
 }
 
 #ifdef LTC_CLEAN_STACK
-int twofish_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_key *skey)
+int twofish_ecb_decrypt(const unsigned char *ct, unsigned char *pt, const symmetric_key *skey)
 {
-   int err =_twofish_ecb_decrypt(ct, pt, skey);
+   int err = s_twofish_ecb_decrypt(ct, pt, skey);
    burn_stack(sizeof(ulong32) * 10 + sizeof(int));
    return err;
 }
@@ -646,29 +647,27 @@ int twofish_test(void)
 };
 
 
- symmetric_key key;
- unsigned char tmp[2][16];
- int err, i, y;
+  symmetric_key key;
+  unsigned char tmp[2][16];
+  int err, i, y;
 
- for (i = 0; i < (int)(sizeof(tests)/sizeof(tests[0])); i++) {
+  for (i = 0; i < (int)(sizeof(tests)/sizeof(tests[0])); i++) {
     if ((err = twofish_setup(tests[i].key, tests[i].keylen, 0, &key)) != CRYPT_OK) {
        return err;
     }
     twofish_ecb_encrypt(tests[i].pt, tmp[0], &key);
     twofish_ecb_decrypt(tmp[0], tmp[1], &key);
-    if (XMEMCMP(tmp[0], tests[i].ct, 16) != 0 || XMEMCMP(tmp[1], tests[i].pt, 16) != 0) {
-#if 0
-       printf("Twofish failed test %d, %d, %d\n", i, XMEMCMP(tmp[0], tests[i].ct, 16), XMEMCMP(tmp[1], tests[i].pt, 16));
-#endif
+    if (compare_testvector(tmp[0], 16, tests[i].ct, 16, "Twofish Encrypt", i) != 0 ||
+          compare_testvector(tmp[1], 16, tests[i].pt, 16, "Twofish Decrypt", i) != 0) {
        return CRYPT_FAIL_TESTVECTOR;
     }
-      /* now see if we can encrypt all zero bytes 1000 times, decrypt and come back where we started */
-      for (y = 0; y < 16; y++) tmp[0][y] = 0;
-      for (y = 0; y < 1000; y++) twofish_ecb_encrypt(tmp[0], tmp[0], &key);
-      for (y = 0; y < 1000; y++) twofish_ecb_decrypt(tmp[0], tmp[0], &key);
-      for (y = 0; y < 16; y++) if (tmp[0][y] != 0) return CRYPT_FAIL_TESTVECTOR;
- }
- return CRYPT_OK;
+    /* now see if we can encrypt all zero bytes 1000 times, decrypt and come back where we started */
+    for (y = 0; y < 16; y++) tmp[0][y] = 0;
+    for (y = 0; y < 1000; y++) twofish_ecb_encrypt(tmp[0], tmp[0], &key);
+    for (y = 0; y < 1000; y++) twofish_ecb_decrypt(tmp[0], tmp[0], &key);
+    for (y = 0; y < 16; y++) if (tmp[0][y] != 0) return CRYPT_FAIL_TESTVECTOR;
+  }
+  return CRYPT_OK;
 #endif
 }
 
@@ -688,25 +687,20 @@ void twofish_done(symmetric_key *skey)
 int twofish_keysize(int *keysize)
 {
    LTC_ARGCHK(keysize);
-   if (*keysize < 16)
+   if (*keysize < 16) {
       return CRYPT_INVALID_KEYSIZE;
+   }
    if (*keysize < 24) {
       *keysize = 16;
       return CRYPT_OK;
-   } else if (*keysize < 32) {
+   }
+   if (*keysize < 32) {
       *keysize = 24;
       return CRYPT_OK;
-   } else {
-      *keysize = 32;
-      return CRYPT_OK;
    }
+   *keysize = 32;
+   return CRYPT_OK;
 }
 
 #endif
 
-
-
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

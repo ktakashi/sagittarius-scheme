@@ -1,3 +1,6 @@
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
+
 #ifndef TOMCRYPT_H_
 #define TOMCRYPT_H_
 #include <assert.h>
@@ -10,21 +13,23 @@
 #include <limits.h>
 
 /* use configuration data */
-#include <tomcrypt_custom.h>
+#include "tomcrypt_custom.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* version */
-#define CRYPT   0x0117
-#define SCRYPT  "1.17"
+#define CRYPT   0x0118
+#define SCRYPT  "1.18.2-develop"
 
 /* max size of either a cipher/hash block or symmetric key [largest of the two] */
-#define MAXBLOCKSIZE  128
+#define MAXBLOCKSIZE  144
 
+#ifndef TAB_SIZE
 /* descriptor table size */
-#define TAB_SIZE      32
+#define TAB_SIZE      34
+#endif
 
 /* error codes [will be expanded in future releases] */
 enum {
@@ -58,8 +63,9 @@ enum {
 
    CRYPT_OVERFLOW,         /* An overflow of a value was detected/prevented */
 
-   CRYPT_UNUSED1,          /* UNUSED1 */
-   CRYPT_UNUSED2,          /* UNUSED2 */
+   CRYPT_PK_ASN1_ERROR,    /* An error occurred while en- or decoding ASN.1 data */
+
+   CRYPT_INPUT_TOO_LONG,   /* The input was longer than expected. */
 
    CRYPT_PK_INVALID_SIZE,  /* Invalid size input for PK parameters */
 
@@ -69,17 +75,17 @@ enum {
    CRYPT_HASH_OVERFLOW      /* Hash applied to too many bits */
 };
 
-#include <tomcrypt_cfg.h>
-#include <tomcrypt_macros.h>
-#include <tomcrypt_cipher.h>
-#include <tomcrypt_hash.h>
-#include <tomcrypt_mac.h>
-#include <tomcrypt_prng.h>
-#include <tomcrypt_pk.h>
-#include <tomcrypt_math.h>
-#include <tomcrypt_misc.h>
-#include <tomcrypt_argchk.h>
-#include <tomcrypt_pkcs.h>
+#include "tomcrypt_cfg.h"
+#include "tomcrypt_macros.h"
+#include "tomcrypt_cipher.h"
+#include "tomcrypt_hash.h"
+#include "tomcrypt_mac.h"
+#include "tomcrypt_prng.h"
+#include "tomcrypt_pk.h"
+#include "tomcrypt_math.h"
+#include "tomcrypt_misc.h"
+#include "tomcrypt_argchk.h"
+#include "tomcrypt_pkcs.h"
 
 #ifdef __cplusplus
    }
@@ -87,7 +93,3 @@ enum {
 
 #endif /* TOMCRYPT_H_ */
 
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

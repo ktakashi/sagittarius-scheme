@@ -1,13 +1,5 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
 
 /**
   @file kseed.c
@@ -15,7 +7,7 @@
   Tom St Denis
 */
 
-#include "tomcrypt.h"
+#include "tomcrypt_private.h"
 
 #ifdef LTC_KSEED
 
@@ -201,44 +193,44 @@ static const ulong32 KCi[16] = {
  */
 int kseed_setup(const unsigned char *key, int keylen, int num_rounds, symmetric_key *skey)
 {
-    int     i;
-    ulong32 tmp, k1, k2, k3, k4;
+   int     i;
+   ulong32 tmp, k1, k2, k3, k4;
 
-    if (keylen != 16) {
-       return CRYPT_INVALID_KEYSIZE;
-    }
+   if (keylen != 16) {
+      return CRYPT_INVALID_KEYSIZE;
+   }
 
-    if (num_rounds != 16 && num_rounds != 0) {
-       return CRYPT_INVALID_ROUNDS;
-    }
+   if (num_rounds != 16 && num_rounds != 0) {
+      return CRYPT_INVALID_ROUNDS;
+   }
 
-    /* load key */
-    LOAD32H(k1, key);
-    LOAD32H(k2, key+4);
-    LOAD32H(k3, key+8);
-    LOAD32H(k4, key+12);
+   /* load key */
+   LOAD32H(k1, key);
+   LOAD32H(k2, key+4);
+   LOAD32H(k3, key+8);
+   LOAD32H(k4, key+12);
 
-    for (i = 0; i < 16; i++) {
-       skey->kseed.K[2*i+0] = G(k1 + k3 - KCi[i]);
-       skey->kseed.K[2*i+1] = G(k2 - k4 + KCi[i]);
-       if (i&1) {
-          tmp = k3;
-          k3 = ((k3 << 8) | (k4 >> 24)) & 0xFFFFFFFF;
-          k4 = ((k4 << 8) | (tmp >> 24)) & 0xFFFFFFFF;
-       } else {
-          tmp = k1;
-          k1 = ((k1 >> 8) | (k2 << 24)) & 0xFFFFFFFF;
-          k2 = ((k2 >> 8) | (tmp << 24)) & 0xFFFFFFFF;
+   for (i = 0; i < 16; i++) {
+      skey->kseed.K[2*i+0] = G(k1 + k3 - KCi[i]);
+      skey->kseed.K[2*i+1] = G(k2 - k4 + KCi[i]);
+      if (i&1) {
+         tmp = k3;
+         k3 = ((k3 << 8) | (k4 >> 24)) & 0xFFFFFFFF;
+         k4 = ((k4 << 8) | (tmp >> 24)) & 0xFFFFFFFF;
+      } else {
+         tmp = k1;
+         k1 = ((k1 >> 8) | (k2 << 24)) & 0xFFFFFFFF;
+         k2 = ((k2 >> 8) | (tmp << 24)) & 0xFFFFFFFF;
       }
       /* reverse keys for decrypt */
       skey->kseed.dK[2*(15-i)+0] = skey->kseed.K[2*i+0];
       skey->kseed.dK[2*(15-i)+1] = skey->kseed.K[2*i+1];
-    }
+   }
 
-    return CRYPT_OK;
+   return CRYPT_OK;
 }
 
-static void rounds(ulong32 *P, ulong32 *K)
+static void rounds(ulong32 *P, const ulong32 *K)
 {
    ulong32 T, T2;
    int     i;
@@ -256,7 +248,7 @@ static void rounds(ulong32 *P, ulong32 *K)
   @param skey The key as scheduled
   @return CRYPT_OK if successful
 */
-int kseed_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *skey)
+int kseed_ecb_encrypt(const unsigned char *pt, unsigned char *ct, const symmetric_key *skey)
 {
    ulong32 P[4];
    LOAD32H(P[0], pt);
@@ -278,7 +270,7 @@ int kseed_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key 
   @param skey The key as scheduled
   @return CRYPT_OK if successful
 */
-int kseed_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_key *skey)
+int kseed_ecb_decrypt(const unsigned char *ct, unsigned char *pt, const symmetric_key *skey)
 {
    ulong32 P[4];
    LOAD32H(P[0], ct);
@@ -346,22 +338,8 @@ int kseed_test(void)
        kseed_setup(tests[x].key, 16, 0, &skey);
        kseed_ecb_encrypt(tests[x].pt, buf[0], &skey);
        kseed_ecb_decrypt(buf[0], buf[1], &skey);
-       if (XMEMCMP(buf[0], tests[x].ct, 16) || XMEMCMP(buf[1], tests[x].pt, 16)) {
-#if 0
-          int i, j;
-          printf ("\n\nLTC_KSEED failed for x=%d, I got:\n", x);
-          for (i = 0; i < 2; i++) {
-             const unsigned char *expected, *actual;
-             expected = (i ? tests[x].pt : tests[x].ct);
-             actual = buf[i];
-             printf ("expected    actual   (%s)\n", (i ? "plaintext" : "ciphertext"));
-             for (j = 0; j < 16; j++) {
-                const char *eq = (expected[j] == actual[j] ? "==" : "!=");
-                printf ("     %02x  %s  %02x\n", expected[j], eq, actual[j]);
-             }
-             printf ("\n");
-          }
-#endif
+       if (compare_testvector(buf[0], 16, tests[x].ct, 16, "KSEED Encrypt", x) ||
+             compare_testvector(buf[1], 16, tests[x].pt, 16, "KSEED Decrypt", x)) {
           return CRYPT_FAIL_TESTVECTOR;
        }
    }
@@ -386,7 +364,3 @@ int kseed_keysize(int *keysize)
 }
 
 #endif
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

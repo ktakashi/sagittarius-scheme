@@ -1,19 +1,11 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
 
 /**
    @file gcm_init.c
    GCM implementation, initialize state, by Tom St Denis
 */
-#include "tomcrypt.h"
+#include "tomcrypt_private.h"
 
 #ifdef LTC_GCM_MODE
 
@@ -25,7 +17,7 @@
   @param keylen  The length of the secret key
   @return CRYPT_OK on success
  */
-int gcm_init(gcm_state *gcm, int cipher, 
+int gcm_init(gcm_state *gcm, int cipher,
              const unsigned char *key,  int keylen)
 {
    int           err;
@@ -92,8 +84,8 @@ int gcm_init(gcm_state *gcm, int cipher,
          }
          gcm->PC[x][y][0] = gcm_shift_table[t<<1];
          gcm->PC[x][y][1] ^= gcm_shift_table[(t<<1)+1];
-     }
-  }
+      }
+   }
 
 #endif
 
@@ -101,7 +93,3 @@ int gcm_init(gcm_state *gcm, int cipher,
 }
 
 #endif
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

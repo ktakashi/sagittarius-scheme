@@ -1,14 +1,6 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
-#include "tomcrypt.h"
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
+#include "tomcrypt_private.h"
 
 /**
   @file f8_encrypt.c
@@ -64,8 +56,8 @@ int f8_encrypt(const unsigned char *pt, unsigned char *ct, unsigned long len, sy
          STORE32H(f8->blockcnt, (buf+(f8->blocklen-4)));
          ++(f8->blockcnt);
          for (x = 0; x < f8->blocklen; x += sizeof(LTC_FAST_TYPE)) {
-             *((LTC_FAST_TYPE*)(&ct[x])) = *((LTC_FAST_TYPE*)(&pt[x])) ^ *((LTC_FAST_TYPE*)(&f8->IV[x]));
-             *((LTC_FAST_TYPE*)(&f8->IV[x])) ^= *((LTC_FAST_TYPE*)(&f8->MIV[x])) ^ *((LTC_FAST_TYPE*)(&buf[x]));
+             *(LTC_FAST_TYPE_PTR_CAST(&ct[x])) = *(LTC_FAST_TYPE_PTR_CAST(&pt[x])) ^ *(LTC_FAST_TYPE_PTR_CAST(&f8->IV[x]));
+             *(LTC_FAST_TYPE_PTR_CAST(&f8->IV[x])) ^= *(LTC_FAST_TYPE_PTR_CAST(&f8->MIV[x])) ^ *(LTC_FAST_TYPE_PTR_CAST(&buf[x]));
          }
          if ((err = cipher_descriptor[f8->cipher].ecb_encrypt(f8->IV, f8->IV, &f8->key)) != CRYPT_OK) {
             return err;
@@ -97,7 +89,3 @@ int f8_encrypt(const unsigned char *pt, unsigned char *ct, unsigned long len, sy
 }
 
 #endif
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

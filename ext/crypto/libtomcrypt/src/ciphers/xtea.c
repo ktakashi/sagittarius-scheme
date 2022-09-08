@@ -1,19 +1,11 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
 
 /**
   @file xtea.c
-  Implementation of LTC_XTEA, Tom St Denis
+  Implementation of eXtended TEA, Tom St Denis
 */
-#include "tomcrypt.h"
+#include "tomcrypt_private.h"
 
 #ifdef LTC_XTEA
 
@@ -73,7 +65,7 @@ int xtea_setup(const unsigned char *key, int keylen, int num_rounds, symmetric_k
   @param skey The key as scheduled
   @return CRYPT_OK if successful
 */
-int xtea_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *skey)
+int xtea_ecb_encrypt(const unsigned char *pt, unsigned char *ct, const symmetric_key *skey)
 {
    ulong32 y, z;
    int r;
@@ -109,7 +101,7 @@ int xtea_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *
   @param skey The key as scheduled
   @return CRYPT_OK if successful
 */
-int xtea_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_key *skey)
+int xtea_ecb_decrypt(const unsigned char *ct, unsigned char *pt, const symmetric_key *skey)
 {
    ulong32 y, z;
    int r;
@@ -213,23 +205,8 @@ int xtea_test(void)
        xtea_ecb_encrypt(tests[i].pt, tmp[0], &skey);
        xtea_ecb_decrypt(tmp[0], tmp[1], &skey);
 
-       if (XMEMCMP(tmp[0], tests[i].ct, 8) != 0 || XMEMCMP(tmp[1], tests[i].pt, 8) != 0) {
-#if 0
-          printf("\n\nTest %d failed\n", i);
-          if (XMEMCMP(tmp[0], tests[i].ct, 8)) {
-            printf("CT: ");
-            for (i = 0; i < 8; i++) {
-              printf("%02x ", tmp[0][i]);
-            }
-            printf("\n");
-          } else {
-            printf("PT: ");
-            for (i = 0; i < 8; i++) {
-              printf("%02x ", tmp[1][i]);
-            }
-            printf("\n");
-          }
-#endif
+       if (compare_testvector(tmp[0], 8, tests[i].ct, 8, "XTEA Encrypt", i) != 0 ||
+             compare_testvector(tmp[1], 8, tests[i].pt, 8, "XTEA Decrypt", i) != 0) {
           return CRYPT_FAIL_TESTVECTOR;
        }
 
@@ -272,7 +249,3 @@ int xtea_keysize(int *keysize)
 
 
 
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

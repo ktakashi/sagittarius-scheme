@@ -1,19 +1,11 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
 
 /**
   @file ocb3_decrypt_verify_memory.c
   OCB implementation, helper to decrypt block of memory, by Tom St Denis
 */
-#include "tomcrypt.h"
+#include "tomcrypt_private.h"
 
 #ifdef LTC_OCB3_MODE
 
@@ -48,15 +40,13 @@ int ocb3_decrypt_verify_memory(int cipher,
    unsigned char *buf;
    unsigned long  buflen;
 
-   LTC_ARGCHK(key    != NULL);
-   LTC_ARGCHK(nonce  != NULL);
-   LTC_ARGCHK(pt     != NULL);
-   LTC_ARGCHK(ct     != NULL);
-   LTC_ARGCHK(tag    != NULL);
    LTC_ARGCHK(stat    != NULL);
 
    /* default to zero */
    *stat = 0;
+
+   /* limit taglen */
+   taglen = MIN(taglen, MAXBLOCKSIZE);
 
    /* allocate memory */
    buf = XMALLOC(taglen);
@@ -71,12 +61,14 @@ int ocb3_decrypt_verify_memory(int cipher,
       return CRYPT_MEM;
    }
 
-   if ((err = ocb3_init(ocb, cipher, key, keylen, nonce, noncelen)) != CRYPT_OK) {
+   if ((err = ocb3_init(ocb, cipher, key, keylen, nonce, noncelen, taglen)) != CRYPT_OK) {
       goto LBL_ERR;
    }
 
-   if ((err = ocb3_add_aad(ocb, adata, adatalen)) != CRYPT_OK) {
-      goto LBL_ERR;
+   if (adata != NULL || adatalen != 0) {
+      if ((err = ocb3_add_aad(ocb, adata, adatalen)) != CRYPT_OK) {
+         goto LBL_ERR;
+      }
    }
 
    if ((err = ocb3_decrypt_last(ocb, ct, ctlen, pt)) != CRYPT_OK) {
@@ -89,7 +81,7 @@ int ocb3_decrypt_verify_memory(int cipher,
    }
 
    /* compare tags */
-   if (buflen >= taglen && XMEMCMP(buf, tag, taglen) == 0) {
+   if (buflen >= taglen && XMEM_NEQ(buf, tag, taglen) == 0) {
       *stat = 1;
    }
 
@@ -106,7 +98,3 @@ LBL_ERR:
 }
 
 #endif
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

@@ -1,19 +1,11 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
-#include "tomcrypt.h"
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
+#include "tomcrypt_private.h"
 
 /**
    @param rmd128.c
    RMD128 Hash function
-*/   
+*/
 
 /* Implementation of LTC_RIPEMD-128 based on the source by Antoon Bosselaers, ESAT-COSIC
  *
@@ -42,11 +34,11 @@ const struct ltc_hash_descriptor rmd128_desc =
 };
 
 /* the four basic functions F(), G() and H() */
-#define F(x, y, z)        ((x) ^ (y) ^ (z)) 
-#define G(x, y, z)        (((x) & (y)) | (~(x) & (z))) 
+#define F(x, y, z)        ((x) ^ (y) ^ (z))
+#define G(x, y, z)        (((x) & (y)) | (~(x) & (z)))
 #define H(x, y, z)        (((x) | ~(y)) ^ (z))
-#define I(x, y, z)        (((x) & (z)) | ((y) & ~(z))) 
-  
+#define I(x, y, z)        (((x) & (z)) | ((y) & ~(z)))
+
 /* the eight basic operations FF() through III() */
 #define FF(a, b, c, d, x, s)        \
       (a) += F((b), (c), (d)) + (x);\
@@ -81,14 +73,14 @@ const struct ltc_hash_descriptor rmd128_desc =
       (a) = ROLc((a), (s));
 
 #ifdef LTC_CLEAN_STACK
-static int _rmd128_compress(hash_state *md, unsigned char *buf)
+static int ss_rmd128_compress(hash_state *md, const unsigned char *buf)
 #else
-static int  rmd128_compress(hash_state *md, unsigned char *buf)
+static int  s_rmd128_compress(hash_state *md, const unsigned char *buf)
 #endif
 {
    ulong32 aa,bb,cc,dd,aaa,bbb,ccc,ddd,X[16];
    int i;
-   
+
    /* load words X */
    for (i = 0; i < 16; i++){
       LOAD32L(X[i], buf + (4 * i));
@@ -117,7 +109,7 @@ static int  rmd128_compress(hash_state *md, unsigned char *buf)
    FF(dd, aa, bb, cc, X[13],  7);
    FF(cc, dd, aa, bb, X[14],  9);
    FF(bb, cc, dd, aa, X[15],  8);
-                             
+
    /* round 2 */
    GG(aa, bb, cc, dd, X[ 7],  7);
    GG(dd, aa, bb, cc, X[ 4],  6);
@@ -173,7 +165,7 @@ static int  rmd128_compress(hash_state *md, unsigned char *buf)
    II(bb, cc, dd, aa, X[ 2], 12);
 
    /* parallel round 1 */
-   III(aaa, bbb, ccc, ddd, X[ 5],  8); 
+   III(aaa, bbb, ccc, ddd, X[ 5],  8);
    III(ddd, aaa, bbb, ccc, X[14],  9);
    III(ccc, ddd, aaa, bbb, X[ 7],  9);
    III(bbb, ccc, ddd, aaa, X[ 0], 11);
@@ -208,7 +200,7 @@ static int  rmd128_compress(hash_state *md, unsigned char *buf)
    HHH(ccc, ddd, aaa, bbb, X[ 1], 13);
    HHH(bbb, ccc, ddd, aaa, X[ 2], 11);
 
-   /* parallel round 3 */   
+   /* parallel round 3 */
    GGG(aaa, bbb, ccc, ddd, X[15],  9);
    GGG(ddd, aaa, bbb, ccc, X[ 5],  7);
    GGG(ccc, ddd, aaa, bbb, X[ 1], 15);
@@ -255,10 +247,10 @@ static int  rmd128_compress(hash_state *md, unsigned char *buf)
 }
 
 #ifdef LTC_CLEAN_STACK
-static int rmd128_compress(hash_state *md, unsigned char *buf)
+static int s_rmd128_compress(hash_state *md, const unsigned char *buf)
 {
    int err;
-   err = _rmd128_compress(md, buf);
+   err = ss_rmd128_compress(md, buf);
    burn_stack(sizeof(ulong32) * 24 + sizeof(int));
    return err;
 }
@@ -288,7 +280,7 @@ int rmd128_init(hash_state * md)
    @param inlen  The length of the data (octets)
    @return CRYPT_OK if successful
 */
-HASH_PROCESS(rmd128_process, rmd128_compress, rmd128, 64)
+HASH_PROCESS(rmd128_process, s_rmd128_compress, rmd128, 64)
 
 /**
    Terminate the hash to get the digest
@@ -322,7 +314,7 @@ int rmd128_done(hash_state * md, unsigned char *out)
         while (md->rmd128.curlen < 64) {
             md->rmd128.buf[md->rmd128.curlen++] = (unsigned char)0;
         }
-        rmd128_compress(md, md->rmd128.buf);
+        s_rmd128_compress(md, md->rmd128.buf);
         md->rmd128.curlen = 0;
     }
 
@@ -333,7 +325,7 @@ int rmd128_done(hash_state * md, unsigned char *out)
 
     /* store length */
     STORE64L(md->rmd128.length, md->rmd128.buf+56);
-    rmd128_compress(md, md->rmd128.buf);
+    s_rmd128_compress(md, md->rmd128.buf);
 
     /* copy output */
     for (i = 0; i < 4; i++) {
@@ -342,21 +334,21 @@ int rmd128_done(hash_state * md, unsigned char *out)
 #ifdef LTC_CLEAN_STACK
     zeromem(md, sizeof(hash_state));
 #endif
-   return CRYPT_OK;  
+   return CRYPT_OK;
 }
 
 /**
   Self-test the hash
   @return CRYPT_OK if successful, CRYPT_NOP if self-tests have been disabled
-*/  
+*/
 int rmd128_test(void)
 {
 #ifndef LTC_TEST
    return CRYPT_NOP;
 #else
    static const struct {
-        char *msg;
-        unsigned char md[16];
+        const char *msg;
+        unsigned char hash[16];
    } tests[] = {
    { "",
      { 0xcd, 0xf2, 0x62, 0x13, 0xa1, 0x50, 0xdc, 0x3e,
@@ -383,18 +375,16 @@ int rmd128_test(void)
        0xae, 0xa4, 0x62, 0x4c, 0x60, 0xc5, 0xc7, 0x02 }
    }
    };
-   int x;
-   unsigned char buf[16];
+
+   int i;
+   unsigned char tmp[16];
    hash_state md;
 
-   for (x = 0; x < (int)(sizeof(tests)/sizeof(tests[0])); x++) {
+   for (i = 0; i < (int)(sizeof(tests)/sizeof(tests[0])); i++) {
        rmd128_init(&md);
-       rmd128_process(&md, (unsigned char *)tests[x].msg, strlen(tests[x].msg));
-       rmd128_done(&md, buf);
-       if (XMEMCMP(buf, tests[x].md, 16) != 0) {
-       #if 0
-          printf("Failed test %d\n", x);
-       #endif
+       rmd128_process(&md, (unsigned char *)tests[i].msg, XSTRLEN(tests[i].msg));
+       rmd128_done(&md, tmp);
+       if (compare_testvector(tmp, sizeof(tmp), tests[i].hash, sizeof(tests[i].hash), "RIPEMD128", i)) {
           return CRYPT_FAIL_TESTVECTOR;
        }
    }
@@ -404,7 +394,3 @@ int rmd128_test(void)
 
 #endif
 
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

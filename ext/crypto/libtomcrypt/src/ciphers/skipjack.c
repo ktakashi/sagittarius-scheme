@@ -1,19 +1,11 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
 
 /**
   @file skipjack.c
   Skipjack Implementation by Tom St Denis
 */
-#include "tomcrypt.h"
+#include "tomcrypt_private.h"
 
 #ifdef LTC_SKIPJACK
 
@@ -109,7 +101,7 @@ int skipjack_setup(const unsigned char *key, int keylen, int num_rounds, symmetr
    w2  = tmp ^ w3 ^ x;                            \
    w3  = w4; w4 = w1; w1 = tmp;
 
-static unsigned g_func(unsigned w, int *kp, unsigned char *key)
+static unsigned g_func(unsigned w, int *kp, const unsigned char *key)
 {
    unsigned char g1,g2;
 
@@ -121,7 +113,7 @@ static unsigned g_func(unsigned w, int *kp, unsigned char *key)
    return ((unsigned)g1<<8)|(unsigned)g2;
 }
 
-static unsigned ig_func(unsigned w, int *kp, unsigned char *key)
+static unsigned ig_func(unsigned w, int *kp, const unsigned char *key)
 {
    unsigned char g1,g2;
 
@@ -141,9 +133,9 @@ static unsigned ig_func(unsigned w, int *kp, unsigned char *key)
   @return CRYPT_OK if successful
 */
 #ifdef LTC_CLEAN_STACK
-static int _skipjack_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *skey)
+static int s_skipjack_ecb_encrypt(const unsigned char *pt, unsigned char *ct, const symmetric_key *skey)
 #else
-int skipjack_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *skey)
+int skipjack_ecb_encrypt(const unsigned char *pt, unsigned char *ct, const symmetric_key *skey)
 #endif
 {
    unsigned w1,w2,w3,w4,tmp,tmp1;
@@ -189,9 +181,9 @@ int skipjack_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_k
 }
 
 #ifdef LTC_CLEAN_STACK
-int skipjack_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *skey)
+int skipjack_ecb_encrypt(const unsigned char *pt, unsigned char *ct, const symmetric_key *skey)
 {
-   int err = _skipjack_ecb_encrypt(pt, ct, skey);
+   int err = s_skipjack_ecb_encrypt(pt, ct, skey);
    burn_stack(sizeof(unsigned) * 8 + sizeof(int) * 2);
    return err;
 }
@@ -205,9 +197,9 @@ int skipjack_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_k
   @return CRYPT_OK if successful
 */
 #ifdef LTC_CLEAN_STACK
-static int _skipjack_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_key *skey)
+static int s_skipjack_ecb_decrypt(const unsigned char *ct, unsigned char *pt, const symmetric_key *skey)
 #else
-int skipjack_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_key *skey)
+int skipjack_ecb_decrypt(const unsigned char *ct, unsigned char *pt, const symmetric_key *skey)
 #endif
 {
    unsigned w1,w2,w3,w4,tmp;
@@ -257,9 +249,9 @@ int skipjack_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_k
 }
 
 #ifdef LTC_CLEAN_STACK
-int skipjack_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_key *skey)
+int skipjack_ecb_decrypt(const unsigned char *ct, unsigned char *pt, const symmetric_key *skey)
 {
-   int err = _skipjack_ecb_decrypt(ct, pt, skey);
+   int err = s_skipjack_ecb_decrypt(ct, pt, skey);
    burn_stack(sizeof(unsigned) * 7 + sizeof(int) * 2);
    return err;
 }
@@ -298,7 +290,8 @@ int skipjack_test(void)
       skipjack_ecb_decrypt(buf[0], buf[1], &key);
 
       /* compare */
-      if (XMEMCMP(buf[0], tests[x].ct, 8) != 0 || XMEMCMP(buf[1], tests[x].pt, 8) != 0) {
+      if (compare_testvector(buf[0], 8, tests[x].ct, 8, "Skipjack Encrypt", x) != 0 ||
+            compare_testvector(buf[1], 8, tests[x].pt, 8, "Skipjack Decrypt", x) != 0) {
          return CRYPT_FAIL_TESTVECTOR;
       }
 
@@ -331,14 +324,11 @@ int skipjack_keysize(int *keysize)
    LTC_ARGCHK(keysize != NULL);
    if (*keysize < 10) {
       return CRYPT_INVALID_KEYSIZE;
-   } else if (*keysize > 10) {
+   }
+   if (*keysize > 10) {
       *keysize = 10;
    }
    return CRYPT_OK;
 }
 
 #endif
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

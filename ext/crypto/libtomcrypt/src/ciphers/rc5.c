@@ -1,20 +1,12 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
 
 /**
    @file rc5.c
    LTC_RC5 code by Tom St Denis
 */
 
-#include "tomcrypt.h"
+#include "tomcrypt_private.h"
 
 #ifdef LTC_RC5
 
@@ -51,7 +43,7 @@ static const ulong32 stab[50] = {
     @return CRYPT_OK if successful
  */
 #ifdef LTC_CLEAN_STACK
-static int _rc5_setup(const unsigned char *key, int keylen, int num_rounds, symmetric_key *skey)
+static int s_rc5_setup(const unsigned char *key, int keylen, int num_rounds, symmetric_key *skey)
 #else
 int rc5_setup(const unsigned char *key, int keylen, int num_rounds, symmetric_key *skey)
 #endif
@@ -112,7 +104,7 @@ int rc5_setup(const unsigned char *key, int keylen, int num_rounds, symmetric_ke
 int rc5_setup(const unsigned char *key, int keylen, int num_rounds, symmetric_key *skey)
 {
    int x;
-   x = _rc5_setup(key, keylen, num_rounds, skey);
+   x = s_rc5_setup(key, keylen, num_rounds, skey);
    burn_stack(sizeof(ulong32) * 122 + sizeof(int));
    return x;
 }
@@ -126,16 +118,21 @@ int rc5_setup(const unsigned char *key, int keylen, int num_rounds, symmetric_ke
   @return CRYPT_OK if successful
 */
 #ifdef LTC_CLEAN_STACK
-static int _rc5_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *skey)
+static int s_rc5_ecb_encrypt(const unsigned char *pt, unsigned char *ct, const symmetric_key *skey)
 #else
-int rc5_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *skey)
+int rc5_ecb_encrypt(const unsigned char *pt, unsigned char *ct, const symmetric_key *skey)
 #endif
 {
-   ulong32 A, B, *K;
+   ulong32 A, B;
+   const ulong32 *K;
    int r;
    LTC_ARGCHK(skey != NULL);
    LTC_ARGCHK(pt   != NULL);
    LTC_ARGCHK(ct   != NULL);
+
+   if (skey->rc5.rounds < 12 || skey->rc5.rounds > 24) {
+      return CRYPT_INVALID_ROUNDS;
+   }
 
    LOAD32L(A, &pt[0]);
    LOAD32L(B, &pt[4]);
@@ -165,9 +162,9 @@ int rc5_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *s
 }
 
 #ifdef LTC_CLEAN_STACK
-int rc5_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *skey)
+int rc5_ecb_encrypt(const unsigned char *pt, unsigned char *ct, const symmetric_key *skey)
 {
-   int err = _rc5_ecb_encrypt(pt, ct, skey);
+   int err = s_rc5_ecb_encrypt(pt, ct, skey);
    burn_stack(sizeof(ulong32) * 2 + sizeof(int));
    return err;
 }
@@ -181,16 +178,21 @@ int rc5_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *s
   @return CRYPT_OK if successful
 */
 #ifdef LTC_CLEAN_STACK
-static int _rc5_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_key *skey)
+static int s_rc5_ecb_decrypt(const unsigned char *ct, unsigned char *pt, const symmetric_key *skey)
 #else
-int rc5_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_key *skey)
+int rc5_ecb_decrypt(const unsigned char *ct, unsigned char *pt, const symmetric_key *skey)
 #endif
 {
-   ulong32 A, B, *K;
+   ulong32 A, B;
+   const ulong32 *K;
    int r;
    LTC_ARGCHK(skey != NULL);
    LTC_ARGCHK(pt   != NULL);
    LTC_ARGCHK(ct   != NULL);
+
+   if (skey->rc5.rounds < 12 || skey->rc5.rounds > 24) {
+      return CRYPT_INVALID_ROUNDS;
+   }
 
    LOAD32L(A, &ct[0]);
    LOAD32L(B, &ct[4]);
@@ -221,9 +223,9 @@ int rc5_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_key *s
 }
 
 #ifdef LTC_CLEAN_STACK
-int rc5_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_key *skey)
+int rc5_ecb_decrypt(const unsigned char *ct, unsigned char *pt, const symmetric_key *skey)
 {
-   int err = _rc5_ecb_decrypt(ct, pt, skey);
+   int err = s_rc5_ecb_decrypt(ct, pt, skey);
    burn_stack(sizeof(ulong32) * 2 + sizeof(int));
    return err;
 }
@@ -275,7 +277,8 @@ int rc5_test(void)
       rc5_ecb_decrypt(tmp[0], tmp[1], &key);
 
       /* compare */
-      if (XMEMCMP(tmp[0], tests[x].ct, 8) != 0 || XMEMCMP(tmp[1], tests[x].pt, 8) != 0) {
+      if (compare_testvector(tmp[0], 8, tests[x].ct, 8, "RC5 Encrypt", x) != 0 ||
+            compare_testvector(tmp[1], 8, tests[x].pt, 8, "RC5 Decrypt", x) != 0) {
          return CRYPT_FAIL_TESTVECTOR;
       }
 
@@ -307,7 +310,8 @@ int rc5_keysize(int *keysize)
    LTC_ARGCHK(keysize != NULL);
    if (*keysize < 8) {
       return CRYPT_INVALID_KEYSIZE;
-   } else if (*keysize > 128) {
+   }
+   if (*keysize > 128) {
       *keysize = 128;
    }
    return CRYPT_OK;
@@ -317,7 +321,3 @@ int rc5_keysize(int *keysize)
 
 
 
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

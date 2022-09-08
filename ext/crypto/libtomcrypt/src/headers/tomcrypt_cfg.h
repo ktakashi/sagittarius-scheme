@@ -1,6 +1,9 @@
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
+
 /* This is the build config file.
  *
- * With this you can setup what to inlcude/exclude automatically during any build.  Just comment
+ * With this you can setup what to include/exclude automatically during any build.  Just comment
  * out the line that #define's the word for the thing you want to remove.  phew!
  */
 
@@ -42,18 +45,33 @@ LTC_EXPORT int   LTC_CALL XSTRCMP(const char *s1, const char *s2);
 #endif
 
 /* some compilers do not like "inline" (or maybe "static inline"), namely: HP cc, IBM xlc */
-#if defined(__HP_cc) || defined(__xlc__)
-   #define LTC_INLINE
-#elif defined(_MSC_VER)
+#if defined(__GNUC__) || defined(__xlc__)
+   #define LTC_INLINE __inline__
+#elif defined(_MSC_VER) || defined(__HP_cc)
    #define LTC_INLINE __inline
-#else
+#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
    #define LTC_INLINE inline
+#else
+   #define LTC_INLINE
+#endif
+
+#if defined(__clang__) || defined(__GNUC_MINOR__)
+#define LTC_NORETURN __attribute__ ((noreturn))
+#elif defined(_MSC_VER)
+#define LTC_NORETURN __declspec(noreturn)
+#else
+#define LTC_NORETURN
 #endif
 
 /* type of argument checking, 0=default, 1=fatal and 2=error+continue, 3=nothing */
 #ifndef ARGTYPE
    #define ARGTYPE  0
 #endif
+
+#undef LTC_ENCRYPT
+#define LTC_ENCRYPT 0
+#undef LTC_DECRYPT
+#define LTC_DECRYPT 1
 
 /* Controls endianess and size of registers.  Leave uncommented to get platform neutral [slower] code
  *
@@ -87,7 +105,7 @@ LTC_EXPORT int   LTC_CALL XSTRCMP(const char *s1, const char *s2);
    #define ENDIAN_64BITWORD
    #if defined(_MIPSEB) || defined(__MIPSEB) || defined(__MIPSEB__)
      #define ENDIAN_BIG
-   #endif
+   #else
      #define ENDIAN_LITTLE
    #endif
 #endif
@@ -159,15 +177,18 @@ LTC_EXPORT int   LTC_CALL XSTRCMP(const char *s1, const char *s2);
 
 /* endianness fallback */
 #if !defined(ENDIAN_BIG) && !defined(ENDIAN_LITTLE)
-  #if defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN || \
+  #if defined(_BYTE_ORDER) && _BYTE_ORDER == _BIG_ENDIAN || \
+      defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN || \
       defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__ || \
-      defined(__BIG_ENDIAN__) || defined(_BIG_ENDIAN) || \
+      defined(__BIG_ENDIAN__) || \
       defined(__ARMEB__) || defined(__THUMBEB__) || defined(__AARCH64EB__) || \
-      defined(_MIPSEB) || defined(__MIPSEB) || defined(__MIPSEB__)
+      defined(_MIPSEB) || defined(__MIPSEB) || defined(__MIPSEB__) || \
+      defined(__m68k__)
     #define ENDIAN_BIG
-  #elif defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN || \
+  #elif defined(_BYTE_ORDER) && _BYTE_ORDER == _LITTLE_ENDIAN || \
+      defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN || \
       defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__ || \
-      defined(__LITTLE_ENDIAN__) || defined(_LITTLE_ENDIAN) || \
+      defined(__LITTLE_ENDIAN__) || \
       defined(__ARMEL__) || defined(__THUMBEL__) || defined(__AARCH64EL__) || \
       defined(_MIPSEL) || defined(__MIPSEL) || defined(__MIPSEL__)
     #define ENDIAN_LITTLE
@@ -180,9 +201,11 @@ LTC_EXPORT int   LTC_CALL XSTRCMP(const char *s1, const char *s2);
 #ifdef _MSC_VER
    #define CONST64(n) n ## ui64
    typedef unsigned __int64 ulong64;
+   typedef __int64 long64;
 #else
    #define CONST64(n) n ## ULL
    typedef unsigned long long ulong64;
+   typedef long long long64;
 #endif
 
 /* ulong32: "32-bit at least" data type */
@@ -203,6 +226,23 @@ LTC_EXPORT int   LTC_CALL XSTRCMP(const char *s1, const char *s2);
    #endif
 #endif
 
+#if defined(ENDIAN_64BITWORD) && !defined(_MSC_VER)
+typedef unsigned long long ltc_mp_digit;
+#else
+typedef unsigned long ltc_mp_digit;
+#endif
+
+/* No asm is a quick way to disable anything "not portable" */
+#ifdef LTC_NO_ASM
+   #define ENDIAN_NEUTRAL
+   #undef ENDIAN_32BITWORD
+   #undef ENDIAN_64BITWORD
+   #undef LTC_FAST
+   #define LTC_NO_BSWAP
+   #define LTC_NO_ROLC
+   #define LTC_NO_ROTATE
+#endif
+
 /* No LTC_FAST if: explicitly disabled OR non-gcc/non-clang compiler OR old gcc OR using -ansi -std=c99 */
 #if defined(LTC_NO_FAST) || (__GNUC__ < 4) || defined(__STRICT_ANSI__)
    #undef LTC_FAST
@@ -217,25 +257,8 @@ LTC_EXPORT int   LTC_CALL XSTRCMP(const char *s1, const char *s2);
    #endif
 #endif
 
-#ifdef ENDIAN_64BITWORD
-typedef ulong64 ltc_mp_digit;
-#else
-typedef ulong32 ltc_mp_digit;
-#endif
-
-/* No asm is a quick way to disable anything "not portable" */
-#ifdef LTC_NO_ASM
-   #define ENDIAN_NEUTRAL
-   #undef ENDIAN_32BITWORD
-   #undef ENDIAN_64BITWORD
-   #undef LTC_FAST
-   #undef LTC_FAST_TYPE
-   #define LTC_NO_ROLC
-   #define LTC_NO_BSWAP
-#endif
-
 #if !defined(ENDIAN_NEUTRAL) && (defined(ENDIAN_BIG) || defined(ENDIAN_LITTLE)) && !(defined(ENDIAN_32BITWORD) || defined(ENDIAN_64BITWORD))
-    #error You must specify a word size as well as endianess in tomcrypt_cfg.h
+   #error You must specify a word size as well as endianess in tomcrypt_cfg.h
 #endif
 
 #if !(defined(ENDIAN_BIG) || defined(ENDIAN_LITTLE))
@@ -243,7 +266,7 @@ typedef ulong32 ltc_mp_digit;
 #endif
 
 #if (defined(ENDIAN_32BITWORD) && defined(ENDIAN_64BITWORD))
-    #error Cannot be 32 and 64 bit words...
+   #error Cannot be 32 and 64 bit words...
 #endif
 
 /* gcc 4.3 and up has a bswap builtin; detect it by gcc version.
@@ -262,7 +285,30 @@ typedef ulong32 ltc_mp_digit;
    #define LTC_HAVE_BSWAP_BUILTIN
 #endif
 
+#if !defined(LTC_NO_ROTATE) && (__has_builtin(__builtin_rotateleft32) && __has_builtin(__builtin_rotateright32))
+   #define LTC_HAVE_ROTATE_BUILTIN
+#endif
 
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */
+#if defined(__GNUC__)
+   #define LTC_ALIGN(n) __attribute__((aligned(n)))
+#else
+   #define LTC_ALIGN(n)
+#endif
+
+#if defined(__GNUC__) && (__GNUC__ * 100 + __GNUC_MINOR__ >= 405)
+#  define LTC_DEPRECATED(s) __attribute__((deprecated("replaced by " #s)))
+#  define PRIVATE_LTC_DEPRECATED_PRAGMA(s) _Pragma(#s)
+#  define LTC_DEPRECATED_PRAGMA(s) PRIVATE_LTC_DEPRECATED_PRAGMA(GCC warning s)
+#elif defined(__GNUC__) && (__GNUC__ * 100 + __GNUC_MINOR__ >= 301)
+#  define LTC_DEPRECATED(s) __attribute__((deprecated))
+#  define LTC_DEPRECATED_PRAGMA(s)
+#elif defined(_MSC_VER) && _MSC_VER >= 1500
+   /* supported since Visual Studio 2008 */
+#  define LTC_DEPRECATED(s) __declspec(deprecated("replaced by " #s))
+#  define LTC_DEPRECATED_PRAGMA(s) __pragma(message(s))
+#else
+#  define LTC_DEPRECATED(s)
+#  define LTC_DEPRECATED_PRAGMA(s)
+#endif
+
+#endif /* TOMCRYPT_CFG_H */

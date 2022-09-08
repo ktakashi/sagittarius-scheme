@@ -1,13 +1,7 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- */
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
 
-#include "tomcrypt.h"
+#include "tomcrypt_private.h"
 
 #ifdef LTC_CHACHA
 
@@ -19,7 +13,7 @@
 int chacha_done(chacha_state *st)
 {
    LTC_ARGCHK(st != NULL);
-   XMEMSET(st, 0, sizeof(chacha_state));
+   zeromem(st, sizeof(chacha_state));
    return CRYPT_OK;
 }
 

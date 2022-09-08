@@ -1,19 +1,11 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
 
 /**
     @file eax_decrypt_verify_memory.c
     EAX implementation, decrypt block of memory, by Tom St Denis
 */
-#include "tomcrypt.h"
+#include "tomcrypt_private.h"
 
 #ifdef LTC_EAX_MODE
 
@@ -40,7 +32,7 @@ int eax_decrypt_verify_memory(int cipher,
     const unsigned char *header, unsigned long headerlen,
     const unsigned char *ct,     unsigned long ctlen,
           unsigned char *pt,
-          unsigned char *tag,    unsigned long taglen,
+    const unsigned char *tag,    unsigned long taglen,
           int           *stat)
 {
    int            err;
@@ -56,6 +48,9 @@ int eax_decrypt_verify_memory(int cipher,
 
    /* default to zero */
    *stat = 0;
+
+   /* limit taglen */
+   taglen = MIN(taglen, MAXBLOCKSIZE);
 
    /* allocate ram */
    buf = XMALLOC(taglen);
@@ -77,17 +72,17 @@ int eax_decrypt_verify_memory(int cipher,
    if ((err = eax_decrypt(eax, ct, pt, ctlen)) != CRYPT_OK) {
       goto LBL_ERR;
    }
- 
+
    buflen = taglen;
    if ((err = eax_done(eax, buf, &buflen)) != CRYPT_OK) {
       goto LBL_ERR;
    }
 
    /* compare tags */
-   if (buflen >= taglen && XMEMCMP(buf, tag, taglen) == 0) {
+   if (buflen >= taglen && XMEM_NEQ(buf, tag, taglen) == 0) {
       *stat = 1;
    }
-   
+
    err = CRYPT_OK;
 LBL_ERR:
 #ifdef LTC_CLEAN_STACK
@@ -102,7 +97,3 @@ LBL_ERR:
 }
 
 #endif
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

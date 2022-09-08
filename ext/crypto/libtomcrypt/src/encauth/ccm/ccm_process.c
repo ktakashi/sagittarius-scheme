@@ -1,14 +1,6 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
-#include "tomcrypt.h"
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
+#include "tomcrypt_private.h"
 
 #ifdef LTC_CCM_MODE
 
@@ -26,7 +18,8 @@ int ccm_process(ccm_state *ccm,
                 unsigned char *ct,
                 int direction)
 {
-   unsigned char  y, z, b;
+   unsigned char z, b;
+   unsigned long y;
    int err;
 
    LTC_ARGCHK(ccm != NULL);
@@ -46,9 +39,8 @@ int ccm_process(ccm_state *ccm,
    if (ptlen > 0) {
       LTC_ARGCHK(pt != NULL);
       LTC_ARGCHK(ct != NULL);
-      y = 0;
 
-      for (; y < ptlen; y++) {
+      for (y = 0; y < ptlen; y++) {
          /* increment the ctr? */
          if (ccm->CTRlen == 16) {
             for (z = 15; z > 15-ccm->L; z--) {

@@ -1,19 +1,11 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
 
-/** 
+/**
   @file ocb_decrypt_verify_memory.c
-  OCB implementation, helper to decrypt block of memory, by Tom St Denis 
+  OCB implementation, helper to decrypt block of memory, by Tom St Denis
 */
-#include "tomcrypt.h"
+#include "tomcrypt_private.h"
 
 #ifdef LTC_OCB_MODE
 
@@ -33,7 +25,7 @@
 */
 int ocb_decrypt_verify_memory(int cipher,
     const unsigned char *key,    unsigned long keylen,
-    const unsigned char *nonce,  
+    const unsigned char *nonce,
     const unsigned char *ct,     unsigned long ctlen,
           unsigned char *pt,
     const unsigned char *tag,    unsigned long taglen,
@@ -56,12 +48,12 @@ int ocb_decrypt_verify_memory(int cipher,
    }
 
    if ((err = ocb_init(ocb, cipher, key, keylen, nonce)) != CRYPT_OK) {
-      goto LBL_ERR; 
+      goto LBL_ERR;
    }
 
    while (ctlen > (unsigned long)ocb->block_len) {
         if ((err = ocb_decrypt(ocb, ct, pt)) != CRYPT_OK) {
-            goto LBL_ERR; 
+            goto LBL_ERR;
         }
         ctlen   -= ocb->block_len;
         pt      += ocb->block_len;
@@ -73,14 +65,10 @@ LBL_ERR:
 #ifdef LTC_CLEAN_STACK
    zeromem(ocb, sizeof(ocb_state));
 #endif
- 
+
    XFREE(ocb);
 
    return err;
 }
 
 #endif
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

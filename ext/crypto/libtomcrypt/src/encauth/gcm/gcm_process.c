@@ -1,19 +1,11 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
 
 /**
    @file gcm_process.c
    GCM implementation, process message data, by Tom St Denis
 */
-#include "tomcrypt.h"
+#include "tomcrypt_private.h"
 
 #ifdef LTC_GCM_MODE
 
@@ -49,6 +41,16 @@ int gcm_process(gcm_state *gcm,
       return err;
    }
 
+   /* 0xFFFFFFFE0 = ((2^39)-256)/8 */
+   if (gcm->pttotlen / 8 + (ulong64)gcm->buflen + (ulong64)ptlen >= CONST64(0xFFFFFFFE0)) {
+      return CRYPT_INVALID_ARG;
+   }
+
+   if (gcm->mode == LTC_GCM_MODE_IV) {
+      /* let's process the IV */
+      if ((err = gcm_add_aad(gcm, NULL, 0)) != CRYPT_OK) return err;
+   }
+
    /* in AAD mode? */
    if (gcm->mode == LTC_GCM_MODE_AAD) {
       /* let's process the AAD */
@@ -81,8 +83,8 @@ int gcm_process(gcm_state *gcm,
          for (x = 0; x < (ptlen & ~15); x += 16) {
              /* ctr encrypt */
              for (y = 0; y < 16; y += sizeof(LTC_FAST_TYPE)) {
-                 *((LTC_FAST_TYPE*)(&ct[x + y])) = *((LTC_FAST_TYPE*)(&pt[x+y])) ^ *((LTC_FAST_TYPE*)(&gcm->buf[y]));
-                 *((LTC_FAST_TYPE*)(&gcm->X[y])) ^= *((LTC_FAST_TYPE*)(&ct[x+y]));
+                 *(LTC_FAST_TYPE_PTR_CAST(&ct[x + y])) = *(LTC_FAST_TYPE_PTR_CAST(&pt[x+y])) ^ *(LTC_FAST_TYPE_PTR_CAST(&gcm->buf[y]));
+                 *(LTC_FAST_TYPE_PTR_CAST(&gcm->X[y])) ^= *(LTC_FAST_TYPE_PTR_CAST(&ct[x+y]));
              }
              /* GMAC it */
              gcm->pttotlen += 128;
@@ -99,8 +101,8 @@ int gcm_process(gcm_state *gcm,
          for (x = 0; x < (ptlen & ~15); x += 16) {
              /* ctr encrypt */
              for (y = 0; y < 16; y += sizeof(LTC_FAST_TYPE)) {
-                 *((LTC_FAST_TYPE*)(&gcm->X[y])) ^= *((LTC_FAST_TYPE*)(&ct[x+y]));
-                 *((LTC_FAST_TYPE*)(&pt[x + y])) = *((LTC_FAST_TYPE*)(&ct[x+y])) ^ *((LTC_FAST_TYPE*)(&gcm->buf[y]));
+                 *(LTC_FAST_TYPE_PTR_CAST(&gcm->X[y])) ^= *(LTC_FAST_TYPE_PTR_CAST(&ct[x+y]));
+                 *(LTC_FAST_TYPE_PTR_CAST(&pt[x + y])) = *(LTC_FAST_TYPE_PTR_CAST(&ct[x+y])) ^ *(LTC_FAST_TYPE_PTR_CAST(&gcm->buf[y]));
              }
              /* GMAC it */
              gcm->pttotlen += 128;
@@ -113,7 +115,7 @@ int gcm_process(gcm_state *gcm,
                 return err;
              }
          }
-     }
+      }
    }
 #endif
 
@@ -146,7 +148,3 @@ int gcm_process(gcm_state *gcm,
 }
 
 #endif
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

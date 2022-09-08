@@ -1,13 +1,5 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
 
 /*******************************************************************************
 *
@@ -28,15 +20,14 @@
 *
 *******************************************************************************/
 
-#include <tomcrypt.h>
+#include "tomcrypt_private.h"
 
 #ifdef LTC_SAFER
 
-#define __LTC_SAFER_TAB_C__
+#define LTC_SAFER_TAB_C
 #include "safer_tab.c"
 
-const struct ltc_cipher_descriptor
-   safer_k64_desc = {
+const struct ltc_cipher_descriptor safer_k64_desc = {
    "safer-k64",
    8, 8, 8, 8, LTC_SAFER_K64_DEFAULT_NOF_ROUNDS,
    &safer_k64_setup,
@@ -100,13 +91,13 @@ const struct ltc_cipher_descriptor
 /******************* Types ****************************************************/
 
 #ifdef LTC_CLEAN_STACK
-static void _Safer_Expand_Userkey(const unsigned char *userkey_1,
+static void s_safer_expand_userkey(const unsigned char *userkey_1,
                                  const unsigned char *userkey_2,
                                  unsigned int nof_rounds,
                                  int strengthened,
                                  safer_key_t key)
 #else
-static void Safer_Expand_Userkey(const unsigned char *userkey_1,
+static void safer_expand_userkey(const unsigned char *userkey_1,
                                  const unsigned char *userkey_2,
                                  unsigned int nof_rounds,
                                  int strengthened,
@@ -116,8 +107,9 @@ static void Safer_Expand_Userkey(const unsigned char *userkey_1,
     unsigned char ka[LTC_SAFER_BLOCK_LEN + 1];
     unsigned char kb[LTC_SAFER_BLOCK_LEN + 1];
 
-    if (LTC_SAFER_MAX_NOF_ROUNDS < nof_rounds)
+    if (LTC_SAFER_MAX_NOF_ROUNDS < nof_rounds) {
         nof_rounds = LTC_SAFER_MAX_NOF_ROUNDS;
+    }
     *key++ = (unsigned char)nof_rounds;
     ka[LTC_SAFER_BLOCK_LEN] = (unsigned char)0;
     kb[LTC_SAFER_BLOCK_LEN] = (unsigned char)0;
@@ -168,23 +160,23 @@ static void Safer_Expand_Userkey(const unsigned char *userkey_1,
 }
 
 #ifdef LTC_CLEAN_STACK
-static void Safer_Expand_Userkey(const unsigned char *userkey_1,
+static void safer_expand_userkey(const unsigned char *userkey_1,
                                  const unsigned char *userkey_2,
                                  unsigned int nof_rounds,
                                  int strengthened,
                                  safer_key_t key)
 {
-   _Safer_Expand_Userkey(userkey_1, userkey_2, nof_rounds, strengthened, key);
+   s_safer_expand_userkey(userkey_1, userkey_2, nof_rounds, strengthened, key);
    burn_stack(sizeof(unsigned char) * (2 * (LTC_SAFER_BLOCK_LEN + 1)) + sizeof(unsigned int)*2);
 }
 #endif
 
-int safer_k64_setup(const unsigned char *key, int keylen, int numrounds, symmetric_key *skey)
+int safer_k64_setup(const unsigned char *key, int keylen, int num_rounds, symmetric_key *skey)
 {
    LTC_ARGCHK(key != NULL);
    LTC_ARGCHK(skey != NULL);
 
-   if (numrounds != 0 && (numrounds < 6 || numrounds > LTC_SAFER_MAX_NOF_ROUNDS)) {
+   if (num_rounds != 0 && (num_rounds < 6 || num_rounds > LTC_SAFER_MAX_NOF_ROUNDS)) {
       return CRYPT_INVALID_ROUNDS;
    }
 
@@ -192,16 +184,16 @@ int safer_k64_setup(const unsigned char *key, int keylen, int numrounds, symmetr
       return CRYPT_INVALID_KEYSIZE;
    }
 
-   Safer_Expand_Userkey(key, key, (unsigned int)(numrounds != 0 ?numrounds:LTC_SAFER_K64_DEFAULT_NOF_ROUNDS), 0, skey->safer.key);
+   safer_expand_userkey(key, key, (unsigned int)(num_rounds != 0 ?num_rounds:LTC_SAFER_K64_DEFAULT_NOF_ROUNDS), 0, skey->safer.key);
    return CRYPT_OK;
 }
 
-int safer_sk64_setup(const unsigned char *key, int keylen, int numrounds, symmetric_key *skey)
+int safer_sk64_setup(const unsigned char *key, int keylen, int num_rounds, symmetric_key *skey)
 {
    LTC_ARGCHK(key != NULL);
    LTC_ARGCHK(skey != NULL);
 
-   if (numrounds != 0 && (numrounds < 6 || numrounds > LTC_SAFER_MAX_NOF_ROUNDS)) {
+   if (num_rounds != 0 && (num_rounds < 6 || num_rounds > LTC_SAFER_MAX_NOF_ROUNDS)) {
       return CRYPT_INVALID_ROUNDS;
    }
 
@@ -209,16 +201,16 @@ int safer_sk64_setup(const unsigned char *key, int keylen, int numrounds, symmet
       return CRYPT_INVALID_KEYSIZE;
    }
 
-   Safer_Expand_Userkey(key, key, (unsigned int)(numrounds != 0 ?numrounds:LTC_SAFER_SK64_DEFAULT_NOF_ROUNDS), 1, skey->safer.key);
+   safer_expand_userkey(key, key, (unsigned int)(num_rounds != 0 ?num_rounds:LTC_SAFER_SK64_DEFAULT_NOF_ROUNDS), 1, skey->safer.key);
    return CRYPT_OK;
 }
 
-int safer_k128_setup(const unsigned char *key, int keylen, int numrounds, symmetric_key *skey)
+int safer_k128_setup(const unsigned char *key, int keylen, int num_rounds, symmetric_key *skey)
 {
    LTC_ARGCHK(key != NULL);
    LTC_ARGCHK(skey != NULL);
 
-   if (numrounds != 0 && (numrounds < 6 || numrounds > LTC_SAFER_MAX_NOF_ROUNDS)) {
+   if (num_rounds != 0 && (num_rounds < 6 || num_rounds > LTC_SAFER_MAX_NOF_ROUNDS)) {
       return CRYPT_INVALID_ROUNDS;
    }
 
@@ -226,16 +218,16 @@ int safer_k128_setup(const unsigned char *key, int keylen, int numrounds, symmet
       return CRYPT_INVALID_KEYSIZE;
    }
 
-   Safer_Expand_Userkey(key, key+8, (unsigned int)(numrounds != 0 ?numrounds:LTC_SAFER_K128_DEFAULT_NOF_ROUNDS), 0, skey->safer.key);
+   safer_expand_userkey(key, key+8, (unsigned int)(num_rounds != 0 ?num_rounds:LTC_SAFER_K128_DEFAULT_NOF_ROUNDS), 0, skey->safer.key);
    return CRYPT_OK;
 }
 
-int safer_sk128_setup(const unsigned char *key, int keylen, int numrounds, symmetric_key *skey)
+int safer_sk128_setup(const unsigned char *key, int keylen, int num_rounds, symmetric_key *skey)
 {
    LTC_ARGCHK(key != NULL);
    LTC_ARGCHK(skey != NULL);
 
-   if (numrounds != 0 && (numrounds < 6 || numrounds > LTC_SAFER_MAX_NOF_ROUNDS)) {
+   if (num_rounds != 0 && (num_rounds < 6 || num_rounds > LTC_SAFER_MAX_NOF_ROUNDS)) {
       return CRYPT_INVALID_ROUNDS;
    }
 
@@ -243,30 +235,30 @@ int safer_sk128_setup(const unsigned char *key, int keylen, int numrounds, symme
       return CRYPT_INVALID_KEYSIZE;
    }
 
-   Safer_Expand_Userkey(key, key+8, (unsigned int)(numrounds != 0?numrounds:LTC_SAFER_SK128_DEFAULT_NOF_ROUNDS), 1, skey->safer.key);
+   safer_expand_userkey(key, key+8, (unsigned int)(num_rounds != 0?num_rounds:LTC_SAFER_SK128_DEFAULT_NOF_ROUNDS), 1, skey->safer.key);
    return CRYPT_OK;
 }
 
 #ifdef LTC_CLEAN_STACK
-static int _safer_ecb_encrypt(const unsigned char *block_in,
-                             unsigned char *block_out,
-                             symmetric_key *skey)
+static int s_safer_ecb_encrypt(const unsigned char *pt,
+                             unsigned char *ct,
+                             const symmetric_key *skey)
 #else
-int safer_ecb_encrypt(const unsigned char *block_in,
-                             unsigned char *block_out,
-                             symmetric_key *skey)
+int safer_ecb_encrypt(const unsigned char *pt,
+                             unsigned char *ct,
+                             const symmetric_key *skey)
 #endif
 {   unsigned char a, b, c, d, e, f, g, h, t;
     unsigned int round;
-    unsigned char *key;
+    const unsigned char *key;
 
-    LTC_ARGCHK(block_in != NULL);
-    LTC_ARGCHK(block_out != NULL);
+    LTC_ARGCHK(pt != NULL);
+    LTC_ARGCHK(ct != NULL);
     LTC_ARGCHK(skey != NULL);
 
     key = skey->safer.key;
-    a = block_in[0]; b = block_in[1]; c = block_in[2]; d = block_in[3];
-    e = block_in[4]; f = block_in[5]; g = block_in[6]; h = block_in[7];
+    a = pt[0]; b = pt[1]; c = pt[2]; d = pt[3];
+    e = pt[4]; f = pt[5]; g = pt[6]; h = pt[7];
     if (LTC_SAFER_MAX_NOF_ROUNDS < (round = *key)) round = LTC_SAFER_MAX_NOF_ROUNDS;
     while(round-- > 0)
     {
@@ -283,44 +275,44 @@ int safer_ecb_encrypt(const unsigned char *block_in,
     }
     a ^= *++key; b += *++key; c += *++key; d ^= *++key;
     e ^= *++key; f += *++key; g += *++key; h ^= *++key;
-    block_out[0] = a & 0xFF; block_out[1] = b & 0xFF;
-    block_out[2] = c & 0xFF; block_out[3] = d & 0xFF;
-    block_out[4] = e & 0xFF; block_out[5] = f & 0xFF;
-    block_out[6] = g & 0xFF; block_out[7] = h & 0xFF;
+    ct[0] = a & 0xFF; ct[1] = b & 0xFF;
+    ct[2] = c & 0xFF; ct[3] = d & 0xFF;
+    ct[4] = e & 0xFF; ct[5] = f & 0xFF;
+    ct[6] = g & 0xFF; ct[7] = h & 0xFF;
     return CRYPT_OK;
 }
 
 #ifdef LTC_CLEAN_STACK
-int safer_ecb_encrypt(const unsigned char *block_in,
-                             unsigned char *block_out,
-                             symmetric_key *skey)
+int safer_ecb_encrypt(const unsigned char *pt,
+                             unsigned char *ct,
+                             const symmetric_key *skey)
 {
-    int err = _safer_ecb_encrypt(block_in, block_out, skey);
+    int err = s_safer_ecb_encrypt(pt, ct, skey);
     burn_stack(sizeof(unsigned char) * 9 + sizeof(unsigned int) + sizeof(unsigned char *));
     return err;
 }
 #endif
 
 #ifdef LTC_CLEAN_STACK
-static int _safer_ecb_decrypt(const unsigned char *block_in,
-                             unsigned char *block_out,
-                             symmetric_key *skey)
+static int s_safer_ecb_decrypt(const unsigned char *ct,
+                             unsigned char *pt,
+                             const symmetric_key *skey)
 #else
-int safer_ecb_decrypt(const unsigned char *block_in,
-                             unsigned char *block_out,
-                             symmetric_key *skey)
+int safer_ecb_decrypt(const unsigned char *ct,
+                             unsigned char *pt,
+                             const symmetric_key *skey)
 #endif
 {   unsigned char a, b, c, d, e, f, g, h, t;
     unsigned int round;
-    unsigned char *key;
+    const unsigned char *key;
 
-    LTC_ARGCHK(block_in != NULL);
-    LTC_ARGCHK(block_out != NULL);
+    LTC_ARGCHK(ct != NULL);
+    LTC_ARGCHK(pt != NULL);
     LTC_ARGCHK(skey != NULL);
 
     key = skey->safer.key;
-    a = block_in[0]; b = block_in[1]; c = block_in[2]; d = block_in[3];
-    e = block_in[4]; f = block_in[5]; g = block_in[6]; h = block_in[7];
+    a = ct[0]; b = ct[1]; c = ct[2]; d = ct[3];
+    e = ct[4]; f = ct[5]; g = ct[6]; h = ct[7];
     if (LTC_SAFER_MAX_NOF_ROUNDS < (round = *key)) round = LTC_SAFER_MAX_NOF_ROUNDS;
     key += LTC_SAFER_BLOCK_LEN * (1 + 2 * round);
     h ^= *key; g -= *--key; f -= *--key; e ^= *--key;
@@ -338,19 +330,19 @@ int safer_ecb_decrypt(const unsigned char *block_in,
         d = LOG(d) ^ *--key; c = EXP(c) - *--key;
         b = EXP(b) - *--key; a = LOG(a) ^ *--key;
     }
-    block_out[0] = a & 0xFF; block_out[1] = b & 0xFF;
-    block_out[2] = c & 0xFF; block_out[3] = d & 0xFF;
-    block_out[4] = e & 0xFF; block_out[5] = f & 0xFF;
-    block_out[6] = g & 0xFF; block_out[7] = h & 0xFF;
+    pt[0] = a & 0xFF; pt[1] = b & 0xFF;
+    pt[2] = c & 0xFF; pt[3] = d & 0xFF;
+    pt[4] = e & 0xFF; pt[5] = f & 0xFF;
+    pt[6] = g & 0xFF; pt[7] = h & 0xFF;
     return CRYPT_OK;
 }
 
 #ifdef LTC_CLEAN_STACK
-int safer_ecb_decrypt(const unsigned char *block_in,
-                             unsigned char *block_out,
-                             symmetric_key *skey)
+int safer_ecb_decrypt(const unsigned char *ct,
+                             unsigned char *pt,
+                             const symmetric_key *skey)
 {
-    int err = _safer_ecb_decrypt(block_in, block_out, skey);
+    int err = s_safer_ecb_decrypt(ct, pt, skey);
     burn_stack(sizeof(unsigned char) * 9 + sizeof(unsigned int) + sizeof(unsigned char *));
     return err;
 }
@@ -361,10 +353,9 @@ int safer_64_keysize(int *keysize)
    LTC_ARGCHK(keysize != NULL);
    if (*keysize < 8) {
       return CRYPT_INVALID_KEYSIZE;
-   } else {
-      *keysize = 8;
-      return CRYPT_OK;
    }
+   *keysize = 8;
+   return CRYPT_OK;
 }
 
 int safer_128_keysize(int *keysize)
@@ -372,10 +363,9 @@ int safer_128_keysize(int *keysize)
    LTC_ARGCHK(keysize != NULL);
    if (*keysize < 16) {
       return CRYPT_INVALID_KEYSIZE;
-   } else {
-      *keysize = 16;
-      return CRYPT_OK;
    }
+   *keysize = 16;
+   return CRYPT_OK;
 }
 
 int safer_k64_test(void)
@@ -398,7 +388,8 @@ int safer_k64_test(void)
    safer_ecb_encrypt(k64_pt, buf[0], &skey);
    safer_ecb_decrypt(buf[0], buf[1], &skey);
 
-   if (XMEMCMP(buf[0], k64_ct, 8) != 0 || XMEMCMP(buf[1], k64_pt, 8) != 0) {
+   if (compare_testvector(buf[0], 8, k64_ct, 8, "Safer K64 Encrypt", 0) != 0 ||
+         compare_testvector(buf[1], 8, k64_pt, 8, "Safer K64 Decrypt", 0) != 0) {
       return CRYPT_FAIL_TESTVECTOR;
    }
 
@@ -428,15 +419,16 @@ int safer_sk64_test(void)
    safer_ecb_encrypt(sk64_pt, buf[0], &skey);
    safer_ecb_decrypt(buf[0], buf[1], &skey);
 
-   if (XMEMCMP(buf[0], sk64_ct, 8) != 0 || XMEMCMP(buf[1], sk64_pt, 8) != 0) {
+   if (compare_testvector(buf[0], 8, sk64_ct, 8, "Safer SK64 Encrypt", 0) != 0 ||
+         compare_testvector(buf[1], 8, sk64_pt, 8, "Safer SK64 Decrypt", 0) != 0) {
       return CRYPT_FAIL_TESTVECTOR;
    }
 
-      /* now see if we can encrypt all zero bytes 1000 times, decrypt and come back where we started */
-      for (y = 0; y < 8; y++) buf[0][y] = 0;
-      for (y = 0; y < 1000; y++) safer_ecb_encrypt(buf[0], buf[0], &skey);
-      for (y = 0; y < 1000; y++) safer_ecb_decrypt(buf[0], buf[0], &skey);
-      for (y = 0; y < 8; y++) if (buf[0][y] != 0) return CRYPT_FAIL_TESTVECTOR;
+   /* now see if we can encrypt all zero bytes 1000 times, decrypt and come back where we started */
+   for (y = 0; y < 8; y++) buf[0][y] = 0;
+   for (y = 0; y < 1000; y++) safer_ecb_encrypt(buf[0], buf[0], &skey);
+   for (y = 0; y < 1000; y++) safer_ecb_decrypt(buf[0], buf[0], &skey);
+   for (y = 0; y < 8; y++) if (buf[0][y] != 0) return CRYPT_FAIL_TESTVECTOR;
 
    return CRYPT_OK;
   #endif
@@ -471,16 +463,18 @@ int safer_sk128_test(void)
    safer_ecb_encrypt(sk128_pt, buf[0], &skey);
    safer_ecb_decrypt(buf[0], buf[1], &skey);
 
-   if (XMEMCMP(buf[0], sk128_ct, 8) != 0 || XMEMCMP(buf[1], sk128_pt, 8) != 0) {
+   if (compare_testvector(buf[0], 8, sk128_ct, 8, "Safer SK128 Encrypt", 0) != 0 ||
+         compare_testvector(buf[1], 8, sk128_pt, 8, "Safer SK128 Decrypt", 0) != 0) {
       return CRYPT_FAIL_TESTVECTOR;
    }
 
-      /* now see if we can encrypt all zero bytes 1000 times, decrypt and come back where we started */
-      for (y = 0; y < 8; y++) buf[0][y] = 0;
-      for (y = 0; y < 1000; y++) safer_ecb_encrypt(buf[0], buf[0], &skey);
-      for (y = 0; y < 1000; y++) safer_ecb_decrypt(buf[0], buf[0], &skey);
-      for (y = 0; y < 8; y++) if (buf[0][y] != 0) return CRYPT_FAIL_TESTVECTOR;
-  return CRYPT_OK;
+   /* now see if we can encrypt all zero bytes 1000 times, decrypt and come back where we started */
+   for (y = 0; y < 8; y++) buf[0][y] = 0;
+   for (y = 0; y < 1000; y++) safer_ecb_encrypt(buf[0], buf[0], &skey);
+   for (y = 0; y < 1000; y++) safer_ecb_decrypt(buf[0], buf[0], &skey);
+   for (y = 0; y < 8; y++) if (buf[0][y] != 0) return CRYPT_FAIL_TESTVECTOR;
+
+   return CRYPT_OK;
  #endif
 }
 
@@ -488,7 +482,3 @@ int safer_sk128_test(void)
 
 
 
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

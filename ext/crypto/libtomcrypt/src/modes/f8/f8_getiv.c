@@ -1,14 +1,6 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
-#include "tomcrypt.h"
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
+#include "tomcrypt_private.h"
 
 /**
    @file ofb_getiv.c
@@ -18,13 +10,13 @@
 #ifdef LTC_F8_MODE
 
 /**
-   Get the current initial vector
-   @param IV   [out] The destination of the initial vector
-   @param len  [in/out]  The max size and resulting size of the initial vector
+   Get the current initialization vector
+   @param IV   [out] The destination of the initialization vector
+   @param len  [in/out]  The max size and resulting size of the initialization vector
    @param f8   The F8 state
    @return CRYPT_OK if successful
 */
-int f8_getiv(unsigned char *IV, unsigned long *len, symmetric_F8 *f8)
+int f8_getiv(unsigned char *IV, unsigned long *len, const symmetric_F8 *f8)
 {
    LTC_ARGCHK(IV  != NULL);
    LTC_ARGCHK(len != NULL);
@@ -40,7 +32,3 @@ int f8_getiv(unsigned char *IV, unsigned long *len, symmetric_F8 *f8)
 }
 
 #endif
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

@@ -1,9 +1,12 @@
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
+
 /**
    @file sober128tab.c
    SOBER-128 Tables
 */
 
-#ifdef __LTC_SOBER128TAB_C__
+#ifdef LTC_SOBER128TAB_C
 
 /* $ID$ */
 /* @(#)TuringMultab.h   1.3 (QUALCOMM) 02/09/03 */
@@ -160,8 +163,4 @@ static const ulong32 Sbox[256] = {
     0xf9e6053f, 0xa4b0d300, 0xd499cbcc, 0xb95e3d40,
 };
 
-#endif /* __LTC_SOBER128TAB_C__ */
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */
+#endif /* LTC_SOBER128TAB_C */

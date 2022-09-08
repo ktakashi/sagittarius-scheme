@@ -1,15 +1,9 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- */
-#include "tomcrypt.h"
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
+#include "tomcrypt_private.h"
 
 /**
-  @file rc4.c
+  @file prngs/rc4.c
   RC4 PRNG, Tom St Denis
 */
 
@@ -39,9 +33,9 @@ int rc4_start(prng_state *prng)
    LTC_ARGCHK(prng != NULL);
    prng->ready = 0;
    /* set entropy (key) size to zero */
-   prng->rc4.s.x = 0;
+   prng->u.rc4.s.x = 0;
    /* clear entropy (key) buffer */
-   XMEMSET(&prng->rc4.s.buf, 0, sizeof(prng->rc4.s.buf));
+   XMEMSET(&prng->u.rc4.s.buf, 0, sizeof(prng->u.rc4.s.buf));
    LTC_MUTEX_INIT(&prng->lock)
    return CRYPT_OK;
 }
@@ -66,16 +60,17 @@ int rc4_add_entropy(const unsigned char *in, unsigned long inlen, prng_state *pr
    LTC_MUTEX_LOCK(&prng->lock);
    if (prng->ready) {
       /* rc4_ready() was already called, do "rekey" operation */
-      if ((err = rc4_stream_keystream(&prng->rc4.s, buf, sizeof(buf))) != CRYPT_OK) goto LBL_UNLOCK;
+      if ((err = rc4_stream_keystream(&prng->u.rc4.s, buf, sizeof(buf))) != CRYPT_OK) goto LBL_UNLOCK;
       for(i = 0; i < inlen; i++) buf[i % sizeof(buf)] ^= in[i];
       /* initialize RC4 */
-      if ((err = rc4_stream_setup(&prng->rc4.s, buf, sizeof(buf))) != CRYPT_OK) goto LBL_UNLOCK;
+      if ((err = rc4_stream_setup(&prng->u.rc4.s, buf, sizeof(buf))) != CRYPT_OK) goto LBL_UNLOCK;
       /* drop first 3072 bytes - https://en.wikipedia.org/wiki/RC4#Fluhrer.2C_Mantin_and_Shamir_attack */
-      for (i = 0; i < 12; i++) rc4_stream_keystream(&prng->rc4.s, buf, sizeof(buf));
+      for (i = 0; i < 12; i++) rc4_stream_keystream(&prng->u.rc4.s, buf, sizeof(buf));
+      zeromem(buf, sizeof(buf));
    }
    else {
       /* rc4_ready() was not called yet, add entropy to the buffer */
-      while (inlen--) prng->rc4.s.buf[prng->rc4.s.x++ % sizeof(prng->rc4.s.buf)] ^= *in++;
+      while (inlen--) prng->u.rc4.s.buf[prng->u.rc4.s.x++ % sizeof(prng->u.rc4.s.buf)] ^= *in++;
    }
    err = CRYPT_OK;
 LBL_UNLOCK:
@@ -98,13 +93,12 @@ int rc4_ready(prng_state *prng)
 
    LTC_MUTEX_LOCK(&prng->lock);
    if (prng->ready) { err = CRYPT_OK; goto LBL_UNLOCK; }
-   XMEMCPY(buf, prng->rc4.s.buf, sizeof(buf));
+   XMEMCPY(buf, prng->u.rc4.s.buf, sizeof(buf));
    /* initialize RC4 */
-   len = MIN(prng->rc4.s.x, 256); /* TODO: we can perhaps always use all 256 bytes */
-   if (len < 5) len = 5;	  /* Fix for Sagittarius. */
-   if ((err = rc4_stream_setup(&prng->rc4.s, buf, len)) != CRYPT_OK) goto LBL_UNLOCK;
+   len = MIN(prng->u.rc4.s.x, 256); /* TODO: we can perhaps always use all 256 bytes */
+   if ((err = rc4_stream_setup(&prng->u.rc4.s, buf, len)) != CRYPT_OK) goto LBL_UNLOCK;
    /* drop first 3072 bytes - https://en.wikipedia.org/wiki/RC4#Fluhrer.2C_Mantin_and_Shamir_attack */
-   for (i = 0; i < 12; i++) rc4_stream_keystream(&prng->rc4.s, buf, sizeof(buf));
+   for (i = 0; i < 12; i++) rc4_stream_keystream(&prng->u.rc4.s, buf, sizeof(buf));
    prng->ready = 1;
 LBL_UNLOCK:
    LTC_MUTEX_UNLOCK(&prng->lock);
@@ -123,7 +117,7 @@ unsigned long rc4_read(unsigned char *out, unsigned long outlen, prng_state *prn
    if (outlen == 0 || prng == NULL || out == NULL) return 0;
    LTC_MUTEX_LOCK(&prng->lock);
    if (!prng->ready) { outlen = 0; goto LBL_UNLOCK; }
-   if (rc4_stream_keystream(&prng->rc4.s, out, outlen) != CRYPT_OK) outlen = 0;
+   if (rc4_stream_keystream(&prng->u.rc4.s, out, outlen) != CRYPT_OK) outlen = 0;
 LBL_UNLOCK:
    LTC_MUTEX_UNLOCK(&prng->lock);
    return outlen;
@@ -140,8 +134,9 @@ int rc4_done(prng_state *prng)
    LTC_ARGCHK(prng != NULL);
    LTC_MUTEX_LOCK(&prng->lock);
    prng->ready = 0;
-   err = rc4_stream_done(&prng->rc4.s);
+   err = rc4_stream_done(&prng->u.rc4.s);
    LTC_MUTEX_UNLOCK(&prng->lock);
+   LTC_MUTEX_DESTROY(&prng->lock);
    return err;
 }
 
@@ -152,26 +147,7 @@ int rc4_done(prng_state *prng)
   @param prng      The PRNG to export
   @return CRYPT_OK if successful
 */
-int rc4_export(unsigned char *out, unsigned long *outlen, prng_state *prng)
-{
-   unsigned long len = rc4_desc.export_size;
-
-   LTC_ARGCHK(prng   != NULL);
-   LTC_ARGCHK(out    != NULL);
-   LTC_ARGCHK(outlen != NULL);
-
-   if (*outlen < len) {
-      *outlen = len;
-      return CRYPT_BUFFER_OVERFLOW;
-   }
-
-   if (rc4_read(out, len, prng) != len) {
-      return CRYPT_ERROR_READPRNG;
-   }
-
-   *outlen = len;
-   return CRYPT_OK;
-}
+LTC_PRNG_EXPORT(rc4)
 
 /**
   Import a PRNG state

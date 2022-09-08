@@ -1,19 +1,11 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
 
 /**
    @file gcm_memory.c
    GCM implementation, process a packet, by Tom St Denis
 */
-#include "tomcrypt.h"
+#include "tomcrypt_private.h"
 
 #ifdef LTC_GCM_MODE
 
@@ -22,8 +14,8 @@
   @param cipher            Index of cipher to use
   @param key               The secret key
   @param keylen            The length of the secret key
-  @param IV                The initial vector 
-  @param IVlen             The length of the initial vector
+  @param IV                The initialization vector
+  @param IVlen             The length of the initialization vector
   @param adata             The additional authentication data (header)
   @param adatalen          The length of the adata
   @param pt                The plaintext
@@ -39,7 +31,7 @@ int gcm_memory(      int           cipher,
                const unsigned char *IV,     unsigned long IVlen,
                const unsigned char *adata,  unsigned long adatalen,
                      unsigned char *pt,     unsigned long ptlen,
-                     unsigned char *ct, 
+                     unsigned char *ct,
                      unsigned char *tag,    unsigned long *taglen,
                                int direction)
 {
@@ -50,10 +42,9 @@ int gcm_memory(      int           cipher,
     if ((err = cipher_is_valid(cipher)) != CRYPT_OK) {
        return err;
     }
- 
+
     if (cipher_descriptor[cipher].accel_gcm_memory != NULL) {
-       return 
-         cipher_descriptor[cipher].accel_gcm_memory
+       return cipher_descriptor[cipher].accel_gcm_memory
                                           (key,   keylen,
                                            IV,    IVlen,
                                            adata, adatalen,
@@ -96,14 +87,27 @@ int gcm_memory(      int           cipher,
     if ((err = gcm_process(gcm, pt, ptlen, ct, direction)) != CRYPT_OK) {
        goto LTC_ERR;
     }
-    err = gcm_done(gcm, tag, taglen);
+    if (direction == GCM_ENCRYPT) {
+      if ((err = gcm_done(gcm, tag, taglen)) != CRYPT_OK) {
+         goto LTC_ERR;
+      }
+    }
+    else if (direction == GCM_DECRYPT) {
+       unsigned char buf[MAXBLOCKSIZE];
+       unsigned long buflen = sizeof(buf);
+       if ((err = gcm_done(gcm, buf, &buflen)) != CRYPT_OK) {
+          goto LTC_ERR;
+       }
+       if (buflen != *taglen || XMEM_NEQ(buf, tag, buflen) != 0) {
+          err = CRYPT_ERROR;
+       }
+    }
+    else {
+       err = CRYPT_INVALID_ARG;
+    }
 LTC_ERR:
     XFREE(orig);
     return err;
 }
 #endif
 
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

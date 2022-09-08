@@ -1,14 +1,6 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
-#include "tomcrypt.h"
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
+#include "tomcrypt_private.h"
 
 /**
   @file crypt_find_hash_any.c
@@ -16,7 +8,7 @@
 */
 
 /**
-   Find a hash flexibly.  First by name then if not present by digest size 
+   Find a hash flexibly.  First by name then if not present by digest size
    @param name        The name of the hash desired
    @param digestlen   The minimum length of the digest size (octets)
    @return >= 0 if found, -1 if not present
@@ -43,7 +35,3 @@
    LTC_MUTEX_UNLOCK(&ltc_hash_mutex);
    return z;
 }
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

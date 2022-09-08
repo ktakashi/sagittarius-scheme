@@ -1,19 +1,11 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
 
 /**
    @file eax_encrypt.c
-   EAX implementation, encrypt block by Tom St Denis 
+   EAX implementation, encrypt block by Tom St Denis
 */
-#include "tomcrypt.h"
+#include "tomcrypt_private.h"
 
 #ifdef LTC_EAX_MODE
 
@@ -25,11 +17,11 @@
    @param length     The length of the plaintext (octets)
    @return CRYPT_OK if successful
 */
-int eax_encrypt(eax_state *eax, const unsigned char *pt, unsigned char *ct, 
+int eax_encrypt(eax_state *eax, const unsigned char *pt, unsigned char *ct,
                 unsigned long length)
 {
    int err;
-   
+
    LTC_ARGCHK(eax != NULL);
    LTC_ARGCHK(pt  != NULL);
    LTC_ARGCHK(ct  != NULL);
@@ -45,7 +37,3 @@ int eax_encrypt(eax_state *eax, const unsigned char *pt, unsigned char *ct,
 
 #endif
 
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

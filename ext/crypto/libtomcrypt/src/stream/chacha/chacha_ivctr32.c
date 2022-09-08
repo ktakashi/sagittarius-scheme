@@ -1,18 +1,12 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- */
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
 
 /* The implementation is based on:
  * chacha-ref.c version 20080118
  * Public domain from D. J. Bernstein
  */
 
-#include "tomcrypt.h"
+#include "tomcrypt_private.h"
 
 #ifdef LTC_CHACHA
 
@@ -20,7 +14,7 @@
   Set IV + counter data to the ChaCha state
   @param st      The ChaCha20 state
   @param iv      The IV data to add
-  @param inlen   The length of the IV (must be 12)
+  @param ivlen   The length of the IV (must be 12)
   @param counter 32bit (unsigned) initial counter value
   @return CRYPT_OK on success
  */

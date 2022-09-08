@@ -1,15 +1,7 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
 
-#include "tomcrypt.h"
+#include "tomcrypt_private.h"
 
 /**
   @file chc.c
@@ -129,7 +121,7 @@ int chc_init(hash_state *md)
    T0     <= encrypt T0
    state  <= state xor T0 xor T1
 */
-static int chc_compress(hash_state *md, unsigned char *buf)
+static int s_chc_compress(hash_state *md, const unsigned char *buf)
 {
    unsigned char  T[2][MAXBLOCKSIZE];
    symmetric_key *key;
@@ -147,17 +139,23 @@ static int chc_compress(hash_state *md, unsigned char *buf)
    for (x = 0; x < cipher_blocksize; x++) {
        md->chc.state[x] ^= T[0][x] ^ T[1][x];
    }
-   XFREE(key);
 #ifdef LTC_CLEAN_STACK
    zeromem(T, sizeof(T));
-   zeromem(&key, sizeof(key));
+   zeromem(key, sizeof(*key));
 #endif
+   XFREE(key);
    return CRYPT_OK;
 }
 
-/* function for processing blocks */
-int _chc_process(hash_state * md, const unsigned char *buf, unsigned long len);
-HASH_PROCESS(_chc_process, chc_compress, chc, (unsigned long)cipher_blocksize)
+/**
+   Function for processing blocks
+   @param md   The hash state
+   @param buf  The data to hash
+   @param len  The length of the data (octets)
+   @return CRYPT_OK if successful
+*/
+static int ss_chc_process(hash_state * md, const unsigned char *in, unsigned long inlen);
+static HASH_PROCESS(ss_chc_process, s_chc_compress, chc, (unsigned long)cipher_blocksize)
 
 /**
    Process a block of memory though the hash
@@ -181,7 +179,7 @@ int chc_process(hash_state * md, const unsigned char *in, unsigned long inlen)
       return CRYPT_INVALID_CIPHER;
    }
 
-   return _chc_process(md, in, inlen);
+   return ss_chc_process(md, in, inlen);
 }
 
 /**
@@ -223,7 +221,7 @@ int chc_done(hash_state *md, unsigned char *out)
         while (md->chc.curlen < (unsigned long)cipher_blocksize) {
             md->chc.buf[md->chc.curlen++] = (unsigned char)0;
         }
-        chc_compress(md, md->chc.buf);
+        s_chc_compress(md, md->chc.buf);
         md->chc.curlen = 0;
     }
 
@@ -234,7 +232,7 @@ int chc_done(hash_state *md, unsigned char *out)
 
     /* store length */
     STORE64L(md->chc.length, md->chc.buf+(cipher_blocksize-8));
-    chc_compress(md, md->chc.buf);
+    s_chc_compress(md, md->chc.buf);
 
     /* copy output */
     XMEMCPY(out, md->chc.state, cipher_blocksize);
@@ -256,7 +254,7 @@ int chc_test(void)
 #else
    static const struct {
       unsigned char *msg,
-                     md[MAXBLOCKSIZE];
+                     hash[MAXBLOCKSIZE];
       int            len;
    } tests[] = {
 {
@@ -266,8 +264,8 @@ int chc_test(void)
    16
 }
 };
-   int x, oldhashidx, idx;
-   unsigned char out[MAXBLOCKSIZE];
+   int i, oldhashidx, idx, err;
+   unsigned char tmp[MAXBLOCKSIZE];
    hash_state md;
 
    /* AES can be under rijndael or aes... try to find it */
@@ -279,11 +277,17 @@ int chc_test(void)
    oldhashidx = cipher_idx;
    chc_register(idx);
 
-   for (x = 0; x < (int)(sizeof(tests)/sizeof(tests[0])); x++) {
-       chc_init(&md);
-       chc_process(&md, tests[x].msg, strlen((char *)tests[x].msg));
-       chc_done(&md, out);
-       if (XMEMCMP(out, tests[x].md, tests[x].len)) {
+   for (i = 0; i < (int)(sizeof(tests)/sizeof(tests[0])); i++) {
+       if ((err = chc_init(&md)) != CRYPT_OK) {
+          return err;
+       }
+       if ((err = chc_process(&md, tests[i].msg, XSTRLEN((char *)tests[i].msg))) != CRYPT_OK) {
+          return err;
+       }
+       if ((err = chc_done(&md, tmp)) != CRYPT_OK) {
+          return err;
+       }
+       if (compare_testvector(tmp, tests[i].len, tests[i].hash, tests[i].len, "CHC", i)) {
           return CRYPT_FAIL_TESTVECTOR;
        }
    }
@@ -296,7 +300,3 @@ int chc_test(void)
 }
 
 #endif
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

@@ -1,14 +1,6 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
-#include "tomcrypt.h"
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
+#include "tomcrypt_private.h"
 
 /**
    @file lrw_process.c
@@ -60,7 +52,7 @@ int lrw_process(const unsigned char *pt, unsigned char *ct, unsigned long len, i
       for (; x < 16; x++) {
 #ifdef LTC_FAST
           for (y = 0; y < 16; y += sizeof(LTC_FAST_TYPE)) {
-              *((LTC_FAST_TYPE *)(lrw->pad + y)) ^= *((LTC_FAST_TYPE *)(&lrw->PC[x][lrw->IV[x]][y])) ^ *((LTC_FAST_TYPE *)(&lrw->PC[x][(lrw->IV[x]-1)&255][y]));
+              *(LTC_FAST_TYPE_PTR_CAST(lrw->pad + y)) ^= *(LTC_FAST_TYPE_PTR_CAST(&lrw->PC[x][lrw->IV[x]][y])) ^ *(LTC_FAST_TYPE_PTR_CAST(&lrw->PC[x][(lrw->IV[x]-1)&255][y]));
           }
 #else
           for (y = 0; y < 16; y++) {
@@ -75,7 +67,7 @@ int lrw_process(const unsigned char *pt, unsigned char *ct, unsigned long len, i
       /* xor prod */
 #ifdef LTC_FAST
       for (x = 0; x < 16; x += sizeof(LTC_FAST_TYPE)) {
-           *((LTC_FAST_TYPE *)(ct + x)) = *((LTC_FAST_TYPE *)(pt + x)) ^ *((LTC_FAST_TYPE *)(prod + x));
+           *(LTC_FAST_TYPE_PTR_CAST(ct + x)) = *(LTC_FAST_TYPE_PTR_CAST(pt + x)) ^ *(LTC_FAST_TYPE_PTR_CAST(prod + x));
       }
 #else
       for (x = 0; x < 16; x++) {
@@ -97,7 +89,7 @@ int lrw_process(const unsigned char *pt, unsigned char *ct, unsigned long len, i
       /* xor prod */
 #ifdef LTC_FAST
       for (x = 0; x < 16; x += sizeof(LTC_FAST_TYPE)) {
-           *((LTC_FAST_TYPE *)(ct + x)) = *((LTC_FAST_TYPE *)(ct + x)) ^ *((LTC_FAST_TYPE *)(prod + x));
+           *(LTC_FAST_TYPE_PTR_CAST(ct + x)) = *(LTC_FAST_TYPE_PTR_CAST(ct + x)) ^ *(LTC_FAST_TYPE_PTR_CAST(prod + x));
       }
 #else
       for (x = 0; x < 16; x++) {
@@ -115,6 +107,3 @@ int lrw_process(const unsigned char *pt, unsigned char *ct, unsigned long len, i
 }
 
 #endif
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

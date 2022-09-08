@@ -1,12 +1,6 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- */
-#include "tomcrypt.h"
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
+#include "tomcrypt_private.h"
 
 /**
    @file sprng.c
@@ -102,6 +96,7 @@ int sprng_done(prng_state *prng)
   @param prng      The PRNG to export
   @return CRYPT_OK if successful
 */
+/* NOLINTNEXTLINE(readability-non-const-parameter) - silence clang-tidy warning */
 int sprng_export(unsigned char *out, unsigned long *outlen, prng_state *prng)
 {
    LTC_ARGCHK(outlen != NULL);
@@ -155,7 +150,3 @@ int sprng_test(void)
 
 
 
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

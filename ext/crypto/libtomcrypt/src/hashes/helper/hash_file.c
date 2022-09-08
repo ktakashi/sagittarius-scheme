@@ -1,17 +1,9 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
-#include "tomcrypt.h"
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
+#include "tomcrypt_private.h"
 
 #ifndef LTC_NO_FILE
-/** 
+/**
   @file hash_file.c
   Hash a file, Tom St Denis
 */
@@ -36,7 +28,7 @@ int hash_file(int hash, const char *fname, unsigned char *out, unsigned long *ou
     }
 
     in = fopen(fname, "rb");
-    if (in == NULL) { 
+    if (in == NULL) {
        return CRYPT_FILE_NOTFOUND;
     }
 
@@ -49,7 +41,3 @@ int hash_file(int hash, const char *fname, unsigned char *out, unsigned long *ou
 }
 #endif /* #ifndef LTC_NO_FILE */
 
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

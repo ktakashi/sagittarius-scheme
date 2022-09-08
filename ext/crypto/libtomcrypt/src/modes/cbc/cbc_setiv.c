@@ -1,14 +1,6 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
-#include "tomcrypt.h"
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
+#include "tomcrypt_private.h"
 
 /**
    @file cbc_setiv.c
@@ -19,8 +11,8 @@
 #ifdef LTC_CBC_MODE
 
 /**
-   Set an initial vector
-   @param IV   The initial vector
+   Set an initialization vector
+   @param IV   The initialization vector
    @param len  The length of the vector (in octets)
    @param cbc  The CBC state
    @return CRYPT_OK if successful
@@ -36,9 +28,5 @@ int cbc_setiv(const unsigned char *IV, unsigned long len, symmetric_CBC *cbc)
    return CRYPT_OK;
 }
 
-#endif 
+#endif
 
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

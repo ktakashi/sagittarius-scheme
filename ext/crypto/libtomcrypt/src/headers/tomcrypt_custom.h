@@ -1,3 +1,6 @@
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
+
 #ifndef TOMCRYPT_CUSTOM_H_
 #define TOMCRYPT_CUSTOM_H_
 
@@ -21,14 +24,26 @@
 #ifndef XMEMCPY
 #define XMEMCPY  memcpy
 #endif
+#ifndef XMEMMOVE
+#define XMEMMOVE memmove
+#endif
 #ifndef XMEMCMP
 #define XMEMCMP  memcmp
 #endif
+/* A memory compare function that has to run in constant time,
+ * c.f. mem_neq() API summary.
+ */
 #ifndef XMEM_NEQ
 #define XMEM_NEQ  mem_neq
 #endif
 #ifndef XSTRCMP
-#define XSTRCMP strcmp
+#define XSTRCMP  strcmp
+#endif
+#ifndef XSTRLEN
+#define XSTRLEN  strlen
+#endif
+#ifndef XSTRNCPY
+#define XSTRNCPY strncpy
 #endif
 
 #ifndef XCLOCK
@@ -41,13 +56,13 @@
 
 #if ( defined(malloc) || defined(realloc) || defined(calloc) || defined(free) || \
       defined(memset) || defined(memcpy) || defined(memcmp) || defined(strcmp) || \
-      defined(clock) || defined(qsort) ) && !defined(LTC_NO_PROTOTYPES)
+      defined(strlen) || defined(strncpy) || defined(clock) || defined(qsort) ) \
+      && !defined(LTC_NO_PROTOTYPES)
 #define LTC_NO_PROTOTYPES
 #endif
 
 /* shortcut to disable automatic inclusion */
 #if defined LTC_NOTHING && !defined LTC_EASY
-  #define LTC_NO_MATH
   #define LTC_NO_CIPHERS
   #define LTC_NO_MODES
   #define LTC_NO_HASHES
@@ -56,7 +71,6 @@
   #define LTC_NO_PK
   #define LTC_NO_PKCS
   #define LTC_NO_MISC
-  #define LTC_NO_FILE
 #endif /* LTC_NOTHING */
 
 /* Easy button? */
@@ -100,7 +114,7 @@
 
    #define LTC_NO_MISC
    #define LTC_BASE64
-#endif
+#endif /* LTC_EASY */
 
 /* The minimal set of functionality to run the tests */
 #ifdef LTC_MINIMAL
@@ -115,7 +129,7 @@
    #define LTC_TRY_URANDOM_FIRST
 
    #undef LTC_NO_FILE
-#endif
+#endif /* LTC_MINIMAL */
 
 /* Enable self-test test vector checking */
 #ifndef LTC_NO_TEST
@@ -189,9 +203,16 @@
 #define LTC_KASUMI
 #define LTC_MULTI2
 #define LTC_CAMELLIA
+#define LTC_IDEA
+#define LTC_SERPENT
+#define LTC_TEA
 
 /* stream ciphers */
 #define LTC_CHACHA
+#define LTC_SALSA20
+#define LTC_XSALSA20
+#define LTC_SOSEMANUK
+#define LTC_RABBIT
 #define LTC_RC4_STREAM
 #define LTC_SOBER128_STREAM
 
@@ -230,6 +251,7 @@
 #define LTC_CHC_HASH
 #define LTC_WHIRLPOOL
 #define LTC_SHA3
+#define LTC_KECCAK
 #define LTC_SHA512
 #define LTC_SHA512_256
 #define LTC_SHA512_224
@@ -335,13 +357,43 @@
   #define LTC_YARROW_AES 2
 #endif
 
-#endif
+#endif /* LTC_YARROW */
 
 #ifdef LTC_FORTUNA
+
+#if !defined(LTC_FORTUNA_RESEED_RATELIMIT_STATIC) && \
+      ((defined(_POSIX_C_SOURCE) && _POSIX_C_SOURCE >= 200112L) || defined(_WIN32))
+
+/* time-based rate limit of the reseeding */
+#define LTC_FORTUNA_RESEED_RATELIMIT_TIMED
+
+/* with non-glibc or glibc 2.17+ prefer clock_gettime over gettimeofday */
+#if defined(__GLIBC__) && defined(__GLIBC_PREREQ)
+#if __GLIBC_PREREQ(2, 17)
+  #define LTC_CLOCK_GETTIME
+#endif
+#elif defined(_POSIX_C_SOURCE) && _POSIX_C_SOURCE >= 200112L
+  #define LTC_CLOCK_GETTIME
+#endif
+
+#else
 
 #ifndef LTC_FORTUNA_WD
 /* reseed every N calls to the read function */
 #define LTC_FORTUNA_WD    10
+#endif
+
+#ifdef LTC_FORTUNA_RESEED_RATELIMIT_TIMED
+/* make sure only one of
+ *   LTC_FORTUNA_RESEED_RATELIMIT_STATIC
+ * and
+ *   LTC_FORTUNA_RESEED_RATELIMIT_TIMED
+ * is defined.
+ */
+#undef LTC_FORTUNA_RESEED_RATELIMIT_TIMED
+#warning "undef'ed LTC_FORTUNA_RESEED_RATELIMIT_TIMED, looks like your architecture doesn't support it"
+#endif
+
 #endif
 
 #ifndef LTC_FORTUNA_POOLS
@@ -364,23 +416,22 @@
 /* Supported Key Sizes */
 #define LTC_DH768
 #define LTC_DH1024
-#define LTC_DH1280
 #define LTC_DH1536
-#define LTC_DH1792
 #define LTC_DH2048
 
-#ifndef TFM_DESC
+#if defined(LTM_DESC) || defined(GMP_DESC)
 /* tfm has a problem in fp_isprime for larger key sizes */
-#define LTC_DH2560
 #define LTC_DH3072
 #define LTC_DH4096
+#define LTC_DH6144
+#define LTC_DH8192
 #endif
-
-/* Include Katja (a Rabin variant like RSA) */
-/* #define LTC_MKAT */
 
 /* Digital Signature Algorithm */
 #define LTC_MDSA
+
+/* Ed25519 & X25519 */
+#define LTC_CURVE25519
 
 /* ECC */
 #define LTC_MECC
@@ -412,35 +463,13 @@
 #define LTC_ECC_TIMING_RESISTANT
 #endif
 
-/* define these PK sizes out of LTC_NO_PK
- * to have them always defined
- */
-#if defined(LTC_MRSA)
-/* Min and Max RSA key sizes (in bits) */
-#ifndef MIN_RSA_SIZE
-#define MIN_RSA_SIZE 1024
-#endif
-#ifndef MAX_RSA_SIZE
-#define MAX_RSA_SIZE 4096
-#endif
-#endif
-
-/* in cases where you want ASN.1/DER functionality, but no
- * RSA, you can define this externally if 1024 is not enough
- */
-#if defined(LTC_MRSA)
-#define LTC_DER_MAX_PUBKEY_SIZE MAX_RSA_SIZE
-#elif !defined(LTC_DER_MAX_PUBKEY_SIZE)
-/* this includes DSA */
-#define LTC_DER_MAX_PUBKEY_SIZE 1024
-#endif
-
-
 /* PKCS #1 (RSA) and #5 (Password Handling) stuff */
 #ifndef LTC_NO_PKCS
 
 #define LTC_PKCS_1
 #define LTC_PKCS_5
+#define LTC_PKCS_8
+#define LTC_PKCS_12
 
 /* Include ASN.1 DER (required by DSA/RSA) */
 #define LTC_DER
@@ -454,6 +483,16 @@
 #define LTC_BASE64
 /* ... and it's URL safe version */
 #define LTC_BASE64_URL
+/* Base32 encoding/decoding */
+#define LTC_BASE32
+/* Base16/hex encoding/decoding */
+#define LTC_BASE16
+
+#define LTC_BCRYPT
+
+#ifndef LTC_BCRYPT_DEFAULT_ROUNDS
+#define LTC_BCRYPT_DEFAULT_ROUNDS 10
+#endif
 
 /* Keep LTC_NO_HKDF for compatibility reasons
  * superseeded by LTC_NO_MISC*/
@@ -466,6 +505,12 @@
 
 #define LTC_CRC32
 
+#define LTC_SSH
+
+#define LTC_PADDING
+
+#define LTC_PBES
+
 #endif /* LTC_NO_MISC */
 
 /* cleanup */
@@ -473,29 +518,92 @@
 #ifdef LTC_MECC
 /* Supported ECC Key Sizes */
 #ifndef LTC_NO_CURVES
-   #define LTC_ECC112
-   #define LTC_ECC128
-   #define LTC_ECC160
-   #define LTC_ECC192
-   #define LTC_ECC224
-   #define LTC_ECC256
-   #define LTC_ECC384
-   #define LTC_ECC521
+   #define LTC_ECC_BRAINPOOLP160R1
+   #define LTC_ECC_BRAINPOOLP160T1
+   #define LTC_ECC_BRAINPOOLP192R1
+   #define LTC_ECC_BRAINPOOLP192T1
+   #define LTC_ECC_BRAINPOOLP224R1
+   #define LTC_ECC_BRAINPOOLP224T1
+   #define LTC_ECC_BRAINPOOLP256R1
+   #define LTC_ECC_BRAINPOOLP256T1
+   #define LTC_ECC_BRAINPOOLP320R1
+   #define LTC_ECC_BRAINPOOLP320T1
+   #define LTC_ECC_BRAINPOOLP384R1
+   #define LTC_ECC_BRAINPOOLP384T1
+   #define LTC_ECC_BRAINPOOLP512R1
+   #define LTC_ECC_BRAINPOOLP512T1
+   #define LTC_ECC_PRIME192V2
+   #define LTC_ECC_PRIME192V3
+   #define LTC_ECC_PRIME239V1
+   #define LTC_ECC_PRIME239V2
+   #define LTC_ECC_PRIME239V3
+   #define LTC_ECC_SECP112R1
+   #define LTC_ECC_SECP112R2
+   #define LTC_ECC_SECP128R1
+   #define LTC_ECC_SECP128R2
+   #define LTC_ECC_SECP160K1
+   #define LTC_ECC_SECP160R1
+   #define LTC_ECC_SECP160R2
+   #define LTC_ECC_SECP192K1
+   #define LTC_ECC_SECP192R1
+   #define LTC_ECC_SECP224K1
+   #define LTC_ECC_SECP224R1
+   #define LTC_ECC_SECP256K1
+   #define LTC_ECC_SECP256R1
+   #define LTC_ECC_SECP384R1
+   #define LTC_ECC_SECP521R1
 #endif
+#endif /* LTC_MECC */
+
+#if defined(LTC_DER)
+   #ifndef LTC_DER_MAX_RECURSION
+      /* Maximum recursion limit when processing nested ASN.1 types. */
+      #define LTC_DER_MAX_RECURSION 30
+   #endif
 #endif
 
-#if defined(LTC_MECC) || defined(LTC_MRSA) || defined(LTC_MDSA) || defined(LTC_MKAT)
+#if defined(LTC_MECC) || defined(LTC_MRSA) || defined(LTC_MDSA) || defined(LTC_SSH)
    /* Include the MPI functionality?  (required by the PK algorithms) */
    #define LTC_MPI
+
+   #ifndef LTC_PK_MAX_RETRIES
+      /* iterations limit for retry-loops */
+      #define LTC_PK_MAX_RETRIES  20
+   #endif
 #endif
 
 #ifdef LTC_MRSA
    #define LTC_PKCS_1
 #endif
 
-#if defined(TFM_DESC) && defined(LTC_RSA_BLINDING)
-    #warning RSA blinding currently not supported in combination with TFM
-    #undef LTC_RSA_BLINDING
+#if defined(LTC_MRSA) || defined(LTC_MECC)
+   #define LTC_PKCS_8
+#endif
+
+#ifdef LTC_PKCS_8
+   #define LTC_PADDING
+   #define LTC_PBES
+#endif
+
+#if defined(LTC_CLEAN_STACK)
+/* if you're sure that you want to use it, remove the line below */
+   #error LTC_CLEAN_STACK is considered as broken
+#endif
+
+#if defined(LTC_PBES) && !defined(LTC_PKCS_5)
+   #error LTC_PBES requires LTC_PKCS_5
+#endif
+
+#if defined(LTC_PBES) && !defined(LTC_PKCS_12)
+   #error LTC_PBES requires LTC_PKCS_12
+#endif
+
+#if defined(LTC_PKCS_5) && !defined(LTC_HMAC)
+   #error LTC_PKCS_5 requires LTC_HMAC
+#endif
+
+#if defined(LTC_PKCS_5) && !defined(LTC_HASH_HELPERS)
+   #error LTC_PKCS_5 requires LTC_HASH_HELPERS
 #endif
 
 #if defined(LTC_PELICAN) && !defined(LTC_RIJNDAEL)
@@ -514,8 +622,12 @@
    #error ASN.1 DER requires MPI functionality
 #endif
 
-#if (defined(LTC_MDSA) || defined(LTC_MRSA) || defined(LTC_MECC) || defined(LTC_MKAT)) && !defined(LTC_DER)
+#if (defined(LTC_MDSA) || defined(LTC_MRSA) || defined(LTC_MECC)) && !defined(LTC_DER)
    #error PK requires ASN.1 DER functionality, make sure LTC_DER is enabled
+#endif
+
+#if defined(LTC_BCRYPT) && !defined(LTC_BLOWFISH)
+   #error LTC_BCRYPT requires LTC_BLOWFISH
 #endif
 
 #if defined(LTC_CHACHA20POLY1305_MODE) && (!defined(LTC_CHACHA) || !defined(LTC_POLY1305))
@@ -524,6 +636,10 @@
 
 #if defined(LTC_CHACHA20_PRNG) && !defined(LTC_CHACHA)
    #error LTC_CHACHA20_PRNG requires LTC_CHACHA
+#endif
+
+#if defined(LTC_XSALSA20) && !defined(LTC_SALSA20)
+   #error LTC_XSALSA20 requires LTC_SALSA20
 #endif
 
 #if defined(LTC_RC4) && !defined(LTC_RC4_STREAM)
@@ -542,6 +658,14 @@
    #error LTC_BLAKE2BMAC requires LTC_BLAKE2B
 #endif
 
+#if defined(LTC_SPRNG) && !defined(LTC_RNG_GET_BYTES)
+   #error LTC_SPRNG requires LTC_RNG_GET_BYTES
+#endif
+
+#if defined(LTC_NO_MATH) && (defined(LTM_DESC) || defined(TFM_DESC) || defined(GMP_DESC))
+   #error LTC_NO_MATH defined, but also a math descriptor
+#endif
+
 /* THREAD management */
 #ifdef LTC_PTHREAD
 
@@ -550,9 +674,10 @@
 #define LTC_MUTEX_GLOBAL(x)   pthread_mutex_t x = PTHREAD_MUTEX_INITIALIZER;
 #define LTC_MUTEX_PROTO(x)    extern pthread_mutex_t x;
 #define LTC_MUTEX_TYPE(x)     pthread_mutex_t x;
-#define LTC_MUTEX_INIT(x)     pthread_mutex_init(x, NULL);
-#define LTC_MUTEX_LOCK(x)     pthread_mutex_lock(x);
-#define LTC_MUTEX_UNLOCK(x)   pthread_mutex_unlock(x);
+#define LTC_MUTEX_INIT(x)     LTC_ARGCHK(pthread_mutex_init(x, NULL) == 0);
+#define LTC_MUTEX_LOCK(x)     LTC_ARGCHK(pthread_mutex_lock(x) == 0);
+#define LTC_MUTEX_UNLOCK(x)   LTC_ARGCHK(pthread_mutex_unlock(x) == 0);
+#define LTC_MUTEX_DESTROY(x)  LTC_ARGCHK(pthread_mutex_destroy(x) == 0);
 
 #else
 
@@ -563,15 +688,14 @@
 #define LTC_MUTEX_INIT(x)
 #define LTC_MUTEX_LOCK(x)
 #define LTC_MUTEX_UNLOCK(x)
+#define LTC_MUTEX_DESTROY(x)
 
-#endif
+#endif /* LTC_PTHREAD */
 
 /* Debuggers */
 
 /* define this if you use Valgrind, note: it CHANGES the way SOBER-128 and RC4 work (see the code) */
 /* #define LTC_VALGRIND */
-
-#endif
 
 #ifndef LTC_NO_FILE
    /* buffer size for reading from a file via fread(..) */
@@ -580,6 +704,38 @@
    #endif
 #endif
 
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */
+/* ECC backwards compatibility */
+#if !defined(LTC_ECC_SECP112R1) && defined(LTC_ECC112)
+#define LTC_ECC_SECP112R1
+#undef LTC_ECC112
+#endif
+#if !defined(LTC_ECC_SECP128R1) && defined(LTC_ECC128)
+#define LTC_ECC_SECP128R1
+#undef LTC_ECC128
+#endif
+#if !defined(LTC_ECC_SECP160R1) && defined(LTC_ECC160)
+#define LTC_ECC_SECP160R1
+#undef LTC_ECC160
+#endif
+#if !defined(LTC_ECC_SECP192R1) && defined(LTC_ECC192)
+#define LTC_ECC_SECP192R1
+#undef LTC_ECC192
+#endif
+#if !defined(LTC_ECC_SECP224R1) && defined(LTC_ECC224)
+#define LTC_ECC_SECP224R1
+#undef LTC_ECC224
+#endif
+#if !defined(LTC_ECC_SECP256R1) && defined(LTC_ECC256)
+#define LTC_ECC_SECP256R1
+#undef LTC_ECC256
+#endif
+#if !defined(LTC_ECC_SECP384R1) && defined(LTC_ECC384)
+#define LTC_ECC_SECP384R1
+#undef LTC_ECC384
+#endif
+#if !defined(LTC_ECC_SECP512R1) && defined(LTC_ECC521)
+#define LTC_ECC_SECP521R1
+#undef LTC_ECC521
+#endif
+
+#endif /* TOMCRYPT_CUSTOM_H_ */

@@ -1,14 +1,6 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
-#include "tomcrypt.h"
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
+#include "tomcrypt_private.h"
 
 /**
   @file ctr_test.c
@@ -52,7 +44,7 @@ int ctr_test(void)
   unsigned char buf[64];
   symmetric_CTR ctr;
 
-  /* AES can be under rijndael or aes... try to find it */ 
+  /* AES can be under rijndael or aes... try to find it */
   if ((idx = find_cipher("aes")) == -1) {
      if ((idx = find_cipher("rijndael")) == -1) {
         return CRYPT_NOP;
@@ -67,7 +59,7 @@ int ctr_test(void)
         return err;
      }
      ctr_done(&ctr);
-     if (XMEMCMP(buf, tests[x].ct, tests[x].msglen)) {
+     if (compare_testvector(buf, tests[x].msglen, tests[x].ct, tests[x].msglen, "CTR", x)) {
         return CRYPT_FAIL_TESTVECTOR;
      }
   }
@@ -76,10 +68,6 @@ int ctr_test(void)
 }
 
 #endif
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */
 
 
 

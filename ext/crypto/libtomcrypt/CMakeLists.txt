@@ -19,13 +19,11 @@ IF (WIN32)
   ADD_DEFINITIONS(-DLTC_NO_FILE)
 ENDIF()
 
-# we do not support encryption only AES
-ADD_LIBRARY(aes_enc STATIC src/ciphers/aes/aes.c)
-SET_PROPERTY(TARGET aes_enc
-  PROPERTY COMPILE_DEFINITIONS ENCRYPT_ONLY)
+ADD_DEFINITIONS(-DLTC_NO_TEST)
 
-# we don't need base64 and pkcs5
-ADD_LIBRARY(misc STATIC
+# we do not support encryption only AES
+ADD_LIBRARY(libtomcrypt STATIC
+
   src/misc/zeromem.c
   src/misc/error_to_string.c
   src/misc/burn_stack.c
@@ -33,10 +31,8 @@ ADD_LIBRARY(misc STATIC
   src/misc/crypt/crypt_argchk.c
   src/misc/crypt/crypt_fsa.c
   #src/misc/crypt/crypt_ltc_mp_descriptor.c
-  )
 
-# ciphers
-ADD_LIBRARY(ciphers STATIC
+  # ciphers
   src/misc/crypt/crypt_cipher_descriptor.c
   src/misc/crypt/crypt_cipher_is_valid.c
   src/misc/crypt/crypt_find_cipher.c
@@ -80,15 +76,14 @@ ADD_LIBRARY(ciphers STATIC
   src/stream/chacha/chacha_keystream.c
   src/stream/chacha/chacha_setup.c
   # rc4
-  src/stream/rc4/rc4.c
+  src/stream/rc4/rc4_stream.c
   # sober
-  src/stream/sober128/sober128.c
+  src/stream/sober128/sober128_stream.c
   src/stream/sober128/sober128tab.c
-  )
 
-# hashes
-# we don't need helpers
-ADD_LIBRARY(hashes STATIC
+
+  # hashes
+  # we don't need helpers
   src/misc/crypt/crypt_find_hash.c
   src/misc/crypt/crypt_find_hash_any.c
   src/misc/crypt/crypt_find_hash_id.c
@@ -125,12 +120,15 @@ ADD_LIBRARY(hashes STATIC
   src/hashes/whirl/whirl.c
   # blake
   src/hashes/blake2b.c
-  src/hashes/blake2s.c)
+  src/hashes/blake2s.c
 
-SET_TARGET_PROPERTIES(hashes PROPERTIES COMPILE_DEFINITIONS LTC_NO_TEST)
+  # mac
+  #omac
+  src/mac/omac/omac_init.c
+  src/mac/omac/omac_process.c
+  src/mac/omac/omac_done.c
 
-# modes
-ADD_LIBRARY(modes STATIC
+  # modes
   #cbc
   src/modes/cbc/cbc_decrypt.c
   src/modes/cbc/cbc_done.c
@@ -158,6 +156,14 @@ ADD_LIBRARY(modes STATIC
   src/modes/ecb/ecb_done.c
   src/modes/ecb/ecb_encrypt.c
   src/modes/ecb/ecb_start.c
+  #lrw
+  src/modes/lrw/lrw_decrypt.c
+  src/modes/lrw/lrw_done.c
+  src/modes/lrw/lrw_encrypt.c
+  src/modes/lrw/lrw_start.c
+  src/modes/lrw/lrw_process.c
+  src/modes/lrw/lrw_getiv.c
+  src/modes/lrw/lrw_setiv.c
   #f8 do we need this?
   src/modes/f8/f8_decrypt.c
   src/modes/f8/f8_done.c
@@ -173,7 +179,21 @@ ADD_LIBRARY(modes STATIC
   src/modes/ofb/ofb_getiv.c
   src/modes/ofb/ofb_setiv.c
   src/modes/ofb/ofb_start.c
+  
+  #eax
+  src/encauth/eax/eax_init.c
+  src/encauth/eax/eax_encrypt.c
+  src/encauth/eax/eax_decrypt.c
+  src/encauth/eax/eax_addheader.c
+  src/encauth/eax/eax_done.c
 
+  #ocb
+  src/encauth/ocb/ocb_init.c
+  src/encauth/ocb/ocb_encrypt.c
+  src/encauth/ocb/ocb_done_encrypt.c
+  src/encauth/ocb/ocb_decrypt.c
+  src/encauth/ocb/ocb_done_decrypt.c
+  
   #gcm
   src/encauth/gcm/gcm_add_aad.c
   src/encauth/gcm/gcm_add_iv.c
@@ -183,10 +203,8 @@ ADD_LIBRARY(modes STATIC
   src/encauth/gcm/gcm_mult_h.c
   src/encauth/gcm/gcm_process.c
   src/encauth/gcm/gcm_reset.c
-)
 
-#prngs
-ADD_LIBRARY(prngs STATIC
+  # prngs
   src/misc/crypt/crypt_find_prng.c
   src/misc/crypt/crypt_prng_descriptor.c
   src/misc/crypt/crypt_prng_is_valid.c
@@ -202,17 +220,6 @@ ADD_LIBRARY(prngs STATIC
   src/prngs/sprng.c
   src/prngs/yarrow.c)
 
-SET_TARGET_PROPERTIES(prngs PROPERTIES COMPILE_DEFINITIONS LTC_NO_TEST)
+SET_TARGET_PROPERTIES(libtomcrypt PROPERTIES COMPILE_DEFINITIONS LTC_NO_TEST)
 
-SET(DUMMY_FILE ${CMAKE_CURRENT_BINARY_DIR}/src/libtomcrypt.c)
-ADD_LIBRARY(libtomcrypt STATIC
-  ${DUMMY_FILE})
-SET_SOURCE_FILES_PROPERTIES(${DUMMY_FILE}
-      PROPERTIES
-      GENERATED TRUE)
-IF (NOT EXISTS ${DUMMY_FILE})
-  FILE(WRITE ${DUMMY_FILE} "#include <tomcrypt.h>\nint main() { return 0; }")
-ENDIF()
-
-TARGET_LINK_LIBRARIES(libtomcrypt prngs modes ciphers hashes aes_enc misc)
 

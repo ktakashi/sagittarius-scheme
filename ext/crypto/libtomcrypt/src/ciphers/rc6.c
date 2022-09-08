@@ -1,19 +1,11 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
 
 /**
    @file rc6.c
    LTC_RC6 code by Tom St Denis
 */
-#include "tomcrypt.h"
+#include "tomcrypt_private.h"
 
 #ifdef LTC_RC6
 
@@ -48,7 +40,7 @@ static const ulong32 stab[44] = {
     @return CRYPT_OK if successful
  */
 #ifdef LTC_CLEAN_STACK
-static int _rc6_setup(const unsigned char *key, int keylen, int num_rounds, symmetric_key *skey)
+static int s_rc6_setup(const unsigned char *key, int keylen, int num_rounds, symmetric_key *skey)
 #else
 int rc6_setup(const unsigned char *key, int keylen, int num_rounds, symmetric_key *skey)
 #endif
@@ -107,7 +99,7 @@ int rc6_setup(const unsigned char *key, int keylen, int num_rounds, symmetric_ke
 int rc6_setup(const unsigned char *key, int keylen, int num_rounds, symmetric_key *skey)
 {
    int x;
-   x = _rc6_setup(key, keylen, num_rounds, skey);
+   x = s_rc6_setup(key, keylen, num_rounds, skey);
    burn_stack(sizeof(ulong32) * 122);
    return x;
 }
@@ -120,12 +112,13 @@ int rc6_setup(const unsigned char *key, int keylen, int num_rounds, symmetric_ke
   @param skey The key as scheduled
 */
 #ifdef LTC_CLEAN_STACK
-static int _rc6_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *skey)
+static int s_rc6_ecb_encrypt(const unsigned char *pt, unsigned char *ct, const symmetric_key *skey)
 #else
-int rc6_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *skey)
+int rc6_ecb_encrypt(const unsigned char *pt, unsigned char *ct, const symmetric_key *skey)
 #endif
 {
-   ulong32 a,b,c,d,t,u, *K;
+   ulong32 a,b,c,d,t,u;
+   const ulong32 *K;
    int r;
 
    LTC_ARGCHK(skey != NULL);
@@ -159,9 +152,9 @@ int rc6_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *s
 }
 
 #ifdef LTC_CLEAN_STACK
-int rc6_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *skey)
+int rc6_ecb_encrypt(const unsigned char *pt, unsigned char *ct, const symmetric_key *skey)
 {
-   int err = _rc6_ecb_encrypt(pt, ct, skey);
+   int err = s_rc6_ecb_encrypt(pt, ct, skey);
    burn_stack(sizeof(ulong32) * 6 + sizeof(int));
    return err;
 }
@@ -174,12 +167,13 @@ int rc6_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *s
   @param skey The key as scheduled
 */
 #ifdef LTC_CLEAN_STACK
-static int _rc6_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_key *skey)
+static int s_rc6_ecb_decrypt(const unsigned char *ct, unsigned char *pt, const symmetric_key *skey)
 #else
-int rc6_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_key *skey)
+int rc6_ecb_decrypt(const unsigned char *ct, unsigned char *pt, const symmetric_key *skey)
 #endif
 {
-   ulong32 a,b,c,d,t,u, *K;
+   ulong32 a,b,c,d,t,u;
+   const ulong32 *K;
    int r;
 
    LTC_ARGCHK(skey != NULL);
@@ -215,9 +209,9 @@ int rc6_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_key *s
 }
 
 #ifdef LTC_CLEAN_STACK
-int rc6_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_key *skey)
+int rc6_ecb_decrypt(const unsigned char *ct, unsigned char *pt, const symmetric_key *skey)
 {
-   int err = _rc6_ecb_decrypt(ct, pt, skey);
+   int err = s_rc6_ecb_decrypt(ct, pt, skey);
    burn_stack(sizeof(ulong32) * 6 + sizeof(int));
    return err;
 }
@@ -285,24 +279,8 @@ int rc6_test(void)
       rc6_ecb_decrypt(tmp[0], tmp[1], &key);
 
       /* compare */
-      if (XMEMCMP(tmp[0], tests[x].ct, 16) || XMEMCMP(tmp[1], tests[x].pt, 16)) {
-#if 0
-         printf("\n\nFailed test %d\n", x);
-         if (XMEMCMP(tmp[0], tests[x].ct, 16)) {
-            printf("Ciphertext:  ");
-            for (y = 0; y < 16; y++) printf("%02x ", tmp[0][y]);
-            printf("\nExpected  :  ");
-            for (y = 0; y < 16; y++) printf("%02x ", tests[x].ct[y]);
-            printf("\n");
-         }
-         if (XMEMCMP(tmp[1], tests[x].pt, 16)) {
-            printf("Plaintext:  ");
-            for (y = 0; y < 16; y++) printf("%02x ", tmp[0][y]);
-            printf("\nExpected :  ");
-            for (y = 0; y < 16; y++) printf("%02x ", tests[x].pt[y]);
-            printf("\n");
-         }
-#endif
+      if (compare_testvector(tmp[0], 16, tests[x].ct, 16, "RC6 Encrypt", x) ||
+            compare_testvector(tmp[1], 16, tests[x].pt, 16, "RC6 Decrypt", x)) {
          return CRYPT_FAIL_TESTVECTOR;
       }
 
@@ -334,7 +312,8 @@ int rc6_keysize(int *keysize)
    LTC_ARGCHK(keysize != NULL);
    if (*keysize < 8) {
       return CRYPT_INVALID_KEYSIZE;
-   } else if (*keysize > 128) {
+   }
+   if (*keysize > 128) {
       *keysize = 128;
    }
    return CRYPT_OK;
@@ -343,7 +322,3 @@ int rc6_keysize(int *keysize)
 #endif /*LTC_RC6*/
 
 
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

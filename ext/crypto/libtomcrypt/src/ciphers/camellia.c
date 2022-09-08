@@ -1,20 +1,12 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
 
 /**
   @file camellia.c
   Implementation by Tom St Denis of Elliptic Semiconductor
 */
 
-#include "tomcrypt.h"
+#include "tomcrypt_private.h"
 
 #ifdef LTC_CAMELLIA
 
@@ -171,7 +163,7 @@ static const ulong32 SP4404[] = {
 0x28280028, 0x7b7b007b, 0xc9c900c9, 0xc1c100c1, 0xe3e300e3, 0xf4f400f4, 0xc7c700c7, 0x9e9e009e,
 };
 
-static ulong64 key_sigma[] = {
+static const ulong64 key_sigma[] = {
    CONST64(0xA09E667F3BCC908B),
    CONST64(0xB67AE8584CAA73B2),
    CONST64(0xC6EF372FE94F82BE),
@@ -190,12 +182,12 @@ static ulong64 F(ulong64 x)
    U = SP1110[(x >> loc(1)) & 0xFF] ^ SP0222[(x >> loc(2)) & 0xFF] ^ SP3033[(x >> loc(3)) & 0xFF] ^ SP4404[(x >> loc(4)) & 0xFF];
 
    D ^= U;
-   U = D ^ ROR(U, (const int)8);
+   U = D ^ RORc(U, 8);
 
    return ((ulong64)U) | (((ulong64)D) << CONST64(32));
 }
 
-static void rot_128(unsigned char *in, unsigned count, unsigned char *out)
+static void rot_128(const unsigned char *in, unsigned count, unsigned char *out)
 {
    unsigned x, w, b;
 
@@ -438,7 +430,7 @@ int camellia_setup(const unsigned char *key, int keylen, int num_rounds, symmetr
    return CRYPT_OK;
 }
 
-int camellia_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *skey)
+int camellia_ecb_encrypt(const unsigned char *pt, unsigned char *ct, const symmetric_key *skey)
 {
    ulong64 L, R;
    ulong32 a, b;
@@ -532,7 +524,7 @@ int camellia_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_k
    return CRYPT_OK;
 }
 
-int camellia_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_key *skey)
+int camellia_ecb_decrypt(const unsigned char *ct, unsigned char *pt, const symmetric_key *skey)
 {
    ulong64 L, R;
    ulong32 a, b;
@@ -629,6 +621,7 @@ int camellia_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_k
 
 int camellia_test(void)
 {
+#ifdef LTC_TEST
    static const struct {
       int keylen;
       unsigned char key[32], pt[16], ct[16];
@@ -686,8 +679,8 @@ int camellia_test(void)
    unsigned int x;
 
    for (x = 0; x < sizeof(tests)/sizeof(tests[0]); x++) {
-     zeromem(&skey, sizeof(skey));
-     if ((err = camellia_setup(tests[x].key, tests[x].keylen, 0, &skey)) != CRYPT_OK) {
+      zeromem(&skey, sizeof(skey));
+      if ((err = camellia_setup(tests[x].key, tests[x].keylen, 0, &skey)) != CRYPT_OK) {
          return err;
       }
       if ((err = camellia_ecb_encrypt(tests[x].pt, buf[0], &skey)) != CRYPT_OK) {
@@ -699,25 +692,12 @@ int camellia_test(void)
          return err;
       }
       camellia_done(&skey);
-      if (XMEMCMP(tests[x].ct, buf[0], 16) || XMEMCMP(tests[x].pt, buf[1], 16)) {
-#if 0
-         int i, j;
-         printf ("\n\nLTC_CAMELLIA failed for x=%d, I got:\n", x);
-         for (i = 0; i < 2; i++) {
-            const unsigned char *expected, *actual;
-            expected = (i ? tests[x].pt : tests[x].ct);
-            actual = buf[i];
-            printf ("expected    actual   (%s)\n", (i ? "plaintext" : "ciphertext"));
-            for (j = 0; j < 16; j++) {
-               const char *eq = (expected[j] == actual[j] ? "==" : "!=");
-               printf ("     %02x  %s  %02x\n", expected[j], eq, actual[j]);
-            }
-            printf ("\n");
-         }
-#endif
+      if (compare_testvector(tests[x].ct, 16, buf[0], 16, "Camellia Encrypt", x) ||
+            compare_testvector(tests[x].pt, 16, buf[1], 16, "Camellia Decrypt", x)) {
          return CRYPT_FAIL_TESTVECTOR;
       }
    }
+#endif
    return CRYPT_OK;
 }
 
@@ -736,7 +716,3 @@ int camellia_keysize(int *keysize)
 }
 
 #endif
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

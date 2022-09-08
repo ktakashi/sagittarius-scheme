@@ -1,18 +1,10 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
 /**
    @file noekeon.c
    Implementation of the Noekeon block cipher by Tom St Denis
 */
-#include "tomcrypt.h"
+#include "tomcrypt_private.h"
 
 #ifdef LTC_NOEKEON
 
@@ -110,9 +102,9 @@ int noekeon_setup(const unsigned char *key, int keylen, int num_rounds, symmetri
   @return CRYPT_OK if successful
 */
 #ifdef LTC_CLEAN_STACK
-static int _noekeon_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *skey)
+static int s_noekeon_ecb_encrypt(const unsigned char *pt, unsigned char *ct, const symmetric_key *skey)
 #else
-int noekeon_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *skey)
+int noekeon_ecb_encrypt(const unsigned char *pt, unsigned char *ct, const symmetric_key *skey)
 #endif
 {
    ulong32 a,b,c,d,temp;
@@ -148,9 +140,9 @@ int noekeon_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_ke
 }
 
 #ifdef LTC_CLEAN_STACK
-int noekeon_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_key *skey)
+int noekeon_ecb_encrypt(const unsigned char *pt, unsigned char *ct, const symmetric_key *skey)
 {
-   int err = _noekeon_ecb_encrypt(pt, ct, skey);
+   int err = s_noekeon_ecb_encrypt(pt, ct, skey);
    burn_stack(sizeof(ulong32) * 5 + sizeof(int));
    return err;
 }
@@ -164,9 +156,9 @@ int noekeon_ecb_encrypt(const unsigned char *pt, unsigned char *ct, symmetric_ke
   @return CRYPT_OK if successful
 */
 #ifdef LTC_CLEAN_STACK
-static int _noekeon_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_key *skey)
+static int s_noekeon_ecb_decrypt(const unsigned char *ct, unsigned char *pt, const symmetric_key *skey)
 #else
-int noekeon_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_key *skey)
+int noekeon_ecb_decrypt(const unsigned char *ct, unsigned char *pt, const symmetric_key *skey)
 #endif
 {
    ulong32 a,b,c,d, temp;
@@ -201,9 +193,9 @@ int noekeon_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_ke
 }
 
 #ifdef LTC_CLEAN_STACK
-int noekeon_ecb_decrypt(const unsigned char *ct, unsigned char *pt, symmetric_key *skey)
+int noekeon_ecb_decrypt(const unsigned char *ct, unsigned char *pt, const symmetric_key *skey)
 {
-   int err = _noekeon_ecb_decrypt(ct, pt, skey);
+   int err = s_noekeon_ecb_decrypt(ct, pt, skey);
    burn_stack(sizeof(ulong32) * 5 + sizeof(int));
    return err;
 }
@@ -283,31 +275,16 @@ int noekeon_test(void)
 
     noekeon_ecb_encrypt(tests[i].pt, tmp[0], &key);
     noekeon_ecb_decrypt(tmp[0], tmp[1], &key);
-    if (XMEMCMP(tmp[0], tests[i].ct, 16) || XMEMCMP(tmp[1], tests[i].pt, 16)) {
-#if 0
-       printf("\n\nTest %d failed\n", i);
-       if (XMEMCMP(tmp[0], tests[i].ct, 16)) {
-          printf("CT: ");
-          for (i = 0; i < 16; i++) {
-             printf("%02x ", tmp[0][i]);
-          }
-          printf("\n");
-       } else {
-          printf("PT: ");
-          for (i = 0; i < 16; i++) {
-             printf("%02x ", tmp[1][i]);
-          }
-          printf("\n");
-       }
-#endif
+    if (compare_testvector(tmp[0], 16, tests[i].ct, 16, "Noekeon Encrypt", i) ||
+          compare_testvector(tmp[1], 16, tests[i].pt, 16, "Noekeon Decrypt", i)) {
         return CRYPT_FAIL_TESTVECTOR;
     }
 
-      /* now see if we can encrypt all zero bytes 1000 times, decrypt and come back where we started */
-      for (y = 0; y < 16; y++) tmp[0][y] = 0;
-      for (y = 0; y < 1000; y++) noekeon_ecb_encrypt(tmp[0], tmp[0], &key);
-      for (y = 0; y < 1000; y++) noekeon_ecb_decrypt(tmp[0], tmp[0], &key);
-      for (y = 0; y < 16; y++) if (tmp[0][y] != 0) return CRYPT_FAIL_TESTVECTOR;
+    /* now see if we can encrypt all zero bytes 1000 times, decrypt and come back where we started */
+    for (y = 0; y < 16; y++) tmp[0][y] = 0;
+    for (y = 0; y < 1000; y++) noekeon_ecb_encrypt(tmp[0], tmp[0], &key);
+    for (y = 0; y < 1000; y++) noekeon_ecb_decrypt(tmp[0], tmp[0], &key);
+    for (y = 0; y < 16; y++) if (tmp[0][y] != 0) return CRYPT_FAIL_TESTVECTOR;
  }
  return CRYPT_OK;
  #endif
@@ -331,15 +308,10 @@ int noekeon_keysize(int *keysize)
    LTC_ARGCHK(keysize != NULL);
    if (*keysize < 16) {
       return CRYPT_INVALID_KEYSIZE;
-   } else {
-      *keysize = 16;
-      return CRYPT_OK;
    }
+   *keysize = 16;
+   return CRYPT_OK;
 }
 
 #endif
 
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

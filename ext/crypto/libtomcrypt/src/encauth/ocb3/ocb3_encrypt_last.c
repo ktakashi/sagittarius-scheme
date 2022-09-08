@@ -1,17 +1,11 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- */
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
 
 /**
    @file ocb3_encrypt_last.c
    OCB implementation, internal helper, by Karel Miko
 */
-#include "tomcrypt.h"
+#include "tomcrypt_private.h"
 
 #ifdef LTC_OCB3_MODE
 
@@ -30,7 +24,12 @@ int ocb3_encrypt_last(ocb3_state *ocb, const unsigned char *pt, unsigned long pt
    int err, x, full_blocks, full_blocks_len, last_block_len;
 
    LTC_ARGCHK(ocb != NULL);
-   LTC_ARGCHK(pt  != NULL);
+   if (pt == NULL) LTC_ARGCHK(ptlen == 0);
+   if (ptlen != 0) {
+      LTC_ARGCHK(pt    != NULL);
+      LTC_ARGCHK(ct    != NULL);
+   }
+
    if ((err = cipher_is_valid(ocb->cipher)) != CRYPT_OK) {
       goto LBL_ERR;
    }
@@ -63,10 +62,11 @@ int ocb3_encrypt_last(ocb3_state *ocb, const unsigned char *pt, unsigned long pt
      /* Checksum_* = Checksum_m xor (P_* || 1 || zeros(127-bitlen(P_*))) */
      ocb3_int_xor_blocks(ocb->checksum, ocb->checksum, pt+full_blocks_len, last_block_len);
      for(x=last_block_len; x<ocb->block_len; x++) {
-       if (x == last_block_len)
+       if (x == last_block_len) {
          ocb->checksum[x] ^= 0x80;
-       else
+       } else {
          ocb->checksum[x] ^= 0x00;
+       }
      }
 
      /* Tag = ENCIPHER(K, Checksum_* xor Offset_* xor L_$) xor HASH(K,A) */
@@ -77,8 +77,7 @@ int ocb3_encrypt_last(ocb3_state *ocb, const unsigned char *pt, unsigned long pt
      if ((err = cipher_descriptor[ocb->cipher].ecb_encrypt(ocb->tag_part, ocb->tag_part, &ocb->key)) != CRYPT_OK) {
        goto LBL_ERR;
      }
-   }
-   else {
+   } else {
      /* Tag = ENCIPHER(K, Checksum_m xor Offset_m xor L_$) xor HASH(K,A) */
      /* at this point we calculate only: Tag_part = ENCIPHER(K, Checksum_m xor Offset_m xor L_$) */
      for(x=0; x<ocb->block_len; x++) {
@@ -101,7 +100,3 @@ LBL_ERR:
 }
 
 #endif
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

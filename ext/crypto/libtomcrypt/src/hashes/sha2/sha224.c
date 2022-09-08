@@ -1,19 +1,11 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
 /**
    @param sha224.c
    LTC_SHA-224 new NIST standard based off of LTC_SHA-256 truncated to 224 bits (Tom St Denis)
 */
 
-#include "tomcrypt.h"
+#include "tomcrypt_private.h"
 
 #if defined(LTC_SHA224) && defined(LTC_SHA256)
 
@@ -90,7 +82,7 @@ int  sha224_test(void)
     return CRYPT_NOP;
  #else
   static const struct {
-      char *msg;
+      const char *msg;
       unsigned char hash[28];
   } tests[] = {
     { "abc",
@@ -113,9 +105,9 @@ int  sha224_test(void)
 
   for (i = 0; i < (int)(sizeof(tests) / sizeof(tests[0])); i++) {
       sha224_init(&md);
-      sha224_process(&md, (unsigned char*)tests[i].msg, (unsigned long)strlen(tests[i].msg));
+      sha224_process(&md, (unsigned char*)tests[i].msg, (unsigned long)XSTRLEN(tests[i].msg));
       sha224_done(&md, tmp);
-      if (XMEMCMP(tmp, tests[i].hash, 28) != 0) {
+      if (compare_testvector(tmp, sizeof(tmp), tests[i].hash, sizeof(tests[i].hash), "SHA224", i)) {
          return CRYPT_FAIL_TESTVECTOR;
       }
   }
@@ -125,7 +117,3 @@ int  sha224_test(void)
 
 #endif /* defined(LTC_SHA224) && defined(LTC_SHA256) */
 
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

@@ -1,19 +1,11 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
-#include "tomcrypt.h"
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
+#include "tomcrypt_private.h"
 
 /**
    @file rmd160.c
    RMD160 hash function
-*/   
+*/
 
 /* Implementation of LTC_RIPEMD-160 based on the source by Antoon Bosselaers, ESAT-COSIC
  *
@@ -42,12 +34,12 @@ const struct ltc_hash_descriptor rmd160_desc =
 };
 
 /* the five basic functions F(), G() and H() */
-#define F(x, y, z)        ((x) ^ (y) ^ (z)) 
-#define G(x, y, z)        (((x) & (y)) | (~(x) & (z))) 
+#define F(x, y, z)        ((x) ^ (y) ^ (z))
+#define G(x, y, z)        (((x) & (y)) | (~(x) & (z)))
 #define H(x, y, z)        (((x) | ~(y)) ^ (z))
-#define I(x, y, z)        (((x) & (z)) | ((y) & ~(z))) 
+#define I(x, y, z)        (((x) & (z)) | ((y) & ~(z)))
 #define J(x, y, z)        ((x) ^ ((y) | ~(z)))
-  
+
 /* the ten basic operations FF() through III() */
 #define FF(a, b, c, d, e, x, s)        \
       (a) += F((b), (c), (d)) + (x);\
@@ -101,9 +93,9 @@ const struct ltc_hash_descriptor rmd160_desc =
 
 
 #ifdef LTC_CLEAN_STACK
-static int _rmd160_compress(hash_state *md, unsigned char *buf)
+static int ss_rmd160_compress(hash_state *md, const unsigned char *buf)
 #else
-static int  rmd160_compress(hash_state *md, unsigned char *buf)
+static int  s_rmd160_compress(hash_state *md, const unsigned char *buf)
 #endif
 {
    ulong32 aa,bb,cc,dd,ee,aaa,bbb,ccc,ddd,eee,X[16];
@@ -138,7 +130,7 @@ static int  rmd160_compress(hash_state *md, unsigned char *buf)
    FF(cc, dd, ee, aa, bb, X[13],  7);
    FF(bb, cc, dd, ee, aa, X[14],  9);
    FF(aa, bb, cc, dd, ee, X[15],  8);
-                             
+
    /* round 2 */
    GG(ee, aa, bb, cc, dd, X[ 7],  7);
    GG(dd, ee, aa, bb, cc, X[ 4],  6);
@@ -230,7 +222,7 @@ static int  rmd160_compress(hash_state *md, unsigned char *buf)
    JJJ(aaa, bbb, ccc, ddd, eee, X[12],  6);
 
    /* parallel round 2 */
-   III(eee, aaa, bbb, ccc, ddd, X[ 6],  9); 
+   III(eee, aaa, bbb, ccc, ddd, X[ 6],  9);
    III(ddd, eee, aaa, bbb, ccc, X[11], 13);
    III(ccc, ddd, eee, aaa, bbb, X[ 3], 15);
    III(bbb, ccc, ddd, eee, aaa, X[ 7],  7);
@@ -265,7 +257,7 @@ static int  rmd160_compress(hash_state *md, unsigned char *buf)
    HHH(eee, aaa, bbb, ccc, ddd, X[ 4],  7);
    HHH(ddd, eee, aaa, bbb, ccc, X[13],  5);
 
-   /* parallel round 4 */   
+   /* parallel round 4 */
    GGG(ccc, ddd, eee, aaa, bbb, X[ 8], 15);
    GGG(bbb, ccc, ddd, eee, aaa, X[ 6],  5);
    GGG(aaa, bbb, ccc, ddd, eee, X[ 4],  8);
@@ -313,10 +305,10 @@ static int  rmd160_compress(hash_state *md, unsigned char *buf)
 }
 
 #ifdef LTC_CLEAN_STACK
-static int rmd160_compress(hash_state *md, unsigned char *buf)
+static int s_rmd160_compress(hash_state *md, const unsigned char *buf)
 {
    int err;
-   err = _rmd160_compress(md, buf);
+   err = ss_rmd160_compress(md, buf);
    burn_stack(sizeof(ulong32) * 26 + sizeof(int));
    return err;
 }
@@ -347,7 +339,7 @@ int rmd160_init(hash_state * md)
    @param inlen  The length of the data (octets)
    @return CRYPT_OK if successful
 */
-HASH_PROCESS(rmd160_process, rmd160_compress, rmd160, 64)
+HASH_PROCESS(rmd160_process, s_rmd160_compress, rmd160, 64)
 
 /**
    Terminate the hash to get the digest
@@ -381,7 +373,7 @@ int rmd160_done(hash_state * md, unsigned char *out)
         while (md->rmd160.curlen < 64) {
             md->rmd160.buf[md->rmd160.curlen++] = (unsigned char)0;
         }
-        rmd160_compress(md, md->rmd160.buf);
+        s_rmd160_compress(md, md->rmd160.buf);
         md->rmd160.curlen = 0;
     }
 
@@ -392,7 +384,7 @@ int rmd160_done(hash_state * md, unsigned char *out)
 
     /* store length */
     STORE64L(md->rmd160.length, md->rmd160.buf+56);
-    rmd160_compress(md, md->rmd160.buf);
+    s_rmd160_compress(md, md->rmd160.buf);
 
     /* copy output */
     for (i = 0; i < 5; i++) {
@@ -407,15 +399,15 @@ int rmd160_done(hash_state * md, unsigned char *out)
 /**
   Self-test the hash
   @return CRYPT_OK if successful, CRYPT_NOP if self-tests have been disabled
-*/  
+*/
 int rmd160_test(void)
 {
 #ifndef LTC_TEST
    return CRYPT_NOP;
 #else
    static const struct {
-        char *msg;
-        unsigned char md[20];
+        const char *msg;
+        unsigned char hash[20];
    } tests[] = {
    { "",
      { 0x9c, 0x11, 0x85, 0xa5, 0xc5, 0xe9, 0xfc, 0x54, 0x61, 0x28,
@@ -442,18 +434,16 @@ int rmd160_test(void)
        0xa0, 0x6c, 0x27, 0xdc, 0xf4, 0x9a, 0xda, 0x62, 0xeb, 0x2b }
    }
    };
-   int x;
-   unsigned char buf[20];
+
+   int i;
+   unsigned char tmp[20];
    hash_state md;
 
-   for (x = 0; x < (int)(sizeof(tests)/sizeof(tests[0])); x++) {
+   for (i = 0; i < (int)(sizeof(tests)/sizeof(tests[0])); i++) {
        rmd160_init(&md);
-       rmd160_process(&md, (unsigned char *)tests[x].msg, strlen(tests[x].msg));
-       rmd160_done(&md, buf);
-       if (XMEMCMP(buf, tests[x].md, 20) != 0) {
-#if 0
-          printf("Failed test %d\n", x);
-#endif
+       rmd160_process(&md, (unsigned char *)tests[i].msg, XSTRLEN(tests[i].msg));
+       rmd160_done(&md, tmp);
+       if (compare_testvector(tmp, sizeof(tmp), tests[i].hash, sizeof(tests[i].hash), "RIPEMD160", i)) {
           return CRYPT_FAIL_TESTVECTOR;
        }
    }
@@ -463,7 +453,3 @@ int rmd160_test(void)
 
 #endif
 
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

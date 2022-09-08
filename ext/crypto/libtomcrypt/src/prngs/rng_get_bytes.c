@@ -1,12 +1,6 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- */
-#include "tomcrypt.h"
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
+#include "tomcrypt_private.h"
 
 #ifdef LTC_RNG_GET_BYTES
 /**
@@ -14,9 +8,9 @@
    portable way to get secure random bits to feed a PRNG (Tom St Denis)
 */
 
-#ifdef LTC_DEVRANDOM
+#if defined(LTC_DEVRANDOM) && !defined(_WIN32)
 /* on *NIX read /dev/random */
-static unsigned long rng_nix(unsigned char *buf, unsigned long len,
+static unsigned long s_rng_nix(unsigned char *buf, unsigned long len,
                              void (*callback)(void))
 {
 #ifdef LTC_NO_FILE
@@ -30,9 +24,12 @@ static unsigned long rng_nix(unsigned char *buf, unsigned long len,
     LTC_UNUSED_PARAM(callback);
 #ifdef LTC_TRY_URANDOM_FIRST
     f = fopen("/dev/urandom", "rb");
-    if (f == NULL)
-#endif /* LTC_TRY_URANDOM_FIRST */
+    if (f == NULL) {
        f = fopen("/dev/random", "rb");
+    }
+#else
+    f = fopen("/dev/random", "rb");
+#endif /* LTC_TRY_URANDOM_FIRST */
 
     if (f == NULL) {
        return 0;
@@ -56,7 +53,7 @@ static unsigned long rng_nix(unsigned char *buf, unsigned long len,
 
 #define ANSI_RNG
 
-static unsigned long rng_ansic(unsigned char *buf, unsigned long len,
+static unsigned long s_rng_ansic(unsigned char *buf, unsigned long len,
                                void (*callback)(void))
 {
    clock_t t1;
@@ -97,7 +94,7 @@ static unsigned long rng_ansic(unsigned char *buf, unsigned long len,
 #include <windows.h>
 #include <wincrypt.h>
 
-static unsigned long rng_win32(unsigned char *buf, unsigned long len,
+static unsigned long s_rng_win32(unsigned char *buf, unsigned long len,
                                void (*callback)(void))
 {
    HCRYPTPROV hProv = 0;
@@ -143,17 +140,13 @@ unsigned long rng_get_bytes(unsigned char *out, unsigned long outlen,
 #endif
 
 #if defined(_WIN32) || defined(_WIN32_WCE)
-   x = rng_win32(out, outlen, callback); if (x != 0) { return x; }
+   x = s_rng_win32(out, outlen, callback); if (x != 0) { return x; }
 #elif defined(LTC_DEVRANDOM)
-   x = rng_nix(out, outlen, callback);   if (x != 0) { return x; }
+   x = s_rng_nix(out, outlen, callback);   if (x != 0) { return x; }
 #endif
 #ifdef ANSI_RNG
-   x = rng_ansic(out, outlen, callback); if (x != 0) { return x; }
+   x = s_rng_ansic(out, outlen, callback); if (x != 0) { return x; }
 #endif
    return 0;
 }
 #endif /* #ifdef LTC_RNG_GET_BYTES */
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */

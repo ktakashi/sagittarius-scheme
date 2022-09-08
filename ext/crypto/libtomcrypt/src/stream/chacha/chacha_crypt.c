@@ -1,18 +1,12 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- */
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
 
 /* The implementation is based on:
  * chacha-ref.c version 20080118
  * Public domain from D. J. Bernstein
  */
 
-#include "tomcrypt.h"
+#include "tomcrypt_private.h"
 
 #ifdef LTC_CHACHA
 
@@ -22,7 +16,7 @@
   x[a] += x[b]; x[d] = ROL(x[d] ^ x[a],  8); \
   x[c] += x[d]; x[b] = ROL(x[b] ^ x[c],  7);
 
-static void _chacha_block(unsigned char *output, const ulong32 *input, int rounds)
+static void s_chacha_block(unsigned char *output, const ulong32 *input, int rounds)
 {
    ulong32 x[16];
    int i;
@@ -57,9 +51,11 @@ int chacha_crypt(chacha_state *st, const unsigned char *in, unsigned long inlen,
    unsigned long i, j;
 
    if (inlen == 0) return CRYPT_OK; /* nothing to do */
-   LTC_ARGCHK(st  != NULL);
-   LTC_ARGCHK(in  != NULL);
-   LTC_ARGCHK(out != NULL);
+
+   LTC_ARGCHK(st        != NULL);
+   LTC_ARGCHK(in        != NULL);
+   LTC_ARGCHK(out       != NULL);
+   LTC_ARGCHK(st->ivlen != 0);
 
    if (st->ksleft > 0) {
       j = MIN(st->ksleft, inlen);
@@ -70,7 +66,7 @@ int chacha_crypt(chacha_state *st, const unsigned char *in, unsigned long inlen,
       in  += j;
    }
    for (;;) {
-     _chacha_block(buf, st->input, st->rounds);
+     s_chacha_block(buf, st->input, st->rounds);
      if (st->ivlen == 8) {
        /* IV-64bit, increment 64bit counter */
        if (0 == ++st->input[12] && 0 == ++st->input[13]) return CRYPT_OVERFLOW;

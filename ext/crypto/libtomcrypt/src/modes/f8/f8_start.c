@@ -1,14 +1,6 @@
-/* LibTomCrypt, modular cryptographic library -- Tom St Denis
- *
- * LibTomCrypt is a library that provides various cryptographic
- * algorithms in a highly modular and flexible manner.
- *
- * The library is free for all purposes without any express
- * guarantee it works.
- *
- * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
- */
-#include "tomcrypt.h"
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis */
+/* SPDX-License-Identifier: Unlicense */
+#include "tomcrypt_private.h"
 
 /**
    @file f8_start.c
@@ -21,8 +13,8 @@
 /**
    Initialize an F8 context
    @param cipher      The index of the cipher desired
-   @param IV          The initial vector
-   @param key         The secret key 
+   @param IV          The initialization vector
+   @param key         The secret key
    @param keylen      The length of the secret key (octets)
    @param salt_key    The salting key for the IV
    @param skeylen     The length of the salting key (octets)
@@ -30,8 +22,8 @@
    @param f8          The F8 state to initialize
    @return CRYPT_OK if successful
 */
-int f8_start(                int  cipher, const unsigned char *IV, 
-             const unsigned char *key,                    int  keylen, 
+int f8_start(                int  cipher, const unsigned char *IV,
+             const unsigned char *key,                    int  keylen,
              const unsigned char *salt_key,               int  skeylen,
                              int  num_rounds,   symmetric_F8  *f8)
 {
@@ -58,7 +50,7 @@ int f8_start(                int  cipher, const unsigned char *IV,
    f8->cipher   = cipher;
    f8->blocklen = cipher_descriptor[cipher].block_length;
    f8->padlen   = f8->blocklen;
-   
+
    /* now get key ^ salt_key [extend salt_ket with 0x55 as required to match length] */
    zeromem(tkey, sizeof(tkey));
    for (x = 0; x < keylen && x < (int)sizeof(tkey); x++) {
@@ -66,16 +58,16 @@ int f8_start(                int  cipher, const unsigned char *IV,
    }
    for (x = 0; x < skeylen && x < (int)sizeof(tkey); x++) {
        tkey[x] ^= salt_key[x];
-   }       
+   }
    for (; x < keylen && x < (int)sizeof(tkey); x++) {
        tkey[x] ^= 0x55;
    }
-   
+
    /* now encrypt with tkey[0..keylen-1] the IV and use that as the IV */
    if ((err = cipher_descriptor[cipher].setup(tkey, keylen, num_rounds, &f8->key)) != CRYPT_OK) {
       return err;
    }
-   
+
    /* encrypt IV */
    if ((err = cipher_descriptor[f8->cipher].ecb_encrypt(IV, f8->MIV, &f8->key)) != CRYPT_OK) {
       cipher_descriptor[f8->cipher].done(&f8->key);
@@ -83,16 +75,12 @@ int f8_start(                int  cipher, const unsigned char *IV,
    }
    zeromem(tkey, sizeof(tkey));
    zeromem(f8->IV, sizeof(f8->IV));
-   
+
    /* terminate this cipher */
    cipher_descriptor[f8->cipher].done(&f8->key);
-   
+
    /* init the cipher */
    return cipher_descriptor[cipher].setup(key, keylen, num_rounds, &f8->key);
 }
 
 #endif
-
-/* $Source$ */
-/* $Revision$ */
-/* $Date$ */
