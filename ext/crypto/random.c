@@ -99,6 +99,13 @@ SgObject Sg_MakePseudoRandom(SgString *name, SgObject seed)
 		     SG_BVECTOR_SIZE(seed), &prng->prng);
       if (err != CRYPT_OK) goto err;
     } else { goto err; }
+  } else {
+    /* some prng requires initial entropy, e.g RC4 */
+    char *default_entropy = "default entropy";
+    err = prng_descriptor[wprng]
+      .add_entropy((const unsigned char *)default_entropy, 
+		   strlen(default_entropy), &prng->prng);
+    if (err != CRYPT_OK) goto err;
   }
 
   err = prng_descriptor[wprng].ready(&prng->prng);
