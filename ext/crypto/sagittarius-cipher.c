@@ -160,7 +160,12 @@ void Sg_InitCipher(SgLibrary *lib)
   MODE_CONST(*mode:f8*,  MODE_F8 );
   /* MODE_CONST(*mode:xts*, MODE_XTS); */
 
-
+  MODE_CONST(*encauth:eax*,  MODE_EAX );
+  MODE_CONST(*encauth:ocb*,  MODE_OCB );
+  MODE_CONST(*encauth:ocb3*, MODE_OCB3);
+  MODE_CONST(*encauth:ccm*,  MODE_CCM );
+  MODE_CONST(*encauth:gcm*,  MODE_GCM );
+  
   Sg_MakeBinding(lib, SG_INTERN("*ctr-mode:little-endian*"), SG_MAKE_INT(CTR_COUNTER_LITTLE_ENDIAN), TRUE);
   Sg_MakeBinding(lib, SG_INTERN("*ctr-mode:big-endian*"), SG_MAKE_INT(CTR_COUNTER_BIG_ENDIAN), TRUE);
   Sg_MakeBinding(lib, SG_INTERN("*ctr-mode:rfc3686*"), SG_MAKE_INT(LTC_CTR_RFC3686), TRUE);

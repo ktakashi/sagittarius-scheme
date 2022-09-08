@@ -7,19 +7,7 @@
 # This file was written by Takashi Kato and not a part of libtomcrypt.
 # 
 
-# reset c flags
-IF (WATCOM)
-  # watcom does not allow to modify.
-  ADD_DEFINITIONS(-DLTC_NO_PROTOTYPES)
-ENDIF()
-
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/src/headers)
-
-IF (WIN32)
-  ADD_DEFINITIONS(-DLTC_NO_FILE)
-ENDIF()
-
-ADD_DEFINITIONS(-DLTC_NO_TEST)
 
 # we do not support encryption only AES
 ADD_LIBRARY(libtomcrypt STATIC
@@ -27,6 +15,7 @@ ADD_LIBRARY(libtomcrypt STATIC
   src/misc/zeromem.c
   src/misc/error_to_string.c
   src/misc/burn_stack.c
+  src/misc/mem_neq.c
   src/misc/crypt/crypt.c
   src/misc/crypt/crypt_argchk.c
   src/misc/crypt/crypt_fsa.c
@@ -62,10 +51,9 @@ ADD_LIBRARY(libtomcrypt STATIC
   src/ciphers/aes/aes.c
   # safer+
   src/ciphers/safer/safer.c src/ciphers/safer/saferp.c
-  src/ciphers/safer/safer_tab.c
+  # src/ciphers/safer/safer_tab.c
   # twofish
   src/ciphers/twofish/twofish.c
-
 
   # stream cipher
   # chacha
@@ -79,8 +67,7 @@ ADD_LIBRARY(libtomcrypt STATIC
   src/stream/rc4/rc4_stream.c
   # sober
   src/stream/sober128/sober128_stream.c
-  src/stream/sober128/sober128tab.c
-
+  # src/stream/sober128/sober128tab.c
 
   # hashes
   # we don't need helpers
@@ -193,6 +180,28 @@ ADD_LIBRARY(libtomcrypt STATIC
   src/encauth/ocb/ocb_done_encrypt.c
   src/encauth/ocb/ocb_decrypt.c
   src/encauth/ocb/ocb_done_decrypt.c
+  src/encauth/ocb/ocb_shift_xor.c
+  src/encauth/ocb/ocb_ntz.c
+  src/encauth/ocb/s_ocb_done.c
+
+  #ocb3
+  src/encauth/ocb3/ocb3_init.c
+  src/encauth/ocb3/ocb3_encrypt.c
+  src/encauth/ocb3/ocb3_encrypt_last.c
+  src/encauth/ocb3/ocb3_decrypt.c
+  src/encauth/ocb3/ocb3_decrypt_last.c
+  src/encauth/ocb3/ocb3_add_aad.c
+  src/encauth/ocb3/ocb3_done.c
+  src/encauth/ocb3/ocb3_int_ntz.c
+  src/encauth/ocb3/ocb3_int_xor_blocks.c
+
+  #ccm
+  src/encauth/ccm/ccm_init.c
+  src/encauth/ccm/ccm_reset.c
+  src/encauth/ccm/ccm_process.c
+  src/encauth/ccm/ccm_add_nonce.c
+  src/encauth/ccm/ccm_add_aad.c
+  src/encauth/ccm/ccm_done.c
   
   #gcm
   src/encauth/gcm/gcm_add_aad.c
@@ -218,8 +227,18 @@ ADD_LIBRARY(libtomcrypt STATIC
   src/prngs/rng_make_prng.c
   src/prngs/sober128.c
   src/prngs/sprng.c
-  src/prngs/yarrow.c)
+  src/prngs/yarrow.c
+  )
 
 SET_TARGET_PROPERTIES(libtomcrypt PROPERTIES COMPILE_DEFINITIONS LTC_NO_TEST)
 
-
+IF (WIN32)
+  SET_TARGET_PROPERTIES(libtomcrypt
+    PROPERTIES COMPILE_DEFINITIONS LTC_NO_FILE)
+ENDIF()
+# reset c flags
+IF (WATCOM)
+  # watcom does not allow to modify.
+  SET_TARGET_PROPERTIES(libtomcrypt
+    PROPERTIES COMPILE_DEFINITIONS LTC_NO_PROTOTYPES)
+ENDIF()

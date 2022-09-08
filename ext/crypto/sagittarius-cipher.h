@@ -36,10 +36,16 @@
    In C, we only bind tomcrypt's functions to Scheme and
    all APIs will be implemented in Scheme
  */
-
+#ifdef noreturn
+# define noreturn_save noreturn
+# undef noreturn
+#endif
 #include <sagittarius.h>
 #include <tomcrypt.h>
 
+#ifdef noreturn_save
+# define noreturn noreturn_save
+#endif
 /* 
    We don't support XTS for now, I've never heard of it and
    it has different signature of encryption and decryption 
@@ -92,6 +98,7 @@ typedef enum {
   MODE_CCM,
   MODE_GCM
 } SgCipherEncAuthMode;
+
 typedef struct {
   SG_HEADER;
   SgCipherEncAuthMode mode;
@@ -117,7 +124,11 @@ SG_CLASS_DECL(Sg_EncAuthStateClass)
 #define SG_ENC_AUTH_STATE_GCM(obj)  SG_ENC_AUTH_STATE(obj)->gcm 
 
 /* for stub */
+#define SG_CIPHERP(cipher) \
+  (SG_INTP(cipher) && (cipher_is_valid(SG_INT_VALUE(cipher)) == CRYPT_OK))
+
 #define CIPHER_DESCRIPTOR(cipher) cipher_descriptor[cipher]
+#define CIPHER_DESCRIPTOR_NAME(cipher)   CIPHER_DESCRIPTOR(cipher).name
 #define CIPHER_DESCRIPTOR_BLOCK_LENGTH(cipher)   CIPHER_DESCRIPTOR(cipher).block_length
 #define CIPHER_DESCRIPTOR_MIN_KEY_LENGTH(cipher) CIPHER_DESCRIPTOR(cipher).min_key_length
 #define CIPHER_DESCRIPTOR_MAX_KEY_LENGTH(cipher) CIPHER_DESCRIPTOR(cipher).max_key_length

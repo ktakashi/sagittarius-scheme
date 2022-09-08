@@ -5,6 +5,7 @@
  (.include  <sagittarius/extend.h>
 	    <sagittarius-cipher.h>))
 
+(define-type <cipher> "int" "cipher descriptor" "SG_CIPHERP" "SG_INT_VALUE")
 (define-type <mode-key> "SgModeKey *")
 (define-type <enc-auth-state> "SgEncAuthState *")
 
@@ -60,22 +61,26 @@
       (assertion-violation 'find-cipher "Cipher not supported" name))
     (result cipher)))
 
-(define-c-proc cipher-block-length (cipher::<fixnum>) ::<fixnum> :constant
+(define-c-proc cipher-descriptor? (obj) ::<boolean> :constant SG_CIPHERP)
+
+(define-c-proc cipher-descriptor-name (cipher::<cipher>)
+  (result (Sg_MakeStringC (CIPHER_DESCRIPTOR_NAME cipher))))
+(define-c-proc cipher-descriptor-block-length (cipher::<cipher>) ::<fixnum> :no-side-effect
   CIPHER_DESCRIPTOR_BLOCK_LENGTH)
-(define-c-proc cipher-min-key-length (cipher::<fixnum>) ::<fixnum> :constant
+(define-c-proc cipher-descriptor-min-key-length (cipher::<cipher>) ::<fixnum> :no-side-effect
   CIPHER_DESCRIPTOR_MIN_KEY_LENGTH)
-(define-c-proc cipher-max-key-length (cipher::<fixnum>) ::<fixnum> :constant
+(define-c-proc cipher-descriptor-max-key-length (cipher::<cipher>) ::<fixnum> :no-side-effect
   CIPHER_DESCRIPTOR_MAX_KEY_LENGTH)
-(define-c-proc cipher-suggested-keysize (cipher::<fixnum>) ::<fixnum>
+(define-c-proc cipher-descriptor-suggested-keysize (cipher::<cipher>) ::<fixnum>
   (let* ((size::int (CIPHER_DESCRIPTOR_MAX_KEY_LENGTH cipher))
 	 (err::int (CIPHER_DESCRIPTOR_KEYSIZE cipher (& size))))
-    (check-tomcrypt-error 'cipher-suggested-keysize err)
+    (check-tomcrypt-error 'cipher-descriptor-suggested-keysize err)
     (result size)))
 
 (define-c-proc mode-key? (obj) ::<boolean> :no-side-effect SG_MODE_KEY_P)
 
 ;; ECB
-(define-c-proc ecb-start (cipher::<fixnum> key::<bytevector> rounds::<fixnum>)
+(define-c-proc ecb-start (cipher::<cipher> key::<bytevector> rounds::<fixnum>)
   (let* ((mode-key (Sg_MakeModeKey MODE_ECB))
 	 (err::int (ecb_start cipher
 			      (SG_BVECTOR_ELEMENTS key)
@@ -117,7 +122,7 @@
     (check-tomcrypt-error 'ecb-done! err)))
 
 ;; CBC
-(define-c-proc cbc-start (cipher::<fixnum> iv::<bytevector>
+(define-c-proc cbc-start (cipher::<cipher> iv::<bytevector>
 			  key::<bytevector> rounds::<fixnum>)
   (check-block-length 'cbc-start cipher iv)
   (let* ((mode-key (Sg_MakeModeKey MODE_CBC))
@@ -182,7 +187,7 @@
     (check-tomcrypt-error 'cbc-set-iv! err)))
 
 ;; CFB
-(define-c-proc cfb-start (cipher::<fixnum> iv::<bytevector>
+(define-c-proc cfb-start (cipher::<cipher> iv::<bytevector>
 			  key::<bytevector> rounds::<fixnum>)
   (check-block-length 'cfb-start cipher iv)
   (let* ((mode-key (Sg_MakeModeKey MODE_CFB))
@@ -247,7 +252,7 @@
     (check-tomcrypt-error 'cfb-set-iv! err)))
 
 ;; OFB
-(define-c-proc ofb-start (cipher::<fixnum> iv::<bytevector>
+(define-c-proc ofb-start (cipher::<cipher> iv::<bytevector>
 			  key::<bytevector> rounds::<fixnum>)
   (check-block-length 'ofb-start cipher iv)
   (let* ((mode-key (Sg_MakeModeKey MODE_OFB))
@@ -312,7 +317,7 @@
     (check-tomcrypt-error 'ofb-set-iv! err)))
 
 ;; CTR
-(define-c-proc ctr-start (cipher::<fixnum>
+(define-c-proc ctr-start (cipher::<cipher>
 			  iv::<bytevector>
 			  key::<bytevector>
 			  rounds::<fixnum>
@@ -382,7 +387,7 @@
     (check-tomcrypt-error 'ctr-set-iv! err)))
 
 ;; LRW
-(define-c-proc lrw-start (cipher::<fixnum>
+(define-c-proc lrw-start (cipher::<cipher>
 			  iv::<bytevector>
 			  key::<bytevector>
 			  tweak::<bytevector>
@@ -454,7 +459,7 @@
     (check-tomcrypt-error 'lrw-set-iv! err)))
 
 ;; F8
-(define-c-proc f8-start (cipher::<fixnum>
+(define-c-proc f8-start (cipher::<cipher>
 			  iv::<bytevector>
 			  key::<bytevector>
 			  salt::<bytevector>
@@ -524,17 +529,17 @@
     (check-tomcrypt-error 'f8-set-iv! err)))
 
 ;; EAX
-(define-c-proc eax-start (cipher::<fixnum>
-			  key::<bytevector>
-			  nonce::<bytevector>
-			  header::<bytevector>)
+(define-c-proc eax-init (cipher::<cipher>
+			 key::<bytevector>
+			 nonce::<bytevector>
+			 header::<bytevector>)
   (let* ((enc-auth-state (Sg_MakeEncAuthState MODE_EAX))
 	 (err::int (eax_init (& (SG_ENC_AUTH_STATE_EAX enc-auth-state))
 			     cipher
 			     (SG_BVECTOR_ELEMENTS key) (SG_BVECTOR_SIZE key)
 			     (SG_BVECTOR_ELEMENTS nonce) (SG_BVECTOR_SIZE nonce)
 			     (SG_BVECTOR_ELEMENTS header) (SG_BVECTOR_SIZE header))))
-    (check-tomcrypt-error 'eax-start err)
+    (check-tomcrypt-error 'eax-init err)
     (result enc-auth-state)))
 
 (define-c-proc eax-encrypt! (enc-auth-state::<enc-auth-state>
@@ -570,8 +575,8 @@
   (check-state-mode 'eax-add-header! enc-auth-state MODE_EAX)
   (check-start-end 'eax-add-header! header start end)
   (let ((err::int (eax_addheader (& (SG_ENC_AUTH_STATE_EAX enc-auth-state))
-				 (SG_BVECTOR_ELEMENTS header)
-				 (SG_BVECTOR_SIZE header))))
+				 (+ (SG_BVECTOR_ELEMENTS header) start)
+				 (- end start))))
     (check-tomcrypt-error 'eax-add-header! err)))
 
 (define-c-proc eax-done! (enc-auth-state::<enc-auth-state>
@@ -584,4 +589,317 @@
 			    (+ (SG_BVECTOR_ELEMENTS tag) start)
 			    (& len))))
     (check-tomcrypt-error 'eax-done! err)
+    (result len)))
+
+;; OCB
+(define-c-proc ocb-init (cipher::<cipher>
+			 key::<bytevector>
+			 nonce::<bytevector>)
+  (check-range 'ocb-init nonce 0 cipher)
+  (let* ((enc-auth-state (Sg_MakeEncAuthState MODE_OCB))
+	 (err::int (ocb_init (& (SG_ENC_AUTH_STATE_OCB enc-auth-state))
+			     cipher
+			     (SG_BVECTOR_ELEMENTS key) (SG_BVECTOR_SIZE key)
+			     (SG_BVECTOR_ELEMENTS nonce))))
+    (check-tomcrypt-error 'ocb-init err)
+    (result enc-auth-state)))
+
+(define-c-proc ocb-encrypt! (enc-auth-state::<enc-auth-state>
+			     pt::<bytevector> ps::<fixnum>
+			     ct::<bytevector> cs::<fixnum>) ::<void>
+  (check-state-mode 'ocb-encrypt! enc-auth-state MODE_OCB)
+  (let ((cipher::int (ref (SG_ENC_AUTH_STATE_OCB enc-auth-state) cipher)))
+    (check-range 'ocb-encrypt! pt ps (CIPHER_DESCRIPTOR_BLOCK_LENGTH cipher))
+    (check-range 'ocb-encrypt! ct cs (CIPHER_DESCRIPTOR_BLOCK_LENGTH cipher))
+    (let ((err::int (ocb_encrypt (& (SG_ENC_AUTH_STATE_OCB enc-auth-state))
+				 (+ (SG_BVECTOR_ELEMENTS pt) ps)
+				 (+ (SG_BVECTOR_ELEMENTS ct) cs))))
+      (check-tomcrypt-error 'ocb-encrypt! err))))
+
+(define-c-proc ocb-decrypt! (enc-auth-state::<enc-auth-state>
+			     ct::<bytevector> cs::<fixnum>
+			     pt::<bytevector> ps::<fixnum>) ::<void>
+  (check-state-mode 'ocb-decrypt! enc-auth-state MODE_OCB)
+  (let ((cipher::int (ref (SG_ENC_AUTH_STATE_OCB enc-auth-state) cipher)))
+    (check-range 'ocb-decrypt! pt ps (CIPHER_DESCRIPTOR_BLOCK_LENGTH cipher))
+    (check-range 'ocb-decrypt! ct cs (CIPHER_DESCRIPTOR_BLOCK_LENGTH cipher))
+    (let ((err::int (ocb_decrypt (& (SG_ENC_AUTH_STATE_OCB enc-auth-state))
+				 (+ (SG_BVECTOR_ELEMENTS ct) cs)
+				 (+ (SG_BVECTOR_ELEMENTS pt) ps))))
+      (check-tomcrypt-error 'ocb-decrypt! err))))
+
+(define-c-proc ocb-done-encrypt! (enc-auth-state::<enc-auth-state>
+				  pt::<bytevector> ps::<fixnum>
+				  ct::<bytevector> cs::<fixnum>
+				  len::<fixnum>
+				  tag::<bytevector>) ::<fixnum>
+  (check-state-mode 'ocb-done-encrypt! enc-auth-state MODE_OCB)
+  (check-range 'ocb-done-encrypt! pt ps len)
+  (check-range 'ocb-done-encrypt! ct cs len)
+  (let ((|taglen::unsigned long| (SG_BVECTOR_SIZE tag))
+	(err::int (ocb_done_encrypt (& (SG_ENC_AUTH_STATE_OCB enc-auth-state))
+				    (+ (SG_BVECTOR_ELEMENTS pt) ps) len
+				    (+ (SG_BVECTOR_ELEMENTS ct) cs)
+				    (SG_BVECTOR_ELEMENTS tag)
+				    (& taglen))))
+    (check-tomcrypt-error 'ocb-done-encrypt! err)
+    (result taglen)))
+
+(define-c-proc ocb-done-decrypt! (enc-auth-state::<enc-auth-state>
+				  ct::<bytevector> cs::<fixnum>
+				  pt::<bytevector> ps::<fixnum>
+				  len::<fixnum>
+				  tag::<bytevector>) ::<boolean>
+  (check-state-mode 'ocb-done-decrypt! enc-auth-state MODE_OCB)
+  (check-range 'ocb-done-decrypt! ct cs len)
+  (check-range 'ocb-done-decrypt! pt ps len)
+  (let ((result::int FALSE)
+	(err::int (ocb_done_decrypt (& (SG_ENC_AUTH_STATE_OCB enc-auth-state))
+				    (+ (SG_BVECTOR_ELEMENTS ct) cs) len
+				    (+ (SG_BVECTOR_ELEMENTS pt) ps)
+				    (SG_BVECTOR_ELEMENTS tag)
+				    (SG_BVECTOR_SIZE tag)
+				    (& result))))
+    (check-tomcrypt-error 'ocb-done-decrypt! err)
+    (result result)))
+
+;; OCB3
+(define-c-proc ocb3-init (cipher::<cipher>
+			  key::<bytevector>
+			  nonce::<bytevector>
+			  taglen::<fixnum>)
+  (let* ((enc-auth-state (Sg_MakeEncAuthState MODE_OCB3))
+	 (err::int (ocb3_init (& (SG_ENC_AUTH_STATE_OCB3 enc-auth-state))
+			     cipher
+			     (SG_BVECTOR_ELEMENTS key) (SG_BVECTOR_SIZE key)
+			     (SG_BVECTOR_ELEMENTS nonce) (SG_BVECTOR_SIZE nonce)
+			     taglen)))
+    (check-tomcrypt-error 'ocb3-init err)
+    (result enc-auth-state)))
+
+(define-c-proc ocb3-encrypt! (enc-auth-state::<enc-auth-state>
+			      pt::<bytevector> ps::<fixnum>
+			      ct::<bytevector> cs::<fixnum>
+			      len::<fixnum>) ::<void>
+  (check-state-mode 'ocb3-encrypt! enc-auth-state MODE_OCB3)
+  (check-range 'ocb3-encrypt! pt ps len)
+  (check-range 'ocb3-encrypt! ct cs len)
+  (let ((err::int (ocb3_encrypt (& (SG_ENC_AUTH_STATE_OCB3 enc-auth-state))
+				(+ (SG_BVECTOR_ELEMENTS pt) ps) len
+				(+ (SG_BVECTOR_ELEMENTS ct) cs))))
+    (check-tomcrypt-error 'ocb3-encrypt! err)))
+
+(define-c-proc ocb3-decrypt! (enc-auth-state::<enc-auth-state>
+			     ct::<bytevector> cs::<fixnum>
+			     pt::<bytevector> ps::<fixnum>
+			     len::<fixnum>) ::<void>
+  (check-state-mode 'ocb3-decrypt! enc-auth-state MODE_OCB3)
+  (check-range 'ocb3-decrypt! pt ps len)
+  (check-range 'ocb3-decrypt! ct cs len)
+  (let ((err::int (ocb3_decrypt (& (SG_ENC_AUTH_STATE_OCB3 enc-auth-state))
+				(+ (SG_BVECTOR_ELEMENTS ct) cs) len
+				(+ (SG_BVECTOR_ELEMENTS pt) ps))))
+    (check-tomcrypt-error 'ocb3-decrypt! err)))
+
+(define-c-proc ocb3-encrypt-last! (enc-auth-state::<enc-auth-state>
+				  pt::<bytevector> ps::<fixnum>
+				  ct::<bytevector> cs::<fixnum>
+				  len::<fixnum>) ::<void>
+  (check-state-mode 'ocb3-encrypt-last! enc-auth-state MODE_OCB3)
+  (check-range 'ocb3-encrypt-last! pt ps len)
+  (check-range 'ocb3-encrypt-last! ct cs len)
+  (let ((err::int (ocb3_encrypt_last (& (SG_ENC_AUTH_STATE_OCB3 enc-auth-state))
+				     (+ (SG_BVECTOR_ELEMENTS pt) ps) len
+				     (+ (SG_BVECTOR_ELEMENTS ct) cs))))
+    (check-tomcrypt-error 'ocb3-encrypt-last! err)))
+
+(define-c-proc ocb3-decrypt-last! (enc-auth-state::<enc-auth-state>
+				   ct::<bytevector> cs::<fixnum>
+				   pt::<bytevector> ps::<fixnum>
+				   len::<fixnum>) ::<void>
+  (check-state-mode 'ocb3-decrypt-last! enc-auth-state MODE_OCB3)
+  (check-range 'ocb3-decrypt-last! pt ps len)
+  (check-range 'ocb3-decrypt-last! ct cs len)
+  (let ((err::int (ocb3_decrypt_last (& (SG_ENC_AUTH_STATE_OCB3 enc-auth-state))
+				     (+ (SG_BVECTOR_ELEMENTS ct) cs) len
+				     (+ (SG_BVECTOR_ELEMENTS pt) ps))))
+    (check-tomcrypt-error 'ocb3-decrypt-last! err)))
+
+(define-c-proc ocb3-add-aad! (enc-auth-state::<enc-auth-state>
+			      aad::<bytevector>
+			      :optional (start::<fixnum> 0)
+			      (end::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE aad)))) ::<void>
+  (check-state-mode 'ocb3-add-aad! enc-auth-state MODE_OCB3)
+  (check-start-end 'ocb3-add-aad! aad start end)
+  (let ((err::int (ocb3_add_aad (& (SG_ENC_AUTH_STATE_OCB3 enc-auth-state))
+				(+ (SG_BVECTOR_ELEMENTS aad) start)
+				(- end start))))
+    (check-tomcrypt-error 'ocb3-add-aad! err)))
+
+(define-c-proc ocb3-done! (enc-auth-state::<enc-auth-state>
+			   tag::<bytevector>
+			   :optional (start::<fixnum> 0)) ::<fixnum>
+  (check-state-mode 'ocb3-done! enc-auth-state MODE_OCB3)
+  (check-range 'ocb3-done! tag start (- (SG_BVECTOR_SIZE tag) start))
+  (let ((|len::unsigned long| (- (SG_BVECTOR_SIZE tag) start))
+	(err::int (ocb3_done (& (SG_ENC_AUTH_STATE_OCB3 enc-auth-state))
+			     (+ (SG_BVECTOR_ELEMENTS tag) start)
+			     (& len))))
+    (check-tomcrypt-error 'ocb3-done! err)
+    (result len)))
+
+;; CCM
+;; I'm not entirely sure if we can use this, I don't feel like it
+(define-c-proc ccm-init (cipher::<cipher>
+			 key::<bytevector>
+			 ptlen::<fixnum>
+			 taglen::<fixnum>
+			 aadlen::<fixnum>)
+  (let* ((enc-auth-state (Sg_MakeEncAuthState MODE_CCM))
+	 (err::int (ccm_init (& (SG_ENC_AUTH_STATE_CCM enc-auth-state))
+			     cipher
+			     (SG_BVECTOR_ELEMENTS key) (SG_BVECTOR_SIZE key)
+			     ptlen taglen aadlen)))
+    (check-tomcrypt-error 'ccm-init err)
+    (result enc-auth-state)))
+
+(define-c-proc ccm-reset! (enc-auth-state::<enc-auth-state>)
+  (check-state-mode 'ccm-encrypt! enc-auth-state MODE_CCM)
+  (let ((err::int (ccm_reset (& (SG_ENC_AUTH_STATE_CCM enc-auth-state)))))
+    (check-tomcrypt-error 'ccm-encrypt! err)
+    (result enc-auth-state)))
+
+(define-c-proc ccm-encrypt! (enc-auth-state::<enc-auth-state>
+			     pt::<bytevector> ps::<fixnum>
+			     ct::<bytevector> cs::<fixnum>
+			     len::<fixnum>) ::<void>
+  (check-state-mode 'ccm-encrypt! enc-auth-state MODE_CCM)
+  (check-range 'ccm-encrypt! pt ps len)
+  (check-range 'ccm-encrypt! ct cs len)
+  (let ((err::int (ccm_process (& (SG_ENC_AUTH_STATE_CCM enc-auth-state))
+			       (+ (SG_BVECTOR_ELEMENTS pt) ps) len
+			       (+ (SG_BVECTOR_ELEMENTS ct) cs)
+			       CCM_ENCRYPT)))
+    (check-tomcrypt-error 'ccm-encrypt! err)))
+
+(define-c-proc ccm-decrypt! (enc-auth-state::<enc-auth-state>
+			     ct::<bytevector> cs::<fixnum>
+			     pt::<bytevector> ps::<fixnum>
+			     len::<fixnum>) ::<void>
+  (check-state-mode 'ccm-decrypt! enc-auth-state MODE_CCM)
+  (check-range 'ccm-decrypt! pt ps len)
+  (check-range 'ccm-decrypt! ct cs len)
+  (let ((err::int (ccm_process (& (SG_ENC_AUTH_STATE_CCM enc-auth-state))
+			       (+ (SG_BVECTOR_ELEMENTS ct) cs) len
+			       (+ (SG_BVECTOR_ELEMENTS pt) ps)
+			       CCM_DECRYPT)))
+    (check-tomcrypt-error 'ccm-decrypt! err)))
+
+(define-c-proc ccm-add-nonce! (enc-auth-state::<enc-auth-state>
+			       nonce::<bytevector>
+			       :optional (start::<fixnum> 0)
+			       (end::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE nonce)))) ::<void>
+  (check-state-mode 'ccm-add-nonce! enc-auth-state MODE_CCM)
+  (check-start-end 'ccm-add-nonce! nonce start end)
+  (let ((err::int (ccm_add_nonce (& (SG_ENC_AUTH_STATE_CCM enc-auth-state))
+			       (+ (SG_BVECTOR_ELEMENTS nonce) start)
+			       (- end start))))
+    (check-tomcrypt-error 'ccm-add-nonce! err)))
+
+(define-c-proc ccm-add-aad! (enc-auth-state::<enc-auth-state>
+			      aad::<bytevector>
+			      :optional (start::<fixnum> 0)
+			      (end::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE aad)))) ::<void>
+  (check-state-mode 'ccm-add-aad! enc-auth-state MODE_CCM)
+  (check-start-end 'ccm-add-aad! aad start end)
+  (let ((err::int (ccm_add_aad (& (SG_ENC_AUTH_STATE_CCM enc-auth-state))
+			       (+ (SG_BVECTOR_ELEMENTS aad) start)
+			       (- end start))))
+    (check-tomcrypt-error 'ccm-add-aad! err)))
+
+(define-c-proc ccm-done! (enc-auth-state::<enc-auth-state>
+			  tag::<bytevector>
+			  :optional (start::<fixnum> 0)) ::<fixnum>
+  (check-state-mode 'ccm-done! enc-auth-state MODE_CCM)
+  (check-range 'ccm-done! tag start (- (SG_BVECTOR_SIZE tag) start))
+  (let ((|len::unsigned long| (- (SG_BVECTOR_SIZE tag) start))
+	(err::int (ccm_done (& (SG_ENC_AUTH_STATE_CCM enc-auth-state))
+			    (+ (SG_BVECTOR_ELEMENTS tag) start)
+			    (& len))))
+    (check-tomcrypt-error 'ccm-done! err)
+    (result len)))
+
+;; GCM
+(define-c-proc gcm-init (cipher::<cipher> key::<bytevector>)
+  (let* ((enc-auth-state (Sg_MakeEncAuthState MODE_GCM))
+	 (err::int (gcm_init (& (SG_ENC_AUTH_STATE_GCM enc-auth-state))
+			     cipher
+			     (SG_BVECTOR_ELEMENTS key) (SG_BVECTOR_SIZE key))))
+    (check-tomcrypt-error 'gcm-init err)
+    (result enc-auth-state)))
+
+(define-c-proc gcm-reset! (enc-auth-state::<enc-auth-state>)
+  (check-state-mode 'gcm-encrypt! enc-auth-state MODE_GCM)
+  (let ((err::int (gcm_reset (& (SG_ENC_AUTH_STATE_GCM enc-auth-state)))))
+    (check-tomcrypt-error 'gcm-encrypt! err)
+    (result enc-auth-state)))
+
+(define-c-proc gcm-encrypt! (enc-auth-state::<enc-auth-state>
+			     pt::<bytevector> ps::<fixnum>
+			     ct::<bytevector> cs::<fixnum>
+			     len::<fixnum>) ::<void>
+  (check-state-mode 'gcm-encrypt! enc-auth-state MODE_GCM)
+  (check-range 'gcm-encrypt! pt ps len)
+  (check-range 'gcm-encrypt! ct cs len)
+  (let ((err::int (gcm_process (& (SG_ENC_AUTH_STATE_GCM enc-auth-state))
+			       (+ (SG_BVECTOR_ELEMENTS pt) ps) len
+			       (+ (SG_BVECTOR_ELEMENTS ct) cs)
+			       GCM_ENCRYPT)))
+    (check-tomcrypt-error 'gcm-encrypt! err)))
+
+(define-c-proc gcm-decrypt! (enc-auth-state::<enc-auth-state>
+			     ct::<bytevector> cs::<fixnum>
+			     pt::<bytevector> ps::<fixnum>
+			     len::<fixnum>) ::<void>
+  (check-state-mode 'gcm-decrypt! enc-auth-state MODE_GCM)
+  (check-range 'gcm-decrypt! pt ps len)
+  (check-range 'gcm-decrypt! ct cs len)
+  (let ((err::int (gcm_process (& (SG_ENC_AUTH_STATE_GCM enc-auth-state))
+			       (+ (SG_BVECTOR_ELEMENTS ct) cs) len
+			       (+ (SG_BVECTOR_ELEMENTS pt) ps)
+			       GCM_DECRYPT)))
+    (check-tomcrypt-error 'gcm-decrypt! err)))
+
+(define-c-proc gcm-add-iv! (enc-auth-state::<enc-auth-state>
+			    iv::<bytevector>
+			    :optional (start::<fixnum> 0)
+			    (end::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE iv)))) ::<void>
+  (check-state-mode 'gcm-add-iv! enc-auth-state MODE_GCM)
+  (check-start-end 'gcm-add-iv! iv start end)
+  (let ((err::int (gcm_add_iv (& (SG_ENC_AUTH_STATE_GCM enc-auth-state))
+			      (+ (SG_BVECTOR_ELEMENTS iv) start)
+			      (- end start))))
+    (check-tomcrypt-error 'gcm-add-iv! err)))
+
+(define-c-proc gcm-add-aad! (enc-auth-state::<enc-auth-state>
+			     aad::<bytevector>
+			     :optional (start::<fixnum> 0)
+			     (end::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE aad)))) ::<void>
+  (check-state-mode 'gcm-add-aad! enc-auth-state MODE_GCM)
+  (check-start-end 'gcm-add-aad! aad start end)
+  (let ((err::int (gcm_add_aad (& (SG_ENC_AUTH_STATE_GCM enc-auth-state))
+			       (+ (SG_BVECTOR_ELEMENTS aad) start)
+			       (- end start))))
+    (check-tomcrypt-error 'gcm-add-aad! err)))
+
+(define-c-proc gcm-done! (enc-auth-state::<enc-auth-state>
+			  tag::<bytevector>
+			  :optional (start::<fixnum> 0)) ::<fixnum>
+  (check-state-mode 'gcm-done! enc-auth-state MODE_GCM)
+  (check-range 'gcm-done! tag start (- (SG_BVECTOR_SIZE tag) start))
+  (let ((|len::unsigned long| (- (SG_BVECTOR_SIZE tag) start))
+	(err::int (gcm_done (& (SG_ENC_AUTH_STATE_GCM enc-auth-state))
+			    (+ (SG_BVECTOR_ELEMENTS tag) start)
+			    (& len))))
+    (check-tomcrypt-error 'gcm-done! err)
     (result len)))
