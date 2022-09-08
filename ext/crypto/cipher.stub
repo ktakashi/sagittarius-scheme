@@ -1,0 +1,587 @@
+;; -*- mode: scheme; coding: utf-8; -*-
+(decl-code
+ (.include <sagittarius/private.h>)
+ (.define "LIBSAGITTARIUS_EXT_BODY")
+ (.include  <sagittarius/extend.h>
+	    <sagittarius-cipher.h>))
+
+(define-type <mode-key> "SgModeKey *")
+(define-type <enc-auth-state> "SgEncAuthState *")
+
+(define-cise-stmt assertion-violation
+  ((_ who msg)
+   `(begin (Sg_AssertionViolation ,who (SG_MAKE_STRING ,msg) '())))
+  ((_ who msg irritants)
+   `(begin (Sg_AssertionViolation ,who (SG_MAKE_STRING ,msg) ,irritants))))
+
+(define-cise-stmt check-tomcrypt-error
+  ((_ who err)
+   `(unless (== ,err CRYPT_OK)
+      (Sg_AssertionViolation ,who (Sg_MakeStringC (error_to_string err)) '()))))
+
+(define-cise-stmt check-mode
+  ((_ who key mode)
+   `(unless (== (SG_MODE_KEY_MODE ,key) ,mode)
+      (assertion-violation ,who "Given key is not for this mode"))))
+(define-cise-stmt check-state-mode
+  ((_ who state mode)
+   `(unless (== (SG_ENC_AUTH_STATE_MODE ,state) ,mode)
+      (assertion-violation ,who "Given state is not for this mode"))))
+
+(define-cise-stmt check-range
+  ((_ who bv start length)
+   `(when (< (- (SG_BVECTOR_SIZE ,bv) ,start) ,length)
+      (assertion-violation ,who "Length is too long"
+	(SG_LIST3 '<
+		  (SG_MAKE_INT (- (SG_BVECTOR_SIZE ,bv) ,start))
+		  (SG_MAKE_INT ,length))))))
+
+(define-cise-stmt check-start-end
+  ((_ who bv start end)
+   `(when (or (< ,start 0) (< ,end (SG_BVECTOR_SIZE ,bv)))
+      (assertion-violation ,who "Out of the bytevector range"
+	(SG_LIST3 ,bv (SG_MAKE_INT ,start) (SG_MAKE_INT ,end))))))
+
+(define-cise-stmt check-block-length
+  ((_ who cipher bv)
+   `(when (< (SG_BVECTOR_SIZE ,bv) (CIPHER_DESCRIPTOR_BLOCK_LENGTH cipher))
+      (assertion-violation ,who "IV must be a bytevector of block size"
+	(SG_LIST2 (Sg_Cons 'block-size
+			   (SG_MAKE_INT
+			    (ref (aref cipher_descriptor ,cipher)
+				 block_length)))
+		  (Sg_Cons 'iv-length
+			   (SG_MAKE_INT (SG_BVECTOR_SIZE ,bv))))))))
+
+
+(define-c-proc find-cipher (name::<string>) ::<fixnum> :no-side-effect
+  (let ((cipher::int (find_cipher (Sg_Utf32sToUtf8s name))))
+    (when (== cipher -1)
+      (assertion-violation 'find-cipher "Cipher not supported" name))
+    (result cipher)))
+
+(define-c-proc cipher-block-length (cipher::<fixnum>) ::<fixnum> :constant
+  CIPHER_DESCRIPTOR_BLOCK_LENGTH)
+(define-c-proc cipher-min-key-length (cipher::<fixnum>) ::<fixnum> :constant
+  CIPHER_DESCRIPTOR_MIN_KEY_LENGTH)
+(define-c-proc cipher-max-key-length (cipher::<fixnum>) ::<fixnum> :constant
+  CIPHER_DESCRIPTOR_MAX_KEY_LENGTH)
+(define-c-proc cipher-suggested-keysize (cipher::<fixnum>) ::<fixnum>
+  (let* ((size::int (CIPHER_DESCRIPTOR_MAX_KEY_LENGTH cipher))
+	 (err::int (CIPHER_DESCRIPTOR_KEYSIZE cipher (& size))))
+    (check-tomcrypt-error 'cipher-suggested-keysize err)
+    (result size)))
+
+(define-c-proc mode-key? (obj) ::<boolean> :no-side-effect SG_MODE_KEY_P)
+
+;; ECB
+(define-c-proc ecb-start (cipher::<fixnum> key::<bytevector> rounds::<fixnum>)
+  (let* ((mode-key (Sg_MakeModeKey MODE_ECB))
+	 (err::int (ecb_start cipher
+			      (SG_BVECTOR_ELEMENTS key)
+			      (SG_BVECTOR_SIZE key)
+			      rounds
+			      (& (SG_MODE_KEY_ECB mode-key)))))
+    (check-tomcrypt-error 'ecb-start err)
+    (result mode-key)))
+
+(define-c-proc ecb-encrypt! (mode-key::<mode-key>
+			     pt::<bytevector> ps::<fixnum>
+			     ct::<bytevector> cs::<fixnum>
+			     len::<fixnum>) ::<void>
+  (check-mode 'ecb-encrypt! mode-key MODE_ECB)
+  (check-range 'ecb-encrypt! pt ps len)
+  (check-range 'ecb-encrypt! ct cs len)
+  (let ((err::int (ecb_encrypt (+ (SG_BVECTOR_ELEMENTS pt) ps)
+			       (+ (SG_BVECTOR_ELEMENTS ct) cs)
+			       len
+			       (& (SG_MODE_KEY_ECB mode-key)))))
+    (check-tomcrypt-error 'ecb-encrypt! err)))
+
+(define-c-proc ecb-decrypt! (mode-key::<mode-key>
+			     ct::<bytevector> cs::<fixnum>
+			     pt::<bytevector> ps::<fixnum>
+			     len::<fixnum>) ::<void>
+  (check-mode 'ecb-decrypt! mode-key MODE_ECB)
+  (check-range 'ecb-decrypt! pt ps len)
+  (check-range 'ecb-decrypt! ct cs len)
+  (let ((err::int (ecb_decrypt (+ (SG_BVECTOR_ELEMENTS ct) cs)
+			       (+ (SG_BVECTOR_ELEMENTS pt) ps)
+			       len
+			       (& (SG_MODE_KEY_ECB mode-key)))))
+    (check-tomcrypt-error 'ecb-decrypt! err)))
+
+(define-c-proc ecb-done! (mode-key::<mode-key>) ::<void>
+  (check-mode 'ecb-done! mode-key MODE_ECB)
+  (let ((err::int (ecb_done (& (SG_MODE_KEY_ECB mode-key)))))
+    (check-tomcrypt-error 'ecb-done! err)))
+
+;; CBC
+(define-c-proc cbc-start (cipher::<fixnum> iv::<bytevector>
+			  key::<bytevector> rounds::<fixnum>)
+  (check-block-length 'cbc-start cipher iv)
+  (let* ((mode-key (Sg_MakeModeKey MODE_CBC))
+	 (err::int (cbc_start cipher
+			      (SG_BVECTOR_ELEMENTS iv)
+			      (SG_BVECTOR_ELEMENTS key)
+			      (SG_BVECTOR_SIZE key)
+			      rounds
+			      (& (SG_MODE_KEY_CBC mode-key)))))
+    (check-tomcrypt-error 'cbc-start err)
+    (result mode-key)))
+
+(define-c-proc cbc-encrypt! (mode-key::<mode-key>
+			     pt::<bytevector> ps::<fixnum>
+			     ct::<bytevector> cs::<fixnum>
+			     len::<fixnum>) ::<void>
+  (check-mode 'cbc-encrypt! mode-key MODE_CBC)
+  (check-range 'cbc-encrypt! pt ps len)
+  (check-range 'cbc-encrypt! ct cs len)
+  (let ((err::int (cbc_encrypt (+ (SG_BVECTOR_ELEMENTS pt) ps)
+			       (+ (SG_BVECTOR_ELEMENTS ct) cs)
+			       len
+			       (& (SG_MODE_KEY_CBC mode-key)))))
+    (check-tomcrypt-error 'cbc-encrypt! err)))
+
+(define-c-proc cbc-decrypt! (mode-key::<mode-key>
+			     ct::<bytevector> cs::<fixnum>
+			     pt::<bytevector> ps::<fixnum>
+			     len::<fixnum>) ::<void>
+  (check-mode 'cbc-decrypt! mode-key MODE_CBC)
+  (check-range 'cbc-decrypt! pt ps len)
+  (check-range 'cbc-decrypt! ct cs len)
+  (let ((err::int (cbc_decrypt (+ (SG_BVECTOR_ELEMENTS ct) cs)
+			       (+ (SG_BVECTOR_ELEMENTS pt) ps)
+			       len
+			       (& (SG_MODE_KEY_CBC mode-key)))))
+    (check-tomcrypt-error 'cbc-decrypt! err)))
+
+(define-c-proc cbc-done! (mode-key::<mode-key>) ::<void>
+  (check-mode 'cbc-done! mode-key MODE_CBC)
+  (let ((err::int (cbc_done (& (SG_MODE_KEY_CBC mode-key)))))
+    (check-tomcrypt-error 'cbc-done! err)))
+
+(define-c-proc cbc-get-iv! (mode-key::<mode-key> iv::<bytevector>
+			     :optional (ivs::<fixnum> 0))
+  (check-mode 'cbc-get-iv! mode-key MODE_CBC)
+  (let* ((|len::unsigned long| (- (SG_BVECTOR_SIZE iv) ivs))
+	 (err::int (cbc_getiv
+		   (+ (SG_BVECTOR_ELEMENTS iv) ivs)
+		   (& len)
+		   (& (SG_MODE_KEY_CBC mode-key)))))
+    (check-tomcrypt-error 'cbc-get-iv! err)
+    (result iv)))
+
+(define-c-proc cbc-set-iv! (mode-key::<mode-key> iv::<bytevector>
+			     :optional (ivs::<fixnum> 0)) ::<void>
+  (check-mode 'cbc-set-iv! mode-key MODE_CBC)
+  (let ((err::int (cbc_setiv
+		   (+ (SG_BVECTOR_ELEMENTS iv) ivs)
+		   (- (SG_BVECTOR_SIZE iv) ivs)
+		   (& (SG_MODE_KEY_CBC mode-key)))))
+    (check-tomcrypt-error 'cbc-set-iv! err)))
+
+;; CFB
+(define-c-proc cfb-start (cipher::<fixnum> iv::<bytevector>
+			  key::<bytevector> rounds::<fixnum>)
+  (check-block-length 'cfb-start cipher iv)
+  (let* ((mode-key (Sg_MakeModeKey MODE_CFB))
+	 (err::int (cfb_start cipher
+			      (SG_BVECTOR_ELEMENTS iv)
+			      (SG_BVECTOR_ELEMENTS key)
+			      (SG_BVECTOR_SIZE key)
+			      rounds
+			      (& (SG_MODE_KEY_CFB mode-key)))))
+    (check-tomcrypt-error 'cfb-start err)
+    (result mode-key)))
+
+(define-c-proc cfb-encrypt! (mode-key::<mode-key>
+			     pt::<bytevector> ps::<fixnum>
+			     ct::<bytevector> cs::<fixnum>
+			     len::<fixnum>) ::<void>
+  (check-mode 'cfb-encrypt! mode-key MODE_CFB)
+  (check-range 'cfb-encrypt! pt ps len)
+  (check-range 'cfb-encrypt! ct cs len)
+  (let ((err::int (cfb_encrypt (+ (SG_BVECTOR_ELEMENTS pt) ps)
+			       (+ (SG_BVECTOR_ELEMENTS ct) cs)
+			       len
+			       (& (SG_MODE_KEY_CFB mode-key)))))
+    (check-tomcrypt-error 'cfb-encrypt! err)))
+
+(define-c-proc cfb-decrypt! (mode-key::<mode-key>
+			     ct::<bytevector> cs::<fixnum>
+			     pt::<bytevector> ps::<fixnum>
+			     len::<fixnum>) ::<void>
+  (check-mode 'cfb-decrypt! mode-key MODE_CFB)
+  (check-range 'cfb-decrypt! pt ps len)
+  (check-range 'cfb-decrypt! ct cs len)
+  (let ((err::int (cfb_decrypt (+ (SG_BVECTOR_ELEMENTS ct) cs)
+			       (+ (SG_BVECTOR_ELEMENTS pt) ps)
+			       len
+			       (& (SG_MODE_KEY_CFB mode-key)))))
+    (check-tomcrypt-error 'cfb-decrypt! err)))
+
+(define-c-proc cfb-done! (mode-key::<mode-key>) ::<void>
+  (check-mode 'cfb-done! mode-key MODE_CFB)
+  (let ((err::int (cfb_done (& (SG_MODE_KEY_CFB mode-key)))))
+    (check-tomcrypt-error 'cfb-done! err)))
+
+(define-c-proc cfb-get-iv! (mode-key::<mode-key> iv::<bytevector>
+			     :optional (ivs::<fixnum> 0))
+  (check-mode 'cfb-get-iv! mode-key MODE_CFB)
+  (let* ((|len::unsigned long| (- (SG_BVECTOR_SIZE iv) ivs))
+	 (err::int (cfb_getiv
+		   (+ (SG_BVECTOR_ELEMENTS iv) ivs)
+		   (& len)
+		   (& (SG_MODE_KEY_CFB mode-key)))))
+    (check-tomcrypt-error 'cfb-get-iv! err)
+    (result iv)))
+
+(define-c-proc cfb-set-iv! (mode-key::<mode-key> iv::<bytevector>
+			     :optional (ivs::<fixnum> 0)) ::<void>
+  (check-mode 'cfb-set-iv! mode-key MODE_CFB)
+  (let ((err::int (cfb_setiv
+		   (+ (SG_BVECTOR_ELEMENTS iv) ivs)
+		   (- (SG_BVECTOR_SIZE iv) ivs)
+		   (& (SG_MODE_KEY_CFB mode-key)))))
+    (check-tomcrypt-error 'cfb-set-iv! err)))
+
+;; OFB
+(define-c-proc ofb-start (cipher::<fixnum> iv::<bytevector>
+			  key::<bytevector> rounds::<fixnum>)
+  (check-block-length 'ofb-start cipher iv)
+  (let* ((mode-key (Sg_MakeModeKey MODE_OFB))
+	 (err::int (ofb_start cipher
+			      (SG_BVECTOR_ELEMENTS iv)
+			      (SG_BVECTOR_ELEMENTS key)
+			      (SG_BVECTOR_SIZE key)
+			      rounds
+			      (& (SG_MODE_KEY_OFB mode-key)))))
+    (check-tomcrypt-error 'ofb-start err)
+    (result mode-key)))
+
+(define-c-proc ofb-encrypt! (mode-key::<mode-key>
+			     pt::<bytevector> ps::<fixnum>
+			     ct::<bytevector> cs::<fixnum>
+			     len::<fixnum>) ::<void>
+  (check-mode 'ofb-encrypt! mode-key MODE_OFB)
+  (check-range 'ofb-encrypt! pt ps len)
+  (check-range 'ofb-encrypt! ct cs len)
+  (let ((err::int (ofb_encrypt (+ (SG_BVECTOR_ELEMENTS pt) ps)
+			       (+ (SG_BVECTOR_ELEMENTS ct) cs)
+			       len
+			       (& (SG_MODE_KEY_OFB mode-key)))))
+    (check-tomcrypt-error 'ofb-encrypt! err)))
+
+(define-c-proc ofb-decrypt! (mode-key::<mode-key>
+			     ct::<bytevector> cs::<fixnum>
+			     pt::<bytevector> ps::<fixnum>
+			     len::<fixnum>) ::<void>
+  (check-mode 'ofb-decrypt! mode-key MODE_OFB)
+  (check-range 'ofb-decrypt! pt ps len)
+  (check-range 'ofb-decrypt! ct cs len)
+  (let ((err::int (ofb_decrypt (+ (SG_BVECTOR_ELEMENTS ct) cs)
+			       (+ (SG_BVECTOR_ELEMENTS pt) ps)
+			       len
+			       (& (SG_MODE_KEY_OFB mode-key)))))
+    (check-tomcrypt-error 'ofb-decrypt! err)))
+
+(define-c-proc ofb-done! (mode-key::<mode-key>) ::<void>
+  (check-mode 'ofb-done! mode-key MODE_OFB)
+  (let ((err::int (ofb_done (& (SG_MODE_KEY_OFB mode-key)))))
+    (check-tomcrypt-error 'ofb-done! err)))
+
+(define-c-proc ofb-get-iv! (mode-key::<mode-key> iv::<bytevector>
+			     :optional (ivs::<fixnum> 0))
+  (check-mode 'ofb-get-iv! mode-key MODE_OFB)
+  (let* ((|len::unsigned long| (- (SG_BVECTOR_SIZE iv) ivs))
+	 (err::int (ofb_getiv
+		   (+ (SG_BVECTOR_ELEMENTS iv) ivs)
+		   (& len)
+		   (& (SG_MODE_KEY_OFB mode-key)))))
+    (check-tomcrypt-error 'ofb-get-iv! err)
+    (result iv)))
+
+(define-c-proc ofb-set-iv! (mode-key::<mode-key> iv::<bytevector>
+			     :optional (ivs::<fixnum> 0)) ::<void>
+  (check-mode 'ofb-set-iv! mode-key MODE_OFB)
+  (let ((err::int (ofb_setiv
+		   (+ (SG_BVECTOR_ELEMENTS iv) ivs)
+		   (- (SG_BVECTOR_SIZE iv) ivs)
+		   (& (SG_MODE_KEY_OFB mode-key)))))
+    (check-tomcrypt-error 'ofb-set-iv! err)))
+
+;; CTR
+(define-c-proc ctr-start (cipher::<fixnum>
+			  iv::<bytevector>
+			  key::<bytevector>
+			  rounds::<fixnum>
+			  ctr-mode::<fixnum>
+			  )
+  (check-block-length 'ctr-start cipher iv)
+  (let* ((mode-key (Sg_MakeModeKey MODE_CTR))
+	 (err::int (ctr_start cipher
+			      (SG_BVECTOR_ELEMENTS iv)
+			      (SG_BVECTOR_ELEMENTS key)
+			      (SG_BVECTOR_SIZE key)
+			      rounds
+			      ctr-mode
+			      (& (SG_MODE_KEY_CTR mode-key)))))
+    (check-tomcrypt-error 'ctr-start err)
+    (result mode-key)))
+
+(define-c-proc ctr-encrypt! (mode-key::<mode-key>
+			     pt::<bytevector> ps::<fixnum>
+			     ct::<bytevector> cs::<fixnum>
+			     len::<fixnum>) ::<void>
+  (check-mode 'ctr-encrypt! mode-key MODE_CTR)
+  (check-range 'ctr-encrypt! pt ps len)
+  (check-range 'ctr-encrypt! ct cs len)
+  (let ((err::int (ctr_encrypt (+ (SG_BVECTOR_ELEMENTS pt) ps)
+			       (+ (SG_BVECTOR_ELEMENTS ct) cs)
+			       len
+			       (& (SG_MODE_KEY_CTR mode-key)))))
+    (check-tomcrypt-error 'ctr-encrypt! err)))
+
+(define-c-proc ctr-decrypt! (mode-key::<mode-key>
+			     ct::<bytevector> cs::<fixnum>
+			     pt::<bytevector> ps::<fixnum>
+			     len::<fixnum>) ::<void>
+  (check-mode 'ctr-decrypt! mode-key MODE_CTR)
+  (check-range 'ctr-decrypt! pt ps len)
+  (check-range 'ctr-decrypt! ct cs len)
+  (let ((err::int (ctr_decrypt (+ (SG_BVECTOR_ELEMENTS ct) cs)
+			       (+ (SG_BVECTOR_ELEMENTS pt) ps)
+			       len
+			       (& (SG_MODE_KEY_CTR mode-key)))))
+    (check-tomcrypt-error 'ctr-decrypt! err)))
+
+(define-c-proc ctr-done! (mode-key::<mode-key>) ::<void>
+  (check-mode 'ctr-done! mode-key MODE_CTR)
+  (let ((err::int (ctr_done (& (SG_MODE_KEY_CTR mode-key)))))
+    (check-tomcrypt-error 'ctr-done! err)))
+
+(define-c-proc ctr-get-iv! (mode-key::<mode-key> iv::<bytevector>
+			     :optional (ivs::<fixnum> 0))
+  (check-mode 'ctr-get-iv! mode-key MODE_CTR)
+  (let* ((|len::unsigned long| (- (SG_BVECTOR_SIZE iv) ivs))
+	 (err::int (ctr_getiv
+		   (+ (SG_BVECTOR_ELEMENTS iv) ivs)
+		   (& len)
+		   (& (SG_MODE_KEY_CTR mode-key)))))
+    (check-tomcrypt-error 'ctr-get-iv! err)
+    (result iv)))
+
+(define-c-proc ctr-set-iv! (mode-key::<mode-key> iv::<bytevector>
+			     :optional (ivs::<fixnum> 0)) ::<void>
+  (check-mode 'ctr-set-iv! mode-key MODE_CTR)
+  (let ((err::int (ctr_setiv
+		   (+ (SG_BVECTOR_ELEMENTS iv) ivs)
+		   (- (SG_BVECTOR_SIZE iv) ivs)
+		   (& (SG_MODE_KEY_CTR mode-key)))))
+    (check-tomcrypt-error 'ctr-set-iv! err)))
+
+;; LRW
+(define-c-proc lrw-start (cipher::<fixnum>
+			  iv::<bytevector>
+			  key::<bytevector>
+			  tweak::<bytevector>
+			  rounds::<fixnum>)
+  (check-block-length 'lrw-start cipher iv)
+  (unless (== (SG_BVECTOR_SIZE tweak) 16) ;; must be 128 bit
+    (assertion-violation 'lrw-start
+			 "Tweak must be length of 128 bits (16 bytes)"))
+  (let* ((mode-key (Sg_MakeModeKey MODE_LRW))
+	 (err::int (lrw_start cipher
+			      (SG_BVECTOR_ELEMENTS iv)
+			      (SG_BVECTOR_ELEMENTS key)
+			      (SG_BVECTOR_SIZE key)
+			      (SG_BVECTOR_ELEMENTS tweak)
+			      rounds
+			      (& (SG_MODE_KEY_LRW mode-key)))))
+    (check-tomcrypt-error 'lrw-start err)
+    (result mode-key)))
+
+(define-c-proc lrw-encrypt! (mode-key::<mode-key>
+			     pt::<bytevector> ps::<fixnum>
+			     ct::<bytevector> cs::<fixnum>
+			     len::<fixnum>) ::<void>
+  (check-mode 'lrw-encrypt! mode-key MODE_LRW)
+  (check-range 'lrw-encrypt! pt ps len)
+  (check-range 'lrw-encrypt! ct cs len)
+  (let ((err::int (lrw_encrypt (+ (SG_BVECTOR_ELEMENTS pt) ps)
+			       (+ (SG_BVECTOR_ELEMENTS ct) cs)
+			       len
+			       (& (SG_MODE_KEY_LRW mode-key)))))
+    (check-tomcrypt-error 'lrw-encrypt! err)))
+
+(define-c-proc lrw-decrypt! (mode-key::<mode-key>
+			     ct::<bytevector> cs::<fixnum>
+			     pt::<bytevector> ps::<fixnum>
+			     len::<fixnum>) ::<void>
+  (check-mode 'lrw-decrypt! mode-key MODE_LRW)
+  (check-range 'lrw-decrypt! pt ps len)
+  (check-range 'lrw-decrypt! ct cs len)
+  (let ((err::int (lrw_decrypt (+ (SG_BVECTOR_ELEMENTS ct) cs)
+			       (+ (SG_BVECTOR_ELEMENTS pt) ps)
+			       len
+			       (& (SG_MODE_KEY_LRW mode-key)))))
+    (check-tomcrypt-error 'lrw-decrypt! err)))
+
+(define-c-proc lrw-done! (mode-key::<mode-key>) ::<void>
+  (check-mode 'lrw-done! mode-key MODE_LRW)
+  (let ((err::int (lrw_done (& (SG_MODE_KEY_LRW mode-key)))))
+    (check-tomcrypt-error 'lrw-done! err)))
+
+(define-c-proc lrw-get-iv! (mode-key::<mode-key> iv::<bytevector>
+			     :optional (ivs::<fixnum> 0))
+  (check-mode 'lrw-get-iv! mode-key MODE_LRW)
+  (let* ((|len::unsigned long| (- (SG_BVECTOR_SIZE iv) ivs))
+	 (err::int (lrw_getiv
+		   (+ (SG_BVECTOR_ELEMENTS iv) ivs)
+		   (& len)
+		   (& (SG_MODE_KEY_LRW mode-key)))))
+    (check-tomcrypt-error 'lrw-get-iv! err)
+    (result iv)))
+
+(define-c-proc lrw-set-iv! (mode-key::<mode-key> iv::<bytevector>
+			     :optional (ivs::<fixnum> 0)) ::<void>
+  (check-mode 'lrw-set-iv! mode-key MODE_LRW)
+  (let ((err::int (lrw_setiv
+		   (+ (SG_BVECTOR_ELEMENTS iv) ivs)
+		   (- (SG_BVECTOR_SIZE iv) ivs)
+		   (& (SG_MODE_KEY_LRW mode-key)))))
+    (check-tomcrypt-error 'lrw-set-iv! err)))
+
+;; F8
+(define-c-proc f8-start (cipher::<fixnum>
+			  iv::<bytevector>
+			  key::<bytevector>
+			  salt::<bytevector>
+			  rounds::<fixnum>)
+  (check-block-length 'f8-start cipher iv)
+  (let* ((mode-key (Sg_MakeModeKey MODE_F8))
+	 (err::int (f8_start cipher
+			      (SG_BVECTOR_ELEMENTS iv)
+			      (SG_BVECTOR_ELEMENTS key)
+			      (SG_BVECTOR_SIZE key)
+			      (SG_BVECTOR_ELEMENTS salt)
+			      (SG_BVECTOR_SIZE salt)
+			      rounds
+			      (& (SG_MODE_KEY_F8 mode-key)))))
+    (check-tomcrypt-error 'f8-start err)
+    (result mode-key)))
+
+(define-c-proc f8-encrypt! (mode-key::<mode-key>
+			     pt::<bytevector> ps::<fixnum>
+			     ct::<bytevector> cs::<fixnum>
+			     len::<fixnum>) ::<void>
+  (check-mode 'f8-encrypt! mode-key MODE_F8)
+  (check-range 'f8-encrypt! pt ps len)
+  (check-range 'f8-encrypt! ct cs len)
+  (let ((err::int (f8_encrypt (+ (SG_BVECTOR_ELEMENTS pt) ps)
+			       (+ (SG_BVECTOR_ELEMENTS ct) cs)
+			       len
+			       (& (SG_MODE_KEY_F8 mode-key)))))
+    (check-tomcrypt-error 'f8-encrypt! err)))
+
+(define-c-proc f8-decrypt! (mode-key::<mode-key>
+			     ct::<bytevector> cs::<fixnum>
+			     pt::<bytevector> ps::<fixnum>
+			     len::<fixnum>) ::<void>
+  (check-mode 'f8-decrypt! mode-key MODE_F8)
+  (check-range 'f8-decrypt! pt ps len)
+  (check-range 'f8-decrypt! ct cs len)
+  (let ((err::int (f8_decrypt (+ (SG_BVECTOR_ELEMENTS ct) cs)
+			       (+ (SG_BVECTOR_ELEMENTS pt) ps)
+			       len
+			       (& (SG_MODE_KEY_F8 mode-key)))))
+    (check-tomcrypt-error 'f8-decrypt! err)))
+
+(define-c-proc f8-done! (mode-key::<mode-key>) ::<void>
+  (check-mode 'f8-done! mode-key MODE_F8)
+  (let ((err::int (f8_done (& (SG_MODE_KEY_F8 mode-key)))))
+    (check-tomcrypt-error 'f8-done! err)))
+
+(define-c-proc f8-get-iv! (mode-key::<mode-key> iv::<bytevector>
+			     :optional (ivs::<fixnum> 0))
+  (check-mode 'f8-get-iv! mode-key MODE_F8)
+  (let* ((|len::unsigned long| (- (SG_BVECTOR_SIZE iv) ivs))
+	 (err::int (f8_getiv
+		   (+ (SG_BVECTOR_ELEMENTS iv) ivs)
+		   (& len)
+		   (& (SG_MODE_KEY_F8 mode-key)))))
+    (check-tomcrypt-error 'f8-get-iv! err)
+    (result iv)))
+
+(define-c-proc f8-set-iv! (mode-key::<mode-key> iv::<bytevector>
+			     :optional (ivs::<fixnum> 0)) ::<void>
+  (check-mode 'f8-set-iv! mode-key MODE_F8)
+  (let ((err::int (f8_setiv
+		   (+ (SG_BVECTOR_ELEMENTS iv) ivs)
+		   (- (SG_BVECTOR_SIZE iv) ivs)
+		   (& (SG_MODE_KEY_F8 mode-key)))))
+    (check-tomcrypt-error 'f8-set-iv! err)))
+
+;; EAX
+(define-c-proc eax-start (cipher::<fixnum>
+			  key::<bytevector>
+			  nonce::<bytevector>
+			  header::<bytevector>)
+  (let* ((enc-auth-state (Sg_MakeEncAuthState MODE_EAX))
+	 (err::int (eax_init (& (SG_ENC_AUTH_STATE_EAX enc-auth-state))
+			     cipher
+			     (SG_BVECTOR_ELEMENTS key) (SG_BVECTOR_SIZE key)
+			     (SG_BVECTOR_ELEMENTS nonce) (SG_BVECTOR_SIZE nonce)
+			     (SG_BVECTOR_ELEMENTS header) (SG_BVECTOR_SIZE header))))
+    (check-tomcrypt-error 'eax-start err)
+    (result enc-auth-state)))
+
+(define-c-proc eax-encrypt! (enc-auth-state::<enc-auth-state>
+			     pt::<bytevector> ps::<fixnum>
+			     ct::<bytevector> cs::<fixnum>
+			     len::<fixnum>) ::<void>
+  (check-state-mode 'eax-encrypt! enc-auth-state MODE_EAX)
+  (check-range 'eax-encrypt! pt ps len)
+  (check-range 'eax-encrypt! ct cs len)
+  (let ((err::int (eax_encrypt (& (SG_ENC_AUTH_STATE_EAX enc-auth-state))
+			       (+ (SG_BVECTOR_ELEMENTS pt) ps)
+			       (+ (SG_BVECTOR_ELEMENTS ct) cs)
+			       len)))
+    (check-tomcrypt-error 'eax-encrypt! err)))
+
+(define-c-proc eax-decrypt! (enc-auth-state::<enc-auth-state>
+			     ct::<bytevector> cs::<fixnum>
+			     pt::<bytevector> ps::<fixnum>
+			     len::<fixnum>) ::<void>
+  (check-state-mode 'eax-decrypt! enc-auth-state MODE_EAX)
+  (check-range 'eax-decrypt! pt ps len)
+  (check-range 'eax-decrypt! ct cs len)
+  (let ((err::int (eax_decrypt (& (SG_ENC_AUTH_STATE_EAX enc-auth-state))
+			       (+ (SG_BVECTOR_ELEMENTS ct) cs)
+			       (+ (SG_BVECTOR_ELEMENTS pt) ps)
+			       len)))
+    (check-tomcrypt-error 'eax-decrypt! err)))
+
+(define-c-proc eax-add-header! (enc-auth-state::<enc-auth-state>
+				header::<bytevector>
+				:optional (start::<fixnum> 0)
+				          (end::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE header)))) ::<void>
+  (check-state-mode 'eax-add-header! enc-auth-state MODE_EAX)
+  (check-start-end 'eax-add-header! header start end)
+  (let ((err::int (eax_addheader (& (SG_ENC_AUTH_STATE_EAX enc-auth-state))
+				 (SG_BVECTOR_ELEMENTS header)
+				 (SG_BVECTOR_SIZE header))))
+    (check-tomcrypt-error 'eax-add-header! err)))
+
+(define-c-proc eax-done! (enc-auth-state::<enc-auth-state>
+			  tag::<bytevector>
+			  :optional (start::<fixnum> 0)) ::<fixnum>
+  (check-state-mode 'eax-done! enc-auth-state MODE_EAX)
+  (check-range 'eax-done! tag start (- (SG_BVECTOR_SIZE tag) start))
+  (let ((|len::unsigned long| (- (SG_BVECTOR_SIZE tag) start))
+	(err::int (eax_done (& (SG_ENC_AUTH_STATE_EAX enc-auth-state))
+			    (+ (SG_BVECTOR_ELEMENTS tag) start)
+			    (& len))))
+    (check-tomcrypt-error 'eax-done! err)
+    (result len)))
