@@ -498,6 +498,11 @@ void Sg__InitHash(SgLibrary *lib)
   REGISTER_HASH(&sha3_256_desc);
   REGISTER_HASH(&sha3_384_desc);
   REGISTER_HASH(&sha3_512_desc);
+  /* KECCAK */
+  REGISTER_HASH(&keccak_224_desc);
+  REGISTER_HASH(&keccak_256_desc);
+  REGISTER_HASH(&keccak_384_desc);
+  REGISTER_HASH(&keccak_512_desc);
   /* RMD */
   REGISTER_HASH(&rmd128_desc);
   REGISTER_HASH(&rmd160_desc);
@@ -517,7 +522,7 @@ void Sg__InitHash(SgLibrary *lib)
   REGISTER_HASH(&blake2s_160_desc);
   REGISTER_HASH(&blake2s_224_desc);
   REGISTER_HASH(&blake2s_256_desc);
-  /* TAB_SIZE = 32, so we still have some space... */
+  /* TAB_SIZE = 34, so we still have some space... */
   /* SHAKE */
   REGISTER_HASHX(&shake_128_desc, &sha3_shake_done);
   REGISTER_HASHX(&shake_256_desc, &sha3_shake_done);

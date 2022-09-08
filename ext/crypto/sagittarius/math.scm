@@ -23,6 +23,7 @@
 	    WHIRLPOOL 
 	    SHA-224 SHA-256 SHA-384 SHA-512 SHA-512/224 SHA-512/256
 	    SHA-3-224 SHA-3-256 SHA-3-384 SHA-3-512
+	    Keccak-224 Keccak-256 Keccak-384 Keccak-512
 	    RIPEMD-320 RIPEMD-256   
 	    Tiger-192 SHA-1 RIPEMD-160 RIPEMD-128
 	    MD5 MD4 MD2
@@ -69,6 +70,11 @@
   (define-constant SHA-3-256   "sha3-256")
   (define-constant SHA-3-384   "sha3-384")
   (define-constant SHA-3-512   "sha3-512")
+
+  (define-constant Keccak-224  "keccak224")
+  (define-constant Keccak-256  "keccak256")
+  (define-constant Keccak-384  "keccak384")
+  (define-constant Keccak-512  "keccak512")
   
   (define-constant Tiger-192  "tiger")
 

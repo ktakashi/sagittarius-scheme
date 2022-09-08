@@ -99,6 +99,11 @@ void Sg_InitDigest(SgLibrary *lib)
   REGISTER_HASH(&sha3_256_desc);
   REGISTER_HASH(&sha3_384_desc);
   REGISTER_HASH(&sha3_512_desc);
+  /* KECCAK */
+  REGISTER_HASH(&keccak_224_desc);
+  REGISTER_HASH(&keccak_256_desc);
+  REGISTER_HASH(&keccak_384_desc);
+  REGISTER_HASH(&keccak_512_desc);
   /* RMD */
   REGISTER_HASH(&rmd128_desc);
   REGISTER_HASH(&rmd160_desc);
