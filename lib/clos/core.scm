@@ -65,7 +65,7 @@
 	    compute-getter-and-setter
 
 	    ;; eql specializer
-	    eql
+	    eq eql equal
 
 	    ;; change-class
 	    change-class

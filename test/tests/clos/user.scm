@@ -92,6 +92,24 @@
 (test-equal "(multi-eql 0 2)" 'second (multi-eql 0 2))
 (test-equal "(multi-eql 'a 'a)" 'else (multi-eql 'a 'a))
 
+(define-method specializer-check (v) 0)
+(define-method specializer-check ((v (eq? 'a))) 1)
+(define-method specializer-check ((v (eqv? 1))) 2)
+(define-method specializer-check ((v (equal? "a"))) 3)
+;; corner case
+(define-method specializer-check ((v (eq? "b"))) 4)
+(define-method specializer-check ((v (eqv? "c"))) 5)
+(let ()
+  (test-equal "(specializer-check 'a)" 1 (specializer-check 'a))
+  (test-equal "(specializer-check 1)" 2 (specializer-check 1))
+  (test-equal "(specializer-check \"a\")" 3 (specializer-check "a"))
+  (test-equal "(specializer-check \"b\") literal" 4 (specializer-check "b"))
+  (test-equal "(specializer-check \"b\")" 0
+	      (specializer-check (string #\b)))
+  (test-equal "(specializer-check \"c\") literal" 5 (specializer-check "c"))
+  (test-equal "(specializer-check \"c\")" 0
+	      (specializer-check (string #\c))))
+
 ;; issue 153
 (define-method unpack-args :before ((a <symbol>) . args)  args)
 (define-method unpack-args ((a <symbol>) . args) args)

@@ -98,7 +98,9 @@
       (result (Sg_MakeNextMethod (SG_GENERIC gf) methods argv argc
 				 FALSE))))
 
-  (define-c-proc eql (o) Sg_MakeEqlSpecializer)
+  (define-c-proc eq    (o) Sg_MakeEqSpecializer)
+  (define-c-proc eql   (o) Sg_MakeEqlSpecializer)
+  (define-c-proc equal (o) Sg_MakeEqualSpecializer)
 
   (define-c-proc %compute-applicable-methods (gf args::<list>)
     Sg_ComputeApplicableMethods)

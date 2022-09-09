@@ -115,9 +115,16 @@ typedef struct SgNextMethodRec
 SG_CLASS_DECL(Sg_EqlSpecializerClass);
 #define SG_CLASS_EQL_SPECIALIZER (&Sg_EqlSpecializerClass)
 
+typedef enum {
+  SG_EQ_SPECIALIZER,
+  SG_EQV_SPECIALIZER,
+  SG_EQUAL_SPECIALIZER,
+} SgEqlSpecializerType;
+
 typedef struct SgEqlSpecializerRec
 {
   SG_HEADER;
+  SgEqlSpecializerType type;
   SgObject object;
 } SgEqlSpecializer;
 
@@ -145,7 +152,9 @@ SG_EXTERN SgObject Sg_ComputeMethods(SgGeneric *gf, SgObject *argv, int argc,
 SG_EXTERN SgObject Sg_MakeNextMethod(SgGeneric *gf, SgObject methods,
 				     SgObject *argv, int argc, int copyargs);
 
+SG_EXTERN SgObject Sg_MakeEqSpecializer(SgObject obj);
 SG_EXTERN SgObject Sg_MakeEqlSpecializer(SgObject obj);
+SG_EXTERN SgObject Sg_MakeEqualSpecializer(SgObject obj);
 
 /* internal use */
 SG_EXTERN SgObject Sg_ComputeApplicableMethods(SgObject gf, SgObject args);

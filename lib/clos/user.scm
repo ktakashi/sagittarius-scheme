@@ -65,8 +65,8 @@
 	    ;; for local method
 	    let-method
 
-	    eql
-	    eqv? ;; for prefix or rename import
+	    eq eql equal
+	    eq? eqv? equal? ;; for prefix or rename import
 
 	    ;; class redefnition
 	    redefine-class!
@@ -281,9 +281,11 @@
 		(else (loop (cdr ss) (cons (car ss) rs))))))
       (define (build k qualifier generic qargs rest opts body)
 	(define (parse-specializer s)
-	  (syntax-case s (eqv?)
+	  (syntax-case s (eq? eqv? equal?)
 	    ((_ class) (identifier? #'class) #'class)
+	    ((_ (eq? v)) #'(eq v))
 	    ((_ (eqv? v)) #'(eql v))
+	    ((_ (equal? v)) #'(equal v))
 	    ((_ v) #'v)
 	    (_ #'<top>)))
 	(define (->s s) (datum->syntax k s))

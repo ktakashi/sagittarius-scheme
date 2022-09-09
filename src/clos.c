@@ -149,8 +149,14 @@ static SgObject class_list_to_names(SgClass **lst, int len)
   int i;
   for (i=0; i<len; i++, lst++) {
     if (Sg_TypeP(*lst, SG_CLASS_EQL_SPECIALIZER)) {
-      SgObject name = SG_LIST2(SG_INTERN("eql"), 
-			       SG_EQL_SPECIALIZER(*lst)->object);
+      SgObject cdr = SG_LIST1(SG_EQL_SPECIALIZER(*lst)->object);
+      SgObject name;
+      switch (SG_EQL_SPECIALIZER(*lst)->type) {
+      case SG_EQ_SPECIALIZER: name = Sg_Cons(SG_INTERN("eq"), cdr);
+      case SG_EQV_SPECIALIZER: name = Sg_Cons(SG_INTERN("eql"), cdr);
+      case SG_EQUAL_SPECIALIZER: name = Sg_Cons(SG_INTERN("equal"), cdr);
+      default: name = Sg_Cons(SG_INTERN("unknown"), cdr);
+      }
       SG_APPEND1(h, t, name);
     } else {
       SG_APPEND1(h, t, (*lst)->name);
@@ -656,10 +662,20 @@ int Sg_ApplicableP(SgObject c, SgObject arg)
 
 #define PREALLOC_SIZE 32
 
+static int compare_eql_specializer(SgObject sp, SgObject obj)
+{
+  SgObject object = SG_EQL_SPECIALIZER(sp)->object;
+  switch (SG_EQL_SPECIALIZER(sp)->type) {
+  case SG_EQ_SPECIALIZER: return SG_EQ(obj, object);
+  case SG_EQV_SPECIALIZER: return Sg_EqvP(obj, object);
+  case SG_EQUAL_SPECIALIZER: return Sg_EqualP(obj, object);
+  default: return FALSE; /* unknown specializer, so no idea how to compare */
+  }
+}
+
 static int specializer_match(SgObject sp, SgObject obj)
 {
-  return (SG_EQL_SPECIALIZERP(sp) 
-	  && Sg_EqvP(obj, SG_EQL_SPECIALIZER(sp)->object))
+  return (SG_EQL_SPECIALIZERP(sp) && compare_eql_specializer(sp, obj))
     || Sg_TypeP(obj, sp);
 }
 
@@ -2930,7 +2946,14 @@ SgObject Sg_VMComputeAroundMethods(SgObject around, SgObject before,
 
 static void eql_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
 {
-  Sg_Printf(p, UC("#<eql-specializer (eql %S)>"), 
+  const SgChar *type;
+  switch (SG_EQL_SPECIALIZER(o)->type) {
+  case SG_EQ_SPECIALIZER: type = UC("eq"); break;
+  case SG_EQV_SPECIALIZER: type = UC("eql"); break;
+  case SG_EQUAL_SPECIALIZER: type = UC("equall"); break;
+  default: type = UC("unknown"); break;
+  }
+  Sg_Printf(p, UC("#<eql-specializer (%s %S)>"), type,
 	    SG_EQL_SPECIALIZER(o)->object);
 }
 
@@ -2944,13 +2967,30 @@ static SgClass *Sg_ClassCPL[] = {
 SG_DEFINE_BUILTIN_CLASS(Sg_EqlSpecializerClass, eql_printer, NULL, NULL, NULL,
 			Sg_ClassCPL);
 
-/* eql specializer stuff */
-SgObject Sg_MakeEqlSpecializer(SgObject obj)
+static SgObject make_eql_specializer(SgObject obj, SgEqlSpecializerType type)
 {
   SgEqlSpecializer *z = SG_NEW(SgEqlSpecializer);
   SG_SET_CLASS(z, SG_CLASS_EQL_SPECIALIZER);
   z->object = obj;
+  z->type = type;
   return SG_OBJ(z);
+}
+  
+
+/* eql specializer stuff */
+SgObject Sg_MakeEqSpecializer(SgObject obj)
+{
+  return make_eql_specializer(obj, SG_EQ_SPECIALIZER);
+}
+
+SgObject Sg_MakeEqlSpecializer(SgObject obj)
+{
+  return make_eql_specializer(obj, SG_EQV_SPECIALIZER);
+}
+
+SgObject Sg_MakeEqualSpecializer(SgObject obj)
+{
+  return make_eql_specializer(obj, SG_EQUAL_SPECIALIZER);
 }
 
 /* default slot-unbound and slot-missing methods */
