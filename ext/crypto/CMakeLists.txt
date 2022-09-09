@@ -18,6 +18,7 @@ ADD_LIBRARY(sagittarius--tomcrypt MODULE
   sagittarius-tomcrypt.c
   sagittarius-cipher.c ${CMAKE_CURRENT_BINARY_DIR}/cipher.c
   sagittarius-digest.c ${CMAKE_CURRENT_BINARY_DIR}/digest.c
+  sagittarius-random.c ${CMAKE_CURRENT_BINARY_DIR}/random.c
   )
 IF (USE_CPP_FOR_BROKEN_LINKER)
   # ugly solution
@@ -25,12 +26,13 @@ IF (USE_CPP_FOR_BROKEN_LINKER)
     sagittarius-tomcrypt.c
     sagittarius-cipher.c ${CMAKE_CURRENT_BINARY_DIR}/cipher.c
     sagittarius-digest.c ${CMAKE_CURRENT_BINARY_DIR}/digest.c
+    sagittarius-random.c ${CMAKE_CURRENT_BINARY_DIR}/random.c
     PROPERTIES LANGUAGE CXX)
 ENDIF()
 
 ADD_STUBS(sagittarius--tomcrypt
   COMMAND ${GENSTUB}
-  FILES cipher.stub digest.stub
+  FILES cipher.stub digest.stub random.stub
   OUTTREE)
 SET_TARGET_PROPERTIES(sagittarius--tomcrypt PROPERTIES PREFIX "")
 IF(APPLE)
@@ -72,12 +74,12 @@ INSTALL(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/crypto
 
 # sagittarius--random
 ADD_LIBRARY(sagittarius--math MODULE
-  hash.c random.c ${CMAKE_CURRENT_BINARY_DIR}/math_stub.c sagittarius-math.c)
+  hash.c prng.c ${CMAKE_CURRENT_BINARY_DIR}/math_stub.c sagittarius-math.c)
 
 IF (USE_CPP_FOR_BROKEN_LINKER)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(sagittarius-math.c 
-    ${CMAKE_CURRENT_BINARY_DIR}/math_stub.c hash.c random.c
+    ${CMAKE_CURRENT_BINARY_DIR}/math_stub.c hash.c prng.c
     PROPERTIES LANGUAGE CXX)
 ENDIF()
 

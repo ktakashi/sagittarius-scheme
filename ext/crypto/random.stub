@@ -1,0 +1,82 @@
+;; -*- mode: scheme; coding: utf-8; -*-
+(decl-code
+ (.include <sagittarius/private.h>)
+ (.define "LIBSAGITTARIUS_EXT_BODY")
+ (.include  <sagittarius/extend.h>
+	    <sagittarius-random.h>))
+
+(define-type <prng> "int" "prng descriptor" "PRNG_DESCRIPTORP" "SG_INT_VALUE" "SG_MAKE_INT" 0)
+(define-type <prng-state> "SgPrngState *")
+
+(define-cise-stmt assertion-violation
+  ((_ who msg)
+   `(begin (Sg_AssertionViolation ,who (SG_MAKE_STRING ,msg) '())))
+  ((_ who msg irritants)
+   `(begin (Sg_AssertionViolation ,who (SG_MAKE_STRING ,msg) ,irritants))))
+
+(define-cise-stmt check-tomcrypt-error
+  ((_ who err)
+   `(unless (== ,err CRYPT_OK)
+      (Sg_AssertionViolation ,who (Sg_MakeStringC (error_to_string err)) '()))))
+
+(define-cise-stmt check-range
+  ((_ who bv start length)
+   `(when (< (- (SG_BVECTOR_SIZE ,bv) ,start) ,length)
+      (assertion-violation ,who "Length is too long"
+	(SG_LIST3 '<
+		  (SG_MAKE_INT (- (SG_BVECTOR_SIZE ,bv) ,start))
+		  (SG_MAKE_INT ,length))))))
+
+(define-cise-stmt check-start-end
+  ((_ who bv start end)
+   `(when (or (< ,start 0) (< ,end (SG_BVECTOR_SIZE ,bv)))
+      (assertion-violation ,who "Out of the bytevector range"
+	(SG_LIST3 ,bv (SG_MAKE_INT ,start) (SG_MAKE_INT ,end))))))
+
+
+(define-c-proc find-prng (name::<string>) ::<prng> :no-side-effect
+  (let ((prng::int (find_prng (Sg_Utf32sToUtf8s name))))
+    (when (< prng 0)
+      (assertion-violation 'find-prng "Prng not supported" name))
+    (result prng)))
+
+(define-c-proc prng-descriptor? (obj) ::<boolean> :no-side-effect
+  PRNG_DESCRIPTORP)
+(define-c-proc prng-descriptor-name (prng::<prng>) :no-side-effect
+  (result (Sg_MakeStringC (PRNG_DESCRIPTOR_NAME prng))))
+
+(define-c-proc prng-state? (obj) ::<boolean> :no-side-effect
+  SG_PRNG_STATE_P)
+
+(define-c-proc prng-start (prng::<prng>)
+  (let* ((ps (Sg_MakePrngState prng))
+	 (err::int (PRNG_DESCRIPTOR_START prng (& (SG_PRNG_STATE_STATE ps)))))
+    (check-tomcrypt-error 'prng-start err)
+    (result ps)))
+
+(define-c-proc prng-add-entropy! (ps::<prng-state> bv::<bytevector>
+				  :optional (start::<fixnum> 0)  
+					    (end::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE bv))))
+  (check-start-end 'prng-add-entropy!! bv start end)
+  (let ((err::int (PRNG_DESCRIPTOR_ADD_ENTROPY (SG_PRNG_STATE_PRNG ps)
+					       (& (SG_PRNG_STATE_STATE ps))
+					       (+ (SG_BVECTOR_ELEMENTS bv) start)
+					       (- end start))))
+    (check-tomcrypt-error 'prng-add-entropy!! err)
+    (result ps)))
+
+(define-c-proc prng-read! (ps::<prng-state> bv::<bytevector>
+			   :optional (start::<fixnum> 0)  
+				     (len::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE bv))))
+  (check-range 'prng-read! bv start len)
+  (let ((err::int (PRNG_DESCRIPTOR_READ (SG_PRNG_STATE_PRNG ps)
+					(& (SG_PRNG_STATE_STATE ps))
+					(+ (SG_BVECTOR_ELEMENTS bv) start)
+					len)))
+    (check-tomcrypt-error 'prng-read! err)
+    (result bv)))
+
+(define-c-proc prng-done! (ps::<prng-state>) ::<void>
+  (let ((err::int (PRNG_DESCRIPTOR_DONE (SG_PRNG_STATE_PRNG ps)
+					(& (SG_PRNG_STATE_STATE ps)))))
+    (check-tomcrypt-error 'prng-done! err)))

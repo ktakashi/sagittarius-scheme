@@ -1,4 +1,4 @@
-/* sagittarius-tomcrypt.c                        -*- mode: c; coding: utf-8; -*-
+/* sagittarius-digest.c                          -*- mode: c; coding: utf-8; -*-
  *
  *   Copyright (c) 2010-2022  Takashi Kato <ktakashi@ymail.com>
  *
@@ -28,18 +28,43 @@
 #include <sagittarius.h>
 #define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
-#include "sagittarius-cipher.h"
-#include "sagittarius-digest.h"
 #include "sagittarius-random.h"
 
-SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__tomcrypt()
+static void prng_state_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
-  SgLibrary *lib;
-  SG_INIT_EXTENSION(sagittarius__cipher);
+  const char *cname = PRNG_DESCRIPTOR_NAME(SG_PRNG_STATE_PRNG(self));
+  SgObject name = Sg_MakeStringC(cname);
+  Sg_Printf(port, UC("#<%A-prng-state>"), name);
+}
 
-  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius crypto tomcrypt)"),
-				  FALSE));
-  Sg_InitCipher(lib);
-  Sg_InitDigest(lib);
-  Sg_InitRandom(lib);
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_PrngStateClass, prng_state_printer);
+
+SgObject Sg_MakePrngState(int prng)
+{
+  SgPrngState *state = SG_NEW(SgPrngState);
+  SG_SET_CLASS(state, SG_CLASS_PRNG_STATE);
+  state->prng = prng;
+  return SG_OBJ(state);
+}
+
+extern void Sg__Init_random(SgLibrary *lib);
+
+void Sg_InitRandom(SgLibrary *lib)
+{
+  Sg__Init_random(lib);
+  
+#define REGISTER_PRNG(prng)						\
+  if (register_prng(prng) == -1) {					\
+    Sg_Warn(UC("Unable to register %S prng algorithm "),		\
+	    Sg_MakeStringC((prng)->name));				\
+  }
+
+  REGISTER_PRNG(&yarrow_desc);
+  REGISTER_PRNG(&fortuna_desc);
+  REGISTER_PRNG(&rc4_desc);
+  REGISTER_PRNG(&sober128_desc);
+  REGISTER_PRNG(&sprng_desc);
+  REGISTER_PRNG(&chacha20_prng_desc);
+
+  Sg_InitStaticClass(SG_CLASS_PRNG_STATE, UC("<pring-state>"), lib, NULL, 0);
 }
