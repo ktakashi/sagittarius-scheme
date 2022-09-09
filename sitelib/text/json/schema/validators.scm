@@ -285,7 +285,6 @@
 			   (check-$defs (cdr e) id ids)))) def))) defs)
       (for-each (lambda (schema) (check-$defs schema root-id ids))
 		possible-schemata)))
-
   (when (vector? root-schema)
     (let ((base-id (check-id root-schema root-id ids)))
       (check-$defs root-schema base-id ids))))
@@ -420,8 +419,31 @@
     ;; https://datatracker.ietf.org/doc/html/draft-handrews-json-schema-01
     ;; section 8.2.4
     (define (handle-ref $ref)
+      (define (query-fragment frag schema)
+	;; must be a valid json pointer, otherwise an ID (or anchor)
+	(cond ((or (zero? (string-length frag)) (eqv? #\/ (string-ref frag 0)))
+	       (let ((s ((json-pointer frag) schema)))
+		 (and (not (json-pointer-not-found? s))
+		      (->validator s))))
+	      ((hashtable-ref ids (string-append "#" frag) #f) => ->validator)
+	      (else #f)))
+      ;; mostly urn:uuid:...#frag case
+      (define (check-absolute scheme auth path query frag)
+	(define (->specific scheme auth path query)
+	  (and scheme (not auth) (string=? scheme "urn") ;; damn...
+	       (not query)
+	       path))
+	(let ((uri (uri-compose :scheme scheme
+				:specific (->specific scheme auth path query)
+				:authority auth
+				:path path
+				:query query)))
+	  (cond ((hashtable-ref ids uri #f) =>
+		 (lambda (schema) (query-fragment frag schema)))
+		(else #f))))
       (let-values (((scheme auth path query frag) (parse-uri $ref)))
-	(cond (scheme
+	(cond ((and frag (check-absolute scheme auth path query frag)))
+	      (scheme
 	       (and (*json-schema:resolve-external-schema?*)
 		    (retrieve-from-uri (uri-compose :scheme scheme
 						    :authority auth
@@ -444,14 +466,7 @@
 			   ((and (*json-schema:resolve-external-schema?*)
 				 (retrieve-from-uri id frag)))
 			   (else #f))))))
-	      (frag
-	       ;; must be a valid json pointer, otherwise an ID (or anchor)
-	       (and (or (zero? (string-length frag))
-			(eqv? #\/ (string-ref frag 0)))
-		    (let* ((parent (search-parent-schema schema))
-			   (s ((json-pointer frag) parent)))
-		      (and (not (json-pointer-not-found? s))
-			   (->validator s)))))
+	      (frag (query-fragment frag (search-parent-schema schema)))
 	      (else #f))))
     (cond ((hashtable-ref ids $ref #f) => ->validator)
 	  ((handle-ref $ref))
@@ -512,6 +527,7 @@
 	  (else (assertion-violation 'json-schema:type "Unknown type" type))))
   (define (wrap-report v)
     (lambda (e) (or (v e) (report e `(type, type)))))
+
   (cond ((list? type)
 	 (check type)
 	 (wrap-report

@@ -47,7 +47,8 @@
 
 ;; the *will not be supported/fixed* test names
 (define *known-incompatible-tests* '())
-(define *ignoring-scenarios* '())
+(define *ignoring-scenarios*
+  '("retrieved nested refs resolve relative to their URI not $id"))
 
 ;; FIXME copy&paste...
 (define (key=? key) (lambda (e) (and (pair? e) (string=? (car e) key) e)))
