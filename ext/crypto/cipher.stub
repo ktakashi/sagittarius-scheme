@@ -71,6 +71,8 @@
   CIPHER_DESCRIPTOR_MIN_KEY_LENGTH)
 (define-c-proc cipher-descriptor-max-key-length (cipher::<cipher>) ::<fixnum> :no-side-effect
   CIPHER_DESCRIPTOR_MAX_KEY_LENGTH)
+(define-c-proc cipher-descriptor-default-rounds (cipher::<cipher>) ::<fixnum> :no-side-effect
+  CIPHER_DESCRIPTOR_DEFAULT_ROUNDS)
 (define-c-proc cipher-descriptor-suggested-keysize (cipher::<cipher>) ::<fixnum>
   (let* ((size::int (CIPHER_DESCRIPTOR_MAX_KEY_LENGTH cipher))
 	 (err::int (CIPHER_DESCRIPTOR_KEYSIZE cipher (& size))))

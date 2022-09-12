@@ -132,7 +132,7 @@ SG_CLASS_DECL(Sg_EncAuthStateClass)
 #define CIPHER_DESCRIPTOR_BLOCK_LENGTH(cipher)   CIPHER_DESCRIPTOR(cipher).block_length
 #define CIPHER_DESCRIPTOR_MIN_KEY_LENGTH(cipher) CIPHER_DESCRIPTOR(cipher).min_key_length
 #define CIPHER_DESCRIPTOR_MAX_KEY_LENGTH(cipher) CIPHER_DESCRIPTOR(cipher).max_key_length
-
+#define CIPHER_DESCRIPTOR_DEFAULT_ROUNDS(cipher) CIPHER_DESCRIPTOR(cipher).default_rounds
 #define CIPHER_DESCRIPTOR_KEYSIZE(cipher, ks) CIPHER_DESCRIPTOR(cipher).keysize(ks)
 
 SgObject Sg_MakeModeKey(SgCipherMode mode);

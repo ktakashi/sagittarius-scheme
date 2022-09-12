@@ -1,0 +1,116 @@
+;;; -*- mode:scheme; coding:utf-8; -*-
+;;;
+;;; sagittarius/crypto/descriptors/cipher.scm - Cipher descriptor
+;;;  
+;;;   Copyright (c) 2022  Takashi Kato  <ktakashi@ymail.com>
+;;;   
+;;;   Redistribution and use in source and binary forms, with or without
+;;;   modification, are permitted provided that the following conditions
+;;;   are met:
+;;;   
+;;;   1. Redistributions of source code must retain the above copyright
+;;;      notice, this list of conditions and the following disclaimer.
+;;;  
+;;;   2. Redistributions in binary form must reproduce the above copyright
+;;;      notice, this list of conditions and the following disclaimer in the
+;;;      documentation and/or other materials provided with the distribution.
+;;;  
+;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+;;;   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+;;;   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+;;;   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+;;;   TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+;;;   PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+;;;  
+
+#!nounbound
+(library (sagittarius crypto descriptors cipher)
+    (export cipher-descriptor? (rename (cipher-descriptor <cipher-descriptor>)) 
+	    cipher-descriptor-cipher
+	    cipher-descriptor-name
+	    cipher-descriptor-block-length
+	    cipher-descriptor-min-key-length cipher-descriptor-max-key-length
+	    cipher-descriptor-default-rounds
+	    cipher-descriptor-suggested-keysize
+
+	    *scheme:blowfish*
+	    *scheme:x-tea*
+	    *scheme:rc2* *scheme:rc5* *scheme:rc6*
+	    *scheme:safer+* *scheme:safer-k64* *scheme:safer-sk64*
+	    *scheme:safer-k128* *scheme:safer-sk128*
+	    *scheme:aes* *scheme:aes-128* *scheme:aes-192* *scheme:aes-256*
+	    *scheme:twofish*
+	    *scheme:des* *scheme:des3* *scheme:desede*
+	    *scheme:cast5* *scheme:cast-128*
+	    *scheme:noekeon*
+	    *scheme:skipjack*
+	    *scheme:khazad*
+	    *scheme:seed*
+	    *scheme:kasumi*
+	    *scheme:camellia*)
+    (import (rnrs)
+	    (prefix (sagittarius crypto tomcrypt) tc:))
+;; A wrapper to avoid constant folding, the cipher descriptor is a
+;; mere fixnum, and may change every invocation of sagittarius.
+;; (shouldn't be but if I touch the order of registration for example)
+;; So, I make a record to wrap this the descriptors 
+(define-record-type cipher-descriptor
+  (fields cipher ;; real cipher descriptor, a fixnum
+	  name
+	  block-length
+	  min-key-length
+	  max-key-length
+	  default-rounds))
+(define (cipher-descriptor-suggested-keysize descriptor)
+  (unless (cipher-descriptor? descriptor)
+    (assertion-violation 'cipher-descriptor-suggested-keysize
+			 "Cipher descriptor is required" descriptor))
+  (tc:cipher-descriptor-suggested-keysize 
+   (cipher-descriptor-cipher descriptor)))
+
+(define-syntax build-cipher-descriptor
+  (syntax-rules ()
+    ((_ name)
+     (let ((cipher (tc:find-cipher name)))
+       (make-cipher-descriptor
+	cipher
+	(tc:cipher-descriptor-name cipher)
+	(tc:cipher-descriptor-block-length cipher)
+	(tc:cipher-descriptor-min-key-length cipher)
+	(tc:cipher-descriptor-max-key-length cipher)
+	(tc:cipher-descriptor-default-rounds cipher))))))
+
+(define *scheme:blowfish*    (build-cipher-descriptor tc:*scheme:blowfish*   ))
+(define *scheme:x-tea*       (build-cipher-descriptor tc:*scheme:x-tea*      ))
+(define *scheme:rc2*         (build-cipher-descriptor tc:*scheme:rc2*        ))
+(define *scheme:rc5*         (build-cipher-descriptor tc:*scheme:rc5*        ))
+(define *scheme:rc6*         (build-cipher-descriptor tc:*scheme:rc6*        ))
+(define *scheme:safer+*      (build-cipher-descriptor tc:*scheme:safer+*     ))
+(define *scheme:safer-k64*   (build-cipher-descriptor tc:*scheme:safer-k64*  ))
+(define *scheme:safer-sk64*  (build-cipher-descriptor tc:*scheme:safer-sk64* ))
+(define *scheme:safer-k128*  (build-cipher-descriptor tc:*scheme:safer-k128* ))
+(define *scheme:safer-sk128* (build-cipher-descriptor tc:*scheme:safer-sk128*))
+(define *scheme:aes*         (build-cipher-descriptor tc:*scheme:aes*        ))
+(define *scheme:aes-128*     (build-cipher-descriptor tc:*scheme:aes-128*    ))
+(define *scheme:aes-192*     (build-cipher-descriptor tc:*scheme:aes-192*    ))
+(define *scheme:aes-256*     (build-cipher-descriptor tc:*scheme:aes-256*    ))
+(define *scheme:twofish*     (build-cipher-descriptor tc:*scheme:twofish*    ))
+(define *scheme:des*         (build-cipher-descriptor tc:*scheme:des*        ))
+(define *scheme:des3*        (build-cipher-descriptor tc:*scheme:des3*       ))
+(define *scheme:desede*      *scheme:des3*)
+(define *scheme:cast5*       (build-cipher-descriptor tc:*scheme:cast5*))
+(define *scheme:cast-128*    *scheme:cast5*)
+(define *scheme:noekeon*     (build-cipher-descriptor tc:*scheme:noekeon* ))
+(define *scheme:skipjack*    (build-cipher-descriptor tc:*scheme:skipjack*))
+(define *scheme:khazad*      (build-cipher-descriptor tc:*scheme:khazad*  ))
+(define *scheme:seed*        (build-cipher-descriptor tc:*scheme:seed*    ))
+(define *scheme:kasumi*      (build-cipher-descriptor tc:*scheme:kasumi*  ))
+(define *scheme:camellia*    (build-cipher-descriptor tc:*scheme:camellia*))
+
+
+)
