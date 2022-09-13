@@ -34,7 +34,8 @@ static void prng_state_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   const char *cname = PRNG_DESCRIPTOR_NAME(SG_PRNG_STATE_PRNG(self));
   SgObject name = Sg_MakeStringC(cname);
-  Sg_Printf(port, UC("#<%A-prng-state>"), name);
+  Sg_Printf(port, UC("#<%A-prng-state %d>"), name,
+	    SG_PRNG_STATE_PRNG(self));
 }
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_PrngStateClass, prng_state_printer);

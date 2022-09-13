@@ -1,20 +1,20 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
 ;;; sagittarius/crypto/descriptors/mode.scm - Mode descriptor
-;;;  
+;;;
 ;;;   Copyright (c) 2022  Takashi Kato  <ktakashi@ymail.com>
-;;;   
+;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
 ;;;   are met:
-;;;   
+;;;
 ;;;   1. Redistributions of source code must retain the above copyright
 ;;;      notice, this list of conditions and the following disclaimer.
-;;;  
+;;;
 ;;;   2. Redistributions in binary form must reproduce the above copyright
 ;;;      notice, this list of conditions and the following disclaimer in the
 ;;;      documentation and/or other materials provided with the distribution.
-;;;  
+;;;
 ;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 ;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 ;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -26,7 +26,7 @@
 ;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-;;;  
+;;;
 
 ;; the same concept of the cipher descriptor
 ;; this one is a bit more complicated as we also want to
@@ -38,12 +38,14 @@
     (export *mode:ecb* *mode:cbc* *mode:cfb* *mode:ofb*
 	    *mode:ctr* *mode:lrw* *mode:f8*
 
-	    *ctr-mode:little-endian* *ctr-mode:big-endian* *ctr-mode:rfc3686*
-
+	    (rename (tc:*ctr-mode:little-endian* *ctr-mode:little-endian*)
+		    (tc:*ctr-mode:big-endian*    *ctr-mode:big-endian*)
+		    (tc:*ctr-mode:rfc3686*       *ctr-mode:rfc3686*))
+	    
 	    mode-descriptor? mode-descriptor-name
 	    mode-descriptor-has-set-iv!?
 	    mode-descriptor-has-get-iv!?
-	    
+
 	    mode-key?
 	    mode-start mode-encrypt! mode-decrypt! mode-done!
 	    mode-set-iv! mode-get-iv!)
@@ -80,7 +82,7 @@
    (mode-key-state-key mode-key) ct cs pt ps len))
 (define (mode-done! mode-key)
   ((mode-descriptor-done (mode-key-descriptor mode-key))
-   (mode-key-state-key mode-key)))  
+   (mode-key-state-key mode-key)))
 (define (mode-set-iv! mode-key iv . opts)
   (let* ((descriptor (mode-key-descriptor mode-key))
 	 (set-iv (mode-descriptor-set-iv descriptor)))

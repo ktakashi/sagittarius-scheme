@@ -106,7 +106,7 @@
 	    *digest:blake2s-256* *digest:blake2b-160* *digest:blake2b-256*
 	    *digest:blake2b-384* *digest:blake2b-512*
 
-	    digest-descriptor?
+	    find-digest digest-descriptor?
 	    digest-descriptor-name digest-descriptor-block-size
 	    digest-descriptor-digest-size digest-descriptor-oid
 
@@ -115,10 +115,10 @@
 	    sha3-shake-init sha3-shake-process! sha3-shake-done!
 
 	    ;; prng
-	    *prng:yarrow* *prng:fortuna* *prng:rc4* *prng:sober-128
+	    *prng:yarrow* *prng:fortuna* *prng:rc4* *prng:sober-128*
 	    *prng:system* *prng:chacha20*
 
-	    prng-descriptor? prng-descriptor-name
+	    find-prng prng-descriptor? prng-descriptor-name
 
 	    prng-state?
 	    prng-start prng-add-entropy! prng-read! prng-done!
@@ -159,7 +159,7 @@
 (define-constant *prng:yarrow*        "yarrow")
 (define-constant *prng:fortuna*       "fortuna")
 (define-constant *prng:rc4*           "rc4")
-(define-constant *prng:sober-128      "sober128")
+(define-constant *prng:sober-128*     "sober128")
 (define-constant *prng:system*        "sprng")
 (define-constant *prng:chacha20*      "chacha20")
 

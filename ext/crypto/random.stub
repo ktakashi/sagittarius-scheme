@@ -17,7 +17,11 @@
 (define-cise-stmt check-tomcrypt-error
   ((_ who err)
    `(unless (== ,err CRYPT_OK)
-      (Sg_AssertionViolation ,who (Sg_MakeStringC (error_to_string err)) '()))))
+      (Sg_AssertionViolation ,who (Sg_MakeStringC (error_to_string err)) '())))
+  ((_ who err irr)
+   `(unless (== ,err CRYPT_OK)
+      (Sg_AssertionViolation ,who (Sg_MakeStringC (error_to_string err))
+			     ,irr))))
 
 (define-cise-stmt check-range
   ((_ who bv start length)
@@ -57,26 +61,25 @@
 (define-c-proc prng-add-entropy! (ps::<prng-state> bv::<bytevector>
 				  :optional (start::<fixnum> 0)  
 					    (end::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE bv))))
-  (check-start-end 'prng-add-entropy!! bv start end)
+  (check-start-end 'prng-add-entropy! bv start end)
   (let ((err::int (PRNG_DESCRIPTOR_ADD_ENTROPY (SG_PRNG_STATE_PRNG ps)
 					       (& (SG_PRNG_STATE_STATE ps))
 					       (+ (SG_BVECTOR_ELEMENTS bv) start)
 					       (- end start))))
-    (check-tomcrypt-error 'prng-add-entropy!! err)
+    (check-tomcrypt-error 'prng-add-entropy! err ps)
     (result ps)))
 
 (define-c-proc prng-read! (ps::<prng-state> bv::<bytevector>
 			   :optional (start::<fixnum> 0)  
-				     (len::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE bv))))
+				     (len::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE bv)))) ::<fixnum>
   (check-range 'prng-read! bv start len)
-  (let ((err::int (PRNG_DESCRIPTOR_READ (SG_PRNG_STATE_PRNG ps)
-					(& (SG_PRNG_STATE_STATE ps))
-					(+ (SG_BVECTOR_ELEMENTS bv) start)
-					len)))
-    (check-tomcrypt-error 'prng-read! err)
-    (result bv)))
+  (let ((|n::unsigned long| (PRNG_DESCRIPTOR_READ (SG_PRNG_STATE_PRNG ps)
+						  (& (SG_PRNG_STATE_STATE ps))
+						  (+ (SG_BVECTOR_ELEMENTS bv) start)
+						  len)))
+    (result n)))
 
 (define-c-proc prng-done! (ps::<prng-state>) ::<void>
   (let ((err::int (PRNG_DESCRIPTOR_DONE (SG_PRNG_STATE_PRNG ps)
 					(& (SG_PRNG_STATE_STATE ps)))))
-    (check-tomcrypt-error 'prng-done! err)))
+    (check-tomcrypt-error 'prng-done! err ps)))
