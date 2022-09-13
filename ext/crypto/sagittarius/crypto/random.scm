@@ -55,11 +55,15 @@
 ;; System random instance, use this to feed entropy
 (define systam-prng (prng-start *prng:system*))
 
+(define default-entropy (string->utf8 "default entropy"))
 (define (pseudo-random-generator descriptor)
   (unless (prng-descriptor? descriptor)
     (assertion-violation 'pseudo-random-generator
 			 "PRNG descriptor is required" descriptor))
-  (make-random-generator (prng-start descriptor)))
+  (let ((prng (prng-start descriptor)))
+    ;; some PRNG requires initial entropy, i.e RC4 so add dummy here
+    (prng-add-entropy! prng default-entropy)
+    (make-random-generator (prng-ready! prng))))
 
 (define (secure-random-generator descriptor :optional (seed-size 16))
   (unless (prng-descriptor? descriptor)
@@ -69,14 +73,14 @@
 	(entropy (make-bytevector 16)))
     (prng-read! systam-prng entropy)
     (prng-add-entropy! prng entropy)
-    (%make prng)))
+    (%make (prng-ready! prng))))
 
 (define (random-generator-read-random-bytes random-generator size)
   (unless (random-generator? random-generator)
     (assertion-violation 'random-generator-read-random-bytes
 			 "Random generator is required" random-generator))
   (let ((bv (make-bytevector size)))
-    (random-generator-read-random-bytes! random-generator bv 0)
+    (random-generator-read-random-bytes! random-generator bv 0 size)
     ;; should we check the read amount?
     bv))
 

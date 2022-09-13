@@ -35,7 +35,8 @@
 
 	    prng-descriptor? prng-descriptor-name
 
-	    prng? prng-start prng-add-entropy! prng-read! prng-done!)
+	    prng? prng-start prng-add-entropy! prng-ready!
+	    prng-read! prng-done!)
     (import (rnrs)
 	    (prefix (sagittarius crypto tomcrypt) tc:))
 
@@ -55,6 +56,7 @@
   (unless (prng? prng)
     (assertion-violation 'prng-add-entropy! "PRNG is required" prng))
   (apply tc:prng-add-entropy! (prng-state prng) bv opts))
+(define (prng-ready! prng) (tc:prng-ready! (prng-state prng)) prng)
 (define (prng-read! prng bv . opts)
   (unless (prng? prng)
     (assertion-violation 'prng-read! "PRNG is required" prng))

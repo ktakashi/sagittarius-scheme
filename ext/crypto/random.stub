@@ -69,6 +69,12 @@
     (check-tomcrypt-error 'prng-add-entropy! err ps)
     (result ps)))
 
+(define-c-proc prng-ready! (ps::<prng-state>)
+  (let ((err::int (PRNG_DESCRIPTOR_READY (SG_PRNG_STATE_PRNG ps)
+					(& (SG_PRNG_STATE_STATE ps)))))
+    (check-tomcrypt-error 'prng-ready! err ps)
+    (result ps)))
+
 (define-c-proc prng-read! (ps::<prng-state> bv::<bytevector>
 			   :optional (start::<fixnum> 0)  
 				     (len::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE bv)))) ::<fixnum>

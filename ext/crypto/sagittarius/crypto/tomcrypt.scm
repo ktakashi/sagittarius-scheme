@@ -121,7 +121,8 @@
 	    find-prng prng-descriptor? prng-descriptor-name
 
 	    prng-state?
-	    prng-start prng-add-entropy! prng-read! prng-done!
+	    prng-start prng-add-entropy! prng-read! prng-ready!
+	    prng-done!
 	    )
     (import (only (sagittarius) define-constant)
 	    (sagittarius dynamic-module))
