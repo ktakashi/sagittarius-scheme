@@ -16,7 +16,7 @@ const struct ltc_cipher_descriptor saferp_desc =
 {
     "safer+",
     4,
-    16, 32, 16, 8,
+    16, 32, 16, 0,		/* default_round = 0 for convenience */
     &saferp_setup,
     &saferp_ecb_encrypt,
     &saferp_ecb_decrypt,

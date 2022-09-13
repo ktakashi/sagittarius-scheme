@@ -84,7 +84,7 @@ const struct ltc_cipher_descriptor aes128_desc =
 {
     "aes128",
     100,
-    16, 16, 16, 10,
+    16, 16, 16, 0,
     aes_setup, aes_ecb_encrypt, aes_ecb_decrypt, aes_test, aes_done, aes_keysize,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 };
@@ -93,7 +93,7 @@ const struct ltc_cipher_descriptor aes192_desc =
 {
     "aes192",
     101,
-    24, 24, 16, 10,
+    24, 24, 16, 0,
     aes_setup, aes_ecb_encrypt, aes_ecb_decrypt, aes_test, aes_done, aes_keysize,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 };
@@ -102,7 +102,7 @@ const struct ltc_cipher_descriptor aes256_desc =
 {
     "aes256",
     102,
-    32, 32, 16, 10,
+    32, 32, 16, 0,
     aes_setup, aes_ecb_encrypt, aes_ecb_decrypt, aes_test, aes_done, aes_keysize,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 };
@@ -111,7 +111,7 @@ extern void Sg__Init_cipher(SgLibrary *lib);
 
 void Sg_InitCipher(SgLibrary *lib)
 {
-    Sg__Init_cipher(lib);
+  Sg__Init_cipher(lib);
 
   /* Sg_InitMutex(&lock, FALSE); */
   /* initialize libtomcrypt */
@@ -120,7 +120,7 @@ void Sg_InitCipher(SgLibrary *lib)
     Sg_Warn(UC("Unable to register %S cipher"),				\
 	    Sg_MakeStringC((cipher)->name));				\
   }
-
+  
   REGISTER_CIPHER(&blowfish_desc);
   REGISTER_CIPHER(&xtea_desc);
   REGISTER_CIPHER(&rc2_desc);

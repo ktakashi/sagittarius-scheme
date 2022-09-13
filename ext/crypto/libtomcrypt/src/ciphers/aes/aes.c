@@ -39,7 +39,7 @@ const struct ltc_cipher_descriptor rijndael_desc =
 {
     "rijndael",
     6,
-    16, 32, 16, 10,
+    16, 32, 16, 0,		/* default_rounds = 0, for convenience */
     SETUP, ECB_ENC, ECB_DEC, ECB_TEST, ECB_DONE, ECB_KS,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 };
@@ -48,7 +48,7 @@ const struct ltc_cipher_descriptor aes_desc =
 {
     "aes",
     6,
-    16, 32, 16, 10,
+    16, 32, 16, 0,		/*  default_rounds = 0, for convenience */
     SETUP, ECB_ENC, ECB_DEC, ECB_TEST, ECB_DONE, ECB_KS,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 };
