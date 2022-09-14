@@ -1,5 +1,7 @@
 (add-load-path "./crypto")
 #!compatible
+(include "test-sanity.scm")
+
 #!read-macro=sagittarius/bv-string
 (import (srfi :64 testing)
 	(rnrs)
