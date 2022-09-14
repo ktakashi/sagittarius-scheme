@@ -40,6 +40,28 @@ IF(APPLE)
 ENDIF()
 TARGET_LINK_LIBRARIES(sagittarius--tomcrypt sagittarius libtomcrypt)
 
+# sagittarius--secure
+ADD_LIBRARY(sagittarius--secure MODULE
+  sagittarius-secure.c
+  ${CMAKE_CURRENT_BINARY_DIR}/bytevector.c)
+IF (USE_CPP_FOR_BROKEN_LINKER)
+  # ugly solution
+  SET_SOURCE_FILES_PROPERTIES(
+    sagittarius-secure.c
+    ${CMAKE_CURRENT_BINARY_DIR}/bytevector.c
+    PROPERTIES LANGUAGE CXX)
+ENDIF()
+
+ADD_STUBS(sagittarius--secure
+  COMMAND ${GENSTUB}
+  FILES bytevector.stub
+  OUTTREE)
+SET_TARGET_PROPERTIES(sagittarius--secure PROPERTIES PREFIX "")
+IF(APPLE)
+  SET_TARGET_PROPERTIES(sagittarius--secure PROPERTIES SUFFIX ".dylib")
+ENDIF()
+TARGET_LINK_LIBRARIES(sagittarius--secure sagittarius)
+
 
 ## TODO remove sagittarius--crypto and sagittarius--math
 ADD_LIBRARY(sagittarius--crypto MODULE

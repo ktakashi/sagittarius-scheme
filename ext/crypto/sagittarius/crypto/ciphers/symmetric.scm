@@ -43,6 +43,10 @@
 	    symmetric-cipher-decrypt-last-block
 	    symmetric-cipher-done!
 
+	    ;; EncAuth mode
+	    symmetric-cipher-done/tag!
+	    symmetric-cipher-done/tag
+	    
 	    pkcs7-padding no-padding
 
 	    cipher-descriptor?
@@ -71,6 +75,9 @@
 	    *mode:ecb* *mode:cbc* *mode:cfb* *mode:ofb*
 	    *mode:ctr* *mode:lrw* *mode:f8*
 
+	    ;; EncAuth mode
+	    *mode:eax* *mode:ocb* *mode:ocb3* *mode:gcm*
+	    
 	    *ctr-mode:little-endian* *ctr-mode:big-endian* *ctr-mode:rfc3686*
 	    
 	    )
@@ -228,6 +235,31 @@
       (if (= len (bytevector-length buf))
 	  buf
 	  (bytevector-copy buf 0 len)))))
+
+(define (symmetric-cipher-done/tag cipher tag-len)
+  (define key (symmetric-cipher-key cipher))
+  (unless key
+    (assertion-violation 'symmetric-cipher-done/tag!
+			 "Cipher is not initialized yet" cipher))
+  (case (symmetric-cipher-direction cipher)
+    ((encrypt)
+     (let* ((tag (make-bytevector tag-len))
+	    (n (symmetric-cipher-done/tag! cipher tag)))
+       (if (= n tag-len)
+	   tag
+	   (bytevector-copy tag 0 n))))
+    (else
+     (assertion-violation 'symmetric-cipher-done/tag
+			  "Encrypt mode is required" cipher))))
+
+(define (symmetric-cipher-done/tag! cipher tag :optional (start 0))
+  (define key (symmetric-cipher-key cipher))
+  (unless key
+    (assertion-violation 'symmetric-cipher-done/tag!
+			 "Cipher is not initialized yet" cipher))
+  (case (symmetric-cipher-direction cipher)
+    ((encrypt) (mode-encrypt-last! key tag start))
+    ((decrypt) (mode-decrypt-last! key tag start))))
 
 (define (symmetric-cipher-done! cipher)
   (symmetric-cipher-direction-set! cipher #f)

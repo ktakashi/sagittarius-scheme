@@ -1,0 +1,34 @@
+;; -*- mode: scheme; coding: utf-8; -*-
+(decl-code
+ (.include <sagittarius/private.h>)
+ (.define "LIBSAGITTARIUS_EXT_BODY")
+ (.include  <sagittarius/extend.h>))
+
+(define-cise-stmt assertion-violation
+  ((_ who msg)
+   `(begin (Sg_AssertionViolation ,who (SG_MAKE_STRING ,msg) '())))
+  ((_ who msg irritants)
+   `(begin (Sg_AssertionViolation ,who (SG_MAKE_STRING ,msg) ,irritants))))
+
+;; constant time bytevector compare
+(define-c-proc safe-bytevector=? (bv0::<bytevector> bv1::<bytevector> :optional (s0::<fixnum> 0) (s1::<fixnum> 0) (len::<fixnum> -1)) ::<boolean> :no-side-effect
+  (let ((len0::int (- (SG_BVECTOR_SIZE bv0) s0))
+	(len1::int (- (SG_BVECTOR_SIZE bv1) s1)))
+    (when (or (< len0 0) (< len1 0))
+      (assertion-violation 'safe-bytevector=? "Invalid start position"
+			   (SG_LIST4 bv0 (SG_MAKE_INT s0)
+				     bv1 (SG_MAKE_INT s1))))
+    (let ((l::int 0)
+	  (r::int TRUE)
+	  (i::int 0))
+      (if (< len 0)
+	  (if (< len0 len1)
+	      (set! l len0)
+	      (set! l len1))
+	  (set! l len)) 
+      (for (() (< i l) (post++ i))
+	   (let ((r1::int (== (SG_BVECTOR_ELEMENT bv0 (+ i s0))
+			      (SG_BVECTOR_ELEMENT bv1 (+ i s1)))))
+	     (set! r (logand r1 r))))
+      (result r))))
+      

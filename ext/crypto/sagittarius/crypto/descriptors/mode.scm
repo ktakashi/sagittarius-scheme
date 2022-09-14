@@ -46,11 +46,17 @@
 	    mode-descriptor-has-set-iv!?
 	    mode-descriptor-has-get-iv!?
 
+	    *mode:eax* *mode:ocb* *mode:ocb3* *mode:gcm*
+	    encauth-mode-descriptor?
+	    mode-encrypt-last! mode-decrypt-last!
+	    mode-has-add-aad!? mode-add-aad! mode-has-add-iv!? mode-add-iv!
+	    
 	    mode-key?
 	    mode-start mode-encrypt! mode-decrypt! mode-done!
 	    mode-set-iv! mode-get-iv!)
     (import (rnrs)
 	    (prefix (sagittarius crypto tomcrypt) tc:)
+	    (sagittarius crypto secure)
 	    (sagittarius crypto descriptors cipher)
 	    (sagittarius crypto parameters))
 
@@ -80,9 +86,11 @@
 (define (mode-decrypt! mode-key ct cs pt ps len)
   ((mode-descriptor-decrypt (mode-key-descriptor mode-key))
    (mode-key-state-key mode-key) ct cs pt ps len))
-(define (mode-done! mode-key)
-  ((mode-descriptor-done (mode-key-descriptor mode-key))
-   (mode-key-state-key mode-key)))
+(define (mode-done! mode-key . opts)
+  (define desc (mode-key-descriptor mode-key))
+  (define state (mode-key-state-key mode-key))
+  ((mode-descriptor-done desc) state))
+
 (define (mode-set-iv! mode-key iv . opts)
   (let* ((descriptor (mode-key-descriptor mode-key))
 	 (set-iv (mode-descriptor-set-iv descriptor)))
@@ -180,5 +188,159 @@
 (define *mode:ctr* (build-mode-descriptor ctr))
 (define *mode:lrw* (build-mode-descriptor lrw))
 (define *mode:f8*  (build-mode-descriptor f8))
+
+;; encauth, we merge it to mode-descriptor
+;; we support EAX, OCB, OCB3, GCM.
+;; CCM is not online, means users need to know the length of plain
+;; text or cipher test before hand, that's a bit inconvenient for us.
+(define-record-type encauth-mode-descriptor
+  (parent mode-descriptor)
+  (fields encrypt-last decrypt-last ;; To get tag, or verify tag
+	  add-aad		    ;; EAX, OCB3, and GCM (EAX calls aad header)
+	  add-iv		    ;; GCM specific
+	  ))
+(define (mode-encrypt-last! mode-key tag :optional (start 0))
+  ((encauth-mode-descriptor-encrypt-last (mode-key-descriptor mode-key))
+   (mode-key-state-key mode-key) tag start))
+(define (mode-decrypt-last! mode-key tag :optional (start 0))
+  ((encauth-mode-descriptor-decrypt-last (mode-key-descriptor mode-key))
+   (mode-key-state-key mode-key) tag start))
+(define (mode-has-add-aad!? descriptor)
+  (and (encauth-mode-descriptor? descriptor)
+       (encauth-mode-descriptor-add-aad descriptor)))
+(define (mode-add-aad! mode-key aad . opts)
+  (apply (encauth-mode-descriptor-add-aad (mode-key-descriptor mode-key))
+	 (mode-key-state-key mode-key) aad opts))
+(define (mode-has-add-iv!? descriptor)
+  (and (encauth-mode-descriptor? descriptor)
+       (encauth-mode-descriptor-add-iv descriptor)))
+(define (mode-add-iv! mode-key iv . opts)
+  (apply (encauth-mode-descriptor-add-iv (mode-key-descriptor mode-key))
+	 (mode-key-state-key mode-key) iv opts))
+
+;; EAX
+(define (eax-start cipher key parameter)
+  (define nonce (cipher-parameter-nonce parameter #vu8()))
+  ;; a bit different name :)
+  (define header (cipher-parameter-aad parameter #vu8()))
+  (tc:eax-init (cipher-descriptor-cipher cipher) key nonce header))
+;; using EAX wrongly, but that's users' responsiblity
+(define (eax-done state) (tc:eax-done! state #vu8()))
+;; Don't accept any plain text
+(define (eax-encrypt-last! state tag start)
+  ;; returns the tag length
+  (tc:eax-done! state tag start))
+(define (eax-decrypt-last! state tag start)
+  (let* ((len (- (bytevector-length tag) start))
+	 (tmp (make-bytevector len)))
+    (tc:eax-done! state tmp 0)
+    (unless (safe-bytevector=? tag tmp start 0 len)
+      (error 'mode-decrypt-last! "Tag unmatched"))))
+
+(define *mode:eax* (make-encauth-mode-descriptor
+		    tc:*encauth:eax* "EAX"
+		    eax-start tc:eax-encrypt! tc:eax-decrypt! eax-done #f #f
+		    eax-encrypt-last! eax-decrypt-last!
+		    tc:eax-add-header! #f))
+
+;; OCB
+(define-record-type ocb-state (fields cipher key))
+(define (ocb-start cipher key parameter)
+  (define nonce (cipher-parameter-nonce parameter))
+  (make-ocb-state cipher
+		  (tc:ocb-init (cipher-descriptor-cipher cipher) key nonce)))
+(define (ocb-done state) #f) ;; do nothing (don't use this)
+(define (ocb-encrypt! state pt ps ct cs len)
+  (define block-size (cipher-descriptor-block-length (ocb-state-cipher state)))
+  ;; sanity check
+  (unless (zero? (mod len block-size))
+    (assertion-violation 'ocb-encrypt! "Invalid length of input"))
+  (do ((i 0 (+ i block-size)) (s (ocb-state-key state)))
+      ((= i len) len)
+    (tc:ocb-encrypt! s pt (+ ps i) ct (+ cs i))))
+(define (ocb-decrypt! state ct cs pt ps len)
+  (define block-size (cipher-descriptor-block-length (ocb-state-cipher state)))
+  ;; sanity check
+  (unless (zero? (mod len block-size))
+    (assertion-violation 'ocb-decrypt! "Invalid length of input"))
+  (do ((i 0 (+ i block-size)) (s (ocb-state-key state)))
+      ((= i len) len)
+    (tc:ocb-decrypt! s ct (+ cs i) pt (+ ps i))))
+(define (ocb-encrypt-last! state tag start)
+  (tc:ocb-done-encrypt! (ocb-state-key state) #vu8() 0 #vu8() 0 0 tag start))
+(define (ocb-decrypt-last! state tag start)
+  (unless (tc:ocb-done-decrypt! (ocb-state-key state)
+				#vu8() 0 #vu8() 0 0 tag start)
+    (error 'mode-decrypt-last! "Tag unmatched")))
+(define *mode:ocb* (make-encauth-mode-descriptor
+		    tc:*encauth:ocb* "OCB"
+		    ocb-start ocb-encrypt! ocb-decrypt! ocb-done #f #f
+		    ocb-encrypt-last! ocb-decrypt-last!
+		    #f #f))
+
+;; OCB3
+(define-record-type ocb3-state
+  (fields tag-len key))
+(define (ocb3-start cipher key parameter)
+  (define nonce (cipher-parameter-nonce parameter))
+  (define tag-len (cipher-parameter-tag-length parameter))
+  (make-ocb3-state tag-len
+		   (tc:ocb3-init (cipher-descriptor-cipher cipher)
+				 key nonce tag-len)))
+(define (ocb3-done state)
+  (define s (ocb3-state-key state))
+  (let ((dummy (make-bytevector (ocb3-state-tag-len state))))
+    (tc:ocb3-done! s dummy)))
+(define (ocb3-encrypt state . rest)
+  (define s (ocb3-state-key state))
+  (apply tc:ocb3-encrypt! s rest))
+(define (ocb3-decrypt state . rest)
+  (define s (ocb3-state-key state))
+  (apply tc:ocb3-decrypt! s rest))
+(define (ocb3-encrypt-last! state tag start)
+  (define s (ocb3-state-key state))
+  (tc:ocb3-encrypt-last! s #vu8() 0 #vu8() 0 0)
+  (tc:ocb3-done! s tag start))
+(define (ocb3-decrypt-last! state tag start)
+  (define s (ocb3-state-key state))
+  (tc:ocb3-decrypt-last! s #vu8() 0 #vu8() 0 0)
+  (let* ((len (- (bytevector-length tag) start))
+	 (tmp (make-bytevector len)))
+    (tc:ocb3-done! s tmp 0)
+    (unless (safe-bytevector=? tag tmp start 0 len)
+      (error 'mode-decrypt-last! "Tag unmatched"))))
+
+(define *mode:ocb3* (make-encauth-mode-descriptor
+		    tc:*encauth:ocb3* "OCB3"
+		    ocb3-start ocb3-encrypt ocb3-decrypt ocb3-done #f #f
+		    ocb3-encrypt-last! ocb3-decrypt-last!
+		    tc:ocb3-add-aad! #f))
+
+;; GCM
+(define (gcm-start cipher key parameter)
+  (define iv (cipher-parameter-iv parameter))
+  (let ((state (tc:gcm-init (cipher-descriptor-cipher cipher) key)))
+    (tc:gcm-add-iv! state iv)
+    state))
+
+;; using EAX wrongly, but that's users' responsiblity
+(define (gcm-done state) (tc:gcm-done! state #vu8()))
+;; Don't accept any plain text
+(define (gcm-encrypt-last! state tag start)
+  ;; returns the tag length
+  (tc:gcm-done! state tag start))
+(define (gcm-decrypt-last! state tag start)
+  (let* ((len (- (bytevector-length tag) start))
+	 (tmp (make-bytevector len)))
+    (tc:gcm-done! state tmp 0)
+    (unless (safe-bytevector=? tag tmp start 0 len)
+      (error 'mode-decrypt-last! "Tag unmatched"))))
+
+
+(define *mode:gcm* (make-encauth-mode-descriptor
+		    tc:*encauth:gcm* "GCM"
+		    gcm-start tc:gcm-encrypt! tc:gcm-decrypt! gcm-done #f #f
+		    gcm-encrypt-last! gcm-decrypt-last!
+		    tc:gcm-add-aad! tc:gcm-add-iv!))
 
 )

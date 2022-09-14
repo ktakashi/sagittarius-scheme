@@ -72,7 +72,7 @@
 
 	    ocb3-init ocb3-encrypt! ocb3-decrypt!
 	    ocb3-encrypt-last! ocb3-decrypt-last!
-	    ocb3-done!
+	    ocb3-add-aad! ocb3-done!
 
 	    ccm-init ccm-reset! ccm-add-nonce! ccm-add-aad!
 	    ccm-encrypt! ccm-decrypt! ccm-done!

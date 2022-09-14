@@ -38,7 +38,11 @@
 	    make-counter-mode-parameter counter-mode-parameter?
 	    cipher-parameter-counter-mode
 	    make-tweak-parameter tweak-parameter? cipher-parameter-tweak
-	    make-salt-parameter salt-parameter? cipher-parameter-salt)
+	    make-salt-parameter salt-parameter? cipher-parameter-salt
+	    make-nonce-parameter nonce-parameter? cipher-parameter-nonce
+	    make-aad-parameter aad-parameter? cipher-parameter-aad
+	    make-tag-length-parameter tag-length-parameter?
+	    cipher-parameter-tag-length)
     (import (rnrs)
 	    (sagittarius crypto parameters misc))
 (define-compositable-record-type cipher-parameter)
@@ -48,9 +52,13 @@
   make-round-parameter round-parameter?
   (rounds cipher-parameter-rounds))
 
+(define copy-bytevector-procotol
+  (lambda (p)
+    (lambda (bv)
+      ((p) (bytevector-copy bv)))))
 ;; IV
 (define-cipher-parameter iv-parameter
-  make-iv-parameter iv-parameter?
+  (make-iv-parameter copy-bytevector-procotol) iv-parameter?
   (iv cipher-parameter-iv))
 
 ;; counter mode
@@ -60,11 +68,26 @@
 
 ;; tweak
 (define-cipher-parameter tweak-parameter
-  make-tweak-parameter tweak-parameter?
+  (make-tweak-parameter copy-bytevector-procotol) tweak-parameter?
   (tweak cipher-parameter-tweak))
 
 ;; salt
 (define-cipher-parameter salt-parameter
-  make-salt-parameter salt-parameter?
+  (make-salt-parameter copy-bytevector-procotol) salt-parameter?
   (salt cipher-parameter-salt))
+
+;; nonce
+(define-cipher-parameter nonce-parameter
+  (make-nonce-parameter copy-bytevector-procotol) nonce-parameter?
+  (nonce cipher-parameter-nonce))
+
+;; aad
+(define-cipher-parameter aad-parameter
+  (make-aad-parameter copy-bytevector-procotol) aad-parameter?
+  (aad cipher-parameter-aad))
+
+;; tag-length (for OCB3)
+(define-cipher-parameter tag-length-parameter
+  make-tag-length-parameter tag-length-parameter?
+  (tag-length cipher-parameter-tag-length))
 )

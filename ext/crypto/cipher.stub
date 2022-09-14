@@ -53,6 +53,16 @@
 				 block_length)))
 		  (Sg_Cons 'iv-length
 			   (SG_MAKE_INT (SG_BVECTOR_SIZE ,bv))))))))
+(define-cise-stmt check-nonce-block-length
+  ((_ who cipher bv)
+   `(when (< (SG_BVECTOR_SIZE ,bv) (CIPHER_DESCRIPTOR_BLOCK_LENGTH cipher))
+      (assertion-violation ,who "Nonce must be a bytevector of block size"
+	(SG_LIST2 (Sg_Cons 'block-size
+			   (SG_MAKE_INT
+			    (ref (aref cipher_descriptor ,cipher)
+				 block_length)))
+		  (Sg_Cons 'nonce-length
+			   (SG_MAKE_INT (SG_BVECTOR_SIZE ,bv))))))))
 
 
 (define-c-proc find-cipher (name::<string>) ::<fixnum> :no-side-effect
@@ -597,7 +607,7 @@
 (define-c-proc ocb-init (cipher::<cipher>
 			 key::<bytevector>
 			 nonce::<bytevector>)
-  (check-range 'ocb-init nonce 0 cipher)
+  (check-nonce-block-length 'ocb-init cipher nonce)
   (let* ((enc-auth-state (Sg_MakeEncAuthState MODE_OCB))
 	 (err::int (ocb_init (& (SG_ENC_AUTH_STATE_OCB enc-auth-state))
 			     cipher
@@ -634,15 +644,16 @@
 				  pt::<bytevector> ps::<fixnum>
 				  ct::<bytevector> cs::<fixnum>
 				  len::<fixnum>
-				  tag::<bytevector>) ::<fixnum>
+				  tag::<bytevector>
+				  :optional (ts::<fixnum> 0)) ::<fixnum>
   (check-state-mode 'ocb-done-encrypt! enc-auth-state MODE_OCB)
   (check-range 'ocb-done-encrypt! pt ps len)
   (check-range 'ocb-done-encrypt! ct cs len)
-  (let ((|taglen::unsigned long| (SG_BVECTOR_SIZE tag))
+  (let ((|taglen::unsigned long| (- (SG_BVECTOR_SIZE tag) ts))
 	(err::int (ocb_done_encrypt (& (SG_ENC_AUTH_STATE_OCB enc-auth-state))
 				    (+ (SG_BVECTOR_ELEMENTS pt) ps) len
 				    (+ (SG_BVECTOR_ELEMENTS ct) cs)
-				    (SG_BVECTOR_ELEMENTS tag)
+				    (+ (SG_BVECTOR_ELEMENTS tag) ts)
 				    (& taglen))))
     (check-tomcrypt-error 'ocb-done-encrypt! err)
     (result taglen)))
@@ -651,7 +662,8 @@
 				  ct::<bytevector> cs::<fixnum>
 				  pt::<bytevector> ps::<fixnum>
 				  len::<fixnum>
-				  tag::<bytevector>) ::<boolean>
+				  tag::<bytevector>
+				  :optional (ts::<fixnum> 0)) ::<boolean>
   (check-state-mode 'ocb-done-decrypt! enc-auth-state MODE_OCB)
   (check-range 'ocb-done-decrypt! ct cs len)
   (check-range 'ocb-done-decrypt! pt ps len)
@@ -659,8 +671,8 @@
 	(err::int (ocb_done_decrypt (& (SG_ENC_AUTH_STATE_OCB enc-auth-state))
 				    (+ (SG_BVECTOR_ELEMENTS ct) cs) len
 				    (+ (SG_BVECTOR_ELEMENTS pt) ps)
-				    (SG_BVECTOR_ELEMENTS tag)
-				    (SG_BVECTOR_SIZE tag)
+				    (+ (SG_BVECTOR_ELEMENTS tag) ts)
+				    (- (SG_BVECTOR_SIZE tag) ts)
 				    (& result))))
     (check-tomcrypt-error 'ocb-done-decrypt! err)
     (result result)))
@@ -867,8 +879,8 @@
   (check-range 'gcm-decrypt! pt ps len)
   (check-range 'gcm-decrypt! ct cs len)
   (let ((err::int (gcm_process (& (SG_ENC_AUTH_STATE_GCM enc-auth-state))
-			       (+ (SG_BVECTOR_ELEMENTS ct) cs) len
-			       (+ (SG_BVECTOR_ELEMENTS pt) ps)
+			       (+ (SG_BVECTOR_ELEMENTS pt) ps) len
+			       (+ (SG_BVECTOR_ELEMENTS ct) cs)
 			       GCM_DECRYPT)))
     (check-tomcrypt-error 'gcm-decrypt! err)))
 
