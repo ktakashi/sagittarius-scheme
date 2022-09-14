@@ -22,7 +22,7 @@
 (define-cise-stmt check-range
   ((_ who bv start length)
    `(when (< (- (SG_BVECTOR_SIZE ,bv) ,start) ,length)
-      (assertion-violation ,who "Length is too long"
+      (assertion-violation ,who "Output buffer doesn't have sufficient storage"
 	(SG_LIST3 '<
 		  (SG_MAKE_INT (- (SG_BVECTOR_SIZE ,bv) ,start))
 		  (SG_MAKE_INT ,length))))))
@@ -83,7 +83,7 @@
 (define-c-proc digest-done! (ds::<digest-state> out::<bytevector>
 			     :optional (start::<fixnum> 0)) ::<void>
   (check-md 'digest-done! ds)
-  (check-range 'digest-done! out start (DIGEST_DESCRIPTOR_BLOCK_SIZE (SG_DIGEST_STATE_MD ds)))
+  (check-range 'digest-done! out start (DIGEST_DESCRIPTOR_DIGEST_SIZE (SG_DIGEST_STATE_MD ds)))
   (let ((err::int (DIGEST_DESCRIPTOR_DONE (SG_DIGEST_STATE_MD ds)
 					  (& (SG_DIGEST_STATE_STATE ds))
 					  (+ (SG_BVECTOR_ELEMENTS out) start))))

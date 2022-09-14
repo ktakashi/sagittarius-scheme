@@ -3,7 +3,7 @@
 ;; is written in other locations
 (import (rnrs)
 	(crypto)
-	(sagittarius crypto secure)
+	(sagittarius crypto digests)
 	(sagittarius crypto random)
 	(sagittarius crypto keys)
 	(sagittarius crypto ciphers)
@@ -260,4 +260,50 @@
 
 (for-each cipher-test all-ciphers)
 (test-end)
+
+(test-begin "Digest")
+
+(define digests/size
+  (list *digest:whirlpool*
+	*digest:ripemd-320*
+	*digest:ripemd-256*
+	*digest:sha-1*
+	*digest:sha-224* *digest:sha-256*
+	*digest:sha-384*
+	*digest:sha-512* *digest:sha-512/224* *digest:sha-512/256*
+	*digest:sha3-224* *digest:sha3-256* *digest:sha3-384*
+	*digest:sha3-512*
+	*digest:keccak-224* *digest:keccak-256* *digest:keccak-384*
+	*digest:keccak-512*
+	*digest:tiger-192*
+	*digest:ripemd-160* *digest:ripemd-128*
+	*digest:md5* *digest:md4* *digest:md2*
+	*digest:blake2s-128* *digest:blake2s-160* *digest:blake2s-224*
+	*digest:blake2s-256* *digest:blake2b-160* *digest:blake2b-256*
+	*digest:blake2b-384* *digest:blake2b-512*))
+
+(define (digest/size-test desc)
+  (test-assert (digest-descriptor? desc))
+  (let ((size (digest-descriptor-digest-size desc))
+	(md (make-message-digest desc)))
+    (test-assert (message-digest? md))
+    (test-equal (digest-descriptor-name desc)
+		size (bytevector-length (digest-message md #vu8())))))
+
+(for-each digest/size-test digests/size)
+
+(define digests-w/o-size (list *digest:shake-128* *digest:shake-256*))
+(define (digest-w/o-size-test desc)
+  (test-assert (digest-descriptor? desc))
+  (let ((size (digest-descriptor-digest-size desc))
+	(md (make-message-digest desc)))
+    (test-assert "No size" (not size))
+    (test-assert (message-digest? md))
+    ;; just use random number to retrieve digest
+    (test-equal (digest-descriptor-name desc)
+		64 (bytevector-length (digest-message md #vu8() 64)))))
+(for-each digest-w/o-size-test digests-w/o-size)
+    
+(test-end)
+
 

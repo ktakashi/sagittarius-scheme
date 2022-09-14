@@ -82,8 +82,9 @@
 
 	    ;; digest
 	    *digest:whirlpool*
-	    *digest:ripemd-320*
-	    *digest:ripemd-256*
+
+	    *digest:ripemd-128* *digest:ripemd-160* 
+	    *digest:ripemd-256* *digest:ripemd-320*
 
 	    *digest:sha-1*
 
@@ -98,8 +99,7 @@
 	    *digest:keccak-512*
 
 	    *digest:tiger-192*
-
-	    *digest:ripemd-160* *digest:ripemd-128*
+	    
 	    *digest:md5* *digest:md4* *digest:md2*
 
 	    *digest:blake2s-128* *digest:blake2s-160* *digest:blake2s-224*
