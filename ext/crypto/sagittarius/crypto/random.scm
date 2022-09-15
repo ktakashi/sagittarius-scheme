@@ -34,6 +34,8 @@
 	    random-generator-read-random-bytes
 	    random-generator-read-random-bytes!
 	    random-generator-randomize!
+	    random-generator-random-integer
+	    
 
 	    pseudo-random-generator
 	    secure-random-generator
@@ -44,6 +46,7 @@
 	    *prng:system* *prng:chacha20*
 	    prng-descriptor? prng-descriptor-name)
     (import (rnrs)
+	    (sagittarius) ;; for bytevector->uinteger
 	    (sagittarius crypto random prng))
 
 (define-record-type random-generator
@@ -99,5 +102,13 @@
     (apply prng-add-entropy! (random-generator-prng random-generator)
 	   seed opts))
   random-generator)
+
+(define (random-generator-random-integer random-generator size)
+  (define rsize (ceiling (/ (bitwise-length size) 8)))
+  (let* ((bv (random-generator-read-random-bytes random-generator rsize))
+	 (i (bytevector->uinteger bv)))
+    (if (>= i size)
+	(mod i size)
+	i)))
 
 )
