@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
-;;; sagittarius/crypto/keys/operations.scm - Key operations
+;;; sagittarius/crypto/keys/operations/asymmetric/apis.scm - Asymmetric key op
 ;;;  
 ;;;   Copyright (c) 2022  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -29,7 +29,24 @@
 ;;;  
 
 #!nounbound
-(library (sagittarius crypto keys operations)
-    (export :all)
-    (import (sagittarius crypto keys operations symmetric)
-	    (sagittarius crypto keys operations asymmetric)))
+(library (sagittarius crypto keys operations asymmetric apis)
+    (export generate-key-pair
+	    generate-public-key
+	    generate-private-key
+
+	    import-public-key
+	    import-private-key
+	    export-public-key
+	    export-private-key
+	    )
+    (import (clos user))
+
+(define-generic generate-key-pair)
+(define-generic generate-public-key)
+(define-generic generate-private-key)
+(define-generic import-public-key)
+(define-generic import-private-key)
+(define-generic export-public-key)
+(define-generic export-private-key)
+
+)

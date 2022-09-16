@@ -38,6 +38,9 @@
 	    public-key? <public-key>
 	    private-key? <private-key>
 
+	    key-pair? key-pair-private key-pair-public
+	    make-key-pair
+	    
 	    destroyable-key? destroy-key!
 	    
 	    exportable? <exportable> exportable->bytevector
@@ -80,6 +83,9 @@
 (define (public-key? o) (is-a? o <public-key>))
 (define-class <private-key> (<asymmetric-key>) ())
 (define (private-key? o) (is-a? o <private-key>))
+
+(define-record-type key-pair
+  (fields private public))
 
 (define-class <exportable> () ())
 (define (exportable? o) (is-a? o <exportable>))

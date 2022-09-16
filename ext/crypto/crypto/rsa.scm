@@ -162,7 +162,7 @@
 		     (not (= p check)))
 		 (= 1 (gcd (- p 1) e)))
 	    p
-	    (loop (random-prime (/ size 16 :prng prng))))))
+	    (loop (random-prime (/ size 16) :prng prng)))))
 
     (when (or (< size *rsa-min-keysize*)
 	      (> size *rsa-max-keysize*))
