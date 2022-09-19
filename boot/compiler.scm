@@ -1679,6 +1679,8 @@
 (define or. (global-id 'or))
 (define and. (global-id 'and))
 (define equal?. (global-id 'equal?))
+(define not. (global-id 'not))
+(define define. (global-id 'define))
 (define assertion-violation. (global-id 'assertion-violation))
 (define (parse-lambda-variable p1env oovars opt?)
   (define (parse-validator-spec p1env var spec)
@@ -1688,31 +1690,39 @@
     (define (spec->pred var spec)
       (smatch spec
 	(() '())
-	(((? or?) s1 s2 ...)
-	 `(,or. ,(spec->pred var s1)
-		,@(imap (lambda (s) (spec->pred var s) )s2)))
-	(((? and?) s1 s2 ...)
-	 `(,and. ,(spec->pred var s1)
-		 ,@(imap (lambda (s) (spec->pred var s)) s2)))
-	(((? quote?) d) `(,equal? ,var ,d))
+	(((? or? -) s1 s2 ___)
+	 (let ((p1 (spec->pred var s1))
+	       (p* (imap (lambda (s) (spec->pred var s)) s2)))
+	   `(,lambda. (x)
+	      (,or. (,p1 x) ,@(imap (lambda (p) `(,p x)) p*)))))
+	(((? and? -) s1 s2 ___)
+	 (let ((p1 (spec->pred var s1))
+	       (p* (imap (lambda (s) (spec->pred var s)) s2)))
+	   `(,lambda. (x)
+	      (,and. (,p1 x) ,@(imap (lambda (p) `(,p x)) p*)))))
+	(((? quote? -) d) `(,lambda. (x) (,equal?. x ',d)))
+	((? boolean? b)
+	 (if b `(,lambda. (x) x) `(,lambda. (x) (,not. x))))
 	((? variable? x) x)
-	(else (syntax-error "Invalid type validator" spec))))
+	(else
+	 (syntax-error (format "Invalid type validator for '~a'" var) spec))))
     (define (make-validator-generator var spec)
-      (define err-msg (format "~a must satisfy ~s"
+      (define err-msg (format "'~a' must satisfy ~s"
 			      (unwrap-syntax var)
 			      (unwrap-syntax spec)))
+      (define who (or (p1env-exp-name p1env) (unwrap-syntax var)))
       (lambda (pred)
 	`(,unless. (,pred ,var)
-	   (,assertion-violation. ',var err-msg var))))
+	   (,assertion-violation. ',who ,err-msg ,var))))
     (let ((pred (spec->pred var spec)))
       (values pred (make-validator-generator var spec))))
   
   (let loop ((ovars oovars) (vars '()) (preds '()) (validators '()))
     (cond ((and opt? (null? (cdr ovars)))
-	   (values (reverse! vars) (car ovars)
+	   (values (reverse! (cons (car ovars) vars))
 		   (reverse! preds) (reverse! validators)))
 	  ((null? ovars)
-	   (values (reverse! vars) '() (reverse! preds) (reverse! validators)))
+	   (values (reverse! vars) (reverse! preds) (reverse! validators)))
 	  (else
 	   (smatch (car ovars)
 	     ((var spec)
@@ -1722,40 +1732,50 @@
 	     ((? variable? var)
 	      (loop (cdr ovars) (cons var vars) preds validators))
 	     (_ (syntax-error "Invalid lambda formals" oovars)))))))
-	     
+(define (inject-validators p1env pred validators body)
+  (if (null? pred)
+      body
+      ;; To avoid unbound variable error
+      ;; e.g.
+      ;; (library (foo)
+      ;;     (export foo make-bar)
+      ;;     (import (rnrs) (core base))
+      ;; (define (foo (bar bar?)) bar)
+      ;; (define-record-type bar))
+      ;; bar? is defined below the foo, and it'd be an &undefined at runtime...
+      ;; the predicate should be defined globally during lambda-lifting, I hope
+      (let ((pred-vars (imap (lambda (p) (gensym "p")) pred)))
+	;; use internal define to use pass1/body
+	($src
+	 `(,@(imap2 (lambda (v p) `(,define. ,v ,p)) pred-vars pred)
+	   ,@(imap2 (lambda (v p) (v p)) validators pred-vars)
+	   ,@body)
+	 p1env))))
+
 (define (pass1/lambda form formals body p1env flag)
   (receive (vars reqargs opt kargs) (parse-lambda-args formals)
-    (check-duplicate-variable form vars variable=? "duplicate variable")
-    (cond ((null? kargs)
-	   (receive (vars rest pred validators)
-	       (parse-lambda-variable p1env vars (not (zero? opt)))
-	     (if (null? pred)
-		 (let* ((vars (if (null? rest) vars (append vars (list rest))))
-			(this-lvars (imap make-lvar+ vars))
-			(intform ($lambda form (p1env-exp-name p1env)
-					  reqargs opt this-lvars
-					  #f flag))
-			(newenv (p1env-extend/proc p1env
-						   (%map-cons vars this-lvars)
-						   LEXICAL intform)))
-		   ($lambda-body-set! intform (pass1/body body newenv))
-		   intform)
-		 (let ((pred-vars (imap (lambda (p) (gensym "p")) pred)))
-		   (pass1 ($src
-			   `(,let. (,@(imap2 list pred-vars pred))
-			      (,lambda. (,@vars . ,rest)
-				,@(imap2 (lambda (v p) (v p))
-					 validators pred-vars)
-				,@body))
-			   form)
-			  p1env)))))
-	  (else
-	   (let ((g (gensym "keys")))
-	     (pass1/lambda form (append vars g)
-			   (pass1/extended-lambda form g kargs body)
-			   p1env #t))))))
+    (receive (vars pred validators)
+	(parse-lambda-variable p1env vars (and (not (zero? opt)) (null? kargs)))
+      (check-duplicate-variable form vars variable=? "duplicate variable")
+      (if (null? kargs)
+	  (let* ((this-lvars (imap make-lvar+ vars))
+		 (intform ($lambda form (p1env-exp-name p1env)
+				   reqargs opt this-lvars
+				   #f flag))
+		 (newenv (p1env-extend/proc p1env
+					    (%map-cons vars this-lvars)
+					    LEXICAL intform)))
+	    (let ((body (inject-validators p1env pred validators body)))
+	      ($lambda-body-set! intform (pass1/body body newenv)))
+	    intform)
+	  (let ((g (gensym "keys")))
+	    (pass1/lambda
+	     form (append vars g)
+	     (inject-validators p1env pred validators
+	      (pass1/extended-lambda p1env form g kargs body))
+	     p1env #t))))))
 
-(define (pass1/extended-lambda form garg kargs body)
+(define (pass1/extended-lambda p1env form garg kargs body)
   (define _let-keywords* (global-id 'let-keywords*))
   (define _let-optionals* (global-id 'let-optionals*))
   (define (collect-args xs r)
@@ -1806,19 +1826,35 @@
 	(let ((binds (imap (lambda (expr)
 			     (smatch expr
 			       ((? variable? o) o)
-			       ((o init) `(,o ,init))
+			       (((o spec) init) `(,o ,init))
+			       ((o init) expr)
 			       (_ (syntax-error
 				   "illegal optional argument spec" kargs))))
 			   os))
 	      (rest (or r (gensym "rest"))))
-	  `((,_let-optionals* ,garg ,(append binds rest)
-	     ,@(if (and (not r) (null? ks))
-		   `((,unless. (,null?. ,rest)
-		      (,error. 'lambda
-			       "too many argument for" ',(unwrap-syntax body)))
-		     (,let. () ,@(expand-key ks rest a)))
-		   (expand-key ks rest a)))))))
+	  (receive (vars pred validators)
+	      (parse-lambda-variable p1env
+	       (ifilter-map (lambda (v) 
+			      (and (pair? v) (pair? (car v)) (car v))) os) #f)
+	    `((,_let-optionals* ,garg ,(append binds rest)
+		,@(inject-validators p1env pred validators
+		   (if (and (not r) (null? ks))
+		       `((,unless. (,null?. ,rest)
+			   (,error. 'lambda
+			     "too many argument for" ',(unwrap-syntax body)))
+			 (,let. () ,@(expand-key ks rest a)))
+		       (expand-key ks rest a)))))))))
   (define (expand-key ks garg a)
+    (define (split-validator-spec args)
+      (let loop ((args args) (binds '()) (spec '()))
+	(if (null? args)
+	    (values (reverse! binds) (reverse! spec))
+	    (let ((arg (car args)))
+	      (cond ((variable? arg) (loop (cdr args) (cons arg binds) spec))
+		    ((and (pair? arg) (pair? (car arg)))
+		     (loop (cdr args) (cons (cons (caar arg) (cdr arg)) binds)
+			   (cons (car arg) spec)))
+		    (else (loop (cdr arg) (cons arg binds) spec)))))))
     (if (null? ks)
 	body
 	(let ((args (imap (lambda (expr)
@@ -1826,14 +1862,17 @@
 			      ((((? keyword? key) o) init) `(,o ,key, init))
 			      ;; for compatibility
 			      ((o (? keyword? key) init) `(,o ,key, init))
-			      ((o init) `(,o ,init))
+			      ((o init) expr)
 			      ((? variable? o) o)
 			      (_ (syntax-error
 				  "illegal keyword argument spec" kargs))))
 			  ks)))
-	  `((,_let-keywords* ,garg
-		,(if a (append args a) args)
-		,@body)))))
+	  (receive (binds spec) (split-validator-spec args)
+	    (receive (vars pred validators)
+		(parse-lambda-variable p1env spec #f)
+	      `((,_let-keywords* ,garg
+		 ,(if a (append binds a) binds)
+		 ,@(inject-validators p1env pred validators body))))))))
   (parse-kargs kargs '() '() #f #f))
 
 (define-pass1-syntax (lambda form p1env) :null
