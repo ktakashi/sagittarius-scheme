@@ -8,7 +8,7 @@
 (define-cise-stmt assertion-violation
   ((_ who msg)
    `(begin
-      (Sg_AssertionViolation (SG_INTERN ,who) (SG_MAKE_STRING ,msg) '())
+      (Sg_AssertionViolation (SG_INTERN ,who) (SG_MAKE_STRING ,msg) SG_UNBOUND)
       (return SG_UNDEF)))
   ((_ who msg irritants)
    `(begin
@@ -19,7 +19,7 @@
   ((_ who msg got)
    `(begin
       (Sg_WrongTypeOfArgumentViolation (SG_INTERN ,who)
-				       (SG_MAKE_STRING ,msg) ,got '())
+				       (SG_MAKE_STRING ,msg) ,got SG_UNBOUND)
       (return SG_UNDEF)))
   ((_ who msg got irritants)
    `(begin
@@ -567,12 +567,12 @@
 (define-inst CAR (0 0 #t)
   (if (SG_PAIRP (AC vm))
       (call-one-arg SG_CAR)
-      (wrong-type-of-argument-violation "car" "pair" (AC vm))))
+      (wrong-type-of-argument-violation "car" "pair" (AC vm) (AC vm))))
 
 (define-inst CDR (0 0 #t)
   (if (SG_PAIRP (AC vm))
       (call-one-arg SG_CDR)
-      (wrong-type-of-argument-violation "cdr" "pair" (AC vm))))
+      (wrong-type-of-argument-violation "cdr" "pair" (AC vm) (AC vm))))
 
 (define-inst CONS (0 0 #t)
   (call-two-args-proc (POP (SP vm)) Sg_Cons))

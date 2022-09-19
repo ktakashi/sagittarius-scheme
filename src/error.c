@@ -141,7 +141,9 @@ static SgObject make_info_condition(SgObject who, SgObject msg, SgObject irr)
   SgObject h = SG_NIL, t = SG_NIL;
   if (!SG_FALSEP(who)) SG_APPEND1(h, t, Sg_MakeWhoCondition(who));
   SG_APPEND1(h, t, Sg_MakeMessageCondition(msg));
-  SG_APPEND1(h, t, Sg_MakeIrritantsCondition(irr));
+  if (!SG_UNBOUNDP(irr)) {
+    SG_APPEND1(h, t, Sg_MakeIrritantsCondition(irr));
+  }
   return h;
 }
 
@@ -166,38 +168,38 @@ void Sg_IOWriteError(SgObject who, SgObject msg, SgObject port, SgObject irr)
 void Sg_IOFileDoesNotExistError(SgObject file, SgObject who, SgObject msg)
 {
   Sg_Raise(Sg_Condition(Sg_Cons(Sg_MakeIOFileDoesNotExist(file),
-				make_info_condition(who, msg, SG_NIL))),
+				make_info_condition(who, msg, SG_UNBOUND))),
 	   FALSE);
 }
 void Sg_IOFileAlreadyExistsError(SgObject file, SgObject who, SgObject msg)
 {
   Sg_Raise(Sg_Condition(Sg_Cons(Sg_MakeIOFileAlreadyExists(file),
-				make_info_condition(who, msg, SG_NIL))),
+				make_info_condition(who, msg, SG_UNBOUND))),
 	   FALSE);
 }
   
 void Sg_IODecodingError(SgObject port, SgObject who, SgObject msg)
 {
   Sg_Raise(Sg_Condition(Sg_Cons(Sg_MakeIODecoding(port),
-				make_info_condition(who, msg, SG_NIL))),
+				make_info_condition(who, msg, SG_UNBOUND))),
 	   FALSE);
 }
 void Sg_IOEncodingError(SgObject port, SgChar c, SgObject who, SgObject msg)
 {
   Sg_Raise(Sg_Condition(Sg_Cons(Sg_MakeIOEncoding(port, c),
-				make_info_condition(who, msg, SG_NIL))),
+				make_info_condition(who, msg, SG_UNBOUND))),
 	   FALSE);
 }
 void Sg_IOFilenameError(SgObject file, SgObject who, SgObject msg)
 {
   Sg_Raise(Sg_Condition(Sg_Cons(Sg_MakeIOFilename(file),
-				make_info_condition(who, msg, SG_NIL))),
+				make_info_condition(who, msg, SG_UNBOUND))),
 	   FALSE);
 }
 void Sg_IOFileProtectionError(SgObject file, SgObject who, SgObject msg)
 {
   Sg_Raise(Sg_Condition(Sg_Cons(Sg_MakeIOFileProtection(file),
-				make_info_condition(who, msg, SG_NIL))),
+				make_info_condition(who, msg, SG_UNBOUND))),
 	   FALSE);
 }
 

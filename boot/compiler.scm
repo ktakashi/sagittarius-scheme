@@ -1242,8 +1242,14 @@
 	(let ((lib (ensure-library-name library)))
 	  (let ((name (string->symbol 
 		       (string-append "syntax/"
-				      (symbol->string (car formals))))))
-	    `(let ((,name (lambda ,(cdr formals) ,@body)))
+				      (symbol->string (car formals)))))
+		(form (cadr formals))
+		(p1env (caddr formals)))
+	    `(let ((,name (lambda (,form ,p1env)
+			    (guard (e (else
+				       (raise
+					(condition e (add-backtrace e ,form)))))
+			      ,@body))))
 	       (%insert-binding ',lib ',(car formals)
 				(make-syntax ',(car formals) ,name))))))))))
 
@@ -1854,7 +1860,7 @@
 		    ((and (pair? arg) (pair? (car arg)))
 		     (loop (cdr args) (cons (cons (caar arg) (cdr arg)) binds)
 			   (cons (car arg) spec)))
-		    (else (loop (cdr arg) (cons arg binds) spec)))))))
+		    (else (loop (cdr args) (cons arg binds) spec)))))))
     (if (null? ks)
 	body
 	(let ((args (imap (lambda (expr)

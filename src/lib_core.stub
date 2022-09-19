@@ -14,7 +14,7 @@
   (define-cise-stmt assertion-violation
     ((_ who msg)
      `(begin
-	(Sg_AssertionViolation ,who (SG_MAKE_STRING ,msg) '())))
+	(Sg_AssertionViolation ,who (SG_MAKE_STRING ,msg) SG_UNBOUND)))
     ((_ who msg irritants)
      `(begin
 	(Sg_AssertionViolation ,who (SG_MAKE_STRING ,msg) ,irritants)
@@ -23,7 +23,7 @@
   (define-cise-stmt wrong-type-of-argument-violation
     ((_ who msg got)
      `(begin
-	(Sg_WrongTypeOfArgumentViolation ,who (SG_MAKE_STRING ,msg) ,got '())))
+	(Sg_WrongTypeOfArgumentViolation ,who (SG_MAKE_STRING ,msg) ,got SG_UNBOUND)))
     ((_ who msg got irritants)
      `(begin
 	(Sg_WrongTypeOfArgumentViolation ,who (SG_MAKE_STRING ,msg) ,got ,irritants))))
