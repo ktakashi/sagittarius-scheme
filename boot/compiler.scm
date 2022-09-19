@@ -1668,20 +1668,87 @@
 ;; identifier.
 ;; NB: however it must be unique symbol, so we used C address for that purpos.
 ;;     see bound-id->symbol in extlib.stub
+
+;; vars ::= var*
+;; var  ::= identifier
+;;        | (identifier spec)
+;; spec ::= pred
+;;        | (or spec spec*)
+;;        | (and spec spec*)
+;;        | (quote datum)
+(define or. (global-id 'or))
+(define and. (global-id 'and))
+(define equal?. (global-id 'equal?))
+(define assertion-violation. (global-id 'assertion-violation))
+(define (parse-lambda-variable p1env oovars opt?)
+  (define (parse-validator-spec p1env var spec)
+    (define (or? x) (global-eq? x 'or p1env))
+    (define (and? x) (global-eq? x 'and p1env))
+    (define (quote? x) (global-eq? x 'quote p1env))
+    (define (spec->pred var spec)
+      (smatch spec
+	(() '())
+	(((? or?) s1 s2 ...)
+	 `(,or. ,(spec->pred var s1)
+		,@(imap (lambda (s) (spec->pred var s) )s2)))
+	(((? and?) s1 s2 ...)
+	 `(,and. ,(spec->pred var s1)
+		 ,@(imap (lambda (s) (spec->pred var s)) s2)))
+	(((? quote?) d) `(,equal? ,var ,d))
+	((? variable? x) x)
+	(else (syntax-error "Invalid type validator" spec))))
+    (define (make-validator-generator var spec)
+      (define err-msg (format "~a must satisfy ~s"
+			      (unwrap-syntax var)
+			      (unwrap-syntax spec)))
+      (lambda (pred)
+	`(,unless. (,pred ,var)
+	   (,assertion-violation. ',var err-msg var))))
+    (let ((pred (spec->pred var spec)))
+      (values pred (make-validator-generator var spec))))
+  
+  (let loop ((ovars oovars) (vars '()) (preds '()) (validators '()))
+    (cond ((and opt? (null? (cdr ovars)))
+	   (values (reverse! vars) (car ovars)
+		   (reverse! preds) (reverse! validators)))
+	  ((null? ovars)
+	   (values (reverse! vars) '() (reverse! preds) (reverse! validators)))
+	  (else
+	   (smatch (car ovars)
+	     ((var spec)
+	      (receive (pred validator) (parse-validator-spec p1env var spec)
+		(loop (cdr ovars) (cons var vars) (cons pred preds)
+		      (cons validator validators))))
+	     ((? variable? var)
+	      (loop (cdr ovars) (cons var vars) preds validators))
+	     (_ (syntax-error "Invalid lambda formals" oovars)))))))
 	     
 (define (pass1/lambda form formals body p1env flag)
   (receive (vars reqargs opt kargs) (parse-lambda-args formals)
     (check-duplicate-variable form vars variable=? "duplicate variable")
     (cond ((null? kargs)
-	   (let* ((this-lvars (imap make-lvar+ vars))
-		  (intform ($lambda form (p1env-exp-name p1env)
-				    reqargs opt this-lvars
-				    #f flag))
-		  (newenv (p1env-extend/proc p1env
-					     (%map-cons vars this-lvars)
-					     LEXICAL intform)))
-	     ($lambda-body-set! intform (pass1/body body newenv))
-	     intform))
+	   (receive (vars rest pred validators)
+	       (parse-lambda-variable p1env vars (not (zero? opt)))
+	     (if (null? pred)
+		 (let* ((vars (if (null? rest) vars (append vars (list rest))))
+			(this-lvars (imap make-lvar+ vars))
+			(intform ($lambda form (p1env-exp-name p1env)
+					  reqargs opt this-lvars
+					  #f flag))
+			(newenv (p1env-extend/proc p1env
+						   (%map-cons vars this-lvars)
+						   LEXICAL intform)))
+		   ($lambda-body-set! intform (pass1/body body newenv))
+		   intform)
+		 (let ((pred-vars (imap (lambda (p) (gensym "p")) pred)))
+		   (pass1 ($src
+			   `(,let. (,@(imap2 list pred-vars pred))
+			      (,lambda. (,@vars . ,rest)
+				,@(imap2 (lambda (v p) (v p))
+					 validators pred-vars)
+				,@body))
+			   form)
+			  p1env)))))
 	  (else
 	   (let ((g (gensym "keys")))
 	     (pass1/lambda form (append vars g)
