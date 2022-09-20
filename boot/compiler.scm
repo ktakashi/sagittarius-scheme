@@ -1710,6 +1710,7 @@
 	((? boolean? b)
 	 (if b `(,lambda. (x) x) `(,lambda. (x) (,not. x))))
 	((? variable? x) x)
+	((a ___) spec) ;; expression, let it compile
 	(else
 	 (syntax-error (format "Invalid type validator for '~a'" var) spec))))
     (define (make-validator-generator var spec)
