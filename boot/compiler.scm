@@ -1755,7 +1755,7 @@
 	($src
 	 `(,@(imap2 (lambda (v p) `(,define. ,v ,p)) pred-vars pred)
 	   ,@(imap2 (lambda (v p) (v p)) validators pred-vars)
-	   ,@body)
+	   (,let. () ,@body))
 	 p1env))))
 
 (define (pass1/lambda form formals body p1env flag)
