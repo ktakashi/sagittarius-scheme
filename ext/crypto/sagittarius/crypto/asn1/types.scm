@@ -170,12 +170,13 @@
 	    der-unknown-tag-data
 
 	    ber-octet-string? <ber-octet-string>
+	    ber-octet-string-octs
 	    bytevector->ber-octed-string
 	    list->ber-octet-string
 
 	    ber-tagged-object? <ber-tagged-object>
 
-	    <ber-seuqnence> ber-sequence?
+	    <ber-sequence> ber-sequence?
 	    make-ber-sequence
 	    ber-sequence
 
@@ -333,7 +334,9 @@
   (asn1-simple-object-value der-enumerated))
 
 ;;; Collections
-(define (list-of-der-encodable? lis) (for-all asn1-encodable? lis))
+(define ((list-of pred) list) (for-all pred list))
+(define list-of-der-encodable? (list-of asn1-encodable?))
+
 ;; Sequence
 (define-class <der-sequence> (<asn1-collection>) ())
 (define (der-sequence? o) (is-a? o <der-sequence>))
@@ -574,8 +577,6 @@
 (define (der-unknown-tag? o) (is-a? o <der-unknown-tag>))
 
 ;;; BER
-(define ((list-of pred) list) (for-all pred list))
-
 ;; Constructed octet string
 (define *ber-octet-string-max-length* 1000)
 (define-class <ber-octet-string> (<der-octet-string>)
@@ -596,21 +597,23 @@
   (define len (bytevector-length bv))
   (let ((bv (bytevector-copy bv)))
     (make <ber-octet-string> :value bv
-	  :octs (if (< len *ber-octet-string-max-length*)
-		    (list bv)
-		    (split bv len)))))
+	  :octs (map bytevector->der-octet-string
+		     (if (< len *ber-octet-string-max-length*)
+			 (list bv)
+			 (split bv len))))))
 (define (list->ber-octet-string (list (list-of bytevector?)))
-  (make <ber-octet-string> :value (bytevector-concatenate list) :octs list))
+  (make <ber-octet-string> :value (bytevector-concatenate list)
+	:octs (map bytevector->der-octet-string list)))
 
 ;; Tagged object
 (define-class <ber-tagged-object> (<der-tagged-object>) ())
 (define (ber-tagged-object? o) (is-a? o <ber-tagged-object>))
 
 ;; Sequence
-(define-class <ber-seuqnence> (<der-sequence>) ())
-(define (ber-sequence? o) (is-a? o <ber-seuqnence>))
+(define-class <ber-sequence> (<der-sequence>) ())
+(define (ber-sequence? o) (is-a? o <ber-sequence>))
 (define (make-ber-sequence (list list-of-der-encodable?))
-  (make <ber-seuqnence> :elements list))
+  (make <ber-sequence> :elements list))
 (define (ber-sequence . e*)  (make-ber-sequence e*))
 
 ;; Set

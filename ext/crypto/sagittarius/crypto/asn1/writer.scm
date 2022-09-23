@@ -35,7 +35,8 @@
 	    (clos user)
 	    (sagittarius)
 	    (sagittarius crypto asn1 tags)
-	    (sagittarius crypto asn1 types))
+	    (sagittarius crypto asn1 types)
+	    (srfi :117 list-queues))
 
 ;; For DER object, we always encode DER as DER is a subset of BER
 (define-method write-asn1-encodable ((o <der-boolean>) port type)
@@ -229,6 +230,62 @@
 		     (der-unknown-tag-data o)
 		     port))
 
+
+(define-method write-asn1-encodable ((o <ber-octet-string>) port type)
+  (case type
+    ((der) (call-next-method)) ;; der
+    ((ber)
+     (put-u8 port (bitwise-ior *asn1:constructed* *asn1:octet-string*))
+     (put-u8 port #x80)
+     (for-each (lambda (o) (write-asn1-encodable o port type))
+	       (ber-octet-string-octs o))
+     (put-u8 port #x00)
+     (put-u8 port #x00))
+    (else (assertion-violation 'write-asn1-encodable "Unknown type" type))))
+
+(define-method write-asn1-encodable ((o <ber-tagged-object>) port type)
+  (case type
+    ((der) (call-next-method))
+    ((ber)
+     (write-der-tag (bitwise-ior *asn1:constructed* *asn1:tagged*)
+		    (der-tagged-object-tag-no o) port)
+     (put-u8 port #x80)
+     (let ((obj (der-tagged-object-obj o)))
+       (if (der-tagged-object-explicit? o)
+	   (write-asn1-encodable obj port type)
+	   (let ((e (cond ((der-octet-string? obj)
+			   (if (ber-octet-string? obj)
+			       (ber-octet-string-octs obj)
+			       (ber-octet-string-octs
+				(bytevector->ber-octed-string
+				 (der-octet-string->bytevector obj)))))
+			  ((asn1-collection? obj)
+			   (list-queue-list (asn1-collection-elements obj)))
+			  (else
+			   (assertion-violation 'write-asn1-encodable
+				"Unknown BER tagged object content" obj)))))
+	     (for-each (lambda (o) (write-asn1-encodable o port type)) e))))
+     (put-u8 port #x00)
+     (put-u8 port #x00))
+    (else (assertion-violation 'write-asn1-encodable "Unknown type" type))))
+
+(define (write-ber-collection tag o port type)
+  (put-u8 port (bitwise-ior *asn1:constructed* tag))
+  (put-u8 port #x80)
+  (list-queue-for-each (lambda (e) (write-asn1-encodable e port type))
+		       (asn1-collection-elements o))
+  (put-u8 port #x00)
+  (put-u8 port #x00))
+(define-method write-asn1-encodable ((o <ber-sequence>) port type)
+  (case type
+    ((der) (call-next-method))
+    ((ber) (write-ber-collection *asn1:sequence* o port type))
+    (else (assertion-violation 'write-asn1-encodable "Unknown type" type))))
+(define-method write-asn1-encodable ((o <ber-set>) port type)
+  (case type
+    ((der) (call-next-method))
+    ((ber) (write-ber-collection *asn1:set* o port type))
+    (else (assertion-violation 'write-asn1-encodable "Unknown type" type))))
 
 (define write-der-encoded
   (case-lambda
