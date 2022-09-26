@@ -30,11 +30,26 @@
 
 #!nounbound
 (library (sagittarius mop immutable)
-    (export <immutable>
-	    (rename (<record-type-meta> <immutable-meta>)))
+    (export <immutable> <immutable-meta>)
     (import (rnrs)
-	    (clos user)
-	    (only (sagittarius clos) <record-type-meta>))
+	    (clos core)
+	    (clos user))
 
-(define-class <immutable> () () :metaclass <record-type-meta>)
+(define-class <immutable-meta> (<class>) ())
+(define-class <immutable> () () :metaclass <immutable-meta>)
+;; copy&paste of <record-meta>
+;; This is needed due to the record inspection, <record-meta>
+;; is treated during record inspection and this would ignore object-equal?
+;; Might be better to revisit the implementation to adjust
+;; as this means, record can't be specialised with object-equal? method.
+(define-method compute-getter-and-setter ((c <immutable-meta>) slot)
+    (let ((mutability (slot-definition-option slot :mutable #f))
+	  (accessors (call-next-method)))
+      (if mutability
+	  accessors
+	  (list (car accessors)
+		(lambda (o v)
+		  (error 'slot-setter "field is immutable"
+			 (slot-definition-name slot) o))
+		(caddr accessors)))))
 )

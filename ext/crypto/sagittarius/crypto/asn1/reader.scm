@@ -52,14 +52,14 @@
 
 (define *constructors*
   `((,*asn1:bit-string*	       . ,create-der-bit-string)
-    (,*asn1:bmp-string*	       . ,bytevector->der-bit-string)
+    (,*asn1:bmp-string*	       . ,bytevector->der-bmp-string)
     (,*asn1:boolean*   	       . ,bytevector->der-boolean)
     (,*asn1:enumerated*        . ,bytevector->der-enumerated)
     (,*asn1:generalized-time*  . ,bytevector->der-generalized-time)
     (,*asn1:general-string*    . ,bytevector->der-general-string)
     (,*asn1:ia5-string*        . ,bytevector->der-ia5-string)
     (,*asn1:integer*           . ,bytevector->der-integer)
-    (,*asn1:integer*           . ,(lambda (_) (make-der-null)))
+    (,*asn1:null*              . ,(lambda (_) (make-der-null)))
     (,*asn1:numeric-string*    . ,bytevector->der-numeric-string)
     (,*asn1:object-identifier* . ,bytevector->der-object-identifier)
     (,*asn1:octet-string*      . ,bytevector->der-octet-string)
@@ -86,7 +86,7 @@
 	   (unless obj (err))
 	   (make <der-external>
 	     :direct-reference dr
-	     :indirect-reference idr
+	     :indirect-reference (der-integer->integer idr)
 	     :data-value-descriptor dvd
 	     :encoding obj))
 	  ((der-object-identifier? (car data))
@@ -100,52 +100,65 @@
 	   (loop (cdr data) dr idr dvd (car data)))
 	  ((asn1-object? (car data))
 	   (when dvd (err))
-	   (loop (cdr data) dr idr (car dvd) obj))
+	   (loop (cdr data) dr idr (car data) obj))
 	  (else (err)))))
 
 (define (read-tagged-object in constructed? tag)
-  (if constructed?
-      (let ((len (length in)))
-	(if (= len 1)
-	    (make <der-tagged-object>
-	      :explicit? #t :tag-no tag :obj (car in))
-	    (make <der-tagged-object>
-	      :explicit? #f :tag-no tag (make-der-sequence in))))
-      (make <der-tagged-object> :explicit? #f :tag-no tag
-	    (bytevector->der-octet-string in))))
+  (cond (constructed?
+	 (case (length in)
+	   ((0) (make <der-tagged-object> :explicit? #t :tag-no tag :obj #f))
+	   ((1) (make <der-tagged-object> :explicit? #t :tag-no tag
+		      :obj (car in)))
+	   (else (make <der-tagged-object>
+		   :explicit? #f :tag-no tag :obj (make-der-sequence in)))))
+	((zero? (bytevector-length in))
+	 (make <der-tagged-object> :explicit? #f :tag-no tag
+	       :obj #f))
+	(else
+	 (make <der-tagged-object> :explicit? #f :tag-no tag
+	       :obj (bytevector->der-octet-string in)))))
 
+(define (convert-tag b tag)
+  (let ((b2 (bitwise-and b #x1F)))
+    (if (= b2 #x1F)
+	(bytevector->integer tag)
+	b2)))
 (define (object-builder b tag data constructed?)
   (when (eof-object? data)
     (assertion-violation 'read-asn1-object "EOF found during reading data"))
-  (cond ((not (zero? (bitwise-and b *asn1:application*)))
-	 (make <der-application-specific>
-	   :constructed? constructed?
-	   :tag tag
-	   ;; TODO Should we always make data bytevector?
-	   :obj (if constructed? (asn1-encodable->bytevector data) data)))
-	((not (zero? (bitwise-and b *asn1:tagged*)))
-	 (read-tagged-object data constructed? tag))
-	(constructed?
-	 (cond ((= tag *asn1:octet-string*)
-		(list->ber-octet-string
-		 (map der-octet-string->bytevector data)))
-	       ((= tag *asn1:sequence*) (make-der-sequence data))
-	       ((= tag *asn1:set*) (make-der-set data))
-	       ((= tag *asn1:external*) (make-der-external data))
-	       (else (let ((ctr (cond ((assv tag *constructors*) => cdr)
-				      (else #f)))
-			   (value (map der-octet-string->bytevector data)))
-		       ;; Indefinite length value will be encoded to a list
-		       ;; of DER octet string so apply matched procedure
-		       ;; with unwrapped value
-		       ;; TODO should we check the length so we can put
-		       ;;      better error message?
-		       (if ctr
-			   (apply ctr value)
-			   (make <der-unknown-tag>
-			     :constructed? #t :number tag
-			     :data (bytevector-concatenate value)))))))
-	(else (create-primitive-der-object tag data))))
+  (let ((tag (convert-tag b tag)))
+    (cond ((not (zero? (bitwise-and b *asn1:application*)))
+	   (make <der-application-specific>
+	     :constructed? constructed?
+	     :tag tag
+	     ;; TODO Should we always make data bytevector?
+	     :octets (if constructed?
+			 (bytevector-concatenate
+			  (map asn1-encodable->bytevector data))
+			 data)))
+	  ((not (zero? (bitwise-and b *asn1:tagged*)))
+	   (read-tagged-object data constructed? tag))
+	  (constructed?
+	   (cond ((= tag *asn1:octet-string*)
+		  (list->ber-octet-string
+		   (map der-octet-string->bytevector data)))
+		 ((= tag *asn1:sequence*) (make-der-sequence data))
+		 ((= tag *asn1:set*) (make-der-set data))
+		 ((= tag *asn1:external*) (make-der-external data))
+		 (else (let ((ctr (cond ((assv tag *constructors*) => cdr)
+					(else #f)))
+			     (value (map der-octet-string->bytevector data)))
+			 ;; Indefinite length value will be encoded to a list
+			 ;; of DER octet string so apply matched procedure
+			 ;; with unwrapped value
+			 ;; TODO should we check the length so we can put
+			 ;;      better error message?
+			 (if ctr
+			     (apply ctr value)
+			     (make <der-unknown-tag>
+			       :constructed? #t :number tag
+			       :data (bytevector-concatenate value)))))))
+	  (else (create-primitive-der-object tag data)))))
 
 (define read-object (make-emv-tlv-parser :object-builder object-builder))
 
