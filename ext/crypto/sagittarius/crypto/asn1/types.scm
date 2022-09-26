@@ -63,6 +63,8 @@
 
 	    der-object-identifier? <der-object-identifier>
 	    bytevector->der-object-identifier
+	    oid-string->der-object-identifier
+	    der-object-identifier->oid-string
 
 	    der-external? <der-external>
 	    der-external-direct-reference
@@ -219,6 +221,8 @@
 (define-class <asn1-simple-object> (<asn1-object>)
   ((value :init-keyword :value :reader asn1-simple-object-value)))
 (define (asn1-simple-object? o) (is-a? o <asn1-simple-object>))
+(define-method object-equal? ((a <asn1-simple-object>) (b <asn1-simple-object>))
+  (equal? (asn1-simple-object-value a) (asn1-simple-object-value b)))
 
 ;; ASN.1 string, e.g. IA5
 (define-class <asn1-string> (<asn1-simple-object>) ())
@@ -234,9 +238,14 @@
 	     :init-thunk list-queue)))
 (define (asn1-collection? o) (is-a? o <asn1-collection>))
 (define (asn1-collection-subtype? class) (subtype? class <asn1-collection>))
+(define-method object-equal? ((a <asn1-collection>) (b <asn1-collection>))
+  (for-all equal?
+	   (list-queue-list (asn1-collection-elements a))
+	   (list-queue-list (asn1-collection-elements b))))
   
 (define (((asn1-collection-of? (class asn1-collection-subtype?)) pred) v)
-  (and (is-a? v class) (for-all pred (asn1-collection-elements v))))
+  (and (is-a? v class)
+       (for-all pred (list-queue-list (asn1-collection-elements v)))))
 ;; due to the comparator we need this to make it generic
 ;; but better not to use this for performance
 (define-generic asn1-collection-add!)
@@ -272,6 +281,9 @@
 (define (bytevector->der-bit-string (bv bytevector?)
 				    :optional ((pad integer?) 0))
   (make <der-bit-string> :value (bytevector-copy bv) :padding-bits pad))
+(define-method object-equal? ((a <der-bit-string>) (b <der-bit-string>))
+  (and (eqv? (der-bit-string-padding-bits a) (der-bit-string-padding-bits b))
+       (call-next-method)))
 
 ;; Octet string
 (define-class <der-octet-string> (<asn1-simple-object>) ())
@@ -286,6 +298,7 @@
 (define (der-null? o) (is-a? o <der-null>))
 (define *der-null* (make <der-null>))
 (define (make-der-null) *der-null*)
+(define-method object-equal? ((a <der-null>) (b <der-null>)) #t)
 
 ;; Object identifier
 (define-class <der-object-identifier> (<asn1-simple-object>) ())
@@ -309,6 +322,8 @@
 		  (put-string out (number->string value))
 		  (loop 0 #f (+ i 1)))
 		(loop value first (+ i 1))))))))
+(define (oid-string->der-object-identifier (oid string?))
+  (make <der-object-identifier> :value oid))
 (define (der-object-identifier->oid-string (der-oid der-object-identifier?))
   (asn1-simple-object-value der-oid))
 
@@ -322,6 +337,14 @@
 			  :reader der-external-data-value-descriptor)
    (encoding :init-keyword :encoding :reader der-external-encoding)))
 (define (der-external? o) (is-a? o <der-external>))
+(define-method object-equal? ((a <der-external>) (b <der-external>))
+  (and (equal? (der-external-direct-reference a)
+	       (der-external-direct-reference b))
+       (equal? (der-external-indirect-reference a)
+	       (der-external-indirect-reference b))
+       (equal? (der-external-data-value-descriptor a)
+	       (der-external-data-value-descriptor b))
+       (equal? (der-external-encoding a) (der-external-encoding b))))
 
 ;; Enumerated
 (define-class <der-enumerated> (<asn1-simple-object>) ())
@@ -357,10 +380,11 @@
        ;; FIXME
        :init-value default-set-equal?)))
 (define (der-set? o) (is-a? o <der-set>))
-(define (make-der-set =? (elements list-of-der-encodable?))
-  (make <der-set> :elements (delete-duplicates elements =?)
+(define (make-der-set (elements list-of-der-encodable?)
+		      :optional (=? default-set-equal?))
+  (make <der-set> :elements (make-list-queue (delete-duplicates elements =?))
 	:comparator =?))
-(define (der-set . e*) (make-der-set default-set-equal? e*))
+(define (der-set . e*) (make-der-set e* default-set-equal?))
 (define der-set-of (asn1-collection-of? <der-set>))
 (define (der-set-add! (set der-set?) (e asn1-encodable?))
   (let ((q (asn1-collection-elements set)))
@@ -372,6 +396,10 @@
   set)
 (define-method asn1-collection-add! ((s <der-set>) (e <asn1-encodable>))
   (der-set-add! s e))
+(define-method object-equal? ((a <der-set>) (b <der-set>))
+  (and (eq? (der-set=? a) (der-set=? b))
+       (call-next-method)))
+
 
 ;; Numeric string
 (define-class <der-numeric-string> (<asn1-string>) ())
@@ -473,12 +501,12 @@
 	  (else
 	   (if (has-fraction-seconds s)
 	       "~Y~m~d~H~M~S.~~~~~~~"
-	       "~Y~m~d~H~M~S~"))))
+	       "~Y~m~d~H~M~S"))))
   (let ((format (get-format s)))
     (make <der-generalized-time> :value s :format format)))
 (define (date->der-generalized-time (date date?))
   ;; For now ignore nanosecond
-  (make <der-generalized-time> :value (date->string  date "~Y~m~d~H~M~S~z")
+  (make <der-generalized-time> :value (date->string date "~Y~m~d~H~M~S~z")
 	:format "~Y~m~d~H~M~S~z"))
 (define (bytevector->der-generalized-time (bv bytevector?))
   (string->der-generalized-time (utf8->string bv)))
@@ -559,8 +587,16 @@
   ((constructed? :init-keyword :constructed?
 		 :reader der-application-specific-constructed?)
    (tag :init-keyword :tag :reader der-application-specific-tag)
-   (octets :init-keyword :obj :reader der-application-specific-octets)))
+   (octets :init-keyword :octets :reader der-application-specific-octets)))
 (define (der-application-specific? o) (is-a? o <der-application-specific>))
+(define-method object-equal? ((a <der-application-specific>)
+			      (b <der-application-specific>))
+  (and (eqv? (der-application-specific-constructed? a)
+	     (der-application-specific-constructed? b))
+       (eqv? (der-application-specific-tag b)
+	     (der-application-specific-tag b))
+       (equal? (der-application-specific-octets b)
+	       (der-application-specific-octets b))))
 
 ;; Tagged object
 (define-class <der-tagged-object> (<asn1-object>)
@@ -568,6 +604,10 @@
    (explicit? :init-keyword :explicit? :reader der-tagged-object-explicit?)
    (obj :init-keyword :obj :reader der-tagged-object-obj)))
 (define (der-tagged-object? o) (is-a? o <der-tagged-object>))
+(define-method object-equal? ((a <der-tagged-object>) (b <der-tagged-object>))
+  (and (eqv? (der-tagged-object-tag-no a) (der-tagged-object-tag-no b))
+       (eqv? (der-tagged-object-explicit? a) (der-tagged-object-explicit? b))
+       (equal? (der-tagged-object-obj a) (der-tagged-object-obj b))))
 
 (define-class <der-unknown-tag> (<asn1-object>)
   ((constructed? :init-keyword :constructed?

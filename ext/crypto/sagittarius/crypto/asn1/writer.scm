@@ -122,8 +122,8 @@
   (write-der-encoded (bitwise-ior tag *asn1:constructed*)
 		     (let-values (((out e) (open-bytevector-output-port)))
 		       (for-each (lambda (e) (write-asn1-encodable e out type))
-				 (asn1-collection-elements o))
-		       (e))
+				 (list-queue-list (asn1-collection-elements o)))
+			 (e))
 		     port))
 (define-method write-asn1-encodable ((o <der-sequence>) port type)
   (write-collection *asn1:sequence* o port type))
@@ -327,5 +327,6 @@
 	    ((< i 0))
 	  (put-u8 p (bitwise-and (rash len i) #xff))))
       (put-u8 p len)))
+
 
 )

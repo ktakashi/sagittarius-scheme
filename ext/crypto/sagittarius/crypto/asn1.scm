@@ -31,5 +31,7 @@
 #!nounbound
 (library (sagittarius crypto asn1)
     (export :all)
-    (import (sagittarius crypto asn1 types)
-	    (sagittarius crypto asn1 writer)))
+    (import (sagittarius crypto asn1 tags)
+	    (sagittarius crypto asn1 types)
+	    (sagittarius crypto asn1 writer)
+	    (sagittarius crypto asn1 reader)))
