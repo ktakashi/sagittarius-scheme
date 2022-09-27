@@ -67,6 +67,7 @@
 
 	    eq eql equal
 	    eq? eqv? equal? ;; for prefix or rename import
+	    memq memv member one-of
 
 	    ;; class redefnition
 	    redefine-class!
@@ -281,11 +282,14 @@
 		(else (loop (cdr ss) (cons (car ss) rs))))))
       (define (build k qualifier generic qargs rest opts body)
 	(define (parse-specializer s)
-	  (syntax-case s (eq? eqv? equal?)
+	  (syntax-case s (eq? eqv? equal? memq memv member)
 	    ((_ class) (identifier? #'class) #'class)
 	    ((_ (eq? v)) #'(eq v))
 	    ((_ (eqv? v)) #'(eql v))
 	    ((_ (equal? v)) #'(equal v))
+	    ((_ (memq v)) #'(one-of v memq))
+	    ((_ (memv v)) #'(one-of v memv))
+	    ((_ (member v)) #'(one-of v member))
 	    ((_ v) #'v)
 	    (_ #'<top>)))
 	(define (->s s) (datum->syntax k s))

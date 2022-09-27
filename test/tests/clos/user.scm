@@ -418,4 +418,16 @@
   (test-assert (slot-ref (car (generic-methods nm-1)) 'method-leaf))
   (test-assert (not (slot-ref (car (generic-methods nm-2)) 'method-leaf))))
 
+(let ()
+  (define-generic one-of-test :class <one-of-specializable-generic>)
+  (define-method one-of-test ((a <integer>)) a)
+  (define-method one-of-test ((a (memq '(a b c d)))) a)
+  (define-method one-of-test ((a (member '("a" "b" "c" "d")))) a)
+  (test-equal 1 (one-of-test 1))
+  (test-equal 'a (one-of-test 'a))
+  (test-equal 'd (one-of-test 'd))
+  (test-equal "a" (one-of-test "a"))
+  (test-equal "c" (one-of-test "c")))
+  
+
 (test-end)

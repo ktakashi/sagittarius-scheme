@@ -67,6 +67,9 @@
 	    ;; eql specializer
 	    eq eql equal
 
+	    ;; one-of specializer
+	    one-of <one-of-specializer> <one-of-specializable-generic>
+
 	    ;; change-class
 	    change-class
 	    update-instance!
@@ -428,5 +431,72 @@
 	     (unless (slot-bound-using-accessor? new acc)
 	       (slot-initialize-using-accessor! new acc initargs)))
 	   existing-slots)))))
+
+  ;; Based of the http://d.hatena.ne.jp/leque/20110105/p1
+  ;; Though the link is no longer available...
+  ;; Code itself is still in (sagittarius mop eql)
+  ;; here we can't use all those convenient macros so a bit
+  ;; hard to read... 
+  (define <one-of-specializer>
+    (make <class>
+      :definition-name '<memv-specializer>
+      :direct-supers (list <class>)
+      :direct-slots '((list :init-keyword :list)
+		      (proc :init-keyword :proc))
+      :defined-library #f))
+  (define <one-of-specializable-generic>
+    (make <class>
+      :definition-name '<memv-specializable-generic>
+      :direct-supers (list <generic>)
+      :direct-slots '()
+      :defined-library #f))
+  (define (one-of lis proc)
+    (make <one-of-specializer> :list lis :proc proc))
+  (add-method compute-applicable-methods
+    (make <method>
+      :specializers (list <one-of-specializable-generic> <list>)
+      :lambda-list '(gf l)
+      :generic compute-applicable-methods
+      :procedure
+      (lambda (call-nect-method gf args)
+	(define (specializer-match? sp obj)
+	  (define (member-of sp obj)
+	    (define lists (slot-ref sp 'list))
+	    (define proc (slot-ref sp 'proc))
+	    (proc obj lists))
+	  (or (and (is-a? sp <one-of-specializer>)
+		   (member-of sp obj))
+	      (is-a? obj sp)))
+	(define (method-applicable? method)
+	  (let loop ((sps (method-specializers method)) (args args))
+	    (if (null? sps)
+		(or (null? args) (method-optional method))
+		(and (not (null? args))
+		     (and (specializer-match? (car sps) (car args))
+			  (loop (cdr sps) (cdr args)))))))
+	(define (specializer-more-specific? a b arg)
+	  (or (is-a? a <one-of-specializer>)
+	      (find (lambda (a) (eq? a b))
+		    ;; memq should be enough, I think
+		    (cdr (member a (class-cpl (class-of arg)))))))
+	(define (more-specific? a b)
+	  (let loop ((sp-a (method-specializers a))
+		     (sp-b (method-specializers b)))
+	    (cond ((and (null? sp-a) (null? sp-b))
+		   (let ((opt-a (method-optional a))
+			 (opt-b (method-optional b)))
+		     (if (eq? opt-a opt-b)
+			 (assertion-violation 'compute-applicable-methods
+			      "Two arguments are equally specific" a b)
+			 (and opt-a (not opt-b)))))
+		  ((null? sp-a) #f)
+		  ((null? sp-b))
+		  ((eq? (car (sp-a)) (car sp-b)) (loop (cdr sp-a) (cdr sp-b)))
+		  (else
+		   (specializer-more-specific? (car sp-a) (car sp-b)
+					       (car args))))))
+	(list-sort more-specific?
+		   (filter method-applicable? (generic-methods gf))))))
+		     
 
 )

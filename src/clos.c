@@ -2950,7 +2950,7 @@ static void eql_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
   switch (SG_EQL_SPECIALIZER(o)->type) {
   case SG_EQ_SPECIALIZER: type = UC("eq"); break;
   case SG_EQV_SPECIALIZER: type = UC("eql"); break;
-  case SG_EQUAL_SPECIALIZER: type = UC("equall"); break;
+  case SG_EQUAL_SPECIALIZER: type = UC("equal"); break;
   default: type = UC("unknown"); break;
   }
   Sg_Printf(p, UC("#<eql-specializer (%s %S)>"), type,
