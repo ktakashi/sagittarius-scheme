@@ -94,6 +94,31 @@
 		(cipher-descriptor-suggested-keysize cipher)
 		(bytevector-length (symmetric-key-value key)))))
 (for-each symmetric-key-operations-test all-ciphers)
+
+(define (asymmetric-key-operations-test op)
+  (define (test-public-key-export op key)
+    (define spki (public-key-format subject-public-key-info))
+    (let ((raw-encoded (export-public-key op key))
+	  (spki-encoded (export-public-key op key spki)))
+      (test-assert (bytevector? raw-encoded))
+      (test-assert (bytevector? spki-encoded))
+      (test-assert (public-key? (import-public-key op raw-encoded)))
+      (test-assert (public-key? (import-public-key op spki-encoded spki)))))
+  (define (test-private-key-export op key)
+    (let ((encoded (export-private-key op key)))
+      (test-assert (bytevector? encoded))
+      (test-assert (private-key? (import-private-key op encoded)))))
+  (define prng (secure-random-generator *prng:chacha20*))
+  (let ((kp (generate-key-pair op :prng prng)))
+    (test-assert (key-pair? kp))
+    (test-assert (private-key? (key-pair-private kp)))
+    (test-assert (public-key? (key-pair-public kp)))
+    (test-public-key-export op (key-pair-public kp))
+    (test-private-key-export op (key-pair-private kp))))
+(for-each asymmetric-key-operations-test
+	  (list *key:rsa*))
+
+
 (test-end)
 
 (test-begin "Symmetric ciphers")

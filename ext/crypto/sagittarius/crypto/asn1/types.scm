@@ -39,6 +39,7 @@
 	    asn1-simple-object? <asn1-simple-object> asn1-simple-object-value
 	    asn1-string? <asn1-string> asn1-string->string
 	    asn1-collection? <asn1-collection> asn1-collection-elements
+	    asn1-collection-ref
 	    asn1-collection-add!
 
 	    asn1-time? <asn1-time>
@@ -54,6 +55,7 @@
 
 	    der-bit-string? <der-bit-string> der-bit-string-padding-bits
 	    bytevector->der-bit-string
+	    der-bit-string->bytevector
 
 	    der-octet-string? <der-octet-string>
 	    bytevector->der-octet-string der-octet-string->bytevector
@@ -249,6 +251,8 @@
 ;; due to the comparator we need this to make it generic
 ;; but better not to use this for performance
 (define-generic asn1-collection-add!)
+(define (asn1-collection-ref (collection asn1-collection?) (index integer?))
+  (list-ref (list-queue-list (asn1-collection-elements collection)) index))
 
 ;;; Boolean
 (define-class <der-boolean> (<asn1-simple-object>) ())
@@ -281,6 +285,8 @@
 (define (bytevector->der-bit-string (bv bytevector?)
 				    :optional ((pad integer?) 0))
   (make <der-bit-string> :value (bytevector-copy bv) :padding-bits pad))
+(define (der-bit-string->bytevector (bit-string der-bit-string?))
+  (asn1-simple-object-value bit-string))
 (define-method object-equal? ((a <der-bit-string>) (b <der-bit-string>))
   (and (eqv? (der-bit-string-padding-bits a) (der-bit-string-padding-bits b))
        (call-next-method)))

@@ -446,7 +446,7 @@
       :defined-library #f))
   (define <one-of-specializable-generic>
     (make <class>
-      :definition-name '<memv-specializable-generic>
+      :definition-name '<one-of-specializable-generic>
       :direct-supers (list <generic>)
       :direct-slots '()
       :defined-library #f))

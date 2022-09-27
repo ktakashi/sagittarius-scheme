@@ -67,6 +67,7 @@
 
 	    eq eql equal
 	    eq? eqv? equal? ;; for prefix or rename import
+	    <one-of-specializer> <one-of-specializable-generic>
 	    memq memv member one-of
 
 	    ;; class redefnition

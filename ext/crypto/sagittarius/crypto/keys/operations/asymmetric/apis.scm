@@ -38,8 +38,15 @@
 	    import-private-key
 	    export-public-key
 	    export-private-key
+
+	    oid->key-operation
+	    
+	    public-key-format
+	    *public-key-formats*
+	    public-key-format?
 	    )
-    (import (clos user))
+    (import (rnrs)
+	    (clos user))
 
 (define-generic generate-key-pair)
 (define-generic generate-public-key)
@@ -48,5 +55,12 @@
 (define-generic import-private-key)
 (define-generic export-public-key)
 (define-generic export-private-key)
+
+(define-generic oid->key-operation :class <one-of-specializable-generic>)
+
+(define-enumeration public-key-format (raw subject-public-key-info)
+  public-key-formats)
+(define *public-key-formats* (enum-set-universe (public-key-formats)))
+(define (public-key-format? s) (enum-set-member? s *public-key-formats*))
 
 )

@@ -33,13 +33,35 @@
     (export generate-key-pair
 	    generate-public-key
 	    generate-private-key
+	    import-public-key
+	    import-private-key
+	    export-public-key
+	    export-private-key
+
 	    *key:rsa*
-	    )
+	    
+	    rsa-public-key? 
+	    rsa-public-key-modulus
+	    rsa-public-key-exponent
+
+	    rsa-private-key?
+	    rsa-private-key-modulus
+	    rsa-private-key-private-exponent
+
+	    rsa-private-crt-key?
+	    rsa-private-crt-key-public-exponent
+	    rsa-private-crt-key-p
+	    rsa-private-crt-key-q
+	    rsa-private-crt-key-dP
+	    rsa-private-crt-key-dQ
+	    rsa-private-crt-key-qP)
     (import (rnrs)
 	    (clos user)
 	    (math modular)
 	    (srfi :39 parameters)
+	    (srfi :117 list-queues)
 	    (sagittarius mop immutable)
+	    (sagittarius crypto asn1)
 	    (sagittarius crypto keys types)
 	    (sagittarius crypto keys operations asymmetric apis)
 	    (sagittarius crypto random)
@@ -49,38 +71,39 @@
 (define *rsa-min-keysize* (make-parameter 1024))
 
 (define-class <rsa-public-key> (<public-key> <immutable>)
-  ((modulus :init-keyword :modulus)
-   (exponent :init-keyword :exponent)))
-(define (rsa-public-key? o) (is-a? o <rsa-private-key>))
-(define (make-rsa-public-key m e)
-  (unless (integer? m)
-    (assertion-violation 'generate-public-key
-			 "Public modulus must be an integer" m))
-  (unless (probable-prime? e)
-    (assertion-violation 'generate-public-key
-			 "Public exponent must be a prime number" e))
-  (make <rsa-public-key> :modulus m :exponent e))
+  ((modulus :init-keyword :modulus :reader rsa-public-key-modulus)
+   (exponent :init-keyword :exponent :reader rsa-public-key-exponent)))
+(define (rsa-public-key? o) (is-a? o <rsa-public-key>))
+(define (make-rsa-public-key (modulus integer?) (exponent probable-prime?))
+  (make <rsa-public-key> :modulus modulus :exponent exponent))
 
 (define-class <rsa-private-key> (<private-key> <immutable>)
-  ((modulus :init-keyword :modulus)
-   (private-exponent :init-keyword :private-exponent)))
+  ((modulus :init-keyword :modulus :reader rsa-private-key-modulus)
+   (private-exponent :init-keyword :private-exponent
+		     :reader rsa-private-key-private-exponent)))
 (define (rsa-private-key? o) (is-a? o <rsa-private-key>))
-(define (make-rsa-private-key m d)
-  (make <rsa-private-key> :modulus m :private-exponent d))
+(define (make-rsa-private-key (modulus integer?) (private-exponent integer?))
+  (make <rsa-private-key> :modulus modulus :private-exponent private-exponent))
 
 (define-class <rsa-private-crt-key> (<rsa-private-key>)
-  ((public-exponent :init-keyword :public-exponent)
-   (p :init-keyword :p)
-   (q :init-keyword :q)
-   (dP :init-keyword :dP)
-   (dQ :init-keyword :dQ)
-   (qP :init-keyword :qP)))
+  ((public-exponent :init-keyword :public-exponent
+		    :reader rsa-private-crt-key-public-exponent)
+   (p :init-keyword :p :reader rsa-private-crt-key-p)
+   (q :init-keyword :q :reader rsa-private-crt-key-q)
+   (dP :init-keyword :dP :reader rsa-private-crt-key-dP)
+   (dQ :init-keyword :dQ :reader rsa-private-crt-key-dQ)
+   (qP :init-keyword :qP :reader rsa-private-crt-key-qP)))
 (define (rsa-private-crt-key? o) (is-a? o <rsa-private-crt-key>))
-(define (make-rsa-private-crt-key m e d p q :key (dP (mod d (- p 1)))
-						 (dQ (mod d (- q 1)))
-						 (qP (mod-inverse q p)))
-  (make <rsa-private-crt-key> :modulus m :private-exponent d
-	:public-exponent e :p p :q q :dP dP :dQ dQ :qP qP))
+(define (make-rsa-private-crt-key (modulus integer?)
+				  (exponent probable-prime?)
+				  (private-exponent integer?)
+				  (p probable-prime?) (q probable-prime?)
+				  :key ((dP integer?) (mod private-exponent (- p 1)))
+				       ((dQ integer?) (mod private-exponent (- q 1)))
+				       ((qP integer?) (mod-inverse q p)))
+  (make <rsa-private-crt-key> :modulus modulus
+	:private-exponent private-exponent
+	:public-exponent exponent :p p :q q :dP dP :dQ dQ :qP qP))
 
 (define-method generate-key-pair ((m (eql *key:rsa*))
 				  :key (size 2048)
@@ -124,6 +147,156 @@
     (let ((d (mod-inverse e phi)))
       (create-key-pair n e d p q))))
 
-;;; TODO export and import
+;;; Export and import
+;; misc
+(define *rsa-key-oids*
+  '("1.2.840.113549.1.1.1"
+    "1.2.840.113549.1.1.2" 
+    "1.2.840.113549.1.1.3" 
+    "1.2.840.113549.1.1.4" 
+    "1.2.840.113549.1.1.5" 
+    "1.2.840.113549.1.1.7" 
+    "1.2.840.113549.1.1.10"
+    "1.2.840.113549.1.1.11"
+    "1.2.840.113549.1.1.12"
+    "2.5.8.1.1"))
+(define-method oid->key-operation ((oid (member *rsa-key-oids*))) *key:rsa*)
+;; We use RSAPublicKey for default
+;;
+;; RSAPublicKey ::= SEQUENCE {
+;;     modulus           INTEGER,  -- n
+;;     publicExponent    INTEGER   -- e
+;; }
+;;
+(define (rsa-import-raw-public-key (public der-sequence?))
+  (let ((objects (list-queue-list (asn1-collection-elements public))))
+    (unless (= 2 (length objects))
+      (assertion-violation 'rsa-import-public-key
+			   "Invalid format of RSAPublicKey" public))
+    (unless (for-all der-integer? objects)
+      (assertion-violation 'rsa-import-public-key
+			   "Invalid format of RSAPublicKey" public))
+    (make-rsa-public-key (der-integer->integer (car objects))
+			 (der-integer->integer (cadr objects)))))
+
+(define (check-rsa-aid aid)
+  (unless (der-sequence? aid)
+    (assertion-violation 'rsa-import-spki-public-key
+			 "Invalid format of AlgorithmIdentifier" aid))
+  (let ((oid (asn1-collection-ref aid 0)))
+    (unless (der-object-identifier? oid)
+      (assertion-violation 'rsa-import-spki-public-key
+			   "Invalid format of AlgorithmIdentifier" aid))
+    (unless (eq? *key:rsa*
+		 (oid->key-operation (der-object-identifier->oid-string oid)))
+      (assertion-violation 'rsa-import-spki-public-key
+			   "Invalid format of AlgorithmIdentifier" aid))))
+;; SubjectPublicKeyInfo {ALGORITHM: IOSet} ::= SEQUENCE {
+;;      algorithm        AlgorithmIdentifier {{IOSet}},
+;;      subjectPublicKey BIT STRING
+;; }
+(define (rsa-import-spki-public-key (public der-sequence?))
+  (check-rsa-aid (asn1-collection-ref public 0))
+  (let ((bit-string (asn1-collection-ref public 1)))
+    (unless (der-bit-string? bit-string)
+      (assertion-violation 'rsa-import-spki-public-key
+			   "Invalid format of SubjectPublicKeyInfo" public))
+    (rsa-import-raw-public-key (bytevector->asn1-object
+				(der-bit-string->bytevector bit-string)))))
+(define-method import-public-key ((m (eql *key:rsa*)) (in <bytevector>) . opts)
+  (apply import-public-key m (open-bytevector-input-port in) opts))
+(define-method import-public-key ((m (eql *key:rsa*)) (in <port>) . opts)
+  (apply import-public-key m (read-asn1-object in) opts))
+(define-method import-public-key ((m (eql *key:rsa*)) (in <der-sequence>)
+				  :optional (format (public-key-format raw)))
+  (case format
+    ((raw) (rsa-import-raw-public-key in))
+    ((subject-public-key-info) (rsa-import-spki-public-key in))
+    (else (assertion-violation 'import-public-key "Unknown public key format"
+			       format))))
+
+(define (rsa-export-raw-public-key (key rsa-public-key?))
+  (asn1-encodable->bytevector
+   (der-sequence (integer->der-integer (rsa-public-key-modulus key))
+		 (integer->der-integer (rsa-public-key-exponent key)))))
+
+(define (rsa-export-spki-public-key (key rsa-public-key?))
+  (let ((raw (rsa-export-raw-public-key key)))
+    (asn1-encodable->bytevector
+     (der-sequence
+      (der-sequence (oid-string->der-object-identifier "1.2.840.113549.1.1.1"))
+      (bytevector->der-bit-string raw)))))
+  
+(define-method export-public-key ((key <rsa-public-key>) . opts)
+  (apply export-public-key *key:rsa* key opts))
+(define-method export-public-key ((m (eql *key:rsa*)) (key <rsa-public-key>)
+				  :optional (format (public-key-format raw)))
+  (case format
+    ((raw) (rsa-export-raw-public-key key))
+    ((subject-public-key-info) (rsa-export-spki-public-key key))
+    (else (assertion-violation 'export-public-key "Unknown public key format"
+			       format))))
+
+;; RSAPrivateKey ::= SEQUENCE {
+;;     version           Version,
+;;     modulus           INTEGER,  -- n
+;;     publicExponent    INTEGER,  -- e
+;;     privateExponent   INTEGER,  -- d
+;;     prime1            INTEGER,  -- p
+;;     prime2            INTEGER,  -- q
+;;     exponent1         INTEGER,  -- d mod (p-1)
+;;     exponent2         INTEGER,  -- d mod (q-1)
+;;     coefficient       INTEGER,  -- (inverse of q) mod p
+;;     otherPrimeInfos   OtherPrimeInfos OPTIONAL -- We do not support this.
+;; }
+;; Version ::= INTEGER { two-prime(0), multi(1) }
+;;    (CONSTRAINED BY
+;;    {-- version must be multi if otherPrimeInfos present --})
+(define (rsa-import-private-key (private der-sequence?))
+  (define (check-der-integer v)
+    (unless (der-integer? v)
+      (assertion-violation 'rsa-import-private-key
+			   "Invalid RSAPrivateKey format" private))
+    (der-integer->integer v))
+  ;; lazy length validation :D
+  (let-values (((v m e pe p q dP dQ qP . other)
+		(apply values (list-queue-list
+			       (asn1-collection-elements private)))))
+    (unless (zero? (check-der-integer v))
+      (assertion-violation 'rsa-import-private-key
+			   "otherPrimeInfos are not supported"))
+    (make-rsa-private-crt-key (check-der-integer m)
+			      (check-der-integer e)
+			      (check-der-integer pe)
+			      (check-der-integer p)
+			      (check-der-integer q)
+			      :dP (check-der-integer dP)
+			      :dQ (check-der-integer dQ)
+			      :qP (check-der-integer qP))))
+(define-method import-private-key ((m (eql *key:rsa*)) (in <bytevector>) . opts)
+  (apply import-private-key m (open-bytevector-input-port in) opts))
+(define-method import-private-key ((m (eql *key:rsa*)) (in <port>) . opts)
+  (apply import-private-key m (read-asn1-object in) opts))
+(define-method import-private-key ((m (eql *key:rsa*)) (in <der-sequence>)
+				   . opts)
+  (rsa-import-private-key in))
+
+(define (rsa-export-private-key (key rsa-private-crt-key?))
+  (asn1-encodable->bytevector
+   (der-sequence
+    (integer->der-integer 0)
+    (integer->der-integer (rsa-private-key-modulus key))
+    (integer->der-integer (rsa-private-crt-key-public-exponent key))
+    (integer->der-integer (rsa-private-key-private-exponent key))
+    (integer->der-integer (rsa-private-crt-key-p key))
+    (integer->der-integer (rsa-private-crt-key-q key))
+    (integer->der-integer (rsa-private-crt-key-dP key))
+    (integer->der-integer (rsa-private-crt-key-dQ key))
+    (integer->der-integer (rsa-private-crt-key-qP key)))))
+(define-method export-private-key ((key <rsa-private-crt-key>) . opts)
+  (apply export-private-key *key:rsa* key opts))
+(define-method export-private-key ((m (eql *key:rsa*))
+				   (key <rsa-private-crt-key>) . opts)
+  (rsa-export-private-key key))
 
 )
