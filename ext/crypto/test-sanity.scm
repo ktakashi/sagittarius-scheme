@@ -116,7 +116,7 @@
     (test-public-key-export op (key-pair-public kp))
     (test-private-key-export op (key-pair-private kp))))
 (for-each asymmetric-key-operations-test
-	  (list *key:rsa*))
+	  (list *key:rsa* *key:dsa*))
 
 
 (test-end)

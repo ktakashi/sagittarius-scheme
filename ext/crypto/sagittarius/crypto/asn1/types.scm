@@ -32,6 +32,7 @@
 (library (sagittarius crypto asn1 types)
     (export asn1-encodable? <asn1-encodable>
 	    write-asn1-encodable asn1-encodable->bytevector
+	    asn1-encodable->asn1-object
 	    asn1-encode-type asn1-encode-type?
 
 	    asn1-object? <asn1-object>
@@ -205,10 +206,13 @@
 (define-class <asn1-encodable> () ())
 (define (asn1-encodable? o) (is-a? o <asn1-encodable>))
 (define-generic write-asn1-encodable)
+(define-generic asn1-encodable->asn1-object)
 (define-method write-asn1-encodable ((o <asn1-encodable>))
   (write-asn1-encodable o (current-output-port)))
 (define-method write-asn1-encodable ((o <asn1-encodable>) (p <port>))
   (write-asn1-encodable o p 'der))
+(define-method write-asn1-encodable ((o <asn1-encodable>) (p <port>) type)
+  (write-asn1-encodable (asn1-encodable->asn1-object o 'der) p type))
 (define (asn1-encodable->bytevector (encodable asn1-encodable?)
 				    :optional ((type asn1-encode-type?) 'der))
   (let-values (((out e) (open-bytevector-output-port)))
@@ -218,6 +222,7 @@
 ;; Actual DER / BER object
 (define-class <asn1-object> (<asn1-encodable> <immutable>) ())
 (define (asn1-object? o) (is-a? o <asn1-object>))
+(define-method asn1-encodable->asn1-object ((o <asn1-object>) type) o)
 
 ;; Simple value, not a container
 (define-class <asn1-simple-object> (<asn1-object>)

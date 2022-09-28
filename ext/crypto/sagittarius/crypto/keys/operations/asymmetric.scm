@@ -32,4 +32,5 @@
 (library (sagittarius crypto keys operations asymmetric)
     (export :all)
     (import (sagittarius crypto keys operations asymmetric apis)
-	    (sagittarius crypto keys operations asymmetric rsa)))
+	    (sagittarius crypto keys operations asymmetric rsa)
+	    (sagittarius crypto keys operations asymmetric dsa)))

@@ -29,7 +29,8 @@
 ;;;  
 
 (library (sagittarius mop allocation)
-    (export <allocation-meta> <allocation-mixin>)
+    (export <allocation-meta> <allocation-mixin>
+	    (rename (<allocation-mixin> <allocation>)))
     (import (rnrs)
 	    (clos user)
 	    (clos core))
