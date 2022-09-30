@@ -42,6 +42,8 @@
 	    asn1-collection? <asn1-collection> asn1-collection-elements
 	    asn1-collection-ref
 	    asn1-collection-add!
+	    asn1-collection-find-tag
+	    deconstruct-asn1-collection
 
 	    asn1-time? <asn1-time>
 	    asn1-time->date
@@ -258,6 +260,12 @@
 (define-generic asn1-collection-add!)
 (define (asn1-collection-ref (collection asn1-collection?) (index integer?))
   (list-ref (list-queue-list (asn1-collection-elements collection)) index))
+(define (asn1-collection-find-tag (collection asn1-collection?) (tag integer?))
+  (find (lambda (o) (and (der-tagged-object? o)
+			 (= (der-tagged-object-tag-no o) tag)))
+	(list-queue-list (asn1-collection-elements collection))))
+(define (deconstruct-asn1-collection (collection asn1-collection?))
+  (apply values (list-queue-list (asn1-collection-elements collection))))
 
 ;;; Boolean
 (define-class <der-boolean> (<asn1-simple-object>) ())

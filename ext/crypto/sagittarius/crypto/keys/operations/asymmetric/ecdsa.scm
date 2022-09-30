@@ -115,18 +115,11 @@
 (define (parse-seq (seq der-sequence?))
   (apply values (list-queue-list (asn1-collection-elements seq))))
 
-(define-method import-public-key ((m (eql *key:ecdsa*)) (in <bytevector>)
-				  . opts)
-  (apply import-public-key m (open-bytevector-input-port in) opts))
-(define-method import-public-key ((m (eql *key:ecdsa*)) (in <port>) . opts)
-  (apply import-public-key m (read-asn1-object in) opts))
-
 ;; NOTE ECDSA public key == ECPoint
 ;; ECPoint ::= OCTET STRING
-(define (ecdsa-import-raw-public-key (key der-octet-string?)
+(define (ecdsa-import-raw-public-key (key bytevector?)
 				     (ec-parameter ec-parameter?))
-  (let ((Q (decode-ec-point (ec-parameter-curve ec-parameter)
-			    (der-octet-string->bytevector key))))
+  (let ((Q (decode-ec-point (ec-parameter-curve ec-parameter) key)))
     (make <ecdsa-public-key> :Q Q :parameter ec-parameter)))
 
 (define (ecdsa-import-spki-public-key (public-key der-sequence?))
@@ -138,26 +131,29 @@
     (let ((p (if (der-object-identifier? param)
 		 (lookup-named-curve-parameter param)
 		 (->ec-parameter param))))
-      (ecdsa-import-raw-public-key
-       (bytevector->asn1-object (der-bit-string->bytevector key)) p))))
-  
-(define-method import-public-key ((m (eql *key:ecdsa*)) (in <asn1-object>)
+      (ecdsa-import-raw-public-key (der-bit-string->bytevector key) p))))
+
+(define-method import-public-key ((m (eql *key:ecdsa*)) (in <port>) . opts)
+  (apply import-public-key m (get-bytevector-all in) opts))
+(define-method import-public-key ((m (eql *key:ecdsa*)) (in <bytevector>)
 				  :optional (format (public-key-format subject-public-key-info))
 					    (ec-parameter #f))
   (case format
     ((raw) (ecdsa-import-raw-public-key in ec-parameter))
-    ((subject-public-key-info) (ecdsa-import-spki-public-key in))
+    ((subject-public-key-info)
+     (ecdsa-import-spki-public-key (bytevector->asn1-object in)))
     (else (assertion-violation 'import-public-key
 			       "Unknown public key format" format))))
+(define-method import-public-key ((m (eql *key:ecdsa*)) (in <der-sequence>)
+				  . ignore)
+  (ecdsa-import-spki-public-key in))
 
 (define-method export-public-key ((key <ecdsa-public-key>) . opts)
   (apply export-public-key *key:ecdsa* key opts))
 
 (define (export-raw-ecdsa-public-key (public-key ecdsa-public-key?))
-  (asn1-encodable->bytevector
-   (bytevector->der-octet-string
-    (encode-ec-point (ec-parameter-curve (ecdsa-key-parameter public-key))
-		     (ecdsa-public-key-Q public-key)))))
+  (encode-ec-point (ec-parameter-curve (ecdsa-key-parameter public-key))
+		   (ecdsa-public-key-Q public-key)))
 
 (define (export-spki-ecdsa-public-key (public-key ecdsa-public-key?))
   (define param (ecdsa-key-parameter public-key))
@@ -169,13 +165,84 @@
 			   oid-string->der-object-identifier)
 			  (else (ec-parameter->asn1-object param))))
       (bytevector->der-bit-string raw-public-key)))))
-(define-method export-public-key ((key <ecdsa-public-key>)
+(define-method export-public-key ((m (eql *key:ecdsa*)) (key <ecdsa-public-key>)
 				  :optional (format (public-key-format subject-public-key-info)))
   (case format
     ((raw) (export-raw-ecdsa-public-key key))
     ((subject-public-key-info) (export-spki-ecdsa-public-key key))
     (else (assertion-violation 'export-public-key
 			       "Unknown public key format" format))))
+
+(define-method import-private-key ((m (eql *key:ecdsa*)) (in <bytevector>)
+				   . opts)
+  (apply import-private-key m (open-bytevector-input-port in) opts))
+(define-method import-private-key ((m (eql *key:ecdsa*)) (in <port>)
+				   . opts)
+  (apply import-private-key m (read-asn1-object in) opts))
+
+;; ECPrivateKey ::= SEQUENCE {
+;;   version        INTEGER { ecPrivkeyVer1(1) } (ecPrivkeyVer1),
+;;   privateKey     OCTET STRING,
+;;   parameters [0] ECParameters {{ NamedCurve }} OPTIONAL,
+;;   publicKey  [1] BIT STRING OPTIONAL
+;; }
+(define-method import-private-key ((m (eql *key:ecdsa*)) (in <der-sequence>)
+				   ;; For PKCS#8
+				   :optional (ec-parameter #f))
+  (let-values (((version private-key . rest)
+		(deconstruct-asn1-collection in)))
+    (unless (= 1 (der-integer->integer version))
+      (assertion-violation 'import-private-key
+			   "Invalid ECPrivateKey version" version))
+    (let ((tag0 (or (asn1-collection-find-tag in 0) ec-parameter))
+	  (tag1 (asn1-collection-find-tag in 1)))
+      (unless tag0
+	(assertion-violation 'import-private-key "ECParameters not found"))
+      (let* ((param (der-tagged-object-obj tag0))
+	     (pub-key (and tag1 (der-tagged-object-obj tag1)))
+	     (parameter (cond ((ec-parameter? param) param)
+			      ((der-object-identifier? param)
+			       (lookup-named-curve-parameter param))
+			      (else (->ec-parameter param)))))
+	(make <ecdsa-private-key>
+	  :d (bytevector->uinteger (der-octet-string->bytevector private-key))
+	  :parameter parameter
+	  :public-key (and pub-key
+			   (import-public-key *key:ecdsa*
+			      (der-bit-string->bytevector pub-key)
+			      (public-key-format raw)
+			      parameter)))))))
+
+(define-method export-private-key ((key <ecdsa-private-key>) . opts)
+  (apply export-public-key *key:ecdsa* key opts))
+
+(define-method export-private-key ((m (eql *key:ecdsa*))
+				   (key <ecdsa-private-key>) . opts)
+  (let* ((param (ecdsa-key-parameter key))
+	 (curve (and param (ec-parameter-curve param)))
+	 (oid (and param (ec-parameter-oid param)))
+	 (pub (ecdsa-private-key-public-key key)))
+    (asn1-encodable->bytevector
+     (apply der-sequence
+	    (integer->der-integer 1)
+	    (bytevector->der-octet-string
+	     (integer->bytevector (ecdsa-private-key-d key)))
+	    (filter values
+	     (list (and param
+			(make <der-tagged-object>
+			  :explicit? #t
+			  :tag-no 0
+			  :obj (if oid
+				   (oid-string->der-object-identifier oid)
+				   (ec-parameter->asn1-object param))))
+		   (and pub
+			(ecdsa-key-parameter pub)
+			(make <der-tagged-object>
+			  :explicit? #t
+			  :tag-no 1
+			  :obj (bytevector->der-bit-string
+				(export-public-key *key:ecdsa* pub
+						   (public-key-format raw)))))))))))
 
 ;; EC parameter related, it's not in the scope of PKI
 (define (lookup-named-curve-parameter oid)
@@ -326,7 +393,7 @@
   (define (make-asn1-curve curve ep)
     (define (uinteger->der-octet-string ui)
       (bytevector->der-octet-string (uinteger->bytevector ui)))
-    (apply make-der-sequence
+    (apply der-sequence
 	   (uinteger->der-octet-string (elliptic-curve-a curve))
 	   (uinteger->der-octet-string (elliptic-curve-b curve))
 	   (let ((S (ec-parameter-seed ep)))
