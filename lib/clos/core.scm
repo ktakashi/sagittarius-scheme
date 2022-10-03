@@ -466,6 +466,8 @@
 	    (proc obj lists))
 	  (or (and (is-a? sp <one-of-specializer>)
 		   (member-of sp obj))
+	      (and (eql-specializer? sp)
+		   (eql-specializer-compare sp obj))
 	      (is-a? obj sp)))
 	(define (method-applicable? method)
 	  (let loop ((sps (method-specializers method)) (args args))

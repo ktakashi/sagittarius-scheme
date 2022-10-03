@@ -155,6 +155,7 @@ SG_EXTERN SgObject Sg_MakeNextMethod(SgGeneric *gf, SgObject methods,
 SG_EXTERN SgObject Sg_MakeEqSpecializer(SgObject obj);
 SG_EXTERN SgObject Sg_MakeEqlSpecializer(SgObject obj);
 SG_EXTERN SgObject Sg_MakeEqualSpecializer(SgObject obj);
+SG_EXTERN int      Sg_CompareEqlSpecializer(SgObject sp, SgObject obj);
 
 /* internal use */
 SG_EXTERN SgObject Sg_ComputeApplicableMethods(SgObject gf, SgObject args);

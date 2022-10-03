@@ -673,6 +673,11 @@ static int compare_eql_specializer(SgObject sp, SgObject obj)
   }
 }
 
+int Sg_CompareEqlSpecializer(SgObject sp, SgObject obj)
+{
+  return compare_eql_specializer(sp, obj);
+}
+
 static int specializer_match(SgObject sp, SgObject obj)
 {
   return (SG_EQL_SPECIALIZERP(sp) && compare_eql_specializer(sp, obj))

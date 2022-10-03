@@ -102,6 +102,14 @@
   (define-c-proc eql   (o) Sg_MakeEqlSpecializer)
   (define-c-proc equal (o) Sg_MakeEqualSpecializer)
 
+  (define-c-proc eql-specializer? (o) ::<boolean> :constant
+    SG_EQL_SPECIALIZERP)
+  (define-type <eql-specializer> "SgEqlSpecializer *" "eql specializer"
+    "SG_EQL_SPECIALIZERP" "SG_EQL_SPECIALIZER")
+  (define-c-proc eql-specializer-compare (e::<eql-specializer> o) ::<boolean>
+    :no-side-effect
+    Sg_CompareEqlSpecializer)
+  
   (define-c-proc %compute-applicable-methods (gf args::<list>)
     Sg_ComputeApplicableMethods)
 
