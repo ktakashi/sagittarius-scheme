@@ -107,7 +107,8 @@
 
 (define-method generate-key-pair ((m (eql *key:rsa*))
 				  :key (size 2048)
-				       (prng (secure-random-generator *prng:chacha20*)))
+				       (prng (secure-random-generator *prng:chacha20*))
+				  :allow-other-keys)
   (rsa-generate-key-pair size prng #x10001))
 
 (define-method generate-public-key ((n (eql *key:rsa*)) m e)

@@ -34,4 +34,5 @@
     (import (sagittarius crypto keys operations asymmetric apis)
 	    (sagittarius crypto keys operations asymmetric rsa)
 	    (sagittarius crypto keys operations asymmetric dsa)
-	    (sagittarius crypto keys operations asymmetric ecdsa)))
+	    (sagittarius crypto keys operations asymmetric ecdsa)
+	    (sagittarius crypto keys operations asymmetric eddsa)))

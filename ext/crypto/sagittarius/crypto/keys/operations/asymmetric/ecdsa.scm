@@ -77,7 +77,8 @@
 
 (define-method generate-key-pair ((m (eql *key:ecdsa*))
 				  :key (ec-parameter secp256r1)
-				       (prng (secure-random-generator *prng:chacha20*)))
+				       (prng (secure-random-generator *prng:chacha20*))
+				  :allow-other-keys)
   (let* ((n (ec-parameter-n ec-parameter))
 	 (nbits (bitwise-length n))
 	 (G (ec-parameter-g ec-parameter))
