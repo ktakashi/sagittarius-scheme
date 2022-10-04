@@ -27,55 +27,7 @@
 ;;;  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-;; TODO maybe I should move this to sitelib?
-
+#!nounbound
 (library (math modular)
-    (export mod-inverse
-	    mod-expt
-	    mod-add
-	    mod-sub
-	    mod-mul
-	    mod-div
-	    mod-square
-	    mod-negate
-	    mod-sqrt
-	    )
-    (import (rnrs)
-	    (sagittarius))
-
-;; modular arithmetic
-;; a + b (mod p)
-(define (mod-add a b p) (mod (+ a b) p))
-;; a - b (mod p)
-(define (mod-sub a b p) (mod (- (+ a p) b) p))
-;; a * b (mod p)
-(define (mod-mul a b p) (mod (* a b) p))
-;;(define (mod-mul a b p) (* (mod a p) (mod b p)))
-;; a / b (mod p)
-(define (mod-div a b p) (mod (* a (mod-inverse b p)) p))
-;; a^2 (mod p)
-(define (mod-square a p) (mod-expt a 2 p))
-;; -a (mod p)
-(define (mod-negate a p) (mod (- p a) p))
-;; mod-inverse is defined in (sagittarius)
-;; mod-expt is defined in (sagittarius)
-
-;; This only works for prime number (for now)
-;; https://www.rieselprime.de/ziki/Modular_square_root
-(define (mod-sqrt x p)
-  (define (sqrt4k3 x p) (mod-expt x (div (+ p 1) 4) p))
-  (define (sqrt8k5 x p)
-    (let ((y (mod-expt x (div (+ p 3) 8) p)))
-      (if (= (mod (* y y) p) (mod x p))
-	  y
-	  (let ((z (mod-expt 2 (div (- p 1) 4) p)))
-	    (mod (* y z) p)))))
-  (let ((y (mod (cond ((= (mod p 4) 3) (sqrt4k3 x p))
-		      ((= (mod p 8) 5) (sqrt8k5 x p))
-		      ;; TODO 8m+1
-		      (else
-		       (assertion-violation 'mod-sqrt "Not implemented")))
-		p)))
-    (and (= x (mod-square y p)) y)))
-
-)
+    (export :all)
+    (import (sagittarius crypto math modular)))

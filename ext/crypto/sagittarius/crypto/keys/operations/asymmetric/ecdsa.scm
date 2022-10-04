@@ -46,8 +46,6 @@
 	    )
     (import (rnrs)
 	    (clos user)
-	    (math ec)
-	    (math modular)
 	    (srfi :117 list-queues)
 	    (sagittarius)
 	    (sagittarius mop immutable)
@@ -56,7 +54,9 @@
 	    (sagittarius crypto keys operations asymmetric apis)
 	    (sagittarius crypto digests)
 	    (sagittarius crypto random)
-	    (sagittarius crypto math prime))
+	    (sagittarius crypto math prime)
+	    (sagittarius crypto math ec)
+	    (sagittarius crypto math modular))
 
 (define *key:ecdsa* :ecdsa)
 

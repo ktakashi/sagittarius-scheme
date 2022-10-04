@@ -63,8 +63,6 @@
     (import (rnrs)
 	    (core misc)
 	    (clos user)
-	    (math ec)
-	    (math modular)
 	    (srfi :117 list-queues)
 	    (sagittarius)
 	    (sagittarius mop immutable)
