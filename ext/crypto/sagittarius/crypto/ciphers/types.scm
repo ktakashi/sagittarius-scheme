@@ -31,17 +31,23 @@
 #!nounbound
 (library (sagittarius crypto ciphers types)
     (export cipher? <cipher>
+	    cipher-scheme
+
 	    symmetric-cipher? <symmetric-cipher>
-	    symmetric-cipher-scheme symmetric-cipher-mode
+	    symmetric-cipher-mode
 	    symmetric-cipher-padder symmetric-cipher-unpadder
 	    symmetric-cipher-key symmetric-cipher-key-set!
 	    symmetric-cipher-direction symmetric-cipher-direction-set!
 	    cipher-direction *cipher-directions*
-	    asymmetric-cipher? <asymmetric-cipher>)
+
+	    asymmetric-cipher? <asymmetric-cipher>
+	    asymmetric-cipher-encoder asymmetric-cipher-decoder)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius mop immutable))
-(define-class <cipher> (<immutable>) ())
+
+(define-class <cipher> (<immutable>) 
+  ((scheme :init-keyword :scheme :reader cipher-scheme)))
 (define (cipher? o) (is-a? o <cipher>))
 
 (define-enumeration cipher-direction
@@ -50,8 +56,7 @@
 (define *cipher-directions* (enum-set-universe (cipher-directions)))
 
 (define-class <symmetric-cipher> (<cipher>)
-  ((scheme :init-keyword :scheme :reader symmetric-cipher-scheme)
-   (mode :init-keyword :mode :reader symmetric-cipher-mode)
+  ((mode :init-keyword :mode :reader symmetric-cipher-mode)
    (padder :init-keyword :padder :reader symmetric-cipher-padder)
    (unpadder :init-keyword :unpadder :reader symmetric-cipher-unpadder)
    (key :reader symmetric-cipher-key
@@ -65,7 +70,8 @@
 (define (symmetric-cipher? o) (is-a? o <symmetric-cipher>))
 
 (define-class <asymmetric-cipher> (<cipher>)
-  ())
+  ((encoder :init-keyword :encoding :reader asymmetric-cipher-encoder)
+   (decoder :init-keyword :encoding :reader asymmetric-cipher-decoder)))
 (define (asymmetric-cipher? o) (is-a? o <asymmetric-cipher>))
 
 )

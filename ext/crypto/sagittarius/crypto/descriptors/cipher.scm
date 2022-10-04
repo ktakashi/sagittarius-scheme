@@ -31,12 +31,19 @@
 #!nounbound
 (library (sagittarius crypto descriptors cipher)
     (export cipher-descriptor? (rename (cipher-descriptor <cipher-descriptor>)) 
-	    cipher-descriptor-cipher
 	    cipher-descriptor-name
-	    cipher-descriptor-block-length
-	    cipher-descriptor-min-key-length cipher-descriptor-max-key-length
-	    cipher-descriptor-default-rounds
-	    cipher-descriptor-suggested-keysize
+
+	    symmetric-cipher-descriptor?
+	    (rename (symmetric-cipher-descriptor <symmetric-cipher-descriptor>))
+	    symmetric-cipher-descriptor-cipher
+	    symmetric-cipher-descriptor-min-key-length
+	    symmetric-cipher-descriptor-max-key-length
+
+	    block-cipher-descriptor?
+	    (rename (block-cipher-descriptor <block-cipher-descriptor>))
+	    block-cipher-descriptor-block-length
+	    block-cipher-descriptor-default-rounds
+	    block-cipher-descriptor-suggested-keysize
 
 	    *scheme:blowfish*
 	    *scheme:x-tea*
@@ -55,34 +62,39 @@
 	    *scheme:camellia*)
     (import (rnrs)
 	    (prefix (sagittarius crypto tomcrypt) tc:))
+(define-record-type cipher-descriptor
+  (fields name))
+
 ;; A wrapper to avoid constant folding, the cipher descriptor is a
 ;; mere fixnum, and may change every invocation of sagittarius.
 ;; (shouldn't be but if I touch the order of registration for example)
 ;; So, I make a record to wrap this the descriptors 
-(define-record-type cipher-descriptor
+(define-record-type symmetric-cipher-descriptor
+  (parent cipher-descriptor)
   (fields cipher ;; real cipher descriptor, a fixnum
-	  name
-	  block-length
 	  min-key-length
-	  max-key-length
+	  max-key-length))
+(define-record-type block-cipher-descriptor
+  (parent symmetric-cipher-descriptor)
+  (fields block-length
 	  default-rounds))
-(define (cipher-descriptor-suggested-keysize descriptor)
-  (unless (cipher-descriptor? descriptor)
-    (assertion-violation 'cipher-descriptor-suggested-keysize
+(define (block-cipher-descriptor-suggested-keysize descriptor)
+  (unless (block-cipher-descriptor? descriptor)
+    (assertion-violation 'block-cipher-descriptor-suggested-keysize
 			 "Cipher descriptor is required" descriptor))
   (tc:cipher-descriptor-suggested-keysize 
-   (cipher-descriptor-cipher descriptor)))
+   (symmetric-cipher-descriptor-cipher descriptor)))
 
 (define-syntax build-cipher-descriptor
   (syntax-rules ()
     ((_ name)
      (let ((cipher (tc:find-cipher name)))
-       (make-cipher-descriptor
-	cipher
+       (make-block-cipher-descriptor
 	(tc:cipher-descriptor-name cipher)
-	(tc:cipher-descriptor-block-length cipher)
+	cipher
 	(tc:cipher-descriptor-min-key-length cipher)
 	(tc:cipher-descriptor-max-key-length cipher)
+	(tc:cipher-descriptor-block-length cipher)
 	(tc:cipher-descriptor-default-rounds cipher))))))
 
 (define *scheme:blowfish*    (build-cipher-descriptor tc:*scheme:blowfish*   ))

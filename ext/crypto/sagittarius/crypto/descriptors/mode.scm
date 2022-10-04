@@ -130,56 +130,58 @@
 (define (ecb-start cipher key parameter)
   (define rounds
     (or (cipher-parameter-rounds parameter #f)
-	(cipher-descriptor-default-rounds cipher)))
-  (tc:ecb-start (cipher-descriptor-cipher cipher) key rounds))
+	(block-cipher-descriptor-default-rounds cipher)))
+  (tc:ecb-start (symmetric-cipher-descriptor-cipher cipher) key rounds))
 (define tc:ecb-set-iv! #f)
 (define tc:ecb-get-iv! #f)
 
 (define (cbc-start cipher key parameter)
   (define rounds
     (or (cipher-parameter-rounds parameter #f)
-	(cipher-descriptor-default-rounds cipher)))
+	(block-cipher-descriptor-default-rounds cipher)))
   (define iv (cipher-parameter-iv parameter))
-  (tc:cbc-start (cipher-descriptor-cipher cipher) iv key rounds))
+  (tc:cbc-start (symmetric-cipher-descriptor-cipher cipher) iv key rounds))
 
 (define (cfb-start cipher key parameter)
   (define rounds
     (or (cipher-parameter-rounds parameter #f)
-	(cipher-descriptor-default-rounds cipher)))
+	(block-cipher-descriptor-default-rounds cipher)))
   (define iv (cipher-parameter-iv parameter))
-  (tc:cfb-start (cipher-descriptor-cipher cipher) iv key rounds))
+  (tc:cfb-start (symmetric-cipher-descriptor-cipher cipher) iv key rounds))
 
 (define (ofb-start cipher key parameter)
   (define rounds
     (or (cipher-parameter-rounds parameter #f)
-	(cipher-descriptor-default-rounds cipher)))
+	(block-cipher-descriptor-default-rounds cipher)))
   (define iv (cipher-parameter-iv parameter))
-  (tc:ofb-start (cipher-descriptor-cipher cipher) iv key rounds))
+  (tc:ofb-start (symmetric-cipher-descriptor-cipher cipher) iv key rounds))
 
 (define (ctr-start cipher key parameter)
   (define rounds
     (or (cipher-parameter-rounds parameter #f)
-	(cipher-descriptor-default-rounds cipher)))
+	(block-cipher-descriptor-default-rounds cipher)))
   (define iv (cipher-parameter-iv parameter))
   (define ctr-mode
     (cipher-parameter-counter-mode parameter tc:*ctr-mode:big-endian*))
-  (tc:ctr-start (cipher-descriptor-cipher cipher) iv key rounds ctr-mode))
+  (tc:ctr-start (symmetric-cipher-descriptor-cipher cipher)
+		iv key rounds ctr-mode))
 
 (define (lrw-start cipher key parameter)
   (define rounds
     (or (cipher-parameter-rounds parameter #f)
-	(cipher-descriptor-default-rounds cipher)))
+	(block-cipher-descriptor-default-rounds cipher)))
   (define iv (cipher-parameter-iv parameter))
   (define tweak (cipher-parameter-tweak parameter #f))
-  (tc:lrw-start (cipher-descriptor-cipher cipher) iv key tweak rounds))
+  (tc:lrw-start (symmetric-cipher-descriptor-cipher cipher)
+		iv key tweak rounds))
 
 (define (f8-start cipher key parameter)
   (define rounds
     (or (cipher-parameter-rounds parameter #f)
-	(cipher-descriptor-default-rounds cipher)))
+	(block-cipher-descriptor-default-rounds cipher)))
   (define iv (cipher-parameter-iv parameter))
   (define salt (cipher-parameter-salt parameter #f))
-  (tc:f8-start (cipher-descriptor-cipher cipher) iv key salt rounds))
+  (tc:f8-start (symmetric-cipher-descriptor-cipher cipher) iv key salt rounds))
 
 (define *mode:ecb* (build-mode-descriptor ecb))
 (define *mode:cbc* (build-mode-descriptor cbc))
@@ -223,7 +225,7 @@
   (define nonce (cipher-parameter-nonce parameter #vu8()))
   ;; a bit different name :)
   (define header (cipher-parameter-aad parameter #vu8()))
-  (tc:eax-init (cipher-descriptor-cipher cipher) key nonce header))
+  (tc:eax-init (symmetric-cipher-descriptor-cipher cipher) key nonce header))
 ;; using EAX wrongly, but that's users' responsiblity
 (define (eax-done state) (tc:eax-done! state #vu8()))
 ;; Don't accept any plain text
@@ -248,10 +250,11 @@
 (define (ocb-start cipher key parameter)
   (define nonce (cipher-parameter-nonce parameter))
   (make-ocb-state cipher
-		  (tc:ocb-init (cipher-descriptor-cipher cipher) key nonce)))
+   (tc:ocb-init (symmetric-cipher-descriptor-cipher cipher) key nonce)))
 (define (ocb-done state) #f) ;; do nothing (don't use this)
 (define (ocb-encrypt! state pt ps ct cs len)
-  (define block-size (cipher-descriptor-block-length (ocb-state-cipher state)))
+  (define block-size
+    (block-cipher-descriptor-block-length (ocb-state-cipher state)))
   ;; sanity check
   (unless (zero? (mod len block-size))
     (assertion-violation 'ocb-encrypt! "Invalid length of input"))
@@ -259,7 +262,8 @@
       ((= i len) len)
     (tc:ocb-encrypt! s pt (+ ps i) ct (+ cs i))))
 (define (ocb-decrypt! state ct cs pt ps len)
-  (define block-size (cipher-descriptor-block-length (ocb-state-cipher state)))
+  (define block-size
+    (block-cipher-descriptor-block-length (ocb-state-cipher state)))
   ;; sanity check
   (unless (zero? (mod len block-size))
     (assertion-violation 'ocb-decrypt! "Invalid length of input"))
@@ -285,7 +289,7 @@
   (define nonce (cipher-parameter-nonce parameter))
   (define tag-len (cipher-parameter-tag-length parameter))
   (make-ocb3-state tag-len
-		   (tc:ocb3-init (cipher-descriptor-cipher cipher)
+		   (tc:ocb3-init (symmetric-cipher-descriptor-cipher cipher)
 				 key nonce tag-len)))
 (define (ocb3-done state)
   (define s (ocb3-state-key state))
@@ -319,7 +323,7 @@
 ;; GCM
 (define (gcm-start cipher key parameter)
   (define iv (cipher-parameter-iv parameter))
-  (let ((state (tc:gcm-init (cipher-descriptor-cipher cipher) key)))
+  (let ((state (tc:gcm-init (symmetric-cipher-descriptor-cipher cipher) key)))
     (tc:gcm-add-iv! state iv)
     state))
 

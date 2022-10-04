@@ -51,10 +51,15 @@
 
 	    cipher-descriptor?
 	    cipher-descriptor-name
-	    cipher-descriptor-block-length
-	    cipher-descriptor-min-key-length
-	    cipher-descriptor-max-key-length
-	    cipher-descriptor-suggested-keysize
+
+	    symmetric-cipher-descriptor?
+	    symmetric-cipher-descriptor-min-key-length
+	    symmetric-cipher-descriptor-max-key-length
+
+	    block-cipher-descriptor?
+	    block-cipher-descriptor-block-length
+	    block-cipher-descriptor-suggested-keysize
+	    
 	    *scheme:blowfish*
 	    *scheme:x-tea*
 	    *scheme:rc2* *scheme:rc5* *scheme:rc6*
@@ -93,7 +98,9 @@
 	  :padder padder :unpadder unpadder)))
 
 (define (symmetric-cipher-block-length cipher)
-  (cipher-descriptor-block-length (symmetric-cipher-scheme cipher)))
+  (let ((scheme (cipher-scheme cipher)))
+    (and (block-cipher-descriptor? scheme)
+	 (block-cipher-descriptor-block-length scheme))))
 
 (define (symmetric-cipher-init! cipher direction key :optional (parameter #f))
   (unless (symmetric-cipher? cipher)
@@ -106,7 +113,7 @@
     (assertion-violation 'symmetric-cipher-init! "Unknown direction" direction))
   (symmetric-cipher-done! cipher) ;; reset previous state
   (let ((mode-key (mode-start (symmetric-cipher-mode cipher)
-			      (symmetric-cipher-scheme cipher)
+			      (cipher-scheme cipher)
 			      (symmetric-key-value key)
 			      parameter)))
     (symmetric-cipher-direction-set! cipher direction)
@@ -118,7 +125,7 @@
     (assertion-violation 'symmetric-cipher-init "Symmetric cipher is required"
 			 cipher))
   (symmetric-cipher-init! (make <symmetric-cipher>
-			    :scheme (symmetric-cipher-scheme cipher)
+			    :scheme (cipher-scheme cipher)
 			    :mode (symmetric-cipher-mode cipher)
 			    :padder (symmetric-cipher-padder cipher)
 			    :unpadder (symmetric-cipher-unpadder cipher))

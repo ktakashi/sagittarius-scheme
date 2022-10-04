@@ -67,6 +67,11 @@
 	*scheme:seed*
 	*scheme:kasumi*
 	*scheme:camellia*))
+(define (test-basic cipher)
+  (test-assert (list (cipher-descriptor-name cipher) "base") (cipher-descriptor? cipher))
+  (test-assert (list (cipher-descriptor-name cipher) "symmetric") (symmetric-cipher-descriptor? cipher))
+  (test-assert (list (cipher-descriptor-name cipher) "block") (block-cipher-descriptor? cipher)))
+(for-each test-basic all-ciphers)
 
 ;; (define (check cipher)
 ;;   (define prng (secure-random-generator *prng:chacha20*))
@@ -90,7 +95,7 @@
     (test-assert (symmetric-key? key))
     ;; suggested key size is in bits, so divide by 8
     (test-equal (cipher-descriptor-name cipher)
-		(cipher-descriptor-suggested-keysize cipher)
+		(block-cipher-descriptor-suggested-keysize cipher)
 		(bytevector-length (symmetric-key-value key)))))
 (for-each symmetric-key-operations-test all-ciphers)
 
@@ -167,37 +172,37 @@
   (make-mode-test *mode:cbc*
    (lambda (cipher)
      (make-iv-parameter
-      (make-bytevector (cipher-descriptor-block-length cipher) 1)))))
+      (make-bytevector (block-cipher-descriptor-block-length cipher) 1)))))
 (define ctr-test
   (make-mode-test *mode:ctr*
    (lambda (cipher)
      (make-cipher-parameter
       (make-iv-parameter
-       (make-bytevector (cipher-descriptor-block-length cipher) 1))
+       (make-bytevector (block-cipher-descriptor-block-length cipher) 1))
       (make-counter-mode-parameter *ctr-mode:rfc3686*)))))
 (define cfb-test
   (make-mode-test *mode:cfb*
    (lambda (cipher)
      (make-iv-parameter
-      (make-bytevector (cipher-descriptor-block-length cipher) 1)))))
+      (make-bytevector (block-cipher-descriptor-block-length cipher) 1)))))
 (define ofb-test
   (make-mode-test *mode:cfb*
    (lambda (cipher)
      (make-iv-parameter
-      (make-bytevector (cipher-descriptor-block-length cipher) 1)))))
+      (make-bytevector (block-cipher-descriptor-block-length cipher) 1)))))
 (define lrw-test
   (make-mode-test *mode:lrw*
    (lambda (cipher)
      (make-cipher-parameter
       (make-iv-parameter
-       (make-bytevector (cipher-descriptor-block-length cipher) 1))
+       (make-bytevector (block-cipher-descriptor-block-length cipher) 1))
       (make-tweak-parameter (make-bytevector 16))))))
 (define f8-test
   (make-mode-test *mode:f8*
    (lambda (cipher)
      (make-cipher-parameter
       (make-iv-parameter
-       (make-bytevector (cipher-descriptor-block-length cipher) 1))
+       (make-bytevector (block-cipher-descriptor-block-length cipher) 1))
       (make-salt-parameter (make-bytevector 8))))))
 
 (define (make-encauth-mode-test mode parameter-provider)
@@ -245,7 +250,7 @@
   (make-encauth-mode-test *mode:ocb*
    (lambda (cipher)
      (make-nonce-parameter 
-      (make-bytevector (cipher-descriptor-block-length cipher))))))
+      (make-bytevector (block-cipher-descriptor-block-length cipher))))))
 
 (define ocb3-test
   (make-mode-test *mode:ocb3*
@@ -265,12 +270,12 @@
    *mode:gcm*
    (lambda (cipher)
      (make-iv-parameter 
-      (make-bytevector (cipher-descriptor-block-length cipher))))))
+      (make-bytevector (block-cipher-descriptor-block-length cipher))))))
 (define gcm-enc-test
   (make-encauth-mode-test *mode:gcm*
    (lambda (cipher)
      (make-iv-parameter 
-      (make-bytevector (cipher-descriptor-block-length cipher))))))
+      (make-bytevector (block-cipher-descriptor-block-length cipher))))))
 
 (define (cipher-test cipher)
   (ecb-test cipher)
@@ -279,17 +284,17 @@
   (ofb-test cipher)
   (ctr-test cipher)
   ;; lrw requires block length of 16
-  (when (= (cipher-descriptor-block-length cipher) 16) (lrw-test cipher))
+  (when (= (block-cipher-descriptor-block-length cipher) 16) (lrw-test cipher))
   (f8-test cipher)
   (eax-test cipher)
   (eax-enc-test cipher)
   (ocb-enc-test cipher) ;; OCB can't be used without tag operation
   ;; OCB3 requires block length of 16
-  (when (= (cipher-descriptor-block-length cipher) 16)
+  (when (= (block-cipher-descriptor-block-length cipher) 16)
     (ocb3-test cipher)
     (ocb3-enc-test cipher))
   ;; gcm requires block length of 16
-  (when (= (cipher-descriptor-block-length cipher) 16)
+  (when (= (block-cipher-descriptor-block-length cipher) 16)
     (gcm-test cipher)
     (gcm-enc-test cipher)))
 
