@@ -117,7 +117,8 @@
     (test-private-key-export op (key-pair-private kp))))
 (for-each asymmetric-key-operations-test
 	  (list *key:rsa* *key:dsa* *key:ecdsa*
-		*key:ed25519* *key:ed448*))
+		*key:ed25519* *key:ed448*
+		*key:x25519* *key:x448*))
 (test-end)
 
 (test-begin "Symmetric ciphers")

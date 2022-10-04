@@ -44,6 +44,8 @@
 	    public-key-format
 	    *public-key-formats*
 	    public-key-format?
+
+	    calculate-key-agreement
 	    )
     (import (rnrs)
 	    (clos user))
@@ -58,9 +60,13 @@
 
 (define-generic oid->key-operation :class <one-of-specializable-generic>)
 
+(define-generic calculate-key-agreement) ;; key agreement
+
 (define-enumeration public-key-format (raw subject-public-key-info)
   public-key-formats)
 (define *public-key-formats* (enum-set-universe (public-key-formats)))
 (define (public-key-format? s) (enum-set-member? s *public-key-formats*))
 
+;; TODO should we make private-key-format as well, which
+;;      supports raw and private-key-info?
 )

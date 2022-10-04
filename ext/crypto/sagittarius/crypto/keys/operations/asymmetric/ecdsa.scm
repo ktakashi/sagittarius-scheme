@@ -39,11 +39,49 @@
 	    export-private-key
 
 	    *key:ecdsa*
+	    ecdsa-key-parameter
 	    ecdsa-public-key? <ecdsa-public-key>
 	    ecdsa-public-key-Q
 	    ecdsa-private-key? <ecdsa-private-key>
 	    ecdsa-private-key-d ecdsa-private-key-public-key
-	    )
+
+	    ec-parameter?
+	    (rename (NIST-P-192 *ec-parameter:p192*)
+		    (NIST-P-224 *ec-parameter:p224*)
+		    (NIST-P-256 *ec-parameter:p256*)
+		    (NIST-P-384 *ec-parameter:p384*)
+		    (NIST-P-521 *ec-parameter:p521*)
+		    (NIST-K-163 *ec-parameter:k163*)
+		    (NIST-K-233 *ec-parameter:k233*)
+		    (NIST-K-283 *ec-parameter:k283*)
+		    (NIST-K-409 *ec-parameter:k409*)
+		    (NIST-K-571 *ec-parameter:k571*)
+		    (NIST-B-163 *ec-parameter:b163*)
+		    (NIST-B-233 *ec-parameter:b233*)
+		    (NIST-B-283 *ec-parameter:b283*)
+		    (NIST-B-409 *ec-parameter:b409*)
+		    (NIST-B-571 *ec-parameter:b571*)
+		    (secp192r1 *ec-parameter:secp192r1*)
+		    (secp224r1 *ec-parameter:secp224r1*)
+		    (secp256r1 *ec-parameter:secp256r1*)
+		    (secp384r1 *ec-parameter:secp384r1*)
+		    (secp521r1 *ec-parameter:secp521r1*)
+		    (sect163k1 *ec-parameter:sect163k1*)
+		    (sect233k1 *ec-parameter:sect233k1*)
+		    (sect283k1 *ec-parameter:sect283k1*)
+		    (sect409k1 *ec-parameter:sect409k1*)
+		    (sect571k1 *ec-parameter:sect571k1*)
+		    (sect163r2 *ec-parameter:sect163r2*)
+		    (sect233r1 *ec-parameter:sect233r1*)
+		    (sect283r1 *ec-parameter:sect283r1*)
+		    (sect409r1 *ec-parameter:sect409r1*)		    
+		    (sect571r1 *ec-parameter:sect571r1*)
+		    (secp192k1 *ec-parameter:secp192k1*)
+		    (secp224k1 *ec-parameter:secp224k1*)
+		    (secp256k1 *ec-parameter:secp256k1*)
+		    (sect163r1 *ec-parameter:sect163r1*)
+		    (sect239k1 *ec-parameter:sect239k1*)
+		    (sect113r1 *ec-parameter:sect113r1*)))
     (import (rnrs)
 	    (clos user)
 	    (srfi :117 list-queues)
