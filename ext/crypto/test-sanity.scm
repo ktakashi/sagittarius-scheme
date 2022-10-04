@@ -2,7 +2,6 @@
 ;; Basically, just testing self enc/dec. For test with test vectors
 ;; is written in other locations
 (import (rnrs)
-	(crypto)
 	(sagittarius crypto digests)
 	(sagittarius crypto random)
 	(sagittarius crypto keys)
@@ -94,6 +93,16 @@
 		(cipher-descriptor-suggested-keysize cipher)
 		(bytevector-length (symmetric-key-value key)))))
 (for-each symmetric-key-operations-test all-ciphers)
+
+;; key wrap
+(define (key-wrap-test scheme)
+  (define key (generate-symmetric-key scheme))
+  (let ((wrap (make-rfc3394-key-wrap scheme key))
+	(unwrap (make-rfc3394-key-unwrap scheme key))
+	(pt (make-bytevector 16 5))) ;; 2 blocks
+    (test-equal (string-append "Key wrap with " (cipher-descriptor-name scheme))
+		pt (unwrap (wrap pt)))))
+(for-each key-wrap-test all-ciphers)
 
 (define (asymmetric-key-operations-test op)
   (define (test-public-key-export op key)
