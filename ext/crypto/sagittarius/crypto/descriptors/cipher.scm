@@ -45,6 +45,14 @@
 	    block-cipher-descriptor-default-rounds
 	    block-cipher-descriptor-suggested-keysize
 
+	    asymmetric-cipher-descriptor? make-asymmetric-cipher-descriptor
+	    (rename (asymmetric-cipher-descriptor <asymmetric-cipher-descriptor>))
+	    asymmetric-cipher-descriptor-block-size
+	    asymmetric-cipher-descriptor-setup
+	    asymmetric-cipher-descriptor-encrypt
+	    asymmetric-cipher-descriptor-decrypt
+	    asymmetric-cipher-descriptor-done
+
 	    *scheme:blowfish*
 	    *scheme:x-tea*
 	    *scheme:rc2* *scheme:rc5* *scheme:rc6*
@@ -85,6 +93,13 @@
   (tc:cipher-descriptor-suggested-keysize 
    (symmetric-cipher-descriptor-cipher descriptor)))
 
+(define-record-type asymmetric-cipher-descriptor
+  (parent cipher-descriptor)
+  ;; fields are all procedures
+  (fields block-size setup encrypt decrypt done))
+
+
+;; Builtin ciphers, we don't support custom block cipher
 (define-syntax build-cipher-descriptor
   (syntax-rules ()
     ((_ name)

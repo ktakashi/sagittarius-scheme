@@ -41,7 +41,8 @@
 	    cipher-direction *cipher-directions*
 
 	    asymmetric-cipher? <asymmetric-cipher>
-	    asymmetric-cipher-encoder asymmetric-cipher-decoder)
+	    asymmetric-cipher-encoder asymmetric-cipher-decoder
+	    asymmetric-cipher-key asymmetric-cipher-key-set!)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius mop immutable))
@@ -70,8 +71,12 @@
 (define (symmetric-cipher? o) (is-a? o <symmetric-cipher>))
 
 (define-class <asymmetric-cipher> (<cipher>)
-  ((encoder :init-keyword :encoding :reader asymmetric-cipher-encoder)
-   (decoder :init-keyword :encoding :reader asymmetric-cipher-decoder)))
+  ((encoder :init-keyword :encoder :reader asymmetric-cipher-encoder)
+   (decoder :init-keyword :decoder :reader asymmetric-cipher-decoder)
+   (key :reader asymmetric-cipher-key
+	:writer asymmetric-cipher-key-set!
+	:mutable #t
+	:init-value #f)))
 (define (asymmetric-cipher? o) (is-a? o <asymmetric-cipher>))
 
 )

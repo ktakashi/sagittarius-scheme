@@ -48,13 +48,13 @@
 	    rsa-private-key-modulus
 	    rsa-private-key-private-exponent
 
-	    rsa-private-crt-key?
-	    rsa-private-crt-key-public-exponent
-	    rsa-private-crt-key-p
-	    rsa-private-crt-key-q
-	    rsa-private-crt-key-dP
-	    rsa-private-crt-key-dQ
-	    rsa-private-crt-key-qP)
+	    rsa-crt-private-key?
+	    rsa-crt-private-key-public-exponent
+	    rsa-crt-private-key-p
+	    rsa-crt-private-key-q
+	    rsa-crt-private-key-dP
+	    rsa-crt-private-key-dQ
+	    rsa-crt-private-key-qP)
     (import (rnrs)
 	    (clos user)
 	    (math modular)
@@ -85,23 +85,23 @@
 (define (make-rsa-private-key (modulus integer?) (private-exponent integer?))
   (make <rsa-private-key> :modulus modulus :private-exponent private-exponent))
 
-(define-class <rsa-private-crt-key> (<rsa-private-key>)
+(define-class <rsa-crt-private-key> (<rsa-private-key>)
   ((public-exponent :init-keyword :public-exponent
-		    :reader rsa-private-crt-key-public-exponent)
-   (p :init-keyword :p :reader rsa-private-crt-key-p)
-   (q :init-keyword :q :reader rsa-private-crt-key-q)
-   (dP :init-keyword :dP :reader rsa-private-crt-key-dP)
-   (dQ :init-keyword :dQ :reader rsa-private-crt-key-dQ)
-   (qP :init-keyword :qP :reader rsa-private-crt-key-qP)))
-(define (rsa-private-crt-key? o) (is-a? o <rsa-private-crt-key>))
-(define (make-rsa-private-crt-key (modulus integer?)
+		    :reader rsa-crt-private-key-public-exponent)
+   (p :init-keyword :p :reader rsa-crt-private-key-p)
+   (q :init-keyword :q :reader rsa-crt-private-key-q)
+   (dP :init-keyword :dP :reader rsa-crt-private-key-dP)
+   (dQ :init-keyword :dQ :reader rsa-crt-private-key-dQ)
+   (qP :init-keyword :qP :reader rsa-crt-private-key-qP)))
+(define (rsa-crt-private-key? o) (is-a? o <rsa-crt-private-key>))
+(define (make-rsa-crt-private-key (modulus integer?)
 				  (exponent probable-prime?)
 				  (private-exponent integer?)
 				  (p probable-prime?) (q probable-prime?)
 				  :key ((dP integer?) (mod private-exponent (- p 1)))
 				       ((dQ integer?) (mod private-exponent (- q 1)))
 				       ((qP integer?) (mod-inverse q p)))
-  (make <rsa-private-crt-key> :modulus modulus
+  (make <rsa-crt-private-key> :modulus modulus
 	:private-exponent private-exponent
 	:public-exponent exponent :p p :q q :dP dP :dQ dQ :qP qP))
 
@@ -120,12 +120,12 @@
 				  :key (e #f) (p #f) (q #f)
 				  :allow-other-keys rest)
   (if (and e p q)
-      (apply make-rsa-private-crt-key m e private-exponent p q rest)
-      (make-rsa-private-crt-key m private-exponent)))
+      (apply make-rsa-crt-private-key m e private-exponent p q rest)
+      (make-rsa-crt-private-key m private-exponent)))
 
 (define (rsa-generate-key-pair size prng e)
   (define (create-key-pair n e d p q)
-    (let ((private (make-rsa-private-crt-key n e d p q))
+    (let ((private (make-rsa-crt-private-key n e d p q))
 	  (public (make-rsa-public-key n e)))
       (make-key-pair private public)))
 
@@ -266,7 +266,7 @@
     (unless (zero? (check-der-integer v))
       (assertion-violation 'rsa-import-private-key
 			   "otherPrimeInfos are not supported"))
-    (make-rsa-private-crt-key (check-der-integer m)
+    (make-rsa-crt-private-key (check-der-integer m)
 			      (check-der-integer e)
 			      (check-der-integer pe)
 			      (check-der-integer p)
@@ -282,22 +282,22 @@
 				   . opts)
   (rsa-import-private-key in))
 
-(define (rsa-export-private-key (key rsa-private-crt-key?))
+(define (rsa-export-private-key (key rsa-crt-private-key?))
   (asn1-encodable->bytevector
    (der-sequence
     (integer->der-integer 0)
     (integer->der-integer (rsa-private-key-modulus key))
-    (integer->der-integer (rsa-private-crt-key-public-exponent key))
+    (integer->der-integer (rsa-crt-private-key-public-exponent key))
     (integer->der-integer (rsa-private-key-private-exponent key))
-    (integer->der-integer (rsa-private-crt-key-p key))
-    (integer->der-integer (rsa-private-crt-key-q key))
-    (integer->der-integer (rsa-private-crt-key-dP key))
-    (integer->der-integer (rsa-private-crt-key-dQ key))
-    (integer->der-integer (rsa-private-crt-key-qP key)))))
-(define-method export-private-key ((key <rsa-private-crt-key>) . opts)
+    (integer->der-integer (rsa-crt-private-key-p key))
+    (integer->der-integer (rsa-crt-private-key-q key))
+    (integer->der-integer (rsa-crt-private-key-dP key))
+    (integer->der-integer (rsa-crt-private-key-dQ key))
+    (integer->der-integer (rsa-crt-private-key-qP key)))))
+(define-method export-private-key ((key <rsa-crt-private-key>) . opts)
   (apply export-private-key *key:rsa* key opts))
 (define-method export-private-key ((m (eql *key:rsa*))
-				   (key <rsa-private-crt-key>) . opts)
+				   (key <rsa-crt-private-key>) . opts)
   (rsa-export-private-key key))
 
 )

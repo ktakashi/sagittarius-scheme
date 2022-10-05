@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
-;;; sagittarius/crypto/ciphers.scm - Ciphers
+;;; sagittarius/crypto/ciphers/asymmetric/state.scm - Asymmetric cipher state
 ;;;  
 ;;;   Copyright (c) 2022  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -29,8 +29,18 @@
 ;;;  
 
 #!nounbound
-(library (sagittarius crypto ciphers)
-    (export :all)
-    (import (sagittarius crypto ciphers symmetric)
-	    (sagittarius crypto ciphers asymmetric)
-	    (sagittarius crypto parameters cipher)))
+(library (sagittarius crypto ciphers asymmetric state)
+    (export asymmetric-state? make-asymmetric-state
+	    (rename (asymmetric-state <asymmetric-state>))
+	    asymmetric-state-key
+	    asymmetric-state-private-key?)
+    (import (rnrs)
+	    (sagittarius crypto descriptors cipher)
+	    (sagittarius crypto keys types)
+	    (sagittarius crypto keys operations asymmetric))
+(define-record-type asymmetric-state
+  (fields key))
+
+(define (asymmetric-state-private-key? (state asymmetric-state?))
+  (private-key? (asymmetric-state-key state)))
+)

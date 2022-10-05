@@ -301,6 +301,24 @@
 (for-each cipher-test all-ciphers)
 (test-end)
 
+(test-begin "Asymmetric ciphers")
+
+(define all-asymmetric-ciphers (list *scheme:rsa*))
+(define (test-asymmetric-cipher scheme)
+  (define kp (generate-key-pair scheme))
+  (define msg (string->utf8 "hello message"))
+  (define (test-it encoding)
+    (let ((cipher (make-asymmetric-cipher scheme :encoding encoding)))
+      (asymmetric-cipher-init! cipher (key-pair-public kp))
+      (let ((ct (asymmetric-cipher-encrypt-bytevector cipher msg)))
+	(asymmetric-cipher-init! cipher (key-pair-private kp))
+	(test-equal msg (asymmetric-cipher-decrypt-bytevector cipher ct)))))
+  (test-it oaep-encoding)
+  (test-it pkcs1-v1.5-encoding))
+
+(for-each test-asymmetric-cipher all-asymmetric-ciphers)
+(test-end)
+
 (test-begin "Digest")
 
 (define digests/size
@@ -328,7 +346,8 @@
 	(md (make-message-digest desc)))
     (test-assert (message-digest? md))
     (test-equal (digest-descriptor-name desc)
-		size (bytevector-length (digest-message md #vu8())))))
+		size (bytevector-length (digest-message md #vu8())))
+    (test-equal (digest-message md #vu8()) (digest-message md #vu8()))))
 
 (for-each digest/size-test digests/size)
 
