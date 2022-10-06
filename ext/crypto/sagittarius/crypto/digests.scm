@@ -34,6 +34,7 @@
 	    digest-message digest-message!
 	    message-digest-init! message-digest-process!
 	    message-digest-done!
+	    message-digest-done
 	    message-digest-descriptor
 
 	    digest-descriptor? make-digest-descriptor
@@ -117,6 +118,17 @@
 					   ;; length may not be used
 					   (length (bytevector-length out)))
   (digest-state-done! (message-digest-state md) out start length))
+
+(define (message-digest-done md :optional (length #f))
+  (define desc (message-digest-descriptor md))
+  (let ((len (or (digest-descriptor-digest-size desc) length)))
+    (unless len
+      (assertion-violation 'message-digest-done
+			   "Digest length must be specified for this digest"
+			   (digest-descriptor-name desc)))
+    (let ((out (make-bytevector len)))
+      (message-digest-done! md out)
+      out)))
 
 (define-record-type digest-state
   (fields descriptor state)

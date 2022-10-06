@@ -7,7 +7,7 @@
 	(sagittarius crypto keys)
 	(sagittarius crypto ciphers)
 	(sagittarius crypto math prime)
-	;; (sagittarius crypto descriptors)
+	(sagittarius crypto signatures)
 	(srfi :64))
 
 (define all-prngs-w/o-system
@@ -72,21 +72,6 @@
   (test-assert (list (cipher-descriptor-name cipher) "symmetric") (symmetric-cipher-descriptor? cipher))
   (test-assert (list (cipher-descriptor-name cipher) "block") (block-cipher-descriptor? cipher)))
 (for-each test-basic all-ciphers)
-
-;; (define (check cipher)
-;;   (define prng (secure-random-generator *prng:chacha20*))
-;;   (define key (random-generator-read-random-bytes
-;; 	       prng (cipher-descriptor-suggested-keysize cipher)))
-;;   (define len (* (cipher-descriptor-block-length cipher) 2))
-;;   (define msg (make-bytevector len 1))
-;;   (let ((ecb-enc (mode-start *mode:ecb* cipher key #f))
-;; 	(ecb-dec (mode-start *mode:ecb* cipher key #f))
-;; 	(ct (make-bytevector len))
-;; 	(pt (make-bytevector len)))
-;;     (mode-encrypt! ecb-enc msg 0 ct 0 len)
-;;     (mode-decrypt! ecb-dec ct 0 pt 0  len)
-;;     (test-assert (equal? msg pt))))
-;; (for-each check all-ciphers)
 
 (test-begin "Key operations")
 (define (symmetric-key-operations-test cipher)
@@ -399,5 +384,31 @@
 (test-assert "probable-prime?"
 	     (not (exists probable-prime? *pseudo-primes*)))
 (test-assert (probable-prime? 359334085968622831041960188598043661065388726959079837))
+
+(test-end)
+
+(test-begin "Signature")
+
+(define all-signature-scheme
+  (list
+   ;; RSA, some are the same value
+   *signature:rsa* *scheme:rsa* *key:rsa*)
+  )
+(define ((test-signer/verifier param) scheme)
+  (define kp (generate-key-pair scheme))
+  (define msg (string->utf8 "keep my integrity"))
+  (let ((signer (apply make-signer scheme (key-pair-private kp) param))
+	(verifier (apply make-verifier scheme (key-pair-public kp) param)))
+    (test-assert (verifier-verify-signature verifier msg
+		   (signer-sign-message signer msg)))))
+(define parameter1
+  (list :encoder pkcs1-emsa-pss-encode
+	:verifier pkcs1-emsa-pss-verify))
+(define parameter2
+  (list :encoder pkcs1-emsa-v1.5-encode
+	:verifier pkcs1-emsa-v1.5-verify))
+(for-each (test-signer/verifier parameter1) all-signature-scheme)
+(for-each (test-signer/verifier parameter2) all-signature-scheme)
+
 
 (test-end)

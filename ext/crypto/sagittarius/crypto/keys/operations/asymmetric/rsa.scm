@@ -40,15 +40,15 @@
 
 	    *key:rsa*
 	    
-	    rsa-public-key? 
+	    rsa-public-key? <rsa-public-key>
 	    rsa-public-key-modulus
 	    rsa-public-key-exponent
 
-	    rsa-private-key?
+	    rsa-private-key? <rsa-private-key>
 	    rsa-private-key-modulus
 	    rsa-private-key-private-exponent
 
-	    rsa-crt-private-key?
+	    rsa-crt-private-key? <rsa-crt-private-key>
 	    rsa-crt-private-key-public-exponent
 	    rsa-crt-private-key-p
 	    rsa-crt-private-key-q

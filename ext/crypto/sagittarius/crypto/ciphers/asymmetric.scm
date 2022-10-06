@@ -39,7 +39,7 @@
 	    asymmetric-cipher-done!
 
 	    *scheme:rsa*
-	    oaep-encoding pkcs1-v1.5-encoding)
+	    oaep-encoding pkcs1-v1.5-encoding mgf-1)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius crypto keys)
