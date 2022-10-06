@@ -196,29 +196,28 @@
 		 check0
 		 check1)))))))
 
-(define (pkcs1-emsa-v1.5-encode :allow-other-keys)
-  (lambda (digest modulus m)
-    (define oid (digest-descriptor-oid digest))
-    (define md (make-message-digest digest))
-    (let* ((em-len (div (+ (bitwise-length modulus) 7) 8))
-	   (digest (der-sequence
-		    (der-sequence
-		     (oid-string->der-object-identifier oid)
-		     (make-der-null))
-		    (bytevector->der-octet-string m)))
-	   (T (asn1-encodable->bytevector digest))
-	   (t-len (bytevector-length T)))
-      (when (< em-len (+ t-len 11))
-	(error 'pkcs1-emsa-v1.5-encode
-	       "Intended encoded message length too short"))
-      (let* ((PS-len (- em-len t-len 3))
-	     ;; Initialize with PS value
-	     (EM (make-bytevector (+ PS-len 3 t-len) #xFF)))
-	(bytevector-u8-set! EM 0 #x00)
-	(bytevector-u8-set! EM 1 #x01)
-	(bytevector-u8-set! EM (+ PS-len 2) #x00)
-	(bytevector-copy! T 0 EM (+ PS-len 3) t-len) 
-	EM))))
+(define ((pkcs1-emsa-v1.5-encode . ignore) digest modulus m)
+  (define oid (digest-descriptor-oid digest))
+  (define md (make-message-digest digest))
+  (let* ((em-len (div (+ (bitwise-length modulus) 7) 8))
+	 (digest (der-sequence
+		  (der-sequence
+		   (oid-string->der-object-identifier oid)
+		   (make-der-null))
+		  (bytevector->der-octet-string m)))
+	 (T (asn1-encodable->bytevector digest))
+	 (t-len (bytevector-length T)))
+    (when (< em-len (+ t-len 11))
+      (error 'pkcs1-emsa-v1.5-encode
+	     "Intended encoded message length too short"))
+    (let* ((PS-len (- em-len t-len 3))
+	   ;; Initialize with PS value
+	   (EM (make-bytevector (+ PS-len 3 t-len) #xFF)))
+      (bytevector-u8-set! EM 0 #x00)
+      (bytevector-u8-set! EM 1 #x01)
+      (bytevector-u8-set! EM (+ PS-len 2) #x00)
+      (bytevector-copy! T 0 EM (+ PS-len 3) t-len) 
+      EM)))
 
 (define (pkcs1-emsa-v1.5-verify . opts)
   (define encode (pkcs1-emsa-v1.5-encode))
