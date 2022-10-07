@@ -36,6 +36,8 @@
 
 	    ;; ECDSA can use this
 	    <dsa-state> dsa-state-der-encode?
+	    <dsa-signer-state> dsa-signer-state-k-generator
+	    construct-dsa-signature deconstruct-dsa-signature
 	    )
     (import (rnrs)
 	    (clos user)
@@ -60,8 +62,6 @@
 		:reader dsa-signer-state-k-generator)))
 (define-class <dsa-verifier-state> (<dsa-state> <verifier-state>) ())
 
-(define default-k-generator
-  (make-random-k-generator (secure-random-generator *prng:chacha20*)))
 (define (get-digest who param)
   (cond ((get-dsa-digest (dsa-key-parameter-p param)))
 	(else

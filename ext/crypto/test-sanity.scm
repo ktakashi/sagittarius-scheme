@@ -393,7 +393,10 @@
   (list
    ;; RSA, some are the same value
    *signature:rsa* *scheme:rsa* *key:rsa*
+   ;; DSA
    *signature:dsa*
+   ;; ECDSA
+   *signature:ecdsa*
    )
   )
 (define ((test-signer/verifier param) scheme)
@@ -413,6 +416,5 @@
 	:der-encode #f))
 (for-each (test-signer/verifier parameter1) all-signature-scheme)
 (for-each (test-signer/verifier parameter2) all-signature-scheme)
-
 
 (test-end)

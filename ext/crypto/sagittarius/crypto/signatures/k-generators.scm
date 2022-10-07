@@ -30,7 +30,7 @@
 
 #!nounbound
 (library (sagittarius crypto signatures k-generators)
-    (export make-random-k-generator
+    (export make-random-k-generator default-k-generator
 	    make-determistic-k-generator)
     (import (rnrs)
 	    (core errors)
@@ -44,6 +44,9 @@
 	 (buf (make-bytevector (div bits 8))))
     (do ((r (read-random-bits prng buf) (read-random-bits prng buf)))
 	((and (not (zero? r)) (< r n)) r))))
+
+(define default-k-generator
+  (make-random-k-generator (secure-random-generator *prng:chacha20*)))
 
 ;; RFC 6979
 (define (make-determistic-k-generator digest message)
