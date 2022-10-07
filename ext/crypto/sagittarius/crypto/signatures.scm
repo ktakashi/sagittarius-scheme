@@ -43,11 +43,14 @@
 
 	    pkcs1-emsa-pss-encode pkcs1-emsa-pss-verify
 	    pkcs1-emsa-v1.5-encode pkcs1-emsa-v1.5-verify
+
+	    *signature:dsa*
 	    )
     (import (rnrs)
 	    (clos user)
 	    (sagittarius crypto signatures types)
 	    (sagittarius crypto signatures rsa)
+	    (sagittarius crypto signatures dsa)
 	    (sagittarius crypto keys)
 	    (sagittarius mop immutable))
 

@@ -392,7 +392,9 @@
 (define all-signature-scheme
   (list
    ;; RSA, some are the same value
-   *signature:rsa* *scheme:rsa* *key:rsa*)
+   *signature:rsa* *scheme:rsa* *key:rsa*
+   *signature:dsa*
+   )
   )
 (define ((test-signer/verifier param) scheme)
   (define kp (generate-key-pair scheme))
@@ -403,10 +405,12 @@
 		   (signer-sign-message signer msg)))))
 (define parameter1
   (list :encoder pkcs1-emsa-pss-encode
-	:verifier pkcs1-emsa-pss-verify))
+	:verifier pkcs1-emsa-pss-verify
+	:der-encode #t))
 (define parameter2
   (list :encoder pkcs1-emsa-v1.5-encode
-	:verifier pkcs1-emsa-v1.5-verify))
+	:verifier pkcs1-emsa-v1.5-verify
+	:der-encode #f))
 (for-each (test-signer/verifier parameter1) all-signature-scheme)
 (for-each (test-signer/verifier parameter2) all-signature-scheme)
 

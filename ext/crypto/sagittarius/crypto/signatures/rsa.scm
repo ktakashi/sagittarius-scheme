@@ -50,9 +50,9 @@
 
 (define *signature:rsa* *key:rsa*)
 
-(define-class <rsa-signer-state> (<digest-sigature-state> <signer-state>)
+(define-class <rsa-signer-state> (<digest-signature-state> <signer-state>)
   ((encoder :init-keyword :encoder :reader rsa-signer-state-encoder)))
-(define-class <rsa-verifier-state> (<digest-sigature-state> <verifier-state>)
+(define-class <rsa-verifier-state> (<digest-signature-state> <verifier-state>)
   ((verifier :init-keyword :verifier :reader rsa-verifier-state-verifier)))
 
 ;; Those who are very lazy..
@@ -90,14 +90,14 @@
 	:key key :digest digest))
 
 (define-method verifier-state-verify-message ((state <rsa-verifier-state>)
-					      (sigature <bytevector>))
+					      (signature <bytevector>))
   (let ((cipher (make-asymmetric-cipher *scheme:rsa*
 		 :encoding (lambda ignore (values #f #f))))
 	(verifier (rsa-verifier-state-verifier state))
 	(key (signature-state-key state))
 	(signing-message (digest-signature-state-signing-message! state)))
     (asymmetric-cipher-init! cipher key)
-    (let ((EM (asymmetric-cipher-decrypt-bytevector cipher sigature)))
+    (let ((EM (asymmetric-cipher-decrypt-bytevector cipher signature)))
       (verifier (digest-signature-state-digest state)
 		(rsa-public-key-modulus key) signing-message EM))))
 

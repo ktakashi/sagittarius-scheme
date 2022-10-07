@@ -43,6 +43,9 @@
 	    dsa-key-parameter-p
 	    dsa-key-parameter-q
 	    dsa-key-parameter-g
+
+	    ;; parameter holder
+	    dsa-key-parameter
 	    
 	    dsa-public-key? <dsa-public-key>
 	    dsa-public-key-Y
@@ -50,7 +53,8 @@
 	    dsa-private-key? <dsa-private-key>
 	    dsa-private-key-Y dsa-private-key-X
 
-	    generate-dsa-parameter)
+	    generate-dsa-parameter
+	    get-dsa-digest)
     (import (rnrs)
 	    (clos user)
 	    (math modular)
@@ -68,8 +72,8 @@
 
 (define-class <dsa-key-parameter> (<immutable> <asn1-encodable>)
   ((p :init-keyword :p :reader dsa-key-parameter-p)
-   (q :init-keyword :p :reader dsa-key-parameter-q)
-   (g :init-keyword :p :reader dsa-key-parameter-g)))
+   (q :init-keyword :q :reader dsa-key-parameter-q)
+   (g :init-keyword :g :reader dsa-key-parameter-g)))
 (define (dsa-key-parameter? o) (is-a? o <dsa-key-parameter>))
 (define-method asn1-encodable->asn1-object ((o <dsa-key-parameter>) type)
   (der-sequence (integer->der-integer (dsa-key-parameter-p o))
@@ -92,28 +96,90 @@
 		       (2048 . ,*digest:sha-256*)
 		       (3072 . ,*digest:sha-256*)))
 
+(define (get-dsa-digest p)
+  (cond ((assv (bitwise-length p) +key-length+) => cdr)
+	(else #f)))
+
+;; FIPS-186-4 A 1.1.2 Generation of the Probable Primes p and q Using an Approved Hash Function
+;; Input:
+;; 1. L The desired length of the prime p (in bits).
+;; 2. N The desired length of the prime q (in bits).
+;; 3. seedlen The desired length of the domain parameter seed; seedlen shall be
+;;            equal to or greater than N.
+(define (generate-pq L N digest prng)
+  (define seedlen (div N 8))
+  (define seed (make-bytevector seedlen))
+  (define outlen (* (digest-descriptor-digest-size digest) 8))
+  (define n (div (- L 1) outlen))
+  (define b (mod (- L 1) outlen))
+  (define w (make-bytevector (div L 8)))
+  (define output (make-bytevector (digest-descriptor-digest-size digest)))
+  (define md (make-message-digest digest))
+  (define (inc! buf)
+    (define len (bytevector-length buf))
+    (let loop ((i (- len 1)))
+      (unless (= i 0)
+	(let ((b (bitwise-and (+ (bytevector-u8-ref buf i) 1) #xFF)))
+	  (bytevector-u8-set! buf i b)
+	  (when (zero? b) (loop (- i 1)))))))
+  (define (compute-X offset)
+    (do ((j 1 (+ j 1)) (olen (bytevector-length output)))
+	((= j (- n 1))
+	 (let ((remaining (- (bytevector-length w) (* n olen))))
+	   (inc! offset)
+	   (digest-message! md offset output)
+	   (bytevector-copy! output (- olen remaining)
+			     w 0 remaining)
+	   (let ((b (bytevector-u8-ref w 0)))
+	     (bytevector-u8-set! w 0 (bitwise-ior b #x80)))
+	   (bytevector->uinteger w)))
+      (inc! offset)
+      (let ((p (- (bytevector-length w) (* j olen))))
+	(digest-message! md offset w p))))
+  (let loop () ;; step 5
+    (random-generator-read-random-bytes! prng seed)
+    (digest-message! md seed output)
+    (let* ((U (mod (bytevector->uinteger output) (expt 2 (- N 1))))
+	   (q (bitwise-ior (bitwise-ior U 1)
+			   (bitwise-arithmetic-shift-left 1 (- N 1)))))
+      (if (probable-prime? q)
+	  (let ((offset (bytevector-copy seed))
+		(limit (* 4 L)))
+	    (let loop2 ((counter 0))
+	      (if (= counter limit)
+		  (loop) ;; goto step 5
+		  (let* ((X (compute-X offset))
+			 (c (mod X (* 2 q)))
+			 (p (- X (- c 1))))
+		    (if (and (= (bitwise-length p) L) (probable-prime? p))
+			(values p q)
+			(loop2 (+ counter 1)))))))
+	  (loop)))))
+
 (define (generate-dsa-parameter L :key (prng (secure-random-generator *prng:chacha20*)))
-  (define (search-p L* q)
-    (let ((test (bitwise-arithmetic-shift-left 1 (- L 1)))
-	  (r0 (bitwise-arithmetic-shift-left q 1))
-	  (buf (make-bytevector L*)))
+  (define (search-g p q)
+    (define (random-range min max)
+      (define size (div (bitwise-length max) 8))
       (let loop ()
-	(random-generator-read-random-bytes! prng buf)
-	(let* ((X (bytevector->integer buf))
-	       (c (mod X r0))
-	       (p (- X (- c 1))))
-	  (if (and (>= p test) (probable-prime? p))
-	      p
-	      (loop))))))
-  (define (search-g h p q) (mod-expt h (/ (- p 1) q) p))
-  (let* ((md (cond ((assv L +key-length+) => cdr)
-		   (else (assertion-violation 'generate-dsa-parameter
-					      "Key size is not supported" L))))
-	 (N* (digest-descriptor-digest-size md))
-	 (q (generate-random-prime N* prng))
-	 (p (search-p (div L 8) q))
-	 (g (search-g 2 p q)))
-    (make <dsa-key-parameter> :p p :q q :g g)))
+	(let ((v (random-generator-random-integer prng size)))
+	  (if (and (< v min) (> v max))
+	      (loop)
+	      v))))
+    (let ((e (div (- p 1) q)))
+      (let loop ()
+	(let* ((h (random-range 2 (- p 2)))
+	       (g (mod-expt h e p)))
+	  (if (= g 1)
+	      (loop)
+	      g)))))
+		   
+  (let* ((digest (cond ((assv L +key-length+) => cdr)
+		       (else
+			(assertion-violation 'generate-dsa-parameter
+					     "Key size is not supported" L))))
+	 (N (digest-descriptor-digest-size digest)))
+    (let-values (((p q) (generate-pq L (* N 8) digest prng)))
+      (make <dsa-key-parameter> :p p :q q :g (search-g p q)))))
 
 (define (generate-dsa-keypair (parameter dsa-key-parameter?)
 			      :key (prng (secure-random-generator *prng:chacha20*)))

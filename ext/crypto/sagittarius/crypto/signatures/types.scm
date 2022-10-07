@@ -36,7 +36,7 @@
 	    signature-state-key signature-state-init!
 	    signature-state-processor
 
-	    digest-signature-state? <digest-sigature-state>
+	    digest-signature-state? <digest-signature-state>
 	    digest-signature-state-digest
 	    digest-signature-state-init!
 	    digest-signature-state-process!
@@ -66,14 +66,14 @@
 (define-generic signature-state-processor)
 
 ;; For RSA, ECDSA et.al
-(define-class <digest-sigature-state> (<signature-state>)
+(define-class <digest-signature-state> (<signature-state>)
   ((digest :init-keyword :digest :reader digest-signature-state-digest)
    (md  :reader digest-signature-state-md :mutable #t)))
-(define-method initialize ((o <digest-sigature-state>) initargs)
+(define-method initialize ((o <digest-signature-state>) initargs)
   (call-next-method)
   (slot-set! o 'md (make-message-digest (slot-ref o 'digest)))
   o)
-(define (digest-signature-state? o) (is-a? o <digest-sigature-state>))
+(define (digest-signature-state? o) (is-a? o <digest-signature-state>))
 
 (define (digest-signature-state-init! (state signature-state?))
   (message-digest-init! (digest-signature-state-md state)))
@@ -83,10 +83,10 @@
 (define (digest-signature-state-signing-message! (state signature-state?)
 						 . opts)
   (apply message-digest-done (digest-signature-state-md state) opts))
-(define-method signature-state-init! ((o <digest-sigature-state>))
+(define-method signature-state-init! ((o <digest-signature-state>))
   (digest-signature-state-init! o)
   o)
-(define-method signature-state-processor ((o <digest-sigature-state>))
+(define-method signature-state-processor ((o <digest-signature-state>))
   digest-signature-state-process!)
 
 ;; For EdDSA
