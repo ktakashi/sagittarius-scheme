@@ -49,6 +49,7 @@
 #include "sagittarius/private/values.h"
 #include "sagittarius/private/vm.h"
 #include "sagittarius/private/writer.h"
+#include "sagittarius/private/library.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -4144,7 +4145,48 @@ void Sg__InitNumber()
 
   Sg__InitBignum();
 }
-  
+
+#define SG_DEFINE_LOG_OP_STUB(name, noarg, c_op)			\
+  static SgObject name(SgObject *args, int argc, void *data)		\
+  {									\
+    SgObject rest = args[argc - 1];					\
+    SgObject r;								\
+    int i;								\
+    if (argc == 1) return SG_MAKE_INT(noarg); /* no argument */		\
+    if (argc == 2) return args[0];	      /* 1 argument */		\
+    r = c_op(args[0], args[1]);						\
+    for (i = 2; i < argc - 1; i++) {					\
+      r = c_op(r, args[i]);						\
+    }									\
+    if (!SG_NULLP(rest)) {						\
+      SgObject cp;							\
+      SG_FOR_EACH(cp, rest) {						\
+	r = c_op(r, SG_CAR(cp));					\
+      }									\
+    }									\
+    return r;								\
+  }									\
+  static SG_DEFINE_SUBR(SG_CPP_CAT(name, _stub), 0, 10, name, SG_FALSE, NULL)
+
+/* bitwise-xor */
+SG_DEFINE_LOG_OP_STUB(bitwise_ior, 0,  Sg_LogIor);
+SG_DEFINE_LOG_OP_STUB(bitwise_and, -1, Sg_LogAnd);
+SG_DEFINE_LOG_OP_STUB(bitwise_xor, 0,  Sg_LogXor);
+
+#undef SG_DEFINE_LOG_OP_STUB
+
+void Sg__InitNumberProcs()
+{
+  SgLibrary *lib = Sg_FindLibrary(SG_INTERN("(core)"), FALSE);
+#define INSERT_LOG_OP(name, sname)					\
+  SG_PROCEDURE_NAME(&SG_CPP_CAT(name, _stub)) = SG_INTERN(sname);	\
+  SG_PROCEDURE_TRANSPARENT(&SG_CPP_CAT(name, _stub)) = SG_PROC_TRANSPARENT; \
+  Sg_InsertBinding(lib, SG_INTERN(sname), SG_OBJ(&SG_CPP_CAT(name, _stub)));
+
+  INSERT_LOG_OP(bitwise_ior, "bitwise-ior");
+  INSERT_LOG_OP(bitwise_and, "bitwise-and");
+  INSERT_LOG_OP(bitwise_xor, "bitwise-xor");
+}
 /*
   end of file
   Local Variables:

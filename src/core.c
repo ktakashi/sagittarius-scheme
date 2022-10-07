@@ -54,6 +54,7 @@ static void init_cond_features();
 
 extern void Sg__InitSymbol();
 extern void Sg__InitNumber();
+extern void Sg__InitNumberProcs();
 extern void Sg__InitString();
 extern void Sg__InitKeyword();
 extern void Sg__InitLibrary();
@@ -187,6 +188,8 @@ void Sg_Init()
 
   Sg__InitInstruction();
   Sg__Init_core();
+  Sg__InitNumberProcs(); 	/* some number related Scheme procedures */
+  
   Sg__Init_sagittarius();
   Sg__InitPair();
   Sg__InitCharSet();
