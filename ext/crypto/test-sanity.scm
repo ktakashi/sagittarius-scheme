@@ -389,14 +389,18 @@
 
 (test-begin "Signature")
 
+;; basically *signature:...* and *key:...* are the same
+;; though that's the prespective of library implementator, me obviously,
+;; and unless it's not written in the test, it's subjected to change
+;; (also write document as well, but that comes later)
 (define all-signature-scheme
   (list
    ;; RSA, some are the same value
    *signature:rsa* *scheme:rsa* *key:rsa*
    ;; DSA
-   *signature:dsa*
+   *signature:dsa* *key:dsa*
    ;; ECDSA
-   *signature:ecdsa*
+   *signature:ecdsa* *key:ecdsa*
    )
   )
 (define ((test-signer/verifier param) scheme)
@@ -416,5 +420,56 @@
 	:der-encode #f))
 (for-each (test-signer/verifier parameter1) all-signature-scheme)
 (for-each (test-signer/verifier parameter2) all-signature-scheme)
+
+;; ECDSA curve tests
+;; Note NIST curves are commented out as SEC has the equivalent ones
+;; e.g. *ec-parameter:p192* = *ec-parameter:secp192r1*
+(define all-curves (list ;; *ec-parameter:p192*
+			 ;; *ec-parameter:p224*
+			 ;; *ec-parameter:p256*
+			 ;; *ec-parameter:p384*
+			 ;; *ec-parameter:p521*
+			 ;; *ec-parameter:k163*
+			 ;; *ec-parameter:k233*
+			 ;; *ec-parameter:k283*
+			 ;; *ec-parameter:k409*
+			 ;; *ec-parameter:k571*
+			 ;; *ec-parameter:b163*
+			 ;; *ec-parameter:b233*
+			 ;; *ec-parameter:b283*
+			 ;; *ec-parameter:b409*
+			 ;; *ec-parameter:b571*
+			 *ec-parameter:secp192r1*
+			 *ec-parameter:secp224r1*
+			 *ec-parameter:secp256r1*
+			 *ec-parameter:secp384r1*
+			 *ec-parameter:secp521r1*
+			 *ec-parameter:sect163k1*
+			 *ec-parameter:sect233k1*
+			 *ec-parameter:sect283k1*
+			 *ec-parameter:sect409k1*
+			 *ec-parameter:sect571k1*
+			 *ec-parameter:sect163r2*
+			 *ec-parameter:sect233r1*
+			 *ec-parameter:sect283r1*
+			 *ec-parameter:sect409r1*
+			 *ec-parameter:sect571r1*
+			 *ec-parameter:secp192k1*
+			 *ec-parameter:secp224k1*
+			 *ec-parameter:secp256k1*
+			 *ec-parameter:sect163r1*
+			 *ec-parameter:sect239k1*
+			 *ec-parameter:sect113r1*))
+
+(define (test-ec-parameters ec-parameter)
+  (define kp (generate-key-pair *key:ecdsa* :ec-parameter ec-parameter))
+  (define msg (string->utf8 "keep my integrity"))
+  (let ((signer (make-signer *signature:ecdsa* (key-pair-private kp)))
+	(verifier (make-verifier *signature:ecdsa* (key-pair-public kp))))
+    (test-equal ec-parameter (ecdsa-key-parameter (key-pair-public kp)))
+    (test-equal ec-parameter (ecdsa-key-parameter (key-pair-private kp)))
+    (test-assert (verifier-verify-signature verifier msg
+					    (signer-sign-message signer msg)))))
+(for-each test-ec-parameters all-curves)
 
 (test-end)
