@@ -172,8 +172,9 @@
   (define k2m (ash 1 (ec-field-f2m-k2 field)))
   (define k3m (ash 1 (ec-field-f2m-k3 field)))
   (define pbp? (f2m-ppb? field))
+
   (define (mult-z-mod pbp? m mm k1m k2m k3m a)
-    (define az (bitwise-arithmetic-shift-left a 1))
+    (define az (* a 2))
     (if (bitwise-bit-set? az m)
 	(let* ((bl (bitwise-length az))
 	       (bm (- (- (bitwise-arithmetic-shift-left 1 bl) 1) mm))
@@ -183,6 +184,7 @@
 	      (bitwise-xor r cm k1m k2m k3m)
 	      (bitwise-xor r cm k1m)))
 	az))
+  
   (do ((i 1 (+ i 1))
        (bx (mult-z-mod pbp? m mm k1m k2m k3m bx)
 	   (mult-z-mod pbp? m mm k1m k2m k3m bx))
