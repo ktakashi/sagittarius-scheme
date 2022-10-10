@@ -862,15 +862,16 @@ SgObject Sg_BignumShiftRight(SgBignum *b, long shift)
     int i;								\
     long xs = SG_BIGNUM_GET_COUNT(x);					\
     long ys = SG_BIGNUM_GET_COUNT(y);					\
+    long zs = SG_BIGNUM_GET_COUNT(z);					\
     long m = min(xs, ys);						\
     for (i = m-1; i >= 0; i--) {					\
       z->elements[i] = x->elements[i] op y->elements[i];		\
     }									\
-    if (xs > m) {							\
+    if (xs > m && xs <= zs) {						\
       for (i = xs-1; i >= m; i--)					\
 	z->elements[i] = x->elements[i] op (y2sc ? SG_ULONG_MAX : 0);	\
     }									\
-    if (ys > m) {							\
+    if (ys > m && ys <= zs) {						\
       for (i = ys-1; i >= m; i--)					\
 	z->elements[i] = y->elements[i] op (x2sc ? SG_ULONG_MAX : 0);	\
     }									\
