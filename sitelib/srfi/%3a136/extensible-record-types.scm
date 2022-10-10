@@ -149,6 +149,15 @@
 	     (if (memp (lambda (f) (bound-identifier=? (car f) #'field)) fields)
 		 (list (reverse! p) #'(field rest ...))
 		 (loop #'(rest ...) (cons #'field p)))))))
+      (define (fields->args fields)
+	(syntax-case fields ()
+	  (() #'())
+	  (((f ignore ...) rest ...)
+	   (with-syntax (((args ...) (fields->args #'(rest ...)))
+			 ((t) (generate-temporaries '(t))))
+	     #'(t args ...)))
+	  (_ (syntax-violation 'define-record-type "Invalid field spec"
+			       fields))))
       (if parent?
 	  (syntax-case spec ()
 	    ((name args ...)
@@ -172,7 +181,7 @@
 		   (lambda (args ...)
 		     (p vars ...)))))
 	    (_
-	     (with-syntax (((args ...) fields))
+	     (with-syntax (((args ...) (fields->args fields)))
 	       #'(lambda (p)
 		   (lambda (args ...)
 		     (p args ...))))))))
