@@ -230,7 +230,7 @@
 
 (define-syntax define-predicate-generic
   (syntax-rules ()
-    ((_ (name field args ...) (pred body) ...)
+    ((_ (name field args ...) (pred body ...) ...)
      (define (name field args ...)
        (cond ((pred field) body ...)
 	     ...
@@ -282,7 +282,7 @@
 
 ;; Twice
 (define-predicate-generic (field-ec-point-twice field curve x)
-  (ec-field-fp? 
+  (ec-field-fp?
    (if (zero? (ec-point-y x))
        ec-infinity-point
        (let* ((xx (ec-point-x x))
