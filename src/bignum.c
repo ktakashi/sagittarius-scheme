@@ -857,16 +857,22 @@ SgObject Sg_BignumShiftRight(SgBignum *b, long shift)
 
 #define DEF_BIGNUM_LOG_OP(name, op)					\
   static SgBignum* name(SgBignum *z, SgBignum *x, SgBignum *y,		\
-			       int x2sc, int y2sc)			\
+			int x2sc, int y2sc)				\
   {									\
     int i;								\
-    int xs = (int)SG_BIGNUM_GET_COUNT(x);				\
-    int ys = (int)SG_BIGNUM_GET_COUNT(y);				\
-    int zs = (int)SG_BIGNUM_GET_COUNT(z);				\
-    for (i = zs-1; i >= 0; i--) {					\
-      ulong lx = (i < xs) ? x->elements[i] : (x2sc ? SG_ULONG_MAX : 0); \
-      ulong ly = (i < ys) ? y->elements[i] : (y2sc ? SG_ULONG_MAX : 0); \
-      z->elements[i] = lx op ly;					\
+    long xs = SG_BIGNUM_GET_COUNT(x);					\
+    long ys = SG_BIGNUM_GET_COUNT(y);					\
+    long m = min(xs, ys);						\
+    for (i = m-1; i >= 0; i--) {					\
+      z->elements[i] = x->elements[i] op y->elements[i];		\
+    }									\
+    if (xs > m) {							\
+      for (i = xs-1; i >= m; i--)					\
+	z->elements[i] = x->elements[i] op (y2sc ? SG_ULONG_MAX : 0);	\
+    }									\
+    if (ys > m) {							\
+      for (i = ys-1; i >= m; i--)					\
+	z->elements[i] = y->elements[i] op (x2sc ? SG_ULONG_MAX : 0);	\
     }									\
     return z;								\
   }
