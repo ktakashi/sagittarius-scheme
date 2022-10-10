@@ -228,54 +228,20 @@
   (a     elliptic-curve-a)
   (b     elliptic-curve-b))
 
-
-(define-record-type predicate-generic
-  (fields name table)
-  (protocol (lambda (p)
-	      (lambda (n)
-		(p n (make-eq-hashtable))))))
 (define-syntax define-predicate-generic
   (syntax-rules ()
-    ((_ name)
-     (begin
-       (define dummy (make-predicate-generic 'name))
-       (define-syntax name
-	 (lambda (x)
-	   (syntax-case x ()
-	     ((_ self args (... ...))
-	      #'(let* ((table (predicate-generic-table dummy))
-		       (target self)
-		       (eof (cons #f #f))
-		       (itr (%hashtable-iter table)))
-		  (let loop ()
-		    (let-values (((k v) (itr eof)))
-		      (when (eq? k eof)
-			(assertion-violation 'name
-			 "predicate for given argument is not registered"
-			 self))
-		      (if (k target)
-			  (v target args (... ...))
-			  (loop))))))
-	     (n (identifier? #'n) #'dummy))))))))
-(define-syntax define-predicate-method
-  (syntax-rules ()
-    ((_ name pred (self args ...) body ...)
-     (define dummy
-       (let ((table (predicate-generic-table name))
-	     (name (lambda (self args ...) body ...)))
-	 (when (hashtable-contains? table pred)
-	   (assertion-violation 'name
-				"specified predicate is already registered"
-				pred))
-	 (hashtable-set! table pred name))))))
+    ((_ (name field args ...) (pred body) ...)
+     (define (name field args ...)
+       (cond ((pred field) body ...)
+	     ...
+	     (else (assertion-violation
+		    'name "No predicate matched" field)))))))
 
 (define (ec-curve=? a b) (equal? a b))
 
-(define-predicate-generic field-size)
-(define-predicate-method field-size ec-field-fp? (field)
-  (bitwise-length (ec-field-fp-p field)))
-(define-predicate-method field-size ec-field-f2m? (field)
-  (ec-field-f2m-m field))
+(define-predicate-generic (field-size field)
+  (ec-field-fp? (bitwise-length (ec-field-fp-p field)))
+  (ec-field-f2m? (ec-field-f2m-m field)))
 (define (ec-field-size field) (field-size field))
 
 ;; EC point
@@ -315,36 +281,35 @@
 					   "not supported"))))
 
 ;; Twice
-(define-predicate-generic field-ec-point-twice)
-(define-predicate-method field-ec-point-twice ec-field-fp? (field curve x)
-  (if (zero? (ec-point-y x))
-      ec-infinity-point
-      (let* ((xx (ec-point-x x))
-	     (xy (ec-point-y x))
-	     (p (ec-field-fp-p field))
-	     ;; gamma = ((xx^2)*3 + curve.a)/(xy*2)
-	     (gamma (mod-div (mod-add (mod-mul (mod-square xx p) 3 p)
-				      (elliptic-curve-a curve)
-				      p)
-			     (mod-mul xy 2 p) p))
-	     ;; x3 = gamma^2 - x*2
-	     (x3 (mod-sub (mod-square gamma p) (mod-mul xx 2 p) p))
-	     ;; y3 = gamma*(xx - x3) - xy
-	     (y3 (mod-sub (mod-mul gamma (mod-sub xx x3 p) p) xy p)))
-	(make-ec-point x3 y3))))
-
-(define-predicate-method field-ec-point-twice ec-field-f2m? (field curve x)
-  (if (zero? (ec-point-x x))
-      ec-infinity-point
-      (let* ((xx (ec-point-x x))
-	     (xy (ec-point-y x))
-	     (l1 (f2m-add field (f2m-div field xy xx) xx))
-	     (x3 (f2m-add field (f2m-add field (f2m-square field l1) l1)
-			  (elliptic-curve-a curve)))
-	     (y3 (f2m-add field (f2m-add field (f2m-square field xx)
-					 (f2m-mul field l1 x3))
-			  x3)))
-	(make-ec-point x3 y3))))
+(define-predicate-generic (field-ec-point-twice field curve x)
+  (ec-field-fp? 
+   (if (zero? (ec-point-y x))
+       ec-infinity-point
+       (let* ((xx (ec-point-x x))
+	      (xy (ec-point-y x))
+	      (p (ec-field-fp-p field))
+	      ;; gamma = ((xx^2)*3 + curve.a)/(xy*2)
+	      (gamma (mod-div (mod-add (mod-mul (mod-square xx p) 3 p)
+				       (elliptic-curve-a curve)
+				       p)
+			      (mod-mul xy 2 p) p))
+	      ;; x3 = gamma^2 - x*2
+	      (x3 (mod-sub (mod-square gamma p) (mod-mul xx 2 p) p))
+	      ;; y3 = gamma*(xx - x3) - xy
+	      (y3 (mod-sub (mod-mul gamma (mod-sub xx x3 p) p) xy p)))
+	 (make-ec-point x3 y3))))
+  (ec-field-f2m?
+   (if (zero? (ec-point-x x))
+       ec-infinity-point
+       (let* ((xx (ec-point-x x))
+	      (xy (ec-point-y x))
+	      (l1 (f2m-add field (f2m-div field xy xx) xx))
+	      (x3 (f2m-add field (f2m-add field (f2m-square field l1) l1)
+			   (elliptic-curve-a curve)))
+	      (y3 (f2m-add field (f2m-add field (f2m-square field xx)
+					  (f2m-mul field l1 x3))
+			   x3)))
+	 (make-ec-point x3 y3)))))
 
 (define (ec-point-twice curve x)
   (if (ec-point-infinity? x)
@@ -352,50 +317,49 @@
       (field-ec-point-twice (elliptic-curve-field curve) curve x)))
 
 ;; Add
-(define-predicate-generic field-ec-point-add)
-(define-predicate-method field-ec-point-add ec-field-fp? (field curve x y)
-  (if (equal? (ec-point-x x) (ec-point-x y))
-      (if (equal? (ec-point-y x) (ec-point-y y))
-	  (ec-point-twice curve x)
-	  ec-infinity-point)
-      (let* ((xx (ec-point-x x))
-	     (xy (ec-point-y x))
-	     (yx (ec-point-x y))
-	     (yy (ec-point-y y))
-	     (p (ec-field-fp-p field))
-	     ;; gamma = (yy - xy)/(yx-xx)
-	     (gamma (mod-div (mod-sub yy xy p) (mod-sub yx xx p) p))
-	     ;; x3 = gamma^2 - xx - yx
-	     (x3 (mod-sub (mod-sub (mod-square gamma p) xx p) yx p))
-	     ;; y3 = gamma*(xx - x3) - xy
-	     (y3 (mod-sub (mod-mul gamma (mod-sub xx x3 p) p) xy p)))
-	(make-ec-point x3 y3))))
-
-(define-predicate-method field-ec-point-add ec-field-f2m? (field curve x y)
-  (let* ((xx (ec-point-x x))
-	 (xy (ec-point-y x))
-	 (yx (ec-point-x y))
-	 (yy (ec-point-y y))
-	 (dx (f2m-add field xx yx))
-	 (dy (f2m-add field xy yy)))
-    (if (zero? dx)
-	(if (zero? dy)
-	    (ec-point-twice curve x)
-	    ec-infinity-point)
-	(let* ((L (f2m-div field dy dx))
-	       (x3 (f2m-add field
-			    (f2m-add field
-				     (f2m-add field
-					      (f2m-square field L) L)
-				     dx)
-			    (elliptic-curve-a curve)))
-	       (y3 (f2m-add field
-			    (f2m-add field
-				     (f2m-mul field L 
-					      (f2m-add field xx x3))
-				     x3)
-			    xy)))
-	  (make-ec-point x3 y3)))))
+(define-predicate-generic (field-ec-point-add field curve x y)
+  (ec-field-fp? 
+   (if (equal? (ec-point-x x) (ec-point-x y))
+       (if (equal? (ec-point-y x) (ec-point-y y))
+	   (ec-point-twice curve x)
+	   ec-infinity-point)
+       (let* ((xx (ec-point-x x))
+	      (xy (ec-point-y x))
+	      (yx (ec-point-x y))
+	      (yy (ec-point-y y))
+	      (p (ec-field-fp-p field))
+	      ;; gamma = (yy - xy)/(yx-xx)
+	      (gamma (mod-div (mod-sub yy xy p) (mod-sub yx xx p) p))
+	      ;; x3 = gamma^2 - xx - yx
+	      (x3 (mod-sub (mod-sub (mod-square gamma p) xx p) yx p))
+	      ;; y3 = gamma*(xx - x3) - xy
+	      (y3 (mod-sub (mod-mul gamma (mod-sub xx x3 p) p) xy p)))
+	 (make-ec-point x3 y3))))
+  (ec-field-f2m? 
+   (let* ((xx (ec-point-x x))
+	  (xy (ec-point-y x))
+	  (yx (ec-point-x y))
+	  (yy (ec-point-y y))
+	  (dx (f2m-add field xx yx))
+	  (dy (f2m-add field xy yy)))
+     (if (zero? dx)
+	 (if (zero? dy)
+	     (ec-point-twice curve x)
+	     ec-infinity-point)
+	 (let* ((L (f2m-div field dy dx))
+		(x3 (f2m-add field
+			     (f2m-add field
+				      (f2m-add field
+					       (f2m-square field L) L)
+				      dx)
+			     (elliptic-curve-a curve)))
+		(y3 (f2m-add field
+			     (f2m-add field
+				      (f2m-mul field L 
+					       (f2m-add field xx x3))
+				      x3)
+			     xy)))
+	   (make-ec-point x3 y3))))))
 
 (define (ec-point-add curve x y)
   (cond ((ec-point-infinity? x) y)
@@ -404,13 +368,13 @@
 	 (field-ec-point-add (elliptic-curve-field curve) curve x y))))
 
 ;; Negate
-(define-predicate-generic field-ec-point-negate)
-(define-predicate-method field-ec-point-negate ec-field-fp? (field x)
-  (make-ec-point (ec-point-x x)
-		 (mod-negate (ec-point-y x) (ec-field-fp-p field))))
-(define-predicate-method field-ec-point-negate ec-field-f2m? (field x)
-  (let ((xx (ec-point-x x)))
-    (make-ec-point xx (f2m-add field xx (ec-point-y x)))))
+(define-predicate-generic (field-ec-point-negate field x)
+  (ec-field-fp? 
+   (make-ec-point (ec-point-x x)
+		  (mod-negate (ec-point-y x) (ec-field-fp-p field))))
+  (ec-field-f2m?
+   (let ((xx (ec-point-x x)))
+     (make-ec-point xx (f2m-add field xx (ec-point-y x))))))
 
 (define (ec-point-negate curve x)
   (field-ec-point-negate (elliptic-curve-field curve) x))
