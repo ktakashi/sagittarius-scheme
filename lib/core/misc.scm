@@ -1,4 +1,5 @@
 ;; -*- scheme -*-
+#!nounbound
 (library (core misc)
     (export unique-id-list?
 	    define-macro
@@ -6,6 +7,7 @@
     (import (core)
 	    (core syntax)
 	    (core base)
+	    (core inline)
 	    (sagittarius))
 
   (define-syntax define-macro
@@ -46,14 +48,14 @@
 	  (syntax-case acc ()
 	    (((get set) rest ...)
 	     (with-syntax ((n (datum->syntax k i)))
-	       (loop (cons #'(begin (define (get o) (vector-ref o n))
-				    (define (set o v) (vector-set! o n v)))
+	       (loop (cons #'(begin (define-inline (get o) (vector-ref o n))
+				    (define-inline (set o v) (vector-set! o n v)))
 			   r)
 		     (+ i 1)
 		     #'(rest ...))))
 	    (((name) rest ...)
 	     (with-syntax ((n (datum->syntax k i)))
-	       (loop (cons #'(define (name o) (vector-ref o n)) r)
+	       (loop (cons #'(define-inline (name o) (vector-ref o n)) r)
 		     (+ i 1)
 		     #'(rest ...))))
 	    (() r))))

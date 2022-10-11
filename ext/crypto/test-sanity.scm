@@ -401,6 +401,10 @@
    *signature:dsa* *key:dsa*
    ;; ECDSA
    *signature:ecdsa* *key:ecdsa*
+   ;; EdDSA
+   *signature:ed25519* *signature:ed25519ctx* *signature:ed25519ph*
+   *key:ed25519*
+   *signature:ed448* *signature:ed448ph* *key:ed448*
    )
   )
 (define ((test-signer/verifier param) scheme)
@@ -408,8 +412,8 @@
   (define msg (string->utf8 "keep my integrity"))
   (let ((signer (apply make-signer scheme (key-pair-private kp) param))
 	(verifier (apply make-verifier scheme (key-pair-public kp) param)))
-    (test-assert (verifier-verify-signature verifier msg
-		   (signer-sign-message signer msg)))))
+    (test-assert scheme (verifier-verify-signature verifier msg
+			   (signer-sign-message signer msg)))))
 (define parameter1
   (list :encoder pkcs1-emsa-pss-encode
 	:verifier pkcs1-emsa-pss-verify
@@ -417,7 +421,8 @@
 (define parameter2
   (list :encoder pkcs1-emsa-v1.5-encode
 	:verifier pkcs1-emsa-v1.5-verify
-	:der-encode #f))
+	:der-encode #f
+	:context (string->utf8 "This is EdDSA context")))
 (for-each (test-signer/verifier parameter1) all-signature-scheme)
 (for-each (test-signer/verifier parameter2) all-signature-scheme)
 

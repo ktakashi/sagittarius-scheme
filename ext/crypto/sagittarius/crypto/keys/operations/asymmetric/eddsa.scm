@@ -59,7 +59,10 @@
 
 	    ed448-key?
 	    ed448-public-key?
-	    ed448-private-key?)
+	    ed448-private-key?
+
+	    eddsa-clamp!
+	    )
     (import (rnrs)
 	    (core misc)
 	    (clos user)

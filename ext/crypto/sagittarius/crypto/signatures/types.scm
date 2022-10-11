@@ -42,6 +42,11 @@
 	    digest-signature-state-process!
 	    digest-signature-state-signing-message!
 
+	    buffered-signature-state? <buffered-signature-state>
+	    buffered-signature-state-init!
+	    buffered-signature-state-process!
+	    buffered-signature-state-signing-message!
+	    
 	    make-signer-state
 	    signer-state->signature
 	    make-verifier-state
@@ -92,8 +97,8 @@
 ;; For EdDSA
 ;; This means, EdDSA is not suitable for signatures of large files / data...
 (define-class <buffered-signature-state> (<signature-state>)
-  ((buffer :reader buffered-signature-state-buffer)
-   (retriever :reader  buffered-signature-state-retriever)))
+  ((buffer :reader buffered-signature-state-buffer :mutable #t)
+   (retriever :reader  buffered-signature-state-retriever :mutable #t)))
 (define-method initialize ((o <buffered-signature-state>) initargs)
   (call-next-method)
   (let-values (((out e) (open-bytevector-output-port)))
@@ -101,6 +106,19 @@
     (slot-set! o 'retriever e))
   o)
 (define (buffered-signature-state? o) (is-a? o <buffered-signature-state>))
+;; flush all data
+(define (buffered-signature-state-init! (state buffered-signature-state?))
+  ((buffered-signature-state-retriever state)))
+(define (buffered-signature-state-process! (state buffered-signature-state?)
+					   bv start end)
+  (put-bytevector (buffered-signature-state-buffer state) bv start end))
+(define buffered-signature-state-signing-message!
+  buffered-signature-state-init!)
+(define-method signature-state-init! ((o <buffered-signature-state>))
+  (buffered-signature-state-init! o)
+  o)
+(define-method signature-state-processor ((o <buffered-signature-state>))
+  buffered-signature-state-process!)
 
 (define-generic make-signer-state)
 (define-generic signer-state->signature)
