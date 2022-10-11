@@ -149,7 +149,7 @@
 	    EM))))))
 
 (define (pkcs1-emsa-pss-verify
-	 :key (given-salt-len :salt-len #f)
+	 :key (given-salt-len :salt-length #f)
 	      (mgf mgf-1)
 	      (given-mgf-digest :mgf-digest #f)
 	 :allow-other-keys)

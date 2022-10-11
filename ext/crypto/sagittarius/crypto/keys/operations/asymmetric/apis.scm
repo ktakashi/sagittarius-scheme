@@ -48,6 +48,7 @@
 	    calculate-key-agreement
 	    )
     (import (rnrs)
+	    (sagittarius crypto asn1)
 	    (clos user))
 
 (define-generic generate-key-pair)
@@ -66,6 +67,25 @@
   public-key-formats)
 (define *public-key-formats* (enum-set-universe (public-key-formats)))
 (define (public-key-format? s) (enum-set-member? s *public-key-formats*))
+
+(define-method import-public-key ((key <bytevector>)
+				  (format (eq 'subject-public-key-info)))
+  (import-public-key (open-bytevector-input-port key) format))
+(define-method import-public-key ((key <port>)
+				  (format (eq 'subject-public-key-info)))
+  (import-public-key (read-asn1-object key) format))
+#|
+  SubjectPublicKeyInfo {PUBLIC-KEY: IOSet} ::= SEQUENCE {
+      algorithm        AlgorithmIdentifier {PUBLIC-KEY, {IOSet}},
+      subjectPublicKey BIT STRING
+  }
+|#
+(define-method import-public-key ((key <der-sequence>)
+				  (format (eq 'subject-public-key-info)))
+  (let*-values (((aid ignore) (deconstruct-asn1-collection key))
+		((oid . ignore) (deconstruct-asn1-collection aid)))
+    (let ((s (oid->key-operation (der-object-identifier->oid-string oid))))
+      (import-public-key s key format))))
 
 ;; TODO should we make private-key-format as well, which
 ;;      supports raw and private-key-info?

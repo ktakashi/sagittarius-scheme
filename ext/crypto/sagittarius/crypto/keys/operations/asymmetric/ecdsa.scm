@@ -285,7 +285,14 @@
 
 ;; EC parameter related, it's not in the scope of PKI
 (define (lookup-named-curve-parameter oid)
-  (lookup-ec-parameter (der-object-identifier->oid-string oid)))
+  (let ((s (der-object-identifier->oid-string oid)))
+    (cond ((lookup-ec-parameter s))
+	  (else (raise
+		 (condition (make-implementation-restriction-violation)
+			    (make-who-condition 'lookup-named-curve-parameter)
+			    (make-message-condition
+			     "Curve with the given OID is not supported")
+			    (make-irritants-condition s)))))))
 
 (define id-prime-field "1.2.840.10045.1.1")
 (define id-f2m-field   "1.2.840.10045.1.2")

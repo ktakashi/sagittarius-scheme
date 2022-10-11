@@ -294,6 +294,10 @@
   (if (eq? format 'raw)
       (generate-ed25519-public-key bv)
       (import-public-key *key:eddsa* bv format)))
+(define-method import-public-key ((m (eql *key:ed25519*))
+				  (key <der-sequence>)
+				  . opts)
+  (apply import-public-key *key:eddsa* key opts))
 
 (define-method import-public-key ((m (eql *key:ed448*))
 				  (in <port>) . opts)
@@ -304,6 +308,10 @@
   (if (eq? format 'raw)
       (generate-ed448-public-key bv)
       (import-public-key *key:eddsa* bv format)))
+(define-method import-public-key ((m (eql *key:ed448*))
+				  (key <der-sequence>)
+				  . opts)
+  (apply import-public-key *key:eddsa* key opts))
 
 (define-method import-public-key ((m (eql *key:eddsa*))
 				  (in <bytevector>) . opts)
