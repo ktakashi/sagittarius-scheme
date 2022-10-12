@@ -110,16 +110,16 @@
 	((me (name . formals) body ...)
 	 (with-syntax ((%impl (datum->syntax #'me (actual-name #'name))))
 	   #'(begin
-	       (define-syntax name
+	       #;(define-syntax name
 		 (lambda (x)
 		   (syntax-case x ()
 		     ((_ args (... ...))
 		      ;; compiler will inline this
 		      #'((lambda formals body ...) args (... ...)))
 		     (k (identifier? #'k) #'%impl))))
-	       (define (%impl . formals) body ...)
+	       (define (name . formals) body ...)
 	       ;; do we need this?
-	       (define-raw-inliner %impl #f
+	       (define-raw-inliner name #f
 		 (lambda (form const-value)
 		   (syntax-case form ()
 		     ((_ args (... ...))
