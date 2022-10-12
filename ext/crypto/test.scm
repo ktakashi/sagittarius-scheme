@@ -2,7 +2,7 @@
 #!compatible
 (include "test-sanity.scm")
 (include "test-asn1.scm")
-(include "test-vectors.scm")
+;; (include "test-vectors.scm")
 
 #!read-macro=sagittarius/bv-string
 (import (srfi :64 testing)

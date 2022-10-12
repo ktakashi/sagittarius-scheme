@@ -464,7 +464,22 @@
 			 *ec-parameter:secp256k1*
 			 *ec-parameter:sect163r1*
 			 *ec-parameter:sect239k1*
-			 *ec-parameter:sect113r1*))
+			 *ec-parameter:sect113r1*
+			 *ec-parameter:brainpool-p160r1*
+			 *ec-parameter:brainpool-p160t1*
+			 *ec-parameter:brainpool-p192r1*
+			 *ec-parameter:brainpool-p192t1*
+			 *ec-parameter:brainpool-p224r1*
+			 *ec-parameter:brainpool-p224t1*
+			 *ec-parameter:brainpool-p256r1*
+			 *ec-parameter:brainpool-p256t1*
+			 *ec-parameter:brainpool-p320r1*
+			 *ec-parameter:brainpool-p320t1*
+			 *ec-parameter:brainpool-p384r1*
+			 *ec-parameter:brainpool-p384t1*
+			 *ec-parameter:brainpool-p512r1*
+			 *ec-parameter:brainpool-p512t1*
+			 ))
 
 (define (test-ec-parameters ec-parameter)
   (define kp (generate-key-pair *key:ecdsa* :ec-parameter ec-parameter))
