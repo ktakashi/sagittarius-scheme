@@ -34,6 +34,7 @@
 	    make-signer-state signer-state->signature
 	    make-verifier-state verifier-state-verify-message
 
+	    mgf-1
 	    pkcs1-emsa-pss-encode pkcs1-emsa-pss-verify
 	    pkcs1-emsa-v1.5-encode pkcs1-emsa-v1.5-verify
 	    )
@@ -166,7 +167,7 @@
 	    (loop (+ i 1) (and (zero? (bytevector-u8-ref bv i)) ok?)))))
     (define em-bits (- (bitwise-length modulus) 1))
     (define em-len (div (+ em-bits 7) 8))
-    
+
     ;; we do entire step here to prevent oracle attack
     (let* ((mask-length (- em-len digest-size 1))
 	   (masked-db (make-bytevector mask-length 0))
@@ -196,16 +197,17 @@
 		 check0
 		 check1)))))))
 
-(define ((pkcs1-emsa-v1.5-encode . ignore) digest modulus m)
+(define ((pkcs1-emsa-v1.5-encode . ignore) digest modulus m
+	 :optional (no-null? #f))
   (define oid (digest-descriptor-oid digest))
-  (define md (make-message-digest digest))
   (let* ((em-len (div (+ (bitwise-length modulus) 7) 8))
-	 (digest (der-sequence
-		  (der-sequence
-		   (oid-string->der-object-identifier oid)
-		   (make-der-null))
-		  (bytevector->der-octet-string m)))
-	 (T (asn1-encodable->bytevector digest))
+	 (asn1 (der-sequence
+		(make-der-sequence
+		 (filter values (list 
+				 (oid-string->der-object-identifier oid)
+				 (and (not no-null?) (make-der-null)))))
+		(bytevector->der-octet-string m)))
+	 (T (asn1-encodable->bytevector asn1))
 	 (t-len (bytevector-length T)))
     (when (< em-len (+ t-len 11))
       (error 'pkcs1-emsa-v1.5-encode
@@ -222,6 +224,8 @@
 (define (pkcs1-emsa-v1.5-verify . opts)
   (define encode (pkcs1-emsa-v1.5-encode))
   (lambda (digest modulus m S)
-    (let ((EM (encode digest modulus m)))
-      (safe-bytevector=? EM S))))
+    (or (let ((EM (encode digest modulus m)))
+	  (safe-bytevector=? EM S))
+	(let ((EM (encode digest modulus m #t)))
+	  (safe-bytevector=? EM S)))))
 )

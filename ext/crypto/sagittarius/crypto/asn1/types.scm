@@ -54,6 +54,7 @@
 	    
 	    der-integer? <der-integer>
 	    integer->der-integer der-integer->integer
+	    der-integer->uinteger
 	    bytevector->der-integer
 
 	    der-bit-string? <der-bit-string> der-bit-string-padding-bits
@@ -284,11 +285,13 @@
 (define-class <der-integer> (<asn1-simple-object>) ())
 (define (der-integer? o) (is-a? o <der-integer>))
 (define (integer->der-integer (value integer?))
-  (make <der-integer> :value value))
+  (make <der-integer> :value (sinteger->bytevector value)))
 (define (der-integer->integer (der-integer der-integer?))
-  (asn1-simple-object-value der-integer))
+  (bytevector->sinteger (asn1-simple-object-value der-integer)))
+(define (der-integer->uinteger (der-integer der-integer?))
+  (bytevector->uinteger (asn1-simple-object-value der-integer)))
 (define (bytevector->der-integer (bv bytevector?))
-  (make <der-integer> :value (bytevector->sinteger bv)))
+  (make <der-integer> :value bv))
 
 ;; Bit string
 (define-class <der-bit-string> (<asn1-string>)

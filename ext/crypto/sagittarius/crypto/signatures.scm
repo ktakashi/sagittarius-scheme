@@ -41,6 +41,7 @@
 	    make-signer-state signer-state->signature
 	    make-verifier-state verifier-state-verify-message
 
+	    mgf-1
 	    pkcs1-emsa-pss-encode pkcs1-emsa-pss-verify
 	    pkcs1-emsa-v1.5-encode pkcs1-emsa-v1.5-verify
 

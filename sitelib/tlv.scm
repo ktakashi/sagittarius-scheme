@@ -107,7 +107,11 @@
     ;; = tag 0 length 0 data empty
     (define (tlv-parser in :optional (in-indefinite? #f))
       (let1 b (get-u8 in)
-	(cond ((eof-object? b) #f)
+	(cond ((eof-object? b)
+	       (when in-indefinite?
+		 (assertion-violation 'tlv-parser
+				      "Indefinite without termination"))
+	       #f)
 	      ((and in-indefinite? (zero? b) (zero? (lookahead-u8 in)) 
 		    (get-u8 in))
 	       #f)
