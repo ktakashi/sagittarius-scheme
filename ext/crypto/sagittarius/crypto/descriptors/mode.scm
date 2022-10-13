@@ -129,37 +129,32 @@
 				 start encrypt decrypt done set-iv get-iv))))))
 (define (ecb-start cipher key parameter)
   (define rounds
-    (or (cipher-parameter-rounds parameter #f)
-	(block-cipher-descriptor-default-rounds cipher)))
+    (or (cipher-parameter-rounds parameter #f) 0))
   (tc:ecb-start (symmetric-cipher-descriptor-cipher cipher) key rounds))
 (define tc:ecb-set-iv! #f)
 (define tc:ecb-get-iv! #f)
 
 (define (cbc-start cipher key parameter)
   (define rounds
-    (or (cipher-parameter-rounds parameter #f)
-	(block-cipher-descriptor-default-rounds cipher)))
+    (or (cipher-parameter-rounds parameter #f) 0))
   (define iv (cipher-parameter-iv parameter))
   (tc:cbc-start (symmetric-cipher-descriptor-cipher cipher) iv key rounds))
 
 (define (cfb-start cipher key parameter)
   (define rounds
-    (or (cipher-parameter-rounds parameter #f)
-	(block-cipher-descriptor-default-rounds cipher)))
+    (or (cipher-parameter-rounds parameter #f) 0))
   (define iv (cipher-parameter-iv parameter))
   (tc:cfb-start (symmetric-cipher-descriptor-cipher cipher) iv key rounds))
 
 (define (ofb-start cipher key parameter)
   (define rounds
-    (or (cipher-parameter-rounds parameter #f)
-	(block-cipher-descriptor-default-rounds cipher)))
+    (or (cipher-parameter-rounds parameter #f) 0))
   (define iv (cipher-parameter-iv parameter))
   (tc:ofb-start (symmetric-cipher-descriptor-cipher cipher) iv key rounds))
 
 (define (ctr-start cipher key parameter)
   (define rounds
-    (or (cipher-parameter-rounds parameter #f)
-	(block-cipher-descriptor-default-rounds cipher)))
+    (or (cipher-parameter-rounds parameter #f) 0))
   (define iv (cipher-parameter-iv parameter))
   (define ctr-mode
     (cipher-parameter-counter-mode parameter tc:*ctr-mode:big-endian*))
@@ -168,8 +163,7 @@
 
 (define (lrw-start cipher key parameter)
   (define rounds
-    (or (cipher-parameter-rounds parameter #f)
-	(block-cipher-descriptor-default-rounds cipher)))
+    (or (cipher-parameter-rounds parameter #f) 0))
   (define iv (cipher-parameter-iv parameter))
   (define tweak (cipher-parameter-tweak parameter #f))
   (tc:lrw-start (symmetric-cipher-descriptor-cipher cipher)
@@ -177,8 +171,7 @@
 
 (define (f8-start cipher key parameter)
   (define rounds
-    (or (cipher-parameter-rounds parameter #f)
-	(block-cipher-descriptor-default-rounds cipher)))
+    (or (cipher-parameter-rounds parameter #f) 0))
   (define iv (cipher-parameter-iv parameter))
   (define salt (cipher-parameter-salt parameter #f))
   (tc:f8-start (symmetric-cipher-descriptor-cipher cipher) iv key salt rounds))

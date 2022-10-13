@@ -412,8 +412,9 @@
   (define msg (string->utf8 "keep my integrity"))
   (let ((signer (apply make-signer scheme (key-pair-private kp) param))
 	(verifier (apply make-verifier scheme (key-pair-public kp) param)))
-    (test-assert scheme (verifier-verify-signature verifier msg
-			   (signer-sign-message signer msg)))))
+    (let ((r (verifier-verify-signature verifier msg
+					(signer-sign-message signer msg))))
+    (test-assert (list scheme param) r))))
 (define parameter1
   (list :encoder pkcs1-emsa-pss-encode
 	:verifier pkcs1-emsa-pss-verify
