@@ -129,7 +129,7 @@
   (let ((tag (convert-tag b tag)))
     (cond ((not (zero? (bitwise-and b *asn1:application*)))
 	   (make <der-application-specific>
-	     :constructed? constructed?
+	     :constructed? (and constructed? #t)
 	     :tag tag
 	     ;; TODO Should we always make data bytevector?
 	     :octets (if constructed?

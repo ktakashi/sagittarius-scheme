@@ -110,12 +110,12 @@
 			      (begin (get-u8 in) (reverse! (cons o r)))
 			      (loop (tlv-parser-rec b in) (cons o r)))))
 		       (else (loop (tlv-parser in) (cons o r))))))
-	      (o (loop (tlv-parser in) (cons o r)))
-	      (else
+	      ((eof-object? o)
 	       (when in-indefinite?
 		 (assertion-violation 'tlv-parser
 				      "Indefinite without termination"))
-	       (reverse! r)))))
+	       (reverse! r))
+	      (else (loop (tlv-parser in) (cons o r))))))
 
     (define (handle-indefinite b tag in)
       (let ((v (parse-tlv-object-list in #t)))
@@ -123,7 +123,7 @@
 
     (define (tlv-parser-rec b in)
       (if (eof-object? b)
-	  #f
+	  b
 	  (let-values (((tag constructed?) (tag-reader in b))
 		       ((len) (length-reader in)))
 	    (cond (len

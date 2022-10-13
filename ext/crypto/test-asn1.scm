@@ -3,6 +3,7 @@
 	(clos user)
 	(srfi :64)
 	(srfi :117)
+	(util bytevector)
 	(sagittarius crypto asn1))
 
 (test-begin "ASN1 read/write")
@@ -12,8 +13,9 @@
     (test-equal bv written)
     (let ((read (bytevector->asn1-object bv)))
       (test-assert (asn1-object? read))
-      (test-equal (format "bytevector->asn1-object: ~a"
-			   (class-of obj))
+      (test-equal (format "bytevector->asn1-object: ~a ~a"
+			  (bytevector->hex-string bv)
+			  (class-of obj))
 		  obj read))))
 
 (test-asn1-read/write #vu8(1 1 #xFF) (boolean->der-boolean #t))
