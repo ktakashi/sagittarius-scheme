@@ -178,6 +178,7 @@
 	    der-unknown-tag-data
 
 	    ;; BER...
+	    ber-object->der-object
 	    ber-integer? <ber-integer>
 	    integer->ber-integer ber-integer->integer
 	    ber-integer->uinteger
@@ -203,6 +204,7 @@
 	    make-ber-set
 	    ber-set)
     (import (rnrs)
+	    (clos core)
 	    (clos user)
 	    (sagittarius)
 	    (sagittarius mop immutable)
@@ -285,6 +287,17 @@
 (define list-of-der-encodable? (list-of asn1-encodable?))
 
 ;;;; BER
+(define (ber-object->der-object o class)
+  (define (slots->init-arguments o)
+    (append-map
+     (lambda (slot)
+       (let ((init-key (slot-definition-option slot :init-keyword)))
+	 (or (and init-key
+		  (list init-key (slot-ref o (slot-definition-name slot))))
+	     '())))
+     (class-slots (class-of o))))
+  (apply make class (slots->init-arguments o)))
+
 ;; it's annoying to implement all the types both BER and DER,
 ;; so here we only define BER types we need, more precisely, to pass
 ;; the testvectors tests
@@ -336,16 +349,17 @@
 
 (define-class <ber-sequence> (<asn1-collection>) ())
 (define (ber-sequence? o) (is-a? o <ber-sequence>))
-(define (make-ber-sequence (list list-of-der-encodable?))
-  (make <ber-sequence> :elements list))
+(define (make-ber-sequence (elements list-of-der-encodable?))
+  (make <ber-sequence> :elements (make-list-queue elements)))
 (define (ber-sequence . e*)  (make-ber-sequence e*))
 
 ;;; Set
 (define-class <ber-set> (<asn1-collection>) ())
 (define (ber-set? o) (is-a? o <ber-set>))
-(define (make-ber-set (list list-of-der-encodable?)
+(define (make-ber-set (elements list-of-der-encodable?)
 		      :optional (=? default-set-equal?))
-  (make <ber-set> :comparator =? :elements (delete-duplicates list)))
+  (make <ber-set> :comparator =?
+	:elements (make-list-queue (delete-duplicates elements))))
 (define (ber-set . e*) (make-ber-set default-set-equal? e*))
 
 ;;; Integer

@@ -230,10 +230,19 @@
 		     (der-unknown-tag-data o)
 		     port))
 
+;;; BER
+;; Don't fuss about them...
+(define-method write-asn1-encodable ((o <ber-integer>) port type)
+  (write-asn1-encodable (ber-object->der-object o <der-integer>) port type))
+(define-method write-asn1-encodable ((o <ber-application-specific>) port type)
+  (write-asn1-encodable (ber-object->der-object o <der-application-specific>)
+			port type))
 
 (define-method write-asn1-encodable ((o <ber-octet-string>) port type)
   (case type
-    ((der) (call-next-method)) ;; der
+    ((der)
+     (write-asn1-encodable (ber-object->der-object o <der-octet-string>)
+			   port type))
     ((ber)
      (put-u8 port (bitwise-ior *asn1:constructed* *asn1:octet-string*))
      (put-u8 port #x80)
@@ -245,7 +254,9 @@
 
 (define-method write-asn1-encodable ((o <ber-tagged-object>) port type)
   (case type
-    ((der) (call-next-method))
+    ((der)
+     (write-asn1-encodable (ber-object->der-object o <der-tagged-object>)
+			   port type))
     ((ber)
      (write-der-tag (bitwise-ior *asn1:constructed* *asn1:tagged*)
 		    (der-tagged-object-tag-no o) port)
@@ -278,12 +289,14 @@
   (put-u8 port #x00))
 (define-method write-asn1-encodable ((o <ber-sequence>) port type)
   (case type
-    ((der) (call-next-method))
+    ((der)
+     (write-asn1-encodable (ber-object->der-object o <der-sequence>) port type))
     ((ber) (write-ber-collection *asn1:sequence* o port type))
     (else (assertion-violation 'write-asn1-encodable "Unknown type" type))))
 (define-method write-asn1-encodable ((o <ber-set>) port type)
   (case type
-    ((der) (call-next-method))
+    ((der)
+     (write-asn1-encodable (ber-object->der-object o <der-set>) port type))
     ((ber) (write-ber-collection *asn1:set* o port type))
     (else (assertion-violation 'write-asn1-encodable "Unknown type" type))))
 
