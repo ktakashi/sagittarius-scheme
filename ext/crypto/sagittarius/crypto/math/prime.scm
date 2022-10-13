@@ -141,38 +141,45 @@
 	    ((zero? (mod q (car p))) #t)
 	    (else
 	     (loop (cdr p))))))
+  (define (lowest-set-bit v)
+    (define len (bitwise-length v))
+    (do ((i 0 (+ i 1)))
+	((or (= i len) (bitwise-bit-set? v i))
+	 (if (bitwise-bit-set? v i)
+	     i
+	     -1))))
+  (define (get-random q qlen buf)
+    (let loop ()
+      (random-generator-read-random-bytes! rand buf)
+      (let ((v (bytevector->uinteger buf)))
+	(or (and (> v 1) (< v (- q 1)) v)
+	    (loop)))))
   (let ((q (abs q)))
-    (cond ((even? q) #f) ;; obvious
+    (cond ((= q 2)) ;; missing...
+	  ((even? q) #f) ;; obvious
 	  ((= q 1) #f)   ;; 1 is not prime
 	  ((memv q *small-primes*) #t)
 	  ((check-small-prime q) #f) ;; multiple of small-primes
 	  (else
 	   ;; Miller Rabin test
+	   ;; From FIPS-186-4 Appendix C.3 Probaistic Primality Tests
 	   (let* ((t (- q 1))
-		  (d (if (zero? (bitwise-and t 1))
-			 (do ((d (bitwise-arithmetic-shift-right t 1)
-				 (bitwise-arithmetic-shift-right d 1)))
-			     ((not (zero? (bitwise-and d 1))) d))
-			 t)))
+		  (a (lowest-set-bit t))
+		  (m (bitwise-arithmetic-shift-right t a))
+		  (qlen (bitwise-length q))
+		  (buf (make-bytevector (ceiling (/ qlen 8)))))
 	     (let loop ((i 0))
-	       (if (= i k)
-		   #t
-		   (let ((a (+ (random-generator-random-integer
-				rand (- q 2)) 1)))
-		     (define (find-ty q t y)
-		       ;; check 0, ..., q - 1
-		       (let loop2 ((t t) (y y))
-			 (if (and (not (= t (- q 1)))
-				  (not (= y 1))
-				  (not (= y (- q 1))))
-			     (loop2 (bitwise-arithmetic-shift-left t 1)
-				    (mod-expt y 2 q))
-			     (values t y))))
-		     (let-values (((t y) (find-ty q d (mod-expt a t q))))
-		       (if (and (not (= y (- q 1)))
-				(zero? (bitwise-and t 1)))
-			   #f
-			   (loop (+ i 1))))))))))))
+	       (or (= i k)
+		   (let* ((b (get-random q qlen buf))
+			  (z (mod-expt b m q)))
+		     (if (or (= z 1) (= z t))
+			 (loop (+ i 1))
+			 (let lp2 ((j 0) (z (mod-expt z 2 q)))
+			   (cond ((= j (- a 1)) #f)
+				 ((= z t) (loop (+ i 1)))
+				 ((= z 1) #f)
+				 (else (lp2 (+ j 1)
+					    (mod-expt z 2 q))))))))))))))
 
 ;; Miller Rabin primality test
 (define (probable-prime? q

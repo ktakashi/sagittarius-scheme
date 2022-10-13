@@ -15,6 +15,10 @@
   (file-prefix? '("dsa" "ecdsa"
 		  "rsa_pss" "rsa_sig"
 		  "ed448" "eddsa")))
+(define prime-vector? (file-prefix? '("primality_test")))
+
+
+;;; Signature
 (define algorithm-pointer (json-pointer "/algorithm"))
 (define test-groups-pointer (json-pointer "/testGroups"))
 
@@ -25,7 +29,7 @@
 (define mgf-sha-pointer (json-pointer "/mgfSha"))
 (define slen-pointer (json-pointer "/sLen"))
 (define type-pointer (json-pointer "/type"))
-(define (->signature-test-vector json source)
+(define (->signature-test-runner source algorithm json)
   (define (test->vector test)
     (list->vector
      (map (lambda (e)
@@ -45,26 +49,44 @@
 	:mgf-digest ,mgf-sha
 	:salt-length ,slen)))
   (define (p1363? type) (string-contains type "P1363"))
+
+  (let ((sha (sha-pointer json))
+	(key-der (key-der-pointer json))
+	(tests (tests-pointer json))
+	(type (type-pointer json)))
+    `(test-signature/testvector ,source
+      :algorithm ,algorithm
+      ,@(if (json-pointer-not-found? sha)
+	    '()
+	    `(:digest ,sha))
+      :public-key ,(hex-string->bytevector key-der)
+      ,@(if (string=? algorithm "RSASSA-PSS")
+	    (mgf json)
+	    '())
+      :der-encode ,(not (p1363? type))
+      :tests  ',(map test->vector tests))))
+
+(define (->prime-test-runner source algorithm json)
+  (define (test->vector test)
+    (list->vector
+     (map (lambda (e)
+	    (let ((k (car e)))
+	      (cond ((string=? k "value") (string->number (cdr e) 16))
+		    ((string=? k "result")
+		     (or (string=? "valid" (cdr e))
+			 (string=? "acceptable" (cdr e))))
+		    (else (cdr e)))))
+	  (vector->list test))))
+  (let ((tests (tests-pointer json)))
+    `(test-prime ,source ',(map test->vector tests))))
+
+(define ((test-vector->test-runner ->test-runner) json source)
   (define (filename source)
     (let-values (((dir f e) (decompose-path source)))
       f))
+  (define source-name (filename source))
   (define ((make-test-runner source algorithm) json)
-    (let ((sha (sha-pointer json))
-	  (key-der (key-der-pointer json))
-	  (tests (tests-pointer json))
-	  (type (type-pointer json)))
-      
-      `(test-signature/testvector ,(filename source)
-	:algorithm ,algorithm
-	,@(if (json-pointer-not-found? sha)
-	      '()
-	      `(:digest ,sha))
-	:public-key ,(hex-string->bytevector key-der)
-	,@(if (string=? algorithm "RSASSA-PSS")
-	      (mgf json)
-	      '())
-	:der-encode ,(not (p1363? type))
-	:tests  ',(map test->vector tests))))
+    (->test-runner source-name algorithm json))
   (print "Making testvector from " source)
   (let ((algorithm (algorithm-pointer json))
 	(test-groups (test-groups-pointer json)))
@@ -95,8 +117,12 @@
   (let ((files (find-files in-dir :recursive #f :pattern "\\.json$")))
     (write-includer outdir "signature"
      (map (write-in outdir (build-path "testvectors" "signature"))
-	  (map (file->json ->signature-test-vector)
-	       (filter signature-vector? files))))))
+	  (map (file->json (test-vector->test-runner ->signature-test-runner))
+	       (filter signature-vector? files))))
+    (write-includer outdir "prime"
+     (map (write-in outdir (build-path "testvectors" "prime"))
+	  (map (file->json (test-vector->test-runner ->prime-test-runner))
+	       (filter prime-vector? files))))))
 
 (define (usage me)
   (print me "[OPTIONS] dir ...")
