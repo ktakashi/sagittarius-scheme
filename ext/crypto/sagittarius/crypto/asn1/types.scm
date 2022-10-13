@@ -177,12 +177,23 @@
 	    der-unknown-tag-number
 	    der-unknown-tag-data
 
+	    ;; BER...
+	    ber-integer? <ber-integer>
+	    integer->ber-integer ber-integer->integer
+	    ber-integer->uinteger
+	    bytevector->ber-integer
+	    
 	    ber-octet-string? <ber-octet-string>
 	    ber-octet-string-octs
 	    bytevector->ber-octed-string
 	    list->ber-octet-string
 
 	    ber-tagged-object? <ber-tagged-object>
+	    ber-tagged-object-tag-no ber-tagged-object-explicit?
+	    ber-tagged-object-obj
+	    ber-application-specific? <ber-application-specific>
+	    ber-application-specific-constructed?
+	    ber-application-specific-tag ber-application-specific-octets
 
 	    <ber-sequence> ber-sequence?
 	    make-ber-sequence
@@ -198,6 +209,7 @@
 	    (srfi :1 lists)
 	    (srfi :13 strings)
 	    (srfi :19 time)
+	    (srfi :39 parameters)
 	    (srfi :117 list-queues))
 
 ;; For other objects, like X.509 certificate
@@ -268,6 +280,87 @@
 (define (deconstruct-asn1-collection (collection asn1-collection?))
   (apply values (list-queue-list (asn1-collection-elements collection))))
 
+;;; Collections
+(define ((list-of pred) list) (for-all pred list))
+(define list-of-der-encodable? (list-of asn1-encodable?))
+
+;;;; BER
+;; it's annoying to implement all the types both BER and DER,
+;; so here we only define BER types we need, more precisely, to pass
+;; the testvectors tests
+;;; octet string
+(define *ber-octet-string-max-length* (make-parameter 1000))
+(define-class <ber-octet-string> (<asn1-simple-object>)
+  ;; Cache, more or less
+  ((octs :init-keyword :octs :reader ber-octet-string-octs)))
+(define (ber-octet-string? o)
+  (is-a? o <ber-octet-string>))
+(define (bytevector->ber-octed-string (bv bytevector?))
+  (define (split bv len max-length)
+    (let loop ((i 0) (r '()))
+      (if (>= i len)
+	  (reverse! r)
+	  (let* ((len (min max-length (- len i)))
+		 (nstr (make-bytevector len)))
+	    (bytevector-copy! bv i nstr 0 len)
+	    (loop (+ i max-length) (cons nstr r))))))
+	 
+  (define len (bytevector-length bv))
+  (let ((bv (bytevector-copy bv)))
+    (make <ber-octet-string> :value bv
+	  :octs (map bytevector->der-octet-string
+		     (let ((max-length (*ber-octet-string-max-length*)))
+		       (if (< len max-length)
+			   (list bv)
+			   (split bv len max-length)))))))
+(define (list->ber-octet-string (list (list-of bytevector?)))
+  (make <ber-octet-string> :value (bytevector-concatenate list)
+	:octs (map bytevector->der-octet-string list)))
+
+;;; Tagged object
+(define-class <ber-tagged-object> (<asn1-object>)
+  ((tag-no :init-keyword :tag-no :reader ber-tagged-object-tag-no)
+   (explicit? :init-keyword :explicit? :reader ber-tagged-object-explicit?)
+   (obj :init-keyword :obj :reader ber-tagged-object-obj)))
+(define (ber-tagged-object? o) (is-a? o <ber-tagged-object>))
+
+;;; Application specific
+(define-class <ber-application-specific> (<asn1-object>)
+  ((constructed? :init-keyword :constructed?
+		 :reader ber-application-specific-constructed?)
+   (tag :init-keyword :tag :reader ber-application-specific-tag)
+   (octets :init-keyword :octets :reader ber-application-specific-octets)))
+(define (ber-application-specific? o) (is-a? o <ber-application-specific>))
+
+;;; Sequence
+
+(define-class <ber-sequence> (<asn1-collection>) ())
+(define (ber-sequence? o) (is-a? o <ber-sequence>))
+(define (make-ber-sequence (list list-of-der-encodable?))
+  (make <ber-sequence> :elements list))
+(define (ber-sequence . e*)  (make-ber-sequence e*))
+
+;;; Set
+(define-class <ber-set> (<asn1-collection>) ())
+(define (ber-set? o) (is-a? o <ber-set>))
+(define (make-ber-set (list list-of-der-encodable?)
+		      :optional (=? default-set-equal?))
+  (make <ber-set> :comparator =? :elements (delete-duplicates list)))
+(define (ber-set . e*) (make-ber-set default-set-equal? e*))
+
+;;; Integer
+(define-class <ber-integer> (<asn1-simple-object>) ())
+(define (ber-integer? o) (is-a? o <ber-integer>))
+(define (integer->ber-integer (value integer?))
+  (make <ber-integer> :value (sinteger->bytevector value)))
+(define (ber-integer->integer (ber-integer ber-integer?))
+  (bytevector->sinteger (asn1-simple-object-value ber-integer)))
+(define (ber-integer->uinteger (ber-integer ber-integer?))
+  (bytevector->uinteger (asn1-simple-object-value ber-integer)))
+(define (bytevector->ber-integer (bv bytevector?))
+  (make <ber-integer> :value bv))
+
+
 ;;; Boolean
 (define-class <der-boolean> (<asn1-simple-object>) ())
 (define (der-boolean? o) (is-a? o <der-boolean>))
@@ -282,7 +375,7 @@
   (asn1-simple-object-value der-boolean))
   
 ;;; Integer
-(define-class <der-integer> (<asn1-simple-object>) ())
+(define-class <der-integer> (<ber-integer>) ())
 (define (der-integer? o) (is-a? o <der-integer>))
 (define (integer->der-integer (value integer?))
   (make <der-integer> :value (sinteger->bytevector value)))
@@ -308,10 +401,11 @@
        (call-next-method)))
 
 ;; Octet string
-(define-class <der-octet-string> (<asn1-simple-object>) ())
+(define-class <der-octet-string> (<ber-octet-string>) ())
 (define (der-octet-string? o) (is-a? o <der-octet-string>))
 (define (bytevector->der-octet-string (bv bytevector?))
-  (make <der-octet-string> :value (bytevector-copy bv)))
+  (let ((bv (bytevector-copy bv)))
+    (make <der-octet-string> :value bv :octs (list bv))))
 (define (der-octet-string->bytevector (der-octet-string der-octet-string?))
   (asn1-simple-object-value der-octet-string))
 
@@ -378,12 +472,8 @@
 (define (der-enumerated->integer (der-enumerated der-enumerated?))
   (asn1-simple-object-value der-enumerated))
 
-;;; Collections
-(define ((list-of pred) list) (for-all pred list))
-(define list-of-der-encodable? (list-of asn1-encodable?))
-
 ;; Sequence
-(define-class <der-sequence> (<asn1-collection>) ())
+(define-class <der-sequence> (<ber-sequence>) ())
 (define (der-sequence? o) (is-a? o <der-sequence>))
 (define (make-der-sequence (elements list-of-der-encodable?))
   (make <der-sequence> :elements (make-list-queue elements)))
@@ -397,7 +487,7 @@
 
 ;; Set
 (define default-set-equal? equal?)
-(define-class <der-set> (<asn1-collection>)
+(define-class <der-set> (<ber-set>)
   ((=? :init-keyword :comparator :reader der-set=?
        ;; FIXME
        :init-value default-set-equal?)))
@@ -605,12 +695,14 @@
   (make-bytevector->asn1-string string->der-utf8-string))
 
 ;; Application specific
-(define-class <der-application-specific> (<asn1-object>)
-  ((constructed? :init-keyword :constructed?
-		 :reader der-application-specific-constructed?)
-   (tag :init-keyword :tag :reader der-application-specific-tag)
-   (octets :init-keyword :octets :reader der-application-specific-octets)))
+(define-class <der-application-specific> (<ber-application-specific>) ())
 (define (der-application-specific? o) (is-a? o <der-application-specific>))
+(define (der-application-specific-constructed? (o der-application-specific?))
+  (ber-application-specific-constructed? o))
+(define (der-application-specific-tag (o der-application-specific?))
+  (ber-application-specific-tag o))
+(define (der-application-specific-octets (o der-application-specific?))
+  (ber-application-specific-octets o))
 (define-method object-equal? ((a <der-application-specific>)
 			      (b <der-application-specific>))
   (and (eqv? (der-application-specific-constructed? a)
@@ -621,11 +713,14 @@
 	       (der-application-specific-octets b))))
 
 ;; Tagged object
-(define-class <der-tagged-object> (<asn1-object>)
-  ((tag-no :init-keyword :tag-no :reader der-tagged-object-tag-no)
-   (explicit? :init-keyword :explicit? :reader der-tagged-object-explicit?)
-   (obj :init-keyword :obj :reader der-tagged-object-obj)))
+(define-class <der-tagged-object> (<ber-tagged-object>) ())
 (define (der-tagged-object? o) (is-a? o <der-tagged-object>))
+(define (der-tagged-object-tag-no (o der-tagged-object?))
+  (ber-tagged-object-tag-no o))
+(define (der-tagged-object-explicit? (o der-tagged-object?))
+  (ber-tagged-object-explicit? o))
+(define (der-tagged-object-obj (o der-tagged-object?))
+  (ber-tagged-object-obj o))
 (define-method object-equal? ((a <der-tagged-object>) (b <der-tagged-object>))
   (and (eqv? (der-tagged-object-tag-no a) (der-tagged-object-tag-no b))
        (eqv? (der-tagged-object-explicit? a) (der-tagged-object-explicit? b))
@@ -637,52 +732,4 @@
    (number :init-keyword :number :reader der-unknown-tag-number)
    (data :init-keyword :data :reader der-unknown-tag-data)))
 (define (der-unknown-tag? o) (is-a? o <der-unknown-tag>))
-
-;;; BER
-;; Constructed octet string
-(define *ber-octet-string-max-length* 1000)
-(define-class <ber-octet-string> (<der-octet-string>)
-  ;; Cache, more or less
-  ((octs :init-keyword :octs :reader ber-octet-string-octs)))
-(define (ber-octet-string? o)
-  (is-a? o <ber-octet-string>))
-(define (bytevector->ber-octed-string (bv bytevector?))
-  (define (split bv len)
-    (let loop ((i 0) (r '()))
-      (if (>= i len)
-	  (reverse! r)
-	  (let* ((len (min *ber-octet-string-max-length* (- len i)))
-		 (nstr (make-bytevector len)))
-	    (bytevector-copy! bv i nstr 0 len)
-	    (loop (+ i *ber-octet-string-max-length*) (cons nstr r))))))
-	 
-  (define len (bytevector-length bv))
-  (let ((bv (bytevector-copy bv)))
-    (make <ber-octet-string> :value bv
-	  :octs (map bytevector->der-octet-string
-		     (if (< len *ber-octet-string-max-length*)
-			 (list bv)
-			 (split bv len))))))
-(define (list->ber-octet-string (list (list-of bytevector?)))
-  (make <ber-octet-string> :value (bytevector-concatenate list)
-	:octs (map bytevector->der-octet-string list)))
-
-;; Tagged object
-(define-class <ber-tagged-object> (<der-tagged-object>) ())
-(define (ber-tagged-object? o) (is-a? o <ber-tagged-object>))
-
-;; Sequence
-(define-class <ber-sequence> (<der-sequence>) ())
-(define (ber-sequence? o) (is-a? o <ber-sequence>))
-(define (make-ber-sequence (list list-of-der-encodable?))
-  (make <ber-sequence> :elements list))
-(define (ber-sequence . e*)  (make-ber-sequence e*))
-
-;; Set
-(define-class <ber-set> (<der-set>) ())
-(define (ber-set? o) (is-a? o <ber-set>))
-(define (make-ber-set =? (list list-of-der-encodable?))
-  (make <ber-set> :comparator =? :elements (delete-duplicates list)))
-(define (ber-set . e*) (make-ber-set default-set-equal? e*))
-
 )

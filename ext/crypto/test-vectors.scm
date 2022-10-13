@@ -4,18 +4,6 @@
 	(sagittarius crypto digests)
 	(srfi :64))
 
-;; Not tagged but basically testing BER signature
-;; which is not feasible to pass at this moment
-(define ber-tests
-  '("long form encoding of length of sequence"
-    "length of sequence contains leading 0"
-    "indefinite length"
-    "long form encoding of length of integer"
-    "long form encoding of length of integer"
-    "length of integer contains leading 0"
-    "length of integer contains leading 0"
-    "prepending 0's to integer"
-    "prepending 0's to integer"))
 ;; In our implementation, size of the signature matters
 ;; So, if the signature size is not properly constructed,
 ;; it's an error. So below test(s) will fail even though
@@ -88,10 +76,7 @@
 	  (sig (vector-ref test 3))
 	  (result (vector-ref test 4))
 	  (tags (vector-ref test 5)))
-      ;; we ignore BER case, it's not reallly feasible in this
-      ;; library setup
-      (unless (or (member "BER" tags) (member comment ber-tests)
-		  (member comment signature-size-test))
+      (unless (or (member comment signature-size-test))
 	(test-equal (format "~a ~d (~a): ~a" source id result comment)
 		    result (safe-verify verifier msg sig)))))
   (let* ((pkey (import-key public-key))

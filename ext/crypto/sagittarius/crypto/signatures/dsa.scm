@@ -86,6 +86,12 @@
       (bytevector-append (integer->bytevector r) (integer->bytevector s))))
 
 (define (deconstruct-dsa-signature state S size)
+  (define (check-leading-zero bv)
+    (and (>= (bytevector-length bv) 2)
+	 (zero? (bytevector-u8-ref bv 0))
+	 (zero? (bytevector-u8-ref bv 1))
+	 (error 'deconstruct-dsa-signature
+		"Signature value contains leading 0")))
   (if (dsa-state-der-encode? state)
       (let* ((in (open-bytevector-input-port S))
 	     (seq (read-asn1-object in)))
@@ -94,6 +100,8 @@
 	(unless (der-sequence? seq)
 	  (error 'deconstruct-dsa-signature "Signature is not a DER sequence"))
 	(let-values (((r s) (deconstruct-asn1-collection seq)))
+	  (check-leading-zero (asn1-simple-object-value r))
+	  (check-leading-zero (asn1-simple-object-value s))
 	  (values (der-integer->uinteger r) (der-integer->uinteger s))))
       (let-values (((r s) (bytevector-split-at* S size)))
 	(values (bytevector->uinteger r) (bytevector->uinteger s)))))

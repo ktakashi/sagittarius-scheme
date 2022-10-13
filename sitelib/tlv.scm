@@ -119,23 +119,36 @@
 
     (define (handle-indefinite b tag in)
       (let ((v (parse-tlv-object-list in #t)))
+	;; Is indefinite length value always constructed?
 	(object-builder b tag v 'indefinite)))
 
     (define (tlv-parser-rec b in)
+      ;; This is ASN.1 specific, not sure if we put it here
+      ;; but who's using custom length reader et.al?
+      (define (can-be-shorter? size data)
+	(define data-len (bytevector-length data))
+	(and (pair? size)
+	     (let ((len (cond ((< data-len 127) 1)
+			      (else (+ (get-emv-length data-len) 1)))))
+	       (not (= (car size) len)))))
       (if (eof-object? b)
 	  b
 	  (let-values (((tag constructed?) (tag-reader in b))
 		       ((len) (length-reader in)))
 	    (cond (len
-		   (let1 data (get-bytevector-n in len)
-		     (when (< (bytevector-length data) len)
+		   (let* ((l (if (pair? len) (cdr len) len))
+			  (data (get-bytevector-n in l)))
+		     (when (< (bytevector-length data) l)
 		       (assertion-violation 'tlv-parser "corrupted data"))
 		     (if constructed?
 			 (object-builder b tag 
 			   (parse-tlv-object-list 
 			    (open-bytevector-input-port data) #f)
-			   'definite)
-			 (object-builder b tag data #f))))
+			   (if (can-be-shorter? len data)
+			       'long-definite
+			       'definite))
+			 (object-builder b tag data
+					 (can-be-shorter? len data)))))
 		  ((not constructed?)
 		   (assertion-violation 'tlv-parser
 					"indefinite length found" tag))
@@ -200,7 +213,7 @@
 		       (when (negative? rlen)
 			 (assertion-violation 'read-length
 			  "corrupted stream - negative length found"))
-		       rlen)
+		       (cons (+ size 1) rlen))
 		     (loop (+ i 1) (+ (bitwise-arithmetic-shift rlen 8)
 				      (get-u8 in))))))))))
   
@@ -303,19 +316,20 @@
 	  (put-u8 out len)))
     (apply generic-tlv-writer tlv write-tag write-length opts))
 
+  (define (get-emv-length len)
+    (define ashr bitwise-arithmetic-shift-right)
+    (do ((r len (ashr r 8)) (i 0 (+ i 1)))
+	((zero? r) i)))
   (define (write-emv-tlv tlv . opts)
     (define (write-tag out tag) (put-bytevector out tag))
     (define (write-length out len)
       (define ashr bitwise-arithmetic-shift-right)
-      (define (get-length len)
-	(do ((r len (ashr r 8)) (i 0 (+ i 1)))
-	    ((zero? r) i)))
       (cond ((< len 0))
 	    ((<= len #x7F) (put-u8 out len))
 	    (else
 	     ;; NOTE: #xFFFF: length = 4
 	     ;; EMV tlv accepts maximum 4 bytes length but we don't check it
-	     (let1 length-bits (get-length len)
+	     (let1 length-bits (get-emv-length len)
 	       (put-u8 out (+ #x80 length-bits))
 	       (do ((i length-bits (- i 1)))
 		   ((= i 0))
@@ -324,7 +338,7 @@
 
   (define (read-tlv in :optional (parser (make-emv-tlv-parser)))
     (do ((tlv (parser in) (parser in)) (r '() (cons tlv r)))
-	((not tlv) (reverse! r))))
+	((or (not tlv) (eof-object? tlv)) (reverse! r))))
   
   ;; returns list of TLV objects
   ;; the given list must be alist of TLV

@@ -51,31 +51,32 @@
       (bytevector->der-bit-string data pad))))
 
 (define *constructors*
-  `((,*asn1:bit-string*	       . ,create-der-bit-string)
-    (,*asn1:bmp-string*	       . ,bytevector->der-bmp-string)
-    (,*asn1:boolean*   	       . ,bytevector->der-boolean)
-    (,*asn1:enumerated*        . ,bytevector->der-enumerated)
-    (,*asn1:generalized-time*  . ,bytevector->der-generalized-time)
-    (,*asn1:general-string*    . ,bytevector->der-general-string)
-    (,*asn1:ia5-string*        . ,bytevector->der-ia5-string)
-    (,*asn1:integer*           . ,bytevector->der-integer)
-    (,*asn1:null*              . ,(lambda (_) (make-der-null)))
-    (,*asn1:numeric-string*    . ,bytevector->der-numeric-string)
-    (,*asn1:object-identifier* . ,bytevector->der-object-identifier)
-    (,*asn1:octet-string*      . ,bytevector->der-octet-string)
-    (,*asn1:printable-string*  . ,bytevector->der-printable-string)
-    (,*asn1:graphic-string*    . ,bytevector->der-graphic-string)
-    (,*asn1:t61-string*        . ,bytevector->der-t61-string)
-    (,*asn1:universal-string*  . ,bytevector->der-universal-string)
-    (,*asn1:utc-time*          . ,bytevector->der-utc-time)
-    (,*asn1:utf8-string*       . ,bytevector->der-utf8-string)
-    (,*asn1:visible-string*    . ,bytevector->der-visible-string)
-    (,*asn1:videotex-string*   . ,bytevector->der-videotex-string)))
+  ;; (tag der ber)
+  `((,*asn1:bit-string*	       ,create-der-bit-string)
+    (,*asn1:bmp-string*	       ,bytevector->der-bmp-string)
+    (,*asn1:boolean*   	       ,bytevector->der-boolean)
+    (,*asn1:enumerated*        ,bytevector->der-enumerated)
+    (,*asn1:generalized-time*  ,bytevector->der-generalized-time)
+    (,*asn1:general-string*    ,bytevector->der-general-string)
+    (,*asn1:ia5-string*        ,bytevector->der-ia5-string)
+    (,*asn1:integer*           ,bytevector->der-integer . ,bytevector->ber-integer)
+    (,*asn1:null*              ,(lambda (_) (make-der-null)))
+    (,*asn1:numeric-string*    ,bytevector->der-numeric-string)
+    (,*asn1:object-identifier* ,bytevector->der-object-identifier)
+    (,*asn1:octet-string*      ,bytevector->der-octet-string)
+    (,*asn1:printable-string*  ,bytevector->der-printable-string)
+    (,*asn1:graphic-string*    ,bytevector->der-graphic-string)
+    (,*asn1:t61-string*        ,bytevector->der-t61-string)
+    (,*asn1:universal-string*  ,bytevector->der-universal-string)
+    (,*asn1:utc-time*          ,bytevector->der-utc-time)
+    (,*asn1:utf8-string*       ,bytevector->der-utf8-string)
+    (,*asn1:visible-string*    ,bytevector->der-visible-string)
+    (,*asn1:videotex-string*   ,bytevector->der-videotex-string)))
 
 (define (create-primitive-der-object tag-no bytes)
   (let ((ctr (cond ((assv tag-no *constructors*) => cdr) (else #f))))
     (if ctr
-	(ctr bytes)
+	((car ctr) bytes)
 	(make <der-unknown-tag> :constructed? #f :number tag-no :data bytes))))
 
 (define (make-der-external data)
@@ -105,12 +106,14 @@
 
 (define (read-tagged-object in constructed? tag)
   (cond (constructed?
-	 (case (length in)
-	   ((0) (make <der-tagged-object> :explicit? #t :tag-no tag :obj #f))
-	   ((1) (make <der-tagged-object> :explicit? #t :tag-no tag
-		      :obj (car in)))
-	   (else (make <der-tagged-object>
-		   :explicit? #f :tag-no tag :obj (make-der-sequence in)))))
+	 (let ((class (if (eq? constructed? 'indirect)
+			  <ber-tagged-object>
+			  <der-tagged-object>)))
+	   (case (length in)
+	     ((0) (make class :explicit? #t :tag-no tag :obj #f))
+	     ((1) (make class :explicit? #t :tag-no tag :obj (car in)))
+	     (else (make class :explicit? #f :tag-no tag
+			 :obj (make-der-sequence in))))))
 	((zero? (bytevector-length in))
 	 (make <der-tagged-object> :explicit? #f :tag-no tag
 	       :obj #f))
@@ -128,7 +131,9 @@
     (assertion-violation 'read-asn1-object "EOF found during reading data"))
   (let ((tag (convert-tag b tag)))
     (cond ((not (zero? (bitwise-and b *asn1:application*)))
-	   (make <der-application-specific>
+	   (make (if (eq? constructed? 'indefinite)
+		     <ber-application-specific>
+		     <der-application-specific>)
 	     :constructed? (and constructed? #t)
 	     :tag tag
 	     ;; TODO Should we always make data bytevector?
@@ -142,8 +147,14 @@
 	   (cond ((= tag *asn1:octet-string*)
 		  (list->ber-octet-string
 		   (map der-octet-string->bytevector data)))
-		 ((= tag *asn1:sequence*) (make-der-sequence data))
-		 ((= tag *asn1:set*) (make-der-set data))
+		 ((= tag *asn1:sequence*)
+		  (if (memq constructed? '(indefinite long-definite))
+		      (make-ber-sequence data)
+		      (make-der-sequence data)))
+		 ((= tag *asn1:set*)
+		  (if (memq constructed? '(indefinite long-definite))
+		      (make-ber-set data)
+		      (make-der-set data)))
 		 ((= tag *asn1:external*) (make-der-external data))
 		 (else (let ((ctr (cond ((assv tag *constructors*) => cdr)
 					(else #f)))
@@ -154,7 +165,9 @@
 			 ;; TODO should we check the length so we can put
 			 ;;      better error message?
 			 (if ctr
-			     (apply ctr value)
+			     (if (null? (cdr ctr))
+				 (apply (car ctr) value)
+				 (apply (cdr ctr) value))
 			     (make <der-unknown-tag>
 			       :constructed? #t :number tag
 			       :data (bytevector-concatenate value)))))))
