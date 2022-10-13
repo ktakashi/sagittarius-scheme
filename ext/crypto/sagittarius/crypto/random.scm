@@ -30,7 +30,10 @@
 
 #!nounbound
 (library (sagittarius crypto random)
-    (export random-generator? secure-random-generator?
+    (export random-generator?
+	    builtin-random-generator?
+	    secure-random-generator?
+	    custom-random-generator?
 	    random-generator-read-random-bytes
 	    random-generator-read-random-bytes!
 	    random-generator-randomize!
@@ -39,72 +42,97 @@
 
 	    pseudo-random-generator
 	    secure-random-generator
-	    (rename (random-generator <random-generator>))
+	    <random-generator>
+	    <builtin-random-generator>
+	    <custom-random-generator>
 	    <secure-random-generator>
+	    make-custom-random-generator
 	    
 	    *prng:yarrow* *prng:fortuna* *prng:rc4* *prng:sober-128*
 	    *prng:system* *prng:chacha20*
-	    prng-descriptor? prng-descriptor-name)
+	    prng-descriptor? prng-descriptor-name
+	    )
     (import (rnrs)
+	    (clos user)
 	    (sagittarius) ;; for bytevector->uinteger
+	    (sagittarius mop immutable)
 	    (sagittarius crypto random prng))
 
-(define-record-type random-generator
-  (fields prng))
+(define-class <random-generator> () ())
+(define (random-generator? o) (is-a? o <random-generator>))
+(define-class <custom-random-generator> (<random-generator>)
+  ((set-seed! :init-keyword :set-seed!
+	      :reader custom-random-generator-set-seed!)
+   (read-random! :init-keyword :read-random!
+		 :reader custom-random-generator-read-random!)))
+(define (custom-random-generator? o) (is-a? o <custom-random-generator>))
+(define-generic make-custom-random-generator)
 
-(define-record-type (<secure-random-generator> %make secure-random-generator?)
-  (parent random-generator))
+(define-class <builtin-random-generator> (<random-generator> <immutable>)
+  ((prng :init-keyword :prng :reader builtin-random-generator-prng)))
+(define (builtin-random-generator? o) (is-a? o <builtin-random-generator>))
+(define (make-builtin-random-generator prng)
+  (make <builtin-random-generator> :prng prng))
+(define-class <secure-random-generator> (<builtin-random-generator>) ())
+(define (secure-random-generator? o) (is-a? o <secure-random-generator>))
+(define (make-secure-random-generator prng)
+  (make <secure-random-generator> :prng prng))
 
 ;; System random instance, use this to feed entropy
-(define systam-prng (prng-start *prng:system*))
+(define system-prng (prng-start *prng:system*))
 
 (define default-entropy (string->utf8 "default entropy"))
-(define (pseudo-random-generator descriptor)
-  (unless (prng-descriptor? descriptor)
-    (assertion-violation 'pseudo-random-generator
-			 "PRNG descriptor is required" descriptor))
-  (let ((prng (prng-start descriptor)))
-    ;; some PRNG requires initial entropy, i.e RC4 so add dummy here
-    (prng-add-entropy! prng default-entropy)
-    (make-random-generator (prng-ready! prng))))
+(define (pseudo-random-generator descriptor . opts)
+  (if (prng-descriptor? descriptor)
+      (let ((prng (prng-start descriptor)))
+	;; some PRNG requires initial entropy, i.e RC4 so add dummy here
+	(prng-add-entropy! prng default-entropy)
+	(make-builtin-random-generator (prng-ready! prng)))
+      (apply make-custom-random-generator descriptor opts)))
 
-(define (secure-random-generator descriptor :optional (seed-size 16))
-  (unless (prng-descriptor? descriptor)
-    (assertion-violation 'secure-random-generator
-			 "PRNG descriptor is required" descriptor))
-  (let ((prng (prng-start descriptor))
-	(entropy (make-bytevector 16)))
-    (prng-read! systam-prng entropy)
-    (prng-add-entropy! prng entropy)
-    (%make (prng-ready! prng))))
+(define (secure-random-generator descriptor :optional (seed-size 16) :rest opts)
+  (if (prng-descriptor? descriptor)
+      (let ((prng (prng-start descriptor))
+	    (entropy (make-bytevector seed-size)))
+	(prng-read! system-prng entropy)
+	(prng-add-entropy! prng entropy)
+	(make-secure-random-generator (prng-ready! prng)))
+      (let ((prng (apply make-custom-random-generator descriptor opts))
+	    (entropy (make-bytevector seed-size)))
+	(prng-read! system-prng entropy)
+	;; I'm not sure if this will be secure enough, but better than nothing
+	(random-generator-randomize! prng entropy))))
 
-(define (random-generator-read-random-bytes random-generator size)
-  (unless (random-generator? random-generator)
-    (assertion-violation 'random-generator-read-random-bytes
-			 "Random generator is required" random-generator))
+(define (random-generator-read-random-bytes (random-generator random-generator?)
+					    size)
   (let ((bv (make-bytevector size)))
     (random-generator-read-random-bytes! random-generator bv 0 size)
     ;; should we check the read amount?
     bv))
 
-(define (random-generator-read-random-bytes! random-generator bv
-	 :optional (start 0) (length (bytevector-length bv)))
-  (unless (random-generator? random-generator)
-    (assertion-violation 'random-generator-read-random-bytes!
-			 "Random generator is required" random-generator))
-  (prng-read! (random-generator-prng random-generator) bv start length))
+(define (random-generator-read-random-bytes!
+	 (random-generator random-generator?)
+	 (bv bytevector?)
+	 :optional (start 0) (length (- (bytevector-length bv) start)))
+  (if (builtin-random-generator? random-generator)
+      (prng-read! (builtin-random-generator-prng random-generator)
+		  bv start length)
+      ((custom-random-generator-read-random! random-generator)
+       random-generator bv 0 length))
+  bv)
 
-(define (random-generator-randomize! random-generator seed . opts)
-  (unless (random-generator? random-generator)
-    (assertion-violation 'random-generator-randomize!
-			 "Random generator is required" random-generator))
+(define (random-generator-randomize! (random-generator random-generator?)
+				     (seed bytevector?) . opts)
   (unless (secure-random-generator? random-generator)
-    (apply prng-add-entropy! (random-generator-prng random-generator)
-	   seed opts))
+    (if (builtin-random-generator? random-generator)
+	(apply prng-add-entropy!
+	       (builtin-random-generator-prng random-generator) seed opts)
+	(apply (custom-random-generator-set-seed! random-generator)
+	       random-generator seed opts)))
   random-generator)
 
 (define (random-generator-random-integer random-generator size)
-  (define rsize (ceiling (/ (bitwise-length size) 8)))
+  (define rsize (ceiling (/ (+ (bitwise-length size) 7) 8)))
   (let* ((bv (random-generator-read-random-bytes random-generator rsize))
 	 (i (bytevector->uinteger bv)))
     (if (>= i size)

@@ -11,7 +11,6 @@
 (define prng (pseudo-random MT :seed seed))
 
 (test-begin "MT random")
-
 (test-equal "time 0"  7266447313870364031 (bytevector->integer (read-random-bytes prng 8)))
 (test-equal "time 1"  4946485549665804864 (bytevector->integer (read-random-bytes prng 8)))
 (test-equal "time 2" 16945909448695747420 (bytevector->integer (read-random-bytes prng 8)))
