@@ -95,44 +95,55 @@
 
   (define (make-generic-tlv-parser tag-reader length-reader object-builder)
     (define (parse-tlv-object-list in in-indefinite?)
-      (let loop ((o (tlv-parser in in-indefinite?)) (r '()))
-	(if o
-	    (loop (tlv-parser in in-indefinite?) (cons o r))
-	    (reverse! r))))
-
-    (define (handle-indefinite b tag in)
-      (object-builder b tag (parse-tlv-object-list in #t) #t))
-
-    ;; separator is null TLV object
-    ;; = tag 0 length 0 data empty
-    (define (tlv-parser in :optional (in-indefinite? #f))
-      (let1 b (get-u8 in)
-	(cond ((eof-object? b)
+      (let loop ((o (tlv-parser in)) (r '()))
+	(cond (in-indefinite?
+	       (let ((b (lookahead-u8 in)))
+		 (when (eof-object? b)
+		   (assertion-violation 'tlv-parser
+					"Indefinite without termination"))
+		 (cond ((and (zero? b) (get-u8 in))
+			(let ((b2 (lookahead-u8 in)))
+			  (when (eof-object? b2)
+			    (assertion-violation 'tlv-parser
+				 "Indefinite without termination"))
+			  (if (zero? b2)
+			      (begin (get-u8 in) (reverse! (cons o r)))
+			      (loop (tlv-parser-rec b in) (cons o r)))))
+		       (else (loop (tlv-parser in) (cons o r))))))
+	      (o (loop (tlv-parser in) (cons o r)))
+	      (else
 	       (when in-indefinite?
 		 (assertion-violation 'tlv-parser
 				      "Indefinite without termination"))
-	       #f)
-	      ((and in-indefinite? (zero? b) (zero? (lookahead-u8 in)) 
-		    (get-u8 in))
-	       #f)
-	      (else
-	       (let-values (((tag constructed?) (tag-reader in b))
-			    ((len) (length-reader in)))
-		 (cond (len
-			(let1 data (get-bytevector-n in len)
-			  (when (< (bytevector-length data) len)
-			    (assertion-violation 'tlv-parser "corrupted data"))
-			  (if constructed?
-			      (object-builder b tag 
-			       (call-with-port (open-bytevector-input-port data)
-				 (cut parse-tlv-object-list <> in-indefinite?))
-			       #t)
-			      (object-builder b tag data #f))))
-		       ((not constructed?)
-			(assertion-violation 'tlv-parser
-					     "indefinite length found" tag))
-		       (else
-			(handle-indefinite b tag in))))))))
+	       (reverse! r)))))
+
+    (define (handle-indefinite b tag in)
+      (let ((v (parse-tlv-object-list in #t)))
+	(object-builder b tag v 'indefinite)))
+
+    (define (tlv-parser-rec b in)
+      (if (eof-object? b)
+	  #f
+	  (let-values (((tag constructed?) (tag-reader in b))
+		       ((len) (length-reader in)))
+	    (cond (len
+		   (let1 data (get-bytevector-n in len)
+		     (when (< (bytevector-length data) len)
+		       (assertion-violation 'tlv-parser "corrupted data"))
+		     (if constructed?
+			 (object-builder b tag 
+			   (parse-tlv-object-list 
+			    (open-bytevector-input-port data) #f)
+			   'definite)
+			 (object-builder b tag data #f))))
+		  ((not constructed?)
+		   (assertion-violation 'tlv-parser
+					"indefinite length found" tag))
+		  (else
+		   (handle-indefinite b tag in))))))
+    ;; separator is null TLV object
+    ;; = tag 0 length 0 data empty
+    (define (tlv-parser in) (tlv-parser-rec (get-u8 in) in))
     tlv-parser)
 
   ;; DGI style tag and length reader
