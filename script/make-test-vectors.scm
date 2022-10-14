@@ -92,8 +92,8 @@
 	(test-groups (test-groups-pointer json)))
     (map (make-test-runner source algorithm) test-groups)))
 
-(define ((write-in base dir) file&json*)
-  (define outdir (build-path base dir))
+(define ((write-in base dir type) file&json*)
+  (define outdir (build-path* base dir type))
   (unless (file-exists? outdir) (create-directory* outdir))
   (let-values (((d name e) (decompose-path (car file&json*))))
     (let ((file (build-path outdir (string-append name ".scm"))))
@@ -101,7 +101,7 @@
       (call-with-output-file file
 	(lambda (out)
 	  (for-each (lambda (json) (pp json out)) (cdr file&json*))))
-      (build-path* "." dir (string-append name ".scm")))))
+      (build-path* "." type (string-append name ".scm")))))
 
 (define (write-includer outdir type files)
   (let ((file (build-path outdir (string-append type ".scm"))))
@@ -115,12 +115,12 @@
   (cons file (conv (call-with-input-file file json-read) file)))
 (define ((write-test-vectors outdir) in-dir)
   (let ((files (find-files in-dir :recursive #f :pattern "\\.json$")))
-    (write-includer outdir "signature"
-     (map (write-in outdir (build-path "testvectors" "signature"))
+    (write-includer outdir (build-path "testvectors" "signature")
+     (map (write-in outdir "testvectors" "signature")
 	  (map (file->json (test-vector->test-runner ->signature-test-runner))
 	       (filter signature-vector? files))))
-    (write-includer outdir "prime"
-     (map (write-in outdir (build-path "testvectors" "prime"))
+    (write-includer outdir (build-path "testvectors" "prime")
+     (map (write-in outdir "testvectors" "prime")
 	  (map (file->json (test-vector->test-runner ->prime-test-runner))
 	       (filter prime-vector? files))))))
 

@@ -1,8 +1,8 @@
 (add-load-path "./crypto")
 #!compatible
-(include "test-sanity.scm")
-(include "test-asn1.scm")
-(include "test-vectors.scm")
+(include "tests/test-sanity.scm")
+(include "tests/test-asn1.scm")
+(include "tests/test-vectors.scm")
 
 #!read-macro=sagittarius/bv-string
 (import (srfi :64 testing)
@@ -1424,9 +1424,9 @@ PpO1zqk5Ua50RLuhFKj9n+0OuD5pCnwPEizvsoh69jdEN9f/cRdU8Iusln42clM=")
 				    :hash algo
 				    :der-encode #f))))))
 
-(include "test-eddsa.scm")
-(include "test-ecdsa.scm")
-(include "test-ecdhc.scm")
+(include "tests/test-eddsa.scm")
+(include "tests/test-ecdsa.scm")
+(include "tests/test-ecdhc.scm")
 
 ;; key wrap
 (let* ((aes-key (generate-secret-key AES

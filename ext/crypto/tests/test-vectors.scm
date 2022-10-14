@@ -19,7 +19,7 @@
   (for-each check tests))
 
 (test-begin "Prime number test vectors")
-(include "./tests/prime.scm")
+(include "./testvectors/prime.scm")
 (test-end)
 
 
@@ -106,5 +106,5 @@
       (for-each (verify-signature verifier) tests))))
 
 (test-begin "Signature test vectors")
-(include "./tests/signature.scm")
+(include "./testvectors/signature.scm")
 (test-end)
