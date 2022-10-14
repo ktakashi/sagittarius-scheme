@@ -31,7 +31,9 @@
 #!nounbound
 (library (sagittarius crypto math prime)
     (export probable-prime?
-	    generate-random-prime)
+	    generate-random-prime
+	    miller-rabin?
+	    lucas-lehmer?)
     (import (rnrs)
 	    (math modular)
 	    (sagittarius)
