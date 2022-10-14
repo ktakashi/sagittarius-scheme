@@ -52,7 +52,8 @@
 
   ;; FIXME cmac-process and cmac-done should accept start/end arguments
   ;;       but it's a bit hustle to tackle it...
-  (define (cmac-process cmac in)
+  (define (cmac-process cmac in
+			:optional (start 0) (end (bytevector-length in)))
     ;; split input message to block size.
     (define (split-message cmac in)
       (let1 in (bytevector-append (~ cmac 'last) in)
@@ -60,9 +61,12 @@
 	    (values '() (list in))
 	    (let1 m* (bytevector-slices in (~ cmac 'block-size))
 	      (split-at m* (- (length m*) 1))))))
-
+    (define (ensure-range in start end)
+      (if (= (bytevector-length in) (- end start))
+	  in
+	  (bytevector-copy in start end)))
     (let ((X  (~ cmac 'buffer)))
-      (let-values (((M* M-t) (split-message cmac in)))
+      (let-values (((M* M-t) (split-message cmac (ensure-range in start end))))
 	(unless (null? M*)
 	  (let1 cipher (~ cmac 'cipher)
 	    (set! (~ cmac 'buffer)
@@ -71,7 +75,7 @@
 				 (encrypt cipher Y))) X M*))))
 	(set! (~ cmac 'last) (car M-t)))))
 
-  (define (cmac-done cmac out)
+  (define (cmac-done cmac out :optional (start 0) (end (bytevector-length out)))
     ;; generate sub key
     (define (MSB bv)
       (let1 msb (bytevector-u8-ref bv 0)
@@ -104,8 +108,7 @@
     (let* ((last (last-block cmac))
 	   (T (encrypt (~ cmac 'cipher)
 		       (bytevector-xor (~ cmac 'buffer) last))))
-      (bytevector-copy! T 0 out 0 (min (~ cmac 'hash-size) 
-				       (bytevector-length out)))
+      (bytevector-copy! T 0 out start (min (~ cmac 'hash-size) (- end start)))
       (set! (~ cmac 'buffer) #f)
       (set! (~ cmac 'last) #vu8())
       out))
