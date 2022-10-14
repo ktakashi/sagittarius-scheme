@@ -1382,10 +1382,10 @@ PpO1zqk5Ua50RLuhFKj9n+0OuD5pCnwPEizvsoh69jdEN9f/cRdU8Iusln42clM=")
 	 (call-next-method)
 	   (slot-set! o 'init values)
 	   (slot-set! o 'process
-		      (lambda (h bv)
+		      (lambda (h bv . ignore)
 			(bytevector-copy! bv 0 (slot-ref h 'buffer) 0 size)))
 	   (slot-set! o 'done
-		      (lambda (h out)
+		      (lambda (h out . ignore)
 			(bytevector-copy! (slot-ref h 'buffer) 0 out 0 size)))
 	   (slot-set! o 'block-size 16)
 	   (slot-set! o 'hash-size size)

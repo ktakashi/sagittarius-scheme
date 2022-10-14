@@ -94,31 +94,7 @@ INSTALL(FILES crypto.scm
 INSTALL(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/crypto
   DESTINATION ${SAGITTARIUS_SHARE_LIB_PATH})
 
-# sagittarius--random
-ADD_LIBRARY(sagittarius--math MODULE
-  hash.c prng.c ${CMAKE_CURRENT_BINARY_DIR}/math_stub.c sagittarius-math.c)
-
-IF (USE_CPP_FOR_BROKEN_LINKER)
-  # ugly solution
-  SET_SOURCE_FILES_PROPERTIES(sagittarius-math.c 
-    ${CMAKE_CURRENT_BINARY_DIR}/math_stub.c hash.c prng.c
-    PROPERTIES LANGUAGE CXX)
-ENDIF()
-
-ADD_STUBS(sagittarius--math
-  COMMAND ${GENSTUB}
-  FILES math_stub.stub
-  OUTTREE)
-SET_TARGET_PROPERTIES(sagittarius--math PROPERTIES PREFIX "")
-IF(APPLE)
-  SET_TARGET_PROPERTIES(sagittarius--math PROPERTIES SUFFIX ".dylib")
-ENDIF()
-TARGET_LINK_LIBRARIES(sagittarius--math sagittarius libtomcrypt)
-
-INSTALL(TARGETS sagittarius--math
-  DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
-INSTALL(FILES sagittarius/math.scm
-  DESTINATION ${SAGITTARIUS_SHARE_LIB_PATH}/sagittarius)
+# Math
 INSTALL(FILES math.scm
   DESTINATION ${SAGITTARIUS_SHARE_LIB_PATH})
 INSTALL(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/math
