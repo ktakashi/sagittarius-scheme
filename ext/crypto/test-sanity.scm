@@ -332,7 +332,14 @@
     (test-assert (message-digest? md))
     (test-equal (digest-descriptor-name desc)
 		size (bytevector-length (digest-message md #vu8())))
-    (test-equal (digest-message md #vu8()) (digest-message md #vu8()))))
+    (test-equal (digest-message md #vu8()) (digest-message md #vu8()))
+    (let* ((msg (string->utf8 "12345678901234567890"))
+	   (hash (digest-message md msg)))
+      (message-digest-init! md)
+      (do ((i 0 (+ i 1)))
+	  ((= i (bytevector-length msg)))
+	(message-digest-process! md msg i 1))
+      (test-equal "Process each one byte" hash (message-digest-done md)))))
 
 (for-each digest/size-test digests/size)
 

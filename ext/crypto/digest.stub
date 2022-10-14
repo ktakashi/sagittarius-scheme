@@ -29,7 +29,7 @@
 
 (define-cise-stmt check-start-end
   ((_ who bv start end)
-   `(when (or (< ,start 0) (< ,end (SG_BVECTOR_SIZE ,bv)))
+   `(when (or (< ,start 0) (< (SG_BVECTOR_SIZE ,bv) ,end))
       (assertion-violation ,who "Out of the bytevector range"
 	(SG_LIST3 ,bv (SG_MAKE_INT ,start) (SG_MAKE_INT ,end))))))
 
@@ -70,13 +70,13 @@
 
 (define-c-proc digest-process! (ds::<digest-state> bv::<bytevector>
 				:optional (start::<fixnum> 0)  
-					  (end::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE bv))))
+					  (len::<fixnum> (SG_MAKE_INT (- (SG_BVECTOR_SIZE bv) start))))
   (check-md 'digest-process! ds)
-  (check-start-end 'digest-process! bv start end)
+  (check-range 'digest-process! bv start len)
   (let ((err::int (DIGEST_DESCRIPTOR_PROCESS (SG_DIGEST_STATE_MD ds)
 					     (& (SG_DIGEST_STATE_STATE ds))
 					     (+ (SG_BVECTOR_ELEMENTS bv) start)
-					     (- end start))))
+					     len)))
     (check-tomcrypt-error 'digest-process! err)
     (result ds)))
 
@@ -109,7 +109,7 @@
 
 (define-c-proc sha3-shake-done! (ds::<digest-state> out::<bytevector>
 				 :optional (start::<fixnum> 0)  
-					   (len::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE out)))) ::<void>
+					   (len::<fixnum> (SG_MAKE_INT (- (SG_BVECTOR_SIZE out) start)))) ::<void>
   (check-md 'sha3-shake-process! ds -1)
   (check-range 'sha3-shake-process! out start len)
   (let ((err::int (sha3_shake_done (& (SG_DIGEST_STATE_STATE ds))

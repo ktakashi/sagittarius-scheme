@@ -65,8 +65,9 @@
 
 	    *digest:md5* *digest:md4* *digest:md2*
 
-	    *digest:blake2s-128* *digest:blake2s-160* *digest:blake2s-224*
-	    *digest:blake2s-256* *digest:blake2b-160* *digest:blake2b-256*
+	    *digest:blake2s-128* *digest:blake2s-160*
+	    *digest:blake2s-224* *digest:blake2s-256*
+	    *digest:blake2b-160* *digest:blake2b-256*
 	    *digest:blake2b-384* *digest:blake2b-512*
 
 	    *digest:shake-128* *digest:shake-256*
@@ -103,20 +104,24 @@
 			out start (or length (bytevector-length out)))
   out)
 
-(define (message-digest-init! md)
+(define (message-digest-init! (md message-digest?))
   (define desc (message-digest-descriptor md))
   (message-digest-state-set! md (make-digest-state desc))
   md)
-(define (message-digest-process! md bv
-				 :optional (start 0)
-					   (length (bytevector-length bv)))
+(define (message-digest-process!
+	 (md message-digest?)
+	 (bv bytevector?)
+	 :optional (start 0)
+		   (length (- (bytevector-length bv) start)))
   (digest-state-process! (message-digest-state md) bv start length)
   md)
 
-(define (message-digest-done! md out
-				 :optional (start 0)
-					   ;; length may not be used
-					   (length (bytevector-length out)))
+(define (message-digest-done!
+	 (md message-digest?)
+	 (out bytevector?)
+	 :optional (start 0)
+		   ;; length may not be used
+		   (length (- (bytevector-length out) start)))
   (digest-state-done! (message-digest-state md) out start length))
 
 (define (message-digest-done md :optional (length #f))

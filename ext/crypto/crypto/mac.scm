@@ -1,7 +1,7 @@
 ;;; -*- mode: scheme; coding: utf-8 -*-
 ;;;
 ;;; crypto/mac - MAC interface library
-;;; 
+;;;
 (library (crypto mac)
     (export <mac> verify-mac)
     (import (rnrs)
