@@ -37,8 +37,7 @@
 	    import-private-key
 	    import-public-key
 	    export-private-key
-	    export-public-key
-	    )
+	    export-public-key)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius)

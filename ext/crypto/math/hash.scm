@@ -79,7 +79,8 @@
 (define (user-hash-algorithm? o) (is-a? o <user-hash-algorithm>))
 
 (define-class <builtin-hash-algorithm> (<hash-algorithm>)
-  ((md :init-keyword :md :reader builtin-hash-algorithm-md)))
+  ((md :init-keyword :md :reader builtin-hash-algorithm-md)
+   (digest :init-keyword :digest :reader builtin-hash-algorithm-digest)))
 (define (builtin-hash-algorithm? o) (is-a? o <builtin-hash-algorithm>))
 
 (define-generic lookup-hash)
@@ -93,7 +94,8 @@
 (define (hash-algorithm name . opts)
   (cond ((hash-algorithm? name) name) ;; for convenience
 	((digest-descriptor? name)
-	 (make <builtin-hash-algorithm> :md (make-message-digest name)))
+	 (make <builtin-hash-algorithm> :md (make-message-digest name)
+	       :digest name))
 	((lookup-hash name) => (lambda (clazz) (apply make clazz opts)))
 	(else
 	 (assertion-violation 'hash-algorithm "unknown hash" name))))

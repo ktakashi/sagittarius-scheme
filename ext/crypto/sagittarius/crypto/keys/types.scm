@@ -38,6 +38,7 @@
 	    public-key? <public-key>
 	    private-key? <private-key>
 
+	    (rename (key-pair <key-pair>))
 	    key-pair? key-pair-private key-pair-public
 	    make-key-pair
 	    

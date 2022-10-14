@@ -38,6 +38,7 @@
 	    export-public-key
 	    export-private-key
 
+	    *rsa-min-keysize*
 	    *key:rsa*
 	    
 	    rsa-public-key? <rsa-public-key>
@@ -60,6 +61,7 @@
 	    (math modular)
 	    (srfi :39 parameters)
 	    (srfi :117 list-queues)
+	    (sagittarius)
 	    (sagittarius mop immutable)
 	    (sagittarius crypto asn1)
 	    (sagittarius crypto keys types)
@@ -76,6 +78,17 @@
 (define (rsa-public-key? o) (is-a? o <rsa-public-key>))
 (define (make-rsa-public-key (modulus integer?) (exponent probable-prime?))
   (make <rsa-public-key> :modulus modulus :exponent exponent))
+
+(define-method object-equal? ((o1 <rsa-public-key>) (o2 <rsa-public-key>))
+  (and (eqv? (rsa-public-key-modulus o1) (rsa-public-key-modulus o2))
+       (eqv? (rsa-public-key-exponent o1) (rsa-public-key-exponent o2))))
+(define-method write-object ((o <rsa-public-key>) (p <port>))
+  (let-values (((out e) (open-string-output-port)))
+    (format out "#<rsa-pubic-key~%")
+    (format out "            modulus: ~x~%" (rsa-public-key-modulus o))
+    (format out "    public exponent: ~x~%" (rsa-public-key-exponent o))
+    (display #\> out)
+    (display (e) p)))
 
 (define-class <rsa-private-key> (<private-key> <immutable>)
   ((modulus :init-keyword :modulus :reader rsa-private-key-modulus)
@@ -105,6 +118,35 @@
 	:private-exponent private-exponent
 	:public-exponent exponent :p p :q q :dP dP :dQ dQ :qP qP))
 
+(define-method object-equal? ((o1 <rsa-private-key>) (o2 <rsa-private-key>))
+  (and (eqv? (rsa-private-key-modulus o1) (rsa-private-key-modulus o2))
+       (eqv? (rsa-private-key-private-exponent o1)
+	     (rsa-private-key-private-exponent o2))))
+(define-method object-equal? ((o1 <rsa-crt-private-key>)
+			      (o2 <rsa-crt-private-key>))
+  (and (call-next-method)
+       (eqv? (rsa-crt-private-key-p o1) (rsa-crt-private-key-p o2))
+       (eqv? (rsa-crt-private-key-q o1) (rsa-crt-private-key-q o2))
+       (eqv? (rsa-crt-private-key-dP o1) (rsa-crt-private-key-dP o2))
+       (eqv? (rsa-crt-private-key-dQ o1) (rsa-crt-private-key-dQ o2))
+       (eqv? (rsa-crt-private-key-qP o1) (rsa-crt-private-key-qP o2))))
+
+(define-method write-object ((o <rsa-crt-private-key>) (p <port>))
+  (let-values (((out e) (open-string-output-port)))
+    (format out "#<rsa-crt-private-key~%")
+    (format out "            modulus: ~x~%" (rsa-private-key-modulus o))
+    (format out "    public exponent: ~x~%"
+	    (rsa-crt-private-key-public-exponent o))
+    (format out "   private exponent: ~x~%"
+	    (rsa-private-key-private-exponent o))
+    (format out "           prime P: ~x~%" (rsa-crt-private-key-p o))
+    (format out "           prime Q: ~x~%" (rsa-crt-private-key-q o))
+    (format out "  prime exponent P: ~x~%" (rsa-crt-private-key-dP o))
+    (format out "  prime exponent Q: ~x~%" (rsa-crt-private-key-dQ o))
+    (format out "   crt coefficient: ~x~%" (rsa-crt-private-key-qP o))
+    (display #\> out)
+    (display (e) p)))
+
 (define-method generate-key-pair ((m (eql *key:rsa*))
 				  :key (size 2048)
 				       (prng (secure-random-generator *prng:chacha20*))
@@ -121,7 +163,7 @@
 				  :allow-other-keys rest)
   (if (and e p q)
       (apply make-rsa-crt-private-key m e private-exponent p q rest)
-      (make-rsa-crt-private-key m private-exponent)))
+      (make-rsa-private-key m private-exponent)))
 
 (define (rsa-generate-key-pair size prng e)
   (define (create-key-pair n e d p q)
