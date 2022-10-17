@@ -44,6 +44,9 @@
 	    symmetric-cipher-done!
 
 	    ;; EncAuth mode
+	    symmetric-cipher-update-aad!
+	    symmetric-cipher-update-iv!
+	    symmetric-cipher-max-tag-length
 	    symmetric-cipher-done/tag!
 	    symmetric-cipher-done/tag
 	    
@@ -58,7 +61,7 @@
 
 	    block-cipher-descriptor?
 	    block-cipher-descriptor-block-length
-	    block-cipher-descriptor-suggested-keysize
+	    block-cipher-descriptor-suggested-key-length
 	    
 	    *scheme:blowfish*
 	    *scheme:x-tea*
@@ -248,6 +251,35 @@
 	  buf
 	  (bytevector-copy buf 0 len)))))
 
+;;; AAD/IV
+(define (symmetric-cipher-update-aad! (cipher symmetric-cipher?)
+				      (aad bytevector?)
+				      . opts)
+  (define key (symmetric-cipher-key cipher))
+  (unless key
+    (assertion-violation 'symmetric-cipher-update-aad!
+			 "Cipher is not initialized yet" cipher))
+  (let ((mode (symmetric-cipher-mode cipher)))
+    (when (mode-has-add-aad!? mode)
+      (apply mode-add-aad! (symmetric-cipher-key cipher) aad opts))))
+(define (symmetric-cipher-update-iv! (cipher symmetric-cipher?)
+				     (iv bytevector?)
+				     . opts)
+  (define key (symmetric-cipher-key cipher))
+  (unless key
+    (assertion-violation 'symmetric-cipher-update-iv!
+			 "Cipher is not initialized yet" cipher))
+  (let ((mode (symmetric-cipher-mode cipher)))
+    (when (mode-has-add-iv!? mode)
+      (apply mode-add-iv! (symmetric-cipher-key cipher) iv opts))))
+
+(define (symmetric-cipher-max-tag-length (cipher symmetric-cipher?))
+  (define key (symmetric-cipher-key cipher))
+  (unless key
+    (assertion-violation 'symmetric-cipher-max-tag-length
+			 "Cipher is not initialized yet" cipher))
+  (mode-max-tag-length key))
+
 (define (symmetric-cipher-done/tag (cipher symmetric-cipher?) tag-len)
   (define key (symmetric-cipher-key cipher))
   (unless key
@@ -270,10 +302,15 @@
   (unless key
     (assertion-violation 'symmetric-cipher-done/tag!
 			 "Cipher is not initialized yet" cipher))
-  (case (symmetric-cipher-direction cipher)
-    ((encrypt) (mode-encrypt-last! key tag start))
-    ((decrypt) (mode-decrypt-last! key tag start))))
-
+  (let ((mode (symmetric-cipher-mode cipher)))
+    (if (encauth-mode-descriptor? mode)
+	(case (symmetric-cipher-direction cipher)
+	  ((encrypt) (mode-encrypt-last! key tag start))
+	  ((decrypt) (mode-decrypt-last! key tag start)))
+	(assertion-violation 'symmetric-cipher-done/tag!
+			     "The mode doesn't support auth tag"
+			     (mode-descriptor-name mode)))))
+    
 (define (symmetric-cipher-done! (cipher symmetric-cipher?))
   (symmetric-cipher-direction-set! cipher #f)
   (cond ((symmetric-cipher-key cipher) => mode-done!))
@@ -301,7 +338,8 @@
   (define (pad bv pos block-size)
     (let* ((len (- (bytevector-length bv) pos))
 	   (new (make-bytevector len)))
-      (bytevector-copy! bv pos new 0 len)))
+      (bytevector-copy! bv pos new 0 len)
+      new))
   (define (unpad bv pos block-size) (- (bytevector-length bv) pos))
   (values pad unpad))
 

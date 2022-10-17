@@ -43,7 +43,7 @@
 	    *key:ed448*
 
 	    
-	    eddsa-key?
+	    eddsa-key? <eddsa-key>
 	    eddsa-key-parameter
 
 	    eddsa-public-key? <eddsa-public-key>

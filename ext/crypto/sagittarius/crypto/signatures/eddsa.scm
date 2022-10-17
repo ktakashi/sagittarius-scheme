@@ -31,14 +31,23 @@
 #!read-macro=sagittarius/bv-string
 #!nounbound
 (library (sagittarius crypto signatures eddsa)
-    (export *signature:ed25519*
+    (export *signature:eddsa*
+	    *signature:ed25519*
 	    *signature:ed25519ctx*
 	    *signature:ed25519ph*
 	    *signature:ed448*
 	    *signature:ed448ph*
 
 	    make-signer-state signer-state->signature
-	    make-verifier-state verifier-state-verify-message)
+	    make-verifier-state verifier-state-verify-message
+
+	    ;; For backward compatibility
+	    eddsa-scheme?
+	    ed25519-scheme
+	    ed25519ctx-scheme
+	    ed25519ph-scheme
+	    ed448-scheme
+	    ed448ph-scheme)
     (import (rnrs)
 	    (core misc)
 	    (clos user)
@@ -54,6 +63,7 @@
 	    (sagittarius crypto secure)
 	    (util bytevector))
 
+(define *signature:eddsa*      *key:eddsa*)
 (define *signature:ed25519*    *key:ed25519*)
 (define *signature:ed25519ctx* :ed25519ctx)
 (define *signature:ed25519ph*  :ed25519ph)
@@ -110,6 +120,15 @@
    (context :init-keyword :context :reader eddsa-state-context)))
 (define-class <eddsa-signer-state> (<eddsa-state> <signer-state>) ())
 (define-class <eddsa-verifier-state> (<eddsa-state> <verifier-state>) ())
+
+(define-method make-signer-state ((m (eql *signature:eddsa*))
+				  (key <eddsa-private-key>)
+				  :key (scheme #f)
+				       (context #vu8())
+				  :allow-other-keys opts)
+  (unless (eddsa-scheme? scheme)
+    (assertion-violation 'make-signer-state "EdDSA requires :scheme"))
+  (make <eddsa-signer-state> :key key :scheme scheme :context context))
 
 (define-method make-signer-state ((m (eql *signature:ed25519*))
 				  (key <eddsa-private-key>)
@@ -174,6 +193,14 @@
     ;; It seems this can also be DER format, though RFC 8032 doesn't specify it
     (bytevector-append R S)))
 
+(define-method make-verifier-state ((m (eql *signature:eddsa*))
+				    (key <eddsa-public-key>)
+				    :key (scheme #f)
+					 (context #vu8())
+				    :allow-other-keys opts)
+  (unless (eddsa-scheme? scheme)
+    (assertion-violation 'make-signer-state "EdDSA requires :scheme"))
+  (make <eddsa-verifier-state> :key key :scheme scheme :context context))
 (define-method make-verifier-state ((m (eql *signature:ed25519*))
 				    (key <eddsa-public-key>)
 				    :allow-other-keys opts)

@@ -80,7 +80,7 @@
     (test-assert (symmetric-key? key))
     ;; suggested key size is in bits, so divide by 8
     (test-equal (cipher-descriptor-name cipher)
-		(block-cipher-descriptor-suggested-keysize cipher)
+		(block-cipher-descriptor-suggested-key-length cipher)
 		(bytevector-length (symmetric-key-value key)))))
 (for-each symmetric-key-operations-test all-ciphers)
 
@@ -209,7 +209,6 @@
 		"this is a message to be encrypted and decrypted")))
       (test-assert "cipher?" (cipher? cipher))
       (test-assert "symmetric-cipher?" (symmetric-cipher? cipher))
-      
       (let-values (((ct tag) (encrypt cipher msg)))
 	#;(print (cipher-descriptor-name cipher-descriptor) ":"
 	       (mode-descriptor-name mode) ":"

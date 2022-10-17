@@ -47,7 +47,7 @@
   (generate-symmetric-key cipher (secure-random-generator *prng:chacha20*)))
 (define-method generate-symmetric-key ((cipher <block-cipher-descriptor>)
 				       (prng <random-generator>))
-  (let ((size (block-cipher-descriptor-suggested-keysize cipher)))
+  (let ((size (block-cipher-descriptor-suggested-key-length cipher)))
     (make-symmetric-key (random-generator-read-random-bytes prng size))))
 (define-method generate-symmetric-key ((cipher <block-cipher-descriptor>)
 				       (bv <bytevector>))

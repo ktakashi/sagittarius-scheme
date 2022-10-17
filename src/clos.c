@@ -3001,7 +3001,7 @@ SgObject Sg_MakeEqualSpecializer(SgObject obj)
 /* default slot-unbound and slot-missing methods */
 static SgObject slot_unbound_subr(SgObject *argv, int argc, void *data)
 {
-  Sg_Error(UC("slot %S of object of class %S is unbound"),
+  Sg_Error(UC("slot '%S' of object of class %S is unbound"),
 	   argv[2], argv[0]);
   return SG_UNDEF;		/* dummy */
 }

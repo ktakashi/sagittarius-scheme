@@ -50,11 +50,13 @@
 	    encauth-mode-descriptor?
 	    mode-encrypt-last! mode-decrypt-last!
 	    mode-has-add-aad!? mode-add-aad! mode-has-add-iv!? mode-add-iv!
-	    
+	    mode-max-tag-length
+    
 	    mode-key?
 	    mode-start mode-encrypt! mode-decrypt! mode-done!
 	    mode-set-iv! mode-get-iv!)
     (import (rnrs)
+	    (sagittarius)
 	    (prefix (sagittarius crypto tomcrypt) tc:)
 	    (sagittarius crypto secure)
 	    (sagittarius crypto descriptors cipher)
@@ -190,7 +192,8 @@
 ;; text or cipher test before hand, that's a bit inconvenient for us.
 (define-record-type encauth-mode-descriptor
   (parent mode-descriptor)
-  (fields encrypt-last decrypt-last ;; To get tag, or verify tag
+  (fields max-tag-length
+	  encrypt-last decrypt-last ;; To get tag, or verify tag
 	  add-aad		    ;; EAX, OCB3, and GCM (EAX calls aad header)
 	  add-iv		    ;; GCM specific
 	  ))
@@ -212,6 +215,12 @@
 (define (mode-add-iv! mode-key iv . opts)
   (apply (encauth-mode-descriptor-add-iv (mode-key-descriptor mode-key))
 	 (mode-key-state-key mode-key) iv opts))
+
+(define (mode-max-tag-length mode-key)
+  (let ((mode (mode-key-descriptor mode-key)))
+    (or (and (encauth-mode-descriptor? mode)
+	     ((encauth-mode-descriptor-max-tag-length mode) mode-key))
+	0)))
 
 ;; EAX
 (define (eax-start cipher key parameter)
@@ -235,6 +244,7 @@
 (define *mode:eax* (make-encauth-mode-descriptor
 		    tc:*encauth:eax* "EAX"
 		    eax-start tc:eax-encrypt! tc:eax-decrypt! eax-done #f #f
+		    (lambda (ignore) 144)
 		    eax-encrypt-last! eax-decrypt-last!
 		    tc:eax-add-header! #f))
 
@@ -245,9 +255,10 @@
   (make-ocb-state cipher
    (tc:ocb-init (symmetric-cipher-descriptor-cipher cipher) key nonce)))
 (define (ocb-done state) #f) ;; do nothing (don't use this)
+(define (ocb-block-size state)
+  (block-cipher-descriptor-block-length (ocb-state-cipher state)))
 (define (ocb-encrypt! state pt ps ct cs len)
-  (define block-size
-    (block-cipher-descriptor-block-length (ocb-state-cipher state)))
+  (define block-size (ocb-block-size state))
   ;; sanity check
   (unless (zero? (mod len block-size))
     (assertion-violation 'ocb-encrypt! "Invalid length of input"))
@@ -272,6 +283,7 @@
 (define *mode:ocb* (make-encauth-mode-descriptor
 		    tc:*encauth:ocb* "OCB"
 		    ocb-start ocb-encrypt! ocb-decrypt! ocb-done #f #f
+		    ocb-block-size
 		    ocb-encrypt-last! ocb-decrypt-last!
 		    #f #f))
 
@@ -310,6 +322,7 @@
 (define *mode:ocb3* (make-encauth-mode-descriptor
 		    tc:*encauth:ocb3* "OCB3"
 		    ocb3-start ocb3-encrypt ocb3-decrypt ocb3-done #f #f
+		    ocb3-state-tag-len
 		    ocb3-encrypt-last! ocb3-decrypt-last!
 		    tc:ocb3-add-aad! #f))
 
@@ -333,10 +346,10 @@
     (unless (safe-bytevector=? tag tmp start 0 len)
       (error 'mode-decrypt-last! "Tag unmatched"))))
 
-
 (define *mode:gcm* (make-encauth-mode-descriptor
 		    tc:*encauth:gcm* "GCM"
 		    gcm-start tc:gcm-encrypt! tc:gcm-decrypt! gcm-done #f #f
+		    (lambda (state) 16)
 		    gcm-encrypt-last! gcm-decrypt-last!
 		    tc:gcm-add-aad! tc:gcm-add-iv!))
 

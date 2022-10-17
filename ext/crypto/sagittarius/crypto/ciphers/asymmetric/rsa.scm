@@ -61,8 +61,10 @@
 (define (rsa-done key) #f)
 
 (define (rsa-mod-expt key bv block-size)
-  (unless (= (bytevector-length bv) block-size)
-    (assertion-violation 'rsa-mod-expt "Invalid RSA block size"))
+  (unless (<= (bytevector-length bv) block-size)
+    (assertion-violation 'rsa-mod-expt "Invalid RSA block size"
+			 `((got ,(bytevector-length bv))
+			   (expected ,block-size))))
   (let ((chunk (bytevector->uinteger bv)))
     (cond ((rsa-public-key? key)
 	   (let ((r (mod-expt chunk
@@ -84,7 +86,7 @@
 	   (let ((a (mod-expt chunk
 			      (rsa-private-key-private-exponent key)
 			      (rsa-private-key-modulus key))))
-	     (uinteger->bytevector a (endianness big) block-size)))
+	     (uinteger->bytevector a block-size)))
 	  (else
 	   (assertion-violation 'rsa-mod-expt "Unknown key" key)))))
 

@@ -887,7 +887,7 @@
 (define-c-proc gcm-add-iv! (enc-auth-state::<enc-auth-state>
 			    iv::<bytevector>
 			    :optional (start::<fixnum> 0)
-			    (end::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE iv)))) ::<void>
+				      (end::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE iv)))) ::<void>
   (check-state-mode 'gcm-add-iv! enc-auth-state MODE_GCM)
   (check-start-end 'gcm-add-iv! iv start end)
   (let ((err::int (gcm_add_iv (& (SG_ENC_AUTH_STATE_GCM enc-auth-state))
@@ -898,7 +898,7 @@
 (define-c-proc gcm-add-aad! (enc-auth-state::<enc-auth-state>
 			     aad::<bytevector>
 			     :optional (start::<fixnum> 0)
-			     (end::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE aad)))) ::<void>
+				       (end::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE aad)))) ::<void>
   (check-state-mode 'gcm-add-aad! enc-auth-state MODE_GCM)
   (check-start-end 'gcm-add-aad! aad start end)
   (let ((err::int (gcm_add_aad (& (SG_ENC_AUTH_STATE_GCM enc-auth-state))

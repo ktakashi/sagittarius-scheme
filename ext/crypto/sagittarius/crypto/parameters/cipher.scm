@@ -32,6 +32,7 @@
 #!nounbound
 (library (sagittarius crypto parameters cipher)
     (export cipher-parameter? make-cipher-parameter
+	    (rename (cipher-parameter <cipher-parameter>))
 
 	    make-round-parameter round-parameter? cipher-parameter-rounds
 	    make-iv-parameter iv-parameter? cipher-parameter-iv
@@ -42,7 +43,17 @@
 	    make-nonce-parameter nonce-parameter? cipher-parameter-nonce
 	    make-aad-parameter aad-parameter? cipher-parameter-aad
 	    make-tag-length-parameter tag-length-parameter?
-	    cipher-parameter-tag-length)
+	    cipher-parameter-tag-length
+	    ;; FWIW
+	    make-define-cipher-parameter
+	    (rename (round-parameter <round-parameter>)
+		    (iv-parameter <iv-parameter>)
+		    (counter-mode-parameter <counter-mode-parameter>)
+		    (tweak-parameter <tweak-parameter>)
+		    (salt-parameter <salt-parameter>)
+		    (nonce-parameter <nonce-parameter>)
+		    (aad-parameter <aad-parameter>)
+		    (tag-length-parameter <tag-length-parameter>)))
     (import (rnrs)
 	    (sagittarius crypto parameters misc))
 (define-compositable-record-type cipher-parameter)

@@ -43,7 +43,7 @@
 	    (rename (block-cipher-descriptor <block-cipher-descriptor>))
 	    block-cipher-descriptor-block-length
 	    block-cipher-descriptor-default-rounds
-	    block-cipher-descriptor-suggested-keysize
+	    block-cipher-descriptor-suggested-key-length
 
 	    asymmetric-cipher-descriptor? make-asymmetric-cipher-descriptor
 	    (rename (asymmetric-cipher-descriptor <asymmetric-cipher-descriptor>))
@@ -86,9 +86,9 @@
   (parent symmetric-cipher-descriptor)
   (fields block-length
 	  default-rounds))
-(define (block-cipher-descriptor-suggested-keysize descriptor)
+(define (block-cipher-descriptor-suggested-key-length descriptor)
   (unless (block-cipher-descriptor? descriptor)
-    (assertion-violation 'block-cipher-descriptor-suggested-keysize
+    (assertion-violation 'block-cipher-descriptor-suggested-key-length
 			 "Cipher descriptor is required" descriptor))
   (tc:cipher-descriptor-suggested-keysize 
    (symmetric-cipher-descriptor-cipher descriptor)))
