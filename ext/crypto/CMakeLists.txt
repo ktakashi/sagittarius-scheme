@@ -30,7 +30,7 @@ IF (USE_CPP_FOR_BROKEN_LINKER)
     PROPERTIES LANGUAGE CXX)
 ENDIF()
 
-ADD_STUBS(sagittarius--tomcrypt MODULE
+ADD_STUBS(sagittarius--tomcrypt
   COMMAND ${GENSTUB}
   FILES cipher.stub digest.stub random.stub
   OUTTREE)
