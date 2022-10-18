@@ -30,7 +30,7 @@
 ;; ref
 ;;  https://tools.ietf.org/html/rfc3394
 ;;  https://tools.ietf.org/html/rfc3657 (Camellia)
-
+#!deprecated
 (library (crypto wrap)
     (export make-rfc3394-key-wrap
 	    make-rfc3394-key-unwrap
@@ -45,8 +45,7 @@
 	    integrity-error? &integrity-error
 	    )
     (import (rnrs)
-	    (crypto cipher)
-	    (sagittarius crypto))
+	    (crypto cipher))
 
   (define-condition-type &integrity-error &error
     make-integrity-error integrity-error?)

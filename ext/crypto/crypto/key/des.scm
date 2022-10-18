@@ -1,7 +1,8 @@
 ;;; -*- mode: scheme; coding: utf-8 -*-
 ;;;
 ;;; des.scm Cryptographic library
-;;; 
+;;;
+#!deprecated
 #!core
 (library (crypto key des)
     (export generate-secret-key)
