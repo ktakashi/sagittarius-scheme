@@ -30,7 +30,7 @@ IF (USE_CPP_FOR_BROKEN_LINKER)
     PROPERTIES LANGUAGE CXX)
 ENDIF()
 
-ADD_STUBS(sagittarius--tomcrypt
+ADD_STUBS(sagittarius--tomcrypt MODULE
   COMMAND ${GENSTUB}
   FILES cipher.stub digest.stub random.stub
   OUTTREE)
@@ -62,30 +62,9 @@ IF(APPLE)
 ENDIF()
 TARGET_LINK_LIBRARIES(sagittarius--secure sagittarius)
 
-
-## TODO remove sagittarius--crypto and sagittarius--math
-ADD_LIBRARY(sagittarius--crypto MODULE
-  crypto.c key.c ${CMAKE_CURRENT_BINARY_DIR}/crypto_stub.c)
-
-IF (USE_CPP_FOR_BROKEN_LINKER)
-  # ugly solution
-  SET_SOURCE_FILES_PROPERTIES(crypto.c 
-    ${CMAKE_CURRENT_BINARY_DIR}/crypto_stub.c key.c
-    PROPERTIES LANGUAGE CXX)
-ENDIF()
-
-ADD_STUBS(sagittarius--crypto
-  COMMAND ${GENSTUB}
-  FILES crypto_stub.stub
-  OUTTREE)
-
-SET_TARGET_PROPERTIES(sagittarius--crypto PROPERTIES PREFIX "")
-IF(APPLE)
-  SET_TARGET_PROPERTIES(sagittarius--crypto PROPERTIES SUFFIX ".dylib")
-ENDIF()
-TARGET_LINK_LIBRARIES(sagittarius--crypto sagittarius libtomcrypt)
-
-INSTALL(TARGETS sagittarius--crypto
+INSTALL(TARGETS sagittarius--tomcrypt
+  DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
+INSTALL(TARGETS sagittarius--secure
   DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
 INSTALL(FILES sagittarius/crypto.scm
   DESTINATION ${SAGITTARIUS_SHARE_LIB_PATH}/sagittarius)

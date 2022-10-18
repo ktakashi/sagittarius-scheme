@@ -31,6 +31,7 @@
 ;;  - https://tools.ietf.org/html/rfc5915
 ;;  - https://tools.ietf.org/html/rfc5480
 ;;  - https://tools.ietf.org/html/rfc6090
+#!deprecated
 #!nounbound
 (library (crypto ecdsa)
     (export ECDSA

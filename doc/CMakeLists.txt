@@ -49,7 +49,7 @@ ADD_CUSTOM_COMMAND(OUTPUT ${PROJECT_BINARY_DIR}/doc/sagittarius-ref.html
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 ADD_CUSTOM_TARGET(doc ALL
-  DEPENDS sagittarius--time 
+  DEPENDS sagittarius--time sagittarius--tomcrypt
           ${PROJECT_BINARY_DIR}/doc/sagittarius-ref.html
 )
 
@@ -61,7 +61,7 @@ ADD_CUSTOM_COMMAND(OUTPUT ${PROJECT_BINARY_DIR}/doc/sagittarius-ref.ja.html
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 ADD_CUSTOM_TARGET(doc-ja
-  DEPENDS sagittarius--time 
+  DEPENDS sagittarius--time sagittarius--tomcrypt
           ${PROJECT_BINARY_DIR}/doc/sagittarius-ref.ja.html
 )
 
@@ -73,7 +73,7 @@ ADD_CUSTOM_COMMAND(OUTPUT ${PROJECT_BINARY_DIR}/doc/sagittarius-online-ref.html
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 ADD_CUSTOM_TARGET(online-doc
-  DEPENDS sagittarius--time 
+  DEPENDS sagittarius--time sagittarius--tomcrypt
           ${PROJECT_BINARY_DIR}/doc/sagittarius-online-ref.html
 )
 
