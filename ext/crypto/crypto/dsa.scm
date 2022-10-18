@@ -12,7 +12,7 @@
 	    (math)
 	    (sagittarius)
 	    (clos user)
-	    (sagittarius crypto)
+	    (crypto spi)
 	    (crypto key pair)
 	    (crypto k-generator)
 	    (asn.1)
@@ -167,7 +167,7 @@
 	      (error 'dsa-verify "inconsistent"))))))
 
   ;; cipher
-  (define-class <dsa-cipher-spi> (<cipher-spi>) ())
+  (define-class <dsa-cipher-spi> (<legacy-cipher-spi>) ())
   (define-method initialize ((o <dsa-cipher-spi>) initargs)
     (let ((key (car initargs)))
       (let-keywords (cdr initargs)

@@ -27,10 +27,8 @@
 ;;;  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#!deprecated
 #!nounbound
 (library (crypto key agreement)
     (export calculate-key-agreement)
-    (import (clos user))
-
-(define-generic calculate-key-agreement)
-)
+    (import (sagittarius crypto keys)))

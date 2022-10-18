@@ -84,7 +84,8 @@
 	(let ((s (compute-s r k e d n)))
 	  (if (zero? s)
 	      (loop)
-	      (construct-dsa-signature state r s)))))))
+	      (let ((size (ceiling (/ (bitwise-length n) 8))))
+		(construct-dsa-signature state r s size))))))))
     
 (define-method make-verifier-state ((m (eql *signature:ecdsa*))
 				    (key <ecdsa-public-key>)

@@ -19,7 +19,5 @@
 	    (crypto rfc7748)
 	    (crypto k-generator)
 	    (crypto ecdh)
-	    (crypto wrap)
-	    ;; for conditions
-	    (sagittarius crypto))
+	    (crypto wrap))
 )

@@ -227,16 +227,12 @@
 		      (equal? pt-crt invalid-rsa-message)))))
 
 (test-assert "with padding too long RSA block"
-	     (guard (e 
-		     ((encode-error? e) #t)
-		     (else #f))
+	     (guard (e (else #t))
 	       (let ((rsa-encrypt-cipher (cipher RSA public-rsa-key)))
 		 (encrypt rsa-encrypt-cipher invalid-rsa-message))))
 
 (test-assert "with padding invalid block"
-	     (guard (e 
-		     ((decode-error? e) #t)
-		     (else #f))
+	     (guard (e (else #t))
 	       (let ((rsa-decrypt-cipher (cipher RSA private-rsa-key)))
 		 (decrypt rsa-decrypt-cipher invalid-padding))))
 
@@ -416,23 +412,22 @@
 (test-equal (hash SHA-256 #vu8())
 	    (hash (oid->hash-algorithm "2.16.840.1.101.3.4.2.1") #vu8()))
 
+;; These are internal tests, covered by test vector tests
 ;; mgf-1 test
-(define mgf-result-sha1
-  (integer->bytevector #x5f8de105b5e96b2e490ddecbd147dd1def7e3b8e0e6a26eb7b956ccb8b3bdc1ca975bc57c3989e8fbad31a224655d800c46954840ff32052cdf0d640562bdfadfa263cfccf3c52b29f2af4a1869959bc77f854cf15bd7a25192985a842dbff8e13efee5b7e7e55bbe4d389647c686a9a9ab3fb889b2d7767d3837eea4e0a2f04))
-(define mgf-seed-sha1
-  (integer->bytevector #x032e45326fa859a72ec235acff929b15d1372e30b207255f0611b8f785d764374152e0ac009e509e7ba30cd2f1778e113b64e135cf4e2292c75efe5288edfda4))
+;; (define mgf-result-sha1
+;;   (integer->bytevector #x5f8de105b5e96b2e490ddecbd147dd1def7e3b8e0e6a26eb7b956ccb8b3bdc1ca975bc57c3989e8fbad31a224655d800c46954840ff32052cdf0d640562bdfadfa263cfccf3c52b29f2af4a1869959bc77f854cf15bd7a25192985a842dbff8e13efee5b7e7e55bbe4d389647c686a9a9ab3fb889b2d7767d3837eea4e0a2f04))
+;; (define mgf-seed-sha1
+;;   (integer->bytevector #x032e45326fa859a72ec235acff929b15d1372e30b207255f0611b8f785d764374152e0ac009e509e7ba30cd2f1778e113b64e135cf4e2292c75efe5288edfda4))
 
-(test-equal "MGF-1(SHA-1)"
-	    mgf-result-sha1
-	    (mgf-1 mgf-seed-sha1 (bytevector-length mgf-result-sha1)
-		   (hash-algorithm SHA-1)))
+;; (test-equal "MGF-1(SHA-1)"
+;; 	    mgf-result-sha1
+;; 	    (mgf-1 mgf-seed-sha1 (bytevector-length mgf-result-sha1) SHA-1))
 
 
-;; PKCS#1 EMSA-PSS test
-
-(test-assert "PKCS#1 EMSA-PSS"
-	     (let ((encoded (pkcs1-emsa-pss-encode valid-rsa-message 1024)))
-	       (pkcs1-emsa-pss-verify valid-rsa-message encoded 1024)))
+;; ;; PKCS#1 EMSA-PSS test
+;; (test-assert "PKCS#1 EMSA-PSS"
+;; 	     (let ((encoded (pkcs1-emsa-pss-encode valid-rsa-message 1024)))
+;; 	       (pkcs1-emsa-pss-verify valid-rsa-message encoded 1024)))
 
 (test-assert "Verify with EMSA-PSS and SHA-1"
 	     (let* ((rsa-sign-cipher (cipher RSA (keypair-private key-pair)))
@@ -828,11 +823,13 @@
   ;; Bouncy Castle compatible behaviour...
   (let ((enc-ci (cipher RSA (keypair-public keypair) :padding #f))
 	(dec-ci (cipher RSA (keypair-private keypair) :padding #f)))
-    (test-equal "restoring (fail)" #vu8(1) (decrypt dec-ci (encrypt enc-ci msg))))
+    (let ((r (decrypt dec-ci (encrypt enc-ci msg))))
+      (test-equal "restoring (fail)" #vu8(1) r)))
 
   (let ((enc-ci (cipher RSA (keypair-public keypair)))
 	(dec-ci (cipher RSA (keypair-private keypair))))
-    (test-equal "restoring (success)" msg (decrypt dec-ci (encrypt enc-ci msg)))))
+    (let ((r (decrypt dec-ci (encrypt enc-ci msg))))
+      (test-equal "restoring (success)" msg r))))
 
 
 ;; OAEP padding
@@ -905,6 +902,7 @@
   ((aad-value :reader dummy-aad)
    (tag-value :reader dummy-tag)))
 (define-method initialize ((spi <dummy-spi>) initargs)
+  (call-next-method)
   (slot-set! spi 'update-aad (lambda (data) 
 			       (slot-set! spi 'aad-value data)
 			       'ok))
@@ -953,36 +951,29 @@
 
 (define (test-gcm-decryption count key iv ct aad tag pt :key (invalid-tag #f))
   (let* ((skey (generate-secret-key AES key))
-	 (cipher (make-cipher AES skey
-			      :mode-parameter (make-composite-parameter
-					       (make-mode-name-parameter
-						 MODE_GCM)
-					       (make-iv-parameter iv)))))
+	 (parameter (make-composite-parameter
+		     (make-mode-name-parameter MODE_GCM)
+		     (make-iv-parameter iv)
+		     (make-padding-parameter no-padder)))
+	 (cipher (make-cipher AES skey :mode-parameter parameter))
+	 (enc-cipher (make-cipher AES skey :mode-parameter parameter)))
     (cipher-update-aad! cipher aad)
-    (let-values (((decrypted this-tag)
-		  (cipher-decrypt/tag cipher ct
-				      :tag-size (bytevector-length tag))))
-      (test-equal (format "GCM decryption (~a)" count) pt decrypted)
-      (test-equal (format "GCM decryption tag length (~a)" count)
-		  (bytevector-length tag) (bytevector-length this-tag))
-      (let ((bv (make-bytevector (bytevector-length tag))))
-	(test-equal (format "GCM decryption cipher-tag! (~a)" count)
-		    (bytevector-length tag) (cipher-tag! cipher bv)))
-      (if invalid-tag
-	  (test-assert (format "GCM decryption tag (~a)" count)
-		       (not (bytevector=? tag this-tag)))
+    (if invalid-tag
+	(test-error "Invalid GCM tag to decrypt"
+		    (cipher-decrypt/tag cipher ct tag))
+	(let-values (((decrypted this-tag) (cipher-decrypt/tag cipher ct tag)))
+	  (test-equal (format "GCM decryption (~a)" count) pt decrypted)
+	  (test-equal (format "GCM decryption tag length (~a)" count)
+		      (bytevector-length tag) (bytevector-length this-tag))
 	  (test-equal (format "GCM decryption tag (~a)" count)
-		      tag this-tag)))
-
-    (cipher-update-aad! cipher aad)
-    (let-values (((encrypted this-tag)
-		  (cipher-encrypt/tag cipher pt 
-				      :tag-size (bytevector-length tag))))
-      (test-equal (format "GCM encrypted value (~a)" count) ct encrypted)
-      (if invalid-tag
-	  (test-assert (format "GCM encrypted tag (~a)" count) 
-		       (not (bytevector=? tag this-tag)))
-	  (test-equal (format "GCM encrypted tag (~a)" count) tag this-tag)))))
+		      tag this-tag)
+	  (cipher-update-aad! enc-cipher aad)
+	  (let-values (((encrypted this-tag)
+			(cipher-encrypt/tag enc-cipher pt 
+					    :tag-size (bytevector-length tag))))
+	    (test-equal (format "GCM encrypted value (~a)" count) ct encrypted)
+	    (test-equal (format "GCM encrypted tag (~a)" count) tag this-tag)))
+	)))
 
 ;; from gcmDecrypt128.rsp
 #|
@@ -1134,7 +1125,7 @@ PT = 28286a321293253c3e0aa2704a278032
 					       (make-mode-name-parameter
 						MODE_GCM)
 					       (make-iv-parameter iv)
-					       (make-padding-parameter #f)))))
+					       (make-padding-parameter no-padder)))))
     (cipher-update-aad! cipher aad)
     (let-values (((encrypted this-tag)
 		  (cipher-encrypt/tag cipher pt 
@@ -1206,11 +1197,11 @@ Tag = 267a3ba3670ff076
 		   (make-mode-name-parameter MODE_CTR)
 		   (make-rfc3686-parameter iv nonce)))
     (define ec (make-cipher AES (generate-secret-key AES key)
-			       :mode-parameter param))
+			    :mode-parameter param))
     (define dc (make-cipher AES (generate-secret-key AES key)
-			       :mode-parameter param))
+			    :mode-parameter param))
     (test-equal (format "AES-CTR enc (~a)" i) cipher (cipher-encrypt ec plain))
-    (test-equal (format "AES-CTR dec (~a)" i) plain (cipher-encrypt dc cipher))))
+    (test-equal (format "AES-CTR dec (~a)" i) plain (cipher-decrypt dc cipher))))
 
 (define test-rfc3686-vector
   '(;; key iv nonce plain cipher
@@ -1372,17 +1363,17 @@ PpO1zqk5Ua50RLuhFKj9n+0OuD5pCnwPEizvsoh69jdEN9f/cRdU8Iusln42clM=")
 	 ((buffer :init-form (make-bytevector size))))
        (define-method initialize ((o <no-hash>) initargs)
 	 (call-next-method)
-	   (slot-set! o 'init values)
-	   (slot-set! o 'process
-		      (lambda (h bv . ignore)
-			(bytevector-copy! bv 0 (slot-ref h 'buffer) 0 size)))
-	   (slot-set! o 'done
-		      (lambda (h out . ignore)
-			(bytevector-copy! (slot-ref h 'buffer) 0 out 0 size)))
-	   (slot-set! o 'block-size 16)
-	   (slot-set! o 'hash-size size)
-	   (slot-set! o 'oid #f)
-	   (slot-set! o 'state #f))
+	 (slot-set! o 'init values)
+	 (slot-set! o 'process
+		    (lambda (h bv . ignore)
+		      (bytevector-copy! bv 0 (slot-ref h 'buffer) 0 size)))
+	 (slot-set! o 'done
+		    (lambda (h out . ignore)
+		      (bytevector-copy! (slot-ref h 'buffer) 0 out 0 size)))
+	 (slot-set! o 'block-size 16)
+	 (slot-set! o 'hash-size size)
+	 (slot-set! o 'oid #f)
+	 (slot-set! o 'state #f))
        (define name marker)
        (define dummy (register-hash name <no-hash>))))))
 

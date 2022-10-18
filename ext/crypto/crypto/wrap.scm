@@ -48,7 +48,7 @@
 	    (crypto cipher)
 	    (sagittarius crypto))
 
-  (define-condition-type &integrity-error &crypto-error
+  (define-condition-type &integrity-error &error
     make-integrity-error integrity-error?)
     
   (define +default-iv+ #vu8(#xa6 #xa6 #xa6 #xa6 #xa6 #xa6 #xa6 #xa6))

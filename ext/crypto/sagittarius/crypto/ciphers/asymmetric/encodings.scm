@@ -141,7 +141,7 @@
       (cond ((asymmetric-state-private-key? state)
 	     (bytevector-u8-set! bv 1 2) ;; PKCS1-v1.5-EME
 	     (random-generator-read-random-bytes! prng bv 2 ps-length)
-	     (do ((i 0 (+ i 1)) (bv (make-bytevector 1)))
+	     (do ((i 0 (+ i 1)))
 		 ((= i ps-length) #t)
 	       ;; transform zero bytes (if any) to non-zero random bytes
 	       (when (zero? (bytevector-u8-ref bv (+ i 2)))

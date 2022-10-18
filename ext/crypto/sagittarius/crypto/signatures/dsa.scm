@@ -77,13 +77,14 @@
 		    (get-digest 'make-signer-state (dsa-key-parameter key)))
 	:der-encode der-encode))
 
-(define (construct-dsa-signature state r s)
+(define (construct-dsa-signature state r s size)
   (if (dsa-state-der-encode? state)
       (asn1-encodable->bytevector
        (der-sequence
 	(integer->der-integer r)
 	(integer->der-integer s)))
-      (bytevector-append (integer->bytevector r) (integer->bytevector s))))
+      (bytevector-append (integer->bytevector r size)
+			 (integer->bytevector s size))))
 
 (define (deconstruct-dsa-signature state S size)
   (define (check-leading-zero bv)
@@ -109,6 +110,9 @@
 (define-method signer-state->signature ((state <dsa-signer-state>))
   (define key (signature-state-key state))
   (define param (dsa-key-parameter key))
+  (define size
+    (let ((q (dsa-key-parameter-q param)))
+      (div (+ (bitwise-length q) 7) 8)))
   (let* ((p (dsa-key-parameter-p param))
 	 (q (dsa-key-parameter-q param))
 	 (g (dsa-key-parameter-g param))
@@ -120,7 +124,7 @@
 	 (xr+h (mod (+ (* X r) H) q))
 	 (kinv (mod-inverse k q))
 	 (s (mod (* (if (> xr+h q) (- xr+h q) xr+h) kinv) q)))
-    (construct-dsa-signature state r s)))
+    (construct-dsa-signature state r s size)))
     
 (define-method make-verifier-state ((m (eql *signature:dsa*))
 				    (key <dsa-public-key>)
@@ -133,11 +137,11 @@
 
 (define-method verifier-state-verify-message ((state <dsa-verifier-state>)
 					      (signature <bytevector>))
-  (define (ssize digest)
-    (let ((q (dsa-key-parameter-q param)))
-      (div (+ (bitwise-length q) 7) 8)))
   (define key (signature-state-key state))
   (define param (dsa-key-parameter key))
+  (define size
+    (let ((q (dsa-key-parameter-q param)))
+      (div (+ (bitwise-length q) 7) 8)))
   (define (compute-e q M)
     (if (>= (bitwise-length q) (* (bytevector-length M) 8))
 	(bytevector->uinteger M)
@@ -149,7 +153,7 @@
 	 (m (compute-e q (digest-signature-state-signing-message! state)))
 	 (digest (digest-signature-state-digest state)))
     (let-values (((r s)
-		  (deconstruct-dsa-signature state signature (ssize digest))))
+		  (deconstruct-dsa-signature state signature size)))
       (let* ((w (mod-inverse s q))
 	     (u1 (mod (* m w) q))
 	     (u2 (mod (* r w) q))

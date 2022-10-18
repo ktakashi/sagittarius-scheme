@@ -29,7 +29,7 @@
   (test-equal (format "EdDSA public key ~a" type) raw-pub
 	      (eddsa-public-key-data (eddsa-private-key-public-key priv-key)))
   (test-equal (format "EdDSA signature ~a" type)
-	       signature (signer msg priv-key :context context))
+	      signature (signer msg priv-key :context context))
   (test-assert (format "EdDSA verify ~a" type)
 	       (verifier msg signature pub-key :context context))
   ;; using cipher

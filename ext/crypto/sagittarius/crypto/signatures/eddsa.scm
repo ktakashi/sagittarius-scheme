@@ -124,7 +124,7 @@
 (define-method make-signer-state ((m (eql *signature:eddsa*))
 				  (key <eddsa-private-key>)
 				  :key (scheme #f)
-				       (context #vu8())
+				       ((context bytevector?) #vu8())
 				  :allow-other-keys opts)
   (unless (eddsa-scheme? scheme)
     (assertion-violation 'make-signer-state "EdDSA requires :scheme"))
@@ -196,7 +196,7 @@
 (define-method make-verifier-state ((m (eql *signature:eddsa*))
 				    (key <eddsa-public-key>)
 				    :key (scheme #f)
-					 (context #vu8())
+					 ((context bytevector?) #vu8())
 				    :allow-other-keys opts)
   (unless (eddsa-scheme? scheme)
     (assertion-violation 'make-signer-state "EdDSA requires :scheme"))
@@ -316,8 +316,7 @@
 			     (if hflag #vu8(1) #vu8(0))
 			     (make-bytevector 1 (bytevector-length ctx))
 			     ctx)
-			    (assertion-violation 'Ed448
-						 "Context too big"))
+			    (assertion-violation 'Ed448 "Context too big"))
 			#vu8())))
     (shake-256-114 (bytevector-append dom-prefix data))))
 (define ed448-scheme

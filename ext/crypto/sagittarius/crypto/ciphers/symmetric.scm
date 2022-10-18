@@ -91,6 +91,7 @@
 	    )
     (import (rnrs)
 	    (clos user)
+	    (sagittarius)
 	    (sagittarius crypto keys)
 	    (sagittarius crypto ciphers types)
 	    (sagittarius crypto descriptors))
@@ -175,7 +176,14 @@
 			   "Cipher text buffer is too small"
 			   `(required ,(bytevector-length tmp))
 			   `(actual ,ct-len)))
-    (symmetric-cipher-encrypt! cipher tmp 0 ct cs)))
+    (let ((rlen (symmetric-cipher-encrypt! cipher tmp 0 ct cs)))
+      (if (= rlen (bytevector-length tmp))
+	  rlen
+	  ;; excess data (e.g. no padding), we try to encrypt
+	  ;; NOTE: some modes, i.e. CTR, CFB and OFB, can encrypt excess block
+	  (let ((r (- (bytevector-length tmp) rlen)))
+	    (mode-encrypt! (symmetric-cipher-key cipher) tmp rlen ct rlen r)
+	    (+ r rlen))))))
 
 (define (symmetric-cipher-encrypt-last-block (cipher symmetric-cipher?)
 					     (pt bytevector?)
@@ -186,7 +194,17 @@
   ;; ct must have sufficient length of storage
   (let* ((block-length (symmetric-cipher-block-length cipher))
 	 (tmp ((symmetric-cipher-padder cipher) pt ps block-length)))
-    (symmetric-cipher-encrypt cipher tmp 0)))
+    (let ((r (symmetric-cipher-encrypt cipher tmp 0)))
+      (if (= (bytevector-length r) (bytevector-length tmp))
+	  r
+	  ;; excess data (e.g. no padding), we try to encrypt
+	  ;; NOTE: some modes, i.e. CTR, CFB and OFB, can encrypt excess block
+	  (let* ((tlen (bytevector-length tmp))
+		 (rlen (bytevector-length r))
+		 (blen (- tlen rlen))
+		 (buf (make-bytevector blen)))
+	    (mode-encrypt! (symmetric-cipher-key cipher) tmp rlen buf 0 blen)
+	    (bytevector-append r buf))))))
 
 (define (symmetric-cipher-decrypt! (cipher symmetric-cipher?)
 				   (ct bytevector?)
@@ -229,27 +247,22 @@
       (assertion-violation 'symmetric-cipher-block-length
 			   "Plain text buffer is too small"
 			   `(required ,ct-len) `(actual ,pt-len)))
-    (unless (zero? (mod ct-len block-length))
-      (assertion-violation 'symmetric-cipher-block-length
-			   "Cipher text is not multiple of block length"
-			   ct-len block-length))
-    (symmetric-cipher-decrypt! cipher ct cs pt ps)
-    ((symmetric-cipher-unpadder cipher) pt ps block-length)))
+    ;; NOTE: some modes, i.e. CTR, CFB and OFB, can decrypt excess block
+    (let ((r (symmetric-cipher-decrypt! cipher ct cs pt ps)))
+      (unless (= r ct-len)
+	(mode-decrypt! (symmetric-cipher-key cipher) ct (+ cs r)
+		       pt (+ ps r) (- ct-len r)))
+      ((symmetric-cipher-unpadder cipher) pt ps block-length))))
 
 (define (symmetric-cipher-decrypt-last-block (cipher symmetric-cipher?)
 					     (ct bytevector?)
 					     :optional (cs 0))
-  (let ((block-length (symmetric-cipher-block-length cipher))
-	(ct-len (- (bytevector-length ct) cs)))
-    (unless (zero? (mod ct-len block-length))
-      (assertion-violation 'symmetric-cipher-block-length
-			   "Cipher text is not multiple of block length"
-			   ct-len block-length))
-    (let* ((buf (make-bytevector ct-len))
-	   (len (symmetric-cipher-decrypt-last-block! cipher ct cs buf 0)))
-      (if (= len (bytevector-length buf))
-	  buf
-	  (bytevector-copy buf 0 len)))))
+  (let* ((ct-len (- (bytevector-length ct) cs))
+	 (buf (make-bytevector ct-len))
+	 (len (symmetric-cipher-decrypt-last-block! cipher ct cs buf 0)))
+    (if (= len (bytevector-length buf))
+	buf
+	(bytevector-copy buf 0 len))))
 
 ;;; AAD/IV
 (define (symmetric-cipher-update-aad! (cipher symmetric-cipher?)

@@ -61,7 +61,11 @@
 	    rfc7748-public-key-data
 
 	    x25519-public-key? <x25519-public-key>
-	    x448-public-key? <x448-public-key>)
+	    x448-public-key? <x448-public-key>
+
+	    x25519-calculate-agreement
+	    x448-calculate-agreement
+	    )
     (import (rnrs)
 	    (core misc)
 	    (clos user)

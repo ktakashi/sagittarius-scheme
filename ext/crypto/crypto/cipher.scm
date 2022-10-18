@@ -1,8 +1,9 @@
 ;;; -*- mode: scheme; coding: utf-8 -*-
 ;;;
 ;;; cipher.scm Cryptographic library
-;;; 
-#!core
+;;;
+#!deprecated
+#!nounbound
 (library (crypto cipher)
     (export crypto-object?
 	    cipher-keysize
@@ -11,7 +12,7 @@
 	    cipher-update-aad!
 	    cipher-tag! cipher-tag
 	    cipher-max-tag-size
-	    cipher?
+	    (rename (legacy-cipher? cipher?))
 	    make-cipher
 	    cipher-encrypt
 	    cipher-decrypt
@@ -25,63 +26,72 @@
 
 	    ;; parameters
 	    define-mode-parameter
-	    make-composite-parameter mode-parameter?
-	    <mode-name-parameter> make-mode-name-parameter mode-name-parameter?
+	    (rename (make-cipher-parameter make-composite-parameter)
+		    (cipher-parameter? mode-parameter?))
+	    
+	    (rename (mode-name-parameter <mode-name-parameter>))
+	    make-mode-name-parameter mode-name-parameter?
 	    parameter-mode-name
 	    <iv-parameter> make-iv-parameter iv-parameter?
-	    parameter-iv
+	    (rename (cipher-parameter-iv parameter-iv))
 	    <ctr-parameter> make-ctr-parameter ctr-parameter?
 	    parameter-ctr-mode
 	    <rfc3686-parameter> make-rfc3686-parameter rfc3686-parameter?
-	    <padding-parameter> make-padding-parameter padding-parameter?
+	    (rename (padding-parameter <padding-parameter>))
+	    make-padding-parameter padding-parameter?
 	    parameter-padder
 	    <round-parameter> make-round-parameter round-parameter?
-	    parameter-rounds
-	    ;; TODO more?
+	    (rename (cipher-parameter-rounds parameter-rounds))
 
 	    ;; signing
 	    ;; supported algorithms
-	    Blowfish
-	    X-Tea
-	    RC2
-	    RC5-32/12/b
-	    RC6-32/20/b
-	    SAFER+
-	    SAFER-K64
-	    SAFER-SK64
-	    SAFER-K128
-	    SAFER-SK128
-	    AES
-	    AES-128
-	    AES-192
-	    AES-256
-	    Twofish
-	    DES
-	    DES3
-	    DESede
-	    CAST5
-	    CAST-128
-	    Noekeon
-	    Skipjack
-	    Khazad
-	    SEED
-	    KASUMI
-	    Camellia
+            (rename (*scheme:blowfish*    Blowfish)
+		    (*scheme:x-tea*       X-Tea)
+		    (*scheme:rc2*         RC2)
+		    (*scheme:rc5*         RC5-32/12/b)
+		    (*scheme:rc6*         RC6-32/20/b)
+		    (*scheme:safer+*      SAFER+)
+		    (*scheme:safer-k64*   SAFER-K64)
+		    (*scheme:safer-sk64*  SAFER-SK64)
+		    (*scheme:safer-k128*  SAFER-K128)
+		    (*scheme:safer-sk128* SAFER-SK128)
+		    (*scheme:aes*         AES)
+		    (*scheme:aes-128*     AES-128)
+		    (*scheme:aes-192*     AES-192)
+		    (*scheme:aes-256*     AES-256)
+		    (*scheme:twofish*     Twofish)
+		    (*scheme:des*         DES)
+		    (*scheme:des3*        DES3)
+		    (*scheme:desede*      DESede)
+		    (*scheme:cast5*       CAST5)
+		    (*scheme:cast-128*    CAST-128)
+		    (*scheme:noekeon*     Noekeon)
+		    (*scheme:skipjack*    Skipjack)
+		    (*scheme:khazad*      Khazad)
+		    (*scheme:seed*        SEED)
+		    (*scheme:kasumi*      KASUMI)
+		    (*scheme:camellia*    Camellia))
 	    ;; supported modes
-	    MODE_ECB
-	    MODE_CBC
-	    MODE_CFB
-	    MODE_OFB
-	    MODE_CTR
-	    MODE_GCM
+	    (rename (*mode:ecb* MODE_ECB)
+		    (*mode:cbc* MODE_CBC)
+		    (*mode:cfb* MODE_CFB)
+		    (*mode:ofb* MODE_OFB)
+		    (*mode:ctr* MODE_CTR)
+		    (*mode:lrw* MODE_LRW)
+		    (*mode:f8*  MODE_F8)
+		    (*mode:eax* MODE_EAX)
+		    (*mode:ocb* MODE_OCB)
+		    (*mode:ocb3* MODE_OCB3)
+		    (*mode:gcm* MODE_GCM))
+	    
 	    ;; ctr conter mode
-	    CTR_COUNTER_LITTLE_ENDIAN
-	    CTR_COUNTER_BIG_ENDIAN
-	    LTC_CTR_RFC3686
+	    (rename (*ctr-mode:little-endian* CTR_COUNTER_LITTLE_ENDIAN)
+		    (*ctr-mode:big-endian* CTR_COUNTER_BIG_ENDIAN)
+		    (*ctr-mode:rfc3686* LTC_CTR_RFC3686))
 
-	    <crypto>
-	    <cipher>
-	    <cipher-spi>
+	    (rename (<legacy-crypto> <crypto>)
+		    (<legacy-cipher> <cipher>)
+		    (<legacy-cipher-spi> <cipher-spi>))
 	    <key>
 	    <symmetric-key>
 	    <asymmetric-key>
@@ -92,285 +102,181 @@
 		    (cipher-signature sign)
 		    (cipher-verify verify))
 	    )
-    (import (core)
-	    (core base)
-	    (core syntax)
-	    (core inline)
-	    (core record)
-	    (crypto key)
-	    (crypto pkcs)
+    (import (rnrs)
 	    (sagittarius)
+	    (sagittarius crypto parameters)
+	    (sagittarius crypto ciphers symmetric)
 	    (clos core)
-	    (sagittarius crypto))
+	    (crypto spi)
+	    (crypto key)
+	    (crypto pkcs))
+(define-syntax define-mode-parameter (make-define-cipher-parameter))
+(define-mode-parameter mode-name-parameter
+  make-mode-name-parameter mode-name-parameter?
+  (mode-name parameter-mode-name))
 
-  ;; OK, the same idea as aeolus :)
-  ;; just an interface
-  (define-record-type (<mode-parameter> make-mode-parameter mode-parameter?))
-  
-  (define-record-type (<composite-parameter> %make-composite-parameter
-					     composite-parameter?)
-    (parent <mode-parameter>)
-    (fields (immutable parameters parameter-composite-parameters)))
+(define-mode-parameter padding-parameter
+  make-padding-parameter padding-parameter?
+  (padder parameter-padder))
 
-  (define-inline (make-composite-parameter . params)
-    (unless (for-all mode-parameter? params)
-      (assertion-violation 'make-composite-parameter
-			   "mode-parameter is required" params))
-    (let loop ((params params) (r '()))
-      (cond ((null? params)
-	     (%make-composite-parameter (reverse! r)))
-	    ((composite-parameter? (car params))
-	     (loop (cdr params) 
-		   `(,@(reverse (parameter-composite-parameters (car params)))
-		     . r)))
-	    (else (loop (cdr params) (cons (car params) r))))))
+(define-mode-parameter (<ctr-parameter> <iv-parameter>)
+  (make-ctr-parameter (lambda (p)
+			(lambda (iv :optional (mode *ctr-mode:big-endian*))
+			  ((p iv) mode))))
+  ctr-parameter?
+  (mode parameter-ctr-mode))
+    
+(define-mode-parameter (<rfc3686-parameter> <ctr-parameter>)
+  (make-rfc3686-parameter
+   (lambda (p)
+     (lambda (iv nonce :optional (mode *ctr-mode:big-endian*))
+       (let ((v (make-bytevector 16 0))
+	     (nlen (bytevector-length nonce))
+	     (ivlen (bytevector-length iv)))
+	 (if (= mode *ctr-mode:big-endian*)
+	     ;; NONCE || IV || ONE = 16
+	     (begin
+	       (bytevector-copy! nonce 0 v 0 nlen)
+	       (bytevector-copy! iv 0 v nlen ivlen))
+	     ;; ONE || IV || NONCE (i guess)
+	     (begin
+	       (bytevector-copy! iv 0 v 4 ivlen)
+	       (bytevector-copy! nonce 0 v (+ 4 ivlen) nlen)))
+	 ;; let it do libtomcrypt
+	 ((p v (+ mode *ctr-mode:rfc3686*)))))))
+  rfc3686-parameter?)
 
-  (define (find-parameter p pred)
-    (cond ((composite-parameter? p)
-	   (let loop ((parameters (parameter-composite-parameters p)))
-	     (cond ((null? parameters) #f)
-		   ((pred (car parameters)) (car parameters))
-		   (else (loop (cdr parameters))))))
-	  ((pred p) p)
-	  (else #f)))
+(define (crypto-object? o)
+  (or (key? o)
+      (is-a? o <legacy-crypto>)))
+;; This is why we want to replace lagacy library...
+(define (cipher-verify cipher M S . opts)
+  (let ((spi (cipher-spi cipher)))
+    (apply (cipher-spi-verifier spi) M S
+	   (cipher-spi-key spi)
+	   opts)))
+(define (cipher-signature cipher M . opts)
+  (let ((spi (cipher-spi cipher)))
+    (apply (cipher-spi-signer spi) M (cipher-spi-key spi) opts)))
+(define (cipher-decrypt cipher ct :optional (len 0))
+  (let ((spi (cipher-spi cipher)))
+    (if (legacy-builtin-cipher-spi? spi)
+	((cipher-spi-decrypt spi) ct len (cipher-spi-key spi))
+	((cipher-spi-decrypt spi) ct (cipher-spi-key spi)))))
+(define (cipher-encrypt cipher pt :optional (len 0))
+  (let ((spi (cipher-spi cipher)))
+    (if (legacy-builtin-cipher-spi? spi)
+	((cipher-spi-encrypt spi) pt len (cipher-spi-key spi))
+	((cipher-spi-encrypt spi) pt (cipher-spi-key spi)))))
+(define (cipher-max-tag-size cipher)
+  (let ((spi (cipher-spi cipher)))
+    (cipher-spi-tagsize spi)))
+(define (cipher-update-aad! cipher aad . opts)
+  (let ((spi (cipher-spi cipher)))
+    (cond ((cipher-spi-update-aad spi) => (lambda (proc) (apply proc aad opts)))
+	  (else #f))))
+(define (cipher-iv cipher :optional (iv #f))
+  (let ((spi (cipher-spi cipher)))
+    (if (bytevector? iv)
+	(slot-set! spi 'iv iv)
+	(cipher-spi-iv spi))))
 
-  (define-syntax define-mode-parameter
-    (lambda (x)
-      (define (make-ctr&pred k name)
-	(let* ((s (symbol->string (syntax->datum name)))
-	       (c (string->symbol (format "make-~a" s)))
-	       (p (string->symbol (format "~a?" s))))
-	  (datum->syntax k (list c p))))
-      (syntax-case x ()
-	((k (name ctr pred) specs ...)
-	 #'(define-mode-aux (name ctr pred) specs ...))
-	((k name specs ...)
-	 (identifier? #'name)
-	 (with-syntax (((ctr pred) (make-ctr&pred #'k #'name)))
-	   #'(define-mode-parameter (name ctr pred) specs ...))))))
+(define (cipher-keysize cipher test)
+  (let ((spi (cipher-spi cipher)))
+    ((cipher-spi-keysize spi) test)))
 
-  (define-syntax define-mode-aux
-    (lambda (x)
-      (define (parse-fields k record-name pred fields)
-	(define rn (symbol->string (syntax->datum record-name)))
-	(define immutable #'immutable)
-	(define (gen-get k name)
-	  (let* ((s (symbol->string (syntax->datum name)))
-		 ;; what ever is fine
-		 (n (string->symbol (format "~a-~a" rn s))))
-	    (datum->syntax k n)))
-	(define (gen-acc k name get)
-	  (define (ensure n) (datum->syntax k (syntax->datum n)))
-	  (with-syntax ((ref get) (acc name) (pred pred))
-	    ;; find-parameter should be in this scope but 
-	    ;; get and acc must be defined scope
-	    #'(define (acc o :optional (fallback #f))
-		(cond ((find-parameter o pred) => ref)
-		      (else fallback)))))
-	    
-	(let loop ((fields fields) (field* '()) (acc '()))
-	  (syntax-case fields ()
-	    ((name rest ...)
-	     (identifier? #'name)
-	     (let ((get (gen-get k #'name)))
-	       (with-syntax ((dummy (datum->syntax k 'dummy0)))
-		 (loop #'(rest ...) 
-		       (cons #'(immutable name dummy) field*)
-		       (cons (gen-acc k get #'dummy) acc)))))
-	    (((name get) rest ...)
-	     (with-syntax ((dummy (datum->syntax k 'dummy1)))
-	       (loop #'(rest ...) 
-		     (cons #'(immutable name dummy) field*)
-		     (cons (gen-acc k #'get #'dummy) acc))))
-	    (() (datum->syntax k (list (reverse! field*) (reverse! acc)))))))
+(define (cipher type key 
+		:key (mode *mode:ecb*)
+		(iv #f)
+		(padder pkcs5-padder)
+		(rounds 0)
+		(ctr-mode *ctr-mode:big-endian*)
+		:allow-other-keys
+		:rest rest)
+  (define (rfc3686?)
+    (not (zero? (bitwise-and ctr-mode *ctr-mode:rfc3686*))))
+  (apply make-cipher type key 
+	 :mode-parameter
+	 (apply make-cipher-parameter
+		(filter values
+			(list
+			 (make-mode-name-parameter mode)
+			 (make-padding-parameter padder)
+			 (make-round-parameter rounds)
+			 (and iv
+			      (if (rfc3686?)
+				  ;; should we add nonce?
+				  (make-rfc3686-parameter iv
+							  #vu8(0 0 0 0)
+							  ctr-mode)
+				  (make-ctr-parameter iv ctr-mode))))))
+	 rest))
 
-      ;; we need to find them
-      (syntax-case x (fields parent protocol <mode-parameter>)
-	((k (name ctr pred) specs ...)
-	 #'(define-mode-aux "parse" (name ctr pred)
-	     () (parent <mode-parameter>) (protocol #f) (specs ...)))
-	;; fields
-	((k "parse" (name ctr pred) () (parent* ...) (protocol* ...)
-	    ((fields field* ...) rest ...))
-	 (with-syntax ((((field* ...) (acc ...))
-			(parse-fields #'k #'name #'pred #'(field* ...))))
-	   #'(define-mode-aux "parse" (name ctr pred)
-	       ((fields field* ...) acc ...) (parent* ...) (protocol* ...)
-	       (rest ...))))
-	;; parent
-	((k "parse" (name ctr pred) (fields* ...)
-	    (parent <mode-parameter>)
-	    (protocol* ...)
-	    ((parent p) rest ...))
-	 #'(define-mode-aux "parse" (name ctr pred)
-	     (fields* ...) (parent p) (protocol* ...)
-	     (rest ...)))
-	;; protocol
-	((k "parse" (name ctr pred) (fields* ...) (parent* ...) (protocol #f)
-	    ((protocol p) rest ...))
-	 #'(define-mode-aux "parse" (name ctr pred)
-	     (fields* ...) (parent* ...) (protocol p)
-	     (rest ...)))
-	;; done
-	((k "parse" (name ctr pred) 
-	    () ;; nofield
-	    (parent* ...) (protocol* ...)
-	    ())
-	 #'(begin
-	     (define-record-type (name ctr real-pred)
-	       (parent* ...)
-	       (protocol* ...))
-	     (define (pred o)
-	       (and (mode-parameter? o)
-		    (or (real-pred o)
-			(and (find-parameter o real-pred) #t))))))
-	((k "parse" (name ctr pred) 
-	    ((field* ...) acc ...)
-	    (parent* ...) (protocol* ...)
-	    ())
-	 #'(begin
-	     (define-record-type (name ctr %real-pred)
-	       (field* ...)
-	       (parent* ...)
-	       (protocol* ...))
-	     acc ...
-	     (define (pred o)
-	       (and (mode-parameter? o)
-		    (or (%real-pred o)
-			(and (find-parameter o %real-pred) #t)))))))))
+(define (make-cipher type key
+		     :key (mode-parameter #f)
+		     :allow-other-keys
+		     :rest rest)
+  (define parameter mode-parameter)
+  ;; kinda silly but for now
+  (let ((mode (or (and parameter (parameter-mode-name parameter *mode:ecb*))
+		  *mode:ecb*))
+	(iv (and parameter (cipher-parameter-iv parameter #f)))
+	;; these 2 doesn't have to be there but
+	;; make-builtin-cipher-spi requires it.
+	;; TODO better construction
+	(rounds (or (and parameter (cipher-parameter-rounds parameter 0)) 0))
+	(ctr-mode (or (and parameter 
+			   (parameter-ctr-mode parameter *ctr-mode:big-endian*))
+		      *ctr-mode:big-endian*))
+	(padder (or (and parameter (parameter-padder parameter #f))
+		    no-padding)))
+    (unless (or (eq? mode *mode:ecb*) (bytevector? iv))
+      (assertion-violation 'cipher "the given mode iv is required"))
+    (let ((spi (cond ((cipher-descriptor? type)
+		      (make-builtin-cipher-spi
+		       type mode key iv rounds padder ctr-mode))
+		     ((lookup-cipher-spi type) =>
+		      (lambda (spi)
+			(apply make spi key :mode-parameter parameter
+			       rest)))
+		     ((legacy-cipher-spi? type) type) ;; reuse 
+		     (else
+		      (assertion-violation 'cipher
+					   "unknown cipher type" type)))))
+      (make <legacy-cipher> :spi spi))))
 
-  (define-mode-parameter (<mode-name-parameter> make-mode-name-parameter
-						mode-name-parameter?)
-    (fields (mode-name parameter-mode-name)))
+(define-constant +check-value+ (make-bytevector 8 0))
+(define (key-check-value type key :optional (size 3))
+  (unless (<= 3 size 8)
+    (assertion-violation 'key-check-value "size must be between 3 to 8"
+			 size))
+  (let ((c (make-cipher type key)))
+    (bytevector-copy (cipher-encrypt c +check-value+) 0 size)))
 
-  (define-mode-parameter (<iv-parameter> make-iv-parameter iv-parameter?)
-    (fields (iv parameter-iv)))
-  (define-mode-parameter (<padding-parameter> make-padding-parameter
-					      padding-parameter?)
-    (fields (padder parameter-padder)))
-  (define-mode-parameter (<ctr-parameter> make-ctr-parameter ctr-parameter?)
-    (fields (mode   parameter-ctr-mode))
-    (parent <iv-parameter>)
-    (protocol (lambda (p)
-		(lambda (iv :optional (mode CTR_COUNTER_BIG_ENDIAN))
-		  ((p iv) mode)))))
-  (define-mode-parameter (<rfc3686-parameter> make-rfc3686-parameter 
-					      rfc3686-parameter?)
-    (parent <ctr-parameter>)
-    (protocol (lambda (p)
-		(lambda (iv nonce :optional (mode CTR_COUNTER_BIG_ENDIAN))
-		  (let ((v (make-bytevector 16 0))
-			(nlen (bytevector-length nonce))
-			(ivlen (bytevector-length iv)))
-		    (if (= mode CTR_COUNTER_BIG_ENDIAN)
-			;; NONCE || IV || ONE = 16
-			(begin
-			  (bytevector-copy! nonce 0 v 0 nlen)
-			  (bytevector-copy! iv 0 v nlen ivlen))
-			;; ONE || IV || NONCE (i guess)
-			(begin
-			  (bytevector-copy! iv 0 v 4 ivlen)
-			  (bytevector-copy! nonce 0 (+ 4 ivlen) nlen)))
-		    ;; let it do libtomcrypt
-		    ((p v (+ mode LTC_CTR_RFC3686))))))))
+;; with authentication
+(define (cipher-tag! cipher out)
+  (let ((spi (cipher-spi cipher)))
+    (cond ((cipher-spi-tag spi) => (lambda (proc) (proc out)))
+	  (else 0))))
+(define (cipher-tag cipher :key (tag #f))
+  (let ((out (if tag tag (make-bytevector (cipher-max-tag-size cipher)))))
+    (cipher-tag! cipher out)
+    out))
 
-  (define-mode-parameter (<round-parameter> make-round-parameter
-					    round-parameter?)
-    (fields (rounds parameter-rounds)))
-
-  (define (cipher-keysize cipher test)
-    (unless (cipher? cipher)
-      (assertion-violation 'cipher-keysize
-			   (format "cipher required but got ~s" cipher)))
-    (suggest-keysize cipher test))
-
-  (define (cipher type key 
-		  :key (mode MODE_ECB)
-		  (iv #f)
-		  (padder pkcs5-padder)
-		  (rounds 0)
-		  (ctr-mode CTR_COUNTER_BIG_ENDIAN)
-		  :allow-other-keys
-		  :rest rest)
-    (define (rfc3686?)
-      (not (zero? (bitwise-and ctr-mode LTC_CTR_RFC3686))))
-    (apply make-cipher type key 
-	   :mode-parameter (make-composite-parameter
-			    (make-mode-name-parameter mode)
-			    (make-padding-parameter padder)
-			    (make-round-parameter rounds)
-			    (if (rfc3686?)
-				;; should we add nonce?
-				(make-rfc3686-parameter iv #vu8(0 0 0 0)
-							ctr-mode)
-				(make-ctr-parameter iv  ctr-mode)))
-	   rest))
-
-  (define (make-cipher type key
-		       :key (mode-parameter #f)
-		       :allow-other-keys
-		       :rest rest)
-    (define parameter mode-parameter)
-    ;; kinda silly but for now
-    (let ((mode (or (and parameter (parameter-mode-name parameter MODE_ECB))
-		     MODE_ECB))
-	  (iv (and parameter (parameter-iv parameter)))
-	  ;; these 2 doesn't have to be there but
-	  ;; make-builtin-cipher-spi requires it.
-	  ;; TODO better construction
-	  (rounds (or (and parameter (parameter-rounds parameter 0)) 0))
-	  (ctr-mode (or (and parameter 
-			     (parameter-ctr-mode parameter
-						 CTR_COUNTER_BIG_ENDIAN))
-			CTR_COUNTER_BIG_ENDIAN))
-	  (padder (and parameter (parameter-padder parameter))))
-      (unless (or (= mode MODE_ECB) (bytevector? iv))
-	(assertion-violation 'cipher
-			     "on the given mode iv id required"))
-      (let ((spi (cond ((lookup-cipher-spi type)
-			=> (lambda (spi)
-			     (if (boolean? spi)
-				 (make-builtin-cipher-spi
-				  type mode key iv rounds padder ctr-mode)
-				 (apply make spi key 
-					:mode-parameter parameter
-					rest))))
-		       ((cipher-spi? type) type) ;; reuse 
-		       (else
-			(assertion-violation 'cipher
-					     "unknown cipher type" type)))))
-	(create-cipher spi))))
-
-  (define-constant +check-value+ (make-bytevector 8 0))
-  (define (key-check-value type key :optional (size 3))
-    (unless (<= 3 size 8)
-      (assertion-violation 'key-check-value "size must be between 3 to 8"
-			   size))
-    (let ((c (make-cipher type key)))
-      (bytevector-copy (cipher-encrypt c +check-value+) 0 size)))
-
-  ;; with authentication
-  (define (cipher-tag cipher :key (size (cipher-max-tag-size cipher)))
-    (let ((tag (make-bytevector size)))
-      (cipher-tag! cipher tag)
-      tag))
-
-  (define (cipher-encrypt/tag cipher data
-			      :key (tag-size (cipher-max-tag-size cipher)))
-    (let ((encrypted (cipher-encrypt cipher data)))
-      (values encrypted (cipher-tag cipher :size tag-size))))
-  (define (cipher-decrypt/tag cipher data
-			      :key (tag-size (cipher-max-tag-size cipher)))
-    (let ((pt (cipher-decrypt cipher data)))
-      (values pt (cipher-tag cipher :size tag-size))))
-  (define (cipher-decrypt/verify cipher encrypted tag)
-    (let-values (((pt target)
-		  (cipher-decrypt/tag cipher encrypted
-				      :tag-size (bytevector-length tag))))
-      (unless (bytevector=? tag target)
-	(raise-decrypt-error (slot-ref cipher 'name)
-			     'cipher-decrypt/verify
-			     "invalid tag is given"))
-      pt))
+(define (cipher-encrypt/tag cipher data
+			    :key (tag-size (cipher-max-tag-size cipher)))
+  (let ((encrypted (cipher-encrypt cipher data)))
+    (values encrypted (cipher-tag cipher :tag (make-bytevector tag-size)))))
+(define (cipher-decrypt/tag cipher data tag)
+  (let ((pt (cipher-decrypt cipher data)))
+    (values pt (cipher-tag cipher :tag tag))))
+(define (cipher-decrypt/verify cipher encrypted tag)
+  (let-values (((pt target)
+		(cipher-decrypt/tag cipher encrypted
+				    :tag-size (bytevector-length tag))))
+    (unless (bytevector=? tag target)
+      (error (slot-ref cipher 'name) 'cipher-decrypt/verify
+	     "invalid tag is given"))
+    pt))
 
 )

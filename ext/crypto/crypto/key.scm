@@ -4,7 +4,7 @@
 ;;; 
 #!core
 (library (crypto key)
-    (export key?
+    (export (rename (crypto-key? key?))
 	    symmetric-key?
 	    asymmetric-key?
 	    generate-secret-key
@@ -17,6 +17,9 @@
 	    keypair? make-keypair
 	    keypair-private
 	    keypair-public
+	    (rename (<crypto-key> <key>))
+	    <symmetric-key>
+	    <asymmetric-key>
 	    <private-key>
 	    private-key?
 	    <public-key>
@@ -38,7 +41,7 @@
 	    )
     (import (rnrs)
 	    (clos user)
-	    (sagittarius crypto)
+	    (sagittarius crypto keys)
 	    (crypto key pair)
 	    (crypto key des)
 	    (crypto key component)
@@ -46,13 +49,7 @@
 
 (define-generic symmetric-key-raw-key)
 
-;; for now, I think we should add key->bytevector or something for more
-;; completion
-(define-method symmetric-key-raw-key ((key <builtin-symmetric-key>))
-  (builtin-symmetric-key-raw-key key))
-
 (define-method symmetric-key-raw-key ((key <symmetric-key>))
-  (error 'symmetric-key-raw-key "The given custom key must implement the method"
-	 key))
+  (symmetric-key-value key))
 
-  )
+)

@@ -58,9 +58,13 @@
 	    <hash-algorithm>
 	    <user-hash-algorithm>
 	    <builtin-hash-algorithm>
+
+	    ;; for other libraries' backward compatibilities
+	    hash-algorithm->digest-descriptor
 	    )
 
     (import (rnrs)
+	    (clos core)
 	    (clos user)
 	    (sagittarius crypto digests))
 
@@ -75,13 +79,38 @@
    (block-size :init-keyword :block-size :reader user-hash-algorithm-block-size)
    (hash-size :init-keyword :hash-size :reader user-hash-algorithm-hash-size)
    (oid :init-keyword :oid :reader user-hash-algorithm-oid)
-   (state :init-keyword :state :reader user-hash-algorithm-state)))
+   (state :init-keyword :state :reader user-hash-algorithm-state)
+   ;; ...
+   (digest :reader user-hash-algorithm-digest)
+   ))
 (define (user-hash-algorithm? o) (is-a? o <user-hash-algorithm>))
+(define-method initialize :after ((o <user-hash-algorithm>) initargs)
+  (define (safe-slot-ref o slot default)
+    (if (slot-bound? o slot)
+	(slot-ref o slot)
+	default))
+  (call-next-method)
+  (let ((descriptor (make-digest-descriptor
+		     (class-of o)
+		     (let ((init (safe-slot-ref o 'init (lambda () o))))
+		       (lambda () (init o)))
+		     (safe-slot-ref o 'process (lambda (me bv . ignore) bv))
+		     (safe-slot-ref o 'done (lambda (me out . ignore) out))
+		     (safe-slot-ref o 'block-size #f)
+		     (safe-slot-ref o 'hash-size #f)
+		     (safe-slot-ref o 'oid #f))))
+    (slot-set! o 'digest descriptor)
+    o))
 
 (define-class <builtin-hash-algorithm> (<hash-algorithm>)
   ((md :init-keyword :md :reader builtin-hash-algorithm-md)
    (digest :init-keyword :digest :reader builtin-hash-algorithm-digest)))
 (define (builtin-hash-algorithm? o) (is-a? o <builtin-hash-algorithm>))
+
+(define (hash-algorithm->digest-descriptor (hash hash-algorithm?))
+  (if (builtin-hash-algorithm? hash)
+      (builtin-hash-algorithm-digest hash)
+      (user-hash-algorithm-digest hash)))
 
 (define-generic lookup-hash)
 (define-method lookup-hash (o) #f)

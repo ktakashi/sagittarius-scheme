@@ -434,69 +434,79 @@
 (for-each (test-signer/verifier parameter2) all-signature-scheme)
 
 ;; ECDSA curve tests
+(define-syntax curve-list
+  (syntax-rules ()
+    ((_) '())
+    ((_ name names* ...)
+     (cons (list 'name name)
+	   (curve-list names* ...)))))
 ;; Note NIST curves are commented out as SEC has the equivalent ones
 ;; e.g. *ec-parameter:p192* = *ec-parameter:secp192r1*
-(define all-curves (list ;; *ec-parameter:p192*
-			 ;; *ec-parameter:p224*
-			 ;; *ec-parameter:p256*
-			 ;; *ec-parameter:p384*
-			 ;; *ec-parameter:p521*
-			 ;; *ec-parameter:k163*
-			 ;; *ec-parameter:k233*
-			 ;; *ec-parameter:k283*
-			 ;; *ec-parameter:k409*
-			 ;; *ec-parameter:k571*
-			 ;; *ec-parameter:b163*
-			 ;; *ec-parameter:b233*
-			 ;; *ec-parameter:b283*
-			 ;; *ec-parameter:b409*
-			 ;; *ec-parameter:b571*
-			 *ec-parameter:secp192r1*
-			 *ec-parameter:secp224r1*
-			 *ec-parameter:secp256r1*
-			 *ec-parameter:secp384r1*
-			 *ec-parameter:secp521r1*
-			 *ec-parameter:sect163k1*
-			 *ec-parameter:sect233k1*
-			 *ec-parameter:sect283k1*
-			 *ec-parameter:sect409k1*
-			 *ec-parameter:sect571k1*
-			 *ec-parameter:sect163r2*
-			 *ec-parameter:sect233r1*
-			 *ec-parameter:sect283r1*
-			 *ec-parameter:sect409r1*
-			 *ec-parameter:sect571r1*
-			 *ec-parameter:secp192k1*
-			 *ec-parameter:secp224k1*
-			 *ec-parameter:secp256k1*
-			 *ec-parameter:sect163r1*
-			 *ec-parameter:sect239k1*
-			 *ec-parameter:sect113r1*
-			 *ec-parameter:brainpool-p160r1*
-			 *ec-parameter:brainpool-p160t1*
-			 *ec-parameter:brainpool-p192r1*
-			 *ec-parameter:brainpool-p192t1*
-			 *ec-parameter:brainpool-p224r1*
-			 *ec-parameter:brainpool-p224t1*
-			 *ec-parameter:brainpool-p256r1*
-			 *ec-parameter:brainpool-p256t1*
-			 *ec-parameter:brainpool-p320r1*
-			 *ec-parameter:brainpool-p320t1*
-			 *ec-parameter:brainpool-p384r1*
-			 *ec-parameter:brainpool-p384t1*
-			 *ec-parameter:brainpool-p512r1*
-			 *ec-parameter:brainpool-p512t1*
-			 ))
+(define all-curves (curve-list ;; *ec-parameter:p192*
+			       ;; *ec-parameter:p224*
+			       ;; *ec-parameter:p256*
+			       ;; *ec-parameter:p384*
+			       ;; *ec-parameter:p521*
+			       ;; *ec-parameter:k163*
+			       ;; *ec-parameter:k233*
+			       ;; *ec-parameter:k283*
+			       ;; *ec-parameter:k409*
+			       ;; *ec-parameter:k571*
+			       ;; *ec-parameter:b163*
+			       ;; *ec-parameter:b233*
+			       ;; *ec-parameter:b283*
+			       ;; *ec-parameter:b409*
+			       ;; *ec-parameter:b571*
+			       *ec-parameter:secp192r1*
+			       *ec-parameter:secp224r1*
+			       *ec-parameter:secp256r1*
+			       *ec-parameter:secp384r1*
+			       *ec-parameter:secp521r1*
+			       *ec-parameter:sect163k1*
+			       *ec-parameter:sect233k1*
+			       *ec-parameter:sect283k1*
+			       *ec-parameter:sect409k1*
+			       *ec-parameter:sect571k1*
+			       *ec-parameter:sect163r2*
+			       *ec-parameter:sect233r1*
+			       *ec-parameter:sect283r1*
+			       *ec-parameter:sect409r1*
+			       *ec-parameter:sect571r1*
+			       *ec-parameter:secp192k1*
+			       *ec-parameter:secp224k1*
+			       *ec-parameter:secp256k1*
+			       *ec-parameter:sect163r1*
+			       *ec-parameter:sect239k1*
+			       *ec-parameter:sect113r1*
+			       *ec-parameter:brainpool-p160r1*
+			       *ec-parameter:brainpool-p160t1*
+			       *ec-parameter:brainpool-p192r1*
+			       *ec-parameter:brainpool-p192t1*
+			       *ec-parameter:brainpool-p224r1*
+			       *ec-parameter:brainpool-p224t1*
+			       *ec-parameter:brainpool-p256r1*
+			       *ec-parameter:brainpool-p256t1*
+			       *ec-parameter:brainpool-p320r1*
+			       *ec-parameter:brainpool-p320t1*
+			       *ec-parameter:brainpool-p384r1*
+			       *ec-parameter:brainpool-p384t1*
+			       *ec-parameter:brainpool-p512r1*
+			       *ec-parameter:brainpool-p512t1*
+			       ))
 
-(define (test-ec-parameters ec-parameter)
+(define (test-ec-parameters name&ec-parameter)
+  (define ec-parameter (cadr name&ec-parameter))
   (define kp (generate-key-pair *key:ecdsa* :ec-parameter ec-parameter))
   (define msg (string->utf8 "keep my integrity"))
-  (let ((signer (make-signer *signature:ecdsa* (key-pair-private kp)))
-	(verifier (make-verifier *signature:ecdsa* (key-pair-public kp))))
+  (let ((signer (make-signer *signature:ecdsa* (key-pair-private kp)
+			     :digest *digest:sha-224* :der-encode #f))
+	(verifier (make-verifier *signature:ecdsa* (key-pair-public kp)
+				 :digest *digest:sha-224* :der-encode #f)))
     (test-equal ec-parameter (ecdsa-key-parameter (key-pair-public kp)))
     (test-equal ec-parameter (ecdsa-key-parameter (key-pair-private kp)))
-    (test-assert (verifier-verify-signature verifier msg
-					    (signer-sign-message signer msg)))))
+    (let ((sig (signer-sign-message signer msg)))
+      (test-assert (car name&ec-parameter)
+		   (verifier-verify-signature verifier msg sig)))))
 (for-each test-ec-parameters all-curves)
 
 (test-end)
