@@ -1262,7 +1262,9 @@ static SgObject link_cb_rec(SgObject cb, SgHashTable *seen, read_ctx *ctx)
   SgWord *code;
   int len, i, j;
 
-  ASSERT(SG_CODE_BUILDERP(cb));
+  if (!SG_CODE_BUILDERP(cb)) {
+    ESCAPE(ctx, "Failed to link. Given object is not a code builder: %A", cb);
+  }
   code = SG_CODE_BUILDER(cb)->code;
   len = SG_CODE_BUILDER(cb)->size;
   for (i = 0; i < len;) {
