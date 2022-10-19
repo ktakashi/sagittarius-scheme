@@ -76,7 +76,7 @@
   ((modulus :init-keyword :modulus :reader rsa-public-key-modulus)
    (exponent :init-keyword :exponent :reader rsa-public-key-exponent)))
 (define (rsa-public-key? o) (is-a? o <rsa-public-key>))
-(define (make-rsa-public-key (modulus integer?) (exponent probable-prime?))
+(define (make-rsa-public-key (modulus integer?) (exponent integer?))
   (make <rsa-public-key> :modulus modulus :exponent exponent))
 
 (define-method object-equal? ((o1 <rsa-public-key>) (o2 <rsa-public-key>))
@@ -108,7 +108,7 @@
    (qP :init-keyword :qP :reader rsa-crt-private-key-qP)))
 (define (rsa-crt-private-key? o) (is-a? o <rsa-crt-private-key>))
 (define (make-rsa-crt-private-key (modulus integer?)
-				  (exponent probable-prime?)
+				  (exponent integer?)
 				  (private-exponent integer?)
 				  (p probable-prime?) (q probable-prime?)
 				  :key ((dP integer?) (mod private-exponent (- p 1)))
@@ -159,7 +159,7 @@
   (apply rsa-generate-private-key m e rest))
 
 (define (rsa-generate-private-key m private-exponent
-				  :key (e #f) (p #f) (q #f)
+				  :key (e :public-exponent #f) (p #f) (q #f)
 				  :allow-other-keys rest)
   (if (and e p q)
       (apply make-rsa-crt-private-key m e private-exponent p q rest)
@@ -300,7 +300,7 @@
     (unless (der-integer? v)
       (assertion-violation 'rsa-import-private-key
 			   "Invalid RSAPrivateKey format" private))
-    (der-integer->integer v))
+    (der-integer->uinteger v))
   ;; lazy length validation :D
   (let-values (((v m e pe p q dP dQ qP . other)
 		(apply values (list-queue-list

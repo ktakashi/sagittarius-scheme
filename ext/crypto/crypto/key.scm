@@ -41,7 +41,9 @@
 	    )
     (import (rnrs)
 	    (clos user)
+	    (sagittarius crypto asn1)
 	    (sagittarius crypto keys)
+	    (asn.1)
 	    (crypto key pair)
 	    (crypto key des)
 	    (crypto key component)
@@ -51,5 +53,16 @@
 
 (define-method symmetric-key-raw-key ((key <symmetric-key>))
   (symmetric-key-value key))
+
+;; TODO remove after ASN.1 library migration otherwise it'd be a infinte loop
+(define-method import-private-key (m (o <asn.1-sequence>))
+  (import-private-key m (asn.1-encode o)))
+(define-method import-public-key (m (o <asn.1-sequence>))
+  (import-public-key m (asn.1-encode o)))
+;; Damn...
+(define-method import-private-key (m (o <asn.1-sequence>)
+				     (id <asn.1-encodable>))
+  (import-private-key m (asn.1-encode o)
+		      (bytevector->asn1-object (asn.1-encode id))))
 
 )

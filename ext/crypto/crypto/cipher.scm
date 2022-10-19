@@ -152,9 +152,8 @@
 ;; This is why we want to replace lagacy library...
 (define (cipher-verify cipher M S . opts)
   (let ((spi (cipher-spi cipher)))
-    (apply (cipher-spi-verifier spi) M S
-	   (cipher-spi-key spi)
-	   opts)))
+    (or (apply (cipher-spi-verifier spi) M S (cipher-spi-key spi) opts)
+	(error 'cipher-verify "Inconsistent"))))
 (define (cipher-signature cipher M . opts)
   (let ((spi (cipher-spi cipher)))
     (apply (cipher-spi-signer spi) M (cipher-spi-key spi) opts)))

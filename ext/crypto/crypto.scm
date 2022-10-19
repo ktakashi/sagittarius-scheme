@@ -3,6 +3,7 @@
 ;;; crypto.scm Cryptographic library
 ;;; 
 ;;; This library is a wrapper for tomcrypto.
+#!deprecated
 (library (crypto)
     ;; we exports even super low level APIs
     ;; but it won't be documented, so if you use make-cipher, suggest-keysize
@@ -19,5 +20,5 @@
 	    (crypto rfc7748)
 	    (crypto k-generator)
 	    (crypto ecdh)
-	    (crypto wrap))
-)
+	    (crypto wrap)
+	    (only (crypto spi) register-spi)))

@@ -124,7 +124,7 @@
   (define pbes2-aes128-cbc-pad/hmac-sha256
     (make-pbes2-algorithm-identifier-provider SHA-256 16 1000 16 AES-128))
   (define pbes2-aes192-cbc-pad/hmac-sha256
-    (make-pbes2-algorithm-identifier-provider SHA-256 16 1000 26 AES-192))
+    (make-pbes2-algorithm-identifier-provider SHA-256 16 1000 24 AES-192))
   (define pbes2-aes256-cbc-pad/hmac-sha256
     (make-pbes2-algorithm-identifier-provider SHA-256 16 1000 32 AES-256))
   

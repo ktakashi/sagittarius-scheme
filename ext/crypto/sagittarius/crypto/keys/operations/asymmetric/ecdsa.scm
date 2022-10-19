@@ -296,12 +296,13 @@
     (unless (= 1 (der-integer->integer version))
       (assertion-violation 'import-private-key
 			   "Invalid ECPrivateKey version" version))
-    (let ((tag0 (or (asn1-collection-find-tag in 0) ec-parameter))
+    (let ((param (cond ((asn1-collection-find-tag in 0) =>
+			der-tagged-object-obj)
+		       (else ec-parameter)))
 	  (tag1 (asn1-collection-find-tag in 1)))
-      (unless tag0
+      (unless param
 	(assertion-violation 'import-private-key "ECParameters not found"))
-      (let* ((param (der-tagged-object-obj tag0))
-	     (pub-key (and tag1 (der-tagged-object-obj tag1)))
+      (let* ((pub-key (and tag1 (der-tagged-object-obj tag1)))
 	     (parameter (cond ((ec-parameter? param) param)
 			      ((der-object-identifier? param)
 			       (lookup-named-curve-parameter param))

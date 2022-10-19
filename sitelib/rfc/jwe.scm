@@ -419,7 +419,7 @@
 			    (make-mode-name-parameter MODE_GCM)))
     (define dec-cipher (make-cipher AES key :mode-parameter mode-parameter))
     (cipher-update-aad! dec-cipher aad)
-    (let-values (((pt tag) (cipher-decrypt/tag dec-cipher cipher-text)))
+    (let-values (((pt tag) (cipher-decrypt/tag dec-cipher cipher-text auth-tag)))
       (unless (bytevector=? auth-tag tag)
 	;; TODO maybe we should make an specific condition for this
 	(assertion-violation 'decrypt-aes-gcm "Incorrect MAC"))

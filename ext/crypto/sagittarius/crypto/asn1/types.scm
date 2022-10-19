@@ -241,17 +241,36 @@
 (define (asn1-object? o) (is-a? o <asn1-object>))
 (define-method asn1-encodable->asn1-object ((o <asn1-object>) type) o)
 
+(define *current-indent* (make-parameter #f))
+(define (generic-write class value p)
+  (let ((indent (*current-indent*)))
+    (parameterize ((*current-indent* (if indent (+ indent 2) 0)))
+      (do ((i 0 (+ i 1)) (c (*current-indent*)))
+	  ((= i c))
+	(display #\space p))
+      (format p "#<~a ~a>"
+	      (if (is-a? class <class>) (class-name class) class)
+	      value))))
+
 ;; Simple value, not a container
 (define-class <asn1-simple-object> (<asn1-object>)
   ((value :init-keyword :value :reader asn1-simple-object-value)))
 (define (asn1-simple-object? o) (is-a? o <asn1-simple-object>))
 (define-method object-equal? ((a <asn1-simple-object>) (b <asn1-simple-object>))
   (equal? (asn1-simple-object-value a) (asn1-simple-object-value b)))
+(define-method write-object ((o <asn1-simple-object>) p)
+  (let ((v (asn1-simple-object-value o)))
+    (generic-write (class-of o) v p)))
 
 ;; ASN.1 string, e.g. IA5
 (define-class <asn1-string> (<asn1-simple-object>) ())
+(define-method write-object ((o <asn1-string>) p)
+  (generic-write (class-of o) (asn1-string->string o) p))
+
 (define (asn1-string? o) (is-a? o <asn1-string>))
 (define-generic asn1-string->string)
+(define-method asn1-string->string ((o <asn1-string>))
+  (asn1-simple-object-value o))
 (define (make-bytevector->asn1-string ctr :optional (conv utf8->string))
   (lambda ((bv bytevector?)) (ctr (conv bv))))
 
@@ -260,13 +279,29 @@
   ;; We use list queue for the collection elements
   ((elements :init-keyword :elements :reader asn1-collection-elements
 	     :init-thunk list-queue)))
+(define (asn1-object-list->string l)
+  (let-values (((out e) (open-string-output-port)))
+    (define (pl o) (display o out) (newline out))
+    (let ((indent (*current-indent*)))
+      (parameterize ((*current-indent* (if indent (+ indent 2) 0)))
+	(newline out)
+	(for-each pl l)
+	(do ((i 0 (+ i 1)) (c (*current-indent*)))
+	    ((= i c))
+	  (display #\space out))))
+    (e)))
+(define-method write-object ((o <asn1-collection>) p)
+  (let ((v (asn1-object-list->string
+	    (list-queue-list (asn1-collection-elements o)))))
+    (generic-write (class-of o) v p)))
+
 (define (asn1-collection? o) (is-a? o <asn1-collection>))
 (define (asn1-collection-subtype? class) (subtype? class <asn1-collection>))
 (define-method object-equal? ((a <asn1-collection>) (b <asn1-collection>))
   (for-all equal?
 	   (list-queue-list (asn1-collection-elements a))
 	   (list-queue-list (asn1-collection-elements b))))
-  
+
 (define (((asn1-collection-of? (class asn1-collection-subtype?)) pred) v)
   (and (is-a? v class)
        (for-all pred (list-queue-list (asn1-collection-elements v)))))
@@ -306,6 +341,7 @@
 (define-class <ber-octet-string> (<asn1-simple-object>)
   ;; Cache, more or less
   ((octs :init-keyword :octs :reader ber-octet-string-octs)))
+		 
 (define (ber-octet-string? o)
   (is-a? o <ber-octet-string>))
 (define (bytevector->ber-octed-string (bv bytevector?))
@@ -336,7 +372,13 @@
    (explicit? :init-keyword :explicit? :reader ber-tagged-object-explicit?)
    (obj :init-keyword :obj :reader ber-tagged-object-obj)))
 (define (ber-tagged-object? o) (is-a? o <ber-tagged-object>))
-
+(define-method write-object ((o <ber-tagged-object>) p)
+  (generic-write (class-of o) 
+		 (format "[~a] ~a~a" (ber-tagged-object-tag-no o)
+			 (ber-tagged-object-explicit? o)
+			 (asn1-object-list->string
+			  (list (ber-tagged-object-obj o 'obj))))
+		 p))
 ;;; Application specific
 (define-class <ber-application-specific> (<asn1-object>)
   ((constructed? :init-keyword :constructed?
@@ -344,7 +386,13 @@
    (tag :init-keyword :tag :reader ber-application-specific-tag)
    (octets :init-keyword :octets :reader ber-application-specific-octets)))
 (define (ber-application-specific? o) (is-a? o <ber-application-specific>))
-
+(define-method write-object ((o <ber-application-specific>) p)
+  (generic-write (class-of o)
+		 (format "~a ~X ~a"
+			 (ber-application-specific-constructed? o)
+			 (ber-application-specific-tag o)
+			 (ber-application-specific-octets o))
+		 p))
 ;;; Sequence
 
 (define-class <ber-sequence> (<asn1-collection>) ())
@@ -373,7 +421,9 @@
   (bytevector->uinteger (asn1-simple-object-value ber-integer)))
 (define (bytevector->ber-integer (bv bytevector?))
   (make <ber-integer> :value bv))
-
+(define-method write-object ((o <ber-integer>) p)
+  (generic-write (class-of o) (bytevector->integer (asn1-simple-object-value o))
+		 p))
 
 ;;; Boolean
 (define-class <der-boolean> (<asn1-simple-object>) ())
@@ -387,7 +437,7 @@
   (make <der-boolean> :value (not (zero? (bytevector-u8-ref bv 0)))))
 (define (der-boolean->boolean (der-boolean der-boolean?))
   (asn1-simple-object-value der-boolean))
-  
+
 ;;; Integer
 (define-class <der-integer> (<ber-integer>) ())
 (define (der-integer? o) (is-a? o <der-integer>))
@@ -413,6 +463,12 @@
 (define-method object-equal? ((a <der-bit-string>) (b <der-bit-string>))
   (and (eqv? (der-bit-string-padding-bits a) (der-bit-string-padding-bits b))
        (call-next-method)))
+(define-method asn1-string->string ((o <der-bit-string>))
+  (let ((bv (asn1-encodable->bytevector o)))
+    (let-values (((out e) (open-string-output-port)))
+      (do ((i 0 (+ i 1)) (l (bytevector-length bv)))
+	  ((= i l) (e))
+	(format out "~2,'0X" (bytevector-u8-ref bv i))))))
 
 ;; Octet string
 (define-class <der-octet-string> (<ber-octet-string>) ())
@@ -429,6 +485,8 @@
 (define *der-null* (make <der-null>))
 (define (make-der-null) *der-null*)
 (define-method object-equal? ((a <der-null>) (b <der-null>)) #t)
+(define-method write-object ((o <der-null>) p)
+  (generic-write (class-of o) "" p))
 
 ;; Object identifier
 (define-class <der-object-identifier> (<asn1-simple-object>) ())
@@ -475,6 +533,14 @@
        (equal? (der-external-data-value-descriptor a)
 	       (der-external-data-value-descriptor b))
        (equal? (der-external-encoding a) (der-external-encoding b))))
+(define-method write-object ((o <der-external>) p)
+  (generic-write (class-of o)
+		 (asn1-object-list->string
+		  (list (der-external-direct-reference o)
+			(der-external-indirect-reference o)
+			(der-external-data-value-descriptor o)
+			(der-external-encoding o)))
+		 p))
 
 ;; Enumerated
 (define-class <der-enumerated> (<asn1-simple-object>) ())
@@ -746,4 +812,11 @@
    (number :init-keyword :number :reader der-unknown-tag-number)
    (data :init-keyword :data :reader der-unknown-tag-data)))
 (define (der-unknown-tag? o) (is-a? o <der-unknown-tag>))
+(define-method write-object ((o <der-unknown-tag>) (p <port>))
+    (generic-write (class-of o) 
+		   (format "~a ~X ~a"
+			   (der-unknown-tag-constructed? o)
+			   (der-unknown-tag-number o)
+			   (der-unknown-tag-data o))
+		   p))
 )
