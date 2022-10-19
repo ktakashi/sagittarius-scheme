@@ -69,10 +69,14 @@
 	    *scheme:kasumi*
 	    *scheme:camellia*)
     (import (rnrs)
+	    (clos core)
+	    (clos user)
+	    (sagittarius)
 	    (prefix (sagittarius crypto tomcrypt) tc:))
 (define-record-type cipher-descriptor
   (fields name))
-
+(define-method write-object ((o cipher-descriptor) p)
+  (format p "#<~a ~a>" (class-name (class-of o)) (cipher-descriptor-name o)))
 ;; A wrapper to avoid constant folding, the cipher descriptor is a
 ;; mere fixnum, and may change every invocation of sagittarius.
 ;; (shouldn't be but if I touch the order of registration for example)
@@ -86,6 +90,7 @@
   (parent symmetric-cipher-descriptor)
   (fields block-length
 	  default-rounds))
+
 (define (block-cipher-descriptor-suggested-key-length descriptor)
   (unless (block-cipher-descriptor? descriptor)
     (assertion-violation 'block-cipher-descriptor-suggested-key-length

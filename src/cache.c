@@ -414,6 +414,7 @@ static int write_cache(SgObject name, SgCodeBuilder *cb, SgPort *out, int index)
   Sg_InitHashTableSimple(&sharedObjects, SG_HASH_EQ, 0);
 
   SG_SET_CLASS(&ctx, SG_CLASS_WRITE_CACHE_CTX);
+  ctx.name = name;
   ctx.sharedObjects = &sharedObjects;
   ctx.uid = 0;
   ctx.index = index;
@@ -494,7 +495,12 @@ static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
 {
   SgObject value;
  loop:
-  if (!cachable_p(obj, NULL)) ESCAPE(ctx, "non cacheable object %S\n", obj);
+  if (!cachable_p(obj, NULL)) {
+    ESCAPE(ctx, "non cacheable object in '%A' on %s phase: %S\n",
+	   ctx->name,
+	   ctx->macroPhaseP? UC("macro"): UC("runtime"),
+	   obj);
+  }
   if (!interesting_p(obj)) return cbs;
 
   value = Sg_HashTableRef(ctx->sharedObjects, obj, SG_UNBOUND);
@@ -605,13 +611,19 @@ SgObject Sg_WriteCacheScanRec(SgObject obj, SgObject cbs, SgWriteCacheCtx *ctx)
 static SgObject SOURCE_INFO = SG_UNDEF;
 #endif
 
+static SgObject ensure_cacheable(SgObject o)
+{
+  if (!SG_PAIRP(o) && !SG_VECTORP(o) && builtin_cachable_p(o, NULL)) return o;
+  return Sg_Sprintf(UC("%A"), o);
+}
+
 /* correct code builders in code*/
 static SgObject write_cache_pass1(SgCodeBuilder *cb, SgObject r,
 				  SgLibrary **lib, cache_ctx *ctx)
 {
   SgWord *code = cb->code;
   int i, len = cb->size;
-  SgObject name = cb->name, value;
+  SgObject name = ensure_cacheable(cb->name), value;
 #ifdef STORE_SOURCE_INFO
   SgObject newSrc = SG_NIL, t = SG_NIL;
 #endif
@@ -979,7 +991,7 @@ static void write_cache_pass2(SgPort *out, SgCodeBuilder *cb, SgObject cbs,
   SgWord *code = cb->code;
   /* delete slot for macro */
   SgObject this_slot = Sg_Assq(cb, cbs), state;
-  SgObject name = cb->name;
+  SgObject name = ensure_cacheable(cb->name);
 #if 0
   if (SG_IDENTIFIERP(name)) {
     name = SG_IDENTIFIER_NAME(name);
@@ -1250,7 +1262,7 @@ static void link_container(SgObject obj, SgHashTable *seen, read_ctx *ctx)
     long len = SG_VECTOR_SIZE(obj), i;
     for (i = 0; i < len; i++) {
       if (SG_CLOSUREP(SG_VECTOR_ELEMENT(obj, i))) {
-	link_cb_rec(SG_VECTOR_ELEMENT(obj, i), seen, ctx);
+	link_cb_rec(SG_CLOSURE(SG_VECTOR_ELEMENT(obj, i))->code, seen, ctx);
       } else {
 	link_container(SG_VECTOR_ELEMENT(obj, i), seen, ctx);
       }
@@ -1263,7 +1275,8 @@ static SgObject link_cb_rec(SgObject cb, SgHashTable *seen, read_ctx *ctx)
   int len, i, j;
 
   if (!SG_CODE_BUILDERP(cb)) {
-    ESCAPE(ctx, "Failed to link. Given object is not a code builder: %A", cb);
+    ESCAPE(ctx, "Failed to link %A. Given object is not a code builder: %A\n",
+	   ctx->file, cb);
   }
   code = SG_CODE_BUILDER(cb)->code;
   len = SG_CODE_BUILDER(cb)->size;
@@ -1279,7 +1292,7 @@ static SgObject link_cb_rec(SgObject cb, SgHashTable *seen, read_ctx *ctx)
 	  if (SG_FALSEP(new_cb)) continue;
 	  
 	  if (!SG_CODE_BUILDERP(new_cb)) {
-	    ESCAPE(ctx, "linking code builder failed. %A", new_cb);
+	    ESCAPE(ctx, "linking code builder failed. %A\n", new_cb);
 	  }
 	  code[i+j+1] = SG_WORD(new_cb);
 	  link_cb_rec(new_cb, seen, ctx);

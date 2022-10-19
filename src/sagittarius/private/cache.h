@@ -53,6 +53,7 @@ SG_CLASS_DECL(Sg_ReadCacheCtxClass);
 struct cache_ctx_rec
 {
   SG_HEADER;
+  SgObject     name;
   SgHashTable *sharedObjects;
   int          uid;
   /* for pass1 */
