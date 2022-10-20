@@ -1029,6 +1029,9 @@ SgObject Sg_ApplyDirective(SgPort *port, SgObject desc, SgReadContext *ctx)
   case 'd':
     if (ustrcmp(tag->value, "deprecated") == 0) {
       Sg_Warn(UC("deprecated file is being loaded %S"), Sg_FileName(port));
+      if (ctx->flags & SG_CHANGE_VM_MODE) {
+	SG_VM_SET_FLAG(Sg_VM(), SG_DEPRECATED_FILE);
+      }
       return desc;
     }
     break;

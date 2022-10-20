@@ -1148,12 +1148,14 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   out = Sg_InitFileBinaryPort(&bp, &file, SG_OUTPUT_PORT, &bfp, 
 			      SG_BUFFER_MODE_BLOCK,
 			      portBuffer, SG_PORT_DEFAULT_BUFFER_SIZE);
-
+  if (!SG_NULLP(caches)) {
+    Sg_PutbUnsafe(out, !SG_FALSEP(SG_CAAR(caches)));
+  }
   SG_FOR_EACH(cache, caches) {
     if (SG_VM_LOG_LEVEL(vm, SG_TRACE_LEVEL)) {
-      Sg_VMDumpCode(SG_CAR(cache));
+      Sg_VMDumpCode(SG_CDAR(cache));
     }
-    if ((index = write_cache(name, SG_CODE_BUILDER(SG_CAR(cache)),
+    if ((index = write_cache(name, SG_CODE_BUILDER(SG_CDAR(cache)),
 			     out, index)) < 0) {
       return FALSE;
     }
@@ -2141,6 +2143,8 @@ static int read_cache_from_port(SgVM *vm, SgPort *in)
   ctx.isLinkNeeded = FALSE;
   ctx.file = Sg_FileName(in);
   ctx.links = SG_NIL;
+  ctx.deprecatedP = Sg_GetbUnsafe(in);
+
   SG_PORT_LOCK_READ(in);
   /* check if it's invalid cache or not */
   b = Sg_PeekbUnsafe(in);
@@ -2158,6 +2162,10 @@ static int read_cache_from_port(SgVM *vm, SgPort *in)
       }
       if (SG_LIBRARYP(obj)) {
 	save = vm->currentLibrary;
+	if (ctx.deprecatedP) {
+	  Sg_Warn(UC("deprecated library '%A' is loaded"),
+		  SG_LIBRARY_NAME(obj));
+	}
 	vm->currentLibrary = SG_LIBRARY(obj);
 	continue;
       }

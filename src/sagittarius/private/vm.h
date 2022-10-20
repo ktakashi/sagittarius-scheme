@@ -210,7 +210,7 @@ struct SgVMRec
   SgObject values[DEFAULT_VALUES_SIZE];
   SgValuesBuffer *extra_values;
 
-  /* 
+  /*
      load path
    */
   SgObject loadPath;
@@ -238,7 +238,7 @@ struct SgVMRec
   SgObject   currentLibrary;
   /* dynamic winders */
   SgObject   dynamicWinders;
-  /* 
+  /*
      exception handlers
      this is a list of procedures
    */
@@ -278,13 +278,14 @@ struct SgVMRec
  */
 typedef enum {
   /* cache mode */
-  SG_DISABLE_CACHE    = 0x00000001,
-  SG_NO_DEBUG_INFO    = 0x00000002,
-  SG_CACHE_MASK       = 0x000000FF,
+  SG_DISABLE_CACHE       = 0x00000001,
+  SG_NO_DEBUG_INFO       = 0x00000002,
+  SG_CACHE_MASK          = 0x000000FF,
   /* reader mode */
-  SG_R6RS_MODE        = 0x00000100, /* 00000001 */
-  SG_COMPATIBLE_MODE  = 0x00000200, /* 00000010 */
-  SG_R7RS_MODE        = 0x00000400, /* 00000100 */
+  SG_R6RS_MODE           = 0x00000100, /* 00000001 */
+  SG_COMPATIBLE_MODE     = 0x00000200, /* 00000010 */
+  SG_R7RS_MODE           = 0x00000400, /* 00000100 */
+  SG_DEPRECATED_FILE     = 0x00001000,
 
   /* optimization */
   SG_NO_INLINE_ASM       = 0x00010000,
@@ -295,14 +296,14 @@ typedef enum {
   SG_ALLOW_OVERWRITE     = 0x00200000,
   SG_ERROR_UNBOUND       = 0x00400000,
   /* log level */
-  SG_FATAL_LEVEL      = 0x01000000,
-  SG_ERROR_LEVEL      = 0x02000000,
-  SG_WARN_LEVEL       = 0x04000000,
-  SG_INFO_LEVEL       = 0x08000000,
-  SG_DEBUG_LEVEL      = 0x10000000,
-  SG_TRACE_LEVEL      = 0x20000000,
-  SG_LOG_LEVEL_MASK   = 0xff000000,
-  
+  SG_FATAL_LEVEL         = 0x01000000,
+  SG_ERROR_LEVEL         = 0x02000000,
+  SG_WARN_LEVEL          = 0x04000000,
+  SG_INFO_LEVEL          = 0x08000000,
+  SG_DEBUG_LEVEL         = 0x10000000,
+  SG_TRACE_LEVEL         = 0x20000000,
+  SG_LOG_LEVEL_MASK      = 0xff000000,
+
 } VMFlags;
 
 #define SG_VM(obj) ((SgVM *)obj)
@@ -329,7 +330,7 @@ typedef enum {
     cstack.cont = NULL;				\
     Sg_VM()->cstack = &cstack;			\
     if (setjmp(cstack.jbuf) == 0) {
-           
+
 #define SG_WHEN_ERROR				\
     } else {
 
@@ -438,7 +439,7 @@ SG_EXTERN void Sg_DisableSandbox();
 
 SG_EXTERN SgObject Sg_VMAttachStackTrace(SgVM *vm, SgObject condition,
 					 int skipTop);
- 
+
 /* it would be too dangerous to exporse */
 /* SG_EXTERN SgObject Sg_RootVM(); */
 
