@@ -96,7 +96,7 @@
       (make-algorithm-identifier
        (if (ed25519-key? pk) "1.3.101.112" "1.3.101.113"))
       (make-der-bit-string (export-public-key pk)))))
-  (define-method asn.1-encodable->asn.1-object ((o <subject-public-key-info>))
+  (define-method asn.1-encodable->asn.1-object ((o <subject-public-key-info>) i)
     (make-der-sequence
      (asn.1-encodable->asn.1-object (slot-ref o 'algorithm-identifier))
      (asn.1-encodable->asn.1-object (slot-ref o 'key-data))))
@@ -135,7 +135,7 @@
       :parameters param))
   (define-method make-algorithm-identifier ((oid <string>))
     (make <algorithm-identifier> :object-id (make-der-object-identifier oid)))
-  (define-method asn.1-encodable->asn.1-object ((o <algorithm-identifier>))
+  (define-method asn.1-encodable->asn.1-object ((o <algorithm-identifier>) ig)
     (let ((p (slot-ref o 'parameters)))
       (if p
 	  (make-der-sequence (slot-ref o 'object-id) p)

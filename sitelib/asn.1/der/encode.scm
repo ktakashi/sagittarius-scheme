@@ -29,67 +29,7 @@
 ;;;
 
 (library (asn.1 der encode)
-    (export der-write-object
-	    der-write-encoded
-	    der-write-tag
-	    der-encode)
+    (export der-encode)
     (import (rnrs)
-	    (clos user)
-	    (asn.1 der tags))
-  (define-generic der-encode)
-  (define (write-null p)
-    (put-u8 p NULL)
-    (put-u8 p #x00))
-
-  (define-syntax rash (identifier-syntax bitwise-arithmetic-shift-right))
-  (define (write-length len p)
-    (cond ((> len 127)
-	   (let ((size (do ((size 1 (+ size 1))
-			    (val (rash len 8) (rash val 8)))
-			   ((zero? val) size))))
-	     (put-u8 p (bitwise-ior size #x80))
-	     (do ((i (* (- size 1) 8) (- i 8)))
-		 ((< i 0))
-	       (put-u8 p (bitwise-and (rash len i) #xff)))))
-	  (else (put-u8 p len))))
-
-  (define-generic der-write-object)
-  (define-generic der-write-encoded)
-  (define-generic der-write-tag)
-  
-  (define-method der-write-object ((o <object>) (p <port>))
-    (if (null? o)			;; TODO '() or #f?
-	(write-null p)
-	(der-encode o p)))
-
-  (define-method der-write-encoded
-    ((tag <integer>) (bytes <bytevector>) (p <port>))
-    ;; assume tag is u8
-    (put-u8 p tag)
-    (write-length (bytevector-length bytes) p)
-    (put-bytevector p bytes))
-
-  (define-method der-write-encoded
-    ((flags <integer>) (tag-no <integer>) (bytes <bytevector>) (p <port>))
-    (der-write-tag flags tag-no p)
-    (write-length (bytevector-length bytes) p)
-    (put-bytevector p bytes))
-
-  (define (der-write-tag flags tag-no p)
-    (cond ((< tag-no 31) (put-u8 p (bitwise-ior flags tag-no)))
-	  (else
-	   (put-u8 p (bitwise-ior flags #x1f))
-	   (if (< tag-no 128)
-	       (put-u8 p tag-no)
-	       (let ((stack (make-bytevector 5))
-		     (pos 4))
-		 (bytevector-u8-set! stack pos (bitwise-and tag-no #x7f))
-		 (let loop ((ntag-no (rash tag-no 7))
-			    (pos (- pos 1)))
-		   (bytevector-u8-set! stack pos 
-				       (bitwise-ior (bitwise-and ntag-no #x7f)
-						    #x80))
-		   (if (> ntag-no 127)
-		       (loop (rash ntag-no 7) (- pos 1))
-		       (put-bytevector p stack pos))))))))
-  )
+	    (sagittarius crypto asn1))
+(define (der-encode o port) (write-asn1-encodable o port 'der)))

@@ -23,7 +23,6 @@
 (define *encoded* #vu8(48 22 12 11 84 101 115 116 32 115 116 114
 			  105 110 103 2 2 48 57 5 0 1 1 255))
 
-
 (test-assert "asn.1-object?" (make-der-integer 1))
 
 (let ((obj (make-der-sequence (make-der-utf8-string "Test string")

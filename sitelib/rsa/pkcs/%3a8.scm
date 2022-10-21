@@ -163,9 +163,9 @@
 	      (make-der-octet-string (slot-ref o 'private-key)))))
       (when a (asn.1-sequence-add s a))
       s))
-  (define-method asn.1-encodable->asn.1-object ((o <private-key-info>))
+  (define-method asn.1-encodable->asn.1-object ((o <private-key-info>) i)
     (encode-private-key-info o 0))
-  (define-method asn.1-encodable->asn.1-object ((o <one-asymmetric-key>))
+  (define-method asn.1-encodable->asn.1-object ((o <one-asymmetric-key>) i)
     (let ((s (encode-private-key-info o 1))
 	  (pk (slot-ref o 'public-key)))
       (when pk
@@ -200,7 +200,7 @@
     (make <encrypted-private-key-info> :id id 
 	  :data (make-der-octet-string data)))
   (define-method asn.1-encodable->asn.1-object 
-    ((o <encrypted-private-key-info>))
+    ((o <encrypted-private-key-info>) i)
     (make-der-sequence (slot-ref o 'id) (slot-ref o 'data)))
   (define-method write-object ((o <encrypted-private-key-info>) (p <port>))
     (format p "#<encrypted-private-key-info~%~a~%~a>"

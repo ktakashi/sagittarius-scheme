@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;
 
+#!deprecated
 (library (asn.1)
     (export :all)
     (import (asn.1 types)
@@ -35,8 +36,7 @@
 	    (asn.1 der tags)
 	    (asn.1 der encode)
 	    (asn.1 ber types)
-	    (asn.1 reader))
-)
+	    (asn.1 reader)))
 
 ;; Local Variables:
 ;; coding: utf-8

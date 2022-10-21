@@ -99,7 +99,7 @@
     ;; unfortunately ASN.1 serise aren't implemented with object-equal?
     ;; so we need to compare encoded bytevector
     (bytevector=? (encode (~ a 'values)) (encode (~ b 'values))))
-  (define-method asn.1-encodable->asn.1-object ((o <rdn>))
+  (define-method asn.1-encodable->asn.1-object ((o <rdn>) i)
     (slot-ref o 'values))
 
   (define *default-symbols*
@@ -128,7 +128,7 @@
       (dotimes (i len)
 	(vector-set! rdns i (make-rdn (asn.1-sequence-get s i))))
       (make <x500-name> :rdns rdns)))
-  (define-method asn.1-encodable->asn.1-object ((o <x500-name>))
+  (define-method asn.1-encodable->asn.1-object ((o <x500-name>) i)
     (apply make-der-sequence
 	   (map asn.1-encodable->asn.1-object (vector->list (~ o 'rdns)))))
   (define-method write-object ((o <x500-name>) p)
@@ -236,7 +236,7 @@
   (define-generic make-subject-key-identifier)
   (define-method make-subject-key-identifier ((keyid <bytevector>))
     (make <subject-key-identifier> :key-identifier keyid))
-  (define-method asn.1-encodable->asn.1-object ((o <subject-key-identifier>))
+  (define-method asn.1-encodable->asn.1-object ((o <subject-key-identifier>) i)
     (make-der-octet-string (~ o 'key-identifier)))
   (define (subject-key-identifier-key-identifier ski)
     (~ ski 'key-identifier))
@@ -254,7 +254,7 @@
      (issuer-unique-id :init-keyword :issuer-id)
      (subject-unique-id :init-keyword :subject-id)
      (extensions    :init-keyword :extensions)))
-  (define-generic make-tbs-certificate-structure)
+  (define-generic make-tbs-certificate-structure)  
   (define-method make-tbs-certificate-structure ((s <asn.1-sequence>))
     (let* ((start 0)
 	   (version (cond ((is-a? (asn.1-sequence-get s 0) <der-tagged-object>)

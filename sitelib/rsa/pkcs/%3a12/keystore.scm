@@ -144,7 +144,7 @@
   (define-method make-content-info ((type <der-object-identifier>)
 				    (content <asn.1-encodable>))
     (make <content-info> :content-type type :content content))
-  (define-method asn.1-encodable->asn.1-object ((o <content-info>))
+  (define-method asn.1-encodable->asn.1-object ((o <content-info>) ignore)
     (make-ber-sequence (slot-ref o 'content-type) 
 		       (make-ber-tagged-object #t 0 (slot-ref o 'content))))
 
@@ -152,7 +152,7 @@
     ((digest :init-keyword :digest)
      (algorithm-identifier :init-keyword :algorithm-identifier)))
   (define-generic make-digest-info)
-  (define-method make-digest-info ((s <asn.1-sequence>))
+  (define-method make-digest-info ((s <asn.1-sequence>))    
     (make <digest-info> 
       :digest (der-octet-string-octets (asn.1-sequence-get s 1))
       :algorithm-identifier (make-algorithm-identifier
@@ -160,7 +160,7 @@
   (define-method make-digest-info ((id <algorithm-identifier>)
 				   (digest <bytevector>))
     (make <digest-info> :digest digest :algorithm-identifier id))
-  (define-method asn.1-encodable->asn.1-object ((di <digest-info>))
+  (define-method asn.1-encodable->asn.1-object ((di <digest-info>) ignore)
     (make-der-sequence (slot-ref di 'algorithm-identifier)
 		       (make-der-octet-string (slot-ref di 'digest))))
 
@@ -182,7 +182,7 @@
 				(iteration-count <integer>))
     (make <mac-data> :digest-info dig-info :salt salt
 	  :iteration-count iteration-count))
-  (define-method asn.1-encodable->asn.1-object ((md <mac-data>))
+  (define-method asn.1-encodable->asn.1-object ((md <mac-data>) ignore)
     (let ((count (slot-ref md 'iteration-count)))
       (if (= count 1)
 	  (make-der-sequence (slot-ref md 'digest-info)
@@ -207,7 +207,7 @@
 					  "vector of ContentInfo required" v)))
      v)
     (make <authenticated-safe> :info v))
-  (define-method asn.1-encodable->asn.1-object ((o <authenticated-safe>))
+  (define-method asn.1-encodable->asn.1-object ((o <authenticated-safe>) ignore)
     (let ((seq (make-ber-sequence)))
       (vector-for-each
        (lambda (ci) (asn.1-sequence-add seq ci))
@@ -232,7 +232,7 @@
   (define-method make-pfx ((mi <content-info>)
 			   (md <mac-data>))
     (make <pfx> :content-info mi :mac-data md))
-  (define-method asn.1-encodable->asn.1-object ((o <pfx>))
+  (define-method asn.1-encodable->asn.1-object ((o <pfx>) ignore)
     (let ((s (make-ber-sequence)))
       (asn.1-sequence-add s (make-der-integer 3))
       (asn.1-sequence-add s (slot-ref o 'content-info))
@@ -275,7 +275,7 @@
 				(attrs <asn.1-set>))
     (make <safe-bag> :id id :value o :attributes attrs))
 
-  (define-method asn.1-encodable->asn.1-object ((o <safe-bag>))
+  (define-method asn.1-encodable->asn.1-object ((o <safe-bag>) ignore)
     (let ((id (slot-ref o 'id))
 	  (value (make-der-tagged-object #t 0 (slot-ref o 'value)))
 	  (attr (slot-ref o 'attributes)))
@@ -317,7 +317,7 @@
 	:content-type type
 	:id   algo
 	:content content))
-  (define-method asn.1-encodable->asn.1-object ((ed <encrypted-data>))
+  (define-method asn.1-encodable->asn.1-object ((ed <encrypted-data>) ignore)
     (make-ber-sequence (make-der-integer 0) (slot-ref ed 'data)))
 
   (define-class <cert-bag> (<asn.1-encodable>)
@@ -333,7 +333,7 @@
   (define-method make-cert-bag ((id <der-object-identifier>)
 				(value <asn.1-encodable>))
     (make <cert-bag> :seq (make-der-sequence id value) :id id :value value))
-  (define-method asn.1-encodable->asn.1-object ((cb <cert-bag>))
+  (define-method asn.1-encodable->asn.1-object ((cb <cert-bag>) ignore)
     (make-der-sequence (slot-ref cb 'id) 
 		       (make-der-tagged-object 0 (slot-ref cb 'value))))
 
