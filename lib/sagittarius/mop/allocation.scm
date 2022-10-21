@@ -76,6 +76,23 @@
 		     (list (lambda (o) def)
 			   (lambda (o v) (set! def v))
 			   #f)))
+		  ((:delegate)
+		   (let ((to-slot (slot-definition-option slot :forwarding #f)))
+		     (unless (symbol? to-slot)
+		       (assertion-violation 'compute-getter-and-setter
+			 ":allocation :delegate requires :forwarding {slot}"))
+		     (list (lambda (o) (slot-ref o to-slot))
+			   (lambda (o v) (slot-set! o to-slot))
+			   #f)))
+		  ;; Gauche's :virtual
+		  ((:virtual)
+		   (let ((getter (slot-definition-option slot :slot-ref #f))
+			 (setter (slot-definition-option slot :slot-set! #f))
+			 (bound? (slot-definition-option slot :slot-bound? #f)))
+		     (unless (procedure? getter)
+		       (assertion-violation 'compute-getter-and-setter
+			 ":allocation :virtual requires at least :slot-ref {procedure}"))
+		     (list getter setter bound?)))
 		  (else
 		   (assertion-violation '<allocation-meta>
 					"unknown :allocation type"
