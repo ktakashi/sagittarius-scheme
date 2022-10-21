@@ -42,7 +42,10 @@
 	    asn1-collection? <asn1-collection> asn1-collection-elements
 	    asn1-collection-ref
 	    asn1-collection-add!
+	    asn1-collection-length
+	    asn1-collection-find
 	    asn1-collection-find-tag
+	    asn1-collection->list
 	    deconstruct-asn1-collection
 
 	    asn1-time? <asn1-time>
@@ -187,6 +190,7 @@
 	    ber-octet-string? <ber-octet-string>
 	    ber-octet-string-octs
 	    bytevector->ber-octed-string
+	    ber-octet-string->bytevector
 	    list->ber-octet-string
 
 	    ber-tagged-object? <ber-tagged-object>
@@ -199,15 +203,18 @@
 	    <ber-sequence> ber-sequence?
 	    make-ber-sequence
 	    ber-sequence
+	    ber-sequence-add!
 
 	    <ber-set> ber-set?
 	    make-ber-set
-	    ber-set)
+	    ber-set
+	    ber-set-add!)
     (import (rnrs)
 	    (clos core)
 	    (clos user)
 	    (sagittarius)
 	    (sagittarius mop immutable)
+	    (sagittarius mop allocation)
 	    (srfi :1 lists)
 	    (srfi :13 strings)
 	    (srfi :19 time)
@@ -224,6 +231,8 @@
 (define (asn1-encodable? o) (is-a? o <asn1-encodable>))
 (define-generic write-asn1-encodable)
 (define-generic asn1-encodable->asn1-object)
+(define-method asn1-encodable->asn1-object ((o <asn1-encodable>))
+  (asn1-encodable->asn1-object o 'der))
 (define-method write-asn1-encodable ((o <asn1-encodable>))
   (write-asn1-encodable o (current-output-port)))
 (define-method write-asn1-encodable ((o <asn1-encodable>) (p <port>))
@@ -310,10 +319,16 @@
 (define-generic asn1-collection-add!)
 (define (asn1-collection-ref (collection asn1-collection?) (index integer?))
   (list-ref (list-queue-list (asn1-collection-elements collection)) index))
+(define (asn1-collection-length (collection asn1-collection?))
+  (list-queue-length (asn1-collection-elements collection)))
+(define (asn1-collection-find pred (collection asn1-collection?))
+  (find pred (list-queue-list (asn1-collection-elements collection))))
 (define (asn1-collection-find-tag (collection asn1-collection?) (tag integer?))
-  (find (lambda (o) (and (der-tagged-object? o)
-			 (= (der-tagged-object-tag-no o) tag)))
-	(list-queue-list (asn1-collection-elements collection))))
+  (asn1-collection-find (lambda (o) (and (der-tagged-object? o)
+					 (= (der-tagged-object-tag-no o) tag)))
+			collection))
+(define (asn1-collection->list (collection asn1-collection?))
+  (list-queue-list (asn1-collection-elements collection)))
 (define (deconstruct-asn1-collection (collection asn1-collection?))
   (apply values (list-queue-list (asn1-collection-elements collection))))
 
@@ -326,7 +341,7 @@
   (define (slots->init-arguments o)
     (append-map
      (lambda (slot)
-       (let ((init-key (slot-definition-option slot :init-keyword)))
+       (let ((init-key (slot-definition-option slot :init-keyword #f)))
 	 (or (and init-key
 		  (list init-key (slot-ref o (slot-definition-name slot))))
 	     '())))
@@ -338,9 +353,11 @@
 ;; the testvectors tests
 ;;; octet string
 (define *ber-octet-string-max-length* (make-parameter 1000))
-(define-class <ber-octet-string> (<asn1-simple-object>)
+(define-class <ber-octet-string> (<asn1-simple-object> <allocation>)
   ;; Cache, more or less
-  ((octs :init-keyword :octs :reader ber-octet-string-octs)))
+  ((octs :init-keyword :octs :reader ber-octet-string-octs)
+   ;; backward compatibility
+   (string :allocation :delegate :forwarding 'value)))
 		 
 (define (ber-octet-string? o)
   (is-a? o <ber-octet-string>))
@@ -365,6 +382,8 @@
 (define (list->ber-octet-string (list (list-of bytevector?)))
   (make <ber-octet-string> :value (bytevector-concatenate list)
 	:octs (map bytevector->der-octet-string list)))
+(define (ber-octet-string->bytevector (octet-string ber-octet-string?))
+  (asn1-simple-object-value octet-string))
 
 ;;; Tagged object
 (define-class <ber-tagged-object> (<asn1-object>)
@@ -377,7 +396,7 @@
 		 (format "[~a] ~a~a" (ber-tagged-object-tag-no o)
 			 (ber-tagged-object-explicit? o)
 			 (asn1-object-list->string
-			  (list (ber-tagged-object-obj o 'obj))))
+			  (list (ber-tagged-object-obj o))))
 		 p))
 ;;; Application specific
 (define-class <ber-application-specific> (<asn1-object>)
@@ -395,20 +414,47 @@
 		 p))
 ;;; Sequence
 
-(define-class <ber-sequence> (<asn1-collection>) ())
+(define-class <ber-sequence> (<asn1-collection> <allocation>)
+  (;; backward compatibility
+   (sequence :allocation :virtual
+	     :slot-ref asn1-collection->list)))
 (define (ber-sequence? o) (is-a? o <ber-sequence>))
 (define (make-ber-sequence (elements list-of-der-encodable?))
   (make <ber-sequence> :elements (make-list-queue elements)))
 (define (ber-sequence . e*)  (make-ber-sequence e*))
+(define (ber-sequence-add! (sequence ber-sequence?) (e asn1-encodable?))
+  (list-queue-add-back! (asn1-collection-elements sequence) e)
+  sequence)
+(define-method asn1-collection-add! ((s <ber-sequence>) (e <asn1-encodable>))
+  (ber-sequence-add! s e))
 
 ;;; Set
-(define-class <ber-set> (<asn1-collection>) ())
+(define default-set-equal? equal?)
+(define-class <ber-set> (<asn1-collection> <allocation>)
+  ((=? :init-keyword :comparator :reader ber-set=?
+       :init-value default-set-equal?)
+   ;; backward compatibility
+   (set :allocation :virtual
+	:slot-ref asn1-collection->list)))
 (define (ber-set? o) (is-a? o <ber-set>))
 (define (make-ber-set (elements list-of-der-encodable?)
 		      :optional (=? default-set-equal?))
   (make <ber-set> :comparator =?
 	:elements (make-list-queue (delete-duplicates elements))))
 (define (ber-set . e*) (make-ber-set default-set-equal? e*))
+(define (ber-set-add! (set ber-set?) (e asn1-encodable?))
+  (let ((q (asn1-collection-elements set)))
+    (if (list-queue-empty? q)
+	(list-queue-add-back! q e)
+	(let ((e* (list-queue-remove-all! q)))
+	  (for-each (lambda (e) (list-queue-add-back! q e))
+		    (delete-duplicates! (cons e e*) (der-set=? set))))))
+  set)
+(define-method asn1-collection-add! ((s <ber-set>) (e <asn1-encodable>))
+  (ber-set-add! s e))
+(define-method object-equal? ((a <ber-set>) (b <ber-set>))
+  (and (eq? (ber-set=? a) (ber-set=? b))
+       (call-next-method)))
 
 ;;; Integer
 (define-class <ber-integer> (<asn1-simple-object>) ())
@@ -451,9 +497,10 @@
   (make <der-integer> :value bv))
 
 ;; Bit string
-(define-class <der-bit-string> (<asn1-string>)
+(define-class <der-bit-string> (<asn1-string> <allocation>)
   ((padding-bits :init-keyword :padding-bits
-		 :reader der-bit-string-padding-bits)))
+		 :reader der-bit-string-padding-bits)
+   (data :allocation :delegate :forwarding 'value)))
 (define (der-bit-string? o) (is-a? o <der-bit-string>))
 (define (bytevector->der-bit-string (bv bytevector?)
 				    :optional ((pad integer?) 0))
@@ -477,7 +524,7 @@
   (let ((bv (bytevector-copy bv)))
     (make <der-octet-string> :value bv :octs (list bv))))
 (define (der-octet-string->bytevector (der-octet-string der-octet-string?))
-  (asn1-simple-object-value der-octet-string))
+  (ber-octet-string->bytevector der-octet-string))
 
 ;; Null
 (define-class <der-null> (<asn1-object>) ())
@@ -489,7 +536,9 @@
   (generic-write (class-of o) "" p))
 
 ;; Object identifier
-(define-class <der-object-identifier> (<asn1-simple-object>) ())
+(define-class <der-object-identifier> (<asn1-simple-object> <allocation>)
+  ;; for backward compatibility
+  ((identifier :allocation :delegate :forwarding 'value)))
 (define (der-object-identifier? o) (is-a? o <der-object-identifier>))
 (define (bytevector->der-object-identifier (bv bytevector?))
   (define len (bytevector-length bv))
@@ -510,7 +559,20 @@
 		  (put-string out (number->string value))
 		  (loop 0 #f (+ i 1)))
 		(loop value first (+ i 1))))))))
-(define (oid-string->der-object-identifier (oid string?))
+
+(define (object-identifier-string? s)
+  (cond ((or (< (string-length s) 3) (not (char=? (string-ref s 1) #\.))) #f)
+	((or (char<? (string-ref s 0) #\0) (char>? (string-ref s 0) #\2)) #f)
+	(else
+	 (let loop ((i (- (string-length s) 1))
+		    (period-allowed? #f))
+	   (if (< i 2)
+	       period-allowed?
+	       (let ((ch (string-ref s i)))
+		 (cond ((char<=? #\0 ch #\9) (loop (- i 1) #t))
+		       ((char=? ch #\.) (and period-allowed? (loop (- i 1) #f)))
+		       (else #f))))))))
+(define (oid-string->der-object-identifier (oid object-identifier-string?))
   (make <der-object-identifier> :value oid))
 (define (der-object-identifier->oid-string (der-oid der-object-identifier?))
   (asn1-simple-object-value der-oid))
@@ -560,18 +622,12 @@
 (define (der-sequence . e*) (make-der-sequence e*))
 (define der-sequence-of (asn1-collection-of? <der-sequence>))
 (define (der-sequence-add! (sequence der-sequence?) (e asn1-encodable?))
-  (list-queue-add-back! (asn1-collection-elements sequence) e)
-  sequence)
-(define-method asn1-collection-add! ((s <der-sequence>) (e <asn1-encodable>))
-  (der-sequence-add! s e))
+  (ber-sequence-add! sequence e))
 
 ;; Set
-(define default-set-equal? equal?)
-(define-class <der-set> (<ber-set>)
-  ((=? :init-keyword :comparator :reader der-set=?
-       ;; FIXME
-       :init-value default-set-equal?)))
+(define-class <der-set> (<ber-set>) ())
 (define (der-set? o) (is-a? o <der-set>))
+(define (der-set=? (o der-set?)) (ber-set=? o))
 (define (make-der-set (elements list-of-der-encodable?)
 		      :optional (=? default-set-equal?))
   (make <der-set> :elements (make-list-queue (delete-duplicates elements =?))
@@ -579,19 +635,7 @@
 (define (der-set . e*) (make-der-set e* default-set-equal?))
 (define der-set-of (asn1-collection-of? <der-set>))
 (define (der-set-add! (set der-set?) (e asn1-encodable?))
-  (let ((q (asn1-collection-elements set)))
-    (if (list-queue-empty? q)
-	(list-queue-add-back! q e)
-	(let ((e* (list-queue-remove-all! q)))
-	  (for-each (lambda (e) (list-queue-add-back! q e))
-		    (delete-duplicates! (cons e e*) (der-set=? set))))))
-  set)
-(define-method asn1-collection-add! ((s <der-set>) (e <asn1-encodable>))
-  (der-set-add! s e))
-(define-method object-equal? ((a <der-set>) (b <der-set>))
-  (and (eq? (der-set=? a) (der-set=? b))
-       (call-next-method)))
-
+  (ber-set-add! set e))
 
 ;; Numeric string
 (define-class <der-numeric-string> (<asn1-string>) ())
@@ -658,7 +702,7 @@
 		(asn1-time-format o)) ;; format check
   o)
 (define (asn1-time->date (asn1-time asn1-time?))
-  (string->date (asn1-simple-object-value asn1-time?)
+  (string->date (asn1-simple-object-value asn1-time)
 		(asn1-time-format asn1-time)))
 
 ;; UTC time
@@ -667,7 +711,7 @@
 (define (string->der-utc-time (s string?))
   (make <der-utc-time> :value s :format "~y~m~d~H~M~S~z"))
 (define (date->der-utc-time (date date?))
-  (string->der-utc-time (date->string "~y~m~d~H~M~S~z")))
+  (string->der-utc-time (date->string date "~y~m~d~H~M~S~z")))
 (define (bytevector->der-utc-time (bv bytevector?))
   (string->der-utc-time (utf8->string bv)))
 (define (der-utc-time->string (utc-time der-utc-time?))
