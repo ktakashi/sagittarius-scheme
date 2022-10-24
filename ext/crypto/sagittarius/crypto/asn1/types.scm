@@ -208,7 +208,10 @@
 	    <ber-set> ber-set?
 	    make-ber-set
 	    ber-set
-	    ber-set-add!)
+	    ber-set-add!
+	    ;; for modules
+	    (rename (generic-write asn1-generic-write))
+	    asn1-object-list->string)
     (import (rnrs)
 	    (clos core)
 	    (clos user)

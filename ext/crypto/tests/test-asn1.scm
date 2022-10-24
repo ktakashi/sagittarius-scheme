@@ -4,7 +4,8 @@
 	(srfi :64)
 	(srfi :117)
 	(util bytevector)
-	(sagittarius crypto asn1))
+	(sagittarius crypto asn1)
+	(sagittarius crypto asn1 modules))
 
 (test-begin "ASN1 read/write")
 
@@ -163,5 +164,15 @@
  (make <der-tagged-object> :tag-no 1 :explicit? #t
        :obj (integer->der-integer 1)))
 
+
+(define-asn1-encodable <algorithm-identifier>
+  (asn1-sequence
+   ((algorithm :type <der-object-identifier>)
+    (parameter :type <asn1-encodable> :optional #t))))
+(let* ((aid-der (der-sequence
+		 (oid-string->der-object-identifier "1.1.1.1")
+		 (make-der-null)))
+       (aid (asn1-object->asn1-encodable <algorithm-identifier> aid-der)))
+  (test-equal aid-der (asn1-encodable->asn1-object aid 'der)))
 
 (test-end)
