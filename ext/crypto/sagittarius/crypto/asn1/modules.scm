@@ -149,6 +149,12 @@
 		  (subtype? type <asn1-encodable>)
 		  (try-deserialize type entry optional?)))
 	    (else #f)))
+    (define (->collection tagged-obj slot)
+      (let ((obj (ber-tagged-object-obj tagged-obj)))
+	(cond ((and (asn1-collection? obj)
+		    (slot-definition-option slot :->collection #f)) =>
+		    (lambda (conv) (conv (asn1-collection->list obj))))
+	      (else obj))))
     (let loop ((entries (asn1-collection->list o)) (slots slots) (r '()))
       (cond ((and (null? entries) (null? slots))
 	     ;; order doesn't matter ;)
@@ -169,12 +175,12 @@
 	       (cond (tag
 		      (cond ((and (ber-tagged-object? entry)
 				  (= (ber-tagged-object-tag-no entry) tag))
-			     (let ((obj (ber-tagged-object-obj entry)))
-			       (cond ((entry->object obj type optional?) =>
-				      (lambda (obj)
-					(loop (cdr entries) (cdr slots)
-					      (cons (entry->slot slot obj) r))))
-				     (else (err "Invalid tag object")))))
+			     (cond ((entry->object (->collection entry slot)
+						   type optional?) =>
+				    (lambda (obj)
+				      (loop (cdr entries) (cdr slots)
+					    (cons (entry->slot slot obj) r))))
+				   (else (err "Invalid tag object"))))
 			    (optional? (loop entries (cdr slots) r))
 			    (else (err "Missing tag object"))))
 		     ((entry->object entry type optional?) =>
