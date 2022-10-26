@@ -33,7 +33,9 @@
 ;;  - https://datatracker.ietf.org/doc/html/rfc5912
 #!nounbound
 (library (sagittarius crypto pkix modules x509)
-    (export algorithm-identifier? <algorithm-identifier>
+    (export asn1-object->asn1-encodable ;; for convenience
+
+	    algorithm-identifier? <algorithm-identifier>
 	    algorithm-identifier-algorithm algorithm-identifier-parameters
 
 	    subject-public-key-info? <subject-public-key-info>
@@ -47,10 +49,30 @@
 	    single-attribute-type single-attribute-value
 
 	    relative-distinguished-name? <relative-distinguished-name>
-	    relative-distinguished-name-elements
+	    relative-distinguished-name-components
+
+	    *attribute:name*
+	    *attribute:surname*
+	    *attribute:given-name*
+	    *attribute:initials*
+	    *attribute:generation-qualifier*
+	    *attribute:common-name*
+	    *attribute:locality-name*
+	    *attribute:state-or-province-name*
+	    *attribute:organization-name*
+	    *attribute:organization-unit-name*
+	    *attribute:title*
+	    *attribute:dn-qualifier*
+	    *attribute:country-name*
+	    *attribute:serial-number*
+	    *attribute:pseudonym*
+	    *attribute:domain-component*
+	    *attribute:email-address*
+	    *attribute:street-address*
+	    *attribute:userid*
 
 	    rdn-sequence? <rdn-sequence>
-	    rdn-sequence-elements
+	    rdn-sequence->list
 	    
 	    name? <name> name-rdn*
 
@@ -200,21 +222,54 @@
 (define-asn1-encodable <relative-distinguished-name>
   (asn1-set
    (of :type <single-attribute>
-       :reader relative-distinguished-name-elements)))
+       :reader relative-distinguished-name-components)))
 (define (relative-distinguished-name? o)
   (is-a? o <relative-distinguished-name>))
+
+
+;; SupportedAttributes ATTRIBUTE ::= {
+;;     at-name | at-surname | at-givenName | at-initials |
+;;     at-generationQualifier | at-x520CommonName |
+;;     at-x520LocalityName | at-x520StateOrProvinceName |
+;;     at-x520OrganizationName | at-x520OrganizationalUnitName |
+;;     at-x520Title | at-x520dnQualifier | at-x520countryName |
+;;     at-x520SerialNumber | at-x520Pseudonym | at-domainComponent |
+;;     at-emailAddress, ... }
+(define oid oid-string->der-object-identifier)
+(define *attribute:name* (oid "2.5.4.41"))
+(define *attribute:surname* (oid "2.5.4.4"))
+(define *attribute:given-name* (oid "2.5.4.42"))
+(define *attribute:initials* (oid "2.5.4.43"))
+(define *attribute:generation-qualifier* (oid "2.5.4.44"))
+(define *attribute:common-name* (oid "2.5.4.3"))
+(define *attribute:locality-name* (oid "2.5.4.7"))
+(define *attribute:state-or-province-name* (oid "2.5.4.8"))
+(define *attribute:organization-name* (oid "2.5.4.10"))
+(define *attribute:organization-unit-name* (oid "2.5.4.11"))
+(define *attribute:title* (oid "2.5.4.12"))
+(define *attribute:dn-qualifier* (oid "2.5.4.46"))
+(define *attribute:country-name* (oid "2.5.4.6"))
+(define *attribute:serial-number* (oid "2.5.4.5"))
+(define *attribute:pseudonym* (oid "2.5.4.65"))
+(define *attribute:domain-component* (oid "0.9.2342.19200300.100.1.25"))
+(define *attribute:email-address* (oid "1.2.840.113549.1.9.1"))
+;; Well RFC 1779 style require this...
+(define *attribute:street-address* (oid "2.5.4.9"))
+;; Well RFC 2253 style require this...
+(define *attribute:userid* (oid "0.9.2342.19200300.100.1.1"))
+
 ;; Name ::= CHOICE { -- only one possibility for now --
 ;;     rdnSequence  RDNSequence }
 ;; RDNSequence ::= SEQUENCE OF RelativeDistinguishedName
 (define-asn1-encodable <rdn-sequence>
   (asn1-sequence
    (of :type <relative-distinguished-name>
-       :reader rdn-sequence-elements)))
+       :reader rdn-sequence->list)))
 (define (rdn-sequence? o) (is-a? o <rdn-sequence>))
 
 (define <name> <rdn-sequence>)
 (define name? rdn-sequence?)
-(define name-rdn* rdn-sequence-elements)
+(define name-rdn* rdn-sequence->list)
 
 ;; Extension{EXTENSION:ExtensionSet} ::= SEQUENCE {
 ;;     extnID      EXTENSION.&id({ExtensionSet}),
@@ -304,7 +359,6 @@
 ;;         ext-CRLDistributionPoints | ext-InhibitAnyPolicy |
 ;;         ext-FreshestCRL | ext-AuthorityInfoAccess |
 ;;         ext-SubjectInfoAccessSyntax, ... }
-(define oid oid-string->der-object-identifier)
 (define *extension:authority-key-identifier* (oid "2.5.29.35"))
 (define *extension:subject-key-identifier* (oid "2.5.29.14"))
 (define *extension:key-usage* (oid "2.5.29.15"))
