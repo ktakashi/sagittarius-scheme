@@ -478,9 +478,12 @@
 			  (loop (cdr sps) (cdr args)))))))
 	(define (specializer-more-specific? a b arg)
 	  (or (is-a? a <one-of-specializer>)
-	      (find (lambda (a) (eq? a b))
-		    ;; memq should be enough, I think
-		    (cdr (member a (class-cpl (class-of arg)))))))
+	      (cond ((member a (class-cpl (class-of arg))) =>
+		     (lambda (l)
+		       (find (lambda (a) (eq? a b))
+			     ;; memq should be enough, I think
+			     (cdr l))))
+		    (else #f))))
 	(define (more-specific? a b)
 	  (let loop ((sp-a (method-specializers a))
 		     (sp-b (method-specializers b)))
@@ -493,7 +496,7 @@
 			 (and opt-a (not opt-b)))))
 		  ((null? sp-a) #f)
 		  ((null? sp-b))
-		  ((eq? (car (sp-a)) (car sp-b)) (loop (cdr sp-a) (cdr sp-b)))
+		  ((eq? (car sp-a) (car sp-b)) (loop (cdr sp-a) (cdr sp-b)))
 		  (else
 		   (specializer-more-specific? (car sp-a) (car sp-b)
 					       (car args))))))
