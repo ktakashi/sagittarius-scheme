@@ -1,6 +1,7 @@
 (import (rnrs)
 	(sagittarius crypto pkix certificate)
 	(sagittarius crypto keys)
+	(sagittarius crypto signatures)
 	(rfc base64)
 	(srfi :19)
 	(srfi :64))
@@ -26,6 +27,34 @@
     "UeWU6g==")
    :transcoder #f))
 
+(define ((test-certificate-builder x509-cert) algorithm)
+  (define one-year (make-time time-duration 0 (* 3600 24 365)))
+  (define now (current-time))
+  (define key-scheme (oid->key-operation algorithm))
+  (let ((template (x509-certificate-template-builder
+		    (issuer-dn (x509-certificate-issuer-dn x509-cert))
+		    (subject-dn (x509-certificate-subject-dn x509-cert))
+		    (serial-number 1000)
+		    (not-before (time-utc->date now))
+		    (not-after (time-utc->date (add-duration now one-year)))))
+	(signing-key-pair (generate-key-pair key-scheme))
+	(failing-key-pair (generate-key-pair key-scheme)))
+    (test-assert (x509-certificate-template? template))
+    (let ((cert (sign-x509-certificate-template
+		 template algorithm signing-key-pair)))
+      (test-assert (x509-certificate? cert))
+      (test-assert algorithm (validate-x509-certificate cert
+		    (x509-certificate-validity-validator)
+		    (x509-certificate-signature-validator 
+		     (key-pair-public signing-key-pair))))
+      (test-error "Validity"
+		  ((x509-certificate-validity-validator 
+		    (time-utc->date (subtract-duration now one-year)))
+		   cert))
+      (test-error "Signature verificateion"
+		  ((x509-certificate-signature-validator
+		    (key-pair-public failing-key-pair)) cert)))))
+
 (let ((x509-cert
        (read-x509-certificate (open-bytevector-input-port cert))))
   (test-assert (x509-certificate? x509-cert))
@@ -41,6 +70,36 @@
     (let ((bport (open-base64-encode-output-port out)))
       (write-x509-certificate x509-cert bport)
       (close-output-port bport)
-      (test-equal (base64-encode cert :line-width #f) (e)))))
+      (test-equal (base64-encode cert :line-width #f) (e))))
+  (for-each (test-certificate-builder x509-cert)
+	    (list *signature-algorithm:rsa-pkcs-v1.5-sha1*
+		  *signature-algorithm:rsa-pkcs-v1.5-sha256*
+		  *signature-algorithm:rsa-pkcs-v1.5-sha384*
+		  *signature-algorithm:rsa-pkcs-v1.5-sha512*
+		  *signature-algorithm:rsa-pkcs-v1.5-sha224*
+		  *signature-algorithm:rsa-pkcs-v1.5-sha512/224*
+		  *signature-algorithm:rsa-pkcs-v1.5-sha512/256*
+		  *signature-algorithm:rsa-pkcs-v1.5-sha3-224*
+		  *signature-algorithm:rsa-pkcs-v1.5-sha3-256*
+		  *signature-algorithm:rsa-pkcs-v1.5-sha3-384*
+		  *signature-algorithm:rsa-pkcs-v1.5-sha3-512*
+		  *signature-algorithm:dsa-sha224*
+		  *signature-algorithm:dsa-sha256*
+		  ;; Key size doesn't fit...
+		  ;; Not sure why these are defined even as max size of DSA
+		  ;; key is 2048...
+		  ;; *signature-algorithm:dsa-sha384*
+		  ;; *signature-algorithm:dsa-sha512*
+		  *signature-algorithm:ecdsa-sha1*
+		  *signature-algorithm:ecdsa-sha224*
+		  *signature-algorithm:ecdsa-sha256*
+		  *signature-algorithm:ecdsa-sha384*
+		  *signature-algorithm:ecdsa-sha512*
+		  *signature-algorithm:ecdsa-sha3-224*
+		  *signature-algorithm:ecdsa-sha3-256*
+		  *signature-algorithm:ecdsa-sha3-384*
+		  *signature-algorithm:ecdsa-sha3-512*
+		  *signature-algorithm:ed25519*
+		  *signature-algorithm:ed448*)))
 
 (test-end)

@@ -214,7 +214,7 @@
       (values x (mod-expt g x p)))))
   
 (define-method generate-key-pair ((m (eql *key:dsa*))
-				  :key (size 1024)
+				  :key (size 2048)
 				       (prng (secure-random-generator *prng:chacha20*))
 				       (dsa-parameter #f)
 				  :allow-other-keys)

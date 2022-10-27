@@ -35,6 +35,7 @@
 (library (sagittarius crypto asn1 modules)
     (export define-asn1-encodable of
 	    asn1-object->asn1-encodable
+	    bytevector->asn1-encodable
 	    ;; For now only these two, maybe we want to add
 	    ;; asn1-choice and others as well
 	    asn1-sequence
@@ -44,9 +45,15 @@
 	    (clos user)
 	    (srfi :1 lists) ;; for concatenate!
 	    (sagittarius)
-	    (sagittarius crypto asn1 types))
+	    (sagittarius crypto asn1 types)
+	    (sagittarius crypto asn1 reader))
 
 (define-generic asn1-object->asn1-encodable)
+(define (asn1-encodable-class? class)
+  (and (is-a? class <class>) (subtype? class <asn1-encodable>)))
+(define (bytevector->asn1-encodable (class asn1-encodable-class?)
+				    (bv bytevector?))
+  (asn1-object->asn1-encodable class (bytevector->asn1-object bv)))
 (define-syntax of (syntax-rules ()))
 ;; we want to define ASN.1 module like this
 ;; e.g.

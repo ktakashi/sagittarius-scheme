@@ -52,6 +52,36 @@
 	    *signature:ed25519ph*
 	    *signature:ed448*
 	    *signature:ed448ph*
+
+	    oid->signer-maker
+	    oid->verifier-maker
+
+	    *signature-algorithm:rsa-pkcs-v1.5-sha1*
+	    *signature-algorithm:rsa-pkcs-v1.5-sha256*
+	    *signature-algorithm:rsa-pkcs-v1.5-sha384*
+	    *signature-algorithm:rsa-pkcs-v1.5-sha512*
+	    *signature-algorithm:rsa-pkcs-v1.5-sha224*
+	    *signature-algorithm:rsa-pkcs-v1.5-sha512/224*
+	    *signature-algorithm:rsa-pkcs-v1.5-sha512/256*
+	    *signature-algorithm:rsa-pkcs-v1.5-sha3-224*
+	    *signature-algorithm:rsa-pkcs-v1.5-sha3-256*
+	    *signature-algorithm:rsa-pkcs-v1.5-sha3-384*
+	    *signature-algorithm:rsa-pkcs-v1.5-sha3-512*
+	    *signature-algorithm:dsa-sha224*
+	    *signature-algorithm:dsa-sha256*
+	    *signature-algorithm:dsa-sha384*
+	    *signature-algorithm:dsa-sha512*
+	    *signature-algorithm:ecdsa-sha1*
+	    *signature-algorithm:ecdsa-sha224*
+	    *signature-algorithm:ecdsa-sha256*
+	    *signature-algorithm:ecdsa-sha384*
+	    *signature-algorithm:ecdsa-sha512*
+	    *signature-algorithm:ecdsa-sha3-224*
+	    *signature-algorithm:ecdsa-sha3-256*
+	    *signature-algorithm:ecdsa-sha3-384*
+	    *signature-algorithm:ecdsa-sha3-512*
+	    *signature-algorithm:ed25519*
+	    *signature-algorithm:ed448*
 	    )
     (import (rnrs)
 	    (clos user)
@@ -61,6 +91,7 @@
 	    (sagittarius crypto signatures ecdsa)
 	    (sagittarius crypto signatures eddsa)
 	    (sagittarius crypto keys)
+	    (sagittarius crypto digests)
 	    (sagittarius mop immutable))
 
 (define-class <signature> (<immutable>) 
@@ -107,4 +138,119 @@
   verifier)
 (define (verifier-verify! (verifier verifier?) (signature bytevector?))
   (verifier-state-verify-message (signature-state verifier) signature))
+
+;;; OID thing...
+(define-generic oid->signer-maker)
+(define-generic oid->verifier-maker)
+
+(define-syntax define-oid->signer&verifier
+  (syntax-rules ()
+    ((_ name oid scheme opts ...)
+     (begin
+       (define name oid)
+       ;; not sure if we want to have this though...
+       (define-method oid->key-operation ((m (equal oid))) scheme)
+       (define-method oid->signer-maker ((m (equal oid)))
+	 (lambda (key . rest)
+	   (apply make-signer scheme key opts ... rest)))
+       (define-method oid->verifier-maker ((m (equal oid)))
+	 (lambda (key . rest)
+	   (apply make-verifier scheme key opts ... rest)))))))
+
+(define-oid->signer&verifier *signature-algorithm:rsa-pkcs-v1.5-sha1*
+  "1.2.840.113549.1.1.5" *signature:rsa*
+  :digest *digest:sha-1*
+  :encoder pkcs1-emsa-v1.5-encode :verifier pkcs1-emsa-v1.5-verify)
+(define-oid->signer&verifier *signature-algorithm:rsa-pkcs-v1.5-sha256*
+  "1.2.840.113549.1.1.11" *signature:rsa*
+  :digest *digest:sha-256*
+  :encoder pkcs1-emsa-v1.5-encode :verifier pkcs1-emsa-v1.5-verify)
+(define-oid->signer&verifier *signature-algorithm:rsa-pkcs-v1.5-sha384*
+  "1.2.840.113549.1.1.12" *signature:rsa*
+  :digest *digest:sha-384*
+  :encoder pkcs1-emsa-v1.5-encode :verifier pkcs1-emsa-v1.5-verify)
+(define-oid->signer&verifier *signature-algorithm:rsa-pkcs-v1.5-sha512*
+  "1.2.840.113549.1.1.13" *signature:rsa*
+  :digest *digest:sha-512*
+  :encoder pkcs1-emsa-v1.5-encode :verifier pkcs1-emsa-v1.5-verify)
+(define-oid->signer&verifier *signature-algorithm:rsa-pkcs-v1.5-sha224*
+  "1.2.840.113549.1.1.14" *signature:rsa*
+  :digest *digest:sha-224*
+  :encoder pkcs1-emsa-v1.5-encode :verifier pkcs1-emsa-v1.5-verify)
+(define-oid->signer&verifier *signature-algorithm:rsa-pkcs-v1.5-sha512/224*
+  "1.2.840.113549.1.1.15" *signature:rsa*
+  :digest *digest:sha-512/224*
+  :encoder pkcs1-emsa-v1.5-encode :verifier pkcs1-emsa-v1.5-verify)
+(define-oid->signer&verifier *signature-algorithm:rsa-pkcs-v1.5-sha512/256*
+  "1.2.840.113549.1.1.16" *signature:rsa*
+  :digest *digest:sha-512/256*
+  :encoder pkcs1-emsa-v1.5-encode :verifier pkcs1-emsa-v1.5-verify)
+(define-oid->signer&verifier *signature-algorithm:rsa-pkcs-v1.5-sha3-224*
+  "2.16.840.1.101.3.4.3.13" *signature:rsa*
+  :digest *digest:sha3-224*
+  :encoder pkcs1-emsa-v1.5-encode :verifier pkcs1-emsa-v1.5-verify)
+(define-oid->signer&verifier *signature-algorithm:rsa-pkcs-v1.5-sha3-256*
+  "2.16.840.1.101.3.4.3.14" *signature:rsa*
+  :digest *digest:sha3-256*
+  :encoder pkcs1-emsa-v1.5-encode :verifier pkcs1-emsa-v1.5-verify)
+(define-oid->signer&verifier *signature-algorithm:rsa-pkcs-v1.5-sha3-384*
+  "2.16.840.1.101.3.4.3.15" *signature:rsa*
+  :digest *digest:sha3-384*
+  :encoder pkcs1-emsa-v1.5-encode :verifier pkcs1-emsa-v1.5-verify)
+(define-oid->signer&verifier *signature-algorithm:rsa-pkcs-v1.5-sha3-512*
+  "2.16.840.1.101.3.4.3.16" *signature:rsa*
+  :digest *digest:sha3-512*
+  :encoder pkcs1-emsa-v1.5-encode :verifier pkcs1-emsa-v1.5-verify)
+
+;; TODO RSA PSSSSA-PSS
+
+(define-oid->signer&verifier *signature-algorithm:dsa-sha224*
+  "2.16.840.1.101.3.4.3.1" *signature:dsa*
+  :digest *digest:sha-224*)
+(define-oid->signer&verifier *signature-algorithm:dsa-sha256*
+  "2.16.840.1.101.3.4.3.2" *signature:dsa*
+  :digest *digest:sha-256*)
+(define-oid->signer&verifier *signature-algorithm:dsa-sha384*
+  "2.16.840.1.101.3.4.3.3" *signature:dsa*
+  :digest *digest:sha-384*)
+(define-oid->signer&verifier *signature-algorithm:dsa-sha512*
+  "2.16.840.1.101.3.4.3.4" *signature:dsa*
+  :digest *digest:sha-512*)
+
+(define-oid->signer&verifier *signature-algorithm:ecdsa-sha1*
+  "1.2.840.10045.4.1" *signature:ecdsa*
+  :digest *digest:sha-1*)
+(define-oid->signer&verifier *signature-algorithm:ecdsa-sha224*
+  "1.2.840.10045.4.3.1" *signature:ecdsa*
+  :digest *digest:sha-224*)
+(define-oid->signer&verifier *signature-algorithm:ecdsa-sha256*
+  "1.2.840.10045.4.3.2" *signature:ecdsa*
+  :digest *digest:sha-256*)
+(define-oid->signer&verifier *signature-algorithm:ecdsa-sha384*
+  "1.2.840.10045.4.3.3" *signature:ecdsa*
+  :digest *digest:sha-384*)
+(define-oid->signer&verifier *signature-algorithm:ecdsa-sha512*
+  "1.2.840.10045.4.3.4" *signature:ecdsa*
+  :digest *digest:sha-512*)
+;; these seems draft OID
+(define-oid->signer&verifier *signature-algorithm:ecdsa-sha3-224*
+  "2.16.840.1.101.3.4.3.9" *signature:ecdsa*
+  :digest *digest:sha3-224*)
+(define-oid->signer&verifier *signature-algorithm:ecdsa-sha3-256*
+  "2.16.840.1.101.3.4.3.10" *signature:ecdsa*
+  :digest *digest:sha3-256*)
+(define-oid->signer&verifier *signature-algorithm:ecdsa-sha3-384*
+  "2.16.840.1.101.3.4.3.11" *signature:ecdsa*
+  :digest *digest:sha3-384*)
+(define-oid->signer&verifier *signature-algorithm:ecdsa-sha3-512*
+  "2.16.840.1.101.3.4.3.12" *signature:ecdsa*
+  :digest *digest:sha3-512*)
+
+(define-oid->signer&verifier *signature-algorithm:ed25519*
+  "1.3.101.112" *signature:ed25519*)
+(define-oid->signer&verifier *signature-algorithm:ed448*
+  "1.3.101.113" *signature:ed448*)
+;; Seems not defined?
+;; (define-oid->signer&verifier "1.3.101.114" *signature:ed25519ph*)
+;; (define-oid->signer&verifier "1.3.101.115" *signature:ed448ph*)
 )

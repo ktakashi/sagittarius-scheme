@@ -34,6 +34,7 @@
 #!nounbound
 (library (sagittarius crypto pkix modules x509)
     (export asn1-object->asn1-encodable ;; for convenience
+	    bytevector->asn1-encodable
 
 	    algorithm-identifier? <algorithm-identifier>
 	    algorithm-identifier-algorithm algorithm-identifier-parameters
