@@ -32,8 +32,9 @@
 (library (sagittarius crypto pkix certificate)
     (export subject-public-key-info->public-key
 
-	    x509-name? <x509-name>
+	    x509-name? <x509-name> x509-name
 	    x509-name->string
+	    list->x509-name
 	    
 	    x509-validity? <x509-validity>
 	    x509-validity-not-before
@@ -46,6 +47,8 @@
 
 	    x509-extensions? <x509-extensions>
 	    x509-extensions->list
+	    list->x509-extensions
+	    x509-extensions
 	    
 	    x509-certificate? <x509-certificate>
 	    bytevector->x509-certificate read-x509-certificate
@@ -66,7 +69,24 @@
 	    
 	    x509-certificate-template?
 	    x509-certificate-template-builder
-	    sign-x509-certificate-template)
+	    sign-x509-certificate-template
+
+	    ;; For extension
+	    x509-general-name? <x509-general-name>
+	    rfc822-name->general-name
+	    dns-name->general-name
+	    ip-address->general-name
+	    uri->general-name
+	    directory-name->general-name
+	    registered-id->general-name
+
+	    x509-general-names? <x509-general-names>
+	    list->x509-general-names
+	    x509-general-names
+
+	    ;; SAN
+	    make-x509-subject-alternative-name-extension
+	    )
     (import (rnrs)
 	    (clos user)
 	    (sagittarius)
@@ -163,6 +183,33 @@
 (define (name->x509-name (name name?))
   (make <x509-name> :name name))
 
+(define *reverse-oid-map*
+  (map (lambda (s) (cons (string->symbol (cdr s)) (car s)))
+       *default-map*))
+;; We use UTF8String for DirectoryString, unless it's specified
+;; NOTE X520Name = DirectoryString as well
+(define *oid-ctr-map*
+  `((,*attribute:dn-qualifier*         . ,string->der-printable-string)
+    (,*attribute:country-name*         . ,string->der-printable-string)
+    (,*attribute:serial-number*        . ,string->der-printable-string)
+    (,*attribute:domain-component*     . ,string->der-ia5-string)
+    (,*attribute:email-address*        . ,string->der-ia5-string)))
+(define (list->x509-name l)
+  (define (oid->der-ctr oid)
+    (cond ((assoc oid *oid-ctr-map*) => cdr)
+	  (else string->der-utf8-string)))
+  (define (->rdn oid&value)
+    (make <relative-distinguished-name>
+      :elements (list (make <single-attribute>
+		  :type (car oid&value) :value (cdr oid&value)))))
+  (define (->oid&value s)
+    (let ((oid (cond ((assq (car s) *reverse-oid-map*) => cdr)
+		     (else (oid-string->der-object-identifier (car s))))))
+    (cons oid ((oid->der-ctr oid) (cadr s)))))
+  (make <x509-name>
+    :name (make <rdn-sequence> :elements (map ->rdn (map ->oid&value l)))))
+(define (x509-name . c) (list->x509-name c))
+
 (define-class <x509-validity> (<immutable> <cached-allocation>)
   ((validity :init-keyword :validity)
    (not-before :allocation :virtual :cached #t
@@ -194,11 +241,12 @@
    (value :allocation :virtual :cached #t
 	  :slot-ref (make-slot-ref
 		     (.$ extension-value x509-extension-source)
-		     der-octet-string->bytevector)
+		     (.$ bytevector->asn1-object der-octet-string->bytevector))
 	  :reader x509-extension-value)))
 (define (x509-extension? o) (is-a? o <x509-extension>))
 (define (extension->x509-extension (e extension?))
   (make <x509-extension> :extension e))
+
 (define (list->x509-extension-list l)
   (map extension->x509-extension l))
 (define-method write-object ((o <x509-extension>) p)
@@ -207,6 +255,68 @@
 	  (x509-extension-critical? o)
 	  (x509-extension-value o)))
 
+(define (make-x509-extension (id der-object-identifier?) (critical boolean?)
+			     (value asn1-encodable?))
+  (let ((bv (asn1-encodable->bytevector value)))
+    (make <x509-extension>
+      :extension (make <extension>
+		   :id id
+		   :critical (boolean->der-boolean critical)
+		   :value (bytevector->der-octet-string bv)))))
+
+(define-class <x509-general-name> (<immutable>)
+  ((type :init-keyword :type :reader x509-general-name-type)
+   (value :init-keyword :value :reader x509-general-name-value)))
+(define (x509-general-name? o) (is-a? o <x509-general-name>))
+(define (x509-general-name->general-name (name x509-general-name?))
+  (define (get-ctr type)
+    (case type
+      ((rfc822-name) string->der-ia5-string)
+      ((dns-name) string->der-ia5-string)
+      ((ip-address) bytevector->der-octet-string)
+      ((uniform-resource-identifier) string->der-ia5-string)
+      ((directory-name) string->der-utf8-string)
+      ((registered-id) oid-string->der-object-identifier)
+      (else
+       (assertion-violation 'x509-general-name->general-name
+			    "Unsupported type" type))))
+  (let ((type (x509-general-name-type name)))
+    (make <general-name>
+      :type type :value ((get-ctr type) (x509-general-name-value name)))))
+
+(define (rfc822-name->general-name (name string?))
+  (make <x509-general-name> :type 'rfc822-name :value name))
+(define (dns-name->general-name (name string?))
+  (make <x509-general-name> :type 'dns-name :value name))
+(define (ip-address->general-name (ip-address bytevector?))
+  (make <x509-general-name> :type 'ip-address :value ip-address))
+(define (uri->general-name (uri string?))
+  (make <x509-general-name> :type 'uniform-resource-identifier :value uri))
+(define (directory-name->general-name (name string?))
+  (make <x509-general-name> :type 'directory-name :value name))
+(define (registered-id->general-name (oid object-identifier-string?))
+  (make <x509-general-name> :type 'registered-id :value oid))
+
+(define-class <x509-general-names> (<immutable>)
+  ((names :init-keyword :names :reader x509-general-names-names)))
+(define (x509-general-names? o) (is-a? o <x509-general-names>))
+(define (x509-general-names->general-names (general-names x509-general-names?))
+  (make <general-names>
+    :elements (map x509-general-name->general-name
+		   (x509-general-names-names general-names))))
+(define ((list-of pred) list) (for-all pred list))
+(define list-of-x509-general-names? (list-of x509-general-name?))
+(define (list->x509-general-names (names list-of-x509-general-names?))
+  (make <x509-general-names> :names names))
+(define (x509-general-names . names) (list->x509-general-names names))
+
+(define (make-x509-subject-alternative-name-extension
+	 (general-names x509-general-names?)
+	 :optional (critical? #f))
+  (make-x509-extension *extension:subject-alt-name* critical?
+		       (x509-general-names->general-names general-names)))
+
+;; X509 extensions
 (define (x509-extensions-extensions o) (slot-ref o 'extensions))
 (define-class <x509-extensions> (<immutable> <cached-allocation>)
   ((extensions :init-keyword :extensions)
@@ -218,7 +328,13 @@
 (define (x509-extensions? o) (is-a? o <x509-extensions>))
 (define (extensions->x509-extensions (extensions extensions?))
   (make <x509-extensions> :extensions extensions))
+(define (list->x509-extensions (extensions (list-of x509-extension?)))
+  (make <x509-extensions>
+    :extensions (make <extensions>
+		  :elements (map x509-extension-source extensions))))
+(define (x509-extensions . extensions) (list->x509-extensions extensions))
 
+;; Maybe we should move these to somewhere else...
 (define-method import-public-key ((key <subject-public-key-info>))
   (import-public-key (asn1-encodable->asn1-object key)
 		     (public-key-format subject-public-key-info)))

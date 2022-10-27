@@ -74,6 +74,7 @@
 	    bytevector->der-object-identifier
 	    oid-string->der-object-identifier
 	    der-object-identifier->oid-string
+	    object-identifier-string? ;; for convenience
 
 	    der-external? <der-external>
 	    der-external-direct-reference

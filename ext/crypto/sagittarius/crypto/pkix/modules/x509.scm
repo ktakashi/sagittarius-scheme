@@ -166,7 +166,12 @@
 	    certification-request? <certification-request>
 	    certification-request-certification-request-info
 	    certification-request-signature-algorithm
-	    certification-request-signature)
+	    certification-request-signature
+
+	    general-names? <general-names> general-names-components
+	    general-name? <general-name> general-name-name
+	    directory-string? <directory-string> directory-string-value
+	    )
     (import (rnrs)
 	    (clos user)
 	    (sagittarius crypto asn1)
@@ -379,6 +384,99 @@
 (define *extension:authority-info-access* (oid "1.3.6.1.5.5.7.1.1"))
 (define *extension:subject-info-access* (oid "1.3.6.1.5.5.7.1.11"))
 
+;; From RFC 5280
+;; OtherName ::= SEQUENCE {
+;;         type-id    OBJECT IDENTIFIER,
+;;         value      [0] EXPLICIT ANY DEFINED BY type-id }
+(define-asn1-encodable <other-name>
+  (asn1-sequence
+   ((type-id :type <der-object-identifier> :reader other-name-type-id)
+    (value :type <asn1-encodable> :tag 0 :explicit #t
+	   :reader other-name-value))))
+
+;; DirectoryString{INTEGER:maxSize} ::= CHOICE {
+;;     teletexString    TeletexString(SIZE (1..maxSize)),
+;;     printableString  PrintableString(SIZE (1..maxSize)),
+;;     bmpString        BMPString(SIZE (1..maxSize)),
+;;     universalString  UniversalString(SIZE (1..maxSize)),
+;;     uTF8String       UTF8String(SIZE (1..maxSize))
+;; }
+(define-asn1-encodable <directory-string>
+  (asn1-choice
+   ((teletex-string :type <der-t61-string>)
+    (printable-string :type <der-printable-string>)
+    (bmp-string :type <der-bmp-string>)
+    (universal-string :type <der-universal-string>)
+    (utf8-string :type <der-utf8-string>))
+   :reader directory-string-value))
+(define (directory-string? o) (is-a? o <directory-string>))
+;; 
+;; EDIPartyName ::= SEQUENCE {
+;;     nameAssigner    [0] DirectoryString {ubMax} OPTIONAL,
+;;     partyName       [1] DirectoryString {ubMax}
+;; }
+(define-asn1-encodable <edi-party-name>
+  (asn1-sequence
+   ((name-assigner :type <directory-string> :tag 0 :explicit #f :optional #t
+		   :reader edi-party-name-name-assigner)
+    (party-name :type <directory-string> :tag 1 :explicit #t
+		:reader edi-party-name-party-name))))
+
+;; GeneralName ::= CHOICE {
+;;      otherName                   [0]  INSTANCE OF OTHER-NAME,
+;;      rfc822Name                  [1]  IA5String,
+;;      dNSName                     [2]  IA5String,
+;;      x400Address                 [3]  ORAddress,
+;;      directoryName               [4]  Name,
+;;      ediPartyName                [5]  EDIPartyName,
+;;      uniformResourceIdentifier   [6]  IA5String,
+;;      iPAddress                   [7]  OCTET STRING,
+;;      registeredID                [8]  OBJECT IDENTIFIER
+;; }
+;; -- AnotherName replaces OTHER-NAME ::= TYPE-IDENTIFIER, as
+;; -- TYPE-IDENTIFIER is not supported in the '88 ASN.1 syntax
+(define-asn1-encodable <general-name>
+  (asn1-choice
+   ((other-name :type <other-name> :tag 0 :explicit #f)
+    (rfc822-name :type <der-ia5-string> :tag 1 :explicit #f
+		 :converter bytevector->der-ia5-string)
+    (dns-name :type <der-ia5-string> :tag 2 :explicit #f
+	      :converter bytevector->der-ia5-string)
+    ;; Sorry, we don't support its creation, if it's passed we handle
+    ;; it's quite huge and never seen being used
+    (x400-address :type <asn1-encodable> :tag 3 :explicit #f)
+    ;; Name is choice so explicit
+    (directory-name :type <name> :tag 4 :explicit #t)
+    (edi-party-name :type <edi-party-name> :tag 5 :explicit #f)
+    (uniform-resource-identifier :type <der-ia5-string> :tag 6 :explicit #f
+				 :converter bytevector->der-ia5-string)
+    (ip-address :type <der-octet-string> :tag 7 :explicit #f)
+    (registered-id :type <der-object-identifier> :tag 8 :explicit #f
+		   :converter bytevector->der-object-identifier))
+   :reader general-name-name))
+(define (general-name? o) (is-a? o <general-name>))
+
+;; GeneralNames ::= SEQUENCE SIZE (1..MAX) OF GeneralName
+(define-asn1-encodable <general-names>
+  (asn1-sequence
+   (of :type <general-name> :reader general-names-components)))
+(define (general-names? o) (is-a? o <general-names>))
+
+;; AuthorityKeyIdentifier ::= SEQUENCE {
+;;     keyIdentifier             [0] KeyIdentifier            OPTIONAL,
+;;     authorityCertIssuer       [1] GeneralNames             OPTIONAL,
+;;     authorityCertSerialNumber [2] CertificateSerialNumber  OPTIONAL }
+(define-asn1-encodable <authority-key-identifier>
+  (asn1-sequence
+   ((key-identifier :type <der-octet-string> :tag 0 :optional #t :explicit #f
+		    :reader authority-key-identifier-key-identifier)
+    (authority-cert-issuer :type <general-names> :tag 1 :optional #t
+      :explicit #t
+      :reader authority-key-identifier-authority-cert-issuer)
+    (authority-cert-serial-number :type <der-integer> :tag 2 :optional #t
+      :explicit #f
+      :reader authority-key-identifier-authority-cert-serial-number))))
+
 ;;; CRL
 ;; CertificateList  ::=  SIGNED{TBSCertList}
 
@@ -486,7 +584,7 @@
     (subject-pk-info :type <subject-public-key-info>
 		     :reader certification-request-info-subject-pk-info)
     (attributes :type <attributes> :tag 0 :explicit #f
-		:->collection make-der-set
+		:converter make-der-set
 		:reader certification-request-info-attributes))))
 (define (certification-request-info? o) (is-a? o <certification-request-info>))
 
