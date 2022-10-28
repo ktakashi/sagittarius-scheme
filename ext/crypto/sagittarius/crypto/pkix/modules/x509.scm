@@ -168,9 +168,15 @@
 	    certification-request-signature-algorithm
 	    certification-request-signature
 
+	    ;; These are basically for certificate/crl extensions
 	    general-names? <general-names> general-names-components
 	    general-name? <general-name> general-name-name
 	    directory-string? <directory-string> directory-string-value
+
+	    authority-key-identifier? <authority-key-identifier>
+	    authority-key-identifier-key-identifier
+	    authority-key-identifier-authority-cert-issuer
+	    authority-key-identifier-authority-cert-serial-number
 	    )
     (import (rnrs)
 	    (clos user)
@@ -471,11 +477,13 @@
    ((key-identifier :type <der-octet-string> :tag 0 :optional #t :explicit #f
 		    :reader authority-key-identifier-key-identifier)
     (authority-cert-issuer :type <general-names> :tag 1 :optional #t
-      :explicit #t
+      :explicit #f
       :reader authority-key-identifier-authority-cert-issuer)
     (authority-cert-serial-number :type <der-integer> :tag 2 :optional #t
       :explicit #f
-      :reader authority-key-identifier-authority-cert-serial-number))))
+      :reader authority-key-identifier-authority-cert-serial-number
+      :converter bytevector->der-integer))))
+(define (authority-key-identifier? o) (is-a? o <authority-key-identifier>))
 
 ;;; CRL
 ;; CertificateList  ::=  SIGNED{TBSCertList}

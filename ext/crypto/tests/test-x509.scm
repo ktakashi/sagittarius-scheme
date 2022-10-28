@@ -1,7 +1,9 @@
 (import (rnrs)
 	(sagittarius crypto pkix certificate)
+	(sagittarius crypto pkix extensions)
 	(sagittarius crypto keys)
 	(sagittarius crypto signatures)
+	(sagittarius crypto asn1)
 	(rfc base64)
 	(srfi :19)
 	(srfi :64))
@@ -27,16 +29,44 @@
     "UeWU6g==")
    :transcoder #f))
 
-(define ((test-certificate-builder x509-cert) algorithm)
+(define alt-names
+  (x509-general-names
+   ;; I want my own domain for this :D
+   (dns-name->general-name "*.example.com")
+   (rfc822-name->general-name "ktakashi@ymail.com")
+   (ip-address->general-name #vu8(127 0 0 1))
+   (directory-name->general-name "O=bla")
+   (registered-id->general-name "1.2.3.4")))
+
+(test-assert (x509-general-names? alt-names))
+
+(define (test-certificate-builder algorithm)
   (define one-year (make-time time-duration 0 (* 3600 24 365)))
   (define now (current-time))
   (define key-scheme (oid->key-operation algorithm))
+  (define issuer-dn (x509-name '(C "NL")
+			       '(ST "Zuid-Holland")
+			       '(L "Leiden")
+			       '(OU "Sagittarius Scheme")
+			       '(CN "Takashi Kato")))
+  (define subject-dn (x509-name '(C "NL")
+			       '(ST "Zuid-Holland")
+			       '(OU "Sagittarius Scheme")
+			       '(CN "Takashi Kato")
+			       '(E "ktakashi@ymail.com")))
   (let ((template (x509-certificate-template-builder
-		    (issuer-dn (x509-certificate-issuer-dn x509-cert))
-		    (subject-dn (x509-certificate-subject-dn x509-cert))
+		    (issuer-dn issuer-dn)
+		    (subject-dn subject-dn)
 		    (serial-number 1000)
 		    (not-before (time-utc->date now))
-		    (not-after (time-utc->date (add-duration now one-year)))))
+		    (not-after (time-utc->date (add-duration now one-year)))
+		    (extensions
+		     (x509-extensions
+		      (make-x509-subject-alternative-name-extension alt-names)
+		      (make-x509-issuer-alternative-name-extension alt-names)
+		      (make-x509-authority-key-identifier-extension
+		       (make-x509-authority-key-identifier
+			:key-identifier #vu8(1 2 3 4 5)))))))
 	(signing-key-pair (generate-key-pair key-scheme))
 	(failing-key-pair (generate-key-pair key-scheme)))
     (test-assert (x509-certificate-template? template))
@@ -53,7 +83,8 @@
 		   cert))
       (test-error "Signature verificateion"
 		  ((x509-certificate-signature-validator
-		    (key-pair-public failing-key-pair)) cert)))))
+		    (key-pair-public failing-key-pair)) cert))
+      cert)))
 
 (let ((x509-cert
        (read-x509-certificate (open-bytevector-input-port cert))))
@@ -71,7 +102,31 @@
       (write-x509-certificate x509-cert bport)
       (close-output-port bport)
       (test-equal (base64-encode cert :line-width #f) (e))))
-  (for-each (test-certificate-builder x509-cert)
+  (let* ((cert (test-certificate-builder *signature-algorithm:ecdsa-sha256*))
+	 (extensions (x509-certificate-extensions cert)))
+
+    (define (test-extension extensions oid critical value)
+      (let ((x (find-x509-extension (x509-extension-by-id oid) extensions)))
+	(test-assert (x509-extension? x))
+	(test-assert (der-object-identifier->oid-string oid)
+		     (x509-extension-id x))
+	(test-equal critical (x509-extension-critical? x))
+	(test-equal oid value (x509-extension-value x))))
+    (define (ensure-raw-asn1-object o)
+      (bytevector->asn1-object (asn1-encodable->bytevector o)))
+    (test-extension extensions *extension:subject-alt-name* #f
+		    (ensure-raw-asn1-object
+		     (x509-general-names->general-names alt-names)))
+    (test-extension extensions *extension:issuer-alt-name* #f
+		    (ensure-raw-asn1-object
+		     (x509-general-names->general-names alt-names)))
+    (test-extension extensions *extension:authority-key-identifier* #f
+		    (ensure-raw-asn1-object
+		     (x509-authority-key-identifier->authority-key-identifier
+		      (make-x509-authority-key-identifier
+		       :key-identifier #vu8(1 2 3 4 5))))))
+    
+  (for-each test-certificate-builder
 	    (list *signature-algorithm:rsa-pkcs-v1.5-sha1*
 		  *signature-algorithm:rsa-pkcs-v1.5-sha256*
 		  *signature-algorithm:rsa-pkcs-v1.5-sha384*
