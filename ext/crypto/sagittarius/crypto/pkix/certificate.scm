@@ -43,6 +43,7 @@
 	    x509-certificate? <x509-certificate>
 	    bytevector->x509-certificate read-x509-certificate
 	    x509-certificate->bytevector write-x509-certificate
+	    x509-certificate-expired?
 	    x509-certificate-issuer-dn
 	    x509-certificate-subject-dn
 	    x509-certificate-public-key
@@ -316,6 +317,13 @@
 (define (write-x509-certificate (x509-certificate x509-certificate?)
 				:optional (out (current-output-port)))
   (put-bytevector out (x509-certificate->bytevector x509-certificate)))
+
+(define (x509-certificate-expired? (x509-certificate x509-certificate?)
+				   :optional (when (current-date)))
+  (let* ((validity (x509-certificate-validity x509-certificate))
+	 (utc (date->time-utc when))
+	 (not-after (date->time-utc (x509-validity-not-after validity))))
+    (time<? not-after utc)))
 
 (define (validate-x509-certificate (x509-certificate x509-certificate?)
 				   . validators)

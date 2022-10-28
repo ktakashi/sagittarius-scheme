@@ -228,6 +228,11 @@
 	 :key ((key-identifier (or #f bytevector?)) #f)
 	      ((authority-cert-issuer (or #f x509-general-names?)) #f)
 	      ((authority-cert-serial-number (or #f integer?)) #f))
+  (unless (or (and authority-cert-issuer authority-cert-serial-number)
+	      (and (not authority-cert-issuer)
+		   (not authority-cert-serial-number)))
+    (assertion-violation 'make-x509-authority-key-identifier
+			 "authority-cert-issuer and authority-cert-serial-number must be either both present or both absent"))
   (make <x509-authority-key-identifier>
     :key-identifier key-identifier
     :authority-cert-issuer authority-cert-issuer

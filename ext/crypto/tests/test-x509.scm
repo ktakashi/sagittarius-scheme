@@ -38,10 +38,21 @@
    (directory-name->general-name "O=bla")
    (registered-id->general-name "1.2.3.4")))
 
+(test-assert (x509-general-name? (dns-name->general-name "*.example.com")))
+(test-assert (x509-general-name? (rfc822-name->general-name "ktakashi@ymail.com")))
+(test-assert (x509-general-name? (ip-address->general-name #vu8(127 0 0 1))))
+(test-assert (x509-general-name? (directory-name->general-name "O=bla")))
+(test-assert (x509-general-name? (registered-id->general-name "1.2.3.4")))
+
 (test-assert (x509-general-names? alt-names))
+(test-assert (x509-authority-key-identifier?
+	      (make-x509-authority-key-identifier :key-identifier #vu8(1))))
+(test-error
+ (make-x509-authority-key-identifier :authority-cert-serial-number 0))
 
 (define (test-certificate-builder algorithm)
   (define one-year (make-time time-duration 0 (* 3600 24 365)))
+  (define one-second (make-time time-duration 0 1))
   (define now (current-time))
   (define key-scheme (oid->key-operation algorithm))
   (define issuer-dn (x509-name '(C "NL")
@@ -77,10 +88,16 @@
 		    (x509-certificate-validity-validator)
 		    (x509-certificate-signature-validator 
 		     (key-pair-public signing-key-pair))))
-      (test-error "Validity"
+      (test-error "Validity before"
 		  ((x509-certificate-validity-validator 
-		    (time-utc->date (subtract-duration now one-year)))
+		    (time-utc->date (subtract-duration now one-second)))
 		   cert))
+      (let ((expired-date (time-utc->date
+			   (add-duration (add-duration now one-year)
+					 one-second))))
+	(test-assert (x509-certificate-expired? cert expired-date))
+	(test-error "Validity after"
+		    ((x509-certificate-validity-validator expired-date) cert)))
       (test-error "Signature verificateion"
 		  ((x509-certificate-signature-validator
 		    (key-pair-public failing-key-pair)) cert))
