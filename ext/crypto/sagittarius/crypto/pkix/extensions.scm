@@ -105,9 +105,16 @@
 	    ;; for testing
 	    x509-authority-key-identifier->authority-key-identifier
 	    
+	    make-x509-subject-key-identifier-extension
+	    
+	    x509-key-usages x509-key-usages?
+	    make-x509-key-usage-extension
+	    x509-key-usage-extension->x509-key-usages
+	    
 	    )
     (import (rnrs)
 	    (clos user)
+	    (core enums) ;; for enum-set?...
 	    (sagittarius)
 	    (sagittarius crypto asn1)
 	    (sagittarius crypto pkix modules x509)
@@ -253,6 +260,92 @@
   (make-x509-extension *extension:authority-key-identifier* critical?
 		       (x509-authority-key-identifier->authority-key-identifier
 			authority-key-identifier)))
+
+(define (make-x509-subject-key-identifier-extension
+	 (key-identifier bytevector?)
+	 :optional (critical? #f))
+  (make-x509-extension *extension:subject-key-identifier* critical?
+		       (bytevector->der-octet-string key-identifier)))
+
+;; KeyUsage ::= BIT STRING {
+;;      digitalSignature        (0),
+;;      nonRepudiation          (1), --  recent editions of X.509 have
+;;                                   --  renamed this bit to
+;;                                   --  contentCommitment
+;;      keyEncipherment         (2),
+;;      dataEncipherment        (3),
+;;      keyAgreement            (4),
+;;      keyCertSign             (5),
+;;      cRLSign                 (6),
+;;      encipherOnly            (7),
+;;      decipherOnly            (8)
+;;  }
+(define *x509-key-usage-list*
+  '(digital-signature
+    non-repudiation    ;;
+    content-commitment ;; = non-repudiation
+    key-encipherment
+    data-encipherment
+    key-agreement
+    crl-sign
+    key-cert-sign
+    encipher-only
+    decipher-only
+    ))
+(define x509-key-usage-enumeration (make-enumeration *x509-key-usage-list*))
+(define make-x509-key-usages (enum-set-constructor x509-key-usage-enumeration))
+
+(define-syntax x509-key-usages
+  (syntax-rules ()
+    ((_ symbol ...)
+     (make-x509-key-usages '(symbol ...)))))
+
+(define *x509-key-usages* (enum-set-universe (x509-key-usages)))
+(define (x509-key-usages? o)
+  (and (enum-set? o)
+       (enum-set-subset? o *x509-key-usages*)))
+
+(define (key-usage->bit-position key-usage)
+  (case key-usage
+    ((digital-signature)                  7)
+    ((non-repudiation content-commitment) 6)
+    ((key-encipherment)                   5)
+    ((data-encipherment)                  4)
+    ((key-agreement)                      3)
+    ((crl-sign)                           2)
+    ((key-cert-sign)                      1)
+    ((encipher-only)                      0)
+    ;; Where does this 15 come from?
+    ((decipher-only)                      15)))
+
+(define (key-usage->bit key-usage)
+  (bitwise-arithmetic-shift  1(key-usage->bit-position key-usage)))
+
+(define (x509-key-usage-extension->x509-key-usages
+	 (x509-extension x509-extension?))
+  (unless (equal? (x509-extension-id x509-extension)
+		  (der-object-identifier->oid-string *extension:key-usage*))
+    (assertion-violation 'x509-key-usage-extension->x509-key-usages
+			 "X509 key usage extension is required"
+			 x509-extension))
+  (let ((bits (bytevector->uinteger
+	       (der-bit-string->bytevector
+		(x509-extension-value x509-extension)))))
+    (let loop ((usages (enum-set->list *x509-key-usages*)) (r '()))
+      (cond ((null? usages) (make-x509-key-usages r))
+	    ((bitwise-bit-set? bits (key-usage->bit-position (car usages)))
+	     (loop (cdr usages) (cons (car usages) r)))
+	    (else (loop (cdr usages) r))))))
+
+(define (make-x509-key-usage-extension (key-usages x509-key-usages?)
+				       :optional (critical? #f))
+  (let loop ((usages (enum-set->list key-usages)) (r 0))
+    (if (null? usages)
+	(make-x509-extension *extension:key-usage* critical?
+			     (bytevector->der-bit-string
+			      (integer->bytevector r)))
+	(loop (cdr usages)
+	      (bitwise-ior r (key-usage->bit (car usages)))))))
 
 ;; X509 extensions
 (define (x509-extensions->extensions o) (slot-ref o 'extensions))

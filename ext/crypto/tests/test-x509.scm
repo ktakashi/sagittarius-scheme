@@ -50,6 +50,22 @@
 (test-error
  (make-x509-authority-key-identifier :authority-cert-serial-number 0))
 
+(let ((x509-cert (read-x509-certificate (open-bytevector-input-port cert))))
+  (test-assert (x509-certificate? x509-cert))
+  (test-equal 3 (x509-certificate-version x509-cert))
+  (test-assert (x509-name? (x509-certificate-issuer-dn x509-cert)))
+  (test-assert (x509-name? (x509-certificate-subject-dn x509-cert)))
+  (let ((validity (x509-certificate-validity x509-cert)))
+    (test-assert (x509-validity? validity))
+    (test-assert (date? (x509-validity-not-before validity)))
+    (test-assert (date? (x509-validity-not-after validity))))
+  (test-assert (public-key? (x509-certificate-public-key x509-cert)))
+  (let-values (((out e) (open-bytevector-output-port)))
+    (let ((bport (open-base64-encode-output-port out)))
+      (write-x509-certificate x509-cert bport)
+      (close-output-port bport)
+      (test-equal (base64-encode cert :line-width #f) (e)))))
+
 (define (test-certificate-builder algorithm)
   (define one-year (make-time time-duration 0 (* 3600 24 365)))
   (define one-second (make-time time-duration 0 1))
@@ -77,7 +93,15 @@
 		      (make-x509-issuer-alternative-name-extension alt-names)
 		      (make-x509-authority-key-identifier-extension
 		       (make-x509-authority-key-identifier
-			:key-identifier #vu8(1 2 3 4 5)))))))
+			:key-identifier #vu8(1 2 3 4 5)))
+		      (make-x509-subject-key-identifier-extension
+		       #vu8(2 3 4 5 6))
+		      (make-x509-key-usage-extension
+		       (x509-key-usages digital-signature
+					key-encipherment
+					key-agreement
+					decipher-only)
+		       #t)))))
 	(signing-key-pair (generate-key-pair key-scheme))
 	(failing-key-pair (generate-key-pair key-scheme)))
     (test-assert (x509-certificate-template? template))
@@ -103,75 +127,75 @@
 		    (key-pair-public failing-key-pair)) cert))
       cert)))
 
-(let ((x509-cert
-       (read-x509-certificate (open-bytevector-input-port cert))))
-  (test-assert (x509-certificate? x509-cert))
-  (test-equal 3 (x509-certificate-version x509-cert))
-  (test-assert (x509-name? (x509-certificate-issuer-dn x509-cert)))
-  (test-assert (x509-name? (x509-certificate-subject-dn x509-cert)))
-  (let ((validity (x509-certificate-validity x509-cert)))
-    (test-assert (x509-validity? validity))
-    (test-assert (date? (x509-validity-not-before validity)))
-    (test-assert (date? (x509-validity-not-after validity))))
-  (test-assert (public-key? (x509-certificate-public-key x509-cert)))
-  (let-values (((out e) (open-bytevector-output-port)))
-    (let ((bport (open-base64-encode-output-port out)))
-      (write-x509-certificate x509-cert bport)
-      (close-output-port bport)
-      (test-equal (base64-encode cert :line-width #f) (e))))
-  (let* ((cert (test-certificate-builder *signature-algorithm:ecdsa-sha256*))
-	 (extensions (x509-certificate-extensions cert)))
+(let* ((cert (test-certificate-builder *signature-algorithm:ecdsa-sha256*))
+       (extensions (x509-certificate-extensions cert)))
 
-    (define (test-extension extensions oid critical value)
-      (let ((x (find-x509-extension (x509-extension-by-id oid) extensions)))
-	(test-assert (x509-extension? x))
-	(test-assert (der-object-identifier->oid-string oid)
-		     (x509-extension-id x))
-	(test-equal critical (x509-extension-critical? x))
-	(test-equal oid value (x509-extension-value x))))
-    (define (ensure-raw-asn1-object o)
-      (bytevector->asn1-object (asn1-encodable->bytevector o)))
-    (test-extension extensions *extension:subject-alt-name* #f
-		    (ensure-raw-asn1-object
-		     (x509-general-names->general-names alt-names)))
-    (test-extension extensions *extension:issuer-alt-name* #f
-		    (ensure-raw-asn1-object
-		     (x509-general-names->general-names alt-names)))
-    (test-extension extensions *extension:authority-key-identifier* #f
-		    (ensure-raw-asn1-object
-		     (x509-authority-key-identifier->authority-key-identifier
-		      (make-x509-authority-key-identifier
-		       :key-identifier #vu8(1 2 3 4 5))))))
-    
-  (for-each test-certificate-builder
-	    (list *signature-algorithm:rsa-pkcs-v1.5-sha1*
-		  *signature-algorithm:rsa-pkcs-v1.5-sha256*
-		  *signature-algorithm:rsa-pkcs-v1.5-sha384*
-		  *signature-algorithm:rsa-pkcs-v1.5-sha512*
-		  *signature-algorithm:rsa-pkcs-v1.5-sha224*
-		  *signature-algorithm:rsa-pkcs-v1.5-sha512/224*
-		  *signature-algorithm:rsa-pkcs-v1.5-sha512/256*
-		  *signature-algorithm:rsa-pkcs-v1.5-sha3-224*
-		  *signature-algorithm:rsa-pkcs-v1.5-sha3-256*
-		  *signature-algorithm:rsa-pkcs-v1.5-sha3-384*
-		  *signature-algorithm:rsa-pkcs-v1.5-sha3-512*
-		  *signature-algorithm:dsa-sha224*
-		  *signature-algorithm:dsa-sha256*
-		  ;; Key size doesn't fit...
-		  ;; Not sure why these are defined even as max size of DSA
-		  ;; key is 2048...
-		  ;; *signature-algorithm:dsa-sha384*
-		  ;; *signature-algorithm:dsa-sha512*
-		  *signature-algorithm:ecdsa-sha1*
-		  *signature-algorithm:ecdsa-sha224*
-		  *signature-algorithm:ecdsa-sha256*
-		  *signature-algorithm:ecdsa-sha384*
-		  *signature-algorithm:ecdsa-sha512*
-		  *signature-algorithm:ecdsa-sha3-224*
-		  *signature-algorithm:ecdsa-sha3-256*
-		  *signature-algorithm:ecdsa-sha3-384*
-		  *signature-algorithm:ecdsa-sha3-512*
-		  *signature-algorithm:ed25519*
-		  *signature-algorithm:ed448*)))
+  (define (test-extension extensions oid critical value)
+    (let ((x (find-x509-extension (x509-extension-by-id oid) extensions)))
+      (test-assert (x509-extension? x))
+      (test-assert (der-object-identifier->oid-string oid)
+		   (x509-extension-id x))
+      (test-equal critical (x509-extension-critical? x))
+      (test-equal oid value (x509-extension-value x))
+      x))
+  (define (ensure-raw-asn1-object o)
+    (bytevector->asn1-object (asn1-encodable->bytevector o)))
+  (test-extension extensions *extension:subject-alt-name* #f
+		  (ensure-raw-asn1-object
+		   (x509-general-names->general-names alt-names)))
+  (test-extension extensions *extension:issuer-alt-name* #f
+		  (ensure-raw-asn1-object
+		   (x509-general-names->general-names alt-names)))
+  (test-extension extensions *extension:authority-key-identifier* #f
+		  (ensure-raw-asn1-object
+		   (x509-authority-key-identifier->authority-key-identifier
+		    (make-x509-authority-key-identifier
+		     :key-identifier #vu8(1 2 3 4 5)))))
+  (test-extension extensions *extension:authority-key-identifier* #f
+		  (ensure-raw-asn1-object
+		   (x509-authority-key-identifier->authority-key-identifier
+		    (make-x509-authority-key-identifier
+		     :key-identifier #vu8(1 2 3 4 5)))))
+  (test-extension extensions *extension:subject-key-identifier* #f
+		  (bytevector->der-octet-string #vu8(2 3 4 5 6)))
+  (let ((key-usage-extension
+	 (test-extension extensions *extension:key-usage* #t
+			 (bytevector->der-bit-string #vu8(#x80 #xA8)))))
+    (test-equal '(digital-signature key-encipherment
+		  key-agreement decipher-only)
+		(enum-set->list
+		 (x509-key-usage-extension->x509-key-usages
+		  key-usage-extension)))))
+
+(for-each test-certificate-builder
+	  (list *signature-algorithm:rsa-pkcs-v1.5-sha1*
+		*signature-algorithm:rsa-pkcs-v1.5-sha256*
+		*signature-algorithm:rsa-pkcs-v1.5-sha384*
+		*signature-algorithm:rsa-pkcs-v1.5-sha512*
+		*signature-algorithm:rsa-pkcs-v1.5-sha224*
+		*signature-algorithm:rsa-pkcs-v1.5-sha512/224*
+		*signature-algorithm:rsa-pkcs-v1.5-sha512/256*
+		*signature-algorithm:rsa-pkcs-v1.5-sha3-224*
+		*signature-algorithm:rsa-pkcs-v1.5-sha3-256*
+		*signature-algorithm:rsa-pkcs-v1.5-sha3-384*
+		*signature-algorithm:rsa-pkcs-v1.5-sha3-512*
+		*signature-algorithm:dsa-sha224*
+		*signature-algorithm:dsa-sha256*
+		;; Key size doesn't fit...
+		;; Not sure why these are defined even as max size of DSA
+		;; key is 2048...
+		;; *signature-algorithm:dsa-sha384*
+		;; *signature-algorithm:dsa-sha512*
+		*signature-algorithm:ecdsa-sha1*
+		*signature-algorithm:ecdsa-sha224*
+		*signature-algorithm:ecdsa-sha256*
+		*signature-algorithm:ecdsa-sha384*
+		*signature-algorithm:ecdsa-sha512*
+		*signature-algorithm:ecdsa-sha3-224*
+		*signature-algorithm:ecdsa-sha3-256*
+		*signature-algorithm:ecdsa-sha3-384*
+		*signature-algorithm:ecdsa-sha3-512*
+		*signature-algorithm:ed25519*
+		*signature-algorithm:ed448*))
 
 (test-end)

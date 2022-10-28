@@ -517,6 +517,7 @@
 (define-method asn1-string->string ((o <der-bit-string>))
   (let ((bv (asn1-encodable->bytevector o)))
     (let-values (((out e) (open-string-output-port)))
+      (display "#" out)
       (do ((i 0 (+ i 1)) (l (bytevector-length bv)))
 	  ((= i l) (e))
 	(format out "~2,'0X" (bytevector-u8-ref bv i))))))

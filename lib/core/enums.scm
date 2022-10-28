@@ -2,6 +2,7 @@
 #!core
 (library (core enums)
     (export make-enumeration
+	    enum-set?
 	    enum-set-universe
 	    enum-set-indexer
 	    enum-set-constructor
