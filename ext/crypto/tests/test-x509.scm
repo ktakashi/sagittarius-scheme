@@ -109,7 +109,7 @@
 		      (make-x509-certificate-policies-extension
 		       #f
 		       (make-x509-policy-information
-			"1.3.6.1.4.1.44947.1.1.1"
+			"1.3.6.1.4.1.999999.1.1.1"
 			(make-x509-policy-qualifier-info
 			 *policy-qualifier-type:cps*
 			 "http://cps.example.com")))
@@ -201,7 +201,7 @@
 			    (der-sequence
 			     (x509-policy-information->policy-information
 			      (make-x509-policy-information
-			       "1.3.6.1.4.1.44947.1.1.1"
+			       "1.3.6.1.4.1.999999.1.1.1"
 			       (make-x509-policy-qualifier-info
 				*policy-qualifier-type:cps*
 				"http://cps.example.com"))))))))
