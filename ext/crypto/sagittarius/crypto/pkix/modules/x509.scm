@@ -159,7 +159,7 @@
 
 	    certification-request-info? <certification-request-info>
 	    certification-request-info-version
-	    certification-request-info-name
+	    certification-request-info-subject
 	    certification-request-info-subject-pk-info
 	    certification-request-info-attributes
 
@@ -206,6 +206,11 @@
 	    policy-qualifier-info? <policy-qualifier-info>
 	    policy-qualifier-info-policy-qualifier-id
 	    policy-qualifier-info-qualifier
+
+	    ;; CSR attributes
+	    *pkcs-9:channelge-password*
+	    *pkcs-9:extenion-request*
+	    *pkcs-9:extended-certificate-attributes*
 	    )
     (import (rnrs)
 	    (clos user)
@@ -718,7 +723,7 @@
 (define-asn1-encodable <certification-request-info>
   (asn1-sequence
    ((version :type <der-integer> :reader certification-request-info-version)
-    (subject :type <name> :reader certification-request-info-name)
+    (subject :type <name> :reader certification-request-info-subject)
     (subject-pk-info :type <subject-public-key-info>
 		     :reader certification-request-info-subject-pk-info)
     (attributes :type <attributes> :tag 0 :explicit #f
@@ -741,4 +746,32 @@
     (signature :type <der-bit-string>
 	       :reader certification-request-signature))))
 (define (certification-request? o) (is-a? o <certification-request>))
+
+;; Attributes
+;; ref - https://datatracker.ietf.org/doc/html/rfc2985
+;; For now we don't implement everything (the same as extension)
+;; 5.4 Attribute types for use with PKCS #10 certificate requests
+
+;; challengePassword ATTRIBUTE ::= {
+;;         WITH SYNTAX DirectoryString {pkcs-9-ub-challengePassword}
+;;         EQUALITY MATCHING RULE caseExactMatch
+;;         SINGLE VALUE TRUE
+;;         ID pkcs-9-at-challengePassword
+;; }
+;; This attribute is obsolated more or less, no effect nowadays
+(define *pkcs-9:channelge-password* (oid "1.2.840.113549.1.9.7"))
+
+;; extensionRequest ATTRIBUTE ::= {
+;;         WITH SYNTAX ExtensionRequest
+;;         SINGLE VALUE TRUE
+;;         ID pkcs-9-at-extensionRequest
+;; }
+(define *pkcs-9:extenion-request* (oid "1.2.840.113549.1.9.14"))
+
+;; extendedCertificateAttributes ATTRIBUTE ::= {
+;;         WITH SYNTAX SET OF Attribute
+;;         SINGLE VALUE TRUE
+;;         ID pkcs-9-at-extendedCertificateAttributes
+;; }
+(define *pkcs-9:extended-certificate-attributes* (oid "1.2.840.113549.1.9.9"))
 )

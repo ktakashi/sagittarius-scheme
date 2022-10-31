@@ -71,6 +71,7 @@
 	    (sagittarius crypto asn1)
 	    (sagittarius crypto pkix modules x509)
 	    (sagittarius crypto pkix dn)
+	    (sagittarius crypto pkix keys)
 	    (sagittarius crypto pkix extensions)
 	    (sagittarius crypto keys)
 	    (sagittarius crypto signatures)
@@ -99,17 +100,6 @@
 (define (x509-validity? o) (is-a? o <x509-validity>))
 (define (validity->x509-validity (validity validity?))
   (make <x509-validity> :validity validity))
-
-;; Maybe we should move these to somewhere else...
-(define-method import-public-key ((key <subject-public-key-info>))
-  (import-public-key (asn1-encodable->asn1-object key)
-		     (public-key-format subject-public-key-info)))
-
-(define (subject-public-key-info->public-key (spki subject-public-key-info?))
-  (import-public-key spki))
-(define (public-key->subject-public-key-info (pk public-key?))
-  (let ((bv (export-public-key pk (public-key-format subject-public-key-info))))
-    (bytevector->asn1-encodable <subject-public-key-info> bv)))
 
 (define (x509-certificate? o) (is-a? o <x509-certificate>))
 (define (x509-certificate-c (o x509-certificate?)) (slot-ref o 'c))
