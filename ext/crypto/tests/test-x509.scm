@@ -66,10 +66,10 @@
       (close-output-port bport)
       (test-equal (base64-encode cert :line-width #f) (e)))))
 
+(define now (current-time))
 (define (test-certificate-builder algorithm)
   (define one-year (make-time time-duration 0 (* 3600 24 365)))
   (define one-second (make-time time-duration 0 1))
-  (define now (current-time))
   (define key-scheme (oid->key-operation algorithm))
   (define issuer-dn (x509-name '(C "NL")
 			       '(ST "Zuid-Holland")
@@ -101,7 +101,19 @@
 					key-encipherment
 					key-agreement
 					decipher-only)
-		       #t)))))
+		       #t)
+		      (make-x509-private-key-usage-period-extension
+		       (make-x509-private-key-usage-period
+			:not-before (time-utc->date now))
+		       #t)
+		      (make-x509-certificate-policies-extension
+		       #f
+		       (make-x509-policy-information
+			"1.3.6.1.4.1.44947.1.1.1"
+			(make-x509-policy-qualifier-info
+			 *policy-qualifier-type:cps*
+			 "http://cps.example.com")))
+		      ))))
 	(signing-key-pair (generate-key-pair key-scheme))
 	(failing-key-pair (generate-key-pair key-scheme)))
     (test-assert (x509-certificate-template? template))
@@ -174,7 +186,28 @@
 		  key-agreement decipher-only)
 		(enum-set->list
 		 (x509-key-usage-extension->x509-key-usages
-		  key-usage-extension)))))
+		  key-usage-extension))))
+
+  (let ((e (test-extension extensions *extension:private-key-usage-period* #t
+			   (ensure-raw-asn1-object
+			    (x509-private-key-usage-period->private-key-usage-period
+			     (make-x509-private-key-usage-period
+			      :not-before (time-utc->date now)))))))
+    (test-assert (x509-private-key-usage-period?
+		  (x509-private-key-usage-period-extension->x509-private-key-usage-period e))))
+
+  (let ((e (test-extension extensions *extension:certificate-policies* #f
+			   (ensure-raw-asn1-object
+			    (der-sequence
+			     (x509-policy-information->policy-information
+			      (make-x509-policy-information
+			       "1.3.6.1.4.1.44947.1.1.1"
+			       (make-x509-policy-qualifier-info
+				*policy-qualifier-type:cps*
+				"http://cps.example.com"))))))))
+    (test-assert (for-all x509-policy-information?
+			  (x509-certificate-policies-extension->x509-policy-informations e))))
+  )
 
 (for-each test-certificate-builder
 	  (list *signature-algorithm:rsa-pkcs-v1.5-sha1*

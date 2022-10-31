@@ -177,6 +177,35 @@
 	    authority-key-identifier-key-identifier
 	    authority-key-identifier-authority-cert-issuer
 	    authority-key-identifier-authority-cert-serial-number
+
+	    private-key-usage-period? <private-key-usage-period>
+	    private-key-usage-period-not-before
+	    private-key-usage-period-not-after
+
+	    user-notice? <user-notice>
+	    user-notice-notice-ref
+	    user-notice-explicit-text
+
+	    notice-reference? <notice-reference>
+	    notice-reference-organization
+	    notice-reference-notice-numbers
+
+	    display-text? <display-text>
+	    display-text-string
+
+	    *policy-qualifier-type:unotice*
+	    *policy-qualifier-type:cps*
+
+	    certificate-policies? <certificate-policies>
+	    certificate-policies-policy-informations
+
+	    policy-information? <policy-information>
+	    policy-information-policy-identifier
+	    policy-information-policy-qualifiers
+
+	    policy-qualifier-info? <policy-qualifier-info>
+	    policy-qualifier-info-policy-qualifier-id
+	    policy-qualifier-info-qualifier
 	    )
     (import (rnrs)
 	    (clos user)
@@ -375,7 +404,7 @@
 (define *extension:subject-key-identifier* (oid "2.5.29.14"))
 (define *extension:key-usage* (oid "2.5.29.15"))
 (define *extension:private-key-usage-period* (oid "2.5.29.16"))
-(define *extension:certificate-policies* (oid "2.5.29.3"))
+(define *extension:certificate-policies* (oid "2.5.29.32"))
 (define *extension:policy-mappings* (oid "2.5.29.33"))
 (define *extension:subject-alt-name* (oid "2.5.29.17"))
 (define *extension:issuer-alt-name* (oid "2.5.29.18"))
@@ -486,6 +515,105 @@
       :reader authority-key-identifier-authority-cert-serial-number
       :converter bytevector->der-integer))))
 (define (authority-key-identifier? o) (is-a? o <authority-key-identifier>))
+
+;; PrivateKeyUsagePeriod ::= SEQUENCE {
+;;      notBefore       [0]     GeneralizedTime OPTIONAL,
+;;      notAfter        [1]     GeneralizedTime OPTIONAL }
+;; (WITH COMPONENTS {..., notBefore  PRESENT } |
+;;  WITH COMPONENTS {..., notAfter  PRESENT })
+(define-asn1-encodable <private-key-usage-period>
+  (asn1-sequence
+   ((not-before :type <der-generalized-time> :tag 0 :explicit #f :optional #t
+		:reader private-key-usage-period-not-before
+		:converter bytevector->der-generalized-time)
+    (not-after :type <der-generalized-time> :tag 1 :explicit #f :optional #t
+	       :reader private-key-usage-period-not-after
+	       :converter bytevector->der-generalized-time))))
+(define (private-key-usage-period? o) (is-a? o <private-key-usage-period>))
+
+;; CERT-POLICY-QUALIFIER ::= TYPE-IDENTIFIER
+
+;; PolicyQualifierInfo ::= SEQUENCE {
+;;        policyQualifierId  CERT-POLICY-QUALIFIER.
+;;             &id({PolicyQualifierId}),
+;;        qualifier          CERT-POLICY-QUALIFIER.
+;;             &Type({PolicyQualifierId}{@policyQualifierId})}
+(define-asn1-encodable <policy-qualifier-info>
+  (asn1-sequence
+   ((policy-qualifier-id :type <der-object-identifier>
+			 :reader policy-qualifier-info-policy-qualifier-id)
+    (qualifier :reader policy-qualifier-info-qualifier))))
+(define (policy-qualifier-info? o) (is-a? o <policy-qualifier-info>))
+
+;; PolicyInformation ::= SEQUENCE {
+;;      policyIdentifier   CertPolicyId,
+;;      policyQualifiers   SEQUENCE SIZE (1..MAX) OF
+;;              PolicyQualifierInfo OPTIONAL }
+;; CertPolicyId ::= OBJECT IDENTIFIER
+(define-asn1-encodable <policy-information>
+  (asn1-sequence
+   ((policy-identifier :type <der-object-identifier>
+		       :reader policy-information-policy-identifier)
+    (policy-qualifiers :type <policy-qualifier-info> :optional #t
+		       :multiple 'sequence
+		       :reader policy-information-policy-qualifiers))))
+(define (policy-information? o) (is-a? o <policy-information>))
+
+;; CertificatePolicies ::= SEQUENCE SIZE (1..MAX) OF PolicyInformation
+(define-asn1-encodable <certificate-policies>
+  (asn1-sequence
+   (of :type <policy-information>
+       :reader certificate-policies-policy-informations)))
+(define (certificate-policies? o) (is-a? o <certificate-policies>))
+
+;; -- Implementations that recognize additional policy qualifiers MUST
+;; -- augment the following definition for PolicyQualifierId
+
+;; PolicyQualifierId CERT-POLICY-QUALIFIER ::=
+;;     { pqid-cps | pqid-unotice, ... }
+;; pqid-cps CERT-POLICY-QUALIFIER ::= { CPSuri IDENTIFIED BY id-qt-cps }
+;; pqid-unotice CERT-POLICY-QUALIFIER ::= { UserNotice
+;;     IDENTIFIED BY id-qt-unotice }
+(define *policy-qualifier-type:cps* (oid "1.3.6.1.5.5.7.2.1"))
+(define *policy-qualifier-type:unotice* (oid "1.3.6.1.5.5.7.2.2"))
+
+;; -- CPS pointer qualifier
+;; CPSuri ::= IA5String
+
+;; DisplayText ::= CHOICE {
+;;      ia5String        IA5String      (SIZE (1..200)),
+;;      visibleString    VisibleString  (SIZE (1..200)),
+;;      bmpString        BMPString      (SIZE (1..200)),
+;;      utf8String       UTF8String     (SIZE (1..200)) }
+(define-asn1-encodable <display-text>
+  (asn1-choice
+   ((ia5-string :type <der-ia5-string>)
+    (visiable-string :type <der-videotex-string>)
+    (bmp-string :type <der-bmp-string>)
+    (utf8-string :type <der-utf8-string>))
+   :reader display-text-string))
+(define (display-text? o) (is-a? o <display-text>))
+;; NoticeReference ::= SEQUENCE {
+;;      organization     DisplayText,
+;;      noticeNumbers    SEQUENCE OF INTEGER }
+(define-asn1-encodable <notice-reference>
+  (asn1-sequence
+   ((organization :type <display-text> :reader notice-reference-organization)
+    (notice-numbers :type <der-integer> :multiple 'sequence
+		    :reader notice-reference-notice-numbers))))
+(define (notice-reference? o) (is-a? o <notice-reference>))
+
+;; -- user notice qualifier
+;; UserNotice ::= SEQUENCE {
+;;      noticeRef        NoticeReference OPTIONAL,
+;;      explicitText     DisplayText OPTIONAL}
+(define-asn1-encodable <user-notice>
+  (asn1-sequence
+   ((notice-ref :type <notice-reference> :optional #t
+		:reader user-notice-notice-ref)
+    (explicit-text :type <display-text> :optional #t
+		   :reader user-notice-explicit-text))))
+(define (user-notice? o) (is-a? o <user-notice>))
 
 ;;; CRL
 ;; CertificateList  ::=  SIGNED{TBSCertList}

@@ -114,7 +114,46 @@
 	    x509-key-usages x509-key-usages?
 	    make-x509-key-usage-extension
 	    x509-key-usage-extension->x509-key-usages
+
+	    x509-private-key-usage-period? <x509-private-key-usage-period>
+	    make-x509-private-key-usage-period
+	    x509-private-key-usage-period-not-before
+	    x509-private-key-usage-period-not-after
+
+	    ;; For testing
+	    x509-private-key-usage-period->private-key-usage-period
 	    
+	    make-x509-private-key-usage-period-extension
+	    x509-private-key-usage-period-extension->x509-private-key-usage-period
+	    ;; certificate policies
+	    x509-policy-qualifier-info? <x509-policy-qualifier-info>
+	    x509-policy-qualifier-info-id
+	    x509-policy-qualifier-info-qualifier
+	    make-x509-policy-qualifier-info
+	    x509-policy-qualifier-info->policy-qualifier-info
+	    x509-policy-qualifier->asn1-encodable ;; just in case?
+	    asn1-encodable->x509-policy-qualifier
+
+	    x509-notice-reference? <x509-notice-reference>
+	    x509-notice-reference-organization
+	    x509-notice-reference-notice-numbers
+	    make-x509-notice-reference
+
+	    x509-user-notice? <x509-user-notice>
+	    x509-user-notice-ref
+	    x509-user-notice-explicit-text
+	    make-x509-user-notice
+
+	    x509-policy-information? <x509-policy-information>
+	    x509-policy-information-identifier
+	    x509-policy-information-qualifiers
+	    make-x509-policy-information
+	    x509-policy-information->policy-information
+	    *policy-qualifier-type:cps*
+	    *policy-qualifier-type:unotice*
+	    
+	    make-x509-certificate-policies-extension
+	    x509-certificate-policies-extension->x509-policy-informations
 	    )
     (import (rnrs)
 	    (clos user)
@@ -125,10 +164,12 @@
 	    (sagittarius crypto pkix dn)
 	    (sagittarius mop immutable)
 	    (sagittarius mop allocation)
-	    (sagittarius combinators))
+	    (sagittarius combinators)
+	    (srfi :19 time))
 
 ;; useful utility :)
 (define (make-slot-ref getter conv) (lambda (o) (conv (getter o))))
+(define (oid? o) (or (der-object-identifier? o) (object-identifier-string? o)))
 
 (define (x509-extension-source o) (slot-ref o 'extension))
 (define-class <x509-extension> (<immutable> <cached-allocation>)
@@ -148,7 +189,7 @@
 		     (.$ bytevector->asn1-object der-octet-string->bytevector))
 	  :reader x509-extension-value)))
 (define (x509-extension? o) (is-a? o <x509-extension>))
-(define (x509-extension-of oid/string)
+(define (x509-extension-of (oid/string oid?))
   (let ((oid (if (der-object-identifier? oid/string)
 		 (der-object-identifier->oid-string oid/string)
 		 oid/string)))
@@ -398,6 +439,208 @@
 			      (integer->bytevector r)))
 	(loop (cdr usages)
 	      (bitwise-ior r (key-usage->bit (car usages)))))))
+
+;; Private key usage period
+(define-class <x509-private-key-usage-period> (<immutable>)
+  ((not-before :init-keyword :not-before
+	       :reader x509-private-key-usage-period-not-before)
+   (not-after :init-keyword :not-after
+	      :reader x509-private-key-usage-period-not-after)))
+(define (x509-private-key-usage-period? o)
+  (is-a? o <x509-private-key-usage-period>))
+(define (make-x509-private-key-usage-period
+	 :key ((not-before (or #f date?)) #f) ((not-after (or #f date?)) #f))
+  (unless (or not-before not-after)
+    (assertion-violation 'make-x509-private-key-usage-period
+			 "Either not-before or not-after must be present"))
+  (make <x509-private-key-usage-period>
+    :not-before not-before :not-after not-after))
+(define (x509-private-key-usage-period->private-key-usage-period
+	 (private-key-usage-period x509-private-key-usage-period?))
+  (let ((not-before
+	 (x509-private-key-usage-period-not-before private-key-usage-period))
+	(not-after
+	 (x509-private-key-usage-period-not-after private-key-usage-period)))
+    (make <private-key-usage-period>
+      :not-before (and not-before (date->der-generalized-time not-before))
+      :not-after (and not-after (date->der-generalized-time not-after)))))
+
+(define (make-x509-private-key-usage-period-extension
+	 (private-key-usage-period x509-private-key-usage-period?)
+	 :optional (critical? #f))
+  (make-x509-extension *extension:private-key-usage-period* critical?
+   (x509-private-key-usage-period->private-key-usage-period
+    private-key-usage-period)))
+(define (x509-private-key-usage-period-extension->x509-private-key-usage-period
+	 (x509-extension (and x509-extension? (x509-extension-of *extension:private-key-usage-period*))))
+  (define (maybe v conv) (and v (conv v)))
+  (let ((p (asn1-object->asn1-encodable <private-key-usage-period>
+					(x509-extension-value x509-extension))))
+    (make-x509-private-key-usage-period
+     :not-before (maybe (private-key-usage-period-not-before p)
+			asn1-time->date)
+     :not-after (maybe (private-key-usage-period-not-after p)
+		       asn1-time->date))))
+
+;; CertificatePolicies
+(define (string->display-text s)
+  (make <directory-string>
+    :type 'utf8-string :value (string->der-utf8-string s)))
+(define (display-text->string ds)
+  (asn1-string->string (display-text-string ds)))
+
+(define-class <x509-notice-reference> (<immutable>)
+  ((organization :init-keyword :organization
+		 :reader x509-notice-reference-organization)
+   (notice-numbers :init-keyword :notice-numbers
+		   :reader x509-notice-reference-notice-numbers)))
+(define (x509-notice-reference? o) (is-a? o <x509-notice-reference>))
+(define (make-x509-notice-reference (organization string?) . numbers)
+  (unless (for-all integer? numbers)
+    (assertion-violation 'make-x509-notice-reference
+			 "numbers must integers" numbers))
+  (make <x509-notice-reference> :organization organization
+	:notice-numbers numbers))
+(define (x509-notice-reference->notice-reference notice-refence)
+  (make <notice-reference>
+    :organization (string->display-text
+		   (x509-notice-reference-organization notice-refence))
+    :notice-numbers (make-der-sequence
+		     (map integer->der-integer
+			  (x509-notice-reference-notice-numbers notice-refence)))))
+(define (notice-reference->x509-notice-reference notice-reference)
+  (apply make-x509-notice-reference
+	 (display-text->string (notice-reference-organization notice-reference))
+	 (map der-integer->integer
+	      (notice-reference-notice-numbers notice-reference))))
+
+(define-class <x509-user-notice> (<immutable>)
+  ((ref :init-keyword :ref :reader x509-user-notice-ref)
+   (explicit-text :init-keyword :explicit-text
+		  :reader x509-user-notice-explicit-text)))
+(define (x509-user-notice? o) (is-a? o <x509-user-notice>))
+(define (make-x509-user-notice
+	 :key ((ref (or #f x509-notice-reference?)) #f)
+	      ((explicit-text (or #f string?)) #f))
+  (make <x509-user-notice> :ref ref :explicit-text explicit-text))
+(define (x509-user-notice->user-notice (user-notice x509-user-notice?))  
+  (define (maybe o conv) (and o (conv o)))
+  (make <user-notice>
+    :notice-ref (maybe (x509-user-notice-ref user-notice)
+		       x509-notice-reference->notice-reference)
+    :explicit-text (maybe (x509-user-notice-explicit-text user-notice)
+			  string->display-text)))
+(define (user-notice->x509-user-notice user-notice)
+  (define (maybe o conv) (and o (conv o)))
+  (make-x509-user-notice
+   :ref (maybe (user-notice-notice-ref user-notice)
+	       notice-reference->x509-notice-reference)
+   :explicit-text (maybe (user-notice-explicit-text user-notice)
+			 display-text->string)))
+
+(define-class <x509-policy-qualifier-info> (<immutable>)
+  ((id :init-keyword :id :reader x509-policy-qualifier-info-id)
+   (qualifier :init-keyword :qualifier
+	      :reader x509-policy-qualifier-info-qualifier)))
+(define-method write-object ((o <x509-policy-qualifier-info>) p)
+  (format p "#<x509-policy-qualifier-info id=~a qualifier=~a>"
+	  (x509-policy-qualifier-info-id o)
+	  (x509-policy-qualifier-info-qualifier o)))
+
+(define (x509-policy-qualifier-info? o) (is-a? o <x509-policy-qualifier-info>))
+(define (make-x509-policy-qualifier-info (id oid?) qualifier)
+  (make <x509-policy-qualifier-info>
+    :id (if (string? id) id (der-object-identifier->oid-string id))
+    :qualifier qualifier))
+(define-generic x509-policy-qualifier->asn1-encodable) ;; for future extension
+(define-method x509-policy-qualifier->asn1-encodable (id (q <asn1-object>)) q)
+
+(define-generic asn1-encodable->x509-policy-qualifier) ;; for future extension
+(define-method asn1-encodable->x509-policy-qualifier (id (q <asn1-object>)) q)
+
+(define *cps-id*
+  (der-object-identifier->oid-string *policy-qualifier-type:cps*))
+(define *unotice-id*
+  (der-object-identifier->oid-string *policy-qualifier-type:unotice*))
+(define (x509-policy-qualifier-info->policy-qualifier-info policy-qualifier-info)
+  (define (qualifier->asn1-encodable id q)
+    (cond ((string=? id *cps-id*) (string->der-ia5-string q))
+	  ((string=? id *unotice-id*) (x509-user-notice->user-notice q))
+	  (else (x509-policy-qualifier->asn1-encodable id q))))
+  (let ((id (x509-policy-qualifier-info-id policy-qualifier-info))
+	(q  (x509-policy-qualifier-info-qualifier policy-qualifier-info)))
+    (make <policy-qualifier-info>
+      :policy-qualifier-id (oid-string->der-object-identifier id)
+      :qualifier (qualifier->asn1-encodable id q))))
+
+(define (policy-qualifier-info->x509-policy-qualifier-info policy-qualifier-info)
+  (let ((id (policy-qualifier-info-policy-qualifier-id policy-qualifier-info))
+	(qualifier (policy-qualifier-info-qualifier policy-qualifier-info)))
+    (make-x509-policy-qualifier-info id
+     (cond ((equal? id *policy-qualifier-type:cps*) 
+	    (der-ia5-string->string qualifier))
+	   ((equal? id *policy-qualifier-type:unotice*)
+	    (user-notice->x509-user-notice
+	     (asn1-object->asn1-encodable <user-notice> qualifier)))
+	   (else
+	    (asn1-encodable->x509-policy-qualifier
+	     (der-object-identifier->oid-string id) qualifier))))))
+  
+(define-class <x509-policy-information> (<immutable>)
+  ((identifier :init-keyword :identifier
+	       :reader x509-policy-information-identifier)
+   (qualifiers :init-keyword :qualifiers
+	       :reader x509-policy-information-qualifiers)))
+(define-method write-object ((o <x509-policy-information>) p)
+  (let ((q (x509-policy-information-qualifiers o)))
+    (if (null? q)
+	(format p "#<x509-policy-information id=~a>"
+		(x509-policy-information-identifier o))
+	(format p "#<x509-policy-information id=~a qualifier=~a>"
+		(x509-policy-information-identifier o) q))))
+(define (x509-policy-information? o) (is-a? o <x509-policy-information>))
+(define (make-x509-policy-information (id oid?) . qualifiers)
+  (unless (for-all x509-policy-qualifier-info? qualifiers)
+    (assertion-violation 'make-x509-policy-information
+			 "qualifiers must be x509-policy-qualifier-info"
+			 qualifiers))
+  (make <x509-policy-information>
+    :identifier (if (string? id) id (der-object-identifier->oid-string id))
+    :qualifiers qualifiers))
+(define (x509-policy-information->policy-information policy-information)
+  (let ((id (x509-policy-information-identifier policy-information))
+	(q* (x509-policy-information-qualifiers policy-information)))
+    (make <policy-information>
+      :policy-identifier (oid-string->der-object-identifier id)
+      :policy-qualifiers (and q* (make-der-sequence
+				  (map x509-policy-qualifier-info->policy-qualifier-info q*))))))
+(define (policy-information->x509-policy-infomation policy-information)
+  (let ((q* (policy-information-policy-qualifiers policy-information)))
+    (if q*
+	(apply make-x509-policy-information
+	       (policy-information-policy-identifier policy-information)
+	       (map policy-qualifier-info->x509-policy-qualifier-info q*))
+	(make-x509-policy-information
+	 (policy-information-policy-identifier policy-information)))))
+
+(define (make-x509-certificate-policies-extension (critical? boolean?)
+	 . policy-informations)
+  (unless (for-all x509-policy-information? policy-informations)
+    (assertion-violation 'make-x509-certificate-policies-extension
+			 "<x509-policy-information> is required"
+			 policy-informations))
+  (make-x509-extension *extension:certificate-policies* critical?
+		       (make-der-sequence
+			(map x509-policy-information->policy-information
+			     policy-informations))))
+(define (x509-certificate-policies-extension->x509-policy-informations
+	 (x509-extension (and x509-extension?
+			      (x509-extension-of *extension:certificate-policies*))))
+  (let ((v (x509-extension-value x509-extension)))
+    (map policy-information->x509-policy-infomation
+	 (map (lambda (o)
+		(asn1-object->asn1-encodable <policy-information> o))
+	      (asn1-collection->list v)))))
 
 ;; X509 extensions
 (define (x509-extensions->extensions o) (slot-ref o 'extensions))
