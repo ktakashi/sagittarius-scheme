@@ -92,7 +92,9 @@
 
 	    ;; altName
 	    make-x509-subject-alternative-name-extension
+	    x509-subject-alternative-name-extension->x509-general-names
 	    make-x509-issuer-alternative-name-extension
+	    x509-issuer-alternative-name-extension->x509-general-names
 
 	    ;; authorityKeyIdentifier
 	    x509-authority-key-identifier? <x509-authority-key-identifier>
@@ -102,10 +104,12 @@
 	    x509-authority-key-identifier-authority-cert-serial-number
 
 	    make-x509-authority-key-identifier-extension
+	    x509-authority-key-identifier-extension->x509-authority-key-identifier
 	    ;; for testing
 	    x509-authority-key-identifier->authority-key-identifier
 	    
 	    make-x509-subject-key-identifier-extension
+	    x509-subject-key-identifier-extension->subject-key-identifier
 	    
 	    x509-key-usages x509-key-usages?
 	    make-x509-key-usage-extension
@@ -118,6 +122,7 @@
 	    (sagittarius)
 	    (sagittarius crypto asn1)
 	    (sagittarius crypto pkix modules x509)
+	    (sagittarius crypto pkix dn)
 	    (sagittarius mop immutable)
 	    (sagittarius mop allocation)
 	    (sagittarius combinators))
@@ -143,6 +148,13 @@
 		     (.$ bytevector->asn1-object der-octet-string->bytevector))
 	  :reader x509-extension-value)))
 (define (x509-extension? o) (is-a? o <x509-extension>))
+(define (x509-extension-of oid/string)
+  (let ((oid (if (der-object-identifier? oid/string)
+		 (der-object-identifier->oid-string oid/string)
+		 oid/string)))
+    (lambda (extension)
+      (equal? oid (x509-extension-id extension)))))
+
 (define (extension->x509-extension (e extension?))
   (make <x509-extension> :extension e))
 
@@ -174,7 +186,7 @@
       ((dns-name) string->der-ia5-string)
       ((ip-address) bytevector->der-octet-string)
       ((uniform-resource-identifier) string->der-ia5-string)
-      ((directory-name) string->der-utf8-string)
+      ((directory-name) x509-name->name)
       ((registered-id) oid-string->der-object-identifier)
       (else
        (assertion-violation 'x509-general-name->general-name
@@ -191,11 +203,20 @@
   (make <x509-general-name> :type 'ip-address :value ip-address))
 (define (uri->general-name (uri string?))
   (make <x509-general-name> :type 'uniform-resource-identifier :value uri))
-(define (directory-name->general-name (name string?))
+(define (directory-name->general-name (name x509-name?))
   (make <x509-general-name> :type 'directory-name :value name))
 (define (registered-id->general-name (oid object-identifier-string?))
   (make <x509-general-name> :type 'registered-id :value oid))
-
+(define (general-name->x509-general-name (general-name general-name?))
+  (let ((v (general-name-name general-name)))
+    (make <x509-general-name>
+      :type (general-name-type general-name)
+      :value (cond ((asn1-string? v) (asn1-string->string v))
+		   ((der-object-identifier? v) (der-object-identifier->oid-string v))
+		   ((der-octet-string? v) (der-octet-string->bytevector v))
+		   ;; sorry, not supported yet...
+		   (else v)))))
+  
 (define-class <x509-general-names> (<immutable>)
   ((names :init-keyword :names :reader x509-general-names-names)))
 (define (x509-general-names? o) (is-a? o <x509-general-names>))
@@ -208,6 +229,10 @@
 (define (list->x509-general-names (names list-of-x509-general-names?))
   (make <x509-general-names> :names names))
 (define (x509-general-names . names) (list->x509-general-names names))
+(define (general-names->x509-names (general-names general-names?))
+  (make <x509-general-names>
+    :names (map general-name->x509-general-name
+		(general-names-components general-names))))
 
 (define (make-x509-subject-alternative-name-extension
 	 (general-names x509-general-names?)
@@ -215,11 +240,24 @@
   (make-x509-extension *extension:subject-alt-name* critical?
 		       (x509-general-names->general-names general-names)))
 
+(define (x509-subject-alternative-name-extension->x509-general-names
+	 (x509-extension (and x509-extension?
+			      (x509-extension-of *extension:subject-alt-name*))))
+  (let ((v (x509-extension-value x509-extension)))
+    (general-names->x509-names
+     (asn1-object->asn1-encodable <general-names> v))))
+
 (define (make-x509-issuer-alternative-name-extension
 	 (general-names x509-general-names?)
 	 :optional (critical? #f))
   (make-x509-extension *extension:issuer-alt-name* critical?
 		       (x509-general-names->general-names general-names)))
+(define (x509-issuer-alternative-name-extension->x509-general-names
+	 (x509-extension (and x509-extension?
+			      (x509-extension-of *extension:issuer-alt-name*))))
+  (let ((v (x509-extension-value x509-extension)))
+    (general-names->x509-names
+     (asn1-object->asn1-encodable <general-names> v))))
 
 (define-class <x509-authority-key-identifier> (<immutable>)
   ((key-identifier :init-keyword :key-identifier :init-value #f
@@ -253,6 +291,21 @@
     :authority-cert-issuer (x509-authority-key-identifier-authority-cert-issuer key-identifier)
     :authority-cert-serial-number (maybe (x509-authority-key-identifier-authority-cert-serial-number key-identifier)
 					 integer->der-integer)))
+(define (authority-key-identifier->x509-authority-key-identifier key-identifier)
+  (define (maybe v conv) (and v (conv v)))
+  (make <x509-authority-key-identifier>
+    :key-identifier (maybe (authority-key-identifier-key-identifier key-identifier)
+			   der-octet-string->bytevector)
+    :authority-cert-issuer (maybe (authority-key-identifier-authority-cert-issuer key-identifier)
+				  general-names->x509-names)
+    :authority-cert-serial-number (maybe (authority-key-identifier-authority-cert-serial-number key-identifier)
+					 der-integer->integer)))
+
+(define (x509-authority-key-identifier-extension->x509-authority-key-identifier
+	 (x509-extension (and x509-extension?
+			      (x509-extension-of *extension:authority-key-identifier*))))
+  (authority-key-identifier->x509-authority-key-identifier
+   (asn1-object->asn1-encodable <authority-key-identifier> (x509-extension-value x509-extension))))
 
 (define (make-x509-authority-key-identifier-extension
 	 (authority-key-identifier x509-authority-key-identifier?)
@@ -266,6 +319,10 @@
 	 :optional (critical? #f))
   (make-x509-extension *extension:subject-key-identifier* critical?
 		       (bytevector->der-octet-string key-identifier)))
+(define (x509-subject-key-identifier-extension->subject-key-identifier
+	 (x509-extension (and x509-extension?
+			      (x509-extension-of *extension:subject-key-identifier*))))
+  (der-octet-string->bytevector (x509-extension-value x509-extension)))
 
 ;; KeyUsage ::= BIT STRING {
 ;;      digitalSignature        (0),
@@ -319,15 +376,10 @@
     ((decipher-only)                      15)))
 
 (define (key-usage->bit key-usage)
-  (bitwise-arithmetic-shift  1(key-usage->bit-position key-usage)))
+  (bitwise-arithmetic-shift 1 (key-usage->bit-position key-usage)))
 
 (define (x509-key-usage-extension->x509-key-usages
-	 (x509-extension x509-extension?))
-  (unless (equal? (x509-extension-id x509-extension)
-		  (der-object-identifier->oid-string *extension:key-usage*))
-    (assertion-violation 'x509-key-usage-extension->x509-key-usages
-			 "X509 key usage extension is required"
-			 x509-extension))
+	 (x509-extension (and x509-extension? (x509-extension-of *extension:key-usage*))))
   (let ((bits (bytevector->uinteger
 	       (der-bit-string->bytevector
 		(x509-extension-value x509-extension)))))
@@ -367,12 +419,7 @@
 (define (find-x509-extension (pred procedure?)
 			     (x509-extensions x509-extensions?))
   (find pred (x509-extensions->list x509-extensions)))
-(define (x509-extension-by-id oid/string)
-  (let ((oid (if (der-object-identifier? oid/string)
-		 (der-object-identifier->oid-string oid/string)
-		 oid/string)))
-    (lambda (extension)
-      (equal? oid (x509-extension-id extension)))))
+(define x509-extension-by-id x509-extension-of)
 
 ;; internal
 (define (extensions->x509-extensions (extensions extensions?))

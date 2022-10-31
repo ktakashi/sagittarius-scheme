@@ -170,7 +170,7 @@
 
 	    ;; These are basically for certificate/crl extensions
 	    general-names? <general-names> general-names-components
-	    general-name? <general-name> general-name-name
+	    general-name? <general-name> general-name-name general-name-type
 	    directory-string? <directory-string> directory-string-value
 
 	    authority-key-identifier? <authority-key-identifier>
@@ -461,6 +461,8 @@
 		   :converter bytevector->der-object-identifier))
    :reader general-name-name))
 (define (general-name? o) (is-a? o <general-name>))
+(define (general-name-type (general-name general-name?))
+  (slot-ref general-name 'type))
 
 ;; GeneralNames ::= SEQUENCE SIZE (1..MAX) OF GeneralName
 (define-asn1-encodable <general-names>

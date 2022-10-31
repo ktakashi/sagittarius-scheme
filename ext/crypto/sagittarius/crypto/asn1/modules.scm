@@ -187,9 +187,11 @@
     (cond ((and (asn1-collection? obj)
 		(slot-definition-option slot :converter #f)) =>
 	   (lambda (conv) (conv (asn1-collection->list obj))))
-	  ((and (not (slot-definition-option slot :explicit #f))
-		(slot-definition-option slot :converter #f)) =>
-	   (lambda (conv) (conv (der-octet-string->bytevector obj))))
+	  ((slot-definition-option slot :converter #f) =>
+	   (lambda (conv)
+	     (conv (if (slot-definition-option slot :explicit #f)
+		       obj
+		       (der-octet-string->bytevector obj)))))
 	  (else obj))))
 
 (define ((make-asn1-choice->asn1-encodable class slots) o)

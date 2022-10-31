@@ -35,13 +35,13 @@
    (dns-name->general-name "*.example.com")
    (rfc822-name->general-name "ktakashi@ymail.com")
    (ip-address->general-name #vu8(127 0 0 1))
-   (directory-name->general-name "O=bla")
+   (directory-name->general-name (x509-name '(O "bla")))
    (registered-id->general-name "1.2.3.4")))
 
 (test-assert (x509-general-name? (dns-name->general-name "*.example.com")))
 (test-assert (x509-general-name? (rfc822-name->general-name "ktakashi@ymail.com")))
 (test-assert (x509-general-name? (ip-address->general-name #vu8(127 0 0 1))))
-(test-assert (x509-general-name? (directory-name->general-name "O=bla")))
+(test-assert (x509-general-name? (directory-name->general-name (x509-name '(O "bla")))))
 (test-assert (x509-general-name? (registered-id->general-name "1.2.3.4")))
 
 (test-assert (x509-general-names? alt-names))
@@ -127,7 +127,9 @@
 		    (key-pair-public failing-key-pair)) cert))
       cert)))
 
-(let* ((cert (test-certificate-builder *signature-algorithm:ecdsa-sha256*))
+(let* ((cert (bytevector->x509-certificate
+	      (x509-certificate->bytevector
+	       (test-certificate-builder *signature-algorithm:ecdsa-sha256*))))
        (extensions (x509-certificate-extensions cert)))
 
   (define (test-extension extensions oid critical value)
@@ -138,26 +140,33 @@
       (test-equal critical (x509-extension-critical? x))
       (test-equal oid value (x509-extension-value x))
       x))
+  
   (define (ensure-raw-asn1-object o)
     (bytevector->asn1-object (asn1-encodable->bytevector o)))
-  (test-extension extensions *extension:subject-alt-name* #f
-		  (ensure-raw-asn1-object
-		   (x509-general-names->general-names alt-names)))
-  (test-extension extensions *extension:issuer-alt-name* #f
-		  (ensure-raw-asn1-object
-		   (x509-general-names->general-names alt-names)))
-  (test-extension extensions *extension:authority-key-identifier* #f
-		  (ensure-raw-asn1-object
-		   (x509-authority-key-identifier->authority-key-identifier
-		    (make-x509-authority-key-identifier
-		     :key-identifier #vu8(1 2 3 4 5)))))
-  (test-extension extensions *extension:authority-key-identifier* #f
-		  (ensure-raw-asn1-object
-		   (x509-authority-key-identifier->authority-key-identifier
-		    (make-x509-authority-key-identifier
-		     :key-identifier #vu8(1 2 3 4 5)))))
-  (test-extension extensions *extension:subject-key-identifier* #f
-		  (bytevector->der-octet-string #vu8(2 3 4 5 6)))
+  
+  (let ((e (test-extension extensions *extension:subject-alt-name* #f
+			   (ensure-raw-asn1-object
+			    (x509-general-names->general-names alt-names)))))
+    (test-assert (x509-general-names? (x509-subject-alternative-name-extension->x509-general-names e)))
+    (test-error (x509-general-names? (x509-issuer-alternative-name-extension->x509-general-names e))))
+  (let ((e (test-extension extensions *extension:issuer-alt-name* #f
+			   (ensure-raw-asn1-object
+			    (x509-general-names->general-names alt-names)))))
+    (test-assert (x509-general-names? (x509-issuer-alternative-name-extension->x509-general-names e)))
+    (test-error (x509-general-names? (x509-subject-alternative-name-extension->x509-general-names e))))
+  (let ((e (test-extension extensions *extension:authority-key-identifier* #f
+			   (ensure-raw-asn1-object
+			    (x509-authority-key-identifier->authority-key-identifier
+			     (make-x509-authority-key-identifier
+			      :key-identifier #vu8(1 2 3 4 5)))))))
+    (test-assert (x509-authority-key-identifier?
+		  (x509-authority-key-identifier-extension->x509-authority-key-identifier e))))
+
+  (let ((e (test-extension extensions *extension:subject-key-identifier* #f
+			   (bytevector->der-octet-string #vu8(2 3 4 5 6)))))
+    (test-assert (bytevector? (x509-subject-key-identifier-extension->subject-key-identifier e)))
+    (test-equal #vu8(2 3 4 5 6) (x509-subject-key-identifier-extension->subject-key-identifier e)))
+
   (let ((key-usage-extension
 	 (test-extension extensions *extension:key-usage* #t
 			 (bytevector->der-bit-string #vu8(#x80 #xA8)))))

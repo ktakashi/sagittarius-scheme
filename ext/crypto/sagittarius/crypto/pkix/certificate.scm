@@ -61,130 +61,28 @@
 	    x509-certificate-template?
 	    x509-certificate-template-builder
 	    sign-x509-certificate-template
+
+	    x509-extensions? x509-extensions->list
+	    x509-extension?
 	    )
     (import (rnrs)
 	    (clos user)
 	    (sagittarius)
 	    (sagittarius crypto asn1)
 	    (sagittarius crypto pkix modules x509)
+	    (sagittarius crypto pkix dn)
 	    (sagittarius crypto pkix extensions)
 	    (sagittarius crypto keys)
 	    (sagittarius crypto signatures)
 	    (sagittarius combinators)
 	    (sagittarius mop allocation)
 	    (sagittarius mop immutable)
-	    (srfi :13 strings)
-	    (srfi :14 char-sets)
 	    (srfi :19 time)
 	    (util bytevector)
 	    (record builder))
+
 ;; useful utility :)
 (define (make-slot-ref getter conv) (lambda (o) (conv (getter o))))
-
-;; subjectDN and issuerDN
-(define-class <x509-name> (<immutable>) 
-  ((name :init-keyword :name :reader x509-name-name)))
-(define (x509-name? o) (is-a? o <x509-name>))
-(define (x509-name->string (name x509-name?) :optional (style #f))
-  (let ((style (or style default-style))
-	(rdn* (name-rdn* (x509-name-name name))))
-    (string-join (map style rdn*) ",")))
-(define-method write-object ((o <x509-name>) p)
-  (format p "#<509-name ~a>" (x509-name->string o)))
-
-(define *rfc1779-map*
-  `((,*attribute:common-name*            . "CN")
-    (,*attribute:locality-name*          . "L")
-    (,*attribute:state-or-province-name* . "ST")
-    (,*attribute:organization-name*      . "O")
-    (,*attribute:organization-unit-name* . "OU")
-    (,*attribute:country-name*           . "C")
-    (,*attribute:street-address*         . "STREET")))
-(define *rfc2253-map*
-  `(,@*rfc1779-map*
-    (,*attribute:domain-component*       . "DC")
-    (,*attribute:userid*                 . "UID")))
-
-(define *default-map*
-  `(,@*rfc2253-map*
-    (,*attribute:name*                   . "Name")
-    (,*attribute:surname*                . "SURNAME")
-    (,*attribute:given-name*             . "GIVENNAME")
-    (,*attribute:initials*               . "INITIALS")
-    (,*attribute:generation-qualifier*   . "GENERATION")
-    (,*attribute:title*                  . "T")
-    (,*attribute:dn-qualifier*           . "DN")
-    (,*attribute:serial-number*          . "SERIALNUMBER")
-    (,*attribute:pseudonym*              . "Pseudonym")
-    (,*attribute:email-address*          . "E")))
-
-(define *escape-chars* (string->char-set ",=+<>#;\"\\"))
-;; TODO handle canonical
-(define ((make-style style oid-map canonical?)
-	 (rdn relative-distinguished-name?))
-  (define (->keyword oid oid-map)
-    (cond ((assoc oid oid-map) => (lambda (slot) (values #f (cdr slot))))
-	  ((eq? style 'rfc1779)
-	   (values #t (string-append "OID."
-				     (der-object-identifier->oid-string oid))))
-	  (else (values #t (der-object-identifier->oid-string oid)))))
-  (define (escape s)
-    (let-values (((out e) (open-string-output-port)))
-      (string-for-each (lambda (c)
-			 (when (char-set-contains? *escape-chars* c)
-			   (put-char out #\\))
-			 (put-char out c)) s)
-      (e)))
-  (define (ava->string ava)
-    (let-values (((raw? key) (->keyword (single-attribute-type ava) oid-map)))
-      (let ((value (single-attribute-value ava)))
-	(if (or raw? (not (asn1-string? value)))
-	    (string-append key "=#"
-	     (bytevector->hex-string (asn1-encodable->bytevector value)))
-	    (let ((s (escape (asn1-string->string value))))
-	      (string-append key "=" s))))))
-  (define (sort names) names) ;; TODO
-  (let ((names (relative-distinguished-name-components rdn)))
-    (cond ((null? names) "") ;; should never happen...
-	  ((null? (cdr names)) (ava->string (car names)))
-	  (else
-	   (string-join (map ava->string (if canonical? (sort names) names))
-			"+")))))
-;; RFC1779 style not really compliant
-(define rfc1779-style (make-style 'rfc1779 *rfc1779-map* #f))
-(define rfc2253-style (make-style 'rfc2553 *rfc2253-map* #f))
-(define rfc2253-canonical-style (make-style 'rfc2553 *rfc2253-map* #t))
-(define default-style (make-style 'rfc2553 *default-map* #f))
-
-(define (name->x509-name (name name?))
-  (make <x509-name> :name name))
-
-(define *reverse-oid-map*
-  (map (lambda (s) (cons (string->symbol (cdr s)) (car s)))
-       *default-map*))
-;; We use UTF8String for DirectoryString, unless it's specified
-;; NOTE X520Name = DirectoryString as well
-(define *oid-ctr-map*
-  `((,*attribute:dn-qualifier*         . ,string->der-printable-string)
-    (,*attribute:country-name*         . ,string->der-printable-string)
-    (,*attribute:serial-number*        . ,string->der-printable-string)
-    (,*attribute:domain-component*     . ,string->der-ia5-string)
-    (,*attribute:email-address*        . ,string->der-ia5-string)))
-(define (list->x509-name l)
-  (define (oid->der-ctr oid)
-    (cond ((assoc oid *oid-ctr-map*) => cdr)
-	  (else string->der-utf8-string)))
-  (define (->rdn oid&value)
-    (make <relative-distinguished-name>
-      :elements (list (make <single-attribute>
-		  :type (car oid&value) :value (cdr oid&value)))))
-  (define (->oid&value s)
-    (let ((oid (cond ((assq (car s) *reverse-oid-map*) => cdr)
-		     (else (oid-string->der-object-identifier (car s))))))
-    (cons oid ((oid->der-ctr oid) (cadr s)))))
-  (make <x509-name>
-    :name (make <rdn-sequence> :elements (map ->rdn (map ->oid&value l)))))
-(define (x509-name . c) (list->x509-name c))
 
 (define-class <x509-validity> (<immutable> <cached-allocation>)
   ((validity :init-keyword :validity)
@@ -372,8 +270,8 @@
 			 o `(must satisfy ,pred)))
   (and o (conv o)))
 
-(define check-issuer (required 'issuer-dn x509-name? x509-name-name))
-(define check-subject (required 'subject-dn x509-name? x509-name-name))
+(define check-issuer (required 'issuer-dn x509-name? x509-name->name))
+(define check-subject (required 'subject-dn x509-name? x509-name->name))
 (define check-serial-number
   (required 'serial-number integer? integer->der-integer))
 (define check-not-before
