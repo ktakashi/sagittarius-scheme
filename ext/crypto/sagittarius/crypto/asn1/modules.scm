@@ -201,7 +201,7 @@
 	   (lambda (conv) (conv (asn1-collection->list obj))))
 	  ((slot-definition-option slot :converter #f) =>
 	   (lambda (conv)
-	     (conv (if (slot-definition-option slot :explicit #f)
+	     (conv (if (or (not obj) (slot-definition-option slot :explicit #f))
 		       obj
 		       (der-octet-string->bytevector obj)))))
 	  (else obj))))

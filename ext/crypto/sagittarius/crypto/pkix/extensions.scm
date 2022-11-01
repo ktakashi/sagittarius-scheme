@@ -63,17 +63,10 @@
 	    *extension:hold-instruction-code*
 	    *extension:invalidity-date*
 
-	    x509-extensions? <x509-extensions>
-	    x509-extensions->list
-	    list->x509-extensions
-	    x509-extensions
-
-	    find-x509-extension
-	    x509-extension-by-id
-	    
+	    x509-extension-of
 	    ;; these 2 are only internal use
-	    extensions->x509-extensions
-	    x509-extensions->extensions
+	    extensions->x509-extension-list
+	    x509-extension-list->extensions
 	    
 	    x509-general-name? <x509-general-name>
 	    rfc822-name->general-name
@@ -193,7 +186,8 @@
 		 (der-object-identifier->oid-string oid/string)
 		 oid/string)))
     (lambda (extension)
-      (equal? oid (x509-extension-id extension)))))
+      (and (x509-extension? extension)
+	   (equal? oid (x509-extension-id extension))))))
 
 (define (extension->x509-extension (e extension?))
   (make <x509-extension> :extension e))
@@ -318,31 +312,11 @@
 		(asn1-object->asn1-encodable <policy-information> o))
 	      (asn1-collection->list v)))))
 
-;; X509 extensions
-(define (x509-extensions->extensions o) (slot-ref o 'extensions))
-(define-class <x509-extensions> (<immutable> <cached-allocation>)
-  ((extensions :init-keyword :extensions)
-   (elements :allocation :virtual :cached #t
-	     :slot-ref (make-slot-ref
-			(.$ extensions->list x509-extensions->extensions)
-			list->x509-extension-list)
-	     :reader x509-extensions->list)))
-(define (x509-extensions? o) (is-a? o <x509-extensions>))
-
-(define (list->x509-extensions (extensions (list-of x509-extension?)))
-  (make <x509-extensions>
-    :extensions (make <extensions>
-		  :elements (map x509-extension-source extensions))))
-(define (x509-extensions . extensions) (list->x509-extensions extensions))
-
-(define (find-x509-extension (pred procedure?)
-			     (x509-extensions x509-extensions?))
-  (find pred (x509-extensions->list x509-extensions)))
-(define x509-extension-by-id x509-extension-of)
-
 ;; internal
-(define (extensions->x509-extensions (extensions extensions?))
-  (make <x509-extensions> :extensions extensions))
+(define (extensions->x509-extension-list (extensions extensions?))
+  (list->x509-extension-list (extensions->list extensions)))
+(define (x509-extension-list->extensions (extensions (list-of x509-extension?)))
+  (make <extensions> :elements (map x509-extension-source extensions)))
 
 )
     

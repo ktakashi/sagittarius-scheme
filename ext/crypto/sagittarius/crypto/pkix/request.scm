@@ -35,6 +35,11 @@
 	    x509-attribute-values
 	    make-x509-extension-request-attribute
 	    make-x509-challenge-password-attribute
+	    x509-attribute-of
+	    x509-attribute->x509-extension-list
+
+	    *pkcs-9:channelge-password*
+	    *pkcs-9:extenion-request*
 
 	    x509-certification-request? <x509-certification-request>
 	    x509-certification-request-version
@@ -47,7 +52,9 @@
 	    bytevector->x509-certification-request
 	    x509-certification-request->bytevector
 	    write-x509-certification-request
-
+	    validate-x509-certification-request
+	    x509-certification-request-signature-validator
+	    
 	    x509-certification-request-template?
 	    x509-certification-request-template-builder
 	    sign-x509-certification-request-template)
@@ -66,10 +73,12 @@
 	    (sagittarius mop allocation)
 	    (sagittarius mop immutable)
 	    (util bytevector)
-	    (record builder))
+	    (record builder)
+	    (srfi :1 lists))
 ;; useful utility :)
 (define (make-slot-ref getter conv) (lambda (o) (conv (getter o))))
 (define ((list-of pred) l) (for-all pred l))
+(define (oid? o) (or (der-object-identifier? o) (object-identifier-string? o)))
 
 (define-class <x509-attribute> (<immutable>)
   ((type :init-keyword :type :reader x509-attribute-type)
@@ -96,11 +105,31 @@
 		       :type 'utf8-string
 		       :value (string->der-utf8-string password)))))
 
-(define (make-x509-extension-request-attribute
-	 (x509-extensions x509-extensions?))
+(define (make-x509-extension-request-attribute . x509-extensions)
+  (unless (for-all x509-extension? x509-extensions)
+    (assertion-violation 'make-x509-extension-request-attribute
+			 "List of X509 extension is required" x509-extensions))
   (make <x509-attribute>
     :type (der-object-identifier->oid-string *pkcs-9:extenion-request*)
-    :values (der-set (x509-extensions->extensions x509-extensions))))
+    :values (der-set (x509-extension-list->extensions x509-extensions))))
+
+(define (x509-attribute-of (oid/string oid?))
+  (let ((oid (if (der-object-identifier? oid/string)
+		 (der-object-identifier->oid-string oid/string)
+		 oid/string)))
+    (lambda (attribute)
+      (and (x509-attribute? attribute)
+	   (equal? oid (x509-attribute-type attribute))))))
+
+(define *extension-request*
+  (der-object-identifier->oid-string *pkcs-9:extenion-request*))
+(define (x509-attribute->x509-extension-list (x509-attribute x509-attribute?))
+  (unless (equal? *extension-request* (x509-attribute-type x509-attribute))
+    (assertion-violation 'x509-attribute->x509-extension-list
+			 "Given X509 attribute is not extension request"
+			 x509-attribute))
+  (append-map extensions->x509-extension-list
+	      (asn1-collection->list (x509-attribute-values x509-attribute))))
 
 (define (attributes->x509-attributes (attributes attributes?))
   (map attribute->x509-attribute (attributes->list attributes)))
@@ -198,6 +227,21 @@
   (let ((bv (x509-certification-request->bytevector csr)))
     (put-bytevector out bv)))
 
+(define (validate-x509-certification-request (csr x509-certification-request?)
+					     . validators)
+  (for-all (lambda (v) (v csr)) validators))
+(define (x509-certification-request-signature-validator
+	 (csr x509-certification-request?))
+  (let ((verifier ((oid->verifier-maker
+		    (x509-certification-request-signature-algorithm csr))
+		   (x509-certification-request-public-key csr))))
+    (unless (verifier-verify-signature verifier
+	      (asn1-encodable->bytevector (csr-info csr))
+	      (x509-certification-request-signature csr))
+      (assertion-violation 'x509-certification-request-signature-validator
+			   "Invalid signature" csr))))
+
+;; CSR template
 (define-record-type x509-certification-request-template
   (fields subject-dn
 	  attributes))
@@ -237,8 +281,7 @@
 	 (template x509-certification-request-template?)
 	 oid
 	 (key-pair key-pair?))
-  (define signer ((oid->signer-maker oid) (key-pair-private key-pair)
-		  :der-encode #f))
+  (define signer ((oid->signer-maker oid) (key-pair-private key-pair)))
   (let* ((algorithm (make <algorithm-identifier>
 		      :algorithm (oid-string->der-object-identifier oid)))
 	 (cri (x509-certification-request-template->certification-request-info
@@ -250,4 +293,5 @@
 	       :signature-algorithm algorithm
 	       :signature (bytevector->der-bit-string signature))))
     (make <x509-certification-request> :c cr)))
+
 )

@@ -61,9 +61,6 @@
 	    x509-certificate-template?
 	    x509-certificate-template-builder
 	    sign-x509-certificate-template
-
-	    x509-extensions? x509-extensions->list
-	    x509-extension?
 	    )
     (import (rnrs)
 	    (clos user)
@@ -84,6 +81,7 @@
 
 ;; useful utility :)
 (define (make-slot-ref getter conv) (lambda (o) (conv (getter o))))
+(define ((list-of pred) list) (for-all pred list))
 
 (define-class <x509-validity> (<immutable> <cached-allocation>)
   ((validity :init-keyword :validity)
@@ -152,7 +150,7 @@
    (extensions :allocation :virtual :cached #t
     :slot-ref (make-slot-ref
 	       (.$ tbs-certificate-extensions tbs-cert)
-	       (lambda (e) (and e (extensions->x509-extensions e))))
+	       (lambda (e) (and e (extensions->x509-extension-list e))))
     :reader x509-certificate-extensions)))
 
 (define-method write-object ((o <x509-certificate>) p)
@@ -177,10 +175,9 @@
 	     (if (< i (- len 40))
 		 (format out "                        ~a~%" (substring signature-hex i (+ i 40)))
 		 (format out "                        ~a~%" (substring signature-hex i len))))))
-    (when extensions
+    (unless (null? extensions)
       (format out "            Extensions: ~%")
-      (for-each (lambda (e) (format out "              ~a~%" e))
-		(x509-extensions->list extensions)))
+      (for-each (lambda (e) (format out "              ~a~%" e)) extensions))
     (display ">" out)
     (display (e) p)))
 
@@ -273,7 +270,8 @@
 (define check-subject-unique-id
   (optional 'subject-unique-id bytevector? bytevector->der-bit-string))
 (define check-extensions
-  (optional 'extensions x509-extensions? x509-extensions->extensions))
+  (optional 'extensions (list-of x509-extension?)
+	    x509-extension-list->extensions))
 
 (define-syntax x509-certificate-template-builder
   (make-record-builder x509-certificate-template

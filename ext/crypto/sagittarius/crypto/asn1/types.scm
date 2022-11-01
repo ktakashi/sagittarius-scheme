@@ -423,8 +423,8 @@
    (sequence :allocation :virtual
 	     :slot-ref asn1-collection->list)))
 (define (ber-sequence? o) (is-a? o <ber-sequence>))
-(define (make-ber-sequence (elements list-of-der-encodable?))
-  (make <ber-sequence> :elements (make-list-queue elements)))
+(define (make-ber-sequence (elements (or #f list-of-der-encodable?)))
+  (make <ber-sequence> :elements (make-list-queue (or elements '()))))
 (define (ber-sequence . e*)  (make-ber-sequence e*))
 (define (ber-sequence-add! (sequence ber-sequence?) (e asn1-encodable?))
   (list-queue-add-back! (asn1-collection-elements sequence) e)
@@ -441,10 +441,11 @@
    (set :allocation :virtual
 	:slot-ref asn1-collection->list)))
 (define (ber-set? o) (is-a? o <ber-set>))
-(define (make-ber-set (elements list-of-der-encodable?)
+(define (make-ber-set (elements (or #f list-of-der-encodable?))
 		      :optional (=? default-set-equal?))
   (make <ber-set> :comparator =?
-	:elements (make-list-queue (delete-duplicates elements))))
+	:elements (make-list-queue
+		   (or (and elements (delete-duplicates elements)) '()))))
 (define (ber-set . e*) (make-ber-set default-set-equal? e*))
 (define (ber-set-add! (set ber-set?) (e asn1-encodable?))
   (let ((q (asn1-collection-elements set)))
@@ -622,8 +623,8 @@
 ;; Sequence
 (define-class <der-sequence> (<ber-sequence>) ())
 (define (der-sequence? o) (is-a? o <der-sequence>))
-(define (make-der-sequence (elements list-of-der-encodable?))
-  (make <der-sequence> :elements (make-list-queue elements)))
+(define (make-der-sequence (elements (or #f list-of-der-encodable?)))
+  (make <der-sequence> :elements (make-list-queue (or elements '()))))
 (define (der-sequence . e*) (make-der-sequence e*))
 (define der-sequence-of (asn1-collection-of? <der-sequence>))
 (define (der-sequence-add! (sequence der-sequence?) (e asn1-encodable?))
@@ -633,10 +634,13 @@
 (define-class <der-set> (<ber-set>) ())
 (define (der-set? o) (is-a? o <der-set>))
 (define (der-set=? (o der-set?)) (ber-set=? o))
-(define (make-der-set (elements list-of-der-encodable?)
+(define (make-der-set (elements (or #f list-of-der-encodable?))
 		      :optional (=? default-set-equal?))
-  (make <der-set> :elements (make-list-queue (delete-duplicates elements =?))
-	:comparator =?))
+  (make <der-set>
+    :elements (make-list-queue
+	       (or (and elements (delete-duplicates elements =?))
+		   '()))
+    :comparator =?))
 (define (der-set . e*) (make-der-set e* default-set-equal?))
 (define der-set-of (asn1-collection-of? <der-set>))
 (define (der-set-add! (set der-set?) (e asn1-encodable?))

@@ -92,7 +92,7 @@
 		    (not-before (time-utc->date now))
 		    (not-after (time-utc->date (add-duration now one-year)))
 		    (extensions
-		     (x509-extensions
+		     (list
 		      (make-x509-subject-alternative-name-extension alt-names)
 		      (make-x509-issuer-alternative-name-extension alt-names)
 		      (make-x509-authority-key-identifier-extension
@@ -149,7 +149,7 @@
        (extensions (x509-certificate-extensions cert)))
 
   (define (test-extension extensions oid critical value)
-    (let ((x (find-x509-extension (x509-extension-by-id oid) extensions)))
+    (let ((x (find (x509-extension-of oid) extensions)))
       (test-assert (x509-extension? x))
       (test-assert (der-object-identifier->oid-string oid)
 		   (x509-extension-id x))
