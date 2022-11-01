@@ -1,7 +1,5 @@
 (import (rnrs)
 	(rfc x.509)
-	(except (crypto) verify) ;; avoid name confiliction
-	(math)
 	(rfc base64)
 	(rfc pem)
 	(srfi :64 testing)
@@ -40,11 +38,6 @@
    c7/OIrAJeHCQQVCJyr5M6sCoM43q9NtIfWm/43X8krBV1xKwkEgX8ll7IizjIETa\
    wvGt0SDMednxL/WDOuYSDQ9/3t+ywKQsnWBWqwKIRcHz89rAAEs+")
 
-;; for sign
-(define rsa-private-key (import-private-key RSA
-			 (open-bytevector-input-port
-			  (base64-decode (string->utf8 private-key)))))
-(define rsa-private-cipher (cipher RSA rsa-private-key))
 (define message (string->utf8 "test message for verify"))
 
 (define external-signature 
@@ -65,10 +58,6 @@
 	      "1.2.840.113549.1.1.11"
 	      (x509-certificate-get-signature-algorithm x509))
 
-  (test-assert "default verify" (verify x509 message external-signature))
-  ;; invalid hash type
-  (test-error "default verify (failed)" 
-	      (verify x509 message external-signature :hash SHA-256))
   (test-assert "check validity (default)" (check-validity x509))
   (test-error "check validity (before)" (check-validity 
 					 x509
@@ -76,34 +65,6 @@
   (test-error "check validity (after)" (check-validity 
 					 x509
 					 (string->date "2021/01/01" "Y/m/d")))
-
-  ;; try other signature and hash algorithm
-  (let ((signature-sha1-emsa-pss (sign rsa-private-cipher message))
-	(signature-sha256-emsa-pss (sign rsa-private-cipher message
-					 :hash SHA-256))
-	(signature-sha256-pkcs1.5 (sign rsa-private-cipher message
-					:encode pkcs1-emsa-v1.5-encode
-					:hash SHA-256)))
-    
-    (test-assert "SHA-1 EMSA-PSS" (verify x509 message signature-sha1-emsa-pss
-					  :verify pkcs1-emsa-pss-verify))
-    (test-assert "SHA-256 EMSA-PSS" (verify x509 message
-					    signature-sha256-emsa-pss
-					    :verify pkcs1-emsa-pss-verify
-					    :hash SHA-256))
-    (test-assert "SHA-256 PKCS-1.5" (verify x509 message
-					    signature-sha256-pkcs1.5
-					    :hash SHA-256))
-
-    (test-error "SHA-1 EMSA-PSS (error)"
-		(verify x509 message signature-sha1-emsa-pss))
-    (test-error "SHA-256 EMSA-PSS (error)"
-		(verify x509 message signature-sha1-emsa-pss))
-    (test-error "SHA-256 PKCS-1.5 (error)"
-		(verify x509 message signature-sha1-emsa-pss))
-
-    )
-
   )
 
 (let ()

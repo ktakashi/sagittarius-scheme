@@ -28,20 +28,58 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!nounbound
 (library (rfc x.509)
     (export make-x509-certificate
 	    x509-certificate?
-	    x509-certificate->bytevector
-	    <x509-certificate>
-	    x509-certificate-get-version
-	    x509-certificate-get-serial-number
-	    x509-certificate-get-issuer-dn
-	    x509-certificate-get-subject-dn
+	    bytevector->x509-certificate read-x509-certificate
+	    x509-certificate->bytevector write-x509-certificate
+
+	    x509-certificate->bytevector <x509-certificate>
+
+	    x509-certificate-expired?
+	    x509-certificate-issuer-dn
+	    x509-certificate-subject-dn
+	    x509-certificate-public-key
+	    x509-certificate-validity
+	    x509-certificate-serial-number
+	    x509-certificate-version
+	    x509-certificate-signature
+	    x509-certificate-signature-algorithm
+	    x509-certificate-extensions
+
+	    validate-x509-certificate
+	    x509-certificate-signature-validator
+	    x509-certificate-validity-validator
+
+	    x509-name? <x509-name> x509-name
+	    x509-name->string
+	    list->x509-name
+
+	    x509-validity? <x509-validity>
+	    make-x509-validity
+	    x509-validity-not-before
+	    x509-validity-not-after
+	    
+	    x509-certificate-template?
+	    x509-certificate-template-builder
+	    sign-x509-certificate-template
+
+	    ;; Below are only for backward compatibilities
+	    (rename (x509-certificate-version x509-certificate-get-version)
+		    (x509-certificate-serial-number
+		     x509-certificate-get-serial-number)
+		    (x509-certificate-issuer-dn x509-certificate-get-issuer-dn)
+		    (x509-certificate-subject-dn
+		     x509-certificate-get-subject-dn))
 	    x509-certificate-get-not-before
 	    x509-certificate-get-not-after
-	    x509-certificate-get-signature
-	    x509-certificate-get-signature-algorithm
-	    x509-certificate-get-public-key
+	    (rename (x509-certificate-signature x509-certificate-get-signature)
+		    (x509-certificate-signature-algorithm
+		     x509-certificate-get-signature-algorithm)
+		    (x509-certificate-public-key
+		     x509-certificate-get-public-key))
+	    
 	    x509:verify
 	    x509:check-validity
 	    x509:verify-certificate
@@ -51,7 +89,8 @@
 
 	    ;; certificate generation
 	    make-x509-issuer
-	    make-validity
+	    make-x509-validity
+	    (rename (make-x509-validity make-validity))
 	    make-x509-simple-certificate
 	    make-x509-self-signed-certificate
 	    ;; for backward compatibility
@@ -66,618 +105,109 @@
 
 	    )
     (import (rnrs)
-	    (rnrs mutable-strings)
 	    (clos user)
-	    (sagittarius)
-	    (sagittarius control)
-	    (sagittarius object)
-	    (rename (crypto) (verify crypto:verify))
-	    (srfi :1 lists)
-	    (srfi :19 time)
-	    (srfi :26 cut)
-	    (math)
-	    (asn.1)
-	    (rsa pkcs :10)
-	    (security signature))
-  ;; these might be somewhere
-  (define-class <rdn> (<asn.1-encodable>)
-    ((values :init-keyword :values)))
-  (define-generic make-rdn)
-  (define-method make-rdn ((s <asn.1-set>))
-    (make <rdn> :values s))
-  (define-method make-rdn ((oid <der-object-identifier>) (name <string>))
-    (let1 seq (make-der-sequence oid (make-der-printable-string name #t))
-      (make <rdn> :values (make-der-set seq))))
-  (define (rdn-get-types-and-values rdn)
-    (map (lambda (p)
-	   (cons (asn.1-sequence-get p 0) (asn.1-sequence-get p 1)))
-	 (~ rdn 'values 'set)))
-  (define (rdn-get-first rdn)
-    (let ((p (asn.1-set-get (~ rdn 'values) 0)))
-      (cons (asn.1-sequence-get p 0) (asn.1-sequence-get p 1))))
-  (define-method object-equal? ((a <rdn>) (b <rdn>))
-    ;; unfortunately ASN.1 serise aren't implemented with object-equal?
-    ;; so we need to compare encoded bytevector
-    (bytevector=? (encode (~ a 'values)) (encode (~ b 'values))))
-  (define-method asn.1-encodable->asn.1-object ((o <rdn>) i)
-    (slot-ref o 'values))
+	    (sagittarius crypto asn1)
+	    (sagittarius crypto keys)
+	    (sagittarius crypto digests)
+	    (sagittarius crypto signatures)
+	    (sagittarius crypto pkix certificate)
+	    (srfi :19 time))
 
-  (define *default-symbols*
-    `((,(make-der-object-identifier "2.5.4.6") . C)
-      (,(make-der-object-identifier "2.5.4.10") . O)
-      (,(make-der-object-identifier "2.5.4.11") . OU)
-      (,(make-der-object-identifier "2.5.4.3") . CN)
-      (,(make-der-object-identifier "2.5.4.7") . L)
-      (,(make-der-object-identifier "2.5.4.5") . SERIALNUMER)
-      (,(make-der-object-identifier "1.2.840.113549.1.9.1") . E)
-      (,(make-der-object-identifier "0.9.2342.19200300.100.1.25") . DC)
-      (,(make-der-object-identifier "0.9.2342.19200300.100.1.1") . UID)
-      (,(make-der-object-identifier "2.5.4.9") . STREET)
-      (,(make-der-object-identifier "2.5.4.4") . SURNAME)
-      (,(make-der-object-identifier "2.5.4.44") . GENERATION)
-      (,(make-der-object-identifier "2.5.4.26") . DN)
-      (,(make-der-object-identifier "2.5.4.42") . GIVENNAME)))
+(define-generic make-x509-certificate)
+(define-method  make-x509-certificate ((bv <bytevector>))
+  (bytevector->x509-certificate bv))
+(define-method  make-x509-certificate ((p <port>))
+  (read-x509-certificate p))
+(define-method  make-x509-certificate ((o <asn1-object>))
+  (asn1-object->x509-certificate o))
 
-  (define-class <x500-name> (<asn.1-encodable>)
-    ((style :init-keyword :style :init-value #f)
-     (rdns  :init-keyword :rdns)))
-  (define-generic make-x500-name)
-  (define-method make-x500-name ((s <asn.1-sequence>))
-    (let* ((len (asn.1-sequence-size s))
-	   (rdns (make-vector len)))
-      (dotimes (i len)
-	(vector-set! rdns i (make-rdn (asn.1-sequence-get s i))))
-      (make <x500-name> :rdns rdns)))
-  (define-method asn.1-encodable->asn.1-object ((o <x500-name>) i)
-    (apply make-der-sequence
-	   (map asn.1-encodable->asn.1-object (vector->list (~ o 'rdns)))))
-  (define-method write-object ((o <x500-name>) p)
-    (define (print-type-and-value p out)
-      (let ((type (car p))
-	    (value (cdr p)))
-	(cond ((assoc type *default-symbols*) =>
-	       (lambda (slot) (display (cdr slot) out)))
-	      (else
-	       (display (~ type 'identifier) out)))
-	(display #\= out)
-	(if (and (is-a? value <asn.1-string>)
-		 (not (is-a? value <der-universal-string>)))
-	    (display (asn.1-string->string value) out)
-	    (display value out))))
-    (define (print-rdn rdn out) 
-      (let* ((set (~ rdn 'values))
-	     (len (asn.1-set-size set)))
-	(if (> len 1)
-	    (let ((atv (rdn-get-types-and-values rdn)))
-	      (unless (null? atv)
-		(print-type-and-value (car atv) out)
-		(for-each (lambda (at)
-			    (display #\, out)
-			    (print-type-and-value at out)) (cdr atv))))
-	    (print-type-and-value (rdn-get-first rdn) out))))
-    (let ((buf (call-with-string-output-port
-		(lambda (out)
-		  (let ((rdns (vector->list (~ o 'rdns))))
-		    (unless (null? rdns)
-		      (print-rdn (car rdns) out)
-		      (for-each (lambda (rdn)
-				  (display #\, out)
-				  (print-rdn rdn out))
-				(cdr rdns))))))))
-      (display buf p)))
+;; TODO remove this, this is used only in PKCS#12 keystore
+(define-class <subject-key-identifier> (<asn1-encodable>)
+  ((key-identifier :init-keyword :key-identifier
+		   :reader subject-key-identifier-key-identifier)))
+(define (subject-key-identifier? o) (is-a? o <subject-key-identifier>))
+(define-generic make-subject-key-identifier)
+(define-method make-subject-key-identifier ((keyid <bytevector>))
+  (make <subject-key-identifier> :key-identifier keyid))
+(define-method asn1-encodable->asn1-object ((o <subject-key-identifier>) i)
+  (bytevector->der-octet-string
+   (subject-key-identifier-key-identifier o)))
 
-  (define-method object-equal? ((a <x500-name>) (b <x500-name>))
-    (and (equal? (~ a 'style) (~ b 'style))
-	 (equal? (~ a 'rdns) (~ b 'rdns))))
+
+(define (x509-certificate-get-not-before cert)
+  (x509-validity-not-before (x509-certificate-validity cert)))
+(define (x509-certificate-get-not-after cert)
+  (x509-validity-not-after (x509-certificate-validity cert)))
+
+;; **DEPRECATED** It's a wrong idea to use certificate to verify a signature
+;;                use (sagittarius crypto signatures) instead
+(define (x509:verify cert message signature . ignore)
+  (define oid (x509-certificate-signature-algorithm cert))
+  (define verifier ((oid->verifier-maker oid)
+		    (x509-certificate-public-key cert)
+		    :der-encode #f))
+  (verifier-verify-signature verifier message signature))
+
+(define (x509:verify-certificate cert public-key)
+  (validate-x509-certificate cert
+    (x509-certificate-signature-validator public-key)))
   
-  ;; base on boucycasle's x509 package.
+(define (x509:check-validity cert :optional (date (current-date)))
+  (validate-x509-certificate cert
+    (x509-certificate-validity-validator date)))
 
-  (define-class <x509-principal> (<x500-name>) ())
-  (define-generic make-x509-principal)
-  (define-method make-x509-principal ((o <x500-name>))
-    (make <x509-principal> :rdns (~ o 'rdns)))
-  (define-method object-equal? ((a <x500-name>) (b <x500-name>))
-    (lset= equal? (vector->list (~ a 'rdns)) (vector->list (~ b 'rdns))))
+(define +sha256-with-rsa-encryption+
+  *signature-algorithm:rsa-pkcs-v1.5-sha256*)
+(define +sha256-with-ecdsa-encryption+ *signature-algorithm:ecdsa-sha256*)
+(define +eddsa-ed25519-encryption+ *signature-algorithm:ed25519*)
+(define +eddsa-ed448-encryption+ *signature-algorithm:ed448*)
 
-  (define-class <x509-time> (<asn.1-encodable>)
-    ((time :init-keyword :time)))
-  (define-generic make-x509-time)
-  (define-method make-x509-time ((o <der-utc-time>))
-    (make <x509-time> :time o))
-  (define-method make-x509-time ((o <der-generalized-time>))
-    (make <x509-time> :time o))
-  
-  (define-generic x509-time->date)
-  (define-method x509-time->date ((o <x509-time>))
-    (der-time->date (~ o 'time)))
+(define (make-x509-issuer lis)
+  (apply x509-name (map (lambda (c) (list (car c) (cdr c))) lis)))
 
-  (define-class <x509-extension> (<asn.1-encodable>)
-    ((critical :init-keyword :critical)
-     (value    :init-keyword :value)))
-  (define-generic make-x509-extension)
-  (define-method make-x509-extension ((critical <der-boolean>)
-				      (value <asn.1-octet-string>))
-    (make-x509-extension (der-boolean->boolean critical) value))
-  (define-method make-x509-extension ((critical <boolean>)
-				      (value <asn.1-octet-string>))
-    (make <x509-extension> :critical critical :value value))
+(define (make-x509-self-signed-certificate keypair serial-number
+					   issuer validity subject)
+  (define private-key (key-pair-private keypair))
+  (define oid
+    (cond ((rsa-private-key? private-key) +sha256-with-rsa-encryption+)
+	  ((ecdsa-private-key? private-key) +sha256-with-ecdsa-encryption+)
+	  ((eddsa-private-key? private-key)
+	   (if (ed25519-key? private-key)
+	       +eddsa-ed25519-encryption+
+	       +eddsa-ed448-encryption+))
+	  (else (assertion-violation 'make-x509-self-signed-certificate
+				     "Keypair not supported" keypair))))
+  (sign-x509-certificate-template
+   (x509-certificate-template-builder
+    (issuer-dn issuer)
+    (subject-dn subject)
+    (serial-number serial-number)
+    (not-before (x509-validity-not-before validity))
+    (not-after (x509-validity-not-after validity))
+    (public-key (key-pair-public keypair)))
+   oid private-key))
 
-  (define-class <x509-extensions> (<asn.1-encodable>)
-    ((extensions :init-keyword :extensions)))
-  (define-generic make-x509-extensions)
-  (define-method make-x509-extensions ((o <asn.1-tagged-object>))
-    (make-x509-extensions (der-encodable->der-object o)))
-  (define-method make-x509-extensions ((o <asn.1-sequence>))
-    (let ((extensions 
-	   (map (lambda (e)
-		  (case (asn.1-sequence-size e)
-		    ((3)
-		     (cons (asn.1-sequence-get e 0)
-			   (make-x509-extension (asn.1-sequence-get e 1)
-						(asn.1-sequence-get e 2))))
-		    ((2)
-		     (cons (asn.1-sequence-get e 0)
-			   (make-x509-extension #f (asn.1-sequence-get e 1))))
-		    (else
-		     => (lambda (size)
-			  (assertion-violation 'make-x509-extensions
-					       "bas sequense size" size)))))
-		(~ o 'sequence))))
-      (make <x509-extensions> :extensions extensions)))
-  (define-generic get-x509-extension)
-  (define-method get-x509-extension ((o <x509-extensions>)
-				     (oid <der-object-identifier>))
-    (and-let* ((ext (assoc oid (~ o 'extensions))))
-      (cdr ext)))
-
-  (define-class <subject-key-identifier> (<asn.1-encodable>)
-    ((key-identifier :init-keyword :key-identifier)))
-  (define (subject-key-identifier? o) (is-a? o <subject-key-identifier>))
-  (define-generic make-subject-key-identifier)
-  (define-method make-subject-key-identifier ((keyid <bytevector>))
-    (make <subject-key-identifier> :key-identifier keyid))
-  (define-method asn.1-encodable->asn.1-object ((o <subject-key-identifier>) i)
-    (make-der-octet-string (~ o 'key-identifier)))
-  (define (subject-key-identifier-key-identifier ski)
-    (~ ski 'key-identifier))
-
-  (define-class <tbs-certificate-structure> (<asn.1-encodable>)
-    ((sequence      :init-keyword :sequence) ;; original asn.1 object
-     (version       :init-keyword :version)
-     (serial-number :init-keyword :serial-number)
-     (signature     :init-keyword :signature)
-     (issuer        :init-keyword :issuer)
-     (start-date    :init-keyword :start-date)
-     (end-date      :init-keyword :end-date)
-     (subject       :init-keyword :subject)
-     (subject-public-key-info :init-keyword :public-key-info)
-     (issuer-unique-id :init-keyword :issuer-id)
-     (subject-unique-id :init-keyword :subject-id)
-     (extensions    :init-keyword :extensions)))
-  (define-generic make-tbs-certificate-structure)  
-  (define-method make-tbs-certificate-structure ((s <asn.1-sequence>))
-    (let* ((start 0)
-	   (version (cond ((is-a? (asn.1-sequence-get s 0) <der-tagged-object>)
-			   (make-der-integer (asn.1-sequence-get s 0) #t))
-			  (else
-			   (set! start -1)
-			   (make-der-integer 0))))
-	   (serial-number (asn.1-sequence-get s (+ start 1)))
-	   (signature (make-algorithm-identifier
-		       (asn.1-sequence-get s (+ start 2))))
-	   (issuer (make-x500-name (asn.1-sequence-get s (+ start 3))))
-	   (dates (asn.1-sequence-get s (+ start 4)))
-	   (start-date (make-x509-time (asn.1-sequence-get dates 0)))
-	   (end-date (make-x509-time (asn.1-sequence-get dates 1)))
-	   (subject (make-x500-name (asn.1-sequence-get s (+ start 5))))
-	   (public-key (make-subject-public-key-info
-			(asn.1-sequence-get s (+ start 6))))
-	   (issuer-id #f)
-	   (subject-id #f)
-	   (extensions #f))
-      (do ((extras (- (asn.1-sequence-size s) (+ start 6) 1) (- extras 1)))
-	  ((zero? extras))
-	(let ((extra (asn.1-sequence-get s (+ start 6 extras))))
-	  ;; assume tagged object
-	  (case (~ extra 'tag-no)
-	    ((1) (set! issuer-id (make-der-bit-string extra #f)))
-	    ((2) (set! subject-id (make-der-bit-string extra #f)))
-	    ((3) (set! extensions (make-x509-extensions extra))))))
-      (make <tbs-certificate-structure>
-	:sequence s
-	:version version
-	:serial-number serial-number
-	:signature signature
-	:issuer issuer
-	:start-date start-date
-	:end-date end-date
-	:subject subject
-	:public-key-info public-key
-	:issuer-id issuer-id
-	:subject-id subject-id
-	:extensions extensions)))
-
-  (define-class <x509-certificate-structure> (<asn.1-encodable>)
-    ((sequence :init-keyword :sequence) ;; original asn.1 object
-     (tbs-cert :init-keyword :tbs-cert)
-     (algorithm-identifier :init-keyword :algorithm-identifier)
-     (signature :init-keyword :signature)))
-  (define-generic make-x509-certificate-structure)
-  (define-method make-x509-certificate-structure ((s <asn.1-sequence>))
-    (make <x509-certificate-structure>
-      :sequence s
-      :tbs-cert (make-tbs-certificate-structure (asn.1-sequence-get s 0))
-      :algorithm-identifier (make-algorithm-identifier (asn.1-sequence-get s 1))
-      ;; must be der bit string
-      :signature (asn.1-sequence-get s 2)))
-  (define-method der-encode ((o <x509-certificate-structure>) p)
-    (der-encode (~ o 'sequence) p))
-
-  (define-class <basic-constraints> (<asn.1-encodable>)
-    ((ca :init-keyword :ca :init-form (make-der-boolean #f))
-     (path-length-constraint :init-keyword :path-length-constraint)))
-  (define-generic make-basic-constrains)
-  (define-method make-basic-constrains ((s <asn.1-sequence>))
-    (case (asn.1-sequence-size s)
-      ((0)
-       (make <basic-constraints> :ca #f :path-length-constraint #f))
-      (else 
-       => (lambda (size)
-	    (let ((ca (asn.1-sequence-get s 0))
-		  (path-len #f))
-	      (unless (is-a? ca <der-boolean>)
-		(set! ca #f)
-		(set! path-len ca))
-	      (when (> size 1)
-		(if ca
-		    (set! path-len (asn.1-sequence-get s 1))
-		    (assertion-violation 'make-basic-constrains
-					 "wrong sequence in constructor")))
-	      (make <basic-constraints>
-		:ca ca
-		:path-length-constraint path-len))))))
-
-  ;; should we make <certificate>?
-  ;; based on bouncy castle X509CertificateObject
-  (define-class <x509-certificate> ()
-    ((c :init-keyword :c)
-     (basic-constraints :init-keyword :basic-constraints)
-     (key-usage :init-keyword :key-usage)
-     (encoded :init-keyword :encoded :init-value #f)))
-  (define-generic make-x509-certificate)
-  (define-method make-x509-certificate ((bv <bytevector>))
-    (let ((r (make-x509-certificate (open-bytevector-input-port bv))))
-      (slot-set! r 'encoded bv)
-      r))
-  (define-method make-x509-certificate ((p <port>))
-    (make-x509-certificate (read-asn.1-object p)))
-  (define-method make-x509-certificate ((s <asn.1-sequence>))
-    ;; TODO constrains and key usage
-    (define (get-extension-bytes c oid)
-      (let ((exts (~ c 'tbs-cert 'extensions)))
-	(if exts
-	    (let ((ext (get-x509-extension 
-			exts
-			(make-der-object-identifier oid))))
-	      (if ext
-		  (~ ext 'value 'string)
-		  #f))
-	    #f)))
-    (define (read-from-bytes bytes)
-      (if bytes
-	  (read-asn.1-object (open-bytevector-input-port bytes))
-	  #f))
-    (let* ((c (make-x509-certificate-structure s))
-	   (constraints (cond
-			 ((read-from-bytes (get-extension-bytes c "2.5.29.19"))
-			  => make-basic-constrains)
-			 (else #f)))
-	   (key-usage (cond
-		       ((read-from-bytes (get-extension-bytes c "2.5.29.15"))
-			=> (lambda (obj)
-			     ;; obj must be der-bit-string
-			     (let* ((bytes (~ obj 'data))
-				    (len (- (* (bytevector-length bytes) 8)
-					    (~ obj 'padding-bits)))
-				    (ks (make-vector (if (< len 9) 9 len) #f)))
-			       (dotimes (i len)
-				 (let ((byte (bytevector-u8-ref bytes 
-								(div i 8)))
-				       (mask (bitwise-arithmetic-shift-right
-					      #x80 (mod i 8))))
-				   (vector-set! 
-				    ks
-				    i
-				    (not (zero?
-					  (bitwise-and byte mask))))))
-			       ks)
-			     ))
-		       (else #f))))
-      (make <x509-certificate>
-	:c c
-	:basic-constraints constraints
-	:key-usage key-usage
-	:encoded (encode s))))
-  (define (x509-certificate? o) (is-a? o <x509-certificate>))
-  (define (x509-certificate->bytevector o) (~ o 'encoded))
-
-  ;; accessor
-  (define (x509-certificate-get-version cert)
-    (let ((c (~ cert 'c 'tbs-cert)))
-      (+ 1 (der-integer->integer (~ c 'version)))))
-  (define (x509-certificate-get-serial-number cert)
-    (let ((c (~ cert 'c 'tbs-cert)))
-      (der-integer->integer (~ c 'serial-number))))
-  (define (x509-certificate-get-issuer-dn cert)
-    (let ((c (~ cert 'c 'tbs-cert)))
-      (make-x509-principal (~ c 'issuer))))
-  (define (x509-certificate-get-subject-dn cert)
-    (let ((c (~ cert 'c 'tbs-cert)))
-      (make-x509-principal (~ c 'subject))))
-  (define (x509-certificate-get-not-before cert)
-    (let ((c (~ cert 'c 'tbs-cert)))
-      (x509-time->date (~ c 'start-date))))
-  (define (x509-certificate-get-not-after cert)
-    (let ((c (~ cert 'c 'tbs-cert)))
-      (x509-time->date (~ c 'end-date))))
-  (define (x509-certificate-get-signature cert)
-    (~ cert 'c 'signature 'data))
-  ;; should return meaningful name, but for now we just return oid
-  (define (x509-certificate-get-signature-algorithm cert)
-    (~ cert 'c 'algorithm-identifier 'object-id 'identifier))
-
-  (define (x509-certificate-get-public-key cert)
-    (let* ((c (~ cert 'c 'tbs-cert))
-	   (info (~ c 'subject-public-key-info)))
-      (subject-public-key-info->public-key info)))
-
-  (define-syntax ash (identifier-syntax bitwise-arithmetic-shift))
-  (define-method write-object ((o <x509-certificate>) (p <port>))
-    (define (bv->hex-string bv)
-      (define (->hex-char i) (string-ref "0123456789abcdef" i))
-      (let1 s (make-string (* (bytevector-length bv) 2))
-	(dotimes (i (bytevector-length bv))
-	  (let1 u8 (bytevector-u8-ref bv i)
-	    (string-set! s (* i 2) (->hex-char (ash u8 -4)))
-	    (string-set! s (+ (* i 2) 1) (->hex-char (bitwise-and u8 #xF)))))
-	s))
-    (let ((buf (call-with-string-output-port
-		(lambda (out)
-		  (format out "#<x509-certificate~%")
-		  (format out "  [0]         Version: ~a~%"
-			  (x509-certificate-get-version o))
-		  (format out "         SerialNumber: ~a~%"
-			  (x509-certificate-get-serial-number o))
-		  (format out "             IssuerDN: ~a~%"
-			  (x509-certificate-get-issuer-dn o))
-		  (format out "           Start Date: ~a~%"
-			  (x509-certificate-get-not-before o))
-		  (format out "           Final Date: ~a~%"
-			  (x509-certificate-get-not-after o))
-		  (format out "            SubjectDN: ~a~%"
-			  (x509-certificate-get-subject-dn o))
-		  (format out "           Public Key: ~a~%"
-			  (x509-certificate-get-public-key o))
-		  (format out "  Signature Algorithm: ~a~%"
-			  (x509-certificate-get-signature-algorithm o))
-		  (let* ((sig (bv->hex-string
-			       (x509-certificate-get-signature o)))
-			 (len (string-length sig)))
-		    (format out "            Signature: ~a~%"
-			    (substring sig 0 40))
-		    (do ((i 40 (+ i 40)))
-			((>= i len))
-		      (if (< i (- len 40))
-			  (format out "                       ~a~%"
-				  (substring sig i (+ i 40)))
-			  (format out "                       ~a~%"
-				  (substring sig i len)))))
-		  (let ((extensions (~ o 'c 'tbs-cert 'extensions)))
-		    (when extensions
-		      (let ((oids (map car (~ extensions 'extensions))))
-			(unless (null? oids)
-			  (format out "       Extensions: ~%")
-			  (for-each 
-			   (lambda (oid)
-			     (let* ((ext (get-x509-extension extensions oid))
-				    ;; do we need to check value if it's null?
-				    (octs (asn.1-encodable->asn.1-object
-					   (~ ext 'value))))
-			       (format out "                       critical(~a)"
-				       (~ ext 'critical))
-			       ;; for now we don't check known oids.
-			       (format out "~a value = ~a~%"
-				       (~ oid 'identifier)
-				       (read-asn.1-object
-					(open-bytevector-input-port
-					 (~ octs 'string))))))
-			   oids)))))
-		  (display ">" out)))))
-      (display buf p)))
-
-  ;; TODO for now we only support RSA
-  ;;      currently user needs to do more task like choose hash algorithm
-  ;;      and verifier. this must be done by the process.
-  ;; **DEPRECATED** It's a wrong idea to use certificate to verify a signature
-  ;; use (security signature) instead
-  (define (x509:verify cert message signature
-		       :key (verify pkcs1-emsa-v1.5-verify)
-		       (hash (hash-algorithm SHA-1)))
-    (define algo (~ cert 'c 'algorithm-identifier))
-    (define verifier-provider
-      (algorithm-identifier->signature-verifier-provider algo))
-    
-    (let* ((public-key (x509-certificate-get-public-key cert))
-	   (rsa-cipher (cipher RSA public-key)))
-      ;; TODO check certificate encoder
-      (crypto:verify rsa-cipher message signature
-		     :verify verify :hash hash)))
-
-  (define (x509:verify-certificate cert public-key)
-    (define algo (~ cert 'c 'algorithm-identifier))
-    (define sig  (x509-certificate-get-signature cert))
-    (define verifier-provider
-      (algorithm-identifier->signature-verifier-provider algo))
-    (let ((verifier (verifier-provider public-key)))
-      (verifier (encode (asn.1-sequence-get (~ cert 'c 'sequence) 0))
-		sig)))
-  
-  (define (x509:check-validity cert :optional (date (current-date)))
-    (let ((time (date->time-utc date)))
-      (when (time>? time (date->time-utc (x509-certificate-get-not-after cert)))
-	(assertion-violation 'check-veridity
-			     "certificate expired"
-			     (x509-certificate-get-not-after cert)))
-      (when (time<? time
-		    (date->time-utc (x509-certificate-get-not-before cert)))
-	(assertion-violation 'check-veridity
-			     "certificate not valid yet"
-			     (x509-certificate-get-not-before cert)))
-      #t))
-
-#|
-Reference: RFC 3280 http://www.ietf.org/rfc/rfc3280.txt
-Section 4.1
-   Certificate  ::=  SEQUENCE  {
-        tbsCertificate       TBSCertificate,
-        signatureAlgorithm   AlgorithmIdentifier,
-        signatureValue       BIT STRING  }
-
-   TBSCertificate  ::=  SEQUENCE  {
-        version         [0]  EXPLICIT Version DEFAULT v1,
-        serialNumber         CertificateSerialNumber,
-        signature            AlgorithmIdentifier,
-        issuer               Name,
-        validity             Validity,
-        subject              Name,
-        subjectPublicKeyInfo SubjectPublicKeyInfo,
-        issuerUniqueID  [1]  IMPLICIT UniqueIdentifier OPTIONAL,
-                             -- If present, version MUST be v2 or v3
-        subjectUniqueID [2]  IMPLICIT UniqueIdentifier OPTIONAL,
-                             -- If present, version MUST be v2 or v3
-        extensions      [3]  EXPLICIT Extensions OPTIONAL
-                             -- If present, version MUST be v3
-        }
-
-   Version  ::=  INTEGER  {  v1(0), v2(1), v3(2)  }
-
-   CertificateSerialNumber  ::=  INTEGER
-
-   Validity ::= SEQUENCE {
-        notBefore      Time,
-        notAfter       Time }
-
-   Time ::= CHOICE {
-        utcTime        UTCTime,
-        generalTime    GeneralizedTime }
-
-   UniqueIdentifier  ::=  BIT STRING
-
-   SubjectPublicKeyInfo  ::=  SEQUENCE  {
-        algorithm            AlgorithmIdentifier,
-        subjectPublicKey     BIT STRING  }
-
-  NOTE: we don't support optional fields such as issuerUniqueID
-|#
-  ;; take alist of issuer info
-  ;; for now we don't check the order or mandatory fields
-  (define (make-x509-issuer issuers)
-    (define (rdn oid string)
-      (make-der-set 
-       (make-der-sequence oid (make-der-printable-string string #t))))
-    (define (gen-rdn issuer)
-      (or (and-let* ((slot (find (^s (eq? (cdr s) (car issuer)))
-				 *default-symbols*)))
-	    (rdn (car slot) (cdr issuer)))
-	  (error 'make-x509-issuer "unknown parameter" issuer issuers)))
-     (apply make-der-sequence (map (cut gen-rdn <>) issuers)))
-  ;; we don't check
-  (define (make-validity start end)
-    (make-der-sequence (make-der-utc-time start) (make-der-utc-time end)))
-  ;; for now we only use sha256withRSAEncryption as signature algorithm
-  ;; OID 1 2 840 113549 1 1 11
-  (define +sha256-with-rsa-encryption+
-    (make-algorithm-identifier "1.2.840.113549.1.1.11"))
-  (define +sha256-with-ecsa-encryption+
-    (make-algorithm-identifier "1.2.840.10045.4.3.2"))
-  (define +eddsa-ed25519-encryption+
-    (make-algorithm-identifier "1.3.101.112"))
-  (define +eddsa-ed448-encryption+
-    (make-algorithm-identifier "1.3.101.113"))
-  
-
-  (define (make-x509-self-signed-certificate keypair serial-number
-					     issuer validity subject)
-    (define private-key (keypair-private keypair))
-    (define public-key (keypair-public keypair))
-    (define aid
-      (cond ((rsa-private-key? private-key) +sha256-with-rsa-encryption+)
-	    ((ecdsa-private-key? private-key) +sha256-with-ecsa-encryption+)
-	    ((eddsa-private-key? private-key)
-	     (if (ed25519-key? private-key)
-		 +eddsa-ed25519-encryption+
-		 +eddsa-ed448-encryption+))
-	    (else (assertion-violation 'make-x509-basic-certificate
-				       "Keypair not supported" keypair))))
-    (define signer
-      ((algorithm-identifier->signature-signer-provider aid) private-key))
-    (define (generate-signature-algorithm) (asn.1-encodable->asn.1-object aid))
-    (define (generate-tbs)
-      (let1 tbs (make-der-sequence)
-	;; basic should be v1
-	;; serialnumber
-	(asn.1-sequence-add tbs (make-der-integer serial-number))
-	(asn.1-sequence-add tbs (generate-signature-algorithm))
-	;; CA certificate issuer
-	(asn.1-sequence-add tbs issuer)
-	(asn.1-sequence-add tbs validity)
-	(asn.1-sequence-add tbs subject)
-	;; public key
-	(let1 spki (make-subject-public-key-info (keypair-public keypair))
-	  (asn.1-sequence-add tbs (asn.1-encodable->asn.1-object spki)))
-	tbs))
-    (let* ((tbs (generate-tbs))
-	   (cert (make-der-sequence tbs (generate-signature-algorithm)
-				    (let1 signature (signer (encode tbs))
-				      (make-der-bit-string signature)))))
-      (make-x509-certificate cert)))
-
-  (define (make-x509-simple-certificate public-key
-					serial-number subject validity
-					issuer-cert issuer-private-key)
-    (define private-key issuer-private-key)
-    (define aid
-      (cond ((rsa-private-key? private-key) +sha256-with-rsa-encryption+)
-	    ((ecdsa-private-key? private-key) +sha256-with-ecsa-encryption+)
-	    ((eddsa-private-key? private-key)
-	     (if (ed25519-key? private-key)
-		 +eddsa-ed25519-encryption+
-		 +eddsa-ed448-encryption+))
-	    (else (assertion-violation 'make-x509-simple-certificate
-				       "Private key not supported"
-				       private-key))))
-    (define signer
-      ((algorithm-identifier->signature-signer-provider aid) private-key))
-    (define (generate-signature-algorithm) (asn.1-encodable->asn.1-object aid))
-    (define (generate-tbs)
-      (let1 tbs (make-der-sequence)
-	;; basic should be v1
-	;; serialnumber
-	(asn.1-sequence-add tbs (make-der-integer serial-number))
-	(asn.1-sequence-add tbs (generate-signature-algorithm))
-	;; CA certificate issuer
-	(asn.1-sequence-add tbs
-	 (asn.1-encodable->asn.1-object (~ issuer-cert 'c 'tbs-cert 'subject)))
-	(asn.1-sequence-add tbs validity)
-	(asn.1-sequence-add tbs subject)
-	;; public key
-	(let1 spki (make-subject-public-key-info public-key)
-	  (asn.1-sequence-add tbs (asn.1-encodable->asn.1-object spki)))
-	tbs))
-    (let* ((tbs (generate-tbs))
-	   (cert (make-der-sequence tbs (generate-signature-algorithm)
-				    (let1 signature (signer (encode tbs))
-				      (make-der-bit-string signature)))))
-      (make-x509-certificate cert)))
-
+(define (make-x509-simple-certificate public-key
+				      serial-number subject validity
+				      issuer-cert issuer-private-key)
+  (define private-key issuer-private-key)
+  (define oid
+    (cond ((rsa-private-key? private-key) +sha256-with-rsa-encryption+)
+	  ((ecdsa-private-key? private-key) +sha256-with-ecdsa-encryption+)
+	  ((eddsa-private-key? private-key)
+	   (if (ed25519-key? private-key)
+	       +eddsa-ed25519-encryption+
+	       +eddsa-ed448-encryption+))
+	  (else (assertion-violation 'make-x509-simple-certificate
+				     "Private key not supported"
+				     private-key))))
+  (sign-x509-certificate-template
+   (x509-certificate-template-builder
+    (issuer-dn (x509-certificate-subject-dn issuer-cert))
+    (subject-dn subject)
+    (serial-number serial-number)
+    (not-before (x509-validity-not-before validity))
+    (not-after (x509-validity-not-after validity))
+    (public-key public-key))
+   oid private-key))
 )
