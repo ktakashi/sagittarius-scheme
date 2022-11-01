@@ -5,6 +5,7 @@
 	(sagittarius crypto pkix extensions alt-names)
 	(sagittarius crypto pkix extensions cps)
 	(sagittarius crypto pkix extensions key-usage)
+	(sagittarius crypto pkix extensions constraints)
 	(sagittarius crypto keys)
 	(sagittarius crypto signatures)
 	(sagittarius crypto asn1)
@@ -117,6 +118,8 @@
 			(make-x509-policy-qualifier-info
 			 *policy-qualifier-type:cps*
 			 "http://cps.example.com")))
+		      (make-x509-basic-constraints-extension
+		       (make-x509-basic-constraints :ca #f))
 		      ))))
 	(signing-key-pair (generate-key-pair key-scheme))
 	(failing-key-pair (generate-key-pair key-scheme)))
@@ -193,24 +196,31 @@
 		  key-usage-extension))))
 
   (let ((e (test-extension extensions *extension:private-key-usage-period* #t
-			   (ensure-raw-asn1-object
-			    (x509-private-key-usage-period->private-key-usage-period
-			     (make-x509-private-key-usage-period
-			      :not-before (time-utc->date now)))))))
+	    (ensure-raw-asn1-object
+	     (x509-private-key-usage-period->private-key-usage-period
+	      (make-x509-private-key-usage-period
+	       :not-before (time-utc->date now)))))))
     (test-assert (x509-private-key-usage-period?
 		  (x509-private-key-usage-period-extension->x509-private-key-usage-period e))))
 
   (let ((e (test-extension extensions *extension:certificate-policies* #f
-			   (ensure-raw-asn1-object
-			    (der-sequence
-			     (x509-policy-information->policy-information
-			      (make-x509-policy-information
-			       "1.3.6.1.4.1.999999.1.1.1"
-			       (make-x509-policy-qualifier-info
-				*policy-qualifier-type:cps*
-				"http://cps.example.com"))))))))
+	    (ensure-raw-asn1-object
+	     (der-sequence
+	      (x509-policy-information->policy-information
+	       (make-x509-policy-information
+		"1.3.6.1.4.1.999999.1.1.1"
+		(make-x509-policy-qualifier-info
+		 *policy-qualifier-type:cps*
+		 "http://cps.example.com"))))))))
     (test-assert (for-all x509-policy-information?
 			  (x509-certificate-policies-extension->x509-policy-informations e))))
+
+  (let ((e (test-extension extensions *extension:basic-constraints* #f
+	    (ensure-raw-asn1-object
+	     (x509-basic-constraints->basic-constraints
+	      (make-x509-basic-constraints))))))
+    (test-assert (x509-basic-constraints?
+		  (x509-basic-constraints-extension->x509-basic-constraints e))))
   )
 
 (for-each test-certificate-builder

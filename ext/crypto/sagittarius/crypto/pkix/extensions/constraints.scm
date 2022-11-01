@@ -31,7 +31,7 @@
 #!nounbound
 (library (sagittarius crypto pkix extensions constraints)
     (export x509-basic-constraints? <x509-basic-constraints>
-	    make-basic-constraints
+	    make-x509-basic-constraints
 	    x509-basic-constraints-ca?
 	    x509-basic-constraints-path-length-constraint
 
@@ -48,7 +48,7 @@
 (define-class <x509-basic-constraints> (<immutable>)
   ((ca? :init-keyword :ca :init-value #f
 	:reader x509-basic-constraints-ca?)
-   (path-length-constraint :init-keyword :path-length-constraint
+   (path-length-constraint :init-keyword :path-length-constraint :init-value #f
     :reader x509-basic-constraints-path-length-constraint)))
 (define-method write-object ((o <x509-basic-constraints>) p)
   (cond ((x509-basic-constraints-path-length-constraint o) =>
@@ -59,7 +59,7 @@
 	 (format p "#<x509-basic-constraints ca=~a>"
 		 (x509-basic-constraints-ca? o)))))
 (define (x509-basic-constraints? o) (is-a? o <x509-basic-constraints>))
-(define (make-basic-constraints . keys)
+(define (make-x509-basic-constraints . keys)
   (apply make <x509-basic-constraints> keys))
 
 (define (basic-constraints->x509-basic-constraints
@@ -76,5 +76,5 @@
     :path-length-constraint (cond ((x509-basic-constraints-path-length-constraint basic-constraints) => integer->der-integer)
 				  (else #f))))
 
-;; TODO add name constrains and policy constrains
+;; TODO add name constrains and policy constraints
 )

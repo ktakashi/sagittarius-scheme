@@ -146,7 +146,7 @@
 
 	    ;; basic constraints
 	    x509-basic-constraints? <x509-basic-constraints>
-	    make-basic-constraints
+	    make-x509-basic-constraints
 	    x509-basic-constraints-ca?
 	    x509-basic-constraints-path-length-constraint
 
