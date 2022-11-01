@@ -39,6 +39,17 @@
 	    algorithm-identifier? <algorithm-identifier>
 	    algorithm-identifier-algorithm algorithm-identifier-parameters
 
+	    rsassa-pss-params? <rsassa-pss-params>
+	    rsassa-pss-params-hash-algorithm
+	    rsassa-pss-params-mask-gen-algorithm
+	    rsassa-pss-params-salt-length
+	    rsassa-pss-params-trailer-field
+
+	    rsaes-oaep-params? <rsaes-oaep-params>
+	    rsaes-oaep-params-hash-func
+	    rsaes-oaep-params-mask-gen-func
+	    rsaes-oaep-params-p-source-func
+
 	    subject-public-key-info? <subject-public-key-info>
 	    subject-public-key-info-algorithm
 	    subject-public-key-info-subject-public-key
@@ -248,6 +259,43 @@
     (parameters :type <asn1-encodable> :optional #t
 		:reader algorithm-identifier-parameters))))
 (define (algorithm-identifier? o) (is-a? o <algorithm-identifier>))
+
+;; RSASSA-PSS-params  ::=  SEQUENCE  {
+;;     hashAlgorithm     [0] HashAlgorithm DEFAULT sha1Identifier,
+;;     maskGenAlgorithm  [1] MaskGenAlgorithm DEFAULT mgf1SHA1,
+;;     saltLength        [2] INTEGER DEFAULT 20,
+;;     trailerField      [3] INTEGER DEFAULT 1
+;; }
+(define-asn1-encodable <rsassa-pss-params>
+  (asn1-sequence
+   ((hash-algorithm :type <algorithm-identifier> :tag 0 :optional #t
+		    :explicit #f
+		    :reader rsassa-pss-params-hash-algorithm)
+    (mask-gen-algorithm :type <algorithm-identifier> :tag 1 :optional #t
+			:explicit #f
+			:reader rsassa-pss-params-mask-gen-algorithm)
+    (salt-length :type <der-integer> :tag 2 :optional #t :explicit #t
+		 :reader rsassa-pss-params-salt-length)
+    (trailer-field :type <der-integer> :tag 3 :optional #t :explicit #t
+		   :reader rsassa-pss-params-trailer-field))))
+(define (rsassa-pss-params? o) (is-a? o <rsassa-pss-params>))
+
+;; RSAES-OAEP-params  ::=  SEQUENCE  {
+;;     hashFunc          [0] HashAlgorithm DEFAULT sha1Identifier,
+;;     maskGenFunc       [1] MaskGenAlgorithm DEFAULT mgf1SHA1,
+;;     pSourceFunc       [2] PSourceAlgorithm DEFAULT
+;;                               pSpecifiedEmpty
+;; }
+(define-asn1-encodable <rsaes-oaep-params>
+  (asn1-sequence
+   ((hash-func :type <algorithm-identifier> :tag 0 :optional #t :explicit #f
+	       :reader rsaes-oaep-params-hash-func)
+    (mask-gen-func :type <algorithm-identifier> :tag 1 :optional #t :explicit #f
+		   :reader rsaes-oaep-params-mask-gen-func)
+    (p-source-func :type <algorithm-identifier> :tag 2 :optional #t :explicit #f
+		   :reader rsaes-oaep-params-p-source-func))))
+(define (rsaes-oaep-params? o) (is-a? o <rsaes-oaep-params>))
+    
 
 ;; SubjectPublicKeyInfo  ::=  SEQUENCE  {
 ;;     algorithm            AlgorithmIdentifier{PUBLIC-KEY,

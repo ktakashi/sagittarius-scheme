@@ -41,7 +41,7 @@
 	    make-signer-state signer-state->signature
 	    make-verifier-state verifier-state-verify-message
 
-	    mgf-1
+	    mgf-1 *oid:mgf1*
 	    pkcs1-emsa-pss-encode pkcs1-emsa-pss-verify
 	    pkcs1-emsa-v1.5-encode pkcs1-emsa-v1.5-verify
 
@@ -53,6 +53,7 @@
 	    *signature:ed448*
 	    *signature:ed448ph*
 
+	    oid->mgf
 	    oid->signer-maker
 	    oid->verifier-maker
 
@@ -67,6 +68,7 @@
 	    *signature-algorithm:rsa-pkcs-v1.5-sha3-256*
 	    *signature-algorithm:rsa-pkcs-v1.5-sha3-384*
 	    *signature-algorithm:rsa-pkcs-v1.5-sha3-512*
+	    *signature-algorithm:rsa-ssa-pss*
 	    *signature-algorithm:dsa-sha224*
 	    *signature-algorithm:dsa-sha256*
 	    *signature-algorithm:dsa-sha384*
@@ -140,6 +142,11 @@
   (verifier-state-verify-message (signature-state verifier) signature))
 
 ;;; OID thing...
+(define *oid:mgf1* "1.2.840.113549.1.1.8")
+
+(define-generic oid->mgf)
+(define-method oid->mgf ((oid (equal *oid:mgf1*))) mgf-1)
+
 (define-generic oid->signer-maker)
 (define-generic oid->verifier-maker)
 
@@ -202,7 +209,11 @@
   :digest *digest:sha3-512*
   :encoder pkcs1-emsa-v1.5-encode :verifier pkcs1-emsa-v1.5-verify)
 
-;; TODO RSA PSSSSA-PSS
+;; RSA SSA-PSS
+(define-oid->signer&verifier *signature-algorithm:rsa-ssa-pss*
+  "1.2.840.113549.1.1.10" *signature:rsa*
+  :encoder pkcs1-emsa-pss-encode :verifier pkcs1-emsa-pss-verify)
+  
 
 (define-oid->signer&verifier *signature-algorithm:dsa-sha224*
   "2.16.840.1.101.3.4.3.1" *signature:dsa*

@@ -71,9 +71,12 @@
 	    *digest:blake2b-384* *digest:blake2b-512*
 
 	    *digest:shake-128* *digest:shake-256*
+
+	    oid->digest-descriptor
 	    )
     (import (rnrs)
 	    (clos user)
+	    (sagittarius)
 	    (sagittarius mop immutable)
 	    (prefix (sagittarius crypto tomcrypt) tc:))
 
@@ -156,6 +159,8 @@
 	  block-size
 	  digest-size
 	  oid))
+(define-method write-object ((o digest-descriptor) p)
+  (format p "#<digest-descriptor ~a>" (digest-descriptor-name o)))
 (define-record-type tc-digest-descriptor
   (parent digest-descriptor)
   (fields digest))
@@ -231,4 +236,30 @@
 						   #f ;; variable length
 						   "2.16.840.1.101.3.4.2.12"))
 
+(define *oid-map*
+  (map (lambda (d) (cons (digest-descriptor-oid d) d))
+       (list *digest:whirlpool*
+	    *digest:ripemd-128* *digest:ripemd-160*
+	    *digest:ripemd-256* *digest:ripemd-320*
+	    *digest:sha-1*
+	    *digest:sha-224* *digest:sha-256*
+	    *digest:sha-384*
+	    *digest:sha-512* *digest:sha-512/224* *digest:sha-512/256*
+	    *digest:sha3-224* *digest:sha3-256* *digest:sha3-384*
+	    *digest:sha3-512*
+	    *digest:keccak-224* *digest:keccak-256* *digest:keccak-384*
+	    *digest:keccak-512*
+	    *digest:tiger-192*
+	    *digest:md5* *digest:md4* *digest:md2*
+	    *digest:blake2s-128* *digest:blake2s-160*
+	    *digest:blake2s-224* *digest:blake2s-256*
+	    *digest:blake2b-160* *digest:blake2b-256*
+	    *digest:blake2b-384* *digest:blake2b-512*
+	    *digest:shake-128* *digest:shake-256*)))
+
+(define-generic oid->digest-descriptor)
+;; Default, if you need, implement the method
+(define-method oid->digest-descriptor ((oid <string>))
+  (cond ((assoc oid *oid-map*) => cdr)
+	(else #f)))
 )

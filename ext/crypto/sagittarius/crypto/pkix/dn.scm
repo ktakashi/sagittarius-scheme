@@ -56,6 +56,10 @@
     (string-join (map style rdn*) ",")))
 (define-method write-object ((o <x509-name>) p)
   (format p "#<509-name ~a>" (x509-name->string o)))
+(define-method object-equal? ((a <x509-name>) (b <x509-name>))
+  ;; FIXME this is very inefficient
+  (equal? (asn1-encodable->asn1-object (x509-name->name a))
+	  (asn1-encodable->asn1-object (x509-name->name b))))
 
 (define *rfc1779-map*
   `((,*attribute:common-name*            . "CN")

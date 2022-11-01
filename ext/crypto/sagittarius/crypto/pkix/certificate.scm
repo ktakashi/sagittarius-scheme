@@ -72,6 +72,7 @@
 	    (sagittarius crypto pkix modules x509)
 	    (sagittarius crypto pkix dn)
 	    (sagittarius crypto pkix keys)
+	    (sagittarius crypto pkix signatures)
 	    (sagittarius crypto pkix extensions)
 	    (sagittarius crypto keys)
 	    (sagittarius crypto signatures)
@@ -155,6 +156,11 @@
 	       (.$ algorithm-identifier-algorithm certificate-algorithm x509-certificate-c)
 	       der-object-identifier->oid-string)
     :reader x509-certificate-signature-algorithm)
+   (raw-signature-algorithm :allocation :virtual :cached #t
+    :slot-ref (make-slot-ref
+	       (.$ certificate-algorithm x509-certificate-c)
+	       values)
+    :reader x509-certificate-raw-signature-algorithm)
    (extensions :allocation :virtual :cached #t
     :slot-ref (make-slot-ref
 	       (.$ tbs-certificate-extensions tbs-cert)
@@ -176,6 +182,10 @@
     (format out "             SubjectDN: ~a~%" (x509-name->string (x509-certificate-subject-dn o)))
     (format out "            Public Key: ~a~%" (x509-certificate-public-key o))
     (format out "   Signature Algorithm: ~a~%" (x509-certificate-signature-algorithm o))
+    (let ((p (algorithm-identifier-parameters
+	      (x509-certificate-raw-signature-algorithm o))))
+      (when (and p (not (der-null? p)))
+	(format out "  Signature Parameters: ~a~%" p)))
     (cond ((< (string-length signature-hex) 40)
 	   (format out "             Signature: ~a~%" signature-hex))
 	  (else
@@ -227,17 +237,20 @@
 (define (validate-x509-certificate (x509-certificate x509-certificate?)
 				   . validators)
   (for-all (lambda (v) (v x509-certificate)) validators))
+
 (define ((x509-certificate-signature-validator (public-key public-key?))
 	 (x509-certificate x509-certificate?))
-  (let ((verifier ((oid->verifier-maker
-		    (x509-certificate-signature-algorithm x509-certificate))
-		   public-key
-		   :der-encode #f)))
-    (unless (verifier-verify-signature verifier
-	      (asn1-encodable->bytevector (tbs-cert x509-certificate))
-	      (x509-certificate-signature x509-certificate))
-      (assertion-violation 'x509-certificate-signature
-			   "Invalid signature" x509-certificate))))
+  (let-values (((oid parameters)
+		(signature-algorithm->oid&parameters
+		 (x509-certificate-raw-signature-algorithm x509-certificate))))
+    (let ((verifier (apply (oid->verifier-maker oid) public-key
+			   :der-encode #f
+			   (signature-parameters->keyword-parameters parameters))))
+      (unless (verifier-verify-signature verifier
+		(asn1-encodable->bytevector (tbs-cert x509-certificate))
+		(x509-certificate-signature x509-certificate))
+	(assertion-violation 'x509-certificate-signature
+			     "Invalid signature" x509-certificate)))))
 (define ((x509-certificate-validity-validator :optional (when (current-date)))
 	 (x509-certificate x509-certificate?))
   (let* ((validity (x509-certificate-validity x509-certificate))
@@ -326,12 +339,18 @@
     :subject-unique-id (x509-certificate-template-subject-unique-id template)
     :extensions (x509-certificate-template-extensions template)))
 
-(define (sign-x509-certificate-template (template x509-certificate-template?)
-					oid
-					(private-key private-key?))
-  (define signer ((oid->signer-maker oid) private-key :der-encode #f))
+(define (sign-x509-certificate-template
+	 (template x509-certificate-template?)
+	 oid
+	 (private-key private-key?)
+	 :optional ((parameters (or #f signature-parameters?)) #f))
+
+  (define signer (apply (oid->signer-maker oid) private-key
+			:der-encode #f
+			(signature-parameters->keyword-parameters parameters)))
   (let* ((algorithm (make <algorithm-identifier>
-		      :algorithm (oid-string->der-object-identifier oid)))
+		      :algorithm (oid-string->der-object-identifier oid)
+		      :parameters (signature-parameters->algorithm-parameters parameters)))
 	 (tbs-certificate (x509-certificate-template->tbs-certificate
 			   template algorithm))
 	 (signature (signer-sign-message signer
