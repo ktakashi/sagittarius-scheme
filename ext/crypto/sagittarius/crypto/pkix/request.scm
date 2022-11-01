@@ -65,7 +65,6 @@
 	    (sagittarius crypto pkix modules x509)
 	    (sagittarius crypto pkix dn)
 	    (sagittarius crypto pkix keys)
-	    (sagittarius crypto pkix certificate)
 	    (sagittarius crypto pkix extensions)
 	    (sagittarius crypto keys)
 	    (sagittarius crypto signatures)
@@ -175,6 +174,7 @@
 		   x509-certification-request-c)
 	       der-object-identifier->oid-string)
     :reader x509-certification-request-signature-algorithm)))
+
 (define-method write-object ((o <x509-certification-request>) p)
   (define signature-hex
     (bytevector->hex-string (x509-certification-request-signature o)))

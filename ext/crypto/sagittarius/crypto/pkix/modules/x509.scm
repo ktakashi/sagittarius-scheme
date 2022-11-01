@@ -207,6 +207,24 @@
 	    policy-qualifier-info-policy-qualifier-id
 	    policy-qualifier-info-qualifier
 
+	    basic-constraints? <basic-constraints>
+	    basic-constraints-ca
+	    basic-constraints-path-length-constraint
+	    
+	    general-subtree? <general-subtree>
+	    general-subtree-maximum
+	    general-subtree-minimum
+
+	    general-subtrees? <general-subtrees> general-subtrees->list
+
+	    name-constraints? <name-constraints>
+	    name-constraints-permitted-subtrees
+	    name-constraints-excluded-subtrees
+	    
+	    policy-constraints? <policy-constraints>
+	    policy-constraints-inhibit-policy-mapping
+	    policy-constraints-require-explicit-policy
+	    
 	    ;; CSR attributes
 	    *pkcs-9:channelge-password*
 	    *pkcs-9:extenion-request*
@@ -581,6 +599,80 @@
 ;;     IDENTIFIED BY id-qt-unotice }
 (define *policy-qualifier-type:cps* (oid "1.3.6.1.5.5.7.2.1"))
 (define *policy-qualifier-type:unotice* (oid "1.3.6.1.5.5.7.2.2"))
+
+;; BasicConstraints ::= SEQUENCE {
+;;      cA                      BOOLEAN DEFAULT FALSE,
+;;      pathLenConstraint       INTEGER (0..MAX) OPTIONAL
+;; }
+(define-asn1-encodable <basic-constraints>
+  (asn1-sequence
+   ((ca :type <der-boolean> :optional #t :reader basic-constraints-ca)
+    (path-length-constraint :type <der-integer> :optional #t
+			    :reader basic-constraints-path-length-constraint))))
+(define (basic-constraints? o) (is-a? o <basic-constraints>))
+
+;; GeneralSubtree ::= SEQUENCE {
+;;      base                GeneralName,
+;;      minimum         [0] BaseDistance DEFAULT 0,
+;;      maximum         [1] BaseDistance OPTIONAL
+;; }
+;; BaseDistance ::= INTEGER (0..MAX)
+(define-asn1-encodable <general-subtree>
+  (asn1-sequence
+   ((base :type <general-name> :reader general-subtree-base)
+    (minimum :type <der-integer> :tag 0 :optional #t :explicit #f
+	     :reader general-subtree-minimum
+	     :converter bytevector->der-integer)
+    (maximum :type <der-integer> :tag 1 :optional #t :explicit #f
+	     :reader general-subtree-maximum
+	     :converter bytevector->der-integer))))
+(define (general-subtree? o) (is-a? o <general-subtree>))
+;; GeneralSubtrees ::= SEQUENCE SIZE (1..MAX) OF GeneralSubtree
+(define-asn1-encodable <general-subtrees>
+  (asn1-sequence
+   (of :type <general-subtree> :reader general-subtrees->list)))
+(define (general-subtrees? o) (is-a? o <general-subtrees>))
+
+;; NameConstraints ::= SEQUENCE {
+;;      permittedSubtrees       [0] GeneralSubtrees OPTIONAL,
+;;      excludedSubtrees        [1] GeneralSubtrees OPTIONAL
+;; }
+;; --
+;; --  This is a constraint in the issued certificates by CAs, but is
+;; --  not a requirement on EEs.
+;; --
+;; -- (WITH COMPONENTS { ..., permittedSubtrees PRESENT} |
+;; --  WITH COMPONENTS { ..., excludedSubtrees PRESENT }}
+(define-asn1-encodable <name-constraints>
+  (asn1-sequence
+   ((permitted-subtrees :type <general-subtrees> :tag 0 :optional #t
+			:explicit #f
+			:reader name-constraints-permitted-subtrees)
+    (excluded-subtrees :type <general-subtrees> :tag 0 :optional #t :explicit #f
+		       :reader name-constraints-excluded-subtrees))))
+(define (name-constraints? o) (is-a? o <name-constraints>))
+
+;; PolicyConstraints ::= SEQUENCE {
+;;      requireExplicitPolicy           [0] SkipCerts OPTIONAL,
+;;      inhibitPolicyMapping            [1] SkipCerts OPTIONAL }
+;; --
+;; --  This is a constraint in the issued certificates by CAs,
+;; --  but is not a requirement for EEs
+;; --
+;; -- (WITH COMPONENTS { ..., requireExplicitPolicy PRESENT} |
+;; --  WITH COMPONENTS { ..., inhibitPolicyMapping PRESENT})
+;; SkipCerts ::= INTEGER (0..MAX)
+(define-asn1-encodable <policy-constraints>
+  (asn1-sequence
+   ((require-explicit-policy :type <der-integer> :tag 0 :optional #t
+     :explicit #f
+     :reader policy-constraints-require-explicit-policy
+     :converter bytevector->der-integer)
+    (inhibit-policy-mapping :type <der-integer> :tag 1 :optional #t
+     :explicit #f
+     :reader policy-constraints-inhibit-policy-mapping
+     :converter bytevector->der-integer))))
+(define (policy-constraints? o) (is-a? o <policy-constraints>))
 
 ;; -- CPS pointer qualifier
 ;; CPSuri ::= IA5String

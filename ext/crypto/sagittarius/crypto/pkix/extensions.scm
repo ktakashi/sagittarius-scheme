@@ -143,6 +143,15 @@
 	    
 	    make-x509-certificate-policies-extension
 	    x509-certificate-policies-extension->x509-policy-informations
+
+	    ;; basic constraints
+	    x509-basic-constraints? <x509-basic-constraints>
+	    make-basic-constraints
+	    x509-basic-constraints-ca?
+	    x509-basic-constraints-path-length-constraint
+
+	    make-x509-basic-constraints-extension
+	    x509-basic-constraints-extension->x509-basic-constraints
 	    )
     (import (rnrs)
 	    (clos user)
@@ -151,6 +160,7 @@
 	    (sagittarius crypto pkix modules x509)
 	    (sagittarius crypto pkix dn)
 	    (sagittarius crypto pkix extensions alt-names)
+	    (sagittarius crypto pkix extensions constraints)
 	    (sagittarius crypto pkix extensions cps)
 	    (sagittarius crypto pkix extensions key-usage)
 	    (sagittarius mop immutable)
@@ -311,6 +321,20 @@
 	 (map (lambda (o)
 		(asn1-object->asn1-encodable <policy-information> o))
 	      (asn1-collection->list v)))))
+
+;; Basic constraints
+(define (make-x509-basic-constraints-extension
+	 (basic-constraints x509-basic-constraints?)
+	 :optional (critical? #f))
+  (make-x509-extension *extension:basic-constraints* critical?
+    (x509-basic-constraints->basic-constraints basic-constraints)))
+
+(define (x509-basic-constraints-extension->x509-basic-constraints
+	 (x509-extension (and x509-extension?
+			      (x509-extension-of *extension:basic-constraints*))))
+  (let ((v (x509-extension-value x509-extension)))
+    (basic-constraints->x509-basic-constraints
+     (asn1-object->asn1-encodable <basic-constraints> v))))
 
 ;; internal
 (define (extensions->x509-extension-list (extensions extensions?))
