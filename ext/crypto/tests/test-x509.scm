@@ -86,12 +86,14 @@
 			       '(OU "Sagittarius Scheme")
 			       '(CN "Takashi Kato")
 			       '(E "ktakashi@ymail.com")))
-  (let ((template (x509-certificate-template-builder
+  (let* ((signing-key-pair (generate-key-pair key-scheme))
+	 (template (x509-certificate-template-builder
 		    (issuer-dn issuer-dn)
 		    (subject-dn subject-dn)
 		    (serial-number 1000)
 		    (not-before (time-utc->date now))
 		    (not-after (time-utc->date (add-duration now one-year)))
+		    (public-key (key-pair-public signing-key-pair))
 		    (extensions
 		     (list
 		      (make-x509-subject-alternative-name-extension alt-names)
@@ -121,11 +123,10 @@
 		      (make-x509-basic-constraints-extension
 		       (make-x509-basic-constraints :ca #f))
 		      ))))
-	(signing-key-pair (generate-key-pair key-scheme))
-	(failing-key-pair (generate-key-pair key-scheme)))
+	 (failing-key-pair (generate-key-pair key-scheme)))
     (test-assert (x509-certificate-template? template))
     (let ((cert (sign-x509-certificate-template
-		 template algorithm signing-key-pair)))
+		 template algorithm (key-pair-private signing-key-pair))))
       (test-assert (x509-certificate? cert))
       (test-assert algorithm (validate-x509-certificate cert
 		    (x509-certificate-validity-validator)

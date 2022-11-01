@@ -30,19 +30,22 @@
 
 #!nounbound
 (library (sagittarius crypto pkix certificate)
-    (export subject-public-key-info->public-key
-
-	    x509-name? <x509-name> x509-name
+    (export x509-name? <x509-name> x509-name
 	    x509-name->string
 	    list->x509-name
 
 	    x509-validity? <x509-validity>
+	    make-x509-validity
 	    x509-validity-not-before
 	    x509-validity-not-after
 	    
 	    x509-certificate? <x509-certificate>
 	    bytevector->x509-certificate read-x509-certificate
+	    asn1-object->x509-certificate
+	    
 	    x509-certificate->bytevector write-x509-certificate
+	    x509-certificate->asn1-object
+
 	    x509-certificate-expired?
 	    x509-certificate-issuer-dn
 	    x509-certificate-subject-dn
@@ -98,6 +101,11 @@
 (define (x509-validity? o) (is-a? o <x509-validity>))
 (define (validity->x509-validity (validity validity?))
   (make <x509-validity> :validity validity))
+(define (make-x509-validity (not-before date?) (not-after date?))
+  (make <x509-validity>
+    :validity (make <validity>
+		:not-before (date->der-generalized-time not-before)
+		:not-after (date->der-generalized-time not-after))))
 
 (define (x509-certificate? o) (is-a? o <x509-certificate>))
 (define (x509-certificate-c (o x509-certificate?)) (slot-ref o 'c))
@@ -150,7 +158,8 @@
    (extensions :allocation :virtual :cached #t
     :slot-ref (make-slot-ref
 	       (.$ tbs-certificate-extensions tbs-cert)
-	       (lambda (e) (and e (extensions->x509-extension-list e))))
+	       (lambda (e)
+		 (or (and e (extensions->x509-extension-list e)) '())))
     :reader x509-certificate-extensions)))
 
 (define-method write-object ((o <x509-certificate>) p)
@@ -187,9 +196,11 @@
 				    (bytevector->asn1-object bv))
     :encoded bv))
 (define (read-x509-certificate (port (and input-port? binary-port?)))
-  (let ((obj (read-asn1-object port)))
-    (make <x509-certificate>
-      :c (asn1-object->asn1-encodable <certificate> obj))))
+  (asn1-object->x509-certificate (read-asn1-object port)))
+
+(define (asn1-object->x509-certificate (asn1-object asn1-object?))
+  (make <x509-certificate>
+    :c (asn1-object->asn1-encodable <certificate> asn1-object)))
 
 (define (x509-certificate->bytevector (x509-certificate x509-certificate?))
   (cond ((x509-certificate-encoded x509-certificate))
@@ -202,6 +213,9 @@
 (define (write-x509-certificate (x509-certificate x509-certificate?)
 				:optional (out (current-output-port)))
   (put-bytevector out (x509-certificate->bytevector x509-certificate)))
+
+(define (x509-certificate->asn1-object (x509-certificate x509-certificate?))
+  (bytevector->asn1-object (x509-certificate->bytevector x509-certificate)))
 
 (define (x509-certificate-expired? (x509-certificate x509-certificate?)
 				   :optional (when (current-date)))
@@ -241,6 +255,7 @@
 	  serial-number
 	  not-before
 	  not-after
+	  public-key
 	  issuer-unique-id
 	  subject-unique-id
 	  extensions))
@@ -265,6 +280,8 @@
   (required 'not-before date? date->der-generalized-time))
 (define check-not-after
   (required 'not-after date? date->der-generalized-time))
+(define check-public-key
+  (required 'public-key public-key? values))
 (define check-issuer-unique-id
   (optional 'issuer-unique-id bytevector? bytevector->der-bit-string))
 (define check-subject-unique-id
@@ -280,13 +297,13 @@
      (serial-number #f check-serial-number)
      (not-before #f check-not-before)
      (not-after #f check-not-after)
+     (public-key #f check-public-key)
      (issuer-unique-id #f check-issuer-unique-id)
      (subject-unique-id #f check-subject-unique-id)
      (extensions #f check-extensions))))
 
 (define (x509-certificate-template->tbs-certificate template
-						    signature-algorithm
-						    public-key)
+						    signature-algorithm)
   (define (version template)
     (cond ((x509-certificate-template-extensions template)
 	   (integer->der-integer 2)) ;; v3
@@ -294,6 +311,7 @@
 	       (x509-certificate-template-subject-unique-id template))
 	   (integer->der-integer 1)) ;; v2
 	  (else #f)))		     ;; v1 (we don't set)
+  (define public-key (x509-certificate-template-public-key template))
   (make <tbs-certificate>
     :version (version template)
     :serial-number (x509-certificate-template-serial-number template)
@@ -310,13 +328,12 @@
 
 (define (sign-x509-certificate-template (template x509-certificate-template?)
 					oid
-					(key-pair key-pair?))
-  (define signer ((oid->signer-maker oid) (key-pair-private key-pair)
-		  :der-encode #f))
+					(private-key private-key?))
+  (define signer ((oid->signer-maker oid) private-key :der-encode #f))
   (let* ((algorithm (make <algorithm-identifier>
 		      :algorithm (oid-string->der-object-identifier oid)))
 	 (tbs-certificate (x509-certificate-template->tbs-certificate
-			   template algorithm (key-pair-public key-pair)))
+			   template algorithm))
 	 (signature (signer-sign-message signer
 		     (asn1-encodable->bytevector tbs-certificate)))
 	 (certificate (make <certificate>
