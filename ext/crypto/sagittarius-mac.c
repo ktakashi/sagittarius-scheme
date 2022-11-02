@@ -1,4 +1,4 @@
-/* sagittarius-tomcrypt.c                        -*- mode: c; coding: utf-8; -*-
+/* sagittarius-mac.c                             -*- mode: c; coding: utf-8; -*-
  *
  *   Copyright (c) 2010-2022  Takashi Kato <ktakashi@ymail.com>
  *
@@ -25,23 +25,33 @@
  *   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  *   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 #include <sagittarius.h>
 #define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
-#include "sagittarius-cipher.h"
-#include "sagittarius-digest.h"
-#include "sagittarius-random.h"
 #include "sagittarius-mac.h"
 
-SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__tomcrypt()
+static void hmac_state_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
-  SgLibrary *lib;
-  SG_INIT_EXTENSION(sagittarius__cipher);
+  const char *cname = DIGEST_DESCRIPTOR_NAME(SG_HMAC_STATE_MD(self));
+  SgObject name = Sg_MakeStringC(cname);
+  Sg_Printf(port, UC("#<hmac-state %A>"), name);
+}
 
-  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius crypto tomcrypt)"),
-				  FALSE));
-  Sg_InitCipher(lib);
-  Sg_InitDigest(lib);
-  Sg_InitRandom(lib);
-  Sg_InitMac(lib);
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_HmacStateClass, hmac_state_printer);
+
+SgObject Sg_MakeHmacState(int md)
+{
+  SgHmacState *state = SG_NEW(SgHmacState);
+  SG_SET_CLASS(state, SG_CLASS_HMAC_STATE);
+  state->md = md;
+  return SG_OBJ(state);
+}
+
+extern void Sg__Init_mac(SgLibrary *lib);
+
+void Sg_InitMac(SgLibrary *lib)
+{
+  Sg__Init_mac(lib);
+  Sg_InitStaticClass(SG_CLASS_HMAC_STATE, UC("<hmac-state>"), lib, NULL, 0);
 }

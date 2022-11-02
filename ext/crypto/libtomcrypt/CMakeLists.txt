@@ -80,6 +80,8 @@ ADD_LIBRARY(libtomcrypt STATIC
   src/misc/crypt/crypt_hash_descriptor.c
   src/misc/crypt/crypt_hash_is_valid.c
 
+  src/hashes/helper/hash_memory.c
+  
   src/hashes/md2.c
   src/hashes/md4.c
   src/hashes/md5.c
@@ -115,6 +117,11 @@ ADD_LIBRARY(libtomcrypt STATIC
   src/mac/omac/omac_process.c
   src/mac/omac/omac_done.c
 
+  #hmac
+  src/mac/hmac/hmac_init.c
+  src/mac/hmac/hmac_process.c
+  src/mac/hmac/hmac_done.c
+  
   # modes
   #cbc
   src/modes/cbc/cbc_decrypt.c

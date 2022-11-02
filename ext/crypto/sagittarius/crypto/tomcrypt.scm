@@ -123,6 +123,9 @@
 	    prng-state?
 	    prng-start prng-add-entropy! prng-read! prng-ready!
 	    prng-done!
+
+	    ;; mac
+	    hmac-state? hmac-init hmac-process! hmac-done!
 	    )
     (import (only (sagittarius) define-constant)
 	    (sagittarius dynamic-module))

@@ -1,0 +1,61 @@
+;; -*- mode: scheme; coding: utf-8; -*-
+(decl-code
+ (.include <sagittarius/private.h>)
+ (.define "LIBSAGITTARIUS_EXT_BODY")
+ (.include  <sagittarius/extend.h>
+	    <sagittarius-mac.h>))
+
+(define-type <digest> "int" "digest descriptor" "DIGEST_DESCRIPTORP" "SG_INT_VALUE" "SG_MAKE_INT" 0)
+(define-type <hmac-state> "SgHmacState *")
+
+(define-cise-stmt assertion-violation
+  ((_ who msg)
+   `(begin (Sg_AssertionViolation ,who (SG_MAKE_STRING ,msg) '())))
+  ((_ who msg irritants)
+   `(begin (Sg_AssertionViolation ,who (SG_MAKE_STRING ,msg) ,irritants))))
+
+(define-cise-stmt check-tomcrypt-error
+  ((_ who err)
+   `(unless (== ,err CRYPT_OK)
+      (Sg_AssertionViolation ,who (Sg_MakeStringC (error_to_string err)) '()))))
+
+(define-cise-stmt check-range
+  ((_ who bv start length)
+   `(when (< (- (SG_BVECTOR_SIZE ,bv) ,start) ,length)
+      (assertion-violation ,who "Range error"
+	(SG_LIST3 '<
+		  (SG_MAKE_INT (- (SG_BVECTOR_SIZE ,bv) ,start))
+		  (SG_MAKE_INT ,length))))))
+
+(define-c-proc hmac-state? (obj) ::<boolean> :no-side-effect SG_HMAC_STATE_P)
+
+(define-c-proc hmac-init (md::<digest> key::<bytevector>
+		          :optional (start::<fixnum> 0) 
+				    (len::<fixnum> (SG_MAKE_INT (- (SG_BVECTOR_SIZE key) start))))
+  (check-range 'hmac-init key start len)
+  (let* ((hs (Sg_MakeHmacState md))
+	 (err::int (hmac_init (& (SG_HMAC_STATE_STATE hs)) md
+			      (+ (SG_BVECTOR_ELEMENTS key) start) len)))
+    (check-tomcrypt-error 'hmac-init err)
+    (result hs)))
+
+(define-c-proc hmac-process! (hs::<hmac-state> in::<bytevector>
+			      :optional (start::<fixnum> 0) 
+					(len::<fixnum> (SG_MAKE_INT (- (SG_BVECTOR_SIZE in) start))))
+  (check-range 'hmac-process! in start len)
+  (let ((err::int (hmac_process (& (SG_HMAC_STATE_STATE hs))
+				(+ (SG_BVECTOR_ELEMENTS in) start) len)))
+    (check-tomcrypt-error 'hmac-process! err)
+    (result hs)))
+
+(define-c-proc hmac-done! (hs::<hmac-state> out::<bytevector>
+			   :optional (start::<fixnum> 0)) ::<fixnum>
+  (when (>= start (SG_BVECTOR_SIZE out))
+    (assertion-violation 'hmac-done! "Output buffer is too small"
+			 (SG_LIST2 out (SG_MAKE_INT start))))
+  (let* ((|outlen::unsigned long| (- (SG_BVECTOR_SIZE out) start))
+	 (err::int (hmac_done (& (SG_HMAC_STATE_STATE hs))
+			     (+ (SG_BVECTOR_ELEMENTS out) start)
+			     (& outlen))))
+    (check-tomcrypt-error 'hmac-done! err)
+    (result outlen)))

@@ -22,7 +22,7 @@
 (define-cise-stmt check-range
   ((_ who bv start length)
    `(when (< (- (SG_BVECTOR_SIZE ,bv) ,start) ,length)
-      (assertion-violation ,who "Output buffer doesn't have sufficient storage"
+      (assertion-violation ,who "Range error"
 	(SG_LIST3 '<
 		  (SG_MAKE_INT (- (SG_BVECTOR_SIZE ,bv) ,start))
 		  (SG_MAKE_INT ,length))))))
