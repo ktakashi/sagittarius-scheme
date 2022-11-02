@@ -16,6 +16,7 @@
 		  "rsa_pss" "rsa_sig"
 		  "ed448" "eddsa")))
 (define prime-vector? (file-prefix? '("primality_test")))
+(define hmac-vector? (file-prefix? '("hmac")))
 
 
 ;;; Signature
@@ -80,6 +81,29 @@
   (let ((tests (tests-pointer json)))
     `(test-prime ,source ',(map test->vector tests))))
 
+(define key-size-pointer (json-pointer "/keySize"))
+(define tag-size-pointer (json-pointer "/tagSize"))
+(define (->hmac-test-runner source algorithm json)
+  (define (test->vector test)
+    (list->vector
+     (map (lambda (e)
+	    (let ((k (car e)))
+	      (cond ((string=? k "result") (string=? "valid" (cdr e)))
+		    ((string=? k "key") (hex-string->bytevector (cdr e)))
+		    ((string=? k "tag") (hex-string->bytevector (cdr e)))
+		    ((string=? k "msg") (hex-string->bytevector (cdr e)))
+		    (else (cdr e)))))
+	  (vector->list test))))
+
+  (let ((tests (tests-pointer json))
+	(key-size (key-size-pointer json))
+	(tag-size (tag-size-pointer json)))
+    `(test-hmac ,source
+      :algorithm ,algorithm
+      :key-size ,key-size
+      :tag-size ,tag-size
+      :tests ',(map test->vector tests))))
+
 (define ((test-vector->test-runner ->test-runner) json source)
   (define (filename source)
     (let-values (((dir f e) (decompose-path source)))
@@ -122,7 +146,11 @@
     (write-includer outdir (build-path "testvectors" "prime")
      (map (write-in outdir "testvectors" "prime")
 	  (map (file->json (test-vector->test-runner ->prime-test-runner))
-	       (filter prime-vector? files))))))
+	       (filter prime-vector? files))))
+    (write-includer outdir (build-path "testvectors" "hmac")
+     (map (write-in outdir "testvectors" "hmac")
+	  (map (file->json (test-vector->test-runner ->hmac-test-runner))
+	       (filter hmac-vector? files))))))
 
 (define (usage me)
   (print me "[OPTIONS] dir ...")

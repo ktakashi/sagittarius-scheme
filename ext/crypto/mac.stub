@@ -49,11 +49,12 @@
     (result hs)))
 
 (define-c-proc hmac-done! (hs::<hmac-state> out::<bytevector>
-			   :optional (start::<fixnum> 0)) ::<fixnum>
-  (when (>= start (SG_BVECTOR_SIZE out))
+			   :optional (start::<fixnum> 0)
+				     (len::<fixnum> (SG_MAKE_INT (- (SG_BVECTOR_SIZE out) start)))) ::<fixnum>
+  (when (> len (- (SG_BVECTOR_SIZE out) start))
     (assertion-violation 'hmac-done! "Output buffer is too small"
-			 (SG_LIST2 out (SG_MAKE_INT start))))
-  (let* ((|outlen::unsigned long| (- (SG_BVECTOR_SIZE out) start))
+			 (SG_LIST3 out (SG_MAKE_INT start) (SG_MAKE_INT len))))
+  (let* ((|outlen::unsigned long| len)
 	 (err::int (hmac_done (& (SG_HMAC_STATE_STATE hs))
 			     (+ (SG_BVECTOR_ELEMENTS out) start)
 			     (& outlen))))
