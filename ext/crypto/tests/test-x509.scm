@@ -1,5 +1,6 @@
 (import (rnrs)
 	(sagittarius crypto pkix certificate)
+	(sagittarius crypto pkix algorithms)
 	(sagittarius crypto pkix signatures)
 	(sagittarius crypto pkix extensions)
 	;; for testing APIs
