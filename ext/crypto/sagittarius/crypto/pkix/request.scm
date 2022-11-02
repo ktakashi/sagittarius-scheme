@@ -65,6 +65,8 @@
 	    (sagittarius crypto pkix modules x509)
 	    (sagittarius crypto pkix dn)
 	    (sagittarius crypto pkix keys)
+	    (sagittarius crypto pkix algorithms)
+	    (sagittarius crypto pkix signatures)
 	    (sagittarius crypto pkix extensions)
 	    (sagittarius crypto keys)
 	    (sagittarius crypto signatures)
@@ -169,10 +171,9 @@
 	      :reader x509-certification-request-signature)
    (signature-algorithm :allocation :virtual :cached #t
     :slot-ref (make-slot-ref
-	       (.$ algorithm-identifier-algorithm
-		   certification-request-signature-algorithm
+	       (.$ certification-request-signature-algorithm
 		   x509-certification-request-c)
-	       der-object-identifier->oid-string)
+	       algorithm-identifier->x509-algorithm-identifier)
     :reader x509-certification-request-signature-algorithm)))
 
 (define-method write-object ((o <x509-certification-request>) p)
@@ -232,8 +233,8 @@
   (for-all (lambda (v) (v csr)) validators))
 (define (x509-certification-request-signature-validator
 	 (csr x509-certification-request?))
-  (let ((verifier ((oid->verifier-maker
-		    (x509-certification-request-signature-algorithm csr))
+  (let ((verifier (x509-algorithm-identifier->verifier
+		   (x509-certification-request-signature-algorithm csr)
 		   (x509-certification-request-public-key csr))))
     (unless (verifier-verify-signature verifier
 	      (asn1-encodable->bytevector (csr-info csr))
@@ -279,11 +280,14 @@
 
 (define (sign-x509-certification-request-template
 	 (template x509-certification-request-template?)
-	 oid
+	 (aid (or string? x509-algorithm-identifier?))
 	 (key-pair key-pair?))
-  (define signer ((oid->signer-maker oid) (key-pair-private key-pair)))
-  (let* ((algorithm (make <algorithm-identifier>
-		      :algorithm (oid-string->der-object-identifier oid)))
+  (define x509-aid (if (string? aid)
+		       (make-x509-algorithm-identifier aid)
+		       aid))
+  (define signer (x509-algorithm-identifier->signer
+		  x509-aid (key-pair-private key-pair)))
+  (let* ((algorithm (x509-algorithm-identifier->algorithm-identifier x509-aid))
 	 (cri (x509-certification-request-template->certification-request-info
 	       template algorithm (key-pair-public key-pair)))
 	 (signature (signer-sign-message signer

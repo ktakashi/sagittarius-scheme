@@ -266,13 +266,19 @@
 ;;     saltLength        [2] INTEGER DEFAULT 20,
 ;;     trailerField      [3] INTEGER DEFAULT 1
 ;; }
+(define (implicit-sequence o)
+  (if (ber-sequence? o)
+      o
+      (der-sequence o)))
 (define-asn1-encodable <rsassa-pss-params>
   (asn1-sequence
    ((hash-algorithm :type <algorithm-identifier> :tag 0 :optional #t
 		    :explicit #f
+		    :converter implicit-sequence
 		    :reader rsassa-pss-params-hash-algorithm)
     (mask-gen-algorithm :type <algorithm-identifier> :tag 1 :optional #t
 			:explicit #f
+			:converter implicit-sequence
 			:reader rsassa-pss-params-mask-gen-algorithm)
     (salt-length :type <der-integer> :tag 2 :optional #t :explicit #t
 		 :reader rsassa-pss-params-salt-length)
@@ -289,10 +295,13 @@
 (define-asn1-encodable <rsaes-oaep-params>
   (asn1-sequence
    ((hash-func :type <algorithm-identifier> :tag 0 :optional #t :explicit #f
+	       :converter implicit-sequence
 	       :reader rsaes-oaep-params-hash-func)
     (mask-gen-func :type <algorithm-identifier> :tag 1 :optional #t :explicit #f
+		   :converter implicit-sequence
 		   :reader rsaes-oaep-params-mask-gen-func)
     (p-source-func :type <algorithm-identifier> :tag 2 :optional #t :explicit #f
+		   :converter implicit-sequence
 		   :reader rsaes-oaep-params-p-source-func))))
 (define (rsaes-oaep-params? o) (is-a? o <rsaes-oaep-params>))
     

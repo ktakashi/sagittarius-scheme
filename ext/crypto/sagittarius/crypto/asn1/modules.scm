@@ -198,7 +198,12 @@
   (let ((obj (ber-tagged-object-obj tagged-obj)))
     (cond ((and (asn1-collection? obj)
 		(slot-definition-option slot :converter #f)) =>
-	   (lambda (conv) (conv (asn1-collection->list obj))))
+	   (lambda (conv) 
+	     ;; When it's explicit, then it's explicitly a collection
+	     ;; so don't decompose it here
+	     (if (not (ber-tagged-object-explicit? tagged-obj))
+		 (conv (asn1-collection->list obj))
+		 (conv (list obj)))))
 	  ((slot-definition-option slot :converter #f) =>
 	   (lambda (conv)
 	     (conv (if (or (not obj) (slot-definition-option slot :explicit #f))
@@ -230,59 +235,72 @@
   (let-values (((type value) (search-object o slots)))
     (make class :type type :value value)))
 
-(define ((make-asn1-object->asn1-encodable class type?) (o type?))
-  (define (asn1-object->slots class o slots)
-    (define (err reason) (raise-error class reason o))
-    (define (entry->slot slot entry)
-      (list (symbol->keyword (slot-definition-name slot)) entry))
-    (define (optional? slot) (slot-definition-option slot :optional #f))
-    
-    (let loop ((entries (asn1-collection->list o)) (slots slots) (r '()))
-      (cond ((and (null? entries) (null? slots))
-	     ;; order doesn't matter ;)
-	     (concatenate! r))
-	    ((null? entries)
-	     (if (or (null? slots) (for-all optional? slots))
-		 (concatenate! r)
-		 (err "missing field(s)")))
-	    ((null? slots)
-	     (if (null? entries) (concatenate! r) (err "too many fields")))
-	    (else
-	     (let* ((slot (car slots))
-		    (entry (car entries))
-		    (type (slot-definition-option slot :type <asn1-object>))
-		    (tag (slot-definition-option slot :tag #f))
-		    (optional? (slot-definition-option slot :optional #f)))
-	       ;; check tag first
-	       (cond (tag
-		      (cond ((and (ber-tagged-object? entry)
-				  (= (ber-tagged-object-tag-no entry) tag))
-			     (cond ((entry->object (tagged-obj->obj entry slot)
-						   slot optional?) =>
-				    (lambda (obj)
-				      (loop (cdr entries) (cdr slots)
-					    (cons (entry->slot slot obj) r))))
-				   (else (err "Invalid tag object"))))
+(define-syntax make-asn1-object->asn1-encodable
+  (syntax-rules ()
+    ((_ name type?)
+     (let ((class name))
+       (lambda ((name type?))
+	 (define o name)
+	 (define (asn1-object->slots class o slots)
+	   (define (err reason) (raise-error class reason o))
+	   (define (entry->slot slot entry)
+	     (list (symbol->keyword (slot-definition-name slot)) entry))
+	   (define (optional? slot) (slot-definition-option slot :optional #f))
+	   
+	   (let loop ((entries (asn1-collection->list o)) (slots slots) (r '()))
+	     (cond ((and (null? entries) (null? slots))
+		    ;; order doesn't matter ;)
+		    (concatenate! r))
+		   ((null? entries)
+		    (if (or (null? slots) (for-all optional? slots))
+			(concatenate! r)
+			(err "missing field(s)")))
+		   ((null? slots)
+		    (if (null? entries)
+			(concatenate! r)
+			(err "too many fields")))
+		   (else
+		    (let* ((slot (car slots))
+			   (entry (car entries))
+			   (type (slot-definition-option slot
+							 :type <asn1-object>))
+			   (tag (slot-definition-option slot :tag #f))
+			   (optional? (slot-definition-option slot
+							      :optional #f)))
+		      ;; check tag first
+		      (cond (tag
+			     (cond ((and (ber-tagged-object? entry)
+					 (= (ber-tagged-object-tag-no entry)
+					    tag))
+				    (cond ((entry->object
+					    (tagged-obj->obj entry slot)
+					    slot optional?) =>
+					   (lambda (obj)
+					     (loop (cdr entries) (cdr slots)
+						   (cons (entry->slot slot obj)
+							 r))))
+					  (else (err "Invalid tag object"))))
+				   (optional? (loop entries (cdr slots) r))
+				   (else (err "Missing tag object"))))
+			    ((entry->object entry slot optional?) =>
+			     (lambda (obj)
+			       (loop (cdr entries) (cdr slots)
+				     (cons (entry->slot slot obj) r))))
 			    (optional? (loop entries (cdr slots) r))
-			    (else (err "Missing tag object"))))
-		     ((entry->object entry slot optional?) =>
-		      (lambda (obj)
-			(loop (cdr entries) (cdr slots)
-			      (cons (entry->slot slot obj) r))))
-		     (optional? (loop entries (cdr slots) r))
-		     (else (err "Unknown field"))))))))
-  (let ((slots (class-slots class)))
-    (if (and (null? (cdr slots))
-	     (eqv? #t (slot-definition-option (car slots) :multiple #f)))
-	;; handle sequence / set of type separately
-	;; TODO maybe we should marge?
-	(let* ((slot (car slots))
-	       (type (slot-definition-option slot :type <asn1-object>))
-	       (key (slot-definition-option slot :init-keyword :elements)))
-	  (make class
-	    key (map (lambda (o) (asn1-object->asn1-encodable type o))
-		     (asn1-collection->list o))))
-	(apply make class (asn1-object->slots class o slots)))))
+			    (else (err "Unknown field"))))))))
+	 (let ((slots (class-slots class)))
+	   (if (and (null? (cdr slots))
+		    (eqv? #t (slot-definition-option (car slots) :multiple #f)))
+	       ;; handle sequence / set of type separately
+	       ;; TODO maybe we should marge?
+	       (let* ((slot (car slots))
+		      (type (slot-definition-option slot :type <asn1-object>))
+		      (key (slot-definition-option slot
+						   :init-keyword :elements)))
+		 (make class
+		   key (map (lambda (o) (asn1-object->asn1-encodable type o))
+			    (asn1-collection->list o))))
+	       (apply make class (asn1-object->slots class o slots)))))))))
 
 (define (ensure-asn1-object o type)
   (cond ((asn1-object? o) o)

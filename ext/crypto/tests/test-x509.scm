@@ -1,5 +1,6 @@
 (import (rnrs)
 	(sagittarius crypto pkix certificate)
+	(sagittarius crypto pkix request)
 	(sagittarius crypto pkix algorithms)
 	(sagittarius crypto pkix signatures)
 	(sagittarius crypto pkix extensions)
@@ -75,23 +76,25 @@
       (test-equal (base64-encode cert :line-width #f) (e)))))
 
 (define now (current-time))
+(define subject-dn (x509-name '(C "NL")
+			      '(ST "Zuid-Holland")
+			      '(OU "Sagittarius Scheme")
+			      '(CN "Takashi Kato")
+			      '(E "ktakashi@ymail.com")))
+(define (->key-operation algorithm)
+  (oid->key-operation
+   (if (string? algorithm)
+       algorithm
+       (x509-algorithm-identifier-oid algorithm))))
 (define (test-certificate-builder algorithm)
   (define one-year (make-time time-duration 0 (* 3600 24 365)))
   (define one-second (make-time time-duration 0 1))
-  (define key-scheme (oid->key-operation
-		      (if (string? algorithm)
-			  algorithm
-			  (x509-algorithm-identifier-oid algorithm))))
+  (define key-scheme (->key-operation algorithm))
   (define issuer-dn (x509-name '(C "NL")
 			       '(ST "Zuid-Holland")
 			       '(L "Leiden")
 			       '(OU "Sagittarius Scheme")
 			       '(CN "Takashi Kato")))
-  (define subject-dn (x509-name '(C "NL")
-			       '(ST "Zuid-Holland")
-			       '(OU "Sagittarius Scheme")
-			       '(CN "Takashi Kato")
-			       '(E "ktakashi@ymail.com")))
   (let* ((signing-key-pair (generate-key-pair key-scheme))
 	 (template (x509-certificate-template-builder
 		    (issuer-dn issuer-dn)
@@ -232,18 +235,17 @@
 		  (x509-basic-constraints-extension->x509-basic-constraints e))))
   )
 
-(let ((param (make-x509-rsassa-pss-param :digest *digest:sha-256*
-					 :mgf-digest *digest:sha-256*)))
-
-  (test-certificate-builder (make-x509-algorithm-identifier
-			     *signature-algorithm:rsa-ssa-pss*
-			     (make-x509-rsassa-pss-param)))
-  (test-certificate-builder (make-x509-algorithm-identifier
-			     *signature-algorithm:rsa-ssa-pss*
-			     (make-x509-rsassa-pss-param :salt-length 128)))
-  (test-certificate-builder (make-x509-algorithm-identifier
-			     *signature-algorithm:rsa-ssa-pss*
-			     param)))
+(test-certificate-builder (make-x509-algorithm-identifier
+			   *signature-algorithm:rsa-ssa-pss*
+			   (make-x509-rsassa-pss-param)))
+(test-certificate-builder (make-x509-algorithm-identifier
+			   *signature-algorithm:rsa-ssa-pss*
+			   (make-x509-rsassa-pss-param :salt-length 128)))
+(test-certificate-builder (make-x509-algorithm-identifier
+			   *signature-algorithm:rsa-ssa-pss*
+			   (make-x509-rsassa-pss-param
+			    :digest *digest:sha-256*
+			    :mgf-digest *digest:sha-256*)))
 
 (for-each test-certificate-builder
 	  (list *signature-algorithm:rsa-pkcs-v1.5-sha1*
@@ -262,6 +264,90 @@
 		;; Key size doesn't fit...
 		;; Not sure why these are defined even as max size of DSA
 		;; key is 2048...
+		;; *signature-algorithm:dsa-sha384*
+		;; *signature-algorithm:dsa-sha512*
+		*signature-algorithm:ecdsa-sha1*
+		*signature-algorithm:ecdsa-sha224*
+		*signature-algorithm:ecdsa-sha256*
+		*signature-algorithm:ecdsa-sha384*
+		*signature-algorithm:ecdsa-sha512*
+		*signature-algorithm:ecdsa-sha3-224*
+		*signature-algorithm:ecdsa-sha3-256*
+		*signature-algorithm:ecdsa-sha3-384*
+		*signature-algorithm:ecdsa-sha3-512*
+		*signature-algorithm:ed25519*
+		*signature-algorithm:ed448*))
+
+;; CSR
+(define csr
+  (base64-decode-string
+   (string-append
+    "MIIBgjCCAScCAQAwgYwxCzAJBgNVBAYTAk5MMRUwEwYDVQQIDAxadWlkLUhvbGxh"
+    "bmQxDzANBgNVBAcMBkxlaWRlbjEbMBkGA1UECgwSU2FnaXR0YXJpdXMgU2NoZW1l"
+    "MRUwEwYDVQQDDAxUYWthc2hpIEthdG8xITAfBgkqhkiG9w0BCQEWEmt0YWthc2hp"
+    "QHltYWlsLmNvbTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABNXAN+ibFJZ2dUw7"
+    "0icY4iseONCTdKfQFygCo6x0AeM5baD8FBkfMgQJhKx9HNh1Wy53KJNP80qqz1kI"
+    "yye+GCSgODATBgkqhkiG9w0BCQcxBgwEdGVzdDAhBgkqhkiG9w0BCQIxFAwSU2Fn"
+    "aXR0YXJpdXMgU2NoZW1lMAoGCCqGSM49BAMCA0kAMEYCIQCzLwBT9zmperdFIt6w"
+    "WUQ6xs4nTQYTHBDIRRwJCCMrDgIhAP21hfe1gRR+HgHfBxvPVaXFZaEpEAWrMCsl"
+    "Kxtw7xvg")
+   :transcoder #f))
+
+(test-assert (x509-certification-request?
+	      (bytevector->x509-certification-request csr)))
+(let ((x509-csr (bytevector->x509-certification-request csr)))
+  (test-assert (validate-x509-certification-request x509-csr
+		x509-certification-request-signature-validator)))
+
+(define (test-certification-request-builder algorithm)
+  (let ((cr-tmpl (x509-certification-request-template-builder
+		  (subject-dn subject-dn)
+		  (attributes (list
+			       (make-x509-extension-request-attribute
+				(make-x509-key-usage-extension
+				 (x509-key-usages digital-signature
+						  key-encipherment)))))))
+	(key-pair (generate-key-pair (->key-operation algorithm))))
+    (test-assert (x509-certification-request-template? cr-tmpl))
+    (let ((cr (sign-x509-certification-request-template
+	       cr-tmpl algorithm key-pair)))
+      (test-assert (x509-certification-request? cr))
+      (test-assert (validate-x509-certification-request cr
+		    x509-certification-request-signature-validator))
+      (test-equal 1 (x509-certification-request-version cr))
+      (test-equal subject-dn (x509-certification-request-subject cr))
+      (let ((bv (x509-certification-request->bytevector cr)))
+	(test-assert (x509-certification-request?
+		      (bytevector->x509-certification-request bv)))))))
+
+(test-certification-request-builder (make-x509-algorithm-identifier
+				     *signature-algorithm:rsa-ssa-pss*
+				     (make-x509-rsassa-pss-param)))
+(test-certification-request-builder (make-x509-algorithm-identifier
+				     *signature-algorithm:rsa-ssa-pss*
+				     (make-x509-rsassa-pss-param
+				      :salt-length 128)))
+(test-certification-request-builder (make-x509-algorithm-identifier
+				     *signature-algorithm:rsa-ssa-pss*
+				     (make-x509-rsassa-pss-param
+				      :digest *digest:sha-256*
+				      :mgf-digest *digest:sha-256*)))
+
+(for-each test-certification-request-builder
+	  (list *signature-algorithm:rsa-pkcs-v1.5-sha1*
+		*signature-algorithm:rsa-pkcs-v1.5-sha256*
+		*signature-algorithm:rsa-pkcs-v1.5-sha384*
+		*signature-algorithm:rsa-pkcs-v1.5-sha512*
+		*signature-algorithm:rsa-pkcs-v1.5-sha224*
+		*signature-algorithm:rsa-pkcs-v1.5-sha512/224*
+		*signature-algorithm:rsa-pkcs-v1.5-sha512/256*
+		*signature-algorithm:rsa-pkcs-v1.5-sha3-224*
+		*signature-algorithm:rsa-pkcs-v1.5-sha3-256*
+		*signature-algorithm:rsa-pkcs-v1.5-sha3-384*
+		*signature-algorithm:rsa-pkcs-v1.5-sha3-512*
+		*signature-algorithm:dsa-sha224*
+		*signature-algorithm:dsa-sha256*
+		;; The same reason
 		;; *signature-algorithm:dsa-sha384*
 		;; *signature-algorithm:dsa-sha512*
 		*signature-algorithm:ecdsa-sha1*
