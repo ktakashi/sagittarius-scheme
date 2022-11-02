@@ -74,9 +74,8 @@
 		     x509-certificate-get-subject-dn))
 	    x509-certificate-get-not-before
 	    x509-certificate-get-not-after
+	    x509-certificate-get-signature-algorithm
 	    (rename (x509-certificate-signature x509-certificate-get-signature)
-		    (x509-certificate-signature-algorithm
-		     x509-certificate-get-signature-algorithm)
 		    (x509-certificate-public-key
 		     x509-certificate-get-public-key))
 	    
@@ -110,7 +109,9 @@
 	    (sagittarius crypto keys)
 	    (sagittarius crypto digests)
 	    (sagittarius crypto signatures)
-	    (sagittarius crypto pkix certificate)
+	    (sagittarius crypto pkix algorithms)
+	    (sagittarius crypto pkix certificate)	    
+	    (sagittarius combinators)
 	    (srfi :19 time))
 
 (define-generic make-x509-certificate)
@@ -133,11 +134,12 @@
   (bytevector->der-octet-string
    (subject-key-identifier-key-identifier o)))
 
-
-(define (x509-certificate-get-not-before cert)
-  (x509-validity-not-before (x509-certificate-validity cert)))
-(define (x509-certificate-get-not-after cert)
-  (x509-validity-not-after (x509-certificate-validity cert)))
+(define x509-certificate-get-not-before
+  (.$ x509-validity-not-before x509-certificate-validity))
+(define x509-certificate-get-not-after
+  (.$ x509-validity-not-after x509-certificate-validity))
+(define x509-certificate-get-signature-algorithm
+  (.$ x509-algorithm-identifier-oid x509-certificate-signature-algorithm))
 
 ;; **DEPRECATED** It's a wrong idea to use certificate to verify a signature
 ;;                use (sagittarius crypto signatures) instead

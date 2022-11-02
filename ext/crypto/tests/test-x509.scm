@@ -74,10 +74,13 @@
       (test-equal (base64-encode cert :line-width #f) (e)))))
 
 (define now (current-time))
-(define ((test-certificate-builder parameters) algorithm)
+(define (test-certificate-builder algorithm)
   (define one-year (make-time time-duration 0 (* 3600 24 365)))
   (define one-second (make-time time-duration 0 1))
-  (define key-scheme (oid->key-operation algorithm))
+  (define key-scheme (oid->key-operation
+		      (if (string? algorithm)
+			  algorithm
+			  (x509-algorithm-identifier-oid algorithm))))
   (define issuer-dn (x509-name '(C "NL")
 			       '(ST "Zuid-Holland")
 			       '(L "Leiden")
@@ -128,8 +131,7 @@
 	 (failing-key-pair (generate-key-pair key-scheme)))
     (test-assert (x509-certificate-template? template))
     (let ((cert (sign-x509-certificate-template
-		 template algorithm (key-pair-private signing-key-pair)
-		 parameters)))
+		 template algorithm (key-pair-private signing-key-pair))))
       (test-assert (x509-certificate? cert))
       (test-assert algorithm
 		   (validate-x509-certificate cert
@@ -153,7 +155,7 @@
 
 (let* ((cert (bytevector->x509-certificate
 	      (x509-certificate->bytevector
-	       ((test-certificate-builder #f)
+	       (test-certificate-builder
 		*signature-algorithm:ecdsa-sha256*))))
        (extensions (x509-certificate-extensions cert)))
 
@@ -232,13 +234,17 @@
 (let ((param (make-x509-rsassa-pss-param :digest *digest:sha-256*
 					 :mgf-digest *digest:sha-256*)))
 
-  ((test-certificate-builder (make-x509-rsassa-pss-param))
-   *signature-algorithm:rsa-ssa-pss*)
-  ((test-certificate-builder (make-x509-rsassa-pss-param :salt-length 128))
-   *signature-algorithm:rsa-ssa-pss*)
-  ((test-certificate-builder param) *signature-algorithm:rsa-ssa-pss*))
+  (test-certificate-builder (make-x509-algorithm-identifier
+			     *signature-algorithm:rsa-ssa-pss*
+			     (make-x509-rsassa-pss-param)))
+  (test-certificate-builder (make-x509-algorithm-identifier
+			     *signature-algorithm:rsa-ssa-pss*
+			     (make-x509-rsassa-pss-param :salt-length 128)))
+  (test-certificate-builder (make-x509-algorithm-identifier
+			     *signature-algorithm:rsa-ssa-pss*
+			     param)))
 
-(for-each (test-certificate-builder #f)
+(for-each test-certificate-builder
 	  (list *signature-algorithm:rsa-pkcs-v1.5-sha1*
 		*signature-algorithm:rsa-pkcs-v1.5-sha256*
 		*signature-algorithm:rsa-pkcs-v1.5-sha384*

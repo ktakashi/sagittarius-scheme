@@ -72,6 +72,7 @@
 	    (sagittarius crypto pkix modules x509)
 	    (sagittarius crypto pkix dn)
 	    (sagittarius crypto pkix keys)
+	    (sagittarius crypto pkix algorithms)
 	    (sagittarius crypto pkix signatures)
 	    (sagittarius crypto pkix extensions)
 	    (sagittarius crypto keys)
@@ -153,14 +154,9 @@
     :reader x509-certificate-signature)
    (signature-algorithm :allocation :virtual :cached #t
     :slot-ref (make-slot-ref
-	       (.$ algorithm-identifier-algorithm certificate-algorithm x509-certificate-c)
-	       der-object-identifier->oid-string)
-    :reader x509-certificate-signature-algorithm)
-   (raw-signature-algorithm :allocation :virtual :cached #t
-    :slot-ref (make-slot-ref
 	       (.$ certificate-algorithm x509-certificate-c)
-	       values)
-    :reader x509-certificate-raw-signature-algorithm)
+	       algorithm-identifier->x509-algorithm-identifier)
+    :reader x509-certificate-signature-algorithm)
    (extensions :allocation :virtual :cached #t
     :slot-ref (make-slot-ref
 	       (.$ tbs-certificate-extensions tbs-cert)
@@ -181,11 +177,11 @@
     (format out "            Final Date: ~a~%" (x509-validity-not-after (x509-certificate-validity o)))
     (format out "             SubjectDN: ~a~%" (x509-name->string (x509-certificate-subject-dn o)))
     (format out "            Public Key: ~a~%" (x509-certificate-public-key o))
-    (format out "   Signature Algorithm: ~a~%" (x509-certificate-signature-algorithm o))
-    (let ((p (algorithm-identifier-parameters
-	      (x509-certificate-raw-signature-algorithm o))))
-      (when (and p (not (der-null? p)))
-	(format out "  Signature Parameters: ~a~%" p)))
+    (format out "   Signature Algorithm: ~a~%" 
+	    (x509-algorithm-identifier-oid (x509-certificate-signature-algorithm o)))
+    (let ((p (x509-algorithm-identifier-parameters
+	      (x509-certificate-signature-algorithm o))))
+      (when p (format out "  Signature Parameters: ~a~%" p)))
     (cond ((< (string-length signature-hex) 40)
 	   (format out "             Signature: ~a~%" signature-hex))
 	  (else
@@ -240,17 +236,15 @@
 
 (define ((x509-certificate-signature-validator (public-key public-key?))
 	 (x509-certificate x509-certificate?))
-  (let-values (((oid parameters)
-		(signature-algorithm->oid&parameters
-		 (x509-certificate-raw-signature-algorithm x509-certificate))))
-    (let ((verifier (apply (oid->verifier-maker oid) public-key
-			   :der-encode #f
-			   (signature-parameters->keyword-parameters parameters))))
+  (let ((verifier (x509-algorithm-identifier->verifier
+		   (x509-certificate-signature-algorithm x509-certificate)
+		   public-key :der-encode #f)))
       (unless (verifier-verify-signature verifier
 		(asn1-encodable->bytevector (tbs-cert x509-certificate))
 		(x509-certificate-signature x509-certificate))
 	(assertion-violation 'x509-certificate-signature
-			     "Invalid signature" x509-certificate)))))
+			     "Invalid signature" x509-certificate))))
+
 (define ((x509-certificate-validity-validator :optional (when (current-date)))
 	 (x509-certificate x509-certificate?))
   (let* ((validity (x509-certificate-validity x509-certificate))
@@ -341,16 +335,14 @@
 
 (define (sign-x509-certificate-template
 	 (template x509-certificate-template?)
-	 oid
-	 (private-key private-key?)
-	 :optional ((parameters (or #f signature-parameters?)) #f))
-
-  (define signer (apply (oid->signer-maker oid) private-key
-			:der-encode #f
-			(signature-parameters->keyword-parameters parameters)))
-  (let* ((algorithm (make <algorithm-identifier>
-		      :algorithm (oid-string->der-object-identifier oid)
-		      :parameters (signature-parameters->algorithm-parameters parameters)))
+	 (aid (or string? x509-algorithm-identifier?))
+	 (private-key private-key?))
+  (define x509-aid (if (string? aid)
+		       (make-x509-algorithm-identifier aid)
+		       aid))
+  (define signer (x509-algorithm-identifier->signer x509-aid private-key
+						    :der-encode #f))
+  (let* ((algorithm (x509-algorithm-identifier->algorithm-identifier x509-aid))
 	 (tbs-certificate (x509-certificate-template->tbs-certificate
 			   template algorithm))
 	 (signature (signer-sign-message signer

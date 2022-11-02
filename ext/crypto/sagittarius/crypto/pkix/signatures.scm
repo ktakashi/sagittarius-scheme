@@ -30,14 +30,8 @@
 
 #!nounbound
 (library (sagittarius crypto pkix signatures)
-    (export signature-algorithm->oid&parameters
-	    ;; Bad names...
-	    algorithm-parameters->signature-parameters
-	    signature-parameters->algorithm-parameters
-
-	    signature-parameters->keyword-parameters
-
-	    signature-parameters? <signature-parameters>
+    (export x509-algorithm-identifier->signer
+	    x509-algorithm-identifier->verifier
 	    
 	    x509-rsassa-pss-params? <x509-rsassa-pss-params>
 	    make-x509-rsassa-pss-param
@@ -48,35 +42,38 @@
 	    x509-rsassa-pss-params-trailer-field)
     (import (rnrs)
 	    (clos user)
+	    (sagittarius)
 	    (sagittarius mop immutable)
 	    (sagittarius crypto asn1)
 	    (sagittarius crypto digests)
+	    (sagittarius crypto keys)
 	    (sagittarius crypto signatures)
 	    (sagittarius crypto pkix modules x509)
+	    (sagittarius crypto pkix algorithms)
 	    (sagittarius crypto random)
 	    (sagittarius mop immutable)
 	    (sagittarius combinators))
 
-(define-class <signature-parameters> () ())
-(define (signature-parameters? o) (is-a? o <signature-parameters>))
+(define (x509-algorithm-identifier->signer (sa x509-algorithm-identifier?) 
+					   (private-key private-key?)
+					   . opts)
+  (let ((oid (x509-algorithm-identifier-oid sa))
+	(param (x509-algorithm-identifier-parameters sa)))
+    (apply (oid->signer-maker oid) private-key
+	   (append! (x509-algorithm-parameters->keyword-parameters param)
+		    opts))))
 
-(define-generic algorithm-parameters->signature-parameters)
-(define-generic signature-parameters->algorithm-parameters)
-(define-generic signature-parameters->keyword-parameters)
-
-(define (signature-algorithm->oid&parameters
-	 (signature-algorithm algorithm-identifier?))
-  (let ((oid (der-object-identifier->oid-string
-	      (algorithm-identifier-algorithm signature-algorithm))))
-    (values oid (algorithm-parameters->signature-parameters oid
-		 (algorithm-identifier-parameters signature-algorithm)))))
-
-(define-method algorithm-parameters->signature-parameters (o p) #f)
-(define-method signature-parameters->algorithm-parameters (o) #f)
-(define-method signature-parameters->keyword-parameters (o) '())
+(define (x509-algorithm-identifier->verifier (sa x509-algorithm-identifier?) 
+					     (public-key public-key?)
+					     . opts)
+  (let ((oid (x509-algorithm-identifier-oid sa))
+	(param (x509-algorithm-identifier-parameters sa)))
+    (apply (oid->verifier-maker oid) public-key
+	   (append! (x509-algorithm-parameters->keyword-parameters param)
+		    opts))))
 
 ;; This shouldn't be called X509, though it's defined in X.509 thing...
-(define-class <x509-rsassa-pss-params> (<signature-parameters> <immutable>)
+(define-class <x509-rsassa-pss-params> (<x509-algorithm-parameters> <immutable>)
   ((digest :init-keyword :digest :init-value *digest:sha-1*
 	   :reader x509-rsassa-pss-params-digest)
    (mgf :init-keyword :mgf :init-value mgf-1
@@ -91,6 +88,13 @@
    (prng :init-keyword :prng
 	 :init-value (secure-random-generator *prng:chacha20*)
 	 :reader x509-rsassa-pss-params-prng)))
+(define-method write-object ((o <x509-rsassa-pss-params>) p)
+  (format p "#<x509-rsassa-pss-params digest=~a mgf=~a mgf-digest=~a salt-length=~a>"
+	  (x509-rsassa-pss-params-digest o)
+	  (x509-rsassa-pss-params-mgf o)
+	  (x509-rsassa-pss-params-mgf-digest o)
+	  (x509-rsassa-pss-params-salt-length o)))
+
 (define (x509-rsassa-pss-params? o) (is-a? o <x509-rsassa-pss-params>))
 (define (make-x509-rsassa-pss-param
 	 :key digest mgf mgf-digest salt-length trailer-field prng)
@@ -98,7 +102,7 @@
     :digest digest :mgf mgf :mgf-digest mgf-digest
     :salt-length salt-length :trailer-field trailer-field :prng prng))
 
-(define-method signature-parameters->algorithm-parameters
+(define-method x509-algorithm-parameters->algorithm-parameters
   ((p <x509-rsassa-pss-params>))
   (define (digest->aid digest)
     (make <algorithm-identifier>
@@ -116,7 +120,7 @@
     :salt-length (i->di (x509-rsassa-pss-params-salt-length p))
     :trailer-field (i->di (x509-rsassa-pss-params-trailer-field p))))
 
-(define-method algorithm-parameters->signature-parameters
+(define-method algorithm-parameters->x509-algorithm-parameters
   ((oid (equal *signature-algorithm:rsa-ssa-pss*)) parameters)
   (define aid->oid (.$ der-object-identifier->oid-string
 		       algorithm-identifier-algorithm))
@@ -148,7 +152,7 @@
 			      (der-integer->integer trailer-field))
 			 1))))
 
-(define-method signature-parameters->keyword-parameters
+(define-method x509-algorithm-parameters->keyword-parameters
   ((p <x509-rsassa-pss-params>))
   (let ((salt-len (x509-rsassa-pss-params-salt-length p))
 	(prng (x509-rsassa-pss-params-prng p)))
