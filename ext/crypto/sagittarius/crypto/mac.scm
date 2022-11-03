@@ -34,7 +34,7 @@
 	    mac-mac-size
 	    mac-oid
 	    
-	    *mac:hmac*
+	    *mac:hmac* *mac:cmac*
 
 	    generate-mac generate-mac!
 	    
@@ -49,7 +49,8 @@
 	    (sagittarius mop immutable)
 	    (sagittarius mop allocation)
 	    (sagittarius crypto mac types)
-	    (sagittarius crypto mac hmac))
+	    (sagittarius crypto mac hmac)
+	    (sagittarius crypto mac cmac))
 
 (define (mac-state mac) (slot-ref mac 'state))
 (define-class <mac> (<immutable> <allocation>)

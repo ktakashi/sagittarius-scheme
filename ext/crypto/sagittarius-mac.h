@@ -29,8 +29,9 @@
 #ifndef SAGITTARIUS_MAC_H_
 #define SAGITTARIUS_MAC_H_
 
-/* need DIGEST_DESCRIPTORP anyway :) */
+/* We need libtomcrypt accessors */
 #include "sagittarius-digest.h"
+#include "sagittarius-cipher.h"
 
 typedef struct {
   SG_HEADER;
@@ -46,7 +47,24 @@ SG_CLASS_DECL(Sg_HmacStateClass);
 #define SG_HMAC_STATE_MD(obj) SG_HMAC_STATE(obj)->md
 #define SG_HMAC_STATE_STATE(obj) SG_HMAC_STATE(obj)->state
 
+/* OMAC1 = CMAC */
+typedef struct {
+  SG_HEADER;
+  int cipher;
+  omac_state state;
+} SgCmacState;
+
+SG_CLASS_DECL(Sg_CmacStateClass);
+#define SG_CLASS_CMAC_STATE (&Sg_CmacStateClass)
+
+#define SG_CMAC_STATE(obj)   ((SgCmacState *)obj)
+#define SG_CMAC_STATE_P(obj) SG_XTYPEP(obj, SG_CLASS_CMAC_STATE)
+#define SG_CMAC_STATE_CIPHER(obj) SG_CMAC_STATE(obj)->cipher
+#define SG_CMAC_STATE_STATE(obj) SG_CMAC_STATE(obj)->state
+
+
 SgObject Sg_MakeHmacState(int md);
+SgObject Sg_MakeCmacState(int md);
 void Sg_InitMac(SgLibrary *lib);
 
 #endif	/* SAGITTARIUS_MAC_H_ */

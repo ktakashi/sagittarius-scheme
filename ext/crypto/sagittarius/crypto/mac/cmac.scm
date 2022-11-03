@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
-;;; sagittarius/crypto/mac/types.scm - MAC types
+;;; sagittarius/crypto/mac/cmac.scm - CMAC
 ;;;
 ;;;   Copyright (c) 2022  Takashi Kato  <ktakashi@ymail.com>
 ;;;
@@ -29,23 +29,38 @@
 ;;;
 
 #!nounbound
-(library (sagittarius crypto mac types)
-    (export mac-state? <mac-state>
-	    mac-state-state mac-state-oid
-	    mac-state-initializer
-	    mac-state-processor
-	    mac-state-finalizer
-	    )
+(library (sagittarius crypto mac cmac)
+    (export *mac:cmac*)
     (import (rnrs)
-	    (clos user))
+	    (clos user)
+	    (sagittarius crypto mac types)
+	    (sagittarius crypto descriptors cipher)
+	    (prefix (sagittarius crypto tomcrypt) tc:))
 
-(define-class <mac-state> ()
-  ((state :init-keyword :state :reader mac-state-state)
-   (oid :init-keyword :oid :reader mac-state-oid :init-value #f)))
-(define (mac-state? o) (is-a? o <mac-state>))
+(define *mac:cmac* :cmac)
+(define-class <cmac-state> (<mac-state>) ())
+(define (cmac-state? o) (is-a? o <cmac-state>))
 
-(define-generic mac-state-initializer)
-(define-generic mac-state-processor)
-(define-generic mac-state-finalizer)
+(define-method mac-state-initializer ((m (eql *mac:cmac*)) (key <bytevector>)
+	      :key ((cipher block-cipher-descriptor?) #f)
+	      :allow-other-keys)
+  (values (lambda ()
+	    (make <cmac-state>
+	      :state (tc:cmac-init (symmetric-cipher-descriptor-cipher cipher)
+				   key)))
+	  (block-cipher-descriptor-block-length cipher)))
+
+(define-method mac-state-processor ((s (eql *mac:cmac*))) cmac-state-processor)
+(define-method mac-state-finalizer ((s (eql *mac:cmac*))) cmac-state-finalizer)
+
+(define (cmac-state-processor (state cmac-state?) (msg bytevector?)
+			      :optional (start 0)
+					(len (- (bytevector-length msg) start)))
+  (tc:cmac-process! (mac-state-state state) msg start len))
+
+(define (cmac-state-finalizer (state cmac-state?) (out bytevector?)
+			      :optional (start 0)
+					(len (- (bytevector-length out) start)))
+  (tc:cmac-done! (mac-state-state state) out start len))
 
 )

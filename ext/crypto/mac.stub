@@ -6,7 +6,9 @@
 	    <sagittarius-mac.h>))
 
 (define-type <digest> "int" "digest descriptor" "DIGEST_DESCRIPTORP" "SG_INT_VALUE" "SG_MAKE_INT" 0)
+(define-type <cipher> "int" "cipher descriptor" "SG_CIPHERP" "SG_INT_VALUE")
 (define-type <hmac-state> "SgHmacState *")
+(define-type <cmac-state> "SgCmacState *")
 
 (define-cise-stmt assertion-violation
   ((_ who msg)
@@ -59,4 +61,38 @@
 			     (+ (SG_BVECTOR_ELEMENTS out) start)
 			     (& outlen))))
     (check-tomcrypt-error 'hmac-done! err)
+    (result outlen)))
+
+(define-c-proc cmac-state? (obj) ::<boolean> :no-side-effect SG_CMAC_STATE_P)
+
+(define-c-proc cmac-init (cipher::<cipher> key::<bytevector>
+		          :optional (start::<fixnum> 0) 
+				    (len::<fixnum> (SG_MAKE_INT (- (SG_BVECTOR_SIZE key) start))))
+  (check-range 'cmac-init key start len)
+  (let* ((hs (Sg_MakeCmacState cipher))
+	 (err::int (omac_init (& (SG_CMAC_STATE_STATE hs)) cipher
+			      (+ (SG_BVECTOR_ELEMENTS key) start) len)))
+    (check-tomcrypt-error 'cmac-init err)
+    (result hs)))
+
+(define-c-proc cmac-process! (hs::<cmac-state> in::<bytevector>
+			      :optional (start::<fixnum> 0) 
+					(len::<fixnum> (SG_MAKE_INT (- (SG_BVECTOR_SIZE in) start))))
+  (check-range 'cmac-process! in start len)
+  (let ((err::int (omac_process (& (SG_CMAC_STATE_STATE hs))
+				(+ (SG_BVECTOR_ELEMENTS in) start) len)))
+    (check-tomcrypt-error 'cmac-process! err)
+    (result hs)))
+
+(define-c-proc cmac-done! (hs::<cmac-state> out::<bytevector>
+			   :optional (start::<fixnum> 0)
+				     (len::<fixnum> (SG_MAKE_INT (- (SG_BVECTOR_SIZE out) start)))) ::<fixnum>
+  (when (> len (- (SG_BVECTOR_SIZE out) start))
+    (assertion-violation 'cmac-done! "Output buffer is too small"
+			 (SG_LIST3 out (SG_MAKE_INT start) (SG_MAKE_INT len))))
+  (let* ((|outlen::unsigned long| len)
+	 (err::int (omac_done (& (SG_CMAC_STATE_STATE hs))
+			     (+ (SG_BVECTOR_ELEMENTS out) start)
+			     (& outlen))))
+    (check-tomcrypt-error 'cmac-done! err)
     (result outlen)))

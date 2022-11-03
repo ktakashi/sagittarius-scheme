@@ -48,10 +48,28 @@ SgObject Sg_MakeHmacState(int md)
   return SG_OBJ(state);
 }
 
+static void cmac_state_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
+{
+  const char *cname = CIPHER_DESCRIPTOR_NAME(SG_CMAC_STATE_CIPHER(self));
+  SgObject name = Sg_MakeStringC(cname);
+  Sg_Printf(port, UC("#<cmac-state %A>"), name);
+}
+
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_CmacStateClass, cmac_state_printer);
+
+SgObject Sg_MakeCmacState(int md)
+{
+  SgHmacState *state = SG_NEW(SgCmacState);
+  SG_SET_CLASS(state, SG_CLASS_CMAC_STATE);
+  state->md = md;
+  return SG_OBJ(state);
+}
+
 extern void Sg__Init_mac(SgLibrary *lib);
 
 void Sg_InitMac(SgLibrary *lib)
 {
   Sg__Init_mac(lib);
   Sg_InitStaticClass(SG_CLASS_HMAC_STATE, UC("<hmac-state>"), lib, NULL, 0);
+  Sg_InitStaticClass(SG_CLASS_CMAC_STATE, UC("<cmac-state>"), lib, NULL, 0);
 }

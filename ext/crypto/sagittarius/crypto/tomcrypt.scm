@@ -126,6 +126,7 @@
 
 	    ;; mac
 	    hmac-state? hmac-init hmac-process! hmac-done!
+	    cmac-state? cmac-init cmac-process! cmac-done!
 	    )
     (import (only (sagittarius) define-constant)
 	    (sagittarius dynamic-module))

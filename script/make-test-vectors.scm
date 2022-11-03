@@ -17,6 +17,7 @@
 		  "ed448" "eddsa")))
 (define prime-vector? (file-prefix? '("primality_test")))
 (define hmac-vector? (file-prefix? '("hmac")))
+(define cmac-vector? (file-prefix? '("aes_cmac")))
 
 
 ;;; Signature
@@ -83,7 +84,7 @@
 
 (define key-size-pointer (json-pointer "/keySize"))
 (define tag-size-pointer (json-pointer "/tagSize"))
-(define (->hmac-test-runner source algorithm json)
+(define ((->mac-test-runner test-mac) source algorithm json)
   (define (test->vector test)
     (list->vector
      (map (lambda (e)
@@ -98,7 +99,7 @@
   (let ((tests (tests-pointer json))
 	(key-size (key-size-pointer json))
 	(tag-size (tag-size-pointer json)))
-    `(test-hmac ,source
+    `(,test-mac ,source
       :algorithm ,algorithm
       :key-size ,key-size
       :tag-size ,tag-size
@@ -149,8 +150,14 @@
 	       (filter prime-vector? files))))
     (write-includer outdir (build-path "testvectors" "hmac")
      (map (write-in outdir "testvectors" "hmac")
-	  (map (file->json (test-vector->test-runner ->hmac-test-runner))
-	       (filter hmac-vector? files))))))
+	  (map (file->json (test-vector->test-runner
+			    (->mac-test-runner 'test-hmac)))
+	       (filter hmac-vector? files))))
+    (write-includer outdir (build-path "testvectors" "cmac")
+     (map (write-in outdir "testvectors" "cmac")
+	  (map (file->json (test-vector->test-runner
+			    (->mac-test-runner 'test-cmac)))
+	       (filter cmac-vector? files))))))
 
 (define (usage me)
   (print me "[OPTIONS] dir ...")

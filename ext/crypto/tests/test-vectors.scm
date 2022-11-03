@@ -1,4 +1,5 @@
 (import (rnrs)
+	(sagittarius crypto ciphers)
 	(sagittarius crypto signatures)
 	(sagittarius crypto keys)
 	(sagittarius crypto digests)
@@ -48,6 +49,27 @@
 (test-begin "HMAC test vectors")
 (include "./testvectors/hmac.scm")
 (test-end)
+
+(define (test-cmac source :key algorithm key-size tag-size tests)
+  (define (->cipher a)
+    (cond ((string=? a "AES-CMAC") *scheme:aes*)
+	  (else (assertion-violation 'test-hmac "Unknown algorithm" a))))
+  (define ((check cipher) test)
+    (let-values (((id comment key msg tag result flag)
+		  (apply values (vector->list test))))
+      (let ((mac (make-mac *mac:cmac* key :cipher cipher))
+	    (size (div tag-size 8)))
+	(if (string=? comment "invalid key size")
+	    (test-error (list algorithm comment) (generate-mac mac msg size))
+	    (test-equal (list algorithm comment) result
+			(equal? tag (generate-mac mac msg size)))))))
+  (let ((cipher (->cipher algorithm)))
+    (for-each (check cipher) tests)))
+
+(test-begin "CMAC")
+(include "./testvectors/cmac.scm")
+(test-end)
+
 
 ;; In our implementation, size of the signature matters
 ;; So, if the signature size is not properly constructed,
