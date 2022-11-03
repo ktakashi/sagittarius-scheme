@@ -125,9 +125,9 @@
   (define aid->oid (.$ der-object-identifier->oid-string
 		       algorithm-identifier-algorithm))
   (define (->mgf-hash p)
-    (if (algorithm-identifier? p)
-	p
-	(asn1-object->asn1-encodable <algorithm-identifier> p)))
+    (cond ((algorithm-identifier? p) p)
+	  ((not p) #f) ;; default
+	  (else (asn1-object->asn1-encodable <algorithm-identifier> p))))
   (let* ((p (cond ((rsassa-pss-params? parameters) parameters)
 		  ((not parameters)
 		   (assertion-violation
@@ -145,7 +145,8 @@
       :digest (or (and hash (oid->digest-descriptor (aid->oid hash)))
 		  *digest:sha-1*)
       :mgf (or (and mgf (oid->mgf (aid->oid mgf))) mgf-1)
-      :mgf-digest (or (and hash (oid->digest-descriptor (aid->oid mgf-hash)))
+      :mgf-digest (or (and mgf-hash
+			   (oid->digest-descriptor (aid->oid mgf-hash)))
 		      *digest:sha-1*)
       :salt-length (or (and salt-length (der-integer->integer salt-length)) 20)
       :trailer-field (or (and trailer-field

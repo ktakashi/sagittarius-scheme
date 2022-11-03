@@ -267,9 +267,9 @@
 ;;     trailerField      [3] INTEGER DEFAULT 1
 ;; }
 (define (implicit-sequence o)
-  (if (ber-sequence? o)
-      o
-      (der-sequence o)))
+  (cond ((ber-sequence? o) o)
+	((pair? o) (car o)) ;; object was explicit sequence of one element...
+	(else (der-sequence o))))
 (define-asn1-encodable <rsassa-pss-params>
   (asn1-sequence
    ((hash-algorithm :type <algorithm-identifier> :tag 0 :optional #t
