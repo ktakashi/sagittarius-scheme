@@ -47,9 +47,9 @@
 	      :allow-other-keys)
   (values (lambda ()
 	    (make <hmac-state>
-	      :state (tc:hmac-init (tc-digest-descriptor-digest digest) key)
-	      :oid (digest-oid->hmac-oid (digest-descriptor-oid digest))))
-	  (digest-descriptor-digest-size digest)))
+	      :state (tc:hmac-init (tc-digest-descriptor-digest digest) key)))
+	  (digest-descriptor-digest-size digest)
+	  (digest-oid->hmac-oid (digest-descriptor-oid digest))))
 
 (define-method mac-state-processor ((s (eql *mac:hmac*))) hmac-state-processor)
 (define-method mac-state-finalizer ((s (eql *mac:hmac*))) hmac-state-finalizer)

@@ -58,21 +58,20 @@
    (state :init-keyword :state :init-value #f :mutable #t
 	  :reader mac-state :writer mac-state-set!)
    (mac-size :init-keyword :mac-size :reader mac-mac-size)
+   (oid :init-keyword :oid :reader mac-oid)
    (initializer :init-keyword :initializer :reader mac-initializer)
    (processor :init-keyword :processor :reader mac-processor)
-   (finalizer :init-keyword :finalizer :reader mac-finalizer)
-   (oid :allocation :virtual
-	:slot-ref (.$ mac-state-oid mac-state)
-	:reader mac-oid)))
+   (finalizer :init-keyword :finalizer :reader mac-finalizer)))
 (define-method write-object ((o <mac>) p) (format p "#<mac ~a>" (mac-type o)))
 (define (mac? o) (is-a? o <mac>))
 
 (define (make-mac type key . opts)
-  (let-values (((initializer mac-size)
+  (let-values (((initializer mac-size oid)
 		(apply mac-state-initializer type key opts)))
     (make <mac>
       :type type
       :mac-size mac-size
+      :oid oid
       :initializer initializer
       :processor (mac-state-processor type)
       :finalizer (mac-state-finalizer type))))

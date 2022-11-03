@@ -31,125 +31,54 @@
 ;; references
 ;;  RFC 4493 - http://tools.ietf.org/html/rfc4493
 ;;  RFC 4494 - http://tools.ietf.org/html/rfc4494
-
+#!nounbound
 (library (rfc cmac)
-    (export CMAC <cmac> verify-mac)
+    (export make-cmac mac? generate-mac generate-mac!
+	    mac-init! mac-process! mac-done!
+	    ;; for backward compatibility
+	    (rename (*mac:cmac* CMAC))
+	    <cmac> verify-mac)
     (import (rnrs)
 	    (sagittarius)
-	    (sagittarius control)
-	    (sagittarius object)
-	    (crypto)
-	    (math)
-	    (clos user)
-	    (srfi :1 lists)
-	    (util bytevector))
+	    (sagittarius crypto mac)
+	    (sagittarius crypto keys)
+	    (crypto spi)
+	    (crypto mac)
+	    (math hash)
+	    (clos user))
 
-  ;; do nothing
-  ;; TODO should we generate k1 and k2 here?
-  (define (cmac-init cmac)
-    (set! (~ cmac 'buffer) (~ cmac 'zero))
-    (set! (~ cmac 'last) #vu8()))
+(define (make-cmac key . opts) (apply make-mac *mac:cmac* key opts))
 
-  ;; FIXME cmac-process and cmac-done should accept start/end arguments
-  ;;       but it's a bit hustle to tackle it...
-  (define (cmac-process cmac in
-			:optional (start 0) (end (bytevector-length in)))
-    ;; split input message to block size.
-    (define (split-message cmac in)
-      (let1 in (bytevector-append (~ cmac 'last) in)
-	(if (zero? (bytevector-length in))
-	    (values '() (list in))
-	    (let1 m* (bytevector-slices in (~ cmac 'block-size))
-	      (split-at m* (- (length m*) 1))))))
-    (define (ensure-range in start end)
-      (if (= (bytevector-length in) (- end start))
-	  in
-	  (bytevector-copy in start end)))
-    (let ((X  (~ cmac 'buffer)))
-      (let-values (((M* M-t) (split-message cmac (ensure-range in start end))))
-	(unless (null? M*)
-	  (let1 cipher (~ cmac 'cipher)
-	    (set! (~ cmac 'buffer)
-		  (fold-left (lambda (X M)
-			       (let1 Y (bytevector-xor X M)
-				 (encrypt cipher Y))) X M*))))
-	(set! (~ cmac 'last) (car M-t)))))
+(define-class <cmac> (<mac>) ((cipher :init-keyword :cipher)))
+(define-method initialize ((o <cmac>) initargs)
+  (call-next-method)
+  (let ((cipher (slot-ref o 'cipher)))
+    (let-keywords* initargs
+	((size (cipher-blocksize cipher))
+	 . others)
+      (let* ((len (cipher-blocksize cipher))
+	     (spi (cipher-spi cipher))
+	     (mac (make-cmac (symmetric-key-value (cipher-spi-key spi))
+			     :cipher (cipher-spi-descriptor spi))))
+	(slot-set! o 'cipher (cipher-spi-descriptor spi))
+	;; hash operations
+	(slot-set! o 'init (lambda (me) (mac-init! mac) me))
+	(slot-set! o 'process (lambda (me in start end)
+				(mac-process! mac in start (- end start))))
+	(slot-set! o 'done (lambda (me out start end)
+			     (mac-done! mac out start
+					(min len (- end start)))))
+	(slot-set! o 'block-size len)
+	(slot-set! o 'hash-size size))))
+  o)
 
-  (define (cmac-done cmac out :optional (start 0) (end (bytevector-length out)))
-    ;; generate sub key
-    (define (MSB bv)
-      (let1 msb (bytevector-u8-ref bv 0)
-	(zero? (bitwise-and msb #x80))))
-    (define (derive-key L len const-rb)
-      (let* ((i (bitwise-arithmetic-shift-left (bytevector->integer L 0 len) 1))
-	     (bv (integer->bytevector i len)))
-	(if (MSB L)
-	    bv
-	    (bytevector-xor bv const-rb))))
-    ;; r = octets of x
-    ;; padding(x) = x || 10^i      where i is 128-8*r-1
-    (define (padding x)
-      ;; TODO better implementation
-      (let* ((size (~ cmac 'block-size))
-	     (r (bytevector-length x))
-	     (i (- (* size 8) (* 8 r) 1))
-	     (p (integer->bytevector (expt 2 i))))
-	(bytevector-append x p)))
-    (define (last-block cmac)
-      (let* ((rb (~ cmac 'rb))
-	     (len (~ cmac 'block-size))
-	     (k1 (derive-key (encrypt (~ cmac 'cipher) (~ cmac 'zero)) len rb))
-	     (k2 (derive-key k1 len rb))
-	     (last (~ cmac 'last)))
-	(if (or (zero? (bytevector-length last))
-		(not (zero? (mod (bytevector-length last) len))))
-	    (bytevector-xor (padding last) k2)
-	    (bytevector-xor last k1))))
-    (let* ((last (last-block cmac))
-	   (T (encrypt (~ cmac 'cipher)
-		       (bytevector-xor (~ cmac 'buffer) last))))
-      (bytevector-copy! T 0 out start (min (~ cmac 'hash-size) (- end start)))
-      (set! (~ cmac 'buffer) #f)
-      (set! (~ cmac 'last) #vu8())
-      out))
+(define-method write-object ((o <cmac>) out)
+  (format out "#<cmac ~a>" (slot-ref o 'cipher)))
 
-  (define-class <cmac> (<mac>)
-    ((cipher :init-keyword :cipher)
-     ;; const zero
-     (zero)
-     ;; const rb
-     (rb)
-     ;; result buffer
-     (buffer)
-     ;; previous processed last message
-     (last)))
-  (define-method initialize ((o <cmac>) initargs)
-    (call-next-method)
-    (let1 cipher (~ o 'cipher)
-      (let-keywords initargs
-	  ((size (cipher-blocksize cipher))
-	   . others)
-	(let* ((len (cipher-blocksize cipher))
-	       (const-zero (make-bytevector len 0))
-	       (const-rb   (make-bytevector len 0)))
-	  (bytevector-u8-set! const-rb (- len 1) #x87)
-	  (set! (~ o 'zero) const-zero)
-	  (set! (~ o 'rb) const-rb)
-	  ;; hash operations
-	  (set! (~ o 'init) cmac-init)
-	  (set! (~ o 'process) cmac-process)
-	  (set! (~ o 'done) cmac-done)
-	  (set! (~ o 'block-size) len)
-	  (set! (~ o 'hash-size) size))))
-    o)
+(define-class <cmac-marker> () ())
 
-  (define-method write-object ((o <cmac>) out)
-    (format out "#<cmac ~a>" (~ o 'cipher)))
-
-  (define-class <cmac-marker> () ())
-  (define CMAC (make <cmac-marker>))
-  (register-hash CMAC <cmac>)
-  ;; only for verify
-  (register-spi CMAC <cmac>)
+(register-hash *mac:cmac* <cmac>)
+;; only for verify why do we need this?
+(register-spi *mac:cmac* <cmac>)
 
 )

@@ -41,6 +41,7 @@
 	    cipher-spi-blocksize cipher-spi-iv cipher-spi-update-aad
 	    cipher-spi-tag cipher-spi-tagsize
 	    make-builtin-cipher-spi
+	    cipher-spi-descriptor
 	    
 	    legacy-cipher? <legacy-cipher>
 	    cipher-spi

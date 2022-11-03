@@ -48,7 +48,8 @@
 	    (make <cmac-state>
 	      :state (tc:cmac-init (symmetric-cipher-descriptor-cipher cipher)
 				   key)))
-	  (block-cipher-descriptor-block-length cipher)))
+	  (block-cipher-descriptor-block-length cipher)
+	  #f))
 
 (define-method mac-state-processor ((s (eql *mac:cmac*))) cmac-state-processor)
 (define-method mac-state-finalizer ((s (eql *mac:cmac*))) cmac-state-finalizer)
