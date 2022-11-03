@@ -184,8 +184,8 @@
 					    (mod-expt z 2 q))))))))))))))
 
 ;; Miller Rabin primality test
-(define (probable-prime? q
-	  :optional (k 50) (rand (secure-random-generator *prng:system*)))
+(define *default-prng* (secure-random-generator *prng:chacha20*))
+(define (probable-prime? q :optional (k 50) (rand *default-prng*))
   (define bit-size (bitwise-length q))
   (define try-count (cond ((< bit-size 100)  50)
 			  ((< bit-size 256)  27)
