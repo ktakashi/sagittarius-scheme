@@ -31,6 +31,7 @@
 #!nounbound
 (library (sagittarius crypto mac)
     (export mac? <mac> make-mac
+	    mac-type
 	    mac-mac-size
 	    mac-oid
 	    

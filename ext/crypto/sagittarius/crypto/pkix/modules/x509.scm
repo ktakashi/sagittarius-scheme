@@ -134,9 +134,6 @@
 	    revoked-certificate-user-certificate
 	    revoked-certificate-revocation-date
 
-	    revoked-certificates? <revoked-certificates>
-	    revoked-certificates-elements
-
 	    tbs-cert-list? <tbs-cert-list>
 	    tbs-cert-list-version
 	    tbs-cert-list-signature
@@ -803,18 +800,16 @@
     (crl-entry-extensions :type <extensions> :optional #t))))
 (define (revoked-certificate? o) (is-a? o <revoked-certificate>))
 
-(define-asn1-encodable <revoked-certificates>
-  (asn1-sequence
-   (of :type <revoked-certificate> :reader revoked-certificates-elements)))
-(define (revoked-certificates? o) (is-a? o <revoked-certificates>))
 (define-asn1-encodable <tbs-cert-list>
   (asn1-sequence
    ((version :type <der-integer> :optional #t :reader tbs-cert-list-version)
     (signature :type <algorithm-identifier> :reader tbs-cert-list-signature)
     (issuer :type <name> :reader tbs-cert-list-issuer)
     (this-update :type <asn1-time> :reader tbs-cert-list-this-update)
-    (next-update :type <asn1-time> :reader tbs-cert-list-next-update)
-    (revoked-certificates :type <revoked-certificates> :optional #t
+    (next-update :type <asn1-time> :optional #t
+		 :reader tbs-cert-list-next-update)
+    (revoked-certificates :type <revoked-certificate> :optional #t
+			  :multiple 'sequence
 			  :reader tbs-cert-list-revoked-certificates)
     (crl-extensions :type <extensions> :tag 0 :explicit #t :optional #t
 		    :reader tbs-cert-list-crl-extensions))))

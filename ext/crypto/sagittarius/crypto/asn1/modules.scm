@@ -308,14 +308,31 @@
 	;; filter-map will strip out this
 	(else o)))
 (define (->asn1-object o s type)
-  (let ((tag (slot-definition-option s :tag #f))
-	(explicit? (slot-definition-option s :explicit #f))
-	(obj (ensure-asn1-object o type)))
-    (and obj
-	 (if tag
-	     (make (if (eq? type 'der) <der-tagged-object> <ber-tagged-object>)
-	       :tag-no tag :explicit? explicit? :obj obj)
-	     obj))))
+  (define (collection-ctr ctr-type type)
+    (case ctr-type
+      ((sequence) (if (eq? type 'ber) make-ber-sequence make-der-sequence))
+      ((set) (if (eq? type 'ber) make-ber-set make-der-set))
+      (else (assertion-violation '->asn-object "Unknown collection type"
+				 ctr-type))))
+  (cond ((slot-definition-option s :multiple #f) =>
+	 (lambda (ctr-type)
+	   (let ((s2 (list
+		      (slot-definition-name s)
+		      :type (slot-definition-option s :type <asn1-encodable>))))
+	     ((collection-ctr ctr-type type)
+	      (map (lambda (o) (->asn1-object o s2 type)) o)))))
+	(else
+	 (let ((tag (slot-definition-option s :tag #f))
+	       (explicit? (slot-definition-option s :explicit #f))
+	       (obj (ensure-asn1-object o type)))
+	   (and obj
+		(if tag
+		    (make (if (eq? type 'ber)
+			      <ber-tagged-object>
+			      <der-tagged-object>)
+		      :tag-no tag :explicit? explicit? :obj obj)
+		    obj))))))
+
 (define ((make-asn1-encodable->asn1-choice class slots) o type)
   (define (search-slot type slots)
     (find (lambda (slot)
