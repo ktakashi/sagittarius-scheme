@@ -199,8 +199,7 @@
 	(q* (x509-policy-information-qualifiers policy-information)))
     (make <policy-information>
       :policy-identifier (oid-string->der-object-identifier id)
-      :policy-qualifiers (and q* (make-der-sequence
-				  (map x509-policy-qualifier-info->policy-qualifier-info q*))))))
+      :policy-qualifiers (and q* (map x509-policy-qualifier-info->policy-qualifier-info q*)))))
 (define (policy-information->x509-policy-infomation policy-information)
   (let ((q* (policy-information-policy-qualifiers policy-information)))
     (if q*
