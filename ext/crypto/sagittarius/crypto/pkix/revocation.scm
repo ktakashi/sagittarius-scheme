@@ -48,7 +48,13 @@
 	    bytevector->x509-certificate-revocation-list
 	    x509-certificate-revocation-list->asn1-object
 	    x509-certificate-revocation-list->bytevector
-	    write-x509-certificate-revocation-list)
+	    write-x509-certificate-revocation-list
+
+	    validate-x509-certificate-revocation-list
+	    x509-certificate-revocation-list-signature-validator
+	    x509-certificate-revocation-list-issuer-validator
+	    x509-certificate-revoked?
+	    )
     (import (rnrs)
 	    (clos user)
 	    (sagittarius)
@@ -56,6 +62,7 @@
 	    (sagittarius crypto pkix modules x509)
 	    (sagittarius crypto pkix dn)
 	    (sagittarius crypto pkix algorithms)
+	    (sagittarius crypto pkix certificate)
 	    (sagittarius crypto pkix signatures)
 	    (sagittarius crypto pkix extensions)
 	    (sagittarius crypto keys)
@@ -65,7 +72,7 @@
 	    (sagittarius mop immutable)
 	    (util bytevector)
 	    (record builder)
-	    (srfi :1 lists))
+	    (srfi :19 time))
 ;; useful utility :)
 (define (make-slot-ref getter conv) (lambda (o) (conv (getter o))))
 (define ((list-of pred) l) (for-all pred l))
@@ -183,4 +190,38 @@
 	 :optional (out (current-output-port)))
   (let ((bv (x509-certificate-revocation-list->bytevector crl)))
     (put-bytevector out bv)))
+
+(define (validate-x509-certificate-revocation-list
+	 (crl x509-certificate-revocation-list?)
+	 . validators)
+  (for-all (lambda (v) (v crl)) validators))
+
+(define ((x509-certificate-revocation-list-signature-validator
+	  (public-key public-key?))
+	 (crl x509-certificate-revocation-list?))
+  (unless (verify-x509-signed-object crl public-key)
+    (assertion-violation 'x509-certificate-revocation-list-signature-validator
+			 "Invalid signature" crl)))
+(define ((x509-certificate-revocation-list-issuer-validator (issuer x509-name?))
+	 (crl x509-certificate-revocation-list?))
+  (unless (equal? (x509-certificate-revocation-list-issuer crl) issuer)
+    (assertion-violation 'x509-certificate-revocation-list-issuer-validator
+			 "Invalid issuer" crl)))
+
+(define (x509-certificate-revoked? (certificate x509-certificate?)
+				   (crl x509-certificate-revocation-list?)
+				   :optional (date (current-date)))
+  (define (in-effect? revoked)
+    (time<? (date->time-utc (x509-revoked-certificate-revocation-date revoked))
+	    (date->time-utc date)))
+  
+  (define ((cert=? sn) revoked)
+    (and (= (x509-revoked-certificate-serial-number revoked) sn)
+	 (in-effect? revoked)))
+       
+  (and (equal? (x509-certificate-revocation-list-issuer crl)
+	       (x509-certificate-issuer-dn certificate))
+       (exists (cert=? (x509-certificate-serial-number certificate))
+	       (x509-certificate-revocation-list-revoked-certificates crl))))
 )
+    
