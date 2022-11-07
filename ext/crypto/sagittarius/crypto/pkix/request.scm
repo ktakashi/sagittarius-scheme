@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
-;;; sagittarius/crypto/pkix/certificate.scm - X.509 Certificate Signing Request
+;;; sagittarius/crypto/pkix/request.scm - X.509 Certificate Signing Request
 ;;;
 ;;;   Copyright (c) 2022  Takashi Kato  <ktakashi@ymail.com>
 ;;;
@@ -71,7 +71,6 @@
 	    (sagittarius crypto keys)
 	    (sagittarius crypto signatures)
 	    (sagittarius combinators)
-	    (sagittarius mop allocation)
 	    (sagittarius mop immutable)
 	    (util bytevector)
 	    (record builder)
@@ -135,12 +134,10 @@
 (define (attributes->x509-attributes (attributes attributes?))
   (map attribute->x509-attribute (attributes->list attributes)))
 
-(define (x509-certification-request-c o) (slot-ref o 'c))
 (define csr-info (.$ certification-request-certification-request-info
-		     x509-certification-request-c))
-(define-class <x509-certification-request> (<immutable> <cached-allocation>)
-  ((c :init-keyword :c)
-   (encoded :init-keyword :encoded :init-value #f :mutable #t
+		     x509-signed-object-c))
+(define-class <x509-certification-request> (<x509-signed-object>)
+  ((encoded :init-keyword :encoded :init-value #f :mutable #t
 	    :reader x509-certification-request-encoded
 	    :writer x509-certification-request-encoded-set!)
    (version :allocation :virtual :cached #t
@@ -162,19 +159,15 @@
 	       :slot-ref (make-slot-ref
 			  (.$ certification-request-info-attributes csr-info)
 			  attributes->x509-attributes)
-	       :reader x509-certification-request-attributes)
-   (signature :allocation :virtual :cached #t
-	      :slot-ref (make-slot-ref
-			 (.$ certification-request-signature
-			     x509-certification-request-c)
-			 der-bit-string->bytevector)
-	      :reader x509-certification-request-signature)
-   (signature-algorithm :allocation :virtual :cached #t
-    :slot-ref (make-slot-ref
-	       (.$ certification-request-signature-algorithm
-		   x509-certification-request-c)
-	       algorithm-identifier->x509-algorithm-identifier)
-    :reader x509-certification-request-signature-algorithm)))
+	       :reader x509-certification-request-attributes)))
+(define (x509-certification-request-signature
+	 (csr x509-certification-request?))
+  (x509-signed-object-signature csr))
+(define (x509-certification-request-signature-algorithm
+	 (csr x509-certification-request?))
+  (x509-signed-object-algorithm csr))
+
+
 
 (define-method write-object ((o <x509-certification-request>) p)
   (define signature-hex
@@ -220,7 +213,7 @@
 	(else
 	 (let ((bv (asn1-encodable->bytevector
 		    (asn1-encodable->asn1-object
-		     (x509-certification-request-c csr)))))
+		     (x509-signed-object-c csr)))))
 	   (x509-certification-request-encoded-set! csr bv)
 	   bv))))
 (define (write-x509-certification-request (csr x509-certification-request?)
@@ -233,14 +226,10 @@
   (for-all (lambda (v) (v csr)) validators))
 (define (x509-certification-request-signature-validator
 	 (csr x509-certification-request?))
-  (let ((verifier (x509-algorithm-identifier->verifier
-		   (x509-certification-request-signature-algorithm csr)
-		   (x509-certification-request-public-key csr))))
-    (unless (verifier-verify-signature verifier
-	      (asn1-encodable->bytevector (csr-info csr))
-	      (x509-certification-request-signature csr))
-      (assertion-violation 'x509-certification-request-signature-validator
-			   "Invalid signature" csr))))
+  (define public-key (x509-certification-request-public-key csr))
+  (unless (verify-x509-signed-object csr public-key)
+    (assertion-violation 'x509-certification-request-signature-validator
+			 "Invalid signature" csr)))
 
 ;; CSR template
 (define-record-type x509-certification-request-template
@@ -293,8 +282,8 @@
 	 (signature (signer-sign-message signer
 		     (asn1-encodable->bytevector cri)))
 	 (cr (make <certification-request>
-	       :certification-request-info cri
-	       :signature-algorithm algorithm
+	       :c cri
+	       :algorithm algorithm
 	       :signature (bytevector->der-bit-string signature))))
     (make <x509-certification-request> :c cr)))
 

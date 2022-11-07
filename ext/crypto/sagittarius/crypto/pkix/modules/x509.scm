@@ -237,6 +237,12 @@
 	    *pkcs-9:channelge-password*
 	    *pkcs-9:extenion-request*
 	    *pkcs-9:extended-certificate-attributes*
+
+	    ;; Internal only
+	    signed? <signed>
+	    signed-c
+	    signed-algorithm
+	    signed-signature
 	    )
     (import (rnrs)
 	    (clos user)
@@ -450,7 +456,14 @@
 ;; --  }
 ;; Certificate  ::=  SIGNED{TBSCertificate}
 ;; NOTE: We can't make signed class due to the order of slots...
-(define-asn1-encodable <certificate>
+;; just an interface and duck typing slot accessors
+(define-class <signed> () ())
+(define (signed? o) (is-a? o <signed>))
+(define (signed-c (s signed?)) (slot-ref s 'c))
+(define (signed-algorithm (s signed?)) (slot-ref s 'algorithm))
+(define (signed-signature (s signed?)) (slot-ref s 'signature))
+
+(define-asn1-encodable (<certificate> <signed>)
   (asn1-sequence
    ((c :type <tbs-certificate> :reader certificate-c)
     (algorithm :type <algorithm-identifier> :reader certificate-algorithm)
@@ -807,7 +820,7 @@
 (define (tbs-cert-list? o) (is-a? o <tbs-cert-list>))
 
 ;; CertificateList  ::=  SIGNED{TBSCertList}
-(define-asn1-encodable <certificate-list>
+(define-asn1-encodable (<certificate-list> <signed>)
   (asn1-sequence
    ((c :type <tbs-cert-list> :reader certificate-list-c)
     (algorithm :type <algorithm-identifier> :reader certificate-list-algorithm)
@@ -872,12 +885,12 @@
 ;;                                   { SignatureAlgorithms }},
 ;;     signature                 BIT STRING
 ;; }
-(define-asn1-encodable <certification-request>
+(define-asn1-encodable (<certification-request> <signed>)
   (asn1-sequence
-   ((certification-request-info :type <certification-request-info>
-     :reader certification-request-certification-request-info)
-    (signature-algorithm :type <algorithm-identifier>
-			 :reader certification-request-signature-algorithm)
+   ((c :type <certification-request-info>
+       :reader certification-request-certification-request-info)
+    (algorithm :type <algorithm-identifier>
+	       :reader certification-request-signature-algorithm)
     (signature :type <der-bit-string>
 	       :reader certification-request-signature))))
 (define (certification-request? o) (is-a? o <certification-request>))

@@ -110,9 +110,9 @@
 		:not-after (date->der-generalized-time not-after))))
 
 (define (x509-certificate? o) (is-a? o <x509-certificate>))
-(define (x509-certificate-c (o x509-certificate?)) (slot-ref o 'c))
+(define (x509-certificate-c (o x509-certificate?)) (x509-signed-object-c o))
 (define tbs-cert (.$ certificate-c x509-certificate-c))
-(define-class <x509-certificate> (<cached-allocation> <immutable>)
+(define-class <x509-certificate> (<x509-signed-object>)
   ((c :init-keyword :c)
    (encoded :init-keyword :encoded :init-value #f :mutable #t
 	    :reader x509-certificate-encoded
@@ -147,22 +147,17 @@
 	       (.$ tbs-certificate-version tbs-cert)
 	       (lambda (v) (+ (or (and v (der-integer->integer v)) 0) 1)))
     :reader x509-certificate-version)
-   (signature :allocation :virtual :cached #t
-    :slot-ref (make-slot-ref
-	       (.$ certificate-signature x509-certificate-c)
-	       der-bit-string->bytevector)
-    :reader x509-certificate-signature)
-   (signature-algorithm :allocation :virtual :cached #t
-    :slot-ref (make-slot-ref
-	       (.$ certificate-algorithm x509-certificate-c)
-	       algorithm-identifier->x509-algorithm-identifier)
-    :reader x509-certificate-signature-algorithm)
    (extensions :allocation :virtual :cached #t
     :slot-ref (make-slot-ref
 	       (.$ tbs-certificate-extensions tbs-cert)
 	       (lambda (e)
 		 (or (and e (extensions->x509-extension-list e)) '())))
     :reader x509-certificate-extensions)))
+
+(define (x509-certificate-signature (certificate x509-certificate?))
+  (x509-signed-object-signature certificate))
+(define (x509-certificate-signature-algorithm (certificate x509-certificate?))
+  (x509-signed-object-algorithm certificate))
 
 (define-method write-object ((o <x509-certificate>) p)
   (define signature-hex
@@ -236,14 +231,9 @@
 
 (define ((x509-certificate-signature-validator (public-key public-key?))
 	 (x509-certificate x509-certificate?))
-  (let ((verifier (x509-algorithm-identifier->verifier
-		   (x509-certificate-signature-algorithm x509-certificate)
-		   public-key :der-encode #f)))
-      (unless (verifier-verify-signature verifier
-		(asn1-encodable->bytevector (tbs-cert x509-certificate))
-		(x509-certificate-signature x509-certificate))
-	(assertion-violation 'x509-certificate-signature
-			     "Invalid signature" x509-certificate))))
+  (unless (verify-x509-signed-object x509-certificate public-key :der-encode #f)
+    (assertion-violation 'x509-certificate-signature
+			 "Invalid signature" x509-certificate)))
 
 (define ((x509-certificate-validity-validator :optional (when (current-date)))
 	 (x509-certificate x509-certificate?))

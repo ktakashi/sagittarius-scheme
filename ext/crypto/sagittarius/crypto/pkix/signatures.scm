@@ -30,7 +30,12 @@
 
 #!nounbound
 (library (sagittarius crypto pkix signatures)
-    (export x509-algorithm-identifier->signer
+    (export x509-signed-object? <x509-signed-object>
+	    x509-signed-object-c
+	    x509-signed-object-algorithm x509-signed-object-signature
+	    verify-x509-signed-object
+	    
+	    x509-algorithm-identifier->signer
 	    x509-algorithm-identifier->verifier
 	    
 	    x509-rsassa-pss-params? <x509-rsassa-pss-params>
@@ -44,6 +49,7 @@
 	    (clos user)
 	    (sagittarius)
 	    (sagittarius mop immutable)
+	    (sagittarius mop allocation)
 	    (sagittarius crypto asn1)
 	    (sagittarius crypto digests)
 	    (sagittarius crypto keys)
@@ -53,6 +59,31 @@
 	    (sagittarius crypto random)
 	    (sagittarius mop immutable)
 	    (sagittarius combinators))
+(define (make-slot-ref getter conv) (lambda (o) (conv (getter o))))
+(define (x509-signed-object-c o) (slot-ref o 'c))
+(define-class <x509-signed-object> (<immutable> <cached-allocation>)
+  ((c :init-keyword :c)
+   (algorithm :allocation :virtual :cached #t
+	      :slot-ref (make-slot-ref
+			 (.$ signed-algorithm x509-signed-object-c)
+			 algorithm-identifier->x509-algorithm-identifier)
+	      :reader x509-signed-object-algorithm)
+   (signature :allocation :virtual :cached #t
+	      :slot-ref (make-slot-ref
+			 (.$ signed-signature x509-signed-object-c)
+			 der-bit-string->bytevector)
+	      :reader x509-signed-object-signature)))
+(define (x509-signed-object? o) (is-a? o <x509-signed-object>))
+(define (verify-x509-signed-object (signed-object x509-signed-object?)
+				   (public-key public-key?)
+				   . opts)
+  (let ((verifier (apply x509-algorithm-identifier->verifier
+			 (x509-signed-object-algorithm signed-object)
+			 public-key opts)))
+    (verifier-verify-signature verifier 
+     (asn1-encodable->bytevector 
+      (signed-c (x509-signed-object-c signed-object)))
+     (x509-signed-object-signature signed-object))))
 
 (define (x509-algorithm-identifier->signer (sa x509-algorithm-identifier?) 
 					   (private-key private-key?)

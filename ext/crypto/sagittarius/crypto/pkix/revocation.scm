@@ -111,10 +111,8 @@
 (define (x509-certificate-revocation-list-c o) (slot-ref o 'c))
 (define tbs-cert-list (.$ certificate-list-c
 			  x509-certificate-revocation-list-c))
-(define-class <x509-certificate-revocation-list>
-  (<immutable> <cached-allocation>)
-  ((c :init-keyword :c)
-   (encoded :init-keyword :encoded :init-value #f :mutable #t
+(define-class <x509-certificate-revocation-list> (<x509-signed-object>)
+  ((encoded :init-keyword :encoded :init-value #f :mutable #t
 	    :reader x509-certificate-revocation-list-encoded
 	    :writer x509-certificate-revocation-list-encoded-set!)
    (issuer :allocation :virtual :cached #t
@@ -143,21 +141,15 @@
 			      (.$ tbs-cert-list-crl-extensions tbs-cert-list)
 			      (lambda (e)
 				(and (extensions->x509-extension-list e))))
-		   :reader x509-certificate-revocation-list-crl-extensions)
-   (signature-algorithm :allocation :virtual :cached #t
-    :slot-ref (make-slot-ref
-	       (.$ certificate-list-algorithm
-		   x509-certificate-revocation-list-c)
-	       algorithm-identifier->x509-algorithm-identifier)
-    :reader x509-certificate-revocation-list-signature-algorithm)
-   (signature :allocation :virtual :cached #t
-	      :slot-ref (make-slot-ref
-			 (.$ certificate-list-signature
-			     x509-certificate-revocation-list-c)
-			 der-bit-string->bytevector)
-	      :reader x509-certificate-revocation-list-signature)))
+		   :reader x509-certificate-revocation-list-crl-extensions)))
 (define (x509-certificate-revocation-list? o)
   (is-a? o <x509-certificate-revocation-list>))
+(define (x509-certificate-revocation-list-signature-algorithm
+	 (crl x509-certificate-revocation-list?))
+  (x509-signed-object-algorithm crl))
+(define (x509-certificate-revocation-list-signature
+	 (crl x509-certificate-revocation-list?))
+  (x509-signed-object-signature crl))
 
 (define (asn1-object->x509-certificate-revocation-list
 	 (asn1-object asn1-object?))

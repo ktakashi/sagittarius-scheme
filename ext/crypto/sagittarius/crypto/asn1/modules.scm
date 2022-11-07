@@ -72,46 +72,113 @@
 ;;                         not sure if we want sequence-of, or set-of...
 ;;     (request-list :type (sequence-of <request>))
 ;;     (request-extensions :type <extensions> :tag 2 :optional #t))))
+;; From https://okmij.org/ftp/Scheme/macros.html#Macro-lambda
+;; Maybe we should put this somewhere else
+(define-syntax ??!lambda (syntax-rules ()))
+(define-syntax ??! (syntax-rules ()))
+;; Modifeid to accept multiple bodies
+(define-syntax ??!apply
+  (syntax-rules (??!lambda)
+    ((_ (??!lambda (bound-var . other-bound-vars) body ...)
+	oval . other-ovals)
+     (letrec-syntax
+	 ((subs
+	   (syntax-rules (??! bound-var ??!lambda)
+	     ((_ val k (??! bound-var))
+	      (appl k val))
+	     ; check if bound-var is shadowed in int-body
+	     ((_ val k (??!lambda bvars int-body))
+	      (subs-in-lambda val bvars (k bvars) int-body))
+	     ((_ val k (x))	; optimize single-elem list substitution
+	      (subs val (recon-pair val k ()) x))
+	     ((_ val k (x . y))
+	      (subs val (subsed-cdr val k x) y))
+	     ((_ val k x)	; x is an id other than bound-var, or number&c
+	      (appl k x))))
+	  (subsed-cdr		; we've done the subs in the cdr of a pair
+	   (syntax-rules ()     ; now do the subs in the car
+	     ((_ val k x new-y)
+	      (subs val (recon-pair val k new-y) x))))
+	  (recon-pair		; reconstruct the pair out of substituted comp
+	   (syntax-rules ()
+	     ((_ val k new-y new-x)
+	      (appl k (new-x . new-y)))))
+	  (subs-in-lambda ; substitute inside the lambda form
+	   (syntax-rules (bound-var)
+	     ((_ val () kp int-body)
+	      (subs val (recon-l kp ()) int-body))
+	      ; bound-var is shadowed in the int-body: no subs
+             ((_ val (bound-var . obvars) (k bvars) int-body)
+	      (appl k (??!lambda bvars int-body)))
+             ((_ val (obvar . obvars) kp int-body)
+	      (subs-in-lambda val obvars kp int-body))))
+	  (recon-l	; reconstruct lambda from the substituted body
+	   (syntax-rules ()
+	     ((_ (k bvars) () result)
+	      (appl k (??!lambda bvars result)))))
+	  (appl		; apply the continuation
+	   (syntax-rules ()	; add the result to the end of k
+	     ((_ (a b c d) result)
+	      (a b c d result))
+	     ((_ (a b c) result)
+	      (a b c result))))
+	  (finish
+	   (syntax-rules ()
+	     ((_ () () exp)
+	      exp)
+	     ((_ rem-bvars rem-ovals exps)
+	      (??!apply (??!lambda rem-bvars exps) . rem-ovals))))
+	  )
+       ; In the following, finish is the continuation...
+       (subs oval (finish other-bound-vars other-ovals) (begin body ...))))))
+
 (define-syntax define-asn1-encodable
   (syntax-rules (of asn1-choice)
     ((_ name (base-type (of spec ...) opts ...))
-     (begin
-       (define-asn1-encodable "emit-class" name
-	 (base-type ((of :multiple #t
-			 spec ...
-			 :init-keyword :elements ;; default
-			 :init-value '())) opts ...))
-       (define-method write-object ((o name) p)
-	 (asn1-generic-write name
-			     (asn1-object-list->string (slot-ref o 'of)) p))))
+     (define-asn1-encodable "emit-class" name
+       (base-type ((of :multiple #t
+		       spec ...
+		       :init-keyword :elements ;; default
+		       :init-value '())) opts ...)
+       (??!lambda (o p n)
+	(asn1-generic-write (??! n)
+	 (asn1-object-list->string (slot-ref (??! o) 'of)) (??! p)))))
     ((_ name (asn1-choice ((slot spec* ...) ...) opts ...))
-     (begin
-       (define-asn1-encodable "emit-class" name
-	 (asn1-choice ((slot spec* ...) ...) opts ...))
-       (define-method write-object ((o name) p)
-	 (let-values (((out e) (open-string-output-port)))
-	   (put-datum out (slot-ref o 'value))
-	   (asn1-generic-write name (string-trim (e)) p)))))
+     (define-asn1-encodable "emit-class" name
+       (asn1-choice ((slot spec* ...) ...) opts ...)
+       (??!lambda (o p n)
+	(let-values (((out e) (open-string-output-port)))
+	  (put-datum out (slot-ref (??! o) 'value))
+	  (asn1-generic-write (??! n) (string-trim (e)) (??! p))))))
     ((_ name (base-type ((slot spec* ...) ...) opts ...))
-     (begin
-       (define-asn1-encodable "emit-class" name
-	 (base-type ((slot spec* ...) ...) opts ...))
-       (define-method write-object ((o name) p)
-	 (define (slots->list o)
-	   (filter-map (lambda (s) (slot-ref o (slot-definition-name s)))
-		       (class-slots name)))
-	 (asn1-generic-write name
-			     (asn1-object-list->string (slots->list o)) p))))
-    ((_ "emit-class" name (base-type ((slot spec* ...) ...) opts ...))
+     (define-asn1-encodable "emit-class" name
+       (base-type ((slot spec* ...) ...) opts ...)
+       (??!lambda (o p n)
+	(define (slots->list v)
+	  (filter-map (lambda (s) (slot-ref v (slot-definition-name s)))
+		      (class-slots (??! n))))
+	(asn1-generic-write (??! n)
+			    (asn1-object-list->string
+			     (slots->list (??! o))) (??! p)))))
+    ((_ "emit-class" (name parents ...)
+	(base-type ((slot spec* ...) ...) opts ...)
+	object-writer)
      (begin 
-       (base-type name (((slot spec* ...) ...) opts ...)
+       (base-type (name parents ...) (((slot spec* ...) ...) opts ...)
 		  asn1-object->this
 		  this->asn1-object)
        (define-method asn1-object->asn1-encodable ((m (eql name))
-						   (o <asn1-object>))
-	 (asn1-object->this o))
-       (define-method asn1-encodable->asn1-object ((o name) type)
-	 (this->asn1-object o type))))))
+						   (ao <asn1-object>))
+	 (asn1-object->this ao))
+       (define-method asn1-encodable->asn1-object ((ao name) type)
+	 (this->asn1-object ao type))
+       (define-method write-object ((o name) p)
+	 (??!apply object-writer o p name))))
+    ((_ "emit-class" name (base-type ((slot spec* ...) ...) opts ...)
+	object-writer)
+     (define-asn1-encodable "emit-class" (name)
+       (base-type ((slot spec* ...) ...) opts ...)
+       object-writer))))
 
 ;; <asn1-object> is always <asn1-encodable>, so this is fine
 (define-method asn1-object->asn1-encodable (m (o <asn1-object>)) o)
@@ -119,10 +186,10 @@
 ;; dispatcher
 (define-syntax base-collection
   (syntax-rules ()
-    ((_ name (((slot spec* ...) ...) opts ...)
+    ((_ (name parents ...) (((slot spec* ...) ...) opts ...)
 	(->this pred) (->asn1-object ctr))
      (begin 
-       (define-class name (<asn1-encodable>)
+       (define-class name (<asn1-encodable> parents ...)
 	 ((slot spec* ...
 		;; needs to be after
 		:init-keyword (symbol->keyword 'slot)
@@ -155,9 +222,10 @@
 
 (define-syntax asn1-choice
   (syntax-rules ()
-    ((_ name (((slot spec* ...) ...) opts ...) ->this ->asn1-object)
+    ((_ (name parents ...)
+	(((slot spec* ...) ...) opts ...) ->this ->asn1-object)
      (begin
-       (define-class name (<asn1-encodable>)
+       (define-class name (<asn1-encodable> parents ...)
 	 ((type :init-keyword :type)
 	  (value :init-keyword :value opts ...)))
        (define specs (list (list 'slot spec* ...) ...))
