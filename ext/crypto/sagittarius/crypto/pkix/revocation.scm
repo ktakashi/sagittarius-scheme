@@ -31,6 +31,7 @@
 #!nounbound
 (library (sagittarius crypto pkix revocation)
     (export x509-revoked-certificate? <x509-revoked-certificate>
+	    make-x509-revoked-certificate
 	    x509-revoked-certificate-serial-number
 	    x509-revoked-certificate-revocation-date
 	    x509-revoked-certificate-crl-entry-extensions
@@ -54,6 +55,10 @@
 	    x509-certificate-revocation-list-signature-validator
 	    x509-certificate-revocation-list-issuer-validator
 	    x509-certificate-revoked?
+
+	    x509-certificate-revocation-list-template?
+	    x509-certificate-revocation-list-template-builder
+	    sign-x509-certificate-revocation-list-template
 	    )
     (import (rnrs)
 	    (clos user)
@@ -95,12 +100,19 @@
 		    :reader x509-revoked-certificate-revocation-date)
    (crl-entry-extensions :allocation :virtual :cached #t
     :slot-ref (make-slot-ref
-	       (.$ revoked-certificate-revocation-date
+	       (.$ revoked-certificate-crl-entry-extensions
 		   x509-revoked-certificate-c)
 	       (lambda (e)
 		 (and e (extensions->x509-extension-list e))))
     :reader x509-revoked-certificate-crl-entry-extensions)))
 (define (x509-revoked-certificate? o) (is-a? o <x509-revoked-certificate>))
+(define (make-x509-revoked-certificate
+	 (serial-number integer?)
+	 (revocation-date date?)
+	 :optional ((extensions (or #f (list-of x509-extension?))) #f))
+  (make <x509-revoked-certificate>
+    :c (make-revoked-certificate serial-number revocation-date extensions)))
+
 (define (revoked-certificate->x509-revoked-certificate
 	 (revoked-certificate revoked-certificate?))
   (make <x509-revoked-certificate> :c revoked-certificate))
@@ -110,10 +122,12 @@
   (let ((serial-number (x509-revoked-certificate-serial-number rc))
 	(revocation-date (x509-revoked-certificate-revocation-date rc))
 	(e* (x509-revoked-certificate-crl-entry-extensions rc)))
-    (make <revoked-certificate>
-      :user-certificate (integer->der-integer serial-number)
-      :revocation-date (date->der-generalized-time revocation-date)
-      :crl-entry-extensions (and e* (x509-extension-list->extensions e*)))))
+    (make-revoked-certificate serial-number revocation-date e*)))
+(define (make-revoked-certificate sn date e*)
+  (make <revoked-certificate>
+    :user-certificate (integer->der-integer sn)
+    :revocation-date (date->der-generalized-time date)
+    :crl-entry-extensions (and e* (x509-extension-list->extensions e*))))
 
 (define (x509-certificate-revocation-list-c o) (slot-ref o 'c))
 (define tbs-cert-list (.$ certificate-list-c
@@ -214,7 +228,6 @@
   (define (in-effect? revoked)
     (time<? (date->time-utc (x509-revoked-certificate-revocation-date revoked))
 	    (date->time-utc date)))
-  
   (define ((cert=? sn) revoked)
     (and (= (x509-revoked-certificate-serial-number revoked) sn)
 	 (in-effect? revoked)))
@@ -223,5 +236,85 @@
 	       (x509-certificate-issuer-dn certificate))
        (exists (cert=? (x509-certificate-serial-number certificate))
 	       (x509-certificate-revocation-list-revoked-certificates crl))))
+
+(define-record-type x509-certificate-revocation-list-template
+  (fields issuer-dn
+	  this-update
+	  next-update
+	  revoked-certificates
+	  crl-extensions))
+
+(define ((required who pred conv) o)
+  (unless (pred o)
+    (assertion-violation (list 'x509-certificate-revocation-list-template who)
+			 "Invalid value"
+			 o `(must satisfy ,pred)))
+  (conv o))
+(define ((optional who pred conv) o)
+  (unless (or (not o) (pred o))
+    (assertion-violation (list 'x509-certificate-revocation-list-template who)
+			 "Invalid value"
+			 o `(must satisfy ,pred)))
+  (and o (conv o)))
+(define check-issuer (required 'issuer-dn x509-name? x509-name->name))
+(define check-this-update
+  (required 'this-update date? date->der-generalized-time))
+(define check-next-update
+  (optional 'next-update date? date->der-generalized-time))
+(define check-revoked-certificates
+  (required 'revoked-certificates (list-of x509-revoked-certificate?)
+	    (lambda (l)
+	      (map x509-revoked-certificate->revoked-certificate l))))
+(define check-extensions
+  (optional 'crl-extensions (list-of x509-extension?)
+	    x509-extension-list->extensions))
+(define-syntax x509-certificate-revocation-list-template-builder
+  (make-record-builder x509-certificate-revocation-list-template
+   ((issuer-dn #f check-issuer)
+    (this-update #f check-this-update)
+    (next-update #f check-next-update)
+    (revoked-certificates '() check-revoked-certificates)
+    (crl-extensions #f check-extensions))))
+
+(define (x509-certificate-revocation-list-template->tbs-cert-list tmpl algo)
+  (define issuer (x509-certificate-revocation-list-template-issuer-dn tmpl))
+  (define tupd (x509-certificate-revocation-list-template-this-update tmpl))
+  (define nupd (x509-certificate-revocation-list-template-next-update tmpl))
+  (define rc*
+    (x509-certificate-revocation-list-template-revoked-certificates tmpl))
+  (define extensions
+    (x509-certificate-revocation-list-template-crl-extensions tmpl))
+  (define version
+    (and (or extensions (exists revoked-certificate-crl-entry-extensions rc*))
+	 ;; v2
+	 (integer->der-integer 1)))
+  (make <tbs-cert-list>
+    :version version
+    :signature algo
+    :issuer issuer
+    :this-update tupd
+    :next-update nupd
+    :revoked-certificates rc*
+    :crl-extensions extensions))
+
+(define (sign-x509-certificate-revocation-list-template
+	 (template x509-certificate-revocation-list-template?)
+	 (aid (or string? x509-algorithm-identifier?))
+	 (private-key private-key?))
+  (define x509-aid (if (string? aid)
+		       (make-x509-algorithm-identifier aid)
+		       aid))
+  (define signer (x509-algorithm-identifier->signer x509-aid private-key))
+  (let* ((algorithm (x509-algorithm-identifier->algorithm-identifier x509-aid))
+	 (tbs-list (x509-certificate-revocation-list-template->tbs-cert-list
+		    template algorithm))
+	 (signature (signer-sign-message signer
+		     (asn1-encodable->bytevector tbs-list)))
+	 (cr (make <certificate-list>
+	       :c tbs-list
+	       :algorithm algorithm
+	       :signature (bytevector->der-bit-string signature))))
+    (make <x509-certificate-revocation-list> :c cr)))
+
 )
     

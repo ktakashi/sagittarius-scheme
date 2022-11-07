@@ -1,6 +1,7 @@
 (import (rnrs)
 	(sagittarius crypto pkix certificate)
 	(sagittarius crypto pkix request)
+	(sagittarius crypto pkix revocation)
 	(sagittarius crypto pkix algorithms)
 	(sagittarius crypto pkix signatures)
 	(sagittarius crypto pkix extensions)
@@ -362,4 +363,81 @@
 		*signature-algorithm:ed25519*
 		*signature-algorithm:ed448*))
 
+;; CRL
+(define 1d (make-time time-duration 0 (* 3600 24)))
+(define nowd (time-utc->date now))
+(define now-1d (time-utc->date (subtract-duration now 1d)))
+(define now+1d (time-utc->date (add-duration now 1d)))
+(define (test-crl-builder algorithm)
+  (let* ((tmpl (x509-certificate-revocation-list-template-builder
+		(issuer-dn subject-dn)
+		(this-update nowd)
+		(revoked-certificates
+		 (list (make-x509-revoked-certificate 1 nowd)))))
+	 (key-pair (generate-key-pair (->key-operation algorithm)))
+	 (private-key (key-pair-private key-pair))
+	 (cert-templ (x509-certificate-template-builder
+		      (issuer-dn subject-dn)
+		      (subject-dn subject-dn)
+		      (serial-number 1)
+		      (public-key (key-pair-public key-pair))
+		      (not-before now-1d)
+		      (not-after now+1d)))
+	 (cert (sign-x509-certificate-template cert-templ algorithm private-key)))
+    (test-assert (x509-certificate-revocation-list-template? tmpl))
+    (let ((crl (sign-x509-certificate-revocation-list-template
+		tmpl algorithm private-key)))
+      (test-assert (x509-certificate-revocation-list? crl))
+      (test-assert (x509-certificate-revoked? cert crl))
+      (test-assert (validate-x509-certificate-revocation-list crl
+		    (x509-certificate-revocation-list-signature-validator
+		     (key-pair-public key-pair))
+		    (x509-certificate-revocation-list-issuer-validator
+		     subject-dn)))
+      
+      (test-assert (x509-certificate-revocation-list?
+		    (bytevector->x509-certificate-revocation-list
+		     (x509-certificate-revocation-list->bytevector crl)))))))
+
+(test-crl-builder (make-x509-algorithm-identifier
+		   *signature-algorithm:rsa-ssa-pss*
+		   (make-x509-rsassa-pss-param)))
+(test-crl-builder (make-x509-algorithm-identifier
+		   *signature-algorithm:rsa-ssa-pss*
+		   (make-x509-rsassa-pss-param
+		    :salt-length 128)))
+(test-crl-builder (make-x509-algorithm-identifier
+		   *signature-algorithm:rsa-ssa-pss*
+		   (make-x509-rsassa-pss-param
+		    :digest *digest:sha-256*
+		    :mgf-digest *digest:sha-256*)))
+
+(for-each test-crl-builder
+	  (list *signature-algorithm:rsa-pkcs-v1.5-sha1*
+		*signature-algorithm:rsa-pkcs-v1.5-sha256*
+		*signature-algorithm:rsa-pkcs-v1.5-sha384*
+		*signature-algorithm:rsa-pkcs-v1.5-sha512*
+		*signature-algorithm:rsa-pkcs-v1.5-sha224*
+		*signature-algorithm:rsa-pkcs-v1.5-sha512/224*
+		*signature-algorithm:rsa-pkcs-v1.5-sha512/256*
+		*signature-algorithm:rsa-pkcs-v1.5-sha3-224*
+		*signature-algorithm:rsa-pkcs-v1.5-sha3-256*
+		*signature-algorithm:rsa-pkcs-v1.5-sha3-384*
+		*signature-algorithm:rsa-pkcs-v1.5-sha3-512*
+		*signature-algorithm:dsa-sha224*
+		*signature-algorithm:dsa-sha256*
+		;; The same reason
+		;; *signature-algorithm:dsa-sha384*
+		;; *signature-algorithm:dsa-sha512*
+		*signature-algorithm:ecdsa-sha1*
+		*signature-algorithm:ecdsa-sha224*
+		*signature-algorithm:ecdsa-sha256*
+		*signature-algorithm:ecdsa-sha384*
+		*signature-algorithm:ecdsa-sha512*
+		*signature-algorithm:ecdsa-sha3-224*
+		*signature-algorithm:ecdsa-sha3-256*
+		*signature-algorithm:ecdsa-sha3-384*
+		*signature-algorithm:ecdsa-sha3-512*
+		*signature-algorithm:ed25519*
+		*signature-algorithm:ed448*))
 (test-end)

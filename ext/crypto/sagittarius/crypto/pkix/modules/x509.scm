@@ -133,6 +133,7 @@
 	    revoked-certificate? <revoked-certificate>
 	    revoked-certificate-user-certificate
 	    revoked-certificate-revocation-date
+	    revoked-certificate-crl-entry-extensions
 
 	    tbs-cert-list? <tbs-cert-list>
 	    tbs-cert-list-version
@@ -801,7 +802,8 @@
 		      :reader revoked-certificate-user-certificate)
     (revocation-date :type <asn1-time>
 		     :reader revoked-certificate-revocation-date)
-    (crl-entry-extensions :type <extensions> :optional #t))))
+    (crl-entry-extensions :type <extensions> :optional #t
+			  :reader revoked-certificate-crl-entry-extensions))))
 (define (revoked-certificate? o) (is-a? o <revoked-certificate>))
 
 (define-asn1-encodable <tbs-cert-list>
