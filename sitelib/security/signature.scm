@@ -72,214 +72,121 @@
 	    *eddsa-signer-provider*
 	    )
     (import (rnrs)
-	    (clos core)
-	    (crypto)
-	    (math)
-	    (asn.1)
-	    (rsa pkcs :10))
+	    (sagittarius crypto signatures)
+	    (sagittarius crypto keys)
+	    (sagittarius crypto digests)
+	    (sagittarius crypto pkix algorithms)
+	    (sagittarius crypto pkix signatures))
 
-(define *rsassa-pss-oid* "1.2.840.113549.1.1.10")
 (define (algorithm-identifier->signature-verifier-provider aid)
-  (define oid (algorithm-identifier-id aid))
-  (cond ((string=? oid *rsassa-pss-oid*)
-	 (let-values (((algo mgf salt-len) (parse-rsassa-pss-parameter aid)))
-	   ;; wrap it
-	   (lambda (public-key . parameters)
-	     (apply *rsassa-pss-verifier-provider* public-key
-		    :digest algo
-		    :mgf mgf
-		    :salt-length salt-len
-		    parameters))))
-	((assp (lambda (known-oid) (string=? oid known-oid))
-	       *provider-oid-map*) => cadr)
-	(else
-	 (assertion-violation 'algorithm-identifier->signature-verifier-provider
-			      "Not supported OID" oid))))
+  (define x509-aid (algorithm-identifier->x509-algorithm-identifier aid))
+  (lambda (public-key . parameter)
+    (apply x509-algorithm-identifier->verifier x509-aid public-key parameter)))
 
 (define (algorithm-identifier->signature-signer-provider aid)
-  (define oid (algorithm-identifier-id aid))
-  (cond ((string=? oid *rsassa-pss-oid*)
-	 (let-values (((algo mgf salt-len) (parse-rsassa-pss-parameter aid)))
-	   ;; wrap it
-	   (lambda (private-key . parameters)
-	     (apply *rsassa-pss-signer-provider* private-key
-		    :digest algo
-		    :mgf mgf
-		    :salt-length salt-len
-		    parameters))))
-	((assp (lambda (known-oid) (string=? oid known-oid))
-	       *provider-oid-map*) => caddr)
-	(else
-	 (assertion-violation 'algorithm-identifier->signature-signer-provider
-			      "Not supported OID" oid))))
-
-#|
-      RSASSA-PSS-params  ::=  SEQUENCE  {
-         hashAlgorithm      [0] HashAlgorithm DEFAULT
-                                   sha1Identifier,
-         maskGenAlgorithm   [1] MaskGenAlgorithm DEFAULT
-                                   mgf1SHA1Identifier,
-         saltLength         [2] INTEGER DEFAULT 20,
-         trailerField       [3] INTEGER DEFAULT 1  }
-|#
-
-(define (parse-rsassa-pss-parameter aid)
-  (define param (algorithm-identifier-parameters aid))
-  (define (find-tag param tag)
-    (cond ((asn.1-collection-find-tag param tag) =>
-	   (lambda (tag) (slot-ref tag 'obj)))
-	  (else #f)))
-  (unless (is-a? param <asn.1-sequence>)
-    (assertion-violation 'parse-rsassa-pss-parameter
-			 "Invalid rsassa-pss parameter" aid))
-  (let ((hash-func-aid (make-algorithm-identifier (find-tag param 0)))
-	(mask-gen-func-aid (make-algorithm-identifier (find-tag param 1)))
-	(salt-len (find-tag param 2)))
-    (unless (string=? (algorithm-identifier-id mask-gen-func-aid)
-		      "1.2.840.113549.1.1.8")
-      (assertion-violation 'parse-rsassa-pss-parameter
-			   "Unknown MGF OID" mask-gen-func-aid))
-    (values (oid->hash-algorithm (algorithm-identifier-id hash-func-aid))
-	    mgf-1
-	    (der-integer->integer salt-len))))
+  (define x509-aid (algorithm-identifier->x509-algorithm-identifier aid))
+  (lambda (private-key . parameter)
+    (apply x509-algorithm-identifier->signer x509-aid private-key parameter)))
 
 ;;; verifier providers
-(define (make-rsa-verifier-provider digest verify)
+(define (oid->verifier-provider oid)
+  (define maker (oid->verifier-maker oid))
   (lambda (public-key . parameter)
-    (define cipher (make-cipher RSA public-key))
-    (define algo (hash-algorithm digest))
-    (lambda (message signnature)
-      (apply cipher-verify cipher message signnature
-	     :hash algo :verify verify parameter))))
+    (let ((verifier (apply maker public-key parameter)))
+      (lambda (message signnature)
+	(verifier-verify-signature verifier message signnature)))))
 
 (define *rsa/sha1-verifier-provider*
-  (make-rsa-verifier-provider SHA-1 pkcs1-emsa-v1.5-verify))
+  (oid->verifier-provider *signature-algorithm:rsa-pkcs-v1.5-sha1*))
 (define *rsa/sha256-verifier-provider*
-  (make-rsa-verifier-provider SHA-256 pkcs1-emsa-v1.5-verify))
+  (oid->verifier-provider *signature-algorithm:rsa-pkcs-v1.5-sha256*))
 (define *rsa/sha384-verifier-provider*
-  (make-rsa-verifier-provider SHA-384 pkcs1-emsa-v1.5-verify))
+  (oid->verifier-provider *signature-algorithm:rsa-pkcs-v1.5-sha384*))
 (define *rsa/sha512-verifier-provider*
-  (make-rsa-verifier-provider SHA-512 pkcs1-emsa-v1.5-verify))
+  (oid->verifier-provider *signature-algorithm:rsa-pkcs-v1.5-sha512*))
 (define *rsa/sha224-verifier-provider*
-  (make-rsa-verifier-provider SHA-224 pkcs1-emsa-v1.5-verify))
+  (oid->verifier-provider *signature-algorithm:rsa-pkcs-v1.5-sha224*))
 (define *rsa/sha512/224-verifier-provider*
-  (make-rsa-verifier-provider SHA-512/224 pkcs1-emsa-v1.5-verify))
+  (oid->verifier-provider *signature-algorithm:rsa-pkcs-v1.5-sha512/224*))
 (define *rsa/sha512/256-verifier-provider*
-  (make-rsa-verifier-provider SHA-512/256 pkcs1-emsa-v1.5-verify))
+  (oid->verifier-provider *signature-algorithm:rsa-pkcs-v1.5-sha512/256*))
 
+(define rsassa-pss-verifier-maker
+  (oid->verifier-maker *signature-algorithm:rsa-ssa-pss*))
 (define (*rsassa-pss-verifier-provider* public-key
-					:key (digest SHA-1)
+					:key (digest *digest:sha-1*)
 					:allow-other-keys opts)
-    (define cipher (make-cipher RSA public-key))
-    (define algo (hash-algorithm digest))
-    (lambda (message signnature)
-      (apply cipher-verify cipher message signnature
-	     :hash algo :verify pkcs1-emsa-pss-verify opts)))
+  (define verifier
+    (apply rsassa-pss-verifier-maker public-key :digest digest opts))
+  (lambda (message signnature)
+    (verifier-verify-signature verifier message signnature)))
 
-(define (make-ecdsa-verifier-provider digest)
-  (lambda (public-key . opts)
-    (define cipher (make-cipher ECDSA public-key))
-    (lambda (message signature)
-      (apply cipher-verify cipher message signature :hash digest opts))))
-
-(define *ecdsa/sha1-verifier-provider* (make-ecdsa-verifier-provider SHA-1))
-(define *ecdsa/sha224-verifier-provider* (make-ecdsa-verifier-provider SHA-224))
-(define *ecdsa/sha256-verifier-provider* (make-ecdsa-verifier-provider SHA-256))
-(define *ecdsa/sha384-verifier-provider* (make-ecdsa-verifier-provider SHA-384))
-(define *ecdsa/sha512-verifier-provider* (make-ecdsa-verifier-provider SHA-512))
+(define *ecdsa/sha1-verifier-provider*
+  (oid->verifier-provider *signature-algorithm:ecdsa-sha1*))
+(define *ecdsa/sha224-verifier-provider*
+  (oid->verifier-provider *signature-algorithm:ecdsa-sha224*))
+(define *ecdsa/sha256-verifier-provider*
+  (oid->verifier-provider *signature-algorithm:ecdsa-sha256*))
+(define *ecdsa/sha384-verifier-provider*
+  (oid->verifier-provider *signature-algorithm:ecdsa-sha384*))
+(define *ecdsa/sha512-verifier-provider*
+  (oid->verifier-provider *signature-algorithm:ecdsa-sha512*))
 
 (define (*eddsa-verifier-provider* public-key . opts)
-  (define cipher (apply make-cipher EdDSA public-key opts))
+  (define verifier (apply make-verifier
+			  (if (ed25519-key? public-key)
+			      *signature:ed25519*
+			      *signature:ed448*) public-key opts))
   (lambda (message signature)
-    ;; it's a bit ugly to handle context
-    (apply cipher-verify cipher message signature opts)))
+    (verifier-verify-signature verifier message signature)))
 
 ;; signer providers
-(define (make-rsa-signer-provider digest encode)
+(define (oid->signer-provider oid)
+  (define maker (oid->signer-maker oid))
   (lambda (private-key . parameter)
-    (define cipher (make-cipher RSA private-key))
-    (define algo (hash-algorithm digest))
-    (lambda (message)
-      (apply cipher-signature cipher message
-	     :hash algo :encode encode parameter))))
+    (define signer (apply maker private-key parameter))
+    (lambda (message) (signer-sign-message signer message))))
+
 (define *rsa/sha1-signer-provider*
-  (make-rsa-signer-provider SHA-1 pkcs1-emsa-v1.5-encode))
+  (oid->signer-provider *signature-algorithm:rsa-pkcs-v1.5-sha1*))
 (define *rsa/sha256-signer-provider*
-  (make-rsa-signer-provider SHA-256 pkcs1-emsa-v1.5-encode))
+  (oid->signer-provider *signature-algorithm:rsa-pkcs-v1.5-sha256*))
 (define *rsa/sha384-signer-provider*
-  (make-rsa-signer-provider SHA-384 pkcs1-emsa-v1.5-encode))
+  (oid->signer-provider *signature-algorithm:rsa-pkcs-v1.5-sha384*))
 (define *rsa/sha512-signer-provider*
-  (make-rsa-signer-provider SHA-512 pkcs1-emsa-v1.5-encode))
+  (oid->signer-provider *signature-algorithm:rsa-pkcs-v1.5-sha512*))
 (define *rsa/sha224-signer-provider*
-  (make-rsa-signer-provider SHA-224 pkcs1-emsa-v1.5-encode))
+  (oid->signer-provider *signature-algorithm:rsa-pkcs-v1.5-sha224*))
 (define *rsa/sha512/224-signer-provider*
-  (make-rsa-signer-provider SHA-512/224 pkcs1-emsa-v1.5-encode))
+  (oid->signer-provider *signature-algorithm:rsa-pkcs-v1.5-sha512/224*))
 (define *rsa/sha512/256-signer-provider*
-  (make-rsa-signer-provider SHA-512/256 pkcs1-emsa-v1.5-encode))
+  (oid->signer-provider *signature-algorithm:rsa-pkcs-v1.5-sha512/256*))
 
+(define rsassa-pss-signer-maker
+  (oid->signer-maker *signature-algorithm:rsa-ssa-pss*))
 (define (*rsassa-pss-signer-provider* private-key
-				      :key (digest SHA-1)
+				      :key (digest *digest:sha-1*)
 				      :allow-other-keys opts)
-    (define cipher (make-cipher RSA private-key))
-    (define algo (hash-algorithm digest))
-    (lambda (message)
-      (apply cipher-signature cipher message
-	     :hash algo :encode pkcs1-emsa-pss-encode opts)))
+  (define signer
+    (apply rsassa-pss-signer-maker private-key :digest digest opts))
+  (lambda (message) (signer-sign-message signer message)))
 
-(define (make-ecdsa-signer-provider digest)
-  (lambda (private-key . opts)
-    (define cipher (make-cipher ECDSA private-key))
-    (lambda (message)
-      (apply cipher-signature cipher message :hash digest opts))))
-
-(define *ecdsa/sha1-signer-provider* (make-ecdsa-signer-provider SHA-1))
-(define *ecdsa/sha224-signer-provider* (make-ecdsa-signer-provider SHA-224))
-(define *ecdsa/sha256-signer-provider* (make-ecdsa-signer-provider SHA-256))
-(define *ecdsa/sha384-signer-provider* (make-ecdsa-signer-provider SHA-384))
-(define *ecdsa/sha512-signer-provider* (make-ecdsa-signer-provider SHA-512))
+(define *ecdsa/sha1-signer-provider*
+  (oid->signer-provider *signature-algorithm:ecdsa-sha1*))
+(define *ecdsa/sha224-signer-provider*
+  (oid->signer-provider *signature-algorithm:ecdsa-sha224*))
+(define *ecdsa/sha256-signer-provider*
+  (oid->signer-provider *signature-algorithm:ecdsa-sha256*))
+(define *ecdsa/sha384-signer-provider*
+  (oid->signer-provider *signature-algorithm:ecdsa-sha384*))
+(define *ecdsa/sha512-signer-provider*
+  (oid->signer-provider *signature-algorithm:ecdsa-sha512*))
 
 (define (*eddsa-signer-provider* private-key . opts)
-  (define cipher (apply make-cipher EdDSA private-key opts))
-  (lambda (message)
-    (apply cipher-signature cipher message opts)))
-
-(define *provider-oid-map*
-  `(;; RSA PKCS v1.5
-    ("1.2.840.113549.1.1.5"  ,*rsa/sha1-verifier-provider*
-			     ,*rsa/sha1-signer-provider*)
-    ("1.2.840.113549.1.1.11" ,*rsa/sha256-verifier-provider*
-			     ,*rsa/sha256-signer-provider*)
-    ("1.2.840.113549.1.1.12" ,*rsa/sha384-verifier-provider*
-			     ,*rsa/sha384-signer-provider*)
-    ("1.2.840.113549.1.1.13" ,*rsa/sha512-verifier-provider*
-			     ,*rsa/sha512-signer-provider*)
-    ("1.2.840.113549.1.1.14" ,*rsa/sha224-verifier-provider*
-			     ,*rsa/sha224-signer-provider*)
-    ("1.2.840.113549.1.1.15" ,*rsa/sha512/224-verifier-provider*
-			     ,*rsa/sha512/224-signer-provider*)
-    ("1.2.840.113549.1.1.16" ,*rsa/sha512/256-verifier-provider*
-			     ,*rsa/sha512/256-signer-provider*)
-    ;; RSA PSSSSA-PSS
-    (,*rsassa-pss-oid*       ,*rsassa-pss-verifier-provider*
-			     ,*rsassa-pss-signer-provider*)
-    ;; DSA
-    ;; ECDSA
-    ("1.2.840.10045.4.1"     ,*ecdsa/sha1-verifier-provider*
-			     ,*ecdsa/sha1-signer-provider*)
-    ("1.2.840.10045.4.3.1"   ,*ecdsa/sha224-verifier-provider*
-			     ,*ecdsa/sha224-signer-provider*)
-    ("1.2.840.10045.4.3.2"   ,*ecdsa/sha256-verifier-provider*
-			     ,*ecdsa/sha256-signer-provider*)
-    ("1.2.840.10045.4.3.3"   ,*ecdsa/sha384-verifier-provider*
-			     ,*ecdsa/sha384-signer-provider*)
-    ("1.2.840.10045.4.3.4"   ,*ecdsa/sha512-verifier-provider*
-			     ,*ecdsa/sha512-signer-provider*)
-
-    ;; EdDSA
-    ("1.3.101.112" ,*eddsa-verifier-provider*
-		   ,*eddsa-signer-provider*)
-    ("1.3.101.113" ,*eddsa-verifier-provider*
-		   ,*eddsa-signer-provider*)
-    ))
-
+  (define signer (apply make-signer
+			(if (ed25519-key? private-key)
+			    *signature:ed25519*
+			    *signature:ed448*)
+			private-key opts))
+  (lambda (message) (signer-sign-message signer message)))
 )

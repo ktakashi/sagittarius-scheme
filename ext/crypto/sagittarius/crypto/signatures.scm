@@ -47,6 +47,7 @@
 
 	    *signature:dsa*
 	    *signature:ecdsa*
+	    *signature:eddsa*
 	    *signature:ed25519*
 	    *signature:ed25519ctx*
 	    *signature:ed25519ph*
