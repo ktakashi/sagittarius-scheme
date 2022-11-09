@@ -59,6 +59,7 @@ extern void Sg__InitString();
 extern void Sg__InitKeyword();
 extern void Sg__InitLibrary();
 extern void Sg__InitFile();
+extern void SG__InitBytevector();
 extern void Sg__InitPair();
 extern void Sg__InitRecord();
 extern void Sg__InitConditions();
@@ -194,6 +195,7 @@ void Sg_Init()
   Sg__InitPair();
   Sg__InitCharSet();
   Sg__InitFile();
+  SG__InitBytevector();
 
   /* regex */
   Sg__InitRegex();

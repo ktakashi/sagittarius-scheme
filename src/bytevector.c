@@ -38,6 +38,7 @@
 #include "sagittarius/private/bignum.h"
 #include "sagittarius/private/bits.h"
 #include "sagittarius/private/collection.h"
+#include "sagittarius/private/library.h"
 #include "sagittarius/private/number.h"
 #include "sagittarius/private/pair.h"
 #include "sagittarius/private/port.h"
@@ -45,6 +46,10 @@
 #include "sagittarius/private/error.h"
 #include "sagittarius/private/symbol.h"
 #include "sagittarius/private/vm.h"
+
+#define wte4(who, t, g, irr)						\
+  Sg_WrongTypeOfArgumentViolation(who, SG_MAKE_STRING(t), g, irr)
+#define wte(who, t, g)	wte4(who, t, g, g)
 
 static void bvector_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
@@ -252,18 +257,20 @@ SgObject Sg_ListToByteVector(SgObject lst, int bitCount, int signP)
       len++;
       continue;
     } else {
-      Sg_WrongTypeOfArgumentViolation(SG_INTERN("list->bytevector"),
-				      signP
-				      ? SG_MAKE_STRING("unsigned integer list")
-				      : SG_MAKE_STRING("integer list"),
-				      num, lst);
+      if (signP) {
+	wte4(SG_INTERN("list->bytevector"),
+	     "integer list",
+	     num, lst);
+      }
+      wte4(SG_INTERN("list->bytevector"),
+	   "unsigned integer list",
+	   num, lst);
       return SG_UNDEF;
     }
   }
   if (!SG_NULLP(cp)) {
-    Sg_WrongTypeOfArgumentViolation(SG_INTERN("list->bytevector"),
-				    SG_MAKE_STRING("proper list"),
-				    lst, lst);
+    wte(SG_INTERN("list->bytevector"), "proper list", lst);
+    return SG_UNDEF;
   }
   bv = make_bytevector(len);
   /* again... */
@@ -1058,9 +1065,7 @@ static SgObject integer2bytevector(SgObject num, long size, int sign)
 SgObject Sg_SIntegerToByteVectorBig(SgObject num, long size)
 {
   if (!SG_EXACT_INTP(num)) {
-    Sg_WrongTypeOfArgumentViolation(SG_INTERN("sinteger->bytevector"),
-				    SG_MAKE_STRING("exact integer"),
-				    num, num);
+    wte(SG_INTERN("sinteger->bytevector"), "exact integer", num);
   }
   return integer2bytevector(num, size, TRUE);
 }
@@ -1069,9 +1074,7 @@ SgObject Sg_IntegerToByteVectorBig(SgObject num, long size)
 {
   /* we don't allow negative value for this */
   if (!SG_EXACT_INTP(num) || Sg_NegativeP(num)) {
-    Sg_WrongTypeOfArgumentViolation(SG_INTERN("integer->bytevector"),
-				    SG_MAKE_STRING("exact non negative integer"),
-				    num, num);
+    wte(SG_INTERN("integer->bytevector"), "exact non negative integer", num);
   }
   return integer2bytevector(num, size, FALSE);
 }
@@ -1114,9 +1117,8 @@ SgObject Sg_ByteVectorConcatenate(SgObject bvList)
   long size = 0, i;
   SG_FOR_EACH(cp, bvList) {
     if (!SG_BVECTORP(SG_CAR(cp))) {
-      Sg_WrongTypeOfArgumentViolation(SG_INTERN("bytevector-concatenate"),
-				      SG_INTERN("bytevector"), 
-				      SG_CAR(cp), bvList);
+      wte4(SG_INTERN("bytevector-concatenate"), "bytevector", SG_CAR(cp),
+	   bvList);
     }
     size += SG_BVECTOR_SIZE(SG_CAR(cp));
   }
@@ -1130,4 +1132,74 @@ SgObject Sg_ByteVectorConcatenate(SgObject bvList)
     }
   }
   return r;
+}
+
+#undef min
+#define min(x, y)   (((x) < (y))? (x) : (y))
+#undef max
+#define max(x, y)   (((x) > (y))? (x) : (y))
+
+
+#define SG_DEFINE_LOG_OP_STUB(name, op, sname)				\
+  static void SG_CPP_CAT(name, rec)(int pos, SgObject r, SgObject e)	\
+{									\
+  int i, l;								\
+  if (!SG_BVECTORP(e)) {						\
+    SgObject irr = SG_LIST2(SG_MAKE_INT(pos), e);			\
+    wte4(SG_INTERN(#sname), "bytevector", e, irr);			\
+  }									\
+  l = min(SG_BVECTOR_SIZE(e), SG_BVECTOR_SIZE(r));			\
+  for (i = 0; i < l; i++) {						\
+    SG_BVECTOR_ELEMENT(r, i) =						\
+      SG_BVECTOR_ELEMENT(r, i) op SG_BVECTOR_ELEMENT(e, i);		\
+  }									\
+}									\
+static SgObject name(SgObject *args, int argc, void *data)		\
+{									\
+  SgObject rest = args[argc - 1];					\
+  SgObject r, irr, e;							\
+  int i, l;								\
+  if (!SG_BVECTORP(args[0])) {						\
+    wte(SG_INTERN(#sname), "bytevector", args[0]);			\
+  }									\
+  if (argc == 2) return args[0];	      /* 1 argument */		\
+  r = args[0];								\
+  e = args[1];								\
+  if (!SG_BVECTORP(e)) {						\
+    irr = SG_LIST2(SG_MAKE_INT(1), e);					\
+    wte4(SG_INTERN(#sname), "bytevector", e, irr);			\
+  }									\
+  l = min(SG_BVECTOR_SIZE(e), SG_BVECTOR_SIZE(r));			\
+  Sg_ByteVectorCopyX(e, 0, r, 0, l);					\
+  if (argc == 3) return r;						\
+  for (i = 2; i < argc - 1; i++) {					\
+    SG_CPP_CAT(name, rec)(i, r, args[i]);				\
+  }									\
+  if (!SG_NULLP(rest)) {						\
+    SgObject cp;							\
+    i = argc;								\
+    SG_FOR_EACH(cp, rest) {						\
+      SG_CPP_CAT(name, rec)(argc++, r, SG_CAR(cp));			\
+    }									\
+  }									\
+  return r;								\
+}									\
+static SG_DEFINE_SUBR(SG_CPP_CAT(name, _stub), 1, 10, name, SG_FALSE, NULL)
+
+SG_DEFINE_LOG_OP_STUB(bytevector_ior, |, bytevector-ior);
+SG_DEFINE_LOG_OP_STUB(bytevector_and, &, bytevector-and);
+SG_DEFINE_LOG_OP_STUB(bytevector_xor, ^, bytevector-xor);
+
+
+void SG__InitBytevector()
+{
+  SgLibrary *lib = Sg_FindLibrary(SG_INTERN("(sagittarius)"), FALSE);
+#define INSERT_LOG_OP(name, sname)					\
+  SG_PROCEDURE_NAME(&SG_CPP_CAT(name, _stub)) = SG_INTERN(sname);	\
+  SG_PROCEDURE_TRANSPARENT(&SG_CPP_CAT(name, _stub)) = SG_SUBR_SIDE_EFFECT; \
+  Sg_InsertBinding(lib, SG_INTERN(sname), SG_OBJ(&SG_CPP_CAT(name, _stub)));
+
+  INSERT_LOG_OP(bytevector_ior, "bytevector-ior!");
+  INSERT_LOG_OP(bytevector_and, "bytevector-and!");
+  INSERT_LOG_OP(bytevector_xor, "bytevector-xor!");
 }

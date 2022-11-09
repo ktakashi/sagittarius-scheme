@@ -94,33 +94,33 @@
 	    (only (srfi :13 strings) make-kmp-restart-vector)
 	    (srfi :14 char-sets)
 	    (srfi :26 cut))
-(define (process-bytevector! op out . bvs)
-  (let ((len (apply min (map bytevector-length bvs))))
-    (dotimes (i len)
-      (bytevector-u8-set! out i
-			  (apply op
-				 (map (^(bv) (bytevector-u8-ref bv i))
-				      bvs))))
-    out))
+;; (define (process-bytevector! op out . bvs)
+;;   (let ((len (apply min (map bytevector-length bvs))))
+;;     (dotimes (i len)
+;;       (bytevector-u8-set! out i
+;; 			  (apply op
+;; 				 (map (^(bv) (bytevector-u8-ref bv i))
+;; 				      bvs))))
+;;     out))
 
-(define (bytevector-xor! out . bvs)
-  (apply process-bytevector! bitwise-xor out bvs))
+;; (define (bytevector-xor! out . bvs)
+;;   (apply process-bytevector! bitwise-xor out bvs))
 
 (define (bytevector-xor . bvs)
   (let* ((len (apply min (map bytevector-length bvs)))
 	 (out (make-bytevector len 0)))
     (apply bytevector-xor! out bvs)))
 
-(define (bytevector-ior! out . bvs)
-  (apply process-bytevector! bitwise-ior out bvs))
+;; (define (bytevector-ior! out . bvs)
+;;   (apply process-bytevector! bitwise-ior out bvs))
 
 (define (bytevector-ior . bvs)
   (let* ((len (apply min (map bytevector-length bvs)))
 	 (out (make-bytevector len 0)))
     (apply bytevector-ior! out bvs)))
 
-(define (bytevector-and! out . bvs)
-  (apply process-bytevector! bitwise-and out bvs))
+;; (define (bytevector-and! out . bvs)
+;;   (apply process-bytevector! bitwise-and out bvs))
 
 (define (bytevector-and . bvs)
   (let* ((len (apply min (map bytevector-length bvs)))
