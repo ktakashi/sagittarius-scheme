@@ -4146,13 +4146,16 @@ void Sg__InitNumber()
   Sg__InitBignum();
 }
 
-#define SG_DEFINE_LOG_OP_STUB(name, noarg, c_op)			\
+#define SG_DEFINE_LOG_OP_STUB(name, noarg, c_op, sname)			\
   static SgObject name(SgObject *args, int argc, void *data)		\
   {									\
     SgObject rest = args[argc - 1];					\
     SgObject r;								\
     int i;								\
     if (argc == 1) return SG_MAKE_INT(noarg); /* no argument */		\
+    if (!SG_EXACT_INTP(args[0])) {					\
+      wte(SG_INTERN(#sname), "exact integer", args[0]);			\
+    }									\
     if (argc == 2) return args[0];	      /* 1 argument */		\
     r = c_op(args[0], args[1]);						\
     for (i = 2; i < argc - 1; i++) {					\
@@ -4169,9 +4172,9 @@ void Sg__InitNumber()
   static SG_DEFINE_SUBR(SG_CPP_CAT(name, _stub), 0, 10, name, SG_FALSE, NULL)
 
 /* bitwise-xor */
-SG_DEFINE_LOG_OP_STUB(bitwise_ior, 0,  Sg_LogIor);
-SG_DEFINE_LOG_OP_STUB(bitwise_and, -1, Sg_LogAnd);
-SG_DEFINE_LOG_OP_STUB(bitwise_xor, 0,  Sg_LogXor);
+SG_DEFINE_LOG_OP_STUB(bitwise_ior, 0,  Sg_LogIor, bitwise-ior);
+SG_DEFINE_LOG_OP_STUB(bitwise_and, -1, Sg_LogAnd, bitwise-and);
+SG_DEFINE_LOG_OP_STUB(bitwise_xor, 0,  Sg_LogXor, bitwise-xor);
 
 #undef SG_DEFINE_LOG_OP_STUB
 
