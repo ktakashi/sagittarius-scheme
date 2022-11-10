@@ -39,30 +39,22 @@
 	    (prefix (sagittarius crypto tomcrypt) tc:))
 
 (define *mac:hmac* :hmac)
-(define-class <hmac-state> (<mac-state>) ())
-(define (hmac-state? o) (is-a? o <hmac-state>))
 
 (define-method mac-state-initializer ((m (eql *mac:hmac*)) (key <bytevector>)
 	      :key ((digest builtin-digest-descriptor?) #f)
 	      :allow-other-keys)
-  (values (lambda ()
-	    (make <hmac-state>
-	      :state (tc:hmac-init (tc-digest-descriptor-digest digest) key)))
+  (values (lambda () (tc:hmac-init (tc-digest-descriptor-digest digest) key))
 	  (digest-descriptor-digest-size digest)
 	  (digest-oid->hmac-oid (digest-descriptor-oid digest))))
 
 (define-method mac-state-processor ((s (eql *mac:hmac*))) hmac-state-processor)
 (define-method mac-state-finalizer ((s (eql *mac:hmac*))) hmac-state-finalizer)
 
-(define (hmac-state-processor (state hmac-state?) (msg bytevector?)
-			      :optional (start 0)
-					(len (- (bytevector-length msg) start)))
-  (tc:hmac-process! (mac-state-state state) msg start len))
+(define (hmac-state-processor state msg . opts)
+  (apply tc:hmac-process! state msg opts))
 
-(define (hmac-state-finalizer (state hmac-state?) (out bytevector?)
-			      :optional (start 0)
-					(len (- (bytevector-length out) start)))
-  (tc:hmac-done! (mac-state-state state) out start len))
+(define (hmac-state-finalizer state out . opts)
+  (apply tc:hmac-done! state out opts))
 
 (define *digest-oid->hmac-oid-map*
   `((,(digest-descriptor-oid *digest:md5*)        . "1.3.6.1.5.5.8.1.1")

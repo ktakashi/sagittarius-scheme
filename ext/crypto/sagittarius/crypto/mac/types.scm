@@ -30,18 +30,11 @@
 
 #!nounbound
 (library (sagittarius crypto mac types)
-    (export mac-state? <mac-state>
-	    mac-state-state
-	    mac-state-initializer
+    (export mac-state-initializer
 	    mac-state-processor
-	    mac-state-finalizer
-	    )
+	    mac-state-finalizer)
     (import (rnrs)
 	    (clos user))
-
-(define-class <mac-state> ()
-  ((state :init-keyword :state :reader mac-state-state)))
-(define (mac-state? o) (is-a? o <mac-state>))
 
 (define-generic mac-state-initializer)
 (define-generic mac-state-processor)

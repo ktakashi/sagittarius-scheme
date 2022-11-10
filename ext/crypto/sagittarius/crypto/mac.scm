@@ -41,20 +41,18 @@
 	    
 	    mac-init!
 	    mac-process!
-	    mac-done!
-	    )
+	    mac-done!)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius)
 	    (sagittarius combinators)
 	    (sagittarius mop immutable)
-	    (sagittarius mop allocation)
 	    (sagittarius crypto mac types)
 	    (sagittarius crypto mac hmac)
 	    (sagittarius crypto mac cmac))
 
 (define (mac-state mac) (slot-ref mac 'state))
-(define-class <mac> (<immutable> <allocation>)
+(define-class <mac> (<immutable>)
   ((type :init-keyword :type :reader mac-type)
    (state :init-keyword :state :init-value #f :mutable #t
 	  :reader mac-state :writer mac-state-set!)
@@ -82,10 +80,8 @@
     (generate-mac! mac msg out 0)
     out))
 
-(define (generate-mac! (mac mac?) (msg bytevector?) (out bytevector?)
-		       :optional (start 0)
-				 (length (- (bytevector-length out) start)))
-  (mac-done! (mac-process! (mac-init! mac) msg) out start length))
+(define (generate-mac! mac msg out . opts)
+  (apply mac-done! (mac-process! (mac-init! mac) msg) out opts))
 
 (define (mac-init! (mac mac?))
   (mac-state-set! mac ((mac-initializer mac)))

@@ -38,30 +38,22 @@
 	    (prefix (sagittarius crypto tomcrypt) tc:))
 
 (define *mac:cmac* :cmac)
-(define-class <cmac-state> (<mac-state>) ())
-(define (cmac-state? o) (is-a? o <cmac-state>))
 
 (define-method mac-state-initializer ((m (eql *mac:cmac*)) (key <bytevector>)
 	      :key ((cipher block-cipher-descriptor?) #f)
 	      :allow-other-keys)
   (values (lambda ()
-	    (make <cmac-state>
-	      :state (tc:cmac-init (symmetric-cipher-descriptor-cipher cipher)
-				   key)))
+	    (tc:cmac-init (symmetric-cipher-descriptor-cipher cipher) key))
 	  (block-cipher-descriptor-block-length cipher)
 	  #f))
 
 (define-method mac-state-processor ((s (eql *mac:cmac*))) cmac-state-processor)
 (define-method mac-state-finalizer ((s (eql *mac:cmac*))) cmac-state-finalizer)
 
-(define (cmac-state-processor (state cmac-state?) (msg bytevector?)
-			      :optional (start 0)
-					(len (- (bytevector-length msg) start)))
-  (tc:cmac-process! (mac-state-state state) msg start len))
+(define (cmac-state-processor state msg . opts)
+  (apply tc:cmac-process! state msg opts))
 
-(define (cmac-state-finalizer (state cmac-state?) (out bytevector?)
-			      :optional (start 0)
-					(len (- (bytevector-length out) start)))
-  (tc:cmac-done! (mac-state-state state) out start len))
+(define (cmac-state-finalizer state out . opts)
+  (apply tc:cmac-done! state out opts))
 
 )
