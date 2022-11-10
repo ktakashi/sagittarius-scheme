@@ -47,13 +47,7 @@
 	  (block-cipher-descriptor-block-length cipher)
 	  #f))
 
-(define-method mac-state-processor ((s (eql *mac:cmac*))) cmac-state-processor)
-(define-method mac-state-finalizer ((s (eql *mac:cmac*))) cmac-state-finalizer)
-
-(define (cmac-state-processor state msg . opts)
-  (apply tc:cmac-process! state msg opts))
-
-(define (cmac-state-finalizer state out . opts)
-  (apply tc:cmac-done! state out opts))
+(define-method mac-state-processor ((s (eql *mac:cmac*))) tc:cmac-process!)
+(define-method mac-state-finalizer ((s (eql *mac:cmac*))) tc:cmac-done!)
 
 )

@@ -47,14 +47,8 @@
 	  (digest-descriptor-digest-size digest)
 	  (digest-oid->hmac-oid (digest-descriptor-oid digest))))
 
-(define-method mac-state-processor ((s (eql *mac:hmac*))) hmac-state-processor)
-(define-method mac-state-finalizer ((s (eql *mac:hmac*))) hmac-state-finalizer)
-
-(define (hmac-state-processor state msg . opts)
-  (apply tc:hmac-process! state msg opts))
-
-(define (hmac-state-finalizer state out . opts)
-  (apply tc:hmac-done! state out opts))
+(define-method mac-state-processor ((s (eql *mac:hmac*))) tc:hmac-process!)
+(define-method mac-state-finalizer ((s (eql *mac:hmac*))) tc:hmac-done!)
 
 (define *digest-oid->hmac-oid-map*
   `((,(digest-descriptor-oid *digest:md5*)        . "1.3.6.1.5.5.8.1.1")

@@ -51,7 +51,6 @@
 	    (sagittarius crypto mac hmac)
 	    (sagittarius crypto mac cmac))
 
-(define (mac-state mac) (slot-ref mac 'state))
 (define-class <mac> (<immutable>)
   ((type :init-keyword :type :reader mac-type)
    (state :init-keyword :state :init-value #f :mutable #t

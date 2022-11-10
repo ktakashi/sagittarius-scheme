@@ -1188,7 +1188,7 @@ static SgObject slot_boundp_cc(SgObject result, void **data)
   return SG_FALSEP(result) ? SG_FALSE: SG_TRUE;
 }
 
-static SgObject slot_ref_cc(SgObject result, void **data)
+static inline SgObject slot_ref_cc(SgObject result, void **data)
 {
   SgObject obj = data[0];
   SgObject slot = data[1];
@@ -1206,9 +1206,9 @@ static SgObject slot_ref_rec(SgClass* klass, SgObject obj,
 			     SgObject name, int boundp)
 {
   SgSlotAccessor *accessor = lookup_slot_info(klass, name);
+  void *data[3];
   if (accessor) {
     if (accessor->getter) {
-      void *data[3];
       data[0] = obj;
       data[1] = name;
       data[2] = (void*)(intptr_t)boundp;
@@ -1216,7 +1216,6 @@ static SgObject slot_ref_rec(SgClass* klass, SgObject obj,
     } else {
       /* scheme accessor, assume obj is instance */
       if (boundp && SG_PROCEDUREP(accessor->boundP)) {
-	void *data[3];
 	data[0] = obj;
 	data[1] = name;
 	data[2] = (void*)(intptr_t)boundp;
@@ -1224,14 +1223,12 @@ static SgObject slot_ref_rec(SgClass* klass, SgObject obj,
 	return Sg_VMApply1(accessor->boundP, obj);
       } else if (!SG_PROCEDUREP(accessor->getterS)) {
 	SgObject val = SG_INSTANCE(obj)->slots[accessor->index];
-	void *data[3];
 	data[0] = obj;
 	data[1] = name;
 	data[2] = (void*)(intptr_t)boundp;
 	return slot_ref_cc(val, data);
       } else {
 	/* Hope this will be removed by compiler... */
-	void *data[3];
 	data[0] = obj;
 	data[1] = name;
 	data[2] = (void*)(intptr_t)boundp;
@@ -1408,7 +1405,7 @@ SgObject Sg_VMClassOf(SgObject obj)
     Sg_VMPushCC(vmclassof_cc, NULL, 0);
     return redefine_instance_class(obj, klass);
   }
-  return SG_OBJ(Sg_ClassOf(obj));
+  return SG_OBJ(klass);
 }
 
 static SgObject vmisa_cc(SgObject result, void **data)
