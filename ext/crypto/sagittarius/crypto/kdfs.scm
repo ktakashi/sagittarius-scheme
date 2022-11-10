@@ -83,7 +83,7 @@
 	(bytevector-xor! buf1 buf1 buf0))))
   (let* ((mac (prf P))
 	 (hlen (mac-mac-size mac)))
-    (unless (mac? mac)
+    #;(unless (mac? mac)
       (assertion-violation 'pbkdf-2 "Invalid PRF" mac))
     (when (> dk-len (* #xffffffff hlen))
       (assertion-violation 'pbkdf-2 "Derived key too long"))

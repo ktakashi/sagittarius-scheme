@@ -1202,9 +1202,10 @@ static SgObject slot_ref_cc(SgObject result, void **data)
   }
 }
 
-static SgObject slot_ref_rec(SgObject obj, SgObject name, int boundp)
+static SgObject slot_ref_rec(SgClass* klass, SgObject obj,
+			     SgObject name, int boundp)
 {
-  SgSlotAccessor *accessor = lookup_slot_info(Sg_ClassOf(obj), name);
+  SgSlotAccessor *accessor = lookup_slot_info(klass, name);
   if (accessor) {
     if (accessor->getter) {
       void *data[3];
@@ -1239,7 +1240,7 @@ static SgObject slot_ref_rec(SgObject obj, SgObject name, int boundp)
       }
     }
   } else {
-    return VMSLOT_MISSING3(Sg_ClassOf(obj), obj, name);
+    return VMSLOT_MISSING3(klass, obj, name);
   }
 }
 
@@ -1258,12 +1259,13 @@ SgObject Sg_VMSlotRef(SgObject obj, SgObject name)
     Sg_VMPushCC(vmslot_ref_cc, data, 2);
     return redefine_instance_class(obj, klass);
   }
-  return slot_ref_rec(obj, name, FALSE);
+  return slot_ref_rec(klass, obj, name, FALSE);
 }
 
-static SgObject slot_set_rec(SgObject obj, SgObject name, SgObject value)
+static SgObject slot_set_rec(SgClass *klass, SgObject obj,
+			     SgObject name, SgObject value)
 {
-  SgSlotAccessor *accessor = lookup_slot_info(Sg_ClassOf(obj), name);
+  SgSlotAccessor *accessor = lookup_slot_info(klass, name);
   if (accessor) {
     if (accessor->setter) {
       accessor->setter(obj, value);
@@ -1278,7 +1280,7 @@ static SgObject slot_set_rec(SgObject obj, SgObject name, SgObject value)
       }
     }
   } else {
-    return VMSLOT_MISSING4(Sg_ClassOf(obj), obj, name, value);
+    return VMSLOT_MISSING4(klass, obj, name, value);
   }
 }
 
@@ -1298,7 +1300,7 @@ SgObject Sg_VMSlotSet(SgObject obj, SgObject name, SgObject value)
     Sg_VMPushCC(vmslot_set_cc, data, 3);
     return redefine_instance_class(obj, klass);
   }
-  return slot_set_rec(obj, name, value);
+  return slot_set_rec(klass, obj, name, value);
 }
 
 /* For now, these 2 are really simple */
@@ -1371,7 +1373,7 @@ SgObject Sg_VMSlotBoundP(SgObject obj, SgObject slot)
     Sg_VMPushCC(vmslot_boundp_cc, data, 2);
     return redefine_instance_class(obj, klass);
   }
-  return slot_ref_rec(obj, slot, TRUE);
+  return slot_ref_rec(klass, obj, slot, TRUE);
 }
 
 SgClass* Sg_ClassOf(SgObject obj)
@@ -1425,7 +1427,7 @@ SgObject Sg_VMIsA(SgObject obj, SgClass *klass)
     Sg_VMPushCC(vmisa_cc, data, 2);
     return redefine_instance_class(obj, k);
   }
-  return SG_MAKE_BOOL(Sg_TypeP(obj, klass));
+  return SG_MAKE_BOOL(Sg_SubtypeP(k, klass));
 }
 
 int Sg_TypeP(SgObject obj, SgClass *type)
