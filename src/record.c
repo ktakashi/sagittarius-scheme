@@ -97,7 +97,7 @@ SgObject Sg_AllocateRecordTypeMeta(SgClass *klass, SgObject initargs)
 static SgObject record_accessor(SgObject *args, int argc, void *data)
 {
   SgSlotAccessor *ac = SG_SLOT_ACCESSOR(data);
-  return Sg_VMSlotRefUsingAccessor(args[0], ac);
+  return Sg_SlotRefUsingAccessor(args[0], ac);
 }
 
 static SgObject make_record_accessor(SgObject *args, int argc, void *data)
@@ -117,7 +117,8 @@ static SG_DEFINE_SUBR(make_record_accessor_stub, 1, 0, make_record_accessor,
 static SgObject record_mutator(SgObject *args, int argc, void *data)
 {
   SgSlotAccessor *ac = SG_SLOT_ACCESSOR(data);
-  return Sg_VMSlotSetUsingAccessor(args[0], ac, args[1]);
+  Sg_SlotSetUsingAccessor(args[0], ac, args[1]);
+  return SG_UNDEF;
 }
 
 static SgObject make_record_mutator(SgObject *args, int argc, void *data)

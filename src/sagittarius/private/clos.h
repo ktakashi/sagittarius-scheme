@@ -242,11 +242,7 @@ SG_CDECL_BEGIN
 SG_EXTERN SgObject Sg_VMSlotRef(SgObject obj, SgObject name);
 SG_EXTERN SgObject Sg_VMSlotSet(SgObject obj, SgObject name, SgObject value);
 SG_EXTERN SgObject Sg_VMSlotBoundP(SgObject obj, SgObject name);
-SG_EXTERN SgObject Sg_VMSlotRefUsingAccessor(SgObject obj, SgSlotAccessor *ac);
-SG_EXTERN SgObject Sg_VMSlotBoundPUsingAccessor(SgObject obj,
-						SgSlotAccessor *ac);
-SG_EXTERN SgObject Sg_VMSlotSetUsingAccessor(SgObject obj, SgSlotAccessor *ac,
-					   SgObject value);
+
 SG_EXTERN SgObject Sg_SlotRefUsingAccessor(SgObject obj, SgSlotAccessor *ac);
 SG_EXTERN int      Sg_SlotBoundUsingAccessor(SgObject obj, SgSlotAccessor *ac);
 SG_EXTERN void     Sg_SlotSetUsingAccessor(SgObject obj, SgSlotAccessor *ac,

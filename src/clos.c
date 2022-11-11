@@ -1303,6 +1303,12 @@ SgObject Sg_VMSlotSet(SgObject obj, SgObject name, SgObject value)
 /* For now, these 2 are really simple */
 SgObject Sg_SlotRefUsingAccessor(SgObject obj, SgSlotAccessor *ac)
 {
+  SgClass *klass = ac->klass;
+  if (!SG_ISA(obj, klass)) {
+    Sg_AssertionViolation(SG_INTERN("slot-ref-using-accessor"),
+			  Sg_Sprintf(UC("object is not a type of %S"), klass),
+			  obj);
+  }
   if (ac->getter) {
     return ac->getter(obj);
   } else {
@@ -1318,103 +1324,17 @@ int Sg_SlotBoundUsingAccessor(SgObject obj, SgSlotAccessor *ac)
 
 void Sg_SlotSetUsingAccessor(SgObject obj, SgSlotAccessor *ac, SgObject value)
 {
-  if (ac->setter) {
-    ac->setter(obj, value);
-  } else {
-    SG_INSTANCE(obj)->slots[ac->index] = value;
-  }
-}
-
-static SgObject slot_ref_acc_rec(SgClass *klass, SgObject obj,
-				 SgSlotAccessor *ac, int boundp)
-{
-  SgObject v;
-  if (!SG_ISA(obj, klass)) {
-    Sg_AssertionViolation(SG_INTERN("slot-ref-using-accessor"),
-			  Sg_Sprintf(UC("object is not a type of %S"), klass),
-			  obj);
-  }
-  if (ac->getter) {
-    v = ac->getter(obj);
-  } else {
-    v = SG_INSTANCE(obj)->slots[ac->index];
-  }
-  if (boundp) return SG_MAKE_BOOL(SG_UNBOUNDP(v) || SG_UNDEFP(v));
-  return v;
-}
-
-static SgObject vmslot_ref_acc_cc(SgObject result, void **data)
-{
-  return Sg_VMSlotRefUsingAccessor(SG_OBJ(data[0]), SG_SLOT_ACCESSOR(data[1]));
-}
-
-SgObject Sg_VMSlotRefUsingAccessor(SgObject obj, SgSlotAccessor *ac)
-{
   SgClass *klass = ac->klass;
-  if (!SG_FALSEP(klass->redefined)) {
-    void *data[2];
-    data[0] = obj;
-    data[1] = ac;
-    Sg_VMPushCC(vmslot_ref_acc_cc, data, 2);
-    return redefine_instance_class(obj, klass);
-  }
-  return slot_ref_acc_rec(klass, obj, ac, FALSE);
-}
-
-static SgObject vmslot_boundp_acc_cc(SgObject result, void **data)
-{
-  return Sg_VMSlotBoundPUsingAccessor(SG_OBJ(data[0]),
-				      SG_SLOT_ACCESSOR(data[1]));
-}
-SgObject Sg_VMSlotBoundPUsingAccessor(SgObject obj, SgSlotAccessor *ac)
-{
-  SgClass *klass = ac->klass;
-  if (!SG_FALSEP(klass->redefined)) {
-    void *data[2];
-    data[0] = obj;
-    data[1] = ac;
-    Sg_VMPushCC(vmslot_boundp_acc_cc, data, 2);
-    return redefine_instance_class(obj, klass);
-  }
-  return slot_ref_acc_rec(klass, obj, ac, TRUE);
-}
-
-static SgObject slot_set_acc_rec(SgClass *klass, SgObject obj,
-				 SgSlotAccessor *ac, SgObject value)
-{
   if (!SG_ISA(obj, klass)) {
     Sg_AssertionViolation(SG_INTERN("slot-set-using-accessor!"),
 			  Sg_Sprintf(UC("object is not a type of %S"), klass),
 			  obj);
   }
-
   if (ac->setter) {
     ac->setter(obj, value);
   } else {
     SG_INSTANCE(obj)->slots[ac->index] = value;
   }
-  return SG_UNDEF;
-}
-
-static SgObject vmslot_set_acc_cc(SgObject result, void **data)
-{
-  return Sg_VMSlotSetUsingAccessor(SG_OBJ(data[0]),
-				   SG_SLOT_ACCESSOR(data[1]),
-				   SG_OBJ(data[2]));
-}
-SgObject Sg_VMSlotSetUsingAccessor(SgObject obj, SgSlotAccessor *ac,
-				   SgObject value)
-{
-  SgClass *klass = ac->klass;
-  if (!SG_FALSEP(klass->redefined)) {
-    void *data[3];
-    data[0] = obj;
-    data[1] = ac;
-    data[2] = value;
-    Sg_VMPushCC(vmslot_set_acc_cc, data, 3);
-    return redefine_instance_class(obj, klass);
-  }
-  return slot_set_acc_rec(klass, obj, ac, value);
 }
 
 SgObject Sg_SlotRefUsingClass(SgClass *klass, SgObject obj, SgObject name)
