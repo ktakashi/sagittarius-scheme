@@ -64,7 +64,7 @@
 (define *hmac-sha1-prf* (mac->prf-provider *mac:hmac* :digest *digest:sha-1*))
 
 (define (pbkdf-2 P S c dk-len :key (prf *hmac-sha1-prf*))
-  (define (compute mac left block-no stored buf0 buf1 out)
+  (define (compute mac generate-mac! left block-no stored buf0 buf1 out)
     (bytevector-fill! buf0 0)
     (bytevector-fill! buf1 0)
     (bytevector-u32-set! buf1 0 block-no (endianness big))
@@ -79,7 +79,7 @@
 	   (let ((l (min x left)))
 	     (bytevector-copy! buf1 0 out stored l)
 	     l))
-	(generate-mac! mac buf0 buf0)
+	(generate-mac! buf0 buf0)
 	(bytevector-xor! buf1 buf1 buf0))))
   (let* ((mac (prf P))
 	 (hlen (mac-mac-size mac)))
@@ -89,11 +89,13 @@
       (assertion-violation 'pbkdf-2 "Derived key too long"))
     (let ((buf0 (make-bytevector hlen))
 	  (buf1 (make-bytevector hlen))
-	  (out (make-bytevector dk-len)))
+	  (out (make-bytevector dk-len))
+	  (generate-mac! (make-mac-generator mac)))
       (let loop ((left dk-len) (block-no 1) (stored 0))
 	(if (zero? left)
 	    out
-	    (let ((l (compute mac left block-no stored buf0 buf1 out)))
+	    (let ((l (compute mac generate-mac!
+			      left block-no stored buf0 buf1 out)))
 	      (loop (- left l) (+ block-no 1) (+ stored l))))))))
 
 ;; HKDF: RFC 5869

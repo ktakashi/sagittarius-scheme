@@ -30,6 +30,7 @@
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/private/record.h"
 #include "sagittarius/private/clos.h"
+#include "sagittarius/private/error.h"
 #include "sagittarius/private/library.h"
 #include "sagittarius/private/port.h"
 #include "sagittarius/private/symbol.h"
@@ -93,11 +94,60 @@ SgObject Sg_AllocateRecordTypeMeta(SgClass *klass, SgObject initargs)
   return m;
 }
 
+static SgObject record_accessor(SgObject *args, int argc, void *data)
+{
+  SgSlotAccessor *ac = SG_SLOT_ACCESSOR(data);
+  return Sg_VMSlotRefUsingAccessor(args[0], ac);
+}
+
+static SgObject make_record_accessor(SgObject *args, int argc, void *data)
+{
+  SgObject ac = args[0];
+  if (!SG_SLOT_ACCESSORP(ac)) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-record-accessor-from-slot-accessor"),
+				    SG_INTERN("slot accessor"),
+				    ac, ac);
+  }
+  return Sg_MakeSubr(record_accessor, ac, 1, 0, SG_INTERN("record-accessor"));
+}
+
+static SG_DEFINE_SUBR(make_record_accessor_stub, 1, 0, make_record_accessor,
+		      SG_FALSE, NULL);
+
+static SgObject record_mutator(SgObject *args, int argc, void *data)
+{
+  SgSlotAccessor *ac = SG_SLOT_ACCESSOR(data);
+  return Sg_VMSlotSetUsingAccessor(args[0], ac, args[1]);
+}
+
+static SgObject make_record_mutator(SgObject *args, int argc, void *data)
+{
+  SgObject ac = args[0];
+  if (!SG_SLOT_ACCESSORP(ac)) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-record-mutator-from-slot-accessor"),
+				    SG_INTERN("slot mutator"),
+				    ac, ac);
+  }
+  return Sg_MakeSubr(record_mutator, ac, 2, 0, SG_INTERN("record-mutator"));
+}
+
+static SG_DEFINE_SUBR(make_record_mutator_stub, 1, 0, make_record_mutator,
+		      SG_FALSE, NULL);
+
+
 void Sg__InitRecord()
 {
   SgLibrary *lib = Sg_FindLibrary(SG_INTERN("(sagittarius clos)"), TRUE);
   Sg_InitStaticClass(SG_CLASS_RECORD_TYPE_META, UC("<record-type-meta>"),
 		     lib, rtm_slots, 0);
+
+#define INSERT_SUBR(name, sname)				\
+  SG_PROCEDURE_NAME(&SG_CPP_CAT(name, _stub)) = SG_INTERN(sname);	\
+  SG_PROCEDURE_TRANSPARENT(&SG_CPP_CAT(name, _stub)) = SG_PROC_NO_SIDE_EFFECT; \
+  Sg_InsertBinding(lib, SG_INTERN(sname), SG_OBJ(&SG_CPP_CAT(name, _stub)));
+
+  INSERT_SUBR(make_record_accessor, "make-record-accessor-from-slot-accessor");
+  INSERT_SUBR(make_record_mutator, "make-record-mutator-from-slot-accessor");
 }
 
 /*

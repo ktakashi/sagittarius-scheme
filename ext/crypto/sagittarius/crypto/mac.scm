@@ -41,7 +41,10 @@
 	    
 	    mac-init!
 	    mac-process!
-	    mac-done!)
+	    mac-done!
+	    
+	    make-mac-generator
+	    )
     (import (rnrs)
 	    (clos user)
 	    (sagittarius)
@@ -90,4 +93,14 @@
   mac)
 (define (mac-done! (mac mac?) (out bytevector?) . opts)
   (apply (mac-finalizer mac) (mac-state mac) out opts))
+
+(define (make-mac-generator mac)
+  (define initializer (mac-initializer mac))
+  (define processor (mac-processor mac))
+  (define finalizer (mac-finalizer mac))
+  (lambda (msg out . opts)
+    (let ((state (initializer)))
+      (processor state msg)
+      (apply finalizer state out opts))))
+      
 )
