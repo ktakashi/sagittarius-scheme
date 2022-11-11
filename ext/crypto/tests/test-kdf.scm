@@ -38,8 +38,7 @@
 	      "ea6c014dc72d6f8ccd1ed92ace1d41f0d8de8957")
 (test-pbkdf-2 *digest:sha-1* "password" "salt" 4096
 	      "4b007901b765489abead49d926f721d065a429c1")
-;; Ignore this, takes too much time
-#;(test-pbkdf-2 *digest:sha-1* "password" "salt" 16777216
+(test-pbkdf-2 *digest:sha-1* "password" "salt" 16777216
 	      "eefe3d61cd4da4e4e9945b3d6ba2158c2634e984")
 
 (test-pbkdf-2 *digest:sha-1*
