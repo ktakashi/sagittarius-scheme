@@ -121,6 +121,7 @@ ADD_LIBRARY(libtomcrypt STATIC
   src/mac/hmac/hmac_init.c
   src/mac/hmac/hmac_process.c
   src/mac/hmac/hmac_done.c
+  src/mac/hmac/hmac_memory.c
   
   # modes
   #cbc
@@ -235,6 +236,9 @@ ADD_LIBRARY(libtomcrypt STATIC
   src/prngs/sober128.c
   src/prngs/sprng.c
   src/prngs/yarrow.c
+
+  # kdf
+  src/misc/hkdf/hkdf.c
   )
 
 TARGET_COMPILE_DEFINITIONS(libtomcrypt PUBLIC LTC_NO_TEST ARGTYPE=4)

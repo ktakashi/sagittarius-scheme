@@ -96,3 +96,17 @@
 			     (& outlen))))
     (check-tomcrypt-error 'cmac-done! err)
     (result outlen)))
+
+;; HKDF, it's not really MAC but using HMAC, so here would be the best for now
+(define-c-proc hkdf (md::<digest> ikm::<bytevector> salt::<bytevector>
+		     info::<bytevector> dk-len::<fixnum>)
+  (let* ((dk (Sg_MakeByteVector dk-len 0))
+	 (err::int (hkdf md
+			 (SG_BVECTOR_ELEMENTS salt) (SG_BVECTOR_SIZE salt)
+			 (SG_BVECTOR_ELEMENTS info) (SG_BVECTOR_SIZE info)
+			 (SG_BVECTOR_ELEMENTS ikm) (SG_BVECTOR_SIZE ikm)
+			 (SG_BVECTOR_ELEMENTS dk) dk-len)))
+    (check-tomcrypt-error 'hkdf err)
+    (result dk)))
+			 
+				  

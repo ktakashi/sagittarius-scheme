@@ -31,10 +31,14 @@
 #!nounbound
 (library (sagittarius crypto kdfs)
     (export pbkdf-1 pbkdf-2
-	    mac->prf-provider)
+	    mac->prf-provider
+	    hkdf)
     (import (rnrs)
 	    (sagittarius crypto digests)
+	    (rename (sagittarius crypto digests descriptors)
+		    (tc-digest-descriptor? builtin-digest-descriptor?))
 	    (sagittarius crypto mac)
+	    (prefix (sagittarius crypto tomcrypt) tc:)
 	    (util bytevector))
 
 (define (pbkdf-1 P S c dk-len :key (digest *digest:sha-1*))
@@ -99,4 +103,6 @@
 	      (loop (- left l) (+ block-no 1) (+ stored l))))))))
 
 ;; HKDF: RFC 5869
+(define (hkdf (digest builtin-digest-descriptor?) ikm salt info dk-len)
+  (tc:hkdf (tc-digest-descriptor-digest digest) ikm salt info dk-len))
 )

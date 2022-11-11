@@ -44,6 +44,8 @@
 	    make-aad-parameter aad-parameter? cipher-parameter-aad
 	    make-tag-length-parameter tag-length-parameter?
 	    cipher-parameter-tag-length
+	    
+	    define-cipher-parameter
 	    ;; FWIW
 	    make-define-cipher-parameter
 	    (rename (round-parameter <round-parameter>)

@@ -18,6 +18,7 @@
 (define prime-vector? (file-prefix? '("primality_test")))
 (define hmac-vector? (file-prefix? '("hmac")))
 (define cmac-vector? (file-prefix? '("aes_cmac")))
+(define hkdf-vector? (file-prefix? '("hkdf")))
 
 
 ;;; Signature
@@ -105,6 +106,27 @@
       :tag-size ,tag-size
       :tests ',(map test->vector tests))))
 
+(define (->hkdf-test-runner source algorithm json)
+  (define (test->vector test)
+    (list->vector
+     (map (lambda (e)
+	    (let ((k (car e)))
+	      (cond ((string=? k "result") (string=? "valid" (cdr e)))
+		    ((string=? k "ikm") (hex-string->bytevector (cdr e)))
+		    ((string=? k "salt") (hex-string->bytevector (cdr e)))
+		    ((string=? k "info") (hex-string->bytevector (cdr e)))
+		    ((string=? k "okm") (hex-string->bytevector (cdr e)))
+		    (else (cdr e)))))
+	  (vector->list test))))
+
+  (let ((tests (tests-pointer json))
+	(key-size (key-size-pointer json))
+	(tag-size (tag-size-pointer json)))
+    `(test-hkdf ,source
+      :algorithm ,algorithm
+      :key-size ,key-size
+      :tests ',(map test->vector tests))))
+
 (define ((test-vector->test-runner ->test-runner) json source)
   (define (filename source)
     (let-values (((dir f e) (decompose-path source)))
@@ -157,7 +179,11 @@
      (map (write-in outdir "testvectors" "cmac")
 	  (map (file->json (test-vector->test-runner
 			    (->mac-test-runner 'test-cmac)))
-	       (filter cmac-vector? files))))))
+	       (filter cmac-vector? files))))
+    (write-includer outdir (build-path "testvectors" "hkdf")
+     (map (write-in outdir "testvectors" "hkdf")
+	  (map (file->json (test-vector->test-runner ->hkdf-test-runner))
+	       (filter hkdf-vector? files))))))
 
 (define (usage me)
   (print me "[OPTIONS] dir ...")
