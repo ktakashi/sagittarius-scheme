@@ -30,6 +30,8 @@
 
 ;; ref
 ;; - https://datatracker.ietf.org/doc/html/rfc5652
+;; - https://datatracker.ietf.org/doc/html/rfc5083
+;;   (for Authenticated-Enveloped-Data)
 #!nounbound
 (library (sagittarius crypto pkix modules cms)
     (export content-info? <content-info>
@@ -39,7 +41,7 @@
 	    ;; 4.
 	    *cms:data-content-type*
 	    ;; 5.
-	    *cms:signed-date-content-type*
+	    *cms:signed-data-content-type*
 	    signer-identifier? <signer-identifier>
 	    signer-identifier-value
 
@@ -64,7 +66,7 @@
 	    signed-data-crls
 	    signed-data-signer-infos
 	    ;; 6
-	    *cms:enveloped-date-content-type*
+	    *cms:enveloped-data-content-type*
 	    recipient-identifier? <recipient-identifier>
 	    recipient-identifier-value
 
@@ -134,7 +136,6 @@
 	    encrypted-content-info? <encrypted-content-info>
 	    encrypted-content-info-content-type
 	    encrypted-content-info-content-encryption-algorithm
-	    encrypted-content-info-encrypted-content
 
 	    enveloped-data? <enveloped-data>
 	    enveloped-data-version
@@ -143,7 +144,7 @@
 	    enveloped-data-encrypted-content-infos
 	    enveloped-data-unprotected-attrs
 	    ;; 7.
-	    *cms:digested-date-content-type*
+	    *cms:digested-data-content-type*
 
 	    digested-data? <digested-data>
 	    digested-data-version
@@ -151,17 +152,42 @@
 	    digested-date-encap-content-info
 	    digested-data-digest
 	    ;; 8.
-	    *cms:encrypted-date-content-type*
+	    *cms:encrypted-data-content-type*
 
 	    encrypted-data? <encrypted-data>
 	    encrypted-data-version
 	    encrypted-data-encrypted-content-info
+	    encrypted-data-encrypted-content
 	    encrypted-data-unprotected-attrs
+	    ;; 9.
+	    *cms:authenticated-data-content-type*
+
+	    authenticated-data? <authenticated-data>
+	    authenticated-data-version
+	    authenticated-data-originator-info
+	    authenticated-data-recipient-infos
+	    authenticated-data-mac-algorithm
+	    authenticated-data-digest-algorithm
+	    authenticated-data-encap-content-info
+	    authenticated-data-auth-attrs
+	    authenticated-data-mac
+	    authenticated-data-unauth-attrs
 	    ;; 11
 	    *cms:content-type-attribute-id*
 	    *cms:message-digest-attribute-id*
 	    *cms:signing-time-attribute-id*
-	    *cms:conter-signautre-attribute-id*)
+	    *cms:conter-signautre-attribute-id*
+	    ;; RFC 5083
+	    *cms:auth-enveloped-data-content-type*
+
+	    auth-enveloped-data? <auth-enveloped-data>
+	    auth-enveloped-data-version
+	    auth-enveloped-data-originator-info
+	    auth-enveloped-data-recipient-infos
+	    auth-enveloped-data-auth-encrypted-content-info
+	    auth-enveloped-data-auth-attrs
+	    auth-enveloped-data-mac
+	    auth-enveloped-data-unauth-attrs)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius crypto asn1)
@@ -273,9 +299,9 @@
   d)
 
 ;; 5. Signed-data Content Type
-(define *cms:signed-date-content-type* (oid "1.2.840.113549.1.7.2"))
+(define *cms:signed-data-content-type* (oid "1.2.840.113549.1.7.2"))
 (define-method content-info->content
-  ((oid (equal *cms:signed-date-content-type*)) d)
+  ((oid (equal *cms:signed-data-content-type*)) d)
   (asn1-object->asn1-encodable d <signed-data>))
 
 ;; SignerIdentifier ::= CHOICE {
@@ -358,9 +384,9 @@
 (define (signed-data? o) (is-a? o <signed-data>))
 
 ;; 6. Enveloped-data Content Type
-(define *cms:enveloped-date-content-type* (oid "1.2.840.113549.1.7.3"))
+(define *cms:enveloped-data-content-type* (oid "1.2.840.113549.1.7.3"))
 (define-method content-info->content
-  ((oid (equal *cms:enveloped-date-content-type*)) d)
+  ((oid (equal *cms:enveloped-data-content-type*)) d)
   (asn1-object->asn1-encodable d <enveloped-data>))
 
 ;; RecipientIdentifier ::= CHOICE {
@@ -559,17 +585,14 @@
 
 ;; EncryptedContentInfo ::= SEQUENCE {
 ;;   contentType ContentType,
-;;   contentEncryptionAlgorithm ContentEncryptionAlgorithmIdentifier,
-;;   encryptedContent [0] IMPLICIT EncryptedContent OPTIONAL }
+;;   contentEncryptionAlgorithm ContentEncryptionAlgorithmIdentifier }
 ;; EncryptedContent ::= OCTET STRING
 (define-asn1-encodable <encrypted-content-info>
   (asn1-sequence
    ((content-type :type <der-object-identifier>
 		  :reader encrypted-content-info-content-type)
     (content-encryption-algorithm :type <algorithm-identifier>
-     :reader encrypted-content-info-content-encryption-algorithm)
-    (encrypted-content :type <der-octet-string> :tag 0 :optional #t :explicit #f
-		       :reader encrypted-content-info-encrypted-content))))
+     :reader encrypted-content-info-content-encryption-algorithm))))
 (define (encrypted-content-info? o) (is-a? o <encrypted-content-info>))
 
 ;; EnvelopedData ::= SEQUENCE {
@@ -593,9 +616,9 @@
 (define (enveloped-data? o) (is-a? o <enveloped-data>))
 
 ;; 7. Digested-data Content Type
-(define *cms:digested-date-content-type* (oid "1.2.840.113549.1.7.5"))
+(define *cms:digested-data-content-type* (oid "1.2.840.113549.1.7.5"))
 (define-method content-info->content
-  ((oid (equal *cms:digested-date-content-type*)) d)
+  ((oid (equal *cms:digested-data-content-type*)) d)
   (asn1-object->asn1-encodable d <digested-data>))
 
 ;; DigestedData ::= SEQUENCE {
@@ -615,23 +638,67 @@
 (define (digested-data? o) (is-a? o <digested-data>))
 
 ;; 8. Encrypted-data Content Type
-(define *cms:encrypted-date-content-type* (oid "1.2.840.113549.1.7.6"))
+(define *cms:encrypted-data-content-type* (oid "1.2.840.113549.1.7.6"))
 (define-method content-info->content
-  ((oid (equal *cms:encrypted-date-content-type*)) d)
+  ((oid (equal *cms:encrypted-data-content-type*)) d)
   (asn1-object->asn1-encodable d <encrypted-data>))
 
 ;; EncryptedData ::= SEQUENCE {
 ;;   version CMSVersion,
 ;;   encryptedContentInfo EncryptedContentInfo,
+;;   encryptedContent [0] IMPLICIT EncryptedContent OPTIONAL,
 ;;   unprotectedAttrs [1] IMPLICIT UnprotectedAttributes OPTIONAL }
 (define-asn1-encodable <encrypted-data>
   (asn1-sequence
    ((version :type <der-integer> :reader encrypted-data-version)
     (encrypted-content-info :type <encrypted-content-info>
      :reader encrypted-data-encrypted-content-info)
+    (encrypted-content :type <der-octet-string> :tag 0 :optional #t :explicit #f
+		       :reader encrypted-data-encrypted-content)
     (unprotected-attrs :type <attributes> :tag 1 :optional #t :explicit #f
 		       :reader encrypted-data-unprotected-attrs))))
 (define (encrypted-data? o) (is-a? o <encrypted-data>))
+
+;; 9. Authenticated-data Content Type
+(define *cms:authenticated-data-content-type*
+  (oid "1.2.840.113549.1.9.16.2"))
+(define-method content-info->content
+  ((oid (equal *cms:authenticated-data-content-type*)) d)
+  (asn1-object->asn1-encodable d <authenticated-data>))
+
+;; AuthenticatedData ::= SEQUENCE {
+;;   version CMSVersion,
+;;   originatorInfo [0] IMPLICIT OriginatorInfo OPTIONAL,
+;;   recipientInfos RecipientInfos,
+;;   macAlgorithm MessageAuthenticationCodeAlgorithm,
+;;   digestAlgorithm [1] DigestAlgorithmIdentifier OPTIONAL,
+;;   encapContentInfo EncapsulatedContentInfo,
+;;   authAttrs [2] IMPLICIT AuthAttributes OPTIONAL,
+;;   mac MessageAuthenticationCode,
+;;   unauthAttrs [3] IMPLICIT UnauthAttributes OPTIONAL }
+;; AuthAttributes ::= SET SIZE (1..MAX) OF Attribute
+;; UnauthAttributes ::= SET SIZE (1..MAX) OF Attribute
+;; MessageAuthenticationCode ::= OCTET STRING
+(define-asn1-encodable <authenticated-data>
+  (asn1-sequence
+   ((version :type <der-integer> :reader authenticated-data-version)
+    (originator-info :type <originator-info> :tag 0 :optional #t :explicit #f
+		     :reader authenticated-data-originator-info)
+    (recipient-infos :type <recipient-infos>
+		     :reader authenticated-data-recipient-infos)
+    (mac-algorithm :type <algorithm-identifier>
+		   :reader authenticated-data-mac-algorithm)
+    (digest-algorithm :type <algorithm-identifier>
+		      :tag 1 :optional #t :explicit #t
+		      :reader authenticated-data-digest-algorithm)
+    (encap-content-info :type <encapsulated-content-info>
+			:reader authenticated-data-encap-content-info)
+    (auth-attrs :type <attributes> :tag 2 :optional #t :explicit #f
+		:reader authenticated-data-auth-attrs)
+    (mac :type <der-octet-string> :reader authenticated-data-mac)
+    (unauth-attrs :type <attributes> :tag 3 :optional #t :explicit #f
+		  :reader authenticated-data-unauth-attrs))))
+(define (authenticated-data? o) (is-a? o <authenticated-data>))
 
 ;; 11 Useful Attributes
 (define *cms:content-type-attribute-id* (oid "1.2.840.113549.1.9.3"))
@@ -640,4 +707,35 @@
 ;; SigningType ::= Time ;; <asn1-time>
 (define *cms:conter-signautre-attribute-id* (oid "1.2.840.113549.1.9.6"))
 ;; Countersignature ::= SignerInfo
+
+;;; RFC 5083
+;; 2. Authenticated-Enveloped-Data Content Type
+(define *cms:auth-enveloped-data-content-type*
+  (oid "1.2.840.113549.1.9.16.1.23"))
+(define-method content-info->content
+  ((oid (equal *cms:auth-enveloped-data-content-type*)) d)
+  (asn1-object->asn1-encodable d <auth-enveloped-data>))
+;; AuthEnvelopedData ::= SEQUENCE {
+;;   version CMSVersion,
+;;   originatorInfo [0] IMPLICIT OriginatorInfo OPTIONAL,
+;;   recipientInfos RecipientInfos,
+;;   authEncryptedContentInfo EncryptedContentInfo,
+;;   authAttrs [1] IMPLICIT AuthAttributes OPTIONAL,
+;;   mac MessageAuthenticationCode,
+;;   unauthAttrs [2] IMPLICIT UnauthAttributes OPTIONAL }
+(define-asn1-encodable <auth-enveloped-data>
+  (asn1-sequence
+   ((version :type <der-integer> :reader auth-enveloped-data-version)
+    (originator-info :type <originator-info> :tag 0 :optional #t :explicit #f
+		     :reader auth-enveloped-data-originator-info)
+    (recipient-infos :type <recipient-infos>
+		     :reader auth-enveloped-data-recipient-infos)
+    (auth-encrypted-content-info :type <encapsulated-content-info>
+     :reader auth-enveloped-data-auth-encrypted-content-info)
+    (auth-attrs :type <attributes> :tag 1 :optional #t :explicit #f
+		:reader auth-enveloped-data-auth-attrs)
+    (mac :type <der-octet-string> :reader auth-enveloped-data-mac)
+    (unauth-attrs :type <attributes> :tag 2 :optional #t :explicit #f
+		  :reader auth-enveloped-data-unauth-attrs))))
+(define (auth-enveloped-data? o) (is-a? o <auth-enveloped-data>))
 )
