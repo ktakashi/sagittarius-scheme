@@ -2385,8 +2385,7 @@
   (test-equal "Typed lambda" 1 (zzz 1))
   (test-error "Typed lambda" (zzz 1.0))
   (test-equal "Typed lambda" 1 (xyzzy 1))
-  (test-equal "Typed lambda" 'a (xyzzy 'a))
-  )
+  (test-equal "Typed lambda" 'a (xyzzy 'a)))
 
 (let ()
   (define (foo :key ((bar integer?) 1)) bar)
@@ -2403,5 +2402,15 @@
   (test-error "Typed lambda keyword" (bah 'b))
   (test-equal "Typed lambda keyword" '(a ok) (bah 'a))
   (test-equal "Typed lambda keyword" '(a bien) (bah 'a :bla 'bien)))
+
+(define (test-read/write-invariance sym str)
+  (test-equal (string-append "Read/write invariance of " str)
+	      sym
+	      (read (open-string-input-port
+		     (let-values (((out e) (open-string-output-port)))
+		       (write (read (open-string-input-port str)) out)
+		       (e))))))
+(test-read/write-invariance ', @ ", @")
+(test-read/write-invariance '#, @ "#, @")
 
 (test-end)

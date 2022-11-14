@@ -870,13 +870,14 @@ SgObject read_quasiquote(SgPort *port, SgChar c, SgReadContext *ctx)
 
 SgObject read_unquote(SgPort *port, SgChar c, SgReadContext *ctx)
 {
-  c = Sg_GetcUnsafe(port);
+  c = Sg_PeekcUnsafe(port);
   if (c == EOF) {
     lexical_error(port, ctx, UC("unexpected end-of-file following comma(,)"));
   }
-  if (c == '@')
+  if (c == '@') {
+    Sg_GetcUnsafe(port);
     return SG_LIST2(SG_SYMBOL_UNQUOTE_SPLICING, read_expr(port, ctx));
-  Sg_UngetcUnsafe(port, c);
+  }
   return SG_LIST2(SG_SYMBOL_UNQUOTE, read_expr(port, ctx));
 }
 

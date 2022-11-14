@@ -818,6 +818,7 @@ static void write_noptr(SgObject obj, SgPort *port, SgWriteContext *ctx)
     }									\
   } while(0)
 
+static SgObject SYMBOL_AT = SG_FALSE;
 void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
   SgObject e;
@@ -884,7 +885,17 @@ void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
       } else if (SG_CAR(obj) == SG_SYMBOL_QUASIQUOTE) {
 	Sg_PutcUnsafe(port, '`');
       } else if (SG_CAR(obj) == SG_SYMBOL_UNQUOTE) {
-	Sg_PutcUnsafe(port, ',');
+	if (SG_CADR(obj) == SYMBOL_AT) {
+	  // Handling corner case... 
+	  if (SG_VM_IS_SET_FLAG(Sg_VM(), SG_R6RS_MODE)) {
+	    Sg_PutuzUnsafe(port, UC(",\\x40;"));
+	    return;
+	  } else {
+	    special = FALSE;
+	  }
+	} else {
+	  Sg_PutcUnsafe(port, ',');
+	}
       } else if (SG_CAR(obj) == SG_SYMBOL_UNQUOTE_SPLICING) {
 	Sg_PutuzUnsafe(port, UC(",@"));
       } else if (SG_CAR(obj) == SG_SYMBOL_SYNTAX) {
@@ -892,7 +903,16 @@ void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
       } else if (SG_CAR(obj) == SG_SYMBOL_QUASISYNTAX) {
 	Sg_PutuzUnsafe(port, UC("#`"));
       } else if (SG_CAR(obj) == SG_SYMBOL_UNSYNTAX) {
-	Sg_PutuzUnsafe(port, UC("#,"));
+	if (SG_CADR(obj) == SYMBOL_AT) {
+	  if (SG_VM_IS_SET_FLAG(Sg_VM(), SG_R6RS_MODE)) {
+	    Sg_PutuzUnsafe(port, UC("#,\\x40;"));
+	    return;
+	  } else {
+	    special = FALSE;
+	  }
+	} else {
+	  Sg_PutuzUnsafe(port, UC("#,"));
+	}
       } else if (SG_CAR(obj) == SG_SYMBOL_UNSYNTAX_SPLICING) {
 	Sg_PutuzUnsafe(port, UC("#,@"));
       } else {
@@ -1553,7 +1573,7 @@ void Sg__InitWrite()
 {
   SgLibrary *lib = Sg_FindLibrary(SG_INTERN("(sagittarius clos)"), TRUE);
   Sg_InitBuiltinGeneric(&Sg_GenericWriteObject, UC("write-object"), lib);
-			
+  SYMBOL_AT = SG_INTERN("@");
 }
 
 /*
