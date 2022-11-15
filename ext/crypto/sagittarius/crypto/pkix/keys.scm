@@ -32,23 +32,41 @@
 (library (sagittarius crypto pkix keys)
     (export import-public-key
 	    subject-public-key-info->public-key
-	    public-key->subject-public-key-info)
+	    public-key->subject-public-key-info
+
+	    import-private-key
+	    one-asymmetric-key->private-key
+	    private-key->one-asymmetric-key
+	    )
     (import (rnrs)
 	    (clos user)
 	    (sagittarius crypto asn1)
 	    (sagittarius crypto pkix modules x509)
+	    (sagittarius crypto pkix modules akp)
 	    (sagittarius crypto keys))
 
 ;; Subject public key info
 (define-method import-public-key ((key <subject-public-key-info>))
-  (import-public-key (asn1-encodable->asn1-object key)
-		     (public-key-format subject-public-key-info)))
+  (subject-public-key-info->public-key key))
 
 (define (subject-public-key-info->public-key (spki subject-public-key-info?))
-  (import-public-key spki))
+  (import-public-key (asn1-encodable->asn1-object key)
+		     (public-key-format subject-public-key-info)))
 (define (public-key->subject-public-key-info (pk public-key?))
   (let ((bv (export-public-key pk (public-key-format subject-public-key-info))))
     (bytevector->asn1-encodable <subject-public-key-info> bv)))
 
-;; TODO we need to put private key info here
+(define-method import-private-key ((key <one-asymmetric-key>))
+  (one-asymmetric-key->private-key key))
+
+(define (one-asymmetric-key->private-key (oakp one-asymmetric-key?))
+  (let* ((aid (one-asymmetric-key-private-key-algorithm key))
+	 (oid (algorithm-identifier-algorithm aid))
+	 (op (oid->key-operation (der-object-identifier->oid-string oid))))
+    (import-private-key op (der-octet-string-value
+			    (one-asymmetric-key-private-key key)))))
+
+;; TODO how should we handle this?
+(define (private-key->one-asymmetric-key (private-key private-key?))
+  (error 'private-key->one-asymmetric-key "Not yet"))
 )
