@@ -116,21 +116,23 @@
 ;; }
 (define-method import-private-key ((key <der-sequence>)
 				   (format (eq 'private-key-info)))
-  (let*-values (((version pka pk . ignore) (deconstruct-asn1-collection key))
-		((oid . ignore) (deconstruct-asn1-collection pka)))
-    (let ((s (oid->key-operation (der-object-identifier->oid-string oid))))
-      (import-private-key s (der-octet-string->bytevector pk) 'raw))))
+  (import-pki-private-key #f key))
 (define-method import-private-key (m
 				   (key <der-sequence>)
 				   (format (eq 'private-key-info)))
+  (import-pki-private-key m key))
+
+(define (import-pki-private-key m key)
   (let*-values (((version pka pk . ignore) (deconstruct-asn1-collection key))
-		((oid . ignore) (deconstruct-asn1-collection pka)))
+		((oid param) (deconstruct-asn1-collection pka)))
     (let ((s (oid->key-operation (der-object-identifier->oid-string oid))))
-      (unless (eq? m s)
+      (unless (or (not m) (eq? m s))
 	(assertion-violation 'import-private-key
 			     "Specified key scheme and actual OID mismatches"
 			     m (der-object-identifier->oid-string oid)))
-      (import-private-key s (der-octet-string->bytevector pk) 'raw))))
+      (apply import-private-key s (der-octet-string->bytevector pk)
+	     (extract-ec-parameter (der-object-identifier->oid-string oid)
+				   param)))))
 
 ;; Use :around specifier to let the subclass of the key match...
 (define-method export-private-key :around (m k (format (eq 'private-key-info)))
@@ -145,11 +147,17 @@
       (der-sequence (oid-string->der-object-identifier oid)
 		    (extract-aid-parameter oid raw))
       (bytevector->der-octet-string raw)))))
+
 ;; internal method
+(define *ecdsa-oid* "1.2.840.10045.2.1")
+(define-generic extract-ec-parameter)
+(define-method extract-ec-parameter (oid raw) '())
+(define-method extract-ec-parameter ((oid (equal *ecdsa-oid*)) param)
+  (list param))
+
 (define-generic extract-aid-parameter)
 (define-method extract-aid-parameter (oid raw) (make-der-null))
-(define-method extract-aid-parameter ((oid (equal "1.2.840.10045.2.1"))
-				      raw)
+(define-method extract-aid-parameter ((oid (equal *ecdsa-oid*)) raw)
   ;; Fxxk, we need to deconstruct and provide curve parameter here...
   (let* ((seq (bytevector->asn1-object raw))
 	 (obj (asn1-collection-find-tag seq 0)))
