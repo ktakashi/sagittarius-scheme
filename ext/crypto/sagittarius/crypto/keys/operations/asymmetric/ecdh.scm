@@ -50,6 +50,8 @@
 	    rfc7748-key? <rfc7748-key>
 	    rfc7748-key-parameter
 
+	    x25519-key? x448-key? ;; we may use them in the future?
+	    
 	    rfc7748-private-key? <rfc7748-private-key>
 	    rfc7748-private-key-random
 	    rfc7748-private-key-public-key
@@ -134,20 +136,25 @@
 	       :reader rfc7748-private-key-public-key)))
 (define (rfc7748-private-key? o) (is-a? o <rfc7748-private-key>))
 
-(define-class <x25519-private-key> (<rfc7748-private-key>) ())
+(define-class <x25519-key> () ())
+(define (x25519-key? o) (is-a? o <x25519-key>))
+(define-class <x448-key> () ())
+(define (x448-key? o) (is-a? o <x448-key>))
+
+(define-class <x25519-private-key> (<rfc7748-private-key> <x25519-key>) ())
 (define (x25519-private-key? o) (is-a? o <x25519-private-key>))
 
-(define-class <x448-private-key> (<rfc7748-private-key>) ())
+(define-class <x448-private-key> (<rfc7748-private-key> <x448-key>) ())
 (define (x448-private-key? o) (is-a? o <x448-private-key>))
 
 ;;; Public key
 (define-class <rfc7748-public-key> (<public-key> <rfc7748-key>)
   ((data :init-keyword :data :reader rfc7748-public-key-data)))
 (define (rfc7748-public-key? o) (is-a? o <rfc7748-public-key>))
-(define-class <x25519-public-key> (<rfc7748-public-key>) ())
+(define-class <x25519-public-key> (<rfc7748-public-key> <x25519-key>) ())
 (define (x25519-public-key? o) (is-a? o <x25519-public-key>))
 
-(define-class <x448-public-key> (<rfc7748-public-key>) ())
+(define-class <x448-public-key> (<rfc7748-public-key> <x448-key>) ())
 (define (x448-public-key? o) (is-a? o <x448-public-key>))
 
 ;; key generation x25519
@@ -204,6 +211,10 @@
 (define *x448-key-oid* "1.3.101.111")
 (define-method oid->key-operation ((oid (equal *x25519-key-oid*))) *key:x25519*)
 (define-method oid->key-operation ((oid (equal *x448-key-oid*))) *key:x448*)
+(define-method key->oid ((key <rfc7748-key>))
+  (if (x25519-key? key)
+      *x25519-key-oid*
+      *x448-key-oid*))
 
 (define-method export-public-key ((key <rfc7748-public-key>) . opts)
   (apply export-public-key *key:ecdh* key opts))

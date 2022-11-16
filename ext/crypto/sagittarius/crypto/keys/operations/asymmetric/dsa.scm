@@ -235,6 +235,7 @@
 
 (define *dsa-key-oids* '("1.2.840.10040.4.1" "1.2.840.10040.4.3"))
 (define-method oid->key-operation ((oid (member *dsa-key-oids*))) *key:dsa*)
+(define-method key->oid ((key <dsa-key-parameter-holder>)) *dsa-key-oids*)
 
 ;; ASN.1 module of DSA keys are from
 ;; https://www.rfc-editor.org/rfc/rfc5912.html

@@ -50,7 +50,7 @@
   (subject-public-key-info->public-key key))
 
 (define (subject-public-key-info->public-key (spki subject-public-key-info?))
-  (import-public-key (asn1-encodable->asn1-object key)
+  (import-public-key (asn1-encodable->asn1-object spki)
 		     (public-key-format subject-public-key-info)))
 (define (public-key->subject-public-key-info (pk public-key?))
   (let ((bv (export-public-key pk (public-key-format subject-public-key-info))))
@@ -60,13 +60,11 @@
   (one-asymmetric-key->private-key key))
 
 (define (one-asymmetric-key->private-key (oakp one-asymmetric-key?))
-  (let* ((aid (one-asymmetric-key-private-key-algorithm key))
-	 (oid (algorithm-identifier-algorithm aid))
-	 (op (oid->key-operation (der-object-identifier->oid-string oid))))
-    (import-private-key op (der-octet-string-value
-			    (one-asymmetric-key-private-key key)))))
+  (import-private-key (asn1-encodable->asn1-object oakp)
+		      (private-key-format private-key-info)))
 
-;; TODO how should we handle this?
 (define (private-key->one-asymmetric-key (private-key private-key?))
-  (error 'private-key->one-asymmetric-key "Not yet"))
+  (let ((bv (export-private-key private-key
+				(private-key-format private-key-info))))
+    (bytevector->asn1-encodable <one-asymmetric-key> bv)))
 )

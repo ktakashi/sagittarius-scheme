@@ -212,6 +212,7 @@
 
 (define *ecdsa-key-oid* "1.2.840.10045.2.1")
 (define-method oid->key-operation ((oid (equal *ecdsa-key-oid*))) *key:ecdsa*)
+(define-method key->oid ((key <ecdsa-key-parameter-holder>)) *ecdsa-key-oid*)
 
 ;; TODO should be move to (sagittarius crypto asn1)
 (define (parse-seq (seq der-sequence?))

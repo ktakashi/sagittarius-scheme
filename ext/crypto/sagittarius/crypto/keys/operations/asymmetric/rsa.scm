@@ -72,7 +72,8 @@
 (define *key:rsa* :rsa)
 (define *rsa-min-keysize* (make-parameter 1024))
 
-(define-class <rsa-public-key> (<public-key> <immutable>)
+(define-class <rsa-key> () ())
+(define-class <rsa-public-key> (<public-key> <immutable> <rsa-key>)
   ((modulus :init-keyword :modulus :reader rsa-public-key-modulus)
    (exponent :init-keyword :exponent :reader rsa-public-key-exponent)))
 (define (rsa-public-key? o) (is-a? o <rsa-public-key>))
@@ -90,7 +91,7 @@
     (display #\> out)
     (display (e) p)))
 
-(define-class <rsa-private-key> (<private-key> <immutable>)
+(define-class <rsa-private-key> (<private-key> <immutable> <rsa-key>)
   ((modulus :init-keyword :modulus :reader rsa-private-key-modulus)
    (private-exponent :init-keyword :private-exponent
 		     :reader rsa-private-key-private-exponent)))
@@ -192,8 +193,9 @@
 
 ;;; Export and import
 ;; misc
+(define *rsa-oid* "1.2.840.113549.1.1.1")
 (define *rsa-key-oids*
-  '("1.2.840.113549.1.1.1"
+  `(,*rsa-oid*
     "1.2.840.113549.1.1.2" 
     "1.2.840.113549.1.1.3" 
     "1.2.840.113549.1.1.4" 
@@ -204,6 +206,7 @@
     "1.2.840.113549.1.1.12"
     "2.5.8.1.1"))
 (define-method oid->key-operation ((oid (member *rsa-key-oids*))) *key:rsa*)
+(define-method key->oid ((k <rsa-key>)) *rsa-oid*)
 ;; We use RSAPublicKey for default
 ;;
 ;; RSAPublicKey ::= SEQUENCE {
@@ -267,7 +270,7 @@
   (let ((raw (rsa-export-raw-public-key key)))
     (asn1-encodable->bytevector
      (der-sequence
-      (der-sequence (oid-string->der-object-identifier "1.2.840.113549.1.1.1"))
+      (der-sequence (oid-string->der-object-identifier *rsa-oid*))
       (bytevector->der-bit-string raw)))))
   
 (define-method export-public-key ((key <rsa-public-key>) . opts)
@@ -316,6 +319,7 @@
 			      :dP (check-der-integer dP)
 			      :dQ (check-der-integer dQ)
 			      :qP (check-der-integer qP))))
+
 (define-method import-private-key ((m (eql *key:rsa*)) (in <bytevector>) . opts)
   (apply import-private-key m (open-bytevector-input-port in) opts))
 (define-method import-private-key ((m (eql *key:rsa*)) (in <port>) . opts)

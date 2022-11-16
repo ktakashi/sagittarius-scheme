@@ -40,15 +40,21 @@
 	    export-private-key
 
 	    oid->key-operation
+	    key->oid
 	    
 	    public-key-format
 	    *public-key-formats*
 	    public-key-format?
 
 	    calculate-key-agreement
+
+	    private-key-format
+	    *private-key-formats*
+	    private-key-format?
 	    )
     (import (rnrs)
 	    (sagittarius crypto asn1)
+	    (sagittarius crypto keys types)
 	    (clos user))
 
 (define-generic generate-key-pair)
@@ -60,6 +66,7 @@
 (define-generic export-private-key)
 
 (define-generic oid->key-operation :class <one-of-specializable-generic>)
+(define-generic key->oid)
 
 (define-generic calculate-key-agreement) ;; key agreement
 
@@ -87,6 +94,67 @@
     (let ((s (oid->key-operation (der-object-identifier->oid-string oid))))
       (import-public-key s key format))))
 
-;; TODO should we make private-key-format as well, which
-;;      supports raw and private-key-info?
+(define-enumeration private-key-format (raw private-key-info)
+  private-key-formats)
+(define *private-key-formats* (enum-set-universe (private-key-formats)))
+(define (private-key-format? s) (enum-set-member? s *public-key-formats*))
+
+(define-method import-private-key ((key <bytevector>)
+				   (format (eq 'private-key-info)))
+  (import-private-key (open-bytevector-input-port key) format))
+(define-method import-private-key ((key <port>)
+				   (format (eq 'private-key-info)))
+  (import-private-key (read-asn1-object key) format))
+;; OneAsymmetricKey ::= SEQUENCE {
+;;   version                   Version,
+;;   privateKeyAlgorithm       PrivateKeyAlgorithmIdentifier,
+;;   privateKey                PrivateKey,
+;;   attributes            [0] Attributes OPTIONAL,
+;;   ...,
+;;   [[2: publicKey        [1] PublicKey OPTIONAL ]],
+;;   ...
+;; }
+(define-method import-private-key ((key <der-sequence>)
+				   (format (eq 'private-key-info)))
+  (let*-values (((version pka pk . ignore) (deconstruct-asn1-collection key))
+		((oid . ignore) (deconstruct-asn1-collection pka)))
+    (let ((s (oid->key-operation (der-object-identifier->oid-string oid))))
+      (import-private-key s (der-octet-string->bytevector pk) 'raw))))
+(define-method import-private-key (m
+				   (key <der-sequence>)
+				   (format (eq 'private-key-info)))
+  (let*-values (((version pka pk . ignore) (deconstruct-asn1-collection key))
+		((oid . ignore) (deconstruct-asn1-collection pka)))
+    (let ((s (oid->key-operation (der-object-identifier->oid-string oid))))
+      (unless (eq? m s)
+	(assertion-violation 'import-private-key
+			     "Specified key scheme and actual OID mismatches"
+			     m (der-object-identifier->oid-string oid)))
+      (import-private-key s (der-octet-string->bytevector pk) 'raw))))
+
+;; Use :around specifier to let the subclass of the key match...
+(define-method export-private-key :around (m k (format (eq 'private-key-info)))
+  (export-private-key k format))
+(define-method export-private-key :around ((key <private-key>)
+					   (format (eq 'private-key-info)))
+  (let ((raw (export-private-key key 'raw))
+	(oid (key->oid key)))
+    (asn1-encodable->bytevector
+     (der-sequence
+      (integer->der-integer 0)
+      (der-sequence (oid-string->der-object-identifier oid)
+		    (extract-aid-parameter oid raw))
+      (bytevector->der-octet-string raw)))))
+;; internal method
+(define-generic extract-aid-parameter)
+(define-method extract-aid-parameter (oid raw) (make-der-null))
+(define-method extract-aid-parameter ((oid (equal "1.2.840.10045.2.1"))
+				      raw)
+  ;; Fxxk, we need to deconstruct and provide curve parameter here...
+  (let* ((seq (bytevector->asn1-object raw))
+	 (obj (asn1-collection-find-tag seq 0)))
+    (if obj
+	(ber-tagged-object-obj obj)
+	(make-der-null)))) ;; mustn't happen, but we don't want to fail it
+
 )

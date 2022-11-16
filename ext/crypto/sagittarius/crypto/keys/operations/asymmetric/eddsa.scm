@@ -256,6 +256,10 @@
 (define *ed448-key-oid* "1.3.101.113")
 (define-method oid->key-operation ((oid (equal *ed448-key-oid*)))
   *key:ed448*)
+(define-method key->oid ((key <eddsa-key>))
+  (if (ed25519-key?)
+      *ed25519-key-oid*
+      *ed448-key-oid*))
 
 (define-method export-public-key ((key <eddsa-public-key>) . opts)
   (apply export-public-key *key:eddsa* key opts))
