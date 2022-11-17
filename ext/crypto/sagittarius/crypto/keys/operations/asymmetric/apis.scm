@@ -89,10 +89,12 @@
 |#
 (define-method import-public-key ((key <der-sequence>)
 				  (format (eq 'subject-public-key-info)))
-  (let*-values (((aid ignore) (deconstruct-asn1-collection key))
-		((oid . ignore) (deconstruct-asn1-collection aid)))
+  (let*-values (((aid pk) (deconstruct-asn1-collection key))
+		((oid param) (deconstruct-asn1-collection aid)))
     (let ((s (oid->key-operation (der-object-identifier->oid-string oid))))
-      (import-public-key s key format))))
+      (apply import-public-key s (der-bit-string->bytevector pk) 'raw
+	     (extract-ec-parameter (der-object-identifier->oid-string oid)
+				   param)))))
 
 (define-enumeration private-key-format (raw private-key-info)
   private-key-formats)

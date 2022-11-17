@@ -220,8 +220,11 @@
 
 ;; NOTE ECDSA public key == ECPoint
 ;; ECPoint ::= OCTET STRING
-(define (ecdsa-import-raw-public-key (key bytevector?)
-				     (ec-parameter ec-parameter?))
+(define (ecdsa-import-raw-public-key (key bytevector?) param)
+  (define ec-parameter (cond ((ec-parameter? param) param)
+			     ((der-object-identifier? param)
+			      (lookup-named-curve-parameter param))
+			     (else (->ec-parameter param))))
   (let ((Q (decode-ec-point (ec-parameter-curve ec-parameter) key)))
     (make <ecdsa-public-key> :Q Q :parameter ec-parameter)))
 
@@ -231,10 +234,7 @@
     (unless (der-bit-string? key)
       (assertion-violation 'ecdsa-import-spki-public-key
 			   "Invalid SubjectPublicKeyInfo format" public-key))
-    (let ((p (if (der-object-identifier? param)
-		 (lookup-named-curve-parameter param)
-		 (->ec-parameter param))))
-      (ecdsa-import-raw-public-key (der-bit-string->bytevector key) p))))
+    (ecdsa-import-raw-public-key (der-bit-string->bytevector key) param)))
 
 (define-method import-public-key ((m (eql *key:ecdsa*)) (in <port>) . opts)
   (apply import-public-key m (get-bytevector-all in) opts))
