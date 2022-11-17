@@ -28,11 +28,16 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;
 
+;; Asymmetric Key Packages is originally PKCS#8 so this library is
+;; located in PKCS category
 ;; ref
 ;; - https://datatracker.ietf.org/doc/html/rfc5958
 #!nounbound
-(library (sagittarius crypto pkix modules akp)
-    (export *akp:asymmetric-key-package-content-type*
+(library (sagittarius crypto pkcs modules akp)
+    (export asn1-object->asn1-encodable ;; for convenience
+	    bytevector->asn1-encodable
+
+	    *akp:asymmetric-key-package-content-type*
 	    asymmetric-key-package? <asymmetric-key-package>
 	    asymmetric-key-package->list
 
@@ -66,6 +71,9 @@
 ;;   [[2: publicKey        [1] PublicKey OPTIONAL ]],
 ;;   ...
 ;; }
+;; skip Pad bits
+(define (bytevector/pad->der-bit-string bv)
+  (bytevector->der-bit-string (bytevector-copy bv 1)))
 (define-asn1-encodable <one-asymmetric-key>
   (asn1-sequence
    ((version :type <der-integer> :reader one-asymmetric-key-vertsion)
@@ -73,14 +81,18 @@
      :reader one-asymmetric-key-private-key-algorithm)
     (private-key :type <der-octet-string> 
 		 :reader one-asymmetric-key-private-key)
-    (attributes :type <attributes> :tag 0 :optional #t :explicit #t
+    (attributes :type <attributes> :tag 0 :optional #t :explicit #f
+		:converter make-der-set
 		:reader one-asymmetric-key-attributes)
-    (public-key :type <der-bit-string> :tag 1 :optional #t :explicit #t
+    (public-key :type <der-bit-string> :tag 1 :optional #t :explicit #f
+		:converter bytevector/pad->der-bit-string
 		:reader one-asymmetric-key-public-key))))
+
 (define (one-asymmetric-key? o) (is-a? o <one-asymmetric-key>))
 
 (define (private-key-info? o)
-  (and (one-asymmetric-key? o) (zero? (one-asymmetric-key-vertsion o))))
+  (and (one-asymmetric-key? o)
+       (zero? (der-integer->integer (one-asymmetric-key-vertsion o)))))
 
 ;; AsymmetricKeyPackage ::= SEQUENCE SIZE (1..MAX) OF OneAsymmetricKey
 (define-asn1-encodable <asymmetric-key-package>

@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
-;;; sagittarius/crypto/pkix/modules/cms.scm - Cryptographic Message Syntax (CMS)
+;;; sagittarius/crypto/pkcs/modules/cms.scm - Cryptographic Message Syntax (CMS)
 ;;;
 ;;;   Copyright (c) 2022  Takashi Kato  <ktakashi@ymail.com>
 ;;;
@@ -28,13 +28,18 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;
 
+;; CMS is originally defined in PKCS#7, so the library is located in
+;; the PKCS category
 ;; ref
 ;; - https://datatracker.ietf.org/doc/html/rfc5652
 ;; - https://datatracker.ietf.org/doc/html/rfc5083
 ;;   (for Authenticated-Enveloped-Data)
 #!nounbound
-(library (sagittarius crypto pkix modules cms)
-    (export content-info? <content-info>
+(library (sagittarius crypto pkcs modules cms)
+    (export asn1-object->asn1-encodable ;; for convenience
+	    bytevector->asn1-encodable
+
+	    content-info? <content-info>
 	    content-info-content-type content-info-raw-content
 	    *cms:content-infomation*
 	    content-info->content

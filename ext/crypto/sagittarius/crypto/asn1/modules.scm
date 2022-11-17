@@ -82,7 +82,7 @@
 		       :init-value '())) opts ...)
        ((o p)
 	(asn1-generic-write name
-	 (asn1-object-list->string (slot-ref p 'of)) p))))
+	 (asn1-object-list->string (slot-ref o 'of)) p))))
     ((_ name (base-type (of spec ...) opts ...))
      (define-asn1-encodable (name) (base-type (of spec ...) opts ...)))
     ((_ (name parents ...) (asn1-choice ((slot spec* ...) ...) opts ...))
@@ -278,7 +278,7 @@
 				    (lambda (obj)
 				      (loop (cdr entries) (cdr slots)
 					    (cons (entry->slot slot obj) r))))
-				   (else (err "Invalid tag object"))))
+				   (else (err "Invalid tag object" entry))))
 			    (opt? (loop entries (cdr slots) r))
 			    (else (err "Missing tag object"))))
 		     ((entry->object entry slot opt?) =>

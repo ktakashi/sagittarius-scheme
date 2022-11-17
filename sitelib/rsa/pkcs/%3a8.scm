@@ -34,6 +34,7 @@
 #!nounbound
 (library (rsa pkcs :8)
     (export (rename (<one-asymmetric-key> <private-key-info>))
+	    one-asymmetric-key?
 	    private-key-info?
 	    make-private-key-info
 	    
@@ -62,9 +63,9 @@
 	    (sagittarius)
 	    (sagittarius crypto asn1)
 	    (sagittarius crypto keys)
-	    (sagittarius crypto pkix keys)
-	    (sagittarius crypto pkix modules x509)
-	    (sagittarius crypto pkix modules akp))
+	    (sagittarius crypto pkcs keys)
+	    (sagittarius crypto pkcs modules akp)
+	    (sagittarius crypto pkix modules x509))
 
 (define-generic make-private-key-info)
 (define-method make-private-key-info ((s <asn1-collection>))

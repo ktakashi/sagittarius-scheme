@@ -134,11 +134,32 @@
 	(assertion-violation 'import-private-key
 			     "Specified key scheme and actual OID mismatches"
 			     m (der-object-identifier->oid-string oid)))
-      (apply import-private-key s (der-octet-string->bytevector pk)
+      (apply import-private-key s
+	     (adjust-key-value (der-object-identifier->oid-string oid)
+	      (bytevector->asn1-object (der-octet-string->bytevector pk)))
 	     (if (null? maybe-param)
 		 '()
 		 (extract-parameter (der-object-identifier->oid-string oid)
 				    (car maybe-param)))))))
+
+;; internal method
+(define *ed25519-key-oid* "1.3.101.112")
+(define *ed448-key-oid* "1.3.101.113")
+(define-generic adjust-key-value)
+(define-method adjust-key-value (o v) v)
+(define-method adjust-key-value ((oid (equal *ed25519-key-oid*)) v)
+  (der-octet-string->bytevector v))
+(define-method adjust-key-value ((oid (equal *ed448-key-oid*)) v)
+  (der-octet-string->bytevector v))
+(define-generic wrap-key-value)
+(define-method wrap-key-value (o v) v)
+;; EdDSA uses CurvePrivateKey for PrivateKeyInfo/OneAsymmetricKey
+;; ref: https://www.rfc-editor.org/rfc/rfc8410
+;; CurvePrivateKey ::= OCTET STRING
+(define-method wrap-key-value ((oid (equal *ed25519-key-oid*)) v)
+  (bytevector->der-octet-string v))
+(define-method wrap-key-value ((oid (equal *ed448-key-oid*)) v)
+  (bytevector->der-octet-string v))
 
 ;; Use :around specifier to let the subclass of the key match...
 (define-method export-private-key :around (m k (format (eq 'private-key-info)))
@@ -152,7 +173,7 @@
       (integer->der-integer 0)
       (der-sequence (oid-string->der-object-identifier oid)
 		    (extract-aid-parameter oid raw))
-      (bytevector->der-octet-string raw)))))
+      (bytevector->der-octet-string (wrap-key-value oid raw))))))
 
 ;; internal method
 (define *dsa-oid*   "1.2.840.10040.4.1")

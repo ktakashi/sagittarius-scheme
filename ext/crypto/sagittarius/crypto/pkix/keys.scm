@@ -32,17 +32,11 @@
 (library (sagittarius crypto pkix keys)
     (export import-public-key export-public-key
 	    subject-public-key-info->public-key
-	    public-key->subject-public-key-info
-
-	    import-private-key export-private-key
-	    one-asymmetric-key->private-key
-	    private-key->one-asymmetric-key
-	    )
+	    public-key->subject-public-key-info)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius crypto asn1)
 	    (sagittarius crypto pkix modules x509)
-	    (sagittarius crypto pkix modules akp)
 	    (sagittarius crypto keys))
 
 ;; Subject public key info
@@ -57,18 +51,4 @@
 (define (public-key->subject-public-key-info (pk public-key?))
   (let ((bv (export-public-key pk (public-key-format subject-public-key-info))))
     (bytevector->asn1-encodable <subject-public-key-info> bv)))
-
-(define-method import-private-key ((key <one-asymmetric-key>))
-  (one-asymmetric-key->private-key key))
-(define-method export-private-key ((key <one-asymmetric-key>))
-  (asn1-encodable->bytevector key))
-
-(define (one-asymmetric-key->private-key (oakp one-asymmetric-key?))
-  (import-private-key (asn1-encodable->asn1-object oakp)
-		      (private-key-format private-key-info)))
-
-(define (private-key->one-asymmetric-key (private-key private-key?))
-  (let ((bv (export-private-key private-key
-				(private-key-format private-key-info))))
-    (bytevector->asn1-encodable <one-asymmetric-key> bv)))
 )

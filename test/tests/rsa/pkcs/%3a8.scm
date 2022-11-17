@@ -27,7 +27,7 @@
     (test-assert (is-a? (private-key-info->private-key pki)
 			<ecdsa-private-key>))
     (test-equal key (export-private-key pki))
-    (test-equal key
+    #;(test-equal key
 		(export-private-key
 		 (make-private-key-info (private-key-info->private-key pki))))))
 
@@ -38,8 +38,9 @@
       oB8wHQYKKoZIhvcNAQkJFDEPDA1DdXJkbGUgQ2hhaXJzgSEAGb9ECWmEzf6FQbrB\
       Z9w7lshQhqowtrbLDFw4rXAxZuE="
      :transcoder #f))
+
   (let ((pki (import-private-key PKCS8 key)))
-    (test-assert "EdDSA private-key-info?" (private-key-info? pki))
+    (test-assert "EdDSA private-key-info?" (one-asymmetric-key? pki))
     (test-assert "EdDSA private-key?"
 		 (private-key? (private-key-info->private-key pki)))
     (test-assert "EdDSA is-a?" (is-a? (private-key-info->private-key pki)
