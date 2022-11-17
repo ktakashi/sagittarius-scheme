@@ -44,7 +44,9 @@
 	    algorithm-identifier?
 	    make-algorithm-identifier
 	    algorithm-identifier-id ;; returns OID string
-	    algorithm-identifier-object-id ;; der-object-identifier
+	    ;; der-object-identifier
+	    (rename (algorithm-identifier-algorithm
+		     algorithm-identifier-object-id))
 	    algorithm-identifier-parameters
 
 	    PKCS10
@@ -52,153 +54,48 @@
 	    )
     (import (rnrs)
 	    (clos user)
-	    (asn.1)
-	    (crypto)
-	    (sagittarius)
-	    (sagittarius object))
+	    (sagittarius crypto asn1)
+	    (sagittarius crypto keys)
+	    (sagittarius crypto pkix keys)
+	    (sagittarius crypto pkix modules x509))
 
-  ;; TODO other ASN1 modules.
+(define-generic make-subject-public-key-info)
+(define-method make-subject-public-key-info ((bv <bytevector>))
+  (make-subject-public-key-info (open-bytevector-input-port bv)))
+(define-method make-subject-public-key-info ((port <port>))
+  (make-subject-public-key-info (read-asn1-object port)))
+(define-method make-subject-public-key-info ((s <asn1-collection>))
+  (asn1-object->asn1-encodable <subject-public-key-info> s))
+(define-method make-subject-public-key-info ((pk <public-key>))
+  (make-subject-public-key-info
+   (export-public-key pk (public-key-format subject-public-key-info))))
+(define (subject-public-key-info-key-data o)
+  (subject-public-key-info-subject-public-key o))
 
-  #|
-   SubjectPublicKeyInfo {ALGORITHM: IOSet} ::= SEQUENCE {
-        algorithm        AlgorithmIdentifier {{IOSet}},
-        subjectPublicKey BIT STRING
-   }
-  |#
-  (define-class <subject-public-key-info> (<asn.1-encodable>)
-    ((algorithm-identifier :init-keyword :algorithm-identifier)
-     (key-data :init-keyword :key-data)))
-  (define (subject-public-key-info? o) (is-a? o <subject-public-key-info>))
-  (define-generic make-subject-public-key-info)
-  (define-method make-subject-public-key-info ((bv <bytevector>))
-    (make-subject-public-key-info (open-bytevector-input-port bv)))
-  (define-method make-subject-public-key-info ((port <port>))
-    (make-subject-public-key-info (read-asn.1-object port)))
-  (define-method make-subject-public-key-info ((s <asn.1-sequence>))
-    ;; TODO check length
-    (let ((id (asn.1-sequence-get s 0)))
-      (make <subject-public-key-info>
-	:algorithm-identifier (if (algorithm-identifier? id)
-				  id
-				  (make-algorithm-identifier id))
-	:key-data (asn.1-sequence-get s 1))))
-  (define-method make-subject-public-key-info ((pk <rsa-public-key>))
-    (make-subject-public-key-info
-     (make-der-sequence
-      (make-algorithm-identifier "1.2.840.113549.1.1.1" (make-der-null))
-      (make-der-bit-string (export-public-key pk)))))
-  (define-method make-subject-public-key-info ((pk <ecdsa-public-key>))
-    ;; for some weird reason, ecdsa key exports SPKI form, so use it
-    (make-subject-public-key-info (export-public-key pk)))
-  (define-method make-subject-public-key-info ((pk <eddsa-public-key>))
-    (make-subject-public-key-info
-     (make-der-sequence
-      (make-algorithm-identifier
-       (if (ed25519-key? pk) "1.3.101.112" "1.3.101.113"))
-      (make-der-bit-string (export-public-key pk)))))
-  (define-method asn.1-encodable->asn.1-object ((o <subject-public-key-info>) i)
-    (make-der-sequence
-     (asn.1-encodable->asn.1-object (slot-ref o 'algorithm-identifier))
-     (asn.1-encodable->asn.1-object (slot-ref o 'key-data))))
-  (define (subject-public-key-info-key-data o) (~ o 'key-data))
-  
-  #|
-   AlgorithmIdentifier {ALGORITHM:IOSet } ::= SEQUENCE {
-        algorithm  ALGORITHM.&id({IOSet}),
-        parameters ALGORITHM.&Type({IOSet}{@algorithm}) OPTIONAL
-   }
-  |#
-  (define-class <algorithm-identifier> (<asn.1-encodable>)
-    ((object-id  :init-keyword :object-id
-		 :reader algorithm-identifier-object-id)
-     (parameters :init-keyword :parameters :init-value #f
-		 :reader algorithm-identifier-parameters)))
-  (define (algorithm-identifier? o) (is-a? o <algorithm-identifier>))
-  (define-generic make-algorithm-identifier)
-  (define-method make-algorithm-identifier ((o <der-object-identifier>))
-    (make <algorithm-identifier> :object-id o))
-  (define-method make-algorithm-identifier ((s <asn.1-sequence>))
-    (let ((len (asn.1-sequence-size s)))
-      (unless (<= 1 len 2)
-	(assertion-violation 'make-algorithm-identifier
-			     "bad sequence size" len))
-      (if (= len 2)
-	  (make <algorithm-identifier>
-	    :object-id (asn.1-sequence-get s 0)
-	    :parameters (asn.1-sequence-get s 1))
-	  (make <algorithm-identifier>
-	    :object-id (asn.1-sequence-get s 0)))))
-  (define-method make-algorithm-identifier ((oid <string>)
-					    (param <asn.1-encodable>))
-    (make <algorithm-identifier> 
-      :object-id (make-der-object-identifier oid)
-      :parameters param))
-  (define-method make-algorithm-identifier ((oid <string>))
-    (make <algorithm-identifier> :object-id (make-der-object-identifier oid)))
-  (define-method asn.1-encodable->asn.1-object ((o <algorithm-identifier>) ig)
-    (let ((p (slot-ref o 'parameters)))
-      (if p
-	  (make-der-sequence (slot-ref o 'object-id) p)
-	  (make-der-sequence (slot-ref o 'object-id)))))
+(define-generic make-algorithm-identifier)
+(define-method make-algorithm-identifier ((o <der-object-identifier>))
+  (make <algorithm-identifier> :algorithm o))
+(define-method make-algorithm-identifier ((s <asn1-collection>))
+  (asn1-object->asn1-encodable <algorithm-identifier> s))
 
-  (define-method write-object ((o <algorithm-identifier>) (p <port>))
-    (format p "#<algorithm-identifier ~a~%~a>" (algorithm-identifier-id o)
-	    (slot-ref o 'parameters)))
+(define-method make-algorithm-identifier ((oid <string>)
+					  (param <asn1-encodable>))
+  (make <algorithm-identifier> 
+    :algorithm (oid-string->der-object-identifier oid)
+    :parameters param))
+(define-method make-algorithm-identifier ((oid <string>))
+  (make-algorithm-identifier (oid-string->der-object-identifier oid)))
 
-  (define (algorithm-identifier-id id) (~ id 'object-id 'identifier))
+(define (algorithm-identifier-id id)
+  (der-object-identifier->oid-string
+   (algorithm-identifier-algorithm id)))
 
-  (define PKCS10 :pkcs10)
-  (define-method import-public-key ((m (eql PKCS10)) (in <bytevector>))
-    (import-public-key PKCS10 (open-bytevector-input-port in)))
-  (define-method import-public-key ((m (eql PKCS10)) (in <port>))
-    (import-public-key PKCS10 (read-asn.1-object in)))
-  (define-method import-public-key ((m (eql PKCS10)) (in <asn.1-sequence>))
-    (make-subject-public-key-info in))
+(define PKCS10 :pkcs10)
+(define-method import-public-key ((m (eql PKCS10)) in)
+  (make-subject-public-key-info in))
 
-  (define-method export-public-key ((m (eql PKCS10))
-				    (in <subject-public-key-info>))
-    (export-public-key in))
-  (define-method export-public-key ((in <subject-public-key-info>))
-    (asn.1-encode (asn.1-encodable->asn.1-object in)))
+(define-method export-public-key ((m (eql PKCS10))
+				  (in <subject-public-key-info>))
+  (export-public-key in))
 
-  ;; FIXME loads of duplicates....
-  (define (pki->rsa-public-key pki)
-    (import-public-key RSA (slot-ref (slot-ref pki 'key-data) 'data)))
-  (define (pki->dsa-public-key pki)
-    (import-public-key DSA (slot-ref (slot-ref pki 'key-data) 'data)))
-  (define *oid-marker*
-    `(("1.2.840.113549.1.1.1" . ,pki->rsa-public-key)
-      ("1.2.840.113549.1.1.2" . ,pki->rsa-public-key)
-      ("1.2.840.113549.1.1.3" . ,pki->rsa-public-key)
-      ("1.2.840.113549.1.1.4" . ,pki->rsa-public-key)
-      ("1.2.840.113549.1.1.5" . ,pki->rsa-public-key)
-      ("1.2.840.113549.1.1.7" . ,pki->rsa-public-key)
-      ("1.2.840.113549.1.1.10" . ,pki->rsa-public-key)
-      ("1.2.840.113549.1.1.11" . ,pki->rsa-public-key)
-      ("1.2.840.113549.1.1.12" . ,pki->rsa-public-key)
-      ("2.5.8.1.1" . ,pki->rsa-public-key)
-      ("1.2.840.10040.4.1" . ,pki->dsa-public-key)
-      ("1.2.840.10040.4.3" . ,pki->dsa-public-key)
-      ("1.2.840.10045.2.1" .
-       ,(lambda (pki)
-	  ;; For some reason, old me thought importing ECPublicKey
-	  ;; from SubjectPublicKeyInfo directly in the (crypto ecdsa)
-	  ;; so make the pki ASN.1 object
-	  (import-public-key ECDSA (asn.1-encodable->asn.1-object pki))))
-      
-      ;; RFC 8410
-      ;; TODO X25519 and X448
-      ("1.3.101.112" .
-       ,(lambda (pki)
-	  (import-public-key Ed25519 (slot-ref (slot-ref pki 'key-data) 'data))))
-      ("1.3.101.113" .
-       ,(lambda (pki)
-	  (import-public-key Ed448 (slot-ref (slot-ref pki 'key-data) 'data))))
-      ))
-			     
-  (define (subject-public-key-info->public-key spki)
-    (let ((oid (algorithm-identifier-id (slot-ref spki 'algorithm-identifier))))
-      (cond ((assoc oid *oid-marker*) => (lambda (s) ((cdr s) spki)))
-	    (else (assertion-violation 'subject-public-key-info->public-key
-				       "not supported" oid)))))
 )

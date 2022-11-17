@@ -99,7 +99,7 @@
   (asn1-sequence
    ((encryption-algorithm :type <algorithm-identifier>
      :reader encrypted-private-key-info-encryption-algorithm)
-    (encrypted-date :type <der-octet-string>
+    (encrypted-data :type <der-octet-string>
 		    :reader encrypted-private-key-info-encrypted-data))))
 (define (encrypted-private-key-info? o) (is-a? o <encrypted-private-key-info>))
 

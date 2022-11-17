@@ -317,8 +317,8 @@
 			       ;; anymore.
 			       (set! stop? #t))
 			      (else
-			       (when (~ config 'exception-handler)
-				 ((~ config 'exception-handler) server #f e))))
+			       (cond ((~ config 'exception-handler) =>
+				      (lambda (h) (h server #f e))))))
 		      (if (socket-closed? socket)
 			  (set! stop? #t)
 			  (let ((client-socket (socket-accept socket)))

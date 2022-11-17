@@ -162,7 +162,6 @@
 		  (make-validity (current-date)
 				 (current-date))
 		  cert2 (keypair-private keypair2)))
-  
     (test-assert (format "store key ~a" type)
 		 (keystore-set-key! ks "key" 
 				    (keypair-private keypair)

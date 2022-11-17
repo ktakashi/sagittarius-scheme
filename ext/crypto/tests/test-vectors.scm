@@ -108,7 +108,8 @@
   ;; if key import is not supported, then ignore
   (define (import-key k)
     (guard (e ((implementation-restriction-violation? e) #f)
-	      (else (test-assert "Failed to import key" #f) #f))
+	      (else (test-assert "Failed to import key" #f)
+		    #f))
       (import-public-key k (public-key-format subject-public-key-info))))
   (define (->mgf mgf)
     (if (string=? mgf "MGF1")
@@ -159,7 +160,7 @@
 	(apply make-verifier alg pkey param))))
   (define ((verify-signature verifier) test)
     (define (safe-verify verifier msg sig)
-      (guard (e (else #f))
+      (guard (e (else #;(report-error e) #f))
 	(verifier-verify-signature verifier msg sig)))
     (let ((id (vector-ref test 0))
 	  (comment (vector-ref test 1))

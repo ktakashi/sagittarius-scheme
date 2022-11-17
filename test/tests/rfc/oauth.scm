@@ -212,15 +212,18 @@
   (define consumer-secret "consumer-secret")
   (define +shutdown-port+ "20000")
   (define keypair (generate-key-pair RSA :size 1024))
+  (define 1y+ (time-utc->date
+	       (add-duration (current-time)
+		(make-time time-duration 0 (* 3600 24 365)))))
   (define cert (make-x509-basic-certificate keypair 1
 					    (make-x509-issuer '((C . "NL")))
-					    (make-validity (current-date)
-							   (current-date))
+					    (make-validity (current-date) 1y+)
 					    (make-x509-issuer '((C . "NL")))))
   
   (define config (make-server-config :shutdown-port +shutdown-port+
 				     :secure? #t
 				     :use-ipv6? #t
+				     :exception-handler print
 				     :certificates (list cert)))
   (define temporary_credential
     #*"oauth_callback_confirmed=true&oauth_token=oauth_toke&oauth_token_secret=oauth_token_secret")

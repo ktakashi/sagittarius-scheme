@@ -392,7 +392,8 @@
 	      (read-asn.1-object (open-bytevector-input-port plain-key)))
 	     (priv-key-info (make-private-key-info asn.1-key)))
 	priv-key-info))
-    (unwrap-key (slot-ref epki 'id) (slot-ref epki 'data) password))
+    (unwrap-key (encrypted-private-key-info-id epki)
+		(encrypted-private-key-info-data epki) password))
   
   (define (pkcs12-keystore-get-key keystore name password)
     (let ((keys (slot-ref keystore 'keys)))

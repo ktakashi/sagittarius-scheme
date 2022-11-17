@@ -90,11 +90,13 @@
 (define-method import-public-key ((key <der-sequence>)
 				  (format (eq 'subject-public-key-info)))
   (let*-values (((aid pk) (deconstruct-asn1-collection key))
-		((oid param) (deconstruct-asn1-collection aid)))
+		((oid . maybe-param) (deconstruct-asn1-collection aid)))
     (let ((s (oid->key-operation (der-object-identifier->oid-string oid))))
       (apply import-public-key s (der-bit-string->bytevector pk) 'raw
-	     (extract-ec-parameter (der-object-identifier->oid-string oid)
-				   param)))))
+	     (if (null? maybe-param)
+		 '()
+		 (extract-parameter (der-object-identifier->oid-string oid)
+				    (car maybe-param)))))))
 
 (define-enumeration private-key-format (raw private-key-info)
   private-key-formats)
@@ -126,15 +128,17 @@
 
 (define (import-pki-private-key m key)
   (let*-values (((version pka pk . ignore) (deconstruct-asn1-collection key))
-		((oid param) (deconstruct-asn1-collection pka)))
+		((oid . maybe-param) (deconstruct-asn1-collection pka)))
     (let ((s (oid->key-operation (der-object-identifier->oid-string oid))))
       (unless (or (not m) (eq? m s))
 	(assertion-violation 'import-private-key
 			     "Specified key scheme and actual OID mismatches"
 			     m (der-object-identifier->oid-string oid)))
       (apply import-private-key s (der-octet-string->bytevector pk)
-	     (extract-ec-parameter (der-object-identifier->oid-string oid)
-				   param)))))
+	     (if (null? maybe-param)
+		 '()
+		 (extract-parameter (der-object-identifier->oid-string oid)
+				    (car maybe-param)))))))
 
 ;; Use :around specifier to let the subclass of the key match...
 (define-method export-private-key :around (m k (format (eq 'private-key-info)))
@@ -151,10 +155,13 @@
       (bytevector->der-octet-string raw)))))
 
 ;; internal method
+(define *dsa-oid*   "1.2.840.10040.4.1")
 (define *ecdsa-oid* "1.2.840.10045.2.1")
-(define-generic extract-ec-parameter)
-(define-method extract-ec-parameter (oid raw) '())
-(define-method extract-ec-parameter ((oid (equal *ecdsa-oid*)) param)
+(define-generic extract-parameter)
+(define-method extract-parameter (oid raw) '())
+(define-method extract-parameter ((oid (equal *ecdsa-oid*)) param)
+  (list param))
+(define-method extract-parameter ((oid (equal *dsa-oid*)) param)
   (list param))
 
 (define-generic extract-aid-parameter)
