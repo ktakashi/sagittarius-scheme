@@ -113,8 +113,7 @@
 (define (x509-certificate-c (o x509-certificate?)) (x509-signed-object-c o))
 (define tbs-cert (.$ certificate-c x509-certificate-c))
 (define-class <x509-certificate> (<x509-signed-object>)
-  ((c :init-keyword :c)
-   (encoded :init-keyword :encoded :init-value #f :mutable #t
+  ((encoded :init-keyword :encoded :init-value #f :mutable #t
 	    :reader x509-certificate-encoded
 	    :writer x509-certificate-encoded-set!)
    (issuer-dn :allocation :virtual :cached #t

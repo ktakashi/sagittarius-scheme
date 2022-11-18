@@ -49,7 +49,6 @@
 	    (clos user)
 	    (sagittarius)
 	    (sagittarius mop immutable)
-	    (sagittarius mop allocation)
 	    (sagittarius crypto asn1)
 	    (sagittarius crypto digests)
 	    (sagittarius crypto keys)
@@ -57,13 +56,11 @@
 	    (sagittarius crypto pkix modules x509)
 	    (sagittarius crypto pkix algorithms)
 	    (sagittarius crypto random)
-	    (sagittarius mop immutable)
 	    (sagittarius combinators))
 (define (make-slot-ref getter conv) (lambda (o) (conv (getter o))))
-(define (x509-signed-object-c o) (slot-ref o 'c))
-(define-class <x509-signed-object> (<immutable> <cached-allocation>)
-  ((c :init-keyword :c)
-   (algorithm :allocation :virtual :cached #t
+(define (x509-signed-object-c o) (asn1-encodable-container-c o))
+(define-class <x509-signed-object> (<asn1-encodable-container>)
+  ((algorithm :allocation :virtual :cached #t
 	      :slot-ref (make-slot-ref
 			 (.$ signed-algorithm x509-signed-object-c)
 			 algorithm-identifier->x509-algorithm-identifier)
@@ -183,6 +180,9 @@
       :trailer-field (or (and trailer-field
 			      (der-integer->integer trailer-field))
 			 1))))
+
+(define-generic x509-algorithm-parameters->keyword-parameters)
+(define-method x509-algorithm-parameters->keyword-parameters (o) '())
 
 (define-method x509-algorithm-parameters->keyword-parameters
   ((p <x509-rsassa-pss-params>))

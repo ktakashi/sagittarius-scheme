@@ -33,12 +33,23 @@
     (export import-private-key export-private-key
 	    one-asymmetric-key->private-key
 	    private-key->one-asymmetric-key
+
+	    pkcs-encrypted-private-key-info? <pkcs-encrypted-private-key-info>
+	    pkcs-encrypted-private-key-info-encryption-algorithm
+	    pkcs-encrypted-private-key-info-encrypted-data
+	    read-pkcs-encrypted-private-key-info
+	    bytevector->pkcs-encrypted-private-key-info
+	    write-pkcs-encrypted-private-key-info
+	    pkcs-encrypted-private-key-info->bytevector
 	    )
     (import (rnrs)
 	    (clos user)
 	    (sagittarius crypto asn1)
+	    (sagittarius crypto asn1 modules)
 	    (sagittarius crypto pkcs modules akp)
-	    (sagittarius crypto keys))
+	    (sagittarius crypto pkix algorithms)
+	    (sagittarius crypto keys)
+	    (sagittarius combinators))
 
 (define-method import-private-key ((key <one-asymmetric-key>))
   (one-asymmetric-key->private-key key))
@@ -53,4 +64,38 @@
   (let ((bv (export-private-key private-key
 				(private-key-format private-key-info))))
     (bytevector->asn1-encodable <one-asymmetric-key> bv)))
+
+(define (make-slot-ref getter conv) (lambda (o) (conv (getter o))))
+(define-class <pkcs-encrypted-private-key-info> (<asn1-encodable-container>)
+  ((encryption-algorithm :allocation :virtual :cached #t
+    :slot-ref (make-slot-ref
+	       (.$ encrypted-private-key-info-encryption-algorithm
+		   asn1-encodable-container-c)
+	       algorithm-identifier->x509-algorithm-identifier)
+    :reader pkcs-encrypted-private-key-info-encryption-algorithm)
+   (encrypted-date :allocation :virtual :cached #t
+    :slot-ref (make-slot-ref
+	       (.$ encrypted-private-key-info-encrypted-data
+		   asn1-encodable-container-c)
+	       der-octet-string->bytevector)
+    :reader pkcs-encrypted-private-key-info-encrypted-data)))
+(define (pkcs-encrypted-private-key-info? o)
+  (is-a? o <pkcs-encrypted-private-key-info>))
+
+(define (bytevector->pkcs-encrypted-private-key-info bv)
+  (read-pkcs-encrypted-private-key-info (open-bytevector-input-port bv)))
+(define (read-pkcs-encrypted-private-key-info in)
+  (encrypted-private-key-info->pkcs-encrypted-private-key-info
+   (asn1-object->asn1-encodable <encrypted-private-key-info>
+				(read-asn1-object in))))
+(define (encrypted-private-key-info->pkcs-encrypted-private-key-info epki)
+  (make <pkcs-encrypted-private-key-info> :c epki))
+
+(define (pkcs-encrypted-private-key-info->encrypted-private-key-info epki)
+  (asn1-encodable-container-c epki))
+(define (write-pkcs-encrypted-private-key-info epki
+	 :optional (out (current-output-port)))
+  (put-bytevector out (pkcs-encrypted-private-key-info->bytevector epki)))
+(define (pkcs-encrypted-private-key-info->bytevector epki)
+  (asn1-encodable->bytevector epki))
 )

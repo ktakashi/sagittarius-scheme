@@ -30,7 +30,22 @@
 
 #!nounbound
 (library (sagittarius crypto mac hmac)
-    (export *mac:hmac*)
+    (export *mac:hmac*
+
+	    *oid-hmac/md5*
+	    *oid-hmac/tiger*
+	    *oid-hmac/ripemd-160*
+	    *oid-hmac/sha1*
+	    *oid-hmac/sha224*
+	    *oid-hmac/sha256*
+	    *oid-hmac/sha384*
+	    *oid-hmac/sha512*
+	    *oid-hmac/sha512/224*
+	    *oid-hmac/sha512/256*
+	    *oid-hmac/sha3-224*
+	    *oid-hmac/sha3-256*
+	    *oid-hmac/sha3-384*
+	    *oid-hmac/sha3-512*)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius crypto mac types)
@@ -50,22 +65,39 @@
 (define-method mac-state-processor ((s (eql *mac:hmac*))) tc:hmac-process!)
 (define-method mac-state-finalizer ((s (eql *mac:hmac*))) tc:hmac-done!)
 
+(define *oid-hmac/md5*        "1.3.6.1.5.5.8.1.1")
+(define *oid-hmac/tiger*      "1.2.840.113549.2.3")
+(define *oid-hmac/ripemd-160* "1.3.6.1.5.5.8.1.4")
+(define *oid-hmac/sha1*       "1.2.840.113549.2.7")
+(define *oid-hmac/sha224*     "1.2.840.113549.2.8")
+(define *oid-hmac/sha256*     "1.2.840.113549.2.9")
+(define *oid-hmac/sha384*     "1.2.840.113549.2.10")
+(define *oid-hmac/sha512*     "1.2.840.113549.2.11")
+(define *oid-hmac/sha512/224* "1.2.840.113549.2.12")
+(define *oid-hmac/sha512/256* "1.2.840.113549.2.13")
+(define *oid-hmac/sha3-224*   "2.16.840.1.101.3.4.2.13")
+(define *oid-hmac/sha3-256*   "2.16.840.1.101.3.4.2.14")
+(define *oid-hmac/sha3-384*   "2.16.840.1.101.3.4.2.15")
+(define *oid-hmac/sha3-512*   "2.16.840.1.101.3.4.2.16")
+
 (define *digest-oid->hmac-oid-map*
-  `((,(digest-descriptor-oid *digest:md5*)        . "1.3.6.1.5.5.8.1.1")
+  `((,(digest-descriptor-oid *digest:md5*)         . ,*oid-hmac/md5*)
     ;; This is old
     ;; (,(digest-descriptor-oid *digest:sha-1*)      . "1.3.6.1.5.5.8.1.2")
-    (,(digest-descriptor-oid *digest:tiger-192*)  . "1.3.6.1.5.5.8.1.3")
-    (,(digest-descriptor-oid *digest:ripemd-160*) . "1.3.6.1.5.5.8.1.4")
+    (,(digest-descriptor-oid *digest:tiger-192*)   . ,*oid-hmac/tiger*)
+    (,(digest-descriptor-oid *digest:ripemd-160*)  . ,*oid-hmac/ripemd-160*)
     ;; PKCS#5 HMAC OIDs
-    (,(digest-descriptor-oid *digest:sha-1*)      . "1.2.840.113549.2.7")
-    (,(digest-descriptor-oid *digest:sha-224*)    . "1.2.840.113549.2.8")
-    (,(digest-descriptor-oid *digest:sha-256*)    . "1.2.840.113549.2.9")
-    (,(digest-descriptor-oid *digest:sha-384*)    . "1.2.840.113549.2.10")
-    (,(digest-descriptor-oid *digest:sha-512*)    . "1.2.840.113549.2.11")
-    (,(digest-descriptor-oid *digest:sha3-224*)   . "2.16.840.1.101.3.4.2.13")
-    (,(digest-descriptor-oid *digest:sha3-256*)   . "2.16.840.1.101.3.4.2.14")
-    (,(digest-descriptor-oid *digest:sha3-384*)   . "2.16.840.1.101.3.4.2.15")
-    (,(digest-descriptor-oid *digest:sha3-512*)   . "2.16.840.1.101.3.4.2.16")
+    (,(digest-descriptor-oid *digest:sha-1*)       . ,*oid-hmac/sha1*)
+    (,(digest-descriptor-oid *digest:sha-224*)     . ,*oid-hmac/sha224*)
+    (,(digest-descriptor-oid *digest:sha-256*)     . ,*oid-hmac/sha256*)
+    (,(digest-descriptor-oid *digest:sha-384*)     . ,*oid-hmac/sha384*)
+    (,(digest-descriptor-oid *digest:sha-512*)     . ,*oid-hmac/sha512*)
+    (,(digest-descriptor-oid *digest:sha-512/224*) . ,*oid-hmac/sha512/224*)
+    (,(digest-descriptor-oid *digest:sha-512/256*) . ,*oid-hmac/sha512/256*)
+    (,(digest-descriptor-oid *digest:sha3-224*)    . ,*oid-hmac/sha3-224*)
+    (,(digest-descriptor-oid *digest:sha3-256*)    . ,*oid-hmac/sha3-256*)
+    (,(digest-descriptor-oid *digest:sha3-384*)    . ,*oid-hmac/sha3-384*)
+    (,(digest-descriptor-oid *digest:sha3-512*)    . ,*oid-hmac/sha3-512*)
     ))
 
 (define (digest-oid->hmac-oid oid)

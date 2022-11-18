@@ -57,6 +57,12 @@
 	    *pbes:hmac/sha3-384*
 	    *pbes:hmac/sha3-512*
 	    ;; PBES1
+	    *pbes:pbe/md2-des-cbc*
+	    *pbes:pbe/md2-rc2-cbd*
+	    *pbes:pbe/md5-des-cbc*
+	    *pbes:pbe/md5-rc2-cbc*
+	    *pbes:pbe/sha1-des-cbc*
+	    *pbes:pbe/sha1-rc2-cbc*
 	    pbe-parameter? <pbe-parameter>
 	    pbe-parameter-salt
 	    pbe-parameter-iteration-count
@@ -85,7 +91,8 @@
 	    rc5-cbc-parameter-iv
 	    *pbes:aes128-cbc-pad*
 	    *pbes:aes192-cbc-pad*
-	    *pbes:aes256-cbc-pad*)
+	    *pbes:aes256-cbc-pad*
+	    )
     (import (rnrs)
 	    (clos user)
 	    (sagittarius crypto asn1)
@@ -122,7 +129,7 @@
   (asn1-choice
    ((specified :type <der-octet-string>)
     (other-source :type <algorithm-identifier>))
-   :reader pbkdf2s-alt-choice-value))
+   :reader pbkdf2-salt-choice-value))
 (define (pbkdf2-salt-choice? o) (is-a? o <pbkdf2-salt-choice>))
 (define-asn1-encodable <pbkdf2-params>
   (asn1-sequence
@@ -130,7 +137,7 @@
     (iteration-count :type <der-integer> :reader pbkdf2-params-iteration-count)
     (key-length :type <der-integer> :optional #t
 		:reader pbkdf2-params-key-length)
-    (prf :type <algorithm-identifier> :optional #t pbkdf2-params-prf))))
+    (prf :type <algorithm-identifier> :optional #t :reader pbkdf2-params-prf))))
 (define (pbkdf2-params? o) (is-a? o <pbkdf2-params>))
 
 ;; PBES1
@@ -141,9 +148,9 @@
 (define *pbes:pbe/sha1-des-cbc* (oid "1.2.840.113549.1.5.10"))
 (define *pbes:pbe/sha1-rc2-cbc* (oid "1.2.840.113549.1.5.11"))
 
-;; PBEParameter ::= SEQUENCE {
-;;     salt OCTET STRING (SIZE(8)),
-;;     iterationCount INTEGER
+;; pbeparameter ::= sequence {
+;;     salt octet string (size(8)),
+;;     iterationcount integer
 ;; }
 (define-asn1-encodable <pbe-parameter>
   (asn1-sequence

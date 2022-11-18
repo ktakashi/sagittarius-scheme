@@ -39,8 +39,8 @@
 
 	    ;; For extension, bad names though...
 	    algorithm-parameters->x509-algorithm-parameters
+	    oid->x509-algorithm-parameters-types
 	    x509-algorithm-parameters->algorithm-parameters
-	    x509-algorithm-parameters->keyword-parameters
 
 	    x509-algorithm-parameters? <x509-algorithm-parameters>
 	    )
@@ -49,6 +49,7 @@
 	    (sagittarius)
 	    (sagittarius mop immutable)
 	    (sagittarius crypto asn1)
+	    (sagittarius crypto asn1 modules)
 	    (sagittarius crypto pkix modules x509)
 	    (sagittarius mop immutable))
 
@@ -61,8 +62,9 @@
    (parameters :init-keyword :parameters
 	       :reader x509-algorithm-identifier-parameters)))
 (define-method write-object ((o <x509-algorithm-identifier>) p)
-  (format p "#<x509-algorithm-identifier OID=~a>"
-	  (x509-algorithm-identifier-oid o)))
+  (format p "#<x509-algorithm-identifier OID=~a Params=~a>"
+	  (x509-algorithm-identifier-oid o)
+	  (x509-algorithm-identifier-parameters o)))
 
 (define (x509-algorithm-identifier? o) (is-a? o <x509-algorithm-identifier>))
 (define (make-x509-algorithm-identifier (oid object-identifier-string?)
@@ -92,10 +94,19 @@
     (values oid param)))
 
 (define-generic algorithm-parameters->x509-algorithm-parameters)
+(define-generic oid->x509-algorithm-parameters-type)
 (define-generic x509-algorithm-parameters->algorithm-parameters)
-(define-generic x509-algorithm-parameters->keyword-parameters)
 
-(define-method algorithm-parameters->x509-algorithm-parameters (o p) #f)
+(define-method oid->x509-algorithm-parameters-types (o) (values #f #f))
+
+(define-method algorithm-parameters->x509-algorithm-parameters (oid p)
+  (let-values (((class encodable-class)
+		(oid->x509-algorithm-parameters-types oid)))
+    (and class encodable-class
+	 (subtype? class <asn1-encodable-container>)
+	 (make class :c (asn1-object->asn1-encodable encodable-class p)))))
 (define-method x509-algorithm-parameters->algorithm-parameters (o) #f)
-(define-method x509-algorithm-parameters->keyword-parameters (o) '())
+(define-method x509-algorithm-parameters->algorithm-parameters
+  ((o <asn1-encodable-container>))
+  (asn1-encodable-container-c o))
 )
