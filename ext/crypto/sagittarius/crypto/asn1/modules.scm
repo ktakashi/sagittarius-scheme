@@ -39,7 +39,11 @@
 	    ;; For now only these two, maybe we want to add
 	    asn1-choice
 	    asn1-sequence
-	    asn1-set)
+	    asn1-set
+
+	    ;; For convenience, it's here
+	    asn1-encodable-container? <asn1-encodable-container>
+	    asn1-encodable-container-c)
     (import (rnrs)
 	    (clos core)
 	    (clos user)
@@ -47,7 +51,13 @@
 	    (srfi :13 strings) ;; for string-trim...
 	    (sagittarius)
 	    (sagittarius crypto asn1 types)
-	    (sagittarius crypto asn1 reader))
+	    (sagittarius crypto asn1 reader)
+	    (sagittarius mop immutable)
+	    (sagittarius mop allocation))
+
+(define-class <asn1-encodable-container> (<immutable> <cached-allocation>)
+  ((c :init-keyword :c :reader asn1-encodable-container-c)))
+(define (asn1-encodable-container? o) (is-a? o <asn1-encodable-container>))
 
 (define-generic asn1-object->asn1-encodable)
 (define (asn1-encodable-class? class)
@@ -55,7 +65,9 @@
 (define (bytevector->asn1-encodable (class asn1-encodable-class?)
 				    (bv bytevector?))
   (asn1-object->asn1-encodable class (bytevector->asn1-object bv)))
-(define-syntax of (syntax-rules ()))  
+
+(define-class <asn1-choice-encodable> (<asn1-encodable>) ())
+(define-syntax of (syntax-rules ()))
 ;; we want to define ASN.1 module like this
 ;; e.g.
 ;; AlgorithmIdentifier
@@ -165,9 +177,10 @@
     ((_ (name parents ...)
 	(((slot spec* ...) ...) opts ...) ->this ->asn1-object)
      (begin
-       (define-class name (<asn1-encodable> parents ...)
+       (define-class name (<asn1-choice-encodable> parents ...)
 	 ((type :init-keyword :type)
-	  (value :init-keyword :value opts ...)))
+	  (value :init-keyword :value opts ...))
+	 :definitions (list (list 'slot spec* ...) ...))
        (define specs (list (list 'slot spec* ...) ...))
        (define ->this (make-asn1-choice->asn1-encodable name specs))
        (define ->asn1-object (make-asn1-encodable->asn1-choice name specs))))))
@@ -202,6 +215,10 @@
 		;; not primitive
 		(not (subtype? type <asn1-object>))
 		(try-deserialize type entry optional?)))
+	  ((subtype? type <asn1-choice-encodable>)
+	   (let ((initargs (slot-ref type 'initargs)))
+	     (choice->encodable type
+				(cadr (memq :definitions initargs)) entry)))
 	  (else #f))))
 (define (tagged-obj->obj tagged-obj slot)
   (let ((obj (ber-tagged-object-obj tagged-obj)))
@@ -220,17 +237,17 @@
 		       (der-octet-string->bytevector obj)))))
 	  (else obj))))
 
-(define ((make-asn1-choice->asn1-encodable class slots) o)
-  (define dummy-slot (list 'dummy :type class))
+(define (choice->encodable class slots o)
   (define (search-object o slots)
     (define tagged-obj? (ber-tagged-object? o))
-    (define tag-no (ber-tagged-object-tag-no o))
+    (define tag-no (and tagged-obj? (ber-tagged-object-tag-no o)))
     (let loop ((slots slots))
       (if (null? slots)
-	  (raise-error class "No matching type" o)
+	  (values #f #f)
 	  (let* ((slot (car slots))
 		 (type (slot-definition-option (car slots) :type #f))
-		 (tag (slot-definition-option (car slots) :tag #f)))
+		 (tag (slot-definition-option (car slots) :tag #f))
+		 (dummy-slot (list 'dummy :type type)))
 	    ;; Maybe we should check during creation?
 	    (unless type
 	      (raise-error class "Invalid class definiton :type is required" o))
@@ -242,7 +259,11 @@
 		  (else (loop (cdr slots))))))))
 		 
   (let-values (((type value) (search-object o slots)))
-    (make class :type type :value value)))
+    (and type value
+	 (make class :type type :value value))))
+(define ((make-asn1-choice->asn1-encodable class slots) o)
+  (or (choice->encodable class slots o)
+      (raise-error class "No matching type" o)))
 
 (define (%make-asn1-object->asn1-encodable class o)
   (define (asn1-object->slots class o slots)
