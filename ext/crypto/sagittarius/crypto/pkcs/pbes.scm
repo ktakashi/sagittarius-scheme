@@ -191,7 +191,7 @@
     :reader pkcs-rc5-cbc-parameter-iv)))
 (define (pkcs-rc5-cbc-parameter? o) (is-a? o <pkcs-rc5-cbc-parameter>))
 (define-method oid->x509-algorithm-parameters-types
-  ((oid (equal (sid *pbes:rc5-cbc*))))
+  ((oid (equal (sid *pbes:rc5-cbc-pad*))))
   (values <pkcs-rc5-cbc-parameter> <rc5-cbc-parameter>))
 
 )

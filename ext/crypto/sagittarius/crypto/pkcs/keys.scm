@@ -31,8 +31,6 @@
 #!nounbound
 (library (sagittarius crypto pkcs keys)
     (export import-private-key export-private-key
-	    one-asymmetric-key->private-key
-	    private-key->one-asymmetric-key
 
 	    pkcs-encrypted-private-key-info? <pkcs-encrypted-private-key-info>
 	    pkcs-encrypted-private-key-info-encryption-algorithm
@@ -41,31 +39,100 @@
 	    bytevector->pkcs-encrypted-private-key-info
 	    write-pkcs-encrypted-private-key-info
 	    pkcs-encrypted-private-key-info->bytevector
+
+	    pkcs-one-asymmetric-key? <pkcs-one-asymmetric-key>
+	    pkcs-one-asymmetric-key-version
+	    pkcs-one-asymmetric-key-private-key-algorithm
+	    pkcs-one-asymmetric-key-private-key
+	    pkcs-one-asymmetric-key-attributes
+	    pkcs-one-asymmetric-key-public-key
+	    pkcs-one-asymmetric-key->bytevector
+	    write-pkcs-one-asymmetric-key
+	    pkcs-one-asymmetric-key->pkcs-enncrypted-private-key-info
 	    )
     (import (rnrs)
 	    (clos user)
 	    (sagittarius crypto asn1)
 	    (sagittarius crypto asn1 modules)
+	    (sagittarius crypto ciphers)
 	    (sagittarius crypto pkcs modules akp)
+	    (sagittarius crypto pkcs algorithms)
 	    (sagittarius crypto pkix algorithms)
+	    (sagittarius crypto pkix attributes)
+	    (sagittarius crypto pkix modules x509)
 	    (sagittarius crypto keys)
 	    (sagittarius combinators))
-
-(define-method import-private-key ((key <one-asymmetric-key>))
-  (one-asymmetric-key->private-key key))
-(define-method export-private-key ((key <one-asymmetric-key>))
-  (asn1-encodable->bytevector key))
+(define (make-slot-ref getter conv) (lambda (o) (conv (getter o))))
 
 (define (one-asymmetric-key->private-key (oakp one-asymmetric-key?))
   (import-private-key (asn1-encodable->asn1-object oakp)
 		      (private-key-format private-key-info)))
+(define (one-asymmetric-key->public-key (oakp one-asymmetric-key?))
+  (let ((pk (one-asymmetric-key-public-key oakp)))
+    (and pk
+	 (import-public-key
+	  (make <subject-public-key-info>
+	    :algorithm (one-asymmetric-key-private-key-algorithm oakp)
+	    :subject-public-key pk)))))
+
+(define-class <pkcs-one-asymmetric-key> (<asn1-encodable-container>)
+  ((version :allocation :virtual :cached #t
+    :slot-ref (make-slot-ref
+	       (.$ one-asymmetric-key-vertsion
+		   asn1-encodable-container-c)
+	       der-integer->integer)
+    :reader pkcs-one-asymmetric-key-version)
+   (private-key-algorithm :allocation :virtual :cached #t
+    :slot-ref (make-slot-ref
+	       (.$ one-asymmetric-key-private-key-algorithm
+		   asn1-encodable-container-c)
+	       algorithm-identifier->x509-algorithm-identifier)
+    :reader pkcs-one-asymmetric-key-private-key-algorithm)
+   (private-key :allocation :virtual :cached #t
+    :slot-ref (make-slot-ref
+	       (.$ asn1-encodable-container-c)
+	       one-asymmetric-key->private-key)
+    :reader pkcs-one-asymmetric-key-private-key)
+   (attributes :allocation :virtual :cached #t
+    :slot-ref (make-slot-ref
+	       (.$ one-asymmetric-key-attributes
+		   asn1-encodable-container-c)
+	       attributes->x509-attributes)
+    :reader pkcs-one-asymmetric-key-attributes)
+   (public-key :allocation :virtual :cached #t
+    :slot-ref (make-slot-ref
+	       (.$ asn1-encodable-container-c)
+	       one-asymmetric-key->public-key)
+    :reader pkcs-one-asymmetric-key-public-key)))
+(define (pkcs-one-asymmetric-key? o) (is-a? o <pkcs-one-asymmetric-key>))
+
+(define-method import-private-key ((key <pkcs-one-asymmetric-key>))
+  (one-asymmetric-key->private-key (asn1-encodable-container-c key)))
+(define-method export-private-key ((key <pkcs-one-asymmetric-key>))
+  (pkcs-one-asymmetric-key->bytevector key))
 
 (define (private-key->one-asymmetric-key (private-key private-key?))
   (let ((bv (export-private-key private-key
 				(private-key-format private-key-info))))
     (bytevector->asn1-encodable <one-asymmetric-key> bv)))
 
-(define (make-slot-ref getter conv) (lambda (o) (conv (getter o))))
+(define (pkcs-one-asymmetric-key->one-asymmetric-key oak)
+  (asn1-encodable-container-c oak))
+(define (pkcs-one-asymmetric-key->bytevector oak)
+  (asn1-encodable->bytevector 
+   (pkcs-one-asymmetric-key->one-asymmetric-key oak)))
+(define (write-pkcs-one-asymmetric-key oak
+	 :optional (out (current-output-port)))
+  (put-bytevector out (pkcs-one-asymmetric-key->bytevector oak)))
+
+(define (bytevector->pkcs-one-asymmetric-key bv)
+  (read-pkcs-one-asymmetric-key (open-bytevector-input-port bv)))
+(define (read-pkcs-one-asymmetric-key in)
+  (one-asymmetric-key->pkcs-one-asymmetric-key
+   (asn1-object->asn1-encodable <one-asymmetric-key> (read-asn1-object in))))
+(define (one-asymmetric-key->pkcs-one-asymmetric-key epki)
+  (make <pkcs-one-asymmetric-key> :c epki))
+
 (define-class <pkcs-encrypted-private-key-info> (<asn1-encodable-container>)
   ((encryption-algorithm :allocation :virtual :cached #t
     :slot-ref (make-slot-ref
@@ -81,6 +148,13 @@
     :reader pkcs-encrypted-private-key-info-encrypted-data)))
 (define (pkcs-encrypted-private-key-info? o)
   (is-a? o <pkcs-encrypted-private-key-info>))
+(define (make-pkcs-encrypted-private-key-info
+	 (x509-aid x509-algorithm-identifier?) (bv bytevector?))
+  (define aid (x509-algorithm-identifier->algorithm-identifier x509-aid))
+  (make <pkcs-encrypted-private-key-info>
+    :c (make <encrypted-private-key-info>
+	 :encryption-algorithm aid
+	 :encypted-data (bytevector->der-octet-string  bv))))
 
 (define (bytevector->pkcs-encrypted-private-key-info bv)
   (read-pkcs-encrypted-private-key-info (open-bytevector-input-port bv)))
@@ -97,5 +171,18 @@
 	 :optional (out (current-output-port)))
   (put-bytevector out (pkcs-encrypted-private-key-info->bytevector epki)))
 (define (pkcs-encrypted-private-key-info->bytevector epki)
-  (asn1-encodable->bytevector epki))
+  (asn1-encodable->bytevector 
+   (pkcs-encrypted-private-key-info->encrypted-private-key-info epki)))
+
+(define (pkcs-one-asymmetric-key->pkcs-enncrypted-private-key-info
+	 (oak one-asymmetric-key?) (aid x509-algorithm-identifier?) key . opts)
+  (let* ((kdf (x509-algorithm-identifier->kdf aid))
+	 (cipher (x509-algorithm-identifier->cipher aid))
+	 (data (symmetric-cipher-encrypt-last-block
+		(symmetric-cipher-init! cipher (cipher-direction encrypt)
+					(apply kdf opts))
+		(pkcs-one-asymmetric-key->bytevector oak))))
+    (symmetric-cipher-done! cipher)
+    (make-pkcs-encrypted-private-key-info aid data)))
+     
 )

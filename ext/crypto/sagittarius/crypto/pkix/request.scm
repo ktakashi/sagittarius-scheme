@@ -66,6 +66,7 @@
 	    (sagittarius crypto pkix dn)
 	    (sagittarius crypto pkix keys)
 	    (sagittarius crypto pkix algorithms)
+	    (sagittarius crypto pkix attributes)
 	    (sagittarius crypto pkix signatures)
 	    (sagittarius crypto pkix extensions)
 	    (sagittarius crypto keys)
@@ -78,24 +79,6 @@
 ;; useful utility :)
 (define (make-slot-ref getter conv) (lambda (o) (conv (getter o))))
 (define ((list-of pred) l) (for-all pred l))
-(define (oid? o) (or (der-object-identifier? o) (object-identifier-string? o)))
-
-(define-class <x509-attribute> (<immutable>)
-  ((type :init-keyword :type :reader x509-attribute-type)
-   (values :init-keyword :values :reader x509-attribute-values)))
-(define-method write-object ((o <x509-attribute>) p)
-  (format p "#<x509-attribute id=~a values=~a>"
-	  (x509-attribute-type o)
-	  (x509-attribute-values o)))
-(define (x509-attribute? o) (is-a? o <x509-attribute>))
-(define (attribute->x509-attribute attribute)
-  (make <x509-attribute>
-    :type (der-object-identifier->oid-string (attribute-type attribute))
-    :values (attribute-values attribute)))
-(define (x509-attribute->attribute attribute)
-  (make <attribute>
-    :type (oid-string->der-object-identifier (x509-attribute-type attribute))
-    :values (x509-attribute-values attribute)))
 
 (define (make-x509-challenge-password-attribute (password string?))
   ;; TODO check alpha numerical...
@@ -113,14 +96,6 @@
     :type (der-object-identifier->oid-string *pkcs-9:extenion-request*)
     :values (der-set (x509-extension-list->extensions x509-extensions))))
 
-(define (x509-attribute-of (oid/string oid?))
-  (let ((oid (if (der-object-identifier? oid/string)
-		 (der-object-identifier->oid-string oid/string)
-		 oid/string)))
-    (lambda (attribute)
-      (and (x509-attribute? attribute)
-	   (equal? oid (x509-attribute-type attribute))))))
-
 (define *extension-request*
   (der-object-identifier->oid-string *pkcs-9:extenion-request*))
 (define (x509-attribute->x509-extension-list (x509-attribute x509-attribute?))
@@ -130,9 +105,6 @@
 			 x509-attribute))
   (append-map extensions->x509-extension-list
 	      (asn1-collection->list (x509-attribute-values x509-attribute))))
-
-(define (attributes->x509-attributes (attributes attributes?))
-  (map attribute->x509-attribute (attributes->list attributes)))
 
 (define csr-info (.$ certification-request-certification-request-info
 		     x509-signed-object-c))
