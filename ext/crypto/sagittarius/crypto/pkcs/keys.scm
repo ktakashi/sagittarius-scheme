@@ -49,6 +49,9 @@
 	    pkcs-one-asymmetric-key->bytevector
 	    write-pkcs-one-asymmetric-key
 	    pkcs-one-asymmetric-key->pkcs-enncrypted-private-key-info
+
+	    ;; For (rsa pkcs :8)...
+	    one-asymmetric-key->private-key
 	    )
     (import (rnrs)
 	    (clos user)
@@ -110,6 +113,11 @@
   (one-asymmetric-key->private-key (asn1-encodable-container-c key)))
 (define-method export-private-key ((key <pkcs-one-asymmetric-key>))
   (pkcs-one-asymmetric-key->bytevector key))
+
+(define-method import-private-key ((key <one-asymmetric-key>))
+  (one-asymmetric-key->private-key key))
+(define-method export-private-key ((key <one-asymmetric-key>))
+  (asn1-encodable->bytevector key))
 
 (define (private-key->one-asymmetric-key (private-key private-key?))
   (let ((bv (export-private-key private-key
