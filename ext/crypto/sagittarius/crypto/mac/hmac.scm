@@ -31,7 +31,8 @@
 #!nounbound
 (library (sagittarius crypto mac hmac)
     (export *mac:hmac*
-
+	    hmac-oid->digest-oid
+	    digest-oid->hmac-oid
 	    *oid-hmac/md5*
 	    *oid-hmac/tiger*
 	    *oid-hmac/ripemd-160*
@@ -99,9 +100,15 @@
     (,(digest-descriptor-oid *digest:sha3-384*)    . ,*oid-hmac/sha3-384*)
     (,(digest-descriptor-oid *digest:sha3-512*)    . ,*oid-hmac/sha3-512*)
     ))
+(define *hmac-oid->digest-oid-map*
+  (map (lambda (a) (cons (cdr a) (car a))) *digest-oid->hmac-oid-map*))
 
 (define (digest-oid->hmac-oid oid)
   (cond ((assoc oid *digest-oid->hmac-oid-map*) => cdr)
+	(else #f)))
+
+(define (hmac-oid->digest-oid oid)
+  (cond ((assoc oid *hmac-oid->digest-oid-map*) => cdr)
 	(else #f)))
 
 )

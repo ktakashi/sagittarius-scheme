@@ -58,7 +58,7 @@
 	    *pbes:hmac/sha3-512*
 	    ;; PBES1
 	    *pbes:pbe/md2-des-cbc*
-	    *pbes:pbe/md2-rc2-cbd*
+	    *pbes:pbe/md2-rc2-cbc*
 	    *pbes:pbe/md5-des-cbc*
 	    *pbes:pbe/md5-rc2-cbc*
 	    *pbes:pbe/sha1-des-cbc*
@@ -142,7 +142,7 @@
 
 ;; PBES1
 (define *pbes:pbe/md2-des-cbc*  (oid "1.2.840.113549.1.5.1"))
-(define *pbes:pbe/md2-rc2-cbd*  (oid "1.2.840.113549.1.5.4"))
+(define *pbes:pbe/md2-rc2-cbc*  (oid "1.2.840.113549.1.5.4"))
 (define *pbes:pbe/md5-des-cbc*  (oid "1.2.840.113549.1.5.3"))
 (define *pbes:pbe/md5-rc2-cbc*  (oid "1.2.840.113549.1.5.6"))
 (define *pbes:pbe/sha1-des-cbc* (oid "1.2.840.113549.1.5.10"))

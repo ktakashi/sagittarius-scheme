@@ -48,16 +48,15 @@
 	    pkcs-one-asymmetric-key-public-key
 	    pkcs-one-asymmetric-key->bytevector
 	    write-pkcs-one-asymmetric-key
-	    pkcs-one-asymmetric-key->pkcs-enncrypted-private-key-info
+	    pkcs-one-asymmetric-key->pkcs-encrypted-private-key-info
+	    pkcs-encrypted-private-key-info->pkcs-one-asymmetric-key
 
 	    ;; For (rsa pkcs :8)...
-	    one-asymmetric-key->private-key
-	    )
+	    one-asymmetric-key->private-key)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius crypto asn1)
 	    (sagittarius crypto asn1 modules)
-	    (sagittarius crypto ciphers)
 	    (sagittarius crypto pkcs modules akp)
 	    (sagittarius crypto pkcs algorithms)
 	    (sagittarius crypto pkix algorithms)
@@ -162,7 +161,7 @@
   (make <pkcs-encrypted-private-key-info>
     :c (make <encrypted-private-key-info>
 	 :encryption-algorithm aid
-	 :encypted-data (bytevector->der-octet-string  bv))))
+	 :encrypted-data (bytevector->der-octet-string bv))))
 
 (define (bytevector->pkcs-encrypted-private-key-info bv)
   (read-pkcs-encrypted-private-key-info (open-bytevector-input-port bv)))
@@ -182,15 +181,18 @@
   (asn1-encodable->bytevector 
    (pkcs-encrypted-private-key-info->encrypted-private-key-info epki)))
 
-(define (pkcs-one-asymmetric-key->pkcs-enncrypted-private-key-info
-	 (oak one-asymmetric-key?) (aid x509-algorithm-identifier?) key . opts)
-  (let* ((kdf (x509-algorithm-identifier->kdf aid))
-	 (cipher (x509-algorithm-identifier->cipher aid))
-	 (data (symmetric-cipher-encrypt-last-block
-		(symmetric-cipher-init! cipher (cipher-direction encrypt)
-					(apply kdf opts))
-		(pkcs-one-asymmetric-key->bytevector oak))))
-    (symmetric-cipher-done! cipher)
-    (make-pkcs-encrypted-private-key-info aid data)))
+(define (pkcs-one-asymmetric-key->pkcs-encrypted-private-key-info
+	 (oak pkcs-one-asymmetric-key?)
+	 (aid x509-algorithm-identifier?) key . opts)
+  (let ((data (pkcs-one-asymmetric-key->bytevector oak)))
+    (make-pkcs-encrypted-private-key-info aid
+     (apply pkcs-encrypt-data aid key data opts))))
+
+(define (pkcs-encrypted-private-key-info->pkcs-one-asymmetric-key
+	 (epki pkcs-encrypted-private-key-info?) key . opts)
+  (define aid (pkcs-encrypted-private-key-info-encryption-algorithm epki))
+  (define data (pkcs-encrypted-private-key-info-encrypted-data epki))
+  (bytevector->pkcs-one-asymmetric-key
+   (apply pkcs-decrypt-data aid key data opts)))
      
 )

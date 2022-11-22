@@ -102,9 +102,13 @@
 (define-method algorithm-parameters->x509-algorithm-parameters (oid p)
   (let-values (((class encodable-class)
 		(oid->x509-algorithm-parameters-types oid)))
-    (and class encodable-class
-	 (subtype? class <asn1-encodable-container>)
-	 (make class :c (asn1-object->asn1-encodable encodable-class p)))))
+    (or (and class encodable-class
+	     (subtype? class <asn1-encodable-container>)
+	     (make class
+	       :c (if (is-a? p encodable-class)
+		      p
+		      (asn1-object->asn1-encodable encodable-class p))))
+	p)))
 (define-method x509-algorithm-parameters->algorithm-parameters (o) #f)
 (define-method x509-algorithm-parameters->algorithm-parameters
   ((o <asn1-encodable-container>))

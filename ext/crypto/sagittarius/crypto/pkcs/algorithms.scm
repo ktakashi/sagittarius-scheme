@@ -30,13 +30,42 @@
 
 #!nounbound
 (library (sagittarius crypto pkcs algorithms)
-    (export x509-algorithm-identifier->kdf
+    (export pkcs-encrypt-data
+	    pkcs-decrypt-data
+
+	    x509-algorithm-identifier->kdf
 	    x509-algorithm-identifier->cipher
 	    oid->kdf
-	    oid->cipher)
+	    oid->cipher
+	    oid->iv
+	    oid->encryption-scheme)
     (import (rnrs)
 	    (clos user)
+	    (sagittarius crypto ciphers)
+	    (sagittarius crypto keys)
 	    (sagittarius crypto pkix algorithms))
+
+(define (pkcs-encrypt-data aid key data . opts)
+  (let* ((cipher (apply pkcs-make-cipher aid (cipher-direction encrypt)
+			key opts))
+	 (r (symmetric-cipher-encrypt-last-block cipher data)))
+    (symmetric-cipher-done! cipher)
+    r))
+
+(define (pkcs-decrypt-data aid key data . opts)
+  (let* ((cipher (apply pkcs-make-cipher aid (cipher-direction decrypt)
+			key opts))
+	 (r (symmetric-cipher-decrypt-last-block cipher data)))
+    (symmetric-cipher-done! cipher)
+    r))
+
+(define (pkcs-make-cipher aid direction key . opts)
+  (let ((kdf (x509-algorithm-identifier->kdf aid))
+	(make-cipher (x509-algorithm-identifier->cipher aid)))
+    (let-values (((cipher parameters) (make-cipher key)))
+      (symmetric-cipher-init! cipher direction
+			      (make-symmetric-key (apply kdf key opts))
+			      parameters))))
 
 (define (x509-algorithm-identifier->kdf x509-algorithm-identifier)
   (let ((oid (x509-algorithm-identifier-oid x509-algorithm-identifier))
@@ -52,4 +81,6 @@
 
 (define-generic oid->kdf)
 (define-generic oid->cipher)
+(define-generic oid->iv)
+(define-generic oid->encryption-scheme)
 )
