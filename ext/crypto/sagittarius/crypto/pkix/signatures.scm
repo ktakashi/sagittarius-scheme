@@ -50,6 +50,7 @@
 	    (sagittarius)
 	    (sagittarius mop immutable)
 	    (sagittarius crypto asn1)
+	    (sagittarius crypto asn1 modules)
 	    (sagittarius crypto digests)
 	    (sagittarius crypto keys)
 	    (sagittarius crypto signatures)
