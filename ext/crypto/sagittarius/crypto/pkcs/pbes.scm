@@ -52,15 +52,46 @@
 	    pkcs-rc5-cbc-parameter-version
 	    pkcs-rc5-cbc-parameter-rounds
 	    pkcs-rc5-cbc-parameter-block-size-in-bits
-	    pkcs-rc5-cbc-parameter-iv 
+	    pkcs-rc5-cbc-parameter-iv
+
+	    make-pbe-md2-des-cbc-x509-algorithm-identifier
+	    make-pbe-md2-rc2-cbc-x509-algorithm-identifier
+	    make-pbe-md5-des-cbc-x509-algorithm-identifier
+	    make-pbe-md5-rc2-cbc-x509-algorithm-identifier
+	    make-pbe-sha1-des-cbc-x509-algorithm-identifier
+	    make-pbe-sha1-rc2-cbc-x509-algorithm-identifier
+	    make-pbes2-x509-algorithm-identifier
+	    make-pbkdf2-x509-algorithm-identifier
+	    ;; PRF OID
+	    *pbes:hmac/sha1*
+	    *pbes:hmac/sha224*
+	    *pbes:hmac/sha256*
+	    *pbes:hmac/sha384*
+	    *pbes:hmac/sha512*
+	    *pbes:hmac/sha512/224*
+	    *pbes:hmac/sha512/256*
+	    *pbes:hmac/sha3-224*
+	    *pbes:hmac/sha3-256*
+	    *pbes:hmac/sha3-384*
+	    *pbes:hmac/sha3-512*
+	    make-aes128-encryption-x509-algorithm-identifier
+	    make-aes192-encryption-x509-algorithm-identifier
+	    make-aes256-encryption-x509-algorithm-identifier
+	    make-des3-encryption-x509-algorithm-identifier
+	    make-rc2-encryption-x509-algorithm-identifier
+	    make-rc5-encryption-x509-algorithm-identifier
+	    
+	    encryption-scheme->cipher-parameters
+	    parameter->key-length ;; for default key length
 	    )
     (import (rnrs)
 	    (clos user)
 	    (sagittarius crypto asn1)
 	    (sagittarius crypto asn1 modules)
-	    (sagittarius crypto pkcs modules pbes)
 	    (sagittarius crypto pkcs algorithms)
+	    (sagittarius crypto pkcs modules pbes)
 	    (sagittarius crypto pkix algorithms)
+	    (sagittarius crypto pkix modules x509)
 	    (sagittarius crypto digests)
 	    (sagittarius crypto keys)
 	    (sagittarius crypto kdfs)
@@ -68,7 +99,8 @@
 	    (sagittarius crypto mac hmac)
 	    (sagittarius combinators))
 (define (make-slot-ref getter conv) (lambda (o) (conv (getter o))))
-(define-class <pkcs-pbe-parameter> (<asn1-encodable-container>)
+(define-class <pkcs-pbe-parameter>
+  (<asn1-encodable-container> <x509-algorithm-parameters>)
   ((salt :allocation :virtual :cached #t
     :slot-ref (make-slot-ref
 	       (.$ pbe-parameter-salt asn1-encodable-container-c)
@@ -101,7 +133,8 @@
   ((oid (equal (sid *pbes:pbe/sha1-rc2-cbc*))))
   (values <pkcs-pbe-parameter> <pbe-parameter>))
 
-(define-class <pkcs-pbes2-params> (<asn1-encodable-container>)
+(define-class <pkcs-pbes2-params>
+  (<asn1-encodable-container> <x509-algorithm-parameters>)
   ((key-derivation-func :allocation :virtual :cached #t
     :slot-ref (make-slot-ref
 	       (.$ pbes2-params-key-derivation-func
@@ -121,7 +154,8 @@
 
 (define *hmac/sha1-aid*
   (make-x509-algorithm-identifier (sid *pbes:hmac/sha1*)))
-(define-class <pkcs-pbkdf2-params> (<asn1-encodable-container>)
+(define-class <pkcs-pbkdf2-params>
+  (<asn1-encodable-container> <x509-algorithm-parameters>)
   ((salt :allocation :virtual :cached #t
     :slot-ref (make-slot-ref
 	       (.$ pbkdf2-salt-choice-value
@@ -156,12 +190,13 @@
   ((oid (equal (sid *pbes:pbkdf2*))))
   (values <pkcs-pbkdf2-params> <pbkdf2-params>))
 
-(define-class <pkcs-rc2-cbc-parameter> (<asn1-encodable-container>)
+(define-class <pkcs-rc2-cbc-parameter>
+  (<asn1-encodable-container> <x509-algorithm-parameters>)
   ((version :allocation :virtual :cached #t
     :slot-ref (make-slot-ref
 	       (.$ rc2-cbc-parameter-version
 		   asn1-encodable-container-c)
-	       der-integer->integer)
+	       (lambda (v) (and v (der-integer->integer v))))
     :reader pkcs-rc2-cbc-parameter-version)
    (iv :allocation :virtual :cached #t
     :slot-ref (make-slot-ref
@@ -174,7 +209,8 @@
   ((oid (equal (sid *pbes:rc2-cbc*))))
   (values <pkcs-rc2-cbc-parameter> <rc2-cbc-parameter>))
 
-(define-class <pkcs-rc5-cbc-parameter> (<asn1-encodable-container>)
+(define-class <pkcs-rc5-cbc-parameter>
+  (<asn1-encodable-container> <x509-algorithm-parameters>)
   ((version :allocation :virtual :cached #t
     :slot-ref (make-slot-ref
 	       (.$ rc5-cbc-parameter-version
@@ -197,12 +233,105 @@
     :slot-ref (make-slot-ref
 	       (.$ rc5-cbc-parameter-iv
 		   asn1-encodable-container-c)
-	       der-octet-string->bytevector)
+	       (lambda (v) (and v (der-octet-string->bytevector v))))
     :reader pkcs-rc5-cbc-parameter-iv)))
 (define (pkcs-rc5-cbc-parameter? o) (is-a? o <pkcs-rc5-cbc-parameter>))
+(define (pkcs-rc5-cbc-parameter-block-size o)
+  (div (pkcs-rc5-cbc-parameter-block-size-in-bits o) 8))
 (define-method oid->x509-algorithm-parameters-types
   ((oid (equal (sid *pbes:rc5-cbc-pad*))))
   (values <pkcs-rc5-cbc-parameter> <rc5-cbc-parameter>))
+
+;; Algorithm identifier ctrs
+(define (make-pbe-md2-des-cbc-x509-algorithm-identifier salt count)
+  (make-pbe-x509-algorithm-identifier *pbes:pbe/md2-des-cbc* salt count))
+(define (make-pbe-md2-rc2-cbc-x509-algorithm-identifier salt count)
+  (make-pbe-x509-algorithm-identifier *pbes:pbe/md2-rc2-cbc* salt count))
+(define (make-pbe-md5-des-cbc-x509-algorithm-identifier salt count)
+  (make-pbe-x509-algorithm-identifier *pbes:pbe/md5-des-cbc* salt count))
+(define (make-pbe-md5-rc2-cbc-x509-algorithm-identifier salt count)
+  (make-pbe-x509-algorithm-identifier *pbes:pbe/md5-rc2-cbc* salt count))
+(define (make-pbe-sha1-des-cbc-x509-algorithm-identifier salt count)
+  (make-pbe-x509-algorithm-identifier *pbes:pbe/sha1-des-cbc* salt count))
+(define (make-pbe-sha1-rc2-cbc-x509-algorithm-identifier salt count)
+  (make-pbe-x509-algorithm-identifier *pbes:pbe/sha1-rc2-cbc* salt count))
+(define (make-pbe-x509-algorithm-identifier oid salt count)
+  (make-x509-algorithm-identifier
+   (der-object-identifier->oid-string oid)
+   (make <pkcs-pbe-parameter>
+     :c (make <pbe-parameter>
+	  :salt (bytevector->der-octet-string salt)
+	  :iteration-count (integer->der-integer count)))))
+
+(define (make-pbes2-x509-algorithm-identifier
+	 (kdf x509-algorithm-identifier?)
+	 (encryption-scheme x509-algorithm-identifier?))
+  (let ((kdf-aid (x509-algorithm-identifier->algorithm-identifier kdf))
+	(enc-aid (x509-algorithm-identifier->algorithm-identifier
+		  encryption-scheme)))
+    (make-x509-algorithm-identifier
+     (der-object-identifier->oid-string *pbes:pbes2*)
+     (make <pkcs-pbes2-params>
+       :c (make <pbes2-params>
+	    :key-derivation-func kdf-aid
+	    :encryption-scheme enc-aid)))))
+
+(define (make-pbkdf2-x509-algorithm-identifier salt count
+	 :key (prf #f) (key-length #f))
+  (let ((s (bytevector->der-octet-string salt)))
+    (make-x509-algorithm-identifier
+     (der-object-identifier->oid-string *pbes:pbkdf2*)
+     (make <pkcs-pbkdf2-params>
+       :c (make <pbkdf2-params>
+	    :salt (make <pbkdf2-salt-choice> :value s)
+	    :iteration-count (integer->der-integer count)
+	    :key-length (and key-length (integer->der-integer key-length))
+	    :prf (and prf (make <algorithm-identifier> :algorithm prf)))))))
+
+(define (make-aes128-encryption-x509-algorithm-identifier iv)
+  (make-iv-x509-algorithm-identifier *pbes:aes128-cbc-pad* iv))
+(define (make-aes192-encryption-x509-algorithm-identifier iv)
+  (make-iv-x509-algorithm-identifier *pbes:aes192-cbc-pad* iv))
+(define (make-aes256-encryption-x509-algorithm-identifier iv)
+  (make-iv-x509-algorithm-identifier *pbes:aes256-cbc-pad* iv))
+(define (make-des3-encryption-x509-algorithm-identifier iv)
+  (make-iv-x509-algorithm-identifier *pbes:desede-cbc* iv))
+(define (make-iv-x509-algorithm-identifier oid iv)
+  (make-x509-algorithm-identifier
+   (der-object-identifier->oid-string oid)
+   (bytevector->der-octet-string iv)))
+
+(define (rc2-encoding? v)
+  (or (not v)
+      (memv v '(160 120 58))
+      (>= v 256)))
+(define (make-rc2-encryption-x509-algorithm-identifier
+	 (version rc2-encoding?) iv)
+  (make-x509-algorithm-identifier
+   (der-object-identifier->oid-string *pbes:rc2-cbc*)
+   (make <pkcs-rc2-cbc-parameter>
+     :c (make <rc2-cbc-parameter>
+	  :version (and version (integer->der-integer version))
+	  :iv (bytevector->der-octet-string iv)))))
+
+(define (make-rc5-encryption-x509-algorithm-identifier
+	 rounds
+	 (block-size (or '64 '128))
+	 :optional (iv #f))
+  (unless (or (not iv) (= block-size (* (bytevector-length iv) 8)))
+    (assertion-violation 'make-rc5-encryption-x509-algorithm-identifier
+			 "Block size and IV don't match"))
+  (unless (<= 8 rounds 127)
+    (assertion-violation 'make-rc5-encryption-x509-algorithm-identifier
+			 "Rounds must be between 8 and 127" rounds))
+  (make-x509-algorithm-identifier
+   (der-object-identifier->oid-string *pbes:rc5-cbc-pad*)
+   (make <pkcs-rc5-cbc-parameter>
+     :c (make <rc5-cbc-parameter>
+	  :version (integer->der-integer 16)
+	  :rounds (integer->der-integer rounds)
+	  :block-size-in-bits (integer->der-integer block-size)
+	  :iv (and iv (bytevector->der-octet-string iv))))))
 
 ;; PBES1
 ;; Don't use this in new application :)
@@ -276,27 +405,51 @@
 	     dk-len
 	     :prf prf)))
 
+(define-generic parameter->key-length)
+(define-method parameter->key-length ((p <pkcs-rc2-cbc-parameter>))
+  (case (pkcs-rc2-cbc-parameter-version p)
+    ((160) 5)
+    ((120) 8)
+    ((58) 16)
+    (else => (lambda (v) (or (and v (div v 8)) 4)))))
+(define-method parameter->key-length ((p <pkcs-rc5-cbc-parameter>))
+  (assertion-violation 'rc5-cbc-pad
+		       "key-length field of KDF parameter must be set"))
 (define (check-key-length aid)
-  (let-values (((scheme ignore)
-		(oid->encryption-scheme (x509-algorithm-identifier-oid aid))))
-    (symmetric-cipher-descriptor-max-key-length scheme)))
+  (define param (x509-algorithm-identifier-parameters aid))
+  (if (x509-algorithm-parameters? param)
+      (parameter->key-length param)
+      (let-values (((scheme ignore) (oid->encryption-scheme
+				     (x509-algorithm-identifier-oid aid))))
+	(symmetric-cipher-descriptor-max-key-length scheme))))
 
 
 (define-method oid->cipher ((oid (equal (sid *pbes:pbes2*))) param)
   (define enc (pkcs-pbes2-params-encryption-scheme param))
-  (define iv (encryption-scheme->iv enc))
   (let-values (((scheme mode)
 		(oid->encryption-scheme (x509-algorithm-identifier-oid enc))))
-    (lambda (key)
-      (values (make-symmetric-cipher scheme mode)
-	      ;; TODO add more param such as rounds for RC5
-	      (make-iv-parameter iv)))))
+    (let ((parameter (->cipher-parameters
+		      scheme (x509-algorithm-identifier-parameters enc))))
+      (lambda (key)
+	(values (make-symmetric-cipher scheme mode) parameter)))))
 
-(define (encryption-scheme->iv aid)
-  (oid->iv (x509-algorithm-identifier-oid aid)
-	   (x509-algorithm-identifier-parameters aid)))
-;; default
-(define-method oid->iv (oid param) (der-octet-string->bytevector param))
+(define-generic encryption-scheme->cipher-parameters)
+(define (->cipher-parameters scheme param)
+  (cond ((der-octet-string? param)
+	 (make-iv-parameter (der-octet-string->bytevector param)))
+	((pkcs-rc2-cbc-parameter? param)
+	 (make-iv-parameter (pkcs-rc2-cbc-parameter-iv param)))
+	((pkcs-rc5-cbc-parameter? param)
+	 (let ((iv (cond ((pkcs-rc5-cbc-parameter-iv param)
+			  => der-octet-string->bytevector)
+			 (else
+			  (make-bytevector
+			   (pkcs-rc5-cbc-parameter-block-size param) 0)))))
+	   (make-cipher-parameter
+	    (make-iv-parameter iv)
+	    (make-round-parameter (pkcs-rc5-cbc-parameter-rounds param)))))
+	;; fallback for enhancement
+	(else (encryption-scheme->cipher-parameters scheme param))))
 
 (define-method oid->encryption-scheme
   ((oid (equal (sid *pbes:aes128-cbc-pad*))))

@@ -36,9 +36,25 @@
     "Mcno8wTx0LpW5jRs1RbMWdT3YkL1booqA7Rc9C+EpdSP")
    :transcoder #f))
 
+;; PBES2 + DES3
+(define epki3
+  (base64-decode-string
+   (string-append
+    "MIIBjDBOBgkqhkiG9w0BBQ0wQTApBgkqhkiG9w0BBQwwHAQI3iJZLsWvg4MCAggA"
+    "MAwGCCqGSIb3DQIJBQAwFAYIKoZIhvcNAwcECIzn6eTqAPxiBIIBODisebV+aYlJ"
+    "D72BMqhE7GEtJOXPyhah1Mxci6dMQDD2yg5R6GSTN0FRpICCyIfTcgla4pgTGTQi"
+    "mMzY4ayx4GONvzcQRzABMiUH3PfD11XOvUflO2EMZkkvWIlUfjgBf2SC4fsHP4Qm"
+    "2dxORnvvCd8BxxpKLwWXhmCDcpLActb5ug2TTCaLxxiSqZrs8NxQM3KfLBQGFARK"
+    "fhtLUZ6WB6uUi9BvO4JUl66pgeWHe841ctczM8G3lxGzXDsSMs6Rd1tsUuIXt49Q"
+    "6/Vf6DgrOKRwW0fdxpJySuSj+0x5efWkeq8Bn3nAgQOvsajKFXOgrwLdD6oB2A79"
+    "h/OQfohSk9PPS3zX9iQ3zswlySoppVMqXcCFKngSwbg/t0ygvWtPW1SwUXTB0cyD"
+    "UprPtDydck9skek3R246Xw==")
+   :transcoder #f))
+
 (test-begin "PKCS#8")
+
+(define password (string->utf8 "test1234"))
 (define (test-pbe bv)
-  (define password (string->utf8 "test1234"))
   (test-assert (pkcs-encrypted-private-key-info?
 		(bytevector->pkcs-encrypted-private-key-info bv)))
   (let ((epki (bytevector->pkcs-encrypted-private-key-info bv)))
@@ -65,5 +81,98 @@
 
 (test-pbe epki1)
 (test-pbe epki2)
+(test-pbe epki3)
+
+(define key-pair (generate-key-pair *key:ed25519*))
+(define pk (key-pair-private key-pair))
+
+(define (test-pkcs8 pk enc-alg)
+  (define pki (private-key->pkcs-one-asymmetric-key pk))
+  (test-assert (pkcs-one-asymmetric-key? pki))
+  (let ((epki (pkcs-one-asymmetric-key->pkcs-encrypted-private-key-info
+	       pki enc-alg password)))
+    (test-assert pkcs-encrypted-private-key-info? epki)
+    (let ((pki2 (pkcs-encrypted-private-key-info->pkcs-one-asymmetric-key
+		 epki password)))
+      (test-assert (pkcs-one-asymmetric-key? pki2))
+      (test-assert (private-key? (pkcs-one-asymmetric-key-private-key pki2))))))
+
+(define salt #vu8(1 2 3 4 5 6 7 8 9 10 1 2 3 4 5 6 7 8 9 10))
+(define count 1000)
+(test-pkcs8 pk (make-pbe-md2-des-cbc-x509-algorithm-identifier  salt count))
+(test-pkcs8 pk (make-pbe-md2-rc2-cbc-x509-algorithm-identifier  salt count))
+(test-pkcs8 pk (make-pbe-md5-des-cbc-x509-algorithm-identifier  salt count))
+(test-pkcs8 pk (make-pbe-md5-rc2-cbc-x509-algorithm-identifier  salt count))
+(test-pkcs8 pk (make-pbe-sha1-des-cbc-x509-algorithm-identifier salt count))
+(test-pkcs8 pk (make-pbe-sha1-rc2-cbc-x509-algorithm-identifier salt count)) 
+
+(define iv #vu8(1 2 3 4 5 6 7 8 9 10 1 2 3 4 5 6))
+(test-pkcs8 pk
+  (make-pbes2-x509-algorithm-identifier
+   (make-pbkdf2-x509-algorithm-identifier salt count)
+   (make-aes128-encryption-x509-algorithm-identifier iv)))
+(define prfs (list *pbes:hmac/sha1*
+		   *pbes:hmac/sha224*
+		   *pbes:hmac/sha256*
+		   *pbes:hmac/sha384*
+		   *pbes:hmac/sha512*
+		   *pbes:hmac/sha512/224*
+		   *pbes:hmac/sha512/256*
+		   *pbes:hmac/sha3-224*
+		   *pbes:hmac/sha3-256*
+		   *pbes:hmac/sha3-384*
+		   *pbes:hmac/sha3-512*))
+(for-each (lambda (prf)
+	    (test-pkcs8 pk
+	     (make-pbes2-x509-algorithm-identifier
+	      (make-pbkdf2-x509-algorithm-identifier salt count :prf prf)
+	      (make-aes128-encryption-x509-algorithm-identifier iv))))
+	  prfs)
+(test-pkcs8 pk
+  (make-pbes2-x509-algorithm-identifier
+   (make-pbkdf2-x509-algorithm-identifier salt count)
+   (make-aes192-encryption-x509-algorithm-identifier iv)))
+(test-pkcs8 pk
+  (make-pbes2-x509-algorithm-identifier
+   (make-pbkdf2-x509-algorithm-identifier salt count)
+   (make-aes256-encryption-x509-algorithm-identifier iv)))
+(test-pkcs8 pk
+  (make-pbes2-x509-algorithm-identifier
+   (make-pbkdf2-x509-algorithm-identifier salt count)
+   (make-des3-encryption-x509-algorithm-identifier iv)))
+
+(test-pkcs8 pk
+  (make-pbes2-x509-algorithm-identifier
+   (make-pbkdf2-x509-algorithm-identifier salt count)
+   (make-rc2-encryption-x509-algorithm-identifier 160 iv)))
+(test-pkcs8 pk
+  (make-pbes2-x509-algorithm-identifier
+   (make-pbkdf2-x509-algorithm-identifier salt count)
+   (make-rc2-encryption-x509-algorithm-identifier 120 iv)))
+(test-pkcs8 pk
+  (make-pbes2-x509-algorithm-identifier
+   (make-pbkdf2-x509-algorithm-identifier salt count)
+   (make-rc2-encryption-x509-algorithm-identifier 58 iv)))
+(test-pkcs8 pk
+  (make-pbes2-x509-algorithm-identifier
+   (make-pbkdf2-x509-algorithm-identifier salt count)
+   (make-rc2-encryption-x509-algorithm-identifier 256 iv)))
+(test-pkcs8 pk
+  (make-pbes2-x509-algorithm-identifier
+   (make-pbkdf2-x509-algorithm-identifier salt count)
+   (make-rc2-encryption-x509-algorithm-identifier #f iv)))
+(test-error (make-rc2-encryption-x509-algorithm-identifier 64 iv))
+
+;; Limitation due to libtomcrypto
+;; rounds can only be between 12 and 24, 0 can also be but that'd be
+;; rejected by the API call :D
+(test-pkcs8 pk
+  (make-pbes2-x509-algorithm-identifier
+   (make-pbkdf2-x509-algorithm-identifier salt count :key-length 32)
+   (make-rc5-encryption-x509-algorithm-identifier 12 64)))
+(test-pkcs8 pk
+  (make-pbes2-x509-algorithm-identifier
+   (make-pbkdf2-x509-algorithm-identifier salt count :key-length 32)
+   (make-rc5-encryption-x509-algorithm-identifier 12 128)))
 
 (test-end)

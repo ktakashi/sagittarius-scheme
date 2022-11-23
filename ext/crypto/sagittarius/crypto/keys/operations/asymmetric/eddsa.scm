@@ -257,7 +257,7 @@
 (define-method oid->key-operation ((oid (equal *ed448-key-oid*)))
   *key:ed448*)
 (define-method key->oid ((key <eddsa-key>))
-  (if (ed25519-key?)
+  (if (ed25519-key? key)
       *ed25519-key-oid*
       *ed448-key-oid*))
 

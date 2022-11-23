@@ -68,7 +68,7 @@
 
 (define (x509-algorithm-identifier? o) (is-a? o <x509-algorithm-identifier>))
 (define (make-x509-algorithm-identifier (oid object-identifier-string?)
-	 :optional ((parameters (or #f x509-algorithm-parameters?)) #f))
+	 :optional ((parameters (or #f x509-algorithm-parameters? asn1-object?)) #f))
   (make <x509-algorithm-identifier> :oid oid :parameters parameters))
 
 (define (algorithm-identifier->x509-algorithm-identifier
@@ -109,7 +109,7 @@
 		      p
 		      (asn1-object->asn1-encodable encodable-class p))))
 	p)))
-(define-method x509-algorithm-parameters->algorithm-parameters (o) #f)
+(define-method x509-algorithm-parameters->algorithm-parameters (o) o)
 (define-method x509-algorithm-parameters->algorithm-parameters
   ((o <asn1-encodable-container>))
   (asn1-encodable-container-c o))

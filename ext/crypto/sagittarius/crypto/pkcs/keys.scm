@@ -47,6 +47,7 @@
 	    pkcs-one-asymmetric-key-attributes
 	    pkcs-one-asymmetric-key-public-key
 	    pkcs-one-asymmetric-key->bytevector
+	    private-key->pkcs-one-asymmetric-key
 	    write-pkcs-one-asymmetric-key
 	    pkcs-one-asymmetric-key->pkcs-encrypted-private-key-info
 	    pkcs-encrypted-private-key-info->pkcs-one-asymmetric-key
@@ -122,6 +123,10 @@
   (let ((bv (export-private-key private-key
 				(private-key-format private-key-info))))
     (bytevector->asn1-encodable <one-asymmetric-key> bv)))
+
+(define (private-key->pkcs-one-asymmetric-key (private-key private-key?))
+  (let ((c (private-key->one-asymmetric-key private-key)))
+    (make <pkcs-one-asymmetric-key> :c c)))
 
 (define (pkcs-one-asymmetric-key->one-asymmetric-key oak)
   (asn1-encodable-container-c oak))

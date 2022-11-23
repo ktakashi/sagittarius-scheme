@@ -37,7 +37,6 @@
 	    x509-algorithm-identifier->cipher
 	    oid->kdf
 	    oid->cipher
-	    oid->iv
 	    oid->encryption-scheme)
     (import (rnrs)
 	    (clos user)
@@ -81,6 +80,5 @@
 
 (define-generic oid->kdf)
 (define-generic oid->cipher)
-(define-generic oid->iv)
 (define-generic oid->encryption-scheme)
 )

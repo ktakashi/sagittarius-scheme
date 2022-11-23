@@ -157,9 +157,9 @@
 ;; ref: https://www.rfc-editor.org/rfc/rfc8410
 ;; CurvePrivateKey ::= OCTET STRING
 (define-method wrap-key-value ((oid (equal *ed25519-key-oid*)) v)
-  (bytevector->der-octet-string v))
+  (asn1-encodable->bytevector (bytevector->der-octet-string v)))
 (define-method wrap-key-value ((oid (equal *ed448-key-oid*)) v)
-  (bytevector->der-octet-string v))
+  (asn1-encodable->bytevector (bytevector->der-octet-string v)))
 
 ;; Use :around specifier to let the subclass of the key match...
 (define-method export-private-key :around (m k (format (eq 'private-key-info)))
