@@ -78,6 +78,7 @@
 	    make-aes192-encryption-x509-algorithm-identifier
 	    make-aes256-encryption-x509-algorithm-identifier
 	    make-des3-encryption-x509-algorithm-identifier
+	    make-des-encryption-x509-algorithm-identifier
 	    make-rc2-encryption-x509-algorithm-identifier
 	    make-rc5-encryption-x509-algorithm-identifier
 	    
@@ -296,6 +297,8 @@
   (make-iv-x509-algorithm-identifier *pbes:aes256-cbc-pad* iv))
 (define (make-des3-encryption-x509-algorithm-identifier iv)
   (make-iv-x509-algorithm-identifier *pbes:desede-cbc* iv))
+(define (make-des-encryption-x509-algorithm-identifier iv)
+  (make-iv-x509-algorithm-identifier *pbes:des-cbc* iv))
 (define (make-iv-x509-algorithm-identifier oid iv)
   (make-x509-algorithm-identifier
    (der-object-identifier->oid-string oid)

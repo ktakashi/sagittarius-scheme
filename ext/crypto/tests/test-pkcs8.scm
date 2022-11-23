@@ -136,10 +136,15 @@
   (make-pbes2-x509-algorithm-identifier
    (make-pbkdf2-x509-algorithm-identifier salt count)
    (make-aes256-encryption-x509-algorithm-identifier iv)))
+;; We don't IV length check so we can just pass longer block...
 (test-pkcs8 pk
   (make-pbes2-x509-algorithm-identifier
    (make-pbkdf2-x509-algorithm-identifier salt count)
    (make-des3-encryption-x509-algorithm-identifier iv)))
+(test-pkcs8 pk
+  (make-pbes2-x509-algorithm-identifier
+   (make-pbkdf2-x509-algorithm-identifier salt count)
+   (make-des-encryption-x509-algorithm-identifier iv)))
 
 (test-pkcs8 pk
   (make-pbes2-x509-algorithm-identifier
