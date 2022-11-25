@@ -41,6 +41,7 @@
 
 	    content-info? <content-info>
 	    content-info-content-type content-info-raw-content
+	    content-info-content
 	    *cms:content-infomation*
 	    content-info->content
 	    ;; 4.
@@ -291,22 +292,24 @@
     (content :type <asn1-encodable> :tag 0 :explicit #t
 	     :reader content-info-raw-content))))
 (define (content-info? o) (is-a? o <content-info>))
+(define sid der-object-identifier->oid-string)
 (define (content-info-content (content-info content-info?))
   (content-info->content
-   (der-object-identifier->oid-string (content-info-content-type content-info))
+   (sid (content-info-content-type content-info))
    (content-info-raw-content content-info)))
 
 (define-generic content-info->content)
 ;; 4. Data Content Type
 (define *cms:data-content-type* (oid "1.2.840.113549.1.7.1"))
 ;; should we check octet-string or not?
-(define-method content-info->content ((oid (equal *cms:data-content-type*)) d)
+(define-method content-info->content
+  ((oid (equal (sid *cms:data-content-type*))) d)
   d)
 
 ;; 5. Signed-data Content Type
 (define *cms:signed-data-content-type* (oid "1.2.840.113549.1.7.2"))
 (define-method content-info->content
-  ((oid (equal *cms:signed-data-content-type*)) d)
+  ((oid (equal (sid *cms:signed-data-content-type*))) d)
   (asn1-object->asn1-encodable d <signed-data>))
 
 ;; SignerIdentifier ::= CHOICE {
@@ -391,7 +394,7 @@
 ;; 6. Enveloped-data Content Type
 (define *cms:enveloped-data-content-type* (oid "1.2.840.113549.1.7.3"))
 (define-method content-info->content
-  ((oid (equal *cms:enveloped-data-content-type*)) d)
+  ((oid (equal (sid *cms:enveloped-data-content-type*))) d)
   (asn1-object->asn1-encodable d <enveloped-data>))
 
 ;; RecipientIdentifier ::= CHOICE {
@@ -623,7 +626,7 @@
 ;; 7. Digested-data Content Type
 (define *cms:digested-data-content-type* (oid "1.2.840.113549.1.7.5"))
 (define-method content-info->content
-  ((oid (equal *cms:digested-data-content-type*)) d)
+  ((oid (equal (sid *cms:digested-data-content-type*))) d)
   (asn1-object->asn1-encodable d <digested-data>))
 
 ;; DigestedData ::= SEQUENCE {
@@ -645,7 +648,7 @@
 ;; 8. Encrypted-data Content Type
 (define *cms:encrypted-data-content-type* (oid "1.2.840.113549.1.7.6"))
 (define-method content-info->content
-  ((oid (equal *cms:encrypted-data-content-type*)) d)
+  ((oid (equal (sid *cms:encrypted-data-content-type*))) d)
   (asn1-object->asn1-encodable d <encrypted-data>))
 
 ;; EncryptedData ::= SEQUENCE {
@@ -668,7 +671,7 @@
 (define *cms:authenticated-data-content-type*
   (oid "1.2.840.113549.1.9.16.2"))
 (define-method content-info->content
-  ((oid (equal *cms:authenticated-data-content-type*)) d)
+  ((oid (equal (sid *cms:authenticated-data-content-type*))) d)
   (asn1-object->asn1-encodable d <authenticated-data>))
 
 ;; AuthenticatedData ::= SEQUENCE {
@@ -718,7 +721,7 @@
 (define *cms:auth-enveloped-data-content-type*
   (oid "1.2.840.113549.1.9.16.1.23"))
 (define-method content-info->content
-  ((oid (equal *cms:auth-enveloped-data-content-type*)) d)
+  ((oid (equal (sid *cms:auth-enveloped-data-content-type*))) d)
   (asn1-object->asn1-encodable d <auth-enveloped-data>))
 ;; AuthEnvelopedData ::= SEQUENCE {
 ;;   version CMSVersion,

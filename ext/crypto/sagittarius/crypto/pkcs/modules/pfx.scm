@@ -45,12 +45,51 @@
 	    *pkcs12:pbe/sha1-rc2-128-cbc*
 	    *pkcs12:pbe/sha1-rc2-40-cbc*
 
-	    )
+	    digest-info? <digest-info>
+	    digest-info-digest-algorithm
+	    digest-info-digest
+
+	    mac-data? <mac-data>
+	    mac-data-mac
+	    mac-data-mac-salt
+	    mac-data-iterations
+
+	    pfx? <pfx>
+	    pfx-version
+	    pfx-auth-safe
+	    pfx-mac-data
+
+	    safe-bag? <safe-bag>
+	    safe-bag-bag-id
+	    safe-bag-raw-bag-value
+	    safe-bag-bag-value
+	    safe-bag-bag-attributes
+	    safe-bag->value
+
+	    cert-bag? <cert-bag>
+	    cert-bag-cert-id
+	    cert-bag-raw-cert-value
+	    cert-bag-cert-value
+	    cert-bag->cert
+
+	    crl-bag? <crl-bag>
+	    crl-bag-crl-id
+	    crl-bag-raw-crl-value
+	    crl-bag-crl-value
+	    crl-bag->crl
+
+	    secret-bag? <secret-bag>
+	    secret-bag-secret-type-id
+	    secret-bag-raw-secret-value
+	    secret-bag-secret-value
+	    secret-bag->secret-value)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius crypto asn1)
 	    (sagittarius crypto asn1 modules)
 	    (sagittarius crypto pkix modules x509)
+	    (sagittarius crypto pkix certificate)
+	    (sagittarius crypto pkix revocation)
 	    (sagittarius crypto pkcs modules cms)
 	    (sagittarius crypto pkcs modules akp))
 (define oid oid-string->der-object-identifier)
@@ -128,10 +167,24 @@
   (asn1-sequence
    ((bag-id :type <algorithm-identifier> :reader safe-bag-bag-id)
     (bag-value :type <asn1-encodable> :tag 0 :explicit #t
-	       :reader safe-bag-bag-value)
+	       :reader safe-bag-raw-bag-value)
     (bag-attributes :type <attributes> :optional #t
 		    :reader safe-bag-bag-attributes))))
 (define (safe-bag? o) (is-a? o <safe-bag>))
+(define sid der-object-identifier->oid-string)
+(define (safe-bag-bag-value sb)
+  (safe-bag->value (sid (safe-bag-bag-id sb)) (safe-bag-raw-bag-value sb)))
+(define-generic safe-bag->value)
+(define-method safe-bag->value (o v) v) ;; default
+
+;; KeyBag ::= PrivateKeyInfo
+(define-method safe-bag->value ((o (equal (sid *pkcs12:key-bag*))) v)
+  (asn1-object->asn1-encodable <one-asymmetric-key> v))
+
+;; PKCS8ShroudedKeyBag ::= EncryptedPrivateKeyInfo
+(define-method safe-bag->value
+  ((o (equal (sid *pkcs12:pkcs8-shrouded-key-bag*))) v)
+  (asn1-object->asn1-encodable <encrypted-private-key-info> v))
 
 ;; -- CertBag
 ;; CertBag ::= SEQUENCE {
@@ -140,5 +193,66 @@
 ;; }
 (define *pkcs12:x509-certificate* (oid "1.2.840.113549.1.9.0.1.22.1"))
 (define *pkcs12:sdsi-certificate* (oid "1.2.840.113549.1.9.0.1.22.2"))
+
+(define-asn1-encodable <cert-bag>
+  (asn1-sequence
+   ((cert-id :type <der-object-identifier> :reader cert-bag-cert-id)
+    (cert-value :type <asn1-encodable> :tag 0 :explicit #t
+		:reader cert-bag-raw-cert-value))))
+(define (cert-bag? o) (is-a? o <cert-bag>))
+(define-method safe-bag->value ((o (equal (sid *pkcs12:cert-bag*))) v)
+  (asn1-object->asn1-encodable <cert-bag> v))
+(define-generic cert-bag->cert)
+(define-method cert-bag->cert (o v) v) ;; default for SDSI cert as well...
+
+(define (cert-bag-cert-value o)
+  (cert-bag->cert (sid (cert-bag-cert-value o)) (cert-bag-raw-cert-value o)))
+(define-method cert-bag->cert ((o (equal (sid *pkcs12:x509-certificate*))) v)
+  (asn1-object->x509-certificate v))
+
+;; -- CRLBag
+;; CRLBag ::= SEQUENCE {
+;;     crlId     BAG-TYPE.&id ({CRLTypes}),
+;;     crlValue [0] EXPLICIT BAG-TYPE.&Type ({CRLTypes}{@crlId})
+;; }
+(define *pkcs12:x509-crl* (oid "1.2.840.113549.1.9.0.1.23.1"))
+
+(define-asn1-encodable <crl-bag>
+  (asn1-sequence
+   ((crl-id :type <der-object-identifier> :reader crl-bag-crl-id)
+    (crl-value :type <asn1-encodable> :tag 0 :explicit #t
+	       :reader crl-bag-raw-crl-value))))
+(define (crl-bag? o) (is-a? o <crl-bag>))
+(define-method safe-bag->value ((o (equal (sid *pkcs12:crl-bag*))) v)
+  (asn1-object->asn1-encodable <crl-bag> v))
+(define-generic crl-bag->crl)
+(define-method crl-bag->crl (o v) v)
+(define (crl-bag-crl-value o)
+  (crl-bag->crl (sid (crl-bag-crl-id o)) (crl-bag-raw-crl-value o)))
+(define-method crl-bag->crl ((o (equal (sid *pkcs12:crl-bag*))) v)
+  (asn1-object->x509-certificate-revocation-list v))
+
+;; -- Secret Bag
+;; SecretBag ::= SEQUENCE {
+;;     secretTypeId  BAG-TYPE.&id ({SecretTypes}),
+;;     secretValue   [0] EXPLICIT BAG-TYPE.&Type ({SecretTypes}
+;;                                                {@secretTypeId})
+;; }
+(define-asn1-encodable <secret-bag>
+  (asn1-sequence
+   ((secret-type-id :type <der-object-identifier>
+		    :reader secret-bag-secret-type-id)
+    (secret-value :type <asn1-encodable> :tag 0 :explicit #t
+		  :reader secret-bag-raw-secret-value))))
+(define (secret-bag? o) (is-a? o <secret-bag>))
+(define-method safe-bag->value ((o (equal (sid *pkcs12:secret-bag*))) v)
+  (asn1-object->asn1-encodable <secret-bag> v))
+(define-generic secret-bag->secret-value)
+(define-method secret-bag->secret-value (o v) v)
+(define (secret-bag-secret-value o)
+  (secret-bag->secret-value (sid (secret-bag-secret-type-id o))
+			    (secret-bag-raw-secret-value o)))
+
+;; SafeContents type
 
 )
