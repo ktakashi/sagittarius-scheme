@@ -3,7 +3,8 @@
  (.include <sagittarius/private.h>)
  (.define "LIBSAGITTARIUS_EXT_BODY")
  (.include  <sagittarius/extend.h>
-	    <sagittarius-mac.h>))
+	    <sagittarius-mac.h>
+	    <tomcrypt_private.h>))
 
 (define-type <digest> "int" "digest descriptor" "DIGEST_DESCRIPTORP" "SG_INT_VALUE" "SG_MAKE_INT" 0)
 (define-type <cipher> "int" "cipher descriptor" "SG_CIPHERP" "SG_INT_VALUE")
@@ -109,4 +110,19 @@
     (check-tomcrypt-error 'hkdf err)
     (result dk)))
 			 
-				  
+;; PKCS#12 KDF, now we should separate?
+;; NOTE: This doesn't convert password to UTF16
+(define-c-proc pkcs12-kdf (md::<digest>
+			   pw::<bytevector>
+			   salt::<bytevector>
+			   iteration::<fixnum>
+			   purpose::<fixnum>
+			   outlen::<fixnum>)
+  (let* ((out (Sg_MakeByteVector outlen 0))
+	 (err::int (pkcs12_kdf md
+			       (SG_BVECTOR_ELEMENTS pw) (SG_BVECTOR_SIZE pw)
+			       (SG_BVECTOR_ELEMENTS salt) (SG_BVECTOR_SIZE salt)
+			       iteration purpose
+			       (SG_BVECTOR_ELEMENTS out) outlen)))
+    (check-tomcrypt-error 'pkcs12-kdf err)
+    (result out)))

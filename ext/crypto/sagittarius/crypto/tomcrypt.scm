@@ -129,7 +129,7 @@
 	    cmac-state? cmac-init cmac-process! cmac-done!
 
 	    ;; KDF
-	    hkdf
+	    hkdf pkcs12-kdf
 	    )
     (import (only (sagittarius) define-constant)
 	    (sagittarius dynamic-module))
@@ -212,4 +212,8 @@
 (define-constant *digest:blake2b-384* "blake2b-384")
 (define-constant *digest:blake2b-512* "blake2b-512")
 
+;; PKCS#12 purpose
+(define-constant *pkcs12:key-material* 1)
+(define-constant *pkcs12:iv-material*  2)
+(define-constant *pkcs12:mac-material* 3)
 )

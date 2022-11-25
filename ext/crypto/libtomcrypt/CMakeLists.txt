@@ -111,6 +111,8 @@ ADD_LIBRARY(libtomcrypt STATIC
   src/hashes/blake2b.c
   src/hashes/blake2s.c
 
+  src/hashes/helper/hash_memory_multi.c
+  
   # mac
   #omac
   src/mac/omac/omac_init.c
@@ -239,6 +241,7 @@ ADD_LIBRARY(libtomcrypt STATIC
 
   # kdf
   src/misc/hkdf/hkdf.c
+  src/misc/pkcs12/pkcs12_kdf.c
   )
 
 TARGET_COMPILE_DEFINITIONS(libtomcrypt PUBLIC LTC_NO_TEST ARGTYPE=4)
