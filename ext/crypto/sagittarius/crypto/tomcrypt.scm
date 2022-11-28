@@ -130,6 +130,9 @@
 
 	    ;; KDF
 	    hkdf pkcs12-kdf
+	    *pkcs12:key-material*
+	    *pkcs12:iv-material*
+	    *pkcs12:mac-material*
 	    )
     (import (only (sagittarius) define-constant)
 	    (sagittarius dynamic-module))

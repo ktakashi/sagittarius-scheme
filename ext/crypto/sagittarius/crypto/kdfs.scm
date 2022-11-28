@@ -32,7 +32,11 @@
 (library (sagittarius crypto kdfs)
     (export pbkdf-1 pbkdf-2
 	    mac->prf-provider
-	    hkdf)
+	    hkdf
+	    pkcs12-kdf
+	    ;; hmmmm should these be here?
+	    pkcs12-derive-iv
+	    pkcs12-derive-mac)
     (import (rnrs)
 	    (sagittarius crypto digests)
 	    (rename (sagittarius crypto digests descriptors)
@@ -105,4 +109,20 @@
 ;; HKDF: RFC 5869
 (define (hkdf (digest builtin-digest-descriptor?) ikm salt info dk-len)
   (tc:hkdf (tc-digest-descriptor-digest digest) ikm salt info dk-len))
+
+(define (pkcs12-kdf (digest builtin-digest-descriptor?)
+		    pw salt iteration dk-len)
+  (call-tc:pkcs12-kdf digest pw salt iteration dk-len tc:*pkcs12:key-material*))
+(define (pkcs12-derive-iv (digest builtin-digest-descriptor?)
+			  pw salt iteration iv-len)
+  (call-tc:pkcs12-kdf digest pw salt iteration iv-len tc:*pkcs12:iv-material*))
+(define (pkcs12-derive-mac (digest builtin-digest-descriptor?)
+			   pw salt iteration len)
+  (call-tc:pkcs12-kdf digest pw salt iteration len tc:*pkcs12:mac-material*))
+
+
+(define (call-tc:pkcs12-kdf digest pw salt iteration len purpose)
+  (tc:pkcs12-kdf (tc-digest-descriptor-digest digest)
+		 (string->utf16 (string-append pw "\x0;") (endianness big))
+		 salt iteration purpose len))
 )
