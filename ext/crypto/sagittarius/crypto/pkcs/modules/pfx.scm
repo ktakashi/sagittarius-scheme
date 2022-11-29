@@ -41,7 +41,7 @@
 	    *pkcs12:pbe/sha1-rc4-128*
 	    *pkcs12:pbe/sha1-rc4-40*
 	    *pkcs12:pbe/sha1-des3-cbc*
-	    *pkcs12:pbe/sha1-des2-cbc
+	    *pkcs12:pbe/sha1-des2-cbc*
 	    *pkcs12:pbe/sha1-rc2-128-cbc*
 	    *pkcs12:pbe/sha1-rc2-40-cbc*
 
@@ -59,6 +59,10 @@
 	    pfx-auth-safe
 	    pfx-mac-data
 
+	    
+	    authenticated-safe? <authenticated-safe>
+	    authenticated-safe->list
+	    
 	    safe-bag? <safe-bag>
 	    safe-bag-bag-id
 	    safe-bag-raw-bag-value
@@ -82,7 +86,10 @@
 	    secret-bag-secret-type-id
 	    secret-bag-raw-secret-value
 	    secret-bag-secret-value
-	    secret-bag->secret-value)
+	    secret-bag->secret-value
+
+	    safe-contents? <safe-contents>
+	    safe-contents->list)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius crypto asn1)
@@ -101,7 +108,7 @@
 (define *pkcs12:pbe/sha1-rc4-128*     (oid "1.2.840.113549.1.12.1.1"))
 (define *pkcs12:pbe/sha1-rc4-40*      (oid "1.2.840.113549.1.12.1.2"))
 (define *pkcs12:pbe/sha1-des3-cbc*    (oid "1.2.840.113549.1.12.1.3"))
-(define *pkcs12:pbe/sha1-des2-cbc     (oid "1.2.840.113549.1.12.1.4"))
+(define *pkcs12:pbe/sha1-des2-cbc*    (oid "1.2.840.113549.1.12.1.4"))
 (define *pkcs12:pbe/sha1-rc2-128-cbc* (oid "1.2.840.113549.1.12.1.5"))
 (define *pkcs12:pbe/sha1-rc2-40-cbc*  (oid "1.2.840.113549.1.12.1.6"))
 
@@ -157,6 +164,10 @@
 ;;     -- EncryptedData if password-encrypted
 ;;     -- EnvelopedData if public key-encrypted
 ;; SafeContents ::= SEQUENCE OF SafeBag
+(define-asn1-encodable <authenticated-safe>
+  (asn1-sequence
+   (of :type <content-info> :reader authenticated-safe->list)))
+(define (authenticated-safe? o) (is-a? o <authenticated-safe>))
 
 ;; SafeBag ::= SEQUENCE {
 ;;     bagId         BAG-TYPE.&id ({PKCS12BagSet}),
@@ -165,7 +176,7 @@
 ;; }
 (define-asn1-encodable <safe-bag>
   (asn1-sequence
-   ((bag-id :type <algorithm-identifier> :reader safe-bag-bag-id)
+   ((bag-id :type <der-object-identifier> :reader safe-bag-bag-id)
     (bag-value :type <asn1-encodable> :tag 0 :explicit #t
 	       :reader safe-bag-raw-bag-value)
     (bag-attributes :type <attributes> :optional #t
@@ -249,10 +260,19 @@
   (asn1-object->asn1-encodable <secret-bag> v))
 (define-generic secret-bag->secret-value)
 (define-method secret-bag->secret-value (o v) v)
+(define-method secret-bag->secret-value
+  ((o (equal (sid *pkcs12:pkcs8-shrouded-key-bag*))) v)
+  (bytevector->asn1-encodable (der-octet-string->bytevector v)
+			      <encrypted-private-key-info>))
 (define (secret-bag-secret-value o)
   (secret-bag->secret-value (sid (secret-bag-secret-type-id o))
 			    (secret-bag-raw-secret-value o)))
 
 ;; SafeContents type
-
+(define-asn1-encodable <safe-contents>
+  (asn1-sequence
+   (of :type <safe-bag> :reader safe-contents->list)))
+(define-method safe-bag->value ((o (equal (sid *pkcs12:safe-content-bag*))) v)
+  (asn1-object->asn1-encodable <safe-contents> v))
+(define (safe-contents? o) (is-a? o <safe-contents>))
 )
