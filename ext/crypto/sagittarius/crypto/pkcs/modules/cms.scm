@@ -142,6 +142,7 @@
 	    encrypted-content-info? <encrypted-content-info>
 	    encrypted-content-info-content-type
 	    encrypted-content-info-content-encryption-algorithm
+	    encrypted-content-info-encrypted-content
 
 	    enveloped-data? <enveloped-data>
 	    enveloped-data-version
@@ -163,7 +164,6 @@
 	    encrypted-data? <encrypted-data>
 	    encrypted-data-version
 	    encrypted-data-encrypted-content-info
-	    encrypted-data-encrypted-content
 	    encrypted-data-unprotected-attrs
 	    ;; 9.
 	    *cms:authenticated-data-content-type*
@@ -310,7 +310,7 @@
 (define *cms:signed-data-content-type* (oid "1.2.840.113549.1.7.2"))
 (define-method content-info->content
   ((oid (equal (sid *cms:signed-data-content-type*))) d)
-  (asn1-object->asn1-encodable d <signed-data>))
+  (asn1-object->asn1-encodable <signed-data> d))
 
 ;; SignerIdentifier ::= CHOICE {
 ;;   issuerAndSerialNumber IssuerAndSerialNumber,
@@ -395,7 +395,7 @@
 (define *cms:enveloped-data-content-type* (oid "1.2.840.113549.1.7.3"))
 (define-method content-info->content
   ((oid (equal (sid *cms:enveloped-data-content-type*))) d)
-  (asn1-object->asn1-encodable d <enveloped-data>))
+  (asn1-object->asn1-encodable <enveloped-data> d))
 
 ;; RecipientIdentifier ::= CHOICE {
 ;;   issuerAndSerialNumber IssuerAndSerialNumber,
@@ -593,14 +593,17 @@
 
 ;; EncryptedContentInfo ::= SEQUENCE {
 ;;   contentType ContentType,
-;;   contentEncryptionAlgorithm ContentEncryptionAlgorithmIdentifier }
+;;   contentEncryptionAlgorithm ContentEncryptionAlgorithmIdentifier,
+;;   encryptedContent [0] IMPLICIT EncryptedContent OPTIONAL }
 ;; EncryptedContent ::= OCTET STRING
 (define-asn1-encodable <encrypted-content-info>
   (asn1-sequence
    ((content-type :type <der-object-identifier>
 		  :reader encrypted-content-info-content-type)
     (content-encryption-algorithm :type <algorithm-identifier>
-     :reader encrypted-content-info-content-encryption-algorithm))))
+     :reader encrypted-content-info-content-encryption-algorithm)
+    (encrypted-content :type <der-octet-string> :tag 0 :optional #t :explicit #f
+     :reader encrypted-content-info-encrypted-content))))
 (define (encrypted-content-info? o) (is-a? o <encrypted-content-info>))
 
 ;; EnvelopedData ::= SEQUENCE {
@@ -627,7 +630,7 @@
 (define *cms:digested-data-content-type* (oid "1.2.840.113549.1.7.5"))
 (define-method content-info->content
   ((oid (equal (sid *cms:digested-data-content-type*))) d)
-  (asn1-object->asn1-encodable d <digested-data>))
+  (asn1-object->asn1-encodable <digested-data> d))
 
 ;; DigestedData ::= SEQUENCE {
 ;;   version CMSVersion,
@@ -649,20 +652,17 @@
 (define *cms:encrypted-data-content-type* (oid "1.2.840.113549.1.7.6"))
 (define-method content-info->content
   ((oid (equal (sid *cms:encrypted-data-content-type*))) d)
-  (asn1-object->asn1-encodable d <encrypted-data>))
+  (asn1-object->asn1-encodable <encrypted-data> d))
 
 ;; EncryptedData ::= SEQUENCE {
 ;;   version CMSVersion,
 ;;   encryptedContentInfo EncryptedContentInfo,
-;;   encryptedContent [0] IMPLICIT EncryptedContent OPTIONAL,
 ;;   unprotectedAttrs [1] IMPLICIT UnprotectedAttributes OPTIONAL }
 (define-asn1-encodable <encrypted-data>
   (asn1-sequence
    ((version :type <der-integer> :reader encrypted-data-version)
     (encrypted-content-info :type <encrypted-content-info>
      :reader encrypted-data-encrypted-content-info)
-    (encrypted-content :type <der-octet-string> :tag 0 :optional #t :explicit #f
-		       :reader encrypted-data-encrypted-content)
     (unprotected-attrs :type <attributes> :tag 1 :optional #t :explicit #f
 		       :reader encrypted-data-unprotected-attrs))))
 (define (encrypted-data? o) (is-a? o <encrypted-data>))
@@ -672,7 +672,7 @@
   (oid "1.2.840.113549.1.9.16.2"))
 (define-method content-info->content
   ((oid (equal (sid *cms:authenticated-data-content-type*))) d)
-  (asn1-object->asn1-encodable d <authenticated-data>))
+  (asn1-object->asn1-encodable <authenticated-data> d))
 
 ;; AuthenticatedData ::= SEQUENCE {
 ;;   version CMSVersion,
@@ -722,7 +722,7 @@
   (oid "1.2.840.113549.1.9.16.1.23"))
 (define-method content-info->content
   ((oid (equal (sid *cms:auth-enveloped-data-content-type*))) d)
-  (asn1-object->asn1-encodable d <auth-enveloped-data>))
+  (asn1-object->asn1-encodable <auth-enveloped-data> d))
 ;; AuthEnvelopedData ::= SEQUENCE {
 ;;   version CMSVersion,
 ;;   originatorInfo [0] IMPLICIT OriginatorInfo OPTIONAL,
