@@ -141,7 +141,7 @@ static SgObject make_info_condition(SgObject who, SgObject msg, SgObject irr)
   SgObject h = SG_NIL, t = SG_NIL;
   if (!SG_FALSEP(who)) SG_APPEND1(h, t, Sg_MakeWhoCondition(who));
   SG_APPEND1(h, t, Sg_MakeMessageCondition(msg));
-  if (!SG_UNBOUNDP(irr) && !SG_NULLP(irr)) {
+  if (!SG_UNBOUNDP(irr)) {
     SG_APPEND1(h, t, Sg_MakeIrritantsCondition(irr));
   }
   return h;
