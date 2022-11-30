@@ -104,7 +104,7 @@
 	  (deque-length (pkcs12-keystore-crls k))
 	  (deque-length (pkcs12-keystore-secret-keys k))))
 (define (pkcs12-keystore? o) (is-a? o <pkcs12-keystore>))
-(define (pkcs12-keystore-friendly-names-api ks)
+(define pkcs12-keystore-friendly-names-api
   ($. pkcs12-keystore-friendly-names deque->list))
 
 (define (read-pkcs12-keystore exchange-key :optional (in (current-input-port)))
@@ -119,19 +119,24 @@
   (syntax-rules ()
     ((_ acc) (lambda (pred ks) (find-in-deque pred (acc ks))))))
 
-(define (optional-safe-bag-value v) (and v (pkcs12-safe-bag-value v)))
+(define-syntax optional-get
+  (syntax-rules ()
+    ((_ get) (lambda (v) (and v (get v))))))
 (define pkcs12-keystore-find-private-key
   ($. (pkcs12-keystore-find pkcs12-keystore-private-keys)
-      optional-safe-bag-value))
+      (optional-get pkcs12-safe-bag-value)))
 (define pkcs12-keystore-find-certificate
   ($. (pkcs12-keystore-find pkcs12-keystore-certificates)
-      optional-safe-bag-value))
+      (optional-get pkcs12-safe-bag-value)
+      (optional-get pkcs12-cert-bag-value)))
 (define pkcs12-keystore-find-crl
   ($. (pkcs12-keystore-find pkcs12-keystore-crls)
-      optional-safe-bag-value))
+      (optional-get pkcs12-safe-bag-value)
+      (optional-get pkcs12-crl-bag-value)))
 (define pkcs12-keystore-find-secret-key
   ($. (pkcs12-keystore-find pkcs12-keystore-secret-keys)
-      optional-safe-bag-value))
+      (optional-get pkcs12-safe-bag-value)
+      (optional-get pkcs12-secret-bag-value)))
 
 ;; internal
 (define (read-pfx in)
@@ -198,7 +203,7 @@
   (deque-push! ((acc value) ks) bag)
   (let ((fn (pkcs12-safe-bag-friendly-name bag)))
     (and fn (deque-push-unique!
-	     (pkcs12-keystore-friendly-names ks) string-ci? fn))))
+	     (pkcs12-keystore-friendly-names ks) string-ci=? fn))))
 
 (define (verify-mac pfx password)
   (define (aid->md aid)
@@ -217,8 +222,7 @@
 	 (md (aid->md aid)))
     (unless (safe-bytevector=? digest (compute-mac md data password salt c))
       (error 'verify-mac
-       "Mac of the ContentInfo is invalid - wrong password or corrupted data"
-       pfx))
+       "Mac is invalid - wrong integrity password or corrupted data"))
     (values (asn1-object->asn1-encodable <authenticated-safe>
 					 (bytevector->asn1-object data))
 	    (make-pkcs12-mac-descriptor md c))))
@@ -360,6 +364,7 @@
 (define-method bag-value->pkcs12-bag-value ((v <crl-bag>))
   (make <pkcs12-crl-bag> :c v))
 
+(define-generic secret-bag-value->value)
 (define-class <pkcs12-secret-bag> (<asn1-encodable-container>)
   ((id :allocation :virtual :cached #t
     :slot-ref (make-slot-ref
@@ -369,10 +374,11 @@
    (value :allocation :virtual :cached #t
     :slot-ref (make-slot-ref
 	       (.$ secret-bag-secret-value asn1-encodable-container-c)
-	       values)
+	       secret-bag-value->value)
     :reader pkcs12-secret-bag-value)))
 (define (pkcs12-secret-bag? o) (is-a? o <pkcs12-secret-bag>))
 (define-method bag-value->pkcs12-bag-value ((v <secret-bag>))
   (make <pkcs12-secret-bag> :c v))
-
+(define-method secret-bag-value->value ((v <encrypted-private-key-info>))
+  (encrypted-private-key-info->pkcs-encrypted-private-key-info v))
 )

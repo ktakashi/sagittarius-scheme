@@ -202,8 +202,8 @@
 ;;     certId    BAG-TYPE.&id   ({CertTypes}),
 ;;     certValue [0] EXPLICIT BAG-TYPE.&Type ({CertTypes}{@certId})
 ;; }
-(define *pkcs12:x509-certificate* (oid "1.2.840.113549.1.9.0.1.22.1"))
-(define *pkcs12:sdsi-certificate* (oid "1.2.840.113549.1.9.0.1.22.2"))
+(define *pkcs12:x509-certificate* (oid "1.2.840.113549.1.9.22.1"))
+(define *pkcs12:sdsi-certificate* (oid "1.2.840.113549.1.9.22.2"))
 
 (define-asn1-encodable <cert-bag>
   (asn1-sequence
@@ -215,18 +215,17 @@
   (asn1-object->asn1-encodable <cert-bag> v))
 (define-generic cert-bag->cert)
 (define-method cert-bag->cert (o v) v) ;; default for SDSI cert as well...
-
-(define (cert-bag-cert-value o)
-  (cert-bag->cert (sid (cert-bag-cert-value o)) (cert-bag-raw-cert-value o)))
 (define-method cert-bag->cert ((o (equal (sid *pkcs12:x509-certificate*))) v)
-  (asn1-object->x509-certificate v))
+  (bytevector->x509-certificate (der-octet-string->bytevector v)))
+(define (cert-bag-cert-value o)
+  (cert-bag->cert (sid (cert-bag-cert-id o)) (cert-bag-raw-cert-value o)))
 
 ;; -- CRLBag
 ;; CRLBag ::= SEQUENCE {
 ;;     crlId     BAG-TYPE.&id ({CRLTypes}),
 ;;     crlValue [0] EXPLICIT BAG-TYPE.&Type ({CRLTypes}{@crlId})
 ;; }
-(define *pkcs12:x509-crl* (oid "1.2.840.113549.1.9.0.1.23.1"))
+(define *pkcs12:x509-crl* (oid "1.2.840.113549.1.9.23.1"))
 
 (define-asn1-encodable <crl-bag>
   (asn1-sequence
@@ -262,8 +261,8 @@
 (define-method secret-bag->secret-value (o v) v)
 (define-method secret-bag->secret-value
   ((o (equal (sid *pkcs12:pkcs8-shrouded-key-bag*))) v)
-  (bytevector->asn1-encodable (der-octet-string->bytevector v)
-			      <encrypted-private-key-info>))
+  (bytevector->asn1-encodable <encrypted-private-key-info>
+			      (der-octet-string->bytevector v)))
 (define (secret-bag-secret-value o)
   (secret-bag->secret-value (sid (secret-bag-secret-type-id o))
 			    (secret-bag-raw-secret-value o)))

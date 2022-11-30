@@ -44,6 +44,7 @@
 	    pkcs-one-asymmetric-key-version
 	    pkcs-one-asymmetric-key-private-key-algorithm
 	    pkcs-one-asymmetric-key-private-key
+	    pkcs-one-asymmetric-key-raw-key-value ;; for PKCS#12 secret key
 	    pkcs-one-asymmetric-key-attributes
 	    pkcs-one-asymmetric-key-public-key
 	    pkcs-one-asymmetric-key->bytevector
@@ -101,6 +102,12 @@
 	       (.$ asn1-encodable-container-c)
 	       one-asymmetric-key->private-key)
     :reader pkcs-one-asymmetric-key-private-key)
+   (raw-key-value :allocation :virtual :cached #t
+    :slot-ref (make-slot-ref
+	       (.$ one-asymmetric-key-private-key
+		   asn1-encodable-container-c)
+	       der-octet-string->bytevector)
+    :reader pkcs-one-asymmetric-key-raw-key-value)
    (attributes :allocation :virtual :cached #t
     :slot-ref (make-slot-ref
 	       (.$ one-asymmetric-key-attributes
