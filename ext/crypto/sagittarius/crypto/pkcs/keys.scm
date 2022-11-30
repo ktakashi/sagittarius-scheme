@@ -53,7 +53,12 @@
 	    pkcs-encrypted-private-key-info->pkcs-one-asymmetric-key
 
 	    ;; For (rsa pkcs :8)...
-	    one-asymmetric-key->private-key)
+	    one-asymmetric-key->private-key
+	    ;; For keystore
+	    one-asymmetric-key->pkcs-one-asymmetric-key
+	    pkcs-one-asymmetric-key->one-asymmetric-key
+	    encrypted-private-key-info->pkcs-encrypted-private-key-info
+	    pkcs-encrypted-private-key-info->encrypted-private-key-info)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius crypto asn1)

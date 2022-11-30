@@ -34,7 +34,7 @@
 (library (sagittarius crypto pkcs modules pfx)
     (export asn1-object->asn1-encodable ;; for convenience
 	    bytevector->asn1-encodable
-	    *pkcs9:fiendly-name*
+	    *pkcs9:friendly-name*
 	    *pkcs9:local-key-id*
 	    *pkcs9:cert-types*
 	    *pkcs9:crl-types*
@@ -100,10 +100,10 @@
 	    (sagittarius crypto pkcs modules cms)
 	    (sagittarius crypto pkcs modules akp))
 (define oid oid-string->der-object-identifier)
-(define *pkcs9:fiendly-name* (oid "1.2.840.113549.1.9.0.1.20"))
-(define *pkcs9:local-key-id* (oid "1.2.840.113549.1.9.0.1.21"))
-(define *pkcs9:cert-types*   (oid "1.2.840.113549.1.9.0.1.22"))
-(define *pkcs9:crl-types*    (oid "1.2.840.113549.1.9.0.1.23"))
+(define *pkcs9:friendly-name* (oid "1.2.840.113549.1.9.20"))
+(define *pkcs9:local-key-id*  (oid "1.2.840.113549.1.9.21"))
+(define *pkcs9:cert-types*    (oid "1.2.840.113549.1.9.22"))
+(define *pkcs9:crl-types*     (oid "1.2.840.113549.1.9.23"))
 
 (define *pkcs12:pbe/sha1-rc4-128*     (oid "1.2.840.113549.1.12.1.1"))
 (define *pkcs12:pbe/sha1-rc4-40*      (oid "1.2.840.113549.1.12.1.2"))
