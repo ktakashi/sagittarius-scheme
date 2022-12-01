@@ -36,8 +36,9 @@
 	    bytevector->asn1-encodable
 	    *pkcs9:friendly-name*
 	    *pkcs9:local-key-id*
-	    *pkcs9:cert-types*
-	    *pkcs9:crl-types*
+	    ;; These are not really useful to export
+	    ;; *pkcs9:cert-types*
+	    ;; *pkcs9:crl-types*
 	    *pkcs12:pbe/sha1-rc4-128*
 	    *pkcs12:pbe/sha1-rc4-40*
 	    *pkcs12:pbe/sha1-des3-cbc*
@@ -89,7 +90,17 @@
 	    secret-bag->secret-value
 
 	    safe-contents? <safe-contents>
-	    safe-contents->list)
+	    safe-contents->list
+	    
+	    *pkcs12:key-bag*
+	    *pkcs12:pkcs8-shrouded-key-bag*
+	    *pkcs12:cert-bag*
+	    *pkcs12:crl-bag*
+	    *pkcs12:secret-bag*
+	    *pkcs12:safe-content-bag*
+	    *pkcs12:x509-certificate*
+	    *pkcs12:sdsi-certificate*
+	    *pkcs12:x509-crl*)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius crypto asn1)
@@ -256,13 +267,19 @@
 		  :reader secret-bag-raw-secret-value))))
 (define (secret-bag? o) (is-a? o <secret-bag>))
 (define-method safe-bag->value ((o (equal (sid *pkcs12:secret-bag*))) v)
-  (asn1-object->asn1-encodable <secret-bag> v))
+  (if (secret-bag? v)
+      v
+      (asn1-object->asn1-encodable <secret-bag> v)))
 (define-generic secret-bag->secret-value)
 (define-method secret-bag->secret-value (o v) v)
+(define-method secret-bag->secret-value ((o (equal (sid *pkcs12:key-bag*))) v)
+  (bytevector->asn1-encodable <one-asymmetric-key>
+			      (der-octet-string->bytevector v)))
 (define-method secret-bag->secret-value
   ((o (equal (sid *pkcs12:pkcs8-shrouded-key-bag*))) v)
   (bytevector->asn1-encodable <encrypted-private-key-info>
 			      (der-octet-string->bytevector v)))
+
 (define (secret-bag-secret-value o)
   (secret-bag->secret-value (sid (secret-bag-secret-type-id o))
 			    (secret-bag-raw-secret-value o)))

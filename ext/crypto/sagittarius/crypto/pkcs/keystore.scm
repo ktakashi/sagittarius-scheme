@@ -45,12 +45,28 @@
 	    read-pkcs12-keystore
 	    bytevector->pkcs12-keystore
 
+	    pkcs12-friendly-name=?
+	    pkcs12-friendly-name-pred
+	    
 	    pkcs12-keystore-find-secret-key
 	    pkcs12-keystore-find-crl
 	    pkcs12-keystore-find-certificate
+	    pkcs12-keystore-find-encrypted-private-key
 	    pkcs12-keystore-find-private-key
+
+	    make-pkcs9-friendly-name-attribute
 	    
-	    pkcs12-friendly-name=?)
+	    pkcs12-keystore-add-secret-key!
+	    pkcs12-keystore-add-crl!
+	    pkcs12-keystore-add-certificate!
+	    pkcs12-keystore-add-encrypted-private-key!
+	    pkcs12-keystore-add-private-key!
+
+	    pkcs12-keystore-upsert-secret-key!
+	    pkcs12-keystore-upsert-crl!
+	    pkcs12-keystore-upsert-certificate!
+	    pkcs12-keystore-upsert-encrypted-private-key!
+	    pkcs12-keystore-upsert-private-key!)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius)
@@ -67,9 +83,12 @@
 	    (sagittarius crypto pkix modules x509)
 	    (sagittarius crypto pkix algorithms)
 	    (sagittarius crypto pkix attributes)
+	    (sagittarius crypto pkix certificate)
+	    (sagittarius crypto pkix revocation)
 	    (sagittarius crypto ciphers)
 	    (sagittarius crypto digests)
 	    (sagittarius crypto kdfs)
+	    (sagittarius crypto keys)
 	    (sagittarius crypto mac)
 	    (sagittarius crypto secure)
 	    (sagittarius combinators)
@@ -87,34 +106,45 @@
 ;; Each entries will contain pkcs12-safe-bag
 (define-class <pkcs12-keystore> ()
   ((private-keys  :init-form (make-deque) :reader pkcs12-keystore-private-keys)
+   (encrypted-private-keys :init-form (make-deque)
+			   :reader pkcs12-keystore-encrypted-private-keys)
    (certificates  :init-form (make-deque) :reader pkcs12-keystore-certificates)
    (crls          :init-form (make-deque) :reader pkcs12-keystore-crls)
    (secret-keys   :init-form (make-deque) :reader pkcs12-keystore-secret-keys)
    (safe-contents :init-form (make-deque) :reader pkcs12-keystore-safe-contents)
-   ;; for convenient
-   (friendly-names :init-form (make-deque)
+   ;; for convenience
+   (friendly-names :init-form (make-hashtable string-ci-hash string-ci=?)
 		   :reader pkcs12-keystore-friendly-names)
    (integrity-descriptor :init-keyword :integrity-descriptor
 		   :reader pkcs12-keystore-integrity-descriptor
 		   :writer pkcs12-keystore-integrity-descriptor-set!)))
 (define-method write-object ((k <pkcs12-keystore>) out)
-  (format out "#<pkcs12-keystore pk=~a c=~a crl=~a sk=~a>"
+  (format out "#<pkcs12-keystore pk=~a epki=~a c=~a crl=~a sk=~a>"
 	  (deque-length (pkcs12-keystore-private-keys k))
+	  (deque-length (pkcs12-keystore-encrypted-private-keys k))
 	  (deque-length (pkcs12-keystore-certificates k))
 	  (deque-length (pkcs12-keystore-crls k))
 	  (deque-length (pkcs12-keystore-secret-keys k))))
 (define (pkcs12-keystore? o) (is-a? o <pkcs12-keystore>))
-(define pkcs12-keystore-friendly-names-api
-  ($. pkcs12-keystore-friendly-names deque->list))
 
 (define (read-pkcs12-keystore exchange-key :optional (in (current-input-port)))
   (pfx->pkcs12-keystore (read-pfx in) exchange-key))
 (define (bytevector->pkcs12-keystore bv exchange-key)
   (read-pkcs12-keystore (open-bytevector-input-port bv) exchange-key))
 
-(define ((pkcs12-friendly-name=? (name string?)) bag)
+(define (pkcs12-keystore-friendly-names-api ks)
+  ;; return a immutable copy of the friendly names hashtable
+  (hashtable-copy (pkcs12-keystore-friendly-names ks)))
+
+(define (pkcs12-friendly-name=? (bag0 pkcs12-safe-bag?) (bag1 pkcs12-safe-bag?))
+  (let ((fn0 (pkcs12-safe-bag-friendly-name bag0))
+	(fn1 (pkcs12-safe-bag-friendly-name bag1)))
+    (and fn0 fn1 (string-ci=? fn0 fn1))))
+
+(define ((pkcs12-friendly-name-pred (name string?)) bag)
   (let ((fn (pkcs12-safe-bag-friendly-name bag)))
     (and fn (string-ci=? fn name))))
+
 (define-syntax pkcs12-keystore-find
   (syntax-rules ()
     ((_ acc) (lambda (pred ks) (find-in-deque pred (acc ks))))))
@@ -124,6 +154,9 @@
     ((_ get) (lambda (v) (and v (get v))))))
 (define pkcs12-keystore-find-private-key
   ($. (pkcs12-keystore-find pkcs12-keystore-private-keys)
+      (optional-get pkcs12-safe-bag-value)))
+(define pkcs12-keystore-find-encrypted-private-key
+  ($. (pkcs12-keystore-find pkcs12-keystore-encrypted-private-keys)
       (optional-get pkcs12-safe-bag-value)))
 (define pkcs12-keystore-find-certificate
   ($. (pkcs12-keystore-find pkcs12-keystore-certificates)
@@ -137,6 +170,66 @@
   ($. (pkcs12-keystore-find pkcs12-keystore-secret-keys)
       (optional-get pkcs12-safe-bag-value)
       (optional-get pkcs12-secret-bag-value)))
+
+(define (make-pkcs9-friendly-name-attribute (name string?))
+  (make <x509-attribute> :type (sid *pkcs9:friendly-name*)
+	:values (der-set (string->der-bmp-string name))))
+
+(define-syntax pkcs12-keystore-add!
+  (syntax-rules ()
+    ((_ pred ->safe-bag)
+     (lambda (ks (obj pred)
+		 :optional (attributes #f)
+			   (compare pkcs12-friendly-name=?))
+       (let ((bag (->safe-bag obj attributes)))
+	 (store-bag ks bag compare))))))
+(define (secret-key? o)
+  (or (symmetric-key? o)
+      (pkcs-one-asymmetric-key? o)
+      (pkcs-encrypted-private-key-info? o)))
+(define pkcs12-keystore-add-private-key!
+  (pkcs12-keystore-add! pkcs-one-asymmetric-key?
+			pkcs-one-asymmetric-key->pkcs12-safe-bag))
+(define pkcs12-keystore-add-encrypted-private-key!
+  (pkcs12-keystore-add! pkcs-encrypted-private-key-info?
+			pkcs-encrypted-private-key-info->pkcs12-safe-bag))
+(define pkcs12-keystore-add-certificate!
+  (pkcs12-keystore-add! x509-certificate?
+			x509-certificate->pkcs12-safe-bag))
+(define pkcs12-keystore-add-crl!
+  (pkcs12-keystore-add! x509-certificate-revocation-list?
+			x509-certificate-revocation-list->pkcs12-safe-bag))
+(define pkcs12-keystore-add-secret-key!
+  (pkcs12-keystore-add! secret-key? secret-key->pkcs12-safe-bag))
+
+(define-syntax pkcs12-keystore-upsert!
+  (syntax-rules ()
+    ((_ pred ->safe-bag)
+     (lambda (ks (obj pred)
+		 :optional (attributes #f)
+			   (compare pkcs12-friendly-name=?))
+       (let ((bag (->safe-bag obj attributes)))
+	 (store-bag ks bag compare #t))))))
+(define pkcs12-keystore-upsert-private-key!
+  (pkcs12-keystore-upsert! pkcs-one-asymmetric-key?
+			   pkcs-one-asymmetric-key->pkcs12-safe-bag))
+(define pkcs12-keystore-upsert-encrypted-private-key!
+  (pkcs12-keystore-upsert! pkcs-encrypted-private-key-info?
+			   pkcs-encrypted-private-key-info->pkcs12-safe-bag))
+(define pkcs12-keystore-upsert-certificate!
+  (pkcs12-keystore-upsert! x509-certificate?
+			   x509-certificate->pkcs12-safe-bag))
+(define pkcs12-keystore-upsert-crl!
+  (pkcs12-keystore-upsert! x509-certificate-revocation-list?
+			   x509-certificate-revocation-list->pkcs12-safe-bag))
+(define pkcs12-keystore-upsert-secret-key!
+  (pkcs12-keystore-upsert! secret-key? secret-key->pkcs12-safe-bag))
+
+(define pkcs12-keystore-remove-private-key!)
+(define pkcs12-keystore-remove-encrypted-private-key!)
+(define pkcs12-keystore-remove-certificate!)
+(define pkcs12-keystore-remove-crl!)
+(define pkcs12-keystore-remove-secret-key!)
 
 ;; internal
 (define (read-pfx in)
@@ -190,20 +283,48 @@
       (for-each (lambda (bag) (store-bag ks bag)) safe-bags)
       ks)))
 
-(define (store-bag ks bag)
+(define (store-bag ks bag :optional (compare #f) (upsert #f))
   (define value (pkcs12-safe-bag-value bag))
-  (define (acc v)
-    (cond ((pkcs-one-asymmetric-key? v) pkcs12-keystore-private-keys)
-	  ((pkcs-encrypted-private-key-info? v) pkcs12-keystore-private-keys)
-	  ((pkcs12-cert-bag? v) pkcs12-keystore-certificates)
-	  ((pkcs12-crl-bag? v) pkcs12-keystore-crls)
-	  ((pkcs12-secret-bag? v) pkcs12-keystore-secret-keys)
+  (define (acc&type v)
+    (cond ((pkcs-one-asymmetric-key? v)
+	   (values pkcs12-keystore-private-keys 'private-key))
+	  ((pkcs-encrypted-private-key-info? v)
+	   (values pkcs12-keystore-encrypted-private-keys
+		   'encrypted-private-key))
+	  ((pkcs12-cert-bag? v)
+	   (values pkcs12-keystore-certificates 'certificate))
+	  ((pkcs12-crl-bag? v)
+	   (values pkcs12-keystore-crls 'crl))
+	  ((pkcs12-secret-bag? v)
+	   (values pkcs12-keystore-secret-keys 'secret-key))
 	  ;; a bit lazy way...
-	  (else pkcs12-keystore-safe-contents)))
-  (deque-push! ((acc value) ks) bag)
-  (let ((fn (pkcs12-safe-bag-friendly-name bag)))
-    (and fn (deque-push-unique!
-	     (pkcs12-keystore-friendly-names ks) string-ci=? fn))))
+	  (else (values pkcs12-keystore-safe-contents 'safe-content))))
+  (define (add-with-check deque compare bag upsert)
+    (cond ((not compare)
+	   (deque-push! deque bag)
+	   #t)
+	  (upsert
+	   (remove-from-deque! (lambda (b) (compare b bag)) deque)
+	   (deque-push! deque bag)
+	   #t)
+	  (else
+	   (deque-push-unique! deque compare bag)
+	   (any-in-deque (lambda (v) (eq? v bag)) deque))))
+  (let-values (((acc type) (acc&type value)))
+    (let ((added? (add-with-check (acc ks) compare bag upsert)))
+      (when added?
+	(cond ((pkcs12-safe-bag-friendly-name bag) =>
+	       (lambda (fn)
+		 (hashtable-update! (pkcs12-keystore-friendly-names ks)
+				    fn
+				    (lambda (v)
+				      ;; duplicate friendly name
+				      ;; we don't check duplication
+				      ;; as RFC doesn't forbit...
+				      (cond ((memq type v) v)
+					    (else (cons type v))))
+				    '())))))
+      added?)))
 
 (define (verify-mac pfx password)
   (define (aid->md aid)
@@ -289,17 +410,19 @@
 (define friendly-name-attr? (x509-attribute-of *pkcs9:friendly-name*))
 (define local-key-id-attr? (x509-attribute-of *pkcs9:local-key-id*))
 (define (pkcs12-safe-bag-friendly-name attrs)
-  (let ((friendly-name (find friendly-name-attr? attrs)))
-    (and friendly-name
-	 (asn1-string->string 
-	  (car (asn1-collection->list
-		(x509-attribute-values friendly-name)))))))
+  (and attrs
+       (let ((friendly-name (find friendly-name-attr? attrs)))
+	 (and friendly-name
+	      (asn1-string->string 
+	       (car (asn1-collection->list
+		     (x509-attribute-values friendly-name))))))))
 (define (pkcs12-safe-bag-local-key-id attrs)
-  (let ((local-key-id (find local-key-id-attr? attrs)))
-    (and local-key-id
-	 (der-octet-string->bytevector
-	  (car (asn1-collection->list
-		(x509-attribute-values local-key-id)))))))
+  (and attrs
+       (let ((local-key-id (find local-key-id-attr? attrs)))
+	 (and local-key-id
+	      (der-octet-string->bytevector
+	       (car (asn1-collection->list
+		     (x509-attribute-values local-key-id))))))))
 
 (define-class <pkcs12-safe-bag> (<asn1-encodable-container>)
   ((id :allocation :virtual :cached #t
@@ -315,7 +438,7 @@
    (attributes :allocation :virtual :cached #t
     :slot-ref (make-slot-ref
 	       (.$ safe-bag-bag-attributes asn1-encodable-container-c)
-	       attributes->x509-attributes)
+	       (lambda (v) (and v (attributes->x509-attributes v))))
     :reader pkcs12-safe-bag-attributes)
    (friendly-name :allocation :virtual :cached #t
     :slot-ref (make-slot-ref (lambda (o) (slot-ref o 'attributes))
@@ -379,6 +502,57 @@
 (define (pkcs12-secret-bag? o) (is-a? o <pkcs12-secret-bag>))
 (define-method bag-value->pkcs12-bag-value ((v <secret-bag>))
   (make <pkcs12-secret-bag> :c v))
+(define-method secret-bag-value->value ((v <one-asymmetric-key>))
+  (one-asymmetric-key->pkcs-one-asymmetric-key v))
 (define-method secret-bag-value->value ((v <encrypted-private-key-info>))
   (encrypted-private-key-info->pkcs-encrypted-private-key-info v))
+(define-method secret-bag-value->value ((v <der-octet-string>))
+  (make-symmetric-key (der-octet-string->bytevector v)))
+
+(define (make-safe-bag id value attrs)
+  (make <safe-bag>
+    :bag-id id
+    :bag-value value
+    :bag-attributes (and attrs (x509-attributes->attributes attrs))))
+(define (pkcs-one-asymmetric-key->pkcs12-safe-bag oak attributes)
+  (make <pkcs12-safe-bag>
+    :c (make-safe-bag *pkcs12:key-bag*
+	(pkcs-one-asymmetric-key->one-asymmetric-key oak)
+	attributes)))
+(define (pkcs-encrypted-private-key-info->pkcs12-safe-bag epki attrs)
+  (make <pkcs12-safe-bag>
+    :c (make-safe-bag *pkcs12:pkcs8-shrouded-key-bag*
+	(pkcs-encrypted-private-key-info->encrypted-private-key-info epki)
+	 attrs)))
+(define (x509-certificate->pkcs12-safe-bag cert attrs)
+  (make <pkcs12-safe-bag>
+    :c (make-safe-bag *pkcs12:cert-bag*
+	 (make <cert-bag> :cert-id *pkcs12:x509-certificate*
+	       :cert-value (x509-certificate->asn1-object cert))
+	 attrs)))
+
+(define (x509-certificate-revocation-list->pkcs12-safe-bag crl attrs)
+  (make <pkcs12-safe-bag>
+    :c (make-safe-bag *pkcs12:crl-bag*
+	 (make <crl-bag> :crl-id *pkcs12:x509-crl*
+	       :crl-value (x509-certificate-revocation-list->asn1-object crl))
+	 attrs)))
+
+(define (secret-key->pkcs12-safe-bag key attrs)
+  (define (->id&values key)
+    (cond ((symmetric-key? key)
+	   (values *cms:data-content-type*
+		   (bytevector->der-octet-string (symmetric-key-value key))))
+	  ((pkcs-one-asymmetric-key? key)
+	   (values *pkcs12:key-bag*
+		   (pkcs-one-asymmetric-key->one-asymmetric-key key)))
+	  ((pkcs-encrypted-private-key-info? key)
+	   (values *pkcs12:pkcs8-shrouded-key-bag*
+		   (pkcs-encrypted-private-key-info->encrypted-private-key-info key)))
+	  (else (error 'secret-key->pkcs12-safe-bag "Shouldn't happen"))))
+  (let-values (((id value) (->id&values key)))
+    (make <pkcs12-safe-bag>
+      :c (make-safe-bag *pkcs12:secret-bag*
+	  (make <secret-bag> :secret-type-id id :secret-value value)
+	  attrs))))
 )

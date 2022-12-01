@@ -36,7 +36,8 @@
 	    x509-attribute-of
 	    attributes->x509-attributes
 	    attribute->x509-attribute
-	    x509-attribute->attribute)
+	    x509-attribute->attribute
+	    x509-attributes->attributes)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius)
@@ -71,4 +72,9 @@
 
 (define (attributes->x509-attributes (attributes attributes?))
   (map attribute->x509-attribute (attributes->list attributes)))
+
+(define ((list-of pred) l) (for-all pred l))
+(define (x509-attributes->attributes (attributes (list-of x509-attribute?)))
+  (make <attributes>
+    :elements (map x509-attribute->attribute attributes)))
 )
