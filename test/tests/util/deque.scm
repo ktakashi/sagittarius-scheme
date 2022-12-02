@@ -96,15 +96,15 @@
 
   (test-equal (format "~a remove-from-deque!" what) #f
 	      (remove-from-deque! (cut eq? <> 'f) q))
-  (test-equal (format "~a remove-from-deque!" what) #t
+  (test-equal (format "~a remove-from-deque!" what) '(e)
 	      (remove-from-deque! (cut eq? <> 'e) q))
   (test-equal (format "~a remove-from-deque!" what) #f
 	      (remove-from-deque! (cut eq? <> 'e) q))
-  (test-equal (format "~a remove-from-deque!" what) #t
+  (test-equal (format "~a remove-from-deque!" what) '(a)
 	      (remove-from-deque! (cut eq? <> 'a) q))
-  (test-equal (format "~a remove-from-deque!" what) #t
+  (test-equal (format "~a remove-from-deque!" what) '(c b)
 	      (remove-from-deque! (cut memq <> '(b c)) q))
-  (test-equal (format "~a remove-from-deque!" what) #t
+  (test-equal (format "~a remove-from-deque!" what) '(d)
 	      (remove-from-deque! (cut eq? <> 'd) q))
   (test-equal (format "~a remove-from-deque!" what) #t
 	      (deque-empty? q))

@@ -211,19 +211,27 @@
        (let ((bag (->safe-bag obj attributes)))
 	 (store-bag ks bag compare #t))))))
 (define pkcs12-keystore-upsert-private-key!
-  (pkcs12-keystore-upsert! pkcs-one-asymmetric-key?
-			   pkcs-one-asymmetric-key->pkcs12-safe-bag))
+  ($. (pkcs12-keystore-upsert! pkcs-one-asymmetric-key?
+			       pkcs-one-asymmetric-key->pkcs12-safe-bag)
+      (optional-get pkcs12-safe-bag-value)))
 (define pkcs12-keystore-upsert-encrypted-private-key!
-  (pkcs12-keystore-upsert! pkcs-encrypted-private-key-info?
-			   pkcs-encrypted-private-key-info->pkcs12-safe-bag))
+  ($. (pkcs12-keystore-upsert! pkcs-encrypted-private-key-info?
+			       pkcs-encrypted-private-key-info->pkcs12-safe-bag)
+      (optional-get pkcs12-safe-bag-value)))
 (define pkcs12-keystore-upsert-certificate!
-  (pkcs12-keystore-upsert! x509-certificate?
-			   x509-certificate->pkcs12-safe-bag))
+  ($. (pkcs12-keystore-upsert! x509-certificate?
+			       x509-certificate->pkcs12-safe-bag)
+      (optional-get pkcs12-safe-bag-value)
+      (optional-get pkcs12-cert-bag-value)))
 (define pkcs12-keystore-upsert-crl!
-  (pkcs12-keystore-upsert! x509-certificate-revocation-list?
-			   x509-certificate-revocation-list->pkcs12-safe-bag))
+  ($. (pkcs12-keystore-upsert! x509-certificate-revocation-list?
+			       x509-certificate-revocation-list->pkcs12-safe-bag)
+      (optional-get pkcs12-safe-bag-value)
+      (optional-get pkcs12-crl-bag-value)))
 (define pkcs12-keystore-upsert-secret-key!
-  (pkcs12-keystore-upsert! secret-key? secret-key->pkcs12-safe-bag))
+  ($. (pkcs12-keystore-upsert! secret-key? secret-key->pkcs12-safe-bag)
+      (optional-get pkcs12-safe-bag-value)
+      (optional-get pkcs12-secret-bag-value)))
 
 (define pkcs12-keystore-remove-private-key!)
 (define pkcs12-keystore-remove-encrypted-private-key!)
@@ -304,9 +312,10 @@
 	   (deque-push! deque bag)
 	   #t)
 	  (upsert
-	   (remove-from-deque! (lambda (b) (compare b bag)) deque)
-	   (deque-push! deque bag)
-	   #t)
+	   (let ((v (remove-from-deque! (lambda (b) (compare b bag)) deque)))
+	     (deque-push! deque bag)
+	     ;; return only the first one, don't do crazy amount of upsert :D
+	     (or (and v (car v)) #t)))
 	  (else
 	   (deque-push-unique! deque compare bag)
 	   (any-in-deque (lambda (v) (eq? v bag)) deque))))
@@ -324,7 +333,7 @@
 				      (cond ((memq type v) v)
 					    (else (cons type v))))
 				    '())))))
-      added?)))
+      (if upsert (and (not (boolean? added?)) added?) added?))))
 
 (define (verify-mac pfx password)
   (define (aid->md aid)

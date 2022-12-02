@@ -92,15 +92,15 @@
 
   (test-equal (format "~a remove-from-queue!" what) #f
 	      (remove-from-queue! (cut eq? <> 'f) q))
-  (test-equal (format "~a remove-from-queue!" what) #t
+  (test-equal (format "~a remove-from-queue!" what) '(e)
 	      (remove-from-queue! (cut eq? <> 'e) q))
   (test-equal (format "~a remove-from-queue!" what) #f
 	      (remove-from-queue! (cut eq? <> 'e) q))
-  (test-equal (format "~a remove-from-queue!" what) #t
+  (test-equal (format "~a remove-from-queue!" what) '(a)
 	      (remove-from-queue! (cut eq? <> 'a) q))
-  (test-equal (format "~a remove-from-queue!" what) #t
+  (test-equal (format "~a remove-from-queue!" what) '(c b)
 	      (remove-from-queue! (cut memq <> '(b c)) q))
-  (test-equal (format "~a remove-from-queue!" what) #t
+  (test-equal (format "~a remove-from-queue!" what) '(d)
 	      (remove-from-queue! (cut eq? <> 'd) q))
   (test-equal (format "~a remove-from-queue!" what) #t
 	      (queue-empty? q))

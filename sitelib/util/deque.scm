@@ -477,7 +477,8 @@
 			   (when mt? (notify-writers q))
 			   (%deque-set-content! q (reverse! rs)))
 			 hit)
-			((pred (kar xs)) (loop rs (kdr xs) #t))
+			((pred (kar xs))
+			 (loop rs (kdr xs) (cons (kar xs) (or hit '()))))
 			(else (loop (cons (kar xs) rs) (kdr xs) hit)))))))
 
   )
