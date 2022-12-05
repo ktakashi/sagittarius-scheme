@@ -35,17 +35,23 @@
 	    cms-encrypted-content-info-content-encryption-algorithm
 	    cms-encrypted-content-info-encrypted-content
 	    encrypted-content-info->cms-encrypted-content-info
+	    cms-encrypted-content-info->encrypted-content-info
 
 	    cms-encrypted-data? <cms-encrypted-data>
+	    make-cms-encrypted-data
 	    cms-encrypted-data-version
 	    cms-encrypted-data-encrypted-content-info
 	    cms-encrypted-data-unprotected-attrs
 	    encrypted-data->cms-encrypted-data
 
 	    cms-content-info? <cms-content-info>
+	    make-cms-data-content-info
+	    make-cms-encrypted-data-content-info
 	    cms-content-info-content-type
 	    cms-content-info-content
-	    cms-encrypted-content-info->cms-content-info)
+	    cms-encrypted-content-info->cms-content-info
+	    cms-content-info->cms-encrypted-content-info
+	    cms-content-info->content-info)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius crypto asn1)
@@ -80,6 +86,9 @@
 (define (encrypted-content-info->cms-encrypted-content-info
 	 (eci encrypted-content-info?))
   (make <cms-encrypted-content-info> :c eci))
+(define (cms-encrypted-content-info->encrypted-content-info
+	 (eci cms-encrypted-content-info?))
+  (asn1-encodable-container-c eci))
 
 (define-class <cms-encrypted-data> (<asn1-encodable-container>)
   ((version :allocation :virtual :cached #t
@@ -102,6 +111,18 @@
 (define (cms-encrypted-data? o) (is-a? o <cms-encrypted-data>))
 (define (encrypted-data->cms-encrypted-data (ed encrypted-data?))
   (make <cms-encrypted-data> :c ed))
+(define (cms-encrypted-data->encrypted-data (ed cms-encrypted-data?))
+  (asn1-encodable-container-c ed))
+
+(define (make-cms-encrypted-data (eci cms-encrypted-content-info?)
+				 :optional (attributes #f))
+  (let ((raw-eci (cms-encrypted-content-info->encrypted-content-info eci))
+	(attrs (and attributes (x509-attributes->attributes attributes))))
+    (make <cms-encrypted-data>
+      :c (make <encrypted-data>
+	   :version (integer->der-integer (if attributes 2 0))
+	   :encrypted-content-info raw-eci
+	   :unprotected-attrs attrs))))
 
 (define-generic content->cms-content)
 (define-class <cms-content-info> (<asn1-encodable-container>)
@@ -118,6 +139,20 @@
 (define (cms-content-info? o) (is-a? o <cms-content-info>))
 (define-method content->cms-content ((d <der-octet-string>))
   (der-octet-string->bytevector d))
+(define (cms-content-info->content-info (ci cms-content-info?))
+  (asn1-encodable-container-c ci))
+
+(define (make-cms-data-content-info (content bytevector?))
+  (make <cms-content-info>
+    :c (make <content-info>
+	 :content-type *cms:data-content-type*
+	 :content (bytevector->der-octet-string content))))
+(define (make-cms-encrypted-data-content-info (data cms-encrypted-data?))
+  (make <cms-content-info>
+    :c (make <content-info>
+	 :content-type *cms:encrypted-data-content-type*
+	 :content (cms-encrypted-data->encrypted-data data))))
+  
 
 (define (cms-encrypted-content-info->cms-content-info eci key . opts)
   (let ((aid (cms-encrypted-content-info-content-encryption-algorithm eci))
@@ -128,5 +163,16 @@
 	   :content-type (oid-string->der-object-identifier ct)
 	   :content (bytevector->der-octet-string
 		     (apply pkcs-decrypt-data aid key c opts))))))
+
+(define (cms-content-info->cms-encrypted-content-info ci aid key . opts)
+  (let ((ct (cms-content-info-content-type ci))
+	(c (cms-content-info-content ci))
+	(id (x509-algorithm-identifier->algorithm-identifier aid)))
+    (make <cms-encrypted-content-info>
+      :c (make <encrypted-content-info>
+	   :content-type (oid-string->der-object-identifier ct)
+	   :content-encryption-algorithm id
+	   :encrypted-content (bytevector->der-octet-string
+			       (apply pkcs-encrypt-data aid key c opts))))))
 )
 

@@ -44,6 +44,8 @@
 		     pkcs12-keystore-friendly-names))
 	    read-pkcs12-keystore
 	    bytevector->pkcs12-keystore
+	    pkcs12-keystore->bytevector
+	    write-pkcs12-keystore
 
 	    pkcs12-friendly-name=?
 	    pkcs12-friendly-name-pred
@@ -90,18 +92,32 @@
 	    (sagittarius crypto kdfs)
 	    (sagittarius crypto keys)
 	    (sagittarius crypto mac)
+	    (sagittarius crypto random)
 	    (sagittarius crypto secure)
 	    (sagittarius combinators)
 	    (srfi :1 lists)
+	    (srfi :39 parameters)
 	    (util deque))
 
+(define *pkcs12-integrity-salt-size* (make-parameter 32))
+
 (define-record-type pkcs12-integrity-descriptor)
-(define-record-type pkcs12-mac-descriptor
+(define-record-type pkcs12-password-integrity-descriptor
   (parent pkcs12-integrity-descriptor)
   (fields md iteration))
 
+(define-record-type pkcs12-privacy-descriptor)
+(define-record-type pkcs12-password-privacy-descriptor
+  (parent pkcs12-privacy-descriptor)
+  (fields aid))
+
 (define-record-type pkcs12-exchange-key
   (fields integrity-key privacy-key))
+
+(define-enumeration pkcs12-entry-type
+  (private-key encrypted-private-key certificate crl secret-key safe-content)
+  pkcs12-entry-types)
+(define *all-entry-types* (enum-set-universe (pkcs12-entry-types)))
 
 ;; Each entries will contain pkcs12-safe-bag
 (define-class <pkcs12-keystore> ()
@@ -117,7 +133,16 @@
 		   :reader pkcs12-keystore-friendly-names)
    (integrity-descriptor :init-keyword :integrity-descriptor
 		   :reader pkcs12-keystore-integrity-descriptor
-		   :writer pkcs12-keystore-integrity-descriptor-set!)))
+		   :writer pkcs12-keystore-integrity-descriptor-set!)
+   (privacy-descriptor :init-keyword :privacy-descriptor
+		   :reader pkcs12-keystore-privacy-descriptor
+		   :writer pkcs12-keystore-privacy-descriptor-set!)
+   (privacy-entries :init-value *all-entry-types*
+		    :reader pkcs12-keystore-privacy-entries
+		    :writer pkcs12-keystore-privacy-entries-set!)
+   (prng :init-form (secure-random-generator *prng:chacha20*)
+	 :init-keyword :pring
+	 :reader pkcs12-keystore-prng)))
 (define-method write-object ((k <pkcs12-keystore>) out)
   (format out "#<pkcs12-keystore pk=~a epki=~a c=~a crl=~a sk=~a>"
 	  (deque-length (pkcs12-keystore-private-keys k))
@@ -127,10 +152,27 @@
 	  (deque-length (pkcs12-keystore-secret-keys k))))
 (define (pkcs12-keystore? o) (is-a? o <pkcs12-keystore>))
 
+(define (pkcs12-entry-type->entry-container type)
+  (cond ((eq? type 'private-key) pkcs12-keystore-private-keys)
+	((eq? type 'encrypted-private-key)
+	 pkcs12-keystore-encrypted-private-keys)
+	((eq? type 'certificate) pkcs12-keystore-certificates)
+	((eq? type 'crl) pkcs12-keystore-crls)
+	((eq? type 'secret-key) pkcs12-keystore-secret-keys)
+	;; a bit lazy way...
+	(else pkcs12-keystore-safe-contents)))
+
 (define (read-pkcs12-keystore exchange-key :optional (in (current-input-port)))
   (pfx->pkcs12-keystore (read-pfx in) exchange-key))
 (define (bytevector->pkcs12-keystore bv exchange-key)
-  (read-pkcs12-keystore (open-bytevector-input-port bv) exchange-key))
+  (read-pkcs12-keystore exchange-key (open-bytevector-input-port bv)))
+
+(define (pkcs12-keystore->bytevector ks exchange-key)
+  (asn1-encodable->bytevector (pkcs12-keystore->pfx ks exchange-key)))
+
+(define (write-pkcs12-keystore ks exchange-key
+			       :optional (out (current-output-port)))
+  (put-bytevector out (pkcs12-keystore->bytevector ks exchange-key)))
 
 (define (pkcs12-keystore-friendly-names-api ks)
   ;; return a immutable copy of the friendly names hashtable
@@ -239,7 +281,8 @@
 (define pkcs12-keystore-remove-crl!)
 (define pkcs12-keystore-remove-secret-key!)
 
-;; internal
+;;;; internal
+;;; Read
 (define (read-pfx in)
   (asn1-object->asn1-encodable <pfx> (read-asn1-object in)))
 ;; NOTE: not sure if we should support public key privacy mode as this
@@ -260,34 +303,48 @@
   (define auth-safe (pfx-auth-safe pfx))
   (define content-type (content-info-content-type auth-safe))
   (define (content-info->safe-bag ci)
-    (define c (content-info-content ci))
-    (cond ((der-octet-string? c)
-	   (asn1-object->asn1-encodable <safe-contents>
-	    (bytevector->asn1-object (der-octet-string->bytevector c))))
-	  ((encrypted-data? c)
-	   (content-info->safe-bag
-	    (asn1-encodable-container-c
-	     (cms-encrypted-content-info->cms-content-info
-	      (cms-encrypted-data-encrypted-content-info
-	       (encrypted-data->cms-encrypted-data c))
-	      (pkcs12-exchange-key-privacy-key exchange-key)))))
+    (define (rec ci pd)
+      (define c (content-info-content ci))
+      (cond ((der-octet-string? c)
+	     (values
+	      (asn1-object->asn1-encodable <safe-contents>
+	       (bytevector->asn1-object (der-octet-string->bytevector c)))
+	      pd))
+	    ((encrypted-data? c)
+	     (let ((eci (cms-encrypted-data-encrypted-content-info
+			 (encrypted-data->cms-encrypted-data c))))
+	       (rec
+		(asn1-encodable-container-c
+		 (cms-encrypted-content-info->cms-content-info eci
+		  (pkcs12-exchange-key-privacy-key exchange-key)))
+		(make-pkcs12-password-privacy-descriptor
+		 (cms-encrypted-content-info-content-encryption-algorithm eci)))))
 	  ;; enveloped data for public key encrypted
 	  (else (error 'pfx->pkcs12-keystore "Unknown contentInfo" ci))))
-  (let-values (((content mac-descriptor)
-		(cond ((equal? content-type *cms:data-content-type*)
-		       (verify-mac pfx
-			(pkcs12-exchange-key-integrity-key exchange-key)))
-		      ((equal? content-type *cms:signed-data-content-type*)
-		       (error 'pfx->pkcs12-keystore "Not supported yet" pfx))
-		      (else
-		       (error 'pfx->pkcs12-keystore
-			      "Unknown content type" pfx)))))
-    (let ((safe-bags
-	   (map safe-bag->pkcs12-safe-bag
-		(append-map safe-contents->list
-			    (map content-info->safe-bag
-				 (authenticated-safe->list content)))))
-	  (ks (make <pkcs12-keystore> :integrity-descriptor mac-descriptor)))
+    (rec ci #f))
+  (define (content-infos->safe-bags ci*)
+    (let loop ((r '()) (ci* ci*) (privacy-desc #f))
+      (if (null? ci*)
+	  (values (reverse! r) privacy-desc)
+	  (let-values (((sb pd) (content-info->safe-bag (car ci*))))
+	    (loop (cons sb r) (cdr ci*) (or privacy-desc pd))))))
+    
+  (let*-values (((content mac-descriptor)
+		 (cond ((equal? content-type *cms:data-content-type*)
+			(verify-mac pfx
+			 (pkcs12-exchange-key-integrity-key exchange-key)))
+		       ((equal? content-type *cms:signed-data-content-type*)
+			(error 'pfx->pkcs12-keystore "Not supported yet" pfx))
+		       (else
+			(error 'pfx->pkcs12-keystore
+			       "Unknown content type" pfx))))
+		((safe-bags privacy-descriptor)
+		 (content-infos->safe-bags (authenticated-safe->list content))))
+    (let ((safe-bags (map safe-bag->pkcs12-safe-bag
+			  (append-map safe-contents->list safe-bags)))
+	  (ks (make <pkcs12-keystore> :integrity-descriptor mac-descriptor
+		    ;; TODO default privacy descriptor
+		    :privacy-descriptor privacy-descriptor)))
       (for-each (lambda (bag) (store-bag ks bag)) safe-bags)
       ks)))
 
@@ -355,7 +412,80 @@
        "Mac is invalid - wrong integrity password or corrupted data"))
     (values (asn1-object->asn1-encodable <authenticated-safe>
 					 (bytevector->asn1-object data))
-	    (make-pkcs12-mac-descriptor md c))))
+	    (make-pkcs12-password-integrity-descriptor md c))))
+
+;;; Write
+(define (pkcs12-keystore->pfx ks
+			      (exchange-key (or string? pkcs12-exchange-key?)))
+  (if (string? exchange-key)
+      (let ((key (make-pkcs12-exchange-key exchange-key exchange-key)))
+	(pkcs12-keystore->pfx ks key))
+      (unload-pkcs12-keystore ks exchange-key)))
+
+(define (unload-pkcs12-keystore (ks pkcs12-keystore?) exchange-key)
+  (define privacy-entry-types (pkcs12-keystore-privacy-entries ks))
+  (define no-privacy-entry-types (enum-set-complement privacy-entry-types))
+  (define privacy-desc (pkcs12-keystore-privacy-descriptor ks))
+  (define integrity-desc (pkcs12-keystore-integrity-descriptor ks))
+  (define privacy-key (pkcs12-exchange-key-privacy-key exchange-key))
+  (define integrity-key (pkcs12-exchange-key-integrity-key exchange-key))
+  (define prng (pkcs12-keystore-prng ks))
+  (define (safe-bags->encrypted-data sb*)
+    (and (not (null? sb*))
+	 (if (pkcs12-password-privacy-descriptor? privacy-desc)
+	     (make-cms-encrypted-data-content-info
+	      (make-cms-encrypted-data
+	       (cms-content-info->cms-encrypted-content-info
+		(make-cms-data-content-info
+		 (asn1-encodable->bytevector
+		  (make <safe-contents>
+		    :elements (map pkcs12-safe-bag->safe-bag sb*))))
+		(pkcs12-password-privacy-descriptor-aid privacy-desc)
+		privacy-key)))
+	     (error 'unload-pkcs12-keystore "Not yet"))))
+  (define (safe-bags->content-info sb*)
+    (and (not (null? sb*))
+	 (make-cms-data-content-info
+	  (asn1-encodable->bytevector
+	   (make <safe-contents>
+	     :elements (map pkcs12-safe-bag->safe-bag sb*))))))
+  (let* ((privacy-entries
+	  (safe-bags->encrypted-data
+	   (append-map (lambda (get) (deque->list (get ks)))
+		       (map pkcs12-entry-type->entry-container
+			    (enum-set->list privacy-entry-types)))))
+	 (no-privacy-entries
+	  (safe-bags->content-info
+	   (append-map (lambda (get) (deque->list (get ks)))
+		       (map pkcs12-entry-type->entry-container
+			    (enum-set->list no-privacy-entry-types)))))
+	 (auth-safe (make <authenticated-safe>
+		      :elements (map cms-content-info->content-info
+				     (filter values (list no-privacy-entries
+							  privacy-entries))))))
+    (if (pkcs12-password-integrity-descriptor? integrity-desc)
+	(let* ((data (asn1-encodable->bytevector auth-safe))
+	       (ci (make-cms-data-content-info data))
+	       (md (pkcs12-password-integrity-descriptor-md integrity-desc))
+	       (c  (pkcs12-password-integrity-descriptor-iteration
+		    integrity-desc))
+	       (salt (random-generator-read-random-bytes
+		      prng (*pkcs12-integrity-salt-size*)))
+	       (digest (compute-mac md data integrity-key salt c))
+	       (oid (digest-descriptor-oid md))
+	       (da (make <algorithm-identifier>
+		     :algorithm (oid-string->der-object-identifier oid))))
+	  (make <pfx>
+	    :version (integer->der-integer 3)
+	    :auth-safe (cms-content-info->content-info ci)
+	    :mac-data (make <mac-data>
+			:mac (make <digest-info>
+			       :digest-algorithm da
+			       :digest (bytevector->der-octet-string digest))
+			:mac-salt (bytevector->der-octet-string salt)
+			:iterations (integer->der-integer c))))
+	;; SignedData
+	(error 'unload-pkcs12-keystore "Not yet"))))
 
 (define (compute-mac md data password salt c)
   (let* ((mac-key (derive-mac-key md password salt c))
@@ -460,6 +590,10 @@
 (define (pkcs12-safe-bag? o) (is-a? o <pkcs12-safe-bag>))
 (define (safe-bag->pkcs12-safe-bag bag)
   (make <pkcs12-safe-bag> :c bag))
+(define (safe-bag->bytevector bag)
+  (asn1-encodable->bytevector (pkcs12-safe-bag->safe-bag bag)))
+(define (pkcs12-safe-bag->safe-bag bag)
+  (asn1-encodable-container-c bag))
 
 (define-method bag-value->pkcs12-bag-value ((v <one-asymmetric-key>))
   (one-asymmetric-key->pkcs-one-asymmetric-key v))
