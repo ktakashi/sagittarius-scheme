@@ -284,7 +284,9 @@
      (der-object-identifier->oid-string *pbes:pbkdf2*)
      (make <pkcs-pbkdf2-params>
        :c (make <pbkdf2-params>
-	    :salt (make <pbkdf2-salt-choice> :value s)
+	    :salt (make <pbkdf2-salt-choice>
+		    :type 'specified
+		    :value s)
 	    :iteration-count (integer->der-integer count)
 	    :key-length (and key-length (integer->der-integer key-length))
 	    :prf (and prf (make <algorithm-identifier> :algorithm prf)))))))

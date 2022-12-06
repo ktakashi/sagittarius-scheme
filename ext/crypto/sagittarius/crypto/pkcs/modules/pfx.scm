@@ -201,12 +201,16 @@
 
 ;; KeyBag ::= PrivateKeyInfo
 (define-method safe-bag->value ((o (equal (sid *pkcs12:key-bag*))) v)
-  (asn1-object->asn1-encodable <one-asymmetric-key> v))
+  (if (one-asymmetric-key? v)
+      v
+      (asn1-object->asn1-encodable <one-asymmetric-key> v)))
 
 ;; PKCS8ShroudedKeyBag ::= EncryptedPrivateKeyInfo
 (define-method safe-bag->value
   ((o (equal (sid *pkcs12:pkcs8-shrouded-key-bag*))) v)
-  (asn1-object->asn1-encodable <encrypted-private-key-info> v))
+  (if (encrypted-private-key-info? v)
+      v
+      (asn1-object->asn1-encodable <encrypted-private-key-info> v)))
 
 ;; -- CertBag
 ;; CertBag ::= SEQUENCE {

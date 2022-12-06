@@ -57,6 +57,7 @@
 	    pkcs12-keystore-find-private-key
 
 	    make-pkcs9-friendly-name-attribute
+	    make-pkcs9-local-key-id-attribute
 	    
 	    pkcs12-keystore-add-secret-key!
 	    pkcs12-keystore-add-crl!
@@ -216,6 +217,10 @@
 (define (make-pkcs9-friendly-name-attribute (name string?))
   (make <x509-attribute> :type (sid *pkcs9:friendly-name*)
 	:values (der-set (string->der-bmp-string name))))
+
+(define (make-pkcs9-local-key-id-attribute (id bytevector?))
+  (make <x509-attribute> :type (sid *pkcs9:local-key-id*)
+	:values (der-set (bytevector->der-octet-string id))))
 
 (define-syntax pkcs12-keystore-add!
   (syntax-rules ()
