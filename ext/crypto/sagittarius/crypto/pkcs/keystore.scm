@@ -31,17 +31,25 @@
 #!nounbound
 (library (sagittarius crypto pkcs keystore)
     (export pkcs12-keystore? <pkcs12-keystore>
-	    ;; These accessors shouldn't be used directly but exporting them
-	    ;; for future extensionn maybe...
-	    pkcs12-keystore-private-keys
-	    pkcs12-keystore-certificates
-	    pkcs12-keystore-crls
-	    pkcs12-keystore-secret-keys
-	    pkcs12-keystore-safe-contents
+	    (rename (pkcs12-keystore-private-keys-api
+		     pkcs12-keystore-private-keys)
+		    (pkcs12-keystore-encrypted-private-keys-api
+		     pkcs12-keystore-encrypted-private-keys)
+		    (pkcs12-keystore-certificates-api
+		     pkcs12-keystore-certificates)
+		    (pkcs12-keystore-crls-api
+		     pkcs12-keystore-crls)
+		    (pkcs12-keystore-secret-keys-api
+		     pkcs12-keystore-secret-keys)
+		    (pkcs12-keystore-safe-contents-api
+		     pkcs12-keystore-safe-contents)
+		    (pkcs12-keystore-friendly-names-api
+		     pkcs12-keystore-friendly-names))
 	    pkcs12-keystore-integrity-descriptor
 	    pkcs12-keystore-integrity-descriptor-set!
-	    (rename (pkcs12-keystore-friendly-names-api
-		     pkcs12-keystore-friendly-names))
+	    pkcs12-keystore-privacy-descriptor
+	    pkcs12-keystore-privacy-descriptor-set!
+	    
 	    read-pkcs12-keystore
 	    bytevector->pkcs12-keystore
 	    pkcs12-keystore->bytevector
@@ -175,6 +183,24 @@
 			       :optional (out (current-output-port)))
   (put-bytevector out (pkcs12-keystore->bytevector ks exchange-key)))
 
+(define-syntax make-deque->list
+  (syntax-rules ()
+    ((_ acc get)
+     (lambda ((ks pkcs12-keystore?))
+       (map ($. pkcs12-safe-bag-value get) (deque->list (acc ks)))))))
+	       
+(define pkcs12-keystore-private-keys-api
+  (make-deque->list pkcs12-keystore-private-keys values))
+(define pkcs12-keystore-encrypted-private-keys-api
+  (make-deque->list pkcs12-keystore-encrypted-private-keys values))
+(define pkcs12-keystore-certificates-api
+  (make-deque->list pkcs12-keystore-certificates pkcs12-cert-bag-value))
+(define pkcs12-keystore-crls-api
+  (make-deque->list pkcs12-keystore-crls pkcs12-crl-bag-value))
+(define pkcs12-keystore-secret-keys-api
+  (make-deque->list pkcs12-keystore-secret-keys pkcs12-secret-bag-value))
+(define pkcs12-keystore-safe-contents-api
+  (make-deque->list pkcs12-keystore-safe-contents values))
 (define (pkcs12-keystore-friendly-names-api ks)
   ;; return a immutable copy of the friendly names hashtable
   (hashtable-copy (pkcs12-keystore-friendly-names ks)))
@@ -675,15 +701,17 @@
 (define (x509-certificate->pkcs12-safe-bag cert attrs)
   (make <pkcs12-safe-bag>
     :c (make-safe-bag *pkcs12:cert-bag*
-	 (make <cert-bag> :cert-id *pkcs12:x509-certificate*
-	       :cert-value (x509-certificate->asn1-object cert))
+	 (make <cert-bag> 
+	   :cert-id *pkcs12:x509-certificate*
+	   :cert-value (bytevector->der-octet-string (x509-certificate->bytevector cert)))
 	 attrs)))
 
 (define (x509-certificate-revocation-list->pkcs12-safe-bag crl attrs)
   (make <pkcs12-safe-bag>
     :c (make-safe-bag *pkcs12:crl-bag*
-	 (make <crl-bag> :crl-id *pkcs12:x509-crl*
-	       :crl-value (x509-certificate-revocation-list->asn1-object crl))
+	 (make <crl-bag> 
+	   :crl-id *pkcs12:x509-crl*
+	   :crl-value (bytevector->der-octet-string (x509-certificate-revocation-list->bytevector crl)))
 	 attrs)))
 
 (define (secret-key->pkcs12-safe-bag key attrs)

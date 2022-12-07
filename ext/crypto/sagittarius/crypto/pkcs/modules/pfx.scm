@@ -227,7 +227,9 @@
 		:reader cert-bag-raw-cert-value))))
 (define (cert-bag? o) (is-a? o <cert-bag>))
 (define-method safe-bag->value ((o (equal (sid *pkcs12:cert-bag*))) v)
-  (asn1-object->asn1-encodable <cert-bag> v))
+  (if (cert-bag? v)
+      v
+      (asn1-object->asn1-encodable <cert-bag> v)))
 (define-generic cert-bag->cert)
 (define-method cert-bag->cert (o v) v) ;; default for SDSI cert as well...
 (define-method cert-bag->cert ((o (equal (sid *pkcs12:x509-certificate*))) v)
@@ -249,13 +251,17 @@
 	       :reader crl-bag-raw-crl-value))))
 (define (crl-bag? o) (is-a? o <crl-bag>))
 (define-method safe-bag->value ((o (equal (sid *pkcs12:crl-bag*))) v)
-  (asn1-object->asn1-encodable <crl-bag> v))
+  (if (crl-bag? v)
+      v
+      (asn1-object->asn1-encodable <crl-bag> v)))
 (define-generic crl-bag->crl)
 (define-method crl-bag->crl (o v) v)
+(define-method crl-bag->crl ((o (equal (sid *pkcs12:x509-crl*))) v)
+  (bytevector->x509-certificate-revocation-list
+   (der-octet-string->bytevector v)))
+
 (define (crl-bag-crl-value o)
   (crl-bag->crl (sid (crl-bag-crl-id o)) (crl-bag-raw-crl-value o)))
-(define-method crl-bag->crl ((o (equal (sid *pkcs12:crl-bag*))) v)
-  (asn1-object->x509-certificate-revocation-list v))
 
 ;; -- Secret Bag
 ;; SecretBag ::= SEQUENCE {
