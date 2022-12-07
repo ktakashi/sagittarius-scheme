@@ -328,5 +328,9 @@
 		(let1 r (list (deque-shift/wait! qq) (deque-shift/wait! qq))
 		  (cons* r0 r1 r)))))
 
+(test-equal "filter-in-deque" '()
+	    (filter-in-deque symbol? (list->deque '(1 2 3 4 5))))
+(test-equal "filter-in-deque" '(2 4)
+	    (filter-in-deque even? (list->deque '(1 2 3 4 5))))
 
 (test-end)

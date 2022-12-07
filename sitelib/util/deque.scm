@@ -43,6 +43,7 @@
 	    deque->list list->deque
 	    find-in-deque remove-from-deque!
 	    any-in-deque every-in-deque
+	    filter-in-deque
 
 	    (rename (any-in-deque exist-in-deque)
 		    (every-in-deque for-all-in-deque))
@@ -480,5 +481,13 @@
 			((pred (kar xs))
 			 (loop rs (kdr xs) (cons (kar xs) (or hit '()))))
 			(else (loop (cons (kar xs) rs) (kdr xs) hit)))))))
+
+  (define (filter-in-deque pred q)
+    (deque-op 'filter-in-deque q
+	      (lambda (_)
+		(let loop ((xs (~ q 'head)) (r '()))
+		  (cond ((null-node? xs) (reverse! r))
+			((pred (kar xs)) (loop (kdr xs) (cons (kar xs) r)))
+			(else (loop (kdr xs) r)))))))
 
   )

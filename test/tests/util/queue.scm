@@ -302,4 +302,10 @@
 		(let1 r (list (dequeue/wait! qq) (dequeue/wait! qq))
 		  (cons* r0 r1 r)))))
 
+(test-equal "filter-in-queue" '()
+	    (filter-in-queue symbol? (list->queue '(1 2 3 4 5))))
+(test-equal "filter-in-queue" '(2 4)
+	    (filter-in-queue even? (list->queue '(1 2 3 4 5))))
+
+
 (test-end)

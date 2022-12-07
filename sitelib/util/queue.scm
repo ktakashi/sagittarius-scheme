@@ -42,7 +42,8 @@
 	    queue->list list->queue
 	    find-in-queue remove-from-queue!
 	    any-in-queue every-in-queue
-
+	    filter-in-queue
+	    
 	    ;; MT queue
 	    enqueue/wait! queue-push/wait!
 	    dequeue/wait! queue-pop/wait!)
@@ -121,5 +122,5 @@
   (define queue-pop/wait! dequeue/wait!)  
 
   (define (remove-from-queue! pred q) (remove-from-deque! pred (~ q 'deque)))
-
+  (define (filter-in-queue pred q) (filter-in-deque pred (~ q 'deque)))
   )
