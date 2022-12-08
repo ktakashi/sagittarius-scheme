@@ -64,6 +64,12 @@
 	    pkcs12-keystore-find-encrypted-private-key
 	    pkcs12-keystore-find-private-key
 
+	    pkcs12-keystore-filter-secret-key
+	    pkcs12-keystore-filter-crl
+	    pkcs12-keystore-filter-certificate
+	    pkcs12-keystore-filter-encrypted-private-key
+	    pkcs12-keystore-filter-private-key
+
 	    make-pkcs9-friendly-name-attribute
 	    make-pkcs9-local-key-id-attribute
 	    
@@ -77,7 +83,13 @@
 	    pkcs12-keystore-upsert-crl!
 	    pkcs12-keystore-upsert-certificate!
 	    pkcs12-keystore-upsert-encrypted-private-key!
-	    pkcs12-keystore-upsert-private-key!)
+	    pkcs12-keystore-upsert-private-key!
+
+	    pkcs12-keystore-remove-secret-key!
+	    pkcs12-keystore-remove-crl!
+	    pkcs12-keystore-remove-certificate!
+	    pkcs12-keystore-remove-encrypted-private-key!
+	    pkcs12-keystore-remove-private-key!)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius)
@@ -216,7 +228,8 @@
 
 (define-syntax pkcs12-keystore-find
   (syntax-rules ()
-    ((_ acc) (lambda (pred ks) (find-in-deque pred (acc ks))))))
+    ((_ acc)
+     (lambda (pred (ks pkcs12-keystore?)) (find-in-deque pred (acc ks))))))
 
 (define-syntax optional-get
   (syntax-rules ()
@@ -239,6 +252,23 @@
   ($. (pkcs12-keystore-find pkcs12-keystore-secret-keys)
       (optional-get pkcs12-safe-bag-value)
       (optional-get pkcs12-secret-bag-value)))
+
+(define-syntax pkcs12-keystore-filter
+  (syntax-rules ()
+    ((_ acc get)
+     (lambda (pred (ks pkcs12-keystore?))
+       (map ($. pkcs12-safe-bag-value get)
+	    (filter-in-deque pred (acc ks)))))))
+(define pkcs12-keystore-filter-private-key
+  (pkcs12-keystore-filter pkcs12-keystore-private-keys values))
+(define pkcs12-keystore-filter-encrypted-private-key
+  (pkcs12-keystore-filter pkcs12-keystore-encrypted-private-keys values))
+(define pkcs12-keystore-filter-certificate
+  (pkcs12-keystore-filter pkcs12-keystore-certificates pkcs12-cert-bag-value))
+(define pkcs12-keystore-filter-crl
+  (pkcs12-keystore-filter pkcs12-keystore-crls pkcs12-crl-bag-value))
+(define pkcs12-keystore-filter-secret-key
+  (pkcs12-keystore-filter pkcs12-keystore-secret-keys pkcs12-secret-bag-value))
 
 (define (make-pkcs9-friendly-name-attribute (name string?))
   (make <x509-attribute> :type (sid *pkcs9:friendly-name*)
@@ -306,11 +336,44 @@
       (optional-get pkcs12-safe-bag-value)
       (optional-get pkcs12-secret-bag-value)))
 
-(define pkcs12-keystore-remove-private-key!)
-(define pkcs12-keystore-remove-encrypted-private-key!)
-(define pkcs12-keystore-remove-certificate!)
-(define pkcs12-keystore-remove-crl!)
-(define pkcs12-keystore-remove-secret-key!)
+(define-syntax pkcs12-keystore-remove!
+  (syntax-rules ()
+    ((_ type get)
+     (let ((acc (pkcs12-entry-type->entry-container 'type)))
+       (lambda (pred (ks pkcs12-keystore?))
+	 (define names (pkcs12-keystore-friendly-names ks))
+	 (define q (acc ks))
+	 (define (update-friendly-names! bags)
+	   (let* ((fn* (delete-duplicates!
+			(map pkcs12-safe-bag-friendly-name bags)
+			string-ci=?))
+		  (in-queue (delete-duplicates!
+			     (map pkcs12-safe-bag-friendly-name
+				  (deque->list q))
+			     string-ci=?))
+		  (diff (lset-difference string-ci=? fn* in-queue)))
+	     (unless (null? diff)
+	       (for-each (lambda (fn)
+			   (hashtable-update! names fn
+					      (lambda (v) (remq 'type v)) '())
+			   (when (null? (hashtable-ref names fn #f))
+			     (hashtable-delete! names fn)))
+			 diff))
+	     
+	     (map ($. pkcs12-safe-bag-value get) bags)))
+	 (let ((bags (remove-from-deque! pred q)))
+	   (and bags (update-friendly-names! bags))))))))
+		 
+(define pkcs12-keystore-remove-private-key!
+  (pkcs12-keystore-remove! private-key values))
+(define pkcs12-keystore-remove-encrypted-private-key!
+  (pkcs12-keystore-remove! encrypted-private-key values))
+(define pkcs12-keystore-remove-certificate!
+  (pkcs12-keystore-remove! certificate pkcs12-cert-bag-value))
+(define pkcs12-keystore-remove-crl!
+  (pkcs12-keystore-remove! crl pkcs12-crl-bag-value))
+(define pkcs12-keystore-remove-secret-key!
+  (pkcs12-keystore-remove! secret-key pkcs12-secret-bag-value))
 
 ;;;; internal
 ;;; Read
