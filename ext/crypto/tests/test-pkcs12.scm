@@ -201,5 +201,4 @@
 (test-keystore :privacy-descriptor *pkcs12-privacy-descriptor:pbe/sha1-rc2-128-cbc*)
 (test-keystore :privacy-descriptor *pkcs12-privacy-descriptor:pbe/sha1-rc2-40-cbc*)
 
-
 (test-end)

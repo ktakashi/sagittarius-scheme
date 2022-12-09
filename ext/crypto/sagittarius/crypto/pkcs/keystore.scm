@@ -50,6 +50,9 @@
 	    pkcs12-keystore-integrity-descriptor-set!
 	    pkcs12-keystore-privacy-descriptor
 	    pkcs12-keystore-privacy-descriptor-set!
+	    pkcs12-keystore-privacy-entries
+	    pkcs12-keystore-privacy-entries-set!
+	    pkcs12-keystore-prng
 	    
 	    read-pkcs12-keystore
 	    bytevector->pkcs12-keystore
@@ -253,7 +256,7 @@
     :init-value *pkcs12-privacy-descriptor:pbes2/aes-256-hmac-sha256*
     :reader pkcs12-keystore-privacy-descriptor
     :writer pkcs12-keystore-privacy-descriptor-set!)
-   (privacy-entries :init-keywor :privacy-entries
+   (privacy-entries :init-keyword :privacy-entries
     :init-value *all-entry-types*
     :reader pkcs12-keystore-privacy-entries
     :writer pkcs12-keystore-privacy-entries-set!)
