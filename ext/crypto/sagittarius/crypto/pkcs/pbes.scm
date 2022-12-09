@@ -31,14 +31,17 @@
 #!nounbound
 (library (sagittarius crypto pkcs pbes)
     (export pkcs-pbe-parameter? <pkcs-pbe-parameter>
+	    make-pkcs-pbe-parameter
 	    pkcs-pbe-parameter-salt
 	    pkcs-pbe-parameter-iteration-count
 
 	    pkcs-pbes2-params? <pkcs-pbes2-params>
+	    make-pkcs-pbes2-params
 	    pkcs-pbes2-params-key-derivation-func
 	    pkcs-pbes2-params-encryption-scheme
 
 	    pkcs-pbkdf2-param? <pkcs-pbkdf2-params>
+	    make-pkcs-pbkdf2-params
 	    pkcs-pbkdf2-params-salt
 	    pkcs-pbkdf2-params-iteration-count
 	    pkcs-pbkdf2-params-key-length
@@ -113,6 +116,12 @@
 	       der-integer->integer)
     :reader pkcs-pbe-parameter-iteration-count)))
 (define (pkcs-pbe-parameter? o) (is-a? o <pkcs-pbe-parameter>))
+(define (make-pkcs-pbe-parameter (salt bytevector?) (iteration integer?))
+  (make <pkcs-pbe-parameter>
+    :c (make <pbe-parameter>
+	 :salt (bytevector->der-octet-string salt)
+	 :iteration-count (integer->der-integer iteration))))
+
 (define sid der-object-identifier->oid-string)
 
 (define-method oid->x509-algorithm-parameters-types
@@ -259,38 +268,48 @@
 (define (make-pbe-x509-algorithm-identifier oid salt count)
   (make-x509-algorithm-identifier
    (der-object-identifier->oid-string oid)
-   (make <pkcs-pbe-parameter>
-     :c (make <pbe-parameter>
-	  :salt (bytevector->der-octet-string salt)
-	  :iteration-count (integer->der-integer count)))))
+   (make-pkcs-pbe-parameter salt count)))
 
-(define (make-pbes2-x509-algorithm-identifier
+(define (make-pbes2-x509-algorithm-identifier kdf encryption-scheme)
+  (make-x509-algorithm-identifier
+   (der-object-identifier->oid-string *pbes:pbes2*)
+   (make-pkcs-pbes2-params kdf encryption-scheme)))
+
+(define (make-pbkdf2-x509-algorithm-identifier salt count . opts)
+  (make-x509-algorithm-identifier
+   (der-object-identifier->oid-string *pbes:pbkdf2*)
+   (apply make-pkcs-pbkdf2-params salt count opts)))
+
+(define (make-pkcs-pbes2-params
 	 (kdf x509-algorithm-identifier?)
-	 (encryption-scheme x509-algorithm-identifier?))
+	 (enc x509-algorithm-identifier?))
   (let ((kdf-aid (x509-algorithm-identifier->algorithm-identifier kdf))
-	(enc-aid (x509-algorithm-identifier->algorithm-identifier
-		  encryption-scheme)))
-    (make-x509-algorithm-identifier
-     (der-object-identifier->oid-string *pbes:pbes2*)
-     (make <pkcs-pbes2-params>
-       :c (make <pbes2-params>
-	    :key-derivation-func kdf-aid
-	    :encryption-scheme enc-aid)))))
+	(enc-aid (x509-algorithm-identifier->algorithm-identifier enc)))
+    (make <pkcs-pbes2-params>
+      :c (make <pbes2-params>
+	   :key-derivation-func kdf-aid
+	   :encryption-scheme enc-aid))))
 
-(define (make-pbkdf2-x509-algorithm-identifier salt count
-	 :key (prf #f) (key-length #f))
-  (let ((s (bytevector->der-octet-string salt)))
-    (make-x509-algorithm-identifier
-     (der-object-identifier->oid-string *pbes:pbkdf2*)
-     (make <pkcs-pbkdf2-params>
-       :c (make <pbkdf2-params>
-	    :salt (make <pbkdf2-salt-choice>
-		    :type 'specified
-		    :value s)
-	    :iteration-count (integer->der-integer count)
-	    :key-length (and key-length (integer->der-integer key-length))
-	    :prf (and prf (make <algorithm-identifier> :algorithm prf)))))))
-
+(define (make-pkcs-pbkdf2-params (salt bytevector?) (count integer?)
+				 :key (prf #f) (key-length #f))
+  (define (->aid prf)
+    (cond ((not prf) prf)
+	  ((x509-algorithm-identifier? prf)
+	   (x509-algorithm-identifier->algorithm-identifier prf))
+	  ((der-object-identifier? prf)
+	   (make <algorithm-identifier> :algorithm prf))
+	  ((and (string? prf) (object-identifier-string? prf))
+	   (->aid (oid-string->der-object-identifier prf)))
+	  (else (assertion-violation 'make-pkcs-pbkdf2-params "Unknown PRF"))))
+  (make <pkcs-pbkdf2-params>
+    :c (make <pbkdf2-params>
+	 :salt (make <pbkdf2-salt-choice>
+		 :type 'specified
+		 :value (bytevector->der-octet-string salt))
+	 :iteration-count (integer->der-integer count)
+	 :key-length (and key-length (integer->der-integer key-length))
+	 :prf (->aid prf))))
+  
 (define (make-aes128-encryption-x509-algorithm-identifier iv)
   (make-iv-x509-algorithm-identifier *pbes:aes128-cbc-pad* iv))
 (define (make-aes192-encryption-x509-algorithm-identifier iv)
@@ -357,7 +376,7 @@
   (pbe-parameter->pbkdf1 param *digest:sha-1*))
 (define (pbe-parameter->pbkdf1 param digest)
   (lambda (key . ignore)
-    (let ((bv (pbkdf-1 key
+    (let ((bv (pbkdf-1 (string->utf8 key)
 		       (pkcs-pbe-parameter-salt param)
 		       (pkcs-pbe-parameter-iteration-count param)
 		       16
@@ -378,7 +397,7 @@
   (make-cipher param *scheme:rc2* *digest:sha-1*))
 (define (make-cipher param scheme digest)
   (lambda (key)
-    (let ((bv (pbkdf-1 key
+    (let ((bv (pbkdf-1 (string->utf8 key)
 		       (pkcs-pbe-parameter-salt param)
 		       (pkcs-pbe-parameter-iteration-count param)
 		       16
@@ -404,7 +423,7 @@
 		     ;; TODO get key length from param for RC2
 		     (check-key-length enc)))
   (lambda (key . ignroe)
-    (pbkdf-2 key
+    (pbkdf-2 (string->utf8 key)
 	     (pkcs-pbkdf2-params-salt param)
 	     (pkcs-pbkdf2-params-iteration-count param)
 	     dk-len

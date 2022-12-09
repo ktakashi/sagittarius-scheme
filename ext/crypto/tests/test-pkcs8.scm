@@ -53,7 +53,7 @@
 
 (test-begin "PKCS#8")
 
-(define password (string->utf8 "test1234"))
+(define password "test1234")
 (define (test-pbe bv)
   (test-assert (pkcs-encrypted-private-key-info?
 		(bytevector->pkcs-encrypted-private-key-info bv)))

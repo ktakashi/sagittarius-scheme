@@ -31,6 +31,7 @@
 #!nounbound
 (library (sagittarius crypto pkcs keystore)
     (export pkcs12-keystore? <pkcs12-keystore>
+	    make-pkcs12-keystore
 	    (rename (pkcs12-keystore-private-keys-api
 		     pkcs12-keystore-private-keys)
 		    (pkcs12-keystore-encrypted-private-keys-api
@@ -57,6 +58,9 @@
 
 	    pkcs12-friendly-name=?
 	    pkcs12-friendly-name-pred
+
+	    pkcs12-entry-type
+	    pkcs12-entry-types
 	    
 	    pkcs12-keystore-find-secret-key
 	    pkcs12-keystore-find-crl
@@ -89,7 +93,46 @@
 	    pkcs12-keystore-remove-crl!
 	    pkcs12-keystore-remove-certificate!
 	    pkcs12-keystore-remove-encrypted-private-key!
-	    pkcs12-keystore-remove-private-key!)
+	    pkcs12-keystore-remove-private-key!
+
+	    ;; parameters
+	    *pkcs12-integrity-salt-size*
+	    *pkcs12-integrity-iteration-count*
+	    *pkcs12-privacy-salt-size*
+	    *pkcs12-privacy-iteration-count*
+
+	    ;; Custom security levels, in case of applications which don't
+	    ;; support PBES2 or SHA-256..., hope no such application exists
+	    ;; anymore...
+	    pkcs12-integrity-descriptor?
+	    pkcs12-password-integrity-descriptor?
+	    (rename (make-pkcs12-password-integrity-descriptor-api
+		     digest-descriptor->pkcs12-password-integrity-descriptor))
+	    pkcs12-privacy-descriptor?
+	    pkcs12-password-privacy-descriptor?
+	    x509-algorithm-identifier->password-privacy-descriptor
+
+	    *pkcs12-privacy-descriptor:pbe/sha1-des3-cbc*
+	    *pkcs12-privacy-descriptor:pbe/sha1-des2-cbc*
+	    *pkcs12-privacy-descriptor:pbe/sha1-rc2-128-cbc*
+	    *pkcs12-privacy-descriptor:pbe/sha1-rc2-40-cbc*
+	    *pkcs12-privacy-descriptor:pbes2/aes-256-hmac-sha256*
+	    
+	    *pkcs12-integrity-descriptor:hmac/sha-256*
+	    (rename (*pkcs12-integrity-descriptor:hmac/sha-256*
+		     *pkcs12-integrity-descriptor:default*)
+		    (*pkcs12-privacy-descriptor:pbes2/aes-256-hmac-sha256*
+		     *pkcs12-privacy-descriptor:default*))
+	    
+	    ;; To make custom predicate
+	    pkcs12-safe-bag?
+	    pkcs12-safe-bag-attributes
+	    pkcs12-safe-bag-friendly-name
+	    pkcs12-safe-bag-local-key-id
+
+	    ;; For future extension, maybe...
+	    ->x509-parameter-generator
+	    ->key-derivation-parameter-generator)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius)
@@ -121,16 +164,66 @@
 	    (util deque))
 
 (define *pkcs12-integrity-salt-size* (make-parameter 32))
+(define *pkcs12-privacy-salt-size* (make-parameter 32))
+;; default 10000 is enough? or too much?
+(define *pkcs12-integrity-iteration-count* (make-parameter 10000))
+(define *pkcs12-privacy-iteration-count* (make-parameter 10000))
 
 (define-record-type pkcs12-integrity-descriptor)
 (define-record-type pkcs12-password-integrity-descriptor
   (parent pkcs12-integrity-descriptor)
-  (fields md iteration))
+  (fields mac-data-provider))
+(define (pkcs12-password-integrity-descriptor->mac-data desc key data prng)
+  ((pkcs12-password-integrity-descriptor-mac-data-provider desc)
+   key data prng))
+(define *pkcs12-integrity-descriptor:hmac/sha-256*
+  (make-pkcs12-password-integrity-descriptor
+   (lambda (key data prng)
+     (make-mac-data *digest:sha-256*
+		    key
+		    (*pkcs12-integrity-salt-size*)
+		    (*pkcs12-integrity-iteration-count*)
+		    data prng))))
+(define (make-pkcs12-password-integrity-descriptor-api (md digest-descriptor?)
+	 :key (count (*pkcs12-integrity-iteration-count*))
+	      (salt-size (*pkcs12-integrity-salt-size*)))
+  (make-pkcs12-password-integrity-descriptor
+   (lambda (key data prng) (make-mac-data md key salt-size count data prng))))
 
 (define-record-type pkcs12-privacy-descriptor)
 (define-record-type pkcs12-password-privacy-descriptor
   (parent pkcs12-privacy-descriptor)
-  (fields aid))
+  (fields aid-provider))
+(define (pkcs12-password-privacy-descriptor->aid desc prng)
+  ((pkcs12-password-privacy-descriptor-aid-provider desc) prng))
+
+(define *pkcs12-privacy-descriptor:pbes2/aes-256-hmac-sha256*
+  (make-pkcs12-password-privacy-descriptor
+   (lambda (prng)
+     (let ((block-size (block-cipher-descriptor-block-length *scheme:aes-256*)))
+       (make-pbes2-x509-algorithm-identifier
+	(make-pbkdf2-x509-algorithm-identifier
+	 (random-generator-read-random-bytes prng (*pkcs12-privacy-salt-size*))
+	 (*pkcs12-privacy-iteration-count*)
+	 :prf *pbes:hmac/sha256*)
+	(make-aes256-encryption-x509-algorithm-identifier
+	 (random-generator-read-random-bytes prng block-size)))))))
+
+(define (->pkcs12-password-privacy-descriptor oid)
+  (make-pkcs12-password-privacy-descriptor
+   (lambda (prng)
+     (make-x509-algorithm-identifier (der-object-identifier->oid-string oid)
+      (make-pkcs-pbe-parameter
+       (random-generator-read-random-bytes prng (*pkcs12-privacy-salt-size*))
+       (*pkcs12-privacy-iteration-count*))))))
+(define *pkcs12-privacy-descriptor:pbe/sha1-des3-cbc*
+  (->pkcs12-password-privacy-descriptor *pkcs12:pbe/sha1-des3-cbc*))
+(define *pkcs12-privacy-descriptor:pbe/sha1-des2-cbc*
+  (->pkcs12-password-privacy-descriptor *pkcs12:pbe/sha1-des2-cbc*))
+(define *pkcs12-privacy-descriptor:pbe/sha1-rc2-128-cbc*
+  (->pkcs12-password-privacy-descriptor *pkcs12:pbe/sha1-rc2-128-cbc*))
+(define *pkcs12-privacy-descriptor:pbe/sha1-rc2-40-cbc*
+  (->pkcs12-password-privacy-descriptor *pkcs12:pbe/sha1-rc2-40-cbc*))
 
 (define-record-type pkcs12-exchange-key
   (fields integrity-key privacy-key))
@@ -153,16 +246,19 @@
    (friendly-names :init-form (make-hashtable string-ci-hash string-ci=?)
 		   :reader pkcs12-keystore-friendly-names)
    (integrity-descriptor :init-keyword :integrity-descriptor
-		   :reader pkcs12-keystore-integrity-descriptor
-		   :writer pkcs12-keystore-integrity-descriptor-set!)
+    :init-value *pkcs12-integrity-descriptor:hmac/sha-256*
+    :reader pkcs12-keystore-integrity-descriptor
+    :writer pkcs12-keystore-integrity-descriptor-set!)
    (privacy-descriptor :init-keyword :privacy-descriptor
-		   :reader pkcs12-keystore-privacy-descriptor
-		   :writer pkcs12-keystore-privacy-descriptor-set!)
-   (privacy-entries :init-value *all-entry-types*
-		    :reader pkcs12-keystore-privacy-entries
-		    :writer pkcs12-keystore-privacy-entries-set!)
+    :init-value *pkcs12-privacy-descriptor:pbes2/aes-256-hmac-sha256*
+    :reader pkcs12-keystore-privacy-descriptor
+    :writer pkcs12-keystore-privacy-descriptor-set!)
+   (privacy-entries :init-keywor :privacy-entries
+    :init-value *all-entry-types*
+    :reader pkcs12-keystore-privacy-entries
+    :writer pkcs12-keystore-privacy-entries-set!)
    (prng :init-form (secure-random-generator *prng:chacha20*)
-	 :init-keyword :pring
+	 :init-keyword :prng
 	 :reader pkcs12-keystore-prng)))
 (define-method write-object ((k <pkcs12-keystore>) out)
   (format out "#<pkcs12-keystore pk=~a epki=~a c=~a crl=~a sk=~a>"
@@ -172,6 +268,8 @@
 	  (deque-length (pkcs12-keystore-crls k))
 	  (deque-length (pkcs12-keystore-secret-keys k))))
 (define (pkcs12-keystore? o) (is-a? o <pkcs12-keystore>))
+(define (make-pkcs12-keystore . opts)
+  (apply make <pkcs12-keystore> opts))
 
 (define (pkcs12-entry-type->entry-container type)
   (cond ((eq? type 'private-key) pkcs12-keystore-private-keys)
@@ -411,7 +509,7 @@
 		(asn1-encodable-container-c
 		 (cms-encrypted-content-info->cms-content-info eci
 		  (pkcs12-exchange-key-privacy-key exchange-key)))
-		(make-pkcs12-password-privacy-descriptor
+		(x509-algorithm-identifier->password-privacy-descriptor
 		 (cms-encrypted-content-info-content-encryption-algorithm eci)))))
 	  ;; enveloped data for public key encrypted
 	  (else (error 'pfx->pkcs12-keystore "Unknown contentInfo" ci))))
@@ -506,7 +604,8 @@
        "Mac is invalid - wrong integrity password or corrupted data"))
     (values (asn1-object->asn1-encodable <authenticated-safe>
 					 (bytevector->asn1-object data))
-	    (make-pkcs12-password-integrity-descriptor md c))))
+	    (make-pkcs12-password-integrity-descriptor-api md
+	     :count c :salt-size (bytevector-length salt)))))
 
 ;;; Write
 (define (pkcs12-keystore->pfx ks
@@ -534,9 +633,9 @@
 		 (asn1-encodable->bytevector
 		  (make <safe-contents>
 		    :elements (map pkcs12-safe-bag->safe-bag sb*))))
-		(pkcs12-password-privacy-descriptor-aid privacy-desc)
+		(pkcs12-password-privacy-descriptor->aid privacy-desc prng)
 		privacy-key)))
-	     (error 'unload-pkcs12-keystore "Not yet"))))
+	     (error 'unload-pkcs12-keystore "Not yet" privacy-desc))))
   (define (safe-bags->content-info sb*)
     (and (not (null? sb*))
 	 (make-cms-data-content-info
@@ -558,28 +657,28 @@
 				     (filter values (list no-privacy-entries
 							  privacy-entries))))))
     (if (pkcs12-password-integrity-descriptor? integrity-desc)
-	(let* ((data (asn1-encodable->bytevector auth-safe))
-	       (ci (make-cms-data-content-info data))
-	       (md (pkcs12-password-integrity-descriptor-md integrity-desc))
-	       (c  (pkcs12-password-integrity-descriptor-iteration
-		    integrity-desc))
-	       (salt (random-generator-read-random-bytes
-		      prng (*pkcs12-integrity-salt-size*)))
-	       (digest (compute-mac md data integrity-key salt c))
-	       (oid (digest-descriptor-oid md))
-	       (da (make <algorithm-identifier>
-		     :algorithm (oid-string->der-object-identifier oid))))
+	(let ((data (asn1-encodable->bytevector auth-safe)))
 	  (make <pfx>
 	    :version (integer->der-integer 3)
-	    :auth-safe (cms-content-info->content-info ci)
-	    :mac-data (make <mac-data>
-			:mac (make <digest-info>
-			       :digest-algorithm da
-			       :digest (bytevector->der-octet-string digest))
-			:mac-salt (bytevector->der-octet-string salt)
-			:iterations (integer->der-integer c))))
+	    :auth-safe (cms-content-info->content-info
+			(make-cms-data-content-info data))
+	    :mac-data (pkcs12-password-integrity-descriptor->mac-data
+		       integrity-desc integrity-key data prng)))
 	;; SignedData
 	(error 'unload-pkcs12-keystore "Not yet"))))
+
+(define (make-mac-data md key salt-size c data prng)
+  (let* ((salt (random-generator-read-random-bytes prng salt-size))
+	 (digest (compute-mac md data key salt c))
+	 (oid (digest-descriptor-oid md))
+	 (da (make <algorithm-identifier>
+	       :algorithm (oid-string->der-object-identifier oid))))
+    (make <mac-data>
+      :mac (make <digest-info>
+	     :digest-algorithm da
+	     :digest (bytevector->der-octet-string digest))
+      :mac-salt (bytevector->der-octet-string salt)
+      :iterations (integer->der-integer c))))
 
 (define (compute-mac md data password salt c)
   (let* ((mac-key (derive-mac-key md password salt c))
@@ -593,6 +692,15 @@
 (define sid der-object-identifier->oid-string)
 (define-method oid->x509-algorithm-parameters-types
   ((oid (equal (sid *pkcs12:pbe/sha1-rc2-40-cbc*))))
+  (values <pkcs-pbe-parameter> <pbe-parameter>))
+(define-method oid->x509-algorithm-parameters-types
+  ((oid (equal (sid *pkcs12:pbe/sha1-rc2-128-cbc*))))
+  (values <pkcs-pbe-parameter> <pbe-parameter>))
+(define-method oid->x509-algorithm-parameters-types
+  ((oid (equal (sid *pkcs12:pbe/sha1-des2-cbc*))))
+  (values <pkcs-pbe-parameter> <pbe-parameter>))
+(define-method oid->x509-algorithm-parameters-types
+  ((oid (equal (sid *pkcs12:pbe/sha1-des3-cbc*))))
   (values <pkcs-pbe-parameter> <pbe-parameter>))
 
 (define-method oid->kdf ((oid (equal (sid *pkcs12:pbe/sha1-des3-cbc*))) param)
@@ -778,20 +886,63 @@
 	 attrs)))
 
 (define (secret-key->pkcs12-safe-bag key attrs)
+  (define (->der-octet-string asn1-encodable)
+    (bytevector->der-octet-string (asn1-encodable->bytevector asn1-encodable)))
   (define (->id&values key)
     (cond ((symmetric-key? key)
 	   (values *cms:data-content-type*
 		   (bytevector->der-octet-string (symmetric-key-value key))))
 	  ((pkcs-one-asymmetric-key? key)
 	   (values *pkcs12:key-bag*
-		   (pkcs-one-asymmetric-key->one-asymmetric-key key)))
+		   (->der-octet-string
+		    (pkcs-one-asymmetric-key->one-asymmetric-key key))))
 	  ((pkcs-encrypted-private-key-info? key)
 	   (values *pkcs12:pkcs8-shrouded-key-bag*
-		   (pkcs-encrypted-private-key-info->encrypted-private-key-info key)))
+		   (->der-octet-string
+		    (pkcs-encrypted-private-key-info->encrypted-private-key-info key))))
 	  (else (error 'secret-key->pkcs12-safe-bag "Shouldn't happen"))))
   (let-values (((id value) (->id&values key)))
     (make <pkcs12-safe-bag>
       :c (make-safe-bag *pkcs12:secret-bag*
 	  (make <secret-bag> :secret-type-id id :secret-value value)
 	  attrs))))
+
+(define-generic ->x509-parameter-generator)
+(define-method ->x509-parameter-generator ((p <pkcs-pbe-parameter>))
+  (lambda (prng)
+    (make-pkcs-pbe-parameter
+     (random-generator-read-random-bytes prng (*pkcs12-privacy-salt-size*))
+     (*pkcs12-privacy-iteration-count*))))
+
+;; damn...
+(define-generic ->key-derivation-parameter-generator)
+(define-method ->key-derivation-parameter-generator ((p <pkcs-pbkdf2-params>))
+  (let ((prf (pkcs-pbkdf2-params-prf p))
+	(dk-len (pkcs-pbkdf2-params-key-length p)))
+    (lambda (prng)
+      (make-pkcs-pbkdf2-params
+       (random-generator-read-random-bytes prng (*pkcs12-privacy-salt-size*))
+       (*pkcs12-privacy-iteration-count*)
+       :prf prf :key-length dk-len))))
+  
+(define-method ->x509-parameter-generator ((p <pkcs-pbes2-params>))
+  (let* ((kdf-func (pkcs-pbes2-params-key-derivation-func p))
+	 (enc-func (pkcs-pbes2-params-encryption-scheme p))
+	 (kdf-oid (x509-algorithm-identifier-oid kdf-func))
+	 (kdf-pgen (->key-derivation-parameter-generator
+		    (x509-algorithm-identifier-parameters kdf-func))))
+    (lambda (prng)
+      (make-pkcs-pbes2-params
+       (make-x509-algorithm-identifier kdf-oid (kdf-pgen prng))
+       ;; TODO should we modify IV as well?
+       enc-func))))
+  
+(define (x509-algorithm-identifier->password-privacy-descriptor
+	 (x509-aid x509-algorithm-identifier?))
+  (let ((oid (x509-algorithm-identifier-oid x509-aid))
+	(pgen (->x509-parameter-generator
+	       (x509-algorithm-identifier-parameters x509-aid))))
+    (make-pkcs12-password-privacy-descriptor
+     (lambda (prng)
+       (make-x509-algorithm-identifier oid (pgen prng))))))
 )

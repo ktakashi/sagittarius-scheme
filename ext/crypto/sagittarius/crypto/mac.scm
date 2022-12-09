@@ -44,6 +44,23 @@
 	    mac-done!
 	    
 	    make-mac-generator
+
+	    hmac-oid->digest-oid
+	    digest-oid->hmac-oid
+	    *oid-hmac/md5*
+	    *oid-hmac/tiger*
+	    *oid-hmac/ripemd-160*
+	    *oid-hmac/sha1*
+	    *oid-hmac/sha224*
+	    *oid-hmac/sha256*
+	    *oid-hmac/sha384*
+	    *oid-hmac/sha512*
+	    *oid-hmac/sha512/224*
+	    *oid-hmac/sha512/256*
+	    *oid-hmac/sha3-224*
+	    *oid-hmac/sha3-256*
+	    *oid-hmac/sha3-384*
+	    *oid-hmac/sha3-512*
 	    )
     (import (rnrs)
 	    (clos user)
