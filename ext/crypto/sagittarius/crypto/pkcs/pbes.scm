@@ -48,10 +48,12 @@
 	    pkcs-pbkdf2-params-prf
 
 	    pkcs-rc2-cbc-parameter? <pkcs-rc2-cbc-parameter>
+	    make-pkcs-rc2-cbc-parameter
 	    pkcs-rc2-cbc-parameter-version
 	    pkcs-rc2-cbc-parameter-iv
 
 	    pkcs-rc5-cbc-parameter? <pkcs-rc5-cbc-parameter>
+	    make-pkcs-rc5-cbc-parameter
 	    pkcs-rc5-cbc-parameter-version
 	    pkcs-rc5-cbc-parameter-rounds
 	    pkcs-rc5-cbc-parameter-block-size-in-bits
@@ -329,33 +331,35 @@
   (or (not v)
       (memv v '(160 120 58))
       (>= v 256)))
-(define (make-rc2-encryption-x509-algorithm-identifier
-	 (version rc2-encoding?) iv)
+(define (make-rc2-encryption-x509-algorithm-identifier version iv)
   (make-x509-algorithm-identifier
    (der-object-identifier->oid-string *pbes:rc2-cbc*)
-   (make <pkcs-rc2-cbc-parameter>
-     :c (make <rc2-cbc-parameter>
-	  :version (and version (integer->der-integer version))
-	  :iv (bytevector->der-octet-string iv)))))
+   (make-pkcs-rc2-cbc-parameter version iv)))
+(define (make-pkcs-rc2-cbc-parameter (version rc2-encoding?) iv)
+  (make <pkcs-rc2-cbc-parameter>
+    :c (make <rc2-cbc-parameter>
+	 :version (and version (integer->der-integer version))
+	 :iv (bytevector->der-octet-string iv))))
 
-(define (make-rc5-encryption-x509-algorithm-identifier
-	 rounds
-	 (block-size (or '64 '128))
-	 :optional (iv #f))
-  (unless (or (not iv) (= block-size (* (bytevector-length iv) 8)))
-    (assertion-violation 'make-rc5-encryption-x509-algorithm-identifier
-			 "Block size and IV don't match"))
-  (unless (<= 8 rounds 127)
-    (assertion-violation 'make-rc5-encryption-x509-algorithm-identifier
-			 "Rounds must be between 8 and 127" rounds))
+(define (make-rc5-encryption-x509-algorithm-identifier rounds block-size . opts)
   (make-x509-algorithm-identifier
    (der-object-identifier->oid-string *pbes:rc5-cbc-pad*)
-   (make <pkcs-rc5-cbc-parameter>
-     :c (make <rc5-cbc-parameter>
-	  :version (integer->der-integer 16)
-	  :rounds (integer->der-integer rounds)
-	  :block-size-in-bits (integer->der-integer block-size)
-	  :iv (and iv (bytevector->der-octet-string iv))))))
+   (apply make-pkcs-rc5-cbc-parameter rounds block-size opts)))
+
+(define (make-pkcs-rc5-cbc-parameter rounds (block-size (or '64 '128))
+				:optional (iv #f))
+  (unless (or (not iv) (= block-size (* (bytevector-length iv) 8)))
+    (assertion-violation 'make-rc5-cbc-parameter
+			 "Block size and IV don't match"))
+  (unless (<= 8 rounds 127)
+    (assertion-violation 'make-rc5-cbc-parameter
+			 "Rounds must be between 8 and 127" rounds))
+  (make <pkcs-rc5-cbc-parameter>
+    :c (make <rc5-cbc-parameter>
+	 :version (integer->der-integer 16)
+	 :rounds (integer->der-integer rounds)
+	 :block-size-in-bits (integer->der-integer block-size)
+	 :iv (and iv (bytevector->der-octet-string iv)))))
 
 ;; PBES1
 ;; Don't use this in new application :)
@@ -464,8 +468,7 @@
 	((pkcs-rc2-cbc-parameter? param)
 	 (make-iv-parameter (pkcs-rc2-cbc-parameter-iv param)))
 	((pkcs-rc5-cbc-parameter? param)
-	 (let ((iv (cond ((pkcs-rc5-cbc-parameter-iv param)
-			  => der-octet-string->bytevector)
+	 (let ((iv (cond ((pkcs-rc5-cbc-parameter-iv param))
 			 (else
 			  (make-bytevector
 			   (pkcs-rc5-cbc-parameter-block-size param) 0)))))

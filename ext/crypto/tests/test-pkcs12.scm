@@ -201,4 +201,38 @@
 (test-keystore :privacy-descriptor *pkcs12-privacy-descriptor:pbe/sha1-rc2-128-cbc*)
 (test-keystore :privacy-descriptor *pkcs12-privacy-descriptor:pbe/sha1-rc2-40-cbc*)
 
+;; extra
+(define pbkdf2-aid (make-pbkdf2-x509-algorithm-identifier #vu8(1 2 3 4) 1024
+		    :key-length 32))
+;; RC5
+(test-keystore :privacy-descriptor
+	       (x509-algorithm-identifier->password-privacy-descriptor
+		(make-pbes2-x509-algorithm-identifier
+		 pbkdf2-aid
+		 (make-rc5-encryption-x509-algorithm-identifier 12 64))))
+(test-keystore :privacy-descriptor
+	       (x509-algorithm-identifier->password-privacy-descriptor
+		(make-pbes2-x509-algorithm-identifier
+		 pbkdf2-aid
+		 (make-rc5-encryption-x509-algorithm-identifier
+		  12 64 (make-bytevector (div 64 8))))))
+(test-keystore :privacy-descriptor
+	       (x509-algorithm-identifier->password-privacy-descriptor
+		(make-pbes2-x509-algorithm-identifier
+		 pbkdf2-aid
+		 (make-rc5-encryption-x509-algorithm-identifier 12 128))))
+(test-keystore :privacy-descriptor
+	       (x509-algorithm-identifier->password-privacy-descriptor
+		(make-pbes2-x509-algorithm-identifier
+		 pbkdf2-aid
+		 (make-rc5-encryption-x509-algorithm-identifier 
+		  12 128 (make-bytevector (div 128 8))))))
+;; RC2
+(test-keystore :privacy-descriptor
+	       (x509-algorithm-identifier->password-privacy-descriptor
+		(make-pbes2-x509-algorithm-identifier
+		 pbkdf2-aid
+		 (make-rc2-encryption-x509-algorithm-identifier
+		  160 (make-bytevector 8)))))
+
 (test-end)

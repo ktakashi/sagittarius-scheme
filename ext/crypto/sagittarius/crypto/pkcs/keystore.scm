@@ -61,9 +61,14 @@
 
 	    pkcs12-friendly-name=?
 	    pkcs12-friendly-name-pred
-
+	    
+	    pkcs12-local-key-id=?
+	    pkcs12-local-key-id-pred
+	    
 	    pkcs12-entry-type
 	    pkcs12-entry-types
+
+	    pkcs12-keystore-entry-types
 	    
 	    pkcs12-keystore-find-secret-key
 	    pkcs12-keystore-find-crl
@@ -119,12 +124,12 @@
 	    *pkcs12-privacy-descriptor:pbe/sha1-des2-cbc*
 	    *pkcs12-privacy-descriptor:pbe/sha1-rc2-128-cbc*
 	    *pkcs12-privacy-descriptor:pbe/sha1-rc2-40-cbc*
-	    *pkcs12-privacy-descriptor:pbes2/aes-256-hmac-sha256*
+	    *pkcs12-privacy-descriptor:pbes2/aes-256-cbc-hmac-sha256*
 	    
 	    *pkcs12-integrity-descriptor:hmac/sha-256*
 	    (rename (*pkcs12-integrity-descriptor:hmac/sha-256*
 		     *pkcs12-integrity-descriptor:default*)
-		    (*pkcs12-privacy-descriptor:pbes2/aes-256-hmac-sha256*
+		    (*pkcs12-privacy-descriptor:pbes2/aes-256-cbc-hmac-sha256*
 		     *pkcs12-privacy-descriptor:default*))
 	    
 	    ;; To make custom predicate
@@ -133,9 +138,13 @@
 	    pkcs12-safe-bag-friendly-name
 	    pkcs12-safe-bag-local-key-id
 
+	    ;; For my lazieness
+	    pkcs12-password-privacy-descriptor->aid
+	    
 	    ;; For future extension, maybe...
 	    ->x509-parameter-generator
-	    ->key-derivation-parameter-generator)
+	    ->key-derivation-parameter-generator
+	    ->encryption-scheme-parameter-generator)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius)
@@ -200,7 +209,7 @@
 (define (pkcs12-password-privacy-descriptor->aid desc prng)
   ((pkcs12-password-privacy-descriptor-aid-provider desc) prng))
 
-(define *pkcs12-privacy-descriptor:pbes2/aes-256-hmac-sha256*
+(define *pkcs12-privacy-descriptor:pbes2/aes-256-cbc-hmac-sha256*
   (make-pkcs12-password-privacy-descriptor
    (lambda (prng)
      (let ((block-size (block-cipher-descriptor-block-length *scheme:aes-256*)))
@@ -253,7 +262,7 @@
     :reader pkcs12-keystore-integrity-descriptor
     :writer pkcs12-keystore-integrity-descriptor-set!)
    (privacy-descriptor :init-keyword :privacy-descriptor
-    :init-value *pkcs12-privacy-descriptor:pbes2/aes-256-hmac-sha256*
+    :init-value *pkcs12-privacy-descriptor:pbes2/aes-256-cbc-hmac-sha256*
     :reader pkcs12-keystore-privacy-descriptor
     :writer pkcs12-keystore-privacy-descriptor-set!)
    (privacy-entries :init-keyword :privacy-entries
@@ -318,6 +327,9 @@
   ;; return a immutable copy of the friendly names hashtable
   (hashtable-copy (pkcs12-keystore-friendly-names ks)))
 
+(define (pkcs12-keystore-entry-types ks name)
+  (hashtable-ref (pkcs12-keystore-friendly-names ks) name '()))
+
 (define (pkcs12-friendly-name=? (bag0 pkcs12-safe-bag?) (bag1 pkcs12-safe-bag?))
   (let ((fn0 (pkcs12-safe-bag-friendly-name bag0))
 	(fn1 (pkcs12-safe-bag-friendly-name bag1)))
@@ -326,6 +338,15 @@
 (define ((pkcs12-friendly-name-pred (name string?)) bag)
   (let ((fn (pkcs12-safe-bag-friendly-name bag)))
     (and fn (string-ci=? fn name))))
+
+(define (pkcs12-local-key-id=? (bag0 pkcs12-safe-bag?) (bag1 pkcs12-safe-bag?))
+  (let ((fn0 (pkcs12-safe-bag-local-key-id bag0))
+	(fn1 (pkcs12-safe-bag-local-key-id bag1)))
+    (and fn0 fn1 (bytevector=? fn0 fn1))))
+
+(define ((pkcs12-local-key-id-pred (id bytevector?)) bag)
+  (let ((fn (pkcs12-safe-bag-local-key-id bag)))
+    (and fn (bytevector=? fn id))))
 
 (define-syntax pkcs12-keystore-find
   (syntax-rules ()
@@ -927,18 +948,44 @@
        (random-generator-read-random-bytes prng (*pkcs12-privacy-salt-size*))
        (*pkcs12-privacy-iteration-count*)
        :prf prf :key-length dk-len))))
-  
+(define-generic ->encryption-scheme-parameter-generator)
+(define-method ->encryption-scheme-parameter-generator
+  (oid (iv <der-octet-string>))
+  (let-values (((scheme mode) (oid->encryption-scheme oid)))
+    (let ((size (block-cipher-descriptor-block-length scheme)))
+      (lambda (prng)
+	(bytevector->der-octet-string
+	 (random-generator-read-random-bytes prng size))))))
+(define-method ->encryption-scheme-parameter-generator
+  (oid (p <pkcs-rc5-cbc-parameter>))
+  (let ((rounds  (pkcs-rc5-cbc-parameter-rounds p))
+	(block-size (pkcs-rc5-cbc-parameter-block-size-in-bits p))
+	(iv-len (cond ((pkcs-rc5-cbc-parameter-iv p) => bytevector-length)
+		      (else #f))))
+    (lambda (prng)
+      (make-pkcs-rc5-cbc-parameter rounds block-size
+       (and iv-len (random-generator-read-random-bytes prng iv-len))))))
+(define-method ->encryption-scheme-parameter-generator
+  (oid (p <pkcs-rc2-cbc-parameter>))
+  (let ((version (pkcs-rc2-cbc-parameter-version p))
+	(iv-len (bytevector-length (pkcs-rc2-cbc-parameter-iv p))))
+    (lambda (prng)
+      (make-pkcs-rc2-cbc-parameter version
+       (and iv-len (random-generator-read-random-bytes prng iv-len))))))
+
 (define-method ->x509-parameter-generator ((p <pkcs-pbes2-params>))
   (let* ((kdf-func (pkcs-pbes2-params-key-derivation-func p))
 	 (enc-func (pkcs-pbes2-params-encryption-scheme p))
 	 (kdf-oid (x509-algorithm-identifier-oid kdf-func))
 	 (kdf-pgen (->key-derivation-parameter-generator
-		    (x509-algorithm-identifier-parameters kdf-func))))
+		    (x509-algorithm-identifier-parameters kdf-func)))
+	 (enc-oid (x509-algorithm-identifier-oid enc-func))
+	 (enc-pgen (->encryption-scheme-parameter-generator enc-oid
+		    (x509-algorithm-identifier-parameters enc-func))))
     (lambda (prng)
       (make-pkcs-pbes2-params
        (make-x509-algorithm-identifier kdf-oid (kdf-pgen prng))
-       ;; TODO should we modify IV as well?
-       enc-func))))
+       (make-x509-algorithm-identifier enc-oid (enc-pgen prng))))))
   
 (define (x509-algorithm-identifier->password-privacy-descriptor
 	 (x509-aid x509-algorithm-identifier?))
