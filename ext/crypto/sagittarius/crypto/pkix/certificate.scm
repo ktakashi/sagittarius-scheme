@@ -60,6 +60,8 @@
 	    validate-x509-certificate
 	    x509-certificate-signature-validator
 	    x509-certificate-validity-validator
+
+	    x509-certificate-issued-by?
 	    
 	    x509-certificate-template?
 	    x509-certificate-template-builder
@@ -244,6 +246,13 @@
       (assertion-violation 'x509-certificate-validity
 			   "Certificate is either expired or not in effect"
 			   x509-certificate))))
+
+(define (x509-certificate-issued-by? (cert x509-certificate?)
+				     (ca-cert x509-certificate?))
+  (and (equal? (x509-certificate-issuer-dn cert)
+	       (x509-certificate-subject-dn ca-cert))
+       (verify-x509-signed-object cert (x509-certificate-public-key ca-cert)
+				  :der-encode #f)))
 
 (define-record-type x509-certificate-template
   (fields issuer-dn
