@@ -69,6 +69,7 @@
 	    pkcs12-entry-types
 
 	    pkcs12-keystore-entry-types
+	    pkcs12-keystore-entry-type->entry-list
 	    
 	    pkcs12-keystore-find-secret-key
 	    pkcs12-keystore-find-crl
@@ -102,6 +103,7 @@
 	    pkcs12-keystore-remove-certificate!
 	    pkcs12-keystore-remove-encrypted-private-key!
 	    pkcs12-keystore-remove-private-key!
+	    pkcs12-keystore-remove-entry!
 
 	    ;; parameters
 	    *pkcs12-integrity-salt-size*
@@ -293,6 +295,9 @@
 	;; a bit lazy way...
 	(else pkcs12-keystore-safe-contents)))
 
+(define (pkcs12-keystore-entry-type->entry-list ks type)
+  (deque->list ((pkcs12-entry-type->entry-container type) ks)))
+
 (define (read-pkcs12-keystore exchange-key :optional (in (current-input-port)))
   (pfx->pkcs12-keystore (read-pfx in) exchange-key))
 (define (bytevector->pkcs12-keystore bv exchange-key)
@@ -467,11 +472,11 @@
 	 (define q (acc ks))
 	 (define (update-friendly-names! bags)
 	   (let* ((fn* (delete-duplicates!
-			(map pkcs12-safe-bag-friendly-name bags)
+			(filter-map pkcs12-safe-bag-friendly-name bags)
 			string-ci=?))
 		  (in-queue (delete-duplicates!
-			     (map pkcs12-safe-bag-friendly-name
-				  (deque->list q))
+			     (filter-map pkcs12-safe-bag-friendly-name
+					 (deque->list q))
 			     string-ci=?))
 		  (diff (lset-difference string-ci=? fn* in-queue)))
 	     (unless (null? diff)
@@ -496,6 +501,17 @@
   (pkcs12-keystore-remove! crl pkcs12-crl-bag-value))
 (define pkcs12-keystore-remove-secret-key!
   (pkcs12-keystore-remove! secret-key pkcs12-secret-bag-value))
+
+(define (pkcs12-keystore-remove-entry! pred ks type)
+  (case type
+    ((private-key) (pkcs12-keystore-remove-private-key! pred ks))
+    ((encrypted-private-key)
+     (pkcs12-keystore-remove-encrypted-private-key! pred ks))
+    ((certificate) (pkcs12-keystore-remove-certificate! pred ks))
+    ((crl) (pkcs12-keystore-remove-crl! pred ks))
+    ((secret-key) (pkcs12-keystore-remove-secret-key! pred ks))
+    ;; TBD?
+    (else #f)))
 
 ;;;; internal
 ;;; Read
