@@ -31,6 +31,7 @@
 #!nounbound
 (library (sagittarius crypto pkix attributes)
     (export x509-attribute? <x509-attribute>
+	    make-x509-attribute
 	    x509-attribute-type
 	    x509-attribute-values
 	    x509-attribute-of
@@ -45,6 +46,8 @@
 	    (sagittarius crypto asn1)
 	    (sagittarius crypto pkix modules x509))
 (define (oid? o) (or (der-object-identifier? o) (object-identifier-string? o)))
+(define (list-of pred) (lambda (l) (for-each pred l)))
+
 (define-class <x509-attribute> (<immutable>)
   ((type :init-keyword :type :reader x509-attribute-type)
    (values :init-keyword :values :reader x509-attribute-values)))
@@ -53,6 +56,12 @@
 	  (x509-attribute-type o)
 	  (x509-attribute-values o)))
 (define (x509-attribute? o) (is-a? o <x509-attribute>))
+(define (make-x509-attribute (type object-identifier-string?)
+			     (attr asn1-encodable?)
+			     . rest)
+  (unless (for-all asn1-encodable? rest)
+    (assertion-violation 'make-x509-attribute "Invalid attribute" rest))
+  (make <x509-attribute> :type type :values (make-der-set (cons attr rest))))
 (define (attribute->x509-attribute attribute)
   (make <x509-attribute>
     :type (der-object-identifier->oid-string (attribute-type attribute))

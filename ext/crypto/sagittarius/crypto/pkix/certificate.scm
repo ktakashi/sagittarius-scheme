@@ -61,7 +61,7 @@
 	    x509-certificate-signature-validator
 	    x509-certificate-validity-validator
 
-	    x509-certificate-issued-by?
+	    x509-certificate-signed-by?
 	    
 	    x509-certificate-template?
 	    x509-certificate-template-builder
@@ -247,7 +247,7 @@
 			   "Certificate is either expired or not in effect"
 			   x509-certificate))))
 
-(define (x509-certificate-issued-by? (cert x509-certificate?)
+(define (x509-certificate-signed-by? (cert x509-certificate?)
 				     (ca-cert x509-certificate?))
   (and (equal? (x509-certificate-issuer-dn cert)
 	       (x509-certificate-subject-dn ca-cert))
