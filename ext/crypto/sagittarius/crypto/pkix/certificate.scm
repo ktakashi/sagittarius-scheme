@@ -154,6 +154,8 @@
 	       (lambda (e)
 		 (or (and e (extensions->x509-extension-list e)) '())))
     :reader x509-certificate-extensions)))
+(define-method object-equal? ((a <x509-certificate>) (b <x509-certificate>))
+  (equal? (x509-certificate->bytevector a) (x509-certificate->bytevector b)))
 
 (define (x509-certificate-signature (certificate x509-certificate?))
   (x509-signed-object-signature certificate))

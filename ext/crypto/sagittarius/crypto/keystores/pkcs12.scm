@@ -44,19 +44,30 @@
 	    *pkcs12-privacy-descriptor:pbe/sha1-des2-cbc*
 	    *pkcs12-privacy-descriptor:pbe/sha1-rc2-128-cbc*
 	    *pkcs12-privacy-descriptor:pbe/sha1-rc2-40-cbc*
+	    *pkcs12-privacy-descriptor:pbes2/aes-128-cbc-hmac-sha256*
+	    *pkcs12-privacy-descriptor:pbes2/aes-192-cbc-hmac-sha256*
 	    *pkcs12-privacy-descriptor:pbes2/aes-256-cbc-hmac-sha256*
 
-	    (rename (*pkcs12-privacy-descriptor:pbe/sha1-des3-cbc*
-		     *pkcs12-key-encryption-descriptor:pbe/sha1-des3-cbc*)
-		    (*pkcs12-privacy-descriptor:pbe/sha1-des2-cbc*
-		     *pkcs12-key-encryption-descriptor:pbe/sha1-des2-cbc*)
-		    (*pkcs12-privacy-descriptor:pbe/sha1-rc2-128-cbc*
-		     *pkcs12-key-encryption-descriptor:pbe/sha1-rc2-128-cbc*)
-		    (*pkcs12-privacy-descriptor:pbe/sha1-rc2-40-cbc*
-		     *pkcs12-key-encryption-descriptor:pbe/sha1-rc2-40-cbc*)
-		    (*pkcs12-privacy-descriptor:pbes2/aes-256-cbc-hmac-sha256*
-		     *pkcs12-key-encryption-descriptor:pbes2/aes-256-cbc-hmac-sha256*))
+	    (rename
+	     (*pkcs12-privacy-descriptor:pbe/sha1-des3-cbc*
+	      *pkcs12-key-encryption-descriptor:pbe/sha1-des3-cbc*)
+	     (*pkcs12-privacy-descriptor:pbe/sha1-des2-cbc*
+	      *pkcs12-key-encryption-descriptor:pbe/sha1-des2-cbc*)
+	     (*pkcs12-privacy-descriptor:pbe/sha1-rc2-128-cbc*
+	      *pkcs12-key-encryption-descriptor:pbe/sha1-rc2-128-cbc*)
+	     (*pkcs12-privacy-descriptor:pbe/sha1-rc2-40-cbc*
+	      *pkcs12-key-encryption-descriptor:pbe/sha1-rc2-40-cbc*)
+	     (*pkcs12-privacy-descriptor:pbes2/aes-128-cbc-hmac-sha256*
+	      *pkcs12-key-encryption-descriptor:pbes2/aes-128-cbc-hmac-sha256*)
+	     (*pkcs12-privacy-descriptor:pbes2/aes-192-cbc-hmac-sha256*
+	      *pkcs12-key-encryption-descriptor:pbes2/aes-192-cbc-hmac-sha256*)
+	     (*pkcs12-privacy-descriptor:pbes2/aes-256-cbc-hmac-sha256*
+	      *pkcs12-key-encryption-descriptor:pbes2/aes-256-cbc-hmac-sha256*))
 
+	    (rename (pkcs12-keystore-encrypted-private-keys
+		     pkcs12-keystore-private-keys))
+	    pkcs12-keystore-certificates
+	    
 	    pkcs12-keystore-friendly-names
 	    pkcs12-keystore-entry-types
 	    
@@ -108,7 +119,9 @@
      (string-append "Time " (number->string (time->nano (current-time))))))
   (define attrs (list (make-pkcs9-friendly-name-attribute alias)
 		      (make-pkcs9-local-key-id-attribute local-key-id)))
-  
+  (when (null? certs)
+    (assertion-violation 'pkcs12-keystore-private-key-set!
+			 "Certificate must be provided"))
   (let ((aid (pkcs12-password-privacy-descriptor->aid
 	      encryption-algorithm (pkcs12-keystore-prng ks)))
 	(oak (private-key->pkcs-one-asymmetric-key key)))
@@ -134,22 +147,31 @@
   (define attrs (list (make-pkcs9-friendly-name-attribute alias)
 		      (make-pkcs9-local-key-id-attribute (cert-id cert))
 		      *java-trusted-certificate-attribute*))
-  (pkcs12-keystore-upsert-certificate! ks cert attrs))
+  (or (pkcs12-keystore-upsert-certificate! ks cert attrs)
+      cert))
 
 (define (pkcs12-keystore-certificate-chain-ref (ks pkcs12-keystore?)
 					       (alias string?))
+  (define (collect-chain ks cert)
+    (define all-certs (pkcs12-keystore-certificates ks))
+    (let loop ((certs all-certs) (r (list cert)))
+      (cond ((null? certs) (reverse! r))
+	    ;; skip root ca cert, or self signed cert
+	    ;; well, root ca cert is a self signed cert though :D
+	    ((eq? (car r) (car certs)) (loop (cdr certs) r))
+	    ((x509-certificate-signed-by? (car r) (car certs))
+	     (loop all-certs (cons (car certs) r)))
+	    (else (loop (cdr certs) r)))))
   (cond ((pkcs12-keystore-certificate-ref ks alias) =>
 	 (lambda (cert)
-	   (define all-certs (pkcs12-keystore-certificates ks))
-	   (let loop ((certs all-certs) (r (list cert)))
-	     (cond ((null? certs) (reverse! r))
-		   ;; skip root ca cert, or self signed cert
-		   ;; well, root ca cert is a self signed cert though :D
-		   ((eq? (car r) (car certs)) (loop (cdr certs) r))
-		   ((x509-certificate-signed-by? (car r) (car certs))
-		    (loop all-certs (cons (car certs) r)))
-		   (else (loop (cdr certs) r))))))
-	(else #f)))
+	   ;; only key entry should return certificate chain
+	   ;; For backward compatibility...
+	   (let ((et* (pkcs12-keystore-entry-types ks alias)))
+	     (if (or (memq (pkcs12-entry-type private-key) et*)
+		     (memq (pkcs12-entry-type encrypted-private-key) et*))
+		 (collect-chain ks cert)
+		 '()))))
+	(else '())))
 
 (define *all-entry-types*
   (enum-set->list (enum-set-universe (pkcs12-entry-types))))

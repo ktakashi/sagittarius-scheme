@@ -126,8 +126,10 @@
 	    *pkcs12-privacy-descriptor:pbe/sha1-des2-cbc*
 	    *pkcs12-privacy-descriptor:pbe/sha1-rc2-128-cbc*
 	    *pkcs12-privacy-descriptor:pbe/sha1-rc2-40-cbc*
+	    *pkcs12-privacy-descriptor:pbes2/aes-128-cbc-hmac-sha256*
+	    *pkcs12-privacy-descriptor:pbes2/aes-192-cbc-hmac-sha256*
 	    *pkcs12-privacy-descriptor:pbes2/aes-256-cbc-hmac-sha256*
-	    
+	    	    
 	    *pkcs12-integrity-descriptor:hmac/sha-256*
 	    (rename (*pkcs12-integrity-descriptor:hmac/sha-256*
 		     *pkcs12-integrity-descriptor:default*)
@@ -199,10 +201,11 @@
 		    (*pkcs12-integrity-iteration-count*)
 		    data prng))))
 (define (make-pkcs12-password-integrity-descriptor-api (md digest-descriptor?)
-	 :key (count (*pkcs12-integrity-iteration-count*))
+	 :key (iteration (*pkcs12-integrity-iteration-count*))
 	      (salt-size (*pkcs12-integrity-salt-size*)))
   (make-pkcs12-password-integrity-descriptor
-   (lambda (key data prng) (make-mac-data md key salt-size count data prng))))
+   (lambda (key data prng) 
+     (make-mac-data md key salt-size iteration data prng))))
 
 (define-record-type pkcs12-privacy-descriptor)
 (define-record-type pkcs12-password-privacy-descriptor
@@ -211,17 +214,25 @@
 (define (pkcs12-password-privacy-descriptor->aid desc prng)
   ((pkcs12-password-privacy-descriptor-aid-provider desc) prng))
 
-(define *pkcs12-privacy-descriptor:pbes2/aes-256-cbc-hmac-sha256*
+(define (block-cipher-descriptor->pkcs12-privacy-descriptor descriptor
+	 :key (prf *pbes:hmac/sha256*))
   (make-pkcs12-password-privacy-descriptor
    (lambda (prng)
-     (let ((block-size (block-cipher-descriptor-block-length *scheme:aes-256*)))
+     (let ((block-size (block-cipher-descriptor-block-length descriptor)))
        (make-pbes2-x509-algorithm-identifier
 	(make-pbkdf2-x509-algorithm-identifier
 	 (random-generator-read-random-bytes prng (*pkcs12-privacy-salt-size*))
 	 (*pkcs12-privacy-iteration-count*)
-	 :prf *pbes:hmac/sha256*)
+	 :prf prf)
 	(make-aes256-encryption-x509-algorithm-identifier
 	 (random-generator-read-random-bytes prng block-size)))))))
+(define *pkcs12-privacy-descriptor:pbes2/aes-128-cbc-hmac-sha256*
+  (block-cipher-descriptor->pkcs12-privacy-descriptor *scheme:aes-128*))
+(define *pkcs12-privacy-descriptor:pbes2/aes-192-cbc-hmac-sha256*
+  (block-cipher-descriptor->pkcs12-privacy-descriptor *scheme:aes-192*))
+(define *pkcs12-privacy-descriptor:pbes2/aes-256-cbc-hmac-sha256*
+  (block-cipher-descriptor->pkcs12-privacy-descriptor *scheme:aes-256*))
+
 
 (define (->pkcs12-password-privacy-descriptor oid)
   (make-pkcs12-password-privacy-descriptor
@@ -537,10 +548,10 @@
   (define (content-info->safe-bag ci)
     (define (rec ci pd)
       (define c (content-info-content ci))
-      (cond ((der-octet-string? c)
+      (cond ((ber-octet-string? c)
 	     (values
 	      (asn1-object->asn1-encodable <safe-contents>
-	       (bytevector->asn1-object (der-octet-string->bytevector c)))
+	       (bytevector->asn1-object (ber-octet-string->bytevector c)))
 	      pd))
 	    ((encrypted-data? c)
 	     (let ((eci (cms-encrypted-data-encrypted-content-info
@@ -633,11 +644,11 @@
   (define content (content-info-content (pfx-auth-safe pfx)))
   (let* ((mac-data (pfx-mac-data pfx))
 	 (mac (mac-data-mac mac-data))
-	 (salt (der-octet-string->bytevector (mac-data-mac-salt mac-data)))
+	 (salt (ber-octet-string->bytevector (mac-data-mac-salt mac-data)))
 	 (c (der-integer->integer (mac-data-iterations mac-data)))
 	 (aid (digest-info-digest-algorithm mac))
-	 (digest (der-octet-string->bytevector (digest-info-digest mac)))
-	 (data  (der-octet-string->bytevector content))
+	 (digest (ber-octet-string->bytevector (digest-info-digest mac)))
+	 (data  (ber-octet-string->bytevector content))
 	 (md (aid->md aid)))
     (unless (safe-bytevector=? digest (compute-mac md data password salt c))
       (error 'verify-mac
@@ -645,7 +656,7 @@
     (values (asn1-object->asn1-encodable <authenticated-safe>
 					 (bytevector->asn1-object data))
 	    (make-pkcs12-password-integrity-descriptor-api md
-	     :count c :salt-size (bytevector-length salt)))))
+	     :iteration c :salt-size (bytevector-length salt)))))
 
 ;;; Write
 (define (pkcs12-keystore->pfx ks

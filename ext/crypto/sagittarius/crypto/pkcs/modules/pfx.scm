@@ -133,7 +133,7 @@
   (asn1-sequence
    ((digest-algorithm :type <algorithm-identifier>
 		      :reader digest-info-digest-algorithm)
-    (digest :type <der-octet-string> :reader digest-info-digest))))
+    (digest :type <ber-octet-string> :reader digest-info-digest))))
 (define (digest-info? o) (is-a? o  <digest-info>))
 
 ;; MacData ::= SEQUENCE {
@@ -146,7 +146,7 @@
 (define-asn1-encodable <mac-data>
   (asn1-sequence
    ((mac :type <digest-info> :reader mac-data-mac)
-    (mac-salt :type <der-octet-string> :reader mac-data-mac-salt)
+    (mac-salt :type <ber-octet-string> :reader mac-data-mac-salt)
     (iterations :type <der-integer> :optional #t :reader mac-data-iterations))))
 (define (mac-data? o) (is-a? o <mac-data>))
 

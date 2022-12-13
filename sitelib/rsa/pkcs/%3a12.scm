@@ -31,5 +31,4 @@
 ;; only the part I want, for now
 (library (rsa pkcs :12)
     (export :all)
-    (import (rsa pkcs :12 cipher)
-	    (rsa pkcs :12 keystore)))
+    (import (rsa pkcs :12 keystore)))

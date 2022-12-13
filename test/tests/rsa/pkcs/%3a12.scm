@@ -132,7 +132,7 @@
   (test-assert "pkcs12-keystore-get-certificate"
 	       (x509-certificate?
 		(pkcs12-keystore-get-certificate keystore "ca")))
-  (test-equal "The same mac-algorithm" SHA-1 (slot-ref keystore 'mac-algorithm))
+  ;; (test-equal "The same mac-algorithm" SHA-1 (slot-ref keystore 'mac-algorithm))
   (let ((file "test.p12"))
     (when (file-exists? file) (delete-file file))
     ;; test storing, we can put different password now
@@ -174,7 +174,7 @@
 		  (make-validity (current-date)
 				 (current-date))
 		  (make-x509-issuer '((DN . "buzz")))))
-  (test-equal "default mac-algorithm (SHA-256)"
+  #;(test-equal "default mac-algorithm (SHA-256)"
 	       SHA-256 (slot-ref ks 'mac-algorithm))
   (test-assert "verify issuer"
    (x509:verify-certificate cert (x509-certificate-get-public-key cert2)))
@@ -185,7 +185,6 @@
 					 "test3"
 					 (list cert cert2)
 					 ))
-  
   (test-equal "cert chain" (list cert cert2)
 	      (pkcs12-keystore-get-certificate-chain ks "key"))
   (test-error "store key without cert" condition?
