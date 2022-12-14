@@ -26,10 +26,10 @@
 	    register-prng
 	    lookup-prng
 	    (rename (<random-generator> <prng>)
-		    (<builtin-random-generator> <builtin-prng>)
-		    (<custom-random-generator> <user-prng>))
+		    (<builtin-random-generator> <builtin-prng>))
+	    <user-prng>
 	    <secure-random>
-	    prng-state
+	    (rename (random-generator-state prng-state))
 	    ;; utility
 	    read-sys-random
 	    read-sys-random!
@@ -40,18 +40,19 @@
 	    (sagittarius crypto random))
 
 (define-class <secure-random> () ()) ;; interface
+(define-class <user-prng> (<custom-random-generator>) ())
 (define (secure-random? o)
   (or (secure-random-generator? o)
       (and (custom-random-generator? o) (is-a? o <secure-random>))))
 (define (pseudo-random? o)
   (or (builtin-random-generator? o)
       (and (custom-random-generator? o) (not (secure-random? o)))))
-(define-generic prng-state)
+
 (define-generic lookup-prng)
 (define-method lookup-prng (o) #f)
 
 ;; sad...
-(define-method :after initialize ((o <custom-random-generator>) initargs)
+(define-method :after initialize ((o <user-prng>) initargs)
   (let ((read-random! (slot-ref o 'read-random!)))
     (slot-set! o 'read-random! (lambda (prng buf s len)
 				 (let ((tmp (make-bytevector len)))

@@ -5,14 +5,14 @@
 
 (test-begin "SRFI 27")
 
-(test-assert "in range"
+(test-assert "in range (1)"
 	     (let loop ((k 0) (n 1))
 	       (cond ((> k 1024) #t)
 		     ((<= 0 (random-integer n) (- n 1))
 		      (loop (+ k 1) (* n 2)))
 		     (else #f))))
 
-(test-assert "in range"
+(test-assert "in range (2)"
 	     (let loop ((k 0) (n 1))
 	       (if (> k 1000)
 		   #t
@@ -20,6 +20,7 @@
 		     (if (< 0 x 1)
 			 (loop (+ k 1) (* n 2))
 			 #f)))))
+
 (let ()
   (define my-random-source (make-random-source))
   (define my-random-integer

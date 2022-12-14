@@ -32,12 +32,13 @@
 ;;; Scheme implementation of MT random
 ;;; based on mt19937-64.c
 ;;;  http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/mt64.html
+#!nounbound
 (library (math mt-random)
     (export MT <mersenne-twister>)
     (import (rnrs)
 	    (sagittarius)
 	    (clos user)
-	    (math)
+	    (sagittarius crypto random)
 	    (srfi :18))
 
   (define-constant NN       312)
@@ -118,7 +119,7 @@
   ;; generates a random number on [0, 2^64-1]-interval
   ;; I actually don't know how to treat this. for now, generate full number
   ;; and convert to bytevector.
-  (define (mt-read-random! prng buf bytes)
+  (define (mt-read-random! prng buf start bytes)
     (define (reset prng)
       (define (update-mt! mt start end ref)
 	(let loop ((j start))
@@ -144,9 +145,9 @@
 	  (mt-set! mt (- NN 1) v)
 	  (slot-set! prng 'mti 0))))
 
-    (define (read-random! bv count)
-      (let ((len (bytevector-length bv)))
-	(let loop ((i 0) (offset 0))
+    (define (read-random! bv start count)
+      (let ((len (- (bytevector-length bv) start)))
+	(let loop ((i 0) (offset start))
 	  (unless (= i count)
 	    (when (>= (slot-ref prng 'mti) NN) (reset prng))
 	    (let* ((mt (slot-ref prng 'state))
@@ -176,27 +177,29 @@
     (let ((count (ceiling (/ bytes 8)))
 	  (lock (slot-ref prng 'lock)))
       (mutex-lock! lock)
-      (read-random! buf count)
+      (read-random! buf start count)
       (mutex-unlock! lock)
       buf))
 
   ;; MT random is not secure random, so we do not implement <secure-random>
-  (define-class <mersenne-twister> (<user-prng>)
+  (define-class <mersenne-twister> (<custom-random-generator>)
     (;; The array for the state vector
      ;; using bytevector, it needs to be 64 bit aligned.
      (state :init-keyword :state :init-form (make-bytevector (* NN 8)))
      (mti   :init-keyword :mti   :init-value #f)
      (lock  :init-form (make-mutex))))
   (define-method initialize ((o <mersenne-twister>) initargs)
-    (call-next-method)
+    (call-next-method o (cons* :set-seed! mt-set-seed
+			       :read-random! mt-read-random!
+			       initargs))
     (let ((seed (get-keyword :seed initargs #f)))
-      (slot-set! o 'set-seed! mt-set-seed)
-      (slot-set! o 'read-random! mt-read-random!)
+      ;; (slot-set! o 'set-seed! mt-set-seed)
+      ;; (slot-set! o 'read-random! mt-read-random!)
       (if seed
 	  (mt-set-seed o seed)
 	  (init-genrand o 5489))))
 
-  (define-method prng-state ((prng <mersenne-twister>))
+  (define-method random-generator-state ((prng <mersenne-twister>))
     (define lock (slot-ref prng 'lock))
     (mutex-lock! lock)
     (let ((bv (make-bytevector (*8 (+ NN 1))))
@@ -206,10 +209,10 @@
       (mutex-unlock! lock)
       bv))
 
-  (define-method prng-state ((prng <mersenne-twister>) state)
+  (define-method random-generator-state ((prng <mersenne-twister>) state)
     (assertion-violation 'prng-state "state must be bytevector"
 			 state))
-  (define-method prng-state ((prng <mersenne-twister>)
+  (define-method random-generator-state ((prng <mersenne-twister>)
 			     (state <bytevector>))
     (define lock (slot-ref prng 'lock))
     (mutex-lock! lock)
@@ -225,7 +228,7 @@
     (mutex-unlock! lock))
 
   ;; register
-  (define-class <mt> () ())
-  (define MT (make <mt>))
-  (register-prng MT <mersenne-twister>)
+  (define MT :mt-random)
+  (define-method make-custom-random-generator ((o (eql MT)) . opts)
+    (apply make <mersenne-twister> opts))
 )

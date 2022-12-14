@@ -27,8 +27,8 @@
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
-#!core
 
+#!nounbound
 (library (srfi :27 random-bits)
     (export random-integer
 	    random-real
@@ -43,14 +43,14 @@
 	    random-source-make-reals)
     (import (rnrs)
 	    (sagittarius)
-	    (math)
+	    (sagittarius crypto random)
 	    (math mt-random))
   ;; default random source is mt-random without seed
-  (define default-random-source (pseudo-random MT))
+  (define default-random-source (pseudo-random-generator MT))
   ;; we supports other random number generators, so take optional arguments
   (define (make-random-source :key (prng MT) :allow-other-keys rest)
-    (apply pseudo-random prng rest))
-  (define (random-source? obj) (prng? obj))
+    (apply pseudo-random-generator prng rest))
+  (define (random-source? obj) (random-generator? obj))
   ;; states
   ;; if given ransom-source is implementes <secure-random> then, we don't
   ;; return state. well, this is just an excuse not to return state for
@@ -59,20 +59,24 @@
     (unless (random-source? s)
       (assertion-violation 'random-source-state-ref
 			   "random-source required" s))
-    (prng-state s))
+    (random-generator-state s))
   (define (random-source-state-set! s state)
     (unless (random-source? s)
       (assertion-violation 'random-source-state-ref
 			   "random-source required" s))
-    (prng-state s state))
-  
+    (random-generator-state s state))
+
+  (define system-prng (pseudo-random-generator *prng:system*))
+  (define (read-sys-random bits)
+    (let ((size (div (+ bits 7) 8)))
+      (random-generator-read-random-bytes system-prng size)))
   (define (random-source-randomize! s)
     (unless (random-source? s)
       (assertion-violation 'random-source-randomize!
 			   "random-source required" s))
     ;; well mt-random uses 64 bit seed, so read 16 bytes from system random
     (let ((seed (read-sys-random (* 16 8))))
-      (random-seed-set! s seed)))
+      (random-generator-randomize! s seed)))
 
   ;; implementation based on Gauche
   (define (random-source-pseudo-randomize! s i j)
@@ -108,8 +112,8 @@
 			   "random-source required" s))
     ;; to avoid useless calculation, we check if given source supports
     ;; prng-state
-    (if (prng-state s)
-	(random-seed-set! 
+    (if (random-generator-state s)
+	(random-generator-randomize! 
 	 s (u64-list->bytevector (interleave-i i j '(#xFFFFFFFFFFFFFFFF))))
 	;; well, i don't know if this is correct or not...
 	#f))
@@ -119,11 +123,11 @@
     (unless (random-source? s)
       (assertion-violation 'random-source-make-integers
 			   "random-source required" s))
-    (lambda (n) (random s n)))
+    (lambda (n) (random-generator-random-integer s n)))
 
   (define (random-real-helper s)
     ;; for mt-random, we only read 8 bytes, should be enough, right?
-    (let ((x (bytevector->integer (read-random-bytes s 8))))
+    (let ((x (bytevector->integer (random-generator-read-random-bytes s 8))))
       (* (bitwise-arithmetic-shift-right x 11)
 	 (/ 1.0 9007199254740992.0))))
 
@@ -141,11 +145,11 @@
 	  (let* ((1/uint (inexact (/ uint)))
 		 (range  (exact (ceiling 1/uint))))
 	    (lambda ()
-	      (/ (random s range) 1/uint))))))
+	      (/ (random-generator-random-integer s range) 1/uint))))))
 
   ;; random generators
   (define (random-integer n)
-    (random default-random-source n))
+    (random-generator-random-integer default-random-source n))
 
   (define (random-real)
     (random-real-helper default-random-source))

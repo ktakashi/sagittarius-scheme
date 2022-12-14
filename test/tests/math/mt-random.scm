@@ -1,6 +1,7 @@
 ;; The test case is automatically generated.
 (import (rnrs)
-	(math)
+	(rename (sagittarius crypto random)
+		(random-generator-read-random-bytes read-random-bytes))
 	(math mt-random)
 	(srfi :64 testing)
 	(srfi :18))
@@ -8,7 +9,7 @@
 (define seed (uint-list->bytevector '(#x12345 #x23456 #x34567 #x45678)
 				    (endianness native) 8)) 
 
-(define prng (pseudo-random MT :seed seed))
+(define prng (pseudo-random-generator MT :seed seed))
 
 (test-begin "MT random")
 (test-equal "time 0"  7266447313870364031 (bytevector->integer (read-random-bytes prng 8)))
@@ -1014,7 +1015,7 @@
 
 
 (let ()
-  (define prng (pseudo-random MT))
+  (define prng (pseudo-random-generator MT))
   (define bytes '(256 256 256 256))
 
   (define threads

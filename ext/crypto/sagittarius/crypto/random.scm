@@ -38,7 +38,7 @@
 	    random-generator-read-random-bytes!
 	    random-generator-randomize!
 	    random-generator-random-integer
-	    
+	    random-generator-state
 
 	    pseudo-random-generator
 	    secure-random-generator
@@ -139,4 +139,7 @@
 	(mod i size)
 	i)))
 
+(define-generic random-generator-state)
+(define-method random-generator-state ((o <random-generator>)) #f)
+(define-method random-generator-state ((o <random-generator>) v) #f)
 )
