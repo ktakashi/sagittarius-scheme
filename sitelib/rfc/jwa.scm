@@ -48,28 +48,30 @@
 	    )
     (import (rnrs)
 	    (sagittarius)
-	    (crypto))
+	    (sagittarius crypto keys))
 
   (define-constant +curve-names+
-    `((P-256 ,NIST-P-256)
-      (P-384 ,NIST-P-384)
-      (P-521 ,NIST-P-521)))
+    `((P-256 ,*ec-parameter:p256*)
+      (P-384 ,*ec-parameter:p384*)
+      (P-521 ,*ec-parameter:p521*)))
   
   (define (jwa:curve->parameter crv)
     (cond ((assq crv +curve-names+) => cadr)
 	  (else (assertion-violation
 		 'jwa:curve->parameter "unsupported crv name" crv))))
   (define (jwa:make-ec-public-key crv x y)
-    (generate-public-key ECDSA x y (jwa:curve->parameter crv)))
+    (generate-public-key *key:ecdsa* x y (jwa:curve->parameter crv)))
   
   (define (jwa:make-ec-private-key crv d x y)
-    (generate-private-key ECDSA d (jwa:curve->parameter crv)
+    (generate-private-key *key:ecdsa* d (jwa:curve->parameter crv)
 			  (jwa:make-ec-public-key crv x y)))
   
-  (define (jwa:make-rsa-public-key n e) (generate-public-key RSA n e))
-  (define (jwa:make-rsa-private-key n e d) (generate-private-key RSA n d))
+  (define (jwa:make-rsa-public-key n e) (generate-public-key *key:rsa* n e))
+  (define (jwa:make-rsa-private-key n e d) (generate-private-key *key:rsa* n d))
   (define (jwa:make-rsa-crt-private-key n e d p q dp dq qi)
-    (generate-private-key RSA n d :public-exponent e :p p :q q :dP dp
+    (generate-private-key *key:rsa*
+			  n d
+			  :public-exponent e :p p :q q :dP dp
 			  :dQ dq :qP qi))
 
   ;; Section 4.4
@@ -93,14 +95,16 @@
 
 
   ;; RFC 8037
-  (define (jwa:make-ed25519-public-key x)  (generate-public-key Ed25519 x))
-  (define (jwa:make-ed25519-private-key d) (generate-private-key Ed25519 d))
-  (define (jwa:make-ed448-public-key x)  (generate-public-key Ed448 x))
-  (define (jwa:make-ed448-private-key d) (generate-private-key Ed448 d))
+  (define (jwa:make-ed25519-public-key x)
+    (generate-public-key *key:ed25519* x))
+  (define (jwa:make-ed25519-private-key d)
+    (generate-private-key *key:ed25519* d))
+  (define (jwa:make-ed448-public-key x)  (generate-public-key *key:ed448* x))
+  (define (jwa:make-ed448-private-key d) (generate-private-key *key:ed448* d))
 
-  (define (jwa:make-x25519-public-key x)  (generate-public-key X25519 x))
-  (define (jwa:make-x25519-private-key d) (generate-private-key X25519 d))
-  (define (jwa:make-x448-public-key x)  (generate-public-key X448 x))
-  (define (jwa:make-x448-private-key d) (generate-private-key X448 d))
+  (define (jwa:make-x25519-public-key x)  (generate-public-key *key:x25519* x))
+  (define (jwa:make-x25519-private-key d) (generate-private-key *key:x25519* d))
+  (define (jwa:make-x448-public-key x)  (generate-public-key *key:x448* x))
+  (define (jwa:make-x448-private-key d) (generate-private-key *key:x448* d))
   )
 

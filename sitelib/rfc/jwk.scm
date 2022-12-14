@@ -1,20 +1,20 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
 ;;; rfc/jwk.scm - JSON Web Key (JWK)
-;;;  
+;;;
 ;;;   Copyright (c) 2017  Takashi Kato  <ktakashi@ymail.com>
-;;;   
+;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
 ;;;   are met:
-;;;   
+;;;
 ;;;   1. Redistributions of source code must retain the above copyright
 ;;;      notice, this list of conditions and the following disclaimer.
-;;;  
+;;;
 ;;;   2. Redistributions in binary form must reproduce the above copyright
 ;;;      notice, this list of conditions and the following disclaimer in the
 ;;;      documentation and/or other materials provided with the distribution.
-;;;  
+;;;
 ;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 ;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 ;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -26,7 +26,7 @@
 ;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-;;;  
+;;;
 
 ;; ref:
 ;; - https://tools.ietf.org/html/rfc7517
@@ -43,7 +43,7 @@
 	    jwk-matcher:kid jwk-matcher:x5t jwk-matcher:x5t-s256
 	    jwk-matcher:crv
 	    jwk-matcher:rsa jwk-matcher:ec jwk-matcher:oct jwk-matcher:okp
-	    
+
 	    ;; keys
 	    json-string->jwk read-jwk json->jwk
 	    jwk->json-string write-jwk jwk->json
@@ -81,13 +81,13 @@
 	    (text json parse)
 	    (text json object-builder)
 	    (sagittarius)
+	    (sagittarius crypto digests)
+	    (sagittarius crypto keys)
 	    (rfc jwa)
 	    (rfc base64)
 	    (rfc x.509)
 	    (srfi :39)
 	    (record builder)
-	    (crypto)
-	    (math)
 	    (math ec))
 
   (define-record-type jwk
@@ -143,7 +143,7 @@
   (define jwk-matcher:oct (jwk-matcher:kty 'oct))
   (define jwk-matcher:okp (jwk-matcher:kty 'OKP))
 
-  
+
   ;;; implementation specific record
   ;; ref: https://tools.ietf.org/html/rfc7518#section-6.1
   ;; EC
@@ -185,7 +185,7 @@
   (define-record-type jwk:okp-private
     (parent jwk:okp)
     (fields d))
-  
+
   (define (base64-url-string->bytevector s) (base64url-decode (string->utf8 s)))
   (define (base64-string->bytevector s) (base64-decode-string s :transcoder #f))
   (define (b64-string->x509-certificate s)
@@ -202,7 +202,7 @@
       (? "x5c" '() (@ list b64-string->x509-certificate))
       (? "x5t" #f base64-url-string->bytevector)
       (? "x5t#S256" #f base64-url-string->bytevector))))
-  
+
   (define jwks-builder
     (json-object-builder
      (make-jwk-set
@@ -271,7 +271,7 @@
     (define key-parameters (make-eq-hashtable))
     (define (parameter-handler k v)
       (hashtable-set! key-parameters (string->symbol k) v))
-    
+
     (define (post-object-build obj)
       (if (jwk? obj)
 	  (let ((r (make-jwk-by-type obj key-parameters)))
@@ -285,7 +285,7 @@
     (case-lambda
      (() (read-jwk-set (current-input-port)))
      ((port) (json->jwk-set (json-read port)))))
-    
+
   (define (json-string->jwk-set json-string)
     (read-jwk-set (open-string-input-port json-string)))
 
@@ -293,7 +293,7 @@
     (define key-parameters (make-eq-hashtable))
     (define (parameter-handler k v)
       (hashtable-set! key-parameters (string->symbol k) v))
-    
+
     (define (post-object-build obj)
       (if (jwk? obj)
 	  (let ((r (make-jwk-by-type obj key-parameters)))
@@ -307,10 +307,10 @@
     (case-lambda
      (() (read-jwk (current-input-port)))
      ((port) (json->jwk (json-read port)))))
-    
+
   (define (json-string->jwk json-string)
     (read-jwk (open-string-input-port json-string)))
-  
+
   (define (bytevector->b64-string bv)
     (utf8->string (base64-encode bv :line-width #f)))
   (define (bytevector->b64url-string bv) (utf8->string (base64url-encode bv)))
@@ -335,7 +335,7 @@
     (utf8->string (base64url-encode bv)))
   (define (integer->b64u-string i)
     (utf8->string (base64url-encode (integer->bytevector i))))
-  
+
   (define jwk:ec-serializer
     (jwk-serializer ("crv" jwk:ec-crv symbol->string)
 		    ("x" jwk:ec-x integer->b64u-string)
@@ -365,7 +365,7 @@
   ;; oct
   (define jwk:oct-serializer
     (jwk-serializer ("k" jwk:oct-k bytevector->b64u-string)))
-  
+
   ;; OKP
   (define jwk:okp-serializer
     (jwk-serializer ("crv" jwk:okp-crv symbol->string)
@@ -374,7 +374,7 @@
     (jwk-serializer ("crv" jwk:okp-crv symbol->string)
 		    ("x" jwk:okp-x bytevector->b64u-string)
 		    ("d" jwk:okp-private-d bytevector->b64u-string)))
-  
+
   (define (dispatch-jwk o)
     (cond ((jwk:ec-private? o) (object->json o jwk:ec-private-serializer))
 	  ((jwk:ec? o) (object->json o jwk:ec-serializer))
@@ -410,7 +410,7 @@
     (let-values (((out extract) (open-string-output-port)))
       (write-jwk jwk out)
       (extract)))
-  
+
   (define (jwk->public-key jwk)
     ;; jwk:ec-private or jwk:rsa-private can also be a public key
     (cond ((jwk:ec? jwk)
@@ -501,12 +501,13 @@
      (x5u (jwk-x5u jwk))
      (x5c (jwk-x5c jwk))
      (e (if (jwk:rsa? jwk) (jwk:rsa-e jwk) 65537))))
-  
+
   (define (x5c->fingerprint x5c algo)
+    (define md (make-message-digest algo))
     (and (not (null? x5c))
 	 (utf8->string
 	  (base64-encode
-	   (hash algo (x509-certificate->bytevector (car x5c)))))))
+	   (digest-message md (x509-certificate->bytevector (car x5c)))))))
   (define (make-key ctr type config . rest)
     (apply ctr type
 	   (jwk:config-use config)
@@ -515,8 +516,8 @@
 	   (jwk:config-kid config)
 	   (jwk:config-x5u config)
 	   (map x509-certificate->bytevector (jwk:config-x5c config))
-	   (x5c->fingerprint (jwk:config-x5c config) SHA-1)
-	   (x5c->fingerprint (jwk:config-x5c config) SHA-256)
+	   (x5c->fingerprint (jwk:config-x5c config) *digest:sha-1*)
+	   (x5c->fingerprint (jwk:config-x5c config) *digest:sha-256*)
 	   rest))
   (define public-key->jwk
     (case-lambda
@@ -527,7 +528,7 @@
 		  (rsa-public-key-modulus public-key)
 		  (rsa-public-key-exponent public-key)))
       (define (ecdsa-public-key->jwk public-key)
-	(define ec-param (ecdsa-public-key-parameter public-key))
+	(define ec-param (ecdsa-key-parameter public-key))
 	(define oid (ec-parameter-oid ec-param))
 	(define Q (ecdsa-public-key-Q public-key))
 	(let-values (((curv alg) (oid->curv&alg oid)))
@@ -554,22 +555,22 @@
      ((private-key) (private-key->jwk private-key (jwk-config-builder)))
      ((private-key config)
       (define (rsa-private-key->jwk private-key)
-	(if (rsa-private-crt-key? private-key)
+	(if (rsa-crt-private-key? private-key)
 	    (make-key make-jwk:rsa-crt-private 'RSA config
 		      (rsa-private-key-modulus private-key)
-		      (rsa-private-crt-key-public-exponent private-key)
+		      (rsa-crt-private-key-public-exponent private-key)
 		      (rsa-private-key-private-exponent private-key)
-		      (rsa-private-crt-key-p private-key)
-		      (rsa-private-crt-key-q private-key)
-		      (rsa-private-crt-key-dP private-key)
-		      (rsa-private-crt-key-dQ private-key)
-		      (rsa-private-crt-key-qP private-key))
+		      (rsa-crt-private-key-p private-key)
+		      (rsa-crt-private-key-q private-key)
+		      (rsa-crt-private-key-dP private-key)
+		      (rsa-crt-private-key-dQ private-key)
+		      (rsa-crt-private-key-qP private-key))
 	    (make-key make-jwk:rsa-private 'RSA config
 		      (rsa-private-key-modulus private-key)
 		      (jwk:config-e config)
 		      (rsa-private-key-private-exponent private-key))))
       (define (ecdsa-private-key->jwk private-key)
-	(define ec-param (ecdsa-private-key-parameter private-key))
+	(define ec-param (ecdsa-key-parameter private-key))
 	(define oid (ec-parameter-oid ec-param))
 	(define public-key (ecdsa-private-key-public-key private-key))
 	(define Q (ecdsa-public-key-Q public-key))
@@ -607,7 +608,7 @@
 	     (make-key make-jwk:oct 'oct config secret-key))
 	    ((symmetric-key? secret-key)
 	     (make-key make-jwk:oct 'oct config
-		       (symmetric-key-raw-key secret-key)))
+		       (symmetric-key-value secret-key)))
 	    (else (assertion-violation 'secret-key->jwk "Unsupported key"
 				       secret-key))))))
 
@@ -620,5 +621,5 @@
 	    ((or (bytevector? key) (symmetric-key? key))
 	     (secret-key->jwk key config))
 	    (else (assertion-violation 'key->jwk "Unsupported key" key))))))
-    
+
   )

@@ -2,7 +2,7 @@
 	(rfc jws)
 	(rfc jwk)
 	(text json compare)
-	(crypto)
+	(sagittarius crypto keys)
 	(rfc base64)
 	(rfc pem)
 	(rsa pkcs :8)
@@ -52,7 +52,7 @@
       (subject-public-key-info->public-key spki))))
 (define (pem->rsa-private-key pem-string)
   (let-values (((param content) (parse-pem-string pem-string)))
-    (import-private-key RSA content)))
+    (import-private-key *key:rsa* content)))
 
 (define (test-jws jws-string public-key private-key)
   (define get-verifier public-key->jws-verifier)
@@ -172,7 +172,7 @@ OF/2NxApJCzGCEDdfSp6VQO30hyhRANCAAQRWz+jn65BtOMvdyHKcvjBeBSDZH2r
 
 (define (pem->ecdsa-private-key pem-string)
   (let-values (((param content) (parse-pem-string pem-string)))
-    (import-private-key ECDSA content)))
+    (import-private-key *key:ecdsa* content)))
 
 (define ec-public-key-p384
   (pem->public-key

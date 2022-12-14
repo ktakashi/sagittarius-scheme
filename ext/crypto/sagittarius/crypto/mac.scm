@@ -42,6 +42,8 @@
 	    mac-init!
 	    mac-process!
 	    mac-done!
+
+	    verify-mac
 	    
 	    make-mac-generator
 
@@ -69,7 +71,8 @@
 	    (sagittarius mop immutable)
 	    (sagittarius crypto mac types)
 	    (sagittarius crypto mac hmac)
-	    (sagittarius crypto mac cmac))
+	    (sagittarius crypto mac cmac)
+	    (sagittarius crypto secure))
 
 (define-class <mac> (<immutable>)
   ((type :init-keyword :type :reader mac-type)
@@ -110,6 +113,11 @@
   mac)
 (define (mac-done! (mac mac?) (out bytevector?) . opts)
   (apply (mac-finalizer mac) (mac-state mac) out opts))
+
+(define (verify-mac (mac mac?) signing-content auth-mac)
+  (let ((m (generate-mac mac signing-content)))
+    (unless (safe-bytevector=? m auth-mac)
+      (error 'verify-mac "Invalid MAC" signing-content auth-mac))))
 
 (define (make-mac-generator mac)
   (define initializer (mac-initializer mac))

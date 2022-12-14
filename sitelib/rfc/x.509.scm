@@ -94,15 +94,7 @@
 	    make-x509-self-signed-certificate
 	    ;; for backward compatibility
 	    (rename (make-x509-self-signed-certificate
-		     make-x509-basic-certificate))
-
-	    ;; etc
-	    <subject-key-identifier>
-	    subject-key-identifier?
-	    make-subject-key-identifier
-	    subject-key-identifier-key-identifier
-
-	    )
+		     make-x509-basic-certificate)))
     (import (rnrs)
 	    (clos user)
 	    (sagittarius crypto asn1)
@@ -121,18 +113,6 @@
   (read-x509-certificate p))
 (define-method  make-x509-certificate ((o <asn1-object>))
   (asn1-object->x509-certificate o))
-
-;; TODO remove this, this is used only in PKCS#12 keystore
-(define-class <subject-key-identifier> (<asn1-encodable>)
-  ((key-identifier :init-keyword :key-identifier
-		   :reader subject-key-identifier-key-identifier)))
-(define (subject-key-identifier? o) (is-a? o <subject-key-identifier>))
-(define-generic make-subject-key-identifier)
-(define-method make-subject-key-identifier ((keyid <bytevector>))
-  (make <subject-key-identifier> :key-identifier keyid))
-(define-method asn1-encodable->asn1-object ((o <subject-key-identifier>) i)
-  (bytevector->der-octet-string
-   (subject-key-identifier-key-identifier o)))
 
 (define x509-certificate-get-not-before
   (.$ x509-validity-not-before x509-certificate-validity))

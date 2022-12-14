@@ -75,12 +75,12 @@
 	    (rfc jose)
 	    (rfc jwk)
 	    (rfc base64)
-	    (rfc hmac)
 	    (record accessor)
 	    (record builder)
 	    (security signature)
-	    (except (crypto) make-eddsa-verifier make-eddsa-signer)
-	    (math)
+	    (sagittarius crypto keys)
+	    (sagittarius crypto mac)
+	    (sagittarius crypto digests)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
 	    (srfi :39 parameters)
@@ -277,15 +277,16 @@
 (define (make-mac-jws-verifier key)
   (define (get-algorithm alg)
     (case alg
-      ((HS256) (hash-algorithm SHA-256))
-      ((HS384) (hash-algorithm SHA-384))
-      ((HS512) (hash-algorithm SHA-512))
+      ((HS256) *digest:sha-256*)
+      ((HS384) *digest:sha-384*)
+      ((HS512) *digest:sha-512*)
       (else (assertion-violation 'mac-jws-verifier "Unknown algorithm" alg))))
   (cond ((jwk? key) (make-mac-jws-verifier (jwk->octet-key key)))
 	((bytevector? key)
 	 (lambda (header signed-content signature)
-	   (let ((algo (get-algorithm (jose-crypto-header-alg header))))
-	     (verify-mac HMAC signed-content signature :key key :hash algo))))
+	   (let* ((algo (get-algorithm (jose-crypto-header-alg header)))
+		  (mac (make-mac *mac:hmac* key :digest algo)))
+	     (verify-mac mac signed-content signature))))
 	(else (assertion-violation 'make-mac-jws-verifier
 				   "JWK:oct or bytevector is required" key))))
 
@@ -296,11 +297,17 @@
       ((RS384) (*rsa/sha384-verifier-provider* key))
       ((RS512) (*rsa/sha512-verifier-provider* key))
       ((PS256)
-       (*rsassa-pss-verifier-provider* key :digest SHA-256 :salt-length 32))
+       (*rsassa-pss-verifier-provider* key
+				       :digest *digest:sha-256*
+				       :salt-length 32))
       ((PS384)
-       (*rsassa-pss-verifier-provider* key :digest SHA-384 :salt-length 48))
+       (*rsassa-pss-verifier-provider* key
+				       :digest *digest:sha-384*
+				       :salt-length 48))
       ((PS512)
-       (*rsassa-pss-verifier-provider* key :digest SHA-512 :salt-length 64))
+       (*rsassa-pss-verifier-provider* key
+				       :digest *digest:sha-512*
+				       :salt-length 64))
       (else (assertion-violation 'rsa-jws-verifier "Unknown algorithm" alg))))
   (cond ((jwk? key) (make-rsa-jws-verifier (jwk->public-key key)))
 	((rsa-public-key? key)
@@ -344,15 +351,16 @@
 (define (make-mac-jws-signer key)
   (define (get-algorithm alg)
     (case alg
-      ((HS256) (hash-algorithm SHA-256))
-      ((HS384) (hash-algorithm SHA-384))
-      ((HS512) (hash-algorithm SHA-512))
+      ((HS256) *digest:sha-256*)
+      ((HS384) *digest:sha-384*)
+      ((HS512) *digest:sha-512*)
       (else (assertion-violation 'mac-jws-signer "Unknown algorithm" alg))))
   (cond ((jwk? key) (make-mac-jws-signer (jwk->octet-key key)))
 	((bytevector? key)
 	 (lambda (header signing-content)
-	   (let ((algo (get-algorithm (jose-crypto-header-alg header))))
-	     (hash HMAC signing-content :key key :hash algo))))
+	   (let* ((algo (get-algorithm (jose-crypto-header-alg header)))
+		  (mac (make-mac *mac:hmac* key :digest algo)))
+	     (generate-mac mac signing-content))))
 	(else (assertion-violation 'make-mac-jws-signer
 				   "JWK:oct or bytevector required" key))))
 
@@ -363,11 +371,14 @@
       ((RS384) (*rsa/sha384-signer-provider* key))
       ((RS512) (*rsa/sha512-signer-provider* key))
       ((PS256)
-       (*rsassa-pss-signer-provider* key :digest SHA-256 :salt-length 32))
+       (*rsassa-pss-signer-provider* key
+				     :digest *digest:sha-256* :salt-length 32))
       ((PS384)
-       (*rsassa-pss-signer-provider* key :digest SHA-384 :salt-length 48))
+       (*rsassa-pss-signer-provider* key
+				     :digest *digest:sha-384* :salt-length 48))
       ((PS512)
-       (*rsassa-pss-signer-provider* key :digest SHA-512 :salt-length 64))
+       (*rsassa-pss-signer-provider* key
+				     :digest *digest:sha-512* :salt-length 64))
       (else (assertion-violation 'rsa-jws-signer "Unknown algorithm" alg))))
   (cond ((jwk? key) (make-rsa-jws-signer (jwk->private-key key)))
 	((private-key? key)

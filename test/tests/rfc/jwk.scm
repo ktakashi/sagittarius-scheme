@@ -3,7 +3,7 @@
 	(srfi :64)
 	(rfc x.509)
 	(rfc pem)
-	(crypto)
+	(sagittarius crypto keys)
 	(sagittarius combinators)
 	(text json compare))
 

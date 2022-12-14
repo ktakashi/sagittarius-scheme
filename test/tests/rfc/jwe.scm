@@ -3,7 +3,7 @@
 	(rfc jwk)
 	(rfc base64)
 	(text json)
-	(crypto)
+	(sagittarius crypto keys)
 	(srfi :64))
 
 (define jwe-string
@@ -29,14 +29,17 @@
 	 (make-direct-jwe-decryptor key :strict? #f))
        (define bv-plain-text (string->utf8 plain-text))
        (define (test-decrypt jwe-object)
-	 (test-equal cipher-text
+	 (test-equal plain-text
+		     cipher-text
 		     (utf8->string
 		      (base64url-encode (jwe-object-cipher-text jwe-object))))
-	 (test-equal tag
+	 (test-equal plain-text
+		     tag
 		     (utf8->string
 		      (base64url-encode
 		       (jwe-object-authentication-tag jwe-object))))
 	 (test-equal plain-text
+		     plain-text
 		     (utf8->string (jwe:decrypt dir-decryptor jwe-object)))
 	 jwe-object)
        (let ((o (test-decrypt (jwe:encrypt dir-encryptor jwe-header
@@ -483,8 +486,8 @@
 
 (let ()
   (define jwe-header (make-jwe-header "ECDH-ES"))
-  (define z0 (calculate-key-agreement ECDH pri-a pub-b))
-  (define z1 (calculate-key-agreement ECDH pri-b pub-a))
+  (define z0 (calculate-key-agreement *key:ecdh* pri-a pub-b))
+  (define z1 (calculate-key-agreement *key:ecdh* pri-b pub-a))
 
   (test-equal "Of encryptor" "VqqN6vgjbSBcIijNcacQGg"
 	      (utf8->string
@@ -503,8 +506,8 @@
 ;; NOTE: computation of Z is tested on crypto library side
 (define (test-ecdh-rfc7748 type alg)
   (define keypair (generate-key-pair type))
-  (define ecdsa-encryptor (make-ecdh-jwe-encryptor (keypair-public keypair)))
-  (define ecdsa-decryptor (make-ecdh-jwe-decryptor (keypair-private keypair)))
+  (define ecdsa-encryptor (make-ecdh-jwe-encryptor (key-pair-public keypair)))
+  (define ecdsa-decryptor (make-ecdh-jwe-decryptor (key-pair-private keypair)))
 
   (define plain-text
     (string->utf8 "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."))
@@ -540,14 +543,14 @@
 			       (jwe:parse (jwe:serialize jwe-object/zip))))
       )))
 
-(test-ecdh-rfc7748 X25519 "ECDH-ES")
-(test-ecdh-rfc7748 X25519 "ECDH-ES+A128KW")
-(test-ecdh-rfc7748 X25519 "ECDH-ES+A198KW")
-(test-ecdh-rfc7748 X25519 "ECDH-ES+A256KW")
-(test-ecdh-rfc7748 X448 "ECDH-ES")
-(test-ecdh-rfc7748 X448 "ECDH-ES+A128KW")
-(test-ecdh-rfc7748 X448 "ECDH-ES+A198KW")
-(test-ecdh-rfc7748 X448 "ECDH-ES+A256KW")
+(test-ecdh-rfc7748 *key:x25519* "ECDH-ES")
+(test-ecdh-rfc7748 *key:x25519* "ECDH-ES+A128KW")
+(test-ecdh-rfc7748 *key:x25519* "ECDH-ES+A198KW")
+(test-ecdh-rfc7748 *key:x25519* "ECDH-ES+A256KW")
+(test-ecdh-rfc7748 *key:x448* "ECDH-ES")
+(test-ecdh-rfc7748 *key:x448* "ECDH-ES+A128KW")
+(test-ecdh-rfc7748 *key:x448* "ECDH-ES+A198KW")
+(test-ecdh-rfc7748 *key:x448* "ECDH-ES+A256KW")
 
 
 )
