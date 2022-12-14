@@ -44,8 +44,11 @@
 	    xmldsig:sign!
 	    )
     (import (rnrs)
-	    (crypto)
-	    (math)
+	    (rename (sagittarius crypto keys)
+		    (key-pair-private keypair-private)
+		    (key-pair-public keypair-public))
+	    (sagittarius crypto digests)
+	    (sagittarius crypto signatures)
 	    (sagittarius control) ;; for define-values
 	    (text xml dom)
 	    (text xml dom writer)
@@ -93,12 +96,13 @@
       (writer dom out)
       (e)))
   (define (digest content)
-    (hash (ds:digest-method-algorithm dm) (string->utf8 content)))
+    (let ((md (make-message-digest (ds:digest-method-algorithm dm))))
+      (digest-message md (string->utf8 content))))
   (define (sign key content)
-    (define signer (make-cipher (ds:signature-method-cipher sm) key))
-    (cipher-signature signer (string->utf8 content)
-		      :encode pkcs1-emsa-v1.5-encode
-		      :hash (ds:signature-method-digest sm)))
+    (define signer (make-signer (ds:signature-method-cipher sm) key
+				:encoder pkcs1-emsa-v1.5-encode
+				:digest (ds:signature-method-digest sm)))
+    (signer-sign-message signer (string->utf8 content)))
   
   (define sig (xmldsig:make-signature si keypair))
   

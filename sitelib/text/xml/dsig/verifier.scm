@@ -49,8 +49,12 @@
 	    )
     (import (rnrs)
 	    (sagittarius) ;; for bytevector->integer
-	    (crypto)
-	    (math)
+	    (rename (sagittarius crypto keys)
+		    (key-pair-private keypair-private)
+		    (key-pair-public keypair-public)
+		    (*key:rsa* RSA))
+	    (sagittarius crypto digests)
+	    (sagittarius crypto signatures)
 	    (rfc base64)
 	    (text xml dom)
 	    (text xml dom writer)
@@ -135,9 +139,9 @@
     (define (do-modify! proc e nl)
       (node-list-for-each (lambda (n) (proc e n)) nl))
     (define (do-check)
-      (let ((s (canonicalise dom)))
-	(unless (bytevector=? dv (hash (ds:digest-method-algorithm dm)
-				       (string->utf8 s)))
+      (let ((s (canonicalise dom))
+	    (md (make-message-digest (ds:digest-method-algorithm dm))))
+	(unless (bytevector=? dv (digest-message md (string->utf8 s)))
 	  (error 'xmldsig:verify "Invalid digest"))))
     (dynamic-wind
 	(lambda ()
@@ -155,16 +159,16 @@
     (cond ((exists key-selector ki*))
 	  (else (error 'xmldsig:verify "No verify key found"))))
   (define (check-signature si sm)
-    (define verifier (make-cipher (ds:signature-method-cipher sm)
-				  (find-key signature)))
-    (cipher-verify verifier
-		   (string->utf8 (canonicalise si))
-		   (base64-decode-string
-		    (xpath-dm:string-value
-		     (get-element signature "SignatureValue"))
-		    :transcoder #f)
-		   :verify pkcs1-emsa-v1.5-verify
-		   :hash (ds:signature-method-digest sm)))
+    (define verifier (make-verifier (ds:signature-method-cipher sm)
+				    (find-key signature)
+				    :verifier pkcs1-emsa-v1.5-verify
+				    :digest (ds:signature-method-digest sm)))
+    (verifier-verify-signature verifier
+			       (string->utf8 (canonicalise si))
+			       (base64-decode-string
+				(xpath-dm:string-value
+				 (get-element signature "SignatureValue"))
+				:transcoder #f)))
   (check-digest dom dm)
   (check-signature si sm))
 

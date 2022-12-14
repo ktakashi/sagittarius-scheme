@@ -61,8 +61,14 @@
 	    *xmldsig:canonicalization-exc-c14n-w/comment*
 	    )
     (import (rnrs)
-	    (crypto)
-	    (math)
+	    (rename (sagittarius crypto digests)
+		    (*digest:sha-1* SHA-1)
+		    (*digest:sha-224* SHA-224)
+		    (*digest:sha-256* SHA-256)
+		    (*digest:sha-384* SHA-384)
+		    (*digest:sha-512* SHA-512))
+	    (rename (sagittarius crypto signatures)
+		    (*signature:rsa* RSA))
 	    (text xml dom writer))
 ;; accesors
 ;; we define them so that in the future we may want to use records

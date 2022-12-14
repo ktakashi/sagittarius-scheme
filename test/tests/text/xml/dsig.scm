@@ -1,14 +1,14 @@
 (import (rnrs)
 	(srfi :64 testing)
 	(rfc base64)
-	(rsa pkcs :10)
 	(text xml dom)
 	(text xml dom writer)
 	(text xml dsig)
 	(text xml xpath dm)
 	(util file)
-	(crypto)
-	(math))
+	(rename (sagittarius crypto keys)
+		(*key:rsa* RSA)
+		(make-key-pair make-keypair)))
 
 (define private-key
   "MIIBPAIBAAJBAM7xaDmTsYZj1ZxJOVpAkCXKp/2SmprG1IA90cGs4wr1fiCRWHQ+\
@@ -25,9 +25,9 @@
   (import-private-key RSA
    (base64-decode-string private-key :transcoder #f)))
 (define verify-key
-  (subject-public-key-info->public-key
-   (import-public-key PKCS10
-    (base64-decode-string public-key :transcoder #f))))
+  (import-public-key 
+   (base64-decode-string public-key :transcoder #f)
+   (public-key-format subject-public-key-info)))
 
 (define keypair (make-keypair signing-key verify-key))
 
