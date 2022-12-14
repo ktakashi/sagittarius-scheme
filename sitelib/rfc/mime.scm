@@ -36,8 +36,8 @@
 ;; <http://www.ietf.org/rfc/rfc2047.txt>
 
 ;; The api names are from Gauche.
-#!core
 #!read-macro=sagittarius/regex
+#!nounbound
 (library (rfc mime)
     (export mime-parse-version
 	    mime-parse-content-type
@@ -92,8 +92,7 @@
 	    (rfc base64)
 	    (slib queue)
 	    (util list)
-	    (util bytevector)
-	    (math))
+	    (util bytevector))
 
   (define *version-regex* #/^(\d+)\.(\d+)$/)
 
@@ -557,7 +556,7 @@
 	       (let1 c (lookahead-u8 inp)
 		 (if (eqv? c #x0a)
 		     (list->string (reverse! (cons* (get-u8 inp) #x0d chars)))
-		     (list->string (reverse! cons #\return chars)))))
+		     (list->string (reverse! (cons #\return chars))))))
 	      (else (loop (get-u8 inp) (cons c chars))))))
 
     (define (read-text decoder)

@@ -30,6 +30,7 @@
 
 #!read-macro=sagittarius/regex
 #!read-macro=sagittarius/bv-string
+#!nounbound
 (library (rfc http)
     (export &http-error
 	    http-error?
@@ -75,6 +76,8 @@
 	    (sagittarius regex)
 	    (sagittarius socket)
 	    (sagittarius control)
+	    (sagittarius crypto random)
+	    (sagittarius crypto digests)
 	    (clos user)
 	    (srfi :1 lists)
 	    (srfi :2 and-let*)
@@ -83,7 +86,6 @@
 	    (srfi :19 time)
 	    (srfi :39 parameters)
 	    (match)
-	    (math)
 	    (encoding decoder)
 	    (util list)
 	    (util port)
@@ -887,11 +889,12 @@
 	    ;; TODO generate nonce by request count!!
 	    (nc 0)
 	    (cnonce (bytevector->hex-string
-		     (read-random-bytes (secure-random Yarrow) 8)))
-	    (digester (hash-algorithm MD5)))
+		     (random-generator-read-random-bytes
+		      (secure-random-generator *prng:chacha20*) 8)))
+	    (digester (make-message-digest *digest:md5*)))
 	(lambda (info user password headers body)
 	  (define (md5-hex s)
-	    (bytevector->hex-string (hash digester (string->utf8 s))))
+	    (bytevector->hex-string (digest-message digester (string->utf8 s))))
 	  (set! nc (+ nc 1))
 	  (let* ((a1 (string-append user ":" realm-value ":" password))
 		 (ha1 (md5-hex a1))
