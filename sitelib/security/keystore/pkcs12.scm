@@ -34,8 +34,10 @@
     (import (rnrs)
 	    (clos user)
 	    (rsa pkcs :12)
+	    (srfi :19)
 	    (security keystore interface))
 
+  (define-method keystore-object? ((ks <pkcs12-keystore>)) #t)
   (define-method keystore-get-key ((ks <pkcs12-keystore>) alias password)
     (pkcs12-keystore-get-key ks alias password))
   (define-method keystore-get-certificate ((ks <pkcs12-keystore>) alias)
@@ -45,9 +47,17 @@
   (define-method keystore-contains-alias? ((ks <pkcs12-keystore>) alias)
     (pkcs12-keystore-contains-alias? ks alias))
 
+  (define-method keystore-get-creation-date ((ks <pkcs12-keystore>) alias)
+    ;; default now
+    (and (pkcs12-keystore-contains-alias? ks alias))
+	 (current-date))
+  
   (define-method store-keystore ((ks <pkcs12-keystore>) out password)
     (store-pkcs12-keystore ks out password))
-
+  (define-method store-keystore-to-file ((ks <pkcs12-keystore>) file password)
+    (call-with-output-file file
+      (lambda (out) (store-keystore ks out password))
+      :transcoder #f))
   (define-method keystore-set-key! ((ks <pkcs12-keystore>) alias key pw certs)
     (pkcs12-keystore-set-key! ks alias key pw certs))
   (define-method keystore-set-certificate! ((ks <pkcs12-keystore>) alias cert)

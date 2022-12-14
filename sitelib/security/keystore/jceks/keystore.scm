@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!nounbound
 (library (security keystore jceks keystore)
     (export <base-jceks-keystore>
 	    generate-load-jceks-key-store
@@ -43,12 +44,6 @@
 	    generate-jceks-delete-entry!)
     (import (rnrs)
 	    (clos user)
-	    (crypto)
-	    (math)
-	    (asn.1)
-	    (rsa pkcs :5)
-	    (rsa pkcs :8)
-	    (rsa pkcs :10)
 	    (binary io)
 	    (rfc x.509)
 	    (srfi :19 time)
@@ -56,6 +51,12 @@
 	    (util hashtables)
 	    (sagittarius)
 	    (sagittarius control)
+	    (sagittarius crypto asn1)
+	    (sagittarius crypto random)
+	    (sagittarius crypto digests)
+	    (sagittarius crypto pkcs keys)
+	    (sagittarius crypto pkcs pbes)
+	    (sagittarius crypto pkix algorithms)
 	    (security keystore interface)
 	    (security keystore jceks cipher))
 
@@ -77,29 +78,24 @@
   
   (define-class <base-jceks-keystore> (<keystore>)
     ((entries :init-form (make-hashtable string-ci-hash string-ci=?))
-     (prng :init-form (secure-random RC4))))
-
-  ;; 1.3.6.1.4.1.42 is Sun's OID thus these are Sun's specific ones
-  ;; geez
-  (define-constant +jks-keystore-oid+          "1.3.6.1.4.1.42.2.17.1.1")
-  (define-constant +pbe-with-md5-and-des3-oid+ "1.3.6.1.4.1.42.2.19.1")
+     (prng :init-form (secure-random-generator *prng:chacha20*))))
 
   ;; SHA-1 hash size
   (define-constant +salt-length+ 20)
   (define-constant +digest-length+ 20)
 
   (define (compute-xor xor salt pw)
-    (define sha (hash-algorithm SHA-1))
+    (define sha (make-message-digest *digest:sha-1*))
     (define xor-len (bytevector-length xor))
     (define round (ceiling (/ (bytevector-length xor) +digest-length+)))
     (let loop ((i 0) (offset 0) (digest salt))
       (if (= i round)
 	  xor
 	  (begin
-	    (hash-init! sha)
-	    (hash-process! sha pw)
-	    (hash-process! sha digest)
-	    (hash-done! sha digest)
+	    (message-digest-init! sha)
+	    (message-digest-process! sha pw)
+	    (message-digest-process! sha digest)
+	    (message-digest-done! sha digest)
 	    (if (< i (- round 1))
 		(bytevector-copy! digest 0 xor offset +digest-length+)
 		(bytevector-copy! digest 0 xor offset 
@@ -108,8 +104,8 @@
   ;; getters
   (define (generate-jceks-get-key keystore? crypto?)
     (lambda (keystore alias password)
-      (define (unwrap-jks data)
-	(define sha (hash-algorithm SHA-1))
+     (define (unwrap-jks data)
+	(define sha (make-message-digest *digest:sha-1*))
 	(define (compute-round data)
 	  (- (bytevector-length data) +salt-length+ +digest-length+))
 	(let* ((enc-len (compute-round data))
@@ -121,45 +117,28 @@
 
 	  (let ((r (bytevector-xor enc-data xor)))
 	    ;; check integrity.
-	    (hash-init! sha)
-	    (hash-process! sha pw-bv)
-	    (hash-process! sha r)
-	    (hash-done! sha salt)
+	    (message-digest-init! sha)
+	    (message-digest-process! sha pw-bv)
+	    (message-digest-process! sha r)
+	    (message-digest-done! sha salt)
 	    (unless (bytevector=? salt (bytevector-copy data (+ +salt-length+
 								enc-len)))
 	      (error 'jks-keystore-get-key "Cannot recover key"))
-	    (pki->private-key (make-private-key-info r)))))
+	    (pkcs-one-asymmetric-key-private-key
+	     (bytevector->pkcs-one-asymmetric-key r)))))
 
-      (define (unwrap-key alg-id data)
-	;; must be der-sequence like this structure
-	;; sequence
-	;;   octet-string : salt
-	;;   integer      : iteration-count
-	(let* ((param (algorithm-identifier-parameters alg-id))
-	       (pbe-param (make-pbe-parameter 
-			   (der-octet-string-octets 
-			    (asn.1-sequence-get param 0))
-			   (der-integer->integer (asn.1-sequence-get param 1))))
-	       (key (generate-secret-key pbe-with-md5-and-des3 password))
-	       (pbe-cipher (cipher pbe-with-md5-and-des 
-				   key :parameter pbe-param)))
-
-	  (pki->private-key
-	   (make-private-key-info 
-	    (decrypt pbe-cipher (der-octet-string-octets data))))))
       (define (unwrap key)
 	;; assume it's private-key-entry for now
-	(let* ((epki (make-encrypted-private-key-info 
-		      (slot-ref key 'protected-key)))
-	       (id (encrypted-private-key-info-id epki))
-	       (data (encrypted-private-key-info-data epki)))
-	  (cond ((string=? (algorithm-identifier-id id) +jks-keystore-oid+)
-		 (unwrap-jks (der-octet-string-octets data)))
-		((and crypto?
-		      (string=? (algorithm-identifier-id id) 
-				+pbe-with-md5-and-des3-oid+))
-		 (unwrap-key id data))
-		(else (error 'jks-keystore-get-key "unknown oid" id)))))
+	(let ((epki (bytevector->pkcs-encrypted-private-key-info 
+		     (slot-ref key 'protected-key))))
+	  (if (string=? (x509-algorithm-identifier-oid
+			 (pkcs-encrypted-private-key-info-encryption-algorithm
+			  epki))
+			+jks-keystore-oid+)
+	      (unwrap-jks (pkcs-encrypted-private-key-info-encrypted-data epki))
+	      (pkcs-one-asymmetric-key-private-key
+	       (pkcs-encrypted-private-key-info->pkcs-one-asymmetric-key
+		epki password)))))
       (or (keystore? keystore)
 	  (assertion-violation 'jks-keystore-get-key 
 			       "Unknown keystore" keystore))
@@ -209,14 +188,15 @@
     (lambda (keystore alias key password certs)
       (define prng (slot-ref keystore 'prng))
       (define (wrap-jks key) 
-	(define sha (hash-algorithm SHA-1))
+	(define sha (make-message-digest *digest:sha-1*))
 	(define (gen-salt data)
 	  ;; compute-xor change given salt destructively so we need to
 	  ;; put it here...
-	  (let ((salt (read-random-bytes prng +salt-length+)))
+	  (let ((salt (random-generator-read-random-bytes prng +salt-length+)))
 	    (bytevector-copy! salt 0 data 0 +salt-length+)
 	    salt))
-	(let* ((pki-bv (encode (make-private-key-info key)))
+	(let* ((pki-bv (pkcs-one-asymmetric-key->bytevector
+			(private-key->pkcs-one-asymmetric-key key)))
 	       ;; encrypted value
 	       (data (make-bytevector (+ (bytevector-length pki-bv)
 					 +salt-length+
@@ -228,31 +208,41 @@
 
 	  (bytevector-copy! (bytevector-xor pki-bv xor) 0
 			    data +salt-length+ len)
-
-	  (hash-init! sha)
-	  (hash-process! sha pw)
-	  (hash-process! sha pki-bv)
-	  (hash-done! sha salt)
+	  
+	  (message-digest-init! sha)
+	  (message-digest-process! sha pw)
+	  (message-digest-process! sha pki-bv)
+	  (message-digest-done! sha salt)
 
 	  (bytevector-copy! salt 0 data (+ len +salt-length+) +digest-length+)
-	  (make-encrypted-private-key-info
-	   (make-algorithm-identifier +jks-keystore-oid+ (make-der-null))
+	  (make-pkcs-encrypted-private-key-info
+	   (make-x509-algorithm-identifier +jks-keystore-oid+)
 	   data)))
-	  
+
       (define (wrap-jceks key)
-	(let* ((salt (read-random-bytes prng 8)) ;; it's fixed length ... *sigh*
-	       (count 1024) ;; make it a bit bigger
-	       (param (make-algorithm-identifier
-		       +pbe-with-md5-and-des3-oid+
-		       (make-der-sequence
-			(make-der-octet-string salt)
-			(make-der-integer count))))
-	       (pbe-param (make-pbe-parameter salt count))
-	       (pbe-key (generate-secret-key pbe-with-md5-and-des3 password))
-	       (pbe-cipher (cipher pbe-with-md5-and-des 
-				   pbe-key :parameter pbe-param)))
-	  (make-encrypted-private-key-info param
-	    (encrypt pbe-cipher (encode (make-private-key-info key))))))
+	;; it's fixed length ... *sigh*
+	(let* ((salt (random-generator-read-random-bytes prng 8))
+	       (count 1024))
+	  (pkcs-one-asymmetric-key->pkcs-encrypted-private-key-info
+	   (private-key->pkcs-one-asymmetric-key key)
+	   (make-x509-algorithm-identifier
+	    +pbe-with-md5-and-des3-oid+
+	    (make-pkcs-pbe-parameter salt count))
+	   password))
+
+;;	       (count 1024) ;; make it a bit bigger
+;;	       (param (make-algorithm-identifier
+;;		       +pbe-with-md5-and-des3-oid+
+;;		       (make-der-sequence
+;;			(make-der-octet-string salt)
+;;			(make-der-integer count))))
+;;	       (pbe-param (make-pbe-parameter salt count))
+;;	       (pbe-key (generate-secret-key pbe-with-md5-and-des3 password))
+;;	       (pbe-cipher (cipher pbe-with-md5-and-des 
+;;				   pbe-key :parameter pbe-param)))
+;;	  (make-encrypted-private-key-info param
+;;	    (encrypt pbe-cipher (encode (make-private-key-info key)))))
+	)
       (define (wrap key)
 	(if crypto?
 	    (wrap-jceks key)
@@ -263,12 +253,13 @@
       (unless (and (not (null? certs)) (for-all x509-certificate? certs))
 	(assertion-violation 'jks-keystore-set-key!
 	  "Private key must be accompanied by certificate chain"))
-      (let ((epki (wrap key))
+      (let ((bytes (pkcs-encrypted-private-key-info->bytevector (wrap key)))
 	    (entries (slot-ref keystore 'entries)))
-	(hashtable-set! entries alias (make <private-key-entry>
-					:date (current-time)
-					:protected-key (encode epki)
-					:chain certs)))))
+	(hashtable-set! entries alias
+			(make <private-key-entry>
+			  :date (current-time)
+			  :protected-key bytes
+			  :chain certs)))))
 
   (define (generate-jceks-set-certificate! keystore?)
     (lambda (keystore alias cert)
@@ -294,11 +285,11 @@
 
   (define (pre-key-hash password)
     (and password
-	 (let ((md (hash-algorithm SHA-1)))
-	   (hash-init! md)
-	   (hash-process! md (string->utf16 password 'big))
+	 (let ((md (make-message-digest *digest:sha-1*)))
+	   (message-digest-init! md)
+	   (message-digest-process! md (string->utf16 password 'big))
 	   ;; funny huh?
-	   (hash-process! md (string->utf8 "Mighty Aphrodite"))
+	   (message-digest-process! md (string->utf8 "Mighty Aphrodite"))
 	   md)))
 
   (define (generate-load-jceks-key-store class magics)
@@ -338,7 +329,7 @@
 		0
 		(let ((len (bytevector-length t)))
 		  (bytevector-copy! t 0 bv start len)
-		  (unless done? (hash-process! digest t))
+		  (unless done? (message-digest-process! digest t))
 		  len))))
 	(define (close) (close-port in))
 	(make-custom-binary-input-port "digest port" read! #f #f close))
@@ -380,10 +371,11 @@
 		(else
 		 (error 'load-jks-keystore "Unrecogised keystore entry" tag)))))
 	  (and-let* (( md )
-		     (bv (make-bytevector (hash-size md)))
-		     ( (hash-done! md bv) )
+		     (size (message-digest-digest-size md))
+		     (bv (make-bytevector size))
+		     ( (message-digest-done! md bv) )
 		     ( (set! done? #t) )
-		     (actual (get-bytevector-n in (hash-size md))))
+		     (actual (get-bytevector-n in size)))
 	    (unless (bytevector=? bv actual)
 	      (error 'load-jks-keystore 
 		     "Keystore was tampered with, or password was incorrect")))
@@ -393,10 +385,10 @@
     ;; TODO should we add secret key handler?
     (lambda (keystore bout password)
       (define done? #f)
-      (define (make-digest-output-port out digest)
+      (define (make-digest-output-port out md)
 	(define (write! bv start count)
 	  (put-bytevector out bv start count)
-	  (unless done? (hash-process! digest bv start (+ start count)))
+	  (unless done? (message-digest-process! md bv start (+ start count)))
 	  count)
 	(define (close))
 	(make-custom-binary-output-port "digest port" write! #f #f close))
@@ -449,8 +441,8 @@
 		 (else (error 'store-jks-keystore "Unknown entry" e))))
 	 entries)
 	(and-let* (( md )
-		   (digest (make-bytevector (hash-size md)))
-		   ( (hash-done! md digest) )
+		   (digest (make-bytevector (message-digest-digest-size md)))
+		   ( (message-digest-done! md digest) )
 		   ;; so that hash won't raise an error
 		   ( (set! done? #t) ))
 	  (put-bytevector out digest))

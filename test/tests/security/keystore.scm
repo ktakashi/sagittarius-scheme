@@ -1,8 +1,8 @@
 (import (rnrs)
 	(security keystore)
+	(sagittarius crypto keys)
 	(rfc base64)
 	(rfc x.509)
-	(crypto)
 	(srfi :19)
 	(srfi :64))
 
@@ -144,8 +144,8 @@
 
 (define (test-generic type file)
   (let* ((ks (make-keystore type))
-	 (keypair (generate-key-pair RSA))
-	 (keypair2 (generate-key-pair RSA)))
+	 (keypair (generate-key-pair *key:rsa*))
+	 (keypair2 (generate-key-pair *key:rsa*)))
     ;; CA cert
     (define cert2 (make-x509-basic-certificate keypair2 0
 		  (make-x509-issuer '((DN . "buzz2")))
@@ -155,22 +155,23 @@
 		   '((C . "foo2")
 		     (O . "bar2")))))
     (define cert (make-x509-simple-certificate
-		  (keypair-public keypair) 0
+		  (key-pair-public keypair) 0
 		  (make-x509-issuer 
 		   '((C . "foo")
 		     (O . "bar")))
 		  (make-validity (current-date)
 				 (current-date))
-		  cert2 (keypair-private keypair2)))
+		  cert2 (key-pair-private keypair2)))
+
     (test-assert (format "store key ~a" type)
 		 (keystore-set-key! ks "key" 
-				    (keypair-private keypair)
+				    (key-pair-private keypair)
 				    "pass"
 				    (list cert cert2)))
 
     (test-error (format "store key without cert ~a" type)
 		condition?
-		(keystore-set-key! ks "key" (keypair-private keypair) 
+		(keystore-set-key! ks "key" (key-pair-private keypair) 
 				   "pass" '()))
     
     (test-assert (format "store cert ~a" type)
@@ -215,8 +216,8 @@
   (test-assert "JKS get key"
 	       (private-key? (jks-keystore-get-key ks "priv-key" "pass")))
 
-  (let* ((keypair (generate-key-pair RSA))
-	 (keypair2 (generate-key-pair RSA)))
+  (let* ((keypair (generate-key-pair *key:rsa*))
+	 (keypair2 (generate-key-pair *key:rsa*)))
     (define cert (make-x509-basic-certificate keypair 0
 		   (make-x509-issuer 
 		    '((C . "foo")
@@ -234,7 +235,7 @@
 		    (make-x509-issuer '((DN . "buzz2")))))
     (test-assert "JKS set key"
 		 (jks-keystore-set-key! ks "key" 
-					(keypair-private keypair)
+					(key-pair-private keypair)
 					"pass"
 					(list cert cert2)))
 
@@ -270,8 +271,8 @@
   (test-assert "JCEKS get key"
 	       (private-key? (jceks-keystore-get-key ks "priv-key" "pass")))
 
-  (let* ((keypair (generate-key-pair RSA))
-	 (keypair2 (generate-key-pair RSA)))
+  (let* ((keypair (generate-key-pair *key:rsa*))
+	 (keypair2 (generate-key-pair *key:rsa*)))
     (define cert (make-x509-basic-certificate keypair 0
 		   (make-x509-issuer 
 		    '((C . "foo")
@@ -290,7 +291,7 @@
 
     (test-assert "JCEKS set key"
 		 (jceks-keystore-set-key! ks "key" 
-					(keypair-private keypair)
+					(key-pair-private keypair)
 					"pass"
 					(list cert cert2)))
 

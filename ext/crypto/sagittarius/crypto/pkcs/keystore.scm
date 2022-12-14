@@ -171,7 +171,7 @@
 	    (sagittarius crypto digests)
 	    (sagittarius crypto kdfs)
 	    (sagittarius crypto keys)
-	    (sagittarius crypto mac)
+	    (except (sagittarius crypto mac) verify-mac)
 	    (sagittarius crypto random)
 	    (sagittarius crypto secure)
 	    (sagittarius combinators)
@@ -293,8 +293,7 @@
 	  (deque-length (pkcs12-keystore-crls k))
 	  (deque-length (pkcs12-keystore-secret-keys k))))
 (define (pkcs12-keystore? o) (is-a? o <pkcs12-keystore>))
-(define (make-pkcs12-keystore . opts)
-  (apply make <pkcs12-keystore> opts))
+(define (make-pkcs12-keystore . opts) (apply make <pkcs12-keystore> opts))
 
 (define (pkcs12-entry-type->entry-container type)
   (cond ((eq? type 'private-key) pkcs12-keystore-private-keys)

@@ -42,13 +42,21 @@
 	    keystore-set-key!
 	    keystore-set-certificate!
 	    keystore-delete-entry!
+
+	    keystore-object?
 	    )
-    (import (rnrs) (clos user) (srfi :19))
+    (import (rnrs)
+	    (clos user)
+	    (srfi :19))
 
   ;; abstract class for keystore
   (define-class <keystore> () ())
-  (define (keystore? o) (is-a? o <keystore>))
-  
+  (define (keystore? o)
+    (or (is-a? o <keystore>)
+	(keystore-object? o)))
+
+  (define-generic keystore-object?)
+  (define-method keystore-object? (o) #f)
   (define-generic keystore-get-key)
   (define-generic keystore-get-certificate)
   (define-generic keystore-get-certificate-chain)

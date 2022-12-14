@@ -42,7 +42,8 @@
 		    (tc:*ctr-mode:big-endian*    *ctr-mode:big-endian*)
 		    (tc:*ctr-mode:rfc3686*       *ctr-mode:rfc3686*))
 	    
-	    mode-descriptor? mode-descriptor-name
+	    mode-descriptor? (rename (mode-descriptor <mode-descriptor>))
+	    mode-descriptor-name
 	    mode-descriptor-has-set-iv!?
 	    mode-descriptor-has-get-iv!?
 

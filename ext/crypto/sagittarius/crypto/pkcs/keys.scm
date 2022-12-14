@@ -39,6 +39,7 @@
 	    bytevector->pkcs-encrypted-private-key-info
 	    write-pkcs-encrypted-private-key-info
 	    pkcs-encrypted-private-key-info->bytevector
+	    make-pkcs-encrypted-private-key-info
 
 	    pkcs-one-asymmetric-key? <pkcs-one-asymmetric-key>
 	    pkcs-one-asymmetric-key-version
@@ -50,6 +51,8 @@
 	    pkcs-one-asymmetric-key->bytevector
 	    private-key->pkcs-one-asymmetric-key
 	    write-pkcs-one-asymmetric-key
+	    bytevector->pkcs-one-asymmetric-key
+	    pkcs-one-asymmetric-key->bytevector
 	    pkcs-one-asymmetric-key->pkcs-encrypted-private-key-info
 	    pkcs-encrypted-private-key-info->pkcs-one-asymmetric-key
 

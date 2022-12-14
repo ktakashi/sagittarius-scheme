@@ -36,6 +36,7 @@
 	    message-digest-done!
 	    message-digest-done
 	    message-digest-descriptor
+	    message-digest-digest-size
 
 	    digest-descriptor? <digest-descriptor> make-digest-descriptor
 	    digest-descriptor-name
@@ -90,6 +91,9 @@
   (unless (digest-descriptor? descriptor)
     (assertion-violation 'make-message-digest "Digest descriptor is required"))
   (make <message-digest> :descriptor descriptor))
+
+(define (message-digest-digest-size md)
+  (digest-descriptor-digest-size (message-digest-descriptor md)))
 
 (define (digest-message md msg :optional (length #f))
   (define desc (message-digest-descriptor md))

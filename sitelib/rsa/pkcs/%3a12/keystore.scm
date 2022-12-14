@@ -97,6 +97,7 @@
 		    (pkcs12-keystore-certificates pkcs12-keystore-certificates))
 	    )
     (import (rnrs)
+	    (clos user)
 	    (sagittarius crypto digests)
 	    (sagittarius crypto pkcs keys)
 	    (only (sagittarius crypto pkcs keystore)
