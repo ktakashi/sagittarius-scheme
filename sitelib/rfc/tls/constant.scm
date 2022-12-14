@@ -124,8 +124,19 @@
 	    ;; RFC6066 section 3 server name indication 
 	    *host-name*
 	    )
-    (import (rnrs) (sagittarius)
-	    (math) (crypto))
+    (import (rnrs)
+	    (sagittarius)
+	    (rename (sagittarius crypto digests)
+		    (*digest:sha-1* SHA-1)
+		    (*digest:sha-224* SHA-224)
+		    (*digest:sha-256* SHA-256)
+		    (*digest:sha-384* SHA-384)
+		    (*digest:sha-512* SHA-512)
+		    (*digest:md5* MD5))
+	    (rename (sagittarius crypto ciphers)
+		    (*scheme:rsa* RSA)
+		    (*scheme:des3* DES3)
+		    (*scheme:aes* AES)))
   ;; default client version.
   ;; but we also need to support TLS 1.0 or else
   ;; most of servers don't support 1.2 ...

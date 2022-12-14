@@ -213,7 +213,7 @@
 	    (except (rfc tls) make-client-tls-socket
 		    make-server-tls-socket)
 	    (rfc x.509)
-	    (crypto))
+	    (sagittarius crypto keys))
 
 (define-record-type socket-options
   (fields non-blocking?

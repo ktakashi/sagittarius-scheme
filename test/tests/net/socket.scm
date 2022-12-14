@@ -1,11 +1,13 @@
 #!read-macro=sagittarius/bv-string
 (import (rnrs)
 	(net socket)
-	(crypto)
 	(rfc x.509)
 	(srfi :18)
 	(srfi :19)
-	(srfi :64))
+	(srfi :64)
+	(rename (sagittarius crypto keys)
+		(*key:rsa* RSA)
+		(key-pair-private keypair-private)))
 
 (test-begin "(net socket): Supposed to be modern socket library")
 

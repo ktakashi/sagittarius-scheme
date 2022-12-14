@@ -116,8 +116,10 @@
 	    (sagittarius control)
 	    (sagittarius object)
 	    (clos user)
-	    (crypto)
-	    (math)
+	    (rename (sagittarius crypto keys)
+		    (*key:rsa* RSA)
+		    (key-pair-private keypair-private))
+	    (sagittarius crypto random)
 	    (srfi :1)
 	    (srfi :19)
 	    (rfc x.509))
@@ -164,6 +166,10 @@
 			  (make-tls-protocol-name-list names))))
 
   (define 1year (make-time time-duration 0 (* 1 60 60 24 365)))
+  (define system-prng (pseudo-random-generator *prng:system*))
+  (define (read-sys-random bits)
+    (let ((size (div (+ bits 7) 8)))
+      (random-generator-read-random-bytes system-prng size)))
   (define (socket->tls-socket socket
 			      :key (client-socket #t)
 				   (handshake #t)
@@ -185,8 +191,8 @@
 	  ;; in real world other than testing, so we generates self signed
 	  ;; certificates here
 	  (let* ((ks (generate-key-pair RSA))
-		 (cert (make-x509-basic-certificate
-			ks (bytevector->uinteger (read-sys-random 32))
+		 (cert (make-x509-basic-certificate ks
+			(bytevector->uinteger (read-sys-random 32))
 			(make-x509-issuer '((C . "NL")))
                       (make-validity (current-date)
 				     (time-utc->date
