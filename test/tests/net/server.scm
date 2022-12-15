@@ -80,7 +80,7 @@
 )
 
 (let ()
-  (define keypair (generate-key-pair RSA :size 1024))
+  (define keypair (generate-key-pair RSA))
   (define cert (make-x509-basic-certificate keypair 1
 					    (make-x509-issuer '((C . "NL")))
 					    (make-validity (current-date)

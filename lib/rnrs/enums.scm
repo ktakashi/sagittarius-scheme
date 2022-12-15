@@ -33,13 +33,12 @@
 		      (syntax-violation 'name "illigal symbol" 
 					(syntax->datum (car x)))))))))
 	 ;; procedural constructor (invisible)
-	 (define endname (make-enumeration 'symbols))
+	 (define endname (enum-set-constructor (make-enumeration 'symbols)))
 	 ;; actual constructor
 	 (define-syntax ctr
 	   (syntax-rules ()
 	     ((_ sym1 (... ...))
-	      ((enum-set-constructor endname) 
-	       (list (name sym1) (... ...))))))))))
+	      (endname  (list (name sym1) (... ...))))))))))
   
 
 ) ; [end]

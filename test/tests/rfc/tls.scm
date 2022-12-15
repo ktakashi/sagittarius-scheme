@@ -27,7 +27,7 @@
 			      (add-duration! (current-time) 1year) 0))
               (make-x509-issuer '((C . "NL")))))
 
-(define client-keypair (generate-key-pair RSA :size 1024))
+(define client-keypair (generate-key-pair RSA))
 (define client-cert (make-x509-basic-certificate client-keypair 2
 		     (make-x509-issuer '((C . "NL")))
 		     (make-validity (current-date 0)

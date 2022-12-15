@@ -615,6 +615,7 @@ static void format_stack_trace(SgVM *vm, SgObject buf, SgContFrame *cur,
 
 static inline void report_error(SgObject error, SgObject out)
 {
+  SgVM *vm = Sg_VM();
   SgObject next = SG_FALSE, cl;
   SgPort *buf = SG_PORT(Sg_MakeStringOutputPort(-1));
   SgContFrame *stackTrace = NULL;
@@ -641,7 +642,6 @@ static inline void report_error(SgObject error, SgObject out)
     } 
   }
   if (!stackTrace) {
-    SgVM *vm = Sg_VM();
     stackTrace = CONT(vm);
     cl = CL(vm);
     pc = PC(vm);
@@ -650,8 +650,7 @@ static inline void report_error(SgObject error, SgObject out)
 	    UC("Unhandled exception\n"
 	       "  %A\n"), Sg_DescribeCondition(error));
 
-  if (cl && !SG_NULLP(stackTrace)) {
-    SgVM *vm = Sg_VM();
+  if (vm->state == RUNNING && cl && !SG_NULLP(stackTrace)) {
     SgContFrame *prevFrame = NULL;
     while (1) {
       format_stack_trace(vm, buf, stackTrace, prevFrame, cl, pc);
