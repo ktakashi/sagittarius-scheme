@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!nounbound
 (library (sagittarius remote-repl input)
     (export :export-reader-macro
 	    make-directive
@@ -65,11 +66,11 @@
 	    (sagittarius vm)
 	    (sagittarius stty)
 	    (sagittarius remote-repl input)
+	    (sagittarius crypto digests)
 	    (rfc tls)
 	    (srfi :18 multithreading)
 	    (srfi :26 cut)
 	    (srfi :39 parameters)
-	    (math)
 	    (pp))
   (define (send-datum socket datum) (socket-send socket datum))
 
@@ -209,11 +210,11 @@
 
   ;; TODO what should we get?
   (define (make-username&password-authenticate username password
-					       :key (digest SHA-1)
-					       (max-try 3))
-    
+					       :key (digest *digest:sha-1*)
+						    (max-try 3))
+    (define md (make-message-digest digest))
     (let* ((bv (string->utf8 (string-append username "&" password)))
-	   (credential (hash digest bv)))
+	   (credential (digest-message md bv)))
       (lambda (socket)
 	(define port (transcoded-port (socket-port socket #f) 
 				      (native-transcoder)))
@@ -233,7 +234,7 @@
 		   (input (string->utf8 
 			   (string-append (->string input-username) "&"
 					  (->string input-password))))
-		   (h (hash digest input)))
+		   (h (digest-message md input)))
 	      (cond ((bytevector=? credential h))
 		    ((= count max-try)
 		     ;; TODO log it

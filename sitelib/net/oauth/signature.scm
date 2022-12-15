@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!nounbound
 (library (net oauth signature)
     (export signature-base-string
 	    oauth-signature)
@@ -35,8 +36,8 @@
 	    (net oauth misc)
 	    (net oauth parameters)
 	    (net oauth request-adapter)
-	    (math)
-	    (rfc hmac)
+	    (sagittarius crypto mac)
+	    (sagittarius crypto digests)
 	    (rfc base64))
 
   ;; signature
@@ -54,18 +55,18 @@
 		       (oauth-uri-encode (string-append "&" post-data))
 		       "")))
 
-  ;; hash
+  ;; MAC
   (define (oauth-signature method sbs consumer-secret
 			   :optional (token-secret ""))
     (utf8->string
       (base64-encode
        (case method
 	 ((:hmac-sha1)
-	  (hash (hash-algorithm 
-		 HMAC
-		 :key (string->utf8 (string-append consumer-secret
-						   "&"
-						   (or token-secret
-						       ""))))
-		(string->utf8 sbs)))))))
+	  (generate-mac
+	   (make-mac *mac:hmac* 
+		     (string->utf8 (string-append consumer-secret
+						  "&"
+						  (or token-secret "")))
+		     :digest *digest:sha-1*)
+	   (string->utf8 sbs)))))))
   )

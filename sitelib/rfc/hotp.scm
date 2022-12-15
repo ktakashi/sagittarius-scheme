@@ -30,31 +30,32 @@
 
 ;; reference
 ;;  - https://tools.ietf.org/html/rfc4226
-
+#!nounbound
 (library (rfc hotp)
     (export generate-hmac-based-one-time-password
 	    (rename (generate-hmac-based-one-time-password hotp)))
     (import (rnrs)
-	    (math)
-	    (rfc hmac)
-	    (sagittarius))
+	    (sagittarius)
+	    (sagittarius crypto mac)
+	    (sagittarius crypto digests))
 
-    (define (generate-hmac-based-one-time-password K C digits :key (mode SHA-1))
-      (define hmac (hash-algorithm HMAC :key K :hash mode))
-      (define size 4)
-      (define (dynamic-truncate HS)
-	(define last (- (hash-size hmac) 1))
-	(let* ((offset (bitwise-and (bytevector-u8-ref HS last) #x0F)))
-	  (do ((bv (make-bytevector size)) (i 0 (+ i 1)))
-	      ((= i size)
-	       ;; make it only last 31 bits (big endian)
-	       (bytevector-u8-set! bv 0
-		(bitwise-and (bytevector-u8-ref bv 0) #x7F))
-	       bv)
-	    (bytevector-u8-set! bv i (bytevector-u8-ref HS (+ i offset))))))
-      (let* ((c (integer->bytevector C 8))
-	     (HS (hash hmac c))
-	     (Sbits (dynamic-truncate HS))
-	     (Snum (bytevector->uinteger Sbits)))
-	(mod Snum (expt 10 digits))))
+(define (generate-hmac-based-one-time-password K C digits 
+					       :key (mode *digest:sha-1*))
+  (define hmac (make-mac *mac:hmac* K :digest mode))
+  (define size 4)
+  (define (dynamic-truncate HS)
+    (define last (- (mac-mac-size hmac) 1))
+    (let* ((offset (bitwise-and (bytevector-u8-ref HS last) #x0F)))
+      (do ((bv (make-bytevector size)) (i 0 (+ i 1)))
+	  ((= i size)
+	   ;; make it only last 31 bits (big endian)
+	   (bytevector-u8-set! bv 0
+			       (bitwise-and (bytevector-u8-ref bv 0) #x7F))
+	   bv)
+	(bytevector-u8-set! bv i (bytevector-u8-ref HS (+ i offset))))))
+  (let* ((c (integer->bytevector C 8))
+	 (HS (generate-mac hmac c))
+	 (Sbits (dynamic-truncate HS))
+	 (Snum (bytevector->uinteger Sbits)))
+    (mod Snum (expt 10 digits))))
   )
