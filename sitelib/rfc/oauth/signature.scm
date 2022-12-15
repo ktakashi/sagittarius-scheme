@@ -30,6 +30,7 @@
 
 ;; reference: https://tools.ietf.org/html/rfc5849
 #!read-macro=sagittarius/bv-string
+#!nounbound
 (library (rfc oauth signature)
     (export oauth-signer? oauth-signer-process! oauth-signer-done!
 	    oauth-signer-method oauth-signer-clone
@@ -48,13 +49,13 @@
     (import (rnrs)
 	    (rfc http-connections)
 	    (rfc base64)
-	    (rfc hmac)
 	    (rfc uri)
 	    (srfi :13)
 	    (srfi :14)
 	    (util bytevector)
-	    (crypto)
-	    (math))
+	    (sagittarius crypto mac)
+	    (sagittarius crypto digests)
+	    (sagittarius crypto signatures))
   (define-record-type oauth-signer
     (fields process done method cloner))
   (define (oauth-signer-process! signer msg)
@@ -79,14 +80,14 @@
      ((secret) (make-oauth-hmac-sha1-signer secret #vu8()))
      ((consumer-secret token-secret)
       (define hmac
-	(hash-algorithm HMAC
-			:key (append-secrets consumer-secret token-secret)))
-      (hash-init! hmac)
+	(make-mac *mac:hmac* (append-secrets consumer-secret token-secret)
+		  :digest *digest:sha-1*))
+      (mac-init! hmac)
       (make-oauth-signer
-       (lambda (msg) (hash-process! hmac msg))
-       (lambda () (let ((out (make-bytevector (hash-size hmac))))
-		    (hash-done! hmac out 0 (bytevector-length out))
-		    (hash-init! hmac) ;; for next time if needed
+       (lambda (msg) (mac-process! hmac msg))
+       (lambda () (let ((out (make-bytevector (mac-mac-size hmac))))
+		    (mac-done! hmac out 0 (bytevector-length out))
+		    (mac-init! hmac) ;; for next time if needed
 		    (->base64 out)))
        'HMAC-SHA1
        (lambda ()
@@ -96,8 +97,8 @@
      ((secret) (make-oauth-hmac-sha1-verifier secret #vu8()))
      ((consumer-secret token-secret)
       (define hmac
-	(hash-algorithm HMAC
-			:key (append-secrets consumer-secret token-secret)))
+	(make-mac *mac:hmac* (append-secrets consumer-secret token-secret)
+		  :digest *digest:sha-1*))
       (make-oauth-verifier
        (lambda (msg signature)
 	 (verify-mac hmac msg
@@ -108,24 +109,26 @@
   ;; 3.4.3 RSA-SHA1
   ;; private key must be provided before hand.
   (define (make-oauth-rsa-sha1-signer private-key)
-    (define cipher (make-cipher RSA private-key))
-    (let-values (((out extract) (open-bytevector-output-port)))
-      (values
-       (make-oauth-signer
-	(lambda (msg) (put-bytevector out msg))
-	(lambda ()
-	  (->base64
-	   (cipher-signature cipher (extract)
-			     :encode pkcs1-emsa-v1.5-encode)))
-	'RSA-SHA1
-	(lambda ()
-	  (make-oauth-rsa-sha1-signer private-key))))))
+    (define signer (make-signer *signature:rsa* private-key
+				:encoder pkcs1-emsa-v1.5-encode
+				:digest *digest:sha-1*))
+    (signer-init! signer)
+    (values
+     (make-oauth-signer
+      (lambda (msg) (signer-process! signer msg))
+      (lambda () (let ((r (->base64 (signer-sign! signer))))
+		   (signer-init! signer)
+		   r))
+      'RSA-SHA1
+      (lambda () (make-oauth-rsa-sha1-signer private-key)))))
   (define (make-oauth-rsa-sha1-verifier public-key)
-    (define cipher (make-cipher RSA public-key))
+    (define verifier (make-verifier *signature:rsa* public-key
+				    :verifier pkcs1-emsa-v1.5-verify
+				    :digest *digest:sha-1*))
     (make-oauth-verifier
      (lambda (msg signature)
-       (cipher-verify cipher msg (base64-decode-string signature :transcoder #f)
-		      :verify pkcs1-emsa-v1.5-verify))
+       (verifier-verify-signature verifier msg
+	(base64-decode-string signature :transcoder #f)))
      (lambda ()
        (make-oauth-rsa-sha1-verifier public-key))))
   ;; 3.4.4 PLAINTEXT

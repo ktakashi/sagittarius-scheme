@@ -32,7 +32,7 @@
 (library (net server)
     (export make-simple-server
 	    make-server-config
-	    server? server-port
+	    server? server-port server-shutdown-port
 	    server-config? server-config server-context
 	    server-start! on-server-start!
 	    ;; well for multithreading?
@@ -114,6 +114,7 @@
      (stop-request   :init-value #f)
      (port           :init-keyword :port)
      (running-port   :init-keyword :running-port :reader server-port)
+     (shutdown-port  :init-value #f :reader server-shutdown-port)
      (dispatch       :init-keyword :dispatch)
      ;; set if non-blocking mode
      (initialiser    :init-value #f)
@@ -344,9 +345,15 @@
 	(set! (~ server 'stopper-thread)
 	      (make-thread 
 	       (lambda ()
-		 (define stop-socket (make-server-socket 
-				      (~ config 'shutdown-port)))
+		 (define shutdown-port (~ config 'shutdown-port))
+		 (define stop-socket (make-server-socket shutdown-port))
 		 (set! (~ server 'stopper-socket) stop-socket)
+		 (set! (~ server 'shutdown-port)
+		       (if (or (not shutdown-port) (equal? shutdown-port "0"))
+			   (number->string
+			    (socket-info-port (socket-info stop-socket)))
+			   shutdown-port))
+		 
 		 ;; lock it here
 		 (mutex-lock! (~ server 'stop-lock))
 		 (let loop ()

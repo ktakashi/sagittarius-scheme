@@ -29,6 +29,7 @@
 ;;;  
 
 #!read-macro=sagittarius/bv-string
+#!nounbound
 (library (rfc websocket messages)
   (export websocket-send-text
 	  websocket-send-binary
@@ -65,8 +66,8 @@
 	  (rfc tls)
 	  (sagittarius)
 	  (sagittarius socket)
+	  (sagittarius crypto random)
 	  (prefix (binary io) b:)
-	  (math random)
 	  (srfi :39 parameters)
 	  (util concurrent shared-queue))
 
@@ -303,6 +304,10 @@
 	    (fxand b1 #x0F)
 	    (mask masking-key payload 0 payload-length))))
 
+(define *prng* (secure-random-generator *prng:chacha20*))
+(define (read-random-bytes bits)
+  (let ((size (div (+ bits 7) 8)))
+    (random-generator-read-random-bytes *prng* size)))
 (define (websocket-send-frame! out opcode mask? data last?
 			       :optional (start 0) (end -1))
   (define bvlen (bytevector-length data))
@@ -323,7 +328,8 @@
 		   (else 127)))
 	 (b2 (fxior (if mask? #x80 0) l))
 	 (masking-key
-	  (or (and mask? (read-sys-random (* +masking-key-length+ 8))) #vu8()))
+	  (or (and mask? (read-random-bytes (* +masking-key-length+ 8)))
+	      #vu8()))
 	 (klen (bytevector-length masking-key))
 	 (plen (cond ((= l 126) 2) ((= l 127) 8) (else 0)))
 	 (bv (make-bytevector (+ 2 plen klen len))))

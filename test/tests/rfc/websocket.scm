@@ -14,7 +14,7 @@
 	(srfi :64)
 	(rfc :5322)
 	(rfc base64)
-	(math hash)
+	(sagittarius crypto digests)
 	(util concurrent shared-queue))
 
 ;; for testing, we need this
@@ -122,9 +122,10 @@
   (define *uuid* #*"258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
 
   (define (calculate-key headers)
-    (let ((key (rfc5322-header-ref headers "Sec-WebSocket-Key")))
+    (let ((key (rfc5322-header-ref headers "Sec-WebSocket-Key"))
+	  (md (make-message-digest *digest:sha-1*)))
       (base64-encode
-       (hash SHA-1 (bytevector-append (string->utf8 key) *uuid*)))))
+       (digest-message md (bytevector-append (string->utf8 key) *uuid*)))))
 
   (define (keep-sending out)
     (lambda ()
@@ -190,7 +191,7 @@
 		  (loop))))))
      (close-port in/out)))
   (define config (make-server-config :use-ipv6? #t))
-  (make-simple-server "9000" websocket-handler :config config))
+  (make-simple-server "0" websocket-handler :config config))
 
 (define (test-websocket uri count)
   (let ((tsq (make-shared-queue))
@@ -248,23 +249,25 @@
 (let ()
   (define count 5)
   (define server (make-test-websocket-server count))
-  (define uri "ws://localhost:9000")
   (server-start! server :background #t)
-  ;; normal test
-  (test-websocket uri count)
+  (thread-sleep! 0.1)
 
-  ;; protocol
-  (let ((websocket (make-websocket uri :protocols '("chat"))))
-    (test-assert (websocket? (websocket-open websocket)))
-    (test-assert (websocket-close websocket :timeout 1))
-    ;; re-open
-    (test-assert (websocket? (websocket-open websocket)))
-    (test-assert (websocket-close websocket :timeout 1))
-    )
-  (let ((websocket (make-websocket uri :protocols '("not-exist"))))
-    (test-error websocket-engine-error? (websocket-open websocket)))
-  
-  (server-stop! server))
+  (let ((uri (format "ws://localhost:~a" (server-port server))))
+    ;; normal test
+    (test-websocket uri count)
+    
+    ;; protocol
+    (let ((websocket (make-websocket uri :protocols '("chat"))))
+      (test-assert (websocket? (websocket-open websocket)))
+      (test-assert (websocket-close websocket :timeout 1))
+      ;; re-open
+      (test-assert (websocket? (websocket-open websocket)))
+      (test-assert (websocket-close websocket :timeout 1))
+      )
+    (let ((websocket (make-websocket uri :protocols '("not-exist"))))
+      (test-error websocket-engine-error? (websocket-open websocket)))
+    
+    (server-stop! server)))
 
 ;; TODO server socket conversion tests.
 

@@ -29,6 +29,7 @@
 ;;;  
 
 ;; RFC 4122 UUID
+#!nounbound
 (library (rfc uuid)
     (export <uuid>
 	    make-null-uuid
@@ -67,8 +68,9 @@
     (import (rnrs)
 	    (sagittarius)
 	    (sagittarius object)
+	    (sagittarius crypto digests)
 	    (clos user)
-	    (math)
+	    (math random)
 	    (math mt-random)
 	    (srfi :39 parameters))
 
@@ -224,7 +226,7 @@
   ;; Generates a version3 (name based MD5) uuid.
   (define (make-v3-uuid namespace name)
     (format-v3or5-uuid
-     (digest-uuid MD5 (uuid->bytevector namespace) name)
+     (digest-uuid *digest:md5* (uuid->bytevector namespace) name)
      3))
   ;; Generates a version4 (random) uuid.
   ;; make this default random...
@@ -241,7 +243,7 @@
   ;; Generates a version5 (name based SHA1) uuid.
   (define (make-v5-uuid namespace name)
     (format-v3or5-uuid
-     (digest-uuid SHA-1 (uuid->bytevector namespace) name)
+     (digest-uuid *digest:sha-1* (uuid->bytevector namespace) name)
      5))
 
   ;; compare
@@ -290,11 +292,11 @@
       result))
   
   (define (digest-uuid digest uuid name)
-    (let* ((hash (hash-algorithm digest))
-	   (out (make-bytevector (hash-size hash) 0)))
-      (hash-init! hash)
-      (hash-process! hash uuid)
-      (hash-process! hash (string->utf8 name))
-      (hash-done! hash out)
+    (let ((md (make-message-digest digest))
+	  (out (make-bytevector (digest-descriptor-digest-size digest) 0)))
+      (message-digest-init! md)
+      (message-digest-process! md uuid)
+      (message-digest-process! md (string->utf8 name))
+      (message-digest-done! md out)
       out))
 )

@@ -49,9 +49,8 @@
 	  (prefix (binary io) binary:)
 	  (sagittarius)
 	  (sagittarius regex)
-	  ;; for read-sys-random
-	  (math random)
-	  (math hash))
+	  (sagittarius crypto random)
+	  (sagittarius crypto digests))
 
 (define-condition-type &websocket-http-engine &websocket-engine
   make-websocket-http-engine-error websocket-http-engine-error?)
@@ -103,6 +102,9 @@
 	(rfc5322-write-headers others :output out :continue #t)
 	(put-bytevector in/out (string->utf8 (extract)))))))
 
+(define *prng* (secure-random-generator *prng:chacha20*))
+(define (read-random-bytes size)
+  (random-generator-read-random-bytes *prng* size))
 (define (http-websocket-handshake engine in/out uri
 				  :optional (protocols '()) (extensions '())
 				  :rest others)
@@ -157,13 +159,16 @@
 	  (member v oneof))
 	(websocket-http-engine-error 'http-websocket-handshake
 				     "Unexpected field value" field)))
-  (let ((key (base64-encode (read-sys-random (* 16 8)))))
+  (define (sha1 msg)
+    (let ((md (make-message-digest *digest:sha-1*)))
+      (digest-message md msg)))
+  (let ((key (base64-encode (read-random-bytes 16))))
     (send-websocket-handshake in/out key)
     (check-first-line (binary:get-line in/out :eol #*"\r\n"))
     (let ((headers (rfc5322-read-headers in/out))
 	  (expected-accept (utf8->string
 			    (base64-encode
-			     (hash SHA-1 (bytevector-append key *uuid*))))))
+			     (sha1 (bytevector-append key *uuid*))))))
       (check-header headers "Upgrade" "websocket")
       (check-header headers "Connection" "Upgrade")
       (check-header headers "Sec-WebSocket-Accept" expected-accept)

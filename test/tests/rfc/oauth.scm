@@ -12,10 +12,13 @@
 	(net server)
 	(only (rfc http) http-get url-server&path)
 	(prefix (binary io) binary:)
-	(crypto)
 	(sagittarius regex)
 	(sagittarius socket)
 	(sagittarius control)
+	(rename (sagittarius crypto keys)
+		(*key:rsa* RSA)
+		(key-pair-private keypair-private)
+		(key-pair-public keypair-public))
 	(rfc tls)
 	(srfi :18)
 	(srfi :19)
@@ -210,7 +213,7 @@
 (let ()
   (define consumer-key "consumer-key")
   (define consumer-secret "consumer-secret")
-  (define +shutdown-port+ "20000")
+  (define +shutdown-port+ "0")
   (define keypair (generate-key-pair RSA :size 1024))
   (define 1y+ (time-utc->date
 	       (add-duration (current-time)
@@ -280,12 +283,7 @@
 		;; something went terribly wrong
 		(else (get-bytevector-all in/out) (put-error in/out)))))))
 
-  (define server (make-simple-server "20080" handler :config config))
-
-  (define conn (make-oauth-connection
-		(make-http1-connection "localhost:20080" #t)
-		consumer-key
-		(make-oauth-hmac-sha1-signer (string->utf8 consumer-secret))))
+  (define server (make-simple-server "0" handler :config config))
   (define (get-pin url)
     (let*-values (((server uri) (url-server&path url))
 		  ((s h b) (http-get server uri :secure #t)))
@@ -294,17 +292,23 @@
   (server-start! server :background #t)
   (thread-sleep! 0.1)
 
-  (let ((token (oauth-request-temporary-credential conn "/request_token")))
+  (let* ((conn (make-oauth-connection
+		(make-http1-connection
+		 (format "localhost:~a" (server-port server)) #t)
+		consumer-key
+		(make-oauth-hmac-sha1-signer (string->utf8 consumer-secret))))
+	 (token (oauth-request-temporary-credential conn "/request_token")))
     (test-assert (oauth-temporary-credential? token))
-    (let ((pin (get-pin (make-oauth-authorization-url "http://localhost:20080/authorize" token))))
+    (let ((pin (get-pin (make-oauth-authorization-url
+			 (format "http://localhost:~a/authorize"
+				 (server-port server))
+			 token))))
       (test-equal "12345" pin)
       (let ((access-token (oauth-request-access-token conn "/access_token" token pin)))
 	(test-assert (oauth-access-token? access-token))
 	(test-equal "oauth_token" (oauth-access-token-token access-token))
 	(test-equal "oauth_token_secret" (oauth-access-token-token-secret access-token)))))
-	
-  
-  (make-client-socket "localhost" +shutdown-port+)
+  (make-client-socket "localhost" (server-shutdown-port server))
   (test-assert "finish simple server (2)" (wait-server-stop! server)))
 
 (test-end)

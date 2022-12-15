@@ -677,5 +677,4 @@
 	       (send-disposition first last 'accepted)
 	       value)
 	      (else (send-disposition first last 'released) (loop))))))
-	
   )

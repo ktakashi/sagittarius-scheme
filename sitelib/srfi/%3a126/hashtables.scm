@@ -62,7 +62,7 @@
 	    (sagittarius)
 	    (core base)
 	    ;; we can't use srfi-27, it returns the same value each time
-	    (math))
+	    (math random))
 
 ;; converts SRFI-126 weakness symbols to builtin symbols
 (define (->weak-key w)

@@ -2,8 +2,10 @@
 ;;;
 ;;; random.scm math library
 ;;;
-;; For backward compatibility
-#!deprecated
+
+;; It's basically for backward compatiblity, though it's rather weird
+;; to import (sagittarius crypto random) on non cryptographical library.
+;; So it's not deprecated
 #!nounbound
 (library (math random)
     (export (rename (random-generator? prng?))
