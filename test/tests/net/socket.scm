@@ -141,7 +141,7 @@
   )
 
 ;; TLS
-(define keypair (generate-key-pair RSA :size 1024))
+(define keypair (generate-key-pair RSA))
 (define 1year (make-time time-duration 0 (* 1 60 60 24 365)))
 ;; NB timezone must be set (probably with Z), so specifying zone offset 0.
 (define cert (make-x509-basic-certificate keypair 1
@@ -151,7 +151,7 @@
 			      (add-duration! (current-time) 1year) 0))
               (make-x509-issuer '((C . "NL")))))
 
-(define client-keypair (generate-key-pair RSA :size 1024))
+(define client-keypair (generate-key-pair RSA))
 (define client-cert (make-x509-basic-certificate client-keypair 2
 		     (make-x509-issuer '((C . "NL")))
 		     (make-validity (current-date 0)
