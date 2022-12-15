@@ -9,7 +9,9 @@
           stream-drop-while stream-filter stream-fold stream-for-each stream-from
           stream-iterate stream-length stream-let stream-map stream-match _
           stream-of stream-range stream-ref stream-reverse stream-scan stream-take
-          stream-take-while stream-unfold stream-unfolds stream-zip)
+          stream-take-while stream-unfold stream-unfolds stream-zip
+	  in is ;; for renaming/prefix import
+	  )
 
   (import (rnrs) (srfi :41 streams primitive))
 
@@ -236,6 +238,8 @@
       ((_ expr rest ...)
         (stream-of-aux expr stream-null rest ...))))
 
+  (define-syntax in (syntax-rules ()))
+  (define-syntax is (syntax-rules ()))
   (define-syntax stream-of-aux
     (syntax-rules (in is)
       ((stream-of-aux expr base)
