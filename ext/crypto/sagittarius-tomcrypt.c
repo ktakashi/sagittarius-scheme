@@ -36,7 +36,7 @@
 SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__tomcrypt()
 {
   SgLibrary *lib;
-  SG_INIT_EXTENSION(sagittarius__cipher);
+  SG_INIT_EXTENSION(sagittarius__tomcrypt);
 
   lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius crypto tomcrypt)"),
 				  FALSE));

@@ -1,0 +1,45 @@
+;; -*- mode: scheme; coding: utf-8; -*-
+(decl-code
+ (.include <sagittarius/private.h>)
+ (.define "LIBSAGITTARIUS_EXT_BODY")
+ (.include  <sagittarius/extend.h>
+ 	    <sagittarius-ec.h>))
+
+(define-type <ec-field-fp> "SgEcFieldFp *")
+(define-type <ec-field-f2m> "SgEcFieldF2m *")
+
+(define-c-proc ec-field-fp? (o) ::<boolean> :constant SG_EC_FIELD_FP_P)
+(define-c-proc make-ec-field-fp (p::<integer>) Sg_MakeEcFieldFp)
+(define-c-proc ec-field-fp-p (fp::<ec-field-fp>) :no-side-effect
+  (result (-> fp p)))
+
+(define-c-proc ec-field-f2m? (o) ::<boolean> :constant SG_EC_FIELD_F2M_P)
+(define-c-proc make-ec-field-f2m
+  (m::<fixnum> k1::<fixnum> k2::<fixnum> k3::<fixnum>) Sg_MakeEcFieldF2m)
+(define-c-proc ec-field-f2m-m (f2m::<ec-field-f2m>) ::<fixnum> :no-side-effect
+  SG_EC_FIELD_F2M_M)
+(define-c-proc ec-field-f2m-k1 (f2m::<ec-field-f2m>) ::<fixnum> :no-side-effect
+  SG_EC_FIELD_F2M_K1)
+(define-c-proc ec-field-f2m-k2 (f2m::<ec-field-f2m>) ::<fixnum> :no-side-effect
+  SG_EC_FIELD_F2M_K2)
+(define-c-proc ec-field-f2m-k3 (f2m::<ec-field-f2m>) ::<fixnum> :no-side-effect
+  SG_EC_FIELD_F2M_K3)
+
+(define-c-proc f2m-ppb? (f2m::<ec-field-f2m>) ::<boolean> :no-side-effect
+  SG_EC_FIELD_F2M_PPB_P)
+
+(define-c-proc f2m-add (f2m::<ec-field-f2m> x::<integer> y::<integer>)
+  :no-side-effect
+  Sg_F2mAdd)
+(define-c-proc f2m-mul (f2m::<ec-field-f2m> x::<integer> y::<integer>)
+  :no-side-effect
+  Sg_F2mMul)
+(define-c-proc f2m-square (f2m::<ec-field-f2m> x::<integer>)
+  :no-side-effect
+  Sg_F2mSquare)
+(define-c-proc f2m-div (f2m::<ec-field-f2m> x::<integer> y::<integer>)
+  :no-side-effect
+  Sg_F2mDiv)
+(define-c-proc f2m-inverse (f2m::<ec-field-f2m> x::<integer>)
+  :no-side-effect
+  Sg_F2mInverse)

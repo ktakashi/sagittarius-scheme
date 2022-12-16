@@ -64,9 +64,34 @@ IF(APPLE)
 ENDIF()
 TARGET_LINK_LIBRARIES(sagittarius--secure sagittarius)
 
+# sagittarius--secure
+ADD_LIBRARY(sagittarius--ec MODULE
+  sagittarius-ec.c
+  ${CMAKE_CURRENT_BINARY_DIR}/ec-fields.c)
+IF (USE_CPP_FOR_BROKEN_LINKER)
+  # ugly solution
+  SET_SOURCE_FILES_PROPERTIES(
+    sagittarius-ec.c
+    ${CMAKE_CURRENT_BINARY_DIR}/ec-fields.c
+    PROPERTIES LANGUAGE CXX)
+ENDIF()
+
+ADD_STUBS(sagittarius--ec
+  COMMAND ${GENSTUB}
+  FILES ec-fields.stub
+  OUTTREE)
+SET_TARGET_PROPERTIES(sagittarius--ec PROPERTIES PREFIX "")
+IF(APPLE)
+  SET_TARGET_PROPERTIES(sagittarius--ec PROPERTIES SUFFIX ".dylib")
+ENDIF()
+TARGET_LINK_LIBRARIES(sagittarius--ec sagittarius)
+
+
 INSTALL(TARGETS sagittarius--tomcrypt
   DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
 INSTALL(TARGETS sagittarius--secure
+  DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
+INSTALL(TARGETS sagittarius--ec
   DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
 INSTALL(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/sagittarius
   DESTINATION ${SAGITTARIUS_SHARE_LIB_PATH})
