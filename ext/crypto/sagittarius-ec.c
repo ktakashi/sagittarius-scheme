@@ -82,20 +82,14 @@ SgObject Sg_F2mAdd(SgEcFieldF2m *f2m, SgObject x, SgObject y)
 
 #define ONE (SG_MAKE_INT(1))
 
-static SgObject mult_z_mod(int ppbP, int m,
-			   SgObject mm,
-			   SgObject k1m, SgObject k2m, SgObject k3m,
-			   SgObject a)
+static SgObject mult_z_mod(int m, SgObject mm, SgObject k, SgObject a)
 {
   SgObject az = Sg_Mul(a, SG_MAKE_INT(2));
   if (Sg_BitSetP(az, m)) {
     int bl = Sg_BitSize(az);
-    SgObject bm = Sg_Sub(Sg_Sub(Sg_Ash(ONE, bl), ONE), mm);
+    SgObject bm = Sg_Sub(Sg_Ash(ONE, bl), mm);
     SgObject r = Sg_LogAnd(az, bm);
-    if (ppbP) {
-      return Sg_LogXor(Sg_LogXor(Sg_LogXor(Sg_LogXor(r, ONE), k1m), k2m), k3m);
-    }
-    return Sg_LogXor(Sg_LogXor(r, ONE), k1m);
+    return Sg_LogXor(Sg_LogXor(r, ONE), k);
   }
   return az;
 }
@@ -109,11 +103,13 @@ SgObject Sg_F2mMul(SgEcFieldF2m *f2m, SgObject x, SgObject y)
     k1m = Sg_Ash(ONE, f2m->k1),
     k2m = Sg_Ash(ONE, f2m->k2),
     k3m = Sg_Ash(ONE, f2m->k3);
-  
-  bx = mult_z_mod(ppbP, f2m->m, mm, k1m, k2m, k3m, bx);
+  SgObject mmp1 = Sg_Add(mm, ONE);
+  SgObject k = ppbP? Sg_LogXor(Sg_LogXor(k1m, k2m), k3m): k1m;
+
+  bx = mult_z_mod(f2m->m, mmp1, k, bx);
   for (i = 1; i <= f2m->m; i++) {
     if (Sg_BitSetP(ax, i)) cz = Sg_LogXor(cz, bx);
-    bx = mult_z_mod(ppbP, f2m->m, mm, k1m, k2m, k3m, bx);    
+    bx = mult_z_mod(f2m->m, mmp1, k, bx);    
   }
   return cz;
 }

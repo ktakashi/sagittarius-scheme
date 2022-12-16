@@ -102,6 +102,7 @@
 (define signature-size-test
   '("incorrect size of signature"))
 
+(define last-test #f)
 (define (test-signature/testvector source
 	 :key algorithm public-key tests der-encode
 	      (digest #f) (mgf #f) (mgf-digest #f) (salt-length #f))
@@ -174,7 +175,9 @@
   (let* ((pkey (import-key public-key))
 	 (verifier (->verifier algorithm pkey)))
     (when verifier
-      ;; (print "Testing " source)
+      (unless (equal? last-test source)
+	(print "Testing " source)
+	(set! last-test source))
       (test-assert verifier)
       (for-each (verify-signature verifier) tests))))
 
