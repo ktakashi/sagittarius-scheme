@@ -110,10 +110,27 @@
 (define-c-proc sha3-shake-done! (ds::<digest-state> out::<bytevector>
 				 :optional (start::<fixnum> 0)  
 					   (len::<fixnum> (SG_MAKE_INT (- (SG_BVECTOR_SIZE out) start)))) ::<void>
-  (check-md 'sha3-shake-process! ds -1)
-  (check-range 'sha3-shake-process! out start len)
+  (check-md 'sha3-shake-done! ds -1)
+  (check-range 'sha3-shake-done! out start len)
   (let ((err::int (sha3_shake_done (& (SG_DIGEST_STATE_STATE ds))
 				   (+ (SG_BVECTOR_ELEMENTS out) start)
 				   len)))
     (check-tomcrypt-error 'sha3-shake-done! err)))
     
+;; Keccak
+(define-c-proc keccak-init (capacity::<fixnum>)
+  (let* ((ds (Sg_MakeDigestState -1))
+	 (err::int (keccak_init (& (SG_DIGEST_STATE_STATE ds)) capacity)))
+    (check-tomcrypt-error 'keccak_init err)
+    (result ds)))
+;; sha3-shake-process! = keccak-process! :)
+(define-c-proc keccak-done! (ds::<digest-state> pad::<fixnum> out::<bytevector>
+			     :optional (start::<fixnum> 0)  
+				       (len::<fixnum> (SG_MAKE_INT (- (SG_BVECTOR_SIZE out) start)))) ::<void>
+  (check-md 'keccak-done! ds -1)
+  (check-range 'keccak-done! out start len)
+  (let ((err::int (keccak_done4 (& (SG_DIGEST_STATE_STATE ds))
+				pad
+				(+ (SG_BVECTOR_ELEMENTS out) start)
+				len)))
+    (check-tomcrypt-error 'keccak-done! err)))

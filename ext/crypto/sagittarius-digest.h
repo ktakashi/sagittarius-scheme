@@ -78,4 +78,9 @@ SgObject Sg_DigestDescriptorOID(int md);
 SgObject Sg_MakeDigestState(int md);
 void Sg_InitDigest(SgLibrary *lib);
 
+/* Keccak extension for cSHAKE... */
+int keccak_init(hash_state *md, int capacity);
+int keccak_done4(hash_state *md, ulong64 pad,
+		 unsigned char *out, unsigned long outlen);
+
 #endif /* SAGITTARIUS_DIGEST_H_ */

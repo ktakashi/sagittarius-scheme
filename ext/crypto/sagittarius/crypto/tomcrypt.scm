@@ -113,6 +113,8 @@
 	    digest-state?
 	    digest-init digest-process! digest-done!
 	    sha3-shake-init sha3-shake-process! sha3-shake-done!
+	    keccak-init (rename (sha3-shake-process! keccak-process!))
+	    keccak-done!
 
 	    ;; prng
 	    *prng:yarrow* *prng:fortuna* *prng:rc4* *prng:sober-128*
