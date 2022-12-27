@@ -1,6 +1,7 @@
 ;; sanity check tests.
 ;; Basically, just testing self enc/dec. For test with test vectors
 ;; is written in other locations
+#!read-macro=sagittarius/bv-string
 (import (rnrs)
 	(sagittarius crypto digests)
 	(sagittarius crypto random)
@@ -8,6 +9,7 @@
 	(sagittarius crypto ciphers)
 	(sagittarius crypto math prime)
 	(sagittarius crypto signatures)
+	(util bytevector)
 	(srfi :64))
 
 (define all-prngs-w/o-system
@@ -342,7 +344,9 @@
 
 (for-each digest/size-test digests/size)
 
-(define digests-w/o-size (list *digest:shake-128* *digest:shake-256*))
+(define digests-w/o-size
+  (list *digest:shake-128* *digest:shake-256*
+	*digest:cshake-128* *digest:cshake-256*))
 (define (digest-w/o-size-test desc)
   (test-assert (digest-descriptor? desc))
   (let ((size (digest-descriptor-digest-size desc))
@@ -353,6 +357,29 @@
     (test-equal (digest-descriptor-name desc)
 		64 (bytevector-length (digest-message md #vu8() 64)))))
 (for-each digest-w/o-size-test digests-w/o-size)
+
+(define (test-shake/cshake shake cshake)
+  (test-equal (digest-message (make-message-digest shake) #vu8() 32)
+	      (digest-message (make-message-digest cshake) #vu8() 32)))
+(test-shake/cshake *digest:shake-128* *digest:cshake-128*)
+(test-shake/cshake *digest:shake-256* *digest:cshake-256*)
+
+(define (test-cshake cshake N S msg size expected)
+  (define md (make-message-digest cshake))
+  (message-digest-init! md :name N :custom S)
+  (message-digest-process! md msg)
+  (let ((digest (message-digest-done md size)))
+    (test-equal expected digest)))
+;; From https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/cSHAKE_samples.pdf
+;; seems they don't have test vectors...
+(test-cshake *digest:cshake-128* #*"" #*"Email Signature" #vu8(0 1 2 3)
+	     (div 256 8)
+	     (hex-string->bytevector "C1C36925B6409A04F1B504FCBCA9D82B4017277CB5ED2B2065FC1D3814D5AAF5"))
+
+(test-cshake *digest:cshake-256* #*"" #*"Email Signature" #vu8(0 1 2 3)
+	     (div 512 8)
+	     (hex-string->bytevector "D008828E2B80AC9D2218FFEE1D070C48B8E4C87BFF32C9699D5B6896EEE0EDD164020E2BE0560858D9C00C037E34A96937C561A74C412BB4C746469527281C8C"))
+
 
 (test-end)
 

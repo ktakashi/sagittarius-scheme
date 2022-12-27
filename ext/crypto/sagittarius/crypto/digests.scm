@@ -71,6 +71,7 @@
 	    *digest:blake2b-384* *digest:blake2b-512*
 
 	    *digest:shake-128* *digest:shake-256*
+	    *digest:cshake-128* *digest:cshake-256*
 
 	    oid->digest-descriptor
 	    )
