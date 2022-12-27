@@ -110,9 +110,9 @@
 			out start (or length (bytevector-length out)))
   out)
 
-(define (message-digest-init! (md message-digest?))
+(define (message-digest-init! (md message-digest?) . opts)
   (define desc (message-digest-descriptor md))
-  (message-digest-state-set! md (make-digest-state desc))
+  (message-digest-state-set! md (apply make-digest-state desc opts))
   md)
 (define (message-digest-process!
 	 (md message-digest?)
@@ -144,8 +144,8 @@
 (define-record-type digest-state
   (fields descriptor state)
   (protocol (lambda (p)
-	      (lambda (desc)
-		(p desc ((digest-descriptor-init desc)))))))
+	      (lambda (desc . opts)
+		(p desc (apply (digest-descriptor-init desc) opts))))))
 (define (digest-state-process! ds bv start length)
   ((digest-descriptor-process (digest-state-descriptor ds))
    (digest-state-state ds)
