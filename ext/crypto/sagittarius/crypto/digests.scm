@@ -79,7 +79,9 @@
 	    (clos user)
 	    (sagittarius)
 	    (sagittarius mop immutable)
-	    (sagittarius crypto digests descriptors))
+	    (sagittarius crypto digests descriptors)
+	    (sagittarius crypto digests cshake)
+	    (sagittarius crypto digests oid-map))
 
 (define-class <message-digest> (<immutable>)
   ((state :reader message-digest-state
