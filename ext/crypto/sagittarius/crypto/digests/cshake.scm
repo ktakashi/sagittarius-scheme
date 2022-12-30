@@ -31,7 +31,9 @@
 #!nounbound
 (library (sagittarius crypto digests cshake)
     (export *digest:cshake-128* *digest:cshake-256*
+
 	    ;; for KMAC
+	    cshake-descriptor?
 	    left-encode
 	    right-encode
 	    encode-string
@@ -76,7 +78,10 @@
   (let ((st (cdr s)))
     (apply tc:keccak-done! st (car s) out opts)))
 
-(define *digest:cshake-128* (make-digest-descriptor "cshake-128"
+(define-record-type cshake-descriptor
+  (parent <digest-descriptor>))
+
+(define *digest:cshake-128* (make-cshake-descriptor "cshake-128"
 						    (cshake-initiate 256 168)
 						    cshake-process!
 						    cshake-done!
@@ -84,7 +89,7 @@
 						    #f
 						    ;; does cSHAKE have OID?
 						    #f))
-(define *digest:cshake-256* (make-digest-descriptor "cshake-256"
+(define *digest:cshake-256* (make-cshake-descriptor "cshake-256"
 						    (cshake-initiate 512 136)
 						    cshake-process!
 						    cshake-done!

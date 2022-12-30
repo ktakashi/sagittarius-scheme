@@ -35,7 +35,7 @@
 	    mac-mac-size
 	    mac-oid
 	    
-	    *mac:hmac* *mac:cmac*
+	    *mac:hmac* *mac:cmac* *mac:kmac* *mac:kmac-128* *mac:kmac-256*
 
 	    generate-mac generate-mac!
 	    
@@ -63,6 +63,11 @@
 	    *oid-hmac/sha3-256*
 	    *oid-hmac/sha3-384*
 	    *oid-hmac/sha3-512*
+
+	    *oid-kmac-128*
+	    *oid-kmac-256*
+	    *oid-kmac-xof-128*
+	    *oid-kmac-xof-256*
 	    )
     (import (rnrs)
 	    (clos user)
@@ -72,6 +77,7 @@
 	    (sagittarius crypto mac types)
 	    (sagittarius crypto mac hmac)
 	    (sagittarius crypto mac cmac)
+	    (sagittarius crypto mac kmac)
 	    (sagittarius crypto secure))
 
 (define-class <mac> (<immutable>)
