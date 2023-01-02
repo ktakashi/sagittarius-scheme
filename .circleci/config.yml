@@ -11,25 +11,16 @@ jobs:
        - run:
            name: Installing dependencies
            command: |
-             apt-get update
-             apt-get -y install cmake libgc-dev zlib1g-dev libffi-dev
+             bash .ci/setup-ubuntu.sh
        - run:
            name: Installing current Sagittarius
            working_directory: ~/current_sagittarius
            command: |
-             curl -L -o version https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/latest-version.txt
-             curl -L -o sagittarius.tar.gz https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/sagittarius-`cat version`.tar.gz
-             tar --no-same-owner -xvf sagittarius.tar.gz
-             cd sagittarius-`cat version`
-             cmake .
-             make -j8 sash
-             make
-             make install
+             bash ./ci/build-current.sh 'no'
        - run:
            name: Pre-build
            working_directory: ~/project/sagittarius-scheme
            command: |
-             pwd
              ./dist.sh gen
              cmake .
        - run:
