@@ -19,7 +19,7 @@ jobs:
           path: target
       - name: Install dependencies
         run: |
-          bash "target/${{ matrix.config.setup }}"
+          bash "target/${{ matrix.config.setup }}" "sudo"
           mkdir current_sagittarius
       - name: Install current sagittarius
         working-directory: current_sagittarius
