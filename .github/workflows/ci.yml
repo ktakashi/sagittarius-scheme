@@ -19,12 +19,12 @@ jobs:
           path: target
       - name: Install dependencies
         run: |
-          bash "${{ matrix.config.setup }}"
+          bash "target/${{ matrix.config.setup }}"
           mkdir current_sagittarius
       - name: Install current sagittarius
         working-directory: current_sagittarius
         run: |
-          bash ./ci/build-current.sh 'yes'
+          bash ../target/./ci/build-current.sh 'yes'
       - name: Pre-build
         working-directory: target
         run: |

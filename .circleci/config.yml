@@ -7,31 +7,32 @@ jobs:
            ENV: CI
      steps:
        - checkout:
-           path: ~/project/sagittarius-scheme
+           path: ~/target
        - run:
            name: Installing dependencies
+           working_directory: ~/
            command: |
-             bash .ci/setup-ubuntu.sh
+             bash target/.ci/setup-ubuntu.sh
        - run:
            name: Installing current Sagittarius
            working_directory: ~/current_sagittarius
            command: |
-             bash ./ci/build-current.sh 'no'
+             bash ../target/.ci/build-current.sh 'no'
        - run:
            name: Pre-build
-           working_directory: ~/project/sagittarius-scheme
+           working_directory: ~/target
            command: |
              ./dist.sh gen
              cmake .
        - run:
            name: Build
-           working_directory: ~/project/sagittarius-scheme
+           working_directory: ~/target
            command: make
        - run:
            name: Test
-           working_directory: ~/project/sagittarius-scheme
+           working_directory: ~/target
            command: make test
        - run:
            name: JSON related tests
-           working_directory: ~/project/sagittarius-scheme
+           working_directory: ~/target
            command: make test-jsons
