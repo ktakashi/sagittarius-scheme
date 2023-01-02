@@ -2,7 +2,6 @@ FROM ubuntu:latest
 ARG VERSION=latest
 
 ADD scripts/build-sagittarius.sh /home/sagittarius/build.sh
-ADD musl-fix.patch /home/sagittarius/musl.patch
 
 RUN apt update; \
     apt install --no-install-recommends --no-install-suggests -y \

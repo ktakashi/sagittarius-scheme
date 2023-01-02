@@ -57,11 +57,11 @@ static void cmac_state_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_CmacStateClass, cmac_state_printer);
 
-SgObject Sg_MakeCmacState(int md)
+SgObject Sg_MakeCmacState(int cipher)
 {
-  SgHmacState *state = SG_NEW(SgCmacState);
+  SgCmacState *state = SG_NEW(SgCmacState);
   SG_SET_CLASS(state, SG_CLASS_CMAC_STATE);
-  state->md = md;
+  state->cipher = cipher;
   return SG_OBJ(state);
 }
 
