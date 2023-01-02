@@ -1,0 +1,15 @@
+# syntax=docker/dockerfile-upstream:master-labs
+From ktakashi/sagittarius:latest
+ARG COMMIT
+ADD --keep-git-dir=true "https://github.com/ktakashi/sagittarius-scheme.git" /home/sagittarius-nightly/
+
+RUN apt update; \
+    apt install --no-install-recommends --no-install-suggests -y git; \
+    cd /home/sagittarius-nightly && git checkout $COMMIT; \
+    cd /home/sagittarius-nightly && ./dist.sh gen; \
+    cd /home/sagittarius-nightly && cmake .;  \
+    cd /home/sagittarius-nightly && make -j8; \
+    cd /home/sagittarius-nightly && make install; \
+    rm -rf /home/sagittarius-nightly
+
+ENTRYPOINT ["/usr/local/bin/sagittarius"]
