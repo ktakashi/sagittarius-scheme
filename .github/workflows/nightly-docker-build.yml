@@ -2,6 +2,7 @@ name: Nightly Docker container build
 
 # Once a day
 on:
+  workflow_dispatch:
   schedule:
     - cron: '30 2 * * *'
 
