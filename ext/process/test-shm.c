@@ -3,6 +3,7 @@
 
 #ifndef _WIN32
 # include <unistd.h>
+# include <fcntl.h>
 # include <sys/file.h>
 # include <sys/mman.h>
 # include <sys/wait.h>

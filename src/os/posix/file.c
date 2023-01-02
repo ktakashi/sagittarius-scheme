@@ -102,7 +102,7 @@ static int posix_is_open(SgObject self)
   return SG_FD(self)->fd != INVALID_HANDLE_VALUE;
 }
 
-static int posix_close(SgObject self)
+static int posix_file_close(SgObject self)
 {
   if (SG_FD(self)->fd == 0 ||
       SG_FD(self)->fd == 1 ||
@@ -239,7 +239,7 @@ static SgFileTable vtable = {
   posix_size,
   posix_is_open,
   posix_open,
-  posix_close,
+  posix_file_close,
   posix_can_close,
   posix_ready
 };
