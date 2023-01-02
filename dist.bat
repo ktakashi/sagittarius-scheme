@@ -43,7 +43,7 @@ cd src
 call :invoke genlib %1
 cd ..
 call :insn dummy %1
-cd script
+cd tools\scripts
 echo "Generating builtin keywords"
 call :invoke builtin-keywords.scm
 echo "Generating builtin symbols"
@@ -62,25 +62,25 @@ goto:eof
 rem srfi
 :srfi
 echo Generating R7RS style SRFI libraries
-call :invoke -L./sitelib ./script/r7rs-srfi-gen.scm -p ./ext -p ./sitelib/srfi %1
+call :invoke -L./sitelib ./tools/scripts/r7rs-srfi-gen.scm -p ./ext -p ./sitelib/srfi %1
 goto:eof
 
 rem tzdata
 :tz
 echo "Generating TZ database"
-call :invoke ./script/compile-tzdatabase.scm -o ext/time/sagittarius/tzdata.scm -w ext/time/sagittarius/win-mappings.scm -l ext/time/sagittarius/leap-table.scm -r %1
+call :invoke ./tools/scripts/compile-tzdatabase.scm -o ext/time/sagittarius/tzdata.scm -w ext/time/sagittarius/win-mappings.scm -l ext/time/sagittarius/leap-table.scm -r %1
 goto:eof
 
 rem unicode
 :unicode
 echo "Generating Unicode codepoints"
-call :invoke ./script/compile-unicode.scm %1
+call :invoke ./tools/scripts/compile-unicode.scm %1
 goto:eof
 
 rem html
 :html
 echo "Generating HTML entities"
-call :invoke ./script/html-entities.scm -o sitelib/text/xml/entities-list.scm %1
+call :invoke ./tools/scripts/html-entities.scm -o sitelib/text/xml/entities-list.scm %1
 goto:eof
 
 rem gen

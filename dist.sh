@@ -21,12 +21,12 @@ precomp()
     echo generating instruction
     geninsn $1
 
-    cd script
+    cd tools/scripts
     echo generating builtin keyword
     $SASH builtin-keywords.scm
     echo generating builtin symbol
     $SASH builtin-symbols.scm
-    cd ..
+    cd ../..
     # done :)
 }
 
@@ -41,13 +41,13 @@ stub()
 srfi()
 {
     echo Generating R7RS style SRFI libraries
-    $SASH -L./sitelib ./script/r7rs-srfi-gen.scm -p ./ext -p ./sitelib/srfi $1
+    $SASH -L./sitelib ./tools/scripts/r7rs-srfi-gen.scm -p ./ext -p ./sitelib/srfi $1
 }
 
 tzdata()
 {
     echo Generating TZ database
-    $SASH ./script/compile-tzdatabase.scm \
+    $SASH ./tools/scripts/compile-tzdatabase.scm \
 	-o ext/time/sagittarius/tzdata.scm \
 	-w ext/time/sagittarius/win-mappings.scm \
 	-l ext/time/sagittarius/leap-table.scm \
@@ -57,13 +57,13 @@ tzdata()
 unicode()
 {
     echo Generating Unicode codepoints
-    $SASH ./script/compile-unicode.scm $1
+    $SASH ./tools/scripts/compile-unicode.scm $1
 }
 
 html()
 {
     echo Generating HTML entities
-    $SASH ./script/html-entities.scm -o sitelib/text/xml/entities-list.scm $1
+    $SASH ./tools/scripts/html-entities.scm -o sitelib/text/xml/entities-list.scm $1
 }
 
 

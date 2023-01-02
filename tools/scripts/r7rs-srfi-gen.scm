@@ -150,7 +150,7 @@
   (with-args (cdr args) 
       ((p* (#\p "path") * (usage args))
        (sitelib (#\s "sitelib") #t "sitelib")
-       (srfi-160-template (#\t "template") #t "script/srfi-160-at.scm.in")
+       (srfi-160-template (#\t "template") #t "tools/scripts/srfi-160-at.scm.in")
        (clean? (#\c "clean") #f #f))
     (generate-srfi-160 srfi-160-template sitelib clean?)
     (dolist (p p*)
