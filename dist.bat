@@ -48,7 +48,7 @@ echo "Generating builtin keywords"
 call :invoke builtin-keywords.scm
 echo "Generating builtin symbols"
 call :invoke builtin-symbols.scm
-cd  ..
+cd  ..\..
 goto:eof
 
 rem stub
