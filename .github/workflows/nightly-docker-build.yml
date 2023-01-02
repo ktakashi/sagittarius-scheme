@@ -20,8 +20,9 @@ jobs:
         if: ${{ github.event_name == 'schedule' }}
         run: test -z $(git rev-list  --after="24 hours"  ${{ github.sha }}) && echo "::set-output name=should_run::false"
         
-  scan:
+  build:
     runs-on: ubuntu-latest
+    name: Build Docker image
     needs: check_date
     if: ${{ needs.check_date.outputs.should_run != 'false' }}
     steps:
@@ -37,13 +38,11 @@ jobs:
         with:
           images: ktakashi/sagittarius
           tags: |
-            type=raw,value=nightly
             type=edge
             type=sha
           flavor: latest=false
           labels: |
             org.opencontainers.image.authors=Takashi Kato
-            org.opencontainers.image.version=nightly
             org.opencontainers.image.title=Sagittarius Scheme
             org.opencontainers.image.description=Sagittarius Scheme nightly build
       - name: Build and push Docker image
