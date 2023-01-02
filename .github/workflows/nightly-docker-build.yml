@@ -37,12 +37,15 @@ jobs:
         with:
           images: ktakashi/sagittarius
           tags: |
-            type=schedule,pattern=nightly
+            type=raw,value=nightly
+            type=edge
+            type=sha
           flavor: latest=false
           labels: |
             org.opencontainers.image.authors=Takashi Kato
             org.opencontainers.image.version=nightly
-            org.opencontainers.image.title=Sagittarius Scheme nightly build container
+            org.opencontainers.image.title=Sagittarius Scheme
+            org.opencontainers.image.description=Sagittarius Scheme nightly build
       - name: Build and push Docker image
         uses: docker/build-push-action@v3.2.0
         with:
