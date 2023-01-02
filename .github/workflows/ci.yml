@@ -24,7 +24,7 @@ jobs:
       - name: Install current sagittarius
         working-directory: current_sagittarius
         run: |
-          bash ../target/./ci/build-current.sh 'yes'
+          bash ../target/.ci/build-current.sh 'yes'
       - name: Pre-build
         working-directory: target
         run: |
