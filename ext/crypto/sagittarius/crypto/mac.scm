@@ -104,6 +104,9 @@
       :finalizer (mac-state-finalizer type))))
 
 (define (generate-mac mac msg :optional (length (mac-mac-size mac)))
+  (unless length
+    (assertion-violation 'generate-mac
+     "MAC length must be specified for this mac, is this maybe KMAC?"))
   (let ((out (make-bytevector length 0)))
     (generate-mac! mac msg out 0)
     out))

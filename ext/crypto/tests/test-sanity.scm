@@ -4,6 +4,7 @@
 #!read-macro=sagittarius/bv-string
 (import (rnrs)
 	(sagittarius crypto digests)
+	(sagittarius crypto mac)
 	(sagittarius crypto random)
 	(sagittarius crypto keys)
 	(sagittarius crypto ciphers)
@@ -380,6 +381,110 @@
 	     (div 512 8)
 	     (hex-string->bytevector "D008828E2B80AC9D2218FFEE1D070C48B8E4C87BFF32C9699D5B6896EEE0EDD164020E2BE0560858D9C00C037E34A96937C561A74C412BB4C746469527281C8C"))
 
+
+(test-end)
+
+(test-begin "MAC")
+
+(define (test-kmac kmac key S size msg* m mx)
+  (define (test xof? m)
+    (define mac (make-mac kmac key :xof xof? :custom S))
+    (define out (make-bytevector size))
+    (mac-init! mac)
+    (for-each (lambda (msg) (mac-process! mac msg)) msg*)
+    (mac-done! mac out)
+    (test-equal (if xof? "KMACXOF" "KMAC") m out))
+  (test #f m)
+  (test #t mx))
+
+;; From
+;; - https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/KMAC_samples.pdf
+;; - https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/KMACXOF_samples.pdf
+;; the same as cSHAKE...
+(test-kmac *mac:kmac-128*
+	   (hex-string->bytevector "404142434445464748494A4B4C4D4E4F505152535455565758595A5B5C5D5E5F")
+	   #*""
+	   (div 256 8)
+	   '(#vu8(0 1 2 3))
+	   (hex-string->bytevector "E5780B0D3EA6F7D3A429C5706AA43A00FADBD7D49628839E3187243F456EE14E")
+	   (hex-string->bytevector "CD83740BBD92CCC8CF032B1481A0F4460E7CA9DD12B08A0C4031178BACD6EC35"))
+
+(test-kmac *mac:kmac-128*
+	   (hex-string->bytevector "404142434445464748494A4B4C4D4E4F505152535455565758595A5B5C5D5E5F")
+	   #*"My Tagged Application"
+	   (div 256 8)
+	   '(#vu8(0 1 2 3))
+	   (hex-string->bytevector "3B1FBA963CD8B0B59E8C1A6D71888B7143651AF8BA0A7070C0979E2811324AA5")
+	   (hex-string->bytevector "31A44527B4ED9F5C6101D11DE6D26F0620AA5C341DEF41299657FE9DF1A3B16C"))
+
+(test-kmac *mac:kmac-128*
+	   (hex-string->bytevector "404142434445464748494A4B4C4D4E4F505152535455565758595A5B5C5D5E5F")
+	   #*"My Tagged Application"
+	   (div 256 8)
+	   '(#vu8(#x00 #x01 #x02 #x03 #x04 #x05 #x06 #x07 #x08 #x09 #x0A #x0B #x0C #x0D #x0E #x0F)
+	     #vu8(#x10 #x11 #x12 #x13 #x14 #x15 #x16 #x17 #x18 #x19 #x1A #x1B #x1C #x1D #x1E #x1F)
+	     #vu8(#x20 #x21 #x22 #x23 #x24 #x25 #x26 #x27 #x28 #x29 #x2A #x2B #x2C #x2D #x2E #x2F)
+	     #vu8(#x30 #x31 #x32 #x33 #x34 #x35 #x36 #x37 #x38 #x39 #x3A #x3B #x3C #x3D #x3E #x3F)
+	     #vu8(#x40 #x41 #x42 #x43 #x44 #x45 #x46 #x47 #x48 #x49 #x4A #x4B #x4C #x4D #x4E #x4F)
+	     #vu8(#x50 #x51 #x52 #x53 #x54 #x55 #x56 #x57 #x58 #x59 #x5A #x5B #x5C #x5D #x5E #x5F)
+	     #vu8(#x60 #x61 #x62 #x63 #x64 #x65 #x66 #x67 #x68 #x69 #x6A #x6B #x6C #x6D #x6E #x6F)
+	     #vu8(#x70 #x71 #x72 #x73 #x74 #x75 #x76 #x77 #x78 #x79 #x7A #x7B #x7C #x7D #x7E #x7F)
+	     #vu8(#x80 #x81 #x82 #x83 #x84 #x85 #x86 #x87 #x88 #x89 #x8A #x8B #x8C #x8D #x8E #x8F)
+	     #vu8(#x90 #x91 #x92 #x93 #x94 #x95 #x96 #x97 #x98 #x99 #x9A #x9B #x9C #x9D #x9E #x9F)
+	     #vu8(#xA0 #xA1 #xA2 #xA3 #xA4 #xA5 #xA6 #xA7 #xA8 #xA9 #xAA #xAB #xAC #xAD #xAE #xAF)
+	     #vu8(#xB0 #xB1 #xB2 #xB3 #xB4 #xB5 #xB6 #xB7 #xB8 #xB9 #xBA #xBB #xBC #xBD #xBE #xBF)
+	     #vu8(#xC0 #xC1 #xC2 #xC3 #xC4 #xC5 #xC6 #xC7))
+	   (hex-string->bytevector "1F5B4E6CCA02209E0DCB5CA635B89A15E271ECC760071DFD805FAA38F9729230")
+	   (hex-string->bytevector "47026C7CD793084AA0283C253EF658490C0DB61438B8326FE9BDDF281B83AE0F"))
+
+;; KMAC 256
+(test-kmac *mac:kmac-256*
+	   (hex-string->bytevector "404142434445464748494A4B4C4D4E4F505152535455565758595A5B5C5D5E5F")
+	   #*"My Tagged Application"
+	   (div 512 8)
+	   '(#vu8(0 1 2 3))
+	   (hex-string->bytevector "20C570C31346F703C9AC36C61C03CB64C3970D0CFC787E9B79599D273A68D2F7F69D4CC3DE9D104A351689F27CF6F5951F0103F33F4F24871024D9C27773A8DD")
+	   (hex-string->bytevector "1755133F1534752AAD0748F2C706FB5C784512CAB835CD15676B16C0C6647FA96FAA7AF634A0BF8FF6DF39374FA00FAD9A39E322A7C92065A64EB1FB0801EB2B"))
+
+(test-kmac *mac:kmac-256*
+	   (hex-string->bytevector "404142434445464748494A4B4C4D4E4F505152535455565758595A5B5C5D5E5F")
+	   #*""
+	   (div 512 8)
+	   '(#vu8(#x00 #x01 #x02 #x03 #x04 #x05 #x06 #x07 #x08 #x09 #x0A #x0B #x0C #x0D #x0E #x0F)
+	     #vu8(#x10 #x11 #x12 #x13 #x14 #x15 #x16 #x17 #x18 #x19 #x1A #x1B #x1C #x1D #x1E #x1F)
+	     #vu8(#x20 #x21 #x22 #x23 #x24 #x25 #x26 #x27 #x28 #x29 #x2A #x2B #x2C #x2D #x2E #x2F)
+	     #vu8(#x30 #x31 #x32 #x33 #x34 #x35 #x36 #x37 #x38 #x39 #x3A #x3B #x3C #x3D #x3E #x3F)
+	     #vu8(#x40 #x41 #x42 #x43 #x44 #x45 #x46 #x47 #x48 #x49 #x4A #x4B #x4C #x4D #x4E #x4F)
+	     #vu8(#x50 #x51 #x52 #x53 #x54 #x55 #x56 #x57 #x58 #x59 #x5A #x5B #x5C #x5D #x5E #x5F)
+	     #vu8(#x60 #x61 #x62 #x63 #x64 #x65 #x66 #x67 #x68 #x69 #x6A #x6B #x6C #x6D #x6E #x6F)
+	     #vu8(#x70 #x71 #x72 #x73 #x74 #x75 #x76 #x77 #x78 #x79 #x7A #x7B #x7C #x7D #x7E #x7F)
+	     #vu8(#x80 #x81 #x82 #x83 #x84 #x85 #x86 #x87 #x88 #x89 #x8A #x8B #x8C #x8D #x8E #x8F)
+	     #vu8(#x90 #x91 #x92 #x93 #x94 #x95 #x96 #x97 #x98 #x99 #x9A #x9B #x9C #x9D #x9E #x9F)
+	     #vu8(#xA0 #xA1 #xA2 #xA3 #xA4 #xA5 #xA6 #xA7 #xA8 #xA9 #xAA #xAB #xAC #xAD #xAE #xAF)
+	     #vu8(#xB0 #xB1 #xB2 #xB3 #xB4 #xB5 #xB6 #xB7 #xB8 #xB9 #xBA #xBB #xBC #xBD #xBE #xBF)
+	     #vu8(#xC0 #xC1 #xC2 #xC3 #xC4 #xC5 #xC6 #xC7))
+	   (hex-string->bytevector "75358CF39E41494E949707927CEE0AF20A3FF553904C86B08F21CC414BCFD691589D27CF5E15369CBBFF8B9A4C2EB17800855D0235FF635DA82533EC6B759B69")
+	   (hex-string->bytevector "FF7B171F1E8A2B24683EED37830EE797538BA8DC563F6DA1E667391A75EDC02CA633079F81CE12A25F45615EC89972031D18337331D24CEB8F8CA8E6A19FD98B"))
+
+(test-kmac *mac:kmac-256*
+	   (hex-string->bytevector "404142434445464748494A4B4C4D4E4F505152535455565758595A5B5C5D5E5F")
+	   #*"My Tagged Application"
+	   (div 512 8)
+	   '(#vu8(#x00 #x01 #x02 #x03 #x04 #x05 #x06 #x07 #x08 #x09 #x0A #x0B #x0C #x0D #x0E #x0F)
+	     #vu8(#x10 #x11 #x12 #x13 #x14 #x15 #x16 #x17 #x18 #x19 #x1A #x1B #x1C #x1D #x1E #x1F)
+	     #vu8(#x20 #x21 #x22 #x23 #x24 #x25 #x26 #x27 #x28 #x29 #x2A #x2B #x2C #x2D #x2E #x2F)
+	     #vu8(#x30 #x31 #x32 #x33 #x34 #x35 #x36 #x37 #x38 #x39 #x3A #x3B #x3C #x3D #x3E #x3F)
+	     #vu8(#x40 #x41 #x42 #x43 #x44 #x45 #x46 #x47 #x48 #x49 #x4A #x4B #x4C #x4D #x4E #x4F)
+	     #vu8(#x50 #x51 #x52 #x53 #x54 #x55 #x56 #x57 #x58 #x59 #x5A #x5B #x5C #x5D #x5E #x5F)
+	     #vu8(#x60 #x61 #x62 #x63 #x64 #x65 #x66 #x67 #x68 #x69 #x6A #x6B #x6C #x6D #x6E #x6F)
+	     #vu8(#x70 #x71 #x72 #x73 #x74 #x75 #x76 #x77 #x78 #x79 #x7A #x7B #x7C #x7D #x7E #x7F)
+	     #vu8(#x80 #x81 #x82 #x83 #x84 #x85 #x86 #x87 #x88 #x89 #x8A #x8B #x8C #x8D #x8E #x8F)
+	     #vu8(#x90 #x91 #x92 #x93 #x94 #x95 #x96 #x97 #x98 #x99 #x9A #x9B #x9C #x9D #x9E #x9F)
+	     #vu8(#xA0 #xA1 #xA2 #xA3 #xA4 #xA5 #xA6 #xA7 #xA8 #xA9 #xAA #xAB #xAC #xAD #xAE #xAF)
+	     #vu8(#xB0 #xB1 #xB2 #xB3 #xB4 #xB5 #xB6 #xB7 #xB8 #xB9 #xBA #xBB #xBC #xBD #xBE #xBF)
+	     #vu8(#xC0 #xC1 #xC2 #xC3 #xC4 #xC5 #xC6 #xC7))
+	   (hex-string->bytevector "B58618F71F92E1D56C1B8C55DDD7CD188B97B4CA4D99831EB2699A837DA2E4D970FBACFDE50033AEA585F1A2708510C32D07880801BD182898FE476876FC8965")
+	   (hex-string->bytevector "D5BE731C954ED7732846BB59DBE3A8E30F83E77A4BFF4459F2F1C2B4ECEBB8CE67BA01C62E8AB8578D2D499BD1BB276768781190020A306A97DE281DCC30305D"))
 
 (test-end)
 

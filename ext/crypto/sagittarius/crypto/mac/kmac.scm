@@ -50,7 +50,7 @@
 (define *mac:kmac-256* :kmac-256)
 
 (define-record-type kmac-state
-  (fields md mac-size xof?))
+  (fields md xof?))
 
 (define-method mac-state-initializer ((m (eql *mac:kmac*)) (key <bytevector>)
 	      :key ((cshake cshake-descriptor?) #f)
@@ -67,47 +67,36 @@
 
 #|
 KMAC128(K, X, L, S):
-Validity Conditions: len(K) < 2^2040 and 0 ≤ L < 2^2040 and len(S) < 2^2040
+Validity Conditions: len(K) < 2^2040 and 0 <= L < 2^2040 and len(S) < 2^2040
 1. newX = bytepad(encode_string(K), 168) || X || right_encode(L).
-2. return cSHAKE128(newX, L, “KMAC”, S).
+2. return cSHAKE128(newX, L, "KMAC", S).
 
 KMAC256(K, X, L, S):
-Validity Conditions: len(K) <2^2040 and 0 ≤ L < 2^2040 and len(S) < 2^2040
+Validity Conditions: len(K) < 2^2040 and 0 <= L < 2^2040 and len(S) < 2^2040
 1. newX = bytepad(encode_string(K), 136) || X || right_encode(L).
-2. return cSHAKE256(newX, L, “KMAC”, S).
+2. return cSHAKE256(newX, L, "KMAC", S).
 
 KMACXOF128(K, X, L, S):
-Validity Conditions: len(K) < 2^2040 and 0 ≤ L and len(S) < 2^2040
+Validity Conditions: len(K) < 2^2040 and 0 <= L and len(S) < 2^2040
 1. newX = bytepad(encode_string(K), 168) || X || right_encode(0).
-2. return cSHAKE128(newX, L, “KMAC”, S).
+2. return cSHAKE128(newX, L, "KMAC", S).
 
 KMACXOF256(K, X, L, S):
-Validity Conditions: len(K) <2^2040 and 0 ≤ L and len(S) < 2^2040
+Validity Conditions: len(K) < 2^2040 and 0 <= L and len(S) < 2^2040
 1. newX = bytepad(encode_string(K), 136) || X || right_encode(0).
-2. return cSHAKE256(newX, L, “KMAC”, S).
+2. return cSHAKE256(newX, L, "KMAC", S).
 |#
 (define (kmac-state-initializer key cshake
 	 :key (custom (or #f bytevector?))
-	      (mac-size 64) ;; The same as HMAC-SHA512, larger is better though
 	      (xof #f))
   (define block-size (digest-descriptor-block-size cshake))
-  ;; NIST SP 800-185  8.4.2
-  ;; > When used as a MAC, applications of this Recommendation shall not
-  ;; > select an output length L that is less than 32 bits, and shall
-  ;; > only select an output length less than 64 bits after a careful
-  ;; > risk analysis is performed.
-  ;; we simply disable output length less than 64 bits
-  (when (< mac-size 8)
-    (assertion-violation 'kmac-state-initializer
-			 "MAC size must be greater than or equal to 8"
-			 mac-size))
   (let ((init-val (bytepad (encode-string key) block-size)))
     (values (lambda ()
-	      (let ((md (make-digest-descriptor cshake)))
+	      (let ((md (make-message-digest cshake)))
 		(message-digest-init! md :name #*"KMAC" :custom custom)
 		(message-digest-process! md init-val)
-		(make-kmac-state md mac-size xof)))
-	    mac-size
+		(make-kmac-state md xof)))
+	    #f
 	    (case block-size
 	      ((168) (if xof *oid-kmac-xof-128* *oid-kmac-128*))
 	      ((136) (if xof *oid-kmac-xof-256* *oid-kmac-256*))
@@ -125,12 +114,21 @@ Validity Conditions: len(K) <2^2040 and 0 ≤ L and len(S) < 2^2040
 (define (kmac-process! (s kmac-state?) (bv bytevector?) . opts)
   (apply message-digest-process! (kmac-state-md s) bv opts))
 
-(define (kmac-done! (s kmac-state?) (bv bytevector?) . opts)
+(define (kmac-done! (s kmac-state?) (bv bytevector?)
+		    :optional (start 0) (len (- (bytevector-length bv) start)))
+  ;; NIST SP 800-185  8.4.2
+  ;; > When used as a MAC, applications of this Recommendation shall not
+  ;; > select an output length L that is less than 32 bits, and shall
+  ;; > only select an output length less than 64 bits after a careful
+  ;; > risk analysis is performed.
+  ;; we simply disable output length less than 64 bits
+  (when (< len 8)
+    (assertion-violation 'kmac-state-initializer
+			 "MAC size must be greater than or equal to 8" len))
   (if (kmac-state-xof? s)
       (message-digest-process! (kmac-state-md s) (right-encode 0))
-      (let ((mac-size (kmac-state-mac-size s)))
-	(message-digest-process! (kmac-state-md s) (right-encode mac-size))))
-  (apply message-digest-done! (kmac-state-md s) bv opts))
+      (message-digest-process! (kmac-state-md s) (right-encode (* len 8))))
+  (message-digest-done! (kmac-state-md s) bv start len))
 
 (define *oid-kmac-128*     "2.16.840.1.101.3.4.2.19")
 (define *oid-kmac-256*     "2.16.840.1.101.3.4.2.20")
