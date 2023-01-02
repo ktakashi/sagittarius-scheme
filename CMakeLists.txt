@@ -538,7 +538,7 @@ INSTALL(
 
 IF (INSTALL_C_TRANSLATOR)
   INSTALL(
-    FILES ${CMAKE_CURRENT_SOURCE_DIR}/script/scheme2c
+    FILES ${CMAKE_CURRENT_SOURCE_DIR}/tools/scripts/scheme2c
     DESTINATION ${SAGITTARIUS_DYNLIB_PATH}
     RENAME sagittarius-scheme2c
     PERMISSIONS 
@@ -546,7 +546,7 @@ IF (INSTALL_C_TRANSLATOR)
       GROUP_READ GROUP_EXECUTE
       WORLD_READ GROUP_EXECUTE)
   INSTALL(
-    FILES ${CMAKE_CURRENT_SOURCE_DIR}/script/scheme2c
+    FILES ${CMAKE_CURRENT_SOURCE_DIR}/tools/scripts/scheme2c
     DESTINATION ${CMAKE_INSTALL_PREFIX}/${BIN_DIR}
     RENAME sagittarius-scheme2c
     PERMISSIONS 
@@ -556,14 +556,14 @@ IF (INSTALL_C_TRANSLATOR)
 ENDIF()
 
 INSTALL(
-  FILES ${CMAKE_CURRENT_SOURCE_DIR}/script/compile-sagittarius
+  FILES ${CMAKE_CURRENT_SOURCE_DIR}/tools/scripts/compile-sagittarius
   DESTINATION ${CMAKE_INSTALL_PREFIX}/${BIN_DIR}
   PERMISSIONS 
   OWNER_READ OWNER_WRITE OWNER_EXECUTE
   GROUP_READ GROUP_EXECUTE
   WORLD_READ WORLD_EXECUTE)
 INSTALL(
-  FILES ${CMAKE_CURRENT_SOURCE_DIR}/script/compile-sagittarius
+  FILES ${CMAKE_CURRENT_SOURCE_DIR}/tools/scripts/compile-sagittarius
   DESTINATION ${SAGITTARIUS_DYNLIB_PATH}
   PERMISSIONS 
   OWNER_READ OWNER_WRITE OWNER_EXECUTE
@@ -708,7 +708,7 @@ SET(TZ_UPDATE ${INVOKE}
   -L${PROJECT_SOURCE_DIR}/ext/zlib
   -L${PROJECT_SOURCE_DIR}/ext/crypto
   -L${PROJECT_SOURCE_DIR}/ext/threads
-  ${PROJECT_SOURCE_DIR}/script/compile-tzdatabase.scm
+  ${PROJECT_SOURCE_DIR}/tools/scripts/compile-tzdatabase.scm
   -o ${PROJECT_SOURCE_DIR}/ext/time/sagittarius/tzdata.scm 
   -w ${PROJECT_SOURCE_DIR}/ext/time/sagittarius/win-mappings.scm
   -l ${PROJECT_SOURCE_DIR}/ext/time/sagittarius/leap-table.scm)
