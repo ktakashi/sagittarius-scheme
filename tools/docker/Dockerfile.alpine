@@ -1,0 +1,16 @@
+FROM alpine:latest
+ARG VERSION=latest
+
+ADD scripts/build-sagittarius.sh /home/sagittarius/build.sh
+ADD musl-fix.patch /home/sagittarius/musl.patch
+
+RUN apk update; \
+    apk add --no-cache gc-dev zlib-dev libffi-dev openssl-dev \
+	cmake curl make gcc g++ patch; \
+    mkdir -p /home/sagittarius; \
+    cd /home/sagittarius && chmod +x ./build.sh; \
+    cd /home/sagittarius && ./build.sh $VERSION; \
+    rm -rf /home/sagittarius; \
+    apk cache clean
+
+ENTRYPOINT ["/usr/local/bin/sagittarius"]

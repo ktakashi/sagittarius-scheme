@@ -1,0 +1,17 @@
+FROM ubuntu:latest
+ARG VERSION=latest
+
+ADD scripts/build-sagittarius.sh /home/sagittarius/build.sh
+ADD musl-fix.patch /home/sagittarius/musl.patch
+
+RUN apt update; \
+    apt install --no-install-recommends --no-install-suggests -y \
+	libgc-dev zlib1g-dev libffi-dev libssl-dev \
+	cmake curl make gcc g++ patch; \
+    mkdir -p /home/sagittarius; \
+    cd /home/sagittarius && chmod +x ./build.sh; \
+    cd /home/sagittarius && ./build.sh $VERSION; \
+    rm -rf /home/sagittarius; \
+    rm -rf /var/lib/apt/lists/*
+
+ENTRYPOINT ["/usr/local/bin/sagittarius"]
