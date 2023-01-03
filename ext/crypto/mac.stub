@@ -3,8 +3,7 @@
  (.include <sagittarius/private.h>)
  (.define "LIBSAGITTARIUS_EXT_BODY")
  (.include  <sagittarius/extend.h>
-	    <sagittarius-mac.h>
-	    <tomcrypt_private.h>))
+	    <sagittarius-mac.h>))
 
 (define-type <digest> "int" "digest descriptor" "DIGEST_DESCRIPTORP" "SG_INT_VALUE" "SG_MAKE_INT" 0)
 (define-type <cipher> "int" "cipher descriptor" "SG_CIPHERP" "SG_INT_VALUE")

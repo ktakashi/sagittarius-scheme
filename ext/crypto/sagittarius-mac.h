@@ -32,6 +32,14 @@
 /* We need libtomcrypt accessors */
 #include "sagittarius-digest.h"
 #include "sagittarius-cipher.h"
+/* this is compiled as C++ on Windows, so must be wrapped like this */
+#ifdef __cplusplus
+extern "C" {
+#endif
+# include <tomcrypt_private.h>
+#ifdef __cplusplus
+}
+#endif
 
 typedef struct {
   SG_HEADER;
