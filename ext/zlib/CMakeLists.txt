@@ -46,7 +46,7 @@ ENDIF()
 
 IF (NOT ZLIB_FOUND)
   # well we need to compile it
-  SET(USED_ZLIB_VERSION "zlib-1.2.12")
+  SET(USED_ZLIB_VERSION "zlib-1.2.13")
   IF (NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/zlib.tar.gz")
     MESSAGE(STATUS "Checking zlib.tar.gz ... not found")
     MESSAGE(STATUS "donwloading zlib")
