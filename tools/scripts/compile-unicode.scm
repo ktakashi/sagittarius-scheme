@@ -55,8 +55,8 @@ List of interesting files
     (if ext (string-append base "." ext) base)))
 
 (define (download-ucd)
-  (define out (open-chunked-binary-input/output-port))
-  (define (flusher out headers) out)
+  ;;(define out (open-chunked-binary-input/output-port))
+  ;;(define (flusher out headers) out)
   (define (destinator e) 
     (let ((name (path-filename (archive-entry-name e))))
       (if (member name +interesting-files+)
@@ -71,15 +71,12 @@ List of interesting files
   (unless (check-files)
     (create-directory* +data-dir+)
     (print "Downloading UCD.zip")
-    (dynamic-wind values
-	(lambda ()
-	  (http-get +host+ +latest+
-		    :receiver (http-oport-receiver out flusher)
-		    :secure #t))
-	(lambda () (set-port-position! out 0)))
-    (call-with-input-archive-port 'zip out
-      (lambda (in)
-	(extract-all-entries in :destinator destinator :overwrite #t)))))
+    (let-values (((s h b) (http-get +host+ +latest+
+				    :receiver (http-binary-receiver)
+				    :secure #f)))
+      (call-with-input-archive-port 'zip (open-bytevector-input-port b)
+	(lambda (in)
+	  (extract-all-entries in :destinator destinator :overwrite #t))))))
 
 (define (compile-ucd)
   (parse-ucd-1)
