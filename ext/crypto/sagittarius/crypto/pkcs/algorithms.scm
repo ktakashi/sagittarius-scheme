@@ -47,24 +47,24 @@
 (define (pkcs-encrypt-data aid key data . opts)
   (let* ((cipher (apply pkcs-make-cipher aid (cipher-direction encrypt)
 			key opts))
-	 (r (symmetric-cipher-encrypt-last-block cipher data)))
-    (symmetric-cipher-done! cipher)
+	 (r (block-cipher-encrypt-last-block cipher data)))
+    (block-cipher-done! cipher)
     r))
 
 (define (pkcs-decrypt-data aid key data . opts)
   (let* ((cipher (apply pkcs-make-cipher aid (cipher-direction decrypt)
 			key opts))
-	 (r (symmetric-cipher-decrypt-last-block cipher data)))
-    (symmetric-cipher-done! cipher)
+	 (r (block-cipher-decrypt-last-block cipher data)))
+    (block-cipher-done! cipher)
     r))
 
 (define (pkcs-make-cipher aid direction key . opts)
   (let ((kdf (x509-algorithm-identifier->kdf aid))
 	(make-cipher (x509-algorithm-identifier->cipher aid)))
     (let-values (((cipher parameters) (make-cipher key)))
-      (symmetric-cipher-init! cipher direction
-			      (make-symmetric-key (apply kdf key opts))
-			      parameters))))
+      (block-cipher-init! cipher direction
+			  (make-symmetric-key (apply kdf key opts))
+			  parameters))))
 
 (define (x509-algorithm-identifier->kdf x509-algorithm-identifier)
   (let ((oid (x509-algorithm-identifier-oid x509-algorithm-identifier))

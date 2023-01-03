@@ -406,7 +406,7 @@
 		       (pkcs-pbe-parameter-iteration-count param)
 		       16
 		       :digest digest)))
-      (values (make-symmetric-cipher scheme *mode:cbc*)
+      (values (make-block-cipher scheme *mode:cbc*)
 	      (make-iv-parameter (bytevector-copy bv 8 16))))))
 
 ;; PBES2
@@ -459,7 +459,7 @@
     (let ((parameter (->cipher-parameters
 		      scheme (x509-algorithm-identifier-parameters enc))))
       (lambda (key)
-	(values (make-symmetric-cipher scheme mode) parameter)))))
+	(values (make-block-cipher scheme mode) parameter)))))
 
 (define-generic encryption-scheme->cipher-parameters)
 (define (->cipher-parameters scheme param)

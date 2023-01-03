@@ -410,16 +410,16 @@
 (define (decrypt-aes-hmac key key-size digest aad iv cipher-text auth-tag)
   (let-values (((mac-key dec-key) (aes-hmac-derive-keys key key-size)))
     (define dec-cipher
-      (symmetric-cipher-init! (make-symmetric-cipher *scheme:aes* *mode:cbc*)
-			      (cipher-direction decrypt)
-			      dec-key
-			      (make-iv-parameter iv)))
+      (block-cipher-init! (make-block-cipher *scheme:aes* *mode:cbc*)
+			  (cipher-direction decrypt)
+			  dec-key
+			  (make-iv-parameter iv)))
     (let ((tag (aes-hmac-compute-tag digest mac-key aad iv cipher-text)))
       (unless (bytevector=? auth-tag tag)
 	;; TODO maybe we should make an specific condition for this
 	(assertion-violation 'decrypt-aes-hmac "Incorrect MAC"))
-      (let ((r (symmetric-cipher-decrypt-last-block dec-cipher cipher-text)))
-	(symmetric-cipher-done! dec-cipher)
+      (let ((r (block-cipher-decrypt-last-block dec-cipher cipher-text)))
+	(block-cipher-done! dec-cipher)
 	r))))
 
 ;; AES GCM
@@ -427,14 +427,13 @@
   (check-key-size 'decrypt-aes-gcm key-size (symmetric-key-value key))
   (let ()
     (define dec-cipher
-      (symmetric-cipher-init! (make-symmetric-cipher *scheme:aes* *mode:gcm*
-						     no-padding)
-			      (cipher-direction decrypt)
-			      key
-			      (make-iv-parameter iv)))
-    (symmetric-cipher-update-aad! dec-cipher aad)
-    (let ((pt (symmetric-cipher-decrypt-last-block dec-cipher cipher-text)))
-      (symmetric-cipher-done/tag! dec-cipher auth-tag)
+      (block-cipher-init! (make-block-cipher *scheme:aes* *mode:gcm* no-padding)
+			  (cipher-direction decrypt)
+			  key
+			  (make-iv-parameter iv)))
+    (block-cipher-update-aad! dec-cipher aad)
+    (let ((pt (block-cipher-decrypt-last-block dec-cipher cipher-text)))
+      (block-cipher-done/tag! dec-cipher auth-tag)
       pt)))
 
 ;;; Encryptors
@@ -754,15 +753,14 @@
   (let-values (((mac-key enc-key) (aes-hmac-derive-keys key key-size)))
     (define iv (iv-generator 16))
     (define enc-cipher
-      (symmetric-cipher-init! (make-symmetric-cipher *scheme:aes* *mode:cbc*)
-			      (cipher-direction encrypt)
-			      enc-key
-			      (make-iv-parameter iv)))
+      (block-cipher-init! (make-block-cipher *scheme:aes* *mode:cbc*)
+			  (cipher-direction encrypt)
+			  enc-key
+			  (make-iv-parameter iv)))
     ;; aad, payload -> (iv, cipher-text, auth-tag)
     (lambda (aad payload)
-      (let ((cipher-text (symmetric-cipher-encrypt-last-block
-			  enc-cipher payload)))
-	(symmetric-cipher-done! enc-cipher)
+      (let ((cipher-text (block-cipher-encrypt-last-block enc-cipher payload)))
+	(block-cipher-done! enc-cipher)
 	(values iv cipher-text
 		(aes-hmac-compute-tag digest mac-key aad iv cipher-text))))))
 
@@ -772,16 +770,15 @@
   (let ()
     (define iv (iv-generator 12))
     (define enc-cipher
-      (symmetric-cipher-init! (make-symmetric-cipher *scheme:aes* *mode:gcm*
-						     no-padding)
-			      (cipher-direction encrypt)
-			      key
-			      (make-iv-parameter iv)))
+      (block-cipher-init! (make-block-cipher *scheme:aes* *mode:gcm* no-padding)
+			  (cipher-direction encrypt)
+			  key
+			  (make-iv-parameter iv)))
     (lambda (aad payload)
-      (symmetric-cipher-update-aad! enc-cipher aad)
-      (let* ((ct (symmetric-cipher-encrypt-last-block enc-cipher payload))
-	     (tag (symmetric-cipher-done/tag enc-cipher
-		   (symmetric-cipher-max-tag-length enc-cipher))))
+      (block-cipher-update-aad! enc-cipher aad)
+      (let* ((ct (block-cipher-encrypt-last-block enc-cipher payload))
+	     (tag (block-cipher-done/tag enc-cipher
+		   (block-cipher-max-tag-length enc-cipher))))
 	(values iv ct tag)))))
 
 ;; utilities

@@ -93,21 +93,21 @@
 (define-method lookup-cipher-spi (o) #f)
 
 (define (make-builtin-cipher-spi desc mode key iv rounds padder ctr-mode)
-  (let ((cipher (make-symmetric-cipher desc mode padder))
+  (let ((cipher (make-block-cipher desc mode padder))
 	(parameter (apply make-cipher-parameter
 		    (filter values (list (and iv (make-iv-parameter iv))
 					 (make-counter-mode-parameter ctr-mode)
 					 (make-round-parameter rounds))))))
     ;; dummy direction... another reason why we must replace this
     ;; legacy
-    (symmetric-cipher-init! cipher (cipher-direction encrypt) key parameter)
+    (block-cipher-init! cipher (cipher-direction encrypt) key parameter)
     (make <legacy-builtin-cipher-spi>
       :descriptor desc
       :name (cipher-descriptor-name desc)
       :key key
       :iv iv ;; fake
-      :encrypt (symmetric-encrypt cipher parameter)
-      :decrypt (symmetric-decrypt cipher parameter)
+      :encrypt (block-encrypt cipher parameter)
+      :decrypt (block-decrypt cipher parameter)
       :signer (lambda ignore
 		(error 'cipher-signature
 		       "Symmetric cipher doesn't not support signing"))
@@ -119,16 +119,16 @@
       :data #f
       :block-size (block-cipher-descriptor-block-length desc)
       :update-aad (lambda (aad . opts)
-		    (apply symmetric-cipher-update-aad! cipher aad opts))
-      :tag (lambda (tag) (symmetric-cipher-done/tag! cipher tag))
-      :tagsize (symmetric-cipher-max-tag-length cipher))))
+		    (apply block-cipher-update-aad! cipher aad opts))
+      :tag (lambda (tag) (block-cipher-done/tag! cipher tag))
+      :tagsize (block-cipher-max-tag-length cipher))))
 
-(define ((symmetric-encrypt cipher parameter) bv len key)
+(define ((block-encrypt cipher parameter) bv len key)
   (slot-set! cipher 'direction (cipher-direction encrypt))
-  (symmetric-cipher-encrypt-last-block cipher bv))
-(define ((symmetric-decrypt cipher parameter) bv len key)
+  (block-cipher-encrypt-last-block cipher bv))
+(define ((block-decrypt cipher parameter) bv len key)
   (slot-set! cipher 'direction (cipher-direction decrypt))
-  (symmetric-cipher-decrypt-last-block cipher bv))
+  (block-cipher-decrypt-last-block cipher bv))
 
 (define-syntax register-spi
   (syntax-rules ()

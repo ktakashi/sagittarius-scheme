@@ -33,22 +33,24 @@
     (export cipher? <cipher>
 	    cipher-direction
 	    symmetric-cipher? <symmetric-cipher>
-	    make-symmetric-cipher symmetric-cipher-block-length
-	    symmetric-cipher-init! symmetric-cipher-init
-	    symmetric-cipher-encrypt! symmetric-cipher-encrypt
-	    symmetric-cipher-encrypt-last-block!
-	    symmetric-cipher-encrypt-last-block
-	    symmetric-cipher-decrypt! symmetric-cipher-decrypt
-	    symmetric-cipher-decrypt-last-block!
-	    symmetric-cipher-decrypt-last-block
-	    symmetric-cipher-done!
+
+	    block-cipher? <block-cipher>
+	    make-block-cipher block-cipher-block-length
+	    block-cipher-init! block-cipher-init
+	    block-cipher-encrypt! block-cipher-encrypt
+	    block-cipher-encrypt-last-block!
+	    block-cipher-encrypt-last-block
+	    block-cipher-decrypt! block-cipher-decrypt
+	    block-cipher-decrypt-last-block!
+	    block-cipher-decrypt-last-block
+	    block-cipher-done!
 
 	    ;; EncAuth mode
-	    symmetric-cipher-update-aad!
-	    symmetric-cipher-update-iv!
-	    symmetric-cipher-max-tag-length
-	    symmetric-cipher-done/tag!
-	    symmetric-cipher-done/tag
+	    block-cipher-update-aad!
+	    block-cipher-update-iv!
+	    block-cipher-max-tag-length
+	    block-cipher-done/tag!
+	    block-cipher-done/tag
 	    
 	    pkcs7-padding no-padding
 
@@ -96,25 +98,25 @@
 	    (sagittarius crypto ciphers types)
 	    (sagittarius crypto descriptors))
 
-(define (make-symmetric-cipher (scheme symmetric-cipher-descriptor?)
-			       (mode mode-descriptor?)
-			       :optional (padding pkcs7-padding))
+(define (make-block-cipher (scheme block-cipher-descriptor?)
+			   (mode mode-descriptor?)
+			   :optional (padding pkcs7-padding))
   (let-values (((padder unpadder) (if padding (padding) (pkcs7-padding))))
-    (make <symmetric-cipher> :scheme scheme :mode mode
+    (make <block-cipher> :scheme scheme :mode mode
 	  :padder padder :unpadder unpadder)))
 
-(define (symmetric-cipher-block-length cipher)
+(define (block-cipher-block-length (cipher block-cipher?))
   (let ((scheme (cipher-scheme cipher)))
     (and (block-cipher-descriptor? scheme)
 	 (block-cipher-descriptor-block-length scheme))))
 
 (define (cipher-direction? v) (enum-set-member? v *cipher-directions*))
-(define (symmetric-cipher-init! (cipher symmetric-cipher?)
-				(direction cipher-direction?)
-				(key symmetric-key?)
-				:optional (parameter #f))
-  (symmetric-cipher-done! cipher) ;; reset previous state
-  (let ((mode-key (mode-start (symmetric-cipher-mode cipher)
+(define (block-cipher-init! (cipher block-cipher?)
+			    (direction cipher-direction?)
+			    (key symmetric-key?)
+			    :optional (parameter #f))
+  (block-cipher-done! cipher) ;; reset previous state
+  (let ((mode-key (mode-start (block-cipher-mode cipher)
 			      (cipher-scheme cipher)
 			      (symmetric-key-value key)
 			      parameter)))
@@ -122,61 +124,61 @@
     (symmetric-cipher-key-set! cipher mode-key)
     cipher))
 
-(define (symmetric-cipher-init (cipher symmetric-cipher?)
-			       (direction  cipher-direction?)
-			       (key symmetric-key?)
-			       :optional (parameter #f))
-  (symmetric-cipher-init! (make <symmetric-cipher>
+(define (block-cipher-init (cipher block-cipher?)
+			   (direction  cipher-direction?)
+			   (key symmetric-key?)
+			   :optional (parameter #f))
+  (block-cipher-init! (make <block-cipher>
 			    :scheme (cipher-scheme cipher)
-			    :mode (symmetric-cipher-mode cipher)
-			    :padder (symmetric-cipher-padder cipher)
-			    :unpadder (symmetric-cipher-unpadder cipher))
+			    :mode (block-cipher-mode cipher)
+			    :padder (block-cipher-padder cipher)
+			    :unpadder (block-cipher-unpadder cipher))
 			  direction key parameter))
 
-(define (symmetric-cipher-encrypt! (cipher symmetric-cipher?)
-				   (pt bytevector?)
-				   (ps integer?)
-				   (ct bytevector?)
-				   (cs integer?))
+(define (block-cipher-encrypt! (cipher block-cipher?)
+			       (pt bytevector?)
+			       (ps integer?)
+			       (ct bytevector?)
+			       (cs integer?))
   (unless (eq? (symmetric-cipher-direction cipher) (cipher-direction encrypt))
-    (assertion-violation 'symmetric-cipher-encrypt!
+    (assertion-violation 'block-cipher-encrypt!
 			 "Cipher is not encryption mode" cipher))
   ;; we encrypt (div (min pt-len ct-len) block-length) blocks
   ;; means, this procedure won't raise range error
-  (let* ((block-length (symmetric-cipher-block-length cipher))
+  (let* ((block-length (block-cipher-block-length cipher))
 	 (pt-len (- (bytevector-length pt) ps))
 	 (ct-len (- (bytevector-length ct) cs))
 	 (bytes (* (div (min pt-len ct-len) block-length) block-length)))
     (mode-encrypt! (symmetric-cipher-key cipher) pt ps ct cs bytes)
     bytes))
 
-(define (symmetric-cipher-encrypt (cipher symmetric-cipher?)
-				  (pt bytevector?) :optional (ps 0))
-  (let* ((block-length (symmetric-cipher-block-length cipher))
+(define (block-cipher-encrypt (cipher block-cipher?)
+			      (pt bytevector?) :optional (ps 0))
+  (let* ((block-length (block-cipher-block-length cipher))
 	 (pt-len (- (bytevector-length pt) ps))
 	 (ct-len (* (div pt-len block-length) block-length))
 	 (ct (make-bytevector ct-len)))
-    (symmetric-cipher-encrypt! cipher pt ps ct 0)
+    (block-cipher-encrypt! cipher pt ps ct 0)
     ct))
 
-(define (symmetric-cipher-encrypt-last-block! (cipher symmetric-cipher?)
-					      (pt bytevector?)
-					      (ps integer?)
-					      (ct bytevector?)
-					      (cs integer?))
+(define (block-cipher-encrypt-last-block! (cipher block-cipher?)
+					  (pt bytevector?)
+					  (ps integer?)
+					  (ct bytevector?)
+					  (cs integer?))
   (unless (eq? (symmetric-cipher-direction cipher) (cipher-direction encrypt))
-    (assertion-violation 'symmetric-cipher-encrypt-last-block!
+    (assertion-violation 'block-cipher-encrypt-last-block!
 			 "Cipher is not encryption mode" cipher))
   ;; ct must have sufficient length of storage
-  (let* ((block-length (symmetric-cipher-block-length cipher))
-	 (tmp ((symmetric-cipher-padder cipher) pt ps block-length))
+  (let* ((block-length (block-cipher-block-length cipher))
+	 (tmp ((block-cipher-padder cipher) pt ps block-length))
 	 (ct-len (- (bytevector-length ct) cs)))
     (when (< ct-len (bytevector-length tmp))
-      (assertion-violation 'symmetric-cipher-encrypt-last-block!
+      (assertion-violation 'block-cipher-encrypt-last-block!
 			   "Cipher text buffer is too small"
 			   `(required ,(bytevector-length tmp))
 			   `(actual ,ct-len)))
-    (let ((rlen (symmetric-cipher-encrypt! cipher tmp 0 ct cs)))
+    (let ((rlen (block-cipher-encrypt! cipher tmp 0 ct cs)))
       (if (= rlen (bytevector-length tmp))
 	  rlen
 	  ;; excess data (e.g. no padding), we try to encrypt
@@ -185,16 +187,16 @@
 	    (mode-encrypt! (symmetric-cipher-key cipher) tmp rlen ct rlen r)
 	    (+ r rlen))))))
 
-(define (symmetric-cipher-encrypt-last-block (cipher symmetric-cipher?)
-					     (pt bytevector?)
-					     :optional (ps 0))
+(define (block-cipher-encrypt-last-block (cipher block-cipher?)
+					 (pt bytevector?)
+					 :optional (ps 0))
   (unless (eq? (symmetric-cipher-direction cipher) (cipher-direction encrypt))
-    (assertion-violation 'symmetric-cipher-encrypt-last-block
+    (assertion-violation 'block-cipher-encrypt-last-block
 			 "Cipher is not encryption mode" cipher))
   ;; ct must have sufficient length of storage
-  (let* ((block-length (symmetric-cipher-block-length cipher))
-	 (tmp ((symmetric-cipher-padder cipher) pt ps block-length)))
-    (let ((r (symmetric-cipher-encrypt cipher tmp 0)))
+  (let* ((block-length (block-cipher-block-length cipher))
+	 (tmp ((block-cipher-padder cipher) pt ps block-length)))
+    (let ((r (block-cipher-encrypt cipher tmp 0)))
       (if (= (bytevector-length r) (bytevector-length tmp))
 	  r
 	  ;; excess data (e.g. no padding), we try to encrypt
@@ -206,125 +208,126 @@
 	    (mode-encrypt! (symmetric-cipher-key cipher) tmp rlen buf 0 blen)
 	    (bytevector-append r buf))))))
 
-(define (symmetric-cipher-decrypt! (cipher symmetric-cipher?)
-				   (ct bytevector?)
-				   (cs integer?)
-				   (pt bytevector?)
-				   (ps integer?))
+(define (block-cipher-decrypt! (cipher block-cipher?)
+			       (ct bytevector?)
+			       (cs integer?)
+			       (pt bytevector?)
+			       (ps integer?))
   (unless (eq? (symmetric-cipher-direction cipher) (cipher-direction decrypt))
-    (assertion-violation 'symmetric-cipher-decrypt!
+    (assertion-violation 'block-cipher-decrypt!
 			 "Cipher is not decryption mode" cipher))
   ;; same as encrypt!
-  (let* ((block-length (symmetric-cipher-block-length cipher))
+  (let* ((block-length (block-cipher-block-length cipher))
 	 (ct-len (- (bytevector-length ct) cs))
 	 (pt-len (- (bytevector-length pt) ps))
 	 (bytes (* (div (min pt-len ct-len) block-length) block-length)))
     (mode-decrypt! (symmetric-cipher-key cipher) ct cs pt ps bytes)
     bytes))
 
-(define (symmetric-cipher-decrypt (cipher symmetric-cipher?)
-				  (ct bytevector?) :optional (cs 0))
-  (let* ((block-length (symmetric-cipher-block-length cipher))
+(define (block-cipher-decrypt (cipher block-cipher?)
+			      (ct bytevector?) :optional (cs 0))
+  (let* ((block-length (block-cipher-block-length cipher))
 	 (ct-len (- (bytevector-length ct) cs))
 	 (pt-len (* (div ct-len block-length) block-length))
 	 (pt (make-bytevector pt-len)))
-    (symmetric-cipher-decrypt! cipher ct cs pt 0)
+    (block-cipher-decrypt! cipher ct cs pt 0)
     pt))
 
-(define (symmetric-cipher-decrypt-last-block! (cipher symmetric-cipher?)
-					      (ct bytevector?)
-					      (cs integer?)
-					      (pt bytevector?)
-					      (ps integer?))
+(define (block-cipher-decrypt-last-block! (cipher block-cipher?)
+					  (ct bytevector?)
+					  (cs integer?)
+					  (pt bytevector?)
+					  (ps integer?))
   (unless (eq? (symmetric-cipher-direction cipher) (cipher-direction decrypt))
-    (assertion-violation 'symmetric-cipher-decrypt-last-block!
+    (assertion-violation 'block-cipher-decrypt-last-block!
 			 "Cipher is not decryption mode" cipher))
   ;; same as encrypt!
-  (let ((block-length (symmetric-cipher-block-length cipher))
+  (let ((block-length (block-cipher-block-length cipher))
 	(ct-len (- (bytevector-length ct) cs))
 	(pt-len (- (bytevector-length pt) ps)))
     (when (< pt-len ct-len)
-      (assertion-violation 'symmetric-cipher-block-length
+      (assertion-violation 'block-cipher-block-length
 			   "Plain text buffer is too small"
 			   `(required ,ct-len) `(actual ,pt-len)))
     ;; NOTE: some modes, i.e. CTR, CFB and OFB, can decrypt excess block
-    (let ((r (symmetric-cipher-decrypt! cipher ct cs pt ps)))
+    (let ((r (block-cipher-decrypt! cipher ct cs pt ps)))
       (unless (= r ct-len)
 	(mode-decrypt! (symmetric-cipher-key cipher) ct (+ cs r)
 		       pt (+ ps r) (- ct-len r)))
-      ((symmetric-cipher-unpadder cipher) pt ps block-length))))
+      ((block-cipher-unpadder cipher) pt ps block-length))))
 
-(define (symmetric-cipher-decrypt-last-block (cipher symmetric-cipher?)
-					     (ct bytevector?)
-					     :optional (cs 0))
+(define (block-cipher-decrypt-last-block (cipher block-cipher?)
+					 (ct bytevector?)
+					 :optional (cs 0))
   (let* ((ct-len (- (bytevector-length ct) cs))
 	 (buf (make-bytevector ct-len))
-	 (len (symmetric-cipher-decrypt-last-block! cipher ct cs buf 0)))
+	 (len (block-cipher-decrypt-last-block! cipher ct cs buf 0)))
     (if (= len (bytevector-length buf))
 	buf
 	(bytevector-copy buf 0 len))))
 
 ;;; AAD/IV
-(define (symmetric-cipher-update-aad! (cipher symmetric-cipher?)
-				      (aad bytevector?)
-				      . opts)
+(define (block-cipher-update-aad! (cipher block-cipher?)
+				  (aad bytevector?)
+				  . opts)
   (define key (symmetric-cipher-key cipher))
   (unless key
-    (assertion-violation 'symmetric-cipher-update-aad!
+    (assertion-violation 'block-cipher-update-aad!
 			 "Cipher is not initialized yet" cipher))
-  (let ((mode (symmetric-cipher-mode cipher)))
+  (let ((mode (block-cipher-mode cipher)))
     (when (mode-has-add-aad!? mode)
-      (apply mode-add-aad! (symmetric-cipher-key cipher) aad opts))))
-(define (symmetric-cipher-update-iv! (cipher symmetric-cipher?)
-				     (iv bytevector?)
-				     . opts)
-  (define key (symmetric-cipher-key cipher))
-  (unless key
-    (assertion-violation 'symmetric-cipher-update-iv!
-			 "Cipher is not initialized yet" cipher))
-  (let ((mode (symmetric-cipher-mode cipher)))
-    (when (mode-has-add-iv!? mode)
-      (apply mode-add-iv! (symmetric-cipher-key cipher) iv opts))))
+      (apply mode-add-aad! key aad opts))))
 
-(define (symmetric-cipher-max-tag-length (cipher symmetric-cipher?))
+(define (block-cipher-update-iv! (cipher block-cipher?)
+				 (iv bytevector?)
+				 . opts)
   (define key (symmetric-cipher-key cipher))
   (unless key
-    (assertion-violation 'symmetric-cipher-max-tag-length
+    (assertion-violation 'block-cipher-update-iv!
+			 "Cipher is not initialized yet" cipher))
+  (let ((mode (block-cipher-mode cipher)))
+    (when (mode-has-add-iv!? mode)
+      (apply mode-add-iv! key iv opts))))
+
+(define (block-cipher-max-tag-length (cipher block-cipher?))
+  (define key (symmetric-cipher-key cipher))
+  (unless key
+    (assertion-violation 'block-cipher-max-tag-length
 			 "Cipher is not initialized yet" cipher))
   (mode-max-tag-length key))
 
-(define (symmetric-cipher-done/tag (cipher symmetric-cipher?) tag-len)
+(define (block-cipher-done/tag (cipher block-cipher?) tag-len)
   (define key (symmetric-cipher-key cipher))
   (unless key
-    (assertion-violation 'symmetric-cipher-done/tag!
+    (assertion-violation 'block-cipher-done/tag!
 			 "Cipher is not initialized yet" cipher))
   (case (symmetric-cipher-direction cipher)
     ((encrypt)
      (let* ((tag (make-bytevector tag-len))
-	    (n (symmetric-cipher-done/tag! cipher tag)))
+	    (n (block-cipher-done/tag! cipher tag)))
        (if (= n tag-len)
 	   tag
 	   (bytevector-copy tag 0 n))))
     (else
-     (assertion-violation 'symmetric-cipher-done/tag
+     (assertion-violation 'block-cipher-done/tag
 			  "Encrypt mode is required" cipher))))
 
-(define (symmetric-cipher-done/tag! (cipher symmetric-cipher?)
+(define (block-cipher-done/tag! (cipher block-cipher?)
 				    tag :optional (start 0))
   (define key (symmetric-cipher-key cipher))
   (unless key
-    (assertion-violation 'symmetric-cipher-done/tag!
+    (assertion-violation 'block-cipher-done/tag!
 			 "Cipher is not initialized yet" cipher))
-  (let ((mode (symmetric-cipher-mode cipher)))
+  (let ((mode (block-cipher-mode cipher)))
     (if (encauth-mode-descriptor? mode)
 	(case (symmetric-cipher-direction cipher)
 	  ((encrypt) (mode-encrypt-last! key tag start))
 	  ((decrypt) (mode-decrypt-last! key tag start)))
-	(assertion-violation 'symmetric-cipher-done/tag!
+	(assertion-violation 'block-cipher-done/tag!
 			     "The mode doesn't support auth tag"
 			     (mode-descriptor-name mode)))))
     
-(define (symmetric-cipher-done! (cipher symmetric-cipher?))
+(define (block-cipher-done! (cipher block-cipher?))
   (symmetric-cipher-direction-set! cipher #f)
   (cond ((symmetric-cipher-key cipher) => mode-done!))
   (symmetric-cipher-key-set! cipher #f)

@@ -109,6 +109,6 @@
 	(iteration (pkcs-pbe-parameter-iteration-count param)))
     (lambda (key)
       (let-values (((dk iv) (derive-key&iv key salt iteration)))
-	(values (make-symmetric-cipher *scheme:des3* *mode:cbc*)
+	(values (make-block-cipher *scheme:des3* *mode:cbc*)
 		(make-iv-parameter iv))))))
 )

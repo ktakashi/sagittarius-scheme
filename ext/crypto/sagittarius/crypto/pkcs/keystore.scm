@@ -786,7 +786,7 @@
 
 (define (make-cipher param digest scheme mode)
   (lambda (password)
-    (values (make-symmetric-cipher scheme mode)
+    (values (make-block-cipher scheme mode)
 	    (make-iv-parameter
 	     (pkcs12-derive-iv digest password
 	      (pkcs-pbe-parameter-salt param)

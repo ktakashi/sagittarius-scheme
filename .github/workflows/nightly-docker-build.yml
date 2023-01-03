@@ -39,7 +39,7 @@ jobs:
           images: ktakashi/sagittarius
           tags: |
             type=edge
-            type=sha
+            type=schedule,pattern={{date 'YYYYMMDD'}}
           flavor: latest=false
           labels: |
             org.opencontainers.image.authors=Takashi Kato

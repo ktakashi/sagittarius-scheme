@@ -34,10 +34,14 @@
 	    cipher-scheme
 
 	    symmetric-cipher? <symmetric-cipher>
-	    symmetric-cipher-mode
-	    symmetric-cipher-padder symmetric-cipher-unpadder
 	    symmetric-cipher-key symmetric-cipher-key-set!
 	    symmetric-cipher-direction symmetric-cipher-direction-set!
+
+	    <block-cipher> block-cipher?
+	    block-cipher-mode
+	    block-cipher-padder
+	    block-cipher-unpadder
+
 	    cipher-direction *cipher-directions*
 
 	    asymmetric-cipher? <asymmetric-cipher>
@@ -57,10 +61,7 @@
 (define *cipher-directions* (enum-set-universe (cipher-directions)))
 
 (define-class <symmetric-cipher> (<cipher>)
-  ((mode :init-keyword :mode :reader symmetric-cipher-mode)
-   (padder :init-keyword :padder :reader symmetric-cipher-padder)
-   (unpadder :init-keyword :unpadder :reader symmetric-cipher-unpadder)
-   (key :reader symmetric-cipher-key
+  ((key :reader symmetric-cipher-key
 	:writer symmetric-cipher-key-set!
 	:mutable #t
 	:init-value #f)
@@ -69,6 +70,12 @@
 	      :mutable #t
 	      :init-value #f)))
 (define (symmetric-cipher? o) (is-a? o <symmetric-cipher>))
+
+(define-class <block-cipher> (<symmetric-cipher>)
+  ((mode :init-keyword :mode :reader block-cipher-mode)
+   (padder :init-keyword :padder :reader block-cipher-padder)
+   (unpadder :init-keyword :unpadder :reader block-cipher-unpadder)))
+(define (block-cipher? o) (is-a? o <block-cipher>))
 
 (define-class <asymmetric-cipher> (<cipher>)
   ((encoder :init-keyword :encoder :reader asymmetric-cipher-encoder)
