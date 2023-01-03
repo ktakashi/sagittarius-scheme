@@ -91,4 +91,6 @@
 (define-class <exportable> () ())
 (define (exportable? o) (is-a? o <exportable>))
 (define-generic exportable->bytevector)
+(define-method exportable->bytevector ((key <symmetric-key>))
+  (symmetric-key-value key))
 )
