@@ -36,6 +36,7 @@
 	    mac-oid
 	    
 	    *mac:hmac* *mac:cmac* *mac:kmac* *mac:kmac-128* *mac:kmac-256*
+	    *mac:gmac*
 
 	    generate-mac generate-mac!
 	    
@@ -75,8 +76,9 @@
 	    (sagittarius combinators)
 	    (sagittarius mop immutable)
 	    (sagittarius crypto mac types)
-	    (sagittarius crypto mac hmac)
 	    (sagittarius crypto mac cmac)
+	    (sagittarius crypto mac gmac)
+	    (sagittarius crypto mac hmac)
 	    (sagittarius crypto mac kmac)
 	    (sagittarius crypto secure))
 
@@ -123,8 +125,8 @@
 (define (mac-done! (mac mac?) (out bytevector?) . opts)
   (apply (mac-finalizer mac) (mac-state mac) out opts))
 
-(define (verify-mac (mac mac?) signing-content auth-mac)
-  (let ((m (generate-mac mac signing-content)))
+(define (verify-mac (mac mac?) signing-content auth-mac . opts)
+  (let ((m (apply generate-mac mac signing-content opts)))
     (unless (safe-bytevector=? m auth-mac)
       (error 'verify-mac "Invalid MAC" signing-content auth-mac))))
 

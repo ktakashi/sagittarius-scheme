@@ -71,6 +71,27 @@
 (include "./testvectors/cmac.scm")
 (test-end)
 
+(define (test-gmac source :key algorithm key-size tag-size tests)
+  (define (->cipher a)
+    (cond ((string=? a "AES-GMAC") *scheme:aes*)
+	  (else (assertion-violation 'test-hmac "Unknown algorithm" a))))
+  (define ((check cipher) test)
+    (let-values (((id comment key iv msg tag result flag)
+		  (apply values (vector->list test))))
+      (let ((mac (make-mac *mac:gmac* key :cipher cipher :iv iv))
+	    (size (div tag-size 8)))
+	(if (or (string=? comment "invalid key size")
+		(string=? comment "invalid nonce size"))
+	    (test-error (list id algorithm comment) (generate-mac mac msg size))
+	    (test-equal (list id algorithm comment) result
+			(equal? tag (generate-mac mac msg size)))))))
+  (let ((cipher (->cipher algorithm)))
+    (for-each (check cipher) tests)))
+
+(test-begin "GMAC")
+(include "./testvectors/gmac.scm")
+(test-end)
+
 (define (test-hkdf source :key algorithm key-size tests)
   (define (->digest a)
     (cond ((string=? a "HKDF-SHA-1") *digest:sha-1*)

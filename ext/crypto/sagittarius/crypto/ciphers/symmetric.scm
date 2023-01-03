@@ -312,8 +312,7 @@
      (assertion-violation 'block-cipher-done/tag
 			  "Encrypt mode is required" cipher))))
 
-(define (block-cipher-done/tag! (cipher block-cipher?)
-				    tag :optional (start 0))
+(define (block-cipher-done/tag! (cipher block-cipher?) tag :optional (start 0))
   (define key (symmetric-cipher-key cipher))
   (unless key
     (assertion-violation 'block-cipher-done/tag!
