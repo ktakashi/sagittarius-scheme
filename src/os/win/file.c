@@ -957,7 +957,8 @@ SgObject Sg_DirectoryName(SgString *path)
 {
   int size = SG_STRING_SIZE(path), i;
   for (i = size-1; i >= 0; i--) {
-    if (SG_STRING_VALUE_AT(path, i) == '\\') break;
+    SgChar c = SG_STRING_VALUE_AT(path, i);
+    if (c == '\\' || c == '/') break;
   }
   if (i <= 0) return SG_FALSE;
   return Sg_Substring(path, 0, i);
@@ -968,7 +969,8 @@ SgObject Sg_BuildPath(SgString *path, SgString *file)
   int psize = SG_STRING_SIZE(path), fsize = SG_STRING_SIZE(file);
   int i, j, offset = 1;
   SgObject ret;
-  if (SG_STRING_VALUE_AT(path, psize-1) == '\\') offset--;
+  SgChar c = SG_STRING_VALUE_AT(path, psize-1);
+  if (c == '\\' || c == '/') offset--;
   ret = Sg_ReserveString(psize + fsize + offset, 0);
   for (i = 0; i < psize; i++) {
     SG_STRING_VALUE_AT(ret, i) = SG_STRING_VALUE_AT(path, i);
@@ -984,9 +986,10 @@ SgObject Sg_BuildPath(SgString *path, SgString *file)
 
 int Sg_AbsolutePathP(SgString *path)
 {
-  if (SG_STRING_VALUE_AT(path, 0) == '\\') return TRUE;
+  SgChar c = SG_STRING_VALUE_AT(path, 0);
+  if (c == '\\' || c == '/') return TRUE;
   else if (SG_STRING_SIZE(path) > 2 && 
-	   isalpha(SG_STRING_VALUE_AT(path, 0)) &&
+	   isalpha(c) &&
 	   SG_STRING_VALUE_AT(path, 1) == ':') {
     return TRUE;
   }

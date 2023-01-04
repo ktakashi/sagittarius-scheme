@@ -3236,13 +3236,14 @@
 	;; open-input-file-port ignores option.
 	(values (open-file-input-port path #f 'block (native-transcoder)) path)
 	#f))
-  (define (bad)
-    (syntax-error "include file does not exists" path))
-  (cond ((absolute-path? path) (or (check path) (bad)))
+  (define (bad abs?)
+    (syntax-error "include file does not exists" path
+		  (and (not abs?) includer-path)))
+  (cond ((absolute-path? path) (or (check path) (bad #t)))
 	((and includer-path
 	      (check (build-path includer-path path))))
 	((check path))
-	(else (bad))))
+	(else (bad #f))))
 
 (define (pass1/include files p1env case-insensitive?)
   (unless (for-all string? files)
