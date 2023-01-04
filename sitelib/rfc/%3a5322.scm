@@ -2,7 +2,7 @@
 ;;;
 ;;; rfc/%3a5322.scm - RFC5322 Internet Message Format
 ;;;  
-;;;   Copyright (c) 2009-2016  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2009-2023  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -33,6 +33,7 @@
 ;; <http://www.ietf.org/rfc/rfc5322.txt>
 
 #!read-macro=sagittarius/regex
+#!nounbound
 (library (rfc :5322)
     (export &rfc5322-parse-error rfc5322-parse-error?
 	    rfc5322-read-headers
@@ -253,18 +254,57 @@
     (scan (peek-char input)))  
 
   ;; write
-  (define (rfc5322-write-headers headers :key
-				 (output (current-output-port))
-				 (check :error)
-				 (continue #f))
+  (define (rfc5322-write-headers headers
+				 :key (output (current-output-port))
+				      (check :error)
+				      (continue #f)
+				      (line-width #f)
+				      (line-separator "\r\n"))
+    (define (format-value key value output)
+      ;; 2 = length of ": "
+      (define key-len (+ (string-length key) 2))
+      (define (write-multi-line value output)
+	(display line-separator output)
+	(let lp ((value value))
+	  (display #\space output)
+	  (if (<= (string-length value) line-width)
+	      (begin (display value output)
+		     (string-length value))
+	      (let ((v (substring value 0 64))
+		    (r (substring value 64 (string-length value))))
+		(display v output) (display line-separator output)
+		(lp r)))))
+      (if (> (+ key-len (string-length value)) line-width)
+	  (let loop ((value value) (len key-len))
+	    (cond ((string-scan value #\,) =>
+		   (lambda (i)
+		     (let ((v (substring value 0 (+ i 1)))
+			   (r (substring value (+ i 1) (string-length value))))
+		       (cond ((< (+ len i) line-width)
+			      (display v output)
+			      (loop r (+ len i)))
+			     (else
+			      (loop r (write-multi-line v output)))))))
+		  ((string-scan value #\@)
+		   ;; most likely email, so can't devide
+		   (display value output))
+		  ((< (+ len (string-length value)) line-width)
+		   (display value output))
+		  (else 
+		   ;; if the input header is proper PEM, then this must be
+		   ;; base64 encoded certificate
+		   (write-multi-line value output))))
+	  (display value output)))
     (define (process headers)
       (dolist (field headers)
 	(display (car field) output)
 	(display ": " output)
-	(display (cadr field) output)
-	(unless (string-suffix? "\r\n" (cadr field))
-	  (display "\r\n" output)))
-      (unless continue (display "\r\n" output)))
+	(if line-width
+	    (format-value (car field) (cadr field) output)
+	    (display (cadr field) output))
+	(unless (string-suffix? line-separator (cadr field))
+	  (display line-separator output)))
+      (unless continue (display line-separator output)))
 
     (define (bad name body reason)
       (assertion-violation 'rfc5322-write-headers

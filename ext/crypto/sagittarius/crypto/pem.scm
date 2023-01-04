@@ -34,17 +34,19 @@
 
 #!nounbound
 (library (sagittarius crypto pem)
-    (export read-pem-object
-	    pem-object? (rename (pem-object <pem-object>))
+    (export pem-object? (rename (pem-object <pem-object>))
+	    make-pem-object
+	    read-pem-object string->pem-object
+	    write-pem-object pem-object->string
+
 	    pem-object-label
 	    pem-object-header
 	    pem-object-content
 	    
-	    standard-style
-	    lax-style
-	    strict-style
-	    rfc1421-style
-	    )
+	    *standard-style*
+	    *lax-style*
+	    *strict-style*
+	    *rfc1421-style*)
     (import (rnrs)
 	    (rfc base64)
 	    (rfc :5322)
@@ -114,7 +116,7 @@
 (define ($posteb label)
   ($seq $posteb-end ($token label) $eb-end))
 
-(define standard-style
+(define $textualmsg
   ($let* ((l $preeb)
 	  ( ($many $wsp) )
 	  ( $eol )
@@ -132,7 +134,7 @@
 	 ( ($optional ($seq $lax-base64-pad ($optional $lax-base64-pad))) ))
     ($return (list->string
 	      (filter (lambda (c) (not (char-whitespace? c))) c*)))))
-(define lax-style
+(define $laxtextualmsg
   ($let* (( ($many $w) )
 	  (l $preeb)
 	  (t $lax-base64-text)
@@ -163,7 +165,7 @@
   ($let ((l* ($many $base64-full-line))
 	 (l $strict-base64-final))
     ($return (list->string (append (concatenate l*) l)))))
-(define strict-style
+(define $stricttextualmsg
   ($let* ((l $preeb)
 	  ( $eol )
 	  (t $strict-base64-text)
@@ -179,7 +181,7 @@
 (define $body
   ($let ((c* ($many $non-eol))
 	 (n* ($optional ($many ($seq $eol ($many $wsp 1) ($many $non-eol 1))))))
-    ($return (list->string (if (null? n*) c* (append c* (concatenate n*)))))))
+    ($return (string-join (cons (list->string c*) (map list->string n*)) ""))))
 (define $header
   ($let ((k $key)
 	 ( ($many $wsp) )
@@ -191,9 +193,9 @@
 (define $headers
   ($let ((h* ($many $header))
 	 ( $eol ))
-    ($return (rfc5322-read-headers (open-string-input-port
-				    (string-concatenate h*))))))
-(define rfc1421-style
+    ($return (rfc5322-read-headers 
+	      (open-string-input-port (string-join h* "\n"))))))
+(define $rfc1421-textualmsg
   ($let* (( ($many $w) )
 	  (l $preeb)
 	  ( ($many $wsp) )
@@ -204,10 +206,64 @@
 	  ( ($many $w) ))
     ($return (make-pem-object l h (base64-decode-string t :transcoder #f)))))
 
-(define (read-pem-object in :optional (style standard-style))
-  (let-values (((s v n) (style (generator->lseq (port->char-generator in)))))
+(define (write-preeb pem-object out)
+  (display "-----BEGIN " out)
+  (display (pem-object-label pem-object) out)
+  (display "-----" out) (newline out))
+(define (write-content pem-object out)
+  (let ((bv (base64-encode (pem-object-content pem-object) :line-width 64)))
+    ;; in case of multiple of 64
+    (display (string-trim-right (utf8->string bv)) out)
+    (newline out)))
+(define (write-posteb pem-object out)
+  (display "-----END " out)
+  (display (pem-object-label pem-object) out)
+  (display "-----" out) (newline out))
+(define (strict-writer pem-object out)
+  (write-preeb pem-object out)
+  (write-content pem-object out)
+  (write-posteb pem-object out))
+(define (rfc1421-writer pem-object out)
+  (write-preeb pem-object out)
+  (cond ((pem-object-header pem-object) =>
+	 (lambda (h)
+	   (rfc5322-write-headers h
+				  :output out
+				  :line-width 64
+				  :line-separator "\n"))))
+  (write-content pem-object out)
+  (write-posteb pem-object out))
+
+(define-record-type pem-style
+  (fields parser writer))
+(define *standard-style*
+  (make-pem-style $textualmsg strict-writer))
+(define *lax-style*
+  (make-pem-style $laxtextualmsg strict-writer))
+(define *strict-style*
+  (make-pem-style $stricttextualmsg strict-writer))
+(define *rfc1421-style*
+  (make-pem-style $rfc1421-textualmsg rfc1421-writer))
+
+(define (read-pem-object :optional (in (current-input-port))
+				   (style *standard-style*))
+  (define parser (pem-style-parser style))
+  (let-values (((s v n) (parser (generator->lseq (port->char-generator in)))))
     (if (parse-success? s)
 	v
 	(error 'read-pem-object "Failed to parse PEM" v))))
+
+(define (string->pem-object s . opts)
+  (apply read-pem-object (open-string-input-port s) opts))
+
+(define (write-pem-object pem-object
+			  :optional (out (current-output-port))
+				    (style *standard-style*))
+  (let ((writer (pem-style-writer style)))
+    (writer pem-object out)))
+(define (pem-object->string pem-object . opts)
+  (let-values (((out e) (open-string-input-port)))
+    (apply write-pem-object out opts)
+    (e)))
 
 )
