@@ -51,7 +51,10 @@
 	    cms-content-info-content
 	    cms-encrypted-content-info->cms-content-info
 	    cms-content-info->cms-encrypted-content-info
-	    cms-content-info->content-info)
+	    cms-content-info->content-info
+	    content-info->cms-content-info
+	    bytevector->cms-content-info
+	    cms-content-info->bytevector)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius crypto asn1)
@@ -141,6 +144,13 @@
   (der-octet-string->bytevector d))
 (define (cms-content-info->content-info (ci cms-content-info?))
   (asn1-encodable-container-c ci))
+(define (content-info->cms-content-info (ci content-info?))
+  (make <cms-content-info> :c ci))
+(define (bytevector->cms-content-info bv)
+  (content-info->cms-content-info
+   (bytevector->asn1-encodable <content-info> bv)))
+(define (cms-content-info->bytevector (ci cms-content-info?))
+  (asn1-encodable->bytevector (asn1-encodable-container-c ci)))
 
 (define (make-cms-data-content-info (content bytevector?))
   (make <cms-content-info>

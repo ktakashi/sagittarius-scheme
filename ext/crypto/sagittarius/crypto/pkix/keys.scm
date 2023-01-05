@@ -31,8 +31,12 @@
 #!nounbound
 (library (sagittarius crypto pkix keys)
     (export import-public-key export-public-key
+
+	    subject-public-key-info? <subject-public-key-info>
 	    subject-public-key-info->public-key
-	    public-key->subject-public-key-info)
+	    public-key->subject-public-key-info
+	    bytevector->subject-public-key-info
+	    subject-public-key-info->bytevector)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius crypto asn1)
@@ -51,4 +55,10 @@
 (define (public-key->subject-public-key-info (pk public-key?))
   (let ((bv (export-public-key pk (public-key-format subject-public-key-info))))
     (bytevector->asn1-encodable <subject-public-key-info> bv)))
+
+(define (bytevector->subject-public-key-info bv)
+  (bytevector->asn1-encodable <subject-public-key-info> bv))
+(define (subject-public-key-info->bytevector (spki subject-public-key-info?))
+  (asn1-encodable->bytevector spki))
+
 )
