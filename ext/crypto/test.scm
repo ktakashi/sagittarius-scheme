@@ -1,6 +1,7 @@
 (add-load-path "./crypto")
 #!compatible
 (load "tests/test-sanity.scm")
+(load "tests/test-pem.scm")
 (load "tests/test-asn1.scm")
 (load "tests/test-kdf.scm")
 (load "tests/test-pkcs8.scm")

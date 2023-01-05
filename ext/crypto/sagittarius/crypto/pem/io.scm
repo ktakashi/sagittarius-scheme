@@ -102,7 +102,9 @@
     ($return c*)))
 (define $base64-text
   ($let ((l* ($many $base64-line))
-	 (l $base64-final))
+	 ;; Without pad, we can't detect the difference between
+	 ;; $base64-line and $base64-final, so make it optional
+	 (l ($optional $base64-final '())))
     ($return (list->string (append (concatenate l*) l)))))
 
 (define $eb-end ($token "-----"))
