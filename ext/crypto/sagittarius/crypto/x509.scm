@@ -36,4 +36,6 @@
 	    (sagittarius crypto pkix revocation)
 	    (sagittarius crypto pkix attributes)
 	    (sagittarius crypto pkix algorithms)
-	    (sagittarius crypto pkix extensions)))
+	    (sagittarius crypto pkix extensions)
+	    (except (sagittarius crypto pkix keys)
+		    import-public-key export-public-key)))

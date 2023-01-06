@@ -60,6 +60,7 @@
 	    *strict-style*
 	    *rfc1421-style*
 
+	    ;; for enhancement
 	    dispatch-pem-label)
     (import (rnrs)
 	    (clos user)
