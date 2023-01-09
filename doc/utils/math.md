@@ -1,7 +1,13 @@
 [§2] (math) - Mathematics library {#math}
 -------------
 
-This section describes matheatics operations which are used by `(crypto)`library.
+### Deprecated library
+
+**This library is deprecated, please consider to use
+[Cryptographic libraries](#lib.sagittarius.crypto) instead.**
+
+This section describes matheatics operations which are used by 
+`(crypto)`library.
 
 This library also uses `libtomcrypt` as its implemention except prime
 number operations.

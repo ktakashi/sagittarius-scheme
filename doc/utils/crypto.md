@@ -1,6 +1,11 @@
 [§2] (crypto) - Cryptographic library {#crypto}
 -------------
 
+### Deprecated library
+
+**This library is deprecated, please consider to use
+[Cryptographic libraries](#lib.sagittarius.crypto) instead.**
+
 This documentation does not describe cryptography itself. For example, it does
 not describe what initial vector is and how long it must be. So users must know
 about cryptography's this library supports.

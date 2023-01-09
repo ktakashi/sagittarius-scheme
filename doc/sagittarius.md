@@ -1039,3 +1039,4 @@ The macro return the result of _expr_.
 * @[[sagittarius/timezone.md](sagittarius/timezone.md)]
 * @[[sagittarius/debug.md](sagittarius/debug.md)]
 * @[[sagittarius/generators.md](sagittarius/generators.md)]
+* @[[sagittarius/crypto.md](sagittarius/crypto.md)]
