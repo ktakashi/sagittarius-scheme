@@ -7,7 +7,7 @@ Currently the libraries support below:
 - Block cipher
 - Asymmetric cipher
 - Cryptographic hash functions
-- Cryptographically secure pseudo random number generators
+- Cryptographically secure pseudo random number generators (CSPRNG)
 - Signature generation / verification
 - Key generate, agreement and import/export
 - MAC
@@ -152,3 +152,48 @@ RSA key pair.
 In the libraries, hash is called digest. So, from now on we use digest instead
 of hash.
 
+Below example shows how to generate a digest of SHA-256.
+
+```scheme
+(import (rnrs)
+        (sagittarius crypto digests))
+
+(define md (make-message-digest *digest:sha-256*))
+
+(digest-message md (string->utf8 "Hello Sagittarius Scheme"))
+;; -> #vu8(65 109 154 253 119 192 195 187 255 90 75 208 135 51 25 43 106 121 236 172 96 233 38 189 154 240 32 8 116 58 169 237)
+```
+
+Also below example shows how to generate a digest of SHAKE-256, which
+generates a variable length digest.
+
+```scheme
+(import (rnrs)
+        (sagittarius crypto digests))
+
+(define md (make-message-digest *digest:shake-256*))
+
+;; Generates 32 bytes digests
+(digest-message md (string->utf8 "Hello Sagittarius Scheme") 32)
+;; -> #vu8(127 141 98 85 40 216 103 129 10 71 136 179 158 103 163 218 109 65 244 77 119 4 109 54 135 126 225 162 188 58 16 64)
+```
+
+#### Cryptographically secure pseudo random number generators (CSPRNG)
+
+Below example shows how to generate a random integer.
+
+```scheme
+(import (rnrs)
+        (sagittarius crypto random))
+
+;; Pseudo random generator, it returns the same value each execution
+(define prng (pseudo-random-generator *prng:chacha20*))
+;; Secure random generator, it returns random value each execution
+;; (define prng (secure-random-generator *prng:chacha20*))
+
+;; range of 0 <= r < 100
+(random-generator-random-integer prng 100)
+;; -> each time the same result as it's pseudo random, not secure random
+```
+
+* @[[sagittarius/crypto/ciphers.md](sagittarius/crypto/ciphers.md)]
