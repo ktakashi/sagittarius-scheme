@@ -67,8 +67,8 @@
 
 (define copy-bytevector-procotol
   (lambda (p)
-    (lambda (bv)
-      ((p) (bytevector-copy bv)))))
+    (lambda (bv . opts)
+      ((p) (apply bytevector-copy bv opts)))))
 ;; IV
 (define-cipher-parameter iv-parameter
   (make-iv-parameter copy-bytevector-procotol) iv-parameter?
