@@ -59,9 +59,8 @@
 (define-method mac-state-processor ((s (eql *mac:gmac*))) gmac-process!)
 (define-method mac-state-finalizer ((s (eql *mac:gmac*))) gmac-done!)
 
-(define (gmac-process! (s gmac-state?) (bv bytevector?)
-	 :optional (start 0) (len (- (bytevector-length bv) start)))
-  (block-cipher-update-aad! (gmac-state-cipher s) bv start (+ start len)))
+(define (gmac-process! (s gmac-state?) (bv bytevector?) . opts)
+  (apply block-cipher-update-aad! (gmac-state-cipher s) bv opts))
 (define (gmac-done! (s gmac-state?) (out bytevector?)
 		    :optional (start 0) (len (- (bytevector-length out) start)))
   (let ((tmp (make-bytevector len 0)))

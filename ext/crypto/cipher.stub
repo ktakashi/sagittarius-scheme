@@ -37,12 +37,6 @@
 		  (SG_MAKE_INT (- (SG_BVECTOR_SIZE ,bv) ,start))
 		  (SG_MAKE_INT ,length))))))
 
-(define-cise-stmt check-start-end
-  ((_ who bv start end)
-   `(when (or (< ,start 0) (< ,end (SG_BVECTOR_SIZE ,bv)))
-      (assertion-violation ,who "Out of the bytevector range"
-	(SG_LIST3 ,bv (SG_MAKE_INT ,start) (SG_MAKE_INT ,end))))))
-
 (define-cise-stmt check-block-length
   ((_ who cipher bv)
    `(when (< (SG_BVECTOR_SIZE ,bv) (CIPHER_DESCRIPTOR_BLOCK_LENGTH cipher))
@@ -583,12 +577,12 @@
 (define-c-proc eax-add-header! (enc-auth-state::<enc-auth-state>
 				header::<bytevector>
 				:optional (start::<fixnum> 0)
-				          (end::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE header)))) ::<void>
+				          (len::<fixnum> (SG_MAKE_INT (- (SG_BVECTOR_SIZE header) start)))) ::<void>
   (check-state-mode 'eax-add-header! enc-auth-state MODE_EAX)
-  (check-start-end 'eax-add-header! header start end)
+  (check-range 'eax-add-header! header start len)
   (let ((err::int (eax_addheader (& (SG_ENC_AUTH_STATE_EAX enc-auth-state))
 				 (+ (SG_BVECTOR_ELEMENTS header) start)
-				 (- end start))))
+				 len)))
     (check-tomcrypt-error 'eax-add-header! err)))
 
 (define-c-proc eax-done! (enc-auth-state::<enc-auth-state>
@@ -742,12 +736,12 @@
 (define-c-proc ocb3-add-aad! (enc-auth-state::<enc-auth-state>
 			      aad::<bytevector>
 			      :optional (start::<fixnum> 0)
-			      (end::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE aad)))) ::<void>
+			      (len::<fixnum> (SG_MAKE_INT (- (SG_BVECTOR_SIZE aad) start)))) ::<void>
   (check-state-mode 'ocb3-add-aad! enc-auth-state MODE_OCB3)
-  (check-start-end 'ocb3-add-aad! aad start end)
+  (check-range 'ocb3-add-aad! aad start len)
   (let ((err::int (ocb3_add_aad (& (SG_ENC_AUTH_STATE_OCB3 enc-auth-state))
 				(+ (SG_BVECTOR_ELEMENTS aad) start)
-				(- end start))))
+				len)))
     (check-tomcrypt-error 'ocb3-add-aad! err)))
 
 (define-c-proc ocb3-done! (enc-auth-state::<enc-auth-state>
@@ -812,23 +806,23 @@
 (define-c-proc ccm-add-nonce! (enc-auth-state::<enc-auth-state>
 			       nonce::<bytevector>
 			       :optional (start::<fixnum> 0)
-			       (end::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE nonce)))) ::<void>
+					 (len::<fixnum> (SG_MAKE_INT (- (SG_BVECTOR_SIZE nonce) start)))) ::<void>
   (check-state-mode 'ccm-add-nonce! enc-auth-state MODE_CCM)
-  (check-start-end 'ccm-add-nonce! nonce start end)
+  (check-range 'ccm-add-nonce! nonce start len)
   (let ((err::int (ccm_add_nonce (& (SG_ENC_AUTH_STATE_CCM enc-auth-state))
 			       (+ (SG_BVECTOR_ELEMENTS nonce) start)
-			       (- end start))))
+			       len)))
     (check-tomcrypt-error 'ccm-add-nonce! err)))
 
 (define-c-proc ccm-add-aad! (enc-auth-state::<enc-auth-state>
-			      aad::<bytevector>
-			      :optional (start::<fixnum> 0)
-			      (end::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE aad)))) ::<void>
+			     aad::<bytevector>
+			     :optional (start::<fixnum> 0)
+				       (len::<fixnum> (SG_MAKE_INT (- (SG_BVECTOR_SIZE aad) start)))) ::<void>
   (check-state-mode 'ccm-add-aad! enc-auth-state MODE_CCM)
-  (check-start-end 'ccm-add-aad! aad start end)
+  (check-range 'ccm-add-aad! aad start len)
   (let ((err::int (ccm_add_aad (& (SG_ENC_AUTH_STATE_CCM enc-auth-state))
 			       (+ (SG_BVECTOR_ELEMENTS aad) start)
-			       (- end start))))
+			       len)))
     (check-tomcrypt-error 'ccm-add-aad! err)))
 
 (define-c-proc ccm-done! (enc-auth-state::<enc-auth-state>
@@ -887,23 +881,23 @@
 (define-c-proc gcm-add-iv! (enc-auth-state::<enc-auth-state>
 			    iv::<bytevector>
 			    :optional (start::<fixnum> 0)
-				      (end::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE iv)))) ::<void>
+				      (len::<fixnum> (SG_MAKE_INT (- (SG_BVECTOR_SIZE iv) start)))) ::<void>
   (check-state-mode 'gcm-add-iv! enc-auth-state MODE_GCM)
-  (check-start-end 'gcm-add-iv! iv start end)
+  (check-range 'gcm-add-iv! iv start len)
   (let ((err::int (gcm_add_iv (& (SG_ENC_AUTH_STATE_GCM enc-auth-state))
 			      (+ (SG_BVECTOR_ELEMENTS iv) start)
-			      (- end start))))
+			      len)))
     (check-tomcrypt-error 'gcm-add-iv! err)))
 
 (define-c-proc gcm-add-aad! (enc-auth-state::<enc-auth-state>
 			     aad::<bytevector>
 			     :optional (start::<fixnum> 0)
-				       (end::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE aad)))) ::<void>
+				       (len::<fixnum> (SG_MAKE_INT (- (SG_BVECTOR_SIZE aad) start)))) ::<void>
   (check-state-mode 'gcm-add-aad! enc-auth-state MODE_GCM)
-  (check-start-end 'gcm-add-aad! aad start end)
+  (check-range 'gcm-add-aad! aad start len)
   (let ((err::int (gcm_add_aad (& (SG_ENC_AUTH_STATE_GCM enc-auth-state))
 			       (+ (SG_BVECTOR_ELEMENTS aad) start)
-			       (- end start))))
+			       len)))
     (check-tomcrypt-error 'gcm-add-aad! err)))
 
 (define-c-proc gcm-done! (enc-auth-state::<enc-auth-state>
