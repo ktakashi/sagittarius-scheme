@@ -8,6 +8,9 @@ operations.
 
 This library provides both symmetric and asymmetric cipher operations.
 
+
+### [§4] Ciphers
+
 ###### [!Function] `cipher-descriptor?` _obj_
 
 Returns `#t` if the given _obj_ is a cipher descriptor, otherwise `#f`.
@@ -146,4 +149,127 @@ Returns `#t` if the given _obj_ is a block cipher object, otherwise `#f`.
 
 ###### [!Function] `make-block-cipher` (_scheme_ `block-cipher-descriptor?`) (_mode_ `mode-descriptor`) :optional (_padding_ `pkcs7-padding`)
 
+Creates a block cipher object of _scheme_ encryption scheme and
+_mode_ encryption mode.  
+_padding_ is used to encrypt or decrypt the last block of the plain text.
 
+###### [!Function] `block-cipher-block-length` (_cipher_  `block-cipher?`)
+
+Returns the block length of the given _cipher_.
+
+###### [!Function] `block-cipher-init!` (_cipher_  `block-cipher?`) (_direction_ `symbol?`) (_key_ `symmetric-key?`) :optional (_parameter_ `cipher-parameter?`)
+
+Initialise the given _cipher_ for the given _direction_ purpose with
+the given _key_ and _parameter_.  
+The _direction_ must be a symbol returned by the `cipher-direction` macro.
+
+###### [!Function] `block-cipher-init` (_cipher_  `block-cipher?`) (_direction_ `symbol?`) (_key_ `symmetric-key?`) :optional (_parameter_ `cipher-parameter?`)
+
+Initialise the give _cipher_. This procedure is an analogy to the
+`block-cipher-init!`, the difference is this procedure returns a
+copy of the given _cipher_.
+
+###### [!Function] `block-cipher-encrypt!` (_cipher_  `block-cipher?`) (_pt_ `bytevector?`) (_ps_ `integer?`) (_ct_ `bytevector?`) (_cs_ `integer?`)
+
+Encrypts the given plain text _pt_ from the position of _ps_, and store the
+cipher text into _ct_ from the position of _cs_. Then returns the byte
+size of the encrypted plain text.  
+The encryption is executed by the given _cipher_.
+
+###### [!Function] `block-cipher-encrypt` (_cipher_  `block-cipher?`) (_pt_ `bytevector?`) :optional (_ps_ 0)
+
+Encrypts the given plain text _pt_ from the position of _ps_, and
+returns the cipher text.  
+The encryption is executed by the given _cipher_.
+
+NOTE: the given _pt_ length and result cipher text length may differ
+if the _pt_ length is not multiple of the cipher block size.
+
+###### [!Function] `block-cipher-encrypt-last-block!` (_cipher_  `block-cipher?`) (_pt_ `bytevector?`) (_ps_ `integer?`) (_ct_ `bytevector?`) (_cs_ `integer?`)
+
+Encrypts the given plain text _pt_ from the position of _ps_, and store the
+cipher text into _ct_ from the position of _cs_. Then returns the byte
+size of the encrypted plain text.  
+The encryption is executed by the given _cipher_.
+
+This procedure consumes all the plain text, and applies padding if needed.
+
+###### [!Function] `block-cipher-encrypt-last-block` (_cipher_  `block-cipher?`) (_pt_ `bytevector?`) :optional (_ps_ 0)
+
+Encrypts the given plain text _pt_ from the position of _ps_, and
+returns the cipher text.  
+The encryption is executed by the given _cipher_.
+
+This procedure consumes all the plain text, and applies padding if needed.
+
+###### [!Function] `block-cipher-decrypt! ` (_cipher_  `block-cipher?`) (_ct_ `bytevector?`) (_cs_ `integer?`) (_pt_ `bytevector?`) (_ps_ `integer?`)
+
+Decrypts the given cipher text _ct_ from the position of _cs_, store the
+plain text info _pt_ from the position of _cs_. Then returns the byte
+size of the decrypted cipher text.
+The decryption is executed by the given _cipher_.
+
+###### [!Function] `block-cipher-decrypt` (_cipher_  `block-cipher?`) (_ct_ `bytevector?`) :optional (_cs_ 0)
+
+Decrypts the given cipher text _ct_ from the position of _cs_, and
+returns the plain text.  
+The decryption is executed by the given _cipher_.
+
+NOTE: the given _ct_ length and result plain text length may differ
+if the _ct_ length is not multiple of the cipher block size.
+
+
+###### [!Function] `block-cipher-decrypt-last-block!` (_cipher_  `block-cipher?`) (_ct_ `bytevector?`) (_cs_ `integer?`) (_pt_ `bytevector?`) (_ps_ `integer?`)
+
+Decrypts the given cipher text _ct_ from the position of _cs_, store the
+plain text info _pt_ from the position of _cs_. Then returns the byte
+size of the decrypted cipher text.
+
+This procedure applies unpadding if the _cipher_ is created with padding.
+
+###### [!Function] `block-cipher-decrypt-last-block` (_cipher_  `block-cipher?`) (_ct_ `bytevector?`) :optional (_cs_ 0)
+
+Decrypts the given cipher text _ct_ from the position of _cs_, and
+returns the plain text.  
+The decryption is executed by the given _cipher_.
+
+This procedure applies unpadding if the _cipher_ is created with padding.
+
+###### [!Function] `block-cipher-done!` (_cipher_  `block-cipher?`)
+
+Cleanup the given _cipher_ and make it neutral state.
+
+###### [!Function] `block-cipher-update-aad!` (_cipher_ `block-cipher?`) (_aad_ `bytevector?`) :optional (_start_ 0) (_length_ `(- (bytevector-length aad) start)`)
+
+Updating Additional Authentication Data _aad_ of the given _cipher_.  
+Optional arguments restricts the range of the _aad_.
+
+This procedure is effective on authenticated encryption modes.
+
+###### [!Function] `block-cipher-update-iv!` (_cipher_ `block-cipher?`) (_iv_ `bytevector?`) :optional (_start_ 0) (_length_ `(- (bytevector-length aad) start)`)
+
+Updating Initial Vector _iv_ of the given _cipher_.  
+Optional arguments restricts the range of the _iv_.
+
+This procedure is effective only GCM mode.
+
+###### [!Function] `block-cipher-max-tag-length` (_cipher_ `block-cipher?`)
+
+Returns the max tag length of the given _cipher_. If the cipher doesn't
+support authentication tag, then it returns `0`.
+
+###### [!Function] `block-cipher-done/tag!` (_cipher_ `block-cipher?`) (_tag_ `bytevector?`) :optional (_start_ 0)
+
+If the _cipher_ is encryption mode, then the procedure stores the
+authentication tag into the give _tag_ of the position starting
+_start_.
+
+If the _cipher_ is decryption mode, then the procedure validates the
+given _tag_ against the cipher's authentication tag starting from the
+position of _start_.
+
+###### [!Function] `block-cipher-done/tag` (_cipher_ `block-cipher?`) (_tag-len_ `integer?`)
+
+This procedure is only for encryption mode.  
+Stores the *cipher*'s authentication tag into the given _tag_,
+starting position of _start_.
