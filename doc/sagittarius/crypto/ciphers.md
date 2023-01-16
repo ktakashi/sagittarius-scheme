@@ -8,6 +8,26 @@ operations.
 
 This library provides both symmetric and asymmetric cipher operations.
 
+### [§4] Ciphers parameters
+
+Cipher parameters are parameters to pass to the cipher, such as
+Initial Vector (IV). 
+
+NOTE: The cipher parameters are only used on symmetric ciphers.
+Asymmetric ciphers use keywords.
+
+###### [!Function] `cipher-parameter?` _obj_
+
+Returns `#t` if the given _obj_ is a cipher parameter, otherwise `#f`.
+
+A cipher parameter can be a simple parameter or composite parameter
+like the condition system.
+
+###### [!Function] `make-cipher-parameter` _parameter_ _..._
+
+Creates a composite cipher parameter whose contents are given *parameter*s.
+
+
 
 ### [§4] Ciphers
 
