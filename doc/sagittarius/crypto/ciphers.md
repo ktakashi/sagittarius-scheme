@@ -27,6 +27,63 @@ like the condition system.
 
 Creates a composite cipher parameter whose contents are given *parameter*s.
 
+###### [!Function] `round-parameter?` _obj_
+
+Returns `#t` if the given _obj_ is a round cipher parameter, otherwise `#f`.
+
+###### [!Function] `make-round-parameter`
+###### [!Function] `cipher-parameter-rounds`
+
+###### [!Function] `iv-parameter?` _obj_
+
+Returns `#t` if the given _obj_ is a iv cipher parameter, otherwise `#f`.
+
+###### [!Function] `make-iv-parameter`
+###### [!Function] `cipher-parameter-iv`
+
+###### [!Function] `counter-mode-parameter?` _obj_
+
+Returns `#t` if the given _obj_ is a counter mode cipher parameter,
+otherwise `#f`.
+
+###### [!Function] `make-counter-mode-parameter`
+###### [!Function] `cipher-parameter-counter-mode`
+
+###### [!Function] `tweak-parameter?` _obj_
+
+Returns `#t` if the given _obj_ is a tweak cipher parameter, otherwise `#f`.
+
+###### [!Function] `make-tweak-parameter`
+###### [!Function] `cipher-parameter-tweak`
+
+###### [!Function] `salt-parameter?` _obj_
+
+Returns `#t` if the given _obj_ is a salt cipher parameter, otherwise `#f`.
+
+###### [!Function] `make-salt-parameter`
+###### [!Function] `cipher-parameter-salt`
+
+###### [!Function] `nonce-parameter?` _obj_
+
+Returns `#t` if the given _obj_ is a nonce cipher parameter, otherwise `#f`.
+
+###### [!Function] `make-nonce-parameter`
+###### [!Function] `cipher-parameter-nonce`
+
+###### [!Function] `aad-parameter?` _obj_
+
+Returns `#t` if the given _obj_ is a aad cipher parameter, otherwise `#f`.
+
+###### [!Function] `make-aad-parameter`
+###### [!Function] `cipher-parameter-aad`
+
+###### [!Function] `tag-length-parameter?` _obj_
+
+Returns `#t` if the given _obj_ is a tag length cipher parameter,
+otherwise `#f`.
+
+###### [!Function] `make-tag-length-parameter`
+###### [!Function] `cipher-parameter-tag-length`
 
 
 ### [§4] Ciphers
