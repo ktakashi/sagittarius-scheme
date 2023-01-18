@@ -13,6 +13,11 @@ This library provides both symmetric and asymmetric cipher operations.
 Cipher parameters are parameters to pass to the cipher, such as
 Initial Vector (IV). 
 
+All the parameter value retriever accept optional argument. If it's
+provided and the parameter is not or does not contain the target
+parameter, then the default value is returned, otherwise `&assertion`
+is signalled.
+
 NOTE: The cipher parameters are only used on symmetric ciphers.
 Asymmetric ciphers use keywords.
 
@@ -31,60 +36,136 @@ Creates a composite cipher parameter whose contents are given *parameter*s.
 
 Returns `#t` if the given _obj_ is a round cipher parameter, otherwise `#f`.
 
-###### [!Function] `make-round-parameter`
-###### [!Function] `cipher-parameter-rounds`
+This parameter is used all the modes.
+
+###### [!Function] `make-round-parameter` (_round_ `integer?`)
+
+Creates a round cipher parameter with the given _round_.
+
+###### [!Function] `cipher-parameter-rounds` (_parameter_ `cipher-parameter?`) :optional default
+
+Retrieves the `round` field of the given _parameter_.
 
 ###### [!Function] `iv-parameter?` _obj_
 
 Returns `#t` if the given _obj_ is a iv cipher parameter, otherwise `#f`.
 
-###### [!Function] `make-iv-parameter`
-###### [!Function] `cipher-parameter-iv`
+This parameter is used by CBC, CFB, OFB, CTR, LRW F8 and GCM, and all of the
+modes require it.
+
+###### [!Function] `make-iv-parameter` (_iv_ `bytevector?`)
+
+Creates a IV cipher parameter with the given _iv_. The _iv_ is copied
+during the creation so modifying the original value does not affect
+the parameter.
+
+###### [!Function] `cipher-parameter-iv` (_parameter_ `cipher-parameter?`) :optional default
+
+Retrieves the `iv` field of the given _parameter_.
 
 ###### [!Function] `counter-mode-parameter?` _obj_
 
 Returns `#t` if the given _obj_ is a counter mode cipher parameter,
 otherwise `#f`.
 
-###### [!Function] `make-counter-mode-parameter`
-###### [!Function] `cipher-parameter-counter-mode`
+This parameter is used by CTR mode and if it's not provided, then
+`*ctr-mode:big-endian*` is used.
+
+###### [!Function] `make-counter-mode-parameter` _mode_
+
+Creates a counter mode parameter with the given _mode_. The _mode_ must
+be one of the following:
+
+###### [!Function] `*ctr-mode:little-endian*`
+###### [!Function] `*ctr-mode:big-endian*`
+###### [!Function] `*ctr-mode:rfc3686`
+
+These modes are little-endian, big-endian, and IPSec ESP described 
+[RFC 3686](https://datatracker.ietf.org/doc/html/rfc3686), respectively.
+
+###### [!Function] `cipher-parameter-counter-mode` (_parameter_ `cipher-parameter?`) :optional default
+
+Retrieves the `counter-mode` field of the given _parameter_.
 
 ###### [!Function] `tweak-parameter?` _obj_
 
 Returns `#t` if the given _obj_ is a tweak cipher parameter, otherwise `#f`.
 
-###### [!Function] `make-tweak-parameter`
-###### [!Function] `cipher-parameter-tweak`
+This parameter is used by LRW mode, and it's a required parameter.
+
+###### [!Function] `make-tweak-parameter` (_tweak_ `bytevector?`)
+
+Creates a tweak cipher parameter with the given _tweak_. The _tweak_
+is copied during the creation so modifying the original value does not
+affect the parameter.
+
+###### [!Function] `cipher-parameter-tweak` (_parameter_ `cipher-parameter?`) :optional default
+
+Retrieves the `tweak` field of the given _parameter_.
 
 ###### [!Function] `salt-parameter?` _obj_
 
 Returns `#t` if the given _obj_ is a salt cipher parameter, otherwise `#f`.
 
-###### [!Function] `make-salt-parameter`
-###### [!Function] `cipher-parameter-salt`
+This parameter is used by F8 mode, and it's a required parameter.
+
+###### [!Function] `make-salt-parameter` (_salt_ `bytevector?`)
+
+Creates a salt cipher parameter with the given _salt_. The _salt_
+is copied during the creation so modifying the original value does not
+affect the parameter.
+
+###### [!Function] `cipher-parameter-salt` (_parameter_ `cipher-parameter?`) :optional default
+
+Retrieves the `salt` field of the given _parameter_.
 
 ###### [!Function] `nonce-parameter?` _obj_
 
 Returns `#t` if the given _obj_ is a nonce cipher parameter, otherwise `#f`.
 
-###### [!Function] `make-nonce-parameter`
-###### [!Function] `cipher-parameter-nonce`
+This parameter is used by EAX, OCB and OCB3. EAX doesn't require it,
+others require it.
+
+###### [!Function] `make-nonce-parameter` (_nonce_ `bytevector?`)
+
+Creates a nonce cipher parameter with the given _nonce_. The _nonce_
+is copied during the creation so modifying the original value does not
+affect the parameter.
+
+###### [!Function] `cipher-parameter-nonce` (_parameter_ `cipher-parameter?`) :optional default
+
+Retrieves the `nonce` field of the given _parameter_.
 
 ###### [!Function] `aad-parameter?` _obj_
 
 Returns `#t` if the given _obj_ is a aad cipher parameter, otherwise `#f`.
 
-###### [!Function] `make-aad-parameter`
-###### [!Function] `cipher-parameter-aad`
+This parameter is used by EAX and GCM. It's an optional parameter.
+
+###### [!Function] `make-aad-parameter` (_aad_ `bytevector?`)
+
+Creates a aad cipher parameter with the given _aad_. The _aad_
+is copied during the creation so modifying the original value does not
+affect the parameter.
+
+###### [!Function] `cipher-parameter-aad` (_parameter_ `cipher-parameter?`) :optional default
+
+Retrieves the `aad` field of the given _parameter_.
 
 ###### [!Function] `tag-length-parameter?` _obj_
 
 Returns `#t` if the given _obj_ is a tag length cipher parameter,
 otherwise `#f`.
 
-###### [!Function] `make-tag-length-parameter`
-###### [!Function] `cipher-parameter-tag-length`
+This parameter is used by OCB3 and it's a required parameter.
 
+###### [!Function] `make-tag-length-parameter` (_tag-length_ `integer?`)
+
+Creates a tag length cipher parameter with the given _tag-length_.
+
+###### [!Function] `cipher-parameter-tag-length` (_parameter_ `cipher-parameter?`) :optional default
+
+Retrieves the `tag-length` field of the given _parameter_.
 
 ### [§4] Ciphers
 
