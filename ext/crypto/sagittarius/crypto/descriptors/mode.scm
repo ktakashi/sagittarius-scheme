@@ -330,8 +330,10 @@
 ;; GCM
 (define (gcm-start cipher key parameter)
   (define iv (cipher-parameter-iv parameter))
+  (define aad (cipher-parameter-aad parameter #f))
   (let ((state (tc:gcm-init (symmetric-cipher-descriptor-cipher cipher) key)))
     (tc:gcm-add-iv! state iv)
+    (when aad (tc:gcm-add-aad! state aad))
     state))
 
 ;; using EAX wrongly, but that's users' responsiblity
