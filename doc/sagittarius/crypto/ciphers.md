@@ -431,3 +431,89 @@ position of _start_.
 This procedure is only for encryption mode.  
 Stores the *cipher*'s authentication tag into the given _tag_,
 starting position of _start_.
+
+### [§4] Asymmetric ciphers
+
+###### [!Function] `asymmetric-cipher-descriptor?` _obj_
+
+Returns `#t` if the given _obj_ is an asymmetric cipher descriptor,
+otherwise `#f`.
+
+Currently, below asymmetric encryption algorithms are supported:
+
+###### [!Asymmetric cipher descriptor] `*scheme:rsa*`
+
+###### [!Function] `asymmetric-cipher?` _obj_
+
+Returns `#t` if the given _obj_ is an asymmetric cipher, otherwise `#f`.
+
+###### [!Function] `make-asymmetric-cipher` (_scheme_ `asymmetric-cipher-descriptor?` :key _encoding_ :allow-other-keys
+
+Creates an asymmetric cipher of _scheme_.  
+The _encoding_ specifies its encoding algorithm, default is `oaep-encoding`.
+
+###### [!Function] `asymmetric-cipher-init!` (_cipher_ `asymmetric-cipher?`) (_key_ `asymmetric-key?`)
+
+Initialise the given _cipher_ with the given _key_.
+
+###### [!Function] `asymmetric-cipher-init` (_cipher_ `asymmetric-cipher?`) (_key_ `asymmetric-key?`)
+
+Initialise the given _cipher_ with the given _key_. This procedure is an
+analogy to the `asymmetric-cipher-init!`, the differ is this procedure
+returns a copy of the given _cipher_.
+
+###### [!Function] `asymmetric-cipher-encrypt-bytevector` (_cipher_ `asymmetric-cipher?`) (_bv_ `bytevector?`) :optional (start 0)
+
+Encrypts the given bytevector _bv_ with the given _cipher_ from the position
+of _start_ and returns a bytevector.
+
+
+###### [!Function] `asymmetric-cipher-decrypt-bytevector` (_cipher_ `asymmetric-cipher?`) (_bv_ `bytevector?`) :optional (start 0)
+
+Decrypts the given bytevector _bv_ with the given _cipher_ from the position
+of _start_ and returns a bytevector.
+
+###### [!Function] `asymmetric-cipher-done!` (_cipher_ `asymmetric-cipher?`)
+
+Cleanup the given _cipher_.
+
+###### [!Function] `oaep-encoding`
+
+Provides OAEP encoding scheme. This can be used for `:encoding` keyword's
+argument of the `make-asymmetric-cipher` procedure.
+
+This encoding scheme accepts the following keyword arguments:
+
+`:digest`:
+  A digest descriptor to be generate a digest for label provided by `:label`
+  keyword. Default value is `*digest:sha-1*`
+
+`:label`:
+  A label. Default value is `#vu8()`
+  
+`:mgf`:
+  MGF function. Default value is `mgf-1`.
+  
+`:mgf-digest`:
+  A digest descriptor to be used by the `:mgf`'s argument. Default value is
+  `*digest:sha-1*`.
+
+`:prng`:
+  A pseudo random generator to generate padding. Default value is
+  `(secure-random-generator *prng:chacha20*)`.
+
+###### [!Function] `pkcs1-v1.5-encoding`
+
+Provides PKCS#1.5 encoding scheme. This can be used for `:encoding` keyword's
+arguments of the `make-asymmetric-cipher` procedure.
+
+This encoding scheme accepts the following keyword arguments:
+
+`:prng`:
+  A pseudo random generator to generate padding. Default value is
+  `(secure-random-generator *prng:chacha20*)`.
+
+###### [!Function] `mgf-1`
+
+MGF-1 procedure. This can be used to `:mgf` keyword's argument of the
+`oaep-encoding`.
