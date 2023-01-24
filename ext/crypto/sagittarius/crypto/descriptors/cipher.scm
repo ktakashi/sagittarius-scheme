@@ -91,12 +91,13 @@
   (fields block-length
 	  default-rounds))
 
-(define (block-cipher-descriptor-suggested-key-length descriptor)
+(define (block-cipher-descriptor-suggested-key-length descriptor . opts)
   (unless (block-cipher-descriptor? descriptor)
     (assertion-violation 'block-cipher-descriptor-suggested-key-length
 			 "Cipher descriptor is required" descriptor))
-  (tc:cipher-descriptor-suggested-keysize 
-   (symmetric-cipher-descriptor-cipher descriptor)))
+  (apply tc:cipher-descriptor-suggested-keysize 
+	 (symmetric-cipher-descriptor-cipher descriptor)
+	 opts))
 
 (define-record-type asymmetric-cipher-descriptor
   (parent cipher-descriptor)

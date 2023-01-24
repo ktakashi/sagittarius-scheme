@@ -86,6 +86,7 @@
 		(block-cipher-descriptor-suggested-key-length cipher)
 		(bytevector-length (symmetric-key-value key)))))
 (for-each symmetric-key-operations-test all-ciphers)
+(test-error (generate-symmetric-key *scheme:aes-256* #vu8(0)))
 
 ;; key wrap
 (define (key-wrap-test scheme)

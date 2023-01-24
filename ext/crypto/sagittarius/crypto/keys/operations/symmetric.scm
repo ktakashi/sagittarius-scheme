@@ -51,7 +51,13 @@
     (make-symmetric-key (random-generator-read-random-bytes prng size))))
 (define-method generate-symmetric-key ((cipher <block-cipher-descriptor>)
 				       (bv <bytevector>))
-  (make-symmetric-key bv))
+  (let* ((len (bytevector-length bv))
+	 (size (block-cipher-descriptor-suggested-key-length cipher len)))
+    (unless (= len size)
+      (assertion-violation 'generate-symmetric-key
+			   "The given cipher doesn't accept the given key size"
+			   cipher size))
+    (make-symmetric-key bv)))
 
 ;; key wrap
 (define +default-iv+ #vu8(#xa6 #xa6 #xa6 #xa6 #xa6 #xa6 #xa6 #xa6))

@@ -57,7 +57,7 @@
 				:allow-other-keys opts)
   (let-values (((encoder decoder) (apply encoding scheme opts)))
     (make <asymmetric-cipher> :scheme scheme
-	  :encoder encoder :decoder decoder))
+	  :encoder encoder :decoder decoder)))
 
 (define (asymmetric-cipher-init! (cipher asymmetric-cipher?)
 				 (key asymmetric-key?))
