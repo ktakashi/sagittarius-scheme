@@ -196,4 +196,5 @@ Below example shows how to generate a random integer.
 ;; -> each time the same result as it's pseudo random, not secure random
 ```
 
+* @[[sagittarius/crypto/keys.md](sagittarius/crypto/keys.md)]
 * @[[sagittarius/crypto/ciphers.md](sagittarius/crypto/ciphers.md)]

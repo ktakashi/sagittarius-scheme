@@ -6,7 +6,7 @@ operations.
 
 ###### [!Library] `(sagittarius crypto ciphers)`
 
-This library provides both symmetric and asymmetric cipher operations.
+The cipher library, this library exports the procedures listed below sections.
 
 ### [§4] Ciphers parameters
 
@@ -265,12 +265,15 @@ NOTE: NIST recommends to use AES.
 
 Returns block size of the given _descriptor_'s algorithm.
 
-###### [!Function] `block-cipher-descriptor-suggested-key-length` (_descriptor_ `block-cipher-descriptor?`)
+###### [!Function] `block-cipher-descriptor-suggested-key-length` (_descriptor_ `block-cipher-descriptor?`) :optional size
 
 Returns suggested key length of the given _descriptor_'s algorithm.
 
 Most of the time, this returns the result of 
 the `symmetric-cipher-descriptor-max-key-length` procedure.
+
+If the optional argument _size_ is provided, then it check the _size_ is
+valid length of the key length.
 
 ###### [!Function] `mode-descriptor?` _obj_
 
