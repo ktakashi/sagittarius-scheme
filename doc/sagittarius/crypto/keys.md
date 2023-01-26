@@ -91,6 +91,8 @@ key size if it's appropriate for the given cipher or not.
 
 ### [§4] Asymmetric key operations
 
-###### [!Function] `key-pair?`
+###### [!Function] `key-pair?` _obj_
+
+Returns `#t` if the given _obj_ is a key pair, otherwise `#f`.
 ###### [!Function] `key-pair-private`
 ###### [!Function] `key-pair-public`
