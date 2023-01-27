@@ -81,12 +81,31 @@ randomly.
 Creates a symmetric from the bytevector, this method checks the
 key size if it's appropriate for the given cipher or not.
 
-###### [!Function] `make-rfc3394-key-wrap`
-###### [!Function] `make-aes-key-wrap`
-###### [!Function] `make-camellia-key-wrap`
-###### [!Function] `make-rfc3394-key-unwrap`
-###### [!Function] `make-aes-key-unwrap`
-###### [!Function] `make-camellia-key-unwrap`
+###### [!Function] `make-rfc3394-key-wrap` (_scheme_ `block-cipher-descriptor?`) (_key_ `symmetric-key?`) :key _iv_
+
+Creates a key wrap procedure using given _scheme_ and _key_. The optional
+keyword parameter _iv_ is used as an initial vector if provided.
+
+###### [!Function] `make-aes-key-wrap` (_key_ `symmetric-key?`) _opts_ _..._
+
+Creates an AES key wrap procedure.
+
+###### [!Function] `make-camellia-key-wrap` (_key_ `symmetric-key?`) _opts_ _..._
+
+Creates an Camellia key wrap procedure.
+
+###### [!Function] `make-rfc3394-key-unwrap` (_scheme_ `block-cipher-descriptor?`) (_key_ `symmetric-key?`) :key _iv_
+
+Creates a key unwrap procedure using given _scheme_ and _key_. The optional
+keyword parameter _iv_ is used as an initial vector if provided.
+
+###### [!Function] `make-aes-key-unwrap` (_key_ `symmetric-key?`) _opts_ _..._
+
+Creates an AES key unwrap procedure.
+
+###### [!Function] `make-camellia-key-unwrap` (_key_ `symmetric-key?`) _opts_ _..._
+
+Creates an Camellia key unwrap procedure.
 
 
 ### [§4] Asymmetric key operations
