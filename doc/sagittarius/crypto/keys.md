@@ -113,5 +113,47 @@ Creates an Camellia key unwrap procedure.
 ###### [!Function] `key-pair?` _obj_
 
 Returns `#t` if the given _obj_ is a key pair, otherwise `#f`.
-###### [!Function] `key-pair-private`
+
+###### [!Function] `key-pair-private` (_kp_ `key-pair?`)
+
+Returns the private key of the given _kp_.
+
 ###### [!Function] `key-pair-public`
+
+Returns the public key of the given _kp_.
+
+###### [!Method] `generate-key-pair` _scheme_ _opts_ _..._
+
+Generates a key pair of the given _scheme_. Followings are the supported
+schemes:
+
+###### [!Key scheme] `*key:rsa`
+###### [!Key scheme] `*key:dsa`
+###### [!Key scheme] `*key:ecdsa`
+###### [!Key scheme] `*key:ed25519`
+###### [!Key scheme] `*key:ed448`
+###### [!Key scheme] `*key:x25519`
+###### [!Key scheme] `*key:x448`
+
+Those are RSA, DSA, ECDSA, Ed5519, Ed448, X25519 and X448 respectively.  
+For convenience `*scheme:rsa` has the same effect as `*key:rsa`.
+
+###### [!Function] `generate-public-key` _scheme_ _opts_ ...
+###### [!Function] `generate-private-key` _scheme_ _opts_ ...
+
+###### [!Function] `import-public-key`
+###### [!Function] `import-private-key`
+
+###### [!Function] `export-public-key`
+###### [!Function] `export-private-key`
+
+###### [!Function] `oid->key-operation`
+###### [!Function] `key->oid`
+
+###### [!Function] `public-key-format`
+###### [!Function] `*public-key-formats*`
+###### [!Function] `public-key-format?`
+###### [!Function] `calculate-key-agreement`
+###### [!Function] `private-key-format`
+###### [!Function] `*private-key-formats*`
+###### [!Function] `private-key-format?`
