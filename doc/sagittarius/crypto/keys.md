@@ -141,18 +141,167 @@ For convenience `*scheme:rsa` has the same effect as `*key:rsa`.
 ###### [!Function] `generate-public-key` _scheme_ _opts_ ...
 ###### [!Function] `generate-private-key` _scheme_ _opts_ ...
 
-###### [!Function] `import-public-key`
-###### [!Function] `import-private-key`
+###### [!Macro] `public-key-format` _format_
 
-###### [!Function] `export-public-key`
+A macro returns a symbol representation of _format_. The _format_ must be
+either `raw` or `subject-public-key-info`.
+
+`raw`:
+  Imports/exports raw public key.
+`subject-public-key-info`:
+  Imports/exports subject public key info.
+
+###### [!Enum set] `*public-key-formats*`
+
+Enum set of the `public-key-format`.
+
+###### [!Function] `public-key-format?` _obj_
+
+Returns `#t` if the given _obj_ is a member of `public-key-format` enum.
+
+###### [!Method] `import-public-key` `*key:rsa*` `<bytevector>` :optional format
+###### [!Method] `import-public-key` `*key:rsa*` `<port>` :optional format
+
+Imports RSA key from given `<bytevector>` or `<port>`. The optional _format_
+specifies the format of the given key. Default value is `raw`.
+
+###### [!Method] `export-public-key` `<rsa-public-key>` :optional format
+###### [!Method] `export-public-key` `*key:rsa*` `<rsa-public-key>` :optional format
+
+Exports RSA key from the given `<rsa-public-key>`. The optional _format_
+controls the format of the exporting key. Default value is `raw`.
+
+###### [!Method] `import-public-key` `*key:dsa*` `<bytevector>` :optional format parameter
+###### [!Method] `import-public-key` `*key:dsa*` `<port>` :optional format parameter
+
+Imports DSA key from given `<bytevector>` or `<port>`. The optional
+_format_ specifies the format of the given key. Default value is
+`subject-public-key-info`.
+
+If `raw` is specified, then optional argument _parameter_ must be specified
+and it must be `<dsa-key-parameter>`
+
+###### [!Method] `export-public-key` `<dsa-public-key>` :optional format
+###### [!Method] `export-public-key` `*key:dsa*` `<dsa-public-key>` :optional format
+
+Exports DSA key from the given `<dsa-public-key>`. The optional
+_format_ controls the format of the exporting key. Default value
+is `subject-public-key-info`.
+
+###### [!Method] `import-public-key` `*key:ecdsa*` `<bytevector>` :optional format ec-parameter
+###### [!Method] `import-public-key` `*key:ecdsa*` `<port>` :optional format ec-parameter
+
+Imports ECDSA key from given `<bytevector>` or `<port>`. The optional
+_format_ specifies the format of the given key. Default value is
+`subject-public-key-info`.  
+If `raw` format is specified, then optional parameter `ec-parameter` must be
+specified. Below are the supported EC parameters.
+
+###### [!EC parameter] `*ec-parameter:p192*`
+###### [!EC parameter] `*ec-parameter:p224*`
+###### [!EC parameter] `*ec-parameter:p256*`
+###### [!EC parameter] `*ec-parameter:p384*`
+###### [!EC parameter] `*ec-parameter:p521*`
+###### [!EC parameter] `*ec-parameter:k163*`
+###### [!EC parameter] `*ec-parameter:k233*`
+###### [!EC parameter] `*ec-parameter:k283*`
+###### [!EC parameter] `*ec-parameter:k409*`
+###### [!EC parameter] `*ec-parameter:k571*`
+###### [!EC parameter] `*ec-parameter:b163*`
+###### [!EC parameter] `*ec-parameter:b233*`
+###### [!EC parameter] `*ec-parameter:b283*`
+###### [!EC parameter] `*ec-parameter:b409*`
+###### [!EC parameter] `*ec-parameter:b571*`
+###### [!EC parameter] `*ec-parameter:secp192r1*`
+###### [!EC parameter] `*ec-parameter:secp224r1*`
+###### [!EC parameter] `*ec-parameter:secp256r1*`
+###### [!EC parameter] `*ec-parameter:secp384r1*`
+###### [!EC parameter] `*ec-parameter:secp521r1*`
+###### [!EC parameter] `*ec-parameter:sect163k1*`
+###### [!EC parameter] `*ec-parameter:sect233k1*`
+###### [!EC parameter] `*ec-parameter:sect283k1*`
+###### [!EC parameter] `*ec-parameter:sect409k1*`
+###### [!EC parameter] `*ec-parameter:sect571k1*`
+###### [!EC parameter] `*ec-parameter:sect163r2*`
+###### [!EC parameter] `*ec-parameter:sect233r1*`
+###### [!EC parameter] `*ec-parameter:sect283r1*`
+###### [!EC parameter] `*ec-parameter:sect409r1*`
+###### [!EC parameter] `*ec-parameter:sect571r1*`
+###### [!EC parameter] `*ec-parameter:secp192k1*`
+###### [!EC parameter] `*ec-parameter:secp224k1*`
+###### [!EC parameter] `*ec-parameter:secp256k1*`
+###### [!EC parameter] `*ec-parameter:sect163r1*`
+###### [!EC parameter] `*ec-parameter:sect239k1*`
+###### [!EC parameter] `*ec-parameter:sect113r1*`
+###### [!EC parameter] `*ec-parameter:brainpool-p160r1*`
+###### [!EC parameter] `*ec-parameter:brainpool-p160t1*`
+###### [!EC parameter] `*ec-parameter:brainpool-p192r1*`
+###### [!EC parameter] `*ec-parameter:brainpool-p192t1*`
+###### [!EC parameter] `*ec-parameter:brainpool-p224r1*`
+###### [!EC parameter] `*ec-parameter:brainpool-p224t1*`
+###### [!EC parameter] `*ec-parameter:brainpool-p256r1*`
+###### [!EC parameter] `*ec-parameter:brainpool-p256t1*`
+###### [!EC parameter] `*ec-parameter:brainpool-p320r1*`
+###### [!EC parameter] `*ec-parameter:brainpool-p320t1*`
+###### [!EC parameter] `*ec-parameter:brainpool-p384r1*`
+###### [!EC parameter] `*ec-parameter:brainpool-p384t1*`
+###### [!EC parameter] `*ec-parameter:brainpool-p512r1*`
+###### [!EC parameter] `*ec-parameter:brainpool-p512t1*`
+
+After `ec-parameter:` represents the parameter name.
+
+###### [!Method] `export-public-key` `<ecdsa-public-key>` :optional format
+###### [!Method] `export-public-key` `*key:ecdsa*` `<ecdsa-public-key>` :optional format
+
+Exports ECDSA key from the given `<ecdsa-public-key>`. The optional
+_format_ controls the format of the exporting key. Default value
+is `subject-public-key-info`.
+
+###### [!Method] `import-public-key` `*key:ed25519*` `<bytevector>` :optional format
+###### [!Method] `import-public-key` `*key:ed25519*` `<port>` :optional format
+###### [!Method] `import-public-key` `*key:ed448*` `<bytevector>` :optional format
+###### [!Method] `import-public-key` `*key:ed448*` `<port>` :optional format
+
+Imports Ed25519 or Ed448 public key from the given `<bytevector>` or `<port>`.
+The optional _format_ controls the key format, default is `raw`.
+
+###### [!Method] `export-public-key` `<eddsa-public-key>` :optional format
+###### [!Method] `export-public-key` `*key:ed25519*` `<eddsa-public-key>` :optional format
+###### [!Method] `export-public-key` `<eddsa-public-key>` :optional format
+###### [!Method] `export-public-key` `*key:ed448*` `<eddsa-public-key>` :optional format
+
+Exports Ed25519 or Ed448 key from the given `<eddsa-public-key>`. The optional
+_format_ controls the format of the exporting key. Default value
+is `raw`.
+
+If the first form is used, then the method automatically detects the key type.
+
+###### [!Method] `import-public-key` `*key:x25519*` `<bytevector>` :optional format
+###### [!Method] `import-public-key` `*key:x25519*` `<port>` :optional format
+###### [!Method] `import-public-key` `*key:x448*` `<bytevector>` :optional format
+###### [!Method] `import-public-key` `*key:x448*` `<port>` :optional format
+
+Imports X25519 or X448 public key from the given `<bytevector>` or `<port>`.
+The optional _format_ controls the key format, default is `raw`.
+
+###### [!Method] `export-public-key` `<rfc7748-public-key>` :optional format
+###### [!Method] `export-public-key` `*key:x25519*` `<rfc7748-public-key>` :optional format
+###### [!Method] `export-public-key` `<rfc7748-public-key>` :optional format
+###### [!Method] `export-public-key` `*key:x448*` `<rfc7748-public-key>` :optional format
+
+Exports X25519 or X448 key from the given `<rfc7748-public-key>`. The optional
+_format_ controls the format of the exporting key. Default value
+is `raw`.
+
+If the first form is used, then the method automatically detects the key type.
+
+
+###### [!Function] `import-private-key`
 ###### [!Function] `export-private-key`
 
 ###### [!Function] `oid->key-operation`
 ###### [!Function] `key->oid`
 
-###### [!Function] `public-key-format`
-###### [!Function] `*public-key-formats*`
-###### [!Function] `public-key-format?`
 ###### [!Function] `calculate-key-agreement`
 ###### [!Function] `private-key-format`
 ###### [!Function] `*private-key-formats*`
