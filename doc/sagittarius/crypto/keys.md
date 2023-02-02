@@ -159,20 +159,28 @@ Enum set of the `public-key-format`.
 
 Returns `#t` if the given _obj_ is a member of `public-key-format` enum.
 
-###### [!Method] `import-public-key` `*key:rsa*` `<bytevector>` :optional format
-###### [!Method] `import-public-key` `*key:rsa*` `<port>` :optional format
+###### [!Method] `import-public-key` `<bytevector>` `'subject-public-key-info`
+###### [!Method] `import-public-key` `<port>` `'subject-public-key-info`
+
+Imports a public from the given `<bytevector>` or `<port>` which must be
+a valid subject public key info.  
+The returning public key type is detected via the OID inside of the
+subject public key info.
+
+###### [!Method] `import-public-key` `*key:rsa*` `<bytevector>` :optional _format_
+###### [!Method] `import-public-key` `*key:rsa*` `<port>` :optional _format_
 
 Imports RSA key from given `<bytevector>` or `<port>`. The optional _format_
 specifies the format of the given key. Default value is `raw`.
 
-###### [!Method] `export-public-key` `<rsa-public-key>` :optional format
-###### [!Method] `export-public-key` `*key:rsa*` `<rsa-public-key>` :optional format
+###### [!Method] `export-public-key` `<rsa-public-key>` :optional _format_
+###### [!Method] `export-public-key` `*key:rsa*` `<rsa-public-key>` :optional _format_
 
 Exports RSA key from the given `<rsa-public-key>`. The optional _format_
 controls the format of the exporting key. Default value is `raw`.
 
-###### [!Method] `import-public-key` `*key:dsa*` `<bytevector>` :optional format parameter
-###### [!Method] `import-public-key` `*key:dsa*` `<port>` :optional format parameter
+###### [!Method] `import-public-key` `*key:dsa*` `<bytevector>` :optional _format_ _parameter_
+###### [!Method] `import-public-key` `*key:dsa*` `<port>` :optional _format_ _parameter_
 
 Imports DSA key from given `<bytevector>` or `<port>`. The optional
 _format_ specifies the format of the given key. Default value is
@@ -181,15 +189,15 @@ _format_ specifies the format of the given key. Default value is
 If `raw` is specified, then optional argument _parameter_ must be specified
 and it must be `<dsa-key-parameter>`
 
-###### [!Method] `export-public-key` `<dsa-public-key>` :optional format
-###### [!Method] `export-public-key` `*key:dsa*` `<dsa-public-key>` :optional format
+###### [!Method] `export-public-key` `<dsa-public-key>` :optional _format_
+###### [!Method] `export-public-key` `*key:dsa*` `<dsa-public-key>` :optional _format_
 
 Exports DSA key from the given `<dsa-public-key>`. The optional
 _format_ controls the format of the exporting key. Default value
 is `subject-public-key-info`.
 
-###### [!Method] `import-public-key` `*key:ecdsa*` `<bytevector>` :optional format ec-parameter
-###### [!Method] `import-public-key` `*key:ecdsa*` `<port>` :optional format ec-parameter
+###### [!Method] `import-public-key` `*key:ecdsa*` `<bytevector>` :optional _format_ _ec-parameter_
+###### [!Method] `import-public-key` `*key:ecdsa*` `<port>` :optional _format_ _ec-parameter_
 
 Imports ECDSA key from given `<bytevector>` or `<port>`. The optional
 _format_ specifies the format of the given key. Default value is
@@ -250,25 +258,25 @@ specified. Below are the supported EC parameters.
 
 After `ec-parameter:` represents the parameter name.
 
-###### [!Method] `export-public-key` `<ecdsa-public-key>` :optional format
-###### [!Method] `export-public-key` `*key:ecdsa*` `<ecdsa-public-key>` :optional format
+###### [!Method] `export-public-key` `<ecdsa-public-key>` :optional _format_
+###### [!Method] `export-public-key` `*key:ecdsa*` `<ecdsa-public-key>` :optional _format_
 
 Exports ECDSA key from the given `<ecdsa-public-key>`. The optional
 _format_ controls the format of the exporting key. Default value
 is `subject-public-key-info`.
 
-###### [!Method] `import-public-key` `*key:ed25519*` `<bytevector>` :optional format
-###### [!Method] `import-public-key` `*key:ed25519*` `<port>` :optional format
-###### [!Method] `import-public-key` `*key:ed448*` `<bytevector>` :optional format
-###### [!Method] `import-public-key` `*key:ed448*` `<port>` :optional format
+###### [!Method] `import-public-key` `*key:ed25519*` `<bytevector>` :optional _format_
+###### [!Method] `import-public-key` `*key:ed25519*` `<port>` :optional _format_
+###### [!Method] `import-public-key` `*key:ed448*` `<bytevector>` :optional _format_
+###### [!Method] `import-public-key` `*key:ed448*` `<port>` :optional _format_
 
 Imports Ed25519 or Ed448 public key from the given `<bytevector>` or `<port>`.
 The optional _format_ controls the key format, default is `raw`.
 
-###### [!Method] `export-public-key` `<eddsa-public-key>` :optional format
-###### [!Method] `export-public-key` `*key:ed25519*` `<eddsa-public-key>` :optional format
-###### [!Method] `export-public-key` `<eddsa-public-key>` :optional format
-###### [!Method] `export-public-key` `*key:ed448*` `<eddsa-public-key>` :optional format
+###### [!Method] `export-public-key` `<eddsa-public-key>` :optional _format_
+###### [!Method] `export-public-key` `*key:ed25519*` `<eddsa-public-key>` :optional _format_
+###### [!Method] `export-public-key` `<eddsa-public-key>` :optional _format_
+###### [!Method] `export-public-key` `*key:ed448*` `<eddsa-public-key>` :optional _format_
 
 Exports Ed25519 or Ed448 key from the given `<eddsa-public-key>`. The optional
 _format_ controls the format of the exporting key. Default value
@@ -276,18 +284,18 @@ is `raw`.
 
 If the first form is used, then the method automatically detects the key type.
 
-###### [!Method] `import-public-key` `*key:x25519*` `<bytevector>` :optional format
-###### [!Method] `import-public-key` `*key:x25519*` `<port>` :optional format
-###### [!Method] `import-public-key` `*key:x448*` `<bytevector>` :optional format
-###### [!Method] `import-public-key` `*key:x448*` `<port>` :optional format
+###### [!Method] `import-public-key` `*key:x25519*` `<bytevector>` :optional _format_
+###### [!Method] `import-public-key` `*key:x25519*` `<port>` :optional _format_
+###### [!Method] `import-public-key` `*key:x448*` `<bytevector>` :optional _format_
+###### [!Method] `import-public-key` `*key:x448*` `<port>` :optional _format_
 
 Imports X25519 or X448 public key from the given `<bytevector>` or `<port>`.
 The optional _format_ controls the key format, default is `raw`.
 
-###### [!Method] `export-public-key` `<rfc7748-public-key>` :optional format
-###### [!Method] `export-public-key` `*key:x25519*` `<rfc7748-public-key>` :optional format
-###### [!Method] `export-public-key` `<rfc7748-public-key>` :optional format
-###### [!Method] `export-public-key` `*key:x448*` `<rfc7748-public-key>` :optional format
+###### [!Method] `export-public-key` `<rfc7748-public-key>` :optional _format_
+###### [!Method] `export-public-key` `*key:x25519*` `<rfc7748-public-key>` :optional _format_
+###### [!Method] `export-public-key` `<rfc7748-public-key>` :optional _format_
+###### [!Method] `export-public-key` `*key:x448*` `<rfc7748-public-key>` :optional _format_
 
 Exports X25519 or X448 key from the given `<rfc7748-public-key>`. The optional
 _format_ controls the format of the exporting key. Default value
@@ -295,9 +303,37 @@ is `raw`.
 
 If the first form is used, then the method automatically detects the key type.
 
+###### [!Macro] `private-key-format` _format_
 
-###### [!Function] `import-private-key`
-###### [!Function] `export-private-key`
+A macro returns a symbol representation of _format_. The _format_ must be
+either `raw` or `private-key-info`.
+
+`raw`:
+  Imports/exports raw public key.
+`private-key-info`:
+  Imports/exports private key info or one asymmetric key.
+
+###### [!Enum set] `*private-key-formats*`
+
+Enum set of the `private-key-format`.
+
+###### [!Function] `private-key-format?` _obj_
+
+Returns `#t` if the given _obj_ is a member of `private-key-format` enum.
+
+###### [!Function] `import-private-key` `<bytevector>` `'private-key-info`
+###### [!Function] `import-private-key` `<port>` `'private-key-info`
+
+Imports a private key from the `<bytevector>` or `<port>` which must
+be a valid private key info or one asymmetric key.  
+The returning private key type is detected by the OID inside of the
+private key info.
+
+###### [!Function] `import-private-key` `*key:rsa` `<bytevector>` 
+###### [!Function] `import-private-key` `*key:rsa` `<port>` 
+
+
+###### [!Function] `export-private-key` `<private-key>` :optional _format_
 
 ###### [!Function] `oid->key-operation`
 ###### [!Function] `key->oid`
