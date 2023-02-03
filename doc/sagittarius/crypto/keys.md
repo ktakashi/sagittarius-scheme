@@ -321,24 +321,76 @@ Enum set of the `private-key-format`.
 
 Returns `#t` if the given _obj_ is a member of `private-key-format` enum.
 
-###### [!Function] `import-private-key` `<bytevector>` `'private-key-info`
-###### [!Function] `import-private-key` `<port>` `'private-key-info`
+###### [!Method] `import-private-key` `<bytevector>` `'private-key-info`
+###### [!Method] `import-private-key` `<port>` `'private-key-info`
 
 Imports a private key from the `<bytevector>` or `<port>` which must
 be a valid private key info or one asymmetric key.  
 The returning private key type is detected by the OID inside of the
 private key info.
 
-###### [!Function] `import-private-key` `*key:rsa` `<bytevector>` 
-###### [!Function] `import-private-key` `*key:rsa` `<port>` 
+###### [!Method] `import-private-key` `*key:rsa` `<bytevector>` 
+###### [!Method] `import-private-key` `*key:rsa` `<port>` 
 
+Imports a RSA private key from the `<bytevector>` or `<port>`. The
+format of the input must be a raw RSAPrivateKey.
 
-###### [!Function] `export-private-key` `<private-key>` :optional _format_
+###### [!Method] `export-private-key` `<rsa-crt-private-key>` :optional _format_
+###### [!Method] `export-private-key` `*key:rsa*` `<rsa-crt-private-key>` :optional _format_
+
+Exporting RSA private key is only supported with CRT key.  
+Exports the given `<rsa-crt-private-key>`. The optional _format_ controls
+the format of the exporting key. Default value is `raw`.
+
+###### [!Method] `import-private-key` `*key:dsa` `<bytevector>` 
+###### [!Method] `import-private-key` `*key:dsa` `<port>` 
+
+Imports a DSA private key from the `<bytevector>` or `<port>`. The
+format of the input must be a raw DSAPrivateKey.
+
+###### [!Method] `export-private-key` `<dsa-private-key>` :optional _format_
+###### [!Method] `export-private-key` `*key:dsa*` `<dsa-private-key>` :optional _format_
+
+Exports the given `<dsa-private-key>`. The optional _format_ controls
+the format of the exporting key. Default value is `raw`.
+
+###### [!Method] `import-private-key` `*key:ecdsa` `<bytevector>` :optional _ec-parameter_
+###### [!Method] `import-private-key` `*key:ecdsa` `<port>` :optional _ec-parameter_
+
+Imports a ECDSA private key from the `<bytevector>` or `<port>`. The
+format of the input must be a raw ECPrivateKey.  
+If the given raw key doesn't contain EC parameter, then the optional
+_ec-parameter_ must be provided.
+
+###### [!Method] `export-private-key` `<ecdsa-private-key>` :optional _format_
+###### [!Method] `export-private-key` `*key:ecdsa*` `<ecdsa-private-key>` :optional _format_
+
+Exports the given `<ecdsa-private-key>`. The optional _format_ controls
+the format of the exporting key. Default value is `raw`.
+
+###### [!Method] `import-private-key` `*key:ed25519` `<bytevector>`
+###### [!Method] `import-private-key` `*key:ed25519` `<port>`
+###### [!Method] `import-private-key` `*key:ed448` `<bytevector>`
+###### [!Method] `import-private-key` `*key:ed448` `<port>`
+
+Imports a Ed25519 or Ed448 private key from the `<bytevector>` or `<port>`.
+
+###### [!Method] `export-private-key` `<eddsa-private-key>` :optional _format_
+###### [!Method] `export-private-key` `*key:ed25519*` `<eddsa-private-key>` :optional _format_
+###### [!Method] `export-private-key` `*key:ed448*` `<eddsa-private-key>` :optional _format_
+
+Exports the given `<eddsa-private-key>`. The optional _format_ controls
+the format of the exporting key. Default value is `raw`.  
+If the first form is used, then the exporting key type is detected 
+from the given key.
+
+###### [!Method] `calculate-key-agreement` `*key:ecdh*` `<ecdsa-private-key>` `<ecdsa-public-key>`
+###### [!Method] `calculate-key-agreement` `*key:x25519*` `<rfc7748-private-key>` `<rfc7748-public-key>`
+###### [!Method] `calculate-key-agreement` `*key:x449*` `<rfc7748-private-key>` `<rfc7748-public-key>`
+
+Calculate a secret key from the given private key and public key.
 
 ###### [!Function] `oid->key-operation`
 ###### [!Function] `key->oid`
 
-###### [!Function] `calculate-key-agreement`
-###### [!Function] `private-key-format`
-###### [!Function] `*private-key-formats*`
-###### [!Function] `private-key-format?`
+
