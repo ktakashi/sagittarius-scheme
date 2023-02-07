@@ -60,12 +60,12 @@
 
 (define-c-proc prng-add-entropy! (ps::<prng-state> bv::<bytevector>
 				  :optional (start::<fixnum> 0)  
-					    (end::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE bv))))
-  (check-start-end 'prng-add-entropy! bv start end)
+					    (len::<fixnum> (SG_MAKE_INT (- (SG_BVECTOR_SIZE bv) start))))
+  (check-range 'prng-add-entropy! bv start len)
   (let ((err::int (PRNG_DESCRIPTOR_ADD_ENTROPY (SG_PRNG_STATE_PRNG ps)
 					       (& (SG_PRNG_STATE_STATE ps))
 					       (+ (SG_BVECTOR_ELEMENTS bv) start)
-					       (- end start))))
+					       len)))
     (check-tomcrypt-error 'prng-add-entropy! err ps)
     (result ps)))
 
@@ -77,7 +77,7 @@
 
 (define-c-proc prng-read! (ps::<prng-state> bv::<bytevector>
 			   :optional (start::<fixnum> 0)  
-				     (len::<fixnum> (SG_MAKE_INT (SG_BVECTOR_SIZE bv)))) ::<fixnum>
+				     (len::<fixnum> (SG_MAKE_INT (- (SG_BVECTOR_SIZE bv) start)))) ::<fixnum>
   (check-range 'prng-read! bv start len)
   (let ((|n::unsigned long| (PRNG_DESCRIPTOR_READ (SG_PRNG_STATE_PRNG ps)
 						  (& (SG_PRNG_STATE_STATE ps))
