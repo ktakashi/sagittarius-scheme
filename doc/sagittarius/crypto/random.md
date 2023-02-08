@@ -50,10 +50,15 @@ then you may need to know how to enhance it. Creating a custom random
 generator is described the below section.
 
 ```
-<random-generator>
-  + <builtin-random-generator>
-      + <secure-random-generator>
-  + <custom-random-generator>
+                               <random-generator>
+                                       |
+           +---------------------------+------------------------+
+           |                           |                        |
+<builtin-random-generator> <secure-random-generator> <custom-random-generator>
+           |                           |
+           +-------------+-------------+
+                         |
+         <builtin-secure-random-generator>
 ```
 
 
@@ -84,14 +89,42 @@ Reads random data from _random-generator_, and fill them into _out_.
 If optional arguments _starts_ and _length_ are specified, then it specifies
 the range of the output bytevector.
 
-###### [!Function] `random-generator-randomize!`
-###### [!Function] `random-generator-random-integer`
-###### [!Function] `random-generator-state`
-###### [!Function] `pseudo-random-generator`
-###### [!Function] `secure-random-generator`
+###### [!Function] `random-generator-randomize!` (_random-generator_ `random-generator?`) (_seed_ `bytevector?`) :optional _start_ _length_
+
+Add entropy _seed_ to the given _random-generator_.  
+If optional arguments _starts_ and _length_ are specified, then it specifies
+the range of the _seed_ bytevector.
+
+###### [!Function] `random-generator-random-integer` (_random-generator_ `random-generator?`) _bound_
+
+Returns a random integer of range 0 <= n <= _bound_.
+
+###### [!Function] `pseudo-random-generator` _descriptor_ _opts_ _..._
+###### [!Function] `secure-random-generator` _descriptor_ _opts_ _..._
+
+Creates a pseudo or secure random generator, respectively.  
+If the given _descriptor_ is PRNG descrptor, then these procedure
+creates builtin random generator ignoreing the given _opts_.  
+If the given _descriptor_ is not PRNG descrptor, then these procedure
+call `make-custom-random-generator` method passing _descriptor_ and
+_opts_.
+
+If `secure-random-generator` is used, then `make-custom-random-generator`
+receives `:secure-random` keyword argument with value of `#t`, so that
+the receiver can handle it properly.
+
+###### [!Method] `random-generator-state` `<random-generator>`
+
+Gets the state of given `<random-generator>` if it's supported.  
+By default this method returns `#f`, means not supported.
+
+###### [!Method] `random-generator-state` `<random-generator>` `<any>`
+
+Sets the given state represented by `<any>` to `<random-generator>` 
+if it's supported.  
+By default this method does nothing and returns `#f`, means not supported.
 
 ### [§4] Custom random generator
-
 
 ###### [!Class] `<custom-random-generator>`
 ###### [!Generic] `make-custom-random-generator`

@@ -73,10 +73,15 @@
 (define (builtin-random-generator? o) (is-a? o <builtin-random-generator>))
 (define (make-builtin-random-generator prng)
   (make <builtin-random-generator> :prng prng))
-(define-class <secure-random-generator> (<builtin-random-generator>) ())
+
+(define-class <secure-random-generator> (<random-generator>) ())
 (define (secure-random-generator? o) (is-a? o <secure-random-generator>))
-(define (make-secure-random-generator prng)
-  (make <secure-random-generator> :prng prng))
+
+
+(define-class <builtin-secure-random-generator>
+  (<builtin-random-generator> <secure-random-generator>) ())
+(define (make-builtin-secure-random-generator prng)
+  (make <builtin-secure-random-generator> :prng prng))
 
 ;; System random instance, use this to feed entropy
 (define system-prng (prng-start *prng:system*))
@@ -96,8 +101,9 @@
 	    (entropy (make-bytevector seed-size)))
 	(prng-read! system-prng entropy)
 	(prng-add-entropy! prng entropy)
-	(make-secure-random-generator (prng-ready! prng)))
-      (let ((prng (apply make-custom-random-generator descriptor opts))
+	(make-builtin-secure-random-generator (prng-ready! prng)))
+      (let ((prng (apply make-custom-random-generator descriptor
+			 :secure-random #t opts))
 	    (entropy (make-bytevector seed-size)))
 	(prng-read! system-prng entropy)
 	;; I'm not sure if this will be secure enough, but better than nothing
