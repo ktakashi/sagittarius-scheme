@@ -118,7 +118,7 @@
 	 (g (dsa-key-parameter-g param))
 	 (X (dsa-private-key-X key))
 	 (signing-message (digest-signature-state-signing-message! state))
-	 (k ((dsa-signer-state-k-generator state) q X))
+	 (k ((dsa-signer-state-k-generator state) q X signing-message))
 	 (r (mod (mod-expt g (+ k q) p) q))
 	 (H (bytevector->integer signing-message))
 	 (xr+h (mod (+ (* X r) H) q))

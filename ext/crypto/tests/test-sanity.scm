@@ -528,6 +528,12 @@
 
 (test-begin "Signature")
 
+(let ((k-generator (make-hmac-k-generator *digest:sha-256*)))
+  (test-equal #x23AF4074C90A02B3FE61D286D5C87F425E6BDD81B
+	      (k-generator #x4000000000000000000020108A2E0CC0D99F8A5EF
+			   #x09A4D6792295A7F730FC3F2B49CBC0F62E862272F
+			   (hex-string->bytevector "AF2BDBE1AA9B6EC1E2ADE1D694F41FC71A831D0268E9891562113D8A62ADD1BF"))))
+
 ;; basically *signature:...* and *key:...* are the same
 ;; though that's the prespective of library implementator, me obviously,
 ;; and unless it's not written in the test, it's subjected to change

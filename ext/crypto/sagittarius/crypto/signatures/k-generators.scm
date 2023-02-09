@@ -31,12 +31,14 @@
 #!nounbound
 (library (sagittarius crypto signatures k-generators)
     (export make-random-k-generator default-k-generator
-	    make-determistic-k-generator)
+	    make-hmac-k-generator)
     (import (rnrs)
 	    (core errors)
 	    (sagittarius)
-	    (sagittarius crypto random))
-(define ((make-random-k-generator (prng random-generator?)) n d)
+	    (sagittarius crypto random)
+	    (sagittarius crypto digests)
+	    (sagittarius crypto mac))
+(define ((make-random-k-generator (prng random-generator?)) n d M)
   (define (read-random-bits prng buf)
     (random-generator-read-random-bytes! prng buf)
     (bytevector->uinteger buf))
@@ -49,9 +51,74 @@
   (make-random-k-generator (secure-random-generator *prng:chacha20*)))
 
 ;; RFC 6979
-(define (make-determistic-k-generator digest message)
-  (implementation-restriction-violation  'make-determistic-k-generator
-					 "Not yet"))
+(define (make-hmac-k-generator (digest digest-descriptor?))
+  (define size (digest-descriptor-digest-size digest))
+
+  (define (bits->integer t n)
+    (let ((v (bytevector->uinteger t))
+	  (nl (bitwise-length n)))
+      (if (> (* (bytevector-length t) 8) nl)
+	  (bitwise-arithmetic-shift-right v (- (* (bytevector-length t) 8) nl))
+	  v)))
+  (define (bits->octets t n)
+    (let* ((tmp (bits->integer t n))
+	   (mi (if (> tmp n) (- tmp n) tmp)))
+      (sinteger->bytevector mi)))
+  (lambda (n d M) ;; M = H(m) = h1
+    (define (setup-K hmac V mark K)
+      (mac-init! hmac)
+      (mac-process! hmac V)
+      (mac-process! hmac mark)
+      (mac-process! hmac (sinteger->bytevector d))
+      (mac-process! hmac (bits->octets M n))
+      (mac-done! hmac K)
+      K)
+    (define (setup-V K V)
+      (define hmac (make-mac *mac:hmac* K :digest digest))
+      (mac-init! hmac)
+      (mac-process! hmac V)
+      (mac-done! hmac V)
+      hmac)
+
+    ;; b.
+    (define V (make-bytevector size #x01))
+    ;; c. 
+    (define K (make-bytevector size #x00))
+    (define hmac0 (make-mac *mac:hmac* K :digest digest))
+
+    ;; d.
+    (setup-K hmac0 V #vu8(#x00) K)
+    ;; e.
+    (let ((hmac (setup-V K V)))
+      ;; f.
+      (setup-K hmac V #vu8(01) K))
+    ;; g.
+    (let* ((hmac (setup-V K V))
+	   ;; h.
+	   (Ts (if (zero? n) 1 (div (+ (bitwise-length n) 7) 8)))
+	   (T (make-bytevector Ts 0)))
+      (define (populate-T hmac V T)
+	(define Ts (bytevector-length T))
+	(define size (bytevector-length V))
+	(let loop ((off 0))
+	  (when (< off Ts)
+	    (mac-init! hmac)
+	    (mac-process! hmac V)
+	    (mac-done! hmac V)
+	    (let ((len (min (- Ts off) size)))
+	      (bytevector-copy! V 0 T off len)
+	      (loop (+ off len))))))
+      (let loop ((hmac hmac))
+	(populate-T hmac V T)
+	(let ((k (bits->integer T n)))
+	  (if (and (> k 0) (< k n))
+	      k
+	      (begin
+		(mac-init! hmac)
+		(mac-process! hmac V)
+		(mac-process! hmac #vu8(#x00))
+		(mac-done! hmac K)
+		(loop (setup-V K V)))))))))
   
 
 )

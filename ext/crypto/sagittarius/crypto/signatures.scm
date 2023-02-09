@@ -38,13 +38,6 @@
 	    verifier-verify!
 	    
 	    *signature:rsa*
-	    make-signer-state signer-state->signature
-	    make-verifier-state verifier-state-verify-message
-
-	    mgf-1 *oid:mgf1*
-	    pkcs1-emsa-pss-encode pkcs1-emsa-pss-verify
-	    pkcs1-emsa-v1.5-encode pkcs1-emsa-v1.5-verify
-
 	    *signature:dsa*
 	    *signature:ecdsa*
 	    *signature:eddsa*
@@ -53,6 +46,15 @@
 	    *signature:ed25519ph*
 	    *signature:ed448*
 	    *signature:ed448ph*
+	    
+	    ;; make-signer-state signer-state->signature
+	    ;; make-verifier-state verifier-state-verify-message
+
+	    mgf-1 *oid:mgf1*
+	    pkcs1-emsa-pss-encode pkcs1-emsa-pss-verify
+	    pkcs1-emsa-v1.5-encode pkcs1-emsa-v1.5-verify
+
+	    make-random-k-generator make-hmac-k-generator
 
 	    oid->mgf
 	    oid->signer-maker
@@ -89,6 +91,7 @@
     (import (rnrs)
 	    (clos user)
 	    (sagittarius crypto signatures types)
+	    (sagittarius crypto signatures k-generators)
 	    (sagittarius crypto signatures rsa)
 	    (sagittarius crypto signatures dsa)
 	    (sagittarius crypto signatures ecdsa)
