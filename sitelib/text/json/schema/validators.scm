@@ -290,8 +290,9 @@
       (check-$defs root-schema base-id ids))))
 				
 (define (->json-validator schema)
-  (define schema-validators
-    (json-schema:version-schema-validators (*json-schema:version*)))
+  (define version (*json-schema:version*))
+  (define schema-validators (json-schema:version-schema-validators version))
+  (define schema-keywords (json-schema:version-schema-keywords version))
   (define (generate-validator schema)
     (define ignore (make-hashtable string-hash string=?))
     (vector-fold
@@ -313,6 +314,10 @@
 			     (and (combined-validator e) (validator e))))))
 		      ;; for unknown property we ignore
 		      (else combined-validator))))
+	     ((member (car e) schema-keywords)
+	      ;; we need to collect the schema in case of $id...
+	      (schema->validator (car e) (cdr e))
+	      combined-validator)
 	     (else combined-validator)))
      (lambda (e) #t) schema))
   
@@ -499,10 +504,6 @@
 		       (vector-sort key-compare b)))
 	((and (list? a) (list? b)) (for-all json=? a b))
 	(else (eq? a b))))
-
-(define (json-schema:implicit-schema schema v)
-  (define validator (schema->validator 'json-schema:implicit-schema v))
-  (lambda (e) (no-report (validator e))))
 
 ;;; 6.1. Validation Keywords for Any Instance Type
 ;; 6.1.1 type
@@ -1060,8 +1061,6 @@
 (define +json-schema-conditional-validators+
   `(
     ("if" ,json-schema:if)
-    ("then" ,json-schema:implicit-schema)
-    ("else" ,json-schema:implicit-schema)
     ))
 (define +json-schema-boolean-logic-validators+
   `(

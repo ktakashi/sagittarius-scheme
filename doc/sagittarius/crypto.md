@@ -200,3 +200,4 @@ Below example shows how to generate a random integer.
 * @[[sagittarius/crypto/ciphers.md](sagittarius/crypto/ciphers.md)]
 * @[[sagittarius/crypto/digests.md](sagittarius/crypto/digests.md)]
 * @[[sagittarius/crypto/random.md](sagittarius/crypto/random.md)]
+* @[[sagittarius/crypto/signatures.md](sagittarius/crypto/signatures.md)]
