@@ -500,6 +500,10 @@
 	((and (list? a) (list? b)) (for-all json=? a b))
 	(else (eq? a b))))
 
+(define (json-schema:implicit-schema schema v)
+  (define validator (schema->validator 'json-schema:implicit-schema v))
+  (lambda (e) (no-report (validator e))))
+
 ;;; 6.1. Validation Keywords for Any Instance Type
 ;; 6.1.1 type
 (define (json-schema:type type)
@@ -1056,6 +1060,8 @@
 (define +json-schema-conditional-validators+
   `(
     ("if" ,json-schema:if)
+    ("then" ,json-schema:implicit-schema)
+    ("else" ,json-schema:implicit-schema)
     ))
 (define +json-schema-boolean-logic-validators+
   `(
