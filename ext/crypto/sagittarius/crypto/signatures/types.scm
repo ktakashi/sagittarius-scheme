@@ -82,9 +82,8 @@
 
 (define (digest-signature-state-init! (state signature-state?))
   (message-digest-init! (digest-signature-state-md state)))
-(define (digest-signature-state-process! (state signature-state?) bv start end)
-  (message-digest-process! (digest-signature-state-md state)
-			   bv start (- end start)))
+(define (digest-signature-state-process! (state signature-state?) bv start len)
+  (message-digest-process! (digest-signature-state-md state) bv start len))
 (define (digest-signature-state-signing-message! (state signature-state?)
 						 . opts)
   (apply message-digest-done (digest-signature-state-md state) opts))
@@ -110,8 +109,8 @@
 (define (buffered-signature-state-init! (state buffered-signature-state?))
   ((buffered-signature-state-retriever state)))
 (define (buffered-signature-state-process! (state buffered-signature-state?)
-					   bv start end)
-  (put-bytevector (buffered-signature-state-buffer state) bv start end))
+					   bv start len)
+  (put-bytevector (buffered-signature-state-buffer state) bv start len))
 (define buffered-signature-state-signing-message!
   buffered-signature-state-init!)
 (define-method signature-state-init! ((o <buffered-signature-state>))
