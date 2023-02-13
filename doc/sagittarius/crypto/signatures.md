@@ -27,4 +27,56 @@ These algorithms can be used both signer and verifier.
 
 ### [§4] Signer
 
+###### [!Function] `signer?` _obj_
+
+Returns `#t` if the given _obj_ is a signer, otherwise `#f`.
+
+###### [!Function] `make-signer` _scheme_ _key_ _opts_ _..._
+
+Creates a signer of the _scheme_. The _scheme_ must be one of the
+signature algorithms listed above. The _key_ must be an appropriate
+private key for the specified _scheme_.
+
+_opts_ must be a keyword arguments, the procedure ignores unsupported
+keywords. The supporting keyword arguments and its scheme are below
+
+`:digest`:
+  For all signature algorithms. Specifying digest algorithm. Most of
+  the algorithm uses `*digest:sha-256*` as its default digest algorithm.
+`:encoder`:
+  For `*signature:rsa*`. Specifying signature encoding, default value
+  is `pkcs1-emsa-pss-encode`.
+`:k-generator`:
+  For `*signature:dsa*` and `*signature:ecdsa*`. Specifying _k_ generator.
+  It uses random generator as default value.
+`:der-encode`:
+  For `*signature:dsa*` and `*signature:ecdsa*`. Specifying if the result
+  signature is DER encoded or not. Default value is `#t`.
+`:scheme`:
+  For `*signature:eddsa*`. Specifying EdDSA scheme.
+`:context`:
+  For `*signature:eddsa*` `*signature:ed25519ctx*`, `*signature:ed25519ph*`,
+  `*signature:ed448*`, and `*signature:ed448ph*`.
+  Specifying context, default value is `#vu8()`.
+
+For the scheme specific procedures such as `k-generator`, see the below 
+sections.
+
+###### [!Function] `signer-sign-message` (_signer_ `signer?`) (_message_ `bytevector?`)
+
+Signs the given _message_ with _signer_ and returns the signature.
+
+###### [!Function] `signer-init!` (_signer_ `signer?`)
+
+Initialises the given _signer_
+
+###### [!Function] `signer-process!` (_signer_ `signer?`) (_message_ `bytevector?`) :optional _start_ _length_
+
+Feeds the given _message_ to the _signer_. The optional arguments specifies
+the range of the _message_ to feed.
+
+###### [!Function] `signer-sign!` (_signer_ `signer?`)
+
+Signs the accumulated message of _signer_ and returns a bytevector.
+
 ### [§4] Verifier
