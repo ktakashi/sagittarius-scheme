@@ -487,22 +487,22 @@ argument of the `make-asymmetric-cipher` procedure.
 
 This encoding scheme accepts the following keyword arguments:
 
-`:digest`:
-  A digest descriptor to be generate a digest for label provided by `:label`
+`:digest`
+: A digest descriptor to be generate a digest for label provided by `:label`
   keyword. Default value is `*digest:sha-1*`
 
-`:label`:
-  A label. Default value is `#vu8()`
-  
-`:mgf`:
-  MGF function. Default value is `mgf-1`.
-  
-`:mgf-digest`:
-  A digest descriptor to be used by the `:mgf`'s argument. Default value is
+`:label`
+: A label. Default value is `#vu8()`.
+
+`:mgf`
+: MGF function. Default value is `mgf-1`.
+
+`:mgf-digest`
+: A digest descriptor to be used by the `:mgf`'s argument. Default value is
   `*digest:sha-1*`.
 
-`:prng`:
-  A pseudo random generator to generate padding. Default value is
+`:prng`
+: A pseudo random generator to generate padding. Default value is
   `(secure-random-generator *prng:chacha20*)`.
 
 ###### [!Function] `pkcs1-v1.5-encoding`
@@ -512,8 +512,8 @@ arguments of the `make-asymmetric-cipher` procedure.
 
 This encoding scheme accepts the following keyword arguments:
 
-`:prng`:
-  A pseudo random generator to generate padding. Default value is
+`:prng`
+: A pseudo random generator to generate padding. Default value is
   `(secure-random-generator *prng:chacha20*)`.
 
 ###### [!Function] `mgf-1`
