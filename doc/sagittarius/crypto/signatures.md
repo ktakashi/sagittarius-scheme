@@ -144,3 +144,42 @@ Verifies the given _signature_ against the accumulated messgage.
 It returns `#t` if the given _signature_ is a valid signature.  
 If the signature verification is failed, then returns `#f`.  
 If the signature format is not valid, then raise an error.
+
+### [§4] RSA signature specific
+
+These procedures are RSA signature specific, i.e. `:encoder` and `:verifier`
+keyword arguments, the keyword arguments specified in these procedures
+are passed via either `make-signer` or `make-verifier`.
+
+###### [!Function] `pkcs1-emsa-pss-encode` :key salt (mgf `mgf-1`) mgf-digest
+
+PKCS#1 EMSA PSS encode. The keyword arguments specifies its salt, MGF and
+digest algorithm of the MGF.
+
+###### [!Function] `pkcs1-emsa-pss-verify` :key salt-length (mgf `mgf-1`) mgf-digest
+
+PKCS#1 EMSA PSS verify. The keyword arguments specifies its salt, MGF and
+digest algorithm of the MGF.
+
+###### [!Function] `pkcs1-emsa-v1.5-encode`
+
+PKCS#1 EMSA PKCS1-v1_5 encode.
+
+###### [!Function] `pkcs1-emsa-v1.5-verify`
+
+PKCS#1 EMSA PKCS1-v1_5 verify.
+
+###### [!Function] `mgf-1`
+
+MGF1 function, the same as the one exported from `(sagittarius crypto ciphers)`.
+
+
+### [§4] DSA and ECDSA signature specific
+
+###### [!Function] `make-random-k-generator` (_prng_ `random-generator?`)
+
+Creates a random k-generator.
+
+###### [!Function] `make-hmac-k-generator` (_digest_ `digest-descriptor?`)
+
+Creates a RFC 6979 determistic k-generator.
