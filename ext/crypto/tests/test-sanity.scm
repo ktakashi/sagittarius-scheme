@@ -394,7 +394,9 @@
     (mac-init! mac)
     (for-each (lambda (msg) (mac-process! mac msg)) msg*)
     (mac-done! mac out)
-    (test-equal (if xof? "KMACXOF" "KMAC") m out))
+    (test-equal (if xof? "KMACXOF" "KMAC") m out)
+    (test-assert (if xof? "KMACXOF" "KMAC")
+		 (verify-mac mac (bytevector-concatenate msg*) m)))
   (test #f m)
   (test #t mx))
 
