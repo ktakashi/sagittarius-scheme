@@ -79,7 +79,6 @@
 	    (record builder)
 	    (srfi :19 time))
 ;; useful utility :)
-(define (make-slot-ref getter conv) (lambda (o) (conv (getter o))))
 (define ((list-of pred) l) (for-all pred l))
 (define (oid? o) (or (der-object-identifier? o) (object-identifier-string? o)))
 
@@ -87,23 +86,20 @@
 (define-class <x509-revoked-certificate> (<immutable> <cached-allocation>)
   ((c :init-keyword :c)
    (serial-number :allocation :virtual :cached #t
-		  :slot-ref (make-slot-ref
-			     (.$ revoked-certificate-user-certificate
-				 x509-revoked-certificate-c)
-			     der-integer->integer)
+		  :slot-ref ($. x509-revoked-certificate-c
+				revoked-certificate-user-certificate
+				der-integer->integer)
 		  :reader x509-revoked-certificate-serial-number)
    (revocation-date :allocation :virtual :cached #t
-		    :slot-ref (make-slot-ref
-			       (.$ revoked-certificate-revocation-date
-				   x509-revoked-certificate-c)
-			       asn1-time->date)
+		    :slot-ref ($. x509-revoked-certificate-c
+				  revoked-certificate-revocation-date
+				  asn1-time->date)
 		    :reader x509-revoked-certificate-revocation-date)
    (crl-entry-extensions :allocation :virtual :cached #t
-    :slot-ref (make-slot-ref
-	       (.$ revoked-certificate-crl-entry-extensions
-		   x509-revoked-certificate-c)
-	       (lambda (e)
-		 (and e (extensions->x509-extension-list e))))
+    :slot-ref ($. x509-revoked-certificate-c
+		  revoked-certificate-crl-entry-extensions
+		  (lambda (e)
+		    (and e (extensions->x509-extension-list e))))
     :reader x509-revoked-certificate-crl-entry-extensions)))
 (define (x509-revoked-certificate? o) (is-a? o <x509-revoked-certificate>))
 (define (make-x509-revoked-certificate
@@ -137,32 +133,25 @@
 	    :reader x509-certificate-revocation-list-encoded
 	    :writer x509-certificate-revocation-list-encoded-set!)
    (issuer :allocation :virtual :cached #t
-	   :slot-ref (make-slot-ref
-		      (.$ tbs-cert-list-issuer tbs-cert-list)
-		      name->x509-name)
+	   :slot-ref ($. tbs-cert-list tbs-cert-list-issuer name->x509-name)
 	   :reader x509-certificate-revocation-list-issuer)
    (this-update :allocation :virtual :cached #t
-		:slot-ref (make-slot-ref
-			   (.$ tbs-cert-list-this-update tbs-cert-list)
-			   asn1-time->date)
+		:slot-ref ($. tbs-cert-list tbs-cert-list-this-update
+			      asn1-time->date)
 		:reader x509-certificate-revocation-list-this-update)
    (next-update :allocation :virtual :cached #t
-		:slot-ref (make-slot-ref
-			   (.$ tbs-cert-list-next-update tbs-cert-list)
-			   asn1-time->date)
+		:slot-ref ($. tbs-cert-list tbs-cert-list-next-update
+			      (lambda (e) (and e (asn1-time->date e))))
 		:reader x509-certificate-revocation-list-next-update)
    (revoked-certificates :allocation :virtual :cached #t
-    :slot-ref (make-slot-ref
-	       (.$ tbs-cert-list-revoked-certificates tbs-cert-list)
-	       (lambda (l)
-		 (map revoked-certificate->x509-revoked-certificate l)))
+    :slot-ref ($. tbs-cert-list tbs-cert-list-revoked-certificates
+		  (lambda (l)
+		    (map revoked-certificate->x509-revoked-certificate l)))
     :reader x509-certificate-revocation-list-revoked-certificates)
    (crl-extensions :allocation :virtual :cached #t
-		   :slot-ref (make-slot-ref
-			      (.$ tbs-cert-list-crl-extensions tbs-cert-list)
-			      (lambda (e)
-				(and (extensions->x509-extension-list e))))
-		   :reader x509-certificate-revocation-list-crl-extensions)))
+    :slot-ref ($. tbs-cert-list tbs-cert-list-crl-extensions
+		  (lambda (e) (and e (extensions->x509-extension-list e))))
+    :reader x509-certificate-revocation-list-crl-extensions)))
 (define (x509-certificate-revocation-list? o)
   (is-a? o <x509-certificate-revocation-list>))
 (define (x509-certificate-revocation-list-signature-algorithm

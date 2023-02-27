@@ -440,4 +440,22 @@
 		*signature-algorithm:ecdsa-sha3-512*
 		*signature-algorithm:ed25519*
 		*signature-algorithm:ed448*))
+
+(let ()
+  (define key-pair (generate-key-pair *key:ecdsa*))
+  (define template
+    (x509-certificate-revocation-list-template-builder
+     (issuer-dn (x509-name '(CN "test")))
+     (this-update (current-date))
+     (revoked-certificates '())))
+  
+  (define aid (make-x509-algorithm-identifier
+	       *signature-algorithm:ecdsa-sha256*))
+  (let ((crl (sign-x509-certificate-revocation-list-template
+	      template aid (key-pair-private key-pair))))
+    (test-assert (x509-name? (x509-certificate-revocation-list-issuer crl)))
+    (test-assert (date? (x509-certificate-revocation-list-this-update crl)))
+    (test-equal '() (x509-certificate-revocation-list-revoked-certificates crl))
+    (test-equal #f (x509-certificate-revocation-list-crl-extensions crl))
+    (test-equal #f (x509-certificate-revocation-list-next-update crl))))
 (test-end)
