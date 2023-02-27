@@ -173,7 +173,6 @@ PKCS#1 EMSA PKCS1-v1_5 verify.
 
 MGF1 function, the same as the one exported from `(sagittarius crypto ciphers)`.
 
-
 ### [§4] DSA and ECDSA signature specific
 
 ###### [!Function] `make-random-k-generator` (_prng_ `random-generator?`)
@@ -183,3 +182,40 @@ Creates a random k-generator.
 ###### [!Function] `make-hmac-k-generator` (_digest_ `digest-descriptor?`)
 
 Creates a RFC 6979 determistic k-generator.
+
+### [§4] Supporting algorithms' OIDs
+
+The below bindings are string representaion of OIDs which can be used
+to create X.509 algorithm identifier, i.e. `make-x509-algorithm-identifier`,
+described in X.509 library.
+
+###### [!Constant] `*signature-algorithm:rsa-pkcs-v1.5-sha1*`
+###### [!Constant] `*signature-algorithm:rsa-pkcs-v1.5-sha256*`
+###### [!Constant] `*signature-algorithm:rsa-pkcs-v1.5-sha384*`
+###### [!Constant] `*signature-algorithm:rsa-pkcs-v1.5-sha512*`
+###### [!Constant] `*signature-algorithm:rsa-pkcs-v1.5-sha224*`
+###### [!Constant] `*signature-algorithm:rsa-pkcs-v1.5-sha512/224*`
+###### [!Constant] `*signature-algorithm:rsa-pkcs-v1.5-sha512/256*`
+###### [!Constant] `*signature-algorithm:rsa-pkcs-v1.5-sha3-224*`
+###### [!Constant] `*signature-algorithm:rsa-pkcs-v1.5-sha3-256*`
+###### [!Constant] `*signature-algorithm:rsa-pkcs-v1.5-sha3-384*`
+###### [!Constant] `*signature-algorithm:rsa-pkcs-v1.5-sha3-512*`
+###### [!Constant] `*signature-algorithm:rsa-ssa-pss*`
+###### [!Constant] `*signature-algorithm:dsa-sha224*`
+###### [!Constant] `*signature-algorithm:dsa-sha256*`
+###### [!Constant] `*signature-algorithm:dsa-sha384*`
+###### [!Constant] `*signature-algorithm:dsa-sha512*`
+###### [!Constant] `*signature-algorithm:ecdsa-sha1*`
+###### [!Constant] `*signature-algorithm:ecdsa-sha224*`
+###### [!Constant] `*signature-algorithm:ecdsa-sha256*`
+###### [!Constant] `*signature-algorithm:ecdsa-sha384*`
+###### [!Constant] `*signature-algorithm:ecdsa-sha512*`
+###### [!Constant] `*signature-algorithm:ecdsa-sha3-224*`
+###### [!Constant] `*signature-algorithm:ecdsa-sha3-256*`
+###### [!Constant] `*signature-algorithm:ecdsa-sha3-384*`
+###### [!Constant] `*signature-algorithm:ecdsa-sha3-512*`
+###### [!Constant] `*signature-algorithm:ed25519*`
+###### [!Constant] `*signature-algorithm:ed448*`
+
+The name must be descriptive enough to see which algorithm of OID it
+represents.
