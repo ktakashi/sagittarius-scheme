@@ -87,20 +87,19 @@
 	    (record builder))
 
 ;; useful utility :)
-(define (make-slot-ref getter conv) (lambda (o) (conv (getter o))))
 (define ((list-of pred) list) (for-all pred list))
 
 (define-class <x509-validity> (<immutable> <cached-allocation>)
   ((validity :init-keyword :validity)
    (not-before :allocation :virtual :cached #t
-    :slot-ref (make-slot-ref
-	       (.$ validity-not-before (lambda (o) (slot-ref o 'validity)))
-	       asn1-time->date)
+    :slot-ref ($. (lambda (o) (slot-ref o 'validity)) 
+		  validity-not-before
+		  asn1-time->date)
     :reader x509-validity-not-before)
    (not-after :allocation :virtual :cached #t
-    :slot-ref (make-slot-ref
-	       (.$ validity-not-after (lambda (o) (slot-ref o 'validity)))
-	       asn1-time->date)
+    :slot-ref ($. (lambda (o) (slot-ref o 'validity)) 
+		  validity-not-after
+		  asn1-time->date)
     :reader x509-validity-not-after)))
 (define (x509-validity? o) (is-a? o <x509-validity>))
 (define (validity->x509-validity (validity validity?))
@@ -119,40 +118,29 @@
 	    :reader x509-certificate-encoded
 	    :writer x509-certificate-encoded-set!)
    (issuer-dn :allocation :virtual :cached #t
-    :slot-ref (make-slot-ref 
-	       (.$ tbs-certificate-issuer tbs-cert)
-	       name->x509-name)
+    :slot-ref ($. tbs-cert tbs-certificate-issuer name->x509-name)
     :reader x509-certificate-issuer-dn)
    (subject-dn :allocation :virtual :cached #t
-    :slot-ref (make-slot-ref 
-	       (.$ tbs-certificate-subject tbs-cert)
-	       name->x509-name)
+    :slot-ref ($. tbs-cert tbs-certificate-subject name->x509-name)
     :reader x509-certificate-subject-dn)
    (public-key :allocation :virtual :cached #t
-    :slot-ref (make-slot-ref
-	       (.$ tbs-certificate-subject-public-key-info tbs-cert)
-	       subject-public-key-info->public-key)
+    :slot-ref ($. tbs-cert tbs-certificate-subject-public-key-info
+		  subject-public-key-info->public-key)
     :reader x509-certificate-public-key)
    (validity :allocation :virtual :cached #t
-    :slot-ref (make-slot-ref
-	       (.$ tbs-certificate-validity tbs-cert)
-	       validity->x509-validity)
+    :slot-ref ($. tbs-cert tbs-certificate-validity validity->x509-validity)
     :reader x509-certificate-validity)
    (serial-number :allocation :virtual :cached #t
-    :slot-ref (make-slot-ref
-	       (.$ tbs-certificate-serial-number tbs-cert)
-	       der-integer->integer)
+    :slot-ref ($. tbs-cert tbs-certificate-serial-number der-integer->integer)
     :reader x509-certificate-serial-number)
    (version :allocation :virtual :cached #t
-    :slot-ref (make-slot-ref
-	       (.$ tbs-certificate-version tbs-cert)
-	       (lambda (v) (+ (or (and v (der-integer->integer v)) 0) 1)))
+    :slot-ref ($. tbs-cert tbs-certificate-version
+		  (lambda (v) (+ (or (and v (der-integer->integer v)) 0) 1)))
     :reader x509-certificate-version)
    (extensions :allocation :virtual :cached #t
-    :slot-ref (make-slot-ref
-	       (.$ tbs-certificate-extensions tbs-cert)
-	       (lambda (e)
-		 (or (and e (extensions->x509-extension-list e)) '())))
+    :slot-ref ($. tbs-cert tbs-certificate-extensions
+		  (lambda (e)
+		    (or (and e (extensions->x509-extension-list e)) '())))
     :reader x509-certificate-extensions)))
 (define-method object-equal? ((a <x509-certificate>) (b <x509-certificate>))
   (equal? (x509-certificate->bytevector a) (x509-certificate->bytevector b)))
