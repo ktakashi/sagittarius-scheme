@@ -169,26 +169,23 @@
 	    (srfi :19 time))
 
 ;; useful utility :)
-(define (make-slot-ref getter conv) (lambda (o) (conv (getter o))))
 (define ((list-of pred) list) (for-all pred list))
 (define (oid? o) (or (der-object-identifier? o) (object-identifier-string? o)))
 
 (define (x509-extension-source o) (slot-ref o 'extension))
 (define-class <x509-extension> (<immutable> <cached-allocation>)
   ((extension :init-keyword :extension)
-   (id :allocation :virtual :slot-ref (make-slot-ref
-				       (.$ extension-id x509-extension-source)
-				       der-object-identifier->oid-string)
+   (id :allocation :virtual
+       :slot-ref ($. x509-extension-source extension-id
+		     der-object-identifier->oid-string)
        :reader x509-extension-id)
    (critical? :allocation :virtual :cached #t
-	      :slot-ref (make-slot-ref
-			 (.$ extension-critical x509-extension-source)
-			 (lambda (o) (and o (der-boolean->boolean o))))
+	      :slot-ref ($. x509-extension-source extension-critical
+			     (lambda (o) (and o (der-boolean->boolean o))))
 	      :reader x509-extension-critical?)
    (value :allocation :virtual :cached #t
-	  :slot-ref (make-slot-ref
-		     (.$ extension-value x509-extension-source)
-		     (.$ bytevector->asn1-object der-octet-string->bytevector))
+	  :slot-ref ($. x509-extension-source extension-value
+			der-octet-string->bytevector bytevector->asn1-object)
 	  :reader x509-extension-value)))
 (define (x509-extension? o) (is-a? o <x509-extension>))
 (define (x509-extension-of (oid/string oid?))
