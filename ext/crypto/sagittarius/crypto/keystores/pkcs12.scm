@@ -128,12 +128,10 @@
     (pkcs12-keystore-upsert-encrypted-private-key! ks
      (pkcs-one-asymmetric-key->pkcs-encrypted-private-key-info oak aid password)
      attrs))
-  (unless (null? certs)
-    ;; set certificate
-    (pkcs12-keystore-upsert-certificate! ks (car certs) attrs)
-    ;; set chain
-    (for-each set-cert! (cdr certs)))
-  (undefined))
+  ;; set certificate
+  (pkcs12-keystore-upsert-certificate! ks (car certs) attrs)
+  ;; set chain
+  (for-each set-cert! (cdr certs)))
 
 (define (pkcs12-keystore-certificate-ref (ks pkcs12-keystore?) (alias string?))
   (pkcs12-keystore-find-certificate (pkcs12-friendly-name-pred alias) ks))
