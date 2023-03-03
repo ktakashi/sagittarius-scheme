@@ -28,27 +28,28 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!nounbound
 (library (util concurrent thread-pool)
-  (export make-thread-pool thread-pool? <thread-pool>
-	  thread-pool-size
-	  thread-pool-idling-count
-	  thread-pool-idling?
-	  thread-pool-push-task!
-	  thread-pool-wait-all!
-	  thread-pool-release!
-
-	  thread-pool-thread-terminate! ;; hmmmm
-	  thread-pool-thread
-	  thread-pool-thread-id
-	  thread-pool-thread-task-running?
-	  thread-pool-current-thread-id
-
-	  *thread-pool-thread-name-prefix*
-	  )
-  (import (rnrs)
-	  (srfi :18)
-	  (srfi :39)
-	  (util concurrent shared-queue))
+    (export make-thread-pool thread-pool?
+	    (rename (thread-pool <thread-pool>))
+	    thread-pool-size
+	    thread-pool-idling-count
+	    thread-pool-idling?
+	    thread-pool-push-task!
+	    thread-pool-wait-all!
+	    thread-pool-release!
+	    
+	    thread-pool-thread-terminate! ;; hmmmm
+	    thread-pool-thread
+	    thread-pool-thread-id
+	    thread-pool-thread-task-running?
+	    thread-pool-current-thread-id
+	    
+	    *thread-pool-thread-name-prefix*)
+    (import (rnrs)
+	    (srfi :18)
+	    (srfi :39)
+	    (util concurrent shared-queue))
 
 (define *thread-pool-current-thread-id* (make-parameter #f))
 ;; make it readonly
@@ -76,7 +77,7 @@
 	      (loop2 (shared-queue-get! queue))))))))
 
 (define (default-error-handler e) #f)
-(define-record-type (<thread-pool> make-thread-pool thread-pool?)
+(define-record-type thread-pool
   (fields threads ;; to join
 	  queues  ;; shared-queues
 	  idlings ;; shared-queue contains idling thread id
@@ -114,9 +115,9 @@
 						       )))))))))))
 
 ;; returns actual thread associated with given thread id
-(define (thread-pool-thread tp id) (vector-ref (<thread-pool>-threads tp) id))
+(define (thread-pool-thread tp id) (vector-ref (thread-pool-threads tp) id))
 (define (thread-pool-thread-id tp thread)
-  (define threads (<thread-pool>-threads tp))
+  (define threads (thread-pool-threads tp))
   (define size (vector-length threads))
   ;; FIXME this takes O(n) but we want it O(1). so use hashtable
   (let loop ((i 0))
@@ -127,7 +128,7 @@
 	  ((eq? (vector-ref threads i) thread) i)
 	  (else (loop (+ i 1))))))
 ;; returns size of pool
-(define (thread-pool-size tp) (vector-length (<thread-pool>-threads tp)))
+(define (thread-pool-size tp) (vector-length (thread-pool-threads tp)))
 
 ;; returns approx number of idling thread count
 ;; NB: getting exact count requries lock and that's rather useless
@@ -136,7 +137,7 @@
 ;;     is sufficient.
 ;; NB: this is O(1) operation, yahoo!!
 (define (thread-pool-idling-count tp) 
-  (shared-queue-size (<thread-pool>-idlings tp)))
+  (shared-queue-size (thread-pool-idlings tp)))
 
 ;; returns #t if one of the threads is idling
 (define (thread-pool-idling? tp) (not (zero? (thread-pool-idling-count tp))))
@@ -152,8 +153,8 @@
   ;; TODO: maybe we want to add some diagnosis mechanism to avoid
   ;;       pushing task to waiting for inifinite process.
   (define (find-available tp add-to-back?)
-    (let* ((threads (<thread-pool>-threads tp))
-	   (queue (<thread-pool>-queues tp))
+    (let* ((threads (thread-pool-threads tp))
+	   (queue (thread-pool-queues tp))
 	   (size (vector-length threads)))
       (let loop ((i 0) (maybe -1) (qsize +inf.0))
 	(if (= i size)
@@ -163,16 +164,16 @@
 	      (cond ((and (add-to-back? i) (< s qsize)) (loop (+ i 1) i s))
 		    (else (loop (+ i 1) maybe qsize))))))))
   (let ((where (or (and (thread-pool-idling? tp)
-			(shared-queue-get! (<thread-pool>-idlings tp)))
+			(shared-queue-get! (thread-pool-idlings tp)))
 		   (find-available tp (if (null? opt) 
 					  default-handler 
 					  (car opt))))))
-    (shared-queue-put! (vector-ref (<thread-pool>-queues tp) where) task)
+    (shared-queue-put! (vector-ref (thread-pool-queues tp) where) task)
     where))
 
 (define (thread-pool-wait-all! tp)
   (define (wait-queue tp)
-    (define queus (vector->list (<thread-pool>-queues tp)))
+    (define queus (vector->list (thread-pool-queues tp)))
     (let loop ()
       (unless (for-all shared-queue-empty? queus)
 	(thread-yield!)
@@ -198,20 +199,20 @@
 	   (let ((e (vector-ref v i)))
 	     expr ...))))))
   (let ((type (if (null? opt) 'join (car opt))))
-    (dovector (<thread-pool>-queues tp) -> v (i e)
+    (dovector (thread-pool-queues tp) -> v (i e)
       (shared-queue-put! e #f)
       ;; GC friendliness
       (vector-set! v i #f))
-    (dovector (<thread-pool>-threads tp) -> v (i e)
+    (dovector (thread-pool-threads tp) -> v (i e)
       ;; default join
       (case type ((terminate) (thread-terminate! e)) (else (thread-join! e)))
       ;; GC friendliness
       (vector-set! v i #f))))
 
 (define (thread-pool-thread-terminate! tp id)
-  (define threads (<thread-pool>-threads tp))
-  (define queues (<thread-pool>-queues tp))
-  (define idlings (<thread-pool>-idlings tp))
+  (define threads (thread-pool-threads tp))
+  (define queues (thread-pool-queues tp))
+  (define idlings (thread-pool-idlings tp))
   (let ((t (vector-ref threads id))
 	(q (vector-ref queues id))
 	(nq (make-shared-queue)))
@@ -251,7 +252,7 @@
 		 (thread-start! 
 		  (make-thread 
 		   (make-executor idlings id nq
-				  (<thread-pool>-error-handler tp)))))))
+				  (thread-pool-error-handler tp)))))))
 
 ;; returns #t if the thread associated to given thread id 
 ;; is running.
@@ -260,7 +261,7 @@
 ;;     as it was before but that requires extra storage. plus the result value
 ;;     would be inaccurate. not sure which is better...
 (define (thread-pool-thread-task-running? tp id)
-  (not (shared-queue-find (<thread-pool>-idlings tp) (lambda (o) (= o id)))))
+  (not (shared-queue-find (thread-pool-idlings tp) (lambda (o) (= o id)))))
 ;; TODO Should we add thread-pool-stop! ?
 
   )
