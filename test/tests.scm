@@ -40,7 +40,7 @@
 
 (define-constant max-promise (cpu-count))
 
-(define tests-executor (make-thread-pool-executor max-promise))
+(define tests-executor (make-fork-join-executor max-promise (* max-promise 5)))
 (define (make-promise proc) (executor-submit! tests-executor proc))
 
 (cond-expand
