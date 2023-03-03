@@ -44,7 +44,7 @@
 (define *completable-future:default-executor*
   ;; Let's not create an executor during library load
   (make-parameter
-   (delay (make-thread-pool-executor 5 push-future-handler))
+   (delay (make-fork-join-executor))
    (lambda (v)
      (cond ((promise? v) v)
 	   ((executor? v) (delay v))

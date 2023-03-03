@@ -37,6 +37,8 @@
 	    fork-join-pool-push-task!
 	    fork-join-pool-shutdown!
 	    fork-join-pool-available?
+
+	    *max-fork-join-pool-size*
 	    )
     (import (rnrs)
 	    (srfi :1 lists)
@@ -64,8 +66,10 @@
 (define worker-queue-size shared-queue-size)
 (define make-worker-queue make-shared-queue)
 
- ;; thread local value on worker thread
+;; thread local value on worker thread
 (define *current-work-queue* (make-parameter #f))
+;; no reason other than Java's ForkJoinPool limit, but should be large enough
+(define *max-fork-join-pool-size* (make-parameter #x7fff)) 
 
 (define-record-type fork-join-pool
   (fields core-threads	         ;; vector of worker threads
@@ -79,7 +83,7 @@
 	      (lambda (n . maybe-max-threads)
 		(define max-thread
 		  (if (null? maybe-max-threads)
-		      +inf.0 ;; TODO should we?
+		      (*max-fork-join-pool-size*)
 		      (car maybe-max-threads)))
 		(let ((core-threads (make-vector n))
 		      (worker-queues (make-vector n))
