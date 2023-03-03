@@ -74,8 +74,7 @@
 	  (mutable scheduler)	 ;; scheduler thread
 	  scheduler-queue	 ;; pool queue from input
 	  (mutable thread-count) ;; number of worker threads
-	  lock
-	  )
+	  lock)
   (protocol (lambda (p)
 	      (lambda (n . maybe-max-threads)
 		(define max-thread
@@ -111,16 +110,17 @@
   (thread-start!
    (make-thread
     (lambda ()
-      (*current-work-queue* worker-queue) ;; set worker queue
-      (let loop ((task (worker-queue-get! worker-queue)))
-	(when task
-	  (guard (e (else #f)) (task))
-	  ;; help other thread if they are busy but not me
-	  ;; I'm such a kind thread :D
-	  (cond ((and (worker-queue-empty? worker-queue)
-		      (select-other-task)) => loop)
-		(else (loop (worker-queue-get! worker-queue))))))
-      (*current-work-queue* #f))
+      (parameterize ((*current-work-queue* worker-queue)) ;; set worker queue
+	(let loop ((task (worker-queue-get! worker-queue)))
+	  (when task
+	    (guard (e (else #f)) (task))
+	    ;; help other thread if they are busy but not me
+	    ;; I'm such a kind thread :D
+	    (cond ((and (worker-queue-empty? worker-queue)
+			(select-other-task)) => loop)
+		  (else
+		   (thread-yield!)
+		   (loop (worker-queue-get! worker-queue))))))))
     (string-append "fork-join-pool-core-worker-" (number->string i)))))
 
 (define (make-scheduler-thread pool sq worker-queues)

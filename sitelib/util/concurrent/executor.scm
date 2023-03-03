@@ -29,15 +29,18 @@
 ;;;  
 
 ;; portable concurrent library
+#!nounbound
 (library (util concurrent executor)
-    (export <executor> executor? ;; interface
+    (export (rename (executor <executor>))
+	    executor? ;; interface
 	    executor-state
 	    executor-available?
 	    shutdown-executor!
 	    execute-future!
 	    executor-submit!
 
-	    <thread-pool-executor> make-thread-pool-executor 
+	    (rename (thread-pool-executor <thread-pool-executor>))
+	    make-thread-pool-executor 
 	    thread-pool-executor?
 	    ;; below must be thread-pool-executor specific
 	    thread-pool-executor-pool-size
@@ -54,7 +57,8 @@
 	    &rejected-execution-error rejected-execution-error?
 	    rejected-future rejected-executor
 
-	    <fork-join-executor> make-fork-join-executor
+	    (rename (fork-join-executor <fork-join-executor>))
+	    make-fork-join-executor
 	    fork-join-executor?
 	    fork-join-executor-available?
 	    fork-join-executor-execute-future!
@@ -65,22 +69,25 @@
 	    duplicate-executor-rtd
 
 	    ;; future
-	    <executor-future> make-executor-future executor-future?
+	    (rename (executor-future <executor-future>))
+	    make-executor-future executor-future?
 
 	    ;; for extension
 	    register-executor-methods
 	    )
     (import (rnrs)
+	    (sagittarius) ;; not portal anymore :(
 	    (only (srfi :1) remove!)
 	    (srfi :18)
 	    (srfi :19)
 	    (srfi :117)
 	    (util concurrent future)
-	    (util concurrent thread-pool))
+	    (util concurrent thread-pool)
+	    (util concurrent fork-join-pool))
 
   (define (not-started . dummy)
     (assertion-violation 'executor-future "Future is not started yet" dummy))
-  (define-record-type (<executor-future> make-executor-future executor-future?)
+  (define-record-type executor-future
     (parent <future>)
     ;; (fields (mutable worker future-worker future-worker-set!))
     (protocol (lambda (n)
@@ -104,7 +111,7 @@
   (define (terminate-oldest-handler future executor)
     (define (get-oldest executor)
       (with-atomic executor
-	(let ((l (executor-pool-ids executor)))
+	(let ((l (pooled-executor-pool-ids executor)))
 	  (and (not (list-queue-empty? l))
 	       (list-queue-remove-front! l)))))
     ;; the oldest might already be finished.
@@ -113,7 +120,7 @@
 	   ;; if the running future is finishing and locking the mutex,
 	   ;; we'd get abandoned mutex. to avoid it lock it.
 	   (with-atomic executor
-	     (thread-pool-thread-terminate! (executor-pool executor)
+	     (thread-pool-thread-terminate! (pooled-executor-pool executor)
 					    (car oldest)))
 	   (cleanup executor (cdr oldest) 'terminated)))
     ;; retry
@@ -138,33 +145,32 @@
   (define default-rejected-handler abort-rejected-handler)
 
   ;; For now only dummy
-  (define-record-type (<executor> %make-executor executor?)
-    (fields (mutable state executor-state executor-state-set!))
-    (protocol (lambda (p) (lambda () (p 'running)))))
+  (define-record-type executor
+    (fields (mutable state) mutex)
+    (protocol (lambda (p) (lambda () (p 'running (make-mutex))))))
 
-  (define-record-type (<thread-pool-executor> 
-		       make-thread-pool-executor 
-		       thread-pool-executor?)
-    (parent <executor>)
-    (fields (immutable pool-ids executor-pool-ids)
-	    (immutable pool executor-pool)
-	    (immutable rejected-handler executor-rejected-handler)
-	    (immutable mutex executor-mutex))
+  (define-record-type pooled-executor
+    (fields pool-ids pool rejected-handler)
+    (parent executor)
+    (protocol (lambda (p)
+		(lambda (pool rejected-handler)
+		  ((p) (list-queue) pool rejected-handler)))))
+
+  (define-record-type thread-pool-executor
+    (parent pooled-executor)
     (protocol (lambda (n)
 		(lambda (max-pool-size . rest)
 		  ;; i don't see using mtqueue for this since
 		  ;; mutating the slot is atomic
-		  ((n) (make-list-queue '())
-		   (make-thread-pool max-pool-size)
-		   (if (null? rest)
-		       default-rejected-handler
-		       (car rest))
-		   (make-mutex))))))
+		  ((n (make-thread-pool max-pool-size)
+		      (if (null? rest)
+			  default-rejected-handler
+			  (car rest))))))))
 
   (define (thread-pool-executor-pool-size executor)
-    (length (list-queue-list (executor-pool-ids executor))))
+    (length (list-queue-list (pooled-executor-pool-ids executor))))
   (define (thread-pool-executor-max-pool-size executor)
-    (thread-pool-size (executor-pool executor)))
+    (thread-pool-size (pooled-executor-pool executor)))
 
 ;;   (define (mutex-lock-recursively! mutex)
 ;;     (if (eq? (mutex-state mutex) (current-thread))
@@ -194,7 +200,7 @@
       (list-queue-set-list! queue (remove! proc (list-queue-list queue))))
     (with-atomic executor
       (remove-from-queue! (lambda (o) (eq? (cdr o) future))
-			  (executor-pool-ids executor))
+			  (pooled-executor-pool-ids executor))
       (future-state-set! future state)))
 
   (define (thread-pool-executor-available? executor)
@@ -218,8 +224,8 @@
 	    ;; we terminate the threads so that we can finish all
 	    ;; infinite looped threads.
 	    ;; NB, it's dangerous
-	    (thread-pool-release! (executor-pool executor) 'terminate)
-	    (list-queue-remove-all! (executor-pool-ids executor))))))
+	    (thread-pool-release! (pooled-executor-pool executor) 'terminate)
+	    (list-queue-remove-all! (pooled-executor-pool-ids executor))))))
     ;; now cancel futures
     (for-each (lambda (future) (future-cancel (cdr future)))
 	      (executor-shutdown executor)))
@@ -234,7 +240,7 @@
 		 (push-future-handler future executor))))
 	;; the reject handler may lock executor again
 	;; to avoid double lock, this must be out side of atomic
-	(let ((reject-handler (executor-rejected-handler executor)))
+	(let ((reject-handler (pooled-executor-rejected-handler executor)))
 	  (reject-handler future executor))))
 
   ;; We can push the future to thread-pool
@@ -255,11 +261,11 @@
     (define (add-future future executor)
       (future-result-set! future (make-shared-box))
       (let* ((thunk (future-thunk future))
-	     (id (thread-pool-push-task! (executor-pool executor)
+	     (id (thread-pool-push-task! (pooled-executor-pool executor)
 					 (task-invoker thunk))))
 	(future-canceller-set! future canceller)
-	(list-queue-add-back! (executor-pool-ids executor) (cons id future))
-	
+	(list-queue-add-back! (pooled-executor-pool-ids executor)
+			      (cons id future))
 	executor))
     ;; in case this is called directly
     (unless (eq? (executor-state executor) 'running)
@@ -276,17 +282,22 @@
   ;; this is more or less an example of how to implement 
   ;; custom executors. the executor doesn't manage anything
   ;; but just creates a thread and execute it.
-  (define-record-type (<fork-join-executor> 
-		       make-fork-join-executor 
-		       fork-join-executor?)
-    (parent <executor>)
-    (protocol (lambda (n) (lambda () ((n))))))
+  (define-record-type fork-join-executor
+    (parent pooled-executor)
+    (protocol (lambda (n)
+		(define ctr
+		  (case-lambda
+		   (() (ctr (cpu-count)))
+		   ((parallelism)
+		    ((n (make-fork-join-pool parallelism) #f)))))
+		ctr)))
 
   (define (fork-join-executor-available? e) 
     (unless (fork-join-executor? e)
       (assertion-violation 'fork-join-executor-available? 
 			   "not a fork-join-executor" e))
-    #t)
+    (fork-join-pool-available? (pooled-executor-pool e)))
+
   (define (fork-join-executor-execute-future! e f)
     ;; the same as simple future
     (define (task-invoker thunk)
@@ -303,14 +314,14 @@
 			   "not a fork-join-executor" e))
     (unless (shared-box? (future-result f))
       (future-result-set! f (make-shared-box)))
-    ;; we don't manage thread so just create and return
-    (thread-start! (make-thread (task-invoker (future-thunk f))))
+    (fork-join-pool-push-task! (pooled-executor-pool e)
+			       (task-invoker (future-thunk f)))
     f)
   (define (fork-join-executor-shutdown! e)
     (unless (fork-join-executor? e)
       (assertion-violation 'fork-join-executor-available? 
 			   "not a fork-join-executor" e))
-    ;; we don't manage anything
+    (fork-join-pool-shutdown! (pooled-executor-pool e))
     (executor-state-set! e 'shutdown))
 
   (define *registered-executors* '())
@@ -371,12 +382,12 @@
       f))
 
   ;; pre-defined executor
-  (register-executor-methods <thread-pool-executor>
+  (register-executor-methods thread-pool-executor
 			     thread-pool-executor-available?
 			     thread-pool-executor-execute-future!
 			     thread-pool-executor-shutdown!)
 
-  (register-executor-methods <fork-join-executor>
+  (register-executor-methods fork-join-executor
 			     fork-join-executor-available?
 			     fork-join-executor-execute-future!
 			     fork-join-executor-shutdown!)

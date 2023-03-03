@@ -28,10 +28,12 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!nounbound
 (library (util concurrent future)
-    (export <future> future?
+    (export (rename (future <future>))
+	    future?
 	    ;; macro
-	    future class
+	    (rename (future-builder future)) class
 	    ;; common procedures
 	    future-get future-cancel
 	    future-done? future-cancelled?
@@ -49,7 +51,8 @@
 	    future-canceller
 	    future-canceller-set!
 	    ;; implementation specific
-	    <simple-future> make-simple-future simple-future?
+	    (rename (simple-future <simple-future>))
+	    make-simple-future simple-future?
 	    
 	    ;; shared-box (not public APIs)
 	    make-shared-box shared-box?
@@ -96,11 +99,11 @@
     (future terminated-future))
 
   ;; future
-  (define-record-type (<future> %make-future future?)
-    (fields (mutable thunk future-thunk future-thunk-set!)
-	    (mutable result future-result future-result-set!)
-	    (mutable state future-state future-state-set!)
-	    (mutable canceller future-canceller future-canceller-set!))
+  (define-record-type future
+    (fields (mutable thunk)
+	    (mutable result)
+	    (mutable state)
+	    (mutable canceller))
     (protocol (lambda (p)
 		(lambda (thunk result)
 		  (p thunk result 'created #f)))))
@@ -113,8 +116,8 @@
 	(let ((r (thunk)))
 	  (future-state-set! f 'finished)
 	  (shared-box-put! q r)))))
-  (define-record-type (<simple-future> make-simple-future simple-future?)
-    (parent <future>)
+  (define-record-type simple-future
+    (parent future)
     (protocol (lambda (n)
 		(lambda (thunk)
 		  (let ((q (make-shared-box)))
@@ -124,7 +127,7 @@
 
   (define-syntax class (syntax-rules ()))
   ;; for convenience default using simple future
-  (define-syntax future
+  (define-syntax future-builder
     (syntax-rules (class)
       ((_ (class cls) expr ...)
        ((record-constructor (record-constructor-descriptor cls))
