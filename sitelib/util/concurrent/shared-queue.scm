@@ -33,12 +33,13 @@
 ;; based on SharedQueue4
 
 ;; Sagittarius has mtqueue in (util queue) but for portability
+#!nounbound
 (library (util concurrent shared-queue)
     (export shared-queue? make-shared-queue <shared-queue>
 	    shared-queue-empty? shared-queue-size
 	    shared-queue-max-length
 	    shared-queue-overflows?
-	    shared-queue-put! shared-queue-get!
+	    shared-queue-put! shared-queue-get! shared-queue-pop!
 	    shared-queue-remove!
 	    shared-queue-clear!
 	    shared-queue-find
@@ -121,6 +122,42 @@
 		 (shared-queue-size-set! sq (- (shared-queue-size sq) 1))
 		 (mutex-unlock! (%lock sq))
 		 (car head)))))))
+
+  (define (shared-queue-pop! sq . maybe-timeout)
+    (define (penult-pair lis)
+      (let lp ((lis lis))
+	(cond ((null? (cdr lis)) '())
+	      ((null? (cddr lis)) lis)
+	      (else (lp (cdr lis))))))
+    (let ((timeout (if (pair? maybe-timeout) (car maybe-timeout) #f))
+	  (timeout-value (if (and (pair? maybe-timeout)
+				  (pair? (cdr maybe-timeout)))
+			     (cadr maybe-timeout)
+			     #f)))
+      (mutex-lock! (%lock sq))
+      (%w-set! sq (+ (%w sq) 1))
+      (condition-variable-broadcast! (%write-cv sq))
+      (let loop ()
+	(cond ((shared-queue-empty? sq)
+	       (cond ((mutex-unlock! (%lock sq) (%read-cv sq) timeout)
+		      (mutex-lock! (%lock sq))
+		      (loop))
+		     (else
+		      ;; do we need to reduce this?
+		      (%w-set! sq (- (%w sq) 1))
+		      timeout-value)))
+	      (else
+	       (%w-set! sq (- (%w sq) 1))
+	       (let* ((tail (shared-queue-tail sq))
+		      (e (car tail))
+		      (new-tail (penult-pair (shared-queue-head sq))))
+		 (if (null? new-tail)
+		     (shared-queue-head-set! sq '())
+		     (set-cdr! new-tail '()))
+		 (shared-queue-tail-set! sq new-tail)
+		 (shared-queue-size-set! sq (- (shared-queue-size sq) 1))
+		 (mutex-unlock! (%lock sq))
+		 e))))))
   
   (define (shared-queue-put! sq obj . maybe-timeout)
     (let ((timeout (if (pair? maybe-timeout) (car maybe-timeout) #f))

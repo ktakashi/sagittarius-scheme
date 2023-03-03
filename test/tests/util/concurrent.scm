@@ -75,6 +75,16 @@
   (test-assert "empty?" (shared-queue-empty? recepit))
   )
 
+;; pop
+(let ()
+  (define shared-queue (make-shared-queue))
+  (test-equal "shared-queue-put!" 1 (shared-queue-put! shared-queue 1))
+  (test-equal "shared-queue-put!" 2 (shared-queue-put! shared-queue 2))
+  (test-equal "shared-queue-pop!" 2 (shared-queue-pop! shared-queue))
+  (test-equal "shared-queue-pop!" 1 (shared-queue-pop! shared-queue))
+  (test-equal "shared-queue-pop!" #f (shared-queue-pop! shared-queue 0 #f))
+  )
+
 ;; max-length test
 (let ()
   (define shared-queue (make-shared-queue 1))
