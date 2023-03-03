@@ -35,7 +35,8 @@
 ;; Sagittarius has mtqueue in (util queue) but for portability
 #!nounbound
 (library (util concurrent shared-queue)
-    (export shared-queue? make-shared-queue <shared-queue>
+    (export shared-queue? make-shared-queue
+	    (rename (shared-queue <shared-queue>))
 	    shared-queue-empty? shared-queue-size
 	    shared-queue-max-length
 	    shared-queue-overflows?
@@ -52,7 +53,7 @@
 	    ;; even thought the name is queue but it's not a
 	    ;; sub class of shared-queue.
 	    shared-priority-queue? make-shared-priority-queue
-	    <shared-priority-queue>
+	    (rename (shared-priority-queue <shared-priority-queue>))
 	    shared-priority-queue-empty? shared-priority-queue-size
 	    shared-priority-queue-capacity
 	    shared-priority-queue-max-length
@@ -69,14 +70,14 @@
 	    (rnrs mutable-pairs)
 	    (srfi :18))
 
-  (define-record-type (<shared-queue> make-shared-queue shared-queue?)
-    (fields (mutable head shared-queue-head shared-queue-head-set!)
-	    (mutable tail shared-queue-tail shared-queue-tail-set!)
+  (define-record-type shared-queue
+    (fields (mutable head)
+	    (mutable tail)
 	    ;; actually we just need do (length head) but takes O(n)
 	    ;; better to have O(1).
-	    (mutable size shared-queue-size shared-queue-size-set!)
+	    (mutable size)
 	    ;; should a shared queue be expandable?
-	    (immutable max-length shared-queue-max-length)
+	    max-length
 	    ;; synchronisation stuff
 	    (mutable w %w %w-set!)
 	    (immutable lock %lock)
@@ -264,13 +265,12 @@
   ;; priority queue
   ;; we simply use B-tree
   (define empty-marker (list '()))
-  (define-record-type 
-    (<shared-priority-queue> make-shared-priority-queue shared-priority-queue?)
+  (define-record-type shared-priority-queue
     (fields (mutable elements %spq-es %spq-es-set!)
 	    (mutable size shared-priority-queue-size %spq-size-set!)
-	    (immutable max-length shared-priority-queue-max-length)
+	    max-length
 	    ;; procedure return -1, 0 and 1
-	    (immutable compare shared-priority-queue-compare)
+	    compare
 	    ;; synchronisation stuff
 	    (mutable w %spq-w %spq-w-set!)
 	    (immutable lock %spq-lock)
