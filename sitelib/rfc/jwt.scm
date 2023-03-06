@@ -242,8 +242,8 @@
    ((not-before not-after clock-skew)
     (define delta (make-time time-duration 0 clock-skew))
     (define (issued-between iat)
-      (define now (add-duration (current-time) delta))
-      (and (time<=? not-before now) (time<=? now not-after)))
+      (define v (add-duration iat delta))
+      (and (time<=? not-before v) (time<=? v not-after)))
     (unless (and (time? not-before) (time? not-after))
       (assertion-violation 'jwt:iat-validator
 			   "not-before and not-after must be a time object"
