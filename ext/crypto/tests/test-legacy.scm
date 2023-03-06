@@ -1399,7 +1399,7 @@ PpO1zqk5Ua50RLuhFKj9n+0OuD5pCnwPEizvsoh69jdEN9f/cRdU8Iusln42clM=")
 		  (cipher-signature cipher
 				    message
 				    :hash algo
-				    :k-generator (lambda (n d) k)
+				    :k-generator (lambda (n d M) k)
 				    :der-encode #f))
       (let ((verifier (make-cipher ECDSA pub)))
 	(test-assert (format "~a (~a) verify" name hash)
