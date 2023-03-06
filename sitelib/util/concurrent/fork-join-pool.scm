@@ -38,14 +38,18 @@
 	    fork-join-pool-shutdown!
 	    fork-join-pool-available?
 
-	    *max-fork-join-pool-size*
+	    fork-join-pool-parameters-builder
+	    fork-join-pool-parameters?
 	    )
     (import (rnrs)
+	    (record builder)
 	    (srfi :1 lists)
 	    (srfi :18 multithreading)
+	    (srfi :19 time)
 	    (srfi :39 parameters)
 	    (srfi :117 list-queues)
-	    (util concurrent shared-queue))
+	    (util concurrent shared-queue)
+	    (util duration))
 
 ;; Fork join pool.
 ;; 
@@ -68,8 +72,19 @@
 
 ;; thread local value on worker thread
 (define *current-work-queue* (make-parameter #f))
+
+(define-record-type fork-join-pool-parameters
+  (fields max-threads
+	  keep-alive
+	  max-queue-depth))
+(define-syntax fork-join-pool-parameters-builder
+  (make-record-builder fork-join-pool-parameters
 ;; no reason other than Java's ForkJoinPool limit, but should be large enough
-(define *max-fork-join-pool-size* (make-parameter #x7fff)) 
+   ((max-threads #x7fff)
+    (keep-alive (duration:of-millis 5000)) ;; default 5 sec
+    (max-queue-depth 3))))
+
+(define *default-parameter* (fork-join-pool-parameters-builder))
 
 (define-record-type fork-join-pool
   (fields core-threads	         ;; vector of worker threads
@@ -80,11 +95,10 @@
 	  (mutable thread-count) ;; number of worker threads
 	  lock)
   (protocol (lambda (p)
-	      (lambda (n . maybe-max-threads)
-		(define max-thread
-		  (if (null? maybe-max-threads)
-		      (*max-fork-join-pool-size*)
-		      (car maybe-max-threads)))
+	      (lambda (n . maybe-parameter)
+		(define parameter (if (null? maybe-parameter)
+				      *default-parameter*
+				      (car maybe-parameter)))
 		(let ((core-threads (make-vector n))
 		      (worker-queues (make-vector n))
 		      (indices (iota n))
@@ -95,11 +109,14 @@
 						       (remv i indices))))
 		      (vector-set! worker-queues i wq)
 		      (vector-set! core-threads i t)))
-		  (let ((r (p core-threads max-thread worker-queues
+		  (let ((r (p core-threads
+			      (fork-join-pool-parameters-max-threads parameter)
+			      worker-queues
 			      #f
 			      scheduler-queue n (make-mutex))))
 		    (fork-join-pool-scheduler-set! r
-		     (make-scheduler-thread r scheduler-queue worker-queues))
+		     (make-scheduler-thread r scheduler-queue worker-queues
+					    parameter))
 		    r))))))
 
 (define (make-core-worker-thread i worker-queue worker-queues other-queues)
@@ -127,9 +144,12 @@
 		   (loop (worker-queue-get! worker-queue))))))))
     (string-append "fork-join-pool-core-worker-" (number->string i)))))
 
-(define (make-scheduler-thread pool sq worker-queues)
+(define (make-scheduler-thread pool sq worker-queues parameter)
   (define wq* (vector->list worker-queues))
   (define wqq (make-list-queue wq*))
+  (define duration (fork-join-pool-parameters-keep-alive parameter))
+  (define max-queue-depth (fork-join-pool-parameters-max-queue-depth parameter))
+  (define (small-enough wq) (< (worker-queue-size wq) max-queue-depth))
   ;; This tries to reuse the thread if possible
   (define (spawn task0)
     (thread-start!
@@ -137,8 +157,9 @@
       (lambda ()
 	(let loop ((task task0))
 	  (guard (e (else #f)) (task))
-	  (cond ((exists (lambda (wq) (worker-queue-pop! wq 0 #f)) wq*)
-		 => loop)))
+	  (let ((wait (add-duration (current-time) duration)))
+	    (cond ((exists (lambda (wq) (worker-queue-pop! wq wait #f)) wq*)
+		   => loop))))
 	(update-thread-count! pool (lambda (tc) (and tc (- tc 1)))))))
     (update-thread-count! pool (lambda (tc) (and tc (+ tc 1)))))
 
@@ -150,6 +171,8 @@
 	  ;; TODO maybe we should put idling check, empty worker queue doesn't
 	  ;;      mean the worker is not busy...
 	  (cond ((find worker-queue-empty? wq*) =>
+		 (lambda (wq) (worker-queue-put! wq task)))
+		((find small-enough wq*) =>
 		 (lambda (wq) (worker-queue-put! wq task)))
 		((< (fork-join-pool-thread-count pool)
 		    (fork-join-pool-max-threads pool))

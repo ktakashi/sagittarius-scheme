@@ -288,9 +288,9 @@
 		(define ctr
 		  (case-lambda
 		   (() (ctr (cpu-count)))
-		   ((parallelism) (ctr parallelism (*max-fork-join-pool-size*)))
-		   ((parallelism max-threads)
-		    ((n (make-fork-join-pool parallelism max-threads) #f)))))
+		   ((parallelism) ((n (make-fork-join-pool parallelism) #f)))
+		   ((parallelism parameter)
+		    ((n (make-fork-join-pool parallelism parameter) #f)))))
 		ctr)))
 
   (define (fork-join-executor-available? e) 

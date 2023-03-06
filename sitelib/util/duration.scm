@@ -1,8 +1,8 @@
-;;; -*- mode:scheme; coding:utf-8 -*-
+;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
-;;; util/concurrent.scm - Concurrent library
+;;; util/duration.scm - Duration
 ;;;  
-;;;   Copyright (c) 2014-2017  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2023  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -28,14 +28,42 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-;; This is not portable but it's super easy to make it
-;; R6RS+SRFI portable.
-(library (util concurrent)
-    (export :all)
-    (import (util concurrent future)
-	    (util concurrent executor)
-	    (util concurrent shared-queue)
-	    (util concurrent thread-pool)
-	    (util concurrent fork-join-pool)
-	    (util concurrent completable-future)
-	    (util concurrent actor)))
+#!nounbound
+(library (util duration)
+    (export duration:of-nanos
+	    duration:of-millis
+	    duration:of-seconds
+	    duration:of-minutes
+	    duration:of-hours
+	    duration:of-days
+	    )
+    (import (rnrs)
+	    (srfi :19))
+(define *nanos-per-second*   1000000000)
+(define *seconds-per-minute* 60)
+(define *seconds-per-hour*   (* 60 *seconds-per-minute*))
+(define *seconds-per-day*    (* *seconds-per-hour* 24))
+
+(define (duration:of-nanos nanos)
+  (let ((sec (div nanos *nanos-per-second*))
+	(n (mod nanos *nanos-per-second*)))
+    (if (< n 0)
+	(make-time time-duration (+ n *nanos-per-second*) (- sec 1))
+	(make-time time-duration n sec))))
+
+(define (duration:of-millis millis)
+  (let ((sec (div millis 1000))
+	(n (mod millis 1000)))
+    (if (< n 0)
+	(make-time time-duration (* (+ n 1000) 1000000) (- sec 1))
+	(make-time time-duration (* 1000000) sec))))
+
+(define (duration:of-seconds seconds) (make-time time-duration 0 seconds))
+(define (duration:of-minutes minutes)
+  (make-time time-duration 0 (* minutes *seconds-per-minute*)))
+(define (duration:of-hours hour)
+  (make-time time-duration 0 (* hour *seconds-per-hour*)))
+(define (duration:of-days days)
+  (make-time time-duration 0 (* days *seconds-per-day*)))
+
+)
