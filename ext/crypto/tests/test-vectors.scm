@@ -78,13 +78,16 @@
   (define ((check cipher) test)
     (let-values (((id comment key iv msg tag result flag)
 		  (apply values (vector->list test))))
-      (let ((mac (make-mac *mac:gmac* key :cipher cipher :iv iv))
-	    (size (div tag-size 8)))
-	(if (or (string=? comment "invalid key size")
-		(string=? comment "invalid nonce size"))
-	    (test-error (list id algorithm comment) (generate-mac mac msg size))
-	    (test-equal (list id algorithm comment) result
-			(equal? tag (generate-mac mac msg size)))))))
+      (if (string=? comment "invalid key size")
+	  (test-error (list id algorithm comment)
+		      (make-mac *mac:gmac* key :cipher cipher :iv iv))
+	  (let ((mac (make-mac *mac:gmac* key :cipher cipher :iv iv))
+		(size (div tag-size 8)))
+	    (if (string=? comment "invalid nonce size")
+		(test-error (list id algorithm comment)
+			    (generate-mac mac msg size))
+		(test-equal (list id algorithm comment) result
+			    (equal? tag (generate-mac mac msg size))))))))
   (let ((cipher (->cipher algorithm)))
     (for-each (check cipher) tests)))
 
