@@ -150,8 +150,10 @@
   (define duration (fork-join-pool-parameters-keep-alive parameter))
   (define max-queue-depth (fork-join-pool-parameters-max-queue-depth parameter))
   (define (small-enough wq) (< (worker-queue-size wq) max-queue-depth))
+  (define thread-number 0)
   ;; This tries to reuse the thread if possible
   (define (spawn task0)
+    (set! thread-number (+ thread-number 1))
     (thread-start!
      (make-thread
       (lambda ()
@@ -160,7 +162,8 @@
 	  (let ((wait (add-duration (current-time) duration)))
 	    (cond ((exists (lambda (wq) (worker-queue-pop! wq wait #f)) wq*)
 		   => loop))))
-	(update-thread-count! pool (lambda (tc) (and tc (- tc 1)))))))
+	(update-thread-count! pool (lambda (tc) (and tc (- tc 1)))))
+      (string-append "fork-join-thread-" (number->string thread-number))))
     (update-thread-count! pool (lambda (tc) (and tc (+ tc 1)))))
 
   (define (process)
