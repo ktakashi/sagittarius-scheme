@@ -35,6 +35,7 @@
 	    fork-join-pool-thread-count
 	    fork-join-pool-max-threads
 	    fork-join-pool-push-task!
+	    fork-join-pool-wait-all!
 	    fork-join-pool-shutdown!
 	    fork-join-pool-available?
 
@@ -199,6 +200,26 @@
 	 (lambda (wq) (worker-queue-put! wq task)))
 	(else
 	 (shared-queue-put! (fork-join-pool-scheduler-queue pool) task))))
+
+;; waits all worker queue to be empty
+(define (fork-join-pool-wait-all! pool . maybe-timeout)
+  (define (get-timeout v)
+    (cond ((integer? v) (add-duration (current-time) (duration:of-millis v)))
+	  ((time? v) v)
+	  (else #f)))
+  (define timeout (and (not (null? maybe-timeout))
+		       (get-timeout (car maybe-timeout))))
+  (define wq* (fork-join-pool-worker-queues pool))
+  (define l (vector-length wq*))
+  (let loop ((i 0))
+    (cond ((= i l))
+	  ((worker-queue-empty? (vector-ref wq* i)) (loop (+ i 1)))
+	  ((and timeout (time<=? timeout (current-time))) #f)
+	  (else
+	   (if timeout
+	       (thread-sleep! timeout)
+	       (thread-yield!))
+	   (loop i)))))
 
 (define (fork-join-pool-shutdown! pool)
   (vector-for-each (lambda (wq) (worker-queue-put! wq #f))
