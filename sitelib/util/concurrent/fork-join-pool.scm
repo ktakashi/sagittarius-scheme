@@ -107,7 +107,9 @@
 		      (scheduler-queue (make-shared-queue)))
 		  (do ((i 0 (+ i 1))) ((= i n))
 		    (let* ((wq (make-worker-queue))
-			   (t (make-core-worker-thread i wq worker-queues
+			   (t (make-core-worker-thread i
+						       scheduler-queue
+						       wq worker-queues
 						       (remv i indices))))
 		      (vector-set! worker-queues i wq)
 		      (vector-set! core-threads i t)))
@@ -124,7 +126,7 @@
 					    parameter))
 		    r))))))
 
-(define (make-core-worker-thread i worker-queue worker-queues other-queues)
+(define (make-core-worker-thread i sq worker-queue worker-queues other-queues)
   (define (select-other-task)
     (let loop ((indices other-queues))
       (and (not (null? indices))
@@ -140,12 +142,16 @@
 	(let loop ((task (worker-queue-get! worker-queue)))
 	  (when task
 	    (guard (e (else #f)) (task))
-	    ;; help other thread if they are busy but not me
-	    ;; I'm such a kind thread :D
-	    (cond ((and (worker-queue-empty? worker-queue)
+	    (cond ((worker-queue-get! worker-queue 0 #f) => loop)
+		  ;; help other thread if they are busy but not me
+		  ;; I'm such a kind thread :D
+		  ((and (worker-queue-empty? worker-queue)
 			(select-other-task)) => loop)
 		  (else
-		   (loop (worker-queue-get! worker-queue 0 thread-yield!))))))))
+		   ;; at this moment, all the queues are empty so watch
+		   ;; the scheduler queue if there's a move.
+		   (shared-queue-watch sq)
+		   (loop thread-yield!)))))))
     (string-append "fork-join-pool-core-worker-" (number->string i)))))
 
 (define (make-scheduler-thread pool sq worker-queues parameter)

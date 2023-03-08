@@ -157,9 +157,9 @@
 				  (jwt:exp-validator)
 				  (jwt:iat-validator
 				   (add-duration (current-time)
-						 (make-time time-duration 0 -1))
+						 (make-time time-duration 0 -10))
 				   (add-duration (current-time)
-						 (make-time time-duration 0 1)))
+						 (make-time time-duration 0 10)))
 				  )))))
     (jwt-claims->json (jwt:consume jwt-consumer jwt-object))))
 (define (build-claims :key

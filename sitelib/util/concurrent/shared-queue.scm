@@ -41,6 +41,7 @@
 	    shared-queue-max-length
 	    shared-queue-overflows?
 	    shared-queue-put! shared-queue-get! shared-queue-pop!
+	    shared-queue-watch
 	    shared-queue-remove!
 	    shared-queue-clear!
 	    shared-queue-find
@@ -123,6 +124,11 @@
 		 (shared-queue-size-set! sq (- (shared-queue-size sq) 1))
 		 (mutex-unlock! (%lock sq))
 		 (car head)))))))
+
+  (define (shared-queue-watch sq . maybe-timeout)
+    (let ((timeout (if (pair? maybe-timeout) (car maybe-timeout) #f)))
+      (cond ((mutex-unlock! (%lock sq) (%read-cv sq) timeout))
+	    (else #f))))
 
   (define (shared-queue-pop! sq . maybe-timeout)
     (define (penult-pair lis)
