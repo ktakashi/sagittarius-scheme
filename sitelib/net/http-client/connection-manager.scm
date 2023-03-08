@@ -99,18 +99,15 @@
 (define-syntax http-connection-lease-option-builder
   (make-record-builder http-connection-lease-option))
 
+;; Don't create during the library loading
 (define *http-connection-manager:default-executor*
-  (make-parameter
-   ;; Don't create during the library loading
-   (delay
-     (parameterize ((*thread-pool-thread-name-prefix* "dns-resolver-"))
-       (make-thread-pool-executor 10 push-future-handler)))
-   (lambda (v)
-     (cond ((promise? v) v)
-	   ((executor? v) (delay v))
-	   (else (assertion-violation
-		  '*http-connection-manager:default-executor*
-		  "Promise or executor required" v))))))
+  (make-parameter (delay (make-fork-join-executor))
+		  (lambda (v)
+		    (cond ((promise? v) v)
+			  ((executor? v) (delay v))
+			  (else (assertion-violation
+				 '*http-connection-manager:default-executor*
+				 "Promise or executor required" v))))))
 
 
 (define (http-connection-manager-lease-connection manager request option)

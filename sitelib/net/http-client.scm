@@ -115,11 +115,10 @@
 	    (scheme lazy)
 	    (srfi :39 parameters))
 
-(define *http-client:default-executor*
-  ;; Don't create during the library loading
-  (delay
-    (parameterize ((*thread-pool-thread-name-prefix* "http-client-"))
-      (make-thread-pool-executor 5 push-future-handler))))
+;; Re-use pool of connection manager, this one uses default max threads
+;; which is quite big, so it should have sufficient space
+(define *http-client:default-executor* 
+  (delay (make-fork-join-executor)))
 
 (define-record-type http:client
   (fields follow-redirects
@@ -143,12 +142,12 @@
 		  hc)))))
 (define-syntax http:client-builder
   (make-record-builder http:client
-		       (;; by default we don't follow
-			(follow-redirects (http:redirect never))
-			(connection-manager
-			 (make-http-default-connection-manager))
-			(version (http:version http/2))
-			(executor (force *http-client:default-executor*)))))
+   (;; by default we don't follow
+    (follow-redirects (http:redirect never))
+    (connection-manager
+     (make-http-default-connection-manager))
+    (version (http:version http/2))
+    (executor (force *http-client:default-executor*)))))
 
 ;; for now
 (define (http:make-default-cookie-handler) (make-cookie-jar))

@@ -79,22 +79,23 @@
 		     (lambda opt
 		       (apply proc
 			      (cons (apply future-get future opt)
-				    (map (lambda (f)
-					   (apply future-get f opt))
+				    (map (lambda (f) (apply future-get f opt))
 					 future*)))))
-		 (search-executor future future*)
-		 ))
+		 (search-executor future future*)))
 
 ;; For now very naive implementation...
 (define (future-flatmap proc future . future*)
   (thunk->future
    (if (null? future*)
-       (lambda opt (future-get (proc (apply future-get future opt))))
-       (lambda opt (future-get (apply proc
-				      (cons (apply future-get future opt)
-					    (map (lambda (f)
-						   (apply future-get f opt))
-						 future*))))))
+       (lambda opt
+	 (let ((f (proc (apply future-get future opt))))
+	   (apply future-get f opt)))
+       (lambda opt
+	 (let ((f (apply proc
+			 (cons (apply future-get future opt)
+			       (map (lambda (f) (apply future-get f opt))
+				    future*)))))
+	   (apply future-get f opt))))
    (search-executor future future*)))
 
 (define (future-guard proc future)

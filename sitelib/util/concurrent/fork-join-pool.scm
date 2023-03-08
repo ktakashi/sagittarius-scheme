@@ -94,6 +94,7 @@
 	  (mutable scheduler)	 ;; scheduler thread
 	  scheduler-queue	 ;; pool queue from input
 	  (mutable thread-count) ;; number of worker threads
+	  parameter
 	  lock)
   (protocol (lambda (p)
 	      (lambda (n . maybe-parameter)
@@ -114,7 +115,10 @@
 			      (fork-join-pool-parameters-max-threads parameter)
 			      worker-queues
 			      #f
-			      scheduler-queue n (make-mutex))))
+			      scheduler-queue
+			      n
+			      parameter
+			      (make-mutex))))
 		    (fork-join-pool-scheduler-set! r
 		     (make-scheduler-thread r scheduler-queue worker-queues
 					    parameter))
@@ -141,8 +145,7 @@
 	    (cond ((and (worker-queue-empty? worker-queue)
 			(select-other-task)) => loop)
 		  (else
-		   (thread-yield!)
-		   (loop (worker-queue-get! worker-queue))))))))
+		   (loop (worker-queue-get! worker-queue 0 thread-yield!))))))))
     (string-append "fork-join-pool-core-worker-" (number->string i)))))
 
 (define (make-scheduler-thread pool sq worker-queues parameter)
@@ -150,7 +153,8 @@
   (define wqq (make-list-queue wq*))
   (define duration (fork-join-pool-parameters-keep-alive parameter))
   (define max-queue-depth (fork-join-pool-parameters-max-queue-depth parameter))
-  (define (small-enough wq) (< (worker-queue-size wq) max-queue-depth))
+  (define (small-enough wq)
+    (< (worker-queue-size wq) max-queue-depth))
   (define thread-number 0)
   ;; This tries to reuse the thread if possible
   (define (spawn task0)
@@ -196,10 +200,7 @@
   (unless (procedure? task)
     (assertion-violation 'fork-join-pool-push-task! "Task must be a procedure"
 			 task))
-  (cond ((*current-work-queue*) =>
-	 (lambda (wq) (worker-queue-put! wq task)))
-	(else
-	 (shared-queue-put! (fork-join-pool-scheduler-queue pool) task))))
+  (shared-queue-put! (fork-join-pool-scheduler-queue pool) task))
 
 ;; waits all worker queue to be empty
 (define (fork-join-pool-wait-all! pool . maybe-timeout)
