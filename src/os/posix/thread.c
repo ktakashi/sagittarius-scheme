@@ -87,13 +87,53 @@ void Sg_DestroyMutex(SgInternalMutex *mutex)
   pthread_mutex_destroy(&mutex->mutex);
 }
 
+static void exit_handler(int signum)
+{
+  pthread_exit(NULL);
+}
+
+static void* thread_entry(void *params)
+{
+  SgThreadEntryFunc *entry = (SgThreadEntryFunc *)((void **)params)[0];
+  void *param = ((void **)params)[1];
+  struct sigaction        sa;
+  /* we use SIGALRM to cancel select */
+  memset(&sa, 0, sizeof(sa));
+  sa.sa_handler = exit_handler;
+  sigemptyset(&sa.sa_mask);
+#ifdef SIGABRT
+  sigaction(SIGABRT, &sa, NULL );
+#endif
+#ifdef SIGSEGV
+  sigaction(SIGSEGV, &sa, NULL );
+#endif
+#ifdef SIGBUS
+  sigaction(SIGBUS,  &sa, NULL );
+#endif
+#ifdef SIGILL
+  sigaction(SIGILL,  &sa, NULL );
+#endif
+#ifdef SIGFPE
+  sigaction(SIGFPE,  &sa, NULL );
+#endif
+#if 0
+  sigaction(SIGINT,  &sa, NULL );
+#endif
+
+  return entry(param);
+}
+
 int Sg_InternalThreadStart(SgInternalThread *thread, SgThreadEntryFunc *entry, void *param)
 {
   int ok = TRUE;
   pthread_attr_t thattr;
+  void *params[2];
   pthread_attr_init(&thattr);
   pthread_attr_setdetachstate(&thattr, PTHREAD_CREATE_DETACHED);
-  if (pthread_create(&thread->thread, &thattr, entry, param) != 0) {
+  params[0] = entry;
+  params[1] = param;
+  
+  if (pthread_create(&thread->thread, &thattr, thread_entry, params) != 0) {
     ok = FALSE;
   }
   pthread_attr_destroy(&thattr);
