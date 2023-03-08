@@ -127,7 +127,7 @@ int Sg_InternalThreadStart(SgInternalThread *thread, SgThreadEntryFunc *entry, v
 {
   int ok = TRUE;
   pthread_attr_t thattr;
-  void *params[2];
+  void **params = SG_NEW_ARRAY(void *, 2);
   pthread_attr_init(&thattr);
   pthread_attr_setdetachstate(&thattr, PTHREAD_CREATE_DETACHED);
   params[0] = entry;

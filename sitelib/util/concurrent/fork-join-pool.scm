@@ -83,7 +83,7 @@
 ;; no reason other than Java's ForkJoinPool limit, but should be large enough
    ((max-threads #x7fff)
     (keep-alive (duration:of-millis 5000)) ;; default 5 sec
-    (max-queue-depth 3))))
+    (max-queue-depth 2))))
 
 (define *default-parameter* (fork-join-pool-parameters-builder))
 
