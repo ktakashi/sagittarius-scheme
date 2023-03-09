@@ -619,6 +619,7 @@ static inline void report_error(SgObject error, SgObject out)
   SgObject next = SG_FALSE, cl;
   SgPort *buf = SG_PORT(Sg_MakeStringOutputPort(-1));
   SgContFrame *stackTrace = NULL;
+  int attached = FALSE;
   SgWord *pc;
 
   if (Sg_ConditionP(error)) {
@@ -628,6 +629,7 @@ static inline void report_error(SgObject error, SgObject out)
 	if (SG_STACK_TRACE_CONDITION_P(SG_CAR(cp))) {
 	  stackTrace 
 	    = (SgContFrame *)SG_STACK_TRACE_CONDITION(SG_CAR(cp))->trace;
+	  attached = TRUE;
 	  next = SG_STACK_TRACE_CONDITION(SG_CAR(cp))->cause;
 	  cl = SG_STACK_TRACE_CONDITION(SG_CAR(cp))->cl;
 	  pc = SG_STACK_TRACE_CONDITION(SG_CAR(cp))->pc;
@@ -636,6 +638,7 @@ static inline void report_error(SgObject error, SgObject out)
       }
     } else if (SG_STACK_TRACE_CONDITION_P(error)) {
       stackTrace = (SgContFrame *)SG_STACK_TRACE_CONDITION(error)->trace;
+      attached = TRUE;
       next = SG_STACK_TRACE_CONDITION(error)->cause;
       cl = SG_STACK_TRACE_CONDITION(error)->cl;
       pc = SG_STACK_TRACE_CONDITION(error)->pc;
@@ -649,8 +652,11 @@ static inline void report_error(SgObject error, SgObject out)
   Sg_Printf(buf,
 	    UC("Unhandled exception\n"
 	       "  %A\n"), Sg_DescribeCondition(error));
-
-  if (vm->state == RUNNING && cl && !SG_NULLP(stackTrace)) {
+  /* If we simply check the vm state, then stack trace of terminated thread
+     won't be shown and that makes extremly difficult to debug multi thread
+     execution. so as long as stack trace is attached on the condition, then
+     just show it.*/
+  if ((attached || vm->state == RUNNING) && cl && !SG_NULLP(stackTrace)) {
     SgContFrame *prevFrame = NULL;
     while (1) {
       format_stack_trace(vm, buf, stackTrace, prevFrame, cl, pc);

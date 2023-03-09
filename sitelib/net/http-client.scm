@@ -266,7 +266,6 @@
 	  (mutable body)))
 
 (define (make-handlers)
-  (define response (make-mutable-response #f #f #f))
   (define (decompress headers body)
     (define (get-input headers body)
       (case (string->symbol
@@ -285,7 +284,8 @@
 	  (cond ((eof-object? v) #vu8())
 		(else v))))))
 		    
-  (let ((in/out (open-chunked-binary-input/output-port)))
+  (let ((in/out (open-chunked-binary-input/output-port))
+	(response (make-mutable-response #f #f #vu8())))
     (define (header-handler status headers)
       (mutable-response-status-set! response status)
       (mutable-response-headers-set! response headers))
@@ -310,7 +310,6 @@
 			       (headers headers)
 			       (cookies cookies)
 			       (body (mutable-response-body response)))))
-    (mutable-response-body-set! response in/out)
     (values header-handler body-handler response-retriever)))
       
 (define (lease-http-connection client request)
