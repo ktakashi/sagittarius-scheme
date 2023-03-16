@@ -260,6 +260,7 @@
   (parent connection-manager)
   (fields connection-request-timeout
 	  max-connection-per-route
+	  route-max-connections
 	  time-to-live
 	  ;; these are private
 	  available
@@ -277,6 +278,7 @@
 	   (http-connection-config-connection-timeout config))
 	(http-pooling-connection-config-connection-request-timeout config)
 	(http-pooling-connection-config-max-connection-per-route config)
+	(http-pooling-connection-config-route-max-connections config)
 	(http-pooling-connection-config-time-to-live config)
 	(make-hashtable string-hash string=?)
 	(make-hashtable string-hash string=?)
@@ -287,12 +289,25 @@
   (parent http-connection-config)
   (fields connection-request-timeout
 	  max-connection-per-route
+	  route-max-connections
 	  time-to-live
 	  delegate-provider))
+(define (route-max-connections-check v)
+  (define (check e)
+    (and (list? e)
+	 (not (null? e))
+	 (string? (car e))
+	 (not (null? (cdr e)))
+	 (integer? (cadr e))))
+  (unless (and (list? v) (for-all check v))
+    (assertion-violation 'http-pooling-connection-config-builder
+     "route-mac-connections must be list of (string integer)" v))
+  v)
 (define-syntax http-pooling-connection-config-builder
   (make-record-builder http-pooling-connection-config
    ;; random numbers ;-)
    ((max-connection-per-route 5)
+    (route-max-connections '() route-max-connections-check)
     (time-to-live 2)
     (delegate-provider make-http-ephemeral-connection-manager))))
 
@@ -332,6 +347,8 @@
     (http-pooling-connection-manager-connection-request-timeout manager))
   (define max-per-route
     (http-pooling-connection-manager-max-connection-per-route manager))
+  (define route-max-connections
+    (http-pooling-connection-manager-route-max-connections manager))
   (define delegate
     (http-pooling-connection-manager-delegate manager))
   (define ttl
@@ -341,8 +358,10 @@
 	  (else (let ((q (make-shared-queue max)))
 		  (hashtable-set! table route q)
 		  q))))
-  
-  (define (get-connection leased avail)
+  (define (get-max-connection-per-route route)
+    (cond ((assp (lambda (r) (equal? r route)) route-max-connections) => cadr)
+	  (else max-per-route)))
+  (define (get-connection leased avail max-conn)
     (cond ((and (not (shared-queue-empty? avail))
 		;; TODO maybe we need to do LIFO instead of FIFO for
 		;;      better reusability
@@ -352,13 +371,13 @@
 		(cond ((pooling-entry-expired? entry)
 		       (http-connection-manager-release-connection delegate
 			(pooling-entry-connection entry) #f)
-		       (get-connection leased avail))
+		       (get-connection leased avail max-conn))
 		      (else
 		       (shared-queue-put! leased entry)
 		       (pooling-entry-connection entry)))))
 	  ((and (shared-queue-empty? avail)
 		(< (+ (shared-queue-size leased) (shared-queue-size avail))
-		   max-per-route))
+		   max-conn))
 	   (let ((conn (http-connection-manager-lease-connection delegate
 								 request
 								 option)))
@@ -369,12 +388,13 @@
 							  request
 							  option))))
 
-  (let ((route (get-route request)))
+  (let* ((route (get-route request))
+	 (max-conn (get-max-connection-per-route route)))
     (mutex-lock! lock)
     (guard (e (else (mutex-unlock! lock) (raise e)))
       (let* ((leased (ensure-queue leasing route -1))
-	     (avail (ensure-queue available route max-per-route))
-	     (conn (get-connection leased avail)))
+	     (avail (ensure-queue available route max-conn))
+	     (conn (get-connection leased avail max-conn)))
 	(mutex-unlock! lock)
 	conn))))
 

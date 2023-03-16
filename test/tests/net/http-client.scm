@@ -47,11 +47,20 @@
 (define (bytevector-formatter bv)
   (map (lambda (u8) (string-append "0x" (number->string u8 16)))
        (bytevector->uint-list bv (endianness little) 1)))
+
+(test-error "Invalid format of route-max-connections"
+	    (http-pooling-connection-config-builder
+	     (route-max-connections '(("httpbin.org" . 10)))))
+(test-error "Invalid value of route-max-connections"
+	    (http-pooling-connection-config-builder
+	     (route-max-connections '(("httpbin.org" a)))))
+
 (define pooling-config
   (http-pooling-connection-config-builder
    (connection-request-timeout 100)
    (time-to-live 3)
    (key-manager (test-key-manager))
+   (route-max-connections '(("httpbin.org" 10)))
    #;(delegate-provider
     (make-logging-delegate-connection-provider
      (http-client-logger-builder
