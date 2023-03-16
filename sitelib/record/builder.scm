@@ -112,8 +112,11 @@
 	       (let ((v (cdr slot)))
 		 (cond ((assq field default-values) =>
 			(lambda (d)
-			  (let ((conv (cddr d)))
-			    (if conv (conv v) v))))
+			  ;; if the provided value is #f, then use default value
+			  (if v
+			      (let ((conv (cddr d)))
+				(if conv (conv v) v))
+			      (cadr d))))
 		       (else v)))))
 	    ((assq field default-values) =>
 	     (lambda (fvd)

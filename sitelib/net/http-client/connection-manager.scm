@@ -291,11 +291,10 @@
 	  delegate-provider))
 (define-syntax http-pooling-connection-config-builder
   (make-record-builder http-pooling-connection-config
-		       ;; random numbers ;-)
-		       ((max-connection-per-route 5)
-			(time-to-live 2)
-			(delegate-provider
-			 make-http-ephemeral-connection-manager))))
+   ;; random numbers ;-)
+   ((max-connection-per-route 5)
+    (time-to-live 2)
+    (delegate-provider make-http-ephemeral-connection-manager))))
 
 (define (pooling-shutdown manager)
   (define available (http-pooling-connection-manager-available manager))
