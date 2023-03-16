@@ -306,9 +306,9 @@
 (define-syntax http-pooling-connection-config-builder
   (make-record-builder http-pooling-connection-config
    ;; random numbers ;-)
-   ((max-connection-per-route 5)
+   ((max-connection-per-route 5 (lambda (v) (or v 5)))
     (route-max-connections '() route-max-connections-check)
-    (time-to-live 2)
+    (time-to-live 2 (lambda (v) (or v 2)))
     (delegate-provider make-http-ephemeral-connection-manager))))
 
 (define (pooling-shutdown manager)

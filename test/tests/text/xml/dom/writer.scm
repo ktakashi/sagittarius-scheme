@@ -9,7 +9,6 @@
 
 (define (writer-test expected proc)
   (let-values (((out extract) (open-string-output-port)))
-    ;; (write (begin (proc out) (extract))) (newline)
     (test-equal expected (begin (proc out) (extract)))))
 
 ;; historical reason...
