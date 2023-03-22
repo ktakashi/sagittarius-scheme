@@ -351,7 +351,7 @@
 		       ;; initial request HPACK table size.
 		       (update-hpack-table-size!
 			(http2-connection-context-request-hpack-context ctx) 
-			(cadar settings)))
+			(cdar settings)))
 		      ((= (caar settings)
 			  +http2-settings-initial-window-size+)
 		       (http2-connection-context-window-size-set! ctx
