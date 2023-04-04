@@ -34,7 +34,11 @@
     (export thunk->future future-map future-flatmap
 	    future-guard
 
-	    *completable-future:default-executor*)
+	    *completable-future:default-executor*
+	    
+	    future-map/executor
+	    future-flatmap/executor
+	    future-guard/executor)
     (import (rnrs)
 	    (srfi :39 parameters)
 	    (util concurrent future)
@@ -68,12 +72,17 @@
       future))))
 
 (define (search-executor future future*)
-  (cond ((completable-future? future)
+  (force (*completable-future:default-executor*))
+  #;(cond ((completable-future? future)
 	 (completable-future-executor future))
 	((filter completable-future? future*) =>
 	 (lambda (f*) (completable-future-executor (car f*))))
 	(else (force (*completable-future:default-executor*)))))
 (define (future-map proc future . future*)
+  (apply future-map/executor 
+	 (search-executor future future*) proc future future*))
+;; damn...
+(define (future-map/executor executor proc future . future*)
   (thunk->future (if (null? future*)
 		     (lambda opt (proc (apply future-get future opt)))
 		     (lambda opt
@@ -81,10 +90,15 @@
 			      (cons (apply future-get future opt)
 				    (map (lambda (f) (apply future-get f opt))
 					 future*)))))
-		 (search-executor future future*)))
+		 executor))
+
 
 ;; For now very naive implementation...
 (define (future-flatmap proc future . future*)
+  (apply future-flatmap/executor
+	 (search-executor future future*) proc future future*))
+
+(define (future-flatmap/executor executor proc future . future*)
   (thunk->future
    (if (null? future*)
        (lambda opt
@@ -96,14 +110,19 @@
 			       (map (lambda (f) (apply future-get f opt))
 				    future*)))))
 	   (apply future-get f opt))))
-   (search-executor future future*)))
+   executor))
 
 (define (future-guard proc future)
+  (future-guard/executor
+   (if (completable-future? future)
+       (completable-future-executor future)
+       (force (*completable-future:default-executor*)))
+   proc future))
+
+(define (future-guard/executor executor proc future)
   (thunk->future
    (lambda opt
      (guard (e (else (proc e)))
        (apply future-get future opt)))
-   (if (completable-future? future)
-       (completable-future-executor future)
-       (force (*completable-future:default-executor*)))))
+   executor))
 )

@@ -113,12 +113,10 @@
 	    (rfc uri)
 	    (util concurrent)
 	    (scheme lazy)
-	    (srfi :39 parameters))
+	    (srfi :39 parameters)
+	    (srfi :197 pipeline))
 
-;; Re-use pool of connection manager, this one uses default max threads
-;; which is quite big, so it should have sufficient space
-(define *http-client:default-executor* 
-  (delay (make-fork-join-executor)))
+(define *http-client:default-executor*  (delay (make-fork-join-executor)))
 
 (define-record-type http:client
   (fields follow-redirects
@@ -172,61 +170,79 @@
   (send-request/response client request))
 
 (define (http:client-send-async client request)
-  (thunk->future
-   (lambda () (send-request/response client request))
-   (http:client-executor client)))
+  (chain (thunk->future
+	  (lambda () (let-values ((r (send-request client request))) r))
+	  (http:client-executor client))
+	 ;; TODO use async socket here.
+	 (future-map/executor (http:client-executor client)
+	  (lambda (v) (receive-response! client (car v) (cadr v))) _)
+	 (future-map/executor (http:client-executor client)
+	  (lambda (r) (post-respose-receival client request r)) _)))
 
 ;;; helper
 (define (default-executor? client)
   (eq? (http:client-executor client) (force *http-client:default-executor*)))
-(define (send-request/response client request)
-  (define (handle-redirect client request response)
-    (define (get-location response)
-      (http:headers-ref (http:response-headers response) "Location"))
-    (define (check-scheme request response)
-      (let ((uri (string->uri (get-location response)))
-	    (request-scheme (uri-scheme (http:request-uri request))))
-	(or (not (uri-scheme uri))
-	    (equal? (uri-scheme uri) request-scheme)
-	    ;; http -> https: ok
-	    ;; https -> http: not ok
-	    (equal? "http" request-scheme))))
-    (define (do-redirect client request response)
-      (define request-uri (http:request-uri request))
-      (define (get-next-uri)
-	(let ((uri (string->uri (get-location response))))
-	  (string->uri
-	   (uri-compose :scheme (or (uri-scheme uri) (uri-scheme request-uri))
-			:authority (or (uri-authority uri)
-				       (uri-authority request-uri))
-			:path (uri-path uri)
-			:query (uri-query uri)))))
-      (let ((next (get-next-uri)))
-	(send-request/response client (http:request-builder
-				       (from request)
-				       (uri next)))))
-    (case (http:client-follow-redirects client)
-      ((never) response)
-      ((always) (do-redirect client request response))
-      ((normal) (and (check-scheme request response)
-		     (do-redirect client request response)))
-      ;; well, just return...
-      (else response)))
 
+(define (handle-redirect client request response)
+  (define (get-location response)
+    (http:headers-ref (http:response-headers response) "Location"))
+  (define (check-scheme request response)
+    (let ((uri (string->uri (get-location response)))
+	  (request-scheme (uri-scheme (http:request-uri request))))
+      (or (not (uri-scheme uri))
+	  (equal? (uri-scheme uri) request-scheme)
+	  ;; http -> https: ok
+	  ;; https -> http: not ok
+	  (equal? "http" request-scheme))))
+  (define (do-redirect client request response)
+    (define request-uri (http:request-uri request))
+    (define (get-next-uri)
+      (let ((uri (string->uri (get-location response))))
+	(string->uri
+	 (uri-compose :scheme (or (uri-scheme uri) (uri-scheme request-uri))
+		      :authority (or (uri-authority uri)
+				     (uri-authority request-uri))
+		      :path (uri-path uri)
+		      :query (uri-query uri)))))
+    (let ((next (get-next-uri)))
+      ;; FIXME this should be fine granuity as well
+      (send-request/response client (http:request-builder
+				     (from request)
+				     (uri next)))))
+  (case (http:client-follow-redirects client)
+    ((never) response)
+    ((always) (do-redirect client request response))
+    ((normal) (and (check-scheme request response)
+		   (do-redirect client request response)))
+    ;; well, just return...
+    (else response)))
+
+(define (send-request client request)
   (let ((conn (lease-http-connection client request)))
     (let-values (((header-handler body-handler response-retriever)
 		  (make-handlers)))
       (http-connection-send-request! conn (adjust-request client conn request)
 				     header-handler body-handler)
-      (let ((reuse? (http-connection-receive-response! conn)))
-	(release-http-connection client conn reuse?))
-      (let* ((response (response-retriever))
-	     (status (http:response-status response)))
-	(when (http:client-cookie-handler client)
-	  (add-cookie! client (http:response-cookies response)))
-	(if (and status (char=? #\3 (string-ref status 0)))
-	    (handle-redirect client request response)
-	    response)))))
+      (values conn response-retriever))))
+
+(define (receive-response! client conn response-retriever)
+  (let ((reuse? (http-connection-receive-response! conn)))
+    (release-http-connection client conn reuse?))
+  (let ((response (response-retriever)))
+    (when (http:client-cookie-handler client)
+      (add-cookie! client (http:response-cookies response)))
+    response))
+
+(define (post-respose-receival client request response)
+  (let ((status (http:response-status response)))
+    (if (and status (char=? #\3 (string-ref status 0)))
+	(handle-redirect client request response)
+	response)))
+(define (send-request/response client request)
+  (let-values (((conn response-retriever) (send-request client request)))
+    (post-respose-receival client request
+     (receive-response! client conn response-retriever))))
+
   
 (define (adjust-request client conn request)
   (let* ((copy (http:request-builder (from request)))
