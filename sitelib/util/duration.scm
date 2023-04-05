@@ -56,7 +56,7 @@
 	(n (mod millis 1000)))
     (if (< n 0)
 	(make-time time-duration (* (+ n 1000) 1000000) (- sec 1))
-	(make-time time-duration (* 1000000) sec))))
+	(make-time time-duration (* n 1000000) sec))))
 
 (define (duration:of-seconds seconds) (make-time time-duration 0 seconds))
 (define (duration:of-minutes minutes)
