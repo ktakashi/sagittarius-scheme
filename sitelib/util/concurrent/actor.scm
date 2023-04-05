@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!nounbound
 (library (util concurrent actor)
     (export actor? (rename actor <actor>) make-actor
 	    actor-send-message!
@@ -37,6 +38,7 @@
 	    actor-terminate!
 	    actor-state
 	    actor-start!
+	    actor-interrupt!
 	    
 	    make-shared-queue-channel-actor
 	    make-shared-priority-queue-channel-actor
@@ -45,7 +47,7 @@
 	    make-shared-priority-queue-channel
 	    )
     (import (rnrs)
-	    (srfi :18)
+	    (sagittarius threads) ;; need thread-interrrupt!
 	    (util concurrent shared-queue))
 
 ;; base actor record
@@ -89,6 +91,10 @@
     (thread-start! (actor-thread actor))
     (actor-state-set! actor 'running))
   actor)
+
+(define (actor-interrupt! actor)
+  (and (actor-running? actor)
+       (thread-interrupt! (actor-thread actor))))
 
 (define (actor-running? actor) (eq? (actor-state actor) 'running))
 

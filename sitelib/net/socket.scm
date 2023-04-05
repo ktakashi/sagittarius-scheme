@@ -102,6 +102,8 @@
 	    socket-set-read-timeout!
 	    nonblocking-socket?
 
+	    make-socket-selector
+
 	    socket-info?
 	    socket-peer
 	    socket-name
@@ -213,7 +215,13 @@
 	    (except (rfc tls) make-client-tls-socket
 		    make-server-tls-socket)
 	    (rfc x.509)
-	    (sagittarius crypto keys))
+	    (sagittarius crypto keys)
+	    (srfi :1 lists)
+	    (srfi :18 multithreading)
+	    (srfi :19 time)
+	    ;; for actor
+	    (util concurrent)
+	    (util duration))
 
 (define-record-type socket-options
   (fields non-blocking?
@@ -420,5 +428,136 @@
 	 (make-client-socket node service option))
 	(else (assertion-violation 'socket-options->client-socket
 				   "Not a socket-options" option))))
+
+(define (make-socket-selector :optional (timeout #f))
+  (define sockets (make-eq-hashtable))
+  (define lock (make-mutex))
+  
+  (define (update-sockets! now readable)
+    (define (update-socket! sock)
+      ;; we can't use hashtable-update! as it doesn't remove the entry...
+      (cond ((socket-closed? sock) (hashtable-delete! sockets sock) #f)
+	    ((hashtable-ref sockets sock #f) =>
+	     (lambda (e)
+	       (let-values (((expires timeout on-read) (apply values e)))
+		 (if (and (not (memq sock readable))
+			  timeout (time>? now expires))
+		     (let ((e (condition (make-socket-read-timeout-error sock)
+					 (make-who-condition 'socket-selector)
+					 (make-message-condition "Read timeout")
+					 (make-irritants-condition timeout))))
+		       (hashtable-delete! sockets sock)
+		       (on-read sock e) ;; let the caller know
+		       #f)
+		     (cons sock
+			   (and timeout (time-difference expires now)))))))
+	    ;; stray socket?
+	    (else (socket-close sock) #f)))
+    (define (least timeouts)
+      (and (not (null? timeouts))
+	   (car (list-sort time<? timeouts))))
+    (let ((s&t (filter-map update-socket!
+			   (vector->list (hashtable-keys sockets)))))
+      (values (map car s&t) (least (filter-map cdr s&t)))))
+
+  (define (set-socket socket on-read now timeout)
+    (hashtable-set! sockets socket
+     (list (and timeout (add-duration now timeout)) timeout on-read)))
+
+  (define (handle-on-read sock)
+    (cond ((socket-closed? sock) (hashtable-delete! sockets sock))
+	  ((hashtable-ref sockets sock #f) =>
+	   (lambda (e)
+	     (let-values (((e t on-read) (apply values e)))
+	       (on-read sock #f)
+	       ;; update timeout, as this is handled
+	       (set-socket sock on-read (current-time) t))))
+	  ;; stray socket?
+	  (else (socket-close sock))))
+  
+  (define (poll-socket receiver sender)
+    (define (get-timeout t0 t1)
+      (cond ((and t0 t1) (if (time<? t0 t1) t0 t1))
+	    (t0)
+	    (t1)
+	    (else #f)))
+    (let wait-entry ()
+      (define (wait-socket timeout socks)
+	(define (open-socket? s) (and (not (socket-closed? s)) s))
+	(let loop ((timeout timeout) (socks socks))
+	  ;; we can't use socket-read-select as we need to distinguish
+	  ;; interruption and timeout
+	  (let-values (((n r w e)
+			(socket-select! (sockets->fdset
+					 (filter-map open-socket? socks))
+					#f #f timeout)))
+	    (mutex-unlock! lock)
+	    (if n
+		(let ((s (collect-sockets r)))
+		  (for-each handle-on-read s)
+		  (let-values (((s* t) (update-sockets! (current-time) s)))
+		    (if (null? s*)
+			(wait-entry)
+			(loop t s*))))
+		(wait-entry)))))
+
+      (guard (e (else (mutex-unlock! lock) (wait-entry)))
+	(let ((entry (receiver)))
+	  (when entry
+	    (let ((now (current-time)))
+	      (let-values (((waiting-sockets timeout) (update-sockets! now '()))
+			   ((socket on-read this-timeout) (apply values entry)))
+		(set-socket socket on-read now this-timeout)
+		(cond ((mutex-lock! lock 0)
+		       (wait-socket (get-timeout timeout this-timeout)
+				    (cons socket waiting-sockets)))
+		      ;; next entry is on the way
+		      (else (wait-entry))))))))))
+  
+  (define (dispatch-socket receiver sender)
+    (let loop ()
+      (let ((e (receiver)))
+	(when e
+	  (let-values (((on-read sock e) (apply values e)))
+	    (guard (e (else #t)) (on-read sock e)))
+	  (loop)))))
+
+  ;; we make 2 actors to avoid unnecessary waiting time for socket polliing
+  (define socket-poll-actor (make-shared-queue-channel-actor poll-socket))
+  (define on-read-actor (make-shared-queue-channel-actor dispatch-socket))
+
+  (define (push-socket sock on-read timeout)
+    (define (make-on-read)
+      (lambda (sock e)
+	(actor-send-message! on-read-actor (list on-read sock e))))
+    (define (make-timeout)
+      (cond ((integer? timeout) (duration:of-millis timeout))
+	    ((time? timeout) timeout)
+	    ((not timeout) timeout) ;; #f
+	    (else
+	     (assertion-violation 'make-socket-selector
+	       "Timeout must be integer (ms) or time" timeout))))
+
+    (actor-interrupt! socket-poll-actor)
+    (mutex-lock! lock)
+    (actor-send-message! socket-poll-actor
+			 (list sock (make-on-read) (make-timeout)))
+    (mutex-unlock! lock))
+
+  (define (terminate!)
+    (actor-send-message! socket-poll-actor #f)
+    (actor-send-message! on-read-actor #f)
+    (actor-interrupt! socket-poll-actor)
+    (actor-interrupt! on-read-actor))
+  
+  (actor-start! socket-poll-actor)
+  (actor-start! on-read-actor)
+  (values (case-lambda
+	   ((socket on-read)
+	    (push-socket socket on-read timeout))
+	   ((socket on-read this-timeout)
+	    ;; timeout can be extended, but reset if hard timeout is provided
+	    (push-socket socket on-read (or this-timeout timeout))))
+	  terminate!))
 
 )
