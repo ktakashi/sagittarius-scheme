@@ -2,9 +2,11 @@
 (import (rnrs)
 	(net socket)
 	(rfc x.509)
+	(srfi :1)
 	(srfi :18)
 	(srfi :19)
 	(srfi :64)
+	(util concurrent)
 	(rename (sagittarius crypto keys)
 		(*key:rsa* RSA)
 		(key-pair-private keypair-private)))
@@ -196,6 +198,60 @@
       (test-error socket-read-timeout-error?
 		  (tls-socket-recv! client-socket buffer 0 5))
       (shutdown&close client-socket))))
-  
+
+(define (run-socket-selector hard-timeout soft-timeout)
+  (define server-sock (make-server-socket "0"))
+  (define (echo sock e)
+    (unless e
+      (socket-send sock (socket-recv sock 255)))
+    (socket-shutdown sock SHUT_RDWR)
+    (socket-close sock))
+  (define server-thread
+    (thread-start!
+     (make-thread
+      (lambda ()
+	(let-values (((socket-selector terminater)
+		      (make-socket-selector hard-timeout print)))
+	  (guard (e (else (terminater)))
+	    (let loop ()
+	      (let ((sock (socket-accept server-sock)))
+		(socket-selector sock echo soft-timeout)
+		(loop)))))))))
+  (define result (make-shared-queue))
+  (define server-port
+    (number->string (socket-info-port (socket-info server-sock))))
+
+  (define (caller i)
+    (make-thread
+     (lambda ()
+       (let ((s (make-client-socket "localhost" server-port)))
+	 (guard (e (else s))
+	   (thread-sleep! 0.1)
+	   (socket-send s (string->utf8
+			   (string-append "Hello world " (number->string i))))
+	   (let ((v (utf8->string (socket-recv s 255))))
+	     (unless (zero? (string-length v))
+	       (shared-queue-put! result v)))
+	   (socket-shutdown s SHUT_RDWR)
+	   s)))))
+  (define (safe-join! t)
+    (guard (e ((socket-error? (uncaught-exception-reason e))
+	       (socket-error-socket e))
+	      (else #f))
+      (thread-join! t)))
+
+  (for-each socket-close
+	    (map safe-join! (map thread-start! (map caller (iota 100)))))
+
+  (socket-shutdown server-sock SHUT_RDWR)
+  (socket-close server-sock)
+  (guard (e (else #t)) (thread-join! server-thread))
+  (shared-queue->list result))
+
+(test-equal 100 (length (run-socket-selector 1000 #f)))
+(test-assert (not (= 100 (length (run-socket-selector 10 #f)))))
+(test-equal 100 (length (run-socket-selector 10 1000)))
+
+
 (test-end)
 

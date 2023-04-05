@@ -428,14 +428,18 @@
 	 (make-client-socket node service option))
 	(else (assertion-violation 'socket-options->client-socket
 				   "Not a socket-options" option))))
-
-(define (make-socket-selector :optional (timeout #f))
+(define (default-error-reporter event e) #t)
+  
+(define (make-socket-selector
+	 :optional (timeout #f) (error-reporter default-error-reporter))
   (define sockets (make-eq-hashtable))
   (define lock (make-mutex))
-  
+  (define (on-error event e)
+    (when (procedure? error-reporter)
+      (guard (e (else #f)) (error-reporter event e))))
+    
   (define (update-sockets! now readable)
     (define (update-socket! sock)
-      ;; we can't use hashtable-update! as it doesn't remove the entry...
       (cond ((socket-closed? sock) (hashtable-delete! sockets sock) #f)
 	    ((hashtable-ref sockets sock #f) =>
 	     (lambda (e)
@@ -447,12 +451,12 @@
 					 (make-message-condition "Read timeout")
 					 (make-irritants-condition timeout))))
 		       (hashtable-delete! sockets sock)
-		       (on-read sock e) ;; let the caller know
+		       (on-read sock timeout e) ;; let the caller know
 		       #f)
 		     (cons sock
 			   (and timeout (time-difference expires now)))))))
 	    ;; stray socket?
-	    (else (socket-close sock) #f)))
+	    (else (socket-shutdown sock SHUT_RDWR) (socket-close sock) #f)))
     (define (least timeouts)
       (and (not (null? timeouts))
 	   (car (list-sort time<? timeouts))))
@@ -465,15 +469,15 @@
      (list (and timeout (add-duration now timeout)) timeout on-read)))
 
   (define (handle-on-read sock)
+    ;; (display sock) (display (socket-closed? sock)) (newline)
     (cond ((socket-closed? sock) (hashtable-delete! sockets sock))
 	  ((hashtable-ref sockets sock #f) =>
 	   (lambda (e)
-	     (let-values (((e t on-read) (apply values e)))
-	       (on-read sock #f)
-	       ;; update timeout, as this is handled
-	       (set-socket sock on-read (current-time) t))))
+	     (let-values (((e timeout on-read) (apply values e)))
+	       (hashtable-delete! sockets sock)
+	       (on-read sock timeout #f))))
 	  ;; stray socket?
-	  (else (socket-close sock))))
+	  (else (socket-shutdown sock SHUT_RDWR) (socket-close sock))))
   
   (define (poll-socket receiver sender)
     (define (get-timeout t0 t1)
@@ -488,6 +492,8 @@
 	  ;; we can't use socket-read-select as we need to distinguish
 	  ;; interruption and timeout
 	  (let-values (((n r w e)
+			;; TODO implement poll(1), select(1) can only handle
+			;;      1024 sockets, which is too small...
 			(socket-select! (sockets->fdset
 					 (filter-map open-socket? socks))
 					#f #f timeout)))
@@ -501,7 +507,7 @@
 			(loop t s*))))
 		(wait-entry)))))
 
-      (guard (e (else (mutex-unlock! lock) (wait-entry)))
+      (guard (e (else (on-error 'selector e) (mutex-unlock! lock) (wait-entry)))
 	(let ((entry (receiver)))
 	  (when entry
 	    (let ((now (current-time)))
@@ -518,18 +524,20 @@
     (let loop ()
       (let ((e (receiver)))
 	(when e
-	  (let-values (((on-read sock e) (apply values e)))
-	    (guard (e (else #t)) (on-read sock e)))
+	  (let-values (((on-read sock timeout e) (apply values e)))
+	    (unless (socket-closed? sock)
+	      (guard (e (else (on-error 'dispatcher e) #t)) (on-read sock e))
+	      (push-socket sock on-read timeout)))
 	  (loop)))))
 
   ;; we make 2 actors to avoid unnecessary waiting time for socket polliing
   (define socket-poll-actor (make-shared-queue-channel-actor poll-socket))
   (define on-read-actor (make-shared-queue-channel-actor dispatch-socket))
 
-  (define (push-socket sock on-read timeout)
+  (define (push-socket (socket socket?) (on-read procedure?) timeout)
     (define (make-on-read)
-      (lambda (sock e)
-	(actor-send-message! on-read-actor (list on-read sock e))))
+      (lambda (sock timeout e)
+	(actor-send-message! on-read-actor (list on-read sock timeout e))))
     (define (make-timeout)
       (cond ((integer? timeout) (duration:of-millis timeout))
 	    ((time? timeout) timeout)
@@ -541,7 +549,7 @@
     (actor-interrupt! socket-poll-actor)
     (mutex-lock! lock)
     (actor-send-message! socket-poll-actor
-			 (list sock (make-on-read) (make-timeout)))
+			 (list socket (make-on-read) (make-timeout)))
     (mutex-unlock! lock))
 
   (define (terminate!)

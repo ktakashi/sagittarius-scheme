@@ -1050,18 +1050,6 @@ static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 		  select_timeval(timeout, &tv));
 #endif
 
-#define REMOVE_SOCKET(fdset_)					\
-  do {								\
-    if (fdset_) {						\
-      (fdset_)->sockets = remove_socket(fdset_);		\
-    }								\
-  } while (0)
-  REMOVE_SOCKET(rfds);
-  REMOVE_SOCKET(wfds);
-  REMOVE_SOCKET(efds);
-
-#undef REMOVE_SOCKET
-
   if (numfds < 0) {
     if (last_error == EINTR) {
       SG_INTERRUPTED_THREAD() {
@@ -1079,8 +1067,24 @@ static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 		       Sg_GetLastErrorMessageWithErrorCode(last_error),
 		       /* TODO should we make different condition? */
 		       Sg_MakeConditionSocket(SG_FALSE),
-		       SG_LIST2(SG_MAKE_INT(last_error), timeout));
+		       SG_LIST4(rfds? rfds: SG_FALSE,
+				wfds? wfds: SG_FALSE,
+				efds? efds: SG_FALSE,
+				timeout));
   }
+  
+#define REMOVE_SOCKET(fdset_)					\
+  do {								\
+    if (fdset_) {						\
+      (fdset_)->sockets = remove_socket(fdset_);		\
+    }								\
+  } while (0)
+  REMOVE_SOCKET(rfds);
+  REMOVE_SOCKET(wfds);
+  REMOVE_SOCKET(efds);
+
+#undef REMOVE_SOCKET
+
   return Sg_Values4(Sg_MakeInteger(numfds),
 		    (rfds ? SG_OBJ(rfds) : SG_FALSE),
 		    (wfds ? SG_OBJ(wfds) : SG_FALSE),
