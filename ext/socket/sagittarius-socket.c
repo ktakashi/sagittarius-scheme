@@ -796,10 +796,9 @@ SgObject Sg_SocketAccept(SgSocket *socket)
 
 void Sg_SocketShutdown(SgSocket *socket, int how)
 {
-  if (!Sg_SocketOpenP(socket)) {
-    return;
+  if (Sg_SocketOpenP(socket)) {
+    shutdown(socket->socket, how);
   }
-  shutdown(socket->socket, how);
 }
 
 void Sg_SocketClose(SgSocket *socket)
@@ -1079,7 +1078,8 @@ static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
     raise_socket_error(SG_INTERN("socket-select"), 
 		       Sg_GetLastErrorMessageWithErrorCode(last_error),
 		       /* TODO should we make different condition? */
-		       Sg_MakeConditionSocket(SG_FALSE), SG_NIL);
+		       Sg_MakeConditionSocket(SG_FALSE),
+		       SG_LIST2(SG_MAKE_INT(last_error), timeout));
   }
   return Sg_Values4(Sg_MakeInteger(numfds),
 		    (rfds ? SG_OBJ(rfds) : SG_FALSE),
@@ -1161,7 +1161,7 @@ SgObject Sg_IpAddressToString(SgObject ip)
 
 int Sg_SocketOpenP(SgSocket *socket)
 {
-  return socket->type != SG_SOCKET_CLOSED;
+  return socket->type != SG_SOCKET_CLOSED && socket->socket != INVALID_SOCKET;
 }
 
 int Sg_SocketNonblocking(SgSocket *socket)
