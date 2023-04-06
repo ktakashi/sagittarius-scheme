@@ -261,6 +261,10 @@
 	(begin (check-fd-range fd) 
 	       (result (FD_ISSET fd (& (-> fdset fdset))))))))
 
+(define-c-proc fdset-clear! (fdset::<fdset>) ::<void>
+  (set! (-> fdset sockets) '())
+  (FD_ZERO (& (-> fdset fdset))))
+
 
 (define-c-proc socket-select (reads writes errors timeval) Sg_SocketSelect)
 (define-c-proc socket-select! (reads writes errors timeval) Sg_SocketSelectX)

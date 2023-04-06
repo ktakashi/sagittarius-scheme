@@ -300,7 +300,9 @@
     (let-values (((selector terminator)
 		  (make-socket-selector hard-timeout print)))
       (for-each (caller selector) (iota count))
-      (map thread-join! (collect-thread))))
+      (let ((r (map thread-join! (collect-thread))))
+	(terminator)
+	r)))
 
   (test-equal 50 (length (filter string? (run-socket-selector 1000 #f))))
   (test-equal 0 (length (filter string? (run-socket-selector 100 #f))))

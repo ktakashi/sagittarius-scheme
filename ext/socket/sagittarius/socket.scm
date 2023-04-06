@@ -136,12 +136,13 @@
 	    ip-address->string
 	    ip-address->bytevector
 	    ;; fdset
-	    make-fdset
-	    fdset?
+	    make-fdset fdset?
+	    fdset-sockets
 	    sockets->fdset
 	    collect-sockets
 	    fdset-set!
 	    fdset-ref
+	    fdset-clear!
 	    
 	    ;; clos
 	    <socket>
