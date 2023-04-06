@@ -443,7 +443,7 @@
       (cond ((socket-closed? sock) (hashtable-delete! sockets sock) #f)
 	    ((hashtable-ref sockets sock #f) =>
 	     (lambda (e)
-	       (let-values (((expires timeout on-read) (apply values e)))
+	       (let-values (((s expires timeout on-read) (apply values e)))
 		 (if (and (not (memq sock readable))
 			  timeout (time>? now expires))
 		     (let ((e (condition (make-socket-read-timeout-error sock)
@@ -466,14 +466,14 @@
 
   (define (set-socket socket on-read now timeout)
     (hashtable-set! sockets socket
-     (list (and timeout (add-duration now timeout)) timeout on-read)))
+     (list now (and timeout (add-duration now timeout)) timeout on-read)))
 
   (define (handle-on-read sock)
     ;; (display sock) (display (socket-closed? sock)) (newline)
     (cond ((socket-closed? sock) (hashtable-delete! sockets sock))
 	  ((hashtable-ref sockets sock #f) =>
 	   (lambda (e)
-	     (let-values (((e timeout on-read) (apply values e)))
+	     (let-values (((s e timeout on-read) (apply values e)))
 	       (hashtable-delete! sockets sock)
 	       (on-read sock timeout #f))))
 	  ;; stray socket?
@@ -526,8 +526,9 @@
 	(when e
 	  (let-values (((on-read sock timeout e) (apply values e)))
 	    (unless (socket-closed? sock)
-	      (guard (e (else (on-error 'dispatcher e) #t)) (on-read sock e))
-	      (push-socket sock on-read timeout)))
+	      (guard (e (else (on-error 'dispatcher e) #t))
+		(on-read sock e
+			 (lambda () (push-socket sock on-read timeout))))))
 	  (loop)))))
 
   ;; we make 2 actors to avoid unnecessary waiting time for socket polliing

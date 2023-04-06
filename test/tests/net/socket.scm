@@ -201,7 +201,7 @@
 
 (define (run-socket-selector hard-timeout soft-timeout)
   (define server-sock (make-server-socket "0"))
-  (define (echo sock e)
+  (define (echo sock e reuse-invoker)
     (unless e
       (socket-send sock (socket-recv sock 255)))
     (socket-shutdown sock SHUT_RDWR)
@@ -252,6 +252,63 @@
 (test-assert (not (= 100 (length (run-socket-selector 10 #f)))))
 (test-equal 100 (length (run-socket-selector 10 1000)))
 
+
+(let ()
+  (define server-sock (make-server-socket "0"))
+  (define (echo sock)
+    (lambda ()
+      (let ((v (socket-recv sock 255)))
+	(thread-sleep! 0.3) ;; wait 300ms
+	(socket-send sock v)
+	(socket-shutdown sock SHUT_RDWR)
+	(socket-close sock))))
+  (define server-thread
+    (thread-start!
+     (make-thread
+      (lambda ()
+	(let loop ()
+	  (let ((sock (socket-accept server-sock)))
+	    (thread-start! (make-thread (echo sock)))
+	    (loop)))))))
+
+  (define (run-socket-selector hard-timeout soft-timeout)
+    (define result (make-shared-queue))
+    (define server-port
+      (number->string (socket-info-port (socket-info server-sock))))
+
+    (define ((caller selector) i)
+      (define (push-result sock e reuse)
+	(shared-queue-put! result
+	  (thread-start!
+	   (make-thread
+	    (lambda ()
+	      (let ((v (or e (utf8->string (socket-recv sock 255)))))
+		(socket-shutdown sock SHUT_RDWR)
+		(socket-close sock)
+		(if (string? v)
+		    (and (not (zero? (string-length v))) v)
+		    e)))))))
+      (let ((s (make-client-socket "localhost" server-port)))
+	(socket-send s (string->utf8
+			(string-append "Hello world " (number->string i))))
+	(selector s push-result soft-timeout)))
+    (define count 50)
+    (define (collect-thread)
+      (do ((i 0 (+ i 1)) (r '() (cons (shared-queue-get! result) r)))
+	  ((= i count) r)))
+
+    (let-values (((selector terminator)
+		  (make-socket-selector hard-timeout print)))
+      (for-each (caller selector) (iota count))
+      (map thread-join! (collect-thread))))
+
+  (test-equal 50 (length (filter string? (run-socket-selector 1000 #f))))
+  (test-equal 0 (length (filter string? (run-socket-selector 100 #f))))
+  (test-equal 50 (length (filter string? (run-socket-selector 10 1000))))
+
+  (socket-shutdown server-sock SHUT_RDWR)
+  (socket-close server-sock)
+  (guard (e (else #t)) (thread-join! server-thread)))
 
 (test-end)
 
