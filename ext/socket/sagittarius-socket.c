@@ -39,16 +39,16 @@
 /* MSVC 2012 doesn't have this, so define it */
 typedef int ssize_t;
 typedef long suseconds_t;
-# ifndef EINTR
+# ifdef EINTR
 #  undef EINTR
 # endif
-# ifndef EAGAIN
+# ifdef EAGAIN
 #  undef EAGAIN
 # endif
-# ifndef EWOULDBLOCK
+# ifdef EWOULDBLOCK
 #  undef EWOULDBLOCK
 # endif
-# ifndef EPIPE
+# ifdef EPIPE
 #  undef EPIPE
 # endif
 # define EINTR  WSAEINTR
@@ -744,25 +744,29 @@ SgObject Sg_SocketAccept(SgSocket *socket)
   SOCKET fd = -1;
   
 #ifdef _WIN32
-  SgVM *vm = Sg_VM();
-  HANDLE hEvents[2];
+  HANDLE hEvent;
   int r;
+  WSANETWORKEVENTS netEvents;
 #endif
   
   CLOSE_SOCKET("socket-accept", socket);
 
 #ifdef _WIN32
-  hEvents[0] = CreateEvent(NULL, FALSE, FALSE, NULL);
-  hEvents[1] = (&vm->thread)->event;
-  ResetEvent(hEvents[1]);	/* reset before wait */
-  SG_SET_SOCKET_EVENT(socket, hEvents[0], FD_ACCEPT);
-  r = WaitForMultipleObjects(2, hEvents, FALSE, INFINITE);
-  SG_SET_SOCKET_EVENT(socket, hEvents[0], 0);
-  CloseHandle(hEvents[0]);
+  hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+  SG_SET_SOCKET_EVENT(socket, hEvent, FD_ACCEPT | FD_CLOSE);
+  r = WaitForSingleObjectEx(hEvent, INFINITE, TRUE);
+  SG_SET_SOCKET_EVENT(socket, hEvent, 0);
+  CloseHandle(hEvent);
   if (r != WAIT_OBJECT_0) {
-    ResetEvent(hEvents[1]);
     WSASetLastError(EINTR);
     return SG_FALSE;		/* interrupted! */
+  }
+  
+  WSAEnumNetworkEvents(socket->socket, hEvent, &netEvents);
+  if (netEvents.lNetworkEvents & FD_CLOSE) {
+    raise_socket_error(SG_INTERN("socket-accept"), 
+		       Sg_GetLastErrorMessageWithErrorCode(WSAECONNRESET),
+		       Sg_MakeConditionSocket(socket), socket);
   }
 #endif
   
@@ -996,11 +1000,8 @@ static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
   int max = 0, numfds;
   
 #ifdef _WIN32
-  SgVM *vm = Sg_VM();
-  HANDLE hEvents[2];
-  hEvents[0] = CreateEvent(NULL, FALSE, FALSE, NULL);
-  /* all the same */
-  hEvents[1] = (&vm->thread)->event;
+  HANDLE hEvent;
+  hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 #endif
   
   if (rfds) max = rfds->maxfd;
@@ -1015,29 +1016,36 @@ static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
     if (fdset) {							\
       SgObject sockets = (fdset)->sockets;				\
       SG_FOR_EACH(sockets, sockets) {					\
-	SG_SET_SOCKET_EVENT(SG_CAR(sockets), hEvents[0], flags);	\
+	SG_SET_SOCKET_EVENT(SG_CAR(sockets), hEvent, flags);		\
       }									\
     }									\
   }while (0)
 
-  SET_EVENT(rfds, FD_READ | FD_OOB);
-  SET_EVENT(wfds, FD_WRITE);
-  SET_EVENT(efds, FD_READ | FD_OOB);
+  SET_EVENT(rfds, FD_READ | FD_OOB | FD_CLOSE);
+  SET_EVENT(wfds, FD_WRITE | FD_CLOSE);
+  SET_EVENT(efds, FD_READ | FD_OOB | FD_CLOSE);
 
-  int r = WaitForMultipleObjects(2, hEvents, FALSE, INFINITE);
+  select_timeval(timeout, &tv);
+  DWORD millis = tv.tv_sec * 1000 + tv.tv_usec/1000;
+  int r = WaitForSingleObjectEx(hEvent, millis, TRUE);
+  if (r == WAIT_TIMEOUT) {
+    /* call select without waiting */
+    tv.tv_sec = 0;
+    tv.tv_usec = 0;
+  }
   /* we don't have to wait any more so close it */
   SET_EVENT(rfds, 0);
   SET_EVENT(wfds, 0);
   SET_EVENT(efds, 0);
-  CloseHandle(hEvents[0]);
+  CloseHandle(hEvent);
+  
   if (r == WAIT_OBJECT_0) {
     numfds = select(max + 1, 
 		    (rfds ? &rfds->fdset : NULL), 
 		    (wfds ? &wfds->fdset : NULL), 
 		    (efds ? &efds->fdset : NULL), 
-		    select_timeval(timeout, &tv));
+		    &tv);
   } else {
-    ResetEvent(hEvents[1]);
     WSASetLastError(EINTR);
     numfds = -1;
   }
@@ -1084,7 +1092,6 @@ static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
   REMOVE_SOCKET(efds);
 
 #undef REMOVE_SOCKET
-
   return Sg_Values4(Sg_MakeInteger(numfds),
 		    (rfds ? SG_OBJ(rfds) : SG_FALSE),
 		    (wfds ? SG_OBJ(wfds) : SG_FALSE),

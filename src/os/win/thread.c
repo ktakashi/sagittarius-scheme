@@ -404,9 +404,14 @@ void Sg_TerminateThread(SgInternalThread *thread)
   
 }
 
+static void dummy_apc(ULONG_PTR ignore)
+{
+  /* do nothing */
+}
+
 int Sg_InterruptThread(SgInternalThread *thread)
 {
-  return SetEvent(thread->event);
+  return QueueUserAPC(dummy_apc, thread->thread, NULL);
 }
 
 SgInternalSemaphore * Sg_InitSemaphore(SgString *name, int value)
@@ -464,7 +469,7 @@ SgInternalSemaphore * Sg_InitSemaphore(SgString *name, int value)
 int  Sg_WaitSemaphore(SgInternalSemaphore *semaphore, struct timespec *pts)
 {
   DWORD msecs = converts_timespec(pts);
-  int r = WaitForSingleObject(semaphore->semaphore, msecs);
+  int r = WaitForSingleObjectEx(semaphore->semaphore, msecs, TRUE);
   if (r == WAIT_TIMEOUT) return SG_INTERNAL_COND_TIMEDOUT;
   if (r != WAIT_OBJECT_0) return SG_INTERNAL_COND_INTR;
   return 0;

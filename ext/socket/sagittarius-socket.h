@@ -179,21 +179,20 @@ SG_CLASS_DECL(Sg_SocketPortClass);
     if (SG_SOCKET(socket)->nonblocking) {			\
       (ret) = operation;					\
     } else {							\
-      HANDLE hEvents_[2];					\
+      HANDLE hEvent_;						\
       SgVM *vm = Sg_VM();					\
       int r;							\
-      hEvents_[0] = CreateEvent(NULL, FALSE, FALSE, NULL);	\
-      hEvents_[1] = (&vm->thread)->event;			\
-      SG_SET_SOCKET_EVENT(socket, hEvents_[0], flags);		\
-      r = WaitForMultipleObjects(2, hEvents_, FALSE, INFINITE);	\
+      hEvent_ = CreateEvent(NULL, FALSE, FALSE, NULL);		\
+      SG_SET_SOCKET_EVENT(socket, hEvent_, flags);		\
+      r = WaitForSingleObjectEx(hEvents_, INFINITE, TRUE);	\
       if (r == WAIT_OBJECT_0) {					\
 	(ret) = operation;					\
       } else {							\
 	ret = -1;						\
 	SetLastError(WSAEINTR);					\
       }								\
-      SG_SET_SOCKET_EVENT(socket, hEvents_[0], 0);		\
-      CloseHandle(hEvents_[0]);					\
+      SG_SET_SOCKET_EVENT(socket, hEvent_, 0);			\
+      CloseHandle(hEvent_);					\
     }								\
   } while (0)
 #else

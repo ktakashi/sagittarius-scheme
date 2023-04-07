@@ -112,7 +112,6 @@ typedef struct SgInternalThreadRec
 {
   HANDLE  thread;
   void   *returnValue;
-  HANDLE  event;
   uintptr_t stackBase;
   jmp_buf jbuf;
 } SgInternalThread;
@@ -120,7 +119,6 @@ typedef unsigned int SgThreadEntryFunc(void *);
 #define SG_INTERNAL_THREAD_INIT(thr)				\
   do {								\
     (thr)->thread = (HANDLE)NULL;				\
-    (thr)->event = CreateEvent(NULL, TRUE, FALSE, NULL);	\
   } while (0)
 #define SG_INTERNAL_THREAD_INITIALIZED_P(thr) ((thr)->thread != (HANDLE)NULL)
 typedef struct SgInternalCondRec

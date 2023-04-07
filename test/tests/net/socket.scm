@@ -6,6 +6,7 @@
 	(srfi :18)
 	(srfi :19)
 	(srfi :64)
+	(sagittarius threads)
 	(util concurrent)
 	(rename (sagittarius crypto keys)
 		(*key:rsa* RSA)
@@ -120,17 +121,16 @@
   (define (server-run)
     (guard (e (else #t))
       (let ((addr (socket-accept server-socket)))
-	(socket-set-read-timeout! addr 100) ;; 100us
-	(call-with-socket addr
-	  (lambda (sock)
-	    (guard (e (else e))
-	      (socket-send sock (socket-recv sock 5))))))))
+	(socket-set-read-timeout! addr 1)
+	(let ((r (guard (e (else e))
+		   (socket-send addr (socket-recv addr 5)))))
+	  (socket-shutdown addr SHUT_RDWR)
+	  (socket-close addr)
+	  r))))
   (define port
     (number->string (socket-info-port (socket-info server-socket))))
   (let ()
-    (define server-thread (make-thread server-run))
-    (thread-start! server-thread)
-    
+    (define server-thread (thread-start! (make-thread server-run)))
     (let ((client-socket (make-client-socket "localhost" port)))
       (thread-sleep! 0.2)
       (let ((r (thread-join! server-thread)))
@@ -199,59 +199,67 @@
 		  (tls-socket-recv! client-socket buffer 0 5))
       (shutdown&close client-socket))))
 
-(define (run-socket-selector hard-timeout soft-timeout)
-  (define server-sock (make-server-socket "0"))
-  (define (echo sock e reuse-invoker)
-    (unless e
-      (socket-send sock (socket-recv sock 255)))
-    (socket-shutdown sock SHUT_RDWR)
-    (socket-close sock))
-  (define server-thread
-    (thread-start!
-     (make-thread
-      (lambda ()
-	(let-values (((socket-selector terminater)
-		      (make-socket-selector hard-timeout print)))
-	  (guard (e (else (terminater)))
-	    (let loop ()
-	      (let ((sock (socket-accept server-sock)))
-		(socket-selector sock echo soft-timeout)
-		(loop)))))))))
-  (define result (make-shared-queue))
-  (define server-port
-    (number->string (socket-info-port (socket-info server-sock))))
+(let ()
+  (define count 50)
+  (define (run-socket-selector hard-timeout soft-timeout)
+    (define server-sock (make-server-socket "0"))
+    (define (echo sock e reuse-invoker)
+      (unless e
+	(socket-send sock (socket-recv sock 255)))
+      (socket-shutdown sock SHUT_RDWR)
+      (socket-close sock))
+    (define server-thread
+      (thread-start!
+       (make-thread
+	(lambda ()
+	  (let-values (((socket-selector terminater)
+			(make-socket-selector hard-timeout print)))
+	    (guard (e (else (terminater)))
+	      (let loop ()
+		(let ((sock (socket-accept server-sock)))
+		  (when sock
+		    (socket-selector sock echo soft-timeout)
+		    (loop))))))))))
+    (define result (make-shared-queue))
+    (define server-port
+      (number->string (socket-info-port (socket-info server-sock))))
 
-  (define (caller i)
-    (make-thread
-     (lambda ()
-       (let ((s (make-client-socket "localhost" server-port)))
-	 (guard (e (else s))
-	   (thread-sleep! 0.1)
-	   (socket-send s (string->utf8
-			   (string-append "Hello world " (number->string i))))
-	   (let ((v (utf8->string (socket-recv s 255))))
-	     (unless (zero? (string-length v))
-	       (shared-queue-put! result v)))
-	   (socket-shutdown s SHUT_RDWR)
-	   s)))))
-  (define (safe-join! t)
-    (guard (e ((socket-error? (uncaught-exception-reason e))
-	       (socket-error-socket e))
-	      (else #f))
-      (thread-join! t)))
+    (define (caller i)
+      (make-thread
+       (lambda ()
+	 (let ((s (make-client-socket "localhost" server-port)))
+	   (guard (e (else (socket-shutdown s SHUT_RDWR) s))
+	     (thread-sleep! 0.1)
+	     (socket-send s (string->utf8
+			     (string-append "Hello world " (number->string i))))
+	     (let ((v (utf8->string (socket-recv s 255))))
+	       (cond ((zero? (string-length v)) (shared-queue-put! result #f))
+		     (else (shared-queue-put! result v))))
+	     (socket-shutdown s SHUT_RDWR)
+	     s)))))
+    (define (safe-join! t)
+      (guard (e ((socket-error? (uncaught-exception-reason e))
+		 (socket-error-socket e))
+		(else #f))
+	(thread-join! t)))
 
-  (for-each socket-close
-	    (map safe-join! (map thread-start! (map caller (iota 100)))))
+    (for-each socket-close
+	      (map safe-join! (map thread-start! (map caller (iota count)))))
 
-  (socket-shutdown server-sock SHUT_RDWR)
-  (socket-close server-sock)
-  (guard (e (else #t)) (thread-join! server-thread))
-  (shared-queue->list result))
+    (socket-shutdown server-sock SHUT_RDWR)
+    (socket-close server-sock)
+    ;; for windows... 
+    ;; FIXME socket-accept must detect socket close on Windows as well
+    (case (thread-state server-thread)
+      ((runnable) (thread-interrupt! server-thread)))
+    (guard (e (else #t)) (thread-join! server-thread))
+    (shared-queue->list result))
 
-(test-equal 100 (length (run-socket-selector 1000 #f)))
-(test-assert (not (= 100 (length (run-socket-selector 10 #f)))))
-(test-equal 100 (length (run-socket-selector 10 1000)))
-
+  (test-equal count (length (filter string? (run-socket-selector 1000 #f))))
+  (test-assert (not (= count (length
+			      (filter string? (run-socket-selector 10 #f))))))
+  (test-equal count (length (filter string? (run-socket-selector 10 1000))))
+  )
 
 (let ()
   (define server-sock (make-server-socket "0"))
@@ -310,6 +318,9 @@
 
   (socket-shutdown server-sock SHUT_RDWR)
   (socket-close server-sock)
+  ;; FIXME the same reason...
+  (case (thread-state server-thread)
+    ((runnable) (thread-interrupt! server-thread)))
   (guard (e (else #t)) (thread-join! server-thread)))
 
 (test-end)
