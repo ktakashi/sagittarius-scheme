@@ -209,16 +209,16 @@
       r))
 
   (define (socket-set-read-timeout! socket read-timeout)
-    (cond ((and (integer? read-timeout) (exact? read-timeout) )
-	   ;; in micro seconds
+    (cond ((and (integer? read-timeout) (exact? read-timeout))
+	   ;; in milli second, for Windows...
 	   (let ((time (make-time time-duration
-				  (* (mod read-timeout 1000000) 1000)
-				  (div read-timeout 1000000))))
+				  (* (mod read-timeout 1000) 1000000)
+				  (div read-timeout 1000))))
 	     (socket-set-read-timeout! socket time)))
 	  ((time? read-timeout)
 	   (socket-setsockopt! socket SOL_SOCKET SO_RCVTIMEO read-timeout))
 	  (else (assertion-violation 'socket-set-read-timeout!
-		  "Timeout value must be an exact integer (microseconds) or time"
+		  "Timeout value must be an exact integer (milliseconds) or time"
 		  read-timeout))))
   
   (define (call-with-socket socket proc)
