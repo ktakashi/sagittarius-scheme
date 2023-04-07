@@ -79,7 +79,7 @@
   CIPHER_DESCRIPTOR_DEFAULT_ROUNDS)
 (define-c-proc cipher-descriptor-suggested-keysize (cipher::<cipher> :optional (size::<fixnum> (SG_MAKE_INT (CIPHER_DESCRIPTOR_MAX_KEY_LENGTH cipher))))
   ::<fixnum>
-  (let ((err::int (CIPHER_DESCRIPTOR_KEYSIZE cipher (& size))))
+  (let ((err::int (CIPHER_DESCRIPTOR_KEYSIZE cipher (& (cast int size)))))
     (check-tomcrypt-error 'cipher-descriptor-suggested-keysize err)
     (result size)))
 
