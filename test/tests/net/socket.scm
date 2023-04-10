@@ -204,9 +204,10 @@
   (define (run-socket-selector hard-timeout soft-timeout)
     (define server-sock (make-server-socket "0"))
     (define (echo sock e reuse-invoker)
-      (unless e
-	(socket-send sock (socket-recv sock 255)))
-      (socket-shutdown sock SHUT_RDWR)
+      (if e
+	  (socket-send sock #vu8())
+	  (socket-send sock (socket-recv sock 255)))
+      (socket-shutdown sock SHUT_RD)
       (socket-close sock))
     (define server-thread
       (thread-start!
@@ -214,7 +215,7 @@
 	(lambda ()
 	  (let-values (((socket-selector terminater)
 			(make-socket-selector hard-timeout print)))
-	    (guard (e (else (terminater)))
+	    (guard (e (else #;(print e) (terminater)))
 	      (let loop ()
 		(let ((sock (socket-accept server-sock)))
 		  (when sock
@@ -225,36 +226,32 @@
       (number->string (socket-info-port (socket-info server-sock))))
 
     (define (caller i)
-      (make-thread
-       (lambda ()
-	 (let ((s (make-client-socket "localhost" server-port)))
-	   (guard (e (else (socket-shutdown s SHUT_RDWR) s))
-	     (thread-sleep! 0.1)
-	     (socket-send s (string->utf8
-			     (string-append "Hello world " (number->string i))))
-	     (let ((v (utf8->string (socket-recv s 255))))
-	       (cond ((zero? (string-length v)) (shared-queue-put! result #f))
-		     (else (shared-queue-put! result v))))
-	     (socket-shutdown s SHUT_RDWR)
-	     s)))))
+      (thread-start!
+       (make-thread
+	(lambda ()
+	  (let ((s (make-client-socket "localhost" server-port)))
+	    (guard (e (else #;(print e) (socket-shutdown s SHUT_RDWR) s))
+	      (thread-sleep! 0.1)
+	      (socket-send s (string->utf8
+			      (string-append "Hello world " (number->string i))))
+	      (let ((v (utf8->string (socket-recv s 255))))
+		(cond ((zero? (string-length v)) (shared-queue-put! result #f))
+		      (else (shared-queue-put! result v))))
+	      (socket-shutdown s SHUT_RDWR)
+	      s)))
+	(string-append "client-thread-" (number->string i)))))
     (define (safe-join! t)
-      (guard (e ((socket-error? (uncaught-exception-reason e))
-		 (socket-error-socket e))
+      (guard (e ((uncaught-exception? e)
+		 (uncaught-exception-reason e))
 		(else #f))
 	(thread-join! t)))
-
-    (for-each socket-close
-	      (map safe-join! (map thread-start! (map caller (iota count)))))
+    (for-each socket-close (map safe-join! (map caller (iota count))))
 
     (socket-shutdown server-sock SHUT_RDWR)
     (socket-close server-sock)
-    ;; for windows... 
-    ;; FIXME socket-accept must detect socket close on Windows as well
-    (case (thread-state server-thread)
-      ((runnable) (thread-interrupt! server-thread)))
+    (test-assert (socket-closed? server-sock))
     (guard (e (else #t)) (thread-join! server-thread))
     (shared-queue->list result))
-
   (test-equal count (length (filter string? (run-socket-selector 1000 #f))))
   (test-assert (not (= count (length
 			      (filter string? (run-socket-selector 10 #f))))))
@@ -290,12 +287,13 @@
 	  (thread-start!
 	   (make-thread
 	    (lambda ()
-	      (let ((v (or e (utf8->string (socket-recv sock 255)))))
-		(socket-shutdown sock SHUT_RDWR)
-		(socket-close sock)
-		(if (string? v)
-		    (and (not (zero? (string-length v))) v)
-		    e)))))))
+	      (guard (e (else #;(print e) e))
+		(let ((v (or e (utf8->string (socket-recv sock 255)))))
+		  (socket-shutdown sock SHUT_RDWR)
+		  (socket-close sock)
+		  (if (string? v)
+		      (and (not (zero? (string-length v))) v)
+		      e))))))))
       (let ((s (make-client-socket "localhost" server-port)))
 	(socket-send s (string->utf8
 			(string-append "Hello world " (number->string i))))
@@ -311,16 +309,12 @@
       (let ((r (map thread-join! (collect-thread))))
 	(terminator)
 	r)))
-
   (test-equal 50 (length (filter string? (run-socket-selector 1000 #f))))
   (test-equal 0 (length (filter string? (run-socket-selector 100 #f))))
   (test-equal 50 (length (filter string? (run-socket-selector 10 1000))))
 
   (socket-shutdown server-sock SHUT_RDWR)
   (socket-close server-sock)
-  ;; FIXME the same reason...
-  (case (thread-state server-thread)
-    ((runnable) (thread-interrupt! server-thread)))
   (guard (e (else #t)) (thread-join! server-thread)))
 
 (test-end)

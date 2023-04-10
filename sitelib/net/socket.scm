@@ -497,11 +497,19 @@
 	  ;;      1024 sockets, which is too small...
 	  (let-values (((n r w e) (socket-select! fdset #f #f timeout)))
 	    (mutex-unlock! lock)
+	    ;; there is a floating moment betwenn thread interruption and
+	    ;; lock acquisition, if this thread is extremely fast and reaches
+	    ;; to the next lock acquisition before the other thread, then
+	    ;; the other thread waits until the lock is release. However,
+	    ;; the moment will never come as nobody would interrupt the thread.
+	    ;; To avoid the situation, we give some space to the other thread
+	    ;; with some hope.
+	    (thread-yield!)
 	    (if n
 		(let ((s (fdset-sockets r)))
 		  (for-each handle-on-read s)
 		  (let-values (((s* t) (update-sockets! (current-time))))
-		    (cond ((and (not (null? s*)) (mutex-lock! lock 0))
+		    (cond ((and (not (null? s*)) (mutex-lock! lock))
 			   ;; check if there's a message before
 			   ;; waiting for the sockets
 			   (cond ((receiver 0 #f) =>
@@ -520,11 +528,15 @@
 	    (let-values (((waiting-sockets timeout) (update-sockets! now))
 			 ((socket on-read this-timeout) (apply values entry)))
 	      (set-socket socket on-read now this-timeout)
-	      (cond ((mutex-lock! lock 0)
+	      (mutex-lock! lock)
+	      (cond ((receiver 0 #f) =>
+		     ;; next entry is on the way
+		     (lambda (e)
+		       (mutex-unlock! lock)
+		       (wait-entry e)))
+		    (else
 		     (wait-socket (get-timeout timeout this-timeout)
-				  (cons socket waiting-sockets)))
-		    ;; next entry is on the way
-		    (else (wait-entry (receiver))))))))))
+				  (cons socket waiting-sockets))))))))))
   
   (define (dispatch-socket receiver sender)
     (let loop ()
@@ -552,7 +564,6 @@
 	    (else
 	     (assertion-violation 'make-socket-selector
 	       "Timeout must be integer (ms) or time" timeout))))
-
     (actor-interrupt! socket-poll-actor)
     (mutex-lock! lock)
     (actor-send-message! socket-poll-actor
