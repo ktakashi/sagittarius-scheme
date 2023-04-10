@@ -79,7 +79,7 @@ int Sg_GetTimeOfDay(unsigned long *sec, unsigned long *nsec)
 void Sg_YieldCPU()
 {
   /* 
-     If the function returns zero, then there's not other thread to
+     If the function returns zero, then there's no other threads to
      switch. Thus the current thread can keep executing. It's better
      than wait 10 millisecond.
    */

@@ -404,14 +404,12 @@ void Sg_TerminateThread(SgInternalThread *thread)
   
 }
 
-static void dummy_apc(ULONG_PTR ignore)
-{
-  /* do nothing */
-}
-
 int Sg_InterruptThread(SgInternalThread *thread)
 {
-  return QueueUserAPC(dummy_apc, thread->thread, NULL);
+  /* we can't use QueueUserAPC here since there's not unqueue API is
+     provided, means, all the WaitFor*Object*Ex will get interrupted
+     immediately as long as there's a queued procedure */
+  return SetEvent(thread->event);
 }
 
 SgInternalSemaphore * Sg_InitSemaphore(SgString *name, int value)
@@ -466,7 +464,8 @@ SgInternalSemaphore * Sg_InitSemaphore(SgString *name, int value)
   }
   return sem;
 }
-int  Sg_WaitSemaphore(SgInternalSemaphore *semaphore, struct timespec *pts)
+
+int Sg_WaitSemaphore(SgInternalSemaphore *semaphore, struct timespec *pts)
 {
   DWORD msecs = converts_timespec(pts);
   int r = WaitForSingleObjectEx(semaphore->semaphore, msecs, TRUE);
@@ -482,6 +481,7 @@ int  Sg_PostSemaphore(SgInternalSemaphore *semaphore)
   if (r) return 0;
   return GetLastError();
 }
+
 void Sg_CloseSemaphore(SgInternalSemaphore *semaphore)
 {
   CloseHandle(semaphore->semaphore);

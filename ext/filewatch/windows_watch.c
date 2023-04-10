@@ -309,7 +309,7 @@ void Sg_StartMonitoring(SgFileWatchContext *ctx)
   int n = Sg_Length(wc->mappings), i;
   SgObject cp, *paths = SG_NEW_ARRAY(SgObject, n);
   OVERLAPPED *ols = SG_NEW_ATOMIC2(OVERLAPPED *, n * sizeof(OVERLAPPED));
-  HANDLE *events = SG_NEW_ATOMIC2(HANDLE *, n * sizeof(HANDLE));
+  HANDLE *events = SG_NEW_ATOMIC2(HANDLE *, (n + 1) * sizeof(HANDLE));
   HANDLE *dirs =   SG_NEW_ATOMIC2(HANDLE *, n * sizeof(HANDLE));
   FILE_NOTIFY_INFORMATION **buf =
     SG_NEW_ATOMIC2(FILE_NOTIFY_INFORMATION **, 
@@ -340,9 +340,16 @@ void Sg_StartMonitoring(SgFileWatchContext *ctx)
     if (!rc) goto err;
   }
   /* now wait */
+#ifdef __CYGWIN__
+  events[n] = wc->event = CreateEvent(NULL, FALSE, FALSE, NULL);
+#else
+  events[n] = (&Sg_VM()->thread)->event;
+#endif
   while (1) {
     if (ctx->stopRequest) goto end;
-    r = WaitForMultipleObjectsEx(n, events, FALSE, INFINITE, TRUE);
+    /* reset thread event before wait. this avoids unexpected interruption. */
+    ResetEvent(events[n]);
+    r = WaitForMultipleObjects(n+1, events, FALSE, INFINITE);
     /* reset event no matter what */
     ResetEvent(events[r - WAIT_OBJECT_0]);
     if (r == WAIT_OBJECT_0 + n) {
@@ -370,6 +377,10 @@ void Sg_StartMonitoring(SgFileWatchContext *ctx)
     if (events[i]) CloseHandle(events[i]);
     if (dirs[i]) CloseHandle(dirs[i]);
   }
+#ifdef __CYGWIN__
+  CloseHandle(wc->event);
+  wc->event = INVALID_HANDLE_VALUE;
+#endif
   ctx->stopRequest = FALSE;
   if (e) {
     Sg_SystemError(e, UC("%A"), Sg_GetLastErrorMessageWithErrorCode(e));

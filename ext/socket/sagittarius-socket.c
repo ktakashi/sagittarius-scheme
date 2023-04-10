@@ -321,6 +321,9 @@ static SgSocket* make_socket_inner(SOCKET fd)
   Sg_RegisterFinalizer(s, socket_finalizer, NULL);
   s->type = SG_SOCKET_UNKNOWN;
   s->address = NULL;
+#ifdef _WIN32
+  s->event = CreateEvent(NULL, FALSE, FALSE, NULL);
+#endif
   return s;
 }
 
@@ -744,29 +747,35 @@ SgObject Sg_SocketAccept(SgSocket *socket)
   SOCKET fd = -1;
   
 #ifdef _WIN32
-  HANDLE hEvent;
+  SgVM *vm = Sg_VM();
+  HANDLE hEvents[3];
   int r;
-  WSANETWORKEVENTS netEvents;
 #endif
   
   CLOSE_SOCKET("socket-accept", socket);
 
 #ifdef _WIN32
-  hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-  SG_SET_SOCKET_EVENT(socket, hEvent, FD_ACCEPT | FD_CLOSE);
-  r = WaitForSingleObjectEx(hEvent, INFINITE, TRUE);
-  SG_SET_SOCKET_EVENT(socket, hEvent, 0);
-  CloseHandle(hEvent);
-  if (r != WAIT_OBJECT_0) {
+  ResetEvent((&vm->thread)->event);
+  /* Here, we can't use FD_CLOSE, more precisely, it won't be
+     provided at all. */
+  hEvents[0] = CreateEvent(NULL, FALSE, FALSE, NULL);
+  hEvents[1] = socket->event;
+  hEvents[2] = (&vm->thread)->event;
+  SG_SET_SOCKET_EVENT(socket, hEvents[0], FD_ACCEPT);
+  r = WaitForMultipleObjects(3, hEvents, FALSE, INFINITE);
+  SG_SET_SOCKET_EVENT(socket, hEvents[0], 0);
+  CloseHandle(hEvents[0]);
+  ResetEvent(socket->event);
+  if (r == WAIT_OBJECT_0 + 2) {
     WSASetLastError(EINTR);
     return SG_FALSE;		/* interrupted! */
   }
-  
-  WSAEnumNetworkEvents(socket->socket, hEvent, &netEvents);
-  if (netEvents.lNetworkEvents & FD_CLOSE) {
+  if (r != WAIT_OBJECT_0) {
+    /* socket is closed */
     raise_socket_error(SG_INTERN("socket-accept"), 
 		       Sg_GetLastErrorMessageWithErrorCode(WSAECONNRESET),
 		       Sg_MakeConditionSocket(socket), socket);
+    return SG_UNDEF;	/* dummy */
   }
 #endif
   
@@ -815,7 +824,9 @@ void Sg_SocketClose(SgSocket *socket)
      any way to flush socket other than shutting down write side of
      socket descriptor on Windows. */
   shutdown(socket->socket, SD_SEND);
+  SetEvent(socket->event);
   closesocket(socket->socket);
+  CloseHandle(socket->event);
 #else
   close(socket->socket);
 #endif
@@ -1000,8 +1011,9 @@ static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
   int max = 0, numfds;
   
 #ifdef _WIN32
-  HANDLE hEvent;
-  hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+  SgVM *vm = Sg_VM();
+  HANDLE hEvents[2];
+  hEvents[0] = CreateEvent(NULL, FALSE, FALSE, NULL);
 #endif
   
   if (rfds) max = rfds->maxfd;
@@ -1010,34 +1022,37 @@ static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 
   /* TODO wrap this with macro */
 #ifdef _WIN32
-
+  ResetEvent((&vm->thread)->event);
 # define SET_EVENT(fdset, flags)					\
   do {									\
     if (fdset) {							\
       SgObject sockets = (fdset)->sockets;				\
       SG_FOR_EACH(sockets, sockets) {					\
-	SG_SET_SOCKET_EVENT(SG_CAR(sockets), hEvent, flags);		\
+	SG_SET_SOCKET_EVENT(SG_CAR(sockets), hEvents[0], flags);	\
       }									\
     }									\
   }while (0)
 
-  SET_EVENT(rfds, FD_READ | FD_OOB | FD_CLOSE);
-  SET_EVENT(wfds, FD_WRITE | FD_CLOSE);
-  SET_EVENT(efds, FD_READ | FD_OOB | FD_CLOSE);
+  SET_EVENT(rfds, FD_READ | FD_OOB);
+  SET_EVENT(wfds, FD_WRITE);
+  SET_EVENT(efds, FD_READ | FD_OOB);
 
   select_timeval(timeout, &tv);
   DWORD millis = tv.tv_sec * 1000 + tv.tv_usec/1000;
-  int r = WaitForSingleObjectEx(hEvent, millis, TRUE);
+  hEvents[1] = (&vm->thread)->event;
+  int r = WaitForMultipleObjects(2, hEvents, FALSE, millis);
+
   if (r == WAIT_TIMEOUT) {
     /* call select without waiting */
     tv.tv_sec = 0;
     tv.tv_usec = 0;
+    r = WAIT_OBJECT_0;
   }
   /* we don't have to wait any more so close it */
   SET_EVENT(rfds, 0);
   SET_EVENT(wfds, 0);
   SET_EVENT(efds, 0);
-  CloseHandle(hEvent);
+  CloseHandle(hEvents[0]);
   
   if (r == WAIT_OBJECT_0) {
     numfds = select(max + 1, 

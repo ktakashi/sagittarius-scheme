@@ -77,6 +77,9 @@ typedef struct SgSocketRec
   int nonblocking;		/* blocking or not */
   SgObject node;
   SgObject service;
+#ifdef _WIN32
+  HANDLE event;			/* for close */
+#endif
 } SgSocket;
 
 SG_CLASS_DECL(Sg_SocketClass);
