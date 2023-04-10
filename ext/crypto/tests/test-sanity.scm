@@ -3,6 +3,7 @@
 ;; is written in other locations
 #!read-macro=sagittarius/bv-string
 (import (rnrs)
+	(sagittarius)
 	(sagittarius crypto digests)
 	(sagittarius crypto mac)
 	(sagittarius crypto random)
@@ -648,7 +649,9 @@
     (let ((sig (signer-sign-message signer msg)))
       (test-assert (car name&ec-parameter)
 		   (verifier-verify-signature verifier msg sig)))))
-(for-each test-ec-parameters all-curves)
+;; This CI is slow...
+(unless (getenv "APPVEYOR")
+  (for-each test-ec-parameters all-curves))
 
 (test-end)
 

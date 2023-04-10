@@ -1,4 +1,5 @@
 (import (rnrs)
+	(sagittarius)
 	(sagittarius crypto ciphers)
 	(sagittarius crypto signatures)
 	(sagittarius crypto keys)
@@ -205,6 +206,7 @@
       (test-assert verifier)
       (for-each (verify-signature verifier) tests))))
 
-(test-begin "Signature test vectors")
-(include "./testvectors/signature.scm")
-(test-end)
+(unless (getenv "APPVEYOR")
+  (test-begin "Signature test vectors")
+  (include "./testvectors/signature.scm")
+  (test-end))

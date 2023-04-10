@@ -1,4 +1,5 @@
 (import (rnrs)
+	(sagittarius)
 	(sagittarius crypto kdfs)
 	(sagittarius crypto digests)
 	(sagittarius crypto mac)
@@ -38,8 +39,10 @@
 	      "ea6c014dc72d6f8ccd1ed92ace1d41f0d8de8957")
 (test-pbkdf-2 *digest:sha-1* "password" "salt" 4096
 	      "4b007901b765489abead49d926f721d065a429c1")
-(test-pbkdf-2 *digest:sha-1* "password" "salt" 16777216
-	      "eefe3d61cd4da4e4e9945b3d6ba2158c2634e984")
+;; It takes too much time on Appveyor...
+(unless (getenv "APPVEYOR")
+  (test-pbkdf-2 *digest:sha-1* "password" "salt" 16777216
+		"eefe3d61cd4da4e4e9945b3d6ba2158c2634e984"))
 
 (test-pbkdf-2 *digest:sha-1*
 	      "passwordPASSWORDpassword"
