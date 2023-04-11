@@ -497,6 +497,9 @@ static void disable_nagle(SOCKET fd)
 #endif
 }
 
+static int socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
+			     SgObject timeout);
+
 SgObject Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo,
 			  SgObject timeout)
 {
@@ -510,8 +513,8 @@ SgObject Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo,
     int ec = last_error;
     if (ec == EINPROGRESS || ec == EWOULDBLOCK) {
       SgObject wfd = Sg_SocketsToFdSet(SG_LIST1(socket));
-      SgObject res = Sg_SocketSelectX(SG_FALSE, wfd, SG_FALSE, timeout);
-      if (!SG_EQ(res, SG_MAKE_INT(1))) {
+      int res = socket_select_int(SG_FALSE, wfd, SG_FALSE, timeout);
+      if (res != 1) {
 	goto err;
       }
       Sg_SocketBlocking(socket);
@@ -857,12 +860,16 @@ static SgFdSet* make_fd_set()
 
 static SgFdSet* copy_fd_set(SgFdSet *src)
 {
-  SgFdSet *z = SG_NEW(SgFdSet);
-  SG_SET_CLASS(z, SG_CLASS_FD_SET);
-  z->fdset = src->fdset;
-  z->maxfd = src->maxfd;
-  z->sockets = Sg_CopyList(src->sockets);
-  return z;
+  if (src == NULL) {
+    return NULL;
+  } else {
+    SgFdSet *z = SG_NEW(SgFdSet);
+    SG_SET_CLASS(z, SG_CLASS_FD_SET);
+    z->fdset = src->fdset;
+    z->maxfd = src->maxfd;
+    z->sockets = Sg_CopyList(src->sockets);
+    return z;
+  }
 }
 
 SgObject Sg_MakeFdSet()
@@ -1004,8 +1011,8 @@ static SgObject remove_socket(SgFdSet *fds)
   return ans;
 }
 
-static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
-				  SgObject timeout)
+static int socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
+			     SgObject timeout)
 {
   struct timeval tv;
   int max = 0, numfds;
@@ -1076,10 +1083,7 @@ static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
   if (numfds < 0) {
     if (last_error == EINTR) {
       SG_INTERRUPTED_THREAD() {
-	return Sg_Values4(SG_FALSE,
-			  SG_FALSE,
-			  SG_FALSE,
-			  SG_FALSE);
+	return -1;
 #ifndef _WIN32
       } SG_INTERRUPTED_THREAD_ELSE() {
 	goto retry;
@@ -1107,10 +1111,7 @@ static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
   REMOVE_SOCKET(efds);
 
 #undef REMOVE_SOCKET
-  return Sg_Values4(Sg_MakeInteger(numfds),
-		    (rfds ? SG_OBJ(rfds) : SG_FALSE),
-		    (wfds ? SG_OBJ(wfds) : SG_FALSE),
-		    (efds ? SG_OBJ(efds) : SG_FALSE));
+  return numfds;
 }
 
 static SgFdSet* check_fd(SgObject o)
@@ -1125,13 +1126,18 @@ static SgFdSet* check_fd(SgObject o)
 SgObject Sg_SocketSelect(SgObject reads, SgObject writes, SgObject errors,
 			 SgObject timeout)
 {
-  SgFdSet *r = check_fd(reads);
-  SgFdSet *w = check_fd(writes);
-  SgFdSet *e = check_fd(errors);
-  return socket_select_int((r? copy_fd_set(r) : NULL),
-			   (w? copy_fd_set(w) : NULL),
-			   (e? copy_fd_set(e) : NULL),
-			   timeout);
+  SgFdSet *r = copy_fd_set(check_fd(reads));
+  SgFdSet *w = copy_fd_set(check_fd(writes));
+  SgFdSet *e = copy_fd_set(check_fd(errors));
+  
+  int rs = socket_select_int(r, w, e, timeout);
+  if (rs < -1) {
+    Sg_Values4(SG_FALSE, SG_FALSE, SG_FALSE, SG_FALSE);
+  }
+  return Sg_Values4(Sg_MakeInteger(rs),
+		    (r ? SG_OBJ(r) : SG_FALSE),
+		    (w ? SG_OBJ(w) : SG_FALSE),
+		    (e ? SG_OBJ(e) : SG_FALSE));
 }
 
 SgObject Sg_SocketSelectX(SgObject reads, SgObject writes, SgObject errors,
@@ -1140,7 +1146,15 @@ SgObject Sg_SocketSelectX(SgObject reads, SgObject writes, SgObject errors,
   SgFdSet *r = check_fd(reads);
   SgFdSet *w = check_fd(writes);
   SgFdSet *e = check_fd(errors);
-  return socket_select_int(r, w, e, timeout);
+  
+  int rs = socket_select_int(r, w, e, timeout);
+  if (rs < -1) {
+    Sg_Values4(SG_FALSE, SG_FALSE, SG_FALSE, SG_FALSE);
+  }
+  return Sg_Values4(Sg_MakeInteger(rs),
+		    (r ? SG_OBJ(r) : SG_FALSE),
+		    (w ? SG_OBJ(w) : SG_FALSE),
+		    (e ? SG_OBJ(e) : SG_FALSE));
 }
 
 
