@@ -1131,8 +1131,8 @@ SgObject Sg_SocketSelect(SgObject reads, SgObject writes, SgObject errors,
   SgFdSet *e = copy_fd_set(check_fd(errors));
   
   int rs = socket_select_int(r, w, e, timeout);
-  if (rs < -1) {
-    Sg_Values4(SG_FALSE, SG_FALSE, SG_FALSE, SG_FALSE);
+  if (rs < 0) {
+    return Sg_Values4(SG_FALSE, SG_FALSE, SG_FALSE, SG_FALSE);
   }
   return Sg_Values4(Sg_MakeInteger(rs),
 		    (r ? SG_OBJ(r) : SG_FALSE),
@@ -1148,8 +1148,8 @@ SgObject Sg_SocketSelectX(SgObject reads, SgObject writes, SgObject errors,
   SgFdSet *e = check_fd(errors);
   
   int rs = socket_select_int(r, w, e, timeout);
-  if (rs < -1) {
-    Sg_Values4(SG_FALSE, SG_FALSE, SG_FALSE, SG_FALSE);
+  if (rs < 0) {
+    return Sg_Values4(SG_FALSE, SG_FALSE, SG_FALSE, SG_FALSE);
   }
   return Sg_Values4(Sg_MakeInteger(rs),
 		    (r ? SG_OBJ(r) : SG_FALSE),
