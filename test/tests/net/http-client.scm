@@ -113,4 +113,23 @@
   (test-status "200" (run bearer-api (http:request-bearer-auth "foo")))
   )
 
+(let ()
+  (define (test-http-client version)
+    (define client (http:client-builder
+		    (version version)
+		    (follow-redirects (http:redirect never))))
+    (define methods '(GET POST PUT DELETE PATCH))
+    (define (test-200s client)
+      (define (test-200 method)
+	(define request (http:request-builder
+			 (method method)
+			 (uri "https://httpbin.org/status/200")))
+	(let ((resp (future-get (http:client-send-async client request))))
+	  (test-equal "200" (http:response-status resp))))
+      (for-each test-200 methods)))
+  
+  (test-http-client (http:version http/1.1))
+  (test-http-client (http:version http/2)))
+  
+
 (test-end)

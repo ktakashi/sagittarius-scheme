@@ -312,7 +312,6 @@
   (test-equal 50 (length (filter string? (run-socket-selector 1000 #f))))
   (test-equal 0 (length (filter string? (run-socket-selector 100 #f))))
   (test-equal 50 (length (filter string? (run-socket-selector 10 1000))))
-
   (socket-shutdown server-sock SHUT_RDWR)
   (socket-close server-sock)
   (guard (e (else #t)) (thread-join! server-thread)))
