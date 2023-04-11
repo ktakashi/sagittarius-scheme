@@ -72,14 +72,14 @@
   (define (handle-requests connection requests)
     (let-values (((keys values) (hashtable-entries requests)))
       (vector-map (lambda (request handlers)
-		    (apply http1-resquest/response connection request handlers))
+		    (apply http1-request/response connection request handlers))
 		  keys values)))
   (let ((results (handle-requests connection requests)))
     (hashtable-clear! requests)
     ;; TODO check reconnectability
     (fold-left (lambda (acc conn) (and acc conn)) #t (vector->list results))))
 
-(define (http1-resquest/response connection request header-handler data-handler)
+(define (http1-request/response connection request header-handler data-handler)
   ;; 1. ensure connection (some bad server may not allow us to reuse
   ;;    the connection (i.e. no content-length or no
   ;;    transfer-encoding, or keep-alive closed specified)

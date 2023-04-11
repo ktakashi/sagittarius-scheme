@@ -111,6 +111,8 @@
   (test-status "200" (run basic-api (http:request-basic-auth "foo" "bar")))
   (test-status "401" (run basic-api (http:request-basic-auth "foo" "baz")))
   (test-status "200" (run bearer-api (http:request-bearer-auth "foo")))
+
+  (http:client-shutdown! client)
   )
 
 (let ()
@@ -126,7 +128,9 @@
 			 (uri "https://httpbin.org/status/200")))
 	(let ((resp (future-get (http:client-send-async client request))))
 	  (test-equal "200" (http:response-status resp))))
-      (for-each test-200 methods)))
+      (for-each test-200 methods))
+
+    (http:client-shutdown! client))
   
   (test-http-client (http:version http/1.1))
   (test-http-client (http:version http/2)))

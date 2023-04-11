@@ -34,6 +34,8 @@
 	    http-connection-manager-release-connection
 	    http-connection-manager-shutdown!
 
+	    http-connection-manager-register-on-readable
+
 	    make-http-default-connection-manager
 
 	    http-connection-config?
@@ -82,7 +84,21 @@
 	  key-manager
 	  dns-timeout
 	  read-timeout
-	  connection-timeout))
+	  connection-timeout
+	  socket-selector
+	  selector-terminator)
+  (protocol (lambda (p)
+	      (lambda (lease
+		       release
+		       shutdown
+		       key-manager
+		       dns-timeout
+		       read-timeout
+		       connection-timeout)
+		(let-values (((selector terminator)
+			      (make-socket-selector read-timeout)))
+		  (p lease release shutdown key-manager dns-timeout
+		     read-timeout connection-timeout selector terminator))))))
 
 (define-record-type http-connection-config
   (fields key-manager
@@ -94,8 +110,7 @@
   (make-record-builder http-connection-config))
 
 (define-record-type http-connection-lease-option
-  (fields alpn
-	  executor))
+  (fields alpn executor))
 (define-syntax http-connection-lease-option-builder
   (make-record-builder http-connection-lease-option))
 
@@ -117,9 +132,20 @@
   ((connection-manager-release manager) manager connection reuse?))
 
 (define (http-connection-manager-shutdown! manager)
+  ((connection-manager-selector-terminator manager))
   ((connection-manager-shutdown manager) manager))
 
-(define-condition-type &dns-timeout &error
+(define (http-connection-manager-register-on-readable manager
+						      conn on-read timeout)
+  (define selector (connection-manager-socket-selector manager))
+  (cond ((http-connection-socket conn) =>
+	 (lambda (socket) (selector socket on-read timeout)))
+	(else
+	 ;; TODO proper error
+	 (error 'http-connection-manager-register-on-readable
+		"Connection is already closed or not open yet" conn))))
+
+(define-condition-type &dns-timeout &i/o
   make-dns-timeout-error dns-timeout-error?
   (node dns-timeout-node)
   (service dns-timeout-service))
@@ -129,16 +155,15 @@
   (define scheme (uri-scheme uri))
   (define host (uri-host uri))
 
-  (define (milli->micro v) (* v 1000))
   (define (milli->time v)
     (let ((n (* v 1000000)))
       (add-duration (current-time) (make-time time-duration n 0))))
   (define connection-timeout
-    (cond ((connection-manager-connection-timeout cm) => milli->micro)
+    (cond ((connection-manager-connection-timeout cm))
 	  (else #f)))
   (define read-timeout
-    (cond ((connection-manager-read-timeout cm)=> milli->micro)
-	    (else #f)))
+    (cond ((connection-manager-read-timeout cm))
+	  (else #f)))
   (define dns-timeout
     (cond ((connection-manager-dns-timeout cm) => milli->time)
 	  (else #f)))
