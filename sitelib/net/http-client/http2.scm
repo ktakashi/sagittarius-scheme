@@ -44,7 +44,7 @@
 	    (rfc http2 conditions)
 	    (rfc http2 hpack)
 	    (srfi :18 multithreading))
-  
+
 (define-record-type http2-connection-context
   (parent <http-connection-context>)
   (fields streams

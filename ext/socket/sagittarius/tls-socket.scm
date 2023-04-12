@@ -45,7 +45,9 @@
 	    tls-socket-authorities
 	    tls-socket-authorities-set!
 	    tls-socket-client-certificate-callback-set!
-	    <tls-socket>)
+	    <tls-socket>
+	    ;; don't use this cacually
+	    tls-socket-raw-socket)
     (import (core)
 	    (core errors)
 	    (clos core)
@@ -54,6 +56,8 @@
 	    (sagittarius dynamic-module))
 (load-dynamic-module "sagittarius--tls-socket")
 
+(define (tls-socket-raw-socket sock) (slot-ref sock 'raw-socket))
+  
 (define (tls-socket-recv! sock bv start len :optional (flags 0))
   (let ((r (%tls-socket-recv! sock bv start len flags)))
     (when (and (< r 0) (not (nonblocking-socket? (slot-ref sock 'raw-socket))))

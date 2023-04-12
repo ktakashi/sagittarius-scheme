@@ -433,16 +433,24 @@
 (define (make-socket-selector
 	 :optional (timeout #f) (error-reporter default-error-reporter))
   (define sockets (make-eq-hashtable))
+  (define wrapped-sockets (make-eq-hashtable))
   (define fdset (make-fdset))
   (define lock (make-mutex))
 
+  (define (unmanage-socket! sock)
+    (hashtable-delete! wrapped-sockets
+		       (if (tls-socket? sock)
+			   (tls-socket-raw-socket sock)
+			   sock))
+    (hashtable-delete! sockets sock))
+  
   (define (on-error event e)
     (when (procedure? error-reporter)
       (guard (e (else #f)) (error-reporter event e))))
     
   (define (update-sockets! now)
     (define (update-socket! sock)
-      (cond ((socket-closed? sock) (hashtable-delete! sockets sock) #f)
+      (cond ((socket-closed? sock) (unmanage-socket! sock) #f)
 	    ((hashtable-ref sockets sock #f) =>
 	     (lambda (e)
 	       (let-values (((s expires timeout on-read) (apply values e)))
@@ -451,7 +459,7 @@
 					 (make-who-condition 'socket-selector)
 					 (make-message-condition "Read timeout")
 					 (make-irritants-condition timeout))))
-		       (hashtable-delete! sockets sock)
+		       (unmanage-socket! sock)
 		       (on-read sock timeout e) ;; let the caller know
 		       #f)
 		     (cons sock
@@ -465,17 +473,18 @@
 			   (vector->list (hashtable-keys sockets)))))
       (values (map car s&t) (least (filter-map cdr s&t)))))
 
-  (define (set-socket socket on-read now timeout)
+  (define (set-socket! socket on-read now timeout)
     (hashtable-set! sockets socket
      (list now (and timeout (add-duration now timeout)) timeout on-read)))
 
   (define (handle-on-read sock)
-    (cond ((socket-closed? sock) (hashtable-delete! sockets sock))
-	  ((hashtable-ref sockets sock #f) =>
-	   (lambda (e)
-	     (let-values (((s e timeout on-read) (apply values e)))
-	       (hashtable-delete! sockets sock)
-	       (on-read sock timeout #f))))))
+    (let ((s0 (hashtable-ref wrapped-sockets sock #f)))
+      (cond ((socket-closed? s0) (unmanage-socket! s0))
+	    ((hashtable-ref sockets s0 #f) =>
+	     (lambda (e)
+	       (let-values (((s e timeout on-read) (apply values e)))
+		 (unmanage-socket! s0)
+		 (on-read s0 timeout #f)))))))
   
   (define (poll-socket receiver sender)
     (define (get-timeout t0 t1)
@@ -488,9 +497,14 @@
 	;; Before getting in this procedure, the lock must be held
 	(let loop ((timeout timeout) (socks socks))
 	  (fdset-clear! fdset)
+	  (hashtable-clear! wrapped-sockets)
 	  (do ((s socks (cdr s))) ((null? s))
 	    (unless (socket-closed? (car s))
-	      (fdset-set! fdset (car s) #t)))
+	      (let ((ss (if (tls-socket? (car s))
+			    (tls-socket-raw-socket (car s))
+			    (car s))))
+		(hashtable-set! wrapped-sockets ss (car s))
+		(fdset-set! fdset ss #t))))
 	  ;; we can't use socket-read-select as we need to distinguish
 	  ;; interruption and timeout
 	  ;; TODO implement poll(1), select(1) can only handle
@@ -527,7 +541,7 @@
 	  (let ((now (current-time)))
 	    (let-values (((waiting-sockets timeout) (update-sockets! now))
 			 ((socket on-read this-timeout) (apply values entry)))
-	      (set-socket socket on-read now this-timeout)
+	      (set-socket! socket on-read now this-timeout)
 	      (mutex-lock! lock)
 	      (cond ((receiver 0 #f) =>
 		     ;; next entry is on the way
@@ -553,7 +567,8 @@
   (define socket-poll-actor (make-shared-queue-channel-actor poll-socket))
   (define on-read-actor (make-shared-queue-channel-actor dispatch-socket))
 
-  (define (push-socket (socket socket?) (on-read procedure?) timeout)
+  (define (push-socket (socket (or socket? tls-socket?))
+		       (on-read procedure?) timeout)
     (define (make-on-read)
       (lambda (sock timeout e)
 	(actor-send-message! on-read-actor (list on-read sock timeout e))))

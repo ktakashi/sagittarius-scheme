@@ -96,6 +96,8 @@
 	    make-hello-extension
 	    make-server-name-indication
 	    make-protocol-name-list
+
+	    tls-socket-raw-socket ;; don't use this casually
 	    )
     (import (rnrs)
 	    (rfc tls constant)
@@ -348,5 +350,4 @@
     (select-sockets socket:socket-write-select timeout rest))
   (define-method socket-error-select (timeout . rest)
     (select-sockets socket:socket-error-select timeout rest))
-
   )

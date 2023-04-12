@@ -61,6 +61,7 @@
    (time-to-live 3)
    (key-manager (test-key-manager))
    (route-max-connections '(("httpbin.org" 10)))
+   (selector-error-handler (lambda args (for-each display args) (newline)))
    #;(delegate-provider
     (make-logging-delegate-connection-provider
      (http-client-logger-builder
@@ -83,6 +84,7 @@
   
   (define client (http:client-builder
 		  (cookie-handler (http:make-default-cookie-handler))
+		  (version (http:version http/1.1))
 		  (connection-manager
 		   (make-http-pooling-connection-manager pooling-config))
 		  (follow-redirects (http:redirect normal))))

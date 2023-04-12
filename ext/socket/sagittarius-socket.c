@@ -1078,6 +1078,7 @@ static int socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 		  (wfds ? &wfds->fdset : NULL), 
 		  (efds ? &efds->fdset : NULL), 
 		  select_timeval(timeout, &tv));
+
 #endif
 
   if (numfds < 0) {

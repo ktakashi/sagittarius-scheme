@@ -143,7 +143,7 @@
       (test-assert "pkcs12-keystore-get-certificate"
 		   (x509-certificate?
 		    (pkcs12-keystore-get-certificate ks "ca"))))
-    (delete-file file)
+    (when (file-exists? file) (delete-file file))
     ))
 
 (let* ((ks (make-pkcs12-keystore))
@@ -218,7 +218,7 @@
       (test-assert "pkcs12-keystore-get-certificate"
 		   (x509-certificate?
 		    (pkcs12-keystore-get-certificate ks "cert"))))
-    (delete-file file)
+    (when (file-exists? file) (delete-file file))
     )
 
   ;; key and cert algorithm

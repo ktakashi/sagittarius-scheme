@@ -87,25 +87,23 @@
 	  connection-timeout
 	  socket-selector
 	  selector-terminator)
-  (protocol (lambda (p)
-	      (lambda (lease
-		       release
-		       shutdown
-		       key-manager
-		       dns-timeout
-		       read-timeout
-		       connection-timeout)
-		(let-values (((selector terminator)
-			      (make-socket-selector read-timeout)))
-		  (p lease release shutdown key-manager dns-timeout
-		     read-timeout connection-timeout selector terminator))))))
+  (protocol
+   (lambda (p)
+     (lambda (lease release shutdown config)
+       (define km (http-connection-config-key-manager config))
+       (define dns (http-connection-config-dns-timeout config))
+       (define read (http-connection-config-read-timeout config))
+       (define conn (http-connection-config-connection-timeout config))
+       (define err (http-connection-config-selector-error-handler config))
+       (let-values (((selector terminator) (make-socket-selector read err)))
+	 (p lease release shutdown km dns read conn selector terminator))))))
 
 (define-record-type http-connection-config
   (fields key-manager
 	  dns-timeout
 	  read-timeout
-	  connection-timeout))
-
+	  connection-timeout
+	  selector-error-handler))
 (define-syntax http-connection-config-builder
   (make-record-builder http-connection-config))
 
@@ -138,8 +136,12 @@
 (define (http-connection-manager-register-on-readable manager
 						      conn on-read timeout)
   (define selector (connection-manager-socket-selector manager))
+  (define (wrap on-read)
+    (lambda (socket e retry)
+      (when e (raise e))
+      (on-read conn retry)))
   (cond ((http-connection-socket conn) =>
-	 (lambda (socket) (selector socket on-read timeout)))
+	 (lambda (socket) (selector socket (wrap on-read) timeout)))
 	(else
 	 ;; TODO proper error
 	 (error 'http-connection-manager-register-on-readable
@@ -201,12 +203,7 @@
   (protocol (lambda (n)
 	      (lambda (config)
 		((n ephemeral-lease-connection ephemeral-release-connection
-		    (lambda (m) #t)
-		    (http-connection-config-key-manager config)
-		    (http-connection-config-dns-timeout config)
-		    (http-connection-config-read-timeout config)
-		    (http-connection-config-connection-timeout config)
-		    ))))))
+		    (lambda (m) #t) config))))))
 
 (define (ephemeral-lease-connection manager request alpn)
   (define uri (http:request-uri request))
@@ -239,11 +236,7 @@
 	      (lambda (config logger)
 		((n (make-logging-lease-connection logger)
 		    (make-logging-release-connection logger)
-		    (lambda (m) #t)
-		    (http-connection-config-key-manager config)
-		    (http-connection-config-dns-timeout config)
-		    (http-connection-config-read-timeout config)
-		    (http-connection-config-connection-timeout config)))))))
+		    (lambda (m) #t) config))))))
 
 (define (make-logging-lease-connection logger)
   (define connection-logger
@@ -296,11 +289,7 @@
    (lambda (n)
      (lambda (config)
        ((n pooling-lease-connection pooling-release-connection
-	   pooling-shutdown
-	   (http-connection-config-key-manager config)
-	   (http-connection-config-dns-timeout config)
-	   (http-connection-config-read-timeout config)
-	   (http-connection-config-connection-timeout config))
+	   pooling-shutdown config)
 	(http-pooling-connection-config-connection-request-timeout config)
 	(http-pooling-connection-config-max-connection-per-route config)
 	(http-pooling-connection-config-route-max-connections config)

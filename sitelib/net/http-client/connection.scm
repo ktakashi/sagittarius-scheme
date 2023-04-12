@@ -69,7 +69,6 @@
    (string-append "sagittarius-" (sagittarius-version) "/http-client")))
 
 (define-record-type http-connection-context)
-
 (define-record-type http-connection
   (fields node
 	  service

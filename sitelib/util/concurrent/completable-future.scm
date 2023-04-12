@@ -92,7 +92,6 @@
 					 future*)))))
 		 executor))
 
-
 ;; For now very naive implementation...
 (define (future-flatmap proc future . future*)
   (apply future-flatmap/executor

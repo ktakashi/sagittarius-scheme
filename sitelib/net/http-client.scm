@@ -167,18 +167,31 @@
       (shutdown-executor! (http:client-executor client))))))
 
 (define (http:client-send client request)
-  (send-request/response client request))
+  (future-get (http:client-send-async client request)))
+
+(define-record-type http-client-future
+  (parent <future>)
+  (protocol (lambda (p) (lambda (box) ((p (lambda () #f) box))))))
 
 (define (http:client-send-async client request)
-  (chain (thunk->future
-	  (lambda () (let-values ((r (send-request client request))) r))
-	  (http:client-executor client))
-	 ;; TODO use async socket here.
-	 (future-map/executor (http:client-executor client)
-	  (lambda (v) (receive-response! client (car v) (cadr v))) _)
-	 (future-map/executor (http:client-executor client)
-	  (lambda (r) (post-respose-receival client request r)) _)))
+  (let ((box (make-shared-box)))
+    (executor-submit! (http:client-executor client)
+     (lambda ()
+       (let-values (((conn retriever) (send-request client request)))
+	 (http-connection-manager-register-on-readable
+	  (http:client-connection-manager client) conn
+	  (handle-response client request retriever box)
+	  (http:request-timeout request)))))
+    (make-http-client-future box)))
 
+(define (handle-response client request response-retriever box)
+  (lambda (conn retry)
+    (chain (executor-submit! (http:client-executor client)
+	    (lambda () (receive-response! client conn response-retriever)))
+	   (future-map/executor (http:client-executor client)
+	    (lambda (r)
+	      (shared-box-put! box
+	       (post-respose-receival client request r))) _))))
 ;;; helper
 (define (default-executor? client)
   (eq? (http:client-executor client) (force *http-client:default-executor*)))

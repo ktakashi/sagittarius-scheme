@@ -350,7 +350,10 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
   return r;
 }
 
-
+/* 
+   TODO: implement this
+   https://stackoverflow.com/questions/1744523/ssl-accept-with-blocking-socket 
+ */
 SgObject Sg_TLSSocketAccept(SgTLSSocket *tlsSocket, int handshake)
 {
   SgObject sock = Sg_SocketAccept(tlsSocket->socket);

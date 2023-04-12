@@ -41,16 +41,17 @@
 	    (sagittarius regex)
 	    (rfc :5322)
 	    (srfi :13 strings)
+	    (srfi :18 multithreading)
 	    (prefix (binary io) binary:)
 	    (util bytevector))
 
 (define-record-type http1-connection-context
   (parent <http-connection-context>)
-  (fields requests
+  (fields (mutable request)
 	  buffer)
   (protocol (lambda (n)
 	      (lambda ()
-		((n) (make-eq-hashtable) (make-bytevector 4096))))))
+		((n) #f (make-bytevector 4096))))))
 
 (define (make-http1-connection socket socket-option node service)
   (make-http-connection node service socket-option socket
@@ -62,36 +63,28 @@
 
 (define (http1-request connection request header-handler data-handler)
   (define context (http-connection-context-data connection))
-  ;; here we only push the request
-  (hashtable-set! (http1-connection-context-requests context)
-		  request (list header-handler data-handler)))
-
-(define (http1-response connection)
-  (define context (http-connection-context-data connection))
-  (define requests (http1-connection-context-requests context))
-  (define (handle-requests connection requests)
-    (let-values (((keys values) (hashtable-entries requests)))
-      (vector-map (lambda (request handlers)
-		    (apply http1-request/response connection request handlers))
-		  keys values)))
-  (let ((results (handle-requests connection requests)))
-    (hashtable-clear! requests)
-    ;; TODO check reconnectability
-    (fold-left (lambda (acc conn) (and acc conn)) #t (vector->list results))))
-
-(define (http1-request/response connection request header-handler data-handler)
   ;; 1. ensure connection (some bad server may not allow us to reuse
   ;;    the connection (i.e. no content-length or no
   ;;    transfer-encoding, or keep-alive closed specified)
-  ;; 2. send request
-  ;; 3. receive response
-  ;; 4. close connection if needed
   (http-connection-open! connection)
+  ;; 2. send request
   (send-request! connection request)
-  (let ((keep? (receive-response! connection request
-				  header-handler data-handler)))
-    (cond (keep? connection)
-	  (else (http-connection-close! connection) #f))))
+  ;; save request with handlers
+  (http1-connection-context-request-set! context
+   (list request header-handler data-handler)))
+
+(define (http1-response connection)
+  (define context (http-connection-context-data connection))
+  (define request (http1-connection-context-request context))
+  (define (handle-request connection request)
+    ;; 3. receive response
+    ;; 4. close connection if needed
+    (let ((keep? (apply receive-response! connection request)))
+      (cond (keep? connection)
+	    (else (http-connection-close! connection) #f))))
+  (let ((result (handle-request connection request)))
+    (http1-connection-context-request-set! context #f)
+    result))
 
 (define (read-one-line in)
   ;; \r\n would be \r for binary:get-line so trim it
