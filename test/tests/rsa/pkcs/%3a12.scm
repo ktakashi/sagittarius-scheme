@@ -133,7 +133,7 @@
 	       (x509-certificate?
 		(pkcs12-keystore-get-certificate keystore "ca")))
   ;; (test-equal "The same mac-algorithm" SHA-1 (slot-ref keystore 'mac-algorithm))
-  (let ((file "test.p12"))
+  (let ((file "test0.p12"))
     (when (file-exists? file) (delete-file file))
     ;; test storing, we can put different password now
     (store-pkcs12-keystore-to-file keystore file "test2")
@@ -206,7 +206,7 @@
 					 "test-ec"
 					 (list cert3)))
   
-  (let ((file "test.p12"))
+  (let ((file "test0.p12"))
     (when (file-exists? file) (delete-file file))
     ;; test storing, we can put different password now
     (store-pkcs12-keystore-to-file ks file "test3")
@@ -257,7 +257,7 @@
 ;; So, test it if we can retrieve it
 (let ((in-file "test/data/keystores/keystore0.b64")
       (in-pass "password")
-      (out-file "test.p12")
+      (out-file "test0.p12")
       (out-pass "password2"))
   (let ((ks (call-with-input-file in-file
 	      (lambda (in)
