@@ -512,8 +512,8 @@ SgObject Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo,
   if (rc < 0) {
     int ec = last_error;
     if (ec == EINPROGRESS || ec == EWOULDBLOCK) {
-      SgObject wfd = Sg_SocketsToFdSet(SG_LIST1(socket));
-      int res = socket_select_int(SG_FALSE, wfd, SG_FALSE, timeout);
+      SgFdSet *wfd = SG_FDSET(Sg_SocketsToFdSet(SG_LIST1(socket)));
+      int res = socket_select_int(NULL, wfd, NULL, timeout);
       if (res != 1) {
 	goto err;
       }
@@ -917,22 +917,22 @@ static struct timeval *select_timeval(SgObject timeout, struct timeval *tm)
   if (SG_INTP(timeout)) {
     long val = SG_INT_VALUE(timeout);
     if (val < 0) goto badtv;
-    tm->tv_sec = val / 1000000;
-    tm->tv_usec = val % 1000000;
+    tm->tv_sec = val / 1000;	/* 10ms = 10_000us */
+    tm->tv_usec = (val % 1000) * 1000;
     return tm;
   } else if (SG_BIGNUMP(timeout)) {
-    long usec;
+    long msec;
     SgObject sec;
     if (Sg_Sign(timeout) < 0) goto badtv;
-    sec = Sg_BignumDivSI(SG_BIGNUM(timeout), 1000000, &usec);
+    sec = Sg_BignumDivSI(SG_BIGNUM(timeout), 1000, &msec);
     tm->tv_sec = Sg_GetInteger(sec);
-    tm->tv_usec = (suseconds_t)usec;
+    tm->tv_usec = (suseconds_t)msec * 1000;
     return tm;
   } else if (SG_FLONUMP(timeout)) {
     long val = Sg_GetInteger(timeout);
     if (val < 0) goto badtv;
-    tm->tv_sec = val / 1000000;
-    tm->tv_usec = val % 1000000;
+    tm->tv_sec = val / 1000;
+    tm->tv_usec = (val % 1000) * 1000;
     return tm;
   } else if (SG_PAIRP(timeout) && SG_PAIRP(SG_CDR(timeout))) {
     SgObject sec = SG_CAR(timeout);
@@ -951,7 +951,7 @@ static struct timeval *select_timeval(SgObject timeout, struct timeval *tm)
     return tm;
   }
  badtv:
-  Sg_Error(UC("timeval needs to be a real number (in microseconds), a list "
+  Sg_Error(UC("timeval needs to be a real number (in milliseconds), a list "
 	      "of two integers (seconds and microseconds), or a time object "
 	      "but got %S"),
 	   timeout);
@@ -1142,7 +1142,7 @@ SgObject Sg_SocketSelect(SgObject reads, SgObject writes, SgObject errors,
 }
 
 SgObject Sg_SocketSelectX(SgObject reads, SgObject writes, SgObject errors,
-			 SgObject timeout)
+			  SgObject timeout)
 {
   SgFdSet *r = check_fd(reads);
   SgFdSet *w = check_fd(writes);
