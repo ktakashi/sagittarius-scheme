@@ -75,7 +75,8 @@
 	    (srfi :18 multithreading)
 	    (srfi :19 time)
 	    (srfi :39 parameters)
-	    (util concurrent))
+	    (util concurrent)
+	    (util duration))
 
 (define-record-type connection-manager
   (fields lease
@@ -134,11 +135,14 @@
   ((connection-manager-shutdown manager) manager))
 
 (define (http-connection-manager-register-on-readable manager
-						      conn on-read timeout)
+						      conn
+						      on-read
+						      on-error
+						      timeout)
   (define selector (connection-manager-socket-selector manager))
   (define (wrap on-read)
     (lambda (socket e retry)
-      (when e (raise e))
+      (when e (on-error e))
       (on-read conn retry)))
   (cond ((http-connection-socket conn) =>
 	 (lambda (socket) (selector socket (wrap on-read) timeout)))
@@ -157,17 +161,21 @@
   (define scheme (uri-scheme uri))
   (define host (uri-host uri))
 
-  (define (milli->time v)
-    (let ((n (* v 1000000)))
-      (add-duration (current-time) (make-time time-duration n 0))))
+  (define (timeout->expires-at v)
+    (let ((n (cond ((integer? v) (duration:of-millis v))
+		   ((time? v) v)
+		   (else (assertion-violation
+			  'http-connection-manager->socket-option
+			  "dns-timeout must be integer or time" v)))))
+      (add-duration (current-time) n)))
   (define connection-timeout
-    (cond ((connection-manager-connection-timeout cm))
+    (cond ((connection-manager-connection-timeout cm) => duration:of-millis)
 	  (else #f)))
   (define read-timeout
-    (cond ((connection-manager-read-timeout cm))
+    (cond ((connection-manager-read-timeout cm) => duration:of-millis)
 	  (else #f)))
   (define dns-timeout
-    (cond ((connection-manager-dns-timeout cm) => milli->time)
+    (cond ((connection-manager-dns-timeout cm) => timeout->expires-at)
 	  (else #f)))
   (define executor (http-connection-lease-option-executor option))
   

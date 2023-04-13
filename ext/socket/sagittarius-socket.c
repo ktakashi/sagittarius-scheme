@@ -514,10 +514,16 @@ SgObject Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo,
     if (ec == EINPROGRESS || ec == EWOULDBLOCK) {
       SgFdSet *wfd = SG_FDSET(Sg_SocketsToFdSet(SG_LIST1(socket)));
       int res = socket_select_int(NULL, wfd, NULL, timeout);
-      if (res != 1) {
-	goto err;
-      }
       Sg_SocketBlocking(socket);
+      if (res != 1) {
+	SgObject c = SG_LIST4(Sg_MakeConditionSocketConnection(socket),
+			      Sg_MakeWhoCondition(SG_INTERN("socket-connect!")),
+			      Sg_MakeMessageCondition(SG_MAKE_STRING("Connection timeout")),
+			      Sg_MakeIrritantsCondition(timeout));
+	Sg_Raise(Sg_Condition(c), FALSE);
+	return SG_FALSE;	/* dummy */
+      }
+	  
     } else {
       goto err;
     }
@@ -917,22 +923,22 @@ static struct timeval *select_timeval(SgObject timeout, struct timeval *tm)
   if (SG_INTP(timeout)) {
     long val = SG_INT_VALUE(timeout);
     if (val < 0) goto badtv;
-    tm->tv_sec = val / 1000;	/* 10ms = 10_000us */
-    tm->tv_usec = (val % 1000) * 1000;
+    tm->tv_sec = val / 1000000;
+    tm->tv_usec = val % 1000000;
     return tm;
   } else if (SG_BIGNUMP(timeout)) {
-    long msec;
+    long usec;
     SgObject sec;
     if (Sg_Sign(timeout) < 0) goto badtv;
-    sec = Sg_BignumDivSI(SG_BIGNUM(timeout), 1000, &msec);
+    sec = Sg_BignumDivSI(SG_BIGNUM(timeout), 1000000, &usec);
     tm->tv_sec = Sg_GetInteger(sec);
-    tm->tv_usec = (suseconds_t)msec * 1000;
+    tm->tv_usec = (suseconds_t)usec;
     return tm;
   } else if (SG_FLONUMP(timeout)) {
     long val = Sg_GetInteger(timeout);
     if (val < 0) goto badtv;
-    tm->tv_sec = val / 1000;
-    tm->tv_usec = (val % 1000) * 1000;
+    tm->tv_sec = val / 1000000;
+    tm->tv_usec = val % 1000000;
     return tm;
   } else if (SG_PAIRP(timeout) && SG_PAIRP(SG_CDR(timeout))) {
     SgObject sec = SG_CAR(timeout);
@@ -951,7 +957,7 @@ static struct timeval *select_timeval(SgObject timeout, struct timeval *tm)
     return tm;
   }
  badtv:
-  Sg_Error(UC("timeval needs to be a real number (in milliseconds), a list "
+  Sg_Error(UC("timeval needs to be a real number (in microseconds), a list "
 	      "of two integers (seconds and microseconds), or a time object "
 	      "but got %S"),
 	   timeout);
@@ -1018,6 +1024,7 @@ static int socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
   int max = 0, numfds;
   
 #ifdef _WIN32
+  struct timeval *tv2;
   SgVM *vm = Sg_VM();
   HANDLE hEvents[2];
   hEvents[0] = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -1044,8 +1051,10 @@ static int socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
   SET_EVENT(wfds, FD_WRITE);
   SET_EVENT(efds, FD_READ | FD_OOB);
 
-  select_timeval(timeout, &tv);
-  DWORD millis = tv.tv_sec * 1000 + tv.tv_usec/1000;
+  tv2 = select_timeval(timeout, &tv);
+  DWORD millis = tv2 ? tv.tv_sec * 1000 + tv.tv_usec/1000: INFINITE;
+  /* Put minimum amount of wait */
+  if (tv2 && millis == 0) millis = 1;
   hEvents[1] = (&vm->thread)->event;
   int r = WaitForMultipleObjects(2, hEvents, FALSE, millis);
 
@@ -1066,7 +1075,7 @@ static int socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 		    (rfds ? &rfds->fdset : NULL), 
 		    (wfds ? &wfds->fdset : NULL), 
 		    (efds ? &efds->fdset : NULL), 
-		    &tv);
+		    tv2);
   } else {
     WSASetLastError(EINTR);
     numfds = -1;

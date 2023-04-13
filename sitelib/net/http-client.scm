@@ -182,6 +182,7 @@
 	   (http-connection-manager-register-on-readable
 	    (http:client-connection-manager client) conn
 	    (handle-response client request retriever success failure)
+	    failure
 	    (http:request-timeout request))))))
     f))
 
