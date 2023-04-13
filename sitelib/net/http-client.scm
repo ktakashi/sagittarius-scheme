@@ -174,24 +174,25 @@
   (protocol (lambda (p) (lambda (box) ((p (lambda () #f) box))))))
 
 (define (http:client-send-async client request)
-  (let ((box (make-shared-box)))
+  (let-values (((f success failure) (make-piped-future)))
     (executor-submit! (http:client-executor client)
      (lambda ()
-       (let-values (((conn retriever) (send-request client request)))
-	 (http-connection-manager-register-on-readable
-	  (http:client-connection-manager client) conn
-	  (handle-response client request retriever box)
-	  (http:request-timeout request)))))
-    (make-http-client-future box)))
+       (guard (e (else (failure e)))
+	 (let-values (((conn retriever) (send-request client request)))
+	   (http-connection-manager-register-on-readable
+	    (http:client-connection-manager client) conn
+	    (handle-response client request retriever success failure)
+	    (http:request-timeout request))))))
+    f))
 
-(define (handle-response client request response-retriever box)
+(define (handle-response client request response-retriever success failure)
   (lambda (conn retry)
     (chain (executor-submit! (http:client-executor client)
 	    (lambda () (receive-response! client conn response-retriever)))
 	   (future-map/executor (http:client-executor client)
 	    (lambda (r)
-	      (shared-box-put! box
-	       (post-respose-receival client request r))) _))))
+	      (success (post-respose-receival client request r))) _)
+	   (future-guard/executor (http:client-executor client) failure _))))
 ;;; helper
 (define (default-executor? client)
   (eq? (http:client-executor client) (force *http-client:default-executor*)))

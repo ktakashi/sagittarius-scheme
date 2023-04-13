@@ -173,9 +173,8 @@
   
   (define (make-dns-resolver)
     (define (dns-resolver node service options)
-      (let ((f (thunk->future
-		(lambda () (default-dns-resolver node service options))
-		executor)))
+      (let ((f (executor-submit! executor
+		(lambda () (default-dns-resolver node service options)))))
 	(or (future-get f dns-timeout)
 	    (raise (condition
 		    (make-dns-timeout-error node service)
@@ -297,7 +296,7 @@
 	(make-hashtable string-hash string=?)
 	(make-hashtable string-hash string=?)
 	((http-pooling-connection-config-delegate-provider config) config)
-	(make-mutex))))))
+	(make-mutex "pooling-connection-manager-lock"))))))
 
 (define-record-type http-pooling-connection-config
   (parent http-connection-config)

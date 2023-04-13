@@ -435,7 +435,7 @@
   (define sockets (make-eq-hashtable))
   (define wrapped-sockets (make-eq-hashtable))
   (define fdset (make-fdset))
-  (define lock (make-mutex))
+  (define lock (make-mutex "socket-selector-lock"))
 
   (define (unmanage-socket! sock)
     (hashtable-delete! wrapped-sockets

@@ -50,14 +50,16 @@
 	    future-result-set!
 	    future-canceller
 	    future-canceller-set!
+
+	    make-piped-future
+	    
 	    ;; implementation specific
 	    (rename (simple-future <simple-future>))
 	    make-simple-future simple-future?
 	    
 	    ;; shared-box (not public APIs)
 	    make-shared-box shared-box?
-	    shared-box-put! shared-box-get!
-	    )
+	    shared-box-put! shared-box-get!)
     (import (rnrs)
 	    (srfi :18))
 
@@ -108,6 +110,16 @@
 		(lambda (thunk result)
 		  (p thunk result 'created #f)))))
 
+  (define (make-piped-future)
+    (let* ((box (make-shared-box))
+	   (f (make-future (lambda () #f) box)))
+      (values f
+	      (lambda (v) (shared-box-put! box v) f)
+	      (lambda (e)
+		(future-canceller-set! f #t)
+		(shared-box-put! box e)
+		f))))
+  
   (define (simple-invoke thunk f q)
     (lambda ()
       (guard (e (else (future-canceller-set! f #t)
