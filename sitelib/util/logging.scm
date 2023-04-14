@@ -85,13 +85,13 @@
 		   (thread-name (current-thread)))))))
 
 ;; Log formatter. It handles log object
-(define (builtin-format-log log format)
+(define (builtin-format-log log log-format)
   (define when (time-utc->date (log-when log)))
   (define level (log-level log))
   (define message (log-message log))
   (define arguments (log-arguments log))
   (define thread-name (log-thread-name log))
-  (define in (open-string-input-port format))
+  (define in (open-string-input-port log-format))
   (define (read-date-format in)
     (get-char in)
     (let-values (((out extract) (open-string-output-port)))
@@ -136,7 +136,11 @@
 		 (put-string out (date->string when (string #\~ c2)))))))
 	   ((#\l) (put-string out (symbol->string level)))
 	   ((#\t) (put-string out thread-name))
-	   ((#\m) (put out message))
+	   ((#\m)
+	    (if (zero? (vector-length arguments))
+		(put out message)
+		(guard (e (else (report-error e)))
+		  (put out (apply format message (vector->list arguments))))))
 	   ((#\a)
 	    (let ((c2 (lookahead-char in)))
 	      (case c2

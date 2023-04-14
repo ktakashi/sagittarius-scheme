@@ -259,10 +259,8 @@
 	       (raise e)))
       (let ((conn (ephemeral-lease-connection manager request option)))
 	(http-connection-logger-write-log connection-logger
-	 (string-append "[Lease Connection] Connected to "
-			"service: " (uri-scheme uri) ", "
-			"node: " (uri-host uri) ", "
-			"port: " (or (uri-port uri) "?")))
+	  "[Lease Connection] Connected to service: ~a, node: ~a, port: ~a"
+	  (uri-scheme uri) (uri-host uri) (or (uri-port uri) "?"))
 	(make-http-logging-connection conn logger)))))
 
 (define (make-logging-release-connection logger)
@@ -270,10 +268,8 @@
     (and logger (http-client-logger-connection-logger logger)))
   (lambda (manager connection reuseable?)
     (http-connection-logger-write-log connection-logger
-     (string-append 
-      "[Release Connection] Releasing a connection of "
-      "node: " (http-connection-node connection) ", "
-      "service: " (http-connection-service connection)))
+     "[Release Connection] Releasing a connection of node: ~a, service: ~a"
+     (http-connection-node connection) (http-connection-service connection))
     (ephemeral-release-connection manager connection reuseable?)))
 
 (define (make-logging-delegate-connection-provider logger)

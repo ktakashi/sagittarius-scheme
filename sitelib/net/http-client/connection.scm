@@ -129,7 +129,7 @@
 	   (http-logging-connection-logger c))
 	  exp ...))))))
 (define (http-connection-write-header-log conn name value)
-  (http-connection-write-log conn (string-append "[Header] " name ": " value)))
+  (http-connection-write-log conn "[Header] ~a: ~a" name value))
 
 (define (->logging-input-port in logger)
   (define wire-logger (http-client-logger-wire-logger logger))
