@@ -31,8 +31,11 @@
 #!nounbound
 (library (util logging)
     (export ;; Loggers
-	    make-logger        logger?       <logger>
-	    make-async-logger  async-logger? <async-logger>
+	    make-logger        logger?       
+	    (rename (logger <logger>))
+	    make-async-logger  async-logger? 
+	    (rename (async-logger <async-logger>))
+
 	    ;; Logger APIs
 	    +trace-level+ trace-log logger-trace?
 	    +debug-level+ debug-log logger-debug?
@@ -43,13 +46,14 @@
 	    terminate-logger!
 
 	    ;; Appenders
-	    <appender> make-appender appender?
-	    <file-appender> make-file-appender file-appender?
+	    make-appender appender? (rename (appender <appender>))
+	    make-file-appender file-appender?
+	    (rename (file-appender <file-appender>))
 	    file-appender-filename
-	    <rolling-file-appender> make-rolling-file-appender
-	    rolling-file-appender?
-	    <daily-rolling-file-appender> make-daily-rolling-file-appender
-	    daily-rolling-file-appender?
+	    make-rolling-file-appender rolling-file-appender?
+	    (rename (rolling-file-appender <rolling-file-appender>))
+	    make-daily-rolling-file-appender daily-rolling-file-appender?
+	    (rename (daily-rolling-file-appender <daily-rolling-file-appender>))
 
 	    ;; For extension
 	    push-log
@@ -64,7 +68,7 @@
 	    ;; logger storage
 	    define-logger-storage loggers
 	    )
-    (import (rnrs)
+    (import (except (rnrs) log)
 	    (sagittarius)
 	    (sagittarius control)
 	    (util concurrent)
@@ -73,12 +77,12 @@
 	    (srfi :19))
 
 ;; Log object.
-(define-record-type (<log> make-log log?)
-  (fields (immutable when        log-when)
-	  (immutable level	 log-level)
-	  (immutable message	 log-message)
-	  (immutable arguments	 log-arguments)
-	  (immutable thread-name log-thread-name))
+(define-record-type log
+  (fields when
+	  level
+	  message
+	  arguments
+	  thread-name)
   (protocol (lambda (p)
 	      (lambda (wh level msg . rest)
 		(p wh level msg (list->vector rest)
@@ -176,34 +180,34 @@
 
 ;; abstract appender
 ;; all appenders must inherit <appender>
-(define-record-type (<appender> make-appender appender?)
+(define-record-type appender
   (fields (immutable log-format appender-format)))
 
-(define-method format-log ((a <appender>) log)
+(define-method format-log ((a appender) log)
   (builtin-format-log log (appender-format a)))
 
 ;; but you can use it for traial
 ;; default just print
-(define-method append-log ((appender <appender>) log)
-  (display (format-log appender log)) (newline))
-(define-method appender-finish ((appender <appender>)) #t) ;; do nothing
+(define-method append-log ((a appender) log)
+  (display (format-log a log)) (newline))
+(define-method appender-finish ((a appender)) #t) ;; do nothing
 
 
 ;; file appender
 (define-generic file-appender-filename)
-(define-record-type (<file-appender> make-file-appender file-appender?)
-  (fields (immutable path file-appender-path))
-  (parent <appender>)
+(define-record-type file-appender
+  (fields path)
+  (parent appender)
   (protocol (lambda (p)
 	      (lambda (format filename)
 		;; get absolute path of given file so that
 		;; changing current directory won't affect
 		;; the file
 		((p format) (absolute-path filename))))))
-(define-method file-appender-filename ((appender <file-appender>))
+(define-method file-appender-filename ((appender file-appender))
   (file-appender-path appender))
 
-(define-method append-log ((appender <file-appender>) log)
+(define-method append-log ((appender file-appender) log)
   (call-with-port (open-file-output-port
 		   (file-appender-filename appender)
 		   (file-options no-fail no-truncate append)
@@ -213,17 +217,14 @@
       (display (format-log appender log) out)
       (newline out))))
 
-(define-record-type (<rolling-file-appender> make-rolling-file-appender
-					     rolling-file-appender?)
-  (fields (immutable rolling-size rolling-file-appender-rolling-size)
-	  (mutable current-backup-index
-		   rolling-file-appender-current-backup-index
-		   rolling-file-appender-current-backup-index-set!))
-  (parent <file-appender>)
+(define-record-type rolling-file-appender
+  (fields rolling-size
+	  (mutable current-backup-index))
+  (parent file-appender)
   (protocol (lambda (p)
 	      (lambda (format filename :optional (rolling-size 10485760))
 		((p format filename) rolling-size 0)))))
-(define-method file-appender-filename ((a <rolling-file-appender>))
+(define-method file-appender-filename ((a rolling-file-appender))
   (let ((file (call-next-method))
 	(rolling-size (rolling-file-appender-rolling-size a)))
     (when (and (file-exists? file) (>= (file-size-in-bytes file) rolling-size))
@@ -233,15 +234,13 @@
 	(rename-file file backup)))
     file))
 
-(define-record-type (<daily-rolling-file-appender>
-		     make-daily-rolling-file-appender
-		     daily-rolling-file-appender?)
-  (fields (immutable date-pattern daily-rolling-file-appender-date-pattern))
-  (parent <file-appender>)
+(define-record-type daily-rolling-file-appender
+  (fields date-pattern)
+  (parent file-appender)
   (protocol (lambda (p)
 	      (lambda (format filename :optional (date-pattern "~Y-~m-~d"))
 		((p format filename) date-pattern)))))
-(define-method file-appender-filename ((a <daily-rolling-file-appender>))
+(define-method file-appender-filename ((a daily-rolling-file-appender))
   (define (check-timestamp a file)
     (define pattern (daily-rolling-file-appender-date-pattern a))
     (define (mtime->date file)
@@ -258,19 +257,19 @@
 ;; loggers
 (define-generic push-log)
 (define-generic terminate-logger!)
-(define-record-type (<logger> make-logger logger?)
-  (fields (immutable threshold logger-threshold)
-	  (immutable appenders logger-appenders))
+(define-record-type logger
+  (fields threshold
+	  appenders)
   (protocol (lambda (p)
 	      (lambda (threshold . appenders)
 		(unless (for-all appender? appenders)
 		  (assertion-violation 'make-logger "appender required"
 				       appenders))
 		(p threshold appenders)))))
-(define-method push-log ((l <logger>) log)
+(define-method push-log ((l logger) log)
   (for-each (lambda (appender) (append-log appender log))
 	    (logger-appenders l)))
-(define-method terminate-logger! ((l <logger>))
+(define-method terminate-logger! ((l logger))
   (for-each appender-finish (logger-appenders l)))
 
 (define (make-logger-deamon logger sq)
@@ -285,20 +284,20 @@
 	      (else (do-finish))))))
   (thread-start! (make-thread deamon-task)))
 
-(define-record-type (<async-logger> make-async-logger async-logger?)
+(define-record-type async-logger
   (fields (immutable buffer logger-buffer)
 	  (mutable   deamon logger-deamon logger-deamon-set!))
-  (parent <logger>)
+  (parent logger)
   (protocol (lambda (p)
 	      (lambda args
 		(let* ((sq (make-shared-queue))
 		       (l ((apply p args) sq #f)))
 		  (logger-deamon-set! l (make-logger-deamon l sq))
 		  l)))))
-(define-method push-log ((l <async-logger>) log)
+(define-method push-log ((l async-logger) log)
   (shared-queue-put! (logger-buffer l) log))
 ;; maybe logger should not raise an error, but for my convenience
-(define-method terminate-logger! ((l <async-logger>))
+(define-method terminate-logger! ((l async-logger))
   (shared-queue-put! (logger-buffer l) #f)
   (thread-join! (logger-deamon l)))
 
