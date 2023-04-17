@@ -129,40 +129,6 @@
 (define (http2-response connection)
   (define context (http-connection-context-data connection))
   (define streams (http2-connection-context-streams context))
-  
-  (define (send-frame connection frame end?)
-    (define context (http-connection-context-data connection))
-    (define out (http-connection-output connection))
-    (write-http2-frame out (http2-connection-context-buffer context)
-      frame end? (http2-connection-context-request-hpack-context context)))
-  (define (send-goaway connection e ec stream-id)
-    (send-frame connection
-		(make-http2-frame-goaway 
-		 0 stream-id stream-id
-		 ec
-		 (if (message-condition? e)
-		     (string->utf8 (condition-message e))
-		     #vu8()))
-		#t)
-    (http-connection-close! connection)
-    (raise e))
-  (define (send-rst-stream connection code stream-id)
-    (send-frame connection (make-http2-frame-rst-stream 0 stream-id code) #t)
-    (http2-remove-stream! connection stream-id))
-  
-  (define (read-frame connection)
-    (define context (http-connection-context-data connection))
-    (define in (http-connection-input connection))
-    (define res-hpack (http2-connection-context-response-hpack-context context))
-    (guard (e ((http2-error? e)
-	       ;; treat as connection error.
-	       (send-goaway connection e (http2-error-code e) 0))
-	      (else
-	       ;; internal error. just close the session
-	       (send-goaway connection e +http2-error-code-internal-error+ 0)))
-      (read-http2-frame in (http2-connection-context-buffer context)
-			res-hpack)))
-  
   (define used-window-sizes (make-eqv-hashtable))
   (let loop ()
     (unless (zero? (hashtable-size streams))
@@ -171,44 +137,7 @@
 	     (stream (hashtable-ref streams sid #f))
 	     (es? (http2-frame-end-stream? frame)))
 	(when es? (http2-remove-stream! connection sid))
-	(cond ((http2-frame-settings? frame)
-	       (http2-apply-server-settings connection frame)
-	       (loop))
-	      ((http2-frame-ping? frame)
-	       (write-http2-frame
-		(http-connection-output connection)
-		(http2-connection-context-buffer context)
-		(make-http2-frame-ping 1 sid
-				       (http2-frame-ping-opaque-data frame))
-		#t
-		(http2-connection-context-request-hpack-context context))
-	       (loop))
-	      ((http2-frame-goaway? frame)
-	       (http-connection-close! connection)
-	       (let ((msg? (http2-frame-goaway-data frame)))
-		 ;; TODO proper condition
-		 (error 'http2-request
-			(if (zero? (bytevector-length msg?))
-			    "Got GOAWAY frame"
-			    (utf8->string msg?))
-			(http2-frame-goaway-last-stream-id frame)
-			(http2-frame-goaway-error-code frame))))
-	      ((http2-frame-rst-stream? frame)
-	       (http2-remove-stream! connection sid) ;; in case
-	       (loop))
-	      ((http2-frame-window-update? frame)
-	       (let ((size
-		      (http2-frame-window-update-window-size-increment frame)))
-		 (cond ((zero? size)
-			(send-rst-stream connection
-					 +http2-error-code-protocol-error+
-					 sid))
-		       ((zero? sid)
-			(http2-connection-context-window-size-set!
-			 context size))
-		       (else
-			(http2-stream-window-size-set! stream size))))
-	       (loop))
+	(cond ((handle-misc-frames connection frame) (loop))
 	      ((http2-frame-headers? frame)
 	       (let ((headers (map (lambda (kv)
 				     (list (utf8->string (car kv))
@@ -239,9 +168,82 @@
 					 frame))))))
   ;; return connection as this can be reusable
   connection)
-  
 
 ;;; helpers
+(define (handle-misc-frames connection frame)
+  (define context (http-connection-context-data connection))
+  (define streams (http2-connection-context-streams context))
+  (define (send-rst-stream connection code stream-id)
+    (send-frame connection (make-http2-frame-rst-stream 0 stream-id code) #t)
+    (http2-remove-stream! connection stream-id))
+  (let* ((sid (http2-frame-stream-identifier frame))
+	 (stream (hashtable-ref streams sid #f)))
+    (cond ((http2-frame-settings? frame)
+	   (http2-apply-server-settings connection frame)
+	   #t)
+	  ((http2-frame-ping? frame)
+	   (write-http2-frame
+	    (http-connection-output connection)
+	    (http2-connection-context-buffer context)
+	    (make-http2-frame-ping 1 sid (http2-frame-ping-opaque-data frame))
+	    #t
+	    (http2-connection-context-request-hpack-context context))
+	   #t)
+	  ((http2-frame-goaway? frame)
+	   (http-connection-close! connection)
+	   (let ((msg? (http2-frame-goaway-data frame)))
+	     ;; TODO proper condition
+	     (error 'http2-request
+		    (if (zero? (bytevector-length msg?))
+			"Got GOAWAY frame"
+			(utf8->string msg?))
+		    (http2-frame-goaway-last-stream-id frame)
+		    (http2-frame-goaway-error-code frame))))
+	  ((http2-frame-rst-stream? frame)
+	   (http2-remove-stream! connection sid) ;; in case
+	   #t)
+	  ((http2-frame-window-update? frame)
+	   (let ((size (http2-frame-window-update-window-size-increment frame)))
+	     (cond ((zero? size)
+		    (send-rst-stream connection
+				     +http2-error-code-protocol-error+ sid))
+		   ((zero? sid)
+		    (http2-connection-context-window-size-set! context size))
+		   (else (http2-stream-window-size-set! stream size))))
+	   #t)
+	  (else #f))))
+
+(define (send-frame connection frame end?)
+  (define context (http-connection-context-data connection))
+  (define out (http-connection-output connection))
+  (write-http2-frame out (http2-connection-context-buffer context)
+    frame end? (http2-connection-context-request-hpack-context context)))
+
+(define (send-goaway connection e ec stream-id)
+  (send-frame connection
+	      (make-http2-frame-goaway 
+	       0 stream-id stream-id
+	       ec
+	       (if (message-condition? e)
+		   (string->utf8 (condition-message e))
+		   #vu8()))
+	      #t)
+  (http-connection-close! connection)
+  (raise e))
+
+(define (read-frame connection)
+  (define context (http-connection-context-data connection))
+  (define in (http-connection-input connection))
+  (define res-hpack (http2-connection-context-response-hpack-context context))
+  (guard (e ((http2-error? e)
+	     ;; treat as connection error.
+	     (send-goaway connection e (http2-error-code e) 0))
+	    (else
+	     ;; internal error. just close the session
+	     (send-goaway connection e +http2-error-code-internal-error+ 0)))
+    (read-http2-frame in (http2-connection-context-buffer context)
+		      res-hpack)))
+
 (define (stream:request->data-frame-sender stream request)
   (define method (http:request-method request))
   (define (->data-frame-sender stream request)
