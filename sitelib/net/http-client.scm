@@ -192,13 +192,16 @@
 	    (lambda () (receive-response! client conn response-retriever)))
 	   (future-map/executor (http:client-executor client)
 	    (lambda (r)
-	      (success (post-respose-receival client request r))) _)
+	      (let ((status (http:response-status r)))
+		(if (and status (char=? #\3 (string-ref status 0)))
+		    (handle-redirect client request r success failure)
+		    (success r)))) _)
 	   (future-guard/executor (http:client-executor client) failure _))))
 ;;; helper
 (define (default-executor? client)
   (eq? (http:client-executor client) (force *http-client:default-executor*)))
 
-(define (handle-redirect client request response)
+(define (handle-redirect client request response success failure)
   (define (get-location response)
     (http:headers-ref (http:response-headers response) "Location"))
   (define (check-scheme request response)
@@ -219,18 +222,23 @@
 				     (uri-authority request-uri))
 		      :path (uri-path uri)
 		      :query (uri-query uri)))))
-    (let ((next (get-next-uri)))
-      ;; FIXME this should be fine granuity as well
-      (send-request/response client (http:request-builder
-				     (from request)
-				     (uri next)))))
+    (let* ((next (get-next-uri))
+	   (new-req (http:request-builder (from request) (uri next))))
+      (guard (e (else (failure e)))
+	(let-values (((conn retriever) (send-request client new-req)))
+	  (http-connection-manager-register-on-readable
+	   (http:client-connection-manager client) conn
+	   (handle-response client new-req retriever success failure)
+	   failure
+	   (http:request-timeout new-req))))))
   (case (http:client-follow-redirects client)
-    ((never) response)
+    ((never) (success response))
     ((always) (do-redirect client request response))
-    ((normal) (and (check-scheme request response)
-		   (do-redirect client request response)))
+    ((normal) (or (and (check-scheme request response)
+		       (do-redirect client request response))
+		  (success response)))
     ;; well, just return...
-    (else response)))
+    (else (success response))))
 
 (define (send-request client request)
   (let ((conn (lease-http-connection client request)))
@@ -247,17 +255,6 @@
     (when (http:client-cookie-handler client)
       (add-cookie! client (http:response-cookies response)))
     response))
-
-(define (post-respose-receival client request response)
-  (let ((status (http:response-status response)))
-    (if (and status (char=? #\3 (string-ref status 0)))
-	(handle-redirect client request response)
-	response)))
-(define (send-request/response client request)
-  (let-values (((conn response-retriever) (send-request client request)))
-    (post-respose-receival client request
-     (receive-response! client conn response-retriever))))
-
   
 (define (adjust-request client conn request)
   (let* ((copy (http:request-builder (from request)))

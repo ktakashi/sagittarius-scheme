@@ -129,7 +129,7 @@
 	   (http-logging-connection-logger c))
 	  exp ...))))))
 (define (http-connection-write-header-log conn name value)
-  (http-connection-write-log conn "[Header] ~a: ~a" name value))
+  (http-connection-write-log conn "[Request header] ~a: ~a" name value))
 
 (define (->logging-input-port in logger)
   (define wire-logger (http-client-logger-wire-logger logger))
@@ -140,8 +140,7 @@
       ret))
   (define (close) (close-port in))
   (define (ready) (port-ready? in))
-  (make-custom-binary-input-port
-   "logging-binary-input-port"
+  (make-custom-binary-input-port "logging-binary-input-port"
    read! #f #f close ready))
 
 (define (->logging-output-port out logger)
@@ -168,8 +167,7 @@
 		   (http-connection-service conn))))
       (http-connection-socket-set! conn socket)
       (http-connection-input-set! conn (socket-input-port socket))
-      (http-connection-output-set! conn (socket-output-port socket))
-      ))
+      (http-connection-output-set! conn (socket-output-port socket))))
   conn)
 
 (define (http-connection-close! conn)
