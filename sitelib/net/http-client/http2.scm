@@ -43,7 +43,8 @@
 	    (rfc http2 frame)
 	    (rfc http2 conditions)
 	    (rfc http2 hpack)
-	    (srfi :18 multithreading))
+	    (srfi :18 multithreading)
+	    (util hashtables))
 
 (define-record-type http2-connection-context
   (parent <http-connection-context>)
@@ -66,11 +67,13 @@
 		 65535)))))
 (define (make-http2-connection socket socket-option node service)
   (make-http-connection node service socket-option
-			socket http2-request http2-response
+			socket
+			http2-send-header http2-send-data
+			http2-receive-header http2-receive-data
 			(make-http2-connection-context)))
 
 (define-enumeration http2:stream-state
-  (idel reserved open half-closed closed)
+  (idle reserved open half-closed closed)
   ;; won't be used ;)
   http2-stream-state-set)
   
@@ -81,6 +84,7 @@
 	  header-handler
 	  data-handler
 	  (mutable state)
+	  (mutable remote-state)
 	  (mutable window-size))
   (protocol (lambda (p)
 	      (lambda (connection request)
@@ -90,7 +94,8 @@
 			    request
 			    (http:request-header-handler request)
 			    (http:request-data-handler request)
-			    (http2:stream-state idel)
+			    (http2:stream-state idle)
+			    (http2:stream-state idle)
 			    (http2-connection-context-window-size ctx))))
 		  (hashtable-set! (http2-connection-context-streams ctx) id r)
 		  r)))))
@@ -109,12 +114,10 @@
 
 ;;; API
 ;; this must be done asynchronousely by client (otherwise blocks)
-(define (http2-request connection request)
+(define (http2-send-header connection request)
   (define stream (make-http2-stream connection request))
   ;; send request here
   (define header-frame (stream:request->header-frame stream request))
-  (define data-frame-sender (stream:request->data-frame-sender stream request))
-
   ;; FIXME I don't want to do this check
   (when (http-logging-connection? connection)
     (for-each (lambda (hv)
@@ -122,65 +125,120 @@
 						  (utf8->string (car hv))
 						  (utf8->string (cadr hv))))
 	      (http2-frame-headers-headers header-frame)))
-  (http2-write-stream stream header-frame (and (not data-frame-sender) #t))
-  (when data-frame-sender (data-frame-sender))
-  (http2-stream-state-set! stream (http2:stream-state half-closed))
+  (let ((est? (not (request-has-body? request))))
+    (http2-write-stream stream header-frame est?)
+    (if est?
+	(http2-stream-state-set! stream (http2:stream-state half-closed))
+	(http2-stream-state-set! stream (http2:stream-state open)))))
+
+(define (http2-send-data connection request)
+  (define stream (search-stream connection request))
+  (when (eq? (http2:stream-state open) (http2-stream-state stream))
+    (let ((data-frame-sender
+	   (stream:request->data-frame-sender stream request)))
+      (data-frame-sender)
+      (http2-stream-state-set! stream (http2:stream-state half-closed))))
   connection)
 
 ;;; API
 ;; We receive a response of the given request, requests are associated
 ;; to the stream, so we can detect which request we need to return
 ;; (NB: at this moment, we only have one stream)
-(define (http2-response connection request)
+(define (http2-receive-header connection request)
+  (http2-response connection request 'header))
+
+(define (http2-receive-data connection request)
+  ;; after data receival, the stream is no longer available, so remove it
+  (define (remove-stream connection request)
+    (define context (http-connection-context-data connection))
+    (define streams (http2-connection-context-streams context))
+    (define target-stream (search-stream connection request))
+    (http2-remove-stream! connection (http2-stream-id target-stream))
+    connection)
+    
+  (let loop ((es? (http2-response connection request 'data)))
+    (or (and es? (remove-stream connection request))
+	(loop (http2-response connection request 'data)))))
+  
+(define (http2-response connection request to-receive)
   (define context (http-connection-context-data connection))
   (define streams (http2-connection-context-streams context))
+  (define target-stream (search-stream connection request))
+  (define rstate (http2-stream-remote-state target-stream))
   (define used-window-sizes (make-eqv-hashtable))
-  (let loop ()
-    (unless (zero? (hashtable-size streams))
-      (let* ((frame (read-frame connection))
-	     (sid (http2-frame-stream-identifier frame))
-	     (stream (hashtable-ref streams sid #f))
-	     (es? (http2-frame-end-stream? frame)))
-	(when es? (http2-remove-stream! connection sid))
-	(cond ((handle-misc-frames connection frame) (loop))
-	      ((http2-frame-headers? frame)
-	       (let ((headers (map (lambda (kv)
-				     (list (utf8->string (car kv))
-					   (utf8->string (cadr kv))))
-				   (http2-frame-headers-headers frame)))
-		     (header-handler (http2-stream-header-handler stream)))
-		 (header-handler (cond ((assoc ":status" headers) => cadr)
-				       (else #f))
-				 headers)
-		 (loop)))
-	      ((http2-frame-data? frame)
-	       (let ((data (http2-frame-data-data frame))
-		     (data-handler (http2-stream-data-handler stream)))
-		 (data-handler data es?)
-		 (hashtable-update! used-window-sizes sid
-		   (lambda (v)
-		     (let* ((size (bytevector-length data))
-			    (new-size (+ v size)))
-		       (cond ((>= new-size +client-window-size+)
-			      (send-frame connection
-					  (make-http2-frame-window-update
-					   0 sid +client-window-size+) #t)
-			      0)
-			     (else new-size))))
-		   0)
-		 (loop)))
-	      (else (assertion-violation 'http2-response "Unknown frame type"
-					 frame))))))
-  ;; return connection as this can be reusable
-  connection)
+  ;; already received?
+  (cond ((and (eq? to-receive 'header) (memq rstate '(half-closed closed)))
+	 ;; Okay, the stream already received header, so return
+	 #t)
+	((and (eq? to-receive 'data) (eq? rstate (http2:stream-state closed)))
+	 ;; Okay, the stream already received data so return
+	 #t)
+	(else
+	 (let loop ()
+	   (let* ((frame (read-frame connection))
+		  (sid (http2-frame-stream-identifier frame))
+		  (stream (hashtable-ref streams sid #f))
+		  (es? (http2-frame-end-stream? frame)))
+	     ;; SID 0 == global 
+	     (unless (or (zero? sid) stream)
+	       (assertion-violation 'http2-response
+		 "Stream is not registered or already removed" sid))
+	     (when es?
+	       (http2-stream-remote-state-set! stream
+					       (http2:stream-state closed)))
+	     (cond ((handle-misc-frames connection frame) (loop))
+		   ((http2-frame-headers? frame)
+		    (let* ((headers (map (lambda (kv)
+					   (list (utf8->string (car kv))
+						 (utf8->string (cadr kv))))
+					 (http2-frame-headers-headers frame)))
+			   (header-handler (http2-stream-header-handler stream))
+			   (r (header-handler
+			       (cond ((assoc ":status" headers) => cadr)
+				     (else #f))
+			       headers)))
+		      (unless es?
+			(http2-stream-remote-state-set! stream
+			  (http2:stream-state half-closed)))
+		      (if (eq? stream target-stream)
+			  r
+			  (loop))))
+		   ((http2-frame-data? frame)
+		    (let ((data (http2-frame-data-data frame))
+			  (data-handler (http2-stream-data-handler stream)))
+		      (data-handler data es?)
+		      (hashtable-update! used-window-sizes sid
+		       (lambda (v)
+			 (let* ((size (bytevector-length data))
+				(new-size (+ v size)))
+			   (cond ((>= new-size +client-window-size+)
+				  (send-frame connection
+					      (make-http2-frame-window-update
+					       0 sid +client-window-size+) #t)
+				  0)
+				 (else new-size))))
+		       0)
+		      (if (eq? stream target-stream)
+			  es?
+			  (loop))))
+		   (else (assertion-violation
+			  'http2-response "Unknown frame type" frame))))))))
 
 ;;; helpers
+(define (search-stream connection request)
+  (define context (http-connection-context-data connection))
+  (hashtable-seek (http2-connection-context-streams context)
+		  (lambda (k v) (eq? (http2-stream-request v) request))
+		  (lambda (t k v) v)
+		  (lambda () (assertion-violation 'http2-search-stream
+						  "No stream associated"
+						  request))))
+
 (define (handle-misc-frames connection frame)
   (define context (http-connection-context-data connection))
   (define streams (http2-connection-context-streams context))
   (define (send-rst-stream connection code stream-id)
-    (send-frame connection (make-http2-frame-rst-stream 0 stream-id code) #t)
-    (http2-remove-stream! connection stream-id))
+    (send-frame connection (make-http2-frame-rst-stream 0 stream-id code) #t))
   (let* ((sid (http2-frame-stream-identifier frame))
 	 (stream (hashtable-ref streams sid #f)))
     (cond ((http2-frame-settings? frame)
@@ -204,9 +262,7 @@
 			(utf8->string msg?))
 		    (http2-frame-goaway-last-stream-id frame)
 		    (http2-frame-goaway-error-code frame))))
-	  ((http2-frame-rst-stream? frame)
-	   (http2-remove-stream! connection sid) ;; in case
-	   #t)
+	  ((http2-frame-rst-stream? frame))
 	  ((http2-frame-window-update? frame)
 	   (let ((size (http2-frame-window-update-window-size-increment frame)))
 	     (cond ((zero? size)
@@ -249,6 +305,11 @@
     (read-http2-frame in (http2-connection-context-buffer context)
 		      res-hpack)))
 
+(define (request-has-body? request)
+  (define method (http:request-method request))
+  (and (http:request-body request)
+       (not (http:no-body-method? method))))
+
 (define (stream:request->data-frame-sender stream request)
   (define method (http:request-method request))
   (define (->data-frame-sender stream request)
@@ -268,7 +329,7 @@
 	   (input-port->data-frame-sender stream body))
 	  (else (assertion-violation 'stream:request->data-frame-sender
 				     "Unknown body type" body))))
-  (and (not (http:no-body-method? method))
+  (and (request-has-body? request)
        (->data-frame-sender stream request)))
 
 (define (stream:request->header-frame stream request)

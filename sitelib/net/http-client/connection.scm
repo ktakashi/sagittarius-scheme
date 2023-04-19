@@ -73,15 +73,21 @@
   (fields node
 	  service
 	  socket-options
-	  request-sender
-	  response-receiver
+	  header-sender
+	  data-sender
+	  header-receiver
+	  data-receiver
 	  (mutable socket)
 	  (mutable input)
 	  (mutable output)
 	  user-agent
 	  context-data)
   (protocol (lambda (p)
-	      (lambda (node service option socket request response data)
+	      (lambda (node
+		       service option socket
+		       header-sender data-sender
+		       header-receiver data-receiver
+		       data)
 		(unless (or (not socket)
 			    (or (socket? socket) (tls-socket? socket)))
 		  (assertion-violation 'make-http-connection
@@ -93,7 +99,10 @@
 		  (assertion-violation 'make-http-connection
 				       "<http-connection-context> is required"
 				       data))
-		(p node service option request response socket
+		(p node service option
+		   header-sender data-sender
+		   header-receiver data-receiver
+		   socket
 		   (and socket (socket-input-port socket))
 		   (and socket (socket-output-port socket))
 		   (*http-client-user-agent*)
@@ -109,8 +118,10 @@
 		    (http-connection-service conn)
 		    (http-connection-socket-options conn)
 		    (http-connection-socket conn)
-		    (http-connection-request-sender conn)
-		    (http-connection-response-receiver conn)
+		    (http-connection-header-sender conn)
+		    (http-connection-data-sender conn)
+		    (http-connection-header-receiver conn)
+		    (http-connection-data-receiver conn)
 		    (http-connection-context-data conn))
 		 logger)))
 	 (let ((in (http-connection-input c))
@@ -185,9 +196,21 @@
   conn)
 
 (define (http-connection-send-request! conn request)
-  ((http-connection-request-sender conn) conn request))
+  (http-connection-send-header! conn request)
+  (http-connection-send-data! conn request))
+
+(define (http-connection-send-header! conn request)
+  ((http-connection-header-sender conn) conn request))
+(define (http-connection-send-data! conn request)
+  ((http-connection-data-sender conn) conn request))
 
 (define (http-connection-receive-response! conn request)
-  ((http-connection-response-receiver conn) conn request))
+  (http-connection-receive-header! conn request)
+  (http-connection-receive-data! conn request))
+
+(define (http-connection-receive-header! conn request)
+  ((http-connection-header-receiver conn) conn request))
+(define (http-connection-receive-data! conn request)
+  ((http-connection-data-receiver conn) conn request))
 
 )

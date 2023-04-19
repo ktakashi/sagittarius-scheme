@@ -47,47 +47,93 @@
 
 (define-record-type http1-connection-context
   (parent <http-connection-context>)
-  (fields buffer)
+  (fields buffer (mutable state))
   (protocol (lambda (n)
 	      (lambda ()
-		((n) (make-bytevector 4096))))))
+		((n) (make-bytevector 4096) #f)))))
 
 (define (make-http1-connection socket socket-option node service)
   (make-http-connection node service socket-option socket
-			http1-request http1-response
+			http1-send-header http1-send-data
+			http1-receive-header http1-receive-data 
 			(make-http1-connection-context)))
 
 (define (socket->http1-connection socket socket-option node service)
   (make-http1-connection socket socket-option node service))
 
-(define (http1-request connection request)
-  (define context (http-connection-context-data connection))
+(define (http1-send-header connection request)
   ;; 1. ensure connection (some bad server may not allow us to reuse
   ;;    the connection (i.e. no content-length or no
   ;;    transfer-encoding, or keep-alive closed specified)
   (http-connection-open! connection)
   ;; 2. send request
-  (send-request! connection request))
+  (send-header! connection request))
 
-(define (http1-response connection request)
+(define (http1-send-data connection request)
+  ;; 1. ensure connection (some bad server may not allow us to reuse
+  ;;    the connection (i.e. no content-length or no
+  ;;    transfer-encoding, or keep-alive closed specified)
+  (unless (http-connection-open? connection)
+    (assertion-violation 'http1-send-data "HTTP connection is already closed"
+			 connection))
+  ;; 2. send request
+  (send-data! connection request))
+
+(define (http1-receive-header connection request)
+  (define header-handler (http:request-header-handler request))
   (define context (http-connection-context-data connection))
-  (define (handle-request connection request)
-    ;; 3. receive response
-    ;; 4. close connection if needed
-    (let ((keep? (receive-response! connection request)))
-      (cond (keep? connection)
-	    (else (http-connection-close! connection) #f))))
-  (handle-request connection request))
+  (define in (http-connection-input connection))
+
+  (let-values (((code reason) (parse-status-line (read-one-line in))))
+    (let ((headers (rfc5322-read-headers in)))
+      (http1-connection-context-state-set! context (cons code headers))
+      (header-handler code headers))))
+
+(define (http1-receive-data connection request)
+  (define data-handler (http:request-data-handler request))
+  (define context (http-connection-context-data connection))
+  (define state (http1-connection-context-state context))
+  (define status (car state))
+  (define headers (cdr state))
+  (define in (http-connection-input connection))
+
+  (define (check-connection headers)
+    ;; TODO we need to tell connection manager how long we can
+    ;; let it alive...
+    (cond ((rfc5322-header-ref headers "connection") =>
+	   (lambda (v) (string-contains v "keep-alive")))
+	  (else #f)))
+  (cond ((rfc5322-header-ref headers "content-length") =>
+	 (lambda (len)
+	   (data-handler (ensure-read in (string->number len)) #t)
+	   (check-connection headers)))
+	((rfc5322-header-ref headers "transfer-encoding") =>
+	 (lambda (v)
+	   (cond ((string-contains v "chunked")
+		  (read-chunked data-handler in)
+		  (check-connection headers))
+		 (else
+		  (data-handler (get-bytevector-all in) #t)
+		  #f))))
+	;; no body, so it's okay
+	((or (eq? 'HEAD (http:request-method request))
+	     ;; 204 (no content) 304 (not modified)
+	     (and status (memq (string->number status) '(204 304)))))
+	;; very bad behaving server...
+	(else (data-handler (get-bytevector-all in) #t) #f)))
 
 (define (read-one-line in)
-  ;; \r\n would be \r for binary:get-line so trim it
-  (bytevector-trim-right (binary:get-line in) '(#x0d)))
+  (let ((v (binary:get-line in)))
+    (if (eof-object? v)
+	v
+	;; \r\n would be \r for binary:get-line so trim it
+	(bytevector-trim-right v '(#x0d)))))
 (define (parse-status-line line)
   (cond ((eof-object? line)
 	 ;; TODO proper condition
 	 (error 'parse-status-line "http reply contains no data"))
 	((#/[\w\/.]+\s+(\d\d\d)\s+(.*)/ line)
-	 => (lambda (m) (values (m 1) (m 2))))
+	 => (lambda (m) (values (utf8->string (m 1)) (utf8->string (m 2)))))
 	(else (error 'parse-status-line "bad reply from server" line))))
 
 (define (ensure-read in size)
@@ -97,38 +143,6 @@
       (if (= r size)
 	  buf
 	  (loop (+ s r) (- size r))))))
-(define (receive-response! connection request)
-  (define header-handler (http:request-header-handler request))
-  (define data-handler (http:request-data-handler request))
-  (define in (http-connection-input connection))
-  (define (check-connection headers)
-    ;; TODO we need to tell connection manager how long we can
-    ;; let it alive...
-    (cond ((rfc5322-header-ref headers "connection") =>
-	   (lambda (v) (string-contains v "keep-alive")))
-	  (else #f)))
-  (let-values (((code reason) (parse-status-line
-			       (utf8->string (read-one-line in)))))
-    (let ((headers (rfc5322-read-headers in)))
-      (header-handler code headers)
-      (cond ((rfc5322-header-ref headers "content-length") =>
-	     (lambda (len)
-	       (data-handler (ensure-read in (string->number len)) #t)
-	       (check-connection headers)))
-	    ((rfc5322-header-ref headers "transfer-encoding") =>
-	     (lambda (v)
-	       (cond ((string-contains v "chunked")
-		      (read-chunked data-handler in)
-		      (check-connection headers))
-		     (else
-		      (data-handler (get-bytevector-all in) #t)
-		      #f))))
-	    ;; no body, so it's okay
-	    ((or (eq? 'HEAD (http:request-method request))
-		 ;; 204 (no content) 304 (not modified)
-		 (and code (memq (string->number code) '(204 304)))))
-	    ;; very bad behaving server...
-	    (else (data-handler (get-bytevector-all in) #t) #f)))))
 
 (define (read-chunked data-handler in)
   (let ((line (read-one-line in)))
@@ -146,8 +160,7 @@
 		 (read-chunked data-handler in)))))
 	  (else (error 'read-chunked "bad line in chunked data" line)))))
 
-(define (send-request! connection request)
-  (define context (http-connection-context-data connection))
+(define (send-header! connection request)
   (define out (http-connection-output connection))
   (define method (http:request-method request))
   (define body (http:request-body request))
@@ -200,28 +213,33 @@
     (put-bytevector out #*"\r\n")
     (flush-output-port out))
 
-  (define (send-body out request)
-    (define (send-chunked out in)
-      (define buffer (http1-connection-context-buffer context))
-      (define buffer-size (bytevector-length buffer))
-      (let loop ((n (get-bytevector-n! in buffer 0 buffer-size)))
-	(cond ((zero? n)
-	       (put-bytevector out #*"0\r\n\r\n"))
-	      (else
-	       (put-bytevector out (string->utf8 (number->string n)))
-	       (put-bytevector out #*"\r\n")
-	       (put-bytevector out buffer 0 n)
-	       (put-bytevector out #*"\r\n")
-	       (if (< n buffer-size)
-		   (put-bytevector out #*"0\r\n\r\n")
-		   (loop (get-bytevector-n! in buffer 0 buffer-size)))))))
-    
-    (unless (http:no-body-method? method)
-      (cond ((bytevector? body) (put-bytevector out body))
-	    ((port? body) (send-chunked out body)))
-      (flush-output-port out)))
   (send-first-line out request)
   (send-headers out request)
-  (send-body out request)
   )
+
+(define (send-data! connection request)
+  (define context (http-connection-context-data connection))
+  (define out (http-connection-output connection))
+  (define method (http:request-method request))
+  (define body (http:request-body request))
+
+  (define (send-chunked out in)
+    (define buffer (http1-connection-context-buffer context))
+    (define buffer-size (bytevector-length buffer))
+    (let loop ((n (get-bytevector-n! in buffer 0 buffer-size)))
+      (cond ((zero? n)
+	     (put-bytevector out #*"0\r\n\r\n"))
+	    (else
+	     (put-bytevector out (string->utf8 (number->string n)))
+	     (put-bytevector out #*"\r\n")
+	     (put-bytevector out buffer 0 n)
+	     (put-bytevector out #*"\r\n")
+	     (if (< n buffer-size)
+		 (put-bytevector out #*"0\r\n\r\n")
+		 (loop (get-bytevector-n! in buffer 0 buffer-size)))))))
+  
+  (unless (http:no-body-method? method)
+    (cond ((bytevector? body) (put-bytevector out body))
+	  ((port? body) (send-chunked out body)))
+    (flush-output-port out)))
 )

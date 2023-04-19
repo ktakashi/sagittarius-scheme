@@ -178,12 +178,12 @@
     (executor-submit! (http:client-executor client)
      (lambda ()
        (guard (e (else (failure e)))
-	 (let-values (((conn request retriever) (send-request client request)))
+	 (let-values (((conn new-req retriever) (send-request client request)))
 	   (http-connection-manager-register-on-readable
 	    (http:client-connection-manager client) conn
-	    (handle-response client request retriever success failure)
+	    (handle-response client new-req retriever success failure)
 	    failure
-	    (http:request-timeout request))))))
+	    (http:request-timeout new-req))))))
     f))
 
 (define (handle-response client request response-retriever success failure)
@@ -227,12 +227,12 @@
     (let* ((next (get-next-uri))
 	   (new-req (http:request-builder (from request) (uri next))))
       (guard (e (else (failure e)))
-	(let-values (((conn new-req retriever) (send-request client new-req)))
+	(let-values (((conn new-req1 retriever) (send-request client new-req)))
 	  (http-connection-manager-register-on-readable
 	   (http:client-connection-manager client) conn
-	   (handle-response client new-req retriever success failure)
+	   (handle-response client new-req1 retriever success failure)
 	   failure
-	   (http:request-timeout new-req))))))
+	   (http:request-timeout new-req1))))))
   (case (http:client-follow-redirects client)
     ((never) (success response))
     ((always) (do-redirect client request response))
@@ -245,12 +245,10 @@
 (define (send-request client request)
   (let-values (((header-handler body-handler response-retriever)
 		(make-handlers)))
-    (let* ((new-req (http:request-builder
-		     (from request)
-		     (header-handler header-handler)
-		     (data-handler body-handler)))
-	   (conn (lease-http-connection client new-req)))
-      (http-connection-send-request! conn (adjust-request client conn new-req))
+    (let* ((conn (lease-http-connection client request))
+	   (new-req
+	    (adjust-request client conn request header-handler body-handler)))
+      (http-connection-send-request! conn new-req)
       (values conn new-req response-retriever))))
 
 (define (receive-response! client conn request)
@@ -262,8 +260,11 @@
       (add-cookie! client (http:response-cookies response)))
     response))
   
-(define (adjust-request client conn request)
-  (let* ((copy (http:request-builder (from request)))
+(define (adjust-request client conn request header-handler data-handler)
+  (let* ((copy (http:request-builder
+		(from request)
+		(header-handler header-handler)
+		(data-handler data-handler)))
 	 (headers (http:request-headers copy)))
     (unless (http:headers-contains? headers "User-Agent")
       (http:headers-set! headers "User-Agent"
