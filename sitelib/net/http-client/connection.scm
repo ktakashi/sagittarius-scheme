@@ -46,6 +46,12 @@
 	    
 	    http-connection-open?
 	    http-connection-open! http-connection-close!
+
+	    http-connection-send-header!
+	    http-connection-send-data!
+	    http-connection-receive-header!
+	    http-connection-receive-data!
+	    
 	    http-connection-send-request! http-connection-receive-response!
 
 	    *http-client-user-agent*
@@ -55,9 +61,7 @@
 	    (rename (http-connection-context <http-connection-context>))
 
 	    http-connection-write-log
-	    http-connection-write-header-log
-	    
-	    )
+	    http-connection-write-header-log)
     (import (rnrs)
 	    (net socket)
 	    (net http-client logging)

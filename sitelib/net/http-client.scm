@@ -169,22 +169,21 @@
 (define (http:client-send client request)
   (future-get (http:client-send-async client request)))
 
-(define-record-type http-client-future
-  (parent <future>)
-  (protocol (lambda (p) (lambda (box) ((p (lambda () #f) box))))))
-
 (define (http:client-send-async client request)
   (let-values (((f success failure) (make-piped-future)))
     (executor-submit! (http:client-executor client)
-     (lambda ()
-       (guard (e (else (failure e)))
-	 (let-values (((conn new-req retriever) (send-request client request)))
-	   (http-connection-manager-register-on-readable
-	    (http:client-connection-manager client) conn
-	    (handle-response client new-req retriever success failure)
-	    failure
-	    (http:request-timeout new-req))))))
+     (lambda () (request/response client request success failure)))
     f))
+
+;;; helpers
+(define (request/response client request success failure)
+  (guard (e (else (failure e)))
+    (let-values (((conn new-req retriever) (send-request client request)))
+      (http-connection-manager-register-on-readable
+       (http:client-connection-manager client) conn
+       (handle-response client new-req retriever success failure)
+       failure
+       (http:request-timeout new-req)))))
 
 (define (handle-response client request response-retriever success failure)
   (lambda (conn retry)
@@ -199,7 +198,7 @@
 		    (handle-redirect client request r success failure)
 		    (success r)))) _)
 	   (future-guard/executor (http:client-executor client) failure _))))
-;;; helper
+
 (define (default-executor? client)
   (eq? (http:client-executor client) (force *http-client:default-executor*)))
 
@@ -226,13 +225,7 @@
 		      :query (uri-query uri)))))
     (let* ((next (get-next-uri))
 	   (new-req (http:request-builder (from request) (uri next))))
-      (guard (e (else (failure e)))
-	(let-values (((conn new-req1 retriever) (send-request client new-req)))
-	  (http-connection-manager-register-on-readable
-	   (http:client-connection-manager client) conn
-	   (handle-response client new-req1 retriever success failure)
-	   failure
-	   (http:request-timeout new-req1))))))
+      (request/response client new-req success failure)))
   (case (http:client-follow-redirects client)
     ((never) (success response))
     ((always) (do-redirect client request response))
