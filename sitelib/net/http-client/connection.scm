@@ -184,11 +184,10 @@
       (http-connection-output-set! conn #f)))
   conn)
 
-(define (http-connection-send-request! conn request header-handler body-handler)
-  ((http-connection-request-sender conn) conn request
-   header-handler body-handler))
+(define (http-connection-send-request! conn request)
+  ((http-connection-request-sender conn) conn request))
 
-(define (http-connection-receive-response! conn)
-  ((http-connection-response-receiver conn) conn))
+(define (http-connection-receive-response! conn request)
+  ((http-connection-response-receiver conn) conn request))
 
 )

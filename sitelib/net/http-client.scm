@@ -178,7 +178,7 @@
     (executor-submit! (http:client-executor client)
      (lambda ()
        (guard (e (else (failure e)))
-	 (let-values (((conn retriever) (send-request client request)))
+	 (let-values (((conn request retriever) (send-request client request)))
 	   (http-connection-manager-register-on-readable
 	    (http:client-connection-manager client) conn
 	    (handle-response client request retriever success failure)
@@ -189,7 +189,9 @@
 (define (handle-response client request response-retriever success failure)
   (lambda (conn retry)
     (chain (executor-submit! (http:client-executor client)
-	    (lambda () (receive-response! client conn response-retriever)))
+	    (lambda () 
+	      (receive-response! client conn request)
+	      (extract-response client response-retriever)))
 	   (future-map/executor (http:client-executor client)
 	    (lambda (r)
 	      (let ((status (http:response-status r)))
@@ -225,7 +227,7 @@
     (let* ((next (get-next-uri))
 	   (new-req (http:request-builder (from request) (uri next))))
       (guard (e (else (failure e)))
-	(let-values (((conn retriever) (send-request client new-req)))
+	(let-values (((conn new-req retriever) (send-request client new-req)))
 	  (http-connection-manager-register-on-readable
 	   (http:client-connection-manager client) conn
 	   (handle-response client new-req retriever success failure)
@@ -241,16 +243,20 @@
     (else (success response))))
 
 (define (send-request client request)
-  (let ((conn (lease-http-connection client request)))
-    (let-values (((header-handler body-handler response-retriever)
-		  (make-handlers)))
-      (http-connection-send-request! conn (adjust-request client conn request)
-				     header-handler body-handler)
-      (values conn response-retriever))))
+  (let-values (((header-handler body-handler response-retriever)
+		(make-handlers)))
+    (let* ((new-req (http:request-builder
+		     (from request)
+		     (header-handler header-handler)
+		     (data-handler body-handler)))
+	   (conn (lease-http-connection client new-req)))
+      (http-connection-send-request! conn (adjust-request client conn new-req))
+      (values conn new-req response-retriever))))
 
-(define (receive-response! client conn response-retriever)
-  (let ((reuse? (http-connection-receive-response! conn)))
-    (release-http-connection client conn reuse?))
+(define (receive-response! client conn request)
+  (let ((reuse? (http-connection-receive-response! conn request)))
+    (release-http-connection client conn reuse?)))
+(define (extract-response client response-retriever)
   (let ((response (response-retriever)))
     (when (http:client-cookie-handler client)
       (add-cookie! client (http:response-cookies response)))

@@ -77,15 +77,19 @@
 (define-record-type http2-stream
   (fields id
 	  connection
+	  request
 	  header-handler
 	  data-handler
 	  (mutable state)
 	  (mutable window-size))
   (protocol (lambda (p)
-	      (lambda (connection header-handler data-handler)
+	      (lambda (connection request)
 		(define id (http2-next-stream-id connection))
 		(define ctx (http-connection-context-data connection))
-		(let ((r (p id connection header-handler data-handler
+		(let ((r (p id connection
+			    request
+			    (http:request-header-handler request)
+			    (http:request-data-handler request)
 			    (http2:stream-state idel)
 			    (http2-connection-context-window-size ctx))))
 		  (hashtable-set! (http2-connection-context-streams ctx) id r)
@@ -105,8 +109,8 @@
 
 ;;; API
 ;; this must be done asynchronousely by client (otherwise blocks)
-(define (http2-request connection request header-handler data-handler)
-  (define stream (make-http2-stream connection header-handler data-handler))
+(define (http2-request connection request)
+  (define stream (make-http2-stream connection request))
   ;; send request here
   (define header-frame (stream:request->header-frame stream request))
   (define data-frame-sender (stream:request->data-frame-sender stream request))
@@ -124,9 +128,10 @@
   connection)
 
 ;;; API
-;; http2-request will only send a request, to receive a response,
-;; this is needed
-(define (http2-response connection)
+;; We receive a response of the given request, requests are associated
+;; to the stream, so we can detect which request we need to return
+;; (NB: at this moment, we only have one stream)
+(define (http2-response connection request)
   (define context (http-connection-context-data connection))
   (define streams (http2-connection-context-streams context))
   (define used-window-sizes (make-eqv-hashtable))

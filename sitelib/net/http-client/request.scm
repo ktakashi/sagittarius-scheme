@@ -39,8 +39,11 @@
 	    http:request-cookies
 	    http:request-body
 	    http:request-timeout
+	    http:request-header-handler
+	    http:request-data-handler
 	    http:request-basic-auth
 	    http:request-bearer-auth
+	    
 	    
 	    ;; helper
 	    http:request->request-uri
@@ -117,7 +120,9 @@
 	  headers
 	  cookies
 	  body
-	  timeout))
+	  timeout
+	  header-handler
+	  data-handler))
 (define (->uri uri)
   (if (uri? uri)
       uri

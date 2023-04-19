@@ -47,11 +47,10 @@
 
 (define-record-type http1-connection-context
   (parent <http-connection-context>)
-  (fields (mutable request)
-	  buffer)
+  (fields buffer)
   (protocol (lambda (n)
 	      (lambda ()
-		((n) #f (make-bytevector 4096))))))
+		((n) (make-bytevector 4096))))))
 
 (define (make-http1-connection socket socket-option node service)
   (make-http-connection node service socket-option socket
@@ -61,30 +60,24 @@
 (define (socket->http1-connection socket socket-option node service)
   (make-http1-connection socket socket-option node service))
 
-(define (http1-request connection request header-handler data-handler)
+(define (http1-request connection request)
   (define context (http-connection-context-data connection))
   ;; 1. ensure connection (some bad server may not allow us to reuse
   ;;    the connection (i.e. no content-length or no
   ;;    transfer-encoding, or keep-alive closed specified)
   (http-connection-open! connection)
   ;; 2. send request
-  (send-request! connection request)
-  ;; save request with handlers
-  (http1-connection-context-request-set! context
-   (list request header-handler data-handler)))
+  (send-request! connection request))
 
-(define (http1-response connection)
+(define (http1-response connection request)
   (define context (http-connection-context-data connection))
-  (define request (http1-connection-context-request context))
   (define (handle-request connection request)
     ;; 3. receive response
     ;; 4. close connection if needed
-    (let ((keep? (apply receive-response! connection request)))
+    (let ((keep? (receive-response! connection request)))
       (cond (keep? connection)
 	    (else (http-connection-close! connection) #f))))
-  (let ((result (handle-request connection request)))
-    (http1-connection-context-request-set! context #f)
-    result))
+  (handle-request connection request))
 
 (define (read-one-line in)
   ;; \r\n would be \r for binary:get-line so trim it
@@ -104,7 +97,9 @@
       (if (= r size)
 	  buf
 	  (loop (+ s r) (- size r))))))
-(define (receive-response! connection request header-handler data-handler)
+(define (receive-response! connection request)
+  (define header-handler (http:request-header-handler request))
+  (define data-handler (http:request-data-handler request))
   (define in (http-connection-input connection))
   (define (check-connection headers)
     ;; TODO we need to tell connection manager how long we can
