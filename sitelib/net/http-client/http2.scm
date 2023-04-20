@@ -192,14 +192,14 @@
 					   (list (utf8->string (car kv))
 						 (utf8->string (cadr kv))))
 					 (http2-frame-headers-headers frame)))
-			   (header-handler (http2-stream-header-handler stream))
-			   (r (header-handler
-			       (cond ((assoc ":status" headers) => cadr)
-				     (else #f))
-			       headers)))
+			   (handler (http2-stream-header-handler stream))
+			   (r (handler (cond ((assoc ":status" headers) => cadr)
+					     (else #f))
+				       headers
+				       (not es?))))
 		      (unless es?
 			(http2-stream-remote-state-set! stream
-			  (http2:stream-state half-closed)))
+			 (http2:stream-state half-closed)))
 		      (if (eq? stream target-stream)
 			  r
 			  (loop))))

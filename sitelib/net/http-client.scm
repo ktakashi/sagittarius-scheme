@@ -178,26 +178,13 @@
 ;;; helpers
 (define (request/response client request success failure)
   (guard (e (else (failure e)))
-    (let-values (((conn new-req retriever) (send-request client request)))
+    (let-values (((conn new-req response-handler)
+		  (send-request client request)))
       (http-connection-manager-register-on-readable
        (http:client-connection-manager client) conn
-       (handle-response client new-req retriever success failure)
+       (response-handler success failure)
        failure
        (http:request-timeout new-req)))))
-
-(define (handle-response client request response-retriever success failure)
-  (lambda (conn retry)
-    (chain (executor-submit! (http:client-executor client)
-	    (lambda () 
-	      (receive-response! client conn request)
-	      (extract-response client response-retriever)))
-	   (future-map/executor (http:client-executor client)
-	    (lambda (r)
-	      (let ((status (http:response-status r)))
-		(if (and status (char=? #\3 (string-ref status 0)))
-		    (handle-redirect client request r success failure)
-		    (success r)))) _)
-	   (future-guard/executor (http:client-executor client) failure _))))
 
 (define (default-executor? client)
   (eq? (http:client-executor client) (force *http-client:default-executor*)))
@@ -236,13 +223,55 @@
     (else (success response))))
 
 (define (send-request client request)
-  (let-values (((header-handler body-handler response-retriever)
-		(make-handlers)))
+  (define ((response-handler header-state retriever request) success failure)
+    (define state 'waiting-for-header)
+    (lambda (conn retry)
+      (define executor (http:client-executor client))
+      (define (receive-data conn)
+	(let ((reuse? (http-connection-receive-data! conn request)))
+	  (set! state #f)
+	  (release-http-connection client conn reuse?)
+	  (let ((response (retriever)))
+	    (when (http:client-cookie-handler client)
+	      (add-cookie! client (http:response-cookies response)))
+	    response)))
+      (define (finish r)
+	(let ((status (http:response-status r)))
+	  (if (and status (char=? #\3 (string-ref status 0)))
+	      (handle-redirect client request r success failure)
+	      (success r))))
+
+      (case state
+	((waiting-for-header)
+	 (executor-submit! executor
+	  (lambda ()
+	    (guard (e (else (failure e)))
+	      (http-connection-receive-header! conn request)
+	      (let-values (((data? status h*) (apply values (header-state))))
+		;; TODO check status 1xx
+		(cond ((or (not data?) (eq? data? 'unknown))
+		       (finish (receive-data conn)))
+		      (else ;; we have data to be read
+		       (set! state 'waiting-for-data)
+		       ;; push the connection for data reading
+		       (retry))))))))
+	((waiting-for-data)
+	 (chain (executor-submit! executor (lambda () (receive-data conn)))
+		(future-map/executor executor finish _)
+		(future-guard/executor executor failure _)))
+	(else (failure (condition (make-error)
+				  (make-who-condition 'response-handler)
+				  (make-message-condition "Invalid state")))))))
+      
+    (let-values (((header-handler body-handler header-state response-retriever)
+		  (make-handlers)))
     (let* ((conn (lease-http-connection client request))
 	   (new-req
 	    (adjust-request client conn request header-handler body-handler)))
-      (http-connection-send-request! conn new-req)
-      (values conn new-req response-retriever))))
+      (http-connection-send-header! conn new-req)
+      (http-connection-send-data! conn new-req)
+      (values conn new-req
+	      (response-handler header-state response-retriever new-req)))))
 
 (define (receive-response! client conn request)
   (let ((reuse? (http-connection-receive-response! conn request)))
@@ -314,9 +343,11 @@
 		    
   (let ((in/out (open-chunked-binary-input/output-port))
 	(response (make-mutable-response #f #f #vu8())))
-    (define (header-handler status headers)
+    (define header-status '(#f #f #f))
+    (define (header-handler status headers has-data?)
       (mutable-response-status-set! response status)
-      (mutable-response-headers-set! response headers))
+      (mutable-response-headers-set! response headers)
+      (set! header-status (list has-data? status headers)))
     (define (body-handler data end?)
       (put-bytevector in/out data)
       (when end?
@@ -338,7 +369,8 @@
 			       (headers headers)
 			       (cookies cookies)
 			       (body (mutable-response-body response)))))
-    (values header-handler body-handler response-retriever)))
+    (values header-handler body-handler (lambda () header-status)
+	    response-retriever)))
       
 (define (lease-http-connection client request)
   (http-connection-manager-lease-connection

@@ -83,11 +83,25 @@
   (define header-handler (http:request-header-handler request))
   (define context (http-connection-context-data connection))
   (define in (http-connection-input connection))
+  (define (check-data-presence status headers)
+    (cond ((rfc5322-header-ref headers "content-length") =>
+	   (lambda (len) (not (zero? (string->number len)))))
+	((rfc5322-header-ref headers "transfer-encoding") =>
+	 (lambda (v)
+	   (cond ((string-contains v "chunked"))
+		 (else 'unknown))))
+	;; no body, so it's okay
+	((or (eq? 'HEAD (http:request-method request))
+	     ;; 204 (no content) 304 (not modified)
+	     (and status (memq (string->number status) '(204 304))))
+	 #f)
+	;; very bad behaving server...
+	(else 'unknown)))
 
   (let-values (((code reason) (parse-status-line (read-one-line in))))
     (let ((headers (rfc5322-read-headers in)))
       (http1-connection-context-state-set! context (cons code headers))
-      (header-handler code headers))))
+      (header-handler code headers (check-data-presence code headers)))))
 
 (define (http1-receive-data connection request)
   (define data-handler (http:request-data-handler request))
