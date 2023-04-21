@@ -118,13 +118,9 @@
   (define stream (make-http2-stream connection request))
   ;; send request here
   (define header-frame (stream:request->header-frame stream request))
-  ;; FIXME I don't want to do this check
-  (when (http-logging-connection? connection)
-    (for-each (lambda (hv)
-		(http-connection-write-header-log connection
-						  (utf8->string (car hv))
-						  (utf8->string (cadr hv))))
-	      (http2-frame-headers-headers header-frame)))
+
+  (write-header-log connection "[Request header]" header-frame)
+  
   (let ((est? (not (request-has-body? request))))
     (http2-write-stream stream header-frame est?)
     (if est?
@@ -188,6 +184,7 @@
 					       (http2:stream-state closed)))
 	     (cond ((handle-misc-frames connection frame) (loop))
 		   ((http2-frame-headers? frame)
+		    (write-header-log connection "[Response header]" frame)
 		    (let* ((headers (map (lambda (kv)
 					   (list (utf8->string (car kv))
 						 (utf8->string (cadr kv))))
@@ -426,7 +423,16 @@
 			(cdar settings))))
 		(loop (cdr settings)))))))
 
-
+(define (write-header-log connection key header-frame)
+  ;; FIXME I don't want to do this check
+  (when (http-logging-connection? connection)
+    (for-each (lambda (hv)
+		(http-connection-write-log connection
+					   "~a ~a: ~a"
+					   key
+					   (utf8->string (car hv))
+					   (utf8->string (cadr hv))))
+	      (http2-frame-headers-headers header-frame))))
 )
 
 ;; Appendix :-)

@@ -211,7 +211,8 @@
 		      :path (uri-path uri)
 		      :query (uri-query uri)))))
     (let* ((next (get-next-uri))
-	   (new-req (http:request-builder (from request) (uri next))))
+	   (new-req (http:request-builder
+		     (from request) (method 'GET) (uri next))))
       (request/response client new-req success failure)))
   (case (http:client-follow-redirects client)
     ((never) (success response))

@@ -60,8 +60,7 @@
 	    http-connection-context?
 	    (rename (http-connection-context <http-connection-context>))
 
-	    http-connection-write-log
-	    http-connection-write-header-log)
+	    http-connection-write-log)
     (import (rnrs)
 	    (net socket)
 	    (net http-client logging)
@@ -143,8 +142,6 @@
 	  (http-client-logger-connection-logger
 	   (http-logging-connection-logger c))
 	  exp ...))))))
-(define (http-connection-write-header-log conn name value)
-  (http-connection-write-log conn "[Request header] ~a: ~a" name value))
 
 (define (->logging-input-port in logger)
   (define wire-logger (http-client-logger-wire-logger logger))

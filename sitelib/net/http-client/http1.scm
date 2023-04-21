@@ -97,9 +97,18 @@
 	 #f)
 	;; very bad behaving server...
 	(else 'unknown)))
-
-  (let-values (((code reason) (parse-status-line (read-one-line in))))
+  
+  (let*-values (((status-line) (read-one-line in))
+		((code reason) (parse-status-line status-line)))
     (let ((headers (rfc5322-read-headers in)))
+      (when (http-logging-connection? connection)
+	(http-connection-write-log connection "[Response] ~a"
+				   (utf8->string status-line))
+	(for-each (lambda (h)
+		    (for-each (lambda (v)
+				(http-connection-write-log connection
+				  "[Response header] ~a: ~a"
+				  (car h) v)) (cdr h))) headers))
       (http1-connection-context-state-set! context (cons code headers))
       (header-handler code headers (check-data-presence code headers)))))
 
@@ -180,11 +189,9 @@
   (define body (http:request-body request))
   (define (send-first-line out request)
     (http-connection-write-log connection
-     (string-append
-      "[Request-Line] "
-      (symbol->string method) " "
-      (http:request->request-uri request)
-      "HTTP/1.1"))
+     "[Request-Line] ~a ~a HTTP/1.1"
+     (symbol->string method)
+     (http:request->request-uri request))
     (put-bytevector out (string->utf8 (symbol->string method)))
     (put-bytevector out #*" ")
     (put-bytevector out (string->utf8 (http:request->request-uri request)))
@@ -194,7 +201,8 @@
     (define headers (http:request-headers request))
     (define uri (http:request-uri request))
     (define (write-header out name value)
-      (http-connection-write-header-log connection name value)
+      (http-connection-write-log connection
+				 "[Request header] ~a: ~a" name value)
       (put-bytevector out (string->utf8 name))
       (put-bytevector out #*": ")
       (put-bytevector out (string->utf8 value))
