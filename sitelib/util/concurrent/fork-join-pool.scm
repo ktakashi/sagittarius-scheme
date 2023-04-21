@@ -77,7 +77,8 @@
 (define-record-type fork-join-pool-parameters
   (fields max-threads
 	  keep-alive
-	  max-queue-depth))
+	  max-queue-depth
+	  thread-name-prefix))
 (define-syntax fork-join-pool-parameters-builder
   (make-record-builder fork-join-pool-parameters
 ;; no reason other than Java's ForkJoinPool limit, but should be large enough
@@ -102,15 +103,19 @@
 				      *default-parameter*
 				      (car maybe-parameter)))
 		(let ((core-threads (make-vector n))
+		      (tprefix
+		       (fork-join-pool-parameters-thread-name-prefix parameter))
 		      (worker-queues (make-vector n))
 		      (indices (iota n))
 		      (scheduler-queue (make-shared-queue)))
 		  (do ((i 0 (+ i 1))) ((= i n))
 		    (let* ((wq (make-worker-queue))
-			   (t (make-core-worker-thread i
-						       scheduler-queue
-						       wq worker-queues
-						       (remv i indices))))
+			   (t (make-core-worker-thread
+			       i
+			       (or tprefix "fork-join-pool")
+			       scheduler-queue
+			       wq worker-queues
+			       (remv i indices))))
 		      (vector-set! worker-queues i wq)
 		      (vector-set! core-threads i t)))
 		  (let ((r (p core-threads
@@ -126,7 +131,8 @@
 					    parameter))
 		    r))))))
 
-(define (make-core-worker-thread i sq worker-queue worker-queues other-queues)
+(define (make-core-worker-thread i prefix
+				 sq worker-queue worker-queues other-queues)
   (define (select-other-task)
     (let loop ((indices other-queues))
       (and (not (null? indices))
@@ -152,13 +158,14 @@
 		   ;; the scheduler queue if there's a move.
 		   (shared-queue-watch sq)
 		   (loop thread-yield!)))))))
-    (string-append "fork-join-pool-core-worker-" (number->string i)))))
+    (string-append prefix "-core-worker-" (number->string i)))))
 
 (define (make-scheduler-thread pool sq worker-queues parameter)
   (define wq* (vector->list worker-queues))
   (define wqq (make-list-queue wq*))
   (define duration (fork-join-pool-parameters-keep-alive parameter))
   (define max-queue-depth (fork-join-pool-parameters-max-queue-depth parameter))
+  (define tprefix (fork-join-pool-parameters-thread-name-prefix parameter))
   (define (small-enough wq)
     (< (worker-queue-size wq) max-queue-depth))
   (define thread-number 0)
@@ -174,7 +181,9 @@
 	    (cond ((exists (lambda (wq) (worker-queue-pop! wq wait #f)) wq*)
 		   => loop))))
 	(update-thread-count! pool (lambda (tc) (and tc (- tc 1)))))
-      (string-append "fork-join-thread-" (number->string thread-number))))
+      (string-append (or tprefix "fork-join-pool")
+		     "-child-thread-"
+		     (number->string thread-number))))
     (update-thread-count! pool (lambda (tc) (and tc (+ tc 1)))))
 
   (define (process)

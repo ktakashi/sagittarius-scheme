@@ -112,11 +112,16 @@
 	    (rfc :5322)
 	    (rfc uri)
 	    (util concurrent)
+	    (sagittarius)
 	    (scheme lazy)
 	    (srfi :39 parameters)
 	    (srfi :197 pipeline))
 
-(define *http-client:default-executor*  (delay (make-fork-join-executor)))
+(define *http-client:default-executor*  
+  (delay (make-fork-join-executor
+	  (cpu-count)
+	  (fork-join-pool-parameters-builder
+	   (thread-name-prefix "default-http-client")))))
 
 (define-record-type http:client
   (fields follow-redirects
