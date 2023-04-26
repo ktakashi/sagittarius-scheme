@@ -65,7 +65,7 @@
 
 static SgInternalMutex global_lock;
 
-static SgVM *rootVM = NULL;
+static SgKernel *root = NULL;	/* main kernel */
 
 #if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
 static __declspec(thread) SgVM *theVM;
@@ -183,6 +183,8 @@ SgVM* Sg_NewThreadVM(SgVM *proto, SgObject name)
   if (proto) {
     SgObject nl = 
       Sg_MakeChildLibrary(v, Sg_MakeSymbol(SG_MAKE_STRING("child"), FALSE));
+    v->kernel = proto->kernel;	/* use the proto's kernel */
+
     Sg_ImportLibrary(nl, proto->currentLibrary);
     SG_LIBRARY_DEFINEED(nl) = SG_FALSE;
     v->currentLibrary = nl;
@@ -194,6 +196,7 @@ SgVM* Sg_NewThreadVM(SgVM *proto, SgObject name)
       v->sandbox = SG_FALSE;
     }
   } else {
+    v->kernel = root;		/* should never happen with my usage */
     v->currentLibrary = SG_UNDEF;
     v->parameters = Sg_MakeWeakHashTableSimple(SG_HASH_EQ, SG_WEAK_KEY, 64, 
 					       SG_FALSE);
@@ -277,14 +280,23 @@ int Sg_SetCurrentVM(SgVM *vm)
   return TRUE;
 }
 
+static SgVM *root_vm()
+{
+  SgKernel *kernel = SG_KERNEL(theVM->kernel);
+  if (kernel) {
+    return SG_VM(kernel->threads->value);
+  }
+  return NULL;
+}
+
 int Sg_MainThreadP()
 {
-  return theVM == rootVM;
+  return theVM == root_vm();
 }
 
 int Sg_RootVMP(SgVM *vm)
 {
-  return vm == rootVM;
+  return vm == root_vm();
 }
 
 #define Sg_VM() theVM
@@ -2588,6 +2600,7 @@ SgObject run_loop()
 
 void Sg__InitVM()
 {
+  SgVM *rootVM;
   /* this env is p1env and it must be 5 elements vector for now. */
 #if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
   rootVM = theVM = Sg_NewVM(NULL, SG_MAKE_STRING("root"));
@@ -2599,7 +2612,7 @@ void Sg__InitVM()
   Sg_SetCurrentVM(rootVM);
 #endif
   Sg_SetCurrentThread(&rootVM->thread);
-  Sg_NewKernel(rootVM);		/* hmmmm, should this be here? */
+  root = Sg_NewKernel(rootVM);	/* hmmmm, should this be here? */
 
   rootVM->threadState = SG_VM_RUNNABLE;
   rootVM->currentLibrary = Sg_FindLibrary(SG_INTERN("user"), FALSE);

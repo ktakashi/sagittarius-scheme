@@ -32,7 +32,8 @@ ENDIF()
 SET(STUB_SOURCES
   lib_core.c lib_clos.c lib_proc.c lib_vm.c
   lib_vmdebug.c lib_sagittarius.c lib_regex.c
-  lib_flonums.c lib_fixnums.c lib_treemap.c)
+  lib_flonums.c lib_fixnums.c lib_treemap.c
+  lib_kernel.c)
 SET(BUILTIN_SOURCES 
   compiler.c   compiler-aux.c
   lib_scmlib.c lib_errors.c   lib_arith.c lib_macro.c lib_program.c

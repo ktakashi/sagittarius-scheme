@@ -27,6 +27,8 @@
  */
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/private/kernel.h"
+#include "sagittarius/private/error.h"
+#include "sagittarius/private/pair.h"
 #include "sagittarius/private/writer.h"
 #include "sagittarius/private/vm.h"
 
@@ -38,6 +40,35 @@ static void kernel_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_KernelClass, kernel_print);
 
+static void append_entry(SgKernel *k, SgObject value)
+{
+  SgDLinkNode *t = SG_NEW(SgDLinkNode), *n = k->threads;
+  t->value = value;
+
+  Sg_LockMutex(&k->lock);
+  while (n->next) n = n->next;
+
+  t->prev = n;
+  n->next = t;
+  k->nThreads++;
+  Sg_UnlockMutex(&k->lock);
+}
+
+static void remove_entry(SgKernel *k, SgObject value)
+{
+  SgDLinkNode *n = k->threads;
+
+  Sg_LockMutex(&k->lock);
+  
+  while (n && n->value != value) n = n->next;
+  if (n) {
+    n->prev->next = n->next;
+    n->next->prev = n->prev;
+    k->nThreads--;
+  }
+  Sg_UnlockMutex(&k->lock);
+}
+
 SgObject Sg_NewKernel(SgVM *rootVM)
 {
   SgKernel *k = SG_NEW(SgKernel);
@@ -46,6 +77,63 @@ SgObject Sg_NewKernel(SgVM *rootVM)
   k->threads = SG_NEW(SgDLinkNode);
   k->threads->value = rootVM;
   k->threads->prev =  k->threads->next = NULL;
+  Sg_InitMutex(&k->lock, FALSE);
+
   rootVM->kernel = k;
   return SG_OBJ(k);
+}
+
+static void* wrap(void *data)
+{
+  void **d = (void **)data;
+  SgThreadEntryFunc *func = (SgThreadEntryFunc *)d[0];
+  SgVM *vm = SG_VM(d[1]);
+  /* In theory, we should use SG_UNWIND_PROTECT here, but I'm lazy... */
+  void *r = func(vm);
+  remove_entry(SG_KERNEL(vm->kernel), vm);
+  return r;
+}
+
+/* For now, all entries are daemon :) */
+SgObject Sg_StartManagedThread(SgVM *vm, SgThreadEntryFunc *func, int daemonP)
+{
+  int err_state = FALSE;
+  Sg_LockMutex(&vm->vmlock);
+  if (vm->threadState != SG_VM_NEW) {
+    err_state = TRUE;
+  } else {
+    void **data = SG_NEW_ARRAY(void *, 2);
+    data[0] = func;
+    data[1] = vm;
+    
+    ASSERT(vm->thunk);
+    vm->threadState = SG_VM_RUNNABLE;
+    append_entry(SG_KERNEL(vm->kernel), vm);
+    if (!Sg_InternalThreadStart(&vm->thread, (SgThreadEntryFunc *)wrap, data)) {
+      remove_entry(SG_KERNEL(vm->kernel), vm);
+      vm->threadState = SG_VM_NEW;
+      err_state = TRUE;
+    }
+  }
+  Sg_UnlockMutex(&vm->vmlock);
+  if (err_state)
+    Sg_Error(UC("attempt to start an already-started thread: %S"), vm);
+  return SG_OBJ(vm);
+}
+
+SgObject Sg_KernelManagedThreads()
+{
+  SgKernel *k = SG_KERNEL(Sg_VM()->kernel);
+  SgObject r = SG_NIL;
+  SgDLinkNode *n = k->threads;
+  while (n) {
+    r = Sg_Cons(n->value, r);
+    n = n->next;
+  }
+  return Sg_ReverseX(r);
+}
+
+int Sg_KernelManagedCount()
+{
+  return SG_KERNEL(Sg_VM()->kernel)->nThreads;
 }

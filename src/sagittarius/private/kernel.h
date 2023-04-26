@@ -62,6 +62,11 @@ typedef struct SgKernelRec
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_NewKernel(SgVM *rootVM);
+SG_EXTERN SgObject Sg_StartManagedThread(SgVM *vm, SgThreadEntryFunc func,
+					 int daemonP);
+
+SG_EXTERN SgObject Sg_KernelManagedThreads();
+SG_EXTERN int Sg_KernelManagedCount();
 
 SG_CDECL_END
 

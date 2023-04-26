@@ -36,6 +36,7 @@
 #endif
 
 #include <sagittarius.h>
+#include <sagittarius/private/kernel.h>
 #define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
 #include "threads.h"
@@ -117,23 +118,7 @@ static void* thread_entry(void *data)
 
 SgObject Sg_ThreadStart(SgVM *vm)
 {
-  int err_state = FALSE;
-  Sg_LockMutex(&vm->vmlock);
-  if (vm->threadState != SG_VM_NEW) {
-    err_state = TRUE;
-  } else {
-    ASSERT(vm->thunk);
-    vm->threadState = SG_VM_RUNNABLE;
-    if (!Sg_InternalThreadStart(&vm->thread, (SgThreadEntryFunc *)thread_entry,
-				vm)) {
-      vm->threadState = SG_VM_NEW;
-      err_state = TRUE;
-    }
-  }
-  Sg_UnlockMutex(&vm->vmlock);
-  if (err_state)
-    Sg_Error(UC("attempt to start an already-started thread: %S"), vm);
-  return SG_OBJ(vm);
+  return Sg_StartManagedThread(vm, (SgThreadEntryFunc *)thread_entry, TRUE);
 }
 
 SgObject Sg_ThreadJoin(SgVM *vm, SgObject timeout, SgObject timeoutval)
