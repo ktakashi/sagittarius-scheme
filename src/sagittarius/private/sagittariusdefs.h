@@ -261,6 +261,7 @@ typedef struct SgFlonumRec     	   SgFlonum;
 typedef struct SgHashTableRec  	   SgHashTable;
 typedef struct SgIdentifierRec     SgIdentifier;
 typedef struct SgInstanceRec       SgInstance; /* instance of generic */
+typedef struct SgKernelRec         SgKernel;
 typedef struct SgKeywordRec        SgKeyword;
 typedef struct SgLibraryRec    	   SgLibrary;
 typedef struct SgMacroRec          SgMacro;

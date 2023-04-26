@@ -128,7 +128,7 @@ void Sg_IOError(SgIOErrorType type, SgObject who, SgObject msg,
     Sg_IOFileProtectionError(file, who, msg);
     break;
   default:
-    Sg_Raise(Sg_Condition(SG_LIST3(Sg_MakeIOError(file),
+    Sg_Raise(Sg_Condition(SG_LIST3(Sg_MakeIOError(),
 				   Sg_MakeWhoCondition(who),
 				   Sg_MakeMessageCondition(msg))),
 	     FALSE);

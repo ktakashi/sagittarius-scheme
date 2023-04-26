@@ -78,6 +78,7 @@ SET(SAGITTARIUS_LIB_SOURCE
   cache.c
   writer.c           
   vm.c             core.c
+  kernel.c
   profiler.c       
   load.c
 

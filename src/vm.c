@@ -40,6 +40,7 @@
 #include "sagittarius/private/generic.h"
 #include "sagittarius/private/hashtable.h"
 #include "sagittarius/private/identifier.h"
+#include "sagittarius/private/kernel.h"
 #include "sagittarius/private/library.h"
 #include "sagittarius/private/pair.h"
 #include "sagittarius/private/port.h"
@@ -2598,6 +2599,8 @@ void Sg__InitVM()
   Sg_SetCurrentVM(rootVM);
 #endif
   Sg_SetCurrentThread(&rootVM->thread);
+  Sg_NewKernel(rootVM);		/* hmmmm, should this be here? */
+
   rootVM->threadState = SG_VM_RUNNABLE;
   rootVM->currentLibrary = Sg_FindLibrary(SG_INTERN("user"), FALSE);
   /* mark as this is toplevel library. */

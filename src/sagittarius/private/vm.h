@@ -269,6 +269,7 @@ struct SgVMRec
   /* Sandbox is a hashtable which contains replaced binding.
      if it's not available then #f is set. */
   SgObject sandbox;
+  SgObject kernel;		/* Kernel of this VM */
 };
 
 /*
