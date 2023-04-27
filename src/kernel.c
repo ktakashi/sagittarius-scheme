@@ -138,13 +138,3 @@ int Sg_KernelManagedCount()
 {
   return SG_KERNEL(Sg_VM()->kernel)->nThreads;
 }
-
-int Sg_ThreadProbablyBusyP(SgVM *vm)
-{
-  volatile SgWord *pc = vm->pc;
-  Sg_YieldCPU();		/* I hope this is enough */
-  /* Well, caller == target, then must be busy calling this procedure... */
-  if (Sg_VM() == vm) return TRUE;
-  if (vm->threadState != SG_VM_RUNNABLE) return FALSE; /* it's not running */
-  return vm->pc != pc;
-}

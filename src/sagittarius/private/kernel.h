@@ -68,8 +68,6 @@ SG_EXTERN SgObject Sg_StartManagedThread(SgVM *vm, SgThreadEntryFunc func,
 SG_EXTERN SgObject Sg_KernelManagedThreads();
 SG_EXTERN int Sg_KernelManagedCount();
 
-SG_EXTERN int Sg_ThreadProbablyBusyP(SgVM *vm);
-
 SG_CDECL_END
 
 #endif
