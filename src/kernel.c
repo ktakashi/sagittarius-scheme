@@ -45,13 +45,14 @@ static void append_entry(SgKernel *k, SgObject value)
 {
   SgDLinkNode *t = SG_NEW(SgDLinkNode), *n = k->threads;
   t->value = value;
-
   Sg_LockMutex(&k->lock);
+
   while (n->next) n = n->next;
 
   t->prev = n;
   n->next = t;
   k->nThreads++;
+
   Sg_UnlockMutex(&k->lock);
 }
 
@@ -62,9 +63,11 @@ static void remove_entry(SgKernel *k, SgObject value)
   Sg_LockMutex(&k->lock);
   
   while (n && n->value != value) n = n->next;
+  
   if (n) {
-    n->prev->next = n->next;
-    n->next->prev = n->prev;
+    /* n->prev must always be there, but just in case */
+    if (n->prev) n->prev->next = n->next;
+    if (n->next) n->next->prev = n->prev;
     k->nThreads--;
   }
   Sg_UnlockMutex(&k->lock);
