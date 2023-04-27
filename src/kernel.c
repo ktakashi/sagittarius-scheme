@@ -29,6 +29,7 @@
 #include "sagittarius/private/kernel.h"
 #include "sagittarius/private/error.h"
 #include "sagittarius/private/pair.h"
+#include "sagittarius/private/system.h"
 #include "sagittarius/private/writer.h"
 #include "sagittarius/private/vm.h"
 
@@ -136,4 +137,14 @@ SgObject Sg_KernelManagedThreads()
 int Sg_KernelManagedCount()
 {
   return SG_KERNEL(Sg_VM()->kernel)->nThreads;
+}
+
+int Sg_ThreadProbablyBusyP(SgVM *vm)
+{
+  volatile SgWord *pc = vm->pc;
+  Sg_YieldCPU();		/* I hope this is enough */
+  /* Well, caller == target, then must be busy calling this procedure... */
+  if (Sg_VM() == vm) return TRUE;
+  if (vm->threadState != SG_VM_RUNNABLE) return FALSE; /* it's not running */
+  return vm->pc != pc;
 }

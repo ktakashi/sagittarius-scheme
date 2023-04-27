@@ -36,6 +36,11 @@
 
 (define-c-proc kernel-managed-threads () Sg_KernelManagedThreads)
 (define-c-proc kernel-managed-thread-count () ::<fixnum> Sg_KernelManagedCount)
-  
+
+(define-c-proc thread-probably-busy? (vm::<thread>) ::<boolean>
+  Sg_ThreadProbablyBusyP)
+
+(define-c-proc thread-backtrace (vm::<thread>)
+  (result (Sg_GetStackTraceFromCont (-> vm cont))))
 
 )

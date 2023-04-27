@@ -447,7 +447,8 @@ static const int MAX_STACK_TRACE = 20;
 void Sg_FormatStackTrace(SgObject stackTrace, SgObject out)
 {
   SgObject cur;
-  SgPort *buf = SG_PORT(Sg_MakeStringOutputPort(-1));
+  SgStringPort s;
+  SgPort *buf = SG_PORT(Sg_InitStringOutputPort(&s, -1));
   Sg_Printf(buf, UC("stack trace:\n"));
   stackTrace = Sg_Reverse(stackTrace);
 
@@ -501,6 +502,7 @@ void Sg_FormatStackTrace(SgObject stackTrace, SgObject out)
 		index, SG_CADR(proc));
     }
   }
+  Sg_Write(Sg_GetStringFromStringPort(&s), out, SG_WRITE_DISPLAY);
 }
 
 /* we need to check pc-1(for *CALL, or os) or pc-2(for GREF_*CALL) */
