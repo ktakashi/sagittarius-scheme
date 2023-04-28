@@ -147,8 +147,7 @@
   (make-record-builder http:client
    (;; by default we don't follow
     (follow-redirects (http:redirect never))
-    (connection-manager
-     (make-http-default-connection-manager))
+    (connection-manager (make-http-default-connection-manager))
     (version (http:version http/2))
     (executor (force *http-client:default-executor*)))))
 

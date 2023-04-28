@@ -329,6 +329,7 @@
     (delegate-provider make-http-ephemeral-connection-manager))))
 
 (define (pooling-shutdown manager)
+  (define delegate (http-pooling-connection-manager-delegate manager))
   (define available (http-pooling-connection-manager-available manager))
   (define leasing (http-pooling-connection-manager-leasing manager))
   (define (do-shutdown table)
@@ -343,6 +344,7 @@
     (hashtable-clear! table))
   (do-shutdown available)
   (do-shutdown leasing)
+  (http-connection-manager-shutdown! delegate)
   #t)
 
 (define-record-type pooling-entry
