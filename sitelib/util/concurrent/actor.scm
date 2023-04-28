@@ -45,11 +45,17 @@
 
 	    make-shared-queue-channel
 	    make-shared-priority-queue-channel
+
+	    *actor-thread-name-factory*
 	    )
     (import (rnrs)
 	    (sagittarius threads) ;; need thread-interrrupt!
+	    (sagittarius)
+	    (srfi :39 parameters)
 	    (util concurrent shared-queue))
 
+(define *actor-thread-name-factory* 
+  (make-parameter (lambda () (gensym "actor-thread-"))))
 ;; base actor record
 ;; actor has 2 channels to receive/send messages
 (define-record-type (actor make-actor actor?)
@@ -67,7 +73,8 @@
 		      (guard (e (else (actor-state-set! actor 'error)
 				      (raise e)))
 			(task receiver/client sender/client)
-			(actor-state-set! actor 'finished)))))
+			(actor-state-set! actor 'finished)))
+		    ((*actor-thread-name-factory*))))
 		(actor (p 'created t receiver/actor sender/actor)))
 	   (thread-specific-set! t actor)
 	   (if start?

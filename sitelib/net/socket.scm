@@ -209,6 +209,7 @@
     (import (rnrs)
 	    (record builder)
 	    (clos core)
+	    (sagittarius) ;; gensym
 	    (sagittarius time) ;; for time
 	    (rename (except (sagittarius socket) make-client-socket)
 		    (make-server-socket socket:make-server-socket))
@@ -219,6 +220,7 @@
 	    (srfi :1 lists)
 	    (srfi :18 multithreading)
 	    (srfi :19 time)
+	    (srfi :39 parameters)
 	    ;; for actor
 	    (util concurrent)
 	    (util duration))
@@ -564,8 +566,13 @@
 	       (loop))))))
 
   ;; we make 2 actors to avoid unnecessary waiting time for socket polliing
-  (define socket-poll-actor (make-shared-queue-channel-actor poll-socket))
-  (define on-read-actor (make-shared-queue-channel-actor dispatch-socket))
+  (define (name-factory prefix) (lambda () (gensym prefix)))
+  (define socket-poll-actor
+    (parameterize ((*actor-thread-name-factory* (name-factory "socket-poll-")))
+      (make-shared-queue-channel-actor poll-socket)))
+  (define on-read-actor
+    (parameterize ((*actor-thread-name-factory* (name-factory "on-read-")))
+      (make-shared-queue-channel-actor dispatch-socket)))
 
   (define (push-socket (socket (or socket? tls-socket?))
 		       (on-read procedure?) timeout)
