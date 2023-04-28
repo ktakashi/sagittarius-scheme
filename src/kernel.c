@@ -130,10 +130,13 @@ SgObject Sg_KernelManagedThreads()
   SgKernel *k = SG_KERNEL(Sg_VM()->kernel);
   SgObject r = SG_NIL;
   SgDLinkNode *n = k->threads;
+
+  Sg_LockMutex(&k->lock);
   while (n) {
     r = Sg_Cons(n->value, r);
     n = n->next;
   }
+  Sg_UnlockMutex(&k->lock);
   return Sg_ReverseX(r);
 }
 
