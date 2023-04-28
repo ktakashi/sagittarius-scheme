@@ -65,7 +65,9 @@
 		#'(apply (record-constructor
 			  (record-constructor-descriptor ?record-type))
 			 (sort-values (record-type-descriptor ?record-type)
-			  (list (cons* '?field ?default-value ?converter) ...)
+			  (list (cons* '?field 
+				       (lambda () ?default-value)
+				       ?converter) ...)
 			  (merge-values
 			   (record-type-descriptor ?record-type)
 			   record
@@ -75,7 +77,9 @@
 			  (record-constructor-descriptor ?record-type))
 			 (sort-values
 			  (record-type-descriptor ?record-type)
-			  (list (cons* '?field ?default-value ?converter) ...)
+			  (list (cons* '?field 
+				       (lambda () ?default-value)
+				       ?converter) ...)
 			  (list (cons 'name value) (... ...))))))))))))
 
 (define (merge-values rtd record provided-values)
@@ -117,7 +121,7 @@
 		       (else v)))))
 	    ((assq field default-values) =>
 	     (lambda (fvd)
-	       (let ((v (cadr fvd))
+	       (let ((v ((cadr fvd))) ;; default value is wrapped with lambda
 		     (conv (cddr fvd)))
 		 (if conv (conv v) v))))
 	    (else #f)))
