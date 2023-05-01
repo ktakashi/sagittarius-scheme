@@ -71,6 +71,7 @@
 	    (net http-client http1)
 	    (net http-client http2)
 	    (record builder)
+	    (sagittarius)
 	    (scheme lazy)
 	    (srfi :18 multithreading)
 	    (srfi :19 time)
@@ -115,13 +116,17 @@
 
 ;; Don't create during the library loading
 (define *http-connection-manager:default-executor*
-  (make-parameter (delay (make-fork-join-executor))
-		  (lambda (v)
-		    (cond ((promise? v) v)
-			  ((executor? v) (delay v))
-			  (else (assertion-violation
-				 '*http-connection-manager:default-executor*
-				 "Promise or executor required" v))))))
+  (make-parameter
+   (delay (make-fork-join-executor
+	   (cpu-count)
+	   (fork-join-pool-parameters-builder
+	    (thread-name-prefix "default-http-connection-manager"))))
+   (lambda (v)
+     (cond ((promise? v) v)
+	   ((executor? v) (delay v))
+	   (else (assertion-violation
+		  '*http-connection-manager:default-executor*
+		  "Promise or executor required" v))))))
 
 
 (define (http-connection-manager-lease-connection manager request option)
@@ -142,8 +147,10 @@
   (define selector (connection-manager-socket-selector manager))
   (define (wrap on-read)
     (lambda (socket e retry)
-      (when e (on-error e))
-      (on-read conn retry)))
+      (guard (e (else (on-error e)))
+	(if e
+	    (on-error e)
+	    (on-read conn retry)))))
   (cond ((http-connection-socket conn) =>
 	 (lambda (socket) (selector socket (wrap on-read) timeout)))
 	(else
@@ -252,10 +259,10 @@
     (define uri (http:request-uri request))
     (guard (e (else
 	       (http-connection-logger-write-log connection-logger
-		(string-append 
-		 "[Lease Connection] Failed to acquire a connection: "
-		 (condition-message e))
-		e)
+		 "[Lease Connection] Failed to acquire a connection: ~a"
+		 (condition-message e)
+		 ;; We want to pass this, so think about it
+		 #;e)
 	       (raise e)))
       (let ((conn (ephemeral-lease-connection manager request option)))
 	(http-connection-logger-write-log connection-logger

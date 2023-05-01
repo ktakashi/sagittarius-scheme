@@ -94,6 +94,7 @@
   (run-test "https://prod.idrix.eu/secure/" "200")
   ;; The certificate is expired as of 26 Nov 2021...
   (run-test "https://client.badssl.com/" "400")
+  (http:client-shutdown! client)
   )
 
 (let ()

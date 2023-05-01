@@ -558,9 +558,9 @@
     (let loop ()
       (cond ((receiver) =>
 	     (lambda (e)
-	       (let-values (((on-read sock timeout e) (apply values e)))
-		 (unless (socket-closed? sock)
-		   (guard (e (else (on-error 'dispatcher e) #t))
+	       (guard (e (else (on-error 'dispatcher e) #t))
+		 (let-values (((on-read sock timeout e) (apply values e)))
+		   (unless (socket-closed? sock)
 		     (on-read sock e
 			      (lambda () (push-socket sock on-read timeout))))))
 	       (loop))))))

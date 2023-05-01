@@ -114,8 +114,7 @@
 	    (util concurrent)
 	    (sagittarius)
 	    (scheme lazy)
-	    (srfi :39 parameters)
-	    (srfi :197 pipeline))
+	    (srfi :39 parameters))
 
 (define *http-client:default-executor*  
   (delay (make-fork-join-executor
@@ -181,14 +180,18 @@
 
 ;;; helpers
 (define (request/response client request success failure)
+  (define ((release/fail conn) e)
+    (release-http-connection client conn #f)
+    (failure e))
   (guard (e (else (failure e)))
     (let-values (((conn new-req response-handler)
 		  (send-request client request)))
+      (let ((fail (release/fail conn)))
       (http-connection-manager-register-on-readable
        (http:client-connection-manager client) conn
-       (response-handler success failure)
-       failure
-       (http:request-timeout new-req)))))
+       (response-handler success fail)
+       fail
+       (http:request-timeout new-req))))))
 
 (define (default-executor? client)
   (eq? (http:client-executor client) (force *http-client:default-executor*)))
@@ -261,9 +264,10 @@
 		       ;; push the connection for data reading
 		       (retry))))))))
 	((waiting-for-data)
-	 (chain (executor-submit! executor (lambda () (receive-data conn)))
-		(future-map/executor executor finish _)
-		(future-guard/executor executor failure _)))
+	 (executor-submit! executor
+	  (lambda () 
+	    (guard (e (else (failure e)))
+	      (finish (receive-data conn))))))
 	(else (failure (condition (make-error)
 				  (make-who-condition 'response-handler)
 				  (make-message-condition "Invalid state")))))))
