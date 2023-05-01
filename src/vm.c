@@ -1801,10 +1801,8 @@ static SgObject get_stack_trace(SgContFrame *cont, SgObject cl, SgWord *pc)
   return cur;
 }
 
-/* returns alist of stack trace. */
-SgObject Sg_GetStackTrace()
+SgObject Sg_GetStackTraceOfVM(SgVM *vm)
 {
-  SgVM *vm = Sg_VM();
   SgContFrame *cont = CONT(vm);
   SgObject cl = CL(vm);
   SgWord *pc = PC(vm);
@@ -1816,6 +1814,13 @@ SgObject Sg_GetStackTrace()
   /* if (vm->state == COMPILING || vm->state == IMPORTING) return SG_NIL; */
   /* get current posision's src */
   return get_stack_trace(cont, cl, pc);
+}
+
+/* returns alist of stack trace. */
+SgObject Sg_GetStackTrace()
+{
+  SgVM *vm = Sg_VM();
+  return Sg_GetStackTraceOfVM(vm);
 }
 
 SgObject Sg_GetStackTraceFromCont(SgContFrame *cont)

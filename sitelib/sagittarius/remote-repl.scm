@@ -368,9 +368,11 @@
        (lambda ()
 	(let loop ()
 	  (let1 socket (socket-accept server :handshake #f)
-	    (logging socket "accept")
-	    (thread-start! (make-thread (detach socket)))
-	    (loop))))
+	    (when socket
+	      (logging socket "accept")
+	      (thread-start! (make-thread (detach socket)
+					  (gensym "remote-repl-")))
+	      (loop)))))
        server)))
 
 )
