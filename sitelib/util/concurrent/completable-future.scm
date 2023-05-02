@@ -72,10 +72,9 @@
       future))))
 
 (define (search-executor future future*)
-  (force (*completable-future:default-executor*))
-  #;(cond ((completable-future? future)
+  (cond ((completable-future? future)
 	 (completable-future-executor future))
-	((filter completable-future? future*) =>
+	((find completable-future? future*) =>
 	 (lambda (f*) (completable-future-executor (car f*))))
 	(else (force (*completable-future:default-executor*)))))
 (define (future-map proc future . future*)
@@ -84,12 +83,11 @@
 ;; damn...
 (define (future-map/executor executor proc future . future*)
   (thunk->future (if (null? future*)
-		     (lambda opt (proc (apply future-get future opt)))
-		     (lambda opt
+		     (lambda () (proc (future-get future)))
+		     (lambda ()
 		       (apply proc
-			      (cons (apply future-get future opt)
-				    (map (lambda (f) (apply future-get f opt))
-					 future*)))))
+			      (future-get future)
+			      (map (lambda (f) (future-get f)) future*))))
 		 executor))
 
 ;; For now very naive implementation...
@@ -100,15 +98,14 @@
 (define (future-flatmap/executor executor proc future . future*)
   (thunk->future
    (if (null? future*)
-       (lambda opt
-	 (let ((f (proc (apply future-get future opt))))
-	   (apply future-get f opt)))
-       (lambda opt
+       (lambda ()
+	 (let ((f (proc (future-get future))))
+	   (future-get f)))
+       (lambda ()
 	 (let ((f (apply proc
-			 (cons (apply future-get future opt)
-			       (map (lambda (f) (apply future-get f opt))
-				    future*)))))
-	   (apply future-get f opt))))
+			 (future-get future)
+			 (map (lambda (f) (future-get f)) future*))))
+	   (future-get f))))
    executor))
 
 (define (future-guard proc future)

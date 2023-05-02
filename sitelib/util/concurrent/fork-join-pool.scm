@@ -154,10 +154,8 @@
 		  ((and (worker-queue-empty? worker-queue)
 			(select-other-task)) => loop)
 		  (else
-		   ;; at this moment, all the queues are empty so watch
-		   ;; the scheduler queue if there's a move.
-		   (shared-queue-watch sq)
-		   (loop thread-yield!)))))))
+		   ;; Nothing to do, so wait for a next task
+		   (loop (worker-queue-get! worker-queue))))))))
     (string-append prefix "-core-worker-" (number->string i)))))
 
 (define (make-scheduler-thread pool sq worker-queues parameter)

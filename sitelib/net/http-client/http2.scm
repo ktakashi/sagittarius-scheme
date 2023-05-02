@@ -203,6 +203,10 @@
 		   ((http2-frame-data? frame)
 		    (let ((data (http2-frame-data-data frame))
 			  (data-handler (http2-stream-data-handler stream)))
+		      (http-connection-write-log connection
+		       "HTTP2 data length ~a, ~a"
+		       (bytevector-length data) es?)
+
 		      (data-handler data es?)
 		      (hashtable-update! used-window-sizes sid
 		       (lambda (v)

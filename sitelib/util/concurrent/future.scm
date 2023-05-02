@@ -61,22 +61,27 @@
 	    make-shared-box shared-box?
 	    shared-box-put! shared-box-get!)
     (import (rnrs)
+	    ;; (sagittarius)
 	    (srfi :18))
 
   ;; lightweight shared-queue to retrieve future result
   (define shared-box-mark (list 'shared-box))
   (define-record-type (<shared-box> make-shared-box shared-box?)
-    (fields (mutable value %sb-value %sb-value-set!)
+    (fields (mutable value  %sb-value %sb-value-set!)
 	    (immutable lock %sb-lock)
-	    (immutable cv   %sb-cv))
+	    (immutable cv   %sb-cv)
+	    (mutable waiter %sb-waiter %sb-waiter-set!))
     (protocol (lambda (p)
 		(lambda ()
-		  (p shared-box-mark (make-mutex) (make-condition-variable))))))
+		  (p shared-box-mark
+		     (make-mutex)
+		     (make-condition-variable)
+		     0)))))
   (define (shared-box-put! sb o)
     (mutex-lock! (%sb-lock sb))
     (%sb-value-set! sb o)
-    ;; TODO do we need count waiter?
-    (condition-variable-broadcast! (%sb-cv sb))
+    (when (> (%sb-waiter sb) 0)
+      (condition-variable-broadcast! (%sb-cv sb)))
     (mutex-unlock! (%sb-lock sb)))
   (define (shared-box-get! sb . maybe-timeout)
     (define timeout (if (pair? maybe-timeout) (car maybe-timeout) #f))
@@ -85,14 +90,17 @@
 			      (cadr maybe-timeout)
 			      #f))
     (mutex-lock! (%sb-lock sb))
+    (%sb-waiter-set! sb (+ (%sb-waiter sb) 1))
     (let loop ()
       (let ((r (%sb-value sb)))
 	(cond ((eq? r shared-box-mark)
+	       ;; (format #t "get ~a~%" sb)
 	       (cond ((mutex-unlock! (%sb-lock sb) (%sb-cv sb) timeout)
 		      (mutex-lock! (%sb-lock sb))
 		      (loop))
 		     (else (values timeout-value #t))))
-	      (else 
+	      (else
+	       (%sb-waiter-set! sb (- (%sb-waiter sb) 1))
 	       (mutex-unlock! (%sb-lock sb))
 	       (values r #f))))))
 
@@ -102,7 +110,7 @@
 
   ;; future
   (define-record-type future
-    (fields (mutable thunk)
+    (fields thunk
 	    (mutable result)
 	    (mutable state)
 	    (mutable canceller))
@@ -113,8 +121,11 @@
   (define (make-piped-future)
     (let* ((box (make-shared-box))
 	   (f (make-future (lambda () #f) box)))
+      ;; (format #t "crt ~a~%" box)
       (values f
-	      (lambda (v) (shared-box-put! box v) f)
+	      (lambda (v)
+		;; (format #t "put ~a~%" box)
+		(shared-box-put! box v) f)
 	      (lambda (e)
 		(future-canceller-set! f #t)
 		(shared-box-put! box e)
@@ -166,6 +177,7 @@
       (raise-future-terminated future))
     (let* ((state (future-state future))
 	   (r (future-result future)))
+      ;; (format #t "fget ~a~%" r)
       (cond ((and (not (eq? state 'done)) (shared-box? r))
 	     (let-values (((v timeout?) (apply shared-box-get! r opt)))
 	       (cond (timeout? v)
