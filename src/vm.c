@@ -2502,7 +2502,7 @@ static void print_frames(SgVM *vm, SgContFrame *cont)
     Sg_Printf(vm->logPort, UC(";; 0x%x +   p=%#39x +\n"), current, *current);
     current--;
   }
-  if (vm->fp != current)
+  if (vm->fp == current)
     Sg_Printf(vm->logPort, UC(";; 0x%x +---------------------------------------------+ < fp\n"), vm->fp);
   /* now we know we just need to trace cont frames
      memo: if cont has let frame, we just dump it as pointer.
