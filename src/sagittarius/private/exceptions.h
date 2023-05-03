@@ -286,6 +286,7 @@ typedef struct SgStackTraceConditionRec
   SgObject trace;		/* back trace */
   SgObject cl;			/* saved cl */
   SgWord   *pc;			/* saved pc */
+  SgVM     *thread;		/* capturing thread */
 } SgStackTraceCondition;
 #define SG_STACK_TRACE_CONDITION(o)  ((SgStackTraceCondition *)o)
 #define SG_STACK_TRACE_CONDITION_P(o) SG_ISA(o, SG_CLASS_STACK_TRACE_CONDITION)

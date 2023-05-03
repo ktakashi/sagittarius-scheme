@@ -1751,24 +1751,27 @@ static SgObject collect_arguments(SgVM *vm, SgObject *fp, int argc, SgObject cl)
   }
 
   /* local variable */
+  /* if (argc > 0) fprintf(stderr, "fp = %p, ", fp); */
   for (i = 0; i < argc;) {
     SgObject v = *(fp + i);
     if (IN_STACK_P((SgObject *)v, vm)) {
-      /* probably a frame, so skip */
+      /* probably a LOCAL_CALL frame, so skip */
       i += SG_FRAME_SIZE;
     } else {
+      /* fprintf(stderr, "%d:v = %p, ", i, v); */
       SG_APPEND1(h, t, Sg_Cons(SG_MAKE_INT(i++), v));
     }
   }
+  /* if (argc > 0) fprintf(stderr, "\n"); */
   return Sg_Acons(SG_INTERN("local"), h, r);
 }
 
-static SgObject get_stack_trace(SgContFrame *cont, SgObject cl, SgWord *pc,
+static SgObject get_stack_trace(SgVM *vm, SgContFrame *cont, SgObject cl, SgWord *pc,
 				SgObject *fp, int count)
 {
   SgObject r = SG_NIL, cur = SG_NIL, *argp = fp;
-  SgVM *vm = Sg_VM();
   int i;
+
   for (i = 0;;) {
     if (SG_PROCEDUREP(cl)) {
       SgObject args = collect_arguments(vm, argp, count, cl);
@@ -1820,8 +1823,9 @@ static SgObject get_stack_trace(SgContFrame *cont, SgObject cl, SgWord *pc,
 	break;
       }
       count = cont->size;	/* size = previous frame's arguments count */
-      /* wrong order... */
-      argp = IN_STACK_P((SgObject *)cont, vm)? cont->fp: cont->env;
+      if (cont->fp == C_CONT_MARK) argp = NULL;
+      /* on the stack, i hope */
+      else argp = cont->fp;
       cont = nextCont;
     } else {
       break;
@@ -1840,9 +1844,8 @@ SgObject Sg_GetStackTraceOfVM(SgVM *vm)
     /* before running */
     return SG_NIL;
   }
-  /* if (vm->state == COMPILING || vm->state == IMPORTING) return SG_NIL; */
-  /* get current posision's src */
-  return get_stack_trace(cont, cl, pc, FP(vm), SP(vm) - FP(vm));
+  /* fprintf(stderr, "stack = %p, sp = %p\n", vm->stack, SP(vm)); */
+  return get_stack_trace(vm, cont, cl, pc, FP(vm), SP(vm) - FP(vm));
 }
 
 /* returns alist of stack trace. */
@@ -1852,9 +1855,11 @@ SgObject Sg_GetStackTrace()
   return Sg_GetStackTraceOfVM(vm);
 }
 
-SgObject Sg_GetStackTraceFromCont(SgContFrame *cont)
+SgObject Sg_GetStackTraceFromCont(SgVM *vm, SgContFrame *cont)
 {
-  return get_stack_trace(cont, cont->cl, cont->pc, NULL, -1);
+  /* arguments are located on top of cont frame, so the
+     first frame can't get arguments */
+  return get_stack_trace(vm, cont, cont->cl, cont->pc, NULL, -1);
 }
 
 /*
@@ -2421,31 +2426,28 @@ static SgContFrame * print_cont1(SgContFrame *cont, SgVM *vm)
   int size = cont->size;
   SgString *clfmt = SG_MAKE_STRING("+   cl=~38,,,,39s +~%");
 
-  /* Sg_Printf(vm->logPort, */
-  /* 	    UC(";; 0x%x +---------------------------------------------+\n"), */
-  /* 	    current); */
-  Sg_Printf(vm->logPort, UC(";; 0x%x +   fp=%#38x +\n"),
+  Sg_Printf(vm->logPort, UC(";; %p +   fp=%#38p +\n"),
 	    (uintptr_t)cont + offsetof(SgContFrame, fp), cont->fp);
-  Sg_Printf(vm->logPort, UC(";; 0x%x "),
+  Sg_Printf(vm->logPort, UC(";; %p "),
 	    (uintptr_t)cont + offsetof(SgContFrame, cl));
   if (cont->cl) {
     Sg_Format(vm->logPort, clfmt, SG_LIST1(cont->cl), TRUE);
   } else {
     Sg_Format(vm->logPort, clfmt, SG_LIST1(SG_FALSE), TRUE);
   }
-  Sg_Printf(vm->logPort, UC(";; 0x%x +   pc=%#38x +\n"),
+  Sg_Printf(vm->logPort, UC(";; %p +   pc=%#38p +\n"),
 	    (uintptr_t)cont + offsetof(SgContFrame, pc), cont->pc);
-  Sg_Printf(vm->logPort, UC(";; 0x%x + size=%#38d +\n"),
+  Sg_Printf(vm->logPort, UC(";; %p + size=%#38d +\n"),
 	    (uintptr_t)cont + offsetof(SgContFrame, size), size);
-  Sg_Printf(vm->logPort, UC(";; 0x%x + prev=%#38x +\n"),
+  Sg_Printf(vm->logPort, UC(";; %p + prev=%#38p +\n"),
 	    (uintptr_t)cont + offsetof(SgContFrame, prev), cont->prev);
   if (cont == CONT(vm)) {
     Sg_Printf(vm->logPort, 
-      UC(";; 0x%x +---------------------------------------------+ < cont%s\n"), 
+      UC(";; %p +---------------------------------------------+ < cont%s\n"), 
       cont, BOUNDARY_FRAME_MARK_P(cont) ? UC(" (boundary)") : UC(""));
   } else if (cont->prev) {
     Sg_Printf(vm->logPort, 
-      UC(";; 0x%x +---------------------------------------------+ < prev%s\n"),
+      UC(";; %p +---------------------------------------------+ < prev%s\n"),
       cont, BOUNDARY_FRAME_MARK_P(cont) ? UC(" (boundary)") : UC(""));
   }
 
@@ -2453,23 +2455,23 @@ static SgContFrame * print_cont1(SgContFrame *cont, SgVM *vm)
   /* dump arguments */
   if (IN_STACK_P((SgObject*)cont, vm)) {
     for (i = 0; i < size; i++, current--) {
-      Sg_Printf(vm->logPort, UC(";; 0x%x +   p=%#39x +\n"), current,
+      Sg_Printf(vm->logPort, UC(";; %p +   p=%#39p +\n"), current-1,
 		*(current-1));
     }
     if (size > 0) {
       Sg_Printf(vm->logPort, 
-		UC(";; 0x%x +---------------------------------------------+ < args\n"),
+		UC(";; %p +---------------------------------------------+ < args\n"),
 		current);
     }
   } else {
     for (i = 0; i < size; i++) {
-      Sg_Printf(vm->logPort, UC(";; 0x%x +   p=%#39x +\n"), cont->env+i,
+      Sg_Printf(vm->logPort, UC(";; %p +   p=%#39x +\n"), cont->env+i,
 		*(cont->env+i));
     }
     if (size > 0) {
       Sg_Printf(vm->logPort, 
-		  UC(";; 0x%x +---------------------------------------------+ < args\n"),
-		*(cont->env+size));
+		  UC(";; %p +---------------------------------------------+ < args\n"),
+		cont->env+size);
     }
   }
   if (!cont->cl) return NULL;
@@ -2481,7 +2483,7 @@ static void print_frames(SgVM *vm, SgContFrame *cont)
   SgObject *stack = vm->stack, *sp = SP(vm);
   SgObject *current = sp-1;
 
-  Sg_Printf(vm->logPort, UC(";; stack: 0x%x, cont: 0x%x\n"),
+  Sg_Printf(vm->logPort, UC(";; stack: %p, cont: %p\n"),
 	    stack, cont);
 
   /* first dump cont in heap */
@@ -2491,41 +2493,26 @@ static void print_frames(SgVM *vm, SgContFrame *cont)
   }
   if (!cont) goto end;
 
-  Sg_Printf(vm->logPort, UC(";; 0x%x +---------------------------------------------+ < sp%s\n"),
-	    sp, vm->fp == current? UC("/fp"): UC(""));
+  Sg_Printf(vm->logPort, UC(";; %p +---------------------------------------------+ < sp%s\n"),
+	    sp-1, vm->fp == current? UC("/fp"): UC(""));
   
   /* second we dump from top until cont frame. */
-  while ((stack < current && vm->fp < current)) {
-    if (current == (SgObject*)cont + CONT_FRAME_SIZE) {
-      break;
-    }
-    Sg_Printf(vm->logPort, UC(";; 0x%x +   p=%#39x +\n"), current, *current);
+  while ((stack < current && vm->fp <= current)) {
+    Sg_Printf(vm->logPort, UC(";; %p +   p=%#39p +\n"), current, *current);
     current--;
   }
-  if (vm->fp == current)
-    Sg_Printf(vm->logPort, UC(";; 0x%x +---------------------------------------------+ < fp\n"), vm->fp);
+  if (current != sp-1)
+    Sg_Printf(vm->logPort, UC(";; %p +---------------------------------------------+ < fp\n"), vm->fp);
   /* now we know we just need to trace cont frames
      memo: if cont has let frame, we just dump it as pointer.
    */
   while (stack < current && current <= sp) {
-    /* the very first arguments are ignored */
-    /* while (current > (SgObject *)cont + CONT_FRAME_SIZE) { */
-    /*   Sg_Printf(vm->logPort, UC(";; 0x%x +   p=%#39x +\n"), current, *current); */
-    /*   current--; */
-    /* } */
-    /* Sg_Printf(vm->logPort, UC(";; 0x%x +   p=%#39x +\n"), current, *current); */
-
     current = (SgObject *)cont;
     cont = print_cont1(cont, vm);
     if (!cont) break;
   }
  end:
-  Sg_Printf(vm->logPort, UC(";; 0x%x +---------------------------------------------+\n"), stack);
-}
-
-void Sg_VMPrintFrameFrom(SgContFrame *cont)
-{
-  print_frames(Sg_VM(), cont);
+  Sg_Printf(vm->logPort, UC(";; %p +---------------------------------------------+\n"), stack);
 }
 
 void Sg_VMPrintFrame()

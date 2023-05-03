@@ -43,6 +43,7 @@
 #include "sagittarius/private/keyword.h"
 #include "sagittarius/private/string.h"
 #include "sagittarius/private/number.h"
+#include "sagittarius/private/vm.h"
 
 static SgClass *Sg_ConditionCPL[] = {
   SG_CLASS_CONDITION,
@@ -673,7 +674,7 @@ static SgObject st_cause(SgStackTraceCondition *c)
 static SgObject st_trace(SgStackTraceCondition *c)
 {
   /* it's a bit inefficient but this is not used anywhere anyway. */
-  return Sg_GetStackTraceFromCont((SgContFrame *)c->trace);
+  return Sg_GetStackTraceFromCont(c->thread, (SgContFrame *)c->trace);
 }
 static SgSlotAccessor st_slots[] = {
   SG_CLASS_SLOT_SPEC("cause",  0, st_cause, NULL),
@@ -807,6 +808,7 @@ static SgObject make_stack_trace(SgObject cause, SgVM *vm)
   SG_STACK_TRACE_CONDITION(st)->trace = vm->cont;
   SG_STACK_TRACE_CONDITION(st)->cl = vm->cl;
   SG_STACK_TRACE_CONDITION(st)->pc = vm->pc;
+  SG_STACK_TRACE_CONDITION(st)->thread = vm;
   return st;
 }
 

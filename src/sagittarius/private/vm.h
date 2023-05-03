@@ -400,7 +400,7 @@ SG_EXTERN SgObject Sg_VMCurrentLibrary();
 /* exception */
 SG_EXTERN SgObject Sg_GetStackTrace();
 SG_EXTERN SgObject Sg_GetStackTraceOfVM(SgVM *vm);
-SG_EXTERN SgObject Sg_GetStackTraceFromCont(SgContFrame *cont);
+SG_EXTERN SgObject Sg_GetStackTraceFromCont(SgVM *vm, SgContFrame *cont);
 SG_EXTERN SgObject Sg_VMThrowException(SgVM *vm, SgObject exception,
 				       int continuableP);
 SG_EXTERN void     Sg_VMDefaultExceptionHandler(SgObject exception);
