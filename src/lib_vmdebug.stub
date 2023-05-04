@@ -13,6 +13,9 @@
    (.include <sagittarius/private.h>))
 
   (define-c-proc vm-dump-code (cb::<code-builder>) ::<void> Sg_VMDumpCode)
+  (define-c-proc vm-dump-closure-code (cl::<procedure>) ::<void>
+    (when (SG_CLOSUREP cl)
+      (Sg_VMDumpCode (-> (SG_CLOSURE cl) code))))
 
   (define-c-proc source-info (o)
     (if (SG_PAIRP o)
