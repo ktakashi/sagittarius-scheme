@@ -174,17 +174,43 @@
 #!nounbound
 (library (sagittarius debug remote)
     (export :export-reader-macro
-	    sleeping-threads thread-backtrace->pretty-string
+	    sleeping-threads
+	    thread-backtrace->pretty-string
+	    thread->pretty-backtrace-string
 	    thread-current-procedure
+	    thread-name thread-specific
 	    (rename (kernel-managed-threads all-threads))
-	    print)
+
+	    ;; for debugger developers (me)
+	    print-thread-stack-frames
+
+	    ;; inspection
+	    slot-ref inspect-object
+	    
+	    ;; utilities for debugging
+	    print print/ss
+	    string-prefix? string-suffix?
+	    
+	    thread-backtrace
+	    thread-backtrace-type
+	    thread-backtrace-procedure
+	    thread-backtrace-source
+	    thread-backtrace-arguments
+	    thread-backtrace-local-variables
+	    thread-backtrace-free-variables)
     (import (rnrs)
+	    (clos core)
+	    (clos user)
+	    (sagittarius)
 	    (sagittarius debug)
 	    (sagittarius kernel)
 	    (sagittarius threads)
 	    (sagittarius vm)
-	    (srfi :1 lists))
+	    (sagittarius vm debug)
+	    (srfi :1 lists)
+	    (srfi :13 strings))
 (define (print . args) (for-each display args) (newline))
+(define (print/ss . args) (for-each write/ss args) (newline))
 
 (define (sleeping-threads :optional (timeout 0.01))
   (define self (current-thread))
@@ -196,10 +222,49 @@
 	   (else t)))
    (kernel-managed-threads)))
 
-(define (thread-backtrace->pretty-string t)
+(define (thread->pretty-backtrace-string t)
   (let-values (((out e) (open-string-output-port)))
     (display "Thread " out) (display (thread-name t) out) (newline out)
     (format-stack-trace (thread-backtrace t) out)
     (e)))
 
+(define (thread-backtrace->pretty-string bt)
+  (let-values (((out e) (open-string-output-port)))
+    (format-stack-trace bt out)
+    (e)))
+
+(define (thread-backtrace-type bt n)
+  (cond ((assv n bt) => cadr)
+	(else #f)))
+(define (thread-backtrace-procedure bt n)
+  (cond ((assv n bt) => caddr)
+	(else #f)))
+(define (thread-backtrace-source bt n)
+  (cond ((assv n bt) =>
+	 (lambda (s)
+	   (let ((p (cadddr s)))
+	     (and (pair? p)
+		  (let ((v (cdar (last-pair p))))
+		    (list v (source-info v)))))))
+	(else #f)))
+(define (thread-backtrace-arguments bt n)
+  (define (caddddr p) (car (cddddr p)))
+  (cond ((assv n bt) => caddddr)
+	(else #f)))
+
+(define (thread-backtrace-local-variables bt n)
+  (cond ((thread-backtrace-arguments bt n) =>
+	 (lambda (s) (cond ((assq 'local s) => cdr) (else '()))))
+	(else '())))
+(define (thread-backtrace-free-variables bt n)
+  (cond ((thread-backtrace-arguments bt n) =>
+	 (lambda (s) (cond ((assq 'free s) => cdr) (else '()))))
+	(else '())))
+
+(define (print-thread-stack-frames t)
+  (print-stack-frames t))
+
+(define (inspect-object o)
+  (let ((cl (class-of o)))
+    `((slots ,@(map slot-definition-name (class-slots cl))))))
 )
