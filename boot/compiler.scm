@@ -1757,7 +1757,7 @@
 	 `(,@(imap2 (lambda (v p) `(,define. ,v ,p)) pred-vars pred)
 	   ,@(imap2 (lambda (v p) (v p)) validators pred-vars)
 	   (,let. () ,@body))
-	 p1env))))
+	 body))))
 
 (define (pass1/lambda form formals body p1env flag)
   (receive (vars reqargs opt kargs) (parse-lambda-args formals)
