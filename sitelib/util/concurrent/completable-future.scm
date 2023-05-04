@@ -117,8 +117,8 @@
 
 (define (future-guard/executor executor proc future)
   (thunk->future
-   (lambda opt
+   (lambda ()
      (guard (e (else (proc e)))
-       (apply future-get future opt)))
+       (future-get future)))
    executor))
 )
