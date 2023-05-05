@@ -33,7 +33,7 @@
     (export :export-reader-macro
 	    unbound-variable
 	    macroexpand macroexpand-1 macroexpand-n
-	    make-remote-debugger
+	    make-remote-debugger remote-debugger?
 	    ;; just for convenience
 	    (rename (connect-remote-repl connect-remote-debugger))
 	    remote-debugger-terminate!
