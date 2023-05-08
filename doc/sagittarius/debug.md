@@ -97,3 +97,112 @@ Terminates the given _remote-debugger_.
 
 Returns the port number of the given _remote-debugger_.
 
+---
+
+The bindings listed below are only available on the remote debugger's
+REPL.
+
+###### [!Function] `all-threads`
+
+Get a list of threads created on Scheme world.
+
+###### [!Function] `sleeping-threads` :optional (_timeout_ 0.01)
+
+Get a list of sleeping threads created on Scheme world.
+
+Ssleeping thread is a thread which can't suspend within the given _timeout_.
+
+###### [!Function] `thread?` _obj_
+
+[SRFI-18] Returns if the given _obj_ is a thread.
+
+###### [!Function] `thread-name` (_thread_ `thread?`)
+
+[SRFI-18] Returns the name of the given _thread_.
+
+###### [!Function] `thread-specific` (_thread_ `thread?`)
+
+[SRFI-18] Returns the specific value of the given _thread_.
+
+###### [!Function] `thread->pretty-backtrace-string` (_thread_ `thread?`)
+
+Returns a human readable string representation of the given *thread*'s 
+backtrace.
+
+###### [!Function] `thread-current-procedure` (_thread_ `thread?`)
+
+Returns the current procedure of the _thread_.
+
+###### [!Function] `thread-backtrace` (_thread_ `thread?`)
+
+Returns the backtrace of the given _thread_.
+
+Currently, a backtrace is a list, however it may change in the future,
+to access the value of backtrace, use the  procedures listed below.
+
+NOTE: A backtrace starts with `1`, not zero base.
+
+###### [!Function] `thread-backtrace-type` _backtrace_ _n_
+
+Returns the type of *n*th _backtrace_. The value is
+
+`*cproc`
+: For C procedure.
+
+`*proc`
+: For Scheme procedure.
+
+
+###### [!Function] `thread-backtrace-procedure` _backtrace_  _n_
+
+Returns the procedure of the *n*th _backtrace_.
+
+###### [!Function] `thread-backtrace-source` _backtrace_  _n_
+
+Returns the source, list of file and line number` of the *n*th _backtrace_,
+if available.
+
+###### [!Function] `thread-backtrace-arguments` _backtrace_  _n_
+
+Returns alist of the arguments of the *n*th *backtrace*'s procedure.
+
+For local variable, the key is `local`. For free variable, the key is `free`.
+
+NOTE: `local` variable may contain more than the argument of the current
+procedure. This is bacause it also retrieves the available local variable
+of the current call frame.
+
+
+###### [!Function] `thread-backtrace-local-variables` _backtrace_  _n_
+
+Returns `local` part of the *n*th *backtrace* arguments.
+
+###### [!Function] `thread-backtrace-free-variables` _backtrace_  _n_
+
+Returns `free` part of the *n*th *backtrace* arguments.
+
+###### [!Function] `thread-backtrace->pretty-string` _backtrace_
+
+Returns a human readable string representation of the given _backtrace_.
+
+###### [!Function] `slot-ref` _obj_ _slot_
+
+Returns the _slot_ value of given _obj_.
+
+###### [!Function] `inspect-object` _obj_
+
+Returns the available slots of the given _obj_.
+	    
+###### [!Function] `print` _arg_ _..._
+###### [!Function] `print/ss` _arg_ _..._
+
+Prints the given *arg*s and newline at the end.
+The first form uses `display` to print, the latter form uses `write/ss`.
+
+###### [!Function] `string-prefix?` _s1_ _s2_
+
+[SRFI-13] Returns `#t` if the given _s1_ is the prefix of _s2_.
+
+###### [!Function] `string-suffix?` _s1_ _s2_
+
+[SRFI-13] Returns `#t` if the given _s1_ is the suffix of _s2_.

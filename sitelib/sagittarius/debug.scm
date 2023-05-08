@@ -178,7 +178,7 @@
 	    thread-backtrace->pretty-string
 	    thread->pretty-backtrace-string
 	    thread-current-procedure
-	    thread-name thread-specific
+	    thread? thread-name thread-specific
 	    (rename (kernel-managed-threads all-threads))
 
 	    ;; for debugger developers (me)
