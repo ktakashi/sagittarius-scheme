@@ -73,6 +73,7 @@
 	    (sagittarius control)
 	    (util concurrent)
 	    (clos user)
+	    (srfi :1)
 	    (srfi :18)
 	    (srfi :19))
 
@@ -124,7 +125,20 @@
     (cond ((string? msg) (put-string out msg))
 	  ((condition? msg) #f) ;; skip
 	  (else (put-datum out msg))))
-
+  (define (strip-arguments fmt args)
+    (define (count-replacement fmt)
+      (define len (string-length fmt))
+      (let loop ((i 0) (c 0))
+	(cond ((= i len) c)
+	      ((eqv? (string-ref fmt i) #\~)
+	       (cond ((= (+ i 1) len) c)
+		     ((eqv? (string-ref fmt (+ i 1)) #\%) (loop (+ i 2) c))
+		     ;; Okay, let's hope this is a valid marker
+		     (else (loop (+ i 2) (+ c 1)))))
+	      (else (loop (+ i 1) c)))))
+    (let ((replecement (count-replacement fmt)))
+      (take args replecement)))
+      
   (let-values (((out extract) (open-string-output-port)))
     (do ((c (get-char in) (get-char in)))
 	((eof-object? c) (extract))
@@ -143,8 +157,10 @@
 	   ((#\m)
 	    (if (zero? (vector-length arguments))
 		(put out message)
-		(guard (e (else (report-error e)))
-		  (put out (apply format message (vector->list arguments))))))
+		(guard (e (else (put out message)))
+		  (let ((args (vector->list arguments)))
+		    (put out (apply format message
+				    (strip-arguments message args)))))))
 	   ((#\a)
 	    (let ((c2 (lookahead-char in)))
 	      (case c2

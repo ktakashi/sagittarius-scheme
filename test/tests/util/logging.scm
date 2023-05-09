@@ -4,6 +4,8 @@
 	(srfi :13)
 	(srfi :18)
 	(srfi :64)
+	(srfi :117)
+	(clos user)
 	(util logging))
 ;; tests
 (define (print-log logger)
@@ -130,5 +132,25 @@
 	       (not (eq? (lookup 'test-logger) (lookup 'test-logger2))))
   (test-assert "lookup(4)" (logger? (lookup 'test-logger3)))
   (test-assert "lookup(5)" (not (lookup 'test-logger4))))
+
+(let ()
+  (define-record-type buffer-appender
+    (parent <appender>)
+    (fields lines)
+    (protocol (lambda (p)
+		(lambda (format)
+		  ((p format) (list-queue))))))
+  (let-method ((append-log ((appender buffer-appender) log)
+		(let ((line (format-log appender log))
+		      (lines (buffer-appender-lines appender)))
+		  (list-queue-add-back! lines line))))
+   (let* ((appender (make-buffer-appender "~m"))
+	  (logger (make-logger +info-level+ appender)))
+     (info-log logger "~a~%" 'ok)
+     (info-log logger "~a~%" 'ok 'ng)
+     (info-log logger "~a:~a~%" 'ok 'ok)
+     (test-equal "format argument"
+		 '("ok\n" "ok\n" "ok:ok\n")
+		 (list-queue-list (buffer-appender-lines appender))))))
 
 (test-end)
