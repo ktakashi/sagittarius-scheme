@@ -93,9 +93,7 @@
 	  thread-name-prefix))
 (define-syntax fork-join-pool-parameters-builder
   (make-record-builder fork-join-pool-parameters
-   ;; no reason other than Java's ForkJoinPool limit,
-   ;; but should be large enough
-   ((max-threads #x7fff)
+   ((max-threads #f)			   ;; will be computed by default
     (keep-alive (duration:of-millis 5000)) ;; default 5 sec
     (max-queue-depth 2))))
 
@@ -114,6 +112,12 @@
 		(define parameter (if (null? maybe-parameter)
 				      *default-parameter*
 				      (car maybe-parameter)))
+		(define (max-threads n parameter)
+		  (cond ((fork-join-pool-parameters-max-threads parameter))
+			;; core threads times 5, for now
+			;; Maybe we should calculate coefficient based on the
+			;; given `n`.
+			(else (* n 5))))
 		(let ((core-threads (make-vector n))
 		      (tprefix
 		       (fork-join-pool-parameters-thread-name-prefix parameter))
@@ -131,7 +135,7 @@
 		      (vector-set! worker-queues i wq)
 		      (vector-set! core-threads i t)))
 		  (let ((r (p core-threads
-			      (fork-join-pool-parameters-max-threads parameter)
+			      (max-threads n parameter)
 			      #f
 			      scheduler-queue
 			      n
