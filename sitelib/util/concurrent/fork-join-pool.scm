@@ -75,15 +75,17 @@
 ;; thread local value on worker thread
 (define *current-worker-thread* (make-parameter #f))
 
+(define (1+ v) (and v (+ v 1)))
+(define (1- v) (and v (- v 1)))
+
 (define-record-type worker-thread
   (fields (mutable thread)
 	  queue
 	  (mutable busy? worker-thread-busy? worker-thread-busy!)
-	  lock
-	  cv)
+	  lock)
   (protocol (lambda (p)
-	      (lambda (queue cv)
-		(p #f queue #f (make-mutex) cv)))))
+	      (lambda (queue)
+		(p #f queue #f (make-mutex))))))
 (define (worker-thread-free? wh)
   (and (worker-queue-empty? (worker-thread-queue wh))
        (not (worker-thread-busy? wh))))
@@ -92,8 +94,6 @@
 (define (worker-thread-queue-pop! wh timeout val)
   (worker-queue-pop! (worker-thread-queue wh) timeout val))
 (define (worker-thread-name wh) (thread-name (worker-thread-thread wh)))
-(define (worker-thread-wait! wh)
-  (mutex-unlock! (worker-thread-lock wh) (worker-thread-cv wh)))
 
 (define-record-type fork-join-pool-parameters
   (fields max-threads
@@ -115,8 +115,7 @@
 	  scheduler-queue	 ;; pool queue from input
 	  (mutable thread-count) ;; number of worker threads
 	  parameter
-	  lock
-	  cv)
+	  lock)
   (protocol (lambda (p)
 	      (lambda (n . maybe-parameter)
 		(define parameter (if (null? maybe-parameter)
@@ -128,46 +127,38 @@
 			;; Maybe we should calculate coefficient based on the
 			;; given `n`.
 			(else (* n 5))))
-		(let ((core-threads (make-vector n))
-		      (tprefix
-		       (fork-join-pool-parameters-thread-name-prefix parameter))
-		      (indices (iota n))
-		      (worker-queues (make-vector n))
-		      (scheduler-queue (make-shared-queue))
-		      (cv (make-condition-variable)))
+		(let* ((indices (iota n))
+		       (core-threads (make-vector n))
+		       (r (p core-threads
+			     (max-threads n parameter)
+			     #f
+			     (make-shared-queue)
+			     n
+			     parameter
+			     (make-mutex))))
 		  (do ((i 0 (+ i 1))) ((= i n))
 		    (let* ((wq (make-worker-queue))
-			   (t (make-core-worker-thread
-			       i
-			       (or tprefix "fork-join-pool")
-			       scheduler-queue
-			       wq worker-queues
-			       (remv i indices)
-			       cv)))
-		      (vector-set! worker-queues i wq)
+			   (others (remv i indices))
+			   (t (make-core-worker-thread r i wq others)))
 		      (vector-set! core-threads i t)))
-		  (let ((r (p core-threads
-			      (max-threads n parameter)
-			      #f
-			      scheduler-queue
-			      n
-			      parameter
-			      (make-mutex)
-			      cv)))
-		    (fork-join-pool-scheduler-set! r
-		     (make-scheduler-thread r scheduler-queue core-threads
-					    parameter))
-		    r))))))
+		  (fork-join-pool-scheduler-set! r (make-scheduler-thread r))
+		  r)))))
 
-(define (make-core-worker-thread i prefix
-				 sq worker-queue worker-queues other-queues cv)
-  (define (select-other-task other-queues worker-queues)
+(define (make-core-worker-thread pool i worker-queue other-queues)
+  (define worker-threads (fork-join-pool-core-threads pool))
+  (define parameter (fork-join-pool-parameter pool))
+  (define prefix
+    (or (fork-join-pool-parameters-thread-name-prefix parameter)
+	"fork-join-pool"))
+  (define (select-other-task other-queues worker-threads)
     (let loop ((indices other-queues))
       (and (not (null? indices))
-	   (or (worker-queue-pop! (vector-ref worker-queues (car indices)) 0 #f)
-	       (loop (cdr indices))))))
+	   (let ((wh (vector-ref worker-threads (car indices))))
+	     (or (and (worker-thread-busy? wh)
+		      (worker-thread-queue-pop! wh 0 #f))
+		 (loop (cdr indices)))))))
   
-  (let ((wh (make-worker-thread worker-queue cv)))
+  (let ((wh (make-worker-thread worker-queue)))
     (worker-thread-thread-set! wh
      (thread-start!
       (make-thread
@@ -178,19 +169,19 @@
 	     (worker-thread-busy! wh task)
 	     (guard (e (else #f)) (task))
 	     (worker-thread-busy! wh #f)
-	     (let wait ()
-	       (cond ((worker-queue-get! worker-queue 0 #f) => loop)
+	     (cond ((worker-queue-get! worker-queue 0 #f) => loop)
 		     ;; help other thread if they are busy but not me
 		     ;; I'm such a kind thread :D
-		     ((select-other-task other-queues worker-queues) => loop)
-		     (else
-		      ;; wait for the signal
-		      (worker-thread-wait! wh)
-		      (wait)))))))
+		     ((select-other-task other-queues worker-threads) => loop)
+		     (else (loop (worker-queue-get! worker-queue)))))))
        (string-append prefix "-core-worker-" (number->string i)))))
     wh))
 
-(define (make-scheduler-thread pool sq worker-threads parameter)
+(define (make-scheduler-thread pool)
+  (define worker-threads (fork-join-pool-core-threads pool))
+  (define sq (fork-join-pool-scheduler-queue pool))
+  (define parameter (fork-join-pool-parameter pool))
+
   (define wh* (vector->list worker-threads))
   (define whq (make-list-queue wh*))
   (define duration (fork-join-pool-parameters-keep-alive parameter))
@@ -212,11 +203,11 @@
 	    (cond ((exists (lambda (wh)
 			     (worker-thread-queue-pop! wh wait #f)) wh*)
 		   => loop))))
-	(update-thread-count! pool (lambda (tc) (and tc (- tc 1)))))
+	(update-thread-count! pool 1-))
       (string-append (or tprefix "fork-join-pool")
 		     "-child-thread-"
 		     (number->string thread-number))))
-    (update-thread-count! pool (lambda (tc) (and tc (+ tc 1)))))
+    (update-thread-count! pool 1+))
 
   (define (process)
     (let loop ()
@@ -227,8 +218,7 @@
 	  ;;      mean the worker is not busy...
 	  (cond ((or (find worker-thread-free? wh*) (find small-enough wh*)) =>
 		 (lambda (wh)
-		   (worker-thread-queue-push! wh task)
-		   (condition-variable-broadcast! (fork-join-pool-cv pool))))
+		   (worker-thread-queue-push! wh task)))
 		((< (fork-join-pool-thread-count pool)
 		    (fork-join-pool-max-threads pool))
 		 (spawn task))
@@ -236,8 +226,7 @@
 		(else
 		 (let ((wh (list-queue-remove-front! whq)))
 		   (worker-thread-queue-push! wh task)
-		   (list-queue-add-back! whq wh))
-		 (condition-variable-broadcast! (fork-join-pool-cv pool))))
+		   (list-queue-add-back! whq wh))))
 	  (loop)))))
   (thread-start! (make-thread process
 			      (string-append (or tprefix "fork-join")
@@ -252,9 +241,7 @@
 			 task))
   (cond ((vector-find (lambda (e) (eq? e (*current-worker-thread*)))
 		      (fork-join-pool-core-threads pool)) =>
-	 (lambda (wh) 
-	   (worker-thread-queue-push! wh task)
-	   (condition-variable-broadcast! (fork-join-pool-cv pool))))
+	 (lambda (wh) (worker-thread-queue-push! wh task)))
 	(else (shared-queue-put! (fork-join-pool-scheduler-queue pool) task))))
 
 ;; waits all worker queue to be empty
@@ -287,10 +274,13 @@
 (define (fork-join-pool-available? pool)
   (number? (fork-join-pool-thread-count pool)))
 
-(define (update-thread-count! pool updator)
+(define ((make-counter-updator! get set) pool updator)
   (define lock (fork-join-pool-lock pool))
   (mutex-lock! lock)
-  (let ((tc (fork-join-pool-thread-count pool)))
-    (fork-join-pool-thread-count-set! pool (updator tc)))
+  (set pool (updator (get pool)))
   (mutex-unlock! lock))
+
+(define update-thread-count!
+  (make-counter-updator! fork-join-pool-thread-count
+			 fork-join-pool-thread-count-set!))
 )
