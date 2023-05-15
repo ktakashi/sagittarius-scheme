@@ -5,6 +5,7 @@
 	(only (srfi :1) iota lset=)
 	(srfi :18)
 	(srfi :64)
+	(srfi :197)
 	(match))
 #|
 (define test-begin print)
@@ -498,5 +499,23 @@
   (test-assert (actor-running? actor))
   (test-assert (actor-terminate! actor))
   (test-equal 'terminated (actor-state actor)))
+
+
+;; future-map et.al.
+(let ()
+  (define test-executor (make-thread-pool-executor 1 push-future-handler))
+
+  (define (sleeping-future n)
+    (thunk->future (lambda () (thread-sleep! .1) n)
+		   test-executor))
+
+  (define (problematic n)
+    (chain (sleeping-future (+ n 1))
+	   (future-map/executor test-executor (lambda (n) (+ n 1)) _)))
+
+  (test-equal 4 (chain (sleeping-future 1)
+		       (future-flatmap/executor test-executor problematic _)
+		       (future-map/executor test-executor (lambda (a) (+ a 1)) _)
+		       (future-get _ 1 #f))))
 
 (test-end)
