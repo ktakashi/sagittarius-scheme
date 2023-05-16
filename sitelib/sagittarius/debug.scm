@@ -174,7 +174,7 @@
 #!nounbound
 (library (sagittarius debug remote)
     (export :export-reader-macro
-	    sleeping-threads
+	    sleeping-threads running-threads categorize-threads
 	    thread-backtrace->pretty-string
 	    thread->pretty-backtrace-string
 	    thread-current-procedure
@@ -212,15 +212,22 @@
 (define (print . args) (for-each display args) (newline))
 (define (print/ss . args) (for-each write/ss args) (newline))
 
-(define (sleeping-threads :optional (timeout 0.01))
+(define (sleeping-threads . opts)
+  (let-values (((sleeping ignore) (apply categorize-threads opts)))
+    sleeping))
+
+(define (running-threads . opts)
+  (let-values (((ignore running) (apply categorize-threads opts)))
+    running))
+
+(define (categorize-threads :optional (timeout 0.01))
   (define self (current-thread))
   (define to (or (and (real? timeout) timeout) 0.01)) ;; 10ms default
-  (filter-map
+  (partition!
    (lambda (t)
-     (cond ((eq? self t) #f)
-	   ((thread-suspend! t to #f) => (lambda (t) (thread-resume! t) #f))
+     (cond ((thread-suspend! t to #f) => (lambda (t) (thread-resume! t) #f))
 	   (else t)))
-   (kernel-managed-threads)))
+   (filter (lambda (t) (not (eq? self t))) (kernel-managed-threads))))
 
 (define (thread->pretty-backtrace-string t)
   (let-values (((out e) (open-string-output-port)))
