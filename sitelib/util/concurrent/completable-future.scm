@@ -80,13 +80,15 @@
 	 (search-executor future future*) proc future future*))
 ;; damn...
 (define (future-map/executor executor proc future . future*)
-  (thunk->future (if (null? future*)
-		     (lambda () (proc (future-get future)))
-		     (lambda ()
-		       (apply proc
-			      (future-get future)
-			      (map future-get future*))))
-		 executor))
+  (if (and (future-done? future) (for-all future-done? future*))
+      (make-completed-future
+       (apply proc (future-get future) (map future-get future*)))
+      (thunk->future (if (null? future*)
+			 (lambda () (proc (future-ensure-get future)))
+			 (lambda () (apply proc
+					   (future-ensure-get future)
+					   (map future-ensure-get future*))))
+		     executor)))
 
 ;; For now very naive implementation...
 (define (future-flatmap proc future . future*)
@@ -94,16 +96,18 @@
 	 (search-executor future future*) proc future future*))
 
 (define (future-flatmap/executor executor proc future . future*)
-  (thunk->future (if (null? future*)
-		     (lambda ()
-		       (let ((f (proc (future-get future))))
-			 (future-get f)))
-		     (lambda ()
-		       (let ((f (apply proc
-				       (future-get future)
-				       (map future-get future*))))
-			 (future-get f))))
-		 executor))
+  (if (and (future-done? future) (for-all future-done? future*))
+      (apply proc (future-get future) (map future-get future*))
+      (thunk->future (if (null? future*)
+			 (lambda ()
+			   (future-ensure-get
+			    (proc (future-ensure-get future))))
+			 (lambda ()
+			   (future-ensure-get
+			    (apply proc
+				   (future-ensure-get future)
+				   (map future-ensure-get future*)))))
+		     executor)))
 
 (define (future-guard proc future)
   (future-guard/executor
@@ -116,6 +120,13 @@
   (thunk->future
    (lambda ()
      (guard (e (else (proc e)))
-       (future-get future)))
+       (future-ensure-get future)))
    executor))
+
+;; fxxk...
+;; we make sure the future is executed.
+;; this should work as the execution is still in a executor thread...
+(define (future-ensure-get f)
+  (future-execute-task! f)
+  (future-get f))
 )

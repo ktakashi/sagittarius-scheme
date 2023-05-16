@@ -52,6 +52,8 @@
 	    future-canceller-set!
 
 	    make-piped-future
+	    make-composable-future
+	    make-completed-future
 	    
 	    ;; implementation specific
 	    (rename (simple-future <simple-future>))
@@ -59,9 +61,15 @@
 	    
 	    ;; shared-box (not public APIs)
 	    make-shared-box shared-box?
-	    shared-box-put! shared-box-get!)
+	    shared-box-put! shared-box-get!
+	    ;; these are non public API as well
+	    future-update-state!
+	    future-execute-task!
+	    future-try-lock!
+	    future-lock!
+	    future-unlock!)
     (import (rnrs)
-	    ;; (sagittarius)
+	    (sagittarius)
 	    (srfi :18))
 
   ;; lightweight shared-queue to retrieve future result
@@ -94,7 +102,6 @@
     (let loop ()
       (let ((r (%sb-value sb)))
 	(cond ((eq? r shared-box-mark)
-	       ;; (format #t "get ~a~%" sb)
 	       (cond ((mutex-unlock! (%sb-lock sb) (%sb-cv sb) timeout)
 		      (mutex-lock! (%sb-lock sb))
 		      (loop))
@@ -113,23 +120,76 @@
     (fields thunk
 	    (mutable result)
 	    (mutable state)
-	    (mutable canceller))
+	    (mutable canceller)
+	    lock)
     (protocol (lambda (p)
 		(lambda (thunk result)
-		  (p thunk result 'created #f)))))
+		  (p thunk result 'created #f (make-mutex))))))
+  (define (future-update-state! future state)
+    (let ((lock (future-lock future)))
+      (mutex-lock! lock)
+      (future-state-set! future state)
+      (mutex-unlock! lock)))
 
+  (define (future-try-lock! future)
+    (let ((lock (future-lock future)))
+      (mutex-lock! lock 0 #f)))
+
+  (define (future-lock! future)
+    (let ((lock (future-lock future)))
+      (mutex-lock! lock)))
+
+  (define (future-unlock! future)
+    (let ((lock (future-lock future)))
+      (mutex-unlock! lock)))
+    
+  (define (future-execute-task! future :optional (cleanup #f))
+    (let ((q (future-result future))
+	  (thunk (future-thunk future)))
+      (when thunk
+	(let ((lock (future-lock future)))
+	  (mutex-lock! lock)
+	  (let ((state (future-state future)))
+	    (when (memq state '(created execute-internal))
+	      (future-state-set! future 'executing)
+	      (guard (e (else
+			 (future-canceller-set! future #t) ;; kinda abusing
+			 (when cleanup (cleanup future))
+			 (future-state-set! future 'finished)
+			 (shared-box-put! q e)))
+		
+		(let ((r (thunk)))
+		  (when cleanup (cleanup future))
+		  (future-state-set! future 'finished)
+		  (shared-box-put! q r)))))
+	  (mutex-unlock! lock)))))
+  
   (define (make-piped-future)
     (let* ((box (make-shared-box))
-	   (f (make-future (lambda () #f) box)))
-      ;; (format #t "crt ~a~%" box)
+	   (f (make-future #f box)))
       (values f
-	      (lambda (v)
-		;; (format #t "put ~a~%" box)
-		(shared-box-put! box v) f)
+	      (lambda (v) (shared-box-put! box v) f)
 	      (lambda (e)
 		(future-canceller-set! f #t)
 		(shared-box-put! box e)
 		f))))
+
+  (define (make-composable-future)
+    (define box (make-shared-box))
+    (define (composable-result future . opts)
+      (apply future-get (shared-box-get! box) opts))
+    (let ((f (make-future #f composable-result)))
+      (values f (lambda (v)
+		  (unless (future? v)
+		    (assertion-violation 'composable-future
+					 "Result value must be a future" v))
+		  (shared-box-put! box v)
+		  #f))))
+
+  (define (make-completed-future v)
+    (define box (make-shared-box))
+    (shared-box-put! box v)
+    (make-future #f box))
   
   (define (simple-invoke thunk f q)
     (lambda ()
@@ -169,7 +229,7 @@
   (define (future-get future . opt)
     (define (finish r)
       ;; now we can change the state shared.
-      (future-state-set! future 'done)
+      (future-update-state! future 'done)
       (if (eqv? (future-canceller future) #t) ;; kinda silly
 	  (raise r)
 	  r))
@@ -197,7 +257,7 @@
 	(c future)
 	(future-canceller-set! future #f))))
 
-  (define (future-done? future) (eq? (future-state future) 'done))
+  (define (future-done? future) (memq (future-state future) '(done finished)))
   (define (future-cancelled? future) (eq? (future-state future) 'terminated))
 
   )

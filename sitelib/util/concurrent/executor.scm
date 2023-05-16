@@ -122,7 +122,11 @@
 	   (with-atomic executor
 	     (thread-pool-thread-terminate! (pooled-executor-pool executor)
 					    (car oldest)))
-	   (cleanup executor (cdr oldest) 'terminated)))
+	   ;; The execution threaf of the target future is terminated,
+	   ;; which means, the mutex of the future is abondaned, so just
+	   ;; set the state
+	   (future-state-set! (cdr oldest) 'terminated)
+	   (cleanup executor (cdr oldest))))
     ;; retry
     (execute-future! executor future))
 
@@ -195,13 +199,12 @@
 	   (lambda () (mutex-lock-recursively! (executor-mutex executor)))
 	   (lambda () expr ...)
 	   (lambda () (mutex-unlock-recursively! (executor-mutex executor)))))))
-  (define (cleanup executor future state)
+  (define (cleanup executor future)
     (define (remove-from-queue! proc queue)
       (list-queue-set-list! queue (remove! proc (list-queue-list queue))))
     (with-atomic executor
       (remove-from-queue! (lambda (o) (eq? (cdr o) future))
-			  (pooled-executor-pool-ids executor))
-      (future-state-set! future state)))
+			  (pooled-executor-pool-ids executor))))
 
   (define (thread-pool-executor-available? executor)
     (< (thread-pool-executor-pool-size executor) 
@@ -245,25 +248,18 @@
 
   ;; We can push the future to thread-pool
   (define (push-future-handler future executor)
-    (define (canceller future) (cleanup executor future 'terminated))
-    (define (task-invoker thunk)
+    (define (canceller future)
+      (future-state-set! future 'terminated)
+      (cleanup executor future))
+    (define (task-invoker future)
       (lambda ()
-	(let ((q (future-result future)))
-	  (guard (e (else
-		     (future-canceller-set! future #t) ;; kinda abusing
-		     (cleanup executor future 'finished)
-		     (shared-box-put! q e)))
-	    (let ((r (thunk)))
-	      ;; first remove future then put the result
-	      ;; otherwise future-get may be called before.
-	      (cleanup executor future 'finished)
-	      (shared-box-put! q r))))))
+	(future-execute-task! future (lambda (f) (cleanup executor f)))))
     (define (add-future future executor)
       (unless (shared-box? (future-result future))
 	(future-result-set! future (make-shared-box)))
       (let* ((thunk (future-thunk future))
 	     (id (thread-pool-push-task! (pooled-executor-pool executor)
-					 (task-invoker thunk))))
+					 (task-invoker future))))
 	(future-canceller-set! future canceller)
 	(list-queue-add-back! (pooled-executor-pool-ids executor)
 			      (cons id future))
@@ -302,22 +298,13 @@
 
   (define (fork-join-executor-execute-future! e f)
     ;; the same as simple future
-    (define (task-invoker thunk)
-      (lambda ()
-	(let ((q (future-result f)))
-	  (guard (e (else (future-canceller-set! f #t)
-			  (future-state-set! f 'finished)
-			  (shared-box-put! q e)))
-	    (let ((r (thunk)))
-	      (future-state-set! f 'finished)
-	      (shared-box-put! q r))))))
+    (define (task-invoker future) (lambda () (future-execute-task! future)))
     (unless (fork-join-executor? e)
       (assertion-violation 'fork-join-executor-available? 
 			   "not a fork-join-executor" e))
     (unless (shared-box? (future-result f))
       (future-result-set! f (make-shared-box)))
-    (fork-join-pool-push-task! (pooled-executor-pool e)
-			       (task-invoker (future-thunk f)))
+    (fork-join-pool-push-task! (pooled-executor-pool e) (task-invoker f))
     f)
   (define (fork-join-executor-shutdown! e)
     (unless (fork-join-executor? e)

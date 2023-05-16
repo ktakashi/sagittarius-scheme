@@ -104,7 +104,7 @@
   (make-record-builder fork-join-pool-parameters
    ((max-threads #f)			   ;; will be computed by default
     (keep-alive (duration:of-millis 5000)) ;; default 5 sec
-    (max-queue-depth 2))))
+    (max-queue-depth 10))))
 
 (define *default-parameter* (fork-join-pool-parameters-builder))
 
@@ -199,10 +199,12 @@
       (lambda ()
 	(let loop ((task task0))
 	  (guard (e (else #f)) (task))
-	  (let ((wait (add-duration (current-time) duration)))
-	    (cond ((exists (lambda (wh)
-			     (worker-thread-queue-pop! wh wait #f)) wh*)
-		   => loop))))
+	  (let waiter ((wait (add-duration (current-time) duration)))
+	    (cond ((exists (lambda (w) (worker-thread-queue-pop! w .1 #f)) wh*)
+		   => loop)
+		  ((time<? wait (current-time))
+		   (thread-sleep! .01)
+		   (waiter wait)))))
 	(update-thread-count! pool 1-))
       (string-append (or tprefix "fork-join-pool")
 		     "-child-thread-"

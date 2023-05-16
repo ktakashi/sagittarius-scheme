@@ -421,6 +421,7 @@
   (test-error "failed to add" uncaught-exception?
 	      ;; one of them must be failed
 	      (begin (thread-join! t1) (thread-join! t2)))
+  (shutdown-executor! e)
   )
 
 (let ((e (make-executor 1 push-future-handler))
@@ -435,6 +436,7 @@
 		 (set! f* (cons f f*))
 		 (future? f)))
   (test-equal '(3 2 1) (map future-get f*))
+  (shutdown-executor! e)
   )
 
 (let ((e (make-fork-join-executor))
@@ -450,6 +452,7 @@
 		 (future? f)))
   (map future-get f*)
   (test-equal '(3 2 1) (map future-get f*))
+  (shutdown-executor! e)
   )
 
 ;; actor
@@ -516,6 +519,7 @@
   (test-equal 4 (chain (sleeping-future 1)
 		       (future-flatmap/executor test-executor problematic _)
 		       (future-map/executor test-executor (lambda (a) (+ a 1)) _)
-		       (future-get _ 1 #f))))
+		       (future-get _ 1 #f)))
+  (shutdown-executor! test-executor))
 
 (test-end)
