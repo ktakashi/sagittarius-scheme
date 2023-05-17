@@ -151,9 +151,9 @@
 		    ;; https://github.com/okuoku/yunibase/issues/11
 		    ;; it's better to fix it but we don't know what the cuase
 		    ;; is yet. so for the time being, wait only certain amout
-		    ;; of time. In my experience, 2min would be long enough
+		    ;; of time. In my experience, 3mins would be long enough
 		    ;; even those long ones (e.g. RSA key generations)
-		    (let ((r (future-get (cdr f) 120 timeout-value)))
+		    (let ((r (future-get (cdr f) 180 timeout-value)))
 		      (cond ((eq? r timeout-value)
 			     (print "FAIL: Execution timeout on " (car f))
 			     (future-cancel (cdr f)))
