@@ -192,9 +192,9 @@
 		  #f))))
 
   (define (make-completed-future v)
-    (define box (make-shared-box))
-    (shared-box-put! box v)
-    (make-future #f box))
+    (let ((f (make-future #f v)))
+      (future-state-set! f 'done)
+      f))
   
   (define (simple-invoke thunk f q)
     (lambda ()
