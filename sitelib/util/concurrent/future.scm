@@ -117,7 +117,7 @@
 
   ;; future
   (define-record-type future
-    (fields thunk
+    (fields (mutable thunk)
 	    (mutable result)
 	    (mutable state)
 	    (mutable canceller)
@@ -142,27 +142,32 @@
   (define (future-unlock! future)
     (let ((lock (future-lock future)))
       (mutex-unlock! lock)))
-    
+
+  (define (future-clear-thunk! future)
+    (let ((lock (future-lock future)))
+      (mutex-lock! lock)
+      (future-thunk-set! future #f)
+      (mutex-unlock! lock)))
+  
   (define (future-execute-task! future :optional (cleanup #f))
     (let ((q (future-result future))
 	  (thunk (future-thunk future)))
       (when thunk
-	(let ((lock (future-lock future)))
-	  (mutex-lock! lock)
-	  (let ((state (future-state future)))
-	    (when (memq state '(created execute-internal))
-	      (future-state-set! future 'executing)
-	      (guard (e (else
-			 (future-canceller-set! future #t) ;; kinda abusing
-			 (when cleanup (cleanup future))
-			 (future-state-set! future 'finished)
-			 (shared-box-put! q e)))
-		
-		(let ((r (thunk)))
-		  (when cleanup (cleanup future))
-		  (future-state-set! future 'finished)
-		  (shared-box-put! q r)))))
-	  (mutex-unlock! lock)))))
+	;; Clear thunk to prevent double execution
+	(future-clear-thunk! future)
+	(let ((state (future-state future)))
+	  (when (memq state '(created execute-internal))
+	    (future-state-set! future 'executing)
+	    (guard (e (else
+		       (future-canceller-set! future #t) ;; kinda abusing
+		       (when cleanup (cleanup future))
+		       (future-state-set! future 'finished)
+		       (shared-box-put! q e)))
+	      (let ((r (thunk)))
+		(when cleanup (cleanup future))
+		(future-canceller-set! future #f)
+		(future-state-set! future 'finished)
+		(shared-box-put! q r))))))))
   
   (define (make-piped-future)
     (let* ((box (make-shared-box))
