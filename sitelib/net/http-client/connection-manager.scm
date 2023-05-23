@@ -58,6 +58,10 @@
 	    make-logging-delegate-connection-provider
 
 	    *http-connection-manager:default-executor*
+
+	    dns-timeout-error? dns-timeout-node dns-timeout-service
+	    connection-request-timeout-error?
+	    
 	    ;; internal
 	    http-connection-lease-option-builder
 	    )
@@ -158,7 +162,13 @@
 	 (error 'http-connection-manager-register-on-readable
 		"Connection is already closed or not open yet" conn))))
 
-(define-condition-type &dns-timeout &i/o
+(define-condition-type &timeout &i/o
+  make-timeout-error timeout-error?)
+
+(define-condition-type &connection-request-timeout &timeout
+  make-connection-request-timeout-error connection-request-timeout-error?)
+
+(define-condition-type &dns-timeout &timeout
   make-dns-timeout-error dns-timeout-error?
   (node dns-timeout-node)
   (service dns-timeout-service))
@@ -387,20 +397,19 @@
   (define (get-max-connection-per-route route)
     (cond ((assp (lambda (r) (equal? r route)) route-max-connections) => cadr)
 	  (else max-per-route)))
+  (define (handle-leased-connection entry leased avail max-conn)
+    ;; okay check if it's expired or not
+    (cond ((pooling-entry-expired? entry)
+	   (http-connection-manager-release-connection delegate
+	    (pooling-entry-connection entry) #f)
+	   (get-connection leased avail max-conn))
+	  (else
+	   (shared-queue-put! leased entry)
+	   (pooling-entry-connection entry))))
   (define (get-connection leased avail max-conn)
-    (cond ((and (not (shared-queue-empty? avail))
-		;; TODO maybe we need to do LIFO instead of FIFO for
-		;;      better reusability
-		(shared-queue-get! avail timeout))
-	   => (lambda (entry)
-		;; okay check if it's expired or not
-		(cond ((pooling-entry-expired? entry)
-		       (http-connection-manager-release-connection delegate
-			(pooling-entry-connection entry) #f)
-		       (get-connection leased avail max-conn))
-		      (else
-		       (shared-queue-put! leased entry)
-		       (pooling-entry-connection entry)))))
+    (cond ((shared-queue-pop! avail 0) =>
+	   (lambda (entry)
+	     (handle-leased-connection entry leased avail max-conn)))
 	  ((and (shared-queue-empty? avail)
 		(< (+ (shared-queue-size leased) (shared-queue-size avail))
 		   max-conn))
@@ -409,10 +418,16 @@
 								 option)))
 	     (shared-queue-put! leased (make-pooling-entry ttl conn))
 	     conn))
+	  ((shared-queue-pop! avail timeout) =>
+	   (lambda (entry)
+	     (handle-leased-connection entry leased avail max-conn)))
 	  ;; okay, just create
-	  (else (http-connection-manager-lease-connection delegate
-							  request
-							  option))))
+	  (else (raise
+		 (condition
+		  (make-connection-request-timeout-error)
+		  (make-who-condition 'pooling-lease-connection)
+		  (make-message-condition "Connection request timeout")
+		  (make-irritants-condition timeout))))))
 
   (let* ((route (get-route request))
 	 (max-conn (get-max-connection-per-route route)))

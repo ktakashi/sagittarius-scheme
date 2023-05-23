@@ -70,6 +70,10 @@
 	    http-pooling-connection-config?
 	    http-pooling-connection-config-builder
 
+	    ;; connection manager related conditions
+	    dns-timeout-error? dns-timeout-node dns-timeout-service
+	    connection-request-timeout-error?
+	    
 	    ;; executor parameter for DNS lookup timeout
 	    *http-connection-manager:default-executor* 
 	    
