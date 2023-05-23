@@ -146,28 +146,30 @@
   (define (future-clear-thunk! future)
     (let ((lock (future-lock future)))
       (mutex-lock! lock)
-      (future-thunk-set! future #f)
-      (mutex-unlock! lock)))
+      (let ((thunk (future-thunk future)))
+	(future-thunk-set! future #f)
+	(mutex-unlock! lock)
+	thunk)))
   
   (define (future-execute-task! future :optional (cleanup #f))
     (let ((q (future-result future))
 	  (thunk (future-thunk future)))
-      (when thunk
-	;; Clear thunk to prevent double execution
-	(future-clear-thunk! future)
-	(let ((state (future-state future)))
-	  (when (memq state '(created execute-internal))
-	    (future-state-set! future 'executing)
-	    (guard (e (else
-		       (future-canceller-set! future #t) ;; kinda abusing
+      ;; Clear thunk to prevent double execution
+      (cond ((and thunk (future-clear-thunk! future)) =>
+	     (lambda (thunk)
+	       (let ((state (future-state future)))
+		 (when (memq state '(created execute-internal))
+		   (future-state-set! future 'executing)
+		   (guard (e (else
+			      (when cleanup (cleanup future))
+			      (future-canceller-set! future #t) ;; kinda abusing
+			      (future-state-set! future 'finished)
+			      (shared-box-put! q e)))
+		     (let ((r (thunk)))
 		       (when cleanup (cleanup future))
+		       (future-canceller-set! future #f)
 		       (future-state-set! future 'finished)
-		       (shared-box-put! q e)))
-	      (let ((r (thunk)))
-		(when cleanup (cleanup future))
-		(future-canceller-set! future #f)
-		(future-state-set! future 'finished)
-		(shared-box-put! q r))))))))
+		       (shared-box-put! q r))))))))))
   
   (define (make-piped-future)
     (let* ((box (make-shared-box))
@@ -182,14 +184,18 @@
   (define (make-composable-future)
     (define box (make-shared-box))
     (define (composable-result future . opts)
-      (apply future-get (shared-box-get! box) opts))
+      (let-values (((v timeout?) (apply shared-box-get! box opts)))
+	(if timeout?
+	    v
+	    (apply future-get v opts))))
     (let ((f (make-future #f composable-result)))
-      (values f (lambda (v)
-		  (unless (future? v)
-		    (assertion-violation 'composable-future
-					 "Result value must be a future" v))
-		  (shared-box-put! box v)
-		  #f))))
+      (values f
+	      (lambda (v)
+		(unless (future? v)
+		  (assertion-violation 'composable-future
+				       "Result value must be a future" v))
+		(shared-box-put! box v)
+		f))))
 
   (define (make-completed-future v)
     (let ((f (make-future #f v)))
