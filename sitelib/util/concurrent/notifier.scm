@@ -1,8 +1,8 @@
-;;; -*- mode:scheme; coding:utf-8 -*-
+;;; -*- mode: scheme; coding: utf-8 -*-
 ;;;
-;;; util/concurrent.scm - Concurrent library
+;;; util/concurrent/notifier.scm - Thread notification
 ;;;  
-;;;   Copyright (c) 2014-2017  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2023  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -28,15 +28,39 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-;; This is not portable but it's super easy to make it
-;; R6RS+SRFI portable.
-(library (util concurrent)
-    (export :all)
-    (import (util concurrent future)
-	    (util concurrent executor)
-	    (util concurrent shared-queue)
-	    (util concurrent thread-pool)
-	    (util concurrent fork-join-pool)
-	    (util concurrent completable-future)
-	    (util concurrent actor)
-	    (util concurrent notifier)))
+#!nounbound
+(library (util concurrent notifier)
+    (export notifier? make-notifier
+	    (rename (notifier <notifier>))
+	    notifier-send-notification!
+	    notifier-wait-notification!)
+    (import (rnrs)
+	    (srfi :18))
+(define-record-type notifier
+  (fields lock cv (mutable waiter))
+  (protocol (lambda (p)
+	      (lambda ()
+		(p (make-mutex "notifier-lock")
+		   (make-condition-variable)
+		   0)))))
+
+(define (notifier-send-notification! notifier)
+  (when (> (notifier-waiter notifier) 0)
+    (condition-variable-broadcast! (notifier-cv notifier))))
+
+(define (notifier-wait-notification! notifier . maybe-timeout)
+  (define timeout (and (not (null? maybe-timeout)) (car maybe-timeout)))
+  (let ((lock (notifier-lock notifier)))
+    (mutex-lock! lock)
+    (notifier-waiter-set! notifier (+ (notifier-waiter notifier) 1))
+    (cond ((mutex-unlock! lock (notifier-cv notifier) timeout)
+	   (mutex-lock! lock)
+	   (notifier-waiter-set! notifier (- (notifier-waiter notifier) 1))
+	   (mutex-unlock! lock)
+	   #t)
+	  (else
+	   ;; timeout, how should we reduce this safely?
+	   (notifier-waiter-set! notifier (- (notifier-waiter notifier) 1))
+	   #f))))
+
+)
