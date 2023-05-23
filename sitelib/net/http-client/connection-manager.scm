@@ -304,7 +304,8 @@
 	  available
 	  leasing
 	  delegate
-	  lock)
+	  lock
+	  notifier)
   (protocol
    (lambda (n)
      (lambda (config)
@@ -317,7 +318,8 @@
 	(make-hashtable string-hash string=?)
 	(make-hashtable string-hash string=?)
 	((http-pooling-connection-config-delegate-provider config) config)
-	(make-mutex "pooling-connection-manager-lock"))))))
+	(make-mutex "pooling-connection-manager-lock")
+	(make-notifier))))))
 
 (define-record-type http-pooling-connection-config
   (parent http-connection-config)
@@ -379,8 +381,11 @@
   (define available (http-pooling-connection-manager-available manager))
   (define leasing (http-pooling-connection-manager-leasing manager))
   (define lock (http-pooling-connection-manager-lock manager))
+  (define notifier (http-pooling-connection-manager-notifier manager))
   (define timeout
-    (http-pooling-connection-manager-connection-request-timeout manager))
+    (cond ((http-pooling-connection-manager-connection-request-timeout manager)
+	   => duration:of-millis)
+	  (else #f)))
   (define max-per-route
     (http-pooling-connection-manager-max-connection-per-route manager))
   (define route-max-connections
@@ -397,7 +402,7 @@
   (define (get-max-connection-per-route route)
     (cond ((assp (lambda (r) (equal? r route)) route-max-connections) => cadr)
 	  (else max-per-route)))
-  (define (handle-leased-connection entry leased avail max-conn)
+  (define (handle-leased-connection lock entry leased avail max-conn)
     ;; okay check if it's expired or not
     (cond ((pooling-entry-expired? entry)
 	   (http-connection-manager-release-connection delegate
@@ -407,20 +412,29 @@
 	   (shared-queue-put! leased entry)
 	   (pooling-entry-connection entry))))
   (define (get-connection leased avail max-conn)
+    (define (try-new-connection)
+      (define (lease)
+	(http-connection-manager-lease-connection delegate request option))
+      (define mpe make-pooling-entry)
+      (mutex-lock! lock)
+      (guard (e (else (mutex-unlock! lock) (raise e)))
+	(let ((lsize (shared-queue-size leased))
+	      (asize (shared-queue-size avail)))
+	  (let ((r (and (< (+ lsize asize) max-conn)
+			(let ((conn (lease)))
+			  (shared-queue-put! leased (mpe ttl conn))
+			  conn))))
+	    (mutex-unlock! lock)
+	    r))))
+    (define (wait)
+      (let ((t (and timeout (add-duration (current-time) timeout))))
+	(notifier-wait-notification! notifier t)))
+      
     (cond ((shared-queue-pop! avail 0) =>
 	   (lambda (entry)
-	     (handle-leased-connection entry leased avail max-conn)))
-	  ((and (shared-queue-empty? avail)
-		(< (+ (shared-queue-size leased) (shared-queue-size avail))
-		   max-conn))
-	   (let ((conn (http-connection-manager-lease-connection delegate
-								 request
-								 option)))
-	     (shared-queue-put! leased (make-pooling-entry ttl conn))
-	     conn))
-	  ((shared-queue-pop! avail timeout) =>
-	   (lambda (entry)
-	     (handle-leased-connection entry leased avail max-conn)))
+	     (handle-leased-connection lock entry leased avail max-conn)))
+	  ((try-new-connection))
+	  ((wait) (get-connection leased avail max-conn))
 	  ;; okay, just create
 	  (else (raise
 		 (condition
@@ -428,49 +442,55 @@
 		  (make-who-condition 'pooling-lease-connection)
 		  (make-message-condition "Connection request timeout")
 		  (make-irritants-condition timeout))))))
-
+  (define (queues lock route leasing available max-conn)
+    (mutex-lock! lock)
+    (let ((leased (ensure-queue leasing route -1))
+	  (avail (ensure-queue available route max-conn)))
+      (mutex-unlock! lock)
+      (values leased avail)))
   (let* ((route (get-route request))
 	 (max-conn (get-max-connection-per-route route)))
-    (mutex-lock! lock)
-    (guard (e (else (mutex-unlock! lock) (raise e)))
-      (let* ((leased (ensure-queue leasing route -1))
-	     (avail (ensure-queue available route max-conn))
-	     (conn (get-connection leased avail max-conn)))
-	(mutex-unlock! lock)
-	conn))))
+    (let-values (((leased avail)
+		  (queues lock route leasing available max-conn)))
+      (get-connection leased avail max-conn))))
 
 (define (pooling-release-connection manager connection reuse?)
   (define available (http-pooling-connection-manager-available manager))
   (define leasing (http-pooling-connection-manager-leasing manager))
   (define lock (http-pooling-connection-manager-lock manager))
+  (define notifier (http-pooling-connection-manager-notifier manager))
   (define delegate
     (http-pooling-connection-manager-delegate manager))
   (define (->route connection)
     (define host (http-connection-node connection))
     (define service (http-connection-service connection))
-    (define port (cond ((get-default-port service))
-		       (else service)))
+    (define port (or (get-default-port service) service))
     (string-append host ":" port))
   (define (remove-entry sq conn)
-    (cond ((shared-queue-find sq (lambda (e)
-				   (eq? (pooling-entry-connection e) conn)))
+    (define pec pooling-entry-connection)
+    (cond ((shared-queue-find sq (lambda (e) (eq? (pec e) conn)))
 	   => (lambda (e) (shared-queue-remove! sq e) e))
 	  (else #f)))
-  
-  (mutex-lock! lock)
-  (guard (e (else (mutex-unlock! lock) (raise e)))
-    (let* ((route (->route connection))
-	   (leased (hashtable-ref leasing route #f)))
-      ;; must not be #f (if so it's a bug...)
-      (cond ((and leased (remove-entry leased connection)) =>
-	     (lambda (entry)
-	       (when reuse?
-		 (let ((avail (hashtable-ref available route #f)))
-		   (and avail (shared-queue-put! avail entry))))))
-	    (else
-	     (http-connection-manager-release-connection
-	      delegate connection #f))))
-    (mutex-unlock! lock)))
+
+  (let* ((route (->route connection))
+	 (leased (hashtable-ref leasing route #f)))
+    ;; must not be #f (if so it's a bug...)
+    (cond ((and leased (remove-entry leased connection)) =>
+	   (lambda (entry)
+	     (cond ((and reuse? (hashtable-ref available route #f)) =>
+		    (lambda (avail)
+		      (if (shared-queue-overflows? avail 1)
+			  ;; why?
+			  (http-connection-manager-release-connection
+			   delegate connection #f)
+			  (shared-queue-put! avail entry))))
+		   (else
+		    (http-connection-manager-release-connection
+		     delegate connection #f)))
+	     (notifier-send-notification! notifier)))
+	  (else
+	   (http-connection-manager-release-connection
+	    delegate connection #f)))))
 
 (define (get-route request)
   (define uri (http:request-uri request))
