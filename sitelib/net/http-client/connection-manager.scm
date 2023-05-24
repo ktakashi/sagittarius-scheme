@@ -402,16 +402,17 @@
   (define (get-max-connection-per-route route)
     (cond ((assp (lambda (r) (equal? r route)) route-max-connections) => cadr)
 	  (else max-per-route)))
-  (define (handle-leased-connection lock entry leased avail max-conn)
+  (define (handle-leased-connection entry leased avail max-conn timeout)
     ;; okay check if it's expired or not
     (cond ((pooling-entry-expired? entry)
 	   (http-connection-manager-release-connection delegate
 	    (pooling-entry-connection entry) #f)
-	   (get-connection leased avail max-conn))
+	   (get-connection leased avail max-conn timeout))
 	  (else
 	   (shared-queue-put! leased entry)
 	   (pooling-entry-connection entry))))
-  (define (get-connection leased avail max-conn)
+
+  (define (get-connection leased avail max-conn timeout)
     (define (try-new-connection)
       (define (lease)
 	(http-connection-manager-lease-connection delegate request option))
@@ -428,20 +429,24 @@
 	    r))))
     (define (wait)
       (let ((t (and timeout (add-duration (current-time) timeout))))
-	(notifier-wait-notification! notifier t)))
+	(cond ((notifier-wait-notification! notifier t)
+	       (or (not t) (time-difference t (current-time))))
+	      (else #f))))
       
     (cond ((shared-queue-pop! avail 0) =>
 	   (lambda (entry)
-	     (handle-leased-connection lock entry leased avail max-conn)))
+	     (handle-leased-connection entry leased avail max-conn timeout)))
 	  ((try-new-connection))
-	  ((wait) (get-connection leased avail max-conn))
-	  ;; okay, just create
+	  ((wait) =>
+	   (lambda (to)
+	     (get-connection leased avail max-conn (and (time? to) to))))
 	  (else (raise
 		 (condition
 		  (make-connection-request-timeout-error)
 		  (make-who-condition 'pooling-lease-connection)
 		  (make-message-condition "Connection request timeout")
 		  (make-irritants-condition timeout))))))
+  
   (define (queues lock route leasing available max-conn)
     (mutex-lock! lock)
     (let ((leased (ensure-queue leasing route -1))
@@ -452,7 +457,7 @@
 	 (max-conn (get-max-connection-per-route route)))
     (let-values (((leased avail)
 		  (queues lock route leasing available max-conn)))
-      (get-connection leased avail max-conn))))
+      (get-connection leased avail max-conn timeout))))
 
 (define (pooling-release-connection manager connection reuse?)
   (define available (http-pooling-connection-manager-available manager))
