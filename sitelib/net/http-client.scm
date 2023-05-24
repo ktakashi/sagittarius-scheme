@@ -48,6 +48,8 @@
 	    
 	    http:client? http:client-builder
 	    (rename (http:client <http:client>))
+	    *http-client:user-agent*
+	    
 	    http:version
 	    http:redirect
 
@@ -126,12 +128,17 @@
 	  (fork-join-pool-parameters-builder
 	   (thread-name-prefix "default-http-client")))))
 
+(define *http-client:user-agent*
+  (make-parameter
+   (string-append "sagittarius-" (sagittarius-version) "/http-client")))
+
 (define-record-type http:client
   (fields follow-redirects
 	  cookie-handler
 	  connection-manager
 	  version
 	  executor
+	  user-agent
 	  ;; internal 
 	  (mutable lease-option)
 	  )
@@ -152,7 +159,8 @@
     (follow-redirects (http:redirect never))
     (connection-manager (make-http-default-connection-manager))
     (version (http:version http/2))
-    (executor (force *http-client:default-executor*)))))
+    (executor (force *http-client:default-executor*))
+    (user-agent (*http-client:user-agent*)))))
 
 ;; for now
 (define (http:make-default-cookie-handler) (make-cookie-jar))
@@ -191,11 +199,11 @@
     (let-values (((conn new-req response-handler)
 		  (send-request client request)))
       (let ((fail (release/fail conn)))
-      (http-connection-manager-register-on-readable
-       (http:client-connection-manager client) conn
-       (response-handler success fail)
-       fail
-       (http:request-timeout new-req))))))
+	(http-connection-manager-register-on-readable
+	 (http:client-connection-manager client) conn
+	 (response-handler client success fail)
+	 fail
+	 (http:request-timeout new-req))))))
 
 (define (default-executor? client)
   (eq? (http:client-executor client) (force *http-client:default-executor*)))
@@ -234,53 +242,54 @@
     ;; well, just return...
     (else (success response))))
 
-(define (send-request client request)
-  (define ((response-handler header-state retriever request) success failure)
-    (define state 'waiting-for-header)
-    (lambda (conn retry)
-      (define executor (http:client-executor client))
-      (define (receive-data conn)
-	(let ((reuse? (http-connection-receive-data! conn request)))
-	  (set! state #f)
-	  (release-http-connection client conn reuse?)
-	  (let ((response (retriever)))
-	    (when (http:client-cookie-handler client)
-	      (add-cookie! client (http:response-cookies response)))
-	    response)))
-      (define (finish r)
-	(let ((status (http:response-status r)))
-	  (if (and status (char=? #\3 (string-ref status 0)))
-	      (handle-redirect client request r success failure)
-	      (success r))))
+(define ((response-handler header-state retriever request)
+	 client success failure)
+  (define state 'waiting-for-header)
+  (lambda (conn retry)
+    (define executor (http:client-executor client))
+    (define (receive-data conn)
+      (let ((reuse? (http-connection-receive-data! conn request)))
+	(set! state #f)
+	(release-http-connection client conn reuse?)
+	(let ((response (retriever)))
+	  (when (http:client-cookie-handler client)
+	    (add-cookie! client (http:response-cookies response)))
+	  response)))
+    (define (finish r)
+      (let ((status (http:response-status r)))
+	(if (and status (char=? #\3 (string-ref status 0)))
+	    (handle-redirect client request r success failure)
+	    (success r))))
 
-      (case state
-	((waiting-for-header)
-	 (executor-submit! executor
-	  (lambda ()
-	    (guard (e (else (failure e)))
-	      (http-connection-receive-header! conn request)
-	      (let-values (((data? status h*) (apply values (header-state))))
-		;; TODO check status 1xx
-		(cond ((or (not data?) (eq? data? 'unknown))
-		       (finish (receive-data conn)))
-		      (else ;; we have data to be read
-		       (set! state 'waiting-for-data)
-		       ;; push the connection for data reading
-		       (retry))))))))
-	((waiting-for-data)
-	 (executor-submit! executor
-	  (lambda () 
-	    (guard (e (else (failure e)))
-	      (finish (receive-data conn))))))
-	(else (failure (condition (make-error)
-				  (make-who-condition 'response-handler)
-				  (make-message-condition "Invalid state")))))))
-      
-    (let-values (((header-handler body-handler header-state response-retriever)
-		  (make-handlers)))
-    (let* ((conn (lease-http-connection client request))
-	   (new-req
-	    (adjust-request client conn request header-handler body-handler)))
+    (case state
+      ((waiting-for-header)
+       (executor-submit! executor
+	(lambda ()
+	  (guard (e (else (failure e)))
+	    (http-connection-receive-header! conn request)
+	    (let-values (((data? status h*) (apply values (header-state))))
+	      ;; TODO check status 1xx
+	      (cond ((or (not data?) (eq? data? 'unknown))
+		     (finish (receive-data conn)))
+		    (else ;; we have data to be read
+		     (set! state 'waiting-for-data)
+		     ;; push the connection for data reading
+		     (retry))))))))
+      ((waiting-for-data)
+       (executor-submit!
+	executor
+	(lambda () 
+	  (guard (e (else (failure e)))
+	    (finish (receive-data conn))))))
+      (else (failure (condition (make-error)
+				(make-who-condition 'response-handler)
+				(make-message-condition "Invalid state")))))))
+
+(define (send-request client request)
+  (let-values (((header-handler body-handler header-state response-retriever)
+		(make-handlers)))
+    (let ((conn (lease-http-connection client request))
+	  (new-req (adjust-request client request header-handler body-handler)))
       (http-connection-send-header! conn new-req)
       (http-connection-send-data! conn new-req)
       (values conn new-req
@@ -295,7 +304,7 @@
       (add-cookie! client (http:response-cookies response)))
     response))
   
-(define (adjust-request client conn request header-handler data-handler)
+(define (adjust-request client request header-handler data-handler)
   (let* ((copy (http:request-builder
 		(from request)
 		(header-handler header-handler)
@@ -303,7 +312,7 @@
 	 (headers (http:request-headers copy)))
     (unless (http:headers-contains? headers "User-Agent")
       (http:headers-set! headers "User-Agent"
-			 (http-connection-user-agent conn)))
+			 (http:client-user-agent client)))
     (unless (http:headers-contains? headers "Accept")
       (http:headers-set! headers "Accept" "*/*"))
     (http:headers-set! headers "Accept-Encoding" "gzip, deflate")

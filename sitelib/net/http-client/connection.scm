@@ -36,7 +36,6 @@
 	    http-connection-socket-options
 	    http-connection-socket
 	    http-connection-input http-connection-output
-	    http-connection-user-agent
 	    http-connection-context-data
 
 	    http-logging-connection?
@@ -54,8 +53,6 @@
 	    
 	    http-connection-send-request! http-connection-receive-response!
 
-	    *http-client-user-agent*
-
 	    ;; for internal or extra http version
 	    http-connection-context?
 	    (rename (http-connection-context <http-connection-context>))
@@ -66,10 +63,6 @@
 	    (net http-client logging)
 	    (sagittarius) ;; for sagittarius-version
 	    (srfi :39 parameters))
-
-(define *http-client-user-agent*
-  (make-parameter
-   (string-append "sagittarius-" (sagittarius-version) "/http-client")))
 
 (define-record-type http-connection-context)
 (define-record-type http-connection
@@ -83,7 +76,6 @@
 	  (mutable socket)
 	  (mutable input)
 	  (mutable output)
-	  user-agent
 	  context-data)
   (protocol (lambda (p)
 	      (lambda (node
@@ -108,7 +100,6 @@
 		   socket
 		   (and socket (socket-input-port socket))
 		   (and socket (socket-output-port socket))
-		   (*http-client-user-agent*)
 		   data)))))
 
 (define-record-type http-logging-connection
