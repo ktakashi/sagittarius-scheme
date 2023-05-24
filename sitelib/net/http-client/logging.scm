@@ -30,8 +30,12 @@
 
 #!nounbound
 (library (net http-client logging)
-    (export http-client-logger?
+    (export http-client-logger?	    
 	    http-client-logger-builder
+
+	    http-client-logger-of
+	    http-client-logger-write-log
+	    
 	    http-client-logger-connection-logger
 	    http-client-logger-wire-logger
 
@@ -49,10 +53,30 @@
 
 (define-record-type http-client-logger
   (fields connection-logger
-	  wire-logger)
+	  wire-logger
+	  ;; other loggers, alist
+	  loggers)
   (protocol (lambda (p)
-	      (lambda (logger wire-logger)
-		(p logger wire-logger)))))
+	      (lambda (logger wire-logger loggers)
+		(p logger wire-logger (or loggers '()))))))
+
+(define (http-client-logger-of logger name)
+  (let ((loggers (http-client-logger-loggers logger)))
+    (cond ((eq? name 'connection-logger)
+	   (http-client-logger-connection-logger logger))
+	  ((eq? name 'wire-logger)
+	   (http-client-logger-wire-logger logger))
+	  ((assq name loggers) => cadr)
+	  (else #f))))
+
+(define-syntax http-client-logger-write-log
+  (syntax-rules ()
+    ((_ client-logger name msg exp ...)
+     (let ((logger client-logger))
+       (cond ((and logger (http-client-logger-of logger name)) =>
+	      (lambda (logger)
+		(when (logger-debug? logger)
+		  (debug-log logger msg exp ...)))))))))
 
 (define-syntax http-client-logger-builder
   (make-record-builder http-client-logger))

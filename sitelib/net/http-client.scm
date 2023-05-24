@@ -186,8 +186,7 @@
 
 (define (http:client-send-async client request)
   (let-values (((f success failure) (make-piped-future)))
-    (executor-submit! (http:client-executor client)
-     (lambda () (request/response client request success failure)))
+    (request/response client request success failure)
     f))
 
 ;;; helpers
@@ -196,14 +195,19 @@
     (release-http-connection client conn #f)
     (failure e))
   (guard (e (else (failure e)))
-    (let-values (((conn new-req response-handler)
-		  (send-request client request)))
-      (let ((fail (release/fail conn)))
-	(http-connection-manager-register-on-readable
-	 (http:client-connection-manager client) conn
-	 (response-handler client success fail)
-	 fail
-	 (http:request-timeout new-req))))))
+    (lease-http-connection client request
+     (lambda (conn)
+       (executor-submit! (http:client-executor client)
+	 (lambda ()
+	   (let-values (((new-req response-handler)
+			 (send-request client conn request)))
+	     (let ((fail (release/fail conn)))
+	       (http-connection-manager-register-on-readable
+		(http:client-connection-manager client) conn
+		(response-handler client success fail)
+		fail
+		(http:request-timeout new-req)))))))
+     failure)))
 
 (define (default-executor? client)
   (eq? (http:client-executor client) (force *http-client:default-executor*)))
@@ -276,8 +280,7 @@
 		     ;; push the connection for data reading
 		     (retry))))))))
       ((waiting-for-data)
-       (executor-submit!
-	executor
+       (executor-submit! executor
 	(lambda () 
 	  (guard (e (else (failure e)))
 	    (finish (receive-data conn))))))
@@ -285,25 +288,15 @@
 				(make-who-condition 'response-handler)
 				(make-message-condition "Invalid state")))))))
 
-(define (send-request client request)
+(define (send-request client conn request)
   (let-values (((header-handler body-handler header-state response-retriever)
 		(make-handlers)))
-    (let ((conn (lease-http-connection client request))
-	  (new-req (adjust-request client request header-handler body-handler)))
+    (let ((new-req (adjust-request client request header-handler body-handler)))
       (http-connection-send-header! conn new-req)
       (http-connection-send-data! conn new-req)
-      (values conn new-req
+      (values new-req
 	      (response-handler header-state response-retriever new-req)))))
 
-(define (receive-response! client conn request)
-  (let ((reuse? (http-connection-receive-response! conn request)))
-    (release-http-connection client conn reuse?)))
-(define (extract-response client response-retriever)
-  (let ((response (response-retriever)))
-    (when (http:client-cookie-handler client)
-      (add-cookie! client (http:response-cookies response)))
-    response))
-  
 (define (adjust-request client request header-handler data-handler)
   (let* ((copy (http:request-builder
 		(from request)
@@ -394,11 +387,11 @@
     (values header-handler body-handler (lambda () header-status)
 	    response-retriever)))
       
-(define (lease-http-connection client request)
-  (http-connection-manager-lease-connection
-   (http:client-connection-manager client)
-   request
-   (http:client-lease-option client)))
+(define (lease-http-connection client request success failure)
+  (define manager (http:client-connection-manager client))
+  (http-connection-manager-lease-connection manager request
+   (http:client-lease-option client) success failure))
+
 (define (release-http-connection client connection reuse?)
   (http-connection-manager-release-connection
    (http:client-connection-manager client)

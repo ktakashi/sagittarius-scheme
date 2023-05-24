@@ -109,7 +109,8 @@
 	  dns-timeout
 	  read-timeout
 	  connection-timeout
-	  selector-error-handler))
+	  selector-error-handler
+	  dns-lookup-executor))
 (define-syntax http-connection-config-builder
   (make-record-builder http-connection-config))
 
@@ -133,8 +134,9 @@
 		  "Promise or executor required" v))))))
 
 
-(define (http-connection-manager-lease-connection manager request option)
-  ((connection-manager-lease manager) manager request option))
+(define (http-connection-manager-lease-connection manager request option
+						  success failure)
+  ((connection-manager-lease manager) manager request option success failure))
 
 (define (http-connection-manager-release-connection manager connection reuse?)
   ((connection-manager-release manager) manager connection reuse?))
@@ -194,7 +196,7 @@
   (define dns-timeout
     (cond ((connection-manager-dns-timeout cm) => timeout->expires-at)
 	  (else #f)))
-  (define executor (http-connection-lease-option-executor option))
+  (define executor (delegatable-connection-manager-dns-lookup-executor cm))
   
   (define (make-dns-resolver)
     (define (dns-resolver node service options)
@@ -221,25 +223,48 @@
 		      (read-timeout read-timeout)
 		      (dns-resolver (make-dns-resolver)))))
 
+(define-record-type delegatable-connection-manager
+  (parent connection-manager)
+  (fields dns-lookup-executor)
+  (protocol (lambda (n)
+	      (define ((make-shutdown! shutdown) m)
+		(shutdown m)
+		((shutdown-executor!
+		  (delegatable-connection-manager-dns-lookup-executor m))))
+	      (lambda (lease release shutdown config)
+		((n lease release (make-shutdown! shutdown) config)
+		 (or (http-connection-config-dns-lookup-executor config)
+		     ;; 
+		     (make-fork-join-executor 1
+		      (fork-join-pool-parameters-builder
+		       ;; TODO should be better number
+		       (max-threads 100)
+		       ;; we don't want to wait
+		       (max-queue-depth 1)
+		       (thread-name-prefix "dns-lookup")))))))))
+
 ;;; ephemeral (no pooling)
 (define-record-type http-ephemeral-connection-manager
-  (parent connection-manager)
+  (parent delegatable-connection-manager)
   (protocol (lambda (n)
 	      (lambda (config)
 		((n ephemeral-lease-connection ephemeral-release-connection
 		    (lambda (m) #t) config))))))
 
-(define (ephemeral-lease-connection manager request alpn)
+(define (ephemeral-lease-connection manager request option success failure)
   (define uri (http:request-uri request))
-  (define option (http-connection-manager->socket-option manager request alpn))
   (define (http2? socket)
     (and (tls-socket? socket)
 	 (equal? (tls-socket-selected-alpn socket) "h2")))
-
-  (let-values (((socket host service option) (uri->socket uri option)))
-    (if (http2? socket)
-	(socket->http2-connection socket option host service)
-	(socket->http1-connection socket option host service))))
+  (guard (e (else (failure e)))
+    (let ((socket-option
+	   (http-connection-manager->socket-option manager request option)))
+      (let-values (((socket host service option)
+		    (uri->socket uri socket-option)))
+	(success
+	 (if (http2? socket)
+	     (socket->http2-connection socket option host service)
+	     (socket->http1-connection socket option host service)))))))
 
 (define (ephemeral-release-connection manager connection reuseable?)
   (http-connection-close! connection))
@@ -255,7 +280,7 @@
 	    host service option)))
 
 (define-record-type http-logging-connection-manager
-  (parent connection-manager)
+  (parent delegatable-connection-manager)
   (protocol (lambda (n)
 	      (lambda (config logger)
 		((n (make-logging-lease-connection logger)
@@ -263,28 +288,27 @@
 		    (lambda (m) #t) config))))))
 
 (define (make-logging-lease-connection logger)
-  (define connection-logger
-    (and logger (http-client-logger-connection-logger logger)))
-  (lambda (manager request option)
+  (lambda (manager request option success failure)
     (define uri (http:request-uri request))
     (guard (e (else
-	       (http-connection-logger-write-log connection-logger
+	       (http-client-logger-write-log logger 'connection-manager
 		 "[Lease Connection] Failed to acquire a connection: ~a"
 		 (condition-message e)
-		 ;; We want to pass this, so think about it
-		 #;e)
+		 e)
 	       (raise e)))
-      (let ((conn (ephemeral-lease-connection manager request option)))
-	(http-connection-logger-write-log connection-logger
+      (let ((conn (ephemeral-lease-connection manager request option
+					      values failure)))
+	(http-client-logger-write-log logger 'connection-manager
 	  "[Lease Connection] Connected to service: ~a, node: ~a, port: ~a"
 	  (uri-scheme uri) (uri-host uri) (or (uri-port uri) "?"))
-	(make-http-logging-connection conn logger)))))
+	(success
+	 (make-http-logging-connection conn logger))))))
 
 (define (make-logging-release-connection logger)
   (define connection-logger
     (and logger (http-client-logger-connection-logger logger)))
   (lambda (manager connection reuseable?)
-    (http-connection-logger-write-log connection-logger
+    (http-client-logger-write-log logger 'connection-manager
      "[Release Connection] Releasing a connection of node: ~a, service: ~a"
      (http-connection-node connection) (http-connection-service connection))
     (ephemeral-release-connection manager connection reuseable?)))
@@ -377,7 +401,7 @@
 (define (pooling-entry-expired? entry)
   (time>=? (current-time) (pooling-entry-expires entry)))
 
-(define (pooling-lease-connection manager request option)
+(define (pooling-lease-connection manager request option success failure)
   (define available (http-pooling-connection-manager-available manager))
   (define leasing (http-pooling-connection-manager-leasing manager))
   (define lock (http-pooling-connection-manager-lock manager))
@@ -394,6 +418,9 @@
     (http-pooling-connection-manager-delegate manager))
   (define ttl
     (http-pooling-connection-manager-time-to-live manager))
+
+  (define executor (http-connection-lease-option-executor option))
+  
   (define (ensure-queue table route max)
     (cond ((hashtable-ref table route #f))
 	  (else (let ((q (make-shared-queue max)))
@@ -402,50 +429,60 @@
   (define (get-max-connection-per-route route)
     (cond ((assp (lambda (r) (equal? r route)) route-max-connections) => cadr)
 	  (else max-per-route)))
-  (define (handle-leased-connection entry leased avail max-conn timeout)
-    ;; okay check if it's expired or not
-    (cond ((pooling-entry-expired? entry)
-	   (http-connection-manager-release-connection delegate
-	    (pooling-entry-connection entry) #f)
-	   (get-connection leased avail max-conn timeout))
-	  (else
-	   (shared-queue-put! leased entry)
-	   (pooling-entry-connection entry))))
+  
+  (define (try-new-connection leased avail max-conn success failure)
+    (define (lease)
+      (http-connection-manager-lease-connection delegate request option
+						values raise))
+    (define mpe make-pooling-entry)
+    (mutex-lock! lock)
+    (guard (e (else (mutex-unlock! lock) (failure e)))
+      (let ((lsize (shared-queue-size leased))
+	    (asize (shared-queue-size avail)))
+	(let ((r (and (< (+ lsize asize) max-conn)
+		      (let ((conn (lease)))
+			(shared-queue-put! leased (mpe ttl conn))
+			conn))))
+	  (mutex-unlock! lock)
+	  (and r (success r))))))
 
-  (define (get-connection leased avail max-conn timeout)
-    (define (try-new-connection)
-      (define (lease)
-	(http-connection-manager-lease-connection delegate request option))
-      (define mpe make-pooling-entry)
-      (mutex-lock! lock)
-      (guard (e (else (mutex-unlock! lock) (raise e)))
-	(let ((lsize (shared-queue-size leased))
-	      (asize (shared-queue-size avail)))
-	  (let ((r (and (< (+ lsize asize) max-conn)
-			(let ((conn (lease)))
-			  (shared-queue-put! leased (mpe ttl conn))
-			  conn))))
-	    (mutex-unlock! lock)
-	    r))))
-    (define (wait)
-      (let ((t (and timeout (add-duration (current-time) timeout))))
-	(cond ((notifier-wait-notification! notifier t)
-	       (or (not t) (time-difference t (current-time))))
-	      (else #f))))
-      
+  (define (get-connection leased avail max-conn timeout success failure async?)
+    (define (handle-leased-connection entry leased avail max-conn timeout)
+      ;; okay check if it's expired or not
+      (cond ((pooling-entry-expired? entry)
+	     (http-connection-manager-release-connection delegate
+	       (pooling-entry-connection entry) #f)
+	     (get-connection leased avail max-conn timeout
+			     success failure async?))
+	    (else
+	     (shared-queue-put! leased entry)
+	     (success (pooling-entry-connection entry)))))
+    
+    (define (async-lease async?)
+      (define (wait)
+	(let ((t (and timeout (add-duration (current-time) timeout))))
+	  (cond ((notifier-wait-notification! notifier t)
+		 (or (not t) (time-difference t (current-time))))
+		(else #f))))
+      (define (process)
+	(cond ((wait) =>
+	       (lambda (to)
+		 (get-connection leased avail max-conn (and (time? to) to)
+				 success failure #t)))
+	      (else (failure
+		     (condition
+		      (make-connection-request-timeout-error)
+		      (make-who-condition 'pooling-lease-connection)
+		      (make-message-condition "Connection request timeout")
+		      (make-irritants-condition timeout))))))
+      (if (not async?)
+	  (executor-submit! executor process)
+	  (process)))
     (cond ((shared-queue-pop! avail 0) =>
 	   (lambda (entry)
 	     (handle-leased-connection entry leased avail max-conn timeout)))
-	  ((try-new-connection))
-	  ((wait) =>
-	   (lambda (to)
-	     (get-connection leased avail max-conn (and (time? to) to))))
-	  (else (raise
-		 (condition
-		  (make-connection-request-timeout-error)
-		  (make-who-condition 'pooling-lease-connection)
-		  (make-message-condition "Connection request timeout")
-		  (make-irritants-condition timeout))))))
+	  ((try-new-connection leased avail max-conn success failure))
+	  ((async-lease async?))))
   
   (define (queues lock route leasing available max-conn)
     (mutex-lock! lock)
@@ -457,7 +494,7 @@
 	 (max-conn (get-max-connection-per-route route)))
     (let-values (((leased avail)
 		  (queues lock route leasing available max-conn)))
-      (get-connection leased avail max-conn timeout))))
+      (get-connection leased avail max-conn timeout success failure #f))))
 
 (define (pooling-release-connection manager connection reuse?)
   (define available (http-pooling-connection-manager-available manager))
