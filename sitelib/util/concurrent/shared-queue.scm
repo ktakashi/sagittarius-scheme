@@ -42,7 +42,7 @@
 	    shared-queue-overflows?
 	    shared-queue-put! shared-queue-get! shared-queue-pop!
 	    shared-queue-watch
-	    shared-queue-remove!
+	    shared-queue-remp! shared-queue-remove!
 	    shared-queue-clear!
 	    shared-queue-find
 	    shared-queue-locked?
@@ -198,39 +198,49 @@
     (and (>= (shared-queue-max-length sq) 0)
 	 (> (+ count (shared-queue-size sq)) (shared-queue-max-length sq))))
 
-  (define (shared-queue-remove! sq o . maybe=)
-    (define = (if (null? maybe=) equal? (car maybe=)))
+  ;; variant of remp :)
+  (define (shared-queue-remp! sq proc)
     (define (find-it prev cur)
-      (cond ((null? cur) #f)
+      (cond ((null? cur) (values #f #f))
 	    ;; this works because cdr of cur won't be '()
 	    ;; (last element is already checked)
-	    ((= (car cur) o) (set-cdr! prev (cdr cur)) #t)
+	    ((proc (car cur))
+	     (let ((r (car cur)))
+	       (set-cdr! prev (cdr cur))
+	       (values #t r)))
 	    (else (find-it (cdr prev) (cdr cur)))))
     (define (remove-it sq)
       (let ((h (shared-queue-head sq))
 	    (t (shared-queue-tail sq)))
-	(cond ((null? h) #f) ;; ok not there
-	      ((= (car h) o)
-	       (let ((n (cdr h)))
+	(cond ((null? h) (values #f #f)) ;; ok not there
+	      ((proc (car h))
+	       (let ((r (car h)) (n (cdr h)))
 		 (shared-queue-head-set! sq n)
 		 (when (null? n) (shared-queue-tail-set! sq '()))
-		 #t))
-	      ((= (car t) o)
-	       (let loop ((h h))
-		 (cond ((eq? (cdr h) t)
-			(set-cdr! h '())
-			(shared-queue-tail-set! sq h) #t)
-		       (else (loop (cdr h))))))
+		 (values #t r)))
+	      ((proc (car t))
+	       (let ((r (car t)))
+		 (let loop ((h h))
+		   (cond ((eq? (cdr h) t)
+			  (set-cdr! h '())
+			  (shared-queue-tail-set! sq h)
+			  (values #t r))
+			 (else (loop (cdr h)))))))
 	      (else (find-it h (cdr h))))))
-    ;; comparison procedure may raise an error. keep mutex unlocked
-    ;; after this procedure returned, we need to wrap with dynamic-wind
+    ;; proc may call call/cc thus we need to use dynamic-wind
     (dynamic-wind
 	(lambda () (mutex-lock! (%lock sq)))
 	(lambda ()
-	  (let ((r (remove-it sq)))
-	    (when r (shared-queue-size-set! sq (- (shared-queue-size sq) 1)))
-	    r))
+	  (let-values (((removed? v) (remove-it sq)))
+	    (when removed?
+	      (shared-queue-size-set! sq (- (shared-queue-size sq) 1)))
+	    (values removed? v)))
 	(lambda () (mutex-unlock! (%lock sq)))))
+
+  (define (shared-queue-remove! sq o . maybe=)
+    (define = (if (null? maybe=) equal? (car maybe=)))
+    (let-values (((removed? v) (shared-queue-remp! sq (lambda (e) (= e o)))))
+      removed?))
   
   (define (shared-queue-clear! sq)
     (mutex-lock! (%lock sq))
