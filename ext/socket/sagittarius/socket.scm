@@ -198,14 +198,20 @@
       (when (and (< r 0) (not (nonblocking-socket? sock)))
 	(raise (condition (make-socket-read-timeout-error sock)
 			  (make-who-condition 'socket-recv!)
-			  (make-message-condition "Read timeout!"))))
+			  (make-message-condition 
+			   (format "Read timeout! node: ~a, service: ~a"
+				   (socket-node sock)
+				   (socket-service sock))))))
       r))
   (define (socket-recv sock len :optional (flags 0))
     (let ((r (%socket-recv sock len flags)))
       (unless (or r (nonblocking-socket? sock))
 	(raise (condition (make-socket-read-timeout-error sock)
 			  (make-who-condition 'socket-recv)
-			  (make-message-condition "Read timeout!"))))
+			  (make-message-condition
+			   (format "Read timeout! node: ~a, service: ~a"
+				   (socket-node sock)
+				   (socket-service sock))))))
       r))
 
   (define (socket-set-read-timeout! socket read-timeout)
