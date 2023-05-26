@@ -50,6 +50,7 @@
 	    (srfi :39 parameters)
 	    (srfi :117 list-queues)
 	    (util concurrent shared-queue)
+	    (util concurrent notifier)
 	    (util duration)
 	    (util vector))
 
@@ -128,6 +129,7 @@
 			;; given `n`.
 			(else (* n 5))))
 		(let* ((indices (iota n))
+		       (notifier (make-notifier))
 		       (core-threads (make-vector n))
 		       (r (p core-threads
 			     (max-threads n parameter)
@@ -139,12 +141,13 @@
 		  (do ((i 0 (+ i 1))) ((= i n))
 		    (let* ((wq (make-worker-queue))
 			   (others (remv i indices))
-			   (t (make-core-worker-thread r i wq others)))
+			   (t (make-core-worker-thread r i wq others notifier)))
 		      (vector-set! core-threads i t)))
-		  (fork-join-pool-scheduler-set! r (make-scheduler-thread r))
+		  (fork-join-pool-scheduler-set! r 
+		   (make-scheduler-thread r notifier))
 		  r)))))
 
-(define (make-core-worker-thread pool i worker-queue other-queues)
+(define (make-core-worker-thread pool i worker-queue other-queues notifier)
   (define worker-threads (fork-join-pool-core-threads pool))
   (define parameter (fork-join-pool-parameter pool))
   (define prefix
@@ -169,15 +172,18 @@
 	     (worker-thread-busy! wh task)
 	     (guard (e (else #f)) (task))
 	     (worker-thread-busy! wh #f)
-	     (cond ((worker-queue-get! worker-queue 0 #f) => loop)
+	     (let check ()
+	       (cond ((worker-queue-get! worker-queue 0 #f) => loop)
 		     ;; help other thread if they are busy but not me
 		     ;; I'm such a kind thread :D
 		     ((select-other-task other-queues worker-threads) => loop)
-		     (else (loop (worker-queue-get! worker-queue)))))))
+		     (else
+		      (notifier-wait-notification! notifier)
+		      (check)))))))
        (string-append prefix "-core-worker-" (number->string i)))))
     wh))
 
-(define (make-scheduler-thread pool)
+(define (make-scheduler-thread pool notifier)
   (define worker-threads (fork-join-pool-core-threads pool))
   (define sq (fork-join-pool-scheduler-queue pool))
   (define parameter (fork-join-pool-parameter pool))
@@ -197,13 +203,17 @@
     (thread-start!
      (make-thread
       (lambda ()
+	(define (search-task wh*)
+	  (let loop ((wh* wh*))
+	    (cond ((null? wh*) #f)
+		  ((worker-thread-queue-pop! (car wh*) 0 #f))
+		  (else (loop (cdr wh*))))))
 	(let loop ((task task0))
 	  (guard (e (else #f)) (task))
 	  (let waiter ((wait (add-duration (current-time) duration)))
-	    (cond ((exists (lambda (w) (worker-thread-queue-pop! w .1 #f)) wh*)
-		   => loop)
-		  ((time<? wait (current-time))
-		   (thread-sleep! .01)
+	    (cond ((search-task  wh*) => loop)
+		  ((time<? (current-time) wait)
+		   (notifier-wait-notification! notifier wait)
 		   (waiter wait)))))
 	(update-thread-count! pool 1-))
       (string-append (or tprefix "fork-join-pool")
@@ -220,7 +230,8 @@
 	  ;;      mean the worker is not busy...
 	  (cond ((or (find worker-thread-free? wh*) (find small-enough wh*)) =>
 		 (lambda (wh)
-		   (worker-thread-queue-push! wh task)))
+		   (worker-thread-queue-push! wh task)
+		   (notifier-send-notification! notifier)))
 		((< (fork-join-pool-thread-count pool)
 		    (fork-join-pool-max-threads pool))
 		 (spawn task))
@@ -228,6 +239,7 @@
 		(else
 		 (let ((wh (list-queue-remove-front! whq)))
 		   (worker-thread-queue-push! wh task)
+		   (notifier-send-notification! notifier)
 		   (list-queue-add-back! whq wh))))
 	  (loop)))))
   (thread-start! (make-thread process

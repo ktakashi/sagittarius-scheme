@@ -291,11 +291,10 @@
 (define (send-request client conn request)
   (let-values (((header-handler body-handler header-state response-retriever)
 		(make-handlers)))
-    (let ((new-req (adjust-request client request header-handler body-handler)))
-      (http-connection-send-header! conn new-req)
-      (http-connection-send-data! conn new-req)
-      (values new-req
-	      (response-handler header-state response-retriever new-req)))))
+    (let ((req (adjust-request client request header-handler body-handler)))
+      (http-connection-send-header! conn req)
+      (http-connection-send-data! conn req)
+      (values req (response-handler header-state response-retriever req)))))
 
 (define (adjust-request client request header-handler data-handler)
   (let* ((copy (http:request-builder
