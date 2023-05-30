@@ -65,6 +65,7 @@ static void remove_entry(SgKernel *k, SgObject value)
   while (n && n->value != value) n = n->next;
   
   if (n) {
+    n->value = NULL;
     /* n->prev must always be there, but just in case */
     if (n->prev) n->prev->next = n->next;
     if (n->next) n->next->prev = n->prev;

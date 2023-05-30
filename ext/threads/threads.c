@@ -78,6 +78,7 @@ static void* thread_entry(void *data)
 {
   SgVM *vm = SG_VM(data);
   SgObject *stack;
+  int i;
 #ifdef HAVE_ALLOCA
   stack = (SgObject *)alloca(sizeof(SgObject) * SG_VM_STACK_SIZE);
 #else
@@ -113,6 +114,10 @@ static void* thread_entry(void *data)
     vm->threadErrorP = TRUE;
   }
   thread_cleanup_pop(TRUE);
+  /* for GC friendliness */
+  Sg_SetVMStack(vm, NULL, 0);
+  for (i = 0; i < SG_VM_STACK_SIZE; i++) *(stack+i) = NULL;
+  stack = NULL;
   return NULL;
 }
 
