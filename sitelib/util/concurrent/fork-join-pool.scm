@@ -189,7 +189,12 @@
   (define parameter (fork-join-pool-parameter pool))
 
   (define wh* (vector->list worker-threads))
-  (define whq (make-list-queue wh*))
+  ;; must be a copy to avoid memory leak
+  ;; if we don't `wh*` will be shared between the process and `whq` while
+  ;; `whq` will try to rotate, however, `wh*` keeps the head of the list
+  ;; so the rotation doesn't really discard the list which causes memory
+  ;; leak.
+  (define whq (make-list-queue (vector->list worker-threads)))
   (define duration (fork-join-pool-parameters-keep-alive parameter))
   (define max-queue-depth (fork-join-pool-parameters-max-queue-depth parameter))
   (define tprefix (fork-join-pool-parameters-thread-name-prefix parameter))
