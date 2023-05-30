@@ -84,10 +84,16 @@
       (make-completed-future
        (apply proc (future-get future) (map future-get future*)))
       (thunk->future (if (null? future*)
-			 (lambda () (proc (future-ensure-get future)))
-			 (lambda () (apply proc
-					   (future-ensure-get future)
-					   (map future-ensure-get future*))))
+			 (lambda ()
+			   (let ((a (future-ensure-get future)))
+			     (set! future #f)
+			     (proc a)))
+			 (lambda ()
+			   (let ((a (future-ensure-get future))
+				 (a* (map future-ensure-get future*)))
+			     (set! future #f)
+			     (set! future* #f)
+			     (apply proc a a*))))
 		     executor)))
 
 ;; For now very naive implementation...
@@ -99,12 +105,16 @@
   (if (and (future-done? future) (for-all future-done? future*))
       (apply proc (future-get future) (map future-get future*))
       (thunk->future (if (null? future*)
-			 (lambda () (future-ensure-get
-				     (proc (future-ensure-get future))))
-			 (lambda () (future-ensure-get
-				     (apply proc
-					    (future-ensure-get future)
-					    (map future-ensure-get future*)))))
+			 (lambda ()
+			   (let ((a (future-ensure-get future)))
+			     (set! future #f)
+			     (future-ensure-get (proc a))))
+			 (lambda ()
+			   (let ((a (future-ensure-get future))
+				 (a* (map future-ensure-get future*)))
+			     (set! future #f)
+			     (set! future* #f)
+			     (future-ensure-get (apply proc a a*)))))
 		     executor)))
 
 (define (future-guard proc future)

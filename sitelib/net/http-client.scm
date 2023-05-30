@@ -199,14 +199,15 @@
      (lambda (conn)
        (executor-submit! (http:client-executor client)
 	 (lambda ()
-	   (let-values (((new-req response-handler)
-			 (send-request client conn request)))
-	     (let ((fail (release/fail conn)))
-	       (http-connection-manager-register-on-readable
-		(http:client-connection-manager client) conn
-		(response-handler client success fail)
-		fail
-		(http:request-timeout new-req)))))))
+	   (let ((fail (release/fail conn)))
+	     (guard (e (else (fail e)))
+	       (let-values (((new-req response-handler)
+			     (send-request client conn request)))
+		 (http-connection-manager-register-on-readable
+		  (http:client-connection-manager client) conn
+		  (response-handler client success fail)
+		  fail
+		  (http:request-timeout new-req))))))))
      failure)))
 
 (define (default-executor? client)
@@ -378,11 +379,15 @@
 			    (cdr kv)))
 		(mutable-response-headers response))
       (let ((cookies (map parse-cookie-string
-			  (http:headers-ref* headers "Set-Cookie"))))
+			  (http:headers-ref* headers "Set-Cookie")))
+	    (body (mutable-response-body response)))
+	;; clear with hope of GC friendliness
+	(mutable-response-headers-set! response #f)
+	(mutable-response-body-set! response #f)
 	(http:response-builder (status (mutable-response-status response))
 			       (headers headers)
 			       (cookies cookies)
-			       (body (mutable-response-body response)))))
+			       (body body))))
     (values header-handler body-handler (lambda () header-status)
 	    response-retriever)))
       

@@ -235,9 +235,9 @@
   (fields dns-lookup-executor)
   (protocol (lambda (n)
 	      (define ((make-shutdown! shutdown) m)
-		(shutdown m)
-		((shutdown-executor!
-		  (delegatable-connection-manager-dns-lookup-executor m))))
+		(shutdown-executor!
+		 (delegatable-connection-manager-dns-lookup-executor m))
+		(shutdown m))
 	      (lambda (lease release shutdown config)
 		((n lease release (make-shutdown! shutdown) config)
 		 (or (http-connection-config-dns-lookup-executor config)
@@ -383,7 +383,8 @@
       (vector-for-each
        (lambda (sq)
 	 (for-each (lambda (e)
-		     (http-connection-close! (pooling-entry-connection e)))
+		     (http-connection-manager-release-connection
+		      delegate (pooling-entry-connection e) #f))
 		   (shared-queue->list sq))
 	 (shared-queue-clear! sq))
        values))
@@ -514,14 +515,19 @@
 	   (lambda (entry)
 	     (cond ((and reuse? (hashtable-ref available route #f)) =>
 		    (lambda (avail)
-		      (if (or (shared-queue-overflows? avail 1)	;; why?
+		      ;; due to the loose lock, we can't stricly manage
+		      ;; the number of leasing and available connections
+		      ;; to max connection. this means, the sum of these
+		      ;; 2 queues might overflow the max connection, so
+		      ;; we need to check it to avoid dead lock here.
+		      (if (or (shared-queue-overflows? avail 1)
 			      (pooling-entry-expired? entry))
 			  (http-connection-manager-release-connection
-			   delegate connection #f)
+			   delegate (pooling-entry-connection entry) #f)
 			  (shared-queue-put! avail entry))))
 		   (else
 		    (http-connection-manager-release-connection
-		     delegate connection #f)))
+		     delegate (pooling-entry-connection entry) #f)))
 	     (notifier-send-notification! notifier)))
 	  (else
 	   (http-connection-manager-release-connection
