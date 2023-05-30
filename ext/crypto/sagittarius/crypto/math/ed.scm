@@ -52,9 +52,9 @@
 	    ed-point-decode-base)
     (import (rnrs)
 	    (core misc)
-	    (math ec) ;; TODO should we move to (sagittarius crypto math ec)?
 	    (math modular)
 	    (sagittarius)
+	    (sagittarius crypto math ec)
 	    (sagittarius crypto random))
 
 (define-vector-type ed-point

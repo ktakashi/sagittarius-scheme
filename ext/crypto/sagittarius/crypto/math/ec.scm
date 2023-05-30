@@ -379,10 +379,10 @@
 (define-syntax define-fp-parameter
   (syntax-rules ()
     ((_ name p a b Gx Gy n h oid)
-     (define-constant name
+     (define name
        (make-fp-ec-parameter p a b Gx Gy n h #f oid)))
     ((_ name p a b Gx Gy n h S oid)
-     (define-constant name
+     (define name
        (make-fp-ec-parameter p a b Gx Gy n h (uinteger->bytevector S) oid)))))
 (define-fp-parameter NIST-P-192
   #xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFFFF
@@ -627,7 +627,7 @@
 (define-syntax define-f2m-parameter
   (syntax-rules ()
     ((_ "body" name (m k1 k2 k3) a b Gx Gy n h S oid)
-     (define-constant name
+     (define name
        (make-f2m-ec-parameter m k1 k2 k3 a b Gx Gy n h S oid)))
     ((_ name (m k1 k2 k3) a b Gx Gy n h S oid)
      (define-f2m-parameter "body" name (m k1 k2 k3) a b Gx Gy n h
