@@ -1157,12 +1157,13 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
     }
     if ((index = write_cache(name, SG_CODE_BUILDER(SG_CDAR(cache)),
 			     out, index)) < 0) {
-      return FALSE;
+      break;
     }
   }
   Sg_FlushPort(out);
   Sg_UnlockFile(&file);
   Sg_ClosePort(out);
+  if (index < 0) return FALSE;
 
   size = Sg_FileSize(cache_path);
   if (SG_EXACT_INTP(size)) {
