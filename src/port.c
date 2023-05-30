@@ -1919,6 +1919,13 @@ static int custom_close(SgObject self)
     if (SG_PROCEDUREP(SG_CUSTOM_PORT(self)->close)) {
       Sg_Apply0(SG_CUSTOM_PORT(self)->close);
     }
+    SG_CUSTOM_PORT(self)->read = SG_FALSE;
+    SG_CUSTOM_PORT(self)->write = SG_FALSE;
+    SG_CUSTOM_PORT(self)->ready = SG_FALSE;
+    SG_CUSTOM_PORT(self)->flush = SG_FALSE;
+    SG_CUSTOM_PORT(self)->getPosition = SG_FALSE;
+    SG_CUSTOM_PORT(self)->setPosition = SG_FALSE;
+    SG_CUSTOM_PORT(self)->close = SG_FALSE;
     Sg_UnregisterFinalizer(self);
     SG_PORT(self)->closed = SG_PORT_CLOSED;
   }

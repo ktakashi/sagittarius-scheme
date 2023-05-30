@@ -130,10 +130,8 @@
 (define (http2-send-data connection request)
   (define stream (search-stream connection request))
   (when (eq? (http2:stream-state open) (http2-stream-state stream))
-    (let ((data-frame-sender
-	   (stream:request->data-frame-sender stream request)))
-      (data-frame-sender)
-      (http2-stream-state-set! stream (http2:stream-state half-closed))))
+    (stream:send-request-data-frame stream request)
+    (http2-stream-state-set! stream (http2:stream-state half-closed)))
   connection)
 
 ;;; API
@@ -311,27 +309,26 @@
   (and (http:request-body request)
        (not (http:no-body-method? method))))
 
-(define (stream:request->data-frame-sender stream request)
+(define (stream:send-request-data-frame stream request)
   (define method (http:request-method request))
-  (define (->data-frame-sender stream request)
+  (define (send-data-frame stream request)
     (define body (http:request-body request))
     ;; (define window-size (http2:stream-window-size stream))
     ;; TODO consider window-size
-    (define (bytevector->data-frame-sender stream bv)
-      (lambda ()
-	(let ((frame (make-http2-frame-data 0 (http2-stream-id stream) bv)))
-	  (http2-write-stream stream frame #t))))
-    (define (input-port->data-frame-sender stream bin)
+    (define (send-bytevector-data-frame stream bv)
+      (let ((frame (make-http2-frame-data 0 (http2-stream-id stream) bv)))
+	(http2-write-stream stream frame #t)))
+    (define (send-input-port-data-frame stream bin)
       (assertion-violation 'stream:request->data-frame-sender
 			   "Not yet" bin))
     (cond ((bytevector? body)
-	   (bytevector->data-frame-sender stream body))
+	   (send-bytevector-data-frame stream body))
 	  ((and (input-port? body) (binary-port? body))
-	   (input-port->data-frame-sender stream body))
+	   (send-input-port-data-frame stream body))
 	  (else (assertion-violation 'stream:request->data-frame-sender
 				     "Unknown body type" body))))
   (and (request-has-body? request)
-       (->data-frame-sender stream request)))
+       (send-data-frame stream request)))
 
 (define (stream:request->header-frame stream request)
   (define id (http2-stream-id stream))

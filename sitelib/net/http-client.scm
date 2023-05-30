@@ -201,13 +201,12 @@
 	 (lambda ()
 	   (let ((fail (release/fail conn)))
 	     (guard (e (else (fail e)))
-	       (let-values (((new-req response-handler)
-			     (send-request client conn request)))
+	       (let ((response-handler (send-request client conn request)))
 		 (http-connection-manager-register-on-readable
 		  (http:client-connection-manager client) conn
 		  (response-handler client success fail)
 		  fail
-		  (http:request-timeout new-req))))))))
+		  (http:request-timeout request))))))))
      failure)))
 
 (define (default-executor? client)
@@ -295,7 +294,7 @@
     (let ((req (adjust-request client request header-handler body-handler)))
       (http-connection-send-header! conn req)
       (http-connection-send-data! conn req)
-      (values req (response-handler header-state response-retriever req)))))
+      (response-handler header-state response-retriever req))))
 
 (define (adjust-request client request header-handler data-handler)
   (let* ((copy (http:request-builder
@@ -369,10 +368,11 @@
 	(set-port-position! in/out 0)
 	(let* ((headers (mutable-response-headers response))
 	       (body (decompress headers in/out)))
+	  (set! in/out #f)
 	  (mutable-response-body-set! response body))))
     (define (response-retriever)
       (define headers (http:make-headers))
-      ;; stored headers are RFC 5322 alist, so conver it here
+      ;; stored headers are RFC 5322 alist, so convert it here
       (for-each (lambda (kv)
 		  (for-each (lambda (v)
 			      (http:headers-add! headers (car kv) v))

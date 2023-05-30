@@ -51,8 +51,6 @@
 	    http-connection-receive-header!
 	    http-connection-receive-data!
 	    
-	    http-connection-send-request! http-connection-receive-response!
-
 	    ;; for internal or extra http version
 	    http-connection-context?
 	    (rename (http-connection-context <http-connection-context>))
@@ -187,18 +185,10 @@
       (http-connection-output-set! conn #f)))
   conn)
 
-(define (http-connection-send-request! conn request)
-  (http-connection-send-header! conn request)
-  (http-connection-send-data! conn request))
-
 (define (http-connection-send-header! conn request)
   ((http-connection-header-sender conn) conn request))
 (define (http-connection-send-data! conn request)
   ((http-connection-data-sender conn) conn request))
-
-(define (http-connection-receive-response! conn request)
-  (http-connection-receive-header! conn request)
-  (http-connection-receive-data! conn request))
 
 (define (http-connection-receive-header! conn request)
   ((http-connection-header-receiver conn) conn request))

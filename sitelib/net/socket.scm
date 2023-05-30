@@ -440,7 +440,7 @@
   (define lock (make-mutex "socket-selector-lock"))
 
   (define (unmanage-socket! sock)
-    (hashtable-delete! wrapped-sockets
+    #;(hashtable-delete! wrapped-sockets
 		       (if (tls-socket? sock)
 			   (tls-socket-raw-socket sock)
 			   sock))

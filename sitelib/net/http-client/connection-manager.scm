@@ -515,6 +515,7 @@
 	   (lambda (entry)
 	     (cond ((and reuse? (hashtable-ref available route #f)) =>
 		    (lambda (avail)
+		      (mutex-lock! lock)
 		      ;; due to the loose lock, we can't stricly manage
 		      ;; the number of leasing and available connections
 		      ;; to max connection. this means, the sum of these
@@ -524,7 +525,8 @@
 			      (pooling-entry-expired? entry))
 			  (http-connection-manager-release-connection
 			   delegate (pooling-entry-connection entry) #f)
-			  (shared-queue-put! avail entry))))
+			  (shared-queue-put! avail entry))
+		      (mutex-unlock! lock)))
 		   (else
 		    (http-connection-manager-release-connection
 		     delegate (pooling-entry-connection entry) #f)))
