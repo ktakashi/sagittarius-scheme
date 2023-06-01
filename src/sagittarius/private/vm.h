@@ -349,6 +349,12 @@ typedef enum {
     Sg_VM()->cstack = Sg_VM()->cstack->prev;	\
   } while (0)
 
+typedef enum {
+  SG_STACK_TRACE_SOURCE    = 0x0001, /* source location */
+  SG_STACK_TRACE_ARGUMENTS = 0x0002,  /* arguments */
+  SG_STACK_TRACE_ALL       = SG_STACK_TRACE_SOURCE | SG_STACK_TRACE_ARGUMENTS
+} SgVMStackTraceInfo;
+
 
 SG_CDECL_BEGIN
 
@@ -398,9 +404,7 @@ SG_EXTERN SgObject Sg_CurrentInputPort();
 SG_EXTERN SgObject Sg_VMCurrentLibrary();
 
 /* exception */
-SG_EXTERN SgObject Sg_GetStackTrace();
-SG_EXTERN SgObject Sg_GetStackTraceOfVM(SgVM *vm);
-SG_EXTERN SgObject Sg_GetStackTraceFromCont(SgVM *vm, SgContFrame *cont);
+SG_EXTERN SgObject Sg_VMGetStackTraceOf(SgVM *vm, SgVMStackTraceInfo flags, int framesToSkip);
 SG_EXTERN SgObject Sg_VMThrowException(SgVM *vm, SgObject exception,
 				       int continuableP);
 SG_EXTERN void     Sg_VMDefaultExceptionHandler(SgObject exception);
@@ -415,7 +419,6 @@ SG_EXTERN void     Sg_FormatStackTrace(SgObject e, SgObject out);
 SG_EXTERN SgObject Sg_VMFinalizerRun(SgVM *vm);
 
 /* debuging */
-SG_EXTERN void     Sg_VMPrintFrame();
 SG_EXTERN void     Sg_VMPrintFrameOf(SgVM *vm);
 
 /* root? */

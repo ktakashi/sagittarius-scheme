@@ -384,7 +384,7 @@ SG_EXTERN SgObject Sg_MakeIOPort(SgObject port);
 SG_EXTERN SgObject Sg_MakeIOEncoding(SgObject port, SgChar c);
 SG_EXTERN SgObject Sg_MakeIODecoding(SgObject port);
 
-SG_EXTERN SgObject Sg_AddStackTrace(SgObject e, SgVM* vm);
+SG_EXTERN SgObject Sg_AddStackTrace(SgObject e, SgVM* vm, int framesToSkip);
 
 SG_EXTERN SgObject Sg_DescribeCondition(SgObject con);
 

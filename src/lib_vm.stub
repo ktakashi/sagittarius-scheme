@@ -441,10 +441,11 @@
 
   (define-c-proc print-stack-frames (:optional (vm::<thread> #f)) ::<void>
     (if (SG_FALSEP vm)
-	(Sg_VMPrintFrame)
+	(Sg_VMPrintFrameOf (Sg_VM))
 	(Sg_VMPrintFrameOf vm)))
 
-  (define-c-proc get-stack-trace-object () Sg_GetStackTrace)
+  (define-c-proc get-stack-trace-object ()
+    (result (Sg_VMGetStackTraceOf (Sg_VM) SG_STACK_TRACE_ALL 0)))
   (define-c-proc format-stack-trace 
     (o :optional (out::<port> (Sg_CurrentOutputPort))) ::<void>
     Sg_FormatStackTrace)

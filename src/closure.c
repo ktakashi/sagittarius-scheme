@@ -76,7 +76,6 @@ SgObject Sg_VMMakeClosure(SgObject code, int self_pos, SgObject *frees)
     for (i = 0; i < freec; i++) {
       Sg_Printf(Sg_StandardErrorPort(), UC("%d:%p\n"), i, cl->frees[i]);
     }
-    /* Sg_VMPrintFrame(); */
 #endif
     cl->frees[self_pos-1] = cl;
   }

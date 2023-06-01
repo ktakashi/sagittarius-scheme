@@ -568,7 +568,7 @@ static inline void report_error(SgObject error, SgObject out)
     } 
   }
   if (SG_NULLP(stackTrace)) {
-    stackTrace = Sg_GetStackTraceOfVM(vm);
+    stackTrace = Sg_VMGetStackTraceOf(vm, SG_STACK_TRACE_SOURCE, 0);
   }
   Sg_Printf(buf,
 	    UC("Unhandled exception\n"
@@ -1666,15 +1666,31 @@ static SgObject collect_arguments(SgVM *vm, SgObject *fp, int argc, SgObject cl)
   return Sg_Acons(SG_INTERN("local"), h, r);
 }
 
-static SgObject get_stack_trace(SgVM *vm, SgContFrame *cont, SgObject cl, SgWord *pc,
-				SgObject *fp, int count)
+static SgObject get_source_info(SgObject cl, SgWord *pc)
+{
+  SgObject src = get_closure_source(cl, pc);
+  if (SG_FALSEP(src)) {
+    src = SG_CODE_BUILDER(SG_CLOSURE(cl)->code)->src;
+  } else {
+    /* need to be alist */
+    src = SG_LIST1(src);
+  }
+  return src;
+}
+
+static SgObject get_stack_trace(SgVM *vm, SgContFrame *cont, SgObject cl,
+				SgWord *pc, SgObject *fp, int count,
+				SgVMStackTraceInfo flags, int framesToSkip)
 {
   SgObject r = SG_NIL, cur = SG_NIL, *argp = fp;
-  int i;
+  int i, frames = 0;
 
-  for (i = 0;;) {
+  for (i = 0;; frames++) {
+    if (SG_PROCEDUREP(cl) && frames < framesToSkip) continue;
     if (SG_PROCEDUREP(cl)) {
-      SgObject args = collect_arguments(vm, argp, count, cl);
+      SgObject args = (flags & SG_STACK_TRACE_ARGUMENTS)
+	? collect_arguments(vm, argp, count, cl)
+	: SG_NIL;
       switch (SG_PROCEDURE_TYPE(cl)) {
       case SG_PROC_SUBR:
 	r = SG_LIST4(SG_INTERN("*cproc*"), cl, SG_NIL, args);
@@ -1682,13 +1698,9 @@ static SgObject get_stack_trace(SgVM *vm, SgContFrame *cont, SgObject cl, SgWord
       case SG_PROC_CLOSURE:
 	if (SG_CLOSURE(cl)->code
 	    && SG_CODE_BUILDERP(SG_CLOSURE(cl)->code)) {
-	  SgObject src = get_closure_source(cl, pc);
-	  if (SG_FALSEP(src)) {
-	    src = SG_CODE_BUILDER(SG_CLOSURE(cl)->code)->src;
-	  } else {
-	    /* need to be alist */
-	    src = SG_LIST1(src);
-	  }
+	  SgObject src = (flags & SG_STACK_TRACE_SOURCE)
+	    ? get_source_info(cl, pc)
+	    : SG_NIL;
 	  r = SG_LIST4(SG_INTERN("*proc*"), cl, src, args);
 	} else {
 	  r = SG_LIST4(SG_INTERN("*proc*"), cl, SG_NIL, args);
@@ -1734,7 +1746,8 @@ static SgObject get_stack_trace(SgVM *vm, SgContFrame *cont, SgObject cl, SgWord
   return cur;
 }
 
-SgObject Sg_GetStackTraceOfVM(SgVM *vm)
+SgObject Sg_VMGetStackTraceOf(SgVM *vm, SgVMStackTraceInfo flags,
+			      int framesToSkip)
 {
   SgContFrame *cont = CONT(vm);
   SgObject cl = CL(vm);
@@ -1745,21 +1758,8 @@ SgObject Sg_GetStackTraceOfVM(SgVM *vm)
     return SG_NIL;
   }
   /* fprintf(stderr, "stack = %p, sp = %p\n", vm->stack, SP(vm)); */
-  return get_stack_trace(vm, cont, cl, pc, FP(vm), SP(vm) - FP(vm));
-}
-
-/* returns alist of stack trace. */
-SgObject Sg_GetStackTrace()
-{
-  SgVM *vm = Sg_VM();
-  return Sg_GetStackTraceOfVM(vm);
-}
-
-SgObject Sg_GetStackTraceFromCont(SgVM *vm, SgContFrame *cont)
-{
-  /* arguments are located on top of cont frame, so the
-     first frame can't get arguments */
-  return get_stack_trace(vm, cont, cont->cl, cont->pc, NULL, -1);
+  return get_stack_trace(vm, cont, cl, pc, FP(vm), SP(vm) - FP(vm), flags,
+			 framesToSkip);
 }
 
 /*
@@ -1795,22 +1795,7 @@ static SgObject raise_cc(SgObject result, void **data)
 SgObject Sg_VMAttachStackTrace(SgVM *vm, SgObject condition, int skipTop)
 {
   if (Sg_CompoundConditionP(condition)) {
-    SgContFrame *save;
-    SgObject cl;
-    SgWord *pc;
-    save_cont(vm);
-    save = vm->cont;
-    cl = vm->cl;
-    pc = vm->pc;
-    if (skipTop) {
-      vm->cont = vm->cont->prev;
-      vm->cl = vm->cont->cl;
-      vm->pc = vm->cont->pc;
-    }
-    condition = Sg_AddStackTrace(condition, vm);
-    vm->cont = save;
-    vm->cl = cl;
-    vm->pc = pc;
+    condition = Sg_AddStackTrace(condition, vm, skipTop? 1: 0);
   }
   return condition;
 }

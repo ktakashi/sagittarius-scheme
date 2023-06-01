@@ -37,7 +37,8 @@
 (define-c-proc kernel-managed-threads () Sg_KernelManagedThreads)
 (define-c-proc kernel-managed-thread-count () ::<fixnum> Sg_KernelManagedCount)
 
-(define-c-proc thread-backtrace (vm::<thread>) Sg_GetStackTraceOfVM)
+(define-c-proc thread-backtrace (vm::<thread>)
+  (result (Sg_VMGetStackTraceOf vm SG_STACK_TRACE_ALL 0)))
 
 (define-c-proc thread-current-procedure (vm::<thread>)
   (result (-> vm cl)))

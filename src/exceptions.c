@@ -799,16 +799,20 @@ SgObject Sg_MakeIODecoding(SgObject port)
   return c;
 }
 
-static SgObject make_stack_trace(SgObject cause, SgVM *vm)
+static SgObject make_stack_trace(SgObject cause, SgVM *vm, int framesToSkip)
 {
   SgObject st = stack_trace_allocate(SG_CLASS_STACK_TRACE_CONDITION, SG_NIL);
   
   SG_STACK_TRACE_CONDITION(st)->cause = cause;
-  SG_STACK_TRACE_CONDITION(st)->trace = Sg_GetStackTraceOfVM(vm);
+  SG_STACK_TRACE_CONDITION(st)->trace =
+    /* To avoid holding large object in the condition, we don't collect
+       arguments, scheme objects located on argument frame, of the stack
+       trace. */
+    Sg_VMGetStackTraceOf(vm, SG_STACK_TRACE_SOURCE, framesToSkip);
   return st;
 }
 
-SgObject Sg_AddStackTrace(SgObject e, SgVM *vm)
+SgObject Sg_AddStackTrace(SgObject e, SgVM *vm, int framesToSkip)
 {
   if (Sg_CompoundConditionP(e)) {
     SgObject cause = SG_FALSE;
@@ -824,7 +828,7 @@ SgObject Sg_AddStackTrace(SgObject e, SgVM *vm)
 	SG_APPEND1(h, t, SG_CAR(cp));
       }
     }
-    SG_APPEND1(h, t, make_stack_trace(cause, vm));
+    SG_APPEND1(h, t, make_stack_trace(cause, vm, framesToSkip));
     return Sg_Condition(h);
   }
   return e;
