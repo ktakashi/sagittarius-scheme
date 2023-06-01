@@ -444,7 +444,7 @@ SgObject Sg_VMValues5(SgVM *vm, SgObject v1,
 
 static const int MAX_STACK_TRACE = 20;
 
-void Sg_FormatStackTrace(SgObject stackTrace, SgObject out)
+static void format_stack_trace(SgObject stackTrace, SgObject out)
 {
   SgObject cur;
   SgStringPort s;
@@ -505,6 +505,12 @@ void Sg_FormatStackTrace(SgObject stackTrace, SgObject out)
   Sg_Write(Sg_GetStringFromStringPort(&s), out, SG_WRITE_DISPLAY);
 }
 
+void Sg_FormatStackTrace(SgObject stackTrace, SgObject out)
+{
+  format_stack_trace(stackTrace, out);
+}
+
+
 /* we need to check pc-1(for *CALL, or os) or pc-2(for GREF_*CALL) */
 static SgObject get_closure_source(SgObject cl, SgWord *pc) 
 {
@@ -536,133 +542,33 @@ static SgObject get_closure_source(SgObject cl, SgWord *pc)
   return src;
 }
 
-static void format_stack_trace(SgVM *vm, SgObject buf, SgContFrame *cur, 
-			       SgContFrame *prev, SgObject cl, SgWord *pc)
-{
-  int i;
-  SgContFrame *shared = NULL;
-  
-  if (prev) {
-    SgContFrame *tmp = cur;
-    while (tmp != tmp->prev && tmp != tmp->prev->prev) {
-      SgContFrame *sharedTmp  = prev;
-      while (sharedTmp != sharedTmp->prev
-	     && sharedTmp != sharedTmp->prev->prev) {
-	if (tmp == sharedTmp) {
-	  shared = sharedTmp;
-	  break;
-	}
-	sharedTmp = sharedTmp->prev;
-      }
-      if (shared) break;
-      tmp = tmp->prev;
-    }
-  }
-  
-  Sg_PutuzUnsafe(buf, UC("stack trace:\n"));
-  for (i = 1;;) {
-    if (i > MAX_STACK_TRACE) {
-      Sg_PutuzUnsafe(buf, UC("      ... (more stack dump truncated)\n"));
-      return;
-    }
-
-    if (SG_SUBRP(cl)) {
-      /* useless to show */
-      if (SG_FALSEP(SG_PROCEDURE_NAME(cl))) goto next_frame;
-      Sg_Printf(buf, UC("  [%d] %A\n"), i, SG_PROCEDURE_NAME(cl));
-    } else if (SG_CLOSUREP(cl)) {
-      SgObject name = SG_PROCEDURE_NAME(cl);
-      if (SG_CLOSURE(cl)->code
-	  && SG_CODE_BUILDERP(SG_CLOSURE(cl)->code)) {
-	SgObject src = get_closure_source(cl, pc), info = SG_FALSE;;
-
-	if (SG_FALSEP(src)) goto no_src_info;
-	src = SG_CDR(src);
-	if (SG_PAIRP(src)) {
-	  info = Sg_GetPairAnnotation(src, SG_INTERN("source-info"));
-	}
-	if (SG_FALSEP(info) || !info) {
-	  Sg_PrintfShared(buf, UC("  [%d] %A\n"
-				  "    src: %#50S\n"),
-			  i, name,
-			  Sg_UnwrapSyntax(src));
-	} else {
-	  Sg_PrintfShared(buf,
-			  UC("  [%d] %A\n"
-			     "    src: %#50S\n"
-			     "    %S:%A\n"),
-			  i, name, Sg_UnwrapSyntax(src),
-			  SG_CAR(info), SG_CDR(info));
-	}
-      } else {
-      no_src_info:
-	/* Should we show address and pointer? */
-	if (SG_FALSEP(name)) goto next_frame; /* useless to show */
-	Sg_Printf(buf, UC("  [%d] %A\n"), i, name);
-      }
-    }
-    i++;
-  next_frame:
-    /* next frame */
-    if ((!IN_STACK_P((SgObject *)cur, vm) || 
-	 (uintptr_t)cur > (uintptr_t)vm->stack) &&
-	/* already printed */
-	cur != shared) {
-      cl = cur->cl;
-      pc = cur->pc;
-      cur = cur->prev;
-
-      if (!SG_PTRP(cur)) return;
-      /* invalid cur frame */
-      if (IN_STACK_P((SgObject *)cur, vm) && 
-	  ((uintptr_t)cur < (uintptr_t)vm->stack ||
-	   (uintptr_t)vm->stackEnd < (uintptr_t)cur)) {
-	break;
-      }
-      if (!cl) return;
-      if (!SG_PROCEDUREP(cl)) return;
-    } else {
-      return;
-    }
-  }
-}
-
-
 static inline void report_error(SgObject error, SgObject out)
 {
   SgVM *vm = Sg_VM();
-  SgObject next = SG_FALSE, cl;
+  SgObject next = SG_FALSE;
   SgPort *buf = SG_PORT(Sg_MakeStringOutputPort(-1));
-  SgContFrame *stackTrace = NULL;
+  SgObject stackTrace = SG_NIL;
   int attached = FALSE;
-  SgWord *pc;
 
   if (Sg_ConditionP(error)) {
     if (Sg_CompoundConditionP(error)) {
       SgObject cp;
       SG_FOR_EACH(cp, Sg_CompoundConditionComponent(error)) {
 	if (SG_STACK_TRACE_CONDITION_P(SG_CAR(cp))) {
-	  stackTrace 
-	    = (SgContFrame *)SG_STACK_TRACE_CONDITION(SG_CAR(cp))->trace;
+	  stackTrace = SG_STACK_TRACE_CONDITION(SG_CAR(cp))->trace;
 	  attached = TRUE;
 	  next = SG_STACK_TRACE_CONDITION(SG_CAR(cp))->cause;
-	  cl = SG_STACK_TRACE_CONDITION(SG_CAR(cp))->cl;
-	  pc = SG_STACK_TRACE_CONDITION(SG_CAR(cp))->pc;
 	  break;
 	}
       }
     } else if (SG_STACK_TRACE_CONDITION_P(error)) {
-      stackTrace = (SgContFrame *)SG_STACK_TRACE_CONDITION(error)->trace;
+      stackTrace = SG_STACK_TRACE_CONDITION(error)->trace;
       attached = TRUE;
       next = SG_STACK_TRACE_CONDITION(error)->cause;
-      cl = SG_STACK_TRACE_CONDITION(error)->cl;
-      pc = SG_STACK_TRACE_CONDITION(error)->pc;
     } 
   }
-  if (!stackTrace) {
-    stackTrace = CONT(vm);
-    cl = CL(vm);
-    pc = PC(vm);
+  if (SG_NULLP(stackTrace)) {
+    stackTrace = Sg_GetStackTraceOfVM(vm);
   }
   Sg_Printf(buf,
 	    UC("Unhandled exception\n"
@@ -671,18 +577,12 @@ static inline void report_error(SgObject error, SgObject out)
      won't be shown and that makes extremly difficult to debug multi thread
      execution. so as long as stack trace is attached on the condition, then
      just show it.*/
-  if ((attached || vm->state == RUNNING) && cl && !SG_NULLP(stackTrace)) {
-    SgContFrame *prevFrame = NULL;
+  if ((attached || vm->state == RUNNING) && !SG_NULLP(stackTrace)) {
     while (1) {
-      format_stack_trace(vm, buf, stackTrace, prevFrame, cl, pc);
+      format_stack_trace(stackTrace, buf);
       if (SG_STACK_TRACE_CONDITION_P(next)) {
-	prevFrame = stackTrace;
-	stackTrace = (SgContFrame *)SG_STACK_TRACE_CONDITION(next)->trace;
+	stackTrace = SG_STACK_TRACE_CONDITION(next)->trace;
 	next = SG_STACK_TRACE_CONDITION(next)->cause;
-	if (SG_STACK_TRACE_CONDITION_P(next)) {
-	  cl = SG_STACK_TRACE_CONDITION(next)->cl;
-	  pc = SG_STACK_TRACE_CONDITION(next)->pc;
-	}
 	Sg_PutuzUnsafe(buf, UC("Nested "));
       } else {
 	break;

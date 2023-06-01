@@ -673,8 +673,7 @@ static SgObject st_cause(SgStackTraceCondition *c)
 }
 static SgObject st_trace(SgStackTraceCondition *c)
 {
-  /* it's a bit inefficient but this is not used anywhere anyway. */
-  return Sg_GetStackTraceFromCont(c->thread, (SgContFrame *)c->trace);
+  return c->trace;
 }
 static SgSlotAccessor st_slots[] = {
   SG_CLASS_SLOT_SPEC("cause",  0, st_cause, NULL),
@@ -805,10 +804,7 @@ static SgObject make_stack_trace(SgObject cause, SgVM *vm)
   SgObject st = stack_trace_allocate(SG_CLASS_STACK_TRACE_CONDITION, SG_NIL);
   
   SG_STACK_TRACE_CONDITION(st)->cause = cause;
-  SG_STACK_TRACE_CONDITION(st)->trace = vm->cont;
-  SG_STACK_TRACE_CONDITION(st)->cl = vm->cl;
-  SG_STACK_TRACE_CONDITION(st)->pc = vm->pc;
-  SG_STACK_TRACE_CONDITION(st)->thread = vm;
+  SG_STACK_TRACE_CONDITION(st)->trace = Sg_GetStackTraceOfVM(vm);
   return st;
 }
 
@@ -828,13 +824,8 @@ SgObject Sg_AddStackTrace(SgObject e, SgVM *vm)
 	SG_APPEND1(h, t, SG_CAR(cp));
       }
     }
-    if (SG_FALSEP(cause) ||
-	!SG_EQ(vm->cont, SG_STACK_TRACE_CONDITION(cause)->trace)) {
-      SG_APPEND1(h, t, make_stack_trace(cause, vm));
-      return Sg_Condition(h);
-    }
-    /* nothing was assed, so just ignore */
-    return e;
+    SG_APPEND1(h, t, make_stack_trace(cause, vm));
+    return Sg_Condition(h);
   }
   return e;
 }
