@@ -83,21 +83,7 @@
   (define header-handler (http:request-header-handler request))
   (define context (http-connection-context-data connection))
   (define in (http-connection-input connection))
-  (define (check-data-presence status headers)
-    (cond ((rfc5322-header-ref headers "content-length") =>
-	   (lambda (len) (not (zero? (string->number len)))))
-	((rfc5322-header-ref headers "transfer-encoding") =>
-	 (lambda (v)
-	   (cond ((string-contains v "chunked"))
-		 (else 'unknown))))
-	;; no body, so it's okay
-	((or (eq? 'HEAD (http:request-method request))
-	     ;; 204 (no content) 304 (not modified)
-	     (and status (memq (string->number status) '(204 304))))
-	 #f)
-	;; very bad behaving server...
-	(else 'unknown)))
-  
+    
   (let*-values (((status-line) (read-one-line in))
 		((code reason) (parse-status-line status-line)))
     (let ((headers (rfc5322-read-headers in)))
@@ -110,7 +96,13 @@
 				  "[Response header] ~a: ~a"
 				  (car h) v)) (cdr h))) headers))
       (http1-connection-context-state-set! context (cons code headers))
-      (header-handler code headers (check-data-presence code headers)))))
+      ;; If the server sends header and body in one go, then select
+      ;; may not return for some reason (I was expecting if the socket
+      ;; buffer contains data to read, it'd return, but that's not the
+      ;; case at least on macOS). To avoid infinite wait, we return
+      ;; 'unknown here so that header and body will be read at the same
+      ;; time.
+      (header-handler code headers 'unknown))))
 
 (define (http1-receive-data connection request)
   (define data-handler (http:request-data-handler request))

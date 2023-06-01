@@ -457,10 +457,14 @@
 	     (lambda (e)
 	       (let-values (((s expires timeout on-read) (apply values e)))
 		 (if (and timeout (time>? now expires))
-		     (let ((e (condition (make-socket-read-timeout-error sock)
-					 (make-who-condition 'socket-selector)
-					 (make-message-condition "Read timeout")
-					 (make-irritants-condition timeout))))
+		     (let ((e (condition 
+			       (make-socket-read-timeout-error sock)
+			       (make-who-condition 'socket-selector)
+			       (make-message-condition
+				(format "Read timeout: node: ~a, service: ~a"
+					(socket-node sock)
+					(socket-service sock)))
+			       (make-irritants-condition timeout))))
 		       (unmanage-socket! sock)
 		       (on-read sock timeout e) ;; let the caller know
 		       #f)

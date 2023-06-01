@@ -194,20 +194,19 @@
   (define ((release/fail conn) e)
     (release-http-connection client conn #f)
     (failure e))
-  (guard (e (else (failure e)))
-    (lease-http-connection client request
-     (lambda (conn)
-       (executor-submit! (http:client-executor client)
-	 (lambda ()
-	   (let ((fail (release/fail conn)))
-	     (guard (e (else (fail e)))
-	       (let ((response-handler (send-request client conn request)))
-		 (http-connection-manager-register-on-readable
-		  (http:client-connection-manager client) conn
-		  (response-handler client success fail)
-		  fail
-		  (http:request-timeout request))))))))
-     failure)))
+  (lease-http-connection client request
+   (lambda (conn)
+     (executor-submit! (http:client-executor client)
+      (lambda ()
+	(let ((fail (release/fail conn)))
+	  (guard (e (else (fail e)))
+	    (let ((response-handler (send-request client conn request)))
+	      (http-connection-manager-register-on-readable
+	       (http:client-connection-manager client) conn
+	       (response-handler client success fail)
+	       fail
+	       (http:request-timeout request))))))))
+   failure))
 
 (define (default-executor? client)
   (eq? (http:client-executor client) (force *http-client:default-executor*)))

@@ -139,8 +139,9 @@
   (define executor (http-connection-lease-option-executor option))
   (executor-submit! executor
    (lambda ()
-     (guard (e (else (failure e)))
-       (success (internal-lease-connection manager request option))))))
+     (cond ((guard (e (else (failure e) #f))
+	      (internal-lease-connection manager request option))
+	    => success)))))
 
 (define (http-connection-manager-release-connection manager connection reuse?)
   ((connection-manager-release manager) manager connection reuse?))
