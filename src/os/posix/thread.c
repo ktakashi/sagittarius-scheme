@@ -31,13 +31,14 @@
 #define LIBSAGITTARIUS_BODY
 
 #include <sagittarius/config.h>
-/* to make pthread redirect happen */
-#include "../../gc-incl.inc"
+
 #include <pthread.h>
 #include <sys/time.h>
 #include <signal.h>
 #include <string.h>
 #include <fcntl.h>
+/* to make pthread redirect happen */
+#include "../../gc-incl.inc"
 
 #include <sagittarius/private/thread.h>
 #include <sagittarius/private/core.h>
@@ -95,7 +96,7 @@ static void exit_handler(int signum)
 static void* thread_entry(void *params)
 {
   SgThreadEntryFunc *entry = (SgThreadEntryFunc *)((void **)params)[0];
-  void *param = ((void **)params)[1];
+  void *param = ((void **)params)[1], *r;
   struct sigaction        sa;
   /* we use SIGALRM to cancel select */
   memset(&sa, 0, sizeof(sa));
@@ -119,7 +120,7 @@ static void* thread_entry(void *params)
 #if 0
   sigaction(SIGINT,  &sa, NULL );
 #endif
-
+  ((void **)params)[1] = NULL;
   return entry(param);
 }
 

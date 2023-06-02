@@ -62,11 +62,6 @@
   (make-http1-connection socket socket-option node service))
 
 (define (http1-send-header connection request)
-  ;; 1. ensure connection (some bad server may not allow us to reuse
-  ;;    the connection (i.e. no content-length or no
-  ;;    transfer-encoding, or keep-alive closed specified)
-  (http-connection-open! connection)
-  ;; 2. send request
   (send-header! connection request))
 
 (define (http1-send-data connection request)

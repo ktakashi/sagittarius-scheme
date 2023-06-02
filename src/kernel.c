@@ -33,6 +33,8 @@
 #include "sagittarius/private/writer.h"
 #include "sagittarius/private/vm.h"
 
+#include "gc-incl.inc"
+
 static void kernel_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
   Sg_Printf(port, UC("#<kernel 0x%x threads=%d>"), obj,
@@ -96,6 +98,7 @@ static void* wrap(void *data)
   /* In theory, we should use SG_UNWIND_PROTECT here, but I'm lazy... */
   void *r = func(vm);
   remove_entry(SG_KERNEL(vm->kernel), vm);
+  d[0] = d[1] = vm = NULL;
   return r;
 }
 

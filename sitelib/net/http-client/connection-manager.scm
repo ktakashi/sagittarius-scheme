@@ -508,7 +508,8 @@
     (let-values (((removed? v)
 		  (shared-queue-remp! sq (lambda (e) (eq? (pec e) conn)))))
       (and removed? v)))
-
+  (define (release conn)
+    (http-connection-manager-release-connection delegate conn #f))
   (let* ((route (->route connection))
 	 (leased (hashtable-ref leasing route #f)))
     ;; must not be #f (if so it's a bug...)
@@ -524,17 +525,13 @@
 		      ;; we need to check it to avoid dead lock here.
 		      (if (or (shared-queue-overflows? avail 1)
 			      (pooling-entry-expired? entry))
-			  (http-connection-manager-release-connection
-			   delegate (pooling-entry-connection entry) #f)
+			  (release (pooling-entry-connection entry))
 			  (shared-queue-put! avail entry))
 		      (mutex-unlock! lock)))
 		   (else
-		    (http-connection-manager-release-connection
-		     delegate (pooling-entry-connection entry) #f)))
+		    (release (pooling-entry-connection entry))))
 	     (notifier-send-notification! notifier)))
-	  (else
-	   (http-connection-manager-release-connection
-	    delegate connection #f)))))
+	  (else (release connection)))))
 
 (define (get-route request)
   (define uri (http:request-uri request))

@@ -542,11 +542,25 @@ static SgObject get_closure_source(SgObject cl, SgWord *pc)
   return src;
 }
 
+static void* search_different_cont(SgVM *vm, SgObject c, SgContFrame *cont)
+{
+  SgContFrame *currCont = cont->prev;
+  SgContFrame *nextCont = (SgContFrame *)SG_STACK_TRACE_CONDITION(c)->cont;
+
+  while (!IN_STACK_P((SgObject *)currCont, vm)) {
+    /* Check if current stack frame contains next stack frame */
+    if (nextCont == currCont) return NULL;
+    currCont = currCont->prev;
+  }
+  return nextCont;
+}
+
 static inline void report_error(SgObject error, SgObject out)
 {
   SgVM *vm = Sg_VM();
   SgObject next = SG_FALSE;
   SgPort *buf = SG_PORT(Sg_MakeStringOutputPort(-1));
+  SgContFrame *cont = NULL;
   SgObject stackTrace = SG_NIL;
   int attached = FALSE;
 
@@ -558,6 +572,7 @@ static inline void report_error(SgObject error, SgObject out)
 	  stackTrace = SG_STACK_TRACE_CONDITION(SG_CAR(cp))->trace;
 	  attached = TRUE;
 	  next = SG_STACK_TRACE_CONDITION(SG_CAR(cp))->cause;
+	  cont = (SgContFrame *)SG_STACK_TRACE_CONDITION(SG_CAR(cp))->cont;
 	  break;
 	}
       }
@@ -565,6 +580,7 @@ static inline void report_error(SgObject error, SgObject out)
       stackTrace = SG_STACK_TRACE_CONDITION(error)->trace;
       attached = TRUE;
       next = SG_STACK_TRACE_CONDITION(error)->cause;
+      cont = (SgContFrame *)SG_STACK_TRACE_CONDITION(error)->cont;
     } 
   }
   if (SG_NULLP(stackTrace)) {
@@ -581,6 +597,8 @@ static inline void report_error(SgObject error, SgObject out)
     while (1) {
       format_stack_trace(stackTrace, buf);
       if (SG_STACK_TRACE_CONDITION_P(next)) {
+	cont = search_different_cont(vm, next, cont);
+	if (!cont) break;
 	stackTrace = SG_STACK_TRACE_CONDITION(next)->trace;
 	next = SG_STACK_TRACE_CONDITION(next)->cause;
 	Sg_PutuzUnsafe(buf, UC("Nested "));
@@ -1686,7 +1704,7 @@ static SgObject get_stack_trace(SgVM *vm, SgContFrame *cont, SgObject cl,
   int i, frames = 0;
 
   for (i = 0;; frames++) {
-    if (SG_PROCEDUREP(cl) && frames < framesToSkip) continue;
+    if (SG_PROCEDUREP(cl) && frames < framesToSkip) goto next;
     if (SG_PROCEDUREP(cl)) {
       SgObject args = (flags & SG_STACK_TRACE_ARGUMENTS)
 	? collect_arguments(vm, argp, count, cl)
@@ -1715,6 +1733,7 @@ static SgObject get_stack_trace(SgVM *vm, SgContFrame *cont, SgObject cl,
     }
 
     cur = Sg_Acons(SG_MAKE_INT(i), r, cur);
+  next:
     if (!IN_STACK_P((SgObject *)cont, vm) ||
 	(uintptr_t)cont > (uintptr_t)vm->stack) {
 
@@ -1795,6 +1814,7 @@ static SgObject raise_cc(SgObject result, void **data)
 SgObject Sg_VMAttachStackTrace(SgVM *vm, SgObject condition, int skipTop)
 {
   if (Sg_CompoundConditionP(condition)) {
+    save_cont(vm);
     condition = Sg_AddStackTrace(condition, vm, skipTop? 1: 0);
   }
   return condition;

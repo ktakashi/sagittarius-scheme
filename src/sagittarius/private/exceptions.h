@@ -284,6 +284,7 @@ typedef struct SgStackTraceConditionRec
   SG_INSTANCE_HEADER;
   SgObject cause;		/* #f or &stack-trace */
   SgObject trace;		/* back trace */
+  void    *cont;		/* marker */
 } SgStackTraceCondition;
 #define SG_STACK_TRACE_CONDITION(o)  ((SgStackTraceCondition *)o)
 #define SG_STACK_TRACE_CONDITION_P(o) SG_ISA(o, SG_CLASS_STACK_TRACE_CONDITION)

@@ -169,7 +169,8 @@
 		       (when cleanup (cleanup future))
 		       (future-canceller-set! future #f)
 		       (future-state-set! future 'finished)
-		       (shared-box-put! q r))))))))))
+		       (shared-box-put! q r)))
+		   (set! thunk #f))))))))
   
   (define (make-piped-future)
     (let* ((box (make-shared-box))
@@ -253,6 +254,7 @@
 	     (let-values (((v timeout?) (apply shared-box-get! r opt)))
 	       (cond (timeout? v)
 		     (else
+		      (%sb-value-set! r #f)
 		      (future-result-set! future v)
 		      (finish (future-result future))))))
 	    ((and (not (eq? state 'done)) (procedure? r))
