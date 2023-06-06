@@ -96,7 +96,7 @@ static void exit_handler(int signum)
 static void* thread_entry(void *params)
 {
   SgThreadEntryFunc *entry = (SgThreadEntryFunc *)((void **)params)[0];
-  void *param = ((void **)params)[1], *r;
+  void *param = ((void **)params)[1];
   struct sigaction        sa;
   /* we use SIGALRM to cancel select */
   memset(&sa, 0, sizeof(sa));
