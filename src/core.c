@@ -131,7 +131,7 @@ void Sg_GCSetPrintWarning(int onP)
 }
 
 #endif
-
+				 
 void Sg_Init()
 {
   SgObject nullsym, coreBase, compsym, sgsym;

@@ -246,8 +246,8 @@ SgObject Sg_StringIntern(SgString *s)
   Sg_LockMutex(&smutex);
   r = Sg_HashTableRef(stable, SG_OBJ(s), SG_FALSE);
   if (SG_FALSEP(r)) {
-    SG_STRING(r)->immutablep = TRUE;
-    r = Sg_HashTableSet(stable, SG_OBJ(r), SG_OBJ(r),
+    SG_STRING(s)->immutablep = TRUE;
+    r = Sg_HashTableSet(stable, SG_OBJ(s), SG_OBJ(s),
 			SG_HASH_NO_OVERWRITE);
   }
   Sg_UnlockMutex(&smutex);
