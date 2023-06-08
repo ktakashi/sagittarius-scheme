@@ -204,6 +204,23 @@ scripts.
 The pooling connection manager pools the created connection and try to
 reuse if possible.
 
+Below example shows how to create a HTTP client with pooling connection
+manager.
+
+```scheme
+(define pool-config
+  (http-pooling-connection-config-builder
+    (connection-timeout 1000)     ;; 1 sec, connection timeout
+    (max-connection-per-route 20) ;; pooling connection number per route
+    (read-timeout 3000)           ;; 3 sec, read timeout
+    (dns-timeout 1000)            ;; 1 sec, DNS lookup timeout
+    (time-to-live 120)            ;; 120 sec, expiration time of a connection
+	))
+(define http-client
+  (http:client-builder
+    (connection-manager (make-http-pooling-connection-manager pool-config))))
+```
+
 
 ###### [!Function] `make-http-default-connection-manager` 
 
@@ -252,6 +269,9 @@ Creates an ephemeral connection manager.
 
 Returns #t if the _obj_ is an instance of
 `http-pooling-connection-config`, otherwise #f.
+
+The `http-pooling-connection-config` record is a child record of
+`http-connection-config`.
 
 ###### [!Macro] `http-pooling-connection-config-builder`  _field_ _..._
 
@@ -313,12 +333,12 @@ key providers.
 ``````````scheme
 (import (rnrs)
         (net http-client)
-	(rfc base64)
-	(security keystore))
+        (rfc base64)
+        (security keystore))
 (define (host-a p)
   (define node (socket-parameter-socket-node p))
   (cond ((string=? node "host-a.com") "host-a-key-alias")
-	(else #f)))
+        (else #f)))
 (define (host-b p)
   (define node (socket-parameter-socket-node p))
   (and (string-suffix? ".host-b.com" node) "host-b-key-alias"))
