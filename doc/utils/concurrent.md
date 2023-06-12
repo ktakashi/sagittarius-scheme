@@ -354,9 +354,8 @@ Retrieves the rejected future and executor, respectively.
 
 #### [§4] Fork join executor
 
-Fork join executor is an executor which simply creats a thread per future.
-It's almost the same as `<simple-future>`.
-
+Fork join executor is an executor which uses fork join pool as its underlying
+thread pool.
 
 ###### [!Record] `<fork-join-executor>` 
 
@@ -368,24 +367,32 @@ Record type of fork join executor. This record type inherits
 Returns #t if given _obj_ is a fork join executor, otherwise #f.
 
 ###### [!Function] `make-fork-join-executor` 
+###### [!Function] `make-fork-join-executor` _parallelism_
+###### [!Function] `make-fork-join-executor` _parallelism_ _parameter_
 
 Creates a fork join executor. 
 
+If the second form is used, then it uses the given _parallelism_ as its
+parallelism.
+
+If the third form is used, then the _parameter_ must be
+`fork-join-pool-parameter` described in below section and the
+procedure passes the given _parameter_ to fork join thread pool
+creation.
+
 ###### [!Function] `fork-join-executor-available?`  _fork-join-executor_
 
-Returns #t.
+Returns `#t`, if the underlying thread pool is not shutdown, otherwise `#f`.
 
 ###### [!Function] `fork-join-executor-execute-future!`  _fork-join-executor_ _future_
 
 Executes the given _future_ on _fork-join-executor_.
 
-NOTE: the executor doesn't manage anything so the future is actually not
-related to the executor.
-
 
 ###### [!Function] `fork-join-executor-shutdown!`  _fork-join-executor_
 
-Sets executor's state `shutdown`.
+Shutdowns the given _fork-join-executor_. The procedure also shutdowns the
+underlying fork join pool.
 
 #### [§4] Executor future
 
@@ -415,31 +422,31 @@ thread pool APIs.
 Creating a thread is not cheap on Sagittarius. If users want to reuse threads,
 then this library can be used.
 
-``````````scheme
+```scheme
 (import (rnrs) (util concurrent))
 
 ;; pooling 5 thread
 (define thread-pool (make-thread-pool 5))
 
 (for-each (lambda (i) (thread-pool-push-task! thread-pool (lambda () (* i i))))
-	  '(1 2 3 4 5 6 7 8 9 10))
+          '(1 2 3 4 5 6 7 8 9 10))
 
 ;; waits until all tasks are done
 (thread-pool-wait-all! thread-pool)
 
 ;; release thread-pool
 (thread-pool-release! thread-pool)
-``````````
+```
 
-###### [!Record] `<thread-pool>` 
+###### [!Record type] `<thread-pool>`
 
 Record type of thread pool.
 
-###### [!Function] `thread-pool?`  _obj_
+###### [!Function] `thread-pool?` _obj_
 
-Returns #t if given _obj_ is a thread-pool, otherwise #f.
+Returns `#t` if given _obj_ is a thread-pool, otherwise `#f`.
 
-###### [!Function] `make-thread-pool`  _thread-count_ _:optional_ _error-handler_
+###### [!Function] `make-thread-pool` _thread-count_ :optional _error-handler_
 
 Creates a thread pool with _thread-count_ of threads. 
 
@@ -448,24 +455,24 @@ procedure which accept one argument, then the procedure is called
 when the pushed task raised an error.
 
 
-###### [!Function] `thread-pool-size`  _thread-pool_
+###### [!Function] `thread-pool-size` _thread-pool_
 
 Returns number of threads on the given _thread-pool_.
 
-###### [!Function] `thread-pool-push-task!`  _thread-pool_ _thunk_
+###### [!Function] `thread-pool-push-task!` _thread-pool_ _thunk_
 
 Push the given _thunk_ to least used _thread-pool_'s thread.
 And returns the id of the pushed thread. This id can be used to retrive
 the actual thread calling `thread-pool-thread` procedure.
 
 
-###### [!Function] `thread-pool-wait-all!`  _thread-pool_
+###### [!Function] `thread-pool-wait-all!` _thread-pool_
 
 Waits all the tasks pushed into the given _thread-pool_.
 
 The return value of the tasks are discarded.
 
-###### [!Function] `thread-pool-release!`  _thread-pool_ _:optional_ _how_
+###### [!Function] `thread-pool-release!` _thread-pool_ :optional _how_
 
 Joins all the thread on the given _thread-pool_.
 
@@ -475,7 +482,7 @@ terminates the thread instead of joining.
 NOTE: terminating a thread is very dangerous operation, so don't use casually.
 
 
-###### [!Function] `thread-pool-thread`  _thread-pool_ _id_
+###### [!Function] `thread-pool-thread` _thread-pool_ _id_
 
 Retrieves the pooled thread associated with given _id_ from
 given _thread-pool_.
@@ -515,6 +522,73 @@ NTOE: this is a dangerous operation. Don't use it casually.
 Returns #t if the given _id_ of thread in the _thread-pool_ is 
 running. Otherwise #f.
 
+
+###### [!Library] `(util concurrent fork-join-pool)`
+
+A sub library of `(util concurrent)`. This library provides
+fork join pool APIs.
+
+On Sagittarius, fork join pool means work stealing pool. The pool
+takes core number of threads and it may creates ephemeral threads
+until it reaches the max thread number.
+
+CAVEAT: The implementation increases threads rather quick, which
+means it reaches the max thread number very easily if the thread
+pool receives large number of tasks. This behaviour may change
+in the near future not to make threads too soon.
+
+###### [!Record type] `<fork-join-pool>`
+
+Record type of fork join pool.
+
+###### [!Function] `fork-join-pool?` _obj_
+
+Returns `#t` if the given _obj_ is a fork-join-pool, otherwise `#f`.
+
+###### [!Function] `make-fork-join-pool` _core-threads_ :optional _parameter_
+
+Creates a fork join pool with core thread count of _core-threads_.
+
+If the optional argument _parameter_ is given, then it must be a
+fork join pool parameter. The _parameter_ controls creating fork
+join pool.
+
+###### [!Function] `fork-join-pool-thread-count` _fork-join-pool_
+
+Returns number of threads currently the given _fork-join-pool_ is having.
+
+###### [!Function] `fork-join-pool-max-threads` _fork-join-pool_
+
+Returns max thread number of the given _fork-join-pool_.
+
+###### [!Function] `fork-join-pool-push-task!` _fork-join-pool_ _thunk_
+
+Pushes the given _thunk_ into the _fork-join-pool_. The _thunk_ will be
+executed on the _fork-join-pool_ when there's an available thread.
+
+###### [!Function] `fork-join-pool-wait-all!` _fork-join-pool_ :optional _timeout_
+
+Waits _fork-join-pool_ to finish all tasks. The procedure blocks the
+calling thread and may not return if there's a task which hanged.
+
+Optional argument _timeout_ specifies the timeout. It can be either
+an integer represents milliseconds or absolute time.
+
+The procedure returns `#t` if all the core threads are freed.
+otherwise `#f`. (e.g. timeout)
+
+NOTE: At this moment, this procedure doesn't guarantee the tasks are finished,
+if it's running on a spawned thread.
+
+###### [!Function] `fork-join-pool-shutdown!` _fork-join-pool_
+
+Shutdowns the given _fork-join-pool_.  
+This procedure discards all the threads. After this procedure is called,
+then the given _fork-join-pool_ is no longer available.
+
+###### [!Function] `fork-join-pool-available?` _fork-join-pool_
+
+Returns `#t` if the given _fork-join-pool_ is available.
 
 ### [§3] Shared queues
 
@@ -761,14 +835,39 @@ If the second form is used, then the execution will be done by the
 given _executor_ otherwise `*completable-future:default-executor*`will be used.
 
 
-###### [!Function] `future-map`  _proc_ _future_
+###### [!Function] `future-map`  _proc_ _future_ _..._
 
-Apply the procedure _proc_ to the result of the _future_.
-And return the given _future_.
+_proc_ must accept the same number of arguments as the given *future*s
+
+Apply the procedure _proc_ to the result of the *future*s.
+And return a newly created future.
 
 These procedures return immediately and the computation of
 _proc_ will be done in some future.
 
+
+###### [!Function] `future-map/executor` _executor_ _proc_ _future_ _..._
+
+The same as `future-map`, the only diffrence is that it takes
+_exeuctor_ as its execution environment.
+
+###### [!Function] `future-flatmap`  _proc_ _future_ _..._
+
+_proc_ must accept the same number of arguments as the given *future*s,
+and return a future.
+
+Apply the procedure _proc_ to the result of the *future*s.
+And return a newly created future which returns the result of
+the future returned by the _proc_.
+
+These procedures return immediately and the computation of
+_proc_ will be done in some future.
+
+
+###### [!Function] `future-flatmap/executor` _executor_  _proc_ _future_ _..._
+
+The same as `future-flatmap`, the only diffrence is that it takes
+_exeuctor_ as its execution environment.
 
 ###### [!Function] `future-guard`  _proc_ _future_
 
