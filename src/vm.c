@@ -550,6 +550,8 @@ static void* search_different_cont(SgVM *vm, SgObject c, SgContFrame *cont)
   while (!IN_STACK_P((SgObject *)currCont, vm)) {
     /* Check if current stack frame contains next stack frame */
     if (nextCont == currCont) return NULL;
+    /* cont frame loops when it's on the heap, then this is the bottom */
+    if (currCont == currCont->prev->prev) return nextCont;
     currCont = currCont->prev;
   }
   return nextCont;
