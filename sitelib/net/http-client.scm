@@ -63,6 +63,9 @@
 	    make-http-logging-connection-manager
 	    http-logging-connection-manager?
 
+	    http-connection-config?
+	    http-connection-config-builder
+	    
 	    ;; delegate connection manager provider
 	    default-delegate-connection-manager-provider
 	    make-logging-delegate-connection-provider
