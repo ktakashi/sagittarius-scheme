@@ -250,12 +250,10 @@
 
 (define ((response-handler header-state retriever request)
 	 client success failure)
-  (define state 'waiting-for-header)
   (lambda (conn retry)
     (define executor (http:client-executor client))
     (define (receive-data conn)
       (let ((reuse? (http-connection-receive-data! conn request)))
-	(set! state #f)
 	(release-http-connection client conn reuse?)
 	(let ((response (retriever)))
 	  (when (http:client-cookie-handler client)
@@ -266,32 +264,21 @@
 	(if (and status (char=? #\3 (string-ref status 0)))
 	    (handle-redirect client request r success failure)
 	    (success r))))
-
-    (case state
-      ((waiting-for-header)
-       (executor-submit! executor
-	(lambda ()
-	  (guard (e (else (failure e)))
-	    (http-connection-receive-header! conn request)
-	    (let-values (((data? status h*) (apply values (header-state))))
-	      (cond ((or (not data?) (eq? data? 'unknown))
-		     (finish (receive-data conn)))
-		    ;; check status 1xx
-		    ((eqv? (string-ref status 0) #\1)
-		     ;; TODO extra handler for 1xx status, esp 103?
-		     (retry))
-		    (else ;; we have data to be read
-		     (set! state 'waiting-for-data)
-		     ;; push the connection for data reading
-		     (retry))))))))
-      ((waiting-for-data)
-       (executor-submit! executor
-	(lambda () 
-	  (guard (e (else (failure e)))
-	    (finish (receive-data conn))))))
-      (else (failure (condition (make-error)
-				(make-who-condition 'response-handler)
-				(make-message-condition "Invalid state")))))))
+    ;; The idea of splitting header and body receiving was, probably, good.
+    ;; Though using socket (retry) wasn't, even HTTP/2 server may immediately
+    ;; return data frame and the socket won't be readable by select(2) call.
+    ;; I'm not entirely sure how much impact we would get if we don't split
+    ;; header and body reading, but for now, keep it simple...
+    (executor-submit! executor
+     (lambda ()
+       (guard (e (else (failure e)))
+	 (let loop ()
+	   (http-connection-receive-header! conn request)
+	   (let-values (((data? status h*) (apply values (header-state))))
+	     (cond ((eqv? (string-ref status 0) #\1)
+		    ;; TODO extra handler for 1xx status, esp 103?
+		    (loop))
+		   (else (finish (receive-data conn)))))))))))
 
 (define (send-request client conn request)
   (let-values (((header-handler body-handler header-state response-retriever)

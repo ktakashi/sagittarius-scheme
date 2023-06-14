@@ -149,7 +149,7 @@
     (define target-stream (search-stream connection request))
     (http2-remove-stream! connection (http2-stream-id target-stream))
     connection)
-    
+
   (let loop ((es? (http2-response connection request 'data)))
     (or (and es? (remove-stream connection request))
 	(loop (http2-response connection request 'data)))))
@@ -179,8 +179,8 @@
 		 "Stream is not registered or already removed" sid))
 	     (when es?
 	       (http2-stream-remote-state-set! stream
-					       (http2:stream-state closed)))
-	     (cond ((handle-misc-frames connection frame) (loop))
+		(http2:stream-state half-closed)))
+	     (cond ((handle-misc-frames connection stream frame) (loop))
 		   ((http2-frame-headers? frame)
 		    (write-header-log connection "[Response header]" frame)
 		    (let* ((headers (map (lambda (kv)
@@ -192,9 +192,6 @@
 					     (else #f))
 				       headers
 				       (not es?))))
-		      (when es?
-			(http2-stream-remote-state-set! stream
-			 (http2:stream-state half-closed)))
 		      (if (eq? stream target-stream)
 			  r
 			  (loop))))
@@ -233,11 +230,12 @@
 						  "No stream associated"
 						  request))))
 
-(define (handle-misc-frames connection frame)
+(define (handle-misc-frames connection stream frame)
   (define context (http-connection-context-data connection))
   (define streams (http2-connection-context-streams context))
   (define (send-rst-stream connection code stream-id)
-    (send-frame connection (make-http2-frame-rst-stream 0 stream-id code) #t))
+    (send-frame connection (make-http2-frame-rst-stream 0 stream-id code) #t)
+    (http2-stream-remote-state-set! stream (http2:stream-state closed)))
   (let* ((sid (http2-frame-stream-identifier frame))
 	 (stream (hashtable-ref streams sid #f)))
     (cond ((http2-frame-settings? frame)
@@ -261,7 +259,9 @@
 			(utf8->string msg?))
 		    (http2-frame-goaway-last-stream-id frame)
 		    (http2-frame-goaway-error-code frame))))
-	  ((http2-frame-rst-stream? frame))
+	  ((http2-frame-rst-stream? frame)
+	   (http2-stream-remote-state-set! stream (http2:stream-state closed))
+	   #t)
 	  ((http2-frame-window-update? frame)
 	   (let ((size (http2-frame-window-update-window-size-increment frame)))
 	     (cond ((zero? size)
