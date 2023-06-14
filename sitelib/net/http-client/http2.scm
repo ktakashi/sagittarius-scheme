@@ -192,7 +192,7 @@
 					     (else #f))
 				       headers
 				       (not es?))))
-		      (unless es?
+		      (when es?
 			(http2-stream-remote-state-set! stream
 			 (http2:stream-state half-closed)))
 		      (if (eq? stream target-stream)

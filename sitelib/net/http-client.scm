@@ -274,9 +274,12 @@
 	  (guard (e (else (failure e)))
 	    (http-connection-receive-header! conn request)
 	    (let-values (((data? status h*) (apply values (header-state))))
-	      ;; TODO check status 1xx
 	      (cond ((or (not data?) (eq? data? 'unknown))
 		     (finish (receive-data conn)))
+		    ;; check status 1xx
+		    ((eqv? (string-ref status 0) #\1)
+		     ;; TODO extra handler for 1xx status, esp 103?
+		     (retry))
 		    (else ;; we have data to be read
 		     (set! state 'waiting-for-data)
 		     ;; push the connection for data reading
