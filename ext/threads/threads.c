@@ -88,7 +88,7 @@ static void* thread_entry(void *data)
   thread_cleanup_push(thread_cleanup, vm);
   if (Sg_SetCurrentVM(vm)) {
     SG_UNWIND_PROTECT {
-      vm->result = Sg_Apply(SG_OBJ(vm->thunk), SG_NIL);
+      vm->result = Sg_Apply0(SG_OBJ(vm->thunk));
     } SG_WHEN_ERROR {
       SgObject exc;
       switch (vm->escapeReason) {
