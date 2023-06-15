@@ -80,7 +80,7 @@
 		(thread-join! t1))))
 
 ;; thread and error
-(test-assert "uncaught-exception"
+(test-assert "uncaught-exception (1)"
 	     (let ((t (make-thread (lambda ()
 				     (assertion-violation 'who "foo")))))
 	       (thread-start! t)
@@ -91,7 +91,7 @@
 			 (uncaught-exception-reason e))))
 		 (lambda () (thread-join! t)))))
 
-(test-assert "uncaught-exception"
+(test-assert "uncaught-exception (2)"
 	     (let ((t (make-thread (lambda () (raise 4)))))
 	       (thread-start! t)
 	       (with-error-handler
@@ -100,7 +100,7 @@
 			(eqv? (uncaught-exception-reason e) 4)))
 		 (lambda () (thread-join! t)))))
 
-(test-assert "uncaught-exception"
+(test-assert "uncaught-exception (3)"
 	     (let ((t (make-thread
 		       (lambda ()
 			 (with-error-handler
