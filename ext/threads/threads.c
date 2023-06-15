@@ -79,7 +79,17 @@ static void* thread_entry(void *data)
   SgVM *vm = SG_VM(data);
   SgObject *stack;
   int i;
-#ifdef HAVE_ALLOCA
+/* #ifdef HAVE_ALLOCA */
+  /* 
+     I have no idea why but after introducing kernel, this causes
+     test failure on Linux, and probaly caused by corrupted stack.
+     Maybe we should get stack size and do magical computation to
+     check if the stack is available or not if we care about the
+     heap allocation performance. At this moment, in the era of
+     2023, that slight performance doesn't really hurt anybody, so
+     use heap.
+  */
+#if 0
   stack = (SgObject *)alloca(sizeof(SgObject) * SG_VM_STACK_SIZE);
 #else
   stack = SG_NEW_ARRAY(SgObject, SG_VM_STACK_SIZE);
