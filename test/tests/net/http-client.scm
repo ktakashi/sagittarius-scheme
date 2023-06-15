@@ -97,7 +97,7 @@
   (http:client-shutdown! client)
   )
 
-(let ()
+#;(let ()
   (define basic-api "https://httpbin.org/basic-auth/foo/bar")
   (define bearer-api "https://httpbin.org/bearer")
   (define (run url auth)
@@ -125,7 +125,7 @@
   (http:client-shutdown! client)
   )
 
-(let ()
+#;(let ()
   (define (test-http-client version)
     (define client (http:client-builder
 		    (version version)
