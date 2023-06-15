@@ -36,6 +36,9 @@
 	    make-async-logger  async-logger? 
 	    (rename (async-logger <async-logger>))
 
+	    logger-threshold
+	    logger-threshold-set!
+
 	    ;; Logger APIs
 	    +trace-level+ trace-log logger-trace?
 	    +debug-level+ debug-log logger-debug?
@@ -43,6 +46,7 @@
 	    +warn-level+  warn-log  logger-warn?
 	    +error-level+ error-log logger-error?
 	    +fatal-level+ fatal-log logger-fatal?
+	    +logging-off+
 	    terminate-logger!
 
 	    ;; Appenders
@@ -274,7 +278,7 @@
 (define-generic push-log)
 (define-generic terminate-logger!)
 (define-record-type logger
-  (fields threshold
+  (fields (mutable threshold)
 	  appenders)
   (protocol (lambda (p)
 	      (lambda (threshold . appenders)
@@ -323,6 +327,7 @@
 (define-constant +warn-level+  3)
 (define-constant +error-level+ 4)
 (define-constant +fatal-level+ 5)
+(define-constant +logging-off+ +inf.0)
 
 (define-syntax define-logging-api
   (lambda (x)
