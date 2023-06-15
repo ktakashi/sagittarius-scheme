@@ -202,10 +202,11 @@
 (define-method format-log ((a appender) log)
   (builtin-format-log log (appender-format a)))
 
-;; but you can use it for traial
+;; but you can use it for trial
 ;; default just print
 (define-method append-log ((a appender) log)
-  (display (format-log a log)) (newline))
+  ;; use format to lock the port
+  (format #t "~a~%" (format-log a log)))
 (define-method appender-finish ((a appender)) #t) ;; do nothing
 
 
@@ -230,8 +231,7 @@
 		   (buffer-mode block)
 		   (native-transcoder))
     (lambda (out)
-      (display (format-log appender log) out)
-      (newline out))))
+      (format out "~a~%" (format-log appender log)))))
 
 (define-record-type rolling-file-appender
   (fields rolling-size

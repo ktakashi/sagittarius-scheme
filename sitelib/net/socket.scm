@@ -461,7 +461,7 @@
 			       (make-socket-read-timeout-error sock)
 			       (make-who-condition 'socket-selector)
 			       (make-message-condition
-				(format "Read timeout: node: ~a, service: ~a"
+				(format "Selector timeout: node: ~a, service: ~a"
 					(socket-node sock)
 					(socket-service sock)))
 			       (make-irritants-condition timeout))))
