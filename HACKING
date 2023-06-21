@@ -128,7 +128,7 @@ Performance optimisation
 ------------------------
 
 There are two parts of performance optimisation, C and Scheme world.
-For C, we recommend to use `gpreftools` (at least I'm using it, please
+For C, we recommend to use `gperftools` (at least I'm using it, please
 let me know if you have better options). Due to the limitation of the
 tool, you may want to comment out `dlclose` call in `src/dl_dlopen.c`
 so that the tool can emit proper names instead of hex addresses.
