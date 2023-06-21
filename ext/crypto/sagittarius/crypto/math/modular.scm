@@ -51,7 +51,7 @@
 (define (mod-mul a b p) (mod (* a b) p))
 ;;(define (mod-mul a b p) (* (mod a p) (mod b p)))
 ;; a / b (mod p)
-(define (mod-div a b p) (mod (* a (mod-inverse b p)) p))
+(define (mod-div a b p) (mod-mul a (mod-inverse b p) p))
 ;; a^2 (mod p)
 (define (mod-square a p) (mod-expt a 2 p))
 ;; -a (mod p)

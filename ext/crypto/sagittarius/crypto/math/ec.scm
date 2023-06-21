@@ -174,7 +174,7 @@
 (define-predicate-generic (field-size field)
   (ec-field-fp? (bitwise-length (ec-field-fp-p field)))
   (ec-field-f2m? (ec-field-f2m-m field)))
-(define (ec-field-size field) (field-size field))
+(define ec-field-size field-size)
 
 ;; EC point
 (define-vector-type ec-point (make-ec-point x y) ec-point?

@@ -1,89 +1,112 @@
+HACKING
+=======
+
 This file is for those who want s to hask the cutting-edge Sagittarius
-sources from  the Mercurial  repository. If you  just want  to compile
+sources from the Git repository. If you just want to compile
 from the distribution, you don't need to read any further.
 
-# How to check out from the repository
+How to check out from the repository
+------------------------------------
 
-This  section  is  for  those  who are  not  fimiliar  with  Mercurial
-commands.   As  a  preconditions,   Mercurial  is  installed  on  your
-environment.
+This section is for those who are not fimiliar with Git commands. As a
+preconditions, Git is installed on your environment.
 
-## Basic commands for Mercurial
+### Basic commands for Git
 
-### Clone
+#### Clone
 
-    % hg clone https://code.google.com/p/sagittarius-scheme sagittarius
+```shell
+git clone https://bitbucket.org/ktakashi/sagittarius-scheme sagittarius
+```
 
 The last `sagittarius` is destination directory name.
 
-### Update
+#### Checkout
 
 Following command switches between branches.
 
-    % hg update ${branch name}
+```shell
+git checkout ${branch name}
+```
 
 If you don't specify any branch name, then current branch will be used.
 
-Note: `default` branch is git's `master`.
+#### Commit
 
-### Commit
+```shell
+git commit -am 'comment'
+```
 
-    % hg commit -m 'comment' -u ${user name}
+It's better to use interactive mode:
 
-# How to build HEAD code
+```shell
+git commit --interactive
+```
 
-To  build  HEAD code,  you  need  the  latest release  of  Sagittarius
+How to build HEAD code
+----------------------
+
+To build HEAD code, you need the latest release of Sagittarius
 Scheme. So first please install it.
 
-## Provided developer tool
+### Provided developer tool
 
-We  provide `dist.sh`  for developer  and it  generates boot  code, VM
+We provide `dist.sh` for developer and it generates boot code, VM
 instructions and generated code from stub file.
 
-## Generate code
+### Generate code
 
 To generate code you need to execute following commands;
 
-    % ./dist.sh stub
-    % ./dist.sh precomp
-    % ./dist.sh srfi
-    % ./dist.sh tz
-    % ./dist.sh unicode
+```shell
+./dist.sh stub
+./dist.sh precomp
+./dist.sh srfi
+./dist.sh tz
+./dist.sh unicode
+./dist.sh html
+```
 
 Or this command does the same;
 
-    % ./dist.sh gen
+```shell
+./dist.sh gen
+```
 
-These  commands generate  C files  from  stub files  and Scheme  files
-respectively.  This must be run *before* CMake command otherwise CMake
+These commands generate C files from stub files and Scheme files
+respectively. This must be run *before* CMake command otherwise CMake
 process will fail.
 
-If  you set  the path  to  Sagittarius executable  to the  environment
+If you set the path to Sagittarius executable to the environment
 variable `SASH` with, then `dist.sh` will use that executable file.
 
-    % env SASH=/opt/bin/sagittarius ./dist.sh gen
+```shell
+env SASH=/opt/bin/sagittarius ./dist.sh gen
+```
 
 To clean the generated code, you need to execute following command;
 
-    % ./dist.sh clean
+```shell
+./dist.sh clean
+```
 
-### Using local TZ database and Unicode files
+#### Using local TZ database and Unicode files
 
-If you want  to use local TZ  database file or Unicode  files, you can
-locate   the  following   files  into   `tzdata`  and   `unicode/data`
-directories respectively. If there is  no such directory yet, then you
+If you want to use local TZ database file or Unicode files, you can
+locate the following files into `tzdata` and `unicode/data`
+directories respectively. If there is no such directory yet, then you
 can create them manually.
 
-#### For TZ database
+##### For TZ database
 
 - tzdata-latest.tar.gz [Download](ftp://iana.org/tz/tzdata-latest.tar.gz)
 - windowsZones.xml [Download](http://unicode.org/repos/cldr/trunk/common/supplemental/windowsZones.xml)
 
-NOTE: all  of above files are  removed when `./dist.sh tz`  command is
-executed. If  you want to reuse  them, make sure you  copy them before
+NOTE: all of above files are removed when `./dist.sh tz` command is
+executed. If you want to reuse them, make sure you copy them before
 you run the command.
 
-#### Unicode files
+##### Unicode files
 
 - CaseFolding.txt
 - CompositionExclusions.txt
@@ -94,11 +117,21 @@ you run the command.
 - UnicodeData.txt
 - WordBreakProperty.txt
 
-Above  Unicode files  can be  downloaded  from the  Unicode FTP  site:
-[ftp.unicode.org](ftp://ftp.unicode.org/Public/8.0.0/).     Currently,
-Sagittarius  uses  version  8.0.0,  if you  want  to  use  newer/older
-version,  you can  also  use  them. (May  break  some  of test  cases,
+Above Unicode files can be downloaded from the Unicode FTP site:
+[ftp.unicode.org](ftp://ftp.unicode.org/Public/12.1.0/).  Currently,
+Sagittarius uses version 12.1.0, if you want to use newer/older
+version, you can also use them. (May break some of test cases,
 especially if you use unicode version older than 6.3.0)
+
+
+Performance optimisation
+------------------------
+
+There are two parts of performance optimisation, C and Scheme world.
+For C, we recommend to use `gpreftools` (at least I'm using it, please
+let me know if you have better options). Due to the limitation of the
+tool, you may want to comment out `dlclose` call in `src/dl_dlopen.c`
+so that the tool can emit proper names instead of hex addresses.
 
 <!-- end of file
 Local Variables:
