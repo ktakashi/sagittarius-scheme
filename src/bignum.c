@@ -74,14 +74,14 @@
 
 
 /* debug utility macro */
-#define dump_array_rec(flag, array, size)	\
-  do {						\
-    int __i, __size = (size);			\
-    fprintf(stderr, #array " = [ ");		\
-    for (__i = 0; __i < __size; __i++) {	\
-      fprintf(stderr, flag, (array)[__i]);	\
-    }						\
-    fprintf(stderr, "]\n");			\
+#define dump_array_rec(flag, array, size)		\
+  do {							\
+    int __i, __size = (size);				\
+    fprintf(stderr, #array "(%d) = [ ", __size);	\
+    for (__i = 0; __i < __size; __i++) {		\
+      fprintf(stderr, flag, (array)[__i]);		\
+    }							\
+    fprintf(stderr, "]\n");				\
   } while (0)
 
 #define dump_sarray(array, size) dump_array_rec("%ld ", array, size)
