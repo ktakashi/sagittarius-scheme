@@ -138,7 +138,7 @@ static int mp_add(ulong *rp, ulong rsize,
   for (; i < xsize; i++) {
     rp[i] = xp[i];
   }
-  if (c) rp[rsize-1] = 1L;
+  if (c && i < rsize) rp[i] = 1L;
   return (int)c;
 }
 
@@ -404,6 +404,23 @@ static void mp_square_rec(ulong *rp, ulong rsize,
   If there's a better way such as iterative operation of karatsuba,
   we should definitely use it.
  */
+#define ALLOC_BUFFER_REC(r, type, size, stack)			\
+  do {								\
+    ulong s__ = (size);						\
+    if ((stack) > 0 && (s__)*sizeof(type) <= (stack)) {		\
+      ALLOC_TEMP_BUFFER_REC(r, type, s__);			\
+      (stack) -= (s__)*sizeof(type);				\
+    } else {							\
+      (r) = SG_NEW_ATOMIC2(type*, sizeof(type) * s__);		\
+    }								\
+  } while (0)
+
+#define ALLOC_BUFFER(r, type, size, stack)		\
+  do {							\
+    ALLOC_BUFFER_REC(r, type, size, stack);		\
+    clear_buffer(r, size);				\
+  } while (0)
+
 #define USE_KARATSUBA
 #ifdef USE_KARATSUBA
 /* if the bignum length is less than this then we do 
@@ -464,23 +481,6 @@ static long can_karatsuba(ulong xlen, ulong ylen)
        (* (expt B (div n 2)) xx)
        bd))
  */
-#define ALLOC_BUFFER_REC(r, type, size, stack)			\
-  do {								\
-    ulong s__ = (size);						\
-    if ((stack) > 0 && (s__)*sizeof(type) <= (stack)) {		\
-      ALLOC_TEMP_BUFFER_REC(r, type, s__);			\
-      (stack) -= (s__)*sizeof(type);				\
-    } else {							\
-      (r) = SG_NEW_ATOMIC2(type*, sizeof(type) * s__);		\
-    }								\
-  } while (0)
-
-#define ALLOC_BUFFER(r, type, size, stack)		\
-  do {							\
-    ALLOC_BUFFER_REC(r, type, size, stack);		\
-    clear_buffer(r, size);				\
-  } while (0)
-
 static void karatsuba(ulong *rp, ulong rsize,
 		      ulong *xp, ulong xsize,
 		      ulong *yp, ulong ysize,
@@ -910,34 +910,53 @@ static ulong mp_div_rem_kunuth(ulong *dp,  ulong qlen,
 /* for now disable it */
 #undef USE_BURNIKEL_ZIEGLER
 #ifdef USE_BURNIKEL_ZIEGLER
+/* 
+   Reference: http://cr.yp.to/bib/1998/burnikel.ps
+ */
 /* the same as karatsuba since we need to multiply with karatsuba according
-   to the paper.
-   TODO how much? */
+   to the paper. */
 #define BURNIKEL_ZIEGLER_BITS      1600
-#define BURNIKEL_ZIEGLER_THRESHOLD ((BURNIKEL_ZIEGLER_BITS>>3)/WORD_BITS)
+#define BURNIKEL_ZIEGLER_THRESHOLD (BURNIKEL_ZIEGLER_BITS/WORD_BITS)
 
 #define BURNIKEL_ZIEGLER_OFFSET    40
 
 /* this doesn't consider signess */
+static int mp_compare_shifted(ulong *lhs, ulong lhs_count,
+			      ulong *rhs, ulong rhs_count,
+			      ulong n)
+{
+  long i, j;
+  long shifted_length = lhs_count - n;
+  /* compare size */
+  if (shifted_length < rhs_count) return -1;
+  if (shifted_length > rhs_count) return 1;
+  /* elements */
+  for (i = lhs_count - 1, j = rhs_count - 1; i >= n; i--, j--) {
+    if (lhs[i] < rhs[j]) return -1;
+    if (lhs[i] > rhs[j]) return 1;
+  }
+  return 0;
+}
+
 static int mp_compare(ulong *lhs, ulong lhs_count,
 		      ulong *rhs, ulong rhs_count)
 {
-  long i;
-  /* compare size */
-  if (lhs_count < rhs_count) return  -1;
-  if (lhs_count > rhs_count) return  1;
-  /* elements */
-  for (i = lhs_count - 1; i >= 0; i--) {
-    if (lhs[i] < rhs[i]) return  -1;
-    if (lhs[i] > rhs[i]) return  1;
-  }
-  return 0;
+  return mp_compare_shifted(lhs, lhs_count, rhs, rhs_count, 0);
+}
+
+/* getting a block of conceptually split blocks
+   assume, bsize = t*n
+ */
+static ulong *burnikel_block(ulong *b, int index, int n)
+{
+  return b + index*n;
 }
 
 static int mp_burnikel_ziegler_d2n1n(ulong *q, ulong qn,
 				     ulong *r, ulong rn,
 				     ulong *a, ulong an,
-				     ulong *b, ulong bn);
+				     ulong *b, ulong bn,
+				     intptr_t stack_size);
 /*
    From Section 2, Algorithm 2. (D 3n/2n)
    Let A and B be non negative integers, and let A < β^n*B and 
@@ -952,7 +971,7 @@ static int mp_burnikel_ziegler_d2n1n(ulong *q, ulong qn,
           (= [A1,A2] - ÔB1)
    4. Compute D = Ô * B2 using Karatsuba multiplication.
    5. Compute R̂ = R1β^n + A4 - D
-   6. As lon as R̂ < 0, repeat
+   6. As long as R̂ < 0, repeat
       (a) R̂ = R̂ + B
       (b) Ô = Ô -1
    7. Return R = R̂, Q = Ô
@@ -962,62 +981,101 @@ static int mp_burnikel_ziegler_d2n1n(ulong *q, ulong qn,
 static int mp_burnikel_ziegler_d3n2n(ulong *q, ulong qn,
 				     ulong *r, ulong rn,
 				     ulong *a, ulong an,
-				     ulong *b, ulong bn)
+				     ulong *b, ulong bn,
+				     intptr_t stack_size)
 {
   long n = bn/2;
   long n2 = n<<1;
   ulong *a12, *a3;
   ulong *b1, *b2;
   ulong *rh, *d;
-  ulong rh_size, qs, i;
+  long rhs, rh_size, qs, i, ds, tmp;
+  
   /* step 1 */
-  a12 = a;
+  a12 = a; /* for step3(a), make a12 = [A1,A2] */
   a3 = a+n2;
   /* step 2 */
   b1 = b;
   b2 = b+n;
-  /* hope we q has sufficient size... */
+
+  /* TODO size of R1 (at least this is safe, though) */
+  rh_size = SG_LEFT_SHIFT_SPACE(n, WORD_BITS*n);
+  rh_size = SG_LEFT_SHIFT_SPACE(rh_size, WORD_BITS*n);
+  tmp = an-n2+1;
+  fputs("=====\n", stderr);
+  ALLOC_BUFFER(rh, ulong, max(rh_size, tmp), stack_size);
+
   /* step 3 */
-  
-  if (mp_compare(a, n, b, n) < 0) {
-    qs = mp_burnikel_ziegler_d2n1n(q, qn, r, rn, a12, n2, b1, n);
+  if (mp_compare_shifted(a, an, b, bn, n) < 0) {
+    fputs("d2n1n\n", stderr);
+    /* we don't need remainder here */
+    qs = mp_burnikel_ziegler_d2n1n(q, qn, rh, rh_size, a12, n2, b1, n, stack_size);
+    rhs = rh_size;
+    while (rh[rhs-1] == 0) rhs--;
+
+    /* step4 */
+    ds = n+qs;
+    ALLOC_BUFFER(d, ulong, ds, stack_size);
+    mp_mul(d, ds, q, qs, b2, n);
   } else {
-    long i;
+    long i, b10s;
     ulong *b10;
+
+    b10s = SG_LEFT_SHIFT_SPACE(n, WORD_BITS*n);
+    fprintf(stderr, "shifting: %d > %d\n", b10s, n2);
+    ALLOC_BUFFER(b10, ulong, b10s, stack_size);
     for (i = 0; i < n ; i++) {
       q[i] = (ulong)-1L;
     }
     qs = n;
-    ALLOC_TEMP_BUFFER(b10, ulong, n2);
-    mp_lshift(b10, n2, b1, n, WORD_BITS);
-    mp_sub(r, rn, a12, n2, b10, n2);
-    mp_add(r, rn, r, n2, b1, n);
-  }
-  /* step4 */
-  ALLOC_TEMP_BUFFER(d, ulong, n+qs);
-  mp_mul(d, n+qs, q, qs, b2, n);
+    
+    mp_add(rh, rh_size, a12, n2, b1, n);
+    mp_lshift(b10, b10s, b1, n, WORD_BITS*n);
 
-  /* step5 
-     though we don't want negative value so a bit different
-   */
-  /* TODO size of R1 (at least this is safe, though) */
-  rh_size = SG_LEFT_SHIFT_SPACE(rn, WORD_BITS*n);
-  ALLOC_TEMP_BUFFER(rh, ulong, rh_size);
-  mp_lshift(rh, rh_size, r, rn, n);
-  /* there is no A4, use A3 */
-  mp_add(rh, rh_size, rh, rh_size, a3, n);
-  while (mp_compare(rh, rh_size, d, n+qs) < 0) {
-    mp_sub(rh, rh_size, rh, rh_size, d, n+qs);
-    mp_add_ul(q, qn, q, qn, 1);
+    if (b10s > n2) {
+      mp_sub(rh, rh_size, b10, b10s, rh, n2);
+      rhs = b10s;
+    } else {
+      mp_sub(rh, rh_size, rh, n2, b10, b10s);
+      rhs = n2;
+    }
+    while (rh[rhs-1] == 0) rhs--;
+    /* step4 */
+    ds = SG_LEFT_SHIFT_SPACE(bn-n, WORD_BITS*n);
+    ALLOC_BUFFER(d, ulong, ds, stack_size);
+    mp_lshift(d, ds, b2, bn-n, WORD_BITS*n);
+    mp_sub(d, ds, d, ds, b2, bn-n);
   }
+
+  /* step5 */
+  mp_lshift(rh, rh_size, rh, rhs, WORD_BITS*n);
+  rhs = rh_size;
+  while (rh[rhs-1] == 0) rhs--;
+  /* there is no A4, use A3 */
+  if (mp_add(rh, rh_size, rh, rhs, a3, an-n2)) rhs++;
+  
+  /* step6 */
+  fprintf(stderr, "ds: %d\n", ds);
+  dump_xarray(rh, rhs);
+  dump_xarray(d, ds);
+  
+  
+  while (mp_compare(rh, rhs, d, ds) < 0) {
+    int c = mp_add(rh, rhs, rh, rhs, b, bn);
+    if (c) {
+      rh[rhs++] = 1L;
+    }
+    mp_sub_ul(q, qs, q, qs, 1);
+  }
+  mp_sub(rh, rh_size, rh, rhs, d, ds);
   /* return */
-  for (i = 0; i < rn; i++) r[i] = rh[i];
+  for (i = 0; i < rhs; i++) r[i] = rh[i];
+
+  dump_xarray(q, qs);
 
   return qs;
 }
 /* 
-   Reference: http://cr.yp.to/bib/1998/burnikel.ps
-
    From Section 2, Algorithm 1. (D 2n/1n)
    Let A and B be non negative integers, and let A < β^n*B and 
    β^(n/2) <= B < β^n. Algorithm D 2n/1n computes the quotient
@@ -1037,15 +1095,18 @@ static int mp_burnikel_ziegler_d3n2n(ulong *q, ulong qn,
 static int mp_burnikel_ziegler_d2n1n(ulong *q, ulong qn,
 				     ulong *r, ulong rn,
 				     ulong *a, ulong an,
-				     ulong *b, ulong bn)
+				     ulong *b, ulong bn,
+				     intptr_t stack_size)
 {
-  long n = bn, i;
-  ulong *a123, *a4, *r12a4;
-  ulong a123_len, q1, q2;
+  long n = bn, i, k;
+  ulong *a123, *a4, *r12a4, *rt;
+  ulong a123_len, q1, q2, rt_size;
+
   /* step 1 */
   if (n & 1 || n < BURNIKEL_ZIEGLER_THRESHOLD) {
     mp_div_rem_kunuth(q, qn, r, rn, a, an, b, bn);
-    return qn;			/* FIXME */
+    while (q[qn-1] == 0 && qn > 0) qn--;
+    return qn;
   }
   /* step 2 */
   a123_len = an - n/2;
@@ -1053,78 +1114,87 @@ static int mp_burnikel_ziegler_d2n1n(ulong *q, ulong qn,
   a4 = a + a123_len;
 
   /* step 3 */
-  q1 = mp_burnikel_ziegler_d3n2n(q, qn, r, rn, a123, a123_len, b, bn);
-  ALLOC_TEMP_BUFFER_REC(r12a4, ulong, n*3);
-  for (i = 0; i < n; i++) {
-    r12a4[i] = r[i];
-    r12a4[i+n] = r[i+n];
-    r12a4[i+n+n] = a4[i];
-  }
+  rt_size = max(a123_len, n*3);
+  ALLOC_BUFFER(rt, ulong, rt_size, stack_size);
+  q1 = mp_burnikel_ziegler_d3n2n(q, qn, rt, rt_size, a123, a123_len, b, bn, stack_size);
+  ALLOC_BUFFER_REC(r12a4, ulong, n*3, stack_size);
+  for (i = 0; i < rt_size && rt[i] != 0; i++) r12a4[i] = rt[i];
+  for (k = 0; k < an - a123_len; k++) r12a4[i++] = a4[k];
   /* step 4 */
-  q2 = mp_burnikel_ziegler_d3n2n(q+q1, qn-q1, NULL, 0, r12a4, n*3, b, bn);
+  clear_buffer(rt, rt_size);
+  q2 = mp_burnikel_ziegler_d3n2n(q+q1, qn-q1, rt, rt_size, r12a4, n*3, b, bn, stack_size);
+  for (i = 0; i < rn && rt[i] != 0; i++) r[i] = rt[i];
   return q1 + q2;
 }
 
 /*
-   From Section 2, Algorithm 3. (D r/s)
-   LET A and B be non negative integer such that A < β^r, B < β^s.
-   the quotient Q = ⌊A/B⌋ with remainder R = A - Q*B
-   1. Set m = min{2^k|(2^k) * DIV_LIMIT) > s}
-   2. Set j = ⌈s/m⌉ and n = j*m
-   3. Set σ = max{r|2^r * B < β^n}
-   4. (a) Set B = B*2^σ to normalize B
-      (b) Set A = A*2^σ to shift A by the same amount as B
-   5. Set t = min{l >= 2|A < (β^l-n) / 2}
-   6. Split A conceptually into t blocks [At-1, ..., A0]β^n = A. Note that
-      leftmost bit of At-1 is 0 by our choice of t.
-   7. Set Zt-2 = [At-1,At-2]
-   8. For i from t-2 downto 0 do
-      (a) Using algorithm D2n/1n compute Qi, Ri such that Zi = B*Qi+Ri
-      (b) If i > 0, set Zi-1 = [Ri, Ai-i]
-   9. Return Q=[Qt-2, ..., Q0] and R = R0*2^-σ
+  Returns xp/yp, qp = quotient, rp = remainder
 
-   k = WORD_BITS
-   DIV_LIMIT = threshold
-   
-   β/2 
-   (this amounts to say that it has a leading 1 in its binary representation;
-    if this is not the case we can shift B and A to the left)
+  From Section 2, Algorithm 3. (D r/s)
+  LET A and B be non negative integer such that A < β^r, B < β^s.
+  the quotient Q = ⌊A/B⌋ with remainder R = A - Q*B
+  1. Set m = min{2^k|(2^k) * DIV_LIMIT) > s}
+  2. Set j = ⌈s/m⌉ and n = j*m
+  3. Set σ = max{r|2^r * B < β^n}
+  4. (a) Set B = B*2^σ to normalize B
+  (b) Set A = A*2^σ to shift A by the same amount as B
+  5. Set t = min{l >= 2|A < (β^l-n) / 2}
+  6. Split A conceptually into t blocks [At-1, ..., A0]β^n = A. Note that
+  leftmost bit of At-1 is 0 by our choice of t.
+  7. Set Zt-2 = [At-1,At-2]
+  8. For i from t-2 downto 0 do
+     (a) Using algorithm D2n/1n compute Qi, Ri such that Zi = B*Qi+Ri
+     (b) If i > 0, set Zi-1 = [Ri, Ai-i]
+  9. Return Q=[Qt-2, ..., Q0] and R = R0*2^-σ
+  
+  k = WORD_BITS
+  DIV_LIMIT = threshold
+  
+  β/2 
+  (this amounts to say that it has a leading 1 in its binary representation;
+  if this is not the case we can shift B and A to the left)
     
  */
-static uint mp_div_rem_burnikel_zeigler(ulong *qp, ulong qlen,
-					ulong *rp, ulong rlen,
-					ulong *xp, ulong xsize,
-					ulong *yp, ulong ysize)
+static ulong mp_div_rem_burnikel_zeigler(ulong *qp, ulong qlen,
+					 ulong *rp, ulong rlen,
+					 ulong *xp, ulong xsize,
+					 ulong *yp, ulong ysize)
 {
-  /* make things easier for me... */
+  /* this function is the root, so just check stack here */
+  volatile char mark = 'a';	/* don't let compiler erase this */
+  intptr_t stack_size = Sg_AvailableStackSize((volatile uintptr_t)&mark);
+  
   ulong *a = xp, *b = yp;
-  ulong r = xsize, s = ysize;
+  ulong asize = xsize /* = r */, bsize = ysize /* = s */;
 
-  long bbits = mp_bit_size(b, s);
+  long bbits = mp_bit_size(b, bsize);
   /* step 1 */
-  ulong m = 1 << (nlz(s/BURNIKEL_ZIEGLER_THRESHOLD));
+  ulong m = 1 << (WORD_BITS - nlz(bsize/BURNIKEL_ZIEGLER_THRESHOLD));
   /* step 2 */
-  ulong j = (s+m-1)/m;
+  ulong j = (bsize+m-1)/m;
   ulong n = j*m;
   udlong nb = WORD_BITS * n;	/* n block in bits */
   /* step 3 */
   int sigma = max(0, nb - bbits), t;
   /* step 4 */
-  ulong *bshift, *ashift;
-  uint bshift_size = SG_LEFT_SHIFT_SPACE(s, sigma),
-    ashift_size = SG_LEFT_SHIFT_SPACE(r, sigma);
+  ulong *B, *A;
+  uint B_size = SG_LEFT_SHIFT_SPACE(asize, sigma),
+    A_size = SG_LEFT_SHIFT_SPACE(bsize, sigma);
   /* others */
-  ulong *zi, *ri, *ai;
-  int i;
+  ulong *zi, *ri, *ai, *qi;
+  int i, k, qilen, qn;
   /* shift amount is sigma */
-  ALLOC_TEMP_BUFFER_REC(bshift, ulong, bshift_size);
-  ALLOC_TEMP_BUFFER_REC(ashift, ulong, ashift_size);
-  mp_lshift(bshift, bshift_size, b, s, sigma);
-  mp_lshift(ashift, ashift_size, a, r, sigma);
-  
+  ALLOC_BUFFER_REC(B, ulong, B_size, stack_size);
+  ALLOC_BUFFER_REC(A, ulong, A_size, stack_size);
+  mp_lshift(B, B_size, b, bsize, sigma);
+  mp_lshift(A, A_size, a, asize, sigma);
+
+  dump_xarray(xp, xsize);
+  dump_xarray(yp, ysize);
+
+  if (B[B_size-1] == 0) B_size--;
+  if (A[A_size-1] == 0) A_size--;
   /* step 5 
-     A = ashift
-     B = bshift
                      A
      +-----------+-----------+-----------+
      |     |     |           |  |  |  |  |
@@ -1141,33 +1211,44 @@ static uint mp_div_rem_burnikel_zeigler(ulong *qp, ulong qlen,
      <--  n = m*j   -->
      NB: t*n needs to cover extra space so make t a bit bigger.
    */
-  t = (mp_bit_size(ashift, ashift_size) + nb)/nb;
+  t = (mp_bit_size(A, A_size) + nb)/nb;
   if (t < 2) t = 2;		/* l >= 2 */
   
   /* step 6 
-     numbers on the paper are big endian thus, at_1 is the
-     first element of our bignum. easy peasy.
+     Split A conceptually into t blocks [At-1, ..., A0]β^n = A. Note that
+     leftmost bit of At-1 is 0 by our choice of t.
    */
-  /* step 7 zt_2 = [At1, At2]*/
+  /* step 7 zt_2 = [At-1, At-2] */
   ALLOC_TEMP_BUFFER_REC(zi, ulong, n<<1);
-  for (i = 0; i < n<<1; i++) zi[i] = ashift[i];
+  /* zt_2 = [At-1, At-2] */
+  ai = burnikel_block(A, t-1, n);
+  for (i = 0; i < n<<1; i++) zi[i] = ai[i];
 
   /* step 8 */
   /* max Ri size is n */
-  ALLOC_TEMP_BUFFER(ri, ulong, n);
-  /* reverse order */
-  ai = ashift + (n<<1);
-  for (i = 2; i < t-3; i++, ai+=n) {
-    int j;
-    /* d2n1n */
-    mp_burnikel_ziegler_d2n1n(qp+(n*i), n, ri, n, zi, n<<1, bshift, bshift_size);
-    for (j = 0; j < n; j++) {
-      zi[j] = ri[j];
-      zi[j+n] = ai[j];
-    }
+  ALLOC_BUFFER_REC(ri, ulong, n, stack_size);
+  qilen = (n<<1) - B_size + 1;
+  ALLOC_BUFFER_REC(qi, ulong, qilen, stack_size);
+  
+  for (i = t-2; i > 0; i--) {
+    clear_buffer(ri, n);
+    clear_buffer(qi, qilen);
+    /* step 8(a) d2n1n */
+    qn = mp_burnikel_ziegler_d2n1n(qi, qilen, ri, n, zi, n<<1, B, B_size, stack_size);
+    fprintf(stderr, "qn: %d\n", qn);
+    /* step 8(b) set Zi-1 = [Ri, Ai-i] */
+    /* Zi-1 = [Ri, Ai-i] */
+    for (j = 0; j < n; j++) zi[j] = ri[j];
+    ai = burnikel_block(A, i, n);
+    for (k = 0; k < n; k++) zi[j++] = ai[k];
+    /* Q=[Qt-2, ..., Q0] */
+    for (j = 0; j < qn; j++) qp[i*j] = qi[j];
   }
   /* last iteration of step 8 */
-  mp_burnikel_ziegler_d2n1n(qp+(n*i), n, ri, n, zi, n<<1, bshift, bshift_size);
+  clear_buffer(ri, n);
+  clear_buffer(qi, qilen);
+  qn = mp_burnikel_ziegler_d2n1n(qi, qilen, ri, n, zi, n<<1, B, B_size, stack_size);
+  for (j = 0; j < qn; j++) qp[i*j] = qi[j];
   return mp_rshift(rp, rlen, ri, n, sigma);
 }
 #endif
@@ -1183,8 +1264,11 @@ static ulong mp_div_rem(ulong *qp, ulong qlen,
 			ulong *yp, ulong ysize)
 {
 #ifdef USE_BURNIKEL_ZIEGLER
-  if (xsize < BURNIKEL_ZIEGLER_THRESHOLD &&
-      (xsize - ysize) < BURNIKEL_ZIEGLER_OFFSET) {
+  fprintf(stderr, "div: %ld > %d, %ld > %d\n",
+	  ysize, BURNIKEL_ZIEGLER_THRESHOLD,
+	  (xsize - ysize), BURNIKEL_ZIEGLER_OFFSET);
+  if (ysize > BURNIKEL_ZIEGLER_THRESHOLD &&
+      (xsize - ysize) > BURNIKEL_ZIEGLER_OFFSET) {
     return mp_div_rem_burnikel_zeigler(qp, qlen, rp, rlen, 
 				       xp, xsize, yp, ysize);
   }
