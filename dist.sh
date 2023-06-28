@@ -58,6 +58,18 @@ unicode()
 {
     echo Generating Unicode codepoints
     $SASH ./tools/scripts/compile-unicode.scm $1
+    mkdir -p sitelib/sagittarius/char-sets
+    $SASH ./tools/scripts/extract-unicode-props.scm \
+	  -l'(sagittarius char-sets boundaries)' \
+	  -o sitelib/sagittarius/char-sets/boundaries.scm \
+	  --derived unicode/data/GraphemeBreakProperty.txt \
+	  Prepend Control Extend ZWJ SpacingMark \
+	  extend-or-spacing-mark=Extend,SpacingMark Regional_Indicator \
+	  hangul-l=:L \
+	  hangul-v=:V \
+	  hangul-t=:T \
+	  hangul-lv=:LV \
+	  hangul-lvt=:LVT
 }
 
 html()

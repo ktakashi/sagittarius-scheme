@@ -214,13 +214,14 @@ exec sash $0 "$@"
     (close-output-port out))
   (with-args (cdr args)
       ((data (#\d "data") #t "unicode/data/UnicodeData.txt")
-       (derived (#\e "derived") #t "data/DerivedCoreProperties.txt")
+       (derived (#\e "derived") #t "unicode/data/DerivedCoreProperties.txt")
        (out  (#\o "output") #t (current-output-port))
        (lib  (#\l "library") #t #f)
        . rest)
     (let ((out (if (output-port? out) 
 		   out
-		   (open-file-output-port out (file-options no-fail)
+		   (open-file-output-port out
+					  (file-options no-fail)
 					  (buffer-mode block)
 					  (native-transcoder)))))
       (let loop ((ls rest) (r '()))

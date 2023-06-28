@@ -50,7 +50,7 @@
 	    (sagittarius)
 	    (sagittarius regex)
 	    (sagittarius control)
-	    (sagittarius char-set boundary)
+	    (sagittarius char-sets boundaries)
 	    (match))
 
 (define-condition-type &sre-parse-error &error
