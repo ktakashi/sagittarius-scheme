@@ -128,7 +128,7 @@ exec sash $0 "$@"
 				    ranges))
 			  (error 'extract-char-set-property
 				 "invalid char range: " line)))))
-                 ((string->number (cadr ls) 16) =>
+                 ((string->number (string-trim-right (car ls)) 16) =>
 		  (lambda (n)
 		    (lp (cons `(char-set ,(integer->char n)) ranges))))
                  (else
