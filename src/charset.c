@@ -63,24 +63,32 @@ static void charset_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   SgCharSet *cs = SG_CHAR_SET(obj);
   SgObject ranges = Sg_CharSetRanges(cs), cp;
 
-  Sg_Putuz(port, UC("#<char-set"));
-  SG_FOR_EACH(cp, ranges) {
-    SgObject cell = SG_CAR(cp);
-    long start = SG_INT_VALUE(SG_CAR(cell)), end = SG_INT_VALUE(SG_CDR(cell));
-    Sg_Putc(port, ' ');
-    if (start > SG_CHAR_SET_SMALL_CHARS) {
-      Sg_Printf(port, UC("#x%x"), start);
-    } else {
-      Sg_Write(SG_MAKE_CHAR(start), port, SG_WRITE_WRITE);
+  if (SG_WRITE_MODE(ctx) == SG_WRITE_DISPLAY) {
+    char buf[50];
+    snprintf(buf, sizeof(buf), "%p", cs);
+    Sg_Putuz(port, UC("#<char-set "));
+    Sg_Putz(port, buf);
+    Sg_Putuz(port, UC(">"));
+  } else {
+    Sg_Putuz(port, UC("#<char-set"));
+    SG_FOR_EACH(cp, ranges) {
+      SgObject cell = SG_CAR(cp);
+      long start = SG_INT_VALUE(SG_CAR(cell)), end = SG_INT_VALUE(SG_CDR(cell));
+      Sg_Putc(port, ' ');
+      if (start > SG_CHAR_SET_SMALL_CHARS) {
+	Sg_Printf(port, UC("#x%x"), start);
+      } else {
+	Sg_Write(SG_MAKE_CHAR(start), port, SG_WRITE_WRITE);
+      }
+      Sg_Putc(port, '-');
+      if (end > SG_CHAR_SET_SMALL_CHARS) {
+	Sg_Printf(port, UC("#x%x"), end);
+      } else {
+	Sg_Write(SG_MAKE_CHAR(end), port, SG_WRITE_WRITE);
+      }
     }
-    Sg_Putc(port, '-');
-    if (end > SG_CHAR_SET_SMALL_CHARS) {
-      Sg_Printf(port, UC("#x%x"), end);
-    } else {
-      Sg_Write(SG_MAKE_CHAR(end), port, SG_WRITE_WRITE);
-    }
+    Sg_Putc(port, '>');
   }
-  Sg_Putc(port, '>');
 }
 
 static int charset_compare(SgObject x, SgObject y, int equalp)

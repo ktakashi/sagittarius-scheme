@@ -51,6 +51,7 @@
 	    (sagittarius regex)
 	    (sagittarius control)
 	    (sagittarius char-sets boundaries)
+	    (sagittarius char-sets emojis)
 	    (match))
 
 (define-condition-type &sre-parse-error &error
@@ -193,7 +194,15 @@
 	   ((bog) (parse `(look-ahead grapheme)))
 	   ((eog) (parse `(or (neg-look-ahead grapheme) bos)))
 	   ((grapheme) 
-	    (parse `(or (seq (* ,char-set:hangul-l) (+ ,char-set:hangul-v)
+	    (parse `(or (seq "\r\n") ;; GB3
+			;; GB11
+			(seq ,char-set:extended-pictographic
+			     (+ (seq
+				 (* ,char-set:extend)
+				 ,char-set:zwj
+				 ,char-set:extended-pictographic)))
+			;; GB6 - GB8
+			(seq (* ,char-set:hangul-l) (+ ,char-set:hangul-v)
 			     (* ,char-set:hangul-t))
 			(seq (* ,char-set:hangul-l) ,char-set:hangul-v
 			     (* ,char-set:hangul-v) (* ,char-set:hangul-t))
@@ -201,10 +210,13 @@
 			     (* ,char-set:hangul-t))
 			(+ ,char-set:hangul-l)
 			(+ ,char-set:hangul-t)
-			(+ ,char-set:regional-indicator)
-			(seq "\r\n")
+			;; GB9
 			(seq (~ control ("\r\n"))
-			     (* ,char-set:extend-or-spacing-mark))
+			     (* (or ,char-set:extend-or-spacing-mark
+				    ,char-set:zwj)))
+			
+			(+ ,char-set:regional-indicator) ;; GB12
+			;; GB5
 			control)))
 	   ((ascii)	char-set:ascii)
 	   ((nonl)	`(inverted-char-class ,(string->char-set "\n")))
@@ -389,7 +401,10 @@
 	((string? sre)
 	 (if (case-sensitive?)
              `(sequence ,@(string->list sre))
-             (sre-uncase-string sre)))))
+             (sre-uncase-string sre)))
+	(else
+	 (sre-parse-error 'parse-literal
+			  "Invalid literal" sre))))
 
 (define (sre-uncase-char-set sre)
   (let1 nsre (sre-normalize sre)

@@ -75,8 +75,24 @@ rem unicode
 :unicode
 echo "Generating Unicode codepoints"
 call :invoke ./tools/scripts/compile-unicode.scm %1
-md sitelib/sagittarius/char-sets
-call :invoke ./tools/scripts/extract-unicode-props.scm -l'(sagittarius char-sets boundaries)' -o sitelib/sagittarius/char-sets/boundaries.scm --derived unicode/data/GraphemeBreakProperty.txt Prepend Control Extend ZWJ SpacingMark extend-or-spacing-mark=Extend,SpacingMark Regional_Indicator hangul-l=:L hangul-v=:V hangul-t=:T hangul-lv=:LV hangul-lvt=:LVT
+if %1 == "" (
+  md sitelib/sagittarius/char-sets
+  call :invoke ./tools/scripts/extract-unicode-props.scm^
+            -l'(sagittarius char-sets boundaries)'^
+	    -o sitelib/sagittarius/char-sets/boundaries.scm^
+	    --derived unicode/data/GraphemeBreakProperty.txt^
+	    Prepend Control Extend ZWJ SpacingMark^
+	    extend-or-spacing-mark=Extend,SpacingMark Regional_Indicator^
+	    hangul-l=:L hangul-v=:V hangul-t=:T hangul-lv=:LV hangul-lvt=:LVT
+
+  call :invoke ./tools/scripts/extract-unicode-props.scm^
+	      -l'(sagittarius char-sets emojis)'^
+	      -o sitelib/sagittarius/char-sets/emojis.scm^
+	      --derived unicode/data/emoji-data.txt^
+	      Emoji Emoji_Presentation Emoji_Modifier^
+	      Emoji_Modifier_Base Emoji_Component^
+	      Extended_Pictographic
+)
 goto:eof
 
 rem html

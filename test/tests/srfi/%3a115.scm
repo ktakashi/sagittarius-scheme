@@ -259,8 +259,7 @@
 				       0))))
 ;; this causes macro expansion error.
 ;; FIXME
-#;
-(test-equal "dynamic SRE problem"
+#;(test-equal "dynamic SRE problem"
 	    "1:45:02-2:06:13"
 	    (let* ((elapsed '(: (** 1 2 num) ":" num num (? ":" num num)))
 		   (span (rx ,elapsed "-" ,elapsed)))
@@ -287,5 +286,12 @@
 	     (not (regexp-search '(w/ascii bos (* alpha) eos) "Ελληνική")))
 (test-assert (regexp-search '(w/unicode bos (* alpha) eos) "English"))
 (test-assert (regexp-search '(w/unicode bos (* alpha) eos) "Ελληνική"))
+
+;; grapheme with emoji
+(test-equal '("a" "b" "c" "👨‍👨‍👧‍👧" "d" "e")
+	    (reverse (regexp-fold (rx grapheme) 
+				  (lambda (i m s seed)
+				    (cons (regexp-match-submatch m 0) seed))
+				  '() "abc👨‍👨‍👧‍👧de")))
 
 (test-end)
