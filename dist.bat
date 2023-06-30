@@ -78,12 +78,20 @@ call :invoke ./tools/scripts/compile-unicode.scm %1
 if %1 == "" (
   md sitelib/sagittarius/char-sets
   call :invoke ./tools/scripts/extract-unicode-props.scm^
-            -l'(sagittarius char-sets boundaries)'^
-	    -o sitelib/sagittarius/char-sets/boundaries.scm^
+            -l'(sagittarius char-sets grapheme)'^
+	    -o sitelib/sagittarius/char-sets/grapheme.scm^
 	    --derived unicode/data/GraphemeBreakProperty.txt^
 	    Prepend Control Extend ZWJ SpacingMark^
 	    extend-or-spacing-mark=Extend,SpacingMark Regional_Indicator^
 	    hangul-l=:L hangul-v=:V hangul-t=:T hangul-lv=:LV hangul-lvt=:LVT
+
+  call :invoke ./tools/scripts/extract-unicode-props.scm^
+            -l'(sagittarius char-sets word)'^
+	    -o sitelib/sagittarius/char-sets/word.scm^
+	    --derived unicode/data/WordBreakProperty.txt^
+            Newline Extend ZWJ Regional_Indicator Format^
+            Katakana Hebrew_Letter ALetter MidNumLet MidLetter^
+            MidNum Numeric ExtendNumLet WSegSpace
 
   call :invoke ./tools/scripts/extract-unicode-props.scm^
 	      -l'(sagittarius char-sets emojis)'^

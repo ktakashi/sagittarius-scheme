@@ -50,7 +50,7 @@
 	    (sagittarius)
 	    (sagittarius regex)
 	    (sagittarius control)
-	    (sagittarius char-sets boundaries)
+	    (sagittarius char-sets grapheme)
 	    (sagittarius char-sets emojis)
 	    (match))
 

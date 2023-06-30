@@ -32,12 +32,13 @@ List of interesting files
 
     unicode/data/CaseFolding.txt
     unicode/data/CompositionExclusions.txt
-    unicode/data/auxiliary/DerivedCoreProperties.txt (used by extract-unicode-props.scm)
+    unicode/data/DerivedCoreProperties.txt (used by extract-unicode-props.scm)
     unicode/data/auxiliary/GraphemeBreakProperty.txt (ditto)
+    unicode/data/auxiliary/SentenceBreakProperty.txt (ditto)
+    unicode/data/auxiliary/WordBreakProperty.txt (ditto)
     unicode/data/PropList.txt
     unicode/data/SpecialCasing.txt
-    unicode/data/UnicodeData.txt
-    unicode/data/WordBreakProperty.txt (not used)
+    unicode/data/UnicodeData.txt    
     unicode/data/emoji/emoji-data.txt 
 |#
 (define-constant +interesting-files+
@@ -45,10 +46,11 @@ List of interesting files
     "CompositionExclusions.txt"
     "DerivedCoreProperties.txt"
     "GraphemeBreakProperty.txt"
+    "SentenceBreakProperty.txt"
+    "WordBreakProperty.txt"
     "PropList.txt"
     "SpecialCasing.txt"
-    "UnicodeData.txt"
-    "WordBreakProperty.txt"
+    "UnicodeData.txt"    
     "emoji-data.txt"))
 
 (define (path-filename p)
