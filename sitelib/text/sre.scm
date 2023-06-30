@@ -195,18 +195,18 @@
 	   ((eog) (parse `(or (neg-look-ahead grapheme) bos)))
 	   ((grapheme) 
 	    (parse `(or (seq "\r\n") ;; GB3
-			;; GB11
+			;; GB11 (xpicto-sequence from Table 1c, tr29)
 			(seq ,char-set:extended-pictographic
 			     (+ (seq
 				 (* ,char-set:extend)
 				 ,char-set:zwj
 				 ,char-set:extended-pictographic)))
-			;; GB6 - GB8
-			(seq (* ,char-set:hangul-l) (+ ,char-set:hangul-v)
-			     (* ,char-set:hangul-t))
-			(seq (* ,char-set:hangul-l) ,char-set:hangul-v
-			     (* ,char-set:hangul-v) (* ,char-set:hangul-t))
-			(seq (* ,char-set:hangul-l) ,char-set:hangul-lvt
+			;; GB6 - GB8 (hangul-syllable from Table 1c, tr29)
+			(seq (* ,char-set:hangul-l)
+			     (or (+ ,char-set:hangul-v)
+				 (seq ,char-set:hangul-lv
+				      (* ,char-set:hangul-v))
+				 ,char-set:hangul-lvt)
 			     (* ,char-set:hangul-t))
 			(+ ,char-set:hangul-l)
 			(+ ,char-set:hangul-t)
