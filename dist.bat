@@ -81,7 +81,7 @@ if %1 == "" (
             -l'(sagittarius char-sets grapheme)'^
 	    -o sitelib/sagittarius/char-sets/grapheme.scm^
 	    --derived unicode/data/GraphemeBreakProperty.txt^
-	    Prepend Control Extend ZWJ SpacingMark^
+	    Prepend Control Extend ZWJ spacing-mark=SpacingMark^
 	    extend-or-spacing-mark=Extend,SpacingMark Regional_Indicator^
 	    hangul-l=:L hangul-v=:V hangul-t=:T hangul-lv=:LV hangul-lvt=:LVT
 
@@ -90,8 +90,9 @@ if %1 == "" (
 	    -o sitelib/sagittarius/char-sets/word.scm^
 	    --derived unicode/data/WordBreakProperty.txt^
             Newline Extend ZWJ Regional_Indicator Format^
-            Katakana Hebrew_Letter ALetter MidNumLet MidLetter^
-            MidNum Numeric ExtendNumLet WSegSpace
+            Katakana Hebrew_Letter a-letter=ALetter mid-num-let=MidNumLet^
+	    mid-letter=MidLetter mid-num=MidNum Numeric^
+	    extend-num-let=ExtendNumLet w-seg-space=WSegSpace
 
   call :invoke ./tools/scripts/extract-unicode-props.scm^
 	      -l'(sagittarius char-sets emojis)'^

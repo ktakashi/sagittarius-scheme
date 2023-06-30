@@ -64,8 +64,9 @@ unicode()
 	      -l'(sagittarius char-sets grapheme)' \
 	      -o sitelib/sagittarius/char-sets/grapheme.scm \
 	      --derived unicode/data/GraphemeBreakProperty.txt \
-	      Prepend Control Extend ZWJ SpacingMark \
-	      extend-or-spacing-mark=Extend,SpacingMark Regional_Indicator \
+	      Prepend Control Extend ZWJ Regional_Indicator \
+	      spacing-mark=SpacingMark \
+	      extend-or-spacing-mark=Extend,SpacingMark  \
 	      hangul-l=:L \
 	      hangul-v=:V \
 	      hangul-t=:T \
@@ -77,8 +78,12 @@ unicode()
 	      -o sitelib/sagittarius/char-sets/word.scm \
 	      --derived unicode/data/WordBreakProperty.txt \
 	      Newline Extend ZWJ Regional_Indicator Format \
-	      Katakana Hebrew_Letter ALetter MidNumLet MidLetter \
-	      MidNum Numeric ExtendNumLet WSegSpace
+	      Numeric Katakana Hebrew_Letter \
+	      a-letter=ALetter mid-num-let=MidNumLet \
+	      mid-letter=MidLetter \
+	      mid-num=MidNum \
+	      extend-num-let=ExtendNumLet \
+	      w-seg-space=WSegSpace
 
 	$SASH ./tools/scripts/extract-unicode-props.scm \
 	      -l'(sagittarius char-sets emojis)' \
