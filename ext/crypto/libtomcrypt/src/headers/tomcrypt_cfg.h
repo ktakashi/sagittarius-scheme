@@ -91,6 +91,11 @@ LTC_EXPORT int   LTC_CALL XSTRCMP(const char *s1, const char *s2);
    #define ENDIAN_LITTLE
    #define ENDIAN_64BITWORD
    #define LTC_FAST
+   #if defined(__SSE4_1__)
+      #if __SSE4_1__ == 1
+         #define LTC_AMD64_SSE4_1
+      #endif
+   #endif
 #endif
 
 /* detect PPC32 */
@@ -293,6 +298,15 @@ typedef unsigned long ltc_mp_digit;
    #define LTC_ALIGN(n) __attribute__((aligned(n)))
 #else
    #define LTC_ALIGN(n)
+#endif
+
+/* Define `LTC_NO_NULL_TERMINATION_CHECK` in the user code
+ * before including `tomcrypt.h` to disable this functionality.
+ */
+#if defined(__GNUC__) && __GNUC__ >= 4 && !defined(LTC_NO_NULL_TERMINATION_CHECK)
+#   define LTC_NULL_TERMINATED __attribute__((sentinel))
+#else
+#   define LTC_NULL_TERMINATED
 #endif
 
 #if defined(__GNUC__) && (__GNUC__ * 100 + __GNUC_MINOR__ >= 405)

@@ -49,6 +49,7 @@ ADD_LIBRARY(libtomcrypt STATIC
   src/ciphers/camellia.c
   # aes
   src/ciphers/aes/aes.c
+  src/ciphers/aes/aes_desc.c src/ciphers/aes/aesni.c
   # safer+
   src/ciphers/safer/safer.c src/ciphers/safer/saferp.c
   # src/ciphers/safer/safer_tab.c

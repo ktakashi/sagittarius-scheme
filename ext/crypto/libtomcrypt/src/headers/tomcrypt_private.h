@@ -9,6 +9,14 @@
 
 #define LTC_PAD_MASK       (0xF000U)
 
+/* `NULL` as defined by the standard is not guaranteed to be of a pointer
+ * type. In order to make sure that in vararg API's a pointer type is used,
+ * define our own version and use that one internally.
+ */
+#ifndef LTC_NULL
+   #define LTC_NULL ((void *)0)
+#endif
+
 /*
  * Internal Enums
  */
@@ -68,6 +76,10 @@ typedef struct
 
 
 /* tomcrypt_cipher.h */
+
+#if defined(LTC_AES_NI) && defined(LTC_AMD64_SSE4_1)
+#define LTC_HAS_AES_NI
+#endif
 
 void blowfish_enc(ulong32 *data, unsigned long blocks, const symmetric_key *skey);
 int blowfish_expand(const unsigned char *key, int keylen,
@@ -337,13 +349,13 @@ int tweetnacl_crypto_sign_open(
   int *stat,
   unsigned char *m,unsigned long long *mlen,
   const unsigned char *sm,unsigned long long smlen,
-  const unsigned char *ctx, unsigned long cs,
+  const unsigned char *ctx, unsigned long long cs,
   const unsigned char *pk);
 int tweetnacl_crypto_sign_keypair(prng_state *prng, int wprng, unsigned char *pk,unsigned char *sk);
 int tweetnacl_crypto_sk_to_pk(unsigned char *pk, const unsigned char *sk);
 int tweetnacl_crypto_scalarmult(unsigned char *q, const unsigned char *n, const unsigned char *p);
 int tweetnacl_crypto_scalarmult_base(unsigned char *q,const unsigned char *n);
-int tweetnacl_crypto_ph(unsigned char *out, const unsigned char *msg, unsigned long msglen);
+int tweetnacl_crypto_ph(unsigned char *out, const unsigned char *msg, unsigned long long msglen);
 
 typedef int (*sk_to_pk)(unsigned char *pk ,const unsigned char *sk);
 int ec25519_import_pkcs8(const unsigned char *in, unsigned long inlen,
@@ -384,7 +396,8 @@ extern const unsigned long  der_asn1_tag_to_type_map_sz;
 extern const int der_asn1_type_to_identifier_map[];
 extern const unsigned long der_asn1_type_to_identifier_map_sz;
 
-int der_decode_sequence_multi_ex(const unsigned char *in, unsigned long inlen, unsigned int flags, ...);
+int der_decode_sequence_multi_ex(const unsigned char *in, unsigned long inlen, unsigned int flags, ...)
+                                 LTC_NULL_TERMINATED;
 
 int der_teletex_char_encode(int c);
 int der_teletex_value_decode(int v);

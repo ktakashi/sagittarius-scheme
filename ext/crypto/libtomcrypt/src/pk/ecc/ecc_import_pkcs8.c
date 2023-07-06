@@ -60,11 +60,11 @@ int ecc_import_pkcs8(const unsigned char *in, unsigned long inlen,
    if (err != CRYPT_OK) return err;
 
    /* init key */
-   err = mp_init_multi(&a, &b, &gx, &gy, NULL);
+   err = mp_init_multi(&a, &b, &gx, &gy, LTC_NULL);
    if (err != CRYPT_OK) return err;
 
 
-   if ((err = pkcs8_decode_flexi(in, inlen, pwd, pwdlen, &l)) == CRYPT_OK) {
+   if (pkcs8_decode_flexi(in, inlen, pwd, pwdlen, &l) == CRYPT_OK) {
 
       /* Setup for basic structure */
       n=0;
@@ -73,7 +73,7 @@ int ecc_import_pkcs8(const unsigned char *in, unsigned long inlen,
       LTC_SET_DER_FLEXI_CHECK(flexi_should, n++, LTC_ASN1_OCTET_STRING, &priv_key);
       LTC_SET_DER_FLEXI_CHECK(flexi_should, n, LTC_ASN1_EOL, NULL);
 
-      if (((err = s_der_flexi_sequence_cmp(l, flexi_should)) == CRYPT_OK) &&
+      if ((s_der_flexi_sequence_cmp(l, flexi_should) == CRYPT_OK) &&
             (pk_oid_cmp_with_asn1(pka_ec_oid, seq->child) == CRYPT_OK)) {
          ltc_asn1_list *version, *field, *point, *point_g, *order, *p_cofactor;
 
@@ -154,7 +154,7 @@ int ecc_import_pkcs8(const unsigned char *in, unsigned long inlen,
 
          /* load private key value 'k' */
          len = priv_key->size;
-         if ((err = der_decode_sequence_flexi(priv_key->data, &len, &p)) == CRYPT_OK) {
+         if (der_decode_sequence_flexi(priv_key->data, &len, &p) == CRYPT_OK) {
             if (p->type == LTC_ASN1_SEQUENCE &&
                 LTC_ASN1_IS_TYPE(p->child, LTC_ASN1_INTEGER) &&
                 LTC_ASN1_IS_TYPE(p->child->next, LTC_ASN1_OCTET_STRING)) {
@@ -177,7 +177,7 @@ int ecc_import_pkcs8(const unsigned char *in, unsigned long inlen,
 LBL_ECCFREE:
    ecc_free(key);
 LBL_DONE:
-   mp_clear_multi(a, b, gx, gy, NULL);
+   mp_clear_multi(a, b, gx, gy, LTC_NULL);
    if (l) der_free_sequence_flexi(l);
    if (p) der_free_sequence_flexi(p);
    return err;
