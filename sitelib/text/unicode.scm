@@ -2,7 +2,7 @@
 ;;;
 ;;; text/unicode.scm - Unicode related
 ;;;  
-;;;   Copyright (c) 2020  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2020-2023  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -30,8 +30,39 @@
 
 #!nounbound
 (library (text unicode)
-    (export unicode-char-width unicode-terminal-width)
-    (import (rnrs))
+    (export unicode-char-width unicode-terminal-width
+
+	    string->unicode-break-generator
+	    port->unicode-break-generator
+	    char-generator->unicode-break-generator)
+    (import (rnrs)
+	    (peg)
+	    (sagittarius generators)
+	    (srfi :127 lseqs))
+
+(define (string->unicode-break-generator string break-strategy)
+  (char-generator->unicode-break-generator
+   (string->generator string) break-strategy))
+(define (port->unicode-break-generator port break-strategy)
+  (char-generator->unicode-break-generator
+   (port->char-generator port) break-strategy))
+
+(define (char-generator->unicode-break-generator generator break-strategy)
+  (let* ((source (generator->lseq generator))
+	 (lseq source))
+    (lambda ()
+      (if (null? lseq)
+	  (eof-object)
+	  (let-values (((s v nl) (break-strategy lseq)))
+	    (cond ((parse-success? s)
+		   (set! lseq nl)
+		   v)
+		  (else
+		   (lseq-realize source)
+		   (error 'char-generator->unicode-generator
+			  "Incorrect break strategy"
+			  (list->string source)))))))))
+
 ;;;;; unicode.scm
 ;; unicode.scm -- Unicode character width and ANSI escape support
 ;; Copyright (c) 2006-2017 Alex Shinn.  All rights reserved.

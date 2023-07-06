@@ -75,7 +75,7 @@ rem unicode
 :unicode
 echo "Generating Unicode codepoints"
 call :invoke ./tools/scripts/compile-unicode.scm %1
-if %1 == "" (
+if "%1" == "" (
   md sitelib/sagittarius/char-sets
   call :invoke ./tools/scripts/extract-unicode-props.scm^
             -l'(sagittarius char-sets grapheme)'^

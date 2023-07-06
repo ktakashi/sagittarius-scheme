@@ -13,7 +13,7 @@
 const struct ltc_cipher_descriptor camellia_desc = {
    "camellia",
    23,
-   16, 32, 16, 0,		/* default_rounds = 0, for convenience */
+   16, 32, 16, 18,
    &camellia_setup,
    &camellia_ecb_encrypt,
    &camellia_ecb_decrypt,
