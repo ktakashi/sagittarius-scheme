@@ -64,7 +64,7 @@ call :invoke ./tools/scripts/compile-unicode.scm %1
 
 if "%1" == "-c" goto:unicode_end
 
-md sitelib/sagittarius/char-sets
+md sitelib\sagittarius\char-sets
 call :invoke ./tools/scripts/extract-unicode-props.scm^
             -l'(sagittarius char-sets grapheme)'^
 	    -o sitelib/sagittarius/char-sets/grapheme.scm^
