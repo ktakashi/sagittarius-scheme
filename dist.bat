@@ -4,27 +4,13 @@ rem Modify this to your installed directory
 
 set SASH="%ProgramFiles%\Sagittarius\sash.exe"
 
-rem This is one hell ugly workaround for appveyor
-rem for some reason, on the server Sagittarius 
-rem causes C5000005 (ACCESS VIOLATION), very
-rem frequently. The funny thins is that it might
-rem complete the task. So we retry number of times
-rem until it gets somewhere
-set RETRY=0
-set MAX_RETRY=100
 
 goto :entry
 
 :invoke
-set RETRY=0
 set COMMAND=%1
 shift
-:retry
 %SASH% %COMMAND% %*
-if %errorlevel% neq 0 (
-    set /a RETRY=%RETRY%+1
-    if %RETRY% neq %MAX_RETRY% goto retry
-)
 rem return to caller
 goto:eof
 
@@ -75,9 +61,11 @@ rem unicode
 :unicode
 echo "Generating Unicode codepoints"
 call :invoke ./tools/scripts/compile-unicode.scm %1
-if "%1" == "" (
-  md sitelib/sagittarius/char-sets
-  call :invoke ./tools/scripts/extract-unicode-props.scm^
+
+if "%1" == "-c" goto:unicode_end
+
+md sitelib/sagittarius/char-sets
+call :invoke ./tools/scripts/extract-unicode-props.scm^
             -l'(sagittarius char-sets grapheme)'^
 	    -o sitelib/sagittarius/char-sets/grapheme.scm^
 	    --derived unicode/data/GraphemeBreakProperty.txt^
@@ -85,7 +73,7 @@ if "%1" == "" (
 	    extend-or-spacing-mark=Extend,SpacingMark Regional_Indicator^
 	    hangul-l=:L hangul-v=:V hangul-t=:T hangul-lv=:LV hangul-lvt=:LVT
 
-  call :invoke ./tools/scripts/extract-unicode-props.scm^
+call :invoke ./tools/scripts/extract-unicode-props.scm^
             -l'(sagittarius char-sets word)'^
 	    -o sitelib/sagittarius/char-sets/word.scm^
 	    --derived unicode/data/WordBreakProperty.txt^
@@ -94,14 +82,15 @@ if "%1" == "" (
 	    mid-letter=MidLetter mid-num=MidNum Numeric^
 	    extend-num-let=ExtendNumLet w-seg-space=WSegSpace
 
-  call :invoke ./tools/scripts/extract-unicode-props.scm^
+call :invoke ./tools/scripts/extract-unicode-props.scm^
 	      -l'(sagittarius char-sets emojis)'^
 	      -o sitelib/sagittarius/char-sets/emojis.scm^
 	      --derived unicode/data/emoji-data.txt^
 	      Emoji Emoji_Presentation Emoji_Modifier^
 	      Emoji_Modifier_Base Emoji_Component^
 	      Extended_Pictographic
-)
+
+:unicode_end
 goto:eof
 
 rem html
