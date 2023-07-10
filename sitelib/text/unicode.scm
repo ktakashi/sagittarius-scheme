@@ -34,11 +34,14 @@
 
 	    string->unicode-break-generator
 	    port->unicode-break-generator
-	    char-generator->unicode-break-generator)
+	    char-generator->unicode-break-generator
+
+	    grapheme-strategy
+	    )
     (import (rnrs)
 	    (peg)
 	    (sagittarius generators)
-	    (srfi :127 lseqs))
+	    (text unicode grapheme))
 
 (define (string->unicode-break-generator string break-strategy)
   (char-generator->unicode-break-generator
@@ -48,20 +51,7 @@
    (port->char-generator port) break-strategy))
 
 (define (char-generator->unicode-break-generator generator break-strategy)
-  (let* ((source (generator->lseq generator))
-	 (lseq source))
-    (lambda ()
-      (if (null? lseq)
-	  (eof-object)
-	  (let-values (((s v nl) (break-strategy lseq)))
-	    (cond ((parse-success? s)
-		   (set! lseq nl)
-		   v)
-		  (else
-		   (lseq-realize source)
-		   (error 'char-generator->unicode-generator
-			  "Incorrect break strategy"
-			  (list->string source)))))))))
+  (break-strategy generator))
 
 ;;;;; unicode.scm
 ;; unicode.scm -- Unicode character width and ANSI escape support

@@ -2,7 +2,7 @@ syntax: glob
 
 build/
 CMakeFiles/
-unicode/
+/unicode/
 .vs/
 .DS_Store
 .idea/
