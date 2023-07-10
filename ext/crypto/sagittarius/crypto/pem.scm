@@ -121,6 +121,7 @@ Sec. Label                  ASN.1 Type              Reference Module
 (define label-public-key "PUBLIC KEY")
 
 (define label-ec-private-key "EC PRIVATE KEY")
+(define label-rsa-private-key "RSA PRIVATE KEY")
 
 (define-method dispatch-pem-label ((l (equal label-certificate)) bv)
   (bytevector->x509-certificate bv))
@@ -153,6 +154,9 @@ Sec. Label                  ASN.1 Type              Reference Module
 (define-method dispatch-pem-label ((l (equal label-ec-private-key)) bv)
   (import-private-key *key:ecdsa* bv))
 
+(define-method dispatch-pem-label ((l (equal label-rsa-private-key)) bv)
+  (import-private-key *key:rsa* bv))
+
 (define (x509-certificate->pem-object (x509-certificate x509-certificate?))
   (make-pem-object label-certificate #f
 		   (x509-certificate->bytevector x509-certificate)))
@@ -184,4 +188,7 @@ Sec. Label                  ASN.1 Type              Reference Module
 
 (define (ecdsa-private-key->pem-object (private-key ecdsa-private-key?))
   (make-pem-object label-ec-private-key #f (export-private-key private-key)))
+
+(define (rsa-private-key->pem-object (private-key rsa-private-key?))
+  (make-pem-object label-rsa-private-key #f (export-private-key private-key)))
 )
