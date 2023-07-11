@@ -1,0 +1,66 @@
+(import (rnrs)
+	(srfi :1)
+	(srfi :13)
+	(util port)
+	(getopt))
+
+(define (parse-break-test line)
+  (define (parse-test tokens)
+    ;; first must be ÷
+    (let loop ((tokens (cdr tokens)) (t '()) (r '()))
+      (let ((token (car tokens)))
+	(cond ((and (string=? token "÷") (null? (cdr tokens)))
+	       (let ((r (reverse! (cons (list->string (reverse! t)) r))))
+		 (list (string-concatenate r) r)))
+	      ((string=? token "÷")
+	       (loop (cdr tokens) '() (cons (list->string (reverse! t)) r)))
+	      ((string=? token "×") (loop (cdr tokens) t r))
+	      (else (loop (cdr tokens)
+			  (cons (integer->char (string->number token 16)) t)
+			  r))))))
+  
+  (and (not (string-null? line))
+       (parse-test (string-tokenize line))))
+
+(define (parse-break-tests in)
+  (define (read-line in)
+    (define (consume in)
+      (do ((c (lookahead-char in) (lookahead-char in)))
+	  ((or (eof-object? c) (eqv? c #\newline)))
+	(get-char in)))
+    (let-values (((out e) (open-string-output-port)))
+      (do ((c (get-char in) (get-char in)))
+	  ((or (eof-object? c) (memv c #'(#\newline #\#)))
+	   (when (eqv? c #\#) (consume in))
+	   (if (eof-object? c) c (e)))
+	(put-char out c))))
+  (filter values (port-map parse-break-test (lambda () (read-line in)))))
+
+(define (usage args)
+  (print "Usage: ")
+  (print (car args) " [-o {file}] input-file")
+  (print args)
+  (exit -1))
+
+(define (main args)
+  (with-args (cdr args)
+      ((output (#\o "output") #t (current-output-port))
+       . rest)
+    (when (null? rest) (usage args))
+    (let ((data (call-with-input-file (car rest) parse-break-tests)))
+      ;; (when (and output (file-exists? output)) (delete-file output))
+      (let ((out (if (output-port? output)
+		     output
+		     (open-file-output-port output
+					    (file-options no-fail)
+					    (buffer-mode block)
+					    (native-transcoder)))))
+	(display "#(" out) (newline out)
+	(for-each (lambda (l)
+		    (display "  " out) (write l out) (newline out)) data)
+	(display #\) out) (newline out)
+	(close-output-port out)))))
+	
+      
+	
+	  
