@@ -117,7 +117,9 @@
 	      (post* ($many $postcore)))
 	 ($return (string-append (list->string pre*)
 				 core
-				 (string-concatenate post*))))))
+				 (string-concatenate post*))))
+       ;; default break
+       ($do (c $any) ($return (string c)))))
 
 ;; [Generator] -> [Generator]
 ;; extended grapheme strategy :)
