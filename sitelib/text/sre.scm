@@ -192,32 +192,45 @@
 	   ((nwb) 'non-word-boundary)
 	   ;; hmmm how should we treat them?
 	   ((bog) (parse `(look-ahead grapheme)))
-	   ((eog) (parse `(or (neg-look-ahead grapheme) bos)))
-	   ((grapheme) 
+	   ((eog) (parse `(or (look-behind grapheme) bos)))
+	   ((grapheme)
+	    ;; The same implementation as (text unicode grapheme) but regexp
+	    ;; hangul-syllable := L* (V+ | LV V* | LVT) T*
+	    ;;                  | L+
+	    ;;                  | T+
+	    ;; core := hangul-syllable
+	    ;;       | ri-sequence
+	    ;;       | xpicto-sequence
+	    ;;       | [^Control CR LF]
+	    ;; extended grapheme cluster := crlf
+	    ;;                            | Control
+	    ;;                            | precore* core postcore*
 	    (parse `(or (seq "\r\n") ;; GB3
-			;; GB11 (xpicto-sequence from Table 1c, tr29)
-			(seq ,char-set:extended-pictographic
-			     (+ (seq
-				 (* ,char-set:extend)
-				 ,char-set:zwj
-				 ,char-set:extended-pictographic)))
-			;; GB6 - GB8 (hangul-syllable from Table 1c, tr29)
-			(seq (* ,char-set:hangul-l)
-			     (or (+ ,char-set:hangul-v)
-				 (seq ,char-set:hangul-lv
-				      (* ,char-set:hangul-v))
-				 ,char-set:hangul-lvt)
-			     (* ,char-set:hangul-t))
-			(+ ,char-set:hangul-l)
-			(+ ,char-set:hangul-t)
-			;; GB9
-			(seq (~ control ("\r\n"))
-			     (* (or ,char-set:extend-or-spacing-mark
+			(or ,char-set:control #\return #\linefeed)
+			(seq (* ,char-set:prepend)
+			     (or (or (seq (* ,char-set:hangul-l)
+					  (or (+ ,char-set:hangul-v)
+					      (seq ,char-set:hangul-lv
+						   (* ,char-set:hangul-v))
+					      ,char-set:hangul-lvt)
+					  (* ,char-set:hangul-t))
+				     (+ ,char-set:hangul-l)
+				     (+ ,char-set:hangul-t))
+				 ;; GB9a ri-sequence
+				 (= 2 ,char-set:regional-indicator)
+				 ;; GB11 (xpicto-sequence from Table 1c, tr29)
+				 (seq ,char-set:extended-pictographic
+				      (* (seq
+					  (* ,char-set:extend)
+					  ,char-set:zwj
+					  ,char-set:extended-pictographic)))
+				 (~ ,char-set:control #\return #\linefeed))
+			     (* (or ,char-set:extend
+				    ,char-set:spacing-mark
 				    ,char-set:zwj)))
-			
-			(+ ,char-set:regional-indicator) ;; GB12
-			;; GB5
-			control)))
+			;; Prepend x prepend case
+			(* ,char-set:prepend)
+			any)))
 	   ((ascii)	char-set:ascii)
 	   ((nonl)	`(inverted-char-class ,(string->char-set "\n")))
 	   ((blank)	char-set:blank)

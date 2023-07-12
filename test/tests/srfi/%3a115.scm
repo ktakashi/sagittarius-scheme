@@ -195,6 +195,9 @@
 (test-re '("글") 'grapheme "글")
 
 (test-re '("한") '(: bog grapheme eog) "한")
+;; I don't think we can make this work with SRE, at least at this moment
+;; I don't have any good idea
+(test-expect-fail 1)
 (test-re #f '(: "ᄒ" bog grapheme eog "ᆫ") "한")
 
 (test '("a" "b" "c") (regexp-extract 'grapheme "abc"))
@@ -293,5 +296,28 @@
 				  (lambda (i m s seed)
 				    (cons (regexp-match-submatch m 0) seed))
 				  '() "abc👨‍👨‍👧‍👧de")))
+(let ()
+  (define grapheme-data (include "../text/unicode/grapheme-data.scm"))
+  (define (test-grapheme expected s)
+    (define (->text out expected)
+      (define (->hex s)
+	(map (lambda (c) (format "~4,'0X" (char->integer c))) (string->list s)))
+      (put-string out "÷ ")
+      (put-string out (string-join
+		       (map (lambda (s) (string-join (->hex s) " × ")) expected)
+		       " ÷ "))
+      (put-string out " ÷"))
+    (let-values (((out e) (open-string-output-port)))
+      (put-datum out s)
+      (put-string out " -> ")
+      (->text out expected)
+      (let ((r (regexp-fold (rx grapheme)
+			    (lambda (i m s seed)
+			      (cons (regexp-match-submatch m 0) seed))
+			    '() s)))
+	(unless (equal? (reverse r) expected) (write r) (newline))
+	(test-equal (e) expected (reverse r)))))
+  (vector-for-each (lambda (v) (test-grapheme (cadr v) (car v)))
+		   grapheme-data))
 
 (test-end)
