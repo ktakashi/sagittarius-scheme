@@ -89,7 +89,10 @@
        ($do (c* ($many $hangul-t 1)) ($return (list->string c*)))))
 
 ;; RI-Sequence := RI RI
-(define $ri-sequence ($do (c+ ($many $ri 1)) ($return (list->string c+))))
+(define $ri-sequence ($do (ri0 $ri) (ri1 $ri) ($return (string ri0 ri1))))
+;; The below is incorrect, so GB12 and GB13 is a bit misleading to me.
+#;(define $ri-sequence
+  ($do (2ri* ($many $riri 1)) ($return (string-concatenate 2ri*))))
 
 ;; xpicto-sequence := \p{Extended_Pictographic} (Extend* ZWJ \p{Extended_Pictographic})*
 (define $xpicto-sequence
@@ -109,7 +112,6 @@
        $xpicto-sequence
        ($do (($not ($or $control $cr $lf))) (c $any) ($return (string c)))))
 (define $grapheme
-  ;; ignore GB1 and GB2...
   ($or $crlf
        $control
        ($let ((pre* ($many $precore))
@@ -118,7 +120,9 @@
 	 ($return (string-append (list->string pre*)
 				 core
 				 (string-concatenate post*))))
-       ;; default break
+       ;; GB9a (this can't be handled by the regexp definition of Unicode)
+       ($do (p* ($many $precore)) ($return (list->string p*)))
+       ;; GB999 (default break)
        ($do (c $any) ($return (string c)))))
 
 ;; [Generator] -> [Generator]
