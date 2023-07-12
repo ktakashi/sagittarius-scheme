@@ -239,13 +239,17 @@ SgObject Sg_CharSetAddRange(SgCharSet *cs, SgChar from, SgChar to)
 
   hi = e;
   while ((hi = Sg_TreeMapHigherEntry(cs->large, SG_OBJ(hi->key))) != NULL) {
+    intptr_t hi_value;
     if (hi->key > to+1) {
       e->value = to;
       return SG_OBJ(cs);
     }
+    /* save the value, it seems after deletion, the entry may get modified */
+    hi_value = hi->value;
     Sg_TreeMapDelete(cs->large, SG_OBJ(hi->key));
-    if (hi->value > to) {
-      e->value = hi->value;
+
+    if (hi_value > to) {
+      e->value = hi_value;
       return SG_OBJ(cs);
     }
   }

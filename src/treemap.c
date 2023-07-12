@@ -207,8 +207,7 @@ SgObject Sg_TreeMapValues(SgTreeMap *tm)
 
 SgTreeEntry* Sg_TreeMapHigherEntry(SgTreeMap *tm, SgObject key)
 {
-  if (!SG_SCHEME_TREEMAP_P(tm) &&
-      SG_TREEMAP_C_PROC(tm, higher)) {
+  if (!SG_SCHEME_TREEMAP_P(tm) && SG_TREEMAP_C_PROC(tm, higher)) {
     return SG_TREEMAP_C_PROC(tm, higher)(tm, (intptr_t)key);
   }
   Sg_ImplementationRestrictionViolation(SG_INTERN("treemap-higher"),
@@ -221,8 +220,7 @@ SgTreeEntry* Sg_TreeMapHigherEntry(SgTreeMap *tm, SgObject key)
 
 SgTreeEntry* Sg_TreeMapLowerEntry(SgTreeMap *tm, SgObject key)
 {
-  if (!SG_SCHEME_TREEMAP_P(tm) &&
-      SG_TREEMAP_C_PROC(tm, lower)) {
+  if (!SG_SCHEME_TREEMAP_P(tm) && SG_TREEMAP_C_PROC(tm, lower)) {
     return SG_TREEMAP_C_PROC(tm, lower)(tm, (intptr_t)key);
   }
   Sg_ImplementationRestrictionViolation(SG_INTERN("treemap-lower"),
