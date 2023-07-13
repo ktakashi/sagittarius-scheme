@@ -66,7 +66,7 @@ if "%1" == "-c" goto:unicode_end
 
 md sitelib\sagittarius\char-sets
 call :invoke ./tools/scripts/extract-unicode-props.scm^
-            -l'(sagittarius char-sets grapheme)'^
+            -l"(sagittarius char-sets grapheme)"^
 	    -o sitelib/sagittarius/char-sets/grapheme.scm^
 	    --derived unicode/data/GraphemeBreakProperty.txt^
 	    Prepend Control Extend ZWJ spacing-mark=SpacingMark^
@@ -74,7 +74,7 @@ call :invoke ./tools/scripts/extract-unicode-props.scm^
 	    hangul-l=:L hangul-v=:V hangul-t=:T hangul-lv=:LV hangul-lvt=:LVT
 
 call :invoke ./tools/scripts/extract-unicode-props.scm^
-            -l'(sagittarius char-sets word)'^
+            -l"(sagittarius char-sets word)"^
 	    -o sitelib/sagittarius/char-sets/word.scm^
 	    --derived unicode/data/WordBreakProperty.txt^
             Newline Extend ZWJ Regional_Indicator Format^
@@ -83,7 +83,7 @@ call :invoke ./tools/scripts/extract-unicode-props.scm^
 	    extend-num-let=ExtendNumLet w-seg-space=WSegSpace
 
 call :invoke ./tools/scripts/extract-unicode-props.scm^
-	      -l'(sagittarius char-sets emojis)'^
+	      -l"(sagittarius char-sets emojis)"^
 	      -o sitelib/sagittarius/char-sets/emojis.scm^
 	      --derived unicode/data/emoji-data.txt^
 	      Emoji Emoji_Presentation Emoji_Modifier^
