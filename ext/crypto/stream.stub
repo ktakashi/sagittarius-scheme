@@ -1,0 +1,15 @@
+;; -*- mode: scheme; coding: utf-8; -*-
+(decl-code
+ (.include <sagittarius/private.h>)
+ (.define "LIBSAGITTARIUS_EXT_BODY")
+ (.include  <sagittarius/extend.h>
+	    <sagittarius-stream.h>))
+
+(define-type <stream-cipher> "SgStreamCipher" "stream cipher descriptor"
+  "SG_STREAM_CIPHERP" "SG_INT_VALUE")
+(define-type <stream-cipher-state>  "SgStreamCipherState *")
+
+(define-c-proc stream-cipher-state? (obj) ::<boolean> :constant
+  SG_STREAM_CIPHER_STATE_P)
+
+

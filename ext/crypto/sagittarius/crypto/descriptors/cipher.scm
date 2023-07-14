@@ -35,12 +35,12 @@
 
 	    symmetric-cipher-descriptor?
 	    (rename (symmetric-cipher-descriptor <symmetric-cipher-descriptor>))
-	    symmetric-cipher-descriptor-cipher
 	    symmetric-cipher-descriptor-min-key-length
 	    symmetric-cipher-descriptor-max-key-length
 
 	    block-cipher-descriptor?
 	    (rename (block-cipher-descriptor <block-cipher-descriptor>))
+	    block-cipher-descriptor-cipher
 	    block-cipher-descriptor-block-length
 	    block-cipher-descriptor-default-rounds
 	    block-cipher-descriptor-suggested-key-length
@@ -83,20 +83,22 @@
 ;; So, I make a record to wrap this the descriptors 
 (define-record-type symmetric-cipher-descriptor
   (parent cipher-descriptor)
-  (fields cipher ;; real cipher descriptor, a fixnum
+  (fields 
 	  min-key-length
 	  max-key-length))
 (define-record-type block-cipher-descriptor
   (parent symmetric-cipher-descriptor)
-  (fields block-length
+  (fields cipher ;; real cipher descriptor, a fixnum
+	  block-length
 	  default-rounds))
+
 
 (define (block-cipher-descriptor-suggested-key-length descriptor . opts)
   (unless (block-cipher-descriptor? descriptor)
     (assertion-violation 'block-cipher-descriptor-suggested-key-length
 			 "Cipher descriptor is required" descriptor))
   (apply tc:cipher-descriptor-suggested-keysize 
-	 (symmetric-cipher-descriptor-cipher descriptor)
+	 (block-cipher-descriptor-cipher descriptor)
 	 opts))
 
 (define-record-type asymmetric-cipher-descriptor
@@ -112,9 +114,9 @@
      (let ((cipher (tc:find-cipher name)))
        (make-block-cipher-descriptor
 	(tc:cipher-descriptor-name cipher)
-	cipher
 	(tc:cipher-descriptor-min-key-length cipher)
 	(tc:cipher-descriptor-max-key-length cipher)
+	cipher
 	(tc:cipher-descriptor-block-length cipher)
 	(tc:cipher-descriptor-default-rounds cipher))))))
 

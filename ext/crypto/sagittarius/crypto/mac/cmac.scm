@@ -42,8 +42,7 @@
 (define-method mac-state-initializer ((m (eql *mac:cmac*)) (key <bytevector>)
 	      :key ((cipher block-cipher-descriptor?) #f)
 	      :allow-other-keys)
-  (values (lambda ()
-	    (tc:cmac-init (symmetric-cipher-descriptor-cipher cipher) key))
+  (values (lambda () (tc:cmac-init (block-cipher-descriptor-cipher cipher) key))
 	  (block-cipher-descriptor-block-length cipher)
 	  #f))
 

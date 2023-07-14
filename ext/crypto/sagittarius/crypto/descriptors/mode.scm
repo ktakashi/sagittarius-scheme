@@ -133,7 +133,7 @@
 (define (ecb-start cipher key parameter)
   (define rounds
     (or (cipher-parameter-rounds parameter #f) 0))
-  (tc:ecb-start (symmetric-cipher-descriptor-cipher cipher) key rounds))
+  (tc:ecb-start (block-cipher-descriptor-cipher cipher) key rounds))
 (define tc:ecb-set-iv! #f)
 (define tc:ecb-get-iv! #f)
 
@@ -141,19 +141,19 @@
   (define rounds
     (or (cipher-parameter-rounds parameter #f) 0))
   (define iv (cipher-parameter-iv parameter))
-  (tc:cbc-start (symmetric-cipher-descriptor-cipher cipher) iv key rounds))
+  (tc:cbc-start (block-cipher-descriptor-cipher cipher) iv key rounds))
 
 (define (cfb-start cipher key parameter)
   (define rounds
     (or (cipher-parameter-rounds parameter #f) 0))
   (define iv (cipher-parameter-iv parameter))
-  (tc:cfb-start (symmetric-cipher-descriptor-cipher cipher) iv key rounds))
+  (tc:cfb-start (block-cipher-descriptor-cipher cipher) iv key rounds))
 
 (define (ofb-start cipher key parameter)
   (define rounds
     (or (cipher-parameter-rounds parameter #f) 0))
   (define iv (cipher-parameter-iv parameter))
-  (tc:ofb-start (symmetric-cipher-descriptor-cipher cipher) iv key rounds))
+  (tc:ofb-start (block-cipher-descriptor-cipher cipher) iv key rounds))
 
 (define (ctr-start cipher key parameter)
   (define rounds
@@ -161,7 +161,7 @@
   (define iv (cipher-parameter-iv parameter))
   (define ctr-mode
     (cipher-parameter-counter-mode parameter tc:*ctr-mode:big-endian*))
-  (tc:ctr-start (symmetric-cipher-descriptor-cipher cipher)
+  (tc:ctr-start (block-cipher-descriptor-cipher cipher)
 		iv key rounds ctr-mode))
 
 (define (lrw-start cipher key parameter)
@@ -169,7 +169,7 @@
     (or (cipher-parameter-rounds parameter #f) 0))
   (define iv (cipher-parameter-iv parameter))
   (define tweak (cipher-parameter-tweak parameter #f))
-  (tc:lrw-start (symmetric-cipher-descriptor-cipher cipher)
+  (tc:lrw-start (block-cipher-descriptor-cipher cipher)
 		iv key tweak rounds))
 
 (define (f8-start cipher key parameter)
@@ -177,7 +177,7 @@
     (or (cipher-parameter-rounds parameter #f) 0))
   (define iv (cipher-parameter-iv parameter))
   (define salt (cipher-parameter-salt parameter #f))
-  (tc:f8-start (symmetric-cipher-descriptor-cipher cipher) iv key salt rounds))
+  (tc:f8-start (block-cipher-descriptor-cipher cipher) iv key salt rounds))
 
 (define *mode:ecb* (build-mode-descriptor ecb))
 (define *mode:cbc* (build-mode-descriptor cbc))
@@ -228,7 +228,7 @@
   (define nonce (cipher-parameter-nonce parameter #vu8()))
   ;; a bit different name :)
   (define header (cipher-parameter-aad parameter #vu8()))
-  (tc:eax-init (symmetric-cipher-descriptor-cipher cipher) key nonce header))
+  (tc:eax-init (block-cipher-descriptor-cipher cipher) key nonce header))
 ;; using EAX wrongly, but that's users' responsiblity
 (define (eax-done state) (tc:eax-done! state #vu8()))
 ;; Don't accept any plain text
@@ -254,7 +254,7 @@
 (define (ocb-start cipher key parameter)
   (define nonce (cipher-parameter-nonce parameter))
   (make-ocb-state cipher
-   (tc:ocb-init (symmetric-cipher-descriptor-cipher cipher) key nonce)))
+   (tc:ocb-init (block-cipher-descriptor-cipher cipher) key nonce)))
 (define (ocb-done state) #f) ;; do nothing (don't use this)
 (define (ocb-block-size state)
   (block-cipher-descriptor-block-length (ocb-state-cipher state)))
@@ -295,7 +295,7 @@
   (define nonce (cipher-parameter-nonce parameter))
   (define tag-len (cipher-parameter-tag-length parameter))
   (make-ocb3-state tag-len
-		   (tc:ocb3-init (symmetric-cipher-descriptor-cipher cipher)
+		   (tc:ocb3-init (block-cipher-descriptor-cipher cipher)
 				 key nonce tag-len)))
 (define (ocb3-done state)
   (define s (ocb3-state-key state))
@@ -331,7 +331,7 @@
 (define (gcm-start cipher key parameter)
   (define iv (cipher-parameter-iv parameter))
   (define aad (cipher-parameter-aad parameter #f))
-  (let ((state (tc:gcm-init (symmetric-cipher-descriptor-cipher cipher) key)))
+  (let ((state (tc:gcm-init (block-cipher-descriptor-cipher cipher) key)))
     (tc:gcm-add-iv! state iv)
     (when aad (tc:gcm-add-aad! state aad))
     state))
