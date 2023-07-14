@@ -111,7 +111,7 @@ typedef struct {
   };
 } SgEncAuthState;
 
-SG_CLASS_DECL(Sg_EncAuthStateClass)
+SG_CLASS_DECL(Sg_EncAuthStateClass);
 #define SG_CLASS_ENC_AUTH_STATE (&Sg_EncAuthStateClass)
 
 #define SG_ENC_AUTH_STATE(obj) ((SgEncAuthState *)obj)

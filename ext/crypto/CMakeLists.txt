@@ -20,6 +20,7 @@ ADD_LIBRARY(sagittarius--tomcrypt MODULE
   sagittarius-digest.c ${CMAKE_CURRENT_BINARY_DIR}/digest.c
   sagittarius-random.c ${CMAKE_CURRENT_BINARY_DIR}/random.c
   sagittarius-mac.c    ${CMAKE_CURRENT_BINARY_DIR}/mac.c
+  sagittarius-stream.c
   )
 IF (USE_CPP_FOR_BROKEN_LINKER)
   # ugly solution
@@ -29,6 +30,7 @@ IF (USE_CPP_FOR_BROKEN_LINKER)
     sagittarius-digest.c ${CMAKE_CURRENT_BINARY_DIR}/digest.c
     sagittarius-random.c ${CMAKE_CURRENT_BINARY_DIR}/random.c
     sagittarius-mac.c    ${CMAKE_CURRENT_BINARY_DIR}/mac.c
+    sagittarius-stream.c
     PROPERTIES LANGUAGE CXX)
 ENDIF()
 
