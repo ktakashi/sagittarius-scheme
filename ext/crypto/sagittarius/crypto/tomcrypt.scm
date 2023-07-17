@@ -80,6 +80,9 @@
 	    gcm-init gcm-reset! gcm-add-iv! gcm-add-aad!
 	    gcm-encrypt! gcm-decrypt! gcm-done!
 
+	    ;; stream cipher
+	    chacha-setup chacha-ivctr chacha-crypt! chacha-done!
+
 	    ;; digest
 	    *digest:whirlpool*
 

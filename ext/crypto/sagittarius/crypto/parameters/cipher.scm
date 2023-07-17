@@ -45,6 +45,9 @@
 	    make-tag-length-parameter tag-length-parameter?
 	    cipher-parameter-tag-length
 	    
+	    make-counter-parameter counter-parameter?
+	    cipher-parameter-counter
+
 	    define-cipher-parameter
 	    ;; FWIW
 	    make-define-cipher-parameter
@@ -55,7 +58,8 @@
 		    (salt-parameter <salt-parameter>)
 		    (nonce-parameter <nonce-parameter>)
 		    (aad-parameter <aad-parameter>)
-		    (tag-length-parameter <tag-length-parameter>)))
+		    (tag-length-parameter <tag-length-parameter>)
+		    (counter-parameter <counter-parameter>)))
     (import (rnrs)
 	    (sagittarius crypto parameters misc))
 (define-compositable-record-type cipher-parameter)
@@ -103,4 +107,9 @@
 (define-cipher-parameter tag-length-parameter
   make-tag-length-parameter tag-length-parameter?
   (tag-length cipher-parameter-tag-length))
+
+;; counter (for stream ciphers)
+(define-cipher-parameter counter-parameter
+  make-counter-parameter counter-parameter?
+  (counter cipher-parameter-counter))
 )

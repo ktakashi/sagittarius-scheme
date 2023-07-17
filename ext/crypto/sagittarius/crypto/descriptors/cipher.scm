@@ -45,6 +45,14 @@
 	    block-cipher-descriptor-default-rounds
 	    block-cipher-descriptor-suggested-key-length
 
+	    stream-cipher-descriptor?
+	    (rename (stream-cipher-descriptor <stream-cipher-descriptor>))
+	    stream-cipher-descriptor-init
+	    stream-cipher-descriptor-set-iv!
+	    stream-cipher-descriptor-add-aad!
+	    stream-cipher-descriptor-crypt!
+	    stream-cipher-descriptor-done!
+	    
 	    asymmetric-cipher-descriptor? make-asymmetric-cipher-descriptor
 	    (rename (asymmetric-cipher-descriptor <asymmetric-cipher-descriptor>))
 	    asymmetric-cipher-descriptor-block-size
@@ -67,11 +75,15 @@
 	    *scheme:khazad*
 	    *scheme:seed*
 	    *scheme:kasumi*
-	    *scheme:camellia*)
+	    *scheme:camellia*
+	    ;; stream ciphers
+	    *scheme:chacha20*
+	    )
     (import (rnrs)
 	    (clos core)
 	    (clos user)
 	    (sagittarius)
+	    (sagittarius crypto parameters)
 	    (prefix (sagittarius crypto tomcrypt) tc:))
 (define-record-type cipher-descriptor
   (fields name))
@@ -83,14 +95,36 @@
 ;; So, I make a record to wrap this the descriptors 
 (define-record-type symmetric-cipher-descriptor
   (parent cipher-descriptor)
-  (fields 
-	  min-key-length
+  (fields min-key-length
 	  max-key-length))
 (define-record-type block-cipher-descriptor
   (parent symmetric-cipher-descriptor)
   (fields cipher ;; real cipher descriptor, a fixnum
 	  block-length
 	  default-rounds))
+
+(define-record-type stream-cipher-descriptor
+  (parent symmetric-cipher-descriptor)
+  (fields initializer
+	  iv-setter
+	  aad-setter
+	  crypter
+	  finalizer))
+
+(define (stream-cipher-descriptor-init desc key param)
+  ((stream-cipher-descriptor-initializer desc) key param))
+(define (stream-cipher-descriptor-set-iv! desc state param)
+  (cond ((stream-cipher-descriptor-iv-setter desc) =>
+	 (lambda (p) (p state param)))
+	(else #f)))
+(define (stream-cipher-descriptor-add-aad! desc state aad)
+  (cond ((stream-cipher-descriptor-aad-setter desc) =>
+	 (lambda (p) (p state aad)))
+	(else #f)))
+(define (stream-cipher-descriptor-crypt! desc state in ins out outs len)
+  ((stream-cipher-descriptor-crypter desc) state in ins out outs len))
+(define (stream-cipher-descriptor-done! desc state)
+  ((stream-cipher-descriptor-finalizer desc) state))
 
 
 (define (block-cipher-descriptor-suggested-key-length descriptor . opts)
@@ -147,5 +181,14 @@
 (define *scheme:kasumi*      (build-cipher-descriptor tc:*scheme:kasumi*  ))
 (define *scheme:camellia*    (build-cipher-descriptor tc:*scheme:camellia*))
 
-
+(define *scheme:chacha20* (make-stream-cipher-descriptor
+			   "chacha20" 16 32
+			   (lambda (key p) (tc:chacha-setup key 0)) ;; round = 0
+			   (lambda (st param)
+			     (let ((iv (cipher-parameter-iv param))
+				   (counter (cipher-parameter-counter param)))
+			       (tc:chacha-ivctr st iv counter)))
+			   #f
+			   tc:chacha-crypt!
+			   tc:chacha-done!))
 )
