@@ -54,10 +54,10 @@
     (check-tomcrypt-error 'chacha-setup err)
     (result s)))
 
-(define-c-proc chacha-ivctr (s::<stream-cipher-state>
-			     iv::<bytevector>
-			     counter::<integer>
-			     :optional (ivs::<fixnum> 0))
+(define-c-proc chacha-ivctr! (s::<stream-cipher-state>
+			      iv::<bytevector>
+			      counter::<integer>
+			      :optional (ivs::<fixnum> 0))
   (check-cipher 'chacha-ivctr s CHACHA)
   (check-length 'chacha-ivctr iv ivs)
   (let ((|ivlen::unsigned long| (- (SG_BVECTOR_SIZE iv) ivs))
@@ -91,3 +91,70 @@
   (check-cipher 'chacha-done! s CHACHA)
   (let ((err::int (chacha_done (& (-> (SG_STREAM_CIPHER_STATE s) chacha)))))
     (check-tomcrypt-error 'chacha-done! err)))
+
+;; Chacha20 poly1305
+(define-c-proc chacha20-poly1305-setup (key::<bytevector>)
+  (let* ((s (Sg_MakeStreamCipherState CHACHA20POLY1305))
+	 (err::int (chacha20poly1305_init (& (-> (SG_STREAM_CIPHER_STATE s) chacha20poly1305))
+					  (SG_BVECTOR_ELEMENTS key)
+					  (SG_BVECTOR_SIZE key))))
+    (check-tomcrypt-error 'chacha20-poly1305-setup err)
+    (result s)))
+
+(define-c-proc chacha20-poly1305-setiv! (s::<stream-cipher-state>
+					iv::<bytevector>
+					:optional (ivs::<fixnum> 0))
+  (check-cipher 'chacha20-poly1305-setiv! s CHACHA20POLY1305)
+  (check-length 'chacha20-poly1305-setiv! iv ivs)
+  (let ((err::int (chacha20poly1305_setiv (& (-> (SG_STREAM_CIPHER_STATE s) chacha20poly1305))
+					  (+ (SG_BVECTOR_ELEMENTS iv) ivs)
+					  (- (SG_BVECTOR_SIZE iv) ivs))))
+    (check-tomcrypt-error 'chacha20-poly1305-setiv! err)
+    (result s)))
+
+(define-c-proc chacha20-poly1305-add-aad! (s::<stream-cipher-state>
+					   aad::<bytevector>
+					   :optional (aads::<fixnum> 0))
+  (check-cipher 'chacha20-poly1305-add-aad! s CHACHA20POLY1305)
+  (check-length 'chacha20-poly1305-add-aad! aad aads)
+  (let ((err::int (chacha20poly1305_add_aad (& (-> (SG_STREAM_CIPHER_STATE s) chacha20poly1305))
+					    (+ (SG_BVECTOR_ELEMENTS aad) aads)
+					    (- (SG_BVECTOR_SIZE aad) aads))))
+    (check-tomcrypt-error 'chacha20-poly1305-add-aad! err)
+    (result s)))
+
+(define-c-proc chacha20-poly1305-encrypt! (s::<stream-cipher-state>
+					   in::<bytevector> ins::<fixnum>
+					   out::<bytevector> outs::<fixnum>
+					   len::<fixnum>) ::<void>
+  (check-cipher 'chacha20-poly1305-encrypt! s CHACHA20POLY1305)
+  (check-range 'chacha20-poly1305-encrypt! in ins len)
+  (check-range 'chacha20-poly1305-encrypt! out outs len)
+  (let ((err::int (chacha20poly1305_encrypt (& (-> (SG_STREAM_CIPHER_STATE s) chacha20poly1305))
+					    (+ (SG_BVECTOR_ELEMENTS in) ins) len
+					    (+ (SG_BVECTOR_ELEMENTS out) outs))))
+    (check-tomcrypt-error 'chacha20-poly1305-encrypt! err)))
+
+(define-c-proc chacha20-poly1305-decrypt! (s::<stream-cipher-state>
+					   in::<bytevector> ins::<fixnum>
+					   out::<bytevector> outs::<fixnum>
+					   len::<fixnum>) ::<void>
+  (check-cipher 'chacha20-poly1305-decrypt! s CHACHA20POLY1305)
+  (check-range 'chacha20-poly1305-decrypt! in ins len)
+  (check-range 'chacha20-poly1305-decrypt! out outs len)
+  (let ((err::int (chacha20poly1305_decrypt (& (-> (SG_STREAM_CIPHER_STATE s) chacha20poly1305))
+					    (+ (SG_BVECTOR_ELEMENTS in) ins) len
+					    (+ (SG_BVECTOR_ELEMENTS out) outs))))
+    (check-tomcrypt-error 'chacha20-poly1305-decrypt! err)))
+
+(define-c-proc chacha20-poly1305-done! (s::<stream-cipher-state>
+					tag::<bytevector>
+					:optional (tags::<fixnum> 0))
+  (check-cipher 'chacha20-poly1305-done! s CHACHA20POLY1305)
+  (check-length 'chacha20-poly1305-done! tag tags)
+  (let* ((|taglen::unsigned long| (- (SG_BVECTOR_SIZE tag) tags))
+	 (err::int (chacha20poly1305_done (& (-> (SG_STREAM_CIPHER_STATE s) chacha20poly1305))
+					  (+ (SG_BVECTOR_ELEMENTS tag) tags)
+					  (& taglen))))
+    (check-tomcrypt-error 'chacha-decrypt! err)
+    (result (SG_MAKE_INT taglen))))

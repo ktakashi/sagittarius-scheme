@@ -125,6 +125,9 @@ ADD_LIBRARY(libtomcrypt STATIC
   src/mac/hmac/hmac_process.c
   src/mac/hmac/hmac_done.c
   src/mac/hmac/hmac_memory.c
+
+  #poly1305
+  src/mac/poly1305/poly1305.c
   
   # modes
   #cbc
@@ -224,6 +227,14 @@ ADD_LIBRARY(libtomcrypt STATIC
   src/encauth/gcm/gcm_process.c
   src/encauth/gcm/gcm_reset.c
 
+  #chacha20 poly1305
+  src/encauth/chachapoly/chacha20poly1305_init.c
+  src/encauth/chachapoly/chacha20poly1305_setiv.c
+  src/encauth/chachapoly/chacha20poly1305_add_aad.c
+  src/encauth/chachapoly/chacha20poly1305_encrypt.c
+  src/encauth/chachapoly/chacha20poly1305_decrypt.c
+  src/encauth/chachapoly/chacha20poly1305_done.c
+  
   # prngs
   src/misc/crypt/crypt_find_prng.c
   src/misc/crypt/crypt_prng_descriptor.c
