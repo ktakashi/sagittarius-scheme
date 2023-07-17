@@ -47,11 +47,14 @@
 
 	    stream-cipher-descriptor?
 	    (rename (stream-cipher-descriptor <stream-cipher-descriptor>))
+	    stream-cipher-descriptor-aead?
 	    stream-cipher-descriptor-init
 	    stream-cipher-descriptor-set-iv!
 	    stream-cipher-descriptor-add-aad!
-	    stream-cipher-descriptor-crypt!
+	    stream-cipher-descriptor-encrypt!
+	    stream-cipher-descriptor-decrypt!
 	    stream-cipher-descriptor-done!
+	    stream-cipher-descriptor-done/tag!
 	    
 	    asymmetric-cipher-descriptor? make-asymmetric-cipher-descriptor
 	    (rename (asymmetric-cipher-descriptor <asymmetric-cipher-descriptor>))
@@ -78,6 +81,7 @@
 	    *scheme:camellia*
 	    ;; stream ciphers
 	    *scheme:chacha20*
+	    *scheme:chacha20-poly1305*
 	    )
     (import (rnrs)
 	    (clos core)
@@ -105,10 +109,12 @@
 
 (define-record-type stream-cipher-descriptor
   (parent symmetric-cipher-descriptor)
-  (fields initializer
+  (fields aead?
+	  initializer
 	  iv-setter
 	  aad-setter
-	  crypter
+	  encrypter
+	  decrypter
 	  finalizer))
 
 (define (stream-cipher-descriptor-init desc key param)
@@ -121,10 +127,25 @@
   (cond ((stream-cipher-descriptor-aad-setter desc) =>
 	 (lambda (p) (p state aad)))
 	(else #f)))
-(define (stream-cipher-descriptor-crypt! desc state in ins out outs len)
-  ((stream-cipher-descriptor-crypter desc) state in ins out outs len))
+(define (stream-cipher-descriptor-encrypt! desc state in ins out outs len)
+  ((stream-cipher-descriptor-encrypter desc) state in ins out outs len))
+(define (stream-cipher-descriptor-decrypt! desc state in ins out outs len)
+  ((stream-cipher-descriptor-decrypter desc) state in ins out outs len))
 (define (stream-cipher-descriptor-done! desc state)
-  ((stream-cipher-descriptor-finalizer desc) state))
+  (cond ((not (stream-cipher-descriptor-aead? desc))
+	 ((stream-cipher-descriptor-finalizer desc) state))
+	(else
+	 (assertion-violation 'stream-cipher-descriptor-done!
+			      "AEAD stream cipher is given"
+			      (cipher-descriptor-name desc)))))
+(define (stream-cipher-descriptor-done/tag! desc state tag
+	 :optional (start 0))
+  (cond ((stream-cipher-descriptor-aead? desc)
+	 ((stream-cipher-descriptor-finalizer desc) state tag start))
+	(else
+	 (assertion-violation 'stream-cipher-descriptor-done!
+			      "Non AEAD stream cipher is given"
+			      (cipher-descriptor-name desc)))))
 
 
 (define (block-cipher-descriptor-suggested-key-length descriptor . opts)
@@ -182,13 +203,26 @@
 (define *scheme:camellia*    (build-cipher-descriptor tc:*scheme:camellia*))
 
 (define *scheme:chacha20* (make-stream-cipher-descriptor
-			   "chacha20" 16 32
+			   "chacha20" 16 32 #f
 			   (lambda (key p) (tc:chacha-setup key 0)) ;; round = 0
 			   (lambda (st param)
 			     (let ((iv (cipher-parameter-iv param))
 				   (counter (cipher-parameter-counter param)))
-			       (tc:chacha-ivctr st iv counter)))
+			       (tc:chacha-ivctr! st iv counter)))
 			   #f
 			   tc:chacha-crypt!
+			   tc:chacha-crypt!
 			   tc:chacha-done!))
+
+(define *scheme:chacha20-poly1305*
+  (make-stream-cipher-descriptor
+   "chacha20-poly1305" 16 32 #t
+   (lambda (key p) (tc:chacha20-poly1305-setup key))
+   (lambda (st param)
+     (let ((iv (cipher-parameter-iv param)))
+       (tc:chacha20-poly1305-setiv! st iv)))
+   tc:chacha20-poly1305-add-aad!
+   tc:chacha20-poly1305-encrypt!
+   tc:chacha20-poly1305-decrypt!
+   tc:chacha20-poly1305-done!))
 )

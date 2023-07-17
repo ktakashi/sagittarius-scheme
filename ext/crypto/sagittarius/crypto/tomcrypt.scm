@@ -81,7 +81,11 @@
 	    gcm-encrypt! gcm-decrypt! gcm-done!
 
 	    ;; stream cipher
-	    chacha-setup chacha-ivctr chacha-crypt! chacha-done!
+	    chacha-setup chacha-ivctr! chacha-crypt! chacha-done!
+
+	    chacha20-poly1305-setup chacha20-poly1305-setiv!
+	    chacha20-poly1305-add-aad! chacha20-poly1305-encrypt!
+	    chacha20-poly1305-decrypt! chacha20-poly1305-done!
 
 	    ;; digest
 	    *digest:whirlpool*
