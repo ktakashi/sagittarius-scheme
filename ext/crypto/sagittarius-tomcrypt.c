@@ -32,6 +32,7 @@
 #include "sagittarius-digest.h"
 #include "sagittarius-random.h"
 #include "sagittarius-mac.h"
+#include "sagittarius-stream.h"
 
 SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__tomcrypt()
 {
@@ -44,4 +45,5 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__tomcrypt()
   Sg_InitDigest(lib);
   Sg_InitRandom(lib);
   Sg_InitMac(lib);
+  Sg_InitStream(lib);
 }

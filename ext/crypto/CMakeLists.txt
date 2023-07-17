@@ -20,7 +20,7 @@ ADD_LIBRARY(sagittarius--tomcrypt MODULE
   sagittarius-digest.c ${CMAKE_CURRENT_BINARY_DIR}/digest.c
   sagittarius-random.c ${CMAKE_CURRENT_BINARY_DIR}/random.c
   sagittarius-mac.c    ${CMAKE_CURRENT_BINARY_DIR}/mac.c
-  sagittarius-stream.c
+  sagittarius-stream.c ${CMAKE_CURRENT_BINARY_DIR}/stream.c
   )
 IF (USE_CPP_FOR_BROKEN_LINKER)
   # ugly solution
@@ -30,13 +30,13 @@ IF (USE_CPP_FOR_BROKEN_LINKER)
     sagittarius-digest.c ${CMAKE_CURRENT_BINARY_DIR}/digest.c
     sagittarius-random.c ${CMAKE_CURRENT_BINARY_DIR}/random.c
     sagittarius-mac.c    ${CMAKE_CURRENT_BINARY_DIR}/mac.c
-    sagittarius-stream.c
+    sagittarius-stream.c ${CMAKE_CURRENT_BINARY_DIR}/stream.c
     PROPERTIES LANGUAGE CXX)
 ENDIF()
 
 ADD_STUBS(sagittarius--tomcrypt
   COMMAND ${GENSTUB}
-  FILES cipher.stub digest.stub random.stub mac.stub
+  FILES cipher.stub digest.stub random.stub mac.stub stream.stub
   OUTTREE)
 SET_TARGET_PROPERTIES(sagittarius--tomcrypt PROPERTIES PREFIX "")
 IF(APPLE)

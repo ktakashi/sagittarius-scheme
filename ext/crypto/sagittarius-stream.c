@@ -58,8 +58,12 @@ SgObject Sg_MakeStreamCipherState(SgStreamCipher cipher)
   return SG_OBJ(z);
 }
 
+extern void Sg__Init_stream(SgLibrary *lib);
+
 void Sg_InitStream(SgLibrary *lib)
 {
+  Sg__Init_stream(lib);
+
 #define CIPHER_CONST(name, value)					\
   Sg_MakeBinding(lib, SG_INTERN(#name), SG_MAKE_INT(value), TRUE)
 

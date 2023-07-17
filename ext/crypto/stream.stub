@@ -9,7 +9,85 @@
   "SG_STREAM_CIPHERP" "SG_INT_VALUE")
 (define-type <stream-cipher-state>  "SgStreamCipherState *")
 
+(define-cise-stmt assertion-violation
+  ((_ who msg)
+   `(begin (Sg_AssertionViolation ,who (SG_MAKE_STRING ,msg) '())))
+  ((_ who msg irritants)
+   `(begin (Sg_AssertionViolation ,who (SG_MAKE_STRING ,msg) ,irritants))))
+
+(define-cise-stmt check-tomcrypt-error
+  ((_ who err)
+   `(unless (== ,err CRYPT_OK)
+      (Sg_AssertionViolation ,who (Sg_MakeStringC (error_to_string err)) '()))))
+
 (define-c-proc stream-cipher-state? (obj) ::<boolean> :constant
   SG_STREAM_CIPHER_STATE_P)
 
 
+(define-cise-stmt check-cipher
+  ((_ who state cipher)
+   `(unless (== (SG_STREAM_CIPHER_STATE_CIPHER ,state) ,cipher)
+      (assertion-violation ,who "Wrong stream cipher state" ,state))))
+
+(define-cise-stmt check-length
+  ((_ who bv start)
+   `(when (< (- (SG_BVECTOR_SIZE ,bv) ,start) 0)
+      (assertion-violation ,who "Invalid starting position"
+			   (SG_MAKE_INT ,start)))))
+
+(define-cise-stmt check-range
+  ((_ who bv start len)
+   `(let ((t::int (- (SG_BVECTOR_SIZE ,bv) ,start)))
+      (when (and (>= t 0) (< t ,len))
+	(assertion-violation ,who "Length is too long"
+	  (SG_LIST3 '<
+		    (SG_MAKE_INT (- (SG_BVECTOR_SIZE ,bv) ,start))
+		    (SG_MAKE_INT ,len)))))))
+
+;; ChaCha
+(define-c-proc chacha-setup (key::<bytevector> rounds::<fixnum>)
+  (let* ((s (Sg_MakeStreamCipherState CHACHA))
+	 (err::int (chacha_setup (& (-> (SG_STREAM_CIPHER_STATE s) chacha))
+				 (SG_BVECTOR_ELEMENTS key)
+				 (SG_BVECTOR_SIZE key)
+				 rounds)))
+    (check-tomcrypt-error 'chacha-setup err)
+    (result s)))
+
+(define-c-proc chacha-ivctr (s::<stream-cipher-state>
+			     iv::<bytevector>
+			     counter::<integer>
+			     :optional (ivs::<fixnum> 0))
+  (check-cipher 'chacha-ivctr s CHACHA)
+  (check-length 'chacha-ivctr iv ivs)
+  (let ((|ivlen::unsigned long| (- (SG_BVECTOR_SIZE iv) ivs))
+	(c::uint64_t (Sg_GetIntegerU64Clamp counter SG_CLAMP_LO NULL))
+	(err::int CRYPT_OK))
+    (if (> ivlen 8)
+	(set! err (chacha_ivctr32 (& (-> (SG_STREAM_CIPHER_STATE s) chacha))
+				  (+ (SG_BVECTOR_ELEMENTS iv) ivs)
+				  ivlen
+				  (cast uint32_t c)))
+	(set! err (chacha_ivctr64 (& (-> (SG_STREAM_CIPHER_STATE s) chacha))
+				  (+ (SG_BVECTOR_ELEMENTS iv) ivs)
+				  ivlen
+				  c)))
+    (check-tomcrypt-error 'chacha-ivctr err)
+    (result s)))
+
+(define-c-proc chacha-crypt! (s::<stream-cipher-state>
+			      in::<bytevector> ins::<fixnum>
+			      out::<bytevector> outs::<fixnum>
+			      len::<fixnum>) ::<void>
+  (check-cipher 'chacha-crypt! s CHACHA)
+  (check-range 'chacha-crypt! in ins len)
+  (check-range 'chacha-crypt! out outs len)
+  (let ((err::int (chacha_crypt (& (-> (SG_STREAM_CIPHER_STATE s) chacha))
+				(+ (SG_BVECTOR_ELEMENTS in) ins) len
+				(+ (SG_BVECTOR_ELEMENTS out) outs))))
+    (check-tomcrypt-error 'chacha-crypt! err)))
+    
+(define-c-proc chacha-done! (s::<stream-cipher-state>) ::<void>
+  (check-cipher 'chacha-done! s CHACHA)
+  (let ((err::int (chacha_done (& (-> (SG_STREAM_CIPHER_STATE s) chacha)))))
+    (check-tomcrypt-error 'chacha-done! err)))

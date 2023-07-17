@@ -69,6 +69,11 @@ typedef struct {
 SG_CLASS_DECL(Sg_StreamCipherStateClass);
 #define SG_CLASS_STREAM_CIPHER_STATE (&Sg_StreamCipherStateClass)
 
+#define SG_STREAM_CIPHERP(cipher)		\
+  (SG_INTP(cipher) &&				\
+   CHACHA <= SG_INT_VALUE(cipher) &&		\
+   SG_INT_VALUE(cipher) <= CHACHA20POLY1305)
+
 #define SG_STREAM_CIPHER_STATE(obj)   ((SgStreamCipherState *) obj)
 #define SG_STREAM_CIPHER_STATE_P(obj) SG_XTYPEP(obj, SG_CLASS_STREAM_CIPHER_STATE)
 #define SG_STREAM_CIPHER_STATE_CIPHER(obj) SG_STREAM_CIPHER_STATE(obj)->cipher
