@@ -453,7 +453,8 @@
   (let ((scheme (cipher-scheme cipher))
 	(state (symmetric-cipher-key cipher)))
     (let ((r (stream-cipher-descriptor-done/tag! scheme state tag start)))
-      (stream-cipher-done! cipher)
+      (symmetric-cipher-direction-set! cipher #f)
+      (symmetric-cipher-key-set! cipher #f)
       r)))
 
 (define (stream-cipher-done/tag (cipher stream-cipher?) tag-len)
@@ -463,7 +464,6 @@
 	   (state (symmetric-cipher-key cipher))
 	   (tag (make-bytevector tag-len)))
        (let ((n (stream-cipher-descriptor-done/tag! scheme state tag 0)))
-	 (stream-cipher-done! cipher)
 	 (if (= n tag-len)
 	     tag
 	     (bytevector-copy tag 0 n)))))
