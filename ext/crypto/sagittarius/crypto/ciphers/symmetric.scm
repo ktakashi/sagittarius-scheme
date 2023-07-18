@@ -54,6 +54,16 @@
 	    
 	    pkcs7-padding no-padding
 
+	    ;; Stream cipher
+	    stream-cipher? <stream-cipher>
+	    make-stream-cipher
+	    stream-cipher-init! stream-cipher-init
+	    stream-cipher-encrypt! stream-cipher-encrypt
+	    stream-cipher-decrypt! stream-cipher-decrypt
+	    stream-cipher-update-aad!
+	    stream-cipher-done!
+	    stream-cipher-done/tag! stream-cipher-done/tag
+ 
 	    cipher-descriptor?
 	    cipher-descriptor-name
 
@@ -64,6 +74,9 @@
 	    block-cipher-descriptor?
 	    block-cipher-descriptor-block-length
 	    block-cipher-descriptor-suggested-key-length
+
+	    stream-cipher-descriptor?
+	    stream-cipher-descriptor-aead?
 	    
 	    *scheme:blowfish*
 	    *scheme:x-tea*
@@ -89,7 +102,9 @@
 	    *mode:eax* *mode:ocb* *mode:ocb3* *mode:gcm*
 	    
 	    *ctr-mode:little-endian* *ctr-mode:big-endian* *ctr-mode:rfc3686*
-	    
+
+	    ;; Stream ciphers
+	    *scheme:chacha20* *scheme:chacha20-poly1305*
 	    )
     (import (rnrs)
 	    (clos user)
@@ -357,5 +372,103 @@
       new))
   (define (unpad bv pos block-size) (- (bytevector-length bv) pos))
   (values pad unpad))
+
+;; stream cipher
+(define (make-stream-cipher (scheme stream-cipher-descriptor?))
+  (make <stream-cipher> :scheme scheme))
+(define (stream-cipher-init! (cipher stream-cipher?)
+			     (direction cipher-direction?)
+			     (key symmetric-key?)
+			     :optional (parameter #f))
+  (stream-cipher-done! cipher) ;; reset previous state
+  (let* ((desc (cipher-scheme cipher))
+	 (state (stream-cipher-descriptor-init desc
+					       (symmetric-key-value key)
+					       parameter)))
+    ;; setup IV here
+    (stream-cipher-descriptor-set-iv! desc state parameter)
+    (symmetric-cipher-direction-set! cipher direction)
+    (symmetric-cipher-key-set! cipher state)
+    cipher))
+
+(define (stream-cipher-init (cipher stream-cipher?) . args)
+  (apply stream-cipher-init! (make-stream-cipher (cipher-scheme cipher)) args))
+
+(define (stream-cipher-encrypt! (cipher stream-cipher?)
+				(pt bytevector?)
+				(ps integer?)
+				(ct bytevector?)
+				(cs integer?))
+  (unless (eq? (symmetric-cipher-direction cipher) (cipher-direction encrypt))
+    (assertion-violation 'stream-cipher-encrypt!
+			 "Cipher is not encryption mode" cipher))
+  (let ((scheme (cipher-scheme cipher))
+	(state (symmetric-cipher-key cipher)))
+    (stream-cipher-descriptor-encrypt! scheme state pt ps ct cs
+				       (bytevector-length pt))))
+
+(define (stream-cipher-encrypt (cipher stream-cipher?)
+			       (pt bytevector?)
+			       :optional (ps 0))
+  (let ((out (make-bytevector (- (bytevector-length pt) ps))))
+    (stream-cipher-encrypt! cipher pt ps out 0)
+    out))
+
+(define (stream-cipher-decrypt! (cipher stream-cipher?)
+				(ct bytevector?)
+				(cs integer?)
+				(pt bytevector?)
+				(ps integer?))
+  (unless (eq? (symmetric-cipher-direction cipher) (cipher-direction decrypt))
+    (assertion-violation 'stream-cipher-decrypt!
+			 "Cipher is not decryption mode" cipher))
+  (let ((scheme (cipher-scheme cipher))
+	(state (symmetric-cipher-key cipher)))
+    (stream-cipher-descriptor-decrypt! scheme state ct cs pt ps
+				       (bytevector-length ct))))
+(define (stream-cipher-decrypt (cipher stream-cipher?)
+			       (ct bytevector?)
+			       :optional (cs 0))
+  (let ((out (make-bytevector (- (bytevector-length ct) cs))))
+    (stream-cipher-decrypt! cipher ct cs out 0)
+    out))
+
+(define (stream-cipher-update-aad! (cipher stream-cipher?)
+				   (aad bytevector?)
+				   . opts)
+  (let ((scheme (cipher-scheme cipher))
+	(state (symmetric-cipher-key cipher)))
+    (apply stream-cipher-descriptor-add-aad! scheme state aad opts)))
+
+(define (stream-cipher-done! (cipher stream-cipher?))
+  (let ((scheme (cipher-scheme cipher))
+	(state (symmetric-cipher-key cipher)))
+    (symmetric-cipher-direction-set! cipher #f)
+    (when state (stream-cipher-descriptor-done! scheme state))
+    (symmetric-cipher-key-set! cipher #f)
+    cipher))
+
+(define (stream-cipher-done/tag! (cipher stream-cipher?)
+				 tag :optional (start 0))
+  (let ((scheme (cipher-scheme cipher))
+	(state (symmetric-cipher-key cipher)))
+    (let ((r (stream-cipher-descriptor-done/tag! scheme state tag start)))
+      (stream-cipher-done! cipher)
+      r)))
+
+(define (stream-cipher-done/tag (cipher stream-cipher?) tag-len)
+  (case (symmetric-cipher-direction cipher)
+    ((encrypt)
+     (let ((scheme (cipher-scheme cipher))
+	   (state (symmetric-cipher-key cipher))
+	   (tag (make-bytevector tag-len)))
+       (let ((n (stream-cipher-descriptor-done/tag! scheme state tag 0)))
+	 (stream-cipher-done! cipher)
+	 (if (= n tag-len)
+	     tag
+	     (bytevector-copy tag 0 n)))))
+    (else
+     (assertion-violation 'stream-cipher-done/tag
+			  "Encrypt mode is required" cipher))))
 
 )

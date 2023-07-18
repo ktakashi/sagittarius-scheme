@@ -42,6 +42,8 @@
 	    block-cipher-padder
 	    block-cipher-unpadder
 
+	    <stream-cipher> stream-cipher?
+	    
 	    cipher-direction *cipher-directions*
 
 	    asymmetric-cipher? <asymmetric-cipher>
@@ -76,6 +78,10 @@
    (padder :init-keyword :padder :reader block-cipher-padder)
    (unpadder :init-keyword :unpadder :reader block-cipher-unpadder)))
 (define (block-cipher? o) (is-a? o <block-cipher>))
+
+(define-class <stream-cipher> (<symmetric-cipher>)
+  ())
+(define (stream-cipher? o) (is-a? o <stream-cipher>))
 
 (define-class <asymmetric-cipher> (<cipher>)
   ((encoder :init-keyword :encoder :reader asymmetric-cipher-encoder)

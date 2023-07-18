@@ -123,9 +123,9 @@
   (cond ((stream-cipher-descriptor-iv-setter desc) =>
 	 (lambda (p) (p state param)))
 	(else #f)))
-(define (stream-cipher-descriptor-add-aad! desc state aad)
+(define (stream-cipher-descriptor-add-aad! desc state aad . opts)
   (cond ((stream-cipher-descriptor-aad-setter desc) =>
-	 (lambda (p) (p state aad)))
+	 (lambda (p) (apply p state aad opts)))
 	(else #f)))
 (define (stream-cipher-descriptor-encrypt! desc state in ins out outs len)
   ((stream-cipher-descriptor-encrypter desc) state in ins out outs len))
