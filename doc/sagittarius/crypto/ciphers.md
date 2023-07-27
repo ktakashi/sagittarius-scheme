@@ -200,9 +200,7 @@ must be either `encrypt` or `decrypt`.
 
 ### [§4] Symmetric ciphers
 
-Symmetric cipher can be either block cipher or stream cipher. At this
-moment, the library only supports block cipher. Stream ciphers may
-come in the future.
+Symmetric cipher can be either block cipher or stream cipher.
 
 ###### [!Function] `symmetric-cipher-descriptor?` _obj_
 
@@ -221,6 +219,8 @@ Returns maximum key length of the given _descriptor_'s algorithm.
 
 Returns `#t` if the given _obj_ is a symmetric cipher object, otherwise `#f`.
 
+
+#### [§5] Block ciphers
 
 ###### [!Function] `block-cipher-descriptor?` _obj_
 
@@ -297,7 +297,7 @@ Mode descriptors for ECB, CBC, CFB, OFB, CTR, LRW and F8 respectively.
 ###### [!Mode descriptor] `*mode:gcm*`
 
 Mode descriptor for EAX, OCB, OCB3 and GCM respectively. These are
-authenticated encryption modes.
+authenticated encryption with assiciated data (AEAD) modes.
 
 ###### [!Function] `mode-descriptor-name` (_descriptor_ `mode-descriptor?`)
 
@@ -434,6 +434,30 @@ position of _start_.
 This procedure is only for encryption mode.  
 Stores the *cipher*'s authentication tag into the given _tag_,
 starting position of _start_.
+
+#### [§5] Stream ciphers
+
+###### [!Function] `stream-cipher-descriptor?` _obj_
+
+Returns `#t` if the given _obj_ is a stream cipher descriptor, otherwise `#f`.
+
+Currently, below encryption algorithms are supported:
+
+###### [!Stream cipher descriptor] `*scheme:chacha20*`
+###### [!Stream cipher descriptor] `*scheme:chacha20-poly1305*`
+
+###### [!Function] `stream-cipher-descriptor-aead?` (_descriptor_ `stream-cipher-descriptor?`)
+
+Returns `#t` if given the _descriptor_ is a AEAD stream cipher, otherwise `#f`.
+
+###### [!Function] `stream-cipher?` _obj_
+
+Returns `#t` if the given _obj_ is a stream cipher object, otherwise `#f`.
+
+###### [!Function] `make-stream-cipher` (_scheme_ `stream-cipher-descriptor?`)
+
+Creates a stream cipher object of _scheme_ encryption scheme.
+
 
 ### [§4] Asymmetric ciphers
 
