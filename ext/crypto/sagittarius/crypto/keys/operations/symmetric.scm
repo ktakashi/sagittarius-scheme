@@ -43,8 +43,9 @@
 	    (sagittarius crypto descriptors)
 	    (sagittarius crypto secure))
 (define-generic generate-symmetric-key)
-(define-method generate-symmetric-key ((cipher <block-cipher-descriptor>))
+(define-method generate-symmetric-key ((cipher <symmetric-cipher-descriptor>))
   (generate-symmetric-key cipher (secure-random-generator *prng:chacha20*)))
+
 (define-method generate-symmetric-key ((cipher <block-cipher-descriptor>)
 				       (prng <random-generator>))
   (let ((size (block-cipher-descriptor-suggested-key-length cipher)))
@@ -58,6 +59,11 @@
 			   "The given cipher doesn't accept the given key size"
 			   cipher size))
     (make-symmetric-key bv)))
+
+(define-method generate-symmetric-key ((cipher <stream-cipher-descriptor>)
+				       (prng <random-generator>))
+  (let ((size (symmetric-cipher-descriptor-max-key-length cipher)))
+    (make-symmetric-key (random-generator-read-random-bytes prng size))))
 
 ;; key wrap
 (define +default-iv+ #vu8(#xa6 #xa6 #xa6 #xa6 #xa6 #xa6 #xa6 #xa6))
