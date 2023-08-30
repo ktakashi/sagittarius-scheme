@@ -109,6 +109,23 @@ using a derived key. To do so, you need to use KDF, Key Derivation Function.
 ;; The rest can be the same as above CTR mode example.
 ```
 
+#### Stream cipher
+
+This example encrypts and decrypts a plain text with a randomly generated
+secret key. The encryption scheme is ChaCha20 Poly1305.
+
+```scheme
+(import (rnrs)
+        (sagittarius crypto ciphers)
+        (sagittarius crypto keys))
+
+;; Randomly generates AES-256 secret key.
+(define key (generate-symmetric-key *scheme:aes-256*))
+
+
+
+```
+
 #### Asymmetric cipher
 
 This example encrypts and decrypts a plain text with a randomly generated
