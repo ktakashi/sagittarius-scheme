@@ -30,40 +30,33 @@
 
 #!nounbound
 (library (security password policy)
-    (export password-state? (rename (password-state <password-state>))
-	    password-policy? (rename (password-policy <password-policy>))
+    (export password-policy? (rename (password-policy <password-policy>))
 
 	    single-password-policy?
 	    (rename (single-password-policy <single-password-policy>))
-	    single-password-policy-rule single-password-policy-state
+	    single-password-policy-rule
 
 	    (rename (compound-password-policy? password-policies?))
 	    password-policies
 	    ;; internal use
 	    compound-password-policy-policies
 
-	    mimimum-length-policy? make-mimimum-length-policy)
-	    
+	    length-policy? make-length-policy
+	    length-policy-length
+
+	    character-policy? make-character-policy
+	    character-policy-at-least character-policy-char-set)
     (import (rnrs)
-	    (srfi :1 lists))
-
-(define-record-type password-state)
-
-(define-enumeration password-compliancy
-  (compliant awaiting uncompliant)
-  password-compliancies)
-(define (merge-password-compliancy pc0 pc1)
-  (cond ((and (eq? pc0 'compliant) (eq? pc1 compliant)) 'compliant)
-	((or (eq? pc0 'uncompliant) (eq? pc1 uncompliant)) 'uncompliant)
-	(else 'awaiting)))
+	    (srfi :1 lists)
+	    (srfi :13 strings)
+	    (srfi :14 char-sets))
 
 (define-record-type password-policy)
 
 (define-record-type single-password-policy
   (parent password-policy)
-  ;; rule = procedure
-  ;; state = record type descriptior, sub record of password-state
-  (fields rule state))
+  ;; rule: () -> values { accumlator, result-retriever }
+  (fields rule))
 
 
 (define-record-type compound-password-policy
@@ -79,24 +72,38 @@
   (make-compound-password-policy (append-map normalize policies)))
 
 ;; Built-in policies
-;; Minimum length
-(define-record-type mimimum-length-state
-  (parent password-state)
-  (fields (mutable length))
-  (protocol (lambda (p) (lambda () ((p) 0)))))
-(define ((make-mimimum-length-policy-rule n) char state)
-  (let ((cn (mimimum-length-state-length state)))
-    (if (>= cn n)
-	(password-compliancy compliant)
-	(let ((nn (+ cn 1)))
-	  (mimimum-length-state-length-set! state nn)
-	  (password-compliancy awaiting)))))
+;; Password length
+(define ((make-length-policy-rule len))
+  (let ((n 0))
+    (define (length-accumlator s) (set! n (+ n 1)))
+    (values length-accumlator (lambda () (>= n len)))))
 
-(define-record-type mimimum-length-policy
+(define-record-type length-policy
   (parent single-poassword-policy)
+  (fields length)
   (protocol (lambda (p)
 	      (lambda (n)
-		((p (make-mimimum-length-policy-rule n)
-		    mimimum-length-state))))))
+		((p (make-length-policy-rule n)) n)))))
+
+;; Character
+(define ((make-character-policy-rule cs at-least))
+  (let ((c 0))
+    (define (char-set-accumulator s)
+      ;; The given `s` is a string contains one character however, one
+      ;; character doesn't mean one code point in Unicode world. Say,
+      ;; an emoji may contain multiple code points but must be
+      ;; considered a character.
+      ;; Should we use string-any here?
+      (when (string-every (lambda (c) (char-set-contains? cs c) s))
+	(set! c (+ c 1))))
+    (values char-set-accumulator (lambda () (>= c at-least)))))
+    
+(define-record-type character-policy
+  (parent single-poassword-policy)
+  (fields char-set at-least)
+  (protocol (lambda (p)
+	      (lambda (cs at-least)
+		((p (make-character-policy-rule cs at-least))
+		 cs at-least)))))
 
 )
