@@ -192,7 +192,7 @@ char *alloca ();
    || defined(__amd64__) || defined(_M_AMD64) \
    || defined(__x86_64) || defined(__x86_64__) \
    || defined(_M_X64) || defined(__bfin__)      \
-   || defined(__arm__)
+   || defined(__arm__) || defined(__arm64__)
 
 # define BOOST_LITTLE_ENDIAN
 # define BOOST_BYTE_ORDER 1234
