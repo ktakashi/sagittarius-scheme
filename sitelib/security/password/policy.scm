@@ -42,10 +42,12 @@
 	    compound-password-policy-policies
 
 	    length-policy? make-length-policy
-	    length-policy-length
+	    length-policy-length password-policy-length
 
 	    character-policy? make-character-policy
-	    character-policy-at-least character-policy-char-set)
+	    character-policy-at-least character-policy-char-set
+	    password-policy-char-set ;; hmmm
+	    )
     (import (rnrs)
 	    (srfi :1 lists)
 	    (srfi :13 strings)
@@ -106,4 +108,22 @@
 		((p (make-character-policy-rule cs at-least))
 		 cs at-least)))))
 
+(define (password-policy-length policy)
+  (if (single-password-policy? policy)
+      (and (length-policy? policy) (length-policy-length policy))
+      (let ((l (filter-map password-policy-length
+			   (compound-password-policy-policies policy))))
+	;; we take the longest, in case someone wants to decieve the policy
+	(cond ((null? l) #f)
+	      ((null? (cdr l)) (car l))
+	      (else (apply max l))))))
+
+(define (password-policy-char-set policy)
+  (if (single-password-policy? policy)
+      (and (character-policy? policy) (character-policy-char-set policy))
+      (let ((l (filter-map password-policy-char-set
+			   (compound-password-policy-policies policy))))
+	(cond ((null? l) #f)
+	      ((null? (cdr l)) (car l))
+	      (else (apply char-set-union l))))))
 )

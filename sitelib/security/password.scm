@@ -33,16 +33,26 @@
     (export password-policy? password-policies
 	    password-policy-compliant?
 
-	    length-policy? make-length-policy
-	    character-policy? make-character-policy
+	    length-policy? make-length-policy password-policy-length
+	    character-policy? make-character-policy password-policy-char-set
 	    ;; predefined policy creators
 	    make-lower-case-policy
 	    make-upper-case-policy
 	    make-symbol-policy
-	    make-digit-policy)
+	    make-digit-policy
+
+	    password-policy->generator
+	    generate-password
+	    *password-policy:default-length*
+	    *password-policy:default-char-set*
+
+	    password-policy->predicate
+	    password-policy-entropy
+	    )
     (import (rnrs)
 	    (security password policy)
 	    (security password checker)
+	    (security password generator)
 	    (srfi :14 char-sets))
 
 (define (->ascii-char-set cs) (char-set-intersection char-set:ascii cs))
@@ -59,5 +69,16 @@
   (make-character-policy char-set:symbol/ascii at-least))
 (define (make-digit-policy at-least)
   (make-character-policy char-set:digit/ascii at-least))
+
+(define (password-policy-entropy policy)
+  (if (single-password-policy? policy)
+      (password-policy-entropy (password-policies policy))
+      (let ((l (password-policy-length policy))
+	    (cs (password-policy-char-set policy)))
+	(log (expt (char-set-size cs) l) 2))))
+
+;; utility
+(define (password-policy->predicate policy)
+  (lambda (p) (password-policy-compliant? policy p)))
 
 )
