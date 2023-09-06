@@ -1,0 +1,35 @@
+(import (rnrs)
+	(security password)
+	(sagittarius generators)
+	(srfi :64))
+
+(test-begin "Password policy")
+
+(let ((policy (password-policies
+	       (make-length-policy 8)
+	       (make-lower-case-policy 1)
+	       (make-upper-case-policy 2)
+	       (make-digit-policy 1)
+	       (make-symbol-policy 2))))
+  (test-assert (password-policy? policy))
+  (test-assert "OK" (password-policy-compliant? policy "Pa$$Word0"))
+  (test-assert "Nok(1)" (not (password-policy-compliant? policy "Pa$$word0")))
+  (test-assert "Nok(2)" (not (password-policy-compliant? policy "Pa$$Word")))
+  (test-assert "Nok(3)" (not (password-policy-compliant? policy "Pa$sWord0")))
+  (test-assert "Nok(4)" (not (password-policy-compliant? policy "PA$$WORD0")))
+  (test-assert "Nok(5)" (not (password-policy-compliant? policy "Pa$$Word!")))
+  (test-assert "Entropy (1)" (< 49 (password-policy-entropy policy) 50))
+
+  (test-equal 8 (password-policy-length policy)))
+
+(let* ((policy (password-policies (make-length-policy 16)
+				  (make-lower-case-policy 1)
+				  (make-upper-case-policy 2)
+				  (make-digit-policy 1)
+				  (make-symbol-policy 2)))
+       (g (gmap (password-policy->predicate policy)
+		(gtake (password-policy->generator policy) 5))))
+  (test-equal 16 (string-length (generate-password policy)))
+  (test-equal '(#t #t #t #t #t) (generator->list g)))
+
+(test-end)
