@@ -58,7 +58,8 @@
 (define (->ascii-char-set cs) (char-set-intersection char-set:ascii cs))
 (define char-set:lower-case/ascii (->ascii-char-set char-set:lower-case))
 (define char-set:upper-case/ascii (->ascii-char-set char-set:upper-case))
-(define char-set:symbol/ascii (->ascii-char-set char-set:symbol))
+(define char-set:symbol/ascii
+  (->ascii-char-set (char-set-union char-set:symbol char-set:punctuation)))
 (define char-set:digit/ascii (->ascii-char-set char-set:digit))
 
 (define (make-lower-case-policy at-least)
