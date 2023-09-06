@@ -30,7 +30,7 @@
 
 #!nounbound
 (library (security password policy)
-    (export password-policy? (rename (password-policy <password-policy>))
+    (export password-policy?
 
 	    single-password-policy?
 	    (rename (single-password-policy <single-password-policy>))
@@ -64,7 +64,7 @@
   (fields policies))
 (define (password-policies . policies)
   (define (normalize policy)
-    (if (single-poassword-policy? policy)
+    (if (single-password-policy? policy)
 	(list policy)
 	(compound-password-policy-policies policy)))
   (unless (for-all password-policy? policies)
@@ -79,7 +79,7 @@
     (values length-accumlator (lambda () (>= n len)))))
 
 (define-record-type length-policy
-  (parent single-poassword-policy)
+  (parent single-password-policy)
   (fields length)
   (protocol (lambda (p)
 	      (lambda (n)
@@ -94,12 +94,12 @@
       ;; an emoji may contain multiple code points but must be
       ;; considered a character.
       ;; Should we use string-any here?
-      (when (string-every (lambda (c) (char-set-contains? cs c) s))
+      (when (string-every (lambda (c) (char-set-contains? cs c)) s)
 	(set! c (+ c 1))))
     (values char-set-accumulator (lambda () (>= c at-least)))))
     
 (define-record-type character-policy
-  (parent single-poassword-policy)
+  (parent single-password-policy)
   (fields char-set at-least)
   (protocol (lambda (p)
 	      (lambda (cs at-least)
