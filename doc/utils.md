@@ -58,6 +58,7 @@
 * @[[utils/rfc/zlib.md](utils/rfc/zlib.md)]
 * @[[utils/rpc.md](utils/rpc.md)]
 * @[[utils/security/keystore.md](utils/security/keystore.md)]
+* @[[utils/security/password.md](utils/security/password.md)]
 * @[[utils/text/csv.md](utils/text/csv.md)]
 * @[[utils/text/html-lite.md](utils/text/html-lite.md)]
 * @[[utils/text/json.md](utils/text/json.md)]
