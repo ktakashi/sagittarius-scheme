@@ -285,6 +285,20 @@ static SgObject unescape_char(lexer_ctx_t *ctx)
   }
 }
 
+static SgChar get_control_letter(lexer_ctx_t *ctx)
+{
+  SgChar r = next_char_non_extended(ctx);
+  /* We only support [a-zA-Z] characters like ECMA, unlike PCRE */
+  if (isalpha(r)) {
+    if (islower(r)) {
+      return r - 'a' + 1;
+    } else {
+      return r - 'A' + 1;
+    }
+  }
+  raise_syntax_error(ctx, ctx->pos, UC("Control characters require \c[a-zA-Z]"));
+}
+
 /* I forgot to make ustrchr in unicode.c */
 static long ustrchr(const SgChar *str, SgChar c, long len)
 {
@@ -666,6 +680,7 @@ static SgObject read_char_set(lexer_ctx_t *ctx, int *complement_p)
       case 't': ch = '\t'; goto ordchar;
       case 'f': ch = '\f'; goto ordchar;
       case 'e': ch = 0x1b; goto ordchar;
+      case 'c': ch = get_control_letter(ctx);
       case 'x':
 	ch = read_charset_xdigits(ctx, 2, 'x'); goto ordchar;
       case 'u':
@@ -1064,6 +1079,9 @@ static SgObject get_token(lexer_ctx_t *ctx, SgObject *ret)
 	} else{
 	  return SG_MAKE_CHAR('k');
 	}
+      /* \c[a-zA-Z], rather weird thing but PCRE supports this so
+	 might as well */
+      case 'c': return SG_MAKE_CHAR(get_control_letter(ctx));
       case 'd': return get_defined_cset(ctx, SG_CHAR_SET_DIGIT);
       case 'D': return SG_LIST2(SYM_INVERTED_CHAR_CLASS,
 				get_defined_cset(ctx, SG_CHAR_SET_DIGIT));

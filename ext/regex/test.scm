@@ -1915,4 +1915,19 @@
 		(list (regex-matches m1)
 		      (regex-matches m2)))))
 
+;; \c[a-zA-Z]
+(let ((alphabets (char-set-intersection char-set:ascii char-set:letter)))
+  (define (test-control-letter c)
+    (define rx (string-append "\\c" (string c)))
+    (define (->control c)
+      (integer->char
+       (+ (- (char->integer (char-upcase c)) (char->integer #\A)) 1)))
+    (test-assert rx
+		 (regex-matches
+		  (regex-matcher (compile-regex rx) (string (->control c))))))
+  
+  (for-each test-control-letter (char-set->list alphabets)))
+
+(test-error (compile-regex "\\c@"))
+
 (test-end)
