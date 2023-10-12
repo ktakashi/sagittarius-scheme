@@ -18,7 +18,7 @@
   (test-assert "Nok(3)" (not (password-policy-compliant? policy "Pa$sWord0")))
   (test-assert "Nok(4)" (not (password-policy-compliant? policy "PA$$WORD0")))
   (test-assert "Nok(5)" (not (password-policy-compliant? policy "Pa$$Word!")))
-  (test-assert "Entropy (1)" (< 49 (password-policy-entropy policy) 50))
+  (test-assert "Entropy (1)" (< 52 (password-policy-entropy policy) 53))
 
   (test-equal 8 (password-policy-length policy)))
 
