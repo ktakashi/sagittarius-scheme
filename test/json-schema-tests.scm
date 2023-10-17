@@ -8,6 +8,7 @@
 	(sagittarius socket)
 	(sagittarius regex)
 	(util file)
+	(srfi :1)
 	(srfi :39)
 	(srfi :133)
 	(chibi test))
@@ -38,12 +39,17 @@
 	  (else (put-string in/out "HTTP/1.1 404 Not Found\r\n\r\n")))))
 (define server (make-simple-server "1234" http-handler))
 
-(define data-directory "JSON-Schema-Test-Suite/tests/draft7/")
+(define data-directories
+  '("JSON-Schema-Test-Suite/tests/draft7/"
+    #;"JSON-Schema-Test-Suite/tests/draft2019-09/"))
 (define core-files
-  (find-files data-directory :recursive #f :pattern "\\.json$"))
+  (append-map (lambda (dir) (find-files dir :recursive #f :pattern "\\.json$"))
+	      data-directories))
 (define format-files
-  (find-files (build-path* data-directory "optional" "format")
-	      :recursive #f :pattern "\\.json$"))
+  (append-map (lambda (dir)
+		(find-files (build-path* dir "optional" "format")
+			    :recursive #f :pattern "\\.json$"))
+	      data-directories))
 
 ;; the *will not be supported/fixed* test names
 (define *known-incompatible-tests* '())

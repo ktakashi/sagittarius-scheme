@@ -555,11 +555,11 @@
 			 "Enum should contain unique value" vals))
   (lambda (e)
     (or (exists (lambda (v) (json=? e v)) vals)
-	(report e `(enum ,vals)))))
+	(report e `(enum ,@vals)))))
 
 ;; 6.1.3 const
 (define (json-schema:const v)
-  (lambda (e) (or (json=? e v) (report e `(const v)))))
+  (lambda (e) (or (json=? e v) (report e `(const ,v)))))
 
 ;;; 6.2. Validation Keywords for Numeric Instances (number and integer)
 ;; 6.2.1 multipleOf
@@ -1139,7 +1139,7 @@
 (define +json-schema-version-settings+
   `(
     (,(json-schema:version draft-7)
-     "http://json-schema.org/draft-07/schema#"
+     "https://json-schema.org/draft-07/schema#"
      ,+json-schema-draft-7-validators+
      ("definitions")
      ,draft-7-check-id
