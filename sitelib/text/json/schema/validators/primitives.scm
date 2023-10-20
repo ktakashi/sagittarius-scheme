@@ -58,8 +58,6 @@
 	    (srfi :1 lists)
 	    (srfi :133 vectors)
 	    (text json schema version)
-	    (rename (text json schema conditions)
-		    (raise-json-schema-report report))
 	    (text json compare))
 
 ;; utilities (maybe move to somewhere)
@@ -104,16 +102,14 @@
 	  ((string=? "null" type) (lambda (e) (eq? e 'null)))
 	  (else (assertion-violation 'json-schema:type "Unknown type" type))))
 
-  (define (wrap-report validator)
-    (lambda (v path) (or (validator v path) (report path v `(type ,type)))))
+  (define (wrap pred) (lambda (v path) (pred v)))
   (cond ((list? type)
 	 (check type)
-	 (fold-left 
-	  (lambda (acc t)
-	    (let ((v (predicate-of t)))
-	      (lambda (e) (or (v e) (acc e)))))
-	  (lambda (e) #f) type))
-	((string? type) (wrap-report (predicate-of type)))
+	 (wrap (fold-left (lambda (acc t)
+			    (let ((v (predicate-of t)))
+			      (lambda (e) (or (v e) (acc e)))))
+			  (lambda (e) #t) type)))
+	((string? type) (wrap (predicate-of type)))
 	(else (assertion-violation 'json-schema:type
 				   "Type must be array or string" type))))
 
@@ -127,13 +123,11 @@
   (unless (unique? vals)
     (assertion-violation 'json-schema:enum
 			 "Enum should contain unique value" vals))
-  (lambda (e path)
-    (or (exists (lambda (v) (json=? e v)) vals) (report path e `(enum ,@vals)))))
+  (lambda (e path) (exists (lambda (v) (json=? e v)) vals)))
 
 ;;; 6.1.2 const 
 ;; `const` validator: (v) -> (obj, path) -> boolean
-(define (json-schema:const v)
-  (lambda (e path) (or (json=? e v) (report path e `(const ,v)))))
+(define (json-schema:const v) (lambda (e path) (json=? e v)))
 
 
 ;;; 6.2. Validation Keywords for Numeric Instances (number and integer)
@@ -148,10 +142,9 @@
     (assertion-violation 'json-schema:multiple-of
 			 "MultipleOf must be a number greater than 0" v))
   (lambda (e path)
-    (or (and (real? e)
-	     (let-values (((e v) (->integer e v)))
-	       (zero? (mod e v))))
-	(report path e `(multiple-of ,v)))))
+    (and (real? e)
+	 (let-values (((e v) (->integer e v)))
+	   (zero? (mod e v))))))
 
 (define (min/max who compare)
   (define name (symbol->string who))
@@ -159,8 +152,7 @@
   (define err-msg (string-append (string-titlecase name) " must be a number"))
   (lambda (v path)
     (unless (real? v) (assertion-violation err-who err-msg v))
-    (lambda (e path)
-      (or (and (real? e) (compare e v)) (report path e `(,who ,v))))))
+    (lambda (e path) (and (real? e) (compare e v)))))
 
 ;;; 6.2.2 maximum
 ;; `maximum` validator: (n) -> (obj, path) -> boolean
@@ -182,9 +174,7 @@
   (when (or (not (integer? v)) (negative? v))
     (assertion-violation 'json-schema:max-length
 			 "maxLength must be a non negative integer" v))
-  (lambda (e path)
-    (or (and (string? e) (<= (string-length e) v))
-	(report path e `(max-length ,v)))))
+  (lambda (e path) (and (string? e) (<= (string-length e) v))))
 
 ;;; 6.3.2. minLength
 ;; `minLength` validator: (n) -> (obj, path) -> boolean
@@ -192,9 +182,7 @@
   (when (or (not (integer? v)) (negative? v))
     (assertion-violation 'json-schema:min-length
 			 "minLength must be a non negative integer" v))
-  (lambda (e path)
-    (or (and (string? e) (<= v (string-length e)))
-	(report path e `(min-length ,v)))))
+  (lambda (e path) (and (string? e) (<= v (string-length e)))))
 
 ;;; 6.3.3. pattern
 ;; `pattern` validator: (pattern) -> (obj, path) -> boolean
@@ -207,9 +195,7 @@
 				      (condition-message e)
 				      "Invalid regex pattern") p)))
     (let ((rx (regex p)))
-      (lambda (e path)
-	(or (and (string? e) (looking-at rx e) #t)
-	    (report path e `(pattern ,p)))))))
+      (lambda (e path) (and (string? e) (looking-at rx e) #t)))))
 
 ;;; 6.4. Validation Keywords for Arrays
 ;;; 6.4.1. maxItems
@@ -217,23 +203,20 @@
   (when (or (not (integer? n)) (negative? n))
     (assertion-violation 'json-schema:max-items
 			 "maxItems must be a non negative integer" n))
-  (lambda (e path)
-    (or (and (list? e) (<= (length e) n)) (report path e `(max-items ,n)))))
+  (lambda (e path) (and (list? e) (<= (length e) n))))
 ;;; 6.4.2. minItems
 (define (json-schema:min-items n)
   (when (or (not (integer? n)) (negative? n))
     (assertion-violation 'json-schema:max-items
 			 "minItems must be a non negative integer" n))
-  (lambda (e path)
-    (or (and (list? e) (<= n (length e))) (report path e `(min-items ,n)))))
+  (lambda (e path) (and (list? e) (<= n (length e)))))
 ;;; 6.4.3. uniqueItems
 (define (json-schema:unique-items b)
   (unless (boolean? b)
     (assertion-violation 'json-schema:unique-items
 			 "uniqueItems must be a boolean" b))
   (if b
-      (lambda (e path)
-	(or (and (list? e) (unique? e)) (report path e `(unique-items ,b))))
+      (lambda (e path) (and (list? e) (unique? e)))
       (lambda (e path) #t)))
 
 ;;; 6.5. Validation Keywords for Objects
@@ -242,24 +225,20 @@
   (when (or (not (integer? n)) (negative? n))
     (assertion-violation 'json-schema:max-properties
 			 "maxProperties must be a non negative integer" n))
-  (lambda (e path)
-    (or (and (vector? e) (<= (vector-length e) n))
-	(report path e `(max-properties ,n)))))
+  (lambda (e path) (and (vector? e) (<= (vector-length e) n))))
 ;;; 6.5.2. minProperties
 (define (json-schema:min-properties n)
   (when (or (not (integer? n)) (negative? n))
     (assertion-violation 'json-schema:min-properties
 			 "minProperties must be a non negative integer" n))
-  (lambda (e path)
-    (or (and (vector? e) (<= n (vector-length e)))
-	(report path e `(min-properties ,n)))))
+  (lambda (e path) (and (vector? e) (<= n (vector-length e)))))
 ;;; 6.5.3. required
 (define (json-schema:required e*)
   (unless (and (list? e*) (for-all string? e*) (unique? e*))
     (assertion-violation 'json-schema:required
 			 "Required must be an array of unique strings" e*))
   (lambda (e path)
-    (or (and (vector? e)
+    (and (vector? e)
 	     ;; TODO inefficient
 	     (for-all (lambda (k)
 			(vector-any
@@ -269,7 +248,6 @@
 			   (and (pair? v) (string? (car v)) 
 				(string=? (car v) k)))
 			 e))
-		      e*))
-	(report path e `(required ,e*)))))
+		      e*))))
 
 )

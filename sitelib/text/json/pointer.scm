@@ -67,7 +67,7 @@
   (let-values (((s v nl) (root (->lseq p))))
     (if (and (parse-success? s) (null? nl))
 	v
-	(error 'json-pointer "Failed to parse JSON pointer"))))
+	(error 'json-pointer "Failed to parse JSON pointer" p))))
 
 (define-record-type not-found)
 (define +json-pointer-not-found+ (make-not-found))

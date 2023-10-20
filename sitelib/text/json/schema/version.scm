@@ -32,11 +32,28 @@
 ;; Draft-7, 2019-09 and 2020-12: https://json-schema.org/
 #!nounbound
 (library (text json schema version)
-    (export json-schema:version)
-    (import (rnrs))
+    (export json-schema:version
+	    json-schema->version)
+    (import (rnrs)
+	    (rfc uri))
 
 (define-enumeration json-schema:version
   (draft-7 2019-09 2020-12)
   json-schema-versions)
+
+(define (json-schema->version schema)
+  (define (rec schema original?)
+    (cond ((assoc schema *json-schema-versions*) => cdr)
+	  (original?
+	   (let-values (((scheme ui host port path query frag)
+			 (uri-parse schema)))
+	     (rec (uri-compose :scheme "https" :host host :path path) #f)))
+	  (else #f)))
+  (rec schema #t))
+
+(define *json-schema-versions*
+  '(("https://json-schema.org/draft-07/schema"      . draft-7)
+    ("https://json-schema.org/draft/2019-09/schema" . 2019-09)
+    ("https://json-schema.org/draft/2020-12/schema" . 2020-12)))
 
 )

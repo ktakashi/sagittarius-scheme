@@ -42,7 +42,7 @@
   (target json-schema-report-target)
   (parameter json-schema-report-parameter))
 
-(define (raise-json-schema-report path obj parameter)
+(define (raise-json-schema-report obj path parameter)
   (raise-continuable
    (make-json-schema-report path obj parameter)))
 

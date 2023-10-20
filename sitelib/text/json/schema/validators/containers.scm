@@ -32,11 +32,9 @@
 ;; Draft-7, 2019-09 and 2020-12: https://json-schema.org/
 #!nounbound
 (library (text json schema validators containers)
-    (export json-schema:array)
+    (export json-schema:array json-schema:object)
     (import (rnrs)
 	    (sagittarius regex)
-	    (rename (text json schema conditions)
-		    (raise-json-schema-report report))
 	    (text json schema validators primitives)
 	    (srfi :133 vectors))
 
@@ -52,25 +50,23 @@
 	((null? o) r)))
   (if (pair? items)
       (lambda (e path)
-	(if (not (pair? e))
-	    (report path e `(array ,e))
-	    (let loop ((i 0) (o e) (v items))
-	      (cond ((null? items)
-		     (check-additional-items additional-items path i o))
-		    ((null? o))
-		    (else
-		     (let ((this-path (build-pointer path i)))
-		       (and ((car v) (car o) this-path)
-			    (loop (+ i 1) (cdr o) (cdr v)))))))))
+	(and (pair? e)
+	     (let loop ((i 0) (o e) (v items))
+	       (cond ((null? items)
+		      (check-additional-items additional-items path i o))
+		     ((null? o))
+		     (else
+		      (let ((this-path (build-pointer path i)))
+			(and ((car v) (car o) this-path)
+			     (loop (+ i 1) (cdr o) (cdr v)))))))))
       ;; single items
       (lambda (e path)
-	(if (not (pair? e))
-	    (report path e `(array ,e))
-	    (let loop ((i 0) (o e) (v items))
-	      (or (null? o)
-		  (let ((this-path (build-pointer path i)))
-		    (and (items (car o) this-path)
-			 (loop (+ i 1) (cdr o) (cdr v))))))))))
+	(and (pair? e)
+	     (let loop ((i 0) (o e) (v items))
+	       (or (null? o)
+		   (let ((this-path (build-pointer path i)))
+		     (and (items (car o) this-path)
+			  (loop (+ i 1) (cdr o) (cdr v))))))))))
 		     
 ;; Object validator
 ;; we need to have three types of validators,
@@ -105,9 +101,8 @@
 		 (else
 		  (additional-properties value this-path))))))
   (lambda (e path)
-    (if (vector? e)
-	(vector-fold (lambda (acc v) (and acc (check-object path v))) #t e)
-	(report path e `(object ,e)))))
+    (and (vector? e)
+	 (vector-fold (lambda (acc v) (and acc (check-object path v))) #t e))))
 
 ;;; Utilities
 (define (build-pointer base next)
