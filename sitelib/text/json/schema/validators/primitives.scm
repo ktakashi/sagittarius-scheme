@@ -150,7 +150,7 @@
   (define name (symbol->string who))
   (define err-who (string->symbol (string-append "json-schema:" name)))
   (define err-msg (string-append (string-titlecase name) " must be a number"))
-  (lambda (v path)
+  (lambda (v)
     (unless (real? v) (assertion-violation err-who err-msg v))
     (lambda (e path) (and (real? e) (compare e v)))))
 

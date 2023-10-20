@@ -32,9 +32,11 @@
 ;; Draft-7, 2019-09 and 2020-12: https://json-schema.org/
 #!nounbound
 (library (text json schema validators format)
-    (export json-schema:format)
+    (export json-schema:format
+	    *json-schema:validate-format?*)
     (import (rnrs)
 	    (sagittarius regex)
+	    (srfi :39 parameters)
 	    (rfc smtp format) ;; smtp-valid-address?
 	    (rfc uri)
 	    (rfc uri-template)
@@ -43,16 +45,18 @@
 	    (only (text json schema validators primitives)
 		  json-schema:pattern))
 
+(define *json-schema:validate-format?* (make-parameter #t))
+
 (define (json-schema:format v)
   (cond ((assoc v +json-schema-defined-formats+) =>
 	 (lambda (slot)
 	   (let ((validator (cdr slot)))
 	     (lambda (e path)
 	       (if (*json-schema:validate-format?*)
-		   (and (validator e path) #t)
+		   (and (validator e) #t)
 		   #t)))))
 	;; not supported, so ignore
-	(else (boolean->validator #t))))
+	(else (lambda (e path) #t))))
 
 ;; NOTE: for date-time related, we only check format not validity
 (define date-pattern "\\d{4}-\\d{2}-\\d{2}")
