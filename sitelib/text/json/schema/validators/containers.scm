@@ -41,32 +41,45 @@
 ;; Array validator
 ;; (items, additional-items) -> (obj, path) -> boolean
 ;; `items` can be a list of validator or a validator
-;; `additional-items` must be a validator
+;; `additional-items` must be a validator or #f
+;; `unevaluated-items` must be a validator or #f
 ;; It is caller's responsibility to handle which draft it's using
-(define (json-schema:array items additional-items)
+(define (json-schema:array items additional-items unevaluated-items)
   (define (check-additional-items validator path i o)
     (do ((i i (+ i 1)) (o o (cdr o))
 	 (r #t (and r (validator (car o) (build-pointer path i)))))
 	((null? o) r)))
-  (if (pair? items)
-      (lambda (e path)
-	(and (pair? e)
-	     (let loop ((i 0) (o e) (v items))
-	       (cond ((null? items)
-		      (check-additional-items additional-items path i o))
-		     ((null? o))
-		     (else
+  (define (check-extras additional unevaluated path i o)
+    (cond (additional
+	   (check-additional-items additional-items path i o))
+	  (unevaluated
+	   (check-additional-items unevaluated-items path i o))
+	  ;; default true :)
+	  (else #t)))
+  (cond ((not items)
+	 (lambda (e path)
+	   (check-extras additional-items unevaluated-items path 0 e)))
+	((pair? items)
+	 (lambda (e path)
+	   (and (list? e)
+		(let loop ((i 0) (o e) (v items))
+		  (cond ((null? v)
+			 (check-extras additional-items unevaluated-items
+				       path i o))
+			((null? o))
+			(else
+			 (let ((this-path (build-pointer path i)))
+			   (and ((car v) (car o) this-path)
+				(loop (+ i 1) (cdr o) (cdr v))))))))))
+	(else
+	 ;; single items
+	 (lambda (e path)
+	   (and (list? e)
+		(let loop ((i 0) (o e))
+		  (or (null? o)
 		      (let ((this-path (build-pointer path i)))
-			(and ((car v) (car o) this-path)
-			     (loop (+ i 1) (cdr o) (cdr v)))))))))
-      ;; single items
-      (lambda (e path)
-	(and (pair? e)
-	     (let loop ((i 0) (o e) (v items))
-	       (or (null? o)
-		   (let ((this-path (build-pointer path i)))
-		     (and (items (car o) this-path)
-			  (loop (+ i 1) (cdr o) (cdr v))))))))))
+			(and (items (car o) this-path)
+			     (loop (+ i 1) (cdr o)))))))))))
 		     
 ;; Object validator
 ;; we need to have three types of validators,
@@ -80,8 +93,9 @@
 ;;
 ;; `property-names` must be a validator
 ;; `propertie` must be alist of string/regex as key, validator as value
-;; `additional-properties` must be a validator
-(define (json-schema:object property-names properties additional-properties)
+;; `additional` must be a validator or #f
+;; `unevaluated` must be a validator or #f
+(define (json-schema:object property-names properties additional unevaluated)
   (define (match-properties prop properties)
     (define (match-property slot)
       (let ((name (car slot)))
@@ -98,8 +112,9 @@
       (and (property-names prop path)
 	   (cond ((match-properties prop properties) =>
 		  (lambda (validator) (validator value this-path)))
-		 (else
-		  (additional-properties value this-path))))))
+		 (additional (additional value this-path))
+		 (unevaluated (unevaluated value this-path))
+		 (else #t)))))
   (lambda (e path)
     (and (vector? e)
 	 (vector-fold (lambda (acc v) (and acc (check-object path v))) #t e))))
