@@ -51,12 +51,12 @@
   (cond ((assoc v +json-schema-defined-formats+) =>
 	 (lambda (slot)
 	   (let ((validator (cdr slot)))
-	     (lambda (e path)
+	     (lambda (e)
 	       (if (*json-schema:validate-format?*)
 		   (and (validator e) #t)
 		   #t)))))
 	;; not supported, so ignore
-	(else (lambda (e path) #t))))
+	(else (lambda (e) #t))))
 
 ;; NOTE: for date-time related, we only check format not validity
 (define date-pattern "\\d{4}-\\d{2}-\\d{2}")
