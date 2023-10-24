@@ -107,7 +107,7 @@
 	 (fold-left (lambda (acc t)
 		      (let ((v (predicate-of t)))
 			(lambda (e) (or (v e) (acc e)))))
-		    (lambda (e) #t) type))
+		    (lambda (e) #f) type))
 	((string? type) (predicate-of type))
 	(else (assertion-violation 'json-schema:type
 				   "Type must be array or string" type))))
@@ -145,13 +145,12 @@
 	(let-values (((e v) (->integer e v)))
 	  (zero? (mod e v))))))
 
-(define (min/max who compare)
+(define ((min/max who compare) v)
   (define name (symbol->string who))
   (define err-who (string->symbol (string-append "json-schema:" name)))
   (define err-msg (string-append (string-titlecase name) " must be a number"))
-  (lambda (v)
-    (unless (real? v) (assertion-violation err-who err-msg v))
-    (lambda (e) (or (not (real? e)) (compare e v)))))
+  (unless (real? v) (assertion-violation err-who err-msg v))
+  (lambda (e) (or (not (real? e)) (compare e v))))
 
 ;;; 6.2.2 maximum
 ;; `maximum` validator: (n) -> (obj) -> boolean
