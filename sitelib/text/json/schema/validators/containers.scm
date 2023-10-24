@@ -75,12 +75,12 @@
 	(else
 	 ;; single items
 	 (lambda (e path)
-	   (and (list? e)
-		(let loop ((i 0) (o e))
-		  (or (null? o)
-		      (let ((this-path (build-pointer path i)))
-			(and (items (car o) this-path)
-			     (loop (+ i 1) (cdr o)))))))))))
+	   (or (not (list? e))
+	       (let loop ((i 0) (o e))
+		 (or (null? o)
+		     (let ((this-path (build-pointer path i)))
+		       (and (items (car o) this-path)
+			    (loop (+ i 1) (cdr o)))))))))))
 		     
 ;; Object validator
 ;; we need to have three types of validators,
@@ -117,8 +117,8 @@
 		 (unevaluated (unevaluated value this-path))
 		 (else #t)))))
   (lambda (e path)
-    (and (vector? e)
-	 (vector-fold (lambda (acc v) (and acc (check-object path v))) #t e))))
+    (or (not (vector? e))
+	(vector-fold (lambda (acc v) (and acc (check-object path v))) #t e))))
 
 ;;; Utilities
 (define (build-pointer base next)

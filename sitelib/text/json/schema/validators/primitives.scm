@@ -141,9 +141,9 @@
     (assertion-violation 'json-schema:multiple-of
 			 "MultipleOf must be a number greater than 0" v))
   (lambda (e)
-    (and (real? e)
-	 (let-values (((e v) (->integer e v)))
-	   (zero? (mod e v))))))
+    (or (not (real? e))
+	(let-values (((e v) (->integer e v)))
+	  (zero? (mod e v))))))
 
 (define (min/max who compare)
   (define name (symbol->string who))
@@ -173,7 +173,7 @@
   (when (or (not (integer? v)) (negative? v))
     (assertion-violation 'json-schema:max-length
 			 "maxLength must be a non negative integer" v))
-  (lambda (e) (and (string? e) (<= (string-length e) v))))
+  (lambda (e) (or (not (string? e)) (<= (string-length e) v))))
 
 ;;; 6.3.2. minLength
 ;; `minLength` validator: (n) -> (obj) -> boolean
@@ -181,7 +181,7 @@
   (when (or (not (integer? v)) (negative? v))
     (assertion-violation 'json-schema:min-length
 			 "minLength must be a non negative integer" v))
-  (lambda (e) (and (string? e) (<= v (string-length e)))))
+  (lambda (e) (or (not (string? e)) (<= v (string-length e)))))
 
 ;;; 6.3.3. pattern
 ;; `pattern` validator: (pattern) -> (obj) -> boolean
@@ -194,7 +194,8 @@
 				      (condition-message e)
 				      "Invalid regex pattern") p)))
     (let ((rx (regex p)))
-      (lambda (e) (and (string? e) (looking-at rx e) #t)))))
+      (lambda (e) (or (not (string? e))
+		      (and (looking-at rx e) #t))))))
 
 ;;; 6.4. Validation Keywords for Arrays
 ;;; 6.4.1. maxItems
@@ -202,13 +203,13 @@
   (when (or (not (integer? n)) (negative? n))
     (assertion-violation 'json-schema:max-items
 			 "maxItems must be a non negative integer" n))
-  (lambda (e) (and (list? e) (<= (length e) n))))
+  (lambda (e) (or (not (list? e)) (<= (length e) n))))
 ;;; 6.4.2. minItems
 (define (json-schema:min-items n)
   (when (or (not (integer? n)) (negative? n))
     (assertion-violation 'json-schema:max-items
 			 "minItems must be a non negative integer" n))
-  (lambda (e) (and (list? e) (<= n (length e)))))
+  (lambda (e) (or (not (list? e)) (<= n (length e)))))
 ;;; 6.4.3. uniqueItems
 (define (json-schema:unique-items b)
   (unless (boolean? b)
@@ -224,29 +225,29 @@
   (when (or (not (integer? n)) (negative? n))
     (assertion-violation 'json-schema:max-properties
 			 "maxProperties must be a non negative integer" n))
-  (lambda (e) (and (vector? e) (<= (vector-length e) n))))
+  (lambda (e) (or (not (vector? e)) (<= (vector-length e) n))))
 ;;; 6.5.2. minProperties
 (define (json-schema:min-properties n)
   (when (or (not (integer? n)) (negative? n))
     (assertion-violation 'json-schema:min-properties
 			 "minProperties must be a non negative integer" n))
-  (lambda (e) (and (vector? e) (<= n (vector-length e)))))
+  (lambda (e) (or (not (vector? e)) (<= n (vector-length e)))))
 ;;; 6.5.3. required
 (define (json-schema:required e*)
   (unless (and (list? e*) (for-all string? e*) (unique? e*))
     (assertion-violation 'json-schema:required
 			 "Required must be an array of unique strings" e*))
   (lambda (e)
-    (and (vector? e)
-	     ;; TODO inefficient
-	     (for-all (lambda (k)
-			(vector-any
-			 (lambda (v)
-			   ;; not sure if we need to handle invalid JSON
-			   ;; structure...
-			   (and (pair? v) (string? (car v)) 
-				(string=? (car v) k)))
-			 e))
-		      e*))))
+    (or (not (vector? e))
+	;; TODO inefficient
+	(for-all (lambda (k)
+		   (vector-any
+		    (lambda (v)
+		      ;; not sure if we need to handle invalid JSON
+		      ;; structure...
+		      (and (pair? v) (string? (car v)) 
+			   (string=? (car v) k)))
+		    e))
+		 e*))))
 
 )
