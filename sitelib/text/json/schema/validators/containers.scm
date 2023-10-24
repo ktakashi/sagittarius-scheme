@@ -58,7 +58,8 @@
 	  (else #t)))
   (cond ((not items)
 	 (lambda (e path)
-	   (check-extras additional-items unevaluated-items path 0 e)))
+	   ;; additionaItems without items must not be evaluated...
+	   (check-extras #f unevaluated-items path 0 e)))
 	((pair? items)
 	 (lambda (e path)
 	   (and (list? e)
@@ -100,7 +101,7 @@
     (define (match-property slot)
       (let ((name (car slot)))
 	(cond ((string? name) (string=? name prop))
-	      ((regex-pattern? name) (matches name prop))
+	      ((regex-pattern? name) (looking-at name prop))
 	      ;; ??? shouldn't be just ignore for now
 	      (else #f))))
     (cond ((find match-property properties) => cdr)

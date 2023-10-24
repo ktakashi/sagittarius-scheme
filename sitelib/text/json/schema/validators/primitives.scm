@@ -151,7 +151,7 @@
   (define err-msg (string-append (string-titlecase name) " must be a number"))
   (lambda (v)
     (unless (real? v) (assertion-violation err-who err-msg v))
-    (lambda (e) (and (real? e) (compare e v)))))
+    (lambda (e) (or (not (real? e)) (compare e v)))))
 
 ;;; 6.2.2 maximum
 ;; `maximum` validator: (n) -> (obj) -> boolean

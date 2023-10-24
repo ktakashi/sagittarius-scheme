@@ -33,7 +33,11 @@
 #!nounbound
 (library (text json schema conditions)
     (export make-json-schema-report json-schema-report?
-	    raise-json-schema-report)
+	    raise-json-schema-report
+
+	    json-schema-report-path json-schema-report-target
+	    json-schema-report-parameter
+	    )
     (import (rnrs))
 
 (define-condition-type &json-schema-report &condition

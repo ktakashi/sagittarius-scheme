@@ -53,7 +53,7 @@
 	   (let ((validator (cdr slot)))
 	     (lambda (e)
 	       (if (*json-schema:validate-format?*)
-		   (and (validator e) #t)
+		   (or (not (string? e)) (validator e) #t)
 		   #t)))))
 	;; not supported, so ignore
 	(else (lambda (e) #t))))
