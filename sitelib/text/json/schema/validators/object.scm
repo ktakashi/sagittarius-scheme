@@ -93,7 +93,7 @@
       (or (not (vector? e))
 	  (vector-every (lambda (v)
 			  (let ((n (car v)))
-			    (validator n (make-schema-context n ctx)))) e)))))
+			    (validator n (make-validator-context n ctx)))) e)))))
 
 ;; TODO
 ;; We need to record the object when `properties`, `patternProperties`

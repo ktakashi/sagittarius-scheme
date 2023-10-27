@@ -36,13 +36,13 @@
 	    *json-schema:resolve-external-schema?*
 	    *json-schema:external-schema-resolver*)
     (import (rnrs)
+	    (rfc uri)
 	    (srfi :13 strings)
 	    (srfi :39 parameters)
 	    (srfi :45 lazy)
 	    (text json parse)
 	    (text json pointer)
 	    (text json schema validators api)
-	    (rfc uri)
 	    (util uri))
 (define *json-schema:resolve-external-schema?* (make-parameter #f))
 
@@ -53,18 +53,58 @@
 
 
 ;; probably better to check URI and only fragment but for now
-(define (mere-json-pointer? s) (string-prefix? "#/" s))
+(define (mere-json-pointer? s) (string-prefix? "/" s))
+
+(define ($ref-handler value context schema-path recursive?)
+  (define in-id (schema-context-in-id context))
+  (define (->cached-validator schema id)
+    (let ((path (or (and id (string-append id "#")) "#")))
+      (schema-context->cached-validator schema path)))
+  
+  (let-values (((this-id anchor) (uri->id&fragment value)))
+    (when (and anchor (string-null? anchor) (not recursive?))
+      (assertion-violation 'json-schema:$ref "Recursion is not allowed" value))
+    (let* ((id (or (and this-id (if in-id (uri-merge in-id this-id) this-id))
+		   in-id))
+	   (schema (if id
+		       (schema-context:find-by-id context id)
+		       ;; then root schema
+		       (schema-context:root-schema context))))
+      (cond ((not schema)
+	     ;; external reference
+	     (error '$ref-handler "not yet" value))
+	    ((not anchor)
+	     (schema-validator->core-validator
+	      (cond ((schema-context-validator schema))
+		    ;; in case of cross reference or self $id reference
+		    (else (->cached-validator schema id)))))
+	    ((mere-json-pointer? anchor)
+	     ;; a bit inefficient but just compile it
+	     (let ((s ((json-pointer anchor) (schema-context-schema schema))))
+	       (schema-validator->core-validator
+		(schema-context->schema-validator
+		 (make-schema-context s schema)
+		 (string-append (or id "") "#" anchor)))))
+	    ((string-null? anchor)
+	     ;; recursive
+	     (schema-validator->core-validator
+	      (cond ((schema-context-validator schema))
+		    (else (->cached-validator schema id)))))
+	     (else
+	      (error '$ref-handler "Not yet" value))))))
 
 (define (json-schema:draft-7-$ref value context schema-path)
-  (display value) (newline)
-  (lambda (e ctx) #t))
+  ($ref-handler value context schema-path #t))
 
 (define (json-schema:$ref value context schema-path)
-  (lambda (e ctx) #t))
-
+  ($ref-handler value context schema-path #f))
 
 (define (json-schema:$recursive-ref value context schema-path)
-  (lambda (e ctx) #t))
+  (unless (equal? value "#")
+    (assertion-violation 'json-schema:$recursive-ref
+			 "$resursiveRef must have value of '#'" value))
+  ;; TODO should we check $recursiveAnchor?
+  ($ref-handler value context schema-path #t))
 
 ;; utilities
 

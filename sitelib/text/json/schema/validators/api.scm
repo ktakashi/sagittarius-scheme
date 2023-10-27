@@ -31,6 +31,7 @@
 #!nounbound
 (library (text json schema validators api)
     (export schema-context->schema-validator
+	    schema-context->cached-validator
 	    schema-validator->core-validator
 	    schema-validator-validator
 	    wrap-core-validator
@@ -39,22 +40,34 @@
 	    json-schema?
 	    build-schema-path
 	    boolean->validator
+	    uri->id&fragment
 	    
 	    ;; contexts
 	    make-root-context root-context?
 	    schema-context?
-	    schema-context-version schema-context-schema-id
+	    schema-context-version schema-context-version-set!
+	    schema-context-schema-id
+	    schema-context-in-id
 	    schema-context-schema
+	    schema-context-anchors
+	    schema-context-validator
 	    make-initial-schema-context
 	    make-schema-context
+
+	    schema-context:find-by-id schema-context:set-id!
+	    schema-context:root-schema
+	    schema-context:add-anchor!
 
 	    make-validator-context validator-context
 
 	    ;; paremters
 	    *json-schema:default-version*)
     (import (rnrs)
+	    (rfc uri)
 	    (srfi :2 and-let*)
+	    (srfi :13 strings)
 	    (srfi :39 parameters)
+	    (srfi :45 lazy)
 	    (srfi :117 list-queues)
 	    (text json pointer)
 	    (text json schema version))
@@ -69,10 +82,12 @@
   (cons (car entry) (map ->config (cdr entry))))
 (define-record-type root-context
   (fields configuration
+	  ids
 	  (mutable schema-contexts))
   (protocol (lambda (p)
 	      (lambda (configuration)
 		(p (map ->configuration configuration)
+		   (make-hashtable string-hash string=?)
 		   '())))))
 
 (define (root-context:add-schema-context! root schema-context)
@@ -90,45 +105,44 @@
 ;; A context contains
 ;; - schema        - Current JSON schema
 ;; - schema-id     - This can be propagated from the parent context
+;; - in-id         - The $id belong to this context, can be the same as schema-id
+;;                   FIXME: Bad naming... 
 ;; - version       - The schema version
 ;; - root          - root context, which contains version config et.al
 ;; - parent        - parent schema context
 ;; - anchors       - $anchor or $id with fragment, hashtable
 ;; - vocabularies  - $vocabularies, hashtable
 ;; - validator     - the validator of this context
-(define $schema-pointer (json-pointer "/$schema"))
-(define $id-pointer (json-pointer "/$id"))
 (define-record-type (schema-context make-raw-schema-context schema-context?)
   (fields schema
-	  schema-id
-	  version
+	  (mutable schema-id)
+	  (mutable in-id)
+	  (mutable version)
 	  root
 	  parent
-	  anchors
+	  (mutable anchors)
 	  vocabularies
-	  (mutable validator))
+	  (mutable validator)
+	  cache)
   (protocol (lambda (p)
-	      (define (id schema parent)
-		(or (and-let* ( ( (vector? schema) )
-				(r ($id-pointer schema))
-				( (not (json-pointer-not-found? r)) ))
-		      r)
-		    (and parent (schema-context-schema-id parent))))
-	      (define (version schema parent)
-		(or (and-let* ( ( (vector? schema) )
-				(r ($schema-pointer schema))
-				( (not (json-pointer-not-found? r)) ))
-		      (json-schema->version r))
-		    (and parent (schema-context-version parent))
+	      (define (in-id parent)
+		(and parent (schema-context-schema-id parent)))
+	      (define (version parent)
+		(or (and parent (schema-context-version parent))
 		    (*json-schema:default-version*)))
 	      (lambda (schema root parent)
 		(p schema
-		   (id schema parent)
-		   (version schema parent)
+		   #f
+		   (in-id parent)
+		   (version parent)
 		   root parent
+		   (or (and parent (schema-context-anchors parent))
+		       (make-hashtable string-hash string=?))
 		   (make-hashtable string-hash string=?)
-		   (make-hashtable string-hash string=?)
-		   #f)))))
+		   #f
+		   (or (and parent (schema-context-cache parent))
+		       (make-eq-hashtable))
+		   )))))
 
 (define (make-initial-schema-context schema root)
   (let ((ctx (make-raw-schema-context schema root #f)))
@@ -142,6 +156,28 @@
   (let ((root (schema-context-root context))
 	(version (schema-context-version context)))
     (configuration-keywords (root-context-configuration root) version)))
+
+;; id must be FQDN (or at least merged)
+(define (schema-context:set-id! context id)
+  (schema-context-schema-id-set! context id)
+  (schema-context-in-id-set! context id)
+  (schema-context-anchors-set! context (make-hashtable string-hash string=?))
+  (let ((root (schema-context-root context)))
+    ;; TODO should we check duplicate $id?
+    (hashtable-set! (root-context-ids root) id context)))
+
+(define (schema-context:find-by-id context id)
+  (let ((root (schema-context-root context)))
+    (hashtable-ref (root-context-ids root) id #f)))
+
+(define (schema-context:root-schema context)
+  (if (not (schema-context-parent context))
+      context
+      (schema-context:root-schema (schema-context-parent context))))
+
+(define (schema-context:add-anchor! context anchor)
+  ;; TODO should we check duplicate $anchor?
+  (hashtable-set! (schema-context-anchors context) anchor context))
 
 ;; validator context
 ;; validation time context
@@ -184,11 +220,13 @@
 		 (handler (cddr config)))
 	    (if (json-pointer-not-found? v)
 		(loop (cdr keywords) acc)
-		(let-values (((validator continue?) (handler v context path)))
-		  (let ((v (lambda (e ctx) (and (acc e ctx) (validator e ctx)))))
-		  (if continue?
-		      (loop (cdr keywords) v)
-		      v))))))))
+		(let-values (((v continue?) (handler v context path)))
+		  (let ((next (or (and v (lambda (e ctx)
+					   (and (acc e ctx) (v e ctx))))
+				  acc)))
+		    (if continue?
+			(loop (cdr keywords) next)
+			next))))))))
   (define (update-cache! context validator)
     (schema-context-validator-set! context validator)
     validator)
@@ -203,6 +241,23 @@
 	(else
 	 (assertion-violation 'schema-context->schema-validator
 			      "Invalid JSON Schema" schema))))
+
+(define (schema-context->cached-validator context schema-path)
+  (define cache (schema-context-cache context))
+  (define (retriever)
+    (cond ((schema-context-validator context) =>
+	   schema-validator->core-validator)
+	  (else true-validator)))
+  (cond ((hashtable-ref cache context #f) =>
+	 (lambda (promise)
+	   (make-schema-validator
+	    (lambda (e ctx) ((force promise) e ctx)) schema-path)))
+	(else
+	 (hashtable-set! cache context (lazy (retriever)))
+	 (let* ((v (schema-context->schema-validator context schema-path))
+		(core-validator (schema-validator->core-validator v)))
+	   (hashtable-set! cache context (delay (lambda () core-validator)))
+	   v))))
 
 (define-record-type schema-validator
   (fields validator schema-path))
@@ -222,5 +277,22 @@
 (define (build-schema-path base child)
   (string-append base "/" child))
 (define (boolean->validator b) (lambda (e ctx) b))
+(define true-validator (boolean->validator #t))
+
+(define (uri->id&fragment uri)
+  (define anchor-index (string-index uri #\#))
+  (define len (string-length uri))
+  (let ((v (substring uri 0 (or anchor-index len))))
+    (values (and (not (string-null? v)) v)
+	    (and anchor-index (substring uri (+ anchor-index 1) len)))))
+
+(define (merge-id base new)
+  (if (and base (fqdn? base))
+      (uri-merge base new)
+      new))
+(define (fqdn? uri)
+  (let-values (((scheme specific) (uri-scheme&specific uri)))
+    ;; at least mergeable I think
+    (and scheme #t)))
 
 )
