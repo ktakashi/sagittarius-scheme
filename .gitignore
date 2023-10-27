@@ -12,6 +12,7 @@ CMakeCache.txt
 CMakeSettings.json
 cmake_install.cmake
 cmake_uninstall.cmake
+Makefile
 
 *.bin
 *.pc
@@ -21,6 +22,13 @@ cmake_uninstall.cmake
 *.iml
 
 # generated code
+.sagittarius-r6rstestrc
+.sagittarius-r7rstestrc
+.sagittarius-sitetestrc
+sagittarius-config
+sagittarius-package
+
+/doc/*.html
 /sagittarius/config.h
 /src/vminsn.c
 /src/sagittarius/private/instruction.h
@@ -42,11 +50,13 @@ cmake_uninstall.cmake
 /src/lib_core.c
 /src/lib_clos.c
 /src/lib_arith.c
+/src/lib_kernel.c
 /src/compiler.c
 /src/compiler-aux.c
 /src/builtin-symbols.c
 /src/builtin-keywords.c
 /ext/.sagittarius-exttestrc
+/sitelib/sagittarius/char-sets
 /sitelib/srfi/99.scm
 /sitelib/srfi/98.scm
 /sitelib/srfi/9.scm
@@ -76,7 +86,10 @@ cmake_uninstall.cmake
 /sitelib/srfi/26.scm
 /sitelib/srfi/25.scm
 /sitelib/srfi/23.scm
+/sitelib/srfi/219.scm
 /sitelib/srfi/2.scm
+/sitelib/srfi/197.scm
+/sitelib/srfi/193.scm
 /sitelib/srfi/17.scm
 /sitelib/srfi/160.scm
 /sitelib/srfi/160/u8.scm
@@ -199,3 +212,8 @@ cmake_uninstall.cmake
 /sitelib/scheme/bytevector.scm
 /sitelib/scheme/box.scm
 /sitelib/scheme/bitwise.scm
+/sitelib/text/xml/entities-list.scm
+
+# Git repository during test execution
+/test/JSON-Schema-Test-Suite
+/test/jmespath.test
