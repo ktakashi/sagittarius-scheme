@@ -31,9 +31,12 @@
 #!nounbound
 (library (text json schema validators logics)
     (export json-schema:all-of json-schema:any-of json-schema:one-of
-	    json-schema:not)
+	    json-schema:not
+
+	    json-schema:if)
     (import (rnrs)
 	    (srfi :1 lists)
+	    (text json pointer)
 	    (text json schema validators api))
 
 (define (and-merger . validators)
@@ -71,7 +74,6 @@
 (define json-schema:all-of (array-of-schema-handler "allOf" and-merger))
 (define json-schema:any-of (array-of-schema-handler "anyOf" or-merger))
 (define json-schema:one-of (array-of-schema-handler "oneOf" unique-merger))
-;; utilities
 
 (define (json-schema:not value context schema-path)
   (unless (or (json-schema? value))
@@ -82,5 +84,33 @@
 		      (make-schema-context value context) path))))
     (wrap-core-validator (lambda (e ctx) (not (validator e ctx))) path)))
 
-
+;; if-then-else is handled a bit differently from the other keywords.
+(define then-pointer (json-pointer "/then"))
+(define else-pointer (json-pointer "/else"))
+(define (json-schema:if value context schema-path)
+  (define build-path (lambda (path) (build-schema-path schema-path path)))
+  (define (schema->core-validator schema context schema-path)
+    (schema-validator->core-validator
+     (schema-context->schema-validator (make-schema-context schema context)
+				       schema-path)))
+  (unless (json-schema? value)
+    (assertion-violation 'json-schema:if "JSON Schema is required" value))
+  (let* ((parent-schema (schema-context-schema context))
+	 (then-schema (then-pointer parent-schema))
+	 (else-schema (else-pointer parent-schema))
+	 (if-validator (schema->core-validator value context (build-path "if")))
+	 (then-validator (and (not (json-pointer-not-found? then-schema))
+			      (schema->core-validator
+			       then-schema context (build-path "then"))))
+	 (else-validator (and (not (json-pointer-not-found? else-schema))
+			      (schema->core-validator
+			       else-schema context (build-path "else")))))
+    (lambda (e ctx)
+      (if (if-validator e ctx)
+	  (if then-validator
+	      (then-validator e ctx)
+	      #t)
+	  (if else-validator
+	      (else-validator e ctx)
+	      #t)))))
 )
