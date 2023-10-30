@@ -61,45 +61,53 @@
 	  (equal? name prop))))
   (let ((r (map cdr (filter match-property? properties))))
     (and (not (null? r)) r)))
-(define (check-entry entry ctx properties)
+(define (check-entry e schema entry ctx properties)
   (let ((key (car entry))
 	(value (cdr entry)))
     (cond ((matching-properties key properties) =>
 	   (lambda (validators)
+	     (validator-context:mark-element! ctx e entry schema)
 	     (for-all (lambda (v) (v value (make-validator-context key ctx)))
 		      validators)))
 	  (else #t))))
 
-(define (json-schema:properties value context schema-path)
-  (define path (build-schema-path schema-path "properties"))
-  (let ((properties (compile-properties value context path #f)))
+(define ((properties-handler name regexp?) value context schema-path)
+  (define schema (schema-context-schema context))
+  (define path (build-schema-path schema-path name))
+  (let ((properties (compile-properties value context path regexp?)))
     (lambda (e ctx)
       (or (not (vector? e))
-	  (vector-every (lambda (v) (check-entry v ctx properties)) e)))))
-
-(define (json-schema:pattern-properties value context schema-path)
-  (define path (build-schema-path schema-path "patternProperties"))
-  (let ((properties (compile-properties value context path #t)))
-    (lambda (e ctx)
-      (or (not (vector? e))
-	  (vector-every (lambda (v) (check-entry v ctx properties)) e)))))
+	  (and (validator-context:mark! ctx e schema)
+	       (vector-every (lambda (v)
+			       (check-entry e schema v ctx properties)) e))))))
+(define json-schema:properties (properties-handler "properties" #f))
+(define json-schema:pattern-properties
+  (properties-handler "patternProperties" #t))
 
 (define (json-schema:property-names value context schema-path)
+  (define schema (schema-context-schema context))
   (let ((validator (schema-validator->core-validator
 		    (schema-context->schema-validator
 		     (make-schema-context value context)
 		     (build-schema-path schema-path "propertyNames")))))
     (lambda (e ctx)
       (or (not (vector? e))
-	  (vector-every (lambda (v)
-			  (let ((n (car v)))
-			    (validator n (make-validator-context n ctx)))) e)))))
+	  (and (validator-context:mark! ctx e schema)
+	       (vector-every (lambda (v)
+			       (let ((n (car v)))
+				 (validator-context:mark-element! ctx e v schema)
+				 (validator n (make-validator-context n ctx))))
+			     e))))))
 
-;; TODO
-;; We need to record the object when `properties`, `patternProperties`
-;; or `propertyNames` are getting evaluated and record which property
-;; is evaluated or not
+
+;; filter marked properties
+(define (filter-marked-items ctx schema e)
+  (list->vector
+   (filter (lambda (v) (not (validator-context:marked-element? ctx e v schema)))
+	   (vector->list e))))
+
 (define (json-schema:additional-properties value context schema-path)
+  (define schema (schema-context-schema context))
   (unless (json-schema? value)
     (assertion-violation 'json-schema:additional-properties
 			 "JSON Schema is required" value))
@@ -109,8 +117,8 @@
 		     (build-schema-path schema-path "additionalItems")))))
     (lambda (e ctx)
       (or (not (vector? e))
-	  ;; TODO check if this propery is additional or not
-	  (vector-every (lambda (v) (validator (cdr v) ctx)) e)))))
+	  (vector-every (lambda (v) (validator (cdr v) ctx))
+			(filter-marked-items ctx schema e))))))
 
 
 (define (compile-dependent-required e context schema-path)
