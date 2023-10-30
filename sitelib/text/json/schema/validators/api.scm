@@ -62,11 +62,17 @@
 	    schema-context:find-by-anchor schema-context:add-anchor!
 
 	    make-validator-context validator-context
+	    validator-context:mark!
+	    validator-context:mark-element!
+	    validator-context:marked?
+	    validator-context:marked-element?
+	    validator-context:unevaluated?
 
 	    ;; paremters
 	    *json-schema:default-version*)
     (import (rnrs)
 	    (rfc uri)
+	    (srfi :1 lists)
 	    (srfi :2 and-let*)
 	    (srfi :13 strings)
 	    (srfi :39 parameters)
@@ -212,15 +218,18 @@
   (fields path
 	  parent
 	  reports
+	  marks
 	  lint-mode?)
   (protocol (lambda (p)
 	      (case-lambda
-	       ((lint-mode?) (p "/" #f (list-queue) lint-mode?))
+	       ((lint-mode?)
+		(p "/" #f (list-queue) (make-eq-hashtable) lint-mode?))
 	       ((path parent)
 		;; share the report
 		(p (build-validation-path (validator-context-path parent) path)
 		   parent
 		   (validator-context-reports parent)
+		   (validator-context-marks parent)
 		   (validator-context-lint-mode? parent)))))))
 (define (build-validation-path base path)
   (string-append base "/" (if (number? path) (number->string path) path)))
@@ -231,6 +240,40 @@
 			       schema-path))
   (validator-context-lint-mode? context))
 
+(define (validator-context:mark! context obj schema)
+  (let ((mark (validator-context-marks context)))
+    (hashtable-update! mark obj
+		       (lambda (v)
+			 (cond ((assq schema v) v)
+			       (else (cons (cons schema (list-queue)) v))))
+		       '())))
+(define (validator-context:mark-element! context obj element schema)
+  (let ((mark (validator-context-marks context)))
+    (hashtable-update! mark obj
+		       (lambda (v)
+			 (cond ((assq schema v) =>
+				(lambda (slot)
+				  (list-queue-add-front! (cdr slot) element))))
+			 v)
+		       '())))
+
+(define (validator-context:marked? context obj schema)
+  (let ((slots (hashtable-ref (validator-context-marks context) obj '())))
+    (cond ((assq schema slots))
+	  (else #f))))
+
+(define (validator-context:marked-element? context obj element schema)
+  (let ((slots (hashtable-ref (validator-context-marks context) obj '())))
+    (cond ((assq schema slots) =>
+	   (lambda (slot) (memq element (list-queue-list (cdr slot)))))
+	  (else #f))))
+
+(define (validator-context:unevaluated? context obj element schema)
+  (let ((elements (append-map (lambda (s) (list-queue-list (cdr s)))
+		   (hashtable-ref (validator-context-marks context) obj '()))))
+    (memq element elements)))
+
+;; Schema validator
 (define (update-cache! context validator)
   (schema-context-validator-set! context validator)
   (schema-context:cache-schema! context)

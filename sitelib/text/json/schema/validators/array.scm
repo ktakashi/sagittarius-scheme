@@ -41,6 +41,14 @@
 	    (srfi :1 lists)
 	    (text json schema validators api))
 
+(define (filter-marked-items ctx schema e)
+  (if (validator-context:marked? ctx e schema)
+      (filter (lambda (v)
+		(not (validator-context:marked-element? ctx e v schema))) e)
+      ;; it's not marked, means not `items` so return '() as default
+      ;; of `items` is true
+      '()))
+
 (define (schema->core-validator schema context schema-path)
   (schema-validator->core-validator
    (schema-context->schema-validator (make-schema-context schema context)
@@ -53,13 +61,16 @@
   (lambda (e ctx) #t))
 
 (define (json-schema:additional-items value context schema-path)
+  (define schema (schema-context-schema context))
   (unless (json-schema? value)
     (assertion-violation 'json-schema:additiona-items
 			 "JSON Schema is required" value))
   (let ((validator (schema->core-validator value context
 		    (build-schema-path schema-path "additionalItems"))))
-    ;; TODO check additional item
-    (lambda (e ctx) #t)))
+    (lambda (e ctx)
+      (or (not (list? e))
+	  (for-all (lambda (v) (validator v ctx))
+		   (filter-marked-items ctx schema e))))))
 
 (define (json-schema:unevaluated-items value context schema-path)
   (lambda (e ctx) #t))
@@ -75,20 +86,27 @@
 
 ;; Draft 7 and 2019-09
 (define (json-schema:draft-7-items value context schema-path)
+  (define schema (schema-context-schema context))
   (define path (build-schema-path schema-path "items"))
   (cond ((json-schema? value)
 	 (let ((validator (schema->core-validator value context path)))
 	   (lambda (e ctx)
 	     (or (not (list? e))
-		 (for-all (lambda (v) (validator v ctx)) e)))))
+		 (and (validator-context:mark! ctx e schema)
+		      (for-all (lambda (v)
+				 (validator-context:mark-element! ctx e v schema)
+				 (validator v ctx)) e))))))
 	((and (list? value) (for-all json-schema? value))
 	 (let ((validators
 		(map (lambda (schema)
 		       (schema->core-validator schema context path)) value)))
 	   (lambda (e ctx)
 	     (or (not (list? e))
-		 (every (lambda (validator v) (validator v ctx))
-			validators e)))))
+		 (and (validator-context:mark! ctx e schema)
+		      (every (lambda (validator v)
+			       (validator-context:mark-element! ctx e v schema)
+			       (validator v ctx))
+			     validators e))))))
 	(else (assertion-violation 'json-schema:items
 		"Either JSON Schema or list of JSON Schema is required" value))))
 
