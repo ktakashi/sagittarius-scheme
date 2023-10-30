@@ -96,7 +96,8 @@
 		    (else (->cached-validator schema id)))))
 	    ((mere-json-pointer? anchor)
 	     ;; a bit inefficient but just compile it
-	     (let ((s ((json-pointer anchor) (schema-context-schema schema))))
+	     (let ((s ((json-pointer (uri-decode-string anchor))
+		       (schema-context-schema schema))))
 	       (schema-validator->core-validator
 		(schema-context->schema-validator
 		 (make-schema-context s schema)

@@ -33,7 +33,9 @@
     (export json-schema:all-of json-schema:any-of json-schema:one-of
 	    json-schema:not
 
-	    json-schema:if)
+	    json-schema:if
+	    json-schema:then
+	    json-schema:else)
     (import (rnrs)
 	    (srfi :1 lists)
 	    (text json pointer)
@@ -113,4 +115,22 @@
 	  (if else-validator
 	      (else-validator e ctx)
 	      #t)))))
+
+;; It does nothing basically but in case of *without* `if` keyword
+;; i.e. test suits
+(define (json-schema:then value context schema-path)
+  (unless (json-schema? value)
+    (assertion-violation 'json-schema:then "JSON Schema is required" value))
+  (schema-context->schema-validator
+   (make-schema-context value context)
+   (build-schema-path schema-path "then"))
+  #f)
+(define (json-schema:else value context schema-path)
+  (unless (json-schema? value)
+    (assertion-violation 'json-schema:else "JSON Schema is required" value))
+  (schema-context->schema-validator
+   (make-schema-context value context)
+   (build-schema-path schema-path "else"))
+  #f)
+  
 )

@@ -67,8 +67,7 @@
     (cond ((matching-properties key properties) =>
 	   (lambda (validators)
 	     (validator-context:mark-element! ctx e entry schema)
-	     (for-all (lambda (v) (v value (make-validator-context key ctx)))
-		      validators)))
+	     (for-all (lambda (v) (v value ctx)) validators)))
 	  (else #t))))
 
 (define ((properties-handler name regexp?) value context schema-path)
@@ -96,7 +95,7 @@
 	       (vector-every (lambda (v)
 			       (let ((n (car v)))
 				 (validator-context:mark-element! ctx e v schema)
-				 (validator n (make-validator-context n ctx))))
+				 (validator n ctx)))
 			     e))))))
 
 

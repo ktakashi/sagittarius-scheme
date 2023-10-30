@@ -35,7 +35,6 @@
 	    json-schema:$vocabularies
 	    json-schema:draft-7-$id json-schema:definitions)
     (import (rnrs)
-	    (rfc uri)
 	    (srfi :13 strings)
 	    (text json pointer)
 	    (text json schema version)
@@ -49,8 +48,7 @@
       (assertion-violation 'json-schema:$id
 			   "$id mustn't contain fragment" value))
     ;; #foo case, allowed on Draft 7
-    (when id
-      (schema-context:set-id! context (or (and in-id (uri-merge in-id id)) id)))
+    (when id (schema-context:set-id! context id))
     (when anchor (schema-context:add-anchor! context anchor)))
   ;; we don't need validator for this
   #f)

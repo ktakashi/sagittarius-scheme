@@ -53,6 +53,7 @@
 	    schema-context-schema
 	    schema-context-anchors
 	    schema-context-validator
+	    schema-context-parent
 	    make-initial-schema-context initial-schema-context->schema-validator
 	    make-disjoint-context
 	    make-schema-context
@@ -140,7 +141,9 @@
 	  cache)
   (protocol (lambda (p)
 	      (define (in-id parent)
-		(and parent (schema-context-schema-id parent)))
+		(and parent
+		     (or (schema-context-schema-id parent)
+			 (in-id (schema-context-parent parent)))))
 	      (define (version parent)
 		(or (and parent (schema-context-version parent))
 		    (*json-schema:default-version*)))
@@ -169,7 +172,13 @@
     (make-initial-schema-context schema root)))
 
 (define (make-schema-context schema parent)
-  (make-raw-schema-context schema (schema-context-root parent) parent))
+  (let* ((root (schema-context-root parent))
+	 (cache (root-context-cache root)))
+    (cond ((hashtable-ref cache schema #f))
+	  (else
+	   (let ((r (make-raw-schema-context schema root parent)))
+	     (hashtable-set! cache schema r)
+	     r)))))
 
 (define (schema-context:keywords context)
   (let ((root (schema-context-root context))
@@ -178,12 +187,21 @@
 
 ;; id must be FQDN (or at least merged)
 (define (schema-context:set-id! context id)
-  (schema-context-schema-id-set! context id)
-  (schema-context-in-id-set! context id)
-  (schema-context-anchors-set! context (make-hashtable string-hash string=?))
-  (let ((root (schema-context-root context)))
-    ;; TODO should we check duplicate $id?
-    (hashtable-set! (root-context-ids root) id context)))
+  (define (search-parent-in-id context)
+    (and context
+	 (or (schema-context-schema-id context)
+	     (search-parent-in-id (schema-context-parent context)))))
+  (define (get-in-id parent)
+    (cond ((and parent (search-parent-in-id parent)))
+	  (else #f)))
+  (let* ((in-id (get-in-id (schema-context-parent context)))
+	 (id (or (and in-id (uri-merge in-id id)) id)))
+    (schema-context-schema-id-set! context id)
+    (schema-context-in-id-set! context (or in-id id))
+    (schema-context-anchors-set! context (make-hashtable string-hash string=?))
+    (let ((root (schema-context-root context)))
+      ;; TODO should we check duplicate $id?
+      (hashtable-set! (root-context-ids root) id context))))
 
 (define (schema-context:find-by-id context id)
   (let ((root (schema-context-root context)))
@@ -223,14 +241,7 @@
   (protocol (lambda (p)
 	      (case-lambda
 	       ((lint-mode?)
-		(p "/" #f (list-queue) (make-eq-hashtable) lint-mode?))
-	       ((path parent)
-		;; share the report
-		(p (build-validation-path (validator-context-path parent) path)
-		   parent
-		   (validator-context-reports parent)
-		   (validator-context-marks parent)
-		   (validator-context-lint-mode? parent)))))))
+		(p "/" #f (list-queue) (make-eq-hashtable) lint-mode?))))))
 (define (build-validation-path base path)
   (string-append base "/" (if (number? path) (number->string path) path)))
 (define (validator-context:report! context obj schema-path)
