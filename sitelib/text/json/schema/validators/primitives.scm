@@ -101,7 +101,6 @@
 	  ((string=? "boolean" type) boolean?)
 	  ((string=? "null" type) (lambda (e) (eq? e 'null)))
 	  (else (assertion-violation 'json-schema:type "Unknown type" type))))
-
   (cond ((list? type)
 	 (check type)
 	 (fold-left (lambda (acc t)

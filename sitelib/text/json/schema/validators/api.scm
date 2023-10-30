@@ -34,6 +34,8 @@
 	    schema-context->cached-validator
 	    schema-validator->core-validator
 	    schema-validator-validator
+	    
+	    schema-context:delayed-validator
 	    wrap-core-validator
 
 	    ;; utilities
@@ -51,7 +53,8 @@
 	    schema-context-schema
 	    schema-context-anchors
 	    schema-context-validator
-	    make-initial-schema-context
+	    make-initial-schema-context initial-schema-context->schema-validator
+	    make-disjoint-context
 	    make-schema-context
 
 	    schema-context:find-by-id schema-context:set-id!
@@ -84,12 +87,14 @@
   (fields configuration
 	  ids
 	  cache
+	  late-inits
 	  (mutable schema-contexts))
   (protocol (lambda (p)
 	      (lambda (configuration)
 		(p (map ->configuration configuration)
 		   (make-hashtable string-hash string=?)
 		   (make-eq-hashtable)
+		   (list-queue)
 		   '())))))
 
 (define (root-context:add-schema-context! root schema-context)
@@ -153,6 +158,10 @@
     (root-context:add-schema-context! root ctx)
     ctx))
 
+(define (make-disjoint-context schema context)
+  (let ((root (schema-context-root context)))
+    (make-initial-schema-context schema root)))
+
 (define (make-schema-context schema parent)
   (make-raw-schema-context schema (schema-context-root parent) parent))
 
@@ -192,6 +201,11 @@
     (hashtable-set! (root-context-cache root)
 		    (schema-context-schema context) context)))
 
+(define (schema-context:execute-late-init! context)
+  (let ((root (schema-context-root context)))
+    (list-queue-for-each (lambda (thunk) (thunk))
+			 (root-context-late-inits root))))
+
 ;; validator context
 ;; validation time context
 (define-record-type validator-context
@@ -217,6 +231,17 @@
 			       schema-path))
   (validator-context-lint-mode? context))
 
+(define (update-cache! context validator)
+  (schema-context-validator-set! context validator)
+  (schema-context:cache-schema! context)
+  validator)
+
+(define (initial-schema-context->schema-validator initial-context)
+  (define (finish validator)
+    (schema-context:execute-late-init! initial-context)
+    validator)
+  (finish (schema-context->schema-validator initial-context "#")))
+
 ;; schema-context -> validator
 ;; schema-path is debug or reporting purpose
 (define (schema-context->schema-validator context schema-path)
@@ -228,7 +253,7 @@
       (if (null? keywords)
 	  acc
 	  (let* ((config (car keywords))
-		 (path (build-schema-path schema-path (car config)))
+		 (path schema-path)
 		 (v ((cadr config) schema))
 		 (handler (cddr config)))
 	    (if (json-pointer-not-found? v)
@@ -240,10 +265,6 @@
 		    (if continue?
 			(loop (cdr keywords) next)
 			next))))))))
-  (define (update-cache! context validator)
-    (schema-context-validator-set! context validator)
-    (schema-context:cache-schema! context)
-    validator)
   (cond ((vector? schema)
 	 (update-cache! context
 	  (make-schema-validator (compile schema context schema-path)
@@ -272,6 +293,17 @@
 		(core-validator (schema-validator->core-validator v)))
 	   (hashtable-set! cache context (delay (lambda () core-validator)))
 	   v))))
+
+(define (schema-context:delayed-validator context initializer schema-path)
+  (define root (schema-context-root context))
+  (define validator #f)
+  (define (delayed-validator)
+    (lambda (e ctx) (validator e ctx)))
+  (list-queue-add-front! (root-context-late-inits root)
+			 (lambda () (set! validator (initializer))))
+  (update-cache! context
+   (make-schema-validator (delayed-validator) schema-path)))
+
 
 (define-record-type schema-validator
   (fields validator schema-path))

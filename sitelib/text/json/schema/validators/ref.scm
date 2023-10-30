@@ -52,6 +52,16 @@
 (define *json-schema:external-schema-resolver* (make-parameter #f))
 
 
+(define (resolve-external-schema context id)
+  (let ((resolver (or (*json-schema:external-schema-resolver*)
+		      (and (*json-schema:resolve-external-schema?*)
+			   json-schema:default-external-schema-resolver))))
+    (unless resolver
+      (assertion-violation 'json-schema:$ref
+			   "External schema! Enable external resolver" id))
+    (let ((this-context (make-disjoint-context (resolver id) context)))
+      (initial-schema-context->schema-validator this-context))))
+
 ;; probably better to check URI and only fragment but for now
 (define (mere-json-pointer? s) (string-prefix? "/" s))
 
@@ -71,8 +81,14 @@
 		       ;; then root schema
 		       (schema-context:root-schema context))))
       (cond ((not schema)
-	     ;; external reference
-	     (error '$ref-handler "not yet" value))
+	     (schema-validator->core-validator
+	      (schema-context:delayed-validator context
+	       (lambda ()
+		 (let ((schema (schema-context:find-by-id context id)))
+		   (schema-validator->core-validator
+		    (cond ((not schema) (resolve-external-schema context id))
+			  ((schema-context-validator schema))))))
+	       (string-append (or id "") "#"))))
 	    ((not anchor)
 	     (schema-validator->core-validator
 	      (cond ((schema-context-validator schema))
@@ -109,7 +125,4 @@
 			 "$resursiveRef must have value of '#'" value))
   ;; TODO should we check $recursiveAnchor?
   ($ref-handler value context schema-path #t))
-
-;; utilities
-
 )

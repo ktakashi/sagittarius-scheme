@@ -100,7 +100,17 @@
 ;; or `propertyNames` are getting evaluated and record which property
 ;; is evaluated or not
 (define (json-schema:additional-properties value context schema-path)
-  (lambda (e ctx) #t))
+  (unless (json-schema? value)
+    (assertion-violation 'json-schema:additional-properties
+			 "JSON Schema is required" value))
+  (let ((validator (schema-validator->core-validator
+		    (schema-context->schema-validator
+		     (make-schema-context value context)
+		     (build-schema-path schema-path "additionalItems")))))
+    (lambda (e ctx)
+      (or (not (vector? e))
+	  ;; TODO check if this propery is additional or not
+	  (vector-every (lambda (v) (validator (cdr v) ctx)) e)))))
 
 
 (define (compile-dependent-required e context schema-path)
