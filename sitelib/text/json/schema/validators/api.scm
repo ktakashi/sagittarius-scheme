@@ -63,6 +63,7 @@
 	    schema-context:find-by-anchor schema-context:add-anchor!
 
 	    make-validator-context validator-context
+	    (rename (validator-context:reports validator-context-reports))
 	    validator-context:mark!
 	    validator-context:mark-element!
 	    validator-context:marked?
@@ -227,8 +228,8 @@
 
 (define (schema-context:execute-late-init! context)
   (let ((root (schema-context-root context)))
-    (list-queue-for-each (lambda (thunk) (thunk))
-			 (root-context-late-inits root))))
+    (for-each (lambda (thunk) (thunk))
+	      (list-queue-remove-all! (root-context-late-inits root)))))
 
 ;; validator context
 ;; validation time context
@@ -250,6 +251,9 @@
 			       (validator-context-path context)
 			       schema-path))
   (validator-context-lint-mode? context))
+
+(define (validator-context:reports context)
+  (list-queue-list (validator-context-reports context)))
 
 (define (validator-context:mark! context obj schema)
   (let ((mark (validator-context-marks context)))
