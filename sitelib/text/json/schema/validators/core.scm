@@ -31,8 +31,9 @@
 #!nounbound
 (library (text json schema validators core)
     (export json-schema:$id json-schema:$schema
+	    json-schema:$defs
 	    json-schema:$vocabularies
-	    json-schema:draft-7-$id)
+	    json-schema:draft-7-$id json-schema:definitions)
     (import (rnrs)
 	    (rfc uri)
 	    (srfi :13 strings)
@@ -67,6 +68,25 @@
 	(else
 	 (assertion-violation 'json-schema:$schema "Unknown schema" value)))
   #f)
+
+
+(define (($defs-handler name) value context schema-path)
+  (define this-path (build-schema-path schema-path name))
+  (define (compile-definition e)
+    (let ((path (build-schema-path this-path (car e)))
+	  (ctx (make-schema-context (cdr e) context)))
+      ;; This will be stored in the cache, so we don't use the
+      ;; return value here :)
+      (schema-context->schema-validator ctx path)))
+  (unless (vector? value)
+    (assertion-violation 'json-schema:$defs
+			 "$defs must contain JSON object" value))
+  (vector-for-each compile-definition value)
+  #f
+  )
+
+(define json-schema:definitions ($defs-handler "definitions"))
+(define json-schema:$defs ($defs-handler "$defs"))
 
 
 (define (json-schema:$vocabularies value context schema-path)

@@ -56,7 +56,7 @@
 
 	    schema-context:find-by-id schema-context:set-id!
 	    schema-context:root-schema
-	    schema-context:add-anchor!
+	    schema-context:find-by-anchor schema-context:add-anchor!
 
 	    make-validator-context validator-context
 
@@ -83,11 +83,13 @@
 (define-record-type root-context
   (fields configuration
 	  ids
+	  cache
 	  (mutable schema-contexts))
   (protocol (lambda (p)
 	      (lambda (configuration)
 		(p (map ->configuration configuration)
 		   (make-hashtable string-hash string=?)
+		   (make-eq-hashtable)
 		   '())))))
 
 (define (root-context:add-schema-context! root schema-context)
@@ -121,6 +123,7 @@
 	  root
 	  parent
 	  (mutable anchors)
+	  definitions
 	  vocabularies
 	  (mutable validator)
 	  cache)
@@ -138,6 +141,7 @@
 		   root parent
 		   (or (and parent (schema-context-anchors parent))
 		       (make-hashtable string-hash string=?))
+		   (make-hashtable string-hash string=?)
 		   (make-hashtable string-hash string=?)
 		   #f
 		   (or (and parent (schema-context-cache parent))
@@ -178,6 +182,15 @@
 (define (schema-context:add-anchor! context anchor)
   ;; TODO should we check duplicate $anchor?
   (hashtable-set! (schema-context-anchors context) anchor context))
+
+(define (schema-context:find-by-anchor context anchor)
+  (let ((anchors (schema-context-anchors context)))
+    (hashtable-ref anchors anchor #f)))
+
+(define (schema-context:cache-schema! context)
+  (let ((root (schema-context-root context)))
+    (hashtable-set! (root-context-cache root)
+		    (schema-context-schema context) context)))
 
 ;; validator context
 ;; validation time context
@@ -229,6 +242,7 @@
 			next))))))))
   (define (update-cache! context validator)
     (schema-context-validator-set! context validator)
+    (schema-context:cache-schema! context)
     validator)
   (cond ((vector? schema)
 	 (update-cache! context

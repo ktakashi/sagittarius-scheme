@@ -90,8 +90,12 @@
 	     (schema-validator->core-validator
 	      (cond ((schema-context-validator schema))
 		    (else (->cached-validator schema id)))))
-	     (else
-	      (error '$ref-handler "Not yet" value))))))
+	    (else
+	     (schema-validator->core-validator
+	      (cond ((schema-context:find-by-anchor schema anchor) =>
+		     schema-context-validator)
+		    (else
+		     (error '$ref-handler "Not yet" anchor)))))))))
 
 (define (json-schema:draft-7-$ref value context schema-path)
   ($ref-handler value context schema-path #t))
