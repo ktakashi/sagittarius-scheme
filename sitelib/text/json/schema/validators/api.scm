@@ -81,7 +81,6 @@
 	    (srfi :2 and-let*)
 	    (srfi :13 strings)
 	    (srfi :39 parameters)
-	    (srfi :45 lazy)
 	    (srfi :117 list-queues)
 	    (text json pointer)
 	    (text json schema version))
@@ -362,26 +361,20 @@
 
 (define (schema-context->cached-validator context schema-path)
   (define cache (schema-context-cache context))
-  (define (retriever)
-    (cond ((schema-context-validator context) =>
-	   schema-validator->core-validator)
-	  (else (assertion-violation 'cached-valdidator "Invalid validator"
-				     schema-path))))
-  (cond ((hashtable-ref cache context #f) =>
-	 (lambda (promise)
-	   (make-schema-validator
-	    (lambda (e ctx) ((force promise) e ctx)) schema-path)))
+  (define (initializer)
+    (schema-validator->core-validator
+     (schema-context->schema-validator context schema-path)))
+
+  (cond ((hashtable-ref cache context #f))
 	(else
-	 (hashtable-set! cache context (lazy (retriever)))
-	 (let* ((v (schema-context->schema-validator context schema-path))
-		(core-validator (schema-validator->core-validator v)))
-	   (hashtable-set! cache context (delay (lambda () core-validator)))
-	   v))))
+	 (let ((validator (schema-context:delayed-validator
+			   context initializer schema-path)))
+	   (hashtable-set! cache context validator)
+	   validator))))
 
 (define (schema-context:delayed-validator context initializer schema-path)
   (define validator #f)
-  (define (delayed-validator)
-    (lambda (e ctx) (validator e ctx)))
+  (define (delayed-validator) (lambda (e ctx) (validator e ctx)))
   (list-queue-add-front! (schema-context-late-inits context)
 			 (lambda () (set! validator (initializer))))
   (update-cache! context
