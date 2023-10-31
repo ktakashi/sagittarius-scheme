@@ -33,12 +33,13 @@
     (export json-schema:$id json-schema:$schema
 	    json-schema:$anchor
 	    json-schema:$defs
-	    json-schema:$vocabularies
+	    json-schema:$vocabulary
 	    json-schema:draft-7-$id json-schema:definitions)
     (import (rnrs)
 	    (srfi :13 strings)
 	    (text json pointer)
 	    (text json schema version)
+	    (text json schema vocabularies)
 	    (text json schema validators api))
 
 (define (($id-handler allow-anchor?) value context schema-path)
@@ -93,7 +94,19 @@
 (define json-schema:$defs ($defs-handler "$defs"))
 
 
-(define (json-schema:$vocabularies value context schema-path)
-  (lambda (e ctx) #t))
+(define (json-schema:$vocabulary value context schema-path)
+  (define (handle-vocabulary e)
+    (define uri (car e))
+    (unless (schema-context:vocabulary-loaded? context uri)
+      (let* ((schema (retrieve-json-schema-vocabulary uri))
+	     (new-context (make-disjoint-context schema context)))
+	(schema-context:cache-vocabulary! new-context uri)
+	(initial-schema-context->schema-validator new-context))))
+  (unless (vector? value)
+    (assertion-violation 'json-schema:$vocabulary
+			 "JSON object is required" value))
+  ;; we don't check the value of vocabulary
+  (vector-for-each handle-vocabulary value)
+  #f)
 
 )

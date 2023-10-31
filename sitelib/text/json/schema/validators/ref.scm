@@ -109,6 +109,7 @@
 		       (schema-context:find-by-id context id)
 		       ;; then root schema
 		       (schema-context:root-schema context))))
+
       (schema-validator->core-validator
        (cond ((not schema)
 	      (schema-context:delayed-validator context

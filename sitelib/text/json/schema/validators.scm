@@ -185,11 +185,12 @@
 
 (define *draft-2019-09-vocabularies*
   `(("$id" . ,(schema-handler json-schema:$id))
+    ("$vocabulary" . ,(schema-handler json-schema:$vocabulary))
+    ("$defs" . ,(schema-handler json-schema:$defs))
+    ("definitions" . ,(schema-handler json-schema:definitions))
     ("$anchor" . ,(schema-handler json-schema:$anchor))
     ("$ref" . ,(no-continue-handler json-schema:$ref))
     ("$recursiveRef" . ,(no-continue-handler json-schema:$recursive-ref))
-    ("$defs" . ,(schema-handler json-schema:$defs))
-    ("definitions" . ,(schema-handler json-schema:definitions))
 
     ,@*common-vocabularies*
     ("items" . ,(schema-handler json-schema:draft-7-items))
@@ -200,6 +201,7 @@
 
 (define *draft-2020-12-vocabularies*
   `(("$id" . ,(schema-handler json-schema:$id))
+    ("$defs" . ,(schema-handler json-schema:$defs))
     ("$ref" . ,(no-continue-handler json-schema:$ref))
     ,@*common-vocabularies*
     ("dependentSchemas" . ,(schema-handler json-schema:dependent-schemas))

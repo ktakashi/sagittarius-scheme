@@ -63,6 +63,8 @@
 	    schema-context:root-schema
 	    schema-context:find-by-anchor schema-context:add-anchor!
 
+	    schema-context:cache-vocabulary! schema-context:vocabulary-loaded?
+
 	    make-validator-context validator-context
 	    (rename (validator-context:reports validator-context-reports))
 	    validator-context:mark!
@@ -92,16 +94,20 @@
 (define (->configuration entry)
   (define (->config config) (cons* (car config) (jp (car config)) (cdr config)))
   (cons (car entry) (map ->config (cdr entry))))
+
+;; - vocabularies  - retrieved vocabularies, to avoid infinite loop
 (define-record-type root-context
   (fields configuration
 	  ids
 	  cache
+	  vocabularies
 	  (mutable schema-contexts))
   (protocol (lambda (p)
 	      (lambda (configuration)
 		(p (map ->configuration configuration)
 		   (make-hashtable string-hash string=?)
 		   (make-eq-hashtable)
+		   (make-hashtable string-hash string=?)
 		   '())))))
 
 (define (root-context:add-schema-context! root schema-context)
@@ -129,7 +135,6 @@
 ;; - root          - root context, which contains version config et.al
 ;; - parent        - parent schema context
 ;; - anchors       - $anchor or $id with fragment, hashtable
-;; - vocabularies  - $vocabularies, hashtable
 ;; - validator     - the validator of this context
 (define-record-type (schema-context make-raw-schema-context schema-context?)
   (fields schema
@@ -140,7 +145,6 @@
 	  parent
 	  (mutable anchors)
 	  definitions
-	  vocabularies
 	  (mutable validator)
 	  cache
 	  late-inits)
@@ -167,7 +171,6 @@
 		   root parent
 		   (or (and parent (schema-context-anchors parent))
 		       (make-hashtable string-hash string=?))
-		   (make-hashtable string-hash string=?)
 		   (make-hashtable string-hash string=?)
 		   #f
 		   (or (and parent (schema-context-cache parent))
@@ -238,6 +241,14 @@
   (let ((root (schema-context-root context)))
     (hashtable-set! (root-context-cache root)
 		    (schema-context-schema context) context)))
+
+(define (schema-context:cache-vocabulary! context uri)
+  (let ((root (schema-context-root context)))
+    (hashtable-set! (root-context-vocabularies root) uri context)))
+
+(define (schema-context:vocabulary-loaded? context uri)
+  (let ((root (schema-context-root context)))
+    (hashtable-contains? (root-context-vocabularies root) uri)))
 
 (define (schema-context:execute-late-init! context)
   (for-each (lambda (thunk) (thunk))
@@ -354,7 +365,8 @@
   (define (retriever)
     (cond ((schema-context-validator context) =>
 	   schema-validator->core-validator)
-	  (else true-validator)))
+	  (else (assertion-violation 'cached-valdidator "Invalid validator"
+				     schema-path))))
   (cond ((hashtable-ref cache context #f) =>
 	 (lambda (promise)
 	   (make-schema-validator
@@ -394,7 +406,6 @@
 (define (build-schema-path base child)
   (string-append base "/" child))
 (define (boolean->validator b) (lambda (e ctx) b))
-(define true-validator (boolean->validator #t))
 
 (define (uri->id&fragment uri)
   (define anchor-index (string-index uri #\#))
