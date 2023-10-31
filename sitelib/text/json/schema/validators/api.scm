@@ -47,6 +47,7 @@
 	    ;; contexts
 	    make-root-context root-context?
 	    schema-context?
+	    initial-schema-context?
 	    schema-context-version schema-context-version-set!
 	    schema-context-schema-id
 	    schema-context-in-id
@@ -114,6 +115,10 @@
 	 (assertion-violation 'configuration-keywords
 			      "[BUG] The version is not known" version))))
 
+;; $schema needs to be handled before validator compilation
+;; due to the vocabularies selection.
+(define $schema-pointer (json-pointer "/$schema"))
+
 ;; Schema context
 ;; A context contains
 ;; - schema        - Current JSON schema
@@ -144,14 +149,21 @@
 		(and parent
 		     (or (schema-context-schema-id parent)
 			 (in-id (schema-context-parent parent)))))
-	      (define (version parent)
-		(or (and parent (schema-context-version parent))
+	      (define (version schema parent)
+		(define uri ($schema-pointer schema))
+		(define (uri->version uri)
+		  (cond ((json-schema->version uri))
+			(else (assertion-violation 'json-schema:$schema
+						   "Unknown schema" uri))))
+		(or (and (not (json-pointer-not-found? uri))
+			 (uri->version uri))
+		    (and parent (schema-context-version parent))
 		    (*json-schema:default-version*)))
 	      (lambda (schema root parent)
 		(p schema
 		   #f
 		   (in-id parent)
-		   (version parent)
+		   (version schema parent)
 		   root parent
 		   (or (and parent (schema-context-anchors parent))
 		       (make-hashtable string-hash string=?))
@@ -230,6 +242,8 @@
 (define (schema-context:execute-late-init! context)
   (for-each (lambda (thunk) (thunk))
 	    (list-queue-remove-all! (schema-context-late-inits context))))
+
+(define (initial-schema-context? context) (not (schema-context-parent context)))
 
 ;; validator context
 ;; validation time context

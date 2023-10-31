@@ -31,6 +31,7 @@
 #!nounbound
 (library (text json schema validators core)
     (export json-schema:$id json-schema:$schema
+	    json-schema:$anchor
 	    json-schema:$defs
 	    json-schema:$vocabularies
 	    json-schema:draft-7-$id json-schema:definitions)
@@ -58,7 +59,7 @@
   
 (define json-schema:draft-7-$id ($id-handler #t))
 
-(define $schema-pointer (json-pointer "/$schema"))
+;; This does nothing, but for consistency :)
 (define (json-schema:$schema value context schema-path)
   (cond ((json-schema->version value) =>
 	 (lambda (version)
@@ -67,6 +68,11 @@
 	 (assertion-violation 'json-schema:$schema "Unknown schema" value)))
   #f)
 
+(define (json-schema:$anchor value context schema-path)
+  (unless (string? value)
+    (assertion-violation 'json-schema:$anchor "Invalid anchor" value))
+  (schema-context:add-anchor! context value)
+  #f)
 
 (define (($defs-handler name) value context schema-path)
   (define this-path (build-schema-path schema-path name))

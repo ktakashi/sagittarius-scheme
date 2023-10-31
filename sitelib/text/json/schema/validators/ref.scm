@@ -62,7 +62,10 @@
 (define (ref-not-found value schema-path)
   (assertion-violation 'json-schema:$ref "$ref not found" value schema-path))
 (define (check-anchor schema id anchor schema-path)
-  (cond ((not anchor) #f)
+  (cond ((not anchor)
+	 (cond ((schema-context-validator schema))
+	       ;; in case of cross reference or self $id reference
+	       (else (->cached-validator schema id))))
 	((mere-json-pointer? anchor)
 	 ;; a bit inefficient but just compile it
 	 (let ((s ((json-pointer (uri-decode-string anchor))
@@ -75,6 +78,8 @@
 	 ;; recursive
 	 (cond ((schema-context-validator schema))
 	       (else (->cached-validator schema id))))
+	((schema-context:find-by-anchor schema anchor) =>
+	 schema-context-validator)
 	(else #f)))
 
 (define (resolve-external-schema context id anchor schema-path)
@@ -94,7 +99,7 @@
 
 (define ($ref-handler value context schema-path recursive?)
   (define in-id (schema-context-in-id context))
-  (define (not-found) (ref-not-found value schema-path))
+
   (let-values (((this-id anchor) (uri->id&fragment value)))
     (when (and anchor (string-null? anchor) (not recursive?))
       (assertion-violation 'json-schema:$ref "Recursion is not allowed" value))
@@ -104,8 +109,8 @@
 		       (schema-context:find-by-id context id)
 		       ;; then root schema
 		       (schema-context:root-schema context))))
-      (cond ((not schema)
-	     (schema-validator->core-validator
+      (schema-validator->core-validator
+       (cond ((not schema)
 	      (schema-context:delayed-validator context
 	       (lambda ()
 		 (let ((schema (schema-context:find-by-id context id)))
@@ -114,26 +119,17 @@
 			   (resolve-external-schema context id
 						    anchor schema-path))
 			  ((check-anchor schema id anchor schema-path))
-			  ((schema-context-validator schema))))))
-	       (string-append (or id "") "#"))))
-	    ((not anchor)
-	     (schema-validator->core-validator
-	      (cond ((schema-context-validator schema))
-		    ;; in case of cross reference or self $id reference
-		    (else (->cached-validator schema id)))))
-	    ((check-anchor schema id anchor schema-path) =>
-	     schema-validator->core-validator)
-	    (else
-	     (schema-validator->core-validator
-	      (cond ((schema-context:find-by-anchor schema anchor) =>
-		     schema-context-validator)
-		    (else
-		     (schema-context:delayed-validator context
-		      (lambda ()
-			(cond ((schema-context:find-by-anchor schema anchor) =>
-			       schema-context-validator)
-			      (else (not-found))))
-		      (string-append (or id "") "#"))))))))))
+			  (else (schema-context-validator schema))))))
+	       (string-append (or id "") "#")))
+	     ((check-anchor schema id anchor schema-path))
+	     (else
+	      (schema-context:delayed-validator context
+	       (lambda ()
+		 (schema-validator->core-validator
+		  (cond ((schema-context:find-by-anchor schema anchor) =>
+			 schema-context-validator)
+			(else (ref-not-found id schema-path)))))
+	       (string-append (or id "") "#"))))))))
 
 (define (json-schema:draft-7-$ref value context schema-path)
   ($ref-handler value context schema-path #t))

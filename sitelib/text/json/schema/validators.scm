@@ -121,10 +121,18 @@
 (define ((schema-handler ->validator) value context schema-path)
   (values (->validator value context schema-path) #t))
 (define ((no-continue-handler ->validator) value context schema-path)
-  (values (->validator value context schema-path) #f))
+  (values (->validator value context schema-path)
+	  ;; Root schema is allowed to have extra
+	  ;; like definitions et.al
+	  ;; NB: Not sure whici is better either
+	  ;;     we should handle some keywords before $ref
+	  ;;     or checks root schema
+	  (initial-schema-context? context)))
 
 (define *common-vocabularies*
-  `(("type" . ,(simple-handler json-schema:type))
+  `(("$schema" . ,(schema-handler json-schema:$schema))
+
+    ("type" . ,(simple-handler json-schema:type))
     ("enum" . ,(simple-handler json-schema:enum))
     ("const" . ,(simple-handler json-schema:const))
 
@@ -168,8 +176,8 @@
 ;; order matters
 (define *draft-7-vocabularies*
   `(("$id" . ,(schema-handler json-schema:draft-7-$id))
-    ("$ref" . ,(no-continue-handler json-schema:draft-7-$ref))
     ("definitions" . ,(schema-handler json-schema:definitions))
+    ("$ref" . ,(no-continue-handler json-schema:draft-7-$ref))
     ,@*common-vocabularies*
     ("items" . ,(schema-handler json-schema:draft-7-items))
     ("additionalItems" . ,(schema-handler json-schema:additional-items))
@@ -177,10 +185,12 @@
 
 (define *draft-2019-09-vocabularies*
   `(("$id" . ,(schema-handler json-schema:$id))
+    ("$anchor" . ,(schema-handler json-schema:$anchor))
     ("$ref" . ,(no-continue-handler json-schema:$ref))
     ("$recursiveRef" . ,(no-continue-handler json-schema:$recursive-ref))
     ("$defs" . ,(schema-handler json-schema:$defs))
     ("definitions" . ,(schema-handler json-schema:definitions))
+
     ,@*common-vocabularies*
     ("items" . ,(schema-handler json-schema:draft-7-items))
     ("additionalItems" . ,(schema-handler json-schema:additional-items))
