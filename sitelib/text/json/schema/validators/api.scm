@@ -95,14 +95,12 @@
   (fields configuration
 	  ids
 	  cache
-	  late-inits
 	  (mutable schema-contexts))
   (protocol (lambda (p)
 	      (lambda (configuration)
 		(p (map ->configuration configuration)
 		   (make-hashtable string-hash string=?)
 		   (make-eq-hashtable)
-		   (list-queue)
 		   '())))))
 
 (define (root-context:add-schema-context! root schema-context)
@@ -139,7 +137,8 @@
 	  definitions
 	  vocabularies
 	  (mutable validator)
-	  cache)
+	  cache
+	  late-inits)
   (protocol (lambda (p)
 	      (define (in-id parent)
 		(and parent
@@ -161,6 +160,8 @@
 		   #f
 		   (or (and parent (schema-context-cache parent))
 		       (make-eq-hashtable))
+		   (or (and parent (schema-context-late-inits parent))
+		       (list-queue))
 		   )))))
 
 (define (make-initial-schema-context schema root)
@@ -227,9 +228,8 @@
 		    (schema-context-schema context) context)))
 
 (define (schema-context:execute-late-init! context)
-  (let ((root (schema-context-root context)))
-    (for-each (lambda (thunk) (thunk))
-	      (list-queue-remove-all! (root-context-late-inits root)))))
+  (for-each (lambda (thunk) (thunk))
+	    (list-queue-remove-all! (schema-context-late-inits context))))
 
 ;; validator context
 ;; validation time context
@@ -353,11 +353,10 @@
 	   v))))
 
 (define (schema-context:delayed-validator context initializer schema-path)
-  (define root (schema-context-root context))
   (define validator #f)
   (define (delayed-validator)
     (lambda (e ctx) (validator e ctx)))
-  (list-queue-add-front! (root-context-late-inits root)
+  (list-queue-add-front! (schema-context-late-inits context)
 			 (lambda () (set! validator (initializer))))
   (update-cache! context
    (make-schema-validator (delayed-validator) schema-path)))
