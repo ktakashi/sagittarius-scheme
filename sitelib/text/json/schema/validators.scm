@@ -121,13 +121,7 @@
 (define ((schema-handler ->validator) value context schema-path)
   (values (->validator value context schema-path) #t))
 (define ((no-continue-handler ->validator) value context schema-path)
-  (values (->validator value context schema-path)
-	  ;; Root schema is allowed to have extra
-	  ;; like definitions et.al
-	  ;; NB: Not sure whici is better either
-	  ;;     we should handle some keywords before $ref
-	  ;;     or checks root schema
-	  (initial-schema-context? context)))
+  (values (->validator value context schema-path) #f))
 
 (define *common-vocabularies*
   `(("$schema" . ,(schema-handler json-schema:$schema))
@@ -189,7 +183,8 @@
     ("$defs" . ,(schema-handler json-schema:$defs))
     ("definitions" . ,(schema-handler json-schema:definitions))
     ("$anchor" . ,(schema-handler json-schema:$anchor))
-    ("$ref" . ,(no-continue-handler json-schema:$ref))
+    ("$recursiveAnchor" . ,(schema-handler json-schema:$recursive-anchor))
+    ("$ref" . ,(schema-handler json-schema:$ref))
     ("$recursiveRef" . ,(no-continue-handler json-schema:$recursive-ref))
 
     ,@*common-vocabularies*
@@ -202,7 +197,7 @@
 (define *draft-2020-12-vocabularies*
   `(("$id" . ,(schema-handler json-schema:$id))
     ("$defs" . ,(schema-handler json-schema:$defs))
-    ("$ref" . ,(no-continue-handler json-schema:$ref))
+    ("$ref" . ,(schema-handler json-schema:$ref))
     ,@*common-vocabularies*
     ("dependentSchemas" . ,(schema-handler json-schema:dependent-schemas))
     ("dependentRequired" . ,(schema-handler json-schema:dependent-required))

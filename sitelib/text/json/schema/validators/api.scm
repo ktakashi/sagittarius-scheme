@@ -36,6 +36,7 @@
 	    schema-validator-validator
 	    
 	    schema-context:delayed-validator
+	    schema-context:dynamic-validator
 	    wrap-core-validator
 
 	    ;; utilities
@@ -47,7 +48,6 @@
 	    ;; contexts
 	    make-root-context root-context?
 	    schema-context?
-	    initial-schema-context?
 	    schema-context-version schema-context-version-set!
 	    schema-context-schema-id
 	    schema-context-in-id
@@ -62,6 +62,9 @@
 	    schema-context:find-by-id schema-context:set-id!
 	    schema-context:root-schema
 	    schema-context:find-by-anchor schema-context:add-anchor!
+	    
+	    schema-context:add-dynamic-anchor!
+	    schema-context:has-dynamic-anchor?
 
 	    schema-context:cache-vocabulary! schema-context:vocabulary-loaded?
 
@@ -94,12 +97,14 @@
   (define (->config config) (cons* (car config) (jp (car config)) (cdr config)))
   (cons (car entry) (map ->config (cdr entry))))
 
-;; - vocabularies  - retrieved vocabularies, to avoid infinite loop
+;; - vocabularies    - retrieved vocabularies, to avoid infinite loop
+;; - dynamic-anchors - dynamic anchors (incl. recursive anchor)
 (define-record-type root-context
   (fields configuration
 	  ids
 	  cache
 	  vocabularies
+	  dynamic-anchors
 	  (mutable schema-contexts))
   (protocol (lambda (p)
 	      (lambda (configuration)
@@ -107,6 +112,7 @@
 		   (make-hashtable string-hash string=?)
 		   (make-eq-hashtable)
 		   (make-hashtable string-hash string=?)
+		   (make-hashtable equal-hash equal?)
 		   '())))))
 
 (define (root-context:add-schema-context! root schema-context)
@@ -236,6 +242,20 @@
   (let ((anchors (schema-context-anchors context)))
     (hashtable-ref anchors anchor #f)))
 
+(define (schema-context:add-dynamic-anchor! context anchor)
+  (let ((root (schema-context-root context)))
+    (hashtable-update! (root-context-dynamic-anchors root) anchor
+		       (lambda (v) (cons context v))
+		       '())))
+
+(define (schema-context:has-dynamic-anchor? context anchor)
+  (let ((root (schema-context-root context)))
+    (hashtable-contains? (root-context-dynamic-anchors root) anchor)))
+
+(define (schema-context:dynamic-contexts context anchor)
+  (let ((root (schema-context-root context)))
+    (hashtable-ref (root-context-dynamic-anchors root) anchor #f)))
+
 (define (schema-context:cache-schema! context)
   (let ((root (schema-context-root context)))
     (hashtable-set! (root-context-cache root)
@@ -252,8 +272,6 @@
 (define (schema-context:execute-late-init! context)
   (for-each (lambda (thunk) (thunk))
 	    (list-queue-remove-all! (schema-context-late-inits context))))
-
-(define (initial-schema-context? context) (not (schema-context-parent context)))
 
 ;; validator context
 ;; validation time context
@@ -379,6 +397,19 @@
 			 (lambda () (set! validator (initializer))))
   (update-cache! context
    (make-schema-validator (delayed-validator) schema-path)))
+
+(define (schema-context:dynamic-validator context dynamic-anchor schema-path)
+  (define root (schema-context-root context))
+  (define dynamic-anchors (root-context-dynamic-anchors root))
+  (define (validators)
+    (map schema-validator->core-validator
+	 (map schema-context-validator
+	      (hashtable-ref dynamic-anchors dynamic-anchor '()))))
+  (define (dynamic-contexts-validator e ctx)
+    (for-all (lambda (v) (v e ctx)) (validators)))
+
+  (update-cache! context
+   (make-schema-validator dynamic-contexts-validator schema-path)))
 
 
 (define-record-type schema-validator

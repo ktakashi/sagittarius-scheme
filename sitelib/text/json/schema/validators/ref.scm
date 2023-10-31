@@ -142,6 +142,8 @@
   (unless (equal? value "#")
     (assertion-violation 'json-schema:$recursive-ref
 			 "$resursiveRef must have value of '#'" value))
-  ;; TODO should we check $recursiveAnchor?
-  ($ref-handler value context schema-path #t))
+  (cond ((schema-context:has-dynamic-anchor? context #t)
+	 (schema-validator->core-validator
+	  (schema-context:dynamic-validator context #t schema-path)))
+	(else ($ref-handler value context schema-path #t))))
 )

@@ -31,7 +31,7 @@
 #!nounbound
 (library (text json schema validators core)
     (export json-schema:$id json-schema:$schema
-	    json-schema:$anchor
+	    json-schema:$anchor json-schema:$recursive-anchor
 	    json-schema:$defs
 	    json-schema:$vocabulary
 	    json-schema:draft-7-$id json-schema:definitions)
@@ -73,6 +73,14 @@
   (unless (string? value)
     (assertion-violation 'json-schema:$anchor "Invalid anchor" value))
   (schema-context:add-anchor! context value)
+  #f)
+
+(define (json-schema:$recursive-anchor value context schema-path)
+  (unless (boolean? value)
+    (assertion-violation 'json-schema:$recursive-anchor
+			 "Must be boolean" value))
+  (when value
+    (schema-context:add-dynamic-anchor! context value))
   #f)
 
 (define (($defs-handler name) value context schema-path)
