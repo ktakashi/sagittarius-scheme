@@ -309,15 +309,16 @@
 			 (cond ((assq schema v) v)
 			       (else (cons (cons schema (list-queue)) v))))
 		       '())))
-(define (validator-context:mark-element! context obj element schema)
+(define (validator-context:mark-element! context obj element schema success?)
   (let ((mark (validator-context-marks context)))
     (hashtable-update! mark obj
-		       (lambda (v)
-			 (cond ((assq schema v) =>
-				(lambda (slot)
-				  (list-queue-add-front! (cdr slot) element))))
-			 v)
-		       '())))
+      (lambda (v)
+	(cond ((assq schema v) =>
+	       (lambda (slot)
+		 (list-queue-add-front! (cdr slot) (cons element success?)))))
+	v)
+      '())
+    success?))
 
 (define (validator-context:marked? context obj schema)
   (let ((slots (hashtable-ref (validator-context-marks context) obj '())))
@@ -327,13 +328,21 @@
 (define (validator-context:marked-element? context obj element schema)
   (let ((slots (hashtable-ref (validator-context-marks context) obj '())))
     (cond ((assq schema slots) =>
-	   (lambda (slot) (member element (list-queue-list (cdr slot)))))
+	   (lambda (slot) (assoc element (list-queue-list (cdr slot)))))
 	  (else #f))))
 
 (define (validator-context:unevaluated? context obj element schema)
+  (define (collect element elements)
+    (define (check r element v) (if (equal? (car v) element) (cons v r) r))
+    (do ((elements elements (cdr elements))
+	 (r '() (check r element (car elements))))
+	((null? elements) r)))
   (let ((elements (append-map (lambda (s) (list-queue-list (cdr s)))
 		   (hashtable-ref (validator-context-marks context) obj '()))))
-    (member element elements)))
+    ;; because of allOf, anyOf or oneOf applicators, the elements may contain
+    ;; multiple of the same element. So, collect everything and check if
+    ;; there's a successful evaluation or not
+    (not (null? (filter-map cdr (collect element elements))))))
 
 ;; Schema validator
 (define (update-cache! context validator)

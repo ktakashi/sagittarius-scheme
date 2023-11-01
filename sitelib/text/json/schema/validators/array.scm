@@ -75,9 +75,10 @@
     (lambda (e ctx)
       (or (not (list? e))
 	  (and (validator-context:mark! ctx e schema)
-	       (for-all (lambda (v)
-			  (validator-context:mark-element! ctx e v schema)
-			  (validator (cdr v) ctx)) (filter ctx schema e)))))))
+	       (for-all
+		(lambda (v)
+		  (validator-context:mark-element! ctx e v schema
+		   (validator (cdr v) ctx))) (filter ctx schema e)))))))
 
 (define items-pointer (json-pointer "/items"))
 (define (json-schema:additional-items value context schema-path)
@@ -132,14 +133,14 @@
 (define (json-schema:draft-7-items value context schema-path)
   (define schema (schema-context-schema context))
   (define path (build-schema-path schema-path "items"))
-  (define (validate-all validator o ctx schema)
+  (define (mark-all ctx o schema r)
     (let loop ((i 0) (e o))
-      (cond ((null? e))
-	    (else
-	     (let ((v (car e)))
-	       (validator-context:mark-element! ctx o (cons i v) schema)
-	       (and (validator v ctx)
-		    (loop (+ i 1) (cdr e))))))))
+      (if (null? e)
+	  r
+	  (let ((v (car e)))
+	    (and (validator-context:mark-element! ctx o (cons i v) schema r)
+		 (loop (+ i 1) (cdr e)))))))
+
   (define (validate validators o ctx schema)
     (let loop ((i 0) (validators validators) (e o))
       (cond ((null? validators)) ;; ok
@@ -147,17 +148,17 @@
 	    (else
 	     (let ((validator (car validators))
 		   (v (car e)))
-	       (validator-context:mark-element! ctx o (cons i v) schema)
-	       (and (validator v ctx)
+	       (and (validator-context:mark-element! ctx o (cons i v) schema
+		     (validator v ctx))
 		    (loop (+ i 1) (cdr validators) (cdr e))))))))
-	    
 
   (cond ((json-schema? value)
 	 (let ((validator (schema->core-validator value context path)))
 	   (lambda (e ctx)
 	     (or (not (list? e))
 		 (and (validator-context:mark! ctx e schema)
-		      (validate-all validator e ctx schema))))))
+		      (mark-all ctx e schema
+				(for-all (lambda (v) (validator v ctx)) e)))))))
 	((and (list? value) (for-all json-schema? value))
 	 (let ((validators
 		(map (lambda (schema)

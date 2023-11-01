@@ -66,8 +66,8 @@
 	(value (cdr entry)))
     (cond ((matching-properties key properties) =>
 	   (lambda (validators)
-	     (validator-context:mark-element! ctx e entry schema)
-	     (for-all (lambda (v) (v value ctx)) validators)))
+	     (validator-context:mark-element! ctx e entry schema
+	      (for-all (lambda (v) (v value ctx)) validators))))
 	  (else #t))))
 
 (define ((properties-handler name regexp?) value context schema-path)
@@ -92,11 +92,11 @@
     (lambda (e ctx)
       (or (not (vector? e))
 	  (and (validator-context:mark! ctx e schema)
-	       (vector-every (lambda (v)
-			       (let ((n (car v)))
-				 (validator-context:mark-element! ctx e v schema)
-				 (validator n ctx)))
-			     e))))))
+	       (vector-every
+		(lambda (v)
+		  (let ((n (car v)))
+		    (validator-context:mark-element! ctx e v schema
+		     (validator n ctx)))) e))))))
 
 
 ;; filter marked properties
