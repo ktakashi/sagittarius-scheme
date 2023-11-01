@@ -36,9 +36,11 @@
 	    json-schema:unevaluated-items
 	    json-schema:contains
 
-	    json-schema:draft-7-items)
+	    json-schema:draft-7-items
+	    json-schema:draft-7-contains)
     (import (rnrs)
 	    (srfi :1 lists)
+	    (text json pointer)
 	    (text json schema validators api))
 
 (define (filter-marked-items ctx schema e)
@@ -75,14 +77,39 @@
 (define (json-schema:unevaluated-items value context schema-path)
   (lambda (e ctx) #t))
 
-(define (json-schema:contains value context schema-path)
+(define (handle-contains value context schema-path)
   (unless (json-schema? value)
     (assertion-violation 'json-schema:contains "JSON Schema is required" value))
-  (let* ((path (build-schema-path schema-path "contains"))
-	 (validator (schema->core-validator value context path)))
+  (let ((path (build-schema-path schema-path "contains")))
+    (schema->core-validator value context path)))
+(define (json-schema:draft-7-contains value context schema-path)
+  (define validator (handle-contains value context schema-path))  
+  (lambda (e ctx)
+    (or (not (list? e))
+	(exists (lambda (v) (validator v ctx)) e))))
+
+(define max-contains-pointer (json-pointer "/maxContains"))
+(define min-contains-pointer (json-pointer "/minContains"))
+(define (json-schema:contains value context schema-path)
+  (define schema (schema-context-schema context))
+  (define contains-validator (handle-contains value context schema-path))
+  (define (obtain-value who pointer schema)
+    (let ((r (pointer schema)))
+      (and (not (json-pointer-not-found? r))
+	   (or (and (integer? r) (not (negative? r)) r)
+	       (assertion-violation who "Non negative integer is required" r)))))
+  (define (count validator e ctx)
+    (length (filter-map (lambda (v) (validator v ctx)) e)))
+  (let ((max-contains
+	 (or (obtain-value 'json-schema:max-contains max-contains-pointer schema)
+	     +inf.0))
+	(min-contains
+	 (or (obtain-value 'json-schema:min-contains min-contains-pointer schema)
+	     1)))
     (lambda (e ctx)
       (or (not (list? e))
-	  (exists (lambda (v) (validator v ctx)) e)))))
+	  (let ((n (count contains-validator e ctx)))
+	    (and (<= min-contains n) (<= n max-contains)))))))
 
 ;; Draft 7 and 2019-09
 (define (json-schema:draft-7-items value context schema-path)

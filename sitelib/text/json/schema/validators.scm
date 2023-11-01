@@ -144,7 +144,6 @@
     ("maxItems" . ,(simple-handler json-schema:max-items))
     ("minItems" . ,(simple-handler json-schema:min-items))
     ("uniqueItems" . ,(simple-handler json-schema:unique-items))
-    ("contains" . ,(schema-handler json-schema:contains))
 
     ("maxProperties" . ,(simple-handler json-schema:max-properties))
     ("minProperties" . ,(simple-handler json-schema:min-properties))
@@ -174,6 +173,7 @@
     ("$ref" . ,(no-continue-handler json-schema:draft-7-$ref))
     ,@*common-vocabularies*
     ("items" . ,(schema-handler json-schema:draft-7-items))
+    ("contains" . ,(schema-handler json-schema:draft-7-contains))
     ("additionalItems" . ,(schema-handler json-schema:additional-items))
     ))
 
@@ -190,6 +190,7 @@
     ,@*common-vocabularies*
     ("items" . ,(schema-handler json-schema:draft-7-items))
     ("additionalItems" . ,(schema-handler json-schema:additional-items))
+    ("contains" . ,(schema-handler json-schema:contains))
     ("dependentSchemas" . ,(schema-handler json-schema:dependent-schemas))
     ("dependentRequired" . ,(schema-handler json-schema:dependent-required))
     ))

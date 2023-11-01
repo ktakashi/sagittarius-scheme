@@ -97,12 +97,10 @@
 	(cond ((check-anchor this-context id anchor schema-path))
 	      (else validator))))))
 
-(define ($ref-handler value context schema-path recursive?)
+(define ($ref-handler value context schema-path)
   (define in-id (schema-context-in-id context))
 
   (let-values (((this-id anchor) (uri->id&fragment value)))
-    (when (and anchor (string-null? anchor) (not recursive?))
-      (assertion-violation 'json-schema:$ref "Recursion is not allowed" value))
     (let* ((id (or (and this-id (if in-id (uri-merge in-id this-id) this-id))
 		   in-id))
 	   (schema (if id
@@ -133,10 +131,10 @@
 	       (string-append (or id "") "#"))))))))
 
 (define (json-schema:draft-7-$ref value context schema-path)
-  ($ref-handler value context schema-path #t))
+  ($ref-handler value context schema-path))
 
 (define (json-schema:$ref value context schema-path)
-  ($ref-handler value context schema-path #f))
+  ($ref-handler value context schema-path))
 
 (define (json-schema:$recursive-ref value context schema-path)
   (unless (equal? value "#")
@@ -145,5 +143,5 @@
   (cond ((schema-context:has-dynamic-anchor? context #t)
 	 (schema-validator->core-validator
 	  (schema-context:dynamic-validator context #t schema-path)))
-	(else ($ref-handler value context schema-path #t))))
+	(else ($ref-handler value context schema-path))))
 )
