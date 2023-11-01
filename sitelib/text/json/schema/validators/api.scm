@@ -284,7 +284,12 @@
   (protocol (lambda (p)
 	      (case-lambda
 	       ((lint-mode?)
-		(p "/" #f (list-queue) (make-eq-hashtable) lint-mode?))))))
+		(p "/"
+		   #f
+		   (list-queue)
+		   ;; relay on the fact that JSON must not have duplicate keys
+		   (make-hashtable equal-hash equal?)
+		   lint-mode?))))))
 (define (build-validation-path base path)
   (string-append base "/" (if (number? path) (number->string path) path)))
 (define (validator-context:report! context obj schema-path)
@@ -322,13 +327,13 @@
 (define (validator-context:marked-element? context obj element schema)
   (let ((slots (hashtable-ref (validator-context-marks context) obj '())))
     (cond ((assq schema slots) =>
-	   (lambda (slot) (memq element (list-queue-list (cdr slot)))))
+	   (lambda (slot) (member element (list-queue-list (cdr slot)))))
 	  (else #f))))
 
 (define (validator-context:unevaluated? context obj element schema)
   (let ((elements (append-map (lambda (s) (list-queue-list (cdr s)))
 		   (hashtable-ref (validator-context-marks context) obj '()))))
-    (memq element elements)))
+    (member element elements)))
 
 ;; Schema validator
 (define (update-cache! context validator)
