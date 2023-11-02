@@ -189,12 +189,14 @@
 
     ,@*common-vocabularies*
     ("items" . ,(schema-handler json-schema:draft-7-items))
-    ;; order is important
     ("additionalItems" . ,(schema-handler json-schema:additional-items))
-    ("unevaluatedItems" . ,(schema-handler json-schema:unevaluated-items))
     ("contains" . ,(schema-handler json-schema:contains))
     ("dependentSchemas" . ,(schema-handler json-schema:dependent-schemas))
     ("dependentRequired" . ,(schema-handler json-schema:dependent-required))
+
+    ;; These must be the last
+    ("unevaluatedItems" . ,(schema-handler json-schema:unevaluated-items))
+    ("unevaluatedProperties" . ,(schema-handler json-schema:unevaluated-properties))
     ))
 
 (define *draft-2020-12-vocabularies*

@@ -34,6 +34,7 @@
 	    json-schema:pattern-properties
 	    json-schema:property-names
 	    json-schema:additional-properties
+	    json-schema:unevaluated-properties
 	    json-schema:dependencies
 	    json-schema:dependent-schemas
 	    json-schema:dependent-required)
@@ -91,33 +92,40 @@
 		     (build-schema-path schema-path "propertyNames")))))
     (lambda (e ctx)
       (or (not (vector? e))
-	  (and (validator-context:mark! ctx e schema)
-	       (vector-every
-		(lambda (v)
-		  (let ((n (car v)))
-		    (validator-context:mark-element! ctx e v schema
-		     (validator n ctx)))) e))))))
+	  (vector-every (lambda (v) (validator (car v) ctx)) e)))))
 
 
-;; filter marked properties
-(define (filter-marked-items ctx schema e)
-  (list->vector
-   (filter (lambda (v) (not (validator-context:marked-element? ctx e v schema)))
-	   (vector->list e))))
-
-(define (json-schema:additional-properties value context schema-path)
+(define (handle-extras who value context schema-path pred)
   (define schema (schema-context-schema context))
+  (define (filter-marked-items ctx schema e)
+    (filter (lambda (v) (not (pred ctx e v schema)))
+	    (vector->list e)))
   (unless (json-schema? value)
-    (assertion-violation 'json-schema:additional-properties
+    (assertion-violation who
 			 "JSON Schema is required" value))
   (let ((validator (schema-validator->core-validator
 		    (schema-context->schema-validator
 		     (make-schema-context value context)
-		     (build-schema-path schema-path "additionalItems")))))
+		     schema-path))))
     (lambda (e ctx)
       (or (not (vector? e))
-	  (vector-every (lambda (v) (validator (cdr v) ctx))
-			(filter-marked-items ctx schema e))))))
+	  (and (validator-context:mark! ctx e schema)
+	       (for-all (lambda (v)
+			  (validator-context:mark-element! ctx e v schema
+			   (validator (cdr v) ctx)))
+			(filter-marked-items ctx schema e)))))))
+
+(define (json-schema:additional-properties value context schema-path)
+  (handle-extras 'json-schema:additional-properties
+		 value context
+		 (build-schema-path schema-path "additionalProperties")
+		 validator-context:marked-element?))
+
+(define (json-schema:unevaluated-properties value context schema-path)
+  (handle-extras 'json-schema:unevaluated-properties
+		 value context
+		 (build-schema-path schema-path "unevaluatedProperties")
+		 validator-context:unevaluated?))
 
 
 (define (compile-dependent-required e context schema-path)
@@ -181,8 +189,7 @@
   (define (valid-object? v)
     (and (vector? v)
 	 (vector-fold (lambda (acc e) (and acc (json-schema? (cdr e)))) #t v)))
-  
-  ;; because of unevaluatedProperties, we need to do lift up here as well :(
+
   (unless (valid-object? value)
     (assertion-violation 'json-schema:dependent-schemas
 			 "A JSON Schema Object is required" value))

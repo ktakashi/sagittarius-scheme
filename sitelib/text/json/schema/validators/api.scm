@@ -305,10 +305,10 @@
 (define (validator-context:mark! context obj schema)
   (let ((mark (validator-context-marks context)))
     (hashtable-update! mark obj
-		       (lambda (v)
-			 (cond ((assq schema v) v)
-			       (else (cons (cons schema (list-queue)) v))))
-		       '())))
+      (lambda (v)
+	(cond ((assq schema v) v)
+	      (else (cons (cons schema (list-queue)) v))))
+      '())))
 (define (validator-context:mark-element! context obj element schema success?)
   (let ((mark (validator-context-marks context)))
     (hashtable-update! mark obj
@@ -337,8 +337,23 @@
     (do ((elements elements (cdr elements))
 	 (r '() (check r element (car elements))))
 	((null? elements) r)))
+  ;; We need to exclude cousins, so check subschema
+  (define (subschema? root-schema schema)
+    ;; we don't modify the schema, so `eq?` works.
+    (cond ((eq? root-schema schema))
+	  ((vector? root-schema)
+	   ;; For now DFS, might be better to do BFS
+	   (let ((len (vector-length root-schema)))
+	     (let loop ((i 0))
+	       (cond ((= i len) #f)
+		     ((subschema? (cdr (vector-ref root-schema i)) schema))
+		     (else (loop (+ i 1)))))))
+	  ((list? root-schema)
+	   (exists (lambda (r) (subschema? r schema)) root-schema))
+	  (else #f)))
   (let ((elements (append-map (lambda (s) (list-queue-list (cdr s)))
-		   (hashtable-ref (validator-context-marks context) obj '()))))
+		    (filter (lambda (s) (subschema? schema (car s)))
+		     (hashtable-ref (validator-context-marks context) obj '())))))
     ;; because of allOf, anyOf or oneOf applicators, the elements may contain
     ;; multiple of the same element. So, collect everything and check if
     ;; there's a successful evaluation or not
