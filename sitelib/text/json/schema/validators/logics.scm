@@ -85,7 +85,11 @@
 	 (validator (schema-validator-validator
 		     (schema-context->schema-validator
 		      (make-schema-context value context) path))))
-    (wrap-core-validator (lambda (e ctx) (not (validator e ctx))) path)))
+    (wrap-core-validator
+     (lambda (e ctx)
+       (let ((snapshot (validator-context:marks ctx e)))
+	 (validator-context:update-difference! ctx e snapshot (not (validator e ctx)))))
+     path)))
 
 ;; if-then-else is handled a bit differently from the other keywords.
 (define then-pointer (json-pointer "/then"))

@@ -70,8 +70,10 @@
 
 	    make-validator-context validator-context
 	    (rename (validator-context:reports validator-context-reports))
+	    validator-context:marks
 	    validator-context:mark!
 	    validator-context:mark-element!
+	    validator-context:update-difference!
 	    validator-context:marked?
 	    validator-context:marked-element?
 	    validator-context:unevaluated?
@@ -79,6 +81,7 @@
 	    ;; paremters
 	    *json-schema:default-version*)
     (import (rnrs)
+	    (rnrs mutable-pairs)
 	    (rfc uri)
 	    (srfi :1 lists)
 	    (srfi :2 and-let*)
@@ -319,6 +322,33 @@
 	v)
       '())
     success?))
+
+(define (validator-context:update-difference! context obj snapshot success?)
+  (define (swap-marks! q base diff)
+    (for-each (lambda (s) (set-cdr! s success?)) diff)
+    (list-queue-clear! q)
+    (for-each (lambda (v) (list-queue-add-back! q v)) base)
+    (for-each (lambda (v) (list-queue-add-back! q v)) diff))
+  (let ((slots (hashtable-ref (validator-context-marks context) obj '())))
+    (for-each (lambda (slot)
+		(let ((q (cdr slot)))
+		  (cond ((memq (car slot) snapshot) =>
+			 (lambda (base)
+			   (let* ((marks (list-queue-list q))
+				  (diff (drop-right marks (length base))))
+			     (swap-marks! q base diff))))
+			(else
+			 (swap-marks! q '() (list-queue-list q))))))
+	      slots)
+    success?))
+
+(define (validator-context:marks context obj)
+  (define (->snapshot slot)
+    ;; convert (schema (e result) ...)
+    (cons (car slot) (list-queue-list (cdr slot))))
+    
+  (let ((mark (validator-context-marks context)))
+    (map ->snapshot (hashtable-ref mark obj '()))))
 
 (define (validator-context:marked? context obj schema)
   (let ((slots (hashtable-ref (validator-context-marks context) obj '())))
