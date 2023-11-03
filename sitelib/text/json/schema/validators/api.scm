@@ -62,8 +62,8 @@
 	    schema-context:find-by-id schema-context:set-id!
 	    schema-context:root-schema
 	    schema-context:find-by-anchor schema-context:add-anchor!
-	    
-	    schema-context:add-dynamic-anchor!
+
+	    schema-context:mark-dynamic-anchor!
 	    schema-context:has-dynamic-anchor?
 
 	    schema-context:cache-vocabulary! schema-context:vocabulary-loaded?
@@ -77,6 +77,7 @@
 	    validator-context:marked?
 	    validator-context:marked-element?
 	    validator-context:unevaluated?
+	    validator-context:set-dynamic-context!
 
 	    ;; paremters
 	    *json-schema:default-version*)
@@ -245,25 +246,25 @@
   (let ((anchors (schema-context-anchors context)))
     (hashtable-ref anchors anchor #f)))
 
-(define (schema-context:add-dynamic-anchor! context anchor)
+(define (schema-context:mark-dynamic-anchor! context anchor)
   (let ((root (schema-context-root context)))
     (hashtable-update! (root-context-dynamic-anchors root) anchor
-		       (lambda (q) (list-queue-add-back! q context) q)
-		       (list-queue))))
+		       (lambda (r) (cons context r))
+		       '())))
 
 (define (schema-context:has-dynamic-anchor? context anchor)
   (let ((root (schema-context-root context)))
     (cond ((hashtable-ref (root-context-dynamic-anchors root) anchor #f) =>
-	   (lambda (q)
+	   (lambda (v)
 	     (let* ((id (schema-context-in-id context))
 		    (target (schema-context:find-by-id context id)))
-	       (and (memq target (list-queue-list q)) #t))))
+	       (and (memq target v) #t))))
 	  (else #f))))
 
 (define (schema-context:dynamic-context context anchor)
   (let ((root (schema-context-root context)))
     (cond ((hashtable-ref (root-context-dynamic-anchors root) anchor #f) =>
-	   list-queue-front)
+	   (lambda (context) (and (schema-context? context) context)))
 	  (else #f))))
 
 (define (schema-context:cache-schema! context)
@@ -290,6 +291,7 @@
 	  parent
 	  reports
 	  marks
+	  (mutable dynamic-contexts)
 	  lint-mode?)
   (protocol (lambda (p)
 	      (case-lambda
@@ -298,6 +300,7 @@
 		   #f
 		   (list-queue)
 		   ;; relay on the fact that JSON must not have duplicate keys
+		   (make-hashtable equal-hash equal?)
 		   (make-hashtable equal-hash equal?)
 		   lint-mode?))))))
 (define (build-validation-path base path)
@@ -402,6 +405,19 @@
     ;; there's a successful evaluation or not
     (not (null? (filter-map cdr (collect element elements))))))
 
+(define (validator-context:set-dynamic-context! context schema-context anchor)
+  (let ((root (schema-context-root schema-context))
+	(dynamic-contexts (validator-context-dynamic-contexts context)))
+    (cond ((hashtable-ref (root-context-dynamic-anchors root) anchor #f) =>
+	   (lambda (v)
+	     (when (and (not (hashtable-ref dynamic-contexts anchor #f))
+			(memq schema-context v))
+	       (hashtable-set! dynamic-contexts anchor schema-context)))))))
+
+(define (validator-context:dynamic-context context anchor)
+  (let ((dynamic-contexts (validator-context-dynamic-contexts context)))
+    (hashtable-ref dynamic-contexts anchor #f)))
+
 ;; Schema validator
 (define (update-cache! context validator)
   (schema-context-validator-set! context validator)
@@ -473,17 +489,15 @@
 (define (schema-context:dynamic-validator context dynamic-anchor schema-path)
   (define root (schema-context-root context))
   (define dynamic-anchors (root-context-dynamic-anchors root))
-  (define (validator)
+  (define (validator ctx)
     (schema-validator->core-validator
      (schema-context-validator
-      (schema-context:dynamic-context context dynamic-anchor))))
-  (define dynamic-validator
-    (let ((cache #f))
-      (lambda (e ctx)
-	(unless cache (set! cache (validator)) (set! dynamic-anchors #f))
-	(cache e ctx))))
-  (update-cache! context
-   (make-schema-validator dynamic-validator schema-path)))
+      (validator-context:dynamic-context ctx dynamic-anchor))))
+  (define (dynamic-validator e ctx) ((validator ctx) e ctx))
+  (cond ((schema-context-validator context))
+	(else
+	 (update-cache! context
+	  (make-schema-validator dynamic-validator schema-path)))))
 
 
 (define-record-type schema-validator
