@@ -248,19 +248,23 @@
 (define (schema-context:add-dynamic-anchor! context anchor)
   (let ((root (schema-context-root context)))
     (hashtable-update! (root-context-dynamic-anchors root) anchor
-		       (lambda (v)
-			 (if (memq context v)
-			     v
-			     (cons context v)))
-		       '())))
+		       (lambda (q) (list-queue-add-back! q context) q)
+		       (list-queue))))
 
 (define (schema-context:has-dynamic-anchor? context anchor)
   (let ((root (schema-context-root context)))
-    (hashtable-contains? (root-context-dynamic-anchors root) anchor)))
+    (cond ((hashtable-ref (root-context-dynamic-anchors root) anchor #f) =>
+	   (lambda (q)
+	     (let* ((id (schema-context-in-id context))
+		    (target (schema-context:find-by-id context id)))
+	       (and (memq target (list-queue-list q)) #t))))
+	  (else #f))))
 
-(define (schema-context:dynamic-contexts context anchor)
+(define (schema-context:dynamic-context context anchor)
   (let ((root (schema-context-root context)))
-    (hashtable-ref (root-context-dynamic-anchors root) anchor #f)))
+    (cond ((hashtable-ref (root-context-dynamic-anchors root) anchor #f) =>
+	   list-queue-front)
+	  (else #f))))
 
 (define (schema-context:cache-schema! context)
   (let ((root (schema-context-root context)))
@@ -469,16 +473,17 @@
 (define (schema-context:dynamic-validator context dynamic-anchor schema-path)
   (define root (schema-context-root context))
   (define dynamic-anchors (root-context-dynamic-anchors root))
-  (define (validators)
-    (display (hashtable-ref dynamic-anchors dynamic-anchor '())) (newline)
-    (map schema-validator->core-validator
-	 (map schema-context-validator
-	      (hashtable-ref dynamic-anchors dynamic-anchor '()))))
-  (define (initializer)
-    (let ((v* (validators)))
-      (set! dynamic-anchors #f) ;; for GC, probably don't need but in case
-      (lambda (e ctx) (for-all (lambda (v) (v e ctx)) v*))))
-  (schema-context:delayed-validator context initializer schema-path))
+  (define (validator)
+    (schema-validator->core-validator
+     (schema-context-validator
+      (schema-context:dynamic-context context dynamic-anchor))))
+  (define dynamic-validator
+    (let ((cache #f))
+      (lambda (e ctx)
+	(unless cache (set! cache (validator)) (set! dynamic-anchors #f))
+	(cache e ctx))))
+  (update-cache! context
+   (make-schema-validator dynamic-validator schema-path)))
 
 
 (define-record-type schema-validator

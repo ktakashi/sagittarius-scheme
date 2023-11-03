@@ -179,11 +179,12 @@
 
 (define *draft-2019-09-vocabularies*
   `(("$id" . ,(schema-handler json-schema:$id))
+    ;; recursive anchor must be before all 
+    ("$recursiveAnchor" . ,(schema-handler json-schema:$recursive-anchor))
     ("$vocabulary" . ,(schema-handler json-schema:$vocabulary))
     ("$defs" . ,(schema-handler json-schema:$defs))
     ("definitions" . ,(schema-handler json-schema:definitions))
     ("$anchor" . ,(schema-handler json-schema:$anchor))
-    ("$recursiveAnchor" . ,(schema-handler json-schema:$recursive-anchor))
     ("$ref" . ,(schema-handler json-schema:$ref))
     ("$recursiveRef" . ,(no-continue-handler json-schema:$recursive-ref))
 
