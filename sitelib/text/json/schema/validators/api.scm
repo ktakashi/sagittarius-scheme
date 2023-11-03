@@ -195,7 +195,9 @@
 
 (define (make-disjoint-context schema context)
   (let ((root (schema-context-root context)))
-    (make-initial-schema-context schema root)))
+    (parameterize ((*json-schema:default-version*
+		    (schema-context-version context)))
+      (make-initial-schema-context schema root))))
 
 (define (make-schema-context schema parent)
   (let* ((root (schema-context-root parent))

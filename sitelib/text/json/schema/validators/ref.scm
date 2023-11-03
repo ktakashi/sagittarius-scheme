@@ -49,8 +49,12 @@
 (define *json-schema:resolve-external-schema?* (make-parameter #f))
 
 (define (json-schema:default-external-schema-resolver uri)
-  (call-with-port (transcoded-port (open-uri uri) (native-transcoder))
-    json-read))
+  (guard (e (else (error 'json-schema:default-external-schema-resolver
+			 "Failed to retrieve external schema"
+			 uri
+			 e)))
+    (call-with-port (transcoded-port (open-uri uri) (native-transcoder))
+      json-read)))
 (define *json-schema:external-schema-resolver* (make-parameter #f))
 
 ;; probably better to check URI and only fragment but for now
@@ -99,16 +103,17 @@
 	      (else validator))))))
 
 (define ($ref-handler value context schema-path)
+  (define schema-id (schema-context-schema-id context))
   (define in-id (schema-context-in-id context))
 
   (let-values (((this-id anchor) (uri->id&fragment value)))
     (let* ((id (or (and this-id (if in-id (uri-merge in-id this-id) this-id))
+		   (and schema-id in-id (uri-merge in-id schema-id))
 		   in-id))
 	   (schema (if id
 		       (schema-context:find-by-id context id)
 		       ;; then root schema
 		       (schema-context:root-schema context))))
-
       (schema-validator->core-validator
        (cond ((not schema)
 	      (schema-context:delayed-validator context
