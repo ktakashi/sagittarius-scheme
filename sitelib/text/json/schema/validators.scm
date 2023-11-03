@@ -58,13 +58,10 @@
 	    (text json pointer)
 	    (text json validator)
 	    (text json schema validators api)
-	    (text json schema validators array)
-	    (text json schema validators core)
-	    (text json schema validators ref)
-	    (text json schema validators logics)
-	    (text json schema validators primitives)
-	    (text json schema validators object)
+	    (text json schema validators vocabularies)
+	    ;; for parameters (maybe merge them into api)
 	    (text json schema validators format)
+	    (text json schema validators ref)
 	    (text json schema version)
 	    (text json schema vocabularies)
 	    )
@@ -114,103 +111,8 @@
      (schema-context-version context)
      (schema-context-schema-id context))))
 
-(define ((simple-handler ->validator) value context schema-path)
-  (let ((validator (->validator value)))
-    (values (wrap-core-validator
-	     (lambda (e ctx) (validator e)) schema-path) #t)))
-(define ((schema-handler ->validator) value context schema-path)
-  (values (->validator value context schema-path) #t))
-(define ((no-continue-handler ->validator) value context schema-path)
-  (values (->validator value context schema-path) #f))
-
-(define *common-vocabularies*
-  `(("$schema" . ,(schema-handler json-schema:$schema))
-
-    ("type" . ,(simple-handler json-schema:type))
-    ("enum" . ,(simple-handler json-schema:enum))
-    ("const" . ,(simple-handler json-schema:const))
-
-    ("multipleOf" . ,(simple-handler json-schema:multiple-of))
-    ("maximum" . ,(simple-handler json-schema:maximum))
-    ("exclusiveMaximum" . ,(simple-handler json-schema:exclusive-maximum))
-    ("minimum" . ,(simple-handler json-schema:minimum))
-    ("exclusiveMinimum" . ,(simple-handler json-schema:exclusive-minimum))
-
-    ("maxLength" . ,(simple-handler json-schema:max-length))
-    ("minLength" . ,(simple-handler json-schema:min-length))
-    ("pattern" . ,(simple-handler json-schema:pattern))
-    ("format" . ,(simple-handler json-schema:format))
-
-    ("maxItems" . ,(simple-handler json-schema:max-items))
-    ("minItems" . ,(simple-handler json-schema:min-items))
-    ("uniqueItems" . ,(simple-handler json-schema:unique-items))
-
-    ("maxProperties" . ,(simple-handler json-schema:max-properties))
-    ("minProperties" . ,(simple-handler json-schema:min-properties))
-    ("required" . ,(simple-handler json-schema:required))
-    ("properties" . ,(schema-handler json-schema:properties))
-    ("patternProperties" . ,(schema-handler json-schema:pattern-properties))
-    ("propertyNames" . ,(schema-handler json-schema:property-names))
-    ("additionalProperties" . ,(schema-handler json-schema:additional-properties))
-    ;; only 2019-09 have backward compatibility? I couldn't find explicit
-    ;; sentence :(
-    ("dependencies" . ,(schema-handler json-schema:dependencies))
-    
-    ;; 10.2.1 Keywords for Applying Subschemas With Logic
-    ("allOf" . ,(schema-handler json-schema:all-of))
-    ("anyOf" . ,(schema-handler json-schema:any-of))
-    ("oneOf" . ,(schema-handler json-schema:one-of))
-    ("not" . ,(schema-handler json-schema:not))
-    ("if" . ,(schema-handler json-schema:if))
-    ("then" . ,(schema-handler json-schema:then))
-    ("else" . ,(schema-handler json-schema:else))
-    ))
-
-;; order matters
-(define *draft-7-vocabularies*
-  `(("$id" . ,(schema-handler json-schema:draft-7-$id))
-    ("definitions" . ,(schema-handler json-schema:definitions))
-    ("$ref" . ,(no-continue-handler json-schema:draft-7-$ref))
-    ,@*common-vocabularies*
-    ("items" . ,(schema-handler json-schema:draft-7-items))
-    ("contains" . ,(schema-handler json-schema:draft-7-contains))
-    ("additionalItems" . ,(schema-handler json-schema:additional-items))
-    ))
-
-(define *draft-2019-09-vocabularies*
-  `(("$id" . ,(schema-handler json-schema:$id))
-    ;; recursive anchor must be before all 
-    ("$recursiveAnchor" . ,(schema-handler json-schema:$recursive-anchor))
-    ("$vocabulary" . ,(schema-handler json-schema:$vocabulary))
-    ("$defs" . ,(schema-handler json-schema:$defs))
-    ("definitions" . ,(schema-handler json-schema:definitions))
-    ("$anchor" . ,(schema-handler json-schema:$anchor))
-    ("$ref" . ,(schema-handler json-schema:$ref))
-    ("$recursiveRef" . ,(no-continue-handler json-schema:$recursive-ref))
-
-    ,@*common-vocabularies*
-    ("items" . ,(schema-handler json-schema:draft-7-items))
-    ("additionalItems" . ,(schema-handler json-schema:additional-items))
-    ("contains" . ,(schema-handler json-schema:contains))
-    ("dependentSchemas" . ,(schema-handler json-schema:dependent-schemas))
-    ("dependentRequired" . ,(schema-handler json-schema:dependent-required))
-
-    ;; These must be the last
-    ("unevaluatedItems" . ,(schema-handler json-schema:unevaluated-items))
-    ("unevaluatedProperties" . ,(schema-handler json-schema:unevaluated-properties))
-    ))
-
-(define *draft-2020-12-vocabularies*
-  `(("$id" . ,(schema-handler json-schema:$id))
-    ("$defs" . ,(schema-handler json-schema:$defs))
-    ("$ref" . ,(schema-handler json-schema:$ref))
-    ,@*common-vocabularies*
-    ("dependentSchemas" . ,(schema-handler json-schema:dependent-schemas))
-    ("dependentRequired" . ,(schema-handler json-schema:dependent-required))
-    ))
-
 (define *version-specifics*
-  `((draft-7 . ,*draft-7-vocabularies*)
-    (2019-09 . ,*draft-2019-09-vocabularies*)
-    (2020-12 . ,*draft-2020-12-vocabularies*)))
+  `((draft-7 . ,*json-schema:draft-7-vocabularies*)
+    (2019-09 . ,*json-schema:draft-2019-09-vocabularies*)
+    (2020-12 . ,*json-schema:draft-2020-12-vocabularies*)))
 )
