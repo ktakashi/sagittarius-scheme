@@ -71,9 +71,10 @@
 	 (let ((s ((json-pointer (uri-decode-string anchor))
 		   (schema-context-schema schema))))
 	   (when (json-pointer-not-found? s) (ref-not-found id schema-path))
-	   (schema-context->schema-validator
-	    (make-schema-context s schema)
-	    (string-append (or id "") "#" anchor))))
+	   (let ((schema (make-schema-context s schema)))
+	     (cond ((schema-context-validator schema))
+		   (else (schema-context->schema-validator schema
+			  (string-append (or id "") "#" anchor)))))))
 	((string-null? anchor)
 	 ;; recursive
 	 (cond ((schema-context-validator schema))

@@ -248,7 +248,10 @@
 (define (schema-context:add-dynamic-anchor! context anchor)
   (let ((root (schema-context-root context)))
     (hashtable-update! (root-context-dynamic-anchors root) anchor
-		       (lambda (v) (cons context v))
+		       (lambda (v)
+			 (if (memq context v)
+			     v
+			     (cons context v)))
 		       '())))
 
 (define (schema-context:has-dynamic-anchor? context anchor)
@@ -467,14 +470,15 @@
   (define root (schema-context-root context))
   (define dynamic-anchors (root-context-dynamic-anchors root))
   (define (validators)
+    (display (hashtable-ref dynamic-anchors dynamic-anchor '())) (newline)
     (map schema-validator->core-validator
 	 (map schema-context-validator
 	      (hashtable-ref dynamic-anchors dynamic-anchor '()))))
-  (define (dynamic-contexts-validator e ctx)
-    (for-all (lambda (v) (v e ctx)) (validators)))
-
-  (update-cache! context
-   (make-schema-validator dynamic-contexts-validator schema-path)))
+  (define (initializer)
+    (let ((v* (validators)))
+      (set! dynamic-anchors #f) ;; for GC, probably don't need but in case
+      (lambda (e ctx) (for-all (lambda (v) (v e ctx)) v*))))
+  (schema-context:delayed-validator context initializer schema-path))
 
 
 (define-record-type schema-validator
