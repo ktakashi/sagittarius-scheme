@@ -325,10 +325,16 @@
 
 (define (validator-context:update-difference! context obj snapshot success?)
   (define (swap-marks! q base diff)
-    (for-each (lambda (s) (set-cdr! s success?)) diff)
     (list-queue-clear! q)
     (for-each (lambda (v) (list-queue-add-back! q v)) base)
-    (for-each (lambda (v) (list-queue-add-back! q v)) diff))
+    ;; strip out failed validation
+    ;; NB: this is for unevaludated with `not not` case
+    ;;     I think it should be invalid test case, but it's listed
+    ;;     in the official test suite, so no argue.
+    (for-each (lambda (v)
+		(when success?
+		  (set-cdr! v #t)
+		  (list-queue-add-back! q v))) diff))
   (let ((slots (hashtable-ref (validator-context-marks context) obj '())))
     (for-each (lambda (slot)
 		(let ((q (cdr slot)))
