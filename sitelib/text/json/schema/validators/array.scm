@@ -37,7 +37,9 @@
 	    json-schema:contains
 
 	    json-schema:draft-7-items
-	    json-schema:draft-7-contains)
+	    json-schema:draft-7-contains
+
+	    json-schema:draft-2019-09-contains)
     (import (rnrs)
 	    (srfi :1 lists)
 	    (text json pointer)
@@ -49,11 +51,45 @@
    (schema-context->schema-validator (make-schema-context schema context)
 				     schema-path)))
 
+(define (items-handler value context schema-path)
+  (define schema (schema-context-schema context))
+  (define (validate validators o ctx schema)
+    (let loop ((i 0) (validators validators) (e o))
+      (cond ((null? validators)) ;; ok
+	    ((null? e))		 ;; permitted
+	    (else
+	     (let ((validator (car validators))
+		   (v (car e)))
+	       (and (validator-context:mark-element! ctx o (cons i v) schema
+						     (validator v ctx))
+		    (loop (+ i 1) (cdr validators) (cdr e))))))))
+  (unless (and (list? value) (for-all json-schema? value))
+    (assertion-violation 'json-schema:prefix-items
+			 "Array of JSON Schema is required" value))
+  (let ((validators (map (lambda (schema)
+			   (schema->core-validator schema context schema-path))
+			 value)))
+    (lambda (e ctx)
+      (or (not (list? e))
+	  (and (validator-context:mark! ctx e schema)
+	       (validate validators e ctx schema))))))
+
+(define prefix-items-pointer (json-pointer "/prefixItems"))
 (define (json-schema:items value context schema-path)
-  (lambda (e ctx) #t))
+  (define schema (schema-context-schema context))
+  (unless (json-schema? value)
+    (assertion-violation 'json-schema:items "JSON Schema is required" value))
+  (if (json-pointer-not-found? (prefix-items-pointer schema))
+      (json-schema:draft-7-items value context schema-path)
+      (handle-extra-items 'json-schema:items value context
+			  (build-schema-path schema-path "items")
+			  validator-context:marked-element?)))
 
 (define (json-schema:prefix-items value context schema-path)
-  (lambda (e ctx) #t))
+  (when (null? value)
+    (assertion-violation 'json-schema:prefix-items
+			 "At least one element is required" value))
+  (items-handler value context (build-schema-path schema-path "prefixItems")))
 
 
 ;; additionalItems and unevaluatedItems
@@ -95,22 +131,23 @@
 		      (build-schema-path schema-path "unevaluatedItems")
 		      validator-context:unevaluated?))
 
-(define (handle-contains value context schema-path)
+(define (contains-validator value context schema-path)
   (unless (json-schema? value)
     (assertion-violation 'json-schema:contains "JSON Schema is required" value))
   (let ((path (build-schema-path schema-path "contains")))
     (schema->core-validator value context path)))
+
 (define (json-schema:draft-7-contains value context schema-path)
-  (define validator (handle-contains value context schema-path))  
+  (define validator (contains-validator value context schema-path))
   (lambda (e ctx)
     (or (not (list? e))
 	(exists (lambda (v) (validator v ctx)) e))))
 
 (define max-contains-pointer (json-pointer "/maxContains"))
 (define min-contains-pointer (json-pointer "/minContains"))
-(define (json-schema:contains value context schema-path)
+(define (handle-contains value context schema-path need-mark?)
   (define schema (schema-context-schema context))
-  (define contains-validator (handle-contains value context schema-path))
+  (define validator (contains-validator value context schema-path))
   (define (obtain-value who pointer schema)
     (let ((r (pointer schema)))
       (and (not (json-pointer-not-found? r))
@@ -118,16 +155,32 @@
 	       (assertion-violation who "Non negative integer is required" r)))))
   (define (count validator e ctx)
     (length (filter-map (lambda (v) (validator v ctx)) e)))
+  (define (count/mark validator e ctx)
+    (validator-context:mark! ctx e schema)
+    (let loop ((i 0) (n 0) (v e))
+      (if (null? v)
+	  n
+	  (let* ((t (car v))
+		 (r (validator t ctx)))
+	    (validator-context:mark-element! ctx e (cons i t) schema r)
+	    (loop (+ i 1) (+ n (if r 1 0)) (cdr v))))))
+  (define (make-validator validator counter max-contains min-contains)
+    (lambda (e ctx)
+      (or (not (list? e))
+	  (let ((n (counter validator e ctx)))
+	    (and (<= min-contains n) (<= n max-contains))))))
   (let ((max-contains
 	 (or (obtain-value 'json-schema:max-contains max-contains-pointer schema)
 	     +inf.0))
 	(min-contains
 	 (or (obtain-value 'json-schema:min-contains min-contains-pointer schema)
 	     1)))
-    (lambda (e ctx)
-      (or (not (list? e))
-	  (let ((n (count contains-validator e ctx)))
-	    (and (<= min-contains n) (<= n max-contains)))))))
+    (make-validator validator (if need-mark? count/mark count)
+		    max-contains min-contains)))
+(define (json-schema:draft-2019-09-contains value context schema-path)
+  (handle-contains value context schema-path #f))
+(define (json-schema:contains value context schema-path)
+  (handle-contains value context schema-path #t))
 
 ;; Draft 7 and 2019-09
 (define (json-schema:draft-7-items value context schema-path)
@@ -141,17 +194,6 @@
 	    (and (validator-context:mark-element! ctx o (cons i v) schema r)
 		 (loop (+ i 1) (cdr e)))))))
 
-  (define (validate validators o ctx schema)
-    (let loop ((i 0) (validators validators) (e o))
-      (cond ((null? validators)) ;; ok
-	    ((null? e))		 ;; permitted
-	    (else
-	     (let ((validator (car validators))
-		   (v (car e)))
-	       (and (validator-context:mark-element! ctx o (cons i v) schema
-		     (validator v ctx))
-		    (loop (+ i 1) (cdr validators) (cdr e))))))))
-
   (cond ((json-schema? value)
 	 (let ((validator (schema->core-validator value context path)))
 	   (lambda (e ctx)
@@ -160,13 +202,7 @@
 		      (mark-all ctx e schema
 				(for-all (lambda (v) (validator v ctx)) e)))))))
 	((and (list? value) (for-all json-schema? value))
-	 (let ((validators
-		(map (lambda (schema)
-		       (schema->core-validator schema context path)) value)))
-	   (lambda (e ctx)
-	     (or (not (list? e))
-		 (and (validator-context:mark! ctx e schema)
-		      (validate validators e ctx schema))))))
+	 (items-handler value context path))
 	(else (assertion-violation 'json-schema:items
 		"Either JSON Schema or list of JSON Schema is required" value))))
 

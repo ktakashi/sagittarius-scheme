@@ -127,7 +127,7 @@
 
 (define *json-schema:draft-2019-09-vocab-applicator*
   `(
-    ("contains" . ,(schema-handler json-schema:contains))
+    ("contains" . ,(schema-handler json-schema:draft-2019-09-contains))
     ("items" . ,(schema-handler json-schema:draft-7-items))
     ("additionalItems" . ,(schema-handler json-schema:additional-items))
     ("properties" . ,(schema-handler json-schema:properties))

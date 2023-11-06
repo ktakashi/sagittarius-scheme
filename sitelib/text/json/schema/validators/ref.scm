@@ -155,9 +155,12 @@
 (define (json-schema:$dynamic-ref value context schema-path)
   (unless (string? value)
     (assertion-violation 'json-schema:$dynamic-ref "Must be string" value))
-  (cond ((schema-context:has-dynamic-anchor? context #t)
-	 (schema-validator->core-validator
-	  (schema-context:dynamic-validator context #t schema-path)))
-	(else ($ref-handler value context schema-path))))
+  (unless (string-prefix? "#" value)
+    (assertion-violation 'json-schema:$dynamic-ref "Must be a fragment" value))
+  (let ((anchor (substring value 1 (string-length value))))
+    (cond ((schema-context:has-dynamic-anchor? context anchor)
+	   (schema-validator->core-validator
+	    (schema-context:dynamic-validator context anchor schema-path)))
+	  (else ($ref-handler value context schema-path)))))
 
 )
