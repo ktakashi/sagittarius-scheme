@@ -31,6 +31,7 @@
 #!nounbound
 (library (text json schema validators ref)
     (export json-schema:$ref json-schema:$recursive-ref
+	    json-schema:$dynamic-ref
 	    json-schema:draft-7-$ref
 
 	    *json-schema:resolve-external-schema?*
@@ -150,4 +151,13 @@
 	 (schema-validator->core-validator
 	  (schema-context:dynamic-validator context #t schema-path)))
 	(else ($ref-handler value context schema-path))))
+
+(define (json-schema:$dynamic-ref value context schema-path)
+  (unless (string? value)
+    (assertion-violation 'json-schema:$dynamic-ref "Must be string" value))
+  (cond ((schema-context:has-dynamic-anchor? context #t)
+	 (schema-validator->core-validator
+	  (schema-context:dynamic-validator context #t schema-path)))
+	(else ($ref-handler value context schema-path))))
+
 )

@@ -32,6 +32,7 @@
 (library (text json schema validators core)
     (export json-schema:$id json-schema:$schema
 	    json-schema:$anchor json-schema:$recursive-anchor
+	    json-schema:$dynamic-anchor
 	    json-schema:$defs
 	    json-schema:$vocabulary
 	    json-schema:draft-7-$id json-schema:definitions)
@@ -77,12 +78,20 @@
 
 (define (json-schema:$recursive-anchor value context schema-path)
   (unless (boolean? value)
-    (assertion-violation 'json-schema:$recursive-anchor
-			 "Must be boolean" value))
+    (assertion-violation 'json-schema:$recursive-anchor "Must be boolean" value))
   (when value (schema-context:mark-dynamic-anchor! context value))
   (lambda (e ctx)
     (when value (validator-context:set-dynamic-context! ctx context value))
     #t))
+
+(define (json-schema:$dynamic-anchor value context schema-path)
+  (unless (string? value)
+    (assertion-violation 'json-schema:$dynamic-anchor "Must be string" value))
+  (schema-context:mark-dynamic-anchor! context value)
+  (lambda (e ctx)
+    (validator-context:set-dynamic-context! ctx context value)
+    #t)
+  )
 
 (define (($defs-handler name) value context schema-path)
   (define this-path (build-schema-path schema-path name))
