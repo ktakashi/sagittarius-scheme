@@ -263,12 +263,6 @@
 	       (and (memq target v) #t))))
 	  (else #f))))
 
-(define (schema-context:dynamic-context context anchor)
-  (let ((root (schema-context-root context)))
-    (cond ((hashtable-ref (root-context-dynamic-anchors root) anchor #f) =>
-	   (lambda (context) (and (schema-context? context) context)))
-	  (else #f))))
-
 (define (schema-context:cache-schema! context)
   (let ((root (schema-context-root context)))
     (hashtable-set! (root-context-cache root)

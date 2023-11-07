@@ -88,6 +88,7 @@
   (unless (string? value)
     (assertion-violation 'json-schema:$dynamic-anchor "Must be string" value))
   (schema-context:mark-dynamic-anchor! context value)
+  (schema-context:add-anchor! context value)
   (lambda (e ctx)
     (validator-context:set-dynamic-context! ctx context value)
     #t)
