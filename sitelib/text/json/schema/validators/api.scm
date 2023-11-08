@@ -66,6 +66,7 @@
 
 	    schema-context:mark-dynamic-anchor!
 	    schema-context:has-dynamic-anchor?
+	    schema-context:find-by-dynamic-anchor
 	    schema-context:mark-recursive-anchor!
 	    schema-context:recursive-anchor-enabled?
 
@@ -257,6 +258,12 @@
 (define (schema-context:find-by-anchor context anchor)
   (let ((anchors (schema-context-anchors context)))
     (hashtable-ref anchors anchor #f)))
+
+(define (schema-context:find-by-dynamic-anchor context anchor)
+  (let ((anchors (root-context-dynamic-anchors (schema-context-root context))))
+    ;; first one?
+    (cond ((hashtable-ref anchors anchor #f) => car)
+	  (else #f))))
 
 (define (schema-context:mark-dynamic-anchor! context anchor)
   (let ((root (schema-context-root context)))

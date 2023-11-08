@@ -66,7 +66,7 @@
 
 (define (ref-not-found value schema-path)
   (assertion-violation 'json-schema:$ref "$ref not found" value schema-path))
-(define (check-anchor schema id anchor schema-path)
+(define (check-anchor schema id anchor schema-path dynamic?)
   (cond ((not anchor)
 	 (cond ((schema-context-validator schema))
 	       ;; in case of cross reference or self $id reference
@@ -84,11 +84,13 @@
 	 ;; recursive
 	 (cond ((schema-context-validator schema))
 	       (else (->cached-validator schema id))))
-	((schema-context:find-by-anchor schema anchor) =>
+	((and (not dynamic?) (schema-context:find-by-anchor schema anchor)) =>
+	 schema-context-validator)
+	((and dynamic? (schema-context:find-by-dynamic-anchor schema anchor)) =>
 	 schema-context-validator)
 	(else #f)))
 
-(define (resolve-external-schema context id anchor schema-path)
+(define (resolve-external-schema context id anchor schema-path dynamic?)
   (let ((resolver (or (*json-schema:external-schema-resolver*)
 		      (and (*json-schema:resolve-external-schema?*)
 			   json-schema:default-external-schema-resolver))))
@@ -100,10 +102,10 @@
       ;; If the schema has it, then it'd be overwritten anyway.
       (json-schema:$id id this-context "#")
       (let ((validator (initial-schema-context->schema-validator this-context)))
-	(cond ((check-anchor this-context id anchor schema-path))
+	(cond ((check-anchor this-context id anchor schema-path dynamic?))
 	      (else validator))))))
 
-(define ($ref-handler value context schema-path)
+(define ($ref-handler value context schema-path dynamic?)
   (define schema-id (schema-context-schema-id context))
   (define in-id (schema-context-in-id context))
 
@@ -123,11 +125,11 @@
 		   (schema-validator->core-validator
 		    (cond ((not schema)
 			   (resolve-external-schema context id
-						    anchor schema-path))
-			  ((check-anchor schema id anchor schema-path))
+						    anchor schema-path dynamic?))
+			  ((check-anchor schema id anchor schema-path dynamic?))
 			  (else (schema-context-validator schema))))))
 	       (string-append (or id "") "#")))
-	     ((check-anchor schema id anchor schema-path))
+	     ((check-anchor schema id anchor schema-path dynamic?))
 	     (else
 	      (schema-context:delayed-validator context
 	       (lambda ()
@@ -138,10 +140,10 @@
 	       (string-append (or id "") "#"))))))))
 
 (define (json-schema:draft-7-$ref value context schema-path)
-  ($ref-handler value context schema-path))
+  ($ref-handler value context schema-path #f))
 
 (define (json-schema:$ref value context schema-path)
-  ($ref-handler value context schema-path))
+  ($ref-handler value context schema-path #f))
 
 (define (json-schema:$recursive-ref value context schema-path)
   (unless (equal? value "#")
@@ -150,7 +152,7 @@
   (cond ((schema-context:recursive-anchor-enabled? context)
 	 (schema-validator->core-validator
 	  (schema-context:recursive-validator context schema-path)))
-	(else ($ref-handler value context schema-path))))
+	(else ($ref-handler value context schema-path #f))))
 
 (define (json-schema:$dynamic-ref value context schema-path)
   (define (dynamic-anchor? context value)
@@ -167,6 +169,6 @@
 	 (lambda (anchor)
 	   (schema-validator->core-validator
 	    (schema-context:dynamic-validator context anchor schema-path))))
-	(else ($ref-handler value context schema-path))))
+	(else ($ref-handler value context schema-path #t))))
 
 )
