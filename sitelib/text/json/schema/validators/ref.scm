@@ -147,9 +147,9 @@
   (unless (equal? value "#")
     (assertion-violation 'json-schema:$recursive-ref
 			 "$resursiveRef must have value of '#'" value))
-  (cond ((schema-context:has-dynamic-anchor? context #t)
+  (cond ((schema-context:has-dynamic-anchor? context "")
 	 (schema-validator->core-validator
-	  (schema-context:dynamic-validator context #t schema-path)))
+	  (schema-context:dynamic-validator context "" schema-path)))
 	(else ($ref-handler value context schema-path))))
 
 (define (json-schema:$dynamic-ref value context schema-path)

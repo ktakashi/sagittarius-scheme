@@ -116,7 +116,7 @@
 		   (make-hashtable string-hash string=?)
 		   (make-eq-hashtable)
 		   (make-hashtable string-hash string=?)
-		   (make-hashtable equal-hash equal?)
+		   (make-hashtable string-hash string=?)
 		   '())))))
 
 (define (root-context:add-schema-context! root schema-context)

@@ -79,9 +79,9 @@
 (define (json-schema:$recursive-anchor value context schema-path)
   (unless (boolean? value)
     (assertion-violation 'json-schema:$recursive-anchor "Must be boolean" value))
-  (when value (schema-context:mark-dynamic-anchor! context value))
+  (when value (schema-context:mark-dynamic-anchor! context ""))
   (lambda (e ctx)
-    (when value (validator-context:set-dynamic-context! ctx context value))
+    (when value (validator-context:set-dynamic-context! ctx context ""))
     #t))
 
 (define (json-schema:$dynamic-anchor value context schema-path)
