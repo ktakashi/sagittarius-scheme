@@ -240,6 +240,10 @@
       context
       (schema-context:root-schema (schema-context-parent context))))
 
+(define (schema-context:same-root? context0 context1)
+  (eq? (schema-context:root-schema context0)
+       (schema-context:root-schema context1)))
+
 (define (schema-context:add-anchor! context anchor)
   ;; TODO should we check duplicate $anchor?
   (hashtable-set! (schema-context-anchors context) anchor context))
@@ -362,18 +366,18 @@
   (let ((mark (validator-context-marks context)))
     (map ->snapshot (hashtable-ref mark obj '()))))
 
-(define (validator-context:marked? context obj schema)
+(define (validator-context:marked? context obj schema-context)
   (let ((slots (hashtable-ref (validator-context-marks context) obj '())))
-    (cond ((assq schema slots))
+    (cond ((assq schema-context slots))
 	  (else #f))))
 
-(define (validator-context:marked-element? context obj element schema)
+(define (validator-context:marked-element? context obj element schema-context)
   (let ((slots (hashtable-ref (validator-context-marks context) obj '())))
-    (cond ((assq schema slots) =>
+    (cond ((assq schema-context slots) =>
 	   (lambda (slot) (assoc element (list-queue-list (cdr slot)))))
 	  (else #f))))
 
-(define (validator-context:unevaluated? context obj element schema)
+(define (validator-context:unevaluated? context obj element schema-context)
   (define (collect element elements)
     (define (check r element v) (if (equal? (car v) element) (cons v r) r))
     (do ((elements elements (cdr elements))
@@ -393,8 +397,13 @@
 	  ((list? root-schema)
 	   (exists (lambda (r) (subschema? r schema)) root-schema))
 	  (else #f)))
+  (define (check slot)
+    (let ((marked-context (car slot)))
+      (or (not (schema-context:same-root? schema-context marked-context))
+	  (subschema? (schema-context-schema schema-context)
+		      (schema-context-schema marked-context)))))
   (let ((elements (append-map (lambda (s) (list-queue-list (cdr s)))
-		    (filter (lambda (s) (subschema? schema (car s)))
+		    (filter check
 		     (hashtable-ref (validator-context-marks context) obj '())))))
     ;; because of allOf, anyOf or oneOf applicators, the elements may contain
     ;; multiple of the same element. So, collect everything and check if

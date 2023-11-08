@@ -62,24 +62,23 @@
 	  (equal? name prop))))
   (let ((r (map cdr (filter match-property? properties))))
     (and (not (null? r)) r)))
-(define (check-entry e schema entry ctx properties)
+(define (check-entry e context entry ctx properties)
   (let ((key (car entry))
 	(value (cdr entry)))
     (cond ((matching-properties key properties) =>
 	   (lambda (validators)
-	     (validator-context:mark-element! ctx e entry schema
+	     (validator-context:mark-element! ctx e entry context
 	      (for-all (lambda (v) (v value ctx)) validators))))
 	  (else #t))))
 
 (define ((properties-handler name regexp?) value context schema-path)
-  (define schema (schema-context-schema context))
   (define path (build-schema-path schema-path name))
   (let ((properties (compile-properties value context path regexp?)))
     (lambda (e ctx)
       (or (not (vector? e))
-	  (and (validator-context:mark! ctx e schema)
+	  (and (validator-context:mark! ctx e context)
 	       (vector-every (lambda (v)
-			       (check-entry e schema v ctx properties)) e))))))
+			       (check-entry e context v ctx properties)) e))))))
 (define json-schema:properties (properties-handler "properties" #f))
 (define json-schema:pattern-properties
   (properties-handler "patternProperties" #t))
@@ -97,8 +96,8 @@
 
 (define (handle-extras who value context schema-path pred)
   (define schema (schema-context-schema context))
-  (define (filter-marked-items ctx schema e)
-    (filter (lambda (v) (not (pred ctx e v schema)))
+  (define (filter-marked-items ctx context e)
+    (filter (lambda (v) (not (pred ctx e v context)))
 	    (vector->list e)))
   (unless (json-schema? value)
     (assertion-violation who
@@ -109,11 +108,11 @@
 		     schema-path))))
     (lambda (e ctx)
       (or (not (vector? e))
-	  (and (validator-context:mark! ctx e schema)
+	  (and (validator-context:mark! ctx e context)
 	       (for-all (lambda (v)
-			  (validator-context:mark-element! ctx e v schema
+			  (validator-context:mark-element! ctx e v context
 			   (validator (cdr v) ctx)))
-			(filter-marked-items ctx schema e)))))))
+			(filter-marked-items ctx context e)))))))
 
 (define (json-schema:additional-properties value context schema-path)
   (handle-extras 'json-schema:additional-properties

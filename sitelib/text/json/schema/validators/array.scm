@@ -53,14 +53,14 @@
 
 (define (items-handler value context schema-path)
   (define schema (schema-context-schema context))
-  (define (validate validators o ctx schema)
+  (define (validate validators o ctx context)
     (let loop ((i 0) (validators validators) (e o))
       (cond ((null? validators)) ;; ok
 	    ((null? e))		 ;; permitted
 	    (else
 	     (let ((validator (car validators))
 		   (v (car e)))
-	       (and (validator-context:mark-element! ctx o (cons i v) schema
+	       (and (validator-context:mark-element! ctx o (cons i v) context
 						     (validator v ctx))
 		    (loop (+ i 1) (cdr validators) (cdr e))))))))
   (unless (and (list? value) (for-all json-schema? value))
@@ -71,8 +71,8 @@
 			 value)))
     (lambda (e ctx)
       (or (not (list? e))
-	  (and (validator-context:mark! ctx e schema)
-	       (validate validators e ctx schema))))))
+	  (and (validator-context:mark! ctx e context)
+	       (validate validators e ctx context))))))
 
 (define prefix-items-pointer (json-pointer "/prefixItems"))
 (define (json-schema:items value context schema-path)
@@ -94,12 +94,11 @@
 
 ;; additionalItems and unevaluatedItems
 (define (handle-extra-items who value context schema-path pred)
-  (define schema (schema-context-schema context))
-  (define (filter ctx schema o)
-    (if (validator-context:marked? ctx o schema)
+  (define (filter ctx context o)
+    (if (validator-context:marked? ctx o context)
 	(let loop ((i 0) (e o) (r '()))
 	  (cond ((null? e) (reverse! r))
-		((pred ctx o (cons i (car e)) schema)
+		((pred ctx o (cons i (car e)) context)
 		 (loop (+ i 1) (cdr e) r))
 		(else
 		 (loop (+ i 1) (cdr e) (cons (cons i (car e)) r)))))
@@ -110,11 +109,11 @@
   (let ((validator (schema->core-validator value context schema-path)))
     (lambda (e ctx)
       (or (not (list? e))
-	  (and (validator-context:mark! ctx e schema)
+	  (and (validator-context:mark! ctx e context)
 	       (for-all
 		(lambda (v)
-		  (validator-context:mark-element! ctx e v schema
-		   (validator (cdr v) ctx))) (filter ctx schema e)))))))
+		  (validator-context:mark-element! ctx e v context
+		   (validator (cdr v) ctx))) (filter ctx context e)))))))
 
 (define items-pointer (json-pointer "/items"))
 (define (json-schema:additional-items value context schema-path)
@@ -156,13 +155,13 @@
   (define (count validator e ctx)
     (length (filter-map (lambda (v) (validator v ctx)) e)))
   (define (count/mark validator e ctx)
-    (validator-context:mark! ctx e schema)
+    (validator-context:mark! ctx e context)
     (let loop ((i 0) (n 0) (v e))
       (if (null? v)
 	  n
 	  (let* ((t (car v))
 		 (r (validator t ctx)))
-	    (validator-context:mark-element! ctx e (cons i t) schema r)
+	    (validator-context:mark-element! ctx e (cons i t) context r)
 	    (loop (+ i 1) (+ n (if r 1 0)) (cdr v))))))
   (define (make-validator validator counter max-contains min-contains)
     (lambda (e ctx)
@@ -184,22 +183,21 @@
 
 ;; Draft 7 and 2019-09
 (define (json-schema:draft-7-items value context schema-path)
-  (define schema (schema-context-schema context))
   (define path (build-schema-path schema-path "items"))
-  (define (mark-all ctx o schema r)
+  (define (mark-all ctx o context r)
     (let loop ((i 0) (e o))
       (if (null? e)
 	  r
 	  (let ((v (car e)))
-	    (and (validator-context:mark-element! ctx o (cons i v) schema r)
+	    (and (validator-context:mark-element! ctx o (cons i v) context r)
 		 (loop (+ i 1) (cdr e)))))))
 
   (cond ((json-schema? value)
 	 (let ((validator (schema->core-validator value context path)))
 	   (lambda (e ctx)
 	     (or (not (list? e))
-		 (and (validator-context:mark! ctx e schema)
-		      (mark-all ctx e schema
+		 (and (validator-context:mark! ctx e context)
+		      (mark-all ctx e context
 				(for-all (lambda (v) (validator v ctx)) e)))))))
 	((and (list? value) (for-all json-schema? value))
 	 (items-handler value context path))

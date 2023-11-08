@@ -154,13 +154,16 @@
 
 (define (json-schema:$dynamic-ref value context schema-path)
   (define (dynamic-anchor? context value)
-    (and (string-prefix? "#" value)
-	 (let ((anchor (substring value 1 (string-length value))))
-	   (and (schema-context:has-dynamic-anchor? context anchor)
-		anchor))))
+    (cond ((string-prefix? "#" value)
+	   (let ((anchor (substring value 1 (string-length value))))
+	     (and (schema-context:has-dynamic-anchor? context anchor)
+		  anchor)))
+	  ;; TODO id#frag case, not sure how we should handle it...
+	  (else #f)))
 	 
   (unless (string? value)
     (assertion-violation 'json-schema:$dynamic-ref "Must be string" value))
+
   (cond ((dynamic-anchor? context value) =>
 	 (lambda (anchor)
 	   (schema-validator->core-validator
