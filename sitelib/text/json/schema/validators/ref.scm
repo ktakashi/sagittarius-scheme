@@ -147,9 +147,9 @@
   (unless (equal? value "#")
     (assertion-violation 'json-schema:$recursive-ref
 			 "$resursiveRef must have value of '#'" value))
-  (cond ((schema-context:has-dynamic-anchor? context "")
+  (cond ((schema-context:recursive-anchor-enabled? context)
 	 (schema-validator->core-validator
-	  (schema-context:dynamic-validator context "" schema-path)))
+	  (schema-context:recursive-validator context schema-path)))
 	(else ($ref-handler value context schema-path))))
 
 (define (json-schema:$dynamic-ref value context schema-path)
@@ -163,7 +163,6 @@
 	 
   (unless (string? value)
     (assertion-violation 'json-schema:$dynamic-ref "Must be string" value))
-
   (cond ((dynamic-anchor? context value) =>
 	 (lambda (anchor)
 	   (schema-validator->core-validator

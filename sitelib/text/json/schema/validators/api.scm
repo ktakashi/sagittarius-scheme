@@ -37,6 +37,7 @@
 	    
 	    schema-context:delayed-validator
 	    schema-context:dynamic-validator
+	    schema-context:recursive-validator
 	    wrap-core-validator
 
 	    ;; utilities
@@ -65,6 +66,8 @@
 
 	    schema-context:mark-dynamic-anchor!
 	    schema-context:has-dynamic-anchor?
+	    schema-context:mark-recursive-anchor!
+	    schema-context:recursive-anchor-enabled?
 
 	    schema-context:cache-vocabulary! schema-context:vocabulary-loaded?
 
@@ -78,6 +81,7 @@
 	    validator-context:marked-element?
 	    validator-context:unevaluated?
 	    validator-context:set-dynamic-context!
+	    validator-context:set-recursive-context!
 
 	    ;; paremters
 	    *json-schema:default-version*)
@@ -94,6 +98,8 @@
 
 (define *json-schema:default-version* 
   (make-parameter (json-schema:version draft-7)))
+
+(define *recursive-anchor* "")
 
 ;; Root context
 (define (jp name) (json-pointer (string-append "/" name)))
@@ -258,9 +264,20 @@
 		       (lambda (r) (cons context r))
 		       '())))
 
+(define (schema-context:mark-recursive-anchor! context)
+  (let ((root (schema-context-root context)))
+    (hashtable-update! (root-context-dynamic-anchors root) *recursive-anchor*
+		       (lambda (r) (cons context r))
+		       '())))
+
 (define (schema-context:has-dynamic-anchor? context anchor)
   (let ((root (schema-context-root context)))
-    (cond ((hashtable-ref (root-context-dynamic-anchors root) anchor #f) =>
+    (cond ((hashtable-ref (root-context-dynamic-anchors root) anchor #f))
+	  (else #f))))
+
+(define (schema-context:recursive-anchor-enabled? context)
+  (let ((anchors (root-context-dynamic-anchors (schema-context-root context))))
+    (cond ((hashtable-ref anchors *recursive-anchor* #f) =>
 	   (lambda (v)
 	     (let* ((id (schema-context-in-id context))
 		    (target (schema-context:find-by-id context id)))
@@ -419,6 +436,16 @@
 			(memq schema-context v))
 	       (hashtable-set! dynamic-contexts anchor schema-context)))))))
 
+(define (validator-context:set-recursive-context! context schema-context)
+  (let ((anchors
+	 (root-context-dynamic-anchors (schema-context-root schema-context)))
+	(contexts (validator-context-dynamic-contexts context)))
+    (cond ((hashtable-ref anchors *recursive-anchor* #f) =>
+	   (lambda (v)
+	     (when (and (not (hashtable-ref contexts *recursive-anchor* #f))
+			(memq schema-context v))
+	       (hashtable-set! contexts *recursive-anchor* schema-context)))))))
+
 (define (validator-context:dynamic-context context anchor)
   (let ((dynamic-contexts (validator-context-dynamic-contexts context)))
     (hashtable-ref dynamic-contexts anchor #f)))
@@ -491,19 +518,34 @@
   (update-cache! context
    (make-schema-validator (delayed-validator) schema-path)))
 
-(define (schema-context:dynamic-validator context dynamic-anchor schema-path)
-  (define root (schema-context-root context))
-  (define dynamic-anchors (root-context-dynamic-anchors root))
+(define (schema-context:recursive-validator context schema-path)
   (define (validator ctx)
     (schema-validator->core-validator
      (schema-context-validator
-      (validator-context:dynamic-context ctx dynamic-anchor))))
-  (define (dynamic-validator e ctx) ((validator ctx) e ctx))
+      (validator-context:dynamic-context ctx *recursive-anchor*))))
+  (handle-dynamic-validator context schema-path validator))
+
+(define (schema-context:dynamic-validator context dynamic-anchor schema-path)
+  (define root (schema-context-root context))
+  (define dynamic-anchors (root-context-dynamic-anchors root))
+  (define (schema-context ctx dynamic-anchor)
+    (cond ((validator-context:dynamic-context ctx dynamic-anchor))
+	  ((hashtable-ref dynamic-anchors dynamic-anchor #f) => last)
+	  (else (assertion-violation 'schema-context:dynamic-validator
+				     "Something is wrong"))))
+	   
+  (define (validator ctx)
+    (schema-validator->core-validator
+     (schema-context-validator
+      (schema-context ctx dynamic-anchor))))
+  (handle-dynamic-validator context schema-path validator))
+
+(define (handle-dynamic-validator context schema-path validator-provier)
+  (define (dynamic-validator e ctx) ((validator-provier ctx) e ctx))
   (cond ((schema-context-validator context))
 	(else
 	 (update-cache! context
 	  (make-schema-validator dynamic-validator schema-path)))))
-
 
 (define-record-type schema-validator
   (fields validator schema-path))
