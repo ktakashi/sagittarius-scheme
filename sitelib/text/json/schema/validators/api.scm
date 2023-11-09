@@ -160,7 +160,6 @@
 	  root
 	  parent
 	  (mutable anchors)
-	  definitions
 	  (mutable validator)
 	  cache
 	  late-inits)
@@ -187,7 +186,6 @@
 		   root parent
 		   (or (and parent (schema-context-anchors parent))
 		       (make-hashtable string-hash string=?))
-		   (make-hashtable string-hash string=?)
 		   #f
 		   (or (and parent (schema-context-cache parent))
 		       (make-eq-hashtable))
@@ -540,7 +538,6 @@
 	  ((hashtable-ref dynamic-anchors dynamic-anchor #f) => last)
 	  (else (assertion-violation 'schema-context:dynamic-validator
 				     "Something is wrong"))))
-	   
   (define (validator ctx)
     (schema-validator->core-validator
      (schema-context-validator
