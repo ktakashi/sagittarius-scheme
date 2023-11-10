@@ -75,11 +75,9 @@
     (define lint-mode? (*json-schema:lint-mode?*))
     (define ctx (make-validator-context lint-mode?))
     (let ((r (validator v ctx)))
-      (or (and lint-mode?
-	       (cond ((*json-schema:validator-error-reporter*) =>
-		      (lambda (reporter) (reporter ctx) r))
-		     (else r)))
-	  r))))
+      (cond ((*json-schema:validator-error-reporter*) =>
+	     (lambda (reporter) (reporter ctx))))
+      r)))
 
 (define (simple-json-schema-error-reporter ctx)
   (define out (or (*json-schema:report-port*) (current-error-port)))
