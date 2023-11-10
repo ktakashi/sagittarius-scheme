@@ -77,7 +77,7 @@
     (let ((r (validator v ctx)))
       (or (and lint-mode?
 	       (cond ((*json-schema:validator-error-reporter*) =>
-		      (lambda (reporter) (reporter ctx) #f))
+		      (lambda (reporter) (reporter ctx) r))
 		     (else r)))
 	  r))))
 
@@ -101,9 +101,23 @@
 	      (lambda (validator source version id)
 		((n (run-validator validator)) source version id)))))
 
-(define (json-schema->json-validator schema . referencing-validators)
+(define (json-schema->json-validator schema . dependency-schemata)
+  (define (ensure-schema schema/validator)
+    (cond ((json-schema-validator? schema/validator)
+	   (json-schema-validator-source schema/validator))
+	  ((json-schema? schema/validator) schema/validator)
+	  (else
+	   (assertion-violation 'json-schema->json-validator
+	    "dependency must be JSON Schema or json-schema-validator"
+	    dependency-schemata))))
+  (define (compile-dependency schema context)
+    (let ((dependency-context (make-disjoint-context schema context)))
+      (initial-schema-context->schema-validator dependency-context)))
+
   (let* ((root (make-root-context *version-specifics*))
 	 (context (make-initial-schema-context schema root)))
+    (for-each (lambda (schema) (compile-dependency schema context))
+	      (map ensure-schema dependency-schemata))
     (make-json-schema-validator
      (schema-validator->core-validator
       (initial-schema-context->schema-validator context))

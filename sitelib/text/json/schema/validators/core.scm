@@ -90,8 +90,7 @@
   (schema-context:mark-dynamic-anchor! context value)
   (lambda (e ctx)
     (validator-context:set-dynamic-context! ctx context value)
-    #t)
-  )
+    #t))
 
 (define (($defs-handler name) value context schema-path)
   (define this-path (build-schema-path schema-path name))
@@ -105,8 +104,7 @@
     (assertion-violation 'json-schema:$defs
 			 "$defs must contain JSON object" value))
   (vector-for-each compile-definition value)
-  #f
-  )
+  #f)
 
 (define json-schema:definitions ($defs-handler "definitions"))
 (define json-schema:$defs ($defs-handler "$defs"))
