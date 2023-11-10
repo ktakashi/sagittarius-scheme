@@ -263,8 +263,6 @@
 		 ""))
   (let ((anchors (root-context-dynamic-anchors (schema-context-root context))))
     (cond ((hashtable-ref anchors (string-append id "#" anchor) #f))
-	  ;; first one, above should resolve I think...
-	  ((hashtable-ref anchors anchor #f) => car)
 	  (else #f))))
 
 (define (schema-context:mark-dynamic-anchor! context anchor)
