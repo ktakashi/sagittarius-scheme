@@ -461,13 +461,12 @@
   (let ((dynamic-contexts (validator-context-dynamic-contexts context)))
     (hashtable-ref dynamic-contexts anchor #f)))
 
-(define (validator-context:push-schema! context id schema path)
+(define (validator-context:push-schema! context id)
   (let ((queue (validator-context-evaluating-schemas context)))
-    (if (list-queue-empty? queue)
-	(list-queue-add-front! queue (cons* id path schema))
-	(let ((e (list-queue-front queue)))
-	  (and (not (equal? (car e) id))
-	       (list-queue-add-front! queue (cons* id path schema)))))))
+    (or (and (list-queue-empty? queue)
+	     (list-queue-add-front! queue id))
+	(and (not (equal? (list-queue-front queue) id))
+	     (list-queue-add-front! queue id)))))
 
 (define (validator-context:pop-schema! context)
   (let ((queue (validator-context-evaluating-schemas context)))
@@ -553,14 +552,15 @@
   (define root (schema-context-root context))
   (define dynamic-anchors (root-context-dynamic-anchors root))
   ;; Now, we are doing a bit sloppy way of resolving dynamic scope here.
-  ;; The idea is that, we filter the dynamic anchors against the schema
-  ;; of the scope, then check the number of the anchors. If it contains
-  ;; only one anchor, that's (probably, hopefully) the scope
+  ;; First we get the farthest scope, by reversing pushed scopes.
+  ;; Then checks if there's a possible dynamic anchor per scope
+  ;; i.e., we set dynamic anchor with `id#anchor` format during complation
+  ;;       so just referring the key
   (define (search-dynamic-scope anchors ctx)
     (define scopes
       (reverse!
-       (filter-map car (list-queue-list
-			(validator-context-evaluating-schemas ctx)))))
+       (filter values
+	       (list-queue-list (validator-context-evaluating-schemas ctx)))))
     (define ->schema schema-context-schema)
     
     (let loop ((s* scopes))
@@ -586,15 +586,6 @@
 				     "[BUG] No dynamic anchor found"
 				     dynamic-anchor))))
   (define (validator ctx)
-    ;; (newline)
-    ;; (display dynamic-anchor) (newline)
-    ;; (for-each (lambda (s) (display s) (newline))
-    ;; 	      (list-queue-list (validator-context-evaluating-schemas ctx)))
-    ;; (display "----") (newline)
-    ;; (for-each (lambda (s) (display s) (newline))
-    ;; 	      (map schema-context-schema
-    ;; 	      (hashtable-ref dynamic-anchors dynamic-anchor #f)))
-
     (schema-validator->core-validator
      (schema-context-validator
       (schema-context ctx dynamic-anchor))))
@@ -623,7 +614,7 @@
 		      (schema-context-in-id context))))
   (define schema (and (schema-context? context) (schema-context-schema context)))
   (lambda (e ctx)
-    (define pushed? (validator-context:push-schema! ctx id schema schema-path))
+    (define pushed? (validator-context:push-schema! ctx id))
     (let ((r (or (core-validator e ctx)
 		 (validator-context:report! ctx e schema-path))))
       (when pushed? (validator-context:pop-schema! ctx))
