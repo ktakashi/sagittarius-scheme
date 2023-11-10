@@ -291,8 +291,11 @@
 		       '())))
 
 (define (schema-context:has-dynamic-anchor? context anchor)
-  (let ((root (schema-context-root context)))
-    (cond ((hashtable-ref (root-context-dynamic-anchors root) anchor #f))
+  (define id (or (schema-context-schema-id context)
+		 (schema-context-in-id context)
+		 ""))
+  (let ((anchors (root-context-dynamic-anchors (schema-context-root context))))
+    (cond ((hashtable-ref anchors (string-append id "#" anchor) #f))
 	  (else #f))))
 
 (define (schema-context:recursive-anchor-enabled? context)
