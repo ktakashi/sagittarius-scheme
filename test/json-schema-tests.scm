@@ -41,7 +41,9 @@
 
 (define data-directories
   '("JSON-Schema-Test-Suite/tests/draft7/"
-    "JSON-Schema-Test-Suite/tests/draft2019-09/"))
+    "JSON-Schema-Test-Suite/tests/draft2019-09/"
+    "JSON-Schema-Test-Suite/tests/draft2020-12/"
+    ))
 (define core-files
   (append-map (lambda (dir) (find-files dir :recursive #f :pattern "\\.json$"))
 	      data-directories))
@@ -58,8 +60,9 @@
 
 (define *ignoring-files*
   '(
-    ;; We don't support meta schema, too much hastle
+    ;; We don't support custom meta schema, too much hastle
     "JSON-Schema-Test-Suite/tests/draft2019-09/vocabulary.json"
+    "JSON-Schema-Test-Suite/tests/draft2020-12/vocabulary.json"
     ))
 
 ;; FIXME copy&paste...
