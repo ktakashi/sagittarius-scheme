@@ -159,39 +159,42 @@
 	(else ($ref-handler value context schema-path #f))))
 
 (define (json-schema:$dynamic-ref value context schema-path)
-  (define (anchor->validator anchor context)
+  (define (anchor->validator anchor context schema-path)
     (schema-validator->core-validator
      (schema-context:dynamic-validator context anchor schema-path)))
   (define (dynamic-anchor-fragment? context value)
     (and (string-prefix? "#" value)
 	 (let ((anchor (substring value 1 (string-length value))))
 	   (and (schema-context:has-dynamic-anchor? context anchor)
-		(anchor->validator anchor context)))))
+		(anchor->validator anchor context 
+		 (build-schema-path schema-path value))))))
   ;; id#frag case
   ;; in anycase, $dynamicRef must resolve either $dynamicAncor or $anchor
   ;; so, this must find something
   (define (dynamic-anchor-id? context value)
     (define (has-dynamic-anchor? raw-id context anchor)
       (let-values (((id schema) (find-by-id raw-id context)))
-	(and schema (schema-context:has-dynamic-anchor? schema anchor))))
+	(and schema
+	     (schema-context:has-dynamic-anchor? schema anchor)
+	     (anchor->validator anchor context
+	      (build-schema-path id (string-append "#" anchor))))))
     ;; the given context will have the result of json-schema:$dynamic-ref
     ;; as its validator, so it'd end up infinite loop. To avoid it, we need
     ;; to create a copy of the schema
+    ;; FIXME this workaround shouldn't exist
     (define (copy-schema-context context)
       (make-schema-context `#(("$dynamicRef" . ,value)) context))
     (cond ((string-index value #\#) =>
 	   (lambda (index)
 	     (let ((raw-id (substring value 0 index))
 		   (anchor (substring value (+ index 1) (string-length value))))
-	       (if (has-dynamic-anchor? raw-id context anchor)
-		   (anchor->validator anchor context)
-		   (schema-validator->core-validator
+	       (or (has-dynamic-anchor? raw-id context anchor)
+		   (schema-validator-validator
 		    (schema-context:delayed-validator context
 		     (lambda ()
-		       (if (has-dynamic-anchor? raw-id context anchor)
-			   (anchor->validator anchor
-			    (copy-schema-context context))
-			   ($ref-handler value context schema-path #t)))
+		       (let ((new-context (copy-schema-context context)))
+			 (or (has-dynamic-anchor? raw-id new-context anchor)
+			     ($ref-handler value context schema-path #t))))
 		     schema-path))))))
 	  (else #f)))
 	 

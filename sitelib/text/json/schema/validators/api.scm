@@ -116,7 +116,7 @@
 	  cache
 	  vocabularies
 	  dynamic-anchors
-	  (mutable schema-contexts))
+	  schema-contexts)
   (protocol (lambda (p)
 	      (lambda (configuration)
 		(p (map ->configuration configuration)
@@ -124,11 +124,11 @@
 		   (make-eq-hashtable)
 		   (make-hashtable string-hash string=?)
 		   (make-hashtable string-hash string=?)
-		   '())))))
+		   (list-queue))))))
 
 (define (root-context:add-schema-context! root schema-context)
   (let ((contexts (root-context-schema-contexts root)))
-    (root-context-schema-contexts-set! root (cons schema-context contexts))))
+    (list-queue-add-back! contexts schema-context)))
 
 (define (configuration-keywords configuration version)
   (cond ((assq version configuration) => cdr)
@@ -258,21 +258,36 @@
     (hashtable-ref anchors anchor #f)))
 
 (define (schema-context:find-by-dynamic-anchor context anchor)
+  (define id (or (schema-context-schema-id context)
+		 (schema-context-in-id context)
+		 ""))
   (let ((anchors (root-context-dynamic-anchors (schema-context-root context))))
-    ;; first one?
-    (cond ((hashtable-ref anchors anchor #f) => car)
+    (cond ((hashtable-ref anchors (string-append id "#" anchor) #f))
+	  ;; first one, above should resolve I think...
+	  ((hashtable-ref anchors anchor #f) => car)
 	  (else #f))))
 
 (define (schema-context:mark-dynamic-anchor! context anchor)
-  (let ((root (schema-context-root context)))
-    (hashtable-update! (root-context-dynamic-anchors root) anchor
-		       (lambda (r) (cons context r))
+  (define id (or (schema-context-schema-id context)
+		 (schema-context-in-id context)
+		 ""))
+  (let ((anchors (root-context-dynamic-anchors (schema-context-root context))))
+    (schema-context:add-anchor! context anchor)
+    ;; Anchor per dynamic scope, we prepare like this here
+    ;; maybe we should make a different field...
+    (hashtable-set! anchors (string-append id "#" anchor) context)
+    (hashtable-update! anchors anchor
+		       (lambda (r)
+			 (cond ((memq context r) r)
+			       (else (cons context r))))
 		       '())))
 
 (define (schema-context:mark-recursive-anchor! context)
   (let ((root (schema-context-root context)))
     (hashtable-update! (root-context-dynamic-anchors root) *recursive-anchor*
-		       (lambda (r) (cons context r))
+		       (lambda (r)
+			 (cond ((memq context r) r)
+			       (else (cons context r))))
 		       '())))
 
 (define (schema-context:has-dynamic-anchor? context anchor)
@@ -314,6 +329,7 @@
 	  reports
 	  marks
 	  (mutable dynamic-contexts)
+	  evaluating-schemas
 	  lint-mode?)
   (protocol (lambda (p)
 	      (case-lambda
@@ -324,6 +340,7 @@
 		   ;; relay on the fact that JSON must not have duplicate keys
 		   (make-hashtable equal-hash equal?)
 		   (make-hashtable equal-hash equal?)
+		   (list-queue)
 		   lint-mode?))))))
 (define (build-validation-path base path)
   (string-append base "/" (if (number? path) (number->string path) path)))
@@ -405,32 +422,20 @@
     (do ((elements elements (cdr elements))
 	 (r '() (check r element (car elements))))
 	((null? elements) r)))
-  ;; We need to exclude cousins, so check subschema
-  (define (subschema? root-schema schema)
-    ;; we don't modify the schema, so `eq?` works.
-    (cond ((eq? root-schema schema))
-	  ((vector? root-schema)
-	   ;; For now DFS, might be better to do BFS
-	   (let ((len (vector-length root-schema)))
-	     (let loop ((i 0))
-	       (cond ((= i len) #f)
-		     ((subschema? (cdr (vector-ref root-schema i)) schema))
-		     (else (loop (+ i 1)))))))
-	  ((list? root-schema)
-	   (exists (lambda (r) (subschema? r schema)) root-schema))
-	  (else #f)))
+
   (define (check slot)
     (let ((marked-context (car slot)))
       (or (not (schema-context:same-root? schema-context marked-context))
+	  ;; We need to exclude cousins, so check subschema
 	  (subschema? (schema-context-schema schema-context)
 		      (schema-context-schema marked-context)))))
-  (let ((elements (append-map (lambda (s) (list-queue-list (cdr s)))
-		    (filter check
-		     (hashtable-ref (validator-context-marks context) obj '())))))
+  (let ((e* (append-map (lambda (s) (list-queue-list (cdr s)))
+	     (filter check
+	      (hashtable-ref (validator-context-marks context) obj '())))))
     ;; because of allOf, anyOf or oneOf applicators, the elements may contain
     ;; multiple of the same element. So, collect everything and check if
     ;; there's a successful evaluation or not
-    (not (null? (filter-map cdr (collect element elements))))))
+    (not (null? (filter-map cdr (collect element e*))))))
 
 (define (validator-context:set-dynamic-context! context schema-context anchor)
   (let ((root (schema-context-root schema-context))
@@ -454,6 +459,18 @@
 (define (validator-context:dynamic-context context anchor)
   (let ((dynamic-contexts (validator-context-dynamic-contexts context)))
     (hashtable-ref dynamic-contexts anchor #f)))
+
+(define (validator-context:push-schema! context id schema path)
+  (let ((queue (validator-context-evaluating-schemas context)))
+    (if (list-queue-empty? queue)
+	(list-queue-add-front! queue (cons* id path schema))
+	(let ((e (list-queue-front queue)))
+	  (and (not (equal? (car e) id))
+	       (list-queue-add-front! queue (cons* id path schema)))))))
+
+(define (validator-context:pop-schema! context)
+  (let ((queue (validator-context-evaluating-schemas context)))
+    (list-queue-remove-front! queue)))
 
 ;; Schema validator
 (define (update-cache! context validator)
@@ -493,7 +510,8 @@
   (cond ((vector? schema)
 	 (update-cache! context
 	  (make-schema-validator (compile schema context schema-path)
-				 schema-path)))
+				 schema-path
+				 context)))
 	((boolean? schema)
 	 (update-cache! context
 	  (make-schema-validator (boolean->validator schema)
@@ -521,7 +539,7 @@
   (list-queue-add-front! (schema-context-late-inits context)
 			 (lambda () (set! validator (initializer))))
   (update-cache! context
-   (make-schema-validator (delayed-validator) schema-path)))
+   (make-schema-validator (delayed-validator) schema-path context)))
 
 (define (schema-context:recursive-validator context schema-path)
   (define (validator ctx)
@@ -533,12 +551,49 @@
 (define (schema-context:dynamic-validator context dynamic-anchor schema-path)
   (define root (schema-context-root context))
   (define dynamic-anchors (root-context-dynamic-anchors root))
+  ;; Now, we are doing a bit sloppy way of resolving dynamic scope here.
+  ;; The idea is that, we filter the dynamic anchors against the schema
+  ;; of the scope, then check the number of the anchors. If it contains
+  ;; only one anchor, that's (probably, hopefully) the scope
+  (define (search-dynamic-scope anchors ctx)
+    (define scopes
+      (reverse!
+       (filter-map car (list-queue-list
+			(validator-context-evaluating-schemas ctx)))))
+    (define ->schema schema-context-schema)
+    
+    (let loop ((s* scopes))
+      (if (null? s*)
+	  ;; no scope? should never happen
+	  (assertion-violation 'schema-context:dynamic-validator
+			       "No dynamic anchor found" dynamic-anchor
+			       schema-path)
+	  (let ((schema (schema-context:find-by-id context (car s*))))
+	    (cond ((not schema) (loop (cdr s*)))
+		  ((schema-context:find-by-dynamic-anchor schema dynamic-anchor))
+		  (else (loop (cdr s*))))))))
+	    
   (define (schema-context ctx dynamic-anchor)
+    ;; The first case is that root schema contains $dynamicAnchor
+    ;; which means, it is the farthest dynamic scope, easy.
     (cond ((validator-context:dynamic-context ctx dynamic-anchor))
-	  ((hashtable-ref dynamic-anchors dynamic-anchor #f) => last)
+	  ;; Now, $dynamicAnchor is one of the schema, most likely
+	  ;; $defs, so we need to search the farthest dynamic scope
+	  ((hashtable-ref dynamic-anchors dynamic-anchor #f) =>
+	   (lambda (anchors) (search-dynamic-scope anchors ctx)))
 	  (else (assertion-violation 'schema-context:dynamic-validator
-				     "Something is wrong"))))
+				     "[BUG] No dynamic anchor found"
+				     dynamic-anchor))))
   (define (validator ctx)
+    ;; (newline)
+    ;; (display dynamic-anchor) (newline)
+    ;; (for-each (lambda (s) (display s) (newline))
+    ;; 	      (list-queue-list (validator-context-evaluating-schemas ctx)))
+    ;; (display "----") (newline)
+    ;; (for-each (lambda (s) (display s) (newline))
+    ;; 	      (map schema-context-schema
+    ;; 	      (hashtable-ref dynamic-anchors dynamic-anchor #f)))
+
     (schema-validator->core-validator
      (schema-context-validator
       (schema-context ctx dynamic-anchor))))
@@ -549,16 +604,29 @@
   (cond ((schema-context-validator context))
 	(else
 	 (update-cache! context
-	  (make-schema-validator dynamic-validator schema-path)))))
+	  (make-schema-validator dynamic-validator schema-path context)))))
 
 (define-record-type schema-validator
-  (fields validator schema-path))
+  (fields validator schema-path schema-context)
+  (protocol (lambda (p)
+	      (case-lambda
+	       ((validator schema-path) (p validator schema-path #f))
+	       ((validator schema-path schema-context)
+		(p validator schema-path schema-context))))))
 (define (schema-validator->core-validator schema-validator)
   (define core-validator (schema-validator-validator schema-validator))
   (define schema-path (schema-validator-schema-path schema-validator))
+  (define context (schema-validator-schema-context schema-validator))
+  (define id (and (schema-context? context)
+		  (or (schema-context-schema-id context)
+		      (schema-context-in-id context))))
+  (define schema (and (schema-context? context) (schema-context-schema context)))
   (lambda (e ctx)
-    (or (core-validator e ctx)
-	(validator-context:report! ctx e schema-path))))
+    (define pushed? (validator-context:push-schema! ctx id schema schema-path))
+    (let ((r (or (core-validator e ctx)
+		 (validator-context:report! ctx e schema-path))))
+      (when pushed? (validator-context:pop-schema! ctx))
+      r)))
 
 (define (wrap-core-validator validator schema-path)
   (schema-validator->core-validator
@@ -566,6 +634,24 @@
 
 ;; utilities
 (define (json-schema? v) (or (vector? v) (boolean? v)))
+(define (subschema? root-schema schema)
+  (and (subschema-depth root-schema schema) #t))
+(define (subschema-depth root-schema schema)
+  (define (rec root-schema schema depth)
+    ;; we don't modify the schema, so `eq?` works.
+    (cond ((eq? root-schema schema) depth)
+	  ((vector? root-schema)
+	   ;; For now DFS, might be better to do BFS
+	   (let ((len (vector-length root-schema)))
+	     (let loop ((i 0))
+	       (cond ((= i len) #f)
+		     ((rec (cdr (vector-ref root-schema i)) schema (+ depth 1)))
+		     (else (loop (+ i 1)))))))
+	  ((list? root-schema)
+	   (exists (lambda (r) (rec r schema (+ depth 1))) root-schema))
+	  (else #f)))
+  (rec root-schema schema 0))
+
 (define (build-schema-path base child)
   (string-append base "/" child))
 (define (boolean->validator b) (lambda (e ctx) b))
