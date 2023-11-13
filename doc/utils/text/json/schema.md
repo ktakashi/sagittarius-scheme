@@ -12,8 +12,8 @@ Currently, it supports the below drafts of JSON Schema
 - Draft 2029-12
 
 
-[§2] JSON Schema validator {#text.json.schema-validator}
--------------
+### [§3] JSON Schema validator {#text.json.schema-validator}
+
 
 The following example shows how to use the JSON Schema validator.
 
@@ -112,13 +112,13 @@ If you want to see the first invalid property, then you can write like this:
 
 (parameterize ((*json-schema:validator-error-reporter*
                 simple-json-schema-error-reporter))
-  (values (validate-json product-catalogue-schema valid-catalogue)
-          (validate-json product-catalogue-schema invalid-catalogue)))
+  (validate-json product-catalogue-schema valid-catalogue)
+  (validate-json product-catalogue-schema invalid-catalogue))
 ;; Prints the following
 #|
 /productId
-        object: "This must be an integer"
-        type: integer
+             object: "This must be an integer"
+        schema path: #/$defs/product/properties/productId/type
 |#
 ```
 => ``(values #t #f)``
@@ -146,19 +146,19 @@ you can write like this:
 (parameterize ((*json-schema:validator-error-reporter*
                 simple-json-schema-error-reporter)
                (*json-schema:lint-mode?* #t))
-  (values (validate-json product-catalogue-schema valid-catalogue)
-          (validate-json product-catalogue-schema invalid-catalogue)))
+  (validate-json product-catalogue-schema valid-catalogue)
+  (validate-json product-catalogue-schema invalid-catalogue))
 ;; Prints the following
 #|
 /productId
-        object: "This must be an integer"
-        type: integer
+             object: "This must be an integer"
+        schema path: #/$defs/product/properties/productId/type
 /productName
-        object: 1234
-        type: string
+             object: 1234
+        schema path: #/$defs/product/properties/productName/type
 /price
-        object: -1
-        exclusive-minimum: 0
+             object: -1
+        schema path: #/$defs/product/properties/price/exclusiveMinimum
 |#
 ```
 => ``(values #t #t)``
@@ -196,10 +196,8 @@ The default value is `#t`.
 
 ###### [!Parameter] `*json-schema:validator-error-reporter*` 
 
-Specifying error reporter.
-
-The supporting error reporter is the  `simple-json-schema-error-reporter`.
-
+Specifying error reporter. The error reporter must be a procedure
+which accepts one argument.
 
 ###### [!Parameter] `*json-schema:report-port*` 
 
@@ -217,7 +215,28 @@ To make this parameter effected, then
 The default value is `#f`.
 
 
-###### [!Function] `simple-json-schema-error-reporter`  _report_
+###### [!Function] `simple-json-schema-error-reporter`  _reports_
 
 The pre-defined error repoter for JSON schema validator.
+This error reporter doesn't show duplicated path, so if a JSON
+value contains multiple errors, then only one will be shown.
 
+
+#### [§4] Custom error reporter
+
+You can specify error reporting procedure by 
+`*json-schema:validator-error-reporter*` parameter. The argument
+is a list of validation error report. Below procedures provide
+the accessor of the error report.
+
+###### [!Function] `validation-report-object`  _report_
+
+Returns erronous object.
+
+###### [!Function] `validation-report-path`  _report_
+
+Returns the JSON pointer (path) of the erronous object.
+
+###### [!Function] `validation-report-schema-path`  _report_
+
+Returns the JSON Schema path where the definition is defined.

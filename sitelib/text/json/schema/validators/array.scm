@@ -83,14 +83,14 @@
   (if (json-pointer-not-found? (prefix-items-pointer schema))
       (json-schema:draft-7-items value context schema-path)
       (handle-extra-items 'json-schema:items value context
-			  (build-schema-path schema-path "items")
+			  schema-path
 			  validator-context:marked-element?)))
 
 (define (json-schema:prefix-items value context schema-path)
   (when (null? value)
     (assertion-violation 'json-schema:prefix-items
 			 "At least one element is required" value))
-  (items-handler value context (build-schema-path schema-path "prefixItems")))
+  (items-handler value context schema-path))
 
 
 ;; additionalItems and unevaluatedItems
@@ -123,18 +123,18 @@
   (and (not (json-pointer-not-found? items))
        (not (json-schema? items)) ;; must be list to be effective
        (handle-extra-items 'json-schema:additiona-items value context
-			   (build-schema-path schema-path "additionalItems")
+			   schema-path
 			   validator-context:marked-element?)))
 
 (define (json-schema:unevaluated-items value context schema-path)
   (handle-extra-items 'json-schema:unevaluated-items value context
-		      (build-schema-path schema-path "unevaluatedItems")
+		      schema-path
 		      validator-context:unevaluated?))
 
 (define (contains-validator value context schema-path)
   (unless (json-schema? value)
     (assertion-violation 'json-schema:contains "JSON Schema is required" value))
-  (let ((path (build-schema-path schema-path "contains")))
+  (let ((path schema-path))
     (schema->core-validator value context path)))
 
 (define (json-schema:draft-7-contains value context schema-path)
@@ -184,7 +184,7 @@
 
 ;; Draft 7 and 2019-09
 (define (json-schema:draft-7-items value context schema-path)
-  (define path (build-schema-path schema-path "items"))
+  (define path schema-path)
   (define (mark-all ctx o context validator)
     (let loop ((i 0) (e o) (r #t))
       (if (null? e)

@@ -67,7 +67,7 @@
     (when (null? value)
       (assertion-violation 'array-of-schema-handler
 			   "Must have at least one schema" value))
-    (let ((path (build-schema-path schema-path name)))
+    (let ((path schema-path))
       (do ((i 0 (+ i 1)) (schema value (cdr schema))
 	   (r '() (cons (compile (car schema) context
 				 (build-schema-path path (number->string i)))
@@ -84,21 +84,21 @@
 (define (json-schema:not value context schema-path)
   (unless (or (json-schema? value))
     (assertion-violation 'json-schema:not "JSON Schema is required" value))
-  (let* ((path (build-schema-path schema-path "not"))
-	 (validator (schema-validator-validator
-		     (schema-context->schema-validator
-		      (make-schema-context value context) path))))
+  (let ((validator (schema-validator-validator
+		    (schema-context->schema-validator
+		     (make-schema-context value context) schema-path))))
     (wrap-core-validator
      (lambda (e ctx)
        (let ((snapshot (validator-context:marks ctx e)))
-	 (validator-context:update-difference! ctx e snapshot (not (validator e ctx)))))
-     path)))
+	 (validator-context:update-difference! ctx e snapshot
+					       (not (validator e ctx)))))
+     schema-path)))
 
 ;; if-then-else is handled a bit differently from the other keywords.
 (define then-pointer (json-pointer "/then"))
 (define else-pointer (json-pointer "/else"))
 (define (json-schema:if value context schema-path)
-  (define build-path (lambda (path) (build-schema-path schema-path path)))
+  (define (build-path path) (build-schema-path (cdr schema-path) path))
   (define (schema->core-validator schema context schema-path)
     (schema-validator->core-validator
      (schema-context->schema-validator (make-schema-context schema context)
@@ -108,7 +108,7 @@
   (let* ((parent-schema (schema-context-schema context))
 	 (then-schema (then-pointer parent-schema))
 	 (else-schema (else-pointer parent-schema))
-	 (if-validator (schema->core-validator value context (build-path "if")))
+	 (if-validator (schema->core-validator value context schema-path))
 	 (then-validator (and (not (json-pointer-not-found? then-schema))
 			      (schema->core-validator
 			       then-schema context (build-path "then"))))
@@ -131,14 +131,14 @@
     (assertion-violation 'json-schema:then "JSON Schema is required" value))
   (schema-context->schema-validator
    (make-schema-context value context)
-   (build-schema-path schema-path "then"))
+   schema-path)
   #f)
 (define (json-schema:else value context schema-path)
   (unless (json-schema? value)
     (assertion-violation 'json-schema:else "JSON Schema is required" value))
   (schema-context->schema-validator
    (make-schema-context value context)
-   (build-schema-path schema-path "else"))
+   schema-path)
   #f)
   
 )

@@ -86,6 +86,10 @@
 	    validator-context:set-dynamic-context!
 	    validator-context:set-recursive-context!
 
+	    validation-report-object
+	    validation-report-path
+	    validation-report-schema-path
+	    
 	    ;; paremters
 	    *json-schema:default-version*)
     (import (rnrs)
@@ -373,11 +377,16 @@
    (validator-context-evaluating-schemas context)
    (validator-context-lint-mode? context)))
 
+(define validation-report list)
+(define validation-report-object car)
+(define validation-report-path cadr)
+(define validation-report-schema-path caddr)
+
 (define (validator-context:report! context obj schema-path)
   (list-queue-add-front! (validator-context-reports context)
-			 (list obj
-			       (validator-context-path context)
-			       schema-path))
+			 (validation-report obj
+			  (validator-context-path context)
+			  schema-path))
   (validator-context-lint-mode? context))
 
 (define (validator-context:reports context)
@@ -510,7 +519,7 @@
   (define (finish validator)
     (schema-context:execute-late-init! initial-context)
     validator)
-  (finish (schema-context->schema-validator initial-context "#")))
+  (finish (schema-context->schema-validator initial-context '("#"))))
 
 ;; schema-context -> validator
 ;; schema-path is debug or reporting purpose
@@ -523,7 +532,7 @@
       (if (null? keywords)
 	  acc
 	  (let* ((config (car keywords))
-		 (path schema-path)
+		 (path (cons (car config) schema-path))
 		 (v ((cadr config) schema))
 		 (handler (cddr config)))
 	    (if (json-pointer-not-found? v)
@@ -635,7 +644,9 @@
 		(p validator schema-path schema-context))))))
 (define (schema-validator->core-validator schema-validator)
   (define core-validator (schema-validator-validator schema-validator))
-  (define schema-path (schema-validator-schema-path schema-validator))
+  (define schema-path
+    (string-join
+     (reverse (schema-validator-schema-path schema-validator)) "/"))
   (define context (schema-validator-schema-context schema-validator))
   (define id (and (schema-context? context)
 		  (or (schema-context-schema-id context)
@@ -672,8 +683,7 @@
 	  (else #f)))
   (rec root-schema schema 0))
 
-(define (build-schema-path base child)
-  (string-append base "/" child))
+(define (build-schema-path base child) (cons child base))
 (define (boolean->validator b) (lambda (e ctx) b))
 
 (define (uri->id&fragment uri)

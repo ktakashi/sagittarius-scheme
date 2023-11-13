@@ -93,7 +93,7 @@
     #t))
 
 (define (($defs-handler name) value context schema-path)
-  (define this-path (build-schema-path schema-path name))
+  (define this-path schema-path)
   (define (compile-definition e)
     (let ((path (build-schema-path this-path (car e)))
 	  (ctx (make-schema-context (cdr e) context)))

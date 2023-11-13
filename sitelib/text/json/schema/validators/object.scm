@@ -74,7 +74,7 @@
 	  (else #t))))
 
 (define ((properties-handler name regexp?) value context schema-path)
-  (define path (build-schema-path schema-path name))
+  (define path schema-path)
   (let ((properties (compile-properties value context path regexp?)))
     (lambda (e ctx)
       (or (not (vector? e))
@@ -90,7 +90,7 @@
   (let ((validator (schema-validator->core-validator
 		    (schema-context->schema-validator
 		     (make-schema-context value context)
-		     (build-schema-path schema-path "propertyNames")))))
+		     schema-path))))
     (lambda (e ctx)
       (or (not (vector? e))
 	  (vector-every (lambda (v)
@@ -122,13 +122,13 @@
 (define (json-schema:additional-properties value context schema-path)
   (handle-extras 'json-schema:additional-properties
 		 value context
-		 (build-schema-path schema-path "additionalProperties")
+		 schema-path
 		 validator-context:marked-element?))
 
 (define (json-schema:unevaluated-properties value context schema-path)
   (handle-extras 'json-schema:unevaluated-properties
 		 value context
-		 (build-schema-path schema-path "unevaluatedProperties")
+		 schema-path
 		 validator-context:unevaluated?))
 
 

@@ -40,8 +40,12 @@
 	    (rename (json-schema-validator-version json-schema-validator-schema))
 	    json-schema-validator-source
 	    json-schema:version
-
+	    
 	    simple-json-schema-error-reporter
+
+	    validation-report-object
+	    validation-report-path
+	    validation-report-schema-path
 
 	    *json-schema:default-version*
 	    (rename (*json-schema:default-version* *json-schema:version*))
@@ -72,21 +76,27 @@
 
 (define (run-validator validator)
   (lambda (v)
-    (define lint-mode? (*json-schema:lint-mode?*))
-    (define ctx (make-validator-context lint-mode?))
+    (define ctx (make-validator-context (*json-schema:lint-mode?*)))
     (let ((r (validator v ctx)))
       (cond ((*json-schema:validator-error-reporter*) =>
-	     (lambda (reporter) (reporter ctx))))
+	     (lambda (reporter) (reporter (validator-context-reports ctx)))))
       r)))
 
-(define (simple-json-schema-error-reporter ctx)
+(define (simple-json-schema-error-reporter reports)
   (define out (or (*json-schema:report-port*) (current-error-port)))
-  (define reports (validator-context-reports ctx))
+  (define seen (make-hashtable string-hash string=?))
   (define (report-error report)
-    (display (cadr report) out) (newline out)
-    (display "\t     object: " out) (write (car report) out) (newline out)
-    (display "\tschema path: " out) (display (caddr report) out) (newline out))
-  (for-each report-error reports))
+    (let ((path (validation-report-path report)))
+      (unless (or (string=? path "/") (hashtable-contains? seen path))
+	(hashtable-set! seen path #t)
+	(display path out) (newline out)
+	(display "\t     object: " out)
+	(write (validation-report-object report) out)
+	(newline out)
+	(display "\tschema path: " out)
+	(display (validation-report-schema-path report) out)
+	(newline out))))
+  (for-each report-error (reverse reports)))
 
 (define-record-type json-schema-validator
   (parent <json-validator>)
