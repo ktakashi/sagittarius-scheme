@@ -61,7 +61,7 @@
 ;; probably better to check URI and only fragment but for now
 (define (mere-json-pointer? s) (string-prefix? "/" s))
 (define (->cached-validator schema id)
-  (let ((path (or (and id (string-append id "#")) "#")))
+  (let ((path (list (or (and id (string-append id "#")) "#"))))
     (schema-context->cached-validator schema path)))
 
 (define (ref-not-found value schema-path)
@@ -79,7 +79,7 @@
 	   (let ((schema (make-schema-context s schema)))
 	     (cond ((schema-context-validator schema))
 		   (else (schema-context->schema-validator schema
-			  (string-append (or id "") "#" anchor)))))))
+			  (list (string-append (or id "") "#" anchor))))))))
 	((string-null? anchor)
 	 ;; recursive
 	 (cond ((schema-context-validator schema))
@@ -132,7 +132,7 @@
 						  anchor schema-path))
 			((check-anchor schema id anchor schema-path))
 			(else (schema-context-validator schema))))))
-	     (string-append (or id "") "#")))
+	     (list (string-append (or id "") "#"))))
 	   ((check-anchor schema id anchor schema-path))
 	   (else
 	    (schema-context:delayed-validator context
@@ -141,7 +141,7 @@
 		(cond ((schema-context:find-by-anchor schema anchor) =>
 		       schema-context-validator)
 		      (else (ref-not-found id schema-path)))))
-	     (string-append (or id "") "#")))))))
+	     (list (string-append (or id "") "#"))))))))
 
 (define (json-schema:draft-7-$ref value context schema-path)
   ($ref-handler value context schema-path))
