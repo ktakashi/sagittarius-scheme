@@ -54,16 +54,19 @@
 (define (items-handler value context schema-path)
   (define schema (schema-context-schema context))
   (define (validate validators o ctx context)
-    (let loop ((i 0) (validators validators) (e o))
-      (cond ((null? validators)) ;; ok
-	    ((null? e))		 ;; permitted
+    (define lint-mode? (validator-context-lint-mode? ctx))
+    (let loop ((i 0) (validators validators) (e o) (r #t))
+      (cond ((null? validators) r) ;; ok
+	    ((null? e) r)	   ;; permitted
 	    (else
 	     (let ((validator (car validators))
 		   (ctx (validator-context:add-path! ctx i))
 		   (v (car e)))
-	       (and (validator-context:mark-element! ctx o (cons i v) context
-						     (validator v ctx))
-		    (loop (+ i 1) (cdr validators) (cdr e))))))))
+	       (let ((t (validator-context:mark-element! ctx o (cons i v) context
+							 (validator v ctx))))
+		 (if lint-mode?
+		     (and r (loop (+ i 1) (cdr validators) (cdr e) (and r t)))
+		     (loop (+ i 1) (cdr validators) (cdr e) (and r t)))))))))
   (unless (and (list? value) (for-all json-schema? value))
     (assertion-violation 'json-schema:prefix-items
 			 "Array of JSON Schema is required" value))
@@ -109,12 +112,20 @@
     (assertion-violation who "JSON Schema is required" value))
   (let ((validator (schema->core-validator value context schema-path)))
     (lambda (e ctx)
+      (define lint-mode? (validator-context-lint-mode? ctx))
       (or (not (list? e))
 	  (and (validator-context:mark! ctx e context)
-	       (for-all
-		(lambda (v)
-		  (validator-context:mark-element! ctx e v context
-		   (validator (cdr v) ctx))) (filter ctx context e)))))))
+	       (if lint-mode?
+		   (fold-left
+		    (lambda (acc v)
+		      (and (validator-context:mark-element!
+			    ctx e v context (validator (cdr v) ctx))
+			   acc))
+		    #t (filter ctx context e))
+		   (for-all
+		    (lambda (v)
+		      (validator-context:mark-element! ctx e v context
+		       (validator (cdr v) ctx))) (filter ctx context e))))))))
 
 (define items-pointer (json-pointer "/items"))
 (define (json-schema:additional-items value context schema-path)
@@ -186,11 +197,15 @@
 (define (json-schema:draft-7-items value context schema-path)
   (define path schema-path)
   (define (validate e ctx validator)
+    (define lint-mode? (validator-context-lint-mode? ctx))
     (let loop ((i 0) (e e) (r #t))
       (if (null? e)
 	  r
 	  (let ((ctx (validator-context:add-path! ctx i)))
-	    (loop (+ i 1) (cdr e) (and (validator (car e) ctx) r))))))
+	    (loop (+ i 1) (cdr e)
+		  (if lint-mode?
+		      (and (validator (car e) ctx) r)
+		      (and r (validator (car e) ctx))))))))
   (define (mark-all ctx o context r)
     (let loop ((i 0) (e o))
       (if (null? e)

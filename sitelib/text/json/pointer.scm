@@ -35,13 +35,23 @@
 #!nounbound
 (library (text json pointer)
     (export json-pointer json-pointer-not-found?
-	    parse-json-pointer)
+	    parse-json-pointer
+	    json-pointer-encode)
     (import (rnrs)
 	    (peg)
 	    (text json)
 	    (text json mutable)
 	    (sagittarius generators)
 	    (srfi :127 lseqs))
+
+(define (json-pointer-encode s)
+  (let-values (((out e) (open-string-output-port)))
+    (string-for-each (lambda (c)
+		       (case c
+			 ((#\/) (put-string out "~1"))
+			 ((#\~) (put-string out "~0"))
+			 (else (put-char out c)))) s)
+    (e)))
 
 (define unescaped
   ($do (c ($satisfy (lambda (c) (not (or (eqv? #\/ c) (eqv? #\~ c))))))

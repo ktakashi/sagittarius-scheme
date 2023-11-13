@@ -74,6 +74,7 @@
 
 	    make-validator-context validator-context
 	    (rename (validator-context:reports validator-context-reports))
+	    validator-context-lint-mode?
 	    validator-context:add-path!
 	    validator-context:detatch-report!
 	    validator-context:marks
@@ -351,7 +352,8 @@
    lint-mode?))
 
 (define (build-validation-path base path)
-  (define segment (if (number? path) (number->string path) path))
+  (define segment (json-pointer-encode
+		   (if (number? path) (number->string path) path)))
   (if (string=? "/" base)
       (string-append base segment)
       (string-append base "/" segment)))
@@ -654,8 +656,8 @@
   (define schema (and (schema-context? context) (schema-context-schema context)))
   (lambda (e ctx)
     (define pushed? (validator-context:push-schema! ctx id))
-    (let ((r (or (core-validator e ctx)
-		 (validator-context:report! ctx e schema-path))))
+    (let ((r (core-validator e ctx)))
+      (unless r (validator-context:report! ctx e schema-path))
       (when pushed? (validator-context:pop-schema! ctx))
       r)))
 

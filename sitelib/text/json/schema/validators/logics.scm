@@ -61,21 +61,21 @@
     (schema-context->schema-validator
      (make-schema-context schema context) path))
   (lambda (value context schema-path)
+    (define path schema-path)
     (unless (list? value)
       (assertion-violation 'array-of-schema-handler
 			   "Must be a list of schema" value))
     (when (null? value)
       (assertion-violation 'array-of-schema-handler
 			   "Must have at least one schema" value))
-    (let ((path schema-path))
-      (do ((i 0 (+ i 1)) (schema value (cdr schema))
-	   (r '() (cons (compile (car schema) context
-				 (build-schema-path path (number->string i)))
-			r)))
-	  ((null? schema)
-	   (wrap-core-validator
-	    (apply merger (reverse! (map schema-validator-validator r)))
-	    path))))))
+    (do ((i 0 (+ i 1)) (schema value (cdr schema))
+	 (r '() (cons (compile (car schema) context
+			       (build-schema-path path (number->string i)))
+		      r)))
+	((null? schema)
+	 (wrap-core-validator
+	  (apply merger (reverse! (map schema-validator-validator r)))
+	  path)))))
 
 (define json-schema:all-of (array-of-schema-handler "allOf" and-merger))
 (define json-schema:any-of (array-of-schema-handler "anyOf" or-merger))
@@ -116,7 +116,8 @@
 			      (schema->core-validator
 			       else-schema context (build-path "else")))))
     (lambda (e ctx)
-      (if (if-validator e ctx)
+      (define ctx2 (validator-context:detatch-report! ctx))
+      (if (if-validator e ctx2)
 	  (if then-validator
 	      (then-validator e ctx)
 	      #t)

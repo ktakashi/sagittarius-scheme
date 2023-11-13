@@ -63,24 +63,37 @@
   (let ((r (map cdr (filter match-property? properties))))
     (and (not (null? r)) r)))
 (define (check-entry e context entry ctx properties)
+  (define lint-mode? (validator-context-lint-mode? ctx))
   (let ((key (car entry))
 	(value (cdr entry)))
     (cond ((matching-properties key properties) =>
 	   (lambda (validators)
-	     (validator-context:mark-element! ctx e entry context
-	      (for-all (lambda (v) 
-			 (v value (validator-context:add-path! ctx key)))
-		       validators))))
+	     (validator-context:mark-element!
+	      ctx e entry context
+	      (if lint-mode?
+		  (fold-left
+		   (lambda (acc v)
+		     (and (v value (validator-context:add-path! ctx key)) acc))
+		   #t validators)
+		  (for-all (lambda (v) 
+			     (v value (validator-context:add-path! ctx key)))
+			   validators)))))
 	  (else #t))))
 
 (define ((properties-handler name regexp?) value context schema-path)
   (define path schema-path)
   (let ((properties (compile-properties value context path regexp?)))
     (lambda (e ctx)
+      (define lint-mode? (validator-context-lint-mode? ctx))
       (or (not (vector? e))
 	  (and (validator-context:mark! ctx e context)
-	       (vector-every (lambda (v)
-			       (check-entry e context v ctx properties)) e))))))
+	       (if lint-mode?
+		   (vector-fold
+		    (lambda (acc v)
+		      (and (check-entry e context v ctx properties) acc)) #t e)
+		   (vector-every
+		    (lambda (v) (check-entry e context v ctx properties))
+		    e)))))))
 (define json-schema:properties (properties-handler "properties" #f))
 (define json-schema:pattern-properties
   (properties-handler "patternProperties" #t))
@@ -92,11 +105,19 @@
 		     (make-schema-context value context)
 		     schema-path))))
     (lambda (e ctx)
+      (define lint-mode? (validator-context-lint-mode? ctx))
       (or (not (vector? e))
-	  (vector-every (lambda (v)
-			  (let ((k (car v)))
-			    (validator k (validator-context:add-path! ctx k))))
-			    e)))))
+	  (if lint-mode?
+	      (vector-fold
+	       (lambda (acc v)
+		 (let ((k (car v)))
+		   (and (validator k (validator-context:add-path! ctx k)) acc)))
+	       #t e)
+	      (vector-every
+	       (lambda (v)
+		 (let ((k (car v)))
+		   (validator k (validator-context:add-path! ctx k))))
+	       e))))))
 
 (define (handle-extras who value context schema-path pred)
   (define schema (schema-context-schema context))
@@ -111,13 +132,21 @@
 		     (make-schema-context value context)
 		     schema-path))))
     (lambda (e ctx)
+      (define lint-mode? (validator-context-lint-mode? ctx))
       (or (not (vector? e))
 	  (and (validator-context:mark! ctx e context)
-	       (for-all (lambda (v)
-			  (validator-context:mark-element! ctx e v context
-			   (validator (cdr v)
-			    (validator-context:add-path! ctx (car v)))))
-			(filter-marked-items ctx context e)))))))
+	       (if lint-mode?
+		   (fold-left
+		    (lambda (acc v)
+		      (validator-context:mark-element! ctx e v context
+		       (validator (cdr v)
+			(validator-context:add-path! ctx (car v)))))
+		    #t (filter-marked-items ctx context e))
+		   (for-all (lambda (v)
+			      (validator-context:mark-element! ctx e v context
+			       (validator (cdr v)
+				(validator-context:add-path! ctx (car v)))))
+			    (filter-marked-items ctx context e))))))))
 
 (define (json-schema:additional-properties value context schema-path)
   (handle-extras 'json-schema:additional-properties
