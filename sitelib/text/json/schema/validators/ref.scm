@@ -60,8 +60,8 @@
 
 ;; probably better to check URI and only fragment but for now
 (define (mere-json-pointer? s) (string-prefix? "/" s))
-(define (->cached-validator schema id)
-  (let ((path (list (or (and id (string-append id "#")) "#"))))
+(define (->cached-validator schema id anchor)
+  (let ((path (list (or (and id (string-append id anchor)) anchor))))
     (schema-context->cached-validator schema path)))
 
 (define (ref-not-found value schema-path)
@@ -70,7 +70,7 @@
   (cond ((not anchor)
 	 (cond ((schema-context-validator schema))
 	       ;; in case of cross reference or self $id reference
-	       (else (->cached-validator schema id))))
+	       (else (->cached-validator schema id "#"))))
 	((mere-json-pointer? anchor)
 	 ;; a bit inefficient but just compile it
 	 (let ((s ((json-pointer (uri-decode-string anchor))
@@ -78,12 +78,11 @@
 	   (when (json-pointer-not-found? s) (ref-not-found id schema-path))
 	   (let ((schema (make-schema-context s schema)))
 	     (cond ((schema-context-validator schema))
-		   (else (schema-context->schema-validator schema
-			  (list (string-append (or id "") "#" anchor))))))))
+		   (else (->cached-validator schema id anchor))))))
 	((string-null? anchor)
 	 ;; recursive
 	 (cond ((schema-context-validator schema))
-	       (else (->cached-validator schema id))))
+	       (else (->cached-validator schema id "#"))))
 	((schema-context:find-by-anchor schema anchor) =>
 	 schema-context-validator)
 	(else #f)))

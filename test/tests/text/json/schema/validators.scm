@@ -90,4 +90,25 @@
 		'(#f (1 2))
 		'(#f (#() ())))
 
+(define recursive-pointer
+  '#(("$schema" . "https://json-schema.org/draft/2020-12/schema")
+     ("$id" . "https://example.com/example-schema.yaml")
+     ("title" . "Example")
+     ("$ref" . "#/$defs/product")
+     ("$defs" .
+      #(("product" .
+	 #(("type" . "object")
+           ("properties" .
+            #(("productId" . #(("type" . "integer")))
+              ("productName" . #(("type" . "string")))
+              ("price" .
+               #(("type" . "number") ("exclusiveMinimum" . 0)))
+              ("extras" . #(("$ref" . "#/$defs/productArray")))))
+           ("required" "productId" "productName" "price")))
+	("productArray" .
+	 #(("type" . "array")
+           ("items" . #(("$ref" . "#/$defs/product")))))))))
+(test-assert 
+ (json-schema-validator? (json-schema->json-validator recursive-pointer)))
+
 (test-end)
