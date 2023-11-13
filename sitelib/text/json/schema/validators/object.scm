@@ -68,7 +68,9 @@
     (cond ((matching-properties key properties) =>
 	   (lambda (validators)
 	     (validator-context:mark-element! ctx e entry context
-	      (for-all (lambda (v) (v value ctx)) validators))))
+	      (for-all (lambda (v) 
+			 (v value (validator-context:add-path! ctx key)))
+		       validators))))
 	  (else #t))))
 
 (define ((properties-handler name regexp?) value context schema-path)
@@ -91,8 +93,10 @@
 		     (build-schema-path schema-path "propertyNames")))))
     (lambda (e ctx)
       (or (not (vector? e))
-	  (vector-every (lambda (v) (validator (car v) ctx)) e)))))
-
+	  (vector-every (lambda (v)
+			  (let ((k (car v)))
+			    (validator k (validator-context:add-path! ctx k))))
+			    e)))))
 
 (define (handle-extras who value context schema-path pred)
   (define schema (schema-context-schema context))
@@ -111,7 +115,8 @@
 	  (and (validator-context:mark! ctx e context)
 	       (for-all (lambda (v)
 			  (validator-context:mark-element! ctx e v context
-			   (validator (cdr v) ctx)))
+			   (validator (cdr v)
+			    (validator-context:add-path! ctx (car v)))))
 			(filter-marked-items ctx context e)))))))
 
 (define (json-schema:additional-properties value context schema-path)

@@ -83,10 +83,9 @@
   (define out (or (*json-schema:report-port*) (current-error-port)))
   (define reports (validator-context-reports ctx))
   (define (report-error report)
+    (display (cadr report) out) (newline out)
     (display "\t     object: " out) (write (car report) out) (newline out)
-    (display "\t  json path: " out) (display (cadr report) out) (newline out)
     (display "\tschema path: " out) (display (caddr report) out) (newline out))
-  (display "[Validation result]" out) (newline out)
   (for-each report-error reports))
 
 (define-record-type json-schema-validator

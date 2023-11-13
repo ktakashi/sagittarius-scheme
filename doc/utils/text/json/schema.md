@@ -5,7 +5,11 @@
 
 This library provides JSON Schema procedures.
 
-Currently, it only supports validators not hyperlinks of draft-7.
+Currently, it supports the below drafts of JSON Schema
+
+- Draft 7
+- Draft 2019-09
+- Draft 2029-12
 
 
 [§2] JSON Schema validator {#text.json.schema-validator}
@@ -15,7 +19,7 @@ The following example shows how to use the JSON Schema validator.
 
 The following JSON Schema defines the structure of product catalogue. It's
 saved in the file `product.schema.json`
-``````````scheme
+```json
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "http://example.com/product.schema.json",
@@ -39,7 +43,7 @@ saved in the file `product.schema.json`
   },
   "required": [ "productId", "productName", "price" ]
 }
-``````````
+```
 
 We want to validate the following 2 JSON files whose content are the below:
 
@@ -47,26 +51,26 @@ We want to validate the following 2 JSON files whose content are the below:
 - `valid-product.json`
 - `invalid-product.json`
 
-``````````scheme
+```json
 {
   "productId": 1,
   "productName": "A green door",
   "price": 12.50,
   "tags": [ "home", "green" ]
 }
-``````````
+```
 
-``````````scheme
+```json
 {
   "productId": "This must be an integer",
   "productName": 1234,
   "price": -1
 }
-``````````
+```
 
 For the simple validation, you can write the following code:
 
-``````````scheme
+```scheme
 (import (rnrs)
         (text json)
         (text json schema)
@@ -84,12 +88,12 @@ For the simple validation, you can write the following code:
 
 (values (validate-json product-catalogue-schema valid-catalogue)
         (validate-json product-catalogue-schema invalid-catalogue))
-``````````
+```
 => ``(values #t #f)``
 
 If you want to see the first invalid property, then you can write like this:
 
-``````````scheme
+```scheme
 (import (rnrs)
         (text json)
         (text json schema)
@@ -116,13 +120,13 @@ If you want to see the first invalid property, then you can write like this:
         object: "This must be an integer"
         type: integer
 |#
-``````````
+```
 => ``(values #t #f)``
 
 If you want to run as a lint mode, which goes through entire JSON,
 you can write like this:
 
-``````````scheme
+```scheme
 (import (rnrs)
         (text json)
         (text json schema)
@@ -156,7 +160,7 @@ you can write like this:
         object: -1
         exclusive-minimum: 0
 |#
-``````````
+```
 => ``(values #t #t)``
 
 NOTE: On the lint mode, the validation result will always be `#t`.

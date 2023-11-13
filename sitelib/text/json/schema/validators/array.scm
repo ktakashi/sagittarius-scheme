@@ -59,6 +59,7 @@
 	    ((null? e))		 ;; permitted
 	    (else
 	     (let ((validator (car validators))
+		   (ctx (validator-context:add-path! ctx i))
 		   (v (car e)))
 	       (and (validator-context:mark-element! ctx o (cons i v) context
 						     (validator v ctx))
@@ -184,21 +185,22 @@
 ;; Draft 7 and 2019-09
 (define (json-schema:draft-7-items value context schema-path)
   (define path (build-schema-path schema-path "items"))
-  (define (mark-all ctx o context r)
-    (let loop ((i 0) (e o))
+  (define (mark-all ctx o context validator)
+    (let loop ((i 0) (e o) (r #t))
       (if (null? e)
 	  r
-	  (let ((v (car e)))
-	    (and (validator-context:mark-element! ctx o (cons i v) context r)
-		 (loop (+ i 1) (cdr e)))))))
+	  (let* ((v (car e))
+		 (ctx (validator-context:add-path! ctx i))
+		 (t (validator v ctx)))
+	    (and (validator-context:mark-element! ctx o (cons i v) context t)
+		 (loop (+ i 1) (cdr e) (and t r)))))))
 
   (cond ((json-schema? value)
 	 (let ((validator (schema->core-validator value context path)))
 	   (lambda (e ctx)
 	     (or (not (list? e))
 		 (and (validator-context:mark! ctx e context)
-		      (mark-all ctx e context
-				(for-all (lambda (v) (validator v ctx)) e)))))))
+		      (mark-all ctx e context validator))))))
 	((and (list? value) (for-all json-schema? value))
 	 (items-handler value context path))
 	(else (assertion-violation 'json-schema:items

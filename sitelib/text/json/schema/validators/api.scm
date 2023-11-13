@@ -74,6 +74,8 @@
 
 	    make-validator-context validator-context
 	    (rename (validator-context:reports validator-context-reports))
+	    validator-context:add-path!
+	    validator-context:detatch-report!
 	    validator-context:marks
 	    validator-context:mark!
 	    validator-context:mark-element!
@@ -324,27 +326,53 @@
 
 ;; validator context
 ;; validation time context
-(define-record-type validator-context
+(define-record-type (validator-context
+		     make-raw-validator-context
+		     validator-context?)
   (fields path
 	  parent
 	  reports
 	  marks
-	  (mutable dynamic-contexts)
+	  dynamic-contexts
 	  evaluating-schemas
-	  lint-mode?)
-  (protocol (lambda (p)
-	      (case-lambda
-	       ((lint-mode?)
-		(p "/"
-		   #f
-		   (list-queue)
-		   ;; relay on the fact that JSON must not have duplicate keys
-		   (make-hashtable equal-hash equal?)
-		   (make-hashtable equal-hash equal?)
-		   (list-queue)
-		   lint-mode?))))))
+	  lint-mode?))
+(define (make-validator-context lint-mode?)
+  (make-raw-validator-context
+   "/" #f
+   (list-queue)
+   ;; relay on the fact that JSON must not have duplicate keys
+   (make-hashtable equal-hash equal?)
+   (make-hashtable equal-hash equal?)
+   (list-queue)
+   lint-mode?))
+
 (define (build-validation-path base path)
-  (string-append base "/" (if (number? path) (number->string path) path)))
+  (define segment (if (number? path) (number->string path) path))
+  (if (string=? "/" base)
+      (string-append base segment)
+      (string-append base "/" segment)))
+
+(define (validator-context:add-path! context path)
+  (define base (validator-context-path context))
+  (make-raw-validator-context
+   (build-validation-path base path)
+   context
+   (validator-context-reports context)
+   (validator-context-marks context)
+   (validator-context-dynamic-contexts context)
+   (validator-context-evaluating-schemas context)
+   (validator-context-lint-mode? context)))
+
+(define (validator-context:detatch-report! context)
+  (make-raw-validator-context
+   (validator-context-path context)
+   context
+   (list-queue)
+   (validator-context-marks context)
+   (validator-context-dynamic-contexts context)
+   (validator-context-evaluating-schemas context)
+   (validator-context-lint-mode? context)))
+
 (define (validator-context:report! context obj schema-path)
   (list-queue-add-front! (validator-context-reports context)
 			 (list obj

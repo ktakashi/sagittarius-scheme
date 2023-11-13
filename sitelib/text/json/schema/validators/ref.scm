@@ -117,6 +117,8 @@
 		     (schema-context:root-schema context))))))
 
 (define ($ref-handler value context schema-path)
+  (unless (string? value)
+    (assertion-violation 'json-schema:$ref "Must be a string" value))
   (let*-values (((this-id anchor) (uri->id&fragment value))
 		((id schema) (find-by-id value context)))
     (schema-validator->core-validator
