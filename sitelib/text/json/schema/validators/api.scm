@@ -530,6 +530,13 @@
   (define (compile schema context schema-path)
     (define keywords (schema-context:keywords context))
     (define len (vector-length schema))
+    (define (merge acc v)
+      (lambda (e ctx)
+	(if (validator-context-lint-mode? ctx)
+	    (let ((r0 (acc e ctx)) (r1 (v e ctx)))
+	      (and r0 r1))
+	    (and (acc e ctx) (v e ctx)))))
+	      
     (let loop ((keywords keywords) (acc (lambda (e ctx) #t)))
       (if (null? keywords)
 	  acc
@@ -540,9 +547,7 @@
 	    (if (json-pointer-not-found? v)
 		(loop (cdr keywords) acc)
 		(let-values (((v continue?) (handler v context path)))
-		  (let ((next (or (and v (lambda (e ctx)
-					   (and (acc e ctx) (v e ctx))))
-				  acc)))
+		  (let ((next (or (and v (merge acc v)) acc)))
 		    (if continue?
 			(loop (cdr keywords) next)
 			next))))))))

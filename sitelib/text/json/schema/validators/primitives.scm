@@ -144,12 +144,13 @@
 	(let-values (((e v) (->integer e v)))
 	  (zero? (mod e v))))))
 
-(define ((min/max who compare) v)
+(define (min/max who compare)
   (define name (symbol->string who))
   (define err-who (string->symbol (string-append "json-schema:" name)))
   (define err-msg (string-append (string-titlecase name) " must be a number"))
-  (unless (real? v) (assertion-violation err-who err-msg v))
-  (lambda (e) (or (not (real? e)) (compare e v))))
+  (lambda (v)
+    (unless (real? v) (assertion-violation err-who err-msg v))
+    (lambda (e) (or (not (real? e)) (compare e v)))))
 
 ;;; 6.2.2 maximum
 ;; `maximum` validator: (n) -> (obj) -> boolean
