@@ -149,7 +149,10 @@
   ;; (example input string 6ba7b810-9dad-11d1-80b4-00c04fd430c8)
   (define-constant +uuid-string-length+ 36)
   (define (string->uuid s)
-    (define (parse-block s start end) (->number (substring s start end) 16))
+    (define (parse-block b start end) 
+      (cond ((string->number (substring b start end) 16))
+	    (else (assertion-violation 'string->uuid
+				       "Invalid UUID block" b s))))
     (unless (= (string-length s) +uuid-string-length+)
       (assertion-violation 
        'string->uuid (format "Could not parse ~s as UUID: invalid length" s)

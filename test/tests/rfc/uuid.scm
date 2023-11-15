@@ -28,6 +28,8 @@
 (test-assert (v1-uuid? (make-v1-uuid)))
 (test-assert (v4-uuid? (make-v4-uuid)))
 
+(test-error (string->uuid "2eb8aa08-aa98-11ea-b4ga-73b441d16380"))
+
 (let ((uuid (make-null-uuid)))
   (test-equal 0 (uuid-time-low uuid))
   (test-equal 0 (uuid-time-mid uuid))

@@ -214,7 +214,7 @@
     ("relative-json-pointer" . ,json-schema:format-relative-json-pointer)
     ("regex" . ,json-schema:format-regex)
     ;; from draft 2019-09, but make it common
-    ("uuid" . ,json-schema:format-uri)
+    ("uuid" . ,json-schema:format-uuid)
     ;; TODO duration
     ))
 
