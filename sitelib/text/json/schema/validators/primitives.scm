@@ -193,8 +193,9 @@
 				      (condition-message e)
 				      "Invalid regex pattern") p)))
     (let ((rx (regex p)))
-      (lambda (e) (or (not (string? e))
-		      (and (looking-at rx e) #t))))))
+      (lambda (e)
+	(or (not (string? e))
+	    (and (looking-at rx e) #t))))))
 
 ;;; 6.4. Validation Keywords for Arrays
 ;;; 6.4.1. maxItems
