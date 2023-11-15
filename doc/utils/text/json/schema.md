@@ -165,7 +165,7 @@ you can write like this:
 
 NOTE: On the lint mode, the validation result will always be `#t`.
 
-###### [!Function] `json-schema->json-validator`  _schema_ _referencing-validators_ _..._
+###### [!Function] `json-schema->json-validator`  _schema_ _dependencies_ _..._
 
 Creates JSON validator object of the given JSON Schema _schema_.
 
@@ -174,9 +174,11 @@ The JSON Schema must be a vector represented S-expression JSON
 
 JSON validator is described in [JSON validator](#text.json.validator).
 
-The optional arguments _referencing-validators_ must be
-JSON Schema validators, if it's given, and will be used to reference
-external schemas.
+The optional arguments _dependencies_ must be JSON Schema or
+JSON Schema validators, if it's given, then the procedure uses
+them as external dependency. This is useful if the 
+`*json-schema:resolve-external-schema*` parameter is `#f` or,
+you don't want to make any socket connection. 
 
 
 ###### [!Parameter] `*json-schema:resolve-external-schema?*` 
@@ -185,6 +187,14 @@ Specifying if the validator creation procedure to resolve external
 reference of schema. e.g. `"$ref": "http://json-schema.org/schema#"`.
 
 The default value is `#f`.
+
+###### [!Parameter] `*json-schema:external-schema-resolver*`
+
+Specifying the procedure to retrieve extrenal resource. This parameter
+supersedes the `*json-schema:resolve-external-schema?*` parameter.
+
+The provided procedure must accept one argument, which is a string
+representation of external URL, and return Sexp JSON Schema.
 
 
 ###### [!Parameter] `*json-schema:validate-format?*` 
