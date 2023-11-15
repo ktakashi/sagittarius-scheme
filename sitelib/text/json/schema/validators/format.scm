@@ -89,8 +89,7 @@
 (define (valid-time? h m s f offset)
   (let* ((d0 (make-date f s m h 1 1 1970 offset))
 	 (d1 (time-utc->date (date->time-utc d0) offset)))
-    ;; see https://en.wikipedia.org/wiki/List_of_UTC_offsets
-    (and (<= -43200 offset) (<= offset 50400)
+    (and (<= 0 h) (< h 24) ;; basic checks
 	 (or (and (= (date-nanosecond d0) (date-nanosecond d1))
 		  (= (date-second d0) (date-second d1))
 		  (= (date-minute d0) (date-minute d1))
@@ -125,11 +124,13 @@
 			     (h ($number 2))
 			     ( ($eqv? #\:) )
 			     (l ($number 2)))
-			($return 
-			 (let ((v (+ (* 3600 h) (* 60 l))))
-			   (if (eqv? #\- sign)
-			       (- v)
-			       v)))))))
+			(if (and (<= 0 h) (< h 24) (<= 0 l) (< l 60))
+			    ($return 
+			     (let ((v (+ (* 3600 h) (* 60 l))))
+			       (if (eqv? #\- sign)
+				   (- v)
+				   v)))
+			    ($fail "Invalid offset"))))))
     (if (valid-time? h m s f offset)
 	($return (list h m s f offset))
 	($fail "Invalid time"))))
@@ -188,7 +189,7 @@
        (or (eqv? #\# (string-ref v (- (string-length v) 1)))
 	   (guard (e (else #f)) (json-pointer (string-append "/" v))))))
 (define (json-schema:format-regex v)
-  (guard (e (else #f)) (regex v 0 #t)))
+  (guard (e (else #f)) (and (regex v 0 #t) #t)))
 
 (define (json-schema:format-uuid v)
   (guard (e (else #f)) (uuid? (string->uuid v))))
