@@ -36,6 +36,7 @@
 	    *json-schema:validate-format?*)
     (import (rnrs)
 	    (sagittarius regex)
+	    (srfi :13 strings)
 	    (srfi :14 char-sets)
 	    (srfi :19 time)
 	    (srfi :39 parameters)
@@ -174,20 +175,24 @@
 ;; we don't check if the scheme requires authority or not
 (define (json-schema:format-uri e)
   (let-values (((scheme specific) (uri-scheme&specific e)))
-    (and scheme specific #t)))
-(define (json-schema:format-uri-reference e) #t)
+    (and scheme specific
+	 (string-every (lambda (c) (not (char-whitespace? c))) specific))))
+(define (json-schema:format-uri-reference e)
+  (and (string-every (lambda (c) (not (eqv? c #\\))) e)
+       (let-values (((scheme ui host port path query frag) (uri-parse e)))
+	 (and (or scheme ui host port path query frag) #t))))
 (define (json-schema:format-uri-template e)
   (guard (e (else #f))
     (pair? (parse-uri-template e))))
 
 (define (json-schema:format-json-pointer v)
-  (guard (e (else #f)) (json-pointer v)))
+  (guard (e (else #f)) (and (json-pointer v) #t)))
 (define (json-schema:format-relative-json-pointer v)
   ;; very simple check
   ;; TODO make relative JSON pointer parser
   (and (string->number (string (string-ref v 0)))
        (or (eqv? #\# (string-ref v (- (string-length v) 1)))
-	   (guard (e (else #f)) (json-pointer (string-append "/" v))))))
+	   (json-schema:format-json-pointer (string-append "/" v)))))
 (define (json-schema:format-regex v)
   (guard (e (else #f)) (and (regex v 0 #t) #t)))
 
