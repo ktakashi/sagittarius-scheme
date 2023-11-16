@@ -40,9 +40,8 @@
 	    (srfi :14 char-sets)
 	    (srfi :19 time)
 	    (srfi :39 parameters)
-	    (peg)
-	    (peg chars)
 	    (rfc smtp format) ;; smtp-valid-address?
+	    (rfc timestamps)
 	    (rfc uri)
 	    (rfc uri-template)
 	    (rfc uuid)
@@ -63,97 +62,14 @@
 	;; not supported, so ignore
 	(else (lambda (e) #t))))
 
-
-(define digit-set (string->char-set "0123456789"))
-(define $digit ($char-set-contains? digit-set))
-(define (valid-date? y m d)
-  (let* ((d0 (make-date 0 0 0 0 d m y 0))
-	 (d1 (time-utc->date (date->time-utc d0) 0)))
-    (and (= (date-day d0) (date-day d1))
-	 (= (date-month d0) (date-month d1))
-	 (= (date-year d0) (date-year d1)))))
-(define ($number n)
-  ($let ((d* ($repeat $digit n)))
-    ($return (string->number (list->string d*)))))
-  
-
-(define $date
-  ($let ((y ($number 4))
-	 ( ($eqv? #\-) )
-	 (m ($number 2))
-	 ( ($eqv? #\-) )
-	 (d ($number 2)))
-    (if (valid-date? y m d) 
-	($return (list y m d))
-	($fail "Invalid date"))))
-
-(define (valid-time? h m s f offset)
-  (let* ((d0 (make-date f s m h 1 1 1970 offset))
-	 (d1 (time-utc->date (date->time-utc d0) offset)))
-    (and (<= 0 h) (< h 24) ;; basic checks
-	 (or (and (= (date-nanosecond d0) (date-nanosecond d1))
-		  (= (date-second d0) (date-second d1))
-		  (= (date-minute d0) (date-minute d1))
-		  (= (date-hour d0) (date-hour d1)))
-	     ;; leap second...
-	     (let ((d3 (time-utc->date (date->time-utc d0) 0)))
-	       (and (= (date-second d3) 0)
-		    (= (date-minute d3) 0)
-		    (= (date-hour d3) 0)
-		    (time=? (date->time-utc d0) (date->time-utc d1))))))))
-(define (->nano f)
-  (define l (length f))
-  (let ((n (string->number (list->string f))))
-    ;; nano 10^-9
-    ;; truncate if it's too big
-    (* n (expt 10 (- 9 l)))))
-
-(define $time
-  ($let ((h ($number 2))
-	 ( ($eqv? #\:) )
-	 (m ($number 2))
-	 ( ($eqv? #\:) )
-	 (s ($number 2))
-	 (f ($optional
-	     ($let (( ($eqv? #\.) ) (d* ($many $digit 1)))
-	       (cond ((->nano d*) => $return)
-		     (else ($fail "Invalid fraction"))))
-	     0))
-	 (offset ($or ($seq ($eqv? #\z) ($return 0))
-		      ($seq ($eqv? #\Z) ($return 0))
-		      ($let ((sign ($or ($eqv? #\+) ($eqv? #\-)))
-			     (h ($number 2))
-			     ( ($eqv? #\:) )
-			     (l ($number 2)))
-			(if (and (<= 0 h) (< h 24) (<= 0 l) (< l 60))
-			    ($return 
-			     (let ((v (+ (* 3600 h) (* 60 l))))
-			       (if (eqv? #\- sign)
-				   (- v)
-				   v)))
-			    ($fail "Invalid offset"))))))
-    (if (valid-time? h m s f offset)
-	($return (list h m s f offset))
-	($fail "Invalid time"))))
-
-(define $date-time
-  ($let ((d $date)
-	 ( ($or ($eqv? #\t) ($eqv? #\T)) )
-	 (t $time))
-    ($return (append d t))))
-
 (define (parser->validator p)
-  (define (check p e)
-    (let-values (((s v nl) (p (string->list e))))
-      (and (parse-success? s)
-	   (null? nl))))
   (lambda (e)
     (or (not (string? e))
-	(check p e))))
+	(date? (p e)))))
 
-(define json-schema:format-date (parser->validator $date))
-(define json-schema:format-time (parser->validator $time))
-(define json-schema:format-date-time (parser->validator $date-time))
+(define json-schema:format-date (parser->validator parse-date))
+(define json-schema:format-time (parser->validator parse-time))
+(define json-schema:format-date-time (parser->validator parse-date-time))
 
 (define (json-schema:format-email e) (smtp-valid-address? e))
 ;; lazy...
