@@ -211,7 +211,8 @@
 
 (define +duration-regex+
   (regexp
-   '(: (? #\-) "P"
+   '(: bol
+       (? #\-) "P"
        (or (: (or (: ($ (+ (/ "09"))) "Y"      ;; 1
 		     (? ($ (+ (/ "09"))) "M")  ;; 2
 		     (? ($ (+ (/ "09"))) "D")) ;; 3
@@ -237,11 +238,15 @@
 			 (? ($ (+ (/ "09")))		     ;; 21
 			    (? "." ($ (+ (/ "09")))) "S"))   ;; 22
 		      (: ($ (+ (/ "09")))		     ;; 23
-			 (? "." ($ (+ (/ "09")))) "S"))))))) ;; 24
-(define +duration-ymd-matches+
-  '((1  2  3)
-    (#f 4  5)
-    (#f #f 6)))
+			 (? "." ($ (+ (/ "09")))) "S")))     ;; 24
+	   ;; Extra, not XML schema, but ISO 8601
+	   (: ($ (/ "09")) "W"))
+       eol)))
+(define +duration-ymdw-matches+
+  '((1  2  3  #f)
+    (#f 4  5  #f)
+    (#f #f 6  #f)
+    (#f #f #f 25)))
 (define +duration-hms-matches+
   '(( 7  8  9 10)
     (#f 11 12 13)
@@ -269,13 +274,14 @@
 
   (cond ((regexp-matches +duration-regex+ duration) =>
 	 (lambda (m)
-	   (let-values (((y mo d) (parse m ymd))
+	   (let-values (((y mo d w) (parse m ymd))
 			((h mi s f) (parse m hms)))
 	     (define neg? (char=? (string-ref duration 0) #\-))
 	     (define (neg n) (if neg? (- n) n))
 	     (values (neg (+ (or (and y (* 12 (string->number y))) 0)
 			     (or (and mo (string->number mo)) 0)))
 		     (neg (+ (or (and d (* 24 60 60 (string->number d))) 0)
+			     (or (and w (* 24 60 60 7 (string->number w))) 0)
 			     (or (and h (* 60 60 (string->number h))) 0)
 			     (or (and mi (* 60 (string->number mi))) 0)
 			     (or (and s (string->number s)) 0)
@@ -298,7 +304,7 @@
 	      (case-lambda
 	       ((s)
 		(let-values (((m s) (parse-duration s +duration-regex+
-						    +duration-ymd-matches+
+						    +duration-ymdw-matches+
 						    +duration-hms-matches+)))
 		  (ctr m s)))
 	       ((m s) (ctr m s))))))
@@ -310,7 +316,7 @@
 	       ((d)
 		(let-values (((m s) (if (string? d)
 					(parse-duration d +duration-regex+
-							+duration-ymd-matches+
+							+duration-ymdw-matches+
 							+duration-hms-matches+)
 					(values 0 (inexact d)))))
 		  (unless (zero? m)
@@ -325,7 +331,7 @@
 	       ((d)
 		(let-values (((m s) (if (string? d)
 					(parse-duration d +duration-regex+
-							+duration-ymd-matches+
+							+duration-ymdw-matches+
 							+duration-hms-matches+)
 					(values d 0.0))))
 		  (unless (zero? s)

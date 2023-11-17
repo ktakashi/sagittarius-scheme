@@ -47,7 +47,8 @@
 	    (rfc uuid)
 	    (text json pointer)
 	    (only (text json schema validators primitives)
-		  json-schema:pattern))
+		  json-schema:pattern)
+	    (text xml schema))
 
 (define *json-schema:validate-format?* (make-parameter #t))
 
@@ -115,6 +116,9 @@
 (define (json-schema:format-uuid v)
   (guard (e (else #f)) (uuid? (string->uuid v))))
 
+(define (json-schema:format-duration v)
+  (guard (e (else #f)) (xs:duration? (xs:make-duration v))))
+
 (define +json-schema-defined-formats+
   `(
     ("date" . ,json-schema:format-date)
@@ -136,7 +140,7 @@
     ("regex" . ,json-schema:format-regex)
     ;; from draft 2019-09, but make it common
     ("uuid" . ,json-schema:format-uuid)
-    ;; TODO duration
+    ("duration" . ,json-schema:format-duration)
     ))
 
 )
