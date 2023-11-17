@@ -53,15 +53,22 @@
 
 ;;; parsers
 ;;; https://www.rfc-editor.org/rfc/rfc5321#section-4.1.2
+;;; https://www.rfc-editor.org/rfc/rfc6531#section-3.3 (allowing UTF-8)
 (define ascii/printing (char-set-intersection char-set:ascii char-set:printing))
 (define ascii/graphic (char-set-intersection char-set:ascii char-set:graphic))
-(define qtext-set (char-set-difference ascii/printing (char-set #\\ #\")))
+(define unicode-non-ascii (char-set-difference char-set:full char-set:ascii))
+
+(define qtext-set (char-set-difference ascii/printing (char-set #\\ #\")
+				       unicode-non-ascii))
 (define alpha-set (char-set-intersection char-set:ascii char-set:letter))
 (define digit-set (char-set-intersection char-set:ascii char-set:digit))
 (define hex-digit-set (char-set-intersection char-set:ascii char-set:hex-digit))
 (define dcontent-set (char-set-difference ascii/graphic (char-set #\[ #\\ #\])))
-(define atext-set (char-set-union alpha-set digit-set
-		   (string->char-set "!#$%&'*+-/=?^_`{|}~")))
+(define atext-set (char-set-union
+		   alpha-set
+		   digit-set
+		   (string->char-set "!#$%&'*+-/=?^_`{|}~")
+		   unicode-non-ascii))
 
 (define $alpha ($char-set-contains? alpha-set))
 (define $digit ($char-set-contains? digit-set))
@@ -79,7 +86,10 @@
 
 (define $local-part ($or $dot-string $quoted-string))
 
-(define $let-dig ($or $alpha $digit))
+(define $let-dig ($or $alpha $digit
+		      ;; it's not entirely true (say this contains white space)
+		      ;; but for now
+		      ($char-set-contains? unicode-non-ascii)))
 (define $ldh-char ($or $let-dig ($eqv? #\-)))
 (define $ldh-str
   ($seq ($many ($seq $ldh-char ($not ($peek ($or ($eqv? #\.) $eof))))) $let-dig))

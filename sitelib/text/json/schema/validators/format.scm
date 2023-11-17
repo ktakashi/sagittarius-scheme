@@ -73,8 +73,7 @@
 (define json-schema:format-date-time (parser->validator parse-date-time))
 
 (define (json-schema:format-email e) (smtp-valid-address? e))
-;; lazy...
-(define json-schema:format-idn-email (json-schema:pattern "[^@]+@[^@]+"))
+(define (json-schema:format-idn-email e) (smtp-valid-address? e))
 
 ;; hostname
 (define json-schema:format-hostname
