@@ -32,7 +32,9 @@
 ;;   - https://tools.ietf.org/html/rfc5321
 ;;   - https://tools.ietf.org/html/rfc5322
 (library (rfc smtp format)
-    (export smtp-valid-address?)
+    (export smtp-valid-address?
+	    ipv4-address?
+	    ipv6-address?)
     (import (rnrs)
 	    (peg)
 	    (peg chars)
@@ -43,14 +45,17 @@
 
 ;; https://tools.ietf.org/html/rfc5321#section-2.3.11
 ;; Check against Mailbox rule
-(define (smtp-valid-address? s)
+(define (smtp-valid-address? s) (parse-ok? s $mailbox))
+(define (ipv4-address? s)(parse-ok? s $ipv4-address-literal))
+(define (ipv6-address? s) (parse-ok? s $ipv6-addr))
+
+(define (parse-ok? s parser)
   (define in (if (input-port? s)
 		 (generator->lseq (port->char-generator s))
 		 (string->list s)))
-  (let-values (((s v nl) ($mailbox in)))
+  (let-values (((s v nl) (parser in)))
     (and (parse-success? s)
 	 (null? nl))))
-
 ;;; parsers
 ;;; https://www.rfc-editor.org/rfc/rfc5321#section-4.1.2
 ;;; https://www.rfc-editor.org/rfc/rfc6531#section-3.3 (allowing UTF-8)
@@ -98,7 +103,8 @@
 
 (define $snum
   ($let ((d* ($many $digit 1 3)))
-    (if (<= 0 (string->number (list->string d*)) 255)
+    (if (and (or (null? (cdr d*)) (not (eqv? #\0 (car d*))))
+	     (<= 0 (string->number (list->string d*)) 255))
 	($return d*)
 	($fail "range must be 0-255"))))
 (define $ipv4-address-literal ($seq $snum ($repeat ($seq ($eqv? #\.) $snum) 3)))
@@ -112,13 +118,17 @@
 	($optional ($seq $ipv6-hex ($many $ipv6-seg 0 5)))))
 (define $ipv6v4-full
   ($seq $ipv6-hex ($repeat $ipv6-seg 5) ($eqv? #\:) $ipv4-address-literal))
+(define $ipv6v4-seg ($seq ($eqv? #\:) $snum ($eqv? #\.)))
 (define ipv6v4-comp
   ($seq ($optional ($seq $ipv6-hex ($many $ipv6-seg 0 3)))
 	($token "::")
-	($optional ($seq $ipv6-hex ($many $ipv6-seg 0 3) ($eqv? #\:)))
+	($optional ($seq $ipv6-hex
+			 ;; peek `:n{1,3}.` not to consume IPv4 segment
+			 ($many ($seq ($peek ($not $ipv6v4-seg)) $ipv6-seg) 0 3)
+			 ($eqv? #\:)))
 	$ipv4-address-literal))
 (define $ipv6-full ($seq $ipv6-hex ($repeat $ipv6-seg 7)))
-(define $ipv6-addr ($or $ipv6-full $ipv6-comp $ipv6v4-full ipv6v4-comp))
+(define $ipv6-addr ($or $ipv6-full $ipv6v4-full ipv6v4-comp $ipv6-comp))
 (define $ipv6-address-literal ($seq ($token "IPv6:") $ipv6-addr))
 
 (define $dcontent ($char-set-contains? dcontent-set))
