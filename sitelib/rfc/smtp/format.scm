@@ -34,34 +34,94 @@
 (library (rfc smtp format)
     (export smtp-valid-address?)
     (import (rnrs)
-	    (srfi :2)
-	    (srfi :13)
-	    (srfi :14)
+	    (peg)
+	    (peg chars)
+	    (sagittarius generators)
+	    (srfi :14 char-sets)
+	    (srfi :127 lseqs)
 	    (rfc :5322))
 
 ;; https://tools.ietf.org/html/rfc5321#section-2.3.11
-;; local-part@domain
-;; this is a bit too naive but for now
+;; Check against Mailbox rule
 (define (smtp-valid-address? s)
-  (define in (if (input-port? s) s (open-string-input-port s)))
-  (let ((local (rfc5322-next-token in)))
-    (and (eqv? #\@ (get-char in))
-	 ;; this doesn't handle domain-literal properly...
-	 (let ((domain (rfc5322-next-token in)))
-	   (and (string? domain)
-		(check-length local domain)
-		(eof-object? (get-char in)))))))
+  (define in (if (input-port? s)
+		 (generator->lseq (port->char-generator s))
+		 (string->list s)))
+  (let-values (((s v nl) ($mailbox in)))
+    (and (parse-success? s)
+	 (null? nl))))
 
-;; TODO add mailbox format
-;; mailbox format is more strict than address
-;; though, not sure if we need it...
-;; (define (smtp-valid-mailbox? s))
+;;; parsers
+;;; https://www.rfc-editor.org/rfc/rfc5321#section-4.1.2
+(define ascii/printing (char-set-intersection char-set:ascii char-set:printing))
+(define ascii/graphic (char-set-intersection char-set:ascii char-set:graphic))
+(define qtext-set (char-set-difference ascii/printing (char-set #\\ #\")))
+(define alpha-set (char-set-intersection char-set:ascii char-set:letter))
+(define digit-set (char-set-intersection char-set:ascii char-set:digit))
+(define hex-digit-set (char-set-intersection char-set:ascii char-set:hex-digit))
+(define dcontent-set (char-set-difference ascii/graphic (char-set #\[ #\\ #\])))
+(define atext-set (char-set-union alpha-set digit-set
+		   (string->char-set "!#$%&'*+-/=?^_`{|}~")))
 
-(define (check-length local-part domain)
-  (define llen (string-length local-part))
-  (define dlen (string-length domain))
-  (and (<= llen 64)
-       (<= dlen 255)
-       ;; exclude '@'
-       (< (+ llen dlen) 253)))
+(define $alpha ($char-set-contains? alpha-set))
+(define $digit ($char-set-contains? digit-set))
+(define $hexdig ($char-set-contains? hex-digit-set))
+
+(define $qtext-smtp ($char-set-contains? qtext-set))
+(define $quoted-pair-smtp
+  ($seq ($eqv? #\/) ($char-set-contains? ascii/printing)))
+(define $q-content-smtp ($or $qtext-smtp $quoted-pair-smtp))
+(define $quoted-string ($seq ($eqv? #\") ($many $q-content-smtp) ($eqv? #\")))
+
+(define $atext ($char-set-contains? atext-set))
+(define $atom ($many $atext 1))
+(define $dot-string ($seq $atom ($many ($seq ($eqv? #\.) $atom))))
+
+(define $local-part ($or $dot-string $quoted-string))
+
+(define $let-dig ($or $alpha $digit))
+(define $ldh-char ($or $let-dig ($eqv? #\-)))
+(define $ldh-str
+  ($seq ($many ($seq $ldh-char ($not ($peek ($or ($eqv? #\.) $eof))))) $let-dig))
+(define $sub-domain ($seq $let-dig ($optional $ldh-str)))
+(define $domain ($seq $sub-domain ($many ($seq ($eqv? #\.) $sub-domain))))
+
+(define $snum
+  ($let ((d* ($many $digit 1 3)))
+    (if (<= 0 (string->number (list->string d*)) 255)
+	($return d*)
+	($fail "range must be 0-255"))))
+(define $ipv4-address-literal ($seq $snum ($repeat ($seq ($eqv? #\.) $snum) 3)))
+
+(define $ipv6-hex ($many $hexdig 1 4))
+(define $ipv6-seg ($seq ($eqv? #\:) $ipv6-hex))
+(define $ipv6-comp
+  ;; TODO implement comment part
+  ($seq ($optional ($seq $ipv6-hex ($many $ipv6-seg 0 5)))
+	($token "::")
+	($optional ($seq $ipv6-hex ($many $ipv6-seg 0 5)))))
+(define $ipv6v4-full
+  ($seq $ipv6-hex ($repeat $ipv6-seg 5) ($eqv? #\:) $ipv4-address-literal))
+(define ipv6v4-comp
+  ($seq ($optional ($seq $ipv6-hex ($many $ipv6-seg 0 3)))
+	($token "::")
+	($optional ($seq $ipv6-hex ($many $ipv6-seg 0 3) ($eqv? #\:)))
+	$ipv4-address-literal))
+(define $ipv6-full ($seq $ipv6-hex ($repeat $ipv6-seg 7)))
+(define $ipv6-addr ($or $ipv6-full $ipv6-comp $ipv6v4-full ipv6v4-comp))
+(define $ipv6-address-literal ($seq ($token "IPv6:") $ipv6-addr))
+
+(define $dcontent ($char-set-contains? dcontent-set))
+(define $standardized-tag $ldh-str)
+(define $general-address-literal
+  ($seq $standardized-tag ($eqv? #\:) ($many $dcontent 1)))
+
+(define $address-literal ($seq ($eqv? #\[)
+			       ($or $ipv4-address-literal
+				    $ipv6-address-literal
+				    $general-address-literal)
+			       ($eqv? #\])))
+
+(define $mailbox ($seq $local-part ($eqv? #\@) ($or $domain $address-literal)))
+
 )
