@@ -41,9 +41,9 @@
 	    (srfi :19 time)
 	    (srfi :39 parameters)
 	    (srfi :115 regexp)
-	    (rfc smtp format) ;; smtp-valid-address?
+	    (rfc smtp format)
 	    (rfc timestamps)
-	    (rfc uri)
+	    (rfc uri parser)
 	    (rfc uri-template)
 	    (rfc uuid)
 	    (text json pointer)
@@ -91,12 +91,14 @@
 
 ;; we don't check if the scheme requires authority or not
 (define (json-schema:format-uri e)
-  (let-values (((scheme specific) (uri-scheme&specific e)))
-    (and scheme specific
+  (let*-values (((scheme specific) (uri-scheme&specific e))
+		((auth path query frag) (uri-decompose-hierarchical specific)))
+    (and scheme specific (or auth path)
 	 (string-every (lambda (c) (not (char-whitespace? c))) specific))))
 (define (json-schema:format-uri-reference e)
   (and (string-every (lambda (c) (not (eqv? c #\\))) e)
-       (let-values (((scheme ui host port path query frag) (uri-parse e)))
+       (let-values (((scheme ui host port path query frag)
+		     (uri-reference-parse e)))
 	 (and (or scheme ui host port path query frag) #t))))
 (define (json-schema:format-uri-template e)
   (guard (e (else #f))

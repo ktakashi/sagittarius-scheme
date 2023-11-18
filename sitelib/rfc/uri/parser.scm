@@ -2,7 +2,7 @@
 ;;;
 ;;; uri/parser.scm - PEG URI parser
 ;;;  
-;;;   Copyright (c) 2019  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2019-2023  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -31,11 +31,18 @@
 ;; reference
 ;; Appendix A.  Collected ABNF for URI
 ;; https://tools.ietf.org/html/rfc3986#appendix-A
+;; https://tools.ietf.org/html/rfc3987
+
+;; The parser should be a bit stricter than regex version as
+;; regex version doesn't check IPv6 format et.al
+;; This can also be used for validation purpose
 #!nounbound
 (library (rfc uri parser)
     (export uri-parse
+	    uri-reference-parse
 	    uri-scheme&specific
 	    uri-decompose-hierarchical
+	    uri-decompose-relative
 	    uri-decompose-authority
 
 	    *uri:decode*
@@ -103,9 +110,36 @@
 (define alpha-set (char-set-intersection char-set:ascii char-set:letter))
 (define digit-set (char-set-intersection char-set:ascii char-set:digit))
 
+(define (ucs-range-set lower upper) (ucs-range->char-set lower (+ upper 1)))
+(define ucschar-set (char-set-union
+		     (ucs-range-set    #xA0 #xD7FF)
+		     (ucs-range-set  #xF900 #xFDCF)
+		     (ucs-range-set  #xFDF0 #xFFEF)
+		     (ucs-range-set #x10000 #x1FFFD)
+		     (ucs-range-set #x20000 #x2FFFD)
+		     (ucs-range-set #x30000 #x3FFFD)
+                     (ucs-range-set #x40000 #x4FFFD)
+		     (ucs-range-set #x50000 #x5FFFD)
+		     (ucs-range-set #x60000 #x6FFFD)
+                     (ucs-range-set #x70000 #x7FFFD)
+		     (ucs-range-set #x80000 #x8FFFD)
+		     (ucs-range-set #x90000 #x9FFFD)
+                     (ucs-range-set #xA0000 #xAFFFD)
+		     (ucs-range-set #xB0000 #xBFFFD)
+		     (ucs-range-set #xC0000 #xCFFFD)
+                     (ucs-range-set #xD0000 #xDFFFD)
+		     (ucs-range-set #xE1000 #xEFFFD)))
+(define iprivate-set (char-set-union
+		      (ucs-range-set   #xE000 #xF8FF)
+		      (ucs-range-set  #xF0000 #xFFFFD)
+		      (ucs-range-set #x100000 #x10FFFD)))
+
 (define uri:alpha ($char-set-contains? alpha-set))
 (define uri:digit ($char-set-contains? digit-set))
 (define uri:hexdig ($char-set-contains? char-set:hex-digit))
+
+(define uri:ucschar ($char-set-contains? ucschar-set))
+(define uri:iprivate ($char-set-contains? iprivate-set))
 
 ;; scheme        = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
 (define uri:scheme-parser
@@ -115,8 +149,10 @@
        ($return (list->string (cons c c*)))))
 
 ;; unreserved    = ALPHA / DIGIT / "-" / "." / "_" / "~"
+;; + ucschar for IRI (RFC 3987)
 (define uri:unreserved
-  ($or uri:alpha uri:digit ($eqv? #\-) ($eqv? #\.) ($eqv? #\_) ($eqv? #\~)))
+  ($or uri:alpha uri:digit ($eqv? #\-) ($eqv? #\.) ($eqv? #\_) ($eqv? #\~)
+       uri:ucschar))
 
 ;; pct-encoded   = "%" HEXDIG HEXDIG
 (define uri:pct-encoded
@@ -212,9 +248,9 @@
 
 ;; IPv4address   = dec-octet "." dec-octet "." dec-octet "." dec-octet
 (define uri:ipv4-address-parser
-  ($do (c1 uri:dec-octet-parser) (($eqv? #\:))
-       (c2 uri:dec-octet-parser) (($eqv? #\:))
-       (c3 uri:dec-octet-parser) (($eqv? #\:))
+  ($do (c1 uri:dec-octet-parser) (($eqv? #\.))
+       (c2 uri:dec-octet-parser) (($eqv? #\.))
+       (c3 uri:dec-octet-parser) (($eqv? #\.))
        (c4 uri:dec-octet-parser)
        ($return (string-append c1 "." c2 "." c3 "." c4))))
 
@@ -369,19 +405,23 @@
 
 ;; query         = *( pchar / "/" / "?" )
 (define uri:query-parser
-  ($do (c* ($many ($or uri:pchar ($eqv? #\/) ($eqv? #\?))))
+  ($do (c* ($many ($or uri:pchar uri:iprivate ($eqv? #\/) ($eqv? #\?))))
        ($return (list->string c*))))
+;; [ "?" query ]
+(define uri:full-query-parser ($seq ($eqv? #\?) uri:query-parser))
 
 ;; fragment      = *( pchar / "/" / "?" )
 (define uri:fragment-parser uri:query-parser)
+;; [ "#" fragment ]
+(define uri:full-fragment-parser ($seq ($eqv? #\#) uri:fragment-parser))
 
 ;; URI           = scheme ":" hier-part [ "?" query ] [ "#" fragment ]
 (define uri:uri-parser
   ($do (s uri:scheme-parser)
        (($eqv? #\:))
        (h uri:hier-part-parser)
-       (q ($optional ($seq ($eqv? #\?) uri:query-parser)))
-       (f ($optional ($seq ($eqv? #\#) uri:fragment-parser)))
+       (q ($optional uri:full-query-parser))
+       (f ($optional uri:full-fragment-parser))
        ($return (list s h q f))))
 
 ;; absolute-URI  = scheme ":" hier-part [ "?" query ]
@@ -389,7 +429,7 @@
   ($do (s uri:scheme-parser)
        (($eqv? #\:))
        (h uri:hier-part-parser)
-       (q ($optional ($seq ($eqv? #\?) uri:query-parser)))
+       (q ($optional uri:full-query-parser))
        ($return (list s h q))))
 
 ;; path-noscheme = segment-nz-nc *( "/" segment )
@@ -411,8 +451,8 @@
 ;; relative-ref  = relative-part [ "?" query ] [ "#" fragment ]
 (define uri:relative-ref-parser
   ($do (p uri:relative-part-parser)
-       (q ($optional ($seq ($eqv? #\?) uri:query-parser)))
-       (f ($optional ($seq ($eqv? #\#) uri:fragment-parser)))
+       (q ($optional uri:full-query-parser))
+       (f ($optional uri:full-fragment-parser))
        ($return (list p q f))))
 
 ;; URI-reference = URI / relative-ref
@@ -456,8 +496,13 @@
 	((eq? (car segments) '/)
 	 (string-append "/" (string-join (cdr segments) "/")))
 	(else (string-join (cdr segments) "/"))))
-	 
+
 (define (uri-decompose-hierarchical specific)
+  (uri-decompose-specific uri:hier-part-parser specific))
+(define (uri-decompose-relative specific)
+  (uri-decompose-specific uri:relative-part-parser specific))
+
+(define (uri-decompose-specific parser specific)
   (define lseq (generator->lseq (string->generator specific)))
   (define (->authority auth)
     (let ((u (car auth))
@@ -467,27 +512,40 @@
 	    (u         (string-append u "@" h))
 	    (p         (string-append h ":" p))
 	    (else       h))))
-  (let-values (((s v nl) (uri:relative-ref-parser lseq)))
-    (if (parse-success? s)
+  (define (parse parser nl)
+    (let-values (((s v nl2) (parser nl)))
+      (if (parse-success? s)
+	  (values v nl2)
+	  (values #f nl))))
+  (define (parse-query nl) (parse uri:full-query-parser nl))
+  (define (parse-fragment nl) (parse uri:full-fragment-parser nl))
+    
+  (let*-values (((s v nl1) (parser lseq))
+		((query nl2) (parse-query nl1))
+		((frag nl3) (parse-fragment nl2)))
+    (if (and (parse-success? s)  (null? nl3))
 	(let ((rel (car v))
-	      (q   (cadr v))
-	      (f   (caddr v)))
-	  (cond ((null? rel) (values #f #f q f))
-		((eq? (car rel) '//)
-		 (let ((auth (cadr rel)))
-		   (values (->authority auth) (->path-string (caddr rel)) q f)))
-		(else (values #f (->path-string rel) q f))))
+	      (auth (cadr v)) 
+	      (path (cddr v)))
+	  (cond ((null? rel) (values #f #f query frag))
+		((eq? rel '//)
+		 (values (->authority auth) (->path-string path) query frag))
+		(else
+		 (values #f (string-join (cons auth path) "/") query frag))))
 	(values #f #f #f #f))))
 
 ;; returns (values userinfo host port)
 (define (uri-decompose-authority auth)
   (define lseq (generator->lseq (string->generator auth)))
   (let-values (((s v nl) (uri:authority-parser lseq)))
-    (if (parse-success? s)
+    (if (and (parse-success? s) (null? nl))
 	(values (car v) (cadr v) (caddr v))
 	(values #f #f #f))))
 
-(define (uri-parse uri)
+(define (uri-parse uri) (%uri-parse uri:uri-parser uri))
+(define (uri-reference-parse uri) (%uri-parse uri:uri-reference-parser uri))
+
+(define (%uri-parse parser uri)
   (define lseq (generator->lseq (string->generator uri)))
   (define (decompose hier)
     (cond ((null? hier) (values #f "" #f #f))
@@ -496,9 +554,8 @@
 		 (path (caddr hier)))
 	     (values (car auth) (cadr auth) (caddr auth) (->path-string path))))
 	  (else (values #f "" #f (->path-string hier)))))
-  ;; interestingly, it's reference...
-  (let-values (((s v nl) (uri:uri-reference-parser lseq)))
-    (if (parse-success? s)
+  (let-values (((s v nl) (parser lseq)))
+    (if (and (parse-success? s) (null? nl))
 	(let ((scheme (car v))
 	      (hier   (cadr v))
 	      (query  (caddr v))
@@ -510,8 +567,8 @@
 		    (and port (string->number port))
 		    path
 		    query
-		    frag))))))
-
+		    frag)))
+	(values #f #f #f #f #f #f #f))))
 (define (uri:parsed-uri->string uri)
   (define (user-info->string uri)
     (let ((u (car uri))
