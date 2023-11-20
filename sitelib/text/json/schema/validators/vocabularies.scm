@@ -122,7 +122,7 @@
     ("$defs" . ,(schema-handler json-schema:$defs))
     ("$anchor" . ,(schema-handler json-schema:$anchor))
     ("$ref" . ,(schema-handler json-schema:$ref))
-    ("$recursiveRef" . ,(no-continue-handler json-schema:$recursive-ref))
+    ("$recursiveRef" . ,(schema-handler json-schema:$recursive-ref))
     ))
 
 (define *json-schema:draft-2019-09-vocab-applicator*
@@ -197,7 +197,7 @@
     ("$defs" . ,(schema-handler json-schema:$defs))
     ("$anchor" . ,(schema-handler json-schema:$anchor))
     ("$ref" . ,(schema-handler json-schema:$ref))
-    ("$dynamicRef" . ,(no-continue-handler json-schema:$dynamic-ref))
+    ("$dynamicRef" . ,(schema-handler json-schema:$dynamic-ref))
     ))
 (define *json-schema:draft-2020-12-vocab-applicator*
   `(
@@ -261,7 +261,7 @@
     ,@*json-schema:draft-2020-12-vocab-core*
     ("$recursiveAnchor" . ,(schema-handler json-schema:$recursive-anchor))
     ("definitions" . ,(schema-handler json-schema:definitions))
-    ("$recursiveRef" . ,(no-continue-handler json-schema:$recursive-ref))
+    ("$recursiveRef" . ,(schema-handler json-schema:$recursive-ref))
     ,@*json-schema:draft-2020-12-vocab-validation*
     ,@*json-schema:draft-2020-12-vocab-format-annotation*
     ,@*json-schema:draft-2020-12-vocab-applicator*
