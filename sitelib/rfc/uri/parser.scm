@@ -38,7 +38,9 @@
 ;; This can also be used for validation purpose
 #!nounbound
 (library (rfc uri parser)
-    (export uri-parse
+    (export (rename (uri-parse uri-parse-strict)
+		    ;; for compatibility with the regex version
+		    (uri-reference-parse uri-parse))
 	    uri-reference-parse
 	    uri-scheme&specific
 	    uri-decompose-hierarchical
@@ -97,6 +99,7 @@
 	    uri:unreserved
 	    uri:reserved)
     (import (rnrs)
+	    (match)
 	    (peg)
 	    (peg chars)
 	    (sagittarius generators)
@@ -523,15 +526,13 @@
   (let*-values (((s v nl1) (parser lseq))
 		((query nl2) (parse-query nl1))
 		((frag nl3) (parse-fragment nl2)))
-    (if (and (parse-success? s)  (null? nl3))
-	(let ((rel (car v))
-	      (auth (cadr v)) 
-	      (path (cddr v)))
-	  (cond ((null? rel) (values #f #f query frag))
-		((eq? rel '//)
-		 (values (->authority auth) (->path-string path) query frag))
-		(else
-		 (values #f (string-join (cons auth path) "/") query frag))))
+    (if (and (parse-success? s) (null? nl3))
+	(match v
+	  (('// auth path)
+	   (values (->authority auth) (->path-string path) query frag))
+	  (('/ path ...)
+	   (values #f (->path-string v) query frag))
+	  (else (values #f #f query frag)))
 	(values #f #f #f #f))))
 
 ;; returns (values userinfo host port)
