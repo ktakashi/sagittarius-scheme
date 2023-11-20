@@ -66,7 +66,7 @@
 
 (define (ref-not-found value schema-path)
   (assertion-violation 'json-schema:$ref "$ref not found" value schema-path))
-(define (check-anchor schema id anchor schema-path)
+(define (check-anchor schema id anchor schema-path remote?)
   (cond ((not anchor)
 	 (cond ((schema-context-validator schema))
 	       ;; in case of cross reference or self $id reference
@@ -79,6 +79,15 @@
 	     (ref-not-found anchor schema-path))
 	   (let ((schema (make-schema-context s schema)))
 	     (cond ((schema-context-validator schema))
+		   ;; if it's from remote schema, then the target schema
+		   ;; is already resolved (i.e. after
+		   ;; initial-schema-context->schema-validator procedure
+		   ;; execution), which means no late execution will be
+		   ;; done. So, the delayed validator initializer won't
+		   ;; be executed by default.
+		   (remote?
+		    (schema-context->schema-validator/late-initiation
+		     schema (list anchor)))
 		   (else (->cached-validator schema id anchor))))))
 	((string-null? anchor)
 	 ;; recursive
@@ -100,7 +109,7 @@
       ;; If the schema has it, then it'd be overwritten anyway.
       (json-schema:$id id this-context "#")
       (let ((validator (initial-schema-context->schema-validator this-context)))
-	(cond ((check-anchor this-context id anchor schema-path))
+	(cond ((check-anchor this-context id anchor schema-path #t))
 	      (else validator))))))
 
 (define (find-by-id value context)
@@ -130,10 +139,10 @@
 		  (cond ((not schema)
 			 (resolve-external-schema context id
 						  anchor schema-path))
-			((check-anchor schema #f anchor schema-path))
+			((check-anchor schema #f anchor schema-path #f))
 			(else (schema-context-validator schema))))))
 	     (list (string-append (or id "") "#"))))
-	   ((check-anchor schema #f anchor schema-path))
+	   ((check-anchor schema #f anchor schema-path #f))
 	   (else
 	    (schema-context:delayed-validator context
 	     (lambda ()

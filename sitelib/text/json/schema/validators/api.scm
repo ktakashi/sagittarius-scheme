@@ -60,6 +60,8 @@
 	    make-disjoint-context
 	    make-schema-context
 
+	    schema-context->schema-validator/late-initiation
+
 	    schema-context:find-by-id schema-context:set-id!
 	    schema-context:root-schema
 	    schema-context:find-by-anchor schema-context:add-anchor!
@@ -518,10 +520,14 @@
   validator)
 
 (define (initial-schema-context->schema-validator initial-context)
+  (schema-context->schema-validator/late-initiation initial-context '("#")))
+
+(define (schema-context->schema-validator/late-initiation context schema-path)
   (define (finish validator)
-    (schema-context:execute-late-init! initial-context)
+    (schema-context:execute-late-init! context)
     validator)
-  (finish (schema-context->schema-validator initial-context '("#"))))
+  (finish (schema-context->schema-validator context schema-path)))
+
 
 ;; schema-context -> validator
 ;; schema-path is debug or reporting purpose
@@ -569,7 +575,6 @@
   (define (initializer)
     (schema-validator->core-validator
      (schema-context->schema-validator context schema-path)))
-
   (cond ((hashtable-ref cache context #f))
 	(else
 	 (let ((validator (schema-context:delayed-validator
