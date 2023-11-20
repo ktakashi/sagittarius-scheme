@@ -41,6 +41,8 @@
 	    (srfi :19 time)
 	    (srfi :39 parameters)
 	    (srfi :115 regexp)
+	    (peg)
+	    (peg chars)
 	    (rfc smtp format)
 	    (rfc timestamps)
 	    (rfc uri parser)
@@ -106,12 +108,22 @@
 
 (define (json-schema:format-json-pointer v)
   (guard (e (else #f)) (and (json-pointer v) #t)))
+
+(define $non-negative-integer
+  ($or ($eqv? #\0)
+       ($seq ($char-set-contains? (ucs-range->char-set #x31 #x40))
+	     ($many ($char-set-contains? (ucs-range->char-set #x30 #x40))))))
+(define $index-manipulation
+  ($seq ($or ($eqv? #\+) ($eqv? #\-)) $non-negative-integer))
+(define $relative-json-pointer
+  ($or ($seq $non-negative-integer ($eqv? #\#))
+       ($seq $non-negative-integer
+	     ($optional $index-manipulation)
+	     $json-pointer)))
+
 (define (json-schema:format-relative-json-pointer v)
-  ;; very simple check
-  ;; TODO make relative JSON pointer parser
-  (and (string->number (string (string-ref v 0)))
-       (or (eqv? #\# (string-ref v (- (string-length v) 1)))
-	   (json-schema:format-json-pointer (string-append "/" v)))))
+  (let-values (((s v nl) ($relative-json-pointer (string->list v))))
+    (and (parse-success? s) (null? nl))))
 (define (json-schema:format-regex v)
   (guard (e (else #f)) (and (regex v 0 #t) #t)))
 

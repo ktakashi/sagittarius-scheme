@@ -63,6 +63,11 @@
     ;; We don't support custom meta schema, too much hastle
     "JSON-Schema-Test-Suite/tests/draft2019-09/vocabulary.json"
     "JSON-Schema-Test-Suite/tests/draft2020-12/vocabulary.json"
+
+    ;; We will support idn-hostname later, maybe...
+    "JSON-Schema-Test-Suite/tests/draft7/optional/format/idn-hostname.json"
+    "JSON-Schema-Test-Suite/tests/draft2019-09/optional/format/idn-hostname.json"
+    "JSON-Schema-Test-Suite/tests/draft2020-12/optional/format/idn-hostname.json"
     ))
 
 ;; FIXME copy&paste...
@@ -97,10 +102,10 @@
 
 (server-start! server :background #t)
 (parameterize ((*json-schema:resolve-external-schema?* #t))
-  (for-each run-schema-tests core-files)
-  ;; optional tests always fail
-  ;; format tests always fail, so manually check occasionally
-  ;; (for-each run-schema-tests format-files)
+  ;; Seems format must only be optional on core tests
+  (parameterize ((*json-schema:validate-format?* #f))
+    (for-each run-schema-tests core-files))
+  (for-each run-schema-tests format-files)
   )
 (server-stop! server)
 

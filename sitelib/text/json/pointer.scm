@@ -36,7 +36,9 @@
 (library (text json pointer)
     (export json-pointer json-pointer-not-found?
 	    parse-json-pointer
-	    json-pointer-encode)
+	    json-pointer-encode
+
+	    (rename (root $json-pointer)))
     (import (rnrs)
 	    (peg)
 	    (text json)
