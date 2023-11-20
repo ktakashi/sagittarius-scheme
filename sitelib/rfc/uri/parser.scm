@@ -530,8 +530,7 @@
 	(match v
 	  (('// auth path)
 	   (values (->authority auth) (->path-string path) query frag))
-	  (('/ path ...)
-	   (values #f (->path-string v) query frag))
+	  (((or '/ '!) path ...) (values #f (->path-string v) query frag))
 	  (else (values #f #f query frag)))
 	(values #f #f #f #f))))
 
