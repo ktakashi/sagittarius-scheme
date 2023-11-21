@@ -31,7 +31,7 @@
 #!nounbound
 (library (text json schema validators api)
     (export schema-context->schema-validator
-	    schema-context->cached-validator
+	    schema-context->cached-schema-validator
 	    schema-validator->core-validator
 	    schema-validator-validator
 	    
@@ -570,15 +570,17 @@
 	 (assertion-violation 'schema-context->schema-validator
 			      "Invalid JSON Schema" schema))))
 
-(define (schema-context->cached-validator context schema-path)
+(define (schema-context->cached-schema-validator context schema-path)
   (define cache (schema-context-cache context))
   (define (initializer)
     (schema-validator->core-validator
      (schema-context->schema-validator context schema-path)))
   (cond ((hashtable-ref cache context #f))
 	(else
-	 (let ((validator (schema-context:delayed-validator
-			   context initializer schema-path)))
+	 (let* ((core-validator (schema-context:delayed-validator
+				 context initializer schema-path))
+		(validator (make-schema-validator core-validator
+						  schema-path context)))
 	   (hashtable-set! cache context validator)
 	   validator))))
 
@@ -587,8 +589,7 @@
   (define (delayed-validator) (lambda (e ctx) (validator e ctx)))
   (list-queue-add-front! (schema-context-late-inits context)
 			 (lambda () (set! validator (initializer))))
-  (update-cache! context
-   (make-schema-validator (delayed-validator) schema-path context)))
+  (delayed-validator))
 
 (define (schema-context:recursive-validator context schema-path)
   (define (validator ctx)
@@ -642,10 +643,7 @@
 
 (define (handle-dynamic-validator context schema-path validator-provier)
   (define (dynamic-validator e ctx) ((validator-provier ctx) e ctx))
-  (cond ((schema-context-validator context))
-	(else
-	 (update-cache! context
-	  (make-schema-validator dynamic-validator schema-path context)))))
+  dynamic-validator)
 
 (define-record-type schema-validator
   (fields validator schema-path schema-context)

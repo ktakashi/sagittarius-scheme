@@ -62,7 +62,7 @@
 (define (mere-json-pointer? s) (string-prefix? "/" s))
 (define (->cached-validator schema id anchor)
   (let ((path (list (string-append (or id "") "#" anchor))))
-    (schema-context->cached-validator schema path)))
+    (schema-context->cached-schema-validator schema path)))
 
 (define (ref-not-found value schema-path)
   (assertion-violation 'json-schema:$ref "$ref not found" value schema-path))
@@ -130,27 +130,27 @@
     (assertion-violation 'json-schema:$ref "Must be a string" value))
   (let*-values (((this-id anchor) (uri->id&fragment value))
 		((id schema) (find-by-id value context)))
-    (schema-validator->core-validator
-     (cond ((not schema)
-	    (schema-context:delayed-validator context
-	     (lambda ()
-	       (let ((schema (schema-context:find-by-id context id)))
-		 (schema-validator->core-validator
-		  (cond ((not schema)
-			 (resolve-external-schema context id
-						  anchor schema-path))
-			((check-anchor schema #f anchor schema-path #f))
-			(else (schema-context-validator schema))))))
+    (cond ((not schema)
+	   (schema-context:delayed-validator context
+	    (lambda ()
+	      (let ((schema (schema-context:find-by-id context id)))
+		(schema-validator->core-validator
+		 (cond ((not schema)
+			(resolve-external-schema context id
+						 anchor schema-path))
+		       ((check-anchor schema #f anchor schema-path #f))
+		       (else (schema-context-validator schema))))))
 	     (list (string-append (or id "") "#"))))
-	   ((check-anchor schema #f anchor schema-path #f))
-	   (else
-	    (schema-context:delayed-validator context
-	     (lambda ()
-	       (schema-validator->core-validator
-		(cond ((schema-context:find-by-anchor schema anchor) =>
-		       schema-context-validator)
-		      (else (ref-not-found id schema-path)))))
-	     (list (string-append (or id "") "#"))))))))
+	  ((check-anchor schema #f anchor schema-path #f) =>
+	   schema-validator->core-validator)
+	  (else
+	   (schema-context:delayed-validator context
+	    (lambda ()
+	      (schema-validator->core-validator
+	       (cond ((schema-context:find-by-anchor schema anchor) =>
+		      schema-context-validator)
+		     (else (ref-not-found id schema-path)))))
+	    (list (string-append (or id "") "#")))))))
 
 (define (json-schema:draft-7-$ref value context schema-path)
   ($ref-handler value context schema-path))
@@ -163,14 +163,12 @@
     (assertion-violation 'json-schema:$recursive-ref
 			 "$resursiveRef must have value of '#'" value))
   (cond ((schema-context:recursive-anchor-enabled? context)
-	 (schema-validator->core-validator
-	  (schema-context:recursive-validator context schema-path)))
+	 (schema-context:recursive-validator context schema-path))
 	(else ($ref-handler value context schema-path))))
 
 (define (json-schema:$dynamic-ref value context schema-path)
   (define (anchor->validator anchor context schema-path)
-    (schema-validator->core-validator
-     (schema-context:dynamic-validator context anchor schema-path)))
+    (schema-context:dynamic-validator context anchor schema-path))
   (define (dynamic-anchor-fragment? context value)
     (and (string-prefix? "#" value)
 	 (let ((anchor (substring value 1 (string-length value))))
@@ -187,24 +185,16 @@
 	     (schema-context:has-dynamic-anchor? schema anchor)
 	     (anchor->validator anchor context
 	      (build-schema-path id (string-append "#" anchor))))))
-    ;; the given context will have the result of json-schema:$dynamic-ref
-    ;; as its validator, so it'd end up infinite loop. To avoid it, we need
-    ;; to create a copy of the schema
-    ;; FIXME this workaround shouldn't exist
-    (define (copy-schema-context context)
-      (make-schema-context `#(("$dynamicRef" . ,value)) context))
     (cond ((and (not (string-prefix? "#" value)) (string-index value #\#)) =>
 	   (lambda (index)
 	     (let ((raw-id (substring value 0 index))
 		   (anchor (substring value (+ index 1) (string-length value))))
 	       (or (has-dynamic-anchor? raw-id context anchor)
-		   (schema-validator-validator
-		    (schema-context:delayed-validator context
-		     (lambda ()
-		       (let ((new-context (copy-schema-context context)))
-			 (or (has-dynamic-anchor? raw-id new-context anchor)
-			     ($ref-handler value context schema-path))))
-		     schema-path))))))
+		   (schema-context:delayed-validator context
+		    (lambda ()
+		      (or (has-dynamic-anchor? raw-id context anchor)
+			  ($ref-handler value context schema-path)))
+		    schema-path)))))
 	  (else #f)))
 	 
   (unless (string? value)
