@@ -71,8 +71,8 @@
     (do ((i 0 (+ i 1)) (schema value (cdr schema))
 	 (r '() (cons (compile (car schema) context (bp i)) r)))
 	((null? schema)
-	 (wrap-core-validator
-	  (apply merger (reverse! (map schema-validator-validator r)))
+	 (core-validator->reporting-validator
+	  (apply merger (reverse! (map schema-validator->core-validator r)))
 	  path)))))
 
 (define json-schema:all-of (array-of-schema-handler "allOf" and-merger))
@@ -82,10 +82,10 @@
 (define (json-schema:not value context schema-path)
   (unless (or (json-schema? value))
     (assertion-violation 'json-schema:not "JSON Schema is required" value))
-  (let ((validator (schema-validator-validator
+  (let ((validator (schema-validator->core-validator
 		    (schema-context->schema-validator
 		     (make-schema-context value context) schema-path))))
-    (wrap-core-validator
+    (core-validator->reporting-validator
      (lambda (e ctx)
        (let ((snapshot (validator-context:marks ctx e)))
 	 (validator-context:update-difference! ctx e snapshot

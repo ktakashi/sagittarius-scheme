@@ -65,8 +65,9 @@
 
 (define ((simple-handler ->validator) value context schema-path)
   (let ((validator (->validator value)))
-    (values (wrap-core-validator
-	     (lambda (e ctx) (validator e)) schema-path) #t)))
+    (values (core-validator->reporting-validator
+	     (lambda (e ctx) (validator e)) schema-path)
+	    #t)))
 (define ((schema-handler ->validator) value context schema-path)
   (values (->validator value context schema-path) #t))
 (define ((no-continue-handler ->validator) value context schema-path)

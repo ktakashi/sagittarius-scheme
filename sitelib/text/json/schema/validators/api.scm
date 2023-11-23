@@ -33,12 +33,11 @@
     (export schema-context->schema-validator
 	    schema-context->cached-schema-validator
 	    schema-validator->core-validator
-	    schema-validator-validator
 	    
 	    schema-context:delayed-validator
 	    schema-context:dynamic-validator
 	    schema-context:recursive-validator
-	    wrap-core-validator
+	    core-validator->reporting-validator
 
 	    ;; utilities
 	    json-schema?
@@ -341,7 +340,8 @@
 	  reports
 	  marks
 	  dynamic-contexts
-	  evaluating-schemas
+	  evaluating-scopes  ;; schema-ids
+	  evaluating-schemas ;; schema
 	  lint-mode?))
 (define (make-validator-context lint-mode?)
   (make-raw-validator-context
@@ -350,6 +350,7 @@
    ;; relay on the fact that JSON must not have duplicate keys
    (make-hashtable equal-hash equal?)
    (make-hashtable equal-hash equal?)
+   (list-queue)
    (list-queue)
    lint-mode?))
 
@@ -368,6 +369,7 @@
    (validator-context-reports context)
    (validator-context-marks context)
    (validator-context-dynamic-contexts context)
+   (validator-context-evaluating-scopes context)
    (validator-context-evaluating-schemas context)
    (validator-context-lint-mode? context)))
 
@@ -378,6 +380,7 @@
    (list-queue)
    (validator-context-marks context)
    (validator-context-dynamic-contexts context)
+   (validator-context-evaluating-scopes context)
    (validator-context-evaluating-schemas context)
    (validator-context-lint-mode? context)))
 
@@ -397,6 +400,11 @@
   (list-queue-list (validator-context-reports context)))
 
 (define (validator-context:mark! context obj schema)
+  ;; (newline)
+  ;; (display obj) (newline)
+  ;; (display (schema-context-schema schema)) (newline)
+  ;; (for-each (lambda (s) (display "--> ") (display s) (newline))
+  ;; 	    (list-queue-list (validator-context-evaluating-schemas context)))
   (let ((mark (validator-context-marks context)))
     (hashtable-update! mark obj
       (lambda (v)
@@ -471,6 +479,7 @@
 	  ;; We need to exclude cousins, so check subschema
 	  (subschema? (schema-context-schema schema-context)
 		      (schema-context-schema marked-context)))))
+  
   (let ((e* (append-map (lambda (s) (list-queue-list (cdr s)))
 	     (filter check
 	      (hashtable-ref (validator-context-marks context) obj '())))))
@@ -502,12 +511,20 @@
   (let ((dynamic-contexts (validator-context-dynamic-contexts context)))
     (hashtable-ref dynamic-contexts anchor #f)))
 
-(define (validator-context:push-schema! context id)
-  (let ((queue (validator-context-evaluating-schemas context)))
+(define (validator-context:push-scope! context id)
+  (let ((queue (validator-context-evaluating-scopes context)))
     (or (and (list-queue-empty? queue)
 	     (list-queue-add-front! queue id))
 	(and (not (equal? (list-queue-front queue) id))
 	     (list-queue-add-front! queue id)))))
+
+(define (validator-context:push-schema! context schema)
+  (let ((queue (validator-context-evaluating-schemas context)))
+    (list-queue-add-front! queue schema)))
+
+(define (validator-context:pop-scope! context)
+  (let ((queue (validator-context-evaluating-scopes context)))
+    (list-queue-remove-front! queue)))
 
 (define (validator-context:pop-schema! context)
   (let ((queue (validator-context-evaluating-schemas context)))
@@ -610,7 +627,7 @@
     (define scopes
       (reverse!
        (filter values
-	       (list-queue-list (validator-context-evaluating-schemas ctx)))))
+	       (list-queue-list (validator-context-evaluating-scopes ctx)))))
     (define ->schema schema-context-schema)
     
     (let loop ((s* scopes))
@@ -663,18 +680,28 @@
 		      (schema-context-in-id context))))
   (define schema (and (schema-context? context) (schema-context-schema context)))
   (lambda (e ctx)
-    (define pushed? (validator-context:push-schema! ctx id))
+    (define pushed? (validator-context:push-scope! ctx id))
+    (validator-context:push-schema! ctx schema)
     (let ((r (core-validator e ctx)))
       (unless r (validator-context:report! ctx e schema-path))
-      (when pushed? (validator-context:pop-schema! ctx))
+      (validator-context:pop-schema! ctx)
+      (when pushed? (validator-context:pop-scope! ctx))
       r)))
 
-(define (wrap-core-validator validator schema-path)
-  (schema-validator->core-validator
-   (make-schema-validator validator schema-path)))
+(define (core-validator->reporting-validator validator schema-path)
+  (define path (string-join (reverse schema-path) "/"))
+  (lambda (e ctx)
+    (let ((r (validator e ctx)))
+      (unless r (validator-context:report! ctx e path))
+      r)))
 
 ;; utilities
 (define (json-schema? v) (or (vector? v) (boolean? v)))
+(define (in-scope? scope-context child-context)
+  (cond ((not child-context) #f)
+	((eq? scope-context child-context))
+	(else (in-scope? scope-context (schema-context-parent child-context)))))
+
 (define (subschema? root-schema schema)
   (and (subschema-depth root-schema schema) #t))
 (define (subschema-depth root-schema schema)
