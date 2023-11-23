@@ -78,11 +78,8 @@
 	    validator-context-lint-mode?
 	    validator-context:add-path!
 	    validator-context:detatch-report!
-	    validator-context:marks
-	    validator-context:mark!
 	    validator-context:mark-element!
-	    validator-context:update-difference!
-	    validator-context:marked?
+	    validator-context:update-marks!
 	    validator-context:marked-element?
 	    validator-context:unevaluated?
 	    validator-context:set-dynamic-context!
@@ -102,6 +99,7 @@
 	    (srfi :13 strings)
 	    (srfi :39 parameters)
 	    (srfi :117 list-queues)
+	    (srfi :126 hashtables)
 	    (text json pointer)
 	    (text json schema version))
 
@@ -338,7 +336,6 @@
   (fields path
 	  parent
 	  reports
-	  marks
 	  dynamic-contexts
 	  evaluating-scopes  ;; schema-ids
 	  evaluating-schemas ;; schema
@@ -347,8 +344,6 @@
   (make-raw-validator-context
    "/" #f
    (list-queue)
-   ;; relay on the fact that JSON must not have duplicate keys
-   (make-hashtable equal-hash equal?)
    (make-hashtable equal-hash equal?)
    (list-queue)
    (list-queue)
@@ -367,7 +362,6 @@
    (build-validation-path base path)
    context
    (validator-context-reports context)
-   (validator-context-marks context)
    (validator-context-dynamic-contexts context)
    (validator-context-evaluating-scopes context)
    (validator-context-evaluating-schemas context)
@@ -378,7 +372,6 @@
    (validator-context-path context)
    context
    (list-queue)
-   (validator-context-marks context)
    (validator-context-dynamic-contexts context)
    (validator-context-evaluating-scopes context)
    (validator-context-evaluating-schemas context)
@@ -399,94 +392,43 @@
 (define (validator-context:reports context)
   (list-queue-list (validator-context-reports context)))
 
-(define (validator-context:mark! context obj schema)
-  ;; (newline)
-  ;; (display obj) (newline)
-  ;; (display (schema-context-schema schema)) (newline)
-  ;; (for-each (lambda (s) (display "--> ") (display s) (newline))
-  ;; 	    (list-queue-list (validator-context-evaluating-schemas context)))
-  (let ((mark (validator-context-marks context)))
-    (hashtable-update! mark obj
-      (lambda (v)
-	(cond ((assq schema v) v)
-	      (else (cons (cons schema (list-queue)) v))))
-      '())))
 (define (validator-context:mark-element! context obj element schema success?)
-  (let ((mark (validator-context-marks context)))
-    (hashtable-update! mark obj
-      (lambda (v)
-	(cond ((assq schema v) =>
-	       (lambda (slot)
-		 (list-queue-add-front! (cdr slot) (cons element success?)))))
-	v)
-      '())
+  (define target-schema (schema-context-schema schema))
+  (let-values (((schema marks) (validator-context:evaluating-schema context)))
+    (when (eq? target-schema schema)
+      (let ((v (cons* schema element success?)))
+	(hashtable-update! marks obj (lambda (r) (cons v r)) '()))))
+  success?)
+
+(define (validator-context:update-marks! context obj schema success?)
+  (define target-schema (schema-context-schema schema))
+  (define (flip-result v)
+    (filter-map (lambda (s)
+		  (cond ((eq? target-schema (car s))
+			 (cond (success? (set-cdr! (cdr s) success?) s)
+			       (else #f)))
+			(else s))) v))
+  (let-values (((schema marks) (validator-context:evaluating-schema context)))
+    (hashtable-update! marks obj flip-result '())
     success?))
-
-(define (validator-context:update-difference! context obj snapshot success?)
-  (define (swap-marks! q base diff)
-    (list-queue-clear! q)
-    (for-each (lambda (v) (list-queue-add-back! q v)) base)
-    ;; strip out failed validation
-    ;; NB: this is for unevaludated with `not not` case
-    ;;     I think it should be invalid test case, but it's listed
-    ;;     in the official test suite, so no argue.
-    (for-each (lambda (v)
-		(when success?
-		  (set-cdr! v #t)
-		  (list-queue-add-back! q v))) diff))
-  (let ((slots (hashtable-ref (validator-context-marks context) obj '())))
-    (for-each (lambda (slot)
-		(let ((q (cdr slot)))
-		  (cond ((memq (car slot) snapshot) =>
-			 (lambda (base)
-			   (let* ((marks (list-queue-list q))
-				  (diff (drop-right marks (length base))))
-			     (swap-marks! q base diff))))
-			(else
-			 (swap-marks! q '() (list-queue-list q))))))
-	      slots)
-    success?))
-
-(define (validator-context:marks context obj)
-  (define (->snapshot slot)
-    ;; convert (schema (e result) ...)
-    (cons (car slot) (list-queue-list (cdr slot))))
-    
-  (let ((mark (validator-context-marks context)))
-    (map ->snapshot (hashtable-ref mark obj '()))))
-
-(define (validator-context:marked? context obj schema-context)
-  (let ((slots (hashtable-ref (validator-context-marks context) obj '())))
-    (cond ((assq schema-context slots))
-	  (else #f))))
 
 (define (validator-context:marked-element? context obj element schema-context)
-  (let ((slots (hashtable-ref (validator-context-marks context) obj '())))
-    (cond ((assq schema-context slots) =>
-	   (lambda (slot) (assoc element (list-queue-list (cdr slot)))))
-	  (else #f))))
+  (define target-schema (schema-context-schema schema-context))
+  (let-values (((schema marks) (validator-context:evaluating-schema context)))
+    (let ((slots (hashtable-ref marks obj '())))
+      (cond ((find (lambda (v)
+		     (and (eq? (car v) target-schema) (equal? (cadr v) element)))
+		     slots) #t)
+	    (else #f)))))
 
 (define (validator-context:unevaluated? context obj element schema-context)
-  (define (collect element elements)
-    (define (check r element v) (if (equal? (car v) element) (cons v r) r))
-    (do ((elements elements (cdr elements))
-	 (r '() (check r element (car elements))))
-	((null? elements) r)))
-
-  (define (check slot)
-    (let ((marked-context (car slot)))
-      (or (not (schema-context:same-root? schema-context marked-context))
-	  ;; We need to exclude cousins, so check subschema
-	  (subschema? (schema-context-schema schema-context)
-		      (schema-context-schema marked-context)))))
-  
-  (let ((e* (append-map (lambda (s) (list-queue-list (cdr s)))
-	     (filter check
-	      (hashtable-ref (validator-context-marks context) obj '())))))
-    ;; because of allOf, anyOf or oneOf applicators, the elements may contain
-    ;; multiple of the same element. So, collect everything and check if
-    ;; there's a successful evaluation or not
-    (not (null? (filter-map cdr (collect element e*))))))
+  (let-values (((schema marks) (validator-context:evaluating-schema context)))
+    (and (eq? schema (schema-context-schema schema-context))
+	 (cond ((hashtable-ref marks obj #f) =>
+		(lambda (v*)
+		  (find (lambda (v)
+			  (and (cddr v) (equal? (cadr v) element))) v*)))
+	       (else #f)))))
 
 (define (validator-context:set-dynamic-context! context schema-context anchor)
   (let ((root (schema-context-root schema-context))
@@ -520,15 +462,26 @@
 
 (define (validator-context:push-schema! context schema)
   (let ((queue (validator-context-evaluating-schemas context)))
-    (list-queue-add-front! queue schema)))
+    (list-queue-add-front! queue (cons schema (make-eq-hashtable)))))
 
 (define (validator-context:pop-scope! context)
   (let ((queue (validator-context-evaluating-scopes context)))
     (list-queue-remove-front! queue)))
 
 (define (validator-context:pop-schema! context)
-  (let ((queue (validator-context-evaluating-schemas context)))
-    (list-queue-remove-front! queue)))
+  (let* ((queue (validator-context-evaluating-schemas context))
+	 (e (list-queue-remove-front! queue)))
+    (unless (list-queue-empty? queue)
+      (let ((ht (cdr (list-queue-front queue))))
+	(hashtable-walk (cdr e)
+	 ;; k = obj, v = (schema . element)
+	 ;; it's a bit redundant, but keep it like this for my convenience
+	 (lambda (k v)
+	   (hashtable-update! ht k (lambda (r) (append v r)) '())))))))
+
+(define (validator-context:evaluating-schema context)
+  (let ((v (list-queue-front (validator-context-evaluating-schemas context))))
+    (values (car v) (cdr v))))
 
 ;; Schema validator
 (define (update-cache! context validator)
@@ -701,24 +654,6 @@
   (cond ((not child-context) #f)
 	((eq? scope-context child-context))
 	(else (in-scope? scope-context (schema-context-parent child-context)))))
-
-(define (subschema? root-schema schema)
-  (and (subschema-depth root-schema schema) #t))
-(define (subschema-depth root-schema schema)
-  (define (rec root-schema schema depth)
-    ;; we don't modify the schema, so `eq?` works.
-    (cond ((eq? root-schema schema) depth)
-	  ((vector? root-schema)
-	   ;; For now DFS, might be better to do BFS
-	   (let ((len (vector-length root-schema)))
-	     (let loop ((i 0))
-	       (cond ((= i len) #f)
-		     ((rec (cdr (vector-ref root-schema i)) schema (+ depth 1)))
-		     (else (loop (+ i 1)))))))
-	  ((list? root-schema)
-	   (exists (lambda (r) (rec r schema (+ depth 1))) root-schema))
-	  (else #f)))
-  (rec root-schema schema 0))
 
 (define (build-schema-path base child) (cons child base))
 (define (boolean->validator b) (lambda (e ctx) b))

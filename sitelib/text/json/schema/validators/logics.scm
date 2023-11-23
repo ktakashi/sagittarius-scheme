@@ -82,14 +82,14 @@
 (define (json-schema:not value context schema-path)
   (unless (or (json-schema? value))
     (assertion-violation 'json-schema:not "JSON Schema is required" value))
-  (let ((validator (schema-validator->core-validator
-		    (schema-context->schema-validator
-		     (make-schema-context value context) schema-path))))
+  (let* ((schema-context (make-schema-context value context))
+	 (validator (schema-validator->core-validator
+		     (schema-context->schema-validator
+		      schema-context schema-path))))
     (core-validator->reporting-validator
      (lambda (e ctx)
-       (let ((snapshot (validator-context:marks ctx e)))
-	 (validator-context:update-difference! ctx e snapshot
-					       (not (validator e ctx)))))
+       (validator-context:update-marks! ctx e schema-context
+					(not (validator e ctx))))
      schema-path)))
 
 ;; if-then-else is handled a bit differently from the other keywords.

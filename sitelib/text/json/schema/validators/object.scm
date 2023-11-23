@@ -86,14 +86,13 @@
     (lambda (e ctx)
       (define lint-mode? (validator-context-lint-mode? ctx))
       (or (not (vector? e))
-	  (and (validator-context:mark! ctx e context)
-	       (if lint-mode?
-		   (vector-fold
-		    (lambda (acc v)
-		      (and (check-entry e context v ctx properties) acc)) #t e)
-		   (vector-every
-		    (lambda (v) (check-entry e context v ctx properties))
-		    e)))))))
+	  (if lint-mode?
+	      (vector-fold
+	       (lambda (acc v)
+		 (and (check-entry e context v ctx properties) acc)) #t e)
+	      (vector-every
+	       (lambda (v) (check-entry e context v ctx properties))
+	       e))))))
 (define json-schema:properties (properties-handler "properties" #f))
 (define json-schema:pattern-properties
   (properties-handler "patternProperties" #t))
@@ -134,19 +133,17 @@
     (lambda (e ctx)
       (define lint-mode? (validator-context-lint-mode? ctx))
       (or (not (vector? e))
-	  (and (validator-context:mark! ctx e context)
-	       (if lint-mode?
-		   (fold-left
-		    (lambda (acc v)
-		      (validator-context:mark-element! ctx e v context
-		       (validator (cdr v)
-			(validator-context:add-path! ctx (car v)))))
-		    #t (filter-marked-items ctx context e))
-		   (for-all (lambda (v)
-			      (validator-context:mark-element! ctx e v context
-			       (validator (cdr v)
-				(validator-context:add-path! ctx (car v)))))
-			    (filter-marked-items ctx context e))))))))
+	  (if lint-mode?
+	      (fold-left
+	       (lambda (acc v)
+		 (validator-context:mark-element! ctx e v context
+		  (validator (cdr v) (validator-context:add-path! ctx (car v)))))
+	       #t (filter-marked-items ctx context e))
+	      (for-all (lambda (v)
+			 (validator-context:mark-element! ctx e v context
+			  (validator (cdr v) 
+				     (validator-context:add-path! ctx (car v)))))
+		       (filter-marked-items ctx context e)))))))
 
 (define (json-schema:additional-properties value context schema-path)
   (handle-extras 'json-schema:additional-properties
