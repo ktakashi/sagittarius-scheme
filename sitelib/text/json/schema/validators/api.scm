@@ -623,10 +623,11 @@
 	       ((validator schema-path schema-context)
 		(p validator schema-path schema-context))))))
 (define (schema-validator->core-validator schema-validator)
-  (define core-validator (schema-validator-validator schema-validator))
-  (define schema-path
-    (string-join
-     (reverse (schema-validator-schema-path schema-validator)) "/"))
+  (define schema-path (schema-validator-schema-path schema-validator))
+  (define reporting-validator
+    (core-validator->reporting-validator
+     (schema-validator-validator schema-validator) schema-path))
+  
   (define context (schema-validator-schema-context schema-validator))
   (define id (and (schema-context? context)
 		  (or (schema-context-schema-id context)
@@ -635,8 +636,7 @@
   (lambda (e ctx)
     (define pushed? (validator-context:push-scope! ctx id))
     (validator-context:push-schema! ctx schema)
-    (let ((r (core-validator e ctx)))
-      (unless r (validator-context:report! ctx e schema-path))
+    (let ((r (reporting-validator e ctx)))
       (validator-context:pop-schema! ctx)
       (when pushed? (validator-context:pop-scope! ctx))
       r)))

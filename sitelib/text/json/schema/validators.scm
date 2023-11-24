@@ -2,7 +2,7 @@
 ;;;
 ;;; text/json/schema/validators.scm - JSON schema validators
 ;;;
-;;;   Copyright (c) 2018-2021  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2018-2023  Takashi Kato  <ktakashi@ymail.com>
 ;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -29,8 +29,7 @@
 ;;;
 
 ;; reference:
-;; Draft-7: http://json-schema.org/
-;; TODO: follow the final version when published
+;; Draft-7, Draft 2019-09 and Draft 2020-12: http://json-schema.org/
 #!nounbound
 (library (text json schema validators)
     (export json-schema->json-validator
