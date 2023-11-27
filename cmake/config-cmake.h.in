@@ -87,6 +87,8 @@
 #cmakedefine SAGITTARIUS_PLATFORM "@SAGITTARIUS_PLATFORM@"
 #cmakedefine SAGITTARIUS_PROCESSOR "@SAGITTARIUS_PROCESSOR@"
 
+#cmakedefine PLATFORM_BIGENDIAN
+
 #ifdef _MSC_VER
 #define PRIdPTR     "Id"
 #endif
