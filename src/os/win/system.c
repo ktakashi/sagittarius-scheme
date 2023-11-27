@@ -938,11 +938,19 @@ static int fill_trace(EXCEPTION_POINTERS *ep, void **trace)
   ct = GetCurrentThread();
 
 #if defined(_WIN64)
+#  if defined(_M_ARM64)
+  machine_type = IMAGE_FILE_MACHINE_ARM64; /* found in winnt.h */
+  memset(&stack_frame, 0, sizeof(stack_frame));
+  stack_frame.AddrPC.Offset = cr.Pc;
+  stack_frame.AddrFrame.Offset = cr.Fp;
+  stack_frame.AddrStack.Offset = cr.Sp;
+#  else
   machine_type = IMAGE_FILE_MACHINE_AMD64;
   memset(&stack_frame, 0, sizeof(stack_frame));
   stack_frame.AddrPC.Offset = cr.Rip;
   stack_frame.AddrFrame.Offset = cr.Rbp;
   stack_frame.AddrStack.Offset = cr.Rsp;
+#  endif
 #else
   machine_type = IMAGE_FILE_MACHINE_I386;
   memset(&stack_frame, 0, sizeof(stack_frame));

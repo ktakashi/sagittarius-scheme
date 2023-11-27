@@ -339,6 +339,11 @@ void Sg_ExitThread(SgInternalThread *thread, void *ret)
 #define WIN_STCKPTR(ctx)  ((ctx).Rsp)
 #endif
 
+#if defined(_M_ARM64) || defined(_M_ARM)
+#define WIN_PROGCTR(ctx)  ((ctx).Pc)
+#define WIN_STCKPTR(ctx)  ((ctx).Sp)
+#endif
+
 #if !defined(WIN_PROGCTR)
 #error Module contains CPU-specific code; modify and recompile.
 #endif

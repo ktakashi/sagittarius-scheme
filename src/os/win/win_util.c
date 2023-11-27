@@ -39,14 +39,12 @@
 #define W_OK 2
 #define R_OK 4
 
-#include "../../shortnames.incl"
-
 /* from mosh */
 static const wchar_t* utf32ToUtf16(SgString *path)
 {
   int size = SG_STRING_SIZE(path);
   SgCodec *codec = Sg_MakeUtf16Codec(UTF_16LE);
-  SgTranscoder *tcoder = Sg_MakeTranscoder(codec, LF, SG_REPLACE_ERROR);
+  SgTranscoder *tcoder = Sg_MakeTranscoder(codec, SG_EOL_STYLE_LF, SG_REPLACE_ERROR);
   SgPort *out, *tout;
   SgBytePort bp;
   SgTranscodedPort tp;

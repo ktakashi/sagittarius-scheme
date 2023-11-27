@@ -51,6 +51,12 @@ typedef long suseconds_t;
 # ifdef EPIPE
 #  undef EPIPE
 # endif
+# ifdef EINPROGRESS
+#  undef EINPROGRESS
+# endif
+# ifdef ETIMEDOUT
+#  undef ETIMEDOUT
+# endif
 # define EINTR  WSAEINTR
 # define EAGAIN WSATRY_AGAIN
 # define EWOULDBLOCK WSAEWOULDBLOCK
