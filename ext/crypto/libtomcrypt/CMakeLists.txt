@@ -256,6 +256,14 @@ ADD_LIBRARY(libtomcrypt STATIC
   src/misc/pkcs12/pkcs12_kdf.c
   )
 
+IF (CMAKE_C_COMPILER_ID STREQUAL "Clang" OR
+    CMAKE_COMPILER_IS_GNUCC OR
+    CMAKE_COMPILER_IS_GNUCXX)
+  # Seems clang on GitHub Actions doesn't like not to have this
+  SET(CMAKE_C_FLAGS "-maes ${CMAKE_C_FLAGS}")
+  SET(CMAKE_CXX_FLAGS "-maes ${CMAKE_CXX_FLAGS}")
+ENDIF()
+  
 TARGET_COMPILE_DEFINITIONS(libtomcrypt PUBLIC LTC_NO_TEST ARGTYPE=4)
 
 IF (WIN32)
