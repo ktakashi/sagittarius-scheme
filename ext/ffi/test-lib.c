@@ -42,9 +42,12 @@ EXPORT int add(int x, int y)
   return x + y;
 }
 
+
 static void quicksort_(uintptr_t base,const size_t num,const size_t size,
-		       void *temp,int (*compare)(const void *,const void *))
+		       void *temp,int (*cmp)(const void *,const void *))
 {
+#define compare(a, b) cmp((void *)(a), (void *)(b))
+#define memcpy_(a, b, c) memcpy((void *)(a), (void *)(b), (c))
   size_t pivot = 0,first2last = 0,last2first = num-1;
   while(pivot+1 != num && !compare(base+size*pivot,base+size*(pivot+1))){
     pivot++;
@@ -68,13 +71,15 @@ static void quicksort_(uintptr_t base,const size_t num,const size_t size,
       if(pivot == first2last || pivot == last2first){
 	pivot = pivot^last2first^first2last;
       }
-      memcpy(temp,base+size*first2last,size);
-      memcpy(base+size*first2last,base+size*last2first,size);
-      memcpy(base+size*last2first,temp,size);
+      memcpy_(temp,base+size*first2last,size);
+      memcpy_(base+size*first2last,base+size*last2first,size);
+      memcpy_(base+size*last2first,temp,size);
     }
   }
-  quicksort_(base,first2last,size,temp,compare);
-  quicksort_(base+size*first2last,num-first2last,size,temp,compare);
+  quicksort_(base,first2last,size,temp,cmp);
+  quicksort_(base+size*first2last,num-first2last,size,temp,cmp);
+#undef compare
+#undef memcpy_
 }
 
 EXPORT int quicksort(void *base, const size_t num, const size_t size,
@@ -202,7 +207,15 @@ extern EXPORT int     *pointer[10];
 int     var = 0;
 char    *c_var = "test char";
 wchar_t *wc_var = L"test wchar";
-int     *pointer[10] = {1, 2, 3, 4, 5, 6, 7, 8, 9}; 
+int     *pointer[10] = {(int *)1,
+			(int *)2,
+			(int *)3,
+			(int *)4,
+			(int *)5,
+			(int *)6,
+			(int *)7,
+			(int *)8,
+			(int *)9}; 
 
 int main(void)
 {
