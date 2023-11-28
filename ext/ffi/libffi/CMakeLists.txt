@@ -42,8 +42,17 @@ CHECK_C_SOURCE_COMPILES("int main() { asm (\" .register %g2, #scrach \"); return
   HAVE_AS_REGISTER_PSEUDO_OP)
 
 if (MSVC)
-  message(STATUS "Using MSVS MASM")
-  enable_language(ASM_MASM)
+  # This requires CMake 3.26+, though ARM Windows is only Windows 11 and
+  # VS 2022 is bundled with CMake 3.27, so shouldn't be any problem
+  # (at least for my usage)
+  if (${SAGITTARIUS_PROCESSOR} STREQUAL "arm64")
+    message(STATUS "Using MSVC ARM MASM")
+    set(ASM_LANGUAGE ASM_MARMASM)
+  else()
+    message(STATUS "Using MSVC MASM")
+    set(ASM_LANGUAGE ASM_MASM)
+  endif()
+  enable_language(${ASM_LANGUAGE})
   # somehow cmake failed to invoke try_comple.
   set(asm_file_ext ".asm")
 else()
@@ -57,25 +66,27 @@ if (NOT MSVC)
   set_property (SOURCE ${conftest_asm_file} PROPERTY LANGUAGE C)
 endif()
 
-FILE(WRITE ${conftest_asm_file}
-  ".text; foo: nop; .data; .long foo-.; .text\n")
-set(libffi_cv_as_x86_pcrel "yes")
-TRY_COMPILE(libffi_cv_as_x86_pcrel
-  ${CMAKE_BINARY_DIR} ${conftest_asm_file}
-  CMAKE_FLAGS "-c"
-  OUTPUT_VARIABLE output)
-# above complation always fail because of lack of main.
-# so just check the warning.
-if (${output} MATCHES "illegal|warning")
-  set(libffi_cv_as_x86_pcrel "no")
-else()
+if (${SAGITTARIUS_PROCESSOR} MATCHES "^i.86"
+    OR ${SAGITTARIUS_PROCESSOR} STREQUAL "x86")
+  FILE(WRITE ${conftest_asm_file}
+    ".text; foo: nop; .data; .long foo-.; .text\n")
   set(libffi_cv_as_x86_pcrel "yes")
+  TRY_COMPILE(libffi_cv_as_x86_pcrel
+    ${CMAKE_BINARY_DIR} ${conftest_asm_file}
+    CMAKE_FLAGS "-c"
+    OUTPUT_VARIABLE output)
+  # above complation always fail because of lack of main.
+  # so just check the warning.
+  if (${output} MATCHES "illegal|warning")
+    set(libffi_cv_as_x86_pcrel "no")
+  else()
+    set(libffi_cv_as_x86_pcrel "yes")
+  endif()
+  message(STATUS "Platform has x86 pcrel ... ${libffi_cv_as_x86_pcrel}")
+  if (${libffi_cv_as_x86_pcrel} STREQUAL "yes")
+    set(HAVE_AS_X86_PCREL 1)
+  endif()
 endif()
-message(STATUS "Platform has x86 pcrel ... ${libffi_cv_as_x86_pcrel}")
-if (${libffi_cv_as_x86_pcrel} STREQUAL "yes")
-  set(HAVE_AS_X86_PCREL 1)
-endif()
-
 set(EH_FRAME_FLAGS "aw")
 
 # we know this.
@@ -216,9 +227,8 @@ else ()
       set(msvc_asm_file "${asm_path}/${asm_name}.asm")
       set(msvc_asm_files "${msvc_asm_files}${msvc_asm_file}")
       SET_SOURCE_FILES_PROPERTIES(${msvc_asm_file}
-	PROPERTIES
-	LANGUAGE ASM_MASM
-	)
+	PROPERTIES LANGUAGE ${ASM_LANGUAGE}
+      )
       # generate target to generate asm file
       set(custom_target_name "gen_${asm_name}_asm")
       file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${asm_path}")
@@ -245,14 +255,26 @@ else ()
 #    set(libffi_platform_asm ${msvc_asm_files})
 #  endif()
 
+  set(libffi_asm_source ${libffi_platform_asm})
+
   set(libffi_source
     ${libffi_platform_source}
     ${libffi_platform_asm}
-    src/debug.c src/prep_cif.c src/types.c
+    src/debug.c src/prep_cif.c src/types.c src/tramp.c src/dlmalloc.c
     src/raw_api.c src/java_raw_api.c src/closures.c)
 
   add_library(libffi STATIC ${libffi_source})
 
+  if (${TARGET} STREQUAL "ARM64_WIN64")
+    get_directory_property(TMP_C_DEFINES COMPILE_DEFINITIONS)
+    message(STATUS "Remove ASM_MARMASM definitions: ${TMP_C_DEFINES} [workaround]")
+    set_directory_properties(PROPERTIES COMPILE_DEFINITIONS "")
+    target_compile_definitions(libffi
+      PRIVATE $<$<COMPILE_LANGUAGE:C>: ${TMP_C_DEFINES} -DFFI_BUILDING>
+              $<$<COMPILE_LANGUAGE:CXX>: ${TMP_C_DEFINES} -DFFI_BUILDING>
+    )
+  endif()
+  
 #  if (MSVC)
 #    foreach(target ${custom_targets})
 #      add_dependencies(libffi ${target})
