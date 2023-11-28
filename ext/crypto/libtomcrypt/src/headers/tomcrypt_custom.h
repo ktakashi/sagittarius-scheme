@@ -179,7 +179,9 @@
 #define LTC_RC6
 #define LTC_SAFERP
 #define LTC_RIJNDAEL
-#define LTC_AES_NI
+#ifndef LTC_NO_AES_NI
+   #define LTC_AES_NI
+#endif
 #define LTC_XTEA
 /* _TABLES tells it to use tables during setup, _SMALL means to use the smaller scheduled key format
  * (saves 4KB of ram), _ALL_TABLES enables all tables during setup */
@@ -333,11 +335,14 @@
 /* Greg's SOBER128 stream cipher based PRNG */
 #define LTC_SOBER128
 
+#if !defined(_WIN32) && !defined(_WIN32_WCE)
 /* the *nix style /dev/random device */
 #define LTC_DEVRANDOM
 /* try /dev/urandom before trying /dev/random
  * are you sure you want to disable this? http://www.2uo.de/myths-about-urandom/ */
 #define LTC_TRY_URANDOM_FIRST
+#endif /* not Windows */
+
 /* rng_get_bytes() */
 #define LTC_RNG_GET_BYTES
 /* rng_make_prng() */
