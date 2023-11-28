@@ -271,6 +271,7 @@ else ()
     src/debug.c src/prep_cif.c src/types.c src/tramp.c src/dlmalloc.c
     src/raw_api.c src/java_raw_api.c src/closures.c)
 
+  add_definitions(-DFFI_BUILDING)
   add_library(libffi STATIC ${libffi_source})
 
   if (${TARGET} STREQUAL "ARM64_WIN64")
@@ -278,8 +279,8 @@ else ()
     message(STATUS "Remove ASM_MARMASM definitions: ${TMP_C_DEFINES} [workaround]")
     set_directory_properties(PROPERTIES COMPILE_DEFINITIONS "")
     target_compile_definitions(libffi
-      PRIVATE $<$<COMPILE_LANGUAGE:C>: ${TMP_C_DEFINES} -DFFI_BUILDING>
-              $<$<COMPILE_LANGUAGE:CXX>: ${TMP_C_DEFINES} -DFFI_BUILDING>
+      PRIVATE $<$<COMPILE_LANGUAGE:C>: ${TMP_C_DEFINES}>
+              $<$<COMPILE_LANGUAGE:CXX>: ${TMP_C_DEFINES}>
     )
   endif()
   
