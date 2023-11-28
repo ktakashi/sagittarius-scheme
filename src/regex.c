@@ -296,7 +296,7 @@ static SgChar get_control_letter(lexer_ctx_t *ctx)
       return r - 'A' + 1;
     }
   }
-  raise_syntax_error(ctx, ctx->pos, UC("Control characters require \c[a-zA-Z]"));
+  raise_syntax_error(ctx, ctx->pos, UC("Control characters require \\c[a-zA-Z]"));
 }
 
 /* I forgot to make ustrchr in unicode.c */
