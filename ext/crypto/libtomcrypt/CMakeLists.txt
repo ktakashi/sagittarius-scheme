@@ -259,9 +259,14 @@ ADD_LIBRARY(libtomcrypt STATIC
 IF (CMAKE_C_COMPILER_ID STREQUAL "Clang" OR
     CMAKE_COMPILER_IS_GNUCC OR
     CMAKE_COMPILER_IS_GNUCXX)
-  # Seems clang on GitHub Actions doesn't like not to have this
-  SET(CMAKE_C_FLAGS "-maes ${CMAKE_C_FLAGS}")
-  SET(CMAKE_CXX_FLAGS "-maes ${CMAKE_CXX_FLAGS}")
+  IF (CMAKE_SYSTEM_PROCESSOR MATCHES "^I.86" OR
+      CMAKE_SYSTEM_PROCESSOR STREQUAL "X86" OR
+      CMAKE_SYSTEM_PROCESSOR STREQUAL "X86_64")
+    MESSAGE(STATUS "Adding -maes")
+    # Seems clang on GitHub Actions doesn't like not to have this
+    SET(CMAKE_C_FLAGS "-maes ${CMAKE_C_FLAGS}")
+    SET(CMAKE_CXX_FLAGS "-maes ${CMAKE_CXX_FLAGS}")
+  ENDIF()
 ENDIF()
   
 TARGET_COMPILE_DEFINITIONS(libtomcrypt PUBLIC LTC_NO_TEST ARGTYPE=4)
