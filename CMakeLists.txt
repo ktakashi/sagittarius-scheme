@@ -609,9 +609,26 @@ FILE(WRITE "${PROJECT_BINARY_DIR}/.sagittarius-sitetestrc"
 SET(SHELL $ENV{SHELL})
 IF (WIN32 AND SHELL STREQUAL "")
   SET(CACHE_EXPR "(import(inlined-cache))(exit)")
+  SET(EXIT_EXPR "(exit)")
 ELSE ()
   SET(CACHE_EXPR "'(import(inlined-cache))(exit)'")
+  SET(EXIT_EXPR "'(exit)'")
 ENDIF()
+
+INCLUDE(CTest)
+
+SET(TEST_COMMAND
+  ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME}
+  -D${PROJECT_BINARY_DIR}/build
+  -D${PROJECT_BINARY_DIR}/build/modules
+  -L${PROJECT_SOURCE_DIR}
+  -L${PROJECT_SOURCE_DIR}/lib
+  -L${PROJECT_SOURCE_DIR}/sitelib
+  -L${PROJECT_SOURCE_DIR}/ext/*
+  -L${PROJECT_SOURCE_DIR}/test/lib
+  -L${PROJECT_SOURCE_DIR}/test/r6rs-test-suite
+  -L${PROJECT_SOURCE_DIR}/test/r7rs-tests)
+SET(TEST_DIR ${PROJECT_SOURCE_DIR}/test)
 
 ADD_CUSTOM_TARGET(prepare-cache-test
   COMMAND ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME}
@@ -619,78 +636,71 @@ ADD_CUSTOM_TARGET(prepare-cache-test
 	  -D${PROJECT_BINARY_DIR}/build/modules
 	  -L${PROJECT_SOURCE_DIR}/test/lib
 	  -e ${CACHE_EXPR})
-ADD_CUSTOM_TARGET(test
-  DEPENDS prepare-cache-test
-  COMMAND ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME}
-          -D${PROJECT_BINARY_DIR}/build
-	  -D${PROJECT_BINARY_DIR}/build/modules
-	  -L${PROJECT_SOURCE_DIR}
-	  -L${PROJECT_SOURCE_DIR}/lib
-	  -L${PROJECT_SOURCE_DIR}/sitelib
-	  -L${PROJECT_SOURCE_DIR}/test/lib
-	  -fno-backtrace
-	  ${PROJECT_SOURCE_DIR}/run-test.scm
+ADD_TEST(NAME r6rs
+  COMMAND ${TEST_COMMAND} ${TEST_DIR}/r6rs-test-suite/tests/r6rs/run.sps
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
-ADD_CUSTOM_TARGET(test-clean
-  # DEPENDS prepare-cache-test it's useless...
-  COMMAND ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME} -c
-          -D${PROJECT_BINARY_DIR}/build
-	  -D${PROJECT_BINARY_DIR}/build/modules
-	  -L${PROJECT_SOURCE_DIR}
-	  -L${PROJECT_SOURCE_DIR}/lib
-	  -L${PROJECT_SOURCE_DIR}/sitelib
-	  -L${PROJECT_SOURCE_DIR}/test/lib
-	  -fno-backtrace
-	  ${PROJECT_SOURCE_DIR}/run-test.scm
+SET_PROPERTY(TEST r6rs PROPERTY FAIL_REGULAR_EXPRESSION "tests failed")
+SET_PROPERTY(TEST r6rs PROPERTY ENVIRONMENT CTEST_OUTPUT_ON_FAILURE=ON)
+
+ADD_TEST(NAME r7rs0
+  COMMAND ${TEST_COMMAND} ${TEST_DIR}/r7rs-tests/tests/r7rs/run.scm
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
-ADD_CUSTOM_TARGET(test-ext
-  COMMAND ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME}
-          -D${PROJECT_BINARY_DIR}/build
-	  -D${PROJECT_BINARY_DIR}/build/modules
-	  -L${PROJECT_SOURCE_DIR}
-	  -L${PROJECT_SOURCE_DIR}/lib
-	  -L${PROJECT_SOURCE_DIR}/sitelib
-	  -L${PROJECT_SOURCE_DIR}/test/lib
-	  -fno-backtrace
-	  ${PROJECT_SOURCE_DIR}/run-test.scm ext
+SET_PROPERTY(TEST r7rs0 PROPERTY FAIL_REGULAR_EXPRESSION "tests failed")
+SET_PROPERTY(TEST r7rs0 PROPERTY
+  ENVIRONMENT R7RS_TEST=OK CTEST_OUTPUT_ON_FAILURE=ON)
+
+ADD_TEST(NAME r7rs
+  COMMAND ${TEST_COMMAND} ${TEST_DIR}/r7rs-tests/r7rs-tests.scm
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
-ADD_CUSTOM_TARGET(test-site-s
-  DEPENDS prepare-cache-test
-  COMMAND ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME}
-          -D${PROJECT_BINARY_DIR}/build
-	  -D${PROJECT_BINARY_DIR}/build/modules
-	  -L${PROJECT_SOURCE_DIR}
-	  -L${PROJECT_SOURCE_DIR}/lib
-	  -L${PROJECT_SOURCE_DIR}/sitelib
-	  -L${PROJECT_SOURCE_DIR}/test/lib
-	  -fno-backtrace
-	  ${PROJECT_SOURCE_DIR}/run-test.scm sitelib-s
-  WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+SET_PROPERTY(TEST r7rs PROPERTY FAIL_REGULAR_EXPRESSION "failure")
+SET_PROPERTY(TEST r7rs PROPERTY ENVIRONMENT CTEST_OUTPUT_ON_FAILURE=ON)
+
+# Adding sitelib tests
+FILE(GLOB_RECURSE TEST_FILES CONFIGURE_DEPENDS
+  "test/tests/*.scm" "test/tests/**/*.scm")
+FOREACH(TEST_FILE ${TEST_FILES})
+  STRING(REPLACE "${PROJECT_SOURCE_DIR}/test/tests/" "" TEST_TARGET ${TEST_FILE})
+  ADD_TEST(NAME ${TEST_TARGET}
+    COMMAND ${TEST_COMMAND} -L${PROJECT_BINARY_DIR}/test/data ${TEST_FILE}
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+  SET_PROPERTY(TEST ${TEST_TARGET} PROPERTY FAIL_REGULAR_EXPRESSION "FAIL")
+  SET_PROPERTY(TEST ${TEST_TARGET}
+    PROPERTY ENVIRONMENT CTEST_OUTPUT_ON_FAILURE=ON)
+  # 60s is enough right?
+  SET_PROPERTY(TEST ${TEST_TARGET} PROPERTY TIMEOUT 60)
+ENDFOREACH()
+
+# Adding ext tests
+# Maybe we should put them in CMakeLists.txt of ext modules
+SET(EXT_WORKAROUND
+  "(define build-directory-path \"${PROJECT_BINARY_DIR}/build\")")
+FILE(GLOB TEST_FILES CONFIGURE_DEPENDS "ext/*/test.scm")
+FOREACH(TEST_FILE ${TEST_FILES})
+  STRING(REGEX MATCH "ext/([^/]+)/test.scm" IGNORE ${TEST_FILE})
+  SET(TEST_TARGET ${CMAKE_MATCH_1})
+  ADD_TEST(NAME ${TEST_TARGET}
+    COMMAND ${TEST_COMMAND} 
+            -L${PROJECT_BINARY_DIR}/ext 
+	    -e ${EXT_WORKAROUND}
+	    ${TEST_FILE}
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/ext)
+  SET_PROPERTY(TEST ${TEST_TARGET} PROPERTY FAIL_REGULAR_EXPRESSION "FAIL")
+  SET_PROPERTY(TEST ${TEST_TARGET}
+    PROPERTY ENVIRONMENT CTEST_OUTPUT_ON_FAILURE=ON)
+ENDFOREACH()
+
 ADD_CUSTOM_TARGET(clone-json-tests
   COMMAND stat JSON-Schema-Test-Suite > /dev/null || git clone https://github.com/json-schema-org/JSON-Schema-Test-Suite.git
   COMMAND stat jmespath.test > /dev/null || git clone https://github.com/jmespath/jmespath.test.git
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/test)
-ADD_CUSTOM_TARGET(test-jsons
-  DEPENDS clone-json-tests
-  COMMAND ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME}
-          -D${PROJECT_BINARY_DIR}/build
-	  -D${PROJECT_BINARY_DIR}/build/modules
-	  -L${PROJECT_SOURCE_DIR}
-	  -L${PROJECT_SOURCE_DIR}/lib
-	  -L${PROJECT_SOURCE_DIR}/sitelib
-	  -L${PROJECT_SOURCE_DIR}/ext/*
-	  -L${PROJECT_SOURCE_DIR}/test/r7rs-tests
-	  ${PROJECT_SOURCE_DIR}/test/json-schema-tests.scm
-  COMMAND ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME}
-          -D${PROJECT_BINARY_DIR}/build
-	  -D${PROJECT_BINARY_DIR}/build/modules
-	  -L${PROJECT_SOURCE_DIR}
-	  -L${PROJECT_SOURCE_DIR}/lib
-	  -L${PROJECT_SOURCE_DIR}/sitelib
-	  -L${PROJECT_SOURCE_DIR}/ext/*
-	  -L${PROJECT_SOURCE_DIR}/test/r7rs-tests
-	  ${PROJECT_SOURCE_DIR}/test/jmespath-tests.scm
-  WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/test)
+ADD_TEST(NAME jsonschema
+  COMMAND ${TEST_COMMAND} ${PROJECT_SOURCE_DIR}/test/json-schema-tests.scm
+  WORKING_DIRECTORY WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+SET_PROPERTY(TEST jsonschema PROPERTY DEPENDS clone-json-tests)
+ADD_TEST(NAME jmespath
+  COMMAND ${TEST_COMMAND} ${PROJECT_SOURCE_DIR}/test/jmespath-tests.scm
+  WORKING_DIRECTORY WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+SET_PROPERTY(TEST jmespath PROPERTY DEPENDS clone-json-tests)
 
 # This can be removed but may be convenient to run this with
 #  $ make update-tz
@@ -727,13 +737,8 @@ ADD_CUSTOM_TARGET(update-tz
   COMMAND ${TZ_UPDATE}
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 # clearing cache
-IF (WIN32)
-  SET(EXIT_EXPR "(exit)")
-ELSE ()
-  SET(EXIT_EXPR "'(exit)'")
-ENDIF()
 ADD_CUSTOM_TARGET(clear-cache
-  COMMAND ${INVOKE} ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME} -c -e ${EXIT_EXPR}
+  COMMAND ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME} -c -e ${EXIT_EXPR}
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 
 ADD_SUBDIRECTORY(doc doc)
