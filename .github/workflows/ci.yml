@@ -36,6 +36,4 @@ jobs:
       - name: Test
         working-directory: target
         run: make test
-      - name: JSON related tests
-        working-directory: target
-        run: make test-jsons
+

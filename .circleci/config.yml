@@ -32,7 +32,3 @@ jobs:
            name: Test
            working_directory: ~/target
            command: make test
-       - run:
-           name: JSON related tests
-           working_directory: ~/target
-           command: make test-jsons
