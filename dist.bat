@@ -18,7 +18,7 @@ rem insn
 :insn
 echo "Generating instructions files"
 cd src
-call :invoke geninsn %1
+%SASH% geninsn %1
 cd ..
 goto:eof
 
@@ -26,14 +26,14 @@ rem precomp
 :precomp
 echo "Generating compiled library files"
 cd src
-call :invoke genlib %1
+%SASH% genlib %1
 cd ..
 call :insn dummy %1
 cd tools\scripts
 echo "Generating builtin keywords"
-call :invoke builtin-keywords.scm
+%SASH% builtin-keywords.scm
 echo "Generating builtin symbols"
-call :invoke builtin-symbols.scm
+%SASH% builtin-symbols.scm
 cd  ..\..
 goto:eof
 
@@ -41,31 +41,31 @@ rem stub
 :stub
 echo "Generating library from stub"
 cd src
-call :invoke genstub %1
+%SASH% genstub %1
 cd ..
 goto:eof
 
 rem srfi
 :srfi
 echo Generating R7RS style SRFI libraries
-call :invoke -L./sitelib ./tools/scripts/r7rs-srfi-gen.scm -p ./ext -p ./sitelib/srfi %1
+%SASH% -L./sitelib ./tools/scripts/r7rs-srfi-gen.scm -p ./ext -p ./sitelib/srfi %1
 goto:eof
 
 rem tzdata
 :tz
 echo "Generating TZ database"
-call :invoke ./tools/scripts/compile-tzdatabase.scm -o ext/time/sagittarius/tzdata.scm -w ext/time/sagittarius/win-mappings.scm -l ext/time/sagittarius/leap-table.scm -r %1
+%SASH% ./tools/scripts/compile-tzdatabase.scm -o ext/time/sagittarius/tzdata.scm -w ext/time/sagittarius/win-mappings.scm -l ext/time/sagittarius/leap-table.scm -r %1
 goto:eof
 
 rem unicode
 :unicode
 echo "Generating Unicode codepoints"
-call :invoke ./tools/scripts/compile-unicode.scm %1
+%SASH% ./tools/scripts/compile-unicode.scm %1
 
 if "%1" == "-c" goto:unicode_end
 
 md sitelib\sagittarius\char-sets
-call :invoke ./tools/scripts/extract-unicode-props.scm^
+%SASH% ./tools/scripts/extract-unicode-props.scm^
             -l"(sagittarius char-sets grapheme)"^
 	    -o sitelib/sagittarius/char-sets/grapheme.scm^
 	    --derived unicode/data/GraphemeBreakProperty.txt^
@@ -73,7 +73,7 @@ call :invoke ./tools/scripts/extract-unicode-props.scm^
 	    extend-or-spacing-mark=Extend,SpacingMark Regional_Indicator^
 	    hangul-l=:L hangul-v=:V hangul-t=:T hangul-lv=:LV hangul-lvt=:LVT
 
-call :invoke ./tools/scripts/extract-unicode-props.scm^
+%SASH% ./tools/scripts/extract-unicode-props.scm^
             -l"(sagittarius char-sets word)"^
 	    -o sitelib/sagittarius/char-sets/word.scm^
 	    --derived unicode/data/WordBreakProperty.txt^
@@ -82,7 +82,7 @@ call :invoke ./tools/scripts/extract-unicode-props.scm^
 	    mid-letter=MidLetter mid-num=MidNum Numeric^
 	    extend-num-let=ExtendNumLet w-seg-space=WSegSpace
 
-call :invoke ./tools/scripts/extract-unicode-props.scm^
+%SASH% ./tools/scripts/extract-unicode-props.scm^
 	      -l"(sagittarius char-sets emojis)"^
 	      -o sitelib/sagittarius/char-sets/emojis.scm^
 	      --derived unicode/data/emoji-data.txt^
@@ -96,7 +96,7 @@ goto:eof
 rem html
 :html
 echo "Generating HTML entities"
-call :invoke ./tools/scripts/html-entities.scm -o sitelib/text/xml/entities-list.scm %1
+%SASH% ./tools/scripts/html-entities.scm -o sitelib/text/xml/entities-list.scm %1
 goto:eof
 
 rem gen
