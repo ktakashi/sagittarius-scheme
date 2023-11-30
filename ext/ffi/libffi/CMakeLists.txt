@@ -200,7 +200,7 @@ else ()
     file(COPY src/x86/ffitarget.h
          DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/include)
   elseif (${TARGET} STREQUAL "X86_WIN64")
-    set(libffi_platform_source src/x86/ffi.c)
+    set(libffi_platform_source src/x86/ffiw64.c)
     if (MSVC)
       set(libffi_platform_asm src/x86/win64_intel.S)
     else()

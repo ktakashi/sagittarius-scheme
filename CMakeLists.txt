@@ -715,10 +715,10 @@ ADD_CUSTOM_TARGET(check COMMAND ${CMAKE_CTEST_COMMAND})
 # instead of
 #  $ ./dist.sh tz
 # to update timezone databese.
-IF (MSVC)
-  # our famous appveyor wrapper...
-  SET(INVOKE ${PROJECT_SOURCE_DIR}/win/invoke.bat)
-ENDIF()
+# IF (MSVC)
+#   # our famous appveyor wrapper...
+#   SET(INVOKE ${PROJECT_SOURCE_DIR}/win/invoke.bat)
+# ENDIF()
 SET(TZ_UPDATE ${INVOKE}
   ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME}
   -D${PROJECT_BINARY_DIR}/build
