@@ -31,4 +31,4 @@ jobs:
        - run:
            name: Test
            working_directory: ~/target
-           command: make test
+           command: ctest -V

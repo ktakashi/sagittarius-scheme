@@ -35,5 +35,5 @@ jobs:
         run: make
       - name: Test
         working-directory: target
-        run: make test
+        run: ctest -V
 
