@@ -46,7 +46,7 @@ jobs:
             arch: x86_amd64
     steps:
       - name: Checkout
-        uses: actions/checkout@4
+        uses: actions/checkout@v4
         with:
           path: target
       - name: Install current sagittarius
