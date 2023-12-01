@@ -224,9 +224,6 @@ else ()
     file(COPY src/x86/ffitarget.h
          DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/include)
   endif()
-
-  file(READ ${CMAKE_CURRENT_BINARY_DIR}/include/ffi.h TMP_CONTENT)
-  message(status "ffi.h\n${TMP_CONTENT}")
   
   foreach(asm_file ${libffi_platform_asm})
     if (MSVC)
