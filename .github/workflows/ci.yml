@@ -56,7 +56,8 @@ jobs:
         shell: powershell
       - name: Debug (dump setup.log)
         run: |
-          type \tmp\setu.log
+          dir \tmp
+          type \tmp\setup.log
         shell: cmd
       - name: Setup MSVC
         run: |
