@@ -54,11 +54,6 @@ jobs:
         run: |
           .\.ci\install-current.ps1
         shell: powershell
-      - name: Debug (dump setup.log)
-        run: |
-          dir \tmp
-          type \tmp\setup.log
-        shell: cmd
       - name: Setup MSVC
         run: |
           "${{ matrix.images.path }}\VC\Auxiliary\Build\vcvarsall.bat" ${{ matrix.images.arch }}
@@ -67,7 +62,11 @@ jobs:
         working-directory: target
         run: |
           dist.bat gen
-          cmake .
+        shell: cmd
+      - name: CMake
+        working-directory: target
+        run: |
+          cmake . -G "NMake Makefiles" -DDEBUG_VERSION=OFF
         shell: cmd
       - name: Build
         working-directory: target
