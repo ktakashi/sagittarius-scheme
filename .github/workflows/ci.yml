@@ -55,7 +55,7 @@ jobs:
         shell: powershell
       - name: Setup MSVC
         run: |
-          "${{ matrix.images.path }}\VC\Auxiliary\Build\vcvarsall.bat" ${{ matric.images.arch }}
+          "${{ matrix.images.path }}\VC\Auxiliary\Build\vcvarsall.bat" ${{ matrix.images.arch }}
         shell: cmd
       - name: Pre build
         working-directory: target
