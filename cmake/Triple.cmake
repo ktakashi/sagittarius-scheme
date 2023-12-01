@@ -34,32 +34,45 @@ MACRO (TRIPLE _PROCESSOR _PLATFORM _OS _VENDOR _TRIPLE)
     CHECK_TYPE_SIZE(void* SIZEOF_VOIDP)
   ENDIF()
 
-  # the code based on clang GetTriple.cmake
-  IF (${_PROCESSOR} STREQUAL "x86")
-    # CMake somehow does not detect proper processor on win64
-    IF (SIZEOF_VOIDP EQUAL 4)
-      SET(${_PROCESSOR} "i686")
-    ELSE()
-      # assume it's x86_64
+  # For MSVC cross compiler
+  IF (MSVC)
+    # Checking C compiler must be enough for our use case
+    MESSAGE(STATUS "MSVC architecture: ${MSVC_C_ARCHITECTURE_ID}")
+    IF (MSVC_C_ARCHITECTURE_ID MATCHES "^ARM")
+      STRING(TOLOWER ${MSVC_C_ARCHITECTURE_ID} ${_PROCESSOR})
+    ELSEIF(MSVC_C_ARCHITECTURE_ID STREQUAL "x64")
       SET(${_PROCESSOR} "x86_64")
-    ENDIF()
-  ENDIF()
-
-  # on 64 bit Linux but trying to compile with 32 bit
-  # CMake does not pretend to be 32 bit archtecture.
-  # We need to modify it manually
-  IF (${_PROCESSOR} STREQUAL "x86_64")
-    IF (SIZEOF_VOIDP EQUAL 4)
+    ELSE()
       SET(${_PROCESSOR} "i686")
     ENDIF()
-  ENDIF()
-
-  # On Windows, if CMake works properly, the value must be this.
-  IF (${_PROCESSOR} STREQUAL "amd64")
-    IF (SIZEOF_VOIDP EQUAL 4)
-      SET(${_PROCESSOR} "i686")
-    ELSE()
-      SET(${_PROCESSOR} "x86_64")
+  ELSE()
+    # the code based on clang GetTriple.cmake
+    IF (${_PROCESSOR} STREQUAL "x86")
+      # CMake somehow does not detect proper processor on win64
+      IF (SIZEOF_VOIDP EQUAL 4)
+	SET(${_PROCESSOR} "i686")
+      ELSE()
+	# assume it's x86_64
+	SET(${_PROCESSOR} "x86_64")
+      ENDIF()
+    ENDIF()
+    
+    # on 64 bit Linux but trying to compile with 32 bit
+    # CMake does not pretend to be 32 bit archtecture.
+    # We need to modify it manually
+    IF (${_PROCESSOR} STREQUAL "x86_64")
+      IF (SIZEOF_VOIDP EQUAL 4)
+	SET(${_PROCESSOR} "i686")
+      ENDIF()
+    ENDIF()
+    
+    # On Windows, if CMake works properly, the value must be this.
+    IF (${_PROCESSOR} STREQUAL "amd64")
+      IF (SIZEOF_VOIDP EQUAL 4)
+	SET(${_PROCESSOR} "i686")
+      ELSE()
+	SET(${_PROCESSOR} "x86_64")
+      ENDIF()
     ENDIF()
   ENDIF()
 

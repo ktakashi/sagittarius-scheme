@@ -162,8 +162,6 @@ elseif (${arch} STREQUAL "arm64")
   endif()
 endif()
 
-add_definitions(-D${TARGET})
-
 if (${TARGET} STREQUAL "X86_DARWIN")
 # It may be on all x86_64 architectures HAVE_LONG_DOUBLE must be 1, mustn't it?
 #if (${arch} STREQUAL "x86_64")
@@ -176,9 +174,9 @@ if (${TARGETDIR} STREQUAL "unknown")
   message(STATUS "custom libffi has not been ported to ${host}")
 else ()
   configure_file(cmake/ffi.h.in ${CMAKE_CURRENT_BINARY_DIR}/include/ffi.h)
-  configure_file(cmake/fficonfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/fficonfig.h)
+  configure_file(cmake/fficonfig.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/include/fficonfig.h)
 
-  include_directories(${CMAKE_CURRENT_BINARY_DIR})
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 
