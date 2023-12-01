@@ -5,7 +5,7 @@ on:
     branches: [ master ]
 
 jobs:
-  Build:
+  POSIX-Build:
     runs-on: ${{ matrix.config.os }}
     strategy:
       matrix:
@@ -36,4 +36,40 @@ jobs:
       - name: Test
         working-directory: target
         run: ctest -V
-
+  Windows-Build:
+    runs-on: ${{ matrix.images.name }}
+    strategy:
+      matrix:
+        images:
+          - name: windows-2022
+            path: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise'
+            arch: x86_amd64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@4
+        with:
+          path: target
+      - name: Install current sagittarius
+        run: |
+          .\.ci\install-current.ps1
+        shell: powershell
+      - name: Setup MSVC
+        run: |
+          "${{ matrix.images.path }}\VC\Auxiliary\Build\vcvarsall.bat" ${{ matric.images.arch }}
+        shell: cmd
+      - name: Pre build
+        working-directory: target
+        run: |
+          dist.bat gen
+          cmake .
+        shell: cmd
+      - name: Build
+        working-directory: target
+        run: |
+          nmake
+        shell: cmd
+      - name: Test
+        working-directory: target
+        run: |
+          ctest -V -LE json 
+        shell: cmd
