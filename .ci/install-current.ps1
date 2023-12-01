@@ -7,4 +7,4 @@ $url = 'https://bitbucket.org/ktakashi/sagittarius-scheme/downloads'
 $net.DownloadFile("$($url)/latest-version.txt", '\tmp\latest-version.txt')
 $version=(Get-Content \tmp\latest-version.txt)
 $net.DownloadFile("$($url)/setup_sagittarius_$($version)_x64.exe", '\tmp\setup_sagittarius.exe')
-\tmp\setup_sagittarius.exe /VERYSILENT /SUPPRESSMSGBOXES
+\tmp\setup_sagittarius.exe /VERYSILENT /SUPPRESSMSGBOXES /ALLUSERS /LOG="setup.log"
