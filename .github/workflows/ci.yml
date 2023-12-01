@@ -50,6 +50,7 @@ jobs:
         with:
           path: target
       - name: Install current sagittarius
+        working-directory: target
         run: |
           .\.ci\install-current.ps1
         shell: powershell
