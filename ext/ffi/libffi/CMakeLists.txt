@@ -162,6 +162,8 @@ elseif (${arch} STREQUAL "arm64")
   endif()
 endif()
 
+add_definitions(-D${TARGET})
+
 if (${TARGET} STREQUAL "X86_DARWIN")
 # It may be on all x86_64 architectures HAVE_LONG_DOUBLE must be 1, mustn't it?
 #if (${arch} STREQUAL "x86_64")
