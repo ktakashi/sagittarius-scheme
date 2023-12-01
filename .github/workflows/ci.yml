@@ -43,7 +43,7 @@ jobs:
         images:
           - name: windows-2019
             vspath: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise'
-            arch: x64
+            arch: x86_amd64
           - name: windows-2019
             vspath: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise'
             arch: x86
