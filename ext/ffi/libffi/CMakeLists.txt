@@ -225,8 +225,8 @@ else ()
          DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/include)
   endif()
 
-  file(READ ${CMAKE_CURRENT_BINARY_DIR}/include/ffitarget.h TMP_CONTENT)
-  message(status "ffitarget.h\n${TMP_CONTENT}")
+  file(READ ${CMAKE_CURRENT_BINARY_DIR}/include/ffi.h TMP_CONTENT)
+  message(status "ffi.h\n${TMP_CONTENT}")
   
   foreach(asm_file ${libffi_platform_asm})
     if (MSVC)
