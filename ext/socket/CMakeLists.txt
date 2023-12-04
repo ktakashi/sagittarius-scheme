@@ -52,6 +52,7 @@ IF (USE_CPP_FOR_BROKEN_LINKER)
     ${CMAKE_CURRENT_BINARY_DIR}/socket_stub.c
     ${CMAKE_CURRENT_BINARY_DIR}/tls_socket_stub.c
     ${TLS_SOURCE}
+    socket-selector.c
     ${CMAKE_CURRENT_BINARY_DIR}/selector.c
     ${SELECTOR_SOURCE}
     PROPERTIES LANGUAGE CXX)

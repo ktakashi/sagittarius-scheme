@@ -165,6 +165,15 @@
 	    &socket-closed socket-closed-error? make-socket-closed-error
 	    &socket-port socket-port-error? make-socket-port-error
 	    socket-error-port
+
+	    ;; socket selector
+	    <socket-selector>
+	    socket-selector?
+	    make-socket-selector
+	    close-socket-selector!
+	    socket-selector-add!
+	    socket-selector-wait!
+	    socket-selector-interrupt!
 	    )
     (import (core)
 	    (core errors)
