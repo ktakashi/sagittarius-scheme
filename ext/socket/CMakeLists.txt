@@ -1,6 +1,7 @@
 # Sagittarius extensions -*- CMake -*-
 # 
 # Build file for socket
+INCLUDE(${CMAKE_ROOT}/Modules/CheckIncludeFiles.cmake)
 
 IF(WIN32 OR USE_SCHANNEL)
   SET(TLS_SOURCE tls_win.c)
@@ -8,11 +9,34 @@ ELSE()
   SET(TLS_SOURCE tls_openssl.c)
 ENDIF()
 
+# Simple assumption
+# Linux         - epoll
+# *BSD or macOS - kqueue
+# Windows       - iocp
+IF (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  SET(SELECTOR_SOURCE selector-epoll.c)
+ELSEIF(WIN32)
+  SET(SELECTOR_SOURCE selector-iocp.c)
+ELSE()
+  # Assume *BSD or macOS,
+  CHECK_INCLUDE_FILES("stdint.h;sys/types.h;sys/event.h"  HAVE_SYS_EVENT_H)
+  IF (HAVE_SYS_EVENT_H)
+    SET(SELECTOR_SOURCE selector-kqueue.c)
+  ELSE()
+    # TODO should we make dummy here?
+    MESSAGE(FATAL_ERROR "Socket selector is not supported on this platform")
+  ENDIF()
+ENDIF()
+
+
 SET(TLS_SOURCE ${TLS_SOURCE} tls-socket.c)
 
 ADD_LIBRARY(sagittarius--socket SHARED
   sagittarius-socket.c
-  ${CMAKE_CURRENT_BINARY_DIR}/socket_stub.c)
+  socket-selector.c
+  ${SELECTOR_SOURCE}
+  ${CMAKE_CURRENT_BINARY_DIR}/socket_stub.c
+  ${CMAKE_CURRENT_BINARY_DIR}/selector.c)
 SET_TARGET_PROPERTIES(sagittarius--socket
   PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
@@ -28,6 +52,8 @@ IF (USE_CPP_FOR_BROKEN_LINKER)
     ${CMAKE_CURRENT_BINARY_DIR}/socket_stub.c
     ${CMAKE_CURRENT_BINARY_DIR}/tls_socket_stub.c
     ${TLS_SOURCE}
+    ${CMAKE_CURRENT_BINARY_DIR}/selector.c
+    ${SELECTOR_SOURCE}
     PROPERTIES LANGUAGE CXX)
 ENDIF()
 
@@ -35,7 +61,7 @@ ENDIF()
 INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
 ADD_STUBS(sagittarius--socket
   COMMAND ${GENSTUB}
-  FILES socket_stub.stub tls_socket_stub.stub
+  FILES socket_stub.stub tls_socket_stub.stub selector.stub
   OUTTREE)
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})

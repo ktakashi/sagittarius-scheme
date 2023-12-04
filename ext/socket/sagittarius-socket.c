@@ -30,6 +30,7 @@
 #define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
 #include "sagittarius-socket.h"
+#include "socket-selector.h"
 
 #include <sys/types.h>
 #include <string.h>
@@ -1662,6 +1663,9 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__socket()
   /* TODO should we add socket slot? */
   Sg_InitStaticClass(SG_CLASS_SOCKET_PORT, UC("<socket-port>"), lib, NULL, 0);
 
+  Sg_InitStaticClass(SG_CLASS_SOCKET_SELECTOR, UC("<socket-selector>"),
+		     lib, NULL, 0);
+  
   SG_INIT_CONDITION(SG_CLASS_HOST_NOT_FOUND, lib, 
 		    "&host-not-found", hnf_slots);
   SG_INIT_CONDITION(SG_CLASS_CONDITION_SOCKET, lib, "&socket", parent_slots);

@@ -1,0 +1,22 @@
+;; -*- scheme -*-
+#!compatible
+(decl-code
+ (.include <sagittarius.h>)
+ (.define "LIBSAGITTARIUS_EXT_BODY")
+ (.include <sagittarius/extend.h>
+	   "socket-selector.h"))
+
+(define-type <socket> "SgSocket*")
+(define-type <socket-selector> "SgSocketSelector*")
+
+(define-c-proc socket-selector? (o) ::<boolean> :constant SG_SOCKET_SELECTOR_P)
+(define-c-proc make-socket-selector () Sg_MakeSocketSelector)
+
+(define-c-proc close-socket-selector! (s::<socket-selector>) ::<void>
+  Sg_CloseSocketSelector)
+
+(define-c-proc socket-selector-add! (s::<socket-selector> sock::<socket>)
+  Sg_SocketSelectorAdd)
+
+(define-c-proc socket-selector-interrupt! (s::<socket-selector>)
+  Sg_SocketSelectorInterrupt)
