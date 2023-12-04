@@ -121,7 +121,7 @@ goto:eof
 
 rem entry point
 :entry
-if not exist "%SASH%" goto err
+if not exist %SASH% goto err
 if "%1"=="" goto usage
 for %%x in (%*) do call :%%x
 goto end
