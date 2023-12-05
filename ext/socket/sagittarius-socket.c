@@ -1626,6 +1626,7 @@ SgObject Sg_MakeConditionSocketPort(SgObject socket, SgObject port)
 }
 
 extern void Sg__Init_socket_stub(SgLibrary *lib);
+extern void Sg__Init_selector(SgLibrary *lib);
 
 #if defined(_WIN32)
 static void finish_winsock(void *data)
@@ -1646,6 +1647,7 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__socket()
   lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius socket)"),
 				  FALSE));
   Sg__Init_socket_stub(lib);
+  Sg__Init_selector(lib);
 
   /* for multithreading issue, we do not add this cond-feature.
      we always support this anyway */

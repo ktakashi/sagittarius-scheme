@@ -42,7 +42,8 @@
 typedef struct SgSocketSelectorRec
 {
   SG_HEADER;
-  void      *context;		/* underlying implementation context */
+  SgObject sockets;
+  void     *context;		/* underlying implementation context */
 } SgSocketSelector;
 
 SG_CLASS_DECL(Sg_SocketSelectorClass);

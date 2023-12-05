@@ -1,0 +1,197 @@
+/* -*- mode: c; coding: utf-8; -*-  */
+/*
+  Unix socket for Linux, *BSD and macOS
+  This is used only for signaling socket selector in a, relatively, safe way.
+ */
+
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
+
+static int unix_socket()
+{
+  return socket(PF_UNIX, SOCK_DGRAM, 0);
+}
+
+static struct sockaddr_un * bind_unix_socket(int socket,
+					     struct sockaddr_un *addr)
+{
+  char tmp[] = "/tmp/socket-selector.XXXXXX";
+  int fd = mkstemp(tmp);
+  if (fd == -1) return NULL;
+  close(fd);
+  addr->sun_family = AF_UNIX;
+  snprintf(addr->sun_path, sizeof(tmp), "%s", tmp);
+  if (bind(socket, (struct sockaddr *)addr, sizeof(struct sockaddr_un)) != 0) {
+    return NULL;
+  }
+  return addr;
+}
+
+static int sendto_unix_socket(int socket, struct sockaddr_un *addr,
+			      const uint8_t *data, int datalen)
+{
+  if (sendto(socket, data, datalen, 0,
+	     (struct sockaddr *)addr, sizeof(struct sockaddr_un)) != datalen) {
+    return -1;
+  }
+  return datalen;
+}
+
+static int recvfrom_unix_socket(int socket, struct sockaddr_un *addr,
+				uint8_t *buffer, size_t buflen)
+{
+  socklen_t l = sizeof(struct sockaddr_un);
+  return recvfrom(socket, buffer, buflen, 0, (struct sockaddr *)addr, &l);
+}
+
+
+typedef struct unix_context_rec
+{
+  int fd;			/* epoll or kqueue fd */
+  int stop_fd;			/* unix domain socket fd */
+  struct sockaddr_un addr;
+  int waiting;
+} unix_context_t;
+
+static void invalidate_stop(unix_context_t *stop)
+{
+  stop->stop_fd = -1;
+}
+
+static int is_stop_initialised(unix_context_t *stop)
+{
+  return stop->stop_fd != -1;
+}
+
+static unix_context_t * setup_stop(unix_context_t *stop)
+{
+  stop->stop_fd = unix_socket();
+  if (stop->stop_fd == -1) return NULL;
+  if (bind_unix_socket(stop->stop_fd, &stop->addr) == NULL) {
+    close(stop->stop_fd);
+    return NULL;
+  }
+  return stop;
+}
+
+static void close_unix_stop(unix_context_t *stop)
+{
+  close(stop->stop_fd);
+  unlink(stop->addr.sun_path);
+  invalidate_stop(stop);
+}
+
+static const char *msg = "stop it";
+static void interrupt_unix_stop(unix_context_t *stop)
+{
+  sendto_unix_socket(stop->stop_fd, &stop->addr, (const uint8_t *)msg, 7);
+}
+
+static void interrupted_unix_stop(unix_context_t *stop)
+{
+  uint8_t buf[7];
+  size_t rest = 7;
+  while (TRUE) {
+    int r = recvfrom_unix_socket(stop->stop_fd, &stop->addr, buf, rest);
+    if (r < 0) {
+      /* something went wrong just ignore */
+      break;
+    }
+    if (r == rest) break;
+    rest -= r;
+  }
+}
+
+static SgObject system_error(int e, int fd)
+{
+  char *msg = strerror(e);
+  if (fd > 0) close(fd);
+  Sg_SystemError(e, UC("socket-selector system error: %A"),
+		 Sg_Utf8sToUtf32s(msg, strlen(msg)));
+  return SG_UNDEF;		/* dummy */
+}
+
+static int make_selector();
+static void add_socket(unix_context_t *ctx, SgSocket *socket);
+static SgObject wait_selector(unix_context_t *ctx, int n,
+			      SgObject sockets, SgObject timeout);
+
+static int selector_sockets(SgSocketSelector *selector)
+{
+  /* filter closed socket */
+  SgObject h = SG_NIL, t = SG_NIL, cp;
+  int i = 0;
+  SG_FOR_EACH(cp, selector->sockets) {
+    if (Sg_SocketOpenP(SG_SOCKET(SG_CAR(cp)))) {
+      SG_APPEND1(h, t, SG_CAR(cp));
+      i++;
+    }
+  }
+  selector->sockets = h;
+  return i;
+}
+
+static void selector_finalizer(SgObject self, void *data)
+{
+  Sg_CloseSocketSelector(SG_SOCKET_SELECTOR(self));
+}
+
+SgObject Sg_MakeSocketSelector()
+{
+  SgSocketSelector *selector = SG_NEW(SgSocketSelector);
+  unix_context_t *ctx = SG_NEW(unix_context_t);
+
+  SG_SET_CLASS(selector, SG_CLASS_SOCKET_SELECTOR);
+  if ((ctx->fd = make_selector()) < 0) goto err;
+  if (setup_stop(ctx) == NULL) goto err;
+  ctx->waiting = FALSE;
+  selector->sockets = SG_NIL;
+  selector->context = ctx;
+
+  Sg_RegisterFinalizer(selector, selector_finalizer, NULL);
+  return SG_OBJ(selector);
+
+ err:
+  return system_error(errno, ctx->fd);
+}
+
+void Sg_CloseSocketSelector(SgSocketSelector *selector)
+{
+  unix_context_t *ctx = (unix_context_t *)selector->context;
+  close(ctx->fd);
+  if (!is_stop_initialised(ctx)) close_unix_stop(ctx);
+  Sg_UnregisterFinalizer(selector);
+}
+
+SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector, SgSocket *socket)
+{
+  unix_context_t *ctx = (unix_context_t *)selector->context;
+  add_socket(ctx, socket);
+  selector->sockets = Sg_Cons(socket, selector->sockets);
+  return SG_OBJ(selector);
+}
+
+SgObject Sg_SocketSelectorInterrupt(SgSocketSelector *selector)
+{
+  unix_context_t *ctx = (unix_context_t *)selector->context;
+  interrupt_unix_stop(ctx);
+  selector_sockets(selector);
+  return selector;
+}
+
+SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
+{
+  unix_context_t *ctx = (unix_context_t *)selector->context;
+  int n = selector_sockets(selector);
+  SgObject r;
+  
+  if (n == 0) return SG_NIL;	/* nothing to wait */
+  if (ctx->waiting) {
+    Sg_Error(UC("There's a thread already waiting for %A"), selector);
+  }
+  ctx->waiting = TRUE;
+  r = wait_selector(ctx, n, selector->sockets, timeout);
+  ctx->waiting = FALSE;
+  return r;  
+}

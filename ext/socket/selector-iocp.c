@@ -36,7 +36,6 @@ typedef struct iocp_context_rec
 {
   HANDLE iocp;
   HANDLE thread;		/* waiting thread */
-  
 } iocp_context_t;
 
 
@@ -47,7 +46,8 @@ static void selector_finalizer(SgObject self, void *data)
 
 static void system_error(int code)
 {
-  Sg_SystemError(e, UC("Setting up IOCP failed: %A"),
+  Sg_SystemError(GetLastError(),
+		 UC("Setting up IOCP failed: %A"),
 		 Sg_GetLastErrorMessageWithErrorCode(code));
 }
 
@@ -56,10 +56,11 @@ SgObject Sg_MakeSocketSelector()
   SgSocketSelector *selector = SG_NEW(SgSocketSelector);
   iocp_context_t *ctx = SG_NEW(iocp_context_t);
 
+  SG_SET_CLASS(selector, SG_CLASS_SOCKET_SELECTOR);
   ctx->iocp = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
   if (ctx->iocp == NULL) goto err;
   ctx->thread = NULL;
-  SG_SET_CLASS(selector, SG_CLASS_SOCKET_SELECTOR);
+  selector->sockets = SG_NIL;
 
   Sg_RegisterFinalizer(selector, selector_finalizer, NULL);
   return SG_OBJ(selector);
@@ -79,32 +80,35 @@ SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector, SgSocket *socket)
 {
   iocp_context_t *ctx = (iocp_context_t *)selector->context;
   HANDLE r;
-  r = CreateIoCompletionPort(ctx->iocp, (HANDLE)socket->socket, socket, 0);
+  r = CreateIoCompletionPort(ctx->iocp, (HANDLE)socket->socket,
+			     (ULONG_PTR)socket, 0);
   if (r == NULL) {
     system_error(Sg_GetLastError());
   }
+  selector->sockets = Sg_Cons(socket, ctx->sockets);
   return SG_OBJ(selector);
 }
 
 SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
 {
   iocp_context_t *ctx = (iocp_context_t *)selector->context;
-  int n = Sg_Length(ctx->events), i, removed, millis = INFINITE;
-  LPOVERLAPPED_ENTRY *entries;
+  int n = Sg_Length(selector->sockets), i, millis = INFINITE;
+  ULONG removed;
+  LPOVERLAPPED_ENTRY entries;
   BOOL r;
   HANDLE thread;
   struct timespec spec, *sp;
   SgObject ret = SG_NIL;
 
   if (ctx->thread != NULL) {
-    Sg_Error(UC("There's a thread already waiting for %A", selector));
+    Sg_Error(UC("There's a thread already waiting for %A"), selector);
   }
   ctx->thread = GetCurrentThread();
 
   sp = Sg_GetTimeSpec(timeout, &spec);
   if (sp) {
     millis = sp->tv_sec * 1000;
-    millis += sp->tv_usec / 1000;
+    millis += sp->tv_nsec / 1000000;
   }
 
   entries = SG_NEW_ATOMIC2(OVERLAPPED_ENTRY *, n * sizeof(OVERLAPPED_ENTRY));

@@ -33,109 +33,52 @@
 #include <string.h>
 #include <sys/epoll.h>
 
-#include "unix-socket.incl"
+#include "unix-socket-selector.incl"
 
-typedef struct epoll_context_rec
+static int make_selector()
 {
-  int epfd;
-  int stop_fd;
-  struct sockaddr_un *addr;
-  SgObject events;
-} epoll_context_t;
-
-static void selector_finalizer(SgObject self, void *data)
-{
-  Sg_CloseSocketSelector(SG_SOCKET_SELECTOR(self));
+  return epoll_create1(0);
 }
 
-SgObject Sg_MakeSocketSelector()
+
+static void add_socket(unix_context_t *ctx, SgSocket *socket)
 {
-  SgSocketSelector *selector = SG_NEW(SgSocketSelector);
-  epoll_context_t *ctx = SG_NEW(epoll_context_t);
-  struct kevent *ke = SG_NEW_ATOMIC(struct kevent);
-
-  SG_SET_CLASS(selector, SG_CLASS_SOCKET_SELECTOR);
-  if ((ctx->epfd = epoll_create1(0)) < 0) goto err;
-  ctx->events = SG_NIL;
-
-  ctx->stop_fd = unix_socket();
-  if (ctx->stop_fd == -1) goto err;
-  
-  ctx->addr = bind_unix_socket(ctx->stop_fd);
-  if (ctx->addr == NULL) {
-    close(ctx->stop_fd);
-    goto err;
-  }
-  selector->context = ctx;
-  ctx->events = Sg_Cons(selector, ctx->events);
-
-  Sg_RegisterFinalizer(selector, selector_finalizer, NULL);
-  return SG_OBJ(selector);
-
- err: {
-    int e = errno;
-    char *msg = strerror(e);
-    close(ctx->epfd);
-    Sg_SystemError(e, UC("Setting up epoll failed: %A"),
-		   Sg_Utf8sToUtf32s(msg, strlen(msg)));
-  }
-}
-
-void Sg_CloseSocketSelector(SgSocketSelector *selector)
-{
-  epoll_context_t *ctx = (epoll_context_t *)selector->context;
-  close(ctx->epfd);
-  close(ctx->stop_fd);
-  Sg_UnregisterFinalizer(selector);
-}
-
-SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector, SgSocket *socket)
-{
-  epoll_context_t *ctx = (epoll_context_t *)selector->context;
   struct epoll_event ev;
   ev.events = EPOLLIN;
   ev.data.ptr = socket;
-  epoll_ctl(ctx->epfd, EPOLL_CTL_ADD, socket.socket, &event);
-  ctx->events = Sg_Cons(socket, ctx->events);
-  return SG_OBJ(selector);
+  epoll_ctl(ctx->fd, EPOLL_CTL_ADD, socket->socket, &ev);
 }
 
-SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
+static SgObject wait_selector(unix_context_t *ctx, int nsock,
+			      SgObject sockets, SgObject timeout)
 {
-  epoll_context_t *ctx = (epoll_context_t *)selector->context;
-  int n = Sg_Length(ctx->events), i, c;
+  int n = nsock + 1, i, c;
   long millis = -1;
-  SgObject cp, r = SG_NIL;
+  SgObject r = SG_NIL;
   struct timespec spec, *sp;
-  struct epoll_event *evm;
-  
+  struct epoll_event *evm, ev;
+
   sp = Sg_GetTimeSpec(timeout, &spec);
   if (sp) {
     millis = sp->tv_sec * 1000;
-    millis += sp->tv_usec / 1000;
+    millis += sp->tv_nsec / 1000000;
   }
 
-  evm = SG_NEW_ATOMIC2(struct kevent *, n * sizeof(struct kevent));
-  c = epoll_wait(ctx->epfd, evm, n, millis);
-  if (c < 0) {
-    int e = errno;
-    char *msg = strerror(e);
-    Sg_SystemError(e, UC("kevent failed: %A"), 
-		   Sg_Utf8sToUtf32s(msg, strlen(msg)));
-    return SG_UNDEF;		/* dummy */
-  }
+  ev.events = EPOLLIN;
+  ev.data.ptr = SG_FALSE;
+  epoll_ctl(ctx->fd, EPOLL_CTL_ADD, ctx->stop_fd, &ev);
+  
+  evm = SG_NEW_ATOMIC2(struct epoll_event *, n * sizeof(struct epoll_event));
+  c = epoll_wait(ctx->fd, evm, n, millis);
+
+  if (c < 0) return system_error(errno, -1);
+
   for (i = 0; i < c; i++) {
-    if (SG_SOCKETP(evm[i].data.ptr) && evm[i].events == EPOLLIN) {
+    if (SG_FALSEP(evm[i].data.ptr)) {
+      interrupted_unix_stop(ctx);
+    } else if (SG_SOCKETP(evm[i].data.ptr) && evm[i].events == EPOLLIN) {
       r = Sg_Cons(evm[i].data.ptr, r);
     }
   }
   return r;
-}
-
-SgObject Sg_SocketSelectorInterrupt(SgSocketSelector *selector)
-{
-  epoll_context_t *ctx = (epoll_context_t *)selector->context;
-  const char *stop = "stop it";
-  sendto_unix_socket(ctx->addr, (const uint8_t *)stop, 7);
-  return selector;
 }

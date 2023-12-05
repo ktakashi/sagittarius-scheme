@@ -18,7 +18,7 @@
 (define-c-proc socket-selector-add! (s::<socket-selector> sock::<socket>)
   Sg_SocketSelectorAdd)
 
-(define-c-proc socket-selector-wait! (s::<socket-selector> timeout)
+(define-c-proc socket-selector-wait! (s::<socket-selector> :optional (timeout #f))
   Sg_SocketSelectorWait)
 
 (define-c-proc socket-selector-interrupt! (s::<socket-selector>)
