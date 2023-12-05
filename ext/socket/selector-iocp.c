@@ -67,6 +67,7 @@ SgObject Sg_MakeSocketSelector()
 
  err:
   system_error(Sg_GetLastError());
+  return SG_UNDEF;		/*  dummy */
 }
 
 void Sg_CloseSocketSelector(SgSocketSelector *selector)
@@ -85,7 +86,7 @@ SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector, SgSocket *socket)
   if (r == NULL) {
     system_error(Sg_GetLastError());
   }
-  selector->sockets = Sg_Cons(socket, ctx->sockets);
+  selector->sockets = Sg_Cons(socket, selector->sockets);
   return SG_OBJ(selector);
 }
 
@@ -96,7 +97,6 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
   ULONG removed;
   LPOVERLAPPED_ENTRY entries;
   BOOL r;
-  HANDLE thread;
   struct timespec spec, *sp;
   SgObject ret = SG_NIL;
 
