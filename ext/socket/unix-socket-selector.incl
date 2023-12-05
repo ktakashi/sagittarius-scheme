@@ -19,9 +19,10 @@ static struct sockaddr_un * bind_unix_socket(int socket,
   char tmp[] = "/tmp/socket-selector.XXXXXX";
   int fd = mkstemp(tmp);
   if (fd == -1) return NULL;
-  close(fd);
+  close(fd);	      /* we don't need file descriptor of temp file */
   addr->sun_family = AF_UNIX;
   snprintf(addr->sun_path, sizeof(tmp), "%s", tmp);
+  unlink(addr->sun_path); /* mkstemp creates a file but we only need the name */
   if (bind(socket, (struct sockaddr *)addr, sizeof(struct sockaddr_un)) != 0) {
     return NULL;
   }
@@ -174,6 +175,16 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
   }
   ctx->waiting = TRUE;
   r = wait_selector(ctx, n, selector->sockets, timeout);
+  if (!SG_NULLP(r)) {
+    /* remove the returned sockets from the targets */
+    SgObject h = SG_NIL, t = SG_NIL, cp;
+    SG_FOR_EACH(cp, selector->sockets) {
+      if (SG_FALSEP(Sg_Memq(SG_CAR(cp), r))) {
+	SG_APPEND1(h, t, SG_CAR(cp));
+      }
+    }
+    selector->sockets = h;
+  }
   ctx->waiting = FALSE;
   return r;  
 }

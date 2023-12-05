@@ -103,7 +103,7 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
   }
   ctx->thread = GetCurrentThread();
 
-  sp = Sg_GetTimeSpec(timeout, &spec);
+  sp = selector_timespec(timeout, &spec);
   if (sp) {
     millis = sp->tv_sec * 1000;
     millis += sp->tv_nsec / 1000000;

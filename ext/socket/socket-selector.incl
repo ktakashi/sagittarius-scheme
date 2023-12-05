@@ -19,3 +19,51 @@ static void selector_finalizer(SgObject self, void *data)
   Sg_CloseSocketSelector(SG_SOCKET_SELECTOR(self));
 }
 
+static struct timespec *selector_timespec(SgObject timeout, struct timespec *tm)
+{
+  if (SG_FALSEP(timeout)) return NULL;
+  /* number = usec (the same as `select`) */
+  if (SG_INTP(timeout)) {
+    long val = SG_INT_VALUE(timeout);
+    if (val < 0) goto badtv;
+    tm->tv_sec = val / 1000000;
+    tm->tv_nsec = (val % 1000000) * 1000;
+    return tm;
+  } else if (SG_BIGNUMP(timeout)) {
+    long usec;
+    SgObject sec;
+    if (Sg_Sign(timeout) < 0) goto badtv;
+    sec = Sg_BignumDivSI(SG_BIGNUM(timeout), 1000000, &usec);
+    tm->tv_sec = Sg_GetInteger(sec);
+    tm->tv_nsec = usec * 1000;
+    return tm;
+  } else if (SG_FLONUMP(timeout)) {
+    long val = Sg_GetInteger(timeout);
+    if (val < 0) goto badtv;
+    tm->tv_sec = val / 1000000;
+    tm->tv_nsec = (val % 1000000) * 1000;
+    return tm;
+  } else if (SG_PAIRP(timeout) && SG_PAIRP(SG_CDR(timeout))) {
+    SgObject sec = SG_CAR(timeout);
+    SgObject usec = SG_CADR(timeout);
+    long isec, iusec;
+    if (!Sg_IntegerP(sec) || !Sg_IntegerP(usec)) goto badtv;
+    isec = Sg_GetInteger(sec);
+    iusec = Sg_GetInteger(usec);
+    if (isec < 0 || iusec < 0) goto badtv;
+    tm->tv_sec = isec;
+    tm->tv_nsec = iusec * 1000;
+    return tm;
+  } else if (SG_TIMEP(timeout)) {
+    tm->tv_sec = SG_TIME(timeout)->sec;
+    tm->tv_nsec = SG_TIME(timeout)->nsec;
+    return tm;
+  }
+ badtv:
+  Sg_Error(UC("timespec needs to be a real number (in microseconds), a list "
+	      "of two integers (seconds and microseconds), or a time object "
+	      "but got %S"),
+	   timeout);
+  return NULL;                /* dummy */
+}
+

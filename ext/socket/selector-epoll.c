@@ -58,7 +58,7 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
   struct timespec spec, *sp;
   struct epoll_event *evm, ev;
 
-  sp = Sg_GetTimeSpec(timeout, &spec);
+  sp = selector_timespec(timeout, &spec);
   if (sp) {
     millis = sp->tv_sec * 1000;
     millis += sp->tv_nsec / 1000000;

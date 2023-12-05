@@ -54,7 +54,7 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
   struct timespec spec, *sp;
   struct kevent *evm;
 
-  sp = Sg_GetTimeSpec(timeout, &spec);
+  sp = selector_timespec(timeout, &spec);
 
   evm = SG_NEW_ATOMIC2(struct kevent *, n * sizeof(struct kevent));
   i = 0;
