@@ -32,17 +32,14 @@
 #include "socket-selector.h"
 #include <windows.h>
 
+#include "socket-selector.incl"
+
 typedef struct iocp_context_rec
 {
   HANDLE iocp;
   HANDLE thread;		/* waiting thread */
 } iocp_context_t;
 
-
-static void selector_finalizer(SgObject self, void *data)
-{
-  Sg_CloseSocketSelector(SG_SOCKET_SELECTOR(self));
-}
 
 static void system_error(int code)
 {
@@ -87,13 +84,14 @@ SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector, SgSocket *socket)
     system_error(Sg_GetLastError());
   }
   selector->sockets = Sg_Cons(socket, selector->sockets);
+  selector_sockets(selector);
   return SG_OBJ(selector);
 }
 
 SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
 {
   iocp_context_t *ctx = (iocp_context_t *)selector->context;
-  int n = Sg_Length(selector->sockets), i, millis = INFINITE;
+  int n = selector_sockets(selector), i, millis = INFINITE;
   ULONG removed;
   LPOVERLAPPED_ENTRY entries;
   BOOL r;

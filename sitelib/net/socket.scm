@@ -212,9 +212,12 @@
 	    (sagittarius) ;; gensym
 	    (sagittarius time) ;; for time
 	    (rename (except (sagittarius socket) make-client-socket)
-		    (make-server-socket socket:make-server-socket))
-	    (except (rfc tls) make-client-tls-socket
-		    make-server-tls-socket)
+		    (make-server-socket socket:make-server-socket)
+		    (make-socket-selector socket:make-socket-selector))
+	    (except (rfc tls)
+		    make-client-tls-socket
+		    make-server-tls-socket
+		    make-socket-selector)
 	    (rfc x.509)
 	    (sagittarius crypto keys)
 	    (srfi :1 lists)

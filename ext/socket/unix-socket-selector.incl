@@ -117,25 +117,7 @@ static void add_socket(unix_context_t *ctx, SgSocket *socket);
 static SgObject wait_selector(unix_context_t *ctx, int n,
 			      SgObject sockets, SgObject timeout);
 
-static int selector_sockets(SgSocketSelector *selector)
-{
-  /* filter closed socket */
-  SgObject h = SG_NIL, t = SG_NIL, cp;
-  int i = 0;
-  SG_FOR_EACH(cp, selector->sockets) {
-    if (Sg_SocketOpenP(SG_SOCKET(SG_CAR(cp)))) {
-      SG_APPEND1(h, t, SG_CAR(cp));
-      i++;
-    }
-  }
-  selector->sockets = h;
-  return i;
-}
-
-static void selector_finalizer(SgObject self, void *data)
-{
-  Sg_CloseSocketSelector(SG_SOCKET_SELECTOR(self));
-}
+#include "socket-selector.incl"
 
 SgObject Sg_MakeSocketSelector()
 {
