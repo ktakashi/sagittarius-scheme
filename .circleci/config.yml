@@ -54,18 +54,22 @@ jobs:
       - run:
           name: Pre-build (set up MSVC)
           command: |
-            @"<< parameters.vspath >>\VC\Auxiliary\Build\vcvarsall.bat" << parameters.arch >>
+            cmd.exe /c "call `"<< parameters.vspath >>\VC\Auxiliary\Build\vcvarsall.bat`" << parameters.arch >> && set > %temp%\vcvars.txt"
+            Get-Content "$env:temp\vcvars.txt"  Foreach-Object {
+              if ($_ -match "^(.*?)=(.*)$") {
+                Set-Content "env:\$($matches[1])" $matches[2]
+              }
+            }
             dist.bat gen
             cmake . -G "NMake Makefiles"
-          shell: cmd.exe /c
       - run:
           name: Build
           command: nmake
-          shell: cmd.exe /c
+          shell: cmd.exe
       - run:
           name: Test
           command: ctest -V -LE json
-          shell: cmd.exe /c
+          shell: cmd.exe
 
 workflows:
   ubuntu-build:
