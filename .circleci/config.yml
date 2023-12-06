@@ -55,7 +55,7 @@ jobs:
           name: Pre-build (set up MSVC)
           command: |
             cmd.exe /c "call `"<< parameters.vspath >>\VC\Auxiliary\Build\vcvarsall.bat`" << parameters.arch >> && set > %temp%\vcvars.txt"
-            Get-Content "$env:temp\vcvars.txt"  Foreach-Object {
+            Get-Content "$env:temp\vcvars.txt" | Foreach-Object {
               if ($_ -match "^(.*?)=(.*)$") {
                 Set-Content "env:\$($matches[1])" $matches[2]
               }
