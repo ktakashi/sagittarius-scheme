@@ -54,16 +54,18 @@ jobs:
       - run:
           name: Pre-build (set up MSVC)
           command: |
-            Start-Process -FilePath "<< parameters.vspath >>\VC\Auxiliary\Build\vcvarsall.bat" -ArgumentList << parameters.arch >> -Wait -NoNewWindow
-            Start-Process -FilePath dist.bat -ArgumentList gen -Wait
-            & cmake . -G "NMake Makefiles"
+            "<< parameters.vspath >>\VC\Auxiliary\Build\vcvarsall.bat" << parameters.arch >>
+            dist.bat gen
+            cmake . -G "NMake Makefiles"
+          shell: cmd.exe
       - run:
           name: Build
-          command: |
-            & nmake
+          command: nmake
+          shell: cmd.exe
       - run:
           name: Test
           command: ctest -V -LE json
+          shell: cmd.exe
 
 workflows:
   ubuntu-build:
