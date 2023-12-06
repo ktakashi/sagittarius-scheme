@@ -76,7 +76,16 @@ workflows:
   ubuntu-build:
     jobs:
       - posix-build
+  windows-2022:
+    jobs:
+      - windows-build:
+          matrix:
+            parameters:
+              executor: [windows/server-2022]
+              vspath: [C:\Program Files\Microsoft Visual Studio\2022\Community]
+              arch: [x64, x86]
   windows-2019:
+    when: false # Circle CI doesn't have MSVC in their VS 2019 installation...
     jobs:
       - windows-build:
           matrix:
