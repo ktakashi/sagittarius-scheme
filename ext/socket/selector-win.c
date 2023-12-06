@@ -106,6 +106,7 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
   if (ctx->thread != NULL) {
     Sg_Error(UC("There's a thread already waiting for %A"), selector);
   }
+  if (n == 0) return ret;
   ctx->thread = GetCurrentThread();
 
   hEvents[0] = CreateEvent(NULL, FALSE, FALSE, NULL);
