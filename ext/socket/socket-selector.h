@@ -35,9 +35,9 @@
   Socket selector.
   The underlying implementations are platform specific. At this moment,
   we support:
-  - kqueue (*BSD and macOS)
-  - IOCP   (Windows)
-  - epoll  (Linux)
+  - kqueue  (*BSD and macOS)
+  - WSAPoll (Windows)
+  - epoll   (Linux)
  */
 typedef struct SgSocketSelectorRec
 {

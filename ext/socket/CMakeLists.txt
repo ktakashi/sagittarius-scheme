@@ -12,11 +12,11 @@ ENDIF()
 # Simple assumption
 # Linux         - epoll
 # *BSD or macOS - kqueue
-# Windows       - iocp
+# Windows       - WSAPoll
 IF (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   SET(SELECTOR_SOURCE selector-epoll.c)
 ELSEIF(WIN32)
-  SET(SELECTOR_SOURCE selector-iocp.c)
+  SET(SELECTOR_SOURCE selector-win.c)
 ELSE()
   # Assume *BSD or macOS,
   CHECK_INCLUDE_FILES("stdint.h;sys/types.h;sys/event.h"  HAVE_SYS_EVENT_H)

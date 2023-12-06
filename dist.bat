@@ -16,7 +16,7 @@ goto:eof
 
 rem insn
 :insn
-echo "Generating instructions files"
+echo Generating instructions files
 cd src
 %SASH% geninsn %1
 cd ..
@@ -24,22 +24,22 @@ goto:eof
 
 rem precomp
 :precomp
-echo "Generating compiled library files"
+echo Generating compiled library files
 cd src
 %SASH% genlib %1
 cd ..
 call :insn dummy %1
 cd tools\scripts
-echo "Generating builtin keywords"
+echo Generating builtin keywords
 %SASH% builtin-keywords.scm
-echo "Generating builtin symbols"
+echo Generating builtin symbols
 %SASH% builtin-symbols.scm
 cd  ..\..
 goto:eof
 
 rem stub
 :stub
-echo "Generating library from stub"
+echo Generating library from stub
 cd src
 %SASH% genstub %1
 cd ..
@@ -48,18 +48,23 @@ goto:eof
 rem srfi
 :srfi
 echo Generating R7RS style SRFI libraries
-%SASH% -L./sitelib ./tools/scripts/r7rs-srfi-gen.scm -p ./ext -p ./sitelib/srfi %1
+%SASH% -L./sitelib ./tools/scripts/r7rs-srfi-gen.scm^
+      -p ./ext -p ./sitelib/srfi %1
 goto:eof
 
 rem tzdata
 :tz
-echo "Generating TZ database"
-%SASH% ./tools/scripts/compile-tzdatabase.scm -o ext/time/sagittarius/tzdata.scm -w ext/time/sagittarius/win-mappings.scm -l ext/time/sagittarius/leap-table.scm -r %1
+echo Generating TZ database
+%SASH% ./tools/scripts/compile-tzdatabase.scm^
+    -o ext/time/sagittarius/tzdata.scm^
+    -w ext/time/sagittarius/win-mappings.scm^
+    -l ext/time/sagittarius/leap-table.scm^
+    -r %1
 goto:eof
 
 rem unicode
 :unicode
-echo "Generating Unicode codepoints"
+echo Generating Unicode codepoints
 %SASH% ./tools/scripts/compile-unicode.scm %1
 
 if "%1" == "-c" goto:unicode_end
@@ -95,7 +100,7 @@ goto:eof
 
 rem html
 :html
-echo "Generating HTML entities"
+echo Generating HTML entities
 %SASH% ./tools/scripts/html-entities.scm -o sitelib/text/xml/entities-list.scm %1
 goto:eof
 
@@ -127,20 +132,20 @@ for %%x in (%*) do call :%%x
 goto end
 
 :usage
-echo "usage: %0 precomp|stub|srfi|tz|clean"
-echo "    gen:        generates all files"
-echo "    precomp:    generates precompiled files"
-echo "    stub:       generates stub files"
-echo "    srfi:       generates R7RS style SRFI libraries"
-echo "    tz:         generates TZ database"
-echo "    unicode:    generates Unicode codepoints"
-echo "    html:       generates HTML entries"
-echo "    clean:      cleasn generated files"
+echo usage: %0 precomp|stub|srfi|tz|clean
+echo     gen:        generates all files
+echo     precomp:    generates precompiled files
+echo     stub:       generates stub files
+echo     srfi:       generates R7RS style SRFI libraries
+echo     tz:         generates TZ database
+echo     unicode:    generates Unicode codepoints
+echo     html:       generates HTML entries
+echo     clean:      cleasn generated files
 
 goto :end
 
 :err
-echo "Sagittarius is not installed. Default %SASH%"
+echo Sagittarius is not installed. Default %SASH%
 
 :end
 

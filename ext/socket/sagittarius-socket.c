@@ -1640,7 +1640,7 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__socket()
   SgLibrary *lib;
 #if defined(_WIN32)
   WSADATA wsaData;
-  WSAStartup(2, &wsaData);
+  WSAStartup(MAKEWORD(2, 2), &wsaData);
   Sg_AddCleanupHandler(finish_winsock, NULL);
 #endif
   SG_INIT_EXTENSION(sagittarius__socket);

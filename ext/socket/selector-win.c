@@ -1,4 +1,4 @@
-/* selector-iocp.c                                  -*- mode:c; coding:utf-8; -*-
+/* selector-iocp.c                                 -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2023  Takashi Kato <ktakashi@ymail.com>
  *
@@ -34,16 +34,16 @@
 
 #include "socket-selector.incl"
 
-typedef struct iocp_context_rec
+typedef struct win_context_rec
 {
-  HANDLE iocp;
+  HANDLE event;
   HANDLE thread;		/* waiting thread */
-} iocp_context_t;
+} win_context_t;
 
 
 static void system_error(int code)
 {
-  Sg_SystemError(GetLastError(),
+  Sg_SystemError(code,
 		 UC("Setting up IOCP failed: %A"),
 		 Sg_GetLastErrorMessageWithErrorCode(code));
 }
@@ -51,13 +51,16 @@ static void system_error(int code)
 SgObject Sg_MakeSocketSelector()
 {
   SgSocketSelector *selector = SG_NEW(SgSocketSelector);
-  iocp_context_t *ctx = SG_NEW(iocp_context_t);
+  win_context_t *ctx = SG_NEW(win_context_t);
 
   SG_SET_CLASS(selector, SG_CLASS_SOCKET_SELECTOR);
-  ctx->iocp = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
-  if (ctx->iocp == NULL) goto err;
+
+  ctx->event = CreateEvent(NULL, FALSE, FALSE, NULL);
+  if (ctx->event == NULL) goto err;
+  
   ctx->thread = NULL;
   selector->sockets = SG_NIL;
+  selector->context = ctx;
 
   Sg_RegisterFinalizer(selector, selector_finalizer, NULL);
   return SG_OBJ(selector);
@@ -69,32 +72,34 @@ SgObject Sg_MakeSocketSelector()
 
 void Sg_CloseSocketSelector(SgSocketSelector *selector)
 {
-  iocp_context_t *ctx = (iocp_context_t *)selector->context;
-  CloseHandle(ctx->iocp);
+  win_context_t *ctx = (win_context_t *)selector->context;
+  CloseHandle(ctx->event);
   Sg_UnregisterFinalizer(selector);
 }
 
 SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector, SgSocket *socket)
 {
-  iocp_context_t *ctx = (iocp_context_t *)selector->context;
-  HANDLE r;
-  r = CreateIoCompletionPort(ctx->iocp, (HANDLE)socket->socket,
-			     (ULONG_PTR)socket, 0);
-  if (r == NULL) {
-    system_error(Sg_GetLastError());
-  }
+  win_context_t *ctx = (win_context_t *)selector->context;
   selector->sockets = Sg_Cons(socket, selector->sockets);
   selector_sockets(selector);
   return SG_OBJ(selector);
 }
 
+static SgObject select_socket(SOCKET fd, SgObject sockets)
+{
+  SgObject cp;
+  SG_FOR_EACH(cp, sockets) {
+    SgSocket *sock = SG_SOCKET(SG_CAR(cp));
+    if (sock->socket == fd) return sock;
+  }
+  return SG_FALSE;
+}
+
 SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
 {
-  iocp_context_t *ctx = (iocp_context_t *)selector->context;
-  int n = selector_sockets(selector), i, millis = INFINITE;
-  ULONG removed;
-  LPOVERLAPPED_ENTRY entries;
-  BOOL r;
+  win_context_t *ctx = (win_context_t *)selector->context;
+  int n = selector_sockets(selector), millis = INFINITE, r;
+  HANDLE hEvents[2];
   struct timespec spec, *sp;
   SgObject ret = SG_NIL;
 
@@ -103,35 +108,71 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
   }
   ctx->thread = GetCurrentThread();
 
+  hEvents[0] = CreateEvent(NULL, FALSE, FALSE, NULL);
+  hEvents[1] = ctx->event;
+
+#define SET_EVENT(sockets, event, flags)		\
+  do {							\
+    SgObject cp;					\
+    SG_FOR_EACH(cp, sockets) {				\
+      SG_SET_SOCKET_EVENT(SG_CAR(cp), event, flags);	\
+    }							\
+  } while(0)
+
+  SET_EVENT(selector->sockets, hEvents[0], FD_READ | FD_OOB);
+  
   sp = selector_timespec(timeout, &spec);
   if (sp) {
     millis = sp->tv_sec * 1000;
     millis += sp->tv_nsec / 1000000;
   }
 
-  entries = SG_NEW_ATOMIC2(OVERLAPPED_ENTRY *, n * sizeof(OVERLAPPED_ENTRY));
-  r = GetQueuedCompletionStatusEx(ctx->iocp, entries, n, &removed, millis, TRUE);
-  if (r) {
-    for (i = 0; i < removed; i++) {
-      ret = Sg_Cons((SgObject) entries[i].lpCompletionKey, ret);
+  r = WaitForMultipleObjects(2, hEvents, FALSE, millis);
+  if (r == WAIT_OBJECT_0) {
+    /* Using WSAPoll to detect which sockets are ready to read */
+    WSAPOLLFD *fds = SG_NEW_ATOMIC2(WSAPOLLFD *, n * sizeof(WSAPOLLFD));
+    int i = 0;
+    SgObject cp;
+    SG_FOR_EACH(cp, selector->sockets) {
+      SgSocket *sock = SG_SOCKET(SG_CAR(cp));
+      fds[i].fd = sock->socket;
+      fds[i].events = POLLRDNORM;
+      i++;
     }
-  } else {
-    system_error(Sg_GetLastError());
+    r = WSAPoll(fds, n, 0); /* Some sockets must be ready at this stage */
+    if (r == SOCKET_ERROR) system_error(WSAGetLastError());
+    for (i = 0; i < n; i++) {
+      if (fds[i].revents & POLLRDNORM) {
+	/* collect sockets, should we use hashtable? */
+	SgObject o = select_socket(fds[i].fd, selector->sockets);
+	if (!SG_FALSEP(o)) ret = Sg_Cons(o, ret);
+      }
+    }
   }
+
+  SET_EVENT(selector->sockets, hEvents[0], 0);
+#undef SET_EVENT
+
+  if (!SG_NULLP(ret)) {
+    /* remove the returned sockets from the targets */
+    SgObject h = SG_NIL, t = SG_NIL, cp;
+    SG_FOR_EACH(cp, selector->sockets) {
+      if (SG_FALSEP(Sg_Memq(SG_CAR(cp), ret))) {
+	SG_APPEND1(h, t, SG_CAR(cp));
+      }
+    }
+    selector->sockets = h;
+  }
+  CloseHandle(hEvents[0]);
   ctx->thread = NULL;
   return ret;
 }
 
-static void CALLBACK dummy(ULONG_PTR param)
-{
-  /* Do nothing */
-}
-
 SgObject Sg_SocketSelectorInterrupt(SgSocketSelector *selector)
 {
-  iocp_context_t *ctx = (iocp_context_t *)selector->context;
+  win_context_t *ctx = (win_context_t *)selector->context;
   if (ctx->thread) {
-    QueueUserAPC(dummy, ctx->thread, 0);
+    SetEvent(ctx->event);
   }
   return selector;
 }
