@@ -54,6 +54,10 @@ jobs:
       - run:
           name: Setup MSVC
           command: |
+            Get-ChildItem "<< parameters.vspath >>"
+            Get-ChildItem "<< parameters.vspath >>\VC"
+            Get-ChildItem "<< parameters.vspath >>\VC\Auxiliary"
+            Get-ChildItem "<< parameters.vspath >>\VC\Auxiliary\Build"
             Start-Process -FilePath "<< parameters.vspath >>\VC\Auxiliary\Build\vcvarsall.bat" -ArgumentList << parameters.arch >> -Wait -NoNewWindow
       - run:
           name: Pre-build
