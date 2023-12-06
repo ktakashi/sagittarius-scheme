@@ -62,7 +62,8 @@ jobs:
             cmake . -G "NMake Makefiles"
       - run:
           name: Build
-          command: & nmake
+          command: |
+            & nmake
       - run:
           name: Test
           command: ctest -V -LE json
