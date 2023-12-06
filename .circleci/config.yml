@@ -1,6 +1,10 @@
-version: 2
+version: 2.1
+
+orbs:
+  windows: circleci/windows@5.0
+
 jobs:
-   build:
+  posix-build:
      docker:
        - image: buildpack-deps:bionic
          environment:
@@ -32,3 +36,47 @@ jobs:
            name: Test
            working_directory: ~/target
            command: ctest -V
+  windows-build:
+    parameters:
+      executor:
+        type: string
+      vspath:
+        type: string
+      arch:
+        type: string
+    executor: << parameters.executor >>
+    steps:
+      - checkout
+      - run:
+          name: Installing current Sagittarius
+          command: |
+            .\.ci\install-current.ps1
+      - run:
+          name: Setup MSVC
+          command: |
+            & "<< parameters.vspath >>\VC\Auxiliary\Build\vcvarsall.bat" << parameters.arch >>
+      - run:
+          name: Pre-build
+          command: |
+            dist.bat gen
+            cmake . -G "NMake Makefiles"
+      - run:
+          name: Build
+          command: & nmake
+      - run:
+          name: Test
+          command: ctest -V -LE json
+
+workflows:
+  ubuntu-build:
+    jobs:
+      - posix-build
+  windows-2019:
+    jobs:
+      - windows-build:
+          matrix:
+            parameters:
+              executor: [win/server-2019]
+              vspath: [C:\Program Files (x86)\Microsoft Visual Studio\2019\Community]
+              arch: [x64, x86]
+      
