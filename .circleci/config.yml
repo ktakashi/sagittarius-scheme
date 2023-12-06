@@ -54,7 +54,7 @@ jobs:
       - run:
           name: Pre-build (set up MSVC)
           command: |
-            << parameters.vspath >>\VC\Auxiliary\Build\vcvarsall.bat << parameters.arch >>
+            @"<< parameters.vspath >>\VC\Auxiliary\Build\vcvarsall.bat" << parameters.arch >>
             dist.bat gen
             cmake . -G "NMake Makefiles"
           shell: cmd.exe
