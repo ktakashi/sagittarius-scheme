@@ -60,7 +60,7 @@ jobs:
                 Set-Content "env:\$($matches[1])" $matches[2]
               }
             }
-            dist.bat gen
+            .\dist.bat gen
             cmake . -G "NMake Makefiles"
       - run:
           name: Build
