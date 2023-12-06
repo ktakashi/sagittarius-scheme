@@ -77,7 +77,7 @@ workflows:
       - windows-build:
           matrix:
             parameters:
-              executor: [win/server-2019]
+              executor: [windows/server-2019]
               vspath: [C:\Program Files (x86)\Microsoft Visual Studio\2019\Community]
               arch: [x64, x86]
       
