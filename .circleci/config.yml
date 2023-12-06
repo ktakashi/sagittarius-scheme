@@ -64,12 +64,22 @@ jobs:
             cmake . -G "NMake Makefiles"
       - run:
           name: Build
-          command: nmake
-          shell: cmd.exe
+          command: |
+            Get-Content "$env:temp\vcvars.txt" | Foreach-Object {
+              if ($_ -match "^(.*?)=(.*)$") {
+                Set-Content "env:\$($matches[1])" $matches[2]
+              }
+            }
+            & nmake
       - run:
           name: Test
-          command: ctest -V -LE json
-          shell: cmd.exe
+          command: |
+            Get-Content "$env:temp\vcvars.txt" | Foreach-Object {
+              if ($_ -match "^(.*?)=(.*)$") {
+                Set-Content "env:\$($matches[1])" $matches[2]
+              }
+            }
+            & ctest -V -LE json
 
 workflows:
   ubuntu-build:
