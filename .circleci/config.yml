@@ -54,12 +54,12 @@ jobs:
       - run:
           name: Setup MSVC
           command: |
-            & "<< parameters.vspath >>\VC\Auxiliary\Build\vcvarsall.bat" << parameters.arch >>
+            Start-Process -FilePath "<< parameters.vspath >>\VC\Auxiliary\Build\vcvarsall.bat" -ArgumentList << parameters.arch >> -Wait -NoNewWindow
       - run:
           name: Pre-build
           command: |
-            dist.bat gen
-            cmake . -G "NMake Makefiles"
+            Start-Process -FilePath dist.bat -ArgumentList gen -Wait
+            & cmake . -G "NMake Makefiles"
       - run:
           name: Build
           command: |
