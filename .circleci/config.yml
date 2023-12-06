@@ -57,15 +57,15 @@ jobs:
             @"<< parameters.vspath >>\VC\Auxiliary\Build\vcvarsall.bat" << parameters.arch >>
             dist.bat gen
             cmake . -G "NMake Makefiles"
-          shell: cmd.exe
+          shell: cmd.exe /c
       - run:
           name: Build
           command: nmake
-          shell: cmd.exe
+          shell: cmd.exe /c
       - run:
           name: Test
           command: ctest -V -LE json
-          shell: cmd.exe
+          shell: cmd.exe /c
 
 workflows:
   ubuntu-build:
