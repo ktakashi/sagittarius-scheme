@@ -41,11 +41,12 @@ static int make_selector()
 }
 
 
-static void add_socket(unix_context_t *ctx, SgSocket *socket)
+static void add_socket(unix_context_t *ctx, SgObject slot)
 {
   struct epoll_event ev;
+  SgSocket *socket = SG_SOCKET(SG_CAR(slot));
   ev.events = EPOLLIN;
-  ev.data.ptr = socket;
+  ev.data.ptr = slot;
   epoll_ctl(ctx->fd, EPOLL_CTL_ADD, socket->socket, &ev);
 }
 
@@ -76,8 +77,8 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
   for (i = 0; i < c; i++) {
     if (SG_FALSEP(evm[i].data.ptr)) {
       interrupted_unix_stop(ctx);
-    } else if (SG_SOCKETP(evm[i].data.ptr) && evm[i].events == EPOLLIN) {
-      r = Sg_Cons(evm[i].data.ptr, r);
+    } else if (SG_PAIRP(evm[i].data.ptr) && evm[i].events == EPOLLIN) {
+      r = Sg_Cons(SG_OBJ(evm[i].data.ptr), r);
     }
   }
   return r;

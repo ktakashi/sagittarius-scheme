@@ -14,6 +14,20 @@ static int selector_sockets(SgSocketSelector *selector)
   return i;
 }
 
+static void strip_sockets(SgSocketSelector *selector, SgObject slots)
+{
+  if (!SG_NULLP(slots)) {
+    /* remove the returned sockets from the targets */
+    SgObject h = SG_NIL, t = SG_NIL, cp;
+    SG_FOR_EACH(cp, selector->sockets) {
+      if (SG_FALSEP(Sg_Memq(SG_CAR(cp), slots))) {
+	SG_APPEND1(h, t, SG_CAR(cp));
+      }
+    }
+    selector->sockets = h;
+  }
+}
+
 static void selector_finalizer(SgObject self, void *data)
 {
   Sg_CloseSocketSelector(SG_SOCKET_SELECTOR(self));

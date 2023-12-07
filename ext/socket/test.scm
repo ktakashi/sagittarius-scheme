@@ -395,7 +395,8 @@
   ;; (test-error (socket-selector-wait! selector))
   (let ((s* (thread-join! t2)))
     (test-equal 1 (length s*))
-    (test-equal '(#*"ok") (map (lambda (s) (socket-recv s 2)) s*)))
+    (test-equal '(#*"ok") (map (lambda (s) (socket-recv s 2))
+			       (map car s*))))
   ;; nothing to wait, so it'd return '() immediately
   (test-equal '() (socket-selector-wait! selector))
 
@@ -404,7 +405,8 @@
   (test-equal "selector (timeout)" '() (socket-selector-wait! selector 1000))
   (let ((s* (socket-selector-wait! selector)))
     (test-equal 1 (length s*))
-    (test-equal '(#*"ok2") (map (lambda (s) (socket-recv s 3)) s*)))
+    (test-equal '(#*"ok2") (map (lambda (s) (socket-recv s 3))
+				(map car s*))))
   (close-socket-selector! selector)
   (socket-close server))
 	      

@@ -114,7 +114,7 @@ static SgObject system_error(int e, int fd)
 }
 
 static int make_selector();
-static void add_socket(unix_context_t *ctx, SgSocket *socket);
+static void add_socket(unix_context_t *ctx, SgObject slot);
 static SgObject wait_selector(unix_context_t *ctx, int n,
 			      SgObject sockets, SgObject timeout);
 
@@ -147,11 +147,16 @@ void Sg_CloseSocketSelector(SgSocketSelector *selector)
   Sg_UnregisterFinalizer(selector);
 }
 
-SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector, SgSocket *socket)
+SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector,
+			      SgSocket *socket, SgObject data)
 {
   unix_context_t *ctx = (unix_context_t *)selector->context;
-  add_socket(ctx, socket);
-  selector->sockets = Sg_Cons(socket, selector->sockets);
+  if (Sg_SocketOpenP(socket)) {
+    SgObject slot = Sg_Cons(socket, data);
+    add_socket(ctx, slot);
+    selector->sockets = Sg_Cons(slot, selector->sockets);
+    selector_sockets(selector);
+  }
   return SG_OBJ(selector);
 }
 
@@ -159,7 +164,6 @@ SgObject Sg_SocketSelectorInterrupt(SgSocketSelector *selector)
 {
   unix_context_t *ctx = (unix_context_t *)selector->context;
   interrupt_unix_stop(ctx);
-  selector_sockets(selector);
   return selector;
 }
 
@@ -175,16 +179,7 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
   }
   ctx->waiting = TRUE;
   r = wait_selector(ctx, n, selector->sockets, timeout);
-  if (!SG_NULLP(r)) {
-    /* remove the returned sockets from the targets */
-    SgObject h = SG_NIL, t = SG_NIL, cp;
-    SG_FOR_EACH(cp, selector->sockets) {
-      if (SG_FALSEP(Sg_Memq(SG_CAR(cp), r))) {
-	SG_APPEND1(h, t, SG_CAR(cp));
-      }
-    }
-    selector->sockets = h;
-  }
+  strip_sockets(selector, r);
   ctx->waiting = FALSE;
   return r;  
 }

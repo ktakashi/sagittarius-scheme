@@ -77,11 +77,14 @@ void Sg_CloseSocketSelector(SgSocketSelector *selector)
   Sg_UnregisterFinalizer(selector);
 }
 
-SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector, SgSocket *socket)
+SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector,
+			      SgSocket *socket, SgObject data)
 {
   win_context_t *ctx = (win_context_t *)selector->context;
-  selector->sockets = Sg_Cons(socket, selector->sockets);
-  selector_sockets(selector);
+  if (Sg_SocketOpenP(socket)) {
+    selector->sockets = Sg_Cons(Sg_Cons(socket, data), selector->sockets);
+    selector_sockets(selector);
+  }
   return SG_OBJ(selector);
 }
 
@@ -89,8 +92,9 @@ static SgObject select_socket(SOCKET fd, SgObject sockets)
 {
   SgObject cp;
   SG_FOR_EACH(cp, sockets) {
-    SgSocket *sock = SG_SOCKET(SG_CAR(cp));
-    if (sock->socket == fd) return sock;
+    SgObject slot = SG_CAR(cp);
+    SgSocket *sock = SG_SOCKET(SG_CAR(slot));
+    if (sock->socket == fd) return slot;
   }
   return SG_FALSE;
 }
@@ -116,7 +120,7 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
   do {							\
     SgObject cp;					\
     SG_FOR_EACH(cp, sockets) {				\
-      SG_SET_SOCKET_EVENT(SG_CAR(cp), event, flags);	\
+      SG_SET_SOCKET_EVENT(SG_CAAR(cp), event, flags);	\
     }							\
   } while(0)
 
@@ -135,7 +139,7 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
     int i = 0;
     SgObject cp;
     SG_FOR_EACH(cp, selector->sockets) {
-      SgSocket *sock = SG_SOCKET(SG_CAR(cp));
+      SgSocket *sock = SG_SOCKET(SG_CAAR(cp));
       fds[i].fd = sock->socket;
       fds[i].events = POLLRDNORM;
       i++;
@@ -154,16 +158,7 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
   SET_EVENT(selector->sockets, hEvents[0], 0);
 #undef SET_EVENT
 
-  if (!SG_NULLP(ret)) {
-    /* remove the returned sockets from the targets */
-    SgObject h = SG_NIL, t = SG_NIL, cp;
-    SG_FOR_EACH(cp, selector->sockets) {
-      if (SG_FALSEP(Sg_Memq(SG_CAR(cp), ret))) {
-	SG_APPEND1(h, t, SG_CAR(cp));
-      }
-    }
-    selector->sockets = h;
-  }
+  strip_sockets(selector, ret);
   CloseHandle(hEvents[0]);
   ctx->thread = NULL;
   return ret;

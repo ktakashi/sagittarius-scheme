@@ -85,12 +85,6 @@
 	    socket-read-select
 	    socket-write-select
 	    socket-error-select
-
-	    make-socket-selector
-	    close-socket-selector!
-	    socket-selector-add!
-	    socket-selector-wait!
-	    socket-selector-interrupt!
 	    
 	    ;; to send handshake explicitly
 	    tls-server-handshake
@@ -357,7 +351,4 @@
     (select-sockets socket:socket-write-select timeout rest))
   (define-method socket-error-select (timeout . rest)
     (select-sockets socket:socket-error-select timeout rest))
-
-  (define-method socket-selector-add! (selector (s <tls-socket>))
-    (call-next-method selector (tls-socket-raw-socket s)))
   )

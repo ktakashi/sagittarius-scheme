@@ -41,7 +41,7 @@ static int make_selector()
   return kqueue();
 }
 
-static void add_socket(unix_context_t *ctx, SgSocket *socket)
+static void add_socket(unix_context_t *ctx, SgObject slot)
 {
   /* do nothing :) */
 }
@@ -59,8 +59,9 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
   evm = SG_NEW_ATOMIC2(struct kevent *, n * sizeof(struct kevent));
   i = 0;
   SG_FOR_EACH(cp, sockets) {
-    SgSocket *s = SG_SOCKET(SG_CAR(cp));
-    EV_SET(&evm[i++], s->socket, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, s);
+    SgObject slot = SG_CAR(cp);
+    SgSocket *s = SG_SOCKET(SG_CAR(slot));
+    EV_SET(&evm[i++], s->socket, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, slot);
   }
   EV_SET(&evm[i++], ctx->stop_fd,
 	 EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, NULL);

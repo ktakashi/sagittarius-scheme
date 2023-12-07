@@ -55,9 +55,11 @@ SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeSocketSelector();
 SG_EXTERN void Sg_CloseSocketSelector(SgSocketSelector *selector);
-SG_EXTERN SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector, SgSocket *socket);
+SG_EXTERN SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector,
+					SgSocket *socket, SgObject data);
 
-SG_EXTERN SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout);
+SG_EXTERN SgObject Sg_SocketSelectorWait(SgSocketSelector *selector,
+					 SgObject timeout);
 
 SG_EXTERN SgObject Sg_SocketSelectorInterrupt(SgSocketSelector *selector);
 
