@@ -22,5 +22,11 @@
 (define-c-proc socket-selector-wait! (s::<socket-selector> :optional (timeout #f))
   Sg_SocketSelectorWait)
 
+(define-c-proc socket-selector-clear! (s::<socket-selector>)
+  Sg_SocketSelectorClear)
+
+(define-c-proc socket-selector-waiting? (s::<socket-selector>) ::<boolean>
+  Sg_SocketSelectorWaitingP)
+
 (define-c-proc socket-selector-interrupt! (s::<socket-selector>)
   Sg_SocketSelectorInterrupt)

@@ -183,3 +183,9 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
   ctx->waiting = FALSE;
   return r;  
 }
+
+int Sg_SocketSelectorWaitingP(SgSocketSelector *selector)
+{
+  unix_context_t *ctx = (unix_context_t *)selector->context;
+  return ctx->waiting;
+}

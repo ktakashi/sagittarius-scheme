@@ -46,6 +46,13 @@ static void add_socket(unix_context_t *ctx, SgObject slot)
   /* do nothing :) */
 }
 
+
+static void remove_socket(SgSocketSelector *selector, SgSocket *socket)
+{
+  /* do nothing */
+}
+
+
 static SgObject wait_selector(unix_context_t *ctx, int nsock,
 			      SgObject sockets, SgObject timeout)
 {

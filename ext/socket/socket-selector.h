@@ -61,6 +61,10 @@ SG_EXTERN SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector,
 SG_EXTERN SgObject Sg_SocketSelectorWait(SgSocketSelector *selector,
 					 SgObject timeout);
 
+SG_EXTERN int Sg_SocketSelectorWaitingP(SgSocketSelector *selector);
+
+SG_EXTERN SgObject Sg_SocketSelectorClear(SgSocketSelector *selector);
+
 SG_EXTERN SgObject Sg_SocketSelectorInterrupt(SgSocketSelector *selector);
 
 SG_CDECL_END

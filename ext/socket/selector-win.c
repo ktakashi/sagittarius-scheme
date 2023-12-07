@@ -48,6 +48,11 @@ static void system_error(int code)
 		 Sg_GetLastErrorMessageWithErrorCode(code));
 }
 
+static void remove_socket(SgSocketSelector *selector, SgSocket *socket)
+{
+  /* do nothing */
+}
+
 SgObject Sg_MakeSocketSelector()
 {
   SgSocketSelector *selector = SG_NEW(SgSocketSelector);
@@ -163,6 +168,13 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
   ctx->thread = NULL;
   return ret;
 }
+
+int Sg_SocketSelectorWaitingP(SgSocketSelector *selector)
+{
+  win_context_t *ctx = (win_context_t *)selector->context;
+  return ctx->thread != NULL;
+}
+
 
 SgObject Sg_SocketSelectorInterrupt(SgSocketSelector *selector)
 {

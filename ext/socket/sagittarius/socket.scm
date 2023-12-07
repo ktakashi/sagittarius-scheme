@@ -173,7 +173,9 @@
 	    make-socket-selector
 	    close-socket-selector!
 	    socket-selector-add!
+	    socket-selector-clear!
 	    socket-selector-wait!
+	    socket-selector-waiting?
 	    socket-selector-interrupt!
 	    )
     (import (core)
