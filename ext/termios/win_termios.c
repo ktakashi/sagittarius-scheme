@@ -62,10 +62,12 @@ speed_t cfgetospeed(const struct termios * termios_p)
 int cfsetispeed(struct termios *termios_p, speed_t ispeed)
 {
   termios_p->c_ispeed = ispeed;
+  return TRUE;
 }
 int cfsetospeed(struct termios *termios_p, speed_t ospeed)
 {
   termios_p->c_ospeed = ospeed;
+  return TRUE;
 }
 
 static int finish_up(HANDLE hComm, DWORD event)
