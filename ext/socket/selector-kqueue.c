@@ -59,7 +59,7 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
   SgObject cp, r = SG_NIL;
   int i, c, n = nsock + 1;
   struct timespec spec, *sp;
-  struct kevent *evm;
+  struct kevent *evm, ev;
 
   sp = selector_timespec(timeout, &spec);
 
@@ -78,16 +78,9 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
     if (evm[i].ident == ctx->stop_fd) {
       interrupted_unix_stop(ctx);
     } else if (evm[i].filter == EVFILT_READ) {
-      /*
-	For some fxxking weird reason, the returning udata may contain
-	socket which are not initialised in this call. I'm not entirely
-	sure if this behaviour is written somewhere in kqueue document
-	or specific for macOS. Anyway we don't want this kind of weird
-	behaviour, so workaround it.
-       */
-      if (!SG_FALSEP(Sg_Memq(evm[i].udata, sockets))) {
-	r = Sg_Cons(evm[i].udata, r);
-      }
+      r = Sg_Cons(evm[i].udata, r);
+      EV_SET(&ev, evm[i].ident, EVFILT_READ, EV_DELETE, 0, 0, NULL);
+      kevent(ctx->fd, &ev, 1, NULL, 0, 0); /* reset event of the target socket */
     }
   }
   return r;

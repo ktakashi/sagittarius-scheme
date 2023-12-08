@@ -50,14 +50,19 @@ static void add_socket(unix_context_t *ctx, SgObject slot)
   epoll_ctl(ctx->fd, EPOLL_CTL_ADD, socket->socket, &ev);
 }
 
-static void remove_socket(SgSocketSelector *selector, SgSocket *socket)
+static void remove_socket_ctx(unix_context_t *ctx, SgSocket *socket)
 {
-  unix_context_t *ctx = (unix_context_t *)selector->context;
   /* BUG on kernel < 2.6.9 */
   struct epoll_event ev;
   ev.events = EPOLLIN;
   ev.data.ptr = NULL;
   epoll_ctl(ctx->fd, EPOLL_CTL_DEL, socket->socket, &ev);
+}
+
+static void remove_socket(SgSocketSelector *selector, SgSocket *socket)
+{
+  unix_context_t *ctx = (unix_context_t *)selector->context;
+  remove_socket_ctx(ctx, socket);
 }
 
 
@@ -89,10 +94,10 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
     if (SG_FALSEP(evm[i].data.ptr)) {
       interrupted_unix_stop(ctx);
     } else if (SG_PAIRP(evm[i].data.ptr) && evm[i].events == EPOLLIN) {
-      /* The same fxxking behaviour as kqueue, am I doing something wrong? */
-      if (!SG_FALSEP(Sg_Memq(evm[i].data.ptr, sockets))) {
-	r = Sg_Cons(SG_OBJ(evm[i].data.ptr), r);
-      }
+      SgObject slot = SG_OBJ(evm[i].data.ptr);
+      SgSocket *sock = SG_SOCKET(SG_CAR(slot));
+      r = Sg_Cons(slot, r);
+      remove_socket_ctx(ctx, sock);
     }
   }
   return r;
