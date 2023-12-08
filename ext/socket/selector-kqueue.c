@@ -70,16 +70,24 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
     SgSocket *s = SG_SOCKET(SG_CAR(slot));
     EV_SET(&evm[i++], s->socket, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, slot);
   }
-  EV_SET(&evm[i++], ctx->stop_fd,
-	 EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, NULL);
+  EV_SET(&evm[i++], ctx->stop_fd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, NULL);
   c = kevent(ctx->fd, evm, n, evm, n, sp);
-  if (c < 0) return system_error(errno, -1);;
+  if (c < 0) return system_error(errno, -1);
   
   for (i = 0; i < c; i++) {
     if (evm[i].ident == ctx->stop_fd) {
       interrupted_unix_stop(ctx);
     } else if (evm[i].filter == EVFILT_READ) {
-      r = Sg_Cons(evm[i].udata, r);
+      /*
+	For some fxxking weird reason, the returning udata may contain
+	socket which are not initialised in this call. I'm not entirely
+	sure if this behaviour is written somewhere in kqueue document
+	or specific for macOS. Anyway we don't want this kind of weird
+	behaviour, so workaround it.
+       */
+      if (!SG_FALSEP(Sg_Memq(evm[i].udata, sockets))) {
+	r = Sg_Cons(evm[i].udata, r);
+      }
     }
   }
   return r;

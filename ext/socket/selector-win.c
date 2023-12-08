@@ -179,8 +179,6 @@ int Sg_SocketSelectorWaitingP(SgSocketSelector *selector)
 SgObject Sg_SocketSelectorInterrupt(SgSocketSelector *selector)
 {
   win_context_t *ctx = (win_context_t *)selector->context;
-  if (ctx->thread) {
-    SetEvent(ctx->event);
-  }
+  SetEvent(ctx->event);
   return selector;
 }

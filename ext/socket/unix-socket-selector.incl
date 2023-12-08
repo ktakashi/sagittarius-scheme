@@ -151,7 +151,7 @@ SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector,
 			      SgSocket *socket, SgObject data)
 {
   unix_context_t *ctx = (unix_context_t *)selector->context;
-  if (Sg_SocketOpenP(socket)) {
+  if (Sg_SocketOpenP(socket) && !duplicate_socket(socket, selector->sockets)) {
     SgObject slot = Sg_Cons(socket, data);
     add_socket(ctx, slot);
     selector->sockets = Sg_Cons(slot, selector->sockets);

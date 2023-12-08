@@ -280,20 +280,20 @@
     (define result (make-shared-queue))
     (define server-port
       (number->string (socket-info-port (socket-info server-sock))))
-
+    (define seen (make-eq-hashtable))
     (define ((caller selector) i)
       (define (push-result sock e reuse)
 	(shared-queue-put! result
-	  (thread-start!
-	   (make-thread
-	    (lambda ()
-	      (guard (e (else #;(print e) e))
-		(let ((v (or e (utf8->string (socket-recv sock 255)))))
-		  (socket-shutdown sock SHUT_RDWR)
-		  (socket-close sock)
-		  (if (string? v)
-		      (and (not (zero? (string-length v))) v)
-		      e))))))))
+	 (thread-start!
+	  (make-thread
+	   (lambda ()	      
+	     (guard (e (else #;(print e) e))
+	       (let ((v (or e (utf8->string (socket-recv sock 255)))))
+		 (socket-shutdown sock SHUT_RDWR)
+		 (socket-close sock)
+		 (if (string? v)
+		     (and (not (zero? (string-length v))) v)
+		     e))))))))
       (let ((s (make-client-socket "localhost" server-port)))
 	(socket-send s (string->utf8
 			(string-append "Hello world " (number->string i))))
@@ -309,9 +309,13 @@
       (let ((r (map thread-join! (collect-thread))))
 	(terminator)
 	r)))
-  (test-equal 50 (length (filter string? (run-socket-selector 1000 #f))))
-  (test-equal 0 (length (filter string? (run-socket-selector 100 #f))))
-  (test-equal 50 (length (filter string? (run-socket-selector 10 1000))))
+
+  (test-equal "hard 1000ms soft #f" 50
+	      (length (filter string? (run-socket-selector 1000 #f))))
+  (test-equal "hard 0ms soft #f"
+	      0 (length (filter string? (run-socket-selector 100 #f))))
+  (test-equal "hard 10ms soft 1000ms"
+	      50 (length (filter string? (run-socket-selector 10 1000))))
   (socket-shutdown server-sock SHUT_RDWR)
   (socket-close server-sock)
   (guard (e (else #t)) (thread-join! server-thread)))

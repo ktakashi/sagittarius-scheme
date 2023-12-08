@@ -177,6 +177,7 @@
 	    socket-selector-wait!
 	    socket-selector-waiting?
 	    socket-selector-interrupt!
+	    socket-selector-size
 	    )
     (import (core)
 	    (core errors)

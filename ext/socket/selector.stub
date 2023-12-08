@@ -30,3 +30,6 @@
 
 (define-c-proc socket-selector-interrupt! (s::<socket-selector>)
   Sg_SocketSelectorInterrupt)
+
+(define-c-proc socket-selector-size (s::<socket-selector>) ::<fixnum>
+  (result (Sg_Length (-> s sockets))))

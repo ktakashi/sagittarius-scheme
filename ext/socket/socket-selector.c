@@ -34,7 +34,7 @@
 static void socket_selector_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   SgSocketSelector *selector = SG_SOCKET_SELECTOR(self);
-  Sg_Printf(port, UC("#<socket-selector %x>"), selector->context);
+  Sg_Printf(port, UC("#<socket-selector %d>"), Sg_Length(selector->sockets));
 }
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_SocketSelectorClass, socket_selector_printer);

@@ -434,133 +434,63 @@
 	(else (assertion-violation 'socket-options->client-socket
 				   "Not a socket-options" option))))
 (define (default-error-reporter event e) #t)
-  
+
 (define (make-socket-selector
 	 :optional (timeout #f) (error-reporter default-error-reporter))
-  (define sockets (make-eq-hashtable))
-  (define wrapped-sockets (make-eq-hashtable))
-  (define fdset (make-fdset))
+  (define selector (socket:make-socket-selector))
   (define lock (make-mutex "socket-selector-lock"))
-
-  (define (unmanage-socket! sock)
-    #;(hashtable-delete! wrapped-sockets
-		       (if (tls-socket? sock)
-			   (tls-socket-raw-socket sock)
-			   sock))
-    (hashtable-delete! sockets sock))
-  
   (define (on-error event e)
     (when (procedure? error-reporter)
       (guard (e (else #f)) (error-reporter event e))))
-    
-  (define (update-sockets! now)
-    (define (update-socket! sock)
-      (cond ((socket-closed? sock) (unmanage-socket! sock) #f)
-	    ((hashtable-ref sockets sock #f) =>
-	     (lambda (e)
-	       (let-values (((s expires timeout on-read) (apply values e)))
-		 (if (and timeout (time>? now expires))
-		     (let ((e (condition 
-			       (make-socket-read-timeout-error sock)
-			       (make-who-condition 'socket-selector)
-			       (make-message-condition
-				(format "Selector timeout: node: ~a, service: ~a"
-					(socket-node sock)
-					(socket-service sock)))
-			       (make-irritants-condition timeout))))
-		       (unmanage-socket! sock)
-		       (on-read sock timeout e) ;; let the caller know
-		       #f)
-		     (cons sock
-			   (and timeout (time-difference expires now)))))))
-	    ;; stray socket? just ignore
-	    (else #f)))
+  
+  (define (queued-sockets now selector)
     (define (least timeouts)
       (and (not (null? timeouts))
 	   (car (list-sort time<? timeouts))))
-    (let ((s&t (filter-map update-socket!
-			   (vector->list (hashtable-keys sockets)))))
+    (define socks (socket-selector-clear! selector))
+    (let ((s&t (filter-map (lambda (s&d) (update-timeout now s&d)) socks)))
       (values (map car s&t) (least (filter-map cdr s&t)))))
 
-  (define (set-socket! socket on-read now timeout)
-    (hashtable-set! sockets socket
-     (list now (and timeout (add-duration now timeout)) timeout on-read)))
+  (define (selector-data socket on-read now timeout)
+    (list socket on-read now (and timeout (add-duration now timeout)) timeout))
 
-  (define (handle-on-read sock)
-    (let ((s0 (hashtable-ref wrapped-sockets sock #f)))
-      (cond ((socket-closed? s0) (unmanage-socket! s0))
-	    ((hashtable-ref sockets s0 #f) =>
-	     (lambda (e)
-	       (let-values (((s e timeout on-read) (apply values e)))
-		 (unmanage-socket! s0)
-		 (on-read s0 timeout #f)))))))
-  
+  (define (handle-on-read s&d)
+    (let-values (((sock osock on-read s expires timeout) (apply values s&d)))
+      ;; no idea why closed socket will be here, but happens...
+      (unless (socket-closed? sock) (on-read osock timeout #f))))
+
   (define (poll-socket receiver sender)
-    (define (get-timeout t0 t1)
-      (cond ((and t0 t1) (if (time<? t0 t1) t0 t1))
-	    (t0)
-	    (t1)
-	    (else #f)))
+    (mutex-lock! lock)
     (let wait-entry ((entry (receiver)))
-      (define (wait-socket timeout socks)
-	;; Before getting in this procedure, the lock must be held
-	(let loop ((timeout timeout) (socks socks))
-	  (fdset-clear! fdset)
-	  (hashtable-clear! wrapped-sockets)
-	  (do ((s socks (cdr s))) ((null? s))
-	    (unless (socket-closed? (car s))
-	      (let ((ss (if (tls-socket? (car s))
-			    (tls-socket-raw-socket (car s))
-			    (car s))))
-		(hashtable-set! wrapped-sockets ss (car s))
-		(fdset-set! fdset ss #t))))
-	  ;; we can't use socket-read-select as we need to distinguish
-	  ;; interruption and timeout
-	  ;; TODO implement poll(1), select(1) can only handle
-	  ;;      1024 sockets, which is too small...
-	  (let-values (((n r w e) (socket-select! fdset #f #f timeout)))
-	    (mutex-unlock! lock)
-	    ;; there is a floating moment betwenn thread interruption and
-	    ;; lock acquisition, if this thread is extremely fast and reaches
-	    ;; to the next lock acquisition before the other thread, then
-	    ;; the other thread waits until the lock is release. However,
-	    ;; the moment will never come as nobody would interrupt the thread.
-	    ;; To avoid the situation, we give some space to the other thread
-	    ;; with some hope.
-	    (thread-yield!)
-	    (if n
-		(let ((s (fdset-sockets r)))
-		  (for-each handle-on-read s)
-		  (let-values (((s* t) (update-sockets! (current-time))))
-		    (cond ((and (not (null? s*)) (mutex-lock! lock))
-			   ;; check if there's a message before
-			   ;; waiting for the sockets
-			   (cond ((receiver 0 #f) =>
-				  (lambda (e)
-				    (mutex-unlock! lock)
-				    (wait-entry e)))
-				 (else (loop t s*))))
-			  (else (wait-entry (receiver))))))
-		;; the thread is interrupted, means there's a message
-		(wait-entry (receiver))))))
-      (when entry
-	(guard (e (else (on-error 'selector e)
-			(mutex-unlock! lock)
-			(wait-entry (receiver))))
+      (define (wait-selector timeout)
+	(mutex-unlock! lock)
+	;; unlock the mutex only waiting socket so that we can make sure
+	;; that interrupt will happen during the selector waiting
+	;; (I hope we can ignore the small amount of gap...)
+	(let ((sock&data (socket-selector-wait! selector timeout)))
+	  (mutex-lock! lock)
+	  (for-each handle-on-read sock&data)
+	  (let-values (((sockets timeout)
+			(queued-sockets (current-time) selector)))
+	    (for-each (lambda (s)
+			(socket-selector-add! selector (car s) (cdr s)))
+		      sockets)
+	    (cond ((null? sockets) (wait-entry (receiver)))
+		  ((receiver 0 #f) => wait-entry)
+		  (else (wait-selector timeout))))))
+      (if entry
 	  (let ((now (current-time)))
-	    (let-values (((waiting-sockets timeout) (update-sockets! now))
-			 ((socket on-read this-timeout) (apply values entry)))
-	      (set-socket! socket on-read now this-timeout)
-	      (mutex-lock! lock)
-	      (cond ((receiver 0 #f) =>
-		     ;; next entry is on the way
-		     (lambda (e)
-		       (mutex-unlock! lock)
-		       (wait-entry e)))
-		    (else
-		     (wait-socket (get-timeout timeout this-timeout)
-				  (cons socket waiting-sockets))))))))))
-  
+	    (let-values (((sock on-read this-timeout) (apply values entry))
+			 ((waiting-sockets timeout)
+			  (queued-sockets now selector)))
+	      (for-each (lambda (s)
+			  (socket-selector-add! selector (car s) (cdr s)))
+			waiting-sockets)
+	      (socket-selector-add! selector (->socket sock)
+		(selector-data sock on-read now this-timeout))
+	      (wait-selector (get-timeout this-timeout timeout))))
+	  (mutex-unlock! lock))))
+
   (define (dispatch-socket receiver sender)
     (let loop ()
       (cond ((receiver) =>
@@ -572,47 +502,80 @@
 			      (lambda () (push-socket sock on-read timeout))))))
 	       (loop))))))
 
-  ;; we make 2 actors to avoid unnecessary waiting time for socket polliing
-  (define (name-factory prefix) (lambda () (gensym prefix)))
   (define socket-poll-actor
-    (parameterize ((*actor-thread-name-factory* (name-factory "socket-poll-")))
+    (parameterize ((*actor-thread-name-factory* socket-poll-name-factory))
       (make-shared-queue-channel-actor poll-socket)))
   (define on-read-actor
-    (parameterize ((*actor-thread-name-factory* (name-factory "on-read-")))
+    (parameterize ((*actor-thread-name-factory* on-read-name-factory))
       (make-shared-queue-channel-actor dispatch-socket)))
+
+  (define (interrupt-selector)
+    (mutex-lock! lock)
+    (socket-selector-interrupt! selector)
+    (mutex-unlock! lock))
 
   (define (push-socket (socket (or socket? tls-socket?))
 		       (on-read procedure?) timeout)
     (define (make-on-read)
       (lambda (sock timeout e)
 	(actor-send-message! on-read-actor (list on-read sock timeout e))))
-    (define (make-timeout)
-      (cond ((integer? timeout) (duration:of-millis timeout))
-	    ((time? timeout) timeout)
-	    ((not timeout) timeout) ;; #f
-	    (else
-	     (assertion-violation 'make-socket-selector
-	       "Timeout must be integer (ms) or time" timeout))))
-    (actor-interrupt! socket-poll-actor)
-    (mutex-lock! lock)
     (actor-send-message! socket-poll-actor
-			 (list socket (make-on-read) (make-timeout)))
-    (mutex-unlock! lock))
+			 (list socket (make-on-read) (make-timeout timeout)))
+    (interrupt-selector))
 
   (define (terminate!)
     (actor-send-message! socket-poll-actor #f)
     (actor-send-message! on-read-actor #f)
-    (actor-interrupt! socket-poll-actor)
+    (interrupt-selector)
+    (close-socket-selector! selector)
     (actor-interrupt! on-read-actor))
-  
+
   (actor-start! socket-poll-actor)
   (actor-start! on-read-actor)
   (values (case-lambda
-	   ((socket on-read)
-	    (push-socket socket on-read timeout))
+	   ((socket on-read) (push-socket socket on-read timeout))
 	   ((socket on-read this-timeout)
-	    ;; timeout can be extended, but reset if hard timeout is provided
 	    (push-socket socket on-read (or this-timeout timeout))))
 	  terminate!))
 
+;; utilities for socket selector
+(define (->socket socket)
+  (if (tls-socket? socket)
+      (tls-socket-raw-socket socket)
+      socket))
+;; update the remaining timeout
+(define (update-timeout now sock&date)
+  (let-values (((sock osock on-read s expires timeout)
+		(apply values sock&date)))
+    (cond ((socket-closed? sock) #f)
+	  ((and timeout (time>? now expires))
+	   (let ((e (condition 
+		     (make-socket-read-timeout-error sock)
+		     (make-who-condition 'socket-selector)
+		     (make-message-condition
+		      (format "Selector timeout: node: ~a, service: ~a, timeout: ~s"
+			      (socket-node sock)
+			      (socket-service sock)
+			      timeout))
+		     (make-irritants-condition timeout))))
+	     (on-read osock timeout e)
+	     #f))
+	  (else
+	   (cons (list sock osock on-read s expires timeout)
+		 (and timeout (time-difference expires now)))))))
+(define (make-timeout timeout)
+  (cond ((integer? timeout) (duration:of-millis timeout))
+	((time? timeout) timeout)
+	((not timeout) timeout) ;; #f
+	(else
+	 (assertion-violation 'make-socket-selector
+			      "Timeout must be integer (ms) or time" timeout))))
+(define (name-factory prefix) (lambda () (gensym prefix)))
+(define socket-poll-name-factory (name-factory "socket-poll-"))
+(define on-read-name-factory (name-factory "on-read-"))
+(define (get-timeout t0 t1)
+  (cond ((and t0 t1) (if (time<? t0 t1) t0 t1))
+	(t0)
+	(t1)
+	(else #f)))
 )

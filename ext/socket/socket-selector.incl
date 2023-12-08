@@ -15,6 +15,15 @@ static int selector_sockets(SgSocketSelector *selector)
   return i;
 }
 
+static int duplicate_socket(SgSocket *socket, SgObject sockets)
+{
+  SgObject cp;
+  SG_FOR_EACH(cp, sockets) {
+    if (SG_EQ(socket, SG_CAAR(cp))) return TRUE;
+  }
+  return FALSE;
+}
+
 static void strip_sockets(SgSocketSelector *selector, SgObject slots)
 {
   if (!SG_NULLP(slots)) {

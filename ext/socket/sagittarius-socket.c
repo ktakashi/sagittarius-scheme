@@ -146,7 +146,12 @@ static void socket_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
   SgObject address = (socket->address != NULL) 
     ? get_address_string(socket->address->addr, socket->address->addr_size)
     : SG_FALSE;
-  Sg_Printf(port, UC("#<socket %s:%d %S>"), type, socket->socket, address);
+  if (SG_WRITE_MODE(ctx) == SG_WRITE_DISPLAY) {
+    Sg_Printf(port, UC("#<socket %s:%d %S>"), type, socket->socket, address);
+  } else {
+    Sg_Printf(port, UC("#<socket %s:%d %S 0x%x>"),
+	      type, socket->socket, address, self);
+  }
 }
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_SocketClass, socket_printer);
@@ -835,6 +840,8 @@ void Sg_SocketClose(SgSocket *socket)
   if (!Sg_SocketOpenP(socket)) {
     return;
   }
+  socket->type = SG_SOCKET_CLOSED;
+  Sg_UnregisterFinalizer(SG_OBJ(socket));
 #ifdef _WIN32
   /* FIXME socket-close should not shutdown socket but we don't have
      any way to flush socket other than shutting down write side of
@@ -848,8 +855,6 @@ void Sg_SocketClose(SgSocket *socket)
 #endif
   /* in case of double closing, we need to set invalid socket here. */
   socket->socket = INVALID_SOCKET;
-  socket->type = SG_SOCKET_CLOSED;
-  Sg_UnregisterFinalizer(SG_OBJ(socket));
 }
 
 /* fdset */

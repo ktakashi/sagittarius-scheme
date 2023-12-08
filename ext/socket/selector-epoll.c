@@ -89,7 +89,10 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
     if (SG_FALSEP(evm[i].data.ptr)) {
       interrupted_unix_stop(ctx);
     } else if (SG_PAIRP(evm[i].data.ptr) && evm[i].events == EPOLLIN) {
-      r = Sg_Cons(SG_OBJ(evm[i].data.ptr), r);
+      /* The same fxxking behaviour as kqueue, am I doing something wrong? */
+      if (!SG_FALSEP(Sg_Memq(evm[i].data.ptr, sockets))) {
+	r = Sg_Cons(SG_OBJ(evm[i].data.ptr), r);
+      }
     }
   }
   return r;
