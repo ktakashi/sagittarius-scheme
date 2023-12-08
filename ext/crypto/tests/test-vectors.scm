@@ -206,7 +206,7 @@
       (test-assert verifier)
       (for-each (verify-signature verifier) tests))))
 
-(unless (getenv "APPVEYOR")
+(unless (or (getenv "APPVEYOR") (getenv "CIRCLECI_WINDOWS"))
   (test-begin "Signature test vectors")
   (include "./testvectors/signature.scm")
   (test-end))
