@@ -40,6 +40,15 @@
 	    async-http-request async-http-request/client
 	    request-context-builder request-context?
 
+	    http:request-basic-auth http:request-bearer-auth
+
+	    http:response?
+	    http:response-status http:response-headers
+	    http:response-cookies http:response-body
+	    http:headers? http:make-headers
+	    http:headers-names http:headers-ref* http:headers-ref
+	    http:headers->alist
+	    
 	    request-payload request-payload?
 	    json-request-payload json-request-payload?
 	    (rename (make-json-request-payload json-payload))
@@ -141,8 +150,9 @@
 		    (method method)
 		    (callback callback))))
       (nobody-http-request/client http-client context)))
-   ((http-client context)
-    (async-http-request/client http-client context))))
+   ((http-client method context)
+    (let ((new-context (request-context-builder (from context) (method method))))
+      (async-http-request/client http-client new-context)))))
 
 (define bodied-http-request/client
   (case-lambda
@@ -179,7 +189,12 @@
 	     (define (async . opts)
 	       (apply async/client *default-http-client* opts))
 	     (define (sync uri)
-	       (future-get (async uri decompose-response)))))))))
+	       (future-get (if (request-context? uri)
+			       (async uri)
+			       (async uri decompose-response))))))))))
+
+		   
+		   
 
 (define-nobody GET)
 (define-nobody HEAD)

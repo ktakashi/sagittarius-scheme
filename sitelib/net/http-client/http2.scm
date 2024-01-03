@@ -179,7 +179,15 @@
 		 "Stream is not registered or already removed" sid))
 	     (when es?
 	       (http2-stream-remote-state-set! stream
-		(http2:stream-state half-closed)))
+		(case (http2-stream-state target-stream)
+		  ;; local already sent ES, 
+		  ;; - header retrieval no body
+		  ;; - data retrieval
+		  ((half-closed) (http2:stream-state closed))
+		  ;; local is still open (header retrieval with body)
+		  ((open)        (http2:stream-state half-closed))
+		  ;; mustn't be but in case, we put half-closed)
+		  (else          (http2:stream-state half-closed)))))
 	     (cond ((handle-misc-frames connection stream frame) (loop))
 		   ((http2-frame-headers? frame)
 		    (write-header-log connection "[Response header]" frame)
