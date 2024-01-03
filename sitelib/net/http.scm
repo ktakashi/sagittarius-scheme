@@ -69,9 +69,9 @@
    (http-pooling-connection-config-builder
     ;; timeouts are basically random number, mostly taken from some other
     ;; libraries or whatever values 
-    (dns-timeout 30)
-    (read-timeout 120)
-    (connection-timeout 60)
+    (dns-timeout 3000) 			;; 30s
+    (read-timeout 120000)		;; 120s
+    (connection-timeout 60000)		;; 60s
     (max-connection-per-route 100))))
 
 (define *default-http-client*
@@ -154,7 +154,7 @@
 		    (uri uri)
 		    (method method)
 		    (callback callback))))
-      (nobody-http-request/client http-client context)))
+      (async-http-request/client http-client context)))
    ((http-client method context)
     (let ((new-context (request-context-builder (from context) (method method))))
       (async-http-request/client http-client new-context)))))
@@ -167,9 +167,10 @@
 		    (method method)
 		    (payload payload)
 		    (callback callback))))
-      (bodied-http-request/client http-client context)))
-   ((http-client context)
-    (async-http-request/client http-client context))))
+      (async-http-request/client http-client context)))
+   ((http-client method context)
+    (let ((new-context (request-context-builder (from context) (method method))))
+      (async-http-request/client http-client new-context)))))
 
 (define (decompose-response resp)
   (values (http:response-status resp)
@@ -219,8 +220,15 @@
 	       (apply bodied-http-request/client http-client 'method rest))
 	     (define (async . opts)
 	       (apply async/client *default-http-client* opts))
-	     (define (sync uri body)
-	       (future-get (async uri body decompose-response)))))))))
+	     (define sync
+	       (case-lambda
+		((context)
+		 (future-get (if (request-context? context)
+				 (async context)
+				 ;; nobody
+				 (async context #f decompose-response))))
+		((uri body)
+		 (future-get (async uri body decompose-response)))))))))))
 
 (define-bodied POST)
 (define-bodied PUT)
