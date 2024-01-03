@@ -216,29 +216,39 @@
 
 (define (handle-redirect client request response success failure)
   (define (get-location response)
-    (http:headers-ref (http:response-headers response) "Location"))
+    (cond ((http:headers-ref (http:response-headers response) "Location") =>
+	   string->uri)
+	  (else #f)))
   (define (check-scheme request response)
-    (let ((uri (string->uri (get-location response)))
-	  (request-scheme (uri-scheme (http:request-uri request))))
-      (or (not (uri-scheme uri))
-	  (equal? (uri-scheme uri) request-scheme)
-	  ;; http -> https: ok
-	  ;; https -> http: not ok
-	  (equal? "http" request-scheme))))
+    (cond ((get-location response) =>
+	   (lambda (uri)
+	     (let ((request-scheme (uri-scheme (http:request-uri request))))
+	       (or (not (uri-scheme uri))
+		   (equal? (uri-scheme uri) request-scheme)
+		   ;; http -> https: ok
+		   ;; https -> http: not ok
+		   (equal? "http" request-scheme)))))
+	  ;; well, Location header doesn't exist
+	  (else #f)))
   (define (do-redirect client request response)
     (define request-uri (http:request-uri request))
     (define (get-next-uri)
-      (let ((uri (string->uri (get-location response))))
-	(string->uri
-	 (uri-compose :scheme (or (uri-scheme uri) (uri-scheme request-uri))
-		      :authority (or (uri-authority uri)
-				     (uri-authority request-uri))
-		      :path (uri-path uri)
-		      :query (uri-query uri)))))
-    (let* ((next (get-next-uri))
-	   (new-req (http:request-builder
-		     (from request) (method 'GET) (uri next))))
-      (request/response client new-req success failure)))
+      (cond ((get-location response) =>
+	     (lambda (uri)
+	       (string->uri
+		(uri-compose :scheme (or (uri-scheme uri)
+					 (uri-scheme request-uri))
+			     :authority (or (uri-authority uri)
+					    (uri-authority request-uri))
+			     :path (uri-path uri)
+			     :query (uri-query uri)))))
+	    (else #f)))
+    (cond ((get-next-uri) =>
+	   (lambda (next)
+	     (let ((new-req (http:request-builder
+			     (from request) (method 'GET) (uri next))))
+	       (request/response client new-req success failure))))
+	  (else (success response))))
   (case (http:client-follow-redirects client)
     ((never) (success response))
     ((always) (do-redirect client request response))
