@@ -67,6 +67,11 @@
 (define pooled-connection-manager
   (make-http-pooling-connection-manager
    (http-pooling-connection-config-builder
+    ;; timeouts are basically random number, mostly taken from some other
+    ;; libraries or whatever values 
+    (dns-timeout 30)
+    (read-timeout 120)
+    (connection-timeout 60)
     (max-connection-per-route 100))))
 
 (define *default-http-client*
@@ -192,10 +197,7 @@
 	       (future-get (if (request-context? uri)
 			       (async uri)
 			       (async uri decompose-response))))))))))
-
-		   
-		   
-
+		  
 (define-nobody GET)
 (define-nobody HEAD)
 (define-nobody DELETE)
