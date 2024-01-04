@@ -188,18 +188,19 @@
   (define scheme (uri-scheme uri))
   (define host (uri-host uri))
 
-  (define (timeout->expires-at v)
-    (let ((n (cond ((integer? v) (duration:of-millis v))
-		   ((time? v) v)
-		   (else (assertion-violation
-			  'http-connection-manager->socket-option
-			  "dns-timeout must be integer or time" v)))))
-      (add-duration (current-time) n)))
+  (define (time/millis v)
+    (cond ((integer? v) (duration:of-millis v))
+	  ((time? v) v)
+	  (else (assertion-violation 'http-connection-manager->socket-option
+				     "timeout must be integer or time" v))))
+  
+  (define (timeout->expires-at v) (add-duration (current-time) (time/millis v)))
+  
   (define connection-timeout
-    (cond ((connection-manager-connection-timeout cm) => duration:of-millis)
+    (cond ((connection-manager-connection-timeout cm) => time/millis)
 	  (else #f)))
   (define read-timeout
-    (cond ((connection-manager-read-timeout cm) => duration:of-millis)
+    (cond ((connection-manager-read-timeout cm) => time/millis)
 	  (else #f)))
   (define dns-timeout
     (cond ((connection-manager-dns-timeout cm) => timeout->expires-at)

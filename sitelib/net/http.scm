@@ -62,16 +62,17 @@
 	    (rfc uri)
 	    (srfi :13 strings)
 	    (text json)
-	    (util concurrent))
+	    (util concurrent)
+	    (util duration))
 
 (define pooled-connection-manager
   (make-http-pooling-connection-manager
    (http-pooling-connection-config-builder
     ;; timeouts are basically random number, mostly taken from some other
     ;; libraries or whatever values 
-    (dns-timeout 3000) 			;; 30s
-    (read-timeout 120000)		;; 120s
-    (connection-timeout 60000)		;; 60s
+    (dns-timeout (duration:of-seconds 30))	  ;; 30s
+    (read-timeout (duration:of-seconds 120))	  ;; 120s
+    (connection-timeout (duration:of-seconds 60)) ;; 60s
     (max-connection-per-route 100))))
 
 (define *default-http-client*
