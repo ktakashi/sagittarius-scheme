@@ -13,6 +13,7 @@
 * @[[utils/dbi.md](utils/dbi.md)]
 * @[[utils/dbm.md](utils/dbm.md)]
 * @[[utils/deque.md](utils/deque.md)]
+* @[[utils/duration.md](utils/duration.md)]
 * @[[utils/file.md](utils/file.md)]
 * @[[utils/getopt.md](utils/getopt.md)]
 * @[[utils/hashtables.md](utils/hashtables.md)]
