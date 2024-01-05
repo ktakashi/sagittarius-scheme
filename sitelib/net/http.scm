@@ -50,8 +50,13 @@
 	    http:headers->alist
 	    
 	    request-payload request-payload?
+
+	    octet-stream-request-payload octet-stream-request-payload?
+	    (rename (make-octet-stream-request-payload octet-stream-payload))
+
 	    json-request-payload json-request-payload?
 	    (rename (make-json-request-payload json-payload))
+
 	    x-www-form-urlencoded-request-payload
 	    x-www-form-urlencoded-request-payload?
 	    (rename (make-x-www-form-urlencoded-request-payload
@@ -82,6 +87,12 @@
 
 (define-record-type request-payload
   (fields content-type content converter))
+
+(define-record-type octet-stream-request-payload
+  (parent request-payload)
+  (protocol (lambda (p)
+	      (lambda (bv)
+		((p "application/octet-stream" bv values))))))
 
 (define-record-type json-request-payload
   (parent request-payload)
@@ -150,33 +161,33 @@
 
 (define nobody-http-request/client
   (case-lambda
-   ((http-client method uri callback)
+   ((http-client (method symbol?) (uri string?) (callback (or procedure? #f)))
     (let ((context (request-context-builder
 		    (uri uri)
 		    (method method)
 		    (callback callback))))
       (async-http-request/client http-client context)))
-   ((http-client method context)
+   ((http-client method (context request-context?))
     (let ((new-context (request-context-builder (from context) (method method))))
       (async-http-request/client http-client new-context)))))
 
 (define bodied-http-request/client
   (case-lambda
-   ((http-client method uri payload callback)
+   ((http-client (method symbol?)
+		 (uri string?)
+		 (payload (or bytevector? request-payload? #f))
+		 (callback (or procedure? #f)))
     (let ((context (request-context-builder
 		    (uri uri)
 		    (method method)
-		    (payload payload)
+		    (payload (if (bytevector? payload)
+				 (make-octet-stream-request-payload payload)
+				 payload))
 		    (callback callback))))
       (async-http-request/client http-client context)))
-   ((http-client method context)
+   ((http-client method (context request-context?))
     (let ((new-context (request-context-builder (from context) (method method))))
       (async-http-request/client http-client new-context)))))
-
-(define (decompose-response resp)
-  (values (http:response-status resp)
-	  (http:response-headers resp)
-	  (http:response-body resp)))
 
 (define-syntax define-nobody
   (lambda (x)
@@ -195,10 +206,14 @@
 	       (apply nobody-http-request/client http-client 'method rest))
 	     (define (async . opts)
 	       (apply async/client *default-http-client* opts))
-	     (define (sync uri)
-	       (future-get (if (request-context? uri)
-			       (async uri)
-			       (async uri decompose-response))))))))))
+	     (define sync
+	       (case-lambda
+		((context)
+		 (future-get (if (request-context? context)
+				 (async context)
+				 (async context values))))
+		((uri callback)
+		 (future-get (async uri callback)))))))))))
 		  
 (define-nobody GET)
 (define-nobody HEAD)
@@ -227,9 +242,10 @@
 		 (future-get (if (request-context? context)
 				 (async context)
 				 ;; nobody
-				 (async context #f decompose-response))))
-		((uri body)
-		 (future-get (async uri body decompose-response)))))))))))
+				 (async context #f values))))
+		((uri body) (future-get (async uri body values)))
+		((uri body callback)
+		 (future-get (async uri body callback)))))))))))
 
 (define-bodied POST)
 (define-bodied PUT)
