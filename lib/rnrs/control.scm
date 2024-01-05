@@ -24,7 +24,9 @@
 	     (reverse! (cons (list #'v args) inits)))))
 	(with-syntax ((((var init) ...) (parse-formals formals args '()))
 		      ((clause ...) clause*))
-	  #'(let ((var init) ...) clause ...)))
+	  ;; Using `lambda` enables type check, immediate apply
+	  ;; will be converted to let by the compiler.
+	  #'((lambda (var ...) clause ...) init ...)))
       (syntax-case x ()
 	((_ args n)
 	 #'(assertion-violation #f "unexpected number of arguments" args))
