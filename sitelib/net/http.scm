@@ -36,6 +36,7 @@
 	    http-head async-http-head async-http-head/client
 	    http-delete async-http-delete async-http-delete/client
 	    http-patch async-http-patch async-http-patch/client
+	    http-options async-http-options async-http-options/client
 
 	    async-http-request async-http-request/client
 	    request-context-builder request-context?
@@ -217,7 +218,7 @@
 		  
 (define-nobody GET)
 (define-nobody HEAD)
-(define-nobody DELETE)
+(define-nobody OPTIONS)
 
 (define-syntax define-bodied
   (lambda (x)
@@ -250,5 +251,5 @@
 (define-bodied POST)
 (define-bodied PUT)
 (define-bodied PATCH)
-
+(define-bodied DELETE)
 )
