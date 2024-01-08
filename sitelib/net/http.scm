@@ -39,7 +39,11 @@
 	    http-options async-http-options async-http-options/client
 
 	    async-http-request async-http-request/client
-	    http-request-context-builder http-request-context?
+	    http-request-context? http-request-context-builder
+	    (rename (http-request-context <http-request-context>))
+	    http-request-context-authenticator
+	    http-request-context-payload
+	    http-request-context-callback
 
 	    http:request-basic-auth http:request-bearer-auth
 
@@ -50,17 +54,23 @@
 	    http:headers-names http:headers-ref* http:headers-ref
 	    http:headers->alist
 	    
-	    request-payload request-payload?
+	    http-request-payload?
+	    (rename (http-request-payload <http-request-payload>))
+	    http-request-payload-content-type
+	    http-request-payload-content
+	    http-request-payload-converter
 
 	    octet-stream-request-payload octet-stream-request-payload?
 	    (rename (make-octet-stream-request-payload octet-stream-payload))
 
-	    json-request-payload json-request-payload?
-	    (rename (make-json-request-payload json-payload))
-
-	    x-www-form-urlencoded-request-payload
+	    json-request-payload? 
+	    (rename (json-request-payload <json-request-payload>)
+		    (make-json-request-payload json-payload))
+	    
 	    x-www-form-urlencoded-request-payload?
-	    (rename (make-x-www-form-urlencoded-request-payload
+	    (rename (x-www-form-urlencoded-request-payload
+		     <x-www-form-urlencoded-request-payload>)
+		    (make-x-www-form-urlencoded-request-payload
 		     x-www-form-urlencoded-payload)))
     (import (rnrs)
 	    (net http-client)
@@ -87,17 +97,17 @@
    (follow-redirects (http:redirect always))
    (connection-manager pooled-connection-manager)))
 
-(define-record-type request-payload
+(define-record-type http-request-payload
   (fields content-type content converter))
 
 (define-record-type octet-stream-request-payload
-  (parent request-payload)
+  (parent http-request-payload)
   (protocol (lambda (p)
 	      (lambda (bv)
 		((p "application/octet-stream" bv values))))))
 
 (define-record-type json-request-payload
-  (parent request-payload)
+  (parent http-request-payload)
   (protocol (lambda (p)
 	      (define (json->string json)
 		(let-values (((out e) (open-string-output-port)))
@@ -108,7 +118,7 @@
 		((p "application/json" json json->bytevector))))))
 
 (define-record-type x-www-form-urlencoded-request-payload
-  (parent request-payload)
+  (parent http-request-payload)
   (protocol (lambda (p)
 	      (define (->urlencoded kv)
 		(string-append (uri-encode-string (car kv))
@@ -120,12 +130,13 @@
 		((p "application/x-www-form-urlencoded" kv encode-values))))))
 
 (define (->request-body body)
-  (values (request-payload-content-type body)
-	  ((request-payload-converter body) (request-payload-content body))))
+  (values (http-request-payload-content-type body)
+	  ((http-request-payload-converter body)
+	   (http-request-payload-content body))))
 
 (define-record-type http-request-context
   (parent <http:request>)
-  (fields authenticator
+  (fields authenticator			;; only for the name
 	  payload
 	  callback))
 
@@ -169,7 +180,7 @@
   (case-lambda
    ((http-client (method symbol?)
 		 (uri string?)
-		 (payload (or bytevector? request-payload? #f))
+		 (payload (or bytevector? http-request-payload? #f))
 		 (callback (or procedure? #f)))
     (let ((context (http-request-context-builder
 		    (uri uri)
