@@ -39,7 +39,7 @@
 	    http-options async-http-options async-http-options/client
 
 	    async-http-request async-http-request/client
-	    request-context-builder request-context?
+	    http-request-context-builder http-request-context?
 
 	    http:request-basic-auth http:request-bearer-auth
 
@@ -64,6 +64,7 @@
 		     x-www-form-urlencoded-payload)))
     (import (rnrs)
 	    (net http-client)
+	    (net http-client request) ;; for http:request accessors
 	    (record builder)
 	    (rfc uri)
 	    (srfi :13 strings)
@@ -122,39 +123,30 @@
   (values (request-payload-content-type body)
 	  ((request-payload-converter body) (request-payload-content body))))
 
-(define-record-type request-context
-  (fields uri
-	  method
+(define-record-type http-request-context
+  (parent <http:request>)
+  (fields authenticator
 	  payload
-	  authenticator
-	  headers
-	  cookies
-	  timeout
 	  callback))
 
-(define-syntax request-context-builder
-  (make-record-builder request-context
+(define-syntax http-request-context-builder
+  (make-record-builder http-request-context
    ((headers '())
     (cookies '()))))
 
 (define (request-context->http-request context)
-  (define payload (request-context-payload context))
+  (define payload (http-request-context-payload context))
   (let-values (((content-type body)
 		(if payload (->request-body payload) (values #f #f))))
-    (http:request-builder
-     (uri (request-context-uri context))
-     (method (request-context-method context))
-     (uri (request-context-uri context))
-     (content-type content-type)
-     (auth (request-context-authenticator context))
-     (headers (request-context-headers context))
-     (cookies (request-context-cookies context))
-     (body body)
-     (timeout (request-context-timeout context)))))
+    (http:request-builder (from context)
+     (auth (or (http-request-context-authenticator context)
+	       (http:request-auth context)))
+     (content-type (or content-type (http:request-content-type context)))
+     (body (or body (http:request-body context))))))
 
 (define (async-http-request/client http-client request-context)
   (define request (request-context->http-request request-context))
-  (define callback (or (request-context-callback request-context) values))
+  (define callback (or (http-request-context-callback request-context) values))
   (future-map callback (http:client-send-async http-client request)))
 
 (define (async-http-request context)
@@ -163,13 +155,14 @@
 (define nobody-http-request/client
   (case-lambda
    ((http-client (method symbol?) (uri string?) (callback (or procedure? #f)))
-    (let ((context (request-context-builder
+    (let ((context (http-request-context-builder
 		    (uri uri)
 		    (method method)
 		    (callback callback))))
       (async-http-request/client http-client context)))
-   ((http-client method (context request-context?))
-    (let ((new-context (request-context-builder (from context) (method method))))
+   ((http-client method (context http-request-context?))
+    (let ((new-context (http-request-context-builder (from context)
+			(method method))))
       (async-http-request/client http-client new-context)))))
 
 (define bodied-http-request/client
@@ -178,7 +171,7 @@
 		 (uri string?)
 		 (payload (or bytevector? request-payload? #f))
 		 (callback (or procedure? #f)))
-    (let ((context (request-context-builder
+    (let ((context (http-request-context-builder
 		    (uri uri)
 		    (method method)
 		    (payload (if (bytevector? payload)
@@ -186,8 +179,9 @@
 				 payload))
 		    (callback callback))))
       (async-http-request/client http-client context)))
-   ((http-client method (context request-context?))
-    (let ((new-context (request-context-builder (from context) (method method))))
+   ((http-client method (context http-request-context?))
+    (let ((new-context (http-request-context-builder (from context)
+			(method method))))
       (async-http-request/client http-client new-context)))))
 
 (define-syntax define-nobody
@@ -210,7 +204,7 @@
 	     (define sync
 	       (case-lambda
 		((context)
-		 (future-get (if (request-context? context)
+		 (future-get (if (http-request-context? context)
 				 (async context)
 				 (async context values))))
 		((uri callback)
@@ -240,7 +234,7 @@
 	     (define sync
 	       (case-lambda
 		((context)
-		 (future-get (if (request-context? context)
+		 (future-get (if (http-request-context? context)
 				 (async context)
 				 ;; nobody
 				 (async context #f values))))
