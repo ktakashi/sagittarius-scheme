@@ -41,7 +41,6 @@
 	    async-http-request async-http-request/client
 	    http-request-context? http-request-context-builder
 	    (rename (http-request-context <http-request-context>))
-	    http-request-context-authenticator
 	    http-request-context-payload
 	    http-request-context-callback
 
@@ -60,8 +59,9 @@
 	    http-request-payload-content
 	    http-request-payload-converter
 
-	    octet-stream-request-payload octet-stream-request-payload?
-	    (rename (make-octet-stream-request-payload octet-stream-payload))
+	    octet-stream-request-payload?
+	    (rename (octet-stream-request-payload <octet-stream-request-payload>)
+		    (make-octet-stream-request-payload octet-stream-payload))
 
 	    json-request-payload? 
 	    (rename (json-request-payload <json-request-payload>)
@@ -136,8 +136,7 @@
 
 (define-record-type http-request-context
   (parent <http:request>)
-  (fields authenticator			;; only for the name
-	  payload
+  (fields payload
 	  callback))
 
 (define-syntax http-request-context-builder
@@ -150,8 +149,6 @@
   (let-values (((content-type body)
 		(if payload (->request-body payload) (values #f #f))))
     (http:request-builder (from context)
-     (auth (or (http-request-context-authenticator context)
-	       (http:request-auth context)))
      (content-type (or content-type (http:request-content-type context)))
      (body (or body (http:request-body context))))))
 

@@ -120,6 +120,9 @@ The `field` must be one or more the followings.
 `cookies`
 : A list of cookies. The elements must be cookie object of `(rfc cookie)`
 
+`auth`
+: An authentication provider. Must be a thunk providing the `Authorization` 
+  header value.
 
 
 ###### [!Function] `http:headers?`  _o_
@@ -189,6 +192,20 @@ The element of the list is a cookie object of `(rfc cookie)`.
 
 Returns the body of the response.
 The value is bytevector.
+
+
+#### [§4] Authorization header value providers
+
+Authorization header value providers can be used for `auth` field of the
+HTTP request.
+
+###### [!Function] `http:request-basic-auth` _username_ _password_
+
+Provides basic auth value provider of the given _username_ and _password_.
+
+###### [!Function] `http:request-basic-bearer` _token_
+
+Provides bearer auth value provider of the given _token_.
 
 
 ### [§3] Connection Manager
