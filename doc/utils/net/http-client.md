@@ -81,16 +81,19 @@ strategy.
 The value must be one of `never`, `always` or `normal`. The
 default value is `never`.
 
-`never` won't redirect, it is suitable if you want to handle 3xx result
-manually.
+`never` 
+: Won't redirect, it is suitable if you want to handle 3xx result
+  manually.
 
-`always` redirects as long as the 3xx status is returned. This means
-insecure redirection may happen (i.e. HTTPS to HTTP)
+`always`
+: Redirects as long as the 3xx status is returned. This means
+  insecure redirection may happen (i.e. HTTPS to HTTP)
 
-`normal` redirects 3xx status if the scheme is the same or more secure.
+`normal`
+: Redirects 3xx status if the scheme is the same or more secure.
 
 
-### [§3] HTTP request and response
+### [§3] HTTP request and response {#net.http-client.request}
 
 ###### [!Function] `http:request?`  _o_
 

@@ -138,12 +138,14 @@ Users can make own request payload as well.
 
 The base record of HTTP request payload. The record has below 3 fields;
 
-- `content-type`
-  :Accessor: `http-request-payload-content-type`
-- `content`
-  :Accessor: `http-request-payload-content`
-- `converter`
-  :Accessor: `http-request-payload-converter`
+`content-type`
+: Accessor `http-request-payload-content-type`
+
+`content`
+: Accessor `http-request-payload-content`
+
+`converter`
+: Accessor `http-request-payload-converter`
 
 ###### [!Function] `http-request-payload?` _obj_
 
