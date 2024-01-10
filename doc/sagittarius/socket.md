@@ -1,13 +1,13 @@
 [§2] (sagittarius socket) - socket library {#lib.sagittarius.socket}
 -------------
 
-This section describes low level socket API on Sagittarius. The APIs are mostly
-the same signature as Ypsilon and mosh. The following example is simple echo
-server, it receives input from a client and just returns it to the client.
+This section describes low level socket API on Sagittarius. The
+following example is simple echo server, it receives input from a
+client and just returns it to the client.
 
 The example program is from example/socket/echo.scm.
 
-``````````scheme
+```scheme
 (import (rnrs) (sagittarius socket))
 ;; creates echo server socket with port number 5000
 (define echo-server-socket (make-server-socket "5000"))
@@ -40,24 +40,23 @@ The example program is from example/socket/echo.scm.
 	      (lp2 (get-line p)))))))))
   ;; echo server waits next connection.
   (loop (socket-accept echo-server-socket)))
-``````````
+```
 
 ###### [!Library] `(sagittarius socket)` 
 
 This library provides procedures for socket programming.
 
-###### [!Function] `make-client-socket`  _node_ _srvice_ _:opational_ _(ai_family_ `AF_INET` _)_ _
-_ _(ai_socktype_ `SOCK_STREAM` _)_ _
-_ _(ai_flags_ _(+_ `AI_V4MAPPED` `AI_ADDRCONFIG` _))_ _(ai_protocol_ _0)_
+###### [!Function] `make-client-socket`  _node_ _srvice_ :opational (_ai_family_ `AF_INET` ) (_ai_socktype_ `SOCK_STREAM`) (_ai_flags_ `(+ AI_V4MAPPED AI_ADDRCONFIG)`) (_ai_protocol `0`)
 
 _Node_ and _service_ must be string or #f. Other optional arguments
 must be exact integer.
 
-Returns a client socket connected to an Internet address. The Internet address
-is identified by _node_ and _service_. The `make-client-socket`uses `getaddrinfo(3)` to look it up. The arguments _node_, _service_,
-_ai-family_, _ai-socktype_, _ai-flags_ and _ai-protocol_ are
-passed to `getaddrinfo(3)` as corresponding parameters. For more detail,
-see reference of `getaddrinfo(3)`.
+Returns a client socket connected to an Internet address. The Internet
+address is identified by _node_ and _service_. The
+`make-client-socket` uses `getaddrinfo(3)` to look it up. The
+arguments _node_, _service_, _ai-family_, _ai-socktype_, _ai-flags_
+and _ai-protocol_ are passed to `getaddrinfo(3)` as corresponding
+parameters. For more detail, see reference of `getaddrinfo(3)`.
 
 _Node_ is a network address, ex) "www.w3.org", "localhost", "192.168.1.1". 
 
@@ -96,9 +95,7 @@ _Ai-protocol_ is a protocol specifier. Predefined specifiers are listed below.
 
 
 
-###### [!Function] `make-server-socket`  _service_ _:optional_ _(ai_family_ `AF_INET` _)_ _
-_ _(ai_socktype_ `SOCK_STREAM` _)_ _
-_ _(ai_protocol_ _0)_
+###### [!Function] `make-server-socket`  _service_ :optional (_ai_family_ `AF_INET`) (_ai_socktype_ `SOCK_STREAM` ) (_ai_protocol_ `0`)
 
 _Service_ must be string or #f. Other optional arguments must be exact
 integer. Returns a server socket waiting for connections. The argument details
@@ -109,7 +106,7 @@ are the same as the `make-client-socket`.
 
 Returns #t if _obj_ is socket object, otherwise #f.
 
-###### [!Function] `socket-port`  _socket_ _:optional_ _(close?_ _#t)_
+###### [!Function] `socket-port`  _socket_ :optional (_close?_ `#t`)
 
 _Socket_ must be a socket object. Returns a binary input/output port
 associated with _socket_.
@@ -119,7 +116,7 @@ when port is closing or being GCed.
 
 
 ###### [!Function] `socket-input-port`  _socket_
-###### [!Function] `socket-output-port`  _socket_
+###### [!Function] `socket-output-port` _socket_
 
 [SRFI-106] _Socket_ must be a socket object. Returns a binary input
 and output port associated with _socket_, respectively.
@@ -150,7 +147,7 @@ The `shutdown-output-port` and `shutdown-input-port` shutdown
 output or input connection of a socket associated with _port_ respectively.
 
 
-###### [!Function] `socket-accept`  _socket_
+###### [!Function] `socket-accept` _socket_
 
 _Socket_ must be a socket object created by
 `make-server-socket`.
@@ -164,7 +161,7 @@ If the calling thread is interrupted by `thread-interrupt!`, then
 the procedure returns #f.
 
 
-###### [!Function] `socket-recv`  _socket_ _size_ _:optional_ _(flags_ _0)_
+###### [!Function] `socket-recv` _socket_ _size_ :optional (_flags_ `0`)
 
 _Socket_ must be a socket object.
 
@@ -174,7 +171,7 @@ returned, it means the peer connection is closed.
 This procedures is a thin wrapper of POSIX's `recv(2)`.
 
 
-###### [!Function] `socket-send`  _socket_ _bytevector_ _:optional_ _(flags_ _0)_
+###### [!Function] `socket-send` _socket_ _bytevector_ :optional (_flags_ `0`)
 
 _Socket_ must be a socket object.
 
@@ -183,7 +180,7 @@ Sends a binary data block to given socket and returns the sent data size.
 This procedures is a thin wrapper of POSIX's `send(2)`.
 
 
-###### [!Function] `socket-shutdown`  _socket_ _how_
+###### [!Function] `socket-shutdown` _socket_ _how_
 
 _Socket_ must be a socket object. _How_ must be one of the
 `SHUT_RD`, `SHUT_WR` or `SHUT_RDWR`.
@@ -262,7 +259,7 @@ Returns socket info object or #f. The socket info object contains hostname,
 IP address and port number. These information is retrieved from getsockname(2).
 
 
-###### [!Function] `socket-info-values`  _socket_ _:key_ _(type_ _'peer)_
+###### [!Function] `socket-info-values` _socket_ :key (_type_ `'peer`)
 
 _Socket_ must be a socket object.
 
@@ -275,7 +272,7 @@ then it uses `socket-info`
 
 ### [§3] IP address operations
 
-###### [!Function] `ip-address->string`  _ip_
+###### [!Function] `ip-address->string` _ip_
 
 _ip_ must be an IP address object returned from the second value 
 of `socket-info-values`.
@@ -283,7 +280,7 @@ of `socket-info-values`.
 Converts given IP address object to human readable string.
 
 
-###### [!Function] `ip-address->bytevector`  _ip_
+###### [!Function] `ip-address->bytevector` _ip_
 
 _ip_ must be an IP address object returned from the second value 
 of `socket-info-values`.
@@ -297,7 +294,7 @@ The low level socket APIs are almost compatible with BSD socket.
 
 #### [§4] Socket
 
-###### [!Function] `socket-sendto`  _socket_ _bvtevector_ _sockaddr_ _:optional_ _(flags_ _0)_
+###### [!Function] `socket-sendto` _socket_ _bvtevector_ _sockaddr_ :optional (_flags_ `0`)
 
 Sends a binary data block to given sockaddr and returns the
 sent data size.
@@ -305,7 +302,7 @@ sent data size.
 This procedures is a thin wrapper of POSIX's `sendto (2)`.
 
 
-###### [!Function] `socket-recvfrom`  _socket_ _sockaddr_ _:optional_ _(flags_ _0)_
+###### [!Function] `socket-recvfrom` _socket_ _sockaddr_ :optional (_flags_ `0`)
 
 Receives a binary data block from given sockaddr. If zero length
 bytevector is returned, it means the peer connection is closed.
@@ -313,7 +310,7 @@ bytevector is returned, it means the peer connection is closed.
 This procedures is a thin wrapper of POSIX's `recvfrom (2)`.
 
 
-###### [!Function] `make-socket`  _ai-family_ _ai-socktype_ _ai-protocol_
+###### [!Function] `make-socket` _ai-family_ _ai-socktype_ _ai-protocol_
 
 Creates socket object. The procedure returns #f if it couldn't create
 a socket. `SO_NOSIGPIPE` socket option is set to the created socket.
@@ -321,8 +318,8 @@ a socket. `SO_NOSIGPIPE` socket option is set to the created socket.
 This procedure is a thin wrapper of `socket (2)`.
 
 
-###### [!Function] `socket-connect!`  _socket_ _addrinfo_
-###### [!Function] `socket-connect!`  _socket_ _addrinfo_ _timeout_
+###### [!Function] `socket-connect!` _socket_ _addrinfo_
+###### [!Function] `socket-connect!` _socket_ _addrinfo_ _timeout_
 
 Initiate connection on the given _socket_ with given
 addrinfo _addrinfo_.
@@ -333,7 +330,7 @@ connection timeout. The value must be a timeout value of `socket-select`.
 This procedure is a thin wrapper of `connect (2)`.
 
 
-###### [!Function] `socket-bind!`  _socket_ _addrinfo_
+###### [!Function] `socket-bind!` _socket_ _addrinfo_
 
 Binds a name to the given socket _socket_ with given addrinfo
 _addrinfo_.
@@ -341,14 +338,14 @@ _addrinfo_.
 This procedure is a thin wrapper of `bind (2)`.
 
 
-###### [!Function] `socket-listen!`  _socket_ _backlog_
+###### [!Function] `socket-listen!` _socket_ _backlog_
 
 Listen for connections on the given socket _socket_.
 
 This procedure is a thin wrapper of `listen (2)`.
 
 
-###### [!Function] `socket-setsockopt!`  _socket_ _level_ _name_ _value_
+###### [!Function] `socket-setsockopt!` _socket_ _level_ _name_ _value_
 
 Sets socket option on the given socket _socket_.
 
@@ -408,7 +405,7 @@ The _value_ must be either bytevector or integer.
 This procedure is a thin wrapper of `setsockopt (2)`.
 
 
-###### [!Function] `socket-getsockopt`  _socket_ _level_ _name_ _size_
+###### [!Function] `socket-getsockopt` _socket_ _level_ _name_ _size_
 
 Gets socket option on the given socket _socket_.
 
@@ -420,14 +417,14 @@ contains the socket option converted to byte array. Otherwise it returns
 an integer value.
 
 
-###### [!Function] `socket-nonblocking!`  _socket_
-###### [!Function] `socket-blocking!`  _socket_
+###### [!Function] `socket-nonblocking!` _socket_
+###### [!Function] `socket-blocking!` _socket_
 
 Converts given socket to nonblocking socket and blocking socket,
 respectively.
 
 
-###### [!Function] `socket-set-read-timeout!`  _socket_ _timeout_
+###### [!Function] `socket-set-read-timeout!` _socket_ _timeout_
 
 Sets read timeout of _timeout_ to the given _socket_.
 
@@ -436,7 +433,7 @@ or a time object.
 
 
 ###### [!Function] `socket-select`  _rfds_ _wfds_ _efds_ _timeout_
-###### [!Function] `socket-select!`  _rfds_ _wfds_ _efds_ _timeout_
+###### [!Function] `socket-select!` _rfds_ _wfds_ _efds_ _timeout_
 
 Monitor given fdset.
 
@@ -454,8 +451,8 @@ This procedure is a thin wrapper of `select (2)`.
 
 
 ###### [!Function] `socket-read-select`  _timeout_ _sockets_ _..._
-###### [!Function] `socket-write-select`  _timeout_ _sockets_ _..._
-###### [!Function] `socket-error-select`  _timeout_ _sockets_ _..._
+###### [!Function] `socket-write-select` _timeout_ _sockets_ _..._
+###### [!Function] `socket-error-select` _timeout_ _sockets_ _..._
 
 Waits until the given sockets _sockets_ have something interesting.
 This is the convenient procedure for `socket-select`.
@@ -475,7 +472,7 @@ done by `socket-read-select`.
 
 #### [§4] Addrinfo
 
-###### [!Function] `addrinfo?`  _obj_
+###### [!Function] `addrinfo?` _obj_
 
 Returns #t if given _obj_ is an addrinfo, otherwise #f.
 
@@ -494,12 +491,12 @@ The object has the following slots:
 
 
 
-###### [!Function] `make-hint-addrinfo`  _family_ _socktype_ _flags_ _protocol_
+###### [!Function] `make-hint-addrinfo` _family_ _socktype_ _flags_ _protocol_
 
 Creates an addrinfo with given flags. This can be used as hint for
 `get-addrinfo`.
 
-###### [!Function] `get-addrinfo`  _addrinfo_
+###### [!Function] `get-addrinfo` _addrinfo_
 
 Gets addrinfo of given hint addrinfo.
 
@@ -508,7 +505,7 @@ When the procedure fails, then `&i/o` is raised.
 This procedure is a thin wrapper of `getaddrinfo (3)`.
 
 
-###### [!Function] `next-addrinfo`  _addrinfo_
+###### [!Function] `next-addrinfo` _addrinfo_
 
 Retrieves next addrinfo of given _addrinfo_ if availalbe, otherwise
 returns #f.

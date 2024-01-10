@@ -5,14 +5,28 @@
 
 This library provides TLS protocol socket APIs.
 
-CAUTION: This library is not well tested. So it may have security hole or
-incompatible behaviour. If you find such bugs, please let me know.
+### [§3] Implementation notes:
 
+The library is implemented different libraries per platform.
+Some platform may not support a particular TLS version(s).
 
-###### [!Function] `make-client-tls-socket`  _node_ _service_ _:key_ _(prng_ _(secure-randome_ _RC4))_ _
-_ _(version_ _*tls-version-1.2*)_ _(session_ _#f)_ _(handshake_ _#t)_ _
-_ _(certificates_ _'())_ _(private-key_ _#f)_ _
-_ _:allow-other-keys_ _opt_
+On Windows
+: The library is implemented atop SChannel (SSP). The supporting TLS
+  versions varies depending on the version of Windows. For the
+  detailed information please refer Microsoft's support page.
+  e.g. [Protocols in TLS/SSL (Schannel SSP)](https://learn.microsoft.com/en-us/windows/win32/secauthn/protocols-in-tls-ssl--schannel-ssp-)
+  
+On POSIX / Linux
+: The library is implemented atop OpenSSL. This library doesn't
+  specify the version of OpenSSL, it detects during the build process.
+  The library specifies to use the latest TLS version, however,
+  it doesn't guarantee using **the** latest due to the variety of
+  reasons, e.g. older version of OpenSSL.
+
+If you require to use a specific version of TLS, however this library
+only can do its best effort.
+
+###### [!Function] `make-client-tls-socket`  _node_ _service_ :key _handshake_ _certificates_ _private-key_ _certificate-verifier_ :allow-other-keys
 
 _node_ and _service_ must be string.
 
@@ -23,15 +37,9 @@ passed to `make-client-socket` described in
 The keyword argument _prng_ specifies which pseudo random algorithm will
 be used for generating security parameters.
 
-The keyword argument _version_ specifies which TLS protocol version will be
-used for negotiation. However the real version will be decided by target server.
-
-The keyword argument _session_ is for future extension, so do not specify.
-
 If the keyword argument _handshake_ #f then the procedure won't do
 TLS handshake after the socket creation so users must do it manually with
 `tls-client-handshake` procedure described below.
-
 
 The keyword argument _certificates_ is for certificate request message.
 The value must be a list of x509 certificates. If the certificates argument
@@ -42,21 +50,22 @@ The keyword argument _private-key_ specifies which private key is used.
 The value must be private key object described in ["(crypto)"](#crypto).
 This is needed if the target server only supports RSA key exchange protocol.
 
+The keyword argument _certificate-verifier_ must be either boolean or a procedure
+which accepts 3 arguments, certificate depth, previous error and certificate 
+as a bytevector. The procedure should check the passed certificate is valid
+or not.
 
 ###### [!Function] `tls-client-handshake`  _tls-socket_
 
 Do client side handshake and return a TLS socket. The procedure must
-\*NOT\* be called if the socket is created with _handshake_ keyword argument
+**NOT** be called if the socket is created with _handshake_ keyword argument
 #t.
 
 CAUTION: This procedure needs to be called only once and calling more than once
 might cause infinite loop or raise an error.
 
 
-###### [!Function] `make-server-tls-socket`  _service_ _certificates_ _:key_ _(prng_ _(secure-randome_ _RC4))_ _
-_ _(version_ _*tls-version-1.2*)_ _
-_ _(private-key_ _#f)_ _(authorities_ _'())_ _
-_ _:allow-other-keys_ _opt_
+###### [!Function] `make-server-tls-socket`  _service_ _certificates_ :key _private-key_ _authorities_ _client-certificate-required?_ _certificate-verifier_ :allow-other-keys
 
 _service_ must be string. _certificates_ must be a
 list of x509 certificate.
@@ -70,8 +79,9 @@ The keyword arguments _prng_ and _version_ are the same meaning as
 
 The keyword argument _private-key_ is used the same as client socket.
 The difference is that it is used also for Deffie-Hellman key exchange.
-If this is not specified, then key exhange is done anonymously.
-It is strongly recomended to specify this keyword argument.
+If this is not specified, then key exhange is done anonymously.  
+The _private-key_ should be specified. This is optional due to the
+backward compatibility.
 
 The keyword argument _authorities_ must be a list of x509 certificate and
 if this is not empty list then the server socket will send certificate request
@@ -127,7 +137,7 @@ NOTE: this procedure checks if session is closed. So the real socket might not
 be closed yet.
 
 
-###### [!Function] `tls-socket-accept`  _tls-socket_ _:key_ _(handshake_ _#t)_ _(raise-error_ _#t)_
+###### [!Function] `tls-socket-accept`  _tls-socket_ :key (handshake `#t`) (_raise-error_ `#t`)
 
 _tls-socket_ must be a server TLS socket created by
 `make-server-tls-socket`.
@@ -142,10 +152,10 @@ The keyword argument _raise-error_ will be passed to
 `tls-server-handshake`.
 
 
-###### [!Function] `tls-server-handshake`  _tls-socket_ _:key_ _(raise-error_ _#t)_
+###### [!Function] `tls-server-handshake`  _tls-socket_ :key (_raise-error_ `#t`)
 
 Do server side TLS handshake and returns a TLS socket. The procedure must
-\*NOT\* be called if the socket is created with _handshake_ keyword argument
+**NOT** be called if the socket is created with _handshake_ keyword argument
 #t.
 
 If the keyword argument _raise-error_ is #f then it won't raise an error
@@ -195,7 +205,7 @@ Constant value of `#x0302` for TLS 1.1
 
 Constant value of `#x0301` for TLS 1.0
 
-###### [!Function] `tls-socket-port`  _tls-socket_ _:optional_ _(close?_ _#t)_
+###### [!Function] `tls-socket-port`  _tls-socket_ :optional (_close?_ `#t`)
 
 _tls-socket_ must be the socket created by the procedure
 `make-client-tls-socket`.
@@ -220,15 +230,15 @@ users responsibility to close.
 The methods listed below are convenience methods to use TLS socket and
 usual socket without changing code.
 
-###### [!Method] `socket-close`  _(socket_ _<tls-socket>)_
-###### [!Method] `socket-send`  _(socket_ _<tls-socket>)_ _data_ _:optional_ _(flags_ _0)_
-###### [!Method] `socket-recv`  _(socket_ _<tls-socket>)_ _size_ _:optional_ _(flags_ _0)_
-###### [!Method] `socket-accept`  _(socket_ _<tls-socket>)_ _._ _opt_
-###### [!Method] `socket-accept`  _(socket_ _<tls-socket>)_ _(key_ _<keyword>)_ _._ _dummy_
-###### [!Method] `call-with-socket`  _(socket_ _<tls-socket>)_ _proc_
-###### [!Method] `socket-peer`  _(socket_ _<tls-socket>)_
-###### [!Method] `socket-name`  _(socket_ _<tls-socket>)_
-###### [!Method] `socket-info-values`  _(socket_ _<tls-socket>)_
-###### [!Method] `socket-port`  _(socket_ _<tls-socket>)_ _:optional_ _(close?_ _#t)_
-###### [!Method] `socket-input-port`  _(socket_ _<tls-socket>)_
-###### [!Method] `socket-output-port`  _(socket_ _<tls-socket>)_
+###### [!Method] `socket-close`  (_socket_ `<tls-socket>`)
+###### [!Method] `socket-send`  (_socket_ `<tls-socket>`) _data_ :optional (_flags_ `0`)
+###### [!Method] `socket-recv`  (_socket_ `<tls-socket>`) _size_ :optional (_flags_ `0`)
+###### [!Method] `socket-accept`  (_socket_ `<tls-socket>`) . _opt_
+###### [!Method] `socket-accept`  (_socket_ `<tls-socket>`) (_key_ `<keyword>`) . _dummy_
+###### [!Method] `call-with-socket`  (_socket_ `<tls-socket>`) _proc_
+###### [!Method] `socket-peer`  (_socket_ `<tls-socket>`)
+###### [!Method] `socket-name`  (_socket_ `<tls-socket>`)
+###### [!Method] `socket-info-values`  (_socket_ `<tls-socket>`)
+###### [!Method] `socket-port`  (_socket_ `<tls-socket>`) :optional (_close?_ `#t`)
+###### [!Method] `socket-input-port`  (_socket_ `<tls-socket>`)
+###### [!Method] `socket-output-port`  (_socket_ `<tls-socket>`)
