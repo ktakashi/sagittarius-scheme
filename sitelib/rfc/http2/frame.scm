@@ -180,7 +180,7 @@
     (unless (frame-buffer? buffer)
       (assertion-violation 'fill-http2-frame-buffer!
 			   "frame buffer required" buffer))
-    (let ((len (read-u24 in))
+    (let* ((len (read-u24 in))
 	  (type (get-u8 in))
 	  (flags (get-u8 in))
 	  (si   (get-u32 in 'big))

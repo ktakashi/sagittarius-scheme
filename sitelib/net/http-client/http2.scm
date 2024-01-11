@@ -46,6 +46,7 @@
 	    (srfi :18 multithreading)
 	    (util hashtables))
 
+(define +window-size+ 65535)
 (define-record-type http2-connection-context
   (parent <http-connection-context>)
   (fields streams
@@ -54,6 +55,7 @@
 	  buffer
 	  mutex
 	  (mutable next-id)
+	  (mutable initial-window-size)
 	  (mutable window-size))
   (protocol (lambda (n)
 	      (lambda ()
@@ -64,7 +66,8 @@
 		 (make-frame-buffer)
 		 (make-mutex)
 		 1
-		 65535)))))
+		 +window-size+
+		 +window-size+)))))
 (define (make-http2-connection socket socket-option node service)
   (make-http-connection node service socket-option
 			socket
@@ -85,7 +88,10 @@
 	  data-handler
 	  (mutable state)
 	  (mutable remote-state)
-	  (mutable window-size))
+	  (mutable window-size)
+	  (mutable local-window-size)
+	  (mutable data-sent)
+	  (mutable data-received))
   (protocol (lambda (p)
 	      (lambda (connection request)
 		(define id (http2-next-stream-id connection))
@@ -96,20 +102,39 @@
 			    (http:request-data-handler request)
 			    (http2:stream-state idle)
 			    (http2:stream-state idle)
-			    (http2-connection-context-window-size ctx))))
+			    (http2-connection-context-initial-window-size ctx)
+			    +client-window-size+
+			    0
+			    0)))
 		  (hashtable-set! (http2-connection-context-streams ctx) id r)
 		  r)))))
 
-(define +client-window-size+ (- (expt 2 31) 1))
+;;(define +client-window-size+ (- (expt 2 31) 1))
+(define +client-window-size+ +window-size+)
+(define +default-settings+
+  `(;; for now, we don't handle push
+    (,+http2-settings-enable-push+ 0)
+    (,+http2-settings-initial-window-size+ ,+client-window-size+)
+    (,+http2-settings-max-concurrent-streams+ 100)))
+
 ;;; API
 (define (socket->http2-connection socket socket-option node service)
   (let ((conn (make-http2-connection socket socket-option node service)))
     (http2-send-preface conn)
-    (http2-send-settings conn 0
-     `(;; for now, we don't handle push
-       (,+http2-settings-enable-push+ 0)
-       (,+http2-settings-initial-window-size+ ,+client-window-size+)
-       (,+http2-settings-max-concurrent-streams+ 100)))
+    (http2-send-settings conn 0 +default-settings+)
+    ;; Set the global window size 2^31 - 1 (max)
+    ;; NOTE
+    ;; If we don't do this, then all the window size is limited to the
+    ;; initial size. This mechanism is probably used in the memory
+    ;; strict environment, but we can do rich programming here, so
+    ;; just make it unlimited.
+    (send-window-update conn 0 (- (- (expt 2 31) 1) +window-size+))
+    ;; Wait until server ACK settings
+    (let loop ()
+      (let-values (((frame stream) (handle-frame conn)))
+	(unless (and (http2-frame-settings? frame)
+		     (bitwise-bit-set? (http2-frame-flags frame) 0))
+	  (loop))))
     conn))
 
 ;;; API
@@ -155,11 +180,8 @@
 	(loop (http2-response connection request 'data)))))
   
 (define (http2-response connection request to-receive)
-  (define context (http-connection-context-data connection))
-  (define streams (http2-connection-context-streams context))
   (define target-stream (search-stream connection request))
   (define rstate (http2-stream-remote-state target-stream))
-  (define used-window-sizes (make-eqv-hashtable))
   ;; already received?
   (cond ((and (eq? to-receive 'header) (memq rstate '(half-closed closed)))
 	 ;; Okay, the stream already received header, so return
@@ -169,64 +191,12 @@
 	 #t)
 	(else
 	 (let loop ()
-	   (let* ((frame (read-frame connection))
-		  (sid (http2-frame-stream-identifier frame))
-		  (stream (hashtable-ref streams sid #f))
-		  (es? (http2-frame-end-stream? frame)))
-	     ;; SID 0 == global 
-	     (unless (or (zero? sid) stream)
-	       (assertion-violation 'http2-response
-		 "Stream is not registered or already removed" sid))
-	     (when es?
-	       (http2-stream-remote-state-set! stream
-		(case (http2-stream-state target-stream)
-		  ;; local already sent ES, 
-		  ;; - header retrieval no body
-		  ;; - data retrieval
-		  ((half-closed) (http2:stream-state closed))
-		  ;; local is still open (header retrieval with body)
-		  ((open)        (http2:stream-state half-closed))
-		  ;; mustn't be but in case, we put half-closed)
-		  (else          (http2:stream-state half-closed)))))
-	     (cond ((handle-misc-frames connection stream frame) (loop))
-		   ((http2-frame-headers? frame)
-		    (write-header-log connection "[Response header]" frame)
-		    (let* ((headers (map (lambda (kv)
-					   (list (utf8->string (car kv))
-						 (utf8->string (cadr kv))))
-					 (http2-frame-headers-headers frame)))
-			   (handler (http2-stream-header-handler stream))
-			   (r (handler (cond ((assoc ":status" headers) => cadr)
-					     (else #f))
-				       headers
-				       (not es?))))
-		      (if (eq? stream target-stream)
-			  r
-			  (loop))))
-		   ((http2-frame-data? frame)
-		    (let ((data (http2-frame-data-data frame))
-			  (data-handler (http2-stream-data-handler stream)))
-		      (http-connection-write-log connection
-		       "HTTP2 data length ~a, ~a"
-		       (bytevector-length data) es?)
-
-		      (data-handler data es?)
-		      (hashtable-update! used-window-sizes sid
-		       (lambda (v)
-			 (let* ((size (bytevector-length data))
-				(new-size (+ v size)))
-			   (cond ((>= new-size +client-window-size+)
-				  (send-frame connection
-					      (make-http2-frame-window-update
-					       0 sid +client-window-size+) #t)
-				  0)
-				 (else new-size))))
-		       0)
-		      (if (eq? stream target-stream)
-			  es?
-			  (loop))))
-		   (else (assertion-violation
-			  'http2-response "Unknown frame type" frame))))))))
+	   (let-values (((frame stream) (handle-frame connection)))
+	     (if (and (eq? stream target-stream)
+		      (or (http2-frame-headers? frame)
+			  (http2-frame-data? frame)))
+		 (http2-frame-end-stream? frame)
+		 (loop)))))))
 
 ;;; helpers
 (define (search-stream connection request)
@@ -276,9 +246,13 @@
 		    (send-rst-stream connection
 				     +http2-error-code-protocol-error+ sid))
 		   ((zero? sid)
-		    (http2-connection-context-window-size-set! context size))
-		   (else (http2-stream-window-size-set! stream size))))
-	   #t)
+		    (let ((v (http2-connection-context-window-size context)))
+		      (http2-connection-context-window-size-set! context
+		       (+ v size))))
+		   (else
+		    (let ((v (http2-stream-window-size stream)))
+		      (http2-stream-window-size-set! stream (+ v size)))))
+	     #t))
 	  (else #f))))
 
 (define (send-frame connection frame end?)
@@ -299,6 +273,10 @@
   (http-connection-close! connection)
   (raise e))
 
+(define (send-window-update connection si increment-size)
+  (define frame (make-http2-frame-window-update 0 si increment-size))
+  (send-frame connection frame #f))
+
 (define (read-frame connection)
   (define context (http-connection-context-data connection))
   (define in (http-connection-input connection))
@@ -312,6 +290,68 @@
     (read-http2-frame in (http2-connection-context-buffer context)
 		      res-hpack)))
 
+(define (update-window-size! stream size)
+  (define received (http2-stream-data-received stream))
+  (define new-received (+ received size))
+  (define local-window (http2-stream-local-window-size stream))
+  (http2-stream-data-received-set! stream new-received)
+  (when (< (div local-window 2) new-received)
+    ;; double the size
+    (let ((delta local-window))
+      (send-window-update (http2-stream-connection stream)
+			  (http2-stream-id stream) delta)
+      (http2-stream-local-window-size-set! stream (+ local-window delta)))))
+
+
+(define (handle-frame connection)
+  (define context (http-connection-context-data connection))
+  (define streams (http2-connection-context-streams context))
+
+  (let* ((frame (read-frame connection))
+	 (sid (http2-frame-stream-identifier frame))
+	 (stream (hashtable-ref streams sid #f))
+	 (es? (http2-frame-end-stream? frame)))
+    ;; SID 0 == global 
+    (unless (or (zero? sid) stream)
+      (assertion-violation 'http2-response
+			   "Stream is not registered or already removed" sid))
+    (when es?
+      (http2-stream-remote-state-set! stream
+	(case (http2-stream-state stream)
+	  ;; local already sent ES, 
+	  ;; - header retrieval no body
+	  ;; - data retrieval
+	  ((half-closed) (http2:stream-state closed))
+	  ;; local is still open (header retrieval with body)
+	  ((open)        (http2:stream-state half-closed))
+	  ;; mustn't be but in case, we put half-closed)
+	  (else          (http2:stream-state half-closed)))))
+    (cond ((handle-misc-frames connection stream frame) (values frame #f))
+	  ((http2-frame-headers? frame)
+	   (write-header-log connection "[Response header]" frame)
+	   (let* ((headers (map (lambda (kv)
+				  (list (utf8->string (car kv))
+					(utf8->string (cadr kv))))
+				(http2-frame-headers-headers frame)))
+		  (handler (http2-stream-header-handler stream))
+		  (r (handler (cond ((assoc ":status" headers) => cadr)
+				    (else #f))
+			      headers
+			      (not es?))))
+	     (values frame stream)))
+	  ((http2-frame-data? frame)
+	   (let ((data (http2-frame-data-data frame))
+		 (data-handler (http2-stream-data-handler stream)))
+	     (http-connection-write-log connection
+					"HTTP2 data length ~a, ~a"
+					(bytevector-length data) es?)
+
+	     (data-handler data es?)
+	     (update-window-size! stream (bytevector-length data))
+	     (values frame stream)))
+	  (else
+	   (assertion-violation 'http2-response "Unknown frame type" frame)))))
+
 (define (request-has-body? request)
   (define method (http:request-method request))
   (and (http:request-body request)
@@ -321,16 +361,39 @@
   (define method (http:request-method request))
   (define (send-data-frame stream request)
     (define body (http:request-body request))
-    ;; (define window-size (http2:stream-window-size stream))
-    ;; TODO consider window-size
-    (define (send-bytevector-data-frame stream bv)
+    (define window-size (http2-stream-window-size stream))
+    ;; this shouldn't be needed though...
+    (define (pause! size)
+      (let loop ()
+	(handle-frame (http2-stream-connection stream))
+	(when (<= (http2-stream-window-size stream) size) (loop)))
+      (set! window-size (http2-stream-window-size stream)))
+
+    (define (send-bytevector-data-frame stream bv es?)
+      ;; TODO split frames in case of the bv is bigger than window size
+      (define sent (http2-stream-data-sent stream))
+      (define new-sent (+ sent (bytevector-length bv)))
+      (when (>= new-sent window-size) (pause! new-sent))
+      (http2-stream-data-sent-set! stream new-sent)
       (let ((frame (make-http2-frame-data 0 (http2-stream-id stream) bv)))
-	(http2-write-stream stream frame #t)))
+	(http2-write-stream stream frame es?)))
+
     (define (send-input-port-data-frame stream bin)
-      (assertion-violation 'stream:request->data-frame-sender
-			   "Not yet" bin))
+      (define bufsize 8192)
+      (define buffer (make-bytevector bufsize))
+      (define (fill!) (get-bytevector-n! bin buffer 0 bufsize))
+      (define (send! buffer n es?)
+	(define bv (cond ((= n bufsize) buffer)
+			 ((zero? n) #vu8())
+			 (else (bytevector-copy buffer 0 n))))
+	(send-bytevector-data-frame stream bv es?))
+      (do ((n (fill!) (fill!)))
+	  ((not (= n bufsize))
+	   (if (eof-object? n) (send! #vu8() 0 #t) (send! buffer n #t)))
+	(send! buffer n #f)))
+    
     (cond ((bytevector? body)
-	   (send-bytevector-data-frame stream body))
+	   (send-bytevector-data-frame stream body #t))
 	  ((and (input-port? body) (binary-port? body))
 	   (send-input-port-data-frame stream body))
 	  (else (assertion-violation 'stream:request->data-frame-sender
@@ -399,12 +462,7 @@
     (put-bytevector out +http2-preface+)))
 (define (http2-send-settings conn flags settings)
   (define context (http-connection-context-data conn))
-  (let ((out (http-connection-output conn)))
-    (write-http2-frame out (http2-connection-context-buffer context)
-		       (make-http2-frame-settings flags 0 settings)
-		       ;; we know context is not needed and 
-		       ;; this won't be the end of stream
-		       #f #f)))
+  (send-frame conn (make-http2-frame-settings flags 0 settings) #f))
 (define (http2-handle-server-settings conn)
   (define context (http-connection-context-data conn))
   (let ((in (http-connection-input conn)))
@@ -426,9 +484,8 @@
 		       (update-hpack-table-size!
 			(http2-connection-context-request-hpack-context ctx) 
 			(cdar settings)))
-		      ((= (caar settings)
-			  +http2-settings-initial-window-size+)
-		       (http2-connection-context-window-size-set! ctx
+		      ((= (caar settings) +http2-settings-initial-window-size+)
+		       (http2-connection-context-initial-window-size-set! ctx
 			(cdar settings))))
 		(loop (cdr settings)))))))
 
