@@ -59,6 +59,10 @@
 	    http-request-payload-content
 	    http-request-payload-converter
 
+	    binary-request-payload?
+	    (rename (binary-request-payload <binary-request-payload>)
+		    (make-binary-request-payload binary-payload))
+	    
 	    octet-stream-request-payload?
 	    (rename (octet-stream-request-payload <octet-stream-request-payload>)
 		    (make-octet-stream-request-payload octet-stream-payload))
@@ -100,11 +104,17 @@
 (define-record-type http-request-payload
   (fields content-type content converter))
 
-(define-record-type octet-stream-request-payload
+(define-record-type binary-request-payload
   (parent http-request-payload)
   (protocol (lambda (p)
-	      (lambda (bv)
-		((p "application/octet-stream" bv values))))))
+	      (case-lambda
+	       ((bin) ((p "application/octet-stream" bin values)))
+	       ((bin content-type) ((p content-type bin values)))))))
+
+(define-record-type octet-stream-request-payload
+  (parent binary-request-payload)
+  (protocol (lambda (p)
+	      (lambda (bv) ((p bv))))))
 
 (define-record-type json-request-payload
   (parent http-request-payload)

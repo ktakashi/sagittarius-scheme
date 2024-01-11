@@ -126,7 +126,7 @@ is the raw content of the reuqest payload, for example, a list of
 key and value pairs. Then the `converter` convers the `content` to
 a bytevector.
 
-The library provides 3 most used content types:
+The library provides generic binary payload and 3 most used content types:
 
 - `application/octet-stream`
 - `application/json`
@@ -166,9 +166,18 @@ One of the supporting payload, `<json-request-payload>` is defined like this:
                 ((p "application/json" json json->bytevector))))))
 ```
 
+###### [!Record type] `<binary-request-payload>`
+###### [!Function] `binary-request-payload?` _obj_
+###### [!Function] `binary-payload` (_binary_ (or `bytevector?` `binary-port?`)) :optional (_content-type_ `"application/octet-stream"`)
+
+HTTP request payload for binary input.
+
+If you already have a binary data ready to be sent, then this payload
+can be the most convenient one to use.
+
 ###### [!Record type] `<octet-stream-request-payload>`
 ###### [!Function] `octet-stream-request-payload?` _obj_
-###### [!Function] `octet-stream-payload` (_bv_ `bytevector?`)
+###### [!Function] `octet-stream-payload` (_bv_ (or `bytevector?` `binary-port?`))
 
 HTTP request payload for octet stream.
 
