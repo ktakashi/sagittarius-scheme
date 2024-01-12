@@ -1,2 +1,3 @@
 test/data/text.txt text eol=crlf
 dist.bat text eol=crlf
+ext/zlib/data/* binary
