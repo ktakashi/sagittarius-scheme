@@ -13,7 +13,7 @@ use raw PKCS#12 format, see `(sagittarius crypto pkcs keystore)`.
 
 ###### [!Library] `(sagittarius crypto keystores)`
 
-The keystore library, this library exports the precedures listed
+The keystore library, this library exports the procedures listed
 blow sections.
 
 ###### [!Function] `pkcs12-keystore?` _obj_

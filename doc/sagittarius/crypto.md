@@ -221,3 +221,4 @@ Below example shows how to generate a random integer.
 * @[[sagittarius/crypto/mac.md](sagittarius/crypto/mac.md)]
 * @[[sagittarius/crypto/x509.md](sagittarius/crypto/x509.md)]
 * @[[sagittarius/crypto/keystore.md](sagittarius/crypto/keystore.md)]
+* @[[sagittarius/crypto/kdfs.md](sagittarius/crypto/kdfs.md)]
