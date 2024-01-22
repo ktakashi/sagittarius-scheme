@@ -622,9 +622,9 @@
 	    env))))))
 
   (define-binary %       "%")
-  (define-binary logior  "|")
-  (define-binary logxor  "^")
-  (define-binary logand  "&")
+  (define-nary logior  "|")
+  (define-nary logxor  "^")
+  (define-nary logand  "&")
   (define-binary <       "<")
   (define-binary <=      "<=")
   (define-binary >       ">")

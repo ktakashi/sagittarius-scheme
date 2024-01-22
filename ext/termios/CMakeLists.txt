@@ -7,6 +7,11 @@ INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
 # termios
 IF (WINDOWS_SUPPORT)
   SET(OS_SRC win_termios.c)
+ELSE()
+  CHECK_C_SOURCE_COMPILES(
+    "#include <termios.h>
+int main() { struct termios p, cfmakeraw(&p); return 0; }"
+  HAVE_CF_MAKE_RAW)
 ENDIF()
 
 ADD_LIBRARY(sagittarius--termios MODULE

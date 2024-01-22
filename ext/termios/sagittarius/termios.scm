@@ -41,6 +41,7 @@
 	    ;; primitives
 	    sys-cfgetispeed sys-cfsetispeed
 	    sys-cfgetospeed sys-cfsetospeed
+	    sys-cfmakeraw!
 	    sys-tcdrain
 	    sys-tcflow
 	    sys-tcflush

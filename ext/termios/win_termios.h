@@ -205,7 +205,6 @@ WINT_EXTERN int     tcgetattr(int, struct termios *);
 WINT_EXTERN pid_t   tcgetsid(int);
 WINT_EXTERN int     tcsendbreak(int, int);
 WINT_EXTERN int     tcsetattr(int, int, struct termios *);
-
 #ifdef __cplusplus
 }
 #endif
