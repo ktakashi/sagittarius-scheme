@@ -559,12 +559,12 @@ static SgObject get_possible_paths(SgVM *vm, SgObject name, int needDirectiveP)
 
 /* FIXME this should be in load.c */
 static SgTranscoder *default_load_transcoder = SG_UNDEF;
-static void load_library(SgVM *vm, SgObject path, SgObject directive)
+static int load_library(SgVM *vm, SgObject path, SgObject directive)
 {
   SgObject file;
   SgObject bport;
   SgObject tport;
-  int save = vm->flags;
+  int save = vm->flags, result;
   /* dummy context to change VM mode for directive. */
   SgReadContext context = SG_STATIC_READ_CONTEXT;
   context.flags = SG_CHANGE_VM_MODE;
@@ -582,7 +582,10 @@ static void load_library(SgVM *vm, SgObject path, SgObject directive)
 
   Sg_ApplyDirective(tport, directive, &context);
   Sg_LoadFromPort(tport);
+  result = vm->flags;
   vm->flags = save;
+  /* we need to return the loaded flags to detect #!nocache directive */
+  return result;
 }
 
 static SgObject search_library_unsafe(SgObject name, SgObject olibname,
@@ -631,18 +634,18 @@ static SgObject search_library_unsafe(SgObject name, SgObject olibname,
       state = Sg_ReadCache(path);
       if (state != CACHE_READ) {
 	SgObject saveLib = vm->currentLibrary;
+	int flags;
 	/* if find-library called inside of library and the library does not
 	   import (sagittarius) it can not compile.*/
 	vm->currentLibrary = userlib;
-	
-	load_library(vm, path, SG_CDAR(paths)); /* check again, or flag? */
+
+	flags = load_library(vm, path, SG_CDAR(paths)); 
 	
 	vm->currentLibrary = saveLib;
 	/* if Sg_ReadCache returns INVALID_CACHE, then we don't have to write
 	   it. it's gonna be invalid anyway.
 	*/
-	if (state == RE_CACHE_NEEDED &&
-	    !SG_VM_IS_SET_FLAG(vm, SG_DISABLE_CACHE)) {
+	if (state == RE_CACHE_NEEDED && !(flags & SG_DISABLE_CACHE)) {
 	  /* write cache */
 	  Sg_WriteCache(name, path, Sg_ReverseX(SG_CAR(vm->cache)));
 	}
