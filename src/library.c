@@ -641,7 +641,8 @@ static SgObject search_library_unsafe(SgObject name, SgObject olibname,
 	/* if Sg_ReadCache returns INVALID_CACHE, then we don't have to write
 	   it. it's gonna be invalid anyway.
 	*/
-	if (state == RE_CACHE_NEEDED) {
+	if (state == RE_CACHE_NEEDED &&
+	    !SG_VM_IS_SET_FLAG(vm, SG_DISABLE_CACHE)) {
 	  /* write cache */
 	  Sg_WriteCache(name, path, Sg_ReverseX(SG_CAR(vm->cache)));
 	}

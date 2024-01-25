@@ -60,11 +60,11 @@ struct SgLibraryRec
   readtable_t *readtable;
   SgObject     reader;		/* custom reader */
     /* library behaviour flags */
-  int          mutableP: 1;	/* if this is TRUE then redefinition is
+  unsigned int mutableP: 1;	/* if this is TRUE then redefinition is
 				   always allowed.
 				   c.f) user, eval environment and child
 				*/
-  int          autoExport: 1;	/* automatically exports bindings */
+  unsigned int autoExport: 1;	/* automatically exports bindings */
   int          reserved:   30;
 
   SgObject     holder;		/* #f or VM.

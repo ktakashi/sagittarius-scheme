@@ -195,18 +195,6 @@ long Sg_WriteLimited(SgObject obj, SgObject port, int mode, long width)
   }
 }
 
-#define NEXT_ARG(arg, args)						\
-  do {									\
-    if (!SG_PAIRP(args)) {						\
-      Sg_Error(UC("too few arguments for format string: %S"), fmt);	\
-    }									\
-    arg = SG_CAR(args);							\
-    args = SG_CDR(args);						\
-    argcount++;								\
-  } while(0)
-
-#define MAX_PARAMS 5
-
 static void format_pad(SgPort *out, SgString *str,
 		       long mincol, long colinc, SgChar padchar,
 		       int rightalign)
@@ -409,11 +397,7 @@ static void format_proc(SgPort *port, SgString *fmt, SgObject args, int sharedp)
   SgObject arg;
   SgPort *fmtstr = SG_PORT(Sg_MakeStringInputPort(fmt, 0, -1));
   int backtracked = FALSE;
-  int /* arglen, */ argcount;
   SgWriteContext sctx, actx;	/* context for ~s and ~a */
-
-  /* arglen = Sg_Length(args); */
-  argcount = 0;
 
   sctx.mode = SG_WRITE_WRITE;
   sctx.table = NULL;
@@ -427,6 +411,18 @@ static void format_proc(SgPort *port, SgString *fmt, SgObject args, int sharedp)
   actx.sharedId = 0;
   SET_STACK_SIZE(&actx);
 
+#define NEXT_ARG(arg, args)						\
+  do {									\
+    if (!SG_PAIRP(args)) {						\
+      Sg_Error(UC("too few arguments for format string: %S"), fmt);	\
+    }									\
+    arg = SG_CAR(args);							\
+    args = SG_CDR(args);						\
+  } while(0)
+
+#define MAX_PARAMS 5
+
+  
   for (;;) {
     int atflag, colonflag;
     SgObject params[MAX_PARAMS];
@@ -591,6 +587,8 @@ static void format_proc(SgPort *port, SgString *fmt, SgObject args, int sharedp)
       break;
     }
   }
+#undef NEXT_ARG
+
  badfmt:
   Sg_Error(UC("illegal format string: %S"), fmt);
   return;
@@ -1132,7 +1130,7 @@ static void vprintf_proc(SgPort *port, const SgChar *fmt,
   SgObject value;
   SgChar c;
   char buf[SPBUFSIZ], tmp[SPBUFSIZ];
-  int longp = 0, mode;
+  int mode;
   long len;
 
   while ((c = *fmtp++) != 0) {
@@ -1160,7 +1158,6 @@ static void vprintf_proc(SgPort *port, const SgChar *fmt,
     while ((c = *fmtp++) != 0) {
       switch (c) {
       case 'l':
-	longp++;
 	tmp[index++] = (char)c;
 	continue;
       case 'd': case 'i': case 'c':

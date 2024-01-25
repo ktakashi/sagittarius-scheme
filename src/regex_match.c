@@ -211,9 +211,9 @@ struct match_ctx_rec_t
   inst_t      *start;
   inst_t      *inst;
   const char_t *lastp;
-  char          wasword : 1;
-  char          matched : 1;
-  char          reserved : 6;
+  unsigned char wasword : 1;
+  unsigned char matched : 1;
+  unsigned char reserved : 6;
 };
 
 /* #define DEBUG_REGEX */
