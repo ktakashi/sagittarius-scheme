@@ -799,17 +799,32 @@ static SgObject init_buffered_port(SgBufferedPort *bp,
   return SG_OBJ(bp);
 }
 
+static void bi_port_finalize(SgObject obj, void *data)
+{
+  SgBiDirectionalBufferedPort *p = (SgBiDirectionalBufferedPort *)obj;
+  port_cleanup(SG_PORT(&BI_PORT(p)->out));
+  Sg_UnregisterFinalizer(SG_OBJ(obj));
+}
+
+
 SgObject Sg_MakeBufferedPort(SgPort *src, SgBufferMode mode,
 			     uint8_t *buffer, size_t size)
 {
   if (SG_BIDIRECTIONAL_PORTP(src)) {
     SgObject r;
-    SgBiDirectionalBufferedPort *p =SG_NEW(SgBiDirectionalBufferedPort);
+    SgBiDirectionalBufferedPort *p = SG_NEW(SgBiDirectionalBufferedPort);
     r = init_buffered_port(&BI_PORT(p)->in, mode, src, buffer, size, FALSE);
     SG_PORT_VTABLE(r) = (mode == SG_BUFFER_MODE_LINE) 
       ? &bi_line_buffer_table: &bi_block_buffer_table;
     /* out side is excess so won't be used */
-    init_buffered_port(&BI_PORT(p)->out, mode, src, NULL, 0, TRUE);
+    init_buffered_port(&BI_PORT(p)->out, mode, src, NULL, 0, FALSE);
+    /* (probably) because the bidirational buffered port structure
+       doesn't contain pointer, GC gets confused, so register specific
+       finalizer here. */
+    if (Sg_GCBase(src) && Sg_FinalizerRegisteredP(src)) {
+      Sg_UnregisterFinalizer(src);
+      Sg_RegisterFinalizer(p, bi_port_finalize, NULL);
+    }
     return r;
   } else {
     SgBufferedPort *p = SG_NEW(SgBufferedPort);
@@ -2269,6 +2284,11 @@ static SgPortTable* get_custom_table(SgCustomPortSpec *spec)
   }
 }
 
+static void custom_port_finalize(SgObject obj, void *data)
+{
+  port_finalize(obj, data);
+}
+
 SgObject Sg_MakeCustomPort(SgCustomPortSpec *spec)
 {
   SgPortTable *tbl = (spec->table)? spec->table: get_custom_table(spec);
@@ -2321,7 +2341,7 @@ SgObject Sg_MakeCustomPort(SgCustomPortSpec *spec)
   } else {
     port->textualBuffer = Sg_ReserveString(SG_PORT_DEFAULT_BUFFER_SIZE, 0);
   }
-  Sg_RegisterFinalizer(SG_OBJ(port), port_finalize, NULL);
+  Sg_RegisterFinalizer(SG_OBJ(port), custom_port_finalize, NULL);
   return SG_OBJ(port);
 }
 
