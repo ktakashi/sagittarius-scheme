@@ -1118,7 +1118,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   SgFilePort bp;
   SgBufferedPort bfp;
   SgObject cache, size;
-  int index = 0, ret;
+  int index = 0, ret, flags = 0;
   uint8_t portBuffer[SG_PORT_DEFAULT_BUFFER_SIZE];
   int64_t cacheSize;
 
@@ -1128,6 +1128,11 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
     Sg_Printf(vm->logPort, UC(";; caching id=%A\n"
 			      ";;         cache=%A\n"), id, cache_path);
   }
+  if (!SG_NULLP(caches)) {
+    flags = SG_INT_VALUE(SG_CAAR(caches));
+  }
+  if (flags & SG_DISABLE_FILE_CACHE) return FALSE;
+  
   SG_OPEN_FILE(ret, &file, cache_path, SG_CREATE | SG_WRITE);
   /* In some cases, e.g. encrypted drive on Ubuntu, the path
      name would be too long and can't be opened. In that case,
@@ -1149,7 +1154,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
 			      SG_BUFFER_MODE_BLOCK,
 			      portBuffer, SG_PORT_DEFAULT_BUFFER_SIZE);
   if (!SG_NULLP(caches)) {
-    Sg_PutbUnsafe(out, !SG_FALSEP(SG_CAAR(caches)));
+    Sg_PutbUnsafe(out, (flags & SG_DEPRECATED_FILE) == SG_DEPRECATED_FILE);
   }
   SG_FOR_EACH(cache, caches) {
     if (SG_VM_LOG_LEVEL(vm, SG_TRACE_LEVEL)) {

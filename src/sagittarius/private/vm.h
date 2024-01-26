@@ -287,6 +287,7 @@ typedef enum {
   SG_COMPATIBLE_MODE     = 0x00000200, /* 00000010 */
   SG_R7RS_MODE           = 0x00000400, /* 00000100 */
   SG_DEPRECATED_FILE     = 0x00001000,
+  SG_DISABLE_FILE_CACHE  = 0x00002000, /* for #!nocache */
 
   /* optimization */
   SG_NO_INLINE_ASM       = 0x00010000,

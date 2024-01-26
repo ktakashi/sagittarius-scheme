@@ -634,18 +634,17 @@ static SgObject search_library_unsafe(SgObject name, SgObject olibname,
       state = Sg_ReadCache(path);
       if (state != CACHE_READ) {
 	SgObject saveLib = vm->currentLibrary;
-	int flags;
 	/* if find-library called inside of library and the library does not
 	   import (sagittarius) it can not compile.*/
 	vm->currentLibrary = userlib;
 
-	flags = load_library(vm, path, SG_CDAR(paths)); 
+	load_library(vm, path, SG_CDAR(paths)); 
 	
 	vm->currentLibrary = saveLib;
 	/* if Sg_ReadCache returns INVALID_CACHE, then we don't have to write
 	   it. it's gonna be invalid anyway.
 	*/
-	if (state == RE_CACHE_NEEDED && !(flags & SG_DISABLE_CACHE)) {
+	if (state == RE_CACHE_NEEDED) {
 	  /* write cache */
 	  Sg_WriteCache(name, path, Sg_ReverseX(SG_CAR(vm->cache)));
 	}

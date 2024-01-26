@@ -1062,7 +1062,7 @@ SgObject Sg_ApplyDirective(SgPort *port, SgObject desc, SgReadContext *ctx)
     }
     if (ustrcmp(tag->value, "nocache") == 0) {
       if (ctx->flags & SG_CHANGE_VM_MODE) {
-	SG_VM_SET_FLAG(Sg_VM(), SG_DISABLE_CACHE);
+	SG_VM_SET_FLAG(Sg_VM(), SG_DISABLE_FILE_CACHE);
       }
       return desc;
     }

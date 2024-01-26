@@ -811,7 +811,7 @@ SgObject Sg_Eval(SgObject sexp, SgObject env)
   v = Sg_Compile(sexp, env);
   /* store cache */
   if (vm->state == IMPORTING) {
-    int b = SG_VM_IS_SET_FLAG(vm, SG_DEPRECATED_FILE);
+    int b = vm->flags;
     SG_SET_CAR(vm->cache, Sg_Cons(Sg_Cons(b? SG_TRUE: SG_FALSE, v),
 				  SG_CAR(vm->cache)));
   }
@@ -850,8 +850,8 @@ static SgObject next_eval_cc(SgObject v, void **data)
   /* SG_LIBRARY_DEFINEED(vm->currentLibrary) = SG_NIL; */
   /* store cache */
   if (vm->state == IMPORTING) {
-    int b = SG_VM_IS_SET_FLAG(vm, SG_DEPRECATED_FILE);
-    SG_SET_CAR(vm->cache, Sg_Cons(Sg_Cons(b? SG_TRUE: SG_FALSE, v),
+    int b = vm->flags;
+    SG_SET_CAR(vm->cache, Sg_Cons(Sg_Cons(SG_MAKE_INT(b), v),
 				  SG_CAR(vm->cache)));
   }
   if (vm->state != IMPORTING) vm->state = RUNNING;
