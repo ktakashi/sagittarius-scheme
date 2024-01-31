@@ -699,8 +699,8 @@ FOREACH(TEST_FILE ${TEST_FILES})
 ENDFOREACH()
 
 ADD_CUSTOM_TARGET(clone-json-tests
-  COMMAND stat JSON-Schema-Test-Suite > /dev/null || git clone https://github.com/json-schema-org/JSON-Schema-Test-Suite.git
-  COMMAND stat jmespath.test > /dev/null || git clone https://github.com/jmespath/jmespath.test.git
+  COMMAND stat JSON-Schema-Test-Suite > /dev/null && cd JSON-Schema-Test-Suite && git pull || git clone https://github.com/json-schema-org/JSON-Schema-Test-Suite.git
+  COMMAND stat jmespath.test > /dev/null && cd jmespath.test && git pull || git clone https://github.com/jmespath/jmespath.test.git
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/test)
 ADD_TEST(NAME jsonschema
   COMMAND ${TEST_COMMAND} ${PROJECT_SOURCE_DIR}/test/json-schema-tests.scm
