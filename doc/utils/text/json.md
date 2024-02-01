@@ -16,33 +16,47 @@ compatibility.
 
 Conversion rules for `vector`:
 
-``````````scheme
+```scheme
 JSON array   <-> list
 JSON map     <-> vector
 JSON boolean <-> boolean
 JSON null    <-> symbol `null`
-``````````
+```
 
 Conversion rules for `alist`:
 
-``````````scheme
+```scheme
 JSON array   <-> vector
 JSON map     <-> alist
 JSON boolean <-> boolean
 JSON null    <-> symbol `null`
-``````````
+```
 
 This parameter affects the read and write procedures.
 
 
-###### [!Function] `json-read`  _:optional_ _(port_ _(current-input-port))_
+###### [!Function] `json-read`  :optional (_port_ `(current-input-port)`)
 
 Reads JSON from given _port_ and returns representing S-expression.
 
-###### [!Function] `json-write`  _json_ _:optional_ _(port_ _(current-output-port))_
+###### [!Function] `json-write`  _json_ :optional (_port_ `(current-output-port)`)
 
 Writes the given S-expression JSON representing object to given
 _port_.
+
+###### [!Function] `json-write/normalized`  _json_ :optional (_port_ `(current-output-port)`)
+
+Writes the given S-expression JSON representing object to given
+_port_.
+
+The written JSON doesn't have excess space.
+
+###### [!Function] `json-read-error?` _obj_
+###### [!Function] `json-write-error?` _obj_
+
+Returns `#t` if the given _obj_ is `&json-read` or `&json-write` respectively,
+otherwise `#f`.
+
 
 
 [§2] (text json object-builder) -- JSON object builder/serializer {#text.json.object-builder}
@@ -64,7 +78,7 @@ created only via `json-object-builder` macro.
 
 Returns #t if the given _obj_ is a JSON object builder.
 
-###### [!Macro] `json-object-builder`  _ctr_ _spec_ _..._
+###### [!Macro] `json-object-builder`  _ctr_ _spec_ ...
 ###### [!Auxiliary syntax] `?` 
 ###### [!Auxiliary syntax] `@` 
 
@@ -113,7 +127,7 @@ Scheme object.
 
 Here are some of examples:
 
-``````````scheme
+```scheme
 (json-object-builder
  (make-image-holder
   ("Image"
@@ -145,9 +159,9 @@ Above construct Scheme object from JSON like the following:
   }
 }
 |#
-``````````
+```
 
-``````````scheme
+```scheme
 (json-object-builder
  (  list
     (make-location
@@ -183,20 +197,20 @@ Above construct Scheme object from JSON like the following:
   }
 ]
 |#
-``````````
+```
 
 
 
-###### [!Function] `json->object`  _json_ _builder_ _:optional_ _missing-key-handler_
-###### [!Function] `json-string->object`  _json-string_ _builder_ _:optional_ _missing-key-handler_
-###### [!Function] `read-object-from-json`  _builder_ _:optional_ _(in-port_ _(current-input-port))_ _missing-key-handler_
+###### [!Function] `json->object`  _json_ _builder_ :optional _missing-key-handler_
+###### [!Function] `json-string->object`  _json-string_ _builder_ :optional _missing-key-handler_
+###### [!Function] `read-object-from-json`  _builder_ :optional (_in-port_ `(current-input-port)`) _missing-key-handler_
 
 Constructs Scheme object from given _json_, _json-string_or _in-port_, according to the given _builder_.
 
 If the first form is used, then _json_ must be a vector type JSON
 representation specified by the `*json-map-type*` parameter.
 
-``````````scheme
+```scheme
 (let ((json-string "{\"bar\": {\"buz\": 1}}"))
   (define-record-type foo
     (fields bar))
@@ -206,7 +220,7 @@ representation specified by the `*json-map-type*` parameter.
   (define builder (json-object-builder (make-foo ("bar" bar-builder))))
 
   (json-string->object json-string builder))
-``````````
+```
 => ``foo``
 
 If _missing-key-handler_ is given, then it must be a procedure accepts 2
@@ -232,7 +246,7 @@ created only via `json-object-serializer` macro.
 
 Returns #t if the given _obj_ is a JSON object serializer.
 
-###### [!Macro] `json-object-serializer`  _ctr_ _spec_ _..._
+###### [!Macro] `json-object-serializer`  _ctr_ _spec_ ...
 ###### [!Auxiliary syntax] `?` 
 ###### [!Auxiliary syntax] `@` 
 ###### [!Auxiliary syntax] `->` 
@@ -287,7 +301,7 @@ _ref_ must be a accessor which is a procedure accepts one argument.
 _converter/serializer_ must be either a JSON object serializer or
 a procedure which accepts one argument and returns JSON representaion.
 
-``````````scheme
+```scheme
 (json-object-serializer
   (-> (("precision" location-precision)
        ("Latitude" location-latitude)
@@ -301,9 +315,9 @@ a procedure which accepts one argument and returns JSON representaion.
 ;; Above constructs JSON representaion from the following record type.
 (define-record-type location
   (fields precision latitude longitude address city state zip country))
-``````````
+```
 
-``````````scheme
+```scheme
 (json-object-serializer
  (("Image" image-holder-image
    (("Width" image-width)
@@ -323,7 +337,7 @@ a procedure which accepts one argument and returns JSON representaion.
   (fields width height title thumbnail animated ids))
 (define-record-type thumbnail
   (fields url height width))
-``````````
+```
 
 
 
@@ -338,7 +352,7 @@ The converted JSON representaion is the same as `'vector` representaion.
 
 Converts Scheme object to JSON string.
 
-###### [!Function] `write-object-as-json`  _obj_ _serializer_ _:optional_ _(out-port_ _(current-output-port))_
+###### [!Function] `write-object-as-json`  _obj_ _serializer_ :optional (_out-port_ `(current-output-port)`)
 
 Writes JSON string converted from _obj_ to _out-port_.
 
