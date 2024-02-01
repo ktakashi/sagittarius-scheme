@@ -32,6 +32,9 @@
     (export json-write
 	    json-write/normalized
 	    json-read
+
+	    json-read-error?
+	    json-write-error?
 	    
 	    *json-map-type*)
     (import (rnrs)

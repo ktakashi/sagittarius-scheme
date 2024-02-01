@@ -30,6 +30,7 @@
 
 (library (text json)
     (export :all)
-    (import (text json parse)
+    (import (text json errors)
+	    (text json parse)
 	    (text json convert)
 	    (text json compare)))
