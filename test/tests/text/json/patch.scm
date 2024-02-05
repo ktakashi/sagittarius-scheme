@@ -56,5 +56,29 @@
 					  ("value" . "brr"))))
 			#(("foo" . 1))))))
 
+(define (test-json-diff patch a b)
+  (let ((r (json-diff a b)))
+    (test-equal "JSON diff" patch r)
+    (test-assert (json=? b ((json-patcher r) a)))))
+  
+(test-json-diff '(#(("op" . "add") ("path" . "/foo") ("value" . "baz")))
+		#() #(("foo" . "baz")))
+(test-json-diff '(#(("op" . "remove") ("path" . "/foo")))
+		#(("foo" . "baz")) #())
+(test-json-diff '(#(("op" . "replace") ("path" . "/foo") ("value" . #(("ok" . #t)))))
+		#(("foo" . "baz")) #(("foo" . #(("ok" . #t)))))
+
+(test-json-diff '(#(("op" . "add") ("path" . "/0") ("value" . 1)))
+		'() '(1))
+(test-json-diff '(#(("op" . "remove") ("path" . "/0")))
+		'(1) '())
+(test-json-diff '(#(("op" . "replace") ("path" . "/0") ("value" . 2)))
+		'(1) '(2))
+
+(test-json-diff '(#(("op" . "replace") ("path" . "/0/foo") ("value" . 2)))
+		'(#(("foo" . 1)) 2 3)
+		'(#(("foo" . 2)) 2 3))
+
+
 (test-end)
     

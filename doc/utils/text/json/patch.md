@@ -13,7 +13,7 @@ The following example shows simple usage of the library:
 
 This is an input file named `example.json`.
 
-``````````scheme
+```scheme
 {
   "id": 1234,
   "data": {
@@ -21,9 +21,9 @@ This is an input file named `example.json`.
     "datum1": [3, 4]
   }
 }
-``````````
+```
 
-``````````scheme
+```scheme
 (import (rnrs) (text json patch) (text json))
 
 (define data-patcher
@@ -33,7 +33,7 @@ This is an input file named `example.json`.
 
 (let ((json (call-with-input-file "example.json" json-read)))
   (data-patcher json))
-``````````
+```
 => ``#((id . 1234) (data . #((datum0 . ok))))``
 
 ###### [!Function] `json-patcher`  _patch_
@@ -50,13 +50,13 @@ Returns #t if the given _obj_ is an instance of `&json-patch`condition.
 `&json-patch` is the base condition of this library. The hierarchy is
 the following:
 
-``````````scheme
+```scheme
 &json-patch
  + &json-patch:runtime (path)
    + &json-patch-path-not-found
    + &json-patch-illegal-type
  + &json-patch:compile (patch)
-``````````
+```
 
 
 
@@ -95,4 +95,10 @@ the condition is type of `&json-patch-compile`.
 Flag to supress no such path error. The value must be either a symbol
 or a list of symbol of the name of the patch command. If the value is matched
 with the patch command, then the runtime doesn't raise a condition. 
+
+###### [!Function] `json-diff` _json0_ _json1_
+
+Creates JSON patch from given _json0_ and _json1_.  
+The returning patch is _json1_ to _json1_ format.
+
 

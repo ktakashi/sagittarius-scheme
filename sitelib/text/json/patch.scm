@@ -43,6 +43,8 @@
 	    json-patch-path-not-found-error?
 	    json-patch-illegal-type-error?
 
+	    json-diff
+	    
 	    *json-patcher:ignore-no-such-path*)
     (import (rnrs)
 	    (text json pointer)
@@ -52,6 +54,7 @@
 	    (text json mutable)
 	    (srfi :1 lists)
 	    (srfi :39 parameters)
+	    (srfi :126 hashtables)
 	    (srfi :133 vectors)
 	    (util vector))
 
@@ -277,4 +280,74 @@
       (if (json-pointer-not-found? v)
 	  (nsp 'copy path mutable-json)
 	  (add mutable-json)))))
+
+
+(define (json-diff a b)
+  (let ((patch (json->mutable-json '())))
+    (fill-json-patch! a b patch "")
+    (mutable-json->json patch)))
+
+;; maybe we want to support both JSON map types... later
+(define (json-object? o) (or (vector? o) (hashtable? o)))
+(define (json-object->hashtable o)
+  (cond ((vector? o) (json-object->hashtable (vector->list o)))
+	((hashtable? o) o)
+	((list? o) (alist->hashtable equal-hash equal? o))))
+  
+(define json-array? list?)
+(define (json-array->list o)
+  (cond ((list? o) o)
+	((vector? o) (vector->list o))))
+
+(define (fill-json-patch! a b patch path)
+  (cond ((and (json-object? a) (json-object? b))
+	 (fill-json-object-patch! a b patch path))
+	((and (json-array? a) (json-array? b))
+	 (fill-json-array-patch! a b patch path))
+	((not (json=? a b))
+	 ;; a -> b, means replacing a with b
+	 (mutable-json-array-insert-back!
+	  patch `#(("op" . "replace") ("path" . ,path) ("value" . ,b))))))
+
+(define (fill-json-object-patch! a b patch path)
+  (define av (json-object->hashtable a))
+  (define bv (json-object->hashtable b))
+  (define seen (make-hashtable equal-hash equal?))
+  (define (populate-patch k v)
+    (define this-path (string-append path "/" k))
+    (hashtable-set! seen k #t)
+    (cond ((hashtable-ref bv k #f) =>
+	   (lambda (v1) (fill-json-patch! v v1 patch this-path)))
+	  (else
+	   ;; remove
+	   (mutable-json-array-insert-back! patch
+	    `#(("op" . "remove") ("path" . ,this-path))))))
+  (define (add-patch k v)
+    (unless (hashtable-contains? seen k)
+      (let ((path (string-append path "/" k)))
+	(mutable-json-array-insert-back! patch
+	 `#(("op" . "add") ("path" . ,path) ("value" . ,v))))))
+  (hashtable-walk av populate-patch)
+  ;; add unseen fields
+  (hashtable-walk bv add-patch))
+
+(define (fill-json-array-patch! a b patch path)
+  (let loop ((i 0) (al (json-array->list a)) (bl (json-array->list b)))
+    (cond ((and (null? al) (null? bl)))
+	  ((null? al)
+	   (do ((j i (+ j 1)) (bl bl (cdr bl)))
+	       ((null? bl))
+	     (let ((path (string-append path "/" (number->string j))))
+	       (mutable-json-array-insert-back! patch
+		`#(("op" . "add") ("path" . ,path) ("value" . ,(car bl)))))))
+	  ((null? bl)
+	   (do ((j i (+ j 1)) (al al (cdr al)))
+	       ((null? al))
+	     (let ((path (string-append path "/" (number->string j))))
+	       (mutable-json-array-insert-back! patch
+		`#(("op" . "remove") ("path" . ,path))))))
+	  (else
+	   (let ((path (string-append path "/" (number->string i))))
+	     (fill-json-patch! (car al) (car bl) patch path)
+	     (loop (+ i 1) (cdr al) (cdr bl)))))))
 )

@@ -43,6 +43,7 @@
 	    mutable-json-array?
 	    mutable-json-array-set!
 	    mutable-json-array-insert!
+	    mutable-json-array-insert-back!
 	    mutable-json-array-delete!
 	    mutable-json-array-ref
 	    mutable-json-array-size)
@@ -166,6 +167,10 @@
 			   (ensure-mutable-json value)))
 (define (mutable-json-array-delete! mj key)
   (flexible-vector-delete! (mutable-json-array-elements mj) key))
+(define (mutable-json-array-insert-back! mj value)
+  (flexible-vector-insert-back! (mutable-json-array-elements mj)
+				(ensure-mutable-json value)))
+
 (define (mutable-json-array-ref mj key)
   (define elements (mutable-json-array-elements mj))
   (define (unwrap mj key e)
