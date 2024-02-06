@@ -105,6 +105,7 @@ SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_ReadCacheCtxClass, read_ctx_print);
 
 static SgObject SEPARATOR = SG_UNDEF;
 static SgObject CACHE_EXT = SG_UNDEF;
+static SgObject TMP_EXT   = SG_UNDEF;
 
 /* assume id is path. however just in case, we encode invalid path characters */
 static int need_encode(SgChar ch, SgChar *h, SgChar *l)
@@ -1112,7 +1113,7 @@ static SgObject TIMESTAMP_EXT = SG_UNDEF;
 int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
 {
   SgVM *vm = Sg_VM();
-  SgString *cache_path = id_to_filename(id);
+  SgString *cache_path = id_to_filename(id), *tmp_cache_path, *timestamp_path;
   SgFile file, tagfile;
   SgPort *out;
   SgFilePort bp;
@@ -1132,8 +1133,9 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
     flags = SG_INT_VALUE(SG_CAAR(caches));
   }
   if (flags & SG_DISABLE_FILE_CACHE) return FALSE;
+  tmp_cache_path = Sg_StringAppend2(cache_path, TMP_EXT);
   
-  SG_OPEN_FILE(ret, &file, cache_path, SG_CREATE | SG_WRITE);
+  SG_OPEN_FILE(ret, &file, tmp_cache_path, SG_CREATE | SG_WRITE);
   /* In some cases, e.g. encrypted drive on Ubuntu, the path
      name would be too long and can't be opened. In that case,
      we just return here.
@@ -1169,6 +1171,15 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   Sg_UnlockFile(&file);
   Sg_ClosePort(out);
   if (index < 0) return FALSE;
+  ret = Sg_FileRename(tmp_cache_path, cache_path);
+  if (ret) {
+    if (SG_VM_LOG_LEVEL(vm, SG_WARN_LEVEL)) {
+      Sg_Printf(vm->logPort, UC(";; ***CACHE WARNING***\n"
+				";; failed to rename cache file. %A\n"),
+		Sg_GetLastErrorMessageWithErrorCode(ret));
+    }
+    return FALSE;
+  }
 
   size = Sg_FileSize(cache_path);
   if (SG_EXACT_INTP(size)) {
@@ -1177,8 +1188,8 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
     cacheSize = -1;		/* should never happen but just in case */
   }
 
-  cache_path = Sg_StringAppend2(cache_path, TIMESTAMP_EXT);
-  SG_OPEN_FILE(ret, &tagfile, cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
+  timestamp_path = Sg_StringAppend2(cache_path, TIMESTAMP_EXT);
+  SG_OPEN_FILE(ret, &tagfile, timestamp_path, SG_CREATE|SG_WRITE|SG_TRUNCATE);
   if (!ret) return FALSE;
   
   Sg_LockFile(&tagfile, SG_EXCLUSIVE);
@@ -2350,6 +2361,7 @@ void Sg__InitCache()
   SEPARATOR = Sg_String(Sg_NativeFileSeparator());
   CACHE_EXT = SG_MAKE_STRING(".cache");
   TIMESTAMP_EXT = SG_MAKE_STRING(".timestamp");
+  TMP_EXT = SG_MAKE_STRING(".tmp");
 #ifdef STORE_SOURCE_INFO
   SOURCE_INFO = SG_INTERN("source-info");
 #endif
