@@ -1,37 +1,34 @@
 [§2] (sagittarius reader) - reader macro library {#lib.sagittarius.reader}
 -------------
 
-Unlikely, Sagittarius provides functionalities to modify its reader like Common
-Lisp. It makes Sagittarius programable. However it has some restriction to use.
-The following examples explain it.
+Sagittarius provides functionalities to modify its reader like Common
+Lisp. It makes the reader programable. However it has some restriction
+to use. The following examples explain it.
 
 Using reader macro
 
-``````````scheme
-;;#<(sagittarius regex)>       ;; this imports only reader macros
-                               ;; This form is only for backward compatibility
-;; portable way for other R6RS implementation's reader.
+```scheme
 #!read-macro=sagittarius/regex
 (import (sagittarius regex)) ;; usual import for procedures
 #/regex/i                    ;; (sagittarius regex) defines #/regex/ form
                              ;; reader macro in it. it converts it
                              ;; (comple-regex "regex" CASE-INSENSITIVE)
-``````````
+```
 
 Writing reader macro on toplevel
 
-``````````scheme
+```scheme
 (import (rnrs) (sagittarius reader))
 (set-macro-character #\$
  (lambda (port c) (error '$-reader "invliad close paren appeared")))
 (set-macro-character #\! (lambda (port c) (read-delimited-list #\$ port)))
 !define test !lambda !$ !display "hello reader macro"$$$
 !test$ ;; prints "hello reader macro"
-``````````
+```
 
 Writing reader macro in library and export it
 
-``````````scheme
+```scheme
 #!compatible ;; make sure Sagittarius can read keyword
 (library (reader macro test)
     ;; :export-reader-macro keyword must be in export clause
@@ -50,7 +47,7 @@ Writing reader macro in library and export it
 #!read-macro=reader/macro/test  ;; imports reader macro
 !define test !lambda !$ !display "hello reader macro"$$$
 !test$    ;; prints "hello reader macro"
-``````````
+```
 
 If you need to use reader macro in your library code, you need to define it
 outside of the library. The library syntax is just one huge list so Sagittarius
@@ -80,10 +77,10 @@ the given _char_ in it.
 The first form is a convenient form. Users can write a reader macro without
 explicitly writing `lambda`. The form is expanded to like this:
 
-``````````scheme
+```scheme
 (define-reader-macro #\$ ($-reader args ...) body ...)
 ;; -> (define-reader-macro $-reader #\$ (lambda (args ...) body ...))
-``````````
+```
 
 Note: the _name_ is only for error message. It does not affect anything.
 
@@ -96,7 +93,9 @@ _Proc_ must accept three arguments, the first one is a port, the second one
 is a character which is defined as reader macro character and the third one is
 a macro parameter.
 
-`define-dispatch-macro` creates macro dispatch macro character _char_if there is not dispatch macro yet, and associates _subchar_ and _proc_as a reader macro.
+`define-dispatch-macro` creates macro dispatch macro character
+_char_if there is not dispatch macro yet, and associates _subchar_ and
+_proc_as a reader macro.
 
 If _non-term?_ argument is given and not #f, the _char_ is marked as non
 terminated character. So reader reads as one identifier even it it contains the 
@@ -130,7 +129,8 @@ terminated macro character.
 
 ###### [!Function] `get-dispatch-macro-character`  _char_ _subchar_
 
-Returns a procedure which is associated with _char_ and _subchar_as a reader macro. If nothing is associated, it returns #f.
+Returns a procedure which is associated with _char_ and _subchar_as a
+reader macro. If nothing is associated, it returns #f.
 
 
 ###### [!Function] `set-dispatch-macro-character`  _char_ _subchar_ _proc_
@@ -148,85 +148,83 @@ Reads a list until given _char_ appears.
 The following table explains predefined reader macros.
 
 
-| Macro character | Terminated    | Explanation                                                                                                                                                                    |
-| --------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| #\\(            | #t            | Reads a list until reader reads #\\).                                                                                                                                          |
-| #\\[            | #t            | Reads a list until reader reads #\\].                                                                                                                                          |
-| #\\)            | #t            | Raises read error.                                                                                                                                                             |
-| #\\]            | #t            | Raises read error.                                                                                                                                                             |
-| #\\\|           | #t            | Reads an escaped symbol until reader reads #\\\|.                                                                                                                              |
-| #\\"            | #t            | Reads a string until reader reads #\\".                                                                                                                                        |
-| #\\'            | #t            | Reads a symbol until reader reads delimited character.                                                                                                                         |
-| #\\;            | #t            | Discards read characters until reader reads a linefeed.                                                                                                                        |
-| #\\\`           | #t            | Reads a next expression and returns `(quasiquote _expr_)`                                                                                                                      |
-| #\\,            | #t            | Check next character if it is `@` and reads a next expression.<br><br>     Returns `(unquote-splicing _expr_)` if next character was<br>     `@`, otherwise `(unquote _expr_)` |
-| #\\:            | #f            | Only compatible mode. Reads a next expression and returns a keyword.                                                                                                           |
-| #\\#            | #t(R6RS mode) | Dispatch macro character.                                                                                                                                                      |
+| Macro character | Terminated    | Explanation                                                                                                                                                            |
+| --------------- | ------------- | -----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| #\\(            | #t            | Reads a list until reader reads #\\).                                                                                                                                  |
+| #\\[            | #t            | Reads a list until reader reads #\\].                                                                                                                                  |
+| #\\)            | #t            | Raises read error.                                                                                                                                                     |
+| #\\]            | #t            | Raises read error.                                                                                                                                                     |
+| #\\\|           | #t            | Reads an escaped symbol until reader reads #\\\|.                                                                                                                      |
+| #\\"            | #t            | Reads a string until reader reads #\\".                                                                                                                                |
+| #\\'            | #t            | Reads a symbol until reader reads delimited character.                                                                                                                 |
+| #\\;            | #t            | Discards read characters until reader reads a linefeed.                                                                                                                |
+| #\\\`           | #t            | Reads a next expression and returns `(quasiquote _expr_)`                                                                                                              |
+| #\\,            | #t            | Check next character if it is `@` and reads a next expression.<br><br> Returns `(unquote-splicing _expr_)` if next character was<br> `@`, otherwise `(unquote _expr_)` |
+| #\\:            | #f            | Only compatible mode. Reads a next expression and returns a keyword.                                                                                                   |
+| #\\#            | #t(R6RS mode) | Dispatch macro character.                                                                                                                                              |
 
 
-| Sub character | Explanation                                                                                                                                                                                                                                                      |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| #\\'          | Reads a next expression and returns `(syntax _expr_)`.                                                                                                                                                                                                           |
-| #\\\`         | Reads a next expression and returns `(quasisyntax _expr_)`                                                                                                                                                                                                       |
-| #\\,          | Check next character if it is `@` and reads a next expression.<br><br>     Returns `(unsyntax-splicing _expr_)` if next character was<br>     `@`, otherwise `(unsyntax _expr_)`                                                                                 |
-| #\\!          | Reads next expression and set flags.<br>     The details are described the below section                                                                                                                                                                         |
-| #\\v          | Checks if the next 2 characters are `u` and `8` and reads<br> a bytevector.                                                                                                                                                                                      |
-| #\\u          | Only compatible mode. Checks if the next character is `8` and reads<br> a bytevector.                                                                                                                                                                            |
-| #\\t and #\\T | Returns #t.                                                                                                                                                                                                                                                      |
-| #\\f and #\\F | Returns #f.                                                                                                                                                                                                                                                      |
-| #\\b and #\\B | Reads a binary number.                                                                                                                                                                                                                                           |
-| #\\o and #\\O | Reads a octet number.                                                                                                                                                                                                                                            |
-| #\\d and #\\D | Reads a decimal number.                                                                                                                                                                                                                                          |
-| #\\x and #\\X | Reads a hex number.                                                                                                                                                                                                                                              |
-| #\\i and #\\I | Reads a inexact number.                                                                                                                                                                                                                                          |
-| #\\e and #\\E | Reads a exact number.                                                                                                                                                                                                                                            |
-| #\\(          | Reads a next list and convert it to a vector.                                                                                                                                                                                                                    |
-| #\\;          | Reads a next expression and discards it.                                                                                                                                                                                                                         |
-| #\\\|         | Discards the following characters until reader reads `\|#`                                                                                                                                                                                                       |
-| #\\\\         | Reads a character.                                                                                                                                                                                                                                               |
-| #\\=          | Starts reading SRFI-38 style shared object.                                                                                                                                                                                                                      |
-| #\\#          | Refers SRFI-38 style shared object.                                                                                                                                                                                                                              |
-| #\\\<         | Reads expressions until '>' and imports reader macro from it.<br>Note: if expressions contains symbol, which is illegal library name, at the end<br>#\<-reader can not detect the '>' because '>' can be symbol. So the error message<br>might be a strange one. |
+| Sub character | Explanation                                                                                                                                                            |
+| ------------- | -----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| #\\'          | Reads a next expression and returns `(syntax _expr_)`.                                                                                                                 |
+| #\\\`         | Reads a next expression and returns `(quasisyntax _expr_)`                                                                                                             |
+| #\\,          | Check next character if it is `@` and reads a next expression.<br><br>Returns `(unsyntax-splicing _expr_)` if next character was<br>`@`, otherwise `(unsyntax _expr_)` |
+| #\\!          | Reads next expression and set flags.<br>     The details are described the below section                                                                               |
+| #\\v          | Checks if the next 2 characters are `u` and `8` and reads<br> a bytevector.                                                                                            |
+| #\\u          | Only compatible mode. Checks if the next character is `8` and reads<br> a bytevector.                                                                                  |
+| #\\t and #\\T | Returns #t.                                                                                                                                                            |
+| #\\f and #\\F | Returns #f.                                                                                                                                                            |
+| #\\b and #\\B | Reads a binary number.                                                                                                                                                 |
+| #\\o and #\\O | Reads a octet number.                                                                                                                                                  |
+| #\\d and #\\D | Reads a decimal number.                                                                                                                                                |
+| #\\x and #\\X | Reads a hex number.                                                                                                                                                    |
+| #\\i and #\\I | Reads a inexact number.                                                                                                                                                |
+| #\\e and #\\E | Reads a exact number.                                                                                                                                                  |
+| #\\(          | Reads a next list and convert it to a vector.                                                                                                                          |
+| #\\;          | Reads a next expression and discards it.                                                                                                                               |
+| #\\\|         | Discards the following characters until reader reads `\|#`                                                                                                             |
+| #\\\\         | Reads a character.                                                                                                                                                     |
+| #\\=          | Starts reading SRFI-38 style shared object.                                                                                                                            |
+| #\\#          | Refers SRFI-38 style shared object.                                                                                                                                    |
 
 #### [§4] #! - Switching mode
 
 Sagittarius has multiple reader and VM modes and users can switch these modes
 with `#!`. Following describes details of those modes;
 
-R6RS mode
-: Symbols are read according to R6RS specification and VM
-    sets the `no-overwrite` flag. With this mode, keywords are read as
-    symbols; for example, `:key` is just a symbol and users can not use
-    extended `lambda` syntax.
+`#!r6rs`: R6RS mode
+: Symbols are read according to R6RS specification and VM sets the
+  `no-overwrite` and `nounbound` flag. With this mode, keywords are
+  read as symbols; for example, `:key` is just a symbol and users can
+  not use extended `lambda` syntax.
     
 
-R7RS mode
+`#!r7rs`: R7RS mode
 : The mode for new specification of Scheme. This mode is
-    less strict than R6RS mode described above. The reader can read keyword and VM
-    sets the `no-overwrite` flag.
+  less strict than R6RS mode described above. The reader can read keyword and VM
+  sets the `no-overwrite` flag.
     
 
-Compatible mode
+`#!compatible`: Compatible mode
 : This mode is least strict mode. In other words, it
-    does not have any restrictions such as described above.
-    
+  does not have any restrictions such as described above.
 
-NOTE: If you import reader macro with `#< (...) >` form and let reader
-read above hash-bang, the read table will be reset. So following code will raise
-a read error;
+NOTE: If you import reader macro with `#!read-macro=` form and let
+      reader reads above hash-bang, the read table will be reset. So
+      following code will raise a read error;
 
-``````````scheme
+```scheme
 #!read-macro=sagittarius/regex
 #!r6rs
 #/regular expression/ ;; <- &lexical
-``````````
+```
 
 ### [§3] Replacing reader
 
 Since 0.3.7, users can replace default reader. Following example describes how
 to replace reader.
 
-``````````scheme
+```scheme
 #!reader=srfi/:49
 define
   fac n
@@ -235,7 +233,7 @@ define
       fac (- n 1)
 
 (print (fac 10))
-``````````
+```
 
 `#!reader=` specifies which reader will be used. For this example, it will
 use the one defined in `(srfi :49)` library. For compatibility of the other
@@ -244,33 +242,32 @@ converted name.
 
 This is the list of `#!` flags:
 
-#!r6rs
+`#!r6rs`
 : Switches to R6RS mode
 
-#!r7rs
+`#!r7rs`
 : Switches to R7RS mode
 
-#!compatible
+`#!compatible`
 : Switches to compatible mode
 
-#!no-overwrite
+`#!no-overwrite`
 : Sets no-overwrite flag that does not allow user
-    to overwrite exported variables.
+  to overwrite exported variables.
 
-#!nocache
+`#!nocache`
 : Sets disable cache flag on the current loading file
 
-#!deprecated
+`#!deprecated`
 : Display warning message of deprecated library.
 
-#!reader=name
+`#!reader=name`
 : Replace reader with library _name_. The _name_ must be converted
   with the naming convention described below. For more details, see
   [Naming convention](#sagittarius.name.convention)  
 
-#!read-macro=name
-: The same as `#< _name_ >` but this is more for compatibility.
-  _name_ must be converted with the naming convention described below.
+`#!read-macro=name`
+: _name_ must be converted with the naming convention described below.
   For more details, see	
   [Naming convention](#sagittarius.name.convention)  
 
@@ -278,7 +275,7 @@ This is the list of `#!` flags:
 
 The naming convention is really easy. For example, replacing with
 `(srfi :49)`, first remove all parentheses or brackets then replace spaces
-to `/`.
+to `/`. Then you get `srfi/:49`.
 
 ###### [!Macro] `define-reader`  _name_ _expr_
 ###### [!Macro] `define-reader`  _(name_ _port)_ _expr_ _..._

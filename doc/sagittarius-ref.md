@@ -139,9 +139,10 @@ which comes with Sagittarius distribution is a program named `sagittarius`on Uni
 Invoking sagittarius. If _scheme-file_ is not given, it runs with
 interactive mode.
 
-Specifying `-r` option with Scheme standard number, currently `6`and `7` are supported, forces to run Sagittarius on strict standard
-mode. For example, entire script is read then evaluated on R6RS 
-(`-r6` option) mode. Thus macros can be located below the main script.
+Specifying `-r` option with Scheme standard number, currently `6`and
+`7` are supported, forces to run Sagittarius on strict standard
+mode. For example, entire script is read then evaluated on R6RS (`-r6`
+option) mode. Thus macros can be located below the main script.
 
 Detail options are given with option `"-h"`.
 
@@ -176,7 +177,7 @@ toplevel expression the same as Perl.
 Now I show a simple example below. This script works like `cat(1)`, without
 any command-line option processing and error handling.
 
-``````````scheme
+```scheme
 #!/usr/local/bin/sagittarius
 (import (rnrs))
 (let ((args (command-line)))
@@ -187,7 +188,22 @@ any command-line option processing and error handling.
 		    (display (get-string-all in)))))
 	      (cdr args)))
   0)
-``````````
+```
+
+If you need to add extra load path in the executing script file, you can
+also write like this:
+
+```scheme
+#!/bin/bash
+#|
+# Adding lib directory located in the same directory as this script
+# is located
+DIR=$(dirname "$0")
+exec sagittarius -L${DIR}/lib $0 "$@"
+|#
+;; Scheme script
+(import (rnrs))
+```
 
 If the script file contains `main` procedure, then Sagittarius execute
 it as well with one argument which contains all command line arguments. This
@@ -195,7 +211,7 @@ feature is defined in
 [SRFI-22](http://srfi.schemers.org/srfi-22/). So the
 above example can also be written like the following:
 
-``````````scheme
+```scheme
 #!/usr/local/bin/sagittarius
 (import (rnrs))
 (define (main args)
@@ -206,7 +222,7 @@ above example can also be written like the following:
 		    (display (get-string-all in)))))
 	      (cdr args)))
   0)
-``````````
+```
 
 NOTE: the `main` procedure is called after all toplevel expressions
 are executed.
@@ -233,20 +249,40 @@ Sagittarius provides 2 styles to write a library, one is R6RS style and other
 one is R7RS style. Both styles are processed the same and users can use it
 without losing code portability.
 
-Following example is written in R6RS style, for the detail of `library`syntax please see the R6RS document described in bellow sections.
+Following example is written in R6RS style, for the detail of
+`library` syntax please see the R6RS document described in bellow
+sections.
 
-``````````scheme
+```scheme
 (library (foo)
   (export bar)
   (import (rnrs))
 
  (define bar 'bar) )
-``````````
+```
 
 The library named `(foo)` must be saved the file
 named `foo.scm`, `foo.ss`, `foo.sls` or `foo.sld` (I use
 `.scm` for all examples) and located on the loading path, the value is
 returned by calling `add-load-path` with 0 length string.
+
+### [§3] Library file extensions
+
+The file extension also controls the reader mode.
+
+`.ss` and `.sls`
+: When a file with one of the extensions is loaded during library importing,
+  then `#!r6rs` directive is applied to the target file by default.
+
+`.sld`
+: When a file has this extensions, then `#!r7rs` directive is applied to the
+  target file by default.
+
+`.scm`
+: This file extension uses `#!compatible` directive. 
+
+If the loading file contains other directive, then the default directive
+is overwritten.
 
 If you want to write portable code yet want to use Sagittarius specific
 functionality, then you can write implementation specific code separately using
@@ -256,10 +292,12 @@ all R6RS implementation. If you use R7RS style library syntax, then you can
 also use `cond-expand` to separate implementation specific
 functionalities.
 
+### [§3] Hidden library
+
 If you don't want to share a library but only used in specific one, you can
 write both in one file and name the file you want to show. For example;
 
-``````````scheme
+```scheme
 (library (not showing)
   ;; exports all internal use procedures
   (export ...)
@@ -273,7 +311,7 @@ write both in one file and name the file you want to show. For example;
   (import (rnrs) (not showing))
 ;; write shared procedures here
 )
-``````````
+```
 
 Above script must be saved the file named `shared.scm`. The order of
 libraries are important. Top most dependency must be the first and next is
@@ -307,34 +345,23 @@ stored in broken state. In that case use `-c` option with
 `sagittarius`, then it will wipe all cache files. If you don't want to use
 it, pass `-d` option then Sagittarius won't use it.
 
-### [§3] Precompiling cache file
+Adding `#!nocache` directive to a library file would disable caching of
+the file. This is sometimes useful especially if you need importing time
+information, e.g. loading path, which is not available if the library is
+loaded from a cache.
 
-Users can provide own library with precompile script. The script looks like
-this;
 
-``````````scheme
-(import (the-library-1)
-        (the-library-2))
-``````````
-
-When this script is run, then the libraries will be cached in the cache
-directory.
-
-Note: The cache files are stored with the names converted from original library
-files' absolute path. So it is important that users' libraries are already
-installed before precompiling, otherwise Sagittarius won't use the precompiled
-cache files.
-
-### [§3] Deviate
+[§2] Deviation
+--------------
 
 Some of the behaviours are not compliant or deviate from other implementations.
 Here, we list some of them.
 
-#### [§4] Macro expansion
+### [§3] Macro expansion
 
 The following code will print `#t` instead of `#f` with `-r6`command line option or doing it on a library:
 
-``````````scheme
+```scheme
 (import (rnrs) (for (rnrs eval) expand))
 
 (define-syntax foo
@@ -348,13 +375,18 @@ The following code will print `#t` instead of `#f` with `-r6`command line option
 (define bar)
 
 (display (foo bar))
-``````````
+```
 
 This is because, Sagittarius doesn't have separated phases of macro expansion
 and compilation. When `foo` is expanded, then the `bar` is not defined
 yet or at least it's not visible during the macro expansion. So, both _bar_s
 are not bound, then `free-identifier=?` will consider them the same
 identifiers.
+
+### [§3] Directives
+
+On R6RS, symbol starts with `#!` is ignored, however this is not the case
+on R7RS. Sagittarius ignores these symbols on both mode.
 
 * @[[r6rs.md](r6rs.md)]
 * @[[r7rs.md](r7rs.md)]
