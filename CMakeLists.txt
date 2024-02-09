@@ -200,6 +200,10 @@ SET(SAGITTARIUS_CURRENT_LIB
 SET(SAGITTARIUS_CURRENT_SHARE
   "${SHARE_DIR}/${SAGITTARIUS_NAME}/${SAGITTARIUS_VERSION}")
 
+# Temporary directory during build process
+SET(BUILD_CACHE_DIR ${CMAKE_CURRENT_BINARY_DIR}/.cache)
+FILE(MAKE_DIRECTORY ${BUILD_CACHE_DIR})
+
 IF(WIN32 AND NOT CYGWIN)
   # On Windows platform, we resolve library path relatively.
   # Diractory structure must be like this:

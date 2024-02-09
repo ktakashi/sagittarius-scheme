@@ -220,7 +220,8 @@
 		(let ((sock (socket-accept server-sock)))
 		  (when sock
 		    (socket-selector sock echo soft-timeout)
-		    (loop))))))))))
+		    (loop))))
+	      (terminater)))))))
     (define result (make-shared-queue))
     (define server-port
       (number->string (socket-info-port (socket-info server-sock))))
@@ -246,7 +247,6 @@
 		(else #f))
 	(thread-join! t)))
     (for-each socket-close (map safe-join! (map caller (iota count))))
-
     (socket-shutdown server-sock SHUT_RDWR)
     (socket-close server-sock)
     (test-assert (socket-closed? server-sock))
@@ -280,7 +280,6 @@
     (define result (make-shared-queue))
     (define server-port
       (number->string (socket-info-port (socket-info server-sock))))
-    (define seen (make-eq-hashtable))
     (define ((caller selector) i)
       (define (push-result sock e reuse)
 	(shared-queue-put! result

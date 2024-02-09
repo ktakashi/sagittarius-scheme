@@ -436,7 +436,7 @@
 (define (default-error-reporter event e) #t)
 
 (define (make-socket-selector
-	 :optional (timeout #f) (error-reporter default-error-reporter))
+	 :optional (hard-timeout #f) (error-reporter default-error-reporter))
   (define selector (socket:make-socket-selector))
   (define lock (make-mutex "socket-selector-lock"))
   (define (on-error event e)
@@ -533,9 +533,9 @@
   (actor-start! socket-poll-actor)
   (actor-start! on-read-actor)
   (values (case-lambda
-	   ((socket on-read) (push-socket socket on-read timeout))
+	   ((socket on-read) (push-socket socket on-read hard-timeout))
 	   ((socket on-read this-timeout)
-	    (push-socket socket on-read (or this-timeout timeout))))
+	    (push-socket socket on-read (or this-timeout hard-timeout))))
 	  terminate!))
 
 ;; utilities for socket selector
