@@ -1118,7 +1118,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   SgPort *out;
   SgFilePort bp;
   SgBufferedPort bfp;
-  SgObject cache, size;
+  SgObject cache;
   int index = 0, ret, flags = 0;
   uint8_t portBuffer[SG_PORT_DEFAULT_BUFFER_SIZE];
   int64_t cacheSize;
@@ -1181,13 +1181,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
     return FALSE;
   }
 
-  size = Sg_FileSize(cache_path);
-  if (SG_EXACT_INTP(size)) {
-    cacheSize = Sg_GetIntegerS64Clamp(size, SG_CLAMP_NONE, NULL);
-  } else {
-    cacheSize = -1;		/* should never happen but just in case */
-  }
-
+  cacheSize = Sg_FileSize(cache_path);
   timestamp_path = Sg_StringAppend2(cache_path, TIMESTAMP_EXT);
   SG_OPEN_FILE(ret, &tagfile, timestamp_path, SG_CREATE|SG_WRITE|SG_TRUNCATE);
   if (!ret) return FALSE;
@@ -2095,8 +2089,8 @@ static int check_timestamp(SgString* id, SgString *cache_path)
 {
   SgFile file;
   SgString *timestamp;
-  SgObject obj, vtime, otime;
-  int64_t size;
+  SgObject vtime, otime;
+  int64_t size, cacheSize;
   int ret;
   char tagbuf[50];
   /* check timestamp */
@@ -2126,15 +2120,10 @@ static int check_timestamp(SgString* id, SgString *cache_path)
     return RE_CACHE_NEEDED;
   }
 
-  obj = Sg_FileSize(cache_path);
-  if (SG_EXACT_INTP(obj)) {
-    int64_t cacheSize = Sg_GetIntegerS64Clamp(obj, SG_CLAMP_NONE, NULL);
-    /* this case never happen in single process */
-    if (cacheSize != size) {	/* most likely still on going*/
-      return INVALID_CACHE; 
-    }
-  } else {
-    return INVALID_CACHE;	/* which case? */
+  cacheSize = Sg_FileSize(cache_path);
+  /* this case never happen in single process */
+  if (cacheSize != size) {	/* most likely still on going*/
+    return INVALID_CACHE; 
   }
   return CACHE_READ;
 }
@@ -2257,11 +2246,12 @@ int Sg_ReadCache(SgString *id)
   SgFile file;
   SgPort *in;
   SgFilePort bp;
+  SgBufferedPort bbp;		/* tmp */
   /* SgBufferedPort bfp; */
   uint8_t portBuffer[SG_PORT_DEFAULT_BUFFER_SIZE] = {0,};
   /* for statistic */
   uint64_t real;
-  int ret;
+  int ret, bufSiz = SG_PORT_DEFAULT_BUFFER_SIZE;
 
   if (!cache_path) return INVALID_CACHE;
 
@@ -2272,6 +2262,7 @@ int Sg_ReadCache(SgString *id)
   if (!Sg_FileExistP(cache_path)) {
     return RE_CACHE_NEEDED;
   }
+
   ret = check_timestamp(id, cache_path);
   if (ret != CACHE_READ) return ret;
   /* a bit of statistic for reading cache */
@@ -2287,8 +2278,7 @@ int Sg_ReadCache(SgString *id)
   /* Now I/O is not so slow so we can use file input port.
      This uses less memory :) */
   in = Sg_InitFileBinaryPort(&bp, &file, SG_INPUT_PORT, 
-			     NULL, SG_BUFFER_MODE_BLOCK,
-			     portBuffer, SG_PORT_DEFAULT_BUFFER_SIZE);
+			     &bbp, SG_BUFFER_MODE_BLOCK, portBuffer, bufSiz);
 
   ret = read_cache_from_port(vm, in);
 

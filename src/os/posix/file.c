@@ -789,13 +789,13 @@ int Sg_Utimes(SgString *path, SgObject atime, SgObject mtime)
 #endif
 }
 
-SgObject Sg_FileSize(SgString *path)
+int64_t Sg_FileSize(SgString *path)
 {
   struct stat st;
   if (stat(Sg_Utf32sToUtf8s(path), &st) == 0) {
-    return Sg_MakeIntegerFromS64(st.st_size);
+    return (int64_t)st.st_size;
   }
-  return SG_FALSE;
+  return -1;
 }
 
 SgObject Sg_ReadDirectory(SgString *path)

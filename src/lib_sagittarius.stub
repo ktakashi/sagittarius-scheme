@@ -433,9 +433,9 @@
       (result TRUE)))
 
   (define-c-proc file-size-in-bytes (path::<string>) :no-side-effect
-    (let ((size (Sg_FileSize path)))
-      (when (SG_FALSEP size) (raise-i/o-error file-size-in-bytes path))
-      (result size)))
+    (let ((size::int64_t (Sg_FileSize path)))
+      (when (< size 0) (raise-i/o-error file-size-in-bytes path))
+      (result (Sg_MakeIntegerFromS64 size))))
   
   (define-c-proc file-regular? (path::<string>) ::<boolean> :no-side-effect
     Sg_FileRegularP)

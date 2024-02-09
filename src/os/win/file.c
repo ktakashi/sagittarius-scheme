@@ -768,7 +768,7 @@ int Sg_Utimes(SgString *path, SgObject atime, SgObject mtime)
   return r;
 }
 
-SgObject Sg_FileSize(SgString *path)
+int64_t Sg_FileSize(SgString *path)
 {
   HANDLE fd = CreateFileW(utf32ToUtf16(path), 
 			  GENERIC_READ,
@@ -779,13 +779,13 @@ SgObject Sg_FileSize(SgString *path)
     int e;
     if (GetFileSizeEx(fd, &bsize)) {
       CloseHandle(fd);
-      return Sg_MakeIntegerFromS64(bsize.QuadPart);
+      return bsize.QuadPart;
     }
     e = GetLastError();
     CloseHandle(fd);
     SetLastError(e);
   }
-  return SG_FALSE;
+  return -1;
 }
 
 SgObject Sg_ReadDirectory(SgString *path)

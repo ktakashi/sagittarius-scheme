@@ -143,7 +143,7 @@ SG_EXTERN int      Sg_CreateDirectory(SgString *path);
 SG_EXTERN SgObject Sg_FileModifyTime(SgString *path);
 SG_EXTERN SgObject Sg_FileAccessTime(SgString *path);
 SG_EXTERN SgObject Sg_FileChangeTime(SgString *path);
-SG_EXTERN SgObject Sg_FileSize(SgString *path);
+SG_EXTERN int64_t  Sg_FileSize(SgString *path);
 SG_EXTERN SgObject Sg_ReadDirectory(SgString *path);
 SG_EXTERN SgObject Sg_CurrentDirectory();
 SG_EXTERN void     Sg_SetCurrentDirectory(SgString *path);
