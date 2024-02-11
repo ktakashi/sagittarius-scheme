@@ -93,6 +93,7 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
   for (i = 0; i < c; i++) {
     if (SG_FALSEP(evm[i].data.ptr)) {
       interrupted_unix_stop(ctx);
+      epoll_ctl(ctx->fd, EPOLL_CTL_DEL, ctx->stop_fd, &ev);
     } else if (SG_PAIRP(evm[i].data.ptr) && evm[i].events == EPOLLIN) {
       SgObject slot = SG_OBJ(evm[i].data.ptr);
       SgSocket *sock = SG_SOCKET(SG_CAR(slot));

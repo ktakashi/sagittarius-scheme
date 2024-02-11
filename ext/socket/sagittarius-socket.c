@@ -813,6 +813,8 @@ SgObject Sg_SocketAccept(SgSocket *socket)
 	} SG_INTERRUPTED_THREAD_ELSE() {
 	  continue;
 	} SG_INTERRUPTED_THREAD_END();
+      } else if (!Sg_SocketOpenP(socket)) {
+	return SG_FALSE;
       } else {
 	raise_socket_error(SG_INTERN("socket-accept"), 
 			   Sg_GetLastErrorMessageWithErrorCode(last_error),

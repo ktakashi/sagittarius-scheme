@@ -2247,7 +2247,6 @@ int Sg_ReadCache(SgString *id)
   SgPort *in;
   SgFilePort bp;
   SgBufferedPort bbp;		/* tmp */
-  /* SgBufferedPort bfp; */
   uint8_t portBuffer[SG_PORT_DEFAULT_BUFFER_SIZE] = {0,};
   /* for statistic */
   uint64_t real;

@@ -438,7 +438,6 @@
 (define (make-socket-selector
 	 :optional (hard-timeout #f) (error-reporter default-error-reporter))
   (define selector (socket:make-socket-selector))
-  (define lock (make-mutex "socket-selector-lock"))
   (define (on-error event e)
     (when (procedure? error-reporter)
       (guard (e (else #f)) (error-reporter event e))))
@@ -460,15 +459,9 @@
       (unless (socket-closed? sock) (on-read osock timeout #f))))
 
   (define (poll-socket receiver sender)
-    (mutex-lock! lock)
-    (let wait-entry ((entry (receiver)))
+      (let wait-entry ((entry (receiver)))
       (define (wait-selector timeout)
-	(mutex-unlock! lock)
-	;; unlock the mutex only waiting socket so that we can make sure
-	;; that interrupt will happen during the selector waiting
-	;; (I hope we can ignore the small amount of gap...)
 	(let ((sock&data (socket-selector-wait! selector timeout)))
-	  (mutex-lock! lock)
 	  (for-each handle-on-read sock&data)
 	  (let-values (((sockets timeout)
 			(queued-sockets (current-time) selector)))
@@ -488,8 +481,7 @@
 			waiting-sockets)
 	      (socket-selector-add! selector (->socket sock)
 		(selector-data sock on-read now this-timeout))
-	      (wait-selector (get-timeout this-timeout timeout))))
-	  (mutex-unlock! lock))))
+	      (wait-selector (get-timeout this-timeout timeout)))))))
 
   (define (dispatch-socket receiver sender)
     (let loop ()
@@ -509,10 +501,7 @@
     (parameterize ((*actor-thread-name-factory* on-read-name-factory))
       (make-shared-queue-channel-actor dispatch-socket)))
 
-  (define (interrupt-selector)
-    (mutex-lock! lock)
-    (socket-selector-interrupt! selector)
-    (mutex-unlock! lock))
+  (define (interrupt-selector) (socket-selector-interrupt! selector))
 
   (define (push-socket (socket (or socket? tls-socket?))
 		       (on-read procedure?) timeout)

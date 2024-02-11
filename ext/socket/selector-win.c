@@ -60,7 +60,7 @@ SgObject Sg_MakeSocketSelector()
 
   SG_SET_CLASS(selector, SG_CLASS_SOCKET_SELECTOR);
 
-  ctx->event = CreateEvent(NULL, FALSE, FALSE, NULL);
+  ctx->event = CreateEvent(NULL, TRUE, FALSE, NULL);
   if (ctx->event == NULL) goto err;
   
   ctx->thread = NULL;
@@ -158,6 +158,8 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
 	if (!SG_FALSEP(o)) ret = Sg_Cons(o, ret);
       }
     }
+  } else if (r == WAIT_OBJECT_0 + 1) {
+    ResetEvent(ctx->event);
   }
 
   SET_EVENT(selector->sockets, hEvents[0], 0);
