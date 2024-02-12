@@ -1,0 +1,24 @@
+macro(COPY_TARGET_DEP DEP_TARGET COPY_TARGET DIR ALSO_IMPORT)
+  if (${ALSO_IMPORT})
+    add_custom_target(${DEP_TARGET}
+      COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${COPY_TARGET}>
+        ${DIR}/$<TARGET_FILE_NAME:${COPY_TARGET}>
+      COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_IMPORT_FILE:${COPY_TARGET}>
+          ${DIR}/$<TARGET_IMPORT_FILE_NAME:${COPY_TARGET}>)
+  else()
+    add_custom_target(${DEP_TARGET}
+      COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${COPY_TARGET}>
+        ${DIR}/$<TARGET_FILE_NAME:${COPY_TARGET}>)
+  endif()
+endmacro()
+
+macro(COPY_TARGET TARGET DIR ALSO_IMPORT)
+  add_custom_command(TARGET ${TARGET} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${TARGET}>
+       ${DIR}/$<TARGET_FILE_NAME:${TARGET}>)
+  if (${ALSO_IMPORT})
+    add_custom_command(TARGET ${TARGET} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${TARGET}>
+         ${DIR}/$<TARGET_FILE_NAME:${TARGET}>)
+  endif()
+endmacro(COPY_TARGET)
