@@ -18,7 +18,7 @@ ADD_LIBRARY(sagittarius--termios MODULE
   termios.c
   ${OS_SRC}
   ${CMAKE_CURRENT_BINARY_DIR}/termios_stub.c)
-
+COPY_TARGET(sagittarius--termios ${CMAKE_LIBRARY_OUTPUT_DIRECTORY} TRUE)
 ADD_STUBS(sagittarius--termios
   COMMAND ${GENSTUB}
   FILES termios_stub.stub

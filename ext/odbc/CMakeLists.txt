@@ -19,7 +19,7 @@ IF (HAVE_SQL_H)
 
   ADD_LIBRARY(sagittarius--odbc MODULE
     odbc.c ${CMAKE_CURRENT_BINARY_DIR}/odbc_stub.c)
-
+  COPY_TARGET(sagittarius--odbc ${CMAKE_LIBRARY_OUTPUT_DIRECTORY} TRUE)
   ADD_FEATURE(odbc)
 
   IF (USE_CPP_FOR_BROKEN_LINKER)

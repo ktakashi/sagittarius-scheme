@@ -67,7 +67,7 @@ ADD_LIBRARY(sagittarius--filewatch MODULE
   ${FILE_WATCH_C}
   ${CMAKE_CURRENT_BINARY_DIR}/filewatch_stub.c)
 TARGET_LINK_LIBRARIES(sagittarius--filewatch ${OSX_EXTRA_LIB})
-
+COPY_TARGET(sagittarius--filewatch ${CMAKE_LIBRARY_OUTPUT_DIRECTORY} TRUE)
 ADD_STUBS(sagittarius--filewatch
   COMMAND ${GENSTUB}
   FILES filewatch_stub.stub)

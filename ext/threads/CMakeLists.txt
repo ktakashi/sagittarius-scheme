@@ -4,7 +4,7 @@
 
 ADD_LIBRARY(sagittarius--threads MODULE
   threads.c ${CMAKE_CURRENT_BINARY_DIR}/threads_stub.c mutex.c)
-
+COPY_TARGET(sagittarius--threads ${CMAKE_LIBRARY_OUTPUT_DIRECTORY} TRUE)
 ADD_FEATURE(threads)
 
 IF (USE_CPP_FOR_BROKEN_LINKER)

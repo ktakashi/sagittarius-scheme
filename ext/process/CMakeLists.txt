@@ -45,19 +45,24 @@ ELSEIF (${SAGITTARIUS_PLATFORM} MATCHES ".*bsd"
   TARGET_LINK_LIBRARIES(test-sem c pthread)
 ENDIF()
 
-ADD_CUSTOM_TARGET(copy-test-proc
-    COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_BINARY_DIR}/build/test-proc.bin
-            ${PROJECT_BINARY_DIR}/ext/
-    COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_BINARY_DIR}/build/test-shm.bin
-            ${PROJECT_BINARY_DIR}/ext/
-    COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_BINARY_DIR}/build/test-sem.bin
-            ${PROJECT_BINARY_DIR}/ext/
-    COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_BINARY_DIR}/build/test-kill.bin
-            ${PROJECT_BINARY_DIR}/ext/)
-ADD_DEPENDENCIES(copy-test-proc test-proc)
-ADD_DEPENDENCIES(copy-test-proc test-shm)
-ADD_DEPENDENCIES(copy-test-proc test-sem)
-ADD_DEPENDENCIES(copy-test-proc test-kill)
+COPY_TARGET(test-proc ${PROJECT_BINARY_DIR}/ext/ FALSE)
+COPY_TARGET(test-shm  ${PROJECT_BINARY_DIR}/ext/ FALSE)
+COPY_TARGET(test-sem  ${PROJECT_BINARY_DIR}/ext/ FALSE)
+COPY_TARGET(test-kill ${PROJECT_BINARY_DIR}/ext/ FALSE)
+
+# ADD_CUSTOM_TARGET(copy-test-proc
+#     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:test-proc>
+#        ${PROJECT_BINARY_DIR}/ext/
+#     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:test-shm>
+#        ${PROJECT_BINARY_DIR}/ext/
+#     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:test-sem>
+#        ${PROJECT_BINARY_DIR}/ext/
+#     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:test-kill>
+#        ${PROJECT_BINARY_DIR}/ext/)
+# ADD_DEPENDENCIES(copy-test-proc test-proc)
+# ADD_DEPENDENCIES(copy-test-proc test-shm)
+# ADD_DEPENDENCIES(copy-test-proc test-sem)
+# ADD_DEPENDENCIES(copy-test-proc test-kill)
 
 
 INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
@@ -65,13 +70,13 @@ ADD_STUBS(sagittarius--process
   COMMAND ${GENSTUB}
   FILES process_stub.stub
   OUTTREE)
-
+COPY_TARGET(sagittarius--process ${CMAKE_LIBRARY_OUTPUT_DIRECTORY} TRUE)
 SET_TARGET_PROPERTIES(sagittarius--process PROPERTIES PREFIX "")
 IF(APPLE)
   SET_TARGET_PROPERTIES(sagittarius--process PROPERTIES SUFFIX ".dylib")
 ENDIF()
 TARGET_LINK_LIBRARIES(sagittarius--process sagittarius)
-ADD_DEPENDENCIES(sagittarius--process copy-test-proc)
+ADD_DEPENDENCIES(sagittarius--process test-proc test-shm test-sem test-kill)
 
 INSTALL(TARGETS sagittarius--process
   DESTINATION ${SAGITTARIUS_DYNLIB_PATH})

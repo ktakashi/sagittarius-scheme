@@ -6,6 +6,7 @@ ADD_LIBRARY(sagittarius--zlib MODULE
   sagittarius-zlib.c ${CMAKE_CURRENT_BINARY_DIR}/zlib_stub.c)
 # always support
 ADD_FEATURE(zlib)
+COPY_TARGET(sagittarius--zlib ${CMAKE_LIBRARY_OUTPUT_DIRECTORY} TRUE)
 
 IF (USE_CPP_FOR_BROKEN_LINKER)
   # ugly solution
@@ -106,6 +107,8 @@ IF (NOT ZLIB_FOUND)
   INCLUDE_DIRECTORIES(${ZLIB_SRC_DIR})
   # for zconf.h
   INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR}/zlib)
+  COPY_TARGET_DEP(copy-zlib zlib ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} FALSE)
+  ADD_DEPENDENCIES(sagittarius--zlib copy-zlib)
 ELSEIF()
   INCLUDE_DIRECTORIES(${ZLIB_INCLUDE_DIRS})
 ENDIF()

@@ -33,6 +33,7 @@ IF (USE_CPP_FOR_BROKEN_LINKER)
     sagittarius-stream.c ${CMAKE_CURRENT_BINARY_DIR}/stream.c
     PROPERTIES LANGUAGE CXX)
 ENDIF()
+COPY_TARGET(sagittarius--tomcrypt ${CMAKE_LIBRARY_OUTPUT_DIRECTORY} TRUE)
 
 ADD_STUBS(sagittarius--tomcrypt
   COMMAND ${GENSTUB}
@@ -48,6 +49,7 @@ TARGET_LINK_LIBRARIES(sagittarius--tomcrypt sagittarius libtomcrypt)
 ADD_LIBRARY(sagittarius--secure MODULE
   sagittarius-secure.c
   ${CMAKE_CURRENT_BINARY_DIR}/bytevector.c)
+COPY_TARGET(sagittarius--secure ${CMAKE_LIBRARY_OUTPUT_DIRECTORY} TRUE)
 IF (USE_CPP_FOR_BROKEN_LINKER)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(
@@ -70,6 +72,7 @@ TARGET_LINK_LIBRARIES(sagittarius--secure sagittarius)
 ADD_LIBRARY(sagittarius--ec MODULE
   sagittarius-ec.c
   ${CMAKE_CURRENT_BINARY_DIR}/ec-fields.c)
+COPY_TARGET(sagittarius--ec ${CMAKE_LIBRARY_OUTPUT_DIRECTORY} TRUE)
 IF (USE_CPP_FOR_BROKEN_LINKER)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(

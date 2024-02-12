@@ -6,7 +6,7 @@ ADD_LIBRARY(sagittarius--time MODULE
   sagittarius-time.c date.c 
   ${CMAKE_CURRENT_BINARY_DIR}/time_stub.c
   ${CMAKE_CURRENT_BINARY_DIR}/date_stub.c)
-
+COPY_TARGET(sagittarius--time ${CMAKE_LIBRARY_OUTPUT_DIRECTORY} TRUE)
 ADD_FEATURE(time)
 
 IF (USE_CPP_FOR_BROKEN_LINKER)
