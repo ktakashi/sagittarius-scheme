@@ -1,4 +1,6 @@
 test/data/text.txt text eol=crlf
 test/data/rfc-mime-*.txt binary
+test/data/sjis.txt binary
+test/data/euc-jp.txt binary
 dist.bat text eol=crlf
 ext/zlib/data/* binary
