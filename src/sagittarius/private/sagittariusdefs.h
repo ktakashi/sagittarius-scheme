@@ -239,7 +239,7 @@ typedef struct SgValuesRec         SgValues;
 typedef struct SgVectorRec         SgVector;
 typedef struct SgVMRec             SgVM;
 
-#ifdef DEBUG_VERSION
+#ifndef NDEBUG
 # define ASSERT(c) { if (!(c)) { fprintf(stderr, "ASSERT failure %s:%d: %s\n", __FILE__, __LINE__, #c); exit(-1);}}
 # define FATAL(c) { fprintf(stderr, "ASSERT failure %s:%d: %s\n", __FILE__, __LINE__, #c); exit(-1);}
 #else

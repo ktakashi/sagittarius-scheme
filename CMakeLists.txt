@@ -7,10 +7,6 @@ OPTION(USE_BOEHM_GC "use boehm gc" ON)
 OPTION(USE_IMMEDIATE_FLONUM "use immediate flonum" ON)
 OPTION(SAGITTARIUS_PROFILE "profiler" ON)
 OPTION(INSTALL_SYMLINK "installing symlink" ON)
-# This basically adding -g for GCC or Clang
-# Make sure this option is off on MSVC otherwise the compiler
-# would create slow binary
-OPTION(DEBUG_VERSION "build type" OFF)
 OPTION(FORCE_USING_BUNDLED_LIBFFI "For testing purpose" OFF)
 OPTION(INSTALL_C_TRANSLATOR "Install scheme2c script" OFF)
 OPTION(INSTALL_SRFI_138 "Create symlink of SRFI-138 (compile-r7rs) script" ON)

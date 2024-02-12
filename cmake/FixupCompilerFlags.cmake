@@ -46,12 +46,15 @@ MACRO (FIXUP_COMPILER_FLAGS _PROCESSOR _PLATFORM)
     #SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wshorten-64-to-32")
 
     # for GCC or Clang, we want both maximum performance and debug info.
-    IF (${CMAKE_BUILD_TYPE} STREQUAL Debug)
+    IF (CMAKE_BUILD_TYPE STREQUAL Debug)
       SET(CMAKE_C_FLAGS_DEBUG "-O3 ${CMAKE_C_FLAGS_DEBUG}")
       SET(CMAKE_CXX_FLAGS_DEBUG "-O3 ${CMAKE_CXX_FLAGS_DEBUG}")
-    ELSE()
+    ELSEIF(CMAKE_BUILD_TYPE STREQUAL Release)
       SET(CMAKE_C_FLAGS_RELEASE "-g ${CMAKE_C_FLAGS_RELEASE}")
       SET(CMAKE_CXX_FLAGS_RELEASE "-g ${CMAKE_CXX_FLAGS_RELEASE}")
+    ELSE()
+      SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O3")
+      SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3")
     ENDIF()
 
     # for some reason static library doesn't have this
