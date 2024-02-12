@@ -108,11 +108,10 @@ SgObject Sg_OpenSharedMemory(SgString *name, size_t size, int flags)
   HANDLE hMapFile;
   uint8_t *ptr;
   wchar_t *memname = Sg_StringToWCharTs(name);
-  DWORD high, low;
+  DWORD high, low = (DWORD)size;
   SgObject bv;
 
   high = size>>32;
-  low = size&((1LL<<32)-1);
   if (flags & SG_CREATE) {
     hMapFile = CreateFileMappingW(INVALID_HANDLE_VALUE,
 				  NULL,

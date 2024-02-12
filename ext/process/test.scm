@@ -69,14 +69,14 @@
 (test-error "no creation" i/o-error?
 	    (open-shared-memory "/not exist" 4096 (file-options no-create)))
 
-(let ((shm (open-shared-memory "/sagittarius-process" 4096)))
+(define-constant +shared-memory-path+ "/sagittarius-process")
+(let ((shm (open-shared-memory +shared-memory-path+ 4096)))
   (test-assert "shared-memory?" (shared-memory? shm))
   (test-assert "close" (close-shared-memory shm)))
 
 (define-constant *shm-name* (build-path build-directory-path "test-shm.bin"))
-(define-constant +shared-memory-path+ "/sagittarius-process")
 
-(let* ((shm (open-shared-memory "/sagittarius-process" 4096))
+(let* ((shm (open-shared-memory +shared-memory-path+ 4096))
        (proc (make-process *shm-name* '()))
        (bv (shared-memory->bytevector shm)))
   (test-assert "call (3)" (process-call proc))
@@ -86,7 +86,7 @@
 
 ;; IPC
 (let ((sem (make-semaphore "/input" 0))
-      (shm (open-shared-memory "/sagittarius-process" 4096)))
+      (shm (open-shared-memory +shared-memory-path+ 4096)))
   (define thread
     (thread-start!
      (make-thread
