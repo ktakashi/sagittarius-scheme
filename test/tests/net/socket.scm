@@ -230,16 +230,17 @@
       (thread-start!
        (make-thread
 	(lambda ()
-	  (let ((s (make-client-socket "localhost" server-port)))
-	    (guard (e (else #;(print e) (socket-shutdown s SHUT_RDWR) s))
+	  (let ((s (make-client-socket "localhost" server-port
+				       (socket-options (read-timeout 100)))))
+	    (guard (e (else #;(print e) e))
 	      (thread-sleep! 0.1)
 	      (socket-send s (string->utf8
 			      (string-append "Hello world " (number->string i))))
 	      (let ((v (utf8->string (socket-recv s 255))))
 		(cond ((zero? (string-length v)) (shared-queue-put! result #f))
-		      (else (shared-queue-put! result v))))
+		      (else (shared-queue-put! result v)))))
 	      (socket-shutdown s SHUT_RDWR)
-	      s)))
+	      s))
 	(string-append "client-thread-" (number->string i)))))
     (define (safe-join! t)
       (guard (e ((uncaught-exception? e)
@@ -293,7 +294,8 @@
 		 (if (string? v)
 		     (and (not (zero? (string-length v))) v)
 		     e))))))))
-      (let ((s (make-client-socket "localhost" server-port)))
+      (let ((s (make-client-socket "localhost" server-port
+				   (socket-options (read-timeout 1000)))))
 	(socket-send s (string->utf8
 			(string-append "Hello world " (number->string i))))
 	(selector s push-result soft-timeout)))
