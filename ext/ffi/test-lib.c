@@ -141,7 +141,7 @@ EXPORT void address_passing(char **s)
 EXPORT void address_passing_string(char **s)
 {
   *s = (char *)malloc(6);
-  strncpy(*s, "hello", 5);
+  strncpy(*s, "hello", 6);
   (*s)[5] = 0;
 }
 

@@ -589,7 +589,6 @@
 			  tag::<bytevector>
 			  :optional (start::<fixnum> 0)) ::<fixnum>
   (check-state-mode 'eax-done! enc-auth-state MODE_EAX)
-  (check-range 'eax-done! tag start (- (SG_BVECTOR_SIZE tag) start))
   (let ((|len::unsigned long| (- (SG_BVECTOR_SIZE tag) start))
 	(err::int (eax_done (& (SG_ENC_AUTH_STATE_EAX enc-auth-state))
 			    (+ (SG_BVECTOR_ELEMENTS tag) start)
@@ -748,7 +747,6 @@
 			   tag::<bytevector>
 			   :optional (start::<fixnum> 0)) ::<fixnum>
   (check-state-mode 'ocb3-done! enc-auth-state MODE_OCB3)
-  (check-range 'ocb3-done! tag start (- (SG_BVECTOR_SIZE tag) start))
   (let ((|len::unsigned long| (- (SG_BVECTOR_SIZE tag) start))
 	(err::int (ocb3_done (& (SG_ENC_AUTH_STATE_OCB3 enc-auth-state))
 			     (+ (SG_BVECTOR_ELEMENTS tag) start)
@@ -829,7 +827,6 @@
 			  tag::<bytevector>
 			  :optional (start::<fixnum> 0)) ::<fixnum>
   (check-state-mode 'ccm-done! enc-auth-state MODE_CCM)
-  (check-range 'ccm-done! tag start (- (SG_BVECTOR_SIZE tag) start))
   (let ((|len::unsigned long| (- (SG_BVECTOR_SIZE tag) start))
 	(err::int (ccm_done (& (SG_ENC_AUTH_STATE_CCM enc-auth-state))
 			    (+ (SG_BVECTOR_ELEMENTS tag) start)
@@ -904,7 +901,6 @@
 			  tag::<bytevector>
 			  :optional (start::<fixnum> 0)) ::<fixnum>
   (check-state-mode 'gcm-done! enc-auth-state MODE_GCM)
-  (check-range 'gcm-done! tag start (- (SG_BVECTOR_SIZE tag) start))
   (let ((|len::unsigned long| (- (SG_BVECTOR_SIZE tag) start))
 	(err::int (gcm_done (& (SG_ENC_AUTH_STATE_GCM enc-auth-state))
 			    (+ (SG_BVECTOR_ELEMENTS tag) start)

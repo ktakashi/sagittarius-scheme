@@ -134,13 +134,14 @@ static int getopt_long(int argc, tchar **argv, const tchar *optstring,
 	    } else {
 	      if (optstring[0] == t(':'))
 		return BADARG;
-	      if (opterr_s)
+	      if (opterr_s) {
 		tfprintf(stderr,
 			 t("%s: option requires an argument -- %s\n"),
 			 argv[0], place);
-		place = EMSG;
-		optind_s++;
-		return BADCH;
+	      }
+	      place = EMSG;
+	      optind_s++;
+	      return BADCH;
 	    }
 	  } else {
 	    optarg_s = NULL;
