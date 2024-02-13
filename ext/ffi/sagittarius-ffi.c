@@ -1059,7 +1059,7 @@ static int push_ffi_type_value(SgFuncInfo *info,
   } else if (SG_BOOLP(obj)) {
     switch (signature) {
     case FFI_SIGNATURE_BOOL:
-      storage->sl = SG_TRUEP(obj) ? 1 : 0;
+      storage->sl = SG_TRUEP(obj) ? 1L : 0L;
       return TRUE;
     default:
       *lastError = get_error_message(signature, obj);
@@ -1501,7 +1501,6 @@ static void** get_fixed_size_ffi_values(SgFuncInfo *func, SgObject args)
 {
   SgObject signatures = func->signatures, cp, lastError = SG_FALSE;
   int i, size = Sg_Length(args);
-  ffi_storage *params;
   void **ffi_values;
   /* check if the argument count is correct */
   if (size != func->argc) {
@@ -1511,21 +1510,20 @@ static void** get_fixed_size_ffi_values(SgFuncInfo *func, SgObject args)
   }
     
   ffi_values = SG_NEW_ARRAY(void *, func->argc);
-  params = SG_NEW_ARRAY(ffi_storage, func->argc);
     
   i = 0;
   SG_FOR_EACH(cp, args) {
+    ffi_storage *param = SG_NEW(ffi_storage);
     if (!push_ffi_type_value(func,
 			     SG_STRING_VALUE_AT(signatures, i),
 			     SG_CAR(cp),
-			     params + i,
+			     param,
 			     &lastError)) {
       Sg_Error(UC("argument error %A on index %d[%S]: %S"), func, i,
 	       SG_CAR(cp), lastError);
       return NULL;
     }
-    ffi_values[i] = (params + i);
-    i++;
+    ffi_values[i++] = param;
   }
   return ffi_values;
 }
@@ -1538,23 +1536,11 @@ static void set_ffi_varargs_parameter_types(SgObject oargs, int startIndex,
   SgObject args = oargs;
   /* we know it has at least until start index */
   for (i = 0; i < startIndex; i++) args = SG_CDR(args);
+  /* accessing va_list must be pointer boundary, so the FFI type
+     of the arguments must be pointer.
+   */
   SG_FOR_EACH(args, args) {
-    SgObject arg = SG_CAR(args);
-    if (SG_BOOLP(arg)) {
-      types[i++] = &ffi_type_sint;
-    } else if (SG_INTP(arg)) {
-      /* small it is long */
-      types[i++] = &ffi_type_slong;
-    } else if (SG_POINTERP(arg) || SG_BVECTORP(arg)
-	       || SG_STRINGP(arg) || SG_CALLBACKP(arg)) {
-      types[i++] = &ffi_type_pointer;
-    } else if (SG_FLONUMP(arg)) {
-      /* should this be double or float? */
-      types[i++] = &ffi_type_double;
-    } else {
-      Sg_Error(UC("non supported variable length arguments %S in %S"),
-	       arg, oargs);
-    }
+    types[i++] = &ffi_type_pointer;
   }
 }
 
@@ -1563,7 +1549,7 @@ static int push_varargs_ffi_type_value(SgFuncInfo *func, SgObject arg,
 				       SgObject *lastError)
 {
   if (SG_BOOLP(arg)) {
-    storage->sl = SG_TRUEP(arg) ? 1 : 0;
+    storage->sl = SG_TRUEP(arg) ? 1L : 0L;
   } else if (SG_INTP(arg)) {
     storage->sl = SG_INT_VALUE(arg);
   } else if (SG_POINTERP(arg)) {
@@ -1597,11 +1583,9 @@ static void** get_varargs_ffi_values(SgFuncInfo *func, SgObject args)
 
   SgObject signatures = func->signatures, cp, lastError = SG_FALSE;
   int i, size = Sg_Length(args), index;
-  ffi_storage *params;
   void **ffi_values;
     
   ffi_values = SG_NEW_ARRAY(void *, size);
-  params = SG_NEW_ARRAY(ffi_storage, size);
     
   func->argc = size;
   func->parameterTypes = SG_NEW_ARRAY(ffi_type*, size);
@@ -1631,10 +1615,11 @@ static void** get_varargs_ffi_values(SgFuncInfo *func, SgObject args)
   i = 0;
   index = 0;
   SG_FOR_EACH(cp, args) {
+    ffi_storage *param = SG_NEW(ffi_storage);
     if (SG_STRING_VALUE_AT(signatures, index) == FFI_SIGNATURE_VARGS) {
       if (!push_varargs_ffi_type_value(func,
 				       SG_CAR(cp),
-				       params + i,
+				       param,
 				       &lastError)) {
 	Sg_Error(UC("argument error %A on index %d: %S"), func, i, lastError);
 	return NULL;
@@ -1643,15 +1628,14 @@ static void** get_varargs_ffi_values(SgFuncInfo *func, SgObject args)
       if (!push_ffi_type_value(func,
 			       SG_STRING_VALUE_AT(signatures, index),
 			       SG_CAR(cp),
-			       params + i,
+			       param,
 			       &lastError)) {
 	Sg_Error(UC("argument error %A on index %d: %S"), func, i, lastError);
 	return NULL;
       }
       index++;
     }
-    ffi_values[i] = (params + i);
-    i++;
+    ffi_values[i++] = param;
   }
   return ffi_values;
 }
