@@ -29,6 +29,7 @@ AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
+UsePreviousAppDir=no
 DisableDirPage=auto
 AlwaysShowDirOnReadyPage=yes
 PrivilegesRequiredOverridesAllowed=commandline dialog
