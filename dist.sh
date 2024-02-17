@@ -140,7 +140,7 @@ dist() {
 	  --exclude='*.git*' --exclude='.ci*' \
 	  ${SRC_DIR}/* ${DIST_NAME}
     
-    tar -czvf ${DIST_NAME}.tar.gz ${DIST_NAME}
+    tar --format ustar -czvf ${DIST_NAME}.tar.gz ${DIST_NAME}
     
 # clean up
     rm -rf ${DIST_NAME}
