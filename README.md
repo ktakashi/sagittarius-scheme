@@ -10,7 +10,10 @@ specification.
 Sagittarius uses CMake for its building infrastructure.  If you do not
 have it on your platform, please install it.
 
- - [CMake(must be higher than 2.8.4)](http://www.cmake.org/)
+ - [CMake](http://www.cmake.org/)
+ 
+ NOTE: It should be higher than 3.5, though we don't use new features, so
+ it should also work with 2.8.4
 
 ## Quick build/install (for Unix like environment)
 
@@ -32,11 +35,12 @@ Sagittarius depends on the following libraries.
  - [Boehm GC](http://www.hpl.hp.com/personal/Hans_Boehm/gc/)
  - [zlib](http://www.zlib.net/)
  - [libffi](https://sourceware.org/libffi/)
+ - [OpenSSL](https://www.openssl.org/)
 
 If you are using Linux which supports `apt-get`, then you can simply
 execute the following command:
 
-    % apt-get install libgc-dev, zlib1g-dev libffi-dev
+    % apt install libgc-dev, zlib1g-dev libffi-dev libssl-dev
 
 ### Manual installation of Boehm GC
 
@@ -80,6 +84,9 @@ for example:
 To run the tests, specify `test` target.
 
     % make test
+	
+Or, alternatively, you can also use `ctest`. This is convenient to
+test individual tests.
 
 To install Sagittarius non default location, you need to specify
 `CMAKE_INSTALL_PREFIX` variable.
@@ -124,15 +131,17 @@ Make sure you have all the required 32-bit executables and libraries.
 
 ## Building on Mac OS X
 
-Only with Homebrew is tested. A user can install sagittarius directly with homebrew, via
+Only with Homebrew is tested. A user can install sagittarius directly with
+homebrew, via
 
     $ brew install sagittarius-scheme
     
-Alternately, the user can install the following dependencies and then make sagittarius locally.     
+Alternately, the user can install the following dependencies and then make
+sagittarius locally.
 
-Installing libffi, CMake, and Boehm GC.
+Installing libffi, CMake, Boehm GC and OpenSSL.
 
-    $ brew install libffi cmake bdw-gc
+    $ brew install libffi cmake bdw-gc openssl
 
 After installing dependent libraries, the rest of the process are the same
 as Unix-like environment.
@@ -175,8 +184,7 @@ are expanded.
 If you prefer to use `cmake` instead of `cmake-gui`, then the
 following command needs to be executed:
 
-    % cmake . -Denable_threads=ON -Denable_parallel_mark \
-         -G"NMake Makefiles"
+    % cmake . -G"NMake Makefiles"
 
 Specifying `-DDEBUG_VERSION=OFF` enables MSVC optimisations.
 
@@ -189,6 +197,14 @@ After these commands, you move to the `win/` directory and double
 click the file `innosetup.iss`.  Go to [Build] - [Compile], then it
 will create the installer.  For more detail, please see Inno Setup's
 document.
+
+### Msbuild
+
+Experimentally, we also support Visual Studio generators. So, the below
+command should also work on Windows.
+
+    % cmake .
+	% msbuild /p:Configuration=Release Sagittarius.sln
 
 # Forums and bug reporting
 
