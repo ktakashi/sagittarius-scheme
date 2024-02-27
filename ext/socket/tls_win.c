@@ -705,7 +705,7 @@ static DWORD add_ecc_private_key(WinTLSContext *context,
     return ss;
   }
 
-  swprintf(keyName, sizeof(keyName), L"%lx", pPrivKeyInfo);
+  swprintf(keyName, 64, L"%lx", (ULONG)((void *)pPrivKeyInfo));
 
   /* import with key name */
   /* https://stackoverflow.com/questions/12076096/ncryptopenkey
@@ -1167,13 +1167,17 @@ typedef union {
 
 #define READ_RECORD(socket, rval, out)					\
   do {									\
-    uint8_t header[5];							\
+    uint8_t header[5], buffer[0x4000>>1];				\
     ltob_t ltob;							\
     (rval) = read_n(socket, header, sizeof(header));			\
     if (rval == sizeof(header)) {					\
       ltob.hi = header[3];						\
       ltob.lo = header[4];						\
-      (out) = ALLOCA(uint8_t *, ltob.size + sizeof(header));		\
+      if (sizeof(buffer) >= ltob.size) {				\
+	out = buffer;							\
+      } else {								\
+	(out) = SG_NEW_ATOMIC2(uint8_t *, ltob.size + sizeof(header));	\
+      }									\
       memcpy((out), header, sizeof(header));				\
       (rval) += read_n(socket, (out) + sizeof(header), ltob.size);	\
     }									\
@@ -1381,7 +1385,7 @@ static int server_handshake(SgTLSSocket *tlsSocket)
   for (;;) {
     DWORD sspiOutFlags = 0;
     int rval = 0, i;
-    uint8_t *content;
+    uint8_t *content = NULL;
     if (ss != SEC_I_CONTINUE_NEEDED &&
 	ss != SEC_E_INCOMPLETE_MESSAGE &&
 	ss != SEC_I_INCOMPLETE_CREDENTIALS)
@@ -1586,7 +1590,7 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
   for (;;) {
     int rval, i;
     SecBuffer *buffer = NULL, *extra = NULL;
-    uint8_t *content;
+    uint8_t *content = NULL;
     READ_RECORD(socket, rval, content);
     if (rval < 0) {
       if (read > 0) return read;
