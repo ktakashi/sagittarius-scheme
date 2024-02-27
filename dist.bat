@@ -1,4 +1,4 @@
-rem @echo off
+@echo off
 
 rem Modify this to your installed directory
 
