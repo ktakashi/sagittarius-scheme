@@ -59,7 +59,7 @@ Name: "registry"; Description: "{cm:AssocFileExtension, {#MyAppName}, .scm}"; Gr
 [Files]
 Source: "{#BuiltDir}\sash.exe"; DestDir: "{app}"; DestName: "{#MyAppExeName}"; Flags: ignoreversion
 Source: "{#BuiltDir}\sagittarius.dll"; DestDir: "{app}"; DestName: "sagittarius.dll"; Flags: ignoreversion
-Source: "{#BuiltDir}\sagittarius.lib"; DestDir: "{app}"; DestName: "sagittarius.lib"; Flags: ignoreversion
+Source: "{#BuiltDir}\src\sagittarius.lib"; DestDir: "{app}"; DestName: "sagittarius.lib"; Flags: ignoreversion
 Source: "{#BuiltDir}\*.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SrcDir}\src\*.h"; DestDir: "{app}\include"; Excludes: "os*"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Well Boehm GC header also need to be installed.
@@ -81,9 +81,9 @@ Source: "{#SrcDir}\ext\threads\*.scm"; DestDir: "{app}\lib"; Excludes: "test*.sc
 Source: "{#SrcDir}\ext\time\*.scm"; DestDir: "{app}\lib"; Excludes: "test*.scm"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#SrcDir}\ext\process\*.scm"; DestDir: "{app}\lib"; Excludes: "test*.scm"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#SrcDir}\ext\ffi\*.scm"; DestDir: "{app}\lib"; Excludes: "test*.scm,libffi*"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "{#SrcDir}\ext\crypto\*.scm"; DestDir: "{app}\lib"; Excludes: "test*.scm,libtom*"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#SrcDir}\ext\crypto\*.scm"; DestDir: "{app}\lib"; Excludes: "test*.scm,libtom*,tests"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#SrcDir}\ext\odbc\*.scm"; DestDir: "{app}\lib"; Excludes: "test*.scm"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "{#SrcDir}\ext\zlib\*.scm"; DestDir: "{app}\lib"; Excludes: "test*.scm,zlib-*"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#SrcDir}\ext\zlib\*.scm"; DestDir: "{app}\lib"; Excludes: "test*.scm,zlib-*,data"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#SrcDir}\ext\termios\*.scm"; DestDir: "{app}\lib"; Excludes: "test*.scm"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#SrcDir}\ext\filewatch\*.scm"; DestDir: "{app}\lib"; Excludes: "test*.scm"; Flags: ignoreversion recursesubdirs createallsubdirs
 
