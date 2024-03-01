@@ -99,7 +99,7 @@
 (define-c-proc ecb-encrypt! (mode-key::<mode-key>
 			     pt::<bytevector> ps::<fixnum>
 			     ct::<bytevector> cs::<fixnum>
-			     len::<fixnum>) ::<void>
+			     len::<fixnum>) ::<fixnum>
   (check-mode 'ecb-encrypt! mode-key MODE_ECB)
   (check-range 'ecb-encrypt! pt ps len)
   (check-range 'ecb-encrypt! ct cs len)
@@ -107,12 +107,13 @@
 			       (+ (SG_BVECTOR_ELEMENTS ct) cs)
 			       len
 			       (& (SG_MODE_KEY_ECB mode-key)))))
-    (check-tomcrypt-error 'ecb-encrypt! err)))
+    (check-tomcrypt-error 'ecb-encrypt! err)
+    (result len)))
 
 (define-c-proc ecb-decrypt! (mode-key::<mode-key>
 			     ct::<bytevector> cs::<fixnum>
 			     pt::<bytevector> ps::<fixnum>
-			     len::<fixnum>) ::<void>
+			     len::<fixnum>) ::<fixnum>
   (check-mode 'ecb-decrypt! mode-key MODE_ECB)
   (check-range 'ecb-decrypt! pt ps len)
   (check-range 'ecb-decrypt! ct cs len)
@@ -120,7 +121,8 @@
 			       (+ (SG_BVECTOR_ELEMENTS pt) ps)
 			       len
 			       (& (SG_MODE_KEY_ECB mode-key)))))
-    (check-tomcrypt-error 'ecb-decrypt! err)))
+    (check-tomcrypt-error 'ecb-decrypt! err)
+    (result len)))
 
 (define-c-proc ecb-done! (mode-key::<mode-key>) ::<void>
   (check-mode 'ecb-done! mode-key MODE_ECB)
@@ -144,7 +146,7 @@
 (define-c-proc cbc-encrypt! (mode-key::<mode-key>
 			     pt::<bytevector> ps::<fixnum>
 			     ct::<bytevector> cs::<fixnum>
-			     len::<fixnum>) ::<void>
+			     len::<fixnum>) ::<fixnum>
   (check-mode 'cbc-encrypt! mode-key MODE_CBC)
   (check-range 'cbc-encrypt! pt ps len)
   (check-range 'cbc-encrypt! ct cs len)
@@ -152,12 +154,13 @@
 			       (+ (SG_BVECTOR_ELEMENTS ct) cs)
 			       len
 			       (& (SG_MODE_KEY_CBC mode-key)))))
-    (check-tomcrypt-error 'cbc-encrypt! err)))
+    (check-tomcrypt-error 'cbc-encrypt! err)
+    (result len)))
 
 (define-c-proc cbc-decrypt! (mode-key::<mode-key>
 			     ct::<bytevector> cs::<fixnum>
 			     pt::<bytevector> ps::<fixnum>
-			     len::<fixnum>) ::<void>
+			     len::<fixnum>) ::<fixnum>
   (check-mode 'cbc-decrypt! mode-key MODE_CBC)
   (check-range 'cbc-decrypt! pt ps len)
   (check-range 'cbc-decrypt! ct cs len)
@@ -165,7 +168,8 @@
 			       (+ (SG_BVECTOR_ELEMENTS pt) ps)
 			       len
 			       (& (SG_MODE_KEY_CBC mode-key)))))
-    (check-tomcrypt-error 'cbc-decrypt! err)))
+    (check-tomcrypt-error 'cbc-decrypt! err)
+    (result len)))
 
 (define-c-proc cbc-done! (mode-key::<mode-key>) ::<void>
   (check-mode 'cbc-done! mode-key MODE_CBC)
@@ -209,7 +213,7 @@
 (define-c-proc cfb-encrypt! (mode-key::<mode-key>
 			     pt::<bytevector> ps::<fixnum>
 			     ct::<bytevector> cs::<fixnum>
-			     len::<fixnum>) ::<void>
+			     len::<fixnum>) ::<fixnum>
   (check-mode 'cfb-encrypt! mode-key MODE_CFB)
   (check-range 'cfb-encrypt! pt ps len)
   (check-range 'cfb-encrypt! ct cs len)
@@ -217,12 +221,13 @@
 			       (+ (SG_BVECTOR_ELEMENTS ct) cs)
 			       len
 			       (& (SG_MODE_KEY_CFB mode-key)))))
-    (check-tomcrypt-error 'cfb-encrypt! err)))
+    (check-tomcrypt-error 'cfb-encrypt! err)
+    (result len)))
 
 (define-c-proc cfb-decrypt! (mode-key::<mode-key>
 			     ct::<bytevector> cs::<fixnum>
 			     pt::<bytevector> ps::<fixnum>
-			     len::<fixnum>) ::<void>
+			     len::<fixnum>) ::<fixnum>
   (check-mode 'cfb-decrypt! mode-key MODE_CFB)
   (check-range 'cfb-decrypt! pt ps len)
   (check-range 'cfb-decrypt! ct cs len)
@@ -230,7 +235,8 @@
 			       (+ (SG_BVECTOR_ELEMENTS pt) ps)
 			       len
 			       (& (SG_MODE_KEY_CFB mode-key)))))
-    (check-tomcrypt-error 'cfb-decrypt! err)))
+    (check-tomcrypt-error 'cfb-decrypt! err)
+    (result len)))
 
 (define-c-proc cfb-done! (mode-key::<mode-key>) ::<void>
   (check-mode 'cfb-done! mode-key MODE_CFB)
@@ -274,7 +280,7 @@
 (define-c-proc ofb-encrypt! (mode-key::<mode-key>
 			     pt::<bytevector> ps::<fixnum>
 			     ct::<bytevector> cs::<fixnum>
-			     len::<fixnum>) ::<void>
+			     len::<fixnum>) ::<fixnum>
   (check-mode 'ofb-encrypt! mode-key MODE_OFB)
   (check-range 'ofb-encrypt! pt ps len)
   (check-range 'ofb-encrypt! ct cs len)
@@ -282,12 +288,13 @@
 			       (+ (SG_BVECTOR_ELEMENTS ct) cs)
 			       len
 			       (& (SG_MODE_KEY_OFB mode-key)))))
-    (check-tomcrypt-error 'ofb-encrypt! err)))
+    (check-tomcrypt-error 'ofb-encrypt! err)
+    (result len)))
 
 (define-c-proc ofb-decrypt! (mode-key::<mode-key>
 			     ct::<bytevector> cs::<fixnum>
 			     pt::<bytevector> ps::<fixnum>
-			     len::<fixnum>) ::<void>
+			     len::<fixnum>) ::<fixnum>
   (check-mode 'ofb-decrypt! mode-key MODE_OFB)
   (check-range 'ofb-decrypt! pt ps len)
   (check-range 'ofb-decrypt! ct cs len)
@@ -295,7 +302,8 @@
 			       (+ (SG_BVECTOR_ELEMENTS pt) ps)
 			       len
 			       (& (SG_MODE_KEY_OFB mode-key)))))
-    (check-tomcrypt-error 'ofb-decrypt! err)))
+    (check-tomcrypt-error 'ofb-decrypt! err)
+    (result len)))
 
 (define-c-proc ofb-done! (mode-key::<mode-key>) ::<void>
   (check-mode 'ofb-done! mode-key MODE_OFB)
@@ -344,7 +352,7 @@
 (define-c-proc ctr-encrypt! (mode-key::<mode-key>
 			     pt::<bytevector> ps::<fixnum>
 			     ct::<bytevector> cs::<fixnum>
-			     len::<fixnum>) ::<void>
+			     len::<fixnum>) ::<fixnum>
   (check-mode 'ctr-encrypt! mode-key MODE_CTR)
   (check-range 'ctr-encrypt! pt ps len)
   (check-range 'ctr-encrypt! ct cs len)
@@ -352,12 +360,13 @@
 			       (+ (SG_BVECTOR_ELEMENTS ct) cs)
 			       len
 			       (& (SG_MODE_KEY_CTR mode-key)))))
-    (check-tomcrypt-error 'ctr-encrypt! err)))
+    (check-tomcrypt-error 'ctr-encrypt! err)
+    (result len)))
 
 (define-c-proc ctr-decrypt! (mode-key::<mode-key>
 			     ct::<bytevector> cs::<fixnum>
 			     pt::<bytevector> ps::<fixnum>
-			     len::<fixnum>) ::<void>
+			     len::<fixnum>) ::<fixnum>
   (check-mode 'ctr-decrypt! mode-key MODE_CTR)
   (check-range 'ctr-decrypt! pt ps len)
   (check-range 'ctr-decrypt! ct cs len)
@@ -365,7 +374,8 @@
 			       (+ (SG_BVECTOR_ELEMENTS pt) ps)
 			       len
 			       (& (SG_MODE_KEY_CTR mode-key)))))
-    (check-tomcrypt-error 'ctr-decrypt! err)))
+    (check-tomcrypt-error 'ctr-decrypt! err)
+    (result len)))
 
 (define-c-proc ctr-done! (mode-key::<mode-key>) ::<void>
   (check-mode 'ctr-done! mode-key MODE_CTR)
@@ -416,7 +426,7 @@
 (define-c-proc lrw-encrypt! (mode-key::<mode-key>
 			     pt::<bytevector> ps::<fixnum>
 			     ct::<bytevector> cs::<fixnum>
-			     len::<fixnum>) ::<void>
+			     len::<fixnum>) ::<fixnum>
   (check-mode 'lrw-encrypt! mode-key MODE_LRW)
   (check-range 'lrw-encrypt! pt ps len)
   (check-range 'lrw-encrypt! ct cs len)
@@ -424,12 +434,13 @@
 			       (+ (SG_BVECTOR_ELEMENTS ct) cs)
 			       len
 			       (& (SG_MODE_KEY_LRW mode-key)))))
-    (check-tomcrypt-error 'lrw-encrypt! err)))
+    (check-tomcrypt-error 'lrw-encrypt! err)
+    (result len)))
 
 (define-c-proc lrw-decrypt! (mode-key::<mode-key>
 			     ct::<bytevector> cs::<fixnum>
 			     pt::<bytevector> ps::<fixnum>
-			     len::<fixnum>) ::<void>
+			     len::<fixnum>) ::<fixnum>
   (check-mode 'lrw-decrypt! mode-key MODE_LRW)
   (check-range 'lrw-decrypt! pt ps len)
   (check-range 'lrw-decrypt! ct cs len)
@@ -437,7 +448,8 @@
 			       (+ (SG_BVECTOR_ELEMENTS pt) ps)
 			       len
 			       (& (SG_MODE_KEY_LRW mode-key)))))
-    (check-tomcrypt-error 'lrw-decrypt! err)))
+    (check-tomcrypt-error 'lrw-decrypt! err)
+    (result len)))
 
 (define-c-proc lrw-done! (mode-key::<mode-key>) ::<void>
   (check-mode 'lrw-done! mode-key MODE_LRW)
@@ -486,7 +498,7 @@
 (define-c-proc f8-encrypt! (mode-key::<mode-key>
 			     pt::<bytevector> ps::<fixnum>
 			     ct::<bytevector> cs::<fixnum>
-			     len::<fixnum>) ::<void>
+			     len::<fixnum>) ::<fixnum>
   (check-mode 'f8-encrypt! mode-key MODE_F8)
   (check-range 'f8-encrypt! pt ps len)
   (check-range 'f8-encrypt! ct cs len)
@@ -494,12 +506,13 @@
 			       (+ (SG_BVECTOR_ELEMENTS ct) cs)
 			       len
 			       (& (SG_MODE_KEY_F8 mode-key)))))
-    (check-tomcrypt-error 'f8-encrypt! err)))
+    (check-tomcrypt-error 'f8-encrypt! err)
+    (result len)))
 
 (define-c-proc f8-decrypt! (mode-key::<mode-key>
-			     ct::<bytevector> cs::<fixnum>
-			     pt::<bytevector> ps::<fixnum>
-			     len::<fixnum>) ::<void>
+			    ct::<bytevector> cs::<fixnum>
+			    pt::<bytevector> ps::<fixnum>
+			    len::<fixnum>) ::<fixnum>
   (check-mode 'f8-decrypt! mode-key MODE_F8)
   (check-range 'f8-decrypt! pt ps len)
   (check-range 'f8-decrypt! ct cs len)
@@ -507,7 +520,8 @@
 			       (+ (SG_BVECTOR_ELEMENTS pt) ps)
 			       len
 			       (& (SG_MODE_KEY_F8 mode-key)))))
-    (check-tomcrypt-error 'f8-decrypt! err)))
+    (check-tomcrypt-error 'f8-decrypt! err)
+    (result len)))
 
 (define-c-proc f8-done! (mode-key::<mode-key>) ::<void>
   (check-mode 'f8-done! mode-key MODE_F8)
@@ -551,7 +565,7 @@
 (define-c-proc eax-encrypt! (enc-auth-state::<enc-auth-state>
 			     pt::<bytevector> ps::<fixnum>
 			     ct::<bytevector> cs::<fixnum>
-			     len::<fixnum>) ::<void>
+			     len::<fixnum>) ::<fixnum>
   (check-state-mode 'eax-encrypt! enc-auth-state MODE_EAX)
   (check-range 'eax-encrypt! pt ps len)
   (check-range 'eax-encrypt! ct cs len)
@@ -559,12 +573,13 @@
 			       (+ (SG_BVECTOR_ELEMENTS pt) ps)
 			       (+ (SG_BVECTOR_ELEMENTS ct) cs)
 			       len)))
-    (check-tomcrypt-error 'eax-encrypt! err)))
+    (check-tomcrypt-error 'eax-encrypt! err)
+    (result len)))
 
 (define-c-proc eax-decrypt! (enc-auth-state::<enc-auth-state>
 			     ct::<bytevector> cs::<fixnum>
 			     pt::<bytevector> ps::<fixnum>
-			     len::<fixnum>) ::<void>
+			     len::<fixnum>) ::<fixnum>
   (check-state-mode 'eax-decrypt! enc-auth-state MODE_EAX)
   (check-range 'eax-decrypt! pt ps len)
   (check-range 'eax-decrypt! ct cs len)
@@ -572,7 +587,8 @@
 			       (+ (SG_BVECTOR_ELEMENTS ct) cs)
 			       (+ (SG_BVECTOR_ELEMENTS pt) ps)
 			       len)))
-    (check-tomcrypt-error 'eax-decrypt! err)))
+    (check-tomcrypt-error 'eax-decrypt! err)
+    (result len)))
 
 (define-c-proc eax-add-header! (enc-auth-state::<enc-auth-state>
 				header::<bytevector>
@@ -687,26 +703,28 @@
 (define-c-proc ocb3-encrypt! (enc-auth-state::<enc-auth-state>
 			      pt::<bytevector> ps::<fixnum>
 			      ct::<bytevector> cs::<fixnum>
-			      len::<fixnum>) ::<void>
+			      len::<fixnum>) ::<fixnum>
   (check-state-mode 'ocb3-encrypt! enc-auth-state MODE_OCB3)
   (check-range 'ocb3-encrypt! pt ps len)
   (check-range 'ocb3-encrypt! ct cs len)
   (let ((err::int (ocb3_encrypt (& (SG_ENC_AUTH_STATE_OCB3 enc-auth-state))
 				(+ (SG_BVECTOR_ELEMENTS pt) ps) len
 				(+ (SG_BVECTOR_ELEMENTS ct) cs))))
-    (check-tomcrypt-error 'ocb3-encrypt! err)))
+    (check-tomcrypt-error 'ocb3-encrypt! err)
+    (result len)))
 
 (define-c-proc ocb3-decrypt! (enc-auth-state::<enc-auth-state>
 			     ct::<bytevector> cs::<fixnum>
 			     pt::<bytevector> ps::<fixnum>
-			     len::<fixnum>) ::<void>
+			     len::<fixnum>) ::<fixnum>
   (check-state-mode 'ocb3-decrypt! enc-auth-state MODE_OCB3)
   (check-range 'ocb3-decrypt! pt ps len)
   (check-range 'ocb3-decrypt! ct cs len)
   (let ((err::int (ocb3_decrypt (& (SG_ENC_AUTH_STATE_OCB3 enc-auth-state))
 				(+ (SG_BVECTOR_ELEMENTS ct) cs) len
 				(+ (SG_BVECTOR_ELEMENTS pt) ps))))
-    (check-tomcrypt-error 'ocb3-decrypt! err)))
+    (check-tomcrypt-error 'ocb3-decrypt! err)
+    (result len)))
 
 (define-c-proc ocb3-encrypt-last! (enc-auth-state::<enc-auth-state>
 				  pt::<bytevector> ps::<fixnum>
@@ -778,7 +796,7 @@
 (define-c-proc ccm-encrypt! (enc-auth-state::<enc-auth-state>
 			     pt::<bytevector> ps::<fixnum>
 			     ct::<bytevector> cs::<fixnum>
-			     len::<fixnum>) ::<void>
+			     len::<fixnum>) ::<fixnum>
   (check-state-mode 'ccm-encrypt! enc-auth-state MODE_CCM)
   (check-range 'ccm-encrypt! pt ps len)
   (check-range 'ccm-encrypt! ct cs len)
@@ -786,12 +804,13 @@
 			       (+ (SG_BVECTOR_ELEMENTS pt) ps) len
 			       (+ (SG_BVECTOR_ELEMENTS ct) cs)
 			       CCM_ENCRYPT)))
-    (check-tomcrypt-error 'ccm-encrypt! err)))
+    (check-tomcrypt-error 'ccm-encrypt! err)
+    (result len)))
 
 (define-c-proc ccm-decrypt! (enc-auth-state::<enc-auth-state>
 			     ct::<bytevector> cs::<fixnum>
 			     pt::<bytevector> ps::<fixnum>
-			     len::<fixnum>) ::<void>
+			     len::<fixnum>) ::<fixnum>
   (check-state-mode 'ccm-decrypt! enc-auth-state MODE_CCM)
   (check-range 'ccm-decrypt! pt ps len)
   (check-range 'ccm-decrypt! ct cs len)
@@ -799,7 +818,8 @@
 			       (+ (SG_BVECTOR_ELEMENTS ct) cs) len
 			       (+ (SG_BVECTOR_ELEMENTS pt) ps)
 			       CCM_DECRYPT)))
-    (check-tomcrypt-error 'ccm-decrypt! err)))
+    (check-tomcrypt-error 'ccm-decrypt! err)
+    (result len)))
 
 (define-c-proc ccm-add-nonce! (enc-auth-state::<enc-auth-state>
 			       nonce::<bytevector>
@@ -852,7 +872,7 @@
 (define-c-proc gcm-encrypt! (enc-auth-state::<enc-auth-state>
 			     pt::<bytevector> ps::<fixnum>
 			     ct::<bytevector> cs::<fixnum>
-			     len::<fixnum>) ::<void>
+			     len::<fixnum>) ::<fixnum>
   (check-state-mode 'gcm-encrypt! enc-auth-state MODE_GCM)
   (check-range 'gcm-encrypt! pt ps len)
   (check-range 'gcm-encrypt! ct cs len)
@@ -860,12 +880,13 @@
 			       (+ (SG_BVECTOR_ELEMENTS pt) ps) len
 			       (+ (SG_BVECTOR_ELEMENTS ct) cs)
 			       GCM_ENCRYPT)))
-    (check-tomcrypt-error 'gcm-encrypt! err)))
+    (check-tomcrypt-error 'gcm-encrypt! err)
+    (result len)))
 
 (define-c-proc gcm-decrypt! (enc-auth-state::<enc-auth-state>
 			     ct::<bytevector> cs::<fixnum>
 			     pt::<bytevector> ps::<fixnum>
-			     len::<fixnum>) ::<void>
+			     len::<fixnum>) ::<fixnum>
   (check-state-mode 'gcm-decrypt! enc-auth-state MODE_GCM)
   (check-range 'gcm-decrypt! pt ps len)
   (check-range 'gcm-decrypt! ct cs len)
@@ -873,7 +894,8 @@
 			       (+ (SG_BVECTOR_ELEMENTS pt) ps) len
 			       (+ (SG_BVECTOR_ELEMENTS ct) cs)
 			       GCM_DECRYPT)))
-    (check-tomcrypt-error 'gcm-decrypt! err)))
+    (check-tomcrypt-error 'gcm-decrypt! err)
+    (result len)))
 
 (define-c-proc gcm-add-iv! (enc-auth-state::<enc-auth-state>
 			    iv::<bytevector>

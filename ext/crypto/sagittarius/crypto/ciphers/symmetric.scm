@@ -164,8 +164,7 @@
 	 (pt-len (- (bytevector-length pt) ps))
 	 (ct-len (- (bytevector-length ct) cs))
 	 (bytes (* (div (min pt-len ct-len) block-length) block-length)))
-    (mode-encrypt! (symmetric-cipher-key cipher) pt ps ct cs bytes)
-    bytes))
+    (mode-encrypt! (symmetric-cipher-key cipher) pt ps ct cs bytes)))
 
 (define (block-cipher-encrypt (cipher block-cipher?)
 			      (pt bytevector?) :optional (ps 0))
@@ -236,8 +235,7 @@
 	 (ct-len (- (bytevector-length ct) cs))
 	 (pt-len (- (bytevector-length pt) ps))
 	 (bytes (* (div (min pt-len ct-len) block-length) block-length)))
-    (mode-decrypt! (symmetric-cipher-key cipher) ct cs pt ps bytes)
-    bytes))
+    (mode-decrypt! (symmetric-cipher-key cipher) ct cs pt ps bytes)))
 
 (define (block-cipher-decrypt (cipher block-cipher?)
 			      (ct bytevector?) :optional (cs 0))
