@@ -378,9 +378,15 @@
 			     (direction cipher-direction?)
 			     (key symmetric-key?)
 			     :optional (parameter #f))
-  (stream-cipher-done! cipher) ;; reset previous state
-  (let* ((desc (cipher-scheme cipher))
-	 (state (stream-cipher-descriptor-init desc
+  
+  (define desc (cipher-scheme cipher))
+  ;; reset previous state
+  (when (symmetric-cipher-key cipher)
+    (guard (e (else #f)) ;; ignore
+      (if (stream-cipher-descriptor-aead? desc)
+	  (stream-cipher-done! cipher)
+	  (stream-cipher-done/tag! cipher (make-bytevector 0)))))
+  (let ((state (stream-cipher-descriptor-init desc
 					       (symmetric-key-value key)
 					       parameter)))
     ;; setup IV here
@@ -448,12 +454,15 @@
 
 (define (stream-cipher-done/tag! (cipher stream-cipher?)
 				 tag :optional (start 0))
-  (let ((scheme (cipher-scheme cipher))
-	(state (symmetric-cipher-key cipher)))
-    (let ((r (stream-cipher-descriptor-done/tag! scheme state tag start)))
-      (symmetric-cipher-direction-set! cipher #f)
-      (symmetric-cipher-key-set! cipher #f)
-      r)))
+  (define (reset! cipher)
+    (symmetric-cipher-direction-set! cipher #f)
+    (symmetric-cipher-key-set! cipher #f))
+  (let ((scheme (cipher-scheme cipher)))
+    (cond ((symmetric-cipher-key cipher) =>
+	   (lambda (state)
+	     (reset! cipher)
+	     (stream-cipher-descriptor-done/tag! scheme state tag start)))
+	  (else (reset! cipher) #f))))
 
 (define (stream-cipher-done/tag (cipher stream-cipher?) tag-len)
   (case (symmetric-cipher-direction cipher)
