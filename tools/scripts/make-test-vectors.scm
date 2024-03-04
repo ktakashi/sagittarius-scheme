@@ -21,7 +21,7 @@
 (define cmac-vector? (file-prefix? '("aes_cmac")))
 (define gmac-vector? (file-prefix? '("gmac")))
 (define hkdf-vector? (file-prefix? '("hkdf")))
-
+(define chacha20-poly1305-vector? (file-prefix? '("chacha20_poly1305")))
 
 ;;; Signature
 (define algorithm-pointer (json-pointer "/algorithm"))
@@ -151,6 +151,28 @@
       :key-size ,key-size
       :tests ',(map test->vector tests))))
 
+(define (->chacha20-poly-test-runner source algorithm json)
+  (define (test->vector test)
+    (list->vector
+     (map (lambda (e)
+	    (let ((k (car e)))
+	      (cond ((string=? k "result") (string=? "valid" (cdr e)))
+		    ((string=? k "key") (hex-string->bytevector (cdr e)))
+		    ((string=? k "iv") (hex-string->bytevector (cdr e)))
+		    ((string=? k "aad") (hex-string->bytevector (cdr e)))
+		    ((string=? k "msg") (hex-string->bytevector (cdr e)))
+		    ((string=? k "ct") (hex-string->bytevector (cdr e)))
+		    ((string=? k "tag") (hex-string->bytevector (cdr e)))
+		    (else (cdr e)))))
+	  (vector->list test))))
+  (let ((tests (tests-pointer json))
+	(key-size (key-size-pointer json))
+	(tag-size (tag-size-pointer json)))
+    `(test-chacha20-poly1305 ,source
+      :algorithm ,algorithm
+      :key-size ,key-size
+      :tests ',(map test->vector tests))))
+
 (define ((test-vector->test-runner ->test-runner) json source)
   (define (filename source)
     (let-values (((dir f e) (decompose-path source)))
@@ -211,7 +233,11 @@
     (write-includer outdir (build-path "testvectors" "hkdf")
      (map (write-in outdir "testvectors" "hkdf")
 	  (map (file->json (test-vector->test-runner ->hkdf-test-runner))
-	       (filter hkdf-vector? files))))))
+	       (filter hkdf-vector? files))))
+    (write-includer outdir (build-path "testvectors" "chacha20-poly1305")
+     (map (write-in outdir "testvectors" "chacha20-poly1305")
+	  (map (file->json (test-vector->test-runner ->chacha20-poly-test-runner))
+	       (filter chacha20-poly1305-vector? files))))))
 
 (define (usage me)
   (print me "[OPTIONS] dir ...")
