@@ -207,10 +207,9 @@
       (test-assert verifier)
       (for-each (verify-signature verifier) tests))))
 
-(unless (or #t (getenv "APPVEYOR") (getenv "CIRCLECI_WINDOWS"))
-  (test-begin "Signature test vectors")
-  (include "./testvectors/signature.scm")
-  (test-end))
+(test-begin "Signature test vectors")
+(include "./testvectors/signature.scm")
+(test-end)
 
 (define ((make-test-chacha20-poly1305 chacha20-scheme)
 	 name :key algorithm key-size tests)

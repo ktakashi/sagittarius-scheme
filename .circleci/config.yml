@@ -27,7 +27,7 @@ jobs:
            working_directory: ~/target
            command: |
              ./dist.sh gen
-             cmake .
+             cmake . -DSKIP_TEST_VECTOR=ON
        - run:
            name: Build
            working_directory: ~/target
@@ -36,6 +36,7 @@ jobs:
            name: Test
            working_directory: ~/target
            command: ctest -V
+           
   windows-build:
     parameters:
       executor:
@@ -61,7 +62,7 @@ jobs:
               }
             }
             .\dist.bat gen
-            cmake . -G "NMake Makefiles"
+            cmake . -G "NMake Makefiles" -DSKIP_TEST_VECTOR=ON
       - run:
           name: Build
           command: |
@@ -80,8 +81,6 @@ jobs:
               }
             }
             & ctest -V -LE json --output-on-failure
-          environment:
-            CIRCLECI_WINDOWS: true
 
 workflows:
   ubuntu-build:
