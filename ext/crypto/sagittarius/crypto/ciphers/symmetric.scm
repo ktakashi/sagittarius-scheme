@@ -105,6 +105,7 @@
 
 	    ;; Stream ciphers
 	    *scheme:chacha20* *scheme:chacha20-poly1305*
+	    *scheme:xchacha20* *scheme:xchacha20-poly1305*
 	    )
     (import (rnrs)
 	    (clos user)

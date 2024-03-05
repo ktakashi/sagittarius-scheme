@@ -22,6 +22,7 @@
 (define gmac-vector? (file-prefix? '("gmac")))
 (define hkdf-vector? (file-prefix? '("hkdf")))
 (define chacha20-poly1305-vector? (file-prefix? '("chacha20_poly1305")))
+(define xchacha20-poly1305-vector? (file-prefix? '("xchacha20_poly1305")))
 
 ;;; Signature
 (define algorithm-pointer (json-pointer "/algorithm"))
@@ -237,7 +238,11 @@
     (write-includer outdir (build-path "testvectors" "chacha20-poly1305")
      (map (write-in outdir "testvectors" "chacha20-poly1305")
 	  (map (file->json (test-vector->test-runner ->chacha20-poly-test-runner))
-	       (filter chacha20-poly1305-vector? files))))))
+	       (filter chacha20-poly1305-vector? files))))
+    (write-includer outdir (build-path "testvectors" "xchacha20-poly1305")
+     (map (write-in outdir "testvectors" "xchacha20-poly1305")
+	  (map (file->json (test-vector->test-runner ->chacha20-poly-test-runner))
+	       (filter xchacha20-poly1305-vector? files))))))
 
 (define (usage me)
   (print me "[OPTIONS] dir ...")

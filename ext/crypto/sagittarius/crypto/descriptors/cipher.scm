@@ -80,8 +80,8 @@
 	    *scheme:kasumi*
 	    *scheme:camellia*
 	    ;; stream ciphers
-	    *scheme:chacha20*
-	    *scheme:chacha20-poly1305*
+	    *scheme:chacha20* *scheme:xchacha20*
+	    *scheme:chacha20-poly1305* *scheme:xchacha20-poly1305*
 	    )
     (import (rnrs)
 	    (clos core)
@@ -214,6 +214,18 @@
 			   tc:chacha-crypt!
 			   tc:chacha-done!))
 
+(define *scheme:xchacha20* (make-stream-cipher-descriptor
+			   "xchacha20" 16 32 #f
+			   (lambda (key p) (tc:chacha-setup key 0)) ;; round = 0
+			   (lambda (st param)
+			     (let ((iv (cipher-parameter-iv param))
+				   (counter (cipher-parameter-counter param)))
+			       (tc:xchacha-ivctr! st iv counter)))
+			   #f
+			   tc:chacha-crypt!
+			   tc:chacha-crypt!
+			   tc:chacha-done!))
+
 (define *scheme:chacha20-poly1305*
   (make-stream-cipher-descriptor
    "chacha20-poly1305" 16 32 #t
@@ -221,6 +233,18 @@
    (lambda (st param)
      (let ((iv (cipher-parameter-iv param)))
        (tc:chacha20-poly1305-setiv! st iv)))
+   tc:chacha20-poly1305-add-aad!
+   tc:chacha20-poly1305-encrypt!
+   tc:chacha20-poly1305-decrypt!
+   tc:chacha20-poly1305-done!))
+
+(define *scheme:xchacha20-poly1305*
+  (make-stream-cipher-descriptor
+   "xchacha20-poly1305" 16 32 #t
+   (lambda (key p) (tc:chacha20-poly1305-setup key))
+   (lambda (st param)
+     (let ((iv (cipher-parameter-iv param)))
+       (tc:xchacha20-poly1305-setiv! st iv)))
    tc:chacha20-poly1305-add-aad!
    tc:chacha20-poly1305-encrypt!
    tc:chacha20-poly1305-decrypt!

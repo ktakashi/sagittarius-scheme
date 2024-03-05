@@ -64,6 +64,10 @@ ADD_LIBRARY(libtomcrypt STATIC
   src/stream/chacha/chacha_ivctr64.c
   src/stream/chacha/chacha_keystream.c
   src/stream/chacha/chacha_setup.c
+
+  # xchacha
+  ../stream/xchacha20.c
+
   # rc4
   src/stream/rc4/rc4_stream.c
   # sober

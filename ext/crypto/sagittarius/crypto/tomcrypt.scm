@@ -83,9 +83,13 @@
 	    ;; stream cipher
 	    chacha-setup chacha-ivctr! chacha-crypt! chacha-done!
 
+	    xchacha-ivctr!
+
 	    chacha20-poly1305-setup chacha20-poly1305-setiv!
 	    chacha20-poly1305-add-aad! chacha20-poly1305-encrypt!
 	    chacha20-poly1305-decrypt! chacha20-poly1305-done!
+
+	    xchacha20-poly1305-setiv!
 
 	    ;; digest
 	    *digest:whirlpool*
@@ -141,8 +145,7 @@
 	    hkdf pkcs12-kdf
 	    *pkcs12:key-material*
 	    *pkcs12:iv-material*
-	    *pkcs12:mac-material*
-	    )
+	    *pkcs12:mac-material*)
     (import (only (sagittarius) define-constant)
 	    (sagittarius dynamic-module))
 

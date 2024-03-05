@@ -3,7 +3,8 @@
  (.include <sagittarius/private.h>)
  (.define "LIBSAGITTARIUS_EXT_BODY")
  (.include  <sagittarius/extend.h>
-	    <sagittarius-stream.h>))
+	    <sagittarius-stream.h>
+	    <stream/stream-ext.h>))
 
 (define-type <stream-cipher> "SgStreamCipher" "stream cipher descriptor"
   "SG_STREAM_CIPHERP" "SG_INT_VALUE")
@@ -158,3 +159,32 @@
 					  (& taglen))))
     (check-tomcrypt-error 'chacha-decrypt! err)
     (result (SG_MAKE_INT taglen))))
+
+;; XChaCha20
+(define-c-proc xchacha-ivctr! (s::<stream-cipher-state>
+			       iv::<bytevector>
+			       counter::<integer>
+			       :optional (ivs::<fixnum> 0))
+  (check-cipher 'chacha-ivctr s CHACHA)
+  (check-length 'chacha-ivctr iv ivs)
+  (let ((c::uint64_t (Sg_GetIntegerU64Clamp counter SG_CLAMP_LO NULL))
+	(err::int CRYPT_OK))
+    (set! err (xchacha_ivctr (& (-> (SG_STREAM_CIPHER_STATE s) chacha))
+			     (+ (SG_BVECTOR_ELEMENTS iv) ivs)
+			     (- (SG_BVECTOR_SIZE iv) ivs)
+			     c))
+    (check-tomcrypt-error 'chacha-ivctr err)
+    (result s)))
+
+;; XChaCha20-Poly1305
+(define-c-proc xchacha20-poly1305-setiv! (s::<stream-cipher-state>
+					  iv::<bytevector>
+					  :optional (ivs::<fixnum> 0))
+  (check-cipher 'xchacha20-poly1305-setiv! s CHACHA20POLY1305)
+  (check-length 'xchacha20-poly1305-setiv! iv ivs)
+  (let ((err::int (xchacha20poly1305_setiv (& (-> (SG_STREAM_CIPHER_STATE s) chacha20poly1305))
+					   (+ (SG_BVECTOR_ELEMENTS iv) ivs)
+					   (- (SG_BVECTOR_SIZE iv) ivs))))
+    (check-tomcrypt-error 'xchacha20-poly1305-setiv! err)
+    (result s)))
+
