@@ -113,16 +113,18 @@
 					(priv <ecdsa-private-key>)
 					(pub <ecdsa-public-key>))
   (define param (ecdsa-key-parameter priv))
-  (unless (equal? (ec-parameter-curve param)
-		  (ec-parameter-curve (ecdsa-key-parameter pub)))
+  (define curve (ec-parameter-curve param))
+  (unless (equal? curve (ec-parameter-curve (ecdsa-key-parameter pub)))
     (assertion-violation 'calculate-key-agreement
 			 "Key type are not the same"))
-  ;; it's rather weird to return integer as secret key
-  ;; so convert it to bytevector.
-  ;; NOTE: actual implementation return integer for whatever the reason
-  (integer->bytevector
-   (ecdhc-calculate-agreement param (ecdsa-private-key-d priv)
-			      (ecdsa-public-key-Q pub))))
+  (let ((size (div (+ (ec-field-size (elliptic-curve-field curve)) 7) 8)))
+    ;; it's rather weird to return integer as secret key
+    ;; so convert it to bytevector.
+    ;; NOTE: actual implementation return integer for whatever the reason
+    (integer->bytevector
+     (ecdhc-calculate-agreement param (ecdsa-private-key-d priv)
+				(ecdsa-public-key-Q pub))
+     size)))
 
 
 (define *key:x25519* :x25519)

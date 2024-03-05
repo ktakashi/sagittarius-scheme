@@ -208,16 +208,54 @@
 
 (define (decode-ec-point curve bv)
   (define size (div (+ (ec-field-size (elliptic-curve-field curve)) 7) 8))
-  (case (bytevector-u8-ref bv 0)
+  (define type (bytevector-u8-ref bv 0))
+  
+  (case type
     ((#x00) ec-infinity-point)
     ;; TODO support compressed 0x02 and 0x03
+    ((#x02 #x03)
+     (unless (= (bytevector-length bv) (+ size 1))
+       (assertion-violation 'decode-ec-point
+			    "Incorrect length for compressed encoding"))
+     (let* ((~y (bitwise-and type 1))
+	    (x (bytevector->integer bv 1 (+ size 1)))
+	    (p (decompress-point curve ~y x)))
+       (unless (valid-ec-point? p)
+	 (assertion-violation 'decompress-point "Invalid point"))
+       p))
     ((#x04)
      (let ((x (bytevector->integer bv 1 (+ 1 size)))
 	   (y (bytevector->integer bv (+ 1 size))))
        (make-ec-point x y)))
     (else
      (implementation-restriction-violation 'decode-ec-point
-					   "not supported"))))
+					   "not supported" type))))
+
+;; FIXME should check better...
+(define (valid-ec-point? p) #t)
+
+(define (decompress-point curve y x)
+  (define field (elliptic-curve-field curve))
+  (define (decompress-fp-point curve x ~y)
+    (define field (elliptic-curve-field curve))
+    (define p (ec-field-fp-p field))
+    (define a (elliptic-curve-a curve))
+    (define b (elliptic-curve-b curve))
+    ;; y^2 = x^3 + ax + b
+    ;;     = (x^2 + a)x + b
+    (let* ((rhs (mod-add (mod-mul (mod-add (mod-square x p) a p) x p) b p))
+	   (y (mod-sqrt rhs p)))
+      (unless y
+	(assertion-violation 'decompress-point "Invalid point compression"))
+      (let ((neg? (not (eqv? (bitwise-bit-set? y 0) (= ~y 1)))))
+	(make-ec-point x (if neg? (mod-sub p y p) y)))))
+  (define (decompress-f2m-point curve x y)
+    (error 'decompress-fp-point "not yet"))
+  (cond ((ec-field-fp? field)
+	 (decompress-fp-point curve x y))
+	((ec-field-f2m? field)
+	 (decompress-f2m-point curve x y))
+	(else (assertion-violation 'decompress-point "Unknown curve" curve))))
 
 ;; Twice
 (define-predicate-generic (field-ec-point-twice field curve x)
