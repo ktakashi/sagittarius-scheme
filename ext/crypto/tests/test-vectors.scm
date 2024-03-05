@@ -261,7 +261,7 @@
 (include "./testvectors/chacha20-poly1305.scm")
 (test-end)
 
-(define test-chacha20-poly1305
+(define test-xchacha20-poly1305
   (make-test-chacha20-poly1305 *scheme:xchacha20-poly1305*))
 
 (test-begin "XChaCha20-Poly1305 test vectors")

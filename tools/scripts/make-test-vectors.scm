@@ -21,6 +21,7 @@
 (define cmac-vector? (file-prefix? '("aes_cmac")))
 (define gmac-vector? (file-prefix? '("gmac")))
 (define hkdf-vector? (file-prefix? '("hkdf")))
+(define ecdh-vector? (file-prefix? '("ecdh")))
 (define chacha20-poly1305-vector? (file-prefix? '("chacha20_poly1305")))
 (define xchacha20-poly1305-vector? (file-prefix? '("xchacha20_poly1305")))
 
@@ -35,17 +36,23 @@
 (define mgf-sha-pointer (json-pointer "/mgfSha"))
 (define slen-pointer (json-pointer "/sLen"))
 (define type-pointer (json-pointer "/type"))
+
+(define ((make->bytevector . tags) e)
+  (cond ((member (car e) tags) (hex-string->bytevector (cdr e)))
+	(else #f)))
+(define (->result e)
+  (cond ((string=? (car e) "result")
+	 (list (and (member (cdr e) '("valid" "acceptable")) #t)))
+	(else #f)))
+
 (define (->signature-test-runner source algorithm json)
+  (define ->bytevector (make->bytevector "sig" "msg"))
   (define (test->vector test)
     (list->vector
      (map (lambda (e)
-	    (let ((k (car e)))
-	      (cond ((string=? k "msg") (hex-string->bytevector (cdr e)))
-		    ((string=? k "sig") (hex-string->bytevector (cdr e)))
-		    ((string=? k "result")
-		     (or (string=? "valid" (cdr e))
-			 (string=? "acceptable" (cdr e))))
-		    (else (cdr e)))))
+	    (cond ((->bytevector e))
+		  ((->result e) => car)
+		  (else (cdr e))))
 	  (vector->list test))))
   (define (mgf json)
     (let ((mgf (mgf-pointer json))
@@ -78,9 +85,7 @@
      (map (lambda (e)
 	    (let ((k (car e)))
 	      (cond ((string=? k "value") (string->number (cdr e) 16))
-		    ((string=? k "result")
-		     (or (string=? "valid" (cdr e))
-			 (string=? "acceptable" (cdr e))))
+		    ((->result e) => car)
 		    (else (cdr e)))))
 	  (vector->list test))))
   (let ((tests (tests-pointer json)))
@@ -90,14 +95,12 @@
 (define tag-size-pointer (json-pointer "/tagSize"))
 (define ((->mac-test-runner test-mac) source algorithm json)
   (define (test->vector test)
+    (define ->bytevector (make->bytevector "key" "tag" "msg"))
     (list->vector
      (map (lambda (e)
-	    (let ((k (car e)))
-	      (cond ((string=? k "result") (string=? "valid" (cdr e)))
-		    ((string=? k "key") (hex-string->bytevector (cdr e)))
-		    ((string=? k "tag") (hex-string->bytevector (cdr e)))
-		    ((string=? k "msg") (hex-string->bytevector (cdr e)))
-		    (else (cdr e)))))
+	    (cond ((->bytevector e))
+		  ((->result e) => car)
+		  (else (cdr e))))
 	  (vector->list test))))
 
   (let ((tests (tests-pointer json))
@@ -110,16 +113,13 @@
       :tests ',(map test->vector tests))))
 
 (define (->gmac-test-runner source algorithm json)
+  (define ->bytevector (make->bytevector "key" "tag" "iv" "msg"))
   (define (test->vector test)
     (list->vector
      (map (lambda (e)
-	    (let ((k (car e)))
-	      (cond ((string=? k "result") (string=? "valid" (cdr e)))
-		    ((string=? k "key") (hex-string->bytevector (cdr e)))
-		    ((string=? k "tag") (hex-string->bytevector (cdr e)))
-		    ((string=? k "iv")  (hex-string->bytevector (cdr e)))
-		    ((string=? k "msg") (hex-string->bytevector (cdr e)))
-		    (else (cdr e)))))
+	    (cond ((->bytevector e))
+		  ((->result e) => car)
+		  (else (cdr e))))
 	  (vector->list test))))
 
   (let ((tests (tests-pointer json))
@@ -132,16 +132,13 @@
       :tests ',(map test->vector tests))))
 
 (define (->hkdf-test-runner source algorithm json)
+  (define ->bytevector (make->bytevector "ikm" "salt" "info" "okm"))
   (define (test->vector test)
     (list->vector
      (map (lambda (e)
-	    (let ((k (car e)))
-	      (cond ((string=? k "result") (string=? "valid" (cdr e)))
-		    ((string=? k "ikm") (hex-string->bytevector (cdr e)))
-		    ((string=? k "salt") (hex-string->bytevector (cdr e)))
-		    ((string=? k "info") (hex-string->bytevector (cdr e)))
-		    ((string=? k "okm") (hex-string->bytevector (cdr e)))
-		    (else (cdr e)))))
+	    (cond ((->bytevector e))
+		  ((->result e) => car)
+		  (else (cdr e))))
 	  (vector->list test))))
 
   (let ((tests (tests-pointer json))
@@ -152,26 +149,44 @@
       :key-size ,key-size
       :tests ',(map test->vector tests))))
 
-(define (->chacha20-poly-test-runner source algorithm json)
+(define ((->chacha20-poly-test-runner name) source algorithm json)
+  (define ->bytevector (make->bytevector "key" "iv" "aad" "msg" "ct" "tag"))
   (define (test->vector test)
     (list->vector
      (map (lambda (e)
-	    (let ((k (car e)))
-	      (cond ((string=? k "result") (string=? "valid" (cdr e)))
-		    ((string=? k "key") (hex-string->bytevector (cdr e)))
-		    ((string=? k "iv") (hex-string->bytevector (cdr e)))
-		    ((string=? k "aad") (hex-string->bytevector (cdr e)))
-		    ((string=? k "msg") (hex-string->bytevector (cdr e)))
-		    ((string=? k "ct") (hex-string->bytevector (cdr e)))
-		    ((string=? k "tag") (hex-string->bytevector (cdr e)))
-		    (else (cdr e)))))
+	    (cond ((->bytevector e))
+		  ((->result e) => car)
+		  (else (cdr e))))
 	  (vector->list test))))
   (let ((tests (tests-pointer json))
 	(key-size (key-size-pointer json))
 	(tag-size (tag-size-pointer json)))
-    `(test-chacha20-poly1305 ,source
+    `(,name ,source
       :algorithm ,algorithm
       :key-size ,key-size
+      :tests ',(map test->vector tests))))
+
+(define curve-pointer (json-pointer "/curve"))
+(define encoding-pointer (json-pointer "/encoding"))
+(define (->ecdh-test-runner source algorithm json)
+  (define ->bytevector (make->bytevector "public" "private"  "shared"))
+  (define (test->vector test)
+    (list->vector
+     (map (lambda (e)
+	    (cond ((->bytevector e))
+		  ((->result e) => car)
+		  (else (cdr e))))
+	  (vector->list test))))
+  (let ((tests (tests-pointer json))
+	(curve (curve-pointer json))
+	(encoding (encoding-pointer json))
+	(key-size (key-size-pointer json))
+	(tag-size (tag-size-pointer json)))
+    `(test-ecdh ,source
+      :algorithm ,algorithm
+      :key-size ,key-size
+      :curve ,curve
+      :encoding ,encoding
       :tests ',(map test->vector tests))))
 
 (define ((test-vector->test-runner ->test-runner) json source)
@@ -237,11 +252,13 @@
 	       (filter hkdf-vector? files))))
     (write-includer outdir (build-path "testvectors" "chacha20-poly1305")
      (map (write-in outdir "testvectors" "chacha20-poly1305")
-	  (map (file->json (test-vector->test-runner ->chacha20-poly-test-runner))
+	  (map (file->json
+		(test-vector->test-runner (->chacha20-poly-test-runner 'test-chacha20-poly1305)))
 	       (filter chacha20-poly1305-vector? files))))
     (write-includer outdir (build-path "testvectors" "xchacha20-poly1305")
      (map (write-in outdir "testvectors" "xchacha20-poly1305")
-	  (map (file->json (test-vector->test-runner ->chacha20-poly-test-runner))
+	  (map (file->json
+		(test-vector->test-runner (->chacha20-poly-test-runner 'test-xchacha20-poly1305)))
 	       (filter xchacha20-poly1305-vector? files))))))
 
 (define (usage me)
