@@ -73,7 +73,14 @@
 	    NIST-B-283 (rename (NIST-B-283 sect283r1))
 	    NIST-B-409 (rename (NIST-B-409 sect409r1))
 	    NIST-B-571 (rename (NIST-B-571 sect571r1))
+
 	    ;; SEC 2 parameters
+	    ;; below 3 are v1
+	    secp160r1
+	    secp160k1
+	    secp160r2
+
+	    ;; v2
 	    secp192k1
 	    secp224k1
 	    secp256k1
@@ -394,6 +401,36 @@
   1
   #x3045AE6FC8422F64ED579528D38120EAE12196D5
   "1.2.840.10045.3.1.1")
+
+(define-fp-parameter secp160r1
+  #xffffffffffffffffffffffffffffffff7fffffff
+  #xffffffffffffffffffffffffffffffff7ffffffc
+  #x1c97befc54bd7a8b65acf89f81d4d4adc565fa45
+  #x4a96b5688ef573284664698968c38bb913cbfc82
+  #x23a628553168947d59dcc912042351377ac5fb32
+  #x0100000000000000000001f4c8f927aed3ca752257
+  #x01
+  "1.3.132.0.8")
+
+(define-fp-parameter secp160k1
+  #xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFAC73
+  0
+  7
+  #x3b4c382ce37aa192a4019e763036f4f5dd4d7ebb
+  #x938cf935318fdced6bc28286531733c3f03c4fee
+  #x0100000000000000000001b8fa16dfab9aca16b6b3
+  1
+  "1.3.132.0.9")
+
+(define-fp-parameter secp160r2
+  #xfffffffffffffffffffffffffffffffeffffac73
+  #xfffffffffffffffffffffffffffffffeffffac70
+  #xb4e134d3fb59eb8bab57274904664d5af50388ba
+  #x52dcb034293a117e1f4ff11b30f7199d3144ce6d
+  #xfeaffef2e331f296e071fa0df9982cfea7d43f2e
+  #x0100000000000000000000351ee786a818f3a1a16b
+  #x01
+  "1.3.132.0.30")
 
 (define-fp-parameter secp192k1
   #xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFEE37

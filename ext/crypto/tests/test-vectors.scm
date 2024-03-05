@@ -134,8 +134,11 @@
 	      (digest #f) (mgf #f) (mgf-digest #f) (salt-length #f))
   ;; if key import is not supported, then ignore
   (define (import-key k)
-    (guard (e ((implementation-restriction-violation? e) #f)
+    (guard (e ((implementation-restriction-violation? e)
+	       (report-error e)
+	       #f)
 	      (else (test-assert "Failed to import key" #f)
+		    (report-error e)
 		    #f))
       (import-public-key k (public-key-format subject-public-key-info))))
   (define (->mgf mgf)
