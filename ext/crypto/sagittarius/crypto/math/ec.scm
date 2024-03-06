@@ -114,6 +114,8 @@
 	    elliptic-curve-a
 	    elliptic-curve-b
 
+	    elliptic-curve=?
+	    
 	    ;; field
 	    ec-field-fp?
 	    ec-field-fp-p
@@ -166,6 +168,23 @@
   (field elliptic-curve-field)
   (a     elliptic-curve-a)
   (b     elliptic-curve-b))
+
+(define (elliptic-curve=? curve1 curve2)
+  (and (elliptic-curve? curve1)
+       (elliptic-curve? curve2)
+       (= (elliptic-curve-a curve1) (elliptic-curve-a curve2))
+       (= (elliptic-curve-b curve1) (elliptic-curve-b curve2))
+       (ec-field=? (elliptic-curve-field curve1) (elliptic-curve-field curve1))))
+
+(define (ec-field=? field1 field2)
+  (cond ((and (ec-field-fp? field1) (ec-field-fp? field2))
+	 (= (ec-field-fp-p field1) (ec-field-fp-p field2)))
+	((and (ec-field-f2m? field1) (ec-field-f2m? field2))
+	 (and (= (ec-field-f2m-m  field1) (ec-field-f2m-m  field1))
+	      (= (ec-field-f2m-k1 field1) (ec-field-f2m-k1 field1))
+	      (= (ec-field-f2m-k2 field1) (ec-field-f2m-k2 field1))
+	      (= (ec-field-f2m-k3 field1) (ec-field-f2m-k3 field1))))
+	(else #f)))
 
 (define-syntax define-predicate-generic
   (syntax-rules ()
@@ -269,7 +288,8 @@
 	      (gamma (mod-div (mod-add (mod-mul (mod-square xx p) 3 p)
 				       (elliptic-curve-a curve)
 				       p)
-			      (mod-mul xy 2 p) p))
+			      (mod-mul xy 2 p)
+			      p))
 	      ;; x3 = gamma^2 - x*2
 	      (x3 (mod-sub (mod-square gamma p) (mod-mul xx 2 p) p))
 	      ;; y3 = gamma*(xx - x3) - xy

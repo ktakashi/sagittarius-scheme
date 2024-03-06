@@ -43,7 +43,8 @@
 	    export-public-key
 	    export-private-key
 
-	    *key:ecdh* ;; RFC 7748 key generation if possible
+	    *key:ecdh*	;; RFC 7748 key generation if possible
+	    *key:ecdhc*	;; ECDHC
 	    *key:x25519*
 	    *key:x448*
 	    
@@ -85,6 +86,7 @@
 	    (sagittarius crypto math modular))
 
 (define *key:ecdh* :ecdh)
+(define *key:ecdhc* :ecdhc)
 
 ;; SEC1 v2, section 3.3.1
 ;; ec-param - a curve parameter
@@ -92,7 +94,13 @@
 ;; Qv       - public key Q from ec-public-key (ec-point)
 (define (ecdh-calculate-agreement ec-param du Qv)
   (define curve (ec-parameter-curve ec-param))
-  (let ((P (ec-point-mul curve Qv du)))
+  (define h (ec-parameter-h ec-param))
+  (let ((P (if (= h 1)
+	       (ec-point-mul curve Qv du)
+	       (let* ((n (ec-parameter-n ec-param))
+		      (d (mod (* (mod-inverse h n) du) n))
+		      (q (ec-point-mul curve Qv h)))
+		 (ec-point-mul curve q d)))))
     (when (ec-point-infinity? P) (error 'ecdh-calculate-agreement "invalid"))
     (ec-point-x P)))
 
@@ -109,12 +117,10 @@
     (when (ec-point-infinity? P) (error 'ecdh-calculate-agreement "invalid"))
     (ec-point-x P)))
 
-(define-method calculate-key-agreement ((m (eql *key:ecdh*))
-					(priv <ecdsa-private-key>)
-					(pub <ecdsa-public-key>))
+(define (calculate-key-agreement-impl agreement-calculator priv pub)
   (define param (ecdsa-key-parameter priv))
   (define curve (ec-parameter-curve param))
-  (unless (equal? curve (ec-parameter-curve (ecdsa-key-parameter pub)))
+  (unless (elliptic-curve=? curve (ec-parameter-curve (ecdsa-key-parameter pub)))
     (assertion-violation 'calculate-key-agreement
 			 "Key type are not the same"))
   (let ((size (div (+ (ec-field-size (elliptic-curve-field curve)) 7) 8)))
@@ -122,9 +128,19 @@
     ;; so convert it to bytevector.
     ;; NOTE: actual implementation return integer for whatever the reason
     (integer->bytevector
-     (ecdhc-calculate-agreement param (ecdsa-private-key-d priv)
-				(ecdsa-public-key-Q pub))
+     (agreement-calculator param (ecdsa-private-key-d priv)
+			   (ecdsa-public-key-Q pub))
      size)))
+
+(define-method calculate-key-agreement ((m (eql *key:ecdh*))
+					(priv <ecdsa-private-key>)
+					(pub <ecdsa-public-key>))
+  (calculate-key-agreement-impl ecdh-calculate-agreement priv pub))
+
+(define-method calculate-key-agreement ((m (eql *key:ecdhc*))
+					(priv <ecdsa-private-key>)
+					(pub <ecdsa-public-key>))
+  (calculate-key-agreement-impl ecdhc-calculate-agreement priv pub))
 
 
 (define *key:x25519* :x25519)
