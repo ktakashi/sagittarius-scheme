@@ -174,7 +174,7 @@
        (elliptic-curve? curve2)
        (= (elliptic-curve-a curve1) (elliptic-curve-a curve2))
        (= (elliptic-curve-b curve1) (elliptic-curve-b curve2))
-       (ec-field=? (elliptic-curve-field curve1) (elliptic-curve-field curve1))))
+       (ec-field=? (elliptic-curve-field curve1) (elliptic-curve-field curve2))))
 
 (define (ec-field=? field1 field2)
   (cond ((and (ec-field-fp? field1) (ec-field-fp? field2))
