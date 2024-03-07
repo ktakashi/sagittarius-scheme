@@ -384,7 +384,7 @@
 
 ;; http://en.wikipedia.org/wiki/Non-adjacent_form
 ;; this is probably super slow but for now...
-(define (ec-point-mul curve p k)
+(define (naf-ec-point-mul curve p k)
   (unless (integer? k) (error 'ec-point-mul "integer required for k" k))
   (let ((h (* k 3))
 	(neg (ec-point-negate curve p)))
@@ -396,9 +396,27 @@
 	    (if (eqv? hbit? (bitwise-bit-set? k i))
 		(loop R (- i 1))
 		(loop (ec-point-add curve R (if hbit? p neg)) (- i 1))))))))
-  
-  ;;;;
-  ;;; Parameters
+
+;; the same performance as above, so not useful...
+(define (double-and-add-ec-point-mul curve p k)
+  (unless (integer? k) (error 'ec-point-mul "integer required for k" k))
+  (let* ((x (abs k))
+	 (t (bitwise-length x)))
+    (let loop ((q (if (bitwise-bit-set? x 0) p ec-infinity-point))
+	       (p p)
+	       (i 1))
+      (if (< i t)
+	  (let ((p (ec-point-twice curve p)))
+	    (loop (if (bitwise-bit-set? x i) (ec-point-add curve q p) q)
+		  p
+		  (+ i 1)))
+	  (if (negative? k) (ec-point-negate curve q) q)))))
+
+(define ec-point-mul naf-ec-point-mul)
+;;(define ec-point-mul double-and-add-ec-point-mul)
+
+;;;;
+;;; Parameters
 ;; Parameter contains followings
 ;;  - curve
 ;;  - base point x y (as ec-point)

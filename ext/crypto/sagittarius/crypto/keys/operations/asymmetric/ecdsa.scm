@@ -218,7 +218,7 @@
 (define-method key->oid ((key <ecdsa-key-parameter-holder>)) *ecdsa-key-oid*)
 
 ;; TODO should be move to (sagittarius crypto asn1)
-(define (parse-seq (seq der-sequence?))
+(define (parse-seq (seq ber-sequence?))
   (apply values (list-queue-list (asn1-collection-elements seq))))
 
 ;; NOTE ECDSA public key == ECPoint
@@ -231,9 +231,9 @@
   (let ((Q (decode-ec-point (ec-parameter-curve ec-parameter) key)))
     (make <ecdsa-public-key> :Q Q :parameter ec-parameter)))
 
-(define (ecdsa-import-spki-public-key (public-key der-sequence?))
-  (let*-values (((aid key) (parse-seq public-key))
-		((oid param) (parse-seq aid)))
+(define (ecdsa-import-spki-public-key (public-key ber-sequence?))
+  (let*-values (((aid key . ignore) (parse-seq public-key))
+		((oid param . ignore) (parse-seq aid)))
     (unless (der-bit-string? key)
       (assertion-violation 'ecdsa-import-spki-public-key
 			   "Invalid SubjectPublicKeyInfo format" public-key))
@@ -462,13 +462,20 @@
 	  (else
 	   (assertion-violation '->ec-parameter
 				"Unknown field type" field-type))))
-  (let*-values (((version field-id curve base order cofactor . rest)
+  (let*-values (((version field-id curve base order . rest)
 		 (parse-seq param))
 		((field-type field-param) (parse-seq field-id))
 		((a b S) (parse-curve curve)))
     (let ((n (der-integer->integer order))
-	  (h (der-integer->integer cofactor))
+	  (h (if (null? rest)
+		 1 ;; no cofactor, use default
+		 (der-integer->integer (car rest))))
 	  (curve (make-curve field-type field-param a b)))
+      ;; order and cofactor must be positive integer
+      (unless (positive? n)
+	(assertion-violation '->ec-parameter "Non positive order" n))
+      (unless (positive? h)
+	(assertion-violation '->ec-parameter "Non positive cofactor" n))
       (make-ec-parameter curve
 			 (decode-ec-point curve
 					  (der-octet-string->bytevector base))
