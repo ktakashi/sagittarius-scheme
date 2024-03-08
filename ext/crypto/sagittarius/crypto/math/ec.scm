@@ -413,7 +413,8 @@
 	  (if (negative? k) (ec-point-negate curve q) q)))))
 
 ;; ref: 
-;; https://en.wikipedia.org/wiki/Elliptic_curve_point_multiplication#Windowed_method
+;; https://en.wikipedia.org/wiki/Elliptic_curve_point_multiplication
+;;   - #Windowed_method
 ;; https://crypto.stackexchange.com/questions/82013/simple-explanation-of-sliding-window-and-wnaf-methods-of-elliptic-curve-point-mu
 (define ((windowed-ec-point-mul w) curve p k)
   (define (precompute p w)
@@ -458,9 +459,65 @@
 			    precomp)))
 		(loop (- i w) q)))))))
 
-(define ec-point-mul naf-ec-point-mul)
+;; ref
+;; https://en.wikipedia.org/wiki/Elliptic_curve_point_multiplication
+;;   - #w-ary_non-adjacent_form_(wNAF)_method
+(define ((wnaf-ec-point-mul w) curve p k)
+  (define (precompute p w)
+    (define size (expt 2 (- w 2)))
+    (define precomputed (make-vector size))
+    (vector-set! precomputed 0 (cons p (ec-point-negate curve p)))
+    (do ((i 1 (+ i 1)))
+	((= i size) precomputed)
+      (let* ((prev (car (vector-ref precomputed (- i 1))))
+	     (v (ec-point-add curve (ec-point-add curve prev p) p)))
+	(vector-set! precomputed i (cons v (ec-point-negate curve v))))))
+  ;; wnaf := #((v . doubling) ...)
+  ;; doubling represents number of time to double R.
+  (define (compute-wnaf n w)
+    (define 2^w (expt 2 w))
+    (define 2^w-1 (expt 2 (- w 1)))
+    (define (compute-k n)
+      (let ((k (mod n 2^w)))
+	(if (>= k 2^w-1)
+	    (- k 2^w)
+	    k)))
+    (let loop ((n n) (zeros 0) (r '()))
+      (if (> n 0)
+	  (if (odd? n)
+	      (let ((k (compute-k n)))
+		(loop (div (- n k) 2) 0 (cons (cons k zeros) r)))
+	      (loop (div n 2) (+ zeros 1) r))
+	  ;; reverse order, for the convenience
+	  r)))
+  (define (twice-n q n)
+    (do ((i 0 (+ i 1)) (q q (ec-point-twice curve q)))
+	((= i n) q)))
+  (define (twice-plus curve r p)
+    (ec-point-add curve (ec-point-twice curve r) p))
+  (define (initial wnaf precomputed)
+    (let* ((v (car wnaf))
+	   (precomp (vector-ref precomputed (div (abs v) 2)))
+	   (r (if (positive? v) (car precomp) (cdr precomp))))
+      (twice-n r (cdr wnaf))))
+  (unless (integer? k) (error 'ec-point-mul "integer required for k" k))
+  (let ((precomputed (precompute p w))
+	(wnaf (compute-wnaf k w)))
+    (let loop ((wnaf (cdr wnaf)) (r (initial (car wnaf) precomputed)))
+      (if (null? wnaf)
+	  r
+	  (let* ((v (car wnaf))
+		 (j (car v))
+		 (precomp (vector-ref precomputed (div (abs j) 2)))
+		 (r (if (positive? j)
+			(twice-plus curve r (car precomp))
+			(twice-plus curve r (cdr precomp)))))
+	    (loop (cdr wnaf) (twice-n r (cdr v))))))))
+
+;;(define ec-point-mul naf-ec-point-mul)
 ;;(define ec-point-mul double-and-add-ec-point-mul)
 ;;(define ec-point-mul (windowed-ec-point-mul 4))
+(define ec-point-mul (wnaf-ec-point-mul 6))
 
 ;;;;
 ;;; Parameters
