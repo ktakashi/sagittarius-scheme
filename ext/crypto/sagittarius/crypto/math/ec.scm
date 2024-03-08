@@ -366,12 +366,16 @@
 
 ;; Negate
 (define-predicate-generic (field-ec-point-negate field x)
-  (ec-field-fp? 
-   (make-ec-point (ec-point-x x)
-		  (mod-negate (ec-point-y x) (ec-field-fp-p field))))
+  (ec-field-fp?
+   (if (ec-point-infinity? x)
+       x
+       (make-ec-point (ec-point-x x)
+		      (mod-negate (ec-point-y x) (ec-field-fp-p field)))))
   (ec-field-f2m?
-   (let ((xx (ec-point-x x)))
-     (make-ec-point xx (f2m-add field xx (ec-point-y x))))))
+   (if (ec-point-infinity? x)
+       x
+       (let ((xx (ec-point-x x)))
+	 (make-ec-point xx (f2m-add field xx (ec-point-y x)))))))
 
 (define (ec-point-negate curve x)
   (field-ec-point-negate (elliptic-curve-field curve) x))
