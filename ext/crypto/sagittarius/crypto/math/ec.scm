@@ -412,8 +412,55 @@
 		  (+ i 1)))
 	  (if (negative? k) (ec-point-negate curve q) q)))))
 
+;; ref: 
+;; https://en.wikipedia.org/wiki/Elliptic_curve_point_multiplication#Windowed_method
+;; https://crypto.stackexchange.com/questions/82013/simple-explanation-of-sliding-window-and-wnaf-methods-of-elliptic-curve-point-mu
+(define ((windowed-ec-point-mul w) curve p k)
+  (define (precompute p w)
+    (define size (expt 2 w))
+    (define precomputed (make-vector size))
+    (vector-set! precomputed 1 p)
+    (do ((i 2 (+ i 1)))
+	((= i size) precomputed)
+      (let ((prev (vector-ref precomputed (- i 1))))
+	(vector-set! precomputed i (ec-point-add curve prev p)))))
+  (define (twice-n q n)
+    (and q
+	 (do ((i 0 (+ i 1)) (q q (ec-point-twice curve q)))
+	     ((= i n) q))))
+  (define (compute-di k i w)
+    ;;(define window-mask (- (bitwise-arithmetic-shift-left 1 w) 1))
+    ;;(bitwise-and (bitwise-arithmetic-shift-right k i) window-mask)
+    (let loop ((i i) (c 0) (di 0))
+      (cond ((= c w) di)
+	    ((bitwise-bit-set? k i)
+	     (loop (+ i 1) (+ c 1) (+ di (expt 2 c))))
+	    (else
+	     (loop (+ i 1) (+ c 1) di)))))
+  (define (compute-initial k n diff precomputed)
+    (let ((di (compute-di k (+ n diff) diff)))
+      (and (> di 0)
+	   (vector-ref precomputed di))))
+  (unless (integer? k) (error 'ec-point-mul "integer required for k" k))
+  (let* ((precomputed (precompute p w))
+	 (n (bitwise-length k))
+	 (diff (mod n w)))
+    (let loop ((i (- n diff)) (q (compute-initial k n diff precomputed)))
+      (if (< i 0)
+	  q
+	  (let ((q (twice-n q w))
+		(di (compute-di k i w)))
+	    (if (> di 0)
+		(let ((precomp (vector-ref precomputed di)))
+		  (loop (- i w)
+			(if q
+			    (ec-point-add curve q precomp)
+			    precomp)))
+		(loop (- i w) q)))))))
+
 (define ec-point-mul naf-ec-point-mul)
 ;;(define ec-point-mul double-and-add-ec-point-mul)
+;;(define ec-point-mul (windowed-ec-point-mul 4))
 
 ;;;;
 ;;; Parameters
