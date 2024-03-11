@@ -1544,6 +1544,8 @@ static ulong bignum_sdiv_rec(SgBignum *quotient,
 #define bignum_sdiv(a, si) bignum_sdiv_rec(a, a, si)
 
 static SgBignum *ZERO = NULL;
+static SgBignum *ONE = NULL;
+static SgBignum *MIN_ONE = NULL;
 
 static SgBignum ** bignum_div_rem(SgBignum *a, SgBignum *b, SgBignum **rr)
 {
@@ -2248,7 +2250,7 @@ static SgBignum * bignum_mod(SgBignum *a, SgBignum *b, SgBignum *q)
 {
   SgBignum *r = bignum_gdiv(a, b, q);
   bignum_normalize(r);
-  if (BIGNUM_ZEROP(r)
+  if (!BIGNUM_ZEROP(r)
       && (SG_BIGNUM_GET_SIGN(a) * SG_BIGNUM_GET_SIGN(b) < 0)) {
     return bignum_normalize(bignum_add(b, r));
   }
@@ -2271,28 +2273,42 @@ static SgBignum * bignum_mod(SgBignum *a, SgBignum *b, SgBignum *q)
 */
 static SgBignum * bignum_mod_inverse(SgBignum *x, SgBignum *m)
 {
-  SgBignum *u1, *u3, *v1, *v3, *q;
+  SgBignum *u1, *u3, *v1, *v3, *q, *w;
   int sign = 1;
-  long size;
-  if (SG_BIGNUM_GET_COUNT(x) > SG_BIGNUM_GET_COUNT(m)) {
-    size = SG_BIGNUM_GET_COUNT(x) + 1;
-  } else {
-    size = SG_BIGNUM_GET_COUNT(m) + 1;
-  }
+  long qs, ws;
 
   if (SG_BIGNUM_GET_SIGN(m) < 0) {
     Sg_Error(UC("modulus not positive %S"), m);
   }
-  u1 = Sg_MakeBignumFromSI(1);
+  /* setup buffers */
+  if (SG_BIGNUM_GET_COUNT(x) > SG_BIGNUM_GET_COUNT(m)) {
+    qs = SG_BIGNUM_GET_COUNT(x) + 1;
+  } else {
+    qs = SG_BIGNUM_GET_COUNT(m) + 1;
+  }
+  ALLOC_TEMP_BIGNUM(q, qs);
+
+  ws = max(x->size, m->size) + 1;
+  ALLOC_TEMP_BIGNUM(w, ws);
+
+  u1 = ONE;
   u3 = x;
-  v1 = Sg_MakeBignumFromSI(0);
+  v1 = ZERO;
   v3 = m;
-  ALLOC_TEMP_BIGNUM(q, size);
+
+#define reset_buffer(bn, size)						\
+  do {									\
+    memset((bn)->elements, 0, SG_BIGNUM_GET_COUNT(bn) * sizeof(long));	\
+    SG_BIGNUM_SET_COUNT(bn, size);					\
+    SG_BIGNUM_SET_SIGN(bn, 1);						\
+  } while (0)
+  
   while (!BIGNUM_ZEROP(v3)) {
-    SgBignum *t3, *w, *t1;
+    SgBignum *t3, *t1;		/* We can't pre allocate them... *sigh* */
     t3 = bignum_mod(u3, v3, q);
     bignum_normalize(q);
-    w = bignum_normalize(bignum_mul(q, v1));
+    /* w = bignum_normalize(bignum_mul(q, v1)); */
+    w = bignum_normalize(bignum_mul_int(w, q, v1));
     t1 = bignum_normalize(bignum_add(u1, w));
     u1 = v1; v1 = t1; u3 = v3; v3 = t3;
     sign = -sign;
@@ -2302,10 +2318,11 @@ static SgBignum * bignum_mod_inverse(SgBignum *x, SgBignum *m)
 
        NB: element size number is sufficient since it's initialised to 0.
     */
-    memset(q->elements, 0, SG_BIGNUM_GET_COUNT(q) * sizeof(long));
-    SG_BIGNUM_SET_COUNT(q, size);
-    SG_BIGNUM_SET_SIGN(q, 1);
+    reset_buffer(q, qs);
+    reset_buffer(w, ws);
   }
+
+#undef reset_buffer
   /* Sg_Printf(Sg_StandardErrorPort(), UC("x : %A\n"), x); */
   /* Sg_Printf(Sg_StandardErrorPort(), UC("m : %A\n"), m); */
   /* Sg_Printf(Sg_StandardErrorPort(), UC("u1: %A\n"), u1); */
@@ -2520,7 +2537,7 @@ static SgBignum * bignum_mod2(SgBignum *x, long p)
 
 static SgBignum * bignum_mod_expt2(SgBignum *x, SgBignum *e, long p)
 {
-  SgBignum *base = bignum_mod2(x, p), *result = Sg_MakeBignumFromSI(1);
+  SgBignum *base = bignum_mod2(x, p), *result = ONE;
   long exp_offset = 0, limit = Sg_BignumBitSize(e);
   if (x->elements[0] & 1) {
     limit = ((p-1) < limit) ? (p-1) : limit;
@@ -2571,9 +2588,9 @@ static SgObject bignum_mod_expt(SgBignum *bx, SgBignum *be, SgBignum *bm)
 
     if (rsize < 1) {
       if (SG_BIGNUM_GET_SIGN(bm) < 0) {
-	m1 = Sg_MakeBignumFromSI(-1);
+	m1 = MIN_ONE;
       } else {
-	m1 = Sg_MakeBignumFromSI(0);
+	m1 = ZERO;
       }
     } else {
       /* m must be positive */
@@ -2590,7 +2607,7 @@ static SgObject bignum_mod_expt(SgBignum *bx, SgBignum *be, SgBignum *bm)
     base2 = (SG_BIGNUM_GET_SIGN(bx) || Sg_BignumCmp(bx, m1) >= 0)
       ? bignum_mod(bx, m1, NULL) : bx;
     a1 = (BIGNUM_ONEP(m1))
-      ? Sg_MakeBignumFromSI(0)
+      ? ZERO
       : odd_mod_expt(base2, be, m1);
     a2 = bignum_mod_expt2(base, be, p);
     y1 = bignum_mod_inverse(m2, m1);
@@ -2907,6 +2924,8 @@ void Sg__InitBignum()
 {
   int i;
   ZERO = Sg_MakeBignumFromSI(0);
+  ONE = Sg_MakeBignumFromSI(1);
+  MIN_ONE = Sg_MakeBignumFromSI(-1);
   RADIXES[0] = ZERO;
   DBL_RADIXES[0] = log(0);
   for (i = 1; i <= MAX_RADIX; i++) {
