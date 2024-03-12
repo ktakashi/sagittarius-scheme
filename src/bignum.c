@@ -109,6 +109,7 @@
 #define SG_LEFT_SHIFT_SPACE(size, amount)		\
   (int)((size) + ((amount) + WORD_BITS -1)/WORD_BITS) 
 #include "bignum.inc"
+#include "mbignum.c"
 
 static long bignum_safe_size_for_add(SgBignum *x, SgBignum *y);
 static SgBignum *bignum_add_int(SgBignum *br, SgBignum *bx, SgBignum *by);
@@ -2271,7 +2272,7 @@ static SgBignum * bignum_mod(SgBignum *a, SgBignum *b, SgBignum *q)
    - Constant Time Modular Inversion, Joppe W Bos: 
      http://www.joppebos.com/files/CTInversion.pdf
 */
-static SgBignum * bignum_mod_inverse(SgBignum *x, SgBignum *m)
+static SgBignum * bignum_mod_inverse_(SgBignum *x, SgBignum *m)
 {
   SgBignum *u1, *u3, *v1, *v3, *q, *w;
   int sign = 1;
@@ -2333,6 +2334,56 @@ static SgBignum * bignum_mod_inverse(SgBignum *x, SgBignum *m)
     return bignum_normalize(u1);
   }
 }
+
+static SgBignum * bignum_mod_inverse(SgBignum *x, SgBignum *m)
+{
+  m_bignum_t *u1, *u3, *v1, *v3, *q, *w, *t1, *t3;
+  ulong size;
+  int sign = 1;
+  if (SG_BIGNUM_GET_SIGN(m) < 0) {
+    Sg_Error(UC("modulus not positive %S"), m);
+  }
+  size = max(x->size, m->size) + 1;
+  alloc_temp_mbignum( q, size);
+  alloc_temp_mbignum( w, size);
+  alloc_temp_mbignum(u1, size);
+  alloc_temp_mbignum(u3, size);
+  alloc_temp_mbignum(v1, size);
+  alloc_temp_mbignum(v3, size);
+  alloc_temp_mbignum(t1, size);
+  alloc_temp_mbignum(t3, size);
+
+  mbignum_one(u1);
+  copy_from_bignum(u3, x);
+  mbignum_zero(v1);
+  copy_from_bignum(v3, m);
+
+#define reset_buffer(mbn, n)					\
+  do {								\
+    memset((mbn)->elements, 0, (mbn)->size * sizeof(long));	\
+    mbignum_init(mbn, n);					\
+  } while (0)
+  
+  while (!mbignum_zerop(v3)) {
+    mbignum_mod(u3, v3, q, t3);
+    w = mbignum_normalize(mbignum_mul(w, q, v1));
+    t1 = mbignum_normalize(mbignum_add(t1, u1, w));
+    u1 = v1; v1 = t1; u3 = v3; v3 = t3;
+    sign = -sign;
+
+    reset_buffer(q, size);
+    reset_buffer(w, size);
+  }
+#undef reset_buffer
+
+  if (sign < 0) {
+    SgBignum *r = mbignum_to_bignum(u1);
+    return bignum_normalize(bignum_sub(m, r));
+  } else {
+    return mbignum_to_bignum(u1);
+  }
+}
+
 
 #define EXPMOD_MAX_WINDOWS 7
 static ulong exp_mod_threadh_table[EXPMOD_MAX_WINDOWS] = {
