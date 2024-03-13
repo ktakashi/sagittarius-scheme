@@ -44,6 +44,8 @@
 #include "sagittarius/private/string.h"
 #include "sagittarius/private/vm.h"
 
+#define USE_MUTABLE_BIGNUM
+
 #undef min
 #define min(x, y)   (((x) < (y))? (x) : (y))
 #undef max
@@ -109,7 +111,10 @@
 #define SG_LEFT_SHIFT_SPACE(size, amount)		\
   (int)((size) + ((amount) + WORD_BITS -1)/WORD_BITS) 
 #include "bignum.inc"
-#include "mbignum.c"
+
+#ifdef USE_MUTABLE_BIGNUM
+# include "mbignum.c"
+#endif
 
 static long bignum_safe_size_for_add(SgBignum *x, SgBignum *y);
 static SgBignum *bignum_add_int(SgBignum *br, SgBignum *bx, SgBignum *by);
@@ -2272,7 +2277,9 @@ static SgBignum * bignum_mod(SgBignum *a, SgBignum *b, SgBignum *q)
    - Constant Time Modular Inversion, Joppe W Bos: 
      http://www.joppebos.com/files/CTInversion.pdf
 */
-static SgBignum * bignum_mod_inverse_(SgBignum *x, SgBignum *m)
+#ifndef USE_MUTABLE_BIGNUM
+
+static SgBignum * bignum_mod_inverse(SgBignum *x, SgBignum *m)
 {
   SgBignum *u1, *u3, *v1, *v3, *q, *w;
   int sign = 1;
@@ -2311,6 +2318,17 @@ static SgBignum * bignum_mod_inverse_(SgBignum *x, SgBignum *m)
     /* w = bignum_normalize(bignum_mul(q, v1)); */
     w = bignum_normalize(bignum_mul_int(w, q, v1));
     t1 = bignum_normalize(bignum_add(u1, w));
+
+    /* dump_xarray(u1->elements, u1->size); */
+    /* dump_xarray(u3->elements, u3->size); */
+    /* dump_xarray(v1->elements, v1->size); */
+    /* dump_xarray(v3->elements, v3->size); */
+    /* dump_xarray(q->elements, q->size); */
+    /* dump_xarray(t3->elements, t3->size); */
+    /* dump_xarray(w->elements, w->size); */
+    /* dump_xarray(t1->elements, t1->size); */
+    /* fputs("\n", stderr); */
+    
     u1 = v1; v1 = t1; u3 = v3; v3 = t3;
     sign = -sign;
     /* reset buffer */
@@ -2322,8 +2340,8 @@ static SgBignum * bignum_mod_inverse_(SgBignum *x, SgBignum *m)
     reset_buffer(q, qs);
     reset_buffer(w, ws);
   }
-
 #undef reset_buffer
+
   /* Sg_Printf(Sg_StandardErrorPort(), UC("x : %A\n"), x); */
   /* Sg_Printf(Sg_StandardErrorPort(), UC("m : %A\n"), m); */
   /* Sg_Printf(Sg_StandardErrorPort(), UC("u1: %A\n"), u1); */
@@ -2334,6 +2352,8 @@ static SgBignum * bignum_mod_inverse_(SgBignum *x, SgBignum *m)
     return bignum_normalize(u1);
   }
 }
+
+#else
 
 static SgBignum * bignum_mod_inverse(SgBignum *x, SgBignum *m)
 {
@@ -2358,21 +2378,39 @@ static SgBignum * bignum_mod_inverse(SgBignum *x, SgBignum *m)
   mbignum_zero(v1);
   copy_from_bignum(v3, m);
 
-#define reset_buffer(mbn, n)					\
-  do {								\
-    memset((mbn)->elements, 0, (mbn)->size * sizeof(long));	\
-    mbignum_init(mbn, n);					\
+#define reset_buffer(mbn, n)						\
+  do {									\
+    memset((mbn)->elements, 0, (mbn)->buffer_size * sizeof(long));	\
+    mbignum_reset(mbn, n);						\
   } while (0)
   
   while (!mbignum_zerop(v3)) {
+    m_bignum_t *t;
     mbignum_mod(u3, v3, q, t3);
     w = mbignum_normalize(mbignum_mul(w, q, v1));
     t1 = mbignum_normalize(mbignum_add(t1, u1, w));
-    u1 = v1; v1 = t1; u3 = v3; v3 = t3;
+
+    /* fprintf(stderr, "sign - q: %d, v1: %d, u1: %d, w: %d, t1: %d\n", */
+    /* 	    q->sign, v1->sign, u1->sign, w->sign, t1->sign); */
+    /* dump_xarray(u1->elements, u1->size); */
+    /* dump_xarray(u3->elements, u3->size); */
+    /* dump_xarray(v1->elements, v1->size); */
+    /* dump_xarray(v3->elements, v3->size); */
+    /* dump_xarray(q->elements, q->size); */
+    /* dump_xarray(t3->elements, t3->size); */
+    /* dump_xarray(w->elements, w->size); */
+    /* dump_xarray(t1->elements, t1->size); */
+    /* fputs("\n", stderr); */
+
+    /* rotate */
+    t = u1; u1 = v1; v1 = t1; t1 = t;
+    t = u3; u3 = v3; v3 = t3; t3 = t;
     sign = -sign;
 
     reset_buffer(q, size);
     reset_buffer(w, size);
+    reset_buffer(t1, size);
+    reset_buffer(t3, size);
   }
 #undef reset_buffer
 
@@ -2384,6 +2422,7 @@ static SgBignum * bignum_mod_inverse(SgBignum *x, SgBignum *m)
   }
 }
 
+#endif /* USE_MUTABLE_BIGNUM */
 
 #define EXPMOD_MAX_WINDOWS 7
 static ulong exp_mod_threadh_table[EXPMOD_MAX_WINDOWS] = {

@@ -56,11 +56,18 @@ typedef struct m_bignum_rec
     (var)->sign = 1;			\
   } while (0)
 
+#define mbignum_reset(var, size)	\
+  do {					\
+    (var)->size = (size);		\
+    (var)->sign = 1;			\
+  } while (0)
+
 #ifdef HAVE_ALLOCA
 #define alloc_temp_mbignum(var, size)				\
   do {								\
     (var) = (m_bignum_t *)alloca(mbignum_alloc_size(size));	\
     mbignum_init(var, size);					\
+    memset((var)->elements, 0, (size)*(sizeof(long)));		\
   } while (0)
 #else
 #define alloc_temp_mbignum(var, size)				\
@@ -102,8 +109,8 @@ SgBignum * mbignum_to_bignum(m_bignum_t *mb)
 void copy_from_bignum(m_bignum_t *mb, SgBignum *bn)
 {
   long i;
-  mb->size = bn->sign;
-  mb->sign = bn->size;
+  mb->size = bn->size;
+  mb->sign = bn->sign;
   for (i = 0; i < bn->size; i++) mb->elements[i] = bn->elements[i];
 }
 
@@ -183,7 +190,7 @@ static m_bignum_t * mbignum_sub_int(m_bignum_t *mbr,
       return mbr;
     }
     for (i = 0; i < mbb->size; i++) mbr->elements[i] = mbb->elements[i];
-    mbr->sign = -mbb->sign;
+    mbr->sign = mbb->sign;
   } else if (mbb->size == 0) {
     for (i = 0; i < mba->size; i++) mbr->elements[i] = mba->elements[i];
     mbr->sign = mba->sign;
