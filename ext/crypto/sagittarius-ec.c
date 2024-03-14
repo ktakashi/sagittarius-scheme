@@ -27,9 +27,17 @@
  */
 #include <sagittarius.h>
 #include <sagittarius/private.h>
+#include <math.h>
+#include <string.h>
 #define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
 #include "sagittarius-ec.h"
+
+#undef min
+#define min(x, y)   (((x) < (y))? (x) : (y))
+#undef max
+#define max(x, y)   (((x) > (y))? (x) : (y))
+
 
 static void ec_field_fp_printer(SgObject o, SgPort *port, SgWriteContext *ctx)
 {
@@ -82,6 +90,10 @@ SgObject Sg_F2mAdd(SgEcFieldF2m *f2m, SgObject x, SgObject y)
 
 #define ONE (SG_MAKE_INT(1))
 
+#define USE_MBIGNUM
+
+#ifndef USE_MBIGNUM
+
 static SgObject mult_z_mod(int m, SgObject mm, SgObject k, SgObject a)
 {
   SgObject az = Sg_Mul(a, SG_MAKE_INT(2));
@@ -107,12 +119,113 @@ SgObject Sg_F2mMul(SgEcFieldF2m *f2m, SgObject x, SgObject y)
   SgObject k = ppbP? Sg_LogXor(Sg_LogXor(k1m, k2m), k3m): k1m;
 
   bx = mult_z_mod(f2m->m, mmp1, k, bx);
+  
+  /* Sg_Printf(Sg_StandardErrorPort(), UC("f2m: %S\n"), f2m); */
+  /* Sg_Printf(Sg_StandardErrorPort(), UC("  x: %S\n"), x); */
+  /* Sg_Printf(Sg_StandardErrorPort(), UC("  y: %S\n"), y); */
+  /* Sg_Printf(Sg_StandardErrorPort(), UC("  m: %S\n"), mmp1); */
+  /* Sg_Printf(Sg_StandardErrorPort(), UC("  k: %S\n"), k); */
+  /* Sg_Printf(Sg_StandardErrorPort(), UC("bx0: %S\n"), bx); */
+  
   for (i = 1; i <= f2m->m; i++) {
     if (Sg_BitSetP(ax, i)) cz = Sg_LogXor(cz, bx);
     bx = mult_z_mod(f2m->m, mmp1, k, bx);    
   }
+
+  /* Sg_Printf(Sg_StandardErrorPort(), UC(" bx: %S\n"), bx); */
+  /* Sg_Printf(Sg_StandardErrorPort(), UC(" cz: %S\n"), cz); */
   return cz;
 }
+
+#else
+
+static mbignum_t * multi_z_mod(mbignum_t *r,
+			       int m,
+			       mbignum_t *mm,
+			       mbignum_t *k,
+			       mbignum_t *a)
+{
+  mbignum_t *az = mbignum_lshift(r, a, 1);
+  
+  if (mbignum_bit_setp(az, m)) {
+    int bl = mbignum_bit_size(az);
+    long size = mbignum_left_shift_space(ONE, bl) + 1;
+    mbignum_t *bm;
+    alloc_temp_mbignum(bm, size);
+    mbignum_one(bm);
+    mbignum_ash(bm, bm, bl);
+    mbignum_sub(bm, bm, mm);
+
+    mbignum_logand(az, az, bm);
+    mbignum_one(bm);		/* reuse */
+    mbignum_logxor(az, az, bm);
+    mbignum_logxor(az, az, k);
+  }
+  return az;
+}
+
+SgObject Sg_F2mMul(SgEcFieldF2m *f2m, SgObject x, SgObject y)
+{
+  int i;
+  int ppbP = SG_EC_FIELD_F2M_PPB_P(f2m);
+
+  SgObject ax = x;		/* no need to be mbignum */
+  mbignum_t *mm, *k1m, *k2m, *k3m, *bx, *cz;
+  mbignum_t *k;
+  long mms, k1ms, k2ms, k3ms;
+  mms  = mbignum_left_shift_space(ONE, f2m->m) + 1;
+  k1ms = mbignum_left_shift_space(ONE, f2m->k1);
+  k2ms = mbignum_left_shift_space(ONE, f2m->k2);
+  k3ms = mbignum_left_shift_space(ONE, f2m->k3);
+
+  mm  = make_mbignum(mms);  mbignum_one(mm);
+  k1m = make_mbignum(k1ms); mbignum_one(k1m);
+  k2m = make_mbignum(k2ms); mbignum_one(k2m);
+  k3m = make_mbignum(k3ms); mbignum_one(k3m);
+
+  mbignum_ash(mm,  mm,  f2m->m);
+  mbignum_ash(k1m, k1m, f2m->k1);
+  mbignum_ash(k2m, k2m, f2m->k2);
+  mbignum_ash(k3m, k3m, f2m->k3);
+
+  mbignum_add_si(mm, mm, 1);
+
+  if (ppbP) {
+    long ks = max(max(k1ms, k2ms), k3ms);
+    k = make_mbignum(ks);
+    k = mbignum_logxor(k, k1m, k2m);
+    k = mbignum_logxor(k, k, k3m);
+  } else {
+    k = k1m;
+  }
+  /* size of bx == cz == mm */
+  bx = number_to_mbignum(y, mms);
+  if (Sg_BitSetP(x, 0)) {
+    cz = number_to_mbignum(y, mms);
+  } else {
+    cz= make_mbignum(mms);
+    mbignum_zero(cz);
+  }
+
+  bx = multi_z_mod(bx, f2m->m, mm, k, bx);
+  /* Sg_Printf(Sg_StandardErrorPort(), UC("f2m: %S\n"), f2m); */
+  /* Sg_Printf(Sg_StandardErrorPort(), UC("  x: %S\n"), x); */
+  /* Sg_Printf(Sg_StandardErrorPort(), UC("  y: %S\n"), y); */
+  /* Sg_Printf(Sg_StandardErrorPort(), UC("  m: %S\n"), mbignum_to_number(mm)); */
+  /* Sg_Printf(Sg_StandardErrorPort(), UC("  k: %S\n"), mbignum_to_number(k)); */
+  /* Sg_Printf(Sg_StandardErrorPort(), UC("bx0: %S\n"), mbignum_to_number(bx)); */
+  for (i = 1; i <= f2m->m; i++) {
+    if (Sg_BitSetP(ax, i)) cz = mbignum_logxor(cz, cz, bx);
+    bx = multi_z_mod(bx, f2m->m, mm, k, bx);
+  }
+
+  
+  /* Sg_Printf(Sg_StandardErrorPort(), UC(" bx: %S\n"), mbignum_to_number(bx)); */
+  /* Sg_Printf(Sg_StandardErrorPort(), UC(" cz: %S\n"), mbignum_to_number(cz)); */
+  
+  return mbignum_to_number(cz);
+}
+#endif
 
 SgObject Sg_F2mDiv(SgEcFieldF2m *f2m, SgObject x, SgObject y)
 {

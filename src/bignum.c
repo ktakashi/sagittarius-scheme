@@ -2357,7 +2357,7 @@ static SgBignum * bignum_mod_inverse(SgBignum *x, SgBignum *m)
 
 static SgBignum * bignum_mod_inverse(SgBignum *x, SgBignum *m)
 {
-  m_bignum_t *u1, *u3, *v1, *v3, *q, *w, *t1, *t3;
+  mbignum_t *u1, *u3, *v1, *v3, *q, *w, *t1, *t3;
   ulong size;
   int sign = 1;
   if (SG_BIGNUM_GET_SIGN(m) < 0) {
@@ -2385,7 +2385,7 @@ static SgBignum * bignum_mod_inverse(SgBignum *x, SgBignum *m)
   } while (0)
   
   while (!mbignum_zerop(v3)) {
-    m_bignum_t *t;
+    mbignum_t *t;
     mbignum_mod(u3, v3, q, t3);
     w = mbignum_normalize(mbignum_mul(w, q, v1));
     t1 = mbignum_normalize(mbignum_add(t1, u1, w));

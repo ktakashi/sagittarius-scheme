@@ -255,15 +255,15 @@ static int mp_sub_ul(ulong *rp, ulong rsize,
 }
 
 /* shift operations */
-static void mp_lshift(ulong *rp, ulong rsize,
-		      ulong *xp, ulong xsize,
-		      long amount)
+static ulong mp_lshift(ulong *rp, ulong rsize,
+		       ulong *xp, ulong xsize,
+		       long amount)
 {
   long nwords, nbits;
   long i;
 
   /* simple check */
-  if (xsize == 0) return;	/* 0<<n is always 0 */
+  if (xsize == 0) return 0;	/* 0<<n is always 0 */
   
   nwords = amount / WORD_BITS;
   nbits = amount % WORD_BITS;
@@ -284,6 +284,7 @@ static void mp_lshift(ulong *rp, ulong rsize,
     rp[nwords] = xp[0] << nbits;
     for (i = nwords - 1; i >= 0; i--) rp[i] = 0;
   }
+  return xsize + nwords;
 }
 
 /* returns effect size of the result 
