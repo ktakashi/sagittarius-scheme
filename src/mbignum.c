@@ -26,64 +26,7 @@
  *   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* TODO seperate interface to header file, when we confirm this is useful */
-typedef struct m_bignum_rec
-{
-  int sign;
-  long buffer_size;
-  long size;
-  unsigned long elements[1];
-} m_bignum_t;
-
-#define mbignum_zerop(mbn) ((mbn)->sign == 0 && (mbn)->size == 0)
-#define mbignum_zero(mbn)  \
-  do {			   \
-    (mbn)->sign = 0;	   \
-    (mbn)->size = 0;	   \
-  } while (0)
-#define mbignum_one(mbn)	\
-  do {				\
-    (mbn)->sign = 1;		\
-    (mbn)->size = 1;		\
-    (mbn)->elements[0] = 1;	\
-  } while (0)
-
-#define mbignum_alloc_size(size) sizeof(m_bignum_t) + ((size)-1)*sizeof(long)
-#define mbignum_init(var, size)		\
-  do {					\
-    (var)->buffer_size = (size);	\
-    (var)->size = (size);		\
-    (var)->sign = 1;			\
-  } while (0)
-
-#define mbignum_reset(var, size)	\
-  do {					\
-    (var)->size = (size);		\
-    (var)->sign = 1;			\
-  } while (0)
-
-#ifdef HAVE_ALLOCA
-#define alloc_temp_mbignum(var, size)				\
-  do {								\
-    (var) = (m_bignum_t *)alloca(mbignum_alloc_size(size));	\
-    mbignum_init(var, size);					\
-    memset((var)->elements, 0, (size)*(sizeof(long)));		\
-  } while (0)
-#else
-#define alloc_temp_mbignum(var, size)				\
-  do {								\
-    (var) = make_mbignum(size);					\
-  } while (0)
-#endif
-
-m_bignum_t * make_mbignum(long size);
-SgBignum *   mbignum_to_bignum(m_bignum_t *mb);
-void         copy_from_bignum(m_bignum_t *mb, SgBignum *bn);
-m_bignum_t * mbignum_normalize(m_bignum_t *mbn);
-m_bignum_t * mbignum_mul(m_bignum_t *mbr, m_bignum_t *mba, m_bignum_t *mbb);
-m_bignum_t * mbignum_add(m_bignum_t *mbr, m_bignum_t *mba, m_bignum_t *mbb);
-m_bignum_t * mbignum_mod(m_bignum_t *mba, m_bignum_t *mbb,
-			 m_bignum_t *mbq, m_bignum_t *mbr);
+#include "sagittarius/private/mbignum.h"
 
 m_bignum_t * make_mbignum(long size)
 {
@@ -98,20 +41,11 @@ m_bignum_t * make_mbignum(long size)
 
 SgBignum * mbignum_to_bignum(m_bignum_t *mb)
 {
-  long i;
   SgBignum *bn = Sg_AllocateBignum(mb->size);
   SG_BIGNUM_SET_SIGN(bn, mb->sign);
   SG_BIGNUM_SET_COUNT(bn, mb->size);
-  for (i = 0; i < mb->size; i++) bn->elements[i] = mb->elements[i];
+  memcpy(bn->elements, mb->elements, sizeof(long) * mb->size);
   return bn;
-}
-
-void copy_from_bignum(m_bignum_t *mb, SgBignum *bn)
-{
-  long i;
-  mb->size = bn->size;
-  mb->sign = bn->sign;
-  for (i = 0; i < bn->size; i++) mb->elements[i] = bn->elements[i];
 }
 
 m_bignum_t * mbignum_normalize(m_bignum_t *mbn)
@@ -156,16 +90,15 @@ static m_bignum_t * mbignum_add_int(m_bignum_t *mbr,
 				    m_bignum_t *mba,
 				    m_bignum_t *mbb)
 {
-  long i;
   if (mba->size == 0) {
     if (mbb->size == 0) {
       mbignum_zero(mbr);
       return mbr;
     }
-    for (i = 0; i < mbb->size; i++) mbr->elements[i] = mbb->elements[i];
+    memcpy(mbr->elements, mbb->elements, sizeof(long) * mbb->size);
     mbr->sign = mbb->sign;
   } else if (mbb->size == 0) {
-    for (i = 0; i < mba->size; i++) mbr->elements[i] = mba->elements[i];
+    memcpy(mbr->elements, mba->elements, sizeof(long) * mba->size);
     mbr->sign = mba->sign;
   } else {
     if (mba->size < mbb->size) {
@@ -183,16 +116,15 @@ static m_bignum_t * mbignum_sub_int(m_bignum_t *mbr,
 				    m_bignum_t *mba,
 				    m_bignum_t *mbb)
 {
-  long i;
   if (mba->size == 0) {
     if (mbb->size == 0) {
       mbignum_zero(mbr);
       return mbr;
     }
-    for (i = 0; i < mbb->size; i++) mbr->elements[i] = mbb->elements[i];
+    memcpy(mbr->elements, mbb->elements, sizeof(long) * mbb->size);
     mbr->sign = mbb->sign;
   } else if (mbb->size == 0) {
-    for (i = 0; i < mba->size; i++) mbr->elements[i] = mba->elements[i];
+    memcpy(mbr->elements, mba->elements, sizeof(long) * mba->size);
     mbr->sign = mba->sign;
   } else {
     int flip = FALSE, c;

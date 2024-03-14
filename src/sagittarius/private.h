@@ -41,6 +41,7 @@
  */
 #include "private/sagittariusdefs.h"
 #include "private/bignum.h"
+#include "private/mbignum.h"
 #include "private/bytevector.h"
 #include "private/charset.h"
 #include "private/cache.h"
