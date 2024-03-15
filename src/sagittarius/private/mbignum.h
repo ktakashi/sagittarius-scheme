@@ -124,6 +124,7 @@ SG_EXTERN mbignum_t * mbignum_lshift(mbignum_t *r, mbignum_t *x, long amount);
 SG_EXTERN mbignum_t * mbignum_rshift(mbignum_t *r, mbignum_t *x, long amount);
 
 SG_EXTERN mbignum_t * mbignum_logand(mbignum_t *r, mbignum_t *x, mbignum_t *y);
+SG_EXTERN mbignum_t * mbignum_logior(mbignum_t *r, mbignum_t *x, mbignum_t *y);
 SG_EXTERN mbignum_t * mbignum_logxor(mbignum_t *r, mbignum_t *x, mbignum_t *y);
 
 SG_CDECL_END

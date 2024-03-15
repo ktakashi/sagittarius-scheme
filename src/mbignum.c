@@ -445,8 +445,64 @@ mbignum_t * mbignum_logand(mbignum_t *r, mbignum_t *x, mbignum_t *y)
       copy_mbignum(yy, y);
       mbignum_2scmpl(yy);
       mbignum_and(r, xx, yy, TRUE, TRUE);
-      mbignum_2scmpl(r);
       r->size = max(x->size, y->size);
+      r->sign = -1;
+      mbignum_2scmpl(r);
+    }
+  }
+  return mbignum_normalize(r);
+}
+
+DEF_MBIGNUM_LOG_OP(mbignum_ior, |)
+
+mbignum_t * mbignum_logior(mbignum_t *r, mbignum_t *x, mbignum_t *y)
+{
+  if (mbignum_zerop(x) || mbignum_zerop(y)) {
+    if (x->sign) {
+      copy_mbignum(r, x);
+      return r;
+    }
+    if (y->sign) {
+      copy_mbignum(r, y);
+      return r;
+    }
+    mbignum_zero(r);
+    return r;
+  }
+  if (x->sign > 0) {
+    if (y->sign > 0) {
+      r->size = max(x->size, y->size);
+      mbignum_ior(r, x, y, FALSE, FALSE);
+    } else {
+      mbignum_t *yy; alloc_temp_mbignum(yy, y->size);
+      copy_mbignum(yy, y);
+      mbignum_2scmpl(yy);
+      mbignum_ior(r, x, yy, FALSE, TRUE);
+      r->size = y->size;
+      r->sign = -1;
+      mbignum_2scmpl(r);
+    }
+  } else {
+    if (y->sign > 0) {
+      mbignum_t *xx; alloc_temp_mbignum(xx, x->size);
+      copy_mbignum(xx, x);
+      mbignum_2scmpl(xx);
+      mbignum_ior(r, xx, y, TRUE, FALSE);
+      r->size = x->size;
+      r->sign = -1;
+      mbignum_2scmpl(r);
+    } else {
+      mbignum_t *xx, *yy;
+      alloc_temp_mbignum(xx, x->size);
+      copy_mbignum(xx, x);
+      mbignum_2scmpl(xx);
+      alloc_temp_mbignum(yy, y->size);
+      copy_mbignum(yy, y);
+      mbignum_2scmpl(yy);
+      mbignum_and(r, xx, yy, TRUE, TRUE);
+      r->size = min(x->size, y->size);
+      r->sign = -1;
+      mbignum_2scmpl(r);
     }
   }
   return mbignum_normalize(r);
