@@ -48,6 +48,20 @@ mbignum_t * make_mbignum(long size)
   return r;
 }
 
+mbignum_t * mbignum_copy(mbignum_t *dst, mbignum_t *src)
+{
+  copy_mbignum(dst, src);
+  return dst;
+}
+
+mbignum_t * mbignum_hard_reset(mbignum_t *b)
+{
+  memset(b->elements, 0, b->buffer_size * sizeof(long));
+  b->size = b->buffer_size;
+  b->sign = 1;
+  return b;
+}
+
 mbignum_t * number_to_mbignum(SgObject n, long size)
 {
   mbignum_t *r;
@@ -165,7 +179,7 @@ mbignum_t * mbignum_mul_si(mbignum_t *r, mbignum_t *x, long y)
   } else {
     ulong yabs = (y < 0) ? -y: y;
     r->sign = x->sign;
-    r->size = x->size + 1;
+    /* r->size = x->size + 1; */
     mp_mul_ul(r->elements, r->buffer_size, x->elements, x->size, yabs);
     if (y < 0) r->sign = -r->sign;
   }
@@ -388,12 +402,11 @@ mbignum_t * mbignum_rshift(mbignum_t *r, mbignum_t *x, long amount)
 
 #define DEF_MBIGNUM_LOG_OP(name, op)					\
   static mbignum_t* name(mbignum_t *z, mbignum_t *x, mbignum_t *y,	\
-			 int x2sc, int y2sc)				\
+			 long zs, int x2sc, int y2sc)			\
   {									\
     int i;								\
     long xs = (x)->size;						\
     long ys = (y)->size;						\
-    long zs = (z)->size;						\
     long m = min(xs, ys);						\
     for (i = m-1; i >= 0; i--) {					\
       z->elements[i] = x->elements[i] op y->elements[i];		\
@@ -406,6 +419,7 @@ mbignum_t * mbignum_rshift(mbignum_t *r, mbignum_t *x, long amount)
       for (i = ys-1; i >= m; i--)					\
 	z->elements[i] = y->elements[i] op (x2sc ? SG_ULONG_MAX : 0);	\
     }									\
+    (z)->size = zs;							\
     return z;								\
   }
 
@@ -420,22 +434,19 @@ mbignum_t * mbignum_logand(mbignum_t *r, mbignum_t *x, mbignum_t *y)
   
   if (x->sign > 0) {
     if (y->sign > 0) {
-      r->size = min(x->size, y->size);
-      mbignum_and(r, x, y, FALSE, FALSE);
+      mbignum_and(r, x, y, min(x->size, y->size), FALSE, FALSE);
     } else {
       mbignum_t *yy; alloc_temp_mbignum(yy, y->size);
       copy_mbignum(yy, y);
       mbignum_2scmpl(yy);
-      mbignum_and(r, x, yy, FALSE, TRUE);
-      r->size = x->size;
+      mbignum_and(r, x, yy, x->size, FALSE, TRUE);
     }
   } else {
     if (y->sign > 0) {
       mbignum_t *xx; alloc_temp_mbignum(xx, x->size);
       copy_mbignum(xx, x);
       mbignum_2scmpl(xx);
-      mbignum_and(r, xx, y, TRUE, FALSE);
-      r->size = y->size;
+      mbignum_and(r, xx, y, y->size, TRUE, FALSE);
     } else {
       mbignum_t *xx, *yy;
       alloc_temp_mbignum(xx, x->size);
@@ -444,8 +455,7 @@ mbignum_t * mbignum_logand(mbignum_t *r, mbignum_t *x, mbignum_t *y)
       alloc_temp_mbignum(yy, y->size);
       copy_mbignum(yy, y);
       mbignum_2scmpl(yy);
-      mbignum_and(r, xx, yy, TRUE, TRUE);
-      r->size = max(x->size, y->size);
+      mbignum_and(r, xx, yy, max(x->size, y->size), TRUE, TRUE);
       r->sign = -1;
       mbignum_2scmpl(r);
     }
@@ -471,14 +481,12 @@ mbignum_t * mbignum_logior(mbignum_t *r, mbignum_t *x, mbignum_t *y)
   }
   if (x->sign > 0) {
     if (y->sign > 0) {
-      r->size = max(x->size, y->size);
-      mbignum_ior(r, x, y, FALSE, FALSE);
+      mbignum_ior(r, x, y, max(x->size, y->size), FALSE, FALSE);
     } else {
       mbignum_t *yy; alloc_temp_mbignum(yy, y->size);
       copy_mbignum(yy, y);
       mbignum_2scmpl(yy);
-      mbignum_ior(r, x, yy, FALSE, TRUE);
-      r->size = y->size;
+      mbignum_ior(r, x, yy, y->size, FALSE, TRUE);
       r->sign = -1;
       mbignum_2scmpl(r);
     }
@@ -487,8 +495,7 @@ mbignum_t * mbignum_logior(mbignum_t *r, mbignum_t *x, mbignum_t *y)
       mbignum_t *xx; alloc_temp_mbignum(xx, x->size);
       copy_mbignum(xx, x);
       mbignum_2scmpl(xx);
-      mbignum_ior(r, xx, y, TRUE, FALSE);
-      r->size = x->size;
+      mbignum_ior(r, xx, y, x->size, TRUE, FALSE);
       r->sign = -1;
       mbignum_2scmpl(r);
     } else {
@@ -499,8 +506,7 @@ mbignum_t * mbignum_logior(mbignum_t *r, mbignum_t *x, mbignum_t *y)
       alloc_temp_mbignum(yy, y->size);
       copy_mbignum(yy, y);
       mbignum_2scmpl(yy);
-      mbignum_and(r, xx, yy, TRUE, TRUE);
-      r->size = min(x->size, y->size);
+      mbignum_and(r, xx, yy, min(x->size, y->size), TRUE, TRUE);
       r->sign = -1;
       mbignum_2scmpl(r);
     }
@@ -512,6 +518,7 @@ DEF_MBIGNUM_LOG_OP(mbignum_xor, ^)
 
 mbignum_t * mbignum_logxor(mbignum_t *r, mbignum_t *x, mbignum_t *y)
 {
+  long size;
   if (mbignum_zerop(x) || mbignum_zerop(y)) {
     if (x->sign) {
       copy_mbignum(r, x);
@@ -524,15 +531,15 @@ mbignum_t * mbignum_logxor(mbignum_t *r, mbignum_t *x, mbignum_t *y)
     mbignum_zero(r);
     return r;
   }
-  r->size = max(x->size, y->size);
+  size = max(x->size, y->size);
   if (x->sign > 0) {
     if (y->sign > 0) {
-      mbignum_xor(r, x, y, FALSE, FALSE);
+      mbignum_xor(r, x, y, size, FALSE, FALSE);
     } else {
       mbignum_t *yy; alloc_temp_mbignum(yy, y->size);
       copy_mbignum(yy, y);
       mbignum_2scmpl(yy);
-      mbignum_xor(r, x, yy, FALSE, TRUE);
+      mbignum_xor(r, x, yy, size, FALSE, TRUE);
       r->sign = -1;
       mbignum_2scmpl(r);
     }
@@ -541,7 +548,7 @@ mbignum_t * mbignum_logxor(mbignum_t *r, mbignum_t *x, mbignum_t *y)
       mbignum_t *xx; alloc_temp_mbignum(xx, x->size);
       copy_mbignum(xx, x);
       mbignum_2scmpl(xx);
-      mbignum_xor(r, xx, y, TRUE, FALSE);
+      mbignum_xor(r, xx, y, size, TRUE, FALSE);
       r->sign = -1;
       mbignum_2scmpl(r);
     } else {
@@ -552,7 +559,7 @@ mbignum_t * mbignum_logxor(mbignum_t *r, mbignum_t *x, mbignum_t *y)
       alloc_temp_mbignum(yy, y->size);
       copy_mbignum(yy, y);
       mbignum_2scmpl(yy);
-      mbignum_xor(r, xx, yy, TRUE, TRUE);
+      mbignum_xor(r, xx, yy, size, TRUE, TRUE);
     }
   }
   return mbignum_normalize(r);

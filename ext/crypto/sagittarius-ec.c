@@ -235,8 +235,10 @@ SgObject Sg_F2mSquare(SgEcFieldF2m *f2m, SgObject x)
 {
   return Sg_F2mMul(f2m, x, x);
 }
+
 SgObject Sg_F2mInverse(SgEcFieldF2m *f2m, SgObject x)
 {
+#ifndef USE_MBIGNUM
   SgObject
     uz = x,
     vz = Sg_LogIor(Sg_LogIor(Sg_Ash(ONE, f2m->m), ONE), Sg_Ash(ONE, f2m->k1));
@@ -251,6 +253,10 @@ SgObject Sg_F2mInverse(SgEcFieldF2m *f2m, SgObject x)
 			  SG_MAKE_STRING("x is zero or negative"),
 			  SG_LIST1(x));
   }
+  /* Sg_Printf(Sg_StandardErrorPort(), UC("f2m: %S\n"), f2m); */
+  /* Sg_Printf(Sg_StandardErrorPort(), UC("  x: %S\n"), x); */
+  /* Sg_Printf(Sg_StandardErrorPort(), UC(" uz: %S\n"), uz); */
+  /* Sg_Printf(Sg_StandardErrorPort(), UC(" vz: %S\n"), vz); */
   while (!Sg_ZeroP(uz)) {
     int j = Sg_BitSize(uz) - Sg_BitSize(vz);
     if (j < 0) {
@@ -264,8 +270,76 @@ SgObject Sg_F2mInverse(SgEcFieldF2m *f2m, SgObject x)
     uz = Sg_LogXor(uz, Sg_Ash(vz, j));
     g1z = Sg_LogXor(g1z, Sg_Ash(g2z, j));
   }
+  /* Sg_Printf(Sg_StandardErrorPort(), UC(" g2z: %S\n"), g2z); */
   return g2z;
+#else
+  mbignum_t *uz, *vz, *mm, *k1m, one, *g1z, *g2z, *buf;
+  long mms, k1ms, uzs;
+
+  mbignum_one(&one);
+  mms  = mbignum_left_shift_space(ONE, f2m->m);
+  k1ms = mbignum_left_shift_space(ONE, f2m->k1);
+  alloc_temp_mbignum(mm, mms);  mbignum_one(mm);
+  alloc_temp_mbignum(k1m, k1ms); mbignum_one(k1m);
+  mbignum_ash(mm,  mm,  f2m->m);
+  mbignum_ash(k1m, k1m, f2m->k1);
+  mbignum_logior(mm, mm, &one);
+
+  uzs = (Sg_BitSize(x) + 7)/8 + 1;
+  alloc_temp_mbignum(vz, uzs);
+  alloc_temp_mbignum(g1z, uzs);
+  alloc_temp_mbignum(g2z, uzs);
+  alloc_temp_mbignum(buf, uzs);
+  
+  uz = number_to_mbignum(x, uzs);
+  vz = mbignum_logior(vz, mm, k1m);
+  mbignum_one(g1z);
+  mbignum_zero(g2z);
+  
+  if (SG_EC_FIELD_F2M_PPB_P(f2m)) {
+    long k2ms, k3ms;
+    mbignum_t *k2m, *k3m;
+    k2ms = mbignum_left_shift_space(ONE, f2m->k2);
+    k3ms = mbignum_left_shift_space(ONE, f2m->k3);
+    alloc_temp_mbignum(k2m, k2ms);
+    alloc_temp_mbignum(k3m, k3ms);
+    mbignum_ash(k2m, &one, f2m->k2);
+    mbignum_ash(k3m, &one, f2m->k3);
+    vz = mbignum_logior(vz, vz, k2m);
+    vz = mbignum_logior(vz, vz, k3m);
+  }
+  if (vz->sign < 0 || mbignum_zerop(vz)) {
+    Sg_AssertionViolation(SG_INTERN("f2m-inverse"),
+			  SG_MAKE_STRING("x is zero or negative"),
+			  SG_LIST1(x));
+  }
+
+  /* Sg_Printf(Sg_StandardErrorPort(), UC("f2m: %S\n"), f2m); */
+  /* Sg_Printf(Sg_StandardErrorPort(), UC("  x: %S\n"), x); */
+  /* Sg_Printf(Sg_StandardErrorPort(), UC(" uz: %S\n"), mbignum_to_number(uz)); */
+  /* Sg_Printf(Sg_StandardErrorPort(), UC(" vz: %S\n"), mbignum_to_number(vz)); */
+  
+  while (!mbignum_zerop(uz)) {
+    int j = mbignum_bit_size(uz) - mbignum_bit_size(vz);
+    if (j < 0) {
+      mbignum_t *t1 = uz, *t2 = g1z;
+      uz = vz;
+      vz = t1;
+      g1z = g2z;
+      g2z = t2;
+      j = -j;
+    }
+    buf = mbignum_ash(buf, vz, j);
+    uz = mbignum_logxor(uz, uz, buf);
+    buf = mbignum_ash(buf, g2z, j);
+    g1z = mbignum_logxor(g1z, g1z, buf);
+  }
+  /* Sg_Printf(Sg_StandardErrorPort(), UC(" g2z: %S\n"), mbignum_to_number(g2z)); */
+  return mbignum_to_number(g2z);
+#endif
 }
+
+
 
 extern void Sg__Init_ec_fields(SgLibrary *lib);
 

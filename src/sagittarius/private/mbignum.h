@@ -127,6 +127,9 @@ SG_EXTERN mbignum_t * mbignum_logand(mbignum_t *r, mbignum_t *x, mbignum_t *y);
 SG_EXTERN mbignum_t * mbignum_logior(mbignum_t *r, mbignum_t *x, mbignum_t *y);
 SG_EXTERN mbignum_t * mbignum_logxor(mbignum_t *r, mbignum_t *x, mbignum_t *y);
 
+SG_EXTERN mbignum_t * mbignum_copy(mbignum_t *dst, mbignum_t *src);
+SG_EXTERN mbignum_t * mbignum_hard_reset(mbignum_t *b);
+
 SG_CDECL_END
 
 #endif	/* SAGITTARIUS_PRIVATE_MBIGNUM_H_ */

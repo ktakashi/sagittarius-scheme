@@ -284,7 +284,7 @@ static ulong mp_lshift(ulong *rp, ulong rsize,
     rp[nwords] = xp[0] << nbits;
     for (i = nwords - 1; i >= 0; i--) rp[i] = 0;
   }
-  return xsize + nwords;
+  return xsize + nwords + (nbits == 0? 0: 1);
 }
 
 /* returns effect size of the result 
