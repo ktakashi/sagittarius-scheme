@@ -42,12 +42,14 @@
 		    (tc:*ctr-mode:big-endian*    *ctr-mode:big-endian*)
 		    (tc:*ctr-mode:rfc3686*       *ctr-mode:rfc3686*))
 	    
+	    make-mode-descriptor
 	    mode-descriptor? (rename (mode-descriptor <mode-descriptor>))
 	    mode-descriptor-name
 	    mode-descriptor-has-set-iv!?
 	    mode-descriptor-has-get-iv!?
 
 	    *mode:eax* *mode:ocb* *mode:ocb3* *mode:gcm*
+	    make-encauth-mode-descriptor
 	    encauth-mode-descriptor?
 	    mode-encrypt-last! mode-decrypt-last!
 	    mode-has-add-aad!? mode-add-aad! mode-has-add-iv!? mode-add-iv!
@@ -55,7 +57,9 @@
     
 	    mode-key?
 	    mode-start mode-encrypt! mode-decrypt! mode-done!
-	    mode-set-iv! mode-get-iv!)
+	    mode-set-iv! mode-get-iv!
+	    mode-compute-tag!
+	    mode-validate-tag!)
     (import (rnrs)
 	    (sagittarius)
 	    (prefix (sagittarius crypto tomcrypt) tc:)
@@ -70,7 +74,10 @@
 (define-record-type mode-descriptor
   (fields mode ;; internal enum value, do we need?
 	  name
-	  start encrypt decrypt done set-iv get-iv))
+	  start
+	  encrypt encrypt-last 
+	  decrypt decrypt-last
+	  done set-iv get-iv))
 
 (define (mode-descriptor-has-set-iv!? descriptor)
   (and (mode-descriptor-set-iv descriptor) #t))
@@ -86,9 +93,17 @@
 (define (mode-encrypt! mode-key pt ps ct cs len)
   ((mode-descriptor-encrypt (mode-key-descriptor mode-key))
    (mode-key-state-key mode-key) pt ps ct cs len))
+(define (mode-encrypt-last! mode-key pt ps ct cs len)
+  ((mode-descriptor-encrypt-last (mode-key-descriptor mode-key))
+   (mode-key-state-key mode-key) pt ps ct cs len))
+
 (define (mode-decrypt! mode-key ct cs pt ps len)
   ((mode-descriptor-decrypt (mode-key-descriptor mode-key))
    (mode-key-state-key mode-key) ct cs pt ps len))
+(define (mode-decrypt-last! mode-key ct cs pt ps len)
+  ((mode-descriptor-decrypt-last (mode-key-descriptor mode-key))
+   (mode-key-state-key mode-key) ct cs pt ps len))
+
 (define (mode-done! mode-key . opts)
   (define desc (mode-key-descriptor mode-key))
   (define state (mode-key-state-key mode-key))
@@ -128,8 +143,11 @@
       ((k name)
        (with-syntax (((mode mode-name start encrypt decrypt done set-iv get-iv)
 		      (make-names #'k #'name)))
-	 #'(make-mode-descriptor mode (symbol->string 'mode-name)
-				 start encrypt decrypt done set-iv get-iv))))))
+	 #'(make-mode-descriptor mode (symbol->string 'mode-name) start
+				 ;; in this library, last block handling
+				 ;; are the same procedures, so be it
+				 encrypt encrypt decrypt decrypt
+				 done set-iv get-iv))))))
 (define (ecb-start cipher key parameter)
   (define rounds
     (or (cipher-parameter-rounds parameter #f) 0))
@@ -194,15 +212,16 @@
 (define-record-type encauth-mode-descriptor
   (parent mode-descriptor)
   (fields max-tag-length
-	  encrypt-last decrypt-last ;; To get tag, or verify tag
-	  add-aad		    ;; EAX, OCB3, and GCM (EAX calls aad header)
-	  add-iv		    ;; GCM specific
+	  compute-tag ;; compute tag
+	  verify-tag  ;; verify tag
+	  add-aad     ;; EAX, OCB3, and GCM (EAX calls aad header)
+	  add-iv      ;; GCM specific
 	  ))
-(define (mode-encrypt-last! mode-key tag :optional (start 0))
-  ((encauth-mode-descriptor-encrypt-last (mode-key-descriptor mode-key))
+(define (mode-compute-tag! mode-key tag :optional (start 0))
+  ((encauth-mode-descriptor-compute-tag (mode-key-descriptor mode-key))
    (mode-key-state-key mode-key) tag start))
-(define (mode-decrypt-last! mode-key tag :optional (start 0))
-  ((encauth-mode-descriptor-decrypt-last (mode-key-descriptor mode-key))
+(define (mode-validate-tag! mode-key tag :optional (start 0))
+  ((encauth-mode-descriptor-verify-tag (mode-key-descriptor mode-key))
    (mode-key-state-key mode-key) tag start))
 (define (mode-has-add-aad!? descriptor)
   (and (encauth-mode-descriptor? descriptor)
@@ -232,10 +251,10 @@
 ;; using EAX wrongly, but that's users' responsiblity
 (define (eax-done state) (tc:eax-done! state #vu8()))
 ;; Don't accept any plain text
-(define (eax-encrypt-last! state tag start)
+(define (eax-compute-tag! state tag start)
   ;; returns the tag length
   (tc:eax-done! state tag start))
-(define (eax-decrypt-last! state tag start)
+(define (eax-verify-tag! state tag start)
   (let* ((len (- (bytevector-length tag) start))
 	 (tmp (make-bytevector len)))
     (tc:eax-done! state tmp 0)
@@ -244,9 +263,12 @@
 
 (define *mode:eax* (make-encauth-mode-descriptor
 		    tc:*encauth:eax* "EAX"
-		    eax-start tc:eax-encrypt! tc:eax-decrypt! eax-done #f #f
+		    eax-start
+		    tc:eax-encrypt! tc:eax-encrypt!
+		    tc:eax-decrypt! tc:eax-decrypt!
+		    eax-done #f #f
 		    (lambda (ignore) 144)
-		    eax-encrypt-last! eax-decrypt-last!
+		    eax-compute-tag! eax-verify-tag!
 		    tc:eax-add-header! #f))
 
 ;; OCB
@@ -275,17 +297,20 @@
   (do ((i 0 (+ i block-size)) (s (ocb-state-key state)))
       ((= i len) len)
     (tc:ocb-decrypt! s ct (+ cs i) pt (+ ps i))))
-(define (ocb-encrypt-last! state tag start)
+(define (ocb-compute-tag! state tag start)
   (tc:ocb-done-encrypt! (ocb-state-key state) #vu8() 0 #vu8() 0 0 tag start))
-(define (ocb-decrypt-last! state tag start)
+(define (ocb-verify-tag! state tag start)
   (unless (tc:ocb-done-decrypt! (ocb-state-key state)
 				#vu8() 0 #vu8() 0 0 tag start)
     (error 'mode-decrypt-last! "Tag unmatched")))
 (define *mode:ocb* (make-encauth-mode-descriptor
 		    tc:*encauth:ocb* "OCB"
-		    ocb-start ocb-encrypt! ocb-decrypt! ocb-done #f #f
+		    ocb-start
+		    ocb-encrypt! ocb-encrypt!
+		    ocb-decrypt! ocb-decrypt!
+		    ocb-done #f #f
 		    ocb-block-size
-		    ocb-encrypt-last! ocb-decrypt-last!
+		    ocb-compute-tag! ocb-verify-tag!
 		    #f #f))
 
 ;; OCB3
@@ -307,11 +332,11 @@
 (define (ocb3-decrypt state . rest)
   (define s (ocb3-state-key state))
   (apply tc:ocb3-decrypt! s rest))
-(define (ocb3-encrypt-last! state tag start)
+(define (ocb3-compute-tag! state tag start)
   (define s (ocb3-state-key state))
   (tc:ocb3-encrypt-last! s #vu8() 0 #vu8() 0 0)
   (tc:ocb3-done! s tag start))
-(define (ocb3-decrypt-last! state tag start)
+(define (ocb3-verify-tag! state tag start)
   (define s (ocb3-state-key state))
   (tc:ocb3-decrypt-last! s #vu8() 0 #vu8() 0 0)
   (let* ((len (- (bytevector-length tag) start))
@@ -322,9 +347,12 @@
 
 (define *mode:ocb3* (make-encauth-mode-descriptor
 		    tc:*encauth:ocb3* "OCB3"
-		    ocb3-start ocb3-encrypt ocb3-decrypt ocb3-done #f #f
+		    ocb3-start
+		    ocb3-encrypt ocb3-encrypt
+		    ocb3-decrypt ocb3-decrypt
+		    ocb3-done #f #f
 		    ocb3-state-tag-len
-		    ocb3-encrypt-last! ocb3-decrypt-last!
+		    ocb3-compute-tag! ocb3-verify-tag!
 		    tc:ocb3-add-aad! #f))
 
 ;; GCM
@@ -339,10 +367,10 @@
 ;; using EAX wrongly, but that's users' responsiblity
 (define (gcm-done state) (tc:gcm-done! state #vu8()))
 ;; Don't accept any plain text
-(define (gcm-encrypt-last! state tag start)
+(define (gcm-compute-tag! state tag start)
   ;; returns the tag length
   (tc:gcm-done! state tag start))
-(define (gcm-decrypt-last! state tag start)
+(define (gcm-verify-tag! state tag start)
   (let* ((len (- (bytevector-length tag) start))
 	 (tmp (make-bytevector len)))
     (tc:gcm-done! state tmp 0)
@@ -351,9 +379,12 @@
 
 (define *mode:gcm* (make-encauth-mode-descriptor
 		    tc:*encauth:gcm* "GCM"
-		    gcm-start tc:gcm-encrypt! tc:gcm-decrypt! gcm-done #f #f
+		    gcm-start
+		    tc:gcm-encrypt! tc:gcm-encrypt!
+		    tc:gcm-decrypt! tc:gcm-decrypt!
+		    gcm-done #f #f
 		    (lambda (state) 16)
-		    gcm-encrypt-last! gcm-decrypt-last!
+		    gcm-compute-tag! gcm-verify-tag!
 		    tc:gcm-add-aad! tc:gcm-add-iv!))
 
 )

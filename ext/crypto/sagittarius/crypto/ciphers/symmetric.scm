@@ -200,7 +200,7 @@
 	  ;; excess data (e.g. no padding), we try to encrypt
 	  ;; NOTE: some modes, i.e. CTR, CFB and OFB, can encrypt excess block
 	  (let ((r (- (bytevector-length tmp) rlen)))
-	    (mode-encrypt! (symmetric-cipher-key cipher) tmp rlen ct rlen r)
+	    (mode-encrypt-last! (symmetric-cipher-key cipher) tmp rlen ct rlen r)
 	    (+ r rlen))))))
 
 (define (block-cipher-encrypt-last-block (cipher block-cipher?)
@@ -221,7 +221,7 @@
 		 (rlen (bytevector-length r))
 		 (blen (- tlen rlen))
 		 (buf (make-bytevector blen)))
-	    (mode-encrypt! (symmetric-cipher-key cipher) tmp rlen buf 0 blen)
+	    (mode-encrypt-last! (symmetric-cipher-key cipher) tmp rlen buf 0 blen)
 	    (bytevector-append r buf))))))
 
 (define (block-cipher-decrypt! (cipher block-cipher?)
@@ -267,8 +267,8 @@
     ;; NOTE: some modes, i.e. CTR, CFB and OFB, can decrypt excess block
     (let ((r (block-cipher-decrypt! cipher ct cs pt ps)))
       (unless (= r ct-len)
-	(mode-decrypt! (symmetric-cipher-key cipher) ct (+ cs r)
-		       pt (+ ps r) (- ct-len r)))
+	(mode-decrypt-last! (symmetric-cipher-key cipher) ct (+ cs r)
+			    pt (+ ps r) (- ct-len r)))
       ((block-cipher-unpadder cipher) pt ps block-length))))
 
 (define (block-cipher-decrypt-last-block (cipher block-cipher?)
@@ -335,8 +335,8 @@
   (let ((mode (block-cipher-mode cipher)))
     (if (encauth-mode-descriptor? mode)
 	(case (symmetric-cipher-direction cipher)
-	  ((encrypt) (mode-encrypt-last! key tag start))
-	  ((decrypt) (mode-decrypt-last! key tag start)))
+	  ((encrypt) (mode-compute-tag! key tag start))
+	  ((decrypt) (mode-validate-tag! key tag start)))
 	(assertion-violation 'block-cipher-done/tag!
 			     "The mode doesn't support auth tag"
 			     (mode-descriptor-name mode)))))
