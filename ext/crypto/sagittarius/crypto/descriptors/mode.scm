@@ -375,7 +375,7 @@
 	 (tmp (make-bytevector len)))
     (tc:gcm-done! state tmp 0)
     (unless (safe-bytevector=? tag tmp start 0 len)
-      (error 'mode-decrypt-last! "Tag unmatched"))))
+      (error 'mode-validate-tag! "Tag unmatched"))))
 
 (define *mode:gcm* (make-encauth-mode-descriptor
 		    tc:*encauth:gcm* "GCM"
