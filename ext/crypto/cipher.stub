@@ -773,7 +773,6 @@
     (result len)))
 
 ;; CCM
-;; I'm not entirely sure if we can use this, I don't feel like it
 (define-c-proc ccm-init (cipher::<cipher>
 			 key::<bytevector>
 			 ptlen::<fixnum>
@@ -929,3 +928,14 @@
 			    (& len))))
     (check-tomcrypt-error 'gcm-done! err)
     (result len)))
+
+;; GCM multiplier (for GCM-SIV, more precisely POLYVAL)
+(define-c-proc gcm-multiply! (a::<bytevector> b::<bytevector> c::<bytevector>)
+  (unless (== (SG_BVECTOR_SIZE a) 16)
+    (assertion-violation 'gcm-multiply! "Invalid length" a))
+  (unless (== (SG_BVECTOR_SIZE b) 16)
+    (assertion-violation 'gcm-multiply! "Invalid length" b))
+  (unless (== (SG_BVECTOR_SIZE c) 16)
+    (assertion-violation 'gcm-multiply! "Invalid length" c))
+  (gcm_gf_mult (SG_BVECTOR_ELEMENTS a) (SG_BVECTOR_ELEMENTS b) (SG_BVECTOR_ELEMENTS c))
+  (result c))
