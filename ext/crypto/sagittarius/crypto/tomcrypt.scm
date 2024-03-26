@@ -145,7 +145,11 @@
 	    hkdf pkcs12-kdf
 	    *pkcs12:key-material*
 	    *pkcs12:iv-material*
-	    *pkcs12:mac-material*)
+	    *pkcs12:mac-material*
+
+	    ;; GCM
+	    gcm-multiply!
+	    )
     (import (only (sagittarius) define-constant)
 	    (sagittarius dynamic-module))
 
