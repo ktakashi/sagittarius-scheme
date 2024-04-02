@@ -169,25 +169,34 @@
 (define curve-pointer (json-pointer "/curve"))
 (define encoding-pointer (json-pointer "/encoding"))
 (define (->ecdh-test-runner source algorithm json)
-  (define ->bytevector (make->bytevector "public" "private"  "shared"))
+  (define key->bytevector (make->bytevector "public" "private"))
+  (define ->bytevector (make->bytevector "shared"))
   (define (test->vector test)
-    (list->vector
-     (map (lambda (e)
-	    (cond ((->bytevector e))
-		  ((->result e) => car)
-		  (else (cdr e))))
-	  (vector->list test))))
+    (list->vector (map (lambda (e)
+			 (cond ((key->bytevector e))
+			       ((->bytevector e))
+			       ((->result e) => car)
+			       (else (cdr e)))) (vector->list test))))
+  (define (test->jwk-vector test)
+    (list->vector (map (lambda (e)
+			 (cond ((->bytevector e))
+			       ((->result e) => car)
+			       (else (cdr e)))) (vector->list test))))
   (let ((tests (tests-pointer json))
 	(curve (curve-pointer json))
 	(encoding (encoding-pointer json))
-	(key-size (key-size-pointer json))
 	(tag-size (tag-size-pointer json)))
-    `(test-ecdh ,source
-      :algorithm ,algorithm
-      :key-size ,key-size
-      :curve ,curve
-      :encoding ,encoding
-      :tests ',(map test->vector tests))))
+    (if (string=? encoding "webcrypto")
+	`(test-ecdh-jwk ,source
+	  :algorithm ,algorithm
+	  :curve ,curve
+	  :encoding ,encoding
+	  :tests ',(map test->jwk-vector tests))
+	`(test-ecdh ,source
+	  :algorithm ,algorithm
+	  :curve ,curve
+	  :encoding ,encoding
+	  :tests ',(map test->vector tests)))))
 
 (define ((test-vector->test-runner ->test-runner) json source)
   (define (filename source)
@@ -259,7 +268,11 @@
      (map (write-in outdir "testvectors" "xchacha20-poly1305")
 	  (map (file->json
 		(test-vector->test-runner (->chacha20-poly-test-runner 'test-xchacha20-poly1305)))
-	       (filter xchacha20-poly1305-vector? files))))))
+	       (filter xchacha20-poly1305-vector? files))))
+    (write-includer outdir (build-path "testvectors" "ecdh")
+     (map (write-in outdir "testvectors" "ecdh")
+	  (map (file->json (test-vector->test-runner ->ecdh-test-runner))
+	       (filter ecdh-vector? files))))))
 
 (define (usage me)
   (print me "[OPTIONS] dir ...")

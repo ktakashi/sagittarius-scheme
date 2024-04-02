@@ -195,8 +195,6 @@
 	     (else (assertion-violation
 		    'name "No predicate matched" field)))))))
 
-(define (ec-curve=? a b) (equal? a b))
-
 (define-predicate-generic (field-size field)
   (ec-field-fp? (bitwise-length (ec-field-fp-p field)))
   (ec-field-f2m? (ec-field-f2m-m field)))

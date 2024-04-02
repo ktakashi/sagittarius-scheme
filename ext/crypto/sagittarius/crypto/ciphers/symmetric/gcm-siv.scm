@@ -32,10 +32,19 @@
 (library (sagittarius crypto ciphers symmetric gcm-siv)
     (export *mode:gcm-siv*)
     (import (rnrs)
+	    (sagittarius)
 	    (sagittarius crypto descriptors)
 	    (sagittarius crypto parameters)
 	    (sagittarius crypto secure)
 	    (util bytevector))
+
+(define *block-length* 16)
+(define *nonce-length* 12)
+(define-record-type gcm-siv-hash
+  (fields buffer			; 16 bytes buffer
+	  hash				; the hash (16 bytes)
+	  count				; buffer count
+	  ))
 
 (define-record-type gcm-siv-state
   (fields sink				;; plain data
@@ -43,9 +52,40 @@
 	  data-hash			;; for SIV
 	  cipher			;; underlying cipher
 	  H				;; mulX_GHASH(ByteReverse(H))
-	  ))
+	  )
+  (protocol
+   (lambda (p)
+     (define (derive-keys cipher nonce key)
+       (define input (make-bytevector *block-length* 0))
+       (define buffer (make-bytevector *block-length*))
+       (define mode (mode-start *mode:ecb* cipher key #f))
+       (define mac-key (make-bytevector *block-length* 0))
+       (define enc-key (make-bytevector (bytevector-length key) 0))
 
-(define *block-length* 16)
+       (define (enc n dst off)
+	 (bytevector-u8-set! input 0 n)
+	 (mode-encrypt! mode input 0 *block-length* buffer 0 *block-length*)
+	 (bytevector-copy! buffer 0 dst off 8))
+       ;; setup nonce block
+       (bytevector-copy! nonce 0
+			 input (- *block-length* *nonce-length*)
+			 *nonce-length*)
+       (enc 0 mac-key 0)
+       (enc 1 mac-key 8)
+       (enc 2 enc-key 0)
+       (enc 3 enc-key 8)
+       (when (= (bytevector-length enc-key) 32)
+	 (enc 3 enc-key 16)
+	 (enc 4 enc-key 24))
+       (values mac-key enc-key))
+     (lambda (cipher nonce key)
+       (let-values (((mac-key enc-key) (derive-keys cipher nonce key)))
+	 (p (open-output-bytevector) ;; SRFI-6 thing
+	    (make-gcm-siv-hash)
+	    (make-gcm-siv-hash)
+	    (mode-start *mode:ecb* cipher enc-key #f)
+	    (mulx-ghash (bytevector-reverse! mac-key))))))))
+
 (define (mulx-ghash v)
   (define MASK #x80)
   (define ~MASK (bitwise-not MASK))

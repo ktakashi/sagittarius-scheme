@@ -48,5 +48,5 @@ static SgDynLoadInitFn dl_sym(void *handle, const char *name)
 
 static void dl_close(void *handle)
 {
-  dlclose(handle);
+  /* dlclose(handle); */
 }
