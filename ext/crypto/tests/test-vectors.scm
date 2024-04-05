@@ -207,8 +207,6 @@
 ;; (include "./testvectors/ecdh.scm")
 ;; (test-end)
 
-(exit)
-
 ;; In our implementation, size of the signature matters
 ;; So, if the signature size is not properly constructed,
 ;; it's an error. So below test(s) will fail even though

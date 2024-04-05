@@ -30,7 +30,8 @@
 
 #!nounbound
 (library (sagittarius crypto ciphers symmetric gcm-siv)
-    (export *mode:gcm-siv*)
+    (export *mode:gcm-siv*
+	    make-tag-parameter tag-parameter? cipher-parameter-tag)
     (import (rnrs)
 	    (sagittarius)
 	    (sagittarius crypto descriptors)
@@ -40,6 +41,15 @@
 		  gcm-multiply!)
 	    (binary io)
 	    (util bytevector))
+
+(define copy-bytevector-procotol
+  (lambda (p)
+    (lambda (bv . opts)
+      ((p) (apply bytevector-copy bv opts)))))
+
+(define-cipher-parameter tag-parameter
+  (make-tag-parameter copy-bytevector-procotol) tag-parameter?
+  (tag cipher-parameter-tag))
 
 ;; Here we use GHASH to implement POLYVAL as libtomcrypt provids
 ;; GF(2^128) of module x^128 + x^7 + x^2 + x^1
@@ -67,6 +77,7 @@
 (define-record-type gcm-siv-state
   (fields sink				;; plain data
 	  nonce				;; nonce
+	  tag				;; tag for decryption
 	  ghash				;; ghash result
 	  mac				;; tag
 	  aead-hash			;; for tag
@@ -99,11 +110,12 @@
 	 (enc 3 enc-key 16)
 	 (enc 4 enc-key 24))
        (values mac-key enc-key))
-     (lambda (cipher nonce key)
+     (lambda (cipher nonce tag key)
        (let-values (((mac-key enc-key) (derive-keys cipher nonce key))
 		    ((ghash) (make-bytevector *block-length*)))
 	 (p (open-chunked-binary-input/output-port)
 	    nonce
+	    tag
 	    ghash
 	    (make-bytevector *block-length*)
 	    (make-gcm-siv-hash ghash)
@@ -115,9 +127,10 @@
 (define (gcm-siv-start cipher key parameter)
   (define iv (cipher-parameter-iv parameter))
   (define aad (cipher-parameter-aad parameter #f))
+  (define tag (cipher-parameter-tag parameter #f))
   (unless (memv (bytevector-length key) '(16 32))
     (assertion-violation 'gcm-siv "Invalid key size"))
-  (let ((state (make-gcm-siv-state cipher iv key)))
+  (let ((state (make-gcm-siv-state cipher iv tag key)))
     (when aad (gcm-siv-add-aad! state aad))
     state))
 
@@ -133,14 +146,8 @@
   0)
 
 (define (gcm-siv-done state . oopts) )
-  
-(define (gcm-siv-encrypt-last! state pt ps ct cs len)
-  (define (increment-counter! counter)
-    (let loop ((i 0))
-      (unless (= i 4)
-	(let ((v (+ (bytevector-s8-ref counter i) 1)))
-	  (bytevector-s8-set! counter i v)
-	  (when (zero? v) (loop (+ i 1)))))))
+
+(define (gcm-siv-encrypt-last! state pt ps ct cs len)  
   (define (encrypt state data counter pt ps ct cs len)
     ;; now we encrypt
     (let ((mask (make-bytevector *block-length*))
@@ -164,22 +171,59 @@
 	 (size (port-position data)))
     (when (< len size)
       (assertion-violation 'block-cipher-encrypt-last-block!
-			   "Insufficient buffer"
-			   `(required ,size)))
+			   "Insufficient buffer" `(required ,size)))
     (let ((tag (calculate-tag! state)))
-      ;; copy tag
-      (bytevector-copy! tag 0 (gcm-siv-state-mac state) 0 *block-length*)
       (if (zero? size)
 	  size
 	  (encrypt state data tag pt ps ct cs len)))))
 
-(define (gcm-siv-decrypt-last! state ct cs pt ps len) )
+(define (gcm-siv-decrypt-last! state ct cs pt ps len)
+  (define (finish state n)
+    ;; TODO should we already validate tag here?
+    (calculate-tag! state)
+    n)
+  (define (decrypt state counter data ct cs pt ps len)
+    (let ((mask (make-bytevector *block-length*))
+	  (block (make-bytevector *block-length*))
+	  (cipher (gcm-siv-state-cipher state))
+	  (data-hash (gcm-siv-state-data-hash state))
+	  (H (gcm-siv-state-H state)))
+      (let ((v (bytevector-u8-ref counter (- *block-length* 1))))
+	(bytevector-u8-set! counter (- *block-length* 1) (bitwise-ior v *mask*)))
+      ;; reset position
+      (set-port-position! data 0)
+      (let loop ((c 0))
+	(mode-encrypt! cipher counter 0 mask 0 *block-length*)
+	(let ((n (get-bytevector-n! data block 0 *block-length*)))
+	  (bytevector-xor! block block mask)
+	  (bytevector-copy! block 0 pt (+ ps c) n)
+	  (update-hash! data-hash H block 0 n)
+	  (increment-counter! counter)
+	  (if (= n *block-length*)
+	      (loop (+ c n))
+	      (finish state (+ c n)))))))
+  (gcm-siv-decrypt! state ct cs pt ps len)
+  (let* ((data (gcm-siv-state-sink state))
+	 (tag (gcm-siv-state-tag state))
+	 (size (port-position data)))
+    (unless tag
+      (assertion-violation 'block-cipher-decrypt-last-block!
+			   "Tag parameter is required for decryption"))
+    (when (< len size)
+      (assertion-violation 'block-cipher-decrypt-last-block!
+			   "Insufficient buffer" `(required ,size)))
+    (if (zero? size)
+	size
+	(decrypt state tag data ct cs pt ps len))))
 
 (define (gcm-siv-compute-tag! state tag start)
   (define mac (gcm-siv-state-mac state))
   (bytevector-copy! mac 0 tag start *block-length*)
   *block-length*)
-(define (gcm-siv-verify-tag! state tag start) )
+(define (gcm-siv-verify-tag! state tag start)
+  (define mac (gcm-siv-state-mac state))
+  (unless (safe-bytevector=? mac tag 0 start *block-length*)
+    (error 'gcm-siv-verify-tag! "Invalid tag")))
 
 (define (gcm-siv-add-aad! state aad
 	  :optional (start 0) (len (- start (bytevector-length aad))))
@@ -235,6 +279,8 @@
     (let ((cipher (gcm-siv-state-cipher state))
 	  (result (make-bytevector *block-length*)))
       (mode-encrypt! cipher polyval 0 result 0 *block-length*)
+      ;; copy tag
+      (bytevector-copy! result 0 (gcm-siv-state-mac state) 0 *block-length*)
       result)))
 
 (define (check-status state len)
@@ -316,4 +362,10 @@
     (bytevector-reverse! r)
     r))
 
+(define (increment-counter! counter)
+  (let loop ((i 0))
+    (unless (= i 4)
+      (let ((v (+ (bytevector-s8-ref counter i) 1)))
+	(bytevector-s8-set! counter i v)
+	(when (zero? v) (loop (+ i 1)))))))
 )
