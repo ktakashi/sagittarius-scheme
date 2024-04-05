@@ -49,17 +49,21 @@
 	    mode-descriptor-has-get-iv!?
 
 	    *mode:eax* *mode:ocb* *mode:ocb3* *mode:gcm*
+
+	    mode-key?
+	    mode-start
+	    mode-encrypt! mode-encrypt-last!
+	    mode-decrypt! mode-decrypt-last!
+	    mode-done!
+	    mode-set-iv! mode-get-iv!
+	    
 	    make-encauth-mode-descriptor
 	    encauth-mode-descriptor?
-	    mode-encrypt-last! mode-decrypt-last!
-	    mode-has-add-aad!? mode-add-aad! mode-has-add-iv!? mode-add-iv!
-	    mode-max-tag-length
-    
-	    mode-key?
-	    mode-start mode-encrypt! mode-decrypt! mode-done!
-	    mode-set-iv! mode-get-iv!
+	    mode-has-add-aad!? mode-add-aad!
+	    mode-has-add-iv!? mode-add-iv!
 	    mode-compute-tag!
-	    mode-validate-tag!)
+	    mode-validate-tag!
+	    mode-max-tag-length)
     (import (rnrs)
 	    (sagittarius)
 	    (prefix (sagittarius crypto tomcrypt) tc:)

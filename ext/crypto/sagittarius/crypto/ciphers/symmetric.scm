@@ -197,14 +197,8 @@
 			   "Cipher text buffer is too small"
 			   `(required ,(bytevector-length tmp))
 			   `(actual ,ct-len)))
-    (let ((rlen (block-cipher-encrypt! cipher tmp 0 ct cs)))
-      (if (= rlen (bytevector-length tmp))
-	  rlen
-	  ;; excess data (e.g. no padding), we try to encrypt
-	  ;; NOTE: some modes, i.e. CTR, CFB and OFB, can encrypt excess block
-	  (let ((r (- (bytevector-length tmp) rlen)))
-	    (mode-encrypt-last! (symmetric-cipher-key cipher) tmp rlen ct rlen r)
-	    (+ r rlen))))))
+    (mode-encrypt-last! (symmetric-cipher-key cipher)
+			tmp 0 ct cs (bytevector-length ct))))
 
 (define (block-cipher-encrypt-last-block (cipher block-cipher?)
 					 (pt bytevector?)
@@ -214,18 +208,11 @@
 			 "Cipher is not encryption mode" cipher))
   ;; ct must have sufficient length of storage
   (let* ((block-length (block-cipher-block-length cipher))
-	 (tmp ((block-cipher-padder cipher) pt ps block-length)))
-    (let ((r (block-cipher-encrypt cipher tmp 0)))
-      (if (= (bytevector-length r) (bytevector-length tmp))
-	  r
-	  ;; excess data (e.g. no padding), we try to encrypt
-	  ;; NOTE: some modes, i.e. CTR, CFB and OFB, can encrypt excess block
-	  (let* ((tlen (bytevector-length tmp))
-		 (rlen (bytevector-length r))
-		 (blen (- tlen rlen))
-		 (buf (make-bytevector blen)))
-	    (mode-encrypt-last! (symmetric-cipher-key cipher) tmp rlen buf 0 blen)
-	    (bytevector-append r buf))))))
+	 (tmp ((block-cipher-padder cipher) pt ps block-length))
+	 (r (make-bytevector (bytevector-length tmp))))
+    (mode-encrypt-last! (symmetric-cipher-key cipher)
+			tmp 0 r 0 (bytevector-length r))
+    r))
 
 (define (block-cipher-decrypt! (cipher block-cipher?)
 			       (ct bytevector?)
@@ -267,11 +254,8 @@
       (assertion-violation 'block-cipher-block-length
 			   "Plain text buffer is too small"
 			   `(required ,ct-len) `(actual ,pt-len)))
-    ;; NOTE: some modes, i.e. CTR, CFB and OFB, can decrypt excess block
-    (let ((r (block-cipher-decrypt! cipher ct cs pt ps)))
-      (unless (= r ct-len)
-	(mode-decrypt-last! (symmetric-cipher-key cipher) ct (+ cs r)
-			    pt (+ ps r) (- ct-len r)))
+    (let ((r (mode-decrypt-last! (symmetric-cipher-key cipher)
+				 ct cs pt ps pt-len)))
       ((block-cipher-unpadder cipher) pt ps block-length))))
 
 (define (block-cipher-decrypt-last-block (cipher block-cipher?)
