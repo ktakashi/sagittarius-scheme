@@ -814,8 +814,8 @@
   (check-range 'ccm-decrypt! pt ps len)
   (check-range 'ccm-decrypt! ct cs len)
   (let ((err::int (ccm_process (& (SG_ENC_AUTH_STATE_CCM enc-auth-state))
-			       (+ (SG_BVECTOR_ELEMENTS ct) cs) len
-			       (+ (SG_BVECTOR_ELEMENTS pt) ps)
+			       (+ (SG_BVECTOR_ELEMENTS pt) ps) len
+			       (+ (SG_BVECTOR_ELEMENTS ct) cs)
 			       CCM_DECRYPT)))
     (check-tomcrypt-error 'ccm-decrypt! err)
     (result len)))

@@ -1,9 +1,11 @@
-(test-xchacha20-poly1305
+(test-chacha20-poly1305
   "xchacha20_poly1305_test"
   :algorithm
   "XCHACHA20-POLY1305"
   :key-size
   256
+  :tag-size
+  128
   :tests
   '(#(1
       "draft-arciszewski-xchacha-02"
@@ -2805,12 +2807,14 @@
       #vu8(133 178 65 187 189 5 86 54 142 195 251 116 158 118 1 234)
       #t
       ())))
-(test-xchacha20-poly1305
+(test-chacha20-poly1305
   "xchacha20_poly1305_test"
   :algorithm
   "XCHACHA20-POLY1305"
   :key-size
   256
+  :tag-size
+  128
   :tests
   '(#(281
       "invalid nonce size"
@@ -2822,12 +2826,14 @@
       #vu8()
       #f
       ())))
-(test-xchacha20-poly1305
+(test-chacha20-poly1305
   "xchacha20_poly1305_test"
   :algorithm
   "XCHACHA20-POLY1305"
   :key-size
   256
+  :tag-size
+  128
   :tests
   '(#(282
       "invalid nonce size"
@@ -2839,12 +2845,14 @@
       #vu8()
       #f
       ())))
-(test-xchacha20-poly1305
+(test-chacha20-poly1305
   "xchacha20_poly1305_test"
   :algorithm
   "XCHACHA20-POLY1305"
   :key-size
   256
+  :tag-size
+  128
   :tests
   '(#(283
       "invalid nonce size"
@@ -2856,12 +2864,14 @@
       #vu8()
       #f
       ())))
-(test-xchacha20-poly1305
+(test-chacha20-poly1305
   "xchacha20_poly1305_test"
   :algorithm
   "XCHACHA20-POLY1305"
   :key-size
   256
+  :tag-size
+  128
   :tests
   '(#(284
       "invalid nonce size"

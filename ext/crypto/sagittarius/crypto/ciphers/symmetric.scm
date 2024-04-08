@@ -101,7 +101,7 @@
 	    ;; EncAuth mode
 	    *mode:eax* *mode:ocb* *mode:ocb3* *mode:gcm*
 	    ;; Offline EncAuth
-	    *mode:ccm*
+	    *mode:ccm* *mode:gcm-siv*
 	    
 	    *ctr-mode:little-endian* *ctr-mode:big-endian* *ctr-mode:rfc3686*
 
@@ -115,6 +115,7 @@
 	    (sagittarius)
 	    (sagittarius crypto keys)
 	    (sagittarius crypto ciphers symmetric ccm)
+	    (sagittarius crypto ciphers symmetric gcm-siv)
 	    (sagittarius crypto ciphers types)
 	    (sagittarius crypto descriptors)
 	    (sagittarius crypto secure))

@@ -48,6 +48,8 @@
 	    make-counter-parameter counter-parameter?
 	    cipher-parameter-counter
 
+	    make-tag-parameter tag-parameter? cipher-parameter-tag
+	    
 	    define-cipher-parameter
 	    ;; FWIW
 	    make-define-cipher-parameter
@@ -112,4 +114,10 @@
 (define-cipher-parameter counter-parameter
   make-counter-parameter counter-parameter?
   (counter cipher-parameter-counter))
+
+;; tag (for GCM-SIV)
+(define-cipher-parameter tag-parameter
+  (make-tag-parameter copy-bytevector-procotol) tag-parameter?
+  (tag cipher-parameter-tag))
+
 )

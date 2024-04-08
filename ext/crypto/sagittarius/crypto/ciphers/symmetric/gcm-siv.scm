@@ -30,8 +30,7 @@
 
 #!nounbound
 (library (sagittarius crypto ciphers symmetric gcm-siv)
-    (export *mode:gcm-siv*
-	    make-tag-parameter tag-parameter? cipher-parameter-tag)
+    (export *mode:gcm-siv*)
     (import (rnrs)
 	    (sagittarius)
 	    (sagittarius crypto descriptors)
@@ -41,15 +40,6 @@
 		  gcm-multiply!)
 	    (binary io)
 	    (util bytevector))
-
-(define copy-bytevector-procotol
-  (lambda (p)
-    (lambda (bv . opts)
-      ((p) (apply bytevector-copy bv opts)))))
-
-(define-cipher-parameter tag-parameter
-  (make-tag-parameter copy-bytevector-procotol) tag-parameter?
-  (tag cipher-parameter-tag))
 
 ;; Here we use GHASH to implement POLYVAL as libtomcrypt provids
 ;; GF(2^128) of module x^128 + x^7 + x^2 + x^1
@@ -107,8 +97,8 @@
        (enc 2 enc-key 0)
        (enc 3 enc-key 8)
        (when (= (bytevector-length enc-key) 32)
-	 (enc 3 enc-key 16)
-	 (enc 4 enc-key 24))
+	 (enc 4 enc-key 16)
+	 (enc 5 enc-key 24))
        (values mac-key enc-key))
      (lambda (cipher nonce tag key)
        (let-values (((mac-key enc-key) (derive-keys cipher nonce key))
@@ -147,12 +137,14 @@
 (define (gcm-siv-encrypt! state pt ps ct cs len)
   (define H (gcm-siv-state-H state))
   (check-status state len)
-  (put-bytevector (gcm-siv-state-sink state) pt ps len)
-  (update-hash! (gcm-siv-state-data-hash state) H pt ps len)
+  (let ((l (- (bytevector-length pt) ps)))
+    (put-bytevector (gcm-siv-state-sink state) pt ps l)
+    (update-hash! (gcm-siv-state-data-hash state) H pt ps l))
   0)
 (define (gcm-siv-decrypt! state ct cs pt ps len)
   (check-status state len)
-  (put-bytevector (gcm-siv-state-sink state) ct cs len)
+  (let ((l (- (bytevector-length ct) cs)))
+    (put-bytevector (gcm-siv-state-sink state) ct cs l))
   0)
 
 (define (gcm-siv-done state . opts)
@@ -192,9 +184,7 @@
       (assertion-violation 'block-cipher-encrypt-last-block!
 			   "Insufficient buffer" `(required ,size)))
     (let ((tag (calculate-tag! state)))
-      (if (zero? size)
-	  size
-	  (encrypt state data tag pt ps ct cs len)))))
+      (encrypt state data tag pt ps ct cs len))))
 
 (define (gcm-siv-decrypt-last! state ct cs pt ps len)
   (define (finish state n)
@@ -231,9 +221,7 @@
     (when (< len size)
       (assertion-violation 'block-cipher-decrypt-last-block!
 			   "Insufficient buffer" `(required ,size)))
-    (if (zero? size)
-	size
-	(decrypt state tag data ct cs pt ps len))))
+    (decrypt state tag data ct cs pt ps len)))
 
 (define (gcm-siv-compute-tag! state tag start)
   (define mac (gcm-siv-state-mac state))
@@ -391,7 +379,8 @@
 (define (increment-counter! counter)
   (let loop ((i 0))
     (unless (= i 4)
-      (let ((v (+ (bytevector-s8-ref counter i) 1)))
-	(bytevector-s8-set! counter i v)
-	(when (zero? v) (loop (+ i 1)))))))
+      (let ((v (+ (bytevector-u8-ref counter i) 1)))
+	(cond ((< v 256) (bytevector-u8-set! counter i v))
+	      (else (bytevector-u8-set! counter i 0)
+		    (loop (+ i 1))))))))
 )

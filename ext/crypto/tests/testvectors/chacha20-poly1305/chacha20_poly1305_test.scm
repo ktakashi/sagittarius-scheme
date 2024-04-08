@@ -4,6 +4,8 @@
   "CHACHA20-POLY1305"
   :key-size
   256
+  :tag-size
+  128
   :tests
   '(#(1
       "RFC 7539"
@@ -2941,6 +2943,8 @@
   "CHACHA20-POLY1305"
   :key-size
   256
+  :tag-size
+  128
   :tests
   '(#(294
       "invalid nonce size"
@@ -2958,6 +2962,8 @@
   "CHACHA20-POLY1305"
   :key-size
   256
+  :tag-size
+  128
   :tests
   '(#(295
       "invalid nonce size"
@@ -2975,6 +2981,8 @@
   "CHACHA20-POLY1305"
   :key-size
   256
+  :tag-size
+  128
   :tests
   '(#(296
       "invalid nonce size"
@@ -2992,6 +3000,8 @@
   "CHACHA20-POLY1305"
   :key-size
   256
+  :tag-size
+  128
   :tests
   '(#(297
       "invalid nonce size"
@@ -3009,6 +3019,8 @@
   "CHACHA20-POLY1305"
   :key-size
   256
+  :tag-size
+  128
   :tests
   '(#(298
       "invalid nonce size"
@@ -3026,6 +3038,8 @@
   "CHACHA20-POLY1305"
   :key-size
   256
+  :tag-size
+  128
   :tests
   '(#(299
       "invalid nonce size"
@@ -3043,6 +3057,8 @@
   "CHACHA20-POLY1305"
   :key-size
   256
+  :tag-size
+  128
   :tests
   '(#(300
       "invalid nonce size"
