@@ -108,6 +108,7 @@
 	    ;; Stream ciphers
 	    *scheme:chacha20* *scheme:chacha20-poly1305*
 	    *scheme:xchacha20* *scheme:xchacha20-poly1305*
+	    block-cipher-last-block-size
 	    )
     (import (rnrs)
 	    (clos user)
@@ -177,8 +178,10 @@
 	 (pt-len (- (bytevector-length pt) ps))
 	 (ct-len (* (div pt-len block-length) block-length))
 	 (ct (make-bytevector ct-len)))
-    (block-cipher-encrypt! cipher pt ps ct 0)
-    ct))
+    (let ((r (block-cipher-encrypt! cipher pt ps ct 0)))
+      (if (= r ct-len)
+	  ct
+	  (bytevector-copy ct 0 r)))))
 
 (define (block-cipher-encrypt-last-block! (cipher block-cipher?)
 					  (pt bytevector?)
@@ -197,8 +200,7 @@
 			   "Cipher text buffer is too small"
 			   `(required ,(bytevector-length tmp))
 			   `(actual ,ct-len)))
-    (mode-encrypt-last! (symmetric-cipher-key cipher)
-			tmp 0 ct cs (bytevector-length ct))))
+    (mode-encrypt-last! (symmetric-cipher-key cipher) tmp 0 ct cs ct-len)))
 
 (define (block-cipher-encrypt-last-block (cipher block-cipher?)
 					 (pt bytevector?)
@@ -206,12 +208,15 @@
   (unless (eq? (symmetric-cipher-direction cipher) (cipher-direction encrypt))
     (assertion-violation 'block-cipher-encrypt-last-block
 			 "Cipher is not encryption mode" cipher))
-  ;; ct must have sufficient length of storage
   (let* ((block-length (block-cipher-block-length cipher))
 	 (tmp ((block-cipher-padder cipher) pt ps block-length))
-	 (r (make-bytevector (bytevector-length tmp))))
-    (mode-encrypt-last! (symmetric-cipher-key cipher)
-			tmp 0 r 0 (bytevector-length r))
+	 (ct-len (block-cipher-last-block-size cipher tmp))
+	 (r (make-bytevector ct-len)))
+    ;; call mode procedure to save extra allocation
+    ;; NB if we want to use block-cipher-encrypt-last-block!, then
+    ;;    we need to pass original pt, and padded data will be
+    ;;    discarded for nothing
+    (mode-encrypt-last! (symmetric-cipher-key cipher) tmp 0 r 0 ct-len)
     r))
 
 (define (block-cipher-decrypt! (cipher block-cipher?)
@@ -235,8 +240,10 @@
 	 (ct-len (- (bytevector-length ct) cs))
 	 (pt-len (* (div ct-len block-length) block-length))
 	 (pt (make-bytevector pt-len)))
-    (block-cipher-decrypt! cipher ct cs pt 0)
-    pt))
+    (let ((r (block-cipher-decrypt! cipher ct cs pt 0)))
+      (if (= r pt-len)
+	  pt
+	  (bytevector-copy pt 0 r)))))
 
 (define (block-cipher-decrypt-last-block! (cipher block-cipher?)
 					  (ct bytevector?)
@@ -261,12 +268,21 @@
 (define (block-cipher-decrypt-last-block (cipher block-cipher?)
 					 (ct bytevector?)
 					 :optional (cs 0))
-  (let* ((ct-len (- (bytevector-length ct) cs))
+  (let* ((ct-len (block-cipher-last-block-size cipher ct))
 	 (buf (make-bytevector ct-len))
 	 (len (block-cipher-decrypt-last-block! cipher ct cs buf 0)))
-    (if (= len (bytevector-length buf))
+    (if (= len ct-len)
 	buf
 	(bytevector-copy buf 0 len))))
+
+;; Compute the requried last block size
+;; This is needed for CCM or GCM-SIV (or other `offline` modes)
+(define (block-cipher-last-block-size (cipher block-cipher?)
+				      (block (or bytevector? integer?)))
+  (mode-last-block-size (symmetric-cipher-key cipher)
+			(if (bytevector? block)
+			    (bytevector-length block)
+			    block)))
 
 ;;; AAD/IV
 (define (block-cipher-update-aad! (cipher block-cipher?)
@@ -298,7 +314,8 @@
 			 "Cipher is not initialized yet" cipher))
   (mode-max-tag-length key))
 
-(define (block-cipher-done/tag (cipher block-cipher?) tag-len)
+(define (block-cipher-done/tag (cipher block-cipher?)
+	  :optional (tag-len (block-cipher-max-tag-length cipher)))
   (define key (symmetric-cipher-key cipher))
   (unless key
     (assertion-violation 'block-cipher-done/tag!
@@ -327,7 +344,7 @@
 	(assertion-violation 'block-cipher-done/tag!
 			     "The mode doesn't support auth tag"
 			     (mode-descriptor-name mode)))))
-    
+
 (define (block-cipher-done! (cipher block-cipher?))
   (symmetric-cipher-direction-set! cipher #f)
   (cond ((symmetric-cipher-key cipher) => mode-done!))

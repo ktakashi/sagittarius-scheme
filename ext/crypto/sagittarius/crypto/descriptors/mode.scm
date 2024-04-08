@@ -56,6 +56,7 @@
 	    mode-decrypt! mode-decrypt-last!
 	    mode-done!
 	    mode-set-iv! mode-get-iv!
+	    mode-last-block-size
 	    
 	    make-encauth-mode-descriptor
 	    encauth-mode-descriptor?
@@ -81,7 +82,8 @@
 	  start
 	  encrypt encrypt-last 
 	  decrypt decrypt-last
-	  done set-iv get-iv))
+	  done set-iv get-iv
+	  last-block-size))
 
 (define (mode-descriptor-has-set-iv!? descriptor)
   (and (mode-descriptor-set-iv descriptor) #t))
@@ -130,6 +132,12 @@
 					  " doesn't support get IV")))
     (apply get-iv (mode-key-state-key mode-key) bv opts)))
 
+(define (mode-last-block-size mode-key size)
+  ((mode-descriptor-last-block-size (mode-key-descriptor mode-key))
+   (mode-key-state-key mode-key) size))
+
+(define (default-last-block-size state-key size) size)
+
 (define-syntax build-mode-descriptor
   (lambda (x)
     (define (make-names k name)
@@ -151,7 +159,7 @@
 				 ;; in this library, last block handling
 				 ;; are the same procedures, so be it
 				 encrypt encrypt decrypt decrypt
-				 done set-iv get-iv))))))
+				 done set-iv get-iv default-last-block-size))))))
 (define (ecb-start cipher key parameter)
   (define rounds
     (or (cipher-parameter-rounds parameter #f) 0))
@@ -271,6 +279,7 @@
 		    tc:eax-encrypt! tc:eax-encrypt!
 		    tc:eax-decrypt! tc:eax-decrypt!
 		    eax-done #f #f
+		    default-last-block-size
 		    (lambda (ignore) 144)
 		    eax-compute-tag! eax-verify-tag!
 		    tc:eax-add-header! #f))
@@ -313,6 +322,7 @@
 		    ocb-encrypt! ocb-encrypt!
 		    ocb-decrypt! ocb-decrypt!
 		    ocb-done #f #f
+		    default-last-block-size
 		    ocb-block-size
 		    ocb-compute-tag! ocb-verify-tag!
 		    #f #f))
@@ -355,6 +365,7 @@
 		    ocb3-encrypt ocb3-encrypt
 		    ocb3-decrypt ocb3-decrypt
 		    ocb3-done #f #f
+		    default-last-block-size
 		    ocb3-state-tag-len
 		    ocb3-compute-tag! ocb3-verify-tag!
 		    tc:ocb3-add-aad! #f))
@@ -387,6 +398,7 @@
 		    tc:gcm-encrypt! tc:gcm-encrypt!
 		    tc:gcm-decrypt! tc:gcm-decrypt!
 		    gcm-done #f #f
+		    default-last-block-size
 		    (lambda (state) 16)
 		    gcm-compute-tag! gcm-verify-tag!
 		    tc:gcm-add-aad! tc:gcm-add-iv!))

@@ -128,9 +128,19 @@
   (define iv (cipher-parameter-iv parameter))
   (define aad (cipher-parameter-aad parameter #f))
   (define tag (cipher-parameter-tag parameter #f))
+  (unless (block-cipher-descriptor? cipher)
+    (assertion-violation 'gcm-siv "Must be a block cipher" cipher))
+  (unless (= (block-cipher-descriptor-block-length cipher) *block-length*)
+    (assertion-violation 'gcm-siv "Block size must be 16"))
   (unless (memv (bytevector-length key) '(16 32))
     (assertion-violation 'gcm-siv "Invalid key size"))
-  (let ((state (make-gcm-siv-state cipher iv tag key)))
+  (unless (= (bytevector-length iv) *nonce-length*)
+    (assertion-violation 'gcm-siv "Invalid nonce size"))
+  
+  (let ((state (make-gcm-siv-state cipher
+				   (bytevector-copy iv)
+				   (and tag (bytevector-copy tag))
+				   (bytevector-copy key))))
     (when aad (gcm-siv-add-aad! state aad))
     state))
 
@@ -145,7 +155,16 @@
   (put-bytevector (gcm-siv-state-sink state) ct cs len)
   0)
 
-(define (gcm-siv-done state . oopts) )
+(define (gcm-siv-done state . opts)
+  (define (fill! bv v) (when bv (bytevector-fill! bv v)))
+  (close-port (gcm-siv-state-sink state))
+  (fill! (gcm-siv-state-nonce state) 0)
+  (fill! (gcm-siv-state-tag state) 0)
+  (fill! (gcm-siv-state-ghash state) 0)
+  (fill! (gcm-siv-state-H state) 0)
+  (fill! (gcm-siv-hash-buffer (gcm-siv-state-data-hash state)) 0)
+  (fill! (gcm-siv-hash-buffer (gcm-siv-state-aead-hash state)) 0)
+  (mode-done! (gcm-siv-state-cipher state)))
 
 (define (gcm-siv-encrypt-last! state pt ps ct cs len)  
   (define (encrypt state data counter pt ps ct cs len)
@@ -160,13 +179,13 @@
       (let loop ((c 0))
 	(mode-encrypt! cipher counter 0 mask 0 *block-length*)
 	(let ((n (get-bytevector-n! data block 0 *block-length*)))
-	  (bytevector-xor! block block mask)
-	  (bytevector-copy! block 0 ct (+ cs c) n)
-	  (increment-counter! counter)
-	  (if (= n *block-length*)
-	      (loop (+ c n))
-	      (+ c n))))))
-  (gcm-siv-encrypt! state pt ps ct cs len)
+	  (cond ((eof-object? n) c)
+		(else
+		 (bytevector-xor! block block mask)
+		 (bytevector-copy! block 0 ct (+ cs c) n)
+		 (increment-counter! counter)
+		 (loop (+ c n))))))))
+  (gcm-siv-encrypt! state pt ps ct cs (- (bytevector-length pt) ps))
   (let* ((data (gcm-siv-state-sink state))
 	 (size (port-position data)))
     (when (< len size)
@@ -195,14 +214,14 @@
       (let loop ((c 0))
 	(mode-encrypt! cipher counter 0 mask 0 *block-length*)
 	(let ((n (get-bytevector-n! data block 0 *block-length*)))
-	  (bytevector-xor! block block mask)
-	  (bytevector-copy! block 0 pt (+ ps c) n)
-	  (update-hash! data-hash H block 0 n)
-	  (increment-counter! counter)
-	  (if (= n *block-length*)
-	      (loop (+ c n))
-	      (finish state (+ c n)))))))
-  (gcm-siv-decrypt! state ct cs pt ps len)
+	  (cond ((eof-object? n) (finish state c))
+		(else 
+		 (bytevector-xor! block block mask)
+		 (bytevector-copy! block 0 pt (+ ps c) n)
+		 (update-hash! data-hash H block 0 n)
+		 (increment-counter! counter)
+		 (loop (+ c n))))))))
+  (gcm-siv-decrypt! state ct cs pt ps (- (bytevector-length ct) cs))
   (let* ((data (gcm-siv-state-sink state))
 	 (tag (gcm-siv-state-tag state))
 	 (size (port-position data)))
@@ -219,18 +238,24 @@
 (define (gcm-siv-compute-tag! state tag start)
   (define mac (gcm-siv-state-mac state))
   (bytevector-copy! mac 0 tag start *block-length*)
+  (gcm-siv-done state)
   *block-length*)
 (define (gcm-siv-verify-tag! state tag start)
   (define mac (gcm-siv-state-mac state))
   (unless (safe-bytevector=? mac tag 0 start *block-length*)
-    (error 'gcm-siv-verify-tag! "Invalid tag")))
+    (gcm-siv-done state)
+    (error 'gcm-siv-verify-tag! "Invalid tag"))
+  (gcm-siv-done state))
 
 (define (gcm-siv-add-aad! state aad
-	  :optional (start 0) (len (- start (bytevector-length aad))))
+	  :optional (start 0) (len (- (bytevector-length aad) start)))
   (check-aead-status state len)
   (update-hash! (gcm-siv-state-aead-hash state)
 		(gcm-siv-state-H state)
 		aad start len))
+
+(define (gcm-last-block-size state size)
+  (+ size (port-position (gcm-siv-state-sink state))))
 
 (define *mode:gcm-siv*
   (make-encauth-mode-descriptor
@@ -241,6 +266,7 @@
    gcm-siv-decrypt! gcm-siv-decrypt-last!
    gcm-siv-done
    #f #f
+   gcm-last-block-size
    (lambda (_) *block-length*)
    gcm-siv-compute-tag!
    gcm-siv-verify-tag!

@@ -123,7 +123,9 @@
   (when (ccm-state-state state)
     (assertion-violation 'block-cipher-update-aad! "Invalid state"))
   (apply put-bytevector (ccm-state-nonce state) nonce opt))
-  
+
+(define (ccm-last-block-size state size)
+  (+ size (port-position (ccm-state-data state))))
 (define *mode:ccm*
   (make-encauth-mode-descriptor
    ;;
@@ -134,6 +136,7 @@
    ccm-decrypt! ccm-decrypt-last!
    ccm-done
    #f #f
+   ccm-last-block-size
    (lambda (_) 16)
    ccm-compute-tag!
    ccm-verify-tag!
