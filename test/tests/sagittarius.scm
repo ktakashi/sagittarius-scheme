@@ -2413,4 +2413,6 @@
 (test-read/write-invariance ', @ ", @")
 (test-read/write-invariance '#, @ "#, @")
 
+(test-equal 0 (mod-expt 0 2 #xFFFFFFFFFFFFFFFFFFFFFFFF))
+
 (test-end)
