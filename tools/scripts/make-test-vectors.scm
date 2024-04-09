@@ -22,8 +22,8 @@
 (define gmac-vector? (file-prefix? '("gmac")))
 (define hkdf-vector? (file-prefix? '("hkdf")))
 (define ecdh-vector? (file-prefix? '("ecdh")))
-(define chacha20-poly1305-vector? (file-prefix? '("chacha20_poly1305")))
-(define xchacha20-poly1305-vector? (file-prefix? '("xchacha20_poly1305")))
+(define chacha20-poly1305-vector?
+  (file-prefix? '("chacha20_poly1305" "xchacha20_poly1305")))
 ;; we don't include GCM, we trust libtomcrypt
 (define aes-aead-vector? (file-prefix? '("aes_gcm_siv" "aes_ccm")))
 
@@ -237,11 +237,6 @@
 	  (map (file->json
 		(test-vector->test-runner ->chacha20-poly1305-test-runner))
 	       (filter chacha20-poly1305-vector? files))))
-    (write-includer outdir (build-path "testvectors" "xchacha20-poly1305")
-     (map (write-in outdir "testvectors" "xchacha20-poly1305")
-	  (map (file->json
-		(test-vector->test-runner ->chacha20-poly1305-test-runner))
-	       (filter xchacha20-poly1305-vector? files))))
     (write-includer outdir (build-path "testvectors" "aes-aead")
      (map (write-in outdir "testvectors"  "aes-aead")
 	  (map (file->json (test-vector->test-runner ->aes-aead-test-runner))

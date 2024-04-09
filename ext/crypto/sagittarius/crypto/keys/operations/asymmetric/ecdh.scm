@@ -98,7 +98,7 @@
   (let ((P (if (= h 1)
 	       (ec-point-mul curve Qv du)
 	       (let* ((n (ec-parameter-n ec-param))
-		      (d (mod (* (mod-inverse h n) du) n))
+		      (d (mod-mul (mod-inverse h n) du n))
 		      (q (ec-point-mul curve Qv h)))
 		 (ec-point-mul curve q d)))))
     (when (ec-point-infinity? P) (error 'ecdh-calculate-agreement "invalid"))
@@ -113,7 +113,7 @@
   (define curve (ec-parameter-curve ec-param))
   (define h (ec-parameter-h ec-param))
   (define n (ec-parameter-n ec-param))
-  (let ((P (ec-point-mul curve Qv (mod (* du h) n))))
+  (let ((P (ec-point-mul curve Qv (mod-mul du h n))))
     (when (ec-point-infinity? P) (error 'ecdh-calculate-agreement "invalid"))
     (ec-point-x P)))
 

@@ -241,8 +241,8 @@
 	 (assertion-violation 'decompress-point "Invalid point"))
        p))
     ((#x04)
-     (let ((x (bytevector->integer bv 1 (+ 1 size)))
-	   (y (bytevector->integer bv (+ 1 size))))
+     (let ((x (bytevector->uinteger bv 1 (+ 1 size)))
+	   (y (bytevector->uinteger bv (+ 1 size))))
        (make-ec-point x y)))
     (else
      (implementation-restriction-violation 'decode-ec-point
