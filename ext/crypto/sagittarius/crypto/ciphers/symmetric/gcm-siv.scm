@@ -38,8 +38,7 @@
 	    (sagittarius crypto secure)
 	    (only (sagittarius crypto tomcrypt)
 		  gcm-multiply!)
-	    (binary io)
-	    (util bytevector))
+	    (binary io))
 
 ;; Here we use GHASH to implement POLYVAL as libtomcrypt provids
 ;; GF(2^128) of module x^128 + x^7 + x^2 + x^1
