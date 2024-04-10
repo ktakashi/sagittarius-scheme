@@ -121,8 +121,7 @@
   (define param (ecdsa-key-parameter priv))
   (define curve (ec-parameter-curve param))
   (unless (elliptic-curve=? curve (ec-parameter-curve (ecdsa-key-parameter pub)))
-    (assertion-violation 'calculate-key-agreement
-			 "Key type are not the same"))
+    (assertion-violation 'calculate-key-agreement "Key type are not the same"))
   (let ((size (div (+ (ec-field-size (elliptic-curve-field curve)) 7) 8)))
     ;; it's rather weird to return integer as secret key
     ;; so convert it to bytevector.

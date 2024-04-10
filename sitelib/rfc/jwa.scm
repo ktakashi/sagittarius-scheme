@@ -51,9 +51,13 @@
 	    (sagittarius crypto keys))
 
   (define-constant +curve-names+
-    `((P-256 ,*ec-parameter:p256*)
-      (P-384 ,*ec-parameter:p384*)
-      (P-521 ,*ec-parameter:p521*)))
+    `((P-256     ,*ec-parameter:p256*)
+      ;; RFC 8812 draft 1 (but used by wycheproof test vector...)
+      (P-256K    ,*ec-parameter:secp256k1*)
+      ;; RFC 8812
+      (secp256k1 ,*ec-parameter:secp256k1*)
+      (P-384     ,*ec-parameter:p384*)
+      (P-521     ,*ec-parameter:p521*)))
   
   (define (jwa:curve->parameter crv)
     (cond ((assq crv +curve-names+) => cadr)
