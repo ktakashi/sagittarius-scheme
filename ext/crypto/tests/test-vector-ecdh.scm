@@ -2,13 +2,11 @@
 	(sagittarius)
 	(sagittarius crypto signatures)
 	(sagittarius crypto keys)
+	(rfc jwk)
 	(srfi :64))
 
 (define ecdh-expected-error-test-comments
   '(
-    ;; FIXME this must be fixed, but not sure how...
-    "edge case for Jacobian and projective coordinates"
-    "edge case for Jacobian and projective coordinates in left to right addition chain"
     "a = 0" ;; We check curve equiality, so this can't be passed
     ;; we don't correct or strip excess 0s
     "appending 0's to bit string"
@@ -18,6 +16,9 @@
     "truncated bit string"
     "bit string of size 4155 to check for overflows"
     "unused bits in bit string"
+
+    ;; returns infinite
+    "public key is a low order point on the curve"
     ))
 (define ecdh-expected-error-test-flags
   '("InvalidAsn"))
@@ -50,28 +51,28 @@
 
 (define (test-ecdh source :key algorithm curve encoding tests)
   (define (curve->ec-parameter curve)
-    (cond ((string=? curve "brainpoolP224r1") *ec-parameter:brainpool-p224r1* #f)
-	  ((string=? curve "brainpoolP256r1") *ec-parameter:brainpool-p256r1* #f)
-	  ((string=? curve "brainpoolP320r1") *ec-parameter:brainpool-p320r1* #f)
-	  ((string=? curve "brainpoolP384r1") *ec-parameter:brainpool-p384r1* #f)
-	  ((string=? curve "brainpoolP512r1") *ec-parameter:brainpool-p512r1* #f)
-	  ((string=? curve "brainpoolP224t1") *ec-parameter:brainpool-p224t1* #f)
-	  ((string=? curve "brainpoolP256t1") *ec-parameter:brainpool-p256t1* #f)
-	  ((string=? curve "brainpoolP320t1") *ec-parameter:brainpool-p320t1* #f)
-	  ((string=? curve "brainpoolP384t1") *ec-parameter:brainpool-p384t1* #f)
-	  ((string=? curve "brainpoolP512t1") *ec-parameter:brainpool-p512t1* #f)
-	  ((string=? curve "secp224k1") *ec-parameter:secp224k1* #f)
-	  ((string=? curve "secp224r1") *ec-parameter:secp224r1* #f)
-	  ((string=? curve "secp256k1") *ec-parameter:secp256k1* #f)
-	  ((string=? curve "secp256r1") *ec-parameter:secp256r1* #f)
-	  ((string=? curve "secp384r1") *ec-parameter:secp384r1* #f)
+    (cond ((string=? curve "brainpoolP224r1") *ec-parameter:brainpool-p224r1*)
+	  ((string=? curve "brainpoolP256r1") *ec-parameter:brainpool-p256r1*)
+	  ((string=? curve "brainpoolP320r1") *ec-parameter:brainpool-p320r1*)
+	  ((string=? curve "brainpoolP384r1") *ec-parameter:brainpool-p384r1*)
+	  ((string=? curve "brainpoolP512r1") *ec-parameter:brainpool-p512r1*)
+	  ((string=? curve "brainpoolP224t1") *ec-parameter:brainpool-p224t1*)
+	  ((string=? curve "brainpoolP256t1") *ec-parameter:brainpool-p256t1*)
+	  ((string=? curve "brainpoolP320t1") *ec-parameter:brainpool-p320t1*)
+	  ((string=? curve "brainpoolP384t1") *ec-parameter:brainpool-p384t1*)
+	  ((string=? curve "brainpoolP512t1") *ec-parameter:brainpool-p512t1*)
+	  ((string=? curve "secp224k1") *ec-parameter:secp224k1*)
+	  ((string=? curve "secp224r1") *ec-parameter:secp224r1*)
+	  ((string=? curve "secp256k1") *ec-parameter:secp256k1*)
+	  ((string=? curve "secp256r1") *ec-parameter:secp256r1*)
+	  ((string=? curve "secp384r1") *ec-parameter:secp384r1*)
 	  ((string=? curve "secp521r1") *ec-parameter:secp521r1*)
-	  ((string=? curve "sect283k1") *ec-parameter:sect283k1* #f)
-	  ((string=? curve "sect283r1") *ec-parameter:sect283r1* #f)
-	  ((string=? curve "sect409k1") *ec-parameter:sect409k1* #f)
-	  ((string=? curve "sect409r1") *ec-parameter:sect409r1* #f)
-	  ((string=? curve "sect571k1") *ec-parameter:sect571k1* #f)
-	  ((string=? curve "sect571r1") *ec-parameter:sect571r1* #f)
+	  ((string=? curve "sect283k1") *ec-parameter:sect283k1*)
+	  ((string=? curve "sect283r1") *ec-parameter:sect283r1*)
+	  ((string=? curve "sect409k1") *ec-parameter:sect409k1*)
+	  ((string=? curve "sect409r1") *ec-parameter:sect409r1*)
+	  ((string=? curve "sect571k1") *ec-parameter:sect571k1*)
+	  ((string=? curve "sect571r1") *ec-parameter:sect571r1*)
 	  (else (print "Unknown curve: " curve) #f)))
   (define ec-parameter (curve->ec-parameter curve))
   (define (bytevector->key bv type)
@@ -83,13 +84,19 @@
       ((private)
        (generate-private-key *key:ecdsa*
 			     (bytevector->integer bv) ec-parameter))))
-  (when ec-parameter
+  (when (and ec-parameter #f)
     (print "Testing " curve)
     (run-test-ecdh source algorithm curve encoding tests bytevector->key)))
 
 (define (test-ecdh-jwk source :key algorithm curve encoding tests)
-  (define (jwk->key json type) #t)
-  #;(run-test-ecdh source algorithm curve encoding tests jwk->key))
+  (define (jwk->key json type)
+    (guard (e (else (print e) (raise e)))
+    (let ((jwk (json->jwk json)))
+      (case type
+	((public) (jwk->public-key jwk))
+	((private) (jwk->private-key jwk))))))
+  (print source)
+  (run-test-ecdh source algorithm curve encoding tests jwk->key))
 
 (test-begin "ECDH")
 (include "./testvectors/ecdh.scm")

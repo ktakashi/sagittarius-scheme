@@ -48,7 +48,6 @@
 
 (include "./test-vector-mac.scm")
 (include "./test-vector-aead.scm")
-;; Too many test failures, so disable it for now :(
-;; (include "./test-vector-ecdh.scm")
+(include "./test-vector-ecdh.scm")
 (include "./test-vector-signature.scm")
 
