@@ -285,7 +285,13 @@ SgObject Sg_F2mInverse(SgEcFieldF2m *f2m, SgObject x)
   mbignum_ash(k1m, k1m, f2m->k1);
   mbignum_logior(mm, mm, &one);
 
-  uzs = (Sg_BitSize(x) + 7)/8 + 1;
+  /*
+    x can be small, e.g. x=1, then vz can be `m` bits,
+    initial `uz` is `x`, then the bit difference can be `m - 1`.
+    to have sufficient space for this case, we need to allocate
+    double in size.
+  */
+  uzs = mms << 1;
   alloc_temp_mbignum(vz, uzs);
   alloc_temp_mbignum(g1z, uzs);
   alloc_temp_mbignum(g2z, uzs);
