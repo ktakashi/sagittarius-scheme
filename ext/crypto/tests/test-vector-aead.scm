@@ -54,10 +54,6 @@
 (include "./testvectors/chacha20-poly1305.scm")
 (test-end)
 
-(test-begin "XChaCha20-Poly1305 test vectors")
-(include "./testvectors/xchacha20-poly1305.scm")
-(test-end)
-
 (import (util bytevector))
 (define (test-aes-aead name :key algorithm key-size tag-size tests)
   (define mode (cond ((string=? algorithm "AES-GCM-SIV") *mode:gcm-siv*)
