@@ -234,7 +234,7 @@
      (unless (= (bytevector-length bv) (+ size 1))
        (assertion-violation 'decode-ec-point
 			    "Incorrect length for compressed encoding"))
-     (let* ((~y (bitwise-and type 1))
+     (let* ((~y (odd? type))
 	    (x (bytevector->integer bv 1 (+ size 1)))
 	    (p (decompress-point curve ~y x)))
        (unless (valid-ec-point? p)
@@ -251,7 +251,7 @@
 ;; FIXME should check better...
 (define (valid-ec-point? p) #t)
 
-(define (decompress-point curve y x)
+(define (decompress-point curve ~y x)
   (define field (elliptic-curve-field curve))
   (define (decompress-fp-point curve x ~y)
     (define field (elliptic-curve-field curve))
@@ -264,14 +264,48 @@
 	   (y (mod-sqrt rhs p)))
       (unless y
 	(assertion-violation 'decompress-point "Invalid point compression"))
-      (let ((neg? (not (eqv? (bitwise-bit-set? y 0) (= ~y 1)))))
+      (let ((neg? (not (eqv? (bitwise-bit-set? y 0) ~y))))
 	(make-ec-point x (if neg? (mod-sub p y p) y)))))
-  (define (decompress-f2m-point curve x y)
-    (error 'decompress-fp-point "not yet"))
+  (define (decompress-f2m-point curve x ~y)
+    (define field (elliptic-curve-field curve))
+    (define m (ec-field-f2m-m field))
+    (define a (elliptic-curve-a curve))
+    (define b (elliptic-curve-b curve))
+    (define (solve-quadratic-equation beta)
+      (define (compute-z t beta)
+	(let loop ((i 1) (z 0) (w beta))
+	  (if (= i m)
+	      (values z w)
+	      (let ((w2 (f2m-square field w)))
+		(loop (+ i 1)
+		      (f2m-add field (f2m-square field z) (f2m-mul field w2 t))
+		      (f2m-add field w2 beta))))))
+      (if (zero? beta)
+	  beta
+	  (let retry ((t 0))
+	    (let-values (((z w) (compute-z t beta)))
+	      (cond ((not (zero? w)) #f)
+		    ((not (zero? (f2m-add field (f2m-square field z) z))) z)
+		    (else (retry (+ t 1))))))))
+    ;; From sec1-v2.pdf section 2.3.4
+    (make-ec-point x
+     (if (zero? x)
+	 (f2m-sqrt field b)
+	 ;; Actions 2.4.2
+	 ;; beta = x + a + bx^-2
+	 ;; z^2 + z = beta
+	 (let* ((t (f2m-mul field (f2m-inverse field (f2m-square field x)) b))
+		(beta (f2m-add field (f2m-add field x a) t))
+		(z (solve-quadratic-equation beta)))
+	   (unless z
+	     (assertion-violation 'decompress-point
+				  "Invalid point compression"))
+	   (let ((neg? (not (eqv? (bitwise-bit-set? z 0) ~y))))
+	     (f2m-mul field x (if neg? (f2m-add field z 1) z)))))))
   (cond ((ec-field-fp? field)
-	 (decompress-fp-point curve x y))
+	 (decompress-fp-point curve x ~y))
 	((ec-field-f2m? field)
-	 (decompress-f2m-point curve x y))
+	 (decompress-f2m-point curve x ~y))
 	(else (assertion-violation 'decompress-point "Unknown curve" curve))))
 
 ;; Twice
@@ -289,7 +323,7 @@
 			      (mod-mul xy 2 p)
 			      p))
 	      ;; x3 = gamma^2 - x*2
-	      (x3 (mod-sub (mod-square gamma p) (mod-mul xx 2 p) p))
+	      (x3 (mod-sub (mod-square gamma p) (mod-add xx xx p) p))
 	      ;; y3 = gamma*(xx - x3) - xy
 	      (y3 (mod-sub (mod-mul gamma (mod-sub xx x3 p) p) xy p)))
 	 (make-ec-point x3 y3))))

@@ -39,9 +39,10 @@
 	    ec-field-f2m-k2
 	    ec-field-f2m-k3
 
-	    f2m-ppb? f2m-add f2m-mul
-	    f2m-div f2m-square f2m-inverse)
-    (import (sagittarius dynamic-module))
+	    f2m-ppb? f2m-add f2m-sub f2m-mul
+	    f2m-div f2m-square f2m-inverse
+	    f2m-sqrt)
+    (import (rnrs) (sagittarius dynamic-module))
 (load-dynamic-module "sagittarius--ec")
 ;; ;;; Finite field
 ;; ;; Fp
@@ -126,4 +127,12 @@
 ;; 		  vz
 ;; 		  (bitwise-xor g1z (bitwise-arithmetic-shift-left g2z j))
 ;; 		  g2z))))))
+(define f2m-sub f2m-add)
+(define (f2m-sqrt field x)
+  (if (or (zero? x) (= x 1))
+      x
+      (let ((m (- (ec-field-f2m-m field) 1)))
+	(do ((i 0 (+ i 1)) (r x (f2m-square field r)))
+	    ((= i m) r)))))
+
 )
