@@ -2717,13 +2717,16 @@ static SgObject bignum_mod_expt(SgBignum *bx, SgBignum *be, SgBignum *bm)
 
 SgObject Sg_BignumModExpt(SgBignum *bx, SgBignum *be, SgBignum *bm)
 {
+  if (bm->sign <= 0) {
+    Sg_Error(UC("modulus must be a positive number: %S"), bm);
+  }
   if (BIGNUM_ZEROP(be)) {
-    return (BIGNUM_ONEP(bm)) ? SG_MAKE_INT(0) : SG_MAKE_INT(1);
+    return SG_MAKE_INT(1);
   }
   if (BIGNUM_ONEP(bx)) {
-    return (BIGNUM_ONEP(bm)) ? SG_MAKE_INT(0) : SG_MAKE_INT(1);
+    return BIGNUM_ONEP(bm) ? SG_MAKE_INT(0) : SG_MAKE_INT(1);
   }
-  if (BIGNUM_ZEROP(bx) && be->sign >= 0) {
+  if (BIGNUM_ZEROP(bx)) {
     return SG_MAKE_INT(0);
   }
   return Sg_NormalizeBignum(bignum_mod_expt(bx, be, bm));

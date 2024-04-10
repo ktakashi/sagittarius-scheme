@@ -3694,9 +3694,14 @@ SgObject Sg_ModExpt(SgObject x, SgObject e, SgObject m)
   if (!SG_EXACT_INTP(e)) wte(SG_INTERN("mod-expt"), "exact integer", e);
   if (!SG_EXACT_INTP(m)) wte(SG_INTERN("mod-expt"), "exact integer", m);
   if (Sg_Sign(m) <= 0) {
-    wte(SG_INTERN("mod-inverse"), "positive number", m);
+    wte(SG_INTERN("mod-expt"), "positive number", m);
   }
 
+  /* some obvious cases */
+  if (SG_EQ(x, SG_MAKE_INT(0))) return SG_MAKE_INT(0);
+  /* NOTE: (expt 0 0) = 1, so follow it */
+  if (SG_EQ(e, SG_MAKE_INT(0))) return SG_MAKE_INT(1);
+  
   /* TODO handle more efficiently */
   if (SG_INTP(x)) {
     if (SG_INTP(e)) {
