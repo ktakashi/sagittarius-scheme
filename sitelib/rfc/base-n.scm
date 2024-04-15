@@ -32,6 +32,7 @@
 #!nounbound
 (library (rfc base-n)
     (export make-make-base-n-decoder make-make-base-n-encoder
+	    make-base-n-decode make-base-n-encode
 	    make-base-n-encode-output-port-opener
 	    make-base-n-encode-input-port-opener
 	    make-base-n-decode-output-port-opener
@@ -40,6 +41,18 @@
 	    base-n-encode-table->decode-table)
     (import (rnrs)
 	    (sagittarius))
+
+(define ((make-base-n-encode make-encoder) in out . encoder-options)
+  (define (put v) (put-u8 out (or v #x0a)))
+  (define (get) (get-u8 in))
+  (define encoder (apply make-encoder encoder-options))
+  (do () ((encoder get put))))
+
+(define ((make-base-n-decode make-decoder) in out . decoder-options)
+  (define (put v) (put-u8 out v))
+  (define (get) (get-u8 in))
+  (define decoder (apply make-decoder decoder-options))
+  (do () ((decoder get put))))
 
 (define (base-n-encode-table->decode-table table :optional (size 128))
   (define table-size (- (vector-length table) 1)) ;; exclude pad
