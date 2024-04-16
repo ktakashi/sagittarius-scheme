@@ -119,9 +119,9 @@
 		   (bytevector-u8-ref buffer 1)
 		   (bytevector-u8-ref buffer 2)
 		   (bytevector-u8-ref buffer 3)))))
-  (define make-base64-decoder (make-make-base-n-decoder %base64-decode 64))
-  (define base64-decode
-    (make-base-n-decode make-base64-decoder :decode-table *decode-table*))
+  (define make-base64-decoder
+    (make-make-base-n-decoder %base64-decode 64 :decode-table *decode-table*))
+  (define base64-decode (make-base-n-decode make-base64-decoder))
   (define base64url-decode
     (make-base-n-decode make-base64-decoder :decode-table *decode-url-table*))
   (define base64-decode-string (make-base-n-decode-string base64-decode))
@@ -153,12 +153,10 @@
       ((3) (encode (bytevector-u8-ref buffer 0)
 		   (bytevector-u8-ref buffer 1)
 		   (bytevector-u8-ref buffer 2)))))
-  (define make-base64-encoder (make-make-base-n-encoder %base64-encode 64))
+  (define make-base64-encoder
+    (make-make-base-n-encoder %base64-encode 64 :encode-table *encode-table*))
   (define base64-encode
-    (make-base-n-encode make-base64-encoder
-			:encode-table *encode-table*
-			:line-width 76
-			:padding? #t))
+    (make-base-n-encode make-base64-encoder :line-width 76 :padding? #t))
   (define base64url-encode
     (make-base-n-encode make-base64-encoder
 			:encode-table *encode-url-table*
@@ -180,7 +178,7 @@
       :owner? owner? :line-width line-width :padding? padding?))
 
   (define open-base64-encode-output-port/encode-table
-    (let ((v (make-base-n-encode-output-port-opener %base64-encode 64)))
+    (let ((v (make-base-n-encode-output-port-opener make-base64-encoder)))
       (lambda (sink encode-table . opts)
 	(apply v sink :encode-table encode-table opts))))
   
@@ -195,7 +193,7 @@
     (open-base64-encode-input-port/encode-table source *encode-url-table*
      :owner? owner? :line-width line-width :padding? padding?))
   (define open-base64-encode-input-port/encode-table
-    (let ((v (make-base-n-encode-input-port-opener %base64-encode 64)))
+    (let ((v (make-base-n-encode-input-port-opener make-base64-encoder)))
       (lambda (source encode-table . opts)
 	(apply v source :encode-table encode-table opts))))
       
@@ -207,7 +205,7 @@
 						:owner? owner?))
 
   (define open-base64-decode-input-port/decode-table
-    (let ((v (make-base-n-decode-input-port-opener %base64-decode 64)))
+    (let ((v (make-base-n-decode-input-port-opener make-base64-decoder)))
       (lambda (source decode-table . opts)
 	(apply v source :decode-table decode-table opts))))
   
@@ -220,7 +218,7 @@
 						 :owner? owner?))
 
   (define open-base64-decode-output-port/decode-table
-    (let ((v (make-base-n-decode-output-port-opener %base64-decode 64)))
+    (let ((v (make-base-n-decode-output-port-opener make-base64-decoder)))
       (lambda (sink decode-table . opts)
 	(apply v sink :decode-table decode-table opts))))
 )
