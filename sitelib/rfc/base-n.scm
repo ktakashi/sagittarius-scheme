@@ -60,12 +60,18 @@
       ((= i table-size) r)
     (vector-set! r (vector-ref table i) i)))
 
+;; exact log2
+(define (elog2 n)
+  (let ((r (exact (log n 2))))
+    (unless (integer? r) (assertion-violation 'base-n "N must be power of 2"))
+    r))
+
 ;; Framework for Base N (16, 32, or 64) encoder
 (define ((make-make-base-n-encoder encode n) 
 	 :key encode-table (line-width 76) (linefeeds #f) (padding? #t))
   (define max-col (and line-width (> line-width 0) (- line-width 1)))
   (define col 0)
-  (define max-buffer-size (denominator (/ 8 (- (bitwise-length n) 1))))
+  (define max-buffer-size (denominator (/ 8 (elog2 n))))
   (define buffer (make-bytevector max-buffer-size))
   (define buffer-size 0)
 
@@ -103,7 +109,7 @@
       ((cont) #f))))
 
 (define ((make-make-base-n-decoder decode n) :key decode-table)
-  (define max-buffer-size (numerator (/ 8 (- (bitwise-length n) 1))))
+  (define max-buffer-size (numerator (/ 8 (elog2 n))))
   (define buffer (make-bytevector max-buffer-size))
   (define buffer-size 0)
   (lambda (get put)
@@ -128,7 +134,7 @@
 (define (make-base-n-encode-output-port-opener encode n)
   (define make-basen-encoder (make-make-base-n-encoder encode n))
   (lambda (sink :key (owner? #f) :allow-other-keys encoder-options)
-    (define max-buffer-size (denominator (/ 8 (- (bitwise-length n) 1))))
+    (define max-buffer-size (denominator (/ 8 (elog2 n))))
     (define buffer (make-bytevector max-buffer-size))
     (define buffer-count 0)
     (define (fill-buffer bv start count)
@@ -174,8 +180,7 @@
   (lambda (source :key (owner? #f) (linefeeds #f)
 		  :allow-other-keys encoder-options)
     (define max-buffer-size
-      (* (numerator (/ 8 (- (bitwise-length n) 1)))
-	 (+ (if linefeeds (length linefeeds) 1) 1)))
+      (* (numerator (/ 8 (elog2 n))) (+ (if linefeeds (length linefeeds) 1) 1)))
     (define buffer (make-bytevector max-buffer-size))
     (define buffer-count 0)
 
@@ -225,7 +230,7 @@
 (define (make-base-n-decode-output-port-opener decode n)
   (define make-base-n-decoder (make-make-base-n-decoder decode n))
   (lambda (sink :key (owner? #f) :allow-other-keys decoder-options)
-    (define max-buffer-size (denominator (/ 8 (- (bitwise-length n) 1))))
+    (define max-buffer-size (denominator (/ 8 (elog2 n))))
     (define buffer (make-bytevector max-buffer-size))
     (define buffer-size 0)
     (define decoder (apply make-base-n-decoder decoder-options))
