@@ -120,35 +120,12 @@
 		   (bytevector-u8-ref buffer 2)
 		   (bytevector-u8-ref buffer 3)))))
   (define make-base64-decoder (make-make-base-n-decoder %base64-decode 64))
-  (define base64-decode-impl (make-base-n-decode make-base64-decoder))
-
-  (define-syntax define-decode
-    (syntax-rules ()
-      ((_ name table)
-       (define (name in)
-	 (if (bytevector? in)
-	     (name (open-bytevector-input-port in))
-	     (let-values (((out e) (open-bytevector-output-port)))
-	       (base64-decode-impl in out :decode-table table)
-	       (e)))))))
-  (define-decode base64-decode *decode-table*)
-  (define-decode base64url-decode *decode-url-table*)
-
-  (define-syntax define-encode-string
-    (syntax-rules ()
-      ((_ name encoder lw pad)
-       (define (name string :key (transcoder utf8-transcoder)
-				 (line-width lw)
-				 (padding? pad))
-	 (or (string? string)
-	     (assertion-violation 'name
-				  (format "string required, but got ~s" string)
-				  string))
-	 (utf8->string
-	  (encoder (string->bytevector string transcoder)
-		   :line-width line-width :padding? padding?))))))
-  (define-encode-string base64-encode-string base64-encode 76 #t)
-  (define-encode-string base64url-encode-string base64url-encode #f #f)
+  (define base64-decode
+    (make-base-n-decode make-base64-decoder :decode-table *decode-table*))
+  (define base64url-decode
+    (make-base-n-decode make-base64-decoder :decode-table *decode-url-table*))
+  (define base64-decode-string (make-base-n-decode-string base64-decode))
+  (define base64url-decode-string (make-base-n-decode-string base64url-decode))
 
   (define (%base64-encode put buffer buffer-size padding?)
     (define lshift bitwise-arithmetic-shift-left)
@@ -177,39 +154,19 @@
 		   (bytevector-u8-ref buffer 1)
 		   (bytevector-u8-ref buffer 2)))))
   (define make-base64-encoder (make-make-base-n-encoder %base64-encode 64))
-  (define base64-encode-impl (make-base-n-encode make-base64-encoder))
+  (define base64-encode
+    (make-base-n-encode make-base64-encoder
+			:encode-table *encode-table*
+			:line-width 76
+			:padding? #t))
+  (define base64url-encode
+    (make-base-n-encode make-base64-encoder
+			:encode-table *encode-url-table*
+			:line-width #f
+			:padding? #f))
 
-  (define-syntax define-encode
-    (syntax-rules ()
-      ((_ name table lw pad)
-       (define (name in :key (line-width lw) (padding? pad))
-	 (if (bytevector? in)
-	     (name (open-bytevector-input-port in) 
-		   :line-width line-width :padding? padding?)
-	     (let-values (((out e) (open-bytevector-output-port)))
-	       (base64-encode-impl in out
-		:line-width line-width
-		:padding? padding?
-		:encode-table table)
-	       (e)))))))
-  (define-encode base64-encode *encode-table* 76 #t)
-  (define-encode base64url-encode *encode-url-table* #f #f)
-
-  (define utf8-transcoder (make-transcoder (utf-8-codec) 'none))
-  (define-syntax define-decode-string
-    (syntax-rules ()
-      ((_ name decoder)
-       (define (name string :key (transcoder utf8-transcoder))
-	 (or (string? string)
-	     (assertion-violation 'name
-				  (format "string required, but got ~s" string)
-				  string))
-	 (let ((bv (decoder (string->utf8 string))))
-	   (if transcoder
-	       (bytevector->string bv transcoder)
-	       bv))))))
-  (define-decode-string base64-decode-string base64-decode)
-  (define-decode-string base64url-decode-string base64url-decode)
+  (define base64-encode-string (make-base-n-encode-string base64-encode))
+  (define base64url-encode-string (make-base-n-encode-string base64url-encode))
   
   (define (open-base64-encode-output-port sink
 					  :key (owner? #f) (line-width #f)

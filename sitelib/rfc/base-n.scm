@@ -31,8 +31,9 @@
 ;; ref: https://tools.ietf.org/html/rfc4648
 #!nounbound
 (library (rfc base-n)
-    (export make-make-base-n-decoder make-make-base-n-encoder
-	    make-base-n-decode make-base-n-encode
+    (export make-make-base-n-encoder make-make-base-n-decoder
+	    make-base-n-encode make-base-n-decode
+	    make-base-n-encode-string make-base-n-decode-string
 	    make-base-n-encode-output-port-opener
 	    make-base-n-encode-input-port-opener
 	    make-base-n-decode-output-port-opener
@@ -42,17 +43,55 @@
     (import (rnrs)
 	    (sagittarius))
 
-(define ((make-base-n-encode make-encoder) in out . encoder-options)
-  (define (put v) (put-u8 out (or v #x0a)))
-  (define (get) (get-u8 in))
-  (define encoder (apply make-encoder encoder-options))
-  (do () ((encoder get put))))
+(define utf8-transcoder (make-transcoder (utf-8-codec) 'none))
+(define ((make-base-n-encode-string encode) string
+	 :key (transcoder utf8-transcoder)
+	 :allow-other-keys options)
+  (unless (string? string)
+    (assertion-violation 'base-n-encode-string
+			 (format "string required, but got ~s" string) string))
+  (utf8->string (apply encode (string->bytevector string transcoder) options)))
 
-(define ((make-base-n-decode make-decoder) in out . decoder-options)
-  (define (put v) (put-u8 out v))
-  (define (get) (get-u8 in))
-  (define decoder (apply make-decoder decoder-options))
-  (do () ((decoder get put))))
+(define ((make-base-n-decode-string decode) string
+	 :key (transcoder utf8-transcoder)
+	 :allow-other-keys options)
+  (unless (string? string)
+    (assertion-violation 'base-n-decode-string
+			 (format "string required, but got ~s" string) string))
+  (let ((bv (apply decode (string->utf8 string) options)))
+    (if transcoder
+	(bytevector->string bv transcoder)
+	bv)))
+
+(define (make-base-n-encode make-encoder . default-options)
+  (define (encode in . encoder-options)
+    (define (rec)
+      (let-values (((out e) (open-bytevector-output-port)))
+	(define (put v) (put-u8 out (or v #x0a)))
+	(define (get) (get-u8 in))
+	;; the append order is depending on the compiler...
+	;; TODO maybe merge it properly
+	(define encoder
+	  (apply make-encoder (append default-options encoder-options)))
+	(do () ((encoder get put) (e)))))
+    (if (bytevector? in)
+	(apply encode (open-bytevector-input-port in) encoder-options)
+	(rec)))
+  encode)
+
+(define (make-base-n-decode make-decoder . default-options)
+  (define (decode in . decoder-options)
+    (define (rec)
+      (let-values (((out e) (open-bytevector-output-port)))
+	(define (put v) (put-u8 out v))
+	(define (get) (get-u8 in))
+	(define decoder
+	  (apply make-decoder (append default-options decoder-options)))
+	(do () ((decoder get put) (e)))))
+    (if (bytevector? in)
+	(apply decode (open-bytevector-input-port in) decoder-options)
+	(rec)))
+  decode)
 
 (define (base-n-encode-table->decode-table table :optional (size 128))
   (define table-size (- (vector-length table) 1)) ;; exclude pad
