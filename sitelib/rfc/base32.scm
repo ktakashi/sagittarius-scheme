@@ -41,7 +41,17 @@
 	    make-base32-decoder make-base32-encoder
 	    *base32-encode-table*
 	    *base32-decode-table*
-	    )
+
+	    base32hex-encode base32hex-encode-string
+	    base32hex-decode base32hex-decode-string
+	    open-base32hex-encode-output-port
+	    open-base32hex-encode-input-port
+	    open-base32hex-decode-output-port
+	    open-base32hex-decode-input-port
+
+	    make-base32hex-decoder make-base32hex-encoder
+	    *base32hex-encode-table*
+	    *base32hex-decode-table*)
     (import (rnrs)
 	    (rfc base-n)
 	    (sagittarius))
@@ -63,6 +73,19 @@
 
 (define *base32-decode-table*
   (base-n-encode-table->decode-table *base32-encode-table*))
+
+(define *base32hex-encode-table*
+  (vector-map
+   char->integer
+    ;; 0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15
+   #(#\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9 #\A #\B #\C #\D #\E #\F
+    ;;16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31
+     #\G #\H #\I #\J #\K #\L #\M #\N #\O #\P #\Q #\R #\S #\T #\U #\V
+    ;; pad
+     #\=)))
+
+(define *base32hex-decode-table*
+  (base-n-encode-table->decode-table *base32hex-encode-table*))
 
 ;; The same signature as Base64 version
 ;; Maybe we can make a framework for this
@@ -165,6 +188,26 @@
   (make-base-n-decode-output-port-opener make-base32-decoder))
 (define open-base32-decode-input-port
   (make-base-n-decode-input-port-opener make-base32-decoder))
+
+(define make-base32hex-encoder 
+  (make-make-base-n-encoder encode 32 :encode-table *base32hex-encode-table*))
+(define make-base32hex-decoder
+  (make-make-base-n-decoder decode 32 :decode-table *base32hex-decode-table*))
+
+(define base32hex-encode (make-base-n-encode make-base32hex-encoder))
+(define base32hex-decode (make-base-n-decode make-base32hex-decoder))
+
+(define base32hex-encode-string (make-base-n-encode-string base32hex-encode))
+(define base32hex-decode-string (make-base-n-decode-string base32hex-decode))
+
+(define open-base32hex-encode-output-port
+  (make-base-n-encode-output-port-opener make-base32hex-encoder))
+(define open-base32hex-encode-input-port
+  (make-base-n-encode-input-port-opener make-base32hex-encoder))
+(define open-base32hex-decode-output-port
+  (make-base-n-decode-output-port-opener make-base32hex-decoder))
+(define open-base32hex-decode-input-port
+  (make-base-n-decode-input-port-opener make-base32hex-decoder))
 
 )
 

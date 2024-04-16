@@ -61,13 +61,20 @@
   (test-in))
 
 (define-syntax test-encode
-  (syntax-rules (base32-encode-string)
+  (syntax-rules (base32-encode-string base32hex-encode-string)
     ((_ name expect (base32-encode-string v opt ...))
      (begin
        (test-equal '(name v) expect (base32-encode-string v opt ...))
        (test-encode-port '(name v)
 			 open-base32-encode-input-port
 			 open-base32-encode-output-port
+			 expect v opt ...)))
+    ((_ name expect (base32hex-encode-string v opt ...))
+     (begin
+       (test-equal '(name v) expect (base32hex-encode-string v opt ...))
+       (test-encode-port '(name v)
+			 open-base32hex-encode-input-port
+			 open-base32hex-encode-output-port
 			 expect v opt ...)))))
 
 (test-encode "encode" "" (base32-encode-string ""))
@@ -87,6 +94,22 @@
 
 (test-encode "encode" *encoded-long-string*
 	     (base32-encode-string *long-string* :line-width #f))
+
+;; base32hex
+(test-encode "encode" ""                 (base32hex-encode-string ""))
+(test-encode "encode" "CO======"         (base32hex-encode-string "f"))
+(test-encode "encode" "CPNG===="         (base32hex-encode-string "fo"))
+(test-encode "encode" "CPNMU==="         (base32hex-encode-string "foo"))
+(test-encode "encode" "CPNMUOG="         (base32hex-encode-string "foob"))
+(test-encode "encode" "CPNMUOJ1"         (base32hex-encode-string "fooba"))
+(test-encode "encode" "CPNMUOJ1E8======" (base32hex-encode-string "foobar"))
+
+(test-encode "encode" "CO"         (base32hex-encode-string "f" :padding? #f))
+(test-encode "encode" "CPNG"       (base32hex-encode-string "fo" :padding? #f))
+(test-encode "encode" "CPNMU"      (base32hex-encode-string "foo" :padding? #f))
+(test-encode "encode" "CPNMUOG"    (base32hex-encode-string "foob" :padding? #f))
+(test-encode "encode" "CPNMUOJ1"   (base32hex-encode-string "fooba" :padding? #f))
+(test-encode "encode" "CPNMUOJ1E8" (base32hex-encode-string "foobar" :padding? #f))
 
 (define (test-decode-port name open-in open-out expect v
 			  :key (transcoder utf8-transcoder))
@@ -139,13 +162,20 @@
   (test-output))
 
 (define-syntax test-decode
-  (syntax-rules (base32-decode-string)
+  (syntax-rules (base32-decode-string base32hex-decode-string)
     ((_ name expect (base32-decode-string v))
      (begin
        (test-equal '(name v) expect (base32-decode-string v))
        (test-decode-port '(name v)
 			 open-base32-decode-input-port
 			 open-base32-decode-output-port
+			 expect v)))
+    ((_ name expect (base32hex-decode-string v))
+     (begin
+       (test-equal '(name v) expect (base32hex-decode-string v))
+       (test-decode-port '(name v)
+			 open-base32hex-decode-input-port
+			 open-base32hex-decode-output-port
 			 expect v)))))
 
 (test-decode "decode" ""       (base32-decode-string ""                ))
@@ -163,5 +193,21 @@
 (test-decode "decode" "fooba"  (base32-decode-string "MZXW6YTB"  ))
 (test-decode "decode" "foobar" (base32-decode-string "MZXW6YTBOI"))
 (test-decode "decode" *long-string* (base32-decode-string *encoded-long-string*))
+
+(test-decode "decode" ""       (base32hex-decode-string ""                ))
+(test-decode "decode" "f"      (base32hex-decode-string "CO======"        ))
+(test-decode "decode" "fo"     (base32hex-decode-string "CPNG===="        ))
+(test-decode "decode" "foo"    (base32hex-decode-string "CPNMU==="        ))
+(test-decode "decode" "foob"   (base32hex-decode-string "CPNMUOG="        ))
+(test-decode "decode" "fooba"  (base32hex-decode-string "CPNMUOJ1"        ))
+(test-decode "decode" "foobar" (base32hex-decode-string "CPNMUOJ1E8======"))
+
+(test-decode "decode" "f"      (base32hex-decode-string "CO"        ))
+(test-decode "decode" "fo"     (base32hex-decode-string "CPNG"      ))
+(test-decode "decode" "foo"    (base32hex-decode-string "CPNMU"     ))
+(test-decode "decode" "foob"   (base32hex-decode-string "CPNMUOG"   ))
+(test-decode "decode" "fooba"  (base32hex-decode-string "CPNMUOJ1"  ))
+(test-decode "decode" "foobar" (base32hex-decode-string "CPNMUOJ1E8"))
+
 
 (test-end)
