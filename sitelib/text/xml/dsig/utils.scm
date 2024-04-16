@@ -2,7 +2,7 @@
 ;;;
 ;;; text/xml/dsig/utils.scm - XML signature utilities
 ;;;
-;;;   Copyright (c) 2020  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2020-2024  Takashi Kato  <ktakashi@ymail.com>
 ;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -33,15 +33,5 @@
     (import (rnrs)
 	    (rfc base64))
 
-(define (ds:encode-base64 bv)
-  (let-values (((out e) (open-bytevector-output-port)))
-    (define (put v)
-      (if v
-	  (put-u8 out v)
-	  (begin (put-u8 out #x0d) (put-u8 out #x0a))))
-    (define inp (open-bytevector-input-port bv))
-    (define (in) (get-u8 inp))
-    (define encoder (make-base64-encoder))
-    (do () ((encoder in put)))
-    (e)))
+(define (ds:encode-base64 bv) (base64-encode bv :linefeeds '(#x0d #x0a)))
 )
