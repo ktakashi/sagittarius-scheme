@@ -197,7 +197,7 @@
     (define i 0)
     (define (get)
       (let ((r (get/index i)))
-	(set! i (mod (+ i 1) 3))
+	(set! i (mod (+ i 1) max-buffer-size))
 	r))
     (encoder get put)
     (set! buffer-count 0))
@@ -212,7 +212,7 @@
   
   (define (close) 
     ;; do the last
-    (process-encode)
+    (unless (zero? buffer-count) (process-encode))
     (flush-output-port sink)
     (when owner? (close-port sink)))
   (make-custom-binary-output-port 
