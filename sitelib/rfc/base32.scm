@@ -102,25 +102,25 @@
       (do ((i 0 (+ i 1)))
 	  ((= i n))
 	(put 32))))
-  (unless (zero? b0)
+  (when (> buffer-size 0)
     ;; given arguments are 0 >=
     (put (mask (rshift b0 3)))
     (put (mask (logior (lshift b0 2) (rshift b1 6))))
     (cond
-     ((zero? b1) (pad 6))
+     ((= buffer-size 1) (pad 6))
      (else
       (put (logand (rshift b1 1) #x1F))
       (put (logand (logior (lshift b1 4) (rshift b2 4)) #x1F))
       (cond
-       ((zero? b2) (pad 4))
+       ((= buffer-size 2) (pad 4))
        (else
 	(put (logand (logior (lshift b2 1) (rshift b3 7)) #x1F))
 	(cond
-	 ((zero? b3) (pad 3))
+	 ((= buffer-size 3) (pad 3))
 	 (else
 	  (put (logand (rshift b3 2) #x1F))
 	  (put (logand (logior (lshift b3 3) (rshift b4 5)) #x1F))
-	  (if (zero? b4)
+	  (if (= buffer-size 4)
 	      (pad 1)
 	      (put (logand b4 #x1F)))))))))))
 (define (decode oput buffer buffer-size)

@@ -95,6 +95,12 @@
 (test-encode "encode" *encoded-long-string*
 	     (base32-encode-string *long-string* :line-width #f))
 
+(test-encode "encode 0" "AA======" (base32-encode-string "\x00;"))
+(test-encode "encode 0" "AAAA====" (base32-encode-string "\x00;\x00;"))
+(test-encode "encode 0" "AAAAA===" (base32-encode-string "\x00;\x00;\x00;"))
+(test-encode "encode 0" "AAAAAAA=" (base32-encode-string "\x00;\x00;\x00;\x00;"))
+(test-encode "encode 0" "AAAAAAAA" (base32-encode-string "\x00;\x00;\x00;\x00;\x00;"))
+
 ;; base32hex
 (test-encode "encode" ""                 (base32hex-encode-string ""))
 (test-encode "encode" "CO======"         (base32hex-encode-string "f"))
@@ -193,6 +199,13 @@
 (test-decode "decode" "fooba"  (base32-decode-string "MZXW6YTB"  ))
 (test-decode "decode" "foobar" (base32-decode-string "MZXW6YTBOI"))
 (test-decode "decode" *long-string* (base32-decode-string *encoded-long-string*))
+
+(test-decode "decode 0" "\x00;"                     (base32-decode-string "AA======"))
+(test-decode "decode 0" "\x00;\x00;"                (base32-decode-string "AAAA===="))
+(test-decode "decode 0" "\x00;\x00;\x00;"           (base32-decode-string "AAAAA==="))
+(test-decode "decode 0" "\x00;\x00;\x00;\x00;"      (base32-decode-string "AAAAAAA="))
+(test-decode "decode 0" "\x00;\x00;\x00;\x00;\x00;" (base32-decode-string "AAAAAAAA"))
+
 
 (test-decode "decode" ""       (base32hex-decode-string ""                ))
 (test-decode "decode" "f"      (base32hex-decode-string "CO======"        ))
