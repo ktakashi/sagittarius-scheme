@@ -9,10 +9,14 @@ This library provides Json Web Key (JWK) APIs. JWS is defined in
 This library also supports OKP defined in
 [RFC 8037](https://datatracker.ietf.org/doc/html/rfc8037).
 
+This library also supports curve `secp256k1`
+[RFC 8812](https://datatracker.ietf.org/doc/html/rfc8812),
+as well as the `P-256K` which is defined in the draft 00 of the RFC.
+
 
 The following examples show how to interact with `(crypto)` keys.
 
-``````````scheme
+```scheme
 ;; (crypto) keys to JWK/JWKS
 (import (rnrs)
         (crypto)
@@ -28,9 +32,9 @@ The following examples show how to interact with `(crypto)` keys.
   (jwk-set->json-string jwks) ;; -> {"keys":[{"kid":"my key id",...}]}
   (jwk-set:find-key jwks (jwk-matcher:kid "my key id")) ;; -> #<jwk>
   (jwk-set->public-jwk-set jwks)) ;; -> #<jwk-set> contains only public key
-``````````
+```
 
-``````````scheme
+```scheme
 ;; JWK/JWKS to (crypto) key
 (import (rnrs)
         (crypto)
@@ -53,7 +57,7 @@ The following examples show how to interact with `(crypto)` keys.
 
 (jwk->public-key jwk)   ;; -> ECDSA public key
 (jwk->private-key jwk)  ;; -> ECDSA private key
-``````````
+```
 
 ### [§3] JWK Set
 
@@ -110,14 +114,14 @@ the given _jwk_ if it matches the condition otherwise returns #f.
 The matchers provided by this library complies to the above so that
 users can compose matchers like this:
 
-``````````scheme
+```scheme
 (import (rnrs)
         (rfc jwk)
         (sagittarius combinators))
 
 (define kid/alg-matcher
  (compose (jwk-matcher:kid "kid") (jwk-matcher:alg 'EdDSA)))
-``````````
+```
 
 ###### [!Function] `jwk-matcher:kty`  _obj_
 ###### [!Function] `jwk-matcher:use`  _obj_

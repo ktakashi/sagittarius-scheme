@@ -9,7 +9,7 @@ This library provides Json Web Encryption (JWE) APIs. JWE is defined in
 
 The following example shows how to exchange secret key.
 
-``````````scheme
+```scheme
 (import (rnrs)
         (rfc jwe)
         (rfc jwk))
@@ -41,7 +41,7 @@ The following example shows how to exchange secret key.
   (jwe:serialize jwe-object) ;; -> compact JWE string
   (let ((secret-key (jwe:decrypt bob-decryptor jwe-object)))
     (utf8->string secret-key))) ;; -> "down the rabbit hole"
-``````````
+```
 
 The above is just a taste of how to share a secret key without shared
 secret. In the real world application, you should implement your
