@@ -7,8 +7,8 @@ This library provides Base 64 encoding and decoding procedures.
 
 ### [§3] Encoding procedures
 
-###### [!Function] `base64-encode`  _in_ _:key_ _(line-width_ _76)_ _(padding?_ _#t)_
-###### [!Function] `base64url-encode`  _in_ _:key_ _(line-width_ _#f)_ _(padding?_ _#f)_
+###### [!Function] `base64-encode`  _in_ :key (_line-width_ 76) (_padding?_ #t)
+###### [!Function] `base64url-encode`  _in_ :key (_line-width_ #f) (_padding?_ #f)
 
 _in_ must be either a bytevector or binary input port.
 
@@ -26,15 +26,16 @@ The `base64url-encode` encodes the given input to Base 64 URL safe
 encoded bytevector. Which doesn't use `+` and `/`.
 
 
-###### [!Function] `base64-encode-string`  _string_ _:key_ _(line-width_ _76)_ _transcoder_ _(padding?_ _#t)_
-###### [!Function] `base64url-encode-string`  _string_ _:key_ _(line-width_ _#f)_ _transcoder_ _(padding?_ _#f)_
+###### [!Function] `base64-encode-string`  _string_ :key (_line-width_ 76) _transcoder_ (_padding?_ #t)
+###### [!Function] `base64url-encode-string`  _string_ :key (_line-width_ #f) _transcoder_ (_padding?_ #f)
 
 Convenient procedure for string.
 
 Encodes given _string_ to Base 64 encoded string.
 
 The keyword argument _transcoder_ is used to convert given string to
-bytevector. The converted bytevector will be passed to the `base64-encode`procedure. The default value is a transcoder with UTF-8 codec with EOL
+bytevector. The converted bytevector will be passed to the `base64-encode`
+procedure. The default value is a transcoder with UTF-8 codec with EOL
 style none.
 
 The keyword argument _padding?_ is the same as `base64-encode`.
@@ -43,10 +44,10 @@ The `base64url-encode-string` encodes the given input to Base 64 URL safe
 encoded bytevector. Which doesn't use `+` and `/`.
 
 
-###### [!Function] `open-base64-encode-input-port`  _source_ _:key_ _(owner?_ _#f)_ _(line-width_ _#f)_ _(padding?_ _#t)_
-###### [!Function] `open-base64-encode-output-port`  _sink_ _:key_ _(owner?_ _#f)_ _(line-width_ _#f)_ _(padding?_ _#t)_
-###### [!Function] `open-base64url-encode-input-port`  _source_ _:key_ _(owner?_ _#f)_ _(line-width_ _#f)_ _(padding?_ _#f)_
-###### [!Function] `open-base64url-encode-output-port`  _sink_ _:key_ _(owner?_ _#f)_ _(line-width_ _#f)_ _(padding?_ _#f)_
+###### [!Function] `open-base64-encode-input-port`  _source_ :key (_owner?_ #f) (_line-width_ #f) (_padding?_ #t)
+###### [!Function] `open-base64-encode-output-port`  _sink_ :key (_owner?_ #f) (_line-width_ #f) (_padding?_ #t)
+###### [!Function] `open-base64url-encode-input-port`  _source_ :key (_owner?_ #f) (_line-width_ #f) (_padding?_ #f)
+###### [!Function] `open-base64url-encode-output-port`  _sink_ :key (_owner?_ #f) (_line-width_ #f) (_padding?_ #f)
 
 Creates binary Base64 encode input and output port, respectively.
 
@@ -78,8 +79,8 @@ Decode Base 64 encoded input _in_ to original bytevector.
 The `base64url-decode` decodes Base64 URL safe encoded value.
 
 
-###### [!Function] `base64-decode-string`  _string_ _:key_ _(transcoder_ _(native-transcoder))_
-###### [!Function] `base64url-decode-string`  _string_ _:key_ _(transcoder_ _(native-transcoder))_
+###### [!Function] `base64-decode-string`  _string_ :key (_transcoder_ `(native-transcoder)`)
+###### [!Function] `base64url-decode-string`  _string_ :key (_transcoder_ `(native-transcoder)`)
 
 Convenient procedure.
 
@@ -92,10 +93,10 @@ If this is #f, the procedure returns raw bytevector.
 The `base64url-decode-string` decodes Base64 URL safe encoded value.
 
 
-###### [!Function] `open-base64-decode-input-port`  _source_ _:key_ _(owner?_ _#f)_
-###### [!Function] `open-base64-decode-output-port`  _sink_ _:key_ _(owner?_ _#f)_
-###### [!Function] `open-base64url-decode-input-port`  _source_ _:key_ _(owner?_ _#f)_
-###### [!Function] `open-base64url-decode-output-port`  _sink_ _:key_ _(owner?_ _#f)_
+###### [!Function] `open-base64-decode-input-port`  _source_ :key (_owner?_ #f)
+###### [!Function] `open-base64-decode-output-port`  _sink_ :key (_owner?_ #f)
+###### [!Function] `open-base64url-decode-input-port`  _source_ :key (_owner?_ #f)
+###### [!Function] `open-base64url-decode-output-port`  _sink_ :key (_owner?_ #f)
 
 Creates binary Base64 decode input and output port, respectively.
 
@@ -121,7 +122,12 @@ encoder and decoder are just a procedure which takes 2 arguments
 _get_ and _put_ and not reentrant as they have own internal
 buffer to process the input.
 
-###### [!Function] `make-base64-encoder`  _:key_ _(encode-table_ _*base64-encode-table*)_ _(line-width_ _76)_ _(padding?_ _#t)_
+###### [!Function] `make-base64-encoder`  :key (_encode-table_ `*base64-encode-table*`) (_line-width_ 76) (_padding?_ #t) (_linefeeds_ #f)
+
+_encode-table_ must be a valid Base 32 encode table.  
+_line-width_ must be either `#f` or integer.  
+_padding?_ must be a boolean value.  
+_linefeeds_ must be `#f` or u8 list reporesents end of line.__
 
 Creates a Base64 encoder. An encoder is a procedure which takes 2
 arguments _get_ and _put_.
@@ -140,7 +146,7 @@ determine which line break this encoder should use.
 
 The following shows how to make Base64 encoder with line break of CRLF.
 
-``````````scheme
+```scheme
 (define (base64-encode-w/crlf bv)
   (let-values (((out e) (open-bytevector-output-port)))
     (define (put v)
@@ -152,11 +158,11 @@ The following shows how to make Base64 encoder with line break of CRLF.
     (define encoder (make-base64-encoder))
     (do () ((encoder in put)))
     (e)))
-``````````
+```
 
 
 
-###### [!Function] `make-base64-decoder`  _:key_ _(decode-table_ _*base64-decode-table*)_
+###### [!Function] `make-base64-decoder` :key (_decode-table_ `*base64-decode-table*`)
 
 Creates a Base64 decoder. A decoder is a procedure which takes 2
 arguments _get_ and _put_.

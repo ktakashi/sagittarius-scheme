@@ -35,6 +35,7 @@
 * @[[utils/queue.md](utils/queue.md)]
 * @[[utils/record/builder.md](utils/record/builder.md)]
 * @[[utils/rfc/5322.md](utils/rfc/5322.md)]
+* @[[utils/rfc/base64.md](utils/rfc/base32.md)]
 * @[[utils/rfc/base64.md](utils/rfc/base64.md)]
 * @[[utils/rfc/cmac.md](utils/rfc/cmac.md)]
 * @[[utils/rfc/hmac.md](utils/rfc/hmac.md)]
