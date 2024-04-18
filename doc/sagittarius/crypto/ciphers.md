@@ -167,6 +167,23 @@ Creates a tag length cipher parameter with the given _tag-length_.
 
 Retrieves the `tag-length` field of the given _parameter_.
 
+###### [!Function] `tag-parameter?` _obj_
+
+Returns `#t` if the given _obj_ is a tag length cipher parameter,
+otherwise `#f`.
+
+This parameter is used by CCM and GCM-SIV (on decryption), and it's a
+required parameter.
+
+###### [!Function] `make-tag-parameter` (_tag_ `integer?`)
+
+Creates a tag length cipher parameter with the given _tag_.
+
+###### [!Function] `cipher-parameter-tag` (_parameter_ `cipher-parameter?`) :optional default
+
+Retrieves the `tag` field of the given _parameter_.
+
+
 ### [§4] Ciphers
 
 ###### [!Function] `cipher-descriptor?` _obj_
@@ -295,9 +312,20 @@ Mode descriptors for ECB, CBC, CFB, OFB, CTR, LRW and F8 respectively.
 ###### [!Mode descriptor] `*mode:ocb*`
 ###### [!Mode descriptor] `*mode:ocb3*`
 ###### [!Mode descriptor] `*mode:gcm*`
+###### [!Mode descriptor] `*mode:gcm-siv*`
+###### [!Mode descriptor] `*mode:ccm*`
 
-Mode descriptor for EAX, OCB, OCB3 and GCM respectively. These are
-authenticated encryption with assiciated data (AEAD) modes.
+Mode descriptor for EAX, OCB, OCB3, GCM, GCM-SIV and CCM
+respectively. These are authenticated encryption with assiciated data
+(AEAD) modes.
+
+GCM-SIV and CCM are `offline` mode, which means it requires to know
+all the input ahead. So, cipher encryption or decryption procedures
+don't return encrypted or decrypted values. Only the last block
+handling will do. This also implies that the last block handling
+may require output space more than input block size. To know the
+required space, use `block-cipher-last-block-size` procedure. See the example
+for the detail usage.
 
 ###### [!Function] `mode-descriptor-name` (_descriptor_ `mode-descriptor?`)
 
@@ -345,6 +373,12 @@ The encryption is executed by the given _cipher_.
 
 NOTE: the given _pt_ length and result cipher text length may differ
 if the _pt_ length is not multiple of the cipher block size.
+
+###### [!Function] `block-cipher-last-block-size` (_cipher_  `block-cipher?`) (_block_ (or `bytevector?` `integer?`))
+
+Returns the required output space in bytes.
+
+This procedure is useful when the encryption mode is GCM-SIV or CCM.
 
 ###### [!Function] `block-cipher-encrypt-last-block!` (_cipher_  `block-cipher?`) (_pt_ `bytevector?`) (_ps_ `integer?`) (_ct_ `bytevector?`) (_cs_ `integer?`)
 
@@ -444,7 +478,9 @@ Returns `#t` if the given _obj_ is a stream cipher descriptor, otherwise `#f`.
 Currently, below encryption algorithms are supported:
 
 ###### [!Stream cipher descriptor] `*scheme:chacha20*`
+###### [!Stream cipher descriptor] `*scheme:xchacha20*`
 ###### [!Stream cipher descriptor] `*scheme:chacha20-poly1305*`
+###### [!Stream cipher descriptor] `*scheme:xchacha20-poly1305*`
 
 ###### [!Function] `stream-cipher-descriptor-aead?` (_descriptor_ `stream-cipher-descriptor?`)
 

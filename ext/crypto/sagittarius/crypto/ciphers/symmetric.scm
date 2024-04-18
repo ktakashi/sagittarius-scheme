@@ -38,6 +38,7 @@
 	    make-block-cipher block-cipher-block-length
 	    block-cipher-init! block-cipher-init
 	    block-cipher-encrypt! block-cipher-encrypt
+	    block-cipher-last-block-size
 	    block-cipher-encrypt-last-block!
 	    block-cipher-encrypt-last-block
 	    block-cipher-decrypt! block-cipher-decrypt
@@ -108,7 +109,6 @@
 	    ;; Stream ciphers
 	    *scheme:chacha20* *scheme:chacha20-poly1305*
 	    *scheme:xchacha20* *scheme:xchacha20-poly1305*
-	    block-cipher-last-block-size
 	    )
     (import (rnrs)
 	    (clos user)

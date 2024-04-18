@@ -109,6 +109,13 @@ using a derived key. To do so, you need to use KDF, Key Derivation Function.
 ;; The rest can be the same as above CTR mode example.
 ```
 
+This example shows how to handle `offline` encryption mode.
+
+```scheme
+
+
+```
+
 #### Stream cipher
 
 This example encrypts and decrypts a plain text with a randomly generated
