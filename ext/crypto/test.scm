@@ -8,4 +8,5 @@
 (unless (getenv "SKIP_TEST_VECTOR") (load "tests/test-vectors.scm"))
 (load "tests/test-x509.scm")
 (load "tests/test-pkcs12.scm")
+(load "tests/test-misc.scm")
 (load "tests/test-legacy.scm")

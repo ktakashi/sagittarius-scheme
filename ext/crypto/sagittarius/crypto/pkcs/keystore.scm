@@ -570,7 +570,8 @@
 	  (values (reverse! r) privacy-desc)
 	  (let-values (((sb pd) (content-info->safe-bag (car ci*))))
 	    (loop (cons sb r) (cdr ci*) (or privacy-desc pd))))))
-    
+  (define (ensure-privacy-descriptor pd)
+    (or pd *pkcs12-privacy-descriptor:pbes2/aes-256-cbc-hmac-sha256*))
   (let*-values (((content mac-descriptor)
 		 (cond ((equal? content-type *cms:data-content-type*)
 			(verify-mac pfx
@@ -580,13 +581,13 @@
 		       (else
 			(error 'pfx->pkcs12-keystore
 			       "Unknown content type" pfx))))
-		((safe-bags privacy-descriptor)
+		((safe-bags pd)
 		 (content-infos->safe-bags (authenticated-safe->list content))))
     (let ((safe-bags (map safe-bag->pkcs12-safe-bag
 			  (append-map safe-contents->list safe-bags)))
-	  (ks (make <pkcs12-keystore> :integrity-descriptor mac-descriptor
-		    ;; TODO default privacy descriptor
-		    :privacy-descriptor privacy-descriptor)))
+	  (ks (make <pkcs12-keystore>
+		:integrity-descriptor mac-descriptor
+		:privacy-descriptor (ensure-privacy-descriptor pd))))
       (for-each (lambda (bag) (store-bag ks bag)) safe-bags)
       ks)))
 
