@@ -7,8 +7,8 @@ This library provides generic access for variety of keystores.
 
 The following example shows how to use this library:
 
-``````````scheme
-(import (security keystore))
+```scheme
+(import (rnrs) (security keystore))
 
 (define keystore (load-keystore 'jks "keystore.jks" "storepass"))
 
@@ -24,7 +24,7 @@ The following example shows how to use this library:
 (keystore-set-certificate! keystore "cert-name2" cert)
 
 (store-keystore-to-file keystore "keystore2.jks" "storepass2")
-``````````
+```
 
 ### [§3] Generic APIs
 
@@ -97,6 +97,9 @@ _alias_ shall be a string.
 The method shall return #t if _keystore_ contains an entry associated
 with _alias_. Otherwise #f shall be returend.
 
+###### [!Generic] `keystore-aliases`  _keystore_
+
+The method shall return all aliases in the given _keystore_ as a list.
 
 ###### [!Generic] `store-keystore`  _keystore_ _output-port_ _storepass_
 ###### [!Generic] `store-keystore-to-file`  _keystore_ _file_ _storepass_

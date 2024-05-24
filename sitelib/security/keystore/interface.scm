@@ -35,6 +35,7 @@
 	    keystore-get-certificate-chain
 	    keystore-get-creation-date
 	    keystore-contains-alias?
+	    keystore-aliases
 
 	    store-keystore
 	    store-keystore-to-file
@@ -76,5 +77,7 @@
   (define-generic keystore-set-key!)
   (define-generic keystore-set-certificate!)
   (define-generic keystore-delete-entry!)
+
+  (define-generic keystore-aliases)
 
 )

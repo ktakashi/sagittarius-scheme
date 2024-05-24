@@ -64,5 +64,7 @@
     (pkcs12-keystore-set-certificate! ks alias cert))
   (define-method keystore-delete-entry! ((ks <pkcs12-keystore>) alias)
     (pkcs12-keystore-delete-entry! ks alias))
-  
+
+  (define-method keystore-aliases ((ks <pkcs12-keystore>))
+    (pkcs12-keystore-aliases ks))
   )

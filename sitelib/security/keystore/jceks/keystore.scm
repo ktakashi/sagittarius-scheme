@@ -41,7 +41,9 @@
 	    generate-jceks-get-creation-date
 	    generate-jceks-set-key!
 	    generate-jceks-set-certificate!
-	    generate-jceks-delete-entry!)
+	    generate-jceks-delete-entry!
+
+	    generate-jceks-aliases)
     (import (rnrs)
 	    (clos user)
 	    (binary io)
@@ -160,7 +162,7 @@
   (define (generate-jceks-get-certificate-chain keystore?)
     (lambda (keystore alias)
       (or (keystore? keystore)
-	  (assertion-violation 'jks-keystore-get-key 
+	  (assertion-violation 'jks-keystore-get-certificate-chain 
 			       "Unknown keystore" keystore))
       (cond ((hashtable-ref (slot-ref keystore 'entries) alias #f) => 
 	     (lambda (e)
@@ -171,7 +173,7 @@
   (define (generate-jceks-get-creation-date keystore?)
     (lambda (keystore alias)
       (or (keystore? keystore)
-	  (assertion-violation 'jks-keystore-get-key 
+	  (assertion-violation 'jks-keystore-get-creation-date 
 			       "Unknown keystore" keystore))
       (cond ((hashtable-ref (slot-ref keystore 'entries) alias #f) => 
 	     (lambda (e) (time-utc->date (slot-ref e 'date))))
@@ -179,10 +181,17 @@
   (define (generate-jceks-contains-alias? keystore?)
     (lambda (keystore alias)
       (or (keystore? keystore)
-	  (assertion-violation 'jks-keystore-get-key 
+	  (assertion-violation 'jks-keystore-contains? 
 			       "Unknown keystore" keystore))
       (hashtable-contains? (slot-ref keystore 'entries) alias)))
 
+  (define (generate-jceks-aliases keystore?)
+    (lambda (keystore)
+      (or (keystore? keystore)
+	  (assertion-violation 'jks-keystore-aliases 
+			       "Unknown keystore" keystore))
+      (hashtable-keys-list (slot-ref keystore 'entries))))
+  
   ;; setters
   (define (generate-jceks-set-key! keystore? crypto?)
     (lambda (keystore alias key password certs)
@@ -228,21 +237,7 @@
 	   (make-x509-algorithm-identifier
 	    +pbe-with-md5-and-des3-oid+
 	    (make-pkcs-pbe-parameter salt count))
-	   password))
-
-;;	       (count 1024) ;; make it a bit bigger
-;;	       (param (make-algorithm-identifier
-;;		       +pbe-with-md5-and-des3-oid+
-;;		       (make-der-sequence
-;;			(make-der-octet-string salt)
-;;			(make-der-integer count))))
-;;	       (pbe-param (make-pbe-parameter salt count))
-;;	       (pbe-key (generate-secret-key pbe-with-md5-and-des3 password))
-;;	       (pbe-cipher (cipher pbe-with-md5-and-des 
-;;				   pbe-key :parameter pbe-param)))
-;;	  (make-encrypted-private-key-info param
-;;	    (encrypt pbe-cipher (encode (make-private-key-info key)))))
-	)
+	   password)))
       (define (wrap key)
 	(if crypto?
 	    (wrap-jceks key)
@@ -450,5 +445,8 @@
 
   (define (generate-jceks-delete-entry! keystore?)
     (lambda (keystore alias)
+      (or (keystore? keystore)
+	  (assertion-violation 'jks-keystore-delete-entry!
+			       "Unknown keystore" keystore))
       (hashtable-delete! (slot-ref keystore 'entries) alias)))
   )

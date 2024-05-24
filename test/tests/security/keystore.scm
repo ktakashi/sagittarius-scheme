@@ -3,6 +3,7 @@
 	(sagittarius crypto keys)
 	(rfc base64)
 	(rfc x.509)
+	(srfi :1)
 	(srfi :19)
 	(srfi :64))
 
@@ -128,7 +129,10 @@
   (test-assert "keystore-get-certificate (pkcs12)"
 	       (x509-certificate?
 		(keystore-get-certificate keystore "ca")))
-  
+  (let ((aliases (keystore-aliases keystore)))
+    (test-assert (not (zero? (length (keystore-aliases keystore)))))
+    (test-assert (lset= equal? aliases '("ca" "root")))
+    )
   (let ((file "test.p12"))
     (when (file-exists? file) (delete-file file))
     ;; test storing, we can put different password now
@@ -187,6 +191,7 @@
     (test-assert (format "creation date ~a" type)
 		 (date? (keystore-get-creation-date ks "key")))
 
+    (test-assert (lset= equal? (keystore-aliases ks) '("key" "cert")))
     (when (file-exists? file) (delete-file file))
     ;; test storing, we can put different password now
     (store-keystore-to-file ks file "test3")

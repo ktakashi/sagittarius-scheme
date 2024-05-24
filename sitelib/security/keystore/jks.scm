@@ -43,13 +43,12 @@
 	    jks-keystore-get-certificate-chain
 	    jks-keystore-get-creation-date
 	    jks-keystore-contains-alias?
-
+	    jks-keystore-aliases
 	    ;; set
 	    jks-keystore-set-key!
 	    jks-keystore-set-certificate!
 	    ;; delete
-	    jks-keystore-delete-entry!
-	    )
+	    jks-keystore-delete-entry!)
     (import (rnrs)
 	    (clos user)
 	    (security keystore jceks keystore)
@@ -86,6 +85,7 @@
     (generate-jceks-set-certificate! jks-keystore?))
   (define jks-keystore-delete-entry!
     (generate-jceks-delete-entry! jks-keystore?))
+  (define jks-keystore-aliases (generate-jceks-aliases jks-keystore?))
 
 
   (define-method keystore-get-key ((ks <jks-keystore>) alias password)
@@ -109,5 +109,7 @@
   (define-method keystore-delete-entry! ((ks <jks-keystore>) alias)
     (jks-keystore-delete-entry! ks alias))
 
+  (define-method keystore-aliases ((ks <jks-keystore>))
+    (jks-keystore-aliases ks))
 
 )
