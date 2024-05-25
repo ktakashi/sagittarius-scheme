@@ -2415,4 +2415,30 @@
 
 (test-equal 0 (mod-expt 0 2 #xFFFFFFFFFFFFFFFFFFFFFFFF))
 
+(define-syntax test-cond-expand-version
+  (lambda (x)
+    (define (generate-version generator)
+      (eval (syntax->datum generator)
+	    (current-library)))
+    (syntax-case x (version)
+      ((k (version (cmp generator)) body ...)
+       (with-syntax ((v (generate-version #'generator)))
+	 #'(cond-expand
+	    ((and cond-expand.version (version (cmp v))) body ...)
+	    (else #f)))))))
+
+(define (build-version)
+  (string-append (sagittarius-version) ".1"))
+
+(test-equal "version < (sagittarius-version).1"
+ "ok" (test-cond-expand-version (version (< (build-version))) "ok"))
+(test-assert "version > (sagittarius-version)"
+ (not (test-cond-expand-version (version (> (sagittarius-version))) "nok")))
+(test-equal "version <= (sagittarius-version).1"
+ "ok" (test-cond-expand-version (version (<= (build-version))) "ok"))
+(test-equal "version >= (sagittarius-version)" "ok"
+ (test-cond-expand-version (version (>= (sagittarius-version))) "ok"))
+(test-equal "version = (sagittarius-version)" "ok"
+ (test-cond-expand-version (version (= (sagittarius-version))) "ok"))
+
 (test-end)

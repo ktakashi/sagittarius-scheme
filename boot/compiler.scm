@@ -3298,7 +3298,7 @@
 (define (pass1/cond-expand clauses form p1env)
   (define (process-clause clauses)
     (define (cond-keyword? x)
-      (memq (identifier->symbol x) '(and or not library)))
+      (memq (identifier->symbol x) '(and or not library version)))
     (define (cond-else? x) 
       (and (variable? x) (eq? (identifier->symbol x) 'else)))
 
@@ -3313,6 +3313,7 @@
 	       ((or)  	  (fulfill-or (cdr req)))
 	       ((not) 	  (fulfill-not (cadr req)))
 	       ((library) (fulfill-library (cdr req)))
+	       ((version) (fulfill-version (cdr req)))
 	       (else
 		(syntax-error "invalid cond-expand feature expression" req))))))
 
@@ -3328,7 +3329,26 @@
 	    (or c1 (fulfill-or (cdr reqs))))))
     (define (fulfill-not req)
       (if (fulfill? req) #f #t))
-    (define (fulfill-library reqs) (find-library (car reqs) #f))
+    (define (fulfill-library reqs)
+      (when (or (null? reqs) (not (list? reqs)))
+	(syntax-error "library clause must contain a valid library name" reqs))
+      (find-library (car reqs) #f))
+    (define (fulfill-version reqs)
+      (when (or (null? reqs) (not (list? reqs)))
+	(syntax-error "version clause must be a list" reqs))
+      (let ((cmp (caar reqs))
+	    (version (cadar reqs))
+	    (current-version (sagittarius-version)))
+	(unless (string? version) 
+	  (syntax-error "version must be string" version))
+	(case (identifier->symbol cmp)
+	  ;; For now, we can do like this.
+	  ((>)  (string>? current-version version))
+	  ((>=) (string>=? current-version version))
+	  ((<)  (string<? current-version version))
+	  ((<=) (string<=? current-version version))
+	  ((=)  (string=? current-version version))
+	  (else (syntax-error "Invalid version comparison operator" cmp)))))
 
     (smatch clauses
       (() (syntax-error "unfulfilled cond-expand" form))

@@ -666,6 +666,9 @@ static void init_cond_features()
   Sg_AddCondFeature(UC("regexp-backrefs"));
   Sg_AddCondFeature(UC("regexp-unicode"));
 
+  /* version clause */
+  Sg_AddCondFeature(UC("cond-expand.version"));
+  
   /* extlib features */
   Sg__InitExtFeatures();
 }
