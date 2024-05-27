@@ -34,24 +34,34 @@
 #!nounbound
 (library (rfc uuid)
     (export <uuid>
-	    make-null-uuid
+	    make-null-uuid (rename (make-null-uuid make-nil-uuid))
+	    make-max-uuid
 	    make-v1-uuid
 	    make-v3-uuid
 	    make-v4-uuid
 	    make-v5-uuid
+	    make-v6-uuid
+	    make-v7-uuid
 	    uuid?
-	    null-uuid?
+	    null-uuid? (rename (null-uuid? nil-uuid?))
+	    max-uuid?
 	    v1-uuid?
 	    v3-uuid?
 	    v4-uuid?
 	    v5-uuid?
+	    v6-uuid?
+	    v7-uuid?
 	    uuid=?
 	    uuid-time-low
 	    uuid-time-mid
+	    uuid-ver (rename (uuid-ver uuid-version))
 	    uuid-time-high
+	    uuid-var
 	    uuid-clock-seq-var
 	    uuid-clock-seq-low
 	    uuid-node
+	    ;; version specific
+	    uuid-v7-unix-ts-ms
 	    ;; namespace
 	    +namespace-dns+
 	    +namespace-url+
@@ -66,6 +76,8 @@
 	    ;; parameters
 	    *uuid-random-state*
 	    *uuids-per-tick*
+	    *uuid-node*
+	    *uuid-clock-seq*
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -80,6 +92,9 @@
 (define *uuids-per-tick* (make-parameter 1024))
 (define *uuid-random-state* 
   (make-parameter (secure-random-generator *prng:chacha20*)))
+;; For testing purpose
+(define *uuid-node* (make-parameter (get-mac-address)))
+(define *uuid-clock-seq* (make-parameter (random (*uuid-random-state*) 10000)))
 
 ;; Represents an uuid
 #| The field names are kept the same as before for backward compatibility
@@ -135,6 +150,16 @@
        (zero? (uuid-var obj))
        (zero? (uuid-clock-seq obj))
        (zero? (uuid-node obj))))
+
+(define (max-uuid? obj)
+  (and (uuid? obj)
+       (= (uuid-time-low obj) #xFFFFFFFF)
+       (= (uuid-time-mid obj) #xFFFF)
+       (= (uuid-ver obj) #xF)
+       (= (uuid-time-high obj) #xFFF)
+       (= (uuid-var obj) #x3)
+       (= (uuid-clock-seq obj) #x3FFF)
+       (= (uuid-node obj) #xFFFFFFFFFFFF)))
 (define (check-version obj ver)
   (and (uuid? obj)
        (= ver (uuid-ver obj))))
@@ -142,6 +167,8 @@
 (define (v3-uuid? obj) (check-version obj 3))
 (define (v4-uuid? obj) (check-version obj 4))
 (define (v5-uuid? obj) (check-version obj 5))
+(define (v6-uuid? obj) (check-version obj 6))
+(define (v7-uuid? obj) (check-version obj 7))
 
 (define-method write-object ((uuid <uuid>) out)
   (format out "#<uuid ~a>" (uuid->string uuid)))
@@ -217,6 +244,14 @@
 (define (random seed bound) (random-generator-random-integer seed bound))
 ;; generators
 (define (make-null-uuid) (make <uuid>))
+(define (make-max-uuid) (make <uuid>
+			  :time-low #xFFFFFFFF
+			  :time-mid #xFFFF
+			  :ver #xF
+			  :time-high #xFFF
+			  :var #x3
+			  :clock-seq #x3FFF
+			  :node #xFFFFFFFFFFFF))
 ;; From RFC4122 reference implementation
 ;; Timestamp will be retrived inside of the procedure
 (define (mask n shift mask)
@@ -224,19 +259,16 @@
 		n
 		(bitwise-arithmetic-shift-right n shift))))
     (bitwise-and sn mask)))
-(define make-v1-uuid
-  (let ((node (bytevector->integer (get-mac-address)))
-	(clock-seq (random (*uuid-random-state*) 10000)))
-    (lambda ()
-      (let ((timestamp (get-current-time)))
-	(make <uuid>
-	  :time-low (mask timestamp 0 #xFFFFFFFF)
-	  :time-mid (mask timestamp 32 #xFFFF)
-	  :ver #x0001
-	  :time-high (mask timestamp 48 #x0FFF)
-	  :var #b10
-	  :clock-seq (bitwise-and clock-seq #x3FFF)
-	  :node node)))))
+
+(define (make-v1-uuid :optional (timestamp (get-current-time)))
+  (make <uuid>
+    :time-low (mask timestamp 0 #xFFFFFFFF)
+    :time-mid (mask timestamp 32 #xFFFF)
+    :ver #x0001
+    :time-high (mask timestamp 48 #x0FFF)
+    :var #b10
+    :clock-seq (bitwise-and (*uuid-clock-seq*) #x3FFF)
+    :node (bytevector->integer (*uuid-node*))))
 
 ;; Generates a version3 (name based MD5) uuid.
 (define (make-v3-uuid namespace name)
@@ -260,6 +292,37 @@
   (format-v3or5-uuid
    (digest-uuid *digest:sha-1* (uuid->bytevector namespace) name)
    5))
+
+;; Generates a version 6 uuid
+(define (make-v6-uuid :optional (timestamp (get-current-time)))
+  ;; timestamp = 60bit integer
+  (make <uuid>
+    :time-low (mask timestamp 28 #xFFFFFFFF)
+    :time-mid (mask timestamp 12 #xFFFF)
+    :ver #x0006
+    :time-high (mask timestamp 0 #x0FFF)
+    :var #b10
+    :clock-seq (bitwise-and (*uuid-clock-seq*) #x3FFF)
+    :node (bytevector->integer (*uuid-node*))))
+
+(define (unix-milliseconds) (div (microsecond) 1000))
+
+(define (make-v7-uuid :optional
+		      (timestamp (unix-milliseconds))
+		      (seed (*uuid-random-state*)))
+  ;; timestamp = 48bit integer
+  (make <uuid>
+    :time-low (mask timestamp 16 #xFFFFFFFF)
+    :time-mid (mask timestamp 0 #xFFFF)
+    :ver #x0007
+    :time-high (random seed #x0FFF)
+    :var #b10
+    :clock-seq (bitwise-and (random seed #xffff) #x3FFF)
+    :node (random seed #xffffffffffff)))
+
+(define (uuid-v7-unix-ts-ms (uuid v7-uuid?))
+  (bitwise-ior (bitwise-arithmetic-shift-left (uuid-time-low uuid) 16)
+	       (uuid-time-mid uuid)))
 
 ;; compare
 (define (uuid=? uuid1 uuid2)

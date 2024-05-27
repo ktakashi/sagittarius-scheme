@@ -1,6 +1,7 @@
 (import (rnrs)
 	(sagittarius)
 	(rfc uuid)
+	(srfi :39 parameters)
 	(srfi :64 testing))
 
 (test-begin "RFC UUID tests")
@@ -27,6 +28,9 @@
 (test-assert (null-uuid? (make-null-uuid)))
 (test-assert (v1-uuid? (make-v1-uuid)))
 (test-assert (v4-uuid? (make-v4-uuid)))
+
+(test-assert (v6-uuid? (make-v6-uuid)))
+(test-assert (v7-uuid? (make-v7-uuid)))
 
 (test-error (string->uuid "2eb8aa08-aa98-11ea-b4ga-73b441d16380"))
 
@@ -73,6 +77,25 @@
   (test-assert "uuid=?" (uuid=? v5-uuid2 v5-uuid))
   (test-assert "compare (v5)"
 	       (bytevector=? v5-uuid-bv (uuid->bytevector v5-uuid2))))
+
+(let ((m1 (make-max-uuid))
+      (m2 (string->uuid "FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF")))
+  (test-assert "max uuid (1)" (max-uuid? m1))
+  (test-assert "max uuid (2)" (max-uuid? m2))
+  (test-assert (uuid=? m1 m2)))
+
+;; v1 and v6 test vector
+(parameterize ((*uuid-node* #vu8(#x9F #x6B #xDE #xCE #xD8 #x46))
+	       (*uuid-clock-seq* #x33C8))
+  (let ((timestamp #x1EC9414C232AB00))
+    (test-assert (uuid=? (string->uuid "C232AB00-9414-11EC-B3C8-9F6BDECED846")
+			 (make-v1-uuid timestamp)))
+    (test-assert (uuid=? (string->uuid "1EC9414C-232A-6B00-B3C8-9F6BDECED846")
+			 (make-v6-uuid timestamp)))))
+
+(let ((uuid (make-v7-uuid #x017F22E279B0)))
+  (test-equal #x017F22E279B0 (uuid-v7-unix-ts-ms uuid))
+  (test-equal 7 (uuid-version uuid)))
 
 
 (test-end)
