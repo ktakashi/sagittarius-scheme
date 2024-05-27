@@ -1,7 +1,7 @@
 [§2] (rfc base32) - Base 32 encode and decode library {#rfc.base32}
 -------------
 
-###### [!Library] `(rfc base32)` 
+###### [!Library] `(rfc base32)` **[@since] `0.9.12`** 
 
 This library provides Base 64 encoding and decoding procedures.
 

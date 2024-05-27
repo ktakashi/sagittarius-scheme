@@ -97,7 +97,7 @@ _alias_ shall be a string.
 The method shall return #t if _keystore_ contains an entry associated
 with _alias_. Otherwise #f shall be returend.
 
-###### [!Generic] `keystore-aliases`  _keystore_
+###### [!Generic] `keystore-aliases`  _keystore_ **[@since] `0.9.12`**
 
 The method shall return all aliases in the given _keystore_ as a list.
 

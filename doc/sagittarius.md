@@ -47,17 +47,41 @@ platform dependencies such as C's `#ifdef` preprocessor.
 _clauses_ must be one of these forms:
 
 - (_feature-identifier_ _body_ ...)
+- ((`version` (_compare_ _version)) _body_ ...) **[@since] `0.9.12`**
 - ((`library` _library-name_) _body_ ...)
 - ((`and` _feature-identifier_ ...) _body_ ...)
 - ((`or` _feature-identifier_ ...) _body_ ...)
 - (`not` _feature-identifier_)
 
-`library` form searches the given _library-name_ and if it is found,
+`version` clause checks the Sagittarius version. The _compare_ must be
+one of `>`, `>=`, `=`, `<=` or `<`. And _version_ must be a string which
+represents the target version.  
+This feature is since `0.9.12` and provides `cond-expand.version` feature
+identifier.  
+This is Sagittarius' extension. See the below example how to use it.
+
+`library` clause searches the given _library-name_ and if it is found,
 then compiles _body_.
 
 `and`, `or` and `not` are the same as usual syntax.
 
 Users can check possible _feature-identifier_s via `cond-features`procedure.
+
+```scheme
+;; version clause example
+(cond-expand
+ ;; For backward compatible way among other Sagittarius versions
+ ((and cond-expand.version (version (>= "0.9.12")))
+  ;; Code for higher than or equal to the version 0.9.12
+  )
+ ;; In case other Scheme implementations support the same thing
+ ((and sagittarius cond-expand.version (version (>= "0.9.12")))
+  ;; Sagittarius 0.9.12 or higher specific code
+  )
+ (else
+  ;; Version lower than 0.9.12 code
+  ))
+```
 
 
 ### [§3] Macro transformer

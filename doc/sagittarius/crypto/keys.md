@@ -220,6 +220,9 @@ specified. Below are the supported EC parameters.
 ###### [!EC parameter] `*ec-parameter:b283*`
 ###### [!EC parameter] `*ec-parameter:b409*`
 ###### [!EC parameter] `*ec-parameter:b571*`
+###### [!EC parameter] `*ec-parameter:secp160r1*` **[@since] `0.9.12`**
+###### [!EC parameter] `*ec-parameter:secp160k1*` **[@since] `0.9.12`**
+###### [!EC parameter] `*ec-parameter:secp160r2*` **[@since] `0.9.12`**
 ###### [!EC parameter] `*ec-parameter:secp192r1*`
 ###### [!EC parameter] `*ec-parameter:secp224r1*`
 ###### [!EC parameter] `*ec-parameter:secp256r1*`

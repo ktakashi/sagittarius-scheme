@@ -303,6 +303,13 @@
 		  ,((->html options) (sxml:attr element 'label)))
 	       (div (@ (node-type "footnote-description"))
 		    ,@(map (->html options) (sxml:content element))))))
+
+(define (since-handler element options)
+  `(since (@ (node-type "since"))
+	  (span (@ (node-type "since-version")
+		   (version ,(sxml:attr element 'version)))
+		,(sxml:attr element 'version))))
+
 (define (options->attribute options marker)
   (let ((resolver (html-output-options-attribute-resolver options)))
     (or (and resolver (resolver options marker))
@@ -333,6 +340,7 @@
     (eval ,eval-handler)
     (ref ,ref-handler)
     (footnote ,footnote-handler)
+    (since ,since-handler)
     ))
 
 )

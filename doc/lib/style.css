@@ -280,3 +280,11 @@ hr {
 ul.child-content {
     list-style-type: none;
 }
+
+since {
+    color: #00ddFF;
+    font-weight: bold;
+}
+since > span:before {
+    content: "@since ";
+}

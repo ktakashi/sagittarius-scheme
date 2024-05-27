@@ -217,6 +217,25 @@
 	  2)
 	0)))
 
+(define-markdown-node (since (attribute version "doc:version"))
+  (namespace *document-namespace*)
+  (element "doc:since"))
+(define (since-processor node visit-children)
+  (define children (markdown-node:children node))
+  (and-let* (( (= (length children) 2) )
+	     (first-node (car children))
+	     ( (text-node? first-node) )
+	     (last-node (cadr children))
+	     ( (code-node? last-node) )
+	     (text (text-node:content first-node))
+	     ( (string=? "[@since]" (string-trim-both text)) )
+	     (version (code-node:literal last-node)))
+    (let ((since-node (make-since-node (markdown-node-parent node) version)))
+      (markdown-node:insert-after! node since-node)
+      (markdown-node:unlink! node))))
+(define since-post-processor
+  (make-post-processor
+   (make-post-processor-spec strong-emphasis-node? since-processor)))
 
 (define document-extension
   (markdown-extension-builder
@@ -224,7 +243,8 @@
 			       make-marker-delimiter-processor))
    (post-processors (list code-output-post-processor
 			  include-post-processor
-			  section-post-processor))))
+			  section-post-processor
+			  since-post-processor))))
 
 ;; Converters
 (define (convert-document document data next)
@@ -413,6 +433,9 @@
 		 (label ,(footnote-block-node-label node)))
 	      ,@(append-map next (markdown-node:children node)))))
 
+(define (convert-since node data next)
+  `((since (@ (version ,(since-node-version node))))))
+
 (define-markdown-converter markdown->document-converter document
   (document-node? convert-document)
   (paragraph-node? convert-paragraph)
@@ -449,6 +472,7 @@
   (gfm:table-cell-node? convert-table-cell)
   (footnote-node? convert-footnote)
   (footnote-block-node? convert-footnote-block)
+  (since-node? convert-since)
   )
 
 )

@@ -312,8 +312,8 @@ Mode descriptors for ECB, CBC, CFB, OFB, CTR, LRW and F8 respectively.
 ###### [!Mode descriptor] `*mode:ocb*`
 ###### [!Mode descriptor] `*mode:ocb3*`
 ###### [!Mode descriptor] `*mode:gcm*`
-###### [!Mode descriptor] `*mode:gcm-siv*`
-###### [!Mode descriptor] `*mode:ccm*`
+###### [!Mode descriptor] `*mode:gcm-siv*` **[@since] `0.9.12`** 
+###### [!Mode descriptor] `*mode:ccm*` **[@since] `0.9.12`** 
 
 Mode descriptor for EAX, OCB, OCB3, GCM, GCM-SIV and CCM
 respectively. These are authenticated encryption with assiciated data
@@ -478,9 +478,9 @@ Returns `#t` if the given _obj_ is a stream cipher descriptor, otherwise `#f`.
 Currently, below encryption algorithms are supported:
 
 ###### [!Stream cipher descriptor] `*scheme:chacha20*`
-###### [!Stream cipher descriptor] `*scheme:xchacha20*`
+###### [!Stream cipher descriptor] `*scheme:xchacha20*` **[@since] `0.9.12`** 
 ###### [!Stream cipher descriptor] `*scheme:chacha20-poly1305*`
-###### [!Stream cipher descriptor] `*scheme:xchacha20-poly1305*`
+###### [!Stream cipher descriptor] `*scheme:xchacha20-poly1305*` **[@since] `0.9.12`** 
 
 ###### [!Function] `stream-cipher-descriptor-aead?` (_descriptor_ `stream-cipher-descriptor?`)
 
