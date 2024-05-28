@@ -94,7 +94,7 @@
 			 (make-v6-uuid timestamp)))))
 
 (let ((uuid (make-v7-uuid #x017F22E279B0)))
-  (test-equal #x017F22E279B0 (uuid-v7-unix-ts-ms uuid))
+  (test-equal #x017F22E279B0 (v7-uuid-unix-ts-ms uuid))
   (test-equal 7 (uuid-version uuid)))
 
 

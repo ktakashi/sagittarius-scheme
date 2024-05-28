@@ -61,7 +61,7 @@
 	    uuid-clock-seq-low
 	    uuid-node
 	    ;; version specific
-	    uuid-v7-unix-ts-ms
+	    v7-uuid-unix-ts-ms
 	    ;; namespace
 	    +namespace-dns+
 	    +namespace-url+
@@ -320,12 +320,12 @@
     :clock-seq (bitwise-and (random seed #xffff) #x3FFF)
     :node (random seed #xffffffffffff)))
 
-(define (uuid-v7-unix-ts-ms (uuid v7-uuid?))
+(define (v7-uuid-unix-ts-ms (uuid v7-uuid?))
   (bitwise-ior (bitwise-arithmetic-shift-left (uuid-time-low uuid) 16)
 	       (uuid-time-mid uuid)))
 
 ;; compare
-(define (uuid=? uuid1 uuid2)
+(define (uuid=? (uuid1 uuid?) (uuid2 uuid?))
   (or (eq? uuid1 uuid2)		; short cut
       (and (= (uuid-time-low uuid1) (uuid-time-low uuid2))
 	   (= (uuid-time-mid uuid1) (uuid-time-mid uuid2))
