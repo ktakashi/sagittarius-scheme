@@ -18,7 +18,7 @@ good with cryptographics, so the `(crypto)` library is not totally tested.
 Just the functionalities which I usually use are tested. If you find a bug or
 wrong documentation, pleas report it.
 
-###### [!Library] `(crypto)` 
+###### [!Library] `(crypto)` **[@deprecated]**
 
 This library is the top most library, it exports all the other libraries
 procedures. Users must import only this and not to use the others.

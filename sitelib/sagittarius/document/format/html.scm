@@ -310,6 +310,9 @@
 		   (version ,(sxml:attr element 'version)))
 		,(sxml:attr element 'version))))
 
+(define (deprecated-handler element options)
+  `(deprecated (@ (node-type "deprecated"))))
+
 (define (options->attribute options marker)
   (let ((resolver (html-output-options-attribute-resolver options)))
     (or (and resolver (resolver options marker))
@@ -341,6 +344,7 @@
     (ref ,ref-handler)
     (footnote ,footnote-handler)
     (since ,since-handler)
+    (deprecated ,deprecated-handler)
     ))
 
 )

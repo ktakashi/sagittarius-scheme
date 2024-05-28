@@ -288,3 +288,11 @@ since {
 since > span:before {
     content: "@since ";
 }
+
+deprecated:before {
+    content: "DEPRECATED"
+}
+deprecated {
+    color: #ffff00;
+    font-weight: bold;
+}

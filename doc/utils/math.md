@@ -12,7 +12,7 @@ This section describes matheatics operations which are used by
 This library also uses `libtomcrypt` as its implemention except prime
 number operations.
 
-###### [!Library] `(math)` 
+###### [!Library] `(math)` **[@deprecated]**
 
 The top most level library of mathematics. It exports all of procedures
 from `(math random)`, `(math hash)`, `(math prime)` and
@@ -20,7 +20,7 @@ from `(math random)`, `(math hash)`, `(math prime)` and
 
 ### [§3] Random number operations
 
-###### [!Library] `(math random)` 
+###### [!Library] `(math random)` **[@deprecated]**
 
 This library exports procedures for random numbers.
 
@@ -161,7 +161,7 @@ cipher spi or hash algorithm.
 
 The following example describes how to make it.
 
-``````````scheme
+```scheme
 ;; the code snipet is from math/mt-random
 (define-class <mersenne-twister> (<user-prng>)
   (;; The array for the state vector
@@ -176,7 +176,7 @@ The following example describes how to make it.
     (slot-set! o 'read-random! mt-read-random!)
     (when seed
       (mt-set-seed o seed))))
-``````````
+```
 
 User just need to set the slots `set-seed!` and `read-random!`. Then
 other process is done by lower layer.
@@ -196,7 +196,7 @@ Make sure which version of Sagittarius your application using.
 
 ### [§3] Hash operations {#math.hash}
 
-###### [!Library] `(math hash)` 
+###### [!Library] `(math hash)` **[@deprecated]**
 
 This library exports procedures for hash (digest) operations.
 
@@ -309,7 +309,7 @@ cipher spi described section [Creating own cipher](#custom.cipher).
 
 The following example describes how to make it.
 
-``````````scheme
+```scheme
 (import (rnrs) (sagittarius) (math) (clos user))
 ;; hash operations
 (define (foo-init hash) #t)
@@ -338,7 +338,7 @@ The following example describes how to make it.
 
 ;; use with APIs
 (hash FOO (string->utf8 "hash")) ;; -> #vu8(245 221 54 232 0 0 0 0)
-``````````
+```
 
 The slots `init`, `process` and `done` must be set with a
 procedure which will be called by `hash-init!`, `hash-process!` and
@@ -360,7 +360,7 @@ if you need.
 
 ### [§3] Prime number operations
 
-###### [!Library] `(math prime)` 
+###### [!Library] `(math prime)` **[@deprecated]**
 
 This library exports procedures for prime number operations.
 
@@ -390,7 +390,7 @@ number.
 
 ### [§3] Misc arithmetic operations
 
-###### [!Library] `(math helper)` 
+###### [!Library] `(math helper)` **[@deprecated]**
 
 This library exports procedures for misc arithmetic operations.
 

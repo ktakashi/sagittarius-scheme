@@ -237,6 +237,21 @@
   (make-post-processor
    (make-post-processor-spec strong-emphasis-node? since-processor)))
 
+(define-markdown-node (deprecated)
+  (namespace *document-namespace*)
+  (element "doc:deprecated"))
+(define (deprecated-processor node visit-children)
+  (define child (markdown-node:first-child node))
+  (and-let* (( (text-node? child) )
+	     (text (text-node:content child))
+	     ( (string=? "[@deprecated]" (string-trim-both text)) ))
+    (let ((deprecated-node (make-deprecated-node (markdown-node-parent node))))
+      (markdown-node:insert-after! node deprecated-node)
+      (markdown-node:unlink! node))))
+(define deprecated-post-processor
+  (make-post-processor
+   (make-post-processor-spec strong-emphasis-node? deprecated-processor)))
+
 (define document-extension
   (markdown-extension-builder
    (delimiter-processors (list make-eval-delimiter-processor
@@ -244,6 +259,7 @@
    (post-processors (list code-output-post-processor
 			  include-post-processor
 			  section-post-processor
+			  deprecated-post-processor
 			  since-post-processor))))
 
 ;; Converters
@@ -436,6 +452,8 @@
 (define (convert-since node data next)
   `((since (@ (version ,(since-node-version node))))))
 
+(define (convert-deprecated node data next) `((deprecated)))
+
 (define-markdown-converter markdown->document-converter document
   (document-node? convert-document)
   (paragraph-node? convert-paragraph)
@@ -473,6 +491,7 @@
   (footnote-node? convert-footnote)
   (footnote-block-node? convert-footnote-block)
   (since-node? convert-since)
+  (deprecated-node? convert-deprecated)
   )
 
 )
