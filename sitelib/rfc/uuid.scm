@@ -52,6 +52,8 @@
 	    v6-uuid?
 	    v7-uuid?
 	    uuid=?
+	    uuid-orderable?
+	    uuid-compare
 	    uuid-time-low
 	    uuid-time-mid
 	    uuid-ver (rename (uuid-ver uuid-version))
@@ -334,6 +336,50 @@
 	   (= (uuid-var uuid1) (uuid-var uuid2))
 	   (= (uuid-clock-seq uuid1) (uuid-clock-seq uuid2))
 	   (= (uuid-node uuid1) (uuid-node uuid2)))))
+
+(define (uuid-orderable? (uuid uuid?))
+  (or (v1-uuid? uuid) (v6-uuid? uuid) (v7-uuid? uuid)))
+
+(define (compare< a b)
+  (cond ((= a b) #f)
+	((< a b) -1)
+	(else    1)))
+
+(define (v1-uuid-compare a b)
+  (cond ((compare< (uuid-time-high a) (uuid-time-high b)))
+	((compare< (uuid-time-mid a) (uuid-time-mid b)))
+	((compare< (uuid-time-low a) (uuid-time-low b)))
+	((compare< (uuid-clock-seq a) (uuid-clock-seq b)))
+	((compare< (uuid-node a) (uuid-node b)))
+	(else #t)))
+(define (v6-uuid-compare a b)
+  ;; reverse order :)
+  (cond ((compare< (uuid-time-low a) (uuid-time-low b)))
+	((compare< (uuid-time-mid a) (uuid-time-mid b)))
+	((compare< (uuid-time-high a) (uuid-time-high b)))
+	((compare< (uuid-clock-seq a) (uuid-clock-seq b)))
+	((compare< (uuid-node a) (uuid-node b)))
+	(else #t)))
+
+(define (v7-uuid-compare a b)
+  ;; reverse order :)
+  (cond ((compare< (uuid-time-low a) (uuid-time-low b)))
+	((compare< (uuid-time-mid a) (uuid-time-mid b)))
+	((compare< (uuid-time-high a) (uuid-time-high b)))
+	((compare< (uuid-clock-seq a) (uuid-clock-seq b)))
+	((compare< (uuid-node a) (uuid-node b)))
+	(else #t)))
+
+(define (uuid-compare (a uuid?) (b uuid?))
+  (or (and (uuid-orderable? a)
+	   (uuid-orderable? b)
+	   (= (uuid-ver a) (uuid-ver b))
+	   (case (uuid-ver a)
+	     ((1) (v1-uuid-compare a b))
+	     ((6) (v6-uuid-compare a b))
+	     ((7) (v7-uuid-compare a b))))
+      ;; then a < b
+      -1))
 
 ;; Converts an uuid to bytevector
 (define (uuid->bytevector id)

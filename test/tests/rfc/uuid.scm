@@ -98,4 +98,6 @@
   (test-equal 7 (uuid-version uuid)))
 
 
+(test-assert -1 (uuid-compare (make-v4-uuid) (make-v4-uuid)))
+
 (test-end)
