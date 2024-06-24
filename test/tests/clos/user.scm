@@ -435,7 +435,7 @@
   (define-generic predicate-test :class <custom-specializable-generic>)
   (define-method predicate-test ((a <integer>)) a)
   (define-method predicate-test ((a (predicate symbol?))) a)
-  (define-method predicate-test ((a (? string?))) a)
+  (define-method predicate-test ((a (?? string?))) a)
   (define-method predicate-test ((a (eqv? 'c))) 'ok)
   (test-equal 1 (predicate-test 1))
   (test-equal 'a (predicate-test 'a))
