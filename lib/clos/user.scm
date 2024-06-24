@@ -72,7 +72,7 @@
 		     <one-of-specializable-generic>))
 	    <one-of-specializer> 
 	    memq memv member one-of
-	    predicate ?
+	    predicate ??
 
 	    ;; class redefnition
 	    redefine-class!
@@ -277,7 +277,7 @@
 	    'define-class
 	    "malformed define-class" (unwrap-syntax x))))))
 
-  (define-syntax ?
+  (define-syntax ??
     (syntax-rules ()
       ((_ pred) (predicate pred))))
 
