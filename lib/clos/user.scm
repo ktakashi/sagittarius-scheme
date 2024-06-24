@@ -67,8 +67,12 @@
 
 	    eq eql equal
 	    eq? eqv? equal? ;; for prefix or rename import
-	    <one-of-specializer> <one-of-specializable-generic>
+	    <custom-specializable-generic>
+	    (rename (<custom-specializable-generic>
+		     <one-of-specializable-generic>))
+	    <one-of-specializer> 
 	    memq memv member one-of
+	    predicate ?
 
 	    ;; class redefnition
 	    redefine-class!
@@ -272,6 +276,10 @@
 	(_ (syntax-violation
 	    'define-class
 	    "malformed define-class" (unwrap-syntax x))))))
+
+  (define-syntax ?
+    (syntax-rules ()
+      ((_ pred) (predicate pred))))
 
   (define-syntax generate-add-method
     (lambda (x)

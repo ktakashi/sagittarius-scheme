@@ -24,12 +24,15 @@ _Supers_ must be list of class.
 
 _Slots_ must be following structure:
 
-``````````scheme
+```scheme
 _slots_ ::= (_slot_ ...)
 _slot_  ::= (_slot-name_ _specifiers_*)
 _specifiers_ ::= `:init-keyword` _keyword_ 
-		 | `:init-value` _value_                 | `:init-form` _form_                 | `:reader` _reader-function_                 | `:writer` _writer-function_
-``````````
+              | `:init-value` _value_
+              | `:init-form` _form_
+              | `:reader` _reader-function_
+              | `:writer` _writer-function_
+```
 
 Defines a new class.
 
@@ -67,11 +70,17 @@ by default. If you need it, see
 [(sagittarius mop allocation)](#sagittarius.mop.allocation).
 
 
-###### [!Macro] `define-generic`  _name_
+###### [!Macro] `define-generic` _name_ :key _class_
 
 _Name_ must be symbol.
 
 Creates a new generic function.
+
+By specifying _class_ keyword argument, users can customize the
+behaviour of the method specialization.
+
+We provide `<custom-specializable-generic>` for `memq`, `memv`, `member`
+and `predicate` specializer.
 
 
 ###### [!Macro] `define-method`  _name_ _specifiers_ _body_ _..._
@@ -80,11 +89,14 @@ _Name_ must be symbol.
 
 _Specifiers_ must be following structure:
 
-``````````scheme
+```scheme
 _specifiers_ ::= (_spec_ ... _rest_)
-_spec_ ::= (_argument-name_ _class_) | (_argument-name_)
+_spec_ ::= (_argument-name_ _class_) 
+       | (_argument-name_)
+       | (_argument-name_ (_specializer_ value))
 _rest_ ::= '() | symbol
-``````````
+_specializer_ ::= `eq` | `eql` | `equal` | `eq?` | `eqv?` | `equal?`
+```
 
 Adds defined method to _name_ generic. If the generic does not exist, this
 will create a new generic function implicitly.
