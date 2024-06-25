@@ -432,7 +432,7 @@
   (test-equal "c" (one-of-test "c")))
 
 (let ()
-  (define-generic predicate-test :class <custom-specializable-generic>)
+  (define-generic predicate-test :class <predicate-specializable-generic>)
   (define-method predicate-test ((a <integer>)) a)
   (define-method predicate-test ((a (predicate symbol?))) a)
   (define-method predicate-test ((a (?? string?))) a)

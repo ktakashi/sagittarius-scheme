@@ -67,9 +67,8 @@
 
 	    eq eql equal
 	    eq? eqv? equal? ;; for prefix or rename import
-	    <custom-specializable-generic>
-	    (rename (<custom-specializable-generic>
-		     <one-of-specializable-generic>))
+	    <predicate-specializable-generic>
+	    <one-of-specializable-generic>
 	    <one-of-specializer> 
 	    memq memv member one-of
 	    predicate ??

@@ -68,12 +68,12 @@
 	    eq eql equal
 
 	    ;; custom specializer generic
-	    <custom-specializable-generic>
+	    <predicate-specializable-generic>
 	    ;; for backward compatibility
-	    (rename (<custom-specializable-generic>
+	    (rename (<predicate-specializable-generic>
 		     <one-of-specializable-generic>))
 	    ;; one-of specializer
-	    one-of <one-of-specializer>
+	    one-of (rename (<predicate-specializer> <one-of-specializer>))
 	    predicate <predicate-specializer>
 
 	    ;; change-class
@@ -443,9 +443,9 @@
   ;; Code itself is still in (sagittarius mop eql)
   ;; here we can't use all those convenient macros so a bit
   ;; hard to read... 
-  (define <custom-specializable-generic>
+  (define <predicate-specializable-generic>
     (make <class>
-      :definition-name '<custom-specializable-generic>
+      :definition-name '<predicate-specializable-generic>
       :direct-supers (list <generic>)
       :direct-slots '()
       :defined-library #f))
@@ -460,54 +460,35 @@
 			 (cdr l))))
 		(else #f)))))
   
-  (define <one-of-specializer>
-    (make <class>
-      :definition-name '<one-of-specializer>
-      :direct-supers (list <class>)
-      :direct-slots '((list :init-keyword :list)
-		      (proc :init-keyword :proc))
-      :defined-library #f))
-  (define (one-of lis proc)
-    (make <one-of-specializer> :list lis :proc proc))
-  (define one-of-specializer/subtype?
-    (make-subtype-checker <one-of-specializer>))
-  
-  (define (one-of-specializer-match? sp obj)
-    (define (member-of sp obj)
-      (define lists (slot-ref sp 'list))
-      (define proc (slot-ref sp 'proc))
-      (proc obj lists))
-    (and (is-a? sp <one-of-specializer>)
-	 (member-of sp obj)))
-		     
   (define <predicate-specializer>
     (make <class>
       :definition-name '<predicate-specializer>
       :direct-supers (list <class>)
       :direct-slots '((pred :init-keyword :pred))
       :defined-library #f))
-
   (define (predicate pred)
     (make <predicate-specializer> :pred pred))
   (define predicate-specializer/subtype?
-    (make-subtype-checker <one-of-specializer>))
+    (make-subtype-checker <predicate-specializer>))
   (define (predicate-specializer-match? sp obj)
     (define (satisfies sp obj)
       (define pred (slot-ref sp 'pred))
       (pred obj))
     (and (is-a? sp <predicate-specializer>)
 	 (satisfies sp obj)))
+
+  (define (one-of lis proc)
+    (predicate (lambda (v) (proc v lis))))
   
   (add-method compute-applicable-methods
     (make <method>
-      :specializers (list <custom-specializable-generic> <list>)
+      :specializers (list <predicate-specializable-generic> <list>)
       :lambda-list '(gf l)
       :generic compute-applicable-methods
       :procedure
       (lambda (call-next-method gf args)
 	(define (specializer-match? sp obj)
-	  (or (one-of-specializer-match? sp obj)
-	      (predicate-specializer-match? sp obj)
+	  (or (predicate-specializer-match? sp obj)
 	      (and (eql-specializer? sp) (eql-specializer-compare sp obj))
 	      (is-a? obj sp)))
 	(define (method-applicable? method)
@@ -519,7 +500,6 @@
 			  (loop (cdr sps) (cdr args)))))))
 	(define (specializer-more-specific? a b arg)
 	  (or (eql-specializer? a) ;; this should be the strongest
-	      (one-of-specializer/subtype? a b arg)
 	      (predicate-specializer/subtype? a b arg)))
 	(define (more-specific? a b)
 	  (let loop ((sp-a (method-specializers a))

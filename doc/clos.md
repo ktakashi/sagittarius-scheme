@@ -79,7 +79,7 @@ Creates a new generic function.
 By specifying _class_ keyword argument, users can customize the
 behaviour of the method specialization.
 
-We provide `<custom-specializable-generic>` for `memq`, `memv`, `member`
+We provide `<predicate-specializable-generic>` for `memq`, `memv`, `member`
 and `predicate` specializer.
 
 
