@@ -2,6 +2,7 @@
 
 ;; helper library to be able to use define-generic and define-method
 ;; in the (clos user) library.
+#!nounbound
 (library (clos helper)
     (export %make-setter-name %check-setter-name LEXICAL)
     (import (core) (core syntax) (sagittarius))
@@ -24,6 +25,7 @@
   (define-constant LEXICAL 0)
 )
 
+#!nounbound
 (library (clos user)
     (export make
 	    initialize

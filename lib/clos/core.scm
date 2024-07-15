@@ -1,3 +1,4 @@
+#!nounbound
 (library (clos core)
     (export slot-ref slot-set! slot-bound? 
 	    slot-ref-using-accessor slot-set-using-accessor!
@@ -54,6 +55,7 @@
 	    write-object allocate-instance compute-applicable-methods
 	    compute-apply-methods
 	    compute-apply-generic compute-method-more-specific?
+	    filter-applicable-methods
 	    object-equal? object-apply |setter of object-apply|
 	    object-compare object-hash
 	    ;; helper
@@ -322,61 +324,70 @@
 	  (after   (list-sort more-specific? after)))
       (%compute-around-methods around before primary after)))
 
+  (define filter-applicable-methods
+    (make <generic> :definition-name 'filter-applicable-methods))
+  (add-method filter-applicable-methods
+   (make <method>
+     :specializers (list <generic> <list>)
+     :lambda-list '(gf l)
+     :generic filter-applicable-methods
+     :procedure (lambda (call-next-method gf args)
+		  (%compute-applicable-methods gf args))))
+
   (add-method compute-applicable-methods
-	      (make <method>
-		:specializers (list <generic> <list>)
-		:lambda-list '(g l)
-		:generic compute-applicable-methods
-		:procedure 
-		(lambda (call-next-method gf args)
-		  ;; To allow derived generic class have qualifiers
-		  ;; we do the same things done in C here as well.
-		  ;; FIXME duplicate code may introduce bugs!!
-		  (let ((applicable (%compute-applicable-methods gf args))
-			(more-specific?
-			 (compute-method-more-specific? gf args)))
-		    (let-values (((primary before after around)
-				  (%sort-method-by-qualifier applicable)))
-		      (if (and (null? before) (null?  after) (null? around))
-			  (list-sort more-specific? primary)
-			  (compute-around-methods around before primary after
-						  more-specific?)))))))
+   (make <method>
+     :specializers (list <generic> <list>)
+     :lambda-list '(g l)
+     :generic compute-applicable-methods
+     :procedure 
+     (lambda (call-next-method gf args)
+       ;; To allow derived generic class have qualifiers
+       ;; we do the same things done in C here as well.
+       ;; FIXME duplicate code may introduce bugs!!
+       (let ((applicable (filter-applicable-methods gf args))
+	     (more-specific? (compute-method-more-specific? gf args)))
+	 (let-values (((primary before after around)
+		       (%sort-method-by-qualifier applicable)))
+	   (if (and (null? before) (null?  after) (null? around))
+	       (list-sort more-specific? primary)
+	       (compute-around-methods around before primary after
+				       more-specific?)))))))
 
   (add-method compute-apply-methods
-	      (make <method>
-		:specializers (list <generic> <top> <top>)
-		:lambda-list '(g l a)
-		:generic compute-apply-methods
-		:procedure
-		(lambda (call-next-method gf methods args)
-		  (compute-apply-methods gf methods %make-next-method args))))
+   (make <method>
+     :specializers (list <generic> <top> <top>)
+     :lambda-list '(g l a)
+     :generic compute-apply-methods
+     :procedure
+     (lambda (call-next-method gf methods args)
+       (compute-apply-methods gf methods %make-next-method args))))
 
   (add-method compute-apply-methods
-	      (make <method>
-		:specializers (list <generic> <top> <top> <top>)
-		:lambda-list '(g l m a)
-		:generic compute-apply-methods
-		:procedure
-		(lambda (call-next-method gf methods build-next args)
-		  (apply (build-next gf methods args) args))))
+   (make <method>
+     :specializers (list <generic> <top> <top> <top>)
+     :lambda-list '(g l m a)
+     :generic compute-apply-methods
+     :procedure
+     (lambda (call-next-method gf methods build-next args)
+       (apply (build-next gf methods args) args))))
 
   ;; it's already documented so we can't remove this...
   (define compute-getters-and-setters
     (make <generic> :definition-name 'compute-getters-and-setters))
   (add-method compute-getters-and-setters
-    (make <method>
-      :specializers (list <class> <list>)
-      :lambda-list '(class slots)
-      :generic compute-getters-and-setters
-      :procedure
-      (lambda (call-next-method class slots)
-	(let loop ((i 0) (slots slots) (r '()))
-	  (if (null? slots)
-	      (reverse! r)
-	      (let* ((slot (car slots))
-		     (accs (compute-getter-and-setter class slot))
-		     (sac (apply %make-slot-accessor class slot i accs)))
-		(loop (+ i 1) (cdr slots) (cons sac r))))))))
+   (make <method>
+     :specializers (list <class> <list>)
+     :lambda-list '(class slots)
+     :generic compute-getters-and-setters
+     :procedure
+     (lambda (call-next-method class slots)
+       (let loop ((i 0) (slots slots) (r '()))
+	 (if (null? slots)
+	     (reverse! r)
+	     (let* ((slot (car slots))
+		    (accs (compute-getter-and-setter class slot))
+		    (sac (apply %make-slot-accessor class slot i accs)))
+	       (loop (+ i 1) (cdr slots) (cons sac r))))))))
 
   ;; change-class stuff
   ;; it's defined in C
@@ -480,24 +491,13 @@
   (define (one-of lis proc)
     (predicate (lambda (v) (proc v lis))))
   
-  (add-method compute-applicable-methods
+  (add-method compute-method-more-specific?
     (make <method>
       :specializers (list <predicate-specializable-generic> <list>)
       :lambda-list '(gf l)
-      :generic compute-applicable-methods
+      :generic compute-method-more-specific?
       :procedure
       (lambda (call-next-method gf args)
-	(define (specializer-match? sp obj)
-	  (or (predicate-specializer-match? sp obj)
-	      (and (eql-specializer? sp) (eql-specializer-compare sp obj))
-	      (is-a? obj sp)))
-	(define (method-applicable? method)
-	  (let loop ((sps (method-specializers method)) (args args))
-	    (if (null? sps)
-		(or (null? args) (method-optional method))
-		(and (not (null? args))
-		     (and (specializer-match? (car sps) (car args))
-			  (loop (cdr sps) (cdr args)))))))
 	(define (specializer-more-specific? a b arg)
 	  (or (eql-specializer? a) ;; this should be the strongest
 	      (predicate-specializer/subtype? a b arg)))
@@ -509,7 +509,7 @@
 			 (opt-b (method-optional b)))
 		     (if (eq? opt-a opt-b)
 			 (assertion-violation 'compute-applicable-methods
-			      "Two arguments are equally specific" a b)
+			   "Two arguments are equally specific" a b)
 			 (and opt-a (not opt-b)))))
 		  ((null? sp-a) #f)
 		  ((null? sp-b))
@@ -517,7 +517,26 @@
 		  (else
 		   (specializer-more-specific? (car sp-a) (car sp-b)
 					       (car args))))))
-	(list-sort more-specific?
-		   (filter method-applicable? (generic-methods gf))))))
+	more-specific?)))
+
+  (add-method filter-applicable-methods
+    (make <method>
+      :specializers (list <predicate-specializable-generic> <list>)
+      :lambda-list '(gf l)
+      :generic filter-applicable-methods
+      :procedure
+      (lambda (call-next-method gf args)
+	(define (specializer-match? sp obj)
+	  (or (and (eql-specializer? sp) (eql-specializer-compare sp obj))
+	      (predicate-specializer-match? sp obj)
+	      (is-a? obj sp)))
+	(define (method-applicable? method)
+	  (let loop ((sps (method-specializers method)) (args args))
+	    (if (null? sps)
+		(or (null? args) (method-optional method))
+		(and (not (null? args))
+		     (and (specializer-match? (car sps) (car args))
+			  (loop (cdr sps) (cdr args)))))))
+	(filter method-applicable? (generic-methods gf)))))
 
   )

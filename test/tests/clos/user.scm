@@ -437,12 +437,14 @@
   (define-method predicate-test ((a (predicate symbol?))) a)
   (define-method predicate-test ((a (?? string?))) a)
   (define-method predicate-test ((a (eqv? 'c))) 'ok)
+  (define-method predicate-test :around ((a (eqv? 'around)))
+    (cons (call-next-method "a") 'ok))
   (test-equal 1 (predicate-test 1))
   (test-equal 'a (predicate-test 'a))
   (test-equal 'd (predicate-test 'd))
   (test-equal 'ok (predicate-test 'c))
   (test-equal "a" (predicate-test "a"))
+  (test-equal '("a" . ok) (predicate-test 'around))
   (test-error (predicate-test #f)))
   
-
 (test-end)
