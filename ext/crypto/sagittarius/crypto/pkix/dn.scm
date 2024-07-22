@@ -58,21 +58,36 @@
 
 (define (string->x509-name (dn string?))
   (define (string-dn->list-components s)
-    (define len (string-length s))
-    (define (split-attr k&v)
-      (cond ((string-index k&v #\=) =>
-	     (lambda (i)
-	       (list (string->symbol (substring k&v 0 i))
-		     (substring k&v (+ i 1) (string-length k&v)))))
-	    (else #f)))
-    
-    (let loop ((r '()) (off 0))
-      (cond ((= off len) (reverse r))
-	    ((string-index s #\, off) =>
-	     (lambda (i)
-	       (loop (cons (split-attr (substring s off i)) r) (+ i 1))))
-	    (else
-	     (reverse (cons (split-attr (substring s off len)) r))))))
+    (define in (open-string-input-port s))
+    (define (read-element in mark)
+      (let loop ((r '()))
+	(let ((c (get-char in)))
+	  (cond ((eof-object? c)
+		 (if (null? r)
+		     c
+		     (list->string (reverse! r))))
+		((eqv? c #\\)
+		 (let ((c1 (get-char in)))
+		   (cond ((eof-object? c1) (list->string (reverse! r)))
+			 (else (loop (cons c1 r))))))
+		((eqv? c mark) (list->string (reverse! r)))
+		(else (loop (cons c r)))))))
+    (define (read-rdn in)
+      (let* ((k (read-element in #\=))
+	     (v (read-element in #\,)))	
+	(cond ((and (eof-object? k) (eof-object? v)) k)
+	      ((or (eof-object? k) (eof-object? v)) #f)
+	      (else
+	       (let* ((k1 (string->symbol k))
+		      (n (cond ((assoc k1 *reverse-oid-map*) k1)
+			       (else k))))
+		 (list n v))))))
+
+    (let loop ((r '()))
+      (let ((kv (read-rdn in)))
+	(cond ((eof-object? kv) (reverse! r))
+	      ((not kv) #f) ;; invalid
+	      (else (loop (cons kv r)))))))
   (cond ((string-dn->list-components dn) => list->x509-name)
 	(else (assertion-violation 'string->x509-name "Invalid DN" dn))))
 

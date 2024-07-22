@@ -459,7 +459,9 @@
     (test-equal #f (x509-certificate-revocation-list-crl-extensions crl))
     (test-equal #f (x509-certificate-revocation-list-next-update crl))))
 
-(let ((s (x509-name->string subject-dn)))
-  (test-equal s (x509-name->string (string->x509-name s))))
+(define (check-dn dn)
+  (test-equal dn (x509-name->string (string->x509-name dn))))
+(check-dn (x509-name->string subject-dn))
+(check-dn "C=NL,OU=Sagittarius\\,Scheme,CN=ktakashi@ymail.com")
 
 (test-end)
