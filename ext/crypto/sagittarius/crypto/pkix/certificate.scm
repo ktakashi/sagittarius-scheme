@@ -32,6 +32,7 @@
 (library (sagittarius crypto pkix certificate)
     (export x509-name? <x509-name> x509-name
 	    x509-name->string
+	    string->x509-name
 	    list->x509-name
 
 	    x509-validity? <x509-validity>

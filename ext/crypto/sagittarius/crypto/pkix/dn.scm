@@ -32,6 +32,7 @@
 (library (sagittarius crypto pkix dn)
     (export x509-name? <x509-name> x509-name
 	    x509-name->string
+	    string->x509-name
 	    list->x509-name
 
 	    name->x509-name
@@ -54,6 +55,27 @@
   (let ((style (or style default-style))
 	(rdn* (name-rdn* (x509-name->name name))))
     (string-join (map style rdn*) ",")))
+
+(define (string->x509-name (dn string?))
+  (define (string-dn->list-components s)
+    (define len (string-length s))
+    (define (split-attr k&v)
+      (cond ((string-index k&v #\=) =>
+	     (lambda (i)
+	       (list (string->symbol (substring k&v 0 i))
+		     (substring k&v (+ i 1) (string-length k&v)))))
+	    (else #f)))
+    
+    (let loop ((r '()) (off 0))
+      (cond ((= off len) (reverse r))
+	    ((string-index s #\, off) =>
+	     (lambda (i)
+	       (loop (cons (split-attr (substring s off i)) r) (+ i 1))))
+	    (else
+	     (reverse (cons (split-attr (substring s off len)) r))))))
+  (cond ((string-dn->list-components dn) => list->x509-name)
+	(else (assertion-violation 'string->x509-name "Invalid DN" dn))))
+
 (define-method write-object ((o <x509-name>) p)
   (format p "#<509-name ~a>" (x509-name->string o)))
 (define-method object-equal? ((a <x509-name>) (b <x509-name>))

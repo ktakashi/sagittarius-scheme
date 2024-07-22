@@ -458,4 +458,8 @@
     (test-equal '() (x509-certificate-revocation-list-revoked-certificates crl))
     (test-equal #f (x509-certificate-revocation-list-crl-extensions crl))
     (test-equal #f (x509-certificate-revocation-list-next-update crl))))
+
+(let ((s (x509-name->string subject-dn)))
+  (test-equal s (x509-name->string (string->x509-name s))))
+
 (test-end)
