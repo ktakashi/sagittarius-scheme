@@ -105,5 +105,31 @@
   (test-equal alist-json (vector-json->alist-json vector-json))
   (test-equal vector-json (alist-json->vector-json alist-json)))
 		    
-
+(let ()
+  (define formatted 
+"{
+  \"foo\": \"bar\",
+  \"buz\": [
+    1,
+    {
+      \"bah\": null,
+      \"boo\": true,
+      \"arr\": [
+        1,
+        2,
+        [
+          0
+        ],
+        3
+      ]
+    }
+  ]
+}")
+  (let ((json '#(("foo" . "bar")
+		 ("buz" 1 #(("bah" . null)
+			    ("boo" . #t)
+			    ("arr" 1 2 (0) 3))))))
+    (let-values (((out e) (open-string-output-port)))
+      (json-write/pretty json out)
+      (test-equal "JSON pretty print" formatted (e)))))
 (test-end)

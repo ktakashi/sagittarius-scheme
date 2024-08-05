@@ -31,6 +31,7 @@
 (library (text json parse)
     (export json-write
 	    json-write/normalized
+	    json-write/pretty
 	    json-read
 
 	    json-read-error?
@@ -75,16 +76,19 @@
 			   "type must be 'vector or 'alist" x)))))
 
   ;; write
-  (define (%json-write x port comma colon)
+  (define (%json-write x port comma colon indent)
+    (define (write-indent n out)
+      (when n
+	(do ((i 0 (+ i 1)))
+	    ((= i (* n 2)))
+	  (display #\space out))))
     (define type (*json-map-type*))
-    (define (hashtable->vector ht)
-      (list->vector (hashtable->alist ht)))
-    (define (write-ht vec port)
-      (define len (vector-length vec))
-      (display "{" port)
-      (let loop ((i 0))
-	(unless (= i len)
-	  (unless (zero? i) (display comma port))
+    (define (hashtable->vector ht) (list->vector (hashtable->alist ht)))
+    (define (write-ht vec port indent)
+      (display "{" port) (when indent (newline port))
+      (do ((len (vector-length vec)) (n (and indent (+ indent 1))) (i 0 (+ i 1)))
+	  ((= i len))
+	  (write-indent n port)
 	  (let* ((e (vector-ref vec i))
 		 (k (car e))
 		 (v (cdr e)))
@@ -93,44 +97,55 @@
 		  (else (json-write-error
 			 "Invalid JSON table key in json-write" k)))
 	    (display colon port)
-	    (write-any v port))
-	  (loop (+ i 1))))
-      (display "}" port))
-    (define (write-array arr port)
+	    (write-any v port n))
+	  (unless (= i (- len 1)) (display comma port))
+	  (when indent (newline port)))
+      (write-indent indent port) (display "}" port))
+    (define (write-array arr port indent)
+      (define new-indent (and indent (+ indent 1)))
       (display "[" port)
       (let loop ((need-comma? #f) (arr arr))
 	(unless (null? arr)
 	  (when need-comma? (display comma port))
-	  (write-any (car arr) port)
+	  (when new-indent
+	    (newline port)
+	    (write-indent new-indent port))
+	  (write-any (car arr) port new-indent)
 	  (loop #t (cdr arr))))
-      (display "]" port))
-    (define (write-any x port)
+      (when indent (newline port))
+      (write-indent indent port) (display "]" port))
+    (define (write-any x port indent)
       (cond 
-       ((hashtable? x) (write-ht (hashtable->vector x) port))
+       ((hashtable? x) (write-ht (hashtable->vector x) port indent))
        ((vector? x) 
 	(if (eq? type 'vector)
-	    (write-ht x port)
-	    (write-array (vector->list x) port)))
+	    (write-ht x port indent)
+	    (write-array (vector->list x) port indent)))
        ((list? x) 
 	(if (eq? type 'vector)
-	    (write-array x port)
-	    (write-ht (list->vector x) port)))
+	    (write-array x port indent)
+	    (write-ht (list->vector x) port indent)))
        ((eq? x 'null) (display "null" port))
        ((symbol? x) (write (symbol->string x) port))
        ((or (string? x) (number? x)) (write x port))
        ((boolean? x) (display (if x "true" "false") port))
        (else (json-write-error "Invalid JSON object in json-write" x))))
-    (write-any x port))
+    (write-any x port indent))
 
+  (define json-write/pretty
+    (case-lambda
+     ((x) (json-write/normalized x (current-output-port)))
+     ((x port) (%json-write x port "," ": " 0))))
+    
   (define json-write/normalized
     (case-lambda
      ((x) (json-write/normalized x (current-output-port)))
-     ((x port) (%json-write x port "," ":"))))
+     ((x port) (%json-write x port "," ":" #f))))
   
   (define json-write
     (case-lambda
      ((x) (json-write x (current-output-port)))
-     ((x port) (%json-write x port ", " ": "))))
+     ((x port) (%json-write x port ", " ": " #f))))
 
   (define (skip-white in)
     ;; TODO skip comment as well

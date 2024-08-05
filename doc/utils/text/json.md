@@ -51,6 +51,13 @@ _port_.
 
 The written JSON doesn't have excess space.
 
+###### [!Function] `json-write/pretty`  _json_ :optional (_port_ `(current-output-port)`) **[@since] `0.9.12`**
+
+Writes the given S-expression JSON representing object to given
+_port_.
+
+The written JSON is formatted to human readable.
+
 ###### [!Function] `json-read-error?` _obj_
 ###### [!Function] `json-write-error?` _obj_
 
