@@ -61,13 +61,14 @@ the default value of not-found. This is useful when you are writing something
 below:
 
 ```scheme
-(define (wrap p default)
-  (lambda (json)
+(define (wrap p)
+  (lambda (json default)
     (let ((r (p json)))
       (if (json-pointer-not-found? r)
           default
           r))))
-(define pointer (wrap (json-pointer "/foo") #f))
+(define pointer (wrap (json-pointer "/foo")))
+(pointer json #f)
 ```
 The above can simply be like this:
 ```scheme
