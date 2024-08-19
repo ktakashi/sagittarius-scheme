@@ -13,7 +13,7 @@ The following example shows simple usage of the library:
 
 This is an input file named `example.json`.
 
-``````````scheme
+```scheme
 {
   "id": 1234,
   "data": {
@@ -21,19 +21,16 @@ This is an input file named `example.json`.
     "datum1": [3, 4]
   }
 }
-``````````
-
-``````````scheme
+```
 (import (rnrs) (rfc json-pointer) (text json))
 
 (define id-pointer (json-pointer "/id"))
 
 (let ((json (call-with-input-file "example.json" json-read)))
   (id-pointer json))
-``````````
-=> ``1234``
+``` ``1234``
 
-``````````scheme
+```scheme
 (import (rnrs) (rfc json-pointer) (text json))
 
 (define data-pointer (json-pointer "/data"))
@@ -44,12 +41,12 @@ example.json
 (let ((json (call-with-input-file "example.json" json-read)))
   ;; Retrievs /data/datum0
   ((json-pointer "/datum0" data-pointer) json))
-``````````
+```
 => ``'(0 1 2)``
 
 ###### [!Function] `json-pointer`  _pointer:_ _optional_ _parent_
 
-Returns a procedure taks one argument which must be a list or vector
+Returns a procedure takes one which must be a list or vector
 representing JSON object. The given _poinster_ must be a string or
 textual input port which start with `/`.
 
@@ -58,3 +55,22 @@ returned by the `json-pointer` and is called before the current
 _pointer_ is processed.
 
 
+**[@since] `0.9.12`**
+The returning procedure is called with second argument, then it will be
+the default value of not-found. This is useful when you are writing something
+below:
+
+```scheme
+(define (wrap p default)
+  (lambda (json)
+    (let ((r (p json)))
+      (if (json-pointer-not-found? r)
+          default
+          r))))
+(define pointer (wrap (json-pointer "/foo") #f))
+```
+The above can simply be like this:
+```scheme
+(define pointer (wrap (json-pointer "/foo")))
+(pointer json #f)
+```
