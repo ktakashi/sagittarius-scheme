@@ -72,6 +72,6 @@ below:
 ```
 The above can simply be like this:
 ```scheme
-(define pointer (wrap (json-pointer "/foo")))
+(define pointer (json-pointer "/foo"))
 (pointer json #f)
 ```
