@@ -12,7 +12,7 @@ also provides asynchronous calling atop future object of
 
 The following example shows how to use in a nutshell.
 
-``````````scheme
+```scheme
 (import (rnrs)
         (net http-client)
         (util concurrent))
@@ -29,13 +29,32 @@ The following example shows how to use in a nutshell.
     (http:response-headers response) ;; -> header object
     (http:response-body response)    ;; -> body as bytevector
     ))
-``````````
+```
 
 ### [§3] HTTP client
 
 ###### [!Function] `http:client?`  _o_
 
-Returns #t if the given _o_ is a HTTP client, otherwise #f.
+Returns `#t` if the given _o_ is a HTTP client, otherwise `#f`.
+
+###### [!Function] `http:client-send` (_client_ `http:client?`) (_request_ `http:request?`)
+
+Sends the given _request_ via the _client_ and returns `http:response`.
+
+This procedure is synchronous procedure, so it blocks.
+
+###### [!Function] `http:client-send-async` (_client_ `http:client?`) (_request_ `http:request?`)
+
+Sends the given _request_ via the _client_ and returns a future which
+returns `http:response`.
+
+###### [!Function] `http:client-shutdown!` (_client_ `http:client?`) :optional (_shutdown-executor?_ `#t`)
+
+Shutdowns the given _client_. If the optional argument _shutdown-executor?_
+is specified to `#f`, then the underlying executor won't be shutdown.
+
+If the underlying executor is the default executor, then it won't be shutdown,
+even if the optional argument is true value.
 
 ###### [!Macro] `http:client-builder`  _field_ _..._
 
@@ -350,7 +369,7 @@ chain.
 The following example shows how to make a key manager with multiple
 key providers.
 
-``````````scheme
+```scheme
 (import (rnrs)
         (net http-client)
         (rfc base64)
@@ -382,7 +401,7 @@ key providers.
      strategy)))
 
 (make-key-manager (map ->keystore-key-provider keystores))
-``````````
+```
 
 ###### [!Function] `key-manager?`  _obj_
 
@@ -390,10 +409,18 @@ Returns #t if the _obj_ is a key manager,
 otherwise #f.
 
 ###### [!Function] `make-key-manager`  _key-providers_
+###### [!Function] `list->key-manager`  _key-providers_
 
 _Key-providers_ must be a list of key provider.
 
 Creates a key manager.
+
+###### [!Function] `key-manager`  _key-provider_ ...
+
+_Key-provider_ must be a provider.
+
+Creates a key manager.
+
 
 #### [§4] Key Provider
 
@@ -415,6 +442,13 @@ This record type has a filed named `key-retrievers`.
 
 Returns #t if the _obj_ is a key provider
 otherwise #f.
+
+###### [!Function] `make-key-provider` _key-obtainer_
+
+_key-obtainer_ must be a procedure which receives one argument,
+`socket-parameter`.
+
+Creates a key provider.
 
 ###### [!Function] `key-provider-key-retrievers`  _key-provider_
 
@@ -445,4 +479,20 @@ _keystore-key-provider_.
 
 This procedure is convenient if you have multiple keys in one keystore.
 
+#### [§4] Socket parameter
 
+Socket parameter is used to determine which private key to be used.
+The object contains basic socket information.
+
+###### [!Function] `socket-parameter?` _obj_
+
+Returns `#t` if the given _obj_ is a socket parameter, otherwise `#f`.
+
+###### [!Function] `socket-parameter-socket-hostname` (_sp_ `socket-parameter?`)
+###### [!Function] `socket-parameter-socket-ip-address` (_sp_ `socket-parameter?`)
+###### [!Function] `socket-parameter-socket-node` (_sp_ `socket-parameter?`)
+###### [!Function] `socket-parameter-socket-service` (_sp_ `socket-parameter?`)
+
+Returns `hostname`, `ip-address`, `node` and `service` respectively.
+
+The first 2 values are peer information, the latter 2 are local information.

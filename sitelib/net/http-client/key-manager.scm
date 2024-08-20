@@ -42,6 +42,7 @@
 	    socket-parameter-socket-service
 	    
 	    key-provider? (rename (key-provider <key-provider>))
+	    make-key-provider
 	    key-provider-key-retrievers
 	    make-keystore-key-provider keystore-key-provider?
 	    keystore-key-provider-add-key-retriever!)

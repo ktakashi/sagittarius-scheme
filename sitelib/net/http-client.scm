@@ -91,12 +91,16 @@
 	    
 	    list->key-manager make-key-manager key-manager
 	    key-manager?
+
+	    socket-parameter?
 	    socket-parameter-socket-hostname
 	    socket-parameter-socket-ip-address
 	    socket-parameter-socket-node
 	    socket-parameter-socket-service
 
-	    key-provider? <key-provider> key-provider-key-retrievers
+	    key-provider? make-key-provider
+	    <key-provider> key-provider-key-retrievers
+
 	    make-keystore-key-provider keystore-key-provider?
 	    keystore-key-provider-add-key-retriever!
 	    
