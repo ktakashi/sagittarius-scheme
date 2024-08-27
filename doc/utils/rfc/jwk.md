@@ -14,17 +14,18 @@ This library also supports curve `secp256k1`
 as well as the `P-256K` which is defined in the draft 00 of the RFC.
 
 
-The following examples show how to interact with `(crypto)` keys.
+The following examples show how to interact with keys from 
+`(sagittarius crypto keys)` library.
 
 ```scheme
-;; (crypto) keys to JWK/JWKS
+;; (sagittarius crypto keys) keys to JWK/JWKS
 (import (rnrs)
-        (crypto)
+        (sagittarius crypto keys)
         (rfc jwk))
 
-(define keypair (generate-key-pair Ed25519))
+(define keypair (generate-key-pair *key:ed25519*))
 
-(define private-key (keypair-private keypair))
+(define private-key (key-pair-private keypair))
 
 (define jwk-config (jwk-config-builder (kid "my key id")))
 
@@ -35,9 +36,9 @@ The following examples show how to interact with `(crypto)` keys.
 ```
 
 ```scheme
-;; JWK/JWKS to (crypto) key
+;; JWK/JWKS to (sagittarius crypto keys) key
 (import (rnrs)
-        (crypto)
+        (sagittarius crypto keys)
         (rfc jwk))
 
 ;; JWKS with EC private key
@@ -211,7 +212,7 @@ not possible. For example, key type `oct` can't be public key.
 ###### [!Function] `jwk->public-key`  _jwk_
 ###### [!Function] `jwk->private-key`  _jwk_
 
-Convert given _jwk_ to `(crypto)` public key and private key,
+Convert given _jwk_ to `(sagittarius crypto keys)` public key and private key,
 respectively.
 
 ###### [!Function] `jwk->octet-key`  _jwk_
@@ -263,6 +264,6 @@ If the second form is used, then the returning JWK contains the configured
 information.
 
 The _key_ must be one of public key, private key, or secret key of
-`(crypto)`.
+`(sagittarius crypto keys)`.
 
 

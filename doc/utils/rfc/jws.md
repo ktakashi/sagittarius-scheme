@@ -15,7 +15,7 @@ It also supports EdDSA of both Ed25519 and Ed448 defined in
 
 The following examples show how to sign and verify JWS token
 
-``````````scheme
+```scheme
 ;; Signing
 (import (rnrs)
         (rfc jws)
@@ -48,9 +48,9 @@ The following examples show how to sign and verify JWS token
   (jwk->json-string (public-key->jwk (keypair-public keypair)))
   ;; -> {"kty":"OKP","crv":"Ed25519","x":"o_t1R4fWf7obqTZWlXxrgPG09BMU-zuhqHvb9_ayOew"}
   )
-``````````
+```
 
-``````````scheme
+```scheme
 ;; Verify
 (import (rnrs)
         (rfc jws)
@@ -74,7 +74,7 @@ The following examples show how to sign and verify JWS token
 
 (when (jws:verify jws-object verifier '("sagittarius:iss" "sagittarius:sub"))
   (utf8->string (jws-object-payload jws-object))) ;; -> payload
-``````````
+```
 
 The above examples only show the flavour of the APIs. In real world
 applications, the users of the library must consider a lot more to
