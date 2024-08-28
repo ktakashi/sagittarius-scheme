@@ -47,7 +47,8 @@ is null, then the procedures send empty certificate list to the server as
 a response of certificate request message.
 
 The keyword argument _private-key_ specifies which private key is used.
-The value must be private key object described in ["(crypto)"](#crypto).
+The value must be private key object described in 
+["(sagittarius crypto keys)"](#sagittarius.crypto.keys).
 This is needed if the target server only supports RSA key exchange protocol.
 
 The keyword argument _certificate-verifier_ must be either boolean or a procedure

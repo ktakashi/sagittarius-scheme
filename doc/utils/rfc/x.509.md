@@ -4,6 +4,9 @@
 This library does not support whole feature of X.509, it just parse and verify
 a message and signature. So it can not verify certificate itself.
 
+If you need more functionality, check 
+[`(sagittarius crypto x509)`](#sagittarius.crypto.x509) library.
+
 ###### [!Library] `(rfc x.509)` 
 
 Exports X.509 utility procedures.
@@ -64,19 +67,14 @@ string.
 
 Return public key of given X.509 certificate object. The return value is
 `<public-key>` described in the section
-[(crypto) - Cryptographic library](#crypto).
+[Key library - (sagittarius crypto keys)](#sagittarius.crypto.keys).
 
 
-###### [!Function] `verify`  _x509_ _message_ _signature_ _
-_ _:key_ _(verify_ _pkcs1-emsa-v1.5-verify)_ _(hash_ _SHA-1)_
+###### [!Function] `verify`  _x509_ _message_ _signature_ . ignore  **[@deprecated]**
 
 _message_ and _signature_ must be bytevector.
 
 Verify given _message_ with _signature_ and _x509_ certificate.
-
-This procedure uses the `verify` procedure in `(crypto)` library. The
-keyword arguments will be passed to it. For more detail, see
-[(crypto) - Cryptographic library](#crypto).
 
 
 ###### [!Function] `check-validity`  _x509_ _:optional_ _(date_ _(current-date))_

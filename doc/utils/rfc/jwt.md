@@ -9,22 +9,22 @@ in [RFC 7519](https://tools.ietf.org/html/rfc7519).
 
 The following example shows how to consume JWT
 
-``````````scheme
+```scheme
 (import (rnrs)
         (rfc jwt)
         (rfc jwk)
         (rfc jwe)
         (rfc jws)
         (rfc uuid)
-        (crypto)
         (srfi :19)
+        (sagittarius crypto keys)
         (sagittarius combinators))
 
-(define keypair (generate-key-pair Ed25519))
+(define keypair (generate-key-pair *key:ed25519*))
 (define alg 'EdDSA)
-;; (define keypair (generate-key-pair ECDSA :ec-parameter NIST-P-256))
+;; (define keypair (generate-key-pair *key:ecdsa* :ec-parameter *ec-parameter:p256*))
 ;; (define alg 'ES256)
-;; (define keypair (generate-key-pair RSA :size 2048))
+;; (define keypair (generate-key-pair *key:rsa* :size 2048))
 ;; (define alg 'PS512)
 
 (define claims
@@ -44,10 +44,10 @@ The following example shows how to consume JWT
 (define payload (string->utf8 (jwt-claims->json-string claims)))
 (define jws-object (make-jws-object jws-header payload))
 
-(define signer (private-key->jws-signer (keypair-private keypair)))
+(define signer (private-key->jws-signer (key-pair-private keypair)))
 
 (define jwk
-  (public-key->jwk (keypair-public keypair)
+  (public-key->jwk (key-pair-public keypair)
                    (jwk-config-builder (kid "my key"))))
 (define jwks (make-jwk-set (list jwk)))
 
@@ -80,7 +80,7 @@ The following example shows how to consume JWT
          (claims (jwt:consume jwt-consumer jwt-object)))
     ;; use the user claim
     (jwt-claims-aud claims))) ;; retrieve 'aud' field
-``````````
+```
 
 ### [§3] JWT
 

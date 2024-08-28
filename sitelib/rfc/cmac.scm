@@ -35,6 +35,7 @@
 (library (rfc cmac)
     (export make-cmac mac? generate-mac generate-mac!
 	    mac-init! mac-process! mac-done!
+	    *mac:cmac*
 	    ;; for backward compatibility
 	    (rename (*mac:cmac* CMAC))
 	    <cmac> verify-mac)

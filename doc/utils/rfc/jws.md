@@ -20,10 +20,10 @@ The following examples show how to sign and verify JWS token
 (import (rnrs)
         (rfc jws)
         (rfc jwk) ;; to convert key pair to JWK
-        (crypto))
+        (sagittarius crypto keys))
 
 ;; Generate Ed25519 key pair
-(define keypair (generate-key-pair Ed25519))
+(define keypair (generate-key-pair *key:ed25519*))
 
 ;; JWS header with crit
 (define jws-header
@@ -37,7 +37,7 @@ The following examples show how to sign and verify JWS token
   (string->utf8 "Payload can be anything as long as a bytevector"))
 
 ;; Get signer
-(define signer (private-key->jws-signer (keypair-private keypair)))
+(define signer (private-key->jws-signer (key-pair-private keypair)))
 
 ;; The JWS object is not signed yet
 (define unsecure-jws-object (make-jws-object jws-header payload))
@@ -45,7 +45,7 @@ The following examples show how to sign and verify JWS token
 (let ((jws-object (jws:sign unsecure-jws-object signer)))
   (jws:serialize jws-object)
   ;; -> eyJzYWdpdHRhcml1czpzdWIiOiJKV1MgdGVzdCIsInNhZ2l0dGFyaXVzOmlzcyI6IlNhZ2l0dGFyaXVzIFNjaGVtZSIsImFsZyI6IkVkRFNBIiwiY3JpdCI6WyJzYWdpdHRhcml1czppc3MiLCJzYWdpdHRhcml1czpzdWIiXX0.UGF5bG9hZCBjYW4gYmUgYW55dGhpbmcgYXMgbG9uZyBhcyBhIGJ5dGV2ZWN0b3I.5Aj_AJh4DW01kV80XtFbxRRMw2ktxIrQ5-UXoCwKVWI0Ke0q0t3vpcFnESL39zYDwi3Ps8eLxfmEb-TvhkQGBg
-  (jwk->json-string (public-key->jwk (keypair-public keypair)))
+  (jwk->json-string (public-key->jwk (key-pair-public keypair)))
   ;; -> {"kty":"OKP","crv":"Ed25519","x":"o_t1R4fWf7obqTZWlXxrgPG09BMU-zuhqHvb9_ayOew"}
   )
 ```
@@ -54,8 +54,7 @@ The following examples show how to sign and verify JWS token
 ;; Verify
 (import (rnrs)
         (rfc jws)
-        (rfc jwk) ;; to convert JWK to public key
-        (crypto))
+        (rfc jwk)) ;; to convert JWK to public key
 
 ;; JWS string
 (define jws-string
