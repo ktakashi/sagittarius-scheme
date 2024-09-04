@@ -45,10 +45,12 @@ WizardStyle=modern
 [Languages]
 Name: "en"; MessagesFile: "compiler:Default.isl"
 Name: "jp"; MessagesFile: "compiler:Languages\Japanese.isl"
+Name: "nl"; MessagesFile: "compiler:Languages\Dutch.isl"
 
 [CustomMessages]
 AdditionalRegistry=Registry association:
 jp.AdditionalRegistry=レジストリに登録する:
+nl.AdditionalRegistry=Vereniging van het register:
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
