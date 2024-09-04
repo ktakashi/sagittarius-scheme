@@ -286,27 +286,24 @@ IF(USE_BOEHM_GC)
     INCLUDE_DIRECTORIES(${BOEHM_GC_INCLUDE_DIR})
   ELSE()
     # download boehm gc
-    # where did below URL go?
-    SET(GC_URL "http://www.hboehm.info/gc/gc_source")
-    # for now get it from github...
-    # SET(GC_URL "https://github.com/ivmai/bdwgc/archive")
+    SET(GC_URL "https://github.com/ivmai/bdwgc/releases/download")
     IF (WINDOWS_SUPPORT)
-      SET(USED_GC_VERSION "gc-8.2.4")
-      SET(GC_VERSION "gc-8.2.4")
+      SET(USED_GC_VERSION "8.2.6")
+      SET(GC_VERSION "8.2.6")
       SET(NEED_LIB_ATMIC TRUE)
     ELSE()
       # for qnx we only support until 7.2d (as long as it doesn't support...)
-      SET(USED_GC_VERSION "gc-7.2d")
-      SET(GC_VERSION "gc-7.2")
+      SET(USED_GC_VERSION "7.2d")
+      SET(GC_VERSION "7.2")
       SET(NEED_LIB_ATMIC FALSE)
     ENDIF()
 
     IF (NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/gc.tar.gz")
+      SET(GC_PATH "/v${USED_GC_VERSION}/gc-${USED_GC_VERSION}.tar.gz")
       MESSAGE(STATUS "Checking Boehm GC archive file ... not found")
-      MESSAGE(STATUS "Downloading ${GC_URL}/${USED_GC_VERSION}.tar.gz")
+      MESSAGE(STATUS "Downloading ${GC_URL}${GC_PATH}")
       FILE(
-	DOWNLOAD "${GC_URL}/${USED_GC_VERSION}.tar.gz"
-	"${CMAKE_CURRENT_BINARY_DIR}/gc.tar.gz"
+	DOWNLOAD "${GC_URL}/${GC_PATH}" "${CMAKE_CURRENT_BINARY_DIR}/gc.tar.gz"
 	SHOW_PROGRESS)
 
       EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E tar xzf
@@ -334,7 +331,7 @@ IF(USE_BOEHM_GC)
     # be built because of the dependency problem. so we need to recreate the
     # CMakeLists.txt without ADD_SUBDIRECTORY.
     # NOTE: Be aware when GC fixed this problem or changed CMakeLists.txt.
-    SET(GC_DIR ${CMAKE_CURRENT_BINARY_DIR}/${GC_VERSION})
+    SET(GC_DIR ${CMAKE_CURRENT_BINARY_DIR}/gc-${GC_VERSION})
 
     ADD_SUBDIRECTORY(${GC_DIR} build/gc)
     INCLUDE_DIRECTORIES(${GC_DIR}/include)
@@ -346,12 +343,18 @@ IF(USE_BOEHM_GC)
     IF (NEED_LIB_ATMIC)
       # since 7.4.0 or 7.4.2? Boehm GC separated libatomic_ops so
       # we need to download it separately
-      SET(LIBATOMIC_OPS "libatomic_ops-7.8.0")
+      # /v7.8.2/libatomic_ops-7.8.2.tar.gz
+      SET(LIBATOMIC_OPS_URL
+	"https://github.com/ivmai/libatomic_ops/releases/download")
+      SET(LIBATOMIC_OPS_VERSION "7.8.2")
+      SET(LIBATOMIC_OPS "libatomic_ops-${LIBATOMIC_OPS_VERSION}")
+      SET(LIBATOMIC_OPS_PATH "/v${LIBATOMIC_OPS_VERSION}/${LIBATOMIC_OPS}.tar.gz")
+      
       IF (NOT EXISTS "${GC_DIR}/libatomic_ops.tar.gz")
-	MESSAGE(STATUS "Checking libatmic_ops archive file ... not found")
-	MESSAGE(STATUS "Downloading ${GC_URL}/${LIBATOMIC_OPS}.tar.gz")
+	MESSAGE(STATUS "Checking libatomic_ops archive file ... not found")
+	MESSAGE(STATUS "Downloading ${LIBATOMIC_OPS_URL}${LIBATOMIC_OPS_PATH}")
 	FILE(
-	  DOWNLOAD "${GC_URL}/${LIBATOMIC_OPS}.tar.gz"
+	  DOWNLOAD "${LIBATOMIC_OPS_URL}${LIBATOMIC_OPS_PATH}"
 	  "${GC_DIR}/libatomic_ops.tar.gz"
 	  SHOW_PROGRESS)
 	EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E tar xzf
@@ -359,7 +362,7 @@ IF(USE_BOEHM_GC)
 	  WORKING_DIRECTORY ${GC_DIR})
 	MESSAGE(STATUS "unpacked libatomic_ops.tar.gz")
       ELSE()
-	MESSAGE(STATUS "Checking libatmic_ops archive file ... found")
+	MESSAGE(STATUS "Checking libatomic_ops archive file ... found")
       ENDIF()
       IF (EXISTS ${GC_DIR}/${LIBATOMIC_OPS}
 	  AND NOT EXISTS ${GC_DIR}/libatomic_ops)
