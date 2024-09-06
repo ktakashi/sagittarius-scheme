@@ -90,7 +90,7 @@ typedef struct ThreadParams
   void *arg;
 } ThreadParams;
 
-static unsigned int __stdcall win32_thread_entry_innter(void *params)
+static unsigned int __stdcall win32_thread_entry_inner(void *params)
 {
   volatile ThreadParams *threadParams = (ThreadParams *)params;
   SgThreadEntryFunc *start;
@@ -117,7 +117,7 @@ static unsigned int __stdcall win32_thread_entry(void *params)
 {
   unsigned int status;
   SgInternalThread *me = ((ThreadParams *)params)->me;
-  status = win32_thread_entry_innter(params);
+  status = win32_thread_entry_inner(params);
   /* clear the stackBase, from now on, thread can't be terminated */
   me->stackBase = 0;
   return status;

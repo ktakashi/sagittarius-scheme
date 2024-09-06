@@ -358,25 +358,33 @@ static int real_main(int argc, tchar **argv);
 
 #if defined(_MSC_VER)
 
-static int show_stack_trace(EXCEPTION_POINTERS *ep)
+static CRITICAL_SECTION lock;
+
+static LONG WINAPI show_stack_trace(EXCEPTION_POINTERS *ep)
 {
   volatile __int64 frame = 0;
   EXCEPTION_RECORD *er = ep->ExceptionRecord;
   void *exceptionAddress = er? er->ExceptionAddress: NULL;
   int exceptionCode = er? er->ExceptionCode: 0;
-  fprintf(stderr, "Native error occurred at %p (%x)\n", 
-	  exceptionAddress, exceptionCode);
-  fflush(stderr);		/* not needed but for my mental health */
-  Sg_DumpNativeStackTrace(ep);
-  Sg_SanitiseStack(&frame);
-  /* ok try the caused one*/
-  if (exceptionAddress)
-    Sg_ShowAddressFunction(exceptionAddress);
+  __try {
+    EnterCriticalSection(&lock);
+    fprintf(stderr, "Native error occurred at %p (%x)\n", 
+	    exceptionAddress, exceptionCode);
+    fflush(stderr);		/* not needed but for my mental health */
+    Sg_DumpNativeStackTrace(ep);
+    Sg_SanitiseStack(&frame);
+    /* ok try the caused one*/
+    if (exceptionAddress)
+      Sg_ShowAddressFunction(exceptionAddress);
+  } __finally {
+    LeaveCriticalSection(&lock);
+  }
   return EXCEPTION_EXECUTE_HANDLER;
 }
 
 int wmain(int argc, tchar **argv)
 {
+  InitializeCriticalSection(&lock);
   SetUnhandledExceptionFilter(show_stack_trace);
   return real_main(argc, argv);
 }
