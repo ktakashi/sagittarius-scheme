@@ -261,10 +261,11 @@
 		    (sxml:set-attr! link (list 'href file))))
 		links (list-queue-list files))))
   (define (continue files level section)
-    (splitter (car (sxml:content (car (sxml:content section)))) ;; passing title
-	      level
-	      (make-accept files level section)
-	      (make-stop files level section)))
+    (let ((title (car (sxml:content section))))
+      (splitter title ;; passing title SXML
+		level
+		(make-accept files level section)
+		(make-stop files level section))))
   (define (do-accept level document)
     (let-values (((toc new-doc sections)
 		  (collect&replace-sections level document)))

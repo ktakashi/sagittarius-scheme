@@ -9,6 +9,7 @@
 	(srfi :1 lists)
 	(srfi :19 time)
 	(srfi :39 parameters)
+	(srfi :117 list-queues)
 	(text sxml sxpath)
 	(text sxml tools)
 	(util file)
@@ -17,16 +18,24 @@
 (define *output-directory* (make-parameter #f))
 (define *output-file* (make-parameter #f))
 
+(define generated-filenames (list-queue))
+
 (define (ensure-directory file)
   (let-values (((dir file ext) (decompose-path file)))
     (create-directory* dir)))
 
-(define (level->filename title level subdir)
+(define (level->filename title-node level subdir)
+  (define title (and title-node (car (sxml:content title-node))))
+  (define (->filename title-node level ext)
+    (define (tag->filename tag) (string-append tag "." ext))
+    (cond ((sxml:attr title-node 'tag) => tag->filename)
+	  (else 
+	   (string-append "section"
+			  (string-join
+			   (map number->string (reverse level))
+			   "") (string-append "." ext)))))
   (let-values (((dir file ext) (decompose-path (*output-file*))))
-    (define file (string-append "section"
-				(string-join
-				 (map number->string (reverse level))
-				 "") (string-append "." ext)))
+    (define file (->filename title-node level ext))
     (define (real-file dir)
       (define relative (if subdir (build-path subdir file) file))
       (define out-file (build-path* dir "sections" file))
@@ -36,6 +45,11 @@
     (define (stdout)
       (make-document-link title (current-output-port)
 			  (string-append "./" file)))
+    (when (member file (list-queue-list generated-filenames))
+      (assertion-violation 'level->filename
+			   (string-append "Duplicate filename on " title)
+			   file))
+    (list-queue-add-front! generated-filenames file)
     (cond ((*output-directory*) => real-file)
 	  (else (stdout)))))
 
