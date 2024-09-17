@@ -1,11 +1,15 @@
 (import (rnrs)
 	(rfc jwk)
+	(rfc base64)
+        (srfi :19)
 	(srfi :64)
-	(rfc x.509)
-	(rfc pem)
-	(sagittarius crypto keys)
 	(sagittarius combinators)
-	(text json compare))
+	(sagittarius crypto keys)
+        (sagittarius crypto pem)
+        (sagittarius crypto signatures)
+        (sagittarius crypto x509)
+	(text json compare)
+	(text json pointer))
 
 (test-begin "RFC - JWK")
 
@@ -285,11 +289,10 @@
   (define ca-cert (string-append (current-directory)
 				 "/test/data/certs/CA.cer"))
   (define (->certificate file)
-    (let-values (((param content) (parse-pem-file file)))
-      (make-x509-certificate content)))
+    (pem-object->object (call-with-input-file file read-pem-object)))
   (let ((cert (->certificate cert))
 	(ca (->certificate ca-cert)))
-    (let ((jwk (public-key->jwk (x509-certificate-get-public-key cert)
+    (let ((jwk (public-key->jwk (x509-certificate-public-key cert)
 				(jwk-config-builder
 				 (x5c (list cert ca))))))
       (test-assert (jwk:rsa? jwk)))))
@@ -396,5 +399,43 @@
 	      ("alg" . "A128KW")
 	      ("k" . "GawgguFyGrWKav7AX4VKUg"))))
   (recovery-test-jwk (json->jwk json)))
+
+;; x5c on jwk config
+(let ()
+(define subject-dn (x509-name '(C "NL")
+                              '(ST "Zuid-Holland")
+                              '(OU "Sagittarius Scheme")
+                              '(CN "Takashi Kato")
+                              '(E "ktakashi@ymail.com")))
+(define now (current-time))
+(define one-year (make-time time-duration 0 (* 3600 24 365)))
+(define key-pair (generate-key-pair *key:ecdsa*))
+(define template
+  (x509-certificate-template-builder
+   (issuer-dn subject-dn)
+   (subject-dn subject-dn)
+   (serial-number 1000)
+   (not-before (time-utc->date now))
+   (not-after (time-utc->date (add-duration now one-year)))
+   (public-key (key-pair-public key-pair))))
+
+(define cert (sign-x509-certificate-template
+              template *signature-algorithm:ecdsa-sha256*
+              (key-pair-private key-pair)))
+
+(define x5c-pointer (json-pointer "/x5c"))
+
+(test-assert "JWK -> JSON w/ x5c" (jwk->json
+	      (key->jwk (key-pair-public key-pair)
+			(jwk-config-builder
+			 (x5c (list cert))))))
+(let ((json (jwk->json
+	     (key->jwk (key-pair-public key-pair)
+			(jwk-config-builder
+			 (x5c (list cert)))))))
+  (test-equal "x5c value"
+	      (list (x509-certificate->bytevector cert))
+	      (map (lambda (b) (base64-decode-string b :transcoder #f))
+		   (x5c-pointer json)))))
 
 (test-end)

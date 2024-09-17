@@ -505,9 +505,8 @@
   (define (x5c->fingerprint x5c algo)
     (define md (make-message-digest algo))
     (and (not (null? x5c))
-	 (utf8->string
-	  (base64-encode
-	   (digest-message md (x509-certificate->bytevector (car x5c)))))))
+	 (base64-encode
+	  (digest-message md (x509-certificate->bytevector (car x5c))))))
   (define (make-key ctr type config . rest)
     (apply ctr type
 	   (jwk:config-use config)
@@ -515,7 +514,7 @@
 	   (jwk:config-alg config)
 	   (jwk:config-kid config)
 	   (jwk:config-x5u config)
-	   (map x509-certificate->bytevector (jwk:config-x5c config))
+	   (jwk:config-x5c config)
 	   (x5c->fingerprint (jwk:config-x5c config) *digest:sha-1*)
 	   (x5c->fingerprint (jwk:config-x5c config) *digest:sha-256*)
 	   rest))
