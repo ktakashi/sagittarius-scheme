@@ -1,13 +1,13 @@
 (import (rnrs)
 	(rfc jws)
 	(rfc jwk)
-	(text json compare)
-	(sagittarius crypto keys)
 	(rfc base64)
-	(rfc pem)
-	(rsa pkcs :8)
-	(rsa pkcs :10)
-	(srfi :64))
+	(sagittarius crypto keys)
+	(sagittarius crypto pem)
+	(sagittarius crypto pkcs keys)
+	(sagittarius crypto x509)
+	(srfi :64)
+	(text json compare))
 
 (test-begin "JWS")
 
@@ -47,12 +47,10 @@
 	      (jws:serialize jws #t)))
 
 (define (pem->public-key pem-string)
-  (let-values (((param content) (parse-pem-string pem-string)))
-    (let* ((spki (import-public-key PKCS10 content)))
-      (subject-public-key-info->public-key spki))))
+  (subject-public-key-info->public-key
+   (pem-object->object (string->pem-object pem-string))))
 (define (pem->rsa-private-key pem-string)
-  (let-values (((param content) (parse-pem-string pem-string)))
-    (import-private-key *key:rsa* content)))
+  (pem-object->object (string->pem-object pem-string)))
 
 (define (test-jws jws-string public-key private-key)
   (define get-verifier public-key->jws-verifier)
@@ -148,9 +146,8 @@ jg/3747WSsf/zBTcHihTRBdAv6OmdhV4/dD5YBfLAkLrd+mX7iE=
 
 ;; apparently it's just PKCS8 format
 (define (pem->pkcs8-private-key pem-string)
-  (let-values (((param content) (parse-pem-string pem-string)))
-    (let* ((spki (import-private-key PKCS8 content)))
-      (private-key-info->private-key spki))))
+  (pkcs-one-asymmetric-key-private-key
+   (pem-object->object (string->pem-object pem-string))))
 
 (define ec-public-key-p256
   (pem->public-key
@@ -171,8 +168,7 @@ OF/2NxApJCzGCEDdfSp6VQO30hyhRANCAAQRWz+jn65BtOMvdyHKcvjBeBSDZH2r
 	  ec-private-key-p256)
 
 (define (pem->ecdsa-private-key pem-string)
-  (let-values (((param content) (parse-pem-string pem-string)))
-    (import-private-key *key:ecdsa* content)))
+  (pem-object->object (string->pem-object pem-string)))
 
 (define ec-public-key-p384
   (pem->public-key

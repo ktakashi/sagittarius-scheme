@@ -32,6 +32,7 @@
 ;;  - https://tools.ietf.org/html/rfc7515
 ;;  - https://datatracker.ietf.org/doc/html/rfc7797 (for b64)
 #!nounbound
+#!read-macro=sagittarius/bv-string
 (library (rfc jws)
     (export jws-header? jws-header-builder
 	    (rename (jws-header <jws-header>)
@@ -85,7 +86,8 @@
 	    (srfi :14 char-sets)
 	    (srfi :39 parameters)
 	    (text json)
-	    (text json object-builder))
+	    (text json object-builder)
+	    (util bytevector))
 
 (define-record-type jws-header
   (parent <jose-crypto-header>)
@@ -156,11 +158,12 @@
 
 (define ->base64url bytevector->base64url-string)
 (define (make-signing-input header payload)
-  (if (jws-header-b64 header)
-      (string-append (jws-header->base64url header) "."
-		     (->base64url payload))
-      (string-append (jws-header->base64url header) "."
-		     (utf8->string payload))))
+  (bytevector-append
+   (string->utf8 (jws-header->base64url header))
+   #*"."
+   (if (jws-header-b64 header)
+       (base64url-encode payload)
+       payload)))
   
 (define-record-type jws-object
   (parent <jose-object>)
@@ -244,11 +247,11 @@
 (define (jws:sign jws-object signer)
   (let* ((signing-input (jws-object-signing-input jws-object))
 	 (signature (signer (jws-object-header jws-object)
-			    (string->utf8 signing-input))))
+			    signing-input)))
     (unless (bytevector? signature)
       (assertion-violation 'jws:sign "Signer returned non signature" signature))
     ;; (jws:parse (string-append signing-input "." (->base64url signature)))
-    (let* ((h&p (jose-split signing-input #f))
+    (let* ((h&p (jose-split (utf8->string signing-input) #f))
 	   (h (car h&p))
 	   (p (cadr h&p)))
       (make-jws-signed-object (list h p (->base64url signature))
@@ -267,7 +270,7 @@
 	  (jws-header (jws-object-header jws-object)))
       (and (check-critical-headers critical-headers jws-header)
 	   (verifier (jws-object-header jws-object)
-		     (string->utf8 signing-input)
+		     signing-input
 		     signature))))))
 
 ;;; verifiers (maybe separate to different library?)
