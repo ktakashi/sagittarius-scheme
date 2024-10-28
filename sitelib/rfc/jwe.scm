@@ -28,7 +28,9 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;
 
-;; ref: https://tools.ietf.org/html/rfc7516
+;; ref:
+;; - https://tools.ietf.org/html/rfc7516 (original)
+;; - https://tools.ietf.org/html/draft-amringer-jose-chacha-02 (xc20p)
 
 #!nounbound
 (library (rfc jwe)
@@ -66,6 +68,8 @@
 	    make-aeskw-jwe-decryptor
 	    make-rsa-jwe-decryptor
 	    make-ecdh-jwe-decryptor
+	    make-c20pkw-jwe-decryptor
+	    
 
 	    jwe:encrypt
 	    make-direct-jwe-encryptor
@@ -73,6 +77,7 @@
 	    make-aeskw-jwe-encryptor
 	    make-rsa-jwe-encryptor
 	    make-ecdh-jwe-encryptor
+	    make-c20pkw-jwe-encryptor
 
 	    ;; generators
 	    make-random-generator
@@ -331,7 +336,7 @@
 	     (define enc (jwe-header-enc jwe-header))
 	     (define cek-iv (jwe-header-iv jwe-header))
 	     (define tag (jwe-header-tag jwe-header))
-	     (let ((raw-cek (decrypt-aes-gcm kek (get-aes-key-byte-size alg)
+	     (let ((raw-cek (decrypt-aes-gcm kek size
 					     #vu8() cek-iv encrypted-key tag)))
 	       (core-decrypt jwe-header
 			     (generate-symmetric-key *scheme:aes* raw-cek)
@@ -346,6 +351,29 @@
 	((jwk? kek)
 	 (make-aeskw-jwe-decryptor
 	  (generate-symmetric-key *scheme:aes* (jwk->octet-key kek))))
+	(else
+	 (assertion-violation 'make-aeskw-jwe-decryptor "Unknown key" kek))))
+
+;; Chacha20 / XChaCha20 key unwrap
+(define (make-c20pkw-jwe-decryptor kek)
+  (cond ((symmetric-key? kek)
+	 (lambda (jwe-header encrypted-key iv cipher-text auth-tag)
+	   (define alg (jose-crypto-header-alg jwe-header))
+	   (define (c20pkw-decrypt scheme)
+	     (define enc (jwe-header-enc jwe-header))
+	     (define cek-iv (jwe-header-iv jwe-header))
+	     (define tag (jwe-header-tag jwe-header))
+	     (let ((raw-cek (decrypt-chacha20-poly1305 scheme kek #vu8() cek-iv
+						       encrypted-key tag)))
+	       (core-decrypt jwe-header (make-symmetric-key raw-cek)
+			     iv cipher-text auth-tag)))
+	   (case alg
+	     ((C20PKW) (c20pkw-decrypt *scheme:chacha20-poly1305*))
+	     ((XC20PKW) (c20pkw-decrypt *scheme:xchacha20-poly1305*))
+	     (else (assertion-violation
+		    'aeskw-jwe-decryptor "Unknown algorithm" alg)))))
+	((jwk? kek)
+	 (make-c20pkw-jwe-decryptor (make-symmetric-key (jwk->octet-key kek))))
 	(else
 	 (assertion-violation 'make-aeskw-jwe-decryptor "Unknown key" kek))))
 
@@ -396,6 +424,12 @@
       ((A128GCM A192GCM A256GCM)
        (decrypt-aes-gcm key (get-aes-key-byte-size enc)
 			aad iv cipher-text auth-tag))
+      ((C20P)
+       (decrypt-chacha20-poly1305
+	*scheme:chacha20-poly1305* key aad iv cipher-text auth-tag))
+      ((XC20P)
+       (decrypt-chacha20-poly1305
+	*scheme:xchacha20-poly1305* key aad iv cipher-text auth-tag))
       (else (assertion-violation 'get-cipher "Unsupported enc type" enc))))
   (define (decompress jwe-header payload)
     (case (jwe-header-zip jwe-header)
@@ -435,6 +469,17 @@
     (let ((pt (block-cipher-decrypt-last-block dec-cipher cipher-text)))
       (block-cipher-done/tag! dec-cipher auth-tag)
       pt)))
+
+;; ChaCha20 or XChaCha20
+(define (decrypt-chacha20-poly1305 scheme key aad iv cipher-text auth-tag)
+  (define cipher (stream-cipher-init! (make-stream-cipher scheme)
+				      (cipher-direction decrypt)
+				      key
+				      (make-iv-parameter iv)))
+  (stream-cipher-update-aad! cipher aad)
+  (let ((v (stream-cipher-decrypt cipher cipher-text)))
+    (stream-cipher-done/tag! cipher auth-tag)
+    v))
 
 ;;; Encryptors
 ;; Random generators
@@ -612,6 +657,48 @@
 	(else (assertion-violation 'make-aeskw-jwe-encryptor
 				   "Unsupported KEK type" kek))))
 
+;; Chacha20 / XChaCha20 key wrap
+(define (make-c20pkw-jwe-encryptor kek :key (cek-generator default-cek-generator)
+					    (iv-generator default-iv-generator)
+					    (kek-iv-generator default-iv-generator))
+  (define (c20pkw-encrypt scheme iv-size kek jwe-header payload)
+    ;; if the header already has iv, use it
+    ;; NOTE: we can't use tag as it'd be generated
+    (define kek-iv-g
+      (cond ((jwe-header-iv jwe-header) => (lambda (iv) (lambda (size) iv)))
+	    (else kek-iv-generator)))
+    (define cek-key-encryptor (c20p-encryptor scheme iv-size kek kek-iv-g))
+    (define enc (jwe-header-enc jwe-header))
+    (let ((raw-cek (cek-generator
+		    (symmetric-cipher-descriptor-max-key-length scheme))))
+      (let-values (((iv encrypted-cek tag) (cek-key-encryptor #vu8() raw-cek)))
+	(let ((new-header (jwe-header-builder (from jwe-header)
+			   (iv iv)
+			   (tag tag))))
+	  (core-encryptor (make-symmetric-key raw-cek)
+			  encrypted-cek
+			  new-header payload iv-generator)))))
+
+  (cond ((symmetric-key? kek)
+	 (lambda (jwe-header payload)
+	   (define alg (jose-crypto-header-alg jwe-header))
+	   (case alg
+	     ((C20PKW)
+	      (c20pkw-encrypt *scheme:chacha20-poly1305*
+			      12 kek jwe-header payload))
+	     ((XC20PKW)
+	      (c20pkw-encrypt *scheme:xchacha20-poly1305*
+			      24 kek jwe-header payload))
+	     (else (assertion-violation
+		    'aeskw-jwe-encryptor "Unknown algorithm" alg)))))
+	((jwk? kek)
+	 (make-c20pkw-jwe-encryptor (make-symmetric-key (jwk->octet-key kek))
+	  :iv-generator iv-generator
+	  :cek-generator cek-generator
+	  :kek-iv-generator kek-iv-generator))
+	(else (assertion-violation 'make-aeskw-jwe-encryptor
+				   "Unsupported KEK type" kek))))
+
 ;; PBE key wrap
 (define (make-pbes2-jwe-encryptor password
 				  :key (salt-generator default-salt-generator)
@@ -732,7 +819,10 @@
 			 (get-hmac-digest enc) iv-generator))
     ((A128GCM A192GCM A256GCM)
      (aes-gcm-encryptor key (get-aes-key-byte-size enc) iv-generator))
-
+    ((C20P)
+     (c20p-encryptor *scheme:chacha20-poly1305* 12 key iv-generator))
+    ((XC20P)
+     (c20p-encryptor *scheme:xchacha20-poly1305* 24 key iv-generator))
     (else (assertion-violation 'get-cipher "Unsupported enc type" enc))))
 
 (define (get-aes-key-byte-size enc)
@@ -780,6 +870,20 @@
 	     (tag (block-cipher-done/tag enc-cipher
 		   (block-cipher-max-tag-length enc-cipher))))
 	(values iv ct tag)))))
+
+(define (c20p-encryptor scheme iv-size key iv-generator)
+  (define iv (iv-generator iv-size))
+  (define enc-cipher
+    (stream-cipher-init! (make-stream-cipher scheme)
+			 (cipher-direction encrypt)
+			 key
+			 (make-iv-parameter iv)))
+  ;; aad, payload -> (iv, cipher-text, auth-tag)
+  (lambda (aad payload)
+    (stream-cipher-update-aad! enc-cipher aad)
+    (let* ((cipher-text (stream-cipher-encrypt enc-cipher payload))
+	   (tag (block-cipher-done/tag enc-cipher 16)))
+      (values iv cipher-text tag))))
 
 ;; utilities
 (define (aes-hmac-compute-tag digest mac-key aad iv cipher-text)

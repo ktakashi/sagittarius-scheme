@@ -1,3 +1,4 @@
+#!read-macro=sagittarius/bv-string
 (import (rnrs)
 	(rfc jwe)
 	(rfc jwk)
@@ -551,10 +552,17 @@
 (test-ecdh-rfc7748 *key:x448* "ECDH-ES+A128KW")
 (test-ecdh-rfc7748 *key:x448* "ECDH-ES+A198KW")
 (test-ecdh-rfc7748 *key:x448* "ECDH-ES+A256KW")
-
-
 )
+
+(let ()
+(define (test-c20pkw pt kek jwe-string)
+  (define decryptor (make-c20pkw-jwe-decryptor kek))
+  (let ((jwe (jwe:parse jwe-string)))
+    (print (jwe:decrypt decryptor jwe))
+    (test-assert (bytevector=? pt (jwe:decrypt decryptor jwe)))))
+(test-c20pkw #*"Hello World!"
+	     (make-symmetric-key (base64url-decode-string "Rpv7sxPJYeNjKr-L8gPrKtQLHX-1dDuqtJuriVQ0eUY" :transcoder #f))
+	     "eyJhbGciOiJYQzIwUEtXIiwiZW5jIjoiWEMyMFAiLCJpdiI6Ikx1Tk5TNVJBYWdrT1FWZXdRT0xScDlub1hFVF9Zc1BYIiwidGFnIjoiVlQyWjlhOTNKRmUyb20yZ2JvVXo0ZyJ9.K-kXEFjmSsjKzU91.LHs6vru3ggyuAzgT2UJkWyqJuZSv0Gae.QgxRd4qQrkQNaEK3.aQDs_RkdWabvzmxYEnoShg")
+)
+
 (test-end)
-
-
-  
