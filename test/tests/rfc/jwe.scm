@@ -572,25 +572,198 @@
 (let ()
   (define (test-c20pkw alg enc payload raw-kek)
     (define kek (make-symmetric-key raw-kek))
-    (define encryptor (make-c20pkw-jwe-encryptor kek))
-    (define decryptor (make-c20pkw-jwe-decryptor kek))
+    (define (rec kek)
+      (define encryptor (make-c20pkw-jwe-encryptor kek))
+      (define decryptor (make-c20pkw-jwe-decryptor kek))
+      (define jwe-header (jwe-header-builder
+			  (alg alg)
+			  (enc enc)))
+      (let ((jwe (jwe:encrypt encryptor jwe-header payload)))
+	(test-equal payload (jwe:decrypt decryptor jwe))))
+    (rec kek)
+    (rec (secret-key->jwk kek)))
+  (define kek-generator
+    (make-random-generator (secure-random-generator *prng:chacha20*)))
+  (for-each
+   (lambda (alg&encs)
+     (let ((alg (car alg&encs)))
+       (for-each (lambda (enc)
+		   (test-c20pkw alg enc #*"hello world" (kek-generator 16))
+		   (test-c20pkw alg enc #*"hello world" (kek-generator 32)))
+		 (cdr alg&encs))))
+   '(
+     (C20PKW
+      A128CBC-HS256 A192CBC-HS384 A256CBC-HS512
+      A128GCM A192GCM A256GCM
+      C20P XC20P)
+     (XC20PKW
+      A128CBC-HS256 A192CBC-HS384 A256CBC-HS512
+      A128GCM A192GCM A256GCM
+      C20P XC20P)
+     ))
+  )
+
+;; rsa
+(let ()
+  (define (test-rsa alg enc payload kp)
+    (define priv (key-pair-private kp))
+    (define pub (key-pair-public kp))
+    (define (rec pub priv)
+      (define encryptor (make-rsa-jwe-encryptor pub))
+      (define decryptor (make-rsa-jwe-decryptor priv))
+      (define jwe-header (jwe-header-builder
+			  (alg alg)
+			  (enc enc)))
+      (let ((jwe (jwe:encrypt encryptor jwe-header payload)))
+	(test-equal (list "RSA" alg enc)
+		    payload (jwe:decrypt decryptor jwe))))
+    (rec pub priv)
+    (rec (public-key->jwk pub) (private-key->jwk priv)))
+    
+  (define kp (generate-key-pair *key:rsa*))
+  (for-each
+   (lambda (alg&encs)
+     (let ((alg (car alg&encs)))
+       (for-each (lambda (enc) (test-rsa alg enc #*"hello" kp))
+		 (cdr alg&encs))))
+   '(
+     (RSA1_5
+      A128CBC-HS256 A192CBC-HS384 A256CBC-HS512
+      A128GCM A192GCM A256GCM
+      C20P XC20P)
+     (RSA-OAEP
+      A128CBC-HS256 A192CBC-HS384 A256CBC-HS512
+      A128GCM A192GCM A256GCM
+      C20P XC20P)
+     (RSA-OAEP-256
+      A128CBC-HS256 A192CBC-HS384 A256CBC-HS512
+      A128GCM A192GCM A256GCM
+      C20P XC20P)
+     ))
+  )
+
+;; ecdh
+(let ()
+  (define (test-ecdh alg enc payload kp)
+    (define priv (key-pair-private kp))
+    (define pub (key-pair-public kp))
+    (define (rec pub priv)
+      (define encryptor (make-ecdh-jwe-encryptor pub))
+      (define decryptor (make-ecdh-jwe-decryptor priv))
+      (define jwe-header (jwe-header-builder
+			  (alg alg)
+			  (enc enc)))
+      (let ((jwe (jwe:encrypt encryptor jwe-header payload)))
+	(test-equal (list "RSA" alg enc)
+		    payload (jwe:decrypt decryptor jwe))))
+    (rec pub priv)
+    (rec (public-key->jwk pub) (private-key->jwk priv)))
+    
+  (define kp (generate-key-pair *key:ecdsa*))
+  (for-each
+   (lambda (alg&encs)
+     (let ((alg (car alg&encs)))
+       (for-each (lambda (enc) (test-ecdh alg enc #*"hello" kp))
+		 (cdr alg&encs))))
+   '(
+     (ECDH-ES
+      A128CBC-HS256 A192CBC-HS384 A256CBC-HS512
+      A128GCM A192GCM A256GCM
+      C20P XC20P)
+     (ECDH-ES+A128KW 
+      A128CBC-HS256 A192CBC-HS384 A256CBC-HS512
+      A128GCM A192GCM A256GCM
+      C20P XC20P)
+     (ECDH-ES+A198KW 
+      A128CBC-HS256 A192CBC-HS384 A256CBC-HS512
+      A128GCM A192GCM A256GCM
+      C20P XC20P)
+     (ECDH-ES+A256KW
+      A128CBC-HS256 A192CBC-HS384 A256CBC-HS512
+      A128GCM A192GCM A256GCM
+      C20P XC20P)
+     (ECDH-ES+C20PKW
+      A128CBC-HS256 A192CBC-HS384 A256CBC-HS512
+      A128GCM A192GCM A256GCM
+      C20P XC20P)
+     (ECDH-ES+XC20PKW
+      A128CBC-HS256 A192CBC-HS384 A256CBC-HS512
+      A128GCM A192GCM A256GCM
+      C20P XC20P)
+     ))
+)
+
+;; aeskw all algorithms
+(let ()
+  (define (test-awskw alg enc payload raw-kek)
+    (define kek (make-symmetric-key raw-kek))
+    (define (rec kek)
+      (define encryptor (make-aeskw-jwe-encryptor kek))
+      (define decryptor (make-aeskw-jwe-decryptor kek))
+      (define jwe-header (jwe-header-builder
+			  (alg alg)
+			  (enc enc)))
+      (let ((jwe (jwe:encrypt encryptor jwe-header payload)))
+	(test-equal (list "AESKW" alg enc)
+		    payload (jwe:decrypt decryptor jwe))))
+    (rec kek)
+    (rec (secret-key->jwk kek)))
+  (define kek-generator
+    (make-random-generator (secure-random-generator *prng:chacha20*)))
+  (for-each
+   (lambda (alg&encs)
+     (let ((alg (caar alg&encs))
+	   (size (cadar alg&encs)))
+       (for-each (lambda (enc)
+		   (test-awskw alg enc #*"hello" (kek-generator size)))
+		 (cdr alg&encs))))
+   '(
+     ((A128KW 16)
+      A128CBC-HS256 A192CBC-HS384 A256CBC-HS512
+      A128GCM A192GCM A256GCM
+      C20P XC20P)
+     ((A192KW 24)
+      A128CBC-HS256 A192CBC-HS384 A256CBC-HS512
+      A128GCM A192GCM A256GCM
+      C20P XC20P)
+     ((A256KW 32)
+      A128CBC-HS256 A192CBC-HS384 A256CBC-HS512
+      A128GCM A192GCM A256GCM
+      C20P XC20P)
+     ))
+)
+
+;; PBES2 all algorithms
+(let ()
+  (define (test-pbes2 alg enc payload password)
+    (define encryptor (make-pbes2-jwe-encryptor password))
+    (define decryptor (make-pbes2-jwe-decryptor password))
     (define jwe-header (jwe-header-builder
 			(alg alg)
 			(enc enc)))
     (let ((jwe (jwe:encrypt encryptor jwe-header payload)))
-      (test-equal payload (jwe:decrypt decryptor jwe))))
-  (define kek-generator
-    (make-random-generator (secure-random-generator *prng:chacha20*)))
-  (test-c20pkw 'C20PKW  'C20P  #*"hello world" (kek-generator 16))
-  (test-c20pkw 'C20PKW  'C20P  #*"hello world" (kek-generator 32))
-  (test-c20pkw 'XC20PKW 'XC20P #*"hello world" (kek-generator 16))
-  (test-c20pkw 'XC20PKW 'XC20P #*"hello world" (kek-generator 32))
-  ;; other combination
-  (test-c20pkw 'C20PKW  'A128CBC-HS256 #*"hello world" (kek-generator 16))
-  (test-c20pkw 'C20PKW  'A128GCM       #*"hello world" (kek-generator 16))
-  (test-c20pkw 'XC20PKW 'A128CBC-HS256 #*"hello world" (kek-generator 16))
-  (test-c20pkw 'XC20PKW 'A128GCM       #*"hello world" (kek-generator 16))
+      (test-equal (list "PBES2" alg enc)
+		  payload (jwe:decrypt decryptor jwe))))
+  (for-each
+   (lambda (alg&encs)
+     (let ((alg (car alg&encs)))
+       (for-each (lambda (enc)
+		   (test-pbes2 alg enc #*"hello" "password"))
+		 (cdr alg&encs))))
+   '(
+     (PBES2-HS256+A128KW
+      A128CBC-HS256 A192CBC-HS384 A256CBC-HS512
+      A128GCM A192GCM A256GCM
+      C20P XC20P)
+     (PBES2-HS384+A192KW
+      A128CBC-HS256 A192CBC-HS384 A256CBC-HS512
+      A128GCM A192GCM A256GCM
+      C20P XC20P)
+     (PBES2-HS512+A256KW
+      A128CBC-HS256 A192CBC-HS384 A256CBC-HS512
+      A128GCM A192GCM A256GCM
+      C20P XC20P)
+     ))
 )
-
 
 (test-end)

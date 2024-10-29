@@ -263,12 +263,10 @@
 	   (define alg (jose-crypto-header-alg jwe-header))
 	   (define enc (jwe-header-enc jwe-header))
 
-	   (define (ecdh-direct share-key dummy)
-	     (generate-symmetric-key *scheme:aes* share-key))
+	   (define (ecdh-direct share-key dummy) (make-symmetric-key share-key))
 	   (define (ecdh-aes-unwrap share-key encrypted-key)
-	     (let ((kek (generate-symmetric-key *scheme:aes* share-key)))
-	       (generate-symmetric-key *scheme:aes*
-				    (aes-key-unwrap kek encrypted-key))))
+	     (let ((kek (make-symmetric-key share-key)))
+	       (make-symmetric-key (aes-key-unwrap kek encrypted-key))))
 	   (define (ecdh-c20pkw-unwrap scheme)
 	     (define iv (jwe-header-iv jwe-header))
 	     (define tag (jwe-header-tag jwe-header))
@@ -322,7 +320,7 @@
 	     (let ((raw-cek (asymmetric-cipher-decrypt-bytevector
 			     rsa-cipher encrypted-key)))
 	       (core-decrypt jwe-header
-			     (generate-symmetric-key *scheme:aes* raw-cek)
+			     (make-symmetric-key raw-cek)
 			     iv cipher-text auth-tag)))
 	   (case alg
 	     ((RSA1_5) (rsa-decryptor pkcs1-v1.5-encoding))
@@ -347,7 +345,7 @@
 	     (check-key-size 'aeskw-encryptor size raw-key)
 	     (let ((raw-cek (aes-key-unwrap kek encrypted-key)))
 	       (core-decrypt jwe-header
-			     (generate-symmetric-key *scheme:aes* raw-cek)
+			     (make-symmetric-key raw-cek)
 			     iv cipher-text auth-tag)))
 
 	   (define (aesgcmkw-decrypt size)
@@ -357,7 +355,7 @@
 	     (let ((raw-cek (decrypt-aes-gcm kek size
 					     #vu8() cek-iv encrypted-key tag)))
 	       (core-decrypt jwe-header
-			     (generate-symmetric-key *scheme:aes* raw-cek)
+			     (make-symmetric-key raw-cek)
 			     iv cipher-text auth-tag)))
 	   (case alg
 	     ((A128KW A192KW A256KW)
@@ -368,7 +366,7 @@
 		    'aeskw-jwe-decryptor "Unknown algorithm" alg)))))
 	((jwk? kek)
 	 (make-aeskw-jwe-decryptor
-	  (generate-symmetric-key *scheme:aes* (jwk->octet-key kek))))
+	  (make-symmetric-key (jwk->octet-key kek))))
 	(else
 	 (assertion-violation 'make-aeskw-jwe-decryptor "Unknown key" kek))))
 
@@ -408,9 +406,9 @@
     (unless (and p2s p2c)
       (assertion-violation 'pbes2-jwe-decryptor
 			   "Parameter 'p2s' and 'p2c' must be presented"))
-    (let* ((ps-key (pbes2-derive-kek alg password  p2s p2c))
+    (let* ((ps-key (pbes2-derive-kek alg password p2s p2c))
 	   (raw-cek (aes-key-unwrap ps-key encrypted-key)))
-      (core-decrypt jwe-header (generate-symmetric-key *scheme:aes* raw-cek) iv
+      (core-decrypt jwe-header (make-symmetric-key raw-cek) iv
 		    cipher-text auth-tag))))
 
 ;; Direct decryption
@@ -424,7 +422,7 @@
 	   (core-decrypt jwe-header key iv cipher-text auth-tag)))
 	((jwk? key)
 	 (make-direct-jwe-decryptor
-	  (generate-symmetric-key *scheme:aes* (jwk->octet-key key))
+	  (make-symmetric-key (jwk->octet-key key))
 	  :strict? strict?))
 	(else
 	 (assertion-violation 'make-direct-jwe-decryptor
@@ -559,12 +557,12 @@
 	     (define enc (jwe-header-enc jwe-header))
 
 	     (define (ecdh-direct shared-key)
-	       (values (generate-symmetric-key *scheme:aes* shared-key) #vu8()
+	       (values (make-symmetric-key shared-key) #vu8()
 		       #f #f))
 	     (define (ecdh-aes-wrap shared-key)
-	       (let ((kek (generate-symmetric-key *scheme:aes* shared-key))
+	       (let ((kek (make-symmetric-key shared-key))
 		     (cek (generate-cek cek-generator enc)))
-		 (values (generate-symmetric-key *scheme:aes* cek)
+		 (values (make-symmetric-key cek)
 			 (aes-key-wrap kek cek)
 			 #f #f)))
 	     (define ((ecdh-c20pkw-wrap scheme iv-size) shared-key)
@@ -616,7 +614,7 @@
 			       key))
     (define enc (jwe-header-enc jwe-header))
     (let ((raw-cek (generate-cek cek-generator enc)))
-      (core-encryptor (generate-symmetric-key *scheme:aes* raw-cek)
+      (core-encryptor (make-symmetric-key raw-cek)
 		      (asymmetric-cipher-encrypt-bytevector rsa-cipher raw-cek)
 		      jwe-header payload iv-generator)))
 
@@ -650,7 +648,7 @@
     (define enc (jwe-header-enc jwe-header))
     (check-key-size 'aeskw-jwe-encryptor size raw-key)
     (let ((raw-cek (generate-cek cek-generator enc)))
-      (core-encryptor (generate-symmetric-key *scheme:aes* raw-cek)
+      (core-encryptor (make-symmetric-key raw-cek)
 		      (aes-key-wrap kek raw-cek)
 		      jwe-header payload iv-generator)))
 
@@ -667,7 +665,7 @@
 	(let ((new-header (jwe-header-builder (from jwe-header)
 			   (iv iv)
 			   (tag tag))))
-	  (core-encryptor (generate-symmetric-key *scheme:aes* raw-cek)
+	  (core-encryptor (make-symmetric-key raw-cek)
 			  encrypted-cek
 			  new-header payload iv-generator)))))
 
@@ -685,7 +683,7 @@
 		    'aeskw-jwe-encryptor "Unknown algorithm" alg)))))
 	((jwk? kek)
 	 (make-aeskw-jwe-encryptor
-	  (generate-symmetric-key *scheme:aes* (jwk->octet-key kek))
+	  (make-symmetric-key (jwk->octet-key kek))
 	  :iv-generator iv-generator
 	  :cek-generator cek-generator
 	  :kek-iv-generator kek-iv-generator))
@@ -741,13 +739,17 @@
   (lambda (jwe-header payload)
     (define alg (jose-crypto-header-alg jwe-header))
     (define enc (jwe-header-enc jwe-header))
+    (unless (memq alg
+		  '(PBES2-HS256+A128KW PBES2-HS384+A192KW PBES2-HS512+A256KW))
+      (assertion-violation 'pbes2-jwe-encryptor
+			   "Alg must be one of PBES2-*" alg))
     (let-values (((raw-salt iteration) (salt-generator)))
       (let ((ps-key (pbes2-derive-kek alg password raw-salt iteration))
 	    (new-header (jwe-header-builder (from jwe-header)
 			 (p2s raw-salt)
 			 (p2c iteration)))
 	    (raw-cek (generate-cek cek-generator enc)))
-	(core-encryptor (generate-symmetric-key *scheme:aes* raw-cek)
+	(core-encryptor (make-symmetric-key raw-cek)
 			(aes-key-wrap ps-key raw-cek)
 			new-header payload iv-generator)))))
 
@@ -764,7 +766,7 @@
 	   (core-encryptor key #vu8() jwe-header payload iv-generator)))
 	((jwk? key)
 	 (make-direct-jwe-encryptor
-	  (generate-symmetric-key *scheme:aes* (jwk->octet-key key))
+	  (make-symmetric-key (jwk->octet-key key))
 	  :iv-generator iv-generator
 	  :strict? strict?))
 	(else (assertion-violation 'make-direct-jwe-encryptor
@@ -781,7 +783,7 @@
       ((ECDH-ES+C20PKW ECDH-ES+XC20PKW) alg)
       (else (assertion-violation 'ecdh-derive-shared-key
 				 "Unknown alg, bug?" alg))))
-  (let ((key-length (* (get-aes-key-byte-size alg-id) 8)))
+  (let ((key-length (* (get-aes-key-byte-size alg-id #t) 8)))
     (concat-kdf *digest:sha-256*
 		z
 		key-length
@@ -941,8 +943,7 @@
   (define raw-key (symmetric-key-value key))
   (check-key-size 'aes-hmac-derive-keys size raw-key)
   (values (bytevector-copy raw-key 0 key-size)
-	  (generate-symmetric-key *scheme:aes*
-				  (bytevector-copy raw-key key-size))))
+	  (make-symmetric-key (bytevector-copy raw-key key-size))))
 
 (define (pbes2-prf-param alg)
     (case alg
@@ -963,14 +964,12 @@
     (let* ((salt (format-salt alg raw-salt))
 	   (key (pbkdf-2 bv-password salt iteration dk-len
 			 :prf (mac->prf-provider *mac:hmac* :digest digest))))
-      (generate-symmetric-key *scheme:aes* key))))
+      (make-symmetric-key key))))
 
 (define (check-key-size who size raw-key)
   (unless (= size (bytevector-length raw-key))
-    (assertion-violation who
-			 "Wrong size of key size"
-			 `((expected ,size)
-			   (got ,(bytevector-length raw-key))))))
+    (assertion-violation who "Wrong size of key size"
+     `((expected ,size) (got ,(bytevector-length raw-key))))))
 
 (define (jwe-header->aad jwe-header)
   (let ((b64 (jwe-header->base64url jwe-header)))
