@@ -5,6 +5,7 @@
 	(rfc base64)
 	(text json)
 	(sagittarius crypto keys)
+	(sagittarius crypto random)
 	(srfi :64))
 
 (define jwe-string
@@ -554,6 +555,9 @@
 (test-ecdh-rfc7748 *key:x448* "ECDH-ES+A256KW")
 )
 
+;; Very unfortunately, the example JWE from the draft is incorrect,
+;; i.e. wrong CEK, it's encrypted content...
+#|
 (let ()
 (define (test-c20pkw pt kek jwe-string)
   (define decryptor (make-c20pkw-jwe-decryptor kek))
@@ -564,5 +568,30 @@
 	     (make-symmetric-key (base64url-decode-string "Rpv7sxPJYeNjKr-L8gPrKtQLHX-1dDuqtJuriVQ0eUY" :transcoder #f))
 	     "eyJhbGciOiJYQzIwUEtXIiwiZW5jIjoiWEMyMFAiLCJpdiI6Ikx1Tk5TNVJBYWdrT1FWZXdRT0xScDlub1hFVF9Zc1BYIiwidGFnIjoiVlQyWjlhOTNKRmUyb20yZ2JvVXo0ZyJ9.K-kXEFjmSsjKzU91.LHs6vru3ggyuAzgT2UJkWyqJuZSv0Gae.QgxRd4qQrkQNaEK3.aQDs_RkdWabvzmxYEnoShg")
 )
+|#
+;; for now, dog feeding tests
+(let ()
+  (define (test-c20pkw alg enc payload raw-kek)
+    (define kek (make-symmetric-key raw-kek))
+    (define encryptor (make-c20pkw-jwe-encryptor kek))
+    (define decryptor (make-c20pkw-jwe-decryptor kek))
+    (define jwe-header (jwe-header-builder
+			(alg alg)
+			(enc enc)))
+    (let ((jwe (jwe:encrypt encryptor jwe-header payload)))
+      (test-equal payload (jwe:decrypt decryptor jwe))))
+  (define kek-generator
+    (make-random-generator (secure-random-generator *prng:chacha20*)))
+  (test-c20pkw 'C20PKW  'C20P  #*"hello world" (kek-generator 16))
+  (test-c20pkw 'C20PKW  'C20P  #*"hello world" (kek-generator 32))
+  (test-c20pkw 'XC20PKW 'XC20P #*"hello world" (kek-generator 16))
+  (test-c20pkw 'XC20PKW 'XC20P #*"hello world" (kek-generator 32))
+  ;; other combination
+  (test-c20pkw 'C20PKW  'A128CBC-HS256 #*"hello world" (kek-generator 16))
+  (test-c20pkw 'C20PKW  'A128GCM       #*"hello world" (kek-generator 16))
+  (test-c20pkw 'XC20PKW 'A128CBC-HS256 #*"hello world" (kek-generator 16))
+  (test-c20pkw 'XC20PKW 'A128GCM       #*"hello world" (kek-generator 16))
+)
+
 
 (test-end)

@@ -375,7 +375,7 @@
 	((jwk? kek)
 	 (make-c20pkw-jwe-decryptor (make-symmetric-key (jwk->octet-key kek))))
 	(else
-	 (assertion-violation 'make-aeskw-jwe-decryptor "Unknown key" kek))))
+	 (assertion-violation 'make-c20pkw-jwe-decryptor "Unknown key" kek))))
 
 ;; PBE key unwrap
 (define (make-pbes2-jwe-decryptor password)
@@ -544,7 +544,7 @@
 	       (values (generate-symmetric-key *scheme:aes* shared-key) #vu8()))
 	     (define (ecdh-aes-wrap shared-key)
 	       (let ((kek (generate-symmetric-key *scheme:aes* shared-key))
-		     (cek (cek-generator (get-aes-key-byte-size enc))))
+		     (cek (generate-cek cek-generator enc)))
 		 (values (generate-symmetric-key *scheme:aes* cek)
 			 (aes-key-wrap kek cek))))
 
@@ -580,7 +580,7 @@
 				      :encoding encoding opts)
 			       key))
     (define enc (jwe-header-enc jwe-header))
-    (let ((raw-cek (cek-generator (get-aes-key-byte-size enc))))
+    (let ((raw-cek (generate-cek cek-generator enc)))
       (core-encryptor (generate-symmetric-key *scheme:aes* raw-cek)
 		      (asymmetric-cipher-encrypt-bytevector rsa-cipher raw-cek)
 		      jwe-header payload iv-generator)))
@@ -614,7 +614,7 @@
     (define raw-key (symmetric-key-value kek))
     (define enc (jwe-header-enc jwe-header))
     (check-key-size 'aeskw-jwe-encryptor size raw-key)
-    (let ((raw-cek (cek-generator (get-aes-key-byte-size enc))))
+    (let ((raw-cek (generate-cek cek-generator enc)))
       (core-encryptor (generate-symmetric-key *scheme:aes* raw-cek)
 		      (aes-key-wrap kek raw-cek)
 		      jwe-header payload iv-generator)))
@@ -627,7 +627,7 @@
 	    (else kek-iv-generator)))
     (define cek-key-encryptor (aes-gcm-encryptor kek size kek-iv-g))
     (define enc (jwe-header-enc jwe-header))
-    (let ((raw-cek (cek-generator (get-aes-key-byte-size enc))))
+    (let ((raw-cek (generate-cek cek-generator enc)))
       (let-values (((iv encrypted-cek tag) (cek-key-encryptor #vu8() raw-cek)))
 	(let ((new-header (jwe-header-builder (from jwe-header)
 			   (iv iv)
@@ -669,8 +669,7 @@
 	    (else kek-iv-generator)))
     (define cek-key-encryptor (c20p-encryptor scheme iv-size kek kek-iv-g))
     (define enc (jwe-header-enc jwe-header))
-    (let ((raw-cek (cek-generator
-		    (symmetric-cipher-descriptor-max-key-length scheme))))
+    (let ((raw-cek (generate-cek cek-generator enc)))
       (let-values (((iv encrypted-cek tag) (cek-key-encryptor #vu8() raw-cek)))
 	(let ((new-header (jwe-header-builder (from jwe-header)
 			   (iv iv)
@@ -696,7 +695,7 @@
 	  :iv-generator iv-generator
 	  :cek-generator cek-generator
 	  :kek-iv-generator kek-iv-generator))
-	(else (assertion-violation 'make-aeskw-jwe-encryptor
+	(else (assertion-violation 'make-c20pkw-jwe-encryptor
 				   "Unsupported KEK type" kek))))
 
 ;; PBE key wrap
@@ -712,7 +711,7 @@
 	    (new-header (jwe-header-builder (from jwe-header)
 			 (p2s raw-salt)
 			 (p2c iteration)))
-	    (raw-cek (cek-generator (get-aes-key-byte-size enc))))
+	    (raw-cek (generate-cek cek-generator enc)))
 	(core-encryptor (generate-symmetric-key *scheme:aes* raw-cek)
 			(aes-key-wrap ps-key raw-cek)
 			new-header payload iv-generator)))))
@@ -825,11 +824,15 @@
      (c20p-encryptor *scheme:xchacha20-poly1305* 24 key iv-generator))
     (else (assertion-violation 'get-cipher "Unsupported enc type" enc))))
 
-(define (get-aes-key-byte-size enc)
+(define (get-aes-key-byte-size enc :optional (for-cek? #f))
   (case enc
-    ((A128CBC-HS256 A128GCM A128KW A128GCMKW ECDH-ES+A128KW) 16)
-    ((A192CBC-HS384 A192GCM A192KW A192GCMKW ECDH-ES+A198KW) 24)
-    ((A256CBC-HS512 A256GCM A256KW A256GCMKW ECDH-ES+A256KW) 32)
+    ((A128GCM A128KW A128GCMKW ECDH-ES+A128KW) 16)
+    ((A192GCM A192KW A192GCMKW ECDH-ES+A198KW) 24)
+    ((A256GCM A256KW A256GCMKW ECDH-ES+A256KW) 32)
+    ((A128CBC-HS256)                           (* 16 (if for-cek? 2 1)))
+    ((A192CBC-HS384)                           (* 24 (if for-cek? 2 1)))
+    ((A256CBC-HS512)                           (* 32 (if for-cek? 2 1)))
+    ((C20P XC20P)                              32)
     (else (assertion-violation
 	   'get-aes-key-byte-size "Unsupported alg/enc type" enc))))
 (define (get-hmac-digest enc)
@@ -882,10 +885,12 @@
   (lambda (aad payload)
     (stream-cipher-update-aad! enc-cipher aad)
     (let* ((cipher-text (stream-cipher-encrypt enc-cipher payload))
-	   (tag (block-cipher-done/tag enc-cipher 16)))
+	   (tag (stream-cipher-done/tag enc-cipher 16)))
       (values iv cipher-text tag))))
 
 ;; utilities
+(define (generate-cek generator enc) (generator (get-aes-key-byte-size enc #t)))
+
 (define (aes-hmac-compute-tag digest mac-key aad iv cipher-text)
   ;; tag length = lengt(mac-key)
   (let ((tag (make-bytevector (bytevector-length mac-key)))
@@ -903,7 +908,8 @@
   (define raw-key (symmetric-key-value key))
   (check-key-size 'aes-hmac-derive-keys size raw-key)
   (values (bytevector-copy raw-key 0 key-size)
-	  (generate-symmetric-key *scheme:aes* (bytevector-copy raw-key key-size))))
+	  (generate-symmetric-key *scheme:aes*
+				  (bytevector-copy raw-key key-size))))
 
 (define (pbes2-prf-param alg)
     (case alg
