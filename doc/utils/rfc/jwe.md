@@ -6,6 +6,9 @@
 This library provides Json Web Encryption (JWE) APIs. JWE is defined in
 [RFC 7516](https://datatracker.ietf.org/doc/html/rfc7516).
 
+The library also supports ChaCha20-Poly1305 and XChaCha20-Poly1305
+enhancement defined in 
+[the draft RFC](https://tools.ietf.org/html/draft-amringer-jose-chacha-02)
 
 The following example shows how to exchange secret key.
 
@@ -116,9 +119,9 @@ This record type has the below fields:
 - `p2c`: Iteration count, must be an integer
 - `iv`: Initial vector, must be a bytevector
 - `tag`: Authentication tag, must be a bytevector
-- `apu`: 
-- `apv`: 
-- `epk`: 
+- `apu`: Agreement party uinfo, must be a bytevector
+- `apv`: Agreement party vinfo, must be a bytevector
+- `epk`: Ephemeral public key, must be either JSON or JWK object
 - `custom-parameters`
 
 The above fields have accessors prefixed _jwe-header-_. For example,
@@ -210,9 +213,13 @@ or X448 public key.
 
 Creates a ECDH JWE encryptor.
 
-This encryptor supports `ECDH-ES`, `ECDH-ES+A128KW`,
-`ECDH-ES+A198KW`, and `ECDH-ES+A256KW` algorithms.
-
+Below are the supported algorithms:
+- `ECDH-ES`
+- `ECDH-ES+A128KW`
+- `ECDH-ES+A198KW`
+- `ECDH-ES+A256KW`
+- `ECDH-ES+C20PKW` **[@since] `0.9.13`**
+- `ECDH-ES+XC20PKW` **[@since] `0.9.13`**
 
 ###### [!Function] `make-rsa-jwe-encryptor`  _key_
 
@@ -220,8 +227,10 @@ _key_ must be a RSA JWK or RSA public key.
 
 Creates a RSA JWE encryptor.
 
-This encryptor supports `RSA1_5`, `RSA-OAEP` and
-`RSA-OAEP-256` algorithms.
+Below are the supported algorithms:
+- `RSA1_5`
+- `RSA-OAEP`
+- `RSA-OAEP-256`
 
 
 ###### [!Function] `make-aeskw-jwe-encryptor`  _key_
@@ -230,8 +239,23 @@ _key_ must be a OCT JWK or AES secret key.
 
 Creates a AESKW JWE encryptor.
 
-This encryptor supports `A128KW`, `A192KW`, `A256KW`,
-`A128GCMKW`, `A192GCMKW`, and `A256GCMKW`, algorithms.
+Below are the supported algorithms:
+- `A128KW`
+- `A192KW`
+- `A256KW`
+- `A128GCMKW`
+- `A192GCMKW`
+- `A256GCMKW`
+
+###### [!Function] `make-c20pkw-jwe-encryptor`  _key_ **[@since] `0.9.13`**
+
+_key_ must be a OCT JWK or a symmetric key of size 16 or 32 octet.
+
+Creates a C20PKW or XC20PKW JWE encryptor.
+
+Below are the supported algorithms:
+- `C20PKW`
+- `XC20PKW`
 
 
 ###### [!Function] `make-pbes2-jwe-encryptor`  _password_
@@ -262,8 +286,13 @@ or X448 private key.
 
 Creates a ECDH JWE decryptor.
 
-This decryptor supports `ECDH-ES`, `ECDH-ES+A128KW`,
-`ECDH-ES+A198KW`, and `ECDH-ES+A256KW` algorithms.
+Below are the supported algorithms:
+- `ECDH-ES`
+- `ECDH-ES+A128KW`
+- `ECDH-ES+A198KW`
+- `ECDH-ES+A256KW`
+- `ECDH-ES+C20PKW` **[@since] `0.9.13`**
+- `ECDH-ES+XC20PKW` **[@since] `0.9.13`**
 
 
 ###### [!Function] `make-rsa-jwe-decryptor`  _key_
@@ -272,8 +301,10 @@ _key_ must be a RSA JWK or RSA private key.
 
 Creates a RSA JWE decryptor.
 
-This decryptor supports `RSA1_5`, `RSA-OAEP` and
-`RSA-OAEP-256` algorithms.
+Below are the supported algorithms:
+- `RSA1_5`
+- `RSA-OAEP` 
+- `RSA-OAEP-256`
 
 
 ###### [!Function] `make-aeskw-jwe-decryptor`  _key_
@@ -282,8 +313,23 @@ _key_ must be a OCT JWK or AES secret key.
 
 Creates a AESKW JWE decryptor.
 
-This decryptor supports `A128KW`, `A192KW`, `A256KW`,
-`A128GCMKW`, `A192GCMKW`, and `A256GCMKW`, algorithms.
+Below are the supported algorithms:
+- `A128KW`
+- `A192KW`
+- `A256KW`
+- `A128GCMKW`
+- `A192GCMKW`
+- `A256GCMKW`
+
+###### [!Function] `make-c20pkw-jwe-decryptor`  _key_  **[@since] `0.9.13`**
+
+_key_ must be a OCT JWK or a secret key of size 16 or 32 octed.
+
+Creates a C20PKW or XC20PKW JWE decryptor.
+
+Below are the supported algorithms:
+- `C20PKW`
+- `XC20PKW`
 
 
 ###### [!Function] `make-pbes2-jwe-decryptor`  _password_
