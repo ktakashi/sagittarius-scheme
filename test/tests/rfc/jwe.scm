@@ -454,19 +454,12 @@
 (define pri-b (jwk->private-key jwk-b))
 
 (define (make-jwe-header alg)
-  (json-string->jwe-header
-   (string-append
-    "{\"alg\":\"" alg  "\"," 
-     "\"enc\":\"A128GCM\",
-      \"apu\":\"QWxpY2U\",
-      \"apv\":\"Qm9i\",
-      \"epk\":
-        {\"kty\":\"EC\",
-         \"crv\":\"P-256\",
-         \"x\":\"gI0GAILBdu7T53akrFmMyGcsF3n5dO7MmwNBHKW5SV0\",
-         \"y\":\"SLW_xSffzlPWrHEVI30DHM_4egVwt3NQqeUD7nMFpps\"
-        }
-      }")))
+  (jwe-header-builder
+   (alg (string->symbol alg))
+   (enc 'A128GCM)
+   (apu (base64url-decode-string "QWxpY2U" :transcoder #f))
+   (apv (base64url-decode-string "Qm9i" :transcoder #f))
+   (epk pub-a)))
 (define (test-ecdh-es alg)
   (define jwe-header (make-jwe-header alg))
 
@@ -485,6 +478,8 @@
 (test-ecdh-es "ECDH-ES+A128KW")
 (test-ecdh-es "ECDH-ES+A198KW")
 (test-ecdh-es "ECDH-ES+A256KW")
+(test-ecdh-es "ECDH-ES+C20PKW")
+(test-ecdh-es "ECDH-ES+XC20PKW")
 
 (let ()
   (define jwe-header (make-jwe-header "ECDH-ES"))
@@ -549,10 +544,14 @@
 (test-ecdh-rfc7748 *key:x25519* "ECDH-ES+A128KW")
 (test-ecdh-rfc7748 *key:x25519* "ECDH-ES+A198KW")
 (test-ecdh-rfc7748 *key:x25519* "ECDH-ES+A256KW")
+(test-ecdh-rfc7748 *key:x25519* "ECDH-ES+C20PKW")
+(test-ecdh-rfc7748 *key:x25519* "ECDH-ES+XC20PKW")
 (test-ecdh-rfc7748 *key:x448* "ECDH-ES")
 (test-ecdh-rfc7748 *key:x448* "ECDH-ES+A128KW")
 (test-ecdh-rfc7748 *key:x448* "ECDH-ES+A198KW")
 (test-ecdh-rfc7748 *key:x448* "ECDH-ES+A256KW")
+(test-ecdh-rfc7748 *key:x448* "ECDH-ES+C20PKW")
+(test-ecdh-rfc7748 *key:x448* "ECDH-ES+XC20PKW")
 )
 
 ;; Very unfortunately, the example JWE from the draft is incorrect,

@@ -113,7 +113,10 @@
 	     ((string? bv) (base64url-string->bytevector bv))
 	     (else (assertion-violation 'jwe-header-builder
 		    "bytevector or base64url string required" bv)))))
-(define (maybe-json->jwk json) (and json (json->jwk json)))
+(define (maybe-json->jwk json)
+  (and json
+       (or (and (jwk? json) json)
+	   (json->jwk json))))
 (define-syntax jwe-header-builder
   (make-record-builder jwe-header
    ((custom-parameters '() ->jose-header-custom-parameter)
@@ -158,7 +161,7 @@
     (? "tag" #f base64url-string->bytevector)
     (? "apu" #f base64url-string->bytevector)
     (? "apv" #f base64url-string->bytevector)
-    (? "epk" #f json->jwk))))
+    (? "epk" #f maybe-json->jwk))))
 
 (define jwe-header-serializer
   (json-object-serializer
@@ -266,6 +269,17 @@
 	     (let ((kek (generate-symmetric-key *scheme:aes* share-key)))
 	       (generate-symmetric-key *scheme:aes*
 				    (aes-key-unwrap kek encrypted-key))))
+	   (define (ecdh-c20pkw-unwrap scheme)
+	     (define iv (jwe-header-iv jwe-header))
+	     (define tag (jwe-header-tag jwe-header))
+	     (unless (and iv tag)
+	       (assertion-violation 'ecdh-jwe-decryptor
+				    "iv and tag is required for (X)C20KW"))
+	     (lambda (share-key encrypted-key)
+	       (let ((kek (make-symmetric-key share-key)))
+		 (make-symmetric-key
+		  (decrypt-chacha20-poly1305 scheme kek #vu8() iv
+					     encrypted-key tag)))))
 
 	   (define (ecdh-decryptor mode)
 	     (define epk (jwe-header-epk jwe-header))
@@ -282,6 +296,10 @@
 	     ((ECDH-ES) (ecdh-decryptor ecdh-direct))
 	     ((ECDH-ES+A128KW ECDH-ES+A198KW ECDH-ES+A256KW)
 	      (ecdh-decryptor ecdh-aes-unwrap))
+	     ((ECDH-ES+C20PKW)
+	      (ecdh-decryptor (ecdh-c20pkw-unwrap *scheme:chacha20-poly1305*)))
+	     ((ECDH-ES+XC20PKW)
+	      (ecdh-decryptor (ecdh-c20pkw-unwrap *scheme:xchacha20-poly1305*)))
 	     (else
 	      (assertion-violation 'ecdh-jwe-decryptor "Unknown alg" alg)))))
 	((jwk? key)
@@ -541,26 +559,43 @@
 	     (define enc (jwe-header-enc jwe-header))
 
 	     (define (ecdh-direct shared-key)
-	       (values (generate-symmetric-key *scheme:aes* shared-key) #vu8()))
+	       (values (generate-symmetric-key *scheme:aes* shared-key) #vu8()
+		       #f #f))
 	     (define (ecdh-aes-wrap shared-key)
 	       (let ((kek (generate-symmetric-key *scheme:aes* shared-key))
 		     (cek (generate-cek cek-generator enc)))
 		 (values (generate-symmetric-key *scheme:aes* cek)
-			 (aes-key-wrap kek cek))))
-
+			 (aes-key-wrap kek cek)
+			 #f #f)))
+	     (define ((ecdh-c20pkw-wrap scheme iv-size) shared-key)
+	       (define kek (make-symmetric-key shared-key))
+	       (define wrap (c20p-encryptor scheme iv-size kek iv-generator))
+	       (let ((cek (generate-cek cek-generator enc)))
+		 (let-values (((iv ecek tag) (wrap #vu8() cek)))
+		   (values (make-symmetric-key cek) ecek iv tag))))
+	     (define (calc-z priv key)
+	       (calculate-key-agreement *key:ecdh* priv key))
 	     (define (ecdh-encryptor mode)
-	       (let-values (((priv pub) (ec-keypair-generator key-parameter)))
-		 (let ((z (calculate-key-agreement *key:ecdh* priv key))
-		       (new-header (jwe-header-builder (from jwe-header)
-				    (epk (public-key->jwk pub)))))
-		   (let-values (((cek encrypted-key)
-				 (mode (ecdh-derive-shared-key new-header z))))
-		     (core-encryptor cek encrypted-key new-header
-				     payload iv-generator)))))
+	       (let*-values (((priv pub) (ec-keypair-generator key-parameter))
+			     ((cek encrypted-key iv tag)
+			      (mode (ecdh-derive-shared-key jwe-header
+				     (calc-z priv key)))))
+		 (let ((new-header (jwe-header-builder (from jwe-header)
+				    (epk (public-key->jwk pub))
+				    (iv iv)
+				    (tag tag))))
+		   (core-encryptor cek encrypted-key new-header
+				   payload iv-generator))))
 	     (case alg
 	       ((ECDH-ES) (ecdh-encryptor ecdh-direct))
 	       ((ECDH-ES+A128KW ECDH-ES+A198KW ECDH-ES+A256KW)
 		(ecdh-encryptor ecdh-aes-wrap))
+	       ((ECDH-ES+C20PKW)
+		(ecdh-encryptor
+		 (ecdh-c20pkw-wrap *scheme:chacha20-poly1305* 12)))
+	       ((ECDH-ES+XC20PKW)
+		(ecdh-encryptor
+		 (ecdh-c20pkw-wrap *scheme:xchacha20-poly1305* 24)))
 	       (else
 		(assertion-violation 'ecdh-jwe-encryptor "Unknown alg" alg))))))
 	((jwk? key)
@@ -743,12 +778,10 @@
     (case alg
       ((ECDH-ES) enc)
       ((ECDH-ES+A128KW ECDH-ES+A198KW ECDH-ES+A256KW) alg)
+      ((ECDH-ES+C20PKW ECDH-ES+XC20PKW) alg)
       (else (assertion-violation 'ecdh-derive-shared-key
 				 "Unknown alg, bug?" alg))))
-  (let ((key-length (* (if (eq? alg 'ECDH-ES)
-			   (get-aes-key-byte-size enc)
-			   (get-aes-key-byte-size alg))
-		       8)))
+  (let ((key-length (* (get-aes-key-byte-size alg-id) 8)))
     (concat-kdf *digest:sha-256*
 		z
 		key-length
@@ -826,13 +859,13 @@
 
 (define (get-aes-key-byte-size enc :optional (for-cek? #f))
   (case enc
-    ((A128GCM A128KW A128GCMKW ECDH-ES+A128KW) 16)
-    ((A192GCM A192KW A192GCMKW ECDH-ES+A198KW) 24)
-    ((A256GCM A256KW A256GCMKW ECDH-ES+A256KW) 32)
-    ((A128CBC-HS256)                           (* 16 (if for-cek? 2 1)))
-    ((A192CBC-HS384)                           (* 24 (if for-cek? 2 1)))
-    ((A256CBC-HS512)                           (* 32 (if for-cek? 2 1)))
-    ((C20P XC20P)                              32)
+    ((A128GCM A128KW A128GCMKW ECDH-ES+A128KW)   16)
+    ((A192GCM A192KW A192GCMKW ECDH-ES+A198KW)   24)
+    ((A256GCM A256KW A256GCMKW ECDH-ES+A256KW)   32)
+    ((A128CBC-HS256)                             (* 16 (if for-cek? 2 1)))
+    ((A192CBC-HS384)                             (* 24 (if for-cek? 2 1)))
+    ((A256CBC-HS512)                             (* 32 (if for-cek? 2 1)))
+    ((C20P XC20P ECDH-ES+C20PKW ECDH-ES+XC20PKW) 32)
     (else (assertion-violation
 	   'get-aes-key-byte-size "Unsupported alg/enc type" enc))))
 (define (get-hmac-digest enc)
