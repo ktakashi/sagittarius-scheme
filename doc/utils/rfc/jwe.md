@@ -128,6 +128,17 @@ The above fields have accessors prefixed _jwe-header-_. For example,
 to read `typ` field, you can use `jwe-header-typ` procedure.
 
 
+Below are the supported encryption algorithms:
+
+- `A128CBC-HS256`
+- `A192CBC-HS384`
+- `A256CBC-HS512`
+- `A128GCM`
+- `A192GCM`
+- `A256GCM`
+- `C20P`  **[@since] `0.9.13`**
+- `XC20P` **[@since] `0.9.13`**
+
 ###### [!Function] `jwe-header?`  _obj_
 
 Returns #t if the given _obj_ is a JWE header, otherwise #f.
@@ -264,6 +275,11 @@ _password_ must be a string or a bytevector.
 
 Creates a PBES2 JWE encryptor.
 
+Below are the supported algorithms:
+- `PBES2-HS256+A128KW` 
+- `PBES2-HS384+A192KW` 
+- `PBES2-HS512+A256KW`
+
 
 ###### [!Function] `make-direct-jwe-encryptor`  _key_
 
@@ -337,6 +353,11 @@ Below are the supported algorithms:
 _password_ must be a string or a bytevector.
 
 Creates a PBES2 JWE decryptor.
+
+Below are the supported algorithms:
+- `PBES2-HS256+A128KW` 
+- `PBES2-HS384+A192KW` 
+- `PBES2-HS512+A256KW`
 
 
 ###### [!Function] `make-direct-jwe-decryptor`  _key_
