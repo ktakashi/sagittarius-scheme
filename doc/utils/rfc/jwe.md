@@ -217,7 +217,8 @@ If the second form is used, then the `crit` paramteters of the
 
 JWE encryptor is a procedure takes two arguments, JWE header and plain text.
 
-###### [!Function] `make-ecdh-jwe-encryptor`  _key_
+###### [!Function] `make-ecdh-jwe-encryptor`  _key_ **[@deprecated]**
+###### [!Function] `make-ecdh-es-jwe-encryptor`  _key_ **[@since] `0.9.13`**
 
 _key_ must be a EC JWK, OKP JWK, EcDSA public key, X25519 public key
 or X448 public key.
@@ -295,7 +296,8 @@ This encryptor uses given _key_ as CEK.
 JWE decryptor is a procedure takes 5 arguments, JWE header, encrypted key,
 IV, cipher text and authentication tag.
 
-###### [!Function] `make-ecdh-jwe-decryptor`  _key_
+###### [!Function] `make-ecdh-jwe-decryptor`  _key_ **[@deprecated]**
+###### [!Function] `make-ecdh-es-jwe-decryptor`  _key_ **[@since] `0.9.13`**
 
 _key_ must be a EC JWK, OKP JWK, EcDSA private key, X25519 private key
 or X448 private key.

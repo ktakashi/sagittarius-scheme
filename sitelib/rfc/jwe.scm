@@ -67,7 +67,8 @@
 	    make-pbes2-jwe-decryptor
 	    make-aeskw-jwe-decryptor
 	    make-rsa-jwe-decryptor
-	    make-ecdh-jwe-decryptor
+	    make-ecdh-es-jwe-decryptor
+	    (rename (make-ecdh-es-jwe-decryptor make-ecdh-jwe-decryptor))
 	    make-c20pkw-jwe-decryptor
 	    
 
@@ -76,7 +77,8 @@
 	    make-pbes2-jwe-encryptor
 	    make-aeskw-jwe-encryptor
 	    make-rsa-jwe-encryptor
-	    make-ecdh-jwe-encryptor
+	    make-ecdh-es-jwe-encryptor
+	    (rename (make-ecdh-es-jwe-encryptor make-ecdh-jwe-encryptor))
 	    make-c20pkw-jwe-encryptor
 
 	    ;; generators
@@ -257,7 +259,7 @@
 ;;;; Cryptographic implementations
 ;;; Decryptors
 ;; ECDH-ES key unwrap
-(define (make-ecdh-jwe-decryptor key)
+(define (make-ecdh-es-jwe-decryptor key)
   (cond ((or (ecdsa-private-key? key) (rfc7748-private-key? key))
 	 (lambda (jwe-header encrypted-key iv cipher-text auth-tag)
 	   (define alg (jose-crypto-header-alg jwe-header))
@@ -271,7 +273,7 @@
 	     (define iv (jwe-header-iv jwe-header))
 	     (define tag (jwe-header-tag jwe-header))
 	     (unless (and iv tag)
-	       (assertion-violation 'ecdh-jwe-decryptor
+	       (assertion-violation 'ecdh-es-jwe-decryptor
 				    "iv and tag is required for (X)C20KW"))
 	     (lambda (share-key encrypted-key)
 	       (let ((kek (make-symmetric-key share-key)))
@@ -284,7 +286,7 @@
 	     (define pub (and epk (jwk->public-key epk)))
 
 	     (unless (or (ecdsa-public-key? pub) (rfc7748-public-key? pub))
-	       (assertion-violation 'ecdh-jwe-decryptor
+	       (assertion-violation 'ecdh-es-jwe-decryptor
 		 "epk is not an ECDSA, X25519 or X448 public key"))
 	     (let* ((z (calculate-key-agreement *key:ecdh* key pub))
 		    (cek (mode (ecdh-derive-shared-key jwe-header z)
@@ -299,10 +301,10 @@
 	     ((ECDH-ES+XC20PKW)
 	      (ecdh-decryptor (ecdh-c20pkw-unwrap *scheme:xchacha20-poly1305*)))
 	     (else
-	      (assertion-violation 'ecdh-jwe-decryptor "Unknown alg" alg)))))
+	      (assertion-violation 'ecdh-es-jwe-decryptor "Unknown alg" alg)))))
 	((jwk? key)
-	 (make-ecdh-jwe-decryptor (jwk->private-key key)))
-	(else (assertion-violation 'make-ecdh-jwe-decryptor
+	 (make-ecdh-es-jwe-decryptor (jwk->private-key key)))
+	(else (assertion-violation 'make-ecdh-es-jwe-decryptor
 				   "ECDSA private key is required" key))))
 
 ;; RSA key unwrap
@@ -541,7 +543,7 @@
     (values (key-pair-private kp) (key-pair-public kp))))
 
 ;; ECDH-ES key wrap
-(define (make-ecdh-jwe-encryptor
+(define (make-ecdh-es-jwe-encryptor
 	 key :key (ec-keypair-generator default-ec-keypair-generator)
 		  (cek-generator default-cek-generator)
 		  (iv-generator default-iv-generator))
@@ -550,7 +552,7 @@
 		(cond ((ecdsa-public-key? key) (ecdsa-key-parameter key))
 		      ((x25519-public-key? key) *key:x25519*)
 		      ((x448-public-key? key) *key:x448*)
-		      (else (assertion-violation 'make-ecdh-jwe-encryptor
+		      (else (assertion-violation 'make-ecdh-es-jwe-encryptor
 						 "Unknown key" key)))))
 	   (lambda (jwe-header payload)
 	     (define alg (jose-crypto-header-alg jwe-header))
@@ -595,13 +597,13 @@
 		(ecdh-encryptor
 		 (ecdh-c20pkw-wrap *scheme:xchacha20-poly1305* 24)))
 	       (else
-		(assertion-violation 'ecdh-jwe-encryptor "Unknown alg" alg))))))
+		(assertion-violation 'ecdh-es-jwe-encryptor "Unknown alg" alg))))))
 	((jwk? key)
-	 (make-ecdh-jwe-encryptor (jwk->public-key key)
+	 (make-ecdh-es-jwe-encryptor (jwk->public-key key)
 				  :cek-generator cek-generator
 				  :iv-generator iv-generator
 				  :ec-keypair-generator ec-keypair-generator))
-	(else (assertion-violation 'make-ecdh-jwe-encryptor
+	(else (assertion-violation 'make-ecdh-es-jwe-encryptor
 				   "Key must be an ECDSA public key" key))))
 
 ;; RSA key wrap
