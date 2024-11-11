@@ -801,7 +801,7 @@
 (define (encode-data/length bv)
   (if bv
       (bytevector-append (integer->bytevector (bytevector-length bv) 4) bv)
-      #vu8()))
+      #vu8(0 0 0 0)))
 ;; This is defined in NIST 800-56A, so maybe better to make a separate library
 ;; ref:
 ;; https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-56Cr1.pdf
@@ -811,6 +811,7 @@
     (define hash-bits (* hsize 8))
     (define reps (div (- (+ key-size hash-bits) 1) hash-bits))
     (define md (make-message-digest algo))
+    (define i32 (make-bytevector 4 0))
     (when (> reps (- (expt 2 32) 1))
       (assertion-violation 'concat-kdf "Too big key size"))
     (message-digest-init! md)
@@ -818,16 +819,17 @@
       (let-values (((out e) (open-bytevector-output-port)))
 	(do ((i 1 (+ i 1)))
 	    ((> i reps))
-	  (message-digest-process! md (integer->bytevector i 4))
+	  (bytevector-u32-set! i32 0 i (endianness big))
+	  (message-digest-process! md i32)
 	  (message-digest-process! md z)
-	  (message-digest-process! md otherinfo)
+	  (for-each (lambda (bv) (message-digest-process! md bv)) otherinfo)
 	  (message-digest-done! md buf)
 	  (put-bytevector out buf))
 	(let ((derived-key-material (e)))
 	  (if (= (bytevector-length derived-key-material) (div key-size 8))
 	      derived-key-material
 	      (bytevector-copy derived-key-material 0 (div key-size 8)))))))
-  (derive-key digest z key-size (bytevector-concatenate rest)))
+  (derive-key digest z key-size rest))
 
 (define (aes-key-wrap key pt)
   (define wrapper (make-aes-key-wrap key))

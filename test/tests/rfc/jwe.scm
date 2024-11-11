@@ -485,7 +485,6 @@
   (define jwe-header (make-jwe-header "ECDH-ES"))
   (define z0 (calculate-key-agreement *key:ecdh* pri-a pub-b))
   (define z1 (calculate-key-agreement *key:ecdh* pri-b pub-a))
-
   (test-equal "Of encryptor" "VqqN6vgjbSBcIijNcacQGg"
 	      (utf8->string
 	       (base64url-encode
