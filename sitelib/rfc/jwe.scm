@@ -486,6 +486,10 @@
     (block-cipher-update-aad! dec-cipher aad)
     (let ((pt (block-cipher-decrypt-last-block dec-cipher cipher-text)))
       (block-cipher-done/tag! dec-cipher auth-tag)
+      ;; https://datatracker.ietf.org/doc/html/rfc7518 5.3
+      ;; Tag must be 128 bits
+      (unless (= (bytevector-length auth-tag) 16)
+	(error 'AES-GCM "Invalid tag length"))
       pt)))
 
 ;; ChaCha20 or XChaCha20

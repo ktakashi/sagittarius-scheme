@@ -389,8 +389,12 @@
   (let* ((len (- (bytevector-length tag) start))
 	 (tmp (make-bytevector len)))
     (tc:gcm-done! state tmp 0)
-    (unless (safe-bytevector=? tag tmp start 0 len)
-      (error 'mode-validate-tag! "Tag unmatched"))))
+    (let ((same? (safe-bytevector=? tag tmp start 0 len))
+	  ;; GCM tag can be 128, 120, 112, 104, 96, 64 and 32
+	  ;; 64 and 32 are not recommended, but we accepts
+	  (valid-length? (or (<= 12 len 16) (= len 8) (= len 4))))
+      (unless (and same? valid-length?)
+	(error 'mode-validate-tag! "Tag unmatched")))))
 
 (define *mode:gcm* (make-encauth-mode-descriptor
 		    tc:*encauth:gcm* "GCM"
