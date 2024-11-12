@@ -54,6 +54,7 @@
 
 	    encode-ec-point
 	    decode-ec-point
+	    valid-ec-point?
 	    
 	    ;; NIST parameters
 	    NIST-P-192 (rename (NIST-P-192 secp192r1))
@@ -237,7 +238,7 @@
      (let* ((~y (odd? type))
 	    (x (bytevector->integer bv 1 (+ size 1)))
 	    (p (decompress-point curve ~y x)))
-       (unless (valid-ec-point? p)
+       (unless (valid-ec-point? curve p)
 	 (assertion-violation 'decompress-point "Invalid point"))
        p))
     ((#x04)
@@ -249,7 +250,19 @@
 					   "not supported" type))))
 
 ;; FIXME should check better...
-(define (valid-ec-point? p) #t)
+(define (valid-ec-point? curve p)
+  (define field (elliptic-curve-field curve))
+  ;; y^2 = x^3 + ax + b
+  (define (check-fp x y)
+    (define p (ec-field-fp-p field))
+    (define a (elliptic-curve-a curve))
+    (define b (elliptic-curve-b curve))
+    (let ((rhs (mod-add (mod-mul (mod-add (mod-square x p) a p) x p) b p))
+	  (lhs (mod-square y p)))
+      (= rhs lhs)))
+  (cond ((ec-field-fp? field) (check-fp (ec-point-x p) (ec-point-y p)))
+	;; TODO
+	(else #t)))
 
 (define (decompress-point curve ~y x)
   (define field (elliptic-curve-field curve))

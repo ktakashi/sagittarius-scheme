@@ -207,7 +207,10 @@
 
 (define (generate-ecdsa-public-key (x integer?) (y integer?)
 				   (parameter ec-parameter?))
-  (make <ecdsa-public-key> :Q (make-ec-point x y) :parameter parameter))
+  (let ((q (make-ec-point x y)))
+    (unless (valid-ec-point? (ec-parameter-curve parameter) q)
+      (assertion-violation 'generate-ecdsa-public-key "Invalid EC point"))
+    (make <ecdsa-public-key> :Q q :parameter parameter)))
 (define-method generate-public-key ((m (eql *key:ecdsa*)) x y
 				    :optional (parameter secp256r1))
   (generate-ecdsa-public-key x y parameter))
