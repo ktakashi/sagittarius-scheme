@@ -327,9 +327,13 @@
 	   (case alg
 	     ((RSA1_5) (rsa-decryptor pkcs1-v1.5-encoding))
 	     ((RSA-OAEP)
-	      (rsa-decryptor oaep-encoding :digest *digest:sha-1*))
+	      (rsa-decryptor oaep-encoding
+			     :digest *digest:sha-1*
+			     :mgf-digest *digest:sha-1*))
 	     ((RSA-OAEP-256)
-	      (rsa-decryptor oaep-encoding :digest *digest:sha-256*))
+	      (rsa-decryptor oaep-encoding
+			     :digest *digest:sha-256*
+			     :mgf-digest *digest:sha-256*))
 	     (else (assertion-violation 'make-rsa-encryptor
 					"Unknown alg" alg)))))
 	((jwk? key)
