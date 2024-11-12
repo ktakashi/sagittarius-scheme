@@ -476,7 +476,7 @@
 
 (test-ecdh-es "ECDH-ES")
 (test-ecdh-es "ECDH-ES+A128KW")
-(test-ecdh-es "ECDH-ES+A198KW")
+(test-ecdh-es "ECDH-ES+A192KW")
 (test-ecdh-es "ECDH-ES+A256KW")
 (test-ecdh-es "ECDH-ES+C20PKW")
 (test-ecdh-es "ECDH-ES+XC20PKW")
@@ -541,13 +541,13 @@
 
 (test-ecdh-rfc7748 *key:x25519* "ECDH-ES")
 (test-ecdh-rfc7748 *key:x25519* "ECDH-ES+A128KW")
-(test-ecdh-rfc7748 *key:x25519* "ECDH-ES+A198KW")
+(test-ecdh-rfc7748 *key:x25519* "ECDH-ES+A192KW")
 (test-ecdh-rfc7748 *key:x25519* "ECDH-ES+A256KW")
 (test-ecdh-rfc7748 *key:x25519* "ECDH-ES+C20PKW")
 (test-ecdh-rfc7748 *key:x25519* "ECDH-ES+XC20PKW")
 (test-ecdh-rfc7748 *key:x448* "ECDH-ES")
 (test-ecdh-rfc7748 *key:x448* "ECDH-ES+A128KW")
-(test-ecdh-rfc7748 *key:x448* "ECDH-ES+A198KW")
+(test-ecdh-rfc7748 *key:x448* "ECDH-ES+A192KW")
 (test-ecdh-rfc7748 *key:x448* "ECDH-ES+A256KW")
 (test-ecdh-rfc7748 *key:x448* "ECDH-ES+C20PKW")
 (test-ecdh-rfc7748 *key:x448* "ECDH-ES+XC20PKW")
@@ -673,7 +673,7 @@
       A128CBC-HS256 A192CBC-HS384 A256CBC-HS512
       A128GCM A192GCM A256GCM
       C20P XC20P)
-     (ECDH-ES+A198KW 
+     (ECDH-ES+A192KW 
       A128CBC-HS256 A192CBC-HS384 A256CBC-HS512
       A128GCM A192GCM A256GCM
       C20P XC20P)

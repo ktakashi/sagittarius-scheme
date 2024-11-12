@@ -294,7 +294,7 @@
 	       (core-decrypt jwe-header cek iv cipher-text auth-tag)))
 	   (case alg
 	     ((ECDH-ES) (ecdh-decryptor ecdh-direct))
-	     ((ECDH-ES+A128KW ECDH-ES+A198KW ECDH-ES+A256KW)
+	     ((ECDH-ES+A128KW ECDH-ES+A192KW ECDH-ES+A256KW)
 	      (ecdh-decryptor ecdh-aes-unwrap))
 	     ((ECDH-ES+C20PKW)
 	      (ecdh-decryptor (ecdh-c20pkw-unwrap *scheme:chacha20-poly1305*)))
@@ -592,7 +592,7 @@
 				   payload iv-generator))))
 	     (case alg
 	       ((ECDH-ES) (ecdh-encryptor ecdh-direct))
-	       ((ECDH-ES+A128KW ECDH-ES+A198KW ECDH-ES+A256KW)
+	       ((ECDH-ES+A128KW ECDH-ES+A192KW ECDH-ES+A256KW)
 		(ecdh-encryptor ecdh-aes-wrap))
 	       ((ECDH-ES+C20PKW)
 		(ecdh-encryptor
@@ -785,7 +785,7 @@
   (define alg-id
     (case alg
       ((ECDH-ES) enc)
-      ((ECDH-ES+A128KW ECDH-ES+A198KW ECDH-ES+A256KW) alg)
+      ((ECDH-ES+A128KW ECDH-ES+A192KW ECDH-ES+A256KW) alg)
       ((ECDH-ES+C20PKW ECDH-ES+XC20PKW) alg)
       (else (assertion-violation 'ecdh-derive-shared-key
 				 "Unknown alg, bug?" alg))))
@@ -870,7 +870,7 @@
 (define (get-aes-key-byte-size enc :optional (for-cek? #f))
   (case enc
     ((A128GCM A128KW A128GCMKW ECDH-ES+A128KW)   16)
-    ((A192GCM A192KW A192GCMKW ECDH-ES+A198KW)   24)
+    ((A192GCM A192KW A192GCMKW ECDH-ES+A192KW)   24)
     ((A256GCM A256KW A256GCMKW ECDH-ES+A256KW)   32)
     ((A128CBC-HS256)                             (* 16 (if for-cek? 2 1)))
     ((A192CBC-HS384)                             (* 24 (if for-cek? 2 1)))
