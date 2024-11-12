@@ -636,10 +636,12 @@
 	      (rsa-encryptor key jwe-header payload pkcs1-v1.5-encoding))
 	     ((RSA-OAEP)
 	      (rsa-encryptor key jwe-header payload oaep-encoding
-			     :digest *digest:sha-1*))
+			     :digest *digest:sha-1*
+			     :mgf-digest *digest:sha-1*))
 	     ((RSA-OAEP-256)
 	      (rsa-encryptor key jwe-header payload oaep-encoding
-			     :digest *digest:sha-256*))
+			     :digest *digest:sha-256*
+			     :mgf-digest *digest:sha-256*))
 	     (else (assertion-violation 'make-rsa-jwe-encryptor
 					"Unknown alg" alg)))))
 	((jwk? key)

@@ -145,8 +145,8 @@
 		 ((= i ps-length) #t)
 	       ;; transform zero bytes (if any) to non-zero random bytes
 	       (when (zero? (bytevector-u8-ref bv (+ i 2)))
-		 (do ((r (random-generator-read-random-bytes! prng bv)
-			 (random-generator-read-random-bytes! prng bv)))
+		 (do ((r (random-generator-read-random-bytes prng 1)
+			 (random-generator-read-random-bytes prng 1)))
 		     ((not (zero? (bytevector-u8-ref r 0)))
 		      (bytevector-u8-set! bv (+ i 2)
 					  (bytevector-u8-ref r 0)))))))
@@ -166,15 +166,16 @@
       (define len (bytevector-length data))
       (let loop ((i 2) (valid? #t))
 	(if (>= i len)
-	    #f ;; not found
+	    (values #f #f) ;; not found
 	    (let ((v (bytevector-u8-ref data i)))
-	      (cond ((zero? v) i)
+	      (cond ((zero? v) (values i valid?))
 		    ((or (eqv? type 2) (and (eqv? type 1) (= v #xFF)))
 		     (loop (+ i 1) valid?))
 		    (else (loop (+ i 1) #f)))))))
-
-    (let ((from (search-end-padding data type)))
-      (when (or (< m-len 1) (not (zero? (bytevector-u8-ref data 0)))
+    (let-values (((from valid?) (search-end-padding data type)))
+      (when (or (not valid?)
+		(< m-len 1)
+		(not (zero? (bytevector-u8-ref data 0)))
 		(not from) (>= from k) (< from 9))
 	(error 'pkcs1-v1.5-decode "Invalid padding"))
       (let* ((len (- m-len from 1))
