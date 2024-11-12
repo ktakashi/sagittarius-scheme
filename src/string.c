@@ -194,8 +194,11 @@ SgObject Sg_MakeString(const SgChar *value, SgStringType flag, long length)
 SgObject Sg_MakeStringC(const char *value)
 {
   SgString *z;
-  z = make_string((long)strlen(value));
-  COPY_STRING(z, value, z->size, 0);
+  long len = (value != NULL) ? (long)strlen(value) : 0L;
+  z = make_string((long)len);
+  if (len != 0) {
+    COPY_STRING(z, value, z->size, 0);
+  }
   z->value[z->size] = 0;
   return SG_OBJ(z);
 }
