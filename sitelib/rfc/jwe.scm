@@ -455,7 +455,8 @@
       (else (assertion-violation 'get-cipher "Unsupported enc type" enc))))
   (define (decompress jwe-header payload)
     (case (jwe-header-zip jwe-header)
-      ((DEF) (inflate-bytevector payload))
+      ;; Deflate = WBITS -15
+      ((DEF) (inflate-bytevector payload :window-bits -15))
       ((#f)  payload)
       (else (assertion-violation 'core-decrypt
 				 "Unknown 'zip' algorithm"
@@ -851,7 +852,8 @@
   (define aad (jwe-header->aad jwe-header))
   (define (compress jwe-header payload)
     (case (jwe-header-zip jwe-header)
-      ((DEF) (deflate-bytevector payload))
+      ;; Deflate = WBITS -15
+      ((DEF) (deflate-bytevector payload :window-bits -15))
       ((#f)  payload)
       (else (assertion-violation 'core-encryptor
 				 "Unknown 'zip' algorithm"
