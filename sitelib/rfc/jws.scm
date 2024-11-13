@@ -268,10 +268,11 @@
     (let ((signing-input (jws-object-signing-input jws-object))
 	  (signature (jws-signed-object-signature jws-object))
 	  (jws-header (jws-object-header jws-object)))
-      (and (check-critical-headers critical-headers jws-header)
-	   (verifier (jws-object-header jws-object)
-		     signing-input
-		     signature))))))
+      (guard (e (else #f))
+	(and (check-critical-headers critical-headers jws-header)
+	     (verifier (jws-object-header jws-object)
+		       signing-input
+		       signature)))))))
 
 ;;; verifiers (maybe separate to different library?)
 (define (check-critical-headers critical-headers jws-header)
@@ -289,7 +290,8 @@
 	 (lambda (header signed-content signature)
 	   (let* ((algo (get-algorithm (jose-crypto-header-alg header)))
 		  (mac (make-mac *mac:hmac* key :digest algo)))
-	     (verify-mac mac signed-content signature))))
+	     (and (not (zero? (bytevector-length signature)))
+		  (verify-mac mac signed-content signature)))))
 	(else (assertion-violation 'make-mac-jws-verifier
 				   "JWK:oct or bytevector is required" key))))
 
