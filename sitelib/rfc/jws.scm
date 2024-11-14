@@ -263,13 +263,21 @@
   (case-lambda
    ((jws-object verifier) (jws:verify jws-object verifier '()))
    ((jws-object verifier critical-headers)
+    ;; detecting unused bits modification, e.g. AA = AB = \x0000;
+    (define (detect-unised-bits header jws-object)
+      (define parts (jose-object-parts jws-object))
+      (define payload (jws-object-payload jws-object))
+      (if (and (not (null? parts)) (jws-header-b64 header))
+	  (bytevector=? (base64url-encode payload) (string->utf8 (cadr parts)))
+	  #t))
     (unless (jws-signed-object? jws-object)
       (assertion-violation 'jws:verify "JWS object is not signed" jws-object))
     (let ((signing-input (jws-object-signing-input jws-object))
 	  (signature (jws-signed-object-signature jws-object))
 	  (jws-header (jws-object-header jws-object)))
       (guard (e (else #f))
-	(and (check-critical-headers critical-headers jws-header)
+	(and (detect-unised-bits jws-header jws-object)
+	     (check-critical-headers critical-headers jws-header)
 	     (verifier (jws-object-header jws-object)
 		       signing-input
 		       signature)))))))
