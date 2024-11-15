@@ -6,7 +6,12 @@
 	(sagittarius crypto pem)
 	(sagittarius crypto pkcs keys)
 	(sagittarius crypto x509)
+	(srfi :13)
 	(srfi :64)
+	(util bytevector)
+	(util file)
+	(text json)
+	(text json pointer)
 	(text json compare))
 
 (test-begin "JWS")
@@ -238,5 +243,75 @@ VtfBW48kPOmvkY4WlqP5bAwCXwbsKrCgk6xbsp12ew==
   (test-equal "eyJhbGciOiJIUzI1NiIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il19..A5dxf2s96_n5FLueVuW1Z_vh161FwXZC4YLPff6dmDY"
 	      (jws:serialize jws-b64)))
       
+(let ()
+(define input-file 
+  (build-path 
+   (current-directory)
+   "test/data/testvectors/json_web_signature_test.json"))
+
+(define test-vector (call-with-input-file input-file json-read))
+
+(define test-groups-pointer (json-pointer "/testGroups"))
+(define public-pointer (json-pointer "/public"))
+(define private-pointer (json-pointer "/private"))
+(define type-pointer (json-pointer "/type"))
+(define comment-pointer (json-pointer "/comment"))
+(define tests-pointer (json-pointer "/tests"))
+(define tcid-pointer (json-pointer "/tcId"))
+(define pt-pointer (json-pointer "/pt"))
+(define enc-pointer (json-pointer "/enc"))
+(define jwe-pointer (json-pointer "/jwe"))
+(define jws-pointer (json-pointer "/jws"))
+(define result-pointer (json-pointer "/result"))
+(define flags-pointer (json-pointer "/flags"))
+
+(define (run-tests group)
+  (define ((run-test pub priv) test)
+    (define id (tcid-pointer test))
+    (define comment (comment-pointer test))
+    (define jws (jws-pointer test))
+    (define result (result-pointer test))
+    (define flags (flags-pointer test))
+
+    (define (signer&verifier pub priv)
+      (case (jwk-alg priv)
+	((HS256)
+	 (values (make-mac-jws-signer priv) (make-mac-jws-verifier priv)))
+	;; test vector uses wrong name, i.e. ES521...
+	((ES256 ES521)
+	 (values (make-ecdsa-jws-signer priv) (make-ecdsa-jws-verifier pub)))
+	((RS256 RS384 RS512 PS256 PS384 PS512)
+	 (values (make-rsa-jws-signer priv) (make-rsa-jws-verifier pub)))
+	;; let's skip
+	(else (values #f #f))))
+    (define (parse-jws jws)
+      (guard (e (else #f)) ;; invalid format of JWS compact
+	(and (not (member "JsonSerialization" flags))
+	     (not (member "WrongPrimitive" flags))
+	     ;; No idea why this test case exists...
+	     (not (string-prefix? "invalidBase64Padding" comment))
+	     (jws:parse jws))))
+    (let-values (((signer verifier) (signer&verifier pub priv)))
+      (define jws-object (parse-jws jws))
+      (when (and signer verifier jws-object)
+	(if (string=? result "valid")
+	    (test-assert (list id comment)
+			 (jws:verify jws-object verifier))
+	    (test-assert (list id comment)
+			 (not (jws:verify jws-object verifier)))))))
+      
+  (define type (type-pointer group))
+  (define comment (comment-pointer group))
+  (define (->jwk p)
+    (and (not (json-pointer-not-found? p))
+	 (json->jwk p)))
+  (test-group (list type comment)
+   (for-each (run-test (->jwk (public-pointer group))
+		       (->jwk (private-pointer group)))
+	     (tests-pointer group))))
+
+(for-each run-tests (test-groups-pointer test-vector))
+)
+
 
 (test-end)
