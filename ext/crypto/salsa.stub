@@ -1,0 +1,10 @@
+;; -*- mode: scheme; coding: utf-8; -*-
+
+(decl-code
+ (.include <sagittarius/private.h>)
+ (.define "LIBSAGITTARIUS_EXT_BODY")
+ (.include  <sagittarius/extend.h>
+	    <sagittarius-salsa.h>))
+
+(define-c-proc salsa-core (bv::<bytevector> rounds::<fixnum>) Sg_SalsaCore)
+(define-c-proc salsa-core! (bv::<bytevector> rounds::<fixnum>) Sg_SalsaCoreX)

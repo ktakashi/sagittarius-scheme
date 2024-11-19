@@ -68,7 +68,7 @@ IF(APPLE)
 ENDIF()
 TARGET_LINK_LIBRARIES(sagittarius--secure sagittarius)
 
-# sagittarius--secure
+# sagittarius--ec
 ADD_LIBRARY(sagittarius--ec MODULE
   sagittarius-ec.c
   ${CMAKE_CURRENT_BINARY_DIR}/ec-fields.c)
@@ -90,6 +90,28 @@ IF(APPLE)
   SET_TARGET_PROPERTIES(sagittarius--ec PROPERTIES SUFFIX ".dylib")
 ENDIF()
 TARGET_LINK_LIBRARIES(sagittarius--ec sagittarius)
+
+# sagittarius--salsa
+ADD_LIBRARY(sagittarius--salsa MODULE
+  sagittarius-salsa.c
+  ${CMAKE_CURRENT_BINARY_DIR}/salsa.c)
+COPY_TARGET(sagittarius--salsa ${CMAKE_LIBRARY_OUTPUT_DIRECTORY} TRUE)
+IF (USE_CPP_FOR_BROKEN_LINKER)
+  # ugly solution
+  SET_SOURCE_FILES_PROPERTIES(
+    sagittarius-salsa.c
+    ${CMAKE_CURRENT_BINARY_DIR}/salsa.c
+    PROPERTIES LANGUAGE CXX)
+ENDIF()
+ADD_STUBS(sagittarius--salsa
+  COMMAND ${GENSTUB}
+  FILES salsa.stub
+  OUTTREE)
+SET_TARGET_PROPERTIES(sagittarius--salsa PROPERTIES PREFIX "")
+IF(APPLE)
+  SET_TARGET_PROPERTIES(sagittarius--salsa PROPERTIES SUFFIX ".dylib")
+ENDIF()
+TARGET_LINK_LIBRARIES(sagittarius--salsa sagittarius)
 
 
 INSTALL(TARGETS sagittarius--tomcrypt
