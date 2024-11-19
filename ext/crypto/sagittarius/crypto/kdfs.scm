@@ -30,8 +30,8 @@
 
 #!nounbound
 (library (sagittarius crypto kdfs)
-    (export pbkdf-1 pbkdf-2
-	    mac->prf-provider
+    (export pbkdf-1 pbkdf-2 mac->prf-provider
+	    scrypt
 	    hkdf
 	    pkcs12-kdf
 	    ;; hmmmm should these be here?
@@ -43,6 +43,7 @@
 		    (tc-digest-descriptor? builtin-digest-descriptor?))
 	    (sagittarius crypto mac)
 	    (sagittarius crypto kdfs pbkdf-2)
+	    (sagittarius crypto kdfs scrypt)
 	    (prefix (sagittarius crypto tomcrypt) tc:))
 
 (define (pbkdf-1 P S c dk-len :key (digest *digest:sha-1*))

@@ -91,5 +91,6 @@ Output:
 	      1
 	      "867f70cf1ade02cff3752599a3a53dc4af34c7a6")
 
-
 (test-end)
+
+(include "./test-scrypt.scm")
