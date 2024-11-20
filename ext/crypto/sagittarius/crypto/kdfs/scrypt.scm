@@ -52,6 +52,9 @@
     (pbkdf-2 P S c dk-len :prf *hmac-sha256-prf*))
   (define size (* 128 r))
   (define buf (make-bytevector size))
+  (unless (and (> N 1) (= (bitwise-bit-count N) 1))
+    (assertion-violation 'scrypt
+     "Cost parameter must be greater than 1 and power of 2" N))
   (do ((i 0 (+ i 1)) (B (pbkdf2-hmac-sha256 P S 1 (* p size))))
       ((= i p) (pbkdf2-hmac-sha256 P B 1 dk-len))
     (bytevector-copy! B (* i size) buf 0 size)

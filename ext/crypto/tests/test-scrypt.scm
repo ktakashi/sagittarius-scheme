@@ -30,6 +30,10 @@
  "f7ce0b653d2d72a4108cf5abe912ffdd777616dbbb27a70e8204f3ae2d0f6fad89f68f4811d1e87bcc3bd7400a9ffd29094f0184639574f39ae5a1315217bcd7894991447213bb226c25b54da86370fbcd984380374666bb8ffcb5bf40c254b067d27c51ce4ad5fed829c90b505a571b7f4d1cad6a523cda770e67bceaaf7e89"
  16 1)
 
+(test-error "N is 1" assertion-violation? (scrypt "password" "salt" 1 1 1 64))
+(test-error "N is not power of 2" assertion-violation?
+	    (scrypt "password" "salt" 3 1 1 64))
+
 (define (test-scrypt P S N r p dk-len expected)
   (if (string=? "" P)
       (test-error (list "Empty password not allowed" N r p)
@@ -52,8 +56,8 @@
 (test-scrypt "pleaseletmein" "SodiumChloride" 16384 8 1 64
 	     "7023bdcb3afd7348461c06cd81fd38ebfda8fbba904f8e3ea9b543f6545da1f2d5432955613f0fcf62d49705242a9af9e61e85dc0d651e40dfcf017b45575887")
 
-;; This consumes more than 3GiB memory...
-#;(unless (getenv "CI")
+;; This consumes more than 1.5GiB memory...
+(unless (getenv "CI")
   (test-scrypt "pleaseletmein" "SodiumChloride" 1048576 8 1 64
 	       "2101cb9b6a511aaeaddbbe09cf70f881ec568d574a2ffd4dabe5ee9820adaa478e56fd8f4ba5d09ffa1c6d927c40f4c337304049e8a952fbcbf45c6fa77a41a4"))
   
