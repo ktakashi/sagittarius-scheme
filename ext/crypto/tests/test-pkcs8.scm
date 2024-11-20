@@ -1,7 +1,9 @@
 (import (rnrs)
+	(sagittarius)
 	(sagittarius crypto asn1)
 	(sagittarius crypto pkcs keys)
 	(sagittarius crypto pkcs pbes)
+	(sagittarius crypto pkcs scrypt)
 	(sagittarius crypto pkix algorithms)
 	(sagittarius crypto keys)
 	(rfc base64)
@@ -51,10 +53,21 @@
     "UprPtDydck9skek3R246Xw==")
    :transcoder #f))
 
+;; scrypt + AES256 CBC
+(define epki4
+  (base64-decode-string
+   (string-append
+    "MIHiME0GCSqGSIb3DQEFDTBAMB8GCSsGAQQB2kcECzASBAVNb3VzZQIDEAAAAgEI"
+    "AgEBMB0GCWCGSAFlAwQBKgQQyYmguHMsOwzGMPoyObk/JgSBkJb47EWd5iAqJlyy"
+    "+ni5ftd6gZgOPaLQClL7mEZc2KQay0VhjZm/7MbBUNbqOAXNM6OGebXxVp6sHUAL"
+    "iBGY/Dls7B1TsWeGObE0sS1MXEpuREuloZjcsNVcNXWPlLdZtkSH6uwWzR0PyG/Z"
+    "+ZXfNodZtd/voKlvLOw5B3opGIFaLkbtLZQwMiGtl42AS89lZg==")
+   :transcoder #f))
+
 (test-begin "PKCS#8")
 
 (define password "test1234")
-(define (test-pbe bv)
+(define (test-pbe bv password)
   (test-assert (pkcs-encrypted-private-key-info?
 		(bytevector->pkcs-encrypted-private-key-info bv)))
   (let ((epki (bytevector->pkcs-encrypted-private-key-info bv)))
@@ -62,6 +75,8 @@
 		  (pkcs-encrypted-private-key-info-encryption-algorithm epki)))
     (test-assert (bytevector?
 		  (pkcs-encrypted-private-key-info-encrypted-data epki)))
+    (test-error (pkcs-encrypted-private-key-info->pkcs-one-asymmetric-key
+		epki "this password is not correct"))
     (let ((pki (pkcs-encrypted-private-key-info->pkcs-one-asymmetric-key
 		epki password)))
       (test-assert (pkcs-one-asymmetric-key? pki))
@@ -79,9 +94,11 @@
 		      (pkcs-encrypted-private-key-info->pkcs-one-asymmetric-key
 		       epki2 password)))))))
 
-(test-pbe epki1)
-(test-pbe epki2)
-(test-pbe epki3)
+(test-pbe epki1 password)
+(test-pbe epki2 password)
+(test-pbe epki3 password)
+;; It's too heavy to do it on CI...
+(unless (getenv "CI") (test-pbe epki4 "Rabbit"))
 
 (define key-pair (generate-key-pair *key:ed25519*))
 (define pk (key-pair-private key-pair))

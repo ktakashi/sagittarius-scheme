@@ -89,6 +89,8 @@
 	    
 	    encryption-scheme->cipher-parameters
 	    parameter->key-length ;; for default key length
+	    ;; for other KDFs
+	    (rename (check-key-length encryption-scheme->key-length))
 	    )
     (import (rnrs)
 	    (clos user)
