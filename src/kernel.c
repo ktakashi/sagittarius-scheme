@@ -90,14 +90,21 @@ SgObject Sg_NewKernel(SgVM *rootVM)
   return SG_OBJ(k);
 }
 
+static void thread_cleanup(void *data)
+{
+  SgVM *vm = SG_VM(data);
+  remove_entry(SG_KERNEL(vm->kernel), vm);
+}
+
 static void* wrap(void *data)
 {
-  void **d = (void **)data;
+  void **d = (void **)data, *r;
   SgThreadEntryFunc *func = (SgThreadEntryFunc *)d[0];
   SgVM *vm = SG_VM(d[1]);
   /* In theory, we should use SG_UNWIND_PROTECT here, but I'm lazy... */
-  void *r = func(vm);
-  remove_entry(SG_KERNEL(vm->kernel), vm);
+  thread_cleanup_push(thread_cleanup, vm);
+  r = func(vm);
+  thread_cleanup_pop(TRUE);
   d[0] = d[1] = vm = NULL;
   return r;
 }

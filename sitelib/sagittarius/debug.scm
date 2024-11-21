@@ -208,7 +208,8 @@
 	    (sagittarius vm)
 	    (sagittarius vm debug)
 	    (srfi :1 lists)
-	    (srfi :13 strings))
+	    (srfi :13 strings)
+	    (srfi :39 parameters))
 (define (print . args) (for-each display args) (newline))
 (define (print/ss . args) (for-each write/ss args) (newline))
 
@@ -227,7 +228,9 @@
    (lambda (t)
      (cond ((thread-suspend! t to #f) => (lambda (t) (thread-resume! t) #f))
 	   (else t)))
-   (filter (lambda (t) (not (eq? self t))) (kernel-managed-threads))))
+   (filter (lambda (t)
+	     (not (or (eq? (thread-state t) 'terminated) (eq? self t))))
+	   (kernel-managed-threads))))
 
 (define (thread->pretty-backtrace-string t)
   (let-values (((out e) (open-string-output-port)))
@@ -269,7 +272,14 @@
 	(else '())))
 
 (define (print-thread-stack-frames t)
-  (print-stack-frames t))
+  (define ((log-port vm) :optional (p #f))
+    (if p
+	(vm-log-port vm p)
+	(vm-log-port vm)))
+  (let-values (((out e) (open-string-output-port)))
+    (parameterize (((log-port t) out))
+      (print-stack-frames t)
+      (print (e)))))
 
 (define (inspect-object o)
   (let ((cl (class-of o)))

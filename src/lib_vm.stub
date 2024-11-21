@@ -516,5 +516,14 @@
 
   (define-c-proc vm-attach-stack-trace (c)
     (result (Sg_VMAttachStackTrace (Sg_VM) c TRUE)))
-  
+
+  ;; debug
+  (define-c-proc vm-log-port (vm::<thread> :optional p::<port>)
+    (if (SG_UNBOUNDP p)
+	(result (-> vm logPort))
+	(begin
+	  (unless (SG_OUTPUT_PORTP p)
+	    (wrong-type-of-argument-violation 'vm-log-port "output port" p))
+	  (set! (-> vm logPort) p)
+	  (result SG_UNDEF))))
 )
