@@ -37,3 +37,12 @@ HKDF
 ###### [!Function] `pkcf12-kdf` _digest_ _pw_ _salt_ _iteration_ _dk-len_
 
 PKCS12 KDF
+
+###### [!Function] `scrypt`  _P_ _S_ _N_ _r_ _p_ _dk-len_ **[@since] `0.9.13`**
+
+scrypt, defined in [RFC 7914](https://datatracker.ietf.org/doc/html/rfc7914).
+
+_P_ and _S_ must be bytevectors, represents password and salt.  
+_N_ must be an integer, represents cost parameter.  
+_r_ must be an integer, represents block size.  
+_p_ must be an integer, represents parallelization parameter.  
