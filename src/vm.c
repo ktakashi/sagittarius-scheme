@@ -2565,6 +2565,7 @@ void Sg__InitVM()
     SG_MAKE_STRING("default-exception-handler");
   Sg_InitMutex(&global_lock, TRUE);
 
+  SG_PROCEDURE_NAME(&internal_toplevel_closure) = SG_INTERN("%internal-closure");
 #ifdef PROF_INSN
   Sg_AddCleanupHandler(show_inst_count, NULL);
 #endif

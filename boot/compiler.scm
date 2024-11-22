@@ -1775,13 +1775,21 @@
 	 body))))
 
 (define (pass1/lambda form formals body p1env flag)
+  (define (generate-anonymous-name lvars)
+    (gensym
+     (apply string-append "lambda"
+	    (imap (lambda (s)
+		    (string-append "_" (symbol->string s)))
+		  (imap lvar-name lvars)))))
+  
   (receive (vars reqargs opt kargs) (parse-lambda-args formals)
     (receive (vars pred validators)
 	(parse-lambda-variable p1env vars (and (not (zero? opt)) (null? kargs)))
       (check-duplicate-variable form vars variable=? "duplicate variable")
       (if (null? kargs)
 	  (let* ((this-lvars (imap make-lvar+ vars))
-		 (intform ($lambda form (p1env-exp-name p1env)
+		 (intform ($lambda form (or (p1env-exp-name p1env)
+					    (generate-anonymous-name this-lvars))
 				   reqargs opt this-lvars
 				   #f flag))
 		 (newenv (p1env-extend/proc p1env
