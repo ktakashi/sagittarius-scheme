@@ -800,13 +800,27 @@
   (define (nl ind)
     (newline)
     (indent ind))
-  (define (id->string id) (format "~s" id))
+  (define (id->string id) 
+    (format "|~s@~a|" (id-name id) (library-name (id-library id))))
   (define (lvar->string lvar)
     (format "~a[~a.~a]"
 	    (if (identifier? (lvar-name lvar))
 		(id->string (lvar-name lvar))
 		(lvar-name lvar))
 	    (lvar-ref-count lvar) (lvar-set-count lvar)))
+  (define (source src ind)
+    (when src
+      (nl ind)
+      (display "($source '") (display (unwrap-syntax src))
+      (cond ((source-info src) =>
+	     (lambda (s)
+	       (nl (+ ind 2))
+	       (display "($loc ")
+	       (display (car s))
+	       (display ":")
+	       (display (cdr s))
+	       (display ")"))))
+      (display ")")))
   (define (rec ind iform)
     (cond
      ((has-tag? iform $CONST)
@@ -862,6 +876,7 @@
 	(rec (+ ind (string-length pre)) ($call-proc iform))
 	(for-each (lambda (node) (nl (+ ind 2)) (rec (+ ind 2) node))
 		  ($call-args iform))
+	(source ($call-src iform) (+ ind 2))
 	(display ")")))
      ((has-tag? iform $ASM)
       (let ((insn ($asm-insn iform)))
@@ -971,7 +986,7 @@
 	   ,(rec ($define-expr iform)))))
      ((has-tag? iform $CALL)
       `(,(rec ($call-proc iform))
-	,@(imap (lambda (node) (rec  node)) ($call-args iform))))
+	,@(imap (lambda (node) (rec node)) ($call-args iform))))
      ((has-tag? iform $ASM)
       ;; assemble asm to usual call
       `(,(case (string->symbol (insn-name (car ($asm-insn iform))))
@@ -1048,7 +1063,7 @@
       `(list ,@(imap (lambda (elt) (rec elt)) ($list-args iform))))
      ((has-tag? iform $LIBRARY) (undefined)) ;; for now ignore.
      (else 
-      (scheme-error 'pp-iform "unknown tag:" (iform-tag iform)))))
+      (scheme-error 'iform->sexp "unknown tag:" (iform-tag iform)))))
   (rec iform))
 
 

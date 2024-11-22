@@ -12,7 +12,7 @@
  (file . "../boot/lib/macro.scm")
  (construct)
  (imports (core) (core base) (core errors) (sagittarius)
-	  (for (smatch) expand) (sagittarius vm))
+	  (for (smatch) expand) (sagittarius vm) (sagittarius vm debug))
  (exports compile-syntax-case compile-syntax
 	  current-usage-env current-macro-env
 	  make-macro-transformer

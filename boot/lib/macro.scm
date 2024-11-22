@@ -297,7 +297,7 @@
 
 (define (rewrite-form form seen env library
 		      make-identifier
-		      handle-identifeir)
+		      handle-identifier)
   (define (seen-or-gen id env library)
     (cond ((hashtable-ref seen id #f))
 	  (else (let ((new-id (make-identifier id env library)))
@@ -321,8 +321,7 @@
 			 (let ((v (or vec (vector-copy expr))))
 			   (vector-set! v i e)
 			   (lp (+ i 1) v))))))))
-	  ((and (identifier? expr)
-		(handle-identifeir expr))
+	  ((and (identifier? expr) (handle-identifier expr))
 	   (seen-or-gen expr env (id-library expr)))
 	  ((symbol? expr) (seen-or-gen expr env library))
 	  (else expr))))
@@ -533,8 +532,8 @@
                                  (bind-ellipsis-n expr pat lites n
                                                   vars '()))))))
         ((pair? pat)
-         (bind-pattern (cdr expr) (cdr pat) lites
-                       (bind-pattern (car expr) (car pat) lites vars)))
+	 (bind-pattern (cdr expr) (cdr pat) lites
+		       (bind-pattern (car expr) (car pat) lites vars)))
         ((vector? pat)
          (bind-pattern (vector->list expr) (vector->list pat) lites vars))
         (else vars)))
@@ -763,7 +762,7 @@
 		      (let ((a (loop (car lst))) (d (loop (cdr lst))))
 			(if (and (eq? (car lst) a) (eq? (cdr lst) d))
 			    lst
-			    (cons a d))))
+			    (source-info-set! (cons a d) (source-info lst)))))
 		     ((vector? lst) (rename-vector lst))
 		     (else lst)))
 	      ((null? lst) '())
@@ -775,7 +774,7 @@
 	       (let ((a (loop (car lst))) (d (loop (cdr lst))))
 		 (if (and (eq? a (car lst)) (eq? d (cdr lst)))
 		     lst
-		     (cons a d))))
+		     (source-info-set! (cons a d) (source-info lst)))))
 	      (else lst))))
     (define (rewrite template)
       (rewrite-form template
