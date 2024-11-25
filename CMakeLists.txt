@@ -89,6 +89,7 @@ CHECK_INCLUDE_FILE(pthread.h   HAVE_PTHREAD_H)
 # C11 features
 CHECK_INCLUDE_FILE(uchar.h     HAVE_UCHAR_H)
 CHECK_INCLUDE_FILE(stdnoreturn.h HAVE_STDNORETURN_H)
+CHECK_INCLUDE_FILE(stdatomic.h HAVE_STDATOMIC_H)
 
 IF (HAVE_TIME_H)
   CHECK_STRUCT_EXISTS("struct timespec" time.h HAVE_TIMESPEC)
@@ -97,6 +98,10 @@ ENDIF()
 # C11 features
 IF (HAVE_UCHAR_H)
   CHECK_STRUCT_EXISTS("char32_t" uchar.h HAVE_CHAR32_T)
+ENDIF()
+
+IF (HAVE_STDATOMIC_H)
+  CHECK_STRUCT_EXISTS("atomic_intptr_t" stdatomic.h HAVE_ATOMIC_INTPTR_T)
 ENDIF()
 
 # sizeofs
@@ -288,14 +293,14 @@ IF(USE_BOEHM_GC)
     # download boehm gc
     SET(GC_URL "https://github.com/ivmai/bdwgc/releases/download")
     IF (WINDOWS_SUPPORT)
-      SET(USED_GC_VERSION "8.2.6")
-      SET(GC_VERSION "8.2.6")
-      SET(NEED_LIB_ATMIC TRUE)
+      SET(USED_GC_VERSION "8.2.8")
+      SET(GC_VERSION "8.2.8")
+      SET(NEED_LIB_ATOMIC TRUE)
     ELSE()
       # for qnx we only support until 7.2d (as long as it doesn't support...)
       SET(USED_GC_VERSION "7.2d")
       SET(GC_VERSION "7.2")
-      SET(NEED_LIB_ATMIC FALSE)
+      SET(NEED_LIB_ATOMIC FALSE)
     ENDIF()
 
     IF (NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/gc.tar.gz")
@@ -338,9 +343,9 @@ IF(USE_BOEHM_GC)
     SET(HAVE_GC_H 1)
     SET(BOEHM_GC_LIBRARIES gc)
     SET(COPY_GC 1)
-    COPY_TARGET_DEP(copy-gc gc ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} TRUE)
+    COPY_TARGET_DEP(copy-gc gc ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} FALSE)
     
-    IF (NEED_LIB_ATMIC)
+    IF (NEED_LIB_ATOMIC)
       # since 7.4.0 or 7.4.2? Boehm GC separated libatomic_ops so
       # we need to download it separately
       # /v7.8.2/libatomic_ops-7.8.2.tar.gz
@@ -368,10 +373,12 @@ IF(USE_BOEHM_GC)
 	  AND NOT EXISTS ${GC_DIR}/libatomic_ops)
 	FILE(RENAME ${GC_DIR}/${LIBATOMIC_OPS} ${GC_DIR}/libatomic_ops)
       ENDIF()
+      IF (NOT HAVE_STDATOMIC_H)
+	INCLUDE_DIRECTORIES(${GC_DIR}/libatomic_ops/src)
+      ENDIF()
     ENDIF()
-
-  ENDIF(BOEHM_GC_FOUND) 
-ENDIF(USE_BOEHM_GC)
+  ENDIF() 
+ENDIF()
 
 IF(SAGITTARIUS_PROFILE)
   CHECK_INCLUDE_FILE(sys/time.h HAVE_SYS_TIME_H)

@@ -79,10 +79,10 @@ SET(SAGITTARIUS_LIB_SOURCE
   charset.c        macro.c
   code.c
   cache.c
-  writer.c           
+  writer.c
   vm.c             core.c
   kernel.c
-  profiler.c       
+  profiler.c
   load.c
 
   clos.c
@@ -90,7 +90,7 @@ SET(SAGITTARIUS_LIB_SOURCE
   regex.c
   ${MATCHER_SOURCES}
 
-  system.c
+  system.c         atomic.c
 
   # wrapper for public C APIs
   wrappers.c
