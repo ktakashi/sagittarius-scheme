@@ -90,6 +90,7 @@ SG_CLASS_DECL(Sg_AtomicClass);
 
 SG_CDECL_BEGIN
 
+SG_EXTERN int      Sg_MemoryOrderP(SgObject o);
 
 SG_EXTERN SgObject Sg_MakeAtomic(SgObject obj);
 SG_EXTERN SgObject Sg_MakeAtomicFixnum(long n);

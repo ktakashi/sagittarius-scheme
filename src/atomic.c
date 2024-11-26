@@ -29,7 +29,9 @@
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/private/atomic.h"
 #include "sagittarius/private/error.h"
+#include "sagittarius/private/library.h"
 #include "sagittarius/private/port.h"
+#include "sagittarius/private/symbol.h"
 #include "sagittarius/private/writer.h"
 
 #ifndef HAVE_STDATOMIC_H
@@ -147,18 +149,37 @@ static void ao_fetch_and(volatile AO_t *o, AO_t v, memory_order order)
 #define atomic_fetch_and(ob, op) ao_fetch_and(ob, op, memory_order_seq_cst)
 #define atomic_fetch_and_explicit ao_fetch_and
 
+#undef handle_memory_order
 
 #endif
+
+int Sg_MemoryOrderP(SgObject o)
+{
+  if (!SG_INTP(o)) {
+    return FALSE;
+  }
+  switch (SG_INT_VALUE(o)) {
+  case memory_order_relaxed:
+  case memory_order_consume:
+  case memory_order_acquire:
+  case memory_order_release:
+  case memory_order_acq_rel:
+  case memory_order_seq_cst:
+    return TRUE;
+  default:
+    return FALSE;
+  }
+}
 
 static void atomic_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
   SgAtomic *a = SG_ATOMIC(a);
   if (SG_ATOMIC_FIXNUM_P(obj)) {
-    Sg_Printf(port, UC("#<atomic-fixnum %l>"),
-	      atomic_load(&SG_ATOMIC_REF_FIXNUM(obj)));
+    Sg_Printf(port, UC("#<atomic-fixnum %d>"),
+	      atomic_load_explicit(&SG_ATOMIC_REF_FIXNUM(obj), memory_order_relaxed));
   } else {
     Sg_Printf(port, UC("#<atomic %S>"),
-	      atomic_load(&SG_ATOMIC_REF_OBJECT(obj)));
+	      atomic_load_explicit(&SG_ATOMIC_REF_OBJECT(obj), memory_order_relaxed));
   }
 }
 
@@ -174,7 +195,7 @@ static SgAtomic * make_atomic(SgAtomicType type)
 
 SgObject Sg_MakeAtomic(SgObject obj)
 {
-  SgAtomic *a = make_atomic(SG_ATOMIC_FIXNUM);
+  SgAtomic *a = make_atomic(SG_ATOMIC_OBJECT);
   SG_ATOMIC_REF_OBJECT(a) = (atomic_intptr_t)obj;
   return SG_OBJ(a);
 }
@@ -262,7 +283,7 @@ void Sg_AtomicFixnumStore(volatile SgAtomic *o, long v, SgMemoryOrder order)
 
 void Sg_AtomicFixnumAdd(volatile SgAtomic *o, long v, SgMemoryOrder order)
 {
-  atomic_math(o, v, order, atomic_fetch_and_explicit);
+  atomic_math(o, v, order, atomic_fetch_add_explicit);
 }
 void Sg_AtomicFixnumSub(volatile SgAtomic *o, long v, SgMemoryOrder order)
 {
@@ -304,4 +325,22 @@ int Sg_AtomicCompareAndSwap(volatile SgAtomic *o, SgObject e, SgObject v,
 						     success, failure);
     }
   }
+}
+
+extern void Sg__Init_sagittarius_atomic();
+
+void Sg__InitAtomic()
+{
+  SgObject lib = Sg_FindLibrary(SG_INTERN("(sagittarius atomic)"), TRUE);
+#define insert_binding(name, value)					\
+  Sg_MakeBinding(SG_LIBRARY(lib), SG_INTERN(#name), SG_MAKE_INT(value), TRUE)
+
+  insert_binding(memory-order:relaxed, memory_order_relaxed);
+  insert_binding(memory-order:consume, memory_order_consume);
+  insert_binding(memory-order:acquire, memory_order_acquire);
+  insert_binding(memory-order:release, memory_order_release);
+  insert_binding(memory-order:acq-rel, memory_order_acq_rel);
+  insert_binding(memory-order:seq-cst, memory_order_seq_cst);
+
+  Sg__Init_sagittarius_atomic();
 }

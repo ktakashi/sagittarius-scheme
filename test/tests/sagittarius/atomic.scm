@@ -1,0 +1,65 @@
+(import (rnrs)
+	(sagittarius atomic)
+	(srfi :1)
+	(srfi :18)
+	(srfi :64))
+
+(test-begin "Basic atomic operations")
+
+(test-assert (atomic? (make-atomic #t)))
+(test-assert (not (atomic-fixnum? (make-atomic #t))))
+
+(test-assert (atomic? (make-atomic-fixnum 100)))
+(test-assert (atomic-fixnum? (make-atomic-fixnum 100)))
+(test-error (make-atomic-fixnum #t))
+
+(test-group "Basic check"
+ (let ()
+   (define atomic-boolean (make-atomic #t))
+   (atomic-exchange! atomic-boolean #f)
+   (test-equal #f (atomic-load atomic-boolean))
+   
+   (test-equal #t (atomic-compare-and-swap! atomic-boolean #f #t))
+   (test-equal #t (atomic-load atomic-boolean)))
+ (let ()
+   (define atomic-symbol (make-atomic 'symbol))
+   (test-equal 'symbol (atomic-exchange! atomic-symbol 'symbol2))
+   (test-equal 'symbol2 (atomic-load atomic-symbol))
+   (test-equal #f (atomic-compare-and-swap! atomic-symbol 'symbol 'symbol3))
+   (test-equal 'symbol2 (atomic-load atomic-symbol))
+
+   (test-assert (atomic-store! atomic-symbol 'symbol3))
+   (test-equal 'symbol3 (atomic-load atomic-symbol))
+   )
+ (let ()
+   (define atomic-fixnum (make-atomic-fixnum 100))
+
+   (atomic-fixnum-add! atomic-fixnum 50)
+   (test-equal 150 (atomic-load atomic-fixnum))
+   (test-equal 150 (atomic-fixnum-load atomic-fixnum))
+   (test-assert (atomic-fixnum-sub! atomic-fixnum 50))
+   (test-equal 100 (atomic-fixnum-load atomic-fixnum))
+
+   (test-error (atomic-store! atomic-fixnum 'symbol))
+   
+   (test-assert (atomic-fixnum-store! atomic-fixnum #x00))
+   (test-assert (atomic-fixnum-or! atomic-fixnum #x01))
+   (test-equal #x01 (atomic-fixnum-load atomic-fixnum))
+   (test-assert (atomic-fixnum-and! atomic-fixnum #x11))
+   (test-equal #x01 (atomic-fixnum-load atomic-fixnum))
+   (test-assert (atomic-fixnum-xor! atomic-fixnum #x11))
+   (test-equal #x10 (atomic-fixnum-load atomic-fixnum))
+   )
+ )
+
+(test-group "Concurrent check"
+ (let ()
+   (define val (make-atomic-fixnum 0))
+   (define (increment)
+     (do ((i 0 (+ i 1))) ((= i 1000))
+       (atomic-fixnum-add! val 1)))
+   (define threads (map (lambda (i) (make-thread increment)) (iota 10)))
+   (for-each thread-start! threads)
+   (for-each thread-join! threads)
+   (test-equal 10000 (atomic-load val))))
+(test-end)

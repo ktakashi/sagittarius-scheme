@@ -108,6 +108,9 @@ extern void Sg__InitComparator();
 extern void Sg__PostInitVM();
 extern void Sg__PostInitCache();
 
+/* atomic */
+extern void Sg__InitAtomic();
+
 #define IS_NEW_GC_VERSION (GC_VERSION_MAJOR == 7 && GC_VERSION_MINOR >= 2) \
   || GC_VERSION_MAJOR > 7
 
@@ -235,6 +238,8 @@ void Sg_Init()
   Sg__Init_sagittarius_sandbox();
 
   Sg__Init_sagittarius_kernel();
+
+  Sg__InitAtomic();
 
   /* 
      rebind er-macro-transformer into (sagittarius)

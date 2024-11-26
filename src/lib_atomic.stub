@@ -1,0 +1,69 @@
+;; lib_atomic.stub                             -*- mode:scheme; coding:utf-8; -*-
+;;
+;;  Copyright (c) 2024  Takashi Kato <ktakashi@ymail.com>
+;;
+;;  Redistribution and use in source and binary forms, with or without
+;;  modification, are permitted provided that the following conditions
+;;  are met:
+;;
+;;  1. Redistributions of source code must retain the above copyright
+;;     notice, this list of conditions and the following disclaimer.
+;;
+;;  2. Redistributions in binary form must reproduce the above copyright
+;;     notice, this list of conditions and the following disclaimer in the
+;;     documentation and/or other materials provided with the distribution.
+;;
+;;  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+;;  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+;;  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+;;  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+;;  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+;;  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+;;  TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+;;  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+;;  LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+;;  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+;;  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+(library (sagittarius atomic)
+    (export :only-bindings)
+    (import (core))
+
+(decl-code
+ (.define "LIBSAGITTARIUS_BODY")
+ (.include <sagittarius/private.h>
+	   <sagittarius/private/atomic.h>))
+
+(define-type <atomic> "SgAtomic*" )
+(define-type <atomic-fixnum> "SgAtomic*" "atomic-fixnum"
+  "SG_ATOMIC_FIXNUM_P" "SG_ATOMIC")
+(define-type <memory-order> "SgMemoryOrder" "memory-order"
+  "Sg_MemoryOrderP" "SG_INT_VALUE" "SG_MAKE_INT")
+
+(define-cise-expr default-memory-order
+  ((_) '(SG_MAKE_INT memory_order_seq_cst)))
+
+(define-c-proc make-atomic (obj) Sg_MakeAtomic)
+(define-c-proc make-atomic-fixnum (n::<fixnum>) Sg_MakeAtomicFixnum)
+
+(define-c-proc atomic? (obj) ::<boolean> SG_ATOMICP)
+(define-c-proc atomic-fixnum? (obj) ::<boolean> SG_ATOMIC_FIXNUM_P)
+
+(define-c-proc atomic-load (a::<atomic> :optional (order::<memory-order> (default-memory-order))) Sg_AtomicLoad)
+(define-c-proc atomic-store! (a::<atomic> v :optional (order::<memory-order> (default-memory-order))) ::<void> Sg_AtomicStore)
+
+(define-c-proc atomic-fixnum-load (a::<atomic-fixnum> :optional (order::<memory-order> (default-memory-order))) ::<fixnum> Sg_AtomicFixnumLoad)
+(define-c-proc atomic-fixnum-store! (a::<atomic-fixnum> v::<fixnum> :optional (order::<memory-order> (default-memory-order))) ::<void> Sg_AtomicFixnumStore)
+
+(define-c-proc atomic-fixnum-add! (a::<atomic-fixnum> v::<fixnum> :optional (order::<memory-order> (default-memory-order))) ::<void> Sg_AtomicFixnumAdd)
+(define-c-proc atomic-fixnum-sub! (a::<atomic-fixnum> v::<fixnum> :optional (order::<memory-order> (default-memory-order))) ::<void> Sg_AtomicFixnumSub)
+(define-c-proc atomic-fixnum-or! (a::<atomic-fixnum> v::<fixnum> :optional (order::<memory-order> (default-memory-order))) ::<void> Sg_AtomicFixnumOr)
+(define-c-proc atomic-fixnum-xor! (a::<atomic-fixnum> v::<fixnum> :optional (order::<memory-order> (default-memory-order))) ::<void> Sg_AtomicFixnumXor)
+(define-c-proc atomic-fixnum-and! (a::<atomic-fixnum> v::<fixnum> :optional (order::<memory-order> (default-memory-order))) ::<void> Sg_AtomicFixnumAnd)
+
+(define-c-proc atomic-exchange! (a::<atomic> v :optional (order::<memory-order> (default-memory-order))) Sg_AtomicExchange)
+(define-c-proc atomic-fixnum-exchange! (a::<atomic-fixnum> v::<fixnum> :optional (order::<memory-order> (default-memory-order))) ::<fixnum> Sg_AtomicFixnumExchange)
+
+(define-c-proc atomic-compare-and-swap! (a::<atomic> e v :optional (success::<memory-order> (default-memory-order)) (failure::<memory-order> (default-memory-order))) ::<boolean> Sg_AtomicCompareAndSwap)
+
+)
