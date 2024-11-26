@@ -66,4 +66,9 @@
 
 (define-c-proc atomic-compare-and-swap! (a::<atomic> e v :optional (success::<memory-order> (default-memory-order)) (failure::<memory-order> (default-memory-order))) ::<boolean> Sg_AtomicCompareAndSwap)
 
+(define (atomic-fixnum-inc! atomic . opts)
+  (apply atomic-fixnum-add! atomic 1 opts))
+(define (atomic-fixnum-dec! atomic . opts)
+  (apply atomic-fixnum-sub! atomic 1 opts))
+
 )

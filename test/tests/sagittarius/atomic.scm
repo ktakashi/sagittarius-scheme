@@ -13,11 +13,22 @@
 (test-assert (atomic-fixnum? (make-atomic-fixnum 100)))
 (test-error (make-atomic-fixnum #t))
 
+(test-assert (fixnum? *memory-order:relaxed*))
+(test-assert (fixnum? *memory-order:consume*))
+(test-assert (fixnum? *memory-order:acquire*))
+(test-assert (fixnum? *memory-order:release*))
+(test-assert (fixnum? *memory-order:acq-rel*))
+(test-assert (fixnum? *memory-order:seq-cst*))
+
 (test-group "Basic check"
  (let ()
    (define atomic-boolean (make-atomic #t))
    (atomic-exchange! atomic-boolean #f)
    (test-equal #f (atomic-load atomic-boolean))
+   (test-error (atomic-load atomic-boolean #f))
+   ;; it's a bit depending on the platform specific value,
+   ;; I hope memory order can't be this number
+   (test-error (atomic-load atomic-boolean #xffffffff))
    
    (test-equal #t (atomic-compare-and-swap! atomic-boolean #f #t))
    (test-equal #t (atomic-load atomic-boolean)))
@@ -38,6 +49,10 @@
    (test-equal 150 (atomic-load atomic-fixnum))
    (test-equal 150 (atomic-fixnum-load atomic-fixnum))
    (test-assert (atomic-fixnum-sub! atomic-fixnum 50))
+   (test-equal 100 (atomic-fixnum-load atomic-fixnum))
+   (test-assert (atomic-fixnum-inc! atomic-fixnum))
+   (test-equal 101 (atomic-fixnum-load atomic-fixnum))
+   (test-assert (atomic-fixnum-dec! atomic-fixnum))
    (test-equal 100 (atomic-fixnum-load atomic-fixnum))
 
    (test-error (atomic-store! atomic-fixnum 'symbol))

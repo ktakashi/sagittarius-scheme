@@ -332,15 +332,17 @@ extern void Sg__Init_sagittarius_atomic();
 void Sg__InitAtomic()
 {
   SgObject lib = Sg_FindLibrary(SG_INTERN("(sagittarius atomic)"), TRUE);
+
+  Sg__Init_sagittarius_atomic();
+
 #define insert_binding(name, value)					\
   Sg_MakeBinding(SG_LIBRARY(lib), SG_INTERN(#name), SG_MAKE_INT(value), TRUE)
 
-  insert_binding(memory-order:relaxed, memory_order_relaxed);
-  insert_binding(memory-order:consume, memory_order_consume);
-  insert_binding(memory-order:acquire, memory_order_acquire);
-  insert_binding(memory-order:release, memory_order_release);
-  insert_binding(memory-order:acq-rel, memory_order_acq_rel);
-  insert_binding(memory-order:seq-cst, memory_order_seq_cst);
+  insert_binding(*memory-order:relaxed*, memory_order_relaxed);
+  insert_binding(*memory-order:consume*, memory_order_consume);
+  insert_binding(*memory-order:acquire*, memory_order_acquire);
+  insert_binding(*memory-order:release*, memory_order_release);
+  insert_binding(*memory-order:acq-rel*, memory_order_acq_rel);
+  insert_binding(*memory-order:seq-cst*, memory_order_seq_cst);
 
-  Sg__Init_sagittarius_atomic();
 }
