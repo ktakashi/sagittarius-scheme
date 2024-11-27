@@ -2,6 +2,7 @@
 	(sagittarius) ;; for format
 	(sagittarius control) ;; for dotimes
 	(util concurrent)
+	(clos user)
 	(only (srfi :1) iota lset=)
 	(srfi :18)
 	(srfi :64)
@@ -452,8 +453,7 @@
 		 (future? f)))
   (map future-get f*)
   (test-equal '(3 2 1) (map future-get f*))
-  (shutdown-executor! e)
-  )
+  (shutdown-executor! e))
 
 ;; actor
 (let ()

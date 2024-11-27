@@ -32,35 +32,32 @@
 (library (util concurrent notifier)
     (export notifier? make-notifier
 	    (rename (notifier <notifier>))
+	    notifier-waiting?
 	    notifier-send-notification!
 	    notifier-wait-notification!)
     (import (rnrs)
-	    (srfi :18))
+	    (srfi :18)
+	    (util concurrent atomic))
 (define-record-type notifier
-  (fields lock cv (mutable waiter))
+  (fields lock cv waiter)
   (protocol (lambda (p)
 	      (lambda ()
 		(p (make-mutex "notifier-lock")
 		   (make-condition-variable)
-		   0)))))
+		   (make-atomic-fixnum 0))))))
+
+(define (notifier-waiting? notifier)
+  (> (atomic-load (notifier-waiter notifier)) 0))
 
 (define (notifier-send-notification! notifier)
-  (when (> (notifier-waiter notifier) 0)
-    (condition-variable-broadcast! (notifier-cv notifier))))
+  (and (notifier-waiting? notifier)
+       (condition-variable-broadcast! (notifier-cv notifier))))
 
 (define (notifier-wait-notification! notifier . maybe-timeout)
-  (define timeout (and (not (null? maybe-timeout)) (car maybe-timeout)))
-  (let ((lock (notifier-lock notifier)))
-    (mutex-lock! lock)
-    (notifier-waiter-set! notifier (+ (notifier-waiter notifier) 1))
-    (cond ((mutex-unlock! lock (notifier-cv notifier) timeout)
-	   (mutex-lock! lock)
-	   (notifier-waiter-set! notifier (- (notifier-waiter notifier) 1))
-	   (mutex-unlock! lock)
-	   #t)
-	  (else
-	   ;; timeout, how should we reduce this safely?
-	   (notifier-waiter-set! notifier (- (notifier-waiter notifier) 1))
-	   #f))))
+  (define to (and (not (null? maybe-timeout)) (car maybe-timeout)))
+  (atomic-fixnum-inc! (notifier-waiter notifier))
+  (let ((r (mutex-unlock! (notifier-lock notifier) (notifier-cv notifier) to)))
+    (atomic-fixnum-dec! (notifier-waiter notifier))
+    r))
 
 )
