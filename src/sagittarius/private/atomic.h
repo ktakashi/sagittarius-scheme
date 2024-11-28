@@ -35,13 +35,19 @@
 
 #ifdef HAVE_STDATOMIC_H
 # include <stdatomic.h>
+# ifdef HAVE_ATOMIC_INTPTR_T
+typedef atomic_intptr_t atomic_object_t;
+typedef intptr_t object_t;
+# else
+typedef atomic_size_t atomic_object_t;
+typedef size_t object_t;
+# endif
 #else
-#include <atomic_ops.h>
+
 /* We define only what we need here */
-typedef AO_t atomic_long;
-typedef AO_t atomic_size_t;
-typedef AO_t atomic_intptr_t;
-#define HAVE_ATOMIC_INTPTR_T
+typedef long     atomic_long;
+typedef intptr_t atomic_object_t;
+typedef intptr_t object_t;
 
 typedef enum memory_order {
   memory_order_relaxed,
@@ -52,7 +58,6 @@ typedef enum memory_order {
   memory_order_seq_cst
 } memory_order;
 #endif
-
 
 typedef memory_order SgMemoryOrder;
 typedef enum {

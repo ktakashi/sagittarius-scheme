@@ -36,6 +36,8 @@
 
 #ifndef HAVE_STDATOMIC_H
 
+#include <atomic_ops.h>
+
 #define handle_memory_order(ret, proc, order, ...)		\
   do {								\
     switch (order) {						\
@@ -196,7 +198,7 @@ static SgAtomic * make_atomic(SgAtomicType type)
 SgObject Sg_MakeAtomic(SgObject obj)
 {
   SgAtomic *a = make_atomic(SG_ATOMIC_OBJECT);
-  SG_ATOMIC_REF_OBJECT(a) = (atomic_intptr_t)obj;
+  SG_ATOMIC_REF_OBJECT(a) = (object_t)obj;
   return SG_OBJ(a);
 }
 
@@ -214,7 +216,7 @@ SgObject Sg_AtomicLoad(volatile SgAtomic *o, SgMemoryOrder order)
     long v = atomic_load_explicit(&SG_ATOMIC_REF_FIXNUM(o), order);
     return SG_MAKE_INT(v);
   } else {
-    intptr_t v = atomic_load_explicit(&SG_ATOMIC_REF_OBJECT(o), order);
+    object_t v = atomic_load_explicit(&SG_ATOMIC_REF_OBJECT(o), order);
     return SG_OBJ(v);
   }
 }
@@ -227,7 +229,7 @@ void Sg_AtomicStore(volatile SgAtomic *o, SgObject v, SgMemoryOrder order)
     }
     atomic_store_explicit(&SG_ATOMIC_REF_FIXNUM(o), SG_INT_VALUE(v), order);
   } else {
-    atomic_store_explicit(&SG_ATOMIC_REF_OBJECT(o), (intptr_t)v, order);
+    atomic_store_explicit(&SG_ATOMIC_REF_OBJECT(o), (object_t)v, order);
   }
 }
 
@@ -241,8 +243,8 @@ SgObject Sg_AtomicExchange(volatile SgAtomic *o, SgObject v, SgMemoryOrder order
     long l = atomic_exchange_explicit(&SG_ATOMIC_REF_FIXNUM(o), vl, order);
     return SG_MAKE_INT(l);
   } else {
-    intptr_t r = atomic_exchange_explicit(&SG_ATOMIC_REF_OBJECT(o),
-					  (intptr_t)v, order);
+    object_t r = atomic_exchange_explicit(&SG_ATOMIC_REF_OBJECT(o),
+					  (object_t)v, order);
     return SG_OBJ(r);
   }  
 }
@@ -319,9 +321,9 @@ int Sg_AtomicCompareAndSwap(volatile SgAtomic *o, SgObject e, SgObject v,
     }
   default:
     {
-      intptr_t ev = (intptr_t)e;
+      object_t ev = (object_t)e;
       return atomic_compare_exchange_strong_explicit(&(o->reference.object),
-						     &ev, (intptr_t)v,
+						     &ev, (object_t)v,
 						     success, failure);
     }
   }
