@@ -280,7 +280,7 @@
   (run-task (worker-queue-pop! (fork-join-pool-worker-queue pool) 0 #f) wq)
   (fork-join-pool-idle-count-inc! pool)
   (cond ((and (worker-queue-wait! wq (->timeout pool))
-	      (worker-queue-shutdown? wq))
+	      (not (worker-queue-shutdown? wq)))
 	 (fork-join-pool-idle-count-dec! pool)
 	 (fork-join-pool-run-worker pool wq))
 	(else (fork-join-pool-idle-count-dec! pool))))
