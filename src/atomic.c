@@ -38,7 +38,7 @@
 
 #include <atomic_ops.h>
 
-#define handle_memory_order(ret, proc, order, ...)		\
+#define handle_memory_order_impl(ret, proc, order, ...)		\
   do {								\
     switch (order) {						\
     case memory_order_relaxed:					\
@@ -57,6 +57,15 @@
       break;							\
     }								\
 } while (0)
+
+#if defined(_MSC_VER)
+#  define msvc_workaround(x) x
+#  define handle_memory_order(ret, proc, order, ...)			\
+  msvc_workaround(handle_memory_order_impl(ret, proc, order, __VA_ARGS__))
+#else
+#define handle_memory_order handle_memory_order_impl
+#endif
+
 
 static void ao_store_explicit(volatile AO_t *o, AO_t v, memory_order order)
 {
@@ -106,48 +115,97 @@ static void ao_fetch_add(volatile AO_t *o, AO_t v, memory_order order)
 }
 static void ao_fetch_sub(volatile AO_t *o, AO_t v, memory_order order)
 {
-  ao_fetch_add(o, -v, order);
+  ao_fetch_add(o, -((long)v), order);
 }
+/* Fxxking MAVC, the macro doesn't work... */
 static void ao_fetch_or(volatile AO_t *o, AO_t v, memory_order order)
 {
-  handle_memory_order((void), AO_or, order, o, v);
+  /* handle_memory_order((void), AO_or, order, o, v); */
+  switch (order) {
+    case memory_order_relaxed:
+      AO_or(o, v);
+      break;
+    case memory_order_consume:
+    case memory_order_acquire:
+      AO_or_acquire(o, v);
+      break;
+    case memory_order_release:
+      AO_or_release(o, v);
+      break;
+    case memory_order_acq_rel:
+    case memory_order_seq_cst:
+      AO_or_full(o, v);
+      break;
+  }
 }
 static void ao_fetch_xor(volatile AO_t *o, AO_t v, memory_order order)
 {
-  handle_memory_order((void), AO_xor, order, o, v);
+  /* handle_memory_order((void), AO_xor, order, o, v); */
+  switch (order) {
+    case memory_order_relaxed:
+      AO_xor(o, v);
+      break;
+    case memory_order_consume:
+    case memory_order_acquire:
+      AO_xor_acquire(o, v);
+      break;
+    case memory_order_release:
+      AO_xor_release(o, v);
+      break;
+    case memory_order_acq_rel:
+    case memory_order_seq_cst:
+      AO_xor_full(o, v);
+      break;
+  }
 }
 static void ao_fetch_and(volatile AO_t *o, AO_t v, memory_order order)
 {
-  handle_memory_order((void), AO_and, order, o, v);
+  /* handle_memory_order((void), AO_and, order, o, v); */
+  switch (order) {
+    case memory_order_relaxed:
+      AO_and(o, v);
+      break;
+    case memory_order_consume:
+    case memory_order_acquire:
+      AO_and_acquire(o, v);
+      break;
+    case memory_order_release:
+      AO_and_release(o, v);
+      break;
+    case memory_order_acq_rel:
+    case memory_order_seq_cst:
+      AO_and_full(o, v);
+      break;
+  }
 }
 
 #define atomic_store(o, v) ao_store_explicit(o, v, memory_order_seq_cst)
 #define atomic_store_explicit ao_store_explicit
- 
+
 #define atomic_load(o) ao_load_explicit(o, memory_order_seq_cst)
 #define atomic_load_explicit ao_load_explicit
- 
+
 #define atomic_exchange(o, v) ao_exchange_explicit(o, v, memory_order_seq_cst)
 #define atomic_exchange_explicit ao_exchange_explicit
- 
+
 #define atomic_compare_exchange_strong(o, e, v) ao_compare_exchange_strong(o, e, v, memory_order_seq_cst, memory_order_seq_cst)
 #define atomic_compare_exchange_strong_explicit ao_compare_exchange_strong
- 
+
 #define atomic_compare_exchange_weak(o, e, v) ao_compare_exchange_weak(o, e, v, memory_order_seq_cst, memory_order_seq_cst)
 #define atomic_compare_exchange_weak_explicit ao_compare_exchange_weak
- 
+
 #define atomic_fetch_add(ob, op) ao_fetch_add(ob, op, memory_order_seq_cst)
 #define atomic_fetch_add_explicit ao_fetch_add
- 
+
 #define atomic_fetch_sub(ob, op) ao_fetch_sub(ob, op, memory_order_seq_cst)
 #define atomic_fetch_sub_explicit ao_fetch_sub
- 
+
 #define atomic_fetch_or(ob, op) ao_fetch_or(ob, op, memory_order_seq_cst)
 #define atomic_fetch_or_explicit ao_fetch_or
- 
+
 #define atomic_fetch_xor(ob, op) ao_fetch_xor(ob, op, memory_order_seq_cst)
 #define atomic_fetch_xor_explicit ao_fetch_xor
- 
+
 #define atomic_fetch_and(ob, op) ao_fetch_and(ob, op, memory_order_seq_cst)
 #define atomic_fetch_and_explicit ao_fetch_and
 
@@ -246,7 +304,7 @@ SgObject Sg_AtomicExchange(volatile SgAtomic *o, SgObject v, SgMemoryOrder order
     object_t r = atomic_exchange_explicit(&SG_ATOMIC_REF_OBJECT(o),
 					  (object_t)v, order);
     return SG_OBJ(r);
-  }  
+  }
 }
 
 long Sg_AtomicFixnumExchange(volatile SgAtomic *o, long v, SgMemoryOrder order)
@@ -264,7 +322,7 @@ long Sg_AtomicFixnumLoad(volatile SgAtomic *o, SgMemoryOrder order)
     Sg_Error(UC("atomic-fixnum is required"));
 
   }
-  return atomic_load_explicit(&SG_ATOMIC_REF_FIXNUM(o), order);  
+  return atomic_load_explicit(&SG_ATOMIC_REF_FIXNUM(o), order);
 }
 
 void Sg_AtomicFixnumStore(volatile SgAtomic *o, long v, SgMemoryOrder order)
