@@ -71,11 +71,7 @@ typedef struct SgAtomicRefRec
   SgAtomicType type;
   union {
     atomic_long fixnum;
-#ifdef HAVE_ATOMIC_INTPTR_T
-    atomic_intptr_t object;
-#else
-    atomic_size_t object;
-#endif
+    atomic_object_t object;
   } reference;
   
 } SgAtomic;
