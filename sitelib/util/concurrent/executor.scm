@@ -60,6 +60,8 @@
 	    (rename (fork-join-executor <fork-join-executor>))
 	    make-fork-join-executor
 	    fork-join-executor?
+	    fork-join-executor-max-thread-count
+	    fork-join-executor-thread-count
 	    fork-join-executor-available?
 	    fork-join-executor-execute-future!
 	    fork-join-executor-shutdown!
@@ -281,34 +283,37 @@
   (define-record-type fork-join-executor
     (parent pooled-executor)
     (protocol (lambda (n)
+		(define (adjust-parameter n p)
+		  (if (fork-join-pool-parameters-max-threads p)
+		      p
+		      (fork-join-pool-parameters-builder (from p)
+		       (max-threads (* n 5)))))
 		(define ctr
 		  (case-lambda
 		   (() (ctr (cpu-count)))
 		   ((parallelism) ((n (make-fork-join-pool parallelism) #f)))
 		   ((parallelism parameter)
-		    ((n (make-fork-join-pool parallelism parameter) #f)))))
+		    (let ((new-param (adjust-parameter parallelism parameter)))
+		      ((n (make-fork-join-pool new-param) #f))))))
 		ctr)))
 
-  (define (fork-join-executor-available? e) 
-    (unless (fork-join-executor? e)
-      (assertion-violation 'fork-join-executor-available? 
-			   "not a fork-join-executor" e))
+  (define (fork-join-executor-max-thread-count (e fork-join-executor?))
+    (fork-join-pool-max-threads (pooled-executor-pool e)))
+
+  (define (fork-join-executor-thread-count (e fork-join-executor?))
+    (fork-join-pool-thread-count (pooled-executor-pool e)))
+  
+  (define (fork-join-executor-available? (e fork-join-executor?))
     (fork-join-pool-available? (pooled-executor-pool e)))
 
-  (define (fork-join-executor-execute-future! e f)
+  (define (fork-join-executor-execute-future! (e fork-join-executor?) f)
     ;; the same as simple future
     (define (task-invoker future) (lambda () (future-execute-task! future)))
-    (unless (fork-join-executor? e)
-      (assertion-violation 'fork-join-executor-available? 
-			   "not a fork-join-executor" e))
     (unless (shared-box? (future-result f))
       (future-result-set! f (make-shared-box)))
     (fork-join-pool-push-task! (pooled-executor-pool e) (task-invoker f))
     f)
-  (define (fork-join-executor-shutdown! e)
-    (unless (fork-join-executor? e)
-      (assertion-violation 'fork-join-executor-available? 
-			   "not a fork-join-executor" e))
+  (define (fork-join-executor-shutdown! (e fork-join-executor?))
     (fork-join-pool-shutdown! (pooled-executor-pool e))
     (executor-state-set! e 'shutdown))
 

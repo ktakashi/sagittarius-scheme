@@ -522,4 +522,11 @@
 		       (future-get _ 1 #f)))
   (shutdown-executor! test-executor))
 
+(let ((e (make-fork-join-executor (fork-join-pool-parameters-builder
+				   (max-threads 5)))))
+  (dotimes (i 100) (executor-submit! e (lambda () (thread-sleep! 0.5))))
+  (test-assert (<= (fork-join-executor-thread-count e)
+		   (fork-join-executor-max-thread-count e)))
+  (shutdown-executor! e))
+
 (test-end)

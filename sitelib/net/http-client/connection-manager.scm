@@ -243,13 +243,8 @@
 	      (lambda (lease release shutdown config)
 		((n lease release (make-shutdown! shutdown) config)
 		 (or (http-connection-config-dns-lookup-executor config)
-		     ;; 
-		     (make-fork-join-executor 1
+		     (make-fork-join-executor
 		      (fork-join-pool-parameters-builder
-		       ;; TODO should be better number
-		       (max-threads 100)
-		       ;; we don't want to wait
-		       (max-queue-depth 1)
 		       (thread-name-prefix "dns-lookup")))))))))
 
 ;;; ephemeral (no pooling)

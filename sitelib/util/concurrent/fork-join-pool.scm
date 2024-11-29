@@ -42,8 +42,11 @@
 	    fork-join-pool-shutdown!
 	    fork-join-pool-available?
 
-	    fork-join-pool-parameters-builder
+	    fork-join-pool-parameters-builder from ;; for convenience
 	    fork-join-pool-parameters?
+	    fork-join-pool-parameters-max-threads
+	    fork-join-pool-parameters-keep-alive
+	    fork-join-pool-parameters-thread-name-prefix
 	    )
     (import (rnrs)
 	    (record builder)
@@ -138,13 +141,12 @@
 (define-record-type fork-join-pool-parameters
   (fields max-threads
 	  keep-alive
-	  max-queue-depth
 	  thread-name-prefix))
 (define-syntax fork-join-pool-parameters-builder
   (make-record-builder fork-join-pool-parameters
    ((max-threads #f)			    ;; will be computed by default
     (keep-alive (duration:of-millis 60000)) ;; default 1 min
-    (max-queue-depth 10))))
+    )))
 
 (define *default-parameter* (fork-join-pool-parameters-builder))
 
@@ -158,17 +160,14 @@
 	  notifier
 	  lock)
   (protocol (lambda (p)
-	      (lambda (n . maybe-parameter)
-		(define parameter (if (null? maybe-parameter)
-				      *default-parameter*
-				      (car maybe-parameter)))
-		(define (max-threads n parameter)
-		  (cond ((fork-join-pool-parameters-max-threads parameter))
-			;; core threads times 5, for now
-			;; Maybe we should calculate coefficient based on the
-			;; given `n`.
-			(else (* n 5))))
-		(p (max-threads n parameter)
+	      (lambda ((n (or integer? fork-join-pool-parameters?)))
+		(define parameter
+		  (cond ((integer? n)
+			 (fork-join-pool-parameters-builder
+			  (from *default-parameter*)
+			  (max-threads (* n 5))))
+			((fork-join-pool-parameters? n) n)))
+		(p (fork-join-pool-parameters-max-threads parameter)
 		   (make-worker-queue #f)
 		   (make-vector 32 #f)
 		   (make-atomic-fixnum 0)
@@ -230,12 +229,7 @@
 (define (fork-join-pool-notify-idling-workers pool)
   (define queues
     (filter values (vector->list (fork-join-pool-worker-queues pool))))
-  (define results (map worker-queue-notify! queues))
-  (unless (exists values results)
-    ;; failed to notify, this also means all the threads are already active
-    ;; by the time, but let's create a worker to be a safe side
-    ;; TODO this may suppass max thread count...
-    (fork-join-pool-create-worker pool)))
+  (map worker-queue-notify! queues))
 
 ;; worker thread procedures
 (define (fork-join-pool-register-worker pool wq)
