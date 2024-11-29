@@ -63,47 +63,48 @@
   (test-equal "process-kill" -1 (process-kill p)))
 
 ;; shared memory
-(test-assert "open-shared-memory" open-shared-memory)
-(test-assert "close-shared-memory" close-shared-memory)
-
-(test-error "no creation" i/o-error?
-	    (open-shared-memory "/not exist" 4096 (file-options no-create)))
-
+;; Seems this require admin right on Windows, so disable it on CI
 (define-constant +shared-memory-path+ "/sagittarius-process")
-(let ((shm (open-shared-memory +shared-memory-path+ 4096)))
-  (test-assert "shared-memory?" (shared-memory? shm))
-  (test-assert "close" (close-shared-memory shm)))
-
 (define-constant *shm-name* (build-path build-directory-path "test-shm.bin"))
 
-(let* ((shm (open-shared-memory +shared-memory-path+ 4096))
-       (proc (make-process *shm-name* '()))
-       (bv (shared-memory->bytevector shm)))
-  (test-assert "call (3)" (process-call proc))
-  (test-assert "wait"  (process-wait proc))
-  (test-equal "ref" "process" (utf8->string (bytevector-copy bv 0 7)))
-  (test-assert "close" (close-shared-memory shm)))
+(unless (and (getenv "CI") (memv 'sagittarius.os.windows (cond-features)))
+  (test-assert "open-shared-memory" open-shared-memory)
+  (test-assert "close-shared-memory" close-shared-memory)
 
-;; IPC
-(let ((sem (make-semaphore "/input" 0))
-      (shm (open-shared-memory +shared-memory-path+ 4096)))
-  (define thread
-    (thread-start!
-     (make-thread
-      (lambda ()
-	(semaphore-wait! sem)
-	(utf8->string (bytevector-copy (shared-memory->bytevector shm) 0 7))))))
-  ;; other process
-  (let ((p (make-process (build-path build-directory-path "test-sem.bin") '())))
-    (guard (e (else 
-	       (thread-terminate! thread)
-	       (test-assert "Failed IPC" #f)))
-      (process-call p)
-      (process-wait p)
-      (test-equal "IPC" "process" (thread-join! thread)))
-    (close-shared-memory shm)
-    (semaphore-destroy! sem)))
+  (test-error "no creation" i/o-error?
+	      (open-shared-memory "/not exist" 4096 (file-options no-create)))
+  (let ((shm (open-shared-memory +shared-memory-path+ 4096)))
+    (test-assert "shared-memory?" (shared-memory? shm))
+    (test-assert "close" (close-shared-memory shm)))
 
+  (let* ((shm (open-shared-memory +shared-memory-path+ 4096))
+	 (proc (make-process *shm-name* '()))
+	 (bv (shared-memory->bytevector shm)))
+    (test-assert "call (3)" (process-call proc))
+    (test-assert "wait"  (process-wait proc))
+    (test-equal "ref" "process" (utf8->string (bytevector-copy bv 0 7)))
+    (test-assert "close" (close-shared-memory shm)))
+
+  ;; IPC
+  (let ((sem (make-semaphore "/input" 0))
+	(shm (open-shared-memory +shared-memory-path+ 4096)))
+    (define thread
+      (thread-start!
+       (make-thread
+	(lambda ()
+	  (semaphore-wait! sem)
+	  (utf8->string (bytevector-copy (shared-memory->bytevector shm) 0 7))))))
+    ;; other process
+    (let ((p (make-process (build-path build-directory-path "test-sem.bin") '())))
+      (guard (e (else 
+		 (thread-terminate! thread)
+		 (test-assert "Failed IPC" #f)))
+	(process-call p)
+	(process-wait p)
+	(test-equal "IPC" "process" (thread-join! thread)))
+      (close-shared-memory shm)
+      (semaphore-destroy! sem)))
+  )
 ;; process-kill
 (let ((p (make-process (build-path build-directory-path "test-kill.bin") '())))
   (test-assert "process-call (process-kill)" (process-call p))
