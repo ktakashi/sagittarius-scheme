@@ -380,7 +380,15 @@ If the third form is used, then the _parameter_ must be
 procedure passes the given _parameter_ to fork join thread pool
 creation.
 
-###### [!Function] `fork-join-executor-available?`  _fork-join-executor_
+###### [!Function] `fork-join-executor-max-thread-count` _fork-join-executor_
+
+Returns max thread count of the given _fork-join-executor_.
+
+###### [!Function] `fork-join-executor-thread-count` _fork-join-executor_
+
+Returns current active thread count of the given _fork-join-executor_.
+
+###### [!Function] `fork-join-executor-available?` _fork-join-executor_
 
 Returns `#t`, if the underlying thread pool is not shutdown, otherwise `#f`.
 
