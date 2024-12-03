@@ -90,11 +90,10 @@
 
 (define (test-ecdh-jwk source :key algorithm curve encoding tests)
   (define (jwk->key json type)
-    (guard (e (else (print e) (raise e)))
     (let ((jwk (json->jwk json)))
       (case type
 	((public) (jwk->public-key jwk))
-	((private) (jwk->private-key jwk))))))
+	((private) (jwk->private-key jwk)))))
   (print source)
   (run-test-ecdh source algorithm curve encoding tests jwk->key))
 
