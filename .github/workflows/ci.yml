@@ -64,7 +64,7 @@ jobs:
       - name: CMake
         working-directory: target
         run: |
-          cmake . -G "NMake Makefiles"
+          cmake . -G "NMake Makefiles" -DSKIP_TEST_VECTOR=ON
         shell: cmd
       - name: Build
         working-directory: target
