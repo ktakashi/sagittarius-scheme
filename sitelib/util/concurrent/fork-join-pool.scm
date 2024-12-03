@@ -83,7 +83,7 @@
 	  shutdown)
   (protocol (lambda (p)
 	      (lambda (pool)
-		(p (make-notifier)
+		(p (make-event)
 		   pool
 		   (make-shared-queue)
 		   (make-atomic #f))))))
@@ -94,9 +94,9 @@
 (define (worker-queue-empty? wq) (shared-queue-empty? (worker-queue-queue wq)))
 (define (worker-queue-size wq) (shared-queue-size (worker-queue-queue wq)))
 (define (worker-queue-notify! wq)
-  (notifier-send-notification! (worker-queue-notifier wq)))
+  (event-set-event! (worker-queue-notifier wq)))
 (define (worker-queue-wait! wq . opts)
-  (apply notifier-wait-notification! (worker-queue-notifier wq) opts))
+  (apply event-receive! (worker-queue-notifier wq) opts))
 (define (worker-queue-shutdown! wq)
   (atomic-store! (worker-queue-shutdown wq) #t)
   (worker-queue-notify! wq))
@@ -157,7 +157,6 @@
 	  thread-count		  ;; # of worker threads
 	  idle-count		  ;; # of idle threads
 	  parameter
-	  notifier
 	  lock)
   (protocol (lambda (p)
 	      (lambda ((n (or integer? fork-join-pool-parameters?)))
@@ -173,7 +172,6 @@
 		   (make-atomic-fixnum 0)
 		   (make-atomic-fixnum 0)
 		   parameter
-		   (make-notifier)
 		   (make-mutex))))))
 
 (define (fork-join-pool-keep-alive pool)
@@ -265,13 +263,17 @@
   (fork-join-pool-thread-count-dec! pool))
 
 (define (fork-join-pool-run-worker pool wq)
-  (define (run-task task wq)
+  (define (run-task task root-wq wq)
     (when task
       (task)
-      (run-task (worker-queue-pop! wq 0 #f) wq)))
+      (run-task (or (worker-queue-pop! wq 0 #f)
+		    (worker-queue-pop! root-wq 0 #f))
+		root-wq
+		wq)))
   (define (->timeout pool) 
     (add-duration (current-time) (fork-join-pool-keep-alive pool)))
-  (run-task (worker-queue-pop! (fork-join-pool-worker-queue pool) 0 #f) wq)
+  (let ((queue (fork-join-pool-worker-queue pool)))
+    (run-task (worker-queue-pop! queue 0 #f) queue wq))
   (fork-join-pool-idle-count-inc! pool)
   (cond ((and (worker-queue-wait! wq (->timeout pool))
 	      (not (worker-queue-shutdown? wq)))

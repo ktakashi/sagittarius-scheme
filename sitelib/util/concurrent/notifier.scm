@@ -34,7 +34,13 @@
 	    (rename (notifier <notifier>))
 	    notifier-waiting?
 	    notifier-send-notification!
-	    notifier-wait-notification!)
+	    notifier-wait-notification!
+
+	    event? make-event
+	    (rename (event <event>))
+	    event-set-event!
+	    event-receive!
+	    )
     (import (rnrs)
 	    (srfi :18)
 	    (util concurrent atomic))
@@ -55,9 +61,43 @@
 
 (define (notifier-wait-notification! notifier . maybe-timeout)
   (define to (and (not (null? maybe-timeout)) (car maybe-timeout)))
+  (define lock (notifier-lock notifier))
+  (mutex-lock! lock)
   (atomic-fixnum-inc! (notifier-waiter notifier))
-  (let ((r (mutex-unlock! (notifier-lock notifier) (notifier-cv notifier) to)))
+  (let ((r (mutex-unlock! lock (notifier-cv notifier) to)))
     (atomic-fixnum-dec! (notifier-waiter notifier))
     r))
+
+;; Similar to SetEvent on Win32 API
+;; It holds the value until the event is read
+(define-record-type event
+  (fields lock cv (mutable received))
+  (protocol (lambda (p)
+	      (lambda (:optional (set? #f))
+		(p (make-mutex "event-lock")
+		   (make-condition-variable)
+		   set?)))))
+
+(define (event-set-event! event)
+  (define lock (event-lock event))
+  (mutex-lock! lock)
+  (event-received-set! event #t)
+  (condition-variable-broadcast! (event-cv event))
+  (mutex-unlock! lock))
+
+(define (event-receive! event . maybe-timeout)
+  (define to (and (not (null? maybe-timeout)) (car maybe-timeout)))
+  (define lock (event-lock event))
+  (mutex-lock! lock)
+  (cond ((event-received event)
+	 (event-received-set! event #f)
+	 (mutex-unlock! lock))
+	((mutex-unlock! lock (event-cv event) to)
+	 (mutex-lock! lock)
+	 (let ((r (and (event-received event)
+		       (event-received-set! event #f))))
+	   (mutex-unlock! lock)
+	   r))
+	(else #f)))
 
 )
