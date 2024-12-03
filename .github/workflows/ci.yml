@@ -39,7 +39,7 @@ jobs:
   Windows-Build:
     # Disable it for now, due to the unknown compilation errors which don't
     # happen any other environments (both local and CI).
-    if: false 
+    if: true
     runs-on: ${{ matrix.images }}
     strategy:
       matrix:
@@ -67,7 +67,7 @@ jobs:
       - name: CMake
         working-directory: target
         run: |
-          cmake . -G "NMake Makefiles" -DDEBUG_VERSION=OFF
+          cmake . -G "NMake Makefiles"
         shell: cmd
       - name: Build
         working-directory: target
