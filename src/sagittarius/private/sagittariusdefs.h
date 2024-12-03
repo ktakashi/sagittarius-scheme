@@ -112,7 +112,8 @@ typedef uint32_t _W64 uintptr_t;
 #if __STDC_VERSION__ >= 199901L
   /* "inline" is a keyword */
 #else
-# ifndef __cplusplus
+/* Avoiding __ucrt_int_to_float to be duplicated on MSVC */
+# if !defined(__cplusplus) && defined(_MSC_VER) && _MSC_VER < 1900
 #  define inline /* nothing */
 # endif
 #endif
