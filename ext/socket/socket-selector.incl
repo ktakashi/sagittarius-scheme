@@ -1,4 +1,4 @@
-/* mode:c */
+/* -*- mode:c -*- */
 static int selector_sockets(SgSocketSelector *selector)
 {
   /* filter closed socket */

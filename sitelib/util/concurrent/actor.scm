@@ -100,8 +100,10 @@
   actor)
 
 (define (actor-interrupt! actor)
-  (and (actor-running? actor)
-       (thread-interrupt! (actor-thread actor))))
+  ;; if the actor already stopped, thread-interrrupt! signals an error
+  (guard (e (else #t))
+    (and (actor-running? actor)
+	 (thread-interrupt! (actor-thread actor)))))
 
 (define (actor-running? actor) (eq? (actor-state actor) 'running))
 
