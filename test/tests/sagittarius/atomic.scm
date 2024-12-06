@@ -20,6 +20,9 @@
 (test-assert (fixnum? *memory-order:acq-rel*))
 (test-assert (fixnum? *memory-order:seq-cst*))
 
+(test-assert (memory-order? *memory-order:seq-cst*))
+(test-assert (not (memory-order? (+ *memory-order:seq-cst* 100))))
+
 (test-group "Basic check"
  (let ()
    (define atomic-boolean (make-atomic #t))

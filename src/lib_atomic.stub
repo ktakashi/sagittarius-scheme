@@ -43,6 +43,8 @@
 (define-cise-expr default-memory-order
   ((_) '(SG_MAKE_INT memory_order_seq_cst)))
 
+(define-c-proc memory-order? (obj) ::<boolean> Sg_MemoryOrderP)
+
 (define-c-proc make-atomic (obj) Sg_MakeAtomic)
 (define-c-proc make-atomic-fixnum (n::<fixnum>) Sg_MakeAtomicFixnum)
 
