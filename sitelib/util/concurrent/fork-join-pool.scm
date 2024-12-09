@@ -49,6 +49,7 @@
 	    fork-join-pool-parameters-thread-name-prefix
 	    )
     (import (rnrs)
+	    (sagittarius)		;; for cpu-count
 	    (record builder)
 	    (srfi :1 lists)
 	    (srfi :18 multithreading)
@@ -144,7 +145,7 @@
 	  thread-name-prefix))
 (define-syntax fork-join-pool-parameters-builder
   (make-record-builder fork-join-pool-parameters
-   ((max-threads #f)			    ;; will be computed by default
+   ((max-threads (* (cpu-count) 5))
     (keep-alive (duration:of-millis 60000)) ;; default 1 min
     )))
 

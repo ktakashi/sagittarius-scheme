@@ -78,7 +78,6 @@
 	    register-executor-methods
 	    )
     (import (rnrs)
-	    (sagittarius) ;; not portal anymore :(
 	    (only (srfi :1) remove!)
 	    (srfi :18)
 	    (srfi :19)
@@ -290,7 +289,7 @@
 		       (max-threads (* n 5)))))
 		(define ctr
 		  (case-lambda
-		   (() (ctr (cpu-count)))
+		   (() (ctr (fork-join-pool-parameters-builder)))
 		   ((parallelism) ((n (make-fork-join-pool parallelism) #f)))
 		   ((parallelism parameter)
 		    (let ((new-param (adjust-parameter parallelism parameter)))

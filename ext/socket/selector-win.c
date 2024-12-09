@@ -138,28 +138,28 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
   }
 
   r = WaitForMultipleObjects(2, hEvents, FALSE, millis);
-  if (r == WAIT_OBJECT_0) {
-    /* Using WSAPoll to detect which sockets are ready to read */
-    WSAPOLLFD *fds = SG_NEW_ATOMIC2(WSAPOLLFD *, n * sizeof(WSAPOLLFD));
-    int i = 0;
-    SgObject cp;
-    SG_FOR_EACH(cp, selector->sockets) {
-      SgSocket *sock = SG_SOCKET(SG_CAAR(cp));
-      fds[i].fd = sock->socket;
-      fds[i].events = POLLRDNORM;
-      i++;
-    }
-    r = WSAPoll(fds, n, 0); /* Some sockets must be ready at this stage */
-    if (r == SOCKET_ERROR) system_error(WSAGetLastError());
-    for (i = 0; i < n; i++) {
-      if (fds[i].revents & POLLRDNORM) {
-	/* collect sockets, should we use hashtable? */
-	SgObject o = select_socket(fds[i].fd, selector->sockets);
-	if (!SG_FALSEP(o)) ret = Sg_Cons(o, ret);
-      }
-    }
-  } else if (r == WAIT_OBJECT_0 + 1) {
+  if (r == WAIT_OBJECT_0 + 1) {
     ResetEvent(ctx->event);
+  }
+
+  /* Using WSAPoll to detect which sockets are ready to read */
+  WSAPOLLFD *fds = SG_NEW_ATOMIC2(WSAPOLLFD *, n * sizeof(WSAPOLLFD));
+  int i = 0;
+  SgObject cp;
+  SG_FOR_EACH(cp, selector->sockets) {
+    SgSocket *sock = SG_SOCKET(SG_CAAR(cp));
+    fds[i].fd = sock->socket;
+    fds[i].events = POLLRDNORM;
+    i++;
+  }
+  r = WSAPoll(fds, n, 0); /* We may return SG_NIL in case of interrupt */
+  if (r == SOCKET_ERROR) system_error(WSAGetLastError());
+  for (i = 0; i < n; i++) {
+    if (fds[i].revents & POLLRDNORM) {
+      /* collect sockets, should we use hashtable? */
+      SgObject o = select_socket(fds[i].fd, selector->sockets);
+      if (!SG_FALSEP(o)) ret = Sg_Cons(o, ret);
+    }
   }
 
   SET_EVENT(selector->sockets, hEvents[0], 0);

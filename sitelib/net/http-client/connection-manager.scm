@@ -123,7 +123,6 @@
 (define *http-connection-manager:default-executor*
   (make-parameter
    (delay (make-fork-join-executor
-	   (cpu-count)
 	   (fork-join-pool-parameters-builder
 	    (thread-name-prefix "default-http-connection-manager"))))
    (lambda (v)
@@ -147,7 +146,7 @@
   ((connection-manager-release manager) manager connection reuse?))
 
 (define (http-connection-manager-shutdown! manager)
-  ((connection-manager-selector-terminator manager))
+   ((connection-manager-selector-terminator manager))
   ((connection-manager-shutdown manager) manager))
 
 (define (http-connection-manager-register-on-readable manager
