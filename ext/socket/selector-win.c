@@ -168,7 +168,10 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
 
 cleanup:
   for (int i = 0; i < n; i++) {
-    if (eArray[i]) WSACloseEvent(eArray[i]);
+    if (eArray[i]) {
+      WSAEventSelect(sArray[i], eArray[i], 0);
+      WSACloseEvent(eArray[i]);
+    }
   }
   ctx->thread = NULL;
   if (err) {
