@@ -36,8 +36,8 @@
 
 typedef struct win_context_rec
 {
-  HANDLE event;
-  HANDLE thread;		/* waiting thread */
+  WSAEVENT event;
+  HANDLE   thread;		/* waiting thread */
 } win_context_t;
 
 
@@ -60,7 +60,7 @@ SgObject Sg_MakeSocketSelector()
 
   SG_SET_CLASS(selector, SG_CLASS_SOCKET_SELECTOR);
 
-  ctx->event = CreateEvent(NULL, TRUE, FALSE, NULL);
+  ctx->event = WSACreateEvent();
   if (ctx->event == NULL) goto err;
   
   ctx->thread = NULL;
@@ -78,7 +78,7 @@ SgObject Sg_MakeSocketSelector()
 void Sg_CloseSocketSelector(SgSocketSelector *selector)
 {
   win_context_t *ctx = (win_context_t *)selector->context;
-  CloseHandle(ctx->event);
+  WSACloseEvent(ctx->event);
   Sg_UnregisterFinalizer(selector);
 }
 
@@ -107,29 +107,40 @@ static SgObject select_socket(SOCKET fd, SgObject sockets)
 SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
 {
   win_context_t *ctx = (win_context_t *)selector->context;
-  int n = selector_sockets(selector), millis = INFINITE, r;
-  HANDLE hEvents[2];
+  int n = selector_sockets(selector), r, err = FALSE;
+  const int waiting_flags = FD_READ | FD_OOB;
   struct timespec spec, *sp;
+  DWORD millis = INFINITE;
   SgObject ret = SG_NIL;
+  SOCKET sArray[WSA_MAXIMUM_WAIT_EVENTS];
+  WSAEVENT eArray[WSA_MAXIMUM_WAIT_EVENTS] = { NULL, };
 
   if (ctx->thread != NULL) {
     Sg_Error(UC("There's a thread already waiting for %A"), selector);
   }
   if (n == 0) return ret;
+  if (n-1 > WSA_MAXIMUM_WAIT_EVENTS) {
+    Sg_Error(UC("[Windows] More than max selectable sockets are set %d > %d"),
+	     n, WSA_MAXIMUM_WAIT_EVENTS);
+  }
   ctx->thread = GetCurrentThread();
-
-  hEvents[0] = CreateEvent(NULL, FALSE, FALSE, NULL);
-  hEvents[1] = ctx->event;
-
-#define SET_EVENT(sockets, event, flags)		\
-  do {							\
-    SgObject cp;					\
-    SG_FOR_EACH(cp, sockets) {				\
-      SG_SET_SOCKET_EVENT(SG_CAAR(cp), event, flags);	\
-    }							\
+  eArray[n] = ctx->event;
+#define SET_EVENT(sockets, flags)				\
+  do {								\
+    SgObject cp;						\
+    int i = 0;							\
+    SG_FOR_EACH(cp, sockets) {					\
+      SgObject s = SG_CAAR(cp);					\
+      sArray[i] = SG_SOCKET(s)->socket;				\
+      eArray[i] = WSACreateEvent();				\
+      if (WSAEventSelect(sArray[i], eArray[i], flags) != 0) {	\
+	err = TRUE;						\
+	goto cleanup;						\
+      }								\
+      i++;							\
+    }								\
   } while(0)
-
-  SET_EVENT(selector->sockets, hEvents[0], FD_READ | FD_OOB);
+  SET_EVENT(selector->sockets, waiting_flags);
   
   sp = selector_timespec(timeout, &spec);
   if (sp) {
@@ -137,37 +148,34 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
     millis += sp->tv_nsec / 1000000;
   }
 
-  r = WaitForMultipleObjects(2, hEvents, FALSE, millis);
-  if (r == WAIT_OBJECT_0 + 1) {
-    ResetEvent(ctx->event);
-  }
-
-  /* Using WSAPoll to detect which sockets are ready to read */
-  WSAPOLLFD *fds = SG_NEW_ATOMIC2(WSAPOLLFD *, n * sizeof(WSAPOLLFD));
-  int i = 0;
-  SgObject cp;
-  SG_FOR_EACH(cp, selector->sockets) {
-    SgSocket *sock = SG_SOCKET(SG_CAAR(cp));
-    fds[i].fd = sock->socket;
-    fds[i].events = POLLRDNORM;
-    i++;
-  }
-  r = WSAPoll(fds, n, 0); /* We may return SG_NIL in case of interrupt */
-  if (r == SOCKET_ERROR) system_error(WSAGetLastError());
-  for (i = 0; i < n; i++) {
-    if (fds[i].revents & POLLRDNORM) {
-      /* collect sockets, should we use hashtable? */
-      SgObject o = select_socket(fds[i].fd, selector->sockets);
-      if (!SG_FALSEP(o)) ret = Sg_Cons(o, ret);
+  r = WSAWaitForMultipleEvents(n + 1, eArray, FALSE, millis, FALSE);
+  for (int i = r - WSA_WAIT_EVENT_0; i < n; i++) {
+    r = WSAWaitForMultipleEvents(1, &eArray[i], TRUE, 0, FALSE);
+    if (r != WSA_WAIT_FAILED && r != WSA_WAIT_TIMEOUT) {
+      WSANETWORKEVENTS networkEvents;
+      if (WSAEnumNetworkEvents(sArray[i], eArray[i], &networkEvents) == 0) {
+	if ((networkEvents.lNetworkEvents & waiting_flags) != 0) {
+	  SgObject o = select_socket(sArray[i], selector->sockets);
+	  if (!SG_FALSEP(o)) ret = Sg_Cons(o, ret);
+	}
+      }
     }
   }
 
-  SET_EVENT(selector->sockets, hEvents[0], 0);
 #undef SET_EVENT
 
   strip_sockets(selector, ret);
-  CloseHandle(hEvents[0]);
+
+cleanup:
+  for (int i = 0; i < n; i++) {
+    if (eArray[i]) WSACloseEvent(eArray[i]);
+  }
   ctx->thread = NULL;
+  if (err) {
+    int e = WSAGetLastError();
+    Sg_Error(UC("Failed to wait selector: [%d] %S"), e,
+	     Sg_GetLastErrorMessageWithErrorCode(e));
+  }
   return ret;
 }
 
@@ -181,6 +189,6 @@ int Sg_SocketSelectorWaitingP(SgSocketSelector *selector)
 SgObject Sg_SocketSelectorInterrupt(SgSocketSelector *selector)
 {
   win_context_t *ctx = (win_context_t *)selector->context;
-  SetEvent(ctx->event);
+  WSASetEvent(ctx->event);
   return selector;
 }

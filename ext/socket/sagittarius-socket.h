@@ -177,7 +177,7 @@ SG_CLASS_DECL(Sg_SocketPortClass);
     WSAEventSelect(s, (hEvent), flags);				\
     ioctlsocket(s, FIONBIO, &val);				\
   } while (0)
-#define SG_ABORTABLE_SOCKET_OP(ret, socket, flags, operation)	\
+# define SG_ABORTABLE_SOCKET_OP(ret, socket, flags, operation)	\
   do {								\
     if (SG_SOCKET(socket)->nonblocking) {			\
       (ret) = operation;					\
@@ -199,8 +199,8 @@ SG_CLASS_DECL(Sg_SocketPortClass);
     }								\
   } while (0)
 #else
-#define SG_SET_SOCKET_EVENT(sock, hEvent, flags, revertp) /* dummy */
-#define SG_ABORTABLE_SOCKET_OP(ret, socket, flags, operation) \
+# define SG_SET_SOCKET_EVENT(sock, hEvent, flags, revertp) /* dummy */
+# define SG_ABORTABLE_SOCKET_OP(ret, socket, flags, operation)	\
   (ret) = operation;
 #endif
 
