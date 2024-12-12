@@ -131,6 +131,8 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
     int i = 0;							\
     SG_FOR_EACH(cp, sockets) {					\
       SgObject s = SG_CAAR(cp);					\
+      /* avoid unwanted sockets */				\
+      if (i == n) break;					\
       sArray[i] = SG_SOCKET(s)->socket;				\
       eArray[i] = WSACreateEvent();				\
       if (WSAEventSelect(sArray[i], eArray[i], flags) != 0) {	\
@@ -149,6 +151,8 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
   }
 
   r = WSAWaitForMultipleEvents(n + 1, eArray, FALSE, millis, FALSE);
+  /* reset interrupting event as soon as possible */
+  WSAResetEvent(ctx->event);
   for (int i = r - WSA_WAIT_EVENT_0; i < n; i++) {
     r = WSAWaitForMultipleEvents(1, &eArray[i], TRUE, 0, FALSE);
     if (r != WSA_WAIT_FAILED && r != WSA_WAIT_TIMEOUT) {
