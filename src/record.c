@@ -88,7 +88,7 @@ SgObject Sg_AllocateRecordTypeMeta(SgClass *klass, SgObject initargs)
   SG_SET_CLASS(m, klass);
   /* ok we need to initialise the metaclass by hand */
   SG_CLASS(m)->cpa = Sg_RTMCPL;
-  Sg_InitStaticClass(SG_CLASS(m), NULL, NULL, rtm_slots, 0);
+  Sg_InitStaticClass(SG_CLASS(m), NULL, NULL, rtm_slots, SG_NO_INIT_CV);
   SG_RECORD_TYPE_META(m)->rtd = SG_FALSE;
   SG_RECORD_TYPE_META(m)->rcd = SG_FALSE;
   return m;

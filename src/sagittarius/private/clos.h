@@ -156,6 +156,12 @@ enum {
   SG_CLASS_APPLICABLE = 0x04,
 };
 
+/* A bit ugly work around for double initialization... */
+typedef enum {
+  SG_NO_INIT_CV    = 0x00000001,
+  SG_NO_INIT_MUTEX = 0x00000002,
+} SgClassInitFlags;
+
 /* built-in classes */
 SG_CLASS_DECL(Sg_TopClass);
 SG_CLASS_DECL(Sg_BoolClass);

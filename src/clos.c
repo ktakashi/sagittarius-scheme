@@ -2319,9 +2319,14 @@ static void init_class(SgClass *klass, const SgChar *name,
   klass->gettersNSetters = (SgSlotAccessor**)Sg_ListToArray(acc, TRUE);
   klass->slots = slots;
   klass->nfields = (int)Sg_Length(slots);
+  
   /* do we need this? */
-  Sg_InitMutex(&klass->mutex, FALSE);
-  Sg_InitCond(&klass->cv);
+  if ((flags & SG_NO_INIT_MUTEX) == 0) {
+    Sg_InitMutex(&klass->mutex, FALSE);
+  }
+  if ((flags & SG_NO_INIT_CV) == 0) {
+    Sg_InitCond(&klass->cv);
+  }
 }
 
 void Sg_InitStaticClass(SgClass *klass, const SgChar *name,
@@ -3139,8 +3144,6 @@ void Sg__InitClos()
   BINIT(SG_CLASS_DICTIONARY, "<dictionary>", NULL);
   BINIT(SG_CLASS_ORDERED_DICTIONARY, "<ordered-dictionary>", NULL);
 
-  /* hashtable */
-  CINIT(SG_CLASS_HASHTABLE, "<hashtable>");
   /* treemap */
   CINIT(SG_CLASS_TREE_MAP,  "<tree-map>");
 
