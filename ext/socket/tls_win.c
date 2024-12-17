@@ -424,9 +424,48 @@ static void client_init(SgTLSSocket *r)
   DUMP_CRED_HANDLE(&data->credential);
 }
 
+static int free_cert_props(WinTLSContext *context)
+{
+  if (context->certificates && context->certificateCount) {
+    PCCERT_CONTEXT ctx = context->certificates[0];
+    CertSetCertificateContextProperty(ctx, CERT_KEY_PROV_INFO_PROP_ID, 0, NULL);
+    /* Seems this releases the private key... */
+    CertSetCertificateContextProperty(ctx, CERT_NCRYPT_KEY_HANDLE_PROP_ID, 0,NULL);
+    return TRUE;
+  }
+  return FALSE;
+}
+
 static void free_context(WinTLSContext *context)
 {
   int i;
+  if (context->keyType == RSA) {
+    if (context->privateKey) {
+      if (!free_cert_props(context)) {
+	CryptDestroyKey(context->privateKey);
+	/* hProv is associated to the keyCtx... */
+	if (context->hProv != 0) {
+	  CryptReleaseContext(context->hProv, 0);
+	  context->hProv = 0;
+	}
+      }
+      context->privateKey = NULL;
+    }
+  }
+#if _MSC_VER > 1500
+  if (context->keyType == ECC) {
+    if (context->privateKey) {
+      if (!free_cert_props(context)) {
+	NCryptFreeObject(context->privateKey);
+      }
+      context->privateKey = NULL;
+    }
+    if (context->hProv != 0) {
+      NCryptFreeObject(context->hProv);
+      context->hProv = 0;
+    }
+  }
+#endif
   if (context->certificates && context->certificateCount) {
     for (i = 0; i < context->certificateCount; i++) {
       CertFreeCertificateContext(context->certificates[i]);
@@ -435,27 +474,6 @@ static void free_context(WinTLSContext *context)
     context->certificateCount = 0;
     context->certificates = NULL;
   }
-  if (context->keyType == RSA) {
-    if (context->privateKey) {
-      CryptDestroyKey(context->privateKey);
-      context->privateKey = NULL;
-    }
-    if (context->hProv != 0) {
-      CryptReleaseContext(context->hProv, 0);
-    }
-  }
-#if _MSC_VER > 1500
-  if (context->keyType == ECC) {
-    if (context->privateKey) {
-      NCryptFreeObject(context->privateKey);
-      context->privateKey = NULL;
-    }
-    if (context->hProv != 0) {
-      NCryptFreeObject(context->hProv);
-    }
-  }
-#endif
-
   if (context->certStore) {
     CertCloseStore(context->certStore, 0);
     context->certStore = NULL;
@@ -645,6 +663,8 @@ static DWORD add_rsa_private_key(WinTLSContext *context,
   provInfo.cProvParam = 0;
   if (!CertSetCertificateContextProperty(ctx, CERT_KEY_PROV_INFO_PROP_ID, 0,
 					 (const void *)&provInfo)) {
+    CryptDestroyKey(context->privateKey);
+    context->privateKey = NULL;
     return GetLastError();
   }
   keyCtx.cbSize = sizeof(CERT_KEY_CONTEXT);
@@ -652,6 +672,8 @@ static DWORD add_rsa_private_key(WinTLSContext *context,
   keyCtx.dwKeySpec = AT_KEYEXCHANGE;
   if (!CertSetCertificateContextProperty(ctx, CERT_KEY_CONTEXT_PROP_ID, 0,
 					 (const void *)&keyCtx)) {
+    CryptDestroyKey(context->privateKey);
+    context->privateKey = NULL;
     return GetLastError();
   }
   DUMP_CERT_CONTEXT(ctx);
@@ -737,11 +759,15 @@ static DWORD add_ecc_private_key(WinTLSContext *context,
 
   if (!CertSetCertificateContextProperty(ctx, CERT_KEY_PROV_INFO_PROP_ID, 0,
 					 (const void *)&provInfo)) {
+    NCryptFreeObject(context->privateKey);
+    context->privateKey = NULL;
     return GetLastError();
   }
 
   if (!CertSetCertificateContextProperty(ctx, CERT_NCRYPT_KEY_HANDLE_PROP_ID, 0,
 					 (const void *)context->privateKey)) {
+    NCryptFreeObject(context->privateKey);
+    context->privateKey = NULL;
     return GetLastError();
   }
 
