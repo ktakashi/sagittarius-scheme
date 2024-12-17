@@ -174,8 +174,10 @@ SG_CLASS_DECL(Sg_SocketPortClass);
   do {								\
     ULONG val = !(flags) ? SG_SOCKET(sock)->nonblocking: 1;	\
     SOCKET s = SG_SOCKET(sock)->socket;				\
-    WSAEventSelect(s, (hEvent), flags);				\
-    ioctlsocket(s, FIONBIO, &val);				\
+    if (s != INVALID_SOCKET) {					\
+      WSAEventSelect(s, (hEvent), flags);			\
+      ioctlsocket(s, FIONBIO, &val);				\
+    }								\
   } while (0)
 # define SG_ABORTABLE_SOCKET_OP(ret, socket, flags, operation)	\
   do {								\

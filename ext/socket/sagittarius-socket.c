@@ -787,7 +787,9 @@ SgObject Sg_SocketAccept(SgSocket *socket)
   r = WaitForMultipleObjects(3, hEvents, FALSE, INFINITE);
   SG_SET_SOCKET_EVENT(socket, hEvents[0], 0);
   CloseHandle(hEvents[0]);
-  ResetEvent(socket->event);
+  if (socket->event != INVALID_HANDLE_VALUE) {
+    ResetEvent(socket->event);
+  }
   if (r == WAIT_OBJECT_0 + 2) {
     WSASetLastError(EINTR);
     return SG_FALSE;		/* interrupted! */
@@ -802,8 +804,12 @@ SgObject Sg_SocketAccept(SgSocket *socket)
 #endif
   
   for (;;) {
-    fd = accept(socket->socket, (struct sockaddr *)&addr, &addrlen);
-    if (-1 == fd) {
+    if (socket->socket == INVALID_SOCKET) {
+      fd = INVALID_SOCKET;
+    } else {
+      fd = accept(socket->socket, (struct sockaddr *)&addr, &addrlen);
+    }
+    if (INVALID_SOCKET == fd) {
       /* For some reason, accept may fail on Solaris without
 	 last_error set. I'm not sure what this exactly means but
 	 seems we can retry.
@@ -840,24 +846,27 @@ void Sg_SocketShutdown(SgSocket *socket, int how)
 
 void Sg_SocketClose(SgSocket *socket)
 {
+  SOCKET fd = socket->socket;
   if (!Sg_SocketOpenP(socket)) {
     return;
   }
-#ifdef _WIN32
-  /* FIXME socket-close should not shutdown socket but we don't have
-     any way to flush socket other than shutting down write side of
-     socket descriptor on Windows. */
-  shutdown(socket->socket, SD_SEND);
-  SetEvent(socket->event);
-  closesocket(socket->socket);
-  CloseHandle(socket->event);
-#else
-  close(socket->socket);
-#endif
   /* in case of double closing, we need to set invalid socket here. */
   socket->socket = INVALID_SOCKET;
   socket->type = SG_SOCKET_CLOSED;
   socket->address = NULL;
+#ifdef _WIN32
+  HANDLE event = socket->event;
+  socket->event = INVALID_HANDLE_VALUE;
+  /* FIXME socket-close should not shutdown socket but we don't have
+     any way to flush socket other than shutting down write side of
+     socket descriptor on Windows. */
+  shutdown(fd, SD_SEND);
+  SetEvent(event);
+  closesocket(fd);
+  CloseHandle(event);
+#else
+  close(fd);
+#endif
   Sg_UnregisterFinalizer(SG_OBJ(socket));
 }
 
