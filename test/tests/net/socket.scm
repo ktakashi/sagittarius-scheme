@@ -232,7 +232,7 @@
 	(lambda ()
 	  (let ((s (make-client-socket "localhost" server-port
 				       (socket-options (read-timeout 100)))))
-	    (guard (e (else #;(print e) e))
+	    (guard (e (else #;(print e) s))
 	      (thread-sleep! 0.1)
 	      (socket-send s (string->utf8
 			      (string-append "Hello world " (number->string i))))
@@ -247,7 +247,11 @@
 		 (uncaught-exception-reason e))
 		(else #f))
 	(thread-join! t)))
-    (for-each socket-close (map safe-join! (map caller (iota count))))
+    (define (safe-close s)
+      (cond ((socket? s) (socket-close s))
+	    ((condition? s) (report-error s))))
+    
+    (for-each safe-close (map safe-join! (map caller (iota count))))
     (socket-shutdown server-sock SHUT_RDWR)
     (socket-close server-sock)
     ;; No idea why this occasionally fails on Linux...
