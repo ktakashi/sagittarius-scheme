@@ -57,11 +57,11 @@
 (define-c-proc atomic-fixnum-load (a::<atomic-fixnum> :optional (order::<memory-order> (default-memory-order))) ::<fixnum> Sg_AtomicFixnumLoad)
 (define-c-proc atomic-fixnum-store! (a::<atomic-fixnum> v::<fixnum> :optional (order::<memory-order> (default-memory-order))) ::<void> Sg_AtomicFixnumStore)
 
-(define-c-proc atomic-fixnum-add! (a::<atomic-fixnum> v::<fixnum> :optional (order::<memory-order> (default-memory-order))) ::<void> Sg_AtomicFixnumAdd)
-(define-c-proc atomic-fixnum-sub! (a::<atomic-fixnum> v::<fixnum> :optional (order::<memory-order> (default-memory-order))) ::<void> Sg_AtomicFixnumSub)
-(define-c-proc atomic-fixnum-or! (a::<atomic-fixnum> v::<fixnum> :optional (order::<memory-order> (default-memory-order))) ::<void> Sg_AtomicFixnumOr)
-(define-c-proc atomic-fixnum-xor! (a::<atomic-fixnum> v::<fixnum> :optional (order::<memory-order> (default-memory-order))) ::<void> Sg_AtomicFixnumXor)
-(define-c-proc atomic-fixnum-and! (a::<atomic-fixnum> v::<fixnum> :optional (order::<memory-order> (default-memory-order))) ::<void> Sg_AtomicFixnumAnd)
+(define-c-proc atomic-fixnum-add! (a::<atomic-fixnum> v::<fixnum> :optional (order::<memory-order> (default-memory-order))) ::<fixnum> Sg_AtomicFixnumAdd)
+(define-c-proc atomic-fixnum-sub! (a::<atomic-fixnum> v::<fixnum> :optional (order::<memory-order> (default-memory-order))) ::<fixnum> Sg_AtomicFixnumSub)
+(define-c-proc atomic-fixnum-or! (a::<atomic-fixnum> v::<fixnum> :optional (order::<memory-order> (default-memory-order))) ::<fixnum> Sg_AtomicFixnumOr)
+(define-c-proc atomic-fixnum-xor! (a::<atomic-fixnum> v::<fixnum> :optional (order::<memory-order> (default-memory-order))) ::<fixnum> Sg_AtomicFixnumXor)
+(define-c-proc atomic-fixnum-and! (a::<atomic-fixnum> v::<fixnum> :optional (order::<memory-order> (default-memory-order))) ::<fixnum> Sg_AtomicFixnumAnd)
 
 (define-c-proc atomic-exchange! (a::<atomic> v :optional (order::<memory-order> (default-memory-order))) Sg_AtomicExchange)
 (define-c-proc atomic-fixnum-exchange! (a::<atomic-fixnum> v::<fixnum> :optional (order::<memory-order> (default-memory-order))) ::<fixnum> Sg_AtomicFixnumExchange)

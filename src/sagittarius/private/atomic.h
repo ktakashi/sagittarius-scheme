@@ -111,18 +111,15 @@ SG_EXTERN long     Sg_AtomicFixnumLoad(volatile SgAtomic *o,
 SG_EXTERN void     Sg_AtomicFixnumStore(volatile SgAtomic *o, long v,
 					SgMemoryOrder order);
 
-/* These are void due to the atomic_ops side of implementation
-   namely for Windows...
- */
-SG_EXTERN void     Sg_AtomicFixnumAdd(volatile SgAtomic *o, long v,
+SG_EXTERN long     Sg_AtomicFixnumAdd(volatile SgAtomic *o, long v,
 				      SgMemoryOrder order);
-SG_EXTERN void     Sg_AtomicFixnumSub(volatile SgAtomic *o, long v,
+SG_EXTERN long     Sg_AtomicFixnumSub(volatile SgAtomic *o, long v,
 				      SgMemoryOrder order);
-SG_EXTERN void     Sg_AtomicFixnumOr(volatile SgAtomic *o, long v,
+SG_EXTERN long     Sg_AtomicFixnumOr(volatile SgAtomic *o, long v,
 				      SgMemoryOrder order);
-SG_EXTERN void     Sg_AtomicFixnumXor(volatile SgAtomic *o, long v,
+SG_EXTERN long     Sg_AtomicFixnumXor(volatile SgAtomic *o, long v,
 				      SgMemoryOrder order);
-SG_EXTERN void     Sg_AtomicFixnumAnd(volatile SgAtomic *o, long v,
+SG_EXTERN long     Sg_AtomicFixnumAnd(volatile SgAtomic *o, long v,
 				      SgMemoryOrder order);
 
 SG_EXTERN int      Sg_AtomicCompareAndSwap(volatile SgAtomic *o,

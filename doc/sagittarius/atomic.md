@@ -64,9 +64,8 @@ The return value is unspecified.
 ###### [!Function] `atomic-fixnum-and!` (_a_ `atomic-fixnum?`) (_n_ `fixnum?`) :optional (_order_ `memory-order?`)
 
 Operates the addition, subtraction, bitwise or, bitwise xor and bitwise and
-against the value of atomic _a_ with given _n_ and updates the value of _a_.
-
-The return value is unspecified.
+against the value of atomic _a_ with given _n_ and updates the value of _a_
+and returns the previous value of _a_.
 
 ###### [!Function] `atomic-exchange!` (_a_ `atomic?`) _v_ :optional (_order_ `memory-order?`)
 ###### [!Function] `atomic-fixnum-exchange!` (_a_ `atomic-fixnum?`) (_n_ `fixnum?`) :optional (_order_ `memory-order?`)
