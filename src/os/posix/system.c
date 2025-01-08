@@ -348,7 +348,6 @@ static SgObject empty_mac = NULL;
 
 SgObject Sg_GetMacAddress(int pos)
 {
-  struct ifreq *ifr;
   struct ifreq ifreq;
   struct ifconf ifc;
   struct ifreq ifs[MAX_IFS];
@@ -385,13 +384,14 @@ SgObject Sg_GetMacAddress(int pos)
 	  uint8_t *d;
 	  /* fprintf(stderr, "nic %s\n", nic.ifr_name); */
 	  if (index++ != pos) continue;
-	  ifr = &ifs[i];
-	  strncpy(ifreq.ifr_name, ifr->ifr_name, sizeof(ifreq.ifr_name));
+	  strncpy(ifreq.ifr_name, ifs[i].ifr_name, IFNAMSIZ);
 	  if (ioctl(fd, SIOCGIFHWADDR, &ifreq) < 0) {
 	    close(fd);
 	    return empty_mac;
 	  }
-	  d = (uint8_t *)ifreq.ifr_hwaddr.sa_data;
+	  d = SG_NEW_ATOMIC2(uint8_t *, 6);
+	  memcpy(d, ifreq.ifr_hwaddr.sa_data, 6);
+	  close(fd);
 	  return Sg_MakeByteVectorFromU8Array(d, 6);
 	}
       }
