@@ -126,6 +126,7 @@ SG_EXTERN int      Sg_AtomicCompareAndSwap(volatile SgAtomic *o,
 					   SgObject e, SgObject v,
 					   SgMemoryOrder success,
 					   SgMemoryOrder failure);
+SG_EXTERN void     Sg_AtomicThreadFence(SgMemoryOrder order);
 
 SG_CDECL_END
 

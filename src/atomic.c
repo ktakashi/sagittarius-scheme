@@ -185,6 +185,26 @@ static void ao_fetch_and(volatile AO_t *o, AO_t v, memory_order order)
   return r;
 }
 
+static void ao_thread_fence(memory_order order)
+{
+  switch (order) {
+    case memory_order_relaxed:
+      AO_nop(o, v);
+      break;
+    case memory_order_consume:
+    case memory_order_acquire:
+      AO_nop_read(o, v);
+      break;
+    case memory_order_release:
+      AO_nop_write(o, v);
+      break;
+    case memory_order_acq_rel:
+    case memory_order_seq_cst:
+      AO_nop_full(o, v);
+      break;
+  }
+}
+
 #define atomic_store(o, v) ao_store_explicit(o, v, memory_order_seq_cst)
 #define atomic_store_explicit ao_store_explicit
 
@@ -214,6 +234,8 @@ static void ao_fetch_and(volatile AO_t *o, AO_t v, memory_order order)
 
 #define atomic_fetch_and(ob, op) ao_fetch_and(ob, op, memory_order_seq_cst)
 #define atomic_fetch_and_explicit ao_fetch_and
+
+#define atomic_thread_fence ao_thread_fence
 
 #undef handle_memory_order
 
@@ -391,6 +413,11 @@ int Sg_AtomicCompareAndSwap(volatile SgAtomic *o, SgObject e, SgObject v,
 						     success, failure);
     }
   }
+}
+
+void Sg_AtomicThreadFence(SgMemoryOrder order)
+{
+  atomic_thread_fence(order);
 }
 
 extern void Sg__Init_sagittarius_atomic();

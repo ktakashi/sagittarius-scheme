@@ -44,6 +44,8 @@
 
 	    atomic-compare-and-swap!
 
+	    atomic-thread-fence
+
 	    *memory-order:relaxed*
 	    *memory-order:consume*
 	    *memory-order:acquire*
