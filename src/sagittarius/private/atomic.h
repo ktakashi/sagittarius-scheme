@@ -35,6 +35,7 @@
 
 #ifdef HAVE_STDATOMIC_H
 # include <stdatomic.h>
+
 # ifdef HAVE_ATOMIC_INTPTR_T
 typedef atomic_intptr_t atomic_object_t;
 typedef intptr_t object_t;
@@ -42,6 +43,7 @@ typedef intptr_t object_t;
 typedef atomic_size_t atomic_object_t;
 typedef size_t object_t;
 # endif
+
 #else
 
 /* We define only what we need here */
