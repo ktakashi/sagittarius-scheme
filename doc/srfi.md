@@ -90,7 +90,9 @@ For now, I just put pointer to [the SRFI's web site](http://srfi.schemers.org/)
 | [SRFI-159](http://srfi.schemers.org/srfi-159/srfi-159.html) | (srfi :159)                                         |
 | [SRFI-160](http://srfi.schemers.org/srfi-160/srfi-160.html) | (srfi :160)[^SRFI-160]                              |
 | [SRFI-193](http://srfi.schemers.org/srfi-193/srfi-193.html) | (srfi :193 command-line)[^longname]                 |
+| [SRFI-195](http://srfi.schemers.org/srfi-195/srfi-195.html) | (srfi :195 boxes)[^longname]                        |
 | [SRFI-197](http://srfi.schemers.org/srfi-197/srfi-197.html) | (srfi :197 pipeline)[^longname]                     |
+| [SRFI-210](http://srfi.schemers.org/srfi-210/srfi-210.html) | (srfi :210 multiple-values)[^longname]              |
 | [SRFI-219](http://srfi.schemers.org/srfi-219/srfi-219.html) | (srfi :219 define)[^longname][^builtin]             |
 
 [^SRFI-4]: This SRFI also contains reader macro described below this section.
