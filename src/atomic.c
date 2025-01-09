@@ -30,6 +30,7 @@
 #include "sagittarius/private/atomic.h"
 #include "sagittarius/private/error.h"
 #include "sagittarius/private/library.h"
+#include "sagittarius/private/pair.h"
 #include "sagittarius/private/port.h"
 #include "sagittarius/private/symbol.h"
 #include "sagittarius/private/writer.h"
@@ -288,6 +289,14 @@ SgObject Sg_MakeAtomic(SgObject obj)
   return SG_OBJ(a);
 }
 
+SgObject Sg_MakeAtomicPair(SgObject car, SgObject cdr)
+{
+  SgAtomic *a = make_atomic(SG_ATOMIC_PAIR);
+  pair_t v = { car, cdr };
+  atomic_init(&SG_ATOMIC_REF_PAIR(a), v);
+  return SG_OBJ(a);
+}
+
 SgObject Sg_MakeAtomicFixnum(long n)
 {
   SgAtomic *a = make_atomic(SG_ATOMIC_FIXNUM);
@@ -301,6 +310,9 @@ SgObject Sg_AtomicLoad(volatile SgAtomic *o, SgMemoryOrder order)
   if (SG_ATOMIC_FIXNUM_P(o)) {
     long v = atomic_load_explicit(&SG_ATOMIC_REF_FIXNUM(o), order);
     return SG_MAKE_INT(v);
+  } else if (SG_ATOMIC_PAIR_P(o)) {
+    pair_t v = atomic_load_explicit(&SG_ATOMIC_REF_PAIR(o), order);
+    return Sg_Cons(v.car, v.cdr);
   } else {
     object_t v = atomic_load_explicit(&SG_ATOMIC_REF_OBJECT(o), order);
     return SG_OBJ(v);
@@ -314,6 +326,12 @@ void Sg_AtomicStore(volatile SgAtomic *o, SgObject v, SgMemoryOrder order)
       Sg_Error(UC("fixnum is required for atomic-fixnum but got %A"), v);
     }
     atomic_store_explicit(&SG_ATOMIC_REF_FIXNUM(o), SG_INT_VALUE(v), order);
+  } else if (SG_ATOMIC_PAIR_P(o)) {
+    if (!SG_PAIRP(v)) {
+      Sg_Error(UC("pair is required for atomic-pair but got %A"), v);
+    }
+    pair_t v2 = { .car = SG_CAR(v), .cdr = SG_CDR(v) };
+    atomic_store_explicit(&SG_ATOMIC_REF_PAIR(o), v2, order);
   } else {
     atomic_store_explicit(&SG_ATOMIC_REF_OBJECT(o), (object_t)v, order);
   }
@@ -328,6 +346,13 @@ SgObject Sg_AtomicExchange(volatile SgAtomic *o, SgObject v, SgMemoryOrder order
     long vl = SG_INT_VALUE(v);
     long l = atomic_exchange_explicit(&SG_ATOMIC_REF_FIXNUM(o), vl, order);
     return SG_MAKE_INT(l);
+  } else if (SG_ATOMIC_PAIR_P(o)) {
+    if (!SG_PAIRP(v)) {
+      Sg_Error(UC("pair is required for atomic-pair but got %A"), v);
+    }
+    pair_t v2 = { .car = SG_CAR(v), .cdr = SG_CDR(v) };
+    pair_t r = atomic_exchange_explicit(&SG_ATOMIC_REF_PAIR(o), v2, order);
+    return Sg_Cons(r.car, r.cdr);
   } else {
     object_t r = atomic_exchange_explicit(&SG_ATOMIC_REF_OBJECT(o),
 					  (object_t)v, order);
@@ -400,15 +425,25 @@ int Sg_AtomicCompareAndSwap(volatile SgAtomic *o, SgObject e, SgObject v,
     }
     {
       long ev = SG_INT_VALUE(e);
-      return atomic_compare_exchange_strong_explicit(&(o->reference.fixnum),
+      return atomic_compare_exchange_strong_explicit(&SG_ATOMIC_REF_FIXNUM(o),
 						     &ev,
 						     SG_INT_VALUE(v),
 						     success, failure);
     }
+  case SG_ATOMIC_PAIR:
+    if (!SG_PAIRP(e) && !SG_PAIRP(v)) {
+      Sg_Error(UC("atomic_pair must take pair but got %S and %S"), e, v);
+    }
+    {
+      pair_t ev = { .car = SG_CAR(e), .cdr = SG_CDR(e) };
+      pair_t vv = { .car = SG_CAR(v), .cdr = SG_CDR(v) };
+      return atomic_compare_exchange_strong_explicit(&SG_ATOMIC_REF_PAIR(o),
+						     &ev, vv, success, failure);
+    }
   default:
     {
       object_t ev = (object_t)e;
-      return atomic_compare_exchange_strong_explicit(&(o->reference.object),
+      return atomic_compare_exchange_strong_explicit(&SG_ATOMIC_REF_OBJECT(o),
 						     &ev, (object_t)v,
 						     success, failure);
     }

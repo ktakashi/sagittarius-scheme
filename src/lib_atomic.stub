@@ -35,6 +35,8 @@
 	   <sagittarius/private/atomic.h>))
 
 (define-type <atomic> "SgAtomic*" )
+(define-type <atomic-pair> "SgAtomic*" "atomic-pair"
+  "SG_ATOMIC_PAIR_P" "SG_ATOMIC")
 (define-type <atomic-fixnum> "SgAtomic*" "atomic-fixnum"
   "SG_ATOMIC_FIXNUM_P" "SG_ATOMIC")
 (define-type <memory-order> "SgMemoryOrder" "memory-order"
@@ -46,9 +48,11 @@
 (define-c-proc memory-order? (obj) ::<boolean> Sg_MemoryOrderP)
 
 (define-c-proc make-atomic (obj) Sg_MakeAtomic)
+(define-c-proc make-atomic-pair (a d) Sg_MakeAtomicPair)
 (define-c-proc make-atomic-fixnum (n::<fixnum>) Sg_MakeAtomicFixnum)
 
 (define-c-proc atomic? (obj) ::<boolean> SG_ATOMICP)
+(define-c-proc atomic-pair? (obj) ::<boolean> SG_ATOMIC_PAIR_P)
 (define-c-proc atomic-fixnum? (obj) ::<boolean> SG_ATOMIC_FIXNUM_P)
 
 (define-c-proc atomic-load (a::<atomic> :optional (order::<memory-order> (default-memory-order))) Sg_AtomicLoad)

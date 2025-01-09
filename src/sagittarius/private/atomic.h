@@ -33,8 +33,15 @@
 #include "sagittariusdefs.h"
 #include "clos.h"
 
+typedef struct {
+  SgObject car;
+  SgObject cdr;
+} pair_t;
+
 #ifdef HAVE_STDATOMIC_H
 # include <stdatomic.h>
+
+typedef _Atomic pair_t atomic_pair_t;
 
 # ifdef HAVE_ATOMIC_INTPTR_T
 typedef atomic_intptr_t atomic_object_t;
@@ -49,6 +56,7 @@ typedef size_t object_t;
 /* We define only what we need here */
 typedef long     atomic_long;
 typedef intptr_t atomic_object_t;
+typedef pair_t	 atomic_pair_t;
 typedef intptr_t object_t;
 
 typedef enum memory_order {
@@ -64,6 +72,7 @@ typedef enum memory_order {
 typedef memory_order SgMemoryOrder;
 typedef enum {
   SG_ATOMIC_FIXNUM,
+  SG_ATOMIC_PAIR,
   SG_ATOMIC_OBJECT
 } SgAtomicType;
 
@@ -73,6 +82,7 @@ typedef struct SgAtomicRefRec
   SgAtomicType type;
   union {
     atomic_long fixnum;
+    atomic_pair_t pair;
     atomic_object_t object;
   } reference;
   
@@ -86,9 +96,12 @@ SG_CLASS_DECL(Sg_AtomicClass);
 #define SG_ATOMIC_TYPE(obj) SG_ATOMIC(obj)->type
 #define SG_ATOMIC_FIXNUM_P(obj)					\
   (SG_ATOMICP(obj) && SG_ATOMIC_TYPE(obj) == SG_ATOMIC_FIXNUM)
+#define SG_ATOMIC_PAIR_P(obj)					\
+  (SG_ATOMICP(obj) && SG_ATOMIC_TYPE(obj) == SG_ATOMIC_PAIR)
 #define SG_ATOMIC_OBJECT_P(obj)					\
   (SG_ATOMICP(obj) && SG_ATOMIC_TYPE(obj) == SG_ATOMIC_OBJECT)
 #define SG_ATOMIC_REF_FIXNUM(obj) SG_ATOMIC(obj)->reference.fixnum
+#define SG_ATOMIC_REF_PAIR(obj) SG_ATOMIC(obj)->reference.pair
 #define SG_ATOMIC_REF_OBJECT(obj) SG_ATOMIC(obj)->reference.object
 
 SG_CDECL_BEGIN
@@ -96,6 +109,7 @@ SG_CDECL_BEGIN
 SG_EXTERN int      Sg_MemoryOrderP(SgObject o);
 
 SG_EXTERN SgObject Sg_MakeAtomic(SgObject obj);
+SG_EXTERN SgObject Sg_MakeAtomicPair(SgObject car, SgObject cdr);
 SG_EXTERN SgObject Sg_MakeAtomicFixnum(long n);
 SG_EXTERN SgObject Sg_AtomicLoad(volatile SgAtomic *o, SgMemoryOrder order);
 SG_EXTERN void     Sg_AtomicStore(volatile SgAtomic *o, SgObject v,
