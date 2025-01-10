@@ -117,6 +117,7 @@ ELSE()
   ENDIF()
 ENDIF()
 
+ADD_SUBDIRECTORY(atomic atomic)
 ADD_SUBDIRECTORY(zlib zlib)
 ADD_SUBDIRECTORY(threads threads)
 ADD_SUBDIRECTORY(time time)

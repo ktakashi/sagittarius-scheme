@@ -40,7 +40,6 @@
 /* C11 features */
 #cmakedefine HAVE_UCHAR_H
 #cmakedefine HAVE_STDNORETURN_H
-#cmakedefine HAVE_STDATOMIC_H
 
 #cmakedefine HAVE_TIMESPEC
 

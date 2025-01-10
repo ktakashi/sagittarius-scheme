@@ -89,7 +89,6 @@ CHECK_INCLUDE_FILE(pthread.h   HAVE_PTHREAD_H)
 # C11 features
 CHECK_INCLUDE_FILE(uchar.h     HAVE_UCHAR_H)
 CHECK_INCLUDE_FILE(stdnoreturn.h HAVE_STDNORETURN_H)
-CHECK_INCLUDE_FILE(stdatomic.h HAVE_STDATOMIC_H)
 
 IF (HAVE_TIME_H)
   CHECK_STRUCT_EXISTS("struct timespec" time.h HAVE_TIMESPEC)
@@ -373,9 +372,6 @@ IF(USE_BOEHM_GC)
       IF (EXISTS ${GC_DIR}/${LIBATOMIC_OPS}
 	  AND NOT EXISTS ${GC_DIR}/libatomic_ops)
 	FILE(RENAME ${GC_DIR}/${LIBATOMIC_OPS} ${GC_DIR}/libatomic_ops)
-      ENDIF()
-      IF (NOT HAVE_STDATOMIC_H)
-	INCLUDE_DIRECTORIES(${GC_DIR}/libatomic_ops/src)
       ENDIF()
     ENDIF()
   ENDIF() 

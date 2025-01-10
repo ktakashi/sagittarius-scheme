@@ -25,14 +25,11 @@
 ;;  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(library (sagittarius atomic)
-    (export :only-bindings)
-    (import (core))
-
 (decl-code
- (.define "LIBSAGITTARIUS_BODY")
+ (.define "LIBSAGITTARIUS_EXT_BODY")
  (.include <sagittarius/private.h>
-	   <sagittarius/private/atomic.h>))
+	   <sagittarius/extend.h>
+	   "sagittarius-atomic.h"))
 
 (define-type <atomic> "SgAtomic*" )
 (define-type <atomic-pair> "SgAtomic*" "atomic-pair"
@@ -40,10 +37,10 @@
 (define-type <atomic-fixnum> "SgAtomic*" "atomic-fixnum"
   "SG_ATOMIC_FIXNUM_P" "SG_ATOMIC")
 (define-type <memory-order> "SgMemoryOrder" "memory-order"
-  "Sg_MemoryOrderP" "SG_INT_VALUE" "SG_MAKE_INT")
+  "Sg_MemoryOrderP" "SCM_TO_MEMORY_ORDER" "MEMORY_ORDER_TO_SCM")
 
 (define-cise-expr default-memory-order
-  ((_) '(SG_MAKE_INT memory_order_seq_cst)))
+  ((_) '(MEMORY_ORDER_TO_SCM memory_order_seq_cst)))
 
 (define-c-proc memory-order? (obj) ::<boolean> Sg_MemoryOrderP)
 
@@ -63,7 +60,7 @@
 
 (define-c-proc atomic-fixnum-add! (a::<atomic-fixnum> v::<fixnum> :optional (order::<memory-order> (default-memory-order))) ::<fixnum> Sg_AtomicFixnumAdd)
 (define-c-proc atomic-fixnum-sub! (a::<atomic-fixnum> v::<fixnum> :optional (order::<memory-order> (default-memory-order))) ::<fixnum> Sg_AtomicFixnumSub)
-(define-c-proc atomic-fixnum-or! (a::<atomic-fixnum> v::<fixnum> :optional (order::<memory-order> (default-memory-order))) ::<fixnum> Sg_AtomicFixnumOr)
+(define-c-proc atomic-fixnum-ior! (a::<atomic-fixnum> v::<fixnum> :optional (order::<memory-order> (default-memory-order))) ::<fixnum> Sg_AtomicFixnumIor)
 (define-c-proc atomic-fixnum-xor! (a::<atomic-fixnum> v::<fixnum> :optional (order::<memory-order> (default-memory-order))) ::<fixnum> Sg_AtomicFixnumXor)
 (define-c-proc atomic-fixnum-and! (a::<atomic-fixnum> v::<fixnum> :optional (order::<memory-order> (default-memory-order))) ::<fixnum> Sg_AtomicFixnumAnd)
 
@@ -74,9 +71,3 @@
 
 (define-c-proc atomic-thread-fence (order::<memory-order>) ::<void> Sg_AtomicThreadFence)
 
-(define (atomic-fixnum-inc! atomic . opts)
-  (apply atomic-fixnum-add! atomic 1 opts))
-(define (atomic-fixnum-dec! atomic . opts)
-  (apply atomic-fixnum-sub! atomic 1 opts))
-
-)

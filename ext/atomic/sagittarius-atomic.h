@@ -30,8 +30,8 @@
 #ifndef SAGITTARIUS_PRIVATE_ATOMIC_H_
 #define SAGITTARIUS_PRIVATE_ATOMIC_H_
 
-#include "sagittariusdefs.h"
-#include "clos.h"
+#include <sagittarius/private/sagittariusdefs.h>
+#include <sagittarius/private/clos.h>
 
 typedef struct {
   SgObject car;
@@ -43,6 +43,7 @@ typedef struct {
 
 typedef _Atomic pair_t atomic_pair_t;
 
+typedef atomic_long atomic_fixnum_t;
 # ifdef HAVE_ATOMIC_INTPTR_T
 typedef atomic_intptr_t atomic_object_t;
 typedef intptr_t object_t;
@@ -51,10 +52,28 @@ typedef atomic_size_t atomic_object_t;
 typedef size_t object_t;
 # endif
 
+typedef memory_order SgMemoryOrder;
+
+#elif defined(HAVE_CPP_ATOMIC)
+
+# include <atomic>
+/* here it's C++... */
+typedef std::atomic<pair_t> atomic_pair_t;
+typedef std::atomic_intptr_t atomic_object_t;
+typedef std::atomic_long atomic_fixnum_t;
+typedef intptr_t object_t;
+
+typedef std::memory_order SgMemoryOrder;
+
+#define MEMORY_ORDER_TO_SCM(v) SG_MAKE_INT(static_cast<int>(std:: v))
+#define SCM_TO_MEMORY_ORDER(v) static_cast<SgMemoryOrder>(SG_INT_VALUE(v))
+
 #else
 
+# error "For Windows, please use VS 2012 or later"
+
 /* We define only what we need here */
-typedef long     atomic_long;
+typedef long     atomic_fixnum_t;
 typedef intptr_t atomic_object_t;
 typedef pair_t	 atomic_pair_t;
 typedef intptr_t object_t;
@@ -67,9 +86,18 @@ typedef enum memory_order {
   memory_order_acq_rel,
   memory_order_seq_cst
 } memory_order;
-#endif
 
 typedef memory_order SgMemoryOrder;
+
+#endif
+
+#ifndef MEMORY_ORDER_TO_SCM
+# define MEMORY_ORDER_TO_SCM SG_MAKE_INT
+#endif
+#ifndef SCM_TO_MEMORY_ORDER
+# define SCM_TO_MEMORY_ORDER SG_INT_VALUE
+#endif
+
 typedef enum {
   SG_ATOMIC_FIXNUM,
   SG_ATOMIC_PAIR,
@@ -81,7 +109,7 @@ typedef struct SgAtomicRefRec
   SG_HEADER;
   SgAtomicType type;
   union {
-    atomic_long fixnum;
+    atomic_fixnum_t fixnum;
     atomic_pair_t pair;
     atomic_object_t object;
   } reference;
@@ -129,7 +157,7 @@ SG_EXTERN long     Sg_AtomicFixnumAdd(volatile SgAtomic *o, long v,
 				      SgMemoryOrder order);
 SG_EXTERN long     Sg_AtomicFixnumSub(volatile SgAtomic *o, long v,
 				      SgMemoryOrder order);
-SG_EXTERN long     Sg_AtomicFixnumOr(volatile SgAtomic *o, long v,
+SG_EXTERN long     Sg_AtomicFixnumIor(volatile SgAtomic *o, long v,
 				      SgMemoryOrder order);
 SG_EXTERN long     Sg_AtomicFixnumXor(volatile SgAtomic *o, long v,
 				      SgMemoryOrder order);

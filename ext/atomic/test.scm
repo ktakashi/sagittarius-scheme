@@ -61,7 +61,7 @@
    (test-error (atomic-store! atomic-fixnum 'symbol))
    
    (test-assert (atomic-fixnum-store! atomic-fixnum #x00))
-   (test-equal #x00 (atomic-fixnum-or! atomic-fixnum #x01))
+   (test-equal #x00 (atomic-fixnum-ior! atomic-fixnum #x01))
    (test-equal #x01 (atomic-fixnum-load atomic-fixnum))
    (test-equal #x01 (atomic-fixnum-and! atomic-fixnum #x11))
    (test-equal #x01 (atomic-fixnum-load atomic-fixnum))

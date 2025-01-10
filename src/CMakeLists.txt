@@ -35,8 +35,7 @@ SET(STUB_SOURCES
   lib_core.c lib_clos.c lib_proc.c lib_vm.c
   lib_vmdebug.c lib_sagittarius.c lib_regex.c
   lib_flonums.c lib_fixnums.c lib_treemap.c
-  lib_kernel.c
-  lib_atomic.c)
+  lib_kernel.c)
 SET(BUILTIN_SOURCES 
   compiler.c   compiler-aux.c
   lib_scmlib.c lib_errors.c   lib_arith.c lib_macro.c lib_program.c
@@ -91,7 +90,7 @@ SET(SAGITTARIUS_LIB_SOURCE
   regex.c
   ${MATCHER_SOURCES}
 
-  system.c         atomic.c
+  system.c
 
   # wrapper for public C APIs
   wrappers.c
@@ -126,35 +125,6 @@ IF(MSYS OR (NOT MSVC AND WIN32))
 ENDIF()
 
 IF(NOT WIN32)
-  if (HAVE_STDATOMIC_H)
-    CHECK_C_SOURCE_COMPILES(
-"#include <stdatomic.h>
-#include <stddef.h>
-typedef struct {
-    void *a;
-    void *b;
-} cas16_t;
-typedef _Atomic cas16_t atomic_cas16_t;
-int main()
-{
-   cas16_t v = { NULL, NULL };
-   atomic_cas16_t a;
-   atomic_init(&a, v);
-   atomic_exchange(&a, v);
-   return 0;
-}
-"
-      CAS16_WORKS)
-  ELSE()
-    # TODO libatomic_ops?
-    SET(CAS16_WORKS TRUE)
-  ENDIF()
-  IF (CAS16_WORKS)
-    MESSAGE(STATUS "CAS16 works ... yes")
-  ELSE()
-    MESSAGE(STATUS "CAS16 works ... no")
-  ENDIF()
-
   IF (NOT ${SAGITTARIUS_OS} STREQUAL "qnx")
     TARGET_LINK_LIBRARIES(sagittarius pthread)
   ENDIF()
@@ -171,10 +141,6 @@ int main()
   IF (${SAGITTARIUS_OS} STREQUAL "linux")
     # for clock_gettime
     TARGET_LINK_LIBRARIES(sagittarius rt)
-    # for CAS16
-    IF (NOT CAS16_WORKS)
-      TARGET_LINK_LIBRARIES(sagittarius atomic)
-    ENDIF()
   ENDIF()
   # linux needs this
   TARGET_LINK_LIBRARIES(sagittarius m)
