@@ -48,6 +48,11 @@
  (let ()
    (define atomic-fixnum (make-atomic-fixnum 100))
 
+   (test-assert (atomic-fixnum-store! atomic-fixnum -1))
+   (test-equal -1 (atomic-fixnum-load atomic-fixnum))
+   (test-equal -1 (atomic-fixnum-exchange! atomic-fixnum 100))
+   (test-equal 100 (atomic-fixnum-load atomic-fixnum))
+
    (test-equal 100 (atomic-fixnum-add! atomic-fixnum 50))
    (test-equal 150 (atomic-load atomic-fixnum))
    (test-equal 150 (atomic-fixnum-load atomic-fixnum))

@@ -375,8 +375,7 @@ long Sg_AtomicFixnumExchange(volatile SgAtomic *o, long v, SgMemoryOrder order)
   if (!SG_ATOMIC_FIXNUM_P(o)) {
     Sg_Error(UC("atomic-fixnum is required"));
   }
-  long vl = SG_INT_VALUE(v);
-  return atomic_exchange_explicit(&SG_ATOMIC_REF_FIXNUM(o), vl, order);
+  return atomic_exchange_explicit(&SG_ATOMIC_REF_FIXNUM(o), v, order);
 }
 
 long Sg_AtomicFixnumLoad(volatile SgAtomic *o, SgMemoryOrder order)

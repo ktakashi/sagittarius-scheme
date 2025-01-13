@@ -30,15 +30,23 @@
 
 #!nounbound
 (library (util concurrent atomic)
-    (export atomic? make-atomic
-	    atomic-fixnum? make-atomic-fixnum
+    (export memory-order?
+	    *memory-order:relaxed*
+	    *memory-order:consume*
+	    *memory-order:acquire*
+	    *memory-order:release*
+	    *memory-order:acq-rel*
+	    *memory-order:seq-cst*
+
+	    make-atomic	        atomic?
+	    make-atomic-pair    atomic-pair?
+	    make-atomic-fixnum  atomic-fixnum?
 
 	    atomic-load atomic-store!
 	    atomic-fixnum-load atomic-fixnum-store!
 
 	    atomic-fixnum-add! atomic-fixnum-sub!
-	    atomic-fixnum-inc! atomic-fixnum-dec!
-	    atomic-fixnum-or! atomic-fixnum-xor! atomic-fixnum-and!
+	    atomic-fixnum-ior! atomic-fixnum-xor! atomic-fixnum-and!
 
 	    atomic-exchange! atomic-fixnum-exchange!
 
@@ -46,10 +54,6 @@
 
 	    atomic-thread-fence
 
-	    *memory-order:relaxed*
-	    *memory-order:consume*
-	    *memory-order:acquire*
-	    *memory-order:release*
-	    *memory-order:acq-rel*
-	    *memory-order:seq-cst*)
+	    atomic-fixnum-inc!
+	    atomic-fixnum-dec!)
     (import (sagittarius atomic)))
