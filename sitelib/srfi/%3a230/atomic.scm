@@ -60,8 +60,19 @@
 	    atomic-pair-compare-and-swap!
 	    atomic-fence)
     (import (rnrs)
-	    (rename (sagittarius atomic)
-		    (memory-order? a:memory-order?)))
+	    (except (sagittarius atomic) memory-order?)
+	    (srfi :18 multithreading))
+(define *lock* (make-mutex))
+(define-syntax lock-guard
+  (syntax-rules ()
+    ((_ expr ...)
+     (dynamic-wind
+	 (lambda ()
+	   (guard (c ((abandoned-mutex-exception? c) #f))
+	     (mutex-lock! *lock*)))
+	 (lambda () expr ...)
+	 (lambda () (mutex-unlock! *lock*))))))
+
 ;; memory order
 (define-enumeration memory-order
   (relaxed acquire release acquire-release sequentially-consistent)
@@ -75,7 +86,8 @@
 (define (atomic-flag? a) (and (atomic? a) (boolean? (atomic-load a))))
 (define (atomic-flag-test-and-set! (atomic atomic-flag?)
 				   :optional (order *default-order*))
-  (atomic-exchange! atomic #t (memory-order->value order)))
+  (define morder (memory-order->value order))
+  (atomic-exchange! atomic #t morder))
 (define (atomic-flag-clear! (atomic atomic-flag?)
 			    :optional (order *default-order*))
   (atomic-exchange! atomic #f (memory-order->value order)))
@@ -94,9 +106,10 @@
   (atomic-exchange! box obj (memory-order->value order)))
 (define (atomic-box-compare-and-swap! (box atomic-box?) old new 
 				      :optional (order *default-order*))
-  (if (atomic-compare-and-swap! box old new (memory-order->value order))
-      old
-      (atomic-box-ref box order)))
+  (lock-guard
+   (let ((r (atomic-box-ref box order)))
+     (atomic-compare-and-swap! box old new (memory-order->value order))
+     r)))
 
 ;; atomic fixnum
 (define (make-atomic-fxbox (fx fixnum?)) (make-atomic-fixnum fx))
@@ -113,9 +126,10 @@
 (define (atomic-fxbox-compare-and-swap! (afx atomic-fxbox?)
 					(old fixnum?) (new fixnum?)
 					:optional (order *default-order*))
-  (if (atomic-compare-and-swap! afx old new (memory-order->value order))
-      old
-      (atomic-fxbox-ref afx order)))
+  (lock-guard
+   (let ((r (atomic-fxbox-ref afx order)))
+     (atomic-compare-and-swap! afx old new (memory-order->value order))
+     r)))
 (define (atomic-fxbox+/fetch! (afx atomic-fxbox?) (fx fixnum?) 
 			      :optional (order *default-order*))
   (atomic-fixnum-add! afx fx (memory-order->value order)))
@@ -148,9 +162,10 @@
 (define (atomic-pair-compare-and-swap! (ap atomic-pair?) oa od na nd 
 				       :optional (order *default-order*))
   (define morder (memory-order->value order))
-  (if (atomic-compare-and-swap! ap (cons oa od) (cons na nd) morder)
-      (values oa od)
-      (atomic-pair-ref ap order)))
+  (lock-guard
+   (let-values (((ra rd) (atomic-pair-ref ap order)))
+     (atomic-compare-and-swap! ap (cons oa od) (cons na nd) morder)
+     (values ra rd))))
 
 (define (atomic-fence (order memory-order?))
   (atomic-thread-fence (memory-order->value order)))
