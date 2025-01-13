@@ -9,7 +9,7 @@ functions, please look for SRFI's site. I might write it later.
 For now, I just put pointer to [the SRFI's web site](http://srfi.schemers.org/)
 
 | SRFI number                                                 | Library name                                        |
-| ----------------------------------------------------------- | ----------------------------------------------------|
+|-------------------------------------------------------------|-----------------------------------------------------|
 | [SRFI-0](http://srfi.schemers.org/srfi-0/srfi-0.html)       | (srfi :0 cond-expand)                               |
 | [SRFI-1](http://srfi.schemers.org/srfi-1/srfi-1.html)       | (srfi :1 lists)                                     |
 | [SRFI-2](http://srfi.schemers.org/srfi-2/srfi-2.html)       | (srfi :2 and-let\*)                                 |
@@ -94,6 +94,8 @@ For now, I just put pointer to [the SRFI's web site](http://srfi.schemers.org/)
 | [SRFI-197](http://srfi.schemers.org/srfi-197/srfi-197.html) | (srfi :197 pipeline)[^longname]                     |
 | [SRFI-210](http://srfi.schemers.org/srfi-210/srfi-210.html) | (srfi :210 multiple-values)[^longname]              |
 | [SRFI-219](http://srfi.schemers.org/srfi-219/srfi-219.html) | (srfi :219 define)[^longname][^builtin]             |
+| [SRFI-230](http://srfi.schemers.org/srfi-230/srfi-230.html) | (srfi :230 atomic)                                  |
+
 
 [^SRFI-4]: This SRFI also contains reader macro described below this section.
 
