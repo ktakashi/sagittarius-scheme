@@ -60,7 +60,9 @@
 	    atomic-pair-compare-and-swap!
 	    atomic-fence)
     (import (rnrs)
-	    (except (sagittarius atomic) memory-order?)
+	    (rename (except (sagittarius atomic) memory-order?)
+		    (atomic-flag-test-and-set! a:atomic-flag-test-and-set!)
+		    (atomic-flag-clear! a:atomic-flag-clear!)) 
 	    (srfi :18 multithreading))
 (define *lock* (make-mutex))
 (define-syntax lock-guard
@@ -82,15 +84,13 @@
 (define *default-order* (memory-order sequentially-consistent))
 
 ;; atomic flag
-(define (make-atomic-flag) (make-atomic #f))
-(define (atomic-flag? a) (and (atomic? a) (boolean? (atomic-load a))))
+;; make-atomic-flag and atomic-flag? are the same
 (define (atomic-flag-test-and-set! (atomic atomic-flag?)
 				   :optional (order *default-order*))
-  (define morder (memory-order->value order))
-  (atomic-exchange! atomic #t morder))
+  (a:atomic-flag-test-and-set! atomic (memory-order->value order)))
 (define (atomic-flag-clear! (atomic atomic-flag?)
 			    :optional (order *default-order*))
-  (atomic-exchange! atomic #f (memory-order->value order)))
+  (a:atomic-flag-clear! atomic (memory-order->value order)))
 
 ;; atomic box
 (define (make-atomic-box obj) (make-atomic obj))

@@ -39,6 +39,7 @@
 	    *memory-order:seq-cst*
 
 	    make-atomic	        atomic?
+	    make-atomic-flag    atomic-flag?
 	    make-atomic-pair    atomic-pair?
 	    make-atomic-fixnum  atomic-fixnum?
 
@@ -52,6 +53,8 @@
 
 	    atomic-compare-and-swap!
 
+	    atomic-flag-test-and-set! atomic-flag-clear!
+	    
 	    atomic-thread-fence
 
 	    atomic-fixnum-inc!

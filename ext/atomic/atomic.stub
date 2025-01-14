@@ -32,6 +32,8 @@
 	   "sagittarius-atomic.h"))
 
 (define-type <atomic> "SgAtomic*" )
+(define-type <atomic-flag> "SgAtomic*" "atomic-pair"
+  "SG_ATOMIC_FLAG_P" "SG_ATOMIC")
 (define-type <atomic-pair> "SgAtomic*" "atomic-pair"
   "SG_ATOMIC_PAIR_P" "SG_ATOMIC")
 (define-type <atomic-fixnum> "SgAtomic*" "atomic-fixnum"
@@ -45,10 +47,12 @@
 (define-c-proc memory-order? (obj) ::<boolean> Sg_MemoryOrderP)
 
 (define-c-proc make-atomic (obj) Sg_MakeAtomic)
+(define-c-proc make-atomic-flag () Sg_MakeAtomicFlag)
 (define-c-proc make-atomic-pair (a d) Sg_MakeAtomicPair)
 (define-c-proc make-atomic-fixnum (n::<fixnum>) Sg_MakeAtomicFixnum)
 
 (define-c-proc atomic? (obj) ::<boolean> SG_ATOMICP)
+(define-c-proc atomic-flag? (obj) ::<boolean> SG_ATOMIC_FLAG_P)
 (define-c-proc atomic-pair? (obj) ::<boolean> SG_ATOMIC_PAIR_P)
 (define-c-proc atomic-fixnum? (obj) ::<boolean> SG_ATOMIC_FIXNUM_P)
 
@@ -68,6 +72,9 @@
 (define-c-proc atomic-fixnum-exchange! (a::<atomic-fixnum> v::<fixnum> :optional (order::<memory-order> (default-memory-order))) ::<fixnum> Sg_AtomicFixnumExchange)
 
 (define-c-proc atomic-compare-and-swap! (a::<atomic> e v :optional (success::<memory-order> (default-memory-order)) (failure::<memory-order> (default-memory-order))) ::<boolean> Sg_AtomicCompareAndSwap)
+
+(define-c-proc atomic-flag-test-and-set! (a::<atomic-flag> :optional (order::<memory-order> (default-memory-order))) ::<boolean> Sg_AtomicFlagTestAndSet)
+(define-c-proc atomic-flag-clear! (a::<atomic-flag> :optional (order::<memory-order> (default-memory-order))) ::<void> Sg_AtomicFlagClear)
 
 (define-c-proc atomic-thread-fence (order::<memory-order>) ::<void> Sg_AtomicThreadFence)
 

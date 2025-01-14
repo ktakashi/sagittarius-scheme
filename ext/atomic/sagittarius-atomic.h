@@ -1,4 +1,4 @@
-/* atomic.h                                         -*- mode:c; coding:utf-8; -*-
+/* atomic.h                                       -*- mode:c++; coding:utf-8; -*-
  *
  *   Copyright (c) 2024 Takashi Kato <ktakashi@ymail.com>
  *
@@ -43,6 +43,7 @@ typedef struct {
 
 typedef _Atomic pair_t atomic_pair_t;
 
+typedef atomic_flag atomic_flag_t;
 typedef atomic_long atomic_fixnum_t;
 # ifdef HAVE_ATOMIC_INTPTR_T
 typedef atomic_intptr_t atomic_object_t;
@@ -58,10 +59,11 @@ typedef memory_order SgMemoryOrder;
 
 # include <atomic>
 /* here it's C++... */
-typedef std::atomic<pair_t> atomic_pair_t;
+typedef std::atomic_flag     atomic_flag_t;
+typedef std::atomic<pair_t>  atomic_pair_t;
 typedef std::atomic_intptr_t atomic_object_t;
-typedef std::atomic_long atomic_fixnum_t;
-typedef intptr_t object_t;
+typedef std::atomic_long     atomic_fixnum_t;
+typedef intptr_t             object_t;
 
 typedef std::memory_order SgMemoryOrder;
 
@@ -99,6 +101,7 @@ typedef memory_order SgMemoryOrder;
 #endif
 
 typedef enum {
+  SG_ATOMIC_FLAG,
   SG_ATOMIC_FIXNUM,
   SG_ATOMIC_PAIR,
   SG_ATOMIC_OBJECT
@@ -109,8 +112,9 @@ typedef struct SgAtomicRefRec
   SG_HEADER;
   SgAtomicType type;
   union {
+    atomic_flag_t   flag;
     atomic_fixnum_t fixnum;
-    atomic_pair_t pair;
+    atomic_pair_t   pair;
     atomic_object_t object;
   } reference;
   
@@ -122,12 +126,15 @@ SG_CLASS_DECL(Sg_AtomicClass);
 #define SG_ATOMICP(obj)     SG_XTYPEP(obj, SG_CLASS_ATOMIC)
 #define SG_ATOMIC(obj)      ((SgAtomic *)obj)
 #define SG_ATOMIC_TYPE(obj) SG_ATOMIC(obj)->type
+#define SG_ATOMIC_FLAG_P(obj)					\
+  (SG_ATOMICP(obj) && SG_ATOMIC_TYPE(obj) == SG_ATOMIC_FLAG)
 #define SG_ATOMIC_FIXNUM_P(obj)					\
   (SG_ATOMICP(obj) && SG_ATOMIC_TYPE(obj) == SG_ATOMIC_FIXNUM)
 #define SG_ATOMIC_PAIR_P(obj)					\
   (SG_ATOMICP(obj) && SG_ATOMIC_TYPE(obj) == SG_ATOMIC_PAIR)
 #define SG_ATOMIC_OBJECT_P(obj)					\
   (SG_ATOMICP(obj) && SG_ATOMIC_TYPE(obj) == SG_ATOMIC_OBJECT)
+#define SG_ATOMIC_REF_FLAG(obj) SG_ATOMIC(obj)->reference.flag
 #define SG_ATOMIC_REF_FIXNUM(obj) SG_ATOMIC(obj)->reference.fixnum
 #define SG_ATOMIC_REF_PAIR(obj) SG_ATOMIC(obj)->reference.pair
 #define SG_ATOMIC_REF_OBJECT(obj) SG_ATOMIC(obj)->reference.object
@@ -137,6 +144,7 @@ SG_CDECL_BEGIN
 SG_EXTERN int      Sg_MemoryOrderP(SgObject o);
 
 SG_EXTERN SgObject Sg_MakeAtomic(SgObject obj);
+SG_EXTERN SgObject Sg_MakeAtomicFlag();
 SG_EXTERN SgObject Sg_MakeAtomicPair(SgObject car, SgObject cdr);
 SG_EXTERN SgObject Sg_MakeAtomicFixnum(long n);
 SG_EXTERN SgObject Sg_AtomicLoad(volatile SgAtomic *o, SgMemoryOrder order);
@@ -168,6 +176,10 @@ SG_EXTERN int      Sg_AtomicCompareAndSwap(volatile SgAtomic *o,
 					   SgObject e, SgObject v,
 					   SgMemoryOrder success,
 					   SgMemoryOrder failure);
+SG_EXTERN int      Sg_AtomicFlagTestAndSet(volatile SgAtomic *o,
+					   SgMemoryOrder order);
+SG_EXTERN void     Sg_AtomicFlagClear(volatile SgAtomic *o, SgMemoryOrder order);
+
 SG_EXTERN void     Sg_AtomicThreadFence(SgMemoryOrder order);
 
 SG_CDECL_END

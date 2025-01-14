@@ -273,6 +273,8 @@ static void atomic_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   if (SG_ATOMIC_FIXNUM_P(obj)) {
     Sg_Printf(port, UC("#<atomic-fixnum %d>"),
 	      atomic_load_explicit(&SG_ATOMIC_REF_FIXNUM(obj), memory_order_relaxed));
+  } else if (SG_ATOMIC_FLAG_P(obj)) {
+    Sg_Printf(port, UC("#<atomic-flag %p>"), obj);
   } else if (SG_ATOMIC_PAIR_P(obj)) {
     pair_t v = atomic_load_explicit(&SG_ATOMIC_REF_PAIR(obj), memory_order_relaxed);
     Sg_Printf(port, UC("#<atomic-pair %S>"), Sg_Cons(v.car, v.cdr));
@@ -283,6 +285,14 @@ static void atomic_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 }
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_AtomicClass, atomic_print);
+
+static void no_atomic_flag(volatile SgAtomic *o)
+{
+  if (SG_ATOMIC_FLAG_P(o)) {
+    Sg_Error(UC("atomic-flag is not allowed for the operation: %A"), o);
+  }
+}
+
 
 static SgAtomic * make_atomic(SgAtomicType type)
 {
@@ -296,6 +306,13 @@ SgObject Sg_MakeAtomic(SgObject obj)
 {
   SgAtomic *a = make_atomic(SG_ATOMIC_OBJECT);
   SG_ATOMIC_REF_OBJECT(a) = (object_t)obj;
+  return SG_OBJ(a);
+}
+
+SgObject Sg_MakeAtomicFlag()
+{
+  SgAtomic *a = make_atomic(SG_ATOMIC_FLAG);
+  Sg_AtomicFlagClear(a, memory_order_seq_cst);
   return SG_OBJ(a);
 }
 
@@ -317,6 +334,7 @@ SgObject Sg_MakeAtomicFixnum(long n)
 
 SgObject Sg_AtomicLoad(volatile SgAtomic *o, SgMemoryOrder order)
 {
+  no_atomic_flag(o);
   if (SG_ATOMIC_FIXNUM_P(o)) {
     long v = atomic_load_explicit(&SG_ATOMIC_REF_FIXNUM(o), order);
     return SG_MAKE_INT(v);
@@ -331,6 +349,7 @@ SgObject Sg_AtomicLoad(volatile SgAtomic *o, SgMemoryOrder order)
 
 void Sg_AtomicStore(volatile SgAtomic *o, SgObject v, SgMemoryOrder order)
 {
+  no_atomic_flag(o);
   if (SG_ATOMIC_FIXNUM_P(o)) {
     if (!SG_INTP(v)) {
       Sg_Error(UC("fixnum is required for atomic-fixnum but got %A"), v);
@@ -349,6 +368,7 @@ void Sg_AtomicStore(volatile SgAtomic *o, SgObject v, SgMemoryOrder order)
 
 SgObject Sg_AtomicExchange(volatile SgAtomic *o, SgObject v, SgMemoryOrder order)
 {
+  no_atomic_flag(o);
   if (SG_ATOMIC_FIXNUM_P(o)) {
     if (!SG_INTP(v)) {
       Sg_Error(UC("fixnum is required for atomic-fixnum but got %A"), v);
@@ -427,6 +447,7 @@ long Sg_AtomicFixnumAnd(volatile SgAtomic *o, long v, SgMemoryOrder order)
 int Sg_AtomicCompareAndSwap(volatile SgAtomic *o, SgObject e, SgObject v,
 			    SgMemoryOrder success, SgMemoryOrder failure)
 {
+  no_atomic_flag(o);
   switch (o->type) {
   case SG_ATOMIC_FIXNUM:
     if (!SG_INTP(v) && !SG_INTP(e)) {
@@ -457,6 +478,21 @@ int Sg_AtomicCompareAndSwap(volatile SgAtomic *o, SgObject e, SgObject v,
 						     success, failure);
     }
   }
+}
+
+int Sg_AtomicFlagTestAndSet(volatile SgAtomic *o, SgMemoryOrder order)
+{
+  if (!SG_ATOMIC_FLAG_P(o)) {
+    Sg_Error(UC("atomic_flag is required but got %A"), o);
+  }
+  return atomic_flag_test_and_set_explicit(&SG_ATOMIC_REF_FLAG(o), order);
+}
+void Sg_AtomicFlagClear(volatile SgAtomic *o, SgMemoryOrder order)
+{
+  if (!SG_ATOMIC_FLAG_P(o)) {
+    Sg_Error(UC("atomic_flag is required but got %A"), o);
+  }
+  atomic_flag_clear_explicit(&SG_ATOMIC_REF_FLAG(o), order);
 }
 
 void Sg_AtomicThreadFence(SgMemoryOrder order)
