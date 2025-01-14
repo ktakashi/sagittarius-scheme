@@ -51,7 +51,7 @@
 
 	    atomic-exchange! atomic-fixnum-exchange!
 
-	    atomic-compare-and-swap!
+	    atomic-compare-and-swap! atomic-fetch-compare-and-swap!
 
 	    atomic-flag-test-and-set! atomic-flag-clear!
 	    
