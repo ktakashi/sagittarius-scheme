@@ -89,7 +89,7 @@ static SgObject select_socket(SOCKET fd, SgObject sockets)
   return SG_FALSE;
 }
 
-static SgObject selector_wait(SgSocketSelector *selector, struct timespec *sp)
+static SgObject selector_wait(SgSocketSelector *selector, int n, struct timespec *sp)
 {
   win_context_t *ctx = (win_context_t *)selector->context;
   const int waiting_flags = FD_READ | FD_OOB;
@@ -147,8 +147,6 @@ static SgObject selector_wait(SgSocketSelector *selector, struct timespec *sp)
   }
 
 #undef SET_EVENT
-
-  strip_sockets(selector, ret);
 
 cleanup:
   for (int i = 0; i < n; i++) {

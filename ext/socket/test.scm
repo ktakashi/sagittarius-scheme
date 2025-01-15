@@ -3,18 +3,19 @@
 (add-load-path "./threads")
 
 #!read-macro=sagittarius/bv-string
-(import (srfi :64 testing)
-	(srfi :13 strings)
-	(rnrs)
-	(srfi :0 cond-expand)
+(import (rnrs)
 	(clos user)
 	(sagittarius socket)
 	(sagittarius) ;; for format
 	;; use thread for testing
 	(sagittarius threads)
+	(sagittarius atomic)
 	(prefix (binary io) b:)
 	(util bytevector)
 	(util concurrent)
+	(srfi :1 lists)
+	(srfi :13 strings)
+	(srfi :64 testing)
 	(srfi :106))
 
 (define (shutdown&close s)
@@ -409,6 +410,53 @@
 				(map car s*))))
   (close-socket-selector! selector)
   (socket-close server))
-	      
+
+(let ()
+  (define server (make-server-socket "0"))
+  (define selector (make-socket-selector))
+  (define (echo-back s) (socket-send s (socket-recv s 255)))
+  (define end? #f)
+  (define t (thread-start!
+	     (make-thread
+	      (lambda ()
+		(let loop ()
+		  (let ((s (socket-accept server)))
+		    (when (and s (not end?))
+		      (socket-selector-add! selector s)
+		      (loop))))))))
+  (define t2
+    (thread-start!
+     (make-thread
+      (lambda ()
+	(let loop ()
+	  (let ((socks (socket-selector-wait! selector)))
+	    (for-each echo-back (map car socks))
+	    (unless end? (loop))))))))
+  (define count 500)
+  (define result (make-atomic-fixnum 0))
+  (define (do-test i)
+    (thread-start!
+     (make-thread
+      (lambda ()
+	(let ((s (make-client-socket "localhost" (server-service server)))
+	      (msg (string->utf8 (string-append "hello " (number->string i)))))
+	  (thread-sleep! (* i 0.001))
+	  (socket-send s msg)
+	  (when (bytevector=? (socket-recv s 255) msg)
+	    (atomic-fixnum-inc! result))
+	  (socket-shutdown s SHUT_RDWR)
+	  (socket-close s))))))
+  (for-each thread-join! (map do-test (iota count)))
+  (set! end? #t)
+  (let ((s (make-client-socket "localhost" (server-service server))))
+    (socket-shutdown s SHUT_RDWR)
+    (socket-close s))
+  (socket-shutdown server SHUT_RDWR)
+  (socket-close server)
+  (socket-selector-interrupt! selector)
+  (thread-join! t)
+  (thread-join! t2)
+
+  (test-equal count (atomic-fixnum-load result)))
 
 (test-end)

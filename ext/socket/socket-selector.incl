@@ -31,12 +31,14 @@ static void strip_sockets(SgSocketSelector *selector, SgObject slots)
   if (!SG_NULLP(slots)) {
     /* remove the returned sockets from the targets */
     SgObject h = SG_NIL, t = SG_NIL, cp;
+    Sg_LockMutex(&selector->lock);
     SG_FOR_EACH(cp, selector->sockets) {
       if (SG_FALSEP(Sg_Memq(SG_CAR(cp), slots))) {
 	SG_APPEND1(h, t, SG_CAR(cp));
       }
     }
     selector->sockets = h;
+    Sg_UnlockMutex(&selector->lock);
   }
 }
 
@@ -122,6 +124,10 @@ SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector,
     add_socket(selector, slot);
     selector->sockets = Sg_Cons(slot, selector->sockets);
     selector_sockets(selector);
+    if (selector->waiting && !selector->retry) {
+      selector->retry = TRUE;
+      Sg_SocketSelectorInterrupt(selector);
+    }
     Sg_UnlockMutex(&selector->lock);
   }
   return SG_OBJ(selector);
@@ -136,6 +142,7 @@ SgObject Sg_MakeSocketSelector()
 
   selector->sockets = SG_NIL;
   selector->waiting = FALSE;
+  selector->retry = FALSE;
   selector->context = make_selector_context();
 
   Sg_InitMutex(&selector->lock, TRUE);
@@ -145,23 +152,60 @@ SgObject Sg_MakeSocketSelector()
   return SG_OBJ(selector);
 }
 
-static SgObject selector_wait(SgSocketSelector *selector, int n, struct timespec *sp);
+static SgObject selector_wait(SgSocketSelector *selector, int n,
+			      struct timespec *sp);
 
 SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
 {
   SgObject r;
-  int n = selector_sockets(selector);
-  struct timespec spec, *sp;
+  int n;
+  unsigned long sec, usec;
+  struct timespec spec, *sp, start;
   
   if (selector->waiting) {
     Sg_Error(UC("There's a thread already waiting for %A"), selector);
   }
+  
+  sp = selector_timespec(timeout, &spec);
+
+  if (sp) {
+    Sg_GetTimeOfDay(&sec, &usec);
+    start.tv_sec = sec;
+    start.tv_nsec = usec * 1000;
+  }
+  n = selector_sockets(selector);
   if (n == 0) return SG_NIL;	/* nothing to wait */
   selector->waiting = TRUE;
-  sp = selector_timespec(timeout, &spec);
+
+ retry:
   r = selector_wait(selector, n, sp);
-  strip_sockets(selector, r);
   selector->waiting = FALSE;
+  if (selector->retry) {
+    Sg_LockMutex(&selector->lock);
+    /*
+      socket is added during waiting. here we do
+      - update timeout
+      - count socket
+      - retry
+     */
+    if (sp) {
+      unsigned long nsec;
+      Sg_GetTimeOfDay(&sec, &usec);
+      nsec = usec * 1000;
+      sp->tv_sec = sp->tv_sec - (sec - start.tv_sec);
+      sp->tv_nsec = sp->tv_nsec - (nsec - start.tv_nsec);
+      start.tv_sec = sec;
+      start.tv_nsec = nsec;
+    }
+    n = selector_sockets(selector);
+    selector->waiting = TRUE;
+    selector->retry = FALSE;
+    Sg_UnlockMutex(&selector->lock);
+    goto retry;
+  } else {
+    strip_sockets(selector, r);
+  }
+
   return r;  
 }
 

@@ -39,13 +39,14 @@
   - WSAPoll (Windows)
   - epoll   (Linux)
  */
-typedef struct SgSocketSelectorRec
+typedef struct
 {
   SG_HEADER;
   SgObject sockets;
   SgInternalMutex lock;
   SgInternalCond  cv;
   int      waiting;
+  int      retry;
   void    *context;	       /* underlying implementation context */
 } SgSocketSelector;
 
