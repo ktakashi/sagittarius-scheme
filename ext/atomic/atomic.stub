@@ -76,16 +76,15 @@
    :optional (success::<memory-order> (default-memory-order)) 
 	     (failure::<memory-order> (default-memory-order)))
   ::<boolean>
-  (result (Sg_AtomicCompareAndSwap a e v NULL success failure)))
+  (result (Sg_AtomicCompareAndSwap a (& e) v success failure)))
 
 (define-c-proc atomic-fetch-compare-and-swap!
   (a::<atomic> e v 
    :optional (success::<memory-order> (default-memory-order)) 
 	     (failure::<memory-order> (default-memory-order)))
-  (let ((r NULL))
-    (if (Sg_AtomicCompareAndSwap a e v (& r) success failure)
-	(result e)
-	(result r))))
+  (begin
+    (Sg_AtomicCompareAndSwap a (& e) v success failure)
+    (result e)))
 
 (define-c-proc atomic-flag-test-and-set! (a::<atomic-flag> :optional (order::<memory-order> (default-memory-order))) ::<boolean> Sg_AtomicFlagTestAndSet)
 (define-c-proc atomic-flag-clear! (a::<atomic-flag> :optional (order::<memory-order> (default-memory-order))) ::<void> Sg_AtomicFlagClear)

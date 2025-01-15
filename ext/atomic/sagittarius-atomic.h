@@ -173,8 +173,7 @@ SG_EXTERN long     Sg_AtomicFixnumAnd(volatile SgAtomic *o, long v,
 				      SgMemoryOrder order);
 
 SG_EXTERN int      Sg_AtomicCompareAndSwap(volatile SgAtomic *o,
-					   SgObject e, SgObject v,
-					   SgObject *r,
+					   SgObject *e, SgObject v,
 					   SgMemoryOrder success,
 					   SgMemoryOrder failure);
 SG_EXTERN int      Sg_AtomicFlagTestAndSet(volatile SgAtomic *o,

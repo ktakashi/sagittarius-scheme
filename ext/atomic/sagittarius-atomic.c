@@ -444,50 +444,49 @@ long Sg_AtomicFixnumAnd(volatile SgAtomic *o, long v, SgMemoryOrder order)
   atomic_math(o, v, order, atomic_fetch_and_explicit);
 }
 
-int Sg_AtomicCompareAndSwap(volatile SgAtomic *o, SgObject e, SgObject v,
-			    SgObject *r,
+int Sg_AtomicCompareAndSwap(volatile SgAtomic *o, SgObject *e, SgObject v,
 			    SgMemoryOrder success, SgMemoryOrder failure)
 {
   int result;
   no_atomic_flag(o);
   switch (o->type) {
   case SG_ATOMIC_FIXNUM:
-    if (!SG_INTP(v) && !SG_INTP(e)) {
+    if (!SG_INTP(v) && !SG_INTP(*e)) {
       Sg_Error(UC("atomic_fixnum must take fixnum but got %A and %A"), e, v);
     }
     {
-      long ev = SG_INT_VALUE(e);
+      long ev = SG_INT_VALUE(*e);
       result = atomic_compare_exchange_strong_explicit(&SG_ATOMIC_REF_FIXNUM(o),
 						       &ev,
 						       SG_INT_VALUE(v),
 						       success, failure);
-      if (!result && r) {
-	*r = SG_MAKE_INT(ev);
+      if (!result) {
+	*e = SG_MAKE_INT(ev);
       }
     }
     break;
   case SG_ATOMIC_PAIR:
-    if (!SG_PAIRP(e) && !SG_PAIRP(v)) {
+    if (!SG_PAIRP(*e) && !SG_PAIRP(v)) {
       Sg_Error(UC("atomic_pair must take pair but got %S and %S"), e, v);
     }
     {
-      pair_t ev = { SG_CAR(e), SG_CDR(e) };
+      pair_t ev = { SG_CAR(*e), SG_CDR(*e) };
       pair_t vv = { SG_CAR(v), SG_CDR(v) };
       result = atomic_compare_exchange_strong_explicit(&SG_ATOMIC_REF_PAIR(o),
 						     &ev, vv, success, failure);
-      if (!result && r) {
-	*r = Sg_Cons(ev.car, ev.cdr);
+      if (!result) {
+	*e = Sg_Cons(ev.car, ev.cdr);
       }
     }
     break;
   default:
     {
-      object_t ev = (object_t)e;
+      object_t ev = (object_t)*e;
       result = atomic_compare_exchange_strong_explicit(&SG_ATOMIC_REF_OBJECT(o),
 						       &ev, (object_t)v,
 						       success, failure);
-      if (!result && r) {
-	*r = SG_OBJ(ev);
+      if (!result) {
+	*e = SG_OBJ(ev);
       }
     }
     break;
