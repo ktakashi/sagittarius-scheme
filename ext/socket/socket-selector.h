@@ -43,7 +43,10 @@ typedef struct SgSocketSelectorRec
 {
   SG_HEADER;
   SgObject sockets;
-  void     *context;		/* underlying implementation context */
+  SgInternalMutex lock;
+  SgInternalCond  cv;
+  int      waiting;
+  void    *context;	       /* underlying implementation context */
 } SgSocketSelector;
 
 SG_CLASS_DECL(Sg_SocketSelectorClass);

@@ -4,6 +4,7 @@ static int selector_sockets(SgSocketSelector *selector)
   /* filter closed socket */
   SgObject h = SG_NIL, t = SG_NIL, cp;
   int i = 0;
+  Sg_LockMutex(&selector->lock);
   SG_FOR_EACH(cp, selector->sockets) {
     SgObject slot = SG_CAR(cp);
     if (Sg_SocketOpenP(SG_SOCKET(SG_CAR(slot)))) {
@@ -12,6 +13,7 @@ static int selector_sockets(SgSocketSelector *selector)
     }
   }
   selector->sockets = h;
+  Sg_UnlockMutex(&selector->lock);
   return i;
 }
 
@@ -95,15 +97,76 @@ static void remove_socket(SgSocketSelector *selector, SgSocket *socket);
 
 SgObject Sg_SocketSelectorClear(SgSocketSelector *selector)
 {
-  SgObject cp;
+  SgObject cp, sockets;
   if (Sg_SocketSelectorWaitingP(selector)) {
     Sg_Error(UC("There's a thread already waiting for %A"), selector);
   }
   selector_sockets(selector);
-  SG_FOR_EACH(cp, selector->sockets) {
+  sockets = selector->sockets;
+  SG_FOR_EACH(cp, sockets) {
     remove_socket(selector, SG_SOCKET(SG_CAAR(cp)));
   }
   cp = selector->sockets;
   selector->sockets = SG_NIL;
   return cp;
+}
+
+static void add_socket(SgSocketSelector *selector, SgObject slot);
+
+SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector,
+			      SgSocket *socket, SgObject data)
+{
+  if (Sg_SocketOpenP(socket) && !duplicate_socket(socket, selector->sockets)) {
+    SgObject slot = Sg_Cons(socket, data);
+    Sg_LockMutex(&selector->lock);
+    add_socket(selector, slot);
+    selector->sockets = Sg_Cons(slot, selector->sockets);
+    selector_sockets(selector);
+    Sg_UnlockMutex(&selector->lock);
+  }
+  return SG_OBJ(selector);
+}
+
+static void * make_selector_context();
+
+SgObject Sg_MakeSocketSelector()
+{
+  SgSocketSelector *selector = SG_NEW(SgSocketSelector);
+  SG_SET_CLASS(selector, SG_CLASS_SOCKET_SELECTOR);
+
+  selector->sockets = SG_NIL;
+  selector->waiting = FALSE;
+  selector->context = make_selector_context();
+
+  Sg_InitMutex(&selector->lock, TRUE);
+  Sg_InitCond(&selector->cv);
+
+  Sg_RegisterFinalizer(selector, selector_finalizer, NULL);
+  return SG_OBJ(selector);
+}
+
+static SgObject selector_wait(SgSocketSelector *selector, int n, struct timespec *sp);
+
+SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
+{
+  SgObject r;
+  int n = selector_sockets(selector);
+  struct timespec spec, *sp;
+  
+  if (selector->waiting) {
+    Sg_Error(UC("There's a thread already waiting for %A"), selector);
+  }
+  if (n == 0) return SG_NIL;	/* nothing to wait */
+  selector->waiting = TRUE;
+  sp = selector_timespec(timeout, &spec);
+  r = selector_wait(selector, n, sp);
+  strip_sockets(selector, r);
+  selector->waiting = FALSE;
+  return r;  
+}
+
+
+int Sg_SocketSelectorWaitingP(SgSocketSelector *selector)
+{
+  return selector->waiting;
 }

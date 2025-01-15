@@ -41,7 +41,7 @@ static int make_selector()
   return kqueue();
 }
 
-static void add_socket(unix_context_t *ctx, SgObject slot)
+static void add_socket(SgSocketSelector *selector, SgObject slot)
 {
   /* do nothing :) */
 }
@@ -54,14 +54,11 @@ static void remove_socket(SgSocketSelector *selector, SgSocket *socket)
 
 
 static SgObject wait_selector(unix_context_t *ctx, int nsock,
-			      SgObject sockets, SgObject timeout)
+			      SgObject sockets, struct timespec *sp)
 {
   SgObject cp, r = SG_NIL;
   int i, c, n = nsock + 1;
-  struct timespec spec, *sp;
   struct kevent *evm, ev;
-
-  sp = selector_timespec(timeout, &spec);
 
   evm = SG_NEW_ATOMIC2(struct kevent *, n * sizeof(struct kevent));
   i = 0;

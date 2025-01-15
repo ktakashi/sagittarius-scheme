@@ -52,7 +52,6 @@ typedef struct unix_context_rec
   int fd;			/* epoll or kqueue fd */
   int stop_fd;			/* unix domain socket fd */
   struct sockaddr_un addr;
-  int waiting;
 } unix_context_t;
 
 static void invalidate_stop(unix_context_t *stop)
@@ -114,29 +113,21 @@ static SgObject system_error(int e, int fd)
 }
 
 static int make_selector();
-static void add_socket(unix_context_t *ctx, SgObject slot);
 static SgObject wait_selector(unix_context_t *ctx, int n,
-			      SgObject sockets, SgObject timeout);
+			      SgObject sockets, struct timespec *timeout);
 
 #include "socket-selector.incl"
 
-SgObject Sg_MakeSocketSelector()
+static void * make_selector_context()
 {
-  SgSocketSelector *selector = SG_NEW(SgSocketSelector);
   unix_context_t *ctx = SG_NEW(unix_context_t);
-
-  SG_SET_CLASS(selector, SG_CLASS_SOCKET_SELECTOR);
   if ((ctx->fd = make_selector()) < 0) goto err;
   if (setup_stop(ctx) == NULL) goto err;
-  ctx->waiting = FALSE;
-  selector->sockets = SG_NIL;
-  selector->context = ctx;
-
-  Sg_RegisterFinalizer(selector, selector_finalizer, NULL);
-  return SG_OBJ(selector);
+  return ctx;
 
  err:
-  return system_error(errno, ctx->fd);
+  system_error(errno, ctx->fd);
+  return NULL;
 }
 
 void Sg_CloseSocketSelector(SgSocketSelector *selector)
@@ -147,18 +138,6 @@ void Sg_CloseSocketSelector(SgSocketSelector *selector)
   Sg_UnregisterFinalizer(selector);
 }
 
-SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector,
-			      SgSocket *socket, SgObject data)
-{
-  unix_context_t *ctx = (unix_context_t *)selector->context;
-  if (Sg_SocketOpenP(socket) && !duplicate_socket(socket, selector->sockets)) {
-    SgObject slot = Sg_Cons(socket, data);
-    add_socket(ctx, slot);
-    selector->sockets = Sg_Cons(slot, selector->sockets);
-    selector_sockets(selector);
-  }
-  return SG_OBJ(selector);
-}
 
 SgObject Sg_SocketSelectorInterrupt(SgSocketSelector *selector)
 {
@@ -167,25 +146,8 @@ SgObject Sg_SocketSelectorInterrupt(SgSocketSelector *selector)
   return selector;
 }
 
-SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
+static SgObject selector_wait(SgSocketSelector *selector, int n, struct timespec *sp)
 {
   unix_context_t *ctx = (unix_context_t *)selector->context;
-  int n = selector_sockets(selector);
-  SgObject r;
-  
-  if (n == 0) return SG_NIL;	/* nothing to wait */
-  if (ctx->waiting) {
-    Sg_Error(UC("There's a thread already waiting for %A"), selector);
-  }
-  ctx->waiting = TRUE;
-  r = wait_selector(ctx, n, selector->sockets, timeout);
-  strip_sockets(selector, r);
-  ctx->waiting = FALSE;
-  return r;  
-}
-
-int Sg_SocketSelectorWaitingP(SgSocketSelector *selector)
-{
-  unix_context_t *ctx = (unix_context_t *)selector->context;
-  return ctx->waiting;
+  return wait_selector(ctx, n, selector->sockets, sp);
 }

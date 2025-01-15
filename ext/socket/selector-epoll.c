@@ -41,9 +41,10 @@ static int make_selector()
 }
 
 
-static void add_socket(unix_context_t *ctx, SgObject slot)
+static void add_socket(SgSocketSelector *selector, SgObject slot)
 {
   struct epoll_event ev;
+  unix_context_t *ctx = (unix_context_t *)selector->context;
   SgSocket *socket = SG_SOCKET(SG_CAR(slot));
   ev.events = EPOLLIN;
   ev.data.ptr = slot;
@@ -67,15 +68,13 @@ static void remove_socket(SgSocketSelector *selector, SgSocket *socket)
 
 
 static SgObject wait_selector(unix_context_t *ctx, int nsock,
-			      SgObject sockets, SgObject timeout)
+			      SgObject sockets, struct timespec *sp)
 {
   int n = nsock + 1, i, c;
   long millis = -1;
   SgObject r = SG_NIL;
-  struct timespec spec, *sp;
   struct epoll_event *evm, ev;
 
-  sp = selector_timespec(timeout, &spec);
   if (sp) {
     millis = sp->tv_sec * 1000;
     millis += sp->tv_nsec / 1000000;
