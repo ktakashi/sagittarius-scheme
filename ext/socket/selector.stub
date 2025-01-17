@@ -16,7 +16,7 @@
   Sg_CloseSocketSelector)
 
 (define-c-proc socket-selector-add! (s::<socket-selector> sock::<socket>
-				     :optional (data #f))
+				     :optional (timeout #f) (data #f))
   Sg_SocketSelectorAdd)
 
 (define-c-proc socket-selector-wait! (s::<socket-selector> :optional (timeout #f))
@@ -24,6 +24,9 @@
 
 (define-c-proc socket-selector-clear! (s::<socket-selector>)
   Sg_SocketSelectorClear)
+
+(define-c-proc socket-selector-closed? (s::<socket-selector>) ::<boolean>
+  Sg_SocketSelectorClosedP)
 
 (define-c-proc socket-selector-waiting? (s::<socket-selector>) ::<boolean>
   Sg_SocketSelectorWaitingP)

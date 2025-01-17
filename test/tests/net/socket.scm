@@ -200,21 +200,27 @@
       (shutdown&close client-socket))))
 
 (let ()
-  (define count 50)
+  (define count 100)
   (define (run-socket-selector hard-timeout soft-timeout)
     (define server-sock (make-server-socket "0"))
+    (define mark #vu8(0))
     (define (echo sock e reuse-invoker)
+      (define (close-socket s)
+	(socket-shutdown sock SHUT_RDWR)
+	(socket-close sock))
       (if e
-	  (socket-send sock #vu8())
-	  (socket-send sock (socket-recv sock 255)))
-      (socket-shutdown sock SHUT_RD)
-      (socket-close sock))
+	  (begin (socket-send sock mark) (reuse-invoker #f))
+	  (let ((v (socket-recv sock 255)))
+	    (if (bytevector=? v mark)
+		(close-socket sock)
+		(begin (socket-send sock v)
+		       (reuse-invoker))))))
     (define server-thread
       (thread-start!
        (make-thread
 	(lambda ()
 	  (let-values (((socket-selector terminater)
-			(make-socket-selector hard-timeout print)))
+			(make-socket-selector hard-timeout)))
 	    (guard (e (else #;(print e) (terminater)))
 	      (let loop ()
 		(let ((sock (socket-accept server-sock)))
@@ -231,16 +237,18 @@
        (make-thread
 	(lambda ()
 	  (let ((s (make-client-socket "localhost" server-port
-				       (socket-options (read-timeout 100)))))
+				       (socket-options (read-timeout 100))))
+		(msg (string->utf8
+		      (string-append "Hello world " (number->string i)))))
 	    (guard (e (else #;(print e) s))
 	      (thread-sleep! 0.1)
-	      (socket-send s (string->utf8
-			      (string-append "Hello world " (number->string i))))
-	      (let ((v (utf8->string (socket-recv s 255))))
-		(cond ((zero? (string-length v)) (shared-queue-put! result #f))
-		      (else (shared-queue-put! result v)))))
-	      (socket-shutdown s SHUT_RDWR)
-	      s))
+	      (socket-send s msg)
+	      (let ((v (socket-recv s 255)))
+		(cond ((bytevector=? v mark) (shared-queue-put! result #f))
+		      (else (shared-queue-put! result (utf8->string v)))))
+	      (socket-send s mark))
+	    (socket-shutdown s SHUT_RDWR)
+	    s))
 	(string-append "client-thread-" (number->string i)))))
     (define (safe-join! t)
       (guard (e ((uncaught-exception? e)
@@ -252,10 +260,10 @@
 	    ((condition? s) (report-error s))))
     
     (for-each safe-close (map safe-join! (map caller (iota count))))
+
     (socket-shutdown server-sock SHUT_RDWR)
     (socket-close server-sock)
-    ;; No idea why this occasionally fails on Linux...
-    ;; (test-assert "server socket closed" (socket-closed? server-sock))
+
     (guard (e (else #t)) (thread-join! server-thread))
     (shared-queue->list result))
   (test-equal count (length (filter string? (run-socket-selector 1000 #f))))
@@ -281,7 +289,7 @@
 	  (let ((sock (socket-accept server-sock)))
 	    (thread-start! (make-thread (echo sock)))
 	    (loop)))))))
-
+  (define count 100)
   (define (run-socket-selector hard-timeout soft-timeout)
     (define result (make-shared-queue))
     (define server-port
@@ -304,24 +312,22 @@
 	(socket-send s (string->utf8
 			(string-append "Hello world " (number->string i))))
 	(selector s push-result soft-timeout)))
-    (define count 50)
     (define (collect-thread)
       (do ((i 0 (+ i 1)) (r '() (cons (shared-queue-get! result) r)))
 	  ((= i count) r)))
 
-    (let-values (((selector terminator)
-		  (make-socket-selector hard-timeout print)))
+    (let-values (((selector terminator) (make-socket-selector hard-timeout)))
       (for-each (caller selector) (iota count))
       (let ((r (map thread-join! (collect-thread))))
 	(terminator)
 	r)))
 
-  (test-equal "hard 1000ms soft #f" 50
-	      (length (filter string? (run-socket-selector 1000 #f))))
+  (test-equal "hard 1000ms soft #f"
+	      count (length (filter string? (run-socket-selector 1000 #f))))
   (test-equal "hard 0ms soft #f"
 	      0 (length (filter string? (run-socket-selector 100 #f))))
   (test-equal "hard 10ms soft 1000ms"
-	      50 (length (filter string? (run-socket-selector 10 1000))))
+	      count (length (filter string? (run-socket-selector 10 1000))))
   (socket-shutdown server-sock SHUT_RDWR)
   (socket-close server-sock)
   (guard (e (else #t)) (thread-join! server-thread)))

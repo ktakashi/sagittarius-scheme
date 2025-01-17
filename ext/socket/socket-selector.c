@@ -34,7 +34,8 @@
 static void socket_selector_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   SgSocketSelector *selector = SG_SOCKET_SELECTOR(self);
-  Sg_Printf(port, UC("#<socket-selector %d:%S>"),
+  Sg_Printf(port, UC("#<socket-selector %s %d:%S>"),
+	    Sg_SocketSelectorClosedP(selector) ? UC("closed") : UC(""),
 	    Sg_Length(selector->sockets),
 	    selector->waiting ? SG_TRUE : SG_FALSE);
 }
@@ -42,3 +43,7 @@ static void socket_selector_printer(SgObject self, SgPort *port, SgWriteContext 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_SocketSelectorClass, socket_selector_printer);
 
 
+int Sg_SocketSelectorClosedP(SgSocketSelector *selector)
+{
+  return selector->context == NULL;
+}

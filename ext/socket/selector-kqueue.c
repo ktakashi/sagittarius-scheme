@@ -54,7 +54,8 @@ static void remove_socket(SgSocketSelector *selector, SgSocket *socket)
 
 
 static SgObject wait_selector(unix_context_t *ctx, int nsock,
-			      SgObject sockets, struct timespec *sp)
+			      SgObject sockets, struct timespec *sp,
+			      int *err)
 {
   SgObject cp, r = SG_NIL;
   int i, c, n = nsock + 1;
@@ -69,7 +70,11 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
   }
   EV_SET(&evm[i++], ctx->stop_fd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, NULL);
   c = kevent(ctx->fd, evm, n, evm, n, sp);
-  if (c < 0) return system_error(errno, -1);
+  /* when the selector is closed, then the unix socket returns EBADF */
+  if (c < 0) {
+    *err = errno;
+    return SG_FALSE;
+  }
   
   for (i = 0; i < c; i++) {
     if (evm[i].ident == ctx->stop_fd) {

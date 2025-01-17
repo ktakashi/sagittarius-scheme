@@ -442,85 +442,52 @@
     (when (procedure? error-reporter)
       (guard (e (else #f)) (error-reporter event e))))
 
-  (define (call-on-read on-read sock timeout e)
-    (guard (e (else (on-error 'on-read e) #t))
-      (actor-send-message! on-read-actor (list on-read sock timeout e))))
-
-  (define (update-timeout now s&d)
-    (let-values (((sock osock on-read s expires timeout) (apply values s&d)))
-      (cond ((socket-closed? sock) #f)
-	    ((and timeout (time>? now expires))
-	     (let ((e (make-selector-timeout-condition sock timeout)))
-	       (call-on-read on-read osock timeout e)
-	       #f))
-	    (else (cons s&d (and timeout (time-difference expires now)))))))
+  (define (->on-read-data sock) `(,@(cddr sock) #f))
+  (define (->timeout-data sock)
+    (let-values (((on-read socket timeout) (apply values (cddr sock))))
+      (let ((e (make-selector-timeout-condition socket timeout)))
+	(list on-read socket timeout e))))
   
-  (define (queued-sockets now selector)
-    (define (least timeouts)
-      (reduce (lambda (e ans) (if (time<? e ans) ans e)) #f timeouts))
-    (define socks (socket-selector-clear! selector))
-    (let ((s&t (filter-map (lambda (s&d) (update-timeout now s&d)) socks)))
-      (values (map car s&t) (least (filter-map cdr s&t)))))
-
-  (define (selector-data socket on-read now timeout)
-    (list socket on-read now (and timeout (add-duration now timeout)) timeout))
-
-  (define (handle-on-read s&d)
-    (let-values (((sock osock on-read s expires timeout) (apply values s&d)))
-      ;; no idea why closed socket will be here, but happens...
-      (unless (socket-closed? sock) (call-on-read on-read osock timeout #f))))
-
-  (define (poll-socket receiver sender)
-    (define (push-sockets s*)
-      (for-each (lambda (s) (socket-selector-add! selector (car s) (cdr s))) s*))
-    (let wait-entry ((entry (receiver)))
-      (define (wait-selector timeout)
-	(let ((sock&data (socket-selector-wait! selector timeout)))
-	  (for-each handle-on-read sock&data)
-	  (let-values (((sockets timeout)
-			(queued-sockets (current-time) selector)))
-	    (push-sockets sockets)
-	    (cond ((null? sockets) (wait-entry (receiver)))
-		  ((receiver 0 #f) => wait-entry)
-		  (else (wait-selector timeout))))))
-      (when entry
-	(let ((now (current-time)))
-	  (let-values (((sock on-read this-timeout) (apply values entry))
-		       ((sockets timeout) (queued-sockets now selector)))
-	    (push-sockets sockets)
-	    (socket-selector-add! selector (->socket sock)
-				  (selector-data sock on-read now this-timeout))
-	    (wait-selector (get-timeout this-timeout timeout)))))))
+  (define (selector-waiter)
+    (let wait-selector ()
+      (guard (e (else (on-error 'selector e) #f))
+	(unless (socket-selector-closed? selector)
+	  (let-values (((socks timedouts) (socket-selector-wait! selector)))
+	    (actor-send-message! on-read-actor (map ->on-read-data socks))
+	    (actor-send-message! on-read-actor (map ->timeout-data timedouts))
+	    (wait-selector))))))
 
   (define (dispatch-socket receiver sender)
-    (let loop ((e (receiver)))
-      (when e
-	(guard (e (else (on-error 'dispatcher e) #t))
-	  (let-values (((on-read sock timeout e) (apply values e)))
-	    (unless (socket-closed? sock)
-	      (on-read sock e (lambda () (push-socket sock on-read timeout))))))
+    (define (call-on-read e)
+      (let-values (((on-read sock timeout e) (apply values e)))
+	(unless (socket-closed? sock)
+	  (on-read sock e
+		   (case-lambda
+		    (() (push-socket sock on-read timeout))
+		    ((timeout) (push-socket sock on-read timeout)))))))
+    (let loop ((e* (receiver)))
+      (when e*
+	(guard (e (else (on-error 'on-read e) #t))
+	  (for-each call-on-read e*))
 	(loop (receiver)))))
 
-  (define socket-poll-actor
-    (parameterize ((*actor-thread-name-factory* socket-poll-name-factory))
-      (make-shared-queue-channel-actor poll-socket)))
+  (define socket-poll-thread
+    (thread-start! (make-thread selector-waiter)))
   (define on-read-actor
     (parameterize ((*actor-thread-name-factory* on-read-name-factory))
       (make-shared-queue-channel-actor dispatch-socket)))
 
   (define (push-socket (socket (or socket? tls-socket?))
 		       (on-read procedure?) timeout)
-    (actor-send-message! socket-poll-actor
-			 (list socket on-read (make-timeout timeout)))
-    (socket-selector-interrupt! selector))
+    (let ((to (make-timeout timeout))
+	  (s (->socket socket)))
+      (socket-selector-add! selector s to (list on-read socket to))))
 
   (define (terminate!)
-    (actor-send-message! socket-poll-actor #f)
     (actor-send-message! on-read-actor #f)
     (socket-selector-interrupt! selector)
     (close-socket-selector! selector))
 
-  (actor-start! socket-poll-actor)
   (actor-start! on-read-actor)
   (values (case-lambda
 	   ((socket on-read) (push-socket socket on-read hard-timeout))

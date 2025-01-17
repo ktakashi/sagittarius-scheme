@@ -114,7 +114,8 @@ static SgObject system_error(int e, int fd)
 
 static int make_selector();
 static SgObject wait_selector(unix_context_t *ctx, int n,
-			      SgObject sockets, struct timespec *timeout);
+			      SgObject sockets, struct timespec *timeout,
+			      int *err);
 
 #include "socket-selector.incl"
 
@@ -132,16 +133,23 @@ static void * make_selector_context()
 
 void Sg_CloseSocketSelector(SgSocketSelector *selector)
 {
-  unix_context_t *ctx = (unix_context_t *)selector->context;
-  close(ctx->fd);
-  if (!is_stop_initialised(ctx)) close_unix_stop(ctx);
-  Sg_UnregisterFinalizer(selector);
+  if (!Sg_SocketSelectorClosedP(selector)) {
+    unix_context_t *ctx = (unix_context_t *)selector->context;
+    selector->context = NULL;
+    close(ctx->fd);
+    if (!is_stop_initialised(ctx)) close_unix_stop(ctx);
+    Sg_UnregisterFinalizer(selector);
+  }
 }
 
 
 SgObject Sg_SocketSelectorInterrupt(SgSocketSelector *selector)
 {
-  unix_context_t *ctx = (unix_context_t *)selector->context;
+  unix_context_t *ctx;
+  if (Sg_SocketSelectorClosedP(selector)) {
+    Sg_Error(UC("Socket selector is closed: %A"), selector);
+  }
+  ctx = (unix_context_t *)selector->context;
   interrupt_unix_stop(ctx);
   return selector;
 }
@@ -149,5 +157,14 @@ SgObject Sg_SocketSelectorInterrupt(SgSocketSelector *selector)
 static SgObject selector_wait(SgSocketSelector *selector, int n, struct timespec *sp)
 {
   unix_context_t *ctx = (unix_context_t *)selector->context;
-  return wait_selector(ctx, n, selector->sockets, sp);
+  int err = 0;
+  /* the socket is reverse order, so correct it  */
+  SgObject r = wait_selector(ctx, n, Sg_Reverse(selector->sockets), sp, &err);
+  if (SG_FALSEP(r)) {
+    if (err == EBADF) {
+      Sg_Error(UC("Socket selector is closed during waiting: %A"), selector);
+    }
+    return system_error(err, -1);
+  }
+  return r;
 }

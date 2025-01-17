@@ -68,7 +68,8 @@ static void remove_socket(SgSocketSelector *selector, SgSocket *socket)
 
 
 static SgObject wait_selector(unix_context_t *ctx, int nsock,
-			      SgObject sockets, struct timespec *sp)
+			      SgObject sockets, struct timespec *sp,
+			      int *err)
 {
   int n = nsock + 1, i, c;
   long millis = -1;
@@ -87,7 +88,10 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
   evm = SG_NEW_ATOMIC2(struct epoll_event *, n * sizeof(struct epoll_event));
   c = epoll_wait(ctx->fd, evm, n, millis);
 
-  if (c < 0) return system_error(errno, -1);
+  if (c < 0) {
+    *err = errno;
+    return SG_FALSE;
+  }
 
   for (i = 0; i < c; i++) {
     if (SG_FALSEP(evm[i].data.ptr)) {

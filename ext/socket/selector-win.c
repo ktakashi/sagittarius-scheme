@@ -73,9 +73,12 @@ static void * make_selector_context()
 
 void Sg_CloseSocketSelector(SgSocketSelector *selector)
 {
-  win_context_t *ctx = (win_context_t *)selector->context;
-  WSACloseEvent(ctx->event);
-  Sg_UnregisterFinalizer(selector);
+  if (!Sg_SocketSelectorClosedP(selector)) {
+    win_context_t *ctx = (win_context_t *)selector->context;
+    selector->context = NULL;
+    WSACloseEvent(ctx->event);
+    Sg_UnregisterFinalizer(selector);
+  }
 }
 
 static SgObject select_socket(SOCKET fd, SgObject sockets)
@@ -89,21 +92,16 @@ static SgObject select_socket(SOCKET fd, SgObject sockets)
   return SG_FALSE;
 }
 
-static SgObject selector_wait(SgSocketSelector *selector, int n, struct timespec *sp)
+static SgObject win_selector_wait(win_context_t *ctx, int n,
+			      SgObject sockets,
+			      struct timespec *sp)
 {
-  win_context_t *ctx = (win_context_t *)selector->context;
   const int waiting_flags = FD_READ | FD_OOB;
   int r, err = FALSE;
   DWORD millis = INFINITE;
   SgObject ret = SG_NIL;
   SOCKET sArray[WSA_MAXIMUM_WAIT_EVENTS];
   WSAEVENT eArray[WSA_MAXIMUM_WAIT_EVENTS] = { NULL, };
-  
-  if (n-1 > WSA_MAXIMUM_WAIT_EVENTS) {
-    selector->waiting = FALSE;
-    Sg_Error(UC("[Windows] More than max selectable sockets are set %d > %d"),
-	     n, WSA_MAXIMUM_WAIT_EVENTS);
-  }
 
   eArray[n] = ctx->event;
 #define SET_EVENT(sockets, flags)				\
@@ -123,7 +121,7 @@ static SgObject selector_wait(SgSocketSelector *selector, int n, struct timespec
       i++;							\
     }								\
   } while(0)
-  SET_EVENT(selector->sockets, waiting_flags);
+  SET_EVENT(sockets, waiting_flags);
   
   if (sp) {
     millis = sp->tv_sec * 1000;
@@ -131,6 +129,8 @@ static SgObject selector_wait(SgSocketSelector *selector, int n, struct timespec
   }
 
   r = WSAWaitForMultipleEvents(n + 1, eArray, FALSE, millis, FALSE);
+  /* most likely closed selector */
+  if (r == WSA_WAIT_FAILED) goto cleanup;
   /* reset interrupting event as soon as possible */
   WSAResetEvent(ctx->event);
   for (int i = r - WSA_WAIT_EVENT_0; i < n; i++) {
@@ -139,7 +139,7 @@ static SgObject selector_wait(SgSocketSelector *selector, int n, struct timespec
       WSANETWORKEVENTS networkEvents;
       if (WSAEnumNetworkEvents(sArray[i], eArray[i], &networkEvents) == 0) {
 	if ((networkEvents.lNetworkEvents & waiting_flags) != 0) {
-	  SgObject o = select_socket(sArray[i], selector->sockets);
+	  SgObject o = select_socket(sArray[i], sockets);
 	  if (!SG_FALSEP(o)) ret = Sg_Cons(o, ret);
 	}
       }
@@ -157,16 +157,37 @@ cleanup:
   }
   if (err) {
     int e = WSAGetLastError();
+    if (e == WSA_INVALID_HANDLE) {
+      Sg_Error(UC("Socket selector is closed during waiting: %A"), selector);
+    }
     Sg_Error(UC("Failed to wait selector: [%d] %S"), e,
 	     Sg_GetLastErrorMessageWithErrorCode(e));
   }
   return ret;
 }
 
+static SgObject selector_wait(SgSocketSelector *selector, int n,
+			      struct timespec *sp)
+{
+  win_context_t *ctx = (win_context_t *)selector->context;
+  
+  if (n-1 > WSA_MAXIMUM_WAIT_EVENTS) {
+    selector->waiting = FALSE;
+    Sg_Error(UC("[Windows] More than max selectable sockets are set %d > %d"),
+	     n, WSA_MAXIMUM_WAIT_EVENTS);
+  }
+
+  return win_selector_wait(ctx, n, Sg_Reverse(selector->sockets), sp);
+}
+
 
 SgObject Sg_SocketSelectorInterrupt(SgSocketSelector *selector)
 {
-  win_context_t *ctx = (win_context_t *)selector->context;
+  win_context_t *ctx;
+  if (Sg_SocketSelectorClosedP(selector)) {
+    Sg_Error(UC("Socket selector is closed: %A"), selector);
+  }
+  ctx = (win_context_t *)selector->context;
   WSASetEvent(ctx->event);
   return selector;
 }

@@ -176,6 +176,7 @@
 	    socket-selector-clear!
 	    socket-selector-wait!
 	    socket-selector-waiting?
+	    socket-selector-closed?
 	    socket-selector-interrupt!
 	    socket-selector-size
 	    )

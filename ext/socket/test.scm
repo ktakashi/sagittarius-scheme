@@ -13,6 +13,7 @@
 	(prefix (binary io) b:)
 	(util bytevector)
 	(util concurrent)
+	(util duration)
 	(srfi :1 lists)
 	(srfi :13 strings)
 	(srfi :64 testing)
@@ -398,20 +399,23 @@
     (test-equal 1 (length s*))
     (test-equal '(#*"ok") (map (lambda (s) (socket-recv s 2))
 			       (map car s*))))
-  ;; nothing to wait, so it'd return '() immediately
-  (test-equal '() (socket-selector-wait! selector))
+  ;; nothing to wait and specifying timeout
+  (test-equal '() (socket-selector-wait! selector 0))
 
   (socket-selector-add! selector s)
   ;; 1000 => 1ms (timeout = usec)
   (test-equal "selector (timeout)" '() (socket-selector-wait! selector 1000))
-  (let ((s* (socket-selector-wait! selector)))
+  (let-values (((s* t*) (socket-selector-wait! selector)))
+    (test-equal '() t*)
     (test-equal 1 (length s*))
     (test-equal '(#*"ok2") (map (lambda (s) (socket-recv s 3))
 				(map car s*))))
   (close-socket-selector! selector)
   (socket-close server))
 
-(let ()
+
+(define (selector-test count :optional (timeout #f))
+  (define delay 0.01) ;; 10ms
   (define server (make-server-socket "0"))
   (define selector (make-socket-selector))
   (define (echo-back s) (socket-send s (socket-recv s 255)))
@@ -422,41 +426,64 @@
 		(let loop ()
 		  (let ((s (socket-accept server)))
 		    (when (and s (not end?))
-		      (socket-selector-add! selector s)
+		      (socket-selector-add! selector s timeout)
 		      (loop))))))))
   (define t2
     (thread-start!
      (make-thread
       (lambda ()
+	(guard (e (else #;(print e) #f))
 	(let loop ()
-	  (let ((socks (socket-selector-wait! selector)))
-	    (for-each echo-back (map car socks))
-	    (unless end? (loop))))))))
-  (define count 500)
+	  (unless (socket-selector-closed? selector)
+	    (let-values (((socks timed-out) (socket-selector-wait! selector)))
+	      (for-each echo-back (map car socks))
+	      (for-each (lambda (s)
+			  (atomic-fixnum-inc! result-to)
+			  (socket-shutdown s SHUT_RDWR)
+			  (socket-close s))
+			(map car timed-out))
+	      (unless end? (loop))))))))))
   (define result (make-atomic-fixnum 0))
+  (define result-to (make-atomic-fixnum 0))
   (define (do-test i)
     (thread-start!
      (make-thread
       (lambda ()
 	(let ((s (make-client-socket "localhost" (server-service server)))
 	      (msg (string->utf8 (string-append "hello " (number->string i)))))
-	  (thread-sleep! (* i 0.001))
-	  (socket-send s msg)
-	  (when (bytevector=? (socket-recv s 255) msg)
-	    (atomic-fixnum-inc! result))
+	  (thread-sleep! delay)
+	  (guard (e (else #t))
+	    (socket-send s msg)
+	    (when (bytevector=? (socket-recv s 255) msg)
+	      (atomic-fixnum-inc! result)))
 	  (socket-shutdown s SHUT_RDWR)
 	  (socket-close s))))))
   (for-each thread-join! (map do-test (iota count)))
+
   (set! end? #t)
   (let ((s (make-client-socket "localhost" (server-service server))))
     (socket-shutdown s SHUT_RDWR)
     (socket-close s))
-  (socket-shutdown server SHUT_RDWR)
-  (socket-close server)
+  ;; this shouldn't be needed...
+  (thread-sleep! (* delay 10)) ;; let's wait 10 times more than delay here
+  
   (socket-selector-interrupt! selector)
+  (close-socket-selector! selector)
+
   (thread-join! t)
   (thread-join! t2)
 
-  (test-equal count (atomic-fixnum-load result)))
+  (socket-shutdown server SHUT_RDWR)
+  (socket-close server)
+
+  (values (atomic-fixnum-load result) (atomic-fixnum-load result-to)))
+(let-values (((r rt) (selector-test 500)))
+  (test-equal "no timeout (received)" 500 r)
+  (test-equal "no timeout (timedout)" 0 rt))
+(let-values (((r rt) (selector-test 500 (duration:of-nanos 1))))
+  ;; for some reason, some sockets don't timeout.
+  (test-assert "with timeout (received)" (< r 500))
+  (test-assert "with timeout (timedout)" (< 0 rt))
+  (test-equal "with timeout (total)" 500 (+ r rt)))
 
 (test-end)

@@ -83,8 +83,11 @@ static struct timespec *selector_timespec(SgObject timeout, struct timespec *tm)
     tm->tv_nsec = iusec * 1000;
     return tm;
   } else if (SG_TIMEP(timeout)) {
-    tm->tv_sec = SG_TIME(timeout)->sec;
-    tm->tv_nsec = SG_TIME(timeout)->nsec;
+    /* Normalize it */
+    long s = SG_TIME(timeout)->nsec / 1000000000;
+    long nsec = SG_TIME(timeout)->nsec % 1000000000;
+    tm->tv_sec = SG_TIME(timeout)->sec + s;
+    tm->tv_nsec = SG_TIME(timeout)->nsec + nsec;
     return tm;
   }
  badtv:
@@ -116,10 +119,30 @@ SgObject Sg_SocketSelectorClear(SgSocketSelector *selector)
 static void add_socket(SgSocketSelector *selector, SgObject slot);
 
 SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector,
-			      SgSocket *socket, SgObject data)
+			      SgSocket *socket,
+			      SgObject timeout,
+			      SgObject data)
 {
+  if (Sg_SocketSelectorClosedP(selector)) {
+    Sg_Error(UC("Socket selector is closed: %A"), selector);
+  }
   if (Sg_SocketOpenP(socket) && !duplicate_socket(socket, selector->sockets)) {
-    SgObject slot = Sg_Cons(socket, data);
+    SgObject slot, to = SG_FALSE;
+    struct timespec spec, *sp;
+    /* handle timeout */
+    sp = selector_timespec(timeout, &spec);
+    if (sp) {
+      unsigned long sec, usec;
+      SgTime *t = SG_NEW(SgTime);
+      SG_SET_CLASS(t, SG_CLASS_TIME);
+      t->type = SG_INTERN("time-utc");
+
+      Sg_GetTimeOfDay(&sec, &usec);
+      t->sec = sp->tv_sec + sec;
+      t->nsec = sp->tv_nsec + usec * 1000;
+      to = SG_OBJ(t);
+    }
+    slot = Sg_Cons(socket, Sg_Cons(to, data));
     Sg_LockMutex(&selector->lock);
     add_socket(selector, slot);
     selector->sockets = Sg_Cons(slot, selector->sockets);
@@ -155,32 +178,102 @@ SgObject Sg_MakeSocketSelector()
 static SgObject selector_wait(SgSocketSelector *selector, int n,
 			      struct timespec *sp);
 
+static SgObject earliest_timeout(SgObject sockets, SgTime *start,
+				 SgObject *timedout)
+{
+  SgObject cp, r = SG_FALSE;
+  SgClassCompareProc compare = SG_CLASS_TIME->compare;
+
+  SG_FOR_EACH(cp, sockets) {
+    SgObject slot = SG_CAR(cp);
+    SgObject to = SG_CADR(slot);
+    if (SG_TIMEP(to)) {
+      if (compare(to, start, FALSE) <= 0) {
+	/* already timed out */
+	*timedout = Sg_Cons(slot, *timedout);
+	continue;
+      }
+      if (SG_FALSEP(r) || (compare(to, r, FALSE) < 0)) {
+	r = to;
+      }
+    }
+  }
+
+  return r;
+}
+
+static struct timespec * update_timeout(SgObject sockets,
+					SgTime *start,
+					struct timespec *global,
+					struct timespec *out,
+					SgObject *timedout)
+{
+  SgObject to = earliest_timeout(sockets, start, timedout);
+  struct timespec *r = global;
+
+  if (!SG_FALSEP(to)) {
+    long sec = SG_TIME(to)->sec - start->sec;
+    long nsec = SG_TIME(to)->nsec - start->nsec;
+
+    if (sec > 0 || (sec == 0 && nsec > 0)) {
+      out->tv_sec = (sec > 0) ? sec : 0;
+      out->tv_nsec = (nsec > 0) ? nsec : 0;
+      
+      if (global) {
+	if (global->tv_sec > out->tv_sec ||
+	    (global->tv_sec = out->tv_sec && global->tv_nsec > out->tv_nsec)) {
+	  r = out;
+	}
+      } else {
+	r = out;
+      }
+    }
+  }
+  return r;
+}
+
+/*  */
+
 SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
 {
-  SgObject r;
+  SgObject r, timedout = SG_NIL;
+  SgTime start;
   int n;
   unsigned long sec, usec;
-  struct timespec spec, *sp, start;
-  
+  struct timespec spec, *sp, sock_to;
+
+  if (Sg_SocketSelectorClosedP(selector)) {
+    Sg_Error(UC("Socket selector is closed: %A"), selector);
+  }
   if (selector->waiting) {
     Sg_Error(UC("There's a thread already waiting for %A"), selector);
   }
-  
-  sp = selector_timespec(timeout, &spec);
 
-  if (sp) {
-    Sg_GetTimeOfDay(&sec, &usec);
-    start.tv_sec = sec;
-    start.tv_nsec = usec * 1000;
-  }
+  SG_SET_CLASS(&start, SG_CLASS_TIME);
+  start.type = SG_INTERN("time-utc");
+  sp = selector_timespec(timeout, &spec);
+  
+  Sg_GetTimeOfDay(&sec, &usec);
+  start.sec = sec;
+  start.nsec = usec * 1000;
+
+  Sg_LockMutex(&selector->lock);
+  sp = update_timeout(selector->sockets, &start, sp, &sock_to, &timedout);
+  strip_sockets(selector, timedout);
   n = selector_sockets(selector);
-  if (n == 0) return SG_NIL;	/* nothing to wait */
+
+  if (n == 0 && !SG_NULLP(timedout)) {
+    Sg_UnlockMutex(&selector->lock);
+    return Sg_Values2(SG_NIL, timedout); /* return timedout ones */
+  }
+
   selector->waiting = TRUE;
+  Sg_UnlockMutex(&selector->lock);
 
  retry:
   r = selector_wait(selector, n, sp);
   selector->waiting = FALSE;
-  if (selector->retry) {
+  if (SG_NULLP(r) && selector->retry) {
     Sg_LockMutex(&selector->lock);
     /*
       socket is added during waiting. here we do
@@ -192,21 +285,46 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
       unsigned long nsec;
       Sg_GetTimeOfDay(&sec, &usec);
       nsec = usec * 1000;
-      sp->tv_sec = sp->tv_sec - (sec - start.tv_sec);
-      sp->tv_nsec = sp->tv_nsec - (nsec - start.tv_nsec);
-      start.tv_sec = sec;
-      start.tv_nsec = nsec;
+      sp->tv_sec -= sec - start.sec;
+      sp->tv_nsec -= nsec - start.nsec;
+      if (sp->tv_sec < 0) sp->tv_sec = 0;
+      if (sp->tv_nsec < 0) sp->tv_nsec = 0;
+      start.sec = sec;
+      start.nsec = nsec;
     }
+    sp = update_timeout(selector->sockets, &start, sp, &sock_to, &timedout);
+    strip_sockets(selector, timedout);
     n = selector_sockets(selector);
-    selector->waiting = TRUE;
+
     selector->retry = FALSE;
+    
+    if (n == 0 && !SG_NULLP(timedout)) {
+      Sg_UnlockMutex(&selector->lock);
+      return Sg_Values2(SG_NIL, timedout); /* return timedout ones */
+    }
+
+    selector->waiting = TRUE;
     Sg_UnlockMutex(&selector->lock);
+
     goto retry;
   } else {
-    strip_sockets(selector, r);
+    SgObject strip;
+    if (!SG_NULLP(timedout)) {
+      SgObject h = SG_NIL, t = SG_NIL, cp;
+      SG_FOR_EACH(cp, r) {
+	SG_APPEND1(h, t, SG_CAR(cp));
+      }
+      SG_FOR_EACH(cp, timedout) {
+	SG_APPEND1(h, t, SG_CAR(cp));
+      }
+      strip = h;
+    } else {
+      strip = r;
+    }
+    strip_sockets(selector, strip);
   }
 
-  return r;  
+  return Sg_Values2(r, timedout);
 }
 
 
