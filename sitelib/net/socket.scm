@@ -442,6 +442,7 @@
     (when (procedure? error-reporter)
       (guard (e (else #f)) (error-reporter event e))))
 
+  ;; selector returns list of `(socket timeout . data)
   (define (->on-read-data sock) `(,@(cddr sock) #f))
   (define (->timeout-data sock)
     (let-values (((on-read socket timeout) (apply values (cddr sock))))
@@ -449,26 +450,26 @@
 	(list on-read socket timeout e))))
   
   (define (selector-waiter)
-    (let wait-selector ()
-      (guard (e (else (on-error 'selector e) #f))
-	(unless (socket-selector-closed? selector)
-	  (let-values (((socks timedouts) (socket-selector-wait! selector)))
-	    (actor-send-message! on-read-actor (map ->on-read-data socks))
-	    (actor-send-message! on-read-actor (map ->timeout-data timedouts))
-	    (wait-selector))))))
+    (guard (e (else (on-error 'selector e) #f))
+      (unless (socket-selector-closed? selector)
+	(let-values (((socks timedouts) (socket-selector-wait! selector)))
+	  (actor-send-message! on-read-actor (map ->on-read-data socks))
+	  (actor-send-message! on-read-actor (map ->timeout-data timedouts))
+	  (selector-waiter)))))
 
   (define (dispatch-socket receiver sender)
     (define (call-on-read e)
-      (let-values (((on-read sock timeout e) (apply values e)))
-	(unless (socket-closed? sock)
-	  (on-read sock e
-		   (case-lambda
-		    (() (push-socket sock on-read timeout))
-		    ((timeout) (push-socket sock on-read timeout)))))))
+      (guard (e (else (on-error 'on-read e) #t))
+	(let-values (((on-read sock timeout e) (apply values e)))
+	  (unless (socket-closed? sock)
+	    (on-read sock e
+		     (case-lambda
+		      (() (push-socket sock on-read timeout))
+		      ((timeout)
+		       (push-socket sock on-read (make-timeout timeout)))))))))
     (let loop ((e* (receiver)))
       (when e*
-	(guard (e (else (on-error 'on-read e) #t))
-	  (for-each call-on-read e*))
+	(for-each call-on-read e*)
 	(loop (receiver)))))
 
   (define socket-poll-thread
@@ -520,11 +521,6 @@
    (make-irritants-condition timeout)))
 
 (define (name-factory prefix) (lambda () (gensym prefix)))
-(define socket-poll-name-factory (name-factory "socket-poll-"))
 (define on-read-name-factory (name-factory "on-read-"))
-(define (get-timeout t0 t1)
-  (cond ((and t0 t1) (if (time<? t0 t1) t0 t1))
-	(t0)
-	(t1)
-	(else #f)))
+
 )
