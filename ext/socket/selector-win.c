@@ -93,8 +93,9 @@ static SgObject select_socket(SOCKET fd, SgObject sockets)
 }
 
 static SgObject win_selector_wait(win_context_t *ctx, int n,
-			      SgObject sockets,
-			      struct timespec *sp)
+				  SgSocketSelector *selector,
+				  SgObject sockets,
+				  struct timespec *sp)
 {
   const int waiting_flags = FD_READ | FD_OOB;
   int r, err = FALSE;
@@ -177,7 +178,7 @@ static SgObject selector_wait(SgSocketSelector *selector, int n,
 	     n, WSA_MAXIMUM_WAIT_EVENTS);
   }
 
-  return win_selector_wait(ctx, n, Sg_Reverse(selector->sockets), sp);
+  return win_selector_wait(ctx, n, selector, Sg_Reverse(selector->sockets), sp);
 }
 
 
