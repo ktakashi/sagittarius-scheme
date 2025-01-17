@@ -451,6 +451,7 @@
       (lambda ()
 	(let ((s (make-client-socket "localhost" (server-service server)))
 	      (msg (string->utf8 (string-append "hello " (number->string i)))))
+	  (socket-set-read-timeout! s 100) ;; 100ms
 	  (thread-sleep! delay)
 	  (guard (e (else #t))
 	    (socket-send s msg)
@@ -477,9 +478,11 @@
   (socket-close server)
 
   (values (atomic-fixnum-load result) (atomic-fixnum-load result-to)))
+
 (let-values (((r rt) (selector-test 500)))
   (test-equal "no timeout (received)" 500 r)
   (test-equal "no timeout (timedout)" 0 rt))
+
 (let-values (((r rt) (selector-test 500 (duration:of-nanos 1))))
   ;; for some reason, some sockets don't timeout.
   (test-assert "with timeout (received)" (< r 500))

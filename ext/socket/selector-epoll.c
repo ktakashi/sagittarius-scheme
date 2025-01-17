@@ -87,8 +87,14 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
   
   evm = SG_NEW_ATOMIC2(struct epoll_event *, n * sizeof(struct epoll_event));
   c = epoll_wait(ctx->fd, evm, n, millis);
+  /*
+    EINTR  The call was interrupted by a signal handler before either
+    (1) any of the requested events occurred or (2) the
+    timeout expired; see signal(7).
 
-  if (c < 0) {
+    So, timeout is also EINTR which we do put.
+  */
+  if (c < 0 && errno != EINTR) {
     *err = errno;
     return SG_FALSE;
   }
