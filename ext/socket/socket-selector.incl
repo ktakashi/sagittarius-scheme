@@ -232,8 +232,6 @@ static struct timespec * update_timeout(SgObject sockets,
   return r;
 }
 
-/*  */
-
 SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
 {
   SgObject r, timedout = SG_NIL;
