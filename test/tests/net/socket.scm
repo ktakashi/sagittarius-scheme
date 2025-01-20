@@ -237,7 +237,7 @@
        (make-thread
 	(lambda ()
 	  (let ((s (make-client-socket "localhost" server-port
-				       (socket-options (read-timeout 100))))
+				       (socket-options (read-timeout 500))))
 		(msg (string->utf8
 		      (string-append "Hello world " (number->string i)))))
 	    (guard (e (else #;(print e) s))

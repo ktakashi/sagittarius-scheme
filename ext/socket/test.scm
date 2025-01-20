@@ -418,6 +418,7 @@
   (define delay 0.01) ;; 10ms
   (define server (make-server-socket "0"))
   (define selector (make-socket-selector))
+  (define timeouts (make-atomic-fixnum 0))
   (define (echo-back s) (socket-send s (socket-recv s 255)))
   (define end? #f)
   (define t (thread-start!
@@ -438,6 +439,7 @@
 	    (let-values (((socks timed-out) (socket-selector-wait! selector)))
 	      (for-each echo-back (map car socks))
 	      (for-each (lambda (s)
+			  (socket-send s #vu8(0))
 			  (atomic-fixnum-inc! result-to)
 			  (socket-shutdown s SHUT_RDWR)
 			  (socket-close s))
@@ -451,9 +453,9 @@
       (lambda ()
 	(let ((s (make-client-socket "localhost" (server-service server)))
 	      (msg (string->utf8 (string-append "hello " (number->string i)))))
-	  (socket-set-read-timeout! s 100) ;; 100ms
+	  (socket-set-read-timeout! s 500) ;; 500ms
 	  (thread-sleep! delay)
-	  (guard (e (else #t))
+	  (guard (e (else (atomic-fixnum-inc! timeouts) #t))
 	    (socket-send s msg)
 	    (when (bytevector=? (socket-recv s 255) msg)
 	      (atomic-fixnum-inc! result)))
@@ -476,6 +478,9 @@
 
   (socket-shutdown server SHUT_RDWR)
   (socket-close server)
+
+  (test-equal (format "timeouts (count = ~a, timeout = ~a)" count timeout)
+	      0 (atomic-fixnum-load timeouts))
 
   (values (atomic-fixnum-load result) (atomic-fixnum-load result-to)))
 

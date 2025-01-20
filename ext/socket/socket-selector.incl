@@ -4,7 +4,6 @@ static int selector_sockets(SgSocketSelector *selector)
   /* filter closed socket */
   SgObject h = SG_NIL, t = SG_NIL, cp;
   int i = 0;
-  Sg_LockMutex(&selector->lock);
   SG_FOR_EACH(cp, selector->sockets) {
     SgObject slot = SG_CAR(cp);
     if (Sg_SocketOpenP(SG_SOCKET(SG_CAR(slot)))) {
@@ -13,7 +12,6 @@ static int selector_sockets(SgSocketSelector *selector)
     }
   }
   selector->sockets = h;
-  Sg_UnlockMutex(&selector->lock);
   return i;
 }
 
@@ -31,14 +29,12 @@ static void strip_sockets(SgSocketSelector *selector, SgObject slots)
   if (!SG_NULLP(slots)) {
     /* remove the returned sockets from the targets */
     SgObject h = SG_NIL, t = SG_NIL, cp;
-    Sg_LockMutex(&selector->lock);
     SG_FOR_EACH(cp, selector->sockets) {
       if (SG_FALSEP(Sg_Memq(SG_CAR(cp), slots))) {
 	SG_APPEND1(h, t, SG_CAR(cp));
       }
     }
     selector->sockets = h;
-    Sg_UnlockMutex(&selector->lock);
   }
 }
 
@@ -106,6 +102,8 @@ SgObject Sg_SocketSelectorClear(SgSocketSelector *selector)
   if (Sg_SocketSelectorWaitingP(selector)) {
     Sg_Error(UC("There's a thread already waiting for %A"), selector);
   }
+  Sg_LockMutex(&selector->lock);
+
   selector_sockets(selector);
   sockets = selector->sockets;
   SG_FOR_EACH(cp, sockets) {
@@ -113,6 +111,8 @@ SgObject Sg_SocketSelectorClear(SgSocketSelector *selector)
   }
   cp = selector->sockets;
   selector->sockets = SG_NIL;
+
+  Sg_UnlockMutex(&selector->lock);
   return cp;
 }
 
@@ -142,8 +142,8 @@ SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector,
       t->nsec = sp->tv_nsec + usec * 1000;
       to = SG_OBJ(t);
     }
-    slot = Sg_Cons(socket, Sg_Cons(to, data));
     Sg_LockMutex(&selector->lock);
+    slot = Sg_Cons(socket, Sg_Cons(to, data));
     add_socket(selector, slot);
     selector->sockets = Sg_Cons(slot, selector->sockets);
     selector_sockets(selector);
@@ -268,13 +268,14 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
   }
 
   selector->waiting = TRUE;
-  Sg_UnlockMutex(&selector->lock);
 
  retry:
+  Sg_UnlockMutex(&selector->lock);
   r = selector_wait(selector, n, sp);
+
+  Sg_LockMutex(&selector->lock);
   selector->waiting = FALSE;
   if (SG_NULLP(r) && selector->retry) {
-    Sg_LockMutex(&selector->lock);
     /*
       socket is added during waiting. here we do
       - update timeout
@@ -304,7 +305,6 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
     }
 
     selector->waiting = TRUE;
-    Sg_UnlockMutex(&selector->lock);
 
     goto retry;
   } else {
@@ -324,6 +324,7 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
     strip_sockets(selector, strip);
   }
 
+  Sg_UnlockMutex(&selector->lock);
   return Sg_Values2(r, timedout);
 }
 
