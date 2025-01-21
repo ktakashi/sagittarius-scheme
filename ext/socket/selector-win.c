@@ -97,6 +97,7 @@ void Sg_CloseSocketSelector(SgSocketSelector *selector)
   }
 }
 
+#if 0
 static SgObject select_socket(SOCKET fd, SgObject sockets)
 {
   SgObject cp;
@@ -265,6 +266,96 @@ static SgObject selector_wait(SgSocketSelector *selector, int n,
   }
 
   return win_selector_wait(ctx, n, selector, sockets, sp);
+}
+#endif
+
+static SgObject win_selector_wait(win_context_t *ctx, int n,
+				  SgSocketSelector *selector,
+				  SgObject sockets,
+				  struct timespec *sp)
+{
+  const int waiting_flags = FD_READ | FD_OOB;
+  int r, err = FALSE;
+  DWORD millis = INFINITE;
+  SgObject ret = SG_NIL;
+  WSAEVENT eArray[2] = { NULL, };
+
+  eArray[1] = ctx->event;
+  eArray[0] = WSACreateEvent();
+#define SET_EVENT(sockets, flags)					\
+  do {									\
+    SgObject cp;							\
+    int i = 0;								\
+    SG_FOR_EACH(cp, sockets) {						\
+      SgObject s = SG_CAAR(cp);						\
+      /* avoid unwanted sockets */					\
+      if (i == n) break;						\
+      if (WSAEventSelect(SG_SOCKET(s)->socket, eArray[0], flags) != 0) { \
+	err = TRUE;							\
+	goto cleanup;							\
+      }									\
+      i++;								\
+    }									\
+  } while(0)
+  SET_EVENT(sockets, waiting_flags);
+  
+  if (sp) {
+    millis = sp->tv_sec * 1000;
+    millis += sp->tv_nsec / 1000000;
+  }
+
+  r = WSAWaitForMultipleEvents(2, eArray, FALSE, millis, FALSE);
+  /* most likely closed selector */
+  if (r == WSA_WAIT_FAILED) {
+    err = TRUE;
+    goto cleanup;
+  }
+  /* reset interrupting event as soon as possible */
+  WSAResetEvent(ctx->event);
+  if (r == WSA_WAIT_EVENT_0) {
+    SgObject cp;
+    WSANETWORKEVENTS networkEvents;
+    SG_FOR_EACH(cp, sockets) {
+      SgSocket *so = SG_SOCKET(SG_CAAR(cp));
+      if (WSAEnumNetworkEvents(so->socket, eArray[0], &networkEvents) == 0) {
+	if ((networkEvents.lNetworkEvents & waiting_flags) != 0) {
+	  ret = Sg_Cons(so, ret);
+	}
+      }
+    }
+  }
+
+#undef SET_EVENT
+
+cleanup:
+  if (eArray[0]) {
+    int i = 0;
+    SgObject cp;
+    SG_FOR_EACH(cp, sockets) {
+      SgObject s = SG_CAAR(cp);
+      WSAEventSelect(SG_SOCKET(s)->socket, eArray[0], 0);
+    }
+    WSACloseEvent(eArray[1]);
+  }
+
+  if (err) {
+    int e = WSAGetLastError();
+    selector->waiting = FALSE;
+    if (e == WSA_INVALID_HANDLE) {
+      Sg_Error(UC("Socket selector is closed during waiting: %A"), selector);
+    }
+    Sg_Error(UC("Failed to wait selector: [%d] %S"), e,
+	     Sg_GetLastErrorMessageWithErrorCode(e));
+  }
+  return ret;
+}
+
+static SgObject selector_wait(SgSocketSelector *selector, int n,
+			      struct timespec *sp)
+{
+  win_context_t *ctx = (win_context_t *)selector->context;
+  SgObject sockets = Sg_Reverse(selector->sockets);
+   return win_selector_wait(ctx, n, selector, sockets, sp);
 }
 
 
