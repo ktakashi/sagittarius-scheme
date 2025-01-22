@@ -6,6 +6,7 @@
 	(srfi :18)
 	(srfi :19)
 	(srfi :64)
+	(sagittarius atomic)
 	(sagittarius threads)
 	(util concurrent)
 	(rename (sagittarius crypto keys)
@@ -202,6 +203,7 @@
 (let ()
   (define count 100)
   (define (run-socket-selector hard-timeout soft-timeout)
+    (define ready-sockets (make-atomic-fixnum 0))
     (define server-sock (make-server-socket "0"))
     (define mark #vu8(0))
     (define (echo sock e reuse-invoker)
@@ -225,6 +227,7 @@
 	      (let loop ()
 		(let ((sock (socket-accept server-sock)))
 		  (when sock
+		    (atomic-fixnum-inc! ready-sockets)
 		    (socket-selector sock echo soft-timeout)
 		    (loop))))
 	      (terminater)))))))
@@ -241,7 +244,6 @@
 		(msg (string->utf8
 		      (string-append "Hello world " (number->string i)))))
 	    (guard (e (else #;(print e) s))
-	      (thread-sleep! 0.1)
 	      (socket-send s msg)
 	      (let ((v (socket-recv s 255)))
 		(cond ((bytevector=? v mark) (shared-queue-put! result #f))
@@ -258,18 +260,24 @@
     (define (safe-close s)
       (cond ((socket? s) (socket-close s))
 	    ((condition? s) (report-error s))))
-    
-    (for-each safe-close (map safe-join! (map caller (iota count))))
+
+    (let ((t* (map caller (iota count))))
+      (do () ((= count (atomic-fixnum-load ready-sockets))))
+      (for-each safe-close (map safe-join! t*)))
 
     (socket-shutdown server-sock SHUT_RDWR)
     (socket-close server-sock)
 
     (guard (e (else #t)) (thread-join! server-thread))
+    
     (shared-queue->list result))
-  (test-equal count (length (filter string? (run-socket-selector 1000 #f))))
-  (test-assert (not (= count (length
-			      (filter string? (run-socket-selector 10 #f))))))
-  (test-equal count (length (filter string? (run-socket-selector 10 1000))))
+  (let ((r (run-socket-selector 1000 #f)))
+    (test-equal "no soft, hard = 1000ms" count (length (filter string? r))))
+  (let ((r (run-socket-selector 10 #f)))
+    (test-assert "no soft, hard = 10ms"
+		 (not (= count (length (filter string? r))))))
+  (let ((r (run-socket-selector 10 1000)))
+    (test-equal "soft = 1000ms, hard = 10ms" count (length (filter string? r))))
   )
 
 (let ()
@@ -313,18 +321,20 @@
 			(string-append "Hello world " (number->string i))))
 	(selector s push-result soft-timeout)))
     (define (collect-thread)
-      (do ((i 0 (+ i 1)) (r '() (cons (shared-queue-get! result) r)))
+      ;; should wait 1s but if we do, it'd be max 100s per test
+      ;; in theory, 300ms should be enough per socket
+      (do ((i 0 (+ i 1)) (r '() (cons (shared-queue-get! result 0.5 #f) r)))
 	  ((= i count) r)))
 
     (let-values (((selector terminator) (make-socket-selector hard-timeout)))
       (for-each (caller selector) (iota count))
-      (let ((r (map thread-join! (collect-thread))))
+      (let ((r (map (lambda (t?) (and t? (thread-join! t?))) (collect-thread))))
 	(terminator)
 	r)))
 
   (test-equal "hard 1000ms soft #f"
 	      count (length (filter string? (run-socket-selector 1000 #f))))
-  (test-equal "hard 0ms soft #f"
+  (test-equal "hard 100ms soft #f"
 	      0 (length (filter string? (run-socket-selector 100 #f))))
   (test-equal "hard 10ms soft 1000ms"
 	      count (length (filter string? (run-socket-selector 10 1000))))

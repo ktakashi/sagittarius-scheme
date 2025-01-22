@@ -117,14 +117,17 @@ static SgString* utf16ToUtf32WithRegion(wchar_t *s, wchar_t *e)
 static SgObject get_last_error(DWORD e)
 {
 #define MSG_SIZE 128
-  wchar_t msg[MSG_SIZE];
-  int size = FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+  wchar_t msg[MSG_SIZE] = {0,};
+  int size = FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM
+			    | FORMAT_MESSAGE_IGNORE_INSERTS,
 			    0, 
 			    e,
 			    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-			    msg,
 			    MSG_SIZE,
+			    0,
 			    NULL);
+  if (size == 0) return SG_STRING("*no error message available*");
+
   if (size > 2 && msg[size - 2] == '\r') {
     msg[size - 2] = 0;
     size -= 2;
