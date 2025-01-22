@@ -273,7 +273,9 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
 
   Sg_LockMutex(&selector->lock);
   selector->waiting = FALSE;
+
   if (SG_NULLP(r) && selector->retry) {
+    selector->retry = FALSE;
     /*
       socket is added during waiting. here we do
       - update timeout
@@ -294,8 +296,6 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
     sp = update_timeout(selector->sockets, &start, sp, &sock_to, &timedout);
     strip_sockets(selector, timedout);
     n = selector_sockets(selector);
-
-    selector->retry = FALSE;
     
     if (n == 0 && !SG_NULLP(timedout)) {
       Sg_UnlockMutex(&selector->lock);
@@ -307,6 +307,8 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
     goto retry;
   } else {
     SgObject strip;
+    /* reset it, in case of r is not null :) */
+    selector->retry = FALSE;
     if (!SG_NULLP(timedout)) {
       SgObject h = SG_NIL, t = SG_NIL, cp;
       SG_FOR_EACH(cp, r) {

@@ -419,7 +419,11 @@
   (define server (make-server-socket "0"))
   (define selector (make-socket-selector))
   (define timeouts (make-atomic-fixnum 0))
-  (define (echo-back s) (socket-send s (socket-recv s 255)))
+  (define ready-counts (make-atomic-fixnum 0))
+  (define client-counts (make-atomic-fixnum 0))
+  (define (echo-back s)
+    (atomic-fixnum-inc! ready-counts)
+    (socket-send s (socket-recv s 255)))
   (define end? #f)
   (define t (thread-start!
 	     (make-thread
@@ -427,6 +431,7 @@
 		(let loop ()
 		  (let ((s (socket-accept server)))
 		    (when (and s (not end?))
+		      (atomic-fixnum-inc! client-counts)
 		      (socket-selector-add! selector s timeout)
 		      (loop))))))))
   (define t2
@@ -448,12 +453,12 @@
   (define result (make-atomic-fixnum 0))
   (define result-to (make-atomic-fixnum 0))
   (define (do-test i)
+    (define s (make-client-socket "localhost" (server-service server)))
+    (socket-set-read-timeout! s 500) ;; 500ms
     (thread-start!
      (make-thread
       (lambda ()
-	(let ((s (make-client-socket "localhost" (server-service server)))
-	      (msg (string->utf8 (string-append "hello " (number->string i)))))
-	  (socket-set-read-timeout! s 500) ;; 500ms
+	(let ((msg (string->utf8 (string-append "hello " (number->string i)))))
 	  (thread-sleep! delay)
 	  (guard (e (else (atomic-fixnum-inc! timeouts) #t))
 	    (socket-send s msg)
@@ -461,7 +466,12 @@
 	      (atomic-fixnum-inc! result)))
 	  (socket-shutdown s SHUT_RDWR)
 	  (socket-close s))))))
-  (for-each thread-join! (map do-test (iota count)))
+  (let ((t* (map do-test (iota count))))
+    (let loop ()
+      (unless (= count (atomic-fixnum-load client-counts))
+	(thread-sleep! delay)
+	(loop)))
+    (for-each thread-join! t*))
 
   (set! end? #t)
   (let ((s (make-client-socket "localhost" (server-service server))))
@@ -482,14 +492,17 @@
   (test-equal (format "timeouts (count = ~a, timeout = ~a)" count timeout)
 	      0 (atomic-fixnum-load timeouts))
 
-  (values (atomic-fixnum-load result) (atomic-fixnum-load result-to)))
+  (values (atomic-fixnum-load ready-counts)
+	  (atomic-fixnum-load result) (atomic-fixnum-load result-to)))
 
-(let-values (((r rt) (selector-test 500)))
+(let-values (((c r rt) (selector-test 500)))
+  (test-equal "no timeout (socket ready)" 500 c)
   (test-equal "no timeout (received)" 500 r)
   (test-equal "no timeout (timedout)" 0 rt))
 
-(let-values (((r rt) (selector-test 500 (duration:of-nanos 1))))
+(let-values (((c r rt) (selector-test 500 (duration:of-nanos 1))))
   ;; for some reason, some sockets don't timeout.
+  (test-assert "with timeout (socket ready)" (= r c))
   (test-assert "with timeout (received)" (< r 500))
   (test-assert "with timeout (timedout)" (< 0 rt))
   (test-equal "with timeout (total)" 500 (+ r rt)))
