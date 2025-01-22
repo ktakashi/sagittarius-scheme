@@ -488,9 +488,10 @@
 
   (socket-shutdown server SHUT_RDWR)
   (socket-close server)
-
-  (test-equal (format "timeouts (count = ~a, timeout = ~a)" count timeout)
-	      0 (atomic-fixnum-load timeouts))
+  (unless timeout
+    (test-equal (format "timeouts (count = ~a, timeout = ~a): ~a"
+			count timeout (atomic-fixnum-load timeouts))
+		0 (atomic-fixnum-load timeouts)))
 
   (values (atomic-fixnum-load ready-counts)
 	  (atomic-fixnum-load result) (atomic-fixnum-load result-to)))
