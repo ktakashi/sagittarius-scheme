@@ -126,7 +126,7 @@ static SgObject get_last_error(DWORD e)
 			    MSG_SIZE,
 			    0,
 			    NULL);
-  if (size == 0) return SG_STRING("*no error message available*");
+  if (size == 0) return SG_MAKE_STRING("*no system error message available*");
 
   if (size > 2 && msg[size - 2] == '\r') {
     msg[size - 2] = 0;
