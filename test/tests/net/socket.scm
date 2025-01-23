@@ -244,6 +244,7 @@
 		(msg (string->utf8
 		      (string-append "Hello world " (number->string i)))))
 	    (guard (e (else #;(print e) s))
+	      (when (even? i) (thread-sleep! 0.05));; 50ms
 	      (socket-send s msg)
 	      (let ((v (socket-recv s 255)))
 		(cond ((bytevector=? v mark) (shared-queue-put! result #f))
@@ -275,7 +276,7 @@
     (test-equal "no soft, hard = 1000ms" count (length (filter string? r))))
   (let ((r (run-socket-selector 10 #f)))
     (test-assert "no soft, hard = 10ms"
-		 (not (= count (length (filter string? r))))))
+		(<= (length (filter string? r)) (div count 2))))
   (let ((r (run-socket-selector 10 1000)))
     (test-equal "soft = 1000ms, hard = 10ms" count (length (filter string? r))))
   )
