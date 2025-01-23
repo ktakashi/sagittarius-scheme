@@ -301,10 +301,12 @@
   (define count 100)
   (define (run-socket-selector hard-timeout soft-timeout)
     (define result (make-shared-queue))
+    (define counter (make-atomic-fixnum 0))
     (define server-port
       (number->string (socket-info-port (socket-info server-sock))))
     (define ((caller selector) i)
       (define (push-result sock e reuse)
+	(atomic-fixnum-inc! counter)
 	(shared-queue-put! result
 	 (thread-start!
 	  (make-thread
@@ -322,23 +324,29 @@
 			(string-append "Hello world " (number->string i))))
 	(selector s push-result soft-timeout)))
     (define (collect-thread)
-      ;; should wait 1s but if we do, it'd be max 100s per test
-      ;; in theory, 300ms should be enough per socket
-      (do ((i 0 (+ i 1)) (r '() (cons (shared-queue-get! result 0.5 #f) r)))
+      (do ((i 0 (+ i 1)) (r '() (cons (shared-queue-get! result) r)))
 	  ((= i count) r)))
+    (define (safe-join! t)
+      (guard (e ((uncaught-exception? e)
+		 (uncaught-exception-reason e))
+		(else #f))
+	(thread-join! t)))
 
     (let-values (((selector terminator) (make-socket-selector hard-timeout)))
       (for-each (caller selector) (iota count))
-      (let ((r (map (lambda (t?) (and t? (thread-join! t?))) (collect-thread))))
+      (let ((r (map (lambda (t?) (and t? (safe-join! t?))) (collect-thread))))
 	(terminator)
-	r)))
+	(values (atomic-fixnum-load counter) r))))
 
-  (test-equal "hard 1000ms soft #f"
-	      count (length (filter string? (run-socket-selector 1000 #f))))
-  (test-equal "hard 100ms soft #f"
-	      0 (length (filter string? (run-socket-selector 100 #f))))
-  (test-equal "hard 10ms soft 1000ms"
-	      count (length (filter string? (run-socket-selector 10 1000))))
+  (let-values (((c r) (run-socket-selector 1000 #f)))
+    (test-equal "counter (1)" 100 c)
+    (test-equal "hard 1000ms soft #f" count (length (filter string? r))))
+  (let-values (((c r) (run-socket-selector 100 #f)))
+    (test-equal "counter (2)" 100 c)
+    (test-equal "hard 100ms soft #f" 0 (length (filter string? r))))
+  (let-values (((c r) (run-socket-selector 10 1000)))
+    (test-equal "counter (3)" 100 c)
+    (test-equal "hard 10ms soft 1000ms" count (length (filter string? r))))
   (socket-shutdown server-sock SHUT_RDWR)
   (socket-close server-sock)
   (guard (e (else #t)) (thread-join! server-thread)))
