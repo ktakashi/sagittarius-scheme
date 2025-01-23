@@ -48,9 +48,8 @@
 typedef struct win_context_rec
 {
   WSAEVENT event;
-  SgObject results;		/* result for multiple waiting */
-  HANDLE  *threads;		/* threads for multiple waiting */
-  HANDLE   lock;		/* lock */
+  WSAEVENT events[WSA_MAXIMUM_WAIT_EVENTS]; /* for sliding batch */
+  HANDLE   lock;			    /* lock for closing... */
 } win_context_t;
 
 
@@ -77,11 +76,19 @@ static void * make_selector_context()
 
   ctx->event = WSACreateEvent();
   if (ctx->event == NULL) goto err;
+  for (int i = 0; i < WSA_MAXIMUM_WAIT_EVENTS; i++) {
+    ctx->events[i] = WSACreateEvent();
+    if (ctx->events[i] == NULL) goto err;
+  }
   ctx->lock = CreateMutex(NULL, FALSE, NULL);
 
   return ctx;
 
  err:
+  if (ctx->event) WSACloseEvent(ctx->event);
+  for (int i = 0; i < WSA_MAXIMUM_WAIT_EVENTS; i++) {
+    if (ctx->events[i]) WSACloseEvent(ctx->events[i]);
+  }
   system_error(Sg_GetLastError());
   return NULL;		/*  dummy */
 }
@@ -91,8 +98,15 @@ void Sg_CloseSocketSelector(SgSocketSelector *selector)
   if (!Sg_SocketSelectorClosedP(selector)) {
     win_context_t *ctx = (win_context_t *)selector->context;
     selector->context = NULL;
+    
+    WaitForSingleObject(ctx->lock, INFINITE);
     WSACloseEvent(ctx->event);
-    CloseHandle(ctx->lock);
+    ctx->event = INVALID_HANDLE_VALUE;
+    for (int i = 0; i < WSA_MAXIMUM_WAIT_EVENTS; i++) {
+      WSACloseEvent(ctx->events[i]);
+      ctx->events[i] = INVALID_HANDLE_VALUE;
+    }
+    ReleaseMutex(ctx->lock);
     Sg_UnregisterFinalizer(selector);
   }
 }
@@ -107,7 +121,7 @@ static SgObject win_selector_wait(win_context_t *ctx, int n,
   DWORD millis = INFINITE;
   SgObject ret = SG_NIL;
 
-#define SET_EVENT(sockets, event, flags)					\
+#define SET_EVENT(sockets, event, flags)				\
   do {									\
     SgObject cp;							\
     int i = 0;								\
@@ -135,45 +149,48 @@ static SgObject win_selector_wait(win_context_t *ctx, int n,
     err = TRUE;
     goto cleanup;
   }
-  /* unassociate event  */
+  /* unassociate ctx->event  */
   SET_EVENT(sockets, ctx->event, 0);
-  WSAResetEvent(ctx->event);	/* reset event */
-
+  
   if (r == WSA_WAIT_EVENT_0) {
     int batch = (n/WSA_MAXIMUM_WAIT_EVENTS) + (n%WSA_MAXIMUM_WAIT_EVENTS)>0 ? 1 : 0;
-    int size = max(n, WSA_MAXIMUM_WAIT_EVENTS);
-    WSAEVENT events[WSA_MAXIMUM_WAIT_EVENTS] = { NULL, };
-    
-    for (int i = 0; i < size; i++) events[i] = WSACreateEvent();
-
+    int size = min(n, WSA_MAXIMUM_WAIT_EVENTS);
     SgObject cp = sockets;
     WSANETWORKEVENTS networkEvents;
-
-    while (SG_PAIRP(cp)) {
-      SgObject h = SG_NIL, t = SG_NIL;
-      for (int i = 0; i < size && SG_PAIRP(cp); i++, cp = SG_CDR(cp)) {
-	SgObject slot = SG_CAR(cp);
-	SgSocket *so = SG_SOCKET(SG_CAR(slot));
-	WSAEventSelect(so->socket, events[i], waiting_flags);
-	SG_APPEND1(h, t, slot);
-      }
-      r = WSAWaitForMultipleEvents(size, events, FALSE, 0, FALSE);
-      if (r != WSA_WAIT_TIMEOUT && r != WSA_WAIT_FAILED) {
-	int i = 0;
-	SgObject cp2;
-	SG_FOR_EACH(cp2, h) {
-	  SgObject slot = SG_CAR(cp2);
-	  SgSocket *s = SG_SOCKET(SG_CAR(slot));
-	  if (WSAEnumNetworkEvents(s->socket, events[i], &networkEvents) == 0) {
-	    if ((networkEvents.lNetworkEvents & waiting_flags) != 0) {
-	      ret = Sg_Cons(slot, ret);
+    r = WaitForSingleObject(ctx->lock, INFINITE);
+    if (r == WAIT_OBJECT_0 && ctx->event != INVALID_HANDLE_VALUE) {
+      WSAResetEvent(ctx->event);	/* reset event */
+      while (SG_PAIRP(cp)) {
+	SgObject h = SG_NIL, t = SG_NIL;
+	int count = 0;
+	for (int i = 0; i < size && SG_PAIRP(cp); i++, cp = SG_CDR(cp)) {
+	  SgObject slot = SG_CAR(cp);
+	  SgSocket *so = SG_SOCKET(SG_CAR(slot));
+	  WSAEventSelect(so->socket, ctx->events[i], waiting_flags);
+	  count++;
+	  SG_APPEND1(h, t, slot);
+	}
+	r = WSAWaitForMultipleEvents(count, ctx->events, FALSE, 0, FALSE);
+	if (r != WSA_WAIT_TIMEOUT && r != WSA_WAIT_FAILED) {
+	  int i = 0;
+	  SgObject cp2;
+	  SG_FOR_EACH(cp2, h) {
+	    SgObject slot = SG_CAR(cp2);
+	    SgSocket *s = SG_SOCKET(SG_CAR(slot));
+	    if (WSAEnumNetworkEvents(s->socket, ctx->events[i], &networkEvents) == 0) {
+	      if ((networkEvents.lNetworkEvents & waiting_flags) != 0) {
+		ret = Sg_Cons(slot, ret);
+	      }
 	    }
 	  }
+	}
+	SG_FOR_EACH(cp, h) {
+	  SgSocket *s = SG_SOCKET(SG_CAAR(cp));
 	  WSAEventSelect(s->socket, NULL, 0);
 	}
       }
+      ReleaseMutex(ctx->lock);
     }
-    for (int i = 0; i < size; i++) WSACloseEvent(events[i]);
   }
 
 #undef SET_EVENT
@@ -203,7 +220,7 @@ static SgObject selector_wait(SgSocketSelector *selector, int n,
 {
   win_context_t *ctx = (win_context_t *)selector->context;
   SgObject sockets = Sg_Reverse(selector->sockets);
-   return win_selector_wait(ctx, n, selector, sockets, sp);
+  return win_selector_wait(ctx, n, selector, sockets, sp);
 }
 
 
