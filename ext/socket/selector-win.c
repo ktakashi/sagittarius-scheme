@@ -107,6 +107,7 @@ void Sg_CloseSocketSelector(SgSocketSelector *selector)
       ctx->events[i] = INVALID_HANDLE_VALUE;
     }
     ReleaseMutex(ctx->lock);
+    CloseHandle(ctx->lock);	/* hope it'd still work... */
     Sg_UnregisterFinalizer(selector);
   }
 }
