@@ -54,7 +54,8 @@
 	    (sagittarius)
 	    (only (sagittarius socket)
 		  nonblocking-socket? make-socket-read-timeout-error
-		  socket-node socket-service)
+		  socket-node socket-service
+		  socket-get-read-timeout)
 	    (sagittarius dynamic-module))
 (load-dynamic-module "sagittarius--tls-socket")
 
@@ -63,8 +64,9 @@
 (define (tls-socket-recv! sock bv start len :optional (flags 0))
   (let ((r (%tls-socket-recv! sock bv start len flags)))
     (when (and (< r 0) (not (nonblocking-socket? (slot-ref sock 'raw-socket))))
-      (let ((raw-sock (slot-ref sock 'raw-socket)))
-	(raise (condition (make-socket-read-timeout-error sock)
+      (let* ((raw-sock (slot-ref sock 'raw-socket))
+	     (to (socket-get-read-timeout raw-sock)))
+	(raise (condition (make-socket-read-timeout-error sock to)
 			  (make-who-condition 'tls-socket-recv!)
 			  (make-message-condition
 			   (format "Read timeout! node: ~a, service: ~a"
@@ -75,8 +77,9 @@
 (define (tls-socket-recv sock len :optional (flags 0))
   (let ((r (%tls-socket-recv sock len flags)))
     (unless (or r (nonblocking-socket? (slot-ref sock 'raw-socket)))
-      (let ((raw-sock (slot-ref sock 'raw-socket)))
-	(raise (condition (make-socket-read-timeout-error sock)
+      (let* ((raw-sock (slot-ref sock 'raw-socket))
+	     (to (socket-get-read-timeout raw-sock)))
+	(raise (condition (make-socket-read-timeout-error sock to)
 			  (make-who-condition 'tls-socket-recv)
 			  (make-message-condition
 			   (format "Read timeout! node: ~a, service: ~a"

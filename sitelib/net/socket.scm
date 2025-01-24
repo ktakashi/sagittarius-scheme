@@ -100,6 +100,7 @@
 	    socket-nonblocking!
 	    socket-blocking!
 	    socket-set-read-timeout!
+	    socket-get-read-timeout
 	    nonblocking-socket?
 
 	    make-socket-selector
@@ -511,7 +512,7 @@
 			      "Timeout must be integer (ms) or time" timeout))))
 (define (make-selector-timeout-condition sock timeout)
   (condition 
-   (make-socket-read-timeout-error sock)
+   (make-socket-read-timeout-error sock timeout)
    (make-who-condition 'socket-selector)
    (make-message-condition
     (format "Selector timeout: node: ~a, service: ~a, timeout: ~s"

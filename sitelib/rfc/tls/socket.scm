@@ -56,6 +56,7 @@
 	    tls-socket-nonblocking!
 	    tls-socket-blocking!
 	    tls-socket-set-read-timeout!
+	    tls-socket-get-read-timeout
 	    nonblocking-tls-socket?
 	    tls-socket-client-certificate-callback-set!
 
@@ -289,6 +290,8 @@
     (nonblocking-socket? (~ socket 'raw-socket)))
   (define (tls-socket-set-read-timeout! tls-socket timeout)
     (socket-set-read-timeout! (slot-ref tls-socket 'raw-socket) timeout))
+  (define (tls-socket-get-read-timeout tls-socket)
+    (socket-get-read-timeout (slot-ref tls-socket 'raw-socket)))
 
   ;; to make call-with-socket available for tls-socket
   (define-method socket-close ((o <tls-socket>))
@@ -336,6 +339,8 @@
     (nonblocking-tls-socket? o))
   (define-method socket-set-read-timeout! ((o <tls-socket>) timeout)
     (tls-socket-set-read-timeout! o timeout))
+  (define-method socket-get-read-timeout ((o <tls-socket>))
+    (tls-socket-get-read-timeout o))
 
   (define (select-sockets selector timeout sockets)
     (define mapping (make-eq-hashtable))

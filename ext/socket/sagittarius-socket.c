@@ -611,6 +611,11 @@ SgObject Sg_SocketSetopt(SgSocket *socket, int level, int name, SgObject value)
     long v = Sg_GetInteger(value);
     r = setsockopt(socket->socket, level, name, (const char *)&v, sizeof(int));
   } else if (SG_TIMEP(value)) {
+    if (name != SO_RCVTIMEO && name != SO_SNDTIMEO) {
+      Sg_AssertionViolation(SG_INTERN("socket-setsockopt!"),
+			    SG_MAKE_STRING("time object is required for SO_RCVTIMEO and SO_SNDTIMEO"),
+			    value);
+    }
 #ifdef _WIN32
     DWORD v;
     v = SG_TIME(value)->sec*1000 + SG_TIME(value)->nsec/1000000;
@@ -638,7 +643,9 @@ SgObject Sg_SocketGetopt(SgSocket *socket, int level, int name, int rsize)
 {
   int r = 0;
   socklen_t rrsize = rsize;
+  
   CLOSE_SOCKET("socket-getsockopt", socket);
+  
   if (rsize > 0) {
     SgObject bvec = Sg_MakeByteVector(rrsize, 0);
     r = getsockopt(socket->socket, level, name, 
@@ -650,6 +657,37 @@ SgObject Sg_SocketGetopt(SgSocket *socket, int level, int name, int rsize)
     }
     SG_BVECTOR_SIZE(bvec) = rrsize;
     return SG_OBJ(bvec);
+  } else if (name == SO_RCVTIMEO || name == SO_SNDTIMEO) {
+    SgTime *t;
+#ifdef _WIN32
+    DWORD v;
+    rrsize = sizeof(DWORD);
+    r = getsockopt(socket->socket, level, name, (const char *)v, &rrsize);
+#else
+    struct timeval tv;
+    rrsize = sizeof(struct timeval);
+    r = getsockopt(socket->socket, level, name, &tv, &rrsize);
+#endif
+    if (r < 0) {
+      raise_socket_error(SG_INTERN("socket-getsockopt"), 
+			 Sg_GetLastErrorMessageWithErrorCode(last_error),
+			 Sg_MakeConditionSocket(socket), SG_NIL);
+    }
+
+    t = SG_NEW(SgTime);
+    SG_SET_CLASS(t, SG_CLASS_TIME);
+    t->type = SG_INTERN("time-duration");
+    if (rrsize > 0) {
+#ifdef _WIN32
+      t->sec = v / 1000;
+      t->nsec = (v % 1000) * 1000000;
+#else
+      t->sec = tv.tv_sec;
+      t->nsec = tv.tv_usec * 1000;
+#endif
+      return SG_OBJ(t);
+    }
+    return SG_FALSE;		/*  not set */
   } else {
     int val;
     rrsize = sizeof(int);

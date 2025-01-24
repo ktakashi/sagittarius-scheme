@@ -69,6 +69,7 @@
 	    socket-nonblocking!
 	    socket-blocking!
 	    socket-set-read-timeout!
+	    socket-get-read-timeout
 	    nonblocking-socket?
 	    ;; addrinfo
 	    make-addrinfo
@@ -205,27 +206,30 @@
   (define-condition-accessor socket-error-port &socket-port &socket-error-port)
 
   (define-condition-type &socket-read-timeout &socket
-    make-socket-read-timeout-error socket-read-timeout-error?)
+    make-socket-read-timeout-error socket-read-timeout-error?
+    (timeout socket-read-timeout-error-timeout))
 
   (define (socket-recv! sock bv start len :optional (flags 0))
     (let ((r (%socket-recv! sock bv start len flags)))
       (when (and (< r 0) (not (nonblocking-socket? sock)))
-	(raise (condition (make-socket-read-timeout-error sock)
-			  (make-who-condition 'socket-recv!)
-			  (make-message-condition 
-			   (format "Read timeout! node: ~a, service: ~a"
-				   (socket-node sock)
-				   (socket-service sock))))))
+	(let ((to (socket-get-read-timeout sock)))
+	  (raise (condition (make-socket-read-timeout-error sock to)
+			    (make-who-condition 'socket-recv!)
+			    (make-message-condition 
+			     (format "Read timeout! node: ~a, service: ~a"
+				     (socket-node sock)
+				     (socket-service sock)))))))
       r))
   (define (socket-recv sock len :optional (flags 0))
     (let ((r (%socket-recv sock len flags)))
       (unless (or r (nonblocking-socket? sock))
-	(raise (condition (make-socket-read-timeout-error sock)
-			  (make-who-condition 'socket-recv)
-			  (make-message-condition
-			   (format "Read timeout! node: ~a, service: ~a"
-				   (socket-node sock)
-				   (socket-service sock))))))
+	(let ((to (socket-get-read-timeout sock)))
+	  (raise (condition (make-socket-read-timeout-error sock to)
+			    (make-who-condition 'socket-recv)
+			    (make-message-condition
+			     (format "Read timeout! node: ~a, service: ~a"
+				     (socket-node sock)
+				     (socket-service sock)))))))
       r))
 
   (define (socket-set-read-timeout! socket read-timeout)
@@ -240,6 +244,9 @@
 	  (else (assertion-violation 'socket-set-read-timeout!
 		  "Timeout value must be an exact integer (milliseconds) or time"
 		  read-timeout))))
+  (define (socket-get-read-timeout socket)
+    (socket-getsockopt socket SOL_SOCKET SO_RCVTIMEO -1))
+
   
   (define (call-with-socket socket proc)
     (receive args (proc socket)
