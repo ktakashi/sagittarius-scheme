@@ -240,14 +240,15 @@
        (make-thread
 	(lambda ()
 	  (let ((s (make-client-socket "localhost" server-port
-				       (socket-options (read-timeout 500))))
+				       (socket-options (read-timeout 1000))))
 		(msg (string->utf8
 		      (string-append "Hello world " (number->string i)))))
 	    (guard (e (else #;(print e) s))
 	      (when (even? i) (thread-sleep! 0.05));; 50ms
 	      (socket-send s msg)
 	      (let ((v (socket-recv s 255)))
-		(cond ((bytevector=? v mark) (shared-queue-put! result #f))
+		(cond ((zero? (bytevector-u8-ref v 0)) ;; mark
+		       (shared-queue-put! result #f))
 		      (else (shared-queue-put! result (utf8->string v)))))
 	      (socket-send s mark))
 	    (socket-shutdown s SHUT_RDWR)
@@ -339,13 +340,13 @@
 	(values (atomic-fixnum-load counter) r))))
 
   (let-values (((c r) (run-socket-selector 1000 #f)))
-    (test-equal "counter (1)" 100 c)
+    (test-equal "counter (1)" count c)
     (test-equal "hard 1000ms soft #f" count (length (filter string? r))))
-  (let-values (((c r) (run-socket-selector 100 #f)))
-    (test-equal "counter (2)" 100 c)
-    (test-equal "hard 100ms soft #f" 0 (length (filter string? r))))
+  (let-values (((c r) (run-socket-selector 10 #f)))
+    (test-equal "counter (2)" count c)
+    (test-equal "hard 10ms soft #f" 0 (length (filter string? r))))
   (let-values (((c r) (run-socket-selector 10 1000)))
-    (test-equal "counter (3)" 100 c)
+    (test-equal "counter (3)" count c)
     (test-equal "hard 10ms soft 1000ms" count (length (filter string? r))))
   (socket-shutdown server-sock SHUT_RDWR)
   (socket-close server-sock)

@@ -174,8 +174,8 @@ SgObject Sg_MakeSocketSelector()
   return SG_OBJ(selector);
 }
 
-static SgObject selector_wait(SgSocketSelector *selector, void *context,
-			      int n, struct timespec *sp);
+static SgObject selector_wait(SgSocketSelector *selector, SgObject sockets,
+			      void *context, int n, struct timespec *sp);
 
 static SgObject earliest_timeout(SgObject sockets, SgTime *start,
 				 SgObject *timedout)
@@ -224,7 +224,7 @@ static struct timespec * update_timeout(SgObject sockets,
 
 SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
 {
-  SgObject r, timedout = SG_NIL;
+  SgObject r, timedout = SG_NIL, sockets;
   SgTime start;
   int n;
   unsigned long sec, usec;
@@ -247,6 +247,8 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
   start.nsec = usec * 1000;
 
   Sg_LockMutex(&selector->lock);
+
+ retry:
   /* compute socket timeout */
   sto = update_timeout(selector->sockets, &start, &sock_to, &timedout);
   /* replace if exists */
@@ -261,16 +263,16 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
     return Sg_Values2(SG_NIL, timedout); /* return timedout ones */
   }
 
-  selector->waiting = TRUE;
   context = selector->context;
   if (context == NULL) {
     Sg_UnlockMutex(&selector->lock);
     Sg_Error(UC("Socket selector is closed: %A"), selector);
   }
+  sockets = selector->sockets;
+  selector->waiting = TRUE;
 
- retry:
   Sg_UnlockMutex(&selector->lock);
-  r = selector_wait(selector, context, n, sp);
+  r = selector_wait(selector, sockets, context, n, sp);
 
   Sg_LockMutex(&selector->lock);
   selector->waiting = FALSE;
@@ -294,20 +296,6 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
       start.sec = sec;
       start.nsec = nsec;
     }
-    sto = update_timeout(selector->sockets, &start, &sock_to, &timedout);
-    if (sto) {
-      sp = sto;
-    }
-    strip_sockets(selector, timedout);
-    n = selector_sockets(selector);
-    
-    if (n == 0 && !SG_NULLP(timedout)) {
-      Sg_UnlockMutex(&selector->lock);
-      return Sg_Values2(SG_NIL, timedout); /* return timedout ones */
-    }
-
-    selector->waiting = TRUE;
-
     goto retry;
   } else {
     /* reset it, in case of r is not null :) */

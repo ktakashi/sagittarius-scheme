@@ -230,11 +230,10 @@ cleanup:
   return ret;
 }
 
-static SgObject selector_wait(SgSocketSelector *selector, void *context, int n,
-			      struct timespec *sp)
+static SgObject selector_wait(SgSocketSelector *selector, SgObject sockets,
+			      void *context, int n, struct timespec *sp)
 {
   win_context_t *ctx = (win_context_t *)context;
-  SgObject sockets = Sg_Reverse(selector->sockets);
   return win_selector_wait(ctx, n, selector, sockets, sp);
 }
 

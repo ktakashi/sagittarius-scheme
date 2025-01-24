@@ -67,6 +67,7 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
     SgObject slot = SG_CAR(cp);
     SgSocket *s = SG_SOCKET(SG_CAR(slot));
     EV_SET(&evm[i++], s->socket, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, slot);
+    if (i == nsock) break;
   }
   EV_SET(&evm[i++], ctx->stop_fd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, NULL);
   c = kevent(ctx->fd, evm, n, evm, n, sp);
