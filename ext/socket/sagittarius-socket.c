@@ -662,7 +662,7 @@ SgObject Sg_SocketGetopt(SgSocket *socket, int level, int name, int rsize)
 #ifdef _WIN32
     DWORD v;
     rrsize = sizeof(DWORD);
-    r = getsockopt(socket->socket, level, name, (const char *)v, &rrsize);
+    r = getsockopt(socket->socket, level, name, (char *)v, &rrsize);
 #else
     struct timeval tv;
     rrsize = sizeof(struct timeval);
