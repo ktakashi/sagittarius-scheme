@@ -136,6 +136,7 @@ void Sg_CloseSocketSelector(SgSocketSelector *selector)
   if (!Sg_SocketSelectorClosedP(selector)) {
     unix_context_t *ctx = (unix_context_t *)selector->context;
     selector->context = NULL;
+    Sg_DestroyMutex(&selector->lock);
     close(ctx->fd);
     if (!is_stop_initialised(ctx)) close_unix_stop(ctx);
     Sg_UnregisterFinalizer(selector);
@@ -154,9 +155,11 @@ SgObject Sg_SocketSelectorInterrupt(SgSocketSelector *selector)
   return selector;
 }
 
-static SgObject selector_wait(SgSocketSelector *selector, int n, struct timespec *sp)
+static SgObject selector_wait(SgSocketSelector *selector,
+			      void *context,
+			      int n, struct timespec *sp)
 {
-  unix_context_t *ctx = (unix_context_t *)selector->context;
+  unix_context_t *ctx = (unix_context_t *)context;
   int err = 0;
   /* the socket is reverse order, so correct it  */
   SgObject r = wait_selector(ctx, n, Sg_Reverse(selector->sockets), sp, &err);

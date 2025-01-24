@@ -56,7 +56,7 @@ typedef struct win_context_rec
 static void system_error(int code)
 {
   Sg_SystemError(code,
-		 UC("Setting up IOCP failed: %A"),
+		 UC("Setting up socket selector failed: %A"),
 		 Sg_GetLastErrorMessageWithErrorCode(code));
 }
 
@@ -75,31 +75,40 @@ static void * make_selector_context()
   win_context_t *ctx = SG_NEW(win_context_t);
 
   ctx->event = WSACreateEvent();
-  if (ctx->event == NULL) goto err;
+  if (ctx->event == WSA_INVALID_EVENT) goto err;
   for (int i = 0; i < WSA_MAXIMUM_WAIT_EVENTS; i++) {
     ctx->events[i] = WSACreateEvent();
-    if (ctx->events[i] == NULL) goto err;
+    if (ctx->events[i] == WSA_INVALID_EVENT) goto err;
   }
   ctx->lock = CreateMutex(NULL, FALSE, NULL);
 
   return ctx;
 
  err:
-  if (ctx->event) WSACloseEvent(ctx->event);
+  if (ctx->event != WSA_INVALID_EVENT) WSACloseEvent(ctx->event);
   for (int i = 0; i < WSA_MAXIMUM_WAIT_EVENTS; i++) {
-    if (ctx->events[i]) WSACloseEvent(ctx->events[i]);
+    if (ctx->events[i] != WSA_INVALID_EVENT) WSACloseEvent(ctx->events[i]);
   }
   system_error(Sg_GetLastError());
   return NULL;		/*  dummy */
+}
+
+static void selector_finalizer_win(SgObject self, void *data)
+{
+  win_context_t *ctx = (win_context_t *)self;
+  HANDLE lock = (HANDLE)data;
+  CloseHandle(ctx->lock);
+  CloseHandle(lock);
 }
 
 void Sg_CloseSocketSelector(SgSocketSelector *selector)
 {
   if (!Sg_SocketSelectorClosedP(selector)) {
     win_context_t *ctx = (win_context_t *)selector->context;
-    selector->context = NULL;
-    
+
     WaitForSingleObject(ctx->lock, INFINITE);
+
+    selector->context = NULL;
     WSACloseEvent(ctx->event);
     ctx->event = INVALID_HANDLE_VALUE;
     for (int i = 0; i < WSA_MAXIMUM_WAIT_EVENTS; i++) {
@@ -107,8 +116,13 @@ void Sg_CloseSocketSelector(SgSocketSelector *selector)
       ctx->events[i] = INVALID_HANDLE_VALUE;
     }
     ReleaseMutex(ctx->lock);
-    CloseHandle(ctx->lock);	/* hope it'd still work... */
+
     Sg_UnregisterFinalizer(selector);
+    /*
+      In case the selector is waiting, we need to keep the lock...
+      We are even breaking the abstraction...
+     */
+    Sg_RegisterFinalizer(ctx, selector_finalizer_win, selector->lock.mutex);
   }
 }
 
@@ -216,10 +230,10 @@ cleanup:
   return ret;
 }
 
-static SgObject selector_wait(SgSocketSelector *selector, int n,
+static SgObject selector_wait(SgSocketSelector *selector, void *context, int n,
 			      struct timespec *sp)
 {
-  win_context_t *ctx = (win_context_t *)selector->context;
+  win_context_t *ctx = (win_context_t *)context;
   SgObject sockets = Sg_Reverse(selector->sockets);
   return win_selector_wait(ctx, n, selector, sockets, sp);
 }

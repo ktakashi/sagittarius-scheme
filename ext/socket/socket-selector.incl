@@ -169,14 +169,13 @@ SgObject Sg_MakeSocketSelector()
   selector->context = make_selector_context();
 
   Sg_InitMutex(&selector->lock, TRUE);
-  Sg_InitCond(&selector->cv);
 
   Sg_RegisterFinalizer(selector, selector_finalizer, NULL);
   return SG_OBJ(selector);
 }
 
-static SgObject selector_wait(SgSocketSelector *selector, int n,
-			      struct timespec *sp);
+static SgObject selector_wait(SgSocketSelector *selector, void *context,
+			      int n, struct timespec *sp);
 
 static SgObject earliest_timeout(SgObject sockets, SgTime *start,
 				 SgObject *timedout)
@@ -230,6 +229,7 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
   int n;
   unsigned long sec, usec;
   struct timespec spec, *sp, sock_to, *sto;
+  void *context;
 
   if (Sg_SocketSelectorClosedP(selector)) {
     Sg_Error(UC("Socket selector is closed: %A"), selector);
@@ -262,10 +262,15 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
   }
 
   selector->waiting = TRUE;
+  context = selector->context;
+  if (context == NULL) {
+    Sg_UnlockMutex(&selector->lock);
+    Sg_Error(UC("Socket selector is closed: %A"), selector);
+  }
 
  retry:
   Sg_UnlockMutex(&selector->lock);
-  r = selector_wait(selector, n, sp);
+  r = selector_wait(selector, context, n, sp);
 
   Sg_LockMutex(&selector->lock);
   selector->waiting = FALSE;
