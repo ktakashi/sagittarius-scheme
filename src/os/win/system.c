@@ -1208,6 +1208,7 @@ void Sg__InitSystem()
 
   active_win_procs.procs = 
     SG_WEAK_VECTOR(Sg_MakeWeakVector(PROCESS_VECTOR_SIZE));
+  Sg_InitMutex(&active_win_procs.lock, FALSE);
   Sg_InitStaticClassWithMeta(SG_CLASS_WIN_PROC, UC("<windows-process>"), 
 			     lib, NULL, SG_FALSE, NULL, 0);
   Sg_AddCleanupHandler(cleanup_win_proc, NULL);
