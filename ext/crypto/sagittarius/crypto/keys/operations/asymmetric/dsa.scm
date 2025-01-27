@@ -194,7 +194,7 @@
       (let loop ()
 	(let* ((h (random-range 2 (- p 2)))
 	       (g (mod-expt h e p)))
-	  (if (= g 1)
+	  (if (or (= g 1) (zero? g))
 	      (loop)
 	      g)))))
 		   
