@@ -1,6 +1,7 @@
 ;; -*- scheme -*-
 (add-load-path "./socket")
 (add-load-path "./threads")
+(add-load-path "./time")
 
 #!read-macro=sagittarius/bv-string
 (import (rnrs)
@@ -9,6 +10,7 @@
 	(sagittarius) ;; for format
 	;; use thread for testing
 	(sagittarius threads)
+	(sagittarius time)
 	(sagittarius atomic)
 	(prefix (binary io) b:)
 	(util bytevector)
@@ -58,8 +60,26 @@
   (number->string (socket-info-port (socket-info echo-server-socket))))
 
 (test-begin "Sagittarius socket")
+
 ;; start echo server
 (thread-start! server-thread)
+
+(let ((s (make-client-socket "localhost" server-port)))
+  ;; it returns 0, but should we check?
+  (let ((to (socket-get-read-timeout s)))
+    (test-assert "socket timeout (not set)" (time? to))
+    (test-equal time-duration (time-type to))
+    (test-equal 0 (time-second to))
+    (test-equal 0 (time-nanosecond to)))
+  
+  (socket-set-read-timeout! s 1000) ;; 1000ms
+  (let ((to (socket-get-read-timeout s)))
+    (test-assert "socket timeout" (time? to))
+    (test-equal time-duration (time-type to))
+    (test-equal 1 (time-second to))
+    (test-equal 0 (time-nanosecond to)))
+  (socket-shutdown s SHUT_RDWR)
+  (socket-close s))
 
 (test-error "ai-passive" assertion-violation?
 	    (make-client-socket #f server-port 0 0 AI_PASSIVE))
@@ -466,6 +486,7 @@
 	      (atomic-fixnum-inc! result)))
 	  (socket-shutdown s SHUT_RDWR)
 	  (socket-close s))))))
+
   (let ((t* (map do-test (iota count))))
     (let loop ()
       (unless (= count (atomic-fixnum-load client-counts))
