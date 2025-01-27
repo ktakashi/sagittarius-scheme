@@ -59,7 +59,7 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
 {
   SgObject cp, r = SG_NIL;
   int i, c, n = nsock + 1;
-  struct kevent *evm, ev;
+  struct kevent *evm;
 
   evm = SG_NEW_ATOMIC2(struct kevent *, n * sizeof(struct kevent));
   i = 0;
@@ -82,10 +82,22 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
       interrupted_unix_stop(ctx);
     } else if (evm[i].filter == EVFILT_READ) {
       r = Sg_Cons(evm[i].udata, r);
+      #if 0
       EV_SET(&ev, evm[i].ident, EVFILT_READ, EV_DELETE, 0, 0, NULL);
       kevent(ctx->fd, &ev, 1, NULL, 0, 0); /* reset event of the target socket */
+      #endif
     }
   }
+
+  i = 0;
+  SG_FOR_EACH(cp, sockets) {
+    int fd = SG_SOCKET(SG_CAAR(cp))->socket;
+    EV_SET(&evm[i++], fd, EVFILT_READ, EV_DELETE, 0, 0, NULL);
+    if (i == nsock) break;
+  }
+  EV_SET(&evm[i++], ctx->stop_fd, EVFILT_READ, EV_DELETE, 0, 0, NULL);
+  kevent(ctx->fd, evm, n, NULL, 0, 0);
+  
   return r;
 }
 
