@@ -108,7 +108,7 @@ static unsigned int __stdcall win32_thread_entry_inner(void *params)
     status = (*start)(arg);
   } else {
     /* terminated, should we raise an error? */
-    status = FALSE;
+    status = -1;
   }
   return status;
 }
