@@ -366,6 +366,10 @@ static LONG WINAPI show_stack_trace(EXCEPTION_POINTERS *ep)
   EXCEPTION_RECORD *er = ep->ExceptionRecord;
   void *exceptionAddress = er? er->ExceptionAddress: NULL;
   int exceptionCode = er? er->ExceptionCode: 0;
+  if (exceptionCode == SG_THREAD_TERMINAT_CODE) {
+    /* terminating root thread..., don't bother */
+    return EXCEPTION_EXECUTE_HANDLER;
+  }
   __try {
     EnterCriticalSection(&lock);
     fprintf(stderr, "Native error occurred at %p (%x)\n", 
@@ -397,6 +401,10 @@ static LONG show_stack_trace_handler(PEXCEPTION_POINTERS ep)
 {
   void *exceptionAddress = ep->ExceptionRecord->ExceptionAddress;
   int exceptionCode = ep->ExceptionRecord->ExceptionCode;
+  if (exceptionCode == SG_THREAD_TERMINAT_CODE) {
+    /* terminating root thread..., don't bother */
+    return EXCEPTION_EXECUTE_HANDLER;
+  }
   fprintf(stderr, "\nNative error occurred at %p (%x)\n", 
 	  exceptionAddress, exceptionCode);
   fflush(stderr);		/* not needed but for my mental health */

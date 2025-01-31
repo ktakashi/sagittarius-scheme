@@ -141,6 +141,12 @@ typedef struct SgInternalSemaphoreRec
 #define SG_INTERNAL_COND_TIMEDOUT 1
 #define SG_INTERNAL_COND_INTR     2
 
+/* https://learn.microsoft.com/en-us/cpp/cpp/raising-software-exceptions
+   Exception code structure.
+   winerror.h contains a bit more detail */
+#define SG_THREAD_TERMINAT_CODE 0xEBADDEAD
+#define SG_TERMINATION_INFO_N   2
+
 /* dummies */
 #define SG_INTERRUPTED_THREAD()	     if (TRUE)
 #define SG_INTERRUPTED_THREAD_ELSE() else

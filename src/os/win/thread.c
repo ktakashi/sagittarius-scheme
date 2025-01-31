@@ -42,52 +42,7 @@
 #include "../../gc-incl.inc"
 #include "win_util.c"
 
-/* From winerror.h */
-//
-// Note: There is a slightly modified layout for HRESULT values below,
-//        after the heading "COM Error Codes".
-//
-// Search for "**** Available SYSTEM error codes ****" to find where to
-// insert new error codes
-//
-//  Values are 32 bit values laid out as follows:
-//
-//   3 3 2 2 2 2 2 2 2 2 2 2 1 1 1 1 1 1 1 1 1 1
-//   1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
-//  +---+-+-+-----------------------+-------------------------------+
-//  |Sev|C|R|     Facility          |               Code            |
-//  +---+-+-+-----------------------+-------------------------------+
-//
-//  where
-//
-//      Sev - is the severity code
-//
-//          00 - Success
-//          01 - Informational
-//          10 - Warning
-//          11 - Error
-//
-//      C - is the Customer code flag
-//
-//      R - is a reserved bit
-//
-//      Facility - is the facility code
-//
-//      Code - is the facility's status code
-//
-//
-// Define the facility codes
-//
-#define MAKE_HRESULT_CODE(sev, fac, code)		\
-  ((DWORD)( ((sev)  << 30) |	/* sev code */		\
-	    (1      << 29) |	/* 1 = customer */	\
-	    (0      << 28) |	/* R */			\
-	    ((fac)  << 16) |	/* facility */		\
-	    ((code) << 0 )	/* code */		\
-	    ))
-#define SEV_ERROR 0x03
-#define TERMINATION_CODE MAKE_HRESULT_CODE(SEV_ERROR, 0xBAD, 0xDEAD)
-#define SIZEOF_EXCEPTION_INFO 2
+#define EXCEPTION_INFO_N SG_TERMINATION_INFO_N
 #define EXCEPTION_CANCEL 0
 #define EXCEPTION_EXIT   1
 
@@ -123,9 +78,9 @@ void Sg_DestroyMutex(SgInternalMutex *mutex)
 static DWORD exception_filter(EXCEPTION_POINTERS *ep, ULONG_PTR *ei)
 {
   switch (ep->ExceptionRecord->ExceptionCode) {
-  case TERMINATION_CODE: {
+  case SG_THREAD_TERMINAT_CODE: {
     DWORD i;
-    DWORD n = min(ep->ExceptionRecord->NumberParameters, SIZEOF_EXCEPTION_INFO);
+    DWORD n = min(ep->ExceptionRecord->NumberParameters, EXCEPTION_INFO_N);
     for (i = 0; i < n; i++) {
       ei[i] = ep->ExceptionRecord->ExceptionInformation[i];
     }
@@ -163,7 +118,7 @@ static unsigned int __stdcall win32_thread_entry(void *params)
 {
   unsigned int status;
   SgInternalThread *me = ((ThreadParams *)params)->me;
-  ULONG_PTR ei[SIZEOF_EXCEPTION_INFO];
+  ULONG_PTR ei[EXCEPTION_INFO_N];
   __try {
     status = win32_thread_entry_inner(params);
   } __except(exception_filter(GetExceptionInformation(), ei)) {
@@ -368,11 +323,11 @@ int Sg_WaitWithTimeout(SgInternalCond *cond, SgInternalMutex *mutex,
 
 static void throw_exception(int code, int status)
 {
-  ULONG_PTR exceptionInfo[SIZEOF_EXCEPTION_INFO];
+  ULONG_PTR exceptionInfo[EXCEPTION_INFO_N];
   exceptionInfo[0] = code;
   exceptionInfo[1] = status;
 
-  RaiseException(TERMINATION_CODE, 0, SIZEOF_EXCEPTION_INFO, exceptionInfo);
+  RaiseException(SG_THREAD_TERMINAT_CODE, 0, EXCEPTION_INFO_N, exceptionInfo);
 }
 
 void Sg_ExitThread(SgInternalThread *thread, void *ret)
