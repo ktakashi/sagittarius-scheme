@@ -1,6 +1,6 @@
 /* thread.c                                         -*- mode:c; coding:utf-8 -*-
  *
- *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2025  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -42,7 +42,54 @@
 #include "../../gc-incl.inc"
 #include "win_util.c"
 
-#define TERMINATION_CODE 0xcacacaca
+/* From winerror.h */
+//
+// Note: There is a slightly modified layout for HRESULT values below,
+//        after the heading "COM Error Codes".
+//
+// Search for "**** Available SYSTEM error codes ****" to find where to
+// insert new error codes
+//
+//  Values are 32 bit values laid out as follows:
+//
+//   3 3 2 2 2 2 2 2 2 2 2 2 1 1 1 1 1 1 1 1 1 1
+//   1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
+//  +---+-+-+-----------------------+-------------------------------+
+//  |Sev|C|R|     Facility          |               Code            |
+//  +---+-+-+-----------------------+-------------------------------+
+//
+//  where
+//
+//      Sev - is the severity code
+//
+//          00 - Success
+//          01 - Informational
+//          10 - Warning
+//          11 - Error
+//
+//      C - is the Customer code flag
+//
+//      R - is a reserved bit
+//
+//      Facility - is the facility code
+//
+//      Code - is the facility's status code
+//
+//
+// Define the facility codes
+//
+#define MAKE_HRESULT_CODE(sev, fac, code)		\
+  ((DWORD)( ((sev)  << 30) |	/* sev code */		\
+	    (1      << 29) |	/* 1 = customer */	\
+	    (0      << 28) |	/* R */			\
+	    ((fac)  << 16) |	/* facility */		\
+	    ((code) << 0 )	/* code */		\
+	    ))
+#define SEV_ERROR 0x03
+#define TERMINATION_CODE MAKE_HRESULT_CODE(SEV_ERROR, 0xBAD, 0xDEAD)
+#define SIZEOF_EXCEPTION_INFO 2
+#define EXCEPTION_CANCEL 0
+#define EXCEPTION_EXIT   1
 
 void Sg_InitMutex(SgInternalMutex *mutex, int recursive)
 {
@@ -73,13 +120,18 @@ void Sg_DestroyMutex(SgInternalMutex *mutex)
   }
 }
 
-static DWORD exception_filter(DWORD code, EXCEPTION_POINTERS *ep)
+static DWORD exception_filter(EXCEPTION_POINTERS *ep, ULONG_PTR *ei)
 {
-  if (code == TERMINATION_CODE) {
+  switch (ep->ExceptionRecord->ExceptionCode) {
+  case TERMINATION_CODE: {
+    DWORD i;
+    DWORD n = min(ep->ExceptionRecord->NumberParameters, SIZEOF_EXCEPTION_INFO);
+    for (i = 0; i < n; i++) {
+      ei[i] = ep->ExceptionRecord->ExceptionInformation[i];
+    }
     return EXCEPTION_EXECUTE_HANDLER;
-  } else {
-    Sg_DumpNativeStackTrace(ep);
-    return EXCEPTION_CONTINUE_SEARCH;
+  }
+  default: return EXCEPTION_CONTINUE_SEARCH;
   }
 }
 
@@ -90,34 +142,40 @@ typedef struct ThreadParams
   void *arg;
 } ThreadParams;
 
-static unsigned int __stdcall win32_thread_entry_inner(void *params)
+static unsigned int win32_thread_entry_inner(void *params)
 {
   volatile ThreadParams *threadParams = (ThreadParams *)params;
   SgThreadEntryFunc *start;
   void *arg;
   SgInternalThread *me;
-  unsigned int status;
-  
+
   me = threadParams->me;
   start = threadParams->start;
   arg = threadParams->arg;
   /* temporary storage is no longer needed. */
   /* free(params); */
   me->stackBase = (uintptr_t)&threadParams;
-  if (setjmp(me->jbuf) == 0) {
-    status = (*start)(arg);
-  } else {
-    /* terminated, should we raise an error? */
-    status = -1;
-  }
-  return status;
+
+  return (*start)(arg);
 }
 
 static unsigned int __stdcall win32_thread_entry(void *params)
 {
   unsigned int status;
   SgInternalThread *me = ((ThreadParams *)params)->me;
-  status = win32_thread_entry_inner(params);
+  ULONG_PTR ei[SIZEOF_EXCEPTION_INFO];
+  __try {
+    status = win32_thread_entry_inner(params);
+  } __except(exception_filter(GetExceptionInformation(), ei)) {
+    switch (ei[0]) {
+    case EXCEPTION_CANCEL:
+      status = -1;
+      break;
+    case EXCEPTION_EXIT:
+      status = (int)ei[1];
+      break;
+    }
+  }
   /* clear the stackBase, from now on, thread can't be terminated */
   me->stackBase = 0;
   return status;
@@ -133,8 +191,7 @@ int Sg_InternalThreadStart(SgInternalThread *thread, SgThreadEntryFunc *entry,
   params->arg = param;
   /* set return value in case */
   thread->returnValue = SG_UNDEF;
-  thread->thread = (HANDLE)_beginthreadex(NULL, 0, win32_thread_entry,
-					  params, 0, NULL);
+  thread->thread = CreateThread(NULL, 0, win32_thread_entry, params, 0, NULL);
   return TRUE;
 }
 
@@ -309,61 +366,23 @@ int Sg_WaitWithTimeout(SgInternalCond *cond, SgInternalMutex *mutex,
   return wait_internal(cond, mutex, pts);
 }
 
-void Sg_ExitThread(SgInternalThread *thread, void *ret)
+static void throw_exception(int code, int status)
 {
-  /* If Sg_TerminateThread is called here, then thread context
-     is still there and next PC would be cancel_self, so must 
-     be OK. */
-  thread->thread = NULL;
-  /* If Sg_TerminateThread is called here, then thread context
-     is gone, thus it can't swap PC to cancel_self, so should
-     be OK. We may only want to disable GC to avoid that thread
-     context is GCed. */
-  thread->returnValue = ret;
-  _endthreadex((unsigned int)ret);
+  ULONG_PTR exceptionInfo[SIZEOF_EXCEPTION_INFO];
+  exceptionInfo[0] = code;
+  exceptionInfo[1] = status;
+
+  RaiseException(TERMINATION_CODE, 0, SIZEOF_EXCEPTION_INFO, exceptionInfo);
 }
 
-#if defined(_M_IX86) || defined(_X86_)
-#define WIN_PROGCTR(ctx)  ((ctx).Eip)
-#define WIN_STCKPTR(ctx)  ((ctx).Esp)
-#endif
-
-#if defined (_M_IA64)
-#define WIN_PROGCTR(ctx)  ((ctx).StIIP)
-/* probably we don't need it */
-#define WIN_STCKPTR(ctx)  -1
-#endif
-
-#if defined(_AMD64_)
-#define WIN_PROGCTR(ctx)  ((ctx).Rip)
-#define WIN_STCKPTR(ctx)  ((ctx).Rsp)
-#endif
-
-#if defined(_M_ARM64) || defined(_M_ARM)
-#define WIN_PROGCTR(ctx)  ((ctx).Pc)
-#define WIN_STCKPTR(ctx)  ((ctx).Sp)
-#endif
-
-#if !defined(WIN_PROGCTR)
-#error Module contains CPU-specific code; modify and recompile.
-#endif
-
-static void cancel_self(uintptr_t unused)
+void Sg_ExitThread(SgInternalThread *thread, void *ret)
 {
-  /* jump if the thread is still there.
-     means _endthreadex is not called yet.
-  */
-  SgVM *vm = Sg_VM();
+  throw_exception(EXCEPTION_EXIT, -1);
+}
 
-  if (vm && vm->thread.thread) {
-    longjmp(vm->thread.jbuf, 1);
-  }
-  /* shouldn't reach here */
-  /* FIXME: remove this */
-  fputs("*WARNING* Cancelling the thread unsafely!\n", stderr);
-  /* FIXME: revert back to where we are? Otherwise this goes nowhere.
-            but how? */
-  _endthreadex((unsigned int)-1);
+static void CALLBACK cancel_callback(ULONG_PTR ignore)
+{
+  throw_exception(EXCEPTION_CANCEL, 0);
 }
 
 void Sg_TerminateThread(SgInternalThread *thread)
@@ -386,27 +405,11 @@ void Sg_TerminateThread(SgInternalThread *thread)
      FIXME: should we raise an error for this? */
   if (SuspendThread(threadH) < 0) return;
 
-  if (WaitForSingleObject(threadH, 0) != WAIT_OBJECT_0) {
-    CONTEXT context;
-    context.ContextFlags = CONTEXT_CONTROL;
-    if (GetThreadContext(threadH, &context)) {
-      uintptr_t csp = WIN_STCKPTR(context);
-      uintptr_t tsp = thread->stackBase;
-      /* stack grow downwards, thus if context's sp is lower than
-	 thread's sp, then it's still in the thread function.
-	 NB: we use less than, so that it's indeed in Scheme or 
-	     at least our thread function.
-      */
-      /* if the thread handle is gone, means it's exit */
-      if (csp < tsp && thread->thread) {
-	WIN_PROGCTR(context) = (DWORD_PTR)cancel_self;
-	SetThreadContext(threadH, &context);
-      }
-    }
+  if (WaitForSingleObject(threadH, 0) == WAIT_TIMEOUT) {
+    QueueUserAPC(cancel_callback, threadH, 0);
   }
   ResumeThread(threadH);
   thread->returnValue = SG_UNDEF;
-  
 }
 
 int Sg_InterruptThread(SgInternalThread *thread)

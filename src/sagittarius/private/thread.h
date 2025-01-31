@@ -114,7 +114,6 @@ typedef struct SgInternalThreadRec
   void   *returnValue;
   HANDLE  event;
   uintptr_t stackBase;
-  jmp_buf jbuf;
 } SgInternalThread;
 typedef unsigned int SgThreadEntryFunc(void *);
 #define SG_INTERNAL_THREAD_INIT(thr)				\

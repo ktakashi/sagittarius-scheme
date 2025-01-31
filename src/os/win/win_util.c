@@ -120,11 +120,11 @@ static SgObject get_last_error(DWORD e)
   wchar_t msg[MSG_SIZE] = {0,};
   int size = FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM
 			    | FORMAT_MESSAGE_IGNORE_INSERTS,
-			    0, 
+			    NULL, 
 			    e,
 			    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			    msg,
 			    MSG_SIZE,
-			    0,
 			    NULL);
   if (size == 0) return SG_MAKE_STRING("*no system error message available*");
 

@@ -309,6 +309,7 @@ SgObject Sg_ThreadTerminate(SgVM *target)
     }
     Sg_UnlockMutex(&target->vmlock);
     Sg_ExitThread(&target->thread, NULL);
+    return SG_UNDEF;
   } 
   Sg_LockMutex(&target->vmlock);
   if (target->threadState == SG_VM_RUNNABLE ||
