@@ -68,7 +68,9 @@
 	    lock-free-queue-pop!
 	    lock-free-queue-get!
 
-	    lock-free-queue->list)
+	    lock-free-queue->list
+	    lock-free-queue-remove!
+	    lock-free-queue-remp!)
     (import (rnrs)
 	    (sagittarius atomic)
 	    (srfi :1 lists))
@@ -116,7 +118,7 @@
   (define atomic-pair (lock-free-queue-atomic-pair q))
   (define atomic-fx (lock-free-queue-atomic-size q))
   (define (try-push ap expected element)
-    (define new-val (if (lock-free-queue-empty? q) 
+    (define new-val (if (empty-value? expected) 
 			(list element)
 			`(,@expected ,element)))
     (cond ((atomic-compare-and-swap! ap expected new-val)
@@ -125,7 +127,7 @@
 	  (else (try-push ap (atomic-load ap) element))))
   (try-push atomic-pair (atomic-load atomic-pair) e))
 
-(define (lock-free-queue-pop! q)
+(define (lock-free-queue-pop! q :optional (fallback #f))
   (define atomic-pair (lock-free-queue-atomic-pair q))
   (define atomic-fx (lock-free-queue-atomic-size q))
   (define (try-get ap expected)
@@ -133,23 +135,47 @@
       (if (null? (cdr expected))
 	  *empty-value*
 	  (cons (car expected) (drop-right (cdr expected) 1))))
-    (cond ((atomic-compare-and-swap! ap expected new-val)
+    (cond ((empty-value? expected) fallback)
+	  ((atomic-compare-and-swap! ap expected new-val)
 	   (atomic-fixnum-dec! atomic-fx)
 	   (car (take-right expected 1)))
 	  (else (try-get ap (atomic-load ap)))))
   (try-get atomic-pair (atomic-load atomic-pair)))
 
-(define (lock-free-queue-get! q)
+(define (lock-free-queue-get! q :optional (fallback #f))
   (define atomic-pair (lock-free-queue-atomic-pair q))
   (define atomic-fx (lock-free-queue-atomic-size q))
   (define (try-get ap expected)
     (define new-val (if (null? (cdr expected))
 			*empty-value*
 			(cdr expected)))
-    (cond ((atomic-compare-and-swap! ap expected new-val)
+    (cond ((empty-value? expected) fallback)
+	  ((atomic-compare-and-swap! ap expected new-val)
 	   (atomic-fixnum-dec! atomic-fx)
 	   (car expected))
 	  (else (try-get ap (atomic-load ap)))))
   (try-get atomic-pair (atomic-load atomic-pair)))
+
+(define (lock-free-queue-remove! q o . maybe=)
+  (define = (if (null? maybe=) equal? (car maybe=)))
+  (lock-free-queue-remp! q (lambda (e) (= e o))))
+
+(define (lock-free-queue-remp! q proc)
+  (define atomic-pair (lock-free-queue-atomic-pair q))
+  (define atomic-fx (lock-free-queue-atomic-size q))
+  (define (remp* pred lst)
+    (let loop ((lst lst) (r '()) (v* '()))
+      (cond ((null? lst) (values (if (null? r) *empty-value* (reverse! r)) v*))
+	    ((pred (car lst))
+	     (let ((v (car lst)))
+	       (loop (cdr lst) r (cons v v*))))
+	    (else (loop (cdr lst) (cons (car lst) r) v*)))))
+  
+  (define (update e)
+    (let-values (((n v*) (remp* proc e)))
+      (cond ((atomic-compare-and-swap! atomic-pair e n) v*)
+	    (else (update (atomic-load atomic-pair))))))
+  (update (atomic-load atomic-pair)))
+  
 
 )

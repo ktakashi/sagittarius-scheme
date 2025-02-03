@@ -49,7 +49,8 @@
     (import (rnrs)
 	    (srfi :18)
 	    (srfi :39)
-	    (util concurrent shared-queue))
+	    (util concurrent shared-queue)
+	    (util concurrent atomic))
 
 (define *thread-pool-current-thread-id* (make-parameter #f))
 ;; make it readonly
@@ -62,7 +63,7 @@
     (define (call-error-handler e) (guard (ex (else #t)) (error-handler e)))
     (*thread-pool-current-thread-id* i)
     (let loop ()
-      (shared-queue-put! idlings i)
+      (lock-free-queue-push! idlings i)
       ;; when task is pushed then this thread id is popped from the
       ;; idlings queue.
       (let loop2 ((task (shared-queue-get! queue)))
@@ -88,7 +89,7 @@
      (lambda (n . maybe-error-handler)
        (let* ((threads (make-vector n))
 	      (queues  (make-vector n))
-	      (idlings  (make-shared-queue))
+	      (idlings  (make-lock-free-queue))
 	      (error-handler (if (null? maybe-error-handler)
 				 default-error-handler
 				 (car maybe-error-handler)))
@@ -97,7 +98,7 @@
 	     ((= i n) 
 	      ;; make sure all threads are up and running
 	      (let loop ()
-		(if (= n (shared-queue-size idlings))
+		(if (= n (lock-free-queue-size idlings))
 		    tp
 		    (begin
 		      (thread-yield!)
@@ -137,7 +138,7 @@
 ;;     is sufficient.
 ;; NB: this is O(1) operation, yahoo!!
 (define (thread-pool-idling-count tp) 
-  (shared-queue-size (thread-pool-idlings tp)))
+  (lock-free-queue-size (thread-pool-idlings tp)))
 
 ;; returns #t if one of the threads is idling
 (define (thread-pool-idling? tp) (not (zero? (thread-pool-idling-count tp))))
@@ -164,7 +165,7 @@
 	      (cond ((and (add-to-back? i) (< s qsize)) (loop (+ i 1) i s))
 		    (else (loop (+ i 1) maybe qsize))))))))
   (let ((where (or (and (thread-pool-idling? tp)
-			(shared-queue-get! (thread-pool-idlings tp)))
+			(lock-free-queue-get! (thread-pool-idlings tp)))
 		   (find-available tp (if (null? opt) 
 					  default-handler 
 					  (car opt))))))
@@ -235,7 +236,6 @@
     ;; clear all pending tasks.
     ;; the thread is terminated, so it's not interesting anymore
     (shared-queue-clear! q)
-    (shared-queue-lock! idlings)
     (shared-queue-lock! q)
 
     ;; ok both mutex are held by this thread so terminate the
@@ -244,8 +244,7 @@
     
     ;; post termination
     (shared-queue-unlock! q)
-    (shared-queue-unlock! idlings)
-    (shared-queue-remove! idlings id)
+    (lock-free-queue-remove! idlings id)
     
     ;; prepare for next time
     (vector-set! threads id
@@ -261,7 +260,8 @@
 ;;     as it was before but that requires extra storage. plus the result value
 ;;     would be inaccurate. not sure which is better...
 (define (thread-pool-thread-task-running? tp id)
-  (not (shared-queue-find (thread-pool-idlings tp) (lambda (o) (= o id)))))
+  (not (find (lambda (o) (= o id))
+	     (lock-free-queue->list(thread-pool-idlings tp)))))
 ;; TODO Should we add thread-pool-stop! ?
 
   )
