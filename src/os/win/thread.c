@@ -114,13 +114,21 @@ static unsigned int win32_thread_entry_inner(void *params)
   return (*start)(arg);
 }
 
+static __declspec(thread) SgInternalThread *theThread = NULL;
+
 static unsigned int __stdcall win32_thread_entry(void *params)
 {
   unsigned int status;
   SgInternalThread *me = ((ThreadParams *)params)->me;
   ULONG_PTR ei[EXCEPTION_INFO_N];
   __try {
-    status = win32_thread_entry_inner(params);
+    theThread = me;
+    __try {
+      status = win32_thread_entry_inner(params);
+    } __finally {
+      /* after here, we can't handle termination, so set to null */
+      theThread = NULL;
+    }
   } __except(exception_filter(GetExceptionInformation(), ei)) {
     switch (ei[0]) {
     case EXCEPTION_CANCEL:
@@ -131,6 +139,7 @@ static unsigned int __stdcall win32_thread_entry(void *params)
       break;
     }
   }
+
   /* clear the stackBase, from now on, thread can't be terminated */
   me->stackBase = 0;
   return status;
@@ -324,10 +333,13 @@ int Sg_WaitWithTimeout(SgInternalCond *cond, SgInternalMutex *mutex,
 static void throw_exception(int code, int status)
 {
   ULONG_PTR exceptionInfo[EXCEPTION_INFO_N];
-  exceptionInfo[0] = code;
-  exceptionInfo[1] = status;
-
-  RaiseException(SG_THREAD_TERMINAT_CODE, 0, EXCEPTION_INFO_N, exceptionInfo);
+  /* means we still have SEH handler */
+  if (theThread) {
+    exceptionInfo[0] = code;
+    exceptionInfo[1] = status;
+    
+    RaiseException(SG_THREAD_TERMINAT_CODE, 0, EXCEPTION_INFO_N, exceptionInfo);
+  }
 }
 
 void Sg_ExitThread(SgInternalThread *thread, void *ret)

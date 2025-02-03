@@ -251,7 +251,8 @@
 		 (thread-start! 
 		  (make-thread 
 		   (make-executor idlings id nq
-				  (thread-pool-error-handler tp)))))))
+				  (thread-pool-error-handler tp))
+		   (thread-name t))))))
 
 ;; returns #t if the thread associated to given thread id 
 ;; is running.
