@@ -30,7 +30,7 @@ That denotes a set of characters. If a symbol `*eof*` is included, the EOF
 condition is also included.  Without `*eof*`, the EOF condition is regarded
 as an error.
 
-###### [!Functions] `assert-curr-char`  _char-list_ _string_ _:optional_ _port_
+###### [!Function] `assert-curr-char`  _char-list_ _string_ _:optional_ _port_
 
 Reads a character from the _port_ and looks it up in the
 _char-list_ of expected characters. If the read character was found among
@@ -38,7 +38,7 @@ the expected, it is returned. Otherwise, the procedure writes a nasty message
 using _string_ as a comment, and quits.
 
 
-###### [!Functions] `skip-until`  _char-list/number_ _:optional_ _port_
+###### [!Function] `skip-until`  _char-list/number_ _:optional_ _port_
 
 _Char-list/number_ must be either char-list or number.
 
@@ -51,20 +51,20 @@ characters are specified as the char-list. This list may include EOF, which is
 to be coded as a symbol `*eof*`.
 
 
-###### [!Functions] `skip-while`  _char-list_ _:optional_ _port_
+###### [!Function] `skip-while`  _char-list_ _:optional_ _port_
 
 Advances the _port_ to the first character that is not a member of the
 _char-list_ -- or till the EOF, whichever occurs sooner. This character or
 the EOF object is returned. This character is left on the stream.
 
 
-###### [!Functions] `peek-next-char`  _:optional_ _port_
+###### [!Function] `peek-next-char`  _:optional_ _port_
 
 Advances to the next character in the port and peeks at it. This function
 is useful when parsing LR(1)-type languages.
 
 
-###### [!Functions] `next-token`  _prefix-char-list_ _break-char-list_ _:optional_ _comment_ _port_
+###### [!Function] `next-token`  _prefix-char-list_ _break-char-list_ _:optional_ _comment_ _port_
 
 Skips any number of characters in _prefix-char-list_, then collects the
 characters until it sees _break-char-list_. The collected characters are
@@ -75,7 +75,7 @@ _break-char-list_, an error is signalled with _comment_ is included in the
 message.
 
 
-###### [!Functions] `next-token-of`  _char-list/pred_ _:optional_ _port_
+###### [!Function] `next-token-of`  _char-list/pred_ _:optional_ _port_
 
 Reads and collects the characters as far as it belongs to _char-list/pred_,
 then returns them as a string. The first character that doesn't belong to
@@ -86,7 +86,7 @@ If it is a predicate, each character is passed to it, and the character is
 regarded to \`\`belong to'' _char-list/pred_ when it returns a true value.
 
 
-###### [!Functions] `read-string`  _n_ _:optional_ _port_
+###### [!Function] `read-string`  _n_ _:optional_ _port_
 
 Reads up to _n_ characters, collects them into a string, and returns
 it. If the input stream contains less characters, the returns string contains

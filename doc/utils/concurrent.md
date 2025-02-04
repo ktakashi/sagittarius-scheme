@@ -22,7 +22,7 @@ is depending on the sub class. The default implementation this library
 provides uses a thread per future. If users don't have to manage number
 of threads, then using this is sufficient.
 
-``````````scheme
+```scheme
 (import (rnrs) (util concurrent))
 
 ;; creates 5 futures
@@ -31,7 +31,7 @@ of threads, then using this is sufficient.
 
 ;; wait and retrieve the results
 (map future-get futures)
-``````````
+```
 => ``(1 4 9 16 25)``
 
 ###### [!Record] `<future>` 
@@ -69,13 +69,13 @@ doesn't do anything but changing the future's state.
 
 NOTE: once this procedure is called, then calling `future-get`with _future_ raises a `&future-terminated`.
 
-``````````scheme
+```scheme
 (import (rnrs) (util concurrent))
 
 (define f (future (display "cancelled") (newline)))
 (future-cancel f)
 (future-get f)
-``````````
+```
 => ``&future-terminated``
 
 The above example may or may not print `"cancelled"`.
@@ -150,7 +150,7 @@ one uses thread pool, described below section, and the latter one
 just creates a thread per task. The following is an example how to use
 the executors:
 
-``````````scheme
+```scheme
 (import (rnrs) (util concurrent))
 
 ;; creates executor which uses 5 threads and push all tasks
@@ -169,7 +169,7 @@ the executors:
 
 ;; wait/retrieve the results
 (map future-get futures)
-``````````
+```
 => ``(1 4 9 16 25 36 49 64 81 100)``
 
 The thread pool executor with `push-future-handler` waits until the
@@ -217,14 +217,12 @@ This procedure may or may not affect the managed futures on the _executor_.
 Converts _thunk_ to a future and execute it on given _executor_,
 then returns the future. This procedure is defined as follows:
 
-``````````scheme
+```scheme
 (define (executor-submit! e thunk)
   (let ((f (make-executor-future thunk)))
     (execute-future! e f)
     f))
-``````````
-
-
+```
 
 #### [§4] Thread pool executor
 
@@ -235,7 +233,7 @@ words, if a task changes the dynamic environment, then the next task
 uses the changed dynamic environment. The following example describes
 how dynamic environments works on this executor:
 
-``````````scheme
+```scheme
 (import (rnrs) (util concurrent) (srfi :39))
 
 (define *one* (make-parameter 1))
@@ -248,7 +246,7 @@ how dynamic environments works on this executor:
   (future-get f1)
   (execute-future! executor f2)
   (future-get f2))
-``````````
+```
 => ``2``
 
 NOTE: parameter objects are thread safe in general, thus if a thread is
@@ -607,7 +605,7 @@ shared queue APIs.
 
 A shared queue is a queue whose operations are done atomically.
 
-``````````scheme
+```scheme
 (import (rnrs) (util concurrent) (srfi :18))
 
 (define shared-queue (make-shared-queue))
@@ -623,7 +621,7 @@ A shared queue is a queue whose operations are done atomically.
 (shared-queue-put! share-queue 5)
 
 (thread-join! thread)
-``````````
+```
 => ``25``
 
 ###### [!Record] `<shared-queue>` 
@@ -727,7 +725,7 @@ This is based on the Actor model. Communication between an actor and outside of
 the actor can only be done via input receiver or output sender. From here, we
 call them channel. The following is a simple bank account example using actor.
 
-``````````scheme
+```scheme
 (import (rnrs) (util concurrent actor) (match))
 
 (define (open-account initial-amount)
@@ -761,7 +759,7 @@ call them channel. The following is a simple bank account example using actor.
 
 (actor-receive-message! client) ;; => (100 . 900)
 (actor-receive-message! client) ;; => (0 . 1000)
-``````````
+```
 
 ###### [!Function] `actor?`  _obj_
 
@@ -881,13 +879,117 @@ _exeuctor_ as its execution environment.
 
 Guards the _future_ and apply the raised condition to _proc_.
 
-``````````scheme
+```scheme
 (future-get (future-guard (lambda (e) 'ok)
                           (thunk->future (lambda () (raise 'boo)))))
-``````````
+```
 => ``'ok``
 
 These procedures return immediately and the computation of
 _proc_ will be done in some future.
 
 
+### [§3] Atomic
+
+###### [!Library] `(util concurrent atomic)` **[@since] `0.9.13`**
+
+A sub library of `(util concurrent)`. This library provides atomic
+operations implemented atop `(sagittarius atomic)`
+
+
+The below procedures and constants are re-exported from  `(sagittarius atomic)`.
+
+###### [!Function] `atomic?`
+###### [!Function] `make-atomic`
+###### [!Function] `atomic-flag?`
+###### [!Function] `make-atomic-flag`
+###### [!Function] `atomic-fixnum?`
+###### [!Function] `make-atomic-fixnum`
+###### [!Function] `atomic-pair?`
+###### [!Function] `make-atomic-pair`
+###### [!Function] `memory-order?`
+###### [!Constant] `*memory-order:relaxed*`
+###### [!Constant] `*memory-order:consume*`
+###### [!Constant] `*memory-order:acquire*`
+###### [!Constant] `*memory-order:release*`
+###### [!Constant] `*memory-order:acq-rel*`
+###### [!Constant] `*memory-order:seq-cst*`
+###### [!Function] `atomic-load`
+###### [!Function] `atomic-store!`
+###### [!Function] `atomic-fixnum-load`
+###### [!Function] `atomic-fixnum-store!`
+###### [!Function] `atomic-fixnum-add!`
+###### [!Function] `atomic-fixnum-sub!`
+###### [!Function] `atomic-fixnum-ior!`
+###### [!Function] `atomic-fixnum-xor!`
+###### [!Function] `atomic-fixnum-and!`
+###### [!Function] `atomic-exchange!`
+###### [!Function] `atomic-fixnum-exchange!`
+###### [!Function] `atomic-compare-and-swap!`
+###### [!Function] `atomic-fetch-compare-and-swap!`
+###### [!Function] `atomic-fixnum-inc!`
+###### [!Function] `atomic-fixnum-dec!`
+###### [!Function] `atomic-thread-fence`
+
+#### Lock free queue  **[@experimental]**
+
+Lock free queue is a queue whose operation is atomic without locking.
+The implementation uses DCAS, a.k.a. `atomic-pair`.
+
+The procedures are experimental, means it's subjected to change.
+
+###### [!Function] `lock-free-queue?` _obj_
+
+Returns `#t` if the given _obj_ is lock free queue, otherwise `#f`.
+
+###### [!Function] `make-lock-free-queue` :optional (_lis_ `'()`)
+
+Creates a lock free queue whose initial elements are the given `_lis_`
+
+###### [!Function] `list->lock-free-queue` _lis_
+
+Creates a lock free queue whose initial elements are the given `_lis_`
+
+###### [!Function] `lock-free-queue` *element*s _..._
+
+Creates a lock free queue whose initial elements are the given `_element_`s
+
+###### [!Function] `lock-free-queue-size` (_lfq_ `lock-free-queue?`)
+
+Returns the current size of the given lock free queue _lfq_.
+
+###### [!Function] `lock-free-queue-empty?` (_lfq_ `lock-free-queue?`)
+
+Returns `#t` if the given lock free queue is empty, otherwise `#f`.
+	
+###### [!Function] `lock-free-queue-push!` (_lfq_ `lock-free-queue?`) _e_
+
+Pushes the given _e_ into the given lock free queue _lfq_.
+
+###### [!Function] `lock-free-queue-pop!` (_lfq_ `lock-free-queue?`) :optional (fallback `#f`)
+
+Retrieves an element from the back of the given lock free queue _lfq_.
+
+It returns the _fallback_ if the queue is empty.
+
+###### [!Function] `lock-free-queue-get!` (_lfq_ `lock-free-queue?`) :optional (fallback `#f`)
+
+Retrieves an element from the front of given lock free queue _lfq_.
+
+It returns the _fallback_ if the queue is empty.
+
+###### [!Function] `lock-free-queue->list` (_lfq_ `lock-free-queue?`)
+
+Returns all elements of the given _lfq_ as a list.
+
+###### [!Function] `lock-free-queue-remove!` (_lfq_ `lock-free-queue?`) _e_ :optional (_=_ `equal?`)
+
+Removes the given element _e_ from the _lfq_ and returns the removed
+elements.
+
+Optional argument _=_ specifies how to compare.
+
+###### [!Function] `lock-free-queue-remp!` (_lfq_ `lock-free-queue?`) _pred_
+
+Removes all the element satisfying the given _pred_ and returns the removed
+elements.

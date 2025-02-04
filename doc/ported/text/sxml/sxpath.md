@@ -526,7 +526,7 @@ node. lpaths are location paths for attributes of type ID.
 
 ### [§3] SXML counterparts to W3C XPath Core Functions
 
-###### [!Functions] `sxml:string`  _object_
+###### [!Function] `sxml:string`  _object_
 
 The counterpart to XPath 'string' function (section 4.2 XPath Rec.)
 Converts a given object to a string
@@ -538,13 +538,13 @@ Converts a given object to a string
 different from XPath Rec. specification
 
 
-###### [!Functions] `sxml:boolean`  _object_
+###### [!Function] `sxml:boolean`  _object_
 
 The counterpart to XPath 'boolean' function (section 4.3 XPath Rec.)
 Converts its argument to a boolean
 
 
-###### [!Functions] `sxml:number`  _object_
+###### [!Function] `sxml:number`  _object_
 
 The counterpart to XPath 'number' function (section 4.4 XPath Rec.)
 Converts its argument to a number
@@ -556,13 +556,13 @@ Converts its argument to a number
 
 
 
-###### [!Functions] `sxml:string-value`  _object_
+###### [!Function] `sxml:string-value`  _object_
 
 Returns a string value for a given node in accordance to
 XPath Rec. 5.1 - 5.7 
 
 
-###### [!Functions] `sxml:id`  _object_
+###### [!Function] `sxml:id`  _object_
 
 Select SXML element by its unique IDs
 XPath Rec. 4.1

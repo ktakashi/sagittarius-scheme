@@ -79,7 +79,7 @@ The return value is unspecified.
 
 ###### [!Function] `atomic-fixnum-add!` (_a_ `atomic-fixnum?`) (_n_ `fixnum?`) :optional (_order_ `memory-order?`)
 ###### [!Function] `atomic-fixnum-sub!` (_a_ `atomic-fixnum?`) (_n_ `fixnum?`) :optional (_order_ `memory-order?`)
-###### [!Function] `atomic-fixnum-or!` (_a_ `atomic-fixnum?`) (_n_ `fixnum?`) :optional (_order_ `memory-order?`)
+###### [!Function] `atomic-fixnum-ior!` (_a_ `atomic-fixnum?`) (_n_ `fixnum?`) :optional (_order_ `memory-order?`)
 ###### [!Function] `atomic-fixnum-xor!` (_a_ `atomic-fixnum?`) (_n_ `fixnum?`) :optional (_order_ `memory-order?`)
 ###### [!Function] `atomic-fixnum-and!` (_a_ `atomic-fixnum?`) (_n_ `fixnum?`) :optional (_order_ `memory-order?`)
 
