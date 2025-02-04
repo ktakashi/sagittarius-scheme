@@ -29,10 +29,12 @@
 ;;;  
 
 #!nounbound
+#!read-macro=sagittarius/regex
 (library (sagittarius document format markdown reader)
     (export read-markdown
 	    )
     (import (rnrs)
+	    (sagittarius regex)
 	    (sagittarius document input)
 	    (srfi :1 lists)
 	    (srfi :2 and-let*)
@@ -217,6 +219,33 @@
 	  2)
 	0)))
 
+(define-markdown-node (annotation name (attribute values "doc:values"))
+  (namespace *document-namespace*)
+  (element "doc:annotation"))
+(define (annotation-processor node visit-children)
+  (define children (markdown-node:children node))
+  ;; lazy
+  (define (extract-name n)
+    (cond ((#/\[@([^\]]+)\]/ n) => (lambda (m) (m 1)))
+	  (else #f)))
+  (and-let* (( (not (zero? (length children))) )
+	     (name-node (car children))
+	     ( (text-node? name-node) )
+	     (attr-nodes (cdr children))
+	     ( (for-all code-node? attr-nodes) )
+	     (text (text-node:content name-node))
+	     (name (extract-name (string-trim-both text)))
+	     (attr-values (string-join (map code-node:literal attr-nodes) " ")))
+    (let ((annotation-node (make-annotation-node (markdown-node-parent node)
+					    name
+					    attr-values)))
+      (markdown-node:insert-after! node annotation-node)
+      (markdown-node:unlink! node))))
+(define annotation-post-processor
+  (make-post-processor
+   (make-post-processor-spec strong-emphasis-node? annotation-processor)))
+
+
 (define-markdown-node (since (attribute version "doc:version"))
   (namespace *document-namespace*)
   (element "doc:since"))
@@ -252,6 +281,7 @@
   (make-post-processor
    (make-post-processor-spec strong-emphasis-node? deprecated-processor)))
 
+
 (define document-extension
   (markdown-extension-builder
    (delimiter-processors (list make-eval-delimiter-processor
@@ -259,8 +289,9 @@
    (post-processors (list code-output-post-processor
 			  include-post-processor
 			  section-post-processor
-			  deprecated-post-processor
-			  since-post-processor))))
+			  annotation-post-processor
+			  #;deprecated-post-processor
+			  #;since-post-processor))))
 
 ;; Converters
 (define (convert-document document data next)
@@ -449,6 +480,10 @@
 		 (label ,(footnote-block-node-label node)))
 	      ,@(append-map next (markdown-node:children node)))))
 
+(define (convert-annotation node data next)
+  `((annotation (@ (name ,(annotation-node-name node))
+		   (value ,(annotation-node-values node))))))
+
 (define (convert-since node data next)
   `((since (@ (version ,(since-node-version node))))))
 
@@ -490,8 +525,9 @@
   (gfm:table-cell-node? convert-table-cell)
   (footnote-node? convert-footnote)
   (footnote-block-node? convert-footnote-block)
-  (since-node? convert-since)
-  (deprecated-node? convert-deprecated)
+  (annotation-node? convert-annotation)
+  ;;(since-node? convert-since)
+  ;;(deprecated-node? convert-deprecated)
   )
 
 )

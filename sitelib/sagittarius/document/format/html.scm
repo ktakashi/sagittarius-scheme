@@ -304,6 +304,24 @@
 	       (div (@ (node-type "footnote-description"))
 		    ,@(map (->html options) (sxml:content element))))))
 
+(define (annotation-handler element options)
+  (let ((name (string->symbol (sxml:attr element 'name)))
+	(value (sxml:attr element 'value)))
+    (case name
+      ((since)
+       `(since (@ (node-type "since"))
+	       (span (@ (node-type "since-version")
+			(version ,value))
+		     ,value)))
+      ((deprecated) `(deprecated (@ (node-type "deprecated"))))
+      (else
+       (if (string-null? value)
+	   `(,name (@ (node-type "annotation")))
+	   `(,name (@ (node-type "annotation"))
+		   (span (@ (node-type "annotation-value")
+			    (value ,value))
+			 ,value)))))))
+
 (define (since-handler element options)
   `(since (@ (node-type "since"))
 	  (span (@ (node-type "since-version")
@@ -343,8 +361,9 @@
     (eval ,eval-handler)
     (ref ,ref-handler)
     (footnote ,footnote-handler)
-    (since ,since-handler)
-    (deprecated ,deprecated-handler)
+    (annotation ,annotation-handler)
+    ;;(since ,since-handler)
+    ;;(deprecated ,deprecated-handler)
     ))
 
 )
