@@ -452,7 +452,7 @@ int Sg_AtomicCompareAndSwap(volatile SgAtomic *o, SgObject *e, SgObject v,
   switch (o->type) {
   case SG_ATOMIC_FIXNUM:
     if (!SG_INTP(v) && !SG_INTP(*e)) {
-      Sg_Error(UC("atomic_fixnum must take fixnum but got %A and %A"), e, v);
+      Sg_Error(UC("atomic_fixnum must take fixnum but got %A and %A"), *e, v);
     }
     {
       long ev = SG_INT_VALUE(*e);
@@ -466,8 +466,8 @@ int Sg_AtomicCompareAndSwap(volatile SgAtomic *o, SgObject *e, SgObject v,
     }
     break;
   case SG_ATOMIC_PAIR:
-    if (!SG_PAIRP(*e) && !SG_PAIRP(v)) {
-      Sg_Error(UC("atomic_pair must take pair but got %S and %S"), e, v);
+    if (!SG_PAIRP(*e) || !SG_PAIRP(v)) {
+      Sg_Error(UC("atomic_pair must take pair but got %S and %S"), *e, v);
     }
     {
       pair_t ev = { SG_CAR(*e), SG_CDR(*e) };

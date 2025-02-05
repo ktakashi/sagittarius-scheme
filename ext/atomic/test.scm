@@ -85,4 +85,14 @@
    (for-each thread-start! threads)
    (for-each thread-join! threads)
    (test-equal 10000 (atomic-load val))))
+
+(test-group "Atomic pair"
+ (let ()
+   (define val (make-atomic-pair 'a 'b))
+   (test-error (atomic-compare-and-swap! val (cons 'a 'b) '()))
+   (test-assert (atomic-compare-and-swap! val (cons 'a 'b) '(c . d)))
+   (test-equal '(c . d) (atomic-load val))
+   (test-equal '(c . d) (atomic-fetch-compare-and-swap! val (cons 'c 'd) '(e . f)))
+   ))
+
 (test-end)
