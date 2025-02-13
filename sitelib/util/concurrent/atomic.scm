@@ -72,6 +72,7 @@
 	    lock-free-queue-remove!
 	    lock-free-queue-remp!)
     (import (rnrs)
+	    (sagittarius threads)
 	    (sagittarius atomic)
 	    (srfi :1 lists))
 
@@ -124,7 +125,7 @@
     (cond ((atomic-compare-and-swap! ap expected new-val)
 	   (atomic-fixnum-inc! atomic-fx)
 	   e)
-	  (else (try-push ap (atomic-load ap) element))))
+	  (else (thread-yield!) (try-push ap (atomic-load ap) element))))
   (try-push atomic-pair (atomic-load atomic-pair) e))
 
 (define (lock-free-queue-pop! q :optional (fallback #f))
@@ -139,7 +140,7 @@
 	  ((atomic-compare-and-swap! ap expected new-val)
 	   (atomic-fixnum-dec! atomic-fx)
 	   (car (take-right expected 1)))
-	  (else (try-get ap (atomic-load ap)))))
+	  (else (thread-yield!) (try-get ap (atomic-load ap)))))
   (try-get atomic-pair (atomic-load atomic-pair)))
 
 (define (lock-free-queue-get! q :optional (fallback #f))
@@ -153,7 +154,7 @@
 	  ((atomic-compare-and-swap! ap expected new-val)
 	   (atomic-fixnum-dec! atomic-fx)
 	   (car expected))
-	  (else (try-get ap (atomic-load ap)))))
+	  (else (thread-yield!) (try-get ap (atomic-load ap)))))
   (try-get atomic-pair (atomic-load atomic-pair)))
 
 (define (lock-free-queue-remove! q o . maybe=)
