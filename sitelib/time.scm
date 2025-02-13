@@ -29,23 +29,35 @@
 ;;;  
 
 (library (time)
-    (export time)
+    (export time utime)
     (import (rnrs) (sagittarius))
 
   (define-syntax time
     (syntax-rules ()
       ((_ expr)
-       (let-values (((real-start user-start sys-start) (time-usage)))
-	 (define (round0 x)
-	   (/ (round (* x 1000000.0)) 1000000.0))
-	 (let-values ((result (apply (lambda () expr) '())))
-	   (let-values (((real-end user-end sys-end) (time-usage)))
-	     (let ((real (round0 (- real-end real-start)))
-		   (user (round0 (- user-end user-start)))
-		   (sys  (round0 (- sys-end sys-start))))
-	       (format #t "~%;;  ~s~%" 'expr)
-	       (format #t ";;  ~8,,,'0a real    ~8,,,'0a user    ~8,,,'0a sys~%" real user sys)
-	       (flush-output-port (current-output-port))))
-	   (apply values result))))))
+       (let ()
+	 (define (round0 x) (/ (round (* x 1000000.0)) 1000000.0))
+	 (time-rec expr time-usage round0 
+		   ";;  ~8,,,'0a real    ~8,,,'0a user    ~8,,,'0a sys~%")))))
 
+  (define-syntax utime
+    (syntax-rules ()
+      ((_ expr)
+       (time-rec expr usec-time-usage values
+		 ";;  ~dus real ~dus user ~dus sys~%"))))
+
+  (define-syntax time-rec
+    (syntax-rules ()
+      ((_ expr usage round0 fmt-str)
+       (let*-values (((real-start user-start sys-start) (usage))
+		     (result (apply (lambda () expr) '()))
+		     ((real-end user-end sys-end) (usage)))
+	 (let ((real (round0 (- real-end real-start)))
+	       (user (round0 (- user-end user-start)))
+	       (sys  (round0 (- sys-end sys-start))))
+	   (format #t "~%;;  ~s~%" 'expr)
+	   (format #t fmt-str real user sys)
+	   (flush-output-port (current-output-port)))
+	 (apply values result)))))
+  
 )
