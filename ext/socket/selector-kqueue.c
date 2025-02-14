@@ -60,7 +60,7 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
   SgObject cp, r = SG_NIL;
   int i, c, n = nsock + 1;
   struct kevent *evm;
-
+  
   evm = SG_NEW_ATOMIC2(struct kevent *, n * sizeof(struct kevent));
   i = 0;
   SG_FOR_EACH(cp, sockets) {

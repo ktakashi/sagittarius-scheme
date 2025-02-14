@@ -244,7 +244,7 @@
 		(msg (string->utf8
 		      (string-append "Hello world " (number->string i)))))
 	    (guard (e (else #;(print e) s))
-	      (when (even? i) (thread-sleep! 0.05));; 50ms
+	      (when (even? i) (thread-yield!) (thread-sleep! 0.05));; 50ms
 	      (socket-send s msg)
 	      (let ((v (socket-recv s 255)))
 		(cond ((zero? (bytevector-u8-ref v 0)) ;; mark
@@ -287,6 +287,7 @@
   (define (echo sock)
     (lambda ()
       (let ((v (socket-recv sock 255)))
+	(thread-yield!)
 	(thread-sleep! 0.3) ;; wait 300ms
 	(socket-send sock v)
 	(socket-shutdown sock SHUT_RDWR)

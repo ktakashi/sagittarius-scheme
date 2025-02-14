@@ -258,7 +258,7 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
   strip_sockets(selector, timedout);
   n = selector_sockets(selector);
 
-  if (n == 0 && !SG_NULLP(timedout)) {
+  if (!SG_NULLP(timedout)) {
     Sg_UnlockMutex(&selector->lock);
     return Sg_Values2(SG_NIL, timedout); /* return timedout ones */
   }
@@ -271,6 +271,12 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
   sockets = selector->sockets;
   selector->waiting = TRUE;
 
+  /* if (sp) { */
+  /*   fprintf(stderr, "%d: sp = {%ld, %ld}\n", n, sp->tv_sec, sp->tv_nsec); */
+  /* } else { */
+  /*   fprintf(stderr, "%d: %p\n", n, sto); */
+  /* } */
+    
   Sg_UnlockMutex(&selector->lock);
   r = selector_wait(selector, sockets, context, n, sp);
 
@@ -297,13 +303,12 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
       start.nsec = nsec;
     }
     goto retry;
-  } else {
-    /* reset it, in case of r is not null :) */
-    selector->retry = FALSE;
-    if (!SG_NULLP(r)) strip_sockets(selector, r);
-    earliest_timeout(selector->sockets, &start, &timedout);
-    if (!SG_NULLP(timedout)) strip_sockets(selector, timedout);
   }
+  /* reset it, in case of r is not null :) */
+  selector->retry = FALSE;
+  if (!SG_NULLP(r)) strip_sockets(selector, r);
+  earliest_timeout(selector->sockets, &start, &timedout);
+  if (!SG_NULLP(timedout)) strip_sockets(selector, timedout);
 
   Sg_UnlockMutex(&selector->lock);
   return Sg_Values2(r, timedout);
