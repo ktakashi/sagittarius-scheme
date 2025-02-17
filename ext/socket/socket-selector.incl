@@ -177,7 +177,7 @@ SgObject Sg_MakeSocketSelector()
 static SgObject selector_wait(SgSocketSelector *selector, SgObject sockets,
 			      void *context, int n, struct timespec *sp);
 
-static SgObject earliest_timeout(SgObject sockets, SgTime *start,
+static SgObject earliest_timeout(SgObject sockets, SgTime *now,
 				 SgObject *timedout)
 {
   SgObject cp, r = SG_FALSE;
@@ -185,9 +185,11 @@ static SgObject earliest_timeout(SgObject sockets, SgTime *start,
 
   SG_FOR_EACH(cp, sockets) {
     SgObject slot = SG_CAR(cp);
-    SgObject to = SG_CADR(slot);
+    SgObject to = SG_CADR(slot); /* timeout */
     if (SG_TIMEP(to)) {
-      if (compare(to, start, FALSE) <= 0) {
+      /* Sg_Printf(Sg_StandardErrorPort(), UC("%A: %A <= %A\n"), */
+      /* 		SG_CAR(slot), to, now); */
+      if (compare(to, now, FALSE) <= 0) {
 	/* already timed out */
 	*timedout = Sg_Cons(slot, *timedout);
 	continue;
@@ -201,17 +203,16 @@ static SgObject earliest_timeout(SgObject sockets, SgTime *start,
   return r;
 }
 
-static struct timespec * update_timeout(SgObject sockets,
-					SgTime *start,
+static struct timespec * update_timeout(SgObject sockets, SgTime *now,
 					struct timespec *out,
 					SgObject *timedout)
 {
-  SgObject to = earliest_timeout(sockets, start, timedout);
+  SgObject to = earliest_timeout(sockets, now, timedout);
   struct timespec *r = NULL;
 
   if (!SG_FALSEP(to)) {
-    long sec = SG_TIME(to)->sec - start->sec;
-    long nsec = SG_TIME(to)->nsec - start->nsec;
+    long sec = SG_TIME(to)->sec - now->sec;
+    long nsec = SG_TIME(to)->nsec - now->nsec;
 
     if (sec > 0 || (sec == 0 && nsec > 0)) {
       out->tv_sec = (sec > 0) ? sec : 0;
@@ -225,7 +226,7 @@ static struct timespec * update_timeout(SgObject sockets,
 SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
 {
   SgObject r, timedout = SG_NIL, sockets;
-  SgTime start;
+  SgTime now;
   int n;
   unsigned long sec, usec;
   struct timespec spec, *sp, sock_to, *sto;
@@ -238,19 +239,19 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
     Sg_Error(UC("There's a thread already waiting for %A"), selector);
   }
 
-  SG_SET_CLASS(&start, SG_CLASS_TIME);
-  start.type = SG_INTERN("time-utc");
+  SG_SET_CLASS(&now, SG_CLASS_TIME);
+  now.type = SG_INTERN("time-utc");
   sp = selector_timespec(timeout, &spec);
   
   Sg_GetTimeOfDay(&sec, &usec);
-  start.sec = sec;
-  start.nsec = usec * 1000;
+  now.sec = sec;
+  now.nsec = usec * 1000;
 
   Sg_LockMutex(&selector->lock);
 
  retry:
   /* compute socket timeout */
-  sto = update_timeout(selector->sockets, &start, &sock_to, &timedout);
+  sto = update_timeout(selector->sockets, &now, &sock_to, &timedout);
   /* replace if exists */
   if (sto) {
     sp = sto;
@@ -276,13 +277,16 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
   /* } else { */
   /*   fprintf(stderr, "%d: %p\n", n, sto); */
   /* } */
-    
+  
   Sg_UnlockMutex(&selector->lock);
   r = selector_wait(selector, sockets, context, n, sp);
 
   Sg_LockMutex(&selector->lock);
+  
   selector->waiting = FALSE;
 
+  /* Save current time */
+  Sg_GetTimeOfDay(&sec, &usec);
   if (SG_NULLP(r) && selector->retry) {
     selector->retry = FALSE;
     /*
@@ -291,23 +295,26 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
       - count socket
       - retry
      */
-    if (sp) {
-      unsigned long nsec;
-      Sg_GetTimeOfDay(&sec, &usec);
-      nsec = usec * 1000;
-      sp->tv_sec -= sec - start.sec;
-      sp->tv_nsec -= nsec - start.nsec;
+    if (!SG_FALSEP(timeout)) {
+      sp = &spec;
+      sp->tv_sec -= sec - now.sec;
+      sp->tv_nsec -= (usec * 1000) - now.nsec;
       if (sp->tv_sec < 0) sp->tv_sec = 0;
       if (sp->tv_nsec < 0) sp->tv_nsec = 0;
-      start.sec = sec;
-      start.nsec = nsec;
     }
+
+    now.sec = sec;
+    now.nsec = usec * 1000;
     goto retry;
   }
   /* reset it, in case of r is not null :) */
   selector->retry = FALSE;
   if (!SG_NULLP(r)) strip_sockets(selector, r);
-  earliest_timeout(selector->sockets, &start, &timedout);
+
+  now.sec = sec;
+  now.nsec = usec * 1000;
+
+  earliest_timeout(selector->sockets, &now, &timedout);
   if (!SG_NULLP(timedout)) strip_sockets(selector, timedout);
 
   Sg_UnlockMutex(&selector->lock);
