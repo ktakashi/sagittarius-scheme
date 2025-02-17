@@ -1,10 +1,8 @@
 (import (rnrs)
 	(util concurrent atomic)
-	(util concurrent)
 	(srfi :1)
+	(srfi :18)
 	(srfi :64))
-
-(define fork-join-pool (make-fork-join-pool (fork-join-pool-parameters-builder)))
 
 (test-begin "Lock free queue")
 (define (basic-test getter reverse?)
@@ -30,21 +28,16 @@
   (define count 100)
   (define ((task i)) (lock-free-queue-push! queue i))
   (define ((get)) (getter queue))
-  (for-each (lambda (i)
-	      (fork-join-pool-push-task! fork-join-pool (task i)))
-	    (iota count))
-  (fork-join-pool-wait-all! fork-join-pool)
+  (for-each thread-join!
+   (map thread-start! (map (lambda (i) (make-thread (task i))) (iota count))))
   (test-assert (lset= eqv? (iota count) (lock-free-queue->list queue)))
   (test-equal count (lock-free-queue-size queue))
-  (for-each (lambda (i)
-	      (fork-join-pool-push-task! fork-join-pool (get)))
-	    (iota count))
-  (fork-join-pool-wait-all! fork-join-pool)
+  (for-each thread-join!
+   (map thread-start! (map (lambda (i) (make-thread (get))) (iota count))))
+  
   (test-assert (null? (lock-free-queue->list queue)))
   (test-assert (lock-free-queue-empty? queue)))
 (atomic-test lock-free-queue-pop!)
 (atomic-test lock-free-queue-get!)
-
-(fork-join-pool-shutdown! fork-join-pool)
 
 (test-end)
