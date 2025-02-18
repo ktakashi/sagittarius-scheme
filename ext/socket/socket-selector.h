@@ -1,6 +1,6 @@
 /* socket-selector.h                                -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2023  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2023-2025  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -36,7 +36,7 @@
   The underlying implementations are platform specific. At this moment,
   we support:
   - kqueue  (*BSD and macOS)
-  - WSAPoll (Windows)
+  - WSAWaitForMultipleEvents (Windows)
   - epoll   (Linux)
  */
 typedef struct
