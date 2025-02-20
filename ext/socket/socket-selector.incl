@@ -1,20 +1,4 @@
 /* -*- mode:c -*- */
-static int selector_sockets(SgSocketSelector *selector)
-{
-  /* filter closed socket */
-  SgObject h = SG_NIL, t = SG_NIL, cp;
-  int i = 0;
-  SG_FOR_EACH(cp, selector->sockets) {
-    SgObject slot = SG_CAR(cp);
-    if (Sg_SocketOpenP(SG_SOCKET(SG_CAR(slot)))) {
-      SG_APPEND1(h, t, slot);
-      i++;
-    }
-  }
-  selector->sockets = h;
-  return i;
-}
-
 static int duplicate_socket(SgSocket *socket, SgObject sockets)
 {
   SgObject cp;
@@ -24,18 +8,21 @@ static int duplicate_socket(SgSocket *socket, SgObject sockets)
   return FALSE;
 }
 
-static void strip_sockets(SgSocketSelector *selector, SgObject slots)
+static int strip_sockets(SgSocketSelector *selector, SgObject slots)
 {
-  if (!SG_NULLP(slots)) {
-    /* remove the returned sockets from the targets */
-    SgObject h = SG_NIL, t = SG_NIL, cp;
-    SG_FOR_EACH(cp, selector->sockets) {
-      if (SG_FALSEP(Sg_Memq(SG_CAR(cp), slots))) {
-	SG_APPEND1(h, t, SG_CAR(cp));
-      }
+  int i = 0;
+  /* remove the returned sockets from the targets */
+  SgObject h = SG_NIL, t = SG_NIL, cp;
+  SG_FOR_EACH(cp, selector->sockets) {
+    SgObject slot = SG_CAR(cp);
+    if (SG_FALSEP(Sg_Memq(slot, slots)) &&
+	Sg_SocketOpenP(SG_SOCKET(SG_CAR(slot)))) {
+      SG_APPEND1(h, t, slot);
+      i++;
     }
-    selector->sockets = h;
   }
+  selector->sockets = h;
+  return i;
 }
 
 static void selector_finalizer(SgObject self, void *data)
@@ -98,17 +85,16 @@ static void remove_socket(SgSocketSelector *selector, SgSocket *socket);
 
 SgObject Sg_SocketSelectorClear(SgSocketSelector *selector)
 {
-  SgObject cp, sockets;
+  SgObject cp;
   if (Sg_SocketSelectorWaitingP(selector)) {
     Sg_Error(UC("There's a thread already waiting for %A"), selector);
   }
   Sg_LockMutex(&selector->lock);
 
-  selector_sockets(selector);
-  sockets = selector->sockets;
-  SG_FOR_EACH(cp, sockets) {
+  SG_FOR_EACH(cp, selector->sockets) {
     remove_socket(selector, SG_SOCKET(SG_CAAR(cp)));
   }
+  strip_sockets(selector, SG_NIL);	/* strip closed ones */
   cp = selector->sockets;
   selector->sockets = SG_NIL;
 
@@ -146,7 +132,7 @@ SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector,
     slot = Sg_Cons(socket, Sg_Cons(to, data));
     add_socket(selector, slot);
     selector->sockets = Sg_Cons(slot, selector->sockets);
-    selector_sockets(selector);
+    strip_sockets(selector, SG_NIL);
     if (selector->waiting && !selector->retry) {
       selector->retry = TRUE;
       Sg_SocketSelectorInterrupt(selector);
@@ -256,8 +242,7 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
   if (sto) {
     sp = sto;
   }
-  strip_sockets(selector, timedout);
-  n = selector_sockets(selector);
+  n = strip_sockets(selector, timedout);
 
   if (!SG_NULLP(timedout)) {
     Sg_UnlockMutex(&selector->lock);
