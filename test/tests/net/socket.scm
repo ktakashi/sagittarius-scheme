@@ -244,7 +244,7 @@
 		(msg (string->utf8
 		      (string-append "Hello world " (number->string i)))))
 	    (guard (e (else #;(print e) s))
-	      (when (even? i) (thread-yield!) (thread-sleep! 0.05));; 50ms
+	      (when (even? i) (thread-yield!) (thread-sleep! 0.2));; 200ms
 	      (socket-send s msg)
 	      (let ((v (socket-recv s 255)))
 		(cond ((zero? (bytevector-u8-ref v 0)) ;; mark
@@ -275,11 +275,11 @@
     (shared-queue->list result))
   (let ((r (run-socket-selector 1000 #f)))
     (test-equal "no soft, hard = 1000ms" count (length (filter string? r))))
-  (let ((r (run-socket-selector 10 #f)))
-    (test-assert "no soft, hard = 10ms"
+  (let ((r (run-socket-selector 50 #f)))
+    (test-assert "no soft, hard = 50ms"
 		(<= (length (filter string? r)) (div count 2))))
-  (let ((r (run-socket-selector 10 1000)))
-    (test-equal "soft = 1000ms, hard = 10ms" count (length (filter string? r))))
+  (let ((r (run-socket-selector 50 1000)))
+    (test-equal "soft = 1000ms, hard = 50ms" count (length (filter string? r))))
   )
 
 (let ()
@@ -343,12 +343,12 @@
   (let-values (((c r) (run-socket-selector 1000 #f)))
     (test-equal "counter (1)" count c)
     (test-equal "hard 1000ms soft #f" count (length (filter string? r))))
-  (let-values (((c r) (run-socket-selector 10 #f)))
+  (let-values (((c r) (run-socket-selector 50 #f)))
     (test-equal "counter (2)" count c)
-    (test-equal "hard 10ms soft #f" 0 (length (filter string? r))))
-  (let-values (((c r) (run-socket-selector 10 1000)))
+    (test-equal "hard 50ms soft #f" 0 (length (filter string? r))))
+  (let-values (((c r) (run-socket-selector 50 1000)))
     (test-equal "counter (3)" count c)
-    (test-equal "hard 10ms soft 1000ms" count (length (filter string? r))))
+    (test-equal "hard 50ms soft 1000ms" count (length (filter string? r))))
   (socket-shutdown server-sock SHUT_RDWR)
   (socket-close server-sock)
   (guard (e (else #t)) (thread-join! server-thread)))
