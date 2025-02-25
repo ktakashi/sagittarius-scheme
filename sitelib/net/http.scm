@@ -75,13 +75,16 @@
 	    (rename (x-www-form-urlencoded-request-payload
 		     <x-www-form-urlencoded-request-payload>)
 		    (make-x-www-form-urlencoded-request-payload
-		     x-www-form-urlencoded-payload)))
+		     x-www-form-urlencoded-payload))
+
+	    (rename (*default-http-client* *http:default-http-client*)))
     (import (rnrs)
 	    (net http-client)
 	    (net http-client request) ;; for http:request accessors
 	    (record builder)
 	    (rfc uri)
 	    (srfi :13 strings)
+	    (srfi :39 parameters)
 	    (text json)
 	    (util concurrent)
 	    (util duration))
@@ -97,9 +100,10 @@
     (max-connection-per-route 100))))
 
 (define *default-http-client*
-  (http:client-builder
-   (follow-redirects (http:redirect always))
-   (connection-manager pooled-connection-manager)))
+  (make-parameter
+   (http:client-builder
+    (follow-redirects (http:redirect always))
+    (connection-manager pooled-connection-manager))))
 
 (define-record-type http-request-payload
   (fields content-type content converter))
@@ -168,7 +172,7 @@
   (future-map callback (http:client-send-async http-client request)))
 
 (define (async-http-request context)
-  (async-http-request/client *default-http-client* context))
+  (async-http-request/client (*default-http-client*) context))
 
 (define nobody-http-request/client
   (case-lambda
@@ -218,7 +222,7 @@
 	     (define (async/client http-client . rest)
 	       (apply nobody-http-request/client http-client 'method rest))
 	     (define (async . opts)
-	       (apply async/client *default-http-client* opts))
+	       (apply async/client (*default-http-client*) opts))
 	     (define sync
 	       (case-lambda
 		((context)
@@ -248,7 +252,7 @@
 	     (define (async/client http-client . rest)
 	       (apply bodied-http-request/client http-client 'method rest))
 	     (define (async . opts)
-	       (apply async/client *default-http-client* opts))
+	       (apply async/client (*default-http-client*) opts))
 	     (define sync
 	       (case-lambda
 		((context)
