@@ -41,6 +41,7 @@
 
 #include "../../gc-incl.inc"
 #include "win_util.c"
+#include "win-def.h"
 
 #define EXCEPTION_INFO_N SG_TERMINATION_INFO_N
 #define EXCEPTION_CANCEL 0
@@ -78,7 +79,7 @@ void Sg_DestroyMutex(SgInternalMutex *mutex)
 static DWORD exception_filter(EXCEPTION_POINTERS *ep, ULONG_PTR *ei)
 {
   switch (ep->ExceptionRecord->ExceptionCode) {
-  case SG_THREAD_TERMINAT_CODE: {
+  case SG_THREAD_TERMINATE_CODE: {
     DWORD i;
     DWORD n = min(ep->ExceptionRecord->NumberParameters, EXCEPTION_INFO_N);
     for (i = 0; i < n; i++) {
@@ -333,13 +334,10 @@ int Sg_WaitWithTimeout(SgInternalCond *cond, SgInternalMutex *mutex,
 static void throw_exception(int code, int status)
 {
   ULONG_PTR exceptionInfo[EXCEPTION_INFO_N];
-  /* means we still have SEH handler */
-  if (theThread) {
-    exceptionInfo[0] = code;
-    exceptionInfo[1] = status;
-    
-    RaiseException(SG_THREAD_TERMINAT_CODE, 0, EXCEPTION_INFO_N, exceptionInfo);
-  }
+  exceptionInfo[0] = code;
+  exceptionInfo[1] = status;
+  
+  RaiseException(SG_THREAD_TERMINATE_CODE, 0, EXCEPTION_INFO_N, exceptionInfo);
 }
 
 void Sg_ExitThread(SgInternalThread *thread, void *ret)
@@ -349,7 +347,13 @@ void Sg_ExitThread(SgInternalThread *thread, void *ret)
 
 static void CALLBACK cancel_callback(ULONG_PTR ignore)
 {
-  throw_exception(EXCEPTION_CANCEL, 0);
+  /*
+    means we still have SEH handler, that implies Sagittarius process
+    is running. After this, it'd only be cleanup, so just let it go
+   */
+  if (theThread) {
+    throw_exception(EXCEPTION_CANCEL, 0);
+  }
 }
 
 void Sg_TerminateThread(SgInternalThread *thread)

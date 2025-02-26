@@ -1198,6 +1198,39 @@ void Sg_SanitiseStack(void *boundary)
   }
 }
 
+#include "win-def.h"
+
+static LONG ignore_thread_terminate_filter(PEXCEPTION_POINTERS ep)
+{
+  int exceptionCode = ep->ExceptionRecord->ExceptionCode;
+  if (exceptionCode == SG_THREAD_TERMINATE_CODE) {
+    DWORD n = ep->ExceptionRecord->NumberParameters;
+    int status = -1;
+    if (n == SG_TERMINATION_INFO_N) {
+      status = (int)ep->ExceptionRecord->ExceptionInformation[1];
+    }
+    /*
+      Self termination on main thread, you must know what you're doing
+      so, just exit.
+    */
+    if (Sg_MainThreadP()) {
+      Sg_Exit(status);
+    }
+  }
+  return EXCEPTION_CONTINUE_SEARCH;
+}
+
+/* sagittarius.dll entry point, to setup some exception handlers */
+BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
+{
+  switch (fdwReason) {
+  case DLL_PROCESS_ATTACH:
+    AddVectoredExceptionHandler(0, ignore_thread_terminate_filter);
+    break;
+  }
+  return TRUE;
+}
+
 void Sg__InitSystem()
 {
   SgLibrary *lib = Sg_FindLibrary(SG_INTERN("(sagittarius clos)"), TRUE);
