@@ -1200,7 +1200,7 @@ void Sg_SanitiseStack(void *boundary)
 
 #include "win-def.h"
 
-static LONG ignore_thread_terminate_filter(PEXCEPTION_POINTERS ep)
+static LONG WINAPI ignore_thread_terminate_filter(PEXCEPTION_POINTERS ep)
 {
   int exceptionCode = ep->ExceptionRecord->ExceptionCode;
   if (exceptionCode == SG_THREAD_TERMINATE_CODE) {
