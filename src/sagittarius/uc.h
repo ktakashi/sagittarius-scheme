@@ -32,22 +32,22 @@
 #include <sagittarius/config.h>
 #include "sagittarius/platform.h"
 
-#if __STDC_VERSION__ >= 201112L
+#if __STDC_VERSION__ >= 201112L || _MSVC_LANG >= 201402L
 # if defined(HAVE_UCHAR_H) && defined(HAVE_CHAR32_T)
 #  define SG_USE_UCHAR_FEATURE
 # endif
 #endif
 
 #if defined(USE_UCS4_CPP)
-#  if defined(SG_USE_UCHAR_FEATURE) && !defined(SG_DONT_USE_UCS_LITERAL)
+#  if defined(SG_USE_UCHAR_FEATURE)
 #   define UC_(x) U##x
 #   define UC(x)  (const SgChar*)(UC_(x))
 #  else
 #   define UC(x)  (const SgChar*)(Sg_CharsToSgChars(x))
-#  endif
 SG_CDECL_BEGIN
 SG_EXTERN const SgChar* Sg_CharsToSgChars(const char *str);
 SG_CDECL_END
+#  endif
 
 #elif defined(SG_USE_UCHAR_FEATURE)
 # define UC_(x) U##x

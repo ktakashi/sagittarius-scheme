@@ -38,6 +38,7 @@ INCLUDE(${PROJECT_SOURCE_DIR}/cmake/FixupCompilerFlags.cmake)
 INCLUDE(${PROJECT_SOURCE_DIR}/cmake/Parameters.cmake)
 INCLUDE(${PROJECT_SOURCE_DIR}/cmake/CheckStructExists.cmake)
 INCLUDE(${PROJECT_SOURCE_DIR}/cmake/CopyTarget.cmake)
+INCLUDE(${PROJECT_SOURCE_DIR}/cmake/Utilities.cmake)
 
 # Install directories
 GET_PARAMETER(BIN_DIR        bin)
@@ -372,6 +373,11 @@ IF(USE_BOEHM_GC)
       IF (EXISTS ${GC_DIR}/${LIBATOMIC_OPS}
 	  AND NOT EXISTS ${GC_DIR}/libatomic_ops)
 	FILE(RENAME ${GC_DIR}/${LIBATOMIC_OPS} ${GC_DIR}/libatomic_ops)
+      ENDIF()
+      IF (MSVC_C11_ENABLED)
+	# __alignof__ is not C11 feature. So, wrong assumption on libatomic_ops
+	IN_FILE_REPLACE(${GC_DIR}/libatomic_ops/src/atomic_ops.h
+	  "# define AO_ALIGNOF_SUPPORTED 1" "# undef AO_ALIGNOF_SUPPORTED")
       ENDIF()
     ENDIF()
   ENDIF() 

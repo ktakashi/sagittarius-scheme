@@ -20,7 +20,8 @@ ELSE()
     os/posix/system.c os/posix/thread.c)
 ENDIF()
 
-IF (USE_UCS4_CPP)
+# USE_UCS4_CPP is only for Windows :)
+IF (USE_UCS4_CPP AND NOT MSVC_C11_ENABLED)
   SET(PLATFORM_SOURCE_UCS4
     ${PLATFORM_SOURCE_UCS4}
     ucs4.cpp)
