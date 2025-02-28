@@ -180,13 +180,11 @@
       (guard (e (else #t))
 	(let ((addr (socket-accept server-socket)))
 	  (thread-sleep! wait)
-	  (call-with-socket addr
-	    (lambda (sock)
-	      (let ((p (socket-port sock)))
-		(call-with-port p
-		  (lambda (p)
-		    (put-bytevector p #*"hello"))))))))))
-
+	  (let ((p (socket-port sock)))
+	    (call-with-port p
+	      (lambda (p)
+		(put-bytevector p #*"hello"))))))))
+  
   (let ()
     (define server-thread (make-thread (server-run 1)))
     (thread-start! server-thread)
@@ -198,7 +196,8 @@
       (test-error socket-read-timeout-error? (tls-socket-recv client-socket 5))
       (test-error socket-read-timeout-error?
 		  (tls-socket-recv! client-socket buffer 0 5))
-      (shutdown&close client-socket))))
+      (shutdown&close client-socket))
+    (thread-join! server-thread)))
 
 (let ()
   (define count 100)
@@ -290,6 +289,7 @@
 	(thread-yield!)
 	(thread-sleep! 0.3) ;; wait 300ms
 	(socket-send sock v)
+	(thread-sleep! 0.5) ;; wait 500ms to let client finish 
 	(socket-shutdown sock SHUT_RDWR)
 	(socket-close sock))))
   (define server-thread
