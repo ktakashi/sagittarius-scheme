@@ -38,7 +38,7 @@
 
 #include "roundeven.inc"
 
-#if !(__STDC_VERSION__ >= 199901L) && !defined(__GNUC__)
+#if (__STDC_VERSION__ < 199901L) && !defined(__GNUC__)
 # if defined(_MSC_VER)
 #   if  _MSC_VER < 1800
 /* under VS 2012. add required ones */
@@ -384,6 +384,14 @@ static __inline double yn_wrap(int n, double x)
 # else
 #  error "not supported"
 # endif
+#elif (__STDC_VERSION__ >= 199901L) && defined(_MSC_VER)
+/* The same thing is applied to MSVC using C11 :(  */
+static __inline double yn_wrap(int n, double x)
+{
+  if (x == 0.0) return -INFINITY;
+  return yn(n, x);
+}
+# define yn yn_wrap
 #endif
 
 /* 
