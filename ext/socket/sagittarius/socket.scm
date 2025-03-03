@@ -186,9 +186,10 @@
 	    (core conditions)
 	    (clos user)
 	    (sagittarius)
-	    (only (sagittarius time) time? make-time time-duration) ;; damn
-	    (sagittarius dynamic-module)
-	    )
+	    ;; damn
+	    (only (sagittarius time)
+		  time? make-time time-duration time-second time-nanosecond)
+	    (sagittarius dynamic-module))
   (load-dynamic-module "sagittarius--socket")
 
   (initialize-builtin-condition &host-not-found &i/o node service)
@@ -212,26 +213,32 @@
   (define (socket-recv! sock bv start len :optional (flags 0))
     (let ((r (%socket-recv! sock bv start len flags)))
       (when (and (< r 0) (not (nonblocking-socket? sock)))
-	(let ((to (socket-get-read-timeout sock)))
-	  (raise (condition (make-socket-read-timeout-error sock to)
-			    (make-who-condition 'socket-recv!)
-			    (make-message-condition 
-			     (format "Read timeout! node: ~a, service: ~a"
-				     (socket-node sock)
-				     (socket-service sock)))))))
+	(raise-read-timeout 'socket-recv sock))
       r))
   (define (socket-recv sock len :optional (flags 0))
     (let ((r (%socket-recv sock len flags)))
       (unless (or r (nonblocking-socket? sock))
-	(let ((to (socket-get-read-timeout sock)))
-	  (raise (condition (make-socket-read-timeout-error sock to)
-			    (make-who-condition 'socket-recv)
-			    (make-message-condition
-			     (format "Read timeout! node: ~a, service: ~a"
-				     (socket-node sock)
-				     (socket-service sock)))))))
+	(raise-read-timeout 'socket-recv sock))
       r))
 
+  (define (raise-read-timeout who sock)
+    ;; convert it to ms if possible 
+    (define (format-timeout t)
+      (let* ((s (time-second t))
+	     (ns (time-nanosecond t))
+	     (ms (+ (* s 1000) (div ns 1000000))))
+	(cond ((and (zero? ms) (zero? ns)) "") ;; no timeout
+	      ((zero? ms) (format ", timeout: ~a" t)) ;; less then millis
+	      (else (format ", timeout: ~ams" ms)))))
+	
+    (let ((to (socket-get-read-timeout sock)))
+      (raise (condition (make-socket-read-timeout-error sock to)
+			(make-who-condition who)
+			(make-message-condition
+			 (format "Read timeout! node: ~a, service: ~a~a"
+				 (socket-node sock)
+				 (socket-service sock)
+				 (format-timeout to)))))))
   (define (socket-set-read-timeout! socket read-timeout)
     (cond ((and (integer? read-timeout) (exact? read-timeout))
 	   ;; in milli second, for Windows...

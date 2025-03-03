@@ -1,6 +1,6 @@
 /* selector-epoll.c                                -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2023  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2023-2025  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -39,8 +39,6 @@ static int make_selector()
 {
   return epoll_create1(0);
 }
-
-
 
 static void add_socket_ctx(unix_context_t *ctx, SgObject slot)
 {
@@ -100,7 +98,7 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
     (1) any of the requested events occurred or (2) the
     timeout expired; see signal(7).
 
-    So, timeout is also EINTR which we do put.
+    So, timeout is also EINTR which we do expect.
   */
   if (c < 0 && errno != EINTR) {
     *err = errno;
