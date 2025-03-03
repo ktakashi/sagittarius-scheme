@@ -1,6 +1,6 @@
 /* sagittarius-socket.c                            -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2016  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2025  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -500,13 +500,15 @@ SgObject Sg_CreateSocket(int family, int socktype, int protocol)
   return make_socket_inner(fd);
 }
 
-static void disable_nagle(SOCKET fd)
+static void flush_tcp(SOCKET fd)
 {
 #ifdef TCP_NODELAY
-    const int value = 1;
-    /* we ignore the return value here, since this is merely performance
-       optimisation */
-    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char *)&value, sizeof(int));
+  int value = 1;
+  /* we ignore the return value here, since this is merely performance
+     optimisation */
+  setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char *)&value, sizeof(int));
+  value = 0;
+  setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char *)&value, sizeof(int));
 #endif
 }
 
@@ -541,8 +543,6 @@ SgObject Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo,
       goto err;
     }
   }
-
-  disable_nagle(socket->socket);
   socket->type = SG_SOCKET_CLIENT;
   socket->address = SG_SOCKADDR(ai_addr(addrinfo));
   socket->node = addrinfo->node;
@@ -708,29 +708,27 @@ SgObject Sg_SocketGetopt(SgSocket *socket, int level, int name, int rsize)
 #endif
 
 #define handleError(who, socket, r)					\
-  do {									\
-    if ((r) < 0) {							\
-      int e = last_error;						\
-      socket->lastError = e;						\
-      switch (e) {							\
-      case EINTR:							\
-	continue;							\
-      case EPIPE:							\
-	if (flags & MSG_NOSIGNAL) {					\
-	  return 0;							\
-	}								\
-	break;								\
-      case NON_BLOCKING_CASE:						\
-      case ETIMEDOUT:/* Windows, maybe we should raise an error here*/	\
-	/* most probably non-blocking socket */				\
-	return (r);							\
+  if ((r) < 0) {							\
+    int e = last_error;							\
+    socket->lastError = e;						\
+    switch (e) {							\
+    case EINTR:								\
+      continue;								\
+    case EPIPE:								\
+      if (flags & MSG_NOSIGNAL) {					\
+	return 0;							\
       }									\
-      raise_socket_error(SG_INTERN(who),				\
-			 Sg_GetLastErrorMessageWithErrorCode(e),	\
-			 Sg_MakeConditionSocket(socket),		\
-			 SG_LIST1(SG_MAKE_INT(e)));			\
+      break;								\
+    case NON_BLOCKING_CASE:						\
+    case ETIMEDOUT:/* Windows, maybe we should raise an error here*/	\
+      /* most probably non-blocking socket */				\
+      return (r);							\
     }									\
-  } while (0)
+    raise_socket_error(SG_INTERN(who),					\
+		       Sg_GetLastErrorMessageWithErrorCode(e),		\
+		       Sg_MakeConditionSocket(socket),			\
+		       SG_LIST1(SG_MAKE_INT(e)));			\
+  }									\
 
 long Sg_SocketReceive(SgSocket *socket, uint8_t *data, long size, int flags)
 {
@@ -776,6 +774,7 @@ long Sg_SocketSend(SgSocket *socket, uint8_t *data, long size, int flags)
     data += ret;
     size -= ret;
   }
+  flush_tcp(socket->socket);
   return sizeSent;
 }
 
@@ -870,7 +869,6 @@ SgObject Sg_SocketAccept(SgSocket *socket)
       break;
     }
   }
-  disable_nagle(fd);
   return make_socket(fd, SG_SOCKET_SERVER, 
 		     make_sockaddr(addrlen, (struct sockaddr *)&addr, TRUE));
 }

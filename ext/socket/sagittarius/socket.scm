@@ -230,7 +230,6 @@
 	(cond ((and (zero? ms) (zero? ns)) "") ;; no timeout
 	      ((zero? ms) (format ", timeout: ~a" t)) ;; less then millis
 	      (else (format ", timeout: ~ams" ms)))))
-	
     (let ((to (socket-get-read-timeout sock)))
       (raise (condition (make-socket-read-timeout-error sock to)
 			(make-who-condition who)

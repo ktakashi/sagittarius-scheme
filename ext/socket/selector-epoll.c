@@ -76,14 +76,17 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
 			      int *err)
 {
   int n = nsock + 1, i, c;
-  long millis = -1;
   SgObject r = SG_NIL, cp;
   struct epoll_event *evm, ev;
 
+#ifndef HAVE_EPOLL_PWAIT2
+  long millis = -1;
   if (sp) {
     millis = sp->tv_sec * 1000;
     millis += sp->tv_nsec / 1000000;
   }
+#endif
+
   SG_FOR_EACH(cp, sockets) {
     add_socket_ctx(ctx, SG_CAR(cp));
   }
@@ -92,7 +95,11 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
   epoll_ctl(ctx->fd, EPOLL_CTL_ADD, ctx->stop_fd, &ev);
   
   evm = SG_NEW_ATOMIC2(struct epoll_event *, n * sizeof(struct epoll_event));
+#ifndef HAVE_EPOLL_PWAIT2
   c = epoll_wait(ctx->fd, evm, n, millis);
+#else
+  c = epoll_pwait2(ctx->fd, evm, n, sp, NULL);
+#endif
   /*
     EINTR  The call was interrupted by a signal handler before either
     (1) any of the requested events occurred or (2) the
@@ -108,9 +115,8 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
   for (i = 0; i < c; i++) {
     if (SG_FALSEP(evm[i].data.ptr)) {
       interrupted_unix_stop(ctx);
-    } else if (SG_PAIRP(evm[i].data.ptr) && evm[i].events == EPOLLIN) {
+    } else if (evm[i].events & EPOLLIN) {
       SgObject slot = SG_OBJ(evm[i].data.ptr);
-      /* SgSocket *sock = SG_SOCKET(SG_CAR(slot)); */
       r = Sg_Cons(slot, r);
     }
   }
