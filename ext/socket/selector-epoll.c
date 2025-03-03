@@ -41,14 +41,20 @@ static int make_selector()
 }
 
 
-static void add_socket(SgSocketSelector *selector, SgObject slot)
+
+static void add_socket_ctx(unix_context_t *ctx, SgObject slot)
 {
   struct epoll_event ev;
-  unix_context_t *ctx = (unix_context_t *)selector->context;
   SgSocket *socket = SG_SOCKET(SG_CAR(slot));
   ev.events = EPOLLIN;
   ev.data.ptr = slot;
   epoll_ctl(ctx->fd, EPOLL_CTL_ADD, socket->socket, &ev);
+}
+
+static void add_socket(SgSocketSelector *selector, SgObject slot)
+{
+  /* unix_context_t *ctx = (unix_context_t *)selector->context; */
+  /* add_socket_ctx(ctx, slot); */
 }
 
 static void remove_socket_ctx(unix_context_t *ctx, SgSocket *socket)
@@ -62,8 +68,8 @@ static void remove_socket_ctx(unix_context_t *ctx, SgSocket *socket)
 
 static void remove_socket(SgSocketSelector *selector, SgSocket *socket)
 {
-  unix_context_t *ctx = (unix_context_t *)selector->context;
-  remove_socket_ctx(ctx, socket);
+  /* unix_context_t *ctx = (unix_context_t *)selector->context; */
+  /* remove_socket_ctx(ctx, socket); */
 }
 
 
@@ -73,14 +79,16 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
 {
   int n = nsock + 1, i, c;
   long millis = -1;
-  SgObject r = SG_NIL;
+  SgObject r = SG_NIL, cp;
   struct epoll_event *evm, ev;
 
   if (sp) {
     millis = sp->tv_sec * 1000;
     millis += sp->tv_nsec / 1000000;
   }
-
+  SG_FOR_EACH(cp, sockets) {
+    add_socket_ctx(ctx, SG_CAR(cp));
+  }
   ev.events = EPOLLIN;
   ev.data.ptr = SG_FALSE;
   epoll_ctl(ctx->fd, EPOLL_CTL_ADD, ctx->stop_fd, &ev);
@@ -102,13 +110,18 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
   for (i = 0; i < c; i++) {
     if (SG_FALSEP(evm[i].data.ptr)) {
       interrupted_unix_stop(ctx);
-      epoll_ctl(ctx->fd, EPOLL_CTL_DEL, ctx->stop_fd, &ev);
     } else if (SG_PAIRP(evm[i].data.ptr) && evm[i].events == EPOLLIN) {
       SgObject slot = SG_OBJ(evm[i].data.ptr);
-      SgSocket *sock = SG_SOCKET(SG_CAR(slot));
+      /* SgSocket *sock = SG_SOCKET(SG_CAR(slot)); */
       r = Sg_Cons(slot, r);
-      remove_socket_ctx(ctx, sock);
     }
   }
+  ev.events = EPOLLIN;
+  ev.data.ptr = NULL;
+  epoll_ctl(ctx->fd, EPOLL_CTL_DEL, ctx->stop_fd, &ev);
+  SG_FOR_EACH(cp, sockets) {
+    remove_socket_ctx(ctx, SG_SOCKET(SG_CAAR(cp)));
+  }
+  
   return r;
 }

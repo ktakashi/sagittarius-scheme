@@ -179,7 +179,16 @@ int Sg_WaitWithTimeout(SgInternalCond *cond, SgInternalMutex *mutex,
 
 void Sg_ExitThread(SgInternalThread *thread, void *ret)
 {
-  pthread_exit(ret);
+  if (Sg_MainThreadP()) {
+    /* at least on macosx, pthread_exit on main thread hangs
+       most likely due to the other live threads automatically
+       created (by GC?). So, just exit, if the thread is main
+       thread.
+     */
+    Sg_Exit(0);
+  } else {
+    pthread_exit(ret);
+  }
 }
 
 void Sg_TerminateThread(SgInternalThread *thread)
