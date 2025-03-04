@@ -49,12 +49,6 @@ static void add_socket_ctx(unix_context_t *ctx, SgObject slot)
   epoll_ctl(ctx->fd, EPOLL_CTL_ADD, socket->socket, &ev);
 }
 
-static void add_socket(SgSocketSelector *selector, SgObject slot)
-{
-  /* unix_context_t *ctx = (unix_context_t *)selector->context; */
-  /* add_socket_ctx(ctx, slot); */
-}
-
 static void remove_socket_ctx(unix_context_t *ctx, SgSocket *socket)
 {
   /* BUG on kernel < 2.6.9 */
@@ -63,13 +57,6 @@ static void remove_socket_ctx(unix_context_t *ctx, SgSocket *socket)
   ev.data.ptr = NULL;
   epoll_ctl(ctx->fd, EPOLL_CTL_DEL, socket->socket, &ev);
 }
-
-static void remove_socket(SgSocketSelector *selector, SgSocket *socket)
-{
-  /* unix_context_t *ctx = (unix_context_t *)selector->context; */
-  /* remove_socket_ctx(ctx, socket); */
-}
-
 
 static SgObject wait_selector(unix_context_t *ctx, int nsock,
 			      SgObject sockets, struct timespec *sp,

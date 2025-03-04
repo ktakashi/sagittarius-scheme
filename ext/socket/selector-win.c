@@ -60,16 +60,6 @@ static void system_error(int code)
 		 Sg_GetLastErrorMessageWithErrorCode(code));
 }
 
-static void remove_socket(SgSocketSelector *selector, SgSocket *socket)
-{
-  /* do nothing */
-}
-
-static void add_socket(SgSocketSelector *selector, SgObject slot)
-{
-  /* do nothing */
-}
-
 static void * make_selector_context()
 {
   win_context_t *ctx = SG_NEW(win_context_t);

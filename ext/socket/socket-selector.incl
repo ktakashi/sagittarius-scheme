@@ -81,8 +81,6 @@ static struct timespec *selector_timespec(SgObject timeout, struct timespec *tm)
   return NULL;                /* dummy */
 }
 
-static void remove_socket(SgSocketSelector *selector, SgSocket *socket);
-
 SgObject Sg_SocketSelectorClear(SgSocketSelector *selector)
 {
   SgObject cp;
@@ -91,9 +89,6 @@ SgObject Sg_SocketSelectorClear(SgSocketSelector *selector)
   }
   Sg_LockMutex(&selector->lock);
 
-  SG_FOR_EACH(cp, selector->sockets) {
-    remove_socket(selector, SG_SOCKET(SG_CAAR(cp)));
-  }
   strip_sockets(selector, SG_NIL);	/* strip closed ones */
   cp = selector->sockets;
   selector->sockets = SG_NIL;
@@ -101,8 +96,6 @@ SgObject Sg_SocketSelectorClear(SgSocketSelector *selector)
   Sg_UnlockMutex(&selector->lock);
   return cp;
 }
-
-static void add_socket(SgSocketSelector *selector, SgObject slot);
 
 SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector,
 			      SgSocket *socket,
@@ -130,7 +123,6 @@ SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector,
     }
     Sg_LockMutex(&selector->lock);
     slot = Sg_Cons(socket, Sg_Cons(to, data));
-    add_socket(selector, slot);
     selector->sockets = Sg_Cons(slot, selector->sockets);
     strip_sockets(selector, SG_NIL);
     if (selector->waiting && !selector->retry) {

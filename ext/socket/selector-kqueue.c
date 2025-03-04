@@ -41,18 +41,6 @@ static int make_selector()
   return kqueue();
 }
 
-static void add_socket(SgSocketSelector *selector, SgObject slot)
-{
-  /* do nothing :) */
-}
-
-
-static void remove_socket(SgSocketSelector *selector, SgSocket *socket)
-{
-  /* do nothing */
-}
-
-
 static SgObject wait_selector(unix_context_t *ctx, int nsock,
 			      SgObject sockets, struct timespec *sp,
 			      int *err)
