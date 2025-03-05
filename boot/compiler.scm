@@ -19,13 +19,6 @@
   (include "lib/smatch.scm"))
  (else #t))
 
-;; (define *history* (make-core-parameter '()))
-;; (define (history o) (assq o (*history*)))
-;; (define (history! n o)
-;;   (let ((o (cond ((assq o (*history*)) => cdr) (else o))))
-;;     (*history* (acons n o (*history*)))
-;;     n))
-
 ;; to avoid unneccessary stack trace, we use guard.
 ;; this is not the same as the one in exceptions.scm
 ;; this does not use call/cc
@@ -78,79 +71,6 @@
     ((_ n)
      (let ((s (history n)))
        (if s (cdr s) n)))))
-
-;; utility macros
-(define-syntax imap
-  (syntax-rules ()
-    ((_ proc lis)
-     (let loop ((r '()) (p lis))
-       (if (null? p)
-	   (reverse r)
-	   (loop (cons (proc (car p)) r) (cdr p)))))))
-
-(define-syntax imap2
-  (syntax-rules ()
-    ((_ proc lis1 lis2)
-     (let loop ((r '()) (p1 lis1) (p2 lis2))
-       (if (or (null? p1) (null? p2))
-	   (reverse r)
-	   (loop (cons (proc (car p1) (car p2)) r)
-		 (cdr p1) (cdr p2)))))))
-
-(define-syntax ifor-each
-  (syntax-rules ()
-    ((_ proc lis1)
-     (let loop ((p1 lis1))
-       (unless (null? p1)
-	 (proc (car p1))
-	 (loop (cdr p1)))))))
-
-(define-syntax ifor-each2
-  (syntax-rules ()
-    ((_ proc lis1 lis2)
-     (let loop ((p1 lis1) (p2 lis2))
-       (unless (or (null? p1) (null? p2))
-	 (proc (car p1) (car p2))
-	 (loop (cdr p1) (cdr p2)))))))
-
-(define-syntax ifold
-  (syntax-rules ()
-    ((_ proc seed lis)
-     (let loop ((p1 lis) (knil seed))
-       (if (null? p1)
-	   knil
-	   (loop (cdr p1) (proc (car p1) knil)))))))
-
-(define-syntax ifilter-map
-  (syntax-rules ()
-    ((_ proc lis)
-     (let ((p proc))
-       (let loop ((l lis) (r '()))
-	 (if (null? l)
-	     (reverse! r)
-	     (cond ((p (car l)) => (lambda (x) (loop (cdr l) (cons x r))))
-		   (else (loop (cdr l) r)))))))))
-
-(define-syntax iany
-  (syntax-rules ()
-    ((_ pred lis)
-     (let ((p pred))
-       (let loop ((l lis))
-	 (cond ((null? l) #f)
-	       ((p (car l)))
-	       (else (loop (cdr l)))))))))
-
-(define-syntax $append-map1
-  (syntax-rules ()
-    ((_ f l)
-     (apply append (imap f l)))))
-
-(define-syntax $vm-warn
-  (syntax-rules ()
-    ((_ fmt args ...)
-     (when (vm-log-level 'warn)
-       (let ((msg (format/ss fmt args ...)))
-	 (vm-warn msg))))))
 
 (define (uniq lst)
   (let loop ((lst lst) (ret '()))

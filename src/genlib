@@ -34,8 +34,8 @@
 		  "../boot/aux-incl.scm"
 		  '(begin) ;; do nothing
 		  '*history* 'history 'history!
-		  ;;'imap 'imap2 'ifor-each 'ifor-each2 'ifold 'ifilter-map
-		  ;;'iany '$vm-warn
+		  'imap 'imap2 'ifor-each 'ifor-each2 'ifold 'ifilter-map
+		  'iany '$append-map1 '$vm-warn
 		  )
 
 ;; import specs for compiler 
