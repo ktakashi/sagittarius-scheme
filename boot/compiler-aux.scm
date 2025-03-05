@@ -34,6 +34,8 @@
 	   (vals (cddr form)))
        `(begin ,@(make-enum name vals))))))
 
+(include "aux-incl.scm")
+
 ;;;;
 ;; IForm
 (define-enum .intermediate-tags.

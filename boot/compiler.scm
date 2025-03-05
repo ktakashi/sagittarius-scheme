@@ -19,12 +19,12 @@
   (include "lib/smatch.scm"))
  (else #t))
 
-(define *history* (make-core-parameter '()))
-(define (history o) (assq o (*history*)))
-(define (history! n o)
-  (let ((o (cond ((assq o (*history*)) => cdr) (else o))))
-    (*history* (acons n o (*history*)))
-    n))
+;; (define *history* (make-core-parameter '()))
+;; (define (history o) (assq o (*history*)))
+;; (define (history! n o)
+;;   (let ((o (cond ((assq o (*history*)) => cdr) (else o))))
+;;     (*history* (acons n o (*history*)))
+;;     n))
 
 ;; to avoid unneccessary stack trace, we use guard.
 ;; this is not the same as the one in exceptions.scm

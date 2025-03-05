@@ -23,6 +23,21 @@
 (procedure-inliner-set! (find-procedure 'for-each '(core base)) #f)
 
 (define-constant +default-compiler+ "../boot/compiler.scm")
+
+(define (override-library libname file import . extra-exports)
+  (define library (find-library libname #f))
+  (eval import library)
+  (eval `(load ,file) library)
+  (eval `(begin ,@(map (lambda (e) `(export ,e)) extra-exports)) library))
+
+(override-library '(sagittarius compiler util)
+		  "../boot/aux-incl.scm"
+		  '(begin) ;; do nothing
+		  '*history* 'history 'history!
+		  ;;'imap 'imap2 'ifor-each 'ifor-each2 'ifold 'ifilter-map
+		  ;;'iany '$vm-warn
+		  )
+
 ;; import specs for compiler 
 ;; we can use (rnrs) here since it won't be pre-compiled
 ;; ****CAUTION****
@@ -97,9 +112,14 @@
 (define (resolve-cond-expand&include forms loadpaths)
   (define marks (*features*))
   (define (find-file base loadpaths)
-    (car (filter-map (lambda (dir)
+    (let ((files (filter-map (lambda (dir)
 		       (let1 f (build-path dir base)
 			 (and (file-exists? f) f))) loadpaths)))
+      (when (null? files)
+	(error 'resolve-include
+	       (string-append "Failed to resolve include file: " base)
+	       loadpaths))
+      (car files)))
   (define (handle-cond-expand body form)
     (aif (find (lambda (x) (memq (car x) marks)) body)
 	 (resolve-include (cdr it))

@@ -30,8 +30,19 @@
  (library . (sagittarius compiler util))
  (file . "../boot/compiler-aux.scm")
  (construct)
- (imports (core) (core errors) (sagittarius)
-	  (for (smatch) expand) (sagittarius vm))
+ (imports (core)
+	  (core errors)
+	  (sagittarius)
+	  (for (compat r7rs) expand)
+	  (for (smatch) expand)
+	  (sagittarius vm))
+ (exports ensure-library-name
+	  $UNDEF $DEFINE $LREF $LSET $GREF $GSET $CONST
+	  $IF $LET $LAMBDA $RECEIVE $LABEL $SEQ $CALL $ASM
+	  $IT $LIST $LIBRARY
+	  *history* history history!
+	  )
+ (includes "../boot")
  (additionals "../boot/lib/smatch.scm"))
 ;; compiler
 ((target compiler)
@@ -48,12 +59,10 @@
 	  (sagittarius compiler util)
 	  (sagittarius vm debug)
 	  (sagittarius fixnums) ;; for fixnum?
-	  (for (compiler-aux) expand)
 	  (sagittarius compiler procedure))
  (exports compile compile-p1 compile-p2 compile-p3 compile-p4 compile-p5)
  (includes "../boot")
- (additionals "../boot/lib/smatch.scm"
-	      "../boot/compiler-aux.scm"))
+ (additionals "../boot/lib/smatch.scm"))
 ;; else
 ((target errors) (file . "../boot/lib/errors.scm"))
 ((target arith) (file . "../boot/lib/arith.scm"))
