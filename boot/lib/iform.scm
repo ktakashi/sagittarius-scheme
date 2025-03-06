@@ -7,6 +7,10 @@
 	    lvar-optimized? lvar-ref-count lvar-ref-count-set!
 	    lvar-set-count
 	    ;; iforms
+	    $UNDEF $DEFINE $LREF $LSET $GREF $GSET $CONST
+	    $IF $LET $LAMBDA $RECEIVE $LABEL $SEQ $CALL $ASM
+	    $IT $LIST $LIBRARY
+
 	    iform-tag has-tag?
 
 	    $undef
@@ -71,14 +75,68 @@
 	    iform-copy-zip-lvs
 	    iform-copy-lvar
 	    pp-iform
-	    iform->sexp)
+	    iform->sexp
+	    expand-inlined-procedure
+	    adjust-arglist
+	    transparent?
+	    inlinable-binding?)
     (import (core)
 	    (core base)
+	    (core errors)
 	    (for (compat r7rs) expand)
+	    (for (rename (match) (match smatch)) expand)
 	    (sagittarius)
+	    (sagittarius fixnums)
 	    (sagittarius vm)
 	    (sagittarius vm debug)
-	    (sagittarius compiler util))
+	    (sagittarius vm instruction)
+	    (sagittarius compiler util)
+	    (sagittarius compiler procedure))
+
+(define-syntax define-enum
+  (er-macro-transformer
+   (lambda (form rename compare)
+     (define make-tag-list
+       (lambda (name tags)
+	 `(define-constant ,name ',tags)))
+     (define make-enum
+       (lambda (name vals)
+	 (let ((len (length vals)))
+	   (let loop ((i 0)
+		      (vals vals)
+		      (r '())
+		      (tags '()))
+	     (if (= i len)
+		 (cons (make-tag-list name (reverse tags)) (reverse r))
+		 (begin
+		   (loop (+ i 1)
+			 (cdr vals)
+			 (cons `(define-constant ,(car vals) ,i) r)
+			 (cons (cons (car vals) i) tags))))))))
+     (let ((name (cadr form))
+	   (vals (cddr form)))
+       `(begin ,@(make-enum name vals))))))
+
+;; IForm tag
+(define-enum .intermediate-tags.
+  $UNDEF
+  $DEFINE
+  $LREF
+  $LSET
+  $GREF
+  $GSET
+  $CONST
+  $IF
+  $LET
+  $LAMBDA
+  $RECEIVE
+  $LABEL
+  $SEQ
+  $CALL
+  $ASM
+  $IT
+  $LIST
+  $LIBRARY)
 
 (define-syntax iform-tag
   (syntax-rules ()
@@ -797,6 +855,139 @@
       (scheme-error 'iform->sexp "unknown tag:" (iform-tag iform)))))
   (rec iform))
 
-  
+;; IFORM must be a $LAMBDA node. This expands the application of IFORM
+;; on IARGS (list of IForm) into a mere $LET node.
+;; used both pass1 and pass2
+(define (expand-inlined-procedure src iform iargs)
+  (let ((lvars ($lambda-lvars iform))
+	(args (adjust-arglist src
+			      ($lambda-args iform)
+			      ($lambda-option iform)
+			      iargs ($lambda-name iform))))
+    (ifor-each2 (lambda (lv a) (lvar-initval-set! lv a)) lvars args)
+    ($let src 'let lvars args ($lambda-body iform))))
+
+;; Adjust argmuent list according to reqargs and optarg count.
+;; Used in procedure inlining and local call optimization.
+;; used both pass1 and pass2
+(define (adjust-arglist src reqargs optarg iargs name)
+  (unless (argcount-ok? iargs reqargs (> optarg 0))
+    (raise (condition (make-compile-error
+		       (format-source-info (source-info src))
+		       (truncate-program src))
+		      (make-who-condition name)
+		      (make-message-condition 
+		       (format 
+			"wrong number of arguments: ~s requires ~a, but got ~a"
+			name reqargs (length iargs))))))
+  (if (zero? optarg)
+      iargs
+      (receive (reqs opts) (split-at iargs reqargs)
+	(append! reqs (list ($list #f opts))))))
+
+;; see if the given iform is referentially transparent. That is the iform is
+;; side effect free, and alto the value of iform won't change even if we move
+;; iform to a differnet place in the subtree.
+(define (everyc proc lis c)             ;avoid closure allocation
+  (or (null? lis)
+      (let loop ((lis lis))
+        (smatch lis
+          ((x) (proc x c))
+          ((x . xs) (and (proc x c) (loop xs)))))))
+;; used both pass2 and pass3
+(define (transparent? iform) (transparent?/rec iform (make-label-dic #f)))
+(define (transparent?/rec iform labels)
+  (case/unquote (iform-tag iform)
+   (($LREF   ) (zero? (lvar-set-count ($lref-lvar iform))))
+   (($GREF   ) (inlinable-binding? ($gref-id iform) #t))
+   (($CONST $LAMBDA $IT $UNDEF) #t)
+   (($IF     ) (and (transparent?/rec ($if-test iform) labels)
+		    (transparent?/rec ($if-then iform) labels)
+		    (transparent?/rec ($if-else iform) labels)))
+   (($LET    ) (and (everyc transparent?/rec ($let-inits iform) labels)
+		    (transparent?/rec ($let-body iform) labels)))
+   (($LABEL  ) (or (label-seen? labels iform)
+		   (begin (label-push! labels iform)
+			  (transparent?/rec ($label-body iform) labels))))
+   (($SEQ    ) (everyc transparent?/rec ($seq-body iform) labels))
+   (($CALL   ) (and (no-side-effect-call? ($call-proc iform) ($call-args iform))
+		    (everyc transparent?/rec ($call-args iform) labels)))
+   (($ASM    ) (and (no-side-effect-insn? ($asm-insn iform) ($asm-args iform))
+		    (everyc transparent?/rec ($asm-args iform) labels)))
+   (($LIST   ) (everyc transparent?/rec ($list-args iform) labels))
+   (($RECEIVE) (and (transparent?/rec ($receive-expr iform) labels)
+		    (transparent?/rec ($receive-body iform) labels)))
+   (else #f)))
+
+;; we only check the variable which defined outside of the current library.
+;; unbound variable is obvious error case so we can't eliminate.
+(define (inlinable-binding? id allow-variable?)
+  (let ((lib (id-library id))
+	(name (id-name id)))
+    (and-let* ((gloc (find-binding lib name #f))
+	       ;; check if the bound library is *NOT* current library
+	       ;; this prevents global variable re-asignment in the
+	       ;; same library, typically in script.
+	       ;; e.g.) Gambit benchmark's compiler
+	       ( (not (eq? (gloc-library gloc) (vm-current-library))) ))
+      (let ((val (gloc-ref gloc)))
+	(if (procedure? val)
+	    (and (procedure-transparent? val) val)
+	    ;; ok this must be a variable so no harm to remove
+	    allow-variable?)))))
+
+;; For now
+(define (no-side-effect-call? proc args)
+  (define (no-side-effect-procedure? id)
+    (let ((lib (id-library id))
+	  (name (id-name id)))
+      (and-let* ((gloc (find-binding lib name #f))
+		 (val  (gloc-ref gloc))
+		 ( (procedure? val) )
+		 ( (procedure-no-side-effect? val) ))
+	val)))
+  (define (callable? p consts)
+    ;; we only need to know if it can be called without an error.
+    (guard (e (else #f))
+      (apply p (imap $const-value args))
+      #t))
+  (cond (($gref? proc)
+	 (and-let* ((proc (no-side-effect-procedure? ($gref-id proc))))
+	   ;; it's already folded and if there still $const means
+	   ;; sommething wrong with the procedure
+	   (if (for-all $const? args)
+	       ;; in case of (car 'a) check it
+	       ;; FIXME slow...
+	       (callable? proc args)
+	       #t)))
+	;; for now
+	(else #f)))
+
+;; the args will be double checked...
+(define (no-side-effect-insn? insn args)
+  (case/unquote (car insn)
+   ;; Predicates and constructors can be always #t
+   ((NOT NULLP PAIRP SYMBOLP VECTORP CONS VALUES EQ EQV LIST VECTOR) #t)
+   ;; we do the same as SBCL does that is if the value obviously causes
+   ;; an error, then it won't eliminate. however there is a tricky part
+   ;; if the argument is literal then it's already either not foldable
+   ;; or folded. So if we see the $const in args, we can assume the 
+   ;; argument is something wrong.
+   ((VEC_LEN NEG CAR CDR CAAR CADR CDAR CDDR)
+    (for-all (lambda (arg) (not ($const? arg))) args))
+   ((VEC_REF)
+    (let ((vec (car args)) (index (cadr args)))
+      (cond ((and ($const vec) ($const index)) #f) ;; failed constant foliding
+	    (($const vec)   (vector? ($const-value vec)))
+	    (($const index) (and (fixnum? ($const-value index))
+				 (not (negative? ($const-value index)))))
+	    (else #t)))) ;; both non $const
+   ((ADD SUB MUL DIV NUM_EQ NUM_LT NUM_LE NUM_GT NUM_GE) 
+    ;; check if there is non number constant
+    (not (iany (lambda (arg)
+		 (and ($const arg) (not (number? ($const-value arg)))))
+	       args)))
+   (else #f))
+)
 )
 

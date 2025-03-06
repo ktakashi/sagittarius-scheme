@@ -2573,17 +2573,24 @@ void Sg__InitVM()
 
 void Sg__PostInitVM()
 {
-  SgObject coreErrors = Sg_FindLibrary(SG_INTERN("(core errors)"), FALSE);
-  SgObject b = Sg_FindBinding(coreErrors, SG_INTERN("raise"), SG_UNBOUND);
+  SgObject lib = Sg_FindLibrary(SG_INTERN("(core errors)"), FALSE);
+  SgObject b = Sg_FindBinding(lib, SG_INTERN("raise"), SG_UNBOUND);
   if (SG_UNBOUNDP(b)) {
     Sg_Panic("`raise` was not found.");
   }
   raise_proc = SG_GLOC_GET(SG_GLOC(b));
-  b = Sg_FindBinding(coreErrors, SG_INTERN("raise-continuable"), SG_UNBOUND);
+  b = Sg_FindBinding(lib, SG_INTERN("raise-continuable"), SG_UNBOUND);
   if (SG_UNBOUNDP(b)) {
     Sg_Panic("`raise-continuable` was not found.");
   }
   raise_continuable_proc = SG_GLOC_GET(SG_GLOC(b));
+
+  lib = Sg_FindLibrary(SG_INTERN("(sagittarius compiler)"), FALSE);
+  b = Sg_FindBinding(lib, SG_INTERN("init-compiler"), SG_UNBOUND);
+  if (SG_UNBOUNDP(b)) {
+    Sg_Panic("`init-compiler` was not found.");
+  }
+  Sg_Apply0(SG_GLOC_GET(SG_GLOC(b)));
 }
 
 /*

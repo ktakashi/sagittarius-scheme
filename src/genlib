@@ -25,27 +25,14 @@
 (define-constant +default-compiler+ "../boot/compiler.scm")
 
 ;;;; TO BE REMOVED start
-(define (override-library libname file import . extra-exports)
-  (define library (find-library libname #f))
-  (eval import library)
-  (eval `(load ,file) library)
-  (eval `(begin ,@(map (lambda (e) `(export ,e)) extra-exports)) library))
-
-;; load smatch
-(override-library '(sagittarius compiler util)
-		  "../boot/lib/smatch.scm"
-		  '(import (for (compat r7rs) expand))
-		  )
-
-(override-library '(sagittarius compiler util)
-		  "../boot/aux-incl.scm"
-		  '(begin) ;; do nothing
-		  '*history* 'history 'history!
-		  'imap 'imap2 'ifor-each 'ifor-each2 'ifold 'ifilter-map
-		  'iany '$append-map1 '$vm-warn
-		  'case/unquote 'define-simple-struct
-		  )
-(load "../boot/lib/iform.scm")
+(define (load-transition)
+  (load "../boot/compiler-aux.scm")
+  (load "../boot/lib/iform.scm")
+  (load "../boot/lib/pass1.scm")
+  (load "../boot/lib/pass2.scm")
+  (load "../boot/lib/pass3.scm")
+  (load "../boot/lib/pass4.scm")
+  (load "../boot/lib/pass5.scm"))
 ;;;; TO BE REMOVED end
 
 
@@ -54,23 +41,18 @@
 ;; ****CAUTION****
 ;; DO NOT USE INLINED PROCEDURES SUCH AS map AND for-each
 ;; So basically we can't use (rnrs)
-(define-constant +default-imports+ '((except (core) er-rename)
-				     (except (core base) er-rename)
-				     (core syntax)
-				     (except (core macro)
-					     BOUNDARY
-					     LEXICAL .list)
+(define-constant +default-imports+ '((core)
 				     (core errors)
-				     (core misc)
-				     (rename (match) (match smatch))
-				     (except (sagittarius) er-rename)
+				     (core macro)
 				     (sagittarius vm)
 				     (sagittarius vm debug)
 				     (sagittarius vm instruction)
-				     (sagittarius fixnums)
-				     (sagittarius compiler util)
-				     (sagittarius compiler iform)
-				     (sagittarius compiler procedure)))
+				     (sagittarius compiler pass1)
+				     (sagittarius compiler pass2)
+				     (sagittarius compiler pass3)
+				     (sagittarius compiler pass4)
+				     (sagittarius compiler pass5)
+				     (sagittarius compiler util)))
 (define-constant +default-includes+ '("../boot"))
 
 (define-constant +targets-file+ "genlib.targets")
@@ -97,6 +79,7 @@
 			     (includes . ,includes)))
 	(eval form (environment '(only (sagittarius) library)
 				'user))
+	(eval '(init-compiler) (find-library '(sagittarius host compiler) #f))
 	(find-procedure 'compile '(sagittarius host compiler))))))
 
 (define (name-generator filename libname)
@@ -245,7 +228,7 @@
 		      ((form libname) (get-form/libname config)))
 	   (if clean? 
 	       (print "cleaning generated file from: " file)
-	       (print "generating from file:" file))
+	       (print "generating " libname " from file:" file))
 	   (if clean?
 	       (do-clean file libname)
 	       (let ()
@@ -253,6 +236,7 @@
 		 (when (or force?
 			   (check-timestamp file (name-generator file libname)))
 		   (unless compiler
+		     (load-transition)
 		     (set! compiler (load-compiler config)))
 		   (cgen-precompile 
 		    (or form

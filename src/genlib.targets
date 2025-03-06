@@ -26,46 +26,32 @@
 	  er-macro-transformer)
  (additionals "../boot/lib/smatch.scm"))
 ;; compiler-aux
-((target compile-aux)
- (library . (sagittarius compiler util))
- (file . "../boot/compiler-aux.scm")
- (construct)
- (imports (core)
-	  (core errors)
-	  (sagittarius)
-	  (for (compat r7rs) expand)
-	  (for (smatch) expand)
-	  (sagittarius vm))
- (exports ensure-library-name
-	  $UNDEF $DEFINE $LREF $LSET $GREF $GSET $CONST
-	  $IF $LET $LAMBDA $RECEIVE $LABEL $SEQ $CALL $ASM
-	  $IT $LIST $LIBRARY
-	  *history* history history!
-	  imap imap2 ifor-each ifor-each2 ifold ifilter-map
-	  iany $append-map1 $vm-warn
-	  case/unquote define-simple-struct)
- (includes "../boot")
- (additionals "../boot/lib/smatch.scm"))
+((target compiler-aux)  (file . "../boot/compiler-aux.scm"))
 ;; iform
 ((target iform) (file . "../boot/lib/iform.scm"))
+((target pass1) (file . "../boot/lib/pass1.scm"))
+((target pass2) (file . "../boot/lib/pass2.scm"))
+((target pass3) (file . "../boot/lib/pass3.scm"))
+((target pass4) (file . "../boot/lib/pass4.scm"))
+((target pass5) (file . "../boot/lib/pass5.scm"))
 
 ;; compiler
 ((target compiler)
  (library . (sagittarius compiler))
  (file . "../boot/compiler.scm")
  (construct)
- (imports (core) (core base) (core errors) (sagittarius)
+ (imports (core)
+	  (core errors)
 	  (core macro)
-	  (for (except (rnrs) syntax-rules) expand)
-	  (for (smatch) expand) 
-	  (for (core misc) expand) 
-	  (for (compat r7rs) expand) 
-	  (sagittarius vm) (sagittarius vm instruction)
-	  (sagittarius compiler iform)
-	  (sagittarius compiler util)
+	  (sagittarius vm)
 	  (sagittarius vm debug)
-	  (sagittarius fixnums) ;; for fixnum?
-	  (sagittarius compiler procedure))
+	  (sagittarius vm instruction)
+	  (sagittarius compiler pass1)
+	  (sagittarius compiler pass2)
+	  (sagittarius compiler pass3)
+	  (sagittarius compiler pass4)
+	  (sagittarius compiler pass5)
+	  (sagittarius compiler util))
  (exports compile compile-p1 compile-p2 compile-p3 compile-p4 compile-p5)
  (includes "../boot")
  (additionals "../boot/lib/smatch.scm"))

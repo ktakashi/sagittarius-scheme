@@ -84,6 +84,11 @@ sagittarius-package
 /src/lib_kernel.c
 /src/lib_atomic.c
 /src/lib_iform.c
+/src/lib_pass1.c
+/src/lib_pass2.c
+/src/lib_pass3.c
+/src/lib_pass4.c
+/src/lib_pass5.c
 /src/compiler.c
 /src/compiler-aux.c
 /src/builtin-symbols.c

@@ -95,8 +95,13 @@ extern void Sg__InitInstruction();
 extern void Sg__Init_core();
 extern void Sg__Init_core_base();
 extern void Sg__Init_core_macro();
-extern void Sg__Init_sagittarius_compiler_iform();
 extern void Sg__Init_sagittarius_compiler_util();
+extern void Sg__Init_sagittarius_compiler_iform();
+extern void Sg__Init_sagittarius_compiler_pass1();
+extern void Sg__Init_sagittarius_compiler_pass2();
+extern void Sg__Init_sagittarius_compiler_pass3();
+extern void Sg__Init_sagittarius_compiler_pass4();
+extern void Sg__Init_sagittarius_compiler_pass5();
 extern void Sg__Init_sagittarius_compiler();
 /* these must be the last */
 extern void Sg__Init_core_errors();
@@ -222,9 +227,14 @@ void Sg_Init()
 
   Sg__Init_core_errors();
   Sg__Init_core_macro();
+  Sg__Init_sagittarius_compiler_procedure();
   Sg__Init_sagittarius_compiler_util();
   Sg__Init_sagittarius_compiler_iform();
-  Sg__Init_sagittarius_compiler_procedure();
+  Sg__Init_sagittarius_compiler_pass1();
+  Sg__Init_sagittarius_compiler_pass2();
+  Sg__Init_sagittarius_compiler_pass3();
+  Sg__Init_sagittarius_compiler_pass4();
+  Sg__Init_sagittarius_compiler_pass5();
   Sg__Init_sagittarius_compiler();
   /* even these files need to be ordered */
   Sg__Init_core_arithmetic();
