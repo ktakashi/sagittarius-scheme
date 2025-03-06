@@ -41,9 +41,14 @@
 	  $IF $LET $LAMBDA $RECEIVE $LABEL $SEQ $CALL $ASM
 	  $IT $LIST $LIBRARY
 	  *history* history history!
-	  )
+	  imap imap2 ifor-each ifor-each2 ifold ifilter-map
+	  iany $append-map1 $vm-warn
+	  case/unquote define-simple-struct)
  (includes "../boot")
  (additionals "../boot/lib/smatch.scm"))
+;; iform
+((target iform) (file . "../boot/lib/iform.scm"))
+
 ;; compiler
 ((target compiler)
  (library . (sagittarius compiler))
@@ -56,6 +61,7 @@
 	  (for (core misc) expand) 
 	  (for (compat r7rs) expand) 
 	  (sagittarius vm) (sagittarius vm instruction)
+	  (sagittarius compiler iform)
 	  (sagittarius compiler util)
 	  (sagittarius vm debug)
 	  (sagittarius fixnums) ;; for fixnum?

@@ -83,6 +83,7 @@ sagittarius-package
 /src/lib_arith.c
 /src/lib_kernel.c
 /src/lib_atomic.c
+/src/lib_iform.c
 /src/compiler.c
 /src/compiler-aux.c
 /src/builtin-symbols.c
@@ -121,6 +122,9 @@ sagittarius-package
 /sitelib/srfi/219.scm
 /sitelib/srfi/2.scm
 /sitelib/srfi/197.scm
+/sitelib/srfi/195.scm
+/sitelib/srfi/210.scm
+/sitelib/srfi/230.scm
 /sitelib/srfi/193.scm
 /sitelib/srfi/17.scm
 /sitelib/srfi/160.scm

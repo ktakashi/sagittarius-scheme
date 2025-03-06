@@ -24,11 +24,18 @@
 
 (define-constant +default-compiler+ "../boot/compiler.scm")
 
+;;;; TO BE REMOVED start
 (define (override-library libname file import . extra-exports)
   (define library (find-library libname #f))
   (eval import library)
   (eval `(load ,file) library)
   (eval `(begin ,@(map (lambda (e) `(export ,e)) extra-exports)) library))
+
+;; load smatch
+(override-library '(sagittarius compiler util)
+		  "../boot/lib/smatch.scm"
+		  '(import (for (compat r7rs) expand))
+		  )
 
 (override-library '(sagittarius compiler util)
 		  "../boot/aux-incl.scm"
@@ -36,7 +43,11 @@
 		  '*history* 'history 'history!
 		  'imap 'imap2 'ifor-each 'ifor-each2 'ifold 'ifilter-map
 		  'iany '$append-map1 '$vm-warn
+		  'case/unquote 'define-simple-struct
 		  )
+(load "../boot/lib/iform.scm")
+;;;; TO BE REMOVED end
+
 
 ;; import specs for compiler 
 ;; we can use (rnrs) here since it won't be pre-compiled
@@ -58,6 +69,7 @@
 				     (sagittarius vm instruction)
 				     (sagittarius fixnums)
 				     (sagittarius compiler util)
+				     (sagittarius compiler iform)
 				     (sagittarius compiler procedure)))
 (define-constant +default-includes+ '("../boot"))
 
