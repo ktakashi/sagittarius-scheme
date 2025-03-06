@@ -84,7 +84,6 @@
 	    (core base)
 	    (core errors)
 	    (for (compat r7rs) expand)
-	    (for (rename (match) (match smatch)) expand)
 	    (sagittarius)
 	    (sagittarius fixnums)
 	    (sagittarius vm)
@@ -92,6 +91,8 @@
 	    (sagittarius vm instruction)
 	    (sagittarius compiler util)
 	    (sagittarius compiler procedure))
+
+(include "smatch.scm")
 
 (define-syntax define-enum
   (er-macro-transformer

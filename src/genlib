@@ -24,7 +24,6 @@
 
 (define-constant +default-compiler+ "../boot/compiler.scm")
 
-;;;; TO BE REMOVED start
 (define (load-transition)
   (load "../boot/compiler-aux.scm")
   (load "../boot/lib/iform.scm")
@@ -32,9 +31,13 @@
   (load "../boot/lib/pass2.scm")
   (load "../boot/lib/pass3.scm")
   (load "../boot/lib/pass4.scm")
-  (load "../boot/lib/pass5.scm"))
-;;;; TO BE REMOVED end
+  (load "../boot/lib/pass5.scm")
 
+  ;; override the implementation
+  ;; for generating boot code, we need this to avoid to import unneccessary 
+  ;; libraries.
+  (eval '(define (check-expand-phase phases) (memq 'expand phases))
+	(find-library '(sagittarius compiler pass1) #f)))
 
 ;; import specs for compiler 
 ;; we can use (rnrs) here since it won't be pre-compiled

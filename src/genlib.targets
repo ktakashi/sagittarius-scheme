@@ -11,7 +11,8 @@
  (library . (core macro))
  (file . "../boot/lib/macro.scm")
  (construct)
- (imports (core) (core base) (core errors) (sagittarius)
+ (imports (core) (core base) (core errors)
+	  (except (sagittarius) er-macro-transformer)
 	  (for (smatch) expand) (sagittarius vm) (sagittarius vm debug))
  (exports compile-syntax-case compile-syntax
 	  current-usage-env current-macro-env

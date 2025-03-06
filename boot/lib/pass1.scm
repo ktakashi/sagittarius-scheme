@@ -1741,113 +1741,109 @@
   (check-toplevel form p1env)
   (pass1/import form (p1env-library p1env)))
 
-(cond-expand
- (sagittarius.scheme.vm
-  (define (compile-define-syntax form)
-    (define (rec form&envs r exists?)
-      (define (try-expand expr name r expanded? next-form p1env)
-	(or (and-let* ((gloc (cond ((symbol? name)
-				    (find-binding (p1env-library p1env)
-						  name #f))
-				   ((identifier? name)
-				    (find-binding (id-library name)
-						  (id-name name) #f))
-				   (else #f)))
-		       (m (gloc-ref gloc))
-		       ( (macro? m) )
-		       (e ($history (call-macro-expander m expr p1env))))
-	      ;; The macro is expanded, so we need to re-evaluate
-	      ;; the expanded form
-	      (rec (cons (cons e p1env) next-form) r #t))
-	    (rec next-form (cons (cons expr p1env) r) expanded?)))
-      (if (null? form&envs)
-	  (values (reverse! r) exists?)
-	  (let* ((form&env (car form&envs))
-		 (form (car form&env))
-		 (p1env (cdr form&env)))
-	    (define (define-syntax? x) (global-eq? x 'define-syntax p1env))
-	    (define (begin? x) (global-eq? x 'begin p1env))
-	    (define (let-syntax? x) (global-eq? x 'let-syntax p1env))
-	    (define (letrec-syntax? x) (global-eq? x 'letrec-syntax p1env))
-	    ;; If cond-expand is used on R6RS mode then
-	    ;; it should be expanded as if it's a macro
-	    ;; otherwise doesn't work properly.
-	    (define (cond-expand? x) (global-eq? x 'cond-expand p1env))
-	    ;; the same goes include and include-ci for better
-	    ;; co-operation of R7RS
-	    ;; we can ignore include-library-declarations which is simply
-	    ;; an auxiliary keyword for define-library 
-	    (define (include? x) (global-eq? x 'include p1env))
-	    (define (include-ci? x) (global-eq? x 'include-ci p1env))
+(define (compile-define-syntax form)
+  (define (rec form&envs r exists?)
+    (define (try-expand expr name r expanded? next-form p1env)
+      (or (and-let* ((gloc (cond ((symbol? name)
+				  (find-binding (p1env-library p1env)
+						name #f))
+				 ((identifier? name)
+				  (find-binding (id-library name)
+						(id-name name) #f))
+				 (else #f)))
+		     (m (gloc-ref gloc))
+		     ( (macro? m) )
+		     (e ($history (call-macro-expander m expr p1env))))
+	    ;; The macro is expanded, so we need to re-evaluate
+	    ;; the expanded form
+	    (rec (cons (cons e p1env) next-form) r #t))
+	  (rec next-form (cons (cons expr p1env) r) expanded?)))
+    (if (null? form&envs)
+	(values (reverse! r) exists?)
+	(let* ((form&env (car form&envs))
+	       (form (car form&env))
+	       (p1env (cdr form&env)))
+	  (define (define-syntax? x) (global-eq? x 'define-syntax p1env))
+	  (define (begin? x) (global-eq? x 'begin p1env))
+	  (define (let-syntax? x) (global-eq? x 'let-syntax p1env))
+	  (define (letrec-syntax? x) (global-eq? x 'letrec-syntax p1env))
+	  ;; If cond-expand is used on R6RS mode then
+	  ;; it should be expanded as if it's a macro
+	  ;; otherwise doesn't work properly.
+	  (define (cond-expand? x) (global-eq? x 'cond-expand p1env))
+	  ;; the same goes include and include-ci for better
+	  ;; co-operation of R7RS
+	  ;; we can ignore include-library-declarations which is simply
+	  ;; an auxiliary keyword for define-library 
+	  (define (include? x) (global-eq? x 'include p1env))
+	  (define (include-ci? x) (global-eq? x 'include-ci p1env))
 
-	    (define (wrap exprs p1env) (imap (lambda (e) (cons e p1env)) exprs))
-	    (define (handle-local-macro compile/let-syntax)
-	      (let-values (((newenv body) (compile/let-syntax form p1env)))
-		;; wrap the body with newenv and go on)
-		(rec `(,@(wrap body newenv) ,@(cdr form&envs)) r #t)))
+	  (define (wrap exprs p1env) (imap (lambda (e) (cons e p1env)) exprs))
+	  (define (handle-local-macro compile/let-syntax)
+	    (let-values (((newenv body) (compile/let-syntax form p1env)))
+	      ;; wrap the body with newenv and go on)
+	      (rec `(,@(wrap body newenv) ,@(cdr form&envs)) r #t)))
 
-	    (define (handle-include files case-insensitive?)
-	      (let ((form&paths (pass1/include files p1env case-insensitive?)))
-		(rec `(,@(imap (lambda (form&path)
-				 (let ((expr (car form&path))
-				       (path (cdr form&path)))
-				   (cons expr (p1env-swap-source p1env path))))
-			       form&paths)
-		       ,@(cdr form&envs)) r exists?)))
+	  (define (handle-include files case-insensitive?)
+	    (let ((form&paths (pass1/include files p1env case-insensitive?)))
+	      (rec `(,@(imap (lambda (form&path)
+			       (let ((expr (car form&path))
+				     (path (cdr form&path)))
+				 (cons expr (p1env-swap-source p1env path))))
+			     form&paths)
+		     ,@(cdr form&envs)) r exists?)))
 
-	    (smatch form
-	      (((? define-syntax? -) body ___)
-	       (pass1 form p1env) ;; will be stored in the library
-	       (rec (cdr form&envs) r #t))
-	      ;; handling let(rec)-syntax
-	      ;; TODO maybe we should check transformer spec so that
-	      ;;      we can do slight of optimisation? (e.g. no macro)
-	      (((? let-syntax? -) body ___)
-	       (handle-local-macro pass1/compile-let-syntax))
-	      (((? letrec-syntax? -) body ___)
-	       (handle-local-macro pass1/compile-letrec-syntax))
-	      ;; expand cond-expand to expression
-	      (((? cond-expand? -) clauses ___)
-	       (rec `(,@(wrap (pass1/cond-expand clauses form p1env) p1env) 
-		      ,@(cdr form&envs))
-		    r exists?))
-	      ;; handle include
-	      (((? include? -) files ___)    (handle-include files #f))
-	      (((? include-ci? -) files ___) (handle-include files #t))
-	       
-	      ;; result of macro expansion often has this
-	      (((? begin? -) exprs ___)
-	       ;; do we need to handle like this?
-	       (let ((rest (cdr form&envs))
-		     ;; inside of 'begin' is raw expression so
-		     ;; wrap it before processing it
-		     (exprs (wrap exprs p1env)))
-		 (if (null? rest)
-		     (rec exprs r exists?)
-		     (let-values (((er e?) (rec exprs r exists?))
-				  ((rr r?) (rec rest '() exists?)))
-		       (values (append! er rr) (or e? r?))))))
-	      ;; Expand toplevel macros
-	      ((? variable? expr)
-	       (try-expand expr expr r exists? (cdr form&envs) p1env))
-	      ((? pair? expr)
-	       (try-expand expr (car expr) r exists? (cdr form&envs) p1env))
-	      ;; not symbol, not identifier and not pair
-	      (else (rec (cdr form&envs) (cons form&env r) exists?))))))
-    (rec form '() #f))
+	  (smatch form
+	    (((? define-syntax? -) body ___)
+	     (pass1 form p1env) ;; will be stored in the library
+	     (rec (cdr form&envs) r #t))
+	    ;; handling let(rec)-syntax
+	    ;; TODO maybe we should check transformer spec so that
+	    ;;      we can do slight of optimisation? (e.g. no macro)
+	    (((? let-syntax? -) body ___)
+	     (handle-local-macro pass1/compile-let-syntax))
+	    (((? letrec-syntax? -) body ___)
+	     (handle-local-macro pass1/compile-letrec-syntax))
+	    ;; expand cond-expand to expression
+	    (((? cond-expand? -) clauses ___)
+	     (rec `(,@(wrap (pass1/cond-expand clauses form p1env) p1env) 
+		    ,@(cdr form&envs))
+		  r exists?))
+	    ;; handle include
+	    (((? include? -) files ___)    (handle-include files #f))
+	    (((? include-ci? -) files ___) (handle-include files #t))
+	    
+	    ;; result of macro expansion often has this
+	    (((? begin? -) exprs ___)
+	     ;; do we need to handle like this?
+	     (let ((rest (cdr form&envs))
+		   ;; inside of 'begin' is raw expression so
+		   ;; wrap it before processing it
+		   (exprs (wrap exprs p1env)))
+	       (if (null? rest)
+		   (rec exprs r exists?)
+		   (let-values (((er e?) (rec exprs r exists?))
+				((rr r?) (rec rest '() exists?)))
+		     (values (append! er rr) (or e? r?))))))
+	    ;; Expand toplevel macros
+	    ((? variable? expr)
+	     (try-expand expr expr r exists? (cdr form&envs) p1env))
+	    ((? pair? expr)
+	     (try-expand expr (car expr) r exists? (cdr form&envs) p1env))
+	    ;; not symbol, not identifier and not pair
+	    (else (rec (cdr form&envs) (cons form&env r) exists?))))))
+  (rec form '() #f))
 
-  ;; given form is like this:
-  ;; ((expr . p1env) ...)
-  (define (expand-form form)
-    (let*-values (((form exists?) (compile-define-syntax form)))
-      ;; if define-syntax exists then there might be toplevel macros
-      ;; if macro is expanded then it might have some other macro
-      ;; definition
-      (if (and (not (null? form)) exists?)
-	  (expand-form form)
-	  form))))
- (else
-  (define (expand-form form) form)))
+;; given form is like this:
+;; ((expr . p1env) ...)
+(define (expand-form form)
+  (let*-values (((form exists?) (compile-define-syntax form)))
+    ;; if define-syntax exists then there might be toplevel macros
+    ;; if macro is expanded then it might have some other macro
+    ;; definition
+    (if (and (not (null? form)) exists?)
+	(expand-form form)
+	form)))
 
 (define (pass1/init-library lib)
   (library-exported-set! lib #f)
@@ -2569,6 +2565,70 @@
     ($const form))))
 
 ;;; inliners
+;; ADD
+(define-builtin-inliner-+ + ADD $const)
+;;(define-builtin-inliner-+ +. ADDI ensure-inexact-const)
+;; SUB
+(define-builtin-inliner-- - SUB $const)
+;;(define-builtin-inliner-- -. SUBI ensure-inexact-const)
+;; MUL and DIV should not have MULI or DIVI for now.
+;; MUL
+(define-builtin-inliner-* * MUL $const)
+;;(define-builtin-inliner-* *. MUL ensure-inexact-const)
+;; DIB
+(define-builtin-inliner-/ / DIV $const)
+;;(define-builtin-inliner-/ /. DIV ensure-inexact-const)
+
+;; inliners of builtin procedures
+(define gen-inliner-arg2
+  (lambda (insn)
+    (lambda (form p1env)
+      (smatch form
+	((- x y) (asm-arg2 form (list insn) x y p1env))
+	(- (undefined))))))
+;; compare
+(define-builtin-inliner = :null (gen-inliner-arg2 NUM_EQ))
+(define-builtin-inliner < :null (gen-inliner-arg2 NUM_LT))
+(define-builtin-inliner <= :null (gen-inliner-arg2 NUM_LE))
+(define-builtin-inliner > :null (gen-inliner-arg2 NUM_GT))
+(define-builtin-inliner >= :null (gen-inliner-arg2 NUM_GE))
+;; zero?
+(define-builtin-inliner zero? :null
+  (lambda (form p1env)
+    (smatch form
+      ((- arg)
+       ($asm form `(,NUM_EQ) `(,(pass1 arg p1env) ,($const 0))))
+      (- (scheme-error 'zero? "wrong number of arguments" form)))))
+
+;; vector
+(define-builtin-inliner vector-ref :null
+  (lambda (form p1env)
+    (smatch form
+      ((- vec ind)
+       (asm-arg2 form `(,VEC_REF) vec ind p1env))
+      (-
+       (undefined)))))
+
+(define-builtin-inliner vector-set! :null
+  (lambda (form p1env)
+    (smatch form
+      ((- vec ind val)
+       ($asm form `(,VEC_SET) `(,(pass1 vec p1env)
+				,(pass1 ind p1env)
+				,(pass1 val p1env))))
+      (-
+       (scheme-error 'vector-set! "wrong number of arguments" form)))))
+
+(define-builtin-inliner acons :sagittarius
+  (lambda (form p1env)
+    (smatch form
+      ((- a b c)
+       ($asm form `(,CONS) `(,($asm #f `(,CONS) `(,(pass1 a p1env)
+						  ,(pass1 b p1env)))
+			     ,(pass1 c p1env))))
+      (-
+       (scheme-error 'acons "wrong number of arguments" form)))))
+
 (define-syntax define-builtin-inliner
   (er-macro-transformer
    (lambda (form rename compare)
@@ -2733,70 +2793,6 @@
 					    (or ytree (,const yval))))
 				more))))))))))))))
 
-;; ADD
-(define-builtin-inliner-+ + ADD $const)
-;;(define-builtin-inliner-+ +. ADDI ensure-inexact-const)
-;; SUB
-(define-builtin-inliner-- - SUB $const)
-;;(define-builtin-inliner-- -. SUBI ensure-inexact-const)
-;; MUL and DIV should not have MULI or DIVI for now.
-;; MUL
-(define-builtin-inliner-* * MUL $const)
-;;(define-builtin-inliner-* *. MUL ensure-inexact-const)
-;; DIB
-(define-builtin-inliner-/ / DIV $const)
-;;(define-builtin-inliner-/ /. DIV ensure-inexact-const)
-
-;; inliners of builtin procedures
-(define gen-inliner-arg2
-  (lambda (insn)
-    (lambda (form p1env)
-      (smatch form
-	((- x y) (asm-arg2 form (list insn) x y p1env))
-	(- (undefined))))))
-;; compare
-(define-builtin-inliner = :null (gen-inliner-arg2 NUM_EQ))
-(define-builtin-inliner < :null (gen-inliner-arg2 NUM_LT))
-(define-builtin-inliner <= :null (gen-inliner-arg2 NUM_LE))
-(define-builtin-inliner > :null (gen-inliner-arg2 NUM_GT))
-(define-builtin-inliner >= :null (gen-inliner-arg2 NUM_GE))
-;; zero?
-(define-builtin-inliner zero? :null
-  (lambda (form p1env)
-    (smatch form
-      ((- arg)
-       ($asm form `(,NUM_EQ) `(,(pass1 arg p1env) ,($const 0))))
-      (- (scheme-error 'zero? "wrong number of arguments" form)))))
-
-;; vector
-(define-builtin-inliner vector-ref :null
-  (lambda (form p1env)
-    (smatch form
-      ((- vec ind)
-       (asm-arg2 form `(,VEC_REF) vec ind p1env))
-      (-
-       (undefined)))))
-
-(define-builtin-inliner vector-set! :null
-  (lambda (form p1env)
-    (smatch form
-      ((- vec ind val)
-       ($asm form `(,VEC_SET) `(,(pass1 vec p1env)
-				,(pass1 ind p1env)
-				,(pass1 val p1env))))
-      (-
-       (scheme-error 'vector-set! "wrong number of arguments" form)))))
-
-(define-builtin-inliner acons :sagittarius
-  (lambda (form p1env)
-    (smatch form
-      ((- a b c)
-       ($asm form `(,CONS) `(,($asm #f `(,CONS) `(,(pass1 a p1env)
-						  ,(pass1 b p1env)))
-			     ,(pass1 c p1env))))
-      (-
-       (scheme-error 'acons "wrong number of arguments" form)))))
-
 (define asm-arg1
   (lambda (form insn x p1env)
     ($asm form insn (list (pass1 x p1env)))))
@@ -2830,26 +2826,20 @@
 ;; and eval environments.
 ;; NOTE: R6RS and R7RS actually don't allow user to define in eval
 ;; so we might want to make it immutable since we can. but for now.
-(cond-expand
- (sagittarius.scheme.vm
-  (define (check-direct-variable name p1env form set!?)
-    (when (vm-no-overwrite?)
-      (let* ((lib (p1env-library p1env))
-	     (gloc (find-binding lib (if (identifier? name) (id-name name) name)
-				 #f)))
-	(when (and gloc (not (eq? (gloc-library gloc) lib))
-		   (or set!? (not (library-mutable? lib))))
-	  ;; switch message. it won't hurt that much but
-	  ;; may give some hints to users.
-	  (syntax-error (if set!? 
-			    "imported variable cannot be assigned"
-			    "attempt to modify immutable variable")
-			(unwrap-syntax form)
-			(unwrap-syntax name)))))))
- (else
-  ;; boot code generator can not use above, because ext.scm is redefining
-  ;; most of the identifier related procedures.
-  (define (check-direct-variable name p1env form set!?) #t)))
+(define (check-direct-variable name p1env form set!?)
+  (when (vm-no-overwrite?)
+    (let* ((lib (p1env-library p1env))
+	   (gloc (find-binding lib (if (identifier? name) (id-name name) name)
+			       #f)))
+      (when (and gloc (not (eq? (gloc-library gloc) lib))
+		 (or set!? (not (library-mutable? lib))))
+	;; switch message. it won't hurt that much but
+	;; may give some hints to users.
+	(syntax-error (if set!? 
+			  "imported variable cannot be assigned"
+			  "attempt to modify immutable variable")
+		      (unwrap-syntax form)
+		      (unwrap-syntax name))))))
 
 (define (internal-macroexpand expr p1env once?)
   (define (find-global op)
@@ -2902,17 +2892,10 @@
 	   (,let. () ,@body))
 	 body))))
 
-(cond-expand
- (sagittarius.scheme.vm
-  ;; dummy
-  (define-syntax check-expand-phase
-    (er-macro-transformer
-     (lambda (f r c)
-       '#f))))
- (else
-  ;; for generating boot code, we need this to avoid to import unneccessary 
-  ;; libraries.
-  (define (check-expand-phase phases) (memq 'expand phases))))
+(define-syntax check-expand-phase
+  (er-macro-transformer
+   (lambda (f r c)
+     '#f)))
 
 (define (variable-name arg)
   (cond ((symbol? arg) arg)

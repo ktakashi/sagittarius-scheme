@@ -890,7 +890,7 @@ static void init_pass1_import()
   SgLibrary *complib;
   SgGloc *g;
   Sg_LockMutex(&global_lock);
-  complib = Sg_FindLibrary(SG_INTERN("(sagittarius compiler)"), FALSE);
+  complib = Sg_FindLibrary(SG_INTERN("(sagittarius compiler pass1)"), FALSE);
   g = Sg_FindBinding(complib, SG_INTERN("pass1/import"), SG_UNBOUND);
   if (SG_UNBOUNDP(g)) {
     /* something wrong */
