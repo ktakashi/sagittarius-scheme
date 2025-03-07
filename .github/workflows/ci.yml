@@ -36,7 +36,7 @@ jobs:
         run: make
       - name: Test
         working-directory: target
-        run: ctest -V
+        run: ctest --output-on-failure -j8
   Windows-Build:
     runs-on: ${{ matrix.images }}
     strategy:
@@ -76,5 +76,5 @@ jobs:
       - name: Test
         working-directory: target
         run: |
-          ctest -V -LE json 
+          ctest --output-on-failure -LE json -j8
         shell: cmd

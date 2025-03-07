@@ -117,12 +117,24 @@ ELSE()
   ENDIF()
 ENDIF()
 
+SET(EXT_WORKAROUND
+  "(define build-directory-path \"${PROJECT_BINARY_DIR}/build\")")
+SET(EXT_TEST_COMMAND
+  ${TEST_COMMAND}
+  -e ${EXT_WORKAROUND})
+
+INCLUDE(CTest)
+
 ADD_SUBDIRECTORY(atomic atomic)
 ADD_SUBDIRECTORY(zlib zlib)
 ADD_SUBDIRECTORY(threads threads)
 ADD_SUBDIRECTORY(time time)
 ADD_SUBDIRECTORY(socket socket)
 #ADD_SUBDIRECTORY(regex regex)
+ADD_TEST(NAME regex
+  COMMAND ${EXT_TEST_COMMAND} ${CMAKE_CURRENT_SOURCE_DIR}/regex/test.scm
+  WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/ext)
+
 # for now we don't support ffi on BB10
 IF (NOT ${SAGITTARIUS_OS} STREQUAL "qnx")
   ADD_SUBDIRECTORY(ffi ffi)

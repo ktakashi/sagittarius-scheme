@@ -4,6 +4,8 @@
 	(sagittarius crypto ciphers)
 	(sagittarius crypto signatures)
 	(sagittarius crypto digests)
+	(sagittarius crypto keys)
+	(sagittarius crypto x509)
 	(srfi :64))
 
 ;; In our implementation, size of the signature matters

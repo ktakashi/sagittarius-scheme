@@ -1407,9 +1407,9 @@ PpO1zqk5Ua50RLuhFKj9n+0OuD5pCnwPEizvsoh69jdEN9f/cRdU8Iusln42clM=")
 				    :hash algo
 				    :der-encode #f))))))
 
-(include "test-eddsa.scm")
-(include "test-ecdsa.scm")
-(include "test-ecdhc.scm")
+(include "legacy/test-eddsa.scm")
+(include "legacy/test-ecdsa.scm")
+(include "legacy/test-ecdhc.scm")
 
 ;; key wrap
 (let* ((aes-key (generate-secret-key AES

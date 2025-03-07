@@ -4,6 +4,7 @@
 (load "tests/test-pem.scm")
 (load "tests/test-asn1.scm")
 (load "tests/test-kdf.scm")
+(load "tests/test-scrypt.scm")
 (load "tests/test-pkcs8.scm")
 (unless (getenv "SKIP_TEST_VECTOR") (load "tests/test-vectors.scm"))
 (load "tests/test-x509.scm")
