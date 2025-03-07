@@ -38,10 +38,10 @@ SET(STUB_SOURCES
   lib_flonums.c lib_fixnums.c lib_treemap.c
   lib_kernel.c)
 SET(BUILTIN_SOURCES 
-  compiler.c   compiler-aux.c lib_iform.c
+  compiler.c   lib_compiler-util.c lib_iform.c
   lib_pass1.c lib_pass2.c lib_pass3.c lib_pass4.c lib_pass5.c
   lib_inliner.c
-  lib_scmlib.c lib_errors.c   lib_arith.c lib_macro.c lib_program.c
+  lib_base.c lib_errors.c   lib_arith.c lib_macro.c lib_program.c
   lib_sandbox.c)
 
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/regex_match.c

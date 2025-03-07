@@ -26,7 +26,10 @@
 
 ;; We load the compiler libraries here as well
 (define (load-compiler-libraries)
-  (load "../boot/compiler-aux.scm")
+  (load "../boot/lib/base.scm")
+  (load "../boot/lib/errors.scm")
+  (load "../boot/lib/macro.scm")
+  (load "../boot/lib/compiler-util.scm")
   (load "../boot/lib/iform.scm")
   (load "../boot/lib/pass1.scm")
   (load "../boot/lib/pass2.scm")
@@ -50,13 +53,6 @@
 (define-constant +targets-file+ "genlib.targets")
 
 (define *features* (make-parameter '(sagittarius sagittarius.scheme.vm)))
-
-(define-syntax parse-options
-  (syntax-rules ()
-    ((_ options ((name mark default) ...) body ...)
-     (let ((name (cond ((assq 'mark options) => cdr) (else default)))
-	   ...)
-       body ...))))
 
 (define (load-compiler options)
   (parameterize ((*features* '(sagittarius)))
@@ -90,96 +86,6 @@
 	 #'(let ((it expr))
 	     (if it then else)))))))
 
-(define (resolve-cond-expand&include forms loadpaths)
-  (define marks (*features*))
-  (define (find-file base loadpaths)
-    (let ((files (filter-map (lambda (dir)
-		       (let1 f (build-path dir base)
-			 (and (file-exists? f) f))) loadpaths)))
-      (when (null? files)
-	(error 'resolve-include
-	       (string-append "Failed to resolve include file: " base)
-	       loadpaths))
-      (car files)))
-  (define (handle-cond-expand body form)
-    (aif (find (lambda (x) (memq (car x) marks)) body)
-	 (resolve-include (cdr it))
-	 (aif (find (lambda (x) (eq? (car x) 'else)) body)
-	      `(begin ,@(resolve-include (cdr it)))
-	      (error 'cond-expand "unfulfileld cond-expand" form))))
-  (define (resolve-include forms)
-    (map (lambda (form) 
-	   (match form
-	     (('include file)
-	      `(begin ,@(map (lambda (sexp)
-			       (match sexp
-				 (('cond-expand . body)
-				  `(begin ,@(handle-cond-expand body sexp)))
-				 (_ sexp)))
-			     (file->sexp-list (find-file file loadpaths)))))
-	     (_ form))) forms))
-  (map (lambda (form)
-	 (match form
-	   (('cond-expand . body)
-	    `(begin ,@(handle-cond-expand body form)))
-	   (('include . path)
-	    `(begin ,@(resolve-include (list form))))
-	   (_ form))) forms))
-
-(define (construct-library-form file options)
-  (define (rename-if-needed n libs)
-    (match n
-      (('for name bogus ...)
-       (cond ((assoc name libs) => (lambda (s) (cons* 'for (cdr s) bogus)))
-	     (else n)))
-      (else
-       (cond ((assoc n libs) => cdr)
-	     (else n)))))
-  (define (resolve-additionals additionals)
-    (define (resolve-additional add)
-      (let* ((base (path-sans-extension (path-basename add)))
-	     (name (list (string->symbol base)))
-	     (libname (string->symbol (string-append +replace-prefix+ base)))
-	     (form (construct-library-form 
-		    add `((library . ,libname)
-			  (imports (except (rnrs) syntax-rules)
-				   (sagittarius)
-				   (only (compat r7rs) syntax-rules))))))
-	(eval form (environment '(sagittarius)))
-	(cons name libname)))
-    (map resolve-additional additionals))
-
-  (parse-options options
-      ((lib library (error 'genlib "library name is missing"))
-       (imports imports (error 'genlib "import library is missing"))
-       (oexports exports #f)
-       (additionals additionals '())
-       (includes includes '()))
-    ;; for now just add
-    (let* ((sexp (file->sexp-list file))
-	   (enums '())
-	   (exports
-	    (filter-map (lambda (sexp)
-			  (match sexp
-			    (('define (name . args) expr ...) name)
-			    (('define (? symbol? name) expr) name)
-			    (('define-constant (? symbol? name) expr) name)
-			    (('define-syntax name expr) name)
-			    ;; fxxk!!!
-			    (('define-enum name . e*)
-			     (set! enums (append e* enums))
-			     name)
-			    (else #f))) sexp)))
-      ;; try not to contaminate the existing library.
-      (let* ((libs (resolve-additionals additionals))
-	     (form `(library ,lib 
-			(export ,@(if oexports
-				      oexports
-				      (reverse (append exports enums))))
-			(import ,@(map (cut rename-if-needed <> libs) imports))
-		      ,@(resolve-cond-expand&include sexp includes))))
-	form))))
-
 (define (check-timestamp scm-file out-file)
   (not 
    (and (file-exists? out-file)
@@ -197,15 +103,10 @@
     (let ((filename (name-generator file libname)))
       (when (file-exists? filename) (delete-file filename))))
   (define (get-form/libname config)
-    (if (assq 'construct config)
-	(values #f (get-library-name config))
-	(let* ((file (cdr (assq 'file config)))
-	       (form (call-with-input-file file read)))
-	  (values form (cadr form)))))
-  (define (get-library-name options)
-    (parse-options options
-	((lib library (error 'genlib "library name is missing")))
-      lib))
+    (let* ((file (cdr (assq 'file config)))
+	   (form (call-with-input-file file read)))
+      (values form (cadr form))))
+
   (call-with-input-file +targets-file+
     (lambda (in)
       (port-for-each
@@ -225,8 +126,7 @@
 		     (load-compiler-libraries)
 		     (set! compiler (load-compiler config)))
 		   (cgen-precompile 
-		    (or form
-			(construct-library-form file config))
+		    form
 		    :in-file file
 		    :name-generator name-generator
 		    :predef-syms '(LIBSAGITTARIUS_BODY)

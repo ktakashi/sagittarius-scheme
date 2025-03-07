@@ -1,11 +1,38 @@
 ;; for a bit of better performance
-(define (hashtable-for-each proc ht)
-  (unless (procedure? proc)
-    (assertion-violation 'hashtable-for-each
-			 (wrong-type-argument-message "procedure" proc 1)))
-  (unless (hashtable? ht)
-    (assertion-violation 'hashtable-for-each
-			 (wrong-type-argument-message "hashtable" ht 2)))
+#!nounbound
+(library (core base)
+    (export hashtable-for-each hashtable-map hashtable-fold hashtable->alist
+	    unique-id-list? print wrong-type-argument-message
+	    string-for-each string-join
+	    null-list?
+	    find find-tail
+	    assp assoc
+	    member
+	    delete delete!
+	    lset-union lset-intersection lset-difference
+	    take drop list-head
+	    char-ci=? char-ci<? char-ci>? char-ci<=? char-ci>=?
+	    string-ci=? string-ci<? string-ci>? string-ci<=? string-ci>=?
+	    bytevector-uint-ref bytevector-sint-ref
+	    bytevector-uint-set! bytevector-sint-set!
+	    bytevector->uint-list bytevector->sint-list
+	    uint-list->bytevector sint-list->bytevector
+	    for-all exists
+	    split-at filter filter! partition
+	    map for-each filter-map
+	    reduce fold fold-left fold-right
+	    remp remove remv remq memp
+	    list-sort
+	    vector-map vector-map! vector-for-each vector-sort vector-sort!
+	    call-with-values call-with-port
+	    open-bytevector-output-port call-with-bytevector-output-port
+	    open-string-output-port call-with-string-output-port
+	    hashtable-equivalence-function hashtable-hash-function)
+    (import (core)
+	    (sagittarius)
+	    (sagittarius vm))
+
+(define (hashtable-for-each (proc procedure?) (ht hashtable?))
   (let ((itr (%hashtable-iter ht))
 	(eof (cons #t #t)))
     (let loop ()
@@ -13,13 +40,7 @@
 	(unless (eq? k eof)
 	  (proc k v) (loop))))))
 
-(define (hashtable-map proc ht)
-  (unless (procedure? proc)
-    (assertion-violation 'hashtable-map
-			 (wrong-type-argument-message "procedure" proc 1)))
-  (unless (hashtable? ht)
-    (assertion-violation 'hashtable-map
-			 (wrong-type-argument-message "hashtable" ht 2)))
+(define (hashtable-map (proc procedure?) (ht hashtable?))
   (let ((itr (%hashtable-iter ht))
 	(eof (cons #t #t)))
     (let loop ((r '()))
@@ -28,13 +49,7 @@
 	    r
 	    (loop (cons (proc k v) r)))))))
 
-(define (hashtable-fold kons ht knil)
-  (unless (procedure? kons)
-    (assertion-violation 'hashtable-fold
-			 (wrong-type-argument-message "procedure" proc 1)))
-  (unless (hashtable? ht)
-    (assertion-violation 'hashtable-fold
-			 (wrong-type-argument-message "hashtable" ht 2)))
+(define (hashtable-fold (kons procedure?) (ht hashtable?) knil)
   (let ((itr (%hashtable-iter ht))
 	(eof (cons #t #t)))
     (let loop ((r knil))
@@ -43,8 +58,7 @@
 	    r
 	    (loop (kons k v r)))))))
 
-(define (hashtable->alist ht)
-  (hashtable-map cons ht))
+(define (hashtable->alist ht) (hashtable-map cons ht))
 
 (define (unique-id-list? lst)
   (and (list? lst)
@@ -198,10 +212,7 @@
 	((null? l) #t)
 	(else (assertion-violation 'null-list? "argument out of domain" l))))
 
-(define (split-at x k)
-  (or (integer? k)
-      (assertion-violation 'split-at
-                           (wrong-type-argument-message "integer" k 2)))
+(define (split-at x (k integer?))
   (let recur ((lis x) (k k) (r '()))
     (cond ((zero? k) (values (reverse! r) lis))
 	  ((null? lis) (error 'split-at "given list it too short"))
@@ -211,19 +222,13 @@
   (cond ((find-tail pred list) => car)
 	(else #f)))
 
-(define (find-tail pred list)
-  (or (procedure? pred)
-      (assertion-violation 'find-tail
-			   (wrong-type-argument-message "procedure" pred 2)))
+(define (find-tail (pred procedure?) list)
   (let lp ((list list))
     (and (not (null? list))
      (if (pred (car list)) list
          (lp (cdr list))))))
 
-(define (assoc x lis . =)
-  (or (list? lis)
-      (assertion-violation 'assoc
-			   (wrong-type-argument-message "list" lis 2)))
+(define (assoc x (lis list?) . =)
   (if (null? =)
       (assoc x lis equal?)
       (find (lambda (entry) ((car =) x (car entry))) lis)))
@@ -243,16 +248,11 @@
       (delete x lis equal?)
       (filter! (lambda (y) (not ((car =) x y))) lis)))
 
-(define (reduce f ridentity lis)
-  (or (procedure? f)
-      (assertion-violation 'reduce (wrong-type-argument-message "procedure" = 1)))
+(define (reduce (f procedure?) ridentity lis)
   (if (null? lis) ridentity
       (fold f (car lis) (cdr lis))))
 
-(define (lset-union = . lists)
-  (or (procedure? =)
-      (assertion-violation 'lset-union
-			   (wrong-type-argument-message "procedure" = 1)))
+(define (lset-union (= procedure?) . lists)
   (reduce (lambda (lis ans)     ; Compute ANS + LIS.
 	    (cond ((null? lis) ans) ; Don't copy any lists
 		  ((null? ans) lis)     ; if we don't have to.
@@ -265,10 +265,7 @@
 			 ans lis))))
 	  '() lists))
 
-(define (lset-intersection = lis1 . lists)
-  (or (procedure? =)
-      (assertion-violation 'lset-intersection
-			   (wrong-type-argument-message "procedure" = 1)))
+(define (lset-intersection (= procedure?) lis1 . lists)
   (let ((lists (delete lis1 lists eq?))) ; Throw out any LIS1 vals.
     (cond ((exists null? lists) '())      ; Short cut
       ((null? lists)          lis1)     ; Short cut
@@ -276,10 +273,7 @@
               (for-all (lambda (lis) (member x lis =)) lists))
             lis1)))))
 
-(define (lset-difference = lis1 . lists)
-  (or (procedure? =)
-      (assertion-violation 'lset-difference
-			   (wrong-type-argument-message "procedure" = 1)))
+(define (lset-difference (= procedure?) lis1 . lists)
   (let ((lists (filter pair? lists)))   ; Throw out empty lists.
     (cond ((null? lists)     lis1)  ; Short cut
       ((memq lis1 lists) '())   ; Short cut
@@ -288,19 +282,13 @@
                  lists))
             lis1)))))
 
-(define (take lis k)
-  (or (integer? k)
-      (assertion-violation 'take
-			   (wrong-type-argument-message "integer" k 2)))
+(define (take lis (k integer?))
   (let recur ((lis lis) (k k))
     (if (zero? k) '()
     (cons (car lis)
           (recur (cdr lis) (- k 1))))))
 
-(define (drop lis k)
-  (or (integer? k)
-      (assertion-violation 'drop
-			   (wrong-type-argument-message "integer" k 2)))
+(define (drop lis (k integer?))
   (let iter ((lis lis) (k k))
     (if (zero? k) lis (iter (cdr lis) (- k 1)))))
 
@@ -644,10 +632,7 @@
 		(list proc lst1 lst2)))))))
 
 ;; it's used very often in the boot code so put it here
-(define (filter-map proc lst1 . lst2)
-  (unless (procedure? proc)
-    (assertion-violation 'filter-map 
-     (wrong-type-argument-message "procedure" proc 1) (list proc lst1 lst2)))
+(define (filter-map (proc procedure?) lst1 . lst2)
   (if (null? lst2)
       (let loop ((lst lst1) (r '()))
 	(cond ((null? lst) (reverse! r))
@@ -743,7 +728,7 @@
 ;;;;
 ;; 4 Sorting
 ;; The algorithm is from SBCL
-(define (list-sort proc lst)
+(define (list-sort (proc procedure?) lst)
   (define (merge-list! proc head lst1 lst2 tail)
     (let loop ()
       (cond ((proc (car lst2) (car lst1))
@@ -815,9 +800,6 @@
 	     (if (proc (car lst) (cadr lst))
 		 (loop (+ acc 1) (cdr lst))
 		 (values acc (cdr lst)))))))
-  (unless (procedure? proc)
-    (assertion-violation 'list-sort
-     (wrong-type-argument-message "procedure" proc 1)))
   (if (null? lst)
       lst
       (receive (n lst2) (divide lst)
@@ -941,20 +923,10 @@
 
 
 ;; 8.2.10 output port
-(define (open-bytevector-output-port . maybe-transcoder)
-  (when (> (length maybe-transcoder) 1)
-      (assertion-violation
-       'open-bytevector-output-port
-       (format 
-        "wrong number of argument: expected between 0 and 1, but got ~a"
-        (length maybe-transcoder))
-       maybe-transcoder))
-  (let ((transcoder (if (null? maybe-transcoder)
-                        #f
-                        (car maybe-transcoder))))
-    (let* ((port (open-output-bytevector transcoder))
-           (proc (lambda () (extract-output-bytevector port))))
-      (values port proc))))
+(define (open-bytevector-output-port :optional (transcoder #f))
+  (let* ((port (open-output-bytevector transcoder))
+         (proc (lambda () (extract-output-bytevector port))))
+    (values port proc)))
 
 (define (open-string-output-port)
   (let* ((port (open-output-string))
@@ -972,10 +944,7 @@
 ;;;;;
 ;; 13 hashtable
 ;; 13.3 inspection
-(define (hashtable-equivalence-function ht)
-  (or (hashtable? ht)
-      (assertion-violation 'hashtable-equivalence-function
-			   (wrong-type-argument-message "hashtable" ht)))
+(define (hashtable-equivalence-function (ht hashtable?))
   (case (hashtable-type ht)
     ((eq)     eq?)
     ((eqv)    eqv?)
@@ -983,17 +952,14 @@
     ((string) string=?)
     ((general) (hashtable-compare ht))))
 
-(define (hashtable-hash-function ht)
-  (or (hashtable? ht)
-      (assertion-violation 'hashtable-hash-function
-			   (wrong-type-argument-message "hashtable" ht)))
+(define (hashtable-hash-function (ht hashtable?))
   (case (hashtable-type ht)
     ((eq)     #f)
     ((eqv)    #f)
     ((equal)  equal-hash)
     ((string) string-hash)
     ((general) (hashtable-hasher ht))))
-
+)
 ;;;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix

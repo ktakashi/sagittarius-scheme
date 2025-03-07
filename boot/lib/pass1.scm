@@ -51,11 +51,7 @@
 ;; used by p1env-lookup
 ;; TODO move this somewhere in C level
 ;; so that both Scheme and C can share the value.
-;; it's a
-(define-constant LEXICAL    0)
-(define-constant BOUNDARY   3)
 (define-constant ENV-BOTTOM 4)
-;;(define-constant PATTERN 2)
 
 ;; simple unwind-protect to avoid dynamic-wind
 (define-syntax unwind-protect

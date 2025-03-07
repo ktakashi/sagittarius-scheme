@@ -44,8 +44,34 @@
 ;; return #t but that's not correct. comparing pattern and literals
 ;; with bound-identifier=? should always succeed since we preserve
 ;; renamed pattern variables.
+#!nounbound
+(library (core macro)
+    (export compile-syntax-case compile-syntax
+	    current-usage-env current-macro-env
+	    make-macro-transformer
+	    variable-transformer?
+	    make-core-parameter
+	    make-identifier
+	    ;; aboves are needed for compiler
+	    make-variable-transformer
+	    free-identifier=? bound-identifier=?
+	    datum->syntax syntax->datum generate-temporaries
+	    er-macro-transformer
 
-;; same variables 
+	    LEXICAL PATTERN BOUNDARY)
+    (import (core)
+	    (core base)
+	    (core errors)
+	    (for (compat r7rs) expand)
+	    (except (sagittarius) er-macro-transformer)
+	    (sagittarius vm)
+	    (sagittarius vm debug))
+
+(include "smatch.scm")
+
+;; same variables
+;; TODO move this somewhere in C level
+;; so that both Scheme and C can share the value.
 (define-constant LEXICAL 0)		; the same as compiler.scm
 (define-constant PATTERN 2)		; not LEXICAL nor SYNTAX
 (define-constant BOUNDARY 3)
@@ -1256,5 +1282,4 @@
 				 (loop (+ i 1))))))))
 	      (else (equal? a b))))
       (f expr rename compare))))
-
-	 
+)

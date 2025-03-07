@@ -68,7 +68,6 @@ sagittarius-package
 /src/lib_vmdebug.c
 /src/lib_vm.c
 /src/lib_treemap.c
-/src/lib_scmlib.c
 /src/lib_sandbox.c
 /src/lib_sagittarius.c
 /src/lib_regex.c
@@ -89,8 +88,10 @@ sagittarius-package
 /src/lib_pass3.c
 /src/lib_pass4.c
 /src/lib_pass5.c
+/src/lib_base.c
+/src/lib_compiler-util.c
+/src/lib_inliner.c
 /src/compiler.c
-/src/compiler-aux.c
 /src/builtin-symbols.c
 /src/builtin-keywords.c
 /ext/.sagittarius-exttestrc

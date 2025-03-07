@@ -1,34 +1,9 @@
 ;; -*- mode:scheme; coding:utf-8 -*-
 ;; configuration file for generating precompiled files
-;; (core base)
-((target scmlib)
- (library . (core base))
- (file . "../boot/lib/scmlib.scm")
- (construct)
- (imports (core) (sagittarius) (sagittarius vm)))
-;; (core syntax-case)
-((target macro)
- (library . (core macro))
- (file . "../boot/lib/macro.scm")
- (construct)
- (imports (core) (core base) (core errors)
-	  (except (sagittarius) er-macro-transformer)
-	  (for (smatch) expand) (sagittarius vm) (sagittarius vm debug))
- (exports compile-syntax-case compile-syntax
-	  current-usage-env current-macro-env
-	  make-macro-transformer
-	  variable-transformer?
-	  make-core-parameter
-	  make-identifier
-	  ;; aboves are needed for compiler
-	  make-variable-transformer
-	  free-identifier=? bound-identifier=?
-	  datum->syntax syntax->datum generate-temporaries
-	  er-macro-transformer)
- (additionals "../boot/lib/smatch.scm"))
-;; compiler-aux
-((target compiler-aux)  (file . "../boot/compiler-aux.scm"))
-;; iform
+((target base) (file . "../boot/lib/base.scm"))
+((target errors) (file . "../boot/lib/errors.scm"))
+((target macro) (file . "../boot/lib/macro.scm"))
+((target compiler-util)  (file . "../boot/lib/compiler-util.scm"))
 ((target iform) (file . "../boot/lib/iform.scm"))
 ((target pass1) (file . "../boot/lib/pass1.scm"))
 ((target pass2) (file . "../boot/lib/pass2.scm"))
@@ -36,9 +11,7 @@
 ((target pass4) (file . "../boot/lib/pass4.scm"))
 ((target pass5) (file . "../boot/lib/pass5.scm"))
 ((target inliner) (file . "../boot/lib/inliner.scm"))
-;; compiler
 ((target compiler) (file . "../boot/compiler.scm"))
-;; else
-((target errors) (file . "../boot/lib/errors.scm"))
+;; extras
 ((target arith) (file . "../boot/lib/arith.scm"))
 ((target program) (file . "../boot/lib/program.scm"))
