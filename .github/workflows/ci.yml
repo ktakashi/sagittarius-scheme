@@ -76,5 +76,5 @@ jobs:
       - name: Test
         working-directory: target
         run: |
-          ctest --output-on-failure -LE json -j8
+          ctest --output-on-failure -LE json
         shell: cmd
