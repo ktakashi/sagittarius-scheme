@@ -40,6 +40,7 @@ SET(STUB_SOURCES
 SET(BUILTIN_SOURCES 
   compiler.c   compiler-aux.c lib_iform.c
   lib_pass1.c lib_pass2.c lib_pass3.c lib_pass4.c lib_pass5.c
+  lib_inliner.c
   lib_scmlib.c lib_errors.c   lib_arith.c lib_macro.c lib_program.c
   lib_sandbox.c)
 

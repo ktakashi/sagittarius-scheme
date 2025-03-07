@@ -1,5 +1,5 @@
 ;; -*- mode:scheme; coding:utf-8; -*-
-#!compatible
+#!nounbound
 ;;
 ;; This compiler has 4 stages.
 ;; pass0 - for future use.
@@ -15,6 +15,21 @@
 
 ;; library defined variable need this for macro
 
+(library (sagittarius compiler)
+    (export compile compile-p1 compile-p2 compile-p3 compile-p4 compile-p5)
+    (import (core)
+	    (core errors)
+	    (core macro)
+	    (sagittarius vm)
+	    (sagittarius vm debug)
+	    (sagittarius vm instruction)
+	    (sagittarius compiler pass1)
+	    (sagittarius compiler pass2)
+	    (sagittarius compiler pass3)
+	    (sagittarius compiler pass4)
+	    (sagittarius compiler pass5)
+	    (sagittarius compiler inliner)
+	    (sagittarius compiler util))
 ;; not used
 (define (pass0 form env) form)
 
@@ -107,3 +122,5 @@
 (define (init-compiler)
   (init-pass1 compile-entry)
   #f)
+
+)

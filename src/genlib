@@ -24,7 +24,8 @@
 
 (define-constant +default-compiler+ "../boot/compiler.scm")
 
-(define (load-transition)
+;; We load the compiler libraries here as well
+(define (load-compiler-libraries)
   (load "../boot/compiler-aux.scm")
   (load "../boot/lib/iform.scm")
   (load "../boot/lib/pass1.scm")
@@ -32,6 +33,7 @@
   (load "../boot/lib/pass3.scm")
   (load "../boot/lib/pass4.scm")
   (load "../boot/lib/pass5.scm")
+  (load "../boot/lib/inliner.scm")
 
   ;; override the implementation
   ;; for generating boot code, we need this to avoid to import unneccessary 
@@ -44,19 +46,6 @@
 ;; ****CAUTION****
 ;; DO NOT USE INLINED PROCEDURES SUCH AS map AND for-each
 ;; So basically we can't use (rnrs)
-(define-constant +default-imports+ '((core)
-				     (core errors)
-				     (core macro)
-				     (sagittarius vm)
-				     (sagittarius vm debug)
-				     (sagittarius vm instruction)
-				     (sagittarius compiler pass1)
-				     (sagittarius compiler pass2)
-				     (sagittarius compiler pass3)
-				     (sagittarius compiler pass4)
-				     (sagittarius compiler pass5)
-				     (sagittarius compiler util)))
-(define-constant +default-includes+ '("../boot"))
 
 (define-constant +targets-file+ "genlib.targets")
 
@@ -71,19 +60,13 @@
 
 (define (load-compiler options)
   (parameterize ((*features* '(sagittarius)))
-    (parse-options options
-      ((compiler compiler        +default-compiler+)
-       (libs     compiler-import +default-imports+)
-       (includes  includes       +default-includes+))
-      (let1 form (construct-library-form 
-		  compiler `((library . (sagittarius host compiler))
-			     (exports compile)
-			     (imports . ,libs)
-			     (includes . ,includes)))
-	(eval form (environment '(only (sagittarius) library)
-				'user))
-	(eval '(init-compiler) (find-library '(sagittarius host compiler) #f))
-	(find-procedure 'compile '(sagittarius host compiler))))))
+    (let* ((sexp (call-with-input-file +default-compiler+ read))
+	   ;; should we check the format?
+	   (form `(library (sagittarius host compiler)
+		      ,@(cddr sexp))))
+      (eval form (environment '(only (sagittarius) library) 'user))
+      (eval '(init-compiler) (find-library '(sagittarius host compiler) #f))
+      (find-procedure 'compile '(sagittarius host compiler)))))
 
 (define (name-generator filename libname)
   (define (path-directory filename)
@@ -239,7 +222,7 @@
 		 (when (or force?
 			   (check-timestamp file (name-generator file libname)))
 		   (unless compiler
-		     (load-transition)
+		     (load-compiler-libraries)
 		     (set! compiler (load-compiler config)))
 		   (cgen-precompile 
 		    (or form
