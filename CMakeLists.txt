@@ -22,6 +22,8 @@ IF (APPLE)
   SET(CMAKE_MACOSX_RPATH 1)
 ENDIF()
 
+SET(CMAKE_BUILD_TYPE RelWithDebInfo)
+
 ### Platform checks
 INCLUDE(${CMAKE_ROOT}/Modules/CheckIncludeFile.cmake)
 INCLUDE(${CMAKE_ROOT}/Modules/CheckFunctionExists.cmake)

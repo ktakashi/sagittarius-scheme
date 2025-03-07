@@ -103,6 +103,7 @@ IF (NOT ZLIB_FOUND)
   # this will duplicate so delete it
   FILE(REMOVE ${ZLIB_SRC_DIR}/zconf.h)
   # CMake add C_FLAGS to RC_FLAGS. how stupid it is, eh?
+  SET(ZLIB_BUILD_EXAMPLES OFF) # disable example build, we don't need it
   ADD_SUBDIRECTORY(${ZLIB_SRC_DIR} zlib)
   INCLUDE_DIRECTORIES(${ZLIB_SRC_DIR})
   # for zconf.h
