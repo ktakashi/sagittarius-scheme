@@ -149,7 +149,7 @@
 (define-cise-stmt result-fixnum
   ((_ ret who fx1 fx2)
    `(if (fixnum-fits? ,ret)
-	(result ret)
+	(result (cast long ret))
 	(implementation-restriction-violation ',who "result is not a fixnum"
 	 (SG_LIST2 (SG_MAKE_INT fx1) (SG_MAKE_INT fx2))))))
 

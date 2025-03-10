@@ -225,8 +225,8 @@ struct InsnInfoRec
   int         label;
 };
 #define INSN(o)            ((o) & INSN_MASK)
-#define INSN_VALUE1(insn) (((int)(insn)) >> INSN_VALUE1_SHIFT)
-#define INSN_VALUE2(insn) (((int)(insn)) >> INSN_VALUE2_SHIFT)
+#define INSN_VALUE1(insn) (((int)(intptr_t)(insn)) >> INSN_VALUE1_SHIFT)
+#define INSN_VALUE2(insn) (((int)(intptr_t)(insn)) >> INSN_VALUE2_SHIFT)
 #define INSN_VAL1(v, insn) ((v) = INSN_VALUE1(insn))
 #define INSN_VAL2(v1, v2, insn)	\\
   do {				\\

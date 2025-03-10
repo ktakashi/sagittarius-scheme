@@ -947,7 +947,7 @@
     (bv-check-literal bytevector-u16-native-set! bv)
     (bv-check-index bytevector-u16-native-set! bv index 1)
     (bv-check-value bytevector-u16-native-set! value 0 #xFFFF)
-    (Sg_ByteVectorU16NativeSet bv index value))
+    (Sg_ByteVectorU16NativeSet bv index (cast uint16_t value)))
 
   (define-c-proc bytevector-u16-ref
     (bv::<bytevector> index::<fixnum> endian::<symbol>) ::<fixnum> :constant
@@ -967,9 +967,9 @@
     (bv-check-index bytevector-u16-set! bv index 1)
     (bv-check-value bytevector-u16-set! value 0 #xFFFF)
     (cond ((SG_EQ endian 'big)
-	   (Sg_ByteVectorU16BigSet bv index value))
+	   (Sg_ByteVectorU16BigSet bv index (cast uint16_t value)))
 	  ((SG_EQ endian 'little)
-	   (Sg_ByteVectorU16LittleSet bv index value))
+	   (Sg_ByteVectorU16LittleSet bv index (cast uint16_t value)))
 	  (else
 	   (assertion-violation 'bytevector-u16-set!
 				"unsupported endianness" endian))))
@@ -987,7 +987,7 @@
     (bv-check-literal bytevector-s16-native-set! bv)
     (bv-check-index bytevector-s16-native-set! bv index 1)
     (bv-check-value bytevector-s16-native-set! value #x-8000 #x7FFF)
-    (Sg_ByteVectorS16NativeSet bv index value))
+    (Sg_ByteVectorS16NativeSet bv index (cast int16_t value)))
 
   (define-c-proc bytevector-s16-ref
     (bv::<bytevector> index::<fixnum> endian::<symbol>) ::<fixnum> :constant
@@ -1007,9 +1007,9 @@
     (bv-check-index bytevector-s16-set! bv index 1)
     (bv-check-value bytevector-s16-set! value #x-8000 #x7FFF)
     (cond ((SG_EQ endian 'big)
-	   (Sg_ByteVectorS16BigSet bv index value))
+	   (Sg_ByteVectorS16BigSet bv index (cast int16_t value)))
 	  ((SG_EQ endian 'little)
-	   (Sg_ByteVectorS16LittleSet bv index value))
+	   (Sg_ByteVectorS16LittleSet bv index (cast int16_t value)))
 	  (else
 	   (assertion-violation 'bytevector-s16-set! "unsupported endianness"
 				endian))))
@@ -1967,7 +1967,7 @@
 	     (result SG_EOF))
 	    (else
 	     (unless (== res 512)
-	       (set! (SG_BVECTOR_SIZE buf) res))
+	       (set! (SG_BVECTOR_SIZE buf) (cast long res)))
 	     (result buf)))))
 
   (define-c-proc get-bytevector-all (p::<port> :optional (reckless #f))
@@ -1981,7 +1981,7 @@
 	  (res::int64_t (Sg_ReadbAll p (& buf))))
       (if (== res 0)
 	  (result SG_EOF)
-	  (let ((r (Sg_MakeByteVectorFromU8Array buf res)))
+	  (let ((r (Sg_MakeByteVectorFromU8Array buf (cast long res))))
 	    (set! buf NULL)		; gc friendliness 
 	    (result r)))))
 
@@ -2050,7 +2050,7 @@
 		(SG_PORT_UNLOCK_READ p)
 		(if (== len count)
 		    (result buf)
-		    (result (Sg_Substring buf 0 len))))))))
+		    (result (Sg_Substring buf 0 (cast long len)))))))))
 
   (define-c-proc get-string-n!
     (p::<port> s::<string> start::<fixnum> count::<fixnum>)
@@ -2103,7 +2103,7 @@
 			((< len 1024)
 			 (when firstP 
 			   (SG_PORT_UNLOCK_READ p)
-			   (return (Sg_Substring buf 0 len)))
+			   (return (Sg_Substring buf 0 (cast long len))))
 			 (Sg_Writes out (SG_STRING_VALUE buf) len)
 			 (break))
 			(else
@@ -2287,7 +2287,7 @@
       (check-binary-port put-u8 p))
     (check-output-port put-u8 p)
     (check-fixnum-range put-u8 octet 0 255 <= <=)
-    (binary-port-write-u8-op p octet Sg_Putb))
+    (binary-port-write-u8-op p (cast uint8_t octet) Sg_Putb))
 
   (define-c-proc put-bytevector
     (p::<port> bv::<bytevector>

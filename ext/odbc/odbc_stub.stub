@@ -64,11 +64,11 @@
 (define-c-proc get-data (stmt::<odbc-stmt> index::<fixnum>)
   (result (Sg_GetData stmt index)))
 
-(define-c-proc row-count (stmt::<odbc-stmt>) ::<fixnum>
-  (result (Sg_RowCount stmt)))
+(define-c-proc row-count (stmt::<odbc-stmt>)
+  (result (Sg_MakeIntegerFromS64 (Sg_RowCount stmt))))
 
-(define-c-proc column-size (stmt::<odbc-stmt> index::<fixnum>) ::<fixnum>
-  (result (Sg_ColumnSize stmt index)))
+(define-c-proc column-size (stmt::<odbc-stmt> index::<fixnum>)
+  (result (Sg_MakeIntegerFromS64 (Sg_ColumnSize stmt index))))
 
 (define-c-proc column-count (stmt::<odbc-stmt>) ::<fixnum>
   (result (Sg_ColumnCount stmt)))

@@ -138,10 +138,10 @@ int      Sg_ExecuteDirect(SgObject stmt, SgString *text);
 int      Sg_Fetch(SgObject stmt);
 SgObject Sg_GetData(SgObject stmt, int index);
 
-int      Sg_RowCount(SgObject stmt);
+SQLLEN   Sg_RowCount(SgObject stmt);
 /* returns result column names */
 int      Sg_ColumnCount(SgObject stmt);
-int      Sg_ColumnSize(SgObject stmt, int index);
+SQLLEN   Sg_ColumnSize(SgObject stmt, int index);
 SgObject Sg_ResultColumns(SgObject stmt);
 
 /* meta information */

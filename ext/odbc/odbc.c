@@ -507,7 +507,7 @@ static SgObject make_blob_input_port(SQLHSTMT stmt, int index, int stringP)
 }
 
 static SgObject read_var_data_impl(SQLHSTMT stmt, int index,
-				   int len, int stringP, int asPortP)
+				   SQLLEN len, int stringP, int asPortP)
 {
   uint8_t buf[256] = {0};
   SgObject port, bv;
@@ -597,7 +597,7 @@ static SgObject timestamp_to_obj(SQL_TIMESTAMP_STRUCT *data)
 }
 
 static SgObject try_known_name_data(SgObject stmt, int index,
-				    int length, const char * name)
+				    SQLLEN length, const char * name)
 {
   /* unicode varchar is -9, but not defined in ODBC */
   if (strcmp(name, "VARCHAR2") == 0) {
@@ -622,7 +622,7 @@ static SgObject try_known_name_data(SgObject stmt, int index,
   return SG_UNDEF;		/* dummy */
 }
 
-int Sg_ColumnSize(SgObject stmt, int index)
+SQLLEN Sg_ColumnSize(SgObject stmt, int index)
 {
   SQLRETURN ret;
   SQLLEN len;
@@ -733,7 +733,7 @@ SgObject Sg_GetData(SgObject stmt, int index)
   return SG_UNDEF;
 }
 
-int Sg_RowCount(SgObject stmt)
+SQLLEN Sg_RowCount(SgObject stmt)
 {
   SQLRETURN ret;
   SQLLEN len;
