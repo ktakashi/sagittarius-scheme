@@ -99,20 +99,7 @@ SET(SAGITTARIUS_LIB_SOURCE
   wrappers.c
   # libraries
   ${STUB_SOURCES}
-  ${BUILTIN_SOURCES}
-  
-  # Since we use non builtin library in REPL
-  # I don't see the reason it need to be builtin
-  # lib_repl.c
-  # now match is replaced to Alex Shin's match
-  #lib_match_core.c
-  ${SAGITTARIUS_EXT_FEATURES}
-)
-
-# to add features in core
-SET_SOURCE_FILES_PROPERTIES(${SAGITTARIUS_EXT_FEATURES}
-  PROPERTIES
-  GENERATED TRUE)
+  ${BUILTIN_SOURCES})
 
 ADD_LIBRARY(sagittarius SHARED 
   ${SAGITTARIUS_LIB_SOURCE}

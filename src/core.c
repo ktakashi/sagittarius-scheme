@@ -682,9 +682,16 @@ static void init_cond_features()
 
   /* version clause */
   Sg_AddCondFeature(UC("cond-expand.version"));
-  
+
+#define EXT_FEATURE(name)					\
+  do {								\
+    Sg_AddCondFeature(UC(name));				\
+    Sg_AddCondFeature(UC("sagittarius." name));			\
+  } while (0)
+
   /* extlib features */
-  Sg__InitExtFeatures();
+  #include <ext-features.inc>
+#undef EXT_FEATURE
 }
 
 /* Starting point of the Sagittarius engine */

@@ -403,21 +403,10 @@ IF(WINDOWS_SUPPORT)
   ADD_DEFINITIONS(-DWIN32_LEAN_AND_MEAN)
 ENDIF()
 
-SET(SAGITTARIUS_EXT_FEATURES ${PROJECT_BINARY_DIR}/build/src/ext-features.c)
+SET(SAGITTARIUS_EXT_FEATURES ${PROJECT_BINARY_DIR}/ext-features.inc)
 
-# sub directory can add features
-# FIXME this is ugly
-FILE(WRITE ${SAGITTARIUS_EXT_FEATURES}
-  "#define LIBSAGITTARIUS_BODY
-#include <sagittarius/private/core.h>
-void Sg__InitExtFeatures()
-{
-")
 MACRO(ADD_FEATURE feature)
-  FILE(APPEND ${SAGITTARIUS_EXT_FEATURES} 
-    "Sg_AddCondFeature(UC(\"${feature}\"));\n")
-  FILE(APPEND ${SAGITTARIUS_EXT_FEATURES} 
-    "Sg_AddCondFeature(UC(\"sagittarius.${feature}\"));\n")
+  FILE(APPEND ${SAGITTARIUS_EXT_FEATURES} "EXT_FEATURE(\"${feature}\");\n")
 ENDMACRO()
 
 # Issue #37: Name conflictin with other 'sash'.
@@ -453,10 +442,6 @@ ADD_SUBDIRECTORY(ext ${SAGITTARIUS_EXT_WORK_DIRECTORY})
 # so that CMake will generate cmake_install.cmake with this direcotry
 # at the bottom of the file.
 ADD_SUBDIRECTORY(cmake build/cmake)
-
-FILE(APPEND ${SAGITTARIUS_EXT_FEATURES}
-  "
-}")
 
 CONFIGURE_FILE(cmake/sagittarius-config.in 
   ${PROJECT_BINARY_DIR}/sagittarius-config)
