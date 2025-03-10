@@ -2496,10 +2496,9 @@ SgObject Sg_GetByteVectorFromBinaryPort(SgBytePort *port)
 SgObject Sg_GetStringFromStringPort(SgStringPort *port)
 {
   if (SG_INPUT_PORTP(port)) {
+    long size = (long)((port->buffer.end - port->buffer.end) - port->buffer.index);
     return Sg_MakeString(port->buffer.buf + port->buffer.index,
-			 SG_HEAP_STRING,
-			 (port->buffer.end - port->buffer.end) - 
-			 port->buffer.index);
+			 SG_HEAP_STRING, size);
   } else {
     int size;
     SgString *ret;

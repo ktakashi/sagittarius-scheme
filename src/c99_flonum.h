@@ -389,9 +389,10 @@ static __inline double yn_wrap(int n, double x)
 static __inline double yn_wrap(int n, double x)
 {
   if (x == 0.0) return -INFINITY;
-  return yn(n, x);
+  return _yn(n, x);
 }
 # define yn yn_wrap
+# define jn _jn
 #endif
 
 /* 

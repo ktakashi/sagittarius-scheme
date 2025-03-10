@@ -113,11 +113,11 @@ SG_DEFINE_BUILTIN_CLASS(Sg_StringClass, string_print, NULL, NULL, NULL,
 
 #define ALLOC_TEMP_STRING SG_ALLOC_TEMP_STRING
 
-static SgString* make_string(long size)
+static SgString* make_string(size_t size)
 {
   SgString *z = SG_NEW_ATOMIC2(SgString *, SG_STRING_ALLOC_SIZE(size));
   SG_SET_CLASS(z, SG_CLASS_STRING);
-  z->size = size;
+  z->size = (long)size;
   z->immutablep = FALSE;
   return z;
 }
@@ -203,7 +203,7 @@ SgObject Sg_MakeStringC(const char *value)
   return SG_OBJ(z);
 }
 
-SgObject Sg_ReserveString(long size, SgChar fill)
+SgObject Sg_ReserveString(size_t size, SgChar fill)
 {
   SgString *z = make_string(size);
   long i;

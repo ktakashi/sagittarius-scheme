@@ -86,15 +86,15 @@ static SgByteVector* make_bytevector_rec()
   return z;
 }
 
-static SgByteVector* make_bytevector(long size)
+static SgByteVector* make_bytevector(size_t size)
 {
   SgByteVector *z = make_bytevector_rec();
-  z->size = size;
+  z->size = (long)size;
   z->elements = SG_NEW_ATOMIC2(uint8_t *, size);
   return z;
 }
 
-SgObject Sg_MakeByteVector(long size, int fill)
+SgObject Sg_MakeByteVector(size_t size, int fill)
 {
   SgByteVector *b;
   long i;

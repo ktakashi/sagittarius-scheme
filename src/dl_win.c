@@ -35,7 +35,7 @@
 
 static void* dl_open(const SgString *path)
 {
-  const wchar_t *xpath = utf32ToUtf16(path);
+  const wchar_t *xpath = utf32ToUtf16((SgString *)path);
   void *result;
   /* TODO: seeing Boehm GC's GC_dlopen, it's actually collecting some,
      before stop GC to make some space for loading. maybe we need to do

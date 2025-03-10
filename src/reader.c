@@ -146,13 +146,13 @@ static SgSharedRef* make_shared_ref(long mark)
 }
 
 /* ctx utility */
-static void parsing_range(SgReadContext *ctx, long from, long to)
+static void parsing_range(SgReadContext *ctx, int64_t from, int64_t to)
 {
   ctx->parsingLineFrom = from;
   ctx->parsingLineTo = to;
 }
 
-static void parsing_line(SgReadContext *ctx, long line)
+static void parsing_line(SgReadContext *ctx, int64_t line)
 {
   parsing_range(ctx, line, line);
 }
@@ -698,7 +698,7 @@ SgObject macro_reader(SgPort *port, SgChar c, readtab_t *tab,
 }
 
 static SgObject read_list_int(SgPort *port, SgChar closer, SgReadContext *ctx,
-			      long start_line)
+			      int64_t start_line)
 {
   SgObject start = SG_NIL, last = SG_NIL, item;
   item = read_expr4(port, ACCEPT_EOF, closer, ctx);
@@ -733,7 +733,7 @@ static SgObject read_list_int(SgPort *port, SgChar closer, SgReadContext *ctx,
 
 static SgObject read_list(SgPort *port, SgChar closer, SgReadContext *ctx)
 {
-  long line = Sg_LineNo(port);
+  int64_t line = Sg_LineNo(port);
   SgObject r = read_list_int(port, closer, ctx, line);
   if (SG_PAIRP(r) && line >= 0) {
     SgVM *vm = Sg_VM();
@@ -1271,7 +1271,7 @@ static SgObject read_bytevector(SgPort *port, SgChar *buf, SgReadContext *ctx)
     }									\
   } while (0)
 
-  long line_begin = Sg_LineNo(port);
+  int64_t line_begin = Sg_LineNo(port);
   long n;
   SgObject lst = read_list(port, ')', ctx);
   parsing_range(ctx, line_begin, Sg_LineNo(port));

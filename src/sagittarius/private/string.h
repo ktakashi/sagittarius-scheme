@@ -101,7 +101,7 @@ SG_EXTERN SgObject Sg_MakeStringC(const char *value);
 SG_EXTERN SgObject Sg_MakeString(const SgChar *value, SgStringType flag,
 				 long length);
 
-SG_EXTERN SgObject Sg_ReserveString(long size, SgChar fill);
+SG_EXTERN SgObject Sg_ReserveString(size_t size, SgChar fill);
 /* this is for get-string-n related not for c use */
 SG_EXTERN SgObject Sg_MakeEmptyString();
 

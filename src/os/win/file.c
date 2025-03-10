@@ -91,7 +91,7 @@ static int64_t win_read(SgObject self, uint8_t *buf, int64_t size)
        zero then it would return error. 
      */
     if (size != 1) {
-      DWORD req = size>>1;
+      DWORD req = (DWORD)(size>>1);
       isOK = ReadConsoleW(SG_FD(self)->desc, (wchar_t *)buf, req,
 			  &tmp, NULL);
     } else {
@@ -355,7 +355,7 @@ static int check_char_type(SgObject self)
   DWORD numRec;
   if (PeekConsoleInput(SG_FD(self)->desc, inRec, 
 		       array_sizeof(inRec), &numRec)) {
-    int i;
+    DWORD i;
     for (i = 0; i < numRec; i++) {
       if (inRec[i].EventType == KEY_EVENT) return TRUE;
     }
@@ -645,7 +645,7 @@ int Sg_DirectoryP(SgString *path)
 
 int Sg_DeleteFileOrDirectory(SgString *path)
 {
-  wchar_t *wpath = utf32ToUtf16(path);
+  const wchar_t *wpath = utf32ToUtf16(path);
   if (directory_p(wpath)) {
     return RemoveDirectoryW(wpath) ? 0 : GetLastError();
   } else {

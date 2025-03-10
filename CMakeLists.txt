@@ -313,15 +313,19 @@ IF(USE_BOEHM_GC)
       FILE(
 	DOWNLOAD "${GC_URL}/${GC_PATH}" "${CMAKE_CURRENT_BINARY_DIR}/gc.tar.gz"
 	SHOW_PROGRESS)
-
-      EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E tar xzf
-	${CMAKE_CURRENT_BINARY_DIR}/gc.tar.gz
-	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-      MESSAGE(STATUS "unpacked gc.tar.gz")
     ELSEIF()
       MESSAGE(STATUS "Checking Boehm GC archive file ... found")
     ENDIF()
 
+    SET(GC_DIR ${CMAKE_CURRENT_BINARY_DIR}/gc-${GC_VERSION})
+
+    IF (NOT EXISTS "${GC_DIR}")
+      EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E tar xzf
+	${CMAKE_CURRENT_BINARY_DIR}/gc.tar.gz
+	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+      MESSAGE(STATUS "unpacked gc.tar.gz")
+    ENDIF()
+    
     IF (NOT WINDOWS_SUPPORT AND NOT ${SAGITTARIUS_OS} STREQUAL "qnx")
       MESSAGE(FATAL_ERROR "First install Boehm GC. Go to gc directory.")
     ENDIF()
@@ -339,8 +343,6 @@ IF(USE_BOEHM_GC)
     # be built because of the dependency problem. so we need to recreate the
     # CMakeLists.txt without ADD_SUBDIRECTORY.
     # NOTE: Be aware when GC fixed this problem or changed CMakeLists.txt.
-    SET(GC_DIR ${CMAKE_CURRENT_BINARY_DIR}/gc-${GC_VERSION})
-
     ADD_SUBDIRECTORY(${GC_DIR} build/gc)
     INCLUDE_DIRECTORIES(${GC_DIR}/include)
     SET(HAVE_GC_H 1)
@@ -358,20 +360,24 @@ IF(USE_BOEHM_GC)
       SET(LIBATOMIC_OPS "libatomic_ops-${LIBATOMIC_OPS_VERSION}")
       SET(LIBATOMIC_OPS_PATH "/v${LIBATOMIC_OPS_VERSION}/${LIBATOMIC_OPS}.tar.gz")
       
-      IF (NOT EXISTS "${GC_DIR}/libatomic_ops.tar.gz")
+      IF (NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/libatomic_ops.tar.gz")
 	MESSAGE(STATUS "Checking libatomic_ops archive file ... not found")
 	MESSAGE(STATUS "Downloading ${LIBATOMIC_OPS_URL}${LIBATOMIC_OPS_PATH}")
 	FILE(
 	  DOWNLOAD "${LIBATOMIC_OPS_URL}${LIBATOMIC_OPS_PATH}"
-	  "${GC_DIR}/libatomic_ops.tar.gz"
+	  "${CMAKE_CURRENT_BINARY_DIR}/libatomic_ops.tar.gz"
 	  SHOW_PROGRESS)
-	EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E tar xzf
-	  ${GC_DIR}/libatomic_ops.tar.gz
-	  WORKING_DIRECTORY ${GC_DIR})
-	MESSAGE(STATUS "unpacked libatomic_ops.tar.gz")
       ELSE()
 	MESSAGE(STATUS "Checking libatomic_ops archive file ... found")
       ENDIF()
+
+      IF (NOT EXISTS ${GC_DIR}/${LIBATOMIC_OPS})
+      	EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E tar xzf
+	  ${CMAKE_CURRENT_BINARY_DIR}/libatomic_ops.tar.gz
+	  WORKING_DIRECTORY ${GC_DIR})
+	MESSAGE(STATUS "unpacked libatomic_ops.tar.gz")
+      ENDIF()
+
       IF (EXISTS ${GC_DIR}/${LIBATOMIC_OPS}
 	  AND NOT EXISTS ${GC_DIR}/libatomic_ops)
 	FILE(RENAME ${GC_DIR}/${LIBATOMIC_OPS} ${GC_DIR}/libatomic_ops)

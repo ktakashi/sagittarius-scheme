@@ -105,7 +105,7 @@ SgHashVal Sg_EqvHash(SgObject obj, SgHashVal bound)
     } else if (SG_BIGNUMP(obj)) {
       long i;
       unsigned long u = 0;
-      unsigned long size = SG_BIGNUM_GET_COUNT(obj);
+      long size = SG_BIGNUM_GET_COUNT(obj);
       for (i = 0; i < size; i++) {
 	u += SG_BIGNUM(obj)->elements[i];
       }

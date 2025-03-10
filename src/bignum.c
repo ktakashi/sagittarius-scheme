@@ -461,7 +461,7 @@ double Sg_BignumToDouble(SgBignum *b)
 
   exponent = Sg_BignumBitSize(b) - 1;
   if (exponent < 64 - 1) {
-    return Sg_BignumToS64(b, SG_CLAMP_NONE, NULL);
+    return (double)Sg_BignumToS64(b, SG_CLAMP_NONE, NULL);
   } else if (exponent > 1023) {
     return SG_BIGNUM_GET_SIGN(b) > 0
       ? u64_to_double(0x7ff0000000000000ULL)
@@ -1508,10 +1508,10 @@ static ulong bignum_sdiv_rec(SgBignum *quotient,
     ulong *qu = quotient->elements;
     for (; n >= 0; n--) {
       rem = (rem << WORD_BITS) | pu[n];
-      qu[n] = rem / divisor;
+      qu[n] = (ulong)(rem / divisor);
       rem = rem % divisor;
     }
-    return rem;
+    return (ulong)rem;
   }
 #else
   /* only HALF_WORD */
@@ -1556,7 +1556,7 @@ static SgBignum *MIN_ONE = NULL;
 static SgBignum ** bignum_div_rem(SgBignum *a, SgBignum *b, SgBignum **rr)
 {
   SgBignum *q, *r;
-  ulong qsize = a->size - b->size + 1;
+  long qsize = a->size - b->size + 1;
   if (Sg_BignumAbsCmp(a, b) < 0) {
     rr[0] = ZERO;
     rr[1] = a;
@@ -1749,7 +1749,7 @@ SgObject Sg_BignumAccMultAddUI(SgBignum *acc, unsigned long coef,
 			       unsigned long c)
 {
   SgBignum *r;
-  unsigned long rsize = SG_BIGNUM_GET_COUNT(acc) + 1, i;
+  long rsize = SG_BIGNUM_GET_COUNT(acc) + 1, i;
   unsigned long carry;
   ALLOC_TEMP_BIGNUM(r, rsize);
   r->elements[0] = c;
@@ -2910,7 +2910,7 @@ static SgBignum * sliding_window_expt(SgBignum *b, long n, long e)
   SG_BIGNUM_SET_SIGN(r, 1);
 
   prod1 = r;
-  if (Sg_AvailableStackSize((volatile uintptr_t)&zsize) >= zsize) {
+  if (Sg_AvailableStackSize((uintptr_t)&zsize) >= zsize) {
     ALLOC_TEMP_BIGNUM_REC(prod2, zsize);
   } else {
     prod2 = make_bignum_rec(zsize, FALSE);
@@ -2926,7 +2926,7 @@ static SgBignum * sliding_window_expt(SgBignum *b, long n, long e)
     tw = table[index];
     if (z) {
       SgBignum *t;
-      ulong len = e-v;
+      long len = e-v;
       for (i = 1; i <= len; i++) {
 	/* z = bignum_mul(z, z); */
 	/* square_to_len(z->elements, zlen, prod1->elements); */

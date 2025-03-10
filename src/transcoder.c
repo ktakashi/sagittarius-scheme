@@ -320,7 +320,7 @@ int64_t Sg_TranscoderRead(SgObject self, SgPort *port,
       SAVE_CLOSED(p, __prev);						\
       SG_UNWIND_PROTECT {						\
 	Sg_Apply4(SG_CODEC_CUSTOM(codec)->putc, (p), SG_MAKE_CHAR(c),	\
-		  get_mode(mode),	SG_CODEC_CUSTOM(codec)->data);	\
+		  get_mode(mode), SG_CODEC_CUSTOM(codec)->data);	\
       } SG_WHEN_ERROR {							\
 	RESTORE_CLOSED(p, __prev);					\
 	SG_NEXT_HANDLER;						\

@@ -327,7 +327,7 @@ typedef enum  {
 /* fixnum */
 #define SG_INTP(obj)       (SG_TAG2(obj) == 1)
 #define SG_INT_VALUE(obj)  (((long)SG_WORD(obj)) >> 2)
-#define SG_MAKE_INT(obj)   SG_OBJ(((long)((unsigned long)(obj) << 2) + 1))
+#define SG_MAKE_INT(obj)   SG_OBJ((intptr_t)((long)((unsigned long)(obj) << 2) + 1))
 /* Do not use this!!! */
 #define SG_ENSURE_INT(obj) SG_OBJ((long)(obj) | 1)
 #define SG_UINTP(obj)      (SG_INTP(obj)&&((long)SG_WORD(obj) >= 0))
@@ -338,7 +338,7 @@ typedef enum  {
 #define SG_CHAR(obj)       ((SgChar)(obj))
 #define SG_CHARP(obj)      (SG_TAG8(obj) == 3)
 #define SG_CHAR_VALUE(obj) SG_CHAR(((unsigned long)SG_WORD(obj)) >> 8)
-#define SG_MAKE_CHAR(obj)  SG_OBJ(((unsigned long)(obj) << 8) + 0x03)
+#define SG_MAKE_CHAR(obj)  SG_OBJ((uintptr_t)((unsigned long)(obj) << 8) + 0x03)
 /* SgChar is typedef of int32_t, so max value is 24 bits  */
 #define SG_CHAR_MAX        (0xffffff)
 

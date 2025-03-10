@@ -30,6 +30,7 @@
 #include "sagittarius/private/error.h"
 #include "sagittarius/private/pair.h"
 #include "sagittarius/private/system.h"
+#include "sagittarius/private/thread.h"
 #include "sagittarius/private/writer.h"
 #include "sagittarius/private/vm.h"
 
@@ -103,7 +104,7 @@ static void* wrap(void *data)
   SgVM *vm = SG_VM(d[1]);
   /* In theory, we should use SG_UNWIND_PROTECT here, but I'm lazy... */
   thread_cleanup_push(thread_cleanup, vm);
-  r = func(vm);
+  r = (*func)(vm);
   thread_cleanup_pop(TRUE);
   d[0] = d[1] = vm = NULL;
   return r;

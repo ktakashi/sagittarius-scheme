@@ -41,6 +41,10 @@
 
 #include "regex_priv.inc"
 
+#ifdef TEXT			/* windows.. */
+# undef TEXT
+#endif
+
 #ifdef BINARY_MATCHER
 /* binary */
   #include "sagittarius/private/bytevector.h"

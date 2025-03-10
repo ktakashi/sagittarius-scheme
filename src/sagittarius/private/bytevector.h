@@ -81,7 +81,7 @@ struct SgByteVectorRec
 
 SG_CDECL_BEGIN
 
-SG_EXTERN SgObject Sg_MakeByteVector(long size, int fill);
+SG_EXTERN SgObject Sg_MakeByteVector(size_t size, int fill);
 
 SG_EXTERN SgObject Sg_MakeByteVectorFromU8Array(const uint8_t *buf,
 						long size);

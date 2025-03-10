@@ -362,7 +362,7 @@ SgObject Sg_GetSharedError()
 }
 
 #ifndef __CYGWIN__
-static void real_cleanup()
+static void real_cleanup(void)
 {
   dlobj *z;
   for (z = dynldinfo.dso_list; z; z = z->next) {

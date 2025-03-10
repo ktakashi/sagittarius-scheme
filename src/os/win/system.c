@@ -1169,7 +1169,7 @@ void Sg_ShowAddressFunction(void *addr)
 
 }
 
-void Sg_SanitiseStack(void *boundary)
+void Sg_SanitiseStack(volatile void *boundary)
 {
   LPBYTE lpPage = (LPBYTE)boundary;
   SYSTEM_INFO si;

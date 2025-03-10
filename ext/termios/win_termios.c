@@ -163,6 +163,7 @@ int tcflush(int fd, int queue_selector)
     set_errno(ENOTTY);
     return -1;
   }
+  return 0;
 }
 
 /* GetCommState, GetCommTimeouts 

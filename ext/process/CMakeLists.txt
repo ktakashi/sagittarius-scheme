@@ -18,8 +18,13 @@ ELSEIF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   TARGET_LINK_LIBRARIES(sagittarius--process rt)
 ENDIF()
 
-
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
+
+IF (MSVC)
+  # Suggested by the compiler :)
+  ADD_DEFINITIONS(-D_CRT_SECURE_NO_DEPRECATE)
+ENDIF()
+
 # for test
 ADD_EXECUTABLE(test-proc test-proc.c)
 # for shared memory test

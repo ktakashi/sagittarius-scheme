@@ -496,7 +496,7 @@ static SgObject userlib = NULL;
     for (__i = 0; __i < (len); __i++) {				\
       SG_STRING_VALUE_AT(dst, __i+(offset))=(src)[__i];		\
     }								\
-    (offset) += (len);						\
+    (offset) += (int)(len);					\
   } while(0)
 
 static SgObject get_possible_paths(SgVM *vm, SgObject name, int needDirectiveP)

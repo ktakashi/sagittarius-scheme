@@ -126,7 +126,7 @@ SG_EXTERN SgObject Sg_GetThreadTimes(SgVM *vm);
 #ifdef _WIN32
 SG_EXTERN void      Sg_DumpNativeStackTrace(EXCEPTION_POINTERS *ep);
 SG_EXTERN void      Sg_ShowAddressFunction(void *addr);
-SG_EXTERN void      Sg_SanitiseStack(void *boundary);
+SG_EXTERN void      Sg_SanitiseStack(volatile void *boundary);
 #endif
 
 SG_CDECL_END

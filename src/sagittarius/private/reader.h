@@ -57,9 +57,9 @@ typedef struct SgReadContextRec
   SG_HEADER;
   SgHashTable *graph; /* for shared object*/
   int          graphRef;
-  long         firstLine;
-  long         parsingLineFrom;
-  long         parsingLineTo;
+  int64_t      firstLine;
+  int64_t      parsingLineFrom;
+  int64_t      parsingLineTo;
   int          escapedp;	/* for |.|, ugly */
   int          flags;
 } SgReadContext;

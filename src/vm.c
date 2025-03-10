@@ -1779,7 +1779,7 @@ SgObject Sg_VMGetStackTraceOf(SgVM *vm, SgVMStackTraceInfo flags,
     return SG_NIL;
   }
   /* fprintf(stderr, "stack = %p, sp = %p\n", vm->stack, SP(vm)); */
-  return get_stack_trace(vm, cont, cl, pc, FP(vm), SP(vm) - FP(vm), flags,
+  return get_stack_trace(vm, cont, cl, pc, FP(vm), (int)(SP(vm) - FP(vm)), flags,
 			 framesToSkip);
 }
 

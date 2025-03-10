@@ -297,7 +297,7 @@ static void format_integer(SgPort *out, SgObject arg, SgObject *params,
   }
   if (delimited && commainterval) {
     const SgChar *ptr = SG_STRING_VALUE(str);
-    unsigned long  num_digits = SG_STRING_SIZE(str), colcnt, i;
+    long  num_digits = SG_STRING_SIZE(str), i, colcnt;
     SgPort *strout;
     SgStringPort tp;
 
@@ -1413,7 +1413,7 @@ void Sg_Vprintf(SgPort *port, const SgChar *fmt, va_list sp, int sharedp)
 	break;
       case 'p':
 	{
-	  void *value = va_arg(sp, void *);
+	  uintptr_t value = va_arg(sp, uintptr_t);
 	  SG_APPEND1(h, t, Sg_MakeIntegerU((unsigned long)value));
 	  break;
 	}
