@@ -35,7 +35,7 @@ jobs:
        - run:
            name: Test
            working_directory: ~/target
-           command: ctest -V
+           command: ctest --output-on-failure
            
   windows-build:
     parameters:
@@ -80,7 +80,7 @@ jobs:
                 Set-Content "env:\$($matches[1])" $matches[2]
               }
             }
-            & ctest -V -LE json --output-on-failure
+            & ctest -LE json --output-on-failure
 
 workflows:
   ubuntu-build:
