@@ -488,11 +488,13 @@ double Sg_BignumToDouble(SgBignum *b)
   return u64_to_double(bits);
 }
 
+#ifndef NDEBUG
 static inline int bn_norm_pred(SgBignum *bn)
 {
   long bn_count = SG_BIGNUM_GET_COUNT(bn);
   return (bn_count == 0) || (bn->elements[bn_count - 1] != 0);
 }
+#endif
 
 SgObject Sg_BignumToInteger(SgBignum *bn)
 {

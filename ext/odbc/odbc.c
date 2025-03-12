@@ -413,8 +413,8 @@ typedef struct blob_data_rec
 {
   SQLHSTMT stmt;
   int index;
-  char stringP :1;
-  char openP   :1;
+  unsigned char stringP :1;
+  unsigned char openP   :1;
 } blob_data_t;
 
 static int64_t blob_read(SgObject self, uint8_t *buf, int64_t size)

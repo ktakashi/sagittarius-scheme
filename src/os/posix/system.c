@@ -826,7 +826,7 @@ static void* waiter(void *param)
 {
   void **data = (void **)param;
   pthread_cond_t *cond = (pthread_cond_t *)data[0];
-  pid_t pid = (pid_t)data[1];
+  pid_t pid = (pid_t)(uintptr_t)data[1];
   int status = 0;
   data[2] = (void *)(uintptr_t)waitpid(pid, &status, 0);
   data[3] = (void *)(uintptr_t)errno;
@@ -869,11 +869,11 @@ SgObject Sg_SysProcessWait(uintptr_t pid, struct timespec *pts)
       }
       /* thread must be ended by here (by force or not) */
       pthread_join(timer_thread, (void **)&status);
-      r = (pid_t)param[2];
+      r = (pid_t)(uintptr_t)param[2];
       if (r < 0) {
 	/* interrupted by something else */
 	if (r == EINTR && pr != ETIMEDOUT) goto do_again;
-	e = (int)param[3];
+	e = (int)(uintptr_t)param[3];
       }
     } else {
       /* wait forever... */
