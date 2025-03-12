@@ -189,7 +189,7 @@ static struct timespec * update_timeout(SgObject sockets, SgTime *now,
   struct timespec *r = NULL;
 
   if (!SG_FALSEP(to)) {
-    long sec = SG_TIME(to)->sec - now->sec;
+    int64_t sec = SG_TIME(to)->sec - now->sec;
     long nsec = SG_TIME(to)->nsec - now->nsec;
 
     if (sec > 0 || (sec == 0 && nsec > 0)) {

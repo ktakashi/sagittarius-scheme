@@ -172,7 +172,7 @@
     (set! err (xchacha_ivctr (& (-> (SG_STREAM_CIPHER_STATE s) chacha))
 			     (+ (SG_BVECTOR_ELEMENTS iv) ivs)
 			     (- (SG_BVECTOR_SIZE iv) ivs)
-			     c))
+			     (cast ulong32 c)))
     (check-tomcrypt-error 'chacha-ivctr err)
     (result s)))
 

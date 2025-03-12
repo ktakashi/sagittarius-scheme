@@ -199,7 +199,7 @@ static long mp_sub_n(ulong *rp, ulong *xp, ulong *yp, long len)
   udlong t = (udlong)xp[0] - yp[0];
   rp[0] = (ulong)t;
   for (i = 1; i < len; i++) {
-    t = (udlong)xp[i] - (udlong)yp[i] - (ulong)-(t >> WORD_BITS);
+    t = (udlong)xp[i] - (udlong)yp[i] - (ulong)-(dlong)(t >> WORD_BITS);
     rp[i] = (ulong)t;
   }
   return (long)(t >> WORD_BITS);

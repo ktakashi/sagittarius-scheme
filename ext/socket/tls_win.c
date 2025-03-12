@@ -34,6 +34,7 @@ References:
 #ifndef UNICODE
 # define UNICODE
 #endif
+#include <sagittarius.h>
 
 #define SECURITY_WIN32
 #ifndef __CYGWIN__
@@ -47,7 +48,6 @@ References:
 /* #include <security.h> */
 #include <sspi.h>
 #include <wchar.h>
-#include <sagittarius.h>
 #include "sagittarius-socket.h"
 #define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
@@ -727,14 +727,14 @@ static DWORD add_ecc_private_key(WinTLSContext *context,
     return ss;
   }
 
-  swprintf(keyName, 64, L"%lx", (ULONG)((void *)pPrivKeyInfo));
+  swprintf(keyName, 64, L"%lx", (ULONG)((uintptr_t)pPrivKeyInfo));
 
   /* import with key name */
   /* https://stackoverflow.com/questions/12076096/ncryptopenkey
      For some reason extra 2 is needed, no idea why.
      Found out from the above.
    */
-  ncBuf.cbBuffer = wcslen(keyName) * sizeof(wchar_t) + 2;
+  ncBuf.cbBuffer = (ULONG)(wcslen(keyName) * sizeof(wchar_t) + 2);
   ncBuf.BufferType = NCRYPTBUFFER_PKCS_KEY_NAME;
   ncBuf.pvBuffer = keyName;
   ncBufDesc.ulVersion = 0;
@@ -891,7 +891,7 @@ static int socket_readable(SOCKET socket)
 #else
   tv.tv_usec = 0;		/* seems okay like this */
 #endif
-  total = select(socket+1, &rfds, NULL, NULL, &tv);
+  total = select(0, &rfds, NULL, NULL, &tv);
   return total == (SOCKET)1;
 }
 

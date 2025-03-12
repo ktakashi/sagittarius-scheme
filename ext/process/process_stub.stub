@@ -1,11 +1,10 @@
 ;; -*- scheme -*-
 (decl-code
+ (.include <sagittarius.h>)
  (.if "defined(_WIN32)"
       (.include <windows.h>)
       (.include <sys/types.h>
 		<unistd.h>))
-
- (.include <sagittarius.h>)
  (.define "LIBSAGITTARIUS_EXT_BODY")
  (.include <sagittarius/extend.h>)
  (.include <sagittarius-process.h>))
@@ -17,7 +16,10 @@
        (result (GetCurrentProcessId()))
        (result (getpid))))
 
-(define-c-proc %pid->sys-process (pid::<fixnum>) ::<fixnum> Sg_PidToSysProcess)
+(define-c-proc %pid->sys-process (pid::<fixnum>)
+  (.if "SIZEOF_VOIDP == 8"
+       (result (Sg_MakeIntegerFromU64 (Sg_PidToSysProcess pid)))
+       (result (Sg_MakeIntegerU (Sg_PidToSysProcess pid)))))
 
 (define-c-proc shared-memory? (o) ::<boolean> SG_SHARED_MEMORY_P)
 (define-c-proc shared-memory->bytevector (shm::<shared-memory>)

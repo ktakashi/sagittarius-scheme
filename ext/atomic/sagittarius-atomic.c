@@ -269,7 +269,6 @@ int Sg_MemoryOrderP(SgObject o)
 
 static void atomic_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
-  SgAtomic *a = SG_ATOMIC(a);
   if (SG_ATOMIC_FIXNUM_P(obj)) {
     Sg_Printf(port, UC("#<atomic-fixnum %d>"),
 	      atomic_load_explicit(&SG_ATOMIC_REF_FIXNUM(obj), memory_order_relaxed));

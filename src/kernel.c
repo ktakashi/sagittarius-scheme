@@ -97,16 +97,31 @@ static void thread_cleanup(void *data)
   remove_entry(SG_KERNEL(vm->kernel), vm);
 }
 
-static void* wrap(void *data)
+typedef struct 
 {
-  void **d = (void **)data, *r;
-  SgThreadEntryFunc *func = (SgThreadEntryFunc *)d[0];
-  SgVM *vm = SG_VM(d[1]);
+  SgVM *vm;
+  SgThreadEntryFunc *func;
+} thread_param_t;
+
+#ifdef _MSC_VER
+typedef unsigned int thread_return_t;
+#else
+typedef void * thread_return_t;
+#endif
+
+static thread_return_t wrap(void *data)
+{
+  thread_param_t *d = (thread_param_t *)data;
+  thread_return_t r;
+  SgThreadEntryFunc *func = d->func;
+  SgVM *vm = d->vm;
   /* In theory, we should use SG_UNWIND_PROTECT here, but I'm lazy... */
   thread_cleanup_push(thread_cleanup, vm);
   r = (*func)(vm);
   thread_cleanup_pop(TRUE);
-  d[0] = d[1] = vm = NULL;
+  d->vm = NULL;
+  d->func = NULL;
+  vm = NULL;
   return r;
 }
 
@@ -118,9 +133,10 @@ SgObject Sg_StartManagedThread(SgVM *vm, SgThreadEntryFunc *func, int daemonP)
   if (vm->threadState != SG_VM_NEW) {
     err_state = TRUE;
   } else {
-    void **data = SG_NEW_ARRAY(void *, 2);
-    data[0] = func;
-    data[1] = vm;
+    
+    thread_param_t *data = SG_NEW(thread_param_t);
+    data->func = func;
+    data->vm = vm;
     
     ASSERT(vm->thunk);
     vm->threadState = SG_VM_RUNNABLE;

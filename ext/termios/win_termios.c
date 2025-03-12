@@ -240,7 +240,7 @@ int tcgetattr(int fd, struct termios * termios_p)
       set_errno(ENOTTY);
       return -1;
     }
-    termios_p->c_cc[VTIME] = timeouts.ReadTotalTimeoutConstant/100;
+    termios_p->c_cc[VTIME] = (cc_t)(timeouts.ReadTotalTimeoutConstant/100);
     termios_p->c_cc[VSTART] = dcb.XonChar;
     termios_p->c_cc[VSTOP] = dcb.XoffChar;
     termios_p->c_cc[VEOF] = dcb.EofChar;

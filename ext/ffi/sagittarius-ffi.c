@@ -331,7 +331,7 @@ static inline size_t compute_offset(size_t offset, size_t align)
 static inline size_t compute_padding(size_t offset, size_t align, int a)
 {
   if (a > 0 && offset % a == 0) return 0;
-  return (-offset) & (align - 1);
+  return ((size_t)-(ssize_t)offset) & (align - 1);
 }
 
 static inline void check_bif_field_size(SgObject fields, size_t size)
@@ -465,7 +465,7 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int alignment)
   }
 
   st->alignment = alignment;
-  st->type.alignment = max_type;
+  st->type.alignment = (unsigned short)max_type;
   /* fixup size */
   if (alignment > 0) {
     alignment--;
@@ -507,10 +507,10 @@ static SgObject parse_member_name(SgSymbol *name)
 typedef struct bit_field_info
 {
   uint64_t mask;
-  int      shifts;
+  ssize_t  shifts;
 } bfi;
 
-static int name_match(SgObject name, SgObject names, int size, bfi *mask)
+static int name_match(SgObject name, SgObject names, ssize_t size, bfi *mask)
 {
   if (SG_SYMBOLP(names)) {
     /* usual member */
@@ -525,7 +525,7 @@ static int name_match(SgObject name, SgObject names, int size, bfi *mask)
     */
     int big_endianP = SG_EQ(endian, SG_INTERN("big"));
     int off = 0;
-    int sizebits = size<<3;
+    ssize_t sizebits = size<<3;
 
     SG_FOR_EACH(names, SG_CDR(names)) {
       SgObject n = SG_CAR(names);
@@ -538,7 +538,7 @@ static int name_match(SgObject name, SgObject names, int size, bfi *mask)
 	       then we need #b0000 0000 1100 0000 0000 0000 0000 0000
 	    */
 	    if (sizebits-off == sizeof(uint64_t)<<3) {
-	      m = -1ULL;
+	      m = (uint64_t)-(int64_t)1ULL;
 	    } else {
 	      m = 1ULL<<(sizebits-off);
 	    }
@@ -550,7 +550,7 @@ static int name_match(SgObject name, SgObject names, int size, bfi *mask)
 	       then we need #b1100 0000
 	    */
 	    if (bit+off == sizeof(uint64_t)<<3) {
-	      m = -1ULL;
+	      m = (uint64_t)-(int64_t)1ULL;
 	    } else {
 	      m = 1ULL<<(bit+off);
 	    }
@@ -567,7 +567,8 @@ static int name_match(SgObject name, SgObject names, int size, bfi *mask)
   return FALSE;
 }
 static size_t calculate_alignment(SgObject names, SgCStruct *st,
-				  int *foundP, int *type, int *array, int *size,
+				  int *foundP, int *type,
+				  ssize_t *array, size_t *size,
 				  bfi *bitMask)
 {
   size_t i;
@@ -696,7 +697,9 @@ static SgObject convert_c_to_scheme(int rettype, SgPointer *p, size_t align)
 SgObject Sg_CStructRef(SgPointer *p, SgCStruct *st, SgSymbol *name)
 {
   SgObject names = parse_member_name(name);
-  int foundP = FALSE, type = 0, array, size;
+  int foundP = FALSE, type = 0;
+  ssize_t array;
+  size_t size;
   bfi bitMask = {0,};
   size_t align = calculate_alignment(names, st, &foundP, &type, &array, &size,
 				     &bitMask);
@@ -722,7 +725,7 @@ SgObject Sg_CStructRef(SgPointer *p, SgCStruct *st, SgSymbol *name)
       }
       r = Sg_LogAnd(r, Sg_MakeIntegerFromU64(bitMask.mask));
       if (bitMask.shifts) {
-	return Sg_Ash(r, bitMask.shifts);
+	return Sg_Ash(r, (long)bitMask.shifts);
       }
       return r;
     }
@@ -731,7 +734,7 @@ SgObject Sg_CStructRef(SgPointer *p, SgCStruct *st, SgSymbol *name)
     SgObject vec;
     int i;
     array /= size;
-    vec = Sg_MakeVector(array, SG_UNDEF);
+    vec = Sg_MakeVector((long)array, SG_UNDEF);
     for (i = 0; i < array; i++) {
       /* array won't have bit field*/
       SG_VECTOR_ELEMENT(vec, i) = 
@@ -744,7 +747,9 @@ SgObject Sg_CStructRef(SgPointer *p, SgCStruct *st, SgSymbol *name)
 void Sg_CStructSet(SgPointer *p, SgCStruct *st, SgSymbol *name, SgObject value)
 {
   SgObject names = parse_member_name(name);
-  int foundP = FALSE, type = 0, array, size;
+  int foundP = FALSE, type = 0;
+  ssize_t array;
+  size_t size;
   bfi bitMask = {0,};
   size_t align = calculate_alignment(names, st, &foundP, &type, &array, &size,
 				     &bitMask);
@@ -757,7 +762,7 @@ void Sg_CStructSet(SgPointer *p, SgCStruct *st, SgSymbol *name, SgObject value)
     switch (type) {
     case FFI_RETURN_TYPE_STRUCT:
       /* we need to copy it */
-      Sg_CMemcpy(p, align, value, 0, size);
+      Sg_CMemcpy(p, (long)align, value, 0, size);
       break;
     default:
       if (bitMask.mask) {
@@ -770,7 +775,7 @@ void Sg_CStructSet(SgPointer *p, SgCStruct *st, SgSymbol *name, SgObject value)
 	  Sg_Error(UC("c-struct-set!: %A isn't integer"), name);
 	}
 	if (bitMask.shifts) {
-	  value = Sg_Ash(value, -bitMask.shifts);
+	  value = Sg_Ash(value, (long)-bitMask.shifts);
 	}
 	/* clear current field */
 	r = Sg_LogAnd(r, Sg_MakeIntegerFromU64(~bitMask.mask));
@@ -964,7 +969,7 @@ static int push_ffi_type_value(SgFuncInfo *info,
     switch (signature) {
     case FFI_SIGNATURE_FLOAT: {
 #if defined(__cplusplus) && defined(USE_IMMEDIATE_FLONUM)
-      storage->f32 = Sg_FlonumValue(obj);
+      storage->f32 = (float)Sg_FlonumValue(obj);
 #else
       storage->f32 = SG_FLONUM_VALUE(obj);
 #endif
@@ -1192,9 +1197,9 @@ static int convert_scheme_to_c_value(SgObject v, int type, void **result)
   do {								\
     if (SG_EXACT_INTP(v)) {					\
       if (SG_INTP(v)) {						\
-	*((type *)result) = SG_INT_VALUE(v);			\
+	*((type *)result) = (type)SG_INT_VALUE(v);		\
       } else {							\
-	*((type *)result) = conv(v, SG_CLAMP_NONE, NULL);	\
+	*((type *)result) = (type)conv(v, SG_CLAMP_NONE, NULL);	\
       }								\
     } else {							\
       *((type *)result) = (type)0;				\
@@ -1723,7 +1728,7 @@ static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
     FFI_RET_CASE(FFI_RETURN_TYPE_ULONG,   UINT_CONV, unsigned long);
     FFI_RET_CASE(FFI_RETURN_TYPE_UINTPTR, UINTPTR_CONV, uintptr_t);
 
-    FFI_RET_CASE(FFI_RETURN_TYPE_SIZE_T,  UINT_CONV, size_t);
+    FFI_RET_CASE(FFI_RETURN_TYPE_SIZE_T,  UINTPTR_CONV, size_t);
 
     FFI_RET_CASE(FFI_RETURN_TYPE_INT8_T,   SINT_CONV, int8_t);
     FFI_RET_CASE(FFI_RETURN_TYPE_UINT8_T,  SINT_CONV, uint8_t);
@@ -1893,7 +1898,7 @@ void Sg_CFree(SgPointer *p)
 
 void Sg_CMemcpy(SgPointer *d, long offset, 
 		SgObject   s, long start,
-		long size)
+		size_t size)
 {
   void *dst = (void *)(d->pointer + offset);
   void *src = NULL;

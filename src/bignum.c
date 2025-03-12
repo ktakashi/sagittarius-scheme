@@ -503,7 +503,7 @@ SgObject Sg_BignumToInteger(SgBignum *bn)
     unsigned long n = bn->elements[0];
     if (SG_BIGNUM_GET_SIGN(bn) < 0) {
       if (n < SG_ULONG_MAX) {
-	n = -n;
+	n = (unsigned long)-(long)n;
       } else {
 	/* more than long */
 	return Sg_BignumCopy(bn);

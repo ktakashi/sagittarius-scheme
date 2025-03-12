@@ -121,7 +121,7 @@
 	 (err::int (pkcs12_kdf md
 			       (SG_BVECTOR_ELEMENTS pw) (SG_BVECTOR_SIZE pw)
 			       (SG_BVECTOR_ELEMENTS salt) (SG_BVECTOR_SIZE salt)
-			       iteration purpose
+			       iteration (cast |unsigned char| purpose)
 			       (SG_BVECTOR_ELEMENTS out) outlen)))
     (check-tomcrypt-error 'pkcs12-kdf err)
     (result out)))

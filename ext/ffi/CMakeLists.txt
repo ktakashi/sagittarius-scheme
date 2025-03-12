@@ -67,7 +67,6 @@ ELSE()
   ELSEIF(NOT ${SAGITTARIUS_PROCESSOR} MATCHES "arm")
     ADD_FEATURE(ffi-vargs)
   ENDIF()
-  
 
   ADD_LIBRARY(sagittarius--ffi MODULE sagittarius-ffi.c 
     ${CMAKE_CURRENT_BINARY_DIR}/ffi_stub.c)

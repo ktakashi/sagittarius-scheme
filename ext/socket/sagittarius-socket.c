@@ -401,7 +401,8 @@ static void ai_protocol_set(SgAddrinfo *ai, SgObject protocol)
 
 static SgObject ai_addr(SgAddrinfo *ai)
 {
-  return SG_OBJ(make_sockaddr(ai->ai->ai_addrlen, ai->ai->ai_addr, FALSE));
+  return SG_OBJ(make_sockaddr((socklen_t)ai->ai->ai_addrlen,
+			      ai->ai->ai_addr, FALSE));
 }
 
 static SgObject ai_next(SgAddrinfo *ai)
@@ -562,7 +563,7 @@ SgObject Sg_SocketBind(SgSocket *socket, SgAddrinfo* addrinfo)
   struct addrinfo *p = addrinfo->ai;
   if (bind(socket->socket, p->ai_addr, (int)p->ai_addrlen) == 0) {
     struct sockaddr_storage name;
-    socklen_t len = p->ai_addrlen;
+    socklen_t len = (socklen_t)p->ai_addrlen;
     int r = getsockname(socket->socket, (struct sockaddr *)&name, &len);
     if (r != 0) {
       raise_socket_error(SG_INTERN("socket-bind!"),
@@ -618,7 +619,7 @@ SgObject Sg_SocketSetopt(SgSocket *socket, int level, int name, SgObject value)
     }
 #ifdef _WIN32
     DWORD v;
-    v = SG_TIME(value)->sec*1000 + SG_TIME(value)->nsec/1000000;
+    v = (DWORD)(SG_TIME(value)->sec*1000 + SG_TIME(value)->nsec/1000000);
     r = setsockopt(socket->socket, level, name, (const char *)&v,
 		   sizeof(DWORD));
 #else
@@ -1013,7 +1014,7 @@ static struct timeval *select_timeval(SgObject timeout, struct timeval *tm)
     tm->tv_usec = (suseconds_t)iusec;
     return tm;
   } else if (SG_TIMEP(timeout)) {
-    tm->tv_sec = SG_TIME(timeout)->sec;
+    tm->tv_sec = (long)(SG_TIME(timeout)->sec);
     tm->tv_usec = SG_TIME(timeout)->nsec/1000;
     return tm;
   }

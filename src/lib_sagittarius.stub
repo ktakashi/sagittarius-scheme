@@ -253,7 +253,7 @@
 						      (native-eol-style)
 						      'raise)))
   (define-c-proc vm-log-level (level::<symbol>) ::<boolean> :no-side-effect
-    (let ((f::int -1))
+    (let ((|f::unsigned int| 0))
       (cond ((SG_EQ level 'info)  (set! f SG_INFO_LEVEL))
 	    ((SG_EQ level 'debug) (set! f SG_DEBUG_LEVEL))
 	    ((SG_EQ level 'trace) (set! f SG_TRACE_LEVEL))

@@ -144,7 +144,7 @@ static SgObject win_selector_wait(win_context_t *ctx, int n,
   SET_EVENT(sockets, ctx->event, waiting_flags);
   
   if (sp) {
-    millis = sp->tv_sec * 1000;
+    millis = (DWORD)(sp->tv_sec * 1000);
     millis += sp->tv_nsec / 1000000;
   }
 

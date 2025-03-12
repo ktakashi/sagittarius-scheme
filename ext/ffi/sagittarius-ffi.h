@@ -108,6 +108,12 @@ SG_CLASS_DECL(Sg_CallbackClass);
 #define SG_CALLBACK(obj)   ((SgCallback *)obj)
 #define SG_CALLBACKP(obj) SG_XTYPEP(obj, SG_CLASS_CALLBACK)
 
+#if defined(_MSC_VER)
+# include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#else
+# include <sys/types.h>
+#endif
 
 /* c-struct
    c struct object.
@@ -120,7 +126,7 @@ typedef struct struct_layout_rec_t
 {
   SgObject   name;		/* member name */
   SgCStruct *cstruct;
-  int        array;		/* -1 not array, otherwise array size */
+  ssize_t    array;		/* -1 not array, otherwise array size */
   int        tag;		/* type tag */
   size_t     offset;		/* offset of this member */
   ffi_type  *type;		/* native type */
@@ -194,7 +200,7 @@ SgObject Sg_CMalloc(size_t size);
 void     Sg_CFree(SgPointer *p);
 void     Sg_CMemcpy(SgPointer *d, long offset, 
 		    SgObject   s, long start,
-		    long size);
+		    size_t size);
 
 /* finalize */
 SgObject Sg_RegisterFFIFinalizer(SgPointer *pointer, SgObject proc);

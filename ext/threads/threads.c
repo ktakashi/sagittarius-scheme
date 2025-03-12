@@ -353,9 +353,9 @@ SgObject Sg_ThreadInterrupt(SgVM *target)
 #if !defined HAVE_NANOSLEEP || defined(_WIN32)
 int nanosleep(const struct timespec *req, struct timespec *rem)
 {
-    DWORD msecs = 0;
+    time_t msecs = 0;
     time_t sec;
-    unsigned long overflow = 0, c;
+    time_t overflow = 0, c;
     const DWORD MSEC_OVERFLOW = 4294967; /* 4294967*1000 = 0xfffffed8 */
 
     /* It's very unlikely that we overflow msecs, but just in case... */
@@ -368,7 +368,7 @@ int nanosleep(const struct timespec *req, struct timespec *rem)
         }
         msecs = (sec * 1000 + (req->tv_nsec + 999999)/1000000);
     }
-    Sleep (msecs);
+    Sleep((DWORD)msecs);
     for (c = 0; c < overflow; c++) {
         Sleep(MSEC_OVERFLOW * 1000);
     }

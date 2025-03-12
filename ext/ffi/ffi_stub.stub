@@ -146,8 +146,10 @@
   (st::<cstruct> :optional (p (Sg_CurrentOutputPort))) ::<void>
   Sg_DescCStruct)
 
-(define-c-proc size-of-c-struct (st::<cstruct>) ::<fixnum>
-  (result (ref (-> st type) size)))
+(define-c-proc size-of-c-struct (st::<cstruct>)
+  (.if "SIZEOF_SIZE_T == 8"
+       (result (Sg_MakeIntegerFromU64 (ref (-> st type) size)))
+       (result (SG_MAKE_INT (ref (-> st type) size)))))
 
 (define-c-proc c-struct-ref (p::<pointer> st::<cstruct> name::<symbol>)
   :no-side-effect

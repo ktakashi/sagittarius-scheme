@@ -167,7 +167,7 @@ SgObject Sg_DigestDescriptorOID(int md)
   unsigned long *oid = DIGEST_DESCRIPTOR_OID(md);
   unsigned long len = DIGEST_DESCRIPTOR_OIDLEN(md);
   SgStringPort buffer;
-  int i;
+  unsigned int i;
   /* I don't think there's a more than 10 digits element, 
      so should be more than enough */
   if (len == 0) {

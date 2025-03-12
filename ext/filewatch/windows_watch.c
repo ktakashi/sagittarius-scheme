@@ -29,8 +29,8 @@
  *
  *  $Id: $
  */
-#include <windows.h>
 #include <sagittarius.h>
+#include <windows.h>
 #define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
 #include "filewatch.h"

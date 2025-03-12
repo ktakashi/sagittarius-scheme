@@ -39,7 +39,7 @@ struct SgByteVectorRec
 {
   SG_HEADER;
   unsigned long literalp : 1;
-  long size     : (SIZEOF_LONG*CHAR_BIT-1);
+  long size              : (SIZEOF_LONG*CHAR_BIT-1);
   uint8_t *elements;
 };
 
@@ -84,7 +84,7 @@ SG_CDECL_BEGIN
 SG_EXTERN SgObject Sg_MakeByteVector(size_t size, int fill);
 
 SG_EXTERN SgObject Sg_MakeByteVectorFromU8Array(const uint8_t *buf,
-						long size);
+						size_t size);
 
 SG_EXTERN SgObject Sg_NativeEndianness();
 SG_EXTERN int      Sg_ByteVectorEqP(SgByteVector *bv1, SgByteVector *bv2);

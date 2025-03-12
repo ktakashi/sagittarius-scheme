@@ -109,10 +109,10 @@ SgObject Sg_MakeByteVector(size_t size, int fill)
   return SG_OBJ(b);
 }
 
-SgObject Sg_MakeByteVectorFromU8Array(const uint8_t *buf, long size)
+SgObject Sg_MakeByteVectorFromU8Array(const uint8_t *buf, size_t size)
 {
   SgByteVector *z = make_bytevector_rec();
-  z->size = size;
+  z->size = (long)size;
   z->elements = (uint8_t *)buf;
   return SG_OBJ(z);
 }

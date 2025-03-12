@@ -66,12 +66,12 @@
   (result (-> (-> strm strm) adler)))
 
 (define-c-proc zstream-read-count (strm::<z-stream> in::<bytevector>)
-  ::<fixnum> :no-side-effect
-  (result (- (-> (-> strm strm) next_in) (SG_BVECTOR_ELEMENTS in))))
+  (result (Sg_MakeIntegerFromS64
+	   (- (-> (-> strm strm) next_in) (SG_BVECTOR_ELEMENTS in)))))
 
 (define-c-proc zstream-write-count (strm::<z-stream> out::<bytevector>)
-  ::<fixnum> :no-side-effect
-  (result (- (-> (-> strm strm) next_out) (SG_BVECTOR_ELEMENTS out))))
+  (result (Sg_MakeIntegerFromS64
+	   (- (-> (-> strm strm) next_out) (SG_BVECTOR_ELEMENTS out)))))
 
 ;; misc
 (define-c-proc zlib-error-message (strm::<z-stream>) :no-side-effect

@@ -33,7 +33,10 @@
   Macro Definitions and typedefs
  */
 #if defined(__MINGW32__) || defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
-#define SAGITTARIUS_WINDOWS 1
+# define SAGITTARIUS_WINDOWS 1
+# ifndef WIN32_LEAN_AND_MEAN
+#   define WIN32_LEAN_AND_MEAN
+# endif
 #endif
 
 #undef SG_EXTERN
