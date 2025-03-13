@@ -67,7 +67,7 @@
 
 	    ;; extra
 	    &compile compile-error? ;; we don't expose constructor
-	    compile-error-source compile-error-program
+	    compile-error-program
 	    &import import-error?	;; ditto
 	    import-error-library
 	    &system system-error?

@@ -588,26 +588,30 @@ static inline void report_error(SgObject error, SgObject out)
   if (SG_NULLP(stackTrace)) {
     stackTrace = Sg_VMGetStackTraceOf(vm, SG_STACK_TRACE_SOURCE, 0);
   }
-  Sg_Printf(buf,
-	    UC("Unhandled exception\n"
-	       "  %A\n"), Sg_DescribeCondition(error));
-  /* If we simply check the vm state, then stack trace of terminated thread
-     won't be shown and that makes extremly difficult to debug multi thread
-     execution. so as long as stack trace is attached on the condition, then
-     just show it.*/
-  if ((attached || vm->state == RUNNING) && !SG_NULLP(stackTrace)) {
-    while (1) {
-      format_stack_trace(stackTrace, buf);
-      if (SG_STACK_TRACE_CONDITION_P(next)) {
-	cont = search_different_cont(vm, next, cont);
-	if (!cont) break;
-	stackTrace = SG_STACK_TRACE_CONDITION(next)->trace;
-	next = SG_STACK_TRACE_CONDITION(next)->cause;
-	Sg_PutuzUnsafe(buf, UC("Nested "));
-      } else {
-	break;
+  if (!Sg_CompileConditionP(error)) {
+    Sg_Printf(buf,
+	      UC("Unhandled exception\n"
+		 "  %A\n"), Sg_DescribeCondition(error));
+    /* If we simply check the vm state, then stack trace of terminated thread
+       won't be shown and that makes extremly difficult to debug multi thread
+       execution. so as long as stack trace is attached on the condition, then
+       just show it.*/
+    if ((attached || vm->state == RUNNING) && !SG_NULLP(stackTrace)) {
+      while (1) {
+	format_stack_trace(stackTrace, buf);
+	if (SG_STACK_TRACE_CONDITION_P(next)) {
+	  cont = search_different_cont(vm, next, cont);
+	  if (!cont) break;
+	  stackTrace = SG_STACK_TRACE_CONDITION(next)->trace;
+	  next = SG_STACK_TRACE_CONDITION(next)->cause;
+	  Sg_PutuzUnsafe(buf, UC("Nested "));
+	} else {
+	  break;
+	}
       }
     }
+  } else {
+    Sg_Printf(buf, UC("%A"), Sg_DescribeCondition(error));
   }
   /* for some reason, certain Windows platform failed to create
      stdout, at that moment, there is no stderr ready so out might

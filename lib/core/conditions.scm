@@ -38,9 +38,8 @@
 
 	  ;; extra
 	  &compile compile-error? ;; we don't expose constructor
-	  compile-error-source compile-error-program
+	  compile-error-program
 	  &import import-error?	;; ditto
-	  import-error-library
 	  &system system-error?
 	  system-error-errno
 	  ;; NB: we might want to use different type of mechanism of
@@ -160,12 +159,9 @@
   (define i/o-encoding-error-char
     (condition-accessor (record-type-rtd &i/o-encoding) &i/o-encoding-char))
 
-  (define compile-error-source
-    (condition-accessor (record-type-rtd &compile) &compile-error-source))
   (define compile-error-program
     (condition-accessor (record-type-rtd &compile) &compile-error-program))
-  (define import-error-library
-    (condition-accessor (record-type-rtd &import) &import-library))
+  (define import-error-library compile-error-program)
   (define system-error-errno
     (condition-accessor (record-type-rtd &system) &system-errno))
 

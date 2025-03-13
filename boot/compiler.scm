@@ -30,6 +30,7 @@
 	    (sagittarius compiler pass5)
 	    (sagittarius compiler inliner)
 	    (sagittarius compiler util))
+
 ;; not used
 (define (pass0 form env) form)
 
@@ -43,14 +44,11 @@
   (let ((env (cond ((vector? env) env);; must be p1env
 		   ((library? env) (make-bottom-p1env env))
 		   (else (make-bottom-p1env)))))
-    (define (raise-error e info program)
-      (raise (condition (make-compile-error
-			 (format-source-info info)
-			 (truncate-program program))
-			e)))
+    (define (raise-error e program)
+      (raise (condition (make-compile-error program) e)))
     (guard (e ((import-error? e) (raise e))
-	      (else (let ((info (source-info program)))
-		      (raise-error e info program))))
+	      ((compile-error? e) (raise e))
+	      (else (raise-error e program)))
       (let ((p1 (pass1 (pass0 program env) env)))
 	(pass5 (pass2-4 p1 (p1env-library env))
 	       (make-code-builder)

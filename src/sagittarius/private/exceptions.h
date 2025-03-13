@@ -52,9 +52,9 @@
      |    |    |    +- &i/o-port (port)
      |    |    |         +- &i/o-encoding (char)
      |    |    |         +- &i/o-decoding
-     |    |    +- &compile (source program) <-- non R6RS
-     |    |    +- &import (library)         <-- ditto
-     |    |    +- &system (errno)           <-- ditto
+     |    |    +- &compile (program) <-- non R6RS
+     |    |        +- &import        <-- ditto
+     |    |    +- &system (errno)    <-- ditto
      |	  +- &violation
      |	       +- &assertion
      |	       +- &non-continuable
@@ -253,15 +253,13 @@ typedef struct SgIOEncodingErrorRec
 typedef struct SgCompileConditionRec
 {
   SG_INSTANCE_HEADER;
-  SgObject source;
   SgObject program;
 } SgCompileCondition;
 #define SG_COMPILE_CONDITION(o)  ((SgCompileCondition *)o)
 #define SG_COMPILE_CONDITIONP(o) SG_ISA(o, SG_CLASS_COMPILE_CONDITION)
 typedef struct SgImportConditionRec
 {
-  SG_INSTANCE_HEADER;
-  SgObject library;
+  SgCompileCondition base;
 } SgImportCondition;
 #define SG_IMPORT_CONDITION(o)  ((SgImportCondition *)o)
 #define SG_IMPORT_CONDITIONP(o) SG_ISA(o, SG_CLASS_IMPORT_CONDITION)
@@ -358,6 +356,8 @@ SG_EXTERN SgObject Sg_CompoundConditionComponent(SgObject obj);
 SG_EXTERN int      Sg_CompoundConditionP(SgObject obj);
 SG_EXTERN int      Sg_SimpleConditionP(SgObject obj);
 SG_EXTERN int      Sg_ConditionP(SgObject obj);
+
+SG_EXTERN int      Sg_CompileConditionP(SgObject obj);
 
 /* for c use constructor */
 SG_EXTERN SgObject Sg_MakeNonContinuableViolation();

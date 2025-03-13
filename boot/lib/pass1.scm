@@ -25,13 +25,13 @@
 
 	    make-bottom-p1env
 	    p1env-library)
-    (import (core)
+    (import (except (core) make-compile-error make-import-error)
 	    (core base)
 	    (core errors)
 	    (core macro)
 	    (for (core misc) expand)
 	    (for (compat r7rs) expand)
-	    (for (except (rnrs) syntax-rules) expand)
+	    (for (except (rnrs) syntax-rules guard else =>) expand)
 	    (sagittarius)
 	    (sagittarius vm)
 	    (sagittarius vm debug)
@@ -1451,11 +1451,7 @@
 
   (define (process-spec spec)
     (define (do-import to-lib from-lib resolved-spec trans?)
-      (guard (e (else (let ((info (source-info form)))
-			(raise (condition (make-import-error spec)
-					  (make-compile-error 
-					   (format-source-info info)
-					   form) e)))))
+      (guard (e (else (raise (condition (make-import-error spec) e))))
 	(import-library to-lib from-lib
 			(reverse! resolved-spec)
 			trans?)))
@@ -1880,9 +1876,9 @@
 	  ;; have all names in `exports` then it returns '()
 	  (or (null? diff)
 	      (if (vm-error-unbound?)
-		  (error 'check-exports "attempt to export unbound variable(s)"
+		  (error 'check-exports "attempted to export unbound variable(s)"
 			 diff lib)
-		  ($vm-warn "attempt to export unbound variable(s) ~a at ~a"
+		  ($vm-warn "attempted to export unbound variable(s) ~a at ~a"
 			    diff (library-name lib))))))))
 
 (define (pass1/library form lib p1env)
@@ -2579,9 +2575,12 @@
 		 (or set!? (not (library-mutable? lib))))
 	;; switch message. it won't hurt that much but
 	;; may give some hints to users.
-	(syntax-error (if set!? 
-			  "imported variable cannot be assigned"
-			  "attempt to modify immutable variable")
+	(syntax-error
+	 (if set!? 
+	     (format "imported variable from ~a cannot be assigned"
+		     (library-name (gloc-library gloc)))
+	     (format "attempted to modify immutable variable defined in ~a"
+		     (library-name (gloc-library gloc))))
 		      (unwrap-syntax form)
 		      (unwrap-syntax name))))))
 
@@ -2703,9 +2702,7 @@
   (or (null? vars)
       (null? (cdr vars))
       (or (and (member (car vars) (cdr vars) =)
-	       (raise (condition (make-compile-error
-				  (format-source-info (source-info form))
-				  (truncate-program form))
+	       (raise (condition (make-compile-error form)
 				 (make-message-condition msg)
 				 (make-irritants-condition (car vars)))))
 	  (check-duplicate-variable form (cdr vars) = msg))))

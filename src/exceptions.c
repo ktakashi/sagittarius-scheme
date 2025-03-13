@@ -44,6 +44,7 @@
 #include "sagittarius/private/string.h"
 #include "sagittarius/private/number.h"
 #include "sagittarius/private/vm.h"
+#include "sagittarius/private/macro.h"
 
 static SgClass *Sg_ConditionCPL[] = {
   SG_CLASS_CONDITION,
@@ -145,6 +146,19 @@ int Sg_SimpleConditionP(SgObject obj)
 int Sg_ConditionP(SgObject obj)
 {
   return SG_CONDITIONP(obj);
+}
+
+/* &compile won't be raised as a simple condition, if it is, then not from
+   the compiler. */
+int Sg_CompileConditionP(SgObject obj)
+{
+  if (SG_COMPOUND_CONDITIONP(obj)) {
+    SgObject comp;
+    SG_FOR_EACH(comp, SG_COMPOUND_CONDITION(obj)->components) {
+      if (SG_ISA(SG_CAR(comp), SG_CLASS_COMPILE_CONDITION)) return TRUE;
+    }
+  }
+  return FALSE;
 }
 
 /* classes */
@@ -536,8 +550,7 @@ SG_DEFINE_BASE_CLASS(Sg_IOFileDoesNotExistClass, SgIOFilename,
 /* compile */
 static void comp_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
 {
-  Sg_Printf(p, UC("#<%A %A %#60S>"), SG_CLASS(Sg_ClassOf(o))->name,
-	    SG_COMPILE_CONDITION(o)->source,
+  Sg_Printf(p, UC("#<%A %#60S>"), SG_CLASS(Sg_ClassOf(o))->name,
 	    SG_COMPILE_CONDITION(o)->program);
 }
 static SgObject comp_allocate(SgClass *klass, SgObject initargs)
@@ -546,14 +559,7 @@ static SgObject comp_allocate(SgClass *klass, SgObject initargs)
   SG_SET_CLASS(c, klass);
   return SG_OBJ(c);
 }
-static SgObject comp_source(SgCompileCondition *c)
-{
-  return c->source;
-}
-static void comp_source_set(SgCompileCondition *c, SgObject s)
-{
-  c->source = s;
-}
+
 static SgObject comp_prog(SgCompileCondition *c)
 {
   if (!SG_COMPILE_CONDITIONP(c)) {
@@ -569,8 +575,7 @@ static void comp_prog_set(SgCompileCondition *c, SgObject p)
   c->program = p;
 }
 static SgSlotAccessor cmp_slots[] = {
-  SG_CLASS_SLOT_SPEC("source",  0, comp_source, comp_source_set),
-  SG_CLASS_SLOT_SPEC("program", 1, comp_prog, comp_prog_set),
+  SG_CLASS_SLOT_SPEC("program", 0, comp_prog, comp_prog_set),
   { { NULL } }
 };
 SG_DEFINE_BASE_CLASS(Sg_CompileConditionClass, SgCompileCondition,
@@ -580,7 +585,7 @@ SG_DEFINE_BASE_CLASS(Sg_CompileConditionClass, SgCompileCondition,
 static void imp_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
 {
   Sg_Printf(p, UC("#<%A %A>"), SG_CLASS(Sg_ClassOf(o))->name,
-	    SG_IMPORT_CONDITION(o)->library);
+	    SG_COMPILE_CONDITION(o)->program);
 }
 static SgObject imp_allocate(SgClass *klass, SgObject initargs)
 {
@@ -588,21 +593,7 @@ static SgObject imp_allocate(SgClass *klass, SgObject initargs)
   SG_SET_CLASS(c, klass);
   return SG_OBJ(c);
 }
-static SgObject imp_lib(SgImportCondition *c)
-{
-  if (!SG_IMPORT_CONDITIONP(c)) {
-    Sg_Error(UC("&import required but got %S"), c);
-  }
-  return c->library;
-}
-static void imp_lib_set(SgImportCondition *c, SgObject p)
-{
-  c->library = p;
-}
-static SgSlotAccessor imp_slots[] = {
-  SG_CLASS_SLOT_SPEC("library",  0, imp_lib, imp_lib_set),
-  { { NULL } }
-};
+
 SG_DEFINE_BASE_CLASS(Sg_ImportConditionClass, SgImportCondition,
 		     imp_printer, NULL, NULL, imp_allocate,
 		     Sg_ErrorConditionCPL);
@@ -837,6 +828,20 @@ SgObject Sg_AddStackTrace(SgObject e, SgVM *vm, int framesToSkip)
   return e;
 }
 
+static SgObject source_info(SgObject obj)
+{
+  if (SG_PAIRP(obj)) {
+    return Sg_GetPairAnnotation(obj, SG_INTERN("source-info"));
+  }
+  return SG_FALSE;
+}
+
+static SgObject comp_source(SgObject obj)
+{
+  SgObject program = SG_COMPILE_CONDITION(obj)->program;
+  return source_info(program);
+}
+
 static void describe_simple(SgPort *out, SgObject con)
 {
   SgClass *klass = Sg_ClassOf(con);
@@ -849,14 +854,7 @@ static void describe_simple(SgPort *out, SgObject con)
      handling.
      FIXME: how should we handle if they are extended?
    */
-  if (SG_EQ(klass, SG_CLASS_COMPILE_CONDITION)) {
-    Sg_Printf(out, UC("\n    program: %#60S"), comp_prog(con));
-    Sg_Printf(out, UC("\n    source: %A"), comp_source(con));
-  } else if (SG_EQ(klass, SG_CLASS_TRACE_CONDITION)) {
-    Sg_Printf(out, UC(" %#60S"), irr_irritants(con));
-  } else if (SG_EQ(klass, SG_CLASS_STACK_TRACE_CONDITION)) {
-    /* ignore this */
-  } else {
+  if (!SG_EQ(klass, SG_CLASS_STACK_TRACE_CONDITION)) {
     for (; acc && *acc; acc++) {
       SgObject v = Sg_SlotRefUsingAccessor(con, (*acc));
       if (count == 1) {
@@ -876,6 +874,62 @@ static void describe_simple(SgPort *out, SgObject con)
   }
 }
 
+static void describe_compile(SgPort *out, SgObject con)
+{
+  SgObject source, compile, import, message;
+  SgObject comp, ht = SG_NIL, tt = SG_NIL; /* traces */
+  int i;
+  
+  compile = import = message = SG_FALSE;
+  SG_FOR_EACH(comp, SG_COMPOUND_CONDITION(con)->components) {
+    SgObject c = SG_CAR(comp);
+    if (SG_XTYPEP(c, SG_CLASS_COMPILE_CONDITION)) {
+      compile = c;
+    } else if (SG_XTYPEP(c, SG_CLASS_TRACE_CONDITION)) {
+      SG_APPEND1(ht, tt, c);
+    } else if (SG_XTYPEP(c, SG_CLASS_IMPORT_CONDITION)) {
+      import = c;
+    } else if (SG_XTYPEP(c, SG_CLASS_MESSAGE_CONDITION)) {
+      message = c;
+    }
+  }
+
+  if (SG_FALSEP(message)) {
+    message = SG_MAKE_STRING("unknown error");
+  } else {
+    message = msg_message(message);
+  }
+  
+  if (!SG_FALSEP(import)) {
+    Sg_Printf(out, UC("Import error: %A\n"), message);
+    Sg_Printf(out, UC("  import spec: %#60S\n"),
+	      Sg_UnwrapSyntax(SG_COMPILE_CONDITION(import)->program));
+  } else {
+    Sg_Printf(out, UC("Compilation error: %A\n"), message);
+    Sg_Printf(out, UC("  expression: %#60S\n"),
+	      Sg_UnwrapSyntax(SG_COMPILE_CONDITION(compile)->program));
+  }
+  
+  source = comp_source(SG_FALSEP(import) ? compile : import);
+  if (SG_PAIRP(source)) {
+    Sg_Printf(out, UC("  location: %A:%A\n"), SG_CAR(source), SG_CDR(source));
+  }
+
+  if (!SG_NULLP(ht)) {
+    Sg_PutzUnsafe(out, "Trace\n");
+  }
+
+  i = 1;
+  SG_FOR_EACH(comp, ht) {
+    SgObject t = SG_IRRITATNS_CONDITION(SG_CAR(comp))->irritants;
+    source = source_info(t);
+    Sg_Printf(out, UC("  [%d] %#70S\n"), i++, Sg_UnwrapSyntax(t));
+    if (SG_PAIRP(source)) {
+      Sg_Printf(out, UC("      %A:%A\n"), SG_CAR(source), SG_CDR(source));
+    }
+  }
+}
+
 SgObject Sg_DescribeCondition(SgObject con)
 {
   if (Sg_ConditionP(con)) {
@@ -883,17 +937,21 @@ SgObject Sg_DescribeCondition(SgObject con)
     SgStringPort tp;
     SgObject cp;
     out = Sg_InitStringOutputPort(&tp, 512);
-    Sg_PutzUnsafe(out, "Condition components:\n");
-    if (SG_SIMPLE_CONDITIONP(con)) {
-      Sg_PutzUnsafe(out, "  ");
-      describe_simple(out, con);
+    if (Sg_CompileConditionP(con)) {
+      describe_compile(out, con);
     } else {
-      SgObject comp;
-      int i = 1;
-      SG_FOR_EACH(comp, SG_COMPOUND_CONDITION(con)->components) {
-	Sg_Printf(out, UC("  %d. "), i++);
-	describe_simple(out, SG_CAR(comp));
-	Sg_PutcUnsafe(out, '\n');
+      Sg_PutzUnsafe(out, "Condition components:\n");
+      if (SG_SIMPLE_CONDITIONP(con)) {
+	Sg_PutzUnsafe(out, "  ");
+	describe_simple(out, con);
+      } else {
+	SgObject comp;
+	int i = 1;
+	SG_FOR_EACH(comp, SG_COMPOUND_CONDITION(con)->components) {
+	  Sg_Printf(out, UC("  %d. "), i++);
+	  describe_simple(out, SG_CAR(comp));
+	  Sg_PutcUnsafe(out, '\n');
+	}
       }
     }
     cp = Sg_GetStringFromStringPort(&tp);
@@ -1015,16 +1073,6 @@ void Sg__InitConditions()
   INIT_CONDITION(SG_CLASS_IO_PORT_ERROR, "&i/o-port", port_slots);
   INIT_CONDITION(SG_CLASS_IO_ENCODING_ERROR, "&i/o-encoding", enc_slots);
   INIT_CONDITION(SG_CLASS_IO_DECODING_ERROR, "&i/o-decoding", NULL);
-  /* compile */
-  INIT_CONDITION(SG_CLASS_COMPILE_CONDITION, "&compile", cmp_slots);
-  INIT_CONDITION(SG_CLASS_IMPORT_CONDITION, "&import", imp_slots);
-  INIT_CONDITION(SG_CLASS_TRACE_CONDITION, "&trace", NULL);
-  /* system error */
-  INIT_CONDITION(SG_CLASS_SYSTEM_ERROR, "&system", sys_slots);
-  /* stack trace */
-  INIT_CONDITION(SG_CLASS_STACK_TRACE_CONDITION, "&stack-trace", st_slots);
-  /* compound */
-  INIT_CONDITION(SG_CLASS_COMPOUND_CONDITION, "&compound-condition", cc_slots);
 
   /* ctr&pred */
 #define INIT_PRED(cl, name) SG_INIT_CONDITION_PRED(cl, lib, name)
@@ -1115,12 +1163,25 @@ void Sg__InitConditions()
   INIT_CTR2_REC(SG_CLASS_IO_ENCODING_ERROR,
 		"make-i/o-encoding-error", "i/o-encoding-error?");
   INIT_ACC(enc_char, "&i/o-encoding-char");
+
+  /* sagittarius specific */
+  lib = Sg_FindLibrary(SG_INTERN("(sagittarius)"), FALSE);
+
+    /* compile */
+  INIT_CONDITION(SG_CLASS_COMPILE_CONDITION, "&compile", cmp_slots);
+  INIT_CONDITION(SG_CLASS_IMPORT_CONDITION, "&import", NULL);
+  INIT_CONDITION(SG_CLASS_TRACE_CONDITION, "&trace", NULL);
+  /* system error */
+  INIT_CONDITION(SG_CLASS_SYSTEM_ERROR, "&system", sys_slots);
+  /* stack trace */
+  INIT_CONDITION(SG_CLASS_STACK_TRACE_CONDITION, "&stack-trace", st_slots);
+  /* compound */
+  INIT_CONDITION(SG_CLASS_COMPOUND_CONDITION, "&compound-condition", cc_slots);
+
   /* compile */
-  INIT_CTR2(SG_CLASS_COMPILE_CONDITION, "make-compile-error", "compile-error?",
-	    comp_source, "&compile-error-source",
+  INIT_CTR1(SG_CLASS_COMPILE_CONDITION, "make-compile-error", "compile-error?",
 	    comp_prog, "&compile-error-program");
-  INIT_CTR1(SG_CLASS_IMPORT_CONDITION, "make-import-error", "import-error?",
-	    imp_lib, "&import-library");
+  INIT_CTR1_REC(SG_CLASS_IMPORT_CONDITION, "make-import-error", "import-error?");
 
   INIT_CTR1_REC(SG_CLASS_TRACE_CONDITION, "make-trace-condition", 
 		"trace-condition?");

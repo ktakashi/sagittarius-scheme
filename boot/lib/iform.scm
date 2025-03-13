@@ -80,7 +80,7 @@
 	    adjust-arglist
 	    transparent?
 	    inlinable-binding?)
-    (import (core)
+    (import (except (core) make-compile-error)
 	    (core base)
 	    (core errors)
 	    (for (compat r7rs) expand)
@@ -873,9 +873,7 @@
 ;; used both pass1 and pass2
 (define (adjust-arglist src reqargs optarg iargs name)
   (unless (argcount-ok? iargs reqargs (> optarg 0))
-    (raise (condition (make-compile-error
-		       (format-source-info (source-info src))
-		       (truncate-program src))
+    (raise (condition (make-compile-error src)
 		      (make-who-condition name)
 		      (make-message-condition 
 		       (format 

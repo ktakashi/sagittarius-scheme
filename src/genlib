@@ -26,6 +26,15 @@
 
 ;; We load the compiler libraries here as well
 (define (load-compiler-libraries)
+  ;; transition, changed the procedure arguments
+  (%insert-binding '(sagittarius) 'make-compile-error
+		   (lambda (ignore) #f))
+  (%insert-binding '(sagittarius) 'make-import-error
+		   (lambda (ignore) #f))
+  (eval '(export make-compile-error make-import-error)
+	(find-library '(sagittarius) #f))
+
+
   (load "../boot/lib/base.scm")
   (load "../boot/lib/errors.scm")
   (load "../boot/lib/macro.scm")

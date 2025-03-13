@@ -13,7 +13,7 @@
 	    argcount-ok? constant-folding-warning
 
 	    id->bound-gloc guard add-backtrace format-source-info
-	    truncate-program
+	    truncate-program else =>
 
 	    make-label-dic
 	    copy-label-dic
@@ -283,7 +283,7 @@
     ((%guard-rec var exc other . more)
      (syntax-error "malformed guard clause" other))))
 
-(define (add-backtrace c src) (make-trace-condition (truncate-program src)))
+(define (add-backtrace c src) (make-trace-condition src))
 
 (define (format-source-info info)
   (if info
