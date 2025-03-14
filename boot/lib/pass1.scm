@@ -432,7 +432,7 @@
      ;; compile-syntax-case returns match-syntax-case procedure.
      (receive (func lites patvars processes)
 	 (compile-syntax-case (p1env-exp-name p1env)
-			      expr literal rule
+			      form (caddr form) rule
 			      (p1env-library p1env)
 			      (p1env-frames p1env)
 			      p1env

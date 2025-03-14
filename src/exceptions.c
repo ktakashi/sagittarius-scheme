@@ -681,6 +681,83 @@ SG_DEFINE_BASE_CLASS(Sg_StackTraceConditionClass, SgStackTraceCondition,
 		     stack_trace_printer, NULL, NULL, stack_trace_allocate,
 		     Sg_ConditionCPL);
 
+static SgClass *syntax_case_cpl[] = {
+  SG_CLASS_SYNTAX_CASE_CONDITION,
+  SG_CLASS_CONDITION,
+  SG_CLASS_TOP,
+  NULL
+};
+
+SG_DEFINE_BASE_CLASS(Sg_SyntaxCaseConditionClass, SgCondition,
+		     condition0_printer, NULL, NULL, Sg_ConditionAllocate,
+		     Sg_ConditionCPL);
+
+
+static void pattern_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
+{
+  /* !Don't print trace, it might be opaque pointer! */
+  Sg_Printf(p, UC("#<syntax-pattern pattern=%S>"), 
+	    SG_SYNTAX_PATTERN_CONDITION(o)->pattern);
+}
+static SgObject pattern_allocate(SgClass *klass, SgObject initargs)
+{
+  SgSyntaxPatternCondition *c = SG_ALLOCATE(SgSyntaxPatternCondition, klass);
+  SG_SET_CLASS(c, klass);
+  c->pattern = SG_FALSE;
+  return SG_OBJ(c);
+}
+
+static SgObject pt_pattern(SgSyntaxPatternCondition *c)
+{
+  return c->pattern;
+}
+
+static void pt_pattern_set(SgSyntaxPatternCondition *c, SgObject pattern)
+{
+  c->pattern = pattern;
+}
+
+static SgSlotAccessor pt_slots[] = {
+  SG_CLASS_SLOT_SPEC("pattern",  0, pt_pattern, pt_pattern_set),
+  { { NULL } }
+};
+
+SG_DEFINE_BASE_CLASS(Sg_SyntaxPatternConditionClass, SgSyntaxPatternCondition,
+		     pattern_printer, NULL, NULL, pattern_allocate,
+		     syntax_case_cpl);
+
+static void template_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
+{
+  /* !Don't print trace, it might be opaque pointer! */
+  Sg_Printf(p, UC("#<syntax-template template=%S>"), 
+	    SG_SYNTAX_TEMPLATE_CONDITION(o)->template);
+}
+static SgObject template_allocate(SgClass *klass, SgObject initargs)
+{
+  SgSyntaxTemplateCondition *c = SG_ALLOCATE(SgSyntaxTemplateCondition, klass);
+  SG_SET_CLASS(c, klass);
+  c->template = SG_FALSE;
+  return SG_OBJ(c);
+}
+
+static SgObject tmpl_template(SgSyntaxTemplateCondition *c)
+{
+  return c->template;
+}
+
+static void tmpl_template_set(SgSyntaxTemplateCondition *c, SgObject template)
+{
+  c->template = template;
+}
+
+static SgSlotAccessor tmpl_slots[] = {
+  SG_CLASS_SLOT_SPEC("template",  0, tmpl_template, tmpl_template_set),
+  { { NULL } }
+};
+
+SG_DEFINE_BASE_CLASS(Sg_SyntaxTemplateConditionClass, SgSyntaxTemplateCondition,
+		     template_printer, NULL, NULL, template_allocate,
+		     syntax_case_cpl);
 
 #define DEFINE_CONDITION_CTR0(name, clazz)		\
   SgObject name() {					\
@@ -880,28 +957,33 @@ static void describe_simple(SgPort *out, SgObject con)
   }
 }
 
+static SgObject next(SgObject components, SgClass *klass)
+{
+  SgObject cp;
+  SG_FOR_EACH(cp, components) {
+    if (SG_XTYPEP(SG_CAR(cp), klass)) return cp;
+  }
+  return SG_NIL;
+}
+
 static void describe_compile(SgPort *out, SgObject con)
 {
-  SgObject source, compile, import, message, syntax;
-  SgObject comp, ht = SG_NIL, tt = SG_NIL; /* traces */
+  SgObject source, compile, import, message, comp;
+  SgObject components = SG_COMPOUND_CONDITION(con)->components;
   int i;
-  
-  compile = import = message = syntax = SG_FALSE;
-  SG_FOR_EACH(comp, SG_COMPOUND_CONDITION(con)->components) {
+
+  compile = import = message = SG_FALSE;
+  SG_FOR_EACH(comp, components) {
     SgObject c = SG_CAR(comp);
     if (SG_XTYPEP(c, SG_CLASS_COMPILE_CONDITION)) {
       compile = c;
-    } else if (SG_XTYPEP(c, SG_CLASS_TRACE_CONDITION)) {
-      SG_APPEND1(ht, tt, c);
     } else if (SG_XTYPEP(c, SG_CLASS_IMPORT_CONDITION)) {
       import = c;
     } else if (SG_XTYPEP(c, SG_CLASS_MESSAGE_CONDITION)) {
       message = c;
-    } else if (SG_XTYPEP(c, SG_CLASS_SYNTAX_CONDITION)) {
-      syntax = c;
     }
   }
-
+  
   if (SG_FALSEP(message)) {
     message = SG_MAKE_STRING("unknown error");
   } else {
@@ -910,37 +992,77 @@ static void describe_compile(SgPort *out, SgObject con)
   
   if (!SG_FALSEP(import)) {
     Sg_Printf(out, UC("Import error: %A\n"), message);
-    Sg_Printf(out, UC("  import spec: %#60S\n"),
+    Sg_Printf(out, UC(" import spec: %#60S\n"),
 	      Sg_UnwrapSyntax(SG_COMPILE_CONDITION(import)->program));
   } else {
     Sg_Printf(out, UC("Compilation error: %A\n"), message);
     Sg_Printf(out, UC("  expression: %#60S\n"),
 	      Sg_UnwrapSyntax(SG_COMPILE_CONDITION(compile)->program));
   }
-
-  if (!SG_FALSEP(syntax)) {
-    Sg_Printf(out, UC("  - syntax error: %#55S\n"),
-	      Sg_UnwrapSyntax(SG_SYNTAX_CONDITION(syntax)->form));
-  }
-  
   source = comp_source(SG_FALSEP(import) ? compile : import);
   if (SG_PAIRP(source)) {
-    Sg_Printf(out, UC("  location: %A:%A\n"), SG_CAR(source), SG_CDR(source));
+    Sg_Printf(out, UC("          at: %A:%A\n"), SG_CAR(source), SG_CDR(source));
   }
 
-  if (!SG_NULLP(ht)) {
-    Sg_PutzUnsafe(out, "Trace\n");
+
+#define FOR_CONDITIONS(p, class, conditions)				\
+  for ((p) = next(conditions, class); SG_PAIRP(p); (p) = next(SG_CDR(p), class))
+
+#define PUT_SOURCE(target, prefix)					\
+  do {									\
+    SgObject s__ = source_info(target);					\
+    if (SG_PAIRP(s__)) {						\
+      Sg_Printf(out, UC(prefix "%A:%A\n"), SG_CAR(s__), SG_CDR(s__));	\
+    }									\
+  } while (0)
+  
+  FOR_CONDITIONS(comp, SG_CLASS_SYNTAX_CONDITION, components) {
+    SgObject form = SG_SYNTAX_CONDITION(SG_CAR(comp))->form;
+    SgObject subform = SG_SYNTAX_CONDITION(SG_CAR(comp))->subform;
+    if (SG_FALSEP(subform)) {
+      Sg_Printf(out, UC("  - syntax error: %#55S\n"), Sg_UnwrapSyntax(form));
+      PUT_SOURCE(form,  "              at: ");
+    } else {
+      Sg_PutzUnsafe(out, "  - syntax error\n");
+      Sg_Printf(out,  UC("       form: %#60S\n"), Sg_UnwrapSyntax(form));
+      PUT_SOURCE(form,   "         at: ");
+      Sg_Printf(out,  UC("    subform: %#60S\n"), Sg_UnwrapSyntax(subform));
+      PUT_SOURCE(subform,"         at: ");
+    }
+  }
+  
+  FOR_CONDITIONS(comp, SG_CLASS_SYNTAX_PATTERN_CONDITION, components) {
+    SgObject pat = SG_SYNTAX_PATTERN_CONDITION(SG_CAR(comp))->pattern;
+    Sg_Printf(out, UC("  - pattern: %#55S\n"), Sg_UnwrapSyntax(pat));
+    PUT_SOURCE(pat,   "         at: ");
   }
 
+#if 0
+  FOR_CONDITIONS(comp, SG_CLASS_SYNTAX_TEMPLATE_CONDITION, components) {
+    SgObject template = SG_SYNTAX_TEMPLATE_CONDITION(SG_CAR(comp))->template;
+    Sg_Printf(out, UC("  - template: %#55S\n"), Sg_UnwrapSyntax(template));
+    source = source_info(template);
+    if (SG_PAIRP(source)) {
+      Sg_Printf(out, UC("    location: %A:%A\n"),
+		SG_CAR(source), SG_CDR(source));
+    }
+  }
+#endif
+  
   i = 1;
-  SG_FOR_EACH(comp, ht) {
+  FOR_CONDITIONS(comp, SG_CLASS_TRACE_CONDITION, components) {
     SgObject t = SG_IRRITATNS_CONDITION(SG_CAR(comp))->irritants;
+    if (i == 1) {
+      Sg_PutzUnsafe(out, "Trace\n");
+    }
     source = source_info(t);
     Sg_Printf(out, UC("  [%d] %#70S\n"), i++, Sg_UnwrapSyntax(t));
     if (SG_PAIRP(source)) {
       Sg_Printf(out, UC("      %A:%A\n"), SG_CAR(source), SG_CDR(source));
     }
   }
+
+#undef FOR_CONDITIONS
 }
 
 SgObject Sg_DescribeCondition(SgObject con)
@@ -1190,6 +1312,10 @@ void Sg__InitConditions()
   INIT_CONDITION(SG_CLASS_STACK_TRACE_CONDITION, "&stack-trace", st_slots);
   /* compound */
   INIT_CONDITION(SG_CLASS_COMPOUND_CONDITION, "&compound-condition", cc_slots);
+  /* syntax-casen */
+  INIT_CONDITION(SG_CLASS_SYNTAX_CASE_CONDITION, "&syntax-case", NULL);
+  INIT_CONDITION(SG_CLASS_SYNTAX_PATTERN_CONDITION, "&syntax-pattern", pt_slots);
+  INIT_CONDITION(SG_CLASS_SYNTAX_TEMPLATE_CONDITION, "&syntax-template", tmpl_slots);
 
   /* compile */
   INIT_CTR1(SG_CLASS_COMPILE_CONDITION, "make-compile-error", "compile-error?",
@@ -1212,4 +1338,14 @@ void Sg__InitConditions()
 	    "make-stack-trace-condition", "stack-trace-condition?",
 	    st_cause, "&stack-trace-cause",
 	    st_trace, "&stack-trace-trace");
+
+  INIT_CTR0(SG_CLASS_SYNTAX_CASE_CONDITION, "make-syntax-case-condition", 
+	    "syntax-case-condition?");
+  INIT_CTR1(SG_CLASS_SYNTAX_PATTERN_CONDITION, "make-syntax-pattern-condition", 
+	    "syntax-pattern-condition?",
+	    pt_pattern, "&syntax-pattern-pattern");
+  INIT_CTR1(SG_CLASS_SYNTAX_TEMPLATE_CONDITION,
+	    "make-syntax-template-condition", 
+	    "syntax-template-condition?",
+	    tmpl_template, "&syntax-template-template");
 }

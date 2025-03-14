@@ -42,6 +42,10 @@
 	  &import import-error?	;; ditto
 	  &system system-error?
 	  system-error-errno
+
+	  &syntax-case syntax-case-condition?
+	  &syntax-pattern syntax-pattern-condition? condition-syntax-pattern
+	  &syntax-template syntax-template-condition? condition-syntax-template
 	  ;; NB: we might want to use different type of mechanism of
 	  ;;     tracing stack trace, so don't export it for now.
 	  ;; &stack-trace stack-trace-condition?
@@ -110,6 +114,9 @@
   (initialize-builtin-condition &import &compile library)
   (initialize-builtin-condition &system &error errno)
   (initialize-builtin-condition &stack-trace &condition cause trace)
+  (initialize-builtin-condition &syntax-case &condition)
+  (initialize-builtin-condition &syntax-pattern &syntax-case pattern)
+  (initialize-builtin-condition &syntax-template &syntax-case template)
 
   (define (condition-predicate rtd)
     (let ((class (slot-ref rtd 'class)))
@@ -169,6 +176,11 @@
     (condition-accessor (record-type-rtd &stack-trace) &stack-trace-cause))
   (define condition-stack-trace
     (condition-accessor (record-type-rtd &stack-trace) &stack-trace-trace))
+
+  (define condition-syntax-pattern
+    (condition-accessor (record-type-rtd &syntax-pattern) &syntax-pattern))
+  (define condition-syntax-template
+    (condition-accessor (record-type-rtd &syntax-template) &syntax-template))
   (define-syntax define-condition-type
     (lambda (x)
       (syntax-case x ()

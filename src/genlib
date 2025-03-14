@@ -37,6 +37,10 @@
 		   (lambda (p o . rest) p))
   (%insert-binding '(sagittarius vm debug) 'pair-annotations
 		   (lambda (p) #f))
+  (%insert-binding '(sagittarius) 'make-syntax-pattern-condition
+		   (lambda (p) #f))
+  (%insert-binding '(sagittarius) 'make-syntax-template-condition
+		   (lambda (p) #f))
 
   (load "../boot/lib/base.scm")
   (load "../boot/lib/errors.scm")

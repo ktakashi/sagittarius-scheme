@@ -425,13 +425,13 @@
 		  pvars)))
 
       (or (and (list? lites) (for-all identifier? lites))
-	  (syntax-violation 'syntax-case "invalid literals" expr lites))
+	  (syntax-violation 'syntax-case "invalid literals" expr literals))
       (or (unique-id-list? lites)
-	  (syntax-violation 'syntax-case "duplicate literals" expr lites))
+	  (syntax-violation 'syntax-case "duplicate literals" expr literals))
       (and (literal-match? .bar lites)
-	   (syntax-violation 'syntax-case "_ in literals" expr lites))
+	   (syntax-violation 'syntax-case "_ in literals" expr literals))
       (and (literal-match? .ellipsis lites)
-	   (syntax-violation 'syntax-case "... in literals" expr lites))
+	   (syntax-violation 'syntax-case "... in literals" expr literals))
       
       (let ((r (map (lambda (clause)
 		      (smatch clause
@@ -575,16 +575,25 @@
         (else vars)))
 
 
-(define (match-syntax-case patvars literals form . lst)
+(define (no-matching-pattern who form patterns)
+  (raise (apply condition
+		(make-syntax-violation form #f)
+		(or (and who (make-who-condition who))
+		    (make-who-condition 'syntax-case))
+		(make-message-condition "Input form doesn't match any pattern")
+		(map make-syntax-pattern-condition patterns))))	  
+
+(define (match-syntax-case patvars literals form . olst)
   (define (match form pat)
     (and (match-pattern? form pat literals)
 	 (bind-pattern form pat literals '())))
 
   ;; we need to local variable unique so that it won't be global.
-  (let loop ((lst lst))
+  (let loop ((lst olst))
     (if (null? lst)
-	(syntax-violation (and (pair? form) (car form)) "invalid syntax"
-			  (unwrap-syntax form))
+	(no-matching-pattern (and (pair? form) (car form))
+			     (unwrap-syntax form)
+			     (map car olst))
 	(let ((clause (car lst)))
 	  (let ((pat (car clause))
 		(fender (cadr clause))
@@ -614,6 +623,13 @@
           (else
            (values (list-head form len) tail len)))))
 
+(define (syntax-template-violation message form tmpl)
+  (raise (condition
+	  (make-syntax-violation tmpl form)
+	  (make-who-condition "syntax template")
+	  (make-message-condition message)
+	  (make-syntax-template-condition tmpl))))
+
 (define (check-template tmpl ranks)
   (define (control-patvar-exists? tmpl depth)
     (let loop ((lst tmpl) (depth depth))
@@ -642,10 +658,10 @@
     (let loop ((lst lst))
       (cond ((variable? lst)
 	     (and (< 0 (rank-of lst ranks) depth)
-		  (syntax-violation "syntax template"
-				    "too few ellipsis following subtemplate"
-				    (unwrap-syntax tmpl)
-				    (unwrap-syntax lst))))
+		  (syntax-template-violation
+		   "too few ellipsis following subtemplate"
+		   (unwrap-syntax lst)
+		   tmpl)))
 	    ((pair? lst)
 	     (loop (car lst))
 	     (loop (cdr lst)))
@@ -657,41 +673,49 @@
       (let loop ((lst tmpl) (depth 0))
 	(cond ((variable? lst)
 	       (and (ellipsis? lst)
-		    (syntax-violation "syntax template" "misplaced ellipsis"
-				      tmpl))
+		    (syntax-template-violation "misplaced ellipsis"
+					       tmpl tmpl))
 	       (and (> (rank-of lst ranks) depth)
-		    (syntax-violation "syntax template"
-				      "too few ellipsis following subtemplate"
-				      (unwrap-syntax tmpl)
-				      (unwrap-syntax lst))))
+		    (syntax-template-violation
+		     "too few ellipsis following subtemplate"
+		     (unwrap-syntax lst)
+		     tmpl)))
 	      ((ellipsis-quote? lst)
 	       (check-escaped (cadr lst) depth))
 	      ((ellipsis-splicing-pair? lst)
 	       (receive (body tail len) (parse-ellipsis-splicing lst)
 		 (and (= depth 0)
 		      (or (control-patvar-exists? (car lst) len)
-			  (syntax-violation "syntax template" "missing pattern variable that used in same level as in pattern" (unwrap-syntax tmpl) (unwrap-syntax lst))))
+			  (syntax-template-violation
+			   "missing pattern variable that used in same level as in pattern" (unwrap-syntax lst) tmpl)))
 		 (loop body (+ depth 1))
 		 (loop tail depth)))
 	      ((ellipsis-pair? lst)
 	       (cond ((variable? (car lst))
 		      (let ((rank (rank-of (car lst) ranks)))
 			(cond ((< rank 0)
-			       (syntax-violation "syntax template" "misplaced ellipsis following literal" (unwrap-syntax tmpl) (unwrap-syntax (car lst))))
+			       (syntax-template-violation
+				"misplaced ellipsis following literal"
+				(unwrap-syntax (car lst)) tmpl))
 			      ((> rank (+ depth 1))
-			       (syntax-violation "syntax template" "too few ellipsis following subtemplate" (unwrap-syntax tmpl) (unwrap-syntax (car lst))))
+			       (syntax-template-violation
+				"too few ellipsis following subtemplate"
+				(unwrap-syntax (car lst)) tmpl))
 			      (else
 			       (loop (cddr lst) depth)))))
 		     ((pair? (car lst))
 		      (and (= depth 0)
 			   (or (control-patvar-exists? (car lst) (+ depth 1))
-			       (syntax-violation "syntax template" "missing pattern variable that used in same level as in pattern" tmpl (car lst))))
+			       (syntax-template-violation
+				"missing pattern variable that used in same level as in pattern" (car lst) tmpl)))
 		      (loop (car lst) (+ depth 1))
 		      (loop (cddr lst) depth))
 		     ((null? (car lst))
-		      (syntax-violation "syntax template" "misplaced ellipsis following empty list" tmpl))
+		      (syntax-template-violation
+		       "misplaced ellipsis following empty list" #f tmpl))
 		     (else
-		      (syntax-violation "syntax template" "misplaced ellipsis following literal" tmpl (car lst)))))
+		      (syntax-template-violation
+		       "misplaced ellipsis following literal" (car lst) tmpl))))
 	      ((pair? lst)
 	       (loop (car lst) depth)
 	       (loop (cdr lst) depth))
@@ -1011,7 +1035,7 @@
 (define transcribe-template
   (lambda (in-form in-ranks in-vars)
     (define (source-info! r t) (source-info*! r (source-info t)))
-    (let-values (((tmpl ranks vars)
+    (let-values (((otmpl ranks vars)
 		  (adapt-to-rank-moved-vars in-form in-ranks in-vars)))
 
       (define (expand-var tmpl vars)
@@ -1020,25 +1044,20 @@
 		    (cond ((null? (cdr slot)) '())
 			  (else (cadr slot)))))
 	      (else
-	       (syntax-violation
-		"syntax template"
+	       (syntax-template-violation
 		"subforms have different size of matched input (variable)"
-		`(template: ,(unwrap-syntax in-form) ,tmpl)
-		`(subforms: ,@(%map-cons (map car vars)
-					 (map (lambda (var)
-						(unwrap-syntax (cdr var)))
-					      vars)))))))
+		tmpl
+		in-form))))
       (define (expand-ellipsis-var tmpl vars)
 	(cond ((assoc tmpl vars bound-identifier=?)
 	       => (lambda (slot)
 		    (cond ((null? (cdr slot)) '())
 			  (else (cadr slot)))))
 	      (else
-	       (syntax-violation
-		"syntax template"
+	       (syntax-template-violation
 		"subforms have different size of matched input (ellipsis)"
-		`(template: ,(unwrap-syntax in-form))
-		`(subforms: ,@(unwrap-syntax vars))))))
+		tmpl
+		in-form))))
 
       (define (expand-ellipsis-template tmpl depth vars)
 	(let loop ((expr '())
@@ -1049,11 +1068,10 @@
 		((null? remains) '())
 		((eq? remains #t) (reverse expr))
 		(else
-		 (syntax-violation
-		  "syntax template"
+		 (syntax-template-violation
 		  "subforms have different size of matched input"
-		  `(template: ,(unwrap-syntax in-form))
-		  `(subforms: ,@(unwrap-syntax vars)))))))
+		  tmpl
+		  in-form)))))
 
       (define (expand-escaped-template tmpl depth vars)
 	(cond ((variable? tmpl)
@@ -1101,9 +1119,9 @@
 	       (list->vector (expand-template (vector->list tmpl) depth vars)))
 	      (else tmpl)))
 
-      (if (and (= (length tmpl) 2) (ellipsis? (car tmpl)))
-	  (expand-escaped-template (cadr tmpl) 0 vars)
-	  (expand-template tmpl 0 vars)))))
+      (if (and (= (length otmpl) 2) (ellipsis? (car otmpl)))
+	  (expand-escaped-template (cadr otmpl) 0 vars)
+	  (expand-template otmpl 0 vars)))))
 
 ;; datum->syntax
 (define datum->syntax
