@@ -9,6 +9,7 @@
 
 	    pair-annotation-set!
 	    pair-annotation
+	    pair-annotations
 	    )
     (import (core))
 
@@ -45,6 +46,11 @@
 	(result (Sg_GetPairAnnotation p key))
 	(result #f)))
 
+  (define-c-proc pair-annotations (p)
+    (if (SG_PAIRP p)
+	(result (-> (SG_PAIR p) info))
+	(result #f)))
+
   (define (source-info*! p i . rest)
     (unless (source-info p) (source-info-set! p i))
     (do ((a rest (cdr a)))
@@ -60,6 +66,6 @@
 	(loop (car p))
 	(loop (cdr p))))
     p)
-	    
+
 )
 

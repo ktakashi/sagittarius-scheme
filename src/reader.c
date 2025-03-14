@@ -731,21 +731,27 @@ static SgObject read_list_int(SgPort *port, SgChar closer, SgReadContext *ctx,
   return SG_UNDEF;		/* dummy */
 }
 
-static SgObject read_list(SgPort *port, SgChar closer, SgReadContext *ctx)
+static SgObject add_source_info(SgObject r, SgPort *port, int64_t line,
+				SgReadContext *ctx)
 {
-  int64_t line = Sg_LineNo(port);
-  SgObject r = read_list_int(port, closer, ctx, line);
   if (SG_PAIRP(r) && line >= 0) {
     SgVM *vm = Sg_VM();
     if (!SG_VM_IS_SET_FLAG(vm, SG_NO_DEBUG_INFO)) {
       SgObject info = Sg_FileName(port);
       if (!SG_FALSEP(info) && ctx->flags & SG_READ_SOURCE_INFO) {
-	r = Sg_SetPairAnnotation(r, SYM_SOURCE_INFO, 
-				 Sg_Cons(info, SG_MAKE_INT(line)));
+	return Sg_SetPairAnnotation(r, SYM_SOURCE_INFO, 
+				    Sg_Cons(info, SG_MAKE_INT(line)));
       }
     }
   }
   return r;
+}
+
+static SgObject read_list(SgPort *port, SgChar closer, SgReadContext *ctx)
+{
+  int64_t line = Sg_LineNo(port);
+  return read_list_int(port, closer, ctx, line);
+
 }
 
 SgObject read_open_paren(SgPort *port, SgChar c, SgReadContext *ctx)
@@ -1573,10 +1579,11 @@ SgObject read_hash_colon(SgPort *port, SgChar c, dispmacro_param *param,
   return Sg_MakeSymbol(s, FALSE);
 }
 
-SgObject dispmacro_reader(SgPort *port, SgChar c, SgReadContext *ctx)
+static SgObject dispmacro_reader_rec(SgPort *port, SgChar c, SgReadContext *ctx)
 {
   readtable_t *table;
   disptab_t *disptab;
+
   if (c >= MAX_READTABLE_CHAR) {
     lexical_error(port, ctx, UC("macro char %S is out of range"),
 		  SG_MAKE_CHAR(c));
@@ -1631,12 +1638,18 @@ SgObject dispmacro_reader(SgPort *port, SgChar c, SgReadContext *ctx)
   return SG_UNDEF;		/* dummy */
 }
 
+SgObject dispmacro_reader(SgPort *port, SgChar c, SgReadContext *ctx)
+{
+  return dispmacro_reader_rec(port, c, ctx);
+}
+
 SgObject read_expr4(SgPort *port, int flags, SgChar delim, SgReadContext *ctx)
 {
   SgChar c;
   readtable_t *table;
   SgObject item;
   SgVM *vm = Sg_VM();
+  int64_t line;
   while (1) {
   top:
     /* when previous execution was (values), then valuesCount = 0 and
@@ -1657,7 +1670,8 @@ SgObject read_expr4(SgPort *port, int flags, SgChar delim, SgReadContext *ctx)
        if we got delmiter we can simply return RPAREN*/
     if (c == delim) return SG_SYMBOL_RPAREN;
 
-    parsing_line(ctx, Sg_LineNo(port));
+    line = Sg_LineNo(port);
+    parsing_line(ctx, line);
     /* need to be re-get for #!read-macro */
     table = Sg_PortReadTable(port);
     if (c < 128 && isdigit(c)) {
@@ -1676,7 +1690,10 @@ SgObject read_expr4(SgPort *port, int flags, SgChar delim, SgReadContext *ctx)
       case CT_NON_TERM_MACRO: {
 	SgObject o = macro_reader(port, c, table->readtable, ctx);
 	/* if the (values) is the result of reader then we ignore the result */
-	if (o && vm->valuesCount) return o;
+	if (o && vm->valuesCount) {
+	  add_source_info(o, port, line, ctx);
+	  return o;
+	}
 	break;
       }
       case CT_ILLEGAL:

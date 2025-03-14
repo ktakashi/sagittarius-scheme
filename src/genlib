@@ -35,6 +35,8 @@
 		   (lambda (p i . rest) p))
   (%insert-binding '(sagittarius vm debug) 'propagate-source-info*!
 		   (lambda (p o . rest) p))
+  (%insert-binding '(sagittarius vm debug) 'pair-annotations
+		   (lambda (p) #f))
 
   (load "../boot/lib/base.scm")
   (load "../boot/lib/errors.scm")
