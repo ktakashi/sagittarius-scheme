@@ -107,7 +107,7 @@
   (initialize-builtin-condition &i/o-decoding &i/o-port)
 
   (initialize-builtin-condition &compile &error source program)
-  (initialize-builtin-condition &import &error library)
+  (initialize-builtin-condition &import &compile library)
   (initialize-builtin-condition &system &error errno)
   (initialize-builtin-condition &stack-trace &condition cause trace)
 

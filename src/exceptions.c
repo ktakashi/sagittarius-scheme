@@ -594,9 +594,15 @@ static SgObject imp_allocate(SgClass *klass, SgObject initargs)
   return SG_OBJ(c);
 }
 
+static SgClass *import_cpl[] = {
+  SG_CLASS_COMPILE_CONDITION,
+  SG_ERROR_CONDITION_CPL,
+  NULL
+};
+
 SG_DEFINE_BASE_CLASS(Sg_ImportConditionClass, SgImportCondition,
 		     imp_printer, NULL, NULL, imp_allocate,
-		     Sg_ErrorConditionCPL);
+		     import_cpl);
 
 static void trace_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
 {
@@ -876,11 +882,11 @@ static void describe_simple(SgPort *out, SgObject con)
 
 static void describe_compile(SgPort *out, SgObject con)
 {
-  SgObject source, compile, import, message;
+  SgObject source, compile, import, message, syntax;
   SgObject comp, ht = SG_NIL, tt = SG_NIL; /* traces */
   int i;
   
-  compile = import = message = SG_FALSE;
+  compile = import = message = syntax = SG_FALSE;
   SG_FOR_EACH(comp, SG_COMPOUND_CONDITION(con)->components) {
     SgObject c = SG_CAR(comp);
     if (SG_XTYPEP(c, SG_CLASS_COMPILE_CONDITION)) {
@@ -891,6 +897,8 @@ static void describe_compile(SgPort *out, SgObject con)
       import = c;
     } else if (SG_XTYPEP(c, SG_CLASS_MESSAGE_CONDITION)) {
       message = c;
+    } else if (SG_XTYPEP(c, SG_CLASS_SYNTAX_CONDITION)) {
+      syntax = c;
     }
   }
 
@@ -908,6 +916,11 @@ static void describe_compile(SgPort *out, SgObject con)
     Sg_Printf(out, UC("Compilation error: %A\n"), message);
     Sg_Printf(out, UC("  expression: %#60S\n"),
 	      Sg_UnwrapSyntax(SG_COMPILE_CONDITION(compile)->program));
+  }
+
+  if (!SG_FALSEP(syntax)) {
+    Sg_Printf(out, UC("  - syntax error: %#55S\n"),
+	      Sg_UnwrapSyntax(SG_SYNTAX_CONDITION(syntax)->form));
   }
   
   source = comp_source(SG_FALSEP(import) ? compile : import);

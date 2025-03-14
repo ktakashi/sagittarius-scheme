@@ -4,9 +4,13 @@
 	    ;; source info
 	    source-info
 	    source-info-set!
-	    expansion-history
+	    source-info*!
+	    propagate-source-info*!
+
+	    pair-annotation-set!
+	    pair-annotation
 	    )
-    (import :none)
+    (import (core))
 
   (decl-code
    (.define "LIBSAGITTARIUS_BODY")
@@ -25,12 +29,37 @@
 	      (result (Sg_GetPairAnnotation o 'source-info))))
 	(result SG_FALSE)))
 
-  (define-c-proc source-info-set! (o i) 
+  (define-c-proc source-info-set! (o i)
     (when (and (SG_PAIRP o) (not (SG_FALSEP i)))
       (let* ((vm::SgVM* (Sg_VM)))
 	(unless (SG_VM_IS_SET_FLAG vm SG_NO_DEBUG_INFO)
-	  (set! o (Sg_SetPairAnnotation o 'source-info i)))))
+	  (Sg_SetPairAnnotation o 'source-info i))))
     (result o))
-  
+
+  (define-c-proc pair-annotation-set! (p key v)
+    (when (SG_PAIRP p) (Sg_SetPairAnnotation p key v))
+    (result p))
+
+  (define-c-proc pair-annotation (p key)
+    (if (SG_PAIRP p)
+	(result (Sg_GetPairAnnotation p key))
+	(result #f)))
+
+  (define (source-info*! p i . rest)
+    (unless (source-info p) (source-info-set! p i))
+    (do ((a rest (cdr a)))
+	((null? a) p)
+      (let ((v (car a)))
+	(when (pair? v) (pair-annotation-set! p (car v) (cdr v))))))
+
+  (define (propagate-source-info*! p o . rest)
+    (define info (source-info o))
+    (let loop ((p p))
+      (when (pair? p)
+	(apply source-info*! p info rest)
+	(loop (car p))
+	(loop (cdr p))))
+    p)
+	    
 )
 

@@ -70,11 +70,18 @@
 
 (define-syntax $history
   (syntax-rules ()
-    ((_ n o)
-     (history! ($src n o) o))
+    ((_ n o) (history! ($src n o) o))
     ((_ n)
      (let ((s (history n)))
        (if s (cdr s) n)))))
+
+(define-syntax $expand-macro
+  (syntax-rules ()
+    ((_ m form p1env)
+     (propagate-source-info*! 
+      ($history (call-macro-expander m form p1env) form)
+      form
+      '(expanded . #t)))))
 
 ;; pass1 environment
 ;;     libray   - current library name
@@ -1339,8 +1346,7 @@
      (let ((var (pass1/lookup-head name p1env)))
        (define (do-macro m name form p1env)
 	 (if (variable-transformer? m)
-	     (pass1 ($history (call-macro-expander m form p1env)
-			      form) p1env)
+	     (pass1 ($expand-macro m form p1env) p1env)
 	     (syntax-error "misplaced syntactic keyword as variable"
 			   form name)))
        (cond ((lvar? var)
@@ -1451,21 +1457,19 @@
 
   (define (process-spec spec)
     (define (do-import to-lib from-lib resolved-spec trans?)
-      (guard (e (else (raise (condition (make-import-error spec) e))))
-	(import-library to-lib from-lib
-			(reverse! resolved-spec)
-			trans?)))
-    (cond ((symbol? spec)
-	   ;; SHORTCUT if it's symbol, just import is without any
-	   ;; information
-	   (do-import tolib (ensure-library spec 'import #f) '() #f))
-	  ((list? spec)
-	   ;; now we need to check specs
-	   (receive (ref resolved-spec trans?) (parse-spec spec)
-	     (do-import tolib (ensure-library ref 'import #f)
-			resolved-spec trans?)))
-	  (else
-	   (syntax-error "malformed import spec" spec))))
+      (import-library to-lib from-lib (reverse! resolved-spec) trans?))
+    (guard (e (else (raise (condition (make-import-error spec) e))))
+      (cond ((symbol? spec)
+	     ;; SHORTCUT if it's symbol, just import is without any
+	     ;; information
+	     (do-import tolib (ensure-library spec 'import #f) '() #f))
+	    ((list? spec)
+	     ;; now we need to check specs
+	     (receive (ref resolved-spec trans?) (parse-spec spec)
+	       (do-import tolib (ensure-library ref 'import #f)
+			  resolved-spec trans?)))
+	    (else (syntax-error "malformed import spec" spec)))))
+
   (smatch (unwrap-syntax form)
     ((- import-specs ___)
      (ifor-each process-spec import-specs)
@@ -1745,7 +1749,7 @@
 				 (else #f)))
 		     (m (gloc-ref gloc))
 		     ( (macro? m) )
-		     (e ($history (call-macro-expander m expr p1env))))
+		     (e ($expand-macro m expr p1env)))
 	    ;; The macro is expanded, so we need to re-evaluate
 	    ;; the expanded form
 	    (rec (cons (cons e p1env) next-form) r #t))
@@ -2306,7 +2310,7 @@
 		(cond ((lvar? head)
 		       (pass1/body-finish oexpr intdefs intmacros exprs env))
 		      ((macro? head)
-		       (let ((e (call-macro-expander head (caar exprs) env)))
+		       (let ((e ($expand-macro head (caar exprs) env)))
 			 (pass1/body-rec oexpr `((,e . ,env) . ,rest)
 					 intdefs intmacros p1env)))
 		      ;; when (let-syntax ((xif if) (xif ...)) etc.
@@ -2372,8 +2376,7 @@
 		       (or (and-let* ((gloc (id->bound-gloc head))
 				      (gval (gloc-ref gloc))
 				      ( (macro? gval) ))
-			     (let ((expr (call-macro-expander gval (caar exprs) 
-							      env)))
+			     (let ((expr ($expand-macro gval (caar exprs) env)))
 			       (pass1/body-rec oexpr `((,expr . ,env) . ,rest)
 					       intdefs intmacros p1env)))
 			   (pass1/body-finish oexpr intdefs intmacros
@@ -2476,8 +2479,7 @@
 	  (let ((gval (gloc-ref gloc)))
 	    (cond 
 	     ((macro? gval)
-	      (pass1 ($history (call-macro-expander gval form p1env)
-			       form) p1env))
+	      (pass1 ($expand-macro gval form p1env) p1env))
 	     ((syntax? gval)
 	      (call-syntax-handler gval form p1env))
 	     ((inline? gval)
@@ -2524,8 +2526,7 @@
 		       ;; locally rebound syntax
 		       (call-syntax-handler obj form p1env))
 		      ((macro? obj) ;; local macro
-		       (pass1 ($history (call-macro-expander obj form p1env)
-					form) p1env))
+		       (pass1 ($expand-macro obj form p1env) p1env))
 		      (else
 		       (scheme-error 'pass1
 				     "[internal] unknown resolution of head:" 
@@ -2538,7 +2539,7 @@
     (let ((r (p1env-lookup p1env form LEXICAL)))
       (cond ((lvar? r)   ($lref r))
 	    ((macro? r)
-	     (pass1 ($history (call-macro-expander r form p1env) form) p1env))
+	     (pass1 ($expand-macro r form p1env) p1env))
 	    ((identifier? r)
 	     (let* ((id  r)
 		    (lib (id-library id))
@@ -2546,9 +2547,7 @@
 	       (if gloc
 		   (let ((gval (gloc-ref gloc)))
 		     (cond ((macro? gval)
-			    (pass1
-			     ($history (call-macro-expander gval form p1env)
-				       form) p1env))
+			    (pass1 ($expand-macro gval form p1env) p1env))
 			   (else ($gref (ensure-identifier id p1env)))))
 		   ($gref (ensure-identifier id p1env)))))
 	    (else (error 'pass1 "[internal] p1env-lookup returned weird obj:" 
@@ -2654,11 +2653,12 @@
 		   (else
 		    (assertion-violation 
 		     name "required a library name or a library" thing)))))
-    (or lib (scheme-error name "no such library" thing))))
+    (or lib (error name "no such library" thing))))
 
 (define (check-toplevel form p1env)
   (unless (p1env-toplevel? p1env)
-    (error "the form can appear only in the toplevel:" (unwrap-syntax form))))
+    (error 'compiler "the form can appear only in the toplevel"
+	   (unwrap-syntax form))))
 
 (define (global-eq? var sym p1env)
   (and (variable? var)

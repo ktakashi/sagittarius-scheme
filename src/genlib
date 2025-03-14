@@ -31,9 +31,10 @@
 		   (lambda (ignore) #f))
   (%insert-binding '(sagittarius) 'make-import-error
 		   (lambda (ignore) #f))
-  (eval '(export make-compile-error make-import-error)
-	(find-library '(sagittarius) #f))
-
+  (%insert-binding '(sagittarius vm debug) 'source-info*!
+		   (lambda (p i . rest) p))
+  (%insert-binding '(sagittarius vm debug) 'propagate-source-info*!
+		   (lambda (p o . rest) p))
 
   (load "../boot/lib/base.scm")
   (load "../boot/lib/errors.scm")
