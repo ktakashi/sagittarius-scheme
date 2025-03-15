@@ -2441,4 +2441,15 @@
 (test-equal "version = (sagittarius-version)" "ok"
  (test-cond-expand-version (version (= (sagittarius-version))) "ok"))
 
+;; compiler
+(let ()
+  (define-syntax foo
+    (lambda (x)
+      (syntax-case x ()
+	((_ a) #'a))))
+  (let ((r (equal? '#1=(1 2 #1#) (foo '#2=(1 2 #2#)))))
+    ;; if we inline the above expression, then get infinte loop.
+    ;; so somewhere is still wrong...
+    (test-assert "cyclic list expansion" r)))
+
 (test-end)

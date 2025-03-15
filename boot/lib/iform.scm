@@ -601,7 +601,7 @@
   (define (source src ind)
     (when src
       (nl ind)
-      (display "($source '") (display (unwrap-syntax src))
+      (display "($source '") (write/ss (unwrap-syntax src))
       (cond ((source-info src) =>
 	     (lambda (s)
 	       (nl (+ ind 2))

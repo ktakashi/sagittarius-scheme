@@ -319,9 +319,11 @@
         (else ranks)))
 
 (define (copy-source-info r form)
+  (define seen (make-eq-hashtable))
   (let loop ((r r) (form form))
-    (when (pair? r)
+    (when (and (pair? r) (not (hashtable-ref seen r #f)))
       (source-info*! r (source-info form))
+      (hashtable-set! seen r #t)
       (loop (car r) (car form))
       (loop (cdr r) (cdr form))))
   r)
@@ -784,8 +786,11 @@
     (define mac-env (current-macro-env))
 
     (define (contain-identifier? lst)
+      (define seen (make-eq-hashtable))
       (let loop ((lst lst))
-	(cond ((pair? lst)
+	(cond ((hashtable-ref seen lst #f) #f)
+	      ((pair? lst)
+	       (hashtable-set! seen lst #t)
 	       (or (null? (car lst)) (loop (car lst)) (loop (cdr lst))))
 	      ((vector? lst)
 	       (let loop2 ((i (- (vector-length lst) 1)))
@@ -801,6 +806,7 @@
 	(finish (make-identifier sym '() use-lib))))
 
     (define (partial-identifier olst)
+      (define seen (make-eq-hashtable))
       (define (check-binding name env library)
 	(and-let* ((id (p1env-lookup env name LEXICAL))
 		   ( (identifier? id)) )
@@ -817,8 +823,10 @@
 		      (vector-set! v i e)
 		      (loop (+ i 1) v)))))))
       (let loop ((lst olst))
-	(cond ((contain-identifier? lst)
+	(cond ((hashtable-ref seen lst #f) lst)
+	      ((contain-identifier? lst)
 	       (cond ((pair? lst)
+		      (hashtable-set! seen lst #t)
 		      (let ((a (loop (car lst))) (d (loop (cdr lst))))
 			(if (and (eq? (car lst) a) (eq? (cdr lst) d))
 			    lst
@@ -831,6 +839,7 @@
 		     (else (wrap-symbol lst))))
 	      ((vector? lst) (rename-vector lst))
 	      ((pair? lst)
+	       (hashtable-set! seen lst #t)
 	       (let ((a (loop (car lst))) (d (loop (cdr lst))))
 		 (if (and (eq? a (car lst)) (eq? d (cdr lst)))
 		     lst

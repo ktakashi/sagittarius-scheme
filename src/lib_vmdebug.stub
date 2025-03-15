@@ -60,9 +60,11 @@
 
   (define (propagate-source-info*! p o . rest)
     (define info (source-info o))
+    (define seen (make-eq-hashtable))
     (let loop ((p p))
-      (when (pair? p)
+      (when (and (pair? p) (not (hashtable-ref seen p #f)))
 	(apply source-info*! p info rest)
+	(hashtable-set! seen p #t)
 	(loop (car p))
 	(loop (cdr p))))
     p)

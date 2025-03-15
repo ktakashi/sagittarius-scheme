@@ -78,10 +78,8 @@
 (define-syntax $expand-macro
   (syntax-rules ()
     ((_ m form p1env)
-     (propagate-source-info*! 
-      ($history (call-macro-expander m form p1env) form)
-      form
-      '(expanded . #t)))))
+     (propagate-source-info*! (call-macro-expander m form p1env) form
+			      '(expanded . #t)))))
 
 ;; pass1 environment
 ;;     libray   - current library name
@@ -1880,8 +1878,9 @@
 	  ;; have all names in `exports` then it returns '()
 	  (or (null? diff)
 	      (if (vm-error-unbound?)
-		  (error 'check-exports "attempted to export unbound variable(s)"
-			 diff lib)
+		  (error 'check-exports
+			 (format "attempted to export unbound variable(s) ~a at ~a"
+				 diff (library-name lib)))
 		  ($vm-warn "attempted to export unbound variable(s) ~a at ~a"
 			    diff (library-name lib))))))))
 
@@ -2460,11 +2459,10 @@
     (error 'pass1 "proper list required for function application"
 	   (if (circular-list? form) form (unwrap-syntax form))))
   (let ((src ($history form)))
-    (cond ((null? args)
-	   ($call src proc '()))
-	  (else
-	   (let ((p1env (p1env-sans-name p1env)))
-	     ($call src proc (imap (lambda (arg) (pass1 arg p1env)) args)))))))
+    (if (null? args)
+	($call src proc '())
+	(let ((p1env (p1env-sans-name p1env)))
+	  ($call src proc (imap (lambda (arg) (pass1 arg p1env)) args))))))
 
 (define (pass1/lookup-head head p1env)
   (and (variable? head)
@@ -2472,7 +2470,7 @@
 
 ;; Pass1: translate program to IForm.
 (define (pass1 form p1env)
-  (define (pass1/global-call id)
+  (define (pass1/global-call id form)
     (set! id (ensure-identifier id p1env))
     (let ((gloc (find-binding (id-library id) (id-name id) #f)))
       (if gloc
@@ -2519,7 +2517,7 @@
    ((pair? form)
     (cond ((pass1/lookup-head (car form) p1env)
 	   => (lambda (obj)
-		(cond ((identifier? obj) (pass1/global-call obj))
+		(cond ((identifier? obj) (pass1/global-call obj form))
 		      ((lvar? obj)
 		       (pass1/call form ($lref obj) (cdr form) p1env))
 		      ((syntax? obj)
