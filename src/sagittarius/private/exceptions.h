@@ -69,7 +69,6 @@
      +- &stack-trace (cause trace) <-- non R6RS. *1
      +- &syntax-case
           +- &syntax-pattern (pattern)   <- non R6RS *2
-          +- &syntax-template (template) <- non R6RS *2
 
    we implement these standard conditions in C.
    For convenience &compound-condition is defined
@@ -121,7 +120,6 @@ SG_CLASS_DECL(Sg_StackTraceConditionClass);
 /* syntax-case */
 SG_CLASS_DECL(Sg_SyntaxCaseConditionClass);
 SG_CLASS_DECL(Sg_SyntaxPatternConditionClass);
-SG_CLASS_DECL(Sg_SyntaxTemplateConditionClass);
 
 
 #define SG_CLASS_CONDITION (&Sg_ConditionClass)
@@ -158,7 +156,6 @@ SG_CLASS_DECL(Sg_SyntaxTemplateConditionClass);
 #define SG_CLASS_STACK_TRACE_CONDITION (&Sg_StackTraceConditionClass)
 #define SG_CLASS_SYNTAX_CASE_CONDITION (&Sg_SyntaxCaseConditionClass)
 #define SG_CLASS_SYNTAX_PATTERN_CONDITION (&Sg_SyntaxPatternConditionClass)
-#define SG_CLASS_SYNTAX_TEMPLATE_CONDITION (&Sg_SyntaxTemplateConditionClass)
 
 #define SG_CONDITIONP(o)          SG_ISA(o, SG_CLASS_CONDITION)
 #define SG_COMPOUND_CONDITIONP(o) SG_XTYPEP(o, SG_CLASS_COMPOUND_CONDITION)
@@ -305,14 +302,6 @@ typedef struct SgSyntaxPatternConditionRec
 } SgSyntaxPatternCondition;
 #define SG_SYNTAX_PATTERN_CONDITION(o)  ((SgSyntaxPatternCondition *)o)
 #define SG_SYNTAX_PATTERN_CONDITION_P(o) SG_ISA(o, SG_CLASS_SYNTAX_PATTERN_CONDITION)
-
-typedef struct SgTemplatePatternConditionRec
-{
-  SG_INSTANCE_HEADER;
-  SgObject template;		/* template */
-} SgSyntaxTemplateCondition;
-#define SG_SYNTAX_TEMPLATE_CONDITION(o)  ((SgSyntaxTemplateCondition *)o)
-#define SG_SYNTAX_TEMPLATE_CONDITION_P(o) SG_ISA(o, SG_CLASS_SYNTAX_TEMPLATE_CONDITION)
 
 #define SG_INIT_CONDITION(cl, lib, name, slots)	\
   do {									\

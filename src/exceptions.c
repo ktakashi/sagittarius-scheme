@@ -726,38 +726,6 @@ SG_DEFINE_BASE_CLASS(Sg_SyntaxPatternConditionClass, SgSyntaxPatternCondition,
 		     pattern_printer, NULL, NULL, pattern_allocate,
 		     syntax_case_cpl);
 
-static void template_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
-{
-  /* !Don't print trace, it might be opaque pointer! */
-  Sg_Printf(p, UC("#<syntax-template template=%S>"), 
-	    SG_SYNTAX_TEMPLATE_CONDITION(o)->template);
-}
-static SgObject template_allocate(SgClass *klass, SgObject initargs)
-{
-  SgSyntaxTemplateCondition *c = SG_ALLOCATE(SgSyntaxTemplateCondition, klass);
-  SG_SET_CLASS(c, klass);
-  c->template = SG_FALSE;
-  return SG_OBJ(c);
-}
-
-static SgObject tmpl_template(SgSyntaxTemplateCondition *c)
-{
-  return c->template;
-}
-
-static void tmpl_template_set(SgSyntaxTemplateCondition *c, SgObject template)
-{
-  c->template = template;
-}
-
-static SgSlotAccessor tmpl_slots[] = {
-  SG_CLASS_SLOT_SPEC("template",  0, tmpl_template, tmpl_template_set),
-  { { NULL } }
-};
-
-SG_DEFINE_BASE_CLASS(Sg_SyntaxTemplateConditionClass, SgSyntaxTemplateCondition,
-		     template_printer, NULL, NULL, template_allocate,
-		     syntax_case_cpl);
 
 #define DEFINE_CONDITION_CTR0(name, clazz)		\
   SgObject name() {					\
@@ -1036,18 +1004,6 @@ static void describe_compile(SgPort *out, SgObject con)
     Sg_Printf(out, UC("  - pattern: %#55S\n"), Sg_UnwrapSyntax(pat));
     PUT_SOURCE(pat,   "         at: ");
   }
-
-#if 0
-  FOR_CONDITIONS(comp, SG_CLASS_SYNTAX_TEMPLATE_CONDITION, components) {
-    SgObject template = SG_SYNTAX_TEMPLATE_CONDITION(SG_CAR(comp))->template;
-    Sg_Printf(out, UC("  - template: %#55S\n"), Sg_UnwrapSyntax(template));
-    source = source_info(template);
-    if (SG_PAIRP(source)) {
-      Sg_Printf(out, UC("    location: %A:%A\n"),
-		SG_CAR(source), SG_CDR(source));
-    }
-  }
-#endif
   
   i = 1;
   FOR_CONDITIONS(comp, SG_CLASS_TRACE_CONDITION, components) {
@@ -1315,7 +1271,6 @@ void Sg__InitConditions()
   /* syntax-casen */
   INIT_CONDITION(SG_CLASS_SYNTAX_CASE_CONDITION, "&syntax-case", NULL);
   INIT_CONDITION(SG_CLASS_SYNTAX_PATTERN_CONDITION, "&syntax-pattern", pt_slots);
-  INIT_CONDITION(SG_CLASS_SYNTAX_TEMPLATE_CONDITION, "&syntax-template", tmpl_slots);
 
   /* compile */
   INIT_CTR1(SG_CLASS_COMPILE_CONDITION, "make-compile-error", "compile-error?",
@@ -1344,8 +1299,4 @@ void Sg__InitConditions()
   INIT_CTR1(SG_CLASS_SYNTAX_PATTERN_CONDITION, "make-syntax-pattern-condition", 
 	    "syntax-pattern-condition?",
 	    pt_pattern, "&syntax-pattern-pattern");
-  INIT_CTR1(SG_CLASS_SYNTAX_TEMPLATE_CONDITION,
-	    "make-syntax-template-condition", 
-	    "syntax-template-condition?",
-	    tmpl_template, "&syntax-template-template");
 }
