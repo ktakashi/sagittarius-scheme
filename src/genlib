@@ -37,6 +37,8 @@
 		   (lambda (p o . rest) p))
   (%insert-binding '(sagittarius vm debug) 'pair-annotations
 		   (lambda (p) #f))
+  (%insert-binding '(sagittarius vm debug) 'pair-annotation
+		   (lambda (p k) #f))
   (%insert-binding '(sagittarius) 'make-syntax-pattern-condition
 		   (lambda (p) #f))
   (%insert-binding '(sagittarius) 'make-syntax-template-condition

@@ -77,23 +77,65 @@ SgObject Sg_MakeMacro(SgObject name, SgClosure *transformer,
   return SG_OBJ(z);
 }
 
-static SgObject unwrap_rec(SgObject form, SgObject history)
+/* the same trick as macro.scm... */
+static SgObject make_cycle_mark(SgObject mark, SgObject form)
 {
-  SgObject newh;
+  SgObject v = Sg_MakeVector(3, mark);
+  SG_VECTOR_ELEMENT(v, 1) = form;
+  SG_VECTOR_ELEMENT(v, 2) = SG_FALSE;
+  return v;
+}
+
+static SgObject update_mark(SgObject mark, SgObject lst, SgObject history)
+{
+  SgObject l;
+  int set;
+
+  SG_FOR_EACH(l, lst) {
+#define set_mark_value(acc, setter)					\
+    do {								\
+      set = FALSE;							\
+      if (SG_VECTORP(acc(l)) && SG_EQ(mark, SG_VECTOR_ELEMENT(acc(l), 0))) { \
+	SgObject r = Sg_Assq(SG_VECTOR_ELEMENT(acc(l), 1), history);	\
+	if (!SG_FALSEP(r) && !SG_FALSEP(SG_VECTOR_ELEMENT(SG_CDR(r), 2))) { \
+	  setter(l, SG_VECTOR_ELEMENT(SG_CDR(r), 2));			\
+	  set = TRUE;							\
+	}								\
+      }									\
+    } while (0)
+    set_mark_value(SG_CAR, SG_SET_CAR);
+    if (set) continue;
+    set_mark_value(SG_CDR, SG_SET_CDR);
+
+    if (set) break;
+  }
+
+  return lst;
+}
+
+static SgObject unwrap_rec(SgObject mark, SgObject form, SgObject history)
+{
+  SgObject check;
   if (!SG_PTRP(form)) return form;
-  if (!SG_FALSEP(Sg_Memq(form, history))) return form;
+
+  check = Sg_Assq(form, history);
+  if (!SG_FALSEP(check)) return SG_CDR(check);
 
   if (Sg_ConstantLiteralP(form)) return form;
 
   if (SG_PAIRP(form)) {
     SgObject ca, cd;
-    newh = Sg_Cons(form, history);
-    ca = unwrap_rec(SG_CAR(form), newh);
-    cd = unwrap_rec(SG_CDR(form), newh);
+    SgObject m = make_cycle_mark(mark, form);
+    SgObject newh = Sg_Acons(form, m, history);
+
+    ca = unwrap_rec(mark, SG_CAR(form), newh);
+    cd = unwrap_rec(mark, SG_CDR(form), newh);
     if (ca == SG_CAR(form) && cd == SG_CDR(form)) {
       return form;
     } else {
-      return Sg_Cons(ca, cd);
+      SgObject r = Sg_Cons(ca, cd);
+      SG_VECTOR_ELEMENT(m, 2) = r;
+      return update_mark(mark, r, newh);
     }
   }
   if (SG_IDENTIFIERP(form)) {
@@ -105,9 +147,11 @@ static SgObject unwrap_rec(SgObject form, SgObject history)
   if (SG_VECTORP(form)) {
     long i, j, len = SG_VECTOR_SIZE(form);
     SgObject elt, *pelt = SG_VECTOR_ELEMENTS(form);
-    newh = Sg_Cons(form, history);
+    SgObject m = make_cycle_mark(mark, form);
+    SgObject newh = Sg_Acons(form, m, history);
+    
     for (i = 0; i < len; i++, pelt++) {
-      elt = unwrap_rec(*pelt, newh);
+      elt = unwrap_rec(mark, *pelt, newh);
       if (elt != *pelt) {
 	SgObject newvec = Sg_MakeVector(len, SG_FALSE);
 	pelt = SG_VECTOR_ELEMENTS(form);
@@ -116,7 +160,7 @@ static SgObject unwrap_rec(SgObject form, SgObject history)
 	}
 	SG_VECTOR_ELEMENT(newvec, i) = elt;
 	for (; j < len; j++, pelt++) {
-	  SG_VECTOR_ELEMENT(newvec, j) = unwrap_rec(*pelt, newh);
+	  SG_VECTOR_ELEMENT(newvec, j) = unwrap_rec(mark, *pelt, newh);
 	}
 	return newvec;
       }
@@ -129,7 +173,8 @@ static SgObject unwrap_rec(SgObject form, SgObject history)
 /* convert all identifier to symbol */
 SgObject Sg_UnwrapSyntax(SgObject form)
 {
-  return unwrap_rec(form, SG_NIL);
+  SgObject list = SG_LIST1(SG_MAKE_INT(0));
+  return unwrap_rec(list, form, SG_NIL);
 }
 
 static SgObject macro_name(SgMacro *m)

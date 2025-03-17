@@ -2441,7 +2441,7 @@
 (test-equal "version = (sagittarius-version)" "ok"
  (test-cond-expand-version (version (= (sagittarius-version))) "ok"))
 
-;; compiler
+;; compiler/macro expander
 (let ()
   (define-syntax foo
     (lambda (x)
@@ -2449,7 +2449,12 @@
 	((_ a) #'a))))
   (let ((r (equal? '#1=(1 2 #1#) (foo '#2=(1 2 #2#)))))
     ;; if we inline the above expression, then get infinte loop.
-    ;; so somewhere is still wrong...
-    (test-assert "cyclic list expansion" r)))
+    ;; this is because quasiquote doesn't handle cyclic list.
+    ;; Should we do it? But it's rather weird?
+    (test-assert "cyclic list expansion w/o identifier" r))
+
+  (let ((r (equal? (foo '#3=(a 2 . #3#)) '#4=(a 2 . #4#))))
+    (test-assert "cyclic without identifier" r))
+  )
 
 (test-end)

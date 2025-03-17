@@ -78,8 +78,15 @@
 (define-syntax $expand-macro
   (syntax-rules ()
     ((_ m form p1env)
-     (propagate-source-info*! (call-macro-expander m form p1env) form
-			      '(expanded . #t)))))
+     #;(propagate-source-info*! (call-macro-expander m form p1env)
+			      form '(expanded . #t))
+     (let* ((r (call-macro-expander m form p1env))
+	    (anno (pair-annotation r 'expander)))
+       ;; Avoid unnecessary traverse. But in case users wanted
+       ;; make own macro transformer, we handle it
+       (if (memq anno '(syntax-case er-transfomer))
+	   (propagate-source-info*! r form '(expanded . #t))
+	   r)))))
 
 ;; pass1 environment
 ;;     libray   - current library name
@@ -2315,8 +2322,7 @@
 		      ;; when (let-syntax ((xif if) (xif ...)) etc.
 		      ((syntax? head)
 		       (pass1/body-finish oexpr intdefs exprs env))
-		      ((global-eq? head 'define p1env)
-		       
+		      ((global-eq? head 'define p1env)		       
 		       (let* ((def (convert-define (caar exprs)))
 			      (frame (cons (car def) (make-lvar (car def)))))
 			 (pass1/body-rec oexpr rest 
@@ -2599,9 +2605,12 @@
 		 (find-global op)
 		 v)))))
   (cond ((not (pair? expr)) expr)
-	((pair? (car expr)) 
-	 (cons (internal-macroexpand (car expr) p1env once?)
-	       (internal-macroexpand (cdr expr) p1env once?)))
+	((pair? (car expr))
+	 (let ((a (internal-macroexpand (car expr) p1env once?))
+	       (d (internal-macroexpand (cdr expr) p1env once?)))
+	   (if (and (eq? a (car expr)) (eq? d (cdr expr)))
+	       expr
+	       (cons a d))))
 	((get-macro (car expr)) =>
 	 (lambda (mac)
 	   (if once?
