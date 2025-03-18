@@ -11,6 +11,8 @@
 	    $IF $LET $LAMBDA $RECEIVE $LABEL $SEQ $CALL $ASM
 	    $IT $LIST $LIBRARY
 
+	    .intermediate-tags.
+	    
 	    iform-tag has-tag?
 
 	    $undef

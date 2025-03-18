@@ -2321,7 +2321,7 @@
 					 intdefs intmacros p1env)))
 		      ;; when (let-syntax ((xif if) (xif ...)) etc.
 		      ((syntax? head)
-		       (pass1/body-finish oexpr intdefs exprs env))
+		       (pass1/body-finish oexpr intdefs intmacros exprs env))
 		      ((global-eq? head 'define p1env)		       
 		       (let* ((def (convert-define (caar exprs)))
 			      (frame (cons (car def) (make-lvar (car def)))))
@@ -2482,8 +2482,7 @@
       (if gloc
 	  (let ((gval (gloc-ref gloc)))
 	    (cond 
-	     ((macro? gval)
-	      (pass1 ($expand-macro gval form p1env) p1env))
+	     ((macro? gval) (pass1 ($expand-macro gval form p1env) p1env))
 	     ((syntax? gval)
 	      (call-syntax-handler gval form p1env))
 	     ((inline? gval)
@@ -2615,7 +2614,7 @@
 	 (lambda (mac)
 	   (if once?
 	       (call-macro-expander mac expr p1env)
-	       (internal-macroexpand (call-macro-expander mac expr p1env)))))
+	       (internal-macroexpand expr p1env once?))))
 	(else 
 	 (if once?
 	     expr

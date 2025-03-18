@@ -44,7 +44,11 @@
 ;; return #t but that's not correct. comparing pattern and literals
 ;; with bound-identifier=? should always succeed since we preserve
 ;; renamed pattern variables.
-#!nounbound
+
+;; #!nounbound check argument counts, if we need to change procedure
+;; signature, we need to disable it...
+;; enable it later version...
+;;#!nounbound
 (library (core macro)
     (export compile-syntax-case compile-syntax
 	    current-usage-env current-macro-env
@@ -287,15 +291,19 @@
 
 ;; exclude '...
 (define (collect-unique-ids expr)
-  (let loop ((lst expr) (ans '()))
-    (cond ((pair? lst)
-           (loop (cdr lst)
-                 (loop (car lst) ans)))
+  (let loop ((lst expr) (ans '()) (seen '()))
+    (cond ((memq lst seen) ans)
+	  ((pair? lst)
+	   (let ((seen (cons lst seen)))
+             (loop (cdr lst)
+                   (loop (car lst) ans seen)
+		   seen)))
           ((ellipsis? lst) ans)
           ((variable? lst)
            (if (memq lst ans) ans (cons lst ans)))
           ((vector? lst)
-           (loop (vector->list lst) ans))
+	   (let ((seen (cons lst seen)))
+             (loop (vector->list lst) ans seen)))
           (else ans))))
 
 (define (collect-vars-ranks pat lites depth ranks)
@@ -499,22 +507,24 @@
 		r)))))
 
 (define (count-pair lst)
-  (let loop ((lst lst) (n 0))
-    (if (pair? lst) (loop (cdr lst) (+ n 1)) n)))
+  (let loop ((lst lst) (n 0) (seen '()))
+    (cond ((memq lst seen) n)
+	  ((pair? lst) (loop (cdr lst) (+ n 1) (cons lst seen)))
+	  (else n))))
 
-(define (match-ellipsis? expr pat lites)
+(define (match-ellipsis? expr pat lites seen)
   (or (null? expr)
       (and (pair? expr)
-           (match-pattern? (car expr) (car pat) lites)
-           (match-ellipsis? (cdr expr) pat lites))))
+           (match-pattern? (car expr) (car pat) lites seen)
+           (match-ellipsis? (cdr expr) pat lites seen))))
 
-(define (match-ellipsis-n? expr pat n lites)
+(define (match-ellipsis-n? expr pat n lites seen)
   (or (= n 0)
       (and (pair? expr)
-           (match-pattern? (car expr) (car pat) lites)
-           (match-ellipsis-n? (cdr expr) pat (- n 1) lites))))
+           (match-pattern? (car expr) (car pat) lites seen)
+           (match-ellipsis-n? (cdr expr) pat (- n 1) lites seen))))
 
-(define (match-pattern? expr pat lites)
+(define (match-pattern? expr pat lites seen)
   (define (compare pat expr)
     (define (ensure-id id env)
       (if (identifier? id)
@@ -525,30 +535,36 @@
     (let ((p-id (ensure-id pat  (current-macro-env)))
 	  (e-id (ensure-id expr (current-usage-env))))
       (free-identifier=? p-id e-id)))
-  (cond ((bar? pat) #t)
+  ;; if we already see this expression, then previous must already be matched
+  ;; i guess...
+  (cond ((memq expr seen) #t)
+	((bar? pat) #t)
         ((variable? pat)
          (cond ((literal-match? pat lites)
                 (and (variable? expr)
                      (compare pat expr)))
                (else #t)))
         ((ellipsis-pair? pat)
-         (if (and (null? (cddr pat)) (list? expr))
-             (or (variable? (car pat))
-                 (match-ellipsis? expr pat lites))
-             (let ((n (- (count-pair expr) (count-pair (cddr pat)))))
-               (if (= n 0)
-                   (match-pattern? expr (cddr pat) lites)
-                   (and (> n 0)
-                        (match-ellipsis-n? expr pat n lites)
-                        (match-pattern? (list-tail expr n) (cddr pat)
-                                        lites))))))
+	 (let ((seen (cons expr seen)))
+           (if (and (null? (cddr pat)) (list? expr))
+               (or (variable? (car pat))
+                   (match-ellipsis? expr pat lites))
+               (let ((n (- (count-pair expr) (count-pair (cddr pat)))))
+		 (if (= n 0)
+                     (match-pattern? expr (cddr pat) lites seen)
+                     (and (> n 0)
+                          (match-ellipsis-n? expr pat n lites seen)
+                          (match-pattern? (list-tail expr n) (cddr pat)
+                                          lites seen)))))))
         ((pair? pat)
-         (and (pair? expr)
-              (match-pattern? (car expr) (car pat) lites)
-              (match-pattern? (cdr expr) (cdr pat) lites)))
+	 (let ((seen (cons expr seen)))
+           (and (pair? expr)
+		(match-pattern? (car expr) (car pat) lites seen)
+		(match-pattern? (cdr expr) (cdr pat) lites seen))))
         ((vector? pat)
          (and (vector? expr)
-              (match-pattern? (vector->list expr) (vector->list pat) lites)))
+              (match-pattern? (vector->list expr) (vector->list pat)
+			      lites seen)))
         (else (equal? pat expr))))
 
 (define (union-vars vars evars)
@@ -624,7 +640,7 @@
 
 (define (match-syntax-case patvars literals form . olst)
   (define (match form pat)
-    (and (match-pattern? form pat literals)
+    (and (match-pattern? form pat literals '())
 	 (bind-pattern form pat literals '())))
 
   ;; we need to local variable unique so that it won't be global.
@@ -708,8 +724,9 @@
 
   (if (and (= (length tmpl) 2) (ellipsis? (car tmpl)))
       (check-escaped (cadr tmpl) 0)
-      (let loop ((lst tmpl) (depth 0))
-	(cond ((variable? lst)
+      (let loop ((lst tmpl) (depth 0) (seen '()))
+	(cond ((memq lst seen))
+	      ((variable? lst)
 	       (and (ellipsis? lst)
 		    (syntax-template-violation "misplaced ellipsis"
 					       tmpl tmpl))
@@ -726,39 +743,43 @@
 		      (or (control-patvar-exists? (car lst) len)
 			  (syntax-template-violation
 			   "missing pattern variable that used in same level as in pattern" (unwrap-syntax lst) tmpl)))
-		 (loop body (+ depth 1))
-		 (loop tail depth)))
+		 (let ((seen (cons lst seen)))
+		   (loop body (+ depth 1) seen)
+		   (loop tail depth seen))))
 	      ((ellipsis-pair? lst)
-	       (cond ((variable? (car lst))
-		      (let ((rank (rank-of (car lst) ranks)))
-			(cond ((< rank 0)
-			       (syntax-template-violation
-				"misplaced ellipsis following literal"
-				(unwrap-syntax (car lst)) tmpl))
-			      ((> rank (+ depth 1))
-			       (syntax-template-violation
-				"too few ellipsis following subtemplate"
-				(unwrap-syntax (car lst)) tmpl))
-			      (else
-			       (loop (cddr lst) depth)))))
-		     ((pair? (car lst))
-		      (and (= depth 0)
-			   (or (control-patvar-exists? (car lst) (+ depth 1))
-			       (syntax-template-violation
-				"missing pattern variable that used in same level as in pattern" (car lst) tmpl)))
-		      (loop (car lst) (+ depth 1))
-		      (loop (cddr lst) depth))
-		     ((null? (car lst))
-		      (syntax-template-violation
-		       "misplaced ellipsis following empty list" #f tmpl))
-		     (else
-		      (syntax-template-violation
-		       "misplaced ellipsis following literal" (car lst) tmpl))))
+	       (let ((seen (cons lst seen)))
+		 (cond ((variable? (car lst))
+			(let ((rank (rank-of (car lst) ranks)))
+			  (cond ((< rank 0)
+				 (syntax-template-violation
+				  "misplaced ellipsis following literal"
+				  (unwrap-syntax (car lst)) tmpl))
+				((> rank (+ depth 1))
+				 (syntax-template-violation
+				  "too few ellipsis following subtemplate"
+				  (unwrap-syntax (car lst)) tmpl))
+				(else
+				 (loop (cddr lst) depth seen)))))
+		       ((pair? (car lst))
+			(and (= depth 0)
+			     (or (control-patvar-exists? (car lst) (+ depth 1))
+				 (syntax-template-violation
+				  "missing pattern variable that used in same level as in pattern" (car lst) tmpl)))
+			(loop (car lst) (+ depth 1) seen)
+			(loop (cddr lst) depth seen))
+		       ((null? (car lst))
+			(syntax-template-violation
+			 "misplaced ellipsis following empty list" #f tmpl))
+		       (else
+			(syntax-template-violation
+			 "misplaced ellipsis following literal" (car lst) tmpl)))))
 	      ((pair? lst)
-	       (loop (car lst) depth)
-	       (loop (cdr lst) depth))
+	       (let ((seen (cons lst seen)))
+		 (loop (car lst) depth seen)
+		 (loop (cdr lst) depth seen)))
 	      ((vector? lst)
-	       (loop (vector->list lst) depth))))))
+	       (let ((seen (cons lst seen)))
+		 (loop (vector->list lst) depth seen)))))))
 
 ;; exp-name: current expression name for debug
 ;; tmpl:     template (if it's in syntax-case, this must be wrapped)
@@ -789,6 +810,7 @@
 			 ;; not need for this
 			 ;; (not (pattern-identifier? id mac-env))
 			 (not (assoc id ranks bound-identifier=?))))))
+
   (let* ((ids (collect-unique-ids tmpl))
 	 (ranks (filter-map (lambda (id)
 			      (let ((p (p1env-lookup mac-env id PATTERN)))
@@ -935,33 +957,40 @@
   (lambda (tmpl ranks vars)
 
     (define (traverse-escaped lst depth)
-      (let loop ((lst lst) (depth depth))
-	(cond ((variable? lst)
+      (let loop ((lst lst) (depth depth) (seen '()))
+	(cond ((memq lst seen) #f)
+	      ((variable? lst)
 	       (< 0 (rank-of lst ranks) depth))
 	      ((pair? lst)
-	       (or (loop (car lst) depth)
-		   (loop (cdr lst) depth)))
+	       (let ((seen (cons lst seen)))
+		 (or (loop (car lst) depth seen)
+		     (loop (cdr lst) depth seen))))
 	      ((vector? lst)
-	       (loop (vector->list lst) depth))
+	       (let ((seen (cons lst seen)))
+		 (loop (vector->list lst) depth seen)))
 	      (else #f))))
 
-    (let loop ((lst tmpl) (depth 0))
-      (cond ((variable? lst)
+    (let loop ((lst tmpl) (depth 0) (seen '()))
+      (cond ((memq lst seen) #f)
+	    ((variable? lst)
              (< 0 (rank-of lst ranks) depth))
             ((ellipsis-quote? lst)
              (traverse-escaped (cadr lst) depth))
             ((ellipsis-splicing-pair? lst)
              (let-values (((body tail len) (parse-ellipsis-splicing lst)))
-               (or (loop body (+ depth 1))
-                   (loop tail depth))))
+               (or (loop body (+ depth 1) seen)
+                   (loop tail depth seen))))
             ((ellipsis-pair? lst)
-             (or (loop (car lst) (+ depth 1))
-                 (loop (cddr lst) depth)))
+	     (let ((seen (cons lst seen)))
+               (or (loop (car lst) (+ depth 1) seen)
+                   (loop (cddr lst) depth seen))))
             ((pair? lst)
-             (or (loop (car lst) depth)
-                 (loop (cdr lst) depth)))
+	     (let ((seen (cons lst seen)))
+               (or (loop (car lst) depth seen)
+                   (loop (cdr lst) depth seen))))
             ((vector? lst)
-             (loop (vector->list lst) depth))
+	     (let ((seen (cons lst seen)))
+               (loop (vector->list lst) depth seen)))
             (else #f)))))
 
 (define adapt-to-rank-moved-vars
@@ -1084,11 +1113,11 @@
 		tmpl
 		in-form))))
 
-      (define (expand-ellipsis-template tmpl depth vars)
+      (define (expand-ellipsis-template tmpl depth vars seen)
 	(let loop ((expr '())
 		   (remains (collect-ellipsis-vars tmpl ranks depth vars)))
 	  (cond ((pair? remains)
-		 (loop (cons (expand-template tmpl depth remains) expr)
+		 (loop (cons (expand-template tmpl depth remains seen) expr)
 		       (consume-ellipsis-vars ranks depth remains)))
 		((null? remains) '())
 		((eq? remains #t) (reverse expr))
@@ -1098,55 +1127,69 @@
 		  tmpl
 		  in-form)))))
 
-      (define (expand-escaped-template tmpl depth vars)
+      (define (expand-escaped-template tmpl depth vars seen)
 	(cond ((variable? tmpl)
 	       (if (< (rank-of tmpl ranks) 0)
 		   tmpl
 		   (expand-var tmpl vars)))
 	      ((pair? tmpl)
 	       (source-info! 
-		(cons (expand-escaped-template (car tmpl) depth vars)
-		      (expand-escaped-template (cdr tmpl) depth vars))
+		(cons (expand-escaped-template (car tmpl) depth vars seen)
+		      (expand-escaped-template (cdr tmpl) depth vars seen))
 		tmpl))
 	      ((vector? tmpl)
 	       (list->vector
-		(expand-escaped-template (vector->list tmpl) depth vars)))
+		(expand-escaped-template (vector->list tmpl) depth vars seen)))
 	      (else tmpl)))
 
-      (define (expand-template tmpl depth vars)
-	(cond ((variable? tmpl)
+      (define (expand-template tmpl depth vars seen)
+	(define (handle-ellipsis-pair tmpl seen)
+	  (cond ((variable? (car tmpl))
+		 (let ((rank (rank-of (car tmpl) ranks)))
+		   (if (= rank (+ depth 1))
+		       (append (expand-ellipsis-var (car tmpl) vars)
+			       (expand-template (cddr tmpl) depth vars seen)))))
+		((pair? (car tmpl))
+		 (append
+		  (expand-ellipsis-template (car tmpl) (+ depth 1) vars seen)
+		  (expand-template (cddr tmpl) depth vars seen)))))
+
+	(cond ((assq tmpl seen) => cdr)
+	      ((variable? tmpl)
 	       (if (< (rank-of tmpl ranks) 0)
 		   tmpl
 		   (expand-var tmpl vars)))
 	      ((ellipsis-quote? tmpl)
-	       (expand-escaped-template (cadr tmpl) depth vars))
+	       (expand-escaped-template (cadr tmpl) depth vars seen))
 	      ((ellipsis-splicing-pair? tmpl)
 	       (receive (body tail len) (parse-ellipsis-splicing tmpl)
-		 (append (apply append
-				(expand-ellipsis-template body (+ depth 1) vars))
-			 (expand-template tail depth vars))))
+		 (append
+		  (apply append
+			 (expand-ellipsis-template body (+ depth 1) vars seen))
+		  (expand-template tail depth vars '()))))
 	      ((ellipsis-pair? tmpl)
-	       (cond
-		((variable? (car tmpl))
-		 (let ((rank (rank-of (car tmpl) ranks)))
-		   (cond ((= rank (+ depth 1))
-			  (append (expand-ellipsis-var (car tmpl) vars)
-				  (expand-template (cddr tmpl) depth vars))))))
-		((pair? (car tmpl))
-		 (append (expand-ellipsis-template (car tmpl) (+ depth 1) vars)
-			 (expand-template (cddr tmpl) depth vars)))))
+	       (let* ((mark (make-cyclic-mark tmpl))
+		      (seen (acons tmpl mark seen)))
+		 (let ((r (handle-ellipsis-pair tmpl seen)))
+		   (update-cycle-mark! mark (source-info! r tmpl) seen))))
 	      ((pair? tmpl)
-	       (source-info!
-		(cons (expand-template (car tmpl) depth vars)
-		      (expand-template (cdr tmpl) depth vars))
-		tmpl))
+	       (let* ((mark (make-cyclic-mark tmpl))
+		      (seen (acons tmpl mark seen)))
+		 (let ((r (cons (expand-template (car tmpl) depth vars seen)
+				(expand-template (cdr tmpl) depth vars seen))))
+		   (update-cycle-mark! mark (source-info! r tmpl) seen))))
 	      ((vector? tmpl)
-	       (list->vector (expand-template (vector->list tmpl) depth vars)))
+	       (let* ((mark (make-cyclic-mark tmpl))
+		      (seen (acons tmpl mark seen)))
+		 (let ((r (list->vector
+			   (expand-template (vector->list tmpl)
+					    depth vars seen))))
+		   (update-vector-cycle-mark! mark r seen))))
 	      (else tmpl)))
 
       (if (and (= (length otmpl) 2) (ellipsis? (car otmpl)))
-	  (expand-escaped-template (cadr otmpl) 0 vars)
-	  (expand-template otmpl 0 vars)))))
+	  (expand-escaped-template (cadr otmpl) 0 vars '())
+	  (expand-template otmpl 0 vars '())))))
 
 ;; datum->syntax
 (define datum->syntax

@@ -28,9 +28,9 @@
 (define (load-compiler-libraries)
   ;; transition, changed the procedure arguments
   (%insert-binding '(sagittarius) 'make-compile-error
-		   (lambda (ignore) #f))
+		   (lambda (form) (make-irritants-condition form)))
   (%insert-binding '(sagittarius) 'make-import-error
-		   (lambda (ignore) #f))
+		   (lambda (form) (make-irritants-condition form)))
   (%insert-binding '(sagittarius vm debug) 'source-info*!
 		   (lambda (p i . rest) p))
   (%insert-binding '(sagittarius vm debug) 'propagate-source-info*!
@@ -40,8 +40,6 @@
   (%insert-binding '(sagittarius vm debug) 'pair-annotation
 		   (lambda (p k) #f))
   (%insert-binding '(sagittarius) 'make-syntax-pattern-condition
-		   (lambda (p) #f))
-  (%insert-binding '(sagittarius) 'make-syntax-template-condition
 		   (lambda (p) #f))
 
   (load "../boot/lib/base.scm")
