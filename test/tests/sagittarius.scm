@@ -2454,7 +2454,14 @@
     (test-assert "cyclic list expansion w/o identifier" r))
 
   (let ((r (equal? (foo '#3=(a 2 . #3#)) '#4=(a 2 . #4#))))
-    (test-assert "cyclic without identifier" r))
+    (test-assert "cyclic with identifier" r))
+
+  (let ((r (equal? (foo '#5=#(a 2 #5#)) '#6=#(a 2 #6#))))
+    (test-assert "cyclic vector" r))
   )
 
+(let ((v '#0=(1 2 . #0#)))
+  (test-equal "datum->syntax" v (syntax->datum (datum->syntax #'k v))))
+(let ((v '#0=#(1 2 #0#)))
+  (test-equal "datum->syntax" v (syntax->datum (datum->syntax #'k v))))
 (test-end)

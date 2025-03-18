@@ -86,23 +86,33 @@ static SgObject make_cycle_mark(SgObject mark, SgObject form)
   return v;
 }
 
-static SgObject update_mark(SgObject mark, SgObject lst, SgObject history)
+static SgObject mark_value(SgObject m, SgObject mark, SgObject history)
+{
+  if (SG_VECTORP(m) && SG_EQ(mark, SG_VECTOR_ELEMENT(m, 0))) {
+    SgObject r = Sg_Assq(SG_VECTOR_ELEMENT(m, 1), history);
+    if (!SG_FALSEP(r)) return SG_VECTOR_ELEMENT(SG_CDR(r), 2);
+  }
+  return SG_FALSE;
+}
+
+static SgObject update_mark(SgObject m, SgObject mark,
+			    SgObject lst, SgObject history)
 {
   SgObject l;
   int set;
 
+  SG_VECTOR_ELEMENT(m, 2) = lst;
   SG_FOR_EACH(l, lst) {
-#define set_mark_value(acc, setter)					\
-    do {								\
-      set = FALSE;							\
-      if (SG_VECTORP(acc(l)) && SG_EQ(mark, SG_VECTOR_ELEMENT(acc(l), 0))) { \
-	SgObject r = Sg_Assq(SG_VECTOR_ELEMENT(acc(l), 1), history);	\
-	if (!SG_FALSEP(r) && !SG_FALSEP(SG_VECTOR_ELEMENT(SG_CDR(r), 2))) { \
-	  setter(l, SG_VECTOR_ELEMENT(SG_CDR(r), 2));			\
-	  set = TRUE;							\
-	}								\
-      }									\
+#define set_mark_value(acc, setter)			\
+    do {						\
+      set = FALSE;					\
+      SgObject r = mark_value(acc(l), mark, history);	\
+      if (!SG_FALSEP(r)) {				\
+	setter(l, r);					\
+	set = TRUE;					\
+      }							\
     } while (0)
+
     set_mark_value(SG_CAR, SG_SET_CAR);
     if (set) continue;
     set_mark_value(SG_CDR, SG_SET_CDR);
@@ -112,6 +122,20 @@ static SgObject update_mark(SgObject mark, SgObject lst, SgObject history)
 
   return lst;
 }
+
+static SgObject update_vector_mark(SgObject m, SgObject mark,
+				   SgObject vec, SgObject history)
+{
+  int i;
+  SG_VECTOR_ELEMENT(m, 2) = vec;
+  for (i = 0; i < SG_VECTOR_SIZE(vec); i++) {
+    SgObject e = SG_VECTOR_ELEMENT(vec, i);
+    SgObject v = mark_value(e, mark, history);
+    if (!SG_FALSEP(v)) SG_VECTOR_ELEMENT(vec, i) = v;
+  }
+  return vec;
+}
+
 
 static SgObject unwrap_rec(SgObject mark, SgObject form, SgObject history)
 {
@@ -134,8 +158,7 @@ static SgObject unwrap_rec(SgObject mark, SgObject form, SgObject history)
       return form;
     } else {
       SgObject r = Sg_Cons(ca, cd);
-      SG_VECTOR_ELEMENT(m, 2) = r;
-      return update_mark(mark, r, newh);
+      return update_mark(m, mark, r, newh);
     }
   }
   if (SG_IDENTIFIERP(form)) {
@@ -147,6 +170,7 @@ static SgObject unwrap_rec(SgObject mark, SgObject form, SgObject history)
   if (SG_VECTORP(form)) {
     long i, j, len = SG_VECTOR_SIZE(form);
     SgObject elt, *pelt = SG_VECTOR_ELEMENTS(form);
+
     SgObject m = make_cycle_mark(mark, form);
     SgObject newh = Sg_Acons(form, m, history);
     
@@ -162,7 +186,7 @@ static SgObject unwrap_rec(SgObject mark, SgObject form, SgObject history)
 	for (; j < len; j++, pelt++) {
 	  SG_VECTOR_ELEMENT(newvec, j) = unwrap_rec(mark, *pelt, newh);
 	}
-	return newvec;
+	return update_vector_mark(m, mark, newvec, newh);
       }
     }
     return form;

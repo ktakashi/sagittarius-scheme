@@ -65,7 +65,9 @@
             (filter values
                     (list (make-undefined-violation)
                           (and who (make-who-condition who))
-                          (and (pair? message) (make-message-condition (car message)))))))))
+                          (and (pair? message)
+			       (make-message-condition
+				(format "~a: ~s" (car message) who)))))))))
 
 (define lexical-violation
   (lambda (who . message)
