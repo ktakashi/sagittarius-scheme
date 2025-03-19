@@ -45,8 +45,8 @@
 ;; with bound-identifier=? should always succeed since we preserve
 ;; renamed pattern variables.
 
-;; #!nounbound check argument counts, if we need to change procedure
-;; signature, we need to disable it...
+;; #!nounbound check argument counts against previously bound procedure,
+;; if we need to change procedure signature, we need to disable it...
 ;; enable it later version...
 ;;#!nounbound
 (library (core macro)
@@ -479,7 +479,7 @@
 	   (syntax-violation 'syntax-case "_ in literals" expr literals))
       (and (literal-match? .ellipsis lites)
 	   (syntax-violation 'syntax-case "... in literals" expr literals))
-      
+
       (let ((r (map (lambda (clause)
 		      (smatch clause
 			((p expr)
@@ -537,7 +537,7 @@
       (free-identifier=? p-id e-id)))
   ;; if we already see this expression, then previous must already be matched
   ;; i guess...
-  (cond ((memq expr seen) #t)
+  (cond ;;((memq expr seen) #f)
 	((bar? pat) #t)
         ((variable? pat)
          (cond ((literal-match? pat lites)
@@ -548,7 +548,7 @@
 	 (let ((seen (cons expr seen)))
            (if (and (null? (cddr pat)) (list? expr))
                (or (variable? (car pat))
-                   (match-ellipsis? expr pat lites))
+                   (match-ellipsis? expr pat lites seen))
                (let ((n (- (count-pair expr) (count-pair (cddr pat)))))
 		 (if (= n 0)
                      (match-pattern? expr (cddr pat) lites seen)

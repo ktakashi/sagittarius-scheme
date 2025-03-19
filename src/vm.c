@@ -612,6 +612,26 @@ static inline void report_error(SgObject error, SgObject out)
     }
   } else {
     Sg_Printf(buf, UC("%A"), Sg_DescribeCondition(error));
+    /* This most of the time useless, however in case of error inside of
+       macro expander procedure, this might be useful. Need to think how
+       to differenciate
+     */
+#if 0
+    if ((attached || vm->state == RUNNING) && !SG_NULLP(stackTrace)) {
+      while (1) {
+	format_stack_trace(stackTrace, buf);
+	if (SG_STACK_TRACE_CONDITION_P(next)) {
+	  cont = search_different_cont(vm, next, cont);
+	  if (!cont) break;
+	  stackTrace = SG_STACK_TRACE_CONDITION(next)->trace;
+	  next = SG_STACK_TRACE_CONDITION(next)->cause;
+	  Sg_PutuzUnsafe(buf, UC("Nested "));
+	} else {
+	  break;
+	}
+      }
+    }
+#endif
   }
   /* for some reason, certain Windows platform failed to create
      stdout, at that moment, there is no stderr ready so out might

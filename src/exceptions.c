@@ -887,12 +887,6 @@ static SgObject source_info(SgObject obj)
   return SG_FALSE;
 }
 
-static SgObject comp_source(SgObject obj)
-{
-  SgObject program = SG_COMPILE_CONDITION(obj)->program;
-  return source_info(program);
-}
-
 static void describe_simple(SgPort *out, SgObject con)
 {
   SgClass *klass = Sg_ClassOf(con);
@@ -936,38 +930,39 @@ static SgObject next(SgObject components, SgClass *klass)
 
 static void describe_compile(SgPort *out, SgObject con)
 {
-  SgObject source, compile, import, message, comp;
+  SgObject source, program, message, who, comp;
   SgObject components = SG_COMPOUND_CONDITION(con)->components;
+  SgObject title, subtitle;
   int i;
 
-  compile = import = message = SG_FALSE;
+  program = message = SG_FALSE;
+  who = SG_INTERN("unknown");
   SG_FOR_EACH(comp, components) {
     SgObject c = SG_CAR(comp);
     if (SG_XTYPEP(c, SG_CLASS_COMPILE_CONDITION)) {
-      compile = c;
+      title = SG_MAKE_STRING("Compilation error");
+      subtitle = SG_MAKE_STRING("expression");
+      program = SG_COMPILE_CONDITION(c)->program;
     } else if (SG_XTYPEP(c, SG_CLASS_IMPORT_CONDITION)) {
-      import = c;
+      title = SG_MAKE_STRING("Import error");
+      subtitle = SG_MAKE_STRING("import spec");
+      program = SG_COMPILE_CONDITION(c)->program;
     } else if (SG_XTYPEP(c, SG_CLASS_MESSAGE_CONDITION)) {
-      message = c;
+      message = SG_MESSAGE_CONDITION(c)->message;
+    } else if (SG_XTYPEP(c, SG_CLASS_WHO_CONDITION)) {
+      who = SG_WHO_CONDITION(c)->who;
     }
   }
   
   if (SG_FALSEP(message)) {
-    message = SG_MAKE_STRING("unknown error");
+    message = Sg_Sprintf(UC("[%A] unknown error"), who);
   } else {
-    message = msg_message(message);
+    message = Sg_Sprintf(UC("[%A] %A"), who, message);
   }
-  
-  if (!SG_FALSEP(import)) {
-    Sg_Printf(out, UC("Import error: %A\n"), message);
-    Sg_Printf(out, UC(" import spec: %#60S\n"),
-	      Sg_UnwrapSyntax(SG_COMPILE_CONDITION(import)->program));
-  } else {
-    Sg_Printf(out, UC("Compilation error: %A\n"), message);
-    Sg_Printf(out, UC("  expression: %#60S\n"),
-	      Sg_UnwrapSyntax(SG_COMPILE_CONDITION(compile)->program));
-  }
-  source = comp_source(SG_FALSEP(import) ? compile : import);
+
+  Sg_Printf(out, UC("%A: %A\n"), title, message);
+  Sg_Printf(out, UC("  %A: %#60S\n"), subtitle, Sg_UnwrapSyntax(program));
+  source = source_info(program);
   if (SG_PAIRP(source)) {
     Sg_Printf(out, UC("          at: %A:%A\n"), SG_CAR(source), SG_CDR(source));
   }
@@ -978,9 +973,9 @@ static void describe_compile(SgPort *out, SgObject con)
 
 #define PUT_SOURCE(target, prefix)					\
   do {									\
-    SgObject s__ = source_info(target);					\
-    if (SG_PAIRP(s__)) {						\
-      Sg_Printf(out, UC(prefix "%A:%A\n"), SG_CAR(s__), SG_CDR(s__));	\
+    source = source_info(target);					\
+    if (SG_PAIRP(source_info)) {					\
+      Sg_Printf(out, UC(prefix "%A:%A\n"), SG_CAR(source), SG_CDR(source)); \
     }									\
   } while (0)
   
