@@ -537,7 +537,8 @@
       (free-identifier=? p-id e-id)))
   ;; if we already see this expression, then previous must already be matched
   ;; i guess...
-  (cond ;;((memq expr seen) #f)
+  ;; This causes (p ...) matches with a variable, so we need better detection
+  (cond #;((memq expr seen) #t)
 	((bar? pat) #t)
         ((variable? pat)
          (cond ((literal-match? pat lites)

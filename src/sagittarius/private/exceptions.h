@@ -373,6 +373,7 @@ SG_EXTERN int      Sg_SimpleConditionP(SgObject obj);
 SG_EXTERN int      Sg_ConditionP(SgObject obj);
 
 SG_EXTERN int      Sg_CompileConditionP(SgObject obj);
+SG_EXTERN int      Sg_SyntaxViolationP(SgObject obj);
 
 /* for c use constructor */
 SG_EXTERN SgObject Sg_MakeNonContinuableViolation();

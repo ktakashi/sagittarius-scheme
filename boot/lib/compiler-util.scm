@@ -12,7 +12,7 @@
 
 	    argcount-ok? constant-folding-warning
 
-	    id->bound-gloc guard add-backtrace format-source-info
+	    id->bound-gloc guard add-backtrace
 	    truncate-program else =>
 
 	    make-label-dic
@@ -284,11 +284,6 @@
      (syntax-error "malformed guard clause" other))))
 
 (define (add-backtrace c src) (make-trace-condition src))
-
-(define (format-source-info info)
-  (if info
-      (format "~s:~d" (car info) (cdr info))
-      #f))
 
 (define (truncate-program program)
   (if (circular-list? program)

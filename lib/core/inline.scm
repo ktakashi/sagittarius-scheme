@@ -14,7 +14,8 @@
 	    (sagittarius compiler)
 	    (sagittarius compiler procedure)
 	    (sagittarius compiler util)
-	    (sagittarius vm))
+	    (sagittarius vm)
+	    (sagittarius vm debug))
 
   ;; trick to get pass1 from compiler
   (define pass1 (let ((lib (find-library '(sagittarius compiler) #f)))
@@ -61,6 +62,8 @@
 					    (vector-ref iform 1)
 					    (undefined))))
 				    (let ((form2 (inliner form const-value)))
+				      (propagate-source-info*! form2 form
+							       '(inlined . #t))
 				      (if (undefined? form2)
 					  (if orig
 					      (orig form p1env)

@@ -161,6 +161,19 @@ int Sg_CompileConditionP(SgObject obj)
   return FALSE;
 }
 
+int Sg_SyntaxViolationP(SgObject obj)
+{
+  if (SG_SIMPLE_CONDITIONP(obj)) {
+    return SG_ISA(obj, SG_CLASS_SYNTAX_CONDITION);
+  } else if (SG_COMPOUND_CONDITIONP(obj)) {
+    SgObject comp;
+    SG_FOR_EACH(comp, SG_COMPOUND_CONDITION(obj)->components) {
+      if (Sg_SyntaxViolationP(SG_CAR(comp))) return TRUE;
+    }
+  }
+  return FALSE;
+}
+
 /* classes */
 static SgClass *base_cpl[] = {
   SG_CLASS_TOP,
@@ -974,7 +987,7 @@ static void describe_compile(SgPort *out, SgObject con)
 #define PUT_SOURCE(target, prefix)					\
   do {									\
     source = source_info(target);					\
-    if (SG_PAIRP(source_info)) {					\
+    if (SG_PAIRP(source)) {						\
       Sg_Printf(out, UC(prefix "%A:%A\n"), SG_CAR(source), SG_CDR(source)); \
     }									\
   } while (0)
@@ -999,6 +1012,13 @@ static void describe_compile(SgPort *out, SgObject con)
     Sg_Printf(out, UC("  - pattern: %#55S\n"), Sg_UnwrapSyntax(pat));
     PUT_SOURCE(pat,   "         at: ");
   }
+
+
+  FOR_CONDITIONS(comp, SG_CLASS_IRRITANTS_CONDITION, components) {
+    SgObject irr = SG_IRRITATNS_CONDITION(SG_CAR(comp))->irritants;
+    Sg_Printf(out, UC("  - irritants: %#55S\n"), Sg_UnwrapSyntax(irr));
+  }
+
   
   i = 1;
   FOR_CONDITIONS(comp, SG_CLASS_TRACE_CONDITION, components) {

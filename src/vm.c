@@ -612,12 +612,11 @@ static inline void report_error(SgObject error, SgObject out)
     }
   } else {
     Sg_Printf(buf, UC("%A"), Sg_DescribeCondition(error));
-    /* This most of the time useless, however in case of error inside of
-       macro expander procedure, this might be useful. Need to think how
-       to differenciate
+    /* if it's not &syntax, then most likely macro procedure error
+       in that case, stack trace might be useful to show
      */
-#if 0
-    if ((attached || vm->state == RUNNING) && !SG_NULLP(stackTrace)) {
+    if (!Sg_SyntaxViolationP(error) &&
+	(attached || vm->state == RUNNING) && !SG_NULLP(stackTrace)) {
       while (1) {
 	format_stack_trace(stackTrace, buf);
 	if (SG_STACK_TRACE_CONDITION_P(next)) {
@@ -631,7 +630,6 @@ static inline void report_error(SgObject error, SgObject out)
 	}
       }
     }
-#endif
   }
   /* for some reason, certain Windows platform failed to create
      stdout, at that moment, there is no stderr ready so out might
