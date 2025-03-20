@@ -473,8 +473,6 @@
 
       (or (and (list? lites) (for-all identifier? lites))
 	  (syntax-violation 'syntax-case "invalid literals" expr literals))
-      (or (unique-id-list? lites)
-	  (syntax-violation 'syntax-case "duplicate literals" expr literals))
       (and (literal-match? .bar lites)
 	   (syntax-violation 'syntax-case "_ in literals" expr literals))
       (and (literal-match? .ellipsis lites)
