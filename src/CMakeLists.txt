@@ -39,6 +39,7 @@ SET(STUB_SOURCES
   lib_kernel.c)
 SET(BUILTIN_SOURCES 
   compiler.c   lib_compiler-util.c lib_iform.c
+  lib_pass1-core.c lib_pass1-syntax.c
   lib_pass1.c lib_pass2.c lib_pass3.c lib_pass4.c lib_pass5.c
   lib_inliner.c
   lib_base.c lib_errors.c   lib_arith.c lib_macro.c lib_program.c

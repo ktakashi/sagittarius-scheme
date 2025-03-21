@@ -47,6 +47,8 @@
   (load "../boot/lib/macro.scm")
   (load "../boot/lib/compiler-util.scm")
   (load "../boot/lib/iform.scm")
+  (load "../boot/lib/pass1-core.scm")
+  (load "../boot/lib/pass1-syntax.scm")
   (load "../boot/lib/pass1.scm")
   (load "../boot/lib/pass2.scm")
   (load "../boot/lib/pass3.scm")
@@ -58,7 +60,7 @@
   ;; for generating boot code, we need this to avoid to import unneccessary 
   ;; libraries.
   (eval '(define (check-expand-phase phases) (memq 'expand phases))
-	(find-library '(sagittarius compiler pass1) #f)))
+	(find-library '(sagittarius compiler pass1 core) #f)))
 
 ;; import specs for compiler 
 ;; we can use (rnrs) here since it won't be pre-compiled

@@ -846,11 +846,45 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from, SgObject spec)
   Sg_UnlockMutex(&tolib->lock);
 }
 
+static inline int check_export_spec(SgObject exportSpec)
+{
+  return SG_PAIRP(exportSpec) &&
+    (SG_NULLP(SG_CAR(exportSpec)) || SG_PAIRP(SG_CAR(exportSpec))) &&
+     (SG_NULLP(SG_CDR(exportSpec)) || SG_PAIRP(SG_CDR(exportSpec)));
+}
+
 void Sg_LibraryExportedSet(SgObject lib, SgObject exportSpec)
 {
   SgLibrary *l;
+  if (!SG_FALSEP(exportSpec) && !check_export_spec(exportSpec)) {
+    Sg_Printf(Sg_StandardErrorPort(), UC("%S\n"), exportSpec);
+    Sg_AssertionViolation(SG_INTERN("library-export-set!"),
+			  SG_MAKE_STRING("invalid export spec"),
+			  exportSpec);
+  }
   ENSURE_LIBRARY(lib, l);
   SG_LIBRARY_EXPORTED(l) = exportSpec;
+}
+
+void Sg_LibraryExportedAdd(SgObject lib, SgObject exportSpec)
+{
+  SgLibrary *l;
+
+  ENSURE_LIBRARY(lib, l);
+  if (!check_export_spec(exportSpec)) {
+    Sg_AssertionViolation(SG_INTERN("library-export-add!"),
+			  SG_MAKE_STRING("invalid export spec"),
+			  exportSpec);
+  }
+  if (SG_FALSEP(SG_LIBRARY_EXPORTED(l))) {
+    SG_LIBRARY_EXPORTED(l) = exportSpec;
+  } else {
+    SgObject exported = SG_LIBRARY_EXPORTED(l);
+    SgObject exports = SG_CAR(exported);
+    SgObject renames = SG_CDR(exported);
+    SG_LIBRARY_EXPORTED(l) = Sg_Cons(Sg_Append2X(exports, SG_CAR(exportSpec)),
+				     Sg_Append2X(renames, SG_CDR(exportSpec)));
+  }
 }
 
 static int library_export_all_p(SgLibrary *lib)

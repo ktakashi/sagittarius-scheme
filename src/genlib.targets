@@ -5,6 +5,8 @@
 ((target macro) (file . "../boot/lib/macro.scm"))
 ((target compiler-util)  (file . "../boot/lib/compiler-util.scm"))
 ((target iform) (file . "../boot/lib/iform.scm"))
+((target pass1-core) (file . "../boot/lib/pass1-core.scm"))
+((target pass1-syntax) (file . "../boot/lib/pass1-syntax.scm"))
 ((target pass1) (file . "../boot/lib/pass1.scm"))
 ((target pass2) (file . "../boot/lib/pass2.scm"))
 ((target pass3) (file . "../boot/lib/pass3.scm"))

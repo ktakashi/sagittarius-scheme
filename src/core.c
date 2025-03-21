@@ -97,6 +97,8 @@ extern void Sg__Init_core_base();
 extern void Sg__Init_core_macro();
 extern void Sg__Init_sagittarius_compiler_util();
 extern void Sg__Init_sagittarius_compiler_iform();
+extern void Sg__Init_sagittarius_compiler_pass1_core();
+extern void Sg__Init_sagittarius_compiler_pass1_syntax();
 extern void Sg__Init_sagittarius_compiler_pass1();
 extern void Sg__Init_sagittarius_compiler_pass2();
 extern void Sg__Init_sagittarius_compiler_pass3();
@@ -231,6 +233,8 @@ void Sg_Init()
   Sg__Init_sagittarius_compiler_procedure();
   Sg__Init_sagittarius_compiler_util();
   Sg__Init_sagittarius_compiler_iform();
+  Sg__Init_sagittarius_compiler_pass1_core();
+  Sg__Init_sagittarius_compiler_pass1_syntax();
   Sg__Init_sagittarius_compiler_pass1();
   Sg__Init_sagittarius_compiler_pass2();
   Sg__Init_sagittarius_compiler_pass3();
@@ -251,17 +255,17 @@ void Sg_Init()
   Sg__Init_sagittarius_kernel();
 
   /* 
-     rebind er-macro-transformer into (sagittarius)
+     re-export er-macro-transformer from (sagittarius)
    */
   {
     SgObject core_macro = SG_INTERN("(core macro)");
     SgLibrary *core_macro_lib = SG_LIBRARY(Sg_FindLibrary(core_macro, FALSE));
     SgLibrary *sagittarius_lib = SG_LIBRARY(Sg_FindLibrary(sgsym, FALSE));
-    Sg_InsertBinding(sagittarius_lib,
-		     SG_SYMBOL_ER_MACRO_TRANSFORMER,
-		     Sg_FindBinding(core_macro_lib, 
-				    SG_SYMBOL_ER_MACRO_TRANSFORMER,
-				    SG_UNBOUND));
+    Sg_ImportLibraryFullSpec(sagittarius_lib, core_macro_lib,
+			     SG_LIST1(SG_LIST2(SG_INTERN("only"),
+					       SG_SYMBOL_ER_MACRO_TRANSFORMER)));
+    Sg_LibraryExportedAdd(sagittarius_lib,
+			  SG_LIST1(SG_LIST1(SG_SYMBOL_ER_MACRO_TRANSFORMER)));
   }
   init_cond_features();
 
