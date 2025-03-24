@@ -2,7 +2,7 @@
 #!nounbound
 (library (core base)
     (export hashtable-for-each hashtable-map hashtable-fold hashtable->alist
-	    unique-id-list? print wrong-type-argument-message
+	    print wrong-type-argument-message
 	    string-for-each string-join
 	    null-list?
 	    find find-tail
@@ -59,14 +59,6 @@
 	    (loop (kons k v r)))))))
 
 (define (hashtable->alist ht) (hashtable-map cons ht))
-
-(define (unique-id-list? lst)
-  (and (list? lst)
-       (not (let loop ((lst lst))
-              (and (pair? lst)
-                   (or (not (variable? (car lst)))
-                       (id-memq (car lst) (cdr lst))
-                       (loop (cdr lst))))))))
 
 #;(define (any pred ls)
   (if (pair? ls) (if (pred (car ls)) (car ls) (any pred (cdr ls))) #f))

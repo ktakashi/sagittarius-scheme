@@ -1,8 +1,7 @@
 ;; -*- scheme -*-
 #!nounbound
 (library (core misc)
-    (export unique-id-list?
-	    define-macro
+    (export define-macro
 	    define-vector-type)
     (import (core)
 	    (core syntax)

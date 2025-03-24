@@ -71,11 +71,6 @@
 	(result id)
 	(result (SG_IDENTIFIER_NAME id))))
 
-  (define-c-proc id-memq (id lst) :constant
-    (if (SG_IDENTIFIERP id)
-	(result (Sg_Memq (SG_IDENTIFIER_NAME id) lst))
-	(result (Sg_Memq id lst))))
-
   ;; closure?
   (define-c-proc closure? (cl) ::<boolean> :constant SG_CLOSUREP)
   (define-c-proc subr? (p) ::<boolean> :constant SG_SUBRP)
@@ -149,6 +144,7 @@
   ;; misc
   (define-c-proc variable? (o) ::<boolean> :constant
     (result (or (SG_SYMBOLP o) (SG_IDENTIFIERP o))))
+
   ;; inexact computation
   (define-cise-stmt check-number
     ((_ name v)

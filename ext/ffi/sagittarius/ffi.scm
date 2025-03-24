@@ -573,6 +573,13 @@
 
   ;; c-struct
   (define (make-c-struct name defs alignment)
+    (define (unique-id-list? lst)
+      (and (list? lst)
+	   (not (let loop ((lst lst))
+		  (and (pair? lst)
+                       (or (not (symbol? (car lst)))
+			   (memq (car lst) (cdr lst))
+			   (loop (cdr lst))))))))
     (define (bit-field-check fields)
       (and (for-all (lambda (field)
 		      (and (pair? field)
