@@ -2,7 +2,7 @@
 ;;;
 ;;; net/http.scm - HTTP utilities
 ;;;  
-;;;   Copyright (c) 2023  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2023-2025  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -77,7 +77,9 @@
 		    (make-x-www-form-urlencoded-request-payload
 		     x-www-form-urlencoded-payload))
 
-	    (rename (*default-http-client* *http:default-http-client*)))
+	    (rename (*default-http-client* *http:default-http-client*))
+
+	    http:response-body->json)
     (import (rnrs)
 	    (net http-client)
 	    (net http-client request) ;; for http:request accessors
@@ -268,4 +270,10 @@
 (define-bodied PUT)
 (define-bodied PATCH)
 (define-bodied DELETE)
+
+(define (http:response-body->json http-response
+				  :optional (transcoder (native-transcoder)))
+  (json-read (open-bytevector-input-port (http:response-body http-response)
+					 transcoder)))
+
 )
