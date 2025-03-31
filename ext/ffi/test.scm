@@ -323,7 +323,8 @@
 	(test-equal "result(2~)" 2 (pointer->integer (deref result 1)))
 	(test-equal "result(3~)" 3 (pointer->integer (deref result 2)))
 	(test-equal "result(4~)" 4 (pointer->integer (deref result 3))))
-      ))
+      (let ((r (va-fn result 4)))
+	(test-equal "varargs" 4 r))))
 
   ;; wchar_t*
   (let ()

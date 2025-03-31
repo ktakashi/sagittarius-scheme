@@ -453,7 +453,7 @@
 	    (if (memq ___ arg-types)
 		(let-values (((rest required)
 			      (partition (lambda (e) (eq? ___ e)) arg-types)))
-		  (unless (< (length required) args-length)
+		  (unless (<= (length required) args-length)
 		    (assertion-violation
 		     name
 		     (format "wrong arguments number at least ~d required, but got ~d"
