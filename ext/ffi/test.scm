@@ -229,6 +229,11 @@
 		(struct-with-array-int*-set! st #(1 2 3 4 5))
 		(struct-with-array-int*-ref st)))
 
+  (test-equal "c-struct array"
+	      #(1 2 3 4)
+	      (let ((st (make-struct-with-array :int* #(1 2 3 4))))
+		(struct-with-array-int*-ref st)))
+  
   ;;(pointer-ref-test bool #t)
   ;; for now char and wchar_t returns integer
   (pointer-ref-test char #t)
@@ -581,7 +586,13 @@
 	     (test-equal "foo-c(n)" 3 (foo-c-ref n))
 	     (test-equal "foo-d(n)" 4 (foo-d-ref n))
 	     (test-equal "foo as short" v1 (pointer-ref-c-uint16 p 0))
-	     ))
+	     )
+	   (let ((p (make-foo :a 1 :b 2 :c 3 :d 4)))
+	     (test-equal "foo-a(p)" 1 (foo-a-ref p))
+	     (test-equal "foo-b(p)" 2 (foo-b-ref p))
+	     (test-equal "foo-c(p)" 3 (foo-c-ref p))
+	     (test-equal "foo-d(p)" 4 (foo-d-ref p)))
+	   )
 	 (let ()
 	   (define-c-struct foo
 	     (bit-field (unsigned-short endian) (a 1) (b 2) (c 3) (d 4) (e 5)))

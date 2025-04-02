@@ -13,7 +13,7 @@ avoid those errors.
 
 Following is the simple example to use;
 
-``````````c
+```c
 /* C file, must be compiled as a shared library and named 'my-quick-sort.so' */
 #include <stdlib.h>
 #include <string.h>
@@ -70,9 +70,9 @@ EXPORT int quicksort(void *base, const size_t num, const size_t size,
   free(temp);
   return 0;
 }
-``````````
+```
 
-``````````scheme
+```scheme
 ;; Scheme file
 ;; load shared library (on Windows the extension might be '.dll')
 ;; On Unix like environment, the shared library must be full path or
@@ -105,8 +105,8 @@ EXPORT int quicksort(void *base, const size_t num, const size_t size,
 
 ;; Close shared library.
 (close-shared-library so-library)
-``````````
-=> ``#vu8(1 2 3 4 5 6 7 8 9)``
+```
+=> `#vu8(1 2 3 4 5 6 7 8 9)`
 
 The document describes higher APIs to lower APIs.
 
@@ -155,7 +155,7 @@ _shared-library_ must be opened shared-library.
 
 _return-type_ must be one of the followings;
 
-``````````scheme
+```scheme
   void 
   bool  char
   short int long long-long
@@ -165,7 +165,7 @@ _return-type_ must be one of the followings;
   void* char* wchar_t*
   int8_t  int16_t  int32_t  int64_t
   uint8_t uint16_t uint32_t uint64_t
-``````````
+```
 
 The return value will be converted corresponding Scheme value. Following
 describes the conversion;
@@ -199,7 +199,7 @@ _name_ must be a symbol indicating a exported C function name.
 
 _argument-types_ must be zero or more followings;
 
-``````````scheme
+```scheme
   bool
   char short int long long-long
   unsigned-short unsigned-int unsigned-long unsigned-long-long
@@ -210,7 +210,7 @@ _argument-types_ must be zero or more followings;
   uint8_t uint16_t uint32_t uint64_t
   callback
   ___
-``````````
+```
 
 When the C function is called, given Scheme arguments will be converted to
 corresponding C types. Following describes the conversion;
@@ -285,10 +285,10 @@ Convenient macro for address passing.
 
 When you need to pass an address of a pointer to C function, you can write like
 this;
-``(c-func (address _pointer_))``
+`(c-func (address _pointer_))`
 
 This is equivalent of following C code;
-``c_func(&pointer)``
+`c_func(&pointer)`
 
 _pointer_ can be a pointer object or a bytevector.
 
@@ -307,7 +307,7 @@ _return-type_.
 
 _argument-types_ must be zero or following;
 
-``````````scheme
+```scheme
   bool
   char short int long long-long intptr_t
   unsigned-char unsigned-short unsigned-int unsigned-long-long uintptr_t
@@ -316,7 +316,7 @@ _argument-types_ must be zero or following;
   float double
   size_t
   void*
-``````````
+```
 
 The conversion of C to Scheme is the same as `c-function`'s
 _return-type_.
@@ -367,8 +367,8 @@ To represents NULL pointer, you can write like this;
 
 
 
-###### [!Function] `pointer->integer`  _pointer_ _:optional_ _bits_
-###### [!Function] `pointer->uinteger`  _pointer_ _:optional_ _bits_
+###### [!Function] `pointer->integer` _pointer_ _:optional_ _bits_
+###### [!Function] `pointer->uinteger` _pointer_ _:optional_ _bits_
 
 Converts given _pointer_ to integer/uinteger, respectively.
 
@@ -389,7 +389,7 @@ pointer is 32 bit value's pointer returning value's upper 32 bit would be
 only returns lower 32 bit value.
 
 
-###### [!Function] `pointer->string`  _pointer_ _:optional_ _(transcoder_ _(native-transcoder))_
+###### [!Function] `pointer->string` _pointer_ _:optional_ _(transcoder_ _(native-transcoder))_
 
 Converts given _pointer_ to Scheme string.
 
@@ -399,7 +399,7 @@ it reaches 0.
 If NULL pointer is given, it raises `&assertion`.
 
 
-###### [!Function] `pointer->bytevector`  _pointer_ _size_ _:optional_ _(offset_ _0)_ _(shared_ _#t)_
+###### [!Function] `pointer->bytevector` _pointer_ _size_ _:optional_ _(offset_ _0)_ _(shared_ _#t)_
 
 _Size_ must be an exact integer.
 
@@ -412,7 +412,7 @@ given _pointer_ is modified, then the created bytevector gets affected.
 If NULL pointer is given, it raises `&assertion`.
 
 
-###### [!Function] `bytevector->pointer`  _bv_ _:optional_ _(offset_ _0)_ _(shared_ _#t)_
+###### [!Function] `bytevector->pointer` _bv_ _:optional_ _(offset_ _0)_ _(shared_ _#t)_
 
 Converts given _bytevector_ to pointer from given _offset_. 
 
@@ -423,8 +423,8 @@ given _bv_ is modified, then the created pointer gets affected.
 If NULL pointer is given, it raises `&assertion`.
 
 
-###### [!Function] `object->pointer`  _obj_
-###### [!Function] `pointer->object`  _pointer_
+###### [!Function] `object->pointer` _obj_
+###### [!Function] `pointer->object` _pointer_
 
 CAUTION: These operations are really dangerous especially
 `pointer->object`.
@@ -434,23 +434,22 @@ The operations are useful to pass Scheme object to callbacks and restore
 it.
 
 
-###### [!Function] `deref`  _pointer_ _offset_
+###### [!Function] `deref` _pointer_ _offset_
 
 _offset_ must be a fixnum.
 
 Returns a pointer offset _offset_ of given _pointer_. The same as
 following C code;
 
-``````````scheme
+```scheme
 void* deref(void **pointer, int offset) {
   return pointer[offset]; 
 }
-``````````
+```
 
-If NULL pointer is given, it raises `&assertion`.
+If `NULL` pointer is given, it raises `&assertion`.
 
-
-###### [!Function] `pointer-address`  _pointer_ _:optional_ _offset_
+###### [!Function] `pointer-address` _pointer_ _:optional_ _offset_
 
 Returns an address of given _pointer_.
 
@@ -463,7 +462,7 @@ NOTE: If the returned value is modified then given _pointer_ will be
 affected.
 
 
-###### [!Function] `allocate-pointer`  _size_ _:optional_ _(fill_ _0)_
+###### [!Function] `allocate-pointer` _size_ _:optional_ _(fill_ _0)_
 
 _size_ must be a fixnum.
 
@@ -524,14 +523,16 @@ Returns an integer value of offset _offset_ of _pointer_ depending
 on the _type_.
 
 Following _type_ are supported;
-`  int8  int16  int32  int64
-  uint8 uint16 uint32 uint64
-  char wchar short  int long long-long
-  unsigned-char unsigned-short unsigned-int unsigned-long unsigned-long-long
-  intptr uintptr
-  float double
-  pointer
-`NOTE: if the _type_ is `flonum` or `double`, then it returns
+```
+int8 int16 int32 int64
+uint8 uint16 uint32 uint64
+char wchar short int long long-long
+unsigned-char unsigned-short unsigned-int unsigned-long unsigned-long-long
+intptr uintptr
+float double
+pointer
+```
+NOTE: if the _type_ is `flonum` or `double`, then it returns
 Scheme flonum
 
 NOTE: if the _type_ is `pointer`, then it returns Scheme FFI pointer.
@@ -547,7 +548,7 @@ are the same as `pointer-ref-c-_type_`The type conversion is the same as `c-func
 There is no direct procedures to handle C arrays. Following is an example
 of how to handle array of pointers;
 
-``````````scheme
+```scheme
 (import (rnrs) (sagittarius ffi))
 
 (define (string-vector->c-array sv)
@@ -566,11 +567,11 @@ of how to handle array of pointers;
     ;; deref handles pointer offset.
     ;; it can be also (pointer-ref-c-pointer p (* i size-of-void*))
     (print (pointer->string (deref p i)))))
-``````````
+```
 
 Following is an example for Scheme string to UTF-16 bytevector;
 
-``````````scheme
+```scheme
 (import (rnrs) (sagittarius ffi))
 ;; Converts to UTF16 big endian (on little endian environment)
 (define (string->c-string s)
@@ -583,8 +584,7 @@ Following is an example for Scheme string to UTF-16 bytevector;
       ;; so this is platform dependent code.
       (pointer-set-c-uint16! p i 
         (bytevector-u16-ref bv i (endianness little))))))
-``````````
-
+```
 
 
 ###### [!Function] `set-pointer-value!`  _pointer_ _value_
@@ -610,13 +610,13 @@ Defines C structure.
 
 _clauses_ must be following form;
 
-``````````scheme
+```scheme
 (_type_ _name_)
 (_type_ `array` _size_ _name_)
 (`struct` _struct-name_ _name_)
 (`bit-field` _type_ (_name_ _bit_) ...)
 (`bit-field` (_type_ _endian_) (_name_ _bit_) ...)
-``````````
+```
 
 _name_ must be a symbol.
 
@@ -631,7 +631,7 @@ The first form is the simple C type form. _type_ must be a symbol and the
 same as one of the `c-function`'s _return-types_ or `callback`.
 Following describes the concrete example and the equivalent C structure:
 
-``````````scheme
+```scheme
 (define-c-struct st
   (int foo)
   (callback fn))
@@ -642,12 +642,12 @@ struct st
   void* fn; /* function pointer */
 };
 |#
-``````````
+```
 
 The second form is defining C _type_ array with _size_.
 Following describes the concrete example and the equivalent C structure:
 
-``````````scheme
+```scheme
 (define-c-struct st
   (int array 10 foo))
 #|
@@ -656,12 +656,12 @@ struct st
   int foo[10];
 };
 |#
-``````````
+```
 
 The third form is defining internal structure.
 Following describes the concrete example and the equivalent C structure:
 
-``````````scheme
+```scheme
 (define-c-struct st1
   (int array 10 foo))
 (define-c-struct st2
@@ -678,7 +678,7 @@ struct st2
   int bar;
 };
 |#
-``````````
+```
 
 So far, we don't support direct internal structure so users always need to
 extract internal structures.
@@ -689,7 +689,7 @@ then `&assertion` is raised.
 
 Following describes the concrete example and the equivalent C structure:
 
-``````````scheme
+```scheme
 (define-c-struct st1
   (bit-field unsigned-int (a 10) (b 20)))
 #|
@@ -699,7 +699,7 @@ struct st1
   unsigned int b : 20;
 };
 |#
-``````````
+```
 
 If the fifth form is used, then _endian_ must be an identifier which has
 valid name for `endianness` macro. Then the created structure packs
@@ -715,13 +715,11 @@ not be signed. It is safe to specify unsigned type.
 The macro also defines accessors for the c-struct. Following naming rules are
 applied;
 
-
 - For getter: _name_-_member-name_-ref
 - For setter: _name_-_member-name_-set!
 
 The macro also defines size variable for the c-struct. If the name of the
 c-struct if _foo_, then the variable name will be `size-of-foo`.
-
 
 
 ###### [!Function] `size-of-c-struct`  _struct_
@@ -735,6 +733,13 @@ Returns the size of given _struct_.
 
 Allocates memory for _struct_ and returns a pointer.
 
+###### [!Function] make-`_struct-name_` :key _members_ _..._ **[@since] `0.9.13`**
+
+A convenient constructor of _struct-name_ c-struct.
+
+Keyword arguments represents the member name, if it's provided, then the value
+is populdated to the returning pointer.
+
 ###### [!Function] `_struct-name_`  _-_ _member-name_ _-ref_ _struct-pointer_ _inner-member-names_ _..._
 ###### [!Function] `_struct-name_`  _-_ _member-name_ _-set!_ _struct-pointer_ _value_ _inner-member-names_ _..._
 
@@ -747,7 +752,7 @@ struct values.
 
 Following describes how it works.
 
-``````````scheme
+```scheme
 (define-c-struct in
   (int  i)
   (char c))
@@ -761,8 +766,7 @@ Following describes how it works.
 (out-i-ref out)           ;; -> 100
 (out-in0-ref out 'i)      ;; -> 200
 (out-in0-ref out)         ;; -> pointer object (indicating the inner struct address)
-``````````
-
+```
 
 
 #### [§4] Low level C struct accessors
@@ -797,12 +801,12 @@ Defines other name of _original_ with _new-names_.
 
 _new-names_ must be following forms;
 
-``````````scheme
+```scheme
 ()
 ((`*` _new-p_) _rest_ ...)
 ((`s*` _new-sp_) _rest_ ...)
 (_new_ _rest_ ...)
-``````````
+```
 
 The first for defines nothing.
 
@@ -817,7 +821,7 @@ The forth form defines _new_ as _original_.
 
 Following example describes how to will be expanded approximately.
 
-``````````scheme
+```scheme
 (define-c-typedef char (* char_ptr) byte (s* string))
 
 => 
@@ -827,8 +831,7 @@ Following example describes how to will be expanded approximately.
   (define byte char)
   (define string char*)
 )
-``````````
-
+```
 
 
 ### [§3] Sizes and aligns
@@ -840,7 +843,7 @@ a size or align of _type_, respectively.
 
 Following types are supported;
 
-``````````scheme
+```scheme
   bool char
   short int long long-long
   unsigned-short unsigned-int unsigned-long unsigned-long-long
@@ -849,7 +852,7 @@ Following types are supported;
   int8_t  int16_t  int32_t  int64_t
   uint8_t uint16_t uint32_t uint64_t
   void*
-``````````
+```
 
 The values are platform dependent.
 

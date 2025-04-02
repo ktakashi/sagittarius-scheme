@@ -685,74 +685,71 @@
 				       (syntax->datum name)
 				       (syntax->datum m)
 				       suffix))))
-	(define (gen-getters members struct?)
-	  (let loop ((members members) (r '()))
-	    (syntax-case members ()
-	      (() r)
-	      ((member . d)
-	       (with-syntax ((name  name)
-			     (getter (gen #'member "ref"))
-			     (struct? (datum->syntax name struct?)))
-		 (loop #'d
-		  (cons #'(define (getter st . opt)
-			  (if (and struct? (not (null? opt)))
-			      (let ((m (generate-member-name 'member opt)))
-				(c-struct-ref st name m))
-			      (c-struct-ref st name 'member)))
-			r)))))))
 	(define (gen-setters members struct?)
 	  (let loop ((members members) (r '()))
 	    (syntax-case members ()
 	      (() r)
 	      ((member . d)
 	       (with-syntax ((name  name)
+			     (getter (gen #'member "ref"))
 			     (setter (gen #'member "set!"))
 			     (struct? (datum->syntax name struct?)))
 		 (loop #'d
-		  (cons #'(define (setter st v . opt)
-			    ;; the same trick as above
-			    (if (and struct? (not (null? opt)))
-				(let ((m (generate-member-name 'member opt)))
-				  (c-struct-set! st name m v))
-				(c-struct-set! st name 'member v)))
-			r)))))))
+		  (cons 
+		   (list #'member
+			 #'setter
+			 #'(begin
+			     (define (getter st . opt)
+			       (if (and struct? (not (null? opt)))
+				   (let ((m (generate-member-name 'member opt)))
+				     (c-struct-ref st name m))
+				   (c-struct-ref st name 'member)))
+			     (define (setter st v . opt)
+			       ;; the same trick as above
+			       (if (and struct? (not (null? opt)))
+				   (let ((m (generate-member-name 'member opt)))
+				     (c-struct-set! st name m v))
+				   (c-struct-set! st name 'member v)))))
+		   r)))))))
 
-	(define (continue members rest struct?)
-	  (with-syntax (((getters ...) (gen-getters members struct?))
-			((setters ...) (gen-setters members struct?)))
-
-	    (generate-accessors name rest
-	     (cons #'(begin
-		       getters ...
-		       setters ...)
-		   r))))
+	(define (continue members rest struct? r)
+	  (with-syntax (((accessors ...) (gen-setters members struct?)))
+	    (syntax-case r ()
+	      ((e ...)
+	       (generate-accessors name rest #'(accessors ... e ...))))))
+	    
 	(syntax-case spec (struct array bit-field)
 	  (() (reverse! r))
 	  (((type member) rest ...)
-	   (continue #'(member) #'(rest ...) #f))
+	   (continue #'(member) #'(rest ...) #f r))
 	  (((struct type member) rest ...)
-	   (continue #'(member) #'(rest ...) #t))
+	   (continue #'(member) #'(rest ...) #t r))
 	  (((type array elements member) rest ...)
-	   (continue #'(member) #'(rest ...) #f))
+	   (continue #'(member) #'(rest ...) #f r))
 	  (((bit-field type (member bit) ...) rest ...)
-	   (continue #'(member ...) #'(rest ...) #f))))
+	   (continue #'(member ...) #'(rest ...) #f r))))
 
-      (define (generate-size-of name)
+      (define (generate-name name prefix)
 	(datum->syntax name
 	 (string->symbol
-	  (string-append "size-of-" (symbol->string (syntax->datum name))))))
+	  (string-append prefix (symbol->string (syntax->datum name))))))
       (syntax-case x (alignment)
 	((_ name (alignment n) (type . rest) ...)
-	 (with-syntax (((accessors ...)
+	 (with-syntax ((((member setter-name accessors) ...)
 			(generate-accessors #'name
 					    #'((type . rest) ...)
 					    '()))
-		       (size-of (generate-size-of #'name)))
+		       (ctr (generate-name #'name "make-"))
+		       (size-of (generate-name #'name "size-of-")))
 	   #'(begin
 	       (define name (make-c-struct 'name
 					   (type-list (type . rest) ...)
 					   n))
 	       (define size-of (size-of-c-struct name))
+	       (define (ctr :key member ...)
+		 (let ((r (allocate-c-struct name)))
+		   (unless (undefined? member) (setter-name r member)) ...
+		   r))
 	       accessors ...)))
 	((_ name (type . rest) ...)
 	 #'(define-c-struct name (alignment -1) (type . rest) ...)))))
