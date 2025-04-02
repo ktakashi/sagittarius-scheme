@@ -629,11 +629,10 @@
         (else vars)))
 
 
-(define (no-matching-pattern who form patterns)
+(define (no-matching-pattern form patterns)
   (raise (apply condition
 		(make-syntax-violation form #f)
-		(or (and who (make-who-condition who))
-		    (make-who-condition 'syntax-case))
+		(make-who-condition 'syntax-case)
 		(make-message-condition "Input form doesn't match any pattern")
 		(map make-syntax-pattern-condition patterns))))	  
 
@@ -645,9 +644,7 @@
   ;; we need to local variable unique so that it won't be global.
   (let loop ((lst olst))
     (if (null? lst)
-	(no-matching-pattern (and (pair? form) (car form))
-			     (unwrap-syntax form)
-			     (map car olst))
+	(no-matching-pattern form (map car olst))
 	(let ((clause (car lst)))
 	  (let ((pat (car clause))
 		(fender (cadr clause))

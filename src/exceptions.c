@@ -968,9 +968,10 @@ static void describe_compile(SgPort *out, SgObject con)
   }
   
   if (SG_FALSEP(message)) {
-    message = Sg_Sprintf(UC("[%A] unknown error"), who);
+    message = Sg_Sprintf(UC("[%A] unknown error"),
+			 Sg_UnwrapSyntax(who));
   } else {
-    message = Sg_Sprintf(UC("[%A] %A"), who, message);
+    message = Sg_Sprintf(UC("[%A] %A"),  Sg_UnwrapSyntax(who), message);
   }
 
   Sg_Printf(out, UC("%A: %A\n"), title, message);
