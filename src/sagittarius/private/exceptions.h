@@ -374,6 +374,7 @@ SG_EXTERN int      Sg_ConditionP(SgObject obj);
 
 SG_EXTERN int      Sg_CompileConditionP(SgObject obj);
 SG_EXTERN int      Sg_SyntaxViolationP(SgObject obj);
+SG_EXTERN int      Sg_ConditionContainsP(SgObject obj, SgObject klass);
 
 /* for c use constructor */
 SG_EXTERN SgObject Sg_MakeNonContinuableViolation();

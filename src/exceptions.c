@@ -148,27 +148,24 @@ int Sg_ConditionP(SgObject obj)
   return SG_CONDITIONP(obj);
 }
 
-/* &compile won't be raised as a simple condition, if it is, then not from
-   the compiler. */
 int Sg_CompileConditionP(SgObject obj)
 {
-  if (SG_COMPOUND_CONDITIONP(obj)) {
-    SgObject comp;
-    SG_FOR_EACH(comp, SG_COMPOUND_CONDITION(obj)->components) {
-      if (SG_ISA(SG_CAR(comp), SG_CLASS_COMPILE_CONDITION)) return TRUE;
-    }
-  }
-  return FALSE;
+  return Sg_ConditionContainsP(obj, SG_CLASS_COMPILE_CONDITION);
 }
 
 int Sg_SyntaxViolationP(SgObject obj)
 {
+  return Sg_ConditionContainsP(obj, SG_CLASS_SYNTAX_CONDITION);
+}
+
+int Sg_ConditionContainsP(SgObject obj, SgObject klass)
+{
   if (SG_SIMPLE_CONDITIONP(obj)) {
-    return SG_ISA(obj, SG_CLASS_SYNTAX_CONDITION);
+    return SG_ISA(obj, klass);
   } else if (SG_COMPOUND_CONDITIONP(obj)) {
     SgObject comp;
     SG_FOR_EACH(comp, SG_COMPOUND_CONDITION(obj)->components) {
-      if (Sg_SyntaxViolationP(SG_CAR(comp))) return TRUE;
+      if (Sg_ConditionContainsP(SG_CAR(comp), klass)) return TRUE;
     }
   }
   return FALSE;

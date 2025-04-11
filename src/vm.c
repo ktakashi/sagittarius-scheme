@@ -612,11 +612,13 @@ static inline void report_error(SgObject error, SgObject out)
     }
   } else {
     Sg_Printf(buf, UC("%A"), Sg_DescribeCondition(error));
-    /* if it's not &syntax, then most likely macro procedure error
-       in that case, stack trace might be useful to show
+    /* if it's not &syntax nor &undefined, then most likely macro
+       procedure error in that case, stack trace might be useful to
+       show
      */
-    if (!Sg_SyntaxViolationP(error) &&
-	(attached || vm->state == RUNNING) && !SG_NULLP(stackTrace)) {
+    if (!Sg_SyntaxViolationP(error)
+	&& !Sg_ConditionContainsP(error, SG_CLASS_UNDEFINED_CONDITION)
+	&& !SG_NULLP(stackTrace)) {
       while (1) {
 	format_stack_trace(stackTrace, buf);
 	if (SG_STACK_TRACE_CONDITION_P(next)) {
