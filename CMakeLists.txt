@@ -355,7 +355,7 @@ IF(USE_BOEHM_GC)
       # we need to download it separately
       # /v7.8.2/libatomic_ops-7.8.2.tar.gz
       SET(LIBATOMIC_OPS_URL
-	"https://github.com/ivmai/libatomic_ops/releases/download")
+	"https://github.com/bdwgc/libatomic_ops/releases/download")
       SET(LIBATOMIC_OPS_VERSION "7.8.2")
       SET(LIBATOMIC_OPS "libatomic_ops-${LIBATOMIC_OPS_VERSION}")
       SET(LIBATOMIC_OPS_PATH "/v${LIBATOMIC_OPS_VERSION}/${LIBATOMIC_OPS}.tar.gz")
