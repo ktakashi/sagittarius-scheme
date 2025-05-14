@@ -337,15 +337,38 @@
     (define input "wide string")
     (test-assert "size-of-wchar_t" size-of-wchar_t)
     (test-assert "align-of-wchar_t" align-of-wchar_t)
-    (test-equal "wchar_t*" input (wide-fn input)))
-
+    (test-equal "wchar_t* (1)" input (wide-fn input)))
+  
   (let ()
     (define wide-fn (c-function ffi-test-lib (wchar_t *) wide_fn ((wchar_t *))))
     (define input "wide string")
-    (test-assert "size-of-wchar_t" size-of-wchar_t)
-    (test-assert "align-of-wchar_t" align-of-wchar_t)
-    (test-equal "wchar_t*" input (wide-fn input)))
+    (test-equal "wchar_t* (2)" input (wide-fn input)))
 
+  ;; callback wchar_t*
+  (let ()
+    (define wide-cb
+      (c-function ffi-test-lib (wchar_t *) wide_cb (wchar_t* callback)))
+    (define cb (c-callback (wchar_t *) ((wchar_t *)) string-upcase))
+    (define input "wide string")
+    (test-equal "wchar_t* callback" (string-upcase input) (wide-cb input cb)))
+
+  ;; wchar_t
+  (let ()
+    (define widec-fn (c-function ffi-test-lib wchar_t widec_fn (wchar_t)))
+    (test-equal "wchar_t" #\a (widec-fn #\a)))
+  (let ()
+    (define widec-cb (c-function ffi-test-lib wchar_t widec_cb (wchar_t callback)))
+    (define cb (c-callback wchar_t (wchar_t) char-upcase))
+    (test-equal "wchar_t callback" #\A (widec-cb #\a cb)))
+
+  ;; char*
+  (let ()
+    (define str-cb (c-function ffi-test-lib (char *) str_cb ((char *) callback)))
+    (define cb (c-callback char* (char*) string-upcase))
+    (print (str-cb "abc" cb))
+    (test-equal "str callback" "ABC" (str-cb "abc" cb)))
+  
+  
   ;; callback return
   (define set-compare! (c-function ffi-test-lib void set_compare (callback)))
   (define get-compare (c-function ffi-test-lib callback get_compare ()))

@@ -157,7 +157,7 @@ _return-type_ must be one of the followings;
 
 ```scheme
   void 
-  bool  char
+  bool char wchar_t
   short int long long-long
   unsigned-short unsigned-int unsigned-long unsigned-long-long
   intptr_t uintptr_t
@@ -190,6 +190,9 @@ describes the conversion;
 `float double`
 : Scheme flonum
 
+`wchar_t`
+: Scheme character.
+
 `void*`
 : Scheme FFI pointer type
 
@@ -203,7 +206,8 @@ _argument-types_ must be zero or more followings;
   bool
   char short int long long-long
   unsigned-short unsigned-int unsigned-long unsigned-long-long
-  size_t
+  size_t 
+  wchar_t
   void* char* wchar_t*
   float double
   int8_t  int16_t  int32_t  int64_t
@@ -236,6 +240,13 @@ corresponding C types. Following describes the conversion;
 
 `double`
 : Scheme flonum to C double
+
+`wchar_t`
+: Scheme character to C wide character
+  It doesn't check the range, in case of 16 bits wide character, it's
+  users' responsibility to pass the appropriate character. Passing
+  out of range character doesn't raise an error but may truncate the
+  value to be passed.
 
 `void* char*`
 : `void*` and `char*` are actually treated the same, internally.
@@ -314,8 +325,8 @@ _argument-types_ must be zero or following;
   int8_t int16_t int32_t int64_t
   uint8_t uint16_t uint32_t int64_t
   float double
-  size_t
-  void*
+  size_t wchar_t
+  void* char* wchar_t*
 ```
 
 The conversion of C to Scheme is the same as `c-function`'s
@@ -324,9 +335,9 @@ _return-type_.
 NOTE: if the content of `void*` won't be copied, thus if you modify it in
 the callback procedure, corresponding C function will get affected.
 
-NOTE: callback doesn't support `char*` nor `wchar_t*`. It is because
-the conversion loses original pointer address and you might not want it. So
-it is users responsibility to handle it.
+NOTE: `char*` and `wchar_t*` lose the original pointer address, this
+is due to the Scheme string to C string conversion. If the pointer address
+is required, then use `void*` and bytevector.
 
 _proc_ must be a procedure takes the same number of arguments as
 _argument-types_ list.
@@ -851,7 +862,7 @@ Following types are supported;
   float double
   int8_t  int16_t  int32_t  int64_t
   uint8_t uint16_t uint32_t uint64_t
-  void*
+  void* wchar_t
 ```
 
 The values are platform dependent.

@@ -173,6 +173,28 @@ EXPORT wchar_t* wide_fn(wchar_t *str)
   return str;
 }
 
+EXPORT wchar_t* wide_cb(wchar_t *str, wchar_t * (* cb)(wchar_t *))
+{
+  return cb(str);
+}
+
+EXPORT wchar_t widec_fn(wchar_t wc)
+{
+  /* do nothing */
+  return wc;
+}
+
+EXPORT wchar_t widec_cb(wchar_t wc, wchar_t (* cb)(wchar_t))
+{
+  return cb(wc);
+}
+
+EXPORT char* str_cb(char *str, char * (* cb)(char *))
+{
+  return cb(str);
+}
+
+
 struct foo
 {
   short fs;

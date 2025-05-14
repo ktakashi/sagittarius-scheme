@@ -487,7 +487,8 @@
 			((float) #\f)
 			((double) #\d)
 			((callback) #\c)
-			((wchar_t*) #\w)
+			((wchar_t) #\w)
+			((wchar_t*) #\W)
 			((intptr_t) (if (= size-of-intptr_t 4) #\i #\x))
 			((uintptr_t) (if (= size-of-intptr_t 4) #\u #\U))
 			((___)
@@ -505,7 +506,8 @@
 				(case (car arg-type)
 				  ;; there is no wchar_t above but
 				  ;; just for convenience
-				  ((wchar_t)  #\w)
+				  ((wchar_t)  #\W)
+				  ((char)  #\Z)
 				  (else #\p))
 				(assertion-violation 'make-signatures
 						     "invalid argument type"
@@ -539,11 +541,7 @@
   (define (make-callback-signature name ret args)
     (apply string
 	   (map (lambda (a)
-		  (let ((a (if (and (pair? a)
-				    (not (null? (cdr a)))
-				    (eq? (cadr a) '*))
-			       void*
-			       a)))
+		  (let ((a (convert-return-type a)))
 		    (cond ((assq a callback-argument-type-class) => cdr)
 			  (else (assertion-violation name
 				  (format "invalid argument type ~a" a)
@@ -554,7 +552,7 @@
     (lambda (x)
       (syntax-case x (*)
 	((_ (ret *) (args ...) proc)
-	 #'(make-c-callback (ret *) (arg-list args ...) proc))
+	 #'(make-c-callback (list ret '*) (arg-list args ...) proc))
 	((_ ret (args ...) proc)
 	 #'(make-c-callback ret (arg-list args ...) proc)))))
 
@@ -902,6 +900,7 @@
       (uint32_t           . ,FFI_RETURN_TYPE_UINT32_T)
       (int64_t            . ,FFI_RETURN_TYPE_INT64_T )
       (uint64_t           . ,FFI_RETURN_TYPE_UINT64_T)
+      (wchar_t            . ,FFI_RETURN_TYPE_WCHAR   )
       (wchar_t*           . ,FFI_RETURN_TYPE_WCHAR_STR)
       (callback           . ,FFI_RETURN_TYPE_CALLBACK)))
 
@@ -930,6 +929,9 @@
       (float              . #\f)
       (double             . #\d)
       (size_t             . ,(if (= size-of-size_t 4) #\W #\Q))
+      (wchar_t            . #\s)
+      (wchar_t*           . #\S)
+      (char*              . #\Z)
       (void*              . #\p)))
 
   ;; c-varibale
