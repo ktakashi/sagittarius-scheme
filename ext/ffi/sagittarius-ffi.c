@@ -1523,7 +1523,7 @@ static void set_callback_result(SgCallback *callback, SgObject ret,
     break;
   case FFI_RETURN_TYPE_STRING:
     if (!SG_STRINGP(ret)) goto ret0;
-    *((char **) result) = Sg_Utf32sToUtf8s(ret);
+    *((char **) result) = Sg_Utf32sToUtf8s(SG_STRING(ret));
     break;
   case FFI_RETURN_TYPE_WCHAR:
     if (!SG_CHARP(ret)) goto ret0;
