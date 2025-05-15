@@ -389,3 +389,8 @@
 
 (define-c-proc pointer-set-c-pointer! (p::<pointer> offset::<fixnum> value) ::<void>
   (Sg_PointerSet p offset FFI_RETURN_TYPE_POINTER value))
+
+(define-c-proc %ffi-proc-name! (proc::<procedure> name)
+  (set! (SG_PROCEDURE_NAME proc) name)
+  (result proc))
+  

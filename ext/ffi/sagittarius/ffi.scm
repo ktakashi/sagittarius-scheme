@@ -438,34 +438,31 @@
 	  ((char)    char*)
 	  (else      void*))
 	ret-type))
-  (define (pointer->c-function pointer ret-type name arg-types)
-    (let* ((rtype (convert-return-type ret-type))
+  (define (pointer->c-function pointer oret-type name arg-types)
+    (let* ((rtype (convert-return-type oret-type))
 	   (stub-ret-type (assoc rtype c-function-return-type-alist)))
       (unless stub-ret-type
-	(assertion-violation 'c-function "wrong return type" ret-type))
-      (let* ((ret-type (cdr stub-ret-type))
-	     (signatures (list->string (make-signatures arg-types)))
-	     (function (create-function-info pointer name ret-type
-					    signatures
-					    (car stub-ret-type) arg-types)))
-	(lambda args
-	  (let ((args-length (length args)))
-	    (if (memq ___ arg-types)
-		(let-values (((rest required)
-			      (partition (lambda (e) (eq? ___ e)) arg-types)))
-		  (unless (<= (length required) args-length)
-		    (assertion-violation
-		     name
-		     (format "wrong arguments number at least ~d required, but got ~d"
-			     (length required)
-			     args-length) args)))
-		(unless (= (length arg-types) (length args))
-		  (assertion-violation
-		   name
-		   (format "wrong arguments number ~d required, but got ~d"
-			   (length arg-types)
-			   args-length) args))))
-	  (apply %ffi-call ret-type function args)))))
+	(assertion-violation 'c-function "wrong return type" oret-type))
+      (let-values (((rest required)
+		    (partition (lambda (e) (eq? ___ e)) arg-types)))
+	(let* ((ret-type (cdr stub-ret-type))
+	       (signatures (list->string (make-signatures arg-types)))
+	       (function (create-function-info pointer name ret-type
+					       signatures
+					       (car stub-ret-type) arg-types))
+	       (n (length required))
+	       (variadic? (memq ___ arg-types))
+	       (fmt (if variadic?
+			"wrong arguments number at least ~d required, but got ~d"
+			"wrong arguments number ~d required, but got ~d"))
+	       (cmp (if variadic? <= =)))
+	  (%ffi-proc-name! 
+	   (lambda args
+	     (let ((args-length (length args)))
+	       (unless (cmp n args-length)
+		 (assertion-violation name (format fmt n args-length) args)))
+	     (apply %ffi-call ret-type function args))
+	   (format "pointer->c-function (~a ~a ~a)" oret-type name arg-types))))))
 
   (define (make-signatures arg-types)
     (let loop ((arg-types arg-types) (r '()))

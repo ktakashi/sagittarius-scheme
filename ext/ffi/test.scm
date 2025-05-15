@@ -314,6 +314,9 @@
   ;; varargs
   (let ()
     (define va-fn (c-function ffi-test-lib int va_fn (void* int ___)))
+    (test-error (va-fn))
+    (test-error (va-fn #vu8()))
+    (test-equal 0 (va-fn #vu8() 0))
     (let ((result (allocate-pointer (* 4 size-of-void*))))
       (let ((r (va-fn result 4 1 #t "abcdef" 4)))
 	(test-equal "varargs" 4 r)
@@ -365,7 +368,6 @@
   (let ()
     (define str-cb (c-function ffi-test-lib (char *) str_cb ((char *) callback)))
     (define cb (c-callback char* (char*) string-upcase))
-    (print (str-cb "abc" cb))
     (test-equal "str callback" "ABC" (str-cb "abc" cb)))
   
   
