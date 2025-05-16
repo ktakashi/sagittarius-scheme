@@ -114,6 +114,8 @@
 	    pointer-ref-c-pointer
 	    pointer-ref-c-wchar
 	    (rename (pointer-ref-c-wchar pointer-ref-c-wchar_t))
+	    pointer-ref-c-character
+	    pointer-ref-c-wide-character
 	    ;; set!
 	    pointer-set-c-uint8!
 	    pointer-set-c-int8!
@@ -151,6 +153,9 @@
 	    pointer-set-c-pointer!
 	    pointer-set-c-wchar!
 	    (rename (pointer-set-c-wchar! pointer-set-c-wchar_t!))
+	    pointer-set-c-character!
+	    pointer-set-c-wide-character!
+
 	    ;; alignment
 	    align-of-bool
 	    align-of-char
@@ -208,6 +213,9 @@
 	    intptr_t uintptr_t wchar_t wchar_t* ___
 	    bit-field
 
+	    ;; scheme characters
+	    character wide-character
+	    
 	    ;; utility
 	    null-pointer
 	    null-pointer?
@@ -262,6 +270,8 @@
   (define array              'array)
   (define wchar_t            'wchar_t)
   (define wchar_t*           'wchar_t*)
+  (define character          'character)
+  (define wide-character     'wide-character)
   (define ___                '___)
   (define bit-field          'bit-field)
 
@@ -289,11 +299,11 @@
 	pointer-set-c-int64!))
   ;; scheme character
   (define (pointer-ref-c-character p offset)
-    (integer->char (pointer-ref-c-char p offset)))
+    (integer->char (pointer-ref-c-int p offset)))
   (define (pointer-ref-c-wide-character p offset)
     (integer->char (pointer-ref-c-wchar p offset)))
   (define (pointer-set-c-character! p offset c)
-    (pointer-set-c-char! p offset (char->integer c)))
+    (pointer-set-c-int! p offset (char->integer c)))
   (define (pointer-set-c-wide-character! p offset c)
     (pointer-set-c-wchar! p offset (char->integer c)))
 
@@ -523,7 +533,7 @@
       ((bool)     . ,FFI_SIGNATURE_BOOL)
       ((float)    . ,FFI_SIGNATURE_FLOAT)
       ((double)   . ,FFI_SIGNATURE_DOUBLE)
-      ((wchar_t)  . ,FFI_SIGNATURE_WCHAR)
+      ((wchar_t)  . ,FFI_SIGNATURE_WCHAR_T)
       ((void*)    . ,FFI_SIGNATURE_POINTER)
       ((char*)    . ,FFI_SIGNATURE_STR)
       ((wchar_t*) . ,FFI_SIGNATURE_WCHAR_STR)
@@ -532,7 +542,11 @@
        ,(if (= size-of-intptr_t 4) FFI_SIGNATURE_INT32 FFI_SIGNATURE_INT64))
       ((uintptr_t) .
        ,(if (= size-of-intptr_t 4) FFI_SIGNATURE_UINT32 FFI_SIGNATURE_UINT64))
-      ((___)      . ,FFI_SIGNATURE_VARGS)))
+      ((___)      . ,FFI_SIGNATURE_VARGS)
+      ;; Scheme character
+      ((character)      . ,FFI_SIGNATURE_CHAR)
+      ((wide-character) . ,FFI_SIGNATURE_WIDE_CHAR)
+      ))
       
 
   (define-syntax arg-list
@@ -923,9 +937,12 @@
       (uint32_t           . ,FFI_RETURN_TYPE_UINT32_T)
       (int64_t            . ,FFI_RETURN_TYPE_INT64_T )
       (uint64_t           . ,FFI_RETURN_TYPE_UINT64_T)
-      (wchar_t            . ,FFI_RETURN_TYPE_WCHAR   )
+      (wchar_t            . ,FFI_RETURN_TYPE_WCHAR_T )
       (wchar_t*           . ,FFI_RETURN_TYPE_WCHAR_STR)
-      (callback           . ,FFI_RETURN_TYPE_CALLBACK)))
+      (callback           . ,FFI_RETURN_TYPE_CALLBACK)
+      (character          . ,FFI_RETURN_TYPE_CHAR)
+      (wide-character     . ,FFI_RETURN_TYPE_WIDE_CHAR)
+      ))
 
   ;; c-varibale
   (define-class <c-variable> ()

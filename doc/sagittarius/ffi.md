@@ -165,6 +165,7 @@ _return-type_ must be one of the followings;
   void* char* wchar_t*
   int8_t  int16_t  int32_t  int64_t
   uint8_t uint16_t uint32_t uint64_t
+  character wide-character
 ```
 
 The return value will be converted corresponding Scheme value. Following
@@ -185,18 +186,27 @@ describes the conversion;
 `intptr_t uintptr_t`
 `int8_t  int16_t  int32_t  int64_t`
 `uint8_t uint16_t uint32_t uint64_t`
+`wchar_t`
 : Scheme integer
 
 `float double`
 : Scheme flonum
 
-`wchar_t`
-: Scheme character.
+`character`
+`wide-character`
+: Scheme character.  
+  `character` is mapped to `char` in C , if the Scheme character is
+  out of ASCII range, then the value might get truncated.  
+  `wide-character` is mapped `wchar_t` in C, the size of the `wchar_t`
+  might be different per platform, and the same restriction as
+  `character` is applied.
 
 `void*`
 : Scheme FFI pointer type
 
+
 NOTE: `char` returns a Scheme integer not Scheme character.
+
 
 _name_ must be a symbol indicating a exported C function name.
 
@@ -214,6 +224,8 @@ _argument-types_ must be zero or more followings;
   uint8_t uint16_t uint32_t uint64_t
   callback
   ___
+  
+  character wide-character
 ```
 
 When the C function is called, given Scheme arguments will be converted to
@@ -222,18 +234,38 @@ corresponding C types. Following describes the conversion;
 `bool`
 : Scheme boolean to C 0 (#f) or 1 (#t).
 
-`char short int long long-long unsigned-short`
-`int8_t int16_t int32_t uint8_t uint16_t`
-: Scheme integer to C signed long int
+`char` `int8_t`
+: Scheme integer to C char
 
-`unsigned-int unsigned-long uint32_t size_t`
-: Scheme integer to C unsigned long int
+`short` `int16_t`
+: Scheme integer to C signed short
+
+`int` `int32_t`
+: Scheme integer to C int
+
+`long`
+: Scheme integer to C long
 
 `int64_t long-long`
 : Scheme integer to C int64_t
 
+`unsigned-char` `uint8_t`
+: Scheme integer to C unsigned char
+
+`unsigned-short` `uint16_t`
+: Scheme integer to C unsigned short
+
+`unsigned-int uint32_t size_t`
+: Scheme integer to C unsigned int
+
+`unsigned-long`
+: Scheme integer to C unsigned long
+
 `uint64_t unsigned-long-long`
 : Scheme integer to C uint64_t
+
+`wchar_t`
+: Scheme integer to C wchar_t
 
 `float`
 : Scheme flonum to C float
@@ -241,8 +273,8 @@ corresponding C types. Following describes the conversion;
 `double`
 : Scheme flonum to C double
 
-`wchar_t`
-: Scheme character to C wide character
+`character` `wide-character`
+: Scheme character
   It doesn't check the range, in case of 16 bits wide character, it's
   users' responsibility to pass the appropriate character. Passing
   out of range character doesn't raise an error but may truncate the
@@ -327,6 +359,7 @@ _argument-types_ must be zero or following;
   float double
   size_t wchar_t
   void* char* wchar_t*
+  character wide-character
 ```
 
 The conversion of C to Scheme is the same as `c-function`'s
@@ -542,11 +575,28 @@ unsigned-char unsigned-short unsigned-int unsigned-long unsigned-long-long
 intptr uintptr
 float double
 pointer
+
+character wide-character
 ```
 NOTE: if the _type_ is `flonum` or `double`, then it returns
 Scheme flonum
 
 NOTE: if the _type_ is `pointer`, then it returns Scheme FFI pointer.
+
+NOTE: if the _type_ is `character` or `wide-character`, then it return Scheme
+character.
+
+
+###### [!Function] `pointer-set-c-`  _type_ _!_ _pointer_ _offset_ _value_
+
+_offset_ must be a fixnum.
+
+Sets _value_ to offset _offset_ of _pointer_. Supporting _type_s are
+the same as `pointer-ref-c-_type_`The type conversion is the same as
+`c-function`'s _return-type_.
+
+NOTE: if the _type_ is `character` or `wide-character`, then the
+_value_ must be Scheme character.
 
 
 ###### [!Function] `pointer-set-c-`  _type_ _!_ _pointer_ _offset_ _value_
@@ -554,7 +604,7 @@ NOTE: if the _type_ is `pointer`, then it returns Scheme FFI pointer.
 _offset_ must be a fixnum.
 
 Sets _value_ to offset _offset_ of _pointer_. Supporting _type_s
-are the same as `pointer-ref-c-_type_`The type conversion is the same as `c-function`'s _return-type_.
+are the same as `pointer-ref-c-_type_`The type conversion is the same as `c-funct
 
 There is no direct procedures to handle C arrays. Following is an example
 of how to handle array of pointers;

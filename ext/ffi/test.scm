@@ -358,21 +358,60 @@
   ;; wchar_t
   (let ()
     (define widec-fn (c-function ffi-test-lib wchar_t widec_fn (wchar_t)))
-    (test-equal "wchar_t" (char->integer #\a) (widec-fn (char->integer #\a))))
+    (test-equal "wchar_t (1)" (char->integer #\a) (widec-fn (char->integer #\a)))
+    (test-equal "wchar_t (2)" (char->integer #\a) (widec-fn #\a)))
   (let ()
     (define widec-cb
       (c-function ffi-test-lib wchar_t widec_cb (wchar_t callback)))
     (define cb (c-callback wchar_t (wchar_t)
 		(lambda (c) (char->integer (char-upcase (integer->char c))))))
-    (test-equal "wchar_t callback" (char->integer #\A)
-		(widec-cb (char->integer #\a) cb)))
+    (test-equal "wchar_t callback (1)" (char->integer #\A)
+		(widec-cb (char->integer #\a) cb))
+    (test-equal "wchar_t callback (2)" (char->integer #\A) (widec-cb #\a cb)))
 
   ;; char*
   (let ()
     (define str-cb (c-function ffi-test-lib (char *) str_cb ((char *) callback)))
     (define cb (c-callback char* (char*) string-upcase))
     (test-equal "str callback" "ABC" (str-cb "abc" cb)))
-  
+
+  ;; char
+  (let ()
+    (define char-fn (c-function ffi-test-lib char char_fn (char)))
+    (test-equal "char (1)" (char->integer #\a) (char-fn (char->integer #\a)))
+    (test-equal "char (2)" (char->integer #\a) (char-fn #\a)))
+  (let ()
+    (define char-cb
+      (c-function ffi-test-lib char char_cb (char callback)))
+    (define cb (c-callback char (char)
+		(lambda (c) (char->integer (char-upcase (integer->char c))))))
+    (test-equal "char callback (1)" (char->integer #\A)
+		(char-cb (char->integer #\a) cb))
+    (test-equal "char callback (2)" (char->integer #\A) (char-cb #\a cb)))
+
+  ;; scheme characters
+  (let ()
+    (define char-fn (c-function ffi-test-lib character char_fn (character)))
+    (test-error "passing integer to character" (char-fn (char->integer #\a)))
+    (test-equal "character" #\a (char-fn #\a)))
+  (let ()
+    (define char-cb
+      (c-function ffi-test-lib character char_cb (character callback)))
+    (define cb (c-callback character (character) char-upcase))
+    (test-equal "character callback" #\A (char-cb #\a cb)))
+
+  (let ()
+    (define widec-fn
+      (c-function ffi-test-lib wide-character widec_fn (wide-character)))
+    (test-error "passing integer to wide-character"
+		(widec-fn (char->integer #\a)))
+    (test-equal "wide-character" #\a (widec-fn #\a)))
+  (let ()
+    (define widec-cb
+      (c-function ffi-test-lib wide-character widec_cb (wide-character callback)))
+    (define cb (c-callback wide-character (wide-character) char-upcase))
+    (test-equal "wchar_t callback (2)" #\A (widec-cb #\a cb)))
+
   
   ;; callback return
   (define set-compare! (c-function ffi-test-lib void set_compare (callback)))
@@ -484,6 +523,16 @@
       (a-st-c-set! p 1)
       (a-st-wc-set! p 2)
       (test-equal "wchar_t ref" 2 (a-st-wc-ref p))))
+
+  (let ()
+    (define-c-struct a-st
+      (character c)
+      (wide-character wc))
+    (let ((p (allocate-c-struct a-st)))
+      (a-st-c-set! p #\a)
+      (a-st-wc-set! p #\b)
+      (test-equal "character ref" #\a (a-st-c-ref p))
+      (test-equal "wide-character ref" #\b (a-st-wc-ref p))))
   
   ;; call #60
   (let ()
