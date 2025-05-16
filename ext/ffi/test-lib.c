@@ -178,6 +178,18 @@ EXPORT wchar_t* wide_cb(wchar_t *str, wchar_t * (* cb)(wchar_t *))
   return cb(str);
 }
 
+EXPORT char char_fn(char c)
+{
+  /* do nothing */
+  return c;
+}
+
+EXPORT char char_cb(char wc, char (* cb)(char))
+{
+  return cb(wc);
+}
+
+
 EXPORT wchar_t widec_fn(wchar_t wc)
 {
   /* do nothing */

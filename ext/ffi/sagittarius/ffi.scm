@@ -1,5 +1,6 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
 #!read-macro=sagittarius/regex
+#!nounbounc
 (library (sagittarius ffi)
     (export open-shared-library
 	    lookup-shared-library
@@ -269,14 +270,14 @@
     (pointer->string (pointer-ref-c-pointer p offset)))
   (define (pointer-ref-c-wchar_t* p offset)
     (wchar-pointer->string (pointer-ref-c-pointer p offset)))
-  (define (pointer-set-c-char*! s/bv offset)
+  (define (pointer-set-c-char*! p offset s/bv)
     (if (string? s/bv)
-	(pointer-set-c-char*! (string->utf8 s/bv))
-	(pointer-set-c-pointer! s/bv)))
-  (define (pointer-set-c-wchar_t*! s/bv offset)
+	(pointer-set-c-char*! p offset (string->utf8 s/bv))
+	(pointer-set-c-pointer! p offset s/bv)))
+  (define (pointer-set-c-wchar_t*! p offset s/bv)
     (if (string? s/bv)
-	(pointer-set-c-wchar_t*! (string->utf16 s/bv (endianness native)))
-	(pointer-set-c-pointer! s/bv)))
+	(pointer-set-c-wchar_t*! p offset (string->utf16 s/bv (endianness native)))
+	(pointer-set-c-pointer! p offset s/bv)))
   ;; should be either
   (define pointer-ref-c-size_t
     (if (= size-of-size_t size-of-int32_t)
@@ -286,6 +287,16 @@
     (if (= size-of-size_t size-of-int32_t)
 	pointer-set-c-int32!
 	pointer-set-c-int64!))
+  ;; scheme character
+  (define (pointer-ref-c-character p offset)
+    (integer->char (pointer-ref-c-char p offset)))
+  (define (pointer-ref-c-wide-character p offset)
+    (integer->char (pointer-ref-c-wchar p offset)))
+  (define (pointer-set-c-character! p offset c)
+    (pointer-set-c-char! p offset (char->integer c)))
+  (define (pointer-set-c-wide-character! p offset c)
+    (pointer-set-c-wchar! p offset (char->integer c)))
+
 
   ;; type ref set size-of align-of
   (define %type-proc-table
@@ -317,7 +328,10 @@
     ;; how should we treat callback?
     ;;(callback           . #(,pointer-ref-c-callback           ,pointer-set-c-callback!            ,size-of-callback           ,align-of-callback          ))
       (wchar_t            . #(,pointer-ref-c-wchar              ,pointer-set-c-wchar!               ,size-of-wchar_t            ,align-of-wchar_t           ))
-      (wchar_t*           . #(,pointer-ref-c-wchar_t*           ,pointer-set-c-wchar_t*!            ,size-of-void*              ,align-of-void*             ))))
+      (wchar_t*           . #(,pointer-ref-c-wchar_t*           ,pointer-set-c-wchar_t*!            ,size-of-void*              ,align-of-void*             ))
+      (character          . #(,pointer-ref-c-character          ,pointer-set-c-character!           ,size-of-char               ,align-of-char              ))
+      (wide-character     . #(,pointer-ref-c-wide-character     ,pointer-set-c-wide-character!      ,size-of-wchar_t            ,align-of-wchar_t           ))
+      ))
 
   (define (%type-procedure type pos)
     (cond ((assq type %type-proc-table) =>
@@ -465,51 +479,61 @@
 	   (format "pointer->c-function (~a ~a ~a)" oret-type name arg-types))))))
 
   (define (make-signatures arg-types)
+    (define (get-mapping type)
+      (assp (lambda (names) (memq type names)) *signature-mappings*))
     (let loop ((arg-types arg-types) (r '()))
       (if (null? arg-types)
 	  (reverse! r)
 	  (loop (cdr arg-types)
-		(cons (case (car arg-types)
-			((char short int long unsigned-short int8_t
-			       int16_t int32_t uint8_t uint16_t)
-			 #\i)
-			((unsigned-int unsigned-long uint32_t size_t)
-			 #\u)
-			((int64_t long-long)
-			 #\x)
-			((uint64_t unsigned-long-long)
-			 #\U)
-			((bool) #\b)
-			((void* char*) #\p)
-			((float) #\f)
-			((double) #\d)
-			((callback) #\c)
-			((wchar_t) #\w)
-			((wchar_t*) #\W)
-			((intptr_t) (if (= size-of-intptr_t 4) #\i #\x))
-			((uintptr_t) (if (= size-of-intptr_t 4) #\u #\U))
-			((___)
-			 ;; varargs must be the last
-			 (unless (null? (cdr arg-types))
-			   (assertion-violation 'make-signatures
-						"___ must be the last"
-						arg-types))
-			 #\v)
-			(else =>
-			  (lambda (arg-type)
-			    (if (and (pair? arg-type) 
-				     (not (null? (cdr arg-type)))
-				     (eq? (cadr arg-type) '*))
-				(case (car arg-type)
-				  ;; there is no wchar_t above but
-				  ;; just for convenience
-				  ((wchar_t)  #\W)
-				  ((char)  #\Z)
-				  (else #\p))
-				(assertion-violation 'make-signatures
-						     "invalid argument type"
-						     arg-types)))))
-		      r)))))
+		(let ((arg-type (car arg-types)))
+		(cons (cond ((get-mapping arg-type) => cdr)
+			    (else
+			     (if (and (pair? arg-type) 
+				      (not (null? (cdr arg-type)))
+				      (eq? (cadr arg-type) '*))
+				 (case (car arg-type)
+				   ;; there is no wchar_t above but
+				   ;; just for convenience
+				   ((wchar_t)  FFI_SIGNATURE_WCHAR_STR)
+				   ((char)     FFI_SIGNATURE_STR)
+				   (else       FFI_SIGNATURE_POINTER))
+				 (assertion-violation 'make-signatures
+						      "invalid argument type"
+						      arg-types))))
+		      r))))))
+  (define (long-map size unsigned?)
+    (if (= size-of-long size)
+	(if unsigned? '(unsigned-long) '(long))
+	'()))
+  (define (size-t-map size)
+    (if (= size-of-size_t size)
+	'(size_t)
+	'()))
+  (define *signature-mappings*
+    `(((char int8_t)                        . ,FFI_SIGNATURE_INT8)
+      ((unsigned-char uint8_t)              . ,FFI_SIGNATURE_UINT8)
+      ((short int16_t)                      . ,FFI_SIGNATURE_INT16)
+      ((unsigned-short uint16_t)            . ,FFI_SIGNATURE_UINT16)
+      ((int int32_t ,@(long-map 4 #f))       . ,FFI_SIGNATURE_INT32)
+      ((unsigned-int uint32_t ,@(long-map 4 #t) ,@(size-t-map 4))
+       . ,FFI_SIGNATURE_UINT32)
+      ((long-long int64_t ,@(long-map 8 #f)) . ,FFI_SIGNATURE_INT64)
+      ((unsigned-long-long uint64_t ,@(long-map 8 #t) ,@(size-t-map 8))
+       . ,FFI_SIGNATURE_UINT64)
+      ((bool)     . ,FFI_SIGNATURE_BOOL)
+      ((float)    . ,FFI_SIGNATURE_FLOAT)
+      ((double)   . ,FFI_SIGNATURE_DOUBLE)
+      ((wchar_t)  . ,FFI_SIGNATURE_WCHAR)
+      ((void*)    . ,FFI_SIGNATURE_POINTER)
+      ((char*)    . ,FFI_SIGNATURE_STR)
+      ((wchar_t*) . ,FFI_SIGNATURE_WCHAR_STR)
+      ((callback) . ,FFI_SIGNATURE_CALLBACK)
+      ((intptr_t) .
+       ,(if (= size-of-intptr_t 4) FFI_SIGNATURE_INT32 FFI_SIGNATURE_INT64))
+      ((uintptr_t) .
+       ,(if (= size-of-intptr_t 4) FFI_SIGNATURE_UINT32 FFI_SIGNATURE_UINT64))
+      ((___)      . ,FFI_SIGNATURE_VARGS)))
+      
 
   (define-syntax arg-list
     (syntax-rules (*)
@@ -536,10 +560,12 @@
 
   ;; callback
   (define (make-callback-signature name ret args)
+    (define (get-mapping type)
+      (assp (lambda (names) (memq type names)) *signature-mappings*))
     (apply string
 	   (map (lambda (a)
 		  (let ((a (convert-return-type a)))
-		    (cond ((assq a callback-argument-type-class) => cdr)
+		    (cond ((get-mapping a) => cdr)
 			  (else (assertion-violation name
 				  (format "invalid argument type ~a" a)
 				  (list ret args))))))
@@ -900,36 +926,6 @@
       (wchar_t            . ,FFI_RETURN_TYPE_WCHAR   )
       (wchar_t*           . ,FFI_RETURN_TYPE_WCHAR_STR)
       (callback           . ,FFI_RETURN_TYPE_CALLBACK)))
-
-  (define callback-argument-type-class
-    `((bool               . #\l)
-      (char               . #\b)
-      (short              . #\h)
-      (int                . ,(if (= size-of-int 4) #\w #\q))
-      (long               . ,(if (= size-of-long 4) #\w #\q))
-      (long-long          . #\q)
-      (intptr_t           . ,(if (= size-of-intptr_t 4) #\w #\q))
-      (unsigned-char      . #\B)
-      (unsigned-short     . #\H)
-      (unsigned-int       . ,(if (= size-of-int 4) #\W #\Q))
-      (unsigned-long      . ,(if (= size-of-long 4) #\W #\Q))
-      (unsigned-long-long . #\Q)
-      (uintptr_t          . ,(if (= size-of-uintptr_t 4) #\W #\Q))
-      (int8_t             . #\b)
-      (int16_t            . #\h)
-      (int32_t            . #\w)
-      (int64_t            . #\Q)
-      (uint8_t            . #\B)
-      (uint16_t           . #\H)
-      (uint32_t           . #\W)
-      (uint64_t           . #\Q)
-      (float              . #\f)
-      (double             . #\d)
-      (size_t             . ,(if (= size-of-size_t 4) #\W #\Q))
-      (wchar_t            . #\s)
-      (wchar_t*           . #\S)
-      (char*              . #\Z)
-      (void*              . #\p)))
 
   ;; c-varibale
   (define-class <c-variable> ()

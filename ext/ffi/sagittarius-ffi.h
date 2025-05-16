@@ -50,23 +50,58 @@ SG_CLASS_DECL(Sg_PointerClass);
 #define POINTER_SET(T, p__, offset__, value__)			\
   (*((T*)(SG_POINTER(p__)->pointer + offset__)) = (T)value__)
 
-/* ffi parameter signature*/
+/* ffi parameter signature
+
+   small letter signed, capital letter unsigned.
+   [C numeric types]
+   b byte 	: 1 byte (char, int8_t)
+   h word 	: 2 byte (short, int16_t)
+   w dword	: 4 byte (int, int32_t, long on Windows)
+   q quadword	: 8 byte (long long, int64_t, long on Posix)
+
+   f float
+   d double
+   l bool
+   s wchar_t
+
+   [C pointers]
+   p void*
+   z char*
+   Z wchar_t*
+
+   [C others]
+   c callback
+   v variadig arg (= ... for C)
+   
+   [Scheme obj]
+   m character (Scheme char, moji)
+   M wide-character (Scheme char)
+   
+ */
 enum {
-  FFI_MAX_ARGC = 32,
-  FFI_MAX_REG  = 6,
+  FFI_SIGNATURE_INT8     = 'b',
+  FFI_SIGNATURE_UINT8    = 'B',
+  FFI_SIGNATURE_INT16    = 'h',
+  FFI_SIGNATURE_UINT16   = 'H',
+  FFI_SIGNATURE_INT32    = 'w',
+  FFI_SIGNATURE_UINT32   = 'W',
+  FFI_SIGNATURE_INT64    = 'q',
+  FFI_SIGNATURE_UINT64   = 'Q',
+
   FFI_SIGNATURE_FLOAT    = 'f',
   FFI_SIGNATURE_DOUBLE   = 'd',
-  FFI_SIGNATURE_INT      = 'i',
-  FFI_SIGNATURE_BOOL     = 'b',
-  FFI_SIGNATURE_INT64    = 'x',
+  FFI_SIGNATURE_BOOL     = 'l',
+  FFI_SIGNATURE_WCHAR    = 's',
+
+  FFI_SIGNATURE_STR      = 'z',
+  FFI_SIGNATURE_WCHAR_STR= 'Z',
   FFI_SIGNATURE_POINTER  = 'p',
-  FFI_SIGNATURE_CALLBACK = 'c',
-  FFI_SIGNATURE_UINT     = 'u',
-  FFI_SIGNATURE_UINT64   = 'U',
-  FFI_SIGNATURE_STR      = 'Z',
-  FFI_SIGNATURE_WCHAR    = 'w',
-  FFI_SIGNATURE_WCHAR_STR= 'W',
+
+  FFI_SIGNATURE_CALLBACK = 'x',
   FFI_SIGNATURE_VARGS    = 'v',
+  
+  FFI_SIGNATURE_CHAR     = 'm',
+  FFI_SIGNATURE_WIDE_CHAR= 'M',
 };
 
 typedef struct SgFuncInfoRec

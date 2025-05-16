@@ -358,11 +358,14 @@
   ;; wchar_t
   (let ()
     (define widec-fn (c-function ffi-test-lib wchar_t widec_fn (wchar_t)))
-    (test-equal "wchar_t" #\a (widec-fn #\a)))
+    (test-equal "wchar_t" (char->integer #\a) (widec-fn (char->integer #\a))))
   (let ()
-    (define widec-cb (c-function ffi-test-lib wchar_t widec_cb (wchar_t callback)))
-    (define cb (c-callback wchar_t (wchar_t) char-upcase))
-    (test-equal "wchar_t callback" #\A (widec-cb #\a cb)))
+    (define widec-cb
+      (c-function ffi-test-lib wchar_t widec_cb (wchar_t callback)))
+    (define cb (c-callback wchar_t (wchar_t)
+		(lambda (c) (char->integer (char-upcase (integer->char c))))))
+    (test-equal "wchar_t callback" (char->integer #\A)
+		(widec-cb (char->integer #\a) cb)))
 
   ;; char*
   (let ()
@@ -473,6 +476,15 @@
 		  (a-union-c*-ref p))
       ))
 
+  (let ()
+    (define-c-struct a-st
+      (char c)
+      (wchar_t wc))
+    (let ((p (allocate-c-struct a-st)))
+      (a-st-c-set! p 1)
+      (a-st-wc-set! p 2)
+      (test-equal "wchar_t ref" 2 (a-st-wc-ref p))))
+  
   ;; call #60
   (let ()
     (define-c-struct bar
