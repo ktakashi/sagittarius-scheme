@@ -116,6 +116,7 @@
 	    (rename (pointer-ref-c-wchar pointer-ref-c-wchar_t))
 	    pointer-ref-c-character
 	    pointer-ref-c-wide-character
+	    pointer-ref-c-full-character
 	    ;; set!
 	    pointer-set-c-uint8!
 	    pointer-set-c-int8!
@@ -155,6 +156,7 @@
 	    (rename (pointer-set-c-wchar! pointer-set-c-wchar_t!))
 	    pointer-set-c-character!
 	    pointer-set-c-wide-character!
+	    pointer-set-c-full-character!
 
 	    ;; alignment
 	    align-of-bool
@@ -214,7 +216,7 @@
 	    bit-field
 
 	    ;; scheme characters
-	    character wide-character
+	    character wide-character full-character
 	    
 	    ;; utility
 	    null-pointer
@@ -272,6 +274,7 @@
   (define wchar_t*           'wchar_t*)
   (define character          'character)
   (define wide-character     'wide-character)
+  (define full-character     'full-character)
   (define ___                '___)
   (define bit-field          'bit-field)
 
@@ -299,13 +302,17 @@
 	pointer-set-c-int64!))
   ;; scheme character
   (define (pointer-ref-c-character p offset)
-    (integer->char (pointer-ref-c-int p offset)))
+    (integer->char (pointer-ref-c-char p offset)))
   (define (pointer-ref-c-wide-character p offset)
     (integer->char (pointer-ref-c-wchar p offset)))
+  (define (pointer-ref-c-full-character p offset)
+    (integer->char (pointer-ref-c-int32 p offset)))
   (define (pointer-set-c-character! p offset c)
-    (pointer-set-c-int! p offset (char->integer c)))
+    (pointer-set-c-char! p offset (char->integer c)))
   (define (pointer-set-c-wide-character! p offset c)
     (pointer-set-c-wchar! p offset (char->integer c)))
+  (define (pointer-set-c-full-character! p offset c)
+    (pointer-set-c-int32! p offset (char->integer c)))
 
 
   ;; type ref set size-of align-of
@@ -341,7 +348,8 @@
       (wchar_t*           . #(,pointer-ref-c-wchar_t*           ,pointer-set-c-wchar_t*!            ,size-of-void*              ,align-of-void*             ))
       (character          . #(,pointer-ref-c-character          ,pointer-set-c-character!           ,size-of-char               ,align-of-char              ))
       (wide-character     . #(,pointer-ref-c-wide-character     ,pointer-set-c-wide-character!      ,size-of-wchar_t            ,align-of-wchar_t           ))
-      ))
+      (full-character     . #(,pointer-ref-c-full-character     ,pointer-set-c-full-character!      ,size-of-int32_t            ,align-of-int32_t           )))
+    )
 
   (define (%type-procedure type pos)
     (cond ((assq type %type-proc-table) =>
@@ -546,6 +554,7 @@
       ;; Scheme character
       ((character)      . ,FFI_SIGNATURE_CHAR)
       ((wide-character) . ,FFI_SIGNATURE_WIDE_CHAR)
+      ((full-character) . ,FFI_SIGNATURE_FULL_CHAR)
       ))
       
 
@@ -942,6 +951,7 @@
       (callback           . ,FFI_RETURN_TYPE_CALLBACK)
       (character          . ,FFI_RETURN_TYPE_CHAR)
       (wide-character     . ,FFI_RETURN_TYPE_WIDE_CHAR)
+      (full-character     . ,FFI_RETURN_TYPE_FULL_CHAR)
       ))
 
   ;; c-varibale

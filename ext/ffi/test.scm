@@ -397,8 +397,12 @@
   (let ()
     (define char-cb
       (c-function ffi-test-lib character char_cb (character callback)))
+    (define fullc-cb
+      (c-function ffi-test-lib character fullc_cb (character callback)))
     (define cb (c-callback character (character) char-upcase))
-    (test-equal "character callback" #\A (char-cb #\a cb)))
+    (test-equal "character callback (1)" #\A (char-cb #\a cb))
+    ;; #\x10ff61 will be truncated to char, i.e.  #x61 = #\a
+    (test-equal "character callback (2)" #\A (fullc-cb #\x10ff61 cb)))
 
   (let ()
     (define widec-fn
@@ -412,6 +416,11 @@
     (define cb (c-callback wide-character (wide-character) char-upcase))
     (test-equal "wchar_t callback (2)" #\A (widec-cb #\a cb)))
 
+  (let ()
+    (define fullc-cb
+      (c-function ffi-test-lib full-character fullc_cb (full-character callback)))
+    (define cb (c-callback full-character (full-character) char-upcase))
+    (test-equal "ucs32 callback" #\A (fullc-cb #\a cb)))
   
   ;; callback return
   (define set-compare! (c-function ffi-test-lib void set_compare (callback)))

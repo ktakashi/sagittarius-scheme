@@ -161,7 +161,9 @@ static int set_ffi_parameter_types(SgObject signatures, ffi_type **types)
     case FFI_SIGNATURE_DOUBLE:
       types[i] = &ffi_type_double; break;
     case FFI_SIGNATURE_CHAR:
-      types[i] = &ffi_type_sint; break;
+      types[i] = &ffi_type_schar; break;
+    case FFI_SIGNATURE_FULL_CHAR:
+      types[i] = &ffi_type_sint32; break;
     case FFI_SIGNATURE_WIDE_CHAR:
     case FFI_SIGNATURE_WCHAR_T:
 #if SIZEOF_WCHAR_T == 2
@@ -716,6 +718,8 @@ static SgObject convert_c_to_scheme(int rettype, SgPointer *p, size_t align)
     return SG_MAKE_CHAR(POINTER_REF(char, p, align));
   case FFI_RETURN_TYPE_WIDE_CHAR:
     return SG_MAKE_CHAR(POINTER_REF(wchar_t, p, align));
+  case FFI_RETURN_TYPE_FULL_CHAR:
+    return SG_MAKE_CHAR(POINTER_REF(SgChar, p, align));
   default:
     Sg_Error(UC("unknown FFI return type: %d"), rettype);
     return NULL;
@@ -935,7 +939,9 @@ static void set_ffi_callback_parameter_types(SgObject signatures,
     case FFI_SIGNATURE_WCHAR_STR:
       types[i] = &ffi_type_pointer; break;
     case FFI_SIGNATURE_CHAR:
-      types[i] = &ffi_type_sint; break;
+      types[i] = &ffi_type_schar; break;
+    case FFI_SIGNATURE_FULL_CHAR:
+      types[i] = &ffi_type_sint32; break;
     case FFI_SIGNATURE_WIDE_CHAR:
     case FFI_SIGNATURE_WCHAR_T:
 #if SIZEOF_WCHAR_T == 2
@@ -1098,7 +1104,10 @@ static int push_ffi_type_value(SgFuncInfo *info,
       storage->u8 = (unsigned char)SG_CHAR_VALUE(obj);
       return TRUE;
     case FFI_SIGNATURE_CHAR:
-      storage->sl = SG_CHAR_VALUE(obj);
+      storage->s8 = SG_CHAR_VALUE(obj);
+      return TRUE;
+    case FFI_SIGNATURE_FULL_CHAR:
+      storage->s32 = SG_CHAR_VALUE(obj);
       return TRUE;
     case FFI_SIGNATURE_WCHAR_T:
     case FFI_SIGNATURE_WIDE_CHAR:
@@ -1273,6 +1282,8 @@ static ffi_type* lookup_ffi_return_type(int rettype)
   case FFI_RETURN_TYPE_CALLBACK: return &ffi_type_pointer;
     /* scheme character, map to sint8 :) */
   case FFI_RETURN_TYPE_CHAR    : return &ffi_type_sint8;
+    /* full char, ucs32 char, mapt to sint32 */
+  case FFI_RETURN_TYPE_FULL_CHAR : return &ffi_type_sint32;
     /* libffi doesn't support this by default */
   case FFI_RETURN_TYPE_WCHAR_T:
   case FFI_RETURN_TYPE_WIDE_CHAR:
@@ -1392,6 +1403,7 @@ static int convert_scheme_to_c_value(SgObject v, int type, void **result)
 
     case_type(FFI_RETURN_TYPE_CHAR, char, CHCONVERT);
     case_type(FFI_RETURN_TYPE_WIDE_CHAR, wchar_t, CHCONVERT);
+    case_type(FFI_RETURN_TYPE_FULL_CHAR, SgChar, CHCONVERT);
   ret0:
     /* callback will be treated separately */
   case FFI_RETURN_TYPE_CALLBACK:
@@ -1489,12 +1501,17 @@ static SgObject get_callback_arguments(SgCallback *callback, void **args)
       break;
     }
     case FFI_SIGNATURE_CHAR: {
-      int arg = *(int *)args[i];
+      char arg = *(char *)args[i];
       SG_APPEND1(h, t, SG_MAKE_CHAR(arg));
       break;
     }
     case FFI_SIGNATURE_WIDE_CHAR: {
       wchar_t arg = *(wchar_t *)args[i];
+      SG_APPEND1(h, t, SG_MAKE_CHAR(arg));
+      break;
+    }
+    case FFI_SIGNATURE_FULL_CHAR: {
+      SgChar arg = *(SgChar *)args[i];
       SG_APPEND1(h, t, SG_MAKE_CHAR(arg));
       break;
     }
@@ -1612,6 +1629,10 @@ static void set_callback_result(SgCallback *callback, SgObject ret,
   case FFI_RETURN_TYPE_WIDE_CHAR:
     if (!SG_CHARP(ret)) goto ret0;
     *((wchar_t *)result) = (wchar_t)SG_CHAR_VALUE(ret);
+    break;
+  case FFI_RETURN_TYPE_FULL_CHAR:
+    if (!SG_CHARP(ret)) goto ret0;
+    *((ffi_arg *)result) = SG_CHAR_VALUE(ret);
     break;
     /* fall through */
   case FFI_RETURN_TYPE_VOID:
@@ -1890,6 +1911,7 @@ static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
 		     return Sg_HashTableRef(callbacks, SG_OBJ(ret), SG_FALSE));
     FFI_RET_CASE(FFI_RETURN_TYPE_CHAR, CHAR_CONV, char);
     FFI_RET_CASE(FFI_RETURN_TYPE_WIDE_CHAR, CHAR_CONV, wchar_t);
+    FFI_RET_CASE(FFI_RETURN_TYPE_FULL_CHAR, CHAR_CONV, SgChar);
   default:
     Sg_AssertionViolation(SG_INTERN("c-function"),
 			  SG_MAKE_STRING("invalid return type"),
@@ -1973,6 +1995,7 @@ DEFINE_POINTER_SET(FFI_RETURN_TYPE_STRUCT  , void*);
 DEFINE_POINTER_SET(FFI_RETURN_TYPE_WCHAR_STR, void*);
 DEFINE_POINTER_SET(FFI_RETURN_TYPE_CHAR     , char);
 DEFINE_POINTER_SET(FFI_RETURN_TYPE_WIDE_CHAR, wchar_t);
+DEFINE_POINTER_SET(FFI_RETURN_TYPE_FULL_CHAR, SgChar); /* int32_t */
 
 void Sg_PointerSet(SgPointer *p, int offset, int type, SgObject v)
 {
@@ -2009,6 +2032,7 @@ void Sg_PointerSet(SgPointer *p, int offset, int type, SgObject v)
     case_type(FFI_RETURN_TYPE_WCHAR_STR);
     case_type(FFI_RETURN_TYPE_CHAR     );
     case_type(FFI_RETURN_TYPE_WIDE_CHAR);
+    case_type(FFI_RETURN_TYPE_FULL_CHAR);
   case FFI_RETURN_TYPE_CALLBACK: {
     if (!SG_CALLBACKP(v)) Sg_Error(UC("callback required, but got %S "), v);
     if (prep_method_handler(SG_CALLBACK(v))) {
@@ -2200,6 +2224,7 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__ffi()
   CONST_VALUE1(FFI_RETURN_TYPE_WCHAR_STR);
   CONST_VALUE1(FFI_RETURN_TYPE_CHAR);
   CONST_VALUE1(FFI_RETURN_TYPE_WIDE_CHAR);
+  CONST_VALUE1(FFI_RETURN_TYPE_FULL_CHAR);
 
 #define CONST_CHAR(name)						\
   Sg_MakeBinding(lib, SG_INTERN(#name), SG_MAKE_CHAR(name), TRUE)
@@ -2223,6 +2248,7 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__ffi()
   CONST_CHAR(FFI_SIGNATURE_VARGS    );
   CONST_CHAR(FFI_SIGNATURE_CHAR     );
   CONST_CHAR(FFI_SIGNATURE_WIDE_CHAR);
+  CONST_CHAR(FFI_SIGNATURE_FULL_CHAR);
 
 #undef CONST_VALUE
 #undef SIZE_VALUE

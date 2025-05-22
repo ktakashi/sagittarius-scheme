@@ -201,6 +201,12 @@ EXPORT wchar_t widec_cb(wchar_t wc, wchar_t (* cb)(wchar_t))
   return cb(wc);
 }
 
+EXPORT int fullc_cb(int fc, int (* cb)(int))
+{
+  return cb(fc);
+}
+
+
 EXPORT char* str_cb(char *str, char * (* cb)(char *))
 {
   return cb(str);

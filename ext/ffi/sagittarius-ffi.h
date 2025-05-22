@@ -102,6 +102,7 @@ enum {
   
   FFI_SIGNATURE_CHAR     = 'm',
   FFI_SIGNATURE_WIDE_CHAR= 'M',
+  FFI_SIGNATURE_FULL_CHAR= 'C'	/* UCS32 char */
 };
 
 typedef struct SgFuncInfoRec
@@ -215,6 +216,7 @@ enum {
   /* scheme characters */
   FFI_RETURN_TYPE_CHAR     =  0x0021,
   FFI_RETURN_TYPE_WIDE_CHAR=  0x0022,
+  FFI_RETURN_TYPE_FULL_CHAR=  0x0023
 };
 
 
