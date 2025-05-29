@@ -389,22 +389,23 @@
   body       ::= expr ...
   |#
   (define-syntax let-method
-    (syntax-rules ()
-      ((let-method "bind" (tmp ...) (gfs ...) (specs ...) (exprs ...)
-	  ((gf spec expr ...) next ...) body ...)
-       (let-method "bind" (t tmp ...) (gf gfs ...) (spec specs ...) 
-		   ((expr ...) exprs ...) (next ...)
-		   body ...))
-      ((k "bind" (tmp ...) (gfs ...) (specs ...) (exprs ...)
-	  () body ...)
-       (let ((tmp #f) ...)
-	 (dynamic-wind
-	     (lambda () (set! tmp (generate-add-method k gfs specs . exprs)) ...)
-	     (lambda () body ...)
-	     (lambda () (remove-method gfs tmp) ...))))
-      ;; entry point
-      ((let-method (bindings ...) body ...)
-       (let-method "bind" () () () () (bindings ...) body ...))))
+    (lambda (x)
+      (syntax-case x ()
+	((let-method "bind" (tmp ...) (gfs ...) (specs ...) (exprs ...)
+		     ((gf spec expr ...) next ...) body ...)
+	 #'(let-method "bind" (t tmp ...) (gf gfs ...) (spec specs ...) 
+		       ((expr ...) exprs ...) (next ...)
+		       body ...))
+	((k "bind" (tmp ...) (gfs ...) (specs ...) (exprs ...)
+	    () body ...)
+	 #'(let ((tmp #f) ...)
+	     (dynamic-wind
+		 (lambda () (set! tmp (generate-add-method k gfs specs . exprs)) ...)
+		 (lambda () body ...)
+		 (lambda () (remove-method gfs tmp) ...))))
+	;; entry point
+	((let-method (bindings ...) body ...)
+	 #'(let-method "bind" () () () () (bindings ...) body ...)))))
 
 
   (define-syntax define-generic
