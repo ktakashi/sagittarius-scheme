@@ -369,7 +369,7 @@
      :generic compute-apply-methods
      :procedure
      (lambda (call-next-method gf methods build-next args)
-       (apply (build-next gf methods args) args))))
+       ((build-next gf methods args)))))
 
   ;; it's already documented so we can't remove this...
   (define compute-getters-and-setters

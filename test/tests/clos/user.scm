@@ -446,5 +446,15 @@
   (test-equal "a" (predicate-test "a"))
   (test-equal '("a" . ok) (predicate-test 'around))
   (test-error (predicate-test #f)))
-  
+
+(define-generic foo)
+(define-class <foo> () ())
+(define-class <bar> (<foo>) ())
+(define-class <buz> (<bar>) ())
+(define-method foo((f <foo>)) f)
+(define-method foo ((f <bar>)) (call-next-method))
+(define-method foo ((f <buz>)) (apply call-next-method (list f)))
+(test-assert "apply call-next-method" (is-a? (foo (make <buz>)) <buz>))
+
+
 (test-end)

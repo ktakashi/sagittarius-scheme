@@ -95,6 +95,9 @@
 					   (SG_LIST3 gf methods args))))
       (set! argc (cast int (Sg_Length args)))
       (set! argv (Sg_ListToArray args FALSE))
+      (let ((i::int))
+	(for ((set! i 0) (== i argc) (set! i (+ i 1)))
+	     (Sg_Printf (Sg_StandardErrorPort) (UC "args[%d] = %s\n") i (aref argv i))))
       (result (Sg_MakeNextMethod (SG_GENERIC gf) methods argv argc
 				 FALSE))))
 

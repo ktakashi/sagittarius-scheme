@@ -255,7 +255,9 @@
 #if !defined(APPLY_CALL)
     use_saved_args = (argc == 0);
 #else
-    use_saved_args = (argc == 1 && SG_NULLP(INDEX(SP(vm), 0)));
+    SgObject last = INDEX(SP(vm), 0);
+    /* (apply call-next-methods '()) */
+    use_saved_args = (argc == 1 && SG_NULLP(last));
 #endif
     if (use_saved_args) {
       CHECK_STACK(n->argc+1, vm);
@@ -271,8 +273,31 @@
       if (SG_METHOD_LEAF_P(SG_CAR(n->methods))) {
 	nm = SG_TRUE;		/* dummy */
       } else {
-	nm = Sg_MakeNextMethod(n->generic, SG_CDR(n->methods),
-			       SP(vm)-argc, argc, TRUE);
+	if (use_saved_args) {
+	  nm = Sg_MakeNextMethod(n->generic, SG_CDR(n->methods),
+				 n->argv, n->argc, FALSE);
+	} else {
+#if !defined(APPLY_CALL)
+	  nm = Sg_MakeNextMethod(n->generic, SG_CDR(n->methods),
+				 SP(vm)-argc, argc, TRUE);
+#else
+	  /* e.g. (apply call-next-methods (list 'a))
+	     The top of the stack contains a list, if we save it
+	     as it is, then the saved argv will be ((a)).
+	     So, we need to precompute the frame
+	   */
+	  int l = Sg_Length(last), m = argc - 1, i;
+	  SgObject *argv = SG_NEW_ARRAY(SgObject, m + l), tmp;
+	  if (argc - 1 != 0) {
+	    memcpy(SP(vm), n->argv, sizeof(SgObject)*(m));
+	  }
+	  for (tmp = last, i = 0; i < l; i++, tmp = SG_CDR(tmp)) {
+	    argv[m + i] = SG_CAR(tmp);
+	  }
+	  nm = Sg_MakeNextMethod(n->generic, SG_CDR(n->methods),
+				 argv, m + l, FALSE);
+#endif
+	}
       }
       AC(vm) = SG_CAR(n->methods);
       proctype = SG_PROC_METHOD;
