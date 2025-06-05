@@ -149,7 +149,7 @@ as Unix-like environment.
 If `cmake` can't find `libffi`, then you can specify the location via
 `FFI_LIBRARY_DIR` option like the following.
 
-    $ cmake . -DFFI_LIBRARY_DIR=/usr/local/Cellar/libffi/3.0.13/lib
+    $ cmake . -DFFI_LIBRARY_DIR=/opt/homebrew/Cellar/libffi/3.4.6/lib
 
 Note: some Mac OS X environment may not be able to find `ar` command
 because `/usr/bin/gcc` is identical as `/usr/bin/clang`. In that case,
