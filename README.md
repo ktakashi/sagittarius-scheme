@@ -202,7 +202,7 @@ document.
 
 Experimentally, we support other build tools. Below are the supported ones:
 
-- Visual Studio
+- MSBuild
   ```bat
   % cmake .
   % msbuild /p:Configuration=Release Sagittarius.sln
