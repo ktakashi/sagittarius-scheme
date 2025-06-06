@@ -198,13 +198,33 @@ click the file `innosetup.iss`.  Go to [Build] - [Compile], then it
 will create the installer.  For more detail, please see Inno Setup's
 document.
 
-### Msbuild
+### Other Windows build tools
 
-Experimentally, we also support Visual Studio generators. So, the below
-command should also work on Windows.
+Experimentally, we support other build tools. Below are the supported ones:
 
-    % cmake .
-	% msbuild /p:Configuration=Release Sagittarius.sln
+- Visual Studio
+  ```bat
+  % cmake .
+  % msbuild /p:Configuration=Release Sagittarius.sln
+  ```
+- Ninja
+  ```bat
+  % cmake . -G"Ninja"
+  % ninja
+  ```
+
+## Running test
+
+The tests are executed via `CTest`. In case you want to have verbose output,
+you can use `ctest` command. For example, the below command shows the output
+of the test execution when the test failed.
+
+```shell
+% ctest --output-on-failure
+```
+
+For more options, please refer the official document of the 
+[`CTest`](https://cmake.org/cmake/help/latest/manual/ctest.1.html)
 
 # Forums and bug reporting
 
