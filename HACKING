@@ -118,8 +118,8 @@ you run the command.
 - WordBreakProperty.txt
 
 Above Unicode files can be downloaded from the Unicode FTP site:
-[ftp.unicode.org](ftp://ftp.unicode.org/Public/12.1.0/).  Currently,
-Sagittarius uses version 12.1.0, if you want to use newer/older
+[ftp.unicode.org](ftp://ftp.unicode.org/Public/16.0.0/).  Currently,
+Sagittarius uses version 16.0.0, if you want to use newer/older
 version, you can also use them. (May break some of test cases,
 especially if you use unicode version older than 6.3.0)
 
