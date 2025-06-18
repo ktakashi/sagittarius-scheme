@@ -1,7 +1,7 @@
 # Sagittarius Scheme System
 
 [![Sagittarius CI](https://github.com/ktakashi/sagittarius-scheme/actions/workflows/ci.yml/badge.svg)](https://github.com/ktakashi/sagittarius-scheme/actions/workflows/ci.yml)
-[![CircleCI](https://circleci.com/bb/ktakashi/sagittarius-scheme/tree/master.svg?style=svg)](https://circleci.com/bb/ktakashi/sagittarius-scheme/tree/master)
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/ktakashi/sagittarius-scheme/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/ktakashi/sagittarius-scheme/tree/master)
 
 # What is this?
 
