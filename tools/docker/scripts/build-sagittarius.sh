@@ -8,11 +8,12 @@ RELEASES=${REPOSITORY_URL}/releases
 
 case ${VERSION} in
     latest)
-	VERSION=$(curl -sI "${RELEASES}/latest" \
+	VERSION=`curl -ksI "${RELEASES}/latest" \
 	| grep -i '^Location:' \
 	| tr '\r\n' ' ' \
 	| sed "s|Location: ${RELEASES}/tag/v||i" \
-        | sed 's/ //g')
+	| sed 's/ //g'`
+	echo latest version: $VERSION
 	;;
     *) ;;
 esac

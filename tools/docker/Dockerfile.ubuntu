@@ -6,7 +6,8 @@ ADD scripts/build-sagittarius.sh /home/sagittarius/build.sh
 RUN apt update; \
     apt install --no-install-recommends --no-install-suggests -y \
 	libgc-dev zlib1g-dev libffi-dev libssl-dev \
-	cmake curl make gcc g++ patch; \
+	cmake make gcc g++ patch \
+	curl; \
     mkdir -p /home/sagittarius; \
     cd /home/sagittarius && chmod +x ./build.sh; \
     cd /home/sagittarius && ./build.sh $VERSION; \
