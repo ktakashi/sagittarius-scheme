@@ -16,7 +16,7 @@ preconditions, Git is installed on your environment.
 #### Clone
 
 ```shell
-git clone https://bitbucket.org/ktakashi/sagittarius-scheme sagittarius
+git clone https://github.com/ktakashi/sagittarius-scheme sagittarius
 ```
 
 The last `sagittarius` is destination directory name.

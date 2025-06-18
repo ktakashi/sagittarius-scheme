@@ -276,7 +276,7 @@ static void show_usage(int errorp)
 	  "    (use ';' for Windows) separated paths.\n"
 	  "\n"
 	  "bug report:\n"
-	  "  https://bitbucket.org/ktakashi/sagittarius-scheme/issues\n"
+	  "  https://github.com/ktakashi/sagittarius-scheme/issues\n"
 	  "  ktakashi@ymail.com\n"
 	  );
   exit(1);

@@ -5,7 +5,7 @@
 #define MyAppName "Sagittarius"
 #define MyAppVersion "@SAGITTARIUS_VERSION@"
 #define MyAppPublisher "Takashi Kato"
-#define MyAppURL "https://bitbucket.org/ktakashi/sagittarius-scheme/"
+#define MyAppURL "https://github.com/ktakashi/sagittarius-scheme"
 #define MyAppExeName "sash.exe"
 #define SchemeFileLoaderFile "scheme-file-loader.scm"
 #define SchemeFileLoader "Scheme File Loader"

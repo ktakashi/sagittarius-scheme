@@ -136,8 +136,7 @@ dist() {
     mkdir ${DIST_NAME}
 # use rsync to exclude hidden or CI files
 # I hope this command exists any where...
-    rsync -r --exclude='.hg*' --exclude="bitbucket-pipelines.yml" \
-	  --exclude='*.git*' --exclude='.ci*' \
+    rsync -r --exclude='.hg*' --exclude='*.git*' --exclude='.ci*' \
 	  ${SRC_DIR}/* ${DIST_NAME}
     
     tar --format ustar -czvf ${DIST_NAME}.tar.gz ${DIST_NAME}

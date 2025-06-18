@@ -234,7 +234,7 @@ If you have any question, please ask on the following Google group:
 
 If you find a bug, please report it on the project bug tracking board:
 
-- [Sagittarius Issues](https://bitbucket.org/ktakashi/sagittarius-scheme/issues)
+- [Sagittarius Issues](https://github.com/ktakashi/sagittarius-scheme/issues)
 
 Or you can report it on Google group.
 
