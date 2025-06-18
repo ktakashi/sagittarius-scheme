@@ -2,15 +2,24 @@
 
 VERSION=$1
 
+REPOSITORY_URL=https://github.com/ktakashi/sagittarius-scheme
+RELEASES=${REPOSITORY_URL}/releases
+
+
 case ${VERSION} in
     latest)
-	curl -kLo version https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/latest-version.txt
-	VERSION=`cat version`
+	VERSION=$(curl -sI "${RELEASES}/latest" \
+	| grep -i '^Location:' \
+	| tr '\r\n' ' ' \
+	| sed "s|Location: ${RELEASES}/tag/v||i" \
+        | sed 's/ //g')
 	;;
     *) ;;
 esac
 
-curl -kLo sagittarius.tar.gz https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/sagittarius-${VERSION}.tar.gz
+DOWNLOAD="${RELEASES}/download/v${VERSION}/sagittarius-${VERSION}.tar.gz"
+curl -kLo sagittarius.tar.gz $DOWNLOAD
+
 tar xvf sagittarius.tar.gz
 cd sagittarius-$VERSION
 

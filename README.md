@@ -1,5 +1,8 @@
 # Sagittarius Scheme System
 
+[![Sagittarius CI](https://github.com/ktakashi/sagittarius-scheme/actions/workflows/ci.yml/badge.svg)](https://github.com/ktakashi/sagittarius-scheme/actions/workflows/ci.yml)
+[![CircleCI](https://circleci.com/bb/ktakashi/sagittarius-scheme/tree/master.svg?style=svg)](https://circleci.com/bb/ktakashi/sagittarius-scheme/tree/master)
+
 # What is this?
 
 This is a free Scheme implementation, supporting R6RS and R7RS
