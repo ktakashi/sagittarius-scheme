@@ -5,7 +5,7 @@ NEED_SUDO=$1
 REPOSITORY_URL=https://github.com/ktakashi/sagittarius-scheme
 RELEASES=${REPOSITORY_URL}/releases
 # FIXME: ugly...
-VERSION=$(curl -sI "${RELEASES}/latest" \
+VERSION=$(curl -ksI "${RELEASES}/latest" \
 	| grep -i '^Location:' \
 	| tr '\r\n' ' ' \
 	| sed "s|Location: ${RELEASES}/tag/v||i" \
