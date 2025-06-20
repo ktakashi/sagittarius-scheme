@@ -1,18 +1,23 @@
-platforms := linux/amd64 #linux/arm64/v8
+platforms := 'linux/amd64,linux/arm64/v8,linux/arm/v7,linux/ppc64le,linux/riscv64'
+VERSION ?= latest
 
-all: $(platforms)
+all: build
 
-$(platforms):
-	docker buildx build --platform $@ -f Dockerfile.ubuntu \
-	-t ktakashi/sagittarius:latest .
-	$(eval version=$(shell docker run -it ktakashi/sagittarius \
-	-e'(display (sagittarius-version))(newline)(exit)' 2>/dev/null))
-	@echo $(version)
-	docker image tag ktakashi/sagittarius:latest ktakashi/sagittarius:$(version)
+build:
+	docker buildx build --platform $(platforms) -f Dockerfile.ubuntu \
+	  --build-arg VERSION=$(VERSION) -t ktakashi/sagittarius:$(VERSION) .
+
+push: build push_$(VERSION)
+
+push_$(VERSION):
+	docker push ktakashi/sagittarius:$(VERSION)
+
+push_latest: build_version
+	docker image tag ktakashi/sagittarius:latest ktakashi/sagittarius:$(build_version)
 	docker push ktakashi/sagittarius:latest
-	docker push ktakashi/sagittarius:$(version)
+	docker push ktakashi/sagittarius:$(build_version)
 
-linux/arm64/v8:
-	docker buildx build --platform $@ -f Dockerfile.ubuntu \
-	-t ktakashi/sagittarius:$(version)-arm64 \
-	-t ktakashi/sagittarius:latest-arm64
+build_version:
+	$(eval build_version=$(shell docker run -it ktakashi/sagittarius:$(VERSION) \
+	  -e'(display (sagittarius-version))(newline)(exit)' 2>/dev/null))
+	@echo $(build_version)
