@@ -28,12 +28,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: DockerHub Login
-        uses: docker/login-action@v2.1.0
+        uses: docker/login-action@3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Docker Metadata action
-        uses: docker/metadata-action@v4.1.1
+        uses: docker/metadata-action@v5
         id: meta
         with:
           images: ktakashi/sagittarius
@@ -45,10 +45,16 @@ jobs:
             org.opencontainers.image.title=Sagittarius Scheme
             org.opencontainers.image.description=Sagittarius Scheme nightly build
       - name: Build and push Docker image
-        uses: docker/build-push-action@v3.2.0
+        uses: docker/build-push-action@v6
         with:
           file: .ci/Dockerfile.nightly
           push: true
+          platforms:
+            - linux/amd64
+            - linux/arm64/v8
+            - linux/arm/v7
+            - linux/ppc64le
+            - linux/riscv64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
