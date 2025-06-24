@@ -21,3 +21,7 @@ build_version:
 	$(eval build_version=$(shell docker run -it ktakashi/sagittarius:$(VERSION) \
 	  -e'(display (sagittarius-version))(newline)(exit)' 2>/dev/null))
 	@echo $(build_version)
+
+clean:
+	docker builder prune -f
+	docker rmi -f $(shell docker images ktakashi/sagittarius -a -q)
