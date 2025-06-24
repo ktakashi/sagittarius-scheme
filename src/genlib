@@ -26,6 +26,8 @@
 
 ;; We load the compiler libraries here as well
 (define (load-compiler-libraries)
+  (define compile-entry
+    (eval 'compile-entry (find-library '(sagittarius compiler) #f)))
   ;; transition, changed the procedure arguments
   (%insert-binding '(sagittarius) 'make-compile-error
 		   (lambda (form) (make-irritants-condition form)))
@@ -48,6 +50,10 @@
   (load "../boot/lib/compiler-util.scm")
   (load "../boot/lib/iform.scm")
   (load "../boot/lib/pass1-core.scm")
+  ;; the above load overrides the host entry, so reset it
+  (eval `(init-pass1 ,compile-entry)
+	(find-library '(sagittarius compiler pass1 core) #f))
+  
   (load "../boot/lib/pass1-syntax.scm")
   (load "../boot/lib/pass1.scm")
   (load "../boot/lib/pass2.scm")

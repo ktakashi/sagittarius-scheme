@@ -11,7 +11,7 @@
 	    $IF $LET $LAMBDA $RECEIVE $LABEL $SEQ $CALL $ASM
 	    $IT $LIST $LIBRARY
 
-	    .intermediate-tags.
+	    .intermediate-tags. generate-dispatch-table
 	    
 	    iform-tag has-tag?
 
@@ -140,6 +140,17 @@
   $IT
   $LIST
   $LIBRARY)
+
+(define-syntax generate-dispatch-table
+  (er-macro-transformer
+   (lambda (form rename compare)
+     (smatch form
+       ((_ prefix)
+	`(vector ,@(imap (lambda (p)
+			   (string->symbol (string-append
+					    (symbol->string prefix) "/"
+					    (symbol->string (car p)))))
+			 .intermediate-tags.)))))))
 
 (define-syntax iform-tag
   (syntax-rules ()
@@ -988,7 +999,6 @@
     (not (iany (lambda (arg)
 		 (and ($const arg) (not (number? ($const-value arg)))))
 	       args)))
-   (else #f))
-)
+   (else #f)))
 )
 

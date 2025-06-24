@@ -8,8 +8,6 @@
 
 	    case/unquote define-simple-struct
 	    
-	    generate-dispatch-table
-
 	    argcount-ok? constant-folding-warning
 
 	    id->bound-gloc guard add-backtrace
@@ -236,17 +234,6 @@
 				  ((_ obj val)
 				   (vector-set! obj ,i val))))
 			     r))))))))))))
-
-(define-syntax generate-dispatch-table
-  (er-macro-transformer
-   (lambda (form rename compare)
-     (smatch form
-       ((_ prefix)
-	`(vector ,@(imap (lambda (p)
-			   (string->symbol (string-append
-					    (symbol->string prefix) "/"
-					    (symbol->string (car p)))))
-			 .intermediate-tags.)))))))
 
 ;; used both pass1 and pass2
 (define (id->bound-gloc id)
