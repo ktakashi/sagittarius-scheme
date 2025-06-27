@@ -48,10 +48,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup VM
-        uses: "vmactions/${{ matrix.config.name }}-vm@"
+        uses: jenseng/dynamic-uses@v1
         with:
-          arch: ${{ matrix.arch }}
-          sync: nfs
+          uses: vmactions/${{ matrix.config.name }}-vm@
+          with: |
+            {
+              "arch": ${{ toJSON(matrix.arch) }},
+              "sync": "nfs"
+            }
       - name: Install dependencies / current
         shell: "${{ matrix.config.name }} {0}"
         run: |
