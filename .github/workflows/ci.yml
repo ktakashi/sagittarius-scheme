@@ -37,6 +37,44 @@ jobs:
       - name: Test
         working-directory: target
         run: ctest --output-on-failure -j8
+  VMActions-Build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, aarch64]
+        config:
+          - { name: 'freebsd', setup: '.ci/setup-freebsd.sh' }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup VM: ${{ matrix.config.name }}
+        uses: vmactions/${{ matrix.config.name }}-vm@
+        with:
+          arch: ${{ matrix.arch }}
+          sync: nfs
+      - name: Install dependencies / current
+        shell: ${{ matrix.config.name }} {0}
+        run: |
+          cd $GITHUB_WORKSPACE;
+          sh "./${{ matrix.config.setup }}"
+          bash "./.ci/build-current.sh"
+      - name: Pre-build
+        shell: ${{ matrix.config.name }} {0}
+        run: |
+          cd $GITHUB_WORKSPACE;
+          ./dist.sh gen
+          cmake .
+      - name: Build
+        shell: ${{ matrix.config.name }} {0}
+        run: |
+          cd $GITHUB_WORKSPACE;
+          make
+      - name: Test
+        shell: ${{ matrix.config.name }} {0}
+        run: |
+          cd $GITHUB_WORKSPACE;
+          ctest --output-on-failure -j8
+          
   Windows-Build:
     runs-on: ${{ matrix.images }}
     strategy:
