@@ -47,7 +47,7 @@ jobs:
           - { name: 'freebsd', setup: '.ci/setup-freebsd.sh' }
     steps:
       - uses: actions/checkout@v4
-      - name: Setup VM: ${{ matrix.config.name }}
+      - name: Setup VM
         uses: vmactions/${{ matrix.config.name }}-vm@
         with:
           arch: ${{ matrix.arch }}
