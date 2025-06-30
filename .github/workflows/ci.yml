@@ -57,27 +57,35 @@ jobs:
               "sync": "nfs"
             }
       - name: Install dependencies / current
-        shell: "${{ matrix.config.name }} {0}"
-        run: |
-          cd $GITHUB_WORKSPACE;
-          sh "./${{ matrix.config.setup }}"
-          bash "./.ci/build-current.sh"
+        uses: ktakashi/dynamic-shell@v1
+        with:
+          shell: "${{ matrix.config.name }} {0}"
+          run: |
+            cd $GITHUB_WORKSPACE;
+            sh "./${{ matrix.config.setup }}"
+            bash "./.ci/build-current.sh"
       - name: Pre-build
-        shell: "${{ matrix.config.name }} {0}"
-        run: |
-          cd $GITHUB_WORKSPACE;
-          ./dist.sh gen
-          cmake .
+        uses: ktakashi/dynamic-shell@v1
+        with:
+          shell: "${{ matrix.config.name }} {0}"
+          run: |
+            cd $GITHUB_WORKSPACE;
+            ./dist.sh gen
+            cmake .
       - name: Build
-        shell: "${{ matrix.config.name }} {0}"
-        run: |
-          cd $GITHUB_WORKSPACE;
-          make
+        uses: ktakashi/dynamic-shell@v1
+        with:
+          shell: "${{ matrix.config.name }} {0}"
+          run: |
+            cd $GITHUB_WORKSPACE;
+            make
       - name: Test
-        shell: "${{ matrix.config.name }} {0}"
-        run: |
-          cd $GITHUB_WORKSPACE;
-          ctest --output-on-failure -j8
+        uses: ktakashi/dynamic-shell@v1
+        with:
+          shell: "${{ matrix.config.name }} {0}"
+          run: |
+            cd $GITHUB_WORKSPACE;
+            ctest --output-on-failure -j8
           
   Windows-Build:
     runs-on: ${{ matrix.images }}
