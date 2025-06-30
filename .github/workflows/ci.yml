@@ -50,7 +50,7 @@ jobs:
       - name: Setup VM
         uses: jenseng/dynamic-uses@v1
         with:
-          uses: vmactions/${{ matrix.config.name }}-vm@
+          uses: vmactions/${{ matrix.config.name }}-vm@v1
           with: |
             {
               "arch": ${{ toJSON(matrix.arch) }},
