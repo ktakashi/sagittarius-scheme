@@ -61,7 +61,9 @@ MACRO (FIXUP_COMPILER_FLAGS _PROCESSOR _PLATFORM)
     # on x86_64 and is required.
     # Solaris GCC (32 bit) doesn't have this either. so
     # just put it whenever. it doesn't hurt anyway...
-    IF (${${_PROCESSOR}} STREQUAL "x86_64" OR ${${_PLATFORM}} STREQUAL "sunos")
+    IF (${${_PROCESSOR}} STREQUAL "x86_64" OR
+	${${_PROCESSOR}} STREQUAL "aarch64" OR
+	${${_PLATFORM}} STREQUAL "sunos")
       SET(CMAKE_C_FLAGS "-fPIC ${CMAKE_C_FLAGS}")
       SET(CMAKE_CXX_FLAGS "-fPIC ${CMAKE_CXX_FLAGS}")
     ENDIF()
