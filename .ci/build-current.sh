@@ -17,7 +17,14 @@ curl -kLo sagittarius.tar.gz $DOWNLOAD
 tar --no-same-owner -xvf sagittarius.tar.gz
 cd "sagittarius-${VERSION}"
 
-cmake .
+# Add  -DCMAKE_C_FLAGS="-fPIC" -DCMAKE_CXX_FLAGS="-fPIC"
+# for FreeBSD with aarch64 (need more generic condition...)
+processor=$(uname -p)
+if [ "$processor" == "aarch64" ]; then
+    flags="-fPIC"
+fi
+
+cmake . -DCMAKE_C_FLAGS="$flags" -DCMAKE_CXX_FLAGS="$flags"
 make -j8 sash
 make
 
