@@ -7,12 +7,13 @@ on:
 jobs:
   POSIX-Build:
     runs-on: ${{ matrix.config.os }}
+    name: ${{ matrix.config.name }}
     strategy:
       fail-fast: false
       matrix:
         config:
-          - { os: 'ubuntu-latest', setup: '.ci/setup-ubuntu.sh' }
-          - { os: 'macos-latest',  setup: '.ci/setup-macos.sh' }
+          - { name: 'Linux', os: 'ubuntu-latest', setup: '.ci/setup-ubuntu.sh' }
+          - { name: 'macOS', os: 'macos-latest',  setup: '.ci/setup-macos.sh' }
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -97,7 +98,7 @@ jobs:
       fail-fast: false
       matrix:
         arch: [x64, x86]
-        images: [windows-2019, windows-2022]
+        images: [windows-2022, windows-2025]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
