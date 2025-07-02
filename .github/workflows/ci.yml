@@ -37,8 +37,11 @@ jobs:
       - name: Test
         working-directory: target
         run: ctest --output-on-failure -j8
+
   VMActions-Build:
+    needs: POSIX-Build
     runs-on: ubuntu-latest
+    name: ${{ matrix.config.name }} - ${{ matrix.arch }}
     strategy:
       fail-fast: false
       matrix:
@@ -89,6 +92,7 @@ jobs:
           
   Windows-Build:
     runs-on: ${{ matrix.images }}
+    name: ${{ matrix.images }} - ${{ matrix.arch }}
     strategy:
       fail-fast: false
       matrix:
