@@ -1,5 +1,6 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
 #!read-macro=sagittarius/regex
+#!nounbound
 (library (sagittarius cgen stub)
     (export cgen-genstub
 	    <cgen-stub-unit>
@@ -7,6 +8,7 @@
 	    cgen-stub-parse-form
 	    define-form-parser
 	    (rename (<c-proc> <cgen-c-proc>))
+	    <cgen-c-variable>
 	    ;; TODO remove me
 	    <c-proc>)
     (import (rnrs)
@@ -692,25 +694,32 @@
 			     (cgen-cexpr name-literal)
 			     (cgen-cexpr literal)))))))
 
-  (define-class <cgen-constant> (<stub>)
+  (define-class <cgen-c-variable> (<stub>)
     ((constant :init-keyword :constant :init-value #f)
      (type     :init-keyword :type)
-     (value    :init-keyword :value)))
-  (define-form-parser define-c-constant (scheme-name value . type&flag)
+     (c-expr   :init-keyword :c-expr)))
+  (define-form-parser define-c-constant (scheme-name expr . type&flag)
     (define (extract-flags body)
       (if (null? body)
 	  #f
 	  (cond ((memq body '(:constant)) #t)
 		(else #f))))
     (check-arg symbol? scheme-name 'define-c-constant)
-    (let*-values (((body type) (extract-rettype body))
-		  (((constant?))  (extract-flags body)))
-      (let1 c (make <cgen-constant>
+    (let*-values (((body type) (extract-rettype type&flag))
+		  ((constant?)  (extract-flags body)))
+      (let1 c (make <cgen-c-variable>
 		:scheme-name scheme-name
-		:c-name (get-c-name (slot-ref (cgen-current-unit)
-					      'c-name-prefix)
-				    scheme-name)
-		:constant constant
-		:type type :value value)
+		:c-name (cgen-literal (symbol->string scheme-name))
+		:constant constant?
+		:type (name->type type)
+		:c-expr (cise-render-to-string expr 'expr))
 	(cgen-add! c))))
+
+  (define-method cgen-emit-init ((cvar <cgen-c-variable>))
+  (define type (slot-ref cvar 'type))
+  (format #t "  Sg_MakeBinding(lib, Sg_Intern(~a), ~a(~a), ~a);~%"
+	  (cgen-c-name (slot-ref cvar 'c-name))
+	  (slot-ref type 'boxer)
+	  (slot-ref cvar 'c-expr)
+	  (if (slot-ref cvar 'constant) 'TRUE 'FALSE)))
 )

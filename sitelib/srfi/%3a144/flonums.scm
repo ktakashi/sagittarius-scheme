@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;
 
+#!nounbound
 (library (srfi :144 flonums)
     (export fl-e
 	    fl-1/e
