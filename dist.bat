@@ -41,7 +41,7 @@ rem stub
 :stub
 echo Generating library from stub
 cd src
-%SASH% genstub %1
+%SASH% -Lsitelib genstub %1
 cd ..
 goto:eof
 
