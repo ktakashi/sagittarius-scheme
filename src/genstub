@@ -34,34 +34,34 @@
    (type   :init-keyword :type)))
 
 ;; boo
-;; (define (extract-rettype forms)
-;;   (define (type-symbol? s)
-;;     (and (keyword? s) (#/^:[^:]/ (keyword->string s))))
-;;   (define (type-symbol-type s)
-;;     (string->symbol (string-drop (keyword->string s) 1)))
-;;   (match forms
-;;     ((:: type . body) (values body type))
-;;     (((? type-symbol? ts) . body) (values body (type-symbol-type ts)))
-;;     (_ (values forms #f))))
+(define (extract-rettype forms)
+  (define (type-symbol? s)
+    (and (keyword? s) (#/^:[^:]/ (keyword->string s))))
+  (define (type-symbol-type s)
+    (string->symbol (string-drop (keyword->string s) 1)))
+  (match forms
+    ((:: type . body) (values body type))
+    (((? type-symbol? ts) . body) (values body (type-symbol-type ts)))
+    (_ (values forms #f))))
 
-;; (define (name->type name)
-;;   (or (cgen-type-from-name name)
-;;       (error 'stub "unknown stub-type" name)))
+(define (name->type name)
+  (or (cgen-type-from-name name)
+      (error 'stub "unknown stub-type" name)))
 
-;; (define-form-parser define-c-constant (name expr type)
-;;   (let-values (((ignore rettype) (extract-rettype (list type))))
-;;     (let ((cvar (make <c-variable>
-;; 		  :scheme-name name
-;; 		  :var-name (cgen-literal (symbol->string name))
-;; 		  :c-expr (cise-render-to-string expr 'expr)
-;; 		  :type (name->type rettype))))
-;;       (cgen-add! cvar))))
-;; (define-method cgen-emit-init ((cvar <c-variable>))
-;;   (define type (slot-ref cvar 'type))
-;;   (format #t "  Sg_InsertBinding(lib, Sg_Intern(~a), ~a(~a));~%"
-;; 	  (cgen-c-name (slot-ref cvar 'var-name))
-;; 	  (slot-ref type 'boxer)
-;; 	  (slot-ref cvar 'c-expr)))
+(define-form-parser define-c-constant (name expr type)
+  (let-values (((ignore rettype) (extract-rettype (list type))))
+    (let ((cvar (make <c-variable>
+		  :scheme-name name
+		  :var-name (cgen-literal (symbol->string name))
+		  :c-expr (cise-render-to-string expr 'expr)
+		  :type (name->type rettype))))
+      (cgen-add! cvar))))
+(define-method cgen-emit-init ((cvar <c-variable>))
+  (define type (slot-ref cvar 'type))
+  (format #t "  Sg_InsertBinding(lib, Sg_Intern(~a), ~a(~a));~%"
+	  (cgen-c-name (slot-ref cvar 'var-name))
+	  (slot-ref type 'boxer)
+	  (slot-ref cvar 'c-expr)))
 
 
 (define *scheme-definitions* '())
@@ -86,7 +86,7 @@
     (append (collect-names (reverse! *scheme-definitions*))
 	    (filter-map (lambda (node)
 			  (and (or (is-a? node <cgen-c-proc>)
-				   (is-a? node <cgen-c-variable>))
+				   #;(is-a? node <cgen-c-variable>))
 			       (slot-ref node 'scheme-name)))
 			(cgen-unit-toplevel-nodes unit))
 	    (if (memq :export-reader-macro oexports)
