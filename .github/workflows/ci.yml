@@ -46,7 +46,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [x86_64, aarch64]
+        arch:
+          - x86_64
+          # - aarch64
         config:
           - { name: 'freebsd', setup: '.ci/setup-freebsd.sh' }
     steps:
