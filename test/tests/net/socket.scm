@@ -276,7 +276,7 @@
     (test-equal "no soft, hard = 1000ms" count (length (filter string? r))))
   (let ((r (run-socket-selector 50 #f)))
     (test-assert "no soft, hard = 50ms"
-		(<= (length (filter string? r)) (div count 2))))
+		 (<= (length (filter string? r)) (div count 2))))
   (let ((r (run-socket-selector 50 1000)))
     (test-equal "soft = 1000ms, hard = 50ms" count (length (filter string? r))))
   )

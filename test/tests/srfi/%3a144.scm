@@ -651,7 +651,7 @@
 
 (test (flexp negzero) one)
 (test (flexp zero) one)
-(test (flexp one) fl-e)
+(test/approx (flexp one) fl-e) ;; For FreeBSD, we use test/approx...
 (test/approx (flexp (fl- one)) fl-1/e)
 (test/approx (flexp two) fl-e-2)
 (test/approx (flexp fl-pi/4) fl-e-pi/4)
