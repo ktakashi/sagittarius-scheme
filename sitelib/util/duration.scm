@@ -59,9 +59,9 @@
 	(make-time time-duration (* (+ n 1000) 1000000) (- sec 1))
 	(make-time time-duration (* n 1000000) sec))))
 
-(define (duration:of-micros micro)
-  (let ((sec (div millis 1000000))
-	(n (mod millis 1000000)))
+(define (duration:of-micros micros)
+  (let ((sec (div micros 1000000))
+	(n (mod micros 1000000)))
     (if (< n 0)
 	(make-time time-duration (* (+ n 1000000) 1000000) (- sec 1))
 	(make-time time-duration (* n 1000) sec))))
