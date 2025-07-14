@@ -31,6 +31,7 @@
 #!nounbound
 (library (util duration)
     (export duration:of-nanos
+	    duration:of-micros
 	    duration:of-millis
 	    duration:of-seconds
 	    duration:of-minutes
@@ -57,6 +58,13 @@
     (if (< n 0)
 	(make-time time-duration (* (+ n 1000) 1000000) (- sec 1))
 	(make-time time-duration (* n 1000000) sec))))
+
+(define (duration:of-micros micro)
+  (let ((sec (div millis 1000000))
+	(n (mod millis 1000000)))
+    (if (< n 0)
+	(make-time time-duration (* (+ n 1000000) 1000000) (- sec 1))
+	(make-time time-duration (* n 1000) sec))))
 
 (define (duration:of-seconds seconds) (make-time time-duration 0 seconds))
 (define (duration:of-minutes minutes)
