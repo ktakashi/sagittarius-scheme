@@ -21,7 +21,7 @@ static struct sockaddr_un * bind_unix_socket(int socket,
   if (fd == -1) return NULL;
   close(fd);	      /* we don't need file descriptor of temp file */
   addr->sun_family = AF_UNIX;
-  snprintf(addr->sun_path, sizeof(tmp), "%s", tmp);
+  snprintf(addr->sun_path, array_sizeof(tmp), "%s", tmp);
   unlink(addr->sun_path); /* mkstemp creates a file but we only need the name */
   if (bind(socket, (struct sockaddr *)addr, sizeof(struct sockaddr_un)) != 0) {
     return NULL;
@@ -32,9 +32,14 @@ static struct sockaddr_un * bind_unix_socket(int socket,
 static int sendto_unix_socket(int socket, struct sockaddr_un *addr,
 			      const uint8_t *data, int datalen)
 {
-  if (sendto(socket, data, datalen, 0,
-	     (struct sockaddr *)addr, sizeof(struct sockaddr_un)) != datalen) {
-    return -1;
+  struct sockaddr *sadr = (struct sockaddr *)addr;
+  size_t s = sizeof(struct sockaddr_un);
+  int rest = datalen;
+  while (rest != 0) {
+    int r = sendto(socket, data, rest, 0, sadr, s);
+    if (r == rest) break;
+    rest -= r;
+    data += r;
   }
   return datalen;
 }
@@ -82,16 +87,16 @@ static void close_unix_stop(unix_context_t *stop)
   invalidate_stop(stop);
 }
 
-static const char *msg = "stop it";
+static const char msg[] = "stop it!";
 static void interrupt_unix_stop(unix_context_t *stop)
 {
-  sendto_unix_socket(stop->stop_fd, &stop->addr, (const uint8_t *)msg, 7);
+  sendto_unix_socket(stop->stop_fd, &stop->addr, (const uint8_t *)msg, array_sizeof(msg));
 }
 
 static void interrupted_unix_stop(unix_context_t *stop)
 {
-  uint8_t buf[7];
-  size_t rest = 7;
+  uint8_t buf[array_sizeof(msg)];
+  size_t rest = array_sizeof(msg);
   while (TRUE) {
     int r = recvfrom_unix_socket(stop->stop_fd, &stop->addr, buf, rest);
     if (r < 0) {

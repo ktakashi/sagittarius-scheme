@@ -441,6 +441,7 @@
   (define timeouts (make-atomic-fixnum 0))
   (define ready-counts (make-atomic-fixnum 0))
   (define client-counts (make-atomic-fixnum 0))
+  (define selected (make-atomic-fixnum 0))
   (define (echo-back s)
     (atomic-fixnum-inc! ready-counts)
     (socket-send s (socket-recv s 255)))
@@ -462,10 +463,11 @@
 	(let loop ()
 	  (unless (socket-selector-closed? selector)
 	    (let-values (((socks timed-out) (socket-selector-wait! selector)))
+	      (atomic-fixnum-add! selected (+ (length socks) (length timed-out)))
 	      (for-each echo-back (map car socks))
 	      (for-each (lambda (s)
-			  (socket-send s #vu8(0))
 			  (atomic-fixnum-inc! result-to)
+			  (socket-send s #vu8(0))
 			  (socket-shutdown s SHUT_RDWR)
 			  (socket-close s))
 			(map car timed-out))
@@ -475,24 +477,27 @@
   (define (do-test i)
     (define s (make-client-socket "localhost" (server-service server)))
     (socket-set-read-timeout! s 500) ;; 500ms
-    (thread-start!
-     (make-thread
+    (make-thread
       (lambda ()
 	(let ((msg (string->utf8 (string-append "hello " (number->string i)))))
-	  (thread-sleep! delay)
 	  (guard (e (else (atomic-fixnum-inc! timeouts) #t))
 	    (socket-send s msg)
-	    (when (bytevector=? (socket-recv s 255) msg)
-	      (atomic-fixnum-inc! result)))
+	    (let ((r (socket-recv s 255)))
+	      (when (bytevector=? r msg)
+		(atomic-fixnum-inc! result))))
 	  (socket-shutdown s SHUT_RDWR)
-	  (socket-close s))))))
+	  (socket-close s)
+	  s))))
 
   (let ((t* (map do-test (iota count))))
+    ;; First wait until all the sockets are created
     (let loop ()
       (unless (= count (atomic-fixnum-load client-counts))
 	(thread-sleep! delay)
 	(loop)))
-    (for-each thread-join! t*))
+    ;; then send 
+    (for-each thread-start! t*)
+    (test-assert (for-all socket? (map thread-join! t*))))
 
   (set! end? #t)
   (let ((s (make-client-socket "localhost" (server-service server))))
@@ -509,11 +514,11 @@
 
   (socket-shutdown server SHUT_RDWR)
   (socket-close server)
+
   (unless timeout
     (test-equal (format "timeouts (count = ~a, timeout = ~a): ~a"
 			count timeout (atomic-fixnum-load timeouts))
 		0 (atomic-fixnum-load timeouts)))
-
   (values (atomic-fixnum-load ready-counts)
 	  (atomic-fixnum-load result) (atomic-fixnum-load result-to)))
 
