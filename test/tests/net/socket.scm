@@ -52,7 +52,6 @@
 (define (shutdown&close s)
   (socket-shutdown s SHUT_RDWR)
   (socket-close s))
-
 (let ()
   (define server-socket (make-server-socket "0"))
   ;; addr is client socket
@@ -268,9 +267,7 @@
 
     (socket-shutdown server-sock SHUT_RDWR)
     (socket-close server-sock)
-
     (guard (e (else #t)) (thread-join! server-thread))
-    
     (shared-queue->list result))
   (let ((r (run-socket-selector 1000 #f)))
     (test-equal "no soft, hard = 1000ms" count (length (filter string? r))))
@@ -283,23 +280,31 @@
 
 (let ()
   (define server-sock (make-server-socket "0"))
+  (define (close-socket! sock)
+    (when sock
+      (socket-shutdown sock SHUT_RDWR)
+      (socket-close sock)))
   (define (echo sock)
     (lambda ()
-      (let ((v (socket-recv sock 255)))
-	(thread-yield!)
-	(thread-sleep! 0.3) ;; wait 300ms
-	(socket-send sock v)
-	(thread-sleep! 0.5) ;; wait 500ms to let client finish 
-	(socket-shutdown sock SHUT_RDWR)
-	(socket-close sock))))
+      (guard (e (else (print e)))
+	(let ((v (socket-recv sock 255)))
+	  (thread-yield!)
+	  (thread-sleep! 0.3) ;; wait 300ms
+	  (socket-send sock v)
+	  (thread-sleep! 0.5) ;; wait 500ms to let client finish
+	  ))
+      (close-socket! sock)))
   (define server-thread
     (thread-start!
      (make-thread
       (lambda ()
 	(let loop ()
 	  (let ((sock (socket-accept server-sock)))
-	    (thread-start! (make-thread (echo sock)))
-	    (loop)))))))
+	    (when sock
+	      (guard (e (else (report-error e) (close-socket! sock)))
+		(socket-set-read-timeout! sock 2000) ;; 2s
+		(thread-start! (make-thread (echo sock))))
+	      (loop))))))))
   (define count 100)
   (define (run-socket-selector hard-timeout soft-timeout)
     (define result (make-shared-queue))
@@ -313,10 +318,9 @@
 	 (thread-start!
 	  (make-thread
 	   (lambda ()	      
-	     (guard (e (else #;(print e) e))
+	     (guard (ex (else #;(print ex) ex))
 	       (let ((v (or e (utf8->string (socket-recv sock 255)))))
-		 (socket-shutdown sock SHUT_RDWR)
-		 (socket-close sock)
+		 (close-socket! sock)
 		 (if (string? v)
 		     (and (not (zero? (string-length v))) v)
 		     e))))))))
@@ -326,13 +330,13 @@
 			(string-append "Hello world " (number->string i))))
 	(selector s push-result soft-timeout)))
     (define (collect-thread)
-      (do ((i 0 (+ i 1)) (r '() (cons (shared-queue-get! result) r)))
+      (do ((i 0 (+ i 1)) (r '() (cons (shared-queue-get! result 1) r)))
 	  ((= i count) r)))
     (define (safe-join! t)
       (guard (e ((uncaught-exception? e)
 		 (uncaught-exception-reason e))
 		(else #f))
-	(thread-join! t)))
+	(thread-join! t 2)))
 
     (let-values (((selector terminator) (make-socket-selector hard-timeout)))
       (for-each (caller selector) (iota count))

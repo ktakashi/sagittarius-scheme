@@ -64,7 +64,7 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
   c = kevent(ctx->fd, evm, n, evm, n, sp);
 
   /* when the selector is closed, then the unix socket returns EBADF */
-  if (c < 0) {
+  if (c < 0 && errno != EINTR) {
     *err = errno;
     return SG_FALSE;
   }

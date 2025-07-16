@@ -23,7 +23,6 @@
 (unless (file-exists? +file+)
   (call-with-output-file +file+ (lambda (out) (put-string out "created"))))
 
-(define (run-tests)
 ;; NB: we can't test 'access since Windows Vista or later disabled 
 ;;     updating access timestamp by default.
 (let* ((w (make-filesystem-watcher))
@@ -116,8 +115,5 @@
 		(filesystem-watcher-start-monitoring! w :background #f)))
   (thread-join! t1)
   (test-assert (release-filesystem-watcher! w)))
-)
-
-(run-tests)
 
 (test-end)
