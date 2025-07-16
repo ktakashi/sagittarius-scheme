@@ -41,6 +41,13 @@
 #include <sagittarius/extend.h>
 #include "filewatch.h"
 
+static void system_error(int e)
+{
+  char *msg = strerror(e);
+  Sg_SystemError(e, UC("kqueue failed: %A"), 
+		 Sg_Utf8sToUtf32s(msg, strlen(msg)));
+}
+
 /* 
    kqueue implementation limitation.
 
@@ -65,6 +72,7 @@
 #endif
 
 typedef struct {
+  int kq;
   SgObject paths;		/* list of path and flags */
 } kqueue_context;
 
@@ -72,6 +80,9 @@ SgObject Sg_MakeFileWatchContext()
 {
   SgFileWatchContext *ctx = SG_NEW(SgFileWatchContext);
   kqueue_context *kc = SG_NEW(kqueue_context);
+  if ((kc->kq = kqueue()) < 0) {
+    system_error(errno);
+  }
   kc->paths = SG_NIL;
   SG_SET_CLASS(ctx, SG_CLASS_FILE_WATCH_CONTEXT);
   SG_FILE_WATCH_CONTEXT_INIT(ctx, kc);
@@ -81,6 +92,7 @@ SgObject Sg_MakeFileWatchContext()
 void Sg_DestroyFileWatchContext(SgFileWatchContext *ctx)
 {
   kqueue_context *kc = (kqueue_context *)ctx->context;
+  close(kc->kq);
   kc->paths = SG_NIL;
   SG_FILE_WATCH_CONTEXT_RELESE(ctx);
 }
@@ -156,25 +168,23 @@ SgObject Sg_RemoveMonitoringPath(SgFileWatchContext *ctx, SgString *path)
 
 void Sg_StartMonitoring(SgFileWatchContext *ctx)
 {
+#define PRE_ALLOC_SIZE 128
   kqueue_context *kc = (kqueue_context *)ctx->context;
   int n = Sg_Length(kc->paths), i;
   SgObject cp;
   /* TODO maybe we can make it only one array? */
-  struct kevent *evm;		/* monitoring */
-  int *fds, kq, e = 0;
-
-  if ((kq = kqueue()) < 0) goto err;
+  struct kevent stack_evm[PRE_ALLOC_SIZE], *evm; /* monitoring */
+  int stack_fds[PRE_ALLOC_SIZE], *fds, e = 0;
 
   /* It seems allocating this much stack would cause GC issue on OSX.
      I don't know exact reason, so it might bite me later. */
-#if defined(HAVE_ALLOCA) && !defined(__APPLE__)
-  evm = (struct kevent *)alloca(n * sizeof(struct kevent));
-  fds = (int *)alloca(n * sizeof(int));
-  for (i = 0; i < n; i++) fds[i] = 0;
-#else
-  evm = SG_NEW_ATOMIC2(struct kevent *, n * sizeof(struct kevent));
-  fds = SG_NEW_ATOMIC2(int *, n * sizeof(int));
-#endif
+  if (n > PRE_ALLOC_SIZE) {
+    evm = SG_NEW_ATOMIC2(struct kevent *, n * sizeof(struct kevent));
+    fds = SG_NEW_ATOMIC2(int *, n * sizeof(int));
+  } else {
+    evm = stack_evm;
+    fds = stack_fds;
+  }
 
   i = 0;
   SG_FOR_EACH(cp, kc->paths) {
@@ -192,7 +202,7 @@ void Sg_StartMonitoring(SgFileWatchContext *ctx)
   while (1) {
     int c;
     if (ctx->stopRequest) goto end;
-    c = kevent(kq, evm, n, evm, n, NULL);
+    c = kevent(kc->kq, evm, n, evm, n, NULL);
     if (c == 0) continue;
     if (c < 0) {
       if (errno == EINTR) goto end;
@@ -225,11 +235,8 @@ void Sg_StartMonitoring(SgFileWatchContext *ctx)
   for (i = 0; i < n; i++) {
     if (fds[i] > 0) close(fds[i]);
   }
-  close(kq);
   ctx->stopRequest = FALSE;
   if (e) {
-    char *msg = strerror(e);
-    Sg_SystemError(e, UC("kqueue failed: %A"), 
-		   Sg_Utf8sToUtf32s(msg, strlen(msg)));
+    system_error(e);
   }
 }
