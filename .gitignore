@@ -31,6 +31,7 @@ DartConfiguration.tcl
 sagittarius-config
 sagittarius-package
 
+/ext-features.inc
 /doc/*.html
 /doc/sections
 /ext/atomic/atomic.c
@@ -84,6 +85,8 @@ sagittarius-package
 /src/lib_atomic.c
 /src/lib_iform.c
 /src/lib_pass1.c
+/src/lib_pass1-core.c
+/src/lib_pass1-syntax.c
 /src/lib_pass2.c
 /src/lib_pass3.c
 /src/lib_pass4.c

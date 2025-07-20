@@ -51,6 +51,7 @@ jobs:
           # - aarch64
         config:
           - { name: 'freebsd', setup: '.ci/setup-freebsd.sh' }
+          - { name: 'openbsd', setup: '.ci/setup-openbsd.sh' }
     steps:
       - uses: actions/checkout@v4
       - name: Setup VM
@@ -91,7 +92,7 @@ jobs:
           shell: "${{ matrix.config.name }} {0}"
           run: |
             cd $GITHUB_WORKSPACE;
-            ctest --output-on-failure -j8
+            ctest --output-on-failure -j2
           
   Windows-Build:
     runs-on: ${{ matrix.images }}

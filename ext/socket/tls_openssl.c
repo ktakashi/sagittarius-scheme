@@ -34,7 +34,7 @@
 # include <openssl/conf.h>
 #endif
 
-#if (OPENSSL_VERSION_NUMBER < 0x10100000) || defined(LIBRESSL_VERSION_NUMBER)
+#if (OPENSSL_VERSION_NUMBER < 0x10100000)
 #define	SSL_CTX_up_ref(ctx)					\
   CRYPTO_add(&(ctx->references), 1, CRYPTO_LOCK_SSL_CTX)
 #endif

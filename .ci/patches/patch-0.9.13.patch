@@ -1,0 +1,12 @@
+diff -ruN sagittarius-0.9.13/ext/socket/tls_openssl.c sagittarius-0.9.13-patch/ext/socket/tls_openssl.c
+--- ext/socket/tls_openssl.c	Fri Jun 20 16:17:59 2025
++++ new/ext/socket/tls_openssl.c	Fri Jul 18 15:48:34 2025
+@@ -34,7 +34,7 @@
+ # include <openssl/conf.h>
+ #endif
+ 
+-#if (OPENSSL_VERSION_NUMBER < 0x10100000) || defined(LIBRESSL_VERSION_NUMBER)
++#if (OPENSSL_VERSION_NUMBER < 0x10100000)
+ #define	SSL_CTX_up_ref(ctx)					\
+   CRYPTO_add(&(ctx->references), 1, CRYPTO_LOCK_SSL_CTX)
+ #endif

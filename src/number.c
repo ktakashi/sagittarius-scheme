@@ -1574,29 +1574,13 @@ SgObject Sg_Exact(SgObject obj)
 	    Sg_Sprintf(UC("no exact representation for %S"), obj),
 	    SG_LIST1(obj));
     }
-#if defined(__WATCOMC__) || defined(__FreeBSD__) || defined(__OpenBSD__)
-    /* Yes, on Watcom/FreeBSD if +inf.0 or +nan.0 is passed to modf,
-       it returns +nan.0. Sucks!!! */
-    if ((f = modf(d, &i)) == 0.0 ||
-	isinf(d) || isnan(d)) {
-      if (isnan(d)) {
-	return SG_MAKE_INT(0);
-      } else if (d < SG_INT_MIN || d > SG_INT_MAX) {
-	obj = Sg_MakeBignumFromDouble(d);
-      } else {
-	obj = SG_MAKE_INT((long)d);
-      }
-    }
-#else
     if ((f = modf(d, &i)) == 0.0) {
-      if (d < SG_INT_MIN || d > SG_INT_MAX) {
+      if (d < (double)SG_INT_MIN || d > (double)SG_INT_MAX) {
 	obj = Sg_MakeBignumFromDouble(d);
       } else {
 	obj = SG_MAKE_INT((long)d);
       }
-    }
-#endif
-    else {
+    } else {
       SgObject m;
       int exp, sign;
       m = Sg_DecodeFlonum(d, &exp, &sign);
