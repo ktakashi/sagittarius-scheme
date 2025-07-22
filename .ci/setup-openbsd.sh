@@ -1,5 +1,5 @@
 #!/bin/sh
 
-pkg_add curl libffi boehm-gc cmake bash gmake
+pkg_add -IUv curl libffi boehm-gc cmake bash gmake
 ldconfig -vm
 ldconfig -r
