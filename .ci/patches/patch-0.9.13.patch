@@ -1,6 +1,27 @@
+diff -ruN sagittarius-0.9.13/cmake/CMakeLists.txt sagittarius-0.9.13-patch/cmake/CMakeLists.txt
+--- sagittarius-0.9.13/cmake/CMakeLists.txt	Fri Jun 20 16:17:58 2025
++++ sagittarius-0.9.13-patch/cmake/CMakeLists.txt	Tue Jul 22 19:31:13 2025
+@@ -1,5 +1,14 @@
+ # Post install script
+ 
+-# running ldconfig
+-INSTALL(CODE "MESSAGE(STATUS \"Running ldconfig\")")
+-INSTALL(CODE "execute_process(COMMAND ldconfig)")
++MESSAGE(STATUS "Configuring post install")
++
++FIND_PROGRAM(HAS_LDCONFIG ldconfig)
++IF (HAS_LDCONFIG)
++  IF (CMAKE_SYSTEM_NAME MATCHES "(.*BSD|DragonFly)")
++    SET(POST_LDCONFIG_OPT "-m")
++  ENDIF()
++  # running ldconfig
++  INSTALL(CODE "MESSAGE(STATUS \"Running ldconfig\")")
++  INSTALL(CODE "")
++  INSTALL(CODE "execute_process(COMMAND ldconfig ${POST_LDCONFIG_OPT})")
++ENDIF()
 diff -ruN sagittarius-0.9.13/ext/socket/tls_openssl.c sagittarius-0.9.13-patch/ext/socket/tls_openssl.c
---- ext/socket/tls_openssl.c	Fri Jun 20 16:17:59 2025
-+++ new/ext/socket/tls_openssl.c	Fri Jul 18 15:48:34 2025
+--- sagittarius-0.9.13/ext/socket/tls_openssl.c	Fri Jun 20 16:17:59 2025
++++ sagittarius-0.9.13-patch/ext/socket/tls_openssl.c	Fri Jul 18 15:48:34 2025
 @@ -34,7 +34,7 @@
  # include <openssl/conf.h>
  #endif

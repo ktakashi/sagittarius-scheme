@@ -78,8 +78,7 @@ jobs:
           run: |
             cd $GITHUB_WORKSPACE;
             ./dist.sh gen
-            ldconfig -r
-            LD_DEBUG=1 cmake .
+            cmake .
       - name: Build
         uses: ktakashi/dynamic-shell@v1
         with:

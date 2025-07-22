@@ -25,7 +25,7 @@ fi
 PATCH_FILE="$CUR_DIR/patches/patch-${VERSION}.patch"
 SAGITTARIUS_DIR="sagittarius-${VERSION}"
 if [ -f "$PATCH_FILE" ]; then
-    patch -tud $SAGITTARIUS_DIR < "$PATCH_FILE"
+    patch -p1 -tud $SAGITTARIUS_DIR < "$PATCH_FILE"
 fi
 
 cd $SAGITTARIUS_DIR
