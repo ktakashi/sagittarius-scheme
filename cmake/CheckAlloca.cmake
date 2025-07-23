@@ -48,7 +48,7 @@ int main()
   return 0;
 }
 " HAVE_ALLOCA)
-  ELSEIF (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
+  ELSEIF (${CMAKE_SYSTEM_NAME} MATCHES "(.+BSD|DragonFly)")
     # FreeBSD has alloca in stdlib
     CHECK_C_SOURCE_COMPILES("
 #include <stdlib.h>
