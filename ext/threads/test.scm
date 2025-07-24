@@ -483,10 +483,7 @@
 ;; semaphore
 ;; OSX and OpenBSD doesn't support anonymous semaphore, THANK YOU VERY MUCH!
 (cond-expand
- (darwin
-  (test-error "anonymous semaphore" implementation-restriction-violation?
-	      (make-semaphore #f 1)))
- (openbsd
+ ((or openbsd darwin)
   (test-error "sem_init is not permitted" system-error? (make-semaphore #f 1)))
  (else (test-assert "semaphore?" (let* ((s (make-semaphore #f 1))
 					(r (semaphore? s)))

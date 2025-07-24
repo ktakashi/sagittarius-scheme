@@ -258,8 +258,7 @@ SgInternalSemaphore * Sg_InitSemaphore(SgString *name, int value)
     }
     semaphore->name = SG_OBJ(name);
   } else {
-    /* OSX doesn't support this so raise an &implementation-restriction */
-#if !defined(__APPLE__)
+    /* Some *BSD related don't support sem_init, it'd return EPERM */
     sem_t *sem = SG_NEW(sem_t);
     if (value < 0) {
       Sg_AssertionViolation(SG_INTERN("make-semaphore"),
@@ -273,11 +272,6 @@ SgInternalSemaphore * Sg_InitSemaphore(SgString *name, int value)
     }
     semaphore->semaphore = sem;
     semaphore->name = SG_FALSE;
-#else
-    Sg_ImplementationRestrictionViolation(SG_INTERN("make-sempahore"),
-					  SG_MAKE_STRING("anonymous semaphore is not supported on OSX."),
-					  SG_NIL);
-#endif
   }
   return semaphore;
 }
