@@ -522,16 +522,23 @@
   (values (atomic-fixnum-load ready-counts)
 	  (atomic-fixnum-load result) (atomic-fixnum-load result-to)))
 
-(let-values (((c r rt) (selector-test 500)))
-  (test-equal "no timeout (socket ready)" 500 c)
-  (test-equal "no timeout (received)" 500 r)
+;; compute count, we need to think that client and server are running the same here
+(define count (or (and (cond ((getenv "FILE_LIMIT") =>
+			      (lambda (v)
+				(min (div (- (string->number (string-trim-both v)) 50) 2) 500)))
+			     (else #f)))
+		  500))
+
+(let-values (((c r rt) (selector-test count)))
+  (test-equal "no timeout (socket ready)" count c)
+  (test-equal "no timeout (received)" count r)
   (test-equal "no timeout (timedout)" 0 rt))
 
-(let-values (((c r rt) (selector-test 500 (duration:of-nanos 1))))
+(let-values (((c r rt) (selector-test count (duration:of-nanos 1))))
   ;; for some reason, some sockets don't timeout.
   (test-assert "with timeout (socket ready)" (= r c))
-  (test-assert "with timeout (received)" (< r 500))
+  (test-assert "with timeout (received)" (< r count))
   (test-assert "with timeout (timedout)" (< 0 rt))
-  (test-equal "with timeout (total)" 500 (+ r rt)))
+  (test-equal "with timeout (total)" count (+ r rt)))
 
 (test-end)

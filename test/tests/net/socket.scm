@@ -3,6 +3,7 @@
 	(net socket)
 	(rfc x.509)
 	(srfi :1)
+	(srfi :13)
 	(srfi :18)
 	(srfi :19)
 	(srfi :64)
@@ -198,8 +199,15 @@
       (shutdown&close client-socket))
     (thread-join! server-thread)))
 
+(define (get-socket-count default)
+  (or (and (cond ((getenv "FILE_LIMIT") =>
+		  (lambda (v)
+		    (min (div (string->number (string-trim-both v)) 2) default)))
+		 (else #f)))
+      default))
+
 (let ()
-  (define count 100)
+  (define count (get-socket-count 100))
   (define (run-socket-selector hard-timeout soft-timeout)
     (define ready-sockets (make-atomic-fixnum 0))
     (define server-sock (make-server-socket "0"))
@@ -305,7 +313,7 @@
 		(socket-set-read-timeout! sock 2000) ;; 2s
 		(thread-start! (make-thread (echo sock))))
 	      (loop))))))))
-  (define count 100)
+  (define count (get-socket-count 100))
   (define (run-socket-selector hard-timeout soft-timeout)
     (define result (make-shared-queue))
     (define counter (make-atomic-fixnum 0))

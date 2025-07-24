@@ -436,6 +436,14 @@ SET(TEST_COMMAND
   -L${PROJECT_SOURCE_DIR}/test/r6rs-test-suite
   -L${PROJECT_SOURCE_DIR}/test/r7rs-tests)
 
+# put it before ext
+IF (NOT WIN32)
+  EXECUTE_PROCESS(COMMAND sh -c "ulimit -n"
+    OUTPUT_VARIABLE FILE_LIMIT)
+  MESSAGE(STATUS "ulimit -n - ${FILE_LIMIT}")
+ENDIF()
+
+
 ADD_SUBDIRECTORY(ext ${SAGITTARIUS_EXT_WORK_DIRECTORY})
 # seems it's impossible to add post install
 # without doing some trick
@@ -664,6 +672,9 @@ FOREACH(TEST_FILE ${TEST_FILES})
   SET_PROPERTY(TEST ${TEST_TARGET} PROPERTY FAIL_REGULAR_EXPRESSION "FAIL")
   # 10 mins, must be more than enough unless having deadlock
   SET_PROPERTY(TEST ${TEST_TARGET} PROPERTY TIMEOUT 600)
+  IF (FILE_LIMIT)
+    SET_PROPERTY(TEST ${TEST_TARGET} PROPERTY ENVIRONMENT FILE_LIMIT=${FILE_LIMIT})
+  ENDIF()
 ENDFOREACH()
 
 # Adding ext tests
