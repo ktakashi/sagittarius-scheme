@@ -2767,5 +2767,4 @@
     Sg_SimpleConditionP)
   
   (define-c-proc condition? (obj) ::<boolean> :constant Sg_ConditionP)
-
-  )
+)

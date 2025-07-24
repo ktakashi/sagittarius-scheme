@@ -1911,4 +1911,7 @@
     (c::<comparator> :optional (k::<fixnum> 200)) :no-side-effect
     Sg_MakeHashTableWithComparator)
 
+  (define-c-proc last-error-detail ()
+    (let ((code::int (Sg_GetLastError)))
+      (result (Sg_Values2 (SG_MAKE_INT code) (Sg_GetLastErrorMessageWithErrorCode code)))))
 )
