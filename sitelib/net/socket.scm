@@ -210,7 +210,7 @@
     (import (rnrs)
 	    (record builder)
 	    (clos core)
-	    (sagittarius) ;; gensym
+	    (sagittarius) ;; gensym, last-error-detail
 	    (sagittarius time) ;; for time
 	    (rename (except (sagittarius socket) make-client-socket)
 		    (make-server-socket socket:make-server-socket)
@@ -298,7 +298,8 @@
 			    (make-message-condition
 			     (if socket
 				 (socket-error-message socket)
-				 "creating a socket failed"))
+				 (let-values (((errno msg) (last-error-detail)))
+				   (format "creating a socket failed: ~a (~a)" msg errno))))
 			    (make-irritants-condition 
 			       (list node service))))))))
 

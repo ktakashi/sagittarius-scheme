@@ -202,7 +202,7 @@
 (define (get-socket-count default)
   (or (and (cond ((getenv "FILE_LIMIT") =>
 		  (lambda (v)
-		    (min (div (string->number (string-trim-both v)) 2) default)))
+		    (min (div (- (string->number (string-trim-both v)) 20) 2) default)))
 		 (else #f)))
       default))
 
