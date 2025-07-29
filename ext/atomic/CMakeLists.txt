@@ -32,8 +32,8 @@ ENDIF()
 IF (NOT WIN32)
     if (HAVE_STDATOMIC_H)
     CHECK_C_SOURCE_COMPILES(
-"#include <stdatomic.h>
-#include <stddef.h>
+"#include <stddef.h>
+#include <stdatomic.h>
 typedef struct {
     void *a;
     void *b;
