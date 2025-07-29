@@ -123,9 +123,11 @@ IF(NOT WIN32)
     # for get-mac-address ...
     TARGET_LINK_LIBRARIES(sagittarius socket)
   ENDIF()
-  IF (${SAGITTARIUS_PLATFORM} MATCHES ".*bsd"
-      OR ${SAGITTARIUS_OS} STREQUAL "qnx")
+  IF (${SAGITTARIUS_PLATFORM} MATCHES ".*bsd" OR ${SAGITTARIUS_OS} STREQUAL "qnx")
     TARGET_LINK_LIBRARIES(sagittarius c)
+    IF (HAVE_EXECINFO_H)
+      TARGET_LINK_LIBRARIES(sagittarius execinfo)
+    ENDIF()
   ELSE()
     TARGET_LINK_LIBRARIES(sagittarius dl)
   ENDIF()
@@ -139,8 +141,6 @@ ENDIF()
 
 IF(${LINK_BOEHM_GC})
   TARGET_LINK_LIBRARIES(sagittarius ${BOEHM_GC_LIBRARIES})
-ELSE()
-  TARGET_LINK_LIBRARIES(sagittarius taurus)
 ENDIF()
 
 IF(WINDOWS_SUPPORT)

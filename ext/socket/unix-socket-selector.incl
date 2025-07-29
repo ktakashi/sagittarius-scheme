@@ -22,7 +22,10 @@ static struct sockaddr_un * bind_unix_socket(int socket,
   close(fd);	      /* we don't need file descriptor of temp file */
   addr->sun_family = AF_UNIX;
   snprintf(addr->sun_path, array_sizeof(tmp), "%s", tmp);
-  unlink(addr->sun_path); /* mkstemp creates a file but we only need the name */
+  /* mkstemp creates a file but we only need the name */
+  if (unlink(addr->sun_path) != 0) {
+    return NULL;
+  }
   if (bind(socket, (struct sockaddr *)addr, sizeof(struct sockaddr_un)) != 0) {
     return NULL;
   }
@@ -141,9 +144,11 @@ void Sg_CloseSocketSelector(SgSocketSelector *selector)
   if (!Sg_SocketSelectorClosedP(selector)) {
     unix_context_t *ctx = (unix_context_t *)selector->context;
     selector->context = NULL;
+    Sg_LockMutex(&selector->lock);
+    Sg_UnlockMutex(&selector->lock);
     Sg_DestroyMutex(&selector->lock);
     close(ctx->fd);
-    if (!is_stop_initialised(ctx)) close_unix_stop(ctx);
+    if (is_stop_initialised(ctx)) close_unix_stop(ctx);
     Sg_UnregisterFinalizer(selector);
   }
 }

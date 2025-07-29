@@ -245,20 +245,21 @@
       (thread-start!
        (make-thread
 	(lambda ()
-	  (let ((s (make-client-socket "localhost" server-port
-				       (socket-options (read-timeout 1000))))
-		(msg (string->utf8
-		      (string-append "Hello world " (number->string i)))))
-	    (guard (e (else #;(print e) s))
-	      (when (even? i) (thread-yield!) (thread-sleep! 0.2));; 200ms
-	      (socket-send s msg)
-	      (let ((v (socket-recv s 255)))
-		(cond ((zero? (bytevector-u8-ref v 0)) ;; mark
-		       (shared-queue-put! result #f))
-		      (else (shared-queue-put! result (utf8->string v)))))
-	      (socket-send s mark))
-	    (socket-shutdown s SHUT_RDWR)
-	    s))
+	  (guard (e (else (report-error e)))
+	    (let ((s (make-client-socket "localhost" server-port
+					 (socket-options (read-timeout 1000))))
+		  (msg (string->utf8
+			(string-append "Hello world " (number->string i)))))
+	      (guard (e (else #;(print e) s))
+		(when (even? i) (thread-yield!) (thread-sleep! 0.2));; 200ms
+		(socket-send s msg)
+		(let ((v (socket-recv s 255)))
+		  (cond ((zero? (bytevector-u8-ref v 0)) ;; mark
+			 (shared-queue-put! result #f))
+			(else (shared-queue-put! result (utf8->string v)))))
+		(socket-send s mark))
+	      (socket-shutdown s SHUT_RDWR)
+	      s)))
 	(string-append "client-thread-" (number->string i)))))
     (define (safe-join! t)
       (guard (e ((uncaught-exception? e)
@@ -270,7 +271,9 @@
 	    ((condition? s) (report-error s))))
 
     (let ((t* (map caller (iota count))))
-      (do () ((= count (atomic-fixnum-load ready-sockets))))
+      (do ((i 0 (+ i 1))) ((or (= count (atomic-fixnum-load ready-sockets)) (= i 50)))
+	(thread-sleep! 0.01))
+      (test-assert "Socket never reached" (= count (atomic-fixnum-load ready-sockets)))
       (for-each safe-close (map safe-join! t*)))
 
     (socket-shutdown server-sock SHUT_RDWR)
@@ -332,11 +335,12 @@
 		 (if (string? v)
 		     (and (not (zero? (string-length v))) v)
 		     e))))))))
-      (let ((s (make-client-socket "localhost" server-port
-				   (socket-options (read-timeout 1000)))))
-	(socket-send s (string->utf8
-			(string-append "Hello world " (number->string i))))
-	(selector s push-result soft-timeout)))
+      (guard (e (else (shared-queue-put! result (thread-start! (make-thread (lambda () (raise e)))))))
+	(let ((s (make-client-socket "localhost" server-port
+				     (socket-options (read-timeout 1000)))))
+	  (socket-send s (string->utf8
+			  (string-append "Hello world " (number->string i))))
+	  (selector s push-result soft-timeout))))
     (define (collect-thread)
       (do ((i 0 (+ i 1)) (r '() (cons (shared-queue-get! result 1) r)))
 	  ((= i count) r)))
