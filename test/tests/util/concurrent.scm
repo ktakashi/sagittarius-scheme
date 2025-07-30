@@ -463,13 +463,13 @@
        (lambda (in out)
 	 (let ((v (in)))
 	   (out (+ v 1))))))
-    (test-assert (actor? actor))
-    (test-assert (actor-running? actor))
-    (test-equal 'running (actor-state actor))
+    (test-assert "actor? (base)" (actor? actor))
+    (test-assert "actor-running? (base)" (actor-running? actor))
+    (test-equal "actor state (base)" 'running (actor-state actor))
     (test-assert (actor-send-message! actor 1))
-    (test-equal 2 (actor-receive-message! actor))
-    (test-assert (not (actor-running? actor)))
-    (test-equal 'finished (actor-state actor))
+    (test-equal "actor message (base)" 2 (actor-receive-message! actor))
+    (test-assert "actor-running? (2) (base)" (not (actor-running? actor)))
+    (test-equal "actor state (2) (base)" 'finished (actor-state actor))
     (test-assert (actor-wait! actor)))
 
   (actor-test make-shared-queue-channel-actor)
@@ -486,9 +486,9 @@
      (lambda (in out)
        (let ((v (in)))
 	 (out (+ v 1))))))
-  (test-assert (actor-terminate! actor))
-  (test-assert (not (actor-running? actor)))
-  (test-equal 'terminated (actor-state actor)))
+  (test-assert "terminate" (actor-terminate! actor))
+  (test-assert "terminated (running check)" (not (actor-running? actor)))
+  (test-equal "terminated (stete check)" 'terminated (actor-state actor)))
 
 (let ()
   (define actor
@@ -500,8 +500,8 @@
   (actor-start! actor)
   (test-assert (actor? (actor-start! actor)))
   (test-assert (actor-running? actor))
-  (test-assert (actor-terminate! actor))
-  (test-equal 'terminated (actor-state actor)))
+  (test-assert "terminate (2)" (actor-terminate! actor))
+  (test-equal "terminated (state check) (2)" 'terminated (actor-state actor)))
 
 
 ;; future-map et.al.
