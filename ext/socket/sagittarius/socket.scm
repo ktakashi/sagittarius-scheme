@@ -289,19 +289,25 @@
 				      :protocol ai-protocol))
 	   (info (get-addrinfo node service hints)))
       (let loop ((socket (create-socket info)) (info info))
-	(define (retry info)
+	(define (retry info msg)
 	  (let ((next (next-addrinfo info)))
 	    (if next
 		(loop (create-socket next) next)
 		(raise (condition (make-host-not-found-error node service)
 				  (make-who-condition 'make-client-socket)
-				  (make-message-condition "no next addrinfo")
+				  (make-message-condition
+				   (format "no next addrinfo: ~a" msg))
 				  (make-irritants-condition 
 				   (list node service)))))))
+	(define (debug)
+	  (let-values (((errno msg) (last-error-detail)))
+	    (format "~a (~a)" msg errno)))
 	(or (and-let* (( socket )
 		       ( info ))
 	      (socket-connect! socket info))
-	    (and info (and socket (socket-close socket)) (retry info))
+	    (and info 
+		 (let ((msg (debug)))
+		   (and socket (socket-close socket)) (retry info msg)))
 	    (raise (condition (make-socket-error socket)
 			      (make-who-condition 'make-client-socket)
 			      (make-message-condition
