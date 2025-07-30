@@ -433,7 +433,6 @@
   (close-socket-selector! selector)
   (socket-close server))
 
-
 (define (selector-test count :optional (timeout #f))
   (define delay 0.01) ;; 10ms
   (define server (make-server-socket "0"))
@@ -505,7 +504,7 @@
     (socket-close s))
   ;; this shouldn't be needed...
   (thread-sleep! (* delay 10)) ;; let's wait 10 times more than delay here
-  
+
   (socket-selector-interrupt! selector)
   (close-socket-selector! selector)
 

@@ -257,11 +257,10 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
   
   Sg_UnlockMutex(&selector->lock);
   r = selector_wait(selector, sockets, context, n, sp);
-
   Sg_LockMutex(&selector->lock);
   
   selector->waiting = FALSE;
-
+  
   /* Save current time */
   Sg_GetTimeOfDay(&sec, &usec);
   if (SG_NULLP(r) && selector->retry) {

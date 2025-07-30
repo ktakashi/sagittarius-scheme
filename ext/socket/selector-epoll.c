@@ -77,16 +77,17 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
   SG_FOR_EACH(cp, sockets) {
     add_socket_ctx(ctx, SG_CAR(cp));
   }
-  ev.events = EPOLLIN;
+  ev.events = EPOLLIN | EPOLLRDHUP;
   ev.data.ptr = SG_FALSE;
   epoll_ctl(ctx->fd, EPOLL_CTL_ADD, ctx->stop_fd, &ev);
-  
+
   evm = SG_NEW_ATOMIC2(struct epoll_event *, n * sizeof(struct epoll_event));
 #ifndef HAVE_EPOLL_PWAIT2
   c = epoll_wait(ctx->fd, evm, n, millis);
 #else
   c = epoll_pwait2(ctx->fd, evm, n, sp, NULL);
 #endif
+
   /*
     EINTR  The call was interrupted by a signal handler before either
     (1) any of the requested events occurred or (2) the

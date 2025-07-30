@@ -85,6 +85,7 @@ static unix_context_t * setup_stop(unix_context_t *stop)
 
 static void close_unix_stop(unix_context_t *stop)
 {
+  shutdown(stop->stop_fd, SHUT_RDWR);
   close(stop->stop_fd);
   unlink(stop->addr.sun_path);
   invalidate_stop(stop);
@@ -143,12 +144,20 @@ void Sg_CloseSocketSelector(SgSocketSelector *selector)
 {
   if (!Sg_SocketSelectorClosedP(selector)) {
     unix_context_t *ctx = (unix_context_t *)selector->context;
-    selector->context = NULL;
+
     Sg_LockMutex(&selector->lock);
+    selector->context = NULL;
+
+    if (is_stop_initialised(ctx)) interrupt_unix_stop(ctx);
     Sg_UnlockMutex(&selector->lock);
+    /* a bit lazy way to do it, but we need to do it... */
+    while (selector->waiting) {
+      Sg_YieldCPU();
+    }
+    
     Sg_DestroyMutex(&selector->lock);
-    close(ctx->fd);
     if (is_stop_initialised(ctx)) close_unix_stop(ctx);
+    close(ctx->fd);
     Sg_UnregisterFinalizer(selector);
   }
 }
