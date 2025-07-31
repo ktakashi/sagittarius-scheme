@@ -147,17 +147,20 @@ void Sg_CloseSocketSelector(SgSocketSelector *selector)
 
     Sg_LockMutex(&selector->lock);
     selector->context = NULL;
-
     if (is_stop_initialised(ctx)) interrupt_unix_stop(ctx);
     Sg_UnlockMutex(&selector->lock);
+
     /* a bit lazy way to do it, but we need to do it... */
     while (selector->waiting) {
       Sg_YieldCPU();
     }
-    
-    Sg_DestroyMutex(&selector->lock);
+
+    Sg_LockMutex(&selector->lock);
     if (is_stop_initialised(ctx)) close_unix_stop(ctx);
     close(ctx->fd);
+    Sg_UnlockMutex(&selector->lock);
+
+    Sg_DestroyMutex(&selector->lock);
     Sg_UnregisterFinalizer(selector);
   }
 }

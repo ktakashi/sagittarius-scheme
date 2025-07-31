@@ -212,8 +212,9 @@
 	    (clos core)
 	    (sagittarius) ;; gensym, last-error-detail
 	    (sagittarius time) ;; for time
-	    (rename (except (sagittarius socket) make-client-socket)
-		    (make-server-socket socket:make-server-socket)
+	    (rename (except (sagittarius socket)
+			    make-client-socket
+			    make-server-socket)
 		    (make-socket-selector socket:make-socket-selector))
 	    (except (rfc tls)
 		    make-client-tls-socket
@@ -277,39 +278,19 @@
     (when socket (setup-socket socket options))
     socket)
   
+  (define (resolver node service) (dns-resolver node service options))
   (unless (zero? (bitwise-and ai-flags AI_PASSIVE))
     (assertion-violation 'make-client-socket
 			 "client socket must not have AI_PASSIVE"))
-  (let ((info (dns-resolver node service options)))
-    (let loop ((socket (create-socket info)) (info info))
-      (define (retry info)
-	(let ((next (next-addrinfo info)))
-	  (if next
-	      (loop (create-socket next) next)
-	      (raise (condition (make-host-not-found-error node service)
-				(make-who-condition 'make-client-socket)
-				(make-message-condition "no next addrinfo")
-				(make-irritants-condition 
-				 (list node service)))))))
-      (or (and socket info (setup (socket-connect! socket info timeout)))
-	  (and info (and socket (socket-close socket)) (retry info))
-	  (raise (condition (make-socket-error socket)
-			    (make-who-condition 'make-client-socket)
-			    (make-message-condition
-			     (if socket
-				 (socket-error-message socket)
-				 (let-values (((errno msg) (last-error-detail)))
-				   (format "creating a socket failed: ~a (~a)" msg errno))))
-			    (make-irritants-condition 
-			       (list node service))))))))
+  (setup (make-client-socket/resolver node service resolver timeout)))
 
 (define (make-server-socket service :optional (options (socket-options-builder)))
-  (define ai-family (socket-options-ai-family options))
+  (define server-options (socket-options-builder (from options) (ai-flags AI_PASSIVE)))
   (define ai-socktype (socket-options-ai-socktype options))
-  (define ai-protocol (socket-options-ai-protocol options))
-  (setup-socket
-   (socket:make-server-socket service ai-family ai-socktype ai-protocol)
-   options))
+  (define dns-resolver (or (socket-options-dns-resolver options)
+			   default-dns-resolver))
+  (define (resolver service) (dns-resolver #f service server-options))
+  (setup-socket (make-server-socket/resolver service resolver (= ai-socktype SOCK_STREAM)) options))
 
 (define-record-type tls-socket-options
   (parent socket-options)
