@@ -3,39 +3,49 @@ version: 2.1
 orbs:
   windows: circleci/windows@5.0
 
+executors:
+  debian:
+    docker:
+      - image: buildpack-deps:bookworm
+        environment:
+          ENV: CI
+  ubuntu:
+    machine:
+      image: ubuntu-2404:current
+  
 jobs:
   posix-build:
-     docker:
-       - image: buildpack-deps:bionic
-         environment:
-           ENV: CI
-     steps:
-       - checkout:
-           path: ~/target
-       - run:
-           name: Installing dependencies
-           working_directory: ~/
-           command: |
-             bash target/.ci/setup-ubuntu.sh
-       - run:
-           name: Installing current Sagittarius
-           working_directory: ~/current_sagittarius
-           command: |
-             bash ../target/.ci/build-current.sh 'no'
-       - run:
-           name: Pre-build
-           working_directory: ~/target
-           command: |
-             ./dist.sh gen
-             cmake . -DSKIP_TEST_VECTOR=ON
-       - run:
-           name: Build
-           working_directory: ~/target
-           command: make
-       - run:
-           name: Test
-           working_directory: ~/target
-           command: ctest --output-on-failure
+    parameters:
+      os:
+        type: executor
+    executor: << parameter.os >>
+    steps:
+      - checkout:
+          path: ~/target
+      - run:
+          name: Installing dependencies
+          working_directory: ~/
+          command: |
+            bash target/.ci/setup-ubuntu.sh
+      - run:
+          name: Installing current Sagittarius
+          working_directory: ~/current_sagittarius
+          command: |
+            bash ../target/.ci/build-current.sh 'no'
+      - run:
+          name: Pre-build
+          working_directory: ~/target
+          command: |
+            ./dist.sh gen
+            cmake . -DSKIP_TEST_VECTOR=ON
+      - run:
+          name: Build
+          working_directory: ~/target
+          command: make
+      - run:
+          name: Test
+          working_directory: ~/target
+          command: ctest --output-on-failure
            
   windows-build:
     parameters:
@@ -83,9 +93,12 @@ jobs:
             & ctest -LE json --output-on-failure
 
 workflows:
-  ubuntu-build:
+  linux-build:
     jobs:
-      - posix-build
+      - posix-build:
+          matrix:
+            parameters:
+              os: [debian, ubuntu]
   windows-2022:
     jobs:
       - windows-build:
