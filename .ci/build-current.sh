@@ -2,7 +2,7 @@
 
 CUR_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-NEED_SUDO=$1
+SUDO=$(which sudo)
 
 REPOSITORY_URL=https://github.com/ktakashi/sagittarius-scheme
 RELEASES=${REPOSITORY_URL}/releases
@@ -41,7 +41,4 @@ cmake . -DCMAKE_C_FLAGS="$flags" -DCMAKE_CXX_FLAGS="$flags"
 make -j8 sash
 make
 
-case ${NEED_SUDO} in
-    yes) sudo make install;;
-    *) make install;;
-esac
+$SUDO make install

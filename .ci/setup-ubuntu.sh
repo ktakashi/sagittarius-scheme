@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SUDO=$1
+SUDO=$(which sudo)
 
 $SUDO apt update
 $SUDO apt install --no-install-recommends --no-install-suggests -y \
