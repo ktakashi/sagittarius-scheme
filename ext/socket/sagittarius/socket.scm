@@ -315,7 +315,8 @@
 				       :flags AI_PASSIVE
 				       :protocol ai-protocol)))
 	(get-addrinfo #f service hints)))
-    (make-server-socket/resolver dns-resolver (= ai-socktype SOCK_STREAM)))
+    (make-server-socket/resolver service dns-resolver
+				 (= ai-socktype SOCK_STREAM)))
 
   (define (make-server-socket/resolver service resolver listen?)
     (let loop ( (info (resolver service)))
