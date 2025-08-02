@@ -98,7 +98,10 @@ workflows:
       - posix-build:
           matrix:
             parameters:
-              os: [debian, ubuntu]
+              # I'm a bit lazy to work on it, so keep on Debian
+              # Ubuntu is tested on GitHub anyway
+              # os: [debian, ubuntu]
+              os: [debian]
   windows-2022:
     jobs:
       - windows-build:
