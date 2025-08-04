@@ -138,8 +138,9 @@ jobs:
         shell: cmd
 
   Create-Arifact:
-    needs: [POSIX-Build]
+    # needs: [POSIX-Build, Windows-Build]
     uses: ./.github/workflows/artifact.yml
     with:
       release: false
+      name: sagittarius-${{ github.run_id }}
       

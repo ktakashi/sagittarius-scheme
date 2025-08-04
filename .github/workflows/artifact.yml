@@ -5,6 +5,9 @@ on:
       release:
         required: true
         type: boolean
+      name:
+        required: true
+        type: string
 jobs:
   Build-Artifact:
     runs-on: ubuntu-latest
@@ -27,19 +30,22 @@ jobs:
           sed -e "s/$version/$version-${{ github.run_id }}/" -i ../checkout/CMakeLists.txt
         working-directory: build
       - name: Build
-        id: build
         run: |
           cmake ../checkout
           make -j8
-          version=$(./build/sagittarius -e '(display (sagittarius-version))(exit)')
-          echo "name=build_version::$version" >> $GITHUB_OUTPUT
         working-directory: build
+      - name: Extract version
+        id: version
+        run: |
+          version=$(./build/sagittarius -e '(display (sagittarius-version))(exit)')
+          echo "Extracted version: $version"
+          echo "name=build_version::$version" >> $GITHUB_OUTPUT
       - name: Make tar
         run: |
           ../checkout/dist.sh dist ../checkout
         working-directory: build
       - uses: actions/upload-artifact@v4
         with:
-          name: sagittarius-${{ github.run_id }}
-          path: ./build/sagittarius-${{ steps.build.outputs.build_version }}.tar.gz
+          name: ${{ inputs.name }}
+          path: ./build/sagittarius-${{ steps.version.outputs.build_version }}.tar.gz
           compression-level: 0
