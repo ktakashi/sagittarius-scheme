@@ -1,0 +1,30 @@
+name: Build Artifact
+on: workflow_call
+jobs:
+  Build-Artifact:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: ./checkout
+      - name: Prepare build
+        run: |
+          bash "./checkout/.ci/setup-ubuntu.sh" "sudo"
+          bash "./checkout/.ci/build-current.sh" "yes"
+          mkdir build
+          cd checkout; ./dist.sh gen
+      - name: Build
+        run: |
+          cmake ../checkout
+          make -j8
+        working-directory: build
+      - name: Make tar
+        run: |
+          ../checkout/dist.sh dist ../checkout
+        working-directory: build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sagittarius-${{ github.run_id }}
+          path: ./build/*.tar.gz
+          compression-level: 0
