@@ -39,7 +39,7 @@ jobs:
         run: |
           version=$(./build/sagittarius -e '(display (sagittarius-version))(exit)')
           echo "Extracted version: $version"
-          echo "name=build_version::$version" >> $GITHUB_OUTPUT
+          echo "build_version=$version" >> $GITHUB_OUTPUT
         working-directory: build
       - name: Make tar
         run: |
