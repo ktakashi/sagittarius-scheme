@@ -15,15 +15,16 @@ jobs:
           path: ./checkout
       - name: Prepare build
         run: |
-          bash "./checkout/.ci/setup-ubuntu.sh" "sudo"
-          bash "./checkout/.ci/build-current.sh" "yes"
+          bash "./checkout/.ci/setup-ubuntu.sh"
+          bash "./checkout/.ci/build-current.sh"
           mkdir build
           cd checkout; ./dist.sh gen
       - name: Setup non-release version
         if: ${{ !inputs.release }}
         run: |
           version=$(cmake -LA ../checkout | grep SAGITTARIUS_VERSION | sed 's/SAGITTARIUS_VERSION:STRING=//')
-          sed -e "s/$version/$version-${{ github.run_id }}/" -i '' ../checkout/CMakeLists.txt
+          echo "old version:$version, new version: $version-${{ github.run_id }}"
+          sed -e "s/$version/$version-${{ github.run_id }}/" -i ../checkout/CMakeLists.txt
         working-directory: build
       - name: Build
         id: build
