@@ -40,6 +40,6 @@ jobs:
         working-directory: build
       - uses: actions/upload-artifact@v4
         with:
-          name: sagittarius-${{ steps.build.outputs.build_version }}
+          name: sagittarius-${{ github.run_id }}
           path: ./build/sagittarius-{{ state.build_version }}.tar.gz
           compression-level: 0
