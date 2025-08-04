@@ -22,9 +22,8 @@ jobs:
       - name: Setup non-release version
         if: ${{ !inputs.release }}
         run: |
-          version=$(cmake -LA ../checkout | grep SAGITTARIUS_VERSION | sed '/SAGITTARIUS_VERSION:STRING=//')
-          sed -e "/$version/$version-${{ github.run_id }}/" -i .bk ../checkout/CMakeLists.txt
-          rm ../checkout/CMakeLists.txt.bk
+          version=$(cmake -LA ../checkout | grep SAGITTARIUS_VERSION | sed 's/SAGITTARIUS_VERSION:STRING=//')
+          sed -e "s/$version/$version-${{ github.run_id }}/" -i '' ../checkout/CMakeLists.txt
         working-directory: build
       - name: Build
         id: build
