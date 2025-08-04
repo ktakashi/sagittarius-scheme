@@ -32,7 +32,7 @@ jobs:
           cmake ../checkout
           make -j8
           version=$(./build/sagittarius -e '(display (sagittarius-version))(exit)')
-          echo "name=build_version::$version" >> $GITHUB_STATE
+          echo "name=build_version::$version" >> $GITHUB_OUTPUT
         working-directory: build
       - name: Make tar
         run: |
