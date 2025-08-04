@@ -41,5 +41,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: sagittarius-${{ github.run_id }}
-          path: ./build/sagittarius-${{ state.build_version }}.tar.gz
+          path: ./build/sagittarius-${{ steps.build.outputs.build_version }}.tar.gz
           compression-level: 0
