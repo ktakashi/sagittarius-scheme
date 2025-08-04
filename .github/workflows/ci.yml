@@ -138,6 +138,8 @@ jobs:
         shell: cmd
 
   Create-Arifact:
-    needs: [POSIX-Build, Windows-Build]
+    needs: [POSIX-Build]
     uses: ./.github/workflows/artifact.yml
+    with:
+      release: false
       

@@ -1,5 +1,10 @@
 name: Build Artifact
-on: workflow_call
+on:
+  workflow_call:
+    inputs:
+      release:
+        required: true
+        type: boolean
 jobs:
   Build-Artifact:
     runs-on: ubuntu-latest
@@ -14,10 +19,20 @@ jobs:
           bash "./checkout/.ci/build-current.sh" "yes"
           mkdir build
           cd checkout; ./dist.sh gen
+      - name: Setup non-release version
+        if: ${{ !inputs.release }}
+        run: |
+          version=$(cmake -LA ../checkout | grep SAGITTARIUS_VERSION | sed '/SAGITTARIUS_VERSION:STRING=//')
+          sed -e "/$version/$version-${{ github.run_id }}/" -i .bk ../checkout/CMakeLists.txt
+          rm ../checkout/CMakeLists.txt.bk
+        working-directory: build
       - name: Build
+        id: build
         run: |
           cmake ../checkout
           make -j8
+          version=$(./build/sagittarius -e '(display (sagittarius-version))(exit)')
+          echo "name=build_version::$version" >> $GITHUB_STATE
         working-directory: build
       - name: Make tar
         run: |
@@ -25,6 +40,6 @@ jobs:
         working-directory: build
       - uses: actions/upload-artifact@v4
         with:
-          name: sagittarius-${{ github.run_id }}
-          path: ./build/*.tar.gz
+          name: sagittarius-${{ steps.build.outputs.build_version }}
+          path: ./build/sagittarius-{{ state.build_version }}.tar.gz
           compression-level: 0

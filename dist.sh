@@ -119,7 +119,7 @@ dist() {
     fi
     
     if [ -e ./build/sagittarius ]; then
-	version=`./build/sagittarius -v | perl -e 'while (<>) {if ($_ =~ /version ([\d\.]+)?/) {print $1;}}'`
+	version=$(./build/sagittarius -e '(display (sagittarius-version))(exit)')
     else
 	echo ERROR: sagittarius does not exist.
 	exit -3
