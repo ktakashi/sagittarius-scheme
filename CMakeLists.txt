@@ -364,7 +364,7 @@ IF(USE_BOEHM_GC)
     SET(HAVE_GC_H 1)
     SET(BOEHM_GC_LIBRARIES gc)
     SET(COPY_GC 1)
-    COPY_TARGET_DEP(copy-gc gc ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} FALSE)
+    COPY_TARGET_DEP(copy-gc gc ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} TRUE)
     
     IF (NEED_LIB_ATOMIC)
       # since 7.4.0 or 7.4.2? Boehm GC separated libatomic_ops so
