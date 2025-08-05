@@ -1,0 +1,51 @@
+name: Build Windows installers
+on:
+  workflow_call:
+    inputs:
+      artifact-id:
+        required: true
+        type: string
+      tar-file:
+        required: true
+        type: string
+      suffix:
+        required: true
+        type: string
+
+jobs:
+  Build-Windows-Installer:
+    runs-on: windows-2025
+    name: Windows installer - ${{ matrix.arch }}
+    strategy:
+      matrix:
+        arch: [x64, x86]
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact
+        with:
+          artifact-ids: ${{ inputs.artifact-id }}
+      - name: Extract tar file
+        id: extract
+        run: |
+          tar -xzf ${{ inputs.tar-file }}
+          dir=$(ls -d */)
+          echo "build_dir=$dir" >> $GITHUB_OUTPUT
+      - name: Build
+        run: |
+          cmake . -G "NMake Makefiles"
+          nmake
+        shell: cmd
+        working-directory: ${{ steps.extract.outputs.build_dir }}
+      - name: Make installer
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.6
+        with:
+          path: win/innosetup.iss
+          options: /Qp
+        working-directory: ${{ steps.extract.outputs.build_dir }}
+      - name: Upload installer
+        id: upload-windows-installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: sagittarius-${{ matrix.arch }}-${{ inputs.suffix }}
+          path: win/Output/setup_sagittarius_*.exe
+        working-directory: ${{ steps.extract.outputs.build_dir }}

@@ -5,12 +5,22 @@ on:
       release:
         required: true
         type: boolean
-      name:
+      suffix:
         required: true
         type: string
+    outputs:
+      artifact-id:
+        description: Uploaded artifact ID
+        value: ${{ jobs.Build-Artifact.outputs.artifact-id }}
+      tar-file:
+        description: Sagittarius tar file of the artifact content
+        value: ${{ jobs.Build-Artifact.outputs.tar-file }}
 jobs:
   Build-Artifact:
     runs-on: ubuntu-latest
+    outputs:
+      artifact-id: ${{ steps.upload-artifact.outputs.artifact-id }}
+      tar-file: sagittarius-${{ steps.version.outputs.build_version }}.tar.gz
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -46,7 +56,8 @@ jobs:
           ../checkout/dist.sh dist ../checkout
         working-directory: build
       - uses: actions/upload-artifact@v4
+        id: upload-artifact
         with:
-          name: ${{ inputs.name }}
+          name: sagittarius-${{ inputs.suffix }}
           path: ./build/sagittarius-${{ steps.version.outputs.build_version }}.tar.gz
           compression-level: 0

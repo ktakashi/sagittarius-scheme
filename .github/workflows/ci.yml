@@ -137,10 +137,18 @@ jobs:
           ctest --output-on-failure -LE json
         shell: cmd
 
-  Create-Arifact:
+  Create-Artifact:
     # needs: [POSIX-Build, Windows-Build]
     uses: ./.github/workflows/artifact.yml
     with:
       release: false
-      name: sagittarius-${{ github.run_id }}
+      suffix: ${{ github.run_id }}
+
+  Create-Windows-Installer-Artifact:
+    needs: Create-Artifact
+    uses: ./.github/workflows/windows-installer.yml
+    with:
+      artifact-id: ${{ needs.Create-Artifact.outputs.artifact-id }}
+      tar-file: ${{ needs.Create-Artifact.outputs.tar-file }}
+      suffix: ${{ github.run_id }}
       
