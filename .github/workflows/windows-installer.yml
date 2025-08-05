@@ -14,7 +14,10 @@ on:
 
 jobs:
   Build-Windows-Installer:
-    runs-on: windows-2025
+    # https://github.com/Minionguyjpro/Inno-Setup-Action/issues/125
+    # for now keep using windows-2022 image, until the above issue
+    # is resolved.
+    runs-on: windows-2022
     name: Windows installer - ${{ matrix.arch }}
     strategy:
       matrix:
