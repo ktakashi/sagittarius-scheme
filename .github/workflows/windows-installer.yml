@@ -64,5 +64,5 @@ jobs:
         id: upload-windows-installer
         uses: actions/upload-artifact@v4
         with:
-          name: sagittarius-${{ matrix.arch }}-${{ inputs.suffix }}
+          name: sagittarius-${{ inputs.suffix }}-${{ matrix.arch }}-installer
           path: ${{ steps.extract.outputs.build_dir }}/win/Output/setup_sagittarius_*.exe
