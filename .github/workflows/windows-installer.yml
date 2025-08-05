@@ -35,7 +35,7 @@ jobs:
           dir /B /AD > tmpfile
           set /p BUILD_DIR= < tmpfile
           echo Build dir: %BUILD_DIR%
-          echo build_dir=%BUILD_DIR% >> %GITHUB_OUTPUT%
+          echo | set /p="build_dir=%BUILD_DIR%" >> %GITHUB_OUTPUT%
           del /f tmpfile
         shell: cmd
       - name: Debug
