@@ -42,6 +42,10 @@ jobs:
         run: echo %cd%
         shell: cmd
         working-directory: ${{ steps.extract.outputs.build_dir }}
+      - name: Setup MSVC
+        uses: TheMrMilchmann/setup-msvc-dev@v3
+        with:
+          arch: ${{ matrix.arch }}
       - name: Build
         run: |
           cmake . -G "NMake Makefiles"
