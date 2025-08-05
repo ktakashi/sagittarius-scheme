@@ -30,6 +30,7 @@ jobs:
           tar -xzf ${{ inputs.tar-file }}
           dir=$(ls -d */)
           echo "build_dir=$dir" >> $GITHUB_OUTPUT
+        shell: bash
       - name: Build
         run: |
           cmake . -G "NMake Makefiles"
