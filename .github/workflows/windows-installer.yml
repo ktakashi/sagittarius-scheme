@@ -24,6 +24,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           artifact-ids: ${{ inputs.artifact-id }}
+      - name: Debug
+        run: dir
+        shell: cmd
       - name: Extract tar file
         id: extract
         run: |
