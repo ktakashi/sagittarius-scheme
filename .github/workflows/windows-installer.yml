@@ -28,9 +28,11 @@ jobs:
         id: extract
         run: |
           tar -xzf ${{ inputs.tar-file }}
-          dir=$(ls -d */)
-          echo "build_dir=$dir" >> $GITHUB_OUTPUT
-        shell: bash
+          dir /B /AD > tmpfile
+          set /p BUILD_DIR= < tmpfile
+          echo "build_dir=%BUILD_DIR%" >> $GITHUB_OUTPUT
+          del /f tmpfile
+        shell: cmd
       - name: Build
         run: |
           cmake . -G "NMake Makefiles"
