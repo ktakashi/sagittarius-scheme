@@ -24,6 +24,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           artifact-ids: ${{ inputs.artifact-id }}
+          merge-multiple: true
       - name: Debug
         run: dir
         shell: cmd
