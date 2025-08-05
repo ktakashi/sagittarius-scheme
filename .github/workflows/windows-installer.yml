@@ -39,13 +39,11 @@ jobs:
       - name: Make installer
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.6
         with:
-          path: win/innosetup.iss
+          path: ${{ steps.extract.outputs.build_dir }}/win/innosetup.iss
           options: /Qp
-        working-directory: ${{ steps.extract.outputs.build_dir }}
       - name: Upload installer
         id: upload-windows-installer
         uses: actions/upload-artifact@v4
         with:
           name: sagittarius-${{ matrix.arch }}-${{ inputs.suffix }}
-          path: win/Output/setup_sagittarius_*.exe
-        working-directory: ${{ steps.extract.outputs.build_dir }}
+          path: ${{ steps.extract.outputs.build_dir }}/win/Output/setup_sagittarius_*.exe
