@@ -277,7 +277,7 @@
   
 
   (define (make-client-socket node service
-			      :optional (ai-family AF_INET)
+			      :optional (ai-family AF_UNSPEC)
 					(ai-socktype SOCK_STREAM)
 					(ai-flags (+ (or AI_V4MAPPED 0)
 						     (or AI_ADDRCONFIG 0)))
@@ -306,7 +306,7 @@
     
 
   (define (make-server-socket service 
-			      :optional (ai-family AF_INET)
+			      :optional (ai-family AF_UNSPEC)
 					(ai-socktype SOCK_STREAM)
 					(ai-protocol 0))
     (define (dns-resolver service)

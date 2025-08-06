@@ -75,10 +75,10 @@ typedef long suseconds_t;
    Even though it said it's fixed HOWEVER h, on FreeBSD 9.1 it still
    returns EAI_BADFLAGS! so we set this 0
  */
-#ifdef __FreeBSD__
-#undef AI_V4MAPPED
-#define AI_V4MAPPED 0
-#endif
+/* #ifdef __FreeBSD__ */
+/* #undef AI_V4MAPPED */
+/* #define AI_V4MAPPED 0 */
+/* #endif */
 
 static SgString* get_address_string_rec(const struct sockaddr *addr,
 					socklen_t addrlen, int port_p)

@@ -243,7 +243,7 @@
 
 (define-syntax socket-options-builder
   (make-record-builder socket-options
-		       ((ai-family AF_INET)
+		       ((ai-family AF_UNSPEC)
 			(ai-socktype SOCK_STREAM)
 			(ai-flags (+ (or AI_V4MAPPED 0) (or AI_ADDRCONFIG 0)))
 			(ai-protocol 0))))
