@@ -277,7 +277,7 @@
   
 
   (define (make-client-socket node service
-			      :optional (ai-family AF_UNSPEC)
+			      :optional (ai-family AF_INET)
 					(ai-socktype SOCK_STREAM)
 					(ai-flags (+ (or AI_V4MAPPED 0)
 						     (or AI_ADDRCONFIG 0)))
@@ -293,20 +293,22 @@
 			   "client socket must not have AI_PASSIVE"))
     (make-client-socket/resolver node service dns-resolver))
 
-  (define (make-client-socket/resolver node service resolver :optional (timeout #f))
+  (define (make-client-socket/resolver node service resolver
+				       :optional (timeout #f))
+    (define who 'make-client-socket/resolver)
     (let loop ((info (resolver node service)))
+      
       (let ((socket (create-socket info)))
 	(or (and socket info (socket-connect! socket info timeout))
 	    (and info 
 		 (let ((msg (last-error-message)))
 		   (and socket (socket-close socket))
-		   (retry-addrinfo info msg loop 'make-client-socket node service)
-		   ))
-	    (raise-socket-error socket 'make-client-socket node service)))))
+		   (retry-addrinfo info msg loop who node service)))
+	    (raise-socket-error socket who node service)))))
     
 
   (define (make-server-socket service 
-			      :optional (ai-family AF_UNSPEC)
+			      :optional (ai-family AF_INET)
 					(ai-socktype SOCK_STREAM)
 					(ai-protocol 0))
     (define (dns-resolver service)
@@ -315,12 +317,13 @@
 				       :flags AI_PASSIVE
 				       :protocol ai-protocol)))
 	(get-addrinfo #f service hints)))
-    (make-server-socket/resolver service dns-resolver
-				 (= ai-socktype SOCK_STREAM)))
+    (make-server-socket/resolver service dns-resolver))
 
-  (define (make-server-socket/resolver service resolver listen?)
-    (let loop ( (info (resolver service)))
-      (let ((socket (create-socket info)))
+  (define (make-server-socket/resolver service resolver)
+    (define who 'make-server-socket/resolver)
+    (let loop ((info (resolver service)))
+      (let ((socket (create-socket info))
+	    (listen? (= (slot-ref info 'socktype) SOCK_STREAM)))
 	(or (and-let* (( socket )
 		       ( info )
 		       ( (socket-setsockopt! socket SOL_SOCKET SO_REUSEADDR 1) )
@@ -332,8 +335,8 @@
 	    (and info
 		 (let ((msg (last-error-message)))
 		   (and socket (socket-close socket))
-		   (retry-addrinfo info msg loop 'make-server-socket #f service)))
-	    (raise-socket-error socket 'make-server-socket service)))))
+		   (retry-addrinfo info msg loop who #f service)))
+	    (raise-socket-error socket who service)))))
 
   (define (raise-socket-error socket who . irr)
     (raise (condition (make-socket-error socket)

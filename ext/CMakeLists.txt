@@ -121,7 +121,8 @@ SET(EXT_WORKAROUND
   "(define build-directory-path \"${PROJECT_BINARY_DIR}/build\")")
 SET(EXT_TEST_COMMAND
   ${TEST_COMMAND}
-  -e ${EXT_WORKAROUND})
+  -e ${EXT_WORKAROUND}
+  "${PROJECT_SOURCE_DIR}/test/runner.scm")
 
 INCLUDE(CTest)
 

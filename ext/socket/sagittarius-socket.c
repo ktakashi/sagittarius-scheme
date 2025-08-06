@@ -131,7 +131,22 @@ static void addrinfo_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
   SgObject addr = get_address_string(info->ai->ai_addr, 
 				     /* fxxk Windows! */
 				     (socklen_t)info->ai->ai_addrlen);
-  Sg_Printf(port, UC("#<addrinfo %A>"), addr);
+  SgObject socktype = SG_FALSE;
+  switch (info->ai->ai_socktype) {
+  case SOCK_STREAM: socktype = SG_INTERN("stream"); break;
+  case SOCK_DGRAM: socktype = SG_INTERN("dgram"); break;
+#ifdef SOCK_RAW
+  case SOCK_RAW: socktype = SG_INTERN("raw"); break;
+#endif
+#ifdef SOCK_RDM
+  case SOCK_RDM: socktype = SG_INTERN("rdm"); break;
+#endif
+#ifdef SOCK_SEQPACKET
+  case SOCK_SEQPACKET: socktype = SG_INTERN("seqpacket"); break;
+#endif
+  }
+
+  Sg_Printf(port, UC("#<addrinfo %A %A>"), addr, socktype);
 }
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_AddrinfoClass, addrinfo_printer);
@@ -467,17 +482,22 @@ SgAddrinfo* Sg_GetAddrinfo(SgObject node, SgObject service, SgAddrinfo *hints)
   /* copy addr info */
   result->ai = SG_NEW(struct addrinfo);
   cur = result->ai;
-  for (next = ai, prev = NULL; next; 
-       next = next->ai_next, cur = cur->ai_next, prev = cur) {
+  next = ai;
+  prev = NULL;
+  while (next) {
     memcpy(cur, next, sizeof(struct addrinfo));
     /* copy sockaddr */
     cur->ai_addr = SG_NEW2(struct sockaddr *, ai->ai_addrlen);
     memcpy(cur->ai_addr, next->ai_addr, ai->ai_addrlen);
-    /* FIXME ugly check */
+    cur->ai_canonname = NULL;	/* we don't use this */
+
     if (next->ai_next) {
       cur->ai_next = SG_NEW(struct addrinfo);
       if (prev) prev->ai_next = cur;
     }
+    prev = cur;
+    cur = cur->ai_next;
+    next = next->ai_next;
   }
 
   freeaddrinfo(ai);

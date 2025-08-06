@@ -243,7 +243,7 @@
 
 (define-syntax socket-options-builder
   (make-record-builder socket-options
-		       ((ai-family AF_UNSPEC)
+		       ((ai-family AF_INET)
 			(ai-socktype SOCK_STREAM)
 			(ai-flags (+ (or AI_V4MAPPED 0) (or AI_ADDRCONFIG 0)))
 			(ai-protocol 0))))
@@ -276,8 +276,7 @@
 			   default-dns-resolver))
   (define (setup socket)
     (when socket (setup-socket socket options))
-    socket)
-  
+    socket)  
   (define (resolver node service) (dns-resolver node service options))
   (unless (zero? (bitwise-and ai-flags AI_PASSIVE))
     (assertion-violation 'make-client-socket
@@ -285,12 +284,14 @@
   (setup (make-client-socket/resolver node service resolver timeout)))
 
 (define (make-server-socket service :optional (options (socket-options-builder)))
-  (define server-options (socket-options-builder (from options) (ai-flags AI_PASSIVE)))
-  (define ai-socktype (socket-options-ai-socktype options))
+  (define server-options
+    (socket-options-builder (from options) (ai-flags AI_PASSIVE)))
   (define dns-resolver (or (socket-options-dns-resolver options)
 			   default-dns-resolver))
   (define (resolver service) (dns-resolver #f service server-options))
-  (setup-socket (make-server-socket/resolver service resolver (= ai-socktype SOCK_STREAM)) options))
+  (setup-socket
+   (make-server-socket/resolver service resolver)
+   options))
 
 (define-record-type tls-socket-options
   (parent socket-options)

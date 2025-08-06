@@ -30,7 +30,7 @@
   (test-assert "non-blocking?" (socket-options-non-blocking? so))
   (test-equal 10 (socket-options-connection-timeout so))
   (test-equal 100 (socket-options-read-timeout so))
-  (test-equal AF_UNSPEC (socket-options-ai-family so)))
+  (test-equal AF_INET (socket-options-ai-family so)))
 
 (let ((so (tls-socket-options)))
   (test-assert "socket-options?" (socket-options? so))
