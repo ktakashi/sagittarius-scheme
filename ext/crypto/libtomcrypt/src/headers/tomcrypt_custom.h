@@ -79,6 +79,7 @@
    #define LTC_RIJNDAEL
    #define LTC_BLOWFISH
    #define LTC_DES
+   #define LTC_SM4
    #define LTC_CAST5
 
    #define LTC_NO_MODES
@@ -114,6 +115,8 @@
 
    #define LTC_NO_MISC
    #define LTC_BASE64
+   #define LTC_BASE16
+   #define LTC_PEM
 #endif /* LTC_EASY */
 
 /* The minimal set of functionality to run the tests */
@@ -179,9 +182,6 @@
 #define LTC_RC6
 #define LTC_SAFERP
 #define LTC_RIJNDAEL
-#ifndef LTC_NO_AES_NI
-   #define LTC_AES_NI
-#endif
 #define LTC_XTEA
 /* _TABLES tells it to use tables during setup, _SMALL means to use the smaller scheduled key format
  * (saves 4KB of ram), _ALL_TABLES enables all tables during setup */
@@ -195,6 +195,7 @@
 /* #define LTC_TWOFISH_SMALL */
 /* LTC_DES includes EDE triple-DES */
 #define LTC_DES
+#define LTC_SM4
 #define LTC_CAST5
 #define LTC_NOEKEON
 #define LTC_SKIPJACK
@@ -300,6 +301,7 @@
 #define LTC_CCM_MODE
 #define LTC_GCM_MODE
 #define LTC_CHACHA20POLY1305_MODE
+#define LTC_SIV_MODE
 
 /* Use 64KiB tables */
 #ifndef LTC_NO_TABLES
@@ -375,9 +377,9 @@
 
 /* with non-glibc or glibc 2.17+ prefer clock_gettime over gettimeofday */
 #if defined(__GLIBC__) && defined(__GLIBC_PREREQ)
-#if __GLIBC_PREREQ(2, 17)
-  #define LTC_CLOCK_GETTIME
-#endif
+   #if __GLIBC_PREREQ(2, 17)
+      #define LTC_CLOCK_GETTIME
+   #endif
 #elif defined(_POSIX_C_SOURCE) && _POSIX_C_SOURCE >= 200112L
   #define LTC_CLOCK_GETTIME
 #endif
@@ -406,6 +408,11 @@
 /* number of pools (4..32) can save a bit of ram by lowering the count */
 #define LTC_FORTUNA_POOLS 32
 #endif
+
+/* at compile time you can decide whether fortuna uses the regular AES APIs
+ * or whether it will use the 'encrypt_only' variants.
+ * This is useful for custom builds of libtomcrypt for size-constrained targets. */
+/* #define LTC_FORTUNA_USE_ENCRYPT_ONLY */
 
 #endif /* LTC_FORTUNA */
 
@@ -517,6 +524,8 @@
 
 #define LTC_PBES
 
+#define LTC_PEM
+
 #endif /* LTC_NO_MISC */
 
 /* cleanup */
@@ -561,6 +570,33 @@
 #endif
 #endif /* LTC_MECC */
 
+#ifndef LTC_NO_FILE
+   /* buffer size for reading from a file via fread(..) */
+   #ifndef LTC_FILE_READ_BUFSIZE
+   #define LTC_FILE_READ_BUFSIZE 8192
+   #endif
+#endif
+
+#if defined(LTC_PEM)
+   /* Size of the line-buffer */
+   #ifndef LTC_PEM_DECODE_BUFSZ
+      #define LTC_PEM_DECODE_BUFSZ 80
+   #elif LTC_PEM_DECODE_BUFSZ < 72
+      #error "LTC_PEM_DECODE_BUFSZ shall not be < 72 bytes"
+   #endif
+   /* Size of the decoded data buffer */
+   #ifndef LTC_PEM_READ_BUFSIZE
+      #ifdef LTC_FILE_READ_BUFSIZE
+         #define LTC_PEM_READ_BUFSIZE LTC_FILE_READ_BUFSIZE
+      #else
+         #define LTC_PEM_READ_BUFSIZE 4096
+      #endif
+   #endif
+   #if defined(LTC_SSH)
+      #define LTC_PEM_SSH
+   #endif
+#endif
+
 #if defined(LTC_DER)
    #ifndef LTC_DER_MAX_RECURSION
       /* Maximum recursion limit when processing nested ASN.1 types. */
@@ -586,9 +622,11 @@
    #define LTC_PKCS_8
 #endif
 
-#ifdef LTC_PKCS_8
+#if defined(LTC_PKCS_8) && defined(LTC_DER)
    #define LTC_PADDING
    #define LTC_PBES
+#else
+   #undef LTC_PKCS_8
 #endif
 
 #if defined(LTC_CLEAN_STACK)
@@ -628,7 +666,7 @@
    #error ASN.1 DER requires MPI functionality
 #endif
 
-#if (defined(LTC_MDSA) || defined(LTC_MRSA) || defined(LTC_MECC)) && !defined(LTC_DER)
+#if (defined(LTC_MDSA) || defined(LTC_MRSA)) && !defined(LTC_DER)
    #error PK requires ASN.1 DER functionality, make sure LTC_DER is enabled
 #endif
 
@@ -702,13 +740,6 @@
 
 /* define this if you use Valgrind, note: it CHANGES the way SOBER-128 and RC4 work (see the code) */
 /* #define LTC_VALGRIND */
-
-#ifndef LTC_NO_FILE
-   /* buffer size for reading from a file via fread(..) */
-   #ifndef LTC_FILE_READ_BUFSIZE
-   #define LTC_FILE_READ_BUFSIZE 8192
-   #endif
-#endif
 
 /* ECC backwards compatibility */
 #if !defined(LTC_ECC_SECP112R1) && defined(LTC_ECC112)

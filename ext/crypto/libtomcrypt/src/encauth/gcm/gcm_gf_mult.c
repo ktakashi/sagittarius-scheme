@@ -48,7 +48,7 @@ const unsigned char gcm_shift_table[256*2] = {
 #endif
 
 
-#if defined(LTC_GCM_MODE) || defined(LRW_MODE)
+#if defined(LTC_GCM_MODE) || defined(LTC_LRW_MODE)
 
 #ifndef LTC_FAST
 /* right shift */
@@ -202,6 +202,10 @@ void gcm_gf_mult(const unsigned char *a, const unsigned char *b, unsigned char *
    }
 
 }
+
+#undef M
+#undef BPD
+#undef WPV
 
 #endif
 

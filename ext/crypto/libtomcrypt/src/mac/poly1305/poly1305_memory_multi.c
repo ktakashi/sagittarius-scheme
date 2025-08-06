@@ -7,7 +7,6 @@
  */
 
 #include "tomcrypt_private.h"
-#include <stdarg.h>
 
 #ifdef LTC_POLY1305
 

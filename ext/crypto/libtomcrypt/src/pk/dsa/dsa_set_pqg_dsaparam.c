@@ -25,8 +25,7 @@ int dsa_set_pqg_dsaparam(const unsigned char *dsaparam, unsigned long dsaparamle
    LTC_ARGCHK(ltc_mp.name != NULL);
 
    /* init key */
-   err = mp_init_multi(&key->p, &key->g, &key->q, &key->x, &key->y, LTC_NULL);
-   if (err != CRYPT_OK) return err;
+   if ((err = dsa_int_init(key)) != CRYPT_OK) return err;
 
    if ((err = der_decode_sequence_multi(dsaparam, dsaparamlen,
                                         LTC_ASN1_INTEGER, 1UL, key->p,
@@ -36,7 +35,7 @@ int dsa_set_pqg_dsaparam(const unsigned char *dsaparam, unsigned long dsaparamle
       goto LBL_ERR;
    }
 
-   key->qord = mp_unsigned_bin_size(key->q);
+   key->qord = ltc_mp_unsigned_bin_size(key->q);
 
    /* quick p, q, g validation, without primality testing */
    if ((err = dsa_int_validate_pqg(key, &stat)) != CRYPT_OK) {

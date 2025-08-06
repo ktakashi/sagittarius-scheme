@@ -8,7 +8,7 @@
   Convert error codes to ASCII strings, Tom St Denis
 */
 
-static const char * const err_2_str[] =
+static const char * const err_2_str[CRYPT_ERR_NUM] =
 {
    "CRYPT_OK",
    "CRYPT_ERROR",
@@ -44,14 +44,17 @@ static const char * const err_2_str[] =
 
    "The input was longer than expected.",
 
-   "Invalid sized parameter.",
+   "Invalid size input for PK parameters.",
 
    "Invalid size for prime.",
-
    "Invalid padding.",
 
    "Hash applied to too many bits.",
+   "Password context to decrypt key file is missing.",
+   "The PEM header was not recognized",
 };
+
+LTC_STATIC_ASSERT(correct_err_2_str_size, (sizeof(err_2_str)/sizeof(err_2_str[0])) == CRYPT_ERR_NUM)
 
 /**
    Convert an LTC error code to ASCII
@@ -60,7 +63,7 @@ static const char * const err_2_str[] =
 */
 const char *error_to_string(int err)
 {
-   if (err < 0 || err >= (int)(sizeof(err_2_str)/sizeof(err_2_str[0]))) {
+   if (err < 0 || err >= CRYPT_ERR_NUM) {
       return "Invalid error code.";
    }
    return err_2_str[err];

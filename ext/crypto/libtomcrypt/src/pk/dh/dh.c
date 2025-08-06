@@ -221,7 +221,22 @@ const ltc_dh_set_type ltc_dh_sets[] = {
 int dh_get_groupsize(const dh_key *key)
 {
    if (key == NULL) return 0;
-   return mp_unsigned_bin_size(key->prime);
+   return ltc_mp_unsigned_bin_size(key->prime);
+}
+
+/**
+  Init a DH key
+  @param key   The DH key to initialize
+  @return CRYPT_OK if successful
+*/
+int dh_init(dh_key *key)
+{
+   int err;
+   LTC_ARGCHK(key != NULL);
+   if ((err = ltc_mp_init_multi(&key->x, &key->y, &key->base, &key->prime, LTC_NULL)) != CRYPT_OK) {
+      return err;
+   }
+   return CRYPT_OK;
 }
 
 #endif /* LTC_MDH */

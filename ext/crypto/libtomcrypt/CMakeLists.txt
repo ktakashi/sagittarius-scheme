@@ -16,6 +16,7 @@ ADD_LIBRARY(libtomcrypt STATIC
   src/misc/error_to_string.c
   src/misc/burn_stack.c
   src/misc/mem_neq.c
+  src/misc/copy_or_zeromem.c
   src/misc/crypt/crypt.c
   src/misc/crypt/crypt_argchk.c
   src/misc/crypt/crypt_fsa.c
@@ -47,6 +48,7 @@ ADD_LIBRARY(libtomcrypt STATIC
   src/ciphers/skipjack.c
   src/ciphers/xtea.c
   src/ciphers/camellia.c
+  src/ciphers/sm4.c
   # aes
   src/ciphers/aes/aes.c
   src/ciphers/aes/aes_desc.c src/ciphers/aes/aesni.c
@@ -123,6 +125,8 @@ ADD_LIBRARY(libtomcrypt STATIC
   src/mac/omac/omac_init.c
   src/mac/omac/omac_process.c
   src/mac/omac/omac_done.c
+  src/mac/omac/omac_memory.c
+  src/mac/omac/omac_memory_multi.c
 
   #hmac
   src/mac/hmac/hmac_init.c
@@ -238,6 +242,9 @@ ADD_LIBRARY(libtomcrypt STATIC
   src/encauth/chachapoly/chacha20poly1305_encrypt.c
   src/encauth/chachapoly/chacha20poly1305_decrypt.c
   src/encauth/chachapoly/chacha20poly1305_done.c
+
+  #siv
+  src/encauth/siv/siv.c
   
   # prngs
   src/misc/crypt/crypt_find_prng.c

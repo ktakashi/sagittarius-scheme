@@ -89,8 +89,8 @@ int pkcs_1_oaep_encode(const unsigned char *msg,    unsigned long msglen,
          goto LBL_ERR;
       }
    } else {
-      /* can't pass hash_memory a NULL so use DB with zero length */
-      if ((err = hash_memory(lparam_hash_used, DB, 0, DB, &x)) != CRYPT_OK) {
+      /* can't pass hash_memory a NULL so use `out` with zero length */
+      if ((err = hash_memory(lparam_hash_used, out, 0, DB, &x)) != CRYPT_OK) {
          goto LBL_ERR;
       }
    }

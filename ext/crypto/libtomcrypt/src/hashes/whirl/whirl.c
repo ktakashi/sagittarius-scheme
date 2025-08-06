@@ -29,8 +29,10 @@ const struct ltc_hash_descriptor whirlpool_desc =
 };
 
 /* the sboxes */
+#ifndef LTC_WHIRLTAB_C
 #define LTC_WHIRLTAB_C
 #include "whirltab.c"
+#endif
 
 /* get a_{i,j} */
 #define GB(a,i,j) ((a[(i) & 7] >> (8 * (j))) & 255)
@@ -291,6 +293,8 @@ int  whirlpool_test(void)
  #endif
 }
 
+#undef GB
+#undef theta_pi_gamma
 
 #endif
 

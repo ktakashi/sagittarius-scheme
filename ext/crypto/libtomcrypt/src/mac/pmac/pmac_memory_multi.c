@@ -1,7 +1,6 @@
 /* LibTomCrypt, modular cryptographic library -- Tom St Denis */
 /* SPDX-License-Identifier: Unlicense */
 #include "tomcrypt_private.h"
-#include <stdarg.h>
 
 /**
    @file pmac_memory_multi.c

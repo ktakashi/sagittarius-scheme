@@ -2,7 +2,6 @@
 /* SPDX-License-Identifier: Unlicense */
 
 #include "tomcrypt_private.h"
-#include <stdarg.h>
 
 #ifdef LTC_BLAKE2BMAC
 

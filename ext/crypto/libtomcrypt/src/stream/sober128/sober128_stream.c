@@ -10,8 +10,10 @@
 
 #ifdef LTC_SOBER128
 
+#ifndef LTC_SOBER128TAB_C
 #define LTC_SOBER128TAB_C
 #include "sober128tab.c"
+#endif
 
 /* don't change these... */
 #define N                        17
@@ -172,7 +174,7 @@ int sober128_stream_setup(sober128_state *st, const unsigned char *key, unsigned
    st->konst = INITKONST;
 
    for (i = 0; i < keylen; i += 4) {
-      k = BYTE2WORD((unsigned char *)&key[i]);
+      k = BYTE2WORD(&key[i]);
       ADDKEY(k);
       cycle(st->R);
       XORNL(nltap(st));
@@ -214,7 +216,7 @@ int sober128_stream_setiv(sober128_state *st, const unsigned char *iv, unsigned 
    }
 
    for (i = 0; i < ivlen; i += 4) {
-      k = BYTE2WORD((unsigned char *)&iv[i]);
+      k = BYTE2WORD(&iv[i]);
       ADDKEY(k);
       cycle(st->R);
       XORNL(nltap(st));
@@ -329,5 +331,17 @@ int sober128_stream_done(sober128_state *st)
    zeromem(st, sizeof(sober128_state));
    return CRYPT_OK;
 }
+
+#undef N
+#undef INITKONST
+#undef KEYP
+#undef FOLDP
+#undef OFF
+#undef STEP
+#undef NLFUNC
+#undef ADDKEY
+#undef XORNL
+#undef DROUND
+#undef SROUND
 
 #endif

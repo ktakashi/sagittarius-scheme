@@ -1,7 +1,6 @@
 /* LibTomCrypt, modular cryptographic library -- Tom St Denis */
 /* SPDX-License-Identifier: Unlicense */
 #include "tomcrypt_private.h"
-#include <stdarg.h>
 
 /**
   @file omac_memory_multi.c
@@ -9,6 +8,31 @@
 */
 
 #ifdef LTC_OMAC
+
+static LTC_INLINE int s_omac_vprocess(omac_state *omac, const unsigned char *in,  unsigned long inlen, va_list args)
+{
+   const unsigned char * curptr = in;
+   unsigned long curlen = inlen;
+   int err;
+   for (;;) {
+      /* process buf */
+      if ((err = omac_process(omac, curptr, curlen)) != CRYPT_OK) {
+         return err;
+      }
+      /* step to next */
+      curptr = va_arg(args, const unsigned char*);
+      if (curptr == NULL) {
+         break;
+      }
+      curlen = va_arg(args, unsigned long);
+   }
+   return CRYPT_OK;
+}
+
+int omac_vprocess(omac_state *omac, const unsigned char *in,  unsigned long inlen, va_list args)
+{
+   return s_omac_vprocess(omac, in, inlen, args);
+}
 
 /**
    OMAC multiple blocks of memory
@@ -30,8 +54,6 @@ int omac_memory_multi(int cipher,
    int                  err;
    omac_state          *omac;
    va_list              args;
-   const unsigned char *curptr;
-   unsigned long        curlen;
 
    LTC_ARGCHK(key    != NULL);
    LTC_ARGCHK(in     != NULL);
@@ -49,23 +71,10 @@ int omac_memory_multi(int cipher,
       goto LBL_ERR;
    }
    va_start(args, inlen);
-   curptr = in;
-   curlen = inlen;
-   for (;;) {
-      /* process buf */
-      if ((err = omac_process(omac, curptr, curlen)) != CRYPT_OK) {
-         goto LBL_ERR;
-      }
-      /* step to next */
-      curptr = va_arg(args, const unsigned char*);
-      if (curptr == NULL) {
-         break;
-      }
-      curlen = va_arg(args, unsigned long);
-   }
-   if ((err = omac_done(omac, out, outlen)) != CRYPT_OK) {
+   if ((err = s_omac_vprocess(omac, in, inlen, args)) != CRYPT_OK) {
       goto LBL_ERR;
    }
+   err = omac_done(omac, out, outlen);
 LBL_ERR:
 #ifdef LTC_CLEAN_STACK
    zeromem(omac, sizeof(omac_state));

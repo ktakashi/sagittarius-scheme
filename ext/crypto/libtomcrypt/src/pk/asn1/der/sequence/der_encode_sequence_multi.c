@@ -1,7 +1,6 @@
 /* LibTomCrypt, modular cryptographic library -- Tom St Denis */
 /* SPDX-License-Identifier: Unlicense */
 #include "tomcrypt_private.h"
-#include <stdarg.h>
 
 
 /**
@@ -80,7 +79,7 @@ int der_encode_sequence_multi(unsigned char *out, unsigned long *outlen, ...)
       return CRYPT_NOP;
    }
 
-   list = XCALLOC(sizeof(*list), x);
+   list = XCALLOC(x, sizeof(*list));
    if (list == NULL) {
       return CRYPT_MEM;
    }

@@ -117,7 +117,7 @@ int der_decode_asn1_identifier(const unsigned char *in, unsigned long *inlen, lt
       }
    }
 
-   return CRYPT_OK;
+   return err;
 }
 
 #endif

@@ -38,9 +38,9 @@ int ecc_get_key(unsigned char *out, unsigned long *outlen, int type, const ecc_k
          return CRYPT_BUFFER_OVERFLOW;
       }
       *outlen = size;
-      if ((ksize = mp_unsigned_bin_size(key->k)) > size)                          return CRYPT_BUFFER_OVERFLOW;
+      if ((ksize = ltc_mp_unsigned_bin_size(key->k)) > size)                          return CRYPT_BUFFER_OVERFLOW;
       /* pad and store k */
-      if ((err = mp_to_unsigned_bin(key->k, out + (size - ksize))) != CRYPT_OK)   return err;
+      if ((err = ltc_mp_to_unsigned_bin(key->k, out + (size - ksize))) != CRYPT_OK)   return err;
       zeromem(out, size - ksize);
    }
    else {

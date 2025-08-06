@@ -60,10 +60,10 @@ int rsa_sign_hash_ex(const unsigned char *in,       unsigned long  inlen,
    }
 
    /* get modulus len in bits */
-   modulus_bitlen = mp_count_bits((key->N));
+   modulus_bitlen = ltc_mp_count_bits((key->N));
 
   /* outlen must be at least the size of the modulus */
-  modulus_bytelen = mp_unsigned_bin_size((key->N));
+  modulus_bytelen = ltc_mp_unsigned_bin_size((key->N));
   if (modulus_bytelen > *outlen) {
      *outlen = modulus_bytelen;
      return CRYPT_BUFFER_OVERFLOW;
@@ -78,7 +78,8 @@ int rsa_sign_hash_ex(const unsigned char *in,       unsigned long  inlen,
     }
   } else {
     /* PKCS #1 v1.5 pad the hash */
-    unsigned char *tmpin;
+    unsigned char *tmpin = NULL;
+    const unsigned char *tmpin_ro;
 
     if (padding == LTC_PKCS_1_V1_5) {
       ltc_asn1_list digestinfo[2], siginfo[2];
@@ -101,7 +102,7 @@ int rsa_sign_hash_ex(const unsigned char *in,       unsigned long  inlen,
       LTC_SET_ASN1(siginfo,    1, LTC_ASN1_OCTET_STRING,      in,                            inlen);
 
       /* allocate memory for the encoding */
-      y = mp_unsigned_bin_size(key->N);
+      y = ltc_mp_unsigned_bin_size(key->N);
       tmpin = XMALLOC(y);
       if (tmpin == NULL) {
          return CRYPT_MEM;
@@ -111,14 +112,15 @@ int rsa_sign_hash_ex(const unsigned char *in,       unsigned long  inlen,
          XFREE(tmpin);
          return err;
       }
+      tmpin_ro = tmpin;
     } else {
       /* set the pointer and data-length to the input values */
-      tmpin = (unsigned char *)in;
+      tmpin_ro = in;
       y = inlen;
     }
 
     x = *outlen;
-    err = pkcs_1_v1_5_encode(tmpin, y, LTC_PKCS_1_EMSA, modulus_bitlen, NULL, 0, out, &x);
+    err = pkcs_1_v1_5_encode(tmpin_ro, y, LTC_PKCS_1_EMSA, modulus_bitlen, NULL, 0, out, &x);
 
     if (padding == LTC_PKCS_1_V1_5) {
       XFREE(tmpin);

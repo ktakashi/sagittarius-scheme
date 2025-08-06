@@ -4,6 +4,7 @@
 
 /* automatically generated file, do not edit */
 
+#define add tnacl_add
 #define FOR(i,n) for (i = 0;i < n;++i)
 #define sv static void
 
@@ -489,3 +490,7 @@ int tweetnacl_crypto_ph(u8 *out,const u8 *msg,u64 msglen)
 {
   return tweetnacl_crypto_hash(out, msg, msglen);
 }
+
+#undef add
+#undef FOR
+#undef sv

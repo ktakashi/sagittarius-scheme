@@ -19,11 +19,12 @@
    @param k    The scalar to multiply by
    @param G    The base point
    @param R    [out] Destination for kG
+   @param a    ECC curve parameter a
    @param modulus  The modulus of the field the ECC curve is in
    @param map      Boolean whether to map back to affine or not (1==map, 0 == leave in projective)
    @return CRYPT_OK on success
 */
-int ltc_ecc_mulmod(void *k, const ecc_point *G, ecc_point *R, void *a, void *modulus, int map)
+int ltc_ecc_mulmod(const void *k, const ecc_point *G, ecc_point *R, const void *a, const void *modulus, int map)
 {
    ecc_point *tG, *M[8];
    int        i, j, err, inf;
@@ -43,16 +44,16 @@ int ltc_ecc_mulmod(void *k, const ecc_point *G, ecc_point *R, void *a, void *mod
    }
 
    /* init montgomery reduction */
-   if ((err = mp_montgomery_setup(modulus, &mp)) != CRYPT_OK)        { goto error; }
-   if ((err = mp_init(&mu)) != CRYPT_OK)                             { goto error; }
-   if ((err = mp_montgomery_normalization(mu, modulus)) != CRYPT_OK) { goto error; }
+   if ((err = ltc_mp_montgomery_setup(modulus, &mp)) != CRYPT_OK)        { goto error; }
+   if ((err = ltc_mp_init(&mu)) != CRYPT_OK)                             { goto error; }
+   if ((err = ltc_mp_montgomery_normalization(mu, modulus)) != CRYPT_OK) { goto error; }
 
    /* for curves with a == -3 keep ma == NULL */
-   if ((err = mp_init(&a_plus3)) != CRYPT_OK)                        { goto error; }
-   if ((err = mp_add_d(a, 3, a_plus3)) != CRYPT_OK)                  { goto error; }
-   if (mp_cmp(a_plus3, modulus) != LTC_MP_EQ) {
-      if ((err = mp_init(&ma)) != CRYPT_OK)                          { goto error; }
-      if ((err = mp_mulmod(a, mu, modulus, ma)) != CRYPT_OK)         { goto error; }
+   if ((err = ltc_mp_init(&a_plus3)) != CRYPT_OK)                        { goto error; }
+   if ((err = ltc_mp_add_d(a, 3, a_plus3)) != CRYPT_OK)                  { goto error; }
+   if (ltc_mp_cmp(a_plus3, modulus) != LTC_MP_EQ) {
+      if ((err = ltc_mp_init(&ma)) != CRYPT_OK)                          { goto error; }
+      if ((err = ltc_mp_mulmod(a, mu, modulus, ma)) != CRYPT_OK)         { goto error; }
    }
 
   /* alloc ram for window temps */
@@ -72,14 +73,14 @@ int ltc_ecc_mulmod(void *k, const ecc_point *G, ecc_point *R, void *a, void *mod
    if (tG == NULL)                                                                   { err = CRYPT_MEM; goto done; }
 
    /* tG = G  and convert to montgomery */
-   if (mp_cmp_d(mu, 1) == LTC_MP_EQ) {
+   if (ltc_mp_cmp_d(mu, 1) == LTC_MP_EQ) {
       if ((err = ltc_ecc_copy_point(G, tG)) != CRYPT_OK)                             { goto done; }
    } else {
-      if ((err = mp_mulmod(G->x, mu, modulus, tG->x)) != CRYPT_OK)                   { goto done; }
-      if ((err = mp_mulmod(G->y, mu, modulus, tG->y)) != CRYPT_OK)                   { goto done; }
-      if ((err = mp_mulmod(G->z, mu, modulus, tG->z)) != CRYPT_OK)                   { goto done; }
+      if ((err = ltc_mp_mulmod(G->x, mu, modulus, tG->x)) != CRYPT_OK)                   { goto done; }
+      if ((err = ltc_mp_mulmod(G->y, mu, modulus, tG->y)) != CRYPT_OK)                   { goto done; }
+      if ((err = ltc_mp_mulmod(G->z, mu, modulus, tG->z)) != CRYPT_OK)                   { goto done; }
    }
-   mp_clear(mu);
+   ltc_mp_clear(mu);
    mu = NULL;
 
    /* calc the M tab, which holds kG for k==8..15 */
@@ -97,7 +98,7 @@ int ltc_ecc_mulmod(void *k, const ecc_point *G, ecc_point *R, void *a, void *mod
    mode   = 0;
    bitcnt = 1;
    buf    = 0;
-   digidx = mp_get_digit_count(k) - 1;
+   digidx = ltc_mp_get_digit_count(k) - 1;
    bitcpy = bitbuf = 0;
    first  = 1;
 
@@ -108,7 +109,7 @@ int ltc_ecc_mulmod(void *k, const ecc_point *G, ecc_point *R, void *a, void *mod
        if (digidx == -1) {
           break;
        }
-       buf    = mp_get_digit(k, digidx);
+       buf    = ltc_mp_get_digit(k, digidx);
        bitcnt = (int) ltc_mp.bits_per_digit;
        --digidx;
      }
@@ -190,10 +191,10 @@ done:
        ltc_ecc_del_point(M[i]);
    }
 error:
-   if (ma != NULL) mp_clear(ma);
-   if (a_plus3 != NULL) mp_clear(a_plus3);
-   if (mu != NULL) mp_clear(mu);
-   if (mp != NULL) mp_montgomery_free(mp);
+   if (ma != NULL) ltc_mp_clear(ma);
+   if (a_plus3 != NULL) ltc_mp_clear(a_plus3);
+   if (mu != NULL) ltc_mp_clear(mu);
+   if (mp != NULL) ltc_mp_montgomery_free(mp);
    return err;
 }
 

@@ -22,19 +22,22 @@ static const oid_id_st s_hmac_oid_names[] = {
    { "1.2.840.113549.2.13", "sha512-256" },
 };
 
-static const pbes_properties s_pbes2_default_types[] = {
-   { pkcs_5_alg2, "sha1",   "des",   8, 0 },
-   { pkcs_5_alg2, "sha1",   "rc2",   4, 0 },
-   { pkcs_5_alg2, "sha1",   "3des", 24, 0 },
-   { pkcs_5_alg2, "sha1",   "aes",  16, 0 },
-   { pkcs_5_alg2, "sha1",   "aes",  24, 0 },
-   { pkcs_5_alg2, "sha1",   "aes",  32, 0 },
-};
+static int s_pkcs_5_alg2_wrap(const struct password *pwd,
+                              const unsigned char *salt,  unsigned long salt_len,
+                                    int iteration_count,  int hash_idx,
+                                    unsigned char *out,   unsigned long *outlen)
+{
+   return pkcs_5_alg2(pwd->pw, pwd->l, salt, salt_len, iteration_count, hash_idx, out, outlen);
+}
 
-typedef struct {
-   const pbes_properties *data;
-   const char* oid;
-} oid_to_pbes;
+static const pbes_properties s_pbes2_default_types[] = {
+   { s_pkcs_5_alg2_wrap, "sha1",   "des",   8, 0 },
+   { s_pkcs_5_alg2_wrap, "sha1",   "rc2",   4, 0 },
+   { s_pkcs_5_alg2_wrap, "sha1",   "3des", 24, 0 },
+   { s_pkcs_5_alg2_wrap, "sha1",   "aes",  16, 0 },
+   { s_pkcs_5_alg2_wrap, "sha1",   "aes",  24, 0 },
+   { s_pkcs_5_alg2_wrap, "sha1",   "aes",  32, 0 },
+};
 
 static const oid_to_pbes s_pbes2_list[] = {
    { &s_pbes2_default_types[0], "1.3.14.3.2.7"            },  /* http://www.oid-info.com/get/1.3.14.3.2.7            desCBC */
@@ -126,7 +129,7 @@ int pbes2_extract(const ltc_asn1_list *s, pbes_arg *res)
    liter = lkdf->next->child->next;
    loptseq = liter->next;
    res->salt = lkdf->next->child;
-   res->iterations = mp_get_int(liter->data);
+   res->iterations = ltc_mp_get_int(liter->data);
 
    /* There's an optional INTEGER keyLength after the iterations, skip that if it's there.
     * c.f. RFC 2898 A.2 PBKDF2 */
@@ -154,7 +157,7 @@ int pbes2_extract(const ltc_asn1_list *s, pbes_arg *res)
        */
       if (LTC_ASN1_IS_TYPE(lenc->next->child, LTC_ASN1_INTEGER) &&
           LTC_ASN1_IS_TYPE(lenc->next->child->next, LTC_ASN1_OCTET_STRING)) {
-         klen = mp_get_int(lenc->next->child->data);
+         klen = ltc_mp_get_int(lenc->next->child->data);
          res->iv   = lenc->next->child->next;
          /*
           * Effective Key Bits         Encoding

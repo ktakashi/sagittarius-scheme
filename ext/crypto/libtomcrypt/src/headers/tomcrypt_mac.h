@@ -460,7 +460,7 @@ int ccm_test(void);
 
 #endif /* LTC_CCM_MODE */
 
-#if defined(LRW_MODE) || defined(LTC_GCM_MODE)
+#if defined(LTC_LRW_MODE) || defined(LTC_GCM_MODE)
 void gcm_gf_mult(const unsigned char *a, const unsigned char *b, unsigned char *c);
 #endif
 
@@ -541,11 +541,12 @@ typedef struct {
    chacha_state chacha;
    ulong64 aadlen;
    ulong64 ctlen;
-   int aadflg;
+   int aadflg, openssh_compat;
 } chacha20poly1305_state;
 
-#define CHACHA20POLY1305_ENCRYPT LTC_ENCRYPT
-#define CHACHA20POLY1305_DECRYPT LTC_DECRYPT
+#define CHACHA20POLY1305_ENCRYPT          LTC_ENCRYPT
+#define CHACHA20POLY1305_DECRYPT          LTC_DECRYPT
+#define CHACHA20POLY1305_OPENSSH_COMPAT   2
 
 int chacha20poly1305_init(chacha20poly1305_state *st, const unsigned char *key, unsigned long keylen);
 int chacha20poly1305_setiv(chacha20poly1305_state *st, const unsigned char *iv, unsigned long ivlen);
@@ -564,3 +565,24 @@ int chacha20poly1305_memory(const unsigned char *key, unsigned long keylen,
 int chacha20poly1305_test(void);
 
 #endif /* LTC_CHACHA20POLY1305_MODE */
+#ifdef LTC_SIV_MODE
+
+int siv_encrypt_memory(                int  cipher,
+                       const unsigned char *key,    unsigned long  keylen,
+                       const unsigned char *ad[],   unsigned long  adlen[],
+                       const unsigned char *pt,     unsigned long  ptlen,
+                             unsigned char *ct,     unsigned long *ctlen);
+int siv_decrypt_memory(                int  cipher,
+                       const unsigned char *key,    unsigned long  keylen,
+                       const unsigned char *ad[],   unsigned long  adlen[],
+                       const unsigned char *ct,     unsigned long  ctlen,
+                             unsigned char *pt,     unsigned long *ptlen);
+int siv_memory(                int  cipher,           int  direction,
+               const unsigned char *key,    unsigned long  keylen,
+               const unsigned char *in,     unsigned long  inlen,
+                     unsigned char *out,    unsigned long *outlen,
+                                   ...) LTC_NULL_TERMINATED;
+int siv_test(void);
+
+#endif
+

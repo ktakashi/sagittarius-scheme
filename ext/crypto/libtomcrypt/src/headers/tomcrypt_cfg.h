@@ -91,11 +91,6 @@ LTC_EXPORT int   LTC_CALL XSTRCMP(const char *s1, const char *s2);
    #define ENDIAN_LITTLE
    #define ENDIAN_64BITWORD
    #define LTC_FAST
-   #if defined(__SSE4_1__)
-      #if __SSE4_1__ == 1
-         #define LTC_AMD64_SSE4_1
-      #endif
-   #endif
 #endif
 
 /* detect PPC32 */
@@ -178,6 +173,11 @@ LTC_EXPORT int   LTC_CALL XSTRCMP(const char *s1, const char *s2);
       #define ENDIAN_LITTLE
    #endif
    #define LTC_FAST
+#endif
+
+/* Detect ILP32, commonly known as x32 on Linux and also possible on AIX */
+#if defined(_ILP32) || defined(__ILP32__)
+   #define ENDIAN_64BITWORD_ILP32
 #endif
 
 /* endianness fallback */
@@ -312,10 +312,6 @@ typedef unsigned long ltc_mp_digit;
 #   endif
 #endif
 
-#if defined(_MSC_VER) && defined(_WIN32_WINNT) && _WIN32_WINNT >= 0x0600 && !defined(LTC_WIN32_BCRYPT)
-#   define LTC_WIN32_BCRYPT
-#endif
-
 /* Define `LTC_NO_NULL_TERMINATION_CHECK` in the user code
  * before including `tomcrypt.h` to disable this functionality.
  */
@@ -339,6 +335,12 @@ typedef unsigned long ltc_mp_digit;
 #else
 #  define LTC_DEPRECATED(s)
 #  define LTC_DEPRECATED_PRAGMA(s)
+#endif
+
+#if defined(__GNUC__) || defined(__clang__)
+#  define LTC_ATTRIBUTE(x) __attribute__(x)
+#else
+#  define LTC_ATTRIBUTE(x)
 #endif
 
 #endif /* TOMCRYPT_CFG_H */
