@@ -146,6 +146,8 @@ void Sg_InitCipher(SgLibrary *lib)
   REGISTER_CIPHER(&kseed_desc);
   REGISTER_CIPHER(&kasumi_desc);
   REGISTER_CIPHER(&camellia_desc);
+  REGISTER_CIPHER(&multi2_desc);
+  REGISTER_CIPHER(&sm4_desc);
 
   /* put mode */
 #define MODE_CONST(name, value)						\

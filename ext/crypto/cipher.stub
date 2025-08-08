@@ -940,34 +940,34 @@
   (gcm_gf_mult (SG_BVECTOR_ELEMENTS a) (SG_BVECTOR_ELEMENTS b) (SG_BVECTOR_ELEMENTS c))
   (result c))
 
+;; I'm not favour of the libtom implementation of SIV
 ;; SIV, apparently, SIV doesn't have split procedure
-(decl-code
- (.typedef "uint8_t*" "uint8_ptr")
- (.typedef "unsigned long*" "ulong_ptr"))
-(define-c-proc siv-encrypt! (cipher::<cipher> key::<bytevector> aad::<vector>
-			     pt::<bytevector> out::<bytevector>)
-  (let ((size::int (+ (SG_VECTOR_SIZE aad) 1))
-	(ads::uint8_t** (SG_NEW_ARRAY uint8_ptr size))
-	(adl::ulong_ptr (SG_NEW_ATOMIC2 ulong_ptr (* SIZEOF_LONG size)))
-	(i::int 0)
-	(|ctlen::unsigned long| (SG_BVECTOR_SIZE out)))
-    (for (() (< i (SG_VECTOR_SIZE aad)) (inc! i))
-      (unless (SG_BVECTORP (SG_VECTOR_ELEMENT aad i))
-	(assertion-violation 'siv-encrypt! 
-			     "aad must be vector of bytevector" aad))
-      (set! (aref ads i) (SG_BVECTOR_ELEMENTS (SG_VECTOR_ELEMENT aad i)))
-      (set! (aref adl i) (SG_BVECTOR_SIZE (SG_VECTOR_ELEMENT aad i))))
-    (set! (aref ads i) NULL)
-    (set! (aref adl i) 0)
-    (let ((r::int (siv_encrypt_memory cipher 
-				      (SG_BVECTOR_ELEMENTS key)
-				      (SG_BVECTOR_SIZE key)
-				      (cast |const unsigned char**| ads)
-				      adl
-				      (SG_BVECTOR_ELEMENTS pt)
-				      (SG_BVECTOR_SIZE pt)
-				      (SG_BVECTOR_ELEMENTS out)
-				      (& ctlen))))
-      (check-tomcrypt-error 'siv-encrypt! r)
-      (result out))))
-	 
+;; (decl-code
+;;  (.typedef "uint8_t*" "uint8_ptr")
+;;  (.typedef "unsigned long*" "ulong_ptr"))
+;; (define-c-proc siv-encrypt! (cipher::<cipher> key::<bytevector> aad::<vector>
+;; 			     pt::<bytevector> out::<bytevector>)
+;;   (let ((size::int (+ (SG_VECTOR_SIZE aad) 1))
+;; 	(ads::uint8_t** (SG_NEW_ARRAY uint8_ptr size))
+;; 	(adl::ulong_ptr (SG_NEW_ATOMIC2 ulong_ptr (* SIZEOF_LONG size)))
+;; 	(i::int 0)
+;; 	(|ctlen::unsigned long| (SG_BVECTOR_SIZE out)))
+;;     (for (() (< i (SG_VECTOR_SIZE aad)) (inc! i))
+;;       (unless (SG_BVECTORP (SG_VECTOR_ELEMENT aad i))
+;; 	(assertion-violation 'siv-encrypt! 
+;; 			     "aad must be vector of bytevector" aad))
+;;       (set! (aref ads i) (SG_BVECTOR_ELEMENTS (SG_VECTOR_ELEMENT aad i)))
+;;       (set! (aref adl i) (SG_BVECTOR_SIZE (SG_VECTOR_ELEMENT aad i))))
+;;     (set! (aref ads i) NULL)
+;;     (set! (aref adl i) 0)
+;;     (let ((r::int (siv_encrypt_memory cipher 
+;; 				      (SG_BVECTOR_ELEMENTS key)
+;; 				      (SG_BVECTOR_SIZE key)
+;; 				      (cast |const unsigned char**| ads)
+;; 				      adl
+;; 				      (SG_BVECTOR_ELEMENTS pt)
+;; 				      (SG_BVECTOR_SIZE pt)
+;; 				      (SG_BVECTOR_ELEMENTS out)
+;; 				      (& ctlen))))
+;;       (check-tomcrypt-error 'siv-encrypt! r)
+;;       (result out))))

@@ -79,9 +79,12 @@
 	    *scheme:seed*
 	    *scheme:kasumi*
 	    *scheme:camellia*
+	    *scheme:multi2*
+	    *scheme:sm4*
 	    ;; stream ciphers
 	    *scheme:chacha20* *scheme:xchacha20*
 	    *scheme:chacha20-poly1305* *scheme:xchacha20-poly1305*
+
 	    )
     (import (rnrs)
 	    (clos core)
@@ -201,6 +204,8 @@
 (define *scheme:seed*        (build-cipher-descriptor tc:*scheme:seed*    ))
 (define *scheme:kasumi*      (build-cipher-descriptor tc:*scheme:kasumi*  ))
 (define *scheme:camellia*    (build-cipher-descriptor tc:*scheme:camellia*))
+(define *scheme:multi2*      (build-cipher-descriptor tc:*scheme:multi2*))
+(define *scheme:sm4*         (build-cipher-descriptor tc:*scheme:sm4*))
 
 (define *scheme:chacha20* (make-stream-cipher-descriptor
 			   "chacha20" 16 32 #f

@@ -70,7 +70,9 @@
 	*scheme:khazad*
 	*scheme:seed*
 	*scheme:kasumi*
-	*scheme:camellia*))
+	*scheme:camellia*
+	*scheme:multi2*
+	*scheme:sm4*))
 (define (test-basic cipher)
   (test-assert (list (cipher-descriptor-name cipher) "base") (cipher-descriptor? cipher))
   (test-assert (list (cipher-descriptor-name cipher) "symmetric") (block-cipher-descriptor? cipher))

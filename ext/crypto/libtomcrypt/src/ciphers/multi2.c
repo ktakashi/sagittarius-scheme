@@ -183,6 +183,9 @@ int multi2_ecb_decrypt(const unsigned char *ct, unsigned char *pt, const symmetr
 */
 int multi2_test(void)
 {
+#ifndef LTC_TEST
+  return CRYPT_NOP;
+#else
    static const struct {
       unsigned char key[40];
       unsigned char pt[8], ct[8];
@@ -280,6 +283,7 @@ int multi2_test(void)
    }
 
    return CRYPT_OK;
+#endif
 }
 
 /** Terminate the context

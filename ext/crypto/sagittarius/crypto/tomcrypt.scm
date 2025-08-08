@@ -36,6 +36,8 @@
 	    *scheme:seed*
 	    *scheme:kasumi*
 	    *scheme:camellia*
+	    *scheme:multi2*
+	    *scheme:sm4*
 
 	    *mode:ecb* *mode:cbc* *mode:cfb* *mode:ofb*
 	    *mode:ctr* *mode:lrw* *mode:f8*
@@ -149,6 +151,7 @@
 
 	    ;; GCM
 	    gcm-multiply!
+
 	    )
     (import (only (sagittarius) define-constant)
 	    (sagittarius dynamic-module))
@@ -181,6 +184,8 @@
 (define-constant *scheme:seed*        "seed")
 (define-constant *scheme:kasumi*      "kasumi")
 (define-constant *scheme:camellia*    "camellia")
+(define-constant *scheme:multi2*      "multi2")
+(define-constant *scheme:sm4*         "sm4")
 
 ;; Prng
 (define-constant *prng:yarrow*        "yarrow")

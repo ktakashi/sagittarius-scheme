@@ -94,6 +94,8 @@
 	    *scheme:seed*
 	    *scheme:kasumi*
 	    *scheme:camellia*
+	    *scheme:multi2*
+	    *scheme:sm4*
 
 	    mode-descriptor? mode-descriptor-name
 	    *mode:ecb* *mode:cbc* *mode:cfb* *mode:ofb*
