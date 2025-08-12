@@ -272,6 +272,8 @@ Currently, below encryption algorithms are supported:
 ###### [!Block cipher descriptor] `*scheme:skipjack*`
 ###### [!Block cipher descriptor] `*scheme:twofish*`
 ###### [!Block cipher descriptor] `*scheme:x-tea*`
+###### [!Block cipher descriptor] `*scheme:multi2*`
+###### [!Block cipher descriptor] `*scheme:sm4*`
 
 Some of the algorithms are considered as broken cipher, such as DES.  
 It is users' responsibility to use those ciphers.
