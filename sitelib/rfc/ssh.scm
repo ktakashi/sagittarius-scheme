@@ -32,9 +32,6 @@
     (export :all)
     (import (rfc ssh constants)
 	    (rfc ssh types)
-	    ;; these procedures are only for internally
-	    ;; especially for my laziness
-	    (except (rfc ssh transport) 
-		    service-request write-packet read-packet)
+	    (rfc ssh transport)
 	    (rfc ssh auth)
 	    (rfc ssh connection)))

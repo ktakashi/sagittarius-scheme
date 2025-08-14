@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!nounbound
 (library (rfc ssh connection)
     (export open-client-ssh-channel
 	    open-client-ssh-session-channel

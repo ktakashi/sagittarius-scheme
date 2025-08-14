@@ -29,6 +29,7 @@
 ;;;  
 
 #!read-macro=sagittarius/regex
+#!nounbound
 (library (rfc ssh auth)
     (export ssh-authenticate
 	    register-auth-method

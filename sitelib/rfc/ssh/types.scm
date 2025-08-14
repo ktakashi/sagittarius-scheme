@@ -29,6 +29,7 @@
 ;;;  
 
 #!read-macro=sagittarius/regex
+#!nounbound
 (library (rfc ssh types)
     (export <ssh-type> <ssh-message>
 	    <name-list> name-list
@@ -82,13 +83,13 @@
 	    (sagittarius control)
 	    (sagittarius object)
 	    (sagittarius regex)
+	    (sagittarius crypto random)
 	    (rfc ssh constants)
 	    (srfi :13 strings)
 	    (srfi :26 cut)
 	    (binary pack)
 	    (binary data)
-	    (binary io)
-	    (math))
+	    (binary io))
 
   (define-class <ssh-type-meta> (<class>) ())
   ;; base class for SSH message
@@ -216,8 +217,10 @@
      ;; for reconnection?
      (server   :init-keyword :server :init-value #f)
      (port     :init-keyword :port :init-value #f)
+     (client-version :init-value #f)
      (target-version :init-value #f)	; version string from peer
-     (prng     :init-keyword :prng :init-form (secure-random RC4))
+     (prng     :init-keyword :prng
+	       :init-form (secure-random-generator *prng:chacha20*))
      (client-sequence :init-value 0)	; unsigned 32 bit int
      (server-sequence :init-value 0)
      (session-id :init-value #f)

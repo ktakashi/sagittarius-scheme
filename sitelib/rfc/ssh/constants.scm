@@ -30,6 +30,7 @@
 
 ;; RFC 4250
 ;; reference http://tools.ietf.org/html/rfc4250
+#!nounbound
 (library (rfc ssh constants)
     (export :all)
     (import (only (sagittarius) define-constant))
