@@ -297,13 +297,12 @@
 				       :optional (timeout #f))
     (define who 'make-client-socket/resolver)
     (let loop ((info (resolver node service)))
-      
       (let ((socket (create-socket info)))
 	(or (and socket info (socket-connect! socket info timeout))
 	    (and info 
-		 (let ((msg (last-error-message)))
+		 (let ((msg (last-error-message socket)))
 		   (and socket (socket-close socket))
-		   (retry-addrinfo info msg loop who node service)))
+		   (loop (retry-addrinfo info msg who node service))))
 	    (raise-socket-error socket who node service)))))
     
 
@@ -333,9 +332,9 @@
 			     #t) ))
 	      socket)
 	    (and info
-		 (let ((msg (last-error-message)))
+		 (let ((msg (last-error-message socket)))
 		   (and socket (socket-close socket))
-		   (retry-addrinfo info msg loop who #f service)))
+		   (loop (retry-addrinfo info msg who #f service))))
 	    (raise-socket-error socket who service)))))
 
   (define (raise-socket-error socket who . irr)
@@ -345,16 +344,15 @@
 		       (if socket
 			   (socket-error-message socket)
 			   (format "creating a socket failed: ~a"
-				   (last-error-message))))
+				   (last-error-message socket))))
 		      (make-irritants-condition irr))))
   	
-  (define (last-error-message)
-    (let-values (((errno msg) (last-error-detail)))
+  (define (last-error-message socket)
+    (let-values (((errno msg) (error-detail (socket-last-error socket))))
       (format "~a (~a)" msg errno)))
-  (define (retry-addrinfo info msg loop who node service)
+  (define (retry-addrinfo info msg who node service)
     (let ((next (next-addrinfo info)))
-      (if next
-	  (loop next)
+      (or next
 	  (raise (condition (make-host-not-found-error node service)
 			    (make-who-condition who)
 			    (make-message-condition

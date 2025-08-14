@@ -470,7 +470,7 @@ SgAddrinfo* Sg_GetAddrinfo(SgObject node, SgObject service, SgAddrinfo *hints)
   SgAddrinfo *result = make_addrinfo(node, service);
   struct addrinfo *ai, *cur, *prev, *next;
   do {
-    ret = getaddrinfo(cnode, csrv, hints->ai, &ai);
+    ret = getaddrinfo(cnode, csrv, hints? hints->ai: NULL, &ai);
   } while (EAI_AGAIN == ret);
 
   if (ret != 0) {

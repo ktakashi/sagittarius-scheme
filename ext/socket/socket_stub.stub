@@ -24,10 +24,12 @@
 
 (define-c-proc addrinfo? (o) ::<boolean> :constant SG_ADDRINFOP)
 (define-c-proc make-addrinfo ()  Sg_MakeAddrinfo)
-(define-c-proc get-addrinfo (node service hints::<addrinfo>)
+(define-c-proc get-addrinfo (node service :optional (hints::<addrinfo> #f))
   (check-string-or-false make-client-socket node)
   (check-string-or-false make-client-socket service)
-  (result (Sg_GetAddrinfo node service hints)))
+  (if (SG_FALSEP hints)
+      (result (Sg_GetAddrinfo node service NULL))
+      (result (Sg_GetAddrinfo node service hints))))
 
 (define-c-proc sockaddr? (o) ::<boolean> :constant SG_SOCKADDRP)
 

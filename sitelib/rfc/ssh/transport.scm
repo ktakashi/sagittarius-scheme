@@ -528,6 +528,7 @@
 	(bytevector->integer (read-random-bytes (~ transport 'prng) 
 						(div (bitwise-length r) 8))))
       (define (group14? transport) (#/group14/ (~ transport 'kex)))
+      (display transport) (newline)
       (if gex?
 	  ;; TODO min n max range
 	  (let1 gex-req (make <ssh-msg-kex-dh-gex-request>)
