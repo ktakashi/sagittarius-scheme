@@ -49,6 +49,7 @@
 	    <ssh-msg-kexdh-reply>
 
 	    ;; gex
+	    <ssh-msg-kex-dh-gex-request-old>
 	    <ssh-msg-kex-dh-gex-request>
 	    <ssh-msg-kex-dh-gex-group>
 	    <ssh-msg-kex-dh-gex-init>
@@ -75,7 +76,11 @@
 	    <ssh-msg-userauth-pk-ok>
 
 	    <ssh-transport>
-	    <ssh-channel>)
+	    <ssh-channel>
+	    *ssh-mac-list*
+	    *ssh-encryption-list*
+	    *ssh-public-key-list*
+	    *ssh-kex-list*)
     (import (rnrs)
 	    (clos user)
 	    (clos core)
@@ -87,6 +92,7 @@
 	    (rfc ssh constants)
 	    (srfi :13 strings)
 	    (srfi :26 cut)
+	    (srfi :39 parameters)
 	    (binary pack)
 	    (binary data)
 	    (binary io))
@@ -168,6 +174,10 @@
   (define-method read-message ((t (eql :string)) in array-size?)
     (let ((size (get-unpack in "!L")))
       (get-bytevector-n in size)))
+  (define-method write-message ((type (eql :ascii-string)) o out array-size?)
+    (write-message :string o out array-size?))
+  (define-method read-message ((t (eql :ascii-string)) in array-size?)
+    (utf8->string (read-message :string in array-size?)))
 
   ;; keep it as binary otherwise it's inconvenient
   (define-method write-message ((type (eql :string-or-empty)) o out array-size?)
@@ -195,7 +205,8 @@
 	(put-bytevector out (pack "!L" (bytevector-length names)))
 	(put-bytevector out names)))
     :parent-metaclass <ssh-type-meta>)
-
+  (define (name-list? o) (is-a? o <name-list>))
+  
   ;; for convenience
   (define (name-list . strs) (make <name-list> :names strs))
 
@@ -231,8 +242,8 @@
      (server-cipher :init-value #f)
      (client-cipher :init-value #f)
      ;; mac key
-     (server-mkey :init-value #f)
-     (client-mkey :init-value #f)
+     ;;(server-mkey :init-value #f)
+     ;;(client-mkey :init-value #f)
      ;; mac algorithm
      (server-mac :init-value #f) ;; server -> client
      (client-mac :init-value #f) ;; client -> server
@@ -241,7 +252,9 @@
      (client-enc :init-value #f) ;; client -> server
      ;; compression&language; I don't think we should support so ignore
      ;; keep the channels to allocate proper channel number
-     (channels   :init-value '())))
+     (channels   :init-value '())
+     (kex-digester :init-value #f) ;; message digest for kex
+     ))
   (define-method write-object ((o <ssh-transport>) out)
     (format out "#<ssh-transport ~a ~a ~a ~a ~a>"
 	    (slot-ref o 'target-version)
@@ -274,35 +287,50 @@
   
   ;; RFC 4253
   ;; 7.1. Algorithm Negotiation
-  ;; can be supported more but i'm lazy
+
+  ;; TODO consider RFC 9142
   (define empty-list (name-list))
-  (define kex-list (name-list 
-		    "diffie-hellman-group-exchange-sha256"
-		    "diffie-hellman-group-exchange-sha1"
-		    "diffie-hellman-group14-sha1"
-		    "diffie-hellman-group1-sha1"))
-  (define public-key-list (name-list "ssh-rsa" "ssh-dss"))
-  (define encryption-list (name-list 
-			   ;; counter mode first
-			   "aes256-ctr" "aes128-ctr"
-			   "3des-ctr" "blowfish-ctr"
-			   ;; cbc
-			   "aes256-cbc" "aes128-cbc"
-			   "3des-cbc" "blowfish-cbc"
-			   ))
+  (define *ssh-kex-list*
+    (make-parameter (name-list 
+		     +kex-diffie-hellman-group-exchange-sha256+
+		     +kex-diffie-hellman-group-exchange-sha1+
+		     +kex-diffie-hellman-group14-sha1+
+		     +kex-diffie-hellman-group1-sha1+)
+		    (lambda (nl)
+		      (if (name-list? nl)
+			  nl
+			  (apply name-list nl)))))
+  (define *ssh-public-key-list*
+    (make-parameter (name-list
+		     +public-key-rsa-sha2-256+
+		     +public-key-ssh-rsa+
+		     +public-key-ssh-dss+)))
+  (define *ssh-encryption-list*
+    (make-parameter (name-list 
+		     ;; counter mode first
+		     +enc-aes256-ctr+  
+		     +enc-aes128-ctr+  
+		     +enc-3des-ctr+    
+		     +enc-blowfish-ctr+
+		     ;; cbc
+		     +enc-aes256-cbc+  
+		     +enc-aes128-cbc+  
+		     +enc-3des-cbc+    
+		     +enc-blowfish-cbc+)))
   (define compression-list (name-list "none"))
   ;; only hmac-sha1. or maybe sha2 as well?
-  (define mac-list (name-list "hmac-sha1"))
+  (define *ssh-mac-list*
+    (make-parameter (name-list +mac-hmac-sha2-256+ +mac-hmac-sha1+)))
 
   (define-ssh-message <ssh-msg-keyinit> (<ssh-message>)
     ((type   :byte +ssh-msg-kexinit+)
      (cookie (:byte 16))
-     (kex-algorithms <name-list> kex-list)
-     (server-host-key-algorithms <name-list> public-key-list)
-     (encryption-algorithms-client-to-server <name-list> encryption-list)
-     (encryption-algorithms-server-to-client <name-list> encryption-list)
-     (mac-algorithms-client-to-server <name-list> mac-list)
-     (mac-algorithms-server-to-client <name-list> mac-list)
+     (kex-algorithms <name-list> (*ssh-kex-list*))
+     (server-host-key-algorithms <name-list> (*ssh-public-key-list*))
+     (encryption-algorithms-client-to-server <name-list> (*ssh-encryption-list*))
+     (encryption-algorithms-server-to-client <name-list> (*ssh-encryption-list*))
+     (mac-algorithms-client-to-server <name-list> (*ssh-mac-list*))
+     (mac-algorithms-server-to-client <name-list> (*ssh-mac-list*))
      (compression-algorithms-client-to-server <name-list> compression-list)
      (compression-algorithms-server-to-client <name-list> compression-list)
      (language-client-to-server <name-list> empty-list)
@@ -323,6 +351,9 @@
      (H    :string)))
 
   ;; RFC 4419 DH-GEX
+  (define-ssh-message <ssh-msg-kex-dh-gex-request-old> (<ssh-message>)
+    ((type :byte +ssh-msg-kex-dh-gex-request-old+)
+     (n    :uint32 2048)))
   (define-ssh-message <ssh-msg-kex-dh-gex-request> (<ssh-message>)
     ((type :byte +ssh-msg-kex-dh-gex-request+)
      ;; put recommendation
@@ -359,7 +390,7 @@
      (n :mpint)))
 
   (define-ssh-message <ssh-signature> (<ssh-type>)
-    ((type      :string)
+    ((type      :ascii-string)
      (signature :string)))
 
   (define-ssh-message <ssh-msg-service-request> (<ssh-message>)

@@ -37,17 +37,19 @@
 	    (rfc ssh types)
 	    (rfc ssh transport io)
 	    (clos user)
-	    (crypto)
-	    (math)
 	    (binary pack)
 	    (srfi :13 strings)
 	    (sagittarius)
+	    (sagittarius crypto ciphers)
+	    (sagittarius crypto digests)
+	    (sagittarius crypto keys)
+	    (sagittarius crypto mac)
 	    (sagittarius crypto random)
+	    (sagittarius crypto signatures)
 	    (sagittarius control)
 	    (sagittarius object))
 
 (define (ssh-key-exchange transport)
-  (define macs `((hmac-sha1 . ,SHA-1)))
   (define (fill-slot transport-slot req res kex-slot)
     (let ((cnl (~ req kex-slot 'names))
 	  (snl (~ res kex-slot 'names)))
@@ -57,15 +59,14 @@
 	      ((member (car lis) snl) =>
 	       (lambda (l)
 		 (rlet1 v (string->symbol (car l))
-			(when transport-slot
-			  (set! (~ transport transport-slot) 
-				(cond ((assq v macs) => cdr)
-				      (else (car l))))))))
+		  (when transport-slot
+		    (set! (~ transport transport-slot) (car l))))))
 	      (else (loop (cdr lis)))))))
   (define (generate-e&x transport gex?)
     (define (gen-x r)
-      (bytevector->integer (read-random-bytes (~ transport 'prng) 
-					      (div (bitwise-length r) 8))))
+      (bytevector->integer
+       (random-generator-read-random-bytes
+	(~ transport 'prng) (div (bitwise-length r) 8))))
     (define (group14? transport) (#/group14/ (~ transport 'kex)))
     (if gex?
 	;; TODO min n max range
@@ -139,9 +140,9 @@
 			;; TODO get size
 			:min 1024 :n 1024 :max 2048
 			:p p :g g :e e :f f :K K)))))
-
-  (let1 client-kex (make <ssh-msg-keyinit> 
-		     :cookie (read-random-bytes (~ transport 'prng) 16))
+  (define cookie
+    (random-generator-read-random-bytes (~ transport 'prng) 16))
+  (let1 client-kex (make <ssh-msg-keyinit> :cookie cookie)
     (let-values (((in/out size) (ssh-message->binary-port client-kex)))
       (ssh-write-packet-port transport in/out size)
       (set-port-position! in/out 0)
@@ -161,6 +162,8 @@
 	(fill-slot 'server-mac client-kex server-kex
 		   'mac-algorithms-server-to-client)
 	;; dispatch
+	(set! (~ transport 'kex-digester)
+	      (make-message-digest (extract-digest (~ transport 'kex))))
 	(cond ((#/group-exchange/ (~ transport 'kex))
 	       (do-gex transport client-packet packet))
 	      ((#/group\d+/ (~ transport 'kex))
@@ -169,23 +172,33 @@
 	       (error 'key-exchange "unknown KEX")))))))
 
 (define (compute-keys! transport k H)
-  (define d (kex-digester transport))
-  (define (digest salt) (hash d (bytevector-append k H salt)))
+  (define d (~ transport 'kex-digester))
+  (define (digest salt) (digest-message d (bytevector-append k H salt)))
   ;; returns cipher and key size (in bytes)
   (define (cipher&keysize c)
-    (cond ((string-prefix? "aes128"   c) (values AES      16))
-	  ((string-prefix? "aes256"   c) (values AES      32))
-	  ((string-prefix? "3des"     c) (values DESede   24))
-	  ((string-prefix? "blowfish" c) (values Blowfish 16))
+    (cond ((string-prefix? "aes128"   c) (values *scheme:aes-128*  16))
+	  ((string-prefix? "aes256"   c) (values *scheme:aes-256*  32))
+	  ((string-prefix? "3des"     c) (values *scheme:desede*   24))
+	  ((string-prefix? "blowfish" c) (values *scheme:blowfish* 16))
 	  (else (error 'compute-keys! "cipher not supported" c))))
   (define (cipher-mode c)
-    (cond ((string-suffix? "cbc" c) MODE_CBC)
-	  ((string-suffix? "ctr" c) MODE_CTR)
+    (cond ((string-suffix? "cbc" c) *mode:cbc*)
+	  ((string-suffix? "ctr" c) *mode:ctr*)
 	  ;; TODO counter mode
 	  (else (error 'compute-keys! "mode not supported" c))))
-  (define client-enc (~ transport 'client-enc))
-  (define server-enc (~ transport 'server-enc))
-
+  (define (create-mac key v)
+    (define (make-mac/adjusted-key mac key digest)
+      (make-mac mac (adjust-keysize key (digest-descriptor-digest-size digest))
+		:digest digest))
+    (cond ((string=? "hmac-sha1" v)
+	   (make-mac/adjusted-key *mac:hmac* key *digest:sha-1*))
+	  ((string=? "hmac-sha2-256" v)
+	   (make-mac/adjusted-key *mac:hmac* key *digest:sha-256*))
+	  ((string=? "hmac-sha2-512" v)
+	   (make-mac/adjusted-key *mac:hmac* key *digest:sha-512*))
+	  ((string=? "hmac-md5" v)
+	   (make-mac/adjusted-key *mac:hmac* key *digest:md5*))
+	  (else (error 'create-mac "Only HMAC is supported" v))))
   (define (adjust-keysize key size) 
     (let loop ((key key))
       (let1 s (bytevector-length key)
@@ -195,9 +208,18 @@
 	       ;; compute and append
 	       (let1 k (digest key)
 		 (loop (bytevector-append key k))))))))
+
+  (define client-enc (~ transport 'client-enc))
+  (define server-enc (~ transport 'server-enc))
+
   (define (make-cipher c mode key size iv)
-    (cipher c (generate-secret-key c (adjust-keysize key size))
-	    :mode mode :iv iv :padder #f :ctr-mode CTR_COUNTER_BIG_ENDIAN))
+    (block-cipher-init!
+     (make-block-cipher c mode no-padding)
+     (cipher-direction bi-direction)
+     (generate-symmetric-key c (adjust-keysize key size))
+     (make-cipher-parameter
+      (make-iv-parameter iv)
+      (make-counter-mode-parameter *ctr-mode:big-endian*))))
   (define sid (~ transport 'session-id))
   (let ((client-iv   (digest (bytevector-append #vu8(#x41) sid))) ;; "A"
 	(server-iv   (digest (bytevector-append #vu8(#x42) sid))) ;; "B"
@@ -215,10 +237,10 @@
       (set! (~ transport 'server-cipher)
 	    (make-cipher server-cipher server-mode
 			 server-key server-size server-iv))
-      (set! (~ transport 'client-mkey)
-	    (adjust-keysize client-mkey (hash-size (~ transport 'client-mac))))
-      (set! (~ transport 'server-mkey)
-	    (adjust-keysize server-mkey (hash-size (~ transport 'server-mac)))))
+      (set! (~ transport 'client-mac)
+	    (create-mac client-mkey (~ transport 'client-mac)))
+      (set! (~ transport 'server-mac)
+	    (create-mac server-mkey (~ transport 'server-mac))))
     transport))
 
 (define (verify-signature transport m K-S H)
@@ -231,35 +253,54 @@
       (set-port-position! in 0)
       (case (string->symbol name)
 	((ssh-dss)
-	 (let1 c (read-message <ssh-dss-certificate> in)
-	   (values DSA
-		   (generate-public-key DSA (~ c 'p) (~ c 'q) (~ c 'g) (~ c 'y))
-		   '(:der-encode #f))))
+	 (let* ((c (read-message <ssh-dss-certificate> in))
+		(kp (make <dsa-key-parameter>
+		      :p (~ c 'p) :q (~ c 'q) :g (~ c 'g))))
+	   (generate-public-key *key:dsa* kp (~ c 'y))))
 	((ssh-rsa)
 	 (let1 c (read-message <ssh-rsa-certificate> in)
-	   (values RSA
-		   (generate-public-key RSA (~ c 'n) (~ c 'e))
-		   (list :verify pkcs1-emsa-v1.5-verify))))
+	   (generate-public-key *key:rsa* (~ c 'n) (~ c 'e))))
 	(else
 	 (error 'verify-signature "unknown method" name)))))
-  (define (parse-h)
-    (read-message <ssh-signature> (open-bytevector-input-port H)))
-  (let*-values (((type key verify-options) (parse-k-s))
-		((sig) (parse-h))
-		((vc) (cipher type key))
-		((h) (hash (kex-digester transport) 
-			   (ssh-message->bytevector m))))
-    (unless (~ transport 'session-id) (set! (~ transport 'session-id) h))
-    (apply verify vc h (~ sig 'signature) verify-options)
-    h))
+  (define (parse-h key)
+    (let ((sig (read-message <ssh-signature> (open-bytevector-input-port H))))
+      (values (~ sig 'signature)
+	      (verifier-init! 
+	       (case (string->symbol (~ sig 'type))
+		 ((ssh-rsa)
+		  (make-verifier *signature:rsa* key
+				 :verify pkcs1-emsa-v1.5-verify))
+		 ((ssh-dss)
+		  (make-verifier *signature:dsa* key :der-encode #f))
+		 ((rsa-sha2-256)
+		  (make-verifier *signature:rsa* key
+				 :digest *digest:sha-256*
+				 :verify pkcs1-emsa-v1.5-verify))
+		 ((rsa-sha2-512)
+		  (make-verifier *signature:rsa* key
+				 :digest *digest:sha-512*
+				 :verify pkcs1-emsa-v1.5-verify)))))))
+  (define (compute-message-hash transport m)
+    (define bv (ssh-message->bytevector m))
+    (digest-message (~ transport 'kex-digester) bv))
+    
+  (let ((key (parse-k-s))
+	(h (compute-message-hash transport m)))
+    (let-values (((signature verifier) (parse-h key)))
+      (unless (~ transport 'session-id) (set! (~ transport 'session-id) h))
+      (verifier-process! verifier h)
+      (verifier-verify! verifier signature)
+      h)))
 
-(define (kex-digester transport) 
-  (cond ((#/sha(\d+)/ (~ transport 'kex))
+(define (extract-digest v)
+  ;; a bit lazy way of extracting hash algorithm...
+  (cond ((#/sha(\d+)/ v)
 	 => (lambda (m) (case (string->number (m 1))
-			  ((1) SHA-1)
-			  ((256) SHA-256))))
-	(else (error 'kex-digester "Hash algorighm not supported"
-		     (~ transport 'kex)))))
+			  ((1) *digest:sha-1*)
+			  ((256) *digest:sha-256*)
+			  ((384) *digest:sha-384*)
+			  ((512) *digest:sha-512*))))
+	(else (error 'extract-digest "Hash algorighm not supported" v))))
 
 (define-ssh-message <DH-H> ()
   ((V-C :string)
@@ -286,17 +327,4 @@
    (f   :mpint)
    (K   :mpint)))
 
-#;(define (ssh-key-exchange transport)
-  (define cookie
-    (random-generator-read-random-bytes (~ transport 'prng) 16))
-  (let ((client-kex (make <ssh-msg-keyinit> :cookie cookie)))
-    (let-values (((in/out size) (ssh-message->binary-port client-kex)))
-      (ssh-write-packet-port transport in/out size)
-      (set-port-position! in/out 0)
-      (let* ((client-packet (get-bytevector-all in/out))
-	     (packet (read-packet transport))
-	     (server-kex (read-message <ssh-msg-keyinit> 
-				       (open-bytevector-input-port packet))))
-		      
-	))))
 )

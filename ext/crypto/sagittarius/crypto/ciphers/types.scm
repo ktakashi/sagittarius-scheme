@@ -44,7 +44,7 @@
 
 	    <stream-cipher> stream-cipher?
 	    
-	    cipher-direction *cipher-directions*
+	    cipher-direction *cipher-directions* cipher-directions
 
 	    asymmetric-cipher? <asymmetric-cipher>
 	    asymmetric-cipher-encoder asymmetric-cipher-decoder
@@ -57,8 +57,11 @@
   ((scheme :init-keyword :scheme :reader cipher-scheme)))
 (define (cipher? o) (is-a? o <cipher>))
 
+;; bi-direction means special use case which encryption and decryption
+;; must share the IV, e.g. SSH
+;; only last-block operation is allowed to have bi-direction
 (define-enumeration cipher-direction
-  (encrypt decrypt)
+  (encrypt decrypt bi-direction) 
   cipher-directions)
 (define *cipher-directions* (enum-set-universe (cipher-directions)))
 

@@ -191,7 +191,8 @@
 					  (ps integer?)
 					  (ct bytevector?)
 					  (cs integer?))
-  (unless (eq? (symmetric-cipher-direction cipher) (cipher-direction encrypt))
+  (unless (enum-set-member? (symmetric-cipher-direction cipher)
+			    (cipher-directions encrypt bi-direction))
     (assertion-violation 'block-cipher-encrypt-last-block!
 			 "Cipher is not encryption mode" cipher))
   ;; ct must have sufficient length of storage
@@ -208,7 +209,9 @@
 (define (block-cipher-encrypt-last-block (cipher block-cipher?)
 					 (pt bytevector?)
 					 :optional (ps 0))
-  (unless (eq? (symmetric-cipher-direction cipher) (cipher-direction encrypt))
+  
+  (unless (enum-set-member? (symmetric-cipher-direction cipher)
+			    (cipher-directions encrypt bi-direction))
     (assertion-violation 'block-cipher-encrypt-last-block
 			 "Cipher is not encryption mode" cipher))
   (let* ((block-length (block-cipher-block-length cipher))
@@ -253,7 +256,8 @@
 					  (cs integer?)
 					  (pt bytevector?)
 					  (ps integer?))
-  (unless (eq? (symmetric-cipher-direction cipher) (cipher-direction decrypt))
+  (unless (enum-set-member? (symmetric-cipher-direction cipher)
+			    (cipher-directions decrypt bi-direction))
     (assertion-violation 'block-cipher-decrypt-last-block!
 			 "Cipher is not decryption mode" cipher))
   ;; same as encrypt!
