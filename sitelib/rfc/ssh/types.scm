@@ -308,8 +308,8 @@
   (define *ssh-encryption-list*
     (make-parameter (name-list 
 		     ;; counter mode first
-		     +enc-aes256-ctr+  
 		     +enc-aes128-ctr+  
+		     +enc-aes256-ctr+  
 		     +enc-3des-ctr+    
 		     +enc-blowfish-ctr+
 		     ;; cbc

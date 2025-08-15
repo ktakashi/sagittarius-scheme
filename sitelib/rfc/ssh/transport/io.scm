@@ -176,7 +176,8 @@
     
     (define (do-send out c hmac packet)
       (when hmac (mac-process! hmac packet))
-      (socket-send out (if c (block-cipher-encrypt-last-block c packet) packet)))
+      (let ((m (if c (block-cipher-encrypt-last-block c packet) packet)))
+	(socket-send out m)))
 
     ;; fist time will use block-size
     (define (do-first c hmac buffer)

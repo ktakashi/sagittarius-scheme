@@ -122,7 +122,7 @@
 		 (lambda (m)
 		   (set! (~ transport 'target-version) vs)
 		   (let ((version (*ssh-version-string*)))
-		     (set! (~ transport 'client-version) vs)
+		     (set! (~ transport 'client-version) version)
 		     ;; send
 		     (write-line in/out version))))
 		(else (loop)))))))

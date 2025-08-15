@@ -64,9 +64,12 @@
 	      (else (loop (cdr lis)))))))
   (define (generate-e&x transport gex?)
     (define (gen-x r)
-      (bytevector->integer
-       (random-generator-read-random-bytes
-	(~ transport 'prng) (div (bitwise-length r) 8))))
+      (let loop ()
+	(let ((v (bytevector->integer
+		     (random-generator-read-random-bytes
+		      (~ transport 'prng) (div (bitwise-length r) 8)))))
+	  (or (and (< 1 v) v)
+	      (loop)))))
     (define (group14? transport) (#/group14/ (~ transport 'kex)))
     (if gex?
 	;; TODO min n max range
@@ -78,14 +81,14 @@
 		 (p (~ gex-group 'p))
 		 (g (~ gex-group 'g)))
 	    (let1 x (gen-x (div (- p 1) 2))
-	      (values p g x (mod-expt g x p)))))
+	      (values p g x (mod-expt g x p) gex-req))))
 	;; basically p's length is less than or equal to q's so shouldn't
 	;; matter, i think
 	(let-values (((p g) (if (group14? transport)
 				(values +dh-group14-p+ +dh-group14-g+)
 				(values +dh-group1-p+ +dh-group1-g+))))
 	  (let1 x (gen-x p)
-	    (values p g x (mod-expt g x p))))))
+	    (values p g x (mod-expt g x p) #f)))))
   ;; send init and receive reply
   ;; both DH and GEX have the same init/reply structure so
   ;; for laziness
@@ -115,30 +118,29 @@
 
   (define (do-dh transport client-packet packet)
     ;; exchange key!
-    (let-values (((p g x e) (generate-e&x transport #f)))
+    (let-values (((p g x e req) (generate-e&x transport #f)))
       (send/receive transport <ssh-msg-kexdh-init> <ssh-msg-kexdh-reply> p e x
 		    (lambda (K-S H f K)
 		      (make <DH-H> 
-			:V-C (string->utf8 (~ transport 'client-version))
-			:V-S (string->utf8 (~ transport 'target-version))
+			:V-C (~ transport 'client-version)
+			:V-S (~ transport 'target-version)
 			:I-C client-packet
 			:I-S packet
 			:K-S K-S
 			:e e :f f :K K)))))
 
   (define (do-gex transport client-packet packet)
-    (let-values (((p g x e) (generate-e&x transport #t)))
+    (let-values (((p g x e req) (generate-e&x transport #t)))
       (send/receive transport <ssh-msg-kex-dh-gex-init>
 		    <ssh-msg-kex-dh-gex-reply> p e x
 		    (lambda (K-S H f K)
 		      (make <GEX-H> 
-			:V-C (string->utf8 (~ transport 'client-version))
-			:V-S (string->utf8 (~ transport 'target-version))
+			:V-C (~ transport 'client-version)
+			:V-S (~ transport 'target-version)
 			:I-C client-packet
 			:I-S packet
 			:K-S K-S
-			;; TODO get size
-			:min 1024 :n 1024 :max 2048
+			:min (~ req 'min) :n (~ req 'n) :max (~ req 'max)
 			:p p :g g :e e :f f :K K)))))
   (define cookie
     (random-generator-read-random-bytes (~ transport 'prng) 16))
@@ -177,6 +179,7 @@
   ;; returns cipher and key size (in bytes)
   (define (cipher&keysize c)
     (cond ((string-prefix? "aes128"   c) (values *scheme:aes-128*  16))
+	  ((string-prefix? "aes192"   c) (values *scheme:aes-192*  24))
 	  ((string-prefix? "aes256"   c) (values *scheme:aes-256*  32))
 	  ((string-prefix? "3des"     c) (values *scheme:desede*   24))
 	  ((string-prefix? "blowfish" c) (values *scheme:blowfish* 16))
@@ -221,6 +224,7 @@
       (make-iv-parameter iv)
       (make-counter-mode-parameter *ctr-mode:big-endian*))))
   (define sid (~ transport 'session-id))
+
   (let ((client-iv   (digest (bytevector-append #vu8(#x41) sid))) ;; "A"
 	(server-iv   (digest (bytevector-append #vu8(#x42) sid))) ;; "B"
 	(client-key  (digest (bytevector-append #vu8(#x43) sid))) ;; "C"
@@ -269,17 +273,17 @@
 	       (case (string->symbol (~ sig 'type))
 		 ((ssh-rsa)
 		  (make-verifier *signature:rsa* key
-				 :verify pkcs1-emsa-v1.5-verify))
+				 :verifier pkcs1-emsa-v1.5-verify))
 		 ((ssh-dss)
 		  (make-verifier *signature:dsa* key :der-encode #f))
 		 ((rsa-sha2-256)
 		  (make-verifier *signature:rsa* key
 				 :digest *digest:sha-256*
-				 :verify pkcs1-emsa-v1.5-verify))
+				 :verifier pkcs1-emsa-v1.5-verify))
 		 ((rsa-sha2-512)
 		  (make-verifier *signature:rsa* key
 				 :digest *digest:sha-512*
-				 :verify pkcs1-emsa-v1.5-verify)))))))
+				 :verifier pkcs1-emsa-v1.5-verify)))))))
   (define (compute-message-hash transport m)
     (define bv (ssh-message->bytevector m))
     (digest-message (~ transport 'kex-digester) bv))
@@ -289,7 +293,8 @@
     (let-values (((signature verifier) (parse-h key)))
       (unless (~ transport 'session-id) (set! (~ transport 'session-id) h))
       (verifier-process! verifier h)
-      (verifier-verify! verifier signature)
+      (unless (verifier-verify! verifier signature)
+	(error 'verify-signature "Invalid siganature"))
       h)))
 
 (define (extract-digest v)
@@ -303,8 +308,8 @@
 	(else (error 'extract-digest "Hash algorighm not supported" v))))
 
 (define-ssh-message <DH-H> ()
-  ((V-C :string)
-   (V-S :string)
+  ((V-C :ascii-string)
+   (V-S :ascii-string)
    (I-C :string)
    (I-S :string)
    (K-S :string)
@@ -313,8 +318,8 @@
    (K   :mpint)))
 
 (define-ssh-message <GEX-H> ()
-  ((V-C :string)
-   (V-S :string)
+  ((V-C :ascii-string)
+   (V-S :ascii-string)
    (I-C :string)
    (I-S :string)
    (K-S :string)
