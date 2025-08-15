@@ -112,7 +112,7 @@
 			   :initial-window initial-window
 			   :maximum-packet maximum-packet)))
       (ssh-write-ssh-message transport channel-open)
-      (let* ((resp (read-packet transport))
+      (let* ((resp (ssh-read-packet transport))
 	     (type (bytevector-u8-ref resp 0)))
 	(cond ((= type +ssh-msg-channel-open-confirmation+)
 	       (rlet1 channel (handle-confirmation channel-open resp)
@@ -260,7 +260,7 @@
 		(set! (~ channel 'client-window-size) new-size)
 		(ssh-write-ssh-message transport m))))
 	  (if receiver
-	      (loop (read-packet transport) status)
+	      (loop (ssh-read-packet transport) status)
 	      m)))
       (let1 b (bytevector-u8-ref response 0)
 	(cond ((= b +ssh-msg-channel-success+)
@@ -271,7 +271,7 @@
 	       (read-it <ssh-msg-channel-data> response))
 	      ((= b +ssh-msg-channel-eof+)
 	       ;; next will be close so discard
-	       (loop (read-packet transport) status))
+	       (loop (ssh-read-packet transport) status))
 	      ((= b +ssh-msg-channel-close+)
 	       (close-ssh-channel channel :logical #t)
 	       (if receiver
@@ -281,7 +281,7 @@
 	       (let1 m (read-message <ssh-msg-channel-window-adjust>
 				     (open-bytevector-input-port response))
 		 (set! (~ channel 'server-window-size) (~ m 'size))
-		 (loop (read-packet transport) status)))
+		 (loop (ssh-read-packet transport) status)))
 	      ((= b +ssh-msg-channel-request+)
 	       ;; must be exit status but first get the head
 	       (let* ((in (open-bytevector-input-port response))
@@ -289,7 +289,7 @@
 		 (case (string->symbol (utf8->string (~ m 'request-type)))
 		   ((exit-status)
 		    (let1 m (read-message <ssh-msg-exit-status> in)
-		      (loop (read-packet transport) (~ m 'exit-status))))
+		      (loop (ssh-read-packet transport) (~ m 'exit-status))))
 		   ((exit-signal)
 		    ;; TODO should we return something instead of raising
 		    ;; an error?
@@ -323,14 +323,14 @@
 	      :height-in-pixels height-in-pixels
 	      :mode mode)
       (ssh-write-ssh-message (~ channel 'transport) m)
-      (let1 r (read-packet (~ channel 'transport))
+      (let1 r (ssh-read-packet (~ channel 'transport))
 	(handle-channel-request-response channel r #f))))
 
   (define (%ssh-request msg channel receiver)
     (define transport (~ channel 'transport))
     (check-open ssh-request-shell channel)
     (ssh-write-ssh-message transport msg)
-    (let1 r (read-packet transport)
+    (let1 r (ssh-read-packet transport)
       (handle-channel-request-response channel r receiver)))
 
   (define (ssh-request-shell channel)
@@ -402,7 +402,7 @@
   (define (ssh-recv-channel-data channel)
     (define transport (~ channel 'transport))
     (check-open ssh-recv-channel-data channel)
-    (let1 m (handle-channel-request-response channel (read-packet transport) #f)
+    (let1 m (handle-channel-request-response channel (ssh-read-packet transport) #f)
       (if (is-a? m <ssh-msg-channel-data>)
 	  (~ m 'data)
 	  (error 'ssh-recv-channel-data "unexpected message" m))))

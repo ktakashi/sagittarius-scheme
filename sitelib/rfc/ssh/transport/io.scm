@@ -192,7 +192,7 @@
 	      (do-send out c hmac buffer)
 	      (do-send out c hmac (bytevector-copy padding len))
 	      #f)
-	    (begin (do-send out c hmac buffer) #t))))
+	    (do-send out c hmac buffer))))
     (when (do-first c hmac (make-bytevector block-size 0))
       (let loop ((n (get-bytevector-n! in buffer 0 buffer-size)))
 	(cond ((eof-object? n) (do-send out c hmac padding))
@@ -211,7 +211,7 @@
 			    (error 'ssh-write-packet-port
 				   "[Internal] invalid padding size"))
 			  (do-send out c hmac p)))
-		       (else 
+		       (else
 			(bytevector-copy! padding 0 buffer n padlen)
 			(do-send out c hmac 
 				 (bytevector-copy buffer 0 (+ n padlen)))))))

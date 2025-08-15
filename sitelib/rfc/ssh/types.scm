@@ -325,10 +325,11 @@
   ;; RFC 4419 DH-GEX
   (define-ssh-message <ssh-msg-kex-dh-gex-request> (<ssh-message>)
     ((type :byte +ssh-msg-kex-dh-gex-request+)
-     ;; TODO this default should be parameter or so
+     ;; put recommendation
+     ;; TODO `n`?
      (min  :uint32 1024)
-     (n    :uint32 1024)
-     (max  :uint32 2048)))
+     (n    :uint32 2048)
+     (max  :uint32 8192)))
 
   (define-ssh-message <ssh-msg-kex-dh-gex-group> (<ssh-message>)
     ((type :byte +ssh-msg-kex-dh-gex-group+)

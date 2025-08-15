@@ -53,9 +53,9 @@
 
   (define-syntax u8 (identifier-syntax bytevector-u8-ref))
   (define (read-auth-response transport callback)
-    (let1 payload (read-packet transport)
+    (let1 payload (ssh-read-packet transport)
       (cond ((= (u8 payload 0) +ssh-msg-userauth-banner+)
-	     (let1 bp (read-packet transport) ;; ignore success
+	     (let1 bp (ssh-read-packet transport) ;; ignore success
 	       (values
 		(= (u8 bp 0) +ssh-msg-userauth-success+)
 		(read-message <ssh-msg-userauth-banner>
@@ -155,7 +155,7 @@
 	       => (lambda (proc) 
 		    ;; request service (this must be supported so don't check
 		    ;; the response. or should we?
-		    (service-request transport +ssh-userauth+)
+		    (ssh-service-request transport +ssh-userauth+)
 		    (apply proc transport options)))
 	      (else (error 'ssh-authenticate "method not supported" method)))
 	(apply ssh-authenticate transport 
