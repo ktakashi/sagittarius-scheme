@@ -215,10 +215,10 @@
   (define client-enc (~ transport 'client-enc))
   (define server-enc (~ transport 'server-enc))
 
-  (define (make-cipher c mode key size iv)
+  (define (make-cipher c mode key size iv direction)
     (block-cipher-init!
      (make-block-cipher c mode no-padding)
-     (cipher-direction bi-direction)
+     direction
      (generate-symmetric-key c (adjust-keysize key size))
      (make-cipher-parameter
       (make-iv-parameter iv)
@@ -237,10 +237,12 @@
 		 ((server-cipher server-size) (cipher&keysize server-enc)))
       (set! (~ transport 'client-cipher)
 	    (make-cipher client-cipher client-mode
-			 client-key client-size client-iv))
+			 client-key client-size client-iv
+			 (cipher-direction encrypt)))
       (set! (~ transport 'server-cipher)
 	    (make-cipher server-cipher server-mode
-			 server-key server-size server-iv))
+			 server-key server-size server-iv
+			 (cipher-direction decrypt)))
       (set! (~ transport 'client-mac)
 	    (create-mac client-mkey (~ transport 'client-mac)))
       (set! (~ transport 'server-mac)
