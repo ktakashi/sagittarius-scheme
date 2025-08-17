@@ -42,128 +42,178 @@
 	    (sagittarius control)
 	    (sagittarius object)
 	    (sagittarius regex)
+	    (sagittarius stty)
 	    (rfc ssh constants)
 	    (rfc ssh types)
 	    (rfc ssh transport)
 	    (binary pack)
 	    (crypto))
 
-  (define *auth-methods* (make-eq-hashtable))
-  (define (register-auth-method name proc) (set! (~ *auth-methods* name) proc))
+(define *auth-methods* (make-eq-hashtable))
+(define (register-auth-method name proc) (set! (~ *auth-methods* name) proc))
 
-  (define-syntax u8 (identifier-syntax bytevector-u8-ref))
-  (define (read-auth-response transport callback)
-    (let1 payload (ssh-read-packet transport)
-      (cond ((= (u8 payload 0) +ssh-msg-userauth-banner+)
-	     (let1 bp (ssh-read-packet transport) ;; ignore success
-	       (values
-		(= (u8 bp 0) +ssh-msg-userauth-success+)
-		(read-message <ssh-msg-userauth-banner>
-			      (open-bytevector-input-port payload)))))
-	    ((= (u8 payload 0) +ssh-msg-userauth-success+) (values #t #f))
-	    ((= (u8 payload 0) +ssh-msg-userauth-failure+)
-	     (values #f
-		     (read-message <ssh-msg-userauth-failure>
-				   (open-bytevector-input-port payload))))
-	    (else (callback payload)))))
+(define-syntax u8 (identifier-syntax bytevector-u8-ref))
+(define (read-auth-response transport callback)
+  (let1 payload (ssh-read-packet transport)
+    (cond ((= (u8 payload 0) +ssh-msg-userauth-banner+)
+           (let1 bp (ssh-read-packet transport) ;; ignore success
+             (values
+      	      (= (u8 bp 0) +ssh-msg-userauth-success+)
+      	      (read-message <ssh-msg-userauth-banner>
+      			    (open-bytevector-input-port payload)))))
+          ((= (u8 payload 0) +ssh-msg-userauth-success+) (values #t #f))
+          ((= (u8 payload 0) +ssh-msg-userauth-failure+)
+           (values #f
+      		   (read-message <ssh-msg-userauth-failure>
+      				 (open-bytevector-input-port payload))))
+          (else (callback payload)))))
 
-  ;; private-key can be #f to check if the server has the public-key.
-  ;; in that case 2 values, failure result and <ssh-msg-userauth-pk-ok>,
-  ;; will be returned.
-  ;; TODO should we?
-  (define (auth-pub-key transport user-name private-key public-key
-			:key (service-name +ssh-connection+))
-    (define (make-signer mark name options)
-      (if private-key
-	  (lambda (msg)
-	    (let* ((c (cipher mark private-key))
-		   (sig (apply sign c msg options)))
-	      (ssh-message->bytevector
-	       (make <ssh-signature> :type name :signature sig))))
-	  (lambda (msg) #f)))
-    (define (dsa->blob)
-      (values
-       "ssh-dss"
-       (make <ssh-dss-certificate>
-	 :name "ssh-dss"
-	 :p (~ public-key 'p) :q (~ public-key 'q) :g (~ public-key 'g)
-	 :y (~ public-key 'Y))
-       (make-signer DSA "ssh-dss" '(:der-encode #f))))
-    (define (rsa->blob)
-      (values
-       "ssh-rsa"
-       (make <ssh-rsa-certificate>
-	 :name "ssh-rsa"
-	 :e (~ public-key 'exponent) :n (~ public-key 'modulus))
-       (make-signer RSA "ssh-rsa" (list :encode pkcs1-emsa-v1.5-encode))))
+;; private-key can be #f to check if the server has the public-key.
+;; in that case 2 values, failure result and <ssh-msg-userauth-pk-ok>,
+;; will be returned.
+;; TODO should we?
+(define (auth-pub-key transport user-name private-key public-key
+      		      :key (service-name +ssh-connection+))
+  (define (make-signer mark name options)
+    (if private-key
+        (lambda (msg)
+          (let* ((c (cipher mark private-key))
+      		 (sig (apply sign c msg options)))
+            (ssh-message->bytevector
+             (make <ssh-signature> :type name :signature sig))))
+        (lambda (msg) #f)))
+  (define (dsa->blob)
+    (values
+     "ssh-dss"
+     (make <ssh-dss-certificate>
+       :name "ssh-dss"
+       :p (~ public-key 'p) :q (~ public-key 'q) :g (~ public-key 'g)
+       :y (~ public-key 'Y))
+     (make-signer DSA "ssh-dss" '(:der-encode #f))))
+  (define (rsa->blob)
+    (values
+     "ssh-rsa"
+     (make <ssh-rsa-certificate>
+       :name "ssh-rsa"
+       :e (~ public-key 'exponent) :n (~ public-key 'modulus))
+     (make-signer RSA "ssh-rsa" (list :encode pkcs1-emsa-v1.5-encode))))
 
-    ;; we don't check private-key type but public-key to detect the
-    ;; algorithm name
-    (let-values (((name blob signer)
-		  (let1 name (symbol->string (~ (class-of public-key) 'name))
-		    (cond ((#/rsa/i name) (rsa->blob))
-			  ((#/dsa/i name) (dsa->blob))
-			  (else (error 'auth-pub-key "unknown key" 
-				       public-key))))))
-      (let1 m (make <ssh-msg-public-key-userauth-request>
-		:user-name user-name
-		:service-name service-name
-		:method +ssh-auth-method-public-key+
-		:has-signature? (and private-key #t)
-		:algorithm-name name
-		:blob (ssh-message->bytevector blob))
-	;; signature
-	(set! (~ m 'signature)
-	      (and private-key
-		   (let1 sid (~ transport 'session-id)
-		     (signer (bytevector-append 
-			      (pack "!L" (bytevector-length sid)) sid
-			      (ssh-message->bytevector m))))))
-	(ssh-write-ssh-message transport m)
-	;; read the responce
-	(read-auth-response transport
-	 (lambda (rp)
-	   (cond ((= (u8 rp 0) +ssh-msg-userauth-pk-ok+)
-		  (values #f
-			  (read-message <ssh-msg-userauth-pk-ok>
-					(open-bytevector-input-port rp))))
-		 (else (error 'auth-pub-key "unknown tag" rp))))))))
-
-  (define (auth-password transport user-name old-password 
-			 :key (new-password #f)
-			 (service-name +ssh-connection+))
-    (let1 m (make <ssh-msg-password-userauth-request>
-	      :user-name user-name
-	      :method +ssh-auth-method-password+
-	      :service-name service-name
-	      :change-password? (and new-password #t)
-	      :old-password old-password
-	      :new-password new-password)
+  ;; we don't check private-key type but public-key to detect the
+  ;; algorithm name
+  (let-values (((name blob signer)
+      		(let1 name (symbol->string (~ (class-of public-key) 'name))
+      		  (cond ((#/rsa/i name) (rsa->blob))
+      			((#/dsa/i name) (dsa->blob))
+      			(else (error 'auth-pub-key "unknown key" 
+      				     public-key))))))
+    (let1 m (make <ssh-msg-public-key-userauth-request>
+      	      :user-name user-name
+      	      :service-name service-name
+      	      :method +ssh-auth-method-public-key+
+      	      :has-signature? (and private-key #t)
+      	      :algorithm-name name
+      	      :blob (ssh-message->bytevector blob))
+      ;; signature
+      (set! (~ m 'signature)
+            (and private-key
+      		 (let1 sid (~ transport 'session-id)
+      		   (signer (bytevector-append 
+      			    (pack "!L" (bytevector-length sid)) sid
+      			    (ssh-message->bytevector m))))))
       (ssh-write-ssh-message transport m)
-      ;; TODO better dispatch
+      ;; read the responce
       (read-auth-response transport
-       (lambda (rp)
-	 (cond ((= (u8 rp 0) +ssh-msg-userauth-passwd-changereq+)
-		(values #f
-			(read-message <ssh-msg-userauth-passwd-changereq>
-				      (open-bytevector-input-port rp))))
-	       (else (error 'auth-password "unknown tag" rp)))))))
-  
-  (define (ssh-authenticate transport method . options)
-    (if (symbol? method)
-	(cond ((~ *auth-methods* method)
-	       => (lambda (proc) 
-		    ;; request service (this must be supported so don't check
-		    ;; the response. or should we?
-		    (ssh-service-request transport +ssh-userauth+)
-		    (apply proc transport options)))
-	      (else (error 'ssh-authenticate "method not supported" method)))
-	(apply ssh-authenticate transport 
-	       (string->symbol method) options)))
+	(lambda (rp)
+	  (cond ((= (u8 rp 0) +ssh-msg-userauth-pk-ok+)
+      		 (values #f
+      			 (read-message <ssh-msg-userauth-pk-ok>
+      				       (open-bytevector-input-port rp))))
+      		(else (error 'auth-pub-key "unknown tag" rp))))))))
 
-  ;; register
-  (register-auth-method (string->symbol +ssh-auth-method-public-key+)
-			auth-pub-key)
-  (register-auth-method (string->symbol +ssh-auth-method-password+) 
-			auth-password)
+(define (auth-password transport user-name old-password 
+      		       :key (new-password #f)
+      		       (service-name +ssh-connection+))
+  (let1 m (make <ssh-msg-password-userauth-request>
+            :user-name user-name
+            :method +ssh-auth-method-password+
+            :service-name service-name
+            :change-password? (and new-password #t)
+            :old-password old-password
+            :new-password new-password)
+    (ssh-write-ssh-message transport m)
+    ;; TODO better dispatch
+    (read-auth-response transport
+      (lambda (rp)
+	(cond ((= (u8 rp 0) +ssh-msg-userauth-passwd-changereq+)
+      	       (values #f
+      		       (read-message <ssh-msg-userauth-passwd-changereq>
+      				     (open-bytevector-input-port rp))))
+	      (else (error 'auth-password "unknown tag" rp)))))))
+
+(define (auth-keyboard-interactive transport user-name 
+      				   :key (service-name +ssh-connection+)
+      				   :allow-other-keys others)
+  (define (read-prompts bin n)
+    (do ((i 0 (+ i 1))
+         (r '() (cons (read-message <ssh-msg-userauth-prompt> bin) r)))
+        ((= i n) (reverse! r))))
+  (define (handle-info-request rp)
+    (cond ((= (u8 rp 0) +ssh-msg-userauth-info-request+)
+      	   (let* ((bin (open-bytevector-input-port rp))
+      		  (req (read-message <ssh-msg-userauth-info-request> bin))
+      		  (prompts (read-prompts bin (~ req 'num-prompts))))
+	     (let ((responses (read-client-input prompts)))
+	       (let-values (((out e) (open-bytevector-output-port)))
+		 (let* ((msg (make <ssh-msg-userauth-info-response>
+			       :num-response (length responses)))
+			(bv (ssh-message->bytevector msg)))
+		   (put-bytevector out bv))
+		 (for-each (lambda (r) (write-message :utf8-string r out #f))
+			   responses)
+		 (ssh-write-packet transport (e)))
+      	       (read-auth-response transport handle-info-request))))
+	  (else
+      	   (error 'auth-keyboard-interactive "unknown tag" rp))))
+    
+  (let1 m (apply make <ssh-msg-keyboard-interactive-userauth-request>
+      		 :user-name user-name
+      		 :method +ssh-auth-method-keyboard-interactive+
+      		 :service-name service-name
+      		 others)
+    (ssh-write-ssh-message transport m)
+    (read-auth-response transport handle-info-request)))
+
+(define (ssh-authenticate transport method . options)
+  (if (symbol? method)
+      (cond ((~ *auth-methods* method)
+             => (lambda (proc) 
+      		  ;; request service (this must be supported so don't check
+      		  ;; the response. or should we?
+      		  (ssh-service-request transport +ssh-userauth+)
+      		  (apply proc transport options)))
+            (else (error 'ssh-authenticate "method not supported" method)))
+      (apply ssh-authenticate transport 
+             (string->symbol method) options)))
+
+(define (read-client-input prompts)
+  (define (do-read prompt)
+    ;; handle echo by using stty
+    (display (~ prompt 'prompt)) (display " ")
+    (flush-output-port (current-output-port))
+    (if (~ prompt 'echo)
+	(get-line (current-input-port))
+	(with-stty '((not echo) echonl)
+		   (lambda () (get-line (current-input-port))))))
+  (map do-read prompts))
+
+;; register
+(register-auth-method (string->symbol +ssh-auth-method-public-key+)
+      		      auth-pub-key)
+(register-auth-method (string->symbol +ssh-auth-method-password+) 
+      		      auth-password)
+(register-auth-method (string->symbol +ssh-auth-method-keyboard-interactive+) 
+		      auth-keyboard-interactive)
+
+
+  
 )

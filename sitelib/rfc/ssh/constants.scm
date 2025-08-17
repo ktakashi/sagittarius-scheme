@@ -58,6 +58,8 @@
 (define-constant +ssh-msg-userauth-banner+              53) ;; [SSH-USERAUTH]
 (define-constant +ssh-msg-userauth-passwd-changereq+    60)
 (define-constant +ssh-msg-userauth-pk-ok+               60)
+(define-constant +ssh-msg-userauth-info-request+        60)
+(define-constant +ssh-msg-userauth-info-response+       61)
 (define-constant +ssh-msg-global-request+               80) ;; [SSH-CONNECT]
 (define-constant +ssh-msg-request-success+              81) ;; [SSH-CONNECT]
 (define-constant +ssh-msg-request-failure+              82) ;; [SSH-CONNECT]
@@ -200,6 +202,8 @@
 
 (define-constant +ssh-auth-method-public-key+ "publickey")
 (define-constant +ssh-auth-method-password+   "password")
+;; RFC 4256
+(define-constant +ssh-auth-method-keyboard-interactive+ "keyboard-interactive")
 
 
 (define-constant +kex-diffie-hellman-group-exchange-sha256+ ;; RFC 4419

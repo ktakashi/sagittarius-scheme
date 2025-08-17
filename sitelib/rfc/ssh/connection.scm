@@ -75,8 +75,7 @@
 	    (rfc ssh types)
 	    (rfc ssh transport)
 	    (binary pack)
-	    (util bytevector)
-	    (crypto))
+	    (util bytevector))
 
   ;; base classes (session can use this)
   (define-ssh-message <ssh-msg-channel-open> (<ssh-message>)
@@ -112,20 +111,25 @@
 			   :initial-window initial-window
 			   :maximum-packet maximum-packet)))
       (ssh-write-ssh-message transport channel-open)
-      (let* ((resp (ssh-read-packet transport))
-	     (type (bytevector-u8-ref resp 0)))
-	(cond ((= type +ssh-msg-channel-open-confirmation+)
-	       (rlet1 channel (handle-confirmation channel-open resp)
-		 (push! (~ transport 'channels) channel)))
-	      ((= type +ssh-msg-channel-open-failure+)
-	       (let1 f (read-message <ssh-msg-channel-open-failure>
-				     (open-bytevector-input-port resp))
-		 (error 'open-client-ssh-channel
-			(utf8->string (~ f 'description))
-			(~ f 'reason-code))))
-	      (else
-	       (error 'open-client-ssh-channel "unknown type" 
-		      type resp))))))
+      (let loop ()
+	(let* ((resp (ssh-read-packet transport))
+	       (type (bytevector-u8-ref resp 0)))
+	  (cond ((= type +ssh-msg-channel-open-confirmation+)
+		 (rlet1 channel (handle-confirmation channel-open resp)
+		  (push! (~ transport 'channels) channel)))
+		((= type +ssh-msg-channel-open-failure+)
+		 (let1 f (read-message <ssh-msg-channel-open-failure>
+				       (open-bytevector-input-port resp))
+		   (error 'open-client-ssh-channel
+			  (utf8->string (~ f 'description))
+			  (~ f 'reason-code))))
+		((= type +ssh-msg-global-request+)
+		 ;; TODO handle need response
+		 ;; for now just ignore
+		 (loop))
+		(else
+		 (error 'open-client-ssh-channel "unknown type" 
+			type resp)))))))
 
   (define (open-client-ssh-session-channel transport . opts)
     (apply open-client-ssh-channel transport

@@ -310,8 +310,8 @@
 	(else (error 'extract-digest "Hash algorighm not supported" v))))
 
 (define-ssh-message <DH-H> ()
-  ((V-C :ascii-string)
-   (V-S :ascii-string)
+  ((V-C :utf8-string)
+   (V-S :utf8-string)
    (I-C :string)
    (I-S :string)
    (K-S :string)
@@ -320,8 +320,8 @@
    (K   :mpint)))
 
 (define-ssh-message <GEX-H> ()
-  ((V-C :ascii-string)
-   (V-S :ascii-string)
+  ((V-C :utf8-string)
+   (V-S :utf8-string)
    (I-C :string)
    (I-S :string)
    (K-S :string)
