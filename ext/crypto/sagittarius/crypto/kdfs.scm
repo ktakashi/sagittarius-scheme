@@ -31,7 +31,7 @@
 #!nounbound
 (library (sagittarius crypto kdfs)
     (export pbkdf-1 pbkdf-2 mac->prf-provider
-	    scrypt
+	    scrypt bcrypt-pbkdf
 	    hkdf
 	    pkcs12-kdf
 	    ;; hmmmm should these be here?
@@ -82,4 +82,8 @@
   (tc:pkcs12-kdf (tc-digest-descriptor-digest digest)
 		 (string->utf16 (string-append pw "\x0;") (endianness big))
 		 salt iteration purpose len))
+
+;; use SHA-512 for bcrypt_pbkdf compat
+(define (bcrypt-pbkdf (digest builtin-digest-descriptor?) secret salt rounds dk-len)
+  (tc:bcrypt-pbkdf (tc-digest-descriptor-digest digest) secret salt rounds dk-len))
 )

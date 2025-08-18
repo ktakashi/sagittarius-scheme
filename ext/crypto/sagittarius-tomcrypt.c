@@ -34,6 +34,8 @@
 #include "sagittarius-mac.h"
 #include "sagittarius-stream.h"
 
+extern void Sg__Init_kdf(SgLibrary *lib);
+
 SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__tomcrypt()
 {
   SgLibrary *lib;
@@ -46,4 +48,5 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__tomcrypt()
   Sg_InitRandom(lib);
   Sg_InitMac(lib);
   Sg_InitStream(lib);
+  Sg__Init_kdf(lib);
 }

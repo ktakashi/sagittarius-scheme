@@ -265,6 +265,7 @@ ADD_LIBRARY(libtomcrypt STATIC
   # kdf
   src/misc/hkdf/hkdf.c
   src/misc/pkcs12/pkcs12_kdf.c
+  src/misc/bcrypt/bcrypt.c
   )
 
 TARGET_COMPILE_DEFINITIONS(libtomcrypt PUBLIC LTC_NO_TEST ARGTYPE=4)

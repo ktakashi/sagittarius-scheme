@@ -144,7 +144,7 @@
 	    cmac-state? cmac-init cmac-process! cmac-done!
 
 	    ;; KDF
-	    hkdf pkcs12-kdf
+	    hkdf pkcs12-kdf bcrypt-pbkdf
 	    *pkcs12:key-material*
 	    *pkcs12:iv-material*
 	    *pkcs12:mac-material*

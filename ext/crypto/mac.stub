@@ -96,32 +96,3 @@
 			     (& outlen))))
     (check-tomcrypt-error 'cmac-done! err)
     (result outlen)))
-
-;; HKDF, it's not really MAC but using HMAC, so here would be the best for now
-(define-c-proc hkdf (md::<digest> ikm::<bytevector> salt::<bytevector>
-		     info::<bytevector> dk-len::<fixnum>)
-  (let* ((dk (Sg_MakeByteVector dk-len 0))
-	 (err::int (hkdf md
-			 (SG_BVECTOR_ELEMENTS salt) (SG_BVECTOR_SIZE salt)
-			 (SG_BVECTOR_ELEMENTS info) (SG_BVECTOR_SIZE info)
-			 (SG_BVECTOR_ELEMENTS ikm) (SG_BVECTOR_SIZE ikm)
-			 (SG_BVECTOR_ELEMENTS dk) dk-len)))
-    (check-tomcrypt-error 'hkdf err)
-    (result dk)))
-			 
-;; PKCS#12 KDF, now we should separate?
-;; NOTE: This doesn't convert password to UTF16
-(define-c-proc pkcs12-kdf (md::<digest>
-			   pw::<bytevector>
-			   salt::<bytevector>
-			   iteration::<fixnum>
-			   purpose::<fixnum>
-			   outlen::<fixnum>)
-  (let* ((out (Sg_MakeByteVector outlen 0))
-	 (err::int (pkcs12_kdf md
-			       (SG_BVECTOR_ELEMENTS pw) (SG_BVECTOR_SIZE pw)
-			       (SG_BVECTOR_ELEMENTS salt) (SG_BVECTOR_SIZE salt)
-			       iteration (cast |unsigned char| purpose)
-			       (SG_BVECTOR_ELEMENTS out) outlen)))
-    (check-tomcrypt-error 'pkcs12-kdf err)
-    (result out)))
