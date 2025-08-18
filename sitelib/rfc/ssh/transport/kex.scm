@@ -35,6 +35,7 @@
     (import (rnrs)
 	    (rfc ssh constants)
 	    (rfc ssh types)
+	    (rfc ssh util)
 	    (rfc ssh transport io)
 	    (clos user)
 	    (binary pack)
@@ -252,22 +253,7 @@
 (define (verify-signature transport m K-S H)
   ;; K-S is either RSA or DSA certificate structure
   ;; so parse it and get the key for verify
-  (define (parse-k-s)
-    (let* ((in (open-bytevector-input-port K-S))
-	   (size (get-unpack in "!L"))
-	   (name (utf8->string (get-bytevector-n in size))))
-      (set-port-position! in 0)
-      (case (string->symbol name)
-	((ssh-dss)
-	 (let* ((c (read-message <ssh-dss-certificate> in))
-		(kp (make <dsa-key-parameter>
-		      :p (~ c 'p) :q (~ c 'q) :g (~ c 'g))))
-	   (generate-public-key *key:dsa* kp (~ c 'y))))
-	((ssh-rsa)
-	 (let1 c (read-message <ssh-rsa-certificate> in)
-	   (generate-public-key *key:rsa* (~ c 'n) (~ c 'e))))
-	(else
-	 (error 'verify-signature "unknown method" name)))))
+  (define (parse-k-s) (bytevector->ssh-public-key K-S))
   (define (parse-h key)
     (let ((sig (read-message <ssh-signature> (open-bytevector-input-port H))))
       (values (~ sig 'signature)
@@ -275,6 +261,7 @@
 	       (case (string->symbol (~ sig 'type))
 		 ((ssh-rsa)
 		  (make-verifier *signature:rsa* key
+				 :digest *digest:sha-1*
 				 :verifier pkcs1-emsa-v1.5-verify))
 		 ((ssh-dss)
 		  (make-verifier *signature:dsa* key :der-encode #f))

@@ -47,6 +47,9 @@
 	    ;; given packet is binary input port
 	    ssh-write-packet-port
 	    ssh-write-ssh-message
+
+	    *ssh:debug-package-handler*
+	    *ssh:ignore-package-handler*
 	    )
     (import (rnrs)
 	    (sagittarius)

@@ -55,13 +55,16 @@
 	    <ssh-msg-kex-dh-gex-init>
 	    <ssh-msg-kex-dh-gex-reply>
 
-	    <ssh-dss-certificate>
-	    <ssh-rsa-certificate>
+	    <ssh-dss-public-key>
+	    <ssh-rsa-public-key>
 	    <ssh-signature>
 
 	    ;; disconnection
 	    <ssh-msg-disconnect>
 
+	    ;; debug
+	    <ssh-msg-debug>
+	    
 	    ;; service request
 	    <ssh-msg-service-request>
 	    <ssh-msg-service-accept>
@@ -307,6 +310,7 @@
 (define *ssh-public-key-list*
   (make-parameter (name-list
       		   +public-key-rsa-sha2-256+
+		   +public-key-rsa-sha2-512+
       		   +public-key-ssh-rsa+
       		   +public-key-ssh-dss+)))
 (define *ssh-encryption-list*
@@ -382,14 +386,14 @@
    (H    :string)))
 
 ;; auxility data
-(define-ssh-message <ssh-certificate> (<ssh-type>)
+(define-ssh-message <ssh-public-key> (<ssh-type>)
   ((name :string)))
-(define-ssh-message <ssh-dss-certificate> (<ssh-certificate>)
+(define-ssh-message <ssh-dss-public-key> (<ssh-public-key>)
   ((p :mpint)
    (q :mpint)
    (g :mpint)
    (y :mpint)))
-(define-ssh-message <ssh-rsa-certificate> (<ssh-certificate>)
+(define-ssh-message <ssh-rsa-public-key> (<ssh-public-key>)
   ((e :mpint)
    (n :mpint)))
 
@@ -412,6 +416,11 @@
    (description :string)
    (laguage :string #vu8())))
 
+(define-ssh-message <ssh-msg-debug> (<ssh-message>)
+  ((type :byte +ssh-msg-debug+)
+   (always-display :boolean #f)
+   (message :utf8-string)
+   (language-tag :utf8-string)))
 ;; RFC 4252 authentication
 ;; base class for userauth request
 (define-ssh-message <ssh-msg-userauth-request> (<ssh-message>)

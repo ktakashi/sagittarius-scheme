@@ -34,11 +34,14 @@
 	    ssh-write-packet
 	    ssh-write-ssh-message
 	    ssh-write-packet-port
-	    ssh-data-ready?)
+	    ssh-data-ready?
+	    *ssh:debug-package-handler*
+	    *ssh:ignore-package-handler*)
     (import (rnrs)
 	    (rfc ssh constants)
 	    (rfc ssh types)
 	    (binary io)
+	    (srfi :39 parameters)
 	    (sagittarius)
 	    (sagittarius socket)
 	    (sagittarius control)
@@ -53,6 +56,16 @@
 ;; NB: for some reason Windows RCVBUF is set to 8KB by default.
 ;;     reading more than that would cause performance issue.
 (define-constant +packet-buffer-size+ (* 1024 8))
+
+(define (default-handler payload))
+(define (default-debug-handler payload)
+  (let ((msg (read-message <ssh-msg-debug>
+			   (open-bytevector-input-port payload))))
+    (when (~ msg 'always-display)
+      (display (~ msg 'message)) (newline))))
+
+(define *ssh:ignore-package-handler* (make-parameter default-handler))
+(define *ssh:debug-package-handler* (make-parameter default-debug-handler))
 
 (define (ssh-read-packet context)
   (define (read-as-chunk bvs)
@@ -136,9 +149,20 @@
 			 0))
 	 (payload (if (zero? mac-length)
 		      (read-data (~ context 'socket))
-		      (read&decrypt mac-length))))
+		      (read&decrypt mac-length)))
+	 (type (bytevector-u8-ref payload 0)))
     (set! (~ context 'server-sequence) (+ (~ context 'server-sequence) 1))
-    payload))
+    (cond ((= type +ssh-msg-ignore+)
+	   ((*ssh:ignore-package-handler*) payload)
+	   (ssh-read-packet context))
+	  ((= type +ssh-msg-debug+)
+	   ((*ssh:debug-package-handler*) payload)
+	   (ssh-read-packet context))
+	  ((= type +ssh-msg-unimplemented+)
+	   (error 'ssh-read-packet "The previous sequence is not implemented"
+		  ;; should we deserialize?
+		  payload))
+	  (else payload))))
 
 (define (ssh-write-packet context msg)
   (ssh-write-packet-port context (open-bytevector-input-port msg)
