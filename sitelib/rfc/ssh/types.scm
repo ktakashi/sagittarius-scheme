@@ -57,6 +57,7 @@
 
 	    <ssh-dss-public-key>
 	    <ssh-rsa-public-key>
+	    <ssh-eddsa-public-key>
 	    <ssh-signature>
 
 	    ;; disconnection
@@ -396,6 +397,10 @@
 (define-ssh-message <ssh-rsa-public-key> (<ssh-public-key>)
   ((e :mpint)
    (n :mpint)))
+
+;; RFC 8709 (we merge ed25519 and ed448, dispatch with name)
+(define-ssh-message <ssh-eddsa-public-key> (<ssh-public-key>)
+  ((key :string)))
 
 (define-ssh-message <ssh-signature> (<ssh-type>)
   ((type      :utf8-string)

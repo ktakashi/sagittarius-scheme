@@ -34,4 +34,5 @@
 	    (rfc ssh types)
 	    (rfc ssh transport)
 	    (rfc ssh auth)
-	    (rfc ssh connection)))
+	    (rfc ssh connection)
+	    (only (rfc ssh util) read-ssh-public-key)))

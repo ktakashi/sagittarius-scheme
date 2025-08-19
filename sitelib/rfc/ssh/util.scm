@@ -31,32 +31,41 @@
 #!nounbound
 (library (rfc ssh util)
     (export ssh-read-public-key
-	    bytevector->ssh-public-key)
+	    bytevector->ssh-public-key
+	    read-ssh-public-key)
     (import (rnrs)
 	    (clos user)
 	    (rfc ssh types)
+	    (sagittarius)
 	    (sagittarius crypto keys)
 	    (binary pack))
 
 (define (ssh-read-public-key in)
   (let* ((size (get-unpack in "!L"))
 	 (name (utf8->string (get-bytevector-n in size))))
-    (case (string->symbol name)
-      ((ssh-dss)
-       (let* ((p (read-message :mpint in #f))
-	      (q (read-message :mpint in #f))
-	      (g (read-message :mpint in #f))
-	      (y (read-message :mpint in #f))
-	      (kp (make <dsa-key-parameter> :p p :q q :g g)))
-	 (generate-public-key *key:dsa* kp y)))
-      ((ssh-rsa)
-       (let* ((e (read-message :mpint in #f))
-	      (n (read-message :mpint in #f)))
-	 (generate-public-key *key:rsa* n e)))
-      (else
-       (error 'ssh-read-public-key "unknown public key type" name)))))
+    (read-ssh-public-key (string->keyword name) in)))
 
 (define (bytevector->ssh-public-key bv)
   (ssh-read-public-key (open-bytevector-input-port bv)))
+
+(define-generic read-ssh-public-key)
+(define-method read-ssh-public-key (m in)
+  (error 'ssh-read-public-key "unknown public key type" m))
+
+(define-method read-ssh-public-key ((m (eql :ssh-dss)) in)
+  (let* ((p (read-message :mpint in #f))
+	 (q (read-message :mpint in #f))
+	 (g (read-message :mpint in #f))
+	 (y (read-message :mpint in #f))
+	 (kp (make <dsa-key-parameter> :p p :q q :g g)))
+    (generate-public-key *key:dsa* kp y)))
+
+(define-method read-ssh-public-key ((m (eql :ssh-rsa)) in)
+  (let* ((e (read-message :mpint in #f))
+	 (n (read-message :mpint in #f)))
+    (generate-public-key *key:rsa* n e)))
+
+(define-method read-ssh-public-key ((m (eql :ssh-ed25519)) in)
+  (generate-public-key *key:ed25519* (read-message :string in #f)))
 
 )

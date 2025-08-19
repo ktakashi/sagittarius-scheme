@@ -101,6 +101,12 @@
   (make <ssh-rsa-public-key> :name "ssh-rsa"
 	:e (~ pk 'exponent) :n (~ pk 'modulus)))
 
+(define-method ssh-make-public-key ((pk <eddsa-public-key>))
+  
+  (make <ssh-eddsa-public-key>
+    :name (if (ed25519-key? pk) "ssh-ed25519" "ssh-ed448")
+    :key (eddsa-public-key-data pk)))
+
 ;; For RSA, we have multiple options, so let the server respond if the
 ;; ones we supports are supported.
 (define (check-rsa-algorithm! pk request transport)
@@ -138,5 +144,10 @@
 		(else (error 'ssh-make-signer "Unknown RSA algorithm"
 			     (~ request 'algorithm-name))))))
     (apply make-signer *signature:rsa* pk :encoder pkcs1-emsa-v1.5-encode opts)))
+
+(define-method ssh-make-signer ((pk <eddsa-private-key>) request)
+  (if (ed25519-key? pk)
+      (make-signer *signature:ed25519* pk)
+      (make-signer *signature:ed448* pk)))
 
 )

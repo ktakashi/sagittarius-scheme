@@ -155,7 +155,11 @@
 	 (p (read-message :mpint in #f))
 	 (q (read-message :mpint in #f)))
     (generate-private-key *key:rsa* n d :public-exponent e :p p :q q :qP qP)))
-  
-  
 
+(define-method read-openssh-private-key ((m (eql :ssh-ed25519)) in)
+  ;; format found in libtomcrypt, see pem_ssh.c
+  (read-message :string in #f) ;; ignore public
+  (let ((random (read-message :string in #f)))
+    ;; seems it contains both private and public keys?
+    (generate-private-key *key:ed25519* (bytevector-copy random 0 32))))
 )
