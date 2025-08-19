@@ -84,7 +84,7 @@
       ((private)
        (generate-private-key *key:ecdsa*
 			     (bytevector->integer bv) ec-parameter))))
-  (when (and ec-parameter #f)
+  (when ec-parameter
     (print "Testing " curve)
     (run-test-ecdh source algorithm curve encoding tests bytevector->key)))
 
