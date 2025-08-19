@@ -299,11 +299,13 @@
 ;; TODO consider RFC 9142
 (define empty-list (name-list))
 (define *ssh-kex-list*
-  (make-parameter (name-list 
+  (make-parameter (name-list
+		   +kex-diffie-hellman-group14-sha256+
       		   +kex-diffie-hellman-group-exchange-sha256+
-      		   +kex-diffie-hellman-group-exchange-sha1+
+      		   ;; +kex-diffie-hellman-group-exchange-sha1+
       		   +kex-diffie-hellman-group14-sha1+
-      		   +kex-diffie-hellman-group1-sha1+)
+      		   ;;+kex-diffie-hellman-group1-sha1+
+		   )
       		  (lambda (nl)
       		    (if (name-list? nl)
       			nl

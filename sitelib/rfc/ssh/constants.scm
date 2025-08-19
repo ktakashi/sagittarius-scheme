@@ -213,6 +213,9 @@
 (define-constant +kex-diffie-hellman-group14-sha1+ "diffie-hellman-group14-sha1")
 (define-constant +kex-diffie-hellman-group1-sha1+ "diffie-hellman-group1-sha1")
 
+; RFC 8268
+(define-constant +kex-diffie-hellman-group14-sha256+ "diffie-hellman-group14-sha256")
+
 (define-constant +enc-aes256-ctr+   "aes256-ctr")
 (define-constant +enc-aes192-ctr+   "aes192-ctr")
 (define-constant +enc-aes128-ctr+   "aes128-ctr")

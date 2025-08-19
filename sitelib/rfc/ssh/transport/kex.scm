@@ -63,86 +63,6 @@
 		  (when transport-slot
 		    (set! (~ transport transport-slot) (car l))))))
 	      (else (loop (cdr lis)))))))
-  (define (generate-e&x transport gex?)
-    (define (gen-x r)
-      (let loop ()
-	(let ((v (bytevector->integer
-		     (random-generator-read-random-bytes
-		      (~ transport 'prng) (div (bitwise-length r) 8)))))
-	  (or (and (< 1 v) v)
-	      (loop)))))
-    (define (group14? transport) (#/group14/ (~ transport 'kex)))
-    (if gex?
-	;; TODO min n max range
-	(let1 gex-req (make <ssh-msg-kex-dh-gex-request>)
-	  (ssh-write-ssh-message transport gex-req)
-	  (let* ((reply (ssh-read-packet transport))
-		 (gex-group (read-message <ssh-msg-kex-dh-gex-group>
-					  (open-bytevector-input-port reply)))
-		 (p (~ gex-group 'p))
-		 (g (~ gex-group 'g)))
-	    (let1 x (gen-x (div (- p 1) 2))
-	      (values p g x (mod-expt g x p) gex-req))))
-	;; basically p's length is less than or equal to q's so shouldn't
-	;; matter, i think
-	(let-values (((p g) (if (group14? transport)
-				(values +dh-group14-p+ +dh-group14-g+)
-				(values +dh-group1-p+ +dh-group1-g+))))
-	  (let1 x (gen-x p)
-	    (values p g x (mod-expt g x p) #f)))))
-  ;; send init and receive reply
-  ;; both DH and GEX have the same init/reply structure so
-  ;; for laziness
-  (define (send/receive transport init-class reply-class p e x
-			make-verify-message)
-    (let1 dh-init (make init-class :e e)
-      (ssh-write-ssh-message transport dh-init)
-      (let* ((reply (ssh-read-packet transport))
-	     (dh-reply (read-message reply-class
-				     (open-bytevector-input-port reply)))
-	     (K-S (~ dh-reply 'K-S))
-	     (H   (~ dh-reply 'H))
-	     (f   (~ dh-reply 'f))
-	     (K   (mod-expt f x p)))
-	;; verify signature
-	(let1 h (verify-signature transport (make-verify-message K-S H f K)
-				  K-S H)
-	  ;; send newkeys
-	  (ssh-write-packet transport (make-bytevector 1 +ssh-msg-newkeys+))
-	  ;; receive newkeys
-	  (ssh-read-packet transport)
-	  ;; compute keys
-	  (compute-keys! transport 
-			 (call-with-bytevector-output-port 
-			  (lambda (out) (write-message :mpint K out #f)))
-			 h)))))
-
-  (define (do-dh transport client-packet packet)
-    ;; exchange key!
-    (let-values (((p g x e req) (generate-e&x transport #f)))
-      (send/receive transport <ssh-msg-kexdh-init> <ssh-msg-kexdh-reply> p e x
-		    (lambda (K-S H f K)
-		      (make <DH-H> 
-			:V-C (~ transport 'client-version)
-			:V-S (~ transport 'target-version)
-			:I-C client-packet
-			:I-S packet
-			:K-S K-S
-			:e e :f f :K K)))))
-
-  (define (do-gex transport client-packet packet)
-    (let-values (((p g x e req) (generate-e&x transport #t)))
-      (send/receive transport <ssh-msg-kex-dh-gex-init>
-		    <ssh-msg-kex-dh-gex-reply> p e x
-		    (lambda (K-S H f K)
-		      (make <GEX-H> 
-			:V-C (~ transport 'client-version)
-			:V-S (~ transport 'target-version)
-			:I-C client-packet
-			:I-S packet
-			:K-S K-S
-			:min (~ req 'min) :n (~ req 'n) :max (~ req 'max)
-			:p p :g g :e e :f f :K K)))))
   (define cookie
     (random-generator-read-random-bytes (~ transport 'prng) 16))
   (let1 client-kex (make <ssh-msg-keyinit> :cookie cookie)
@@ -150,9 +70,9 @@
       (ssh-write-packet-port transport in/out size)
       (set-port-position! in/out 0)
       (let* ((client-packet (get-bytevector-all in/out))
-	     (packet (ssh-read-packet transport))
+	     (server-packet (ssh-read-packet transport))
 	     (server-kex (read-message <ssh-msg-keyinit> 
-				       (open-bytevector-input-port packet))))
+			  (open-bytevector-input-port server-packet))))
 	;; ok do key exchange
 	;; first decide the algorithms
 	(fill-slot 'kex client-kex server-kex 'kex-algorithms)
@@ -167,12 +87,99 @@
 	;; dispatch
 	(set! (~ transport 'kex-digester)
 	      (make-message-digest (extract-digest (~ transport 'kex))))
-	(cond ((#/group-exchange/ (~ transport 'kex))
-	       (do-gex transport client-packet packet))
-	      ((#/group\d+/ (~ transport 'kex))
-	       (do-dh transport client-packet packet))
-	      (else
-	       (error 'key-exchange "unknown KEX")))))))
+	(ssh-exchange-kex-message (string->keyword (~ transport 'kex))
+				  transport client-packet server-packet)))))
+
+;; send init and receive reply
+;; both DH and GEX have the same init/reply structure so
+;; for laziness
+(define (send/receive transport init-class reply-class p e x make-verify-message)
+  (let1 kex-init (make init-class :e e)
+    (ssh-write-ssh-message transport kex-init)
+    (let* ((reply (ssh-read-packet transport))
+	   (kex-reply (read-message reply-class
+				    (open-bytevector-input-port reply)))
+	   (K-S (~ kex-reply 'K-S))
+	   (H   (~ kex-reply 'H))
+	   (f   (~ kex-reply 'f))
+	   (K   (mod-expt f x p)))
+      ;; verify signature
+      (let1 h (verify-signature transport (make-verify-message K-S H f K)
+				K-S H)
+	;; send newkeys
+	(ssh-write-packet transport (make-bytevector 1 +ssh-msg-newkeys+))
+	;; receive newkeys
+	(ssh-read-packet transport)
+	;; compute keys
+	(compute-keys! transport 
+		       (call-with-bytevector-output-port 
+			(lambda (out) (write-message :mpint K out #f)))
+		       h)))))
+(define (generate-x prng r)
+  (define size (div (bitwise-length r) 8))
+  (let loop ()
+    (let ((v (bytevector->integer
+	      (random-generator-read-random-bytes prng size))))
+      (or (and (< 1 v) v)
+	  (loop)))))
+(define-generic ssh-exchange-kex-message
+  :class <predicate-specializable-generic>)
+(define group-exchanges
+  (map string->keyword (list +kex-diffie-hellman-group-exchange-sha256+
+			     +kex-diffie-hellman-group-exchange-sha1+)))
+(define-method ssh-exchange-kex-message ((m (memq group-exchanges))
+					 transport client-packet server-packet)
+  (define (generate-e&x transport)
+    (let1 gex-req (make <ssh-msg-kex-dh-gex-request>)
+      (ssh-write-ssh-message transport gex-req)
+      (let* ((reply (ssh-read-packet transport))
+	     (gex-group (read-message <ssh-msg-kex-dh-gex-group>
+				      (open-bytevector-input-port reply)))
+	     (p (~ gex-group 'p))
+	     (g (~ gex-group 'g)))
+	(let1 x (generate-x (~ transport 'prng) (div (- p 1) 2))
+	  (values p g x (mod-expt g x p) gex-req)))))
+  (let-values (((p g x e req) (generate-e&x transport)))
+    (send/receive transport <ssh-msg-kex-dh-gex-init>
+		  <ssh-msg-kex-dh-gex-reply> p e x
+		  (lambda (K-S H f K)
+		    (make <GEX-H> 
+		      :V-C (~ transport 'client-version)
+		      :V-S (~ transport 'target-version)
+		      :I-C client-packet
+		      :I-S server-packet
+		      :K-S K-S
+		      :min (~ req 'min) :n (~ req 'n) :max (~ req 'max)
+		      :p p :g g :e e :f f :K K)))))
+
+(define dh-group
+  (map string->keyword (list +kex-diffie-hellman-group14-sha256+
+			     +kex-diffie-hellman-group14-sha1+
+			     +kex-diffie-hellman-group1-sha1+)))
+(define-method ssh-exchange-kex-message ((m (memq dh-group))
+					 transport client-packet server-packet)
+  (define (group-n kex)
+    (cond ((#/group(\d+)/ kex) =>
+	   (lambda (m) (string->number (m 1))))
+	  (else (error 'ssh-exchange-kex-message "must not happen"))))
+  (define (generate-e&x transport)
+    (let-values (((p g) (case (group-n (~ transport 'kex))
+			  ((1)  (values +dh-group1-p+ +dh-group1-g+))
+			  ((14) (values +dh-group14-p+ +dh-group14-g+))
+			  (else (error 'ssh-exchange-kex-message "unknown group"
+				       (~ transport 'kex))))))
+      (let1 x (generate-x (~ transport 'prng) p)
+	(values p g x (mod-expt g x p) #f))))
+  (let-values (((p g x e req) (generate-e&x transport)))
+    (send/receive transport <ssh-msg-kexdh-init> <ssh-msg-kexdh-reply> p e x
+		  (lambda (K-S H f K)
+		    (make <DH-H> 
+		      :V-C (~ transport 'client-version)
+		      :V-S (~ transport 'target-version)
+		      :I-C client-packet
+		      :I-S server-packet
+		      :K-S K-S
+		      :e e :f f :K K)))))
 
 (define (compute-keys! transport k H)
   (define d (~ transport 'kex-digester))
