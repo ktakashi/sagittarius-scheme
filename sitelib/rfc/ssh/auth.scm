@@ -51,7 +51,7 @@
 	    (rfc ssh types)
 	    (rfc ssh transport)
 	    (rfc ssh auth api)
-	    (rfc ssh auth key)
+	    (rfc ssh auth identity)
 	    (rfc ssh auth public-key))
 
 (define *auth-methods* (make-eq-hashtable))

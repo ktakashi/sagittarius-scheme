@@ -35,7 +35,7 @@
     (import (rnrs)
 	    (rfc ssh constants)
 	    (rfc ssh types)
-	    (rfc ssh util)
+	    (rfc ssh crypto)
 	    (rfc ssh transport io)
 	    (clos user)
 	    (binary pack)
@@ -85,8 +85,7 @@
 	(fill-slot 'server-mac client-kex server-kex
 		   'mac-algorithms-server-to-client)
 	;; dispatch
-	(set! (~ transport 'kex-digester)
-	      (make-message-digest (extract-digest (~ transport 'kex))))
+	(set! (~ transport 'kex-digester) (ssh-kex-digest (~ transport 'kex)))
 	(ssh-exchange-kex-message (string->keyword (~ transport 'kex))
 				  transport client-packet server-packet)))))
 
@@ -185,32 +184,7 @@
   (define d (~ transport 'kex-digester))
   (define (digest salt) (digest-message d (bytevector-append k H salt)))
   ;; returns cipher and key size (in bytes)
-  (define (cipher&keysize c)
-    (cond ((string-prefix? "aes128"   c) (values *scheme:aes-128*  16))
-	  ((string-prefix? "aes192"   c) (values *scheme:aes-192*  24))
-	  ((string-prefix? "aes256"   c) (values *scheme:aes-256*  32))
-	  ((string-prefix? "3des"     c) (values *scheme:desede*   24))
-	  ((string-prefix? "blowfish" c) (values *scheme:blowfish* 16))
-	  (else (error 'compute-keys! "cipher not supported" c))))
-  (define (cipher-mode c)
-    (cond ((string-suffix? "cbc" c) *mode:cbc*)
-	  ((string-suffix? "ctr" c) *mode:ctr*)
-	  ;; TODO counter mode
-	  (else (error 'compute-keys! "mode not supported" c))))
-  (define (create-mac key v)
-    (define (make-mac/adjusted-key mac key digest)
-      (make-mac mac (adjust-keysize key (digest-descriptor-digest-size digest))
-		:digest digest))
-    (cond ((string=? "hmac-sha1" v)
-	   (make-mac/adjusted-key *mac:hmac* key *digest:sha-1*))
-	  ((string=? "hmac-sha2-256" v)
-	   (make-mac/adjusted-key *mac:hmac* key *digest:sha-256*))
-	  ((string=? "hmac-sha2-512" v)
-	   (make-mac/adjusted-key *mac:hmac* key *digest:sha-512*))
-	  ((string=? "hmac-md5" v)
-	   (make-mac/adjusted-key *mac:hmac* key *digest:md5*))
-	  (else (error 'create-mac "Only HMAC is supported" v))))
-  (define (adjust-keysize key size) 
+  (define ((make-key-retriever key) size)
     (let loop ((key key))
       (let1 s (bytevector-length key)
 	(cond ((= s size) key)
@@ -220,66 +194,37 @@
 	       (let1 k (digest key)
 		 (loop (bytevector-append key k))))))))
 
+  (define (create-mac key v) (make-ssh-mac v (make-key-retriever key)))
   (define client-enc (~ transport 'client-enc))
   (define server-enc (~ transport 'server-enc))
-
-  (define (make-cipher c mode key size iv direction)
-    (block-cipher-init!
-     (make-block-cipher c mode no-padding)
-     direction
-     (generate-symmetric-key c (adjust-keysize key size))
-     (make-cipher-parameter
-      (make-iv-parameter iv)
-      (make-counter-mode-parameter *ctr-mode:big-endian*))))
   (define sid (~ transport 'session-id))
-
-  (let ((client-iv   (digest (bytevector-append #vu8(#x41) sid))) ;; "A"
-	(server-iv   (digest (bytevector-append #vu8(#x42) sid))) ;; "B"
-	(client-key  (digest (bytevector-append #vu8(#x43) sid))) ;; "C"
-	(server-key  (digest (bytevector-append #vu8(#x44) sid))) ;; "D"
-	(client-mkey (digest (bytevector-append #vu8(#x45) sid))) ;; "E"
-	(server-mkey (digest (bytevector-append #vu8(#x46) sid))) ;; "F"
-	(client-mode (cipher-mode client-enc))
-	(server-mode (cipher-mode server-enc)))
-    (let-values (((client-cipher client-size) (cipher&keysize client-enc))
-		 ((server-cipher server-size) (cipher&keysize server-enc)))
-      (set! (~ transport 'client-cipher)
-	    (make-cipher client-cipher client-mode
-			 client-key client-size client-iv
-			 (cipher-direction encrypt)))
-      (set! (~ transport 'server-cipher)
-	    (make-cipher server-cipher server-mode
-			 server-key server-size server-iv
-			 (cipher-direction decrypt)))
-      (set! (~ transport 'client-mac)
-	    (create-mac client-mkey (~ transport 'client-mac)))
-      (set! (~ transport 'server-mac)
-	    (create-mac server-mkey (~ transport 'server-mac))))
-    transport))
+  (let ((client-iv   (digest (bytevector-append #vu8(#x41) sid)))  ;; "A"
+	(server-iv   (digest (bytevector-append #vu8(#x42) sid)))  ;; "B"
+	(client-key  (digest (bytevector-append #vu8(#x43) sid)))  ;; "C"
+	(server-key  (digest (bytevector-append #vu8(#x44) sid)))  ;; "D"
+	(client-mkey (digest (bytevector-append #vu8(#x45) sid)))  ;; "E"
+	(server-mkey (digest (bytevector-append #vu8(#x46) sid)))) ;; "F"
+    (set! (~ transport 'client-cipher)
+	  (make-ssh-cipher client-enc (cipher-direction encrypt)
+			   (make-key-retriever client-key) client-iv))
+    (set! (~ transport 'server-cipher)
+	  (make-ssh-cipher server-enc (cipher-direction decrypt)
+			   (make-key-retriever server-key)  server-iv))
+    (set! (~ transport 'client-mac)
+	  (create-mac client-mkey (~ transport 'client-mac)))
+    (set! (~ transport 'server-mac)
+	  (create-mac server-mkey (~ transport 'server-mac))))
+  transport)
 
 (define (verify-signature transport m K-S H)
   ;; K-S is either RSA or DSA certificate structure
   ;; so parse it and get the key for verify
-  (define (parse-k-s) (bytevector->ssh-public-key K-S))
+  (define (parse-k-s) (ssh-message-bytevector->public-key K-S))
   (define (parse-h key)
     (let ((sig (read-message <ssh-signature> (open-bytevector-input-port H))))
       (values (~ sig 'signature)
-	      (verifier-init! 
-	       (case (string->symbol (~ sig 'type))
-		 ((ssh-rsa)
-		  (make-verifier *signature:rsa* key
-				 :digest *digest:sha-1*
-				 :verifier pkcs1-emsa-v1.5-verify))
-		 ((ssh-dss)
-		  (make-verifier *signature:dsa* key :der-encode #f))
-		 ((rsa-sha2-256)
-		  (make-verifier *signature:rsa* key
-				 :digest *digest:sha-256*
-				 :verifier pkcs1-emsa-v1.5-verify))
-		 ((rsa-sha2-512)
-		  (make-verifier *signature:rsa* key
-				 :digest *digest:sha-512*
-				 :verifier pkcs1-emsa-v1.5-verify)))))))
+	      (verifier-init!
+	       (make-ssh-verifier (string->keyword (~ sig 'type)) key)))))
   (define (compute-message-hash transport m)
     (define bv (ssh-message->bytevector m))
     (digest-message (~ transport 'kex-digester) bv))
@@ -292,16 +237,6 @@
       (unless (verifier-verify! verifier signature)
 	(error 'verify-signature "Invalid siganature"))
       h)))
-
-(define (extract-digest v)
-  ;; a bit lazy way of extracting hash algorithm...
-  (cond ((#/sha(\d+)/ v)
-	 => (lambda (m) (case (string->number (m 1))
-			  ((1) *digest:sha-1*)
-			  ((256) *digest:sha-256*)
-			  ((384) *digest:sha-384*)
-			  ((512) *digest:sha-512*))))
-	(else (error 'extract-digest "Hash algorighm not supported" v))))
 
 (define-ssh-message <DH-H> ()
   ((V-C :utf8-string)

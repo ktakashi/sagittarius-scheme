@@ -31,8 +31,6 @@
 #!nounbound
 (library (rfc ssh auth public-key)
     (export ssh-public-key-authentication
-	    ssh-make-public-key
-	    ssh-make-signer
 	    *ssh:auth-method-rsa-algorithms*)
     (import (rnrs)
 	    (clos user)
@@ -45,6 +43,7 @@
 	    (rfc ssh constants)
 	    (rfc ssh types)
 	    (rfc ssh transport)
+	    (rfc ssh crypto)
 	    (rfc ssh auth api)
 	    (srfi :39 parameters))
 (define *ssh:auth-method-rsa-algorithms*
@@ -59,7 +58,8 @@
 (define (ssh-public-key-authentication transport user-name private-key public-key
       				       :key (service-name +ssh-connection+))
   (define (sign private-key session-id request)
-    (let ((signer (ssh-make-signer private-key request))
+    (let ((signer (make-ssh-signer (string->keyword (~ request 'algorithm-name))
+				   private-key))
 	  (msg (bytevector-append 
       		(pack "!L" (bytevector-length session-id)) session-id
       		(ssh-message->bytevector request))))
@@ -68,7 +68,7 @@
 	     :signature (signer-sign-message signer msg)))))
   ;; we don't check private-key type but public-key to detect the
   ;; algorithm name
-  (let* ((blob (ssh-make-public-key public-key))
+  (let* ((blob (make-ssh-public-key public-key))
 	 (m (make <ssh-msg-public-key-userauth-request>
       	      :user-name user-name
       	      :service-name service-name
@@ -92,20 +92,6 @@
       				    (open-bytevector-input-port rp))))
       	     (else (error 'auth-pub-key "unknown tag" rp)))))))
 
-(define-generic ssh-make-public-key)
-(define-method ssh-make-public-key ((pk <dsa-public-key>))
-  (make <ssh-dss-public-key> :name "ssh-dss"
-	:p (~ pk 'p) :q (~ pk 'q) :g (~ pk 'g) :y (~ pk 'Y)))
-
-(define-method ssh-make-public-key ((pk <rsa-public-key>))
-  (make <ssh-rsa-public-key> :name "ssh-rsa"
-	:e (~ pk 'exponent) :n (~ pk 'modulus)))
-
-(define-method ssh-make-public-key ((pk <eddsa-public-key>))
-  
-  (make <ssh-eddsa-public-key>
-    :name (if (ed25519-key? pk) "ssh-ed25519" "ssh-ed448")
-    :key (eddsa-public-key-data pk)))
 
 ;; For RSA, we have multiple options, so let the server respond if the
 ;; ones we supports are supported.
@@ -121,7 +107,7 @@
   (set! (~ request 'has-signature?) #f)
   (let loop ((algorithms (*ssh:auth-method-rsa-algorithms*)))
     (if (null? algorithms)
-	(error 'ssh-make-auth-method-certificate
+	(error 'make-ssh-auth-method-certificate
 	       "No RSA algorithms are supported by the server"
 	       (*ssh:auth-method-rsa-algorithms*))
 	(let ((name (car algorithms)))
@@ -130,24 +116,5 @@
 	  (or (and (check-server transport request)
 		   (set! (~ request 'has-signature?) #t))
 	      (loop (cdr algorithms)))))))
-
-(define-generic ssh-make-signer)
-(define-method ssh-make-signer ((pk <dsa-private-key>) request)
-  (make-signer *signature:dsa* pk :der-encode #f))  
-
-(define-method ssh-make-signer ((pk <rsa-private-key>) request)
-  (let ((opts (case (string->symbol (~ request 'algorithm-name))
-		((ssh-rsa) `(:digest ,*digest:sha-1*))
-		((rsa-sha2-256) '())
-		((rsa-sha2-512) `(:digest ,*digest:sha-512*))
-		;; should never happen unless I'm doing new implementation
-		(else (error 'ssh-make-signer "Unknown RSA algorithm"
-			     (~ request 'algorithm-name))))))
-    (apply make-signer *signature:rsa* pk :encoder pkcs1-emsa-v1.5-encode opts)))
-
-(define-method ssh-make-signer ((pk <eddsa-private-key>) request)
-  (if (ed25519-key? pk)
-      (make-signer *signature:ed25519* pk)
-      (make-signer *signature:ed448* pk)))
 
 )

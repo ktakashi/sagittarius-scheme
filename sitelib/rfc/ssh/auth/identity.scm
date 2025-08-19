@@ -30,13 +30,13 @@
 
 #!read-macro=sagittarius/bv-string
 #!nounbound
-(library (rfc ssh auth key)
+(library (rfc ssh auth identity)
     (export ssh-read-identity-file
 	    ssh-read-identity)
     (import (rnrs)
 	    (clos user)
 	    (rfc ssh types)
-	    (rfc ssh util)
+	    (rfc ssh crypto)
 	    (srfi :1 lists)
 	    (srfi :13 strings)
 	    (sagittarius)
@@ -66,7 +66,7 @@
   (define (read-public-key base in)
     (do ((i 0 (+ i 1)) (r '() (cons (read-message :string in #f) r)))
 	((= i (~ base 'key-counts))
-	 (map bytevector->ssh-public-key (reverse! r)))))
+	 (map ssh-message-bytevector->public-key (reverse! r)))))
   (let* ((in (open-bytevector-input-port bv))
 	 (base (read-message <openssh-private-key> in))
 	 (pub-keys (read-public-key base in))

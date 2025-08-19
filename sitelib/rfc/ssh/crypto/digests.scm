@@ -1,8 +1,8 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
-;;; rfc/ssh.scm - SSH2 protocol library.
+;;; rfc/ssh/crypto/digests.scm - SSH2 cryptography
 ;;;  
-;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2025  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -28,11 +28,24 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-(library (rfc ssh)
-    (export :all)
-    (import (rfc ssh constants)
-	    (rfc ssh types)
-	    (rfc ssh transport)
-	    (rfc ssh auth)
-	    (rfc ssh connection)
-	    (rfc ssh crypto)))
+#!read-macro=sagittarius/regex
+(library (rfc ssh crypto digests)
+    (export ssh-kex-digest)
+    (import (rnrs)
+	    (clos user)
+	    (srfi :13 strings)
+	    (sagittarius regex)
+	    (sagittarius crypto digests))
+
+(define-generic ssh-kex-digest :class <predicate-specializable-generic>)
+(define (dh? n) (string-prefix? "diffie-hellman" n))
+(define-method ssh-kex-digest ((n (?? dh?)))
+  (cond ((#/sha(\d+)/ n)
+	 => (lambda (m)
+	      (make-message-digest (case (string->number (m 1))
+				     ((1) *digest:sha-1*)
+				     ((256) *digest:sha-256*)
+				     ((384) *digest:sha-384*)
+				     ((512) *digest:sha-512*)))))))
+
+)
