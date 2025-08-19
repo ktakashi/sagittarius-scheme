@@ -81,7 +81,7 @@
     ;; (socket-setsockopt! socket IPPROTO_TCP TCP_NODELAY 1)
     ;; (socket-setsockopt! socket SOL_SOCKET SO_RCVBUF #x40000)
     (version-exchange transport)
-    (ssh-key-exchange transport)
+    (ssh-client-key-exchange transport)
     transport)
   
   (define-constant +default-version-string+ 

@@ -359,7 +359,7 @@
   ((type :byte +ssh-msg-kexdh-reply+)
    (K-S  :string)
    (f    :mpint)
-   (H    :string)))
+   (signature :string)))
 
 ;; RFC 4419 DH-GEX
 (define-ssh-message <ssh-msg-kex-dh-gex-request-old> (<ssh-message>)
@@ -386,7 +386,7 @@
   ((type :byte +ssh-msg-kex-dh-gex-reply+)
    (K-S  :string)
    (f    :mpint)
-   (H    :string)))
+   (signature :string)))
 
 ;; auxility data
 (define-ssh-message <ssh-public-key> (<ssh-type>)
