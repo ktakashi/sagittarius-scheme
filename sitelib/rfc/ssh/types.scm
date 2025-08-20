@@ -45,6 +45,10 @@
 		    (read-message ssh-read-message))
 
 	    <ssh-msg-keyinit>
+
+	    <ssh-msg-ext-info>
+	    <ssh-msg-ext-info-extension>
+
 	    <ssh-msg-kexdh-init>
 	    <ssh-msg-kexdh-reply>
 
@@ -310,7 +314,7 @@
 		   +kex-ecdh-sha2-nistp521+
       		   +kex-diffie-hellman-group-exchange-sha256+
 		   +kex-diffie-hellman-group14-sha256+ ;; MUST
-
+		   +ext-info-c+
       		   ;; +kex-diffie-hellman-group-exchange-sha1+
       		   ;; +kex-diffie-hellman-group14-sha1+
       		   ;; +kex-diffie-hellman-group1-sha1+
@@ -363,6 +367,14 @@
    (first-kex-packat-follows :boolean #f)
    (reserved :uint32 0))
   :parent-metaclass <ssh-type-meta>)
+
+;; RFC 8308 ext-info
+(define-ssh-message <ssh-msg-ext-info> (<ssh-message>)
+  ((type :byte +ssh-msg-ext-info+)
+   (count :uint32)))
+(define-ssh-message <ssh-msg-ext-info-extension> (<ssh-message>)
+  ((name  :utf8-string)
+   (value :string)))
 
 ;; RFC 4253 DH
 (define-ssh-message <ssh-msg-kexdh-init> (<ssh-message>)

@@ -50,6 +50,7 @@
 
 	    *ssh:debug-package-handler*
 	    *ssh:ignore-package-handler*
+	    *ssh:ext-info-handler*
 	    )
     (import (rnrs)
 	    (sagittarius)

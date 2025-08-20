@@ -36,7 +36,8 @@
 	    ssh-write-packet-port
 	    ssh-data-ready?
 	    *ssh:debug-package-handler*
-	    *ssh:ignore-package-handler*)
+	    *ssh:ignore-package-handler*
+	    *ssh:ext-info-handler*)
     (import (rnrs)
 	    (rfc ssh constants)
 	    (rfc ssh types)
@@ -63,9 +64,13 @@
 			   (open-bytevector-input-port payload))))
     (when (~ msg 'always-display)
       (display (~ msg 'message)) (newline))))
+(define (default-ext-info-handler extensions)
+  ;; does nothing :)
+  #t)
 
 (define *ssh:ignore-package-handler* (make-parameter default-handler))
 (define *ssh:debug-package-handler* (make-parameter default-debug-handler))
+(define *ssh:ext-info-handler* (make-parameter default-ext-info-handler))
 
 (define (ssh-read-packet context)
   (define (read-as-chunk bvs)
@@ -162,6 +167,9 @@
 	   (error 'ssh-read-packet "The previous sequence is not implemented"
 		  ;; should we deserialize?
 		  payload))
+	  ((= type +ssh-msg-ext-info+)
+	   ((*ssh:ext-info-handler*) (parse-ext-info payload))
+	   (ssh-read-packet context))
 	  (else payload))))
 
 (define (ssh-write-packet context msg)
@@ -251,4 +259,32 @@
 (define (ssh-data-ready? transport :optional (timeout 1000))
     (let1 reads (socket-read-select timeout (~ transport 'socket))
       (not (null? reads))))
+
+(define (parse-ext-info payload)
+  (define (read-extension bin)
+    (let* ((e (ssh-read-message <ssh-msg-ext-info-extension> bin))
+	   (n (~ e 'name))
+	   (v (~ e 'value)))
+      (cons n
+	    (cond ((string=? n +extention-server-sig-algs+)
+		   (let ((in (open-bytevector-input-port v)))
+		     (~ (ssh-read-message <name-list> in) 'names)))
+		  ((string=? n +extention-delay-compression+)
+		   (let* ((in (open-bytevector-input-port v))
+			  (c->s (ssh-read-message <name-list> in))
+			  (s->c (ssh-read-message <name-list> in)))
+		     (cons (~ c->s 'names) (~ s->c 'names))))
+		  ((string=? n +extention-no-flow-control+)
+		   (let ((in (open-bytevector-input-port v)))
+		     (ssh-read-message :utf8-string in #f)))
+		  ((string=? n +extention-elevation+)
+		   (let ((in (open-bytevector-input-port v)))
+		     (ssh-read-message :utf8-string in #f)))
+		  ;; simply return the payload, we can't handle it
+		  (else v)))))
+      
+  (define bin (open-bytevector-input-port payload))
+  (define msg (ssh-read-message <ssh-msg-ext-info> bin))
+  (do ((i 0 (+ i 1)) (r '() (cons (read-extension bin) r)))
+      ((= i (~ msg 'count)) (reverse! r))))
 )

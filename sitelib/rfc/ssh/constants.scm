@@ -43,6 +43,8 @@
 (define-constant +ssh-msg-debug+                         4) ;; [SSH-TRANS]
 (define-constant +ssh-msg-service-request+               5) ;; [SSH-TRANS]
 (define-constant +ssh-msg-service-accept+                6) ;; [SSH-TRANS]
+(define-constant +ssh-msg-ext-info+                      7) ;; RFC 8308
+(define-constant +ssh-msg-newcompress+                   8) ;; RFC 8308
 (define-constant +ssh-msg-kexinit+                      20) ;; [SSH-TRANS]
 (define-constant +ssh-msg-newkeys+                      21) ;; [SSH-TRANS]
 (define-constant +ssh-msg-kexdh-init+                   30) ;; DH
@@ -261,4 +263,12 @@
 (define-constant +mac-hmac-sha1+ "hmac-sha1")
 (define-constant +mac-hmac-sha2-256+ "hmac-sha2-256")
 (define-constant +mac-hmac-sha2-512+ "hmac-sha2-512")
+
+;; RFC 8308
+(define-constant +ext-info-c+ "ext-info-c")
+(define-constant +ext-info-s+ "ext-info-s")
+(define-constant +extention-server-sig-algs+ "server-sig-algs")
+(define-constant +extention-delay-compression+ "delay-compression")
+(define-constant +extention-no-flow-control+ "no-flow-control")
+(define-constant +extention-elevation+ "elevation")
 )

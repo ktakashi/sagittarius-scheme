@@ -90,7 +90,8 @@
       	      (values #f
       		      (read-message <ssh-msg-userauth-pk-ok>
       				    (open-bytevector-input-port rp))))
-      	     (else (error 'auth-pub-key "unknown tag" rp)))))))
+      	     (else (error 'ssh-public-key-authentication
+			  "unknown tag" rp)))))))
 
 
 ;; For RSA, we have multiple options, so let the server respond if the
