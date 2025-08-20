@@ -123,7 +123,7 @@
 		 (error 'version-exchange "no version string"))
 		((#/(SSH-2.0-[\w.-]+)\s*/ vs) => 
 		 (lambda (m)
-		   (set! (~ transport 'target-version) vs)
+		   (set! (~ transport 'server-version) vs)
 		   (let ((version (*ssh-version-string*)))
 		     (set! (~ transport 'client-version) version)
 		     ;; send

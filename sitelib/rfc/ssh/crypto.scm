@@ -31,7 +31,6 @@
 (library (rfc ssh crypto)
     (export :all)
     (import (rfc ssh crypto ciphers)
-	    (rfc ssh crypto digests)
 	    (rfc ssh crypto keys)
 	    (rfc ssh crypto mac)
 	    (rfc ssh crypto signatures)))

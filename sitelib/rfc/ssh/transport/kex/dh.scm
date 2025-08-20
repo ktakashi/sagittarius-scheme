@@ -36,7 +36,9 @@
 	    (clos user)
 	    (sagittarius)
 	    (sagittarius object)
+	    (sagittarius crypto digests) 
 	    (sagittarius crypto random)
+	    (srfi :13 strings)
 	    (rfc ssh constants)
 	    (rfc ssh types)
 	    (rfc ssh transport io)
@@ -53,12 +55,11 @@
 (define-constant +dh-group14-g+ 2)
 
 
-(define group-exchanges
-  (map string->keyword (list +kex-diffie-hellman-group-exchange-sha256+
-			     +kex-diffie-hellman-group-exchange-sha1+)))
+(define group-exchanges (list +kex-diffie-hellman-group-exchange-sha256+
+			      +kex-diffie-hellman-group-exchange-sha1+))
 
 (define-method ssh-client-exchange-kex-message
-  ((m (memq group-exchanges)) transport client-packet server-packet)
+  ((m (member group-exchanges)) transport client-packet server-packet)
   (define (generate-e&x transport)
     (let ((gex-req (make <ssh-msg-kex-dh-gex-request>)))
       (ssh-write-ssh-message transport gex-req)
@@ -76,20 +77,19 @@
 			   (lambda (K-S f K)
 			     (make <GEX-H> 
 			       :V-C (~ transport 'client-version)
-			       :V-S (~ transport 'target-version)
+			       :V-S (~ transport 'server-version)
 			       :I-C client-packet
 			       :I-S server-packet
 			       :K-S K-S
 			       :min (~ req 'min) :n (~ req 'n) :max (~ req 'max)
 			       :p p :g g :e e :f f :K K))))))
 
-(define dh-group
-  (map string->keyword (list +kex-diffie-hellman-group14-sha256+
-			     +kex-diffie-hellman-group14-sha1+
-			     +kex-diffie-hellman-group1-sha1+)))
+(define dh-group (list +kex-diffie-hellman-group14-sha256+
+		       +kex-diffie-hellman-group14-sha1+
+		       +kex-diffie-hellman-group1-sha1+))
 
 (define-method ssh-client-exchange-kex-message
-  ((m (memq dh-group)) transport client-packet server-packet)
+  ((m (member dh-group)) transport client-packet server-packet)
   (define (group-n kex)
     (cond ((#/group(\d+)/ kex) =>
 	   (lambda (m) (string->number (m 1))))
@@ -109,11 +109,22 @@
 			   (lambda (K-S f K)
 			     (make <DH-H> 
 			       :V-C (~ transport 'client-version)
-			       :V-S (~ transport 'target-version)
+			       :V-S (~ transport 'server-version)
 			       :I-C client-packet
 			       :I-S server-packet
 			       :K-S K-S
 			       :e e :f f :K K))))))
+
+(define (dh? n) (string-prefix? "diffie-hellman" n))
+(define-method ssh-kex-digest ((n (?? dh?)))
+  (cond ((#/sha(\d+)/ n)
+	 => (lambda (m)
+	      (make-message-digest (case (string->number (m 1))
+				     ((1) *digest:sha-1*)
+				     ((256) *digest:sha-256*)
+				     ((384) *digest:sha-384*)
+				     ((512) *digest:sha-512*)))))))
+
 ;; private
 (define ((make-init-class init-class e))
   (make init-class :e e))

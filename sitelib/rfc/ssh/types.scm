@@ -55,9 +55,14 @@
 	    <ssh-msg-kex-dh-gex-init>
 	    <ssh-msg-kex-dh-gex-reply>
 
+	    <ssh-msg-kex-ecdh-init>
+	    <ssh-msg-kex-ecdh-reply>
+	    
 	    <ssh-dss-public-key>
 	    <ssh-rsa-public-key>
 	    <ssh-eddsa-public-key>
+	    <ssh-ecdsa-public-key>
+	    <ssh-ecdsa-public-key-blob>
 	    <ssh-signature>
 
 	    ;; disconnection
@@ -237,7 +242,7 @@
    (server   :init-keyword :server :init-value #f)
    (port     :init-keyword :port :init-value #f)
    (client-version :init-value #f)
-   (target-version :init-value #f)	; version string from peer
+   (server-version :init-value #f)	; version string from peer
    (prng     :init-keyword :prng
              :init-form (secure-random-generator *prng:chacha20*))
    (client-sequence :init-value 0)	; unsigned 32 bit int
@@ -265,7 +270,7 @@
    ))
 (define-method write-object ((o <ssh-transport>) out)
   (format out "#<ssh-transport ~a ~a ~a ~a ~a>"
-          (slot-ref o 'target-version)
+          (slot-ref o 'server-version)
           (slot-ref o 'client-enc)
           (slot-ref o 'server-enc)
           (slot-ref o 'client-mac)
@@ -300,11 +305,15 @@
 (define empty-list (name-list))
 (define *ssh-kex-list*
   (make-parameter (name-list
-		   +kex-diffie-hellman-group14-sha256+
+		   +kex-ecdh-sha2-nistp256+
+		   +kex-ecdh-sha2-nistp384+
+		   +kex-ecdh-sha2-nistp521+
       		   +kex-diffie-hellman-group-exchange-sha256+
+		   +kex-diffie-hellman-group14-sha256+ ;; MUST
+
       		   ;; +kex-diffie-hellman-group-exchange-sha1+
-      		   +kex-diffie-hellman-group14-sha1+
-      		   ;;+kex-diffie-hellman-group1-sha1+
+      		   ;; +kex-diffie-hellman-group14-sha1+
+      		   ;; +kex-diffie-hellman-group1-sha1+
 		   )
       		  (lambda (nl)
       		    (if (name-list? nl)
@@ -312,6 +321,11 @@
       			(apply name-list nl)))))
 (define *ssh-public-key-list*
   (make-parameter (name-list
+		   +public-key-ecdsa-sha2-nistp256+
+		   +public-key-ecdsa-sha2-nistp384+
+		   +public-key-ecdsa-sha2-nistp521+
+		   +public-key-ssh-ed448+
+		   +public-key-ssh-ed25519+
       		   +public-key-rsa-sha2-256+
 		   +public-key-rsa-sha2-512+
       		   +public-key-ssh-rsa+
@@ -367,10 +381,9 @@
    (n    :uint32 2048)))
 (define-ssh-message <ssh-msg-kex-dh-gex-request> (<ssh-message>)
   ((type :byte +ssh-msg-kex-dh-gex-request+)
-   ;; put recommendation
-   ;; TODO `n`?
-   (min  :uint32 1024)
-   (n    :uint32 2048)
+   ;; put recommendation from RFC 8270
+   (min  :uint32 2048)
+   (n    :uint32 3072)
    (max  :uint32 8192)))
 
 (define-ssh-message <ssh-msg-kex-dh-gex-group> (<ssh-message>)
@@ -388,6 +401,16 @@
    (f    :mpint)
    (signature :string)))
 
+;; RFC 5656
+(define-ssh-message <ssh-msg-kex-ecdh-init> (<ssh-message>)
+  ((type :byte +ssh-msg-kex-ecdh-init+)
+   (Q-C  :string)))
+(define-ssh-message <ssh-msg-kex-ecdh-reply> (<ssh-message>)
+  ((type :byte +ssh-msg-kex-ecdh-reply+)
+   (K-S  :string)
+   (Q-S  :string)
+   (signature :string)))
+
 ;; auxility data
 (define-ssh-message <ssh-public-key> (<ssh-type>)
   ((name :string)))
@@ -399,6 +422,13 @@
 (define-ssh-message <ssh-rsa-public-key> (<ssh-public-key>)
   ((e :mpint)
    (n :mpint)))
+
+;; RFC 5656
+(define-ssh-message <ssh-ecdsa-public-key> (<ssh-public-key>)
+  ((blob <ssh-ecdsa-public-key-blob>)))
+(define-ssh-message <ssh-ecdsa-public-key-blob> (<ssh-message>)
+  ((identifier :utf8-string)
+   (Q :string)))
 
 ;; RFC 8709 (we merge ed25519 and ed448, dispatch with name)
 (define-ssh-message <ssh-eddsa-public-key> (<ssh-public-key>)

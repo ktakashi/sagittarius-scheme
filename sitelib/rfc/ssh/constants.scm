@@ -52,6 +52,9 @@
 (define-constant +ssh-msg-kex-dh-gex-group+             31)
 (define-constant +ssh-msg-kex-dh-gex-init+              32)
 (define-constant +ssh-msg-kex-dh-gex-reply+             33)
+(define-constant +ssh-msg-kex-ecdh-init+                30) ;; RFC 5656
+(define-constant +ssh-msg-kex-ecdh-reply+               31) ;; RFC 5656
+
 (define-constant +ssh-msg-userauth-request+             50) ;; [SSH-USERAUTH]
 (define-constant +ssh-msg-userauth-failure+             51) ;; [SSH-USERAUTH]
 (define-constant +ssh-msg-userauth-success+             52) ;; [SSH-USERAUTH]
@@ -205,6 +208,38 @@
 
 ; RFC 8268
 (define-constant +kex-diffie-hellman-group14-sha256+ "diffie-hellman-group14-sha256")
+
+;; RFC 5656
+;; ECDSA
+;; required curves
+(define-constant +public-key-ecdsa-sha2-nistp256+ "ecdsa-sha2-nistp256")
+(define-constant +public-key-ecdsa-sha2-nistp384+ "ecdsa-sha2-nistp384")
+(define-constant +public-key-ecdsa-sha2-nistp521+ "ecdsa-sha2-nistp521")
+;; recommended curves
+(define-constant +public-key-ecdsa-sha2-nistk163+ "ecdsa-sha2-nistk163")
+(define-constant +public-key-ecdsa-sha2-nistp192+ "ecdsa-sha2-nistp192")
+(define-constant +public-key-ecdsa-sha2-nistp224+ "ecdsa-sha2-nistp224")
+(define-constant +public-key-ecdsa-sha2-nistk233+ "ecdsa-sha2-nistk233")
+(define-constant +public-key-ecdsa-sha2-nistb233+ "ecdsa-sha2-nistb233")
+(define-constant +public-key-ecdsa-sha2-nistk283+ "ecdsa-sha2-nistk283")
+(define-constant +public-key-ecdsa-sha2-nistk409+ "ecdsa-sha2-nistk409")
+(define-constant +public-key-ecdsa-sha2-nistb409+ "ecdsa-sha2-nistb409")
+(define-constant +public-key-ecdsa-sha2-nistt571+ "ecdsa-sha2-nistt571")
+;; ECDH
+;; required curves
+(define-constant +kex-ecdh-sha2-nistp256+ "ecdh-sha2-nistp256")
+(define-constant +kex-ecdh-sha2-nistp384+ "ecdh-sha2-nistp384")
+(define-constant +kex-ecdh-sha2-nistp521+ "ecdh-sha2-nistp521")
+;; recommended curves
+(define-constant +kex-ecdh-sha2-nistk163+ "ecdh-sha2-nistk163")
+(define-constant +kex-ecdh-sha2-nistp192+ "ecdh-sha2-nistp192")
+(define-constant +kex-ecdh-sha2-nistp224+ "ecdh-sha2-nistp224")
+(define-constant +kex-ecdh-sha2-nistk233+ "ecdh-sha2-nistk233")
+(define-constant +kex-ecdh-sha2-nistb233+ "ecdh-sha2-nistb233")
+(define-constant +kex-ecdh-sha2-nistk283+ "ecdh-sha2-nistk283")
+(define-constant +kex-ecdh-sha2-nistk409+ "ecdh-sha2-nistk409")
+(define-constant +kex-ecdh-sha2-nistb409+ "ecdh-sha2-nistb409")
+(define-constant +kex-ecdh-sha2-nistt571+ "ecdh-sha2-nistt571")
 
 (define-constant +enc-aes256-ctr+   "aes256-ctr")
 (define-constant +enc-aes192-ctr+   "aes192-ctr")

@@ -93,36 +93,43 @@
    (rounds :uint32)))
 
 (define (decrypt-private-keys key-info password)
-  (define (read-private-key in)
+  (define (read-private-key in pubkey)
     (let ((name (read-message :utf8-string in #f)))
-      (read-openssh-private-key (string->keyword name) in)))
+      (read-openssh-private-key name in pubkey)))
   (define (decode-private-keys blob n)
+    (define pub-keys (openssh-key-public-keys key-info))
     (define in (open-bytevector-input-port blob))
     (let* ((r0 (read-message :uint32 in #f))
 	   (r1 (read-message :uint32 in #f)))
       (unless (= r0 r1) (error 'decode-private-keys "Decryption failed"))
-      (do ((i 0 (+ i 1)) (r '() (cons (read-private-key in) r)))
+      (do ((i 0 (+ i 1))
+	   (pkey pub-keys (cdr pub-keys))
+	   (r '() (cons (read-private-key in (car pkey)) r)))
 	  ((= i n) (reverse! r)))))
 
   (define info (openssh-key-info key-info))
-  (let* ((blob (openssh-key-encrypted key-info))
-	 (cipher (case (string->symbol (~ info 'cipher-name))
-		   ((aes256-ctr aes192-ctr aes128-ctr)
-		    (make-block-cipher *scheme:aes* *mode:ctr* no-padding))
-		   ((aes256-cbc aes192-cbc aes128-cbc)
-		    (make-block-cipher *scheme:aes* *mode:cbc* no-padding))
-		   (else (error 'decrypt-private-keys "Cipher not supported"
-				(~ info 'cipher-name)))))
-	 (iv-len (block-cipher-block-length cipher))
-	 (key-len (derive-key-length info))
-	 (dk (derive-key key-info password (+ key-len iv-len))))
-    (block-cipher-init! cipher (cipher-direction decrypt)
-			(make-symmetric-key (bytevector-copy dk 0 key-len))
-			(make-cipher-parameter
-			 (make-iv-parameter (bytevector-copy dk key-len
-							     (+ key-len iv-len)))
-			 (make-counter-mode-parameter *ctr-mode:big-endian*)))
-    (decode-private-keys (block-cipher-decrypt-last-block cipher blob)
+  (define (decrypt cipher-name blob)
+    (let* ((cipher (case cipher-name
+		     ((aes256-ctr aes192-ctr aes128-ctr)
+		      (make-block-cipher *scheme:aes* *mode:ctr* no-padding))
+		     ((aes256-cbc aes192-cbc aes128-cbc)
+		      (make-block-cipher *scheme:aes* *mode:cbc* no-padding))
+		     (else (error 'decrypt-private-keys "Cipher not supported"
+				  (~ info 'cipher-name)))))
+	   (iv-len (block-cipher-block-length cipher))
+	   (key-len (derive-key-length info))
+	   (dk (derive-key key-info password (+ key-len iv-len))))
+      (block-cipher-init! cipher (cipher-direction decrypt)
+	(make-symmetric-key (bytevector-copy dk 0 key-len))
+	(make-cipher-parameter
+	 (make-iv-parameter (bytevector-copy dk key-len (+ key-len iv-len)))
+	 (make-counter-mode-parameter *ctr-mode:big-endian*)))
+      (block-cipher-decrypt-last-block cipher blob)))
+  (let ((cipher-name (string->symbol (~ info 'cipher-name)))
+	(blob (openssh-key-encrypted key-info)))
+    (decode-private-keys (if (eq? cipher-name 'none)
+			     blob
+			     (decrypt cipher-name blob))
 			 (~ info 'key-counts))))
 
 (define (derive-key-length info)
@@ -145,8 +152,23 @@
     (else (error 'derive-key "Unknown KDF in identity file"))))
 
 ;;
-(define-generic read-openssh-private-key)
-(define-method read-openssh-private-key ((m (eql :ssh-rsa)) in)
+(define-generic read-openssh-private-key
+  :class <predicate-specializable-generic>)
+(define-method read-openssh-private-key (m in pub-key)
+  (error 'read-openssh-private-key "Not supported" m))
+
+(define-method read-openssh-private-key ((m (equal "ssh-dss")) in pub-key)
+  ;; format found in libtomcrypt, see pem_ssh.c
+  (let* ((p (read-message :mpint in #f))
+	 (q (read-message :mpint in #f))
+	 (g (read-message :mpint in #f))
+	 (y (read-message :mpint in #f))
+	 (x (read-message :mpint in #f)))
+    (generate-private-key *key:dsa*
+			  (make <dsa-key-parameter> :p p :q q :g g)
+			  y x)))
+
+(define-method read-openssh-private-key ((m (equal "ssh-rsa")) in pub-key)
   ;; format found in libtomcrypt, see pem_ssh.c
   (let* ((n (read-message :mpint in #f))
 	 (e (read-message :mpint in #f))
@@ -156,10 +178,19 @@
 	 (q (read-message :mpint in #f)))
     (generate-private-key *key:rsa* n d :public-exponent e :p p :q q :qP qP)))
 
-(define-method read-openssh-private-key ((m (eql :ssh-ed25519)) in)
+(define-method read-openssh-private-key ((m (equal "ssh-ed25519")) in pub-key)
   ;; format found in libtomcrypt, see pem_ssh.c
   (read-message :string in #f) ;; ignore public
   (let ((random (read-message :string in #f)))
     ;; seems it contains both private and public keys?
     (generate-private-key *key:ed25519* (bytevector-copy random 0 32))))
+
+(define (ecdsa-sha2? n) (string-prefix? "ecdsa-sha2" n))
+(define-method read-openssh-private-key ((m (?? ecdsa-sha2?)) in pub-key)
+  (let* ((id (read-message :utf8-string in #f))
+	 (Q (read-message :string in #f))
+	 (d (read-message :string in #f))
+	 (curve (ssh-ecdsa-identifier->curve (string->keyword id))))
+    (generate-private-key *key:ecdsa* (bytevector->integer d) curve pub-key)))
+    
 )

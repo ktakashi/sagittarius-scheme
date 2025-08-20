@@ -37,7 +37,9 @@
 	    (rfc ssh types)
 	    (rfc ssh crypto)
 	    (rfc ssh transport io)
+	    (rfc ssh transport kex api)
 	    (rfc ssh transport kex dh)
+	    (rfc ssh transport kex ecdh)
 	    (clos user)
 	    (binary pack)
 	    (srfi :13 strings)
@@ -87,5 +89,6 @@
 		   'mac-algorithms-server-to-client)
 	;; dispatch
 	(set! (~ transport 'kex-digester) (ssh-kex-digest (~ transport 'kex)))
-	(ssh-client-exchange-kex-message (string->keyword (~ transport 'kex))
-	 transport client-packet server-packet))))))
+	(ssh-client-exchange-kex-message (~ transport 'kex)
+	 transport client-packet server-packet)))))
+)

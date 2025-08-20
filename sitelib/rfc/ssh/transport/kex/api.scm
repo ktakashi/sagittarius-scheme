@@ -32,7 +32,8 @@
 (library (rfc ssh transport kex api)
     (export ssh-client-exchange-kex-message
 	    ssh-kex-send/receive
-	    ssh-verify-signature)
+	    ssh-verify-signature
+	    ssh-kex-digest)
     (import (rnrs)
 	    (clos user)
 	    (rfc ssh constants)
@@ -47,6 +48,8 @@
 (define-generic ssh-client-exchange-kex-message
   :class <predicate-specializable-generic>)
 ;; possibly server, but later
+
+(define-generic ssh-kex-digest :class <predicate-specializable-generic>)
 
 (define (ssh-kex-send/receive transport make-init-class reply-class compute-k)
   (ssh-write-ssh-message transport (make-init-class))
