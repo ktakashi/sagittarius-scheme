@@ -210,6 +210,10 @@
 
 ; RFC 8268
 (define-constant +kex-diffie-hellman-group14-sha256+ "diffie-hellman-group14-sha256")
+(define-constant +kex-diffie-hellman-group15-sha512+ "diffie-hellman-group15-sha512")
+(define-constant +kex-diffie-hellman-group16-sha512+ "diffie-hellman-group16-sha512")
+(define-constant +kex-diffie-hellman-group17-sha512+ "diffie-hellman-group17-sha512")
+(define-constant +kex-diffie-hellman-group18-sha512+ "diffie-hellman-group18-sha512")
 
 ;; RFC 5656
 ;; ECDSA

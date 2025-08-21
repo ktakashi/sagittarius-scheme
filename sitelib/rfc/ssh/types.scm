@@ -308,16 +308,24 @@
 ;; TODO consider RFC 9142
 (define empty-list (name-list))
 (define *ssh-kex-list*
+  ;; The keyword is from in RFC9142
   (make-parameter (name-list
-		   +kex-ecdh-sha2-nistp256+
-		   +kex-ecdh-sha2-nistp384+
-		   +kex-ecdh-sha2-nistp521+
-      		   +kex-diffie-hellman-group-exchange-sha256+
+		   +kex-ecdh-sha2-nistp256+ ;; SHOULD
+		   +kex-ecdh-sha2-nistp384+ ;; SHOULD
+		   +kex-ecdh-sha2-nistp521+ ;; SHOULD
+		   +kex-diffie-hellman-group15-sha512+ ;; MAY
+		   +kex-diffie-hellman-group16-sha512+ ;; SHOULD
+		   +kex-diffie-hellman-group17-sha512+ ;; MAY
+		   +kex-diffie-hellman-group18-sha512+ ;; MAY
+      		   +kex-diffie-hellman-group-exchange-sha256+ ;; MAY
 		   +kex-diffie-hellman-group14-sha256+ ;; MUST
-		   +ext-info-c+
-      		   ;; +kex-diffie-hellman-group-exchange-sha1+
-      		   ;; +kex-diffie-hellman-group14-sha1+
-      		   ;; +kex-diffie-hellman-group1-sha1+
+		   +ext-info-c+			       ;; SHOULD
+
+		   ;; Below are marked as SHOULD NOT in RFC9142 or using 
+		   ;; less secure digest algorithm, i.e. SHA1
+      		   ;; +kex-diffie-hellman-group-exchange-sha1+ ;; SHOULD NOT
+      		   ;; +kex-diffie-hellman-group14-sha1+        ;; MAY
+      		   ;; +kex-diffie-hellman-group1-sha1+         ;; SHOULD NOT
 		   )
       		  (lambda (nl)
       		    (if (name-list? nl)
