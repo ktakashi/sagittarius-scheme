@@ -30,12 +30,16 @@
 
 #!nounbound
 (library (rfc ssh auth api)
-    (export ssh-read-auth-response)
+    (export ssh-read-auth-response
+	    ssh-authenticate-method)
     (import (rnrs)
+	    (clos user)
 	    (rfc ssh constants)
 	    (rfc ssh types)
 	    (rfc ssh transport))
 
+(define-generic ssh-authenticate-method)
+  
 (define (ssh-read-auth-response transport callback)
   (let* ((payload (ssh-read-packet transport))
 	 (type (bytevector-u8-ref payload 0)))

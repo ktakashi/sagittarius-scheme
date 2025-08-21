@@ -34,6 +34,7 @@
     (export ssh-authenticate
 	    register-auth-method
 	    ssh-read-auth-response
+	    ssh-authenticate-method
 
 	    *ssh:auth-method-rsa-algorithms* ;; for testing purpose
 	    ssh-read-identity-file
@@ -54,8 +55,13 @@
 	    (rfc ssh auth identity)
 	    (rfc ssh auth public-key))
 
-(define *auth-methods* (make-eq-hashtable))
-(define (register-auth-method name proc) (set! (~ *auth-methods* name) proc))
+;; nobody is using it I guess, but for backward compatibility
+(define-syntax register-auth-method
+  (syntax-rules ()
+    ((_ name proc)
+     (begin
+       (define key (string->keyword (symbol->string name)))
+       (define-method ssh-authenticate-method ((m (eql key))) proc)))))
 
 (define-syntax u8 (identifier-syntax bytevector-u8-ref))
 
@@ -114,14 +120,14 @@
     (ssh-read-auth-response transport handle-info-request)))
 
 (define (ssh-authenticate transport method . options)
-  (if (symbol? method)
-      (cond ((~ *auth-methods* method)
+  (if (keyword? method)
+      (cond ((ssh-authenticate-method method)
              => (lambda (proc) 
       		  (ssh-service-request transport +ssh-userauth+)
       		  (apply proc transport options)))
             (else (error 'ssh-authenticate "method not supported" method)))
       (apply ssh-authenticate transport 
-             (string->symbol method) options)))
+             (string->keyword method) options)))
 
 (define (read-client-input prompts)
   (define (do-read prompt)
@@ -134,11 +140,14 @@
 		   (lambda () (get-line (current-input-port))))))
   (map do-read prompts))
 
-;; register
-(register-auth-method (string->symbol +ssh-auth-method-public-key+)
-      		      ssh-public-key-authentication)
-(register-auth-method (string->symbol +ssh-auth-method-password+) 
-      		      auth-password)
-(register-auth-method (string->symbol +ssh-auth-method-keyboard-interactive+) 
-		      auth-keyboard-interactive)
+(define-method ssh-authenticate-method (ignore) #f)
+
+(define password-key (string->keyword +ssh-auth-method-password+))
+(define-method ssh-authenticate-method ((m (eql password-key)))
+  auth-password)
+
+(define interactive-key (string->keyword +ssh-auth-method-keyboard-interactive+))
+(define-method ssh-authenticate-method ((m (eql interactive-key)))
+  auth-keyboard-interactive)
+
 )

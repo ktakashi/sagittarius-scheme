@@ -46,6 +46,10 @@
 	    (rfc ssh crypto)
 	    (rfc ssh auth api)
 	    (srfi :39 parameters))
+(define method-key (string->keyword +ssh-auth-method-public-key+))
+(define-method ssh-authenticate-method ((m (eql method-key)))
+  ssh-public-key-authentication)
+
 (define *ssh:auth-method-rsa-algorithms*
   (make-parameter `(,+public-key-rsa-sha2-256+
 		    ,+public-key-rsa-sha2-512+

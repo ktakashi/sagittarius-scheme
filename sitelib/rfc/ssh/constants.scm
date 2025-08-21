@@ -271,8 +271,8 @@
 ;; RFC 8308
 (define-constant +ext-info-c+ "ext-info-c")
 (define-constant +ext-info-s+ "ext-info-s")
-(define-constant +extention-server-sig-algs+ "server-sig-algs")
-(define-constant +extention-delay-compression+ "delay-compression")
-(define-constant +extention-no-flow-control+ "no-flow-control")
-(define-constant +extention-elevation+ "elevation")
+(define-constant +extension-server-sig-algs+ "server-sig-algs")
+(define-constant +extension-delay-compression+ "delay-compression")
+(define-constant +extension-no-flow-control+ "no-flow-control")
+(define-constant +extension-elevation+ "elevation")
 )

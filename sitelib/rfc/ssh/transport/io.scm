@@ -168,7 +168,7 @@
 		  ;; should we deserialize?
 		  payload))
 	  ((= type +ssh-msg-ext-info+)
-	   ((*ssh:ext-info-handler*) (parse-ext-info payload))
+	   (handle-ext-info context payload)
 	   (ssh-read-packet context))
 	  (else payload))))
 
@@ -260,24 +260,31 @@
     (let1 reads (socket-read-select timeout (~ transport 'socket))
       (not (null? reads))))
 
+(define (handle-ext-info transport payload)
+  (let ((ext-info (parse-ext-info payload)))
+    (cond ((assq (string->symbol +extension-server-sig-algs+) ext-info) =>
+	   (lambda (slot)
+	     (set! (~ transport 'server-signature-algorithms) (cdr slot)))))
+    ((*ssh:ext-info-handler*) ext-info)))
+
 (define (parse-ext-info payload)
   (define (read-extension bin)
     (let* ((e (ssh-read-message <ssh-msg-ext-info-extension> bin))
 	   (n (~ e 'name))
 	   (v (~ e 'value)))
-      (cons n
-	    (cond ((string=? n +extention-server-sig-algs+)
+      (cons (string->symbol n)
+	    (cond ((string=? n +extension-server-sig-algs+)
 		   (let ((in (open-bytevector-input-port v)))
 		     (~ (ssh-read-message <name-list> in) 'names)))
-		  ((string=? n +extention-delay-compression+)
+		  ((string=? n +extension-delay-compression+)
 		   (let* ((in (open-bytevector-input-port v))
 			  (c->s (ssh-read-message <name-list> in))
 			  (s->c (ssh-read-message <name-list> in)))
 		     (cons (~ c->s 'names) (~ s->c 'names))))
-		  ((string=? n +extention-no-flow-control+)
+		  ((string=? n +extension-no-flow-control+)
 		   (let ((in (open-bytevector-input-port v)))
 		     (ssh-read-message :utf8-string in #f)))
-		  ((string=? n +extention-elevation+)
+		  ((string=? n +extension-elevation+)
 		   (let ((in (open-bytevector-input-port v)))
 		     (ssh-read-message :utf8-string in #f)))
 		  ;; simply return the payload, we can't handle it

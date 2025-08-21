@@ -271,6 +271,7 @@
    ;; keep the channels to allocate proper channel number
    (channels   :init-value '())
    (kex-digester :init-value #f) ;; message digest for kex
+   (server-signature-algorithms :init-value #f) ;; for ext-info-s
    ))
 (define-method write-object ((o <ssh-transport>) out)
   (format out "#<ssh-transport ~a ~a ~a ~a ~a>"
