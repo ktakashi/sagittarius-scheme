@@ -188,7 +188,7 @@
   (let* ((id (read-message :utf8-string in #f))
 	 (Q (read-message :string in #f))
 	 (d (read-message :string in #f))
-	 (curve (ssh-ecdsa-identifier->curve (string->keyword id))))
+	 (curve (ssh-ecdsa-identifier->ec-parameter (string->keyword id))))
     (generate-private-key *key:ecdsa* (bytevector->integer d) curve
       (import-public-key *key:ecdsa* Q (public-key-format raw) curve))))
     

@@ -52,7 +52,7 @@
 (define-method ssh-client-exchange-kex-message
   ((m (?? ecdh-sha2?)) transport client-packet server-packet)
   (define identity (extract-identity m))
-  (define curve (ssh-ecdsa-identifier->curve (extract-identity m)))
+  (define curve (ssh-ecdsa-identifier->ec-parameter (extract-identity m)))
   (define kp (generate-key-pair *key:ecdsa* :ec-parameter curve))
   (define Q-C (encode-ec-point (ec-parameter-curve curve)
 			       (ecdsa-public-key-Q (key-pair-public kp))))
@@ -78,7 +78,7 @@
 (define-method ssh-kex-digest ((n (?? ecdh-sha2?)))
   (make-message-digest
    (ssh-ecdsa-digest-descriptor
-    (ssh-ecdsa-identifier->curve (extract-identity n)))))
+    (ssh-ecdsa-identifier->ec-parameter (extract-identity n)))))
   
 
 (define (extract-identity n)
