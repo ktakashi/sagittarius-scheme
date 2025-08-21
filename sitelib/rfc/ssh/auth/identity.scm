@@ -93,18 +93,16 @@
    (rounds :uint32)))
 
 (define (decrypt-private-keys key-info password)
-  (define (read-private-key in pubkey)
+  (define (read-private-key in)
     (let ((name (read-message :utf8-string in #f)))
-      (read-openssh-private-key name in pubkey)))
+      (read-openssh-private-key name in)))
   (define (decode-private-keys blob n)
     (define pub-keys (openssh-key-public-keys key-info))
     (define in (open-bytevector-input-port blob))
     (let* ((r0 (read-message :uint32 in #f))
 	   (r1 (read-message :uint32 in #f)))
       (unless (= r0 r1) (error 'decode-private-keys "Decryption failed"))
-      (do ((i 0 (+ i 1))
-	   (pkey pub-keys (cdr pub-keys))
-	   (r '() (cons (read-private-key in (car pkey)) r)))
+      (do ((i 0 (+ i 1)) (r '() (cons (read-private-key in) r)))
 	  ((= i n) (reverse! r)))))
 
   (define info (openssh-key-info key-info))
@@ -154,10 +152,10 @@
 ;;
 (define-generic read-openssh-private-key
   :class <predicate-specializable-generic>)
-(define-method read-openssh-private-key (m in pub-key)
+(define-method read-openssh-private-key (m in)
   (error 'read-openssh-private-key "Not supported" m))
 
-(define-method read-openssh-private-key ((m (equal "ssh-dss")) in pub-key)
+(define-method read-openssh-private-key ((m (equal "ssh-dss")) in)
   ;; format found in libtomcrypt, see pem_ssh.c
   (let* ((p (read-message :mpint in #f))
 	 (q (read-message :mpint in #f))
@@ -168,7 +166,7 @@
 			  (make <dsa-key-parameter> :p p :q q :g g)
 			  y x)))
 
-(define-method read-openssh-private-key ((m (equal "ssh-rsa")) in pub-key)
+(define-method read-openssh-private-key ((m (equal "ssh-rsa")) in)
   ;; format found in libtomcrypt, see pem_ssh.c
   (let* ((n (read-message :mpint in #f))
 	 (e (read-message :mpint in #f))
@@ -178,7 +176,7 @@
 	 (q (read-message :mpint in #f)))
     (generate-private-key *key:rsa* n d :public-exponent e :p p :q q :qP qP)))
 
-(define-method read-openssh-private-key ((m (equal "ssh-ed25519")) in pub-key)
+(define-method read-openssh-private-key ((m (equal "ssh-ed25519")) in)
   ;; format found in libtomcrypt, see pem_ssh.c
   (read-message :string in #f) ;; ignore public
   (let ((random (read-message :string in #f)))
@@ -186,11 +184,12 @@
     (generate-private-key *key:ed25519* (bytevector-copy random 0 32))))
 
 (define (ecdsa-sha2? n) (string-prefix? "ecdsa-sha2" n))
-(define-method read-openssh-private-key ((m (?? ecdsa-sha2?)) in pub-key)
+(define-method read-openssh-private-key ((m (?? ecdsa-sha2?)) in)
   (let* ((id (read-message :utf8-string in #f))
 	 (Q (read-message :string in #f))
 	 (d (read-message :string in #f))
 	 (curve (ssh-ecdsa-identifier->curve (string->keyword id))))
-    (generate-private-key *key:ecdsa* (bytevector->integer d) curve pub-key)))
+    (generate-private-key *key:ecdsa* (bytevector->integer d) curve
+      (import-public-key *key:ecdsa* Q (public-key-format raw) curve))))
     
 )
