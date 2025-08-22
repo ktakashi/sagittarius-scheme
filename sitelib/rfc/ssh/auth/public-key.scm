@@ -70,33 +70,53 @@
       (ssh-message->bytevector
        (make <ssh-signature> :type (~ request 'algorithm-name)
 	     :signature (signer-sign-message signer msg)))))
+  (define blob (make-ssh-public-key public-key))
   ;; we don't check private-key type but public-key to detect the
   ;; algorithm name
-  (let* ((blob (make-ssh-public-key public-key))
-	 (m (make <ssh-msg-public-key-userauth-request>
-      	      :user-name user-name
-      	      :service-name service-name
-      	      :method +ssh-auth-method-public-key+
-      	      :has-signature? #t
-      	      :algorithm-name (~ blob 'name)
-      	      :blob (ssh-message->bytevector blob)
-	      :signature #f)))
-    (when (rsa-public-key? public-key)
-      ;; do prefligt
-      (check-rsa-algorithm! blob m transport))
-    ;; signature
-    (set! (~ m 'signature) (sign private-key (~ transport 'session-id) m))
-    (ssh-write-ssh-message transport m)
-    ;; read the responce
-    (ssh-read-auth-response transport
-     (lambda (rp)
-       (cond ((= (bytevector-u8-ref rp 0) +ssh-msg-userauth-pk-ok+)
-      	      (values #f
-      		      (read-message <ssh-msg-userauth-pk-ok>
-      				    (open-bytevector-input-port rp))))
-      	     (else (error 'ssh-public-key-authentication
-			  "unknown tag" rp)))))))
+  (let-values (((algorithm-name require-check?)
+		(determine-algorithm-name transport (~ blob 'name))))
+    (let ((m (make <ssh-msg-public-key-userauth-request>
+      	       :user-name user-name
+      	       :service-name service-name
+      	       :method +ssh-auth-method-public-key+
+      	       :has-signature? #t
+      	       :algorithm-name algorithm-name
+      	       :blob (ssh-message->bytevector blob)
+	       :signature #f)))
+      (when (and require-check? (rsa-public-key? public-key))
+	;; do prefligt
+	(check-rsa-algorithm! blob m transport))
+      ;; signature
+      (set! (~ m 'signature) (sign private-key (~ transport 'session-id) m))
+      (ssh-write-ssh-message transport m)
+      ;; read the responce
+      (ssh-read-auth-response transport
+	(lambda (rp)
+	  (cond ((= (bytevector-u8-ref rp 0) +ssh-msg-userauth-pk-ok+)
+      		 (values #f
+      			 (read-message <ssh-msg-userauth-pk-ok>
+      				       (open-bytevector-input-port rp))))
+      		(else (error 'ssh-public-key-authentication
+			     "unknown tag" rp))))))))
 
+
+(define (determine-algorithm-name transport key-algorithm-name)
+  (define (check server-algorithms)
+    (if (string=? key-algorithm-name +public-key-ssh-rsa+)
+	(cond ((member +public-key-rsa-sha2-512+ server-algorithms)
+	       (values +public-key-rsa-sha2-512+ #f))
+	      ((member +public-key-rsa-sha2-256+ server-algorithms)
+	       (values +public-key-rsa-sha2-256+ #f))
+	      ((member +public-key-ssh-rsa+ server-algorithms)
+	       (values key-algorithm-name #t))
+	      (else (values key-algorithm-name #t)))
+	(cond ((member key-algorithm-name server-algorithms)
+	       (values key-algorithm-name #f))
+	      (else (values key-algorithm-name #t)))))
+  (cond ((~ transport 'server-signature-algorithms) => check)
+	;; okay, we don't know if the server supports ssh-rsa or not
+	(else (values key-algorithm-name #t))))
+	 
 
 ;; For RSA, we have multiple options, so let the server respond if the
 ;; ones we supports are supported.

@@ -68,7 +68,8 @@
 	      (else (loop (cdr lis)))))))
   (define cookie
     (random-generator-read-random-bytes (~ transport 'prng) 16))
-  (let1 client-kex (make <ssh-msg-keyinit> :cookie cookie)
+  (let1 client-kex (make <ssh-msg-keyinit> :cookie cookie
+			 :kex-algorithms (*ssh-client-kex-list*))
     (let-values (((in/out size) (ssh-message->binary-port client-kex)))
       (ssh-write-packet-port transport in/out size)
       (set-port-position! in/out 0)

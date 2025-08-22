@@ -97,7 +97,7 @@
 	    *ssh-mac-list*
 	    *ssh-encryption-list*
 	    *ssh-public-key-list*
-	    *ssh-kex-list*)
+	    *ssh-client-kex-list*)
     (import (rnrs)
 	    (clos user)
 	    (clos core)
@@ -254,8 +254,7 @@
    (session-id :init-value #f)
    (kex      :init-value #f)	  ; key exchange algorithm (temporary)
    ;; server private key (for sign?)
-   (private-key :init-keyword :private-key :init-value #f)
-   ;; ivs (should we hold these ivs and keys things as cipher?)
+   ;; (private-key :init-keyword :private-key :init-value #f)
    (server-cipher :init-value #f)
    (client-cipher :init-value #f)
    ;; mac key
@@ -274,12 +273,13 @@
    (server-signature-algorithms :init-value #f) ;; for ext-info-s
    ))
 (define-method write-object ((o <ssh-transport>) out)
-  (format out "#<ssh-transport ~a ~a ~a ~a ~a>"
+  (format out "#<ssh-transport ~a ~a ~a ~a ~a ~a>"
           (slot-ref o 'server-version)
           (slot-ref o 'client-enc)
           (slot-ref o 'server-enc)
           (slot-ref o 'client-mac)
-          (slot-ref o 'server-mac)))
+          (slot-ref o 'server-mac)
+	  (slot-ref o 'server-signature-algorithms)))
 
 (define-class <ssh-channel> ()
   ((transport         :init-keyword :transport)
@@ -308,7 +308,7 @@
 
 ;; TODO consider RFC 9142
 (define empty-list (name-list))
-(define *ssh-kex-list*
+(define *ssh-client-kex-list*
   ;; The keyword is from in RFC9142
   (make-parameter (name-list
 		   +kex-ecdh-sha2-nistp256+ ;; SHOULD
@@ -363,7 +363,7 @@
 (define-ssh-message <ssh-msg-keyinit> (<ssh-message>)
   ((type   :byte +ssh-msg-kexinit+)
    (cookie (:byte 16))
-   (kex-algorithms <name-list> (*ssh-kex-list*))
+   (kex-algorithms <name-list>)
    (server-host-key-algorithms <name-list> (*ssh-public-key-list*))
    (encryption-algorithms-client-to-server <name-list> (*ssh-encryption-list*))
    (encryption-algorithms-server-to-client <name-list> (*ssh-encryption-list*))

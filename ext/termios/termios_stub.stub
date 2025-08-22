@@ -35,7 +35,6 @@
   (let ((file (Sg_PortFile p)))
     (unless file
       (Sg_AssertionViolation 'sys-tc* (SG_MAKE_STRING "not a file port") p))
-						      
     (.if "_WIN32"
 	 (let ((h::intptr_t (Sg_FileFD file)))
 	   ;; TODO is this correct?
