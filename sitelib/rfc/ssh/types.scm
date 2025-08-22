@@ -311,9 +311,11 @@
 (define *ssh-client-kex-list*
   ;; The keyword is from in RFC9142
   (make-parameter (name-list
-		   +kex-ecdh-sha2-nistp256+ ;; SHOULD
-		   +kex-ecdh-sha2-nistp384+ ;; SHOULD
-		   +kex-ecdh-sha2-nistp521+ ;; SHOULD
+		   +kex-curve25519-sha256+	       ;; SHOUD
+		   +kex-curve448-sha512+	       ;; MAY
+		   +kex-ecdh-sha2-nistp256+	       ;; SHOULD
+		   +kex-ecdh-sha2-nistp384+	       ;; SHOULD
+		   +kex-ecdh-sha2-nistp521+	       ;; SHOULD
 		   +kex-diffie-hellman-group15-sha512+ ;; MAY
 		   +kex-diffie-hellman-group16-sha512+ ;; SHOULD
 		   +kex-diffie-hellman-group17-sha512+ ;; MAY

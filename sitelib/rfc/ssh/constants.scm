@@ -247,6 +247,10 @@
 (define-constant +kex-ecdh-sha2-nistb409+ "ecdh-sha2-nistb409")
 (define-constant +kex-ecdh-sha2-nistt571+ "ecdh-sha2-nistt571")
 
+;; RFC 8732
+(define-constant +kex-curve25519-sha256+ "curve25519-sha256")
+(define-constant +kex-curve448-sha512+   "curve448-sha512")
+
 (define-constant +enc-aes256-ctr+   "aes256-ctr")
 (define-constant +enc-aes192-ctr+   "aes192-ctr")
 (define-constant +enc-aes128-ctr+   "aes128-ctr")

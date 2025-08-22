@@ -79,10 +79,37 @@
   (make-message-digest
    (ssh-ecdsa-digest-descriptor
     (ssh-ecdsa-identifier->ec-parameter (extract-identity n)))))
-  
 
 (define (extract-identity n)
   (string->keyword (substring n 10 (string-length n))))
+
+(define curve-25519/448 (list +kex-curve25519-sha256+ +kex-curve448-sha512+))
+(define-method ssh-client-exchange-kex-message
+  ((m (member curve-25519/448)) transport client-packet server-packet)
+  (define curve (if (string=? m +kex-curve448-sha512+) *key:x448* *key:x25519*))
+  (define kp (generate-key-pair curve))
+  (define Q-C (rfc7748-public-key-data (key-pair-public kp)))
+  (define (make-kex-ecdh-init)
+    (make <ssh-msg-kex-ecdh-init> :Q-C Q-C))
+  (define (compute-k transport kex-reply)
+    (let* ((K-S (~ kex-reply 'K-S))
+	   (Q-S (~ kex-reply 'Q-S))
+	   (sig (~ kex-reply 'signature))
+	   (spub (generate-public-key curve Q-S))
+	   (K (bytevector->integer
+	       (calculate-key-agreement *key:ecdh* (key-pair-private kp) spub)))
+	   (msg (make <ECDH-H>
+		  :V-C (~ transport 'client-version)
+		  :V-S (~ transport 'server-version)
+		  :I-C client-packet :I-S server-packet
+		  :K-S K-S :Q-C Q-C :Q-S Q-S :K K)))
+      (values K (ssh-verify-signature transport msg K-S sig))))
+  (ssh-kex-send/receive transport make-kex-ecdh-init <ssh-msg-kex-ecdh-reply>
+			compute-k))
+(define-method ssh-kex-digest ((n (member curve-25519/448)))
+  (make-message-digest
+   (if (string=? n +kex-curve448-sha512+) *digest:sha-512* *digest:sha-256*)))
+
 
 (define-ssh-message <ECDH-H> ()
   ((V-C :utf8-string)
