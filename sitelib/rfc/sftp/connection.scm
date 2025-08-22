@@ -35,6 +35,7 @@
 	    open-client-sftp-connection!
 	    close-client-sftp-connection!
 	    sftp-password-authentication
+	    sftp-keyboard-interactive-authentication
 	    sftp-public-key-authentication
 	    call-with-sftp-connection
 	    
@@ -141,6 +142,9 @@
 (define (sftp-password-authentication username password)
   (lambda (transport)
     (ssh-authenticate transport +ssh-auth-method-password+ username password)))
+(define (sftp-keyboard-interactive-authentication username)
+  (lambda (transport)
+    (ssh-authenticate transport +ssh-auth-method-keyboard-interactive+ username)))
 (define (sftp-public-key-authentication username private-key public-key)
   (lambda (transport)
     (ssh-authenticate transport +ssh-auth-method-public-key+
