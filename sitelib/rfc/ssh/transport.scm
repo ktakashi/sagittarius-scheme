@@ -2,7 +2,7 @@
 ;;;
 ;;; rfc/ssh/transport.scm - SSH2 protocol transport layer.
 ;;;  
-;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2025  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -34,7 +34,7 @@
     (export make-client-ssh-transport
 	    open-client-ssh-transport!
 	    socket->client-ssh-transport
-	    ssh-transport?
+	    ssh-transport? ssh-client-transport?
 	    close-client-ssh-transport!
 	    ;; parameter
 	    *ssh-version-string*
@@ -67,11 +67,13 @@
 
   ;; must do until handshake but for now
   (define (make-client-ssh-transport server port)
-    (make <ssh-transport> :server server :port port))
+    (make <ssh-client-transport> :server server :port port))
   ;; should work but not tested
   (define (socket->client-ssh-transport socket)
-    (make <ssh-transport> :socket socket))
+    (make <ssh-client-transport> :socket socket))
   (define (ssh-transport? transport) (is-a? <ssh-transport> transport))
+  (define (ssh-client-transport? transport)
+    (is-a? <ssh-client-transport> transport))
 
   (define (open-client-ssh-transport! transport)
     (unless (~ transport 'socket)

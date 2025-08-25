@@ -2,7 +2,7 @@
 ;;;
 ;;; rfc/ssh/types.scm - SSH2 protocol types.
 ;;;  
-;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2025  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -92,7 +92,7 @@
 	    <ssh-msg-userauth-info-response>
 	    <ssh-msg-userauth-prompt>
 
-	    <ssh-transport>
+	    <ssh-transport> <ssh-client-transport>
 	    <ssh-channel>
 	    *ssh-mac-list*
 	    *ssh-encryption-list*
@@ -270,8 +270,12 @@
    ;; keep the channels to allocate proper channel number
    (channels   :init-value '())
    (kex-digester :init-value #f) ;; message digest for kex
-   (server-signature-algorithms :init-value #f) ;; for ext-info-s
+    ;; for ext-info-s
    ))
+
+(define-class <ssh-client-transport> (<ssh-transport>)
+  ((server-signature-algorithms :init-value #f)))
+
 (define-method write-object ((o <ssh-transport>) out)
   (format out "#<ssh-transport ~a ~a ~a ~a ~a ~a>"
           (slot-ref o 'server-version)
