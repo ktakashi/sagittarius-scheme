@@ -117,8 +117,8 @@
 		 (rlet1 channel (handle-confirmation channel-open resp)
 		  (push! (~ transport 'channels) channel)))
 		((= type +ssh-msg-channel-open-failure+)
-		 (let1 f (read-message <ssh-msg-channel-open-failure>
-				       (open-bytevector-input-port resp))
+		 (let1 f (ssh-read-message <ssh-msg-channel-open-failure>
+					   (open-bytevector-input-port resp))
 		   (error 'open-client-ssh-channel
 			  (utf8->string (~ f 'description))
 			  (~ f 'reason-code))))
@@ -136,8 +136,8 @@
 	     (apply make <ssh-msg-channel-open>
 		    :channel-type "session" channel-info))
 	   (lambda (req packet)
-	     (let1 c (read-message <ssh-msg-channel-open-confirmation>
-				     (open-bytevector-input-port packet))
+	     (let1 c (ssh-read-message <ssh-msg-channel-open-confirmation>
+				       (open-bytevector-input-port packet))
 	       (make <ssh-channel>
 		 :transport transport
 		 ;; use server responded one
@@ -244,7 +244,7 @@
     (define transport (~ channel 'transport))
     (let loop ((response response) (status #f))
       (define (read-it class response)
-	(let1 m (read-message class (open-bytevector-input-port response))
+	(let1 m (bytevector->ssh-message class response)
 	  (let* ((size (if (is-a? m <ssh-msg-channel-data>)
 			   (let1 data (~ m 'data)
 			     (and receiver (receiver data))
@@ -281,22 +281,22 @@
 		   (values status (receiver (eof-object)))
 		   (read-it <ssh-msg-channel-close> response)))
 	      ((= b +ssh-msg-channel-window-adjust+)
-	       (let1 m (read-message <ssh-msg-channel-window-adjust>
-				     (open-bytevector-input-port response))
+	       (let1 m (bytevector->ssh-message <ssh-msg-channel-window-adjust>
+						response)
 		 (set! (~ channel 'server-window-size) (~ m 'size))
 		 (loop (ssh-read-packet transport) status)))
 	      ((= b +ssh-msg-channel-request+)
 	       ;; must be exit status but first get the head
 	       (let* ((in (open-bytevector-input-port response))
-		      (m  (read-message <ssh-msg-channel-request> in)))
+		      (m  (ssh-read-message <ssh-msg-channel-request> in)))
 		 (case (string->symbol (utf8->string (~ m 'request-type)))
 		   ((exit-status)
-		    (let1 m (read-message <ssh-msg-exit-status> in)
+		    (let1 m (ssh-read-message <ssh-msg-exit-status> in)
 		      (loop (ssh-read-packet transport) (~ m 'exit-status))))
 		   ((exit-signal)
 		    ;; TODO should we return something instead of raising
 		    ;; an error?
-		    (let1 m (read-message <ssh-msg-exit-signal> in)
+		    (let1 m (ssh-read-message <ssh-msg-exit-signal> in)
 		      (error (~ m 'signal-name) (~ m 'message)
 			     (~ m 'core-dumped?))))
 		   (else 

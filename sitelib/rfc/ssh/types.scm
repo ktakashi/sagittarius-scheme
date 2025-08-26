@@ -33,16 +33,19 @@
 (library (rfc ssh types)
     (export <ssh-type> <ssh-message>
 	    <name-list> name-list
-	    write-message
 
 	    define-ssh-type
 	    define-ssh-message
 
 	    ssh-message->bytevector
 	    ssh-message->binary-port
-	    read-message
-	    (rename (write-message ssh-write-message)
-		    (read-message ssh-read-message))
+
+	    bytevector->ssh-message 
+
+	    ssh-read-message
+	    ssh-write-message
+	    (rename (ssh-write-message write-message)
+		    (ssh-read-message read-message))
 
 	    <ssh-msg-keyinit>
 
@@ -118,34 +121,27 @@
   :metaclass <ssh-type-meta>)
 
 ;; generic method for message reading
-(define-generic write-message)
-(define-generic read-message)
-
-#;
-(define-method write-message ((m <ssh-type>) . ignore)
-(error 'write-message "sub class must implement this"))
-#;
-(define-method read-message ((t <ssh-type-meta>) . ignore)
-(error 'read-message "sub class meta class must implement this" t))
+(define-generic ssh-write-message)
+(define-generic ssh-read-message)
 
 ;; handle primitives
-(define-method write-message ((type (eql :byte)) o out array-size?)
+(define-method ssh-write-message ((type (eql :byte)) o out array-size?)
   (if array-size?
       (put-bytevector out o)
       (put-u8 out o)))
 ;; should not call this directly but in case (of what?) we put size
 ;; parameter optional
-(define-method read-message ((t (eql :byte)) in array-size?)
+(define-method ssh-read-message ((t (eql :byte)) in array-size?)
   (if array-size?
       (get-bytevector-n in array-size?)
       (get-u8 in)))
 
-(define-method write-message ((type (eql :boolean)) o out array-size?)
+(define-method ssh-write-message ((type (eql :boolean)) o out array-size?)
   (if array-size?
       (dotimes (i array-size?)
         (put-u8 out (if (vector-ref o i) 1 0)))
       (put-u8 out (if o 1 0))))
-(define-method read-message ((t (eql :boolean)) in array-size?)
+(define-method ssh-read-message ((t (eql :boolean)) in array-size?)
   (define (get-boolean)
     (case (get-u8 in)
       ((0) #f)
@@ -157,12 +153,12 @@
           (vector-set! v i (get-boolean))))
       (get-boolean)))
 
-(define-method write-message ((type (eql :uint32)) o out array-size?)
+(define-method ssh-write-message ((type (eql :uint32)) o out array-size?)
   (if array-size?
       (dotimes (i array-size?)
         (put-u32 out (vector-ref o i) (endianness big)))
       (put-u32 out o (endianness big))))
-(define-method read-message ((t (eql :uint32)) in array-size?)
+(define-method ssh-read-message ((t (eql :uint32)) in array-size?)
   (if array-size?
       (let1 v (make-vector array-size?)
         (dotimes (i array-size? v)
@@ -170,43 +166,43 @@
       (get-u32 in (endianness big))))
 
 ;; i don't think we need array of this
-(define-method write-message ((type (eql :mpint)) o out array-size?)
+(define-method ssh-write-message ((type (eql :mpint)) o out array-size?)
   (let* ((b (sinteger->bytevector o))
          (s (bytevector-length b)))
     (put-u32 out s (endianness big))
     (put-bytevector out b)))
-(define-method read-message ((t (eql :mpint)) in array-size?)
+(define-method ssh-read-message ((t (eql :mpint)) in array-size?)
   (let* ((size (get-u32 in (endianness big)))
          (buf  (get-bytevector-n in size)))
     (bytevector->sinteger buf)))
 
 ;; keep it as binary otherwise it's inconvenient
-(define-method write-message ((type (eql :string)) o out array-size?)
+(define-method ssh-write-message ((type (eql :string)) o out array-size?)
   (let* ((o (if (string? o) (string->utf8 o) o))
          (s (bytevector-length o)))
     (put-u32 out s (endianness big))
     (put-bytevector out o)))
-(define-method read-message ((t (eql :string)) in array-size?)
+(define-method ssh-read-message ((t (eql :string)) in array-size?)
   (let ((size (get-u32 in (endianness big))))
     (get-bytevector-n in size)))
-(define-method write-message ((type (eql :utf8-string)) o out array-size?)
-  (write-message :string o out array-size?))
-(define-method read-message ((t (eql :utf8-string)) in array-size?)
-  (utf8->string (read-message :string in array-size?)))
+(define-method ssh-write-message ((type (eql :utf8-string)) o out array-size?)
+  (ssh-write-message :string o out array-size?))
+(define-method ssh-read-message ((t (eql :utf8-string)) in array-size?)
+  (utf8->string (ssh-read-message :string in array-size?)))
 
 ;; keep it as binary otherwise it's inconvenient
-(define-method write-message ((type (eql :string-or-empty)) o out array-size?)
+(define-method ssh-write-message ((type (eql :string-or-empty)) o out array-size?)
   (when o
     (let* ((o (if (string? o) (string->utf8 o) o))
            (s (bytevector-length o)))
       (put-u32 out s (endianness big))
       (put-bytevector out o))))
-(define-method read-message ((t (eql :string-or-empty)) in array-size?)
+(define-method ssh-read-message ((t (eql :string-or-empty)) in array-size?)
   (or (eof-object? (lookahead-u8 in))
       (let ((size (get-u32 in (endianness big))))
         (get-bytevector-n in size))))
 
-(define-simple-datum-define define-ssh-type read-message write-message)
+(define-simple-datum-define define-ssh-type ssh-read-message ssh-write-message)
 (define-ssh-type <name-list> (<ssh-type>)
   ((names '()))
   (lambda (in)
@@ -228,15 +224,17 @@
 (define (ssh-message->binary-port msg)
   ;; buffer size?
   (let ((in/out (open-chunked-binary-input/output-port)))
-    (write-message (class-of msg) msg in/out)
+    (ssh-write-message (class-of msg) msg in/out)
     (let ((pos (port-position in/out)))
       (set-port-position! in/out 0)
       ;; return as values so that it can see the size
       (values in/out pos))))
 (define (ssh-message->bytevector msg)
   (let-values (((out e) (open-bytevector-output-port))) 
-    (write-message (class-of msg) msg out)
+    (ssh-write-message (class-of msg) msg out)
     (e)))
+(define (bytevector->ssh-message class bv)
+  (ssh-read-message class (open-bytevector-output-port bv)))
 
 ;; SSH context
 (define-class <ssh-transport> ()
@@ -309,7 +307,8 @@
 (define-class <ssh-message> (<ssh-type>) ())
 
 ;; defining read/write invariance data structure
-(define-composite-data-define define-ssh-message read-message write-message)
+(define-composite-data-define define-ssh-message
+  ssh-read-message ssh-write-message)
 
 ;; RFC 4253
 ;; 7.1. Algorithm Negotiation
