@@ -124,11 +124,8 @@
 (define (close-client-ssh-transport! transport
 				     :key (code +ssh-disconnect-by-application+)
 				     (description "finish"))
-  (let-values (((in size) (ssh-message->binary-port
-			   (make <ssh-msg-disconnect>
-			     :code code
-			     :description description))))
-    (ssh-write-packet-port transport in size)
+  (let ((msg (make <ssh-msg-disconnect> :code code :description description)))
+    (ssh-write-ssh-message transport msg)
     (socket-shutdown (~ transport 'socket) SHUT_RDWR)
     (socket-close (~ transport 'socket))))
 )

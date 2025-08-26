@@ -33,7 +33,6 @@
     (export ssh-read-packet
 	    ssh-write-packet
 	    ssh-write-ssh-message
-	    ssh-write-packet-port
 	    ssh-data-ready?
 	    *ssh:debug-package-handler*
 	    *ssh:ignore-package-handler*
@@ -261,10 +260,6 @@
 
 (define (ssh-write-ssh-message context msg)
   (ssh-write-packet context (ssh-message->bytevector msg)))
-
-;; Don't use this...
-(define (ssh-write-packet-port context in size)
-  (ssh-write-packet context (get-bytevector-n in size)))
 
 (define (ssh-data-ready? transport :optional (timeout 1000))
     (let1 reads (socket-read-select timeout (~ transport 'socket))
