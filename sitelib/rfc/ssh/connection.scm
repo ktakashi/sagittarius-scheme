@@ -74,7 +74,6 @@
 	    (rfc ssh constants)
 	    (rfc ssh types)
 	    (rfc ssh transport)
-	    (binary pack)
 	    (util bytevector))
 
   ;; base classes (session can use this)

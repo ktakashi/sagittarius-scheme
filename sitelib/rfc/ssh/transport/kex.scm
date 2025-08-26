@@ -41,7 +41,6 @@
 	    (rfc ssh transport kex dh)
 	    (rfc ssh transport kex ecdh)
 	    (clos user)
-	    (binary pack)
 	    (srfi :13 strings)
 	    (sagittarius)
 	    (sagittarius crypto ciphers)

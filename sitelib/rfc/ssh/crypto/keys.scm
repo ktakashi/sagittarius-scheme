@@ -39,7 +39,7 @@
     (import (rnrs)
 	    (clos user)
 	    (rfc ssh types)
-	    (binary pack)
+	    (binary io)
 	    (srfi :13 strings)
 	    (sagittarius)
 	    (sagittarius crypto keys)
@@ -75,7 +75,7 @@
 
 
 (define (ssh-read-public-key in)
-  (let* ((size (get-unpack in "!L"))
+  (let* ((size (get-u32 in (endianness big)))
 	 (name (utf8->string (get-bytevector-n in size))))
     (read-ssh-public-key name in)))
 
