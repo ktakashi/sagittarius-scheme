@@ -234,7 +234,7 @@
     (ssh-write-message (class-of msg) msg out)
     (e)))
 (define (bytevector->ssh-message class bv)
-  (ssh-read-message class (open-bytevector-output-port bv)))
+  (ssh-read-message class (open-bytevector-input-port bv)))
 
 ;; SSH context
 (define-class <ssh-transport> ()
