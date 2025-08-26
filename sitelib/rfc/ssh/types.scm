@@ -32,7 +32,7 @@
 #!nounbound
 (library (rfc ssh types)
     (export <ssh-type> <ssh-message>
-	    <name-list> name-list
+	    <name-list> name-list name-list? list->name-list
 
 	    define-ssh-type
 	    define-ssh-message
@@ -107,6 +107,7 @@
 	    (sagittarius)
 	    (sagittarius control)
 	    (sagittarius object)
+	    (sagittarius mop allocation)
 	    (sagittarius regex)
 	    (sagittarius crypto random)
 	    (rfc ssh constants)
@@ -219,7 +220,11 @@
 (define (name-list? o) (is-a? o <name-list>))
 
 ;; for convenience
-(define (name-list . strs) (make <name-list> :names strs))
+(define (name-list . strs) (list->name-list strs))
+(define (list->name-list nl)
+  (if (name-list? nl)
+      nl
+      (make <name-list> :names nl)))
 
 (define (ssh-message->binary-port msg)
   ;; buffer size?
@@ -237,7 +242,7 @@
   (ssh-read-message class (open-bytevector-input-port bv)))
 
 ;; SSH context
-(define-class <ssh-transport> ()
+(define-class <ssh-transport> (<allocation-mixin>)
   ((socket   :init-keyword :socket :init-value #f)	; raw socket (in/out port)
    ;; for reconnection?
    (server   :init-keyword :server :init-value #f)
@@ -249,6 +254,7 @@
    (client-sequence :init-value 0)	; unsigned 32 bit int
    (server-sequence :init-value 0)
    (session-id :init-value #f)
+   (public-key-algorithm :init-value #f) ;; server public key algorithm
    (kex      :init-value #f)	  ; key exchange algorithm (temporary)
    ;; server private key (for sign?)
    ;; (private-key :init-keyword :private-key :init-value #f)
@@ -279,13 +285,12 @@
    ))
 
 (define-method write-object ((o <ssh-transport>) out)
-  (format out "#<ssh-transport ~a ~a ~a ~a ~a ~a>"
+  (format out "#<ssh-transport ~a ~a ~a ~a ~a>"
           (slot-ref o 'server-version)
           (slot-ref o 'client-enc)
           (slot-ref o 'server-enc)
           (slot-ref o 'client-mac)
-          (slot-ref o 'server-mac)
-	  (slot-ref o 'server-signature-algorithms)))
+          (slot-ref o 'server-mac)))
 
 (define-class <ssh-channel> ()
   ((transport         :init-keyword :transport)
@@ -337,10 +342,8 @@
       		   ;; +kex-diffie-hellman-group14-sha1+        ;; MAY
       		   ;; +kex-diffie-hellman-group1-sha1+         ;; SHOULD NOT
 		   )
-      		  (lambda (nl)
-      		    (if (name-list? nl)
-      			nl
-      			(apply name-list nl)))))
+      		  list->name-list))
+
 (define *ssh-public-key-list*
   (make-parameter (name-list
 		   +public-key-ecdsa-sha2-nistp256+

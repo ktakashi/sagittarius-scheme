@@ -32,6 +32,7 @@
 (library (rfc ssh transport kex api)
     (export ssh-client-exchange-kex-message
 	    ssh-kex-send/receive
+	    ssh-compute-keys!
 	    ssh-verify-signature
 	    ssh-kex-digest)
     (import (rnrs)
@@ -54,8 +55,7 @@
 (define (ssh-kex-send/receive transport make-init-class reply-class compute-k)
   (ssh-write-ssh-message transport (make-init-class))
   (let* ((reply (ssh-read-packet transport))
-	 (kex-reply (ssh-read-message reply-class
-				      (open-bytevector-input-port reply))))
+	 (kex-reply (bytevector->ssh-message reply-class reply)))
     ;; verify signature
     (let-values (((K h) (compute-k transport kex-reply)))
       ;; send newkeys
@@ -63,13 +63,13 @@
       ;; receive newkeys
       (ssh-read-packet transport)
       ;; compute keys
-      (compute-keys! transport 
+      (ssh-compute-keys! transport 
 		     (call-with-bytevector-output-port 
 		      (lambda (out) (write-message :mpint K out #f)))
 		     h))))
 
 ;; private
-(define (compute-keys! transport k H)
+(define (ssh-compute-keys! transport k H)
   (define d (~ transport 'kex-digester))
   (define (digest salt) (digest-message d (bytevector-append k H salt)))
   ;; returns cipher and key size (in bytes)
@@ -108,8 +108,7 @@
   ;; so parse it and get the key for verify
   (define (parse-k-s) (ssh-message-bytevector->public-key K-S))
   (define (parse-h key)
-    (let ((sig (ssh-read-message <ssh-signature>
-				 (open-bytevector-input-port signature))))
+    (let ((sig (bytevector->ssh-message <ssh-signature> signature)))
       (values (~ sig 'signature)
 	      (verifier-init!
 	       (make-ssh-verifier (string->keyword (~ sig 'type)) key)))))

@@ -31,7 +31,11 @@
 #!read-macro=sagittarius/regex
 #!nounbound
 (library (rfc ssh transport kex ecdh)
-    (export ssh-client-exchange-kex-message)
+    (export ssh-client-exchange-kex-message
+	    ;; let's export these utilities
+	    (rename (ecdh-sha2? ssh-kex-ecdh-sha2?)
+		    (extract-identity ssh-kex-ecdh-identity)
+		    (<ECDH-H> <SSH-ECDH-H>)))
     (import (rnrs)
 	    (clos user)
 	    (srfi :13 strings)

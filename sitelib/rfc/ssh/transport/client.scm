@@ -28,7 +28,6 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-#!read-macro=sagittarius/regex
 #!nounbound
 (library (rfc ssh transport client)
     (export make-client-ssh-transport
@@ -42,16 +41,30 @@
 	    (clos user)
 	    (sagittarius)
 	    (sagittarius object)
-	    (sagittarius regex)
 	    (sagittarius socket)
-	    (srfi :39 parameters)
 	    (rfc ssh constants)
 	    (rfc ssh types)
+	    (rfc ssh transport version)
 	    (rfc ssh transport io)
 	    (rfc ssh transport kex))
 
 (define-class <ssh-client-transport> (<ssh-transport>)
-  ((server-signature-algorithms :init-value #f)))
+  ((server-signature-algorithms :init-value #f)
+   (host-version :allocation :virtual
+		 :slot-ref (lambda (o) (~ o 'client-version))
+		 :slot-set! (lambda (o v) (set! (~ o 'client-version) v)))
+   (peer-version :allocation :virtual
+		 :slot-ref (lambda (o) (~ o 'server-version))
+		 :slot-set! (lambda (o v) (set! (~ o 'server-version) v)))))
+
+(define-method write-object ((o <ssh-client-transport>) out)
+  (format out "#<ssh-client-transport ~a ~a ~a ~a ~a ~a>"
+          (slot-ref o 'server-version)
+          (slot-ref o 'client-enc)
+          (slot-ref o 'server-enc)
+          (slot-ref o 'client-mac)
+          (slot-ref o 'server-mac)
+	  (slot-ref o 'server-signature-algorithms)))
 
 ;; must do until handshake but for now
 (define (make-client-ssh-transport server port)
@@ -70,56 +83,10 @@
   ;; didn't make performance better
   ;; (socket-setsockopt! socket IPPROTO_TCP TCP_NODELAY 1)
   ;; (socket-setsockopt! socket SOL_SOCKET SO_RCVBUF #x40000)
-  (version-exchange transport)
+  (ssh-version-exchange transport)
   (ssh-client-key-exchange transport)
   transport)
 
-(define-constant +default-version-string+ 
-  (string-append "SSH-2.0-Sagittarius_" (sagittarius-version)))
-(define *ssh-version-string* (make-parameter +default-version-string+))
-
-
-;; utility
-(define (read-ascii-line in)
-  (define buf (make-bytevector 1))
-  (let-values (((out e) (open-string-output-port)))
-    (let loop ((r (socket-recv! in buf 0 1)))
-      (unless (zero? r)
-	(case (bytevector-u8-ref buf 0)
-	  ;; version string must end CR LF however
-	  ;; OpenSSH 4.3 returns only LF...
-	  ((#x0D) (socket-recv! in buf 0 1))
-	  ((#x0A))
-	  (else => (lambda (u8)
-		     (put-char out (integer->char u8))
-		     (loop (socket-recv! in buf 0 1)))))))
-    (e)))
-
-;; write line with CR LF
-(define (write-line out str)
-  (socket-send out (string->utf8 str))
-  (socket-send out #vu8(#x0D #x0A)))
-
-;; RFC 4253 defines identification string like the followings;
-;;  SSH-protoversion-softwareversion SP comments CR LF
-;; Thus 'comments' must be a part of identification string
-;; to be used as a part of MAC.
-(define (version-exchange transport)
-  (let ((in/out (~ transport 'socket)))
-    (let loop ()
-      (let ((vs (read-ascii-line in/out)))
-	(cond ((zero? (string-length vs))
-	       (socket-shutdown in/out SHUT_RDWR)
-	       (socket-close in/out)
-	       (error 'version-exchange "no version string"))
-	      ((#/(SSH-2.0-[\w.-]+)\s*/ vs) => 
-	       (lambda (m)
-		 (set! (~ transport 'server-version) vs)
-		 (let ((version (*ssh-version-string*)))
-		   (set! (~ transport 'client-version) version)
-		   ;; send
-		   (write-line in/out version))))
-	      (else (loop)))))))
 
 (define (close-client-ssh-transport! transport
 				     :key (code +ssh-disconnect-by-application+)

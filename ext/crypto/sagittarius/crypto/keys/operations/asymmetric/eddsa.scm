@@ -88,6 +88,12 @@
 (define-class <eddsa-public-key> (<public-key> <eddsa-key>)
   ((data :init-keyword :data :reader eddsa-public-key-data)))
 (define (eddsa-public-key? o) (is-a? o <eddsa-public-key>))
+(define-method write-object ((o <eddsa-public-key>) p)
+  (let-values (((out e) (open-string-output-port)))
+    (format out "#<eddsa-public-key~%")
+    (format out "     data: ~a~%" (eddsa-public-key-data o))
+    (format out "    curve: ~a>" (if (ed25519-key? o) 'ed25519 'ed448))
+    (display (e) p)))
 
 (define-class <eddsa-private-key> (<private-key> <eddsa-key>)
   ((random :init-keyword :random :reader eddsa-private-key-random)

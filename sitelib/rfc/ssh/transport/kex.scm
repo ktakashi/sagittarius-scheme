@@ -31,7 +31,8 @@
 #!read-macro=sagittarius/regex
 #!nounbound
 (library (rfc ssh transport kex)
-    (export ssh-client-key-exchange)
+    (export ssh-client-key-exchange
+	    ssh-key-exchange)
     (import (rnrs)
 	    (rfc ssh constants)
 	    (rfc ssh types)
@@ -52,7 +53,7 @@
 	    (sagittarius control)
 	    (sagittarius object))
 
-(define (ssh-client-key-exchange transport)
+(define ((ssh-key-exchange key-algorithms exchange-kex-message) transport . opts)
   (define (fill-slot transport-slot req res kex-slot)
     (let ((cnl (~ req kex-slot 'names))
 	  (snl (~ res kex-slot 'names)))
@@ -67,26 +68,29 @@
 	      (else (loop (cdr lis)))))))
   (define cookie
     (random-generator-read-random-bytes (~ transport 'prng) 16))
-  (let* ((client-kex (make <ssh-msg-keyinit> :cookie cookie
-			   :kex-algorithms (*ssh-client-kex-list*)))
-	 (client-packet (ssh-message->bytevector client-kex)))
-    (ssh-write-packet transport client-packet)
-    (let* ((server-packet (ssh-read-packet transport))
-	   (server-kex (read-message <ssh-msg-keyinit> 
-			 (open-bytevector-input-port server-packet))))
+  (let* ((host-kex (apply make <ssh-msg-keyinit> :cookie cookie
+			  :kex-algorithms (key-algorithms) opts))
+	 (host-packet (ssh-message->bytevector host-kex)))
+    (ssh-write-packet transport host-packet)
+    (let* ((peer-packet (ssh-read-packet transport))
+	   (peer-kex (bytevector->ssh-message <ssh-msg-keyinit> peer-packet)))
       ;; ok do key exchange
       ;; first decide the algorithms
-      (fill-slot 'kex client-kex server-kex 'kex-algorithms)
-      (fill-slot 'client-enc client-kex server-kex
+      (fill-slot 'kex host-kex peer-kex 'kex-algorithms)
+      (fill-slot 'client-enc host-kex peer-kex
 		 'encryption-algorithms-client-to-server)
-      (fill-slot 'server-enc client-kex server-kex
+      (fill-slot 'server-enc host-kex peer-kex
 		 'encryption-algorithms-server-to-client)
-      (fill-slot 'client-mac client-kex server-kex
-		 'mac-algorithms-client-to-server)
-      (fill-slot 'server-mac client-kex server-kex
-		 'mac-algorithms-server-to-client)
+      (fill-slot 'client-mac host-kex peer-kex 'mac-algorithms-client-to-server)
+      (fill-slot 'server-mac host-kex peer-kex 'mac-algorithms-server-to-client)
+      (fill-slot 'public-key-algorithm host-kex peer-kex
+		 'server-host-key-algorithms)
       ;; dispatch
       (set! (~ transport 'kex-digester) (ssh-kex-digest (~ transport 'kex)))
-      (ssh-client-exchange-kex-message (~ transport 'kex)
-	transport client-packet server-packet))))
+      (exchange-kex-message (~ transport 'kex)
+	transport host-packet peer-packet))))
+
+(define ssh-client-key-exchange
+  (ssh-key-exchange *ssh-client-kex-list* ssh-client-exchange-kex-message))
+  
 )
