@@ -82,7 +82,7 @@
       (lambda (rp)
 	(cond ((= (u8 rp 0) +ssh-msg-userauth-passwd-changereq+)
       	       (values #f
-      		       (read-message <ssh-msg-userauth-passwd-changereq>
+      		       (ssh-read-message <ssh-msg-userauth-passwd-changereq>
       				     (open-bytevector-input-port rp))))
 	      (else (error 'auth-password "unknown tag" rp)))))))
 
@@ -91,12 +91,12 @@
       				   :allow-other-keys others)
   (define (read-prompts bin n)
     (do ((i 0 (+ i 1))
-         (r '() (cons (read-message <ssh-msg-userauth-prompt> bin) r)))
+         (r '() (cons (ssh-read-message <ssh-msg-userauth-prompt> bin) r)))
         ((= i n) (reverse! r))))
   (define (handle-info-request rp)
     (cond ((= (u8 rp 0) +ssh-msg-userauth-info-request+)
       	   (let* ((bin (open-bytevector-input-port rp))
-      		  (req (read-message <ssh-msg-userauth-info-request> bin))
+      		  (req (ssh-read-message <ssh-msg-userauth-info-request> bin))
       		  (prompts (read-prompts bin (~ req 'num-prompts))))
 	     (let ((responses (read-client-input prompts)))
 	       (let-values (((out e) (open-bytevector-output-port)))

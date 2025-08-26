@@ -68,28 +68,26 @@
 	      (else (loop (cdr lis)))))))
   (define cookie
     (random-generator-read-random-bytes (~ transport 'prng) 16))
-  (let1 client-kex (make <ssh-msg-keyinit> :cookie cookie
-			 :kex-algorithms (*ssh-client-kex-list*))
-    (let-values (((in/out size) (ssh-message->binary-port client-kex)))
-      (ssh-write-packet-port transport in/out size)
-      (set-port-position! in/out 0)
-      (let* ((client-packet (get-bytevector-all in/out))
-	     (server-packet (ssh-read-packet transport))
-	     (server-kex (read-message <ssh-msg-keyinit> 
-			  (open-bytevector-input-port server-packet))))
-	;; ok do key exchange
-	;; first decide the algorithms
-	(fill-slot 'kex client-kex server-kex 'kex-algorithms)
-	(fill-slot 'client-enc client-kex server-kex
-		   'encryption-algorithms-client-to-server)
-	(fill-slot 'server-enc client-kex server-kex
-		   'encryption-algorithms-server-to-client)
-	(fill-slot 'client-mac client-kex server-kex
-		   'mac-algorithms-client-to-server)
-	(fill-slot 'server-mac client-kex server-kex
-		   'mac-algorithms-server-to-client)
-	;; dispatch
-	(set! (~ transport 'kex-digester) (ssh-kex-digest (~ transport 'kex)))
-	(ssh-client-exchange-kex-message (~ transport 'kex)
-	 transport client-packet server-packet)))))
+  (let* ((client-kex (make <ssh-msg-keyinit> :cookie cookie
+			   :kex-algorithms (*ssh-client-kex-list*)))
+	 (client-packet (ssh-message->bytevector client-kex)))
+    (ssh-write-packet transport client-packet)
+    (let* ((server-packet (ssh-read-packet transport))
+	   (server-kex (read-message <ssh-msg-keyinit> 
+			 (open-bytevector-input-port server-packet))))
+      ;; ok do key exchange
+      ;; first decide the algorithms
+      (fill-slot 'kex client-kex server-kex 'kex-algorithms)
+      (fill-slot 'client-enc client-kex server-kex
+		 'encryption-algorithms-client-to-server)
+      (fill-slot 'server-enc client-kex server-kex
+		 'encryption-algorithms-server-to-client)
+      (fill-slot 'client-mac client-kex server-kex
+		 'mac-algorithms-client-to-server)
+      (fill-slot 'server-mac client-kex server-kex
+		 'mac-algorithms-server-to-client)
+      ;; dispatch
+      (set! (~ transport 'kex-digester) (ssh-kex-digest (~ transport 'kex)))
+      (ssh-client-exchange-kex-message (~ transport 'kex)
+	transport client-packet server-packet))))
 )

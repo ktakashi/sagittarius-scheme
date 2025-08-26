@@ -92,7 +92,7 @@
 	    <ssh-msg-userauth-info-response>
 	    <ssh-msg-userauth-prompt>
 
-	    <ssh-transport> <ssh-client-transport>
+	    <ssh-transport>
 	    <ssh-channel>
 	    *ssh-mac-list*
 	    *ssh-encryption-list*
@@ -108,7 +108,6 @@
 	    (sagittarius crypto random)
 	    (rfc ssh constants)
 	    (srfi :13 strings)
-	    (srfi :26 cut)
 	    (srfi :39 parameters)
 	    (binary pack)
 	    (binary data)
@@ -236,8 +235,9 @@
       ;; return as values so that it can see the size
       (values in/out pos))))
 (define (ssh-message->bytevector msg)
-  (call-with-bytevector-output-port 
-   (cut write-message (class-of msg) msg <>)))
+  (let-values (((out e) (open-bytevector-output-port))) 
+    (write-message (class-of msg) msg out)
+    (e)))
 
 ;; SSH context
 (define-class <ssh-transport> ()
@@ -270,11 +270,16 @@
    ;; keep the channels to allocate proper channel number
    (channels   :init-value '())
    (kex-digester :init-value #f) ;; message digest for kex
-    ;; for ext-info-s
-   ))
 
-(define-class <ssh-client-transport> (<ssh-transport>)
-  ((server-signature-algorithms :init-value #f)))
+   ;; as far as i know, all block cipher has 2^n size (8 or 16) thus 8192 is
+   ;; multiple of them.
+   ;; NB: for some reason Windows RCVBUF is set to 8KB by default.
+   ;;     reading more than that would cause performance issue.
+   (read-buffer  :init-form (make-bytevector 8192))
+   ;; write buffer can be much smaller as we can send transport packet
+   ;; in chunks. For now, we use 128 (doubled size of HMAC-SHA512 block size)
+   (write-buffer :init-form (make-bytevector 128))
+   ))
 
 (define-method write-object ((o <ssh-transport>) out)
   (format out "#<ssh-transport ~a ~a ~a ~a ~a ~a>"

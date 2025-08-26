@@ -54,126 +54,30 @@
 	    )
     (import (rnrs)
 	    (sagittarius)
-	    (sagittarius socket)
-	    (sagittarius control)
-	    (sagittarius object)
-	    (sagittarius regex)
-	    (srfi :39 parameters)
 	    (rfc ssh constants)
 	    (rfc ssh types)
 	    (rfc ssh transport io)
-	    (rfc ssh transport kex)
+	    (rfc ssh transport client)
 	    (clos user))
+;; FIXME
+;;   currently it's really bad way to read and write a packet
+;;   (especially read).
+;;   try read maximum number of packet and encrypt/decrypt if needed.
+;; TODO
+;;   * make buffer in transport and read&decrypt per cipher block size
+(define-constant +max-packet-size+ 35000)
 
-  ;; must do until handshake but for now
-  (define (make-client-ssh-transport server port)
-    (make <ssh-client-transport> :server server :port port))
-  ;; should work but not tested
-  (define (socket->client-ssh-transport socket)
-    (make <ssh-client-transport> :socket socket))
-  (define (ssh-transport? transport) (is-a? <ssh-transport> transport))
-  (define (ssh-client-transport? transport)
-    (is-a? <ssh-client-transport> transport))
+(define (ssh-transport? transport) (is-a? <ssh-transport> transport))
 
-  (define (open-client-ssh-transport! transport)
-    (unless (~ transport 'socket)
-      (let ((server (~ transport 'server))
-	    (port (~ transport 'port)))
-	(set! (~ transport 'socket) (make-client-socket server port))))
-    ;; didn't make performance better
-    ;; (socket-setsockopt! socket IPPROTO_TCP TCP_NODELAY 1)
-    ;; (socket-setsockopt! socket SOL_SOCKET SO_RCVBUF #x40000)
-    (version-exchange transport)
-    (ssh-client-key-exchange transport)
-    transport)
-  
-  (define-constant +default-version-string+ 
-    (string-append "SSH-2.0-Sagittarius_" (sagittarius-version)))
-  (define *ssh-version-string* (make-parameter +default-version-string+))
+;; As the feature of block cipher, if the decryption is done by
+;; in order then it can decrypt per block so that we don't have
+;; to allocate huge bytevector buffer after decryption.
 
-  ;; utility
-  (define (read-ascii-line in)
-    (define buf (make-bytevector 1))
-    (let-values (((out e) (open-string-output-port)))
-      (let loop ((r (socket-recv! in buf 0 1)))
-	(unless (zero? r)
-	  (case (bytevector-u8-ref buf 0)
-	    ;; version string must end CR LF however
-	    ;; OpenSSH 4.3 returns only LF...
-	    ((#x0D) (socket-recv! in buf 0 1))
-	    ((#x0A))
-	    (else => (lambda (u8)
-		       (put-char out (integer->char u8))
-		       (loop (socket-recv! in buf 0 1)))))))
-      (e)))
-  
-  ;; write line with CR LF
-  (define (write-line out str)
-    (socket-send out (string->utf8 str))
-    (socket-send out #vu8(#x0D #x0A)))
-
-  ;; RFC 4253 defines identification string like the followings;
-  ;;  SSH-protoversion-softwareversion SP comments CR LF
-  ;; Thus 'comments' must be a part of identification string
-  ;; to be used as a part of MAC.
-  (define (version-exchange transport)
-    (let1 in/out (~ transport 'socket)
-      (let loop ()
-	(let1 vs (read-ascii-line in/out)
-	  (cond ((zero? (string-length vs))
-		 (socket-shutdown in/out SHUT_RDWR)
-		 (socket-close in/out)
-		 (error 'version-exchange "no version string"))
-		((#/(SSH-2.0-[\w.-]+)\s*/ vs) => 
-		 (lambda (m)
-		   (set! (~ transport 'server-version) vs)
-		   (let ((version (*ssh-version-string*)))
-		     (set! (~ transport 'client-version) version)
-		     ;; send
-		     (write-line in/out version))))
-		(else (loop)))))))
-
-  ;; I don't think these are useful on SSH since payload must be
-  ;; a message format
-;;  (define (ssh-socket-send socket payload . ignore)
-;;    (write-packet socket payload))
-;;  ;; TODO we need a buffer to store the message from peer.
-;;  (define (ssh-socket-recv socket size . ignore)
-;;    (error 'ssh-socket-recv "not supported yet"))
-
-
-  ;; FIXME
-  ;;   currently it's really bad way to read and write a packet
-  ;;   (especially read).
-  ;;   try read maximum number of packet and encrypt/decrypt if needed.
-  ;; TODO
-  ;;   * make buffer in transport and read&decrypt per cipher block size
-  (define-constant +max-packet-size+ 35000)
-
-
-  ;; As the feature of block cipher, if the decryption is done by
-  ;; in order then it can decrypt per block so that we don't have
-  ;; to allocate huge bytevector buffer after decryption.
-  
-
-  ;; for my laziness
-
-  (define (close-client-ssh-transport! transport
-		       :key (code +ssh-disconnect-by-application+)
-			    (description "finish"))
-    (let-values (((in size) (ssh-message->binary-port
-			     (make <ssh-msg-disconnect>
-			       :code code
-			       :description description))))
-      (ssh-write-packet-port transport in size)
-      (socket-shutdown (~ transport 'socket) SHUT_RDWR)
-      (socket-close (~ transport 'socket))))
-
-  (define (ssh-service-request transport name)
-    (let-values (((in size) (ssh-message->binary-port 
-			     (make <ssh-msg-service-request>
-			       :service-name (string->utf8 name)))))
-      (ssh-write-packet-port transport in size))
-    (read-message <ssh-msg-service-accept>
-		  (open-bytevector-input-port (ssh-read-packet transport))))
+;; for my laziness
+(define (ssh-service-request transport name)
+  (let ((msg (make <ssh-msg-service-request>
+	       :service-name (string->utf8 name))))
+    (ssh-write-ssh-message transport msg))
+  (ssh-read-message <ssh-msg-service-accept>
+   (open-bytevector-input-port (ssh-read-packet transport))))
 )

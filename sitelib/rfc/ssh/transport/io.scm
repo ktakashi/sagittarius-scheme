@@ -50,13 +50,8 @@
 	    (sagittarius crypto ciphers)
 	    (sagittarius crypto mac)
 	    (sagittarius crypto random)
+	    (sagittarius crypto secure)
 	    (util bytevector))
-
-;; as far as i know, all block cipher has 2^n size (8 or 16) thus 8192 is
-;; multiple of them.
-;; NB: for some reason Windows RCVBUF is set to 8KB by default.
-;;     reading more than that would cause performance issue.
-(define-constant +packet-buffer-size+ (* 1024 8))
 
 (define (default-handler payload))
 (define (default-debug-handler payload)
@@ -73,65 +68,6 @@
 (define *ssh:ext-info-handler* (make-parameter default-ext-info-handler))
 
 (define (ssh-read-packet context)
-  (define (read-as-chunk bvs)
-    (lambda (size)
-      (list->vector (align-bytevectors bvs size))))
-
-  ;; FIXME this is not a good implementation...
-  (define (read&decrypt mac-length)
-    (define c (~ context 'server-cipher))
-    (define block-size (block-cipher-block-length c))
-    (define in (~ context 'socket))
-
-    (define hmac
-      (let ((m (~ context 'server-mac)))
-	(mac-init! m)
-	(mac-process! m (integer->bytevector (~ context 'server-sequence) 4))
-	m))
-    (define (verify-mac transport mac)
-      (let ((bv (make-bytevector (mac-mac-size hmac))))
-	(mac-done! hmac bv)
-	(bytevector=? mac bv)))
-    (define (read-block in size)
-      (define (read-block1 size)
-	(define buf-size (min size +packet-buffer-size+))
-	(define buf (make-bytevector buf-size))
-	(define (finish buf)
-	  (let ((pt (block-cipher-decrypt-last-block c buf)))
-	    (mac-process! hmac pt)
-	    pt))
-	(let loop ((rest buf-size) (read-size 0))
-	  (let ((n (socket-recv! in buf (+ 0 read-size) rest)))
-	    (if (= n rest)
-		(finish buf)
-		(loop (- rest n) (+ read-size n))))))
-      (let ((count (ceiling (/ size +packet-buffer-size+))))
-	(let loop ((size size) (r '()))
-	  (if (zero? size)
-	      (reverse! r)
-	      (let ((bv (read-block1 size)))
-		(loop (- size (bytevector-length bv)) (cons bv r)))))))
-    ;; TODO there are still multiple of possibly huge allocation
-    ;; i would like to have it only once. (or even zero if we change
-    ;; read-packet to return port.)
-    (let* ((firsts (read-block in block-size))
-	   (first (car firsts))
-	   ;; i've never seen block cipher which has block size less
-	   ;; than 8
-	   (total-size (bytevector-u32-ref first 0 (endianness big)))
-	   (padding-size (bytevector-u8-ref first 4))
-	   ;; hope the rest have multiple of block size...
-	   (rest-size (- (+ total-size 4) block-size))
-	   (rest (read-block in rest-size))
-	   (mac  (socket-recv in mac-length))
-	   (pt   (->chunked-binary-input-port 
-		  (read-as-chunk (cons first rest)))))
-      (verify-mac context mac)
-      ;; we know chunked-binary port has set-port-position!
-      (set-port-position! pt 5)
-      ;; FIXME we even don't want to do this
-      ;; make read-packet return port...
-      (get-bytevector-n pt (- total-size padding-size 1))))
   (define (recv-n in n)
     (define buf (make-bytevector n))
     (let loop ((n n) (start 0))
@@ -139,13 +75,82 @@
 	(if (= r n)
 	    buf
 	    (loop (- n r) (+ start r))))))
-  (define (read-data in)
-    (let* ((sizes (recv-n in 5))
-	   (total (bytevector-u32-ref sizes 0 (endianness big)))
-	   (pad   (bytevector-u8-ref sizes 4)))
+  (define (recv-n! in buf n)
+    (let loop ((rest n) (read-size 0))
+      (let ((n (socket-recv! in buf (+ 0 read-size) rest)))
+	(if (= n rest)
+	    buf
+	    (loop (- rest n) (+ read-size n))))))
+  ;; FIXME this is not a good implementation...
+  (define (read&decrypt mac-length)
+    (define c (~ context 'server-cipher))
+    (define block-size (block-cipher-block-length c))
+    (define in (~ context 'socket))
+
+    (define hmac
+      (let ((m (~ context 'server-mac))
+	    ;; reuse buffer, we will overwrite anyway
+	    (buf (~ context 'read-buffer)))
+	(bytevector-u32-set! buf 0 (~ context 'server-sequence) (endianness big))
+	(mac-init! m)
+	(mac-process! m buf 0 4)
+	m))
+    (define (verify-mac transport mac)
+      ;; reuse buffer, payload is already copied
+      (let ((bv (~ context 'read-buffer))
+	    (size (mac-mac-size hmac)))
+	(mac-done! hmac bv 0 size)
+	(safe-bytevector=? mac bv 0 0 size)))
+
+    (define (read-block in size)
+      (define buf (~ context 'read-buffer))
+      (define context-buffer-size (bytevector-length buf))
+
+      (define (read-block1 size)
+	(define (finish buf)
+	  (define pt (make-bytevector size))
+	  (let ((n (block-cipher-decrypt! c buf 0 pt 0)))
+	    (mac-process! hmac pt)
+	    pt))
+	(finish (recv-n! in buf size)))
+
+      (let ((count (ceiling (/ size context-buffer-size))))
+	(let loop ((size size) (r '()))
+	  (if (zero? size)
+	      (bytevector-concatenate (reverse! r))
+	      (let ((bv (read-block1 (min size context-buffer-size))))
+		(loop (- size (bytevector-length bv)) (cons bv r)))))))
+    ;; TODO there are still multiple of possibly huge allocation
+    ;; i would like to have it only once. (or even zero if we change
+    ;; read-packet to return port.)
+    (let* ((first (read-block in block-size))
+	   ;; i've never seen block cipher which has block size less
+	   ;; than 8
+	   (total-size (bytevector-u32-ref first 0 (endianness big)))
+	   (padding-size (bytevector-u8-ref first 4))
+	   ;; hope the rest have multiple of block size...
+	   (rest-size (- (+ total-size 4) block-size))
+	   (rest (read-block in rest-size))
+	   (mac  (recv-n in mac-length))
+	   (size (- total-size padding-size 1))
+	   (offset (- (bytevector-length first) 5))
+	   (payload (make-bytevector size)))
+      (verify-mac context mac)
+      (let ((first-size (min offset size)))
+	(bytevector-copy! first 5 payload 0 first-size)
+	(unless (= first-size size)
+	  (bytevector-copy! rest 0  payload offset (- size offset))))
+      payload))
+  
+  (define (read-data context)
+    (define buffer (~ context 'read-buffer))
+    (define in (~ context 'socket))
+    (recv-n! in buffer 5)
+    (let* ((total (bytevector-u32-ref buffer 0 (endianness big)))
+	   (pad   (bytevector-u8-ref buffer 4)))
       (rlet1 payload (recv-n in (- total pad 1))
 	     ;; discards padding
-	     (recv-n in pad))))
+	     (recv-n! in buffer pad))))
 
   (let* ((mac-length (or (and-let* ((k (~ context 'client-cipher))
 				    (h (~ context 'server-mac))
@@ -153,7 +158,7 @@
 			   (mac-mac-size h))
 			 0))
 	 (payload (if (zero? mac-length)
-		      (read-data (~ context 'socket))
+		      (read-data context)
 		      (read&decrypt mac-length)))
 	 (type (bytevector-u8-ref payload 0)))
     (set! (~ context 'server-sequence) (+ (~ context 'server-sequence) 1))
@@ -173,88 +178,93 @@
 	  (else payload))))
 
 (define (ssh-write-packet context msg)
-  (ssh-write-packet-port context (open-bytevector-input-port msg)
-			 (bytevector-length msg)))
-(define (ssh-write-ssh-message context msg)
-  (let-values (((in size) (ssh-message->binary-port msg)))
-    (ssh-write-packet-port context in size)))
-
-(define (ssh-write-packet-port context in size)
   (define c (~ context 'client-cipher))
-  (define block-size (if c (block-cipher-block-length c) 8))
+  ;; minimum packet size is 16
+  (define block-size (if c (block-cipher-block-length c) 16))
   (define out (~ context 'socket))
+  (define msg-len (bytevector-length msg))
+  (define buffer (~ context 'write-buffer))
+  (define buffer-len (bytevector-length buffer))
+  ;; packet must be minimum of 16, some magic needed
+  (define packet-len
+    (let ((size (- block-size 1))) ;; 15 or 7, for supporting ciphers
+      ;; at least 4 bytes of padding, so add extra 4 here
+      (- (bitwise-and (+ msg-len 4 1 4 size) (bitwise-not size)) 4)))
+  (define pad-len (- packet-len 1 msg-len))
   
-  (define total-len 
-    (let ()
-      (define (total-size data-len)
-	(define (round-up l)
-	  (let ((size (if c (- (block-cipher-block-length c) 1) 7)))
-	    (bitwise-and (+ l size) (bitwise-not size))))
-	(round-up (+ data-len 4 1 4)))
-      (total-size size)))
-  (define padding (random-generator-read-random-bytes (~ context 'prng)
-						      (- total-len 5 size)))
+  (define padding
+    (random-generator-read-random-bytes (~ context 'prng) pad-len))
+
   (define hmac
     (and-let* ((m (~ context 'client-mac))
 	       ( (mac? m) ))
+      ;; the same trick as read :)
+      (bytevector-u32-set! buffer 0 (~ context 'client-sequence)
+			   (endianness big))
       (mac-init! m)
-      (mac-process! m (integer->bytevector (~ context 'client-sequence) 4))
+      (mac-process! m buffer 0 4)
       m))
+  (define (do-send m size) (socket-send/range out m 0 size))
   (define (encrypt&send c hmac out)
-    ;; make buffer a bit bigger so that it won't call get-bytevector-n!
-    ;; millions times
-    (define buffer-size (* block-size 512))
-    (define buffer (make-bytevector buffer-size 0))
-    
-    (define (do-send out c hmac packet)
-      (when hmac (mac-process! hmac packet))
-      (let ((m (if c (block-cipher-encrypt-last-block c packet) packet)))
-	(socket-send out m)))
+    (define (encrypt m offset buffer)
+      (if c
+	  (block-cipher-encrypt! c m offset buffer 0)
+	  (bytevector-copy! m offset buffer 0
+			    (min (bytevector-length m)
+				 (bytevector-length buffer))))
+      buffer)
 
     ;; fist time will use block-size
-    (define (do-first c hmac buffer)
-      (bytevector-u32-set! buffer 0 (- total-len 4) (endianness big))
-      (bytevector-u8-set! buffer 4 (bytevector-length padding))
-      (let ((n (get-bytevector-n! in buffer 5 (- block-size 5))))
-	(if (or (eof-object? n) (< n (- block-size 5)))
-	    (let* ((i (+ 5 n))
-		   (len (- block-size i)))
-	      (bytevector-copy! padding 0 buffer i len)
-	      (do-send out c hmac buffer)
-	      (do-send out c hmac (bytevector-copy padding len))
-	      #f)
-	    (do-send out c hmac buffer))))
-    (when (do-first c hmac (make-bytevector block-size 0))
-      (let loop ((n (get-bytevector-n! in buffer 0 buffer-size)))
-	(cond ((eof-object? n) (do-send out c hmac padding))
-	      ((< n buffer-size)
-	       (let ((rest (- buffer-size n))
-		     (padlen (bytevector-length padding)))
-		 (cond ((< rest padlen)
-			;; not sure if this is correct and ever happen
-			(bytevector-copy! padding 0 buffer n rest)
-			(do-send out c hmac buffer)
-			;; in this case padding must be longer than block
-			;; size and copying from rest must make the length
-			;; to block-size
-			(let ((p (bytevector-copy padding rest)))
-			  (unless (= (bytevector-length p) block-size)
-			    (error 'ssh-write-packet-port
-				   "[Internal] invalid padding size"))
-			  (do-send out c hmac p)))
-		       (else
-			(bytevector-copy! padding 0 buffer n padlen)
-			(do-send out c hmac 
-				 (bytevector-copy buffer 0 (+ n padlen)))))))
-	      (else 
-	       (do-send out c hmac buffer)
-	       (loop (get-bytevector-n! in buffer 0 buffer-size)))))))
+    (define (do-first)
+      (define rest (- block-size 5))
+      (define mlen (min rest msg-len))
+      (define enc-buffer (make-bytevector block-size))
+
+      (bytevector-u32-set! buffer 0 packet-len (endianness big))
+      (bytevector-u8-set! buffer 4 pad-len)
+      (when hmac (mac-process! hmac buffer 0 5)) ;; need first 5 bytes
+      (bytevector-copy! msg 0 buffer 5 mlen)
+      (if (< msg-len rest)
+	  (let ((plen (- rest msg-len)))
+	    (bytevector-copy! padding 0 buffer (+ 5 msg-len) plen)
+	    (do-send (encrypt buffer 0 enc-buffer) block-size)
+	    ;; rest of the padding
+	    (unless (= plen pad-len)
+	      (do-send (encrypt padding plen enc-buffer) block-size))
+	    #f)
+	  (begin
+	    (do-send (encrypt buffer 0 enc-buffer) block-size)
+	    mlen)))
+
+    (define (do-last sent)
+      (let* ((rest (- msg-len sent))
+	     (buf (make-bytevector (+ rest pad-len))))
+	(bytevector-copy! msg sent buf 0 rest)
+	(bytevector-copy! padding 0 buf rest pad-len)
+	(do-send (encrypt buf 0 buffer) (+ rest pad-len))))
+    
+    (let ((sent (do-first)))
+      (when sent
+	(do ((i 0 (+ i 1)) (n (div (- msg-len sent) buffer-len)))
+	    ((= i n) (do-last (+ (* i buffer-len) sent)))
+	  (let* ((offset (+ sent (* i buffer-len)))
+		 (e (encrypt msg offset buffer)))
+	    (do-send e buffer-len))))))
+
   (encrypt&send c hmac out)
   (set! (~ context 'client-sequence) (+ (~ context 'client-sequence) 1))
   (when hmac
-    (let ((mac (make-bytevector (mac-mac-size hmac))))
-      (mac-done! hmac mac)
-      (socket-send out mac))))
+    (mac-process! hmac msg)
+    (mac-process! hmac padding)
+    (mac-done! hmac buffer 0 (mac-mac-size hmac))
+    (do-send buffer (mac-mac-size hmac))))
+
+(define (ssh-write-ssh-message context msg)
+  (ssh-write-packet context (ssh-message->bytevector msg)))
+
+;; Don't use this...
+(define (ssh-write-packet-port context in size)
+  (ssh-write-packet context (get-bytevector-n in size)))
 
 (define (ssh-data-ready? transport :optional (timeout 1000))
     (let1 reads (socket-read-select timeout (~ transport 'socket))
