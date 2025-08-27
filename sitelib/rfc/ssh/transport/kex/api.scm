@@ -63,13 +63,13 @@
       ;; receive newkeys
       (ssh-read-packet transport)
       ;; compute keys
-      (ssh-compute-keys! transport 
-		     (call-with-bytevector-output-port 
-		      (lambda (out) (write-message :mpint K out #f)))
-		     h))))
+      (ssh-compute-keys! transport K h #t))))
 
 ;; private
-(define (ssh-compute-keys! transport k H)
+(define (ssh-compute-keys! transport K H client?)
+  (define k (let-values (((out e) (open-bytevector-output-port)))
+	      (ssh-write-message :mpint K out #f)
+	      (e)))
   (define d (~ transport 'kex-digester))
   (define (digest salt) (digest-message d (bytevector-append k H salt)))
   ;; returns cipher and key size (in bytes)
@@ -84,6 +84,8 @@
   (define (create-mac key v) (make-ssh-mac v (make-key-retriever key)))
   (define client-enc (~ transport 'client-enc))
   (define server-enc (~ transport 'server-enc))
+  (define c->s-direction (if client? 'encrypt 'decrypt))
+  (define s->c-direction (if client? 'decrypt 'encrypt))
   (define sid (~ transport 'session-id))
   (let ((client-iv   (digest (bytevector-append #vu8(#x41) sid)))  ;; "A"
 	(server-iv   (digest (bytevector-append #vu8(#x42) sid)))  ;; "B"
@@ -92,10 +94,10 @@
 	(client-mkey (digest (bytevector-append #vu8(#x45) sid)))  ;; "E"
 	(server-mkey (digest (bytevector-append #vu8(#x46) sid)))) ;; "F"
     (set! (~ transport 'client-cipher)
-	  (make-ssh-cipher client-enc (cipher-direction encrypt)
+	  (make-ssh-cipher client-enc c->s-direction
 			   (make-key-retriever client-key) client-iv))
     (set! (~ transport 'server-cipher)
-	  (make-ssh-cipher server-enc (cipher-direction decrypt)
+	  (make-ssh-cipher server-enc s->c-direction
 			   (make-key-retriever server-key)  server-iv))
     (set! (~ transport 'client-mac)
 	  (create-mac client-mkey (~ transport 'client-mac)))

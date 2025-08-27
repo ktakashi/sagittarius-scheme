@@ -55,7 +55,18 @@
 		 :slot-set! (lambda (o v) (set! (~ o 'client-version) v)))
    (peer-version :allocation :virtual
 		 :slot-ref (lambda (o) (~ o 'server-version))
-		 :slot-set! (lambda (o v) (set! (~ o 'server-version) v)))))
+		 :slot-set! (lambda (o v) (set! (~ o 'server-version) v)))
+   (host-cipher :allocation :virtual :slot-ref (lambda (o) (~ o 'client-cipher)))
+   (peer-cipher :allocation :virtual :slot-ref (lambda (o) (~ o 'server-cipher)))
+   (host-mac   :allocation :virtual :slot-ref (lambda (o) (~ o 'client-mac)))
+   (peer-mac   :allocation :virtual :slot-ref (lambda (o) (~ o 'server-mac)))
+   (host-sequence :allocation :virtual
+		  :slot-ref (lambda (o) (~ o 'client-sequence))
+		  :slot-set! (lambda (o v) (set! (~ o 'client-sequence) v)))
+   (peer-sequence :allocation :virtual
+		  :slot-ref (lambda (o) (~ o 'server-sequence))
+		  :slot-set! (lambda (o v) (set! (~ o 'server-sequence) v)))
+   ))
 
 (define-method write-object ((o <ssh-client-transport>) out)
   (format out "#<ssh-client-transport ~a ~a ~a ~a ~a ~a>"

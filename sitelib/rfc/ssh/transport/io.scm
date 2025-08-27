@@ -80,20 +80,21 @@
 	(if (= n rest)
 	    buf
 	    (loop (- rest n) (+ read-size n))))))
+  (define hmac
+    (and-let* ((m (~ context 'peer-mac))
+	       ( (mac? m) )
+	       ;; reuse buffer, we will overwrite anyway
+	       (buf (~ context 'read-buffer)))
+      (bytevector-u32-set! buf 0 (~ context 'peer-sequence) (endianness big))
+      (mac-init! m)
+      (mac-process! m buf 0 4)
+      m))
   ;; FIXME this is not a good implementation...
   (define (read&decrypt mac-length)
-    (define c (~ context 'server-cipher))
+    (define c (~ context 'peer-cipher))
     (define block-size (block-cipher-block-length c))
     (define in (~ context 'socket))
 
-    (define hmac
-      (let ((m (~ context 'server-mac))
-	    ;; reuse buffer, we will overwrite anyway
-	    (buf (~ context 'read-buffer)))
-	(bytevector-u32-set! buf 0 (~ context 'server-sequence) (endianness big))
-	(mac-init! m)
-	(mac-process! m buf 0 4)
-	m))
     (define (verify-mac transport mac)
       ;; reuse buffer, payload is already copied
       (let ((bv (~ context 'read-buffer))
@@ -151,16 +152,12 @@
 	     ;; discards padding
 	     (recv-n! in buffer pad))))
 
-  (let* ((mac-length (or (and-let* ((k (~ context 'client-cipher))
-				    (h (~ context 'server-mac))
-				    ( (mac? h) ))
-			   (mac-mac-size h))
-			 0))
+  (let* ((mac-length (or (and (mac? hmac) (mac-mac-size hmac)) 0))
 	 (payload (if (zero? mac-length)
 		      (read-data context)
 		      (read&decrypt mac-length)))
 	 (type (bytevector-u8-ref payload 0)))
-    (set! (~ context 'server-sequence) (+ (~ context 'server-sequence) 1))
+    (set! (~ context 'peer-sequence) (+ (~ context 'peer-sequence) 1))
     (cond ((= type +ssh-msg-ignore+)
 	   ((*ssh:ignore-package-handler*) payload)
 	   (ssh-read-packet context))
@@ -177,7 +174,7 @@
 	  (else payload))))
 
 (define (ssh-write-packet context msg)
-  (define c (~ context 'client-cipher))
+  (define c (~ context 'host-cipher))
   ;; minimum packet size is 16
   (define block-size (if c (block-cipher-block-length c) 16))
   (define out (~ context 'socket))
@@ -195,11 +192,10 @@
     (random-generator-read-random-bytes (~ context 'prng) pad-len))
 
   (define hmac
-    (and-let* ((m (~ context 'client-mac))
+    (and-let* ((m (~ context 'host-mac))
 	       ( (mac? m) ))
       ;; the same trick as read :)
-      (bytevector-u32-set! buffer 0 (~ context 'client-sequence)
-			   (endianness big))
+      (bytevector-u32-set! buffer 0 (~ context 'host-sequence) (endianness big))
       (mac-init! m)
       (mac-process! m buffer 0 4)
       m))
@@ -251,7 +247,7 @@
 	    (do-send e buffer-len))))))
 
   (encrypt&send c hmac out)
-  (set! (~ context 'client-sequence) (+ (~ context 'client-sequence) 1))
+  (set! (~ context 'host-sequence) (+ (~ context 'host-sequence) 1))
   (when hmac
     (mac-process! hmac msg)
     (mac-process! hmac padding)
