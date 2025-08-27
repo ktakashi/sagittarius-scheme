@@ -67,5 +67,13 @@
   (test-error "ng symbol" condition? (slot-set! tv 'observ #t))
   (test-equal "check (4)" #t (slot-ref tv 'observ)))
 
+(let ()
+  (define-class <foo> (<allocation-mixin>)
+    ((bar :init-keyword :bar)
+     (baz :allocation :delegate :forwarding 'bar)))
+
+  (let ((foo (make <foo> :bar 'bar)))
+    (test-assert (slot-set! foo 'baz 'ok))
+    (test-equal 'ok (slot-ref foo 'baz))))
 
 (test-end)

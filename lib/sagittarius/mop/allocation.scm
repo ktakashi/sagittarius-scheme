@@ -88,7 +88,7 @@
 		     (assertion-violation 'compute-getter-and-setter
 		       ":allocation :delegate requires :forwarding {slot}"))
 		   (list (lambda (o) (slot-ref o to-slot))
-			 (lambda (o v) (slot-set! o to-slot))
+			 (lambda (o v) (slot-set! o to-slot v))
 			 #f)))
 		;; Gauche's :virtual
 		((:virtual)
