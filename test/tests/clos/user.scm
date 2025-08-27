@@ -457,5 +457,11 @@
 	     (foo ((f <buz>)) (apply call-next-method (list f))))
  (test-assert "apply call-next-method" (is-a? (foo (make <buz>)) <buz>)))
 
+(let ()
+  (define-generic foo :class <predicate-specializable-generic>)
+  (define-method :around foo (a) (print a) (call-next-method))
+  (test-error (foo 'a)))
+
+
 
 (test-end)

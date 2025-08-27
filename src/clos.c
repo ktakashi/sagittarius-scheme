@@ -979,6 +979,8 @@ static SgObject compute_around_methods_rec(SgObject around, SgObject before,
   void **dvec;
   int req = -1, opt = -1;
 
+  if (SG_NULLP(primary)) return SG_NIL;
+  
   /* on tiny clos for R6RS, after is called in reverse order */
   after = Sg_ReverseX(after);
   /* calculate before primary and after first */
