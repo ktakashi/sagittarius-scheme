@@ -31,7 +31,18 @@
 #!read-macro=sagittarius/regex
 #!nounbound
 (library (rfc ssh transport kex dh)
-    (export ssh-client-exchange-kex-message)
+    (export ssh-kex-digest
+	    (rename (group-exchanges ssh-dh-group-exchanges)
+		    (dh-group ssh-dh-groups))
+	    
+	    <SSH-DH-H> <SSH-GEX-H>
+	    +dh-group1-p+  +dh-group1-g+ 
+	    +dh-group14-p+ +dh-group14-g+
+	    +dh-group15-p+ +dh-group15-g+
+	    +dh-group16-p+ +dh-group16-g+
+	    +dh-group17-p+ +dh-group17-g+
+	    +dh-group18-p+ +dh-group18-g+
+	    )
     (import (rnrs)
 	    (clos user)
 	    (sagittarius)
@@ -72,32 +83,6 @@
 (define group-exchanges (list +kex-diffie-hellman-group-exchange-sha256+
 			      +kex-diffie-hellman-group-exchange-sha1+))
 
-(define-method ssh-client-exchange-kex-message
-  ((m (member group-exchanges)) transport client-packet server-packet)
-  (define (generate-e&x transport)
-    (let ((gex-req (make <ssh-msg-kex-dh-gex-request>)))
-      (ssh-write-ssh-message transport gex-req)
-      (let* ((reply (ssh-read-packet transport))
-	     (gex-group (read-message <ssh-msg-kex-dh-gex-group>
-				      (open-bytevector-input-port reply)))
-	     (p (~ gex-group 'p))
-	     (g (~ gex-group 'g)))
-	(let ((x (generate-x (~ transport 'prng) (div (- p 1) 2))))
-	  (values p g x (mod-expt g x p) gex-req)))))
-  (let-values (((p g x e req) (generate-e&x transport)))
-    (ssh-kex-send/receive transport (make-init-class <ssh-msg-kex-dh-gex-init> e)
-			  <ssh-msg-kex-dh-gex-reply>
-			  (compute-k p x
-			   (lambda (K-S f K)
-			     (make <GEX-H> 
-			       :V-C (~ transport 'client-version)
-			       :V-S (~ transport 'server-version)
-			       :I-C client-packet
-			       :I-S server-packet
-			       :K-S K-S
-			       :min (~ req 'min) :n (~ req 'n) :max (~ req 'max)
-			       :p p :g g :e e :f f :K K))))))
-
 (define dh-group (list +kex-diffie-hellman-group18-sha512+
 		       +kex-diffie-hellman-group17-sha512+
 		       +kex-diffie-hellman-group16-sha512+
@@ -105,37 +90,6 @@
 		       +kex-diffie-hellman-group14-sha256+
 		       +kex-diffie-hellman-group14-sha1+
 		       +kex-diffie-hellman-group1-sha1+))
-
-(define-method ssh-client-exchange-kex-message
-  ((m (member dh-group)) transport client-packet server-packet)
-  (define (group-n kex)
-    (cond ((#/group(\d+)/ kex) =>
-	   (lambda (m) (string->number (m 1))))
-	  (else (error 'ssh-exchange-kex-message "must not happen"))))
-  (define (generate-e&x transport)
-    (let-values (((p g) (case (group-n (~ transport 'kex))
-			  ((1)  (values +dh-group1-p+ +dh-group1-g+))
-			  ((14) (values +dh-group14-p+ +dh-group14-g+))
-			  ((15) (values +dh-group15-p+ +dh-group15-g+))
-			  ((16) (values +dh-group16-p+ +dh-group16-g+))
-			  ((17) (values +dh-group17-p+ +dh-group17-g+))
-			  ((18) (values +dh-group18-p+ +dh-group18-g+))
-			  (else (error 'ssh-exchange-kex-message "unknown group"
-				       (~ transport 'kex))))))
-      (let ((x (generate-x (~ transport 'prng) p)))
-	(values p g x (mod-expt g x p) #f))))
-  (let-values (((p g x e req) (generate-e&x transport)))
-    (ssh-kex-send/receive transport (make-init-class <ssh-msg-kexdh-init> e)
-			  <ssh-msg-kexdh-reply>
-			  (compute-k p x
-			   (lambda (K-S f K)
-			     (make <DH-H> 
-			       :V-C (~ transport 'client-version)
-			       :V-S (~ transport 'server-version)
-			       :I-C client-packet
-			       :I-S server-packet
-			       :K-S K-S
-			       :e e :f f :K K))))))
 
 (define (dh? n) (string-prefix? "diffie-hellman" n))
 (define-method ssh-kex-digest ((n (?? dh?)))
@@ -147,28 +101,7 @@
 				     ((384) *digest:sha-384*)
 				     ((512) *digest:sha-512*)))))))
 
-;; private
-(define ((make-init-class init-class e))
-  (make init-class :e e))
-
-(define ((compute-k p x make-verify-message) transport kex-reply)
-  (let* ((K-S (~ kex-reply 'K-S))
-	 (f   (~ kex-reply 'f))
-	 (K   (mod-expt f x p)))
-    ;; verify signature
-    (let* ((msg (make-verify-message K-S f K))
-	   (h (ssh-verify-signature transport msg K-S (~ kex-reply 'signature))))
-      (values K h))))
-
-(define (generate-x prng r)
-  (define size (div (bitwise-length r) 8))
-  (let loop ()
-    (let ((v (bytevector->integer
-	      (random-generator-read-random-bytes prng size))))
-      (or (and (< 1 v) v)
-	  (loop)))))
-
-(define-ssh-message <DH-H> ()
+(define-ssh-message <SSH-DH-H> ()
   ((V-C :utf8-string)
    (V-S :utf8-string)
    (I-C :string)
@@ -178,7 +111,7 @@
    (f   :mpint)
    (K   :mpint)))
 
-(define-ssh-message <GEX-H> ()
+(define-ssh-message <SSH-GEX-H> ()
   ((V-C :utf8-string)
    (V-S :utf8-string)
    (I-C :string)

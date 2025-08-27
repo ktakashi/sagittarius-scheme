@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
-;;; rfc/ssh/transport/kex/ecdh.scm - SSH2 protocol ECDH key exchange
+;;; rfc/ssh/client/kex.scm - SSH2 protocol client transport key exchange
 ;;;  
 ;;;   Copyright (c) 2025  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -28,46 +28,44 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!read-macro=sagittarius/regex
 #!nounbound
-(library (rfc ssh transport kex ecdh)
-    (export ssh-kex-digest
-	    (rename (ecdh-sha2? ssh-kex-ecdh-sha2?)
-		    (extract-identity ssh-kex-ecdh-identity)
-		    (curve-25519/448 ssh-curve-25519/448)
-		    (<ECDH-H> <SSH-ECDH-H>)))
+(library (rfc ssh client kex)
+    (export ssh-client-key-exchange
+	    *ssh-client-kex-list*)
     (import (rnrs)
-	    (clos user)
-	    (srfi :13 strings)
-	    (sagittarius)
-	    (sagittarius crypto digests)
+	    (srfi :39 parameters)
 	    (rfc ssh constants)
 	    (rfc ssh types)
-	    (rfc ssh crypto)
-	    (rfc ssh transport kex api))
+	    (rfc ssh transport)
+	    (rfc ssh client kex api)
+	    (rfc ssh client kex dh)
+	    (rfc ssh client kex ecdh))
 
-(define (ecdh-sha2? n) (string-prefix? "ecdh-sha2" n))
+(define *ssh-client-kex-list*
+  ;; The keyword is from in RFC9142
+  (make-parameter (name-list
+		   +kex-curve25519-sha256+	       ;; SHOUD
+		   +kex-curve448-sha512+	       ;; MAY
+		   +kex-ecdh-sha2-nistp256+	       ;; SHOULD
+		   +kex-ecdh-sha2-nistp384+	       ;; SHOULD
+		   +kex-ecdh-sha2-nistp521+	       ;; SHOULD
+		   +kex-diffie-hellman-group15-sha512+ ;; MAY
+		   +kex-diffie-hellman-group16-sha512+ ;; SHOULD
+		   +kex-diffie-hellman-group17-sha512+ ;; MAY
+		   +kex-diffie-hellman-group18-sha512+ ;; MAY
+      		   +kex-diffie-hellman-group-exchange-sha256+ ;; MAY
+		   +kex-diffie-hellman-group14-sha256+ ;; MUST
+		   +ext-info-c+			       ;; SHOULD
 
-(define-method ssh-kex-digest ((n (?? ecdh-sha2?)))
-  (make-message-digest
-   (ssh-ecdsa-digest-descriptor
-    (ssh-ecdsa-identifier->ec-parameter (extract-identity n)))))
+		   ;; Below are marked as SHOULD NOT in RFC9142 or using 
+		   ;; less secure digest algorithm, i.e. SHA1
+      		   ;; +kex-diffie-hellman-group-exchange-sha1+ ;; SHOULD NOT
+      		   ;; +kex-diffie-hellman-group14-sha1+        ;; MAY
+      		   ;; +kex-diffie-hellman-group1-sha1+         ;; SHOULD NOT
+		   )
+      		  list->name-list))
+(define ssh-client-key-exchange
+  (ssh-key-exchange *ssh-client-kex-list* ssh-client-exchange-kex-message))
 
-(define (extract-identity n)
-  (string->keyword (substring n 10 (string-length n))))
-
-(define curve-25519/448 (list +kex-curve25519-sha256+ +kex-curve448-sha512+))
-(define-method ssh-kex-digest ((n (member curve-25519/448)))
-  (make-message-digest
-   (if (string=? n +kex-curve448-sha512+) *digest:sha-512* *digest:sha-256*)))
-
-
-(define-ssh-message <ECDH-H> ()
-  ((V-C :utf8-string)
-   (V-S :utf8-string)
-   (I-C :string)
-   (I-S :string)
-   (K-S :string)
-   (Q-C :string)
-   (Q-S :string)
-   (K   :mpint)))
 )

@@ -29,7 +29,7 @@
 ;;;  
 
 #!nounbound
-(library (rfc ssh connection)
+(library (rfc ssh client connection)
     (export open-client-ssh-channel
 	    open-client-ssh-session-channel
 	    ssh-channel-eof

@@ -31,8 +31,9 @@
 #!read-macro=sagittarius/regex
 #!nounbound
 (library (rfc ssh transport kex)
-    (export ssh-client-key-exchange
-	    ssh-key-exchange)
+    (export ssh-key-exchange
+	    ssh-compute-keys!
+	    ssh-kex-digest)
     (import (rnrs)
 	    (rfc ssh constants)
 	    (rfc ssh types)
@@ -42,14 +43,11 @@
 	    (rfc ssh transport kex dh)
 	    (rfc ssh transport kex ecdh)
 	    (clos user)
-	    (srfi :13 strings)
 	    (sagittarius)
 	    (sagittarius crypto ciphers)
 	    (sagittarius crypto digests)
-	    (sagittarius crypto keys)
 	    (sagittarius crypto mac)
 	    (sagittarius crypto random)
-	    (sagittarius crypto signatures)
 	    (sagittarius control)
 	    (sagittarius object))
 
@@ -90,7 +88,40 @@
       (exchange-kex-message (~ transport 'kex)
 	transport host-packet peer-packet))))
 
-(define ssh-client-key-exchange
-  (ssh-key-exchange *ssh-client-kex-list* ssh-client-exchange-kex-message))
-  
+(define (ssh-compute-keys! transport K H client? configure)
+  (define k (let-values (((out e) (open-bytevector-output-port)))
+	      (ssh-write-message :mpint K out #f)
+	      (e)))
+  (define d (~ transport 'kex-digester))
+  (define (digest salt) (digest-message d (bytevector-append k H salt)))
+  ;; returns cipher and key size (in bytes)
+  (define ((make-key-retriever key) size)
+    (let loop ((key key))
+      (let ((s (bytevector-length key)))
+	(cond ((= s size) key)
+	      ((> s size) (bytevector-copy key 0 size))
+	      ;; compute and append
+	      (else (loop (bytevector-append key (digest key))))))))
+
+  (define (create-mac key v) (make-ssh-mac v (make-key-retriever key)))
+  (define client-enc (~ transport 'client-enc))
+  (define server-enc (~ transport 'server-enc))
+  (define c->s-direction (if client? 'encrypt 'decrypt))
+  (define s->c-direction (if client? 'decrypt 'encrypt))
+  (define sid (~ transport 'session-id))
+
+  (let ((client-iv   (digest (bytevector-append #vu8(#x41) sid)))  ;; "A"
+	(server-iv   (digest (bytevector-append #vu8(#x42) sid)))  ;; "B"
+	(client-key  (digest (bytevector-append #vu8(#x43) sid)))  ;; "C"
+	(server-key  (digest (bytevector-append #vu8(#x44) sid)))  ;; "D"
+	(client-mkey (digest (bytevector-append #vu8(#x45) sid)))  ;; "E"
+	(server-mkey (digest (bytevector-append #vu8(#x46) sid)))) ;; "F"
+    (configure transport
+     (make-ssh-cipher client-enc c->s-direction
+		      (make-key-retriever client-key) client-iv)
+     (make-ssh-cipher server-enc s->c-direction
+		      (make-key-retriever server-key)  server-iv)
+     (create-mac client-mkey (~ transport 'client-mac))
+     (create-mac server-mkey (~ transport 'server-mac)))
+    transport))
 )

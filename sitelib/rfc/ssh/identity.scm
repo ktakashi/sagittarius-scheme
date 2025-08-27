@@ -30,7 +30,7 @@
 
 #!read-macro=sagittarius/bv-string
 #!nounbound
-(library (rfc ssh auth identity)
+(library (rfc ssh identity)
     (export ssh-read-identity-file
 	    ssh-read-identity)
     (import (rnrs)

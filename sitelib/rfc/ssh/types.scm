@@ -99,8 +99,7 @@
 	    <ssh-channel>
 	    *ssh-mac-list*
 	    *ssh-encryption-list*
-	    *ssh-public-key-list*
-	    *ssh-client-kex-list*)
+	    *ssh-public-key-list*)
     (import (rnrs)
 	    (clos user)
 	    (clos core)
@@ -251,24 +250,24 @@
    (server-version :init-value #f)	; version string from peer
    (prng     :init-keyword :prng
              :init-form (secure-random-generator *prng:chacha20*))
-   (client-sequence :init-value 0)	; unsigned 32 bit int
-   (server-sequence :init-value 0)
+   (host-sequence :init-value 0)	; unsigned 32 bit int
+   (peer-sequence :init-value 0)
    (session-id :init-value #f)
    (public-key-algorithm :init-value #f) ;; server public key algorithm
    (kex      :init-value #f)	  ; key exchange algorithm (temporary)
    ;; server private key (for sign?)
-   ;; (private-key :init-keyword :private-key :init-value #f)
-   (server-cipher :init-value #f)
-   (client-cipher :init-value #f)
-   ;; mac key
-   ;;(server-mkey :init-value #f)
-   ;;(client-mkey :init-value #f)
-   ;; mac algorithm
-   (server-mac :init-value #f) ;; server -> client
-   (client-mac :init-value #f) ;; client -> server
+   ;; in/out ciphers
+   (peer-cipher :init-value #f)
+   (host-cipher :init-value #f)
+   ;; in/out mac
+   (peer-mac :init-value #f) ;; server -> client
+   (host-mac :init-value #f) ;; client -> server
    ;; encryption algorithm
    (server-enc :init-value #f) ;; server -> client
    (client-enc :init-value #f) ;; client -> server
+   ;; mac algorithm
+   (server-mac :init-value #f) ;; server -> client
+   (client-mac :init-value #f) ;; client -> server
    ;; compression&language; I don't think we should support so ignore
    ;; keep the channels to allocate proper channel number
    (channels   :init-value '())
@@ -289,7 +288,7 @@
           (slot-ref o 'server-version)
           (slot-ref o 'client-enc)
           (slot-ref o 'server-enc)
-          (slot-ref o 'client-mac)
+	  (slot-ref o 'client-mac)
           (slot-ref o 'server-mac)))
 
 (define-class <ssh-channel> ()
@@ -320,29 +319,6 @@
 
 ;; TODO consider RFC 9142
 (define empty-list (name-list))
-(define *ssh-client-kex-list*
-  ;; The keyword is from in RFC9142
-  (make-parameter (name-list
-		   +kex-curve25519-sha256+	       ;; SHOUD
-		   +kex-curve448-sha512+	       ;; MAY
-		   +kex-ecdh-sha2-nistp256+	       ;; SHOULD
-		   +kex-ecdh-sha2-nistp384+	       ;; SHOULD
-		   +kex-ecdh-sha2-nistp521+	       ;; SHOULD
-		   +kex-diffie-hellman-group15-sha512+ ;; MAY
-		   +kex-diffie-hellman-group16-sha512+ ;; SHOULD
-		   +kex-diffie-hellman-group17-sha512+ ;; MAY
-		   +kex-diffie-hellman-group18-sha512+ ;; MAY
-      		   +kex-diffie-hellman-group-exchange-sha256+ ;; MAY
-		   +kex-diffie-hellman-group14-sha256+ ;; MUST
-		   +ext-info-c+			       ;; SHOULD
-
-		   ;; Below are marked as SHOULD NOT in RFC9142 or using 
-		   ;; less secure digest algorithm, i.e. SHA1
-      		   ;; +kex-diffie-hellman-group-exchange-sha1+ ;; SHOULD NOT
-      		   ;; +kex-diffie-hellman-group14-sha1+        ;; MAY
-      		   ;; +kex-diffie-hellman-group1-sha1+         ;; SHOULD NOT
-		   )
-      		  list->name-list))
 
 (define *ssh-public-key-list*
   (make-parameter (name-list

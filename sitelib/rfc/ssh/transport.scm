@@ -31,18 +31,11 @@
 #!read-macro=sagittarius/regex
 #!nounbound
 (library (rfc ssh transport)
-    (export make-client-ssh-transport
-	    open-client-ssh-transport!
-	    socket->client-ssh-transport
-	    ssh-transport? ssh-client-transport?
-	    close-client-ssh-transport!
-	    ;; parameter
-	    *ssh-version-string*
+    (export *ssh-version-string*
 	    ssh-data-ready?
 	    
 	    ssh-write-packet
 	    ssh-read-packet
-	    ssh-service-request
 
 	    ;; given packet is binary input port
 	    ssh-write-ssh-message
@@ -50,33 +43,16 @@
 	    *ssh:debug-package-handler*
 	    *ssh:ignore-package-handler*
 	    *ssh:ext-info-handler*
+
+	    ssh-key-exchange ssh-compute-keys!
+	    ssh-version-exchange
+	    ssh-kex-digest
 	    )
     (import (rnrs)
-	    (sagittarius)
-	    (rfc ssh constants)
 	    (rfc ssh types)
+	    (rfc ssh transport version)
 	    (rfc ssh transport io)
-	    (rfc ssh transport client)
+	    (rfc ssh transport kex)
 	    (clos user))
-;; FIXME
-;;   currently it's really bad way to read and write a packet
-;;   (especially read).
-;;   try read maximum number of packet and encrypt/decrypt if needed.
-;; TODO
-;;   * make buffer in transport and read&decrypt per cipher block size
-(define-constant +max-packet-size+ 35000)
-
 (define (ssh-transport? transport) (is-a? <ssh-transport> transport))
-
-;; As the feature of block cipher, if the decryption is done by
-;; in order then it can decrypt per block so that we don't have
-;; to allocate huge bytevector buffer after decryption.
-
-;; for my laziness
-(define (ssh-service-request transport name)
-  (let ((msg (make <ssh-msg-service-request>
-	       :service-name (string->utf8 name))))
-    (ssh-write-ssh-message transport msg))
-  (ssh-read-message <ssh-msg-service-accept>
-   (open-bytevector-input-port (ssh-read-packet transport))))
 )

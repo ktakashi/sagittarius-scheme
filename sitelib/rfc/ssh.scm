@@ -33,6 +33,6 @@
     (import (rfc ssh constants)
 	    (rfc ssh types)
 	    (rfc ssh transport)
-	    (rfc ssh auth)
-	    (rfc ssh connection)
+	    (rfc ssh client)
+	    (rfc ssh identity)
 	    (rfc ssh crypto)))

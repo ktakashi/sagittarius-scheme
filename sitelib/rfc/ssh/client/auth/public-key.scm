@@ -29,7 +29,7 @@
 ;;;  
 
 #!nounbound
-(library (rfc ssh auth public-key)
+(library (rfc ssh client auth public-key)
     (export ssh-public-key-authentication
 	    *ssh:auth-method-rsa-algorithms*)
     (import (rnrs)
@@ -44,7 +44,7 @@
 	    (rfc ssh types)
 	    (rfc ssh transport)
 	    (rfc ssh crypto)
-	    (rfc ssh auth api)
+	    (rfc ssh client auth api)
 	    (srfi :39 parameters))
 (define method-key (string->keyword +ssh-auth-method-public-key+))
 (define-method ssh-authenticate-method ((m (eql method-key)))

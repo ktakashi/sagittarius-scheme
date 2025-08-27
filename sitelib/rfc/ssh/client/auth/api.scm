@@ -29,7 +29,7 @@
 ;;;  
 
 #!nounbound
-(library (rfc ssh auth api)
+(library (rfc ssh client auth api)
     (export ssh-read-auth-response
 	    ssh-authenticate-method)
     (import (rnrs)
@@ -47,12 +47,10 @@
            (let ((bp (ssh-read-packet transport))) ;; ignore success
              (values
       	      (= (bytevector-u8-ref bp 0) +ssh-msg-userauth-success+)
-      	      (read-message <ssh-msg-userauth-banner>
-      			    (open-bytevector-input-port payload)))))
+      	      (bytevector->ssh-message <ssh-msg-userauth-banner> payload))))
           ((= type +ssh-msg-userauth-success+) (values #t #f))
           ((= type +ssh-msg-userauth-failure+)
            (values #f
-      		   (read-message <ssh-msg-userauth-failure>
-      				 (open-bytevector-input-port payload))))
+      		   (bytevector->ssh-message <ssh-msg-userauth-failure> payload)))
           (else (callback payload)))))
 )

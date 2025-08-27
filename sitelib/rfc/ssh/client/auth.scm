@@ -30,15 +30,13 @@
 
 #!read-macro=sagittarius/regex
 #!nounbound
-(library (rfc ssh auth)
+(library (rfc ssh client auth)
     (export ssh-authenticate
 	    register-auth-method
 	    ssh-read-auth-response
 	    ssh-authenticate-method
 
 	    *ssh:auth-method-rsa-algorithms* ;; for testing purpose
-	    ssh-read-identity-file
-	    ssh-read-identity
 	    )
     (import (rnrs)
 	    (clos user)
@@ -51,9 +49,9 @@
 	    (rfc ssh constants)
 	    (rfc ssh types)
 	    (rfc ssh transport)
-	    (rfc ssh auth api)
-	    (rfc ssh auth identity)
-	    (rfc ssh auth public-key))
+	    (rfc ssh client transport)
+	    (rfc ssh client auth api)
+	    (rfc ssh client auth public-key))
 
 ;; nobody is using it I guess, but for backward compatibility
 (define-syntax register-auth-method
@@ -110,7 +108,6 @@
       	       (ssh-read-auth-response transport handle-info-request))))
 	  (else
       	   (error 'auth-keyboard-interactive "unknown tag" rp))))
-    
   (let1 m (apply make <ssh-msg-keyboard-interactive-userauth-request>
       		 :user-name user-name
       		 :method +ssh-auth-method-keyboard-interactive+
@@ -123,7 +120,7 @@
   (if (keyword? method)
       (cond ((ssh-authenticate-method method)
              => (lambda (proc) 
-      		  (ssh-service-request transport +ssh-userauth+)
+      		  (ssh-client-service-request transport +ssh-userauth+)
       		  (apply proc transport options)))
             (else (error 'ssh-authenticate "method not supported" method)))
       (apply ssh-authenticate transport 

@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
-;;; rfc/ssh/transport/kex/ecdh.scm - SSH2 protocol ECDH key exchange
+;;; rfc/ssh/client.scm - SSH2 client
 ;;;  
 ;;;   Copyright (c) 2025  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -28,46 +28,8 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-#!nounbound
-(library (rfc ssh transport kex ecdh)
-    (export ssh-kex-digest
-	    (rename (ecdh-sha2? ssh-kex-ecdh-sha2?)
-		    (extract-identity ssh-kex-ecdh-identity)
-		    (curve-25519/448 ssh-curve-25519/448)
-		    (<ECDH-H> <SSH-ECDH-H>)))
-    (import (rnrs)
-	    (clos user)
-	    (srfi :13 strings)
-	    (sagittarius)
-	    (sagittarius crypto digests)
-	    (rfc ssh constants)
-	    (rfc ssh types)
-	    (rfc ssh crypto)
-	    (rfc ssh transport kex api))
-
-(define (ecdh-sha2? n) (string-prefix? "ecdh-sha2" n))
-
-(define-method ssh-kex-digest ((n (?? ecdh-sha2?)))
-  (make-message-digest
-   (ssh-ecdsa-digest-descriptor
-    (ssh-ecdsa-identifier->ec-parameter (extract-identity n)))))
-
-(define (extract-identity n)
-  (string->keyword (substring n 10 (string-length n))))
-
-(define curve-25519/448 (list +kex-curve25519-sha256+ +kex-curve448-sha512+))
-(define-method ssh-kex-digest ((n (member curve-25519/448)))
-  (make-message-digest
-   (if (string=? n +kex-curve448-sha512+) *digest:sha-512* *digest:sha-256*)))
-
-
-(define-ssh-message <ECDH-H> ()
-  ((V-C :utf8-string)
-   (V-S :utf8-string)
-   (I-C :string)
-   (I-S :string)
-   (K-S :string)
-   (Q-C :string)
-   (Q-S :string)
-   (K   :mpint)))
-)
+(library (rfc ssh client)
+    (export :all)
+    (import (rfc ssh client transport)
+	    (rfc ssh client auth)
+	    (rfc ssh client connection)))

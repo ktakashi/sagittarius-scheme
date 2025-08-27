@@ -1,8 +1,8 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
-;;; rfc/ssh/transport/client.scm - SSH2 protocol client transport
+;;; rfc/ssh/client/transport.scm - SSH2 client transport
 ;;;  
-;;;   Copyright (c) 2010-2025  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2025  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -29,24 +29,22 @@
 ;;;  
 
 #!nounbound
-(library (rfc ssh transport client)
+(library (rfc ssh client transport)
     (export make-client-ssh-transport
 	    socket->client-ssh-transport
 	    open-client-ssh-transport!
 	    close-client-ssh-transport!
 	    ssh-client-transport?
-
-	    *ssh-version-string*)
+	    ssh-client-service-request)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius)
 	    (sagittarius object)
 	    (sagittarius socket)
-	    (rfc ssh constants)
 	    (rfc ssh types)
-	    (rfc ssh transport version)
-	    (rfc ssh transport io)
-	    (rfc ssh transport kex))
+	    (rfc ssh constants)
+	    (rfc ssh transport)
+	    (rfc ssh client kex))
 
 (define-class <ssh-client-transport> (<ssh-transport>)
   ((server-signature-algorithms :init-value #f)
@@ -55,26 +53,15 @@
 		 :slot-set! (lambda (o v) (set! (~ o 'client-version) v)))
    (peer-version :allocation :virtual
 		 :slot-ref (lambda (o) (~ o 'server-version))
-		 :slot-set! (lambda (o v) (set! (~ o 'server-version) v)))
-   (host-cipher :allocation :virtual :slot-ref (lambda (o) (~ o 'client-cipher)))
-   (peer-cipher :allocation :virtual :slot-ref (lambda (o) (~ o 'server-cipher)))
-   (host-mac   :allocation :virtual :slot-ref (lambda (o) (~ o 'client-mac)))
-   (peer-mac   :allocation :virtual :slot-ref (lambda (o) (~ o 'server-mac)))
-   (host-sequence :allocation :virtual
-		  :slot-ref (lambda (o) (~ o 'client-sequence))
-		  :slot-set! (lambda (o v) (set! (~ o 'client-sequence) v)))
-   (peer-sequence :allocation :virtual
-		  :slot-ref (lambda (o) (~ o 'server-sequence))
-		  :slot-set! (lambda (o v) (set! (~ o 'server-sequence) v)))
-   ))
+		 :slot-set! (lambda (o v) (set! (~ o 'server-version) v)))))
 
 (define-method write-object ((o <ssh-client-transport>) out)
   (format out "#<ssh-client-transport ~a ~a ~a ~a ~a ~a>"
-          (slot-ref o 'server-version)
-          (slot-ref o 'client-enc)
-          (slot-ref o 'server-enc)
-          (slot-ref o 'client-mac)
-          (slot-ref o 'server-mac)
+	  (slot-ref o 'server-version)
+	  (slot-ref o 'client-enc)
+	  (slot-ref o 'server-enc)
+	  (slot-ref o 'client-mac)
+	  (slot-ref o 'server-mac)
 	  (slot-ref o 'server-signature-algorithms)))
 
 ;; must do until handshake but for now
@@ -106,5 +93,10 @@
     (ssh-write-ssh-message transport msg)
     (socket-shutdown (~ transport 'socket) SHUT_RDWR)
     (socket-close (~ transport 'socket))))
+
+(define (ssh-client-service-request transport name)
+  (let ((msg (make <ssh-msg-service-request> :service-name name)))
+    (ssh-write-ssh-message transport msg))
+  (let ((packet (ssh-read-packet transport)))
+    (bytevector->ssh-message <ssh-msg-service-accept> packet)))
 )
-	    
