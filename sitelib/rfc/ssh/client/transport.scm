@@ -48,12 +48,8 @@
 
 (define-class <ssh-client-transport> (<ssh-transport>)
   ((server-signature-algorithms :init-value #f)
-   (host-version :allocation :virtual
-		 :slot-ref (lambda (o) (~ o 'client-version))
-		 :slot-set! (lambda (o v) (set! (~ o 'client-version) v)))
-   (peer-version :allocation :virtual
-		 :slot-ref (lambda (o) (~ o 'server-version))
-		 :slot-set! (lambda (o v) (set! (~ o 'server-version) v)))))
+   (host-version :allocation :delegate :forwarding 'client-version)
+   (peer-version :allocation :delegate :forwarding 'server-version)))
 
 (define-method write-object ((o <ssh-client-transport>) out)
   (format out "#<ssh-client-transport ~a ~a ~a ~a ~a ~a>"

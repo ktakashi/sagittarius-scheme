@@ -471,9 +471,9 @@
 ;; base class for userauth request
 (define-ssh-message <ssh-msg-userauth-request> (<ssh-message>)
   ((type         :byte +ssh-msg-userauth-request+)
-   (user-name    :string)
-   (service-name :string)
-   (method       :string)))
+   (user-name    :utf8-string)
+   (service-name :utf8-string)
+   (method       :utf8-string)))
 
 (define-ssh-message <ssh-msg-public-key-userauth-request> 
   (<ssh-msg-userauth-request>)
