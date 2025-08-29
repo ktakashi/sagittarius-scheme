@@ -35,7 +35,9 @@
 	    open-client-ssh-transport!
 	    close-client-ssh-transport!
 	    ssh-client-transport?
-	    ssh-client-service-request)
+	    ssh-client-service-request
+
+	    *ssh-client-kex-list*)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius)

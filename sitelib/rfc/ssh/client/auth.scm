@@ -86,6 +86,7 @@
 
 (define (auth-keyboard-interactive transport user-name 
       				   :key (service-name +ssh-connection+)
+					(prompt-handler read-client-input)
       				   :allow-other-keys others)
   (define (read-prompts bin n)
     (do ((i 0 (+ i 1))
@@ -96,7 +97,7 @@
       	   (let* ((bin (open-bytevector-input-port rp))
       		  (req (ssh-read-message <ssh-msg-userauth-info-request> bin))
       		  (prompts (read-prompts bin (~ req 'num-prompts))))
-	     (let ((responses (read-client-input prompts)))
+	     (let ((responses (prompt-handler prompts)))
 	       (let-values (((out e) (open-bytevector-output-port)))
 		 (let* ((msg (make <ssh-msg-userauth-info-response>
 			       :num-response (length responses)))

@@ -158,6 +158,7 @@
 		      (read&decrypt mac-length)))
 	 (type (bytevector-u8-ref payload 0)))
     (set! (~ context 'peer-sequence) (+ (~ context 'peer-sequence) 1))
+    ;; FIXME the way handling global message is sloppy
     (cond ((= type +ssh-msg-ignore+)
 	   ((*ssh:ignore-package-handler*) payload)
 	   (ssh-read-packet context))
@@ -171,6 +172,13 @@
 	  ((= type +ssh-msg-ext-info+)
 	   (handle-ext-info context payload)
 	   (ssh-read-packet context))
+	  ((= type +ssh-msg-disconnect+)
+	   (let* ((msg (bytevector->ssh-message <ssh-msg-disconnect> payload))
+		  (desc (~ msg 'description)))
+	     (error 'ssh-read-packet
+		    (if (zero? (string-length desc))
+			"Received disconnect message"
+			desc))))
 	  (else payload))))
 
 (define (ssh-write-packet context msg)
