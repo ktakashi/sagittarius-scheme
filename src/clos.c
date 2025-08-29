@@ -81,13 +81,6 @@ SgClass *Sg_ObjectCPL[] = {
   NULL,
 };
 
-static SgClass *Sg_MethodCPL[] = {
-  SG_CLASS_METHOD,
-  SG_CLASS_OBJECT,
-  SG_CLASS_TOP,
-  NULL
-};
-
 SG_DEFINE_ABSTRACT_CLASS(Sg_TopClass, NULL);
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_BoolClass, NULL);
@@ -182,14 +175,13 @@ SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_NextMethodClass, next_method_print);
 
 static int actual_slots(SgClass *klass)
 {
-  /* SgSlotAccessor **ac = klass->gettersNSetters; */
-  /* int i, c = 0; */
+  SgSlotAccessor **ac = klass->gettersNSetters;
+  int i, c = 0;
 
-  /* for (i = 0; i < klass->nfields; i++) { */
-  /*   if (ac[i]->index >= 0) c++; */
-  /* } */
-  /* return c; */
-  return klass->nfields;
+  for (i = 0; i < klass->nfields; i++) {
+    if (ac[i]->index >= 0) c++;
+  }
+  return c;
 }
 
 SgObject Sg_AllocateInstance(SgClass *klass)
