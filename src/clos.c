@@ -176,7 +176,7 @@ SG_DEFINE_BASE_CLASS(Sg_GenericClass, SgGeneric,
 		     SG_CLASS_OBJECT_CPL);
 SG_DEFINE_BASE_CLASS(Sg_MethodClass, SgMethod,
 		     method_print, NULL, NULL, method_allocate,
-		     Sg_MethodCPL);
+		     SG_CLASS_OBJECT_CPL);
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_NextMethodClass, next_method_print);
 

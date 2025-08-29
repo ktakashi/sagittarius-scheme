@@ -73,4 +73,20 @@
 ;; sam is not a painter
 (test-error (painter-pen sam))
 
+(define (check-builtin-slots class)
+  (let ((slots (slot-ref class 'slots)))
+    (test-equal (list class 'nfields) (length slots) (slot-ref class 'nfields))
+    (test-equal (list class 'getters-n-setters)
+		(slot-ref class 'nfields)
+		(length (slot-ref class 'getters-n-setters)))))
+(check-builtin-slots <top>)    ;; should be zero
+(check-builtin-slots <object>) ;; should be zero
+(check-builtin-slots <class>)
+(check-builtin-slots <generic>)
+(check-builtin-slots <next-method>)
+(check-builtin-slots <slot-accessor>)
+(check-builtin-slots <method>)
+
+(check-builtin-slots <predicate-specializable-generic>)
+
 (test-end)
