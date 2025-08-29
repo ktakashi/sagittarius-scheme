@@ -39,7 +39,8 @@
     (import (rnrs)
 	    (sagittarius) ;; for gensym
 	    (clos user)
-	    (clos core))
+	    (clos core)
+	    (sagittarius clos))
 
 (define-class <allocation-meta> (<class>) ())
 #|
@@ -68,6 +69,19 @@
       r))
 |#
 
+(define-method compute-getters-and-setters ((class <allocation-meta>) slots)
+  (let loop ((i 0) (slots slots) (r '()))
+    (if (null? slots)
+	(reverse! r)
+	(let ((slot (car slots)))
+	  (let-values (((g s b? . rest)
+			(apply values
+			       (compute-getter-and-setter class slot))))
+	    (let* ((virtual? (and (not (null? rest)) (car rest)))
+		   (sac (%make-slot-accessor
+			 class slot (if virtual? -1 i) g s b?)))
+	      (loop (if virtual? i (+ i 1)) (cdr slots) (cons sac r))))))))
+
 (define-method compute-getter-and-setter ((class <allocation-meta>) slot)
   (cond ((slot-definition-option slot :allocation :instance)
 	 => (lambda (type)
@@ -81,7 +95,8 @@
 			(def (if init-thunk (init-thunk) init-value)))
 		   (list (lambda (o) def)
 			 (lambda (o v) (set! def v))
-			 #f)))
+			 #f
+			 #t)))
 		((:delegate)
 		 (let ((to-slot (slot-definition-option slot :forwarding #f)))
 		   (unless (symbol? to-slot)
@@ -89,7 +104,8 @@
 		       ":allocation :delegate requires :forwarding {slot}"))
 		   (list (lambda (o) (slot-ref o to-slot))
 			 (lambda (o v) (slot-set! o to-slot v))
-			 #f)))
+			 #f
+			 #t)))
 		;; Gauche's :virtual
 		((:virtual)
 		 (let ((getter (slot-definition-option slot :slot-ref #f))
@@ -98,7 +114,7 @@
 		   (unless (procedure? getter)
 		     (assertion-violation 'compute-getter-and-setter
 		      ":allocation :virtual requires at least :slot-ref {procedure}"))
-		   (list getter setter bound?)))
+		   (list getter setter bound? #t)))
 		(else
 		 (assertion-violation '<allocation-meta>
 				      "unknown :allocation type"
@@ -117,19 +133,20 @@
 (define-method compute-getter-and-setter ((class <cached-allocation-meta>) slot)
   (let ((acc (call-next-method)))
     (if (caching-slot? slot)
-	(let-values (((getter setter bound?) (apply values acc)))
+	(let-values (((getter setter bound? . rest) (apply values acc)))
 	  (let ((name (slot-definition-name slot)))
-	    (list (lambda (o)
-		    (cond ((hashtable-ref (slot-ref o cached-slot) name #f))
-			  (else
-			   (let ((v (getter o)))
-			     (hashtable-set! (slot-ref o cached-slot) name v)
-			     v))))
-		  (and setter
-		       (lambda (o v)
-			 (setter o v)
-			 (hashtable-set! (slot-ref o cached-slot) name v)))
-		  bound?)))
+	    (cons* (lambda (o)
+		     (cond ((hashtable-ref (slot-ref o cached-slot) name #f))
+			   (else
+			    (let ((v (getter o)))
+			      (hashtable-set! (slot-ref o cached-slot) name v)
+			      v))))
+		   (and setter
+			(lambda (o v)
+			  (setter o v)
+			  (hashtable-set! (slot-ref o cached-slot) name v)))
+		   bound?
+		   rest)))
 	acc)))
 (define-class <cached-allocation-mixin> () ()
   :metaclass <cached-allocation-meta>)

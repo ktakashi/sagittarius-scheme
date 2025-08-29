@@ -180,17 +180,30 @@ SG_DEFINE_BASE_CLASS(Sg_MethodClass, SgMethod,
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_NextMethodClass, next_method_print);
 
+static int actual_slots(SgClass *klass)
+{
+  /* SgSlotAccessor **ac = klass->gettersNSetters; */
+  /* int i, c = 0; */
+
+  /* for (i = 0; i < klass->nfields; i++) { */
+  /*   if (ac[i]->index >= 0) c++; */
+  /* } */
+  /* return c; */
+  return klass->nfields;
+}
+
 SgObject Sg_AllocateInstance(SgClass *klass)
 {
   SgObject obj = SG_NEW2(SgObject, klass->coreSize);
   SgObject *slots;
-  int i;
+  int i, size;
 
   switch (SG_CLASS_CATEGORY(klass)) {
   case SG_CLASS_BASE:
   case SG_CLASS_SCHEME:
-    slots = SG_NEW_ARRAY(SgObject, klass->nfields);
-    for (i = 0; i < klass->nfields; i++) {
+    size = actual_slots(klass);
+    slots = SG_NEW_ARRAY(SgObject, size);
+    for (i = 0; i < size; i++) {
       slots[i] = SG_UNBOUND;
     }
     SG_INSTANCE(obj)->slots = slots;
@@ -1314,6 +1327,17 @@ SgObject Sg_SlotRefUsingAccessor(SgObject obj, SgSlotAccessor *ac)
   if (ac->getter) {
     return ac->getter(obj);
   } else {
+    if (ac->index < 0) {
+      // virtual slot
+      if (SG_PROCEDUREP(ac->getterS)) {
+	return Sg_Apply1(ac->getterS, obj);
+      } else {
+	Sg_AssertionViolation(SG_INTERN("slot-ref-using-accessor"),
+			      Sg_Sprintf(UC("Slot %A is virtual but no getter"),
+					 ac->name),
+			      obj);
+      }
+    }
     return SG_INSTANCE(obj)->slots[ac->index];
   }
 }
@@ -1335,7 +1359,19 @@ void Sg_SlotSetUsingAccessor(SgObject obj, SgSlotAccessor *ac, SgObject value)
   if (ac->setter) {
     ac->setter(obj, value);
   } else {
-    SG_INSTANCE(obj)->slots[ac->index] = value;
+    if (ac->index < 0) {
+      // virtual slot
+      if (SG_PROCEDUREP(ac->setterS)) {
+	Sg_Apply2(ac->setterS, obj, value);
+      } else {
+	Sg_AssertionViolation(SG_INTERN("slot-set-using-accessor!"),
+			      Sg_Sprintf(UC("Slot %A is virtual but no setter"),
+					 ac->name),
+			      obj);
+      }
+    } else {
+      SG_INSTANCE(obj)->slots[ac->index] = value;
+    }
   }
 }
 
