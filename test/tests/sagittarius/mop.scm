@@ -3,6 +3,7 @@
 	(clos core)
 	(sagittarius mop allocation)
 	(sagittarius mop validator)
+	(sagittarius mop immutable)
 	(srfi :64 testing))
 
 (test-begin "Sagittarius MOP")
@@ -75,5 +76,25 @@
   (let ((foo (make <foo> :bar 'bar)))
     (test-assert (slot-set! foo 'baz 'ok))
     (test-equal 'ok (slot-ref foo 'baz))))
+
+(let ()
+  (define-class <virtual-slot> (<allocation-mixin> <immutable>)
+    ((bar )
+     (baz :init-keyword :bar
+	  :allocation :virtual :mutable #t
+	  :slot-ref (lambda (o) (slot-ref o 'bar))
+	  :slot-set! (lambda (o v)
+		       ;; this allow us to put directly into the slot
+		       ;; without validating setter
+		       (slot-set-using-class! <virtual-slot> o 'bar v)))))
+
+  (let ((o (make <virtual-slot> :bar 'bar)))
+    (test-assert (slot-bound? o 'bar))
+    (test-equal 'bar (slot-ref o 'bar))
+    (test-equal 'bar (slot-ref o 'baz))
+    (test-error (slot-set! o 'bar 'ok))
+    ;; unfortunately, this can't be archived, also the virtual slot
+    ;; itself is marked as mutable
+    #;(test-error (slot-set! foo 'baz 'ok))))
 
 (test-end)
