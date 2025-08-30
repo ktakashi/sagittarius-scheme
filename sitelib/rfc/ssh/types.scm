@@ -111,6 +111,7 @@
 	    (sagittarius crypto random)
 	    (rfc ssh constants)
 	    (srfi :13 strings)
+	    (srfi :18 multithreading)
 	    (srfi :39 parameters)
 	    (binary data)
 	    (binary io))
@@ -270,9 +271,13 @@
    (client-mac :init-value #f) ;; client -> server
    ;; compression&language; I don't think we should support so ignore
    ;; keep the channels to allocate proper channel number
-   (channels   :init-value '())
+   (channels   :init-value '()) ;; TODO remove this
    (kex-digester :init-value #f) ;; message digest for kex
 
+   (read-lock :init-form (make-mutex))
+   (read-cv   :init-form (make-condition-variable))
+   (write-lock :init-form (make-mutex))
+   (write-cv   :init-form (make-condition-variable))
    ;; as far as i know, all block cipher has 2^n size (8 or 16) thus 8192 is
    ;; multiple of them.
    ;; NB: for some reason Windows RCVBUF is set to 8KB by default.

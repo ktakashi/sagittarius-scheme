@@ -41,6 +41,7 @@
 	    (rfc ssh constants)
 	    (rfc ssh types)
 	    (binary io)
+	    (srfi :18 multithreading)
 	    (srfi :39 parameters)
 	    (sagittarius)
 	    (sagittarius socket)
@@ -152,34 +153,41 @@
 	     ;; discards padding
 	     (recv-n! in buffer pad))))
 
-  (let* ((mac-length (or (and (mac? hmac) (mac-mac-size hmac)) 0))
-	 (payload (if (zero? mac-length)
-		      (read-data context)
-		      (read&decrypt mac-length)))
-	 (type (bytevector-u8-ref payload 0)))
-    (set! (~ context 'peer-sequence) (+ (~ context 'peer-sequence) 1))
-    ;; FIXME the way handling global message is sloppy
-    (cond ((= type +ssh-msg-ignore+)
-	   ((*ssh:ignore-package-handler*) payload)
-	   (ssh-read-packet context))
-	  ((= type +ssh-msg-debug+)
-	   ((*ssh:debug-package-handler*) payload)
-	   (ssh-read-packet context))
-	  ((= type +ssh-msg-unimplemented+)
-	   (error 'ssh-read-packet "The previous sequence is not implemented"
-		  ;; should we deserialize?
-		  payload))
-	  ((= type +ssh-msg-ext-info+)
-	   (handle-ext-info context payload)
-	   (ssh-read-packet context))
-	  ((= type +ssh-msg-disconnect+)
-	   (let* ((msg (bytevector->ssh-message <ssh-msg-disconnect> payload))
-		  (desc (~ msg 'description)))
-	     (error 'ssh-read-packet
-		    (if (zero? (string-length desc))
-			"Received disconnect message"
-			desc))))
-	  (else payload))))
+  (define (rec context)
+    (let* ((mac-length (or (and (mac? hmac) (mac-mac-size hmac)) 0))
+	   (payload (if (zero? mac-length)
+			(read-data context)
+			(read&decrypt mac-length)))
+	   (type (bytevector-u8-ref payload 0)))
+      (set! (~ context 'peer-sequence) (+ (~ context 'peer-sequence) 1))
+      ;; FIXME the way handling global message is sloppy
+      (cond ((= type +ssh-msg-ignore+)
+	     ((*ssh:ignore-package-handler*) payload)
+	     (rec context))
+	    ((= type +ssh-msg-debug+)
+	     ((*ssh:debug-package-handler*) payload)
+	     (rec context))
+	    ((= type +ssh-msg-unimplemented+)
+	     (error 'ssh-read-packet "The previous sequence is not implemented"
+		    ;; should we deserialize?
+		    payload))
+	    ((= type +ssh-msg-ext-info+)
+	     (handle-ext-info context payload)
+	     (rec context))
+	    ((= type +ssh-msg-disconnect+)
+	     (let* ((msg (bytevector->ssh-message <ssh-msg-disconnect> payload))
+		    (desc (~ msg 'description)))
+	       (error 'ssh-read-packet
+		      (if (zero? (string-length desc))
+			  "Received disconnect message"
+			  desc))))
+	    (else payload))))
+  (mutex-lock! (~ context 'read-lock))
+  (guard (e (else (mutex-unlock! (~ context 'read-lock)) (raise e)))
+    (let ((payload (rec context)))
+      (condition-variable-broadcast! (~ context 'read-cv))
+      (mutex-unlock! (~ context 'read-lock))
+      payload)))
 
 (define (ssh-write-packet context msg)
   (define c (~ context 'host-cipher))
@@ -253,14 +261,17 @@
 	  (let* ((offset (+ sent (* i buffer-len)))
 		 (e (encrypt msg offset buffer)))
 	    (do-send e buffer-len))))))
-
-  (encrypt&send c hmac out)
-  (set! (~ context 'host-sequence) (+ (~ context 'host-sequence) 1))
-  (when hmac
-    (mac-process! hmac msg)
-    (mac-process! hmac padding)
-    (mac-done! hmac buffer 0 (mac-mac-size hmac))
-    (do-send buffer (mac-mac-size hmac))))
+  (mutex-lock! (~ context 'write-lock))
+  (guard (e (else (mutex-unlock! (~ context 'write-lock)) (raise e)))
+    (encrypt&send c hmac out)
+    (set! (~ context 'host-sequence) (+ (~ context 'host-sequence) 1))
+    (when hmac
+      (mac-process! hmac msg)
+      (mac-process! hmac padding)
+      (mac-done! hmac buffer 0 (mac-mac-size hmac))
+      (do-send buffer (mac-mac-size hmac)))
+    (condition-variable-broadcast! (~ context 'write-cv))
+    (mutex-unlock! (~ context 'write-lock))))
 
 (define (ssh-write-ssh-message context msg)
   (ssh-write-packet context (ssh-message->bytevector msg)))
