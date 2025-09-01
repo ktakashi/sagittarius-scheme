@@ -140,7 +140,7 @@
       (let ((first-size (min offset size)))
 	(bytevector-copy! first 5 payload 0 first-size)
 	(unless (= first-size size)
-	  (bytevector-copy! rest 0  payload offset (- size offset))))
+	  (bytevector-copy! rest 0 payload offset (- size offset))))
       payload))
   
   (define (read-data context)
@@ -192,7 +192,7 @@
 (define (ssh-write-packet context msg)
   (define c (~ context 'host-cipher))
   ;; minimum packet size is 16
-  (define block-size (if c (block-cipher-block-length c) 16))
+  (define block-size (if c (block-cipher-block-length c) 8))
   (define out (~ context 'socket))
   (define msg-len (bytevector-length msg))
   (define buffer (~ context 'write-buffer))
@@ -221,7 +221,7 @@
       (if c
 	  (block-cipher-encrypt! c m offset buffer 0)
 	  (bytevector-copy! m offset buffer 0
-			    (min (bytevector-length m)
+			    (min (- (bytevector-length m) offset)
 				 (bytevector-length buffer))))
       buffer)
 
@@ -249,10 +249,21 @@
 
     (define (do-last sent)
       (let* ((rest (- msg-len sent))
-	     (buf (make-bytevector (+ rest pad-len))))
-	(bytevector-copy! msg sent buf 0 rest)
-	(bytevector-copy! padding 0 buf rest pad-len)
-	(do-send (encrypt buf 0 buffer) (+ rest pad-len))))
+	     (len (+ rest pad-len)))
+	(if (< len buffer-len)
+	    (let ((buf (make-bytevector len)))
+	      (bytevector-copy! msg sent buf 0 rest)
+	      (bytevector-copy! padding 0 buf rest pad-len)
+	      (do-send (encrypt buf 0 buffer) (+ rest pad-len)))
+	    ;; we need to send twice
+	    (let ((buf (make-bytevector buffer-len))
+		  (plen (- buffer-len rest)))
+	      ;; we know rest is smaller than or equal to buffer-len
+	      (bytevector-copy! msg sent buf 0 rest)
+	      (bytevector-copy! padding 0 buf rest plen)
+	      (do-send (encrypt buf 0 buffer) buffer-len)
+	      ;; now, we need to send the rest of padding
+	      (do-send (encrypt padding plen buf) (- pad-len plen))))))
     
     (let ((sent (do-first)))
       (when sent
