@@ -68,6 +68,9 @@
 
 	    x25519-calculate-agreement
 	    x448-calculate-agreement
+
+	    x25519-curve-parameter
+	    x448-curve-parameter
 	    )
     (import (rnrs)
 	    (core misc)
@@ -187,9 +190,7 @@
 (define-method generate-key-pair ((m (eql *key:x25519*))
 				  :key (prng (secure-random-generator *prng:chacha20*))
 				  :allow-other-keys)
-  (let* ((random (random-generator-read-random-bytes prng 32))
-	 (private-key (generate-private-key *key:x25519* random)))
-    (make-key-pair private-key (rfc7748-private-key-public-key private-key))))
+  (generate-key-pair *key:ecdh* :ec-parameter x25519-curve-parameter :prng prng))
 
 ;; key generation x448
 (define-method generate-public-key ((m (eql *key:x448*))
@@ -204,8 +205,34 @@
 (define-method generate-key-pair ((m (eql *key:x448*))
 				  :key (prng (secure-random-generator *prng:chacha20*))
 				  :allow-other-keys)
-  (let* ((random (random-generator-read-random-bytes prng 56))
-	 (private-key (generate-private-key *key:x448* random)))
+  (generate-key-pair *key:ecdh* :ec-parameter x448-curve-parameter :prng prng))
+
+(define-method generate-public-key ((m (eql *key:ecdh*))
+				    (in <bytevector>)
+				    :optional (parameter x25519-curve-parameter))
+  (make (if (eq? (curve-parameter-name parameter) 'x25519)
+	      <x25519-public-key>
+	      <x448-public-key>)
+    :data in :parameter parameter))
+
+(define-method generate-private-key ((m (eql *key:ecdh*))
+				     (in <bytevector>)
+				     :optional (parameter x25519-curve-parameter))
+  (let ((pub (compute-public-key in parameter)))
+    (make (if (eq? (curve-parameter-name parameter) 'x25519)
+	      <x25519-private-key>
+	      <x448-private-key>)
+      :random in :parameter parameter
+      :public-key (generate-public-key m pub))))
+
+(define-method generate-key-pair ((m (eql *key:ecdh*))
+				  ;; make name compatible with ECDSA...
+				  :key (ec-parameter x25519-curve-parameter)
+				       (prng (secure-random-generator *prng:chacha20*))
+				  :allow-other-keys)
+  (let* ((size (div (+ (curve-parameter-bits ec-parameter) 7) 8))
+	 (random (random-generator-read-random-bytes prng size))
+	 (private-key (generate-private-key m random ec-parameter)))
     (make-key-pair private-key (rfc7748-private-key-public-key private-key))))
 
 (define-method calculate-key-agreement ((m (eql *key:x25519*)) . params)

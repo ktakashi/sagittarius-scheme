@@ -78,7 +78,7 @@
 	   (lambda (m) (string->number (m 1))))
 	  (else (error 'ssh-exchange-kex-message "must not happen"))))
   (define (generate-e&x transport)
-    (let-values (((p g) (case (group-n (~ transport 'kex))
+    (let-values (((p g) (case (group-n m)
 			  ((1)  (values +dh-group1-p+ +dh-group1-g+))
 			  ((14) (values +dh-group14-p+ +dh-group14-g+))
 			  ((15) (values +dh-group15-p+ +dh-group15-g+))

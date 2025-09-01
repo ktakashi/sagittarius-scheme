@@ -211,9 +211,13 @@
     (unless (valid-ec-point? (ec-parameter-curve parameter) q)
       (assertion-violation 'generate-ecdsa-public-key "Invalid EC point"))
     (make <ecdsa-public-key> :Q q :parameter parameter)))
-(define-method generate-public-key ((m (eql *key:ecdsa*)) x y
+(define-method generate-public-key ((m (eql *key:ecdsa*))
+				    (x <integer>) (y <integer>)
 				    :optional (parameter secp256r1))
   (generate-ecdsa-public-key x y parameter))
+(define-method generate-public-key ((m (eql *key:ecdsa*)) (bv <bytevector>)
+				    :optional (parameter secp256r1))
+  (import-public-key m bv (public-key-format raw) parameter))
 
 
 (define *ecdsa-key-oid* "1.2.840.10045.2.1")

@@ -40,7 +40,6 @@
 	    (sagittarius crypto keys)
 	    (sagittarius crypto digests)
 	    (sagittarius crypto signatures)
-	    (sagittarius crypto math ec)
 	    (rfc ssh constants)
 	    (rfc ssh types)
 	    (rfc ssh crypto)
@@ -52,40 +51,28 @@
   ((m (?? ssh-kex-ecdh-sha2?)) transport client-packet server-packet)
   (define identity (ssh-kex-ecdh-identity m))
   (define curve (ssh-ecdsa-identifier->ec-parameter (ssh-kex-ecdh-identity m)))
-  (define kp (generate-key-pair *key:ecdsa* :ec-parameter curve))
-  (define Q-C (encode-ec-point (ec-parameter-curve curve)
-			       (ecdsa-public-key-Q (key-pair-public kp))))
-  (define (make-kex-ecdh-init)
-    (make <ssh-msg-kex-ecdh-init> :Q-C Q-C))
-  (define (compute-k transport kex-reply)
-    (let* ((K-S (~ kex-reply 'K-S))
-	   (Q-S (~ kex-reply 'Q-S))
-	   (sig (~ kex-reply 'signature))
-	   (spub (import-public-key *key:ecdsa* Q-S
-				    (public-key-format raw) curve))
-	   (K (bytevector->integer
-	       (calculate-key-agreement *key:ecdh* (key-pair-private kp) spub)))
-	   (msg (make <SSH-ECDH-H>
-		  :V-C (~ transport 'client-version)
-		  :V-S (~ transport 'server-version)
-		  :I-C client-packet :I-S server-packet
-		  :K-S K-S :Q-C Q-C :Q-S Q-S :K K)))
-      (values K (ssh-verify-signature transport msg K-S sig))))
-  (ssh-kex-send/receive transport make-kex-ecdh-init <ssh-msg-kex-ecdh-reply>
-			compute-k))
+  (calculate-shared-secret transport *key:ecdsa* curve
+			   client-packet server-packet))
 
 (define-method ssh-client-exchange-kex-message
   ((m (member ssh-curve-25519/448)) transport client-packet server-packet)
-  (define curve (if (string=? m +kex-curve448-sha512+) *key:x448* *key:x25519*))
-  (define kp (generate-key-pair curve))
-  (define Q-C (rfc7748-public-key-data (key-pair-public kp)))
+  (define curve (if (string=? m +kex-curve448-sha512+)
+		    x448-curve-parameter
+		    x25519-curve-parameter))
+  (calculate-shared-secret transport *key:ecdh* curve
+			   client-packet server-packet))
+
+(define (calculate-shared-secret transport scheme parameter 
+				 client-packet server-packet)
+  (define kp (generate-key-pair scheme :ec-parameter parameter))
+  (define Q-C (export-public-key (key-pair-public kp) (public-key-format raw)))
   (define (make-kex-ecdh-init)
     (make <ssh-msg-kex-ecdh-init> :Q-C Q-C))
   (define (compute-k transport kex-reply)
     (let* ((K-S (~ kex-reply 'K-S))
 	   (Q-S (~ kex-reply 'Q-S))
 	   (sig (~ kex-reply 'signature))
-	   (spub (generate-public-key curve Q-S))
+	   (spub (generate-public-key scheme Q-S parameter))
 	   (K (bytevector->integer
 	       (calculate-key-agreement *key:ecdh* (key-pair-private kp) spub)))
 	   (msg (make <SSH-ECDH-H>
