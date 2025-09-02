@@ -180,60 +180,62 @@
 ;; key generation x25519
 (define-method generate-public-key ((m (eql *key:x25519*))
 				    (in <bytevector>) . ignore)
-  (make <x25519-public-key> :data in :parameter x25519-curve-parameter))
-
+  (ecdh-generate-public-key in x25519-curve-parameter))
 (define-method generate-private-key ((m (eql *key:x25519*))
 				     (in <bytevector>) . ignore)
-  (let ((pub (compute-public-key in x25519-curve-parameter)))
-    (make <x25519-private-key> :random in :parameter x25519-curve-parameter
-	  :public-key (generate-public-key m pub))))
-(define-method generate-key-pair ((m (eql *key:x25519*))
-				  :key (prng (secure-random-generator *prng:chacha20*))
-				  :allow-other-keys)
-  (generate-key-pair *key:ecdh* :ec-parameter x25519-curve-parameter :prng prng))
+  (ecdh-generate-private-key in x25519-curve-parameter))
+(define-method generate-key-pair ((m (eql *key:x25519*)) . opts)
+  (apply ecdh-generate-key-pair :ec-parameter x25519-curve-parameter opts))
 
 ;; key generation x448
 (define-method generate-public-key ((m (eql *key:x448*))
 				    (in <bytevector>) . ignore)
-  (make <x448-public-key> :data in :parameter x448-curve-parameter))
+  (ecdh-generate-public-key in x448-curve-parameter))
 
 (define-method generate-private-key ((m (eql *key:x448*))
 				     (in <bytevector>) . ignore)
-  (let ((pub (compute-public-key in x448-curve-parameter)))
-    (make <x448-private-key> :random in :parameter x448-curve-parameter
-	  :public-key (generate-public-key m pub))))
-(define-method generate-key-pair ((m (eql *key:x448*))
-				  :key (prng (secure-random-generator *prng:chacha20*))
-				  :allow-other-keys)
-  (generate-key-pair *key:ecdh* :ec-parameter x448-curve-parameter :prng prng))
+  (ecdh-generate-private-key in x448-curve-parameter))
+(define-method generate-key-pair ((m (eql *key:x448*)) . opts)
+  (apply ecdh-generate-key-pair :ec-parameter x448-curve-parameter opts))
 
-(define-method generate-public-key ((m (eql *key:ecdh*))
-				    (in <bytevector>)
-				    :optional (parameter x25519-curve-parameter))
-  (make (if (eq? (curve-parameter-name parameter) 'x25519)
+;; ecdh generic
+(define-method generate-public-key ((m (eql *key:ecdh*)) (in <bytevector>)
+				    . opts)
+  (apply ecdh-generate-public-key in opts))
+
+(define-method generate-private-key ((m (eql *key:ecdh*)) (in <bytevector>)
+				     . opts)
+  (apply ecdh-generate-private-key in opts))
+
+(define-method generate-key-pair ((m (eql *key:ecdh*)) . opts)
+  (apply ecdh-generate-key-pair opts))
+
+;; underlying APIs
+(define (ecdh-generate-public-key in
+				  :optional (parameter x25519-curve-parameter))
+  (make (if (eq? (curve-parameter-name parameter) 'X25519)
 	      <x25519-public-key>
 	      <x448-public-key>)
     :data in :parameter parameter))
 
-(define-method generate-private-key ((m (eql *key:ecdh*))
-				     (in <bytevector>)
-				     :optional (parameter x25519-curve-parameter))
+(define (ecdh-generate-private-key in
+				   :optional (parameter x25519-curve-parameter))
   (let ((pub (compute-public-key in parameter)))
-    (make (if (eq? (curve-parameter-name parameter) 'x25519)
+    (make (if (eq? (curve-parameter-name parameter) 'X25519)
 	      <x25519-private-key>
 	      <x448-private-key>)
       :random in :parameter parameter
-      :public-key (generate-public-key m pub))))
+      :public-key (ecdh-generate-public-key pub parameter))))
 
-(define-method generate-key-pair ((m (eql *key:ecdh*))
-				  ;; make name compatible with ECDSA...
-				  :key (ec-parameter x25519-curve-parameter)
-				       (prng (secure-random-generator *prng:chacha20*))
-				  :allow-other-keys)
+(define (ecdh-generate-key-pair
+	 ;; make name compatible with ECDSA...
+	 :key (ec-parameter x25519-curve-parameter)
+	      (prng (secure-random-generator *prng:chacha20*)))
   (let* ((size (div (+ (curve-parameter-bits ec-parameter) 7) 8))
 	 (random (random-generator-read-random-bytes prng size))
-	 (private-key (generate-private-key m random ec-parameter)))
+	 (private-key (generate-private-key *key:ecdh* random ec-parameter)))
     (make-key-pair private-key (rfc7748-private-key-public-key private-key))))
+
 
 (define-method calculate-key-agreement ((m (eql *key:x25519*)) . params)
   (apply calculate-key-agreement *key:ecdh* params))
