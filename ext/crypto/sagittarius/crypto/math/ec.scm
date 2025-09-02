@@ -181,10 +181,10 @@
   (cond ((and (ec-field-fp? field1) (ec-field-fp? field2))
 	 (= (ec-field-fp-p field1) (ec-field-fp-p field2)))
 	((and (ec-field-f2m? field1) (ec-field-f2m? field2))
-	 (and (= (ec-field-f2m-m  field1) (ec-field-f2m-m  field1))
-	      (= (ec-field-f2m-k1 field1) (ec-field-f2m-k1 field1))
-	      (= (ec-field-f2m-k2 field1) (ec-field-f2m-k2 field1))
-	      (= (ec-field-f2m-k3 field1) (ec-field-f2m-k3 field1))))
+	 (and (= (ec-field-f2m-m  field1) (ec-field-f2m-m  field2))
+	      (= (ec-field-f2m-k1 field1) (ec-field-f2m-k1 field2))
+	      (= (ec-field-f2m-k2 field1) (ec-field-f2m-k2 field2))
+	      (= (ec-field-f2m-k3 field1) (ec-field-f2m-k3 field2))))
 	(else #f)))
 
 (define-syntax define-predicate-generic
