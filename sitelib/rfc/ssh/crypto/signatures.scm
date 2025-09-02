@@ -37,6 +37,7 @@
     (import (rnrs)
 	    (clos user)
 	    (rfc ssh types)
+	    (rfc ssh constants)
 	    (sagittarius)
 	    (sagittarius crypto keys)
 	    (sagittarius crypto digests)
@@ -45,17 +46,20 @@
 	    (sagittarius crypto math ec)
 	    (sagittarius crypto asn1))
 
-(define-generic make-ssh-signer)
+(define-generic make-ssh-signer :class <predicate-specializable-generic>)
 (define-method make-ssh-signer (ignore (pk <dsa-private-key>))
   (make-signer *signature:dsa* pk :der-encode #f))  
 
-(define-method make-ssh-signer ((alg (eql :ssh-rsa)) (pk <rsa-private-key>))
-  (apply make-signer *signature:rsa* pk
-	 :encoder pkcs1-emsa-v1.5-encode
-	 :digest *digest:sha-1*))
-(define-method make-ssh-signer ((alg (eql :rsa-sha2-256)) (pk <rsa-private-key>))
+(define-method make-ssh-signer ((alg (equal +public-key-ssh-rsa+))
+				(pk <rsa-private-key>))
+  (make-signer *signature:rsa* pk
+	       :encoder pkcs1-emsa-v1.5-encode
+	       :digest *digest:sha-1*))
+(define-method make-ssh-signer ((alg (equal +public-key-rsa-sha2-256+))
+				(pk <rsa-private-key>))
   (make-signer *signature:rsa* pk :encoder pkcs1-emsa-v1.5-encode))
-(define-method make-ssh-signer ((alg (eql :rsa-sha2-512)) (pk <rsa-private-key>))
+(define-method make-ssh-signer ((alg (equal +public-key-rsa-sha2-512+))
+				(pk <rsa-private-key>))
   (make-signer *signature:rsa* pk
 	       :encoder pkcs1-emsa-v1.5-encode
 	       :digest *digest:sha-512*))
@@ -71,20 +75,21 @@
      :digest (ssh-ecdsa-digest-descriptor (ecdsa-key-parameter key))))
   (make-signer :ssh-ecdsa pk :creator creator))
 
-(define-generic make-ssh-verifier)
-(define-method make-ssh-verifier ((alg (eql :ssh-rsa)) key)
+(define-generic make-ssh-verifier :class <predicate-specializable-generic>)
+(define-method make-ssh-verifier ((alg (equal +public-key-ssh-rsa+))
+				  key)
   (make-verifier *signature:rsa* key :digest *digest:sha-1*
 		 :verifier pkcs1-emsa-v1.5-verify))
-(define-method make-ssh-verifier ((alg (eql :rsa-sha2-256)) key)
+(define-method make-ssh-verifier ((alg (equal +public-key-rsa-sha2-256+)) key)
   (make-verifier *signature:rsa* key :verifier pkcs1-emsa-v1.5-verify))
-(define-method make-ssh-verifier ((alg (eql :rsa-sha2-512)) key)
+(define-method make-ssh-verifier ((alg (equal +public-key-rsa-sha2-512+)) key)
   (make-verifier *signature:rsa* key :digest *digest:sha-512*
 		 :verifier pkcs1-emsa-v1.5-verify))
-(define-method make-ssh-verifier ((alg (eql :ssh-dss)) key)
+(define-method make-ssh-verifier ((alg (equal +public-key-ssh-dss+)) key)
   (make-verifier *signature:dsa* key :der-encode #f))
-(define-method make-ssh-verifier ((alg (eql :ssh-ed25519)) key)
+(define-method make-ssh-verifier ((alg (equal +public-key-ssh-ed25519+)) key)
   (make-verifier *signature:ed25519* key))
-(define-method make-ssh-verifier ((alg (eql :ssh-ed448)) key)
+(define-method make-ssh-verifier ((alg (equal +public-key-ssh-ed448+)) key)
   (make-verifier *signature:ed448* key))
 (define-method make-ssh-verifier (ignore (key <ecdsa-public-key>))
   (define (creator key)

@@ -96,10 +96,7 @@
 	    <ssh-msg-userauth-prompt>
 
 	    <ssh-transport>
-	    <ssh-channel>
-	    *ssh-mac-list*
-	    *ssh-encryption-list*
-	    *ssh-public-key-list*)
+	    <ssh-channel>)
     (import (rnrs)
 	    (clos user)
 	    (clos core)
@@ -112,7 +109,6 @@
 	    (rfc ssh constants)
 	    (srfi :13 strings)
 	    (srfi :18 multithreading)
-	    (srfi :39 parameters)
 	    (binary data)
 	    (binary io))
 
@@ -325,43 +321,17 @@
 ;; TODO consider RFC 9142
 (define empty-list (name-list))
 
-(define *ssh-public-key-list*
-  (make-parameter (name-list
-		   +public-key-ecdsa-sha2-nistp256+
-		   +public-key-ecdsa-sha2-nistp384+
-		   +public-key-ecdsa-sha2-nistp521+
-		   +public-key-ssh-ed448+
-		   +public-key-ssh-ed25519+
-      		   +public-key-rsa-sha2-256+
-		   +public-key-rsa-sha2-512+
-      		   +public-key-ssh-rsa+
-      		   +public-key-ssh-dss+)))
-(define *ssh-encryption-list*
-  (make-parameter (name-list 
-      		   ;; counter mode first
-      		   +enc-aes128-ctr+  
-      		   +enc-aes256-ctr+  
-      		   +enc-3des-ctr+    
-      		   +enc-blowfish-ctr+
-      		   ;; cbc
-      		   +enc-aes256-cbc+  
-      		   +enc-aes128-cbc+  
-      		   +enc-3des-cbc+    
-      		   +enc-blowfish-cbc+)))
 (define compression-list (name-list "none"))
-;; only hmac-sha1. or maybe sha2 as well?
-(define *ssh-mac-list*
-  (make-parameter (name-list +mac-hmac-sha2-256+ +mac-hmac-sha1+)))
 
 (define-ssh-message <ssh-msg-keyinit> (<ssh-message>)
   ((type   :byte +ssh-msg-kexinit+)
    (cookie (:byte 16))
    (kex-algorithms <name-list>)
-   (server-host-key-algorithms <name-list> (*ssh-public-key-list*))
-   (encryption-algorithms-client-to-server <name-list> (*ssh-encryption-list*))
-   (encryption-algorithms-server-to-client <name-list> (*ssh-encryption-list*))
-   (mac-algorithms-client-to-server <name-list> (*ssh-mac-list*))
-   (mac-algorithms-server-to-client <name-list> (*ssh-mac-list*))
+   (server-host-key-algorithms <name-list>)
+   (encryption-algorithms-client-to-server <name-list>)
+   (encryption-algorithms-server-to-client <name-list>)
+   (mac-algorithms-client-to-server <name-list>)
+   (mac-algorithms-server-to-client <name-list>)
    (compression-algorithms-client-to-server <name-list> compression-list)
    (compression-algorithms-server-to-client <name-list> compression-list)
    (language-client-to-server <name-list> empty-list)

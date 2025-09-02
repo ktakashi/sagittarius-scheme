@@ -31,41 +31,15 @@
 #!read-macro=sagittarius/regex
 #!nounbound
 (library (rfc ssh client kex)
-    (export ssh-client-key-exchange
-	    *ssh-client-kex-list*)
+    (export ssh-client-key-exchange)
     (import (rnrs)
 	    (srfi :39 parameters)
-	    (rfc ssh constants)
-	    (rfc ssh types)
 	    (rfc ssh transport)
 	    (rfc ssh client kex api)
 	    (rfc ssh client kex dh)
 	    (rfc ssh client kex ecdh))
 
-(define *ssh-client-kex-list*
-  ;; The keyword is from in RFC9142
-  (make-parameter (name-list
-		   +kex-curve25519-sha256+	       ;; SHOUD
-		   +kex-curve448-sha512+	       ;; MAY
-		   +kex-ecdh-sha2-nistp256+	       ;; SHOULD
-		   +kex-ecdh-sha2-nistp384+	       ;; SHOULD
-		   +kex-ecdh-sha2-nistp521+	       ;; SHOULD
-		   +kex-diffie-hellman-group15-sha512+ ;; MAY
-		   +kex-diffie-hellman-group16-sha512+ ;; SHOULD
-		   +kex-diffie-hellman-group17-sha512+ ;; MAY
-		   +kex-diffie-hellman-group18-sha512+ ;; MAY
-      		   +kex-diffie-hellman-group-exchange-sha256+ ;; MAY
-		   +kex-diffie-hellman-group14-sha256+ ;; MUST
-		   +ext-info-c+			       ;; SHOULD
-
-		   ;; Below are marked as SHOULD NOT in RFC9142 or using 
-		   ;; less secure digest algorithm, i.e. SHA1
-      		   ;; +kex-diffie-hellman-group-exchange-sha1+ ;; SHOULD NOT
-      		   ;; +kex-diffie-hellman-group14-sha1+        ;; MAY
-      		   ;; +kex-diffie-hellman-group1-sha1+         ;; SHOULD NOT
-		   )
-      		  list->name-list))
 (define ssh-client-key-exchange
-  (ssh-key-exchange *ssh-client-kex-list* ssh-client-exchange-kex-message))
+  (ssh-key-exchange ssh-client-exchange-kex-message))
 
 )

@@ -62,8 +62,7 @@
 (define (ssh-public-key-authentication transport user-name private-key public-key
       				       :key (service-name +ssh-connection+))
   (define (sign private-key session-id request)
-    (let ((signer (make-ssh-signer (string->keyword (~ request 'algorithm-name))
-				   private-key))
+    (let ((signer (make-ssh-signer (~ request 'algorithm-name) private-key))
 	  (msg (bytevector-append 
       		(pack "!L" (bytevector-length session-id)) session-id
       		(ssh-message->bytevector request))))

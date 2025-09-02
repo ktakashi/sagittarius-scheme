@@ -102,6 +102,9 @@
 (define-method read-ssh-public-key ((m (equal "ssh-ed25519")) in)
   (generate-public-key *key:ed25519* (read-message :string in #f)))
 
+(define-method read-ssh-public-key ((m (equal "ssh-ed448")) in)
+  (generate-public-key *key:ed448* (read-message :string in #f)))
+
 (define (ecdsa-sha2? n) (string-prefix? "ecdsa-sha2" n))
 (define-method read-ssh-public-key ((m (?? ecdsa-sha2?)) in)
   (let* ((blob (read-message <ssh-ecdsa-public-key-blob> in))

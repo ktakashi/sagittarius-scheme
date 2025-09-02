@@ -51,7 +51,7 @@
 	    (sagittarius control)
 	    (sagittarius object))
 
-(define ((ssh-key-exchange key-algorithms exchange-kex-message) transport . opts)
+(define ((ssh-key-exchange exchange-kex-message) transport . opts)
   (define (fill-slot transport-slot req res kex-slot)
     (let ((cnl (~ req kex-slot 'names))
 	  (snl (~ res kex-slot 'names)))
@@ -66,8 +66,7 @@
 	      (else (loop (cdr lis)))))))
   (define cookie
     (random-generator-read-random-bytes (~ transport 'prng) 16))
-  (let* ((host-kex (apply make <ssh-msg-keyinit> :cookie cookie
-			  :kex-algorithms (key-algorithms) opts))
+  (let* ((host-kex (apply make <ssh-msg-keyinit> :cookie cookie opts))
 	 (host-packet (ssh-message->bytevector host-kex)))
     (ssh-write-packet transport host-packet)
     (let* ((peer-packet (ssh-read-packet transport))

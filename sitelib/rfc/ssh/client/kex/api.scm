@@ -76,7 +76,7 @@
     (let ((sig (bytevector->ssh-message <ssh-signature> signature)))
       (values (~ sig 'signature)
 	      (verifier-init!
-	       (make-ssh-verifier (string->keyword (~ sig 'type)) key)))))
+	       (make-ssh-verifier (~ sig 'type) key)))))
   (define (compute-message-hash transport m)
     (define bv (ssh-message->bytevector m))
     (digest-message (~ transport 'kex-digester) bv))
