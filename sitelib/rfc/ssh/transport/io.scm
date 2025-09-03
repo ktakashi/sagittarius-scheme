@@ -180,7 +180,7 @@
 	       (error 'ssh-read-packet
 		      (if (zero? (string-length desc))
 			  "Received disconnect message"
-			  desc))))
+			  (string-append "Peer reason: " desc)))))
 	    (else payload))))
   (mutex-lock! (~ context 'read-lock))
   (guard (e (else (mutex-unlock! (~ context 'read-lock)) (raise e)))

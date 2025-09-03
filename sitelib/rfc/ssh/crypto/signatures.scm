@@ -93,7 +93,7 @@
   (make-verifier *signature:ed448* key))
 (define-method make-ssh-verifier (ignore (key <ecdsa-public-key>))
   (define (creator key)
-    (make-verifier *signature:ecdsa* key :der-encode #f
+    (make-verifier *signature:ecdsa* key
      :digest (ssh-ecdsa-digest-descriptor (ecdsa-key-parameter key))))
   (make-verifier :ssh-ecdsa key :creator creator))
 
@@ -147,7 +147,8 @@
   (let* ((r (ssh-read-message :mpint bin #f))
 	 (s (ssh-read-message :mpint bin #f)))
     (verifier-state-verify-message (slot-ref delegate 'state)
-				   (bytevector-append
-				    (integer->bytevector r)
-				    (integer->bytevector s)))))
+				   (asn1-encodable->bytevector
+				    (der-sequence
+				     (integer->der-integer r)
+				     (integer->der-integer s))))))
 )

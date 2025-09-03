@@ -147,16 +147,20 @@
 	(encryption-algorithms (*ssh-client-encryption-list*))
 	(mac-algorithms (*ssh-client-mac-list*))
 	(kex-algorithms (*ssh-client-kex-list*)))
-    (ssh-version-exchange transport)
-    (ssh-client-key-exchange transport
-     :kex-algorithms kex-algorithms
-     :server-host-key-algorithms public-key-algorithms
-     :encryption-algorithms-client-to-server encryption-algorithms
-     :encryption-algorithms-server-to-client encryption-algorithms
-     :mac-algorithms-client-to-server mac-algorithms
-     :mac-algorithms-server-to-client mac-algorithms)
-    transport))
-
+    (guard (e (else
+	       (close-client-ssh-transport! transport
+		 :code +ssh-disconnect-key-exchange-failed+
+		 :description (condition-message e))
+	       (raise e)))
+      (ssh-version-exchange transport)
+      (ssh-client-key-exchange transport
+	:kex-algorithms kex-algorithms
+	:server-host-key-algorithms public-key-algorithms
+	:encryption-algorithms-client-to-server encryption-algorithms
+	:encryption-algorithms-server-to-client encryption-algorithms
+	:mac-algorithms-client-to-server mac-algorithms
+	:mac-algorithms-server-to-client mac-algorithms)
+      transport)))
 
 (define (close-client-ssh-transport! transport
 				     :key (code +ssh-disconnect-by-application+)
