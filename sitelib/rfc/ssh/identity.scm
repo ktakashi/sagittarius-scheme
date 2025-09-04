@@ -29,18 +29,23 @@
 ;;;  
 
 #!read-macro=sagittarius/bv-string
+#!read-macro=sagittarius/regex
 #!nounbound
 (library (rfc ssh identity)
     (export ssh-read-identity-file
-	    ssh-read-identity)
+	    ssh-read-identity
+	    ssh-read-openssh-public-key
+	    ssh-read-openssh-public-key-file)
     (import (rnrs)
 	    (clos user)
 	    (rfc ssh types)
 	    (rfc ssh crypto)
+	    (rfc base64)
 	    (srfi :1 lists)
 	    (srfi :13 strings)
 	    (sagittarius)
 	    (sagittarius object)
+	    (sagittarius regex)
 	    (sagittarius crypto pem)
 	    (sagittarius crypto keys)
 	    (sagittarius crypto kdfs)
@@ -57,6 +62,16 @@
 	 ;; should be only one, otherwise take the first one
 	 (make-key-pair (car private-keys)
 			(car (openssh-key-public-keys key-info))))))
+
+(define (ssh-read-openssh-public-key-file file)
+  (call-with-input-file file ssh-read-openssh-public-key))
+(define (ssh-read-openssh-public-key in)
+  ;; for now doing the easiest way
+  ;; TODO should we put validation?
+  (let ((components (string-split (get-string-all in) #/\s+/)))
+    (ssh-read-public-key
+     (open-bytevector-input-port
+      (base64-decode-string (cadr components) :transcoder #f)))))
 
 ;; this is a bit too much one specific implementation but 
 ;; but OpenSSH is defact SSH implementation anyway, so 
