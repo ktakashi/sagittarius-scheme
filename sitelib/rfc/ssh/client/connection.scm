@@ -47,8 +47,7 @@
 	    ssh-oport-receiver
 
 	    ;; util
-	    ssh-execute-command
-	    )
+	    ssh-execute-command)
     (import (rnrs)
 	    (clos user)
 	    (clos core)
@@ -137,7 +136,7 @@
       (ssh-write-ssh-message transport e)))
   ;; remove this from transport
   (set! (~ channel 'open?) #f)
-  (set! (~ transport 'channels) (remq channel channels)))
+  #;(set! (~ transport 'channels) (remq channel channels)))
 
 (define (channel-closed? c) (not (~ c 'open?)))
 (define-syntax check-open
@@ -164,74 +163,6 @@
         #t
         (put-bytevector oport data))))
 
-;; FIXME not sure if this handles data properly...
-(define (handle-channel-request-response channel response receiver)
-  (define transport (~ channel 'transport))
-  (let loop ((response response) (status #f))
-    (define (read-it class response)
-      (let1 m (bytevector->ssh-message class response)
-        (let* ((size (if (is-a? m <ssh-msg-channel-data>)
-      			 (let1 data (~ m 'data)
-      			   (and receiver (receiver data))
-      			   (bytevector-length data))
-      			 0))
-      	       (client-size (+ (~ channel 'client-size) size)))
-          (set! (~ channel 'client-size) client-size)
-          (when (> (+ client-size (~ channel 'client-packet-size))
-      		   (~ channel 'client-window-size))
-            ;; send window adjust requst
-            ;; simply double it for now
-            (let* ((new-size (* (~ channel 'client-window-size) 2))
-      		   (m (make <ssh-msg-channel-window-adjust>
-      			:recipient-channel (~ channel 'recipient-channel)
-      			:size new-size)))
-      	      (set! (~ channel 'client-window-size) new-size)
-      	      (ssh-write-ssh-message transport m))))
-        (if receiver
-            (loop (ssh-read-packet transport) status)
-            m)))
-    (let1 b (bytevector-u8-ref response 0)
-      (cond ((= b +ssh-msg-channel-success+)
-             (read-it <ssh-msg-channel-success> response))
-            ((= b +ssh-msg-channel-failure+)
-             (read-it <ssh-msg-channel-failure> response))
-            ((= b +ssh-msg-channel-data+)
-             (read-it <ssh-msg-channel-data> response))
-            ((= b +ssh-msg-channel-eof+)
-             ;; next will be close so discard
-             (loop (ssh-read-packet transport) status))
-            ((= b +ssh-msg-channel-close+)
-             (close-ssh-channel channel :logical #t)
-             (if receiver
-      		 (values status (receiver (eof-object)))
-      		 (read-it <ssh-msg-channel-close> response)))
-            ((= b +ssh-msg-channel-window-adjust+)
-             (let1 m (bytevector->ssh-message <ssh-msg-channel-window-adjust>
-      					      response)
-      	       (set! (~ channel 'server-window-size) (~ m 'size))
-      	       (loop (ssh-read-packet transport) status)))
-            ((= b +ssh-msg-channel-request+)
-             ;; must be exit status but first get the head
-             (let* ((in (open-bytevector-input-port response))
-      		    (m  (ssh-read-message <ssh-msg-channel-request> in)))
-      	       (case (string->symbol (utf8->string (~ m 'request-type)))
-      		 ((exit-status)
-      		  (let1 m (ssh-read-message <ssh-msg-exit-status> in)
-      		    (loop (ssh-read-packet transport) (~ m 'exit-status))))
-      		 ((exit-signal)
-      		  ;; TODO should we return something instead of raising
-      		  ;; an error?
-      		  (let1 m (ssh-read-message <ssh-msg-exit-signal> in)
-      		    (error (~ m 'signal-name) (~ m 'message)
-      			   (~ m 'core-dumped?))))
-      		 (else 
-      		  => (lambda (n)
-      		       (error 'handle-channel-request-response
-      			      "unknown exit status" n))))))
-            (else
-             (error 'handle-channel-request-response 
-      		    "unknown response" response))))))
-
 (define (ssh-request-pseudo-terminal channel 
       				     :key
       				     (term (or (getenv "TERM") "vt100"))
@@ -251,36 +182,139 @@
             :height-in-pixels height-in-pixels
             :mode mode)
     (ssh-write-ssh-message (~ channel 'transport) m)
-    (let1 r (ssh-read-packet (~ channel 'transport))
-      (handle-channel-request-response channel r #f))))
+    (handle-channel-request-response channel)))
 
-(define (%ssh-request msg channel receiver)
+(define (%ssh-request msg channel)
   (define transport (~ channel 'transport))
   (check-open ssh-request-shell channel)
   (ssh-write-ssh-message transport msg)
-  (let1 r (ssh-read-packet transport)
-    (handle-channel-request-response channel r receiver)))
+  (handle-channel-request-response channel))
 
 (define (ssh-request-shell channel)
   (%ssh-request (make <ssh-msg-channel-request>
       		  :recipient-channel (~ channel 'recipient-channel)
       		  :request-type "shell")
-      		channel #f))
+      		channel))
 
 (define (ssh-request-exec channel command
       			  :key (receiver (ssh-binary-data-receiver)))
   (%ssh-request (make <ssh-msg-channel-exec-request>
       		  :recipient-channel (~ channel 'recipient-channel)
       		  :request-type "exec" :command command)
-      		channel
-      		receiver))
+      		channel)
+  (let loop ()
+    (cond ((%recv-channel-data channel) =>
+	   (lambda (data) (receiver data) (loop)))
+	  (else (receiver (eof-object))))))
 
 (define (ssh-request-subsystem channel subsystem-name)
   (%ssh-request (make <ssh-msg-channel-subsystem-request>
       		  :recipient-channel (~ channel 'recipient-channel)
       		  :request-type "subsystem"
       		  :subsystem-name subsystem-name)
-      		channel #f))
+      		channel))
+
+(define (ssh-send-channel-data channel data)
+  (define transport (~ channel 'transport))
+  (define buffer (~ channel 'channel-buffer))
+  (define buffer-size (bytevector-length buffer))
+  (define size-offset 5)
+  (define data-offset 9)
+  (define (check-server-window-size channel data-len)
+    (define current-size (~ channel 'server-size))
+    (define window-size (~ channel 'server-window-size))
+    (define len (min data-len (- buffer-size data-offset)))
+    ;; I assume when the window size is zero, server won't do flow control
+    (cond ((zero? window-size) len)
+	  ((= window-size current-size)
+	   (wait-for-window-adjust channel)
+	   ;; wait for the window adjust
+	   (check-server-window-size channel len))
+	  ((<= window-size (+ current-size len))
+	   ;; diff should never be negative
+	   (let ((diff (- window-size current-size)))
+	     (set! (~ channel 'server-size) (+ current-size diff))
+	     diff))
+	  ;; the length is within the window
+	  (else
+	   (set! (~ channel 'server-size) (+ current-size len))
+	   len)))
+
+  (define (do-bv data)
+    (define len (bytevector-length data))
+    (let loop ((offset 0) (rest len))
+      ;; TODO do we need to add extra 5?
+      (unless (zero? rest)
+	(let ((sending (check-server-window-size channel rest)))
+	  (bytevector-u32-set! buffer size-offset sending (endianness big))
+	  (bytevector-copy! data offset buffer data-offset sending)
+	  (ssh-write-packet transport  buffer 0 (+ sending data-offset))
+	  (loop (+ offset sending) (- rest sending))))))
+
+  (define (do-port port)
+    (let loop ()
+      (let* ((capacity (check-server-window-size channel buffer-size))
+	     (n (get-bytevector-n! port buffer data-offset capacity)))
+        (unless (eof-object? n)
+	  (bytevector-u32-set! buffer size-offset n (endianness big))
+	  (ssh-write-packet transport buffer 0 (+ n data-offset))
+	  (when (= capacity n) (loop))))))
+
+  (check-open ssh-send-channel-data channel)
+  ;; in any case, this is needed :)
+  (bytevector-u8-set! buffer 0 +ssh-msg-channel-data+)
+  (bytevector-u32-set! buffer 1 (~ channel 'recipient-channel) (endianness big))
+  (cond ((bytevector? data) (do-bv data))
+        ((port? data) (do-port data))
+        (else
+         (error 'ssh-send-channel-data 
+      		"bytevector or binary input port required" data))))
+
+(define (ssh-recv-channel-data channel)
+  (define transport (~ channel 'transport))
+  (check-open ssh-recv-channel-data channel)
+  (%recv-channel-data channel))
+
+(define (ssh-execute-command transport command
+			     :key (receiver (ssh-binary-data-receiver))
+			     :allow-other-keys opts)
+  (call-with-ssh-channel (open-client-ssh-session-channel transport)
+    (lambda (c)
+      (apply ssh-request-pseudo-terminal c opts)
+      (ssh-request-exec c command :receiver receiver))))
+
+
+;; internal APIs
+(define (read-channel-packet channel)
+  (define transport (~ channel 'transport))
+  (define recipient (~ channel 'recipient-channel))
+  (let loop ()
+    ;; in this API, we always send want-reply #t, so we can check the result
+    (let* ((packet (ssh-read-packet transport))
+	   (b (bytevector-u8-ref packet 0)))
+      (cond ((memv b *ssh-recipent-messages*)
+	     (if (= (bytevector-u32-ref packet 1 (endianness big)) recipient)
+		 (if (= b +ssh-msg-channel-window-adjust+)
+		     (let1 m (bytevector->ssh-message
+			      <ssh-msg-channel-window-adjust> packet)
+      		       (set! (~ channel 'server-window-size)
+			     (+ (~ channel 'server-window-size) (~ m 'size)))
+		       (loop))
+		     packet)
+		 (begin 
+		   (push-channel-packet! channel packet)
+		   (loop))))
+	    ;; global must be handled by transport io
+	    (else (loop))))))
+(define (handle-channel-request-response channel)
+  (let* ((packet (read-channel-packet channel))
+	 (b (bytevector-u8-ref packet 0)))
+    (cond ((= b +ssh-msg-channel-success+) #t)
+	  ((= b +ssh-msg-channel-failure+) #f)
+	  ;; there shouldn't be any channel data related
+	  ;; message as this is the start of the channel
+	  (else (error 'handle-channel-request-response
+		       "Invalid response from the server" b)))))
 
 ;; for multiple channels in one transport
 (define *ssh-recipent-messages* (list +ssh-msg-channel-open-confirmation+
@@ -293,8 +327,11 @@
 				      +ssh-msg-channel-request+
 				      +ssh-msg-channel-success+
 				      +ssh-msg-channel-failure+))
-(define (push-channel-packet! channel recipient bv)
-  ;; TODO
+(define (push-channel-packet! channel bv)
+  (let ((recipient (bytevector-u32-ref bv 1 (endianness big))))
+    ;; TODO
+    )
+
   )
 
 ;; we don't assume that the server sends window adjust when
@@ -303,99 +340,54 @@
 (define (wait-for-window-adjust channel)
   (define transport (~ channel 'transport))
   (define (adjust-size m) (set! (~ channel 'server-window-size) (~ m 'size)))
-  (let loop ()
-    (define (push-packet! bv)
-      (cond ((memv (bytevector-u8-ref bv 0) *ssh-recipent-messages*)
-	     (let ((recipient (bytevector-u32-ref bv 1 (endianness big))))
-	       (push-channel-packet! channel recipient bv)))
-	    ;; else must be handled by transport io
-	    )
-      (loop))
-	
-    (let ((bv (ssh-read-packet transport)))
-      (if (= (bytevector-u8-ref bv 0) +ssh-msg-channel-window-adjust+)
-	  (let ((m (bytevector->ssh-message <ssh-msg-channel-window-adjust> bv)))
-	    (if (= (~ m 'recipient-channel) (~ channel 'recipient-channel))
-		(adjust-size m)
-		(push-packet! bv)))
-	  (push-packet! bv)))))
-  
-(define (ssh-send-channel-data channel data)
-  (define transport (~ channel 'transport))
-  (define default-buffer-size (* 1024 8))
-  (define buffer-size 
-    ;; some SFTP server would respond this 0...
-    (let ((sws (~ channel 'server-window-size)))
-      (if (zero? sws)
-          default-buffer-size
-          (min sws default-buffer-size))))
-  (define buffer (~ channel 'channel-buffer))
+  (let ((bv (read-channel-packet channel)))
+    (when (= (bytevector-u8-ref bv 0) +ssh-msg-channel-window-adjust+)
+      (let ((m (bytevector->ssh-message <ssh-msg-channel-window-adjust> bv)))
+	(adjust-size m)))))
 
-
-  (define (check-server-window-size channel len)
-    (define current-size (~ channel 'server-size))
-    (define window-size (~ channel 'server-window-size))
-    ;; I assume when the window size is zero, server won't do flow control
-    (cond ((zero? window-size) len)
-	  ((= window-size current-size)
-	   (wait-for-window-adjust channel)
-	   ;; wait for the window adjust
-	   (check-server-window-size channel len))
-	  ((< window-size (+ current-size len))
-	   ;; diff should never be negative
-	   (let ((diff (- (- (+ current-size len) window-size) len)))
-	     (set! (~ channel 'server-size) (+ current-size diff))
-	     diff))
-	  ;; the length is within the window
-	  (else
-	   (set! (~ channel 'server-size) (+ current-size len))
-	   len)))
-  
-  (define (do-bv data)
-    (define len (bytevector-length data))
-    (let loop ((data data))
-      (let1 size (bytevector-length data)
-        (let-values (((sending rest)
-      		      (if (> size (~ channel 'server-window-size))
-      			  (bytevector-split-at* data size)
-      			  (values data #vu8()))))
-          (let1 m (make <ssh-msg-channel-data>
-      		    :recipient-channel (~ channel 'recipient-channel)
-      		    :data sending)
-            (ssh-write-ssh-message transport m)
-            (unless (zero? (bytevector-length rest)) (loop rest)))))))
-  (define (do-port port)
-    (let loop ()
-      (let1 n (get-bytevector-n! port buffer 0 buffer-size)
-        (unless (eof-object? n)
-          (let1 m (make <ssh-msg-channel-data>
-      		    :recipient-channel (~ channel 'recipient-channel)
-      		    :data (if (= n buffer-size)
-      			      buffer
-      			      (bytevector-copy buffer 0 n)))
-            (ssh-write-ssh-message transport m)
-            (when (= buffer-size n) (loop)))))))
-  (check-open ssh-send-channel-data channel)
-  (cond ((bytevector? data) (do-bv data))
-        ((port? data) (do-port data))
-        (else
-         (error 'ssh-send-channel-data 
-      		"bytevector or binary input port required" data))))
-
-(define (ssh-recv-channel-data channel)
-  (define transport (~ channel 'transport))
-  (check-open ssh-recv-channel-data channel)
-  (let1 m (handle-channel-request-response channel (ssh-read-packet transport) #f)
-    (if (is-a? m <ssh-msg-channel-data>)
-        (~ m 'data)
-        (error 'ssh-recv-channel-data "unexpected message" m))))
-
-(define (ssh-execute-command transport command
-			     :key (receiver (ssh-binary-data-receiver))
-			     :allow-other-keys opts)
-  (call-with-ssh-channel (open-client-ssh-session-channel transport)
-    (lambda (c)
-      (apply ssh-request-pseudo-terminal c opts)
-      (ssh-request-exec c command :receiver receiver))))
-
+;; FIXME not sure if this handles data properly...
+(define (%recv-channel-data channel)
+  (let loop ((response (read-channel-packet channel)) (status #f))
+    (define (adjust-client-window channel-data)
+      (let* ((size (bytevector-u32-ref channel-data 5 (endianness big)))
+	     (client-size (+ (~ channel 'client-size) size)))
+	(set! (~ channel 'client-size) client-size)
+	(when (> (+ client-size (~ channel 'client-packet-size))
+      		 (~ channel 'client-window-size))
+            ;; send window adjust requst
+            ;; simply double it for now
+            (let* ((new-size (* (~ channel 'client-window-size) 2))
+      		   (m (make <ssh-msg-channel-window-adjust>
+      			:recipient-channel (~ channel 'recipient-channel)
+      			:size new-size)))
+      	      (set! (~ channel 'client-window-size) new-size)
+      	      (ssh-write-ssh-message (~ channel 'transport) m)))
+        (bytevector-copy channel-data 9 (bytevector-length channel-data))))
+    (let1 b (bytevector-u8-ref response 0)
+      (cond ((= b +ssh-msg-channel-data+) (adjust-client-window response))
+            ((= b +ssh-msg-channel-eof+) #f)
+            ((= b +ssh-msg-channel-close+)
+             (close-ssh-channel channel :logical #t)
+	     #f)
+	    ;; TODO what should we do?
+            ((= b +ssh-msg-channel-request+)
+             ;; must be exit status but first get the head
+             (let* ((in (open-bytevector-input-port response))
+      		    (m  (ssh-read-message <ssh-msg-channel-request> in)))
+      	       (case (string->symbol (utf8->string (~ m 'request-type)))
+      		 ((exit-status)
+      		  (let1 m (ssh-read-message <ssh-msg-exit-status> in)
+      		    (loop (read-channel-packet channel) (~ m 'exit-status))))
+      		 ((exit-signal)
+      		  ;; TODO should we return something instead of raising
+      		  ;; an error?
+      		  (let1 m (ssh-read-message <ssh-msg-exit-signal> in)
+      		    (error (~ m 'signal-name) (~ m 'message)
+      			   (~ m 'core-dumped?))))
+      		 (else 
+      		  => (lambda (n)
+      		       (error 'ssh-recv-channel-data
+      			      "unknown exit status" n))))))
+            (else
+             (error 'ssh-recv-channel-data "unknown response" response))))))
 )

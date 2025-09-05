@@ -278,7 +278,7 @@
     (encrypt&send c hmac out)
     (set! (~ context 'host-sequence) (+ (~ context 'host-sequence) 1))
     (when hmac
-      (mac-process! hmac msg start)
+      (mac-process! hmac msg start msg-len)
       (mac-process! hmac padding)
       (mac-done! hmac buffer 0 (mac-mac-size hmac))
       (do-send buffer (mac-mac-size hmac)))
