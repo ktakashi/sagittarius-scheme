@@ -189,12 +189,13 @@
       (mutex-unlock! (~ context 'read-lock))
       payload)))
 
-(define (ssh-write-packet context msg)
+(define (ssh-write-packet context msg
+			  :optional (start 0)
+				    (msg-len (- (bytevector-length msg) start)))
   (define c (~ context 'host-cipher))
   ;; minimum packet size is 16
   (define block-size (if c (block-cipher-block-length c) 8))
   (define out (~ context 'socket))
-  (define msg-len (bytevector-length msg))
   (define buffer (~ context 'write-buffer))
   (define buffer-len (bytevector-length buffer))
   ;; packet must be minimum of 16, some magic needed
@@ -234,7 +235,7 @@
       (bytevector-u32-set! buffer 0 packet-len (endianness big))
       (bytevector-u8-set! buffer 4 pad-len)
       (when hmac (mac-process! hmac buffer 0 5)) ;; need first 5 bytes
-      (bytevector-copy! msg 0 buffer 5 mlen)
+      (bytevector-copy! msg start buffer 5 mlen)
       (if (< msg-len rest)
 	  (let ((plen (- rest msg-len)))
 	    (bytevector-copy! padding 0 buffer (+ 5 msg-len) plen)
@@ -252,14 +253,14 @@
 	     (len (+ rest pad-len)))
 	(if (< len buffer-len)
 	    (let ((buf (make-bytevector len)))
-	      (bytevector-copy! msg sent buf 0 rest)
+	      (bytevector-copy! msg (+ start sent) buf 0 rest)
 	      (bytevector-copy! padding 0 buf rest pad-len)
 	      (do-send (encrypt buf 0 buffer) (+ rest pad-len)))
 	    ;; we need to send twice
 	    (let ((buf (make-bytevector buffer-len))
 		  (plen (- buffer-len rest)))
 	      ;; we know rest is smaller than or equal to buffer-len
-	      (bytevector-copy! msg sent buf 0 rest)
+	      (bytevector-copy! msg (+ start sent) buf 0 rest)
 	      (bytevector-copy! padding 0 buf rest plen)
 	      (do-send (encrypt buf 0 buffer) buffer-len)
 	      ;; now, we need to send the rest of padding
@@ -269,7 +270,7 @@
       (when sent
 	(do ((i 0 (+ i 1)) (n (div (- msg-len sent) buffer-len)))
 	    ((= i n) (do-last (+ (* i buffer-len) sent)))
-	  (let* ((offset (+ sent (* i buffer-len)))
+	  (let* ((offset (+ start sent (* i buffer-len)))
 		 (e (encrypt msg offset buffer)))
 	    (do-send e buffer-len))))))
   (mutex-lock! (~ context 'write-lock))
@@ -277,7 +278,7 @@
     (encrypt&send c hmac out)
     (set! (~ context 'host-sequence) (+ (~ context 'host-sequence) 1))
     (when hmac
-      (mac-process! hmac msg)
+      (mac-process! hmac msg start)
       (mac-process! hmac padding)
       (mac-done! hmac buffer 0 (mac-mac-size hmac))
       (do-send buffer (mac-mac-size hmac)))

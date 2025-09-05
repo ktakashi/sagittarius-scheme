@@ -304,8 +304,8 @@
    (client-packet-size :init-keyword :client-packet-size)
    (server-packet-size :init-keyword :server-packet-size)
    ;; total size
-   (client-size :init-value 0)
-   (server-size :init-value 0)
+   (client-size :init-value 0) ;; client channel data
+   (server-size :init-value 0) ;; server chennel data
    ))
 
 ;; base class for SSH message
