@@ -126,13 +126,14 @@ static int scheme_conv(int num_msg,
     r = SG_FALSE;
   } SG_END_PROTECT;
 
-  if (!SG_VECTORP(r) && SG_VECTOR_SIZE(r) != num_msg) {
+  if (!SG_VECTORP(r) || SG_VECTOR_SIZE(r) != num_msg) {
     return PAM_CONV_ERR;
   } else {
-    struct pam_response *reply = malloc(sizeof(struct pam_response) * num_msg);
-    if (!reply) return PAM_CONV_ERR;
+    struct pam_response *reply = calloc(sizeof(struct pam_response), num_msg);
+    if (!reply) return PAM_BUF_ERR;
     for (i = 0; i < num_msg; i++) {
       if (!SG_STRINGP(SG_VECTOR_ELEMENT(r, i))) {
+	free(reply);
 	return PAM_CONV_ERR;
       }
       reply[i].resp_retcode = 0;
@@ -156,19 +157,25 @@ static SgObject pam_authenticate_inner(char *sname, char *suser,
   else goto err;
   if (ret == PAM_SUCCESS) ret = pam_acct_mgmt(pamh, 0);
   else goto err;
-  if (ret == PAM_SUCCESS) ret = pam_open_session(pamh, PAM_SILENT);
-  else goto err;
 
   if (ret == PAM_SUCCESS) {
-    struct passwd *pwd = SG_NEW(struct passwd), *result;
     long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
-    char *buf = SG_NEW_ATOMIC2(char *, bufsize);
-    getpwnam_r(suser, pwd, buf, bufsize, &result);
-    if (result != NULL) {
-      r = passwd2token(pwd);
-      SG_AUTH_TOKEN(r)->rawToken = (void *)pamh;
-      Sg_RegisterFinalizer(r, token_finalizer, NULL);
+    struct passwd *pwd = SG_NEW(struct passwd), *result;
+    if (bufsize == -1) bufsize = BUFSIZ; /* no entry, allocate default value */
+    while (1) {
+      char *buf = SG_NEW_ATOMIC2(char *, bufsize);
+      int s = getpwnam_r(suser, pwd, buf, bufsize, &result);
+      if (s == 0)  {
+	if (result == NULL) goto err;
+	break;
+      } else if (s == ERANGE) {
+	/* buffer wasn't enough, double it */
+	bufsize *= 2;
+      }
     }
+    r = passwd2token(pwd);
+    SG_AUTH_TOKEN(r)->rawToken = (void *)pamh;
+    Sg_RegisterFinalizer(r, token_finalizer, NULL);
   } else goto err;
 
   return r;
@@ -183,7 +190,6 @@ void Sg_PamInvalidateToken(SgObject token)
   SG_AUTH_TOKEN(token)->rawToken = NULL;
 
   if (pamh) {
-    pam_close_session(pamh, PAM_SILENT);
     pam_end(pamh, PAM_SUCCESS);
     Sg_UnregisterFinalizer(token);
   }
