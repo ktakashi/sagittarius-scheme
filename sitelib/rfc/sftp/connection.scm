@@ -142,9 +142,10 @@
 (define (sftp-password-authentication username password)
   (lambda (transport)
     (ssh-authenticate transport +ssh-auth-method-password+ username password)))
-(define (sftp-keyboard-interactive-authentication username)
+(define (sftp-keyboard-interactive-authentication username . opts)
   (lambda (transport)
-    (ssh-authenticate transport +ssh-auth-method-keyboard-interactive+ username)))
+    (apply ssh-authenticate transport +ssh-auth-method-keyboard-interactive+
+	   username opts)))
 (define (sftp-public-key-authentication username private-key public-key)
   (lambda (transport)
     (ssh-authenticate transport +ssh-auth-method-public-key+

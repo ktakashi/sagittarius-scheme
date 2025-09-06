@@ -7,7 +7,7 @@ This library provides SFTP programmatic operations.
 
 Following example code describes how to use in high level.
 
-``````````scheme
+```scheme
 (import (rfc sftp) (pp) (srfi :26))
 
 (call-with-sftp-connection 
@@ -50,7 +50,7 @@ Following example code describes how to use in high level.
     ;; get a real path. (usually an absolute path)
     (pp (sftp-realpath conn "../")))
   :username "username" :password "password")
-``````````
+```
 
 ### [§3] High level APIs
 
@@ -275,3 +275,25 @@ compatible, so if you are using 0.7.7 API and move to 0.7.8, please be aware.
 Creates a SFTP connection object.
 
 ###### [!Function] `open-client-sftp-connection!`  _sftp-connection_ _:key_ _(authenticate_ _#f_
+
+Opens the SFTP connection.
+
+If the keyword argument `authenticate` is specified, then it must be a
+procedure which accepts one argument.
+
+###### [!Function] `sftp-password-authentication` _username_ _password_
+
+Provides a procedure which is suitable for username and password
+authentication by using the given _username_ and _password_.
+
+NOTE: a lot of SSH server may not support this by default.
+
+###### [!Function] `sftp-public-key-authentication` _username_ _private-key_ _public-key_
+
+Provides a procedure which is suitable for public key authentication.
+The _public-key_ must be listed on the server's authorized key.
+
+###### [!Function] `sftp-keyboard-interactive-authentication` _username_ 
+
+Provides a procedure which is suitable for keyboard interactive authentication.
+
