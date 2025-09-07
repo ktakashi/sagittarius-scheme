@@ -1,0 +1,6 @@
+* TODO Adding pty to termios
+  For POSIX, use openpty et.al
+  For Windows, use CreatePseudoConsole
+* TODO Adding platform authentication
+  For POSIX, use PAM
+  For Windows, use LogonUser
