@@ -461,6 +461,17 @@
       :direct-slots '()
       :defined-library #f))
 
+  (add-method write-object
+   (make <method>
+     :specializers (list <predicate-specializable-generic> <port>)
+     :lambda-list '(gf p)
+     :generic write-object
+     :procedure
+     (lambda (call-next-method gf out)
+       (format out "#<predicate-specializable-generic ~s (~a)>"
+	       (slot-ref gf 'name)
+	       (length (slot-ref gf 'methods))))))
+
   (define (make-subtype-checker class)
     (lambda (a b arg)
       (or (is-a? a class)
