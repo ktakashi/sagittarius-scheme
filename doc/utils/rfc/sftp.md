@@ -12,7 +12,7 @@ Following example code describes how to use in high level.
 
 (call-with-sftp-connection 
   "localhost"    ;; hostname
-  "23"           ;; port number
+  "22"           ;; port number
   (lambda (conn)
     ;; read directory
     (pp (sftp-readdir conn "."))
@@ -49,7 +49,7 @@ Following example code describes how to use in high level.
     (pp (sftp-readlink conn "tmp"))
     ;; get a real path. (usually an absolute path)
     (pp (sftp-realpath conn "../")))
-  :username "username" :password "password")
+  :authenticate (sftp-keyboard-interactive-authentication "username"))
 ```
 
 ### [§3] High level APIs
@@ -63,7 +63,7 @@ _proc_ must accept one argument.
 Creates a SFTP connection, executes given _proc_ with the connection
 and closes it after the execution.
 
-The _opts_ will be passed to `make-client-sftp-connection`.
+The _opts_ will be passed to `open-client-sftp-connection!`.
 
 
 ###### [!Function] `sftp-open`  _conn_ _filename_ _pflags_
