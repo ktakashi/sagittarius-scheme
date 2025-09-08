@@ -96,6 +96,7 @@
 	    <ssh-msg-userauth-prompt>
 
 	    <ssh-transport>
+	    <ssh-connection>
 	    <ssh-channel>)
     (import (rnrs)
 	    (clos user)
@@ -103,7 +104,6 @@
 	    (sagittarius)
 	    (sagittarius control)
 	    (sagittarius object)
-	    (sagittarius mop allocation)
 	    (sagittarius regex)
 	    (sagittarius crypto random)
 	    (rfc ssh constants)
@@ -238,7 +238,7 @@
   (ssh-read-message class (open-bytevector-input-port bv)))
 
 ;; SSH context
-(define-class <ssh-transport> (<allocation-mixin>)
+(define-class <ssh-transport> ()
   ((socket   :init-keyword :socket :init-value #f)	; raw socket (in/out port)
    ;; for reconnection?
    (server   :init-keyword :server :init-value #f)
@@ -267,7 +267,6 @@
    (client-mac :init-value #f) ;; client -> server
    ;; compression&language; I don't think we should support so ignore
    ;; keep the channels to allocate proper channel number
-   (channels   :init-value '()) ;; TODO remove this
    (kex-digester :init-value #f) ;; message digest for kex
 
    (read-lock :init-form (make-mutex))
@@ -282,7 +281,8 @@
    ;; write buffer can be much smaller as we can send transport packet
    ;; in chunks. For now, we use 128 (doubled size of HMAC-SHA512 block size)
    (write-buffer :init-form (make-bytevector 128))
-   ))
+   ;; handling common packet especially for client
+   (packet-handler :init-value (lambda (this packet rec) packet))))
 
 (define-method write-object ((o <ssh-transport>) out)
   (format out "#<ssh-transport ~a ~a ~a ~a ~a>"
@@ -292,21 +292,31 @@
 	  (slot-ref o 'client-mac)
           (slot-ref o 'server-mac)))
 
+(define-class <ssh-connection> ()
+  ((channels :init-form (make-eqv-hashtable))
+   (next-channel-id :init-value 1)
+   (lock :init-form (make-mutex))))
+
 (define-class <ssh-channel> ()
-  ((transport         :init-keyword :transport)
+  ((connection        :init-keyword :connection)
    (open?             :init-value #t)
    (sender-channel    :init-keyword :sender-channel)
    (recipient-channel :init-keyword :recipient-channel)
    ;; window size
-   (client-window-size :init-keyword :client-window-size)
-   (server-window-size :init-keyword :server-window-size)
+   (host-window-size :init-keyword :host-window-size)
+   (peer-window-size :init-keyword :peer-window-size)
    ;; max packet size
-   (client-packet-size :init-keyword :client-packet-size)
-   (server-packet-size :init-keyword :server-packet-size)
+   (host-packet-size :init-keyword :host-packet-size)
+   (peer-packet-size :init-keyword :peer-packet-size)
    ;; total size
-   (client-size :init-value 0) ;; client channel data
-   (server-size :init-value 0) ;; server chennel data
-   ))
+   (host-size :init-value 0) ;; host channel data
+   (peer-size :init-value 0) ;; peer chennel data
+
+   channel-buffer))
+(define-method initialize ((o <ssh-channel>) args)
+  (call-next-method)
+  (let ((size (~ o 'host-packet-size)))
+    (set! (~ o 'channel-buffer) (make-bytevector size))))
 
 ;; base class for SSH message
 (define-class <ssh-message> (<ssh-type>) ())

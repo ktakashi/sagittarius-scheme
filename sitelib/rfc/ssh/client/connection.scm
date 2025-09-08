@@ -63,20 +63,15 @@
 	    (util bytevector))
 
 (define-class <ssh-client-channel> (<ssh-channel>)
-  ((packet-queue :init-form (list-queue))
-   (channel-buffer)))
-(define-method initialize ((o <ssh-client-channel>) args)
-  (call-next-method)
-  (let ((size (~ o 'client-packet-size)))
-    (set! (~ o 'channel-buffer) (make-bytevector size))))
-   
+  ((packet-queue :init-form (list-queue))))   
 
 (define (open-client-ssh-channel transport 
 				 open-channel
 				 handle-confirmation
 				 :key (initial-window #x100000)
 				      (maximum-packet #x4000))
-  (define (compute-channel transport) (length (~ transport 'channels)))
+  (define (compute-channel transport)
+    (ssh-connection-next-channel-id! transport))
   (let* ((sender-channel (compute-channel transport))
          (channel-open (open-channel
       			:sender-channel sender-channel
@@ -87,8 +82,8 @@
       (let* ((resp (ssh-read-packet transport))
              (type (bytevector-u8-ref resp 0)))
         (cond ((= type +ssh-msg-channel-open-confirmation+)
-      	       (rlet1 channel (handle-confirmation channel-open resp)
-      		      (push! (~ transport 'channels) channel)))
+      	       (rlet1 c (handle-confirmation channel-open resp)
+     		 (hashtable-set! (~ transport 'channels) sender-channel c)))
       	      ((= type +ssh-msg-channel-open-failure+)
       	       (let1 f (ssh-read-message <ssh-msg-channel-open-failure>
       					 (open-bytevector-input-port resp))
@@ -111,38 +106,20 @@
            (let1 c (ssh-read-message <ssh-msg-channel-open-confirmation>
       				     (open-bytevector-input-port packet))
              (make <ssh-client-channel>
-      	       :transport transport
+      	       :connection transport
       	       ;; use server responded one
       	       :sender-channel (~ c 'sender-channel)
       	       :recipient-channel (~ c 'recipient-channel)
-      	       :client-window-size (~ req 'initial-window)
-      	       :client-packet-size (~ req 'maximum-packet)
-      	       :server-window-size (~ c 'initial-window)
-      	       :server-packet-size (~ c 'maximum-packet))))
+      	       :host-window-size (~ req 'initial-window)
+      	       :host-packet-size (~ req 'maximum-packet)
+      	       :peer-window-size (~ c 'initial-window)
+      	       :peer-packet-size (~ c 'maximum-packet))))
          opts))
 
-(define (ssh-channel-eof channel)
-  (let1 e (make <ssh-msg-channel-eof>
-            :recipient-channel (~ channel 'recipient-channel))
-    (ssh-write-ssh-message (~ channel 'transport) e)))
-
-(define (close-ssh-channel channel :key (logical #f))
-  (define transport (~ channel 'transport))
-  (define channels (~ transport 'channels))
-  (unless (or (channel-closed? channel) logical)
-    (ssh-channel-eof channel)
-    (let1 e (make <ssh-msg-channel-close>
-      	      :recipient-channel (~ channel 'recipient-channel))
-      (ssh-write-ssh-message transport e)))
-  ;; remove this from transport
-  (set! (~ channel 'open?) #f)
-  #;(set! (~ transport 'channels) (remq channel channels)))
-
-(define (channel-closed? c) (not (~ c 'open?)))
 (define-syntax check-open
   (syntax-rules ()
     ((_ who c)
-     (when (channel-closed? c) (error 'who "channel is closed")))))
+     (when (ssh-channel-closed? c) (error 'who "channel is closed")))))
 
 (define (call-with-ssh-channel channel proc)
   ;; close-ssh-channel might raise an error so catch it
@@ -173,7 +150,7 @@
       				     (mode #vu8(0)))
   (check-open ssh-request-pseudo-terminal channel)
   (let1 m (make <ssh-msg-channel-pty-request>
-            :recipient-channel (~ channel 'recipient-channel)
+            :recipient-channel (~ channel 'sender-channel)
             :request-type "pty-req"
             :term term
             :width width
@@ -181,25 +158,25 @@
             :width-in-pixels width-in-pixels
             :height-in-pixels height-in-pixels
             :mode mode)
-    (ssh-write-ssh-message (~ channel 'transport) m)
+    (ssh-write-ssh-message (~ channel 'connection) m)
     (handle-channel-request-response channel)))
 
 (define (%ssh-request msg channel)
-  (define transport (~ channel 'transport))
+  (define transport (~ channel 'connection))
   (check-open ssh-request-shell channel)
   (ssh-write-ssh-message transport msg)
   (handle-channel-request-response channel))
 
 (define (ssh-request-shell channel)
   (%ssh-request (make <ssh-msg-channel-request>
-      		  :recipient-channel (~ channel 'recipient-channel)
+      		  :recipient-channel (~ channel 'sender-channel)
       		  :request-type "shell")
       		channel))
 
 (define (ssh-request-exec channel command
       			  :key (receiver (ssh-binary-data-receiver)))
   (%ssh-request (make <ssh-msg-channel-exec-request>
-      		  :recipient-channel (~ channel 'recipient-channel)
+      		  :recipient-channel (~ channel 'sender-channel)
       		  :request-type "exec" :command command)
       		channel)
   (let loop ()
@@ -209,43 +186,32 @@
 
 (define (ssh-request-subsystem channel subsystem-name)
   (%ssh-request (make <ssh-msg-channel-subsystem-request>
-      		  :recipient-channel (~ channel 'recipient-channel)
+      		  :recipient-channel (~ channel 'sender-channel)
       		  :request-type "subsystem"
       		  :subsystem-name subsystem-name)
       		channel))
 
 (define (ssh-send-channel-data channel data)
-  (define transport (~ channel 'transport))
+  (define transport (~ channel 'connection))
   (define buffer (~ channel 'channel-buffer))
   (define buffer-size (bytevector-length buffer))
-  (define size-offset 5)
-  (define data-offset 9)
-  (define (check-server-window-size channel data-len)
-    (define current-size (~ channel 'server-size))
-    (define window-size (~ channel 'server-window-size))
-    (define len (min data-len (- buffer-size data-offset)))
-    ;; I assume when the window size is zero, server won't do flow control
-    (cond ((zero? window-size) len)
-	  ((= window-size current-size)
-	   (wait-for-window-adjust channel)
-	   ;; wait for the window adjust
-	   (check-server-window-size channel len))
-	  ((<= window-size (+ current-size len))
-	   ;; diff should never be negative
-	   (let ((diff (- window-size current-size)))
-	     (set! (~ channel 'server-size) (+ current-size diff))
-	     diff))
-	  ;; the length is within the window
+  (define size-offset +ssh-channel-data-size-offset+)
+  (define data-offset +ssh-channel-data-data-offset+)
+  (define (check-peer-window-size channel data-len)
+    (cond ((ssh-channel-check-peer-window-size channel data-len) =>
+	   (lambda (len)
+	     (ssh-channel-update-peer-current-size! channel len)
+	     len))
 	  (else
-	   (set! (~ channel 'server-size) (+ current-size len))
-	   len)))
+	   (wait-for-window-adjust channel)
+	   (check-peer-window-size channel data-len))))
 
   (define (do-bv data)
     (define len (bytevector-length data))
     (let loop ((offset 0) (rest len))
       ;; TODO do we need to add extra 5?
       (unless (zero? rest)
-	(let ((sending (check-server-window-size channel rest)))
+	(let ((sending (check-peer-window-size channel rest)))
 	  (bytevector-u32-set! buffer size-offset sending (endianness big))
 	  (bytevector-copy! data offset buffer data-offset sending)
 	  (ssh-write-packet transport  buffer 0 (+ sending data-offset))
@@ -253,7 +219,7 @@
 
   (define (do-port port)
     (let loop ()
-      (let* ((capacity (check-server-window-size channel buffer-size))
+      (let* ((capacity (check-peer-window-size channel buffer-size))
 	     (n (get-bytevector-n! port buffer data-offset capacity)))
         (unless (eof-object? n)
 	  (bytevector-u32-set! buffer size-offset n (endianness big))
@@ -263,7 +229,7 @@
   (check-open ssh-send-channel-data channel)
   ;; in any case, this is needed :)
   (bytevector-u8-set! buffer 0 +ssh-msg-channel-data+)
-  (bytevector-u32-set! buffer 1 (~ channel 'recipient-channel) (endianness big))
+  (bytevector-u32-set! buffer 1 (~ channel 'sender-channel) (endianness big))
   (cond ((bytevector? data) (do-bv data))
         ((port? data) (do-port data))
         (else
@@ -271,7 +237,7 @@
       		"bytevector or binary input port required" data))))
 
 (define (ssh-recv-channel-data channel)
-  (define transport (~ channel 'transport))
+  (define transport (~ channel 'connection))
   (check-open ssh-recv-channel-data channel)
   (%recv-channel-data channel))
 
@@ -286,7 +252,7 @@
 
 ;; internal APIs
 (define (read-channel-packet channel)
-  (define transport (~ channel 'transport))
+  (define transport (~ channel 'connection))
   (define recipient (~ channel 'recipient-channel))
   (let loop ()
     ;; in this API, we always send want-reply #t, so we can check the result
@@ -297,8 +263,8 @@
 		 (if (= b +ssh-msg-channel-window-adjust+)
 		     (let1 m (bytevector->ssh-message
 			      <ssh-msg-channel-window-adjust> packet)
-      		       (set! (~ channel 'server-window-size)
-			     (+ (~ channel 'server-window-size) (~ m 'size)))
+      		       (set! (~ channel 'peer-window-size)
+			     (+ (~ channel 'peer-window-size) (~ m 'size)))
 		       (loop))
 		     packet)
 		 (begin 
@@ -338,8 +304,9 @@
 ;; n percent of the window is used or so. we use all the window
 ;; then wait the window adjust, in case the data is big  
 (define (wait-for-window-adjust channel)
-  (define transport (~ channel 'transport))
-  (define (adjust-size m) (set! (~ channel 'server-window-size) (~ m 'size)))
+  (define transport (~ channel 'connection))
+  (define (adjust-size m)
+    (ssh-channel-update-peer-window-size! channel (~ m 'size)))
   (let ((bv (read-channel-packet channel)))
     (when (= (bytevector-u8-ref bv 0) +ssh-msg-channel-window-adjust+)
       (let ((m (bytevector->ssh-message <ssh-msg-channel-window-adjust> bv)))
@@ -348,23 +315,23 @@
 ;; FIXME not sure if this handles data properly...
 (define (%recv-channel-data channel)
   (let loop ((response (read-channel-packet channel)) (status #f))
-    (define (adjust-client-window channel-data)
+    (define (adjust-host-window channel-data)
       (let* ((size (bytevector-u32-ref channel-data 5 (endianness big)))
-	     (client-size (+ (~ channel 'client-size) size)))
-	(set! (~ channel 'client-size) client-size)
-	(when (> (+ client-size (~ channel 'client-packet-size))
-      		 (~ channel 'client-window-size))
+	     (host-size (+ (~ channel 'host-size) size)))
+	(set! (~ channel 'host-size) host-size)
+	(when (> (+ host-size (~ channel 'host-packet-size))
+      		 (~ channel 'host-window-size))
             ;; send window adjust requst
             ;; simply double it for now
-            (let* ((new-size (* (~ channel 'client-window-size) 2))
+            (let* ((new-size (* (~ channel 'host-window-size) 2))
       		   (m (make <ssh-msg-channel-window-adjust>
       			:recipient-channel (~ channel 'recipient-channel)
       			:size new-size)))
-      	      (set! (~ channel 'client-window-size) new-size)
-      	      (ssh-write-ssh-message (~ channel 'transport) m)))
+      	      (set! (~ channel 'host-window-size) new-size)
+      	      (ssh-write-ssh-message (~ channel 'connection) m)))
         (bytevector-copy channel-data 9 (bytevector-length channel-data))))
     (let1 b (bytevector-u8-ref response 0)
-      (cond ((= b +ssh-msg-channel-data+) (adjust-client-window response))
+      (cond ((= b +ssh-msg-channel-data+) (adjust-host-window response))
             ((= b +ssh-msg-channel-eof+) #f)
             ((= b +ssh-msg-channel-close+)
              (close-ssh-channel channel :logical #t)

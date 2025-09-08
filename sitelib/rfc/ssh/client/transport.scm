@@ -40,13 +40,18 @@
 	    *ssh-client-kex-list*
 	    *ssh-client-public-key-list*
 	    *ssh-client-encryption-list*
-	    *ssh-client-mac-list*)
+	    *ssh-client-mac-list*
 
+	    
+	    *ssh:debug-package-handler*
+	    *ssh:ignore-package-handler*
+	    *ssh:ext-info-handler*)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius)
 	    (sagittarius object)
 	    (sagittarius socket)
+	    (sagittarius mop allocation)
 	    (srfi :39 parameters)
 	    (rfc ssh types)
 	    (rfc ssh constants)
@@ -112,10 +117,32 @@
   (make-parameter (name-list +mac-hmac-sha2-256+ +mac-hmac-sha1+)
 		  list->name-list))
 
-(define-class <ssh-client-transport> (<ssh-transport>)
+
+(define (default-handler payload))
+(define (default-debug-handler payload)
+  (let ((msg (read-message <ssh-msg-debug>
+			   (open-bytevector-input-port payload))))
+    (when (~ msg 'always-display)
+      (display (~ msg 'message)) (newline))))
+(define (default-ext-info-handler extensions)
+  ;; does nothing :)
+  #t)
+
+(define *ssh:ignore-package-handler* (make-parameter default-handler))
+(define *ssh:debug-package-handler* (make-parameter default-debug-handler))
+(define *ssh:ext-info-handler* (make-parameter default-ext-info-handler))
+
+
+(define-class <ssh-client-transport> (<ssh-transport>
+				      <ssh-connection>
+				      <allocation-mixin>)
   ((server-signature-algorithms :init-value #f)
    (host-version :allocation :delegate :forwarding 'client-version)
    (peer-version :allocation :delegate :forwarding 'server-version)))
+(define-method initialize ((o <ssh-client-transport>) args)
+  (call-next-method)
+  (slot-set! o 'packet-handler client-transport-packet-handler))
+
 
 (define-method write-object ((o <ssh-client-transport>) out)
   (format out "#<ssh-client-transport ~a ~a ~a ~a ~a ~a>"
@@ -175,4 +202,65 @@
     (ssh-write-ssh-message transport msg))
   (let ((packet (ssh-read-packet transport)))
     (bytevector->ssh-message <ssh-msg-service-accept> packet)))
+
+(define (client-transport-packet-handler transport payload rec)
+  (define type (bytevector-u8-ref payload 0))
+  (cond ((= type +ssh-msg-ignore+)
+	 ((*ssh:ignore-package-handler*) payload)
+	 (rec transport))
+	((= type +ssh-msg-debug+)
+	 ((*ssh:debug-package-handler*) payload)
+	 (rec transport))
+	((= type +ssh-msg-unimplemented+)
+	 (error 'ssh-read-packet "The previous sequence is not implemented"
+		;; should we deserialize?
+		payload))
+	((= type +ssh-msg-ext-info+)
+	 (handle-ext-info transport payload)
+	 (rec transport))
+	((= type +ssh-msg-disconnect+)
+	 (let* ((msg (bytevector->ssh-message <ssh-msg-disconnect> payload))
+		(desc (~ msg 'description)))
+	   (error 'ssh-read-packet
+		  (if (zero? (string-length desc))
+		      "Received disconnect message"
+		      (string-append "Peer reason: " desc)))))
+	(else payload)))
+
+
+(define (handle-ext-info transport payload)
+  (let ((ext-info (parse-ext-info payload)))
+    (cond ((assq (string->symbol +extension-server-sig-algs+) ext-info) =>
+	   (lambda (slot)
+	     (set! (~ transport 'server-signature-algorithms) (cdr slot)))))
+    ((*ssh:ext-info-handler*) ext-info)))
+
+(define (parse-ext-info payload)
+  (define (read-extension bin)
+    (let* ((e (ssh-read-message <ssh-msg-ext-info-extension> bin))
+	   (n (~ e 'name))
+	   (v (~ e 'value)))
+      (cons (string->symbol n)
+	    (cond ((string=? n +extension-server-sig-algs+)
+		   (let ((in (open-bytevector-input-port v)))
+		     (~ (ssh-read-message <name-list> in) 'names)))
+		  ((string=? n +extension-delay-compression+)
+		   (let* ((in (open-bytevector-input-port v))
+			  (c->s (ssh-read-message <name-list> in))
+			  (s->c (ssh-read-message <name-list> in)))
+		     (cons (~ c->s 'names) (~ s->c 'names))))
+		  ((string=? n +extension-no-flow-control+)
+		   (let ((in (open-bytevector-input-port v)))
+		     (ssh-read-message :utf8-string in #f)))
+		  ((string=? n +extension-elevation+)
+		   (let ((in (open-bytevector-input-port v)))
+		     (ssh-read-message :utf8-string in #f)))
+		  ;; simply return the payload, we can't handle it
+		  (else v)))))
+  
+  (define bin (open-bytevector-input-port payload))
+  (define msg (ssh-read-message <ssh-msg-ext-info> bin))
+  (do ((i 0 (+ i 1)) (r '() (cons (read-extension bin) r)))
+      ((= i (~ msg 'count)) (reverse! r))))
+
 )

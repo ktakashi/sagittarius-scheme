@@ -33,10 +33,7 @@
     (export ssh-read-packet
 	    ssh-write-packet
 	    ssh-write-ssh-message
-	    ssh-data-ready?
-	    *ssh:debug-package-handler*
-	    *ssh:ignore-package-handler*
-	    *ssh:ext-info-handler*)
+	    ssh-data-ready?)
     (import (rnrs)
 	    (rfc ssh constants)
 	    (rfc ssh types)
@@ -52,20 +49,6 @@
 	    (sagittarius crypto random)
 	    (sagittarius crypto secure)
 	    (util bytevector))
-
-(define (default-handler payload))
-(define (default-debug-handler payload)
-  (let ((msg (read-message <ssh-msg-debug>
-			   (open-bytevector-input-port payload))))
-    (when (~ msg 'always-display)
-      (display (~ msg 'message)) (newline))))
-(define (default-ext-info-handler extensions)
-  ;; does nothing :)
-  #t)
-
-(define *ssh:ignore-package-handler* (make-parameter default-handler))
-(define *ssh:debug-package-handler* (make-parameter default-debug-handler))
-(define *ssh:ext-info-handler* (make-parameter default-ext-info-handler))
 
 (define (ssh-read-packet context)
   (define (recv-n in n)
@@ -160,28 +143,8 @@
 			(read&decrypt mac-length)))
 	   (type (bytevector-u8-ref payload 0)))
       (set! (~ context 'peer-sequence) (+ (~ context 'peer-sequence) 1))
-      ;; FIXME the way handling global message is sloppy
-      (cond ((= type +ssh-msg-ignore+)
-	     ((*ssh:ignore-package-handler*) payload)
-	     (rec context))
-	    ((= type +ssh-msg-debug+)
-	     ((*ssh:debug-package-handler*) payload)
-	     (rec context))
-	    ((= type +ssh-msg-unimplemented+)
-	     (error 'ssh-read-packet "The previous sequence is not implemented"
-		    ;; should we deserialize?
-		    payload))
-	    ((= type +ssh-msg-ext-info+)
-	     (handle-ext-info context payload)
-	     (rec context))
-	    ((= type +ssh-msg-disconnect+)
-	     (let* ((msg (bytevector->ssh-message <ssh-msg-disconnect> payload))
-		    (desc (~ msg 'description)))
-	       (error 'ssh-read-packet
-		      (if (zero? (string-length desc))
-			  "Received disconnect message"
-			  (string-append "Peer reason: " desc)))))
-	    (else payload))))
+      ((~ context 'packet-handler) context payload rec)))
+
   (mutex-lock! (~ context 'read-lock))
   (guard (e (else (mutex-unlock! (~ context 'read-lock)) (raise e)))
     (let ((payload (rec context)))
@@ -292,38 +255,5 @@
     (let1 reads (socket-read-select timeout (~ transport 'socket))
       (not (null? reads))))
 
-(define (handle-ext-info transport payload)
-  (let ((ext-info (parse-ext-info payload)))
-    (cond ((assq (string->symbol +extension-server-sig-algs+) ext-info) =>
-	   (lambda (slot)
-	     (set! (~ transport 'server-signature-algorithms) (cdr slot)))))
-    ((*ssh:ext-info-handler*) ext-info)))
 
-(define (parse-ext-info payload)
-  (define (read-extension bin)
-    (let* ((e (ssh-read-message <ssh-msg-ext-info-extension> bin))
-	   (n (~ e 'name))
-	   (v (~ e 'value)))
-      (cons (string->symbol n)
-	    (cond ((string=? n +extension-server-sig-algs+)
-		   (let ((in (open-bytevector-input-port v)))
-		     (~ (ssh-read-message <name-list> in) 'names)))
-		  ((string=? n +extension-delay-compression+)
-		   (let* ((in (open-bytevector-input-port v))
-			  (c->s (ssh-read-message <name-list> in))
-			  (s->c (ssh-read-message <name-list> in)))
-		     (cons (~ c->s 'names) (~ s->c 'names))))
-		  ((string=? n +extension-no-flow-control+)
-		   (let ((in (open-bytevector-input-port v)))
-		     (ssh-read-message :utf8-string in #f)))
-		  ((string=? n +extension-elevation+)
-		   (let ((in (open-bytevector-input-port v)))
-		     (ssh-read-message :utf8-string in #f)))
-		  ;; simply return the payload, we can't handle it
-		  (else v)))))
-      
-  (define bin (open-bytevector-input-port payload))
-  (define msg (ssh-read-message <ssh-msg-ext-info> bin))
-  (do ((i 0 (+ i 1)) (r '() (cons (read-extension bin) r)))
-      ((= i (~ msg 'count)) (reverse! r))))
 )

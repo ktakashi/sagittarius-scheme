@@ -40,10 +40,6 @@
 	    ;; given packet is binary input port
 	    ssh-write-ssh-message
 
-	    *ssh:debug-package-handler*
-	    *ssh:ignore-package-handler*
-	    *ssh:ext-info-handler*
-
 	    ssh-key-exchange ssh-compute-keys!
 	    ssh-version-exchange
 	    ssh-kex-digest
