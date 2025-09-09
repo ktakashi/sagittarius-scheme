@@ -32,6 +32,7 @@
 ;;  RFC 4493 - http://tools.ietf.org/html/rfc4493
 ;;  RFC 4494 - http://tools.ietf.org/html/rfc4494
 #!nounbound
+#!deprecated
 (library (rfc cmac)
     (export make-cmac mac? generate-mac generate-mac!
 	    mac-init! mac-process! mac-done!
