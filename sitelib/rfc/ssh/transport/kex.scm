@@ -51,7 +51,9 @@
 	    (sagittarius control)
 	    (sagittarius object))
 
-(define ((ssh-key-exchange exchange-kex-message) transport . opts)
+(define ((ssh-key-exchange exchange-kex-message) transport
+	 :key (peer-packet #f)
+	 :allow-other-keys opts)
   (define (fill-slot transport-slot req res kex-slot)
     (let ((cnl (~ req kex-slot 'names))
 	  (snl (~ res kex-slot 'names)))
@@ -69,7 +71,7 @@
   (let* ((host-kex (apply make <ssh-msg-keyinit> :cookie cookie opts))
 	 (host-packet (ssh-message->bytevector host-kex)))
     (ssh-write-packet transport host-packet)
-    (let* ((peer-packet (ssh-read-packet transport))
+    (let* ((peer-packet (or peer-packet (ssh-read-packet transport)))
 	   (peer-kex (bytevector->ssh-message <ssh-msg-keyinit> peer-packet)))
       ;; ok do key exchange
       ;; first decide the algorithms

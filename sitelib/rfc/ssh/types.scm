@@ -463,7 +463,7 @@
 (define-ssh-message <ssh-msg-public-key-userauth-request> 
   (<ssh-msg-userauth-request>)
   ((has-signature? :boolean #f)
-   (algorithm-name :string)
+   (algorithm-name :utf8-string)
    (blob           :string)
    (signature      :string-or-empty)))
 
