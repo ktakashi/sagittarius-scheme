@@ -520,16 +520,27 @@ SgObject Sg_CreateSocket(int family, int socktype, int protocol)
 #endif  
   return make_socket_inner(fd);
 }
+static int toggle_nagle(SOCKET fd, int value)
+{
+#ifdef TCP_NODELAY
+  int old, stack = value;
+  socklen_t len = sizeof(int);
+  getsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &old, &len);
+  /* we ignore the return value here, since this is merely performance
+     optimisation */
+  if (old != value) {
+    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char *)&stack, sizeof(int));
+  }
+  return old;
+#endif
+  return value;
+}
 
 static void flush_tcp(SOCKET fd)
 {
 #ifdef TCP_NODELAY
-  int value = 1;
-  /* we ignore the return value here, since this is merely performance
-     optimisation */
-  setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char *)&value, sizeof(int));
-  value = 0;
-  setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char *)&value, sizeof(int));
+  int old = toggle_nagle(fd, 1);
+  toggle_nagle(fd, old);
 #endif
 }
 
@@ -564,6 +575,7 @@ SgObject Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo,
       goto err;
     }
   }
+  toggle_nagle(socket->socket, 1);
   socket->type = SG_SOCKET_CLIENT;
   socket->address = SG_SOCKADDR(ai_addr(addrinfo));
   socket->node = addrinfo->node;
@@ -795,7 +807,7 @@ long Sg_SocketSend(SgSocket *socket, uint8_t *data, long size, int flags)
     data += ret;
     size -= ret;
   }
-  flush_tcp(socket->socket);
+  /* flush_tcp(socket->socket); */
   return sizeSent;
 }
 
@@ -890,6 +902,7 @@ SgObject Sg_SocketAccept(SgSocket *socket)
       break;
     }
   }
+  toggle_nagle(fd, 1);
   return make_socket(fd, SG_SOCKET_SERVER, 
 		     make_sockaddr(addrlen, (struct sockaddr *)&addr, TRUE));
 }
@@ -1363,6 +1376,9 @@ SG_DEFINE_BUILTIN_CLASS(Sg_SocketPortClass,
 
 static void socket_flush(SgObject self)
 {
+  SgSocket *socket = SG_PORT_SOCKET(self);
+  /* let's hope it won't raise any signel if the socket is UDP or UNIX */
+  flush_tcp(socket->socket);
 }
 
 static int socket_ready_int(SgObject port, SgObject socket, struct timeval *tm)
