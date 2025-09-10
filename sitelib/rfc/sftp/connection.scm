@@ -30,6 +30,7 @@
 
 ;; reference
 ;;  http://tools.ietf.org/html/draft-ietf-secsh-filexfer-02
+#!nounbound
 (library (rfc sftp connection)
     (export make-client-sftp-connection
 	    open-client-sftp-connection!
@@ -302,35 +303,45 @@
 			  (offset 0))
   (unless (is-a? handle <sftp-fxp-handle>)
     (error 'sftp-write! "need <sftp-fxp-handle>, call sftp-open first!"))
-  (let ((hndl (~ handle 'handle))
-	(buf  (make-bytevector buffer-size)))
+  ;; for optimisation, we use the raw structure of SFTP_FXP_WRITE.
+  ;;     uint32     length     - 0
+  ;;     byte       type       - 4
+  ;;     uint32     id         - 5
+  ;;     string     handle     - 9...n, u32 + data
+  ;;      u32                  - 9
+  ;;      byte[]               - 13
+  ;;     uint64     offset     - 13 + n
+  ;;     string     data       - 21...m, u32 + m
+  ;;      u32                  - 21 + n
+  ;;      byte[]               - 25 + n
+  ;; We always send entire buffer, which means, the first 5 bytes
+  ;; are fixed
+  (let* ((hndl (~ handle 'handle))
+	 (n (bytevector-length hndl))
+	 (offset-offset (+ 13 n))
+	 (datalen-offset (+ offset-offset 21))
+	 (data-offset (+ datalen-offset 4))
+	 (read-size (- buffer-size data-offset))
+	 (buf  (make-bytevector buffer-size 0)))
+    ;; prepare buffer
+    (bytevector-u32-set! buf 0 (- buffer-size 4) (endianness big))
+    (bytevector-u8-set! buf 4 +ssh-fxp-write+)
+    (bytevector-u32-set! buf 9 n (endianness big)) ;; handle length
+    (bytevector-copy! hndl 0 buf 13 n)
     ;; ok now read it
     ;; read may be multiple part so we need to read it until
     ;; server respond <sftp-fxp-status>
-    (let loop ((offset offset) (buffer #f) (in/out #f))
-      (let ((r (get-bytevector-n! inport buf 0 buffer-size)))
-	(if (eof-object? r)
-	    (and in/out (close-port in/out))
-	    (let* ((data (make <sftp-fxp-write>
-			   :id (sftp-message-id! conn)
-			   :handle hndl
-			   :offset offset
-			   :data (if (= r buffer-size)
-				     buf
-				     (bytevector-copy buf 0 r))))
-		   ;; if the read size differes from buffer size
-		   ;; then it's the last chunk,
-		   (b (cond ((and buffer (= r buffer-size))
-			     (set-port-position! in/out 5)
-			     (write-message <sftp-fxp-write> data in/out)
-			     (set-port-position! in/out 0)
-			     buffer)
-			    ;; do it for initial and the last.
-			    (else (get-initial-buffer data)))))
-	      (ssh-send-channel-data (~ conn 'channel) b)
-	      (recv-sftp-packet1 conn)
-	      (loop (+ offset r) b
-		    (or in/out (open-bytevector-input/output-port b)))))))))
+    (let loop ((offset offset) (i 0))
+      (let ((r (get-bytevector-n! inport buf data-offset read-size)))
+	(unless (eof-object? r)
+	  ;; set ID
+	  (bytevector-u32-set! buf 5 (sftp-message-id! conn) (endianness big))
+	  ;; set offset
+	  (bytevector-u64-set! buf offset-offset offset (endianness big))
+	  (bytevector-u32-set! buf datalen-offset r (endianness big))
+	  (ssh-send-channel-data (~ conn 'channel) buf)
+	  (recv-sftp-packet1 conn)
+	  (when (= r read-size) (loop (+ offset r) (+ i 1))))))))
   
 (define (get-initial-buffer data)
   (let ((in/out (open-chunked-binary-input/output-port))
