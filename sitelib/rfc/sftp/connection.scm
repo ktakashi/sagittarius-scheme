@@ -199,8 +199,7 @@
      (when (and (is-a? v <sftp-fxp-status>)
 		(not (= (~ v 'code) +ssh-fx-ok+)))
        ;; todo condition?
-       (error #f (format "~a, code[~a]" (utf8->string (~ v 'message))
-			 (~ v 'code)))))))
+       (error #f (format "~a, code[~a]" (~ v 'message) (~ v 'code)))))))
 ;; with check
 (define (recv-sftp-packet1 conn)
   (let1 r (recv-sftp-packet conn)
@@ -235,39 +234,44 @@
 (define (sftp-read conn handle/filename receiver
 		   :key (buffer-size +sftp-default-buffer-size+)
 			(offset 0))
+  ;; structure of the message
+  ;;   uint32 	length 4
+  ;;   byte   	type   1
+  ;;   uint32 	id     4
+  ;;   string   handle 4 + n
+  ;;   uint64   offset 8
+  ;;   uint32   len    4
   (let* ((ohandle (if (is-a? handle/filename <sftp-fxp-handle>) 
 		      handle/filename
 		      (sftp-open conn handle/filename +ssh-fxf-read+)))
-	 (handle (~ ohandle 'handle)))
+	 (handle (~ ohandle 'handle))
+	 (n (bytevector-length handle))
+	 (offset-offset (+ 13 n))
+	 (buf-size (+ 25 n))
+	 (len (- buffer-size offset-offset 8))
+	 (buffer (make-bytevector buf-size)))
+    (bytevector-u32-set! buffer 0 (- buf-size 4) (endianness big))
+    (bytevector-u8-set! buffer 4 +ssh-fxp-read+)
+    (bytevector-u32-set! buffer 9 n (endianness big))
+    (bytevector-copy! handle 0 buffer 13 n)
+    (bytevector-u32-set! buffer (+ offset-offset 8) len (endianness big))
     ;; ok now read it
     ;; read may be multiple part so we need to read it until
     ;; server respond <sftp-fxp-status>
-    (let loop ((offset offset) (buffer #f) (in/out #f))
-      (let* ((data (make <sftp-fxp-read>
-		     :id (sftp-message-id! conn)
-		     :handle handle
-		     :offset offset
-		     :len buffer-size))
-	     (b (cond (buffer (set-port-position! in/out 5)
-			      (write-message <sftp-fxp-read> data in/out)
-			      (set-port-position! in/out 0)
-			      buffer)
-		      (else (get-initial-buffer data)))))
-	;;(send-sftp-packet conn )
-	(ssh-send-channel-data (~ conn 'channel) b)
-	(let1 r (recv-sftp-packet conn)
-	  (if (is-a? r <sftp-fxp-status>)
-	      (begin 
-		(unless (is-a? handle/filename <sftp-fxp-handle>)
-		  (sftp-close conn ohandle))
-		(let-values (((ignore r)
-			      (receiver -1
-					(open-bytevector-input-port #vu8()))))
-		  r))
-	      ;; must be <sftp-fxp-data>
-	      (let-values (((n ignore) (receiver offset (~ r 'data))))
-		(loop (+ offset n) b
-		      (or in/out (open-bytevector-input/output-port b))))))))))
+    (let loop ((offset offset))
+      (bytevector-u32-set! buffer 5 (sftp-message-id! conn) (endianness big))
+      (bytevector-u64-set! buffer offset-offset offset (endianness big))
+      (ssh-send-channel-data (~ conn 'channel) buffer)
+      (let1 r (recv-sftp-packet conn)
+	(if (is-a? r <sftp-fxp-status>)
+	    (begin 
+	      (unless (is-a? handle/filename <sftp-fxp-handle>)
+		(sftp-close conn ohandle))
+	      (let-values (((ignore r) (receiver -1 #f)))
+		r))
+	    ;; must be <sftp-fxp-data>
+	    (let-values (((n ignore) (receiver offset (~ r 'data))))
+	      (loop (+ offset n))))))))
 (define (sftp-binary-receiver)
   (let-values (((out extract) (open-bytevector-output-port)))
     (lambda (offset data)
@@ -275,7 +279,7 @@
 	  (values -1 (extract))
 	  (values (copy-binary-port out data) #f)))))
 (define (sftp-file-receiver filename :key (options (file-options)))
-  ;; by default we allocate 10MB buffer so it's more than internal
+  ;; by default we allocate 1MB buffer so it's more than internal
   ;; port buffer size. in this case without buffer is faster.
   (let1 out (open-file-output-port filename options 'none #f)
     (lambda (offset data)
@@ -342,22 +346,6 @@
 	  (ssh-send-channel-data (~ conn 'channel) buf)
 	  (recv-sftp-packet1 conn)
 	  (when (= r read-size) (loop (+ offset r) (+ i 1))))))))
-  
-(define (get-initial-buffer data)
-  (let ((in/out (open-chunked-binary-input/output-port))
-	(type (sftp-type-lookup (class-of data))))
-    (unless type (error 'send-sftp-packet "unknown sftp packet type" data))
-    ;;(put-u32 in/out (+ (bytevector-length bv) 1) (endianness big))
-    ;;(put-u8 in/out type)
-    (set-port-position! in/out 5)
-    (write-message (class-of data) data in/out)
-    (let ((p (port-position in/out)))
-      (set-port-position! in/out 0)
-      (put-u32 in/out (- p 4) (endianness big))
-      (put-u8 in/out type))
-    (set-port-position! in/out 0)
-    (rlet1 r (get-bytevector-all in/out)
-      (close-port in/out))))
 
 ;; 6.5 Removing and Renaming Files
 

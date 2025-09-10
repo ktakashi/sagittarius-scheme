@@ -316,7 +316,7 @@
 ;; 7. Responses from the Server to the Client
 (define-sftp-message <sftp-fxp-status> +ssh-fxp-status+
   ((code :uint32)    ;; error/status code
-   (message :string) ;; error message (utf-8)
+   (message :utf8-string) ;; error message (utf-8)
    (language-tag :string))
   :parents (<sftp-has-id>))
 (define-sftp-message <sftp-fxp-handle> +ssh-fxp-handle+ ()
