@@ -325,7 +325,7 @@
             ;; simply double it for now
             (let* ((new-size (* (~ channel 'host-window-size) 2))
       		   (m (make <ssh-msg-channel-window-adjust>
-      			:recipient-channel (~ channel 'recipient-channel)
+      			:recipient-channel (~ channel 'sender-channel)
       			:size new-size)))
       	      (set! (~ channel 'host-window-size) new-size)
       	      (ssh-write-ssh-message (~ channel 'connection) m)))
