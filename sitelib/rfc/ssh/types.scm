@@ -315,7 +315,7 @@
    channel-buffer))
 (define-method initialize ((o <ssh-channel>) args)
   (call-next-method)
-  (let ((size (~ o 'host-packet-size)))
+  (let ((size (~ o 'peer-packet-size)))
     (set! (~ o 'channel-buffer) (make-bytevector size))))
 
 ;; base class for SSH message

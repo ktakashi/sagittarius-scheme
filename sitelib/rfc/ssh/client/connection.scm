@@ -341,7 +341,7 @@
              ;; must be exit status but first get the head
              (let* ((in (open-bytevector-input-port response))
       		    (m  (ssh-read-message <ssh-msg-channel-request> in)))
-      	       (case (string->symbol (utf8->string (~ m 'request-type)))
+      	       (case (string->symbol (~ m 'request-type))
       		 ((exit-status)
       		  (let1 m (ssh-read-message <ssh-msg-exit-status> in)
       		    (loop (read-channel-packet channel) (~ m 'exit-status))))
