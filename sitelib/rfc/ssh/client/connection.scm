@@ -323,14 +323,14 @@
 	(set! (~ channel 'host-size) host-size)
 	(when (> (+ host-size (~ channel 'host-packet-size))
       		 (~ channel 'host-window-size))
-            ;; send window adjust requst
-            ;; simply double it for now
-            (let* ((new-size (* (~ channel 'host-window-size) 2))
-      		   (m (make <ssh-msg-channel-window-adjust>
-      			:recipient-channel (~ channel 'sender-channel)
-      			:size new-size)))
-      	      (set! (~ channel 'host-window-size) new-size)
-      	      (ssh-write-ssh-message (~ channel 'connection) m)))
+          ;; send window adjust requst
+          ;; simply double it for now
+          (let* ((current-size (~ channel 'host-window-size))
+		 (m (make <ssh-msg-channel-window-adjust>
+      		      :recipient-channel (~ channel 'sender-channel)
+      		      :size current-size)))
+      	    (set! (~ channel 'host-window-size) (* current-size 2))
+      	    (ssh-write-ssh-message (~ channel 'connection) m)))
         (bytevector-copy channel-data 9 (bytevector-length channel-data))))
     (let1 b (bytevector-u8-ref response 0)
       (cond ((= b +ssh-msg-channel-data+) (adjust-host-window response))
