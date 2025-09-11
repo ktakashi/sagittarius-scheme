@@ -59,11 +59,11 @@
 	    (rfc ssh types)
 	    (rfc ssh transport)
 	    (rfc ssh connection)
-	    (srfi :117 list-queues)
+	    (util concurrent)
 	    (util bytevector))
 
 (define-class <ssh-client-channel> (<ssh-channel>)
-  ((packet-queue :init-form (list-queue))))   
+  ((packet-queue :init-form (make-shared-queue))))
 
 (define (open-client-ssh-channel transport 
 				 open-channel
@@ -252,11 +252,13 @@
 
 ;; internal APIs
 (define (read-channel-packet channel)
-  (define transport (~ channel 'connection))
   (define recipient (~ channel 'recipient-channel))
+  (define (get-packet channel)
+    (cond ((shared-queue-get! (~ channel 'packet-queue) 0))
+	  (else (ssh-read-packet (~ channel 'connection)))))
   (let loop ()
     ;; in this API, we always send want-reply #t, so we can check the result
-    (let* ((packet (ssh-read-packet transport))
+    (let* ((packet (get-packet channel))
 	   (b (bytevector-u8-ref packet 0)))
       (cond ((memv b *ssh-recipent-messages*)
 	     (if (= (bytevector-u32-ref packet 1 (endianness big)) recipient)
@@ -294,11 +296,11 @@
 				      +ssh-msg-channel-success+
 				      +ssh-msg-channel-failure+))
 (define (push-channel-packet! channel bv)
-  (let ((recipient (bytevector-u32-ref bv 1 (endianness big))))
-    ;; TODO
-    )
-
-  )
+  (let ((recipient (bytevector-u32-ref bv 1 (endianness big)))
+	(channels (~ channel 'connection 'channels)))
+    (cond ((hashtable-ref channels recipient) =>
+	   (lambda (c)
+	     (shared-queue-get! (~ c 'packet-queue) bv))))))
 
 ;; we don't assume that the server sends window adjust when
 ;; n percent of the window is used or so. we use all the window
