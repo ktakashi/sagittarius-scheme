@@ -525,7 +525,7 @@ static int toggle_nagle(SOCKET fd, int value)
 #ifdef TCP_NODELAY
   int old, stack = value;
   socklen_t len = sizeof(int);
-  getsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char *)&old, &len);
+  getsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (char *)&old, &len);
   /* we ignore the return value here, since this is merely performance
      optimisation */
   if (old != value) {
