@@ -1,11 +1,9 @@
 (import (rnrs)
 	(srfi :13)
 	(rfc base64)
-	(rfc pem)
 	(rsa pkcs :8)
 	(rsa pkcs :12)
 	(rfc x.509)
-	(crypto)
 	(net http-client)
 	(net socket)
 	(util concurrent)
@@ -17,7 +15,7 @@
 
 (define (idrix-eu p)
   (define node (socket-parameter-socket-node p))
-  (cond ((string=? node "prod.idrix.eu") "eckey.pem")
+  (cond ((string=? node "www.idrix.fr") "eckey.pem")
 	(else #f)))
 (define (badssl-com p)
   (define node (socket-parameter-socket-node p))
@@ -78,7 +76,7 @@
 (let ()
   (define (test-future f status)
     (let ((res (future-get f)))
-      (test-equal status (http:response-status res))))
+      (test-equal (list status) status (http:response-status res))))
   (define (run-test url status)
     (define request (http:request-builder (uri url) (method 'GET)))
     (test-future (http:client-send-async client request) status))
@@ -91,7 +89,7 @@
 		  (follow-redirects (http:redirect normal))))
 
   (test-assert (http:client? client))
-  (run-test "https://prod.idrix.eu/secure/" "200")
+  (run-test "https://www.idrix.fr/secure/" "200")
   ;; The certificate is expired as of 26 Nov 2021...
   (run-test "https://client.badssl.com/" "400")
   (http:client-shutdown! client)
