@@ -15,12 +15,11 @@
 
 (define (idrix-eu p)
   (define node (socket-parameter-socket-node p))
-  (cond ((string=? node "www.idrix.fr") "eckey.pem")
+  (cond ((string-suffix? ".cryptomix.com" node) "eckey.pem")
 	(else #f)))
 (define (badssl-com p)
   (define node (socket-parameter-socket-node p))
-  (and (string-suffix? ".badssl.com" node)
-       "1"))
+  (and (string-suffix? ".badssl.com" node) "1"))
 (define keystores
   ;; keystore file,  store pass, key pass, alias selector
   `(("test/data/keystores/keystore0.b64" "password" "password" ,idrix-eu)
@@ -76,7 +75,8 @@
 (let ()
   (define (test-future f status)
     (let ((res (future-get f)))
-      (test-equal (list status) status (http:response-status res))))
+      (test-equal (list status) status (http:response-status res))
+      #;(print (utf8->string (http:response-body res)))))
   (define (run-test url status)
     (define request (http:request-builder (uri url) (method 'GET)))
     (test-future (http:client-send-async client request) status))
@@ -89,9 +89,8 @@
 		  (follow-redirects (http:redirect normal))))
 
   (test-assert (http:client? client))
-  (run-test "https://www.idrix.fr/secure/" "200")
-  ;; The certificate is expired as of 26 Nov 2021...
-  (run-test "https://client.badssl.com/" "400")
+  (run-test "https://server.cryptomix.com/secure/" "200")
+  (run-test "https://client.badssl.com/" "200")
   (http:client-shutdown! client)
   )
 
