@@ -601,12 +601,12 @@ static int init_fd(int *fds, SgObject *port,
     SG_FILE(f)->name = name;
     *closeP = TRUE;
   } else if (SG_EQ(*port, SG_KEYWORD_STDIN)) {
-    fds[0] = 0;
+    fds[0] = STDIN_FILENO;
     /* no creation of port */
   } else if (SG_EQ(*port, SG_KEYWORD_STDOUT)) {
-    fds[1] = 1;
+    fds[1] = STDOUT_FILENO;
   } else if (SG_EQ(*port, SG_KEYWORD_STDERR)) {
-    fds[1] = 2;
+    fds[1] = STDERR_FILENO;
   } else if (SG_STRINGP(*port) || SG_EQ(*port, SG_KEYWORD_NULL)) {
     int flag = 0, fd;
     SgObject file;
