@@ -36,12 +36,14 @@
 #cmakedefine HAVE_EXECINFO_H
 #cmakedefine HAVE_FEATURES_H
 #cmakedefine HAVE_PTHREAD_H
+#cmakedefine HAVE_PWD_H
 
 /* C11 features */
 #cmakedefine HAVE_UCHAR_H
 #cmakedefine HAVE_STDNORETURN_H
 
 #cmakedefine HAVE_TIMESPEC
+#cmakedefine HAVE_PASSWD
 
 #cmakedefine HAVE_ALLOCA
 #cmakedefine HAVE_SCHED_YIELD
