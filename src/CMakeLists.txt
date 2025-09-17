@@ -10,14 +10,15 @@ IF(WIN32)
   SET(PLATFORM_SOURCE ${PLATFORM_SOURCE}
     os/win/file.c os/win/transcoder.c
     os/win/system.c os/win/thread.c
-    os/win/shared.c)
+    os/win/shared.c os/win/pam.c)
   # TODO add linux and bsd(maybe also apple?)
   # use standard c functionality
 ELSE()
   # cygwin is considered as POSIX on sagittarius scheme
   SET(PLATFORM_SOURCE ${PLATFORM_SOURCE}
     os/posix/file.c os/posix/transcoder.c
-    os/posix/system.c os/posix/thread.c)
+    os/posix/system.c os/posix/thread.c
+    os/posix/pam.c)
 ENDIF()
 
 # USE_UCS4_CPP is only for Windows :)
@@ -94,7 +95,7 @@ SET(SAGITTARIUS_LIB_SOURCE
   regex.c
   ${MATCHER_SOURCES}
 
-  system.c
+  system.c         pam.c
 
   # wrapper for public C APIs
   wrappers.c
@@ -134,6 +135,9 @@ IF(NOT WIN32)
   IF (${SAGITTARIUS_OS} STREQUAL "linux")
     # for clock_gettime
     TARGET_LINK_LIBRARIES(sagittarius rt)
+  ENDIF()
+  IF (HAVE_PAM_APPL_H)
+    TARGET_LINK_LIBRARIES(sagittarius pam)
   ENDIF()
   # linux needs this
   TARGET_LINK_LIBRARIES(sagittarius m)

@@ -47,6 +47,7 @@
 #include "sagittarius/private/keyword.h"
 #include "sagittarius/private/library.h"
 #include "sagittarius/private/number.h"
+#include "sagittarius/private/pam.h"
 #include "sagittarius/private/pair.h"
 #include "sagittarius/private/record.h"
 #include "sagittarius/private/string.h"
@@ -3196,6 +3197,9 @@ void Sg__InitClos()
 
   /* code builder */
   CINIT(SG_CLASS_CODE_BUILDER, "<code-builder>");
+
+  /* auth token */
+  CINIT(SG_CLASS_AUTH_TOKEN,   "<auth-token>");
 
 #define GINIT(gf, nam)				\
   Sg_InitBuiltinGeneric(gf, UC(nam), lib)
