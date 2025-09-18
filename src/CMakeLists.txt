@@ -37,7 +37,7 @@ SET(STUB_SOURCES
   lib_core.c lib_clos.c lib_proc.c lib_vm.c
   lib_vmdebug.c lib_sagittarius.c lib_regex.c
   lib_flonums.c lib_fixnums.c lib_treemap.c
-  lib_kernel.c)
+  lib_kernel.c lib_pam.c)
 SET(BUILTIN_SOURCES 
   compiler.c   lib_compiler-util.c lib_iform.c
   lib_pass1-core.c lib_pass1-syntax.c

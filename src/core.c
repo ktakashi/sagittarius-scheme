@@ -90,6 +90,7 @@ extern void Sg__Init_sagittarius_flonums();
 extern void Sg__Init_sagittarius_treemap();
 extern void Sg__Init_sagittarius_sandbox();
 extern void Sg__Init_sagittarius_kernel();
+extern void Sg__Init_sagittarius_pam();
 extern void Sg__InitInstruction();
 /* compiled libraries */
 extern void Sg__Init_core();
@@ -253,6 +254,7 @@ void Sg_Init()
   Sg__Init_sagittarius_sandbox();
 
   Sg__Init_sagittarius_kernel();
+  Sg__Init_sagittarius_pam();
 
   /* 
      re-export er-macro-transformer from (sagittarius)

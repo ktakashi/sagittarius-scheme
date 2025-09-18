@@ -97,6 +97,11 @@ static int scheme_conv(int num_msg,
   return PAM_SUCCESS;
 }
 
+static SgObject cstr2scheme(const char *s)
+{
+  return Sg_Utf8sToUtf32s(s, strlen(s));
+}
+
 SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
 			    SgObject conversation)
 {
@@ -132,7 +137,16 @@ SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
     char *buf = SG_NEW_ATOMIC2(char *, bufsize);
     getpwnam_r(suser, pwd, buf, bufsize, &result);
     if (result != NULL) {
-      /* make auth token */
+      r = SG_NEW(SgAuthToken);
+      SG_SET_CLASS(r, SG_CLASS_AUTH_TOKEN);
+      SG_AUTH_TOKEN_NAME(r) = cstr2scheme(pwd->pw_name);
+      SG_AUTH_TOKEN_FULL_NAME(r) = cstr2scheme(pwd->pw_gecos);
+      SG_AUTH_TOKEN_DIR(r) = cstr2scheme(pwd->pw_dir);
+      SG_AUTH_TOKEN_SHELL(r) = cstr2scheme(pwd->pw_shell);
+      SG_AUTH_TOKEN_UID(r) = (intptr_t)pwd->pw_uid;
+      SG_AUTH_TOKEN(r)->gid = (intptr_t)pwd->pw_gid;
+      SG_AUTH_TOKEN(r)->rawToken = NULL;
+      SG_AUTH_TOKEN(r)->userInfo = (intptr_t)pwd;
     }
     /* maybe pam session and retrieve environment variable here? */
   }
