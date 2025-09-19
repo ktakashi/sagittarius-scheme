@@ -33,6 +33,7 @@
 
 #include <sagittarius/config.h>
 #include "sagittarius/private/pam.h"
+#include "sagittarius/private/core.h"
 #include "sagittarius/private/error.h"
 #include "sagittarius/private/hashtable.h"
 #include "sagittarius/private/pair.h"
@@ -102,6 +103,11 @@ static SgObject cstr2scheme(const char *s)
   return Sg_Utf8sToUtf32s(s, strlen(s));
 }
 
+static void token_finalizer(SgObject obj, void *data)
+{
+  Sg_PamInvalidateToken(obj);
+}
+
 SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
 			    SgObject conversation)
 {
@@ -125,12 +131,13 @@ SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
   sname = Sg_Utf32sToUtf8s(SG_STRING(service));
   suser = Sg_Utf32sToUtf8s(SG_STRING(username));
   ret = pam_start(sname, suser, &conv, &pamh);
-  if (ret == PAM_SUCCESS) {
-    ret = pam_authenticate(pamh, 0);
-  }
-  if (ret == PAM_SUCCESS) {
-    ret = pam_acct_mgmt(pamh, 0);
-  }
+  if (ret == PAM_SUCCESS) ret = pam_authenticate(pamh, 0);
+  else goto end;
+  if (ret == PAM_SUCCESS) ret = pam_acct_mgmt(pamh, 0);
+  else goto end;
+  if (ret == PAM_SUCCESS) ret = pam_open_session(pamh, PAM_SILENT);
+  else goto end;
+
   if (ret == PAM_SUCCESS) {
     struct passwd *pwd = SG_NEW(struct passwd), *result;
     long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
@@ -145,13 +152,27 @@ SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
       SG_AUTH_TOKEN_SHELL(r) = cstr2scheme(pwd->pw_shell);
       SG_AUTH_TOKEN_UID(r) = (intptr_t)pwd->pw_uid;
       SG_AUTH_TOKEN(r)->gid = (intptr_t)pwd->pw_gid;
-      SG_AUTH_TOKEN(r)->rawToken = NULL;
+      SG_AUTH_TOKEN(r)->rawToken = pam_getenvlist(pamh);
       SG_AUTH_TOKEN(r)->userInfo = (intptr_t)pwd;
+      Sg_RegisterFinalizer(r, token_finalizer, NULL);
     }
     /* maybe pam session and retrieve environment variable here? */
   }
+
+  pam_close_session(pamh, PAM_SILENT);
+ end:
   pam_end(pamh, ret);
   return r;
+}
+
+void Sg_PamInvalidateToken(SgObject token)
+{
+  void *rawToken = SG_AUTH_TOKEN(token)->rawToken;
+  SG_AUTH_TOKEN(token)->rawToken = NULL;
+  if (rawToken) {
+    free(rawToken);
+    Sg_UnregisterFinalizer(token);
+  }
 }
 
 #else
@@ -160,5 +181,9 @@ SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
 {
   /* TODO use BSD Auth system on OpenBSD */
   return SG_FALSE;
+}
+
+void Sg_PamInvalidateToken(SgObject token)
+{
 }
 #endif

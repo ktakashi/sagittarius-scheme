@@ -43,8 +43,9 @@ typedef struct SgAuthTokenRec
   SgObject  shell;
   intptr_t  uid;		/* uid on POSIX, SID on Windows */
   intptr_t  gid;		/* gid on POSIX, 0 on Windows */
-  /* only for Windows, for POSIX, we use setuid to run process with
-     the authenticated user. (root permission may require...) */
+  /* On Windows, output value of phHandle of LogonUser
+     On Posix, environment variables provided by underlying authentication
+     e.g. for PAM, by pam_getenvlist */
   void     *rawToken;
   /*
     Platform dependent user information
@@ -72,6 +73,7 @@ SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
 				      SgObject conversation);
+SG_EXTERN void     Sg_PamInvalidateToken(SgObject token);
 
 SG_CDECL_END
 

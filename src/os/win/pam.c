@@ -34,3 +34,7 @@ SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
 {
   return SG_FALSE;
 }
+
+void Sg_PamInvalidateToken(SgObject token)
+{
+}
