@@ -74,11 +74,11 @@ SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
     return SG_FALSE;
   } SG_END_PROTECT;
 
-  if (!SG_VECTORP(resp) && SG_VECTOR_SIZE(resp) != 1) {
+  if (!SG_VECTORP(resp) || SG_VECTOR_SIZE(resp) != 1) {
     return SG_FALSE;
   }
   wuser = Sg_StringToWCharTs(username);
-  wdomain = Sg_StringToWCharTs(service);
+  wdomain = SG_STRING_SIZE(service) == 0 ? NULL : Sg_StringToWCharTs(service);
   wpass = Sg_StringToWCharTs(SG_VECTOR_ELEMENT(resp, 0));
 
   if (!LogonUserW(wuser, wdomain, wpass,
