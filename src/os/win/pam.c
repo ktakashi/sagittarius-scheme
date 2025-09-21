@@ -40,6 +40,7 @@
 #include "sagittarius/private/vector.h"
 #include "sagittarius/private/string.h"
 #include "sagittarius/private/symbol.h"
+#include "sagittarius/private/system.h"
 #include "sagittarius/private/unicode.h"
 #include "sagittarius/private/vm.h"
 
@@ -51,6 +52,42 @@ static SgObject wchar2scheme(wchar_t *s)
 static void token_finalizer(SgObject obj, void *data)
 {
   Sg_PamInvalidateToken(obj);
+}
+
+static DWORD enable_privillege(HANDLE hProcToken, wchar_t *privName)
+{
+  TOKEN_PRIVILEGES tp;
+  LUID luid;
+
+  if (!LookupPrivilegeValueW(NULL, privName, &luid)) {
+    return GetLastError();
+  }
+  
+  tp.PrivilegeCount = 1;
+  tp.Privileges[0].Luid = luid;
+  tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+  
+  AdjustTokenPrivileges(hProcToken, FALSE, &tp, sizeof(tp), NULL, NULL);
+  return GetLastError();
+}
+
+static int enable_privilleges()
+{
+  HANDLE hProcToken;
+  DWORD e = ERROR_SUCCESS;
+  if (!OpenProcessToken(GetCurrentProcess(),
+			TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
+			&hProcToken))
+    return FALSE;
+  e = enable_privillege(hProcToken, SE_RESTORE_NAME);
+  if (e != ERROR_SUCCESS) goto err;
+  e = enable_privillege(hProcToken, SE_BACKUP_NAME);
+  if (e != ERROR_SUCCESS) goto err;
+
+ err:
+  CloseHandle(hProcToken);
+  if (e != ERROR_SUCCESS) SetLastError(e);
+  return e == ERROR_SUCCESS;
 }
 
 #define DEFAULT_SIZE 1024
@@ -70,7 +107,7 @@ SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
   SID_NAME_USE use;
   DWORD ptuLen = 0, ulen = 0, dlen = 0, flen = 0, profLen = MAX_PATH;
   PTOKEN_USER ptu;
-  PROFILEINFOW pi = { sizeof(pi) };
+  PROFILEINFOW pi = { .dwSize = sizeof(pi), .hProfile = NULL };
   int e = 0;
 
   SG_VECTOR_ELEMENT(vec, 0) = Sg_Cons(SG_INTERN("echo-off"),
@@ -101,32 +138,40 @@ SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
   if (dlen < DEFAULT_SIZE) pDomain = SG_NEW_ATOMIC2(wchar_t *, dlen);
   if (!LookupAccountSidW(NULL, ptu->User.Sid, pUser, &ulen, pDomain, &dlen, &use))
     goto err;
-  if (!GetUserProfileDirectoryW(hUser, profileDir, &profLen)) goto err;
 
-  pi.lpUserName = pUser;
-  LoadUserProfileW(hUser, &pi);	/* I'm getting error here, don't know why... */
-  CreateEnvironmentBlock(&pEnv, hUser, FALSE);
-
-  /* if () { */
-  /*   // Iterate through environment variables */
-  /*   LPCWSTR var = (LPCWSTR)pEnv; */
-  /*   while (*var) { */
-  /*     wprintf(L"%ls\n", var); */
-  /*     var += wcslen(var) + 1; */
-  /*   } */
-  /*   DestroyEnvironmentBlock(pEnv); */
-  /* } */
-  UnloadUserProfile(hUser, pi.hProfile);
-  
+  if (enable_privilleges() == ERROR_SUCCESS) {
+    pi.lpUserName = pUser;
+    // Ts require enableLUA, most likely not set :(
+    LoadUserProfileW(hUser, &pi);
+  }
   r = SG_NEW(SgAuthToken);
   SG_SET_CLASS(r, SG_CLASS_AUTH_TOKEN);
-  SG_AUTH_TOKEN_NAME(r) = wchar2scheme(pUser); /* TODO get it from USERNAME */
-  SG_AUTH_TOKEN_SHELL(r) = SG_MAKE_STRING("todo");
-  SG_AUTH_TOKEN_DIR(r) = wchar2scheme(profileDir);
+
+  if (CreateEnvironmentBlock(&pEnv, hUser, FALSE)) {
+    SG_AUTH_TOKEN_NAME(r) = Sg_Getenv(UC("USERNAME"));
+    SG_AUTH_TOKEN_SHELL(r) = Sg_Getenv(UC("ComSpec"));
+    SG_AUTH_TOKEN_DIR(r) = Sg_Getenv(UC("HOME"));
+    DestroyEnvironmentBlock(pEnv);
+  } else {
+    SG_AUTH_TOKEN_NAME(r) = wchar2scheme(pUser);
+    SG_AUTH_TOKEN_SHELL(r) = SG_FALSE;
+    SG_AUTH_TOKEN_DIR(r) = SG_FALSE;
+  }
+  /* Get USERPROFILE instead of HOME */
+  if (SG_FALSEP(SG_AUTH_TOKEN_DIR(r))) {
+    if (GetUserProfileDirectoryW(hUser, profileDir, &profLen)) {
+      SG_AUTH_TOKEN_DIR(r) = wchar2scheme(profileDir);
+    }
+  }
   SG_AUTH_TOKEN_UID(r) = (intptr_t)ptu->User.Sid;
   SG_AUTH_TOKEN(r)->gid = 0;
   SG_AUTH_TOKEN(r)->rawToken = (void *)hUser;
   SG_AUTH_TOKEN(r)->userInfo = (intptr_t)ptu;
+  
+  if (pi.hProfile) {
+    UnloadUserProfile(hUser, pi.hProfile);
+  }
+  
   return r;
 
  err:
