@@ -28,11 +28,10 @@
 #define LIBSAGITTARIUS_BODY
 
 #define WIN32_LEAN_AND_MEAN
+#define SECURITY_WIN32
 #include <windows.h>
-#include <lm.h>
 #include <userenv.h>
 #pragma comment(lib, "Advapi32.lib")
-#pragma comment(lib, "Netapi32.lib")
 #pragma comment(lib, "Userenv.lib")
 
 #include "sagittarius/private/pam.h"
@@ -54,6 +53,7 @@ static void token_finalizer(SgObject obj, void *data)
   Sg_PamInvalidateToken(obj);
 }
 
+#define DEFAULT_SIZE 1024
 /*
   On Windows the service parameter is act as a domain for LogonUserW API
  */
@@ -61,11 +61,18 @@ SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
 			    SgObject conversation)
 {
   SgObject vec = Sg_MakeVector(1, SG_FALSE), resp = SG_FALSE, r = SG_FALSE;
-  wchar_t *wuser, *wpass, *wdomain;
+  wchar_t user[DEFAULT_SIZE], domain[DEFAULT_SIZE],
+    fullName[DEFAULT_SIZE], profileDir[MAX_PATH];
+  wchar_t *wuser, *wpass, *wdomain, *pUser = user, *pDomain = domain,
+    *pFullName = fullName;
   HANDLE hUser = NULL;
-  LPUSER_INFO_4 pInfo = NULL;
-  PROFILEINFOW pi = {0};
-  LPVOID lpEnv = NULL;
+  PVOID pEnv = NULL;
+  SID_NAME_USE use;
+  DWORD ptuLen = 0, ulen = 0, dlen = 0, flen = 0, profLen = MAX_PATH;
+  PTOKEN_USER ptu;
+  PROFILEINFOW pi = { sizeof(pi) };
+  int e = 0;
+
   SG_VECTOR_ELEMENT(vec, 0) = Sg_Cons(SG_INTERN("echo-off"),
 				      SG_MAKE_STRING("Password:"));
   SG_UNWIND_PROTECT {
@@ -82,69 +89,66 @@ SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
   wpass = Sg_StringToWCharTs(SG_VECTOR_ELEMENT(resp, 0));
 
   if (!LogonUserW(wuser, wdomain, wpass,
-		  LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT,
-		  &hUser)) {
+		  LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, &hUser)) {
     return SG_FALSE;
   }
-  if (NetUserGetInfo(wdomain, wuser, 4, (LPBYTE *)&pInfo) != NERR_Success) goto err;
-  if (pInfo == NULL) goto err;
+  GetTokenInformation(hUser, TokenUser, NULL, 0, &ptuLen);
+  ptu = SG_NEW_ATOMIC2(PTOKEN_USER, ptuLen);
+  if (!GetTokenInformation(hUser, TokenUser, ptu, ptuLen, &ptuLen)) goto err;
 
-  pi.dwSize = sizeof(pi);
-  pi.lpUserName = wuser;
-  pi.dwFlags = PI_NOUI;
+  LookupAccountSidW(NULL, ptu->User.Sid, NULL, &ulen, NULL, &dlen, &use);
+  if (ulen < DEFAULT_SIZE) pUser = SG_NEW_ATOMIC2(wchar_t *, ulen);
+  if (dlen < DEFAULT_SIZE) pDomain = SG_NEW_ATOMIC2(wchar_t *, dlen);
+  if (!LookupAccountSidW(NULL, ptu->User.Sid, pUser, &ulen, pDomain, &dlen, &use))
+    goto err;
+  if (!GetUserProfileDirectoryW(hUser, profileDir, &profLen)) goto err;
 
-  if (!LoadUserProfileW(hUser, &pi)) goto uinfo_err;
-  if (CreateEnvironmentBlock(&lpEnv, hUser, FALSE)) goto prof_err;
-  /* we don't hold the profile so unload it here. */
+  pi.lpUserName = pUser;
+  LoadUserProfileW(hUser, &pi);	/* I'm getting error here, don't know why... */
+  CreateEnvironmentBlock(&pEnv, hUser, FALSE);
+
+  /* if () { */
+  /*   // Iterate through environment variables */
+  /*   LPCWSTR var = (LPCWSTR)pEnv; */
+  /*   while (*var) { */
+  /*     wprintf(L"%ls\n", var); */
+  /*     var += wcslen(var) + 1; */
+  /*   } */
+  /*   DestroyEnvironmentBlock(pEnv); */
+  /* } */
   UnloadUserProfile(hUser, pi.hProfile);
-
-  /* create token */
+  
   r = SG_NEW(SgAuthToken);
   SG_SET_CLASS(r, SG_CLASS_AUTH_TOKEN);
-  SG_AUTH_TOKEN_NAME(r) = wchar2scheme(pInfo->usri4_name);
-  if (pInfo->usri4_full_name)
-    SG_AUTH_TOKEN_FULL_NAME(r) = wchar2scheme(pInfo->usri4_full_name);
-  else
-    SG_AUTH_TOKEN_FULL_NAME(r) = wchar2scheme(pInfo->usri4_name);
-  if (pInfo->usri4_profile)
-    SG_AUTH_TOKEN_DIR(r) = wchar2scheme(pInfo->usri4_profile);
-  else if (pInfo->usri4_home_dir)
-    SG_AUTH_TOKEN_DIR(r) = wchar2scheme(pInfo->usri4_home_dir);
-  else
-    SG_AUTH_TOKEN_DIR(r) = SG_FALSE;
-  /* TODO get CmdSpec from lpEnv */
+  SG_AUTH_TOKEN_NAME(r) = wchar2scheme(pUser); /* TODO get it from USERNAME */
   SG_AUTH_TOKEN_SHELL(r) = SG_MAKE_STRING("todo");
-  SG_AUTH_TOKEN_UID(r) = (intptr_t)pInfo->usri4_user_sid;
+  SG_AUTH_TOKEN_DIR(r) = wchar2scheme(profileDir);
+  SG_AUTH_TOKEN_UID(r) = (intptr_t)ptu->User.Sid;
   SG_AUTH_TOKEN(r)->gid = 0;
   SG_AUTH_TOKEN(r)->rawToken = (void *)hUser;
-  SG_AUTH_TOKEN(r)->userInfo = (intptr_t)pInfo;
-  Sg_RegisterFinalizer(r, token_finalizer, NULL);
-  
-  DestroyEnvironmentBlock(lpEnv);
+  SG_AUTH_TOKEN(r)->userInfo = (intptr_t)ptu;
   return r;
- prof_err:
-  UnloadUserProfile(hUser, pi.hProfile);
- uinfo_err:
-  NetApiBufferFree(pInfo);
+
  err:
+  if (e != 0) e = GetLastError();
   CloseHandle(hUser);
+  if (e != 0) SetLastError(e);
   return SG_FALSE;
 }
 
 void Sg_PamInvalidateToken(SgObject token)
 {
-  intptr_t userInfo = SG_AUTH_TOKEN(token)->userInfo;
+  intptr_t sid = SG_AUTH_TOKEN_UID(token);
   void *rawToken = SG_AUTH_TOKEN(token)->rawToken;
 
-  SG_AUTH_TOKEN(token)->userInfo = 0;
+  SG_AUTH_TOKEN_UID(token) = 0;
   SG_AUTH_TOKEN(token)->rawToken = NULL;
-  if (userInfo) {
-    NetApiBufferFree((LPBYTE *)userInfo);
+
+  if (sid) {
+    LocalFree((PSID)sid);
   }
   if (rawToken) {
     CloseHandle(rawToken);
-  }
-  if (userInfo && rawToken) {
     Sg_UnregisterFinalizer(token);
   }
 }
