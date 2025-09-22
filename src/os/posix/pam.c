@@ -251,8 +251,8 @@ void Sg_PamInvalidateToken(SgObject token)
 }
 
 #else
-SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
-			    SgObject conversation)
+static SgObject pam_authenticate_inner(char *service, char *username,
+				       SgObject conversation)
 {
   return SG_FALSE;
 }
