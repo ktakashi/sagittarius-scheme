@@ -43,8 +43,8 @@
 #include "sagittarius/private/vm.h"
 #include "sagittarius/private/unicode.h"
 
-static SgObject pam_authenticate(char *service, char *username,
-				 SgObject conversation);
+static SgObject pam_authenticate_inner(char *service, char *username,
+					SgObject conversation);
 
 SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
 			    SgObject conversation)
@@ -60,9 +60,9 @@ SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
 				    SG_MAKE_STRING("procedure"),
 				    conversation, SG_NIL);
   }
-  return pam_authenticate(Sg_Utf32sToUtf8s(SG_STRING(service)),
-			  Sg_Utf32sToUtf8s(SG_STRING(username)),
-			  conversation);
+  return pam_authenticate_inner(Sg_Utf32sToUtf8s(SG_STRING(service)),
+				Sg_Utf32sToUtf8s(SG_STRING(username)),
+				conversation);
 }
 
 static SgObject cstr2scheme(const char *s)
@@ -143,21 +143,21 @@ static int scheme_conv(int num_msg,
   return PAM_SUCCESS;
 }
 
-static SgObject pam_authenticate(char *sname, char *suser,
-				 SgObject conversation)
+static SgObject pam_authenticate_inner(char *sname, char *suser,
+				       SgObject conversation)
 {
-  pam_handle_t *pamh;
+  pam_handle_t *pamh = NULL;
   struct pam_conv conv = { scheme_conv, conversation };
   int ret;
   SgObject r = SG_FALSE;
 
   ret = pam_start(sname, suser, &conv, &pamh);
   if (ret == PAM_SUCCESS) ret = pam_authenticate(pamh, 0);
-  else goto end;
+  else goto err;
   if (ret == PAM_SUCCESS) ret = pam_acct_mgmt(pamh, 0);
-  else goto end;
+  else goto err;
   if (ret == PAM_SUCCESS) ret = pam_open_session(pamh, PAM_SILENT);
-  else goto end;
+  else goto err;
 
   if (ret == PAM_SUCCESS) {
     struct passwd *pwd = SG_NEW(struct passwd), *result;
@@ -169,8 +169,12 @@ static SgObject pam_authenticate(char *sname, char *suser,
       SG_AUTH_TOKEN(r)->rawToken = (void *)pamh;
       Sg_RegisterFinalizer(r, token_finalizer, NULL);
     }
-  }
+  } else goto err;
+
   return r;
+ err:
+  if (pamh) pam_end(pamh, ret);
+  return SG_FALSE;
 }
 
 void Sg_PamInvalidateToken(SgObject token)
@@ -180,7 +184,7 @@ void Sg_PamInvalidateToken(SgObject token)
 
   if (pamh) {
     pam_close_session(pamh, PAM_SILENT);
-    pam_end(pamh, ret);
+    pam_end(pamh, PAM_SUCCESS);
     Sg_UnregisterFinalizer(token);
   }
 }
@@ -191,8 +195,8 @@ void Sg_PamInvalidateToken(SgObject token)
 #include <sys/types.h>
 #include <bsd_auth.h>
 
-static SgObject pam_authenticate(char *service, char *username,
-				 SgObject conversation)
+static SgObject pam_authenticate_inner(char *service, char *username,
+				       SgObject conversation)
 {
   char *challenge = NULL, *response;
   auth_session_t *as;
