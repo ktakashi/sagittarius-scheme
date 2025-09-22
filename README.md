@@ -40,10 +40,10 @@ Sagittarius depends on the following libraries.
  - [libffi](https://sourceware.org/libffi/)
  - [OpenSSL](https://www.openssl.org/)
 
-If you are using Linux which supports `apt-get`, then you can simply
+If you are using Linux which supports `apt`, then you can simply
 execute the following command:
 
-    % apt install libgc-dev, zlib1g-dev libffi-dev libssl-dev
+    % apt install libgc-dev, zlib1g-dev libffi-dev libssl-dev libpam0g-dev
 
 ### Manual installation of Boehm GC
 
