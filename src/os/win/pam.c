@@ -31,8 +31,10 @@
 #define SECURITY_WIN32
 #include <windows.h>
 #include <userenv.h>
+#include <security.h>
 #pragma comment(lib, "Advapi32.lib")
 #pragma comment(lib, "Userenv.lib")
+#pragma comment(lib, "Secur32.lib")
 
 #include "sagittarius/private/pam.h"
 #include "sagittarius/private/core.h"
@@ -111,16 +113,12 @@ SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
 			    SgObject conversation)
 {
   SgObject vec = Sg_MakeVector(1, SG_FALSE), resp = SG_FALSE, r = SG_FALSE;
-  wchar_t user[DEFAULT_SIZE], domain[DEFAULT_SIZE],
-    fullName[DEFAULT_SIZE], profileDir[MAX_PATH];
-  wchar_t *wuser, *wpass, *wdomain, *pUser = user, *pDomain = domain,
-    *pFullName = fullName;
+  wchar_t user[DEFAULT_SIZE], fullName[DEFAULT_SIZE], profileDir[MAX_PATH];
+  wchar_t *wuser, *wpass, *wdomain, *pUser = user, *pFullName = fullName;
   HANDLE hUser = NULL;
   PVOID pEnv = NULL;
   PSID sid;
-  SID_NAME_USE use;
-  DWORD ptuLen = 0, ulen = 0, dlen = 0, flen = 0, profLen = MAX_PATH;
-  PTOKEN_USER ptu;
+  DWORD ulen = 0, flen = 0, profLen = MAX_PATH;
   PROFILEINFOW pi = { .dwSize = sizeof(pi), .hProfile = NULL };
   int e = 0;
 
@@ -140,20 +138,22 @@ SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
   wdomain = SG_STRING_SIZE(service) == 0 ? NULL : Sg_StringToWCharTs(service);
   wpass = Sg_StringToWCharTs(SG_VECTOR_ELEMENT(resp, 0));
 
-  if (!LogonUserW(wuser, wdomain, wpass,
-		  LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, &hUser)) {
+  if (!LogonUserExW(wuser, wdomain, wpass,
+		    LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT,
+		    &hUser, &sid, NULL, NULL, NULL)) {
     return SG_FALSE;
   }
-  GetTokenInformation(hUser, TokenUser, NULL, 0, &ptuLen);
-  ptu = SG_NEW_ATOMIC2(PTOKEN_USER, ptuLen);
-  if (!GetTokenInformation(hUser, TokenUser, ptu, ptuLen, &ptuLen)) goto err;
+  if (!ImpersonateLoggedOnUser(hUser)) goto err;
 
-  sid = ptu->User.Sid;
-  LookupAccountSidW(NULL, sid, NULL, &ulen, NULL, &dlen, &use);
+  GetUserNameExW(NameSamCompatible, NULL, &ulen);
   if (ulen < DEFAULT_SIZE) pUser = SG_NEW_ATOMIC2(wchar_t *, ulen);
-  if (dlen < DEFAULT_SIZE) pDomain = SG_NEW_ATOMIC2(wchar_t *, dlen);
-  if (!LookupAccountSidW(NULL, sid, pUser, &ulen, pDomain, &dlen, &use))
-    goto err;
+  if (!GetUserNameExW(NameSamCompatible, pUser, &ulen)) goto err;
+
+  GetUserNameExW(NameDisplay, NULL, &flen);
+  if (ulen < DEFAULT_SIZE) pFullName = SG_NEW_ATOMIC2(wchar_t *, flen);
+  if (!GetUserNameExW(NameDisplay, pFullName, &flen)) {
+    pFullName = pUser;
+  }
 
   if (enable_privilleges() == ERROR_SUCCESS) {
     pi.lpUserName = pUser;
@@ -162,14 +162,14 @@ SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
   }
   r = SG_NEW(SgAuthToken);
   SG_SET_CLASS(r, SG_CLASS_AUTH_TOKEN);
+  SG_AUTH_TOKEN_NAME(r) = wchar2scheme(pUser);
+  SG_AUTH_TOKEN_FULL_NAME(r) = wchar2scheme(pFullName);
   if (CreateEnvironmentBlock(&pEnv, hUser, FALSE)) {
     LPCWSTR var = (LPCWSTR)pEnv;
-    SG_AUTH_TOKEN_NAME(r) = extract_env(var, L"USERNAME");
     SG_AUTH_TOKEN_SHELL(r) = extract_env(var, L"ComSpec");
     SG_AUTH_TOKEN_DIR(r) = extract_env(var, L"HOME");
     DestroyEnvironmentBlock(pEnv);
   } else {
-    SG_AUTH_TOKEN_NAME(r) = wchar2scheme(pUser);
     SG_AUTH_TOKEN_SHELL(r) = SG_FALSE;
     SG_AUTH_TOKEN_DIR(r) = SG_FALSE;
   }
@@ -182,16 +182,17 @@ SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
   SG_AUTH_TOKEN_UID(r) = (intptr_t)sid;
   SG_AUTH_TOKEN(r)->gid = 0;
   SG_AUTH_TOKEN(r)->rawToken = (void *)hUser;
-  SG_AUTH_TOKEN(r)->userInfo = (intptr_t)ptu;
+  SG_AUTH_TOKEN(r)->userInfo = (intptr_t)sid;
   
   if (pi.hProfile) {
     UnloadUserProfile(hUser, pi.hProfile);
   }
-  
+  RevertToSelf();
   return r;
 
  err:
   if (e != 0) e = GetLastError();
+  RevertToSelf();
   CloseHandle(hUser);
   if (e != 0) SetLastError(e);
   return SG_FALSE;
