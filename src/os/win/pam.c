@@ -90,6 +90,19 @@ static int enable_privilleges()
   return e == ERROR_SUCCESS;
 }
 
+static SgObject extract_env(LPCWSTR var, const wchar_t *name)
+{
+  size_t len = wcslen(name);
+  while (*var) {
+    if (wcsncmp(var, name, len) == 0) {
+      LPCWSTR value = var + len + 1;
+      return Sg_WCharTsToString((wchar_t *)value, wcslen(value));
+    }
+    var += wcslen(var) + 1;
+  }
+  return SG_FALSE;
+}
+
 #define DEFAULT_SIZE 1024
 /*
   On Windows the service parameter is act as a domain for LogonUserW API
@@ -104,6 +117,7 @@ SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
     *pFullName = fullName;
   HANDLE hUser = NULL;
   PVOID pEnv = NULL;
+  PSID sid;
   SID_NAME_USE use;
   DWORD ptuLen = 0, ulen = 0, dlen = 0, flen = 0, profLen = MAX_PATH;
   PTOKEN_USER ptu;
@@ -134,10 +148,11 @@ SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
   ptu = SG_NEW_ATOMIC2(PTOKEN_USER, ptuLen);
   if (!GetTokenInformation(hUser, TokenUser, ptu, ptuLen, &ptuLen)) goto err;
 
-  LookupAccountSidW(NULL, ptu->User.Sid, NULL, &ulen, NULL, &dlen, &use);
+  sid = ptu->User.Sid;
+  LookupAccountSidW(NULL, sid, NULL, &ulen, NULL, &dlen, &use);
   if (ulen < DEFAULT_SIZE) pUser = SG_NEW_ATOMIC2(wchar_t *, ulen);
   if (dlen < DEFAULT_SIZE) pDomain = SG_NEW_ATOMIC2(wchar_t *, dlen);
-  if (!LookupAccountSidW(NULL, ptu->User.Sid, pUser, &ulen, pDomain, &dlen, &use))
+  if (!LookupAccountSidW(NULL, sid, pUser, &ulen, pDomain, &dlen, &use))
     goto err;
 
   if (enable_privilleges() == ERROR_SUCCESS) {
@@ -147,11 +162,11 @@ SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
   }
   r = SG_NEW(SgAuthToken);
   SG_SET_CLASS(r, SG_CLASS_AUTH_TOKEN);
-
   if (CreateEnvironmentBlock(&pEnv, hUser, FALSE)) {
-    SG_AUTH_TOKEN_NAME(r) = Sg_Getenv(UC("USERNAME"));
-    SG_AUTH_TOKEN_SHELL(r) = Sg_Getenv(UC("ComSpec"));
-    SG_AUTH_TOKEN_DIR(r) = Sg_Getenv(UC("HOME"));
+    LPCWSTR var = (LPCWSTR)pEnv;
+    SG_AUTH_TOKEN_NAME(r) = extract_env(var, L"USERNAME");
+    SG_AUTH_TOKEN_SHELL(r) = extract_env(var, L"ComSpec");
+    SG_AUTH_TOKEN_DIR(r) = extract_env(var, L"HOME");
     DestroyEnvironmentBlock(pEnv);
   } else {
     SG_AUTH_TOKEN_NAME(r) = wchar2scheme(pUser);
@@ -164,7 +179,7 @@ SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
       SG_AUTH_TOKEN_DIR(r) = wchar2scheme(profileDir);
     }
   }
-  SG_AUTH_TOKEN_UID(r) = (intptr_t)ptu->User.Sid;
+  SG_AUTH_TOKEN_UID(r) = (intptr_t)sid;
   SG_AUTH_TOKEN(r)->gid = 0;
   SG_AUTH_TOKEN(r)->rawToken = (void *)hUser;
   SG_AUTH_TOKEN(r)->userInfo = (intptr_t)ptu;
