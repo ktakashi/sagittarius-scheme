@@ -130,6 +130,7 @@ static int scheme_conv(int num_msg,
     return PAM_CONV_ERR;
   } else {
     struct pam_response *reply = calloc(sizeof(struct pam_response), num_msg);
+    SgObject e = SG_VECTOR_ELEMENT(r, i);
     if (!reply) return PAM_BUF_ERR;
     for (i = 0; i < num_msg; i++) {
       if (!SG_STRINGP(SG_VECTOR_ELEMENT(r, i))) {
@@ -137,7 +138,15 @@ static int scheme_conv(int num_msg,
 	return PAM_CONV_ERR;
       }
       reply[i].resp_retcode = 0;
-      reply[i].resp = Sg_MallocUtf32sToUtf8s(SG_STRING(SG_VECTOR_ELEMENT(r, i)));
+      switch (msg[i]->msg_style) {
+      case PAM_PROMPT_ECHO_ON:
+      case PAM_PROMPT_ECHO_OFF:
+	reply[i].resp = Sg_MallocUtf32sToUtf8s(SG_STRING(e));
+	break;
+      default:
+	reply[i].resp = NULL;
+	break;
+      }
     }
     *resp = reply;
   }
