@@ -52,6 +52,7 @@
 #include <sagittarius/private/bytevector.h>
 #include <sagittarius/private/vector.h>
 #include <sagittarius/private/string.h>
+#include <sagittarius/private/pam.h>
 #include <sagittarius/private/unicode.h>
 #include <sagittarius/private/writer.h>
 #include <sagittarius/private/weak.h>
@@ -592,6 +593,25 @@ static int init_fd(HANDLE *fds, SgObject *port,
   return TRUE;
 }
 
+static SgObject make_command(SgObject sname, SgObject args)
+{
+  SgStringPort p;
+  size_t size = SG_STRING_SIZE(sname);
+  SgObject cp, command;
+  SG_FOR_EACH(cp, args) {
+    size++;			/* separator */
+    size += SG_STRING_SIZE(SG_CAR(cp));
+  }
+  /* we may pre-allocate buffer in later stage, I hope */
+  Sg_InitStringOutputPort(&p, size);
+  Sg_PutsUnsafe(SG_PORT(&p), sname);
+  SG_FOR_EACH(cp, args) {
+    Sg_PutzUnsafe(SG_PORT(&p), " ");
+    Sg_PutsUnsafe(SG_PORT(&p), SG_STRING(SG_CAR(cp)));
+  }
+  return Sg_GetStringFromStringPort(&p);
+  
+}
 
 uintptr_t Sg_SysProcessCallAs(SgObject sname, SgObject args,
 			      SgObject *inp, SgObject *outp, SgObject *errp,
@@ -601,16 +621,14 @@ uintptr_t Sg_SysProcessCallAs(SgObject sname, SgObject args,
   HANDLE pipe0[2] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE};
   HANDLE pipe1[2] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE};
   HANDLE pipe2[2] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE};
+  HANDLE hPrimaryToken = NULL;
   const SgChar *sysfunc = NULL;
-  SgString *command
-    = SG_STRING(Sg_StringAppend(SG_LIST3(sname,
-					 SG_MAKE_STRING(" "),
-					 string_append(args))));
+  SgObject command = make_command(sname, args);
   SECURITY_ATTRIBUTES sa;
   STARTUPINFOW startup;
   PROCESS_INFORMATION process;
   DWORD flags = 0;
-  wchar_t *wcdir = NULL;
+  wchar_t *wcdir = NULL, *wccommand = Sg_StringToWCharTs(command);
   SgObject files = SG_NIL;
   int closeP[3];
 
@@ -629,21 +647,31 @@ uintptr_t Sg_SysProcessCallAs(SgObject sname, SgObject args,
   startup.hStdInput = pipe0[0];
   startup.hStdOutput = pipe1[1];
   startup.hStdError = pipe2[1];
-  sysfunc = UC("CreateProcess");
 
   if (creationFlags & SG_PROCESS_DETACH) flags |= DETACHED_PROCESS;
 
   if (dir) wcdir = Sg_StringToWCharTs(dir);
 
-  if (CreateProcessW(NULL,
-		     Sg_StringToWCharTs(command),
-		     NULL, NULL,
-		     TRUE,
-		     flags,	/* run the process */
-		     NULL,
-		     wcdir,
-		     &startup,
-		     &process) == 0) goto create_fail;
+  if (SG_AUTH_TOKEN_P(token)) {
+    sysfunc = UC("DuplicateTokenEx");
+    if (!DuplicateTokenEx(SG_AUTH_TOKEN(token)->rawToken,
+			  MAXIMUM_ALLOWED,
+			  NULL,
+			  SecurityImpersonation,
+			  TokenPrimary,
+			  &hPrimaryToken)) goto create_fail;
+    sysfunc = UC("CreateProcessWithToken");
+    /* not sure if we should put this */
+    flags |= (CREATE_DEFAULT_ERROR_MODE | CREATE_NEW_CONSOLE);
+    if (!CreateProcessWithTokenW(hPrimaryToken, LOGON_WITH_PROFILE, NULL,
+				 wccommand, flags, NULL,
+				 wcdir, &startup, &process)) goto create_fail;
+  } else {
+    sysfunc = UC("CreateProcess");
+    if (CreateProcessW(NULL, wccommand, NULL, NULL, TRUE,
+		       flags,	/* run the process */
+		       NULL, wcdir, &startup, &process) == 0) goto create_fail;
+  }
   if (closeP[0]) CloseHandle(pipe0[0]);
   if (closeP[1]) CloseHandle(pipe1[1]);
   if (closeP[2]) CloseHandle(pipe2[1]);

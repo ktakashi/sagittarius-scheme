@@ -176,7 +176,7 @@ SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
   /* Get USERPROFILE instead of HOME */
   if (SG_FALSEP(SG_AUTH_TOKEN_DIR(r))) {
     if (GetUserProfileDirectoryW(hUser, profileDir, &profLen)) {
-      SG_AUTH_TOKEN_DIR(r) = wchar2scheme(profileDir);
+      SG_AUTH_TOKEN_DIR(r) = Sg_WCharTsToString(profileDir, profLen);
     }
   }
   SG_AUTH_TOKEN_UID(r) = (intptr_t)sid;
