@@ -42,6 +42,7 @@
 (define-c-proc pam-invalidate-token! (token::<auth-token>) ::<void>
   Sg_PamInvalidateToken)
 
+(define-c-proc auth-token? (o) ::<boolean> :constant SG_AUTH_TOKEN_P)
 (define-c-proc auth-token-name (token::<auth-token>) SG_AUTH_TOKEN_NAME)
 (define-c-proc auth-token-full-name (token::<auth-token>) SG_AUTH_TOKEN_FULL_NAME)
 (define-c-proc auth-token-dir (token::<auth-token>) SG_AUTH_TOKEN_DIR)

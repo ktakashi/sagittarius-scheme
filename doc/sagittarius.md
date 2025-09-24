@@ -1065,3 +1065,4 @@ The macro return the result of _expr_.
 * @[[sagittarius/generators.md](sagittarius/generators.md)]
 * @[[sagittarius/crypto.md](sagittarius/crypto.md)]
 * @[[sagittarius/atomic.md](sagittarius/atomic.md)]
+* @[[sagittarius/pam.md](sagittarius/pam.md)]
