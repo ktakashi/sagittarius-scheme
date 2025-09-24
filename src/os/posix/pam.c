@@ -130,10 +130,10 @@ static int scheme_conv(int num_msg,
     return PAM_CONV_ERR;
   } else {
     struct pam_response *reply = calloc(sizeof(struct pam_response), num_msg);
-    SgObject e = SG_VECTOR_ELEMENT(r, i);
     if (!reply) return PAM_BUF_ERR;
     for (i = 0; i < num_msg; i++) {
-      if (!SG_STRINGP(SG_VECTOR_ELEMENT(r, i))) {
+      SgObject e = SG_VECTOR_ELEMENT(r, i);
+      if (!SG_STRINGP(e)) {
 	free(reply);
 	return PAM_CONV_ERR;
       }

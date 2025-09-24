@@ -722,7 +722,8 @@ uintptr_t Sg_SysProcessCallAs(SgObject sname, SgObject sargs,
   if (pid == -1) goto fork_fail;
   if (pid == 0) {
     if (SG_AUTH_TOKEN_P(token)) {
-      setuid(SG_AUTH_TOKEN_UID(token));
+      sysfunc = "setuid";
+      if (!setuid(SG_AUTH_TOKEN_UID(token))) goto fork_fail;
     }
     if (flags & SG_PROCESS_DETACH) {
       /* why double-fork?
@@ -731,6 +732,7 @@ uintptr_t Sg_SysProcessCallAs(SgObject sname, SgObject sargs,
 	 unfortunately.
 	 http://stackoverflow.com/questions/881388/what-is-the-reason-for-performing-a-double-fork-when-creating-a-daemon
        */
+      sysfunc = "fork";
       pid = fork();
       if (pid < 0) goto fork_fail;
       /* kill intermidiate process */
@@ -800,7 +802,7 @@ uintptr_t Sg_SysProcessCallAs(SgObject sname, SgObject sargs,
     if (pipe1[1] != -1) close(pipe1[1]);
     if (pipe2[0] != -1) close(pipe2[0]);
     if (pipe2[1] != -1) close(pipe2[1]);
-    Sg_SystemError(e, UC("command: `%A %A`.\nmessage %A %A"),
+    Sg_SystemError(e, UC("command: `%A %A`. message: %A %A"),
 		   sname, sargs, Sg_MakeStringC(message), msg);
     return -1;
   }
