@@ -593,10 +593,10 @@ static int init_fd(HANDLE *fds, SgObject *port,
 }
 
 
-uintptr_t Sg_SysProcessCall(SgObject sname, SgObject args,
-			    SgObject *inp, SgObject *outp, SgObject *errp,
-			    SgString *dir,
-			    int creationFlags)
+uintptr_t Sg_SysProcessCallAs(SgObject sname, SgObject args,
+			      SgObject *inp, SgObject *outp, SgObject *errp,
+			      SgString *dir, SgObject token,
+			      int creationFlags)
 {
   HANDLE pipe0[2] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE};
   HANDLE pipe1[2] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE};

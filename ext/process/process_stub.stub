@@ -11,6 +11,26 @@
 
 (define-type <shared-memory> "SgSharedMemory*")
 
+(define-cise-stmt assertion-violation
+  ((_ who msg)
+   `(begin
+      (Sg_AssertionViolation ,who (SG_MAKE_STRING ,msg) SG_UNBOUND)))
+  ((_ who msg irritants)
+   `(begin
+      (Sg_AssertionViolation ,who (SG_MAKE_STRING ,msg) ,irritants)
+      )))
+
+(define-cise-stmt wrong-type-of-argument-violation
+  ((_ who msg got)
+   `(begin
+      (Sg_WrongTypeOfArgumentViolation ,who (SG_MAKE_STRING ,msg)
+				       ,got SG_UNBOUND)))
+  ((_ who msg got irritants)
+   `(begin
+      (Sg_WrongTypeOfArgumentViolation ,who (SG_MAKE_STRING ,msg)
+				       ,got ,irritants))))
+
+
 (define-c-proc getpid () ::<fixnum>
   (.if "defined(_WIN32)"
        (result (GetCurrentProcessId()))
@@ -54,5 +74,82 @@
     (when no-fail? (set! flags (logior flags SG_CREATE)))
     (result (Sg_OpenSharedMemory name size flags))))
 
+;; moved from lib_sagittarius.stub
 (define-c-proc close-shared-memory (shm::<shared-memory>)
   Sg_CloseSharedMemory)
+
+  ;; system call
+  (define-cise-stmt check-redirect
+    ((_ val in?)
+     `(begin
+	(unless (or (SG_EQ ,val :pipe)
+		    (SG_EQ ,val :stdin)
+		    (SG_EQ ,val :stdout)
+		    (SG_EQ ,val :stderr)
+		    (SG_EQ ,val :null)
+		    (SG_STRINGP ,val))
+	  (assertion-violation 'sys-process-call
+			       "redirect keyword must be one of :pipe, :stdin, :stdout, :stderr or string which must be a file path" ,val))
+	(when (and ,in? (or (SG_EQ ,val :stdout) (SG_EQ ,val :stderr)))
+	  (assertion-violation 'sys-process-call
+			       "redirect input must not have :stdout or :stderr"
+			       ,val)))))
+
+(define-c-proc sys-process-call 
+  (name::<string> args::<list> :key (directory #f) (detach? #f)
+		  (input :pipe) (output :pipe) (error :pipe) (token #f))
+  (dolist (arg args)
+    (unless (SG_STRINGP arg)
+      (wrong-type-of-argument-violation 'sys-process-call
+					"arguments must be a list of string"
+					args)))
+  (unless (or (SG_STRINGP directory) (SG_FALSEP directory))
+    (wrong-type-of-argument-violation 'sys-process-call
+				      "string or #f" directory))
+  (check-redirect input TRUE)
+  (check-redirect output FALSE)
+  (check-redirect error FALSE)
+  (let ((in input) (out output) (err error))
+    (let* ((flags::int 0)
+	   (d::SgString* NULL)
+	   (handle::uintptr_t 0))
+      (when (not (SG_FALSEP detach?)) 
+	(set! flags (logior flags SG_PROCESS_DETACH)))
+      (when (SG_STRINGP directory) (set! d (SG_STRING directory)))
+      (set! handle (Sg_SysProcessCallAs name args 
+					(& in) (& out) (& err)
+					d token flags))
+      (.if "SIZEOF_VOIDP >= 8"
+	   (result (Sg_Values4 (Sg_MakeIntegerFromU64 handle) in out err))
+	   (result (Sg_Values4 (Sg_MakeIntegerU handle) in out err))))))
+
+(decl-code (.typedef "struct timespec" "timespec_t"))
+(define-c-proc sys-process-wait (pid::<integer> :key (timeout #f))
+  (let ((ts::timespec_t)
+	(pts::timespec_t*))
+    (set! pts (Sg_GetTimeSpec timeout (& ts)))
+    (.if "SIZEOF_VOIDP >= 8"
+	 (result (Sg_SysProcessWait
+		  (cast uintptr_t 
+			(Sg_GetIntegerU64Clamp pid SG_CLAMP_NONE NULL))
+		  pts))
+	 (result (Sg_SysProcessWait
+		  (cast uintptr_t 
+			(Sg_GetUIntegerClamp pid SG_CLAMP_NONE NULL))
+		  pts)))))
+
+(define-c-proc sys-process-kill (pid::<integer> :key (children? #f)) ::<fixnum>
+  (.if "SIZEOF_VOIDP >= 8"
+       (result (Sg_SysProcessKill
+		(cast uintptr_t (Sg_GetIntegerU64Clamp pid SG_CLAMP_NONE NULL))
+		(not (SG_FALSEP children?))))
+       (result (Sg_SysProcessKill
+		(cast uintptr_t (Sg_GetUIntegerClamp pid SG_CLAMP_NONE NULL))
+		(not (SG_FALSEP children?))))))
+
+(define-c-proc sys-process-active? (pid::<integer>) ::<boolean>
+  (.if "SIZEOF_VOIDP >= 8"
+       (result (Sg_SysProcessAcriveP
+		(cast uintptr_t (Sg_GetIntegerU64Clamp pid SG_CLAMP_NONE NULL))))
+       (result (Sg_SysProcessAcriveP
+		(cast uintptr_t (Sg_GetUIntegerClamp pid SG_CLAMP_NONE NULL))))))

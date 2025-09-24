@@ -104,7 +104,17 @@ SG_EXTERN uintptr_t Sg_SysProcessCall(SgObject name, SgObject args,
 				      /* work dir */
 				      SgString *dir,
 				      /* flags */
-				      int flags); 
+				      int flags);
+SG_EXTERN uintptr_t Sg_SysProcessCallAs(SgObject name, SgObject args,
+					/* output parameters */
+					SgObject *inp, SgObject *outp,
+					SgObject *errp,
+					/* work dir */
+					SgString *dir,
+					/* auth token or #f */
+					SgObject token,
+					/* flags */
+					int flags);
 SG_EXTERN SgObject  Sg_SysProcessWait(uintptr_t pid, struct timespec *pts);
 SG_EXTERN int       Sg_SysProcessKill(uintptr_t pid, int childrenp);
 SG_EXTERN int       Sg_SysProcessAcriveP(uintptr_t pid);

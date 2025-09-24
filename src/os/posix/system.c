@@ -96,6 +96,7 @@
 #include <sagittarius/private/keyword.h>
 #include <sagittarius/private/builtin-keywords.h>
 #include <sagittarius/private/port.h>
+#include <sagittarius/private/pam.h>
 #include <sagittarius/private/error.h>
 #include <sagittarius/private/values.h>
 #include <sagittarius/private/number.h>
@@ -676,10 +677,9 @@ static int init_fd(int *fds, SgObject *port,
   return TRUE;
 }
 
-uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
-			    SgObject *inp, SgObject *outp, SgObject *errp,
-			    SgString *dir,
-			    int flags)
+uintptr_t Sg_SysProcessCallAs(SgObject sname, SgObject sargs,
+			      SgObject *inp, SgObject *outp, SgObject *errp,
+			      SgString *dir, SgObject token, int flags)
 {
   pid_t pid;
   int pipe0[2] = { -1, -1 };
@@ -721,6 +721,9 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
   pid = fork();
   if (pid == -1) goto fork_fail;
   if (pid == 0) {
+    if (SG_AUTH_TOKEN_P(token)) {
+      setuid(SG_AUTH_TOKEN_UID(token));
+    }
     if (flags & SG_PROCESS_DETACH) {
       /* why double-fork?
 	 We don't know if the detached process tries to open

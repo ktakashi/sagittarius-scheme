@@ -161,6 +161,14 @@ SgObject Sg_VMTimeUsage()
 		    Sg_MakeFlonum(usec2double(s)));
 }
 
+uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
+			    SgObject *inp, SgObject *outp, SgObject *errp,
+			    SgString *dir,
+			    int flags)
+{
+  return Sg_SysProcessCallAs(sname, sargs, inp, outp, errp, dir, SG_FALSE, flags);
+}
+
 
 void Sg__InitBaseSystem()
 {
