@@ -17,8 +17,8 @@ Exports high level APIs and low level APIs for operating process.
 
 ### [§3] High level APIs
 
-###### [!Function] `run`  _name_ _arg1_ _..._
-###### [!Function] `call`  _name_ _arg1_ _..._
+###### [!Function] `run`  _name_ _arg1_ ...
+###### [!Function] `call`  _name_ _arg1_ ...
 
 _name_ must be string and indicate the process name be called.
 
@@ -38,8 +38,7 @@ Both procedures' output will be redirects `current-output-port` and
 
 ### [§3] Middle level APIs
 
-###### [!Function] `create-process`  _name_ _args_ _
-_ _:key_ _(stdout_ _#f)_ _(stderr_ _#f)_ _(call?_ _#t)_ _reader_ _(transcoder_ _#f)_
+###### [!Function] `create-process`  _name_ _args_ :key (_stdout_ `#f`) (_stderr_ `#f`) (_call?_ `#t`) reader (_transcoder_ `#f`) (_token_ `#f`)
 
 _name_ must be string and indicate a process name.
 
@@ -77,9 +76,17 @@ process, otherwise it can cause deat lock.
 _transcoder_ keyword argument must be transcoder or #f. This can be used in
 the procedure which specified _reader_ keyword argument.
 
+_token_ keyword argument must be auth token or #f. If this keyword is specified
+then the creating process will be executed unnder the user of the _token_.
+
 The procedure `create-process` creates a process and call it. The
 returning value is depending on the above keyword parameters. If _reader_and _stdout_ is provided, then the result value is the value returned from
 _reader_ procedure. Otherwise the created process object.
+
+**CAVEAT**  
+_token_ will use either `setuid` or `CreateProcessAsUser`, both of the
+C function require specific user permission. If the permission is not
+granted, then the process creation fails.
 
 
 ###### [!Function] `async-process-read`  _process_ _stdout_ _stderr_ _transcoder_

@@ -51,6 +51,11 @@ i.e. `username@domain` format.
 Also, the `service` argument is translated to translated to domain
 argument for `LogonUser`.
 
+During the authentication process, it calls `LoadUserProfile`, which
+requires User Access Control to be disabled. The successful call is
+not mandatory, so token might be created, however user profile won't
+be loaded if the function call failed.
+
 #### BSD Auth
 
 BSD Auth requires access to `/usr/libexec/auth` directory to execute
