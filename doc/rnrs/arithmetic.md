@@ -14,6 +14,6 @@ extracting bit fields, i.e., number objects representing subsequences of the
 binary representation of an exact integer object. Bit fields are always positive,
 and always defined using a finite number of bits.
 
-* @[[rnrs/arithmetic/fixnums.md](rnrs/arithmetic/fixnums.md)]
-* @[[rnrs/arithmetic/flonums.md](rnrs/arithmetic/flonums.md)]
-* @[[rnrs/arithmetic/bitwise.md](rnrs/arithmetic/bitwise.md)]
+* @[[rnrs/arithmetic/fixnums.md](arithmetic/fixnums.md)]
+* @[[rnrs/arithmetic/flonums.md](arithmetic/flonums.md)]
+* @[[rnrs/arithmetic/bitwise.md](arithmetic/bitwise.md)]

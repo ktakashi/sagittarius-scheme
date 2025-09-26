@@ -96,5 +96,5 @@ Here I describe the conditions hierarchy.
           + &i/o-port-error
 ``````````
 
-* @[[rnrs/io/ports.md](rnrs/io/ports.md)]
-* @[[rnrs/io/simple.md](rnrs/io/simple.md)]
+* @[[rnrs/io/ports.md](io/ports.md)]
+* @[[rnrs/io/simple.md](io/simple.md)]

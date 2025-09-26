@@ -84,4 +84,4 @@ Unmarshall the given _body_ according to the given _type_.
 Default implementation ignores _header_ and passes _type_ and
 _body_ to `rpc-unmarshall-message`.
 
-* @[[utils/rpc/json.md](utils/rpc/json.md)]
+* @[[utils/rpc/json.md](rpc/json.md)]

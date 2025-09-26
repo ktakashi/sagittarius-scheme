@@ -7,6 +7,7 @@
 	(sagittarius document format html)
 	(sagittarius regex)
 	(srfi :1 lists)
+	(srfi :13 strings)	
 	(srfi :19 time)
 	(srfi :39 parameters)
 	(srfi :117 list-queues)
@@ -164,11 +165,23 @@
    (attribute-resolver attribute-resolver)))
 
 (define (document-input:deep-expand depth parser file options)
-  (define (->input-path file) file)
-  (define input (file->document-input (->input-path file)))
+  (define (compose-example file)
+    (define (strip-license line) (not (string-prefix? ";;;" line)))
+    (let ((lines (filter strip-license (file->string-list file))))
+      ;; now add codeblock
+      (let-values (((out e) (open-string-output-port)))
+	(put-string out "```scheme") (newline out)
+	(for-each (lambda (line) (put-string out line) (newline out)) lines)
+	(put-string out "```") (newline out)
+	(port->document-input (open-string-input-port (e)) file #t))))
   (do ((i 0 (+ i 1))) ((= i depth)) (display "  "))
   (print " - " file)
-  (parser input options))
+  (let-values (((dir ignore ext) (decompose-path (absolute-path file))))
+    (let ((input (if (string=? ext "scm")
+		     (compose-example file)
+		     (file->document-input file))))
+      (parameterize ((current-directory dir))
+	(parser input options)))))
 
 (define input-options
   (document-input-options-builder

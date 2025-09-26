@@ -5,42 +5,9 @@ This section describes low level socket API on Sagittarius. The
 following example is simple echo server, it receives input from a
 client and just returns it to the client.
 
-The example program is from example/socket/echo.scm.
 
-```scheme
-(import (rnrs) (sagittarius socket))
-;; creates echo server socket with port number 5000
-(define echo-server-socket (make-server-socket "5000"))
-;; addr is client socket
-(let loop ((addr (socket-accept echo-server-socket)))
-  (call-with-socket addr
-   (lambda (sock)
-     ;; socket-port creates binary input/output port
-     ;; make it transcoded port for convenience.
-     (let ((p (transcoded-port (socket-port sock)
-			       ;; on Sagittarius Scheme native-transcoder
-			       ;; uses utf8 codec for ASCII compatibility.
-			       ;; For socket programming it might be better
-			       ;; to specify eol-style with crlf.
-			       ;; But this sample just shows how it goes.
-			       (native-transcoder))))
-       (call-with-port p
-	(lambda (p)
-	  (put-string p "please type something\n\r")
-	  (put-string p "> ")
-	  ;; gets line from client.
-	  (let lp2 ((r (get-line p)))
-	    (unless (eof-object? r)
-	      (print "received: " r)
-	      ;; just returns message from client.
-	      ;; NB: If client type nothing, it'll throw assertion-violation.
-	      (put-string p r)
-	      (put-string p "\r\n> ")
-	      ;; waits for next input.
-	      (lp2 (get-line p)))))))))
-  ;; echo server waits next connection.
-  (loop (socket-accept echo-server-socket)))
-```
+The example program is from example/socket/echo.scm.
+* @[[Example](../../example/socket/echo.scm)]
 
 ###### [!Library] `(sagittarius socket)` 
 

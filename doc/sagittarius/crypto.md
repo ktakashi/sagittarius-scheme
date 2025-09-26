@@ -255,12 +255,12 @@ Below example shows how to generate a random integer.
 ;; -> each time the same result as it's pseudo random, not secure random
 ```
 
-* @[[sagittarius/crypto/keys.md](sagittarius/crypto/keys.md)]
-* @[[sagittarius/crypto/ciphers.md](sagittarius/crypto/ciphers.md)]
-* @[[sagittarius/crypto/digests.md](sagittarius/crypto/digests.md)]
-* @[[sagittarius/crypto/random.md](sagittarius/crypto/random.md)]
-* @[[sagittarius/crypto/signatures.md](sagittarius/crypto/signatures.md)]
-* @[[sagittarius/crypto/mac.md](sagittarius/crypto/mac.md)]
-* @[[sagittarius/crypto/x509.md](sagittarius/crypto/x509.md)]
-* @[[sagittarius/crypto/keystore.md](sagittarius/crypto/keystore.md)]
-* @[[sagittarius/crypto/kdfs.md](sagittarius/crypto/kdfs.md)]
+* @[[sagittarius/crypto/keys.md](crypto/keys.md)]
+* @[[sagittarius/crypto/ciphers.md](crypto/ciphers.md)]
+* @[[sagittarius/crypto/digests.md](crypto/digests.md)]
+* @[[sagittarius/crypto/random.md](crypto/random.md)]
+* @[[sagittarius/crypto/signatures.md](crypto/signatures.md)]
+* @[[sagittarius/crypto/mac.md](crypto/mac.md)]
+* @[[sagittarius/crypto/x509.md](crypto/x509.md)]
+* @[[sagittarius/crypto/keystore.md](crypto/keystore.md)]
+* @[[sagittarius/crypto/kdfs.md](crypto/kdfs.md)]

@@ -27,9 +27,8 @@
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
-
 ;; import socket library
-(import (sagittarius socket))
+(import (rnrs) (sagittarius socket))
 
 ;; creates echo server socket with port number 5000
 (define echo-server-socket (make-server-socket "5000"))
