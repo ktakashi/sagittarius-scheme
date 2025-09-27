@@ -32,179 +32,31 @@ libraries.
 This example encrypts and decrypts a plain text with a radomly generated
 secret key. The encryption scheme is AES-256 and encryption mode is CTR.
 
-```scheme
-(import (rnrs)
-        (sagittarius crypto ciphers)
-        (sagittarius crypto keys))
-
-;; Randomly generates AES-256 secret key.
-(define key (generate-symmetric-key *scheme:aes-256*))
-
-;; Initial Vector (use randomly generated one in production code)
-(define iv
- (make-bytevector (block-cipher-descriptor-block-length *scheme:aes-256*) 1))
-
-;; AES-256 cipher with CTR mode, without padding 
-(define aes-cipher 
- (make-block-cipher *scheme:aes-256* *mode:ctr* no-padding))
-
-;; Cipher parameter.
-;; NOTE, IV will be copied so modifying original IV doesn't affect the result
-(define parameter
-  (make-cipher-parameter
-   (make-iv-parameter iv)
-   (make-counter-mode-parameter *ctr-mode:big-endian*)))
-
-(define (encrypt cipher key parameter plain-text)
-  (block-cipher-init! cipher (cipher-direction encrypt) key parameter)
-  (let ((cipher-text (block-cipher-encrypt-last-block cipher plain-text)))
-    (block-cipher-done! cipher)
-    cipher-text))
-
-(define (decrypt cipher key parameter cipher-text)
-  (block-cipher-init! cipher (cipher-direction decrypt) key parameter)
-  (let ((plain-text (block-cipher-decrypt-last-block cipher cipher-text)))
-    (block-cipher-done! cipher)
-    plain-text))
-
-(define plain-text (string->utf8 "Hello Sagittarius Scheme!"))
-(decrypt aes-cipher key parameter (encrypt aes-cipher key parameter plain-text))
-;; -> A bytevector of UTF-8 representation of `plain-text`
-```
+* @[[AES-256 CTR](../../example/crypto/aes-ctr.scm)]
 
 This example shows how to use a string password as a key
 (Password-Based Encryption Scheme, a.k.a. PBES). PBES is just a block cipher
 using a derived key. To do so, you need to use KDF, Key Derivation Function.
 
-```scheme
-(import (rnrs)
-        (sagittarius crypto ciphers)
-        (sagittarius crypto keys)
-        (sagittarius crypto kdfs)    ;; for PBKDF2
-        (sagittarius crypto digests) ;; for digests, e.g. SHA-256
-        (sagittarius crypto mac))    ;; for MAC, NOTE: PRF = MAC
-
-;; If everyone uses this kind of password, then it'd be almost impossibe
-;; to crack :)
-(define password "You can't guess this password! It's so strong!! :D")
-
-;; PRF
-(define prf (mac->prf-provider *mac:hmac* :digest *digest:sha-256*))
-
-(define (derive-key scheme password)
-  ;; I'm not sure if this is a bad practice or not, but for simplicity
-  ;; we use hashed password as a salt
-  (define md (make-message-digest *digest:sha-256*))
-  (define bv (string->utf8 password))
-  (define salt (digest-message md bv))
-  ;; 310,000 iteration, required by FIPS-140
-  (pbkdf-2 bv salt 310000
-    (block-cipher-descriptor-suggested-key-length scheme)
-	:prf prf))
-
-(define key 
- (generate-symmetric-key *scheme:aes-256*
-  (derive-key *scheme:aes-256* password)))
-
-;; The rest can be the same as above CTR mode example.
-```
+* @[[PBES](../../example/crypto/pbes.scm)]
 
 This example shows how to handle `offline` encryption mode.
 
-```scheme
-(import (rnrs)
-        (sagittarius crypto ciphers)
-        (sagittarius crypto keys))
-
-(define key (generate-symmetric-key *scheme:aes-256*))
-;; GCM-SIV nonce size = 12
-(define iv (make-bytevector 12))
-
-;; AES-256-GCM-SIV 
-(define aes-cipher
-  (make-block-cipher *scheme:aes-256* *mode:gcm-siv* no-padding))
-
-(define parameter
-  (make-cipher-parameter
-   (make-iv-parameter iv)
-   ;; empyt AAD :)
-   (make-aad-parameter #vu8())))
-
-(define (encrypt-messages . messages)
-  (for-each (lambda (message)
-              ;; output space is not needed, and this procedure returns 0
-              (block-cipher-encrypt! aes-cipher message 0 #vu8() 0)) messages)
-  (let* ((out-size (block-cipher-last-block-size aes-cipher 0))
-         (out (make-bytevector out-size)))
-    ;; passing dummy block
-    (block-cipher-encrypt-last-block! aes-cipher #vu8() 0 out 0)
-    (values out (block-cipher-done/tag aes-cipher))))
-
-(block-cipher-init! aes-cipher (cipher-direction encrypt) key parameter)
-(let-values (((enc tag) (encrypt-messages (string->utf8 "Hello, GCM-SIV") (string->utf8 "\nI'm done"))))
-  (block-cipher-init! aes-cipher (cipher-direction decrypt) key (make-cipher-parameter parameter (make-tag-parameter tag)))
-  (let* ((size (block-cipher-last-block-size aes-cipher enc))
-         (msg (make-bytevector size)))
-    (block-cipher-decrypt-last-block! aes-cipher enc 0 msg 0)
-    (block-cipher-done/tag! aes-cipher tag)
-    (utf8->string msg)))
-;; "Hello, GCM-SIV\nI'm done"
-```
+* @[[AES-SIV](../../example/crypto/aes-siv.scm)]
 
 #### Stream cipher
 
 This example encrypts and decrypts a plain text with a randomly generated
 secret key. The encryption scheme is ChaCha20 Poly1305.
 
-```scheme
-(import (rnrs)
-        (sagittarius crypto ciphers)
-        (sagittarius crypto keys))
-
-;; Randomly generates AES-256 secret key.
-(define key (generate-symmetric-key *scheme:aes-256*))
-
-
-
-```
+* @[[ChaCha20 Poly1305](../../example/crypto/chacha20-poly1305.scm)]
 
 #### Asymmetric cipher
 
 This example encrypts and decrypts a plain text with a randomly generated
 RSA key pair.
 
-```scheme
-(import (rnrs)
-        (sagittarius crypto ciphers)
-        (sagittarius crypto keys)
-        (sagittarius crypto digests))
-
-;; Randomly genrates RSA key pair. Default 2048 bits
-(define key-pair (generate-key-pair *key:rsa*))
-
-;; Making RSA cipher with OAEP encoding (default) with SHA-256
-(define rsa-cipher
- (make-asymmetric-cipher *scheme:rsa* :digest *digest:sha-256*))
-
-;; Encryption can only be done by a public key
-(define (encrypt cipher key plain-text)
-  (asymmetric-cipher-init! cipher key)
-  (let ((cipher-text (asymmetric-cipher-encrypt-bytevector cipher plain-text)))
-    (asymmetric-cipher-done! cipher)
-    cipher-text))
-
-;; Decryption can only be done by a private key
-(define (decrypt cipher key cipher-text)
-  (asymmetric-cipher-init! cipher key)
-  (let ((plain-text (asymmetric-cipher-decrypt-bytevector cipher cipher-text)))
-    (asymmetric-cipher-done! cipher)
-    plain-text))
-
-(define message (string->utf8 "Hello Sagittarius Scheme"))
-(decrypt rsa-cipher (key-pair-private key-pair)
-  (encrypt rsa-cipher (key-pair-public key-pair) message))
-;; -> A bytevector of UTF-8 representation of `plain-text`
-```
+* @[[RSA Cipher](../../example/crypto/rsa-cipher.scm)]
 
 #### Cryptographic hash function
 
