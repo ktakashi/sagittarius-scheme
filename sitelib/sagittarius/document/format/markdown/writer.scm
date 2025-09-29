@@ -121,6 +121,10 @@
 
 (define (include-handler out n attr content next)
   (put-string out "* @[")
+  (let ((expand (cond ((assq 'expand attr) => cadr)
+		      (else "false"))))
+    (when (string=? expand "true")
+      (put-string out "-")))
   (for-each next content)
   ;; bah...
   (put-string out "]\n"))
@@ -203,7 +207,7 @@
   (cond ((document-output-options-link-source-callback options))
 	(else default-callback)))
 (define (link-handler out n attr content next)
-  (define (write-it content link)
+  (define (write-it ignore link)
     (put-string out "[")
     (for-each next content)
     (put-string out "](")

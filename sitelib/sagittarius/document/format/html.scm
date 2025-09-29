@@ -322,6 +322,12 @@
 			    (value ,value))
 			 ,value)))))))
 
+(define (expansion-handler element options)
+  `(details (@ (node-type "expansion")
+	       (source ,(sxml:attr element 'source)))
+    (summary ,(sxml:attr element 'title))
+    ,@(map (->html options) (sxml:content element))))
+
 (define (since-handler element options)
   `(since (@ (node-type "since"))
 	  (span (@ (node-type "since-version")
@@ -362,6 +368,7 @@
     (ref ,ref-handler)
     (footnote ,footnote-handler)
     (annotation ,annotation-handler)
+    (expansion ,expansion-handler)
     ;;(since ,since-handler)
     ;;(deprecated ,deprecated-handler)
     ))

@@ -31,8 +31,7 @@
 #!nounbound
 #!read-macro=sagittarius/regex
 (library (sagittarius document format markdown reader)
-    (export read-markdown
-	    )
+    (export read-markdown)
     (import (rnrs)
 	    (sagittarius regex)
 	    (sagittarius document input)
@@ -142,7 +141,8 @@
   (make-post-processor
    (make-post-processor-spec text-node? code-output-processor)))
 
-(define-markdown-node (include (attribute file "doc:file"))
+(define-markdown-node (include (attribute file "doc:file")
+			       (attribute expand "doc:expand"))
   (namespace *document-namespace*)
   (element "doc:include"))
 (define (include-processor node visit-children)
@@ -150,17 +150,22 @@
   (and-let* (( (paragraph-node? child) )
 	     (text (markdown-node:first-child child))
 	     ( (text-node? text) )
-	     ( (string=? "@[" (text-node:content text)) )
+	     ( (string-prefix? "@[" (text-node:content text)) )
 	     (link (markdown-node-next text))
 	     ( (link-node? link) )
 	     (close (markdown-node-next link))
 	     ( (text-node? close) )
 	     ( (string=? "]" (text-node:content close)) )
 	     (parent (markdown-node-parent node)))
-    (let ((include-node (make-include-node (markdown-node-parent parent)
-					   (link-node-destination link))))
+    (let* ((expand? (string=? "@[-" (text-node:content text)))
+	   (include-node (make-include-node (markdown-node-parent parent)
+					    (link-node-destination link)
+					    (if expand? "true" "false"))))
       (markdown-node:unlink! node)
       (markdown-node:insert-before! parent include-node)
+      (for-each (lambda (c)
+		  (markdown-node:append-child! include-node c))
+		(markdown-node:children link))
       (unless (markdown-node:first-child parent)
 	(markdown-node:unlink! parent)))))
 
@@ -438,7 +443,11 @@
 
 (define (convert-include node data next)
   (define file (include-node-file node))
-  `((include (link (@ (source ,file) (format "markdown")) ,file))))
+  (define title (text-node:content (markdown-node:first-child node)))
+  `((include (@ (expand ,(include-node-expand node))
+		(title ,title))
+     (link (@ (source ,file) (format "markdown"))
+     ,title))))
 
 (define (convert-eval node data next)
   `((eval ,@(append-map next (markdown-node:children node)))))

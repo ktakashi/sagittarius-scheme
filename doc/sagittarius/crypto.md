@@ -32,31 +32,31 @@ libraries.
 This example encrypts and decrypts a plain text with a radomly generated
 secret key. The encryption scheme is AES-256 and encryption mode is CTR.
 
-* @[[AES-256 CTR](../../example/crypto/aes-ctr.scm)]
+* @[-[AES-256 CTR](../../example/crypto/aes-ctr.scm)]
 
 This example shows how to use a string password as a key
 (Password-Based Encryption Scheme, a.k.a. PBES). PBES is just a block cipher
 using a derived key. To do so, you need to use KDF, Key Derivation Function.
 
-* @[[PBES](../../example/crypto/pbes.scm)]
+* @[-[PBES](../../example/crypto/pbes.scm)]
 
 This example shows how to handle `offline` encryption mode.
 
-* @[[AES-SIV](../../example/crypto/aes-siv.scm)]
+* @[-[AES-SIV](../../example/crypto/aes-siv.scm)]
 
 #### Stream cipher
 
 This example encrypts and decrypts a plain text with a randomly generated
 secret key. The encryption scheme is ChaCha20 Poly1305.
 
-* @[[ChaCha20 Poly1305](../../example/crypto/chacha20-poly1305.scm)]
+* @[-[ChaCha20 Poly1305](../../example/crypto/chacha20-poly1305.scm)]
 
 #### Asymmetric cipher
 
 This example encrypts and decrypts a plain text with a randomly generated
 RSA key pair.
 
-* @[[RSA Cipher](../../example/crypto/rsa-cipher.scm)]
+* @[-[RSA Cipher](../../example/crypto/rsa-cipher.scm)]
 
 #### Cryptographic hash function
 

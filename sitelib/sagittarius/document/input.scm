@@ -116,8 +116,15 @@
 					   expander source new-parser options)))
 		       (cond ((document:content expanded) =>
 			      (lambda (c)
-				`(included (@ (source ,source))
-					   ,@(sxml:content c))))
+				(let ((expand? (sxml:attr doc 'expand)))
+				  (if (and expand? (string=? expand? "true"))
+				      `(included
+					(expansion (@ (source ,source)
+						      (title
+						       ,(sxml:attr doc 'title)))
+					 ,@(sxml:content c)))
+				      `(included (@ (source ,source))
+						 ,@(sxml:content c))))))
 			     (else #f)))
 		     (let ((c (map (lambda (c)
 				     (expand depth expander c options))
