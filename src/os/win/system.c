@@ -613,6 +613,15 @@ static SgObject make_command(SgObject sname, SgObject args)
   
 }
 
+uintptr_t Sg_SysForkProcessAs(SgObject sname, SgObject sargs,
+			      SgString *dir, SgObject token,
+			      void *data,
+			      void (* init)(void *),
+			      int flags)
+{
+  
+}
+
 uintptr_t Sg_SysProcessCallAs(SgObject sname, SgObject args,
 			      SgObject *inp, SgObject *outp, SgObject *errp,
 			      SgString *dir, SgObject token,

@@ -115,6 +115,23 @@ SG_EXTERN uintptr_t Sg_SysProcessCallAs(SgObject name, SgObject args,
 					SgObject token,
 					/* flags */
 					int flags);
+SG_EXTERN uintptr_t Sg_SysForkProcessAs(SgObject name, SgObject args,
+					/* work dir */
+					SgString *dir,
+					/* auth token or #f */
+					SgObject token,
+					/* 
+					   For POSIX, it's cleanup,
+					   For Windows, it's initialise,
+
+					   A bit misuse, but I don't
+					   have any better way to
+					   absorb the difference
+					 */
+					void *data,
+					void (* cleanup)(void *),
+					/* flags */
+					int flags);
 SG_EXTERN SgObject  Sg_SysProcessWait(uintptr_t pid, struct timespec *pts);
 SG_EXTERN int       Sg_SysProcessKill(uintptr_t pid, int childrenp);
 SG_EXTERN int       Sg_SysProcessAcriveP(uintptr_t pid);

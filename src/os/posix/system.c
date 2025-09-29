@@ -572,13 +572,12 @@ typedef enum {
 } ProcessRedirect;
 /* FIXME refactor me */
 static int init_fd(int *fds, SgObject *port, 
-		   ProcessRedirect type, int *closeP,
+		   ProcessRedirect type,
 		   SgObject *files)
 {
   SgObject f = SG_FALSE, saved = SG_FALSE;
   if (!port) Sg_Error(UC("[internal] no redirect indication"));
 
-  *closeP = FALSE;
   if (SG_EQ(*port, SG_KEYWORD_PIPE)) {
     int fd = -1;
     const SgChar *name = UC("unknown");
@@ -600,7 +599,7 @@ static int init_fd(int *fds, SgObject *port,
     }
     f = Sg_MakeFileFromFD(fd);
     SG_FILE(f)->name = name;
-    *closeP = TRUE;
+    fds[2] = TRUE;
   } else if (SG_EQ(*port, SG_KEYWORD_STDIN)) {
     fds[0] = STDIN_FILENO;
     /* no creation of port */
@@ -677,24 +676,17 @@ static int init_fd(int *fds, SgObject *port,
   return TRUE;
 }
 
-uintptr_t Sg_SysProcessCallAs(SgObject sname, SgObject sargs,
-			      SgObject *inp, SgObject *outp, SgObject *errp,
-			      SgString *dir, SgObject token, int flags)
+uintptr_t Sg_SysForkProcessAs(SgObject sname, SgObject sargs,
+			      SgString *dir,
+			      SgObject token,
+			      void *data,
+			      void (* cleanup)(void *),
+			      int flags)
 {
-  pid_t pid;
-  int pipe0[2] = { -1, -1 };
-  int pipe1[2] = { -1, -1 };
-  int pipe2[2] = { -1, -1 };
-  int open_max;
-  const char *sysfunc = NULL;
-  const char *cdir = NULL;
-
-  int count, i, closeP[3];
-  char *name, **args;
-  SgObject cp, files = SG_NIL;	/* alist of file and port */
-  /* this fails on Cygwin if I put it in the child process thing... */
-  name = Sg_Utf32sToUtf8s(sname);
-  count = (int)Sg_Length(sargs);
+  const char *name = Sg_Utf32sToUtf8s(sname), *cdir, **args;
+  int count = (int)Sg_Length(sargs), i;
+  const char *sysfunc = "fork";
+  SgObject cp;	
 #ifdef HAVE_ALLOCA
   args = alloca(sizeof(char *) * (count + 2));
 #else
@@ -709,21 +701,11 @@ uintptr_t Sg_SysProcessCallAs(SgObject sname, SgObject sargs,
   }
   args[i] = NULL;
 
-  sysfunc = "sysconf";
-  if ((open_max = (int)sysconf(_SC_OPEN_MAX)) < 0) goto sysconf_fail;
-
-  sysfunc = "pipe";
-  if (!init_fd(pipe0, inp,  IN,  &closeP[0], &files)) goto pipe_fail;
-  if (!init_fd(pipe1, outp, OUT, &closeP[1], &files)) goto pipe_fail;
-  if (!init_fd(pipe2, errp, ERR, &closeP[2], &files)) goto pipe_fail;
-
-  sysfunc = "fork";
-  pid = fork();
-  if (pid == -1) goto fork_fail;
+  pid_t pid = fork();
   if (pid == 0) {
     if (SG_AUTH_TOKEN_P(token)) {
       sysfunc = "setuid";
-      if (!setuid(SG_AUTH_TOKEN_UID(token))) goto fork_fail;
+      if (!setuid(SG_AUTH_TOKEN_UID(token))) return -1;
     }
     if (flags & SG_PROCESS_DETACH) {
       /* why double-fork?
@@ -734,7 +716,7 @@ uintptr_t Sg_SysProcessCallAs(SgObject sname, SgObject sargs,
        */
       sysfunc = "fork";
       pid = fork();
-      if (pid < 0) goto fork_fail;
+      if (pid < 0) return -1 ;
       /* kill intermidiate process */
       if (pid > 0) exit(0);
 
@@ -746,36 +728,77 @@ uintptr_t Sg_SysProcessCallAs(SgObject sname, SgObject sargs,
 		 cdir, name, strerror(errno));
       }
     }
-    /* might not be pipe so check */
-    sysfunc = "close";
-    if (closeP[0] && close(pipe0[1])) goto close_fail;
-    if (closeP[1] && close(pipe1[0])) goto close_fail;
-    if (closeP[2] && close(pipe2[0])) goto close_fail;
-    sysfunc = "dup2";
-    if (pipe0[0] >= 0 && dup2(pipe0[0], 0) == -1) goto dup_fail;
-    if (pipe1[1] >= 0 && dup2(pipe1[1], 1) == -1) goto dup_fail;
-    if (pipe2[1] >= 0 && dup2(pipe2[1], 2) == -1) goto dup_fail;
-
-    for (i = 3; i < open_max; i++) {
-      if (i == pipe0[0]) continue;
-      if (i == pipe1[1]) continue;
-      if (i == pipe2[1]) continue;
-      close(i);
-    }
-
+    cleanup(data);
     execvp(name, (char * const *)args);
     sysfunc = "execvp";
     /* failed on child preocess */
-  close_fail:
-  dup_fail:
     Sg_Panic("%s (%d): %s\n", sysfunc, errno, strerror(errno));
     exit(127);
     /* never reached */
-  } else {
-    if (closeP[0]) close(pipe0[0]);
-    if (closeP[1]) close(pipe1[1]);
-    if (closeP[2]) close(pipe2[1]);
   }
+  return pid;
+}
+
+static void pipe_cleanup(void *data)
+{
+  void **unwrapped = (void **)data;
+  const char *sysfunc = "close";
+  int *pipe0 = (int *)unwrapped[0];
+  int *pipe1 = (int *)unwrapped[1];
+  int *pipe2 = (int *)unwrapped[2];
+  int i, open_max;
+
+  if (pipe0[2] && close(pipe0[1])) goto close_fail;
+  if (pipe1[2] && close(pipe1[0])) goto close_fail;
+  if (pipe2[2] && close(pipe2[0])) goto close_fail;
+
+  sysfunc = "dup2";
+  if (pipe0[0] >= 0 && dup2(pipe0[0], STDIN_FILENO)  == -1) goto dup_fail;
+  if (pipe1[1] >= 0 && dup2(pipe1[1], STDOUT_FILENO) == -1) goto dup_fail;
+  if (pipe2[1] >= 0 && dup2(pipe2[1], STDERR_FILENO) == -1) goto dup_fail;
+
+  if ((open_max = (int)sysconf(_SC_OPEN_MAX)) < 0) {
+    open_max = 1024;
+  }
+
+  for (i = 3; i < open_max; i++) {
+    if (i == pipe0[0]) continue;
+    if (i == pipe1[1]) continue;
+    if (i == pipe2[1]) continue;
+    close(i);
+  }
+  return;			/* ok */
+ close_fail:
+ dup_fail:
+  Sg_Panic("%s (%d): %s\n", sysfunc, errno, strerror(errno));
+  exit(127);
+}
+
+uintptr_t Sg_SysProcessCallAs(SgObject sname, SgObject sargs,
+			      SgObject *inp, SgObject *outp, SgObject *errp,
+			      SgString *dir, SgObject token, int flags)
+{
+  pid_t pid;
+  int pipe0[3] = { -1, -1, FALSE };
+  int pipe1[3] = { -1, -1, FALSE };
+  int pipe2[3] = { -1, -1, FALSE };
+  void *data[3] = { pipe0, pipe1, pipe2 };
+  const char *sysfunc = NULL;
+  SgObject files = SG_NIL;	/* alist of file and port */
+
+  sysfunc = "pipe";
+  if (!init_fd(pipe0, inp,  IN,  &files)) goto pipe_fail;
+  if (!init_fd(pipe1, outp, OUT, &files)) goto pipe_fail;
+  if (!init_fd(pipe2, errp, ERR, &files)) goto pipe_fail;
+
+  pid = (pid_t)Sg_SysForkProcessAs(sname, sargs, dir, token, data, pipe_cleanup, flags);
+
+  if (pid > 0) {
+    if (pipe0[2]) close(pipe0[0]);
+    if (pipe1[2]) close(pipe1[1]);
+    if (pipe2[2]) close(pipe2[1]);
+  }
+
   if (flags & SG_PROCESS_DETACH) {
     /* the intermidiate process is already exit. so remove the
        pid from the process list. */
@@ -788,9 +811,7 @@ uintptr_t Sg_SysProcessCallAs(SgObject sname, SgObject sargs,
     Sg_UnlockMutex(&pid_list.mutex);
   }
   return (uintptr_t)pid;
- sysconf_fail:
  pipe_fail:
- fork_fail:
   {
     char message[256];
     int e = errno;

@@ -121,6 +121,7 @@
 
 (let ((proc (make-process *process-name* '("process")))
       (outfile "pout"))
+  (when (file-exists? outfile) (delete-file outfile))
   (test-assert "call (3)" (integer? (process-call proc :output outfile)))
   (test-equal "process-wait (3)" 0 (process-wait proc))
   (test-assert "file created" (file-exists? outfile))
@@ -131,6 +132,7 @@
 
 (let ((proc (make-process *process-name* '()))
       (outfile "perr"))
+  (when (file-exists? outfile) (delete-file outfile))
   (test-assert "call (4)" (integer? (process-call proc :error outfile)))
   (test-assert "process-wait" (process-wait proc))
   (test-assert "file created" (file-exists? outfile))
