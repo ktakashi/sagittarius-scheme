@@ -683,7 +683,7 @@ uintptr_t Sg_SysForkProcessAs(SgObject sname, SgObject sargs,
 			      void (* setup)(void *),
 			      int flags)
 {
-  const char *name = Sg_Utf32sToUtf8s(sname), *cdir, **args;
+  const char *name = Sg_Utf32sToUtf8s(sname), *cdir = NULL, **args;
   int count = (int)Sg_Length(sargs), i;
   const char *sysfunc = "fork";
   SgObject cp;	
