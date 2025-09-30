@@ -479,14 +479,13 @@ typedef enum  {
 
 /* FIXME almost the same as the one in os/posix/system.c */
 static int init_fd(HANDLE *fds, SgObject *port, 
-		   ProcessRedirect type, int *closeP,
+		   ProcessRedirect type,
 		   SgObject *files,
 		   SECURITY_ATTRIBUTES *sa)
 {
   SgObject f = SG_FALSE, saved = SG_FALSE;
   if (!port) Sg_Error(UC("[internal] no redirect indication"));
 
-  *closeP = FALSE;
   if (SG_EQ(*port, SG_KEYWORD_PIPE)) {
     HANDLE fd = INVALID_HANDLE_VALUE;
     const SgChar *name = UC("unknown");
@@ -509,7 +508,7 @@ static int init_fd(HANDLE *fds, SgObject *port,
     }
     f = Sg_MakeFileFromFD((uintptr_t)fd);
     SG_FILE(f)->name = name;
-    *closeP = TRUE;
+    fds[2] = (HANDLE)TRUE;
   } else if (SG_EQ(*port, SG_KEYWORD_STDIN)) {
     fds[0] = GetStdHandle(STD_INPUT_HANDLE);
     /* no creation of port */
@@ -597,7 +596,7 @@ static SgObject make_command(SgObject sname, SgObject args)
 {
   SgStringPort p;
   size_t size = SG_STRING_SIZE(sname);
-  SgObject cp, command;
+  SgObject cp;
   SG_FOR_EACH(cp, args) {
     size++;			/* separator */
     size += SG_STRING_SIZE(SG_CAR(cp));
@@ -613,82 +612,98 @@ static SgObject make_command(SgObject sname, SgObject args)
   
 }
 
-uintptr_t Sg_SysForkProcessAs(SgObject sname, SgObject sargs,
+uintptr_t Sg_SysForkProcessAs(SgObject sname, SgObject args,
 			      SgString *dir, SgObject token,
-			      void *data,
+			      void *udata, /* user data :) */
 			      void (* init)(void *),
-			      int flags)
-{
-  
-}
-
-uintptr_t Sg_SysProcessCallAs(SgObject sname, SgObject args,
-			      SgObject *inp, SgObject *outp, SgObject *errp,
-			      SgString *dir, SgObject token,
 			      int creationFlags)
 {
-  HANDLE pipe0[2] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE};
-  HANDLE pipe1[2] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE};
-  HANDLE pipe2[2] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE};
-  HANDLE hPrimaryToken = NULL;
-  const SgChar *sysfunc = NULL;
-  SgObject command = make_command(sname, args);
-  SECURITY_ATTRIBUTES sa;
-  STARTUPINFOW startup;
+  STARTUPINFOEXW si;
   PROCESS_INFORMATION process;
   DWORD flags = 0;
+  HANDLE hPrimaryToken = NULL;
+  SgObject command = make_command(sname, args);
   wchar_t *wcdir = NULL, *wccommand = Sg_StringToWCharTs(command);
-  SgObject files = SG_NIL;
-  int closeP[3];
+  void *data[2] = { &si, udata };
 
-  sa.nLength = sizeof(SECURITY_ATTRIBUTES);
-  sa.lpSecurityDescriptor = NULL;
-  sa.bInheritHandle = TRUE;
-  sysfunc = UC("CreatePipe");
-  if (!init_fd(pipe0, inp,  FD_IN,  &closeP[0], &files, &sa)) goto pipe_fail;
-  if (!init_fd(pipe1, outp, FD_OUT, &closeP[1], &files, &sa)) goto pipe_fail;
-  if (!init_fd(pipe2, errp, FD_ERR, &closeP[2], &files, &sa)) goto pipe_fail;
-
-  memset(&startup, 0, sizeof(STARTUPINFO));
-  startup.cb = sizeof(STARTUPINFO);
-  startup.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
-  startup.wShowWindow = SW_HIDE;
-  startup.hStdInput = pipe0[0];
-  startup.hStdOutput = pipe1[1];
-  startup.hStdError = pipe2[1];
+  memset(&si, 0, sizeof(STARTUPINFOEXW));
+  si.StartupInfo.cb = sizeof(STARTUPINFOEXW);
+  init(data);
 
   if (creationFlags & SG_PROCESS_DETACH) flags |= DETACHED_PROCESS;
 
   if (dir) wcdir = Sg_StringToWCharTs(dir);
 
   if (SG_AUTH_TOKEN_P(token)) {
-    sysfunc = UC("DuplicateTokenEx");
     if (!DuplicateTokenEx(SG_AUTH_TOKEN(token)->rawToken,
 			  MAXIMUM_ALLOWED,
 			  NULL,
 			  SecurityImpersonation,
 			  TokenPrimary,
-			  &hPrimaryToken)) goto create_fail;
-    sysfunc = UC("CreateProcessWithToken");
+			  &hPrimaryToken)) return -1;
     /* not sure if we should put this */
     flags |= (CREATE_DEFAULT_ERROR_MODE | CREATE_NEW_CONSOLE);
     if (!CreateProcessWithTokenW(hPrimaryToken, LOGON_WITH_PROFILE, NULL,
 				 wccommand, flags, NULL,
-				 wcdir, &startup, &process)) goto create_fail;
+				 wcdir, (STARTUPINFOW *)&si,
+				 &process)) return -1;
   } else {
-    sysfunc = UC("CreateProcess");
     if (CreateProcessW(NULL, wccommand, NULL, NULL, TRUE,
 		       flags,	/* run the process */
-		       NULL, wcdir, &startup, &process) == 0) goto create_fail;
+		       NULL, wcdir, (STARTUPINFOW *)&si, &process) == 0)
+      return -1;
   }
-  if (closeP[0]) CloseHandle(pipe0[0]);
-  if (closeP[1]) CloseHandle(pipe1[1]);
-  if (closeP[2]) CloseHandle(pipe2[1]);
-
   CloseHandle(process.hThread);
   return (uintptr_t)make_win_process(process.hProcess);
- pipe_fail:
+}
+
+static void si_setup(void *data)
+{
+  void **unwrapped = (void **)data;
+  STARTUPINFOW *si = (STARTUPINFOW *)unwrapped[0];
+  void **pipes = unwrapped[1];
+  HANDLE *pipe0 = pipes[0];
+  HANDLE *pipe1 = pipes[1];
+  HANDLE *pipe2 = pipes[2];
+  /* it's actually STARTUPINFOEXW, but I'm lazy :) */
+  si->dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
+  si->wShowWindow = SW_HIDE;
+  si->hStdInput = pipe0[0];
+  si->hStdOutput = pipe1[1];
+  si->hStdError = pipe2[1];
+}
+
+uintptr_t Sg_SysProcessCallAs(SgObject sname, SgObject args,
+			      SgObject *inp, SgObject *outp, SgObject *errp,
+			      SgString *dir, SgObject token,
+			      int flags)
+{
+  HANDLE pipe0[3] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE, 0 };
+  HANDLE pipe1[3] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE, 0 };
+  HANDLE pipe2[3] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE, 0 };
+  const SgChar *sysfunc = NULL;
+  SECURITY_ATTRIBUTES sa;
+  SgObject files = SG_NIL;
+  uintptr_t pid;
+  void *data[3] = { pipe0, pipe1, pipe2 };
+
+  sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+  sa.lpSecurityDescriptor = NULL;
+  sa.bInheritHandle = TRUE;
+  sysfunc = UC("CreatePipe");
+  if (!init_fd(pipe0, inp,  FD_IN,  &files, &sa)) goto pipe_fail;
+  if (!init_fd(pipe1, outp, FD_OUT, &files, &sa)) goto pipe_fail;
+  if (!init_fd(pipe2, errp, FD_ERR, &files, &sa)) goto pipe_fail;
+
+  pid = Sg_SysForkProcessAs(sname, args, dir, token, data, si_setup, flags);
+  if (pid < 0) goto create_fail;
+  if (pipe0[2]) CloseHandle(pipe0[0]);
+  if (pipe1[2]) CloseHandle(pipe1[1]);
+  if (pipe2[2]) CloseHandle(pipe2[1]);
+
+  return pid;
  create_fail:
+ pipe_fail:
   {
     DWORD e = GetLastError();
     SgObject msg = Sg_GetLastErrorMessage();
@@ -698,7 +713,8 @@ uintptr_t Sg_SysProcessCallAs(SgObject sname, SgObject args,
     if (pipe1[1] != INVALID_HANDLE_VALUE) CloseHandle(pipe1[1]);
     if (pipe2[0] != INVALID_HANDLE_VALUE) CloseHandle(pipe2[0]);
     if (pipe2[1] != INVALID_HANDLE_VALUE) CloseHandle(pipe2[1]);
-    Sg_SystemError(e, UC("%s() failed. %A [%A]"), sysfunc, msg, command);
+    Sg_SystemError(e, UC("%s() failed. %A [%A]"), sysfunc, msg,
+		   make_command(sname, args));
   }
   return -1;			/* dummy */
 }

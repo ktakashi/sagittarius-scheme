@@ -792,7 +792,7 @@ uintptr_t Sg_SysProcessCallAs(SgObject sname, SgObject sargs,
   if (!init_fd(pipe2, errp, ERR, &files)) goto pipe_fail;
 
   pid = (pid_t)Sg_SysForkProcessAs(sname, sargs, dir, token, data, pipe_setup, flags);
-
+  if (pid < 0) goto fork_fail;
   if (pid > 0) {
     if (pipe0[2]) close(pipe0[0]);
     if (pipe1[2]) close(pipe1[1]);
@@ -811,6 +811,7 @@ uintptr_t Sg_SysProcessCallAs(SgObject sname, SgObject sargs,
     Sg_UnlockMutex(&pid_list.mutex);
   }
   return (uintptr_t)pid;
+ fork_fail:
  pipe_fail:
   {
     char message[256];
