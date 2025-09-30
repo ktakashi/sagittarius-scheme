@@ -120,17 +120,21 @@ static int scheme_conv(int num_msg,
     }
     SG_VECTOR_ELEMENT(vec, i) = Sg_Cons(type, Sg_Utf8sToUtf32s(msg[i]->msg, l));
   }
+
   SG_UNWIND_PROTECT {
     r = Sg_Apply1(data, vec);
   } SG_WHEN_ERROR {
     r = SG_FALSE;
   } SG_END_PROTECT;
 
+  struct pam_response *reply = calloc(sizeof(struct pam_response), num_msg);
+  if (!reply) return PAM_BUF_ERR;
+  *resp = reply;
+
   if (!SG_VECTORP(r) || SG_VECTOR_SIZE(r) != num_msg) {
-    return PAM_CONV_ERR;
+    /* we return  success here, as we don't want PAM to retry */
+    for (i = 0; i < num_msg; i++) reply[i].resp = malloc(0);
   } else {
-    struct pam_response *reply = calloc(sizeof(struct pam_response), num_msg);
-    if (!reply) return PAM_BUF_ERR;
     for (i = 0; i < num_msg; i++) {
       SgObject e = SG_VECTOR_ELEMENT(r, i);
       if (!SG_STRINGP(e)) {
@@ -148,8 +152,8 @@ static int scheme_conv(int num_msg,
 	break;
       }
     }
-    *resp = reply;
   }
+
   return PAM_SUCCESS;
 }
 

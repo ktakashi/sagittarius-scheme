@@ -482,7 +482,10 @@ void abort_handler(int signum, siginfo_t* si, void* unused )
   else      fprintf(stderr, "Caught signal %d\n", signum );
  
   print_stack_trace(stderr);
-  exit(signum);
+  /* dump core file */
+  signal(signum, SIG_DFL);
+  kill(getpid(), signum);
+  /* exit(signum); */
 }
 
 int main(int argc, char **argv)

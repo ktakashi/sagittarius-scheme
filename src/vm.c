@@ -2512,6 +2512,15 @@ static void show_inst_count(void *data)
 # pragma warning( disable : 4102 4101)
 #endif
 
+static SgObject unbound_variable_cc(SgObject v, void **data)
+{
+  SgObject id = SG_OBJ(data[0]);
+  return Sg_VMApply3(&Sg_GenericUnboundVariable,
+		     SG_IDENTIFIER_NAME(id),
+		     SG_IDENTIFIER_LIBRARY(id),
+		     id);
+}
+
 SgObject run_loop()
 {
   SgVM *vm = Sg_VM();
