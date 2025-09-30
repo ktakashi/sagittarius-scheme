@@ -125,7 +125,7 @@ SG_EXTERN uintptr_t Sg_SysForkProcessAs(SgObject name, SgObject args,
 					   For Windows, it's initialise,
 					 */
 					void *data,
-					void (* setup)(void *),
+					int (* setup)(void *),
 					/* flags */
 					int flags);
 SG_EXTERN SgObject  Sg_SysProcessWait(uintptr_t pid, struct timespec *pts);

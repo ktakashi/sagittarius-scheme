@@ -680,7 +680,7 @@ uintptr_t Sg_SysForkProcessAs(SgObject sname, SgObject sargs,
 			      SgString *dir,
 			      SgObject token,
 			      void *data,
-			      void (* setup)(void *),
+			      int (* setup)(void *),
 			      int flags)
 {
   const char *name = Sg_Utf32sToUtf8s(sname), *cdir = NULL, **args;
@@ -739,7 +739,7 @@ uintptr_t Sg_SysForkProcessAs(SgObject sname, SgObject sargs,
   return pid;
 }
 
-static void pipe_setup(void *data)
+static int pipe_setup(void *data)
 {
   void **unwrapped = (void **)data;
   const char *sysfunc = "close";
@@ -767,11 +767,12 @@ static void pipe_setup(void *data)
     if (i == pipe2[1]) continue;
     close(i);
   }
-  return;			/* ok */
+  return 0;			/* ok */
  close_fail:
  dup_fail:
   Sg_Panic("%s (%d): %s\n", sysfunc, errno, strerror(errno));
   exit(127);
+  return 0;
 }
 
 uintptr_t Sg_SysProcessCallAs(SgObject sname, SgObject sargs,

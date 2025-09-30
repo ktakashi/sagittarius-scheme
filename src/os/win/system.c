@@ -615,7 +615,7 @@ static SgObject make_command(SgObject sname, SgObject args)
 uintptr_t Sg_SysForkProcessAs(SgObject sname, SgObject args,
 			      SgString *dir, SgObject token,
 			      void *udata, /* user data :) */
-			      void (* init)(void *),
+			      int (* init)(void *),
 			      int creationFlags)
 {
   STARTUPINFOEXW si;
@@ -628,7 +628,7 @@ uintptr_t Sg_SysForkProcessAs(SgObject sname, SgObject args,
 
   memset(&si, 0, sizeof(STARTUPINFOEXW));
   si.StartupInfo.cb = sizeof(STARTUPINFOEXW);
-  init(data);
+  flags |= init(data);
 
   if (creationFlags & SG_PROCESS_DETACH) flags |= DETACHED_PROCESS;
 
@@ -645,19 +645,19 @@ uintptr_t Sg_SysForkProcessAs(SgObject sname, SgObject args,
     flags |= (CREATE_DEFAULT_ERROR_MODE | CREATE_NEW_CONSOLE);
     if (!CreateProcessWithTokenW(hPrimaryToken, LOGON_WITH_PROFILE, NULL,
 				 wccommand, flags, NULL,
-				 wcdir, (STARTUPINFOW *)&si,
+				 wcdir, &si.StartupInfo,
 				 &process)) return -1;
   } else {
     if (CreateProcessW(NULL, wccommand, NULL, NULL, TRUE,
 		       flags,	/* run the process */
-		       NULL, wcdir, (STARTUPINFOW *)&si, &process) == 0)
+		       NULL, wcdir, &si.StartupInfo, &process) == 0)
       return -1;
   }
   CloseHandle(process.hThread);
   return (uintptr_t)make_win_process(process.hProcess);
 }
 
-static void si_setup(void *data)
+static int si_setup(void *data)
 {
   void **unwrapped = (void **)data;
   STARTUPINFOW *si = (STARTUPINFOW *)unwrapped[0];
@@ -671,6 +671,7 @@ static void si_setup(void *data)
   si->hStdInput = pipe0[0];
   si->hStdOutput = pipe1[1];
   si->hStdError = pipe2[1];
+  return 0;
 }
 
 uintptr_t Sg_SysProcessCallAs(SgObject sname, SgObject args,
