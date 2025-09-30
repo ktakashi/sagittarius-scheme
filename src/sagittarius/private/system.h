@@ -121,15 +121,11 @@ SG_EXTERN uintptr_t Sg_SysForkProcessAs(SgObject name, SgObject args,
 					/* auth token or #f */
 					SgObject token,
 					/* 
-					   For POSIX, it's cleanup,
+					   For POSIX, it's pipe setup,
 					   For Windows, it's initialise,
-
-					   A bit misuse, but I don't
-					   have any better way to
-					   absorb the difference
 					 */
 					void *data,
-					void (* cleanup)(void *),
+					void (* setup)(void *),
 					/* flags */
 					int flags);
 SG_EXTERN SgObject  Sg_SysProcessWait(uintptr_t pid, struct timespec *pts);

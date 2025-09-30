@@ -680,7 +680,7 @@ uintptr_t Sg_SysForkProcessAs(SgObject sname, SgObject sargs,
 			      SgString *dir,
 			      SgObject token,
 			      void *data,
-			      void (* cleanup)(void *),
+			      void (* setup)(void *),
 			      int flags)
 {
   const char *name = Sg_Utf32sToUtf8s(sname), *cdir, **args;
@@ -728,7 +728,7 @@ uintptr_t Sg_SysForkProcessAs(SgObject sname, SgObject sargs,
 		 cdir, name, strerror(errno));
       }
     }
-    cleanup(data);
+    setup(data);
     execvp(name, (char * const *)args);
     sysfunc = "execvp";
     /* failed on child preocess */
@@ -739,7 +739,7 @@ uintptr_t Sg_SysForkProcessAs(SgObject sname, SgObject sargs,
   return pid;
 }
 
-static void pipe_cleanup(void *data)
+static void pipe_setup(void *data)
 {
   void **unwrapped = (void **)data;
   const char *sysfunc = "close";
@@ -791,7 +791,7 @@ uintptr_t Sg_SysProcessCallAs(SgObject sname, SgObject sargs,
   if (!init_fd(pipe1, outp, OUT, &files)) goto pipe_fail;
   if (!init_fd(pipe2, errp, ERR, &files)) goto pipe_fail;
 
-  pid = (pid_t)Sg_SysForkProcessAs(sname, sargs, dir, token, data, pipe_cleanup, flags);
+  pid = (pid_t)Sg_SysForkProcessAs(sname, sargs, dir, token, data, pipe_setup, flags);
 
   if (pid > 0) {
     if (pipe0[2]) close(pipe0[0]);
