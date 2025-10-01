@@ -26,8 +26,17 @@
 ;;  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 (library (sagittarius pam)
-    (export :only-bindings)
-    (import (core))
+    (export pam-authenticate
+	    pam-invalidate-token!
+	    auth-token?
+	    auth-token-name
+	    auth-token-full-name
+	    auth-token-dir
+	    auth-token-shell
+	    call-with-auth-token
+	    *pam:conversation-error-handler*)
+    (import (core)
+	    (sagittarius))
 (decl-code
  (.define "LIBSAGITTARIUS_BODY")
  (.include <sagittarius/private.h>
@@ -35,7 +44,7 @@
 
 (define-type <auth-token> "SgAuthToken *")
 
-(define-c-proc pam-authenticate
+(define-c-proc %pam-authenticate
   (service::<string> user::<string> conv::<procedure>)
   Sg_PamAuthenticate)
 
@@ -47,6 +56,22 @@
 (define-c-proc auth-token-full-name (token::<auth-token>) SG_AUTH_TOKEN_FULL_NAME)
 (define-c-proc auth-token-dir (token::<auth-token>) SG_AUTH_TOKEN_DIR)
 (define-c-proc auth-token-shell (token::<auth-token>) SG_AUTH_TOKEN_SHELL)
+
+(define (default-error-handler e))
+(define *pam:conversation-error-handler* 
+  (make-core-parameter default-error-handler))
+
+(define (pam-authenticate service user conv)
+  (call/cc (lambda (guard-k)
+	     (with-error-handler
+	       (lambda (e)
+		 ;; return #f in any case
+		 (with-error-handler
+		   (lambda (e) (guard-k #f))
+		   (lambda ()
+		     ((*pam:conversation-error-handler*) e)
+		     (guard-k #f))))
+	       (lambda () (%pam-authenticate service user conv))))))
 
 (define (call-with-auth-token service username conv proc)
   (cond ((pam-authenticate service username conv) =>

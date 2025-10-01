@@ -121,11 +121,7 @@ static int scheme_conv(int num_msg,
     SG_VECTOR_ELEMENT(vec, i) = Sg_Cons(type, Sg_Utf8sToUtf32s(msg[i]->msg, l));
   }
 
-  SG_UNWIND_PROTECT {
-    r = Sg_Apply1(data, vec);
-  } SG_WHEN_ERROR {
-    r = SG_FALSE;
-  } SG_END_PROTECT;
+  r = Sg_Apply1(data, vec);
 
   struct pam_response *reply = calloc(sizeof(struct pam_response), num_msg);
   if (!reply) return PAM_BUF_ERR;
@@ -232,11 +228,7 @@ static SgObject pam_authenticate_inner(char *service, char *username,
   }
 
   SG_VECTOR_ELEMENT(vec, 0) = Sg_Cons(SG_INTERN("echo-off"), p);
-  SG_UNWIND_PROTECT {
-    resp = Sg_Apply1(conversation, vec);
-  } SG_WHEN_ERROR {
-    resp = SG_FALSE;
-  } SG_END_PROTECT;
+  resp = Sg_Apply1(conversation, vec);
 
   if (!SG_VECTORP(resp) ||
       (SG_VECTOR_SIZE(resp) != 1 && SG_STRINGP(SG_VECTOR_ELEMENT(resp, 0)))) {

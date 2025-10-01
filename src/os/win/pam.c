@@ -124,11 +124,8 @@ SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
 
   SG_VECTOR_ELEMENT(vec, 0) = Sg_Cons(SG_INTERN("echo-off"),
 				      SG_MAKE_STRING("Password:"));
-  SG_UNWIND_PROTECT {
-    resp = Sg_Apply1(conversation, vec);
-  } SG_WHEN_ERROR {
-    resp = SG_FALSE;
-  } SG_END_PROTECT;
+
+  resp = Sg_Apply1(conversation, vec);
 
   if (!SG_VECTORP(resp) ||
       (SG_VECTOR_SIZE(resp) != 1 && SG_STRINGP(SG_VECTOR_ELEMENT(resp, 0)))) {
