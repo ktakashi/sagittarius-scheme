@@ -151,3 +151,12 @@ otherwise `#f`.
 ###### [!Function] `pam-invalidate-token!` (_token_ `auth-token?`)
 
 Invalidates the given _token_.
+
+###### [!Parameter] `*pam:conversation-error-handler*!`
+
+Error handler when _conversation_ argument of the `pam-authenticate`
+raises an error. The result of the handler procedure will be ignored,
+this is only for diagnosis purpose.
+
+A error handler must be a procedure which accepts exactly one argument,
+which is the raised condition.

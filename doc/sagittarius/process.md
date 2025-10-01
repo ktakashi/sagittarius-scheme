@@ -85,8 +85,8 @@ _reader_ procedure. Otherwise the created process object.
 
 **CAVEAT**  
 _token_ will use either `setuid` or `CreateProcessAsUser`, both of the
-C function require specific user permission. If the permission is not
-granted, then the process creation fails.
+C functions may require specific user permission. If the permission is
+not granted, then the process creation fails.
 
 
 ###### [!Function] `async-process-read`  _process_ _stdout_ _stderr_ _transcoder_
