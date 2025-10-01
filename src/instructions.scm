@@ -119,10 +119,14 @@
 				 (SG_IDENTIFIER_NAME ,id)
 				 SG_UNBOUND))
       (when (SG_UNBOUNDP ,ret)
-	(let ((|data[1]::void*|))
-	  (set! (aref data 0) ,id)
-	  (Sg_VMPushCC unbound_variable_cc data 1))
-	NEXT))))
+	;; here i tempted to use Sg_VMPushCC and Sg_VMApply3
+	;; however, that only works if this is the tail location
+	;; otherwise it'd cause SEGV.
+	;; So, just use Sg_Apply3.
+	(set! ,ret (Sg_Apply3 (& Sg_GenericUnboundVariable)
+			      (SG_IDENTIFIER_NAME ,id)
+			      (SG_IDENTIFIER_LIBRARY ,id)
+			      ,id))))))
 (define-cise-stmt REFER-GLOBAL
   ((_ vm ret)
    (let ((v (gensym "id"))
