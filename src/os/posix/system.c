@@ -705,7 +705,7 @@ uintptr_t Sg_SysForkProcessAs(SgObject sname, SgObject sargs,
   if (pid == 0) {
     if (SG_AUTH_TOKEN_P(token)) {
       sysfunc = "setuid";
-      if (!setuid(SG_AUTH_TOKEN_UID(token))) return -1;
+      if (setuid(SG_AUTH_TOKEN_UID(token))) return -1;
     }
     if (flags & SG_PROCESS_DETACH) {
       /* why double-fork?
