@@ -32,6 +32,26 @@
     (export :all)
     (import (rfc ssh constants)
 	    (rfc ssh types)
+	    ;; export types for convenience
+	    (only (rfc ssh connection)
+		  <ssh-msg-channel-open>
+		  <ssh-msg-channel-open-confirmation>
+		  <ssh-msg-channel-open-failure>
+		  <ssh-msg-channel-eof>
+		  <ssh-msg-channel-close>
+		  <ssh-msg-channel-request>
+		  <ssh-msg-channel-pty-request>
+		  <ssh-msg-channel-success>
+		  <ssh-msg-channel-failure>
+		  <ssh-msg-channel-data>
+		  <ssh-msg-channel-window-adjust>
+
+		  <ssh-msg-channel-exec-request>
+		  <ssh-msg-channel-subsystem-request>
+
+		  ;; misc
+		  <ssh-msg-exit-status>
+		  <ssh-msg-exit-signal>)
 	    (rfc ssh transport)
 	    (rfc ssh client)
 	    (rfc ssh identity)

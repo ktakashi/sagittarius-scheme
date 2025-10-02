@@ -33,8 +33,12 @@
     (export ssh-handle-userauth-request
 	    *ssh:keybord-interactive-prompt-message*
 
-	    <ssh-username&password-credential> ssh-username&password-credential?
-	    ssh-credential-password)
+	    <ssh-interactive-credential> ssh-interactive-credential?
+	    ssh-credential-prompt-sender
+	    ssh-credential-response-receiver
+
+	    make-ssh-interactive-prompt ssh-interactive-prompt?
+	    )
     (import (rnrs)
 	    (clos user)
 	    (srfi :39 parameters)
@@ -44,10 +48,17 @@
 	    (rfc ssh transport)
 	    (rfc ssh server service auth api))
 
-(define-class <ssh-username&password-credential> (<ssh-credential>)
-  ((password :init-keyword :password :reader ssh-credential-password)))
-(define (ssh-username&password-credential? o)
-  (is-a? o <ssh-username&password-credential>))
+(define-class <ssh-interactive-credential> (<ssh-credential>)
+  ((prompt-sender :init-keyword :prompt-sender
+		  :reader ssh-credential-prompt-sender)
+   (response-receiver :init-keyword :response-receiver
+		      :reader ssh-credential-response-receiver)))
+(define-record-type ssh-interactive-prompt
+  (fields message echo?))
+
+(define (ssh-interactive-credential? o)
+  (is-a? o <ssh-interactive-credential>))
+
 
 (define *ssh:keybord-interactive-prompt-message*
   (make-parameter "Password for Sagittarius SSH server:"))
@@ -58,33 +69,44 @@
   (define msg 
     (bytevector->ssh-message <ssh-msg-keyboard-interactive-userauth-request>
 			     packet))
-  (send-info-request transport)
-  (let-values (((resp bin) (receive-info-response transport)))
-    (unless (= (~ resp 'num-response) 1)
-      (error 'keyboard-interactive "too many responses"))
-    (let ((password (ssh-read-message :utf8-string bin #f)))
-      (ssh-authenticate-user (~ msg 'service-name)
-			     (make <ssh-username&password-credential>
-			       :username (~ msg 'user-name)
-			       :password password)))))
+  (define state (vector #f))
+  ;; let's not skip the prompt, 0 prompt is also fine I guess
+  (define (check-state r) (and r (eq? (vector-ref state 0) 'received) r))
+  (let ((prompt-sender (make-prompt-sender transport state))
+	(response-receiver (make-response-receiver transport state)))
+    (check-state
+     (ssh-authenticate-user (~ msg 'service-name)
+			    (make <ssh-interactive-credential>
+			      :username (~ msg 'user-name)
+			      :prompt-sender prompt-sender
+			      :response-receiver response-receiver)))))
 
-(define (send-info-request transport)
+(define ((make-prompt-sender transport state) prompts)
   (let ((info-request (make <ssh-msg-userauth-info-request>
 			:name ""
 			:instruction ""
-			:num-prompts 1))
-	(prompt (make <ssh-msg-userauth-prompt>
-		   :prompt (*ssh:keybord-interactive-prompt-message*)
-		   :echo #f)))
+			:num-prompts (vector-length prompts))))
     (let-values (((out e) (open-bytevector-output-port)))
       (ssh-write-message info-request out)
-      (ssh-write-message prompt out)
-      (ssh-write-packet transport (e)))))
-(define (receive-info-response transport)
+      (vector-for-each (lambda (p)
+			 (ssh-write-message
+			  (make <ssh-msg-userauth-prompt>
+			    :prompt (ssh-interactive-prompt-message p)
+			    :echo (ssh-interactive-prompt-echo? p))
+			  out)) prompts)
+      (ssh-write-packet transport (e))
+      (vector-set! state 0 'requested))))
+
+(define ((make-response-receiver transport state))
   (let ((bv (ssh-read-packet transport)))
     (unless (= (bytevector-u8-ref bv 0) +ssh-msg-userauth-info-response+)
       (error 'keyboard-interactive "unexpected message"))
-    (let ((bin (open-bytevector-input-port bv)))
-      (values (ssh-read-message <ssh-msg-userauth-info-response> bin) bin))))
+    (let* ((bin (open-bytevector-input-port bv))
+	   (header (ssh-read-message <ssh-msg-userauth-info-response> bin))
+	   (n (~ header 'num-response))
+	   (vec (make-vector n)))
+      (do ((i 0 (+ i 1)))
+	  ((= i n) (vector-set! state 0 'received) vec)
+	(vector-set! vec i (ssh-read-message :utf8-string bin #f))))))
 
 )

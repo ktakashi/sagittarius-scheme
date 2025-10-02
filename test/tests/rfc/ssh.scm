@@ -25,10 +25,13 @@
 (define password "password")
 
 (define-method ssh-authenticate-user ((m (equal +ssh-connection+))
-				      (cred <ssh-username&password-credential>))
-  (and (string=? username (ssh-credential-username cred))
-       (string=? password (ssh-credential-password cred))
-       (make <ssh-auth-ticket>)))
+				      (cred <ssh-interactive-credential>))
+  ((ssh-credential-prompt-sender cred)
+   (vector (make-ssh-interactive-prompt "Password:" #f)))
+  (let ((resp ((ssh-credential-response-receiver cred))))
+    (and (string=? username (ssh-credential-username cred))
+	 (string=? password (vector-ref resp 0))
+	 (make <ssh-auth-ticket>))))
 
 (define-method ssh-authenticate-user ((m (equal +ssh-connection+))
 				      (cred <ssh-pubic-key-credential>))

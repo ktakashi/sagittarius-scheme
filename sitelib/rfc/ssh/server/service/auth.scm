@@ -39,11 +39,14 @@
 
 	    <ssh-credential> ssh-credential?
 	    <ssh-auth-ticket> ssh-auth-ticket?
-	    <ssh-username&password-credential> ssh-username&password-credential?
+	    <ssh-interactive-credential> ssh-interactive-credential?
 	    <ssh-pubic-key-credential> ssh-pubic-key-credential?
 	    ssh-credential-username
-	    ssh-credential-password
 	    ssh-credential-public-key
+	    ssh-credential-prompt-sender
+	    ssh-credential-response-receiver
+
+	    make-ssh-interactive-prompt ssh-interactive-prompt?
 	    )
     (import (rnrs)
 	    (clos user)
