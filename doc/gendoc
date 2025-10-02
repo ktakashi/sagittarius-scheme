@@ -167,11 +167,18 @@
 (define (document-input:deep-expand depth parser file options)
   (define (compose-example file)
     (define (strip-license line) (not (string-prefix? ";;;" line)))
+    (define (put-line out line)
+      ;; tab must be replaced to have better indentation.
+      ;; And my Emacs has tab = 8 :)
+      (string-for-each (lambda (c)
+			 (case c
+			   ((#\tab) (put-string out "        "))
+			   (else (put-char out c)))) line))
     (let ((lines (filter strip-license (file->string-list file))))
       ;; now add codeblock
       (let-values (((out e) (open-string-output-port)))
 	(put-string out "```scheme") (newline out)
-	(for-each (lambda (line) (put-string out line) (newline out)) lines)
+	(for-each (lambda (line) (put-line out line) (newline out)) lines)
 	(put-string out "```") (newline out)
 	(port->document-input (open-string-input-port (e)) file #t))))
   (do ((i 0 (+ i 1))) ((= i depth)) (display "  "))

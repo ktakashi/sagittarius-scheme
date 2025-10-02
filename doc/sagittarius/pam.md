@@ -1,4 +1,4 @@
-[§2] (sagittarius pam) - Privileged Access Mamagement {#lib.sagittarius.pam}
+[§2] (sagittarius pam) - Privileged Access Module {#lib.sagittarius.pam}
 -------------
 
 This library provides a wrapper layer of, Linux PAM, Open PAM, 
@@ -64,7 +64,7 @@ authentication. The directory is usually not accessible other than
 by root permission.
 
 
-###### [!Library] `(sagittarius pam)`
+###### [!Library] `(sagittarius pam)`  **[@since] `0.9.14`**
 
 Provising platform user authentication mechanism.
 
