@@ -86,7 +86,8 @@
 	    (sagittarius crypto random)
 	    (sagittarius crypto math prime)
 	    (sagittarius crypto math ec)
-	    (sagittarius crypto math modular))
+	    (sagittarius crypto math modular)
+	    (util bytevector))
 
 (define *key:ecdh* :ecdh)
 (define *key:ecdhc* :ecdhc)
@@ -170,6 +171,11 @@
 ;;; Public key
 (define-class <rfc7748-public-key> (<public-key> <rfc7748-key>)
   ((data :init-keyword :data :reader rfc7748-public-key-data)))
+(define-method write-object ((o <rfc7748-public-key>) out)
+  (format out "#<~a-public-key ~a> "
+	  (if (x25519-key? o) 'x25519 'x448)
+	  (bytevector->hex-string (rfc7748-public-key-data o))))
+
 (define (rfc7748-public-key? o) (is-a? o <rfc7748-public-key>))
 (define-class <x25519-public-key> (<rfc7748-public-key> <x25519-key>) ())
 (define (x25519-public-key? o) (is-a? o <x25519-public-key>))

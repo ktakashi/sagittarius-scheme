@@ -39,16 +39,17 @@
 	    (sagittarius crypto ciphers)
 	    (sagittarius crypto keys))
 
-(define (make-ssh-cipher name direction key-retriever iv)
+(define (make-ssh-cipher name direction key-retriever iv-retriever)
   (let-values (((desc mode) (ssh-cipher-descriptor name)))
     ;; for now only block cipher
-    (let ((key-size (block-cipher-descriptor-suggested-key-length desc)))
+    (let ((key-size (block-cipher-descriptor-suggested-key-length desc))
+	  (block-size (block-cipher-descriptor-block-length desc)))
       (block-cipher-init!
        (make-block-cipher desc mode no-padding)
        direction
        (generate-symmetric-key desc (key-retriever key-size))
        (make-cipher-parameter
-	(make-iv-parameter iv)
+	(make-iv-parameter (iv-retriever block-size))
 	(make-counter-mode-parameter *ctr-mode:big-endian*))))))
 
 (define-generic ssh-cipher-descriptor :class <predicate-specializable-generic>)

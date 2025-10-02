@@ -40,6 +40,6 @@
 	    (rfc ssh client kex ecdh))
 
 (define ssh-client-key-exchange
-  (ssh-key-exchange ssh-client-exchange-kex-message))
+  (ssh-key-exchange ssh-client-exchange-kex-message #t))
 
 )

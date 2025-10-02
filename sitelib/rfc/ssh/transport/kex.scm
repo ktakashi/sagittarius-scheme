@@ -51,12 +51,12 @@
 	    (sagittarius control)
 	    (sagittarius object))
 
-(define ((ssh-key-exchange exchange-kex-message) transport
+(define ((ssh-key-exchange exchange-kex-message client?) transport
 	 :key (peer-packet #f)
 	 :allow-other-keys opts)
   (define (fill-slot transport-slot req res kex-slot)
-    (let ((cnl (~ req kex-slot 'names))
-	  (snl (~ res kex-slot 'names)))
+    (let ((cnl (~ (if client? req res) kex-slot 'names))
+	  (snl (~ (if client? res req) kex-slot 'names)))
       (let loop ((lis cnl))
 	(cond ((null? lis)
 	       (error 'key-exchange "algorithm not supported" cnl snl))
@@ -119,9 +119,11 @@
 	(server-mkey (digest (bytevector-append #vu8(#x46) sid)))) ;; "F"
     (configure transport
      (make-ssh-cipher client-enc c->s-direction
-		      (make-key-retriever client-key) client-iv)
+		      (make-key-retriever client-key) 
+		      (make-key-retriever client-iv))
      (make-ssh-cipher server-enc s->c-direction
-		      (make-key-retriever server-key)  server-iv)
+		      (make-key-retriever server-key)
+		      (make-key-retriever server-iv))
      (create-mac client-mkey (~ transport 'client-mac))
      (create-mac server-mkey (~ transport 'server-mac)))
     transport))

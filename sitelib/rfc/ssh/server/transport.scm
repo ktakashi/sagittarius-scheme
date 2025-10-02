@@ -64,26 +64,29 @@
 (define (default-extension-creator transport)
   (list (make <ssh-msg-ext-info-extension>
 	  :name "server-sig-algs"
-	  :value (ssh-message->bytevector 
-		  (list->name-list 
-		   (list +public-key-ssh-ed25519+
-			 "ed25519" ;; openssh sends this...
-			 +public-key-ssh-ed448+
-			 "ed448" ;; then this should be?
-			 +public-key-ecdsa-sha2-nistp256+
-			 +public-key-ecdsa-sha2-nistp384+
-			 +public-key-ecdsa-sha2-nistp521+
-			 +public-key-ecdsa-sha2-nistk163+
-			 +public-key-ecdsa-sha2-nistp192+
-			 +public-key-ecdsa-sha2-nistp224+
-			 +public-key-ecdsa-sha2-nistk233+
-			 +public-key-ecdsa-sha2-nistb233+
-			 +public-key-ecdsa-sha2-nistk283+
-			 +public-key-ecdsa-sha2-nistk409+
-			 +public-key-ecdsa-sha2-nistb409+
-			 +public-key-ecdsa-sha2-nistt571+
-			 +public-key-rsa-sha2-512+
-			 +public-key-rsa-sha2-256+))))
+	  :value (bytevector-copy
+		  (ssh-message->bytevector 
+		   (list->name-list 
+		    (list +public-key-ssh-ed25519+
+			  "ed25519" ;; openssh sends this...
+			  +public-key-ssh-ed448+
+			  "ed448" ;; then this should be?
+			  +public-key-ecdsa-sha2-nistp256+
+			  +public-key-ecdsa-sha2-nistp384+
+			  +public-key-ecdsa-sha2-nistp521+
+			  +public-key-ecdsa-sha2-nistk163+
+			  +public-key-ecdsa-sha2-nistp192+
+			  +public-key-ecdsa-sha2-nistp224+
+			  +public-key-ecdsa-sha2-nistk233+
+			  +public-key-ecdsa-sha2-nistb233+
+			  +public-key-ecdsa-sha2-nistk283+
+			  +public-key-ecdsa-sha2-nistk409+
+			  +public-key-ecdsa-sha2-nistb409+
+			  +public-key-ecdsa-sha2-nistt571+
+			  +public-key-rsa-sha2-512+
+			  +public-key-rsa-sha2-256+)))
+		  ;; skip length
+		  4))
 	;; not sure if this makes our life easier...
 	#;(make <ssh-msg-ext-info-extension>
 	  :name "no-flow-control"

@@ -46,6 +46,7 @@
 (define-generic ssh-server-exchange-kex-message 
   :class <predicate-specializable-generic>)
 
+(define new-keys (make-bytevector 1 +ssh-msg-newkeys+))
 (define (ssh-kex-receive/send transport init-class compute-k make-reply)
   (define (message-hash m) (digest-message (~ transport 'kex-digester) m))
   (let* ((init (ssh-read-packet transport))
@@ -59,8 +60,11 @@
 			 rest)))
 	(ssh-write-ssh-message transport msg)
 	;; wait for newkeys
-	(ssh-read-packet transport)
-	(ssh-write-packet transport (make-bytevector 1 +ssh-msg-newkeys+))
+	(let ((r (ssh-read-packet transport)))
+	  ;; should we send disconnect
+	  (unless (bytevector=? r new-keys)
+	    (error 'ssh-kex-receive/send "Unexpected message" r)))
+	(ssh-write-packet transport new-keys)
 	(unless (~ transport 'session-id) (set! (~ transport 'session-id) H))
 	(ssh-compute-keys! transport K H #f server-configure)))))
 

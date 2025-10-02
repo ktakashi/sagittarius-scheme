@@ -64,6 +64,13 @@
 	(if (= n rest)
 	    buf
 	    (loop (- rest n) (+ read-size n))))))
+  (define c (~ context 'peer-cipher))
+  (define block-size (if c (block-cipher-block-length c) 8))
+  (define (check-size size)
+    ;; must be multiple of block-size
+    (unless (zero? (mod (+ size 4) block-size))
+      (error 'ssh-read-packet "Invalid packet size" size))
+    size)
   (define hmac
     (and-let* ((m (~ context 'peer-mac))
 	       ( (mac? m) )
@@ -75,8 +82,6 @@
       m))
   ;; FIXME this is not a good implementation...
   (define (read&decrypt mac-length)
-    (define c (~ context 'peer-cipher))
-    (define block-size (block-cipher-block-length c))
     (define in (~ context 'socket))
 
     (define (verify-mac transport mac)
@@ -110,13 +115,13 @@
     (let* ((first (read-block in block-size))
 	   ;; i've never seen block cipher which has block size less
 	   ;; than 8
-	   (total-size (bytevector-u32-ref first 0 (endianness big)))
-	   (padding-size (bytevector-u8-ref first 4))
+	   (total (check-size (bytevector-u32-ref first 0 (endianness big))))
+	   (pad (bytevector-u8-ref first 4))
 	   ;; hope the rest have multiple of block size...
-	   (rest-size (- (+ total-size 4) block-size))
+	   (rest-size (- (+ total 4) block-size))
 	   (rest (read-block in rest-size))
 	   (mac  (recv-n in mac-length))
-	   (size (- total-size padding-size 1))
+	   (size (- total pad 1))
 	   (offset (- (bytevector-length first) 5))
 	   (payload (make-bytevector size)))
       (verify-mac context mac)
@@ -130,7 +135,7 @@
     (define buffer (~ context 'read-buffer))
     (define in (~ context 'socket))
     (recv-n! in buffer 5)
-    (let* ((total (bytevector-u32-ref buffer 0 (endianness big)))
+    (let* ((total (check-size (bytevector-u32-ref buffer 0 (endianness big))))
 	   (pad   (bytevector-u8-ref buffer 4)))
       (rlet1 payload (recv-n in (- total pad 1))
 	     ;; discards padding

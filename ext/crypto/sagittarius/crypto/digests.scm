@@ -89,6 +89,8 @@
 	  :init-value #f
 	  :mutable #t)
    (descriptor :reader message-digest-descriptor :init-keyword :descriptor)))
+(define-method write-object ((m <message-digest>) out)
+  (format out "#<message-digest ~a>" (message-digest-descriptor m)))
 (define (message-digest? o) (is-a? o <message-digest>))
 (define (make-message-digest descriptor)
   (unless (digest-descriptor? descriptor)

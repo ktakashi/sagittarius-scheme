@@ -80,6 +80,6 @@
 		  list->name-list))
 
 (define ssh-server-key-exchange 
-  (ssh-key-exchange ssh-server-exchange-kex-message))
+  (ssh-key-exchange ssh-server-exchange-kex-message #f))
 
 )
