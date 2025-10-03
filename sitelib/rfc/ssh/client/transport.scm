@@ -29,6 +29,7 @@
 ;;;  
 
 #!nounbound
+#!read-macro=sagittarius/regex
 (library (rfc ssh client transport)
     (export make-client-ssh-transport
 	    socket->client-ssh-transport
@@ -50,6 +51,7 @@
 	    (clos user)
 	    (sagittarius)
 	    (sagittarius object)
+	    (sagittarius regex)
 	    (sagittarius socket)
 	    (sagittarius mop allocation)
 	    (srfi :39 parameters)
@@ -242,8 +244,7 @@
 	   (v (~ e 'value)))
       (cons (string->symbol n)
 	    (cond ((string=? n +extension-server-sig-algs+)
-		   (let ((nm (bytevector->ssh-message <name-list> v)))
-		     (~ nm 'names)))
+		   (string-split (utf8->string v) #/,/))
 		  ((string=? n +extension-delay-compression+)
 		   (let* ((in (open-bytevector-input-port v))
 			  (c->s (ssh-read-message <name-list> in))
