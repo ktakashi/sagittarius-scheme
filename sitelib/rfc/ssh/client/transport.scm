@@ -29,7 +29,6 @@
 ;;;  
 
 #!nounbound
-#!read-macro=sagittarius/regex
 (library (rfc ssh client transport)
     (export make-client-ssh-transport
 	    socket->client-ssh-transport
@@ -51,7 +50,6 @@
 	    (clos user)
 	    (sagittarius)
 	    (sagittarius object)
-	    (sagittarius regex)
 	    (sagittarius socket)
 	    (sagittarius mop allocation)
 	    (srfi :39 parameters)
@@ -239,25 +237,21 @@
 
 (define (parse-ext-info payload)
   (define (read-extension bin)
-    (let* ((e (ssh-read-message <ssh-msg-ext-info-extension> bin))
-	   (n (~ e 'name))
-	   (v (~ e 'value)))
+    (let ((n (ssh-read-message :utf8-string bin #f)))
       (cons (string->symbol n)
 	    (cond ((string=? n +extension-server-sig-algs+)
-		   (string-split (utf8->string v) #/,/))
+		   (let ((nm (ssh-read-message <name-list> bin)))
+		     (~ nm 'names)))
 		  ((string=? n +extension-delay-compression+)
-		   (let* ((in (open-bytevector-input-port v))
-			  (c->s (ssh-read-message <name-list> in))
-			  (s->c (ssh-read-message <name-list> in)))
+		   (let* ((c->s (ssh-read-message <name-list> bin))
+			  (s->c (ssh-read-message <name-list> bin)))
 		     (cons (~ c->s 'names) (~ s->c 'names))))
 		  ((string=? n +extension-no-flow-control+)
-		   (let ((in (open-bytevector-input-port v)))
-		     (ssh-read-message :utf8-string in #f)))
+		   (ssh-read-message :utf8-string bin #f))
 		  ((string=? n +extension-elevation+)
-		   (let ((in (open-bytevector-input-port v)))
-		     (ssh-read-message :utf8-string in #f)))
+		   (ssh-read-message :utf8-string bin #f))
 		  ;; simply return the payload, we can't handle it
-		  (else v)))))
+		  (else (ssh-read-message :string bin #f))))))
   
   (define bin (open-bytevector-input-port payload))
   (define msg (ssh-read-message <ssh-msg-ext-info> bin))

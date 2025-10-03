@@ -68,9 +68,7 @@
 		  (ssh-message->bytevector 
 		   (list->name-list 
 		    (list +public-key-ssh-ed25519+
-			  "ed25519" ;; openssh sends this...
 			  +public-key-ssh-ed448+
-			  "ed448" ;; then this should be?
 			  +public-key-ecdsa-sha2-nistp256+
 			  +public-key-ecdsa-sha2-nistp384+
 			  +public-key-ecdsa-sha2-nistp521+
