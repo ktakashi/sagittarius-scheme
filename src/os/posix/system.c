@@ -107,7 +107,8 @@
 #ifdef HAVE_PAM_APPL_H
 #  include <security/pam_appl.h>
 #endif
-#if defined(HAVE_BSD_AUTH_H)
+
+#ifdef HAVE_LOGIN_CAP_H
 #  include <login_cap.h>
 #endif
 
@@ -688,7 +689,7 @@ static int set_user_context(SgObject token, char **env)
 {
   /* see src/os/posix/pam.c :) */
   struct passwd *pw = (struct passwd *)SG_AUTH_TOKEN(token)->userInfo;
-#if defined(HAVE_BSD_AUTH_H)
+#if defined(HAVE_LOGIN_CAP_H)
   /* Easy for BSD... */
   return setusercontext(NULL, pw, pw->pw_uid, LOGIN_SETALL);
 #elif defined (HAVE_PAM_APPL_H)

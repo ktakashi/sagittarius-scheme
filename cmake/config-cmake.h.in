@@ -39,6 +39,7 @@
 #cmakedefine HAVE_PWD_H
 #cmakedefine HAVE_PAM_APPL_H
 #cmakedefine HAVE_BSD_AUTH_H
+#cmakedefine HAVE_LOGIN_CAP_H
 
 /* C11 features */
 #cmakedefine HAVE_UCHAR_H

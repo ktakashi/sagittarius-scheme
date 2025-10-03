@@ -93,6 +93,7 @@ CHECK_INCLUDE_FILE(pthread.h   HAVE_PTHREAD_H)
 CHECK_INCLUDE_FILE(pwd.h       HAVE_PWD_H)
 CHECK_INCLUDE_FILE(security/pam_appl.h       HAVE_PAM_APPL_H)
 CHECK_INCLUDE_FILES("sys/types.h;bsd_auth.h"  HAVE_BSD_AUTH_H)
+CHECK_INCLUDE_FILES("sys/types.h;login_cap.h" HAVE_LOGIN_CAP_H)
 
 # C11 features
 CHECK_INCLUDE_FILE(uchar.h     HAVE_UCHAR_H)
