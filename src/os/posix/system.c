@@ -685,26 +685,20 @@ static int init_fd(int *fds, SgObject *port,
   return TRUE;
 }
 
-static int set_user_context(SgObject token, char **env)
+
+static int set_user_context(SgObject token)
 {
+#if defined(HAVE_LOGIN_CAP_H)
   /* see src/os/posix/pam.c :) */
   struct passwd *pw = (struct passwd *)SG_AUTH_TOKEN(token)->userInfo;
-#if defined(HAVE_LOGIN_CAP_H)
-  /* Easy for BSD... */
-  return setusercontext(NULL, pw, pw->pw_uid, LOGIN_SETALL);
-#elif defined (HAVE_PAM_APPL_H)
-  /* PAM */
-  setenv("HOME", pw->pw_dir, 1);
-  setenv("SHELL", pw->pw_shell, 1);
-  setenv("USER", pw->pw_name, 1);
-  setenv("LOGNAME", pw->pw_name, 1);
-
-  while (*env) {
-    char *eq = strchr(*env, '=');
-    *eq = '\0';
-    eq++;
-    if (strcmp("NTLMPWD", *env) != 0) setenv(*env, eq, 1);
-    env++;
+  if (getuid() == 0 || geteuid() == 0) {
+    /* Easy for BSD... */
+    if (setusercontext(NULL, pw, pw->pw_uid,
+		       (LOGIN_SETALL & ~(LOGIN_SETPATH | LOGIN_SETUSER))) < 0)
+      return -1;
+    if (setusercontext(NULL, pw, pw->pw_uid, LOGIN_SETUSER) < 0)
+      return -1;
+    setusercontext(NULL, pw, pw->pw_uid, LOGIN_SETUMASK);
   }
   return 0;
 #endif
@@ -724,6 +718,82 @@ static char** pam_environ(SgObject token)
 #else
   return NULL;
 #endif
+}
+
+static int set_child_env(char ***envp, size_t *envsizep, char *name, char *value)
+{
+  size_t namelen = strlen(name);
+  size_t len = namelen + strlen(value) + 2; /* need = */
+  int i;
+  char **env = *envp;
+  for (i = 0; env[i]; i++) {
+    if (strncmp(env[i], name, namelen) == 0 && env[i][namelen] == '=')
+      break;
+  }
+  if (env[i]) {
+    free(env[i]);		/* reuse, possible override */
+  } else {
+    size_t envsize = *envsizep;
+    int j;
+    char **nenv;
+    if (i >= envsize - 1) {
+      /* the buffer is full, expand */
+      if (envsize >= 1000) return -1; /* too many, sorry */
+      envsize += 50;
+      nenv = calloc(envsize, sizeof(char *));
+      for (j = 0; env[j]; j++) {
+	nenv[j] = env[j];
+      }
+      env = *envp = nenv;
+      *envsizep = envsize;
+    }
+    env[i+1] = NULL;
+  }
+  env[i] = malloc(len);
+  snprintf(env[i], len, "%s=%s", name, value);
+  return 0;
+}
+
+static char ** child_env(SgObject token, char **penv)
+{
+  size_t envsize = 100;
+  char **env = calloc(envsize, sizeof(char *)), *v;
+  struct passwd *pw = (struct passwd *)SG_AUTH_TOKEN(token)->userInfo;
+  env[0] = NULL;
+
+  set_child_env(&env, &envsize, "HOME", pw->pw_dir);
+  set_child_env(&env, &envsize, "SHELL", pw->pw_shell);
+  set_child_env(&env, &envsize, "USER", pw->pw_name);
+  set_child_env(&env, &envsize, "LOGNAME", pw->pw_name);
+  if ((v = getenv("TZ")) != NULL)      set_child_env(&env, &envsize, "TZ", v);
+  if ((v = getenv("TERM")) != NULL)    set_child_env(&env, &envsize, "TERM", v);
+  if ((v = getenv("DISPLAY")) != NULL) set_child_env(&env, &envsize, "DISPLAY", v);
+
+#if defined (HAVE_PAM_APPL_H)
+  while (*penv) {
+    char *eq = strchr(*env, '=');
+    *eq = '\0';
+    eq++;
+    if (strcmp("NTLMPWD", *penv) != 0) {
+      if (set_child_env(&env, &envsize, *penv, eq) < 0) break;
+    }
+    penv++;
+  }
+#endif
+#ifdef HAVE_LOGIN_CAP_H
+#  ifdef USER_PATH
+#    define DEFAULT_PATH USER_PATH
+#  else
+#    define DEFAULT_PATH "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+#  endif
+  if (setusercontext(NULL, pw, pw->pw_uid, LOGIN_SETPATH) < 0) {
+    set_child_env(&env, &envsize, "PATH", DEFAULT_PATH);
+  } else {
+    set_child_env(&env, &envsize, "PATH", getenv("PATH"));
+  }
+#  undef DEFAULT_PATH
+#endif
+  return env;
 }
 
 uintptr_t Sg_SysForkProcessAs(SgObject sname, SgObject sargs,
@@ -755,11 +825,14 @@ uintptr_t Sg_SysForkProcessAs(SgObject sname, SgObject sargs,
   pid_t pid = fork();
   if (pid == 0) {
     if (SG_AUTH_TOKEN_P(token)) {
+      if (set_user_context(token)) return -1;
       sysfunc = "setuid";
       if (setgid(SG_AUTH_TOKEN(token)->gid)) return -1;
       if (setuid(SG_AUTH_TOKEN_UID(token))) return -1;
+      
+      environ = child_env(token, env);
+
       /* setup environment variable */
-      if (set_user_context(token, env)) return -1;
       if (env) free(env);
     }
     if (flags & SG_PROCESS_DETACH) {
