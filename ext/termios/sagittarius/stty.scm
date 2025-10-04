@@ -30,7 +30,8 @@
 
 ;; the API names are taken from Chibi Scheme
 (library (sagittarius stty)
-    (export stty with-stty with-raw-io)
+    (export stty with-stty with-raw-io
+	    stty-compose-termios! stty-compose-termios)
     (import (rnrs)
 	    (sagittarius)
 	    (sagittarius termios))
@@ -38,6 +39,18 @@
 ;; borrowed from Chibi
 ;; Copyright (c) 2011 Alex Shinn.  All rights reserved.
 ;; BSD-style license: http://synthcode.com/license.txt
+(define ((ispeed-handler v) attr) (sys-cfsetispeed attr v))
+(define ((ospeed-handler v) attr) (sys-cfsetospeed attr v))
+(define ((min-handler v) attr)
+  (unless (< WMIN 0)
+    (let ((cc (termios-cc attr)))
+      (vector-set! cc VMIN (integer->char v))
+      (termios-cc-set! attr cc))))
+(define ((time-handler v) attr)
+  (unless (< VTIME 0)
+    (let ((cc (termios-cc attr)))
+      (vector-set! cc VTIME (integer->char v))
+      (termios-cc-set! attr cc))))
 (define stty-lookup 
   (let ((ht (make-eq-hashtable)))
     (for-each
@@ -58,8 +71,8 @@
        (cs6      control  ,CS6)		; character size 6 bits
        (cs7      control  ,CS7)		; character size 7 bits
        (cs8      control  ,CS8)		; character size 8 bits
-       (ispeed   special  #f)		; not supported yet
-       (ospeed   special  #f)		; not supported yet
+       (ispeed   special  ,ispeed-handler)
+       (ospeed   special  ,ospeed-handler)
        (hupcl    control  ,HUPCL)	; Stop asserting modem control line
        (cstopb   control  ,CSTOPB)	; Use two (one) stop bits per character
        (cread    control  ,CREAD)	; Enable the receiver
@@ -81,7 +94,8 @@
 					; character when the input queue is 
 					; nearly full and START characters
 					; to resume data transmission
-       
+       (imaxbel  input    ,IMAXBEL)
+       (iutf8    input    ,IUTF8)
        ;; Output Modes
        (opost    output   ,OPOST)	; Post-process output
        (ocrnl    output   ,OCRNL)	; Map CR to NL on output
@@ -123,21 +137,32 @@
 					; line from the display, if possible
        (echok    local    ,ECHOK)	; Echo NL after KILL character
        (echonl   local    ,ECHONL)	; Echo NL, even if echo is disabled
+       (echoctl  local    ,ECHOCTL)	; echo control chars as ^(Char)
+       (echoprt  local    ,ECHOPRT)	; Virual erace mode for hardcopy
+       (echoke   local    ,ECHOKE)	; Virual erace for line kill
        (noflsh   local    ,NOFLSH)	; Disable flush after INTR, QUIT, SUSP
+       (pendin   local    ,PENDIN)	; XXX retype pending input
        (tostop   local    ,TOSTOP)	; Send SIGTTOU for background output
 
        ;; Special Control Character Assignments
        (eof      char     ,VEOF)	; EOF character
        (eol      char     ,VEOL)	; EOL character
+       (eol2     char     ,VEOL2)	; EOL2 character
        (erase    char     ,VERASE)	; ERASE character
+       (werase   char     ,VWERASE)     ;
+       (lnext    char     ,VLNEXT)
+       (dsusp    char     ,VDSUSP)
+       (reprint  char     ,VREPRINT)
+       (status   char     ,VSTATUS)
+       (discard  char     ,VDISCARD)
        (intr     char     ,VINTR)	; INTR character
        (kill     char     ,VKILL)	; KILL character
        (quit     char     ,VQUIT)	; QUIT character
        (susp     char     ,VSUSP)	; SUSP character
        (star     char     ,VSTART)	; START character
        (stop     char     ,VSTOP)	; STOP character
-       (min      special  #f)		; not supported yet
-       (time     special  #f)		; not supported yet
+       (min      special  ,min-handler)
+       (time     special  ,time-handler)
 
        ;; Combination Modes
        (evenp    combine  (parity))	; Enable parenb and cs7, disable parodd
@@ -167,22 +192,26 @@
        ))
     ht))
 
-(define (stty port setting)
-  (let ((attr (sys-tcgetattr port)))
-    (let lp ((lst setting)
-             (iflag (termios-iflag attr))
-             (oflag (termios-oflag attr))
-             (cflag (termios-cflag attr))
-             (lflag (termios-lflag attr))
-	     (cc    (termios-cc attr))
-             (invert? #f)
-             (return (lambda (iflag oflag cflag lflag cc)
-                       (termios-iflag-set! attr iflag)
-                       (termios-oflag-set! attr oflag)
-                       (termios-cflag-set! attr cflag)
-                       (termios-lflag-set! attr lflag)
-		       (termios-cc-set! attr cc)
-                       (sys-tcsetattr! port TCSANOW attr))))
+(define (stty-compose-termios setting)
+  (stty-compose-termios! (make-termios) setting))
+
+(define (stty-compose-termios! attr setting)
+  (let lp ((lst setting)
+           (iflag (termios-iflag attr))
+           (oflag (termios-oflag attr))
+           (cflag (termios-cflag attr))
+           (lflag (termios-lflag attr))
+	   (cc    (termios-cc attr))
+           (invert? #f)
+	   (special (lambda (attr) attr))
+	   (return (lambda (iflag oflag cflag lflag cc special)
+		     (termios-iflag-set! attr iflag)
+		     (termios-oflag-set! attr oflag)
+		     (termios-cflag-set! attr cflag)
+		     (termios-lflag-set! attr lflag)
+		     (termios-cc-set! attr cc)
+		     (special attr)
+		     attr)))
       (define (join old new)
         (if invert? (bitwise-and old (bitwise-not new)) (bitwise-ior old new)))
       (cond
@@ -190,44 +219,54 @@
         (let ((command (car lst)))
           (cond
            ((pair? command) ;; recurse on sub-expr
-            (lp command iflag oflag cflag lflag cc invert?
-                (lambda (i o c l cc) (lp (cdr lst) i o c l cc invert? return))))
+            (lp command iflag oflag cflag lflag cc invert? special
+                (lambda (i o c l cc special) 
+		  (lp (cdr lst) i o c l cc invert? special return))))
            ((eq? command 'not) ;; toggle current setting
-            (lp (cdr lst) iflag oflag cflag lflag cc (not invert?) return))
+            (lp (cdr lst) iflag oflag cflag lflag cc (not invert?) special return))
            (else
             (let ((x (hashtable-ref stty-lookup command #f)))
               (case (and x (car x))
                 ((input)
                  (lp (cdr lst) (join iflag (cadr x))
-		     oflag cflag lflag cc invert? return))
+		     oflag cflag lflag cc invert? special return))
                 ((output)
                  (lp (cdr lst) iflag (join oflag (cadr x))
-		     cflag lflag cc invert? return))
+		     cflag lflag cc invert? special return))
                 ((control)
                  (lp (cdr lst) iflag oflag (join cflag (cadr x))
-		     lflag cc invert? return))
+		     lflag cc invert? special return))
                 ((local)
                  (lp (cdr lst) iflag oflag cflag 
-		     (join lflag (cadr x)) cc invert? return))
+		     (join lflag (cadr x)) cc invert? special return))
                 ((char)
 		 ;; must be a char
 		 (let ((c (or (cadr lst) #\null)))
 		   (unless (char? c)
-		     (error 'stty "char property must be followed by character "
+		     (error 'stty "char property must be followed by character" 
 			    c))
-		   (vector-set! cc (cadr x) c))
+		   ;; default value for char property is -1, so
+		   ;; we can't put
+		   (unless (< (cadr x) 0) (vector-set! cc (cadr x) c)))
                  ;;(term-attrs-cc-set! attr (cadr x) (or (cadr lst) 0))
-                 (lp (cddr lst) iflag oflag cflag lflag cc invert? return))
+                 (lp (cddr lst) iflag oflag cflag lflag cc
+		     invert? special return))
                 ((combine)
-                 (lp (cadr x) iflag oflag cflag lflag cc invert?
-                     (lambda (i o c l cc)
-		       (lp (cdr lst) i o c l cc invert? return))))
+                 (lp (cadr x) iflag oflag cflag lflag cc invert? special
+                     (lambda (i o c l cc special)
+		       (lp (cdr lst) i o c l cc invert? special return))))
                 ((special)
-                 (error 'stty "special settings not yet supported" command))
+		 (let ((handler ((cadr x) (cadr lst))))
+		   (lp (cddr lst) iflag oflag cflag lflag cc invert?
+		       (lambda (attr) (handler attr) (special attr)) return)))
                 (else
                  (error 'stty "unknown stty command" command))))))))
        (else
-        (return iflag oflag cflag lflag cc))))))
+        (return iflag oflag cflag lflag cc special)))))
+
+(define (stty port setting)
+  (let ((attr (stty-compose-termios! (sys-tcgetattr port) setting)))
+    (sys-tcsetattr! port TCSANOW attr)))
 
 (define (with-stty setting thunk :optional (port (current-input-port)))
   (cond ((sys-tcgetattr port) =>

@@ -29,6 +29,7 @@
 ;;;
 
 ;; for now we export all primitives
+#!nounbound
 (library (sagittarius termios)
     (export make-termios
 	    termios-iflag termios-iflag-set!
@@ -50,106 +51,28 @@
 	    sys-tcsetattr!
 	    
 	    ;; constants
-	    BRKINT
-	    ICRNL
-	    IGNBRK
-	    IGNCR
-	    IGNPAR
-	    INLCR
-	    INPCK
-	    ISTRIP
-	    ;; IUCLC ;; OSX
-	    IXANY
-	    IXOFF
-	    IXON
-	    PARMRK
-	    OPOST
-	    ;; OLCUC ;; OSX
-	    ONLCR
-	    OCRNL
-	    ONOCR
-	    ONLRET
-	    OFILL
-	    NL0
-	    NL1
-	    NLDLY
-	    CR0
-	    CR1
-	    CR2
-	    CR3
-	    CRDLY
-	    TAB0
-	    TAB1
-	    TAB2
-	    TAB3
-	    TABDLY
-	    BS0
-	    BS1
-	    BSDLY
-	    VT0
-	    VT1
-	    VTDLY
-	    FF0
-	    FF1
-	    FFDLY
-	    B0
-	    B50
-	    B75
-	    B110
-	    B134
-	    B150
-	    B200
-	    B300
-	    B600
-	    B1200
-	    B1800
-	    B2400
-	    B4800
-	    B9600
-	    B19200
-	    B38400
-	    CS5
-	    CS6
-	    CS7
-	    CS8
-	    CSIZE
-	    CSTOPB
-	    CREAD
-	    PARENB
-	    PARODD
-	    HUPCL
-	    CLOCAL
-	    ECHO
-	    ECHOE
-	    ECHOK
-	    ECHONL
-	    ICANON
-	    IEXTEN
-	    ISIG
-	    NOFLSH
-	    TOSTOP
-	    TCSANOW
-	    TCSADRAIN
-	    TCSAFLUSH
-	    TCIFLUSH
-	    TCIOFLUSH
-	    TCOFLUSH
-	    TCIOFF
-	    TCION
-	    TCOOFF
-	    TCOON
-	    VEOF
-	    VEOL
-	    VERASE
-	    VINTR
-	    VKILL
-	    VMIN
-	    VQUIT
-	    VSTART
-	    VSTOP
-	    VSUSP
-	    VTIME
-	    NCCS
+	    IGNBRK BRKINT IGNPAR PARMRK INPCK ISTRIP INLCR IGNCR
+	    ICRNL IUCLC IXON IXANY IXOFF IMAXBEL IUTF8
+
+	    OPOST OLCUC ONLCR OCRNL ONOCR ONLRET OFILL OFDEL NLDLY
+	    CRDLY TABDLY BSDLY VTDLY FFDLY NL0 NL1 CR0 CR1 CR2 CR3
+	    TAB0 TAB1 TAB2 TAB3 BS0 BS1 VT0 VT1 FF0 FF1
+
+	    CBAUD CSIZE CS5 CS6 CS7 CS8 CSTOPB CREAD PARENB PARODD
+	    HUPCL CLOCAL
+
+	    ISIG ICANON XCASE ECHO ECHOE ECHOK ECHONL ECHOCTL ECHOPRT
+	    ECHOKE DEFECHO FLUSHO NOFLSH TOSTOP PENDIN IEXTEN
+	    VEOF VEOL VEOL2 VERASE VWERASE VKILL VREPRINT VINTR VQUIT
+	    VSUSP VDSUSP VSTART VSTOP VLNEXT VDISCARD VMIN VTIME
+	    VSTATUS NCCS
+
+	    TCSANOW TCSADRAIN TCSAFLUSH
+	    TCIFLUSH TCIOFLUSH
+	    TCOFLUSH TCIOFF TCION TCOOFF TCOON
+
+	    B0 B50 B75 B110 B134 B150 B200 B300
+	    B600 B1200 B1800 B2400 B4800 B9600 B19200 B38400
 	    )
     (import (rnrs)
 	    (clos user)

@@ -4,6 +4,16 @@
 
 INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
 
+SET(INCL_COMMAND
+  ${HOST_SASH}
+  -L${CMAKE_CURRENT_SOURCE_DIR}/../../lib
+  -L${CMAKE_CURRENT_SOURCE_DIR}/../../sitelib
+  ${CMAKE_CURRENT_SOURCE_DIR}/gen-termios-incl.scm)
+ADD_CUSTOM_COMMAND(OUTPUT termios.incl
+  COMMAND ${INCL_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/termios.incl
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/gen-termios-incl.scm)
+ADD_CUSTOM_TARGET(termios-incl DEPENDS "termios.incl")
+
 # termios
 IF (WINDOWS_SUPPORT)
   SET(OS_SRC win_termios.c)

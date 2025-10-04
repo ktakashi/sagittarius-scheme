@@ -156,19 +156,27 @@
 #define TCOOFF 2 /* Suspend output. */
 #define TCOON  3 /* Restart output. */
 
-#define VEOF   	0 /* EOF character */
-#define VEOL   	1 /* EOL character */
-#define VERASE 	2 /* ERASE character */
-#define VINTR 	3 /* INTR character */
-#define VKILL  	4 /* KILL character */
-#define VMIN 	5 /* MIN value */
-#define VQUIT  	6 /* QUIT character */
-#define VSTART  7 /* START character */
-#define VSTOP  	8 /* STOP character */
-#define VSUSP  	9 /* SUSP character */
-#define VTIME   10
+#define VEOF   	 0 /* EOF character */
+#define VEOL   	 1 /* EOL character */
+#define VERASE 	 2 /* ERASE character */
+#define VINTR 	 3 /* INTR character */
+#define VKILL  	 4 /* KILL character */
+#define VMIN 	 5 /* MIN value */
+#define VQUIT  	 6 /* QUIT character */
+#define VSTART   7 /* START character */
+#define VSTOP  	 8 /* STOP character */
+#define VSUSP  	 9 /* SUSP character */
+#define VTIME    10
+/* XSI-conformat systems thing */
+#define VEOL2    11
+#define VWERASE  12
+#define VREPRINT 13
+#define VLNEXT   14
+#define VSTATUS  15
+#define VDSUSP   16
+#define VDISCARD 17
 
-#define NCCS    11
+#define NCCS     18
 
 typedef unsigned char  cc_t;
 typedef unsigned int   tcflag_t;
