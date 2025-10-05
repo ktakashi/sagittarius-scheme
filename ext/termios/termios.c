@@ -121,7 +121,7 @@ SgObject Sg_MakeTermios()
 extern void Sg__Init_termios_stub(SgLibrary *lib);
 
 #define SUBSTITUTE
-#include "termios.incl"
+#include <termios.incl>
 #undef SUBSTITUTE
 
 SG_EXTENSION_ENTRY void Sg_Init_sagittarius__termios()
@@ -137,6 +137,6 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__termios()
 #define TERMIOS_VAR(name)						\
   Sg_MakeBinding(lib, SG_INTERN(#name), SG_MAKE_INT(name), FALSE)
 
-#include "termios.incl"
+#include <termios.incl>
 #undef TERMIOS_VAR
 }
