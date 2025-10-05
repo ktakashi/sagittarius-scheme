@@ -9,7 +9,7 @@ SET(INCL_COMMAND
   -L${CMAKE_CURRENT_SOURCE_DIR}/../../lib
   -L${CMAKE_CURRENT_SOURCE_DIR}/../../sitelib
   ${CMAKE_CURRENT_SOURCE_DIR}/gen-termios-incl.scm)
-ADD_CUSTOM_COMMAND(OUTPUT termios.incl
+ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/termios.incl
   COMMAND ${INCL_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/termios.incl
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/gen-termios-incl.scm)
 ADD_CUSTOM_TARGET(termios-incl DEPENDS "termios.incl")
@@ -34,6 +34,7 @@ ADD_STUBS(sagittarius--termios
   COMMAND ${GENSTUB}
   FILES termios_stub.stub
   OUTTREE)
+ADD_DEPENDENCIES(sagittarius--termios termios-incl)
 ADD_FEATURE(termios)
 
 IF (USE_CPP_FOR_BROKEN_LINKER)
