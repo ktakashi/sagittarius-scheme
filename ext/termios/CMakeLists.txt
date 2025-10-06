@@ -17,7 +17,7 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
 
 # termios
 IF (WINDOWS_SUPPORT)
-  SET(OS_SRC win_termios.c)
+  ADD_LIBRARY(win-termios MODULE win_termios.c)
 ELSE()
   CHECK_C_SOURCE_COMPILES(
     "#include <termios.h>
@@ -27,7 +27,6 @@ ENDIF()
 
 ADD_LIBRARY(sagittarius--termios MODULE
   termios.c
-  ${OS_SRC}
   ${CMAKE_CURRENT_BINARY_DIR}/termios_stub.c)
 COPY_TARGET(sagittarius--termios ${CMAKE_LIBRARY_OUTPUT_DIRECTORY} TRUE)
 ADD_STUBS(sagittarius--termios
@@ -35,6 +34,11 @@ ADD_STUBS(sagittarius--termios
   FILES termios_stub.stub
   OUTTREE)
 ADD_DEPENDENCIES(sagittarius--termios termios-incl)
+IF (WINDOWS_SUPPORT)
+  ADD_DEPENDENCIES(sagittarius--termios win-termios)
+  TARGET_LINK_LIBRARIES(sagittarius--termios win-termios)
+ENDIF()
+
 ADD_FEATURE(termios)
 
 IF (USE_CPP_FOR_BROKEN_LINKER)
