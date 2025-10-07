@@ -17,7 +17,7 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
 
 # termios
 IF (WINDOWS_SUPPORT)
-  ADD_LIBRARY(win-termios MODULE win_termios.c)
+  ADD_LIBRARY(win-termios SHARED win_termios.c)
 ELSE()
   CHECK_C_SOURCE_COMPILES(
     "#include <termios.h>
