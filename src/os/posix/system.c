@@ -72,6 +72,7 @@
   TODO it might be better to check in CMakeLists.txt
  */
 #include <sys/utsname.h>
+#include <pwd.h>
 
 #ifdef __APPLE__
 /*
@@ -102,6 +103,10 @@
 #include <sagittarius/private/number.h>
 #include <sagittarius/private/bytevector.h>
 #include <sagittarius/private/vector.h>
+
+#ifdef HAVE_PAM_APPL_H
+#  include <security/pam_appl.h>
+#endif
 
 #ifndef __APPLE__ 
 extern char** environ;
@@ -676,6 +681,47 @@ static int init_fd(int *fds, SgObject *port,
   return TRUE;
 }
 
+static int set_user_context(SgObject token, char **env)
+{
+  /* see src/os/posix/pam.c :) */
+  struct passwd *pw = (struct passwd *)SG_AUTH_TOKEN(token)->userInfo;
+#if defined(HAVE_BSD_AUTH_H)
+  /* Easy for BSD... */
+  return setusercontext(NULL, pw, pw->pw_uid, LOGIN_SETALL);
+#elif defined (HAVE_PAM_APPL_H)
+  /* PAM */
+  setenv("HOME", pw->pw_dir, 1);
+  setenv("SHELL", pw->pw_shell, 1);
+  setenv("USER", pw->pw_name, 1);
+  setenv("LOGNAME", pw->pw_name, 1);
+
+  while (*env) {
+    char *eq = strchr(*env, '=');
+    *eq = '\0';
+    eq++;
+    if (strcmp("NTLMPWD", *env) != 0) setenv(*env, eq, 1);
+    env++;
+  }
+  return 0;
+#endif
+}
+
+/* 2 step to make sure PAM session is retrieved on parent process */
+static char** pam_environ(SgObject token)
+{
+#if defined (HAVE_PAM_APPL_H)
+  pam_handle_t *pamh = (pam_handle_t *)SG_AUTH_TOKEN(token)->rawToken;
+  char **env = NULL;
+  int r = pam_open_session(pamh, 0);
+  if (r != PAM_SUCCESS) return env;
+  env = pam_getenvlist(pamh);
+  pam_close_session(pamh, PAM_SILENT);
+  return env;
+#else
+  return NULL;
+#endif
+}
+
 uintptr_t Sg_SysForkProcessAs(SgObject sname, SgObject sargs,
 			      SgString *dir,
 			      SgObject token,
@@ -686,6 +732,7 @@ uintptr_t Sg_SysForkProcessAs(SgObject sname, SgObject sargs,
   const char *name = Sg_Utf32sToUtf8s(sname), *cdir = NULL, **args;
   int count = (int)Sg_Length(sargs), i;
   const char *sysfunc = "fork";
+  char **env;
   SgObject cp;	
 #ifdef HAVE_ALLOCA
   args = alloca(sizeof(char *) * (count + 2));
@@ -700,12 +747,16 @@ uintptr_t Sg_SysForkProcessAs(SgObject sname, SgObject sargs,
     args[i++] = Sg_Utf32sToUtf8s(SG_STRING(SG_CAR(cp)));
   }
   args[i] = NULL;
-
+  env = SG_AUTH_TOKEN_P(token) ? pam_environ(token) : NULL;
   pid_t pid = fork();
   if (pid == 0) {
     if (SG_AUTH_TOKEN_P(token)) {
       sysfunc = "setuid";
+      if (setgid(SG_AUTH_TOKEN(token)->gid)) return -1;
       if (setuid(SG_AUTH_TOKEN_UID(token))) return -1;
+      /* setup environment variable */
+      if (set_user_context(token, env)) return -1;
+      if (env) free(env);
     }
     if (flags & SG_PROCESS_DETACH) {
       /* why double-fork?
@@ -736,6 +787,7 @@ uintptr_t Sg_SysForkProcessAs(SgObject sname, SgObject sargs,
     exit(127);
     /* never reached */
   }
+  if (env) free(env);
   return pid;
 }
 
