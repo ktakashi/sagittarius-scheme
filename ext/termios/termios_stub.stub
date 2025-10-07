@@ -37,7 +37,8 @@
       (Sg_AssertionViolation 'sys-tc* (SG_MAKE_STRING "not a file port") p))
     (.if "_WIN32"
 	 (let ((h::intptr_t (Sg_FileFD file)))
-	   ;; TODO is this correct?
+	   ;; TODO use DuplicateHandle to duplicate handle
+	   ;; we don't want to move the ownership to CRT
 	   (return (_open_osfhandle h (logior _O_APPEND _O_RDONLY))))
 	 (return (cast int (Sg_FileFD file))))))
 
@@ -78,3 +79,11 @@ termios_p->c_cflag |= CS8;
 		  (lognot (logior ECHO ECHONL ICANON ISIG IEXTEN)))
 	 (logand= (-> p c_cflag) (lognot (logior CSIZE PARENB)))
 	 (logior= (-> p c_cflag) CS8))))
+
+(define-c-proc %raw-termios->termios (p::<number>)
+  (let ((r::intptr_t 0))
+    (.if "SIZEOF_VOIDP == 8"
+	 (set! r (cast intptr_t (Sg_GetIntegerS64Clamp p SG_CLAMP_NONE NULL)))
+	 (set! r (cast intptr_t (Sg_GetIntegerClamp p SG_CLAMP_NONE NULL))))
+    (result (Sg_FromTermios (cast |struct termios *| r)))))
+  

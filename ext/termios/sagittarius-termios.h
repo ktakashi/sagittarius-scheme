@@ -52,6 +52,7 @@ typedef struct {
 SG_CDECL_BEGIN
 
 SgObject Sg_MakeTermios();
+SgObject Sg_FromTermios(struct termios * termios);
 
 SG_CDECL_END
 #endif

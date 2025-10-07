@@ -118,6 +118,25 @@ SgObject Sg_MakeTermios()
   return SG_OBJ(tios);
 }
 
+SgObject Sg_FromTermios(struct termios * termios)
+{
+  SgTermios *tios = SG_TERMIOS(Sg_MakeTermios());
+  int i;
+  speed_t s;
+  tios->term.c_iflag = termios->c_iflag;
+  tios->term.c_oflag = termios->c_oflag;
+  tios->term.c_cflag = termios->c_cflag;
+  tios->term.c_lflag = termios->c_lflag;
+  for (i = 0; i < NCCS; i++) {
+    tios->term.c_cc[i] = termios->c_cc[i];
+  }
+  s = cfgetispeed(termios);
+  cfsetispeed(&tios->term, s);
+  s = cfgetospeed(termios);
+  cfsetospeed(&tios->term, s);
+  return SG_OBJ(tios);
+}
+
 extern void Sg__Init_termios_stub(SgLibrary *lib);
 
 #define SUBSTITUTE
