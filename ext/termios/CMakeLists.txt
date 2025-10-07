@@ -17,7 +17,7 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
 
 # termios
 IF (WINDOWS_SUPPORT)
-  ADD_LIBRARY(win-termios SHARED win_termios.c)
+  ADD_LIBRARY(win-termios STATIC win_termios.c)
 ELSE()
   CHECK_C_SOURCE_COMPILES(
     "#include <termios.h>
@@ -34,10 +34,6 @@ ADD_STUBS(sagittarius--termios
   FILES termios_stub.stub
   OUTTREE)
 ADD_DEPENDENCIES(sagittarius--termios termios-incl)
-IF (WINDOWS_SUPPORT)
-  ADD_DEPENDENCIES(sagittarius--termios win-termios)
-  TARGET_LINK_LIBRARIES(sagittarius--termios win-termios)
-ENDIF()
 
 ADD_FEATURE(termios)
 
@@ -55,7 +51,15 @@ SET_TARGET_PROPERTIES(sagittarius--termios PROPERTIES PREFIX "")
 IF(APPLE)
   SET_TARGET_PROPERTIES(sagittarius--termios PROPERTIES SUFFIX ".dylib")
 ENDIF()
-TARGET_LINK_LIBRARIES(sagittarius--termios sagittarius)
+
+IF (WINDOWS_SUPPORT)
+  ADD_DEPENDENCIES(sagittarius--termios win-termios)
+  TARGET_LINK_LIBRARIES(sagittarius--termios win-termios sagittarius)
+ELSE()
+  TARGET_LINK_LIBRARIES(sagittarius--termios sagittarius)
+ENDIF()
+
+
 
 INSTALL(TARGETS sagittarius--termios
   DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
