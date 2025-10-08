@@ -716,7 +716,7 @@ static char** pam_environ(SgObject token)
 #if defined (HAVE_PAM_APPL_H)
   pam_handle_t *pamh = (pam_handle_t *)SG_AUTH_TOKEN(token)->rawToken;
   char **env = NULL;
-  int r = pam_open_session(pamh, 0);
+  int r = pam_open_session(pamh, PAM_SILENT);
   if (r != PAM_SUCCESS) return env;
   env = pam_getenvlist(pamh);
   pam_close_session(pamh, PAM_SILENT);
