@@ -107,6 +107,9 @@
 #ifdef HAVE_PAM_APPL_H
 #  include <security/pam_appl.h>
 #endif
+#if defined(HAVE_BSD_AUTH_H)
+#  include <login_cap.h>
+#endif
 
 #ifndef __APPLE__ 
 extern char** environ;
