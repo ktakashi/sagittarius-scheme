@@ -52,7 +52,14 @@
 	    <ssh-server-session-channel>
 
 	    ssh-channel-data-handler
-	    ssh-channel-data-handler-set!)
+	    ssh-channel-data-handler-set!
+
+	    ssh-channel-put-attribute!
+	    ssh-channel-ref-attribute
+	    ssh-channel-after-channel-request!
+
+	    ssh-invalidate-auth-ticket
+	    )
     (import (rnrs)
 	    (clos core)
 	    (clos user)
@@ -69,12 +76,24 @@
 (define-class <ssh-server-connection> (<ssh-server-transport> <ssh-connection>)
   (auth-ticket))
 (define (ssh-server-connection? o) (is-a? o <ssh-server-connection>))
+(define-generic ssh-invalidate-auth-ticket)
+(define-method ssh-invalidate-auth-ticket (t) #t) ;; do nothing
 
 (define-class <ssh-server-channel> (<ssh-channel>)
   ((data-handler :init-value #f :reader ssh-channel-data-handler
-		 :writer ssh-channel-data-handler-set!)))
+		 :writer ssh-channel-data-handler-set!)
+   (attributs :init-form (make-eqv-hashtable)
+	      :reader ssh-channel-attributes)))
 (define-class <ssh-server-session-channel> (<ssh-server-channel>)
   ())
+
+(define (ssh-channel-put-attribute! c (name symbol?) value)
+  (hashtable-set! (ssh-channel-attributes c) name value))
+(define (ssh-channel-ref-attribute c (name symbol?))
+  (hashtable-ref (ssh-channel-attributes c) name #f))
+(define after-channel-request (list 'after-channel-request))
+(define (ssh-channel-after-channel-request! c thunk)
+  (hashtable-set! (ssh-channel-attributes c) after-channel-request thunk))
 
 (define *ssh-accept-anonymous-connection-request*
   (make-parameter #f))
@@ -92,6 +111,12 @@
 (define-method ssh-handle-service-request ((m (equal +ssh-connection+))
 					   transport ticket)
   (internal-ssh-connection-handler transport ticket))
+
+(define-method ssh-server-on-disconnect ((t <ssh-server-connection>))
+  (let ((ticket (slot-ref t 'auth-ticket)))
+    (slot-set! t 'auth-ticket #f)
+    (ssh-invalidate-auth-ticket ticket)))
+      
 
 (define (internal-ssh-connection-handler transport auth-ticket?)
   ;; convert server transport to server connection
@@ -140,14 +165,24 @@
 
 (define (ssh-handle-channel-request-packet connection packet)
   (define msg (bytevector->ssh-message <ssh-msg-channel-request> packet))
+  (define (send c succes?)
+    (when (~ msg 'want-reply)
+      (if succes?
+	  (ssh-send-channel-request-success c)
+	  (ssh-send-channel-request-failure c)))
+    (cond ((hashtable-ref (ssh-channel-attributes c) after-channel-request #f) =>
+	   (lambda (thunk)
+	     (hashtable-delete! (ssh-channel-attributes c) after-channel-request)
+	     (thunk)))))
   (cond ((search-channel connection (~ msg 'recipient-channel)) =>
 	 (lambda (c)
 	   (let ((t (~ msg 'request-type)))
 	     (cond ((ssh-handle-channel-request t c msg packet) =>
 		    (lambda (data-handler)
-		      (ssh-channel-data-handler-set! c data-handler)
-		      (ssh-send-channel-request-success c)))
-		   (else (ssh-send-channel-request-failure c))))))))
+		      (when (procedure? data-handler)
+			(ssh-channel-data-handler-set! c data-handler))
+		      (send c #t)))
+		   (else (send c #f))))))))
 
 (define (ssh-handle-channel-data-packet connection packet)
   (let ((recipient (bytevector-u32-ref packet 1 (endianness big))))
@@ -184,8 +219,9 @@
 		 (recipient (~ channel 'sender-channel)))
 	     (bytevector-u8-set! buffer 0 +ssh-msg-channel-data+)
 	     (bytevector-u32-set! buffer 1 recipient (endianness big))
+	     (bytevector-u32-set! buffer 5 len (endianness big))
 	     (bytevector-copy! data offset buffer data-offset len)
-	     (ssh-write-packet (~ channel 'connection )
+	     (ssh-write-packet (~ channel 'connection)
 			       buffer 0 (+ data-offset len))
 	     (ssh-channel-update-peer-current-size! channel len)
 	     (if (= data-len len)

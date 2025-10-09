@@ -41,6 +41,7 @@
 		  <ssh-msg-channel-close>
 		  <ssh-msg-channel-request>
 		  <ssh-msg-channel-pty-request>
+		  <ssh-msg-channel-window-change>
 		  <ssh-msg-channel-success>
 		  <ssh-msg-channel-failure>
 		  <ssh-msg-channel-data>

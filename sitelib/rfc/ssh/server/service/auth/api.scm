@@ -34,7 +34,8 @@
 	    ssh-authenticate-user
 	    <ssh-credential> ssh-credential?
 	    ssh-credential-username
-	    <ssh-auth-ticket> ssh-auth-ticket?)
+	    <ssh-auth-ticket> ssh-auth-ticket?
+	    ssh-userauth-supported-methods)
     (import (rnrs)
 	    (clos core)
 	    (clos user)
@@ -62,5 +63,7 @@
   :class <predicate-specializable-generic>)
 (define-method  ssh-authenticate-user (service credential)
   (error 'ssh-authenticate-user "Failed to authenticate" service))
+
+(define-generic ssh-userauth-supported-methods)
 
 )

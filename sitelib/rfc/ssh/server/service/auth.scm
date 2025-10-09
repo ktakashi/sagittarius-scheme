@@ -36,6 +36,7 @@
 	    ssh-handle-userauth-request-packet
 	    ssh-handle-userauth-request
 	    ssh-authenticate-user
+	    ssh-userauth-supported-methods
 
 	    <ssh-credential> ssh-credential?
 	    <ssh-auth-ticket> ssh-auth-ticket?
@@ -84,20 +85,16 @@
   (guard (e (else
 	     ((*ssh-authentication-error-handler*)
 	      service-name username method e)
-	     (send-userauth-failure transport)))
+	     (send-userauth-failure transport username)))
     (cond ((not (eq? (~ transport 'state) 'authenticating))
 	   (ssh-unimplemented transport))
 	  ((ssh-handle-userauth-request method transport packet) =>
 	   (lambda (ticket) (finish transport ticket)))
-	  (else (send-userauth-failure transport)))))
+	  (else (send-userauth-failure transport username)))))
 
-(define builtin-supporting-method
-  (list +ssh-auth-method-keyboard-interactive+
-	+ssh-auth-method-public-key+))
-
-(define (send-userauth-failure transport)
-  (let ((msg (make <ssh-msg-userauth-failure>
-	       :list (list->name-list builtin-supporting-method))))
+(define (send-userauth-failure transport username)
+  (let* ((methods (ssh-userauth-supported-methods username))
+	 (msg (make <ssh-msg-userauth-failure> :list (list->name-list methods))))
     (ssh-write-ssh-message transport msg)))
 
 (define (send-userauth-success transport)

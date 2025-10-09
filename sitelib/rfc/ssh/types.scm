@@ -317,7 +317,10 @@
   (call-next-method)
   (let ((size (~ o 'peer-packet-size)))
     (set! (~ o 'channel-buffer) (make-bytevector size))))
-
+(define-method write-object ((o <ssh-channel>) out)
+  (format out "#<ssh-channel ~a:~a ~a:~a>"
+	  (~ o 'host-window-size) (~ o 'peer-window-size)
+	  (~ o 'host-packet-size) (~ o 'peer-packet-size)))
 ;; base class for SSH message
 (define-class <ssh-message> (<ssh-type>) ())
 

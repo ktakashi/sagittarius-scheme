@@ -37,6 +37,7 @@
 	    <ssh-msg-channel-close>
 	    <ssh-msg-channel-request>
 	    <ssh-msg-channel-pty-request>
+	    <ssh-msg-channel-window-change>
 	    <ssh-msg-channel-success>
 	    <ssh-msg-channel-failure>
 	    <ssh-msg-channel-data>
@@ -114,6 +115,12 @@
    (width-in-pixels  :uint32 640)
    (height-in-pixels :uint32 480)
    (mode :string #vu8(0))))
+
+(define-ssh-message <ssh-msg-channel-window-change> (<ssh-msg-channel-request>)
+  ((width  :uint32)
+   (height :uint32)
+   (width-in-pixels  :uint32)
+   (height-in-pixels :uint32)))
 
 ;; exit status
 (define-ssh-message <ssh-msg-exit-status> (<ssh-message>)

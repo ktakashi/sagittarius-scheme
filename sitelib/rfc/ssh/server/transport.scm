@@ -43,7 +43,9 @@
 
 	    <ssh-server-transport>
 	    ssh-initiate-key-exchange
-	    ssh-handle-transport-packet)
+	    ssh-handle-transport-packet
+
+	    ssh-server-on-disconnect)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius object)
@@ -100,6 +102,8 @@
 		    v)))
 
 (define-generic ssh-host-key-algorithm)
+(define-generic ssh-server-on-disconnect)
+(define-method ssh-server-on-disconnect (t) #t) ;; do nothihg
 
 (define (key-pair->ssh-host-key kp)
   (let ((private (key-pair-private kp))
@@ -126,6 +130,7 @@
 
 (define (close-server-ssh-transport! transport code
 				     :optional (description #f))
+  (ssh-server-on-disconnect transport)
   (unless (socket-closed? (~ transport 'socket))
     (let ((msg (make <ssh-msg-disconnect> :code code
 		     :description (or description ""))))
@@ -135,6 +140,7 @@
 (define (ssh-handle-transport-packet transport packet)
   (define type (bytevector-u8-ref packet 0))
   (cond ((= type +ssh-msg-disconnect+)
+	 (ssh-server-on-disconnect transport)
 	 ;; the client must already be closed, so just close socket
 	 (close-transport-socket! transport)
 	 packet)
