@@ -31,15 +31,35 @@
 (define-c-proc sys-cfsetospeed (tios::<termios> ospeed::<fixnum>)
   ($result sys-cfsetospeed (cfsetospeed (SG_TERMIOS_TERMIOS tios) ospeed)))
 
+"#if _WIN32"
+(define-cfn port->fd (p::SgPort*) ::HANDLE :static
+  (let ((file (Sg_PortFile p)))
+    (unless file
+      (Sg_AssertionViolation 'sys-tc* (SG_MAKE_STRING "not a file port") p))
+    (return (cast HANDLE (Sg_FileFD file)))))
+"#else"
 (define-cfn port->fd (p::SgPort*) ::int :static
   (let ((file (Sg_PortFile p)))
     (unless file
       (Sg_AssertionViolation 'sys-tc* (SG_MAKE_STRING "not a file port") p))
+    (return (cast int (Sg_FileFD file)))))
+"#endif"
+
+#;(define-cfn port->fd (p::SgPort*) ::int :static
+  (let ((file (Sg_PortFile p)))
+    (unless file
+      (Sg_AssertionViolation 'sys-tc* (SG_MAKE_STRING "not a file port") p))
     (.if "_WIN32"
-	 (let ((h::intptr_t (Sg_FileFD file)))
-	   ;; TODO use DuplicateHandle to duplicate handle
+	 (let ((h::HANDLE NULL))
+	   (unless (DuplicateHandle (GetCurrentProcess) (cast HANDLE (Sg_FileFD file))
+				    (GetCurrentProcess) (& h)
+				    0 FALSE DUPLICATE_SAME_ACCESS)
+	     (Sg_AssertionViolation 'sys-tc*
+				    (Sg_GetLastErrorMessage)
+				    p))
+	   ;; use DuplicateHandle to duplicate handle here
 	   ;; we don't want to move the ownership to CRT
-	   (return (_open_osfhandle h (logior _O_APPEND _O_RDONLY))))
+	   (return (_open_osfhandle (cast intptr_t h) (logior _O_APPEND _O_RDONLY))))
 	 (return (cast int (Sg_FileFD file))))))
 
 (define-c-proc sys-tcdrain (port::<port>)
