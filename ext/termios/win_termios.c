@@ -59,15 +59,29 @@ speed_t cfgetospeed(const struct termios * termios_p)
   return termios_p->c_ospeed;
 }
 
+static const speed_t speed_table[] = {
+  B0, B50, B75, B110, B134, B150, B200, B300, B600, B1200, B1800, B2400,
+  B4800, B9600, B19200, B38400
+};
+
+static int is_supported_speed(speed_t s)
+{
+  for (size_t i = 0; i < sizeof(speed_table)/sizeof(speed_table[0]); i++) {
+    if (speed_table[i] == s) return TRUE;
+  }
+  return FALSE;
+}
 int cfsetispeed(struct termios *termios_p, speed_t ispeed)
 {
+  if (!is_supported_speed(ispeed)) return -1;
   termios_p->c_ispeed = ispeed;
-  return TRUE;
+  return 0;
 }
 int cfsetospeed(struct termios *termios_p, speed_t ospeed)
 {
+  if (!is_supported_speed(ospeed)) return -1;
   termios_p->c_ospeed = ospeed;
-  return TRUE;
+  return 0;
 }
 
 static int finish_up(HANDLE hComm, DWORD event)
@@ -88,9 +102,8 @@ static int finish_up(HANDLE hComm, DWORD event)
 /*
   FlushFileBuffers.
  */
-int tcdrain(int fd)
+int tcdrain(HANDLE hComm)
 {
-  HANDLE hComm = (HANDLE)_get_osfhandle(fd);
   if (hComm == INVALID_HANDLE_VALUE) {
     /* EBADF is set by _get_osfhandle */
     return -1;
@@ -108,19 +121,19 @@ int tcdrain(int fd)
   return finish_up(hComm, EV_TXEMPTY);
 }
 
-int tcflow(int fd, int action)
+int tcflow(HANDLE hComm, int action)
 {
   switch (action) {
   /* If action is TCOOFF, output is suspended. */
   case TCOOFF:
   /* If action is TCOON, suspended output is restarted. */
   case TCOON:
-  /* If action is TCIOFF, the system transmits a STOP character, 
-     which is intended to cause the terminal device to stop 
+  /* If action is TCIOFF, the system transmits a STOP character,
+     which is intended to cause the terminal device to stop
      transmitting data to the system. */
   case TCIOFF:
-  /* If action is TCION, the system transmits a START character, 
-     which is intended to cause the terminal device to start 
+  /* If action is TCION, the system transmits a START character,
+     which is intended to cause the terminal device to start
      transmitting data to the system.  */
   case TCION:
     /* FIXME sorry do nothing */
@@ -132,7 +145,7 @@ int tcflow(int fd, int action)
   return 0;
 }
 
-/* 
+/*
    PurgeComm
  */
 int tcflush(int fd, int queue_selector)
@@ -148,7 +161,7 @@ int tcflush(int fd, int queue_selector)
     /* If queue_selector is TCIFLUSH it flushes data received but
        not read. */
   case TCIFLUSH: flag = PURGE_RXABORT; break;
-    /* If queue_selector is TCOFLUSH it flushes data written but 
+    /* If queue_selector is TCOFLUSH it flushes data written but
        not transmitted. */
   case TCOFLUSH: flag = PURGE_TXABORT; break;
     /* If queue_selector is TCIOFLUSH it flushes both data received
@@ -166,10 +179,10 @@ int tcflush(int fd, int queue_selector)
   return 0;
 }
 
-/* GetCommState, GetCommTimeouts 
+/* GetCommState, GetCommTimeouts
    GetConsoleMode
  */
-int tcgetattr(int fd, struct termios * termios_p)
+int tcgetattr(HANDLE hComm, struct termios * termios_p)
 {
 #define toggle_flag(expr, termois_p, slot, flag)	\
   do {							\
@@ -182,7 +195,6 @@ int tcgetattr(int fd, struct termios * termios_p)
 
   DCB dcb;
   COMMTIMEOUTS timeouts;
-  HANDLE hComm = (HANDLE)_get_osfhandle(fd);
 
   if (hComm == INVALID_HANDLE_VALUE) {
     /* EBADF is set by _get_osfhandle */
@@ -190,7 +202,7 @@ int tcgetattr(int fd, struct termios * termios_p)
   }
   /* initialise it */
   memset(termios_p, 0, sizeof(struct termios));
-  
+
   dcb.DCBlength = sizeof(DCB);
   /* most likely not a serial port so ignore */
   if (GetCommState(hComm, &dcb)) {
@@ -229,9 +241,9 @@ int tcgetattr(int fd, struct termios * termios_p)
     case 5: termios_p->c_cflag |= CS5; break;
     case 6: termios_p->c_cflag |= CS6; break;
     case 7: termios_p->c_cflag |= CS7; break;
-    case 8: 
+    case 8:
       /* fall through  */
-    default: 
+    default:
       termios_p->c_cflag |= CS8; break;
     }
     /* TODO should we add hardware flow control? but it's not posix */
@@ -262,8 +274,9 @@ int tcgetattr(int fd, struct termios * termios_p)
     }
     /* ok on Windows, the keyboard input flags are very limited */
     toggle_flag(mode&ENABLE_ECHO_INPUT, termios_p, c_lflag, ECHO);
-    toggle_flag(mode&ENABLE_PROCESSED_INPUT, termios_p, c_lflag, 
-		(ICANON|ISIG|IEXTEN));
+    toggle_flag(mode&ENABLE_LINE_INPUT, termios_p, c_lflag, ICANON);
+    toggle_flag(mode&ENABLE_PROCESSED_INPUT, termios_p, c_lflag,
+		(ISIG|IEXTEN));
     /* ok some things */
     if (!(mode&ENABLE_PROCESSED_INPUT) && mode&ENABLE_ECHO_INPUT) {
       /* this means there is nothing is processed but showing */
@@ -271,13 +284,18 @@ int tcgetattr(int fd, struct termios * termios_p)
       termios_p->c_lflag |= ECHONL;
       termios_p->c_lflag |= ECHOE;
     }
+    termios_p->c_oflag |= OPOST;
+    termios_p->c_cflag |= CREAD | CS8;
+    termios_p->c_cc[VMIN] = 1;
+    termios_p->c_cc[VTIME] = 0;
     SetLastError(0);
+    
   }
   return 0;
 #undef toggle_flag
 }
 
-pid_t tcgetsid(int fd)
+pid_t tcgetsid(HANDLE hComm)
 {
   /* FIXME */
   set_errno(EBADF);
@@ -285,9 +303,8 @@ pid_t tcgetsid(int fd)
 }
 
 /* SetCommBreak and ClearCommBreak */
-int tcsendbreak(int fd, int duration)
+int tcsendbreak(HANDLE hComm, int duration)
 {
-  HANDLE hComm = (HANDLE)_get_osfhandle(fd);
   COMSTAT stat;
   DWORD errorCode;
   if (hComm == INVALID_HANDLE_VALUE) {
@@ -307,9 +324,8 @@ int tcsendbreak(int fd, int duration)
   return 0;
 }
 
-int tcsetattr(int fd, int actions, struct termios *termios_p)
+int tcsetattr(HANDLE hComm, int actions, struct termios *termios_p)
 {
-  HANDLE hComm = (HANDLE)_get_osfhandle(fd);
   DCB dcb;
 
   if (hComm == INVALID_HANDLE_VALUE) {
@@ -336,6 +352,26 @@ int tcsetattr(int fd, int actions, struct termios *termios_p)
     dcb.XonChar  = termios_p->c_cc[VSTART];
     dcb.XoffChar = termios_p->c_cc[VSTOP];
     dcb.EofChar  = termios_p->c_cc[VEOF];
+
+#if 0
+    /* should we add this? */
+    dcb.BaudRate = termios_p->c_ospeed;
+    switch (termios_p->c_cflag & CSIZE) {
+    case CS5: dcb.ByteSize = 5; break;
+    case CS6: dcb.ByteSize = 6; break;
+    case CS7: dcb.ByteSize = 7; break;
+    case CS8: dcb.ByteSize = 8; break;
+    }
+    if (termios_p->c_cflag & PARENB) {
+      dcb.fParity = TRUE;
+      dcb.Parity = (tio->c_cflag & PARODD) ? ODDPARITY : EVENPARITY;
+    } else {
+      dcb.fParity = FALSE;
+      dcb.Parity = NOPARITY;
+    }
+    dcb.StopBits = (termios_p->c_cflag & CSTOPB) : TWOSTOPBITS : ONE5STOPBITS;
+    dcb.fBinary = TRUE;
+#endif
     /* overwrites ISTRIP */
     if (dcb.EofChar != '\0') {
       dcb.fBinary = FALSE;
@@ -371,20 +407,25 @@ int tcsetattr(int fd, int actions, struct termios *termios_p)
     } while (0)
 
     /* again we ignores a lot */
-    /* ICANON should treat control chars on system  
+    /* ICANON should treat control chars on system
        this must be first so that ECHO can set ENABLE_LINE_INPUT
        when ICANON is off.
      */
-    toggle_flag(mode, termios_p, c_lflag, ICANON, 
+    toggle_flag(mode, termios_p, c_lflag, ICANON,
 		(ENABLE_PROCESSED_INPUT|ENABLE_LINE_INPUT));
-    
+
     /* ENABLE_ECHO_INPUT requires ENABLE_LINE_INPUT */
-    toggle_flag(mode, termios_p, c_lflag, ECHO, 
+    toggle_flag(mode, termios_p, c_lflag, ECHO,
 		(ENABLE_ECHO_INPUT|ENABLE_LINE_INPUT));
     if (!SetConsoleMode(hComm, mode)) {
       set_errno(GetLastError());
       return -1;
     }
+    if (termios_p->c_iflag & IUTF8) {
+      SetConsoleCP(CP_UTF8);
+      SetConsoleOutputCP(CP_UTF8);
+    }
+    
     SetLastError(0);
     /* TODO how can we simulate others? */
 #undef toggle_flag

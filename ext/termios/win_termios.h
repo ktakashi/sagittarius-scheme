@@ -29,6 +29,7 @@
 #ifndef WIN_TERMIOS_H_
 #define WIN_TERMIOS_H_
 
+#include <windows.h>
 /* Not sure if there's someone who wants to use this as DLL. */
 #if defined(WIN_TERMIOS_DLL)
 # if defined(WIN_TERMIOS_DLL_BODY)
@@ -58,6 +59,7 @@
 #define IXOFF   0x0400 /* Enable start/stop input control. */
 #define IXON    0x0800 /* Enable start/stop output control. */
 #define PARMRK  0x1000 /* Mark parity errors. */
+#define IUTF8   0x2000 /* Input is UTF-8 */
 
 /* oflag bits */
 #define OPOST  0x0001 /* Post-process output  */
@@ -206,13 +208,13 @@ WINT_EXTERN speed_t cfgetispeed(const struct termios *);
 WINT_EXTERN speed_t cfgetospeed(const struct termios *);
 WINT_EXTERN int     cfsetispeed(struct termios *, speed_t);
 WINT_EXTERN int     cfsetospeed(struct termios *, speed_t);
-WINT_EXTERN int     tcdrain(int);
-WINT_EXTERN int     tcflow(int, int);
-WINT_EXTERN int     tcflush(int, int);
-WINT_EXTERN int     tcgetattr(int, struct termios *);
-WINT_EXTERN pid_t   tcgetsid(int);
-WINT_EXTERN int     tcsendbreak(int, int);
-WINT_EXTERN int     tcsetattr(int, int, struct termios *);
+WINT_EXTERN int     tcdrain(HANDLE);
+WINT_EXTERN int     tcflow(HANDLE, int);
+WINT_EXTERN int     tcflush(HANDLE, int);
+WINT_EXTERN int     tcgetattr(HANDLE, struct termios *);
+WINT_EXTERN pid_t   tcgetsid(HANDLE);
+WINT_EXTERN int     tcsendbreak(HANDLE, int);
+WINT_EXTERN int     tcsetattr(HANDLE, int, struct termios *);
 #ifdef __cplusplus
 }
 #endif
