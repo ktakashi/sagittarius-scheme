@@ -112,7 +112,9 @@
 #  include <login_cap.h>
 #endif
 
-#ifndef __APPLE__ 
+#ifdef __APPLE__
+#  define environ (*_NSGetEnviron())
+#else
 extern char** environ;
 #endif
 
@@ -700,8 +702,8 @@ static int set_user_context(SgObject token)
       return -1;
     setusercontext(NULL, pw, pw->pw_uid, LOGIN_SETUMASK);
   }
-  return 0;
 #endif
+  return 0;
 }
 
 /* 2 step to make sure PAM session is retrieved on parent process */
@@ -771,7 +773,7 @@ static char ** child_env(SgObject token, char **penv)
 
 #if defined (HAVE_PAM_APPL_H)
   while (*penv) {
-    char *eq = strchr(*env, '=');
+    char *eq = strchr(*penv, '=');
     *eq = '\0';
     eq++;
     if (strcmp("NTLMPWD", *penv) != 0) {
