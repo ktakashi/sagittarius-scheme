@@ -43,26 +43,33 @@
 #include "sagittarius/private/vm.h"
 #include "sagittarius/private/unicode.h"
 
-static SgObject pam_authenticate_inner(char *service, char *username,
+static SgObject pam_authenticate_inner(char *service, SgObject upasswd,
 					SgObject conversation);
 
-SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
+SgObject Sg_PamAuthenticate(SgObject service, SgObject passwd,
 			    SgObject conversation)
 {
-  if (!SG_STRINGP(service) || !SG_STRINGP(username)) {
+  if (!SG_STRINGP(service)) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("pam-authenticate"),
 				    SG_MAKE_STRING("string"),
-				    SG_STRINGP(service) ? username : service,
+				    service,
 				    SG_NIL);
   }
+
+  if (!SG_PASSWDP(passwd)) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("pam-authenticate"),
+				    SG_MAKE_STRING("passwd"),
+				    passwd,
+				    SG_NIL);
+  }
+
   if (!SG_PROCEDUREP(conversation)) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("pam-authenticate"),
 				    SG_MAKE_STRING("procedure"),
 				    conversation, SG_NIL);
   }
   return pam_authenticate_inner(Sg_Utf32sToUtf8s(SG_STRING(service)),
-				Sg_Utf32sToUtf8s(SG_STRING(username)),
-				conversation);
+				passwd, conversation);
 }
 
 static SgObject cstr2scheme(const char *s)
@@ -75,17 +82,11 @@ static void token_finalizer(SgObject obj, void *data)
   Sg_PamInvalidateToken(obj);
 }
 
-static SgObject passwd2token(struct passwd *pwd)
+static SgObject passwd2token(SgObject pwd)
 {
   SgObject r = SG_NEW(SgAuthToken);
   SG_SET_CLASS(r, SG_CLASS_AUTH_TOKEN);
-  SG_AUTH_TOKEN_NAME(r) = cstr2scheme(pwd->pw_name);
-  SG_AUTH_TOKEN_FULL_NAME(r) = cstr2scheme(pwd->pw_gecos);
-  SG_AUTH_TOKEN_DIR(r) = cstr2scheme(pwd->pw_dir);
-  SG_AUTH_TOKEN_SHELL(r) = cstr2scheme(pwd->pw_shell);
-  SG_AUTH_TOKEN_UID(r) = (intptr_t)pwd->pw_uid;
-  SG_AUTH_TOKEN(r)->gid = (intptr_t)pwd->pw_gid;
-  SG_AUTH_TOKEN(r)->userInfo = (intptr_t)pwd;
+  SG_AUTH_TOKEN(r)->passwd = pwd;
   return r;
 }
 
@@ -153,7 +154,7 @@ static int scheme_conv(int num_msg,
   return PAM_SUCCESS;
 }
 
-static SgObject pam_authenticate_inner(char *sname, char *suser,
+static SgObject pam_authenticate_inner(char *sname, SgObject passwd,
 				       SgObject conversation)
 {
   pam_handle_t *pamh = NULL;
@@ -161,28 +162,14 @@ static SgObject pam_authenticate_inner(char *sname, char *suser,
   int ret;
   SgObject r = SG_FALSE;
 
-  ret = pam_start(sname, suser, &conv, &pamh);
+  ret = pam_start(sname, SG_PASSWD_NAME(passwd), &conv, &pamh);
   if (ret == PAM_SUCCESS) ret = pam_authenticate(pamh, 0);
   else goto err;
   if (ret == PAM_SUCCESS) ret = pam_acct_mgmt(pamh, 0);
   else goto err;
 
   if (ret == PAM_SUCCESS) {
-    long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
-    struct passwd *pwd = SG_NEW(struct passwd), *result;
-    if (bufsize == -1) bufsize = BUFSIZ; /* no entry, allocate default value */
-    while (1) {
-      char *buf = SG_NEW_ATOMIC2(char *, bufsize);
-      int s = getpwnam_r(suser, pwd, buf, bufsize, &result);
-      if (s == 0)  {
-	if (result == NULL) goto err;
-	break;
-      } else if (s == ERANGE) {
-	/* buffer wasn't enough, double it */
-	bufsize *= 2;
-      }
-    }
-    r = passwd2token(pwd);
+    r = passwd2token(passwd);
     SG_AUTH_TOKEN(r)->rawToken = (void *)pamh;
     Sg_RegisterFinalizer(r, token_finalizer, NULL);
   } else goto err;
@@ -210,14 +197,14 @@ void Sg_PamInvalidateToken(SgObject token)
 #include <sys/types.h>
 #include <bsd_auth.h>
 
-static SgObject pam_authenticate_inner(char *service, char *username,
+static SgObject pam_authenticate_inner(char *service, SgObject passwd,
 				       SgObject conversation)
 {
   char *challenge = NULL, *response;
   auth_session_t *as;
-  SgObject vec, p, resp, r = SG_FALSE;;
+  SgObject vec, p, resp, r = SG_FALSE;
 
-  as = auth_userchallenge(username, service, "auth", &challenge);
+  as = auth_userchallenge(SG_PASSWD_NAME(passwd), service, "auth", &challenge);
   if (!as) return SG_FALSE;
 
   vec = Sg_MakeVector(1, SG_FALSE);
@@ -240,7 +227,7 @@ static SgObject pam_authenticate_inner(char *service, char *username,
   if (!auth_userresponse(as, response, 1)) goto err;
   if (!auth_approval(as, NULL, service, "auth")) goto err;
 
-  r = passwd2token(auth_getpwd(as));
+  r = passwd2token(passwd);
   SG_AUTH_TOKEN(r)->rawToken = (void *)as;
   Sg_RegisterFinalizer(r, token_finalizer, NULL);
 
@@ -262,7 +249,7 @@ void Sg_PamInvalidateToken(SgObject token)
 }
 
 #else
-static SgObject pam_authenticate_inner(char *service, char *username,
+static SgObject pam_authenticate_inner(char *service, SgObject passwd,
 				       SgObject conversation)
 {
   return SG_FALSE;

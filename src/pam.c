@@ -25,17 +25,65 @@
  *   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  *   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <string.h>
+#include <errno.h>
+#ifndef _WIN32
+# include <unistd.h>
+#endif
+
 #define LIBSAGITTARIUS_BODY
 
 #include "sagittarius/private/pam.h"
+#include "sagittarius/private/error.h"
 #include "sagittarius/private/port.h"
+#include "sagittarius/private/unicode.h"
+
+static void passwd_print(SgObject pw, SgPort *port, SgWriteContext *ctx)
+{
+  SG_PORT_LOCK_WRITE(port);
+  Sg_PutuzUnsafe(port, UC("#<passwd "));
+  Sg_PutzUnsafe(port, SG_PASSWD_NAME(pw));
+  Sg_PutcUnsafe(port, ':');
+  Sg_PutzUnsafe(port, SG_PASSWD_DIR(pw));
+  Sg_PutuzUnsafe(port, UC(">"));
+  SG_PORT_UNLOCK_WRITE(port);
+}
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_PasswdClass, passwd_print);
 
 static void auth_token_print(SgObject token, SgPort *port, SgWriteContext *ctx)
 {
   SG_PORT_LOCK_WRITE(port);
   Sg_PutuzUnsafe(port, UC("#<auth-token "));
-  Sg_PutsUnsafe(port, SG_AUTH_TOKEN_NAME(token));
+  Sg_PutzUnsafe(port, SG_AUTH_TOKEN_NAME(token));
   Sg_PutuzUnsafe(port, UC(">"));
   SG_PORT_UNLOCK_WRITE(port);
 }
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_AuthTokenClass, auth_token_print);
+
+
+SgObject Sg_GetPasswd(SgObject name)
+{
+  long bufsize = -1;
+  SgPasswd *pw = SG_NEW(SgPasswd);
+  char *cname = Sg_Utf32sToUtf8s(name), *m;
+  struct passwd *result;
+#ifndef _WIN32
+  bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+#endif
+  if (bufsize == -1) bufsize = BUFSIZ;
+  while (1) {
+    char *buf = SG_NEW_ATOMIC2(char *, bufsize);
+    int s = getpwnam_r(cname, &pw->pw, buf, bufsize, &result);
+    if (s == 0) {
+      if (result == NULL) goto err;
+      return SG_OBJ(pw);
+    } else if (s == ERANGE) {
+      bufsize *= 2;
+    }
+  }
+ err:
+  /* Windows implementation of getpwnam_r sets errno :) */
+  m = strerror(errno);
+  Sg_SystemError(errno, Sg_Utf8sToUtf32s(m, strlen(m)));
+  return SG_UNDEF;		/* dummy */
+}

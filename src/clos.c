@@ -690,6 +690,7 @@ static int specializer_match(SgObject sp, SgObject obj)
     || Sg_TypeP(obj, sp);
 }
 
+
 static SgObject compute_applicable_methods(SgGeneric *gf, SgObject *argv,
 					   int argc, int applyargs)
 {
@@ -699,7 +700,7 @@ static SgObject compute_applicable_methods(SgGeneric *gf, SgObject *argv,
   int nsel;
 
   if (SG_NULLP(methods)) return SG_NIL;
-
+  
   nsel = generic_max_reqargs(gf);
   if (applyargs) argc--;
   if (applyargs && nsel) {
@@ -731,6 +732,7 @@ static SgObject compute_applicable_methods(SgGeneric *gf, SgObject *argv,
     }
     if (n == SG_PROCEDURE_REQUIRED(m)) SG_APPEND1(h, t, SG_OBJ(m));
   }
+
   return h;
 }
 
@@ -3198,6 +3200,8 @@ void Sg__InitClos()
   /* code builder */
   CINIT(SG_CLASS_CODE_BUILDER, "<code-builder>");
 
+  /* passwd */
+  CINIT(SG_CLASS_PASSWD,   "<passwd>");
   /* auth token */
   CINIT(SG_CLASS_AUTH_TOKEN,   "<auth-token>");
 

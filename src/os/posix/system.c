@@ -688,11 +688,9 @@ static int init_fd(int *fds, SgObject *port,
 }
 
 
-static int set_user_context(SgObject token)
+static int set_user_context(struct passwd *pw)
 {
 #if defined(HAVE_LOGIN_CAP_H)
-  /* see src/os/posix/pam.c :) */
-  struct passwd *pw = (struct passwd *)SG_AUTH_TOKEN(token)->userInfo;
   if (getuid() == 0 || geteuid() == 0) {
     /* Easy for BSD... */
     if (setusercontext(NULL, pw, pw->pw_uid,
@@ -756,11 +754,10 @@ static int set_child_env(char ***envp, size_t *envsizep, char *name, char *value
   return 0;
 }
 
-static char ** child_env(SgObject token, char **penv)
+static char ** child_env(struct passwd *pw, char **penv)
 {
   size_t envsize = 100;
   char **env = calloc(envsize, sizeof(char *)), *v;
-  struct passwd *pw = (struct passwd *)SG_AUTH_TOKEN(token)->userInfo;
   env[0] = NULL;
 
   set_child_env(&env, &envsize, "HOME", pw->pw_dir);
@@ -826,13 +823,17 @@ uintptr_t Sg_SysForkProcessAs(SgObject sname, SgObject sargs,
   env = SG_AUTH_TOKEN_P(token) ? pam_environ(token) : NULL;
   pid_t pid = fork();
   if (pid == 0) {
-    if (SG_AUTH_TOKEN_P(token)) {
-      if (set_user_context(token)) return -1;
+    if (SG_AUTH_TOKEN_P(token) || SG_PASSWDP(token)) {
+      SgObject passwd = SG_AUTH_TOKEN_P(token)
+	? SG_AUTH_TOKEN_PASSWD(token)
+	: token;
+      struct passwd *pwd = SG_PASSWD_PWD(passwd);
+      if (set_user_context(pwd)) return -1;
       sysfunc = "setuid";
-      if (setgid(SG_AUTH_TOKEN(token)->gid)) return -1;
-      if (setuid(SG_AUTH_TOKEN_UID(token))) return -1;
+      if (setgid(pwd->pw_gid)) return -1;
+      if (setuid(pwd->pw_uid)) return -1;
       
-      environ = child_env(token, env);
+      environ = child_env(pwd, env);
 
       /* setup environment variable */
       if (env) free(env);

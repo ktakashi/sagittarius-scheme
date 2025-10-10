@@ -28,34 +28,45 @@
 (library (sagittarius pam)
     (export pam-authenticate
 	    pam-invalidate-token!
+	    get-passwd
+	    passwd?
+	    passwd-name passwd-gecos passwd-dir
+	    passwd-shell
 	    auth-token?
-	    auth-token-name
-	    auth-token-full-name
-	    auth-token-dir
-	    auth-token-shell
+	    auth-token-passwd
 	    call-with-auth-token
 	    *pam:conversation-error-handler*)
     (import (core)
 	    (sagittarius))
 (decl-code
  (.define "LIBSAGITTARIUS_BODY")
- (.include <sagittarius/private.h>
+ (.include <string.h>
+	   <sagittarius/private.h>
 	   <sagittarius/private/pam.h>))
 
 (define-type <auth-token> "SgAuthToken *")
+(define-type <passwd> "SgPasswd *")
+
+(define-c-proc passwd? (o) ::<boolean> :constant SG_PASSWDP)
+(define-c-proc get-passwd (n::<string>) Sg_GetPasswd)
+(define-cise-stmt ->scheme-string
+  ((_ expr)
+   `(let ((v ,expr))
+      (result (Sg_Utf8sToUtf32s v (strlen v))))))
+(define-c-proc passwd-name (o) (->scheme-string (SG_PASSWD_NAME o)))
+(define-c-proc passwd-gecos (o) (->scheme-string (SG_PASSWD_GECOS o)))
+(define-c-proc passwd-dir (o) (->scheme-string (SG_PASSWD_DIR o)))
+(define-c-proc passwd-shell (o) (->scheme-string (SG_PASSWD_SHELL o)))
 
 (define-c-proc %pam-authenticate
-  (service::<string> user::<string> conv::<procedure>)
+  (service::<string> user::<passwd> conv::<procedure>)
   Sg_PamAuthenticate)
 
 (define-c-proc pam-invalidate-token! (token::<auth-token>) ::<void>
   Sg_PamInvalidateToken)
 
 (define-c-proc auth-token? (o) ::<boolean> :constant SG_AUTH_TOKEN_P)
-(define-c-proc auth-token-name (token::<auth-token>) SG_AUTH_TOKEN_NAME)
-(define-c-proc auth-token-full-name (token::<auth-token>) SG_AUTH_TOKEN_FULL_NAME)
-(define-c-proc auth-token-dir (token::<auth-token>) SG_AUTH_TOKEN_DIR)
-(define-c-proc auth-token-shell (token::<auth-token>) SG_AUTH_TOKEN_SHELL)
+(define-c-proc auth-token-name (token::<auth-token>) SG_AUTH_TOKEN_PASSWD)
 
 (define (default-error-handler e))
 (define *pam:conversation-error-handler* 
@@ -71,7 +82,9 @@
 		   (lambda ()
 		     ((*pam:conversation-error-handler*) e)
 		     (guard-k #f))))
-	       (lambda () (%pam-authenticate service user conv))))))
+	       (lambda ()
+		 (let ((passwd (if (string? user) (get-passwd user) user)))
+		   (%pam-authenticate service passwd conv)))))))
 
 (define (call-with-auth-token service username conv proc)
   (cond ((pam-authenticate service username conv) =>

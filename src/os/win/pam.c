@@ -109,6 +109,35 @@ static SgObject extract_env(LPCWSTR var, const wchar_t *name)
 /*
   On Windows the service parameter is act as a domain for LogonUserW API
  */
+SgObject Sg_PamAuthenticate(SgObject service, SgObject passwd,
+			    SgObject conversation)
+{
+  SgObject vec = Sg_MakeVector(1, SG_FALSE), resp = SG_FALSE, r = SG_FALSE;
+  wchar_t user[DEFAULT_SIZE], *domain, *pass;
+  SG_VECTOR_ELEMENT(vec, 0) = Sg_Cons(SG_INTERN("echo-off"),
+				      SG_MAKE_STRING("Password:"));
+  
+  resp = Sg_Apply1(conversation, vec);
+  if (!MultiByteToWideChar(CP_UTF8, 0, SG_PASSWD_NAME(passwd),
+			   strlen(SG_PASSWD_NAME(passwd)), user, DEFAULT_SIZE)) {
+    /* should never happen but hey... */
+    return SG_FALSE;
+  }
+  domain = SG_STRING_SIZE(service) == 0 ? NULL : Sg_StringToWCharTs(service);
+  pass = Sg_StringToWCharTs(SG_VECTOR_ELEMENT(resp, 0));
+  if (!LogonUserW(user, domain, pass, LOGON32_LOGON_INTERACTIVE,
+		  LOGON32_PROVIDER_DEFAULT, &hUser)) {
+    return SG_FALSE;
+  }
+  r = SG_NEW(SgAuthToken);
+  SG_SET_CLASS(r, SG_CLASS_AUTH_TOKEN);
+  SG_AUTH_TOKEN_PASSWD(r) = passwd;
+  SG_AUTH_TOKEN(r)->rawToken = (void *)hUser;
+  Sg_RegisterFinalizer(r, token_finalizer, NULL);
+  return r;
+}
+
+#if 0
 SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
 			    SgObject conversation)
 {
@@ -194,6 +223,7 @@ SgObject Sg_PamAuthenticate(SgObject service, SgObject username,
   if (e != 0) SetLastError(e);
   return SG_FALSE;
 }
+#endif
 
 void Sg_PamInvalidateToken(SgObject token)
 {

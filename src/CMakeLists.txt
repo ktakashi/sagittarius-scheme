@@ -10,7 +10,8 @@ IF(WIN32)
   SET(PLATFORM_SOURCE ${PLATFORM_SOURCE}
     os/win/file.c os/win/transcoder.c
     os/win/system.c os/win/thread.c
-    os/win/shared.c os/win/pam.c)
+    os/win/shared.c os/win/pam.c
+    os/win/pwd.c)
   # TODO add linux and bsd(maybe also apple?)
   # use standard c functionality
 ELSE()
