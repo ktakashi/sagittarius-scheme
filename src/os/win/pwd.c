@@ -1,6 +1,7 @@
 #ifndef UNICODE
 #  define UNICODE
 #endif
+#include <sagittarius/private/pwd.h>
 #include <windows.h>
 #include <lm.h>
 #include <sddl.h>
@@ -33,12 +34,15 @@ static int copy_utf8_literal(char **dst, char **cursor, size_t *remain,
   return 0;
 }
 
+#define REGISTROY_FMT							\
+  L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\ProfileList\\%ls"
 static DWORD get_profile_dir_from_sid(PSID sid, wchar_t *out, DWORD cchOut) {
   wchar_t *sidStr = NULL;
   if (!ConvertSidToStringSidW(sid, &sidStr)) return GetLastError();
   HKEY hKey;
   wchar_t keyPath[256];
-  _snwprintf(keyPath, 256, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\ProfileList\\%ls", sidStr);
+
+  _snwprintf_s(keyPath, 256, 256, REGISTROY_FMT, sidStr);
   LocalFree(sidStr);
 
   DWORD err = RegOpenKeyExW(HKEY_LOCAL_MACHINE, keyPath, 0, KEY_READ, &hKey);
@@ -51,7 +55,7 @@ static DWORD get_profile_dir_from_sid(PSID sid, wchar_t *out, DWORD cchOut) {
     // Expand environment variables in path.
     wchar_t expanded[MAX_PATH];
     if (ExpandEnvironmentStringsW(out, expanded, MAX_PATH) > 0) {
-      wcsncpy(out, expanded, cchOut);
+      wcsncpy_s(out, MAX_PATH, expanded, cchOut);
       out[cchOut - 1] = L'\0';
     }
   }
@@ -115,11 +119,12 @@ int getpwnam_r(const char *name, struct passwd *pwd, char *buf,
   }
 
   // Compose canonical account name: domain\user
-  wchar_t accountCanonical[256];
-  if (domain && domain[0]) {
-    _snwprintf(accountCanonical, 256, L"%ls\\%ls", domain, wname);
+  wchar_t accountCanonical[256], *at;
+  at = wcsstr(wname, L"@");
+  if (!at && domain && domain[0]) {
+    _snwprintf_s(accountCanonical, 256, 256, L"%ls\\%ls", domain, wname);
   } else {
-    wcsncpy(accountCanonical, wname, 256);
+    wcsncpy_s(accountCanonical, 256, wname, 256);
     accountCanonical[255] = L'\0';
   }
 
@@ -128,7 +133,7 @@ int getpwnam_r(const char *name, struct passwd *pwd, char *buf,
   DWORD regErr = get_profile_dir_from_sid(sid, wHome, MAX_PATH);
   if (regErr != ERROR_SUCCESS) {
     /* Put expected result. */
-    _snwprintf(wHome, MAX_PATH, L"C:\\Users\\%ls", wname);
+    _snwprintf_s(wHome, MAX_PATH, MAX_PATH, L"C:\\Users\\%ls", wname);
   }
 
   // Optional: full name (GECOS)

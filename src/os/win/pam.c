@@ -113,19 +113,33 @@ SgObject Sg_PamAuthenticate(SgObject service, SgObject passwd,
 			    SgObject conversation)
 {
   SgObject vec = Sg_MakeVector(1, SG_FALSE), resp = SG_FALSE, r = SG_FALSE;
-  wchar_t user[DEFAULT_SIZE], *domain, *pass;
+  wchar_t user[DEFAULT_SIZE], *puser, *domain, *pass, *mark;
+  char *name = SG_PASSWD_NAME(passwd);
+  HANDLE hUser = NULL;
   SG_VECTOR_ELEMENT(vec, 0) = Sg_Cons(SG_INTERN("echo-off"),
 				      SG_MAKE_STRING("Password:"));
   
   resp = Sg_Apply1(conversation, vec);
-  if (!MultiByteToWideChar(CP_UTF8, 0, SG_PASSWD_NAME(passwd),
-			   strlen(SG_PASSWD_NAME(passwd)), user, DEFAULT_SIZE)) {
+  if (!MultiByteToWideChar(CP_UTF8, 0, name, (int)strlen(name), user, DEFAULT_SIZE)) {
     /* should never happen but hey... */
     return SG_FALSE;
   }
-  domain = SG_STRING_SIZE(service) == 0 ? NULL : Sg_StringToWCharTs(service);
+  mark = wcsstr(user, L"\\");
+  if (mark) {
+    /* extract domain from here */
+    size_t s = mark - user;
+    wchar_t *t = user, *d;
+    d = domain = (wchar_t *)_alloca(sizeof(wchar_t) * (s + 1));
+    while (t != mark) *d++ = *t++;
+    *d = L'\0';
+    puser = (mark + 1);
+  } else {
+    domain = SG_STRING_SIZE(service) == 0 ? NULL : Sg_StringToWCharTs(service);
+    puser = user;
+  }
+  fwprintf(stderr, L"%s: %s\n", user, domain);
   pass = Sg_StringToWCharTs(SG_VECTOR_ELEMENT(resp, 0));
-  if (!LogonUserW(user, domain, pass, LOGON32_LOGON_INTERACTIVE,
+  if (!LogonUserW(puser, domain, pass, LOGON32_LOGON_INTERACTIVE,
 		  LOGON32_PROVIDER_DEFAULT, &hUser)) {
     return SG_FALSE;
   }

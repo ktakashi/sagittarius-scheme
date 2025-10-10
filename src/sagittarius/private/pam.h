@@ -34,23 +34,7 @@
 #include "clos.h"
 
 #if _WIN32
-typedef int uid_t;
-typedef int gid_t;
-struct passwd
-{
-  char *pw_name;
-  char *pw_passwd;
-  char *pw_gecos;
-  char *pw_dir;
-  char *pw_shell;
-  uid_t pw_uid;			/* sub authority ID */
-  gid_t pw_gid;
-};
-SG_CDECL_BEGIN
-int getpwnam_r(const char *name, struct passwd *pwd,
-	       char *buf, size_t buflen,
-	       struct passwd **result);
-SG_CDECL_END
+# include "pwd.h"
 #else
 # include <pwd.h>
 #endif
