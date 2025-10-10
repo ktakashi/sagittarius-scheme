@@ -53,20 +53,25 @@
   ((_ expr)
    `(let ((v ,expr))
       (result (Sg_Utf8sToUtf32s v (strlen v))))))
-(define-c-proc passwd-name (o) (->scheme-string (SG_PASSWD_NAME o)))
-(define-c-proc passwd-gecos (o) (->scheme-string (SG_PASSWD_GECOS o)))
-(define-c-proc passwd-dir (o) (->scheme-string (SG_PASSWD_DIR o)))
-(define-c-proc passwd-shell (o) (->scheme-string (SG_PASSWD_SHELL o)))
+(define-c-proc passwd-name (o) :no-side-effect
+  (->scheme-string (SG_PASSWD_NAME o)))
+(define-c-proc passwd-gecos (o) :no-side-effect
+  (->scheme-string (SG_PASSWD_GECOS o)))
+(define-c-proc passwd-dir (o) :no-side-effect
+  (->scheme-string (SG_PASSWD_DIR o)))
+(define-c-proc passwd-shell (o) :no-side-effect
+  (->scheme-string (SG_PASSWD_SHELL o)))
 
 (define-c-proc %pam-authenticate
-  (service::<string> user::<passwd> conv::<procedure>)
+  (service::<string> user::<passwd> conv::<procedure>) :no-side-effect
   Sg_PamAuthenticate)
 
 (define-c-proc pam-invalidate-token! (token::<auth-token>) ::<void>
   Sg_PamInvalidateToken)
 
 (define-c-proc auth-token? (o) ::<boolean> :constant SG_AUTH_TOKEN_P)
-(define-c-proc auth-token-name (token::<auth-token>) SG_AUTH_TOKEN_PASSWD)
+(define-c-proc auth-token-passwd (token::<auth-token>)  :no-side-effect
+  SG_AUTH_TOKEN_PASSWD)
 
 (define (default-error-handler e))
 (define *pam:conversation-error-handler* 
@@ -84,7 +89,7 @@
 		     (guard-k #f))))
 	       (lambda ()
 		 (let ((passwd (if (string? user) (get-passwd user) user)))
-		   (%pam-authenticate service passwd conv)))))))
+		   (and passwd (%pam-authenticate service passwd conv))))))))
 
 (define (call-with-auth-token service username conv proc)
   (cond ((pam-authenticate service username conv) =>

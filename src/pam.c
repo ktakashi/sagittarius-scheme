@@ -66,24 +66,26 @@ SgObject Sg_GetPasswd(SgObject name)
   long bufsize = -1;
   SgPasswd *pw = SG_NEW(SgPasswd);
   char *cname = Sg_Utf32sToUtf8s(name), *m;
+  int e = 0;
   struct passwd *result;
+  SG_SET_CLASS(pw, SG_CLASS_PASSWD);
 #ifndef _WIN32
   bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
 #endif
   if (bufsize == -1) bufsize = BUFSIZ;
   while (1) {
     char *buf = SG_NEW_ATOMIC2(char *, bufsize);
-    int s = getpwnam_r(cname, &pw->pw, buf, bufsize, &result);
-    if (s == 0) {
-      if (result == NULL) goto err;
+    e = getpwnam_r(cname, &pw->pw, buf, bufsize, &result);
+    if (e == 0) {
+      if (result == NULL) return SG_FALSE;
       return SG_OBJ(pw);
-    } else if (s == ERANGE) {
+    } else if (e == ERANGE) {
       bufsize *= 2;
-    }
+    } else goto err;
   }
  err:
   /* Windows implementation of getpwnam_r sets errno :) */
-  m = strerror(errno);
-  Sg_SystemError(errno, Sg_Utf8sToUtf32s(m, strlen(m)));
+  m = strerror(e);
+  Sg_SystemError(e, UC("%A: %A"), Sg_Utf8sToUtf32s(m, strlen(m)), name);
   return SG_UNDEF;		/* dummy */
 }

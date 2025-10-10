@@ -3201,7 +3201,7 @@ void Sg__InitClos()
   CINIT(SG_CLASS_CODE_BUILDER, "<code-builder>");
 
   /* passwd */
-  CINIT(SG_CLASS_PASSWD,   "<passwd>");
+  CINIT(SG_CLASS_PASSWD,       "<passwd>");
   /* auth token */
   CINIT(SG_CLASS_AUTH_TOKEN,   "<auth-token>");
 

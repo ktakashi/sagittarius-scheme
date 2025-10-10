@@ -72,11 +72,6 @@ SgObject Sg_PamAuthenticate(SgObject service, SgObject passwd,
 				passwd, conversation);
 }
 
-static SgObject cstr2scheme(const char *s)
-{
-  return Sg_Utf8sToUtf32s(s, strlen(s));
-}
-
 static void token_finalizer(SgObject obj, void *data)
 {
   Sg_PamInvalidateToken(obj);
