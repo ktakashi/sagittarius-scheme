@@ -1,5 +1,4 @@
 #include "pty.h"
-#include <utmp.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -12,7 +11,7 @@
 # include <util.h>
 #endif
 #ifdef HAVE_LIBUTIL_H
-# icnlude <libutil.h>
+# include <libutil.h>
 #endif
 
 int init_pty(pty_t *pty)
