@@ -38,7 +38,7 @@ Both procedures' output will be redirects `current-output-port` and
 
 ### [§3] Middle level APIs
 
-###### [!Function] `create-process`  _name_ _args_ :key (_stdout_ `#f`) (_stderr_ `#f`) (_call?_ `#t`) reader (_transcoder_ `#f`) (_token_ `#f`)
+###### [!Function] `create-process`  _name_ _args_ :key (_stdout_ `#f`) (_stderr_ `#f`) (_call?_ `#t`) reader (_transcoder_ `#f`) (_user_ `#f`)
 
 _name_ must be string and indicate a process name.
 
@@ -76,17 +76,24 @@ process, otherwise it can cause deat lock.
 _transcoder_ keyword argument must be transcoder or #f. This can be used in
 the procedure which specified _reader_ keyword argument.
 
-_token_ keyword argument must be auth token or #f. If this keyword is specified
-then the creating process will be executed unnder the user of the _token_.
+_user_ keyword argument must be auth token, passwrd or #f. If this
+keyword is specified then the creating process will be executed under
+the user of the _user_.
 
 The procedure `create-process` creates a process and call it. The
-returning value is depending on the above keyword parameters. If _reader_and _stdout_ is provided, then the result value is the value returned from
-_reader_ procedure. Otherwise the created process object.
+returning value is depending on the above keyword parameters. If
+_reader_and _stdout_ is provided, then the result value is the value
+returned from _reader_ procedure. Otherwise the created process
+object.
 
 **CAVEAT**  
-_token_ will use either `setuid` or `CreateProcessAsUser`, both of the
-C functions may require specific user permission. If the permission is
-not granted, then the process creation fails.
+_user_ will platform specific system call, e.g. `setuid`, `setusercontext`
+or `CreateProcessWithToken`. Even the _user_ is authenticated via PAM
+module, the call may fail.
+
+Also please not that, _user_ token must be auth token on Windows, as
+it doesn't have any capability to invoke a process on behalf of the
+user without having credential.
 
 
 ###### [!Function] `async-process-read`  _process_ _stdout_ _stderr_ _transcoder_

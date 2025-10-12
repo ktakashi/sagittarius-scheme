@@ -45,16 +45,11 @@ permission.
 
 #### Windows
 
-The `service` argument need to be empty if UPN format is used,
-i.e. `username@domain` format.
-
-Also, the `service` argument is translated to translated to domain
-argument for `LogonUser`.
-
-During the authentication process, it calls `LoadUserProfile`, which
-requires User Access Control to be disabled. The successful call is
-not mandatory, so token might be created, however user profile won't
-be loaded if the function call failed.
+The `service` argument is used only if UPN format is used for username,
+i.e. `username@domain`. And the value is passed to `LogonUser` as domain
+argument.
+Otherwise, the domain argument is extracted from the passwd name, which
+is constructed `domain\name` format.
 
 #### BSD Auth
 
@@ -68,43 +63,43 @@ by root permission.
 
 Provising platform user authentication mechanism.
 
+###### [!Function] `passwd?` _obj_
+
+Returns `#t` if the given _obj_ is passwd object, otherwise `#f`.
+
+The passwd object represents `struct passwd` in C.
+
+###### [!Function] `get-passwd` (_user_ `string?`)
+
+Retrieves information of _user_, if the _user_ doesn't exists,
+then returns `#f`.
+
+###### [!Function] `passwd-name` (_pw_ `passwd?`)
+
+Returns associated user name of the _pw_.
+
+###### [!Function] `passwd-gecos` (_pw_ `passwd?`)
+
+Returns associated full user name of the _pw_.
+
+###### [!Function] `passwd-dir` (_pw_ `passwd?`)
+
+Returns associated home directory of the _pw_.
+
+###### [!Function] `passwd-shell` (_pw_ `passwd?`)
+
+Returns associated shell of the _pw_.
+
 ###### [!Function] `auth-token?` _obj_
 
 Return `#t` if the given _obj_ is auth token, otherwise `#f`.
 
-###### [!Function] `auth-token-name` (_token_ `auth-token?`)
+###### [!Function] `auth-token-passwd` (_token_ `auth-token?`)
 
-Return the user name of the given _token_.
-
-For POSIX, this is `pw_name` of `struct passwd`.  
-For Windows, this is `NameSamCompatible` value from `GetUserName`.
-
-###### [!Function] `auth-token-full-name` (_token_ `auth-token?`)
-
-Return the full name of the user of the given _token_.
-
-For POSIX, this is `pw_gecos` of `struct passwd`.  
-For Windows, this is `NameDisplay` value from `GetUserName`, if it's
-not available, fallback to `NameSamCompatible`
+Return passwd object associated to this auth token.
 
 
-###### [!Function] `auth-token-dir` (_token_ `auth-token?`)
-
-Return the home directory or user profile directory of the given _token_.
-
-For POSIX, this is `pw_dir` of `struct passwd`.  
-For Windows, this is `HOME` or `USERPROFILE` environment value.
-
-
-###### [!Function] `auth-token-shell` (_token_ `auth-token?`)
-
-Return the login shell of the given _token_.
-
-For POSIX, this is `pw_shell` of `struct passwd`.  
-For Windows, this is `ComSpec` environment value.
-
-
-###### [!Function] `pam-authenticate` (_service_ `string?`) (_user_ `string?`) (_conversation_ `procedure?`)
+###### [!Function] `pam-authenticate` (_service_ `string?`) (_user_ (or `string?` `passwd?`)) (_conversation_ `procedure?`)
 
 Invokes the underlying platform authentication mechanism.
 
@@ -119,7 +114,9 @@ For Windows, the _service_ argument must be domain or empty string when
 the _user_ is UPN format. For local machine login, this argument can be
 `"."`.
 
-The _user_ argument is the username to authenticate.
+The _user_ argument is the username or passwd to authenticate.  
+If the _user_ is string, and the user is not found, then the procedure
+returns `#f` without trying to do authentication.
 
 The _conversation_ argument must accept one argument, a vector and
 must return a vector of string, the size of the vector must be the

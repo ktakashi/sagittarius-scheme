@@ -97,7 +97,7 @@
 
 (define-c-proc sys-process-call 
   (name::<string> args::<list> :key (directory #f) (detach? #f)
-		  (input :pipe) (output :pipe) (error :pipe) (token #f))
+		  (input :pipe) (output :pipe) (error :pipe) (user #f))
   (dolist (arg args)
     (unless (SG_STRINGP arg)
       (wrong-type-of-argument-violation 'sys-process-call
@@ -118,7 +118,7 @@
       (when (SG_STRINGP directory) (set! d (SG_STRING directory)))
       (set! handle (Sg_SysProcessCallAs name args 
 					(& in) (& out) (& err)
-					d token flags))
+					d user flags))
       (.if "SIZEOF_VOIDP >= 8"
 	   (result (Sg_Values4 (Sg_MakeIntegerFromU64 handle) in out err))
 	   (result (Sg_Values4 (Sg_MakeIntegerU handle) in out err))))))
