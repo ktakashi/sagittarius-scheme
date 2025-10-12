@@ -97,7 +97,7 @@
 
 	    <ssh-transport>
 	    <ssh-connection>
-	    <ssh-channel>)
+	    <ssh-channel> ssh-channel-connection)
     (import (rnrs)
 	    (clos user)
 	    (clos core)
@@ -298,7 +298,8 @@
    (lock :init-form (make-mutex))))
 
 (define-class <ssh-channel> ()
-  ((connection        :init-keyword :connection)
+  ((connection        :init-keyword :connection
+		      :reader ssh-channel-connection)
    (open?             :init-value #t)
    (sender-channel    :init-keyword :sender-channel)
    (recipient-channel :init-keyword :recipient-channel)

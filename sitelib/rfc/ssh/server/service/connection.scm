@@ -45,6 +45,7 @@
 	    ssh-deliver-channel-data
 	    
 	    <ssh-server-connection> ssh-server-connection?
+	    ssh-server-connection-auth-ticket
 	    *ssh-accept-anonymous-connection-request*
 	    ssh-send-channel-request-success
 	    ssh-send-channel-request-failure
@@ -74,7 +75,7 @@
 	    (rfc ssh server transport)
 	    (rfc ssh server service api))
 (define-class <ssh-server-connection> (<ssh-server-transport> <ssh-connection>)
-  (auth-ticket))
+  ((auth-ticket :reader ssh-server-connection-auth-ticket)))
 (define (ssh-server-connection? o) (is-a? o <ssh-server-connection>))
 (define-generic ssh-invalidate-auth-ticket)
 (define-method ssh-invalidate-auth-ticket (t) #t) ;; do nothing
