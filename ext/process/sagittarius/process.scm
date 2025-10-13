@@ -128,7 +128,7 @@
 					 (transcoder #f)
 					 (directory #f)
 					 (detach? #f)
-					 (token #f))
+					 (user #f))
     ;; Some of my script uses create-process with :call? #f
     ;; in that case it expects to wait process with reading all
     ;; output from process. so just switch it here.
@@ -140,7 +140,7 @@
 		  (sys-process-call name args
 				    :directory directory
 				    :detach? detach?
-				    :token token)))
+				    :user user)))
       (let ((process (make <process> :name name :args args
 			   :input input :output output :error error
 			   :pid pid :directory (or directory
