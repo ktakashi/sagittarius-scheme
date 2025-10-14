@@ -769,14 +769,16 @@ static char ** child_env(struct passwd *pw, char **penv)
   if ((v = getenv("DISPLAY")) != NULL) set_child_env(&env, &envsize, "DISPLAY", v);
 
 #if defined (HAVE_PAM_APPL_H)
-  while (*penv) {
-    char *eq = strchr(*penv, '=');
-    *eq = '\0';
-    eq++;
-    if (strcmp("NTLMPWD", *penv) != 0) {
-      if (set_child_env(&env, &envsize, *penv, eq) < 0) break;
+  if (penv) {
+    while (*penv) {
+      char *eq = strchr(*penv, '=');
+      *eq = '\0';
+      eq++;
+      if (strcmp("NTLMPWD", *penv) != 0) {
+	if (set_child_env(&env, &envsize, *penv, eq) < 0) break;
+      }
+      penv++;
     }
-    penv++;
   }
 #endif
 #ifdef HAVE_LOGIN_CAP_H
