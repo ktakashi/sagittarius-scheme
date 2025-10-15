@@ -18,11 +18,22 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
 # termios
 IF (WINDOWS_SUPPORT)
   ADD_LIBRARY(win-termios STATIC win_termios.c)
+  SET(PTY_SRC pty_windows.c)
 ELSE()
   CHECK_C_SOURCE_COMPILES(
     "#include <termios.h>
 int main() { struct termios p, cfmakeraw(&p); return 0; }"
-  HAVE_CF_MAKE_RAW)
+    HAVE_CF_MAKE_RAW)
+  CHECK_INCLUDE_FILE(util.h    HAVE_UTIL_H)    # OpenBSD, NetBSD, Mac
+  CHECK_INCLUDE_FILE(libutil.h HAVE_LIBUTIL_H) # FreeBDS
+  IF (HAVE_UTIL_H)
+    ADD_DEFINITIONS(-DHAVE_UTIL_H)
+  ENDIF()
+  IF (HAVE_LIBUTIL_H)
+    ADD_DEFINITIONS(-DHAVE_LIBUTIL_H)
+    TARGET_LINK_LIBRARIES(sagittarius--termios pthread)
+  ENDIF()
+  SET(PTY_SRC pty_posix.c)
 ENDIF()
 
 ADD_LIBRARY(sagittarius--termios MODULE
@@ -37,11 +48,23 @@ ADD_DEPENDENCIES(sagittarius--termios termios-incl)
 
 ADD_FEATURE(termios)
 
+ADD_LIBRARY(sagittarius--pty MODULE
+  sagittarius-pty.c
+  ${PTY_SRC}
+  ${CMAKE_CURRENT_BINARY_DIR}/pty.c)
+COPY_TARGET(sagittarius--pty ${CMAKE_LIBRARY_OUTPUT_DIRECTORY} TRUE)
+ADD_STUBS(sagittarius--pty
+  COMMAND ${GENSTUB}
+  FILES pty.stub
+  OUTTREE)
+ADD_FEATURE(pty)
+
 IF (USE_CPP_FOR_BROKEN_LINKER)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(
-    termios.c
+    termios.c sagittarius-pty.c
     ${CMAKE_CURRENT_BINARY_DIR}/termios_stub.c
+    ${CMAKE_CURRENT_BINARY_DIR}/pty.c
     PROPERTIES LANGUAGE CXX)
 ENDIF()
 
@@ -61,11 +84,25 @@ ENDIF()
 
 
 
+SET_TARGET_PROPERTIES(sagittarius--pty PROPERTIES PREFIX "")
+IF(APPLE)
+  SET_TARGET_PROPERTIES(sagittarius--pty PROPERTIES SUFFIX ".dylib")
+ENDIF()
+TARGET_LINK_LIBRARIES(sagittarius--pty sagittarius)
+
+SET_TARGET_PROPERTIES(sagittarius--pty PROPERTIES PREFIX "")
+IF(APPLE)
+  SET_TARGET_PROPERTIES(sagittarius--pty PROPERTIES SUFFIX ".dylib")
+ENDIF()
+TARGET_LINK_LIBRARIES(sagittarius--pty sagittarius)
+
 INSTALL(TARGETS sagittarius--termios
   DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
 INSTALL(FILES sagittarius/termios.scm
   DESTINATION ${SAGITTARIUS_SHARE_LIB_PATH}/sagittarius)
 INSTALL(FILES sagittarius/stty.scm
+  DESTINATION ${SAGITTARIUS_SHARE_LIB_PATH}/sagittarius)
+INSTALL(FILES sagittarius/pty.scm
   DESTINATION ${SAGITTARIUS_SHARE_LIB_PATH}/sagittarius)
 
 # for test

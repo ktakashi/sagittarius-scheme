@@ -1,0 +1,48 @@
+;; -*- mode:scheme; coding: utf-8 -*-
+(decl-code
+ (.include <sagittarius.h>)
+ (.define "LIBSAGITTARIUS_EXT_BODY")
+ (.include <sagittarius/extend.h>
+	   <sagittarius-pty.h>
+	   <sagittarius-termios.h>))
+
+(define-type <pty> "SgPty*")
+
+(define-c-proc make-pty () Sg_MakePty)
+(define-c-proc pty? (o) ::<boolean> SG_PTYP)
+
+(define-c-proc pty-close! (pty::<pty>) ::<void> Sg_PtyClose)
+(define-c-proc pty-closed? (pty::<pty>) ::<boolean> Sg_PtyClosedP)
+(define-c-proc pty-resize! (pty::<pty> cols::<fixnum> rows::<fixnum>) ::<void>
+  Sg_PtyResize)
+(define-c-proc %pty-tcsetattr! (pty::<pty> termios) ::<void> Sg_PtyTcSetAttr)
+
+
+(define-c-proc pty- (pty::<pty> cols::<fixnum> rows::<fixnum>) ::<void>
+  Sg_PtyResize)
+
+(define-c-proc pty-spawn! (pty::<pty> name::<string> args::<list>
+		           :key (directory #f) (user #f))
+  (dolist (arg args)
+    (unless (SG_STRINGP arg)
+      (Sg_WrongTypeOfArgumentViolation 'pty-spawn!
+	(SG_MAKE_STRING "a list of string")
+	arg args)))
+  (unless (or (SG_STRINGP directory) (SG_FALSEP directory))
+    (Sg_WrongTypeOfArgumentViolation 'pty-spawn!
+      (SG_MAKE_STRING "string or #f") directory SG_NIL))
+  (result (Sg_PtySpawn pty name args directory user)))
+
+(define-c-proc pty-input-port (pty::<pty>) Sg_PtyInputPort)
+(define-c-proc pty-output-port (pty::<pty>) Sg_PtyOutputPort)
+
+(define-c-proc pty-pid (pty::<pty>) 
+  (.if "SIZEOF_VOIDP == 8"
+       (result (Sg_MakeIntegerFromU64 (-> (SG_PTY pty) pid)))
+       (result (Sg_MakeIntegerU (-> (SG_PTY pty) pid)))))
+
+(define-c-proc %pty-termios (pty::<pty>)
+  (let ((r::intptr_t (cast intptr_t (& (-> (SG_PTY_PTY pty) tmio)))))
+    (.if "SIZEOF_VOIDP == 8"
+	 (result (Sg_MakeIntegerFromU64 r))
+	 (result (Sg_MakeIntegerU r)))))
