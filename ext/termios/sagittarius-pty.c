@@ -33,9 +33,9 @@
 #endif
 
 #include <sagittarius.h>
+#include <sagittarius/private/pam.h>
 #define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
-#include <sagittarius/private/pam.h>
 #include "sagittarius-pty.h"
 #include "sagittarius-termios.h"
 
@@ -80,10 +80,10 @@ static int process_setup(void *data)
   pty_t *pty = SG_PTY_PTY(unwrapped[1]);
   size_t attrSize;
 
-  InitializeProcThreadAttributeList(NULL, 1, 0, attrSize);
-  si.lpAttributeList = (LPPROC_THREAD_ATTRIBUTE_LIST)HeapAlloc(GetProcessHeap(), 0, attrSize);
-  InitializeProcThreadAttributeList(si.lpAttributeList, 1, 0, &attrSize);
-  UpdateProcThreadAttribute(si.lpAttributeList, 0,
+  InitializeProcThreadAttributeList(NULL, 1, 0, &attrSize);
+  si->lpAttributeList = (LPPROC_THREAD_ATTRIBUTE_LIST)HeapAlloc(GetProcessHeap(), 0, attrSize);
+  InitializeProcThreadAttributeList(si->lpAttributeList, 1, 0, &attrSize);
+  UpdateProcThreadAttribute(si->lpAttributeList, 0,
 			    PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
 			    pty->hPC, sizeof(pty->hPC), NULL, NULL);
   return EXTENDED_STARTUPINFO_PRESENT;
@@ -131,8 +131,8 @@ void Sg_PtyClose(SgObject pty)
 {
   if (SG_PTY_PTY(pty)->in_fd != -1) {
     pty_close(SG_PTY_PTY(pty));
-    Sg_ClosePort(SG_PTY(pty)->inp);
-    Sg_ClosePort(SG_PTY(pty)->outp);
+    if (SG_PORTP(SG_PTY(pty)->inp)) Sg_ClosePort(SG_PORT(SG_PTY(pty)->inp));
+    if (SG_PORTP(SG_PTY(pty)->outp)) Sg_ClosePort(SG_PORT(SG_PTY(pty)->outp));
     SG_PTY(pty)->inp = SG_FALSE;
     SG_PTY(pty)->outp = SG_FALSE;
     SG_PTY_PTY(pty)->in_fd = -1;
@@ -169,8 +169,8 @@ SgObject Sg_PtyInputPort(SgObject pty)
   SgObject p = SG_PTY(pty)->inp;
   if (SG_FALSEP(p)) {
     if (SG_PTY(pty)->pid > 0) {
-      SgObject file = Sg_MakeFileFromFD(SG_PTY_PTY(pty)->in_fd);
-      SG_PTY(pty)->inp = Sg_MakeFileBinaryInputPort(file , SG_BUFFER_MODE_NONE);
+      SgFile *file = SG_FILE(Sg_MakeFileFromFD(SG_PTY_PTY(pty)->in_fd));
+      SG_PTY(pty)->inp = Sg_MakeFileBinaryInputPort(file, SG_BUFFER_MODE_NONE);
     }
   }
   return SG_PTY(pty)->inp;
@@ -181,7 +181,7 @@ SgObject Sg_PtyOutputPort(SgObject pty)
   SgObject p = SG_PTY(pty)->outp;
   if (SG_FALSEP(p)) {
     if (SG_PTY(pty)->pid > 0) {
-      SgObject file = Sg_MakeFileFromFD(SG_PTY_PTY(pty)->out_fd);
+      SgFile *file = SG_FILE(Sg_MakeFileFromFD(SG_PTY_PTY(pty)->out_fd));
       SG_PTY(pty)->outp = Sg_MakeFileBinaryOutputPort(file , SG_BUFFER_MODE_NONE);
     }
   }
