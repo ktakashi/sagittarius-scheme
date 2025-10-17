@@ -29,6 +29,10 @@
 #ifndef PTY_H_
 #define PTY_H_
 
+#ifdef HAVE_STDINT_H
+#  include <stdint.h>
+#endif
+
 #ifdef _WIN32
 #  define WIN32_LEAN_AND_MEAN
 #  include <windows.h>
