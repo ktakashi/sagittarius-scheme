@@ -78,7 +78,7 @@ static int process_setup(void *data)
   void **unwrapped = (void **)data;
   STARTUPINFOEXW *si = (STARTUPINFOEXW *)unwrapped[0];
   pty_t *pty = SG_PTY_PTY(unwrapped[1]);
-  size_t attrSize;
+  SIZE_T attrSize;
 
   InitializeProcThreadAttributeList(NULL, 1, 0, &attrSize);
   si->lpAttributeList = (LPPROC_THREAD_ATTRIBUTE_LIST)HeapAlloc(GetProcessHeap(), 0, attrSize);

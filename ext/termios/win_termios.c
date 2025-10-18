@@ -148,9 +148,8 @@ int tcflow(HANDLE hComm, int action)
 /*
    PurgeComm
  */
-int tcflush(int fd, int queue_selector)
+int tcflush(HANDLE hComm, int queue_selector)
 {
-  HANDLE hComm = (HANDLE)_get_osfhandle(fd);
   DWORD flag;
 
   if (hComm == INVALID_HANDLE_VALUE) {
