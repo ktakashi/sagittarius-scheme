@@ -1055,6 +1055,7 @@ The macro return the result of _expr_.
 * @[[sagittarius/mop.md](sagittarius/mop.md)]
 * @[[sagittarius/object.md](sagittarius/object.md)]
 * @[[sagittarius/process.md](sagittarius/process.md)]
+* @[[sagittarius/pty.md](sagittarius/pty.md)]
 * @[[sagittarius/reader.md](sagittarius/reader.md)]
 * @[[sagittarius/record.md](sagittarius/record.md)]
 * @[[sagittarius/regex.md](sagittarius/regex.md)]

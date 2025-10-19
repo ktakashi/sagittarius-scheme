@@ -17,10 +17,6 @@
   Sg_PtyResize)
 (define-c-proc %pty-tcsetattr! (pty::<pty> termios) ::<void> Sg_PtyTcSetAttr)
 
-
-(define-c-proc pty- (pty::<pty> cols::<fixnum> rows::<fixnum>) ::<void>
-  Sg_PtyResize)
-
 (define-c-proc pty-spawn! (pty::<pty> name::<string> args::<list>
 		           :key (directory #f) (user #f))
   (dolist (arg args)

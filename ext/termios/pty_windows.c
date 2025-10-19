@@ -7,16 +7,18 @@
 int init_pty(pty_t *pty)
 {
   HANDLE hInRead, hOutWrite;
-  if (!CreatePipe(&hInRead, &pty->out_fd, NULL, 0)) return LastError();
-  if (!CreatePipe(&pty->in_fd, &hOutWrite, NULL, 0)) return LastError();
+  if (!CreatePipe(&hInRead, (PHANDLE)&pty->out_fd, NULL, 0))
+    return GetLastError();
+  if (!CreatePipe((PHANDLE)&pty->in_fd, &hOutWrite, NULL, 0))
+    return GetLastError();
 
   COORD size = {80, 25};
   return CreatePseudoConsole(size, hInRead, hOutWrite, 0, &pty->hPC);
 }
 
 void pty_close(pty_t *pty) {
-  CloseHandle(pty->out_fd);
-  CloseHandle(pty->in_fd);
+  CloseHandle((HANDLE)pty->out_fd);
+  CloseHandle((HANDLE)pty->in_fd);
   ClosePseudoConsole(pty->hPC);
 }
 
@@ -30,15 +32,7 @@ int pty_resize(pty_t *pty, int cols, int rows)
 
 int pty_tcsetattr(pty_t *pty, struct termios *termios)
 {
-  HANDLE hDup = NULL;
-  int fd;
-  if (DuplicateHandle(GetCurrentProcess(), pty->hPC,,
-		      GetCurrentProcess(), &hDup,
-		      0, FALSE, DUPLICATE_SAME_ACCESS)) {
-    return GetLastError();
-  }
-  fd = _open_osfhandle((intptr_t)hDup, _O_APPEND | _O_RDONLY);
-  if (tcsetattr(fd, TCSANOW, termios) < 0) {
+  if (tcsetattr((HANDLE)pty->hPC, TCSANOW, termios) < 0) {
     return GetLastError();
   }
   return 0;

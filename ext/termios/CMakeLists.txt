@@ -63,6 +63,7 @@ IF (USE_CPP_FOR_BROKEN_LINKER)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(
     termios.c sagittarius-pty.c
+    ${PTY_SRC}
     ${CMAKE_CURRENT_BINARY_DIR}/termios_stub.c
     ${CMAKE_CURRENT_BINARY_DIR}/pty.c
     PROPERTIES LANGUAGE CXX)
@@ -82,21 +83,20 @@ ELSE()
   TARGET_LINK_LIBRARIES(sagittarius--termios sagittarius)
 ENDIF()
 
-
-
 SET_TARGET_PROPERTIES(sagittarius--pty PROPERTIES PREFIX "")
 IF(APPLE)
   SET_TARGET_PROPERTIES(sagittarius--pty PROPERTIES SUFFIX ".dylib")
 ENDIF()
-TARGET_LINK_LIBRARIES(sagittarius--pty sagittarius)
-
-SET_TARGET_PROPERTIES(sagittarius--pty PROPERTIES PREFIX "")
-IF(APPLE)
-  SET_TARGET_PROPERTIES(sagittarius--pty PROPERTIES SUFFIX ".dylib")
+IF (WINDOWS_SUPPORT)
+  ADD_DEPENDENCIES(sagittarius--pty win-termios)
+  TARGET_LINK_LIBRARIES(sagittarius--pty win-termios sagittarius)
+ELSE()
+  TARGET_LINK_LIBRARIES(sagittarius--pty sagittarius)
 ENDIF()
-TARGET_LINK_LIBRARIES(sagittarius--pty sagittarius)
 
 INSTALL(TARGETS sagittarius--termios
+  DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
+INSTALL(TARGETS sagittarius--pty
   DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
 INSTALL(FILES sagittarius/termios.scm
   DESTINATION ${SAGITTARIUS_SHARE_LIB_PATH}/sagittarius)
