@@ -600,4 +600,10 @@
 		      (foo))
 		   (environment '(core) '(sagittarius))))
 
+;; Issue #312
+(when (fixnum? #xffffffff)
+  (test-equal "fxbit-field must result the same as bitwise-bit-field"
+	      (bitwise-bit-field #xffffffff 0 32)
+	      (fxbit-field #xffffffff 0 32)))
+
 (test-end)

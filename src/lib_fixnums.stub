@@ -353,7 +353,7 @@
 			 (SG_LIST3 (SG_MAKE_INT fx1)
 				   (SG_MAKE_INT fx2)
 				   (SG_MAKE_INT fx3))))
-  (let ((mask::long (lognot (ashl -1 fx3))))
+  (let ((mask::long (lognot (ashl (cast long -1) fx3))))
     (result (ashr (logand fx1 mask) fx2))))
 
 (define-c-proc fxcopy-bit-field 
