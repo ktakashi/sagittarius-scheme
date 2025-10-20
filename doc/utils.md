@@ -57,7 +57,7 @@
 * @[[utils/rfc/uri-template.md](utils/rfc/uri-template.md)]
 * @[[utils/rfc/uuid.md](utils/rfc/uuid.md)]
 * @[[utils/rfc/websocket.md](utils/rfc/websocket.md)]
-* @[[utils/rfc/x.509.md](utils/rfc/x.509.md)]
+* @[[utils/rfc/x509.md](utils/rfc/x509.md)]
 * @[[utils/rfc/zlib.md](utils/rfc/zlib.md)]
 * @[[utils/rpc.md](utils/rpc.md)]
 * @[[utils/security/keystore.md](utils/security/keystore.md)]
