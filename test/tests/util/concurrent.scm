@@ -468,6 +468,9 @@
     (test-equal "actor state (base)" 'running (actor-state actor))
     (test-assert (actor-send-message! actor 1))
     (test-equal "actor message (base)" 2 (actor-receive-message! actor))
+    ;; make sure the actor finished
+    (thread-yield!)
+    (thread-sleep! 0.1) ;; wait for 100ms
     (test-assert "actor-running? (2) (base)" (not (actor-running? actor)))
     (test-equal "actor state (2) (base)" 'finished (actor-state actor))
     (test-assert (actor-wait! actor)))
