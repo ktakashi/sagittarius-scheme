@@ -91,7 +91,7 @@
 	    (clos user)
 	    (clos core)
 	    (except (binary io) get-line)
-	    (rfc x.509)
+	    (rfc x509)
 	    (srfi :19 time)
 	    (srfi :39 parameters))
 

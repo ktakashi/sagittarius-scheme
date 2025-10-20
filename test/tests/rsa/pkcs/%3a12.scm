@@ -4,7 +4,7 @@
 	(math)
 	(clos user)
 	(rfc base64)
-	(rfc x.509) ;; for predicate
+	(rfc x509) ;; for predicate
 	(srfi :1)
 	(srfi :19)
 	(srfi :64))

@@ -540,4 +540,8 @@
   (test-assert "with timeout (timedout)" (< 0 rt))
   (test-equal "with timeout (total)" count (+ r rt)))
 
+(let ((s* (make-server-socket* "0")))
+  (test-assert "make-server-socket*" (list? s*))
+  (for-each socket-close s*))
+
 (test-end)

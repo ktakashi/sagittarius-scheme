@@ -20,7 +20,7 @@
 	(only (binary io) open-chunked-binary-input/output-port)
 	(crypto)
 	(rfc tls)
-	(rfc x.509)
+	(rfc x509)
 	(clos user))
 
 ;; the same as HTTP test but using HTTPS

@@ -1,7 +1,7 @@
 #!read-macro=sagittarius/bv-string
 (import (rnrs)
 	(net socket)
-	(rfc x.509)
+	(rfc x509)
 	(srfi :1)
 	(srfi :13)
 	(srfi :18)
@@ -49,6 +49,11 @@
   (test-equal #f (socket-options-read-timeout so))
   (test-assert (tls-socket-options-handshake so))
   (test-equal '(foo) (tls-socket-options-certificates so)))
+
+(let ((s* (make-server-socket* "0")))
+  ;; should be 2, but we don't check the length in case IPv6 is not enabled
+  (test-assert "make-server-socket*" (list? s*))
+  (for-each socket-close s*))
 
 (define (shutdown&close s)
   (socket-shutdown s SHUT_RDWR)

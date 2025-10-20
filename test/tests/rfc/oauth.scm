@@ -6,7 +6,7 @@
 	(util bytevector)
 	(rsa pkcs :8)
 	(rfc base64)
-	(rfc x.509)
+	(rfc x509)
 	(rfc :5322)
 	(rfc uri)
 	(net server)

@@ -47,7 +47,7 @@
     (import (rnrs)
 	    (clos user)
 	    (binary io)
-	    (rfc x.509)
+	    (rfc x509)
 	    (srfi :19 time)
 	    (util bytevector)
 	    (util hashtables)

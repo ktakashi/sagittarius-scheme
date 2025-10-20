@@ -6,7 +6,7 @@
 	(sagittarius socket)
 	(rfc oauth2)
 	(rfc http-connections)
-	(rfc x.509)
+	(rfc x509)
 	(rfc :5322)
 	(rfc tls)
 	(clos user)

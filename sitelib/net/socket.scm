@@ -40,7 +40,7 @@
 	    socket-options-ai-socktype socket-options-ai-flags
 	    socket-options-ai-protocol
 
-	    make-client-socket make-server-socket
+	    make-client-socket make-server-socket make-server-socket*
 	    
 	    ;; TLSs
 	    tls-socket-options? make-tls-socket-options
@@ -58,7 +58,8 @@
 	    server-tls-socket-options-trusted-certificates
 	    server-tls-socket-options-client-certificate-required?
 	    
-	    make-client-tls-socket make-server-tls-socket
+	    make-client-tls-socket 
+	    make-server-tls-socket make-server-tls-socket*
 
 	    socket-options->client-socket
 
@@ -214,13 +215,13 @@
 	    (sagittarius time) ;; for time
 	    (rename (except (sagittarius socket)
 			    make-client-socket
-			    make-server-socket)
+			    make-server-socket make-server-socket*)
 		    (make-socket-selector socket:make-socket-selector))
 	    (except (rfc tls)
 		    make-client-tls-socket
-		    make-server-tls-socket
+		    make-server-tls-socket make-server-tls-socket*
 		    make-socket-selector)
-	    (rfc x.509)
+	    (rfc x509)
 	    (sagittarius crypto keys)
 	    (srfi :1 lists)
 	    (srfi :18 multithreading)
@@ -292,6 +293,17 @@
   (setup-socket
    (make-server-socket/resolver service resolver)
    options))
+
+(define (make-server-socket* service 
+			     :optional (options (socket-options-builder
+						 (ai-family AF_UNSPEC))))
+  (define server-options
+    (socket-options-builder (from options) (ai-flags AI_PASSIVE)))
+  (define dns-resolver (or (socket-options-dns-resolver options)
+			   default-dns-resolver))
+  (define (resolver service) (dns-resolver #f service server-options))
+  (map (lambda (s) (setup-socket s options))
+       (make-server-socket*/resolver service resolver)))
 
 (define-record-type tls-socket-options
   (parent socket-options)
@@ -408,6 +420,42 @@
       :authorities '()
       :certificate-verifier (tls-socket-options-certificate-verifier options))
      options)))
+
+(define (make-server-tls-socket* port options)
+  (define certificates (tls-socket-options-certificates options))
+  (define private-key (tls-socket-options-private-key options))
+  (define client-cert-needed?
+    (and (server-tls-socket-options? options)
+	 (server-tls-socket-options-client-certificate-required? options)))
+  (define trusted-certificates
+    (or (and (server-tls-socket-options? options)
+	     (server-tls-socket-options-trusted-certificates options))
+	'()))
+  (define verifier (tls-socket-options-certificate-verifier options))
+  (when (or (null? certificates) (not (for-all x509-certificate? certificates)))
+    (assertion-violation 'make-server-tls-socket*
+			 "Certificates are empty or non X509 certificates"
+			 certificates))
+  (unless (private-key? private-key)
+    (assertion-violation 'make-server-tls-socket*
+			 "Private key is missing" private-key))
+  (map (lambda (s)
+	 (setup-socket
+	  (socket->tls-socket s
+	   :certificates certificates
+	   :private-key private-key
+	   :client-socket #f
+	   :peer-certificate-required? client-cert-needed?
+	   :authorities '()
+	   :certificate-verifier verifier)
+	  options))
+       (make-server-socket* port (socket-options-builder
+				  (from options)
+				  (ai-family 
+				   (or (socket-options-ai-family options)
+				       AF_UNSPEC))
+				  (read-timeout #f)
+				  (non-blocking? #f)))))
 
 ;; For convenience
 (define (socket-options->client-socket option node service)

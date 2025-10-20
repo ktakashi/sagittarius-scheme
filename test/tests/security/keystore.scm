@@ -2,7 +2,7 @@
 	(security keystore)
 	(sagittarius crypto keys)
 	(rfc base64)
-	(rfc x.509)
+	(rfc x509)
 	(srfi :1)
 	(srfi :19)
 	(srfi :64))

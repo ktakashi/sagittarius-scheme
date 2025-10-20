@@ -1,11 +1,11 @@
 (import (rnrs) 
 	(sagittarius threads) 
 	(sagittarius object) 
-	(sagittarius socket) 
+	(sagittarius socket)
+	(sagittarius crypto keys)
 	(rfc tls)
 	(rfc base64)
-	(rfc x.509) 
-	(crypto)
+	(rfc x509) 
 	(srfi :18)
 	(srfi :19)
 	(srfi :64))
@@ -17,7 +17,7 @@
   (tls-socket-shutdown s SHUT_RDWR)
   (tls-socket-close s))
 
-(define keypair (generate-key-pair RSA))
+(define keypair (generate-key-pair *key:rsa*))
 (define 1year (make-time time-duration 0 (* 1 60 60 24 365)))
 ;; NB timezone must be set (probably with Z), so specifying zone offset 0.
 (define cert (make-x509-basic-certificate keypair 1
@@ -27,7 +27,7 @@
 			      (add-duration! (current-time) 1year) 0))
               (make-x509-issuer '((C . "NL")))))
 
-(define client-keypair (generate-key-pair RSA))
+(define client-keypair (generate-key-pair *key:rsa*))
 (define client-cert (make-x509-basic-certificate client-keypair 2
 		     (make-x509-issuer '((C . "NL")))
 		     (make-validity (current-date 0)
@@ -35,14 +35,24 @@
 				     (add-duration! (current-time) 1year) 0))
 		     (make-x509-issuer '((C . "NL")))))
 
-(define server-socket (make-server-tls-socket "10001" (list cert)
-					      :private-key (keypair-private keypair)
-					      :authorities (list client-cert)
-					      :client-certificate-required? #f
-					      ;; self signed certificate
-					      ;; will be rejected if
-					      ;; we use default verifier
-					      :certificate-verifier #f))
+(define (server-service sock)
+  (number->string (socket-info-port (socket-info sock))))
+
+(let ((s* (make-server-tls-socket* "0" (list cert)
+	   :private-key (key-pair-private keypair)
+	   :authorities (list client-cert)
+	   :client-certificate-required? #f)))
+  (test-assert "make-server-tls-socket*" (list? s*))
+  (for-each socket-close s*))
+
+(define server-socket (make-server-tls-socket "0" (list cert)
+		       :private-key (key-pair-private keypair)
+		       :authorities (list client-cert)
+		       :client-certificate-required? #f
+		       ;; self signed certificate
+		       ;; will be rejected if
+		       ;; we use default verifier
+		       :certificate-verifier #f))
 
 (define (server-run)
   (define end? #f)
@@ -81,7 +91,7 @@
 (define server-thread (thread-start! (make-thread server-run)))
 (thread-sleep! 2)
 
-(let ((client-socket (make-client-tls-socket "localhost" "10001")))
+(let ((client-socket (make-client-tls-socket "localhost" (server-service server-socket))))
   (test-assert "tls-socket?"(tls-socket? client-socket))
   (test-equal "raw socket-send"
 	      (+ (string-length "hello") 2) ;; for \r\n
@@ -129,9 +139,10 @@
   (shutdown&close client-socket))
 
 ;; send certificate
-(let ((client-socket (make-client-tls-socket "localhost" "10001"
-					     :private-key (keypair-private client-keypair)
-					     :certificates (list client-cert))))
+(let ((client-socket (make-client-tls-socket "localhost" 
+		       (server-service server-socket)
+		       :private-key (key-pair-private client-keypair)
+		       :certificates (list client-cert))))
   (define (ensure-read-n in n)
     (let-values (((out e) (open-string-output-port)))
       (let loop ((c n))
@@ -159,7 +170,8 @@
   (shutdown&close client-socket))
 
 ;; no certificate
-(let ((client-socket (make-client-tls-socket "localhost" "10001")))
+(let ((client-socket (make-client-tls-socket "localhost"
+					     (server-service server-socket))))
   (tls-socket-send client-socket (string->utf8 "certificate\r\n"))
   (let ((in/out (transcoded-port (tls-socket-port client-socket)
 				 (native-transcoder))))
@@ -167,7 +179,8 @@
       (put-string in/out "end\r\n"))
   (shutdown&close client-socket))
 
-(let ((client-socket (make-client-tls-socket "localhost" "10001")))
+(let ((client-socket (make-client-tls-socket "localhost"
+					     (server-service server-socket))))
   (tls-socket-nonblocking! client-socket)
   (test-equal "raw nonblocking socket-send"
 	      (+ (string-length "wait") 2)

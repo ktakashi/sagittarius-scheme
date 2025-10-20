@@ -1,5 +1,5 @@
 (import (rnrs)
-	(rfc x.509)
+	(rfc x509)
 	(rfc base64)
 	(rfc pem)
 	(srfi :64 testing)

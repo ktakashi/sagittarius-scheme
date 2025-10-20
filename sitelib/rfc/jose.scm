@@ -70,7 +70,7 @@
 	    base64url-string->bytevector bytevector->base64url-string
 	    )
     (import (rnrs)
-	    (rfc x.509)
+	    (rfc x509)
 	    (rfc jwk) ;; it might look weird but we need JWK for jwk parameter
 	    (rfc base64)
 	    (srfi :1 lists) ;; for reverse!

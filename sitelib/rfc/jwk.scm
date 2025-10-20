@@ -85,7 +85,7 @@
 	    (sagittarius crypto keys)
 	    (rfc jwa)
 	    (rfc base64)
-	    (rfc x.509)
+	    (rfc x509)
 	    (srfi :39)
 	    (record builder)
 	    (math ec))

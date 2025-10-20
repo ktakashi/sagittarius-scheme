@@ -3,7 +3,7 @@
 	(rfc base64)
 	(rsa pkcs :8)
 	(rsa pkcs :12)
-	(rfc x.509)
+	(rfc x509)
 	(net http-client)
 	(net socket)
 	(util concurrent)

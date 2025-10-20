@@ -4,7 +4,7 @@
 	(sagittarius socket)
 	(util concurrent)
 	(rfc tls)
-	(rfc x.509)
+	(rfc x509)
 	(crypto)
 	(srfi :18)
 	(srfi :19)

@@ -32,6 +32,7 @@
 (library (sagittarius socket)
     (export make-client-socket make-client-socket/resolver
 	    make-server-socket make-server-socket/resolver
+	    make-server-socket* make-server-socket*/resolver
 	    call-with-socket
 	    shutdown-output-port
 	    socket?
@@ -295,48 +296,103 @@
 
   (define (make-client-socket/resolver node service resolver
 				       :optional (timeout #f))
-    (define who 'make-client-socket/resolver)
     (let loop ((info (resolver node service)))
       (let ((socket (create-socket info)))
 	(or (and socket info (socket-connect! socket info timeout))
 	    (and info 
-		 (let ((msg (last-error-message socket)))
+		 (let ((msg (last-error-message socket))
+		       (next (next-addrinfo info)))
 		   (and socket (socket-close socket))
-		   (loop (retry-addrinfo info msg who node service))))
-	    (raise-socket-error socket who node service)))))
+		   (if next
+		       (loop next)
+		       (raise (condition 
+			       (make-host-not-found-error node service)
+			       (make-who-condition 'make-client-socket/resolver)
+			       (make-message-condition
+				(format "no next addrinfo: ~a" msg))
+			       (make-irritants-condition 
+				(list node service)))))))
+	    (raise-socket-error socket 'make-client-socket/resolver
+				node service)))))
     
-
   (define (make-server-socket service 
 			      :optional (ai-family AF_INET)
 					(ai-socktype SOCK_STREAM)
 					(ai-protocol 0))
-    (define (dns-resolver service)
-      (let ((hints (make-hint-addrinfo :family ai-family
-				       :socktype ai-socktype
-				       :flags AI_PASSIVE
-				       :protocol ai-protocol)))
-	(get-addrinfo #f service hints)))
+    (define dns-resolver (make-dns-resolver ai-family ai-socktype ai-protocol))
     (make-server-socket/resolver service dns-resolver))
 
   (define (make-server-socket/resolver service resolver)
-    (define who 'make-server-socket/resolver)
-    (let loop ((info (resolver service)))
-      (let ((socket (create-socket info))
-	    (listen? (= (slot-ref info 'socktype) SOCK_STREAM)))
-	(or (and-let* (( socket )
-		       ( info )
-		       ( (socket-setsockopt! socket SOL_SOCKET SO_REUSEADDR 1) )
-		       ( (socket-bind! socket info) )
-		       ( (if listen?
-			     (socket-listen! socket SOMAXCONN)
-			     #t) ))
-	      socket)
-	    (and info
-		 (let ((msg (last-error-message socket)))
-		   (and socket (socket-close socket))
-		   (loop (retry-addrinfo info msg who #f service))))
-	    (raise-socket-error socket who service)))))
+    (define g (addrinfo->socket-generator (resolver service)))
+    (let-values (((r m) (g)))
+      (when (eof-object? r)
+	(raise (condition (make-host-not-found-error #f service)
+			  (make-who-condition 'make-server-socket/resolver)
+			  (make-message-condition
+			   (or m "Failed to create socket"))
+			  (make-irritants-condition service))))
+      r))
 
+  (define (make-server-socket* service 
+			       :optional (ai-family AF_UNSPEC)
+					 (ai-socktype SOCK_STREAM)
+					 (ai-protocol 0))
+    (define dns-resolver (make-dns-resolver ai-family ai-socktype ai-protocol))
+    (make-server-socket*/resolver service dns-resolver))
+
+  ;; returns generator (without the library...)
+  (define (make-server-socket*/resolver service resolver)
+    (define g (addrinfo->socket-generator (resolver service)))
+    (let ((r (generator->list g)))
+      (when (null? r)
+	(raise (condition (make-host-not-found-error #f service)
+			  (make-who-condition 'make-server-socket*/resolver)
+			  (make-message-condition "Failed to create sockets")
+			  (make-irritants-condition service))))
+      r))
+
+  ;; simple version, we don't care the order :)
+  (define (generator->list g)
+    (let loop ((r '()))
+      (let-values (((e m) (g)))
+	(if (eof-object? e)
+	    r
+	    (loop (cons e r))))))
+  (define (addrinfo->socket-generator info)
+    (define (listen? info) (= (slot-ref info 'socktype) SOCK_STREAM))
+    (define msg #f)
+    (define (setup-socket s info)
+      (and-let* (( info )
+		 ( s )
+		 ( (socket-setsockopt! s SOL_SOCKET SO_REUSEPORT 1) )
+		 ( (socket-setsockopt! s SOL_SOCKET SO_REUSEADDR 1) )
+		 ( (socket-bind! s info) )
+		 ( (or (not (listen? info))
+		       (socket-listen! s SOMAXCONN)) ))
+	s))
+    (lambda ()
+      (let retry ((i info))
+	(if (not i)
+	    (values (eof-object) msg)
+	    (let ((s (and i (create-socket i))))
+	      (cond ((setup-socket s info) =>
+		     (lambda (s)
+		       (set! info (next-addrinfo i))
+		       (set! msg #f)
+		       (values s #f)))
+		    (else
+		     (set! msg (or (and s (last-error-message s))
+				   "unknown error"))
+		     (and s (socket-close s))
+		     (retry (next-addrinfo i)))))))))
+  
+  (define ((make-dns-resolver ai-family ai-socktype ai-protocol) service)
+    (let ((hints (make-hint-addrinfo :family ai-family
+				     :socktype ai-socktype
+				     :flags AI_PASSIVE
+				     :protocol ai-protocol)))
+      (get-addrinfo #f service hints)))
+  
   (define (raise-socket-error socket who . irr)
     (raise (condition (make-socket-error socket)
 		      (make-who-condition who)
@@ -350,14 +406,7 @@
   (define (last-error-message socket)
     (let-values (((errno msg) (error-detail (socket-last-error socket))))
       (format "~a (~a)" msg errno)))
-  (define (retry-addrinfo info msg who node service)
-    (let ((next (next-addrinfo info)))
-      (or next
-	  (raise (condition (make-host-not-found-error node service)
-			    (make-who-condition who)
-			    (make-message-condition
-			     (format "no next addrinfo: ~a" msg))
-			    (make-irritants-condition (list node service)))))))
+
   ;; for convenience
   (define (socket-read-select timeout . rest)
     (let ((rfds (sockets->fdset rest)))
