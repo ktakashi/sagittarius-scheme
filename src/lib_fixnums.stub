@@ -366,8 +366,8 @@
 			 "out of range"
 			 (SG_LIST4 (SG_MAKE_INT fx1) (SG_MAKE_INT fx2)
 				   (SG_MAKE_INT fx3) (SG_MAKE_INT fx4))))
-  (let ((mask1::long (ashl -1 fx2))
-	(mask2::long (lognot (ashl -1 fx3)))
+  (let ((mask1::long (ashl (cast long -1) fx2))
+	(mask2::long (lognot (ashl (cast long -1) fx3)))
 	(mask::long (logand mask1 mask2)))
     (result (fxlogif mask (ashl fx4 fx2) fx1))))
 

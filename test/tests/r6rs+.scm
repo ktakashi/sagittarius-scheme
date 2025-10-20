@@ -604,6 +604,14 @@
 (when (fixnum? #xffffffff)
   (test-equal "fxbit-field must result the same as bitwise-bit-field"
 	      (bitwise-bit-field #xffffffff 0 32)
-	      (fxbit-field #xffffffff 0 32)))
+	      (fxbit-field #xffffffff 0 32))
+
+  (test-equal "fxcopy-bit-field (1)"
+	      (bitwise-copy-bit-field #xffffffff 0 32 0)
+	      (fxcopy-bit-field #xffffffff 0 32 0))
+  (test-equal "fxcopy-bit-field (2)"
+	      (bitwise-copy-bit-field #xffffffff 0 0 32)
+	      (fxcopy-bit-field #xffffffff 0 0 32))
+  )
 
 (test-end)
