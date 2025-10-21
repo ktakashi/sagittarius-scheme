@@ -364,7 +364,10 @@
     (define (setup-socket s info)
       (and-let* (( info )
 		 ( s )
-		 ( (socket-setsockopt! s SOL_SOCKET SO_REUSEPORT 1) )
+		 ;; This is not defined in Windows, and
+		 ;; SO_REUSEADDR does the both.
+		 ( (or (not SO_REUSEPORT)
+		       (socket-setsockopt! s SOL_SOCKET SO_REUSEPORT 1)) )
 		 ( (socket-setsockopt! s SOL_SOCKET SO_REUSEADDR 1) )
 		 ( (socket-bind! s info) )
 		 ( (or (not (listen? info))
