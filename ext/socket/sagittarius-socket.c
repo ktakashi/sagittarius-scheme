@@ -860,11 +860,12 @@ SgObject Sg_SocketAccept(SgSocket *socket)
   if (socket->event != INVALID_HANDLE_VALUE) {
     ResetEvent(socket->event);
   }
+
   if (r == WAIT_OBJECT_0 + 2) {
     WSASetLastError(EINTR);
     return SG_FALSE;		/* interrupted! */
   }
-  if (r != WAIT_OBJECT_0) {
+  if (socket->event == INVALID_HANDLE_VALUE) {
     /* socket is closed */
     raise_socket_error(SG_INTERN("socket-accept"), 
 		       Sg_GetLastErrorMessageWithErrorCode(WSAECONNRESET),

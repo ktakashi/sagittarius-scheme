@@ -121,7 +121,7 @@ static SgObject win_selector_wait(win_context_t *ctx, int n,
 				  SgObject sockets,
 				  struct timespec *sp)
 {
-  const int waiting_flags = FD_READ | FD_OOB;
+  const int waiting_flags = FD_READ | FD_OOB | FD_ACCEPT;
   int r, err = FALSE;
   DWORD millis = INFINITE;
   SgObject ret = SG_NIL;
@@ -158,10 +158,10 @@ static SgObject win_selector_wait(win_context_t *ctx, int n,
   SET_EVENT(sockets, ctx->event, 0);
   
   if (r == WSA_WAIT_EVENT_0) {
-    int batch = (n/WSA_MAXIMUM_WAIT_EVENTS) + (n%WSA_MAXIMUM_WAIT_EVENTS)>0 ? 1 : 0;
+    int off = (n%WSA_MAXIMUM_WAIT_EVENTS) > 0 ? 1 : 0;
+    int batch = (n/WSA_MAXIMUM_WAIT_EVENTS) + off;
     int size = min(n, WSA_MAXIMUM_WAIT_EVENTS);
     SgObject cp = sockets;
-    WSANETWORKEVENTS networkEvents;
     r = WaitForSingleObject(ctx->lock, INFINITE);
     if (r == WAIT_OBJECT_0 && ctx->event != INVALID_HANDLE_VALUE) {
       WSAResetEvent(ctx->event);	/* reset event */
@@ -182,8 +182,21 @@ static SgObject win_selector_wait(win_context_t *ctx, int n,
 	  SG_FOR_EACH(cp2, h) {
 	    SgObject slot = SG_CAR(cp2);
 	    SgSocket *s = SG_SOCKET(SG_CAR(slot));
-	    if (WSAEnumNetworkEvents(s->socket, ctx->events[i], &networkEvents) == 0) {
-	      if ((networkEvents.lNetworkEvents & waiting_flags) != 0) {
+	    WSANETWORKEVENTS ne;
+	    if (WSAEnumNetworkEvents(s->socket, ctx->events[i], &ne) == 0) {
+	      if ((ne.lNetworkEvents & waiting_flags) != 0) {
+		/* a bit sloppy solution to avoid socket-accept to go
+		   into inifinite waiting.
+
+		   WSAEnumNetworkEvents clears the internal event records
+		   and socket-accept on Windows waits for FD_ACCEPT event,
+		   which is already cleared by the API. Now, luckily we use
+		   multiple events to emulate the same behaviour as POSIX,
+		   so abuse it here.
+		   NOTE: socket.event member is meant to capture socket
+		         close, but we can use it to avoid inifinte waiting
+		*/
+		if (ne.lNetworkEvents & FD_ACCEPT) WSASetEvent(s->event);
 		ret = Sg_Cons(slot, ret);
 	      }
 	    }

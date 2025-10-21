@@ -544,4 +544,28 @@
   (test-assert "make-server-socket*" (list? s*))
   (for-each socket-close s*))
 
+(let ((s* (make-server-socket* "0"))
+      (selector (make-socket-selector)))
+  (define (accept srv)
+    (let ((s (socket-accept srv)))
+      (socket-send s (socket-recv s 255))
+      (socket-shutdown s SHUT_RDWR)
+      (socket-close s)))
+  (define thread
+    (thread-start!
+     (make-thread
+      (lambda ()
+	(let loop ()
+	  (let-values (((s* t*) (socket-selector-wait! selector)))
+	    (for-each accept (map car s*))
+	    (unless (zero? (socket-selector-size selector))
+	      (loop))))))))
+  (define (check service ai-family)
+    (let ((s (make-client-socket "localhost" service ai-family)))
+      (socket-send s (string->utf8 "hello"))
+      (test-equal (list service ai-family) "hello"
+		  (utf8->string (socket-recv s 255)))))
+  (for-each (lambda (s) (socket-selector-add! selector s)) s*)
+  (for-each check (map server-service s*) (list AF_INET AF_INET6)))
+
 (test-end)
