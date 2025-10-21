@@ -544,7 +544,13 @@
   (test-assert "make-server-socket*" (list? s*))
   (for-each socket-close s*))
 
-(let ((s* (make-server-socket* "0"))
+(define (random-port)
+  (let* ((s (make-server-socket "0"))
+	 (r (server-service s)))
+    (socket-close s)
+    r))
+    
+(let ((s* (make-server-socket* (random-port)))
       (selector (make-socket-selector)))
   (define (accept srv)
     (let ((s (socket-accept srv)))
