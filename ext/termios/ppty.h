@@ -1,4 +1,4 @@
-/* pty.h                              -*- mode: c; coding: utf-8; -*-
+/* ppty.h                              -*- mode: c; coding: utf-8; -*-
  *
  *   Copyright (c) 2025  Takashi Kato <ktakashi@ymail.com>
  *
@@ -26,8 +26,8 @@
  *   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef PTY_H_
-#define PTY_H_
+#ifndef PORTABLE_PTY_H_
+#define PORTABLE_PTY_H_
 
 #include <stdint.h>
 #ifdef _WIN32

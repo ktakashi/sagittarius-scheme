@@ -1,4 +1,4 @@
-#include "pty.h"
+#include "ppty.h"
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -7,6 +7,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#ifdef HAVE_PTY_H
+# include <pty.h>
+#endif
 #ifdef HAVE_UTIL_H
 # include <util.h>
 #endif
