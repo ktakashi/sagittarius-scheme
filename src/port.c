@@ -245,11 +245,18 @@ static void port_cleanup(SgPort *port)
   if (port->closed == SG_PORT_CLOSED) return;
 
   if (SG_PORT_VTABLE(port)->flush) {
-    SG_PORT_VTABLE(port)->flush(port);
+    /* Flush may cause an error, so capture it */
+    SG_UNWIND_PROTECT {
+      SG_PORT_VTABLE(port)->flush(port);
+    } SG_WHEN_ERROR {
+      SG_PORT_VTABLE(port)->close(port);
+      port->closed = SG_PORT_CLOSED;
+      SG_CLEAN_PORT_LOCK(port);
+      SG_NEXT_HANDLER;
+    } SG_END_PROTECT;
   }
   /* must always be there */
   SG_PORT_VTABLE(port)->close(port);
-
   port->closed = SG_PORT_CLOSED;
   /* in case */
   SG_CLEAN_PORT_LOCK(port);
@@ -573,32 +580,20 @@ static int64_t buffered_write_to_line_buffer(SgObject self, uint8_t *v,
   return write_size;
 }
 
-static void buffered_close_inner(SgObject self)
-{
-  SgBufferedPort *bp = SG_BUFFERED_PORT(self);
-  SgPort *src = bp->src;
-  SG_PORT_VTABLE(src)->close(src);
-  SG_PORT(self)->closed = SG_PORT_CLOSED;
-  /* I believe calling GC_REGISTER_FINALIZER_NO_ORDER with
-     non GC pointer is safe. But just in case. */
-  if (Sg_GCBase(self)) {
-    unregister_buffered_port(bp);
-    if (Sg_FinalizerRegisteredP(self)) {
-      Sg_UnregisterFinalizer(self);
-    }
-  }
-}
-
 static int buffered_close(SgObject self)
 {
   if (SG_PORT(self)->closed != SG_PORT_CLOSED) {
-    SG_UNWIND_PROTECT {
-      buffered_flush(self);
-      buffered_close_inner(self);
-    } SG_WHEN_ERROR {
-      buffered_close_inner(self);
-      SG_NEXT_HANDLER;
-    } SG_END_PROTECT;
+    SgBufferedPort *bp = SG_BUFFERED_PORT(self);
+    SgPort *src = bp->src;
+    port_cleanup(src);
+    /* I believe calling GC_REGISTER_FINALIZER_NO_ORDER with
+       non GC pointer is safe. But just in case. */
+    if (Sg_GCBase(self)) {
+      unregister_buffered_port(bp);
+      if (Sg_FinalizerRegisteredP(self)) {
+	Sg_UnregisterFinalizer(self);
+      }
+    }
   }
   return TRUE;
 }

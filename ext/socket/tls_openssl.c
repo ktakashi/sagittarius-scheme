@@ -56,7 +56,7 @@
 #define NON_BLOCKING_CASE EAGAIN: case EWOULDBLOCK
 #endif
 
-#define handleError(who, r, ssl)					\
+#define handleError(who, r, ssl, writep)				\
   if ((r) <= 0)	{							\
     int e = errno;							\
     unsigned long err = SSL_get_error((ssl), (r));			\
@@ -85,10 +85,12 @@
 	/* probably non-blocking socket */				\
 	return r;							\
       } else if (err == SSL_ERROR_ZERO_RETURN) {			\
-	raise_socket_error(SG_INTERN(who),				\
-			   SG_MAKE_STRING("socket is closed by peeer"),	\
-			   Sg_MakeConditionSocketClosed(tlsSocket),	\
-			   tlsSocket);					\
+	/* For read, we ignore this error */				\
+	if (writep)							\
+	  raise_socket_error(SG_INTERN(who),				\
+			     SG_MAKE_STRING("socket is closed by peeer"), \
+			     Sg_MakeConditionSocketClosed(tlsSocket),	\
+			     tlsSocket);				\
       } else {								\
 	if (SSL_ERROR_SSL == err) err = ERR_get_error();		\
 	msg = ERR_reason_error_string(err);				\
@@ -449,7 +451,7 @@ int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *data,
   ERR_clear_error();		/* clear error */
   for (;;) {
     r = SSL_read(tlsData->ssl, data, size);
-    handleError("tls-socket-recv!", r, tlsData->ssl);
+    handleError("tls-socket-recv!", r, tlsData->ssl, FALSE);
     return r;
   }
 }
@@ -467,7 +469,7 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *data, int size, int flags)
   ERR_clear_error();		/* clear error */
   while (size > 0) {
     r = SSL_write(tlsData->ssl, data, size);
-    handleError("tls-socket-send", r, tlsData->ssl);
+    handleError("tls-socket-send", r, tlsData->ssl, TRUE);
     if (r > 0) {
       sent += r;
       data += r;
