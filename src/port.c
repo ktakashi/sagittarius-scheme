@@ -573,22 +573,32 @@ static int64_t buffered_write_to_line_buffer(SgObject self, uint8_t *v,
   return write_size;
 }
 
+static void buffered_close_inner(SgObject self)
+{
+  SgBufferedPort *bp = SG_BUFFERED_PORT(self);
+  SgPort *src = bp->src;
+  SG_PORT_VTABLE(src)->close(src);
+  SG_PORT(self)->closed = SG_PORT_CLOSED;
+  /* I believe calling GC_REGISTER_FINALIZER_NO_ORDER with
+     non GC pointer is safe. But just in case. */
+  if (Sg_GCBase(self)) {
+    unregister_buffered_port(bp);
+    if (Sg_FinalizerRegisteredP(self)) {
+      Sg_UnregisterFinalizer(self);
+    }
+  }
+}
+
 static int buffered_close(SgObject self)
 {
   if (SG_PORT(self)->closed != SG_PORT_CLOSED) {
-    SgBufferedPort *bp = SG_BUFFERED_PORT(self);
-    SgPort *src = bp->src;
-    buffered_flush(self);
-    SG_PORT_VTABLE(src)->close(src);
-    SG_PORT(self)->closed = SG_PORT_CLOSED;
-    /* I believe calling GC_REGISTER_FINALIZER_NO_ORDER with
-       non GC pointer is safe. But just in case. */
-    if (Sg_GCBase(self)) {
-      unregister_buffered_port(bp);
-      if (Sg_FinalizerRegisteredP(self)) {
-	Sg_UnregisterFinalizer(self);
-      }
-    }
+    SG_UNWIND_PROTECT {
+      buffered_flush(self);
+      buffered_close_inner(self);
+    } SG_WHEN_ERROR {
+      buffered_close_inner(self);
+      SG_NEXT_HANDLER;
+    } SG_END_PROTECT;
   }
   return TRUE;
 }

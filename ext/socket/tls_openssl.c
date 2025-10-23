@@ -60,7 +60,7 @@
   if ((r) <= 0)	{							\
     int e = errno;							\
     unsigned long err = SSL_get_error((ssl), (r));			\
-    if (err != SSL_ERROR_NONE && err != SSL_ERROR_ZERO_RETURN) {	\
+    if (err != SSL_ERROR_NONE) {					\
       const char *msg = NULL;						\
       if (SSL_ERROR_SYSCALL == err) {					\
 	if (e < 0) {							\
@@ -84,6 +84,11 @@
 		 SSL_ERROR_WANT_WRITE == err) {				\
 	/* probably non-blocking socket */				\
 	return r;							\
+      } else if (err == SSL_ERROR_ZERO_RETURN) {			\
+	raise_socket_error(SG_INTERN(who),				\
+			   SG_MAKE_STRING("socket is closed by peeer"),	\
+			   Sg_MakeConditionSocketClosed(tlsSocket),	\
+			   tlsSocket);					\
       } else {								\
 	if (SSL_ERROR_SSL == err) err = ERR_get_error();		\
 	msg = ERR_reason_error_string(err);				\
@@ -463,9 +468,11 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *data, int size, int flags)
   while (size > 0) {
     r = SSL_write(tlsData->ssl, data, size);
     handleError("tls-socket-send", r, tlsData->ssl);
-    sent += r;
-    data += r;
-    size -= r;
+    if (r > 0) {
+      sent += r;
+      data += r;
+      size -= r;
+    }
   }
   return sent;
 }
