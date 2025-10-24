@@ -30,7 +30,7 @@
 
 #!nounbound
 (library (rfc zlib)
-    (export open-deflating-input-port
+    (export ;; open-deflating-input-port
 	    open-deflating-output-port
 	    open-inflating-input-port
 	    open-inflating-output-port
@@ -95,24 +95,53 @@
 		    (make-message-condition (zlib-error-message z-stream))
 		    (make-irritants-condition irritants))))
 
-(define (open-deflating-input-port sink
-	   :key (compression-level Z_DEFAULT_COMPRESSION)
-	   (buffer-size 4096)
-	   (window-bits 15)
-	   (memory-level 8)
-	   (strategy Z_DEFAULT_STRATEGY)
-	   (dictionary #f)
-	   (owner? #f))
-  (error 'open-deflating-input-port "not yet"))
+;; For now, we don't implement this, I'll do it if there's a demand
+;; uncompress input port -> compress input port
+;; (define (open-deflating-input-port (source (and binary-port? input-port?))
+;; 	   :key (compression-level Z_DEFAULT_COMPRESSION)
+;; 		(buffer-size 4096)
+;; 		(window-bits 15)
+;; 		(memory-level 8)
+;; 		(strategy Z_DEFAULT_STRATEGY)
+;; 		(dictionary #f)
+;; 		(owner? #f))
+;;   (define out-buffer (make-bytevector buffer-size 0))
+;;   (define in-buffer (make-bytevector buffer-size 0))
+;;   (define z-stream
+;;     (deflate-init compression-level window-bits memory-level strategy))
+;;   (define current-pos 0)
+;;   (define out-buffer-size 0)
+;;   (define (fill-buffer!)
+;;     (let ((n (get-bytevector-n! source in-buffer 0 buffer-size)))
+;;       (cond ((eof-object? n) (set! out-buffer-size 0))
+;; 	    )))
+    
+;;   (define (read! bv start count)
+;;     (let loop ((offset start) (rest count))
+;;       (when (= current-pos out-buffer-size) (fill-buffer!))
+;;       (if (zero? out-buffer-size)
+;; 	  (- count rest) ;; nothing to read
+;; 	  (let ((s (min rest (- out-buffer-size current-pos))))
+;; 	    (bytevector-copy! out-buffer current-pos bv offset s)
+;; 	    (set! current-pos (+ current-pos s))
+;; 	    (if (= s rest)
+;; 		count
+;; 		(loop (+ start s) (- rest s)))))))
+;;   (define (close)
 
+;;     (when owner? (close-input-port source)))
+;;   (when dictionary (deflate-set-dictionary z-stream dictionary))
+;;   (make-custom-binary-input-port "deflating-output-port" read! #f #f close))
+  
+;; uncompress output port -> compress output port
 (define (open-deflating-output-port (sink (and binary-port? output-port?))
 	   :key (compression-level Z_DEFAULT_COMPRESSION)
-      	   (buffer-size 4096)
-      	   (window-bits 15)
-      	   (memory-level 8)
-      	   (strategy Z_DEFAULT_STRATEGY)
-      	   (dictionary #f)
-      	   (owner? #f))
+		(buffer-size 4096)
+		(window-bits 15)
+		(memory-level 8)
+		(strategy Z_DEFAULT_STRATEGY)
+		(dictionary #f)
+		(owner? #f))
   (let ((out-buffer (make-bytevector buffer-size 0))
         (in-buffer  (make-bytevector buffer-size 0))
         (flush Z_NO_FLUSH)
@@ -157,12 +186,9 @@
       	       (set! current-pos (+ current-pos count))
       	       (+ count diff))
       	      (else
-      	       (let ((n (do ((i 0 (+ i 1)))
-      			    ((= current-pos buffer-size) i)
-      			  (bytevector-u8-set! in-buffer current-pos
-      					      (bytevector-u8-ref bv
-      								 (+ start i)))
-      			  (set! current-pos (+ current-pos 1)))))
+      	       (let ((n (- buffer-size current-pos)))
+		 (bytevector-copy! bv start in-buffer current-pos n)
+		 (set! current-pos (+ current-pos n))
       		 (flush! in-buffer #f)
       		 (rec bv (+ start n) (- count n) (+ n diff))))))
       (rec bv start count 0))
@@ -185,17 +211,11 @@
         ;; flush sink
         (flush-output-port sink)
         ;; if the deflating port is owner, we need to close the port.
-        (if owner?
-            (close-output-port sink))))
+        (when owner? (close-output-port sink))))
 
-    (when dictionary
-      (deflate-set-dictionary z-stream dictionary))
+    (when dictionary (deflate-set-dictionary z-stream dictionary))
+    (make-custom-binary-output-port "deflating-port" write! #f #f close)))
 
-    (make-custom-binary-output-port "deflating-port"
-      				    write!
-      				    #f
-      				    #f
-      				    close)))
 
 (define (open-inflating-input-port (source (and binary-port? input-port?))
       				   :key (buffer-size 4096)

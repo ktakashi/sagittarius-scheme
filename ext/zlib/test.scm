@@ -12,14 +12,15 @@
    (lambda (out)
      (define dout (open-deflating-output-port
 		   out
-		   :compression-level level))
+		   :compression-level level
+		   :buffer-size 1024))
      (call-with-port
       (open-file-input-port file (file-options) 'block)
       (lambda (in)
-	(let loop ((r (get-bytevector-n in 1024)))
+	(let loop ((r (get-bytevector-n in 2048)))
 	  (unless (eof-object? r)
 	    (put-bytevector dout r)
-	    (loop (get-bytevector-n in 1024))))
+	    (loop (get-bytevector-n in 2048))))
 	(close-port dout))))))
 
 (define (do-inflate file :optional (buffer-size 4096))
