@@ -310,7 +310,7 @@
 		      (fill-inflating-buffer! z-stream dictionary
 					      buf out-buffer)))
 	  (put-bytevector sink out-buffer 0 nwrite)
-	  (unless (zero? avail-in)
+	  (unless (or end? (zero? avail-in))
 	    (loop (bytevector-copy buf (- (bytevector-length buf) avail-in)))))))
     (unless (= (inflate-end z-stream Z_FINISH) Z_OK)
       (raise-z-stream-error z-stream 'inflate-end))

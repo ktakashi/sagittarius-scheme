@@ -123,4 +123,20 @@
 		     64)))
 		 '(1 2 3 4 5 6 7 8 9)))
 
+(test-equal "inflate output dictionary"
+	    "abc"
+	    (let1 bv (call-with-bytevector-output-port
+		      (lambda (p)
+			(let1 p2 (open-deflating-output-port 
+				  p :dictionary (string->utf8 "abc"))
+			  (put-bytevector p2 (string->utf8 "abc"))
+			  (close-output-port p2))))
+	      (utf8->string
+	       (call-with-bytevector-output-port
+		(lambda (out)
+		  (let ((dout (open-inflating-output-port out
+				:dictionary (string->utf8 "abc"))))
+		    (put-bytevector dout bv)
+		    (close-port dout)))))))
+
 (test-end)
