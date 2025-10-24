@@ -23,19 +23,25 @@
 	(close-port dout))))))
 
 (define (do-inflate file :optional (buffer-size 4096))
-  (call-with-port 
-   (open-file-input-port file (file-options) 'block)
-   (lambda (in)
-     (define din (open-inflating-input-port in :buffer-size buffer-size))
-     (let ((bv (get-bytevector-all din)))
-       (close-port din)
-       bv))))
+  (call-with-port (open-file-input-port file (file-options) 'block)
+    (lambda (in)
+      (define din (open-inflating-input-port in :buffer-size buffer-size))
+      (let ((bv (get-bytevector-all din)))
+	(close-port din)
+	bv))))
+
+(define (do-inflate-output-port file :optional (buffer-size 4096))
+  (let-values (((out e) (open-bytevector-output-port)))
+    (let ((dout (open-inflating-output-port out :buffer-size buffer-size)))
+      (call-with-port (open-file-input-port file (file-options) 'block)
+	(lambda (fin) (put-bytevector dout (get-bytevector-all fin))))
+      (close-port dout)
+      (e))))
 
 (define (compare-file-bytevector file bv)
-  (let ((c (call-with-port
-	    (open-file-input-port file (file-options) 'block)
-	    (lambda (in)
-	      (get-bytevector-all in)))))
+  (let ((c (call-with-port (open-file-input-port file (file-options) 'block)
+	     (lambda (in)
+	       (get-bytevector-all in)))))
     (bytevector=? c bv)))
 
 ;; the files compressed-1.bin ~ compressed-9.bin are generatedo by Gauche.
@@ -93,5 +99,28 @@
 (test-equal "adler32(1)" 1 (adler32 #vu8()))
 (test-equal "adler32(2)" 145425018 (adler32 (string->utf8 "foobar")))
 (test-equal "adler32(3)" 1721967257 (adler32 (string->utf8 "abc") 8563))
-  
+
+(test-equal "inflate output-port"
+	    '(#t #t #t #t #t #t #t #t #t)
+	    (map (lambda (level)
+		   (compare-file-bytevector
+		    (build-path (current-directory) "zlib/data/data.txt")
+		    (do-inflate-output-port
+		     (format (build-path (current-directory)
+					 "zlib/data/compressed-~a.bin")
+			     level))))
+		 '(1 2 3 4 5 6 7 8 9)))
+
+(test-equal "inflate output-port (small buffer)"
+	    '(#t #t #t #t #t #t #t #t #t)
+	    (map (lambda (level)
+		   (compare-file-bytevector
+		    (build-path (current-directory) "zlib/data/data.txt")
+		    (do-inflate-output-port
+		     (format (build-path (current-directory)
+					 "zlib/data/compressed-~a.bin")
+			     level)
+		     64)))
+		 '(1 2 3 4 5 6 7 8 9)))
+
 (test-end)
