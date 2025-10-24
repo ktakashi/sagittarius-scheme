@@ -26,11 +26,15 @@ int main() { struct termios p, cfmakeraw(&p); return 0; }"
     HAVE_CF_MAKE_RAW)
   CHECK_INCLUDE_FILE(util.h    HAVE_UTIL_H)    # OpenBSD, NetBSD, Mac
   CHECK_INCLUDE_FILE(libutil.h HAVE_LIBUTIL_H) # FreeBDS
+  CHECK_INCLUDE_FILE(pty.h     HAVE_PTY_H)     # Linux
   IF (HAVE_UTIL_H)
     ADD_DEFINITIONS(-DHAVE_UTIL_H)
   ENDIF()
   IF (HAVE_LIBUTIL_H)
     ADD_DEFINITIONS(-DHAVE_LIBUTIL_H)
+  ENDIF()
+  IF (HAVE_PTY_H)
+    ADD_DEFINITIONS(-DHAVE_PTY_H)
   ENDIF()
   SET(PTY_SRC pty_posix.c)
 ENDIF()

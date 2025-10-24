@@ -30,7 +30,7 @@
 #define SAGITTARIUS_PTY_H_
 
 #include <sagittarius.h>
-#include "pty.h"
+#include "ppty.h"
 
 SG_CLASS_DECL(Sg_PtyClass);
 #define SG_CLASS_PTY (&Sg_PtyClass)

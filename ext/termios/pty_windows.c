@@ -1,4 +1,4 @@
-#include "pty.h"
+#include "ppty.h"
 #define WIN32_LEAN_AND_MEAN
 #include <stdio.h>
 #include <stdlib.h>
