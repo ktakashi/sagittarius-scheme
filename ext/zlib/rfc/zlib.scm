@@ -282,30 +282,27 @@
       	       0)
       	      (else
 	       (if (eof-object? n) (set! n 0))
-	       (let ((in-buffer.
-		      (if (= (+ n next-in) buffer-size)
-      			  in-buffer
-      			  (bytevector-copy in-buffer 0 (+ next-in n)))))
-		 (let-values (((avail-in nwrite end?)
-			       (fill-inflating-buffer! z-stream dictionary
-						       in-buffer. out-buffer)))
-		   (set! stream-end? end?)
-		   (set! offset (+ offset (- buffer-size (- len n) avail-in)))
-		   (set! next-in avail-in)
-		   (cond ((> avail-in 0)
-			  ;; copy the remaining values back to the
-			  ;; original buffer
-      			  (bytevector-copy! in-buffer.
-			    (- (bytevector-length in-buffer.) avail-in)
-      			    in-buffer 0 avail-in))
-			 ;; all the input buffer is inflated, so fill null
-      			 (else (bytevector-fill! in-buffer 0)))
-		   (cond ((and (zero? avail-in) (zero? nwrite))
-			  (fill-buffer!))
-			 (else
-			  (set! current-pos 0)
-      			  (set! out-buffer-size nwrite)
-			  nwrite))))))))
+	       (let-values (((avail-in nwrite end?)
+			     (fill-inflating-buffer! z-stream dictionary
+						     in-buffer out-buffer
+						     (+ next-in n))))
+		 (set! stream-end? end?)
+		 (set! offset (+ offset (- buffer-size (- len n) avail-in)))
+		 (cond ((> avail-in 0)
+			;; copy the remaining values back to the
+			;; original buffer
+      			(bytevector-copy! in-buffer
+					  (- (+ next-in n) avail-in)
+      					  in-buffer 0 avail-in))
+		       ;; all the input buffer is inflated, so fill null
+      		       (else (bytevector-fill! in-buffer 0)))
+		 (set! next-in avail-in)		 
+		 (cond ((and (zero? avail-in) (zero? nwrite))
+			(fill-buffer!))
+		       (else
+			(set! current-pos 0)
+      			(set! out-buffer-size nwrite)
+			nwrite)))))))
 
     (when dictionary (inflate-set-dictionary z-stream dictionary))
 
@@ -320,18 +317,23 @@
   (define out-buffer (make-bytevector buffer-size 0))
   (define current-pos 0)
   (define z-stream (inflate-init window-bits))
-  
+  (define (inflate-buffer in-buffer size)
+    (let-values (((avail-in nwrite end?)
+		  (fill-inflating-buffer! z-stream dictionary
+					  in-buffer out-buffer size)))
+      (if end?
+	  (set! current-pos 0)
+	  (set! current-pos avail-in))
+      (unless (zero? avail-in)
+	;; shift remaining to the front
+	(bytevector-copy! in-buffer (- size avail-in)
+			  in-buffer 0 avail-in))
+      (put-bytevector sink out-buffer 0 nwrite)))
   (define (close)
-    (unless (zero? current-pos)
-      ;; TODO support size on inflate so that we don't have to
-      ;;      copy bytevector number of times here
-      (let loop ((buf (bytevector-copy in-buffer 0 current-pos)))
-	(let-values (((avail-in nwrite end?)
-		      (fill-inflating-buffer! z-stream dictionary
-					      buf out-buffer)))
-	  (put-bytevector sink out-buffer 0 nwrite)
-	  (unless (or end? (zero? avail-in))
-	    (loop (bytevector-copy buf (- (bytevector-length buf) avail-in)))))))
+    (let loop ()
+      (unless (zero? current-pos)
+	(inflate-buffer in-buffer current-pos)
+	(loop)))
     (unless (= (inflate-end z-stream Z_FINISH) Z_OK)
       (raise-z-stream-error z-stream 'inflate-end))
     (when owner? (close-output-port sink)))
@@ -341,27 +343,20 @@
       (let ((s (min (- buffer-size current-pos) rest)))
 	(bytevector-copy! bv offset in-buffer current-pos s)
 	(set! current-pos (+ current-pos s))
-	(when (= current-pos buffer-size)
-	  (let-values (((avail-in nwrite end?)
-			(fill-inflating-buffer! z-stream dictionary
-						in-buffer out-buffer)))
-	    (set! current-pos avail-in)
-	    (unless (zero? avail-in)
-	      ;; shift remaining to the front
-	      (bytevector-copy! in-buffer (- buffer-size avail-in)
-				in-buffer 0 avail-in))
-	    (put-bytevector sink out-buffer 0 nwrite)))
+	(when (= buffer-size current-pos) (inflate-buffer in-buffer current-pos))
 	(if (= s rest)
-	    count
+	    (begin
+	      (inflate-buffer in-buffer current-pos)
+	      count)
 	    (loop (+ offset s) (- rest s))))))
 
   (when dictionary (inflate-set-dictionary z-stream dictionary))
   (make-custom-binary-output-port "inflate output port" write! #f #f close))
 
 ;; core inflate logic
-(define (fill-inflating-buffer! z-stream dictionary in-buffer out-buffer)
-  (let loop ((in-buffer. in-buffer))
-    (let ((r (inflate z-stream in-buffer. out-buffer Z_SYNC_FLUSH))
+(define (fill-inflating-buffer! z-stream dictionary in-buffer out-buffer size)
+  (let loop ((size size))
+    (let ((r (inflate z-stream in-buffer out-buffer size Z_SYNC_FLUSH))
       	  (avail-in (zstream-avail-in z-stream))
       	  (nwrite (zstream-write-count z-stream out-buffer)))
       (cond ((= r Z_STREAM_ERROR) (raise-z-stream-error z-stream 'inflate))
@@ -373,11 +368,10 @@
       	       (let ((avail-in (zstream-avail-in z-stream)))
 		 (cond ((> avail-in 0)
 			;; shift the rest of the input to the front
-      			(bytevector-copy! in-buffer.
-			  (- (bytevector-length in-buffer.) avail-in)
-      			  in-buffer. 0 avail-in)
+      			(bytevector-copy! in-buffer (- size avail-in)
+      					  in-buffer 0 avail-in)
 		       ;; dictionary is passed, try again
-			(loop in-buffer.))
+			(loop avail-in))
 		       (else (values avail-in nwrite #f))))))
       	    (else
       	     (when (and (= r Z_DATA_ERROR) (<= nwrite 0))

@@ -60,7 +60,7 @@ int      Sg_InflateReset(SgZStream *strm, int windowBits);
 int      Sg_InflateSetDictionary(SgZStream *strm, SgByteVector *dict);
 int      Sg_InflateSync(SgZStream *strm);
 int      Sg_Inflate(SgZStream *strm, SgByteVector *data, SgByteVector *dest, 
-		    int flush);
+		    int size, int flush);
 int      Sg_InflateEnd(SgZStream *strm, int flush);
 
 /* misc */

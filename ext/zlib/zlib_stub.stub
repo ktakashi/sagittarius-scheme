@@ -42,9 +42,9 @@
   Sg_InflateSync)
 
 (define-c-proc inflate
-  (strm::<z-stream> data::<bytevector> dest::<bytevector> flush::<fixnum>)
+  (strm::<z-stream> data::<bytevector> dest::<bytevector> size::<fixnum> flush::<fixnum>)
   ::<fixnum>
-  (result (Sg_Inflate strm data dest (cast int flush))))
+  (result (Sg_Inflate strm data dest size (cast int flush))))
 
 (define-c-proc inflate-end (strm::<z-stream> flush::<fixnum>) ::<fixnum>
   (result (Sg_InflateEnd strm (cast int flush))))

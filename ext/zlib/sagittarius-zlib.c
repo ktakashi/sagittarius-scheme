@@ -149,10 +149,10 @@ int Sg_InflateSync(SgZStream *strm)
 }
 
 int Sg_Inflate(SgZStream *strm, SgByteVector *data, SgByteVector *dest, 
-	       int flush)
+	       int size, int flush)
 {
   strm->strm->next_in = SG_BVECTOR_ELEMENTS(data);
-  strm->strm->avail_in = (int)SG_BVECTOR_SIZE(data);
+  strm->strm->avail_in = size;
   strm->strm->next_out = SG_BVECTOR_ELEMENTS(dest);
   strm->strm->avail_out = (int)SG_BVECTOR_SIZE(dest);
   return inflate(strm->strm, flush);  
