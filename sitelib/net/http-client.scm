@@ -156,7 +156,7 @@
 		  (http:client-lease-option-set! hc
 		   (http-connection-lease-option-builder
 		    (alpn (if (eq? (http:client-version hc) 'http/2)
-			      '("h2") '()))
+			      '("h2" "http/1.1") '()))
 		    (executor
 		     (force (*http-connection-manager:default-executor*)))))
 		  hc)))))
