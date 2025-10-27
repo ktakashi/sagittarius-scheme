@@ -154,7 +154,9 @@ static SgTLSSocket* make_tls_socket(SgSocket *socket, SSL_CTX *ctx,
 
 #include "raise_incl.incl"
 
-#define SSL_OP_FLAGS (SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION)
+#define SSL_OP_FLAGS (SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | \
+		      SSL_OP_CIPHER_SERVER_PREFERENCE |	  \
+		      SSL_OP_NO_COMPRESSION)
 
 #define CERTIFICATE_LOADED 0x1
 #define PRIVATE_KEY_LOADED 0x2
@@ -173,10 +175,10 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
   ERR_clear_error();		/* clear error */
   switch(socket->type) {
   case SG_SOCKET_CLIENT:
-    ctx = SSL_CTX_new(SSLv23_client_method());
+    ctx = SSL_CTX_new(TLS_client_method());
     break;
   case SG_SOCKET_SERVER:
-    ctx = SSL_CTX_new(SSLv23_server_method());
+    ctx = SSL_CTX_new(TLS_server_method());
 #if (OPENSSL_VERSION_NUMBER >= 0x10002000L) &&	\
   (OPENSSL_VERSION_NUMBER < 0x10100000)
     SSL_CTX_set_ecdh_auto(ctx, 1);
@@ -191,9 +193,14 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
   }
   if (!ctx) goto err;
   
-  SSL_CTX_set_options(ctx, SSL_OP_FLAGS);
-  SSL_CTX_set_mode(ctx, SSL_MODE_AUTO_RETRY);
+  SSL_CTX_set_options(ctx, SSL_OP_ALL | SSL_OP_FLAGS);
+  SSL_CTX_set_mode(ctx, SSL_MODE_AUTO_RETRY | SSL_MODE_RELEASE_BUFFERS);
   SSL_CTX_set_cipher_list(ctx, CIPHER_LIST);
+  
+#if 0
+  SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION);
+  SSL_CTX_set_ciphersuites(ctx, "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256");
+#endif
   
   /* TODO handle certificates and private key */
   SG_FOR_EACH(cp, Sg_Reverse(certificates)) {
@@ -344,6 +351,18 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
   
   SSL_set_fd(data->ssl, socket->socket);
   r = SSL_connect(data->ssl);
+  if (r < 0) {
+    int err = SSL_get_error(data->ssl, r);
+    const char *msg;
+    if (SSL_ERROR_SSL == err) err = ERR_get_error();
+    msg = ERR_reason_error_string(err);
+    if (!msg) msg = "SSL_connect failed";
+    raise_socket_error(SG_INTERN("tls-socket-connect!"),
+		       Sg_Utf8sToUtf32s(msg, strlen(msg)),
+		       Sg_MakeConditionSocket(tlsSocket),
+		       Sg_MakeIntegerU(err));
+  }
+
   /* We care verification result only if the verifier is not #f */
   if (r == 1) {
     lookup_alpn(tlsSocket);
