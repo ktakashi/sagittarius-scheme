@@ -45,7 +45,8 @@
 	    
 	    http-connection-open?
 	    http-connection-open! http-connection-close!
-
+	    http-connection-data-ready?
+	    
 	    http-connection-send-header!
 	    http-connection-send-data!
 	    http-connection-receive-header!
@@ -96,8 +97,10 @@
 		   header-sender data-sender
 		   header-receiver data-receiver
 		   socket
-		   (and socket (socket-input-port socket))
-		   (and socket (socket-output-port socket))
+		   (and socket (buffered-port (socket-input-port socket)
+					      (buffer-mode block)))
+		   (and socket (buffered-port (socket-output-port socket)
+					      (buffer-mode block)))
 		   data)))))
 
 (define-record-type http-logging-connection
@@ -142,7 +145,7 @@
   (define (close) (close-port in))
   (define (ready) (port-ready? in))
   (make-custom-binary-input-port "logging-binary-input-port"
-   read! #f #f close ready))
+				 read! #f #f close ready))
 
 (define (->logging-output-port out logger)
   (define wire-logger (http-client-logger-wire-logger logger))
@@ -150,11 +153,11 @@
     (http-wire-logger-write-log wire-logger "OUT"
      (bytevector-copy bv start (+ start count)))
     (put-bytevector out bv start count)
+    (flush-output-port out)
     count)
   (define (close) (close-port out))
-  (make-custom-binary-output-port
-   "logging-binary-output-port"
-   write! #f #f close))
+  (make-custom-binary-output-port "logging-binary-output-port"
+				  write! #f #f close))
 
 (define (http-connection-open? conn)
   (and (http-connection-socket conn) #t))
@@ -172,12 +175,13 @@
   conn)
 
 (define (http-connection-close! conn)
+  (define (safe-close-port port) (guard (e (else #f)) (close-port port)))
   (when (http-connection-open? conn)
     (let ((socket (http-connection-socket conn))
 	  (input (http-connection-input conn))
 	  (output (http-connection-output conn)))
-      (close-port input)
-      (close-port output)
+      (safe-close-port output)
+      (safe-close-port input)
       (socket-shutdown socket SHUT_RDWR)
       (socket-close socket)
       (http-connection-socket-set! conn #f)
@@ -185,14 +189,18 @@
       (http-connection-output-set! conn #f)))
   conn)
 
+(define (http-connection-data-ready? connection)
+  (define in (http-connection-input connection))
+  (not (eof-object? (lookahead-u8 in))))
+
 (define (http-connection-send-header! conn request)
   ((http-connection-header-sender conn) conn request))
 (define (http-connection-send-data! conn request)
   ((http-connection-data-sender conn) conn request))
 
-(define (http-connection-receive-header! conn request)
-  ((http-connection-header-receiver conn) conn request))
-(define (http-connection-receive-data! conn request)
-  ((http-connection-data-receiver conn) conn request))
+(define (http-connection-receive-header! conn response-context)
+  ((http-connection-header-receiver conn) conn response-context))
+(define (http-connection-receive-data! conn response-context)
+  ((http-connection-data-receiver conn) conn response-context))
 
 )

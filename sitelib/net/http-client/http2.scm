@@ -84,8 +84,6 @@
   (fields id
 	  connection
 	  request
-	  header-handler
-	  data-handler
 	  (mutable state)
 	  (mutable remote-state)
 	  (mutable window-size)
@@ -98,8 +96,6 @@
 		(define ctx (http-connection-context-data connection))
 		(let ((r (p id connection
 			    request
-			    (http:request-header-handler request)
-			    (http:request-data-handler request)
 			    (http2:stream-state idle)
 			    (http2:stream-state idle)
 			    (http2-connection-context-initial-window-size ctx)
@@ -131,7 +127,7 @@
     (send-window-update conn 0 (- (- (expt 2 31) 1) +window-size+))
     ;; Wait until server ACK settings
     (let loop ()
-      (let-values (((frame stream) (handle-frame conn)))
+      (let-values (((frame stream) (handle-frame conn #f)))
 	(unless (and (http2-frame-settings? frame)
 		     (bitwise-bit-set? (http2-frame-flags frame) 0))
 	  (loop))))
@@ -163,10 +159,28 @@
 ;; We receive a response of the given request, requests are associated
 ;; to the stream, so we can detect which request we need to return
 ;; (NB: at this moment, we only have one stream)
-(define (http2-receive-header connection request)
-  (http2-response connection request 'header))
+(define (http2-receive-header connection response-context)
+  (define request (http:response-context-request response-context))
+  (define ((wrap-header-handler response-context) frame es?)
+    (define handler (http:response-context-header-handler response-context))
+    (let* ((headers (map (lambda (kv)
+			   (list (utf8->string (car kv))
+				 (utf8->string (cadr kv))))
+			 (http2-frame-headers-headers frame))))
+      (handler response-context
+	       (cond ((assoc ":status" headers) => cadr)
+		     (else #f))
+	       headers
+	       (not es?))))
+  (define header-handler (wrap-header-handler response-context))
+  (http2-response connection request 'header header-handler))
 
-(define (http2-receive-data connection request)
+(define (http2-receive-data connection response-context)
+  (define request (http:response-context-request response-context))
+  (define ((wrap-data-handler response-context) frame es?)
+    (define handler (http:response-context-data-handler response-context))
+    (handler response-context (http2-frame-data-data frame) es?))
+  (define data-handler (wrap-data-handler response-context))
   ;; after data receival, the stream is no longer available, so remove it
   (define (remove-stream connection request)
     (define context (http-connection-context-data connection))
@@ -174,12 +188,18 @@
     (define target-stream (search-stream connection request))
     (http2-remove-stream! connection (http2-stream-id target-stream))
     connection)
+  (define data-ready? http-connection-data-ready?)
 
-  (let loop ((es? (http2-response connection request 'data)))
-    (or (and es? (remove-stream connection request))
-	(loop (http2-response connection request 'data)))))
+  (let loop ((es? (http2-response connection request 'data data-handler)))
+    (cond (es?
+	   (remove-stream connection request)
+	   (http:response-body-state done))
+	  (else
+	   (if (data-ready? connection)
+	       (loop (http2-response connection request 'data data-handler))
+	       (http:response-body-state continue))))))
   
-(define (http2-response connection request to-receive)
+(define (http2-response connection request to-receive handler)
   (define target-stream (search-stream connection request))
   (define rstate (http2-stream-remote-state target-stream))
   ;; already received?
@@ -191,7 +211,7 @@
 	 #t)
 	(else
 	 (let loop ()
-	   (let-values (((frame stream) (handle-frame connection)))
+	   (let-values (((frame stream) (handle-frame connection handler)))
 	     (if (and (eq? stream target-stream)
 		      (or (http2-frame-headers? frame)
 			  (http2-frame-data? frame)))
@@ -303,7 +323,7 @@
       (http2-stream-local-window-size-set! stream (+ local-window delta)))))
 
 
-(define (handle-frame connection)
+(define (handle-frame connection handler)
   (define context (http-connection-context-data connection))
   (define streams (http2-connection-context-streams context))
 
@@ -329,24 +349,14 @@
     (cond ((handle-misc-frames connection stream frame) (values frame #f))
 	  ((http2-frame-headers? frame)
 	   (write-header-log connection "[Response header]" frame)
-	   (let* ((headers (map (lambda (kv)
-				  (list (utf8->string (car kv))
-					(utf8->string (cadr kv))))
-				(http2-frame-headers-headers frame)))
-		  (handler (http2-stream-header-handler stream))
-		  (r (handler (cond ((assoc ":status" headers) => cadr)
-				    (else #f))
-			      headers
-			      (not es?))))
-	     (values frame stream)))
+	   (handler frame es?)
+	   (values frame stream))
 	  ((http2-frame-data? frame)
-	   (let ((data (http2-frame-data-data frame))
-		 (data-handler (http2-stream-data-handler stream)))
+	   (let ((data (http2-frame-data-data frame)))
 	     (http-connection-write-log connection
 					"HTTP2 data length ~a, ~a"
 					(bytevector-length data) es?)
-
-	     (data-handler data es?)
+	     (handler frame es?)
 	     (update-window-size! stream (bytevector-length data))
 	     (values frame stream)))
 	  (else
@@ -365,7 +375,7 @@
     ;; this shouldn't be needed though...
     (define (pause! size)
       (let loop ()
-	(handle-frame (http2-stream-connection stream))
+	(handle-frame (http2-stream-connection stream #f))
 	(when (<= (http2-stream-window-size stream) size) (loop)))
       (set! window-size (http2-stream-window-size stream)))
 

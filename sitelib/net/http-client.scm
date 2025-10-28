@@ -37,6 +37,7 @@
 	    http:response?
 	    http:response-status http:response-headers
 	    http:response-cookies http:response-body
+	    http:response-time
 	    http:headers? http:make-headers
 	    http:headers-names http:headers-ref* http:headers-ref
 	    http:headers->alist
@@ -103,6 +104,9 @@
 
 	    make-keystore-key-provider keystore-key-provider?
 	    keystore-key-provider-add-key-retriever!
+
+	    ;; data handlers
+	    http:bytevector-data-handler
 	    
 	    http:client-shutdown!
 	    http:client-send
@@ -127,6 +131,7 @@
 	    (util concurrent)
 	    (sagittarius)
 	    (scheme lazy)
+	    (srfi :19 time)
 	    (srfi :39 parameters))
 
 (define *http-client:default-executor*  
@@ -147,19 +152,15 @@
 	  executor
 	  user-agent
 	  ;; internal 
-	  (mutable lease-option)
-	  )
+	  lease-option)
   (protocol (lambda (p)
-	      (lambda args
-		(let ((hc (apply p args)))
-		  ;; set lease option here
-		  (http:client-lease-option-set! hc
+	      (lambda (fr ch cm v e ua #:_)
+		(p fr ch cm v e ua
 		   (http-connection-lease-option-builder
-		    (alpn (if (eq? (http:client-version hc) 'http/2)
-			      '("h2" "http/1.1") '()))
+		    (alpn (if (eq? v 'http/2) '("h2" "http/1.1") '()))
 		    (executor
-		     (force (*http-connection-manager:default-executor*)))))
-		  hc)))))
+		     (force (*http-connection-manager:default-executor*)))))))))
+
 (define-syntax http:client-builder
   (make-record-builder http:client
    (;; by default we don't follow
@@ -181,23 +182,29 @@
 
 (define http:client-shutdown!
   (case-lambda
-   ((client)
-    (http:client-shutdown! client #t))
+   ((client) (http:client-shutdown! client #t))
    ((client shutdown-executor?)
     (http-connection-manager-shutdown! (http:client-connection-manager client))
     (when (and shutdown-executor? (not (default-executor? client)))
       (shutdown-executor! (http:client-executor client))))))
 
-(define (http:client-send client request)
-  (future-get (http:client-send-async client request)))
+(define (http:client-send client request . opts)
+  (future-get (apply http:client-send-async client request opts)))
 
-(define (http:client-send-async client request)
+(define (http:bytevector-data-handler) 
+  (let-values (((out e) (open-bytevector-output-port)))
+    (values out (lambda (#:_ #:_) (e)))))
+(define (http:oport-data-handler sink flusher)
+  (values sink (lambda (status hdrs) (flusher sink status hdrs))))
+
+(define (http:client-send-async client request 
+	 :key (data-handler http:bytevector-data-handler))
   (let-values (((f success failure) (make-piped-future)))
-    (request/response client request success failure)
+    (request/response client request data-handler success failure)
     f))
 
 ;;; helpers
-(define (request/response client request success failure)
+(define (request/response client request data-handler success failure)
   (define ((release/fail conn) e)
     (release-http-connection client conn #f)
     (failure e))
@@ -206,11 +213,11 @@
      (executor-submit! (http:client-executor client)
       (lambda ()
 	(let ((fail (release/fail conn)))
-	  (guard (e (else (fail e)))
+	  (guard (e (else (fail e) #f))
 	    (let ((response-handler (send-request client conn request)))
 	      (http-connection-manager-register-on-readable
 	       (http:client-connection-manager client) conn
-	       (response-handler client success fail)
+	       (response-handler client data-handler success fail)
 	       fail
 	       (http:request-timeout request))))))))
    failure))
@@ -262,55 +269,116 @@
     ;; well, just return...
     (else (success response))))
 
-(define ((response-handler header-state retriever request)
-	 client success failure)
-  (lambda (conn retry)
-    (define executor (http:client-executor client))
-    (define (receive-data conn)
-      (let ((reuse? (http-connection-receive-data! conn request)))
-	(release-http-connection client conn reuse?)
-	(let ((response (retriever)))
-	  (when (http:client-cookie-handler client)
-	    (add-cookie! client (http:response-cookies response)))
-	  response)))
+(define-record-type response-context
+  (parent <http:response-context>)
+  (fields (mutable status)
+	  (mutable headers)
+	  (mutable has-data?)
+	  retriever
+	  (mutable sink))
+  (protocol (lambda (n)
+	      (lambda (request header-handler data-handler)
+		(let-values (((sink retriever) (data-handler)))
+		  ((n request header-handler body-data-handler)
+		   #f '() #f retriever sink))))))
+
+(define (header-handler ctx status headers has-data?)
+  (response-context-status-set! ctx status)
+  (response-context-headers-set! ctx headers)
+  (response-context-has-data?-set! ctx has-data?)
+  (let ((sink (response-context-sink ctx))
+	(encoding (rfc5322-header-ref headers "content-encoding" "none")))
+    (response-context-sink-set! ctx
+     (case (string->symbol encoding)
+       ;; TODO implement below...
+       ((gzip) (open-inflating-output-port sink :owner? #f :window-bits 31))
+       ((defalte) (open-inflating-output-port sink :owner? #f))
+       ((none) (open-forwarding-output-port sink))
+       (else (error 'http-client
+		    "Content-Encoding contains unsupported" encoding))))))
+
+(define (body-data-handler ctx data end?)
+  (define sink (response-context-sink ctx))
+  (put-bytevector sink data))
+
+(define (response-context->response ctx start)
+  (define headers (http:make-headers))
+  ;; stored headers are RFC 5322 alist, so convert it here
+  (for-each (lambda (kv)
+	      (for-each (lambda (v) (http:headers-add! headers (car kv) v))
+			(cdr kv)))
+	    (response-context-headers ctx))
+  (let ((cookies (map parse-cookie-string
+		      (http:headers-ref* headers "Set-Cookie")))
+	(retriever (response-context-retriever ctx))
+	(status (response-context-status ctx))
+	(sink (response-context-sink ctx)))
+    ;; To finish decompression
+    (close-port sink)
+    (http:response-builder (status status)
+			   (headers headers)
+			   (cookies cookies)
+			   (body (retriever status headers))
+			   (time (time-difference (current-time) start)))))
+
+(define ((response-handler request start) client data-handler success failure)
+  (define response-context
+    (make-response-context request header-handler data-handler))
+  (define executor (http:client-executor client))
+  (define manager (http:client-connection-manager client))
+
+  (define (receive-data conn response-context retry)
     (define (finish r)
       (let ((status (http:response-status r)))
 	(if (and status (char=? #\3 (string-ref status 0)))
 	    (handle-redirect client request r success failure)
 	    (success r))))
-    ;; The idea of splitting header and body receiving was, probably, good.
-    ;; Though using socket (retry) wasn't, even HTTP/2 server may immediately
-    ;; return data frame and the socket won't be readable by select(2) call.
-    ;; I'm not entirely sure how much impact we would get if we don't split
-    ;; header and body reading, but for now, keep it simple...
-    (executor-submit! executor
-     (lambda ()
-       (guard (e (else (failure e)))
-	 (let loop ()
-	   (http-connection-receive-header! conn request)
-	   (let-values (((data? status h*) (apply values (header-state))))
-	     (cond ((eqv? (string-ref status 0) #\1)
-		    ;; TODO extra handler for 1xx status, esp 103?
-		    (loop))
-		   (else (finish (receive-data conn)))))))))))
+    ;; TODO for SSE, we put separate event handling here
+    (case (http-connection-receive-data! conn response-context)
+      ((continue) (retry))
+      (else =>
+       (lambda (state)
+	 (release-http-connection client conn (eq? state 'done))
+	 (let ((response (response-context->response response-context start)))
+	   (when (http:client-cookie-handler client)
+	     (add-cookie! client (http:response-cookies response)))
+	   (finish response))))))
+
+  (define (receive-header conn retry)
+    (define (delay-data-receive)
+      (http-connection-manager-register-on-readable manager conn
+       (lambda (conn retry) 
+	 (executor-submit! executor
+	  (lambda () (receive-data conn response-context retry))))
+       failure (http:request-timeout request)))
+    (guard (e (else (failure e)))
+      (let loop ()
+	;; in case of data retry
+	;; TODO better handling
+	(unless (response-context-status response-context)
+	  (http-connection-receive-header! conn response-context))
+	(let ((status (response-context-status response-context)))
+	  ;; TODO extra handler for 1xx status, esp 103?
+	  (cond ((eqv? (string-ref status 0) #\1) (loop))
+		((http-connection-data-ready? conn)
+		 (receive-data conn response-context delay-data-receive))
+		(else (delay-data-receive)))))))
+
+  (lambda (conn retry)
+    (executor-submit! executor (lambda () (receive-header conn retry)))))
 
 (define (send-request client conn request)
-  (let-values (((header-handler body-handler header-state response-retriever)
-		(make-handlers)))
-    (let ((req (adjust-request client request header-handler body-handler)))
-      (http-connection-send-header! conn req)
-      (http-connection-send-data! conn req)
-      (response-handler header-state response-retriever req))))
+  (define now (current-time))
+  (let ((req (adjust-request client request)))
+    (http-connection-send-header! conn req)
+    (http-connection-send-data! conn req)
+    (response-handler req now)))
 
-(define (adjust-request client request header-handler data-handler)
-  (let* ((copy (http:request-builder
-		(from request)
-		(header-handler header-handler)
-		(data-handler data-handler)))
+(define (adjust-request client request)
+  (let* ((copy (http:request-builder (from request)))
 	 (headers (http:request-headers copy)))
     (unless (http:headers-contains? headers "User-Agent")
-      (http:headers-set! headers "User-Agent"
-			 (http:client-user-agent client)))
+      (http:headers-set! headers "User-Agent" (http:client-user-agent client)))
     (unless (http:headers-contains? headers "Accept")
       (http:headers-set! headers "Accept" "*/*"))
     (http:headers-set! headers "Accept-Encoding" "gzip, deflate")
@@ -320,14 +388,12 @@
 	       (http:headers-set! headers "Authorization" (provider))))))
     (let ((request-cookies (http:request-cookies request)))
       (unless (null? request-cookies)
-	(http:headers-add! headers "Cookie"
-			   (cookies->string request-cookies))))
+	(http:headers-add! headers "Cookie" (cookies->string request-cookies))))
     (cond ((http:client-cookie-handler client) =>
 	   (lambda (jar)
 	     (define uri (http:request-uri request))
 	     ;; okay add cookie here
-	     (let ((cookies (cookie-jar->cookies jar
-						 (cookie-jar-selector uri))))
+	     (let ((cookies (cookie-jar->cookies jar (cookie-jar-selector uri))))
 	       (unless (null? cookies)
 		 (http:headers-add! headers "Cookie"
 				    (cookies->string cookies)))))))
@@ -341,61 +407,6 @@
   (fields (mutable status)
 	  (mutable headers)
 	  (mutable body)))
-
-(define (make-handlers)
-  (define (decompress headers body)
-    (define (get-input headers body)
-      (case (string->symbol
-	     (rfc5322-header-ref headers "content-encoding" "none"))
-	((gzip) (open-gzip-input-port body :owner? #t))
-	((deflate) (open-inflating-input-port body :owner? #t))
-	((none) body)
-	;; TODO proper error
-	(else
-	 => (lambda (v)
-	      (error 'http-client
-		     "Content-Encoding contains unsupported value" v)))))
-    (call-with-port (get-input headers body)
-      (lambda (in) 
-	(let ((v (get-bytevector-all in)))
-	  (cond ((eof-object? v) #vu8())
-		(else v))))))
-		    
-  (let ((in/out (open-chunked-binary-input/output-port))
-	(response (make-mutable-response #f #f #vu8())))
-    (define header-status '(#f #f #f))
-    (define (header-handler status headers has-data?)
-      (mutable-response-status-set! response status)
-      (mutable-response-headers-set! response headers)
-      (set! header-status (list has-data? status headers)))
-    (define (body-handler data end?)
-      (put-bytevector in/out data)
-      (when end?
-	(set-port-position! in/out 0)
-	(let* ((headers (mutable-response-headers response))
-	       (body (decompress headers in/out)))
-	  (set! in/out #f)
-	  (mutable-response-body-set! response body))))
-    (define (response-retriever)
-      (define headers (http:make-headers))
-      ;; stored headers are RFC 5322 alist, so convert it here
-      (for-each (lambda (kv)
-		  (for-each (lambda (v)
-			      (http:headers-add! headers (car kv) v))
-			    (cdr kv)))
-		(mutable-response-headers response))
-      (let ((cookies (map parse-cookie-string
-			  (http:headers-ref* headers "Set-Cookie")))
-	    (body (mutable-response-body response)))
-	;; clear with hope of GC friendliness
-	(mutable-response-headers-set! response #f)
-	(mutable-response-body-set! response #f)
-	(http:response-builder (status (mutable-response-status response))
-			       (headers headers)
-			       (cookies cookies)
-			       (body body))))
-    (values header-handler body-handler (lambda () header-status)
-	    response-retriever)))
       
 (define (lease-http-connection client request success failure)
   (define manager (http:client-connection-manager client))
@@ -406,4 +417,14 @@
   (http-connection-manager-release-connection
    (http:client-connection-manager client)
    connection reuse?))
+
+;; no compression, but we should be able to close it without
+;; underlying port to be closed
+(define (open-forwarding-output-port sink)
+  (define (write! bv start count)
+    (put-bytevector sink bv start count)
+    count)
+  (define (close) #t) ;; do nothing
+  (make-custom-binary-output-port "forwarding-port" write! #f #f close))
+
 )

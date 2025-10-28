@@ -39,8 +39,6 @@
 	    http:request-cookies
 	    http:request-body
 	    http:request-timeout
-	    http:request-header-handler
-	    http:request-data-handler
 	    http:request-basic-auth
 	    http:request-bearer-auth
 	    
@@ -52,6 +50,7 @@
 	    (rename (http:response <http:response>))
 	    http:response-status http:response-headers
 	    http:response-cookies http:response-body
+	    http:response-time
 
 	    +http:managed-headers+
 	    http:make-headers http:headers?
@@ -63,6 +62,14 @@
 	    http:method
 	    http-method-set
 	    http:no-body-method?
+
+	    (rename (http:response-context <http:response-context>))
+	    make-http:response-context
+	    http:response-context-request
+	    http:response-context-header-handler
+	    http:response-context-data-handler
+
+	    http:response-body-state
 	    )
     (import (rnrs)
 	    (record builder)
@@ -120,9 +127,7 @@
 	  headers
 	  cookies
 	  body
-	  timeout
-	  header-handler
-	  data-handler))
+	  timeout))
 (define (->uri uri)
   (if (uri? uri)
       uri
@@ -158,13 +163,20 @@
   (fields status
 	  headers
 	  cookies
-	  body))
+	  body
+	  time))
 (define-syntax http:response-builder
   (make-record-builder http:response
 		       ((body #f)
 			;; let it fail if no header is provided...
 			(headers #f ->headers)
 			(cookies '()))))
+
+;; internal use
+(define-record-type http:response-context
+  (fields request
+	  header-handler
+	  data-handler))
 
 ;; Managed headers (these headers are ignored if user set)
 ;; Host is not listed here deliberately
@@ -174,5 +186,12 @@
     "content-type"
     "transfer-encoding"
     "connection"))
+
+;; continue: data is still there should wait
+;; done:     all data received (reusable)
+;; closed:   connection is closed (not reusable)
+(define-enumeration http:response-body-state
+  (continue done closed)
+  http:response-states)
 
 )
