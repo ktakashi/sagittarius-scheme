@@ -161,26 +161,12 @@
 ;; (NB: at this moment, we only have one stream)
 (define (http2-receive-header connection response-context)
   (define request (http:response-context-request response-context))
-  (define ((wrap-header-handler response-context) frame es?)
-    (define handler (http:response-context-header-handler response-context))
-    (let* ((headers (map (lambda (kv)
-			   (list (utf8->string (car kv))
-				 (utf8->string (cadr kv))))
-			 (http2-frame-headers-headers frame))))
-      (handler response-context
-	       (cond ((assoc ":status" headers) => cadr)
-		     (else #f))
-	       headers
-	       (not es?))))
-  (define header-handler (wrap-header-handler response-context))
+  (define header-handler (wrap-handler response-context))
   (http2-response connection request 'header header-handler))
 
 (define (http2-receive-data connection response-context)
   (define request (http:response-context-request response-context))
-  (define ((wrap-data-handler response-context) frame es?)
-    (define handler (http:response-context-data-handler response-context))
-    (handler response-context (http2-frame-data-data frame) es?))
-  (define data-handler (wrap-data-handler response-context))
+  (define data-handler (wrap-handler response-context))
   ;; after data receival, the stream is no longer available, so remove it
   (define (remove-stream connection request)
     (define context (http-connection-context-data connection))
@@ -198,7 +184,24 @@
 	   (if (data-ready? connection)
 	       (loop (http2-response connection request 'data data-handler))
 	       (http:response-body-state continue))))))
-  
+
+(define (wrap-handler response-context)
+  (define data-handler (http:response-context-data-handler response-context))
+  (define header-handler
+    (http:response-context-header-handler response-context))
+  (lambda (frame es?)
+    (if (http2-frame-headers? frame)
+	(let* ((headers (map (lambda (kv)
+			       (list (utf8->string (car kv))
+				     (utf8->string (cadr kv))))
+			     (http2-frame-headers-headers frame))))
+	  (header-handler response-context
+			  (cond ((assoc ":status" headers) => cadr)
+				(else #f))
+			  headers
+			  (not es?)))
+	(data-handler response-context (http2-frame-data-data frame) es?))))
+
 (define (http2-response connection request to-receive handler)
   (define target-stream (search-stream connection request))
   (define rstate (http2-stream-remote-state target-stream))
@@ -213,8 +216,10 @@
 	 (let loop ()
 	   (let-values (((frame stream) (handle-frame connection handler)))
 	     (if (and (eq? stream target-stream)
-		      (or (http2-frame-headers? frame)
-			  (http2-frame-data? frame)))
+		      (or (and (eq? to-receive 'header)
+			       (http2-frame-headers? frame))
+			  (and (eq? to-receive 'data)
+			       (http2-frame-data? frame))))
 		 (http2-frame-end-stream? frame)
 		 (loop)))))))
 
