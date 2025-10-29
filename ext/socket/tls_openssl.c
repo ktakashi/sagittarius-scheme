@@ -260,12 +260,9 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 
 static void handle_verify_error(SgTLSSocket *tlsSocket, SgObject who, long n)
 {
-  OpenSSLData *newData = (OpenSSLData *)tlsSocket->data;
   const char *msg = X509_verify_cert_error_string(n);
   if (!msg) msg = "Certificate verification error";
-
-  SSL_free(newData->ssl);
-  newData->ssl = NULL;
+  Sg_TLSSocketClose(tlsSocket);
   raise_socket_error(who,
 		     Sg_Utf8sToUtf32s(msg, strlen(msg)),
 		     Sg_MakeConditionSocket(tlsSocket),
@@ -283,9 +280,7 @@ static void handle_accept_error(SgTLSSocket *tlsSocket, int r)
   }
   msg = ERR_reason_error_string(err);
   if (!msg) msg = "failed to handshake";
-      
-  SSL_free(newData->ssl);
-  newData->ssl = NULL;
+  Sg_TLSSocketClose(tlsSocket);
   raise_socket_error(SG_INTERN("tls-socket-accept"),
 		     Sg_Utf8sToUtf32s(msg, strlen(msg)),
 		     Sg_MakeConditionSocket(tlsSocket),
