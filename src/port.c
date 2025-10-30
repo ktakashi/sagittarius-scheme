@@ -312,9 +312,8 @@ static void register_buffered_port(SgBufferedPort *port)
   h = i = (int)PORT_HASH(port);
   c = 0;
   /* make sure h and i are not negative values. */
-  if (h < 0) {
-    h = i = -h;
-  }
+  if (h < 0) h = i = -h;
+
   Sg_LockMutex(&active_buffered_ports.lock);
   while (!SG_FALSEP(Sg_WeakVectorRef(active_buffered_ports.ports,
 				     i, SG_FALSE))) {
@@ -350,6 +349,8 @@ static void unregister_buffered_port(SgBufferedPort *port)
 
   h = i = (int)PORT_HASH(port);
   c = 0;
+  if (h < 0) h = i = -h;
+
   Sg_LockMutex(&active_buffered_ports.lock);
   do {
     p = Sg_WeakVectorRef(active_buffered_ports.ports, i, SG_FALSE);
