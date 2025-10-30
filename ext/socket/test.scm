@@ -566,12 +566,17 @@
 	    (for-each accept (map car s*))
 	    (unless (zero? (socket-selector-size selector))
 	      (loop))))))))
-  (define (check service ai-family)
+  (define (check server-socket)
+    (define si (socket-info server-socket))
+    (define ip-address (socket-info-ip-address si))
+    (define ai-family (if (ip-v6-address? ip-address) AF_INET6 AF_INET))
+    (define service (server-service server-socket))
+
     (let ((s (make-client-socket "localhost" service ai-family)))
       (socket-send s (string->utf8 "hello"))
       (test-equal (list service ai-family) "hello"
 		  (utf8->string (socket-recv s 255)))))
   (for-each (lambda (s) (socket-selector-add! selector s)) s*)
-  (for-each check (map server-service s*) (list AF_INET AF_INET6)))
+  (for-each check s*))
 
 (test-end)

@@ -285,3 +285,6 @@
 (define-c-proc ip-address->bytevector (ip::<ip-address>) :no-side-effect
   (result (-> ip ip)))
 (define-c-proc ip-address? (o) ::<boolean> SG_IP_ADDRESS_P)
+
+(define-c-proc ip-v6-address? (o) ::<boolean>
+  (result (and (SG_IP_ADDRESS_P o) (== IPv6 (-> (SG_IP_ADDRESS o) type)))))
