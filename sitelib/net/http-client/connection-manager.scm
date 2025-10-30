@@ -95,14 +95,22 @@
 	  selector-terminator)
   (protocol
    (lambda (p)
-     (lambda (lease release shutdown config)
+     (case-lambda
+      ((lease release shutdown config)
        (define km (http-connection-config-key-manager config))
        (define dns (http-connection-config-dns-timeout config))
        (define read (http-connection-config-read-timeout config))
        (define conn (http-connection-config-connection-timeout config))
        (define err (http-connection-config-selector-error-handler config))
        (let-values (((selector terminator) (make-socket-selector read err)))
-	 (p lease release shutdown km dns read conn selector terminator))))))
+	 (p lease release shutdown km dns read conn selector terminator)))
+      ((lease release shutdown config selector terminator)
+       (define km (http-connection-config-key-manager config))
+       (define dns (http-connection-config-dns-timeout config))
+       (define read (http-connection-config-read-timeout config))
+       (define conn (http-connection-config-connection-timeout config))
+       (define err (http-connection-config-selector-error-handler config))
+       (p lease release shutdown km dns read conn selector terminator))))))
 
 (define-record-type http-connection-config
   (fields key-manager
@@ -146,7 +154,7 @@
   ((connection-manager-release manager) manager connection reuse?))
 
 (define (http-connection-manager-shutdown! manager)
-   ((connection-manager-selector-terminator manager))
+  ((connection-manager-selector-terminator manager))
   ((connection-manager-shutdown manager) manager))
 
 (define (http-connection-manager-register-on-readable manager
@@ -239,30 +247,43 @@
 		(shutdown-executor!
 		 (delegatable-connection-manager-dns-lookup-executor m))
 		(shutdown m))
-	      (lambda (lease release shutdown config)
+	      (case-lambda
+	       ((lease release shutdown config)
 		((n lease release (make-shutdown! shutdown) config)
 		 (or (http-connection-config-dns-lookup-executor config)
 		     (make-fork-join-executor
 		      (fork-join-pool-parameters-builder
-		       (thread-name-prefix "dns-lookup")))))))))
+		       (thread-name-prefix "dns-lookup"))))))
+	       ((lease release shutdown config delegatee)
+		((n lease release (make-shutdown! shutdown) config
+		    (connection-manager-socket-selector delegatee)
+		    (connection-manager-selector-terminator delegatee))
+		 (or (http-connection-config-dns-lookup-executor config)
+		     (make-fork-join-executor
+		      (fork-join-pool-parameters-builder
+		       (thread-name-prefix "dns-lookup"))))))))))
 
 ;;; ephemeral (no pooling)
 (define-record-type http-ephemeral-connection-manager
   (parent delegatable-connection-manager)
   (protocol (lambda (n)
-	      (lambda (config)
+	      (case-lambda
+	       ((config)
 		((n ephemeral-lease-connection ephemeral-release-connection
-		    (lambda (m) #t) config))))))
+		    (lambda (m) #t) config)))
+	       ((config delegatee)
+		((n ephemeral-lease-connection ephemeral-release-connection
+		    (lambda (m) #t) config delegatee)))))))
 
 (define (ephemeral-lease-connection manager request option)
   (define uri (http:request-uri request))
   (define (http2? socket)
     (and (tls-socket? socket)
 	 (equal? (tls-socket-selected-alpn socket) "h2")))
+  
   (let ((socket-option
 	 (http-connection-manager->socket-option manager request option)))
-    (let-values (((socket host service option)
-		  (uri->socket uri socket-option)))
+    (let-values (((socket host service option) (uri->socket uri socket-option)))
       (if (http2? socket)
 	  (socket->http2-connection socket option host service)
 	  (socket->http1-connection socket option host service)))))
@@ -283,10 +304,15 @@
 (define-record-type http-logging-connection-manager
   (parent delegatable-connection-manager)
   (protocol (lambda (n)
-	      (lambda (config logger)
+	      (case-lambda
+	       ((config logger)
 		((n (make-logging-lease-connection logger)
 		    (make-logging-release-connection logger)
-		    (lambda (m) #t) config))))))
+		    (lambda (m) #t) config)))
+	       ((config logger delegatee)
+		((n (make-logging-lease-connection logger)
+		    (make-logging-release-connection logger)
+		    (lambda (m) #t) config) delegatee))))))
 
 (define (make-logging-lease-connection logger)
   (lambda (manager request option)
@@ -313,8 +339,8 @@
     (ephemeral-release-connection manager connection reuseable?)))
 
 (define (make-logging-delegate-connection-provider logger)
-  (lambda (config)
-    (make-http-logging-connection-manager config logger)))
+  (lambda (config delegatee)
+    (make-http-logging-connection-manager config logger delegatee)))
 
 ;;; pooling
 (define-record-type http-pooling-connection-manager
@@ -326,23 +352,26 @@
 	  ;; these are private
 	  available
 	  leasing
-	  delegate
+	  (mutable delegate)
 	  lock
 	  notifier)
   (protocol
    (lambda (n)
      (lambda (config)
-       ((n pooling-lease-connection pooling-release-connection
-	   pooling-shutdown config)
-	(http-pooling-connection-config-connection-request-timeout config)
-	(http-pooling-connection-config-max-connection-per-route config)
-	(http-pooling-connection-config-route-max-connections config)
-	(http-pooling-connection-config-time-to-live config)
-	(make-hashtable string-hash string=?)
-	(make-hashtable string-hash string=?)
-	((http-pooling-connection-config-delegate-provider config) config)
-	(make-mutex "pooling-connection-manager-lock")
-	(make-notifier))))))
+       (let* ((me ((n pooling-lease-connection pooling-release-connection
+		      pooling-shutdown config)
+		   (http-pooling-connection-config-connection-request-timeout config)
+		   (http-pooling-connection-config-max-connection-per-route config)
+		   (http-pooling-connection-config-route-max-connections config)
+		   (http-pooling-connection-config-time-to-live config)
+		   (make-hashtable string-hash string=?)
+		   (make-hashtable string-hash string=?)
+		   #f
+		   (make-mutex "pooling-connection-manager-lock")
+		   (make-notifier)))
+	      (delegate ((http-pooling-connection-config-delegate-provider config) config me)))
+	 (http-pooling-connection-manager-delegate-set! me delegate)
+	 me)))))
 
 (define-record-type http-pooling-connection-config
   (parent http-connection-config)
@@ -374,19 +403,20 @@
   (define delegate (http-pooling-connection-manager-delegate manager))
   (define available (http-pooling-connection-manager-available manager))
   (define leasing (http-pooling-connection-manager-leasing manager))
-  (define (do-shutdown table)
+  (define (v0 e) (vector-ref e 0))
+  (define (do-shutdown table unwrap)
     (let-values (((keys values) (hashtable-entries table)))
       (vector-for-each
        (lambda (sq)
 	 (for-each (lambda (e)
 		     (http-connection-manager-release-connection
-		      delegate (pooling-entry-connection e) #f))
+		      delegate (pooling-entry-connection (unwrap e)) #f))
 		   (shared-queue->list sq))
 	 (shared-queue-clear! sq))
        values))
     (hashtable-clear! table))
-  (do-shutdown available)
-  (do-shutdown leasing)
+  (do-shutdown available values)
+  (do-shutdown leasing v0)
   (http-connection-manager-shutdown! delegate)
   #t)
 
@@ -407,8 +437,11 @@
   (define lock (http-pooling-connection-manager-lock manager))
   (define notifier (http-pooling-connection-manager-notifier manager))
   (define timeout
-    (cond ((http-pooling-connection-manager-connection-request-timeout manager)
-	   => duration:of-millis)
+    (cond ((http-pooling-connection-manager-connection-request-timeout manager) 
+	   => (lambda (t)
+		(if (time? t)
+		    t
+		    (duration:of-millis t))))
 	  (else #f)))
   (define max-per-route
     (http-pooling-connection-manager-max-connection-per-route manager))
@@ -421,9 +454,15 @@
   
   (define (ensure-queue table route max)
     (cond ((hashtable-ref table route #f))
-	  (else (let ((q (make-shared-queue max)))
-		  (hashtable-set! table route q)
-		  q))))
+	  (else
+	   (mutex-lock! lock)
+	   (let ((q (hashtable-ref table route #f)))
+	     (cond (q (mutex-unlock! lock) q)
+		   (else
+		    (let ((q (make-shared-queue max)))
+		      (hashtable-set! table route q)
+		      (mutex-unlock! lock)
+		      q)))))))
   (define (get-max-connection-per-route route)
     (cond ((assp (lambda (r) (equal? r route)) route-max-connections) => cadr)
 	  (else max-per-route)))
@@ -431,16 +470,16 @@
   (define (try-new-connection leased avail max-conn)
     (define (lease) (internal-lease-connection delegate request option))
     (define mpe make-pooling-entry)
+
     (mutex-lock! lock)
-    (guard (e (else (mutex-unlock! lock) (raise e)))
-      (let ((lsize (shared-queue-size leased))
-	    (asize (shared-queue-size avail)))
-	(let ((r (and (< (+ lsize asize) max-conn)
-		      (let ((conn (lease)))
-			(shared-queue-put! leased (mpe ttl conn))
-			conn))))
-	  (mutex-unlock! lock)
-	  r))))
+    (let* ((total (+ (shared-queue-size leased) (shared-queue-size avail)))
+	   (box (and (< total max-conn) (vector #f))))
+      (when box (shared-queue-put! leased box))
+      (mutex-unlock! lock)
+      (and box
+	   (let ((conn (lease)))
+	     (vector-set! box 0 (mpe ttl conn))
+	     conn))))
 
   (define (get-connection leased avail max-conn timeout)
     (define (handle-leased-connection entry leased avail max-conn timeout)
@@ -450,7 +489,7 @@
 	       (pooling-entry-connection entry) #f)
 	     (get-connection leased avail max-conn timeout))
 	    (else
-	     (shared-queue-put! leased entry)
+	     (shared-queue-put! leased (vector entry))
 	     (pooling-entry-connection entry))))
 
     (define (wait)
@@ -463,9 +502,7 @@
 	   (lambda (entry)
 	     (handle-leased-connection entry leased avail max-conn timeout)))
 	  ((try-new-connection leased avail max-conn))
-	  ((wait) =>
-	   (lambda (to)
-	     (get-connection leased avail max-conn (and (time? to) to))))
+	  ((wait) => (lambda (to) (get-connection leased avail max-conn to)))
 	  (else (raise (condition
 			(make-connection-request-timeout-error)
 			(make-who-condition 'pooling-lease-connection)
@@ -474,16 +511,14 @@
 				 (get-route request)))
 			(make-irritants-condition timeout))))))
   
-  (define (queues lock route leasing available max-conn)
-    (mutex-lock! lock)
+  (define (queues lock route leasing available)
+    ;; we don't make any limit for the queue to avoid overflowing dead lock
     (let ((leased (ensure-queue leasing route -1))
-	  (avail (ensure-queue available route max-conn)))
-      (mutex-unlock! lock)
+	  (avail (ensure-queue available route -1)))
       (values leased avail)))
   (let* ((route (get-route request))
 	 (max-conn (get-max-connection-per-route route)))
-    (let-values (((leased avail)
-		  (queues lock route leasing available max-conn)))
+    (let-values (((leased avail) (queues lock route leasing available)))
       (get-connection leased avail max-conn timeout))))
 
 (define (pooling-release-connection manager connection reuse?)
@@ -491,20 +526,26 @@
   (define leasing (http-pooling-connection-manager-leasing manager))
   (define lock (http-pooling-connection-manager-lock manager))
   (define notifier (http-pooling-connection-manager-notifier manager))
-  (define delegate
-    (http-pooling-connection-manager-delegate manager))
+  (define delegate (http-pooling-connection-manager-delegate manager))
+
   (define (->route connection)
     (define host (http-connection-node connection))
     (define service (http-connection-service connection))
     (define port (or (get-default-port service) service))
     (string-append host ":" port))
+
   (define (remove-entry sq conn)
     (define pec pooling-entry-connection)
-    (let-values (((removed? v)
-		  (shared-queue-remp! sq (lambda (e) (eq? (pec e) conn)))))
-      (and removed? v)))
+    (define (v0 e) (vector-ref e 0))
+    (define ((pred conn) e)
+      (cond ((v0 e) => (lambda (e) (eq? conn (pec e))))
+	    (else #f)))
+    (let-values (((removed? v) (shared-queue-remp! sq (pred conn))))
+      (and removed? (v0 v))))
+
   (define (release conn)
     (http-connection-manager-release-connection delegate conn #f))
+
   (let* ((route (->route connection))
 	 (leased (hashtable-ref leasing route #f)))
     ;; must not be #f (if so it's a bug...)
@@ -512,21 +553,18 @@
 	   (lambda (entry)
 	     (cond ((and reuse? (hashtable-ref available route #f)) =>
 		    (lambda (avail)
-		      (mutex-lock! lock)
 		      ;; due to the loose lock, we can't stricly manage
 		      ;; the number of leasing and available connections
 		      ;; to max connection. this means, the sum of these
 		      ;; 2 queues might overflow the max connection, so
 		      ;; we need to check it to avoid dead lock here.
-		      (if (or (shared-queue-overflows? avail 1)
-			      (pooling-entry-expired? entry))
+		      (if (pooling-entry-expired? entry)
 			  (release (pooling-entry-connection entry))
-			  (shared-queue-put! avail entry))
-		      (mutex-unlock! lock)))
-		   (else
-		    (release (pooling-entry-connection entry))))
-	     (notifier-send-notification! notifier)))
-	  (else (release connection)))))
+			  (shared-queue-put! avail entry))))
+		   (else (release (pooling-entry-connection entry))))))
+	  (else (release connection)))
+    ;; only one is available now, so don't make mess :)
+    (notifier-send-notification! notifier #f)))
 
 (define (get-route request)
   (define uri (http:request-uri request))

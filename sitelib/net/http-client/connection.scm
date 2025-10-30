@@ -191,7 +191,7 @@
 
 (define (http-connection-data-ready? connection)
   (define in (http-connection-input connection))
-  (not (eof-object? (lookahead-u8 in))))
+  (and in (port-ready? in)))
 
 (define (http-connection-send-header! conn request)
   ((http-connection-header-sender conn) conn request))

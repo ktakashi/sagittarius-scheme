@@ -76,6 +76,8 @@
 	    (rfc base64)
 	    (rfc cookie)
 	    (net uri)
+	    (clos user)
+	    (sagittarius)
 	    (util hashtables))
 
 ;;; TODO maybe should make a record for this
@@ -132,6 +134,10 @@
   (if (uri? uri)
       uri
       (string->uri uri)))
+(define-method write-object ((o http:request) p)
+  (format p "#<http:request ~a ~a>" 
+	  (http:request-method o)
+	  (uri->string (http:request-uri o))))
 (define-syntax http:request-builder
   (make-record-builder http:request
 		       ((method 'GET)
