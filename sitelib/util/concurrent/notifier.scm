@@ -43,6 +43,7 @@
 	    )
     (import (rnrs)
 	    (srfi :18)
+	    (srfi :19)
 	    (util concurrent atomic))
 (define-record-type notifier
   (fields lock cv waiter)
@@ -55,12 +56,16 @@
 (define (notifier-waiting? notifier)
   (> (atomic-load (notifier-waiter notifier)) 0))
 
-(define (notifier-send-notification! notifier)
+(define (notifier-send-notification! notifier :optional (broadcast? #t))
   (and (notifier-waiting? notifier)
-       (condition-variable-broadcast! (notifier-cv notifier))))
+       (let ((cv (notifier-cv notifier)))
+	 (if broadcast?
+	     (condition-variable-broadcast! cv)
+	     (condition-variable-signal! cv)))))
 
 (define (notifier-wait-notification! notifier . maybe-timeout)
-  (define to (and (not (null? maybe-timeout)) (car maybe-timeout)))
+  (define to (and (not (null? maybe-timeout))
+		  (adjust-timeout (car maybe-timeout))))
   (define lock (notifier-lock notifier))
   (mutex-lock! lock)
   (atomic-fixnum-inc! (notifier-waiter notifier))
@@ -86,7 +91,8 @@
   (mutex-unlock! lock))
 
 (define (event-receive! event . maybe-timeout)
-  (define to (and (not (null? maybe-timeout)) (car maybe-timeout)))
+  (define to (and (not (null? maybe-timeout))
+		  (adjust-timeout (car maybe-timeout))))
   (define lock (event-lock event))
   (mutex-lock! lock)
   (cond ((event-received event)
@@ -100,4 +106,10 @@
 	   r))
 	(else #f)))
 
+(define (adjust-timeout to)
+  (if (time? to)
+      (case (time-type to)
+	((duration) (add-duration (current-time) to))
+	(else to))
+      to))
 )
