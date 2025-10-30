@@ -518,9 +518,9 @@
 
   (define (terminate!)
     (actor-send-message! on-read-actor #f)
-    (socket-selector-interrupt! selector)
+    ;; occasionally, actor is faster than the caller thread
+    (guard (e (else #f)) (socket-selector-interrupt! selector))
     (close-socket-selector! selector))
-
   (actor-start! on-read-actor)
   (values (case-lambda
 	   ((socket on-read) (push-socket socket on-read hard-timeout))
