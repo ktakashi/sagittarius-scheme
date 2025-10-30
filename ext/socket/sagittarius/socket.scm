@@ -135,7 +135,7 @@
 	    socket-info-port
 	    socket-info-values
 	    ;; ip-address
-	    ip-address?
+	    ip-address? ip-v6-address?
 	    ip-address->string
 	    ip-address->bytevector
 	    ;; fdset
