@@ -208,7 +208,7 @@
   (define ((release/fail conn) e)
     (release-http-connection client conn #f)
     (failure e))
-  (define (submit-on-read conn request handler fail)
+  (define (submit-on-read conn handler fail)
     (http-connection-manager-register-on-readable
      (http:client-connection-manager client) conn
      handler fail
@@ -219,12 +219,12 @@
       (lambda ()
 	(let ((fail (release/fail conn)))
 	  (guard (e (else (fail e) #f))
-	    (let-values (((request resp-handler) (send-request client conn request)))
-	      (let ((handler (resp-handler client data-handler success fail)))
-		;; if it's already ready, just start reading it
-		(if (http-connection-data-ready? conn)
-		    (handler conn (lambda () (submit-on-read conn request handler fail)))
-		    (submit-on-read conn request handler fail)))))))))
+	    (let* ((resp-handler (send-request client conn request))
+		   (handler (resp-handler client data-handler success fail)))
+	      ;; if it's already ready, just start reading it
+	      (if (http-connection-data-ready? conn)
+		  (handler conn (lambda () (submit-on-read conn handler fail)))
+		  (submit-on-read conn handler fail))))))))
    failure))
 
 (define (default-executor? client)
@@ -374,7 +374,7 @@
   (let ((req (adjust-request client request)))
     (http-connection-send-header! conn req)
     (http-connection-send-data! conn req)
-    (values req (response-handler req now))))
+    (response-handler req now)))
 
 (define (adjust-request client request)
   (let* ((copy (http:request-builder (from request)))
