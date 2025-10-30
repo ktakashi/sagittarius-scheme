@@ -119,10 +119,10 @@
 	    (net http-client http1)
 	    (net http-client http2)
 	    (net http-client logging)
-	    (record builder)
 	    (net socket)
 	    (net uri)
 	    (binary io)
+	    (record builder)
 	    (rfc cookie)
 	    (rfc zlib)
 	    (rfc gzip)
@@ -208,24 +208,29 @@
   (define ((release/fail conn) e)
     (release-http-connection client conn #f)
     (failure e))
+  (define (submit-on-read conn request handler fail)
+    (http-connection-manager-register-on-readable
+     (http:client-connection-manager client) conn
+     handler fail
+     (http:request-timeout request)))
   (lease-http-connection client request
    (lambda (conn)
      (executor-submit! (http:client-executor client)
       (lambda ()
 	(let ((fail (release/fail conn)))
 	  (guard (e (else (fail e) #f))
-	    (let ((response-handler (send-request client conn request)))
-	      (http-connection-manager-register-on-readable
-	       (http:client-connection-manager client) conn
-	       (response-handler client data-handler success fail)
-	       fail
-	       (http:request-timeout request))))))))
+	    (let-values (((request resp-handler) (send-request client conn request)))
+	      (let ((handler (resp-handler client data-handler success fail)))
+		;; if it's already ready, just start reading it
+		(if (http-connection-data-ready? conn)
+		    (handler conn (lambda () (submit-on-read conn request handler fail)))
+		    (submit-on-read conn request handler fail)))))))))
    failure))
 
 (define (default-executor? client)
   (eq? (http:client-executor client) (force *http-client:default-executor*)))
 
-(define (handle-redirect client request response success failure)
+(define (handle-redirect client data-handler request response success failure)
   (define (get-location response)
     (cond ((http:headers-ref (http:response-headers response) "Location") =>
 	   string->uri)
@@ -258,7 +263,7 @@
 	   (lambda (next)
 	     (let ((new-req (http:request-builder
 			     (from request) (method 'GET) (uri next))))
-	       (request/response client new-req success failure))))
+	       (request/response client new-req data-handler success failure))))
 	  (else (success response))))
   (case (http:client-follow-redirects client)
     ((never) (success response))
@@ -286,6 +291,7 @@
   (response-context-status-set! ctx status)
   (response-context-headers-set! ctx headers)
   (response-context-has-data?-set! ctx has-data?)
+
   (let ((sink (response-context-sink ctx))
 	(encoding (rfc5322-header-ref headers "content-encoding" "none")))
     (response-context-sink-set! ctx
@@ -294,8 +300,7 @@
        ((gzip) (open-inflating-output-port sink :owner? #f :window-bits 31))
        ((defalte) (open-inflating-output-port sink :owner? #f))
        ((none) (open-forwarding-output-port sink))
-       (else (error 'http-client
-		    "Content-Encoding contains unsupported" encoding))))))
+       (else (error 'http-client "Unsupported Content-Encoding" encoding))))))
 
 (define (body-data-handler ctx data end?)
   (define sink (response-context-sink ctx))
@@ -331,7 +336,7 @@
     (define (finish r)
       (let ((status (http:response-status r)))
 	(if (and status (char=? #\3 (string-ref status 0)))
-	    (handle-redirect client request r success failure)
+	    (handle-redirect client data-handler request r success failure)
 	    (success r))))
     ;; TODO for SSE, we put separate event handling here
     (case (http-connection-receive-data! conn response-context)
@@ -353,10 +358,7 @@
        failure (http:request-timeout request)))
     (guard (e (else (failure e)))
       (let loop ()
-	;; in case of data retry
-	;; TODO better handling
-	(unless (response-context-status response-context)
-	  (http-connection-receive-header! conn response-context))
+	(http-connection-receive-header! conn response-context)
 	(let ((status (response-context-status response-context)))
 	  ;; TODO extra handler for 1xx status, esp 103?
 	  (cond ((eqv? (string-ref status 0) #\1) (loop))
@@ -372,7 +374,7 @@
   (let ((req (adjust-request client request)))
     (http-connection-send-header! conn req)
     (http-connection-send-data! conn req)
-    (response-handler req now)))
+    (values req (response-handler req now))))
 
 (define (adjust-request client request)
   (let* ((copy (http:request-builder (from request)))
@@ -392,8 +394,9 @@
     (cond ((http:client-cookie-handler client) =>
 	   (lambda (jar)
 	     (define uri (http:request-uri request))
+	     (define selector (cookie-jar-selector uri))
 	     ;; okay add cookie here
-	     (let ((cookies (cookie-jar->cookies jar (cookie-jar-selector uri))))
+	     (let ((cookies (cookie-jar->cookies jar selector)))
 	       (unless (null? cookies)
 		 (http:headers-add! headers "Cookie"
 				    (cookies->string cookies)))))))
@@ -403,11 +406,6 @@
   (unless (null? cookies)
     (apply cookie-jar-add-cookie! (http:client-cookie-handler client) cookies)))
 
-(define-record-type mutable-response
-  (fields (mutable status)
-	  (mutable headers)
-	  (mutable body)))
-      
 (define (lease-http-connection client request success failure)
   (define manager (http:client-connection-manager client))
   (http-connection-manager-lease-connection manager request
