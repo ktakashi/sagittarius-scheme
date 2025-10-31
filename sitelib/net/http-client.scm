@@ -359,9 +359,11 @@
     (guard (e (else (failure e)))
       (let loop ()
 	(http-connection-receive-header! conn response-context)
-	(let ((status (response-context-status response-context)))
+	(let ((status (response-context-status response-context))
+	      (has-data? (response-context-has-data? response-context)))
 	  ;; TODO extra handler for 1xx status, esp 103?
-	  (cond ((eqv? (string-ref status 0) #\1) (loop))
+	  (cond ((not has-data?) (response-context->response response-context))
+		((eqv? (string-ref status 0) #\1) (loop))
 		((http-connection-data-ready? conn)
 		 (receive-data conn response-context delay-data-receive))
 		(else (delay-data-receive)))))))

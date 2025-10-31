@@ -78,7 +78,12 @@
   (define header-handler (http:response-context-header-handler response-context))
   (define context (http-connection-context-data connection))
   (define in (http-connection-input connection))
-    
+  (define (check-data headers)
+    (cond ((rfc5322-header-ref headers "content-length" #f) =>
+	   (lambda (n) (not (string=? "0" n))))
+	  ((rfc5322-header-ref headers "transfer-encoding" #f) =>
+	   (lambda (n) (string=? "chunked" n)))
+	  (else 'unknown)))
   (let*-values (((status-line) (read-one-line in))
 		((code reason) (parse-status-line status-line)))
     (let ((headers (rfc5322-read-headers in)))
@@ -97,7 +102,9 @@
       ;; case at least on macOS). To avoid infinite wait, we return
       ;; 'unknown here so that header and body will be read at the same
       ;; time.
-      (header-handler response-context code headers 'unknown))))
+      (let ((has-data? (check-data headers)))
+	(header-handler response-context code headers has-data?)
+	has-data?))))
 
 (define (http1-receive-data connection response-context)
   (define request (http:response-context-request response-context))

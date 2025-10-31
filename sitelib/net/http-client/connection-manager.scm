@@ -327,6 +327,11 @@
 	(http-client-logger-write-log logger 'connection-manager
 	  "[Lease Connection] Connected to service: ~a, node: ~a, port: ~a"
 	  (uri-scheme uri) (uri-host uri) (or (uri-port uri) "?"))
+	(when (tls-socket? (http-connection-socket conn))
+	  (http-client-logger-write-log logger 'connection-manager
+	    "[Lease Connection] ALPN ~a"
+	    (or (tls-socket-selected-alpn (http-connection-socket conn))
+		"http/1.1")))
 	(make-http-logging-connection conn logger)))))
 
 (define (make-logging-release-connection logger)
