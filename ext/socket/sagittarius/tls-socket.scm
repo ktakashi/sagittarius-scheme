@@ -35,6 +35,7 @@
 	    tls-socket-accept   ;; server handshake sort of
 	    tls-socket-send tls-socket-send/range
 	    tls-socket-recv tls-socket-recv!
+	    tls-socket-pending?
 	    tls-socket-shutdown tls-socket-close tls-socket-closed?
 	    tls-server-socket-handshake
 	    tls-socket-peer-certificate
