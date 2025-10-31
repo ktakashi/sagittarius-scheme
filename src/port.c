@@ -603,6 +603,8 @@ static int buffered_ready(SgObject self)
 {
   SgBufferedPort *bp = SG_BUFFERED_PORT(self);
   SgPort *src = bp->src;
+  if (bp->bufferSize != bp->index) return TRUE; /* value in buffer  */
+
   if (SG_PORT_VTABLE(src)->ready) {
     return SG_PORT_VTABLE(src)->ready(src);
   }
