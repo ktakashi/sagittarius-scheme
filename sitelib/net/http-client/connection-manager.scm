@@ -312,7 +312,7 @@
 	       ((config logger delegatee)
 		((n (make-logging-lease-connection logger)
 		    (make-logging-release-connection logger)
-		    (lambda (m) #t) config) delegatee))))))
+		    (lambda (m) #t) config delegatee)))))))
 
 (define (make-logging-lease-connection logger)
   (lambda (manager request option)
