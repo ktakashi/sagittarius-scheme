@@ -57,8 +57,9 @@
       (unless (tls-socket-closed? socket)
 	(tls-socket-shutdown socket SHUT_RDWR)
 	(tls-socket-close socket)))
-    (define (ready?) 
-      (not (null? (socket-read-select 0 (~ socket 'raw-socket)))))
+    (define (ready?)
+      (or (tls-socket-pending? socket) ;; check data buffered first
+	  (not (null? (socket-read-select 0 (~ socket 'raw-socket))))))
     (ctr read! write! close ready?))
 
   (define (tls-socket-port socket :optional (close? #t))

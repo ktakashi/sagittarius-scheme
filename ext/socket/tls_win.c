@@ -1734,6 +1734,18 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
   return -1;			/* dummy */
 }
 
+int Sg_TLSSocketPendingP(SgTLSSocket *tlsSocket)
+{
+  WinTLSData *data = (WinTLSData *)tlsSocket->data;
+  if (!data) {
+    raise_socket_error(SG_INTERN("tls-socket-pending?"),
+		       SG_MAKE_STRING("socket is closed"),
+		       Sg_MakeConditionSocketClosed(tlsSocket),
+		       tlsSocket);
+  }
+  return data->pendingSize > 0;
+}
+
 SgObject Sg_TLSSocketPeerCertificate(SgTLSSocket *tlsSocket)
 {
   WinTLSData *data = (WinTLSData *)tlsSocket->data;

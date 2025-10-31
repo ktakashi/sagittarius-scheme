@@ -38,6 +38,7 @@
 	    tls-socket-send tls-socket-send/range
 	    tls-socket-recv
 	    tls-socket-recv!
+	    tls-socket-pending?
 	    tls-socket-shutdown
 	    tls-socket-close
 	    tls-socket-closed?

@@ -493,6 +493,18 @@ int Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *data, int size, int flags)
   return sent;
 }
 
+int Sg_TLSSocketPendingP(SgTLSSocket *tlsSocket)
+{
+  OpenSSLData *tlsData = (OpenSSLData *)tlsSocket->data;
+  if (!tlsData->ssl) {
+    raise_socket_error(SG_INTERN("tls-socket-pending?"),
+		       SG_MAKE_STRING("socket is closed"),
+		       Sg_MakeConditionSocketClosed(tlsSocket),
+		       tlsSocket);
+  }
+  return SSL_pending(tlsData->ssl) > 0;
+}
+
 static SgObject x509_to_bytevector(X509 *x509)
 {
   int len;

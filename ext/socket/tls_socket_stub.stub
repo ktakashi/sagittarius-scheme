@@ -94,6 +94,8 @@
 			       (cast int len) flags)))
 
 
+(define-c-proc tls-socket-pending? (o::<tls-socket>) ::<boolean>
+  Sg_TLSSocketPendingP)
 (define-c-proc tls-socket-shutdown (o::<tls-socket> how::<ifixnum>) ::<void>
   Sg_TLSSocketShutdown)
 

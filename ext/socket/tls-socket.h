@@ -74,6 +74,7 @@ SG_EXTERN int       Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *data,
 					int size, int flags);
 SG_EXTERN int       Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *data,
 				     int size, int flags);
+SG_EXTERN int       Sg_TLSSocketPendingP(SgTLSSocket *tlsSocket);
 SG_EXTERN void      Sg_InitTLSImplementation();
 
 SG_EXTERN SgObject  Sg_TLSSocketPeerCertificate(SgTLSSocket *tlsSocket);
