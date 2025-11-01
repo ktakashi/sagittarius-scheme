@@ -145,7 +145,7 @@
 	  thread-name-prefix))
 (define-syntax fork-join-pool-parameters-builder
   (make-record-builder fork-join-pool-parameters
-   ((max-threads (* (cpu-count) 5))
+   ((max-threads (cpu-count))
     (keep-alive (duration:of-millis 60000)) ;; default 1 min
     )))
 
@@ -165,7 +165,7 @@
 		  (cond ((integer? n)
 			 (fork-join-pool-parameters-builder
 			  (from *default-parameter*)
-			  (max-threads (* n 5))))
+			  (max-threads n)))
 			((fork-join-pool-parameters? n) n)))
 		(p (fork-join-pool-parameters-max-threads parameter)
 		   (make-worker-queue #f)
