@@ -104,7 +104,7 @@ the section [(sagittarius socket)](#lib.sagittarius.socket). The packet
 will be encrypted by _tls-socket_.
 
 
-###### [!Function] `tls-socket-recv`  _tls-socket_ _size_ _flags_
+###### [!Function] `tls-socket-recv`  _tls-socket_ _size_ :optional (_flags_ `0`)
 
 _tls-socket_ must be the socket created by the procedure
 `make-client-tls-socket`.
@@ -117,6 +117,14 @@ _flags_ will be passed to `socket-recv`.
 
 NOTE: _tls-socket_ have its own buffer to return the value, so that the
 procedure can take _size_ argument.
+
+###### [!Function] `tls-socket-recv!`  _tls-socket_ _bv_ _start_ _len_ :optional (_flags_ `0`)
+
+Receives decrypted packet from _tls-socket_ into _bv_.
+
+###### [!Function] `tls-socket-pending?`  _tls-socket_ 
+
+Returns `#t` if the _tls-socket_ has pending bytes to receive, otherwise `#f`.
 
 
 ###### [!Function] `tls-socket-close`  _tls-socket_
