@@ -572,7 +572,9 @@
     (define ip-address (socket-info-ip-address si))
     (define ai-family (if (ip-v6-address? ip-address) AF_INET6 AF_INET))
     (define service (server-service server-socket))
-
+    ;; debug print for non reproducible error on my environment
+    (print server-socket ip-address ai-family `((AF_INET6 ,AF_INET6)
+						(AF_INET ,AF_INET)))
     (let ((s (make-client-socket "localhost" service ai-family)))
       (socket-send s (string->utf8 "hello"))
       (test-equal (list service ai-family) "hello"
