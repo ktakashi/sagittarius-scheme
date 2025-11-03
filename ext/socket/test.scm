@@ -547,6 +547,7 @@
 (define (random-port)
   (let* ((s (make-server-socket "0"))
 	 (r (server-service s)))
+    (socket-shutdown s SHUT_RDWR)
     (socket-close s)
     r))
     
