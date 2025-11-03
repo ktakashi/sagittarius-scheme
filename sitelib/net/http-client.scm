@@ -2,7 +2,7 @@
 ;;;
 ;;; net/http-client.scm - Modern HTTP client
 ;;;  
-;;;   Copyright (c) 2021  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2021-2025  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -34,10 +34,15 @@
 #!nounbound
 (library (net http-client)
     (export http:request? http:request-builder <http:request>
+
 	    http:response?
 	    http:response-status http:response-headers
 	    http:response-cookies http:response-body
 	    http:response-time
+	    http:stream-response?
+	    http:stream-response-socket
+	    http:stream-response-close!
+
 	    http:headers? http:make-headers
 	    http:headers-names http:headers-ref* http:headers-ref
 	    http:headers->alist
@@ -112,13 +117,15 @@
 	    http:client-send
 	    http:client-send-async)
     (import (rnrs)
-	    (net http-client request)
 	    (net http-client connection)
 	    (net http-client connection-manager)
-	    (net http-client key-manager)
+	    (net http-client encoding)
 	    (net http-client http1)
 	    (net http-client http2)
+	    (net http-client key-manager)
 	    (net http-client logging)
+	    (net http-client request)
+	    (net http-client stream)
 	    (net socket)
 	    (net uri)
 	    (binary io)
@@ -136,7 +143,6 @@
 
 (define *http-client:default-executor*  
   (delay (make-fork-join-executor
-	  (cpu-count)
 	  (fork-join-pool-parameters-builder
 	   (thread-name-prefix "default-http-client")))))
 
@@ -294,13 +300,8 @@
 
   (let ((sink (response-context-sink ctx))
 	(encoding (rfc5322-header-ref headers "content-encoding" "none")))
-    (response-context-sink-set! ctx
-     (case (string->symbol encoding)
-       ;; TODO implement below...
-       ((gzip) (open-inflating-output-port sink :owner? #f :window-bits 31))
-       ((defalte) (open-inflating-output-port sink :owner? #f))
-       ((none) (open-forwarding-output-port sink))
-       (else (error 'http-client "Unsupported Content-Encoding" encoding))))))
+    (when sink
+      (response-context-sink-set! ctx (->decoding-output-port sink encoding)))))
 
 (define (body-data-handler ctx data end?)
   (define sink (response-context-sink ctx))
@@ -326,12 +327,28 @@
 			   (body (retriever status headers))
 			   (time (time-difference (current-time) start)))))
 
+(define (stream-response ctx connection request start)
+  (define headers (http:make-headers))
+  ;; stored headers are RFC 5322 alist, so convert it here
+  (for-each (lambda (kv)
+	      (for-each (lambda (v) (http:headers-add! headers (car kv) v))
+			(cdr kv)))
+	    (response-context-headers ctx))
+  (let ((cookies (map parse-cookie-string
+		      (http:headers-ref* headers "Set-Cookie")))
+	(status (response-context-status ctx)))
+    (make-http:stream-response request status headers cookies
+     (time-difference (current-time) start) connection)))
+
 (define ((response-handler request start) client data-handler success failure)
   (define response-context
     (make-response-context request header-handler data-handler))
   (define executor (http:client-executor client))
   (define manager (http:client-connection-manager client))
-
+  (define (handle-cookie! response)
+    (when (http:client-cookie-handler client)
+      (add-cookie! client (http:response-cookies response)))
+    response)
   (define (receive-data conn response-context retry)
     (define (finish r)
       (let ((status (http:response-status r)))
@@ -345,9 +362,7 @@
        (lambda (state)
 	 (release-http-connection client conn (eq? state 'done))
 	 (let ((response (response-context->response response-context start)))
-	   (when (http:client-cookie-handler client)
-	     (add-cookie! client (http:response-cookies response)))
-	   (finish response))))))
+	   (finish (handle-cookie! response)))))))
 
   (define (receive-header conn retry)
     (define (delay-data-receive)
@@ -360,10 +375,17 @@
       (let loop ()
 	(http-connection-receive-header! conn response-context)
 	(let ((status (response-context-status response-context))
+	      (headers (response-context-headers response-context))
 	      (has-data? (response-context-has-data? response-context)))
 	  ;; TODO extra handler for 1xx status, esp 103?
-	  (cond ((not has-data?) (response-context->response response-context))
+	  (cond ((not has-data?)
+		 (response-context->response response-context start))
 		((eqv? (string-ref status 0) #\1) (loop))
+		((require-stream-response? headers)
+		 (http-connection-manager-detach-connection! manager conn)
+		 (success
+		  (handle-cookie!
+		   (stream-response response-context conn request start))))
 		((http-connection-data-ready? conn)
 		 (receive-data conn response-context delay-data-receive))
 		(else (delay-data-receive)))))))
@@ -417,14 +439,5 @@
   (http-connection-manager-release-connection
    (http:client-connection-manager client)
    connection reuse?))
-
-;; no compression, but we should be able to close it without
-;; underlying port to be closed
-(define (open-forwarding-output-port sink)
-  (define (write! bv start count)
-    (put-bytevector sink bv start count)
-    count)
-  (define (close) #t) ;; do nothing
-  (make-custom-binary-output-port "forwarding-port" write! #f #f close))
 
 )

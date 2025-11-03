@@ -32,6 +32,7 @@
 (library (net http-client connection-manager)
     (export http-connection-manager-lease-connection
 	    http-connection-manager-release-connection
+	    http-connection-manager-detach-connection!
 	    http-connection-manager-shutdown!
 
 	    http-connection-manager-register-on-readable
@@ -86,6 +87,7 @@
 (define-record-type connection-manager
   (fields lease
 	  release
+	  detach
 	  shutdown
 	  key-manager
 	  dns-timeout
@@ -95,22 +97,20 @@
 	  selector-terminator)
   (protocol
    (lambda (p)
-     (case-lambda
-      ((lease release shutdown config)
+     (define (ctr lease release detach shutdown config selector terminator)
        (define km (http-connection-config-key-manager config))
        (define dns (http-connection-config-dns-timeout config))
        (define read (http-connection-config-read-timeout config))
        (define conn (http-connection-config-connection-timeout config))
+       (p lease release detach shutdown km dns read conn selector terminator))
+     (case-lambda
+      ((lease release detach shutdown config)
+       (define read (http-connection-config-read-timeout config))
        (define err (http-connection-config-selector-error-handler config))
        (let-values (((selector terminator) (make-socket-selector read err)))
-	 (p lease release shutdown km dns read conn selector terminator)))
-      ((lease release shutdown config selector terminator)
-       (define km (http-connection-config-key-manager config))
-       (define dns (http-connection-config-dns-timeout config))
-       (define read (http-connection-config-read-timeout config))
-       (define conn (http-connection-config-connection-timeout config))
-       (define err (http-connection-config-selector-error-handler config))
-       (p lease release shutdown km dns read conn selector terminator))))))
+	 (ctr lease release detach shutdown config selector terminator)))
+      ((lease release detach shutdown config selector terminator)
+       (ctr lease release detach shutdown config selector terminator))))))
 
 (define-record-type http-connection-config
   (fields key-manager
@@ -152,6 +152,9 @@
 
 (define (http-connection-manager-release-connection manager connection reuse?)
   ((connection-manager-release manager) manager connection reuse?))
+
+(define (http-connection-manager-detach-connection! manager connection)
+  ((connection-manager-detach manager) manager connection))
 
 (define (http-connection-manager-shutdown! manager)
   ((connection-manager-selector-terminator manager))
@@ -247,21 +250,22 @@
 		(shutdown-executor!
 		 (delegatable-connection-manager-dns-lookup-executor m))
 		(shutdown m))
+	      (define (lookup-executor config)
+		(or (http-connection-config-dns-lookup-executor config)
+		    (make-fork-join-executor
+		     (fork-join-pool-parameters-builder
+		      (thread-name-prefix "dns-lookup")))))
 	      (case-lambda
 	       ((lease release shutdown config)
-		((n lease release (make-shutdown! shutdown) config)
-		 (or (http-connection-config-dns-lookup-executor config)
-		     (make-fork-join-executor
-		      (fork-join-pool-parameters-builder
-		       (thread-name-prefix "dns-lookup"))))))
+		((n lease release (lambda (#:_ #:_) #t)
+		    (make-shutdown! shutdown) config)
+		 (lookup-executor config)))
 	       ((lease release shutdown config delegatee)
-		((n lease release (make-shutdown! shutdown) config
+		((n lease release (lambda (#:_ #:_) #t)
+		    (make-shutdown! shutdown) config
 		    (connection-manager-socket-selector delegatee)
 		    (connection-manager-selector-terminator delegatee))
-		 (or (http-connection-config-dns-lookup-executor config)
-		     (make-fork-join-executor
-		      (fork-join-pool-parameters-builder
-		       (thread-name-prefix "dns-lookup"))))))))))
+		 (lookup-executor config)))))))
 
 ;;; ephemeral (no pooling)
 (define-record-type http-ephemeral-connection-manager
@@ -364,7 +368,7 @@
    (lambda (n)
      (lambda (config)
        (let* ((me ((n pooling-lease-connection pooling-release-connection
-		      pooling-shutdown config)
+		      pooling-detach-connection pooling-shutdown config)
 		   (http-pooling-connection-config-connection-request-timeout config)
 		   (http-pooling-connection-config-max-connection-per-route config)
 		   (http-pooling-connection-config-route-max-connections config)
@@ -529,7 +533,6 @@
 (define (pooling-release-connection manager connection reuse?)
   (define available (http-pooling-connection-manager-available manager))
   (define leasing (http-pooling-connection-manager-leasing manager))
-  (define lock (http-pooling-connection-manager-lock manager))
   (define notifier (http-pooling-connection-manager-notifier manager))
   (define delegate (http-pooling-connection-manager-delegate manager))
 
@@ -538,15 +541,6 @@
     (define service (http-connection-service connection))
     (define port (or (get-default-port service) service))
     (string-append host ":" port))
-
-  (define (remove-entry sq conn)
-    (define pec pooling-entry-connection)
-    (define (v0 e) (vector-ref e 0))
-    (define ((pred conn) e)
-      (cond ((v0 e) => (lambda (e) (eq? conn (pec e))))
-	    (else #f)))
-    (let-values (((removed? v) (shared-queue-remp! sq (pred conn))))
-      (and removed? (v0 v))))
 
   (define (release conn)
     (http-connection-manager-release-connection delegate conn #f))
@@ -568,8 +562,33 @@
 			  (shared-queue-put! avail entry))))
 		   (else (release (pooling-entry-connection entry))))))
 	  (else (release connection)))
-    ;; only one is available now, so don't make mess :)
-    (notifier-send-notification! notifier #f)))
+    (notifier-send-notification! notifier)))
+
+(define (pooling-detach-connection manager connection)
+  (define leasing (http-pooling-connection-manager-leasing manager))
+  (define delegate (http-pooling-connection-manager-delegate manager))
+
+  (define (->route connection)
+    (define host (http-connection-node connection))
+    (define service (http-connection-service connection))
+    (define port (or (get-default-port service) service))
+    (string-append host ":" port))
+  (define (detach conn)
+    (http-connection-manager-detach-connection! delegate conn))
+  (let* ((route (->route connection))
+	 (leased (hashtable-ref leasing route #f)))
+    (cond ((and leased (remove-entry leased connection)) =>
+	   (lambda (entry) (detach (pooling-entry-connection entry))))
+	  (else (detach connection)))))
+
+(define (remove-entry sq conn)
+  (define pec pooling-entry-connection)
+  (define (v0 e) (vector-ref e 0))
+  (define ((pred conn) e)
+    (cond ((v0 e) => (lambda (e) (eq? conn (pec e))))
+	  (else #f)))
+  (let-values (((removed? v) (shared-queue-remp! sq (pred conn))))
+    (and removed? (v0 v))))
 
 (define (get-route request)
   (define uri (http:request-uri request))
