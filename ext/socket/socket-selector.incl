@@ -87,13 +87,13 @@ SgObject Sg_SocketSelectorClear(SgSocketSelector *selector)
   if (Sg_SocketSelectorWaitingP(selector)) {
     Sg_Error(UC("There's a thread already waiting for %A"), selector);
   }
-  Sg_LockMutex(&selector->lock);
+  Sg_AcquireWriteLock(&selector->rw_lock);
 
   strip_sockets(selector, SG_NIL);	/* strip closed ones */
   cp = selector->sockets;
   selector->sockets = SG_NIL;
 
-  Sg_UnlockMutex(&selector->lock);
+  Sg_ReleaseWriteLock(&selector->rw_lock);
   return cp;
 }
 
@@ -105,31 +105,48 @@ SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector,
   if (Sg_SocketSelectorClosedP(selector)) {
     Sg_Error(UC("Socket selector is closed: %A"), selector);
   }
-  if (Sg_SocketOpenP(socket) && !duplicate_socket(socket, selector->sockets)) {
-    SgObject slot, to = SG_FALSE;
-    struct timespec spec, *sp;
-    /* handle timeout */
-    sp = selector_timespec(timeout, &spec);
-    if (sp) {
-      unsigned long sec, usec;
-      SgTime *t = SG_NEW(SgTime);
-      SG_SET_CLASS(t, SG_CLASS_TIME);
-      t->type = SG_INTERN("time-utc");
+  if (Sg_SocketOpenP(socket)) {
+    int duplicate;
 
-      Sg_GetTimeOfDay(&sec, &usec);
-      t->sec = sp->tv_sec + sec;
-      t->nsec = sp->tv_nsec + usec * 1000;
-      to = SG_OBJ(t);
+    Sg_AcquireReadLock(&selector->rw_lock);
+    duplicate = duplicate_socket(socket, selector->sockets);
+    Sg_ReleaseReadLock(&selector->rw_lock);
+
+    if (!duplicate) {
+      SgObject slot, to = SG_FALSE;
+      struct timespec spec, *sp;
+      /* handle timeout */
+      sp = selector_timespec(timeout, &spec);
+      if (sp) {
+	unsigned long sec, usec;
+	SgTime *t = SG_NEW(SgTime);
+	SG_SET_CLASS(t, SG_CLASS_TIME);
+	t->type = SG_INTERN("time-utc");
+
+	Sg_GetTimeOfDay(&sec, &usec);
+	t->sec = sp->tv_sec + sec;
+	t->nsec = sp->tv_nsec + usec * 1000;
+	to = SG_OBJ(t);
+      }
+      slot = Sg_Cons(socket, Sg_Cons(to, data));
+
+      Sg_AcquireWriteLock(&selector->rw_lock);
+      selector->sockets = Sg_Cons(slot, selector->sockets);
+      /* will be stripped anyway */
+      /* strip_sockets(selector, SG_NIL); */
+
+      /* fprintf(stderr, "fd: "); */
+      /* SG_FOR_EACH(sockets, sockets) { */
+      /*   fprintf(stderr, "%d, ", SG_SOCKET(SG_CAAR(sockets))->socket); */
+      /* } */
+      /* fprintf(stderr, "\n"); */
+      if (selector->waiting && !selector->retry) {
+	/* fprintf(stderr, "interrupted\n"); */
+	selector->retry = TRUE;
+	Sg_SocketSelectorInterrupt(selector);
+      }
+      Sg_ReleaseWriteLock(&selector->rw_lock);
     }
-    Sg_LockMutex(&selector->lock);
-    slot = Sg_Cons(socket, Sg_Cons(to, data));
-    selector->sockets = Sg_Cons(slot, selector->sockets);
-    strip_sockets(selector, SG_NIL);
-    if (selector->waiting && !selector->retry) {
-      selector->retry = TRUE;
-      Sg_SocketSelectorInterrupt(selector);
-    }
-    Sg_UnlockMutex(&selector->lock);
   }
   return SG_OBJ(selector);
 }
@@ -146,7 +163,7 @@ SgObject Sg_MakeSocketSelector()
   selector->retry = FALSE;
   selector->context = make_selector_context();
 
-  Sg_InitMutex(&selector->lock, TRUE);
+  Sg_InitReadWriteLock(&selector->rw_lock);
 
   Sg_RegisterFinalizer(selector, selector_finalizer, NULL);
   return SG_OBJ(selector);
@@ -225,7 +242,7 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
   now.sec = sec;
   now.nsec = usec * 1000;
 
-  Sg_LockMutex(&selector->lock);
+  Sg_AcquireWriteLock(&selector->rw_lock);
 
  retry:
   /* compute socket timeout */
@@ -237,13 +254,13 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
   n = strip_sockets(selector, timedout);
 
   if (!SG_NULLP(timedout)) {
-    Sg_UnlockMutex(&selector->lock);
+    Sg_ReleaseWriteLock(&selector->rw_lock);
     return Sg_Values2(SG_NIL, timedout); /* return timedout ones */
   }
 
   context = selector->context;
   if (context == NULL) {
-    Sg_UnlockMutex(&selector->lock);
+    Sg_ReleaseWriteLock(&selector->rw_lock);
     Sg_Error(UC("Socket selector is closed: %A"), selector);
   }
   sockets = selector->sockets;
@@ -254,11 +271,17 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
   /* } else { */
   /*   fprintf(stderr, "%d: %p\n", n, sto); */
   /* } */
+
+  /* SgObject cp; */
+  /* fprintf(stderr, "waiting fd: "); */
+  /* SG_FOR_EACH(cp, sockets) { */
+  /*   fprintf(stderr, "%d, ", SG_SOCKET(SG_CAAR(cp))->socket); */
+  /* } */
+  /* fprintf(stderr, "\n"); */
   
-  Sg_UnlockMutex(&selector->lock);
+  Sg_ReleaseWriteLock(&selector->rw_lock);
   r = selector_wait(selector, sockets, context, n, sp);
-  Sg_LockMutex(&selector->lock);
-  
+  Sg_AcquireWriteLock(&selector->rw_lock);
   selector->waiting = FALSE;
   
   /* Save current time */
@@ -293,7 +316,7 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
   earliest_timeout(selector->sockets, &now, &timedout);
   if (!SG_NULLP(timedout)) strip_sockets(selector, timedout);
 
-  Sg_UnlockMutex(&selector->lock);
+  Sg_ReleaseWriteLock(&selector->rw_lock);
   return Sg_Values2(r, timedout);
 }
 

@@ -1,6 +1,6 @@
 /* thread.h                                        -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2025  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -197,6 +197,13 @@ typedef struct cleanup_rec_t
   thread_cleanup_push(Sg__MutexCleanup, &(mutex))
 #define SG_INTERNAL_MUTEX_SAFE_LOCK_END() /* dummy */; thread_cleanup_pop(1)
 
+/* internal read/write lock */
+typedef struct {
+  SgInternalMutex write_lock;
+  SgInternalMutex read_lock;
+  unsigned int reader_count;
+} SgReadWriteLock;
+
 
 SG_CDECL_BEGIN
 
@@ -229,6 +236,13 @@ SG_EXTERN int  Sg_WaitSemaphore(SgInternalSemaphore *semaphore,
 SG_EXTERN int  Sg_PostSemaphore(SgInternalSemaphore *semaphore);
 SG_EXTERN void Sg_CloseSemaphore(SgInternalSemaphore *semaphore);
 SG_EXTERN void Sg_DestroySemaphore(SgInternalSemaphore *semaphore);
+
+SG_EXTERN void Sg_InitReadWriteLock(SgReadWriteLock *rwlock);
+SG_EXTERN void Sg_DestroyReadWriteLock(SgReadWriteLock *rwlock);
+SG_EXTERN void Sg_AcquireReadLock(SgReadWriteLock *rwlock);
+SG_EXTERN void Sg_AcquireWriteLock(SgReadWriteLock *rwlock);
+SG_EXTERN void Sg_ReleaseReadLock(SgReadWriteLock *rwlock);
+SG_EXTERN void Sg_ReleaseWriteLock(SgReadWriteLock *rwlock);
 
 
 SG_CDECL_END

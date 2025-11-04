@@ -68,16 +68,11 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
     *err = errno;
     return SG_FALSE;
   }
-  
   for (i = 0; i < c; i++) {
     if (evm[i].ident == ctx->stop_fd) {
       interrupted_unix_stop(ctx);
     } else if (evm[i].filter == EVFILT_READ) {
       r = Sg_Cons(evm[i].udata, r);
-      #if 0
-      EV_SET(&ev, evm[i].ident, EVFILT_READ, EV_DELETE, 0, 0, NULL);
-      kevent(ctx->fd, &ev, 1, NULL, 0, 0); /* reset event of the target socket */
-      #endif
     }
   }
 

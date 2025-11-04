@@ -43,7 +43,7 @@ typedef struct
 {
   SG_HEADER;
   SgObject sockets;
-  SgInternalMutex lock;
+  SgReadWriteLock rw_lock;
   int      waiting;
   int      retry;
   void    *context;	       /* underlying implementation context */

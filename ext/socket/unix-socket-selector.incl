@@ -145,22 +145,22 @@ void Sg_CloseSocketSelector(SgSocketSelector *selector)
   if (!Sg_SocketSelectorClosedP(selector)) {
     unix_context_t *ctx = (unix_context_t *)selector->context;
 
-    Sg_LockMutex(&selector->lock);
+    Sg_AcquireWriteLock(&selector->rw_lock);
     selector->context = NULL;
     if (is_stop_initialised(ctx)) interrupt_unix_stop(ctx);
-    Sg_UnlockMutex(&selector->lock);
+    Sg_ReleaseWriteLock(&selector->rw_lock);
 
     /* a bit lazy way to do it, but we need to do it... */
     while (selector->waiting) {
       Sg_YieldCPU();
     }
 
-    Sg_LockMutex(&selector->lock);
+    Sg_AcquireWriteLock(&selector->rw_lock);
     if (is_stop_initialised(ctx)) close_unix_stop(ctx);
     close(ctx->fd);
-    Sg_UnlockMutex(&selector->lock);
+    Sg_ReleaseWriteLock(&selector->rw_lock);
 
-    Sg_DestroyMutex(&selector->lock);
+    Sg_DestroyReadWriteLock(&selector->rw_lock);
     Sg_UnregisterFinalizer(selector);
   }
 }

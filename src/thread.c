@@ -1,6 +1,6 @@
-/* socket-selector.c                                -*- mode:c; coding:utf-8; -*-
+/* thread.c                                        -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2023  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2025  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -26,24 +26,50 @@
  *   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sagittarius.h>
-#define LIBSAGITTARIUS_EXT_BODY
-#include <sagittarius/extend.h>
-#include "socket-selector.h"
+#define LIBSAGITTARIUS_BODY
 
-static void socket_selector_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
+#include <sagittarius/config.h>
+#include "sagittarius/private/thread.h"
+
+void Sg_InitReadWriteLock(SgReadWriteLock *rwlock)
 {
-  SgSocketSelector *selector = SG_SOCKET_SELECTOR(self);
-  Sg_Printf(port, UC("#<socket-selector%s %d:%S>"),
-	    Sg_SocketSelectorClosedP(selector) ? UC(" closed") : UC(""),
-	    Sg_Length(selector->sockets),
-	    selector->waiting ? SG_TRUE : SG_FALSE);
+  Sg_InitMutex(&rwlock->write_lock, TRUE);
+  Sg_InitMutex(&rwlock->read_lock, TRUE);
+  rwlock->reader_count = 0;
 }
 
-SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_SocketSelectorClass, socket_selector_printer);
-
-
-int Sg_SocketSelectorClosedP(SgSocketSelector *selector)
+void Sg_DestroyReadWriteLock(SgReadWriteLock *rwlock)
 {
-  return selector->context == NULL;
+  Sg_DestroyMutex(&rwlock->write_lock);
+  Sg_DestroyMutex(&rwlock->read_lock);
+}
+
+void Sg_AcquireReadLock(SgReadWriteLock *rwlock)
+{
+  Sg_LockMutex(&rwlock->read_lock);
+  if (++rwlock->reader_count == 1) {
+    /* First reader must wait for any writers */
+    Sg_LockMutex(&rwlock->write_lock);
+  }
+  Sg_UnlockMutex(&rwlock->read_lock);
+}
+
+void Sg_ReleaseReadLock(SgReadWriteLock *rwlock)
+{
+  Sg_LockMutex(&rwlock->read_lock);
+  if (--rwlock->reader_count == 0) {
+    /* First reader must release the write lock */
+    Sg_UnlockMutex(&rwlock->write_lock);
+  }
+  Sg_UnlockMutex(&rwlock->read_lock);
+}
+
+void Sg_AcquireWriteLock(SgReadWriteLock *rwlock)
+{
+  Sg_LockMutex(&rwlock->write_lock);
+}
+
+void Sg_ReleaseWriteLock(SgReadWriteLock *rwlock)
+{
+  Sg_UnlockMutex(&rwlock->write_lock);
 }

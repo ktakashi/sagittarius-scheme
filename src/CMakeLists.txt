@@ -96,6 +96,7 @@ SET(SAGITTARIUS_LIB_SOURCE
   regex.c
   ${MATCHER_SOURCES}
 
+  thread.c
   system.c         pam.c
 
   # wrapper for public C APIs
