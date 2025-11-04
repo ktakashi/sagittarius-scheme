@@ -140,12 +140,16 @@ SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector,
       /*   fprintf(stderr, "%d, ", SG_SOCKET(SG_CAAR(sockets))->socket); */
       /* } */
       /* fprintf(stderr, "\n"); */
+
       if (selector->waiting && !selector->retry) {
-	/* fprintf(stderr, "interrupted\n"); */
 	selector->retry = TRUE;
+	/* relese before I/O happens */
+	Sg_ReleaseWriteLock(&selector->rw_lock);
+	/* fprintf(stderr, "interrupted\n"); */
 	Sg_SocketSelectorInterrupt(selector);
+      } else {
+	Sg_ReleaseWriteLock(&selector->rw_lock);
       }
-      Sg_ReleaseWriteLock(&selector->rw_lock);
     }
   }
   return SG_OBJ(selector);
