@@ -77,10 +77,10 @@
 	    (net http-client http2)
 	    (record builder)
 	    (sagittarius)
-	    (scheme lazy)
 	    (srfi :18 multithreading)
 	    (srfi :19 time)
 	    (srfi :39 parameters)
+	    (srfi :45 lazy)
 	    (util concurrent)
 	    (util duration))
 
@@ -134,12 +134,9 @@
 	   (fork-join-pool-parameters-builder
 	    (thread-name-prefix "default-http-connection-manager"))))
    (lambda (v)
-     (cond ((promise? v) v)
-	   ((executor? v) (delay v))
-	   (else (assertion-violation
-		  '*http-connection-manager:default-executor*
-		  "Promise or executor required" v))))))
-
+     (cond ((executor? v) v)
+	   ;; assume it's promise
+	   (else (force v))))))
 
 (define (http-connection-manager-lease-connection manager request option
 						  success failure)

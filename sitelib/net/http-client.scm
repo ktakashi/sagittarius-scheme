@@ -128,23 +128,21 @@
 	    (net http-client stream)
 	    (net socket)
 	    (net uri)
-	    (binary io)
 	    (record builder)
 	    (rfc cookie)
 	    (rfc zlib)
-	    (rfc gzip)
 	    (rfc :5322)
 	    (rfc uri)
 	    (util concurrent)
 	    (sagittarius)
-	    (scheme lazy)
+	    (time)
 	    (srfi :19 time)
 	    (srfi :39 parameters))
 
 (define *http-client:default-executor*  
-  (delay (make-fork-join-executor
-	  (fork-join-pool-parameters-builder
-	   (thread-name-prefix "default-http-client")))))
+  (make-fork-join-executor
+   (fork-join-pool-parameters-builder
+    (thread-name-prefix "default-http-client"))))
 
 (define *http-client:user-agent*
   (make-parameter
@@ -164,8 +162,7 @@
 		(p fr ch cm v e ua
 		   (http-connection-lease-option-builder
 		    (alpn (if (eq? v 'http/2) '("h2" "http/1.1") '()))
-		    (executor
-		     (force (*http-connection-manager:default-executor*)))))))))
+		    (executor (*http-connection-manager:default-executor*))))))))
 
 (define-syntax http:client-builder
   (make-record-builder http:client
@@ -173,7 +170,7 @@
     (follow-redirects (http:redirect never))
     (connection-manager (make-http-default-connection-manager))
     (version (http:version http/2))
-    (executor (force *http-client:default-executor*))
+    (executor *http-client:default-executor*)
     (user-agent (*http-client:user-agent*)))))
 
 ;; for now
@@ -234,7 +231,7 @@
    failure))
 
 (define (default-executor? client)
-  (eq? (http:client-executor client) (force *http-client:default-executor*)))
+  (eq? (http:client-executor client) *http-client:default-executor*))
 
 (define (handle-redirect client data-handler request response success failure)
   (define (get-location response)
@@ -355,7 +352,6 @@
 	(if (and status (char=? #\3 (string-ref status 0)))
 	    (handle-redirect client data-handler request r success failure)
 	    (success r))))
-    ;; TODO for SSE, we put separate event handling here
     (case (http-connection-receive-data! conn response-context)
       ((continue) (retry))
       (else =>
