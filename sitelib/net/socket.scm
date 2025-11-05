@@ -246,7 +246,7 @@
   (make-record-builder socket-options
 		       ((ai-family AF_INET)
 			(ai-socktype SOCK_STREAM)
-			(ai-flags (+ (or AI_V4MAPPED 0) (or AI_ADDRCONFIG 0)))
+			(ai-flags (or AI_V4MAPPED 0))
 			(ai-protocol 0))))
 
 (define (setup-socket socket options)
@@ -319,7 +319,7 @@
   (make-record-builder tls-socket-options
 		       ((ai-family AF_INET)
 			(ai-socktype SOCK_STREAM)
-			(ai-flags (+ (or AI_V4MAPPED 0) (or AI_ADDRCONFIG 0)))
+			(ai-flags (or AI_V4MAPPED 0))
 			(ai-protocol 0)
 			(handshake #t)
 			(certificates '())

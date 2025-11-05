@@ -275,13 +275,13 @@
     (make-socket (slot-ref info 'family) (slot-ref info 'socktype)
 		 (slot-ref info 'protocol)))
 
-  
 
+  ;; AI_ADDRCONFIG is removed from default value, see below
+  ;; https://fedoraproject.org/wiki/QA/Networking/NameResolution/ADDRCONFIG
   (define (make-client-socket node service
 			      :optional (ai-family AF_INET)
 					(ai-socktype SOCK_STREAM)
-					(ai-flags (+ (or AI_V4MAPPED 0)
-						     (or AI_ADDRCONFIG 0)))
+					(ai-flags (or AI_V4MAPPED 0))
 					(ai-protocol 0))
     (define (dns-resolver node service)
       (let ((hints (make-hint-addrinfo :family ai-family
