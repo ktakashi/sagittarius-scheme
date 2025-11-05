@@ -118,23 +118,19 @@ jobs:
           arch: ${{ matrix.arch }}
       - name: Pre build
         working-directory: target
-        run: |
-          dist.bat gen
+        run: dist.bat gen
         shell: cmd
       - name: CMake
         working-directory: target
-        run: |
-          cmake . -G "NMake Makefiles" -DSKIP_TEST_VECTOR=ON
+        run: cmake . -G "Ninja" -DSKIP_TEST_VECTOR=ON
         shell: cmd
       - name: Build
         working-directory: target
-        run: |
-          nmake
+        run: ninja -j8
         shell: cmd
       - name: Test
         working-directory: target
-        run: |
-          ctest --output-on-failure -LE json
+        run: ctest --output-on-failure -LE json
         shell: cmd
 
   Create-Artifact:

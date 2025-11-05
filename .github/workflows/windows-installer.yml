@@ -51,8 +51,8 @@ jobs:
           arch: ${{ matrix.arch }}
       - name: Build
         run: |
-          cmake . -G "NMake Makefiles"
-          nmake
+          cmake . -G "Ninja"
+          ninja -j8
         shell: cmd
         working-directory: ${{ steps.extract.outputs.build_dir }}
       - name: Make installer
