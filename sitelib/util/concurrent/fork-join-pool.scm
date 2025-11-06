@@ -54,11 +54,11 @@
 	    (srfi :1 lists)
 	    (srfi :18 multithreading)
 	    (srfi :19 time)
+	    (srfi :27 random-bits)
 	    (srfi :39 parameters)
 	    (srfi :117 list-queues)
 	    (srfi :133 vectors)
 	    (util concurrent atomic)
-	    (util concurrent shared-queue)
 	    (util concurrent notifier)
 	    (util duration)
 	    (util vector))
@@ -78,22 +78,21 @@
 (define-record-type worker-queue
   (fields notifier
 	  pool				;; #f means root queue
-	  ;; for now
-	  ;; TODO implement lock free queue
 	  queue
 	  shutdown)
   (protocol (lambda (p)
 	      (lambda (pool)
 		(p (make-event)
 		   pool
-		   (make-shared-queue)
+		   (make-lock-free-queue)
 		   (make-atomic #f))))))
-(define (worker-queue-get! wq) (shared-queue-get! (worker-queue-queue wq)))
-(define (worker-queue-pop! wq . opts) 
-  (apply shared-queue-pop! (worker-queue-queue wq) opts))
-(define (worker-queue-put! wq v) (shared-queue-put! (worker-queue-queue wq) v))
-(define (worker-queue-empty? wq) (shared-queue-empty? (worker-queue-queue wq)))
-(define (worker-queue-size wq) (shared-queue-size (worker-queue-queue wq)))
+(define (worker-queue-pop! wq timeout val) 
+  (lock-free-queue-pop! (worker-queue-queue wq) val))
+(define (worker-queue-put! wq v)
+  (lock-free-queue-push! (worker-queue-queue wq) v))
+(define (worker-queue-empty? wq)
+  (lock-free-queue-empty? (worker-queue-queue wq)))
+(define (worker-queue-size wq) (lock-free-queue-size (worker-queue-queue wq)))
 (define (worker-queue-notify! wq)
   (event-set-event! (worker-queue-notifier wq)))
 (define (worker-queue-wait! wq . opts)
@@ -104,14 +103,20 @@
 (define (worker-queue-shutdown? wq)
   (atomic-load (worker-queue-shutdown wq)))
 
+(define (random-integers)
+  (let ((s (make-random-source)))
+    (random-source-randomize! s)
+    (random-source-make-integers s)))
 ;; thread local value on worker thread
 (define *current-worker* (make-parameter #f))
+(define *current-random* (make-parameter (random-integers)))
 
 (define (1+ v) (and v (+ v 1)))
 (define (1- v) (and v (- v 1)))
 
 (define ((make-worker-thread-run pool wq))
   (*current-worker* (cons pool wq))
+  (*current-random* (random-integers))
   (dynamic-wind
       (lambda () (fork-join-pool-register-worker pool wq))
       (lambda () (fork-join-pool-run-worker pool wq))
@@ -264,11 +269,42 @@
   (fork-join-pool-thread-count-dec! pool))
 
 (define (fork-join-pool-run-worker pool wq)
+  ;; TODO parameterise the numbers here,
+  ;; i.e. tries, best-size and ratio (in split-work)
+  (define (random-queue wq)
+    (define queues (fork-join-pool-worker-queues pool))
+    (define len (vector-length queues))
+    (let loop ((tries 3) (best-queue #f) (best-size 1))
+      (if (zero? tries)
+	  best-queue
+	  (let* ((idx ((*current-random*) len))
+		 (e (vector-ref queues idx)))
+	    (if (and e (not (eq? wq e)) (> (worker-queue-size e) best-size))
+		(loop (- tries 1) e (worker-queue-size e))
+		(loop (- tries 1) best-queue best-size))))))
+  (define (split-work wq)
+    (define size (worker-queue-size wq))
+    (and (> size 1)
+	 (let ((half (div size 2)))
+	   (let loop ((n half) (tasks '()))
+	     (if (zero? n)
+		 (reverse! tasks)
+		 (let ((task (worker-queue-pop! wq 0 #f)))
+		   (loop (- n 1) (if task (cons task tasks) tasks))))))))
+  (define (steal-worker-queue wq)
+    (cond ((random-queue wq) =>
+	   (lambda (victim) 
+	     (let ((stolen (split-work victim)))
+	       (and (not (null? stolen))
+		    (for-each (lambda (t) (worker-queue-put! wq t)) (cdr stolen))
+		    (car stolen)))))
+	  (else #f)))
   (define (run-task task root-wq wq)
     (when task
       (task)
       (run-task (or (worker-queue-pop! wq 0 #f)
-		    (worker-queue-pop! root-wq 0 #f))
+		    (worker-queue-pop! root-wq 0 #f)
+		    (steal-worker-queue wq))
 		root-wq
 		wq)))
   (define (->timeout pool) 
