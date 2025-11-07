@@ -7,7 +7,7 @@ This library provides SFTP programmatic operations.
 
 Following example code describes how to use in high level.
 
-* @[-[Example SFTP](../../example/sftp/sftp.scm)]
+* @[-[Example SFTP](../../../example/sftp/sftp.scm)]
 
 ### [§3] High level APIs
 
