@@ -39,6 +39,7 @@ sagittarius-package
 /ext/crypto/cipher.c
 /ext/crypto/digest.c
 /ext/crypto/ec-fields.c
+/ext/crypto/kdf.c
 /ext/crypto/libtomcrypt/liblibtomcrypt.a
 /ext/crypto/mac.c
 /ext/crypto/modes/
@@ -56,6 +57,8 @@ sagittarius-package
 /ext/socket/socket_stub.c
 /ext/socket/tls_socket_stub.c
 /ext/termios/termios_stub.c
+/ext/termios/termios.incl
+/ext/termios/pty.c
 /ext/threads/threads_stub.c
 /ext/time/date_stub.c
 /ext/time/time_stub.c
