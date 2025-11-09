@@ -81,7 +81,7 @@ jobs:
                 Set-Content "env:\$($matches[1])" $matches[2]
               }
             }
-            & ninja -j8
+            & ninja
       - run:
           name: Test
           command: |

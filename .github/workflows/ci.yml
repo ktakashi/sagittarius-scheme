@@ -126,7 +126,7 @@ jobs:
         shell: cmd
       - name: Build
         working-directory: target
-        run: ninja -j8
+        run: ninja
         shell: cmd
       - name: Test
         working-directory: target
