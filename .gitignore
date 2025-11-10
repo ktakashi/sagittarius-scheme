@@ -87,6 +87,7 @@ sagittarius-package
 /src/lib_kernel.c
 /src/lib_atomic.c
 /src/lib_iform.c
+/src/lib_pam.c
 /src/lib_pass1.c
 /src/lib_pass1-core.c
 /src/lib_pass1-syntax.c
