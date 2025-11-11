@@ -10,6 +10,7 @@
 	(sagittarius atomic)
 	(sagittarius threads)
 	(util concurrent)
+	(util concurrent atomic)
 	(rename (sagittarius crypto keys)
 		(*key:rsa* RSA)
 		(key-pair-private keypair-private)))
@@ -58,6 +59,8 @@
 (define (shutdown&close s)
   (socket-shutdown s SHUT_RDWR)
   (socket-close s))
+
+(print "Testing basic socket operations")
 (let ()
   (define server-socket (make-server-socket "0"))
   ;; addr is client socket
@@ -122,6 +125,7 @@
   )
 
 ;; server read timeout
+(print "Testing server read timeout")
 (let ()
   (define server-socket (make-server-socket "0"))
   (define (server-run)
@@ -167,6 +171,7 @@
 				     (add-duration! (current-time) 1year) 0))
 		     (make-x509-issuer '((C . "NL")))))
 
+(print "Testing TLS sockets")
 (let ()
   (define (shutdown&close s)
     (tls-socket-shutdown s SHUT_RDWR)
@@ -211,6 +216,7 @@
 		 (else #f)))
       default))
 
+(print "Testing server socket selector")
 (let ()
   (define count (get-socket-count 100))
   (define (run-socket-selector hard-timeout soft-timeout)
@@ -242,7 +248,7 @@
 		    (socket-selector sock echo soft-timeout)
 		    (loop))))
 	      (terminater)))))))
-    (define result (make-shared-queue))
+    (define result (make-lock-free-queue))
     (define server-port
       (number->string (socket-info-port (socket-info server-sock))))
 
@@ -250,18 +256,18 @@
       (thread-start!
        (make-thread
 	(lambda ()
-	  (guard (e (else #;(report-error e) #f))
+	  (guard (e (else #;(print e) #f))
 	    (let ((s (make-client-socket "localhost" server-port
 					 (socket-options (read-timeout 1000))))
 		  (msg (string->utf8
 			(string-append "Hello world " (number->string i)))))
-	      (guard (e (else #;(print e) s))
+	      (guard (e (else (print e) s))
 		(when (even? i) (thread-yield!) (thread-sleep! 0.2));; 200ms
 		(socket-send s msg)
 		(let ((v (socket-recv s 255)))
 		  (cond ((zero? (bytevector-u8-ref v 0)) ;; mark
-			 (shared-queue-put! result #f))
-			(else (shared-queue-put! result (utf8->string v)))))
+			 (lock-free-queue-push! result #f))
+			(else (lock-free-queue-push! result (utf8->string v)))))
 		(socket-send s mark))
 	      (socket-shutdown s SHUT_RDWR)
 	      s)))
@@ -278,13 +284,13 @@
     (let ((t* (map caller (iota count))))
       (do ((i 0 (+ i 1))) ((or (= count (atomic-fixnum-load ready-sockets)) (= i 50)))
 	(thread-sleep! 0.01))
-      (test-assert "Socket never reached" (= count (atomic-fixnum-load ready-sockets)))
+      (test-equal "Expected client sockets count" count (atomic-fixnum-load ready-sockets))
       (for-each safe-close (map safe-join! t*)))
 
     (socket-shutdown server-sock SHUT_RDWR)
     (socket-close server-sock)
-    (guard (e (else #t)) (thread-join! server-thread))
-    (shared-queue->list result))
+    (guard (e (else #t)) (thread-join! server-thread 0.1))
+    (lock-free-queue->list result))
   (let ((r (run-socket-selector 1000 #f)))
     (test-equal "no soft, hard = 1000ms" count (length (filter string? r))))
   (let ((r (run-socket-selector 50 #f)))
@@ -297,6 +303,7 @@
     (test-equal "soft = 1000ms, hard = 50ms" count (length (filter string? r))))
   )
 
+(print "Testing client socket selector")
 (let ()
   (define server-sock (make-server-socket "0"))
   (define (close-socket! sock)
