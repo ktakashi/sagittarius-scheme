@@ -431,7 +431,7 @@ SgObject Sg_SetPairAnnotation(SgObject pair, SgObject name, SgObject v)
 				    SG_MAKE_STRING("pair"),
 				    pair, SG_NIL);
   }
-  s = assq_rec(name, SG_PAIR(pair)->info);
+  s = SG_PAIR(pair)->info ? assq_rec(name, SG_PAIR(pair)->info): SG_FALSE;
   if (SG_FALSEP(s)) {
     SG_PAIR(pair)->info = Sg_Acons(name, v, SG_PAIR(pair)->info);
   } else {
