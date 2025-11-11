@@ -64,6 +64,7 @@
 ;; start echo server
 (thread-start! server-thread)
 
+(print "Testing client creation and timeout")
 (let ((s (make-client-socket "localhost" server-port)))
   ;; it returns 0, but should we check?
   (let ((to (socket-get-read-timeout s)))
@@ -84,6 +85,7 @@
 (test-error "ai-passive" assertion-violation?
 	    (make-client-socket #f server-port 0 0 AI_PASSIVE))
 
+(print "Testing client / server socket (raw socket operation)")
 (let ((client-socket (make-client-socket "localhost" server-port)))
   (test-assert "socket?"(socket? client-socket))
   (test-equal "raw socket-send"
@@ -164,6 +166,7 @@
       (put-string text-port "test-end\r\n")
       )))
 
+(print "Testing nonblocking client socket (raw socket operation)")
 (let ((client-socket (make-client-socket "localhost" server-port)))
   (socket-nonblocking! client-socket)
   (test-equal "raw nonblocking socket-send"
@@ -179,6 +182,7 @@
 
 
 ;; call #125
+(print "Testing client socket (socket port)")
 (let* ((client-socket (make-client-socket "localhost" server-port))
        (in/out (socket-port client-socket))
        (msg "hello\n"))
@@ -224,6 +228,7 @@
 (shutdown&close echo-server-socket)
 
 ;; addr info slots
+(print "Testing addrinfo")
 (let ((info (get-addrinfo "localhost" server-port
 			  (make-hint-addrinfo
 			   :family AF_INET
@@ -243,6 +248,7 @@
 (define (server-service sock)
   (number->string (socket-info-port (socket-info sock))))
 
+(print "Testing socket port with get-bytevector-n")
 (let ()
   (define server (make-server-socket "0"))
   
@@ -262,6 +268,7 @@
 
 ;; thread-interrupt!
 ;; cancelling blocking socket operation in other threads
+(print "Testing socket interruption")
 (let ()
   (define server (make-server-socket "0"))
   (define t (make-thread
@@ -338,6 +345,7 @@
   (shutdown&close server))
 
 ;; call #134, socket-select returns incorrect socket
+(print "Testing socket-select")
 (let ()
   (define server (make-server-socket "0"))
   (define vec (make-vector 5))
@@ -391,6 +399,7 @@
 	  (else (test-assert "unexpected condition" #f)))
   (make-client-socket "localhost" "123456789"))
 
+(print "Testing socket-selector (client)")
 (let ()
   (define server (make-server-socket "0"))
   (define t (thread-start!
@@ -433,6 +442,7 @@
   (close-socket-selector! selector)
   (socket-close server))
 
+(print "Testing socket-selector (server)")
 (define (selector-test count :optional (timeout #f))
   (define delay 0.01) ;; 10ms
   (define server (make-server-socket "0"))
@@ -550,7 +560,8 @@
 ;;     (socket-shutdown s SHUT_RDWR)
 ;;     (socket-close s)
 ;;     r))
-    
+
+(print "Testing make-server-socket*")
 (let ((s* (make-server-socket* "0"))
       (selector (make-socket-selector)))
   (define (accept srv)
