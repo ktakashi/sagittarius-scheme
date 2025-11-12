@@ -190,7 +190,7 @@
       (guard (e (else #t))
 	(let ((addr (socket-accept server-socket)))
 	  (thread-sleep! wait)
-	  (let ((p (socket-port sock)))
+	  (let ((p (socket-port addr)))
 	    (call-with-port p
 	      (lambda (p)
 		(put-bytevector p #*"hello"))))))))
