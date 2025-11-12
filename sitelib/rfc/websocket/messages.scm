@@ -61,12 +61,12 @@
 	  +websocket-pong-frame+
 	  )
   (import (rnrs)
-	  (rfc websocket connection)
-	  (rfc websocket conditions)
-	  (rfc tls)
 	  (sagittarius)
 	  (sagittarius socket)
 	  (sagittarius crypto random)
+	  (rfc websocket connection)
+	  (rfc websocket conditions)
+	  (rfc tls) ;; must be after (sagittarius socket)
 	  (prefix (binary io) b:)
 	  (srfi :39 parameters)
 	  (util concurrent shared-queue))
@@ -219,7 +219,7 @@
 (define (websocket-receive-fragments conn proc :key (push-pong? #f))
   (define (control-opcode? op) (>= op #x8)) ;; >= %x8 are opcode
 
-  ;; Controle frames are basically ignored unless it's close.
+  ;; Control frames are basically ignored unless it's close.
   ;; (may raise an error). if push-pong? is true value, then
   ;; it'd push the pong data to the queue so that caller can
   ;; check the response value.

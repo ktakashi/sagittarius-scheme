@@ -140,20 +140,21 @@
     (cond ((eof-object? line)
 	   (websocket-http-engine-error 'http-websocket-handshake
 					"Unexpected EOF"))
-	  ((#/HTTP\/1.1 101 [\w\s]+/ line) #t)
-	  ((#/HTTP\/1.1 (\d\d\d) ([\w\s]+)?/ line) =>
+	  ((#/HTTP\/1.1 101([\w\s]+)?/ line) #t)
+	  ((#/HTTP\/1.1 (\d\d\d)([\w\s]+)?/ line) =>
 	   (lambda (m)
 	     (websocket-http-status-error 'http-websocket-handshake
 					  "Server returned non 101"
 					  (utf8->string (m 1))
-					  (utf8->string (m 2)))))
+					  (cond ((m 2) => utf8->string)
+						(else #f)))))
 	  (else (websocket-http-engine-error 'http-websocket-handshake
 					     "Unknown status line"
 					     (utf8->string line)))))
   (define (check-header headers field expected)
-    (unless (equal? expected (rfc5322-header-ref headers field))
+    (unless (string-ci=? expected (rfc5322-header-ref headers field "N/A"))
       (websocket-http-engine-error 'http-websocket-handshake
-				   "Unexpected field value" field)))
+				   "Unexpected field value" field expected)))
   (define (check-header-contains headers field oneof)
     (or (and-let* ((v (rfc5322-header-ref headers field)))
 	  (member v oneof))

@@ -30,6 +30,7 @@
 
 ;; Websocket client library. Server library may come in (rfc websocket server)
 ;; but not promised.
+#!nounbound
 (library (rfc websocket)
   (export ;; User level APIs
 	  make-websocket
