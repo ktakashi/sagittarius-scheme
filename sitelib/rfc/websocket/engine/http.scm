@@ -152,9 +152,10 @@
 					     "Unknown status line"
 					     (utf8->string line)))))
   (define (check-header headers field expected)
-    (unless (string-ci=? expected (rfc5322-header-ref headers field "N/A"))
-      (websocket-http-engine-error 'http-websocket-handshake
-				   "Unexpected field value" field expected)))
+    (let ((value (rfc5322-header-ref headers field)))
+      (unless (and value (string-ci=? expected value))
+	(websocket-http-engine-error 'http-websocket-handshake
+				     "Unexpected field value" field expected))))
   (define (check-header-contains headers field oneof)
     (or (and-let* ((v (rfc5322-header-ref headers field)))
 	  (member v oneof))
@@ -202,7 +203,8 @@
     (websocket-http-engine-error 'http-websocket-server-handshake msg))
   (define (check-headers headers)
     (define (check-header field expected equal?)
-      (equal? (rfc5322-header-ref headers field) expected))
+      (let ((value (rfc5322-header-ref headers field)))
+	(and (string-ci=? value expected))))
     (and (check-header "Connection" "Upgrade" string-contains)
 	 (check-header "Upgrade" "websocket" equal?)
 	 (check-header "Sec-WebSocket-Version" "13" equal?)
