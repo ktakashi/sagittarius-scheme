@@ -58,7 +58,7 @@
 			http1-receive-header http1-receive-data 
 			(make-http1-connection-context)))
 
-(define (socket->http1-connection socket socket-option node service)
+(define (socket->http1-connection socket socket-option node service . ignore)
   (make-http1-connection socket socket-option node service))
 
 (define (http1-send-header connection request)
@@ -223,7 +223,8 @@
 		  (or (http:headers-ref headers "Host")
 		      (uri-host uri)
 		      (http-connection-node connection)))
-    (write-header out "Connection" "keep-alive")
+    (unless (http:headers-ref headers "Connection")
+      (write-header out "Connection" "keep-alive"))
     
     (for-each (lambda (name)
 		(let ((small (string-downcase name)))

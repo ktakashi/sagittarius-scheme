@@ -114,10 +114,11 @@
     (,+http2-settings-max-concurrent-streams+ 100)))
 
 ;;; API
-(define (socket->http2-connection socket socket-option node service)
+(define (socket->http2-connection socket socket-option node service
+				  :key (settings '()))
   (let ((conn (make-http2-connection socket socket-option node service)))
     (http2-send-preface conn)
-    (http2-send-settings conn 0 +default-settings+)
+    (http2-send-settings conn 0 `(,@+default-settings+ ,@settings))
     ;; Set the global window size 2^31 - 1 (max)
     ;; NOTE
     ;; If we don't do this, then all the window size is limited to the

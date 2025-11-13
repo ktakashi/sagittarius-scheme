@@ -191,7 +191,9 @@
     "content-length"
     "content-type"
     "transfer-encoding"
-    "connection"))
+    ;; removed for websocket
+    ;; "connection" 
+    ))
 
 ;; continue: data is still there should wait
 ;; done:     all data received (reusable)
