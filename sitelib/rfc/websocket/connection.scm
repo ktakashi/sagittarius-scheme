@@ -69,13 +69,11 @@
 	  (rnrs eval)
 	  (rfc websocket engine)
 	  (rfc websocket conditions)
-	  (srfi :2 and-let*)
+	  (net socket)
+	  (net uri)
+	  (record builder)
 	  (sagittarius io) ;; for buffered-port
-	  (sagittarius socket)
-	  ;; underlying socket might be a TLS socket
-	  ;; so import this after (sagittarius socket)
-	  (rfc tls)
-	  (rfc uri)
+	  (srfi :2 and-let*)
 	  (util concurrent shared-queue))
 
 (define-condition-type &websocket-engine-not-found &websocket-engine
@@ -85,21 +83,26 @@
 (define (websocket-engine-not-found-error engine e)
   (raise (condition (make-websocket-engine-not-found-error engine e)
 		    (make-who-condition 'websocket-connection)
-		    (make-message-condition "Handshake engine not found"))))
+		    (make-message-condition "Handshake engine not found")
+		    e)))
 
 (define-record-type (websocket-connection make-websocket-base-connection
 					  websocket-connection?)
   (fields engine
 	  (mutable socket)
+	  (mutable socket-options)
 	  (mutable port)
 	  (mutable protocol) ;; subprotocol but we know this is websocket
 	  (mutable extensions)
 	  (mutable raw-headers)
 	  (mutable state)
-	  pong-queue)
+	  pong-queue
+	  (mutable options) ;; socket options from (net socket)
+	  )
   (protocol (lambda (p)
 	      (lambda (engine)
-		(p engine #f #f #f #f '() 'created (make-shared-queue))))))
+		(p engine #f #f #f #f #f '() 'created (make-shared-queue)
+		   #f)))))
 
 (define-record-type websocket-reconnectable-connection
   (parent websocket-connection)
@@ -127,19 +130,20 @@
 		    (make-message-condition "Failed to connect"))))
 
 (define (websocket-validate-uri uri)
-    ;; TODO maybe we should use regular expression instead of parsing
-  (let-values (((scheme ui host port path query frag) (uri-parse uri)))
+  (let ((scheme (uri-scheme uri)))
     (or (and scheme (or (string=? scheme "ws") (string=? scheme "wss")))
-	(websocket-scheme-error 'make-websocket-connection scheme uri))))
+	(websocket-scheme-error 'make-websocket-connection scheme
+				(uri->string uri)))))
 
 (define (make-websocket-connection uri :optional (engine 'http))
+  (define new-uri (string->uri uri))
   ;; inittial check
-  (websocket-validate-uri uri)
+  (websocket-validate-uri new-uri)
   (guard (e ((websocket-engine-error? e) (raise e))
 	    (else (websocket-engine-not-found-error engine e)))
     (let* ((env (environment `(rfc websocket engine ,engine)))
 	   (make-engine (eval 'make-websocket-client-engine env)))
-      (make-websocket-reconnectable-connection uri (make-engine)))))
+      (make-websocket-reconnectable-connection new-uri (make-engine)))))
   
 ;; if the socket has already handshaked, then we just need
 ;; to convertion. means, we also need to set port and so.
@@ -154,57 +158,73 @@
       ;; it's not reconnectable
       (set-socket (make-websocket-base-connection (make-engine))))))
 
+(define default-socket-options
+  (socket-options (ai-family AF_UNSPEC) (ai-socktype SOCK_STREAM)))
 (define (do-handshake c opt close?)
   (define engine (websocket-connection-engine c))
-
-  (define (make-socket scheme host port)
-    (define (rec ai-family)
-      (guard (e (else #f))
-	(if (string=? scheme "wss")
-	    (make-client-tls-socket host port)
-	    (make-client-socket host port))))
-    ;; default IPv6, IPv4 is fallback
-    ;; NB: some platforms do fallback automatically and some are not
-    ;;     so keep it like this.
-    (or (rec AF_INET6)
-	(rec AF_INET)
+  (define (ensure-option c scheme host)
+    (define options (websocket-connection-options c))
+    (cond ((string=? scheme "wss")
+	   (tls-socket-options
+	    (ai-family AF_UNSPEC)
+	    (ai-socktype SOCK_STREAM)
+	    (connection-timeout
+	     (and options (socket-options-connection-timeout options)))
+	    (read-timeout
+	     (and options (socket-options-read-timeout options)))
+	    (dns-resolver
+	     (and options (socket-options-dns-resolver options)))
+	    (client-certificate-provider
+	     (and (tls-socket-options? options)
+		  (tls-socket-options-client-certificate-provider options)))
+	    (sni* (list host))
+	    ;; for now safer to disable h2
+	    (alpn* '(#;"h2" "http/1.1"))))
+	  (options
+	   ;; make sure it's not tls-socket-options
+	   (socket-options (from options)
+			   (ai-family AF_UNSPEC)
+			   (ai-socktype SOCK_STREAM)))
+	  (else default-socket-options)))
+  (define (make-socket scheme host port options)
+    (define secure? )
+    (or (guard (e (else #f)) (socket-options->client-socket options host port))
 	(websocket-connection-error 'http-websocket-handshake host port)))
 
   (define (retrieve-socket c)
-    (or (websocket-connection-socket c)
+    (or (cond ((websocket-connection-socket c) =>
+	       (lambda (s) (values s (websocket-connection-socket-options c))))
+	      (else #f))
 	(and-let* (( (websocket-reconnectable-connection? c) )
 		   (uri (websocket-reconnectable-connection-uri c)))
-	  (let-values (((scheme ui host port path query frag) (uri-parse uri)))
-	    (let* ((default-port 
-		     (or (and scheme (string=? scheme "ws") "80")
-			 (and scheme (string=? scheme "wss") "443")
-			 (websocket-scheme-error 'make-websocket-engine
-						 scheme uri)))
-		   (s (make-socket scheme host
-				   (or (and port (number->string port))
-				       default-port))))
+	  (let* ((scheme (uri-scheme uri))
+		 (port (uri-port uri))
+		 (host (uri-host uri))
+		 (default-port 
+		   (or (and scheme (string=? scheme "ws") "80")
+		       (and scheme (string=? scheme "wss") "443")
+		       (websocket-scheme-error 'make-websocket-engine
+					       scheme (uri->string uri))))
+		 (options (ensure-option c scheme host))
+		 (s (make-socket scheme host
+				 (or port default-port)
+				 options)))
 	      (websocket-connection-socket-set! c s)
-	      s)))))
-  (define (retrieve-port c)
-    (or (websocket-connection-port c)
-	(and-let* ((s (retrieve-socket c))
-		   (p (buffered-port (socket-port s #f) (buffer-mode block))))
-	  (websocket-connection-port-set! c p)
-	  p)))
+	      (websocket-connection-socket-options-set! c options)
+	      (values s options)))))
 
-  (guard (e (else
-	     (when close? (websocket-connection-close! c))
-	     (raise e)))
-    (let ((in/out (retrieve-port c))
-	  (uri (and (websocket-reconnectable-connection? c)
+  (guard (e (else (when close? (websocket-connection-close! c)) (raise e)))
+    (let ((uri (and (websocket-reconnectable-connection? c)
 		    (websocket-reconnectable-connection-uri c))))
-      (let-values (((protocol extensions raw-headers)
-		    (apply (websocket-engine-handshake engine)
-			   engine in/out uri opt)))
+      (let*-values (((socket options) (retrieve-socket c))
+		    ((in/out protocol extensions raw-headers)
+		     (apply websocket-engine-handshake
+			    engine socket options uri opt)))
 	(websocket-connection-protocol-set! c protocol)
 	(websocket-connection-extensions-set! c extensions)
 	(websocket-connection-raw-headers-set! c raw-headers)
 	(websocket-connection-state-set! c 'open)
+	(websocket-connection-port-set! c in/out)
 	c))))
 
 ;; TODO should we raise an error if it's not a reconnectable connection?

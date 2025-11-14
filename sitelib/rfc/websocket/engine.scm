@@ -41,9 +41,9 @@
 	  websocket-engine?
 	  websocket-engine-handshake)
   (import (rnrs)
-	  (rfc websocket conditions))
-  
-(define-record-type websocket-engine
-  (fields handshake))
+	  (rename (rfc websocket engine api)
+		  (websocket-engine-handshake %websocket-engine-handshake)))
+(define (websocket-engine-handshake engine . opts)
+  (apply (%websocket-engine-handshake engine) engine opts))  
 
 )

@@ -106,14 +106,17 @@
 	  connection
 	  dispatchers
 	  (mutable thread)
+	  logger
 	  mutex)
   (protocol
    (lambda (p)
-     (lambda (uri :key (protocols '()) (extensions '()) (engine 'http))
+     (lambda (uri :key (protocols '()) (extensions '())
+		       (engine 'http) (logger #f))
        (p protocols extensions
 	  (make-websocket-connection uri engine)
 	  (make-eq-hashtable)
 	  #f
+	  logger
 	  (make-mutex))))))
 
 (define (websocket-reconnectable? websocket)
@@ -143,7 +146,8 @@
 		(raise e))
 	       ((websocket-error? e)
 		(invoke-event websocket 'error e)
-		websocket))
+		websocket)
+	       (else (raise e)))
        exprs ...))))
 
 (define-syntax define-websocket
@@ -184,7 +188,9 @@
   (if (websocket-connection-closed? conn)
       (begin
 	(apply websocket-connection-handshake! conn
-	       (websocket-protocols websocket) (websocket-extensions websocket)
+	       :protocols (websocket-protocols websocket)
+	       :extensions (websocket-extensions websocket)
+	       :logger (websocket-logger websocket)
 	       headers)
 	(start-dispatch-thread websocket)
 	(invoke-event websocket 'open))

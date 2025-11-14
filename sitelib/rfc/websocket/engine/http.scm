@@ -30,24 +30,32 @@
 
 #!read-macro=sagittarius/bv-string
 #!read-macro=sagittarius/regex
+#!nounbound
 (library (rfc websocket engine http)
   (export make-websocket-client-engine
 	  make-websocket-server-engine
 	  websocket-error-http-status
 	  websocket-error-http-message)
   (import (rnrs)
-	  (sagittarius socket)
+	  (net socket)
+	  (net http-client connection)
+	  (net http-client http1)
+	  (net http-client http2)
+	  (net http-client logging)
+	  (net http-client request)
+	  (net uri)
 	  (rfc websocket engine)
 	  (rfc websocket conditions)
 	  (rfc :5322)
-	  (rfc tls)
-	  (rfc uri)
 	  (rfc base64)
+	  (rfc http2 frame)
 	  (srfi :1 lists)
 	  (srfi :2 and-let*)
 	  (srfi :13 strings)
+	  (util logging)
 	  (prefix (binary io) binary:)
 	  (sagittarius)
+	  (sagittarius io)
 	  (sagittarius regex)
 	  (sagittarius crypto random)
 	  (sagittarius crypto digests))
@@ -105,52 +113,57 @@
 (define *prng* (secure-random-generator *prng:chacha20*))
 (define (read-random-bytes size)
   (random-generator-read-random-bytes *prng* size))
-(define (http-websocket-handshake engine in/out uri
-				  :optional (protocols '()) (extensions '())
-				  :rest others)
-  
-  (define (send-websocket-handshake in/out key)
-    (let-values (((scheme ui host port path query frag) (uri-parse uri)))
-      (let ((request-path
-	     ;; FIXME non ASCII path and query
-	     (string->utf8
-	      ;; drop //
-	      (string-drop (uri-compose :path path :query query) 2))))
-	(put-bytevector* in/out #*"GET " request-path #*" HTTP/1.1\r\n")
-	;; put it here, so that if the headers are not valid, then
-	;; it'd fail (e.g. header contains ("\r\n" "\r\n") or so)
-	(put-bytevector* in/out #*"Host: " (string->utf8 host) #*"\r\n")
-	(put-bytevector* in/out #*"Connection: Upgrade\r\n")
-	(put-bytevector* in/out #*"Upgrade: websocket\r\n")
-	(put-bytevector* in/out #*"Sec-WebSocket-Key: " key #*"\r\n")
-	(put-bytevector* in/out #*"Sec-WebSocket-Version: 13\r\n")
-	(unless (null? protocols)
-	  (put-bytevector* in/out #*"Sec-WebSocket-Protocol: ")
-	  (put-comma-string in/out protocols)
-	  (put-bytevector* in/out #*"\r\n"))
-	(unless (null? extensions)
-	  (put-bytevector* in/out #*"Sec-WebSocket-Extensions: ")
-	  (put-comma-string in/out extensions)
-	  (put-bytevector* in/out #*"\r\n"))
-	(put-other-headers in/out others)
-	(put-bytevector* in/out #*"\r\n")
-	(flush-output-port in/out))))
 
-  (define (check-first-line line)
-    (cond ((eof-object? line)
-	   (websocket-http-engine-error 'http-websocket-handshake
-					"Unexpected EOF"))
-	  ((#/HTTP\/1.1 101([\w\s]+)?/ line) #t)
-	  ((#/HTTP\/1.1 (\d\d\d)([\w\s]+)?/ line) =>
-	   (lambda (m)
-	     (websocket-http-status-error 'http-websocket-handshake
-					  "Server returned non 101"
-					  (utf8->string (m 1))
-					  (cond ((m 2) => utf8->string)
-						(else #f)))))
-	  (else (websocket-http-engine-error 'http-websocket-handshake
-					     "Unknown status line"
-					     (utf8->string line)))))
+(define (sha1 . msg)
+  (let ((md (make-message-digest *digest:sha-1*)))
+    (message-digest-init! md)
+    (for-each (lambda (m) (message-digest-process! md m)) msg)
+    (message-digest-done md)))
+
+(define-record-type response-context
+  (parent <http:response-context>)
+  (fields (mutable headers))
+  (protocol (lambda (p)
+	      (lambda (request header-handler)
+		((p request header-handler #f) #f)))))
+
+;; Client handshake, this handles both HTTP 1/1 and HTTP2
+(define (http-websocket-handshake engine socket socket-options uri
+				  :key (protocols '())
+				       (extensions '())
+				       (logger #f)
+				  :allow-other-keys others)
+  (define http2?
+    (and (tls-socket? socket)
+	 (equal? (tls-socket-selected-alpn socket) "h2")))
+  (define (make-http-conn)
+    ((if http2? socket->http2-connection socket->http1-connection)
+      socket socket-options (uri-host uri) (uri-port uri)
+      :settings `((,+http2-settings-enable-connect-protocol+ 1))))
+  (define http-conn
+    (if logger
+	(make-http-logging-connection
+	 (make-http-conn)
+	 (http-client-logger-builder
+	  (connection-logger
+	   (http-connection-logger-builder
+	    (logger logger)))))
+	(make-http-conn)))
+
+  (define (setup-headers key)
+    `(,@(if http2?
+	    '((":protocol" "websocket"))
+	    `(("Connection" "Upgrade")
+	      ("Upgrade" "websocket")
+	      ("Sec-WebSocket-Key" ,key)))
+      ("Sec-WebSocket-Version" "13")
+      ,@(if (not (null? protocols))
+	    `(("Sec-WebSocket-Protocol" ,(string-join protocols ",")))
+	    '())
+      ,@(if (not (null? extensions))
+	    `(("Sec-WebSocket-Extensions" ,(string-join extensions ",")))
+	    '())
+      ,@others))
   (define (check-header headers field expected)
     (let ((value (rfc5322-header-ref headers field)))
       (unless (and value (string-ci=? expected value))
@@ -161,27 +174,41 @@
 	  (member v oneof))
 	(websocket-http-engine-error 'http-websocket-handshake
 				     "Unexpected field value" field)))
-  (define (sha1 msg)
-    (let ((md (make-message-digest *digest:sha-1*)))
-      (digest-message md msg)))
-  (let ((key (base64-encode (read-random-bytes 16))))
-    (send-websocket-handshake in/out key)
-    (check-first-line (binary:get-line in/out :eol #*"\r\n"))
-    (let ((headers (rfc5322-read-headers in/out))
-	  (expected-accept (utf8->string
-			    (base64-encode
-			     (sha1 (bytevector-append key *uuid*))))))
+  (define (header-handler ctx status headers has-data?)
+    (unless (or (and (not http2?) (string=? status "101"))
+		(and http2? (string=? status "200")))
+      (websocket-http-status-error 'http-websocket-handshake
+	(if http2? "Server returned non 200" "Server returned non 101")
+	status #f))
+    (unless http2?
       (check-header headers "Upgrade" "websocket")
-      (check-header headers "Connection" "Upgrade")
-      (check-header headers "Sec-WebSocket-Accept" expected-accept)
-      (if (null? protocols)
-	  (or (not (rfc5322-header-ref headers "Sec-WebSocket-Protocol"))
-	      (check-header headers "Sec-WebSocket-Protocol" ""))
-	  (check-header-contains headers "Sec-WebSocket-Protocol" protocols))
-      
-      (values (rfc5322-header-ref headers "Sec-WebSocket-Protocol")
-	      (rfc5322-header-ref headers "Sec-WebSocket-Extensions")
-	      headers))))
+      (check-header headers "Connection" "Upgrade"))
+    (check-header headers "Sec-WebSocket-Accept" expected-accept)
+    (if (null? protocols)
+	(or (null? (rfc5322-header-ref* headers "Sec-WebSocket-Protocol"))
+	    (check-header headers "Sec-WebSocket-Protocol" ""))
+	(check-header-contains headers "Sec-WebSocket-Protocol" protocols))
+    (response-context-headers-set! ctx headers))
+  (define key (base64-encode (read-random-bytes 16)))
+  (define expected-accept (utf8->string (base64-encode (sha1 key *uuid*))))
+  (define request
+    (http:request-builder
+     (method (if http2? 'CONNECT 'GET))
+     (uri uri) ;; luckily, uri-scheme is not used :D
+     (headers (setup-headers (utf8->string key)))))
+  (define response-context (make-response-context request header-handler))
+
+  (http-connection-send-header! http-conn request)
+  (http-connection-send-data! http-conn request)
+
+  (http-connection-receive-header! http-conn response-context)
+
+  (let ((headers (response-context-headers response-context)))
+    ;; TODO convert http-conn to port if it's HTTP2
+    (values (buffered-port (socket-port socket #f) (buffer-mode block))
+	    (rfc5322-header-ref headers "Sec-WebSocket-Protocol")
+	    (rfc5322-header-ref headers "Sec-WebSocket-Extensions")
+	    headers)))
 
 ;;; Server handshake for HTTP/1.1
 
@@ -193,9 +220,10 @@
 ;;     otherwise it can't see if the requested path is
 ;;     for WebSocket or not.
 ;; Caveat: if that's the case, how could we know on HTTP/2?
-(define (http-websocket-server-handshake engine in/out uri
-		      :optional (protocols '()) (extensions '())
-		      :rest others)
+(define (http-websocket-server-handshake engine socket socket-options uri
+		      :key (protocols '()) (extensions '())
+		      :allow-other-keys others)
+  (define in/out (buffered-port (socket-port socket #f) (buffer-mode block)))
   ;; read it here, it's needed anyway
   (define headers (rfc5322-read-headers in/out))
   (define (string-not-null? s) (not (string-null? s)))
@@ -224,8 +252,7 @@
     
   (define (verify-key key)
     (define (calculate-key key)
-      (base64-encode 
-       (hash SHA-1 (bytevector-append (string->utf8 key) *uuid*))))
+      (base64-encode (sha1 (string->utf8 key) *uuid*)))
     (when (string-null? key) (bad-request "Empty Sec-WebSocket-Key"))
 
     (let* ((server-key (calculate-key key))
@@ -250,7 +277,7 @@
       (put-other-headers in/out others)
       (put-bytevector* in/out #*"\r\n")
       (flush-output-port in/out)
-      (values accepted-protocol accepted-extensions headers)))
+      (values in/out accepted-protocol accepted-extensions headers)))
   
   (cond ((check-headers headers) => verify-key)
 	(else (bad-request "Missing request headers")))
