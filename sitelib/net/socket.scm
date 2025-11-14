@@ -38,7 +38,7 @@
 	    socket-options-non-blocking? socket-options-connection-timeout
 	    socket-options-read-timeout socket-options-ai-family
 	    socket-options-ai-socktype socket-options-ai-flags
-	    socket-options-ai-protocol
+	    socket-options-ai-protocol socket-options-dns-resolver
 
 	    make-client-socket make-server-socket make-server-socket*
 	    
