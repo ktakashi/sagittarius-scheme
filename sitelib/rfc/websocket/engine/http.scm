@@ -2,7 +2,7 @@
 ;;;
 ;;; rfc/websocket/engine/http.scm - RFC 6455 Websocket HTTP1.1 engine
 ;;;  
-;;;   Copyright (c) 2010-2016  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2025  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions

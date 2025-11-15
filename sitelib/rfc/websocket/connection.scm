@@ -2,7 +2,7 @@
 ;;;
 ;;; rfc/websocket/connection.scm - RFC 6455 Websocket connection
 ;;;  
-;;;   Copyright (c) 2010-2016  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2025  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -29,6 +29,7 @@
 ;;;  
 
 ;; client connection
+#!nounbound
 (library (rfc websocket connection)
   (export make-websocket-connection
 	  websocket-connection?

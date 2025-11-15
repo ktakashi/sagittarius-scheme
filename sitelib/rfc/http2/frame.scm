@@ -65,6 +65,7 @@
 	    +http2-settings-initial-window-size+
 	    +http2-settings-max-frame-size+
 	    +http2-settings-max-header-list-size+
+	    +http2-settings-enable-connect-protocol+
 
 	    ;; frame types
 	    http2-frame?
@@ -254,6 +255,9 @@
   (define-constant +http2-settings-initial-window-size+    #x4)
   (define-constant +http2-settings-max-frame-size+         #x5)
   (define-constant +http2-settings-max-header-list-size+   #x6)
+
+  ;; RFC 8441
+  (define-constant +http2-settings-enable-connect-protocol+   #x8)
 
   ;; hpack-context is required for HEADER, PUSH_PROMISE and CONTINUATION
   ;; NOTE: must be a row context to count

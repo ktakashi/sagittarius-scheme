@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!nounbound
 (library (rfc websocket conditions)
   (export &websocket websocket-error? make-websocket-error
 	  &websocket-engine make-websocket-engine-error websocket-engine-error?

@@ -35,6 +35,7 @@
 ;;
 ;; NB: the purpose of this library is handling multiple protocols
 ;;     other than HTTP1.1 (e.g. HTTP2)
+#!nounbound
 (library (rfc websocket engine)
   (export make-websocket-engine
 	  websocket-engine
