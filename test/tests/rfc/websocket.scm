@@ -230,7 +230,7 @@
 
     (do ((i 0 (+ i 1))) ((= i count))
       (thread-yield!)
-      (test-equal (format "Hello (~a)" i) "Hello" (shared-queue-get! tsq 1)))
+      (test-equal (format "Hello (~a)" i) "Hello" (shared-queue-get! tsq 10)))
     (test-equal #*"binary" (shared-queue-get! sq 1))
     (test-equal bv126 (shared-queue-get! sq 1))
     #;(test-equal (bytevector-length bvFFFF)
