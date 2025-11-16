@@ -28,6 +28,7 @@
 	    (sagittarius compiler pass3)
 	    (sagittarius compiler pass4)
 	    (sagittarius compiler pass5)
+	    (sagittarius compiler iform)
 	    (sagittarius compiler inliner)
 	    (sagittarius compiler util))
 
