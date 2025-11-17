@@ -6,132 +6,14 @@ on:
 
 jobs:
   POSIX-Build:
-    runs-on: ${{ matrix.config.os }}
-    name: ${{ matrix.config.name }}
-    strategy:
-      fail-fast: false
-      matrix:
-        config:
-          - { name: 'Linux', os: 'ubuntu-latest', setup: '.ci/setup-ubuntu.sh' }
-          - { name: 'macOS', os: 'macos-latest',  setup: '.ci/setup-macos.sh' }
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          path: target
-      - name: Install dependencies
-        run: |
-          bash "target/${{ matrix.config.setup }}" "sudo"
-          mkdir current_sagittarius
-      - name: Install current sagittarius
-        working-directory: current_sagittarius
-        run: |
-          bash ../target/.ci/build-current.sh 'yes'
-      - name: Pre-build
-        working-directory: target
-        run: |
-          ./dist.sh gen
-          cmake .
-      - name: Build
-        working-directory: target
-        run: make
-      - name: Test
-        working-directory: target
-        run: ctest --output-on-failure -j8
+    uses: ./.github/workflows/posix-build.yml
 
   VMActions-Build:
     needs: POSIX-Build
-    runs-on: ubuntu-latest
-    name: ${{ matrix.config.name }} - ${{ matrix.arch }}
-    strategy:
-      fail-fast: false
-      matrix:
-        arch:
-          - x86_64
-          # - aarch64
-        config:
-          - { name: 'freebsd', setup: '.ci/setup-freebsd.sh' }
-          - { name: 'openbsd', setup: '.ci/setup-openbsd.sh' }
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup VM
-        uses: jenseng/dynamic-uses@v1
-        with:
-          uses: vmactions/${{ matrix.config.name }}-vm@v1
-          with: |
-            {
-              "arch": ${{ toJSON(matrix.arch) }},
-              "sync": "nfs"
-            }
-      - name: Install dependencies / current
-        uses: ktakashi/dynamic-shell@v1
-        with:
-          shell: "${{ matrix.config.name }} {0}"
-          run: |
-            cd $GITHUB_WORKSPACE;
-            sh "./${{ matrix.config.setup }}"
-            bash "./.ci/build-current.sh"
-      - name: Pre-build
-        uses: ktakashi/dynamic-shell@v1
-        with:
-          shell: "${{ matrix.config.name }} {0}"
-          run: |
-            cd $GITHUB_WORKSPACE;
-            ./dist.sh gen
-            cmake .
-      - name: Build
-        uses: ktakashi/dynamic-shell@v1
-        with:
-          shell: "${{ matrix.config.name }} {0}"
-          run: |
-            cd $GITHUB_WORKSPACE;
-            make
-      - name: Test
-        uses: ktakashi/dynamic-shell@v1
-        with:
-          shell: "${{ matrix.config.name }} {0}"
-          run: |
-            cd $GITHUB_WORKSPACE;
-            ctest --output-on-failure -j2
-          
+    uses: ./.github/workflows/vmactions-build.yml
+
   Windows-Build:
-    runs-on: ${{ matrix.images }}
-    name: ${{ matrix.images }} - ${{ matrix.arch }}
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [x64, x86]
-        images: [windows-2022, windows-2025]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          path: target
-      - name: Install current sagittarius
-        working-directory: target
-        run: |
-          .\.ci\install-current.ps1
-        shell: powershell
-      - name: Setup MSVC
-        uses: TheMrMilchmann/setup-msvc-dev@v3
-        with:
-          arch: ${{ matrix.arch }}
-      - name: Pre build
-        working-directory: target
-        run: dist.bat gen
-        shell: cmd
-      - name: CMake
-        working-directory: target
-        run: cmake . -G "Ninja" -DSKIP_TEST_VECTOR=ON
-        shell: cmd
-      - name: Build
-        working-directory: target
-        run: ninja
-        shell: cmd
-      - name: Test
-        working-directory: target
-        run: ctest --output-on-failure -LE json
-        shell: cmd
+    uses: ./.github/workflows/windows-build.yml
 
   Create-Artifact:
     needs: [POSIX-Build, Windows-Build]
@@ -147,4 +29,3 @@ jobs:
       artifact-id: ${{ needs.Create-Artifact.outputs.artifact-id }}
       tar-file: ${{ needs.Create-Artifact.outputs.tar-file }}
       suffix: ${{ github.run_id }}
-      

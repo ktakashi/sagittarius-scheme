@@ -1,0 +1,57 @@
+name: Builds using VM Actions
+on: workflow_call
+
+jobs:
+  VMActions-Build:
+    runs-on: ubuntu-latest
+    name: ${{ matrix.config.name }} - ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - x86_64
+          # - aarch64
+        config:
+          - { name: 'freebsd', setup: '.ci/setup-freebsd.sh' }
+          - { name: 'openbsd', setup: '.ci/setup-openbsd.sh' }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup VM
+        uses: jenseng/dynamic-uses@v1
+        with:
+          uses: vmactions/${{ matrix.config.name }}-vm@v1
+          with: |
+            {
+              "arch": ${{ toJSON(matrix.arch) }},
+              "sync": "nfs"
+            }
+      - name: Install dependencies / current
+        uses: ktakashi/dynamic-shell@v1
+        with:
+          shell: "${{ matrix.config.name }} {0}"
+          run: |
+            cd $GITHUB_WORKSPACE;
+            sh "./${{ matrix.config.setup }}"
+            bash "./.ci/build-current.sh"
+      - name: Pre-build
+        uses: ktakashi/dynamic-shell@v1
+        with:
+          shell: "${{ matrix.config.name }} {0}"
+          run: |
+            cd $GITHUB_WORKSPACE;
+            ./dist.sh gen
+            cmake .
+      - name: Build
+        uses: ktakashi/dynamic-shell@v1
+        with:
+          shell: "${{ matrix.config.name }} {0}"
+          run: |
+            cd $GITHUB_WORKSPACE;
+            make
+      - name: Test
+        uses: ktakashi/dynamic-shell@v1
+        with:
+          shell: "${{ matrix.config.name }} {0}"
+          run: |
+            cd $GITHUB_WORKSPACE;
+            ctest --output-on-failure -j2

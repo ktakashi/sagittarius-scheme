@@ -1,0 +1,37 @@
+name: POSIX Build 
+on: workflow_call
+
+jobs:
+  POSIX-Build:
+    runs-on: ${{ matrix.config.os }}
+    name: ${{ matrix.config.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - { name: 'Linux', os: 'ubuntu-latest', setup: '.ci/setup-ubuntu.sh' }
+          - { name: 'macOS', os: 'macos-latest',  setup: '.ci/setup-macos.sh' }
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: target
+      - name: Install dependencies
+        run: |
+          bash "target/${{ matrix.config.setup }}" "sudo"
+          mkdir current_sagittarius
+      - name: Install current sagittarius
+        working-directory: current_sagittarius
+        run: |
+          bash ../target/.ci/build-current.sh 'yes'
+      - name: Pre-build
+        working-directory: target
+        run: |
+          ./dist.sh gen
+          cmake .
+      - name: Build
+        working-directory: target
+        run: make
+      - name: Test
+        working-directory: target
+        run: ctest --output-on-failure -j8
