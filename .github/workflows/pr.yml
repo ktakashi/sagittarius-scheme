@@ -1,6 +1,6 @@
 name: Sagittarius PR build
 on:
-  pull_requests:
+  pull_request:
     branches: [ master ]
 
 jobs:
