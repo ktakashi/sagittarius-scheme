@@ -2442,6 +2442,18 @@
 (test-equal "version = (sagittarius-version)" "ok"
  (test-cond-expand-version (version (= (sagittarius-version))) "ok"))
 
+(let ()
+  (define expr
+  '(define (double-y)
+     (let ((plus-y (lambda (x) (+ x y))))
+       ;;(set! plus-y (lambda (x) (+ x y)))
+       (let-syntax ((macro (lambda (x)
+			     (syntax-case x ()
+			       ((_ a) #`(+ a #,(plus-y 0)))))))
+	 (macro y)))))
+  (test-error "meta 1 reference on local variable"
+	      (eval expr (environment '(rnrs)))))
+
 ;; compiler/macro expander
 (let ()
   (define-syntax foo

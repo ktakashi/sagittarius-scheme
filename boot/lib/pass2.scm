@@ -28,6 +28,12 @@
 	 (penv    (pass2/collect-inlinables iform)))
     (pass2/rec iform (acons 'library library penv) #t)))
 
+(define (expand-lvars penv lvars)
+  (define (pred p) (and (pair? p) (eq? (car p) 'lvars)))
+  (let ((old (cond ((memp pred penv) => cdar)
+		   (else '()))))
+    (acons 'lvars `(,@lvars ,@old) (remp pred penv))))
+
 ;; dispatch table is defined after all all method are defined.
 (define (pass2/rec iform penv tail?)
   ((vector-ref *pass2-dispatch-table* (iform-tag iform))
@@ -298,7 +304,7 @@
 
   (receive (lvars inits) (process-inits ($let-lvars iform) ($let-inits iform))
     (ifor-each2 (lambda (lv in) (lvar-initval-set! lv in)) lvars inits)
-    (let ((obody (pass2/rec ($let-body iform) penv tail?)))
+    (let ((obody (pass2/rec ($let-body iform) (expand-lvars penv lvars) tail?)))
       (ifor-each2 pass2/optimize-closure lvars inits)
       (pass2/shrink-let-frame iform lvars obody))))
 
@@ -410,7 +416,9 @@
     (let loop ((env env))
       (cond ((null? env) #t)
 	    ((eq? (car env) lambda-node) #t)
-	    ((eq? ($lambda-flag (car env)) 'dissolved)
+	    ((and (vector? (car env))
+		  ($lambda? (car env))
+		  (eq? ($lambda-flag (car env)) 'dissolved))
 	     (loop (cdr env))) ;; skip dissolved (inlined) lamdas
 	    (else #f))))
   (let loop ((call&envs call&envs)
@@ -418,8 +426,7 @@
 	     (rec '())
 	     (trec '()))
     (smatch call&envs
-      (()
-       (values local rec trec))
+      (() (values local rec trec))
       (((call . env) . more)
        (case ($call-flag call)
 	 ((tail-rec)
@@ -497,12 +504,16 @@
 
 (define-p2-backtracible (pass2/$LAMBDA iform penv tail?)
   ($lambda-body-set! iform (pass2/rec ($lambda-body iform)
-				      (cons iform penv) #t))
+				      (expand-lvars (cons iform penv)
+						    ($lambda-lvars iform))
+				      #t))
   iform)
 
 (define-p2-backtracible (pass2/$RECEIVE iform penv tail?)
   ($receive-expr-set! iform (pass2/rec ($receive-expr iform) penv #f))
-  ($receive-body-set! iform (pass2/rec ($receive-body iform) penv tail?))
+  ($receive-body-set! iform (pass2/rec ($receive-body iform)
+				       (expand-lvars penv ($receive-lvars iform))
+				       tail?))
   iform)
 
 ;; $LABEL' body should already be processed by pass2.
@@ -554,16 +565,15 @@
 	($call-proc-set! iform (pass2/rec proc penv #f))
 	(cond
 	 ((vm-noinline-locals?)
-	  ($call-args-set! iform (imap (lambda (arg)
-					 (pass2/rec arg penv #f)) args))
+	  ($call-args-set! iform 
+	   (imap (lambda (arg) (pass2/rec arg penv #f)) args))
 	  iform)
 	 (($lambda? proc) ;; ((lambda (...) ...) arg ...)
 	  ;; ((lambda (var ...) body) arg ...)
 	  ;; -> (let ((var arg) (... ...)) body)
 	  (pass2/rec (expand-inlined-procedure ($*-src iform) proc args)
 		     penv tail?))
-	 ((and ($lref? proc)
-	       (pass2/head-lref proc penv tail?))
+	 ((and ($lref? proc) (pass2/head-lref proc penv tail?))
 	  => (lambda (result)
 	       (cond
 		((vector? result)
@@ -650,7 +660,8 @@
 (define (pass2/head-lref iform penv tail?)
   (let* ((lvar ($lref-lvar iform))
 	 (initval (lvar-initval lvar)))
-    (and (zero? (lvar-set-count lvar))
+    (and (pass2/known-lvar lvar penv)
+	 (zero? (lvar-set-count lvar))
 	 (vector? initval)
 	 (has-tag? initval $LAMBDA)
 	 ;; (let ((lref (lambda ...))) body)
@@ -663,6 +674,9 @@
 		(lvar-initval-set! lvar ($undef))
 		initval)
 	       (else 'local)))))
+
+(define (pass2/known-lvar lvar penv)
+  (memq lvar (cond ((assq 'lvars penv) => cdr) (else '()))))
 
 (define (pass2/self-recursing? node penv) (memq node penv))
 
