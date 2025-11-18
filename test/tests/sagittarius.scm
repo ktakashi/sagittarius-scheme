@@ -12,6 +12,7 @@
 	(encoding decoder)
 	(core) ;; for simple-condition? and equal?
 	(srfi :1)
+	(srfi :18)
 	(srfi :19)
 	(srfi :39)
 	(srfi :64 testing))
@@ -2479,7 +2480,6 @@
   (test-equal "datum->syntax" v (syntax->datum (datum->syntax #'k v))))
 
 ;; Label traversal fix test
-(import (srfi :18))
 (define expr
   '(define (test x)
      (or (and (>= x 1) (<= x 2))
