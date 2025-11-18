@@ -114,6 +114,7 @@
 (test-assert "reconnectable?" (websocket-reconnectable?
 			       (make-websocket "ws://localhost")))
 
+(define queue (make-shared-queue))
 (define (make-test-websocket-server count)
   (define (put-bytevector* out bv . bvs)
     (put-bytevector out bv)
@@ -129,6 +130,7 @@
 
   (define (keep-sending out)
     (lambda ()
+      (shared-queue-put! queue #t)
       (let loop ((i 0))
 	(unless (= i count)
 	  (websocket-send-frame! out +websocket-text-frame+ #f #*"Hello" #t)
@@ -167,7 +169,15 @@
        (thread-start! thread)
        (let loop ()
 	 (let-values (((fin? op data) (websocket-recv-frame in/out)))
-	   (cond ((= op +websocket-close-frame+) (send-close in/out))
+	   (cond ((= op +websocket-close-frame+)
+		  ;; if it's a single thread or very slow multi threads
+		  ;; environment, the background thread may not finish
+		  ;; by the expected time. the purpose of the background
+		  ;; thread is that client can handle sending and receiving
+		  ;; simultaneously so if one frame is received then
+		  ;; we can wait (I guess)
+		  (thread-join! thread)
+		  (send-close in/out))
 		 ((= op +websocket-ping-frame+)
 		  (if (bytevector=? #*"invalid" data)
 		      (send-pong in/out #*"fail")
@@ -181,13 +191,6 @@
 				    (websocket-recv-frame in/out)))
 			(send-binary in/out data op fin?)
 			(unless fin? (lp)))))
-		  ;; if it's a single thread or very slow multi threads
-		  ;; environment, the background thread may not finish
-		  ;; by the expected time. the purpose of the background
-		  ;; thread is that client can handle sending and receiving
-		  ;; simultaneously so if one frame is received then
-		  ;; we can wait (I guess)
-		  (thread-join! thread)
 		  (loop))))))
      (close-port in/out)))
   (define config (make-server-config :use-ipv6? #t))
@@ -204,8 +207,7 @@
 	)
     (test-assert (websocket? websocket))
     (test-assert (websocket? (websocket-on-text-message websocket
-			      (lambda (ws text) 
-				(shared-queue-put! tsq text)))))
+			      (lambda (ws text) (shared-queue-put! tsq text)))))
     (test-assert (websocket? (websocket-on-binary-message websocket
 			      (lambda (ws bin) (shared-queue-put! sq bin)))))
     (test-assert (websocket? (websocket-on-open websocket
@@ -224,16 +226,16 @@
     (test-assert (websocket? (websocket-send websocket #*"binary")))
     (test-assert (websocket? (websocket-send websocket bv126)))
     ;; CI fails...
-    ;;(test-assert (websocket? (websocket-send websocket bvFFFF)))
+    (test-assert (websocket? (websocket-send websocket bvFFFF)))
     ;; using splitter
     (test-assert (websocket? (websocket-send websocket bvFFFF 0 1024)))
 
+    (shared-queue-get! queue) ;; wait until thread is ready
     (do ((i 0 (+ i 1))) ((= i count))
-      (thread-yield!)
       (test-equal (format "Hello (~a)" i) "Hello" (shared-queue-get! tsq 10)))
     (test-equal #*"binary" (shared-queue-get! sq 1))
     (test-equal bv126 (shared-queue-get! sq 1))
-    #;(test-equal (bytevector-length bvFFFF)
+    (test-equal (bytevector-length bvFFFF)
 		(bytevector-length (shared-queue-get! sq 1)))
     (test-equal (bytevector-length bvFFFF)
 		(bytevector-length (shared-queue-get! sq 1)))

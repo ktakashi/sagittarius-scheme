@@ -146,8 +146,7 @@
 		(raise e))
 	       ((websocket-error? e)
 		(invoke-event websocket 'error e)
-		websocket)
-	       (else (raise e)))
+		websocket))
        exprs ...))))
 
 (define-syntax define-websocket
@@ -162,7 +161,9 @@
     (define finish? #f)
     (let restart ()
       (guard (e ((websocket-closed-error? e) (raise e))
-		((websocket-error? e) (invoke-event websocket 'error e)))
+		((websocket-error? e)
+		 (invoke-event websocket 'error e)
+		 (restart)))
 	(let loop ()
 	  (let-values (((opcode data) (websocket-receive conn :push-pong? #t)))
 	    (if (eqv? opcode +websocket-close-frame+)
