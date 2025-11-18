@@ -2477,4 +2477,40 @@
   (test-equal "datum->syntax" v (syntax->datum (datum->syntax #'k v))))
 (let ((v '#0=#(1 2 #0#)))
   (test-equal "datum->syntax" v (syntax->datum (datum->syntax #'k v))))
+
+;; Label traversal fix test
+(import (srfi :18))
+(define expr
+  '(define (test x)
+     (or (and (>= x 1) (<= x 2))
+	 (and (>= x 3) (<= x 4))
+	 (and (>= x 5) (<= x 6))
+	 (and (>= x 7) (<= x 8))
+	 (and (>= x 9) (<= x 10))
+	 (and (>= x 11) (<= x 12))
+	 (and (>= x 13) (<= x 14))
+	 (and (>= x 15) (<= x 16))
+	 (and (>= x 17) (<= x 18))
+	 (and (>= x 19) (<= x 20))
+	 (and (>= x 21) (<= x 22))
+	 (and (>= x 23) (<= x 24))
+	 (and (>= x 25) (<= x 26))
+	 (and (>= x 27) (<= x 28))
+	 (and (>= x 29) (<= x 30))
+	 (and (>= x 31) (<= x 32))
+	 (and (>= x 33) (<= x 34))
+	 (and (>= x 35) (<= x 36))
+	 (and (>= x 37) (<= x 38))
+	 (and (>= x 39) (<= x 40))
+	 (and (>= x 41) (<= x 42))
+	 (and (>= x 43) (<= x 44))
+	 (and (>= x 45) (<= x 46))
+	 (and (>= x 47) (<= x 48))
+	 (and (>= x 49) (<= x 50)))))
+
+(define thread
+  (thread-start! (make-thread (lambda () (eval expr (environment '(rnrs)))))))
+
+(test-assert "Label traversal fix test" (thread-join! thread 1))
+
 (test-end)
