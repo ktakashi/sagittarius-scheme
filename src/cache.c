@@ -1230,7 +1230,8 @@ static int read_4byte(SgPort *in)
   return ((a << 24) | (b << 16) | (c << 8) | d);
 }
 
-static SgWord read_word_rec(SgPort *in, int tag_type, int size, read_ctx *ctx)
+static inline SgWord read_word_rec(SgPort *in, int tag_type, int size,
+				   read_ctx *ctx)
 {
   int i;
   SgWord ret = 0;
@@ -1248,7 +1249,7 @@ static SgWord read_word_rec(SgPort *in, int tag_type, int size, read_ctx *ctx)
   return ret;
 }
 
-static int read_word(SgPort *in, int tag_type, read_ctx *ctx)
+static inline int read_word(SgPort *in, int tag_type, read_ctx *ctx)
 {
   return (int)read_word_rec(in, tag_type, EMIT_SIZE, ctx);
 }
@@ -1321,7 +1322,7 @@ static SgObject link_cb_rec(SgObject cb, SgHashTable *seen, read_ctx *ctx)
   return cb;  
 }
 
-static SgObject link_cb(SgObject cb, read_ctx *ctx)
+static inline SgObject link_cb(SgObject cb, read_ctx *ctx)
 {
   SgHashTable seen;
   Sg_InitHashTableSimple(&seen, SG_HASH_EQ, 128);
@@ -1377,7 +1378,7 @@ static SgObject read_toplevel(SgPort *in, int boundary, read_ctx *ctx)
   return SG_EOF;
 }
 
-static SgString* read_string(SgPort *in, int length)
+static inline SgString* read_string(SgPort *in, int length)
 {
 #ifdef USE_UTF8_STRING
   char *buf = SG_NEW_ATOMIC2(char *, length + 1);
@@ -1399,7 +1400,7 @@ static SgString* read_string(SgPort *in, int length)
 #endif
 }
 
-static SgObject read_symbol(SgPort *in, int internP, read_ctx *ctx)
+static inline SgObject read_symbol(SgPort *in, int internP, read_ctx *ctx)
 {
   int length;
   SgString *name;
@@ -1411,7 +1412,7 @@ static SgObject read_symbol(SgPort *in, int internP, read_ctx *ctx)
   return Sg_MakeSymbol(name, internP);
 }
 
-static SgObject lookup_library(SgPort *in, read_ctx *ctx)
+static inline SgObject lookup_library(SgPort *in, read_ctx *ctx)
 {
   int length;
   SgString *name;
@@ -1425,7 +1426,7 @@ static SgObject lookup_library(SgPort *in, read_ctx *ctx)
 }
 
 
-static SgObject read_keyword(SgPort *in, read_ctx *ctx)
+static inline SgObject read_keyword(SgPort *in, read_ctx *ctx)
 {
   int length;
   SgString *name;
@@ -1434,7 +1435,7 @@ static SgObject read_keyword(SgPort *in, read_ctx *ctx)
   return Sg_MakeKeyword(name);
 }
 
-static SgObject read_immediate(SgPort *in, read_ctx *ctx)
+static inline SgObject read_immediate(SgPort *in, read_ctx *ctx)
 {
   return SG_OBJ(read_word_rec(in, IMMEDIATE_TAG, WORD_SIZE, ctx));
 }
