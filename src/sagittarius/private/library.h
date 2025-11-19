@@ -113,6 +113,7 @@ SG_EXTERN void     Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
 SG_EXTERN void     Sg_LibraryExportedSet(SgObject lib, SgObject exportSpec);
 SG_EXTERN void     Sg_LibraryExportedAdd(SgObject lib, SgObject exportSpec);
 SG_EXTERN SgObject Sg_SearchLibrary(SgObject lib, int *loadedp);
+SG_EXTERN int      Sg_IsValidLibraryName(SgObject name);
 SG_EXTERN SgGloc*  Sg_MakeBinding(SgLibrary *lib, SgSymbol *symbol,
 				  SgObject value, int flags);
 
@@ -121,8 +122,8 @@ SG_EXTERN SgGloc*  Sg_FindBinding(SgObject library, SgObject name,
 				  SgObject callback);
 SG_EXTERN void     Sg_InsertBinding(SgLibrary *library, SgObject name,
 				    SgObject value);
-SG_EXTERN void Sg_InsertSandboxBinding(SgObject library, SgObject name,
-				       SgObject value);
+SG_EXTERN void     Sg_InsertSandboxBinding(SgObject library, SgObject name,
+					   SgObject value);
 SG_EXTERN SgObject Sg_AddLoadSuffix(SgObject suffix, int appendP);
 /* make library immutable
    this operation, for now, is one way. (and not used)

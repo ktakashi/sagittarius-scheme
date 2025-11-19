@@ -1927,6 +1927,9 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
   SgObject later = SG_NIL;
   /* SgObject vtime = Sg_FileModifyTime(ctx->file); */
   name = read_library_name(in, ctx);
+  if (!Sg_IsValidLibraryName(name)) {
+    ESCAPE(ctx, "Invalid library name (%A)\n", name);
+  }
   /* if vm is reading a cache, which means library is not loaded yet.
      so we need to create it.
    */

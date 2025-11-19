@@ -96,13 +96,13 @@
 	    (bytevector-u16-native-set! #vu8(1 2 3 4) 1 5))
 (test-error "literal bytevector u16 set!"
 	    (lambda (e) (assertion-violation? e))
-	    (bytevector-u16-set! #vu8(1 2 3 4) 1 5))
+	    (bytevector-u16-set! #vu8(1 2 3 4) 1 5 (endianness big)))
 (test-error "literal bytevector native s16 set!"
 	    (lambda (e) (assertion-violation? e))
 	    (bytevector-s16-native-set! #vu8(1 2 3 4) 1 5))
 (test-error "literal bytevector s16 set!"
 	    (lambda (e) (assertion-violation? e))
-	    (bytevector-s16-set! #vu8(1 2 3 4) 1 5))
+	    (bytevector-s16-set! #vu8(1 2 3 4) 1 5 (endianness big)))
 
 ;; Issue 12
 (test-equal "\\x0; test" #vu8(0) (string->utf8 "\x0;"))

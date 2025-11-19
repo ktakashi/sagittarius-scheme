@@ -142,9 +142,9 @@ static void check_version_reference(SgObject name, SgObject o)
   }
 }
 
-static SgObject library_name_to_id_version(SgObject name)
+static SgObject library_name_to_id_version_rec(SgObject name, int raiseP)
 {
-  SgObject h = SG_NIL, t = SG_NIL, cp;
+    SgObject h = SG_NIL, t = SG_NIL, cp;
   if (!SG_NULLP(name) && SG_PAIRP(name)) {
     long len = Sg_Length(name);
     if (len >= 0) {
@@ -157,14 +157,16 @@ static SgObject library_name_to_id_version(SgObject name)
 	} else if (SG_EXACT_INTP(o)) {
 	  /* R7RS allow unsigned exact integer as a library name */
 	  if (Sg_Sign(o) < 0) {
-	    Sg_Error(UC("malformed library name %S"), name);
+	    if (raiseP) Sg_Error(UC("malformed library name %S"), name);
+	    return SG_UNDEF;
 	  }
 	  SG_APPEND1(h, t, o);
 	} else if (SG_LISTP(o) && SG_NULLP(SG_CDR(cp))) {
 	  check_version_reference(name, o);
 	  return Sg_Cons(h, o);
 	} else {
-	  Sg_Error(UC("malformed library name %S"), name);
+	  if (raiseP) Sg_Error(UC("malformed library name %S"), name);
+	  return SG_UNDEF;
 	}
       }
       /* no version number */
@@ -184,13 +186,18 @@ static SgObject library_name_to_id_version(SgObject name)
 	 for now, we do rather stupid way.*/
       SgStringPort sp;
       SgObject in = Sg_InitStringInputPort(&sp, s, 0, len);
-      return library_name_to_id_version(Sg_Read(in, FALSE));
+      return library_name_to_id_version_rec(Sg_Read(in, FALSE), raiseP);
     }
     /* trust... */
     return Sg_Cons(name, SG_NIL);
   }
-  Sg_Error(UC("malformed library name %S"), name);
+  if (raiseP) Sg_Error(UC("malformed library name %S"), name);
   return SG_UNDEF;		/* dummy */
+}
+
+static SgObject library_name_to_id_version(SgObject name)
+{
+  return library_name_to_id_version_rec(name, TRUE);
 }
 
 static SgSymbol* convert_name_to_symbol(SgObject name)
@@ -693,6 +700,13 @@ SgObject Sg_SearchLibraryPath(SgObject name)
 {
   SgObject id_version = library_name_to_id_version(name);
   return get_possible_paths(Sg_VM(), SG_CAR(id_version), FALSE);
+}
+
+/* for cache */
+int Sg_IsValidLibraryName(SgObject name)
+{
+  SgObject id_version = library_name_to_id_version_rec(name, FALSE);
+  return SG_PAIRP(id_version);
 }
 
 SgObject Sg_FindLibrary(SgObject name, int createp)
