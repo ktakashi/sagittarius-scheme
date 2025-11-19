@@ -1491,6 +1491,21 @@ SgObject Sg_TLSServerSocketHandshake(SgTLSSocket *tlsSocket)
 /*
 https://msdn.microsoft.com/en-us/library/windows/desktop/aa380138(v=vs.85).aspx
  */
+static void safe_send(SOCKET socket, uint8_t *data, long size)
+{
+  long rest = size;
+  long sizeSent = 0;
+
+  while (rest > 0) {
+    int ret = send(socket, (char*)data, size, 0);
+    if (ret < 0) break;		/* ignore error */
+    sizeSent += ret;
+    rest -= ret;
+    data += ret;
+    size -= ret;
+  }
+}
+
 static void tls_socket_shutdown(SgTLSSocket *tlsSocket)
 {
   WinTLSData *data = (WinTLSData *)tlsSocket->data;
@@ -1547,7 +1562,7 @@ static void tls_socket_shutdown(SgTLSSocket *tlsSocket)
     }
     if (FAILED(ss)) return;
     if (buffer.pvBuffer != NULL && buffer.cbBuffer != 0) {
-      Sg_SocketSend(socket, (uint8_t *)buffer.pvBuffer, buffer.cbBuffer, 0);
+      safe_send(socket->socket, (uint8_t *)buffer.pvBuffer, buffer.cbBuffer);
       fmt_dump("buffer %p [%d]\n", buffer.pvBuffer, buffer.cbBuffer);
       FreeContextBuffer(buffer.pvBuffer);
     }
