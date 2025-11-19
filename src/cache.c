@@ -1484,6 +1484,7 @@ static SgObject read_identifier(SgPort *in, read_ctx *ctx)
   name = read_object_rec(in, ctx);
   /* read library name */
   lib = read_object_rec(in, ctx);
+  if (!lib) ESCAPE(ctx, "Invalid identifier library [%A]\n", name);
   if (!SG_FALSEP(lib)) {
     lib = Sg_FindLibrary(lib, FALSE);
   }
@@ -1589,6 +1590,9 @@ static SgObject read_dlist(SgPort *in, read_ctx *ctx)
   SG_SET_CDR(t, o);
 #ifdef STORE_SOURCE_INFO
   info = read_object_rec(in, ctx);
+  if (!SG_NULLP(info) && !SG_PAIRP(info)) {
+    ESCAPE(ctx, "Invalid source info [%A]\n", ctx->file);
+  }
   SG_PAIR(h)->info = info;
   if (Sg_ConstantLiteralP(h)) {
     h = Sg_AddConstantLiteral(h);
