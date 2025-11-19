@@ -261,7 +261,7 @@
 					 (socket-options (read-timeout 1000))))
 		  (msg (string->utf8
 			(string-append "Hello world " (number->string i)))))
-	      (guard (e (else (print e) s))
+	      (guard (e (else #;(print e) (cons s e)))
 		(when (even? i) (thread-yield!) (thread-sleep! 0.2));; 200ms
 		(socket-send s msg)
 		(let ((v (socket-recv s 255)))
@@ -270,16 +270,18 @@
 			(else (lock-free-queue-push! result (utf8->string v)))))
 		(socket-send s mark))
 	      (socket-shutdown s SHUT_RDWR)
-	      s)))
+	      (cons s #f))))
 	(string-append "client-thread-" (number->string i)))))
     (define (safe-join! t)
       (guard (e ((uncaught-exception? e)
 		 (uncaught-exception-reason e))
 		(else #f))
 	(thread-join! t)))
-    (define (safe-close s)
-      (cond ((socket? s) (socket-close s))
-	    ((condition? s) (report-error s))))
+    (define (safe-close v)
+      (let ((s (car v))
+	    (e (cdr v)))
+	(when (socket? s) (socket-close s))
+	(when (condition? e) (print (condition-message e)))))
 
     (let ((t* (map caller (iota count))))
       (do ((i 0 (+ i 1))) ((or (= count (atomic-fixnum-load ready-sockets)) (= i 50)))
@@ -294,7 +296,7 @@
   (let ((r (run-socket-selector 1000 #f)))
     (test-equal "no soft, hard = 1000ms" count (length (filter string? r))))
   (let ((r (run-socket-selector 50 #f)))
-    ;; for some reason, Sagittarius extremely slow on OpenBSD and 50ms of
+    ;; for some reason, Sagittarius is extremely slow on OpenBSD and 50ms of
     ;; waiting time might be too soon to be executed.
     (cond-expand (openbsd (test-expect-fail 1)) (else #t))
     (test-assert "no soft, hard = 50ms"

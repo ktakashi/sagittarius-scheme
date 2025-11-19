@@ -536,6 +536,7 @@ static int toggle_nagle(SOCKET fd, int value)
   return value;
 }
 
+#if 0
 static void flush_tcp(SOCKET fd)
 {
 #ifdef TCP_NODELAY
@@ -543,6 +544,7 @@ static void flush_tcp(SOCKET fd)
   toggle_nagle(fd, old);
 #endif
 }
+#endif
 
 static int socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 			     SgObject timeout);
@@ -1377,9 +1379,9 @@ SG_DEFINE_BUILTIN_CLASS(Sg_SocketPortClass,
 
 static void socket_flush(SgObject self)
 {
-  SgSocket *socket = SG_PORT_SOCKET(self);
+  /* SgSocket *socket = SG_PORT_SOCKET(self); */
   /* let's hope it won't raise any signel if the socket is UDP or UNIX */
-  flush_tcp(socket->socket);
+  /* flush_tcp(socket->socket); */
 }
 
 static int socket_ready_int(SgObject port, SgObject socket, struct timeval *tm)

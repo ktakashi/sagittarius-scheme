@@ -52,14 +52,15 @@
 	      (lambda ()
 		((n) (make-bytevector 4096) #f)))))
 
-(define (make-http1-connection socket socket-option node service)
-  (make-http-connection node service socket-option socket
+(define (make-http1-connection socket socket-option node service . opts)
+  (apply make-http-connection node service socket-option socket
 			http1-send-header http1-send-data
 			http1-receive-header http1-receive-data 
-			(make-http1-connection-context)))
+			(make-http1-connection-context)
+			opts))
 
-(define (socket->http1-connection socket socket-option node service . ignore)
-  (make-http1-connection socket socket-option node service))
+(define (socket->http1-connection socket socket-option node service . opts)
+  (apply make-http1-connection socket socket-option node service opts))
 
 (define (http1-send-header connection request)
   (send-header! connection request))

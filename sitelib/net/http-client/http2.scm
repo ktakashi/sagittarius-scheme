@@ -68,12 +68,13 @@
 		 1
 		 +window-size+
 		 +window-size+)))))
-(define (make-http2-connection socket socket-option node service)
-  (make-http-connection node service socket-option
-			socket
-			http2-send-header http2-send-data
-			http2-receive-header http2-receive-data
-			(make-http2-connection-context)))
+(define (make-http2-connection socket socket-option node service opts)
+  (apply make-http-connection node service socket-option
+	 socket
+	 http2-send-header http2-send-data
+	 http2-receive-header http2-receive-data
+	 (make-http2-connection-context)
+	 opts))
 
 (define-enumeration http2:stream-state
   (idle reserved open half-closed closed)
@@ -115,8 +116,9 @@
 
 ;;; API
 (define (socket->http2-connection socket socket-option node service
-				  :key (settings '()))
-  (let ((conn (make-http2-connection socket socket-option node service)))
+				  :key (settings '())
+				  :allow-other-keys rest)
+  (let ((conn (apply make-http2-connection socket socket-option node service rest)))
     (http2-send-preface conn)
     (http2-send-settings conn 0 `(,@+default-settings+ ,@settings))
     ;; Set the global window size 2^31 - 1 (max)

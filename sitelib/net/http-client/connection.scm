@@ -81,7 +81,9 @@
 		       service option socket
 		       header-sender data-sender
 		       header-receiver data-receiver
-		       data)
+		       data
+		       :key (buffer-mode 'block)
+		       :allow-other-keys)
 		(unless (or (not socket)
 			    (or (socket? socket) (tls-socket? socket)))
 		  (assertion-violation 'make-http-connection
@@ -98,9 +100,9 @@
 		   header-receiver data-receiver
 		   socket
 		   (and socket (buffered-port (socket-input-port socket)
-					      (buffer-mode block)))
+					      buffer-mode))
 		   (and socket (buffered-port (socket-output-port socket)
-					      (buffer-mode block)))
+					      buffer-mode))
 		   data)))))
 
 (define-record-type http-logging-connection

@@ -139,7 +139,8 @@
   (define (make-http-conn)
     ((if http2? socket->http2-connection socket->http1-connection)
       socket socket-options (uri-host uri) (uri-port uri)
-      :settings `((,+http2-settings-enable-connect-protocol+ 1))))
+      :settings `((,+http2-settings-enable-connect-protocol+ 1))
+      :buffer-mode 'none))
   (define http-conn
     (if logger
 	(make-http-logging-connection
