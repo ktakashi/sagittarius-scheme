@@ -64,12 +64,16 @@
     ((_ exprs ...)
      (parameterize ((test-runner-factory test-runner-detail))
        (parameterize ((test-runner-current (test-runner-create)))
-	 exprs ...)))))
+	 exprs ...
+	 (test-runner-fail-count (test-runner-current)))))))
 
 (define (main args)
+  (define (run-test file)
+    (with-detailed-runner
+     (load file)))
   (with-args (cdr args)
       ((help (#\h "help") #f #f) . rest)
     (when (null? rest)
       (assertion-violation 'runner "No test file"))
-    (with-detailed-runner
-     (for-each (lambda (file) (load file)) rest))))
+    (let ((r (fold-left (lambda (acc file) (+ acc (run-test file))) 0 rest)))
+      (exit (zero? r)))))
