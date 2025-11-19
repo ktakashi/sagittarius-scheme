@@ -286,11 +286,14 @@
 	  (when (condition? e) (print (condition-message e))))))
 
     (let ((t* (map caller (iota count))))
-      (do ((i 0 (+ i 1))) ((or (= count (atomic-fixnum-load ready-sockets)) (= i 50)))
+      (do ((i 0 (+ i 1)))
+	  ((or (= count (atomic-fixnum-load ready-sockets)) (= i 50)))
 	(thread-sleep! 0.01))
-      (test-equal "Expected client sockets count" count (atomic-fixnum-load ready-sockets))
       (for-each safe-close (map safe-join! t*)))
-
+    ;; when all the threads are done, the socket must be the same
+    ;; as count
+    (test-equal "Expected client sockets count" count
+		(atomic-fixnum-load ready-sockets))
     (socket-shutdown server-sock SHUT_RDWR)
     (socket-close server-sock)
     (guard (e (else #t)) (thread-join! server-thread 0.1))
