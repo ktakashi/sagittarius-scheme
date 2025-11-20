@@ -245,6 +245,7 @@
 		(let ((sock (socket-accept server-sock)))
 		  (when sock
 		    (atomic-fixnum-inc! ready-sockets)
+		    (socket-send sock #vu8(1)) ;; let it wake up
 		    (socket-selector sock echo soft-timeout)
 		    (loop))))
 	      (terminater)))))))
@@ -257,10 +258,11 @@
        (make-thread
 	(lambda ()
 	  (guard (e (else (cons #f e)))
-	    (let ((s (make-client-socket "localhost" server-port
-					 (socket-options (read-timeout 1000))))
+	    (let ((s (make-client-socket "localhost" server-port))
 		  (msg (string->utf8
 			(string-append "Hello world " (number->string i)))))
+	      (socket-recv s 1) ;; wait for wake up :)
+	      (socket-set-read-timeout! s 1000)
 	      (guard (e (else (socket-shutdown s SHUT_RDWR)
 			      (cons s e)))
 		(when (even? i) (thread-yield!) (thread-sleep! 0.2));; 200ms
@@ -334,6 +336,7 @@
 	(let loop ()
 	  (let ((sock (socket-accept server-sock)))
 	    (when sock
+	      (socket-send sock #vu8(1)) ;; send wake up
 	      (guard (e (else (report-error e) (close-socket! sock)))
 		(socket-set-read-timeout! sock 2000) ;; 2s
 		(thread-start! (make-thread (echo sock))))
@@ -357,9 +360,11 @@
 		 (if (string? v)
 		     (and (not (zero? (string-length v))) v)
 		     e))))))))
-      (guard (e (else (shared-queue-put! result (thread-start! (make-thread (lambda () (raise e)))))))
-	(let ((s (make-client-socket "localhost" server-port
-				     (socket-options (read-timeout 1000)))))
+      (guard (e (else (shared-queue-put! result
+		       (thread-start! (make-thread (lambda () (raise e)))))))
+	(let ((s (make-client-socket "localhost" server-port)))
+	  (socket-recv s 1) ;; wait for wake up
+	  (socket-set-read-timeout! s 1000)
 	  (socket-send s (string->utf8
 			  (string-append "Hello world " (number->string i))))
 	  (selector s push-result soft-timeout))))
