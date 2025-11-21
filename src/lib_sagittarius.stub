@@ -361,6 +361,9 @@
   (define-c-proc interned-symbol? (s) ::<boolean> :no-side-effect
     SG_INTERNED_SYMBOL)
 
+  (define-c-proc string->uninterned-symbol (s::<string>) :no-side-effect
+    (result (Sg_MakeSymbol s FALSE)))
+
   (define-cise-stmt check-symbol
     ((_ name s)
      `(unless (SG_SYMBOLP ,s)
