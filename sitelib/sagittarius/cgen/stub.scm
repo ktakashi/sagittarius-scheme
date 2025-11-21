@@ -10,7 +10,10 @@
 	    (rename (<c-proc> <cgen-c-proc>))
 	    <cgen-c-variable>
 	    ;; TODO remove me
-	    <c-proc>)
+	    <c-proc>
+
+	    *cgen-symbol-generator*
+	    cgen-gensym)
     (import (rnrs)
 	    (rnrs eval)
 	    (core base) ;; for print
@@ -33,6 +36,10 @@
 	    (util port)
 	    (clos user)
 	    (clos core))
+  (define *cgen-symbol-generator* (make-parameter gensym))
+
+  (define (cgen-gensym) ((*cgen-symbol-generator*)))
+
 
   (define-class <cgen-stub-unit> (<cgen-unit>)
     ((c-name-prefix :init-keyword :c-name-prefix)))

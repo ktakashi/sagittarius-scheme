@@ -45,6 +45,9 @@
 	    ;; for backward compatibility
 	    default-name-generator
 	    +replace-prefix+
+
+	    *cgen-symbol-generator*
+	    cgen-gensym
 	    )
     (import (rnrs)
 	    (rnrs eval)
@@ -73,7 +76,6 @@
   ;; internal parameter
   (define *cgen-macro-emit-phase* (make-parameter #f))
   (define *cgen-cyclic-objects* (make-parameter #f))
-
   ;; if library name starts this then the library will be replaced
   ;; to current library.
   ;; mostly for hygine macro so make sure the compiling library
@@ -83,7 +85,7 @@
 
   (define-class <cgen-precomp-unit> (<cgen-stub-unit>)
     ((library :init-keyword :library)
-     (toplevel :init-keyword :toplevel :init-form (gensym))))
+     (toplevel :init-keyword :toplevel :init-form (cgen-gensym))))
 
   ;; for future though
   (define (read-with-source in) (read in :source-info? #t))
@@ -153,8 +155,8 @@
 	(filter-map gloc-macro? (hashtable-values-list table))))
     (let1 macros (collect-macro lib)
       (unless (null? macros)
-	(let* ((core-macro (gensym))
-	       (gloc (gensym))
+	(let* ((core-macro (cgen-gensym))
+	       (gloc (cgen-gensym))
 	       (unit (cgen-current-unit))
 	       (prologue (~ unit 'init-prologue)))
 	  (set! (~ unit 'init-prologue)
@@ -558,8 +560,8 @@
     (init (self)
       (let ((values (~ self 'values-list))
 	    (cname (~ self 'c-name))
-	    (h     (gensym))
-	    (t     (gensym)))
+	    (h     (cgen-gensym))
+	    (t     (cgen-gensym)))
 	(print "  do {")
 	(format #t "    /* ~a */ ~%"
 		(cgen-safe-comment (format/ss "~s" (~ self'value))))

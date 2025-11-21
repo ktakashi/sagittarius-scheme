@@ -48,9 +48,11 @@
     (import (rnrs)
 	    (rfc uuid)
 	    (srfi :13 strings)
+	    (srfi :39 parameters)
 	    (srfi :115 regexp)
 	    (srfi :117 list-queues)
 	    (srfi :158 generators-and-accumulators)
+	    (srfi :159 base)
 	    (srfi :197 pipeline)
 	    (text markdown extensions api)
 	    (text markdown parser blocks)
@@ -65,6 +67,13 @@
 
 (define *footnotes-namespace* 
   "https://markdown.sagittarius-scheme.io/footnotes")
+
+(define (default-footnotes-id-generator type label number)
+  (show #f type "-" label "-" number))
+
+(define *footnotes-id-generator* (make-parameter default-footnotes-id-generator))
+(define (generate-footnotes-id type label number)
+  ((*footnotes-id-generator*) type label number))
 
 (define-markdown-node (footnote-block (attribute label "notes:label")
 				      (attribute number "notes:number")
@@ -92,8 +101,7 @@
    (lambda (n)
      (lambda (document content-indent label number)
        ((n (make-footnote-block-node document label (number->string number)
-				     (string-downcase
-				      (uuid->string (make-v4-uuid))))
+				     (generate-footnotes-id 'block label number))
 	   #t #f
 	   (lambda (self block) #t)
 	   (lambda (self ps)
@@ -181,7 +189,7 @@
 		     (label (number->string l))
 		     ;; current block
 		     (cb (inline-parser-state-block state))
-		     (id (string-downcase (uuid->string (make-v4-uuid))))
+		     (id (generate-footnotes-id 'inline label l))
 		     (fn (make-footnote-block-node cb label label id))
 		     (pp (make-paragraph-parser fn)))
 		(scanner:next! scanner) ;; discards #\]

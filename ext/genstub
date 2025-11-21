@@ -2,9 +2,18 @@
 (add-load-path "../sitelib")
 (add-load-path "../lib")
 (import (sagittarius cgen stub)
+	(sagittarius)
 	(util file)
 	(shorten)
-	(srfi :26 cut))
+	(srfi :26 cut)
+	(srfi :39 parameters))
+(define stub-gensym
+  (let ((counter 0))
+    (lambda ()
+      (let ((s (format "G~a" counter)))
+	(set! counter (+ counter 1))
+	(string->uninterned-symbol s)))))
+
 (define (main args)
   (let* ((files (cdddr args))
 	 (indir (cadr args))
@@ -20,5 +29,7 @@
 			(when (< stub-mtime out-mtime)
 			  (print "generated file is older than stub file. " c)
 			  (set! exit? #t))))
-		    (unless exit? (cgen-genstub rf :c-file c))))
+		    (unless exit?
+		      (parameterize ((*cgen-symbol-generator* stub-gensym))
+			(cgen-genstub rf :c-file c)))))
 	      files)))
