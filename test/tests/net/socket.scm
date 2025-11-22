@@ -238,14 +238,15 @@
 	(lambda ()
 	  (let-values (((socket-selector terminater)
 			(make-socket-selector hard-timeout)))
-	    (guard (e (else #;(print e) (terminater)))
-	      (let loop ()
+	    (guard (e (else (print e) (terminater)))
+	      (let loop ((i 0))
 		(let ((sock (socket-accept server-sock)))
+		  (unless sock (print "Server socket closed"))
 		  (when sock
 		    (atomic-fixnum-inc! ready-sockets)
 		    (socket-send sock #vu8(1)) ;; let it wake up
 		    (socket-selector sock echo soft-timeout)
-		    (loop))))
+		    (loop (+ i 1)))))
 	      (terminater)))))))
     (define result (make-lock-free-queue))
     (define server-port
@@ -277,7 +278,7 @@
       (guard (e ((uncaught-exception? e)
 		 (uncaught-exception-reason e))
 		(else #f))
-	(thread-join! t)))
+	(thread-join! t 0.1)))
     (define (safe-close v)
       (when v
 	(let ((s (car v))
@@ -289,6 +290,7 @@
       (do ((i 0 (+ i 1)))
 	  ((or (= count (atomic-fixnum-load ready-sockets)) (= i 50)))
 	(thread-sleep! 0.01))
+      (print "Socket counts: " (atomic-fixnum-load ready-sockets))
       (for-each safe-close (map safe-join! t*)))
     ;; when all the threads are done, the socket must be the same
     ;; as count

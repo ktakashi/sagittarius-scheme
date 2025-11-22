@@ -200,7 +200,7 @@ static SgObject win_selector_wait(win_context_t *ctx, int n,
 		   NOTE: socket.event member is meant to capture socket
 		         close, but we can use it to avoid inifinte waiting
 		*/
-		if (ne.lNetworkEvents & FD_ACCEPT) WSASetEvent(s->event);
+		if (ne.lNetworkEvents & FD_ACCEPT) WSASetEvent(s->events[0]);
 		ret = Sg_Cons(slot, ret);
 	      }
 	    }

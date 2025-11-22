@@ -78,7 +78,7 @@ typedef struct SgSocketRec
   SgObject node;
   SgObject service;
 #ifdef _WIN32
-  HANDLE event;			/* for close */
+  HANDLE events[2];		/* for accept and close */
 #endif
 } SgSocket;
 

@@ -70,6 +70,8 @@ typedef long suseconds_t;
 #define MSG_NOSIGNAL 0		/* no support (incl. *BSD/OSX) */
 #endif
 
+#include "raise_incl.incl"
+
 /* 
    https://bugs.launchpad.net/libdrizzle/+bug/404662
    Even though it said it's fixed HOWEVER h, on FreeBSD 9.1 it still
@@ -350,7 +352,16 @@ static SgSocket* make_socket_inner(SOCKET fd)
   s->type = SG_SOCKET_UNKNOWN;
   s->address = NULL;
 #ifdef _WIN32
-  s->event = CreateEvent(NULL, FALSE, FALSE, NULL);
+  s->events[0] = CreateEvent(NULL, FALSE, FALSE, NULL);
+  s->events[1] = CreateEvent(NULL, FALSE, FALSE, NULL);
+  if (!s->events[0] || !s->events[1]) {
+    int e = GetLastError();
+    if (s->events[0]) CloseHandle(s->events[0]);
+    if (s->events[1]) CloseHandle(s->events[1]);
+    raise_socket_error(SG_INTERN("create-socket"),
+		       Sg_GetLastErrorMessageWithErrorCode(e),
+		       Sg_MakeConditionSocket(SG_FALSE), SG_NIL);
+  }
 #endif
   return s;
 }
@@ -447,8 +458,6 @@ SgAddrinfo* Sg_MakeAddrinfo()
   memset(info->ai, 0, sizeof(struct addrinfo));
   return info;
 }
-
-#include "raise_incl.incl"
 
 static void raise_io_error(SgObject who, int ret, SgObject c, SgObject irr)
 {
@@ -852,27 +861,31 @@ SgObject Sg_SocketAccept(SgSocket *socket)
   ResetEvent((&vm->thread)->event);
   /* Here, we can't use FD_CLOSE, more precisely, it won't be
      provided at all. */
-  hEvents[0] = CreateEvent(NULL, FALSE, FALSE, NULL);
-  hEvents[1] = socket->event;
+  hEvents[0] = socket->events[0];
+  hEvents[1] = socket->events[1];
   hEvents[2] = (&vm->thread)->event;
   SG_SET_SOCKET_EVENT(socket, hEvents[0], FD_ACCEPT);
   r = WaitForMultipleObjects(3, hEvents, FALSE, INFINITE);
   SG_SET_SOCKET_EVENT(socket, hEvents[0], 0);
-  CloseHandle(hEvents[0]);
-  if (socket->event != INVALID_HANDLE_VALUE) {
-    ResetEvent(socket->event);
+
+  if (socket->events[0] != INVALID_HANDLE_VALUE) {
+    ResetEvent(socket->events[0]);
+  }
+  if (socket->events[1] != INVALID_HANDLE_VALUE) {
+    ResetEvent(socket->events[1]);
   }
 
   if (r == WAIT_OBJECT_0 + 2) {
     WSASetLastError(EINTR);
     return SG_FALSE;		/* interrupted! */
   }
-  if (socket->event == INVALID_HANDLE_VALUE) {
+  if (socket->events[1] == INVALID_HANDLE_VALUE) {
     /* socket is closed */
-    raise_socket_error(SG_INTERN("socket-accept"), 
-		       Sg_GetLastErrorMessageWithErrorCode(WSAECONNRESET),
-		       Sg_MakeConditionSocket(socket), socket);
-    return SG_UNDEF;	/* dummy */
+    /* raise_socket_error(SG_INTERN("socket-accept"),  */
+    /* 		       Sg_GetLastErrorMessageWithErrorCode(WSAECONNRESET), */
+    /* 		       Sg_MakeConditionSocket(socket), socket); */
+    /* The same behaviour as POSIX */
+    return SG_FALSE;	/* dummy */
   }
 #endif
   
@@ -928,14 +941,17 @@ void Sg_SocketClose(SgSocket *socket)
   socket->type = SG_SOCKET_CLOSED;
   socket->address = NULL;
 #ifdef _WIN32
-  HANDLE event = socket->event;
-  socket->event = INVALID_HANDLE_VALUE;
+  HANDLE accept_event = socket->events[0];
+  HANDLE event = socket->events[1];
+  socket->events[0] = INVALID_HANDLE_VALUE;
+  socket->events[1] = INVALID_HANDLE_VALUE;
   /* FIXME socket-close should not shutdown socket but we don't have
      any way to flush socket other than shutting down write side of
      socket descriptor on Windows. */
   shutdown(fd, SD_SEND);
   SetEvent(event);
   closesocket(fd);
+  CloseHandle(accept_event);
   CloseHandle(event);
 #else
   close(fd);
