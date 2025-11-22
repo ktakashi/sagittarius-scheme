@@ -1,20 +1,20 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
 ;;; net/server.scm - Simple server framework.
-;;;  
+;;;
 ;;;   Copyright (c) 2010-2017  Takashi Kato  <ktakashi@ymail.com>
-;;;   
+;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
 ;;;   are met:
-;;;   
+;;;
 ;;;   1. Redistributions of source code must retain the above copyright
 ;;;      notice, this list of conditions and the following disclaimer.
-;;;  
+;;;
 ;;;   2. Redistributions in binary form must reproduce the above copyright
 ;;;      notice, this list of conditions and the following disclaimer in the
 ;;;      documentation and/or other materials provided with the distribution.
-;;;  
+;;;
 ;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 ;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 ;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -26,7 +26,7 @@
 ;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-;;;  
+;;;
 
 ;; super simple server framework
 (library (net server)
@@ -36,13 +36,13 @@
 	    server-config? server-config server-context
 	    server-start! on-server-start!
 	    ;; well for multithreading?
-	    server-stop!  on-server-stop! 
-	    
+	    server-stop!  on-server-stop!
+
 	    server-stopped? wait-server-stop!
 
 	    ;; for socket detaching
 	    server-detach-socket!
-	    
+
 	    server-status
 	    server-status?
 	    report-server-status
@@ -68,6 +68,7 @@
 	    (srfi :39)
 	    (srfi :117)
 	    (rfc tls)
+      (only (sagittarius test helper) retry)
 	    (net server monitor))
 
   (define (close-socket socket)
@@ -97,7 +98,7 @@
      ;; non blocking (default #f for backward compatibility)
      (non-blocking? :init-keyword :non-blocking? :init-value #f)))
   (define (server-config? o) (is-a? o <server-config>))
-  
+
   (define (default-server-monitor)
     (error 'server-monitor "not supported"))
   (define-class <simple-server> ()
@@ -136,14 +137,14 @@
 	(assertion-violation 'server-detach-socket!
 	  "only non-blocking server can detach socket or it's not in task"))
       (list-queue-add-front! queue socket)))
-    
+
   (define (make-non-blocking-process server handler config)
     (define num-threads (~ config 'max-thread))
     (define thread-pool (make-thread-pool num-threads raise))
     (define socket-manager
       ;; input is (tid . socket-count)
       ;; tid won't be duplicated
-      (make-shared-priority-queue 
+      (make-shared-priority-queue
        (lambda (a b)
 	 (let ((ac (cdr a)) (bc (cdr b))
 	       (atid (car a)) (btid (car b)))
@@ -186,7 +187,7 @@
 	    (and (not (socket-closed? o))
 		 (not (memq o detaching-sockets))))
 	  (filter check-active sockets))
-	
+
 	(*detaching-sockets* (list-queue))
 	;; get sockets
 	(let loop ((sockets (retrieve-sockets '())))
@@ -224,7 +225,7 @@
 	    (notify-info thread-id (+ (cdr info) 1))
 	    (shared-queue-put! channel socket)
 	    (thread-interrupt! thread))))))
-  
+
   (define (stop-server server)
 ;;    (define (connect ai-family)
 ;;      (guard (e (else #t))
@@ -241,7 +242,7 @@
 ;;    (when (~ server 'config 'use-ipv6?) (connect AF_INET6))
 ;;    (connect AF_INET)
     (for-each safe-interrupt! (~ server 'server-threads)))
-    
+
   (define (make-simple-server port handler
 			      :key (server-class <simple-server>)
 				   ;; must have default config
@@ -253,20 +254,20 @@
     (define dispatch
       (if (~ config 'non-blocking?)
 	  (make-non-blocking-process server handler config)
-	  ;; normal one. 
+	  ;; normal one.
 	  (let ((executor (and (> (~ config 'max-thread) 1)
-			       (make-thread-pool-executor 
+			       (make-thread-pool-executor
 				(~ config 'max-thread)
-				(wait-finishing-handler 
+				(wait-finishing-handler
 				 (~ config 'max-retry))))))
 	    (lambda (server socket)
 	      (define (handle socket)
-		(guard (e (else 
+		(guard (e (else
 			   (when (~ config 'exception-handler)
 			     ((~ config 'exception-handler) server socket e))
 			   (close-socket socket)
 			   #t))
-		  (call-with-socket socket 
+		  (call-with-socket socket
 		    (lambda (sock) (handler server sock)))))
 	      ;; ignore error
 	      (if executor
@@ -286,11 +287,11 @@
 	       (not (null? (~ config 'certificates))))
 	  ;; For now no private key, it's simple server
 	  ;; anyway
-	  (make-server-tls-socket port (~ config 'certificates) 
+	  (make-server-tls-socket port (~ config 'certificates)
 				  :private-key (~ config 'private-key)
 				  ai-family)
 	  (make-server-socket port ai-family)))
-    (let* ((ai-families (if (~ config 'use-ipv6?) 
+    (let* ((ai-families (if (~ config 'use-ipv6?)
 			    `(,AF_INET6 ,AF_INET)
 			    `(,AF_INET)))
 	   ;; hope all platform accepts dual when IPv6 is enabled
@@ -335,15 +336,15 @@
 	(let ((si (socket-info (car sockets))))
 	  (set! (~ server 'running-port)
 		(number->string (socket-info-port si)))))
-	 
-      (when (~ server 'initialiser) 
+
+      (when (~ server 'initialiser)
 	((~ server 'initialiser))
 	(set! (~ server 'initialiser) #f))
       (set! (~ server 'server-sockets) sockets)
       (set! (~ server 'server-threads) server-threads)
       (when (~ config 'shutdown-port)
 	(set! (~ server 'stopper-thread)
-	      (make-thread 
+	      (make-thread
 	       (lambda ()
 		 (define shutdown-port (~ config 'shutdown-port))
 		 (define stop-socket (make-server-socket shutdown-port))
@@ -353,7 +354,7 @@
 			   (number->string
 			    (socket-info-port (socket-info stop-socket)))
 			   shutdown-port))
-		 
+
 		 ;; lock it here
 		 (mutex-lock! (~ server 'stop-lock))
 		 (let loop ()
@@ -400,7 +401,7 @@
     (unless (server? server)
       (assertion-violation 'start-server! "server object required" server))
 
-    (if (~ server 'server-sockets) 
+    (if (~ server 'server-sockets)
 	(assertion-violation 'start-server! "server is already started" server)
 	(initialise-server! server))
     (when (~ server 'stopper-thread)
@@ -442,5 +443,5 @@
 	(mutex-unlock! (~ server 'stop-lock) (~ server 'stop-waiter)
 		       timeout)))
 )
-      
-       
+
+

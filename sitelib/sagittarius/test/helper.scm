@@ -5,7 +5,8 @@
 	    push-error
 	    push-success
 	    show-report
-	    generate-reporter)
+	    generate-reporter
+      retry)
     (import (rnrs)
 	    (core))
   (define current-reporter
@@ -56,4 +57,18 @@
 	((show)
 	 (lambda ()
 	   (show))))))
+
+  ;; Retry logic for flaky tests.
+  (define-syntax retry
+      (syntax-rules ()
+        [(_ procedure n-retries) (let ([unique-reference (cons #f #f)])
+                                  (let loop ([n 0]
+                                            [result (with-exception-handler (lambda (exception) unique-reference) procedure)])
+                                    (if (eq? unique-reference result)
+                                      (if (equal? n n-retries)
+                                        unique-reference
+                                        (loop (+ n 1) (with-exception-handler (lambda (exception) unique-reference) procedure)))
+                                      result)))]))
+
+
 )

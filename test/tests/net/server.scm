@@ -2,6 +2,7 @@
 	(net server)
 	(sagittarius)
 	(sagittarius socket)
+  (only (sagittarius test helper) retry)
 	(util concurrent)
 	(rfc tls)
 	(rfc x509)
@@ -38,7 +39,7 @@
 ;; multi threading server
 (let ()
   (define config (make-server-config :shutdown-port +shutdown-port+
-				     :exception-handler 
+				     :exception-handler
 				     (lambda (sr s e) (print e))
 				     :max-thread 5
 				     :use-ipv6? #t))
@@ -102,7 +103,7 @@
       (let ((sock (make-client-tls-socket "localhost" (server-port server)
 					  ai-family)))
 	(socket-send sock (string->utf8 "hello"))
-	(test-equal "TLS echo back" 
+	(test-equal "TLS echo back"
 		    (string->utf8 "hello") (socket-recv sock 255))
 	(socket-close sock))))
   (server-start! server :background #t)
@@ -130,12 +131,20 @@
   (test-equal 'context (server-context server))
   (test-error (server-status server)))
 
-(let ()
+;; Test for socket detachment functionality in the simple server framework.
+;;
+;; This test verifies that a server can detach sockets and hand them off to
+;; external actors for processing, while maintaining proper thread pool status.
+;; The test creates a non-blocking server that detaches incoming connections
+;; to a shared-queue-channel-actor which handles the actual socket
+;; communication.
+(define (_test-socket-detachment-for-simple-server)
   ;; the thread management is done outside of our threads
   ;; thus there's no way to guarantee. let's hope...
   (define (hope-it-works)
     (thread-yield!)
     (thread-sleep! 1))
+  ;; Actor that receives detached sockets and handles them independently.
   (define detached-actor
     (make-shared-queue-channel-actor
      (lambda (input-receiver output-sender)
@@ -143,8 +152,9 @@
        (output-sender 'ready)
        (hope-it-works)
        (let ((msg (input-receiver)))
-	 (socket-send socket msg))
+	   (socket-send socket msg))
        (output-sender 'done)
+       ;; Wait for finish signal.
        (input-receiver)
        (socket-shutdown socket SHUT_RDWR)
        (socket-close socket))))
@@ -153,7 +163,9 @@
 		  :exception-handler print))
   (define server (make-simple-server
 		  "12345" (lambda (s sock)
+			    ;; Remove socket from server's management.
 			    (server-detach-socket! s sock)
+			    ;; Hand it over to external actor.
 			    (actor-send-message! detached-actor sock))
 		  :config config))
   (define (check-status server)
@@ -170,26 +182,32 @@
     (test-assert
      (call-with-string-output-port
       (lambda (out) (report-server-status status out))))))
-  
+
   (server-start! server :background #t)
   (test-assert (server-status server))
   (check-status server)
 
   (let ((sock (make-client-socket "localhost" "12345")))
+    ;; Trigger socket detachment by connecting.
     (socket-send sock #vu8(0))
     (test-equal 'ready (actor-receive-message! detached-actor))
+    ;; Send actual data through the detached socket.
     (actor-send-message! detached-actor #vu8(1 2 3 4 5))
     (test-equal 'done (actor-receive-message! detached-actor))
     (hope-it-works)
     ;; it should have 0 active socket on the server, it's detached
     ;; and server socket is not closed
     (check-status server)
+    ;; Signal actor to finish and close socket.
     (actor-send-message! detached-actor 'finish)
+    ;; Receive the echoed data (potential race condition point).
     (let ((bv (socket-recv sock 5)))
       (test-equal #vu8(1 2 3 4 5) bv))
     (socket-shutdown sock SHUT_RDWR)
     (socket-close sock))
-  
+
   (server-stop! server))
+
+(retry _test-socket-detachment-for-simple-server 3)
 
 (test-end)

@@ -12,7 +12,7 @@ executors:
   ubuntu:
     machine:
       image: ubuntu-2404:current
-  
+
 jobs:
   posix-build:
     parameters:
@@ -46,7 +46,7 @@ jobs:
           name: Test
           working_directory: ~/target
           command: ctest --output-on-failure
-           
+
   windows-build:
     parameters:
       executor:
@@ -119,4 +119,4 @@ workflows:
               executor: [windows/server-2019]
               vspath: [C:\Program Files (x86)\Microsoft Visual Studio\2019\Community]
               arch: [x64, x86]
-      
+
