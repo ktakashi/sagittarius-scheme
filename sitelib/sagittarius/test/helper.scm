@@ -60,14 +60,16 @@
 
   ;; Retry logic for flaky tests.
   (define-syntax retry
-      (syntax-rules ()
-        [(_ procedure n-retries) (let ([unique-reference (cons #f #f)])
-                                  (let loop ([n 0])
-                                    (if (= n n-retries)
-                                      (procedure)
-                                      (let ([result (with-exception-handler (lambda (exception) unique-reference) procedure)])
-                                        (if (eq? result unique-reference)
-                                          (loop (+ n 1))
-                                          result)))))]))
-
+    (syntax-rules ()
+      [(_ procedure n-retries)
+        (let ([unique-reference (cons #f #f)])
+          (let loop ([n 0])
+            (if (= n n-retries)
+              (procedure)
+              (let ([result (guard (exception
+                                    [else unique-reference])
+                             (procedure))])
+                (if (eq? result unique-reference)
+                  (loop (+ n 1))
+                  result)))))]))
 )
