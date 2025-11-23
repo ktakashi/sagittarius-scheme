@@ -397,7 +397,7 @@
     (test-equal "hard 50ms soft 1000ms" count (length (filter string? r))))
   (socket-shutdown server-sock SHUT_RDWR)
   (socket-close server-sock)
-  (guard (e (else #t)) (thread-join! server-thread)))
+  (guard (e (else #t)) (thread-join! server-thread 1)))
 
 (test-end)
 
