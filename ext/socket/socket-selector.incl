@@ -143,7 +143,7 @@ SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector,
 
       if (selector->waiting && !selector->retry) {
 	selector->retry = TRUE;
-	/* relese before I/O happens */
+	/* Interrupt may raise an error, so unlock here */
 	Sg_ReleaseWriteLock(&selector->rw_lock);
 	/* fprintf(stderr, "interrupted\n"); */
 	Sg_SocketSelectorInterrupt(selector);
