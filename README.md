@@ -14,7 +14,7 @@ Sagittarius uses CMake for its building infrastructure.  If you do not
 have it on your platform, please install it.
 
  - [CMake](http://www.cmake.org/)
- 
+
  NOTE: It should be higher than 3.5, though we don't use new features, so
  it should also work with 2.8.4
 
@@ -25,6 +25,7 @@ install to default location, run the following commands in the
 directory where all distributed files are expanded (c.f. By default
 it'd be `sagittarius-X.X.X`, `X.X.X` is the version you downloaded):
 
+    % ./dist.sh gen
     % cmake .
     % make
     % make install
@@ -87,7 +88,7 @@ for example:
 To run the tests, specify `test` target.
 
     % make test
-	
+
 Or, alternatively, you can also use `ctest`. This is convenient to
 test individual tests.
 
@@ -138,7 +139,7 @@ Only with Homebrew is tested. A user can install sagittarius directly with
 homebrew, via
 
     $ brew install sagittarius-scheme
-    
+
 Alternately, the user can install the following dependencies and then make
 sagittarius locally.
 
@@ -226,7 +227,7 @@ of the test execution when the test failed.
 % ctest --output-on-failure
 ```
 
-For more options, please refer the official document of the 
+For more options, please refer the official document of the
 [`CTest`](https://cmake.org/cmake/help/latest/manual/ctest.1.html)
 
 # Forums and bug reporting
