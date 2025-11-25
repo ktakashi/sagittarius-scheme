@@ -83,15 +83,6 @@ static void * make_selector_context()
   return NULL;		/*  dummy */
 }
 
-static void selector_finalizer_win(SgObject self, void *data)
-{
-  win_context_t *ctx = (win_context_t *)self;
-  HANDLE *locks = (HANDLE *)data;
-  CloseHandle(ctx->lock);
-  CloseHandle(locks[0]);
-  CloseHandle(locks[1]);
-}
-
 void Sg_CloseSocketSelector(SgSocketSelector *selector)
 {
   if (!Sg_SocketSelectorClosedP(selector)) {
@@ -116,15 +107,8 @@ void Sg_CloseSocketSelector(SgSocketSelector *selector)
     }
     ReleaseMutex(ctx->lock);
     Sg_ReleaseWriteLock(&selector->rw_lock);
-
+    Sg_DestroyReadWriteLock(&selector->rw_lock);
     Sg_UnregisterFinalizer(selector);
-    locks[0] = selector->rw_lock.read_lock.mutex;
-    locks[1] = selector->rw_lock.write_lock.mutex;
-    /*
-      In case the selector is waiting, we need to keep the lock...
-      We are even breaking the abstraction...
-     */
-    Sg_RegisterFinalizer(ctx, selector_finalizer_win, (void *)locks);
   }
 }
 

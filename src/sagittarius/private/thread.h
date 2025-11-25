@@ -199,9 +199,10 @@ typedef struct cleanup_rec_t
 
 /* internal read/write lock */
 typedef struct {
-  SgInternalMutex write_lock;
-  SgInternalMutex read_lock;
+  SgInternalMutex mutex;
+  SgInternalCond  cv;
   unsigned int reader_count;
+  unsigned int writer_count;
 } SgReadWriteLock;
 
 

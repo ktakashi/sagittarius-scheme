@@ -108,9 +108,9 @@ SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector,
   if (Sg_SocketOpenP(socket)) {
     int duplicate;
 
-    /* Sg_AcquireReadLock(&selector->rw_lock); */
+    Sg_AcquireReadLock(&selector->rw_lock);
     duplicate = duplicate_socket(socket, selector->sockets);
-    /* Sg_ReleaseReadLock(&selector->rw_lock); */
+    Sg_ReleaseReadLock(&selector->rw_lock);
 
     if (!duplicate) {
       SgObject slot, to = SG_FALSE;

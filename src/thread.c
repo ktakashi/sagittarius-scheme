@@ -33,43 +33,52 @@
 
 void Sg_InitReadWriteLock(SgReadWriteLock *rwlock)
 {
-  Sg_InitMutex(&rwlock->write_lock, TRUE);
-  Sg_InitMutex(&rwlock->read_lock, TRUE);
+  Sg_InitMutex(&rwlock->mutex, TRUE);
+  Sg_InitCond(&rwlock->cv);
   rwlock->reader_count = 0;
+  rwlock->writer_count = 0;
 }
 
 void Sg_DestroyReadWriteLock(SgReadWriteLock *rwlock)
 {
-  Sg_DestroyMutex(&rwlock->write_lock);
-  Sg_DestroyMutex(&rwlock->read_lock);
+  Sg_DestroyMutex(&rwlock->mutex);
+  Sg_DestroyCond(&rwlock->cv);
 }
 
 void Sg_AcquireReadLock(SgReadWriteLock *rwlock)
 {
-  Sg_LockMutex(&rwlock->read_lock);
-  if (++rwlock->reader_count == 1) {
-    /* First reader must wait for any writers */
-    Sg_LockMutex(&rwlock->write_lock);
+  Sg_LockMutex(&rwlock->mutex);
+  while (rwlock->writer_count > 0) {
+    Sg_Wait(&rwlock->cv, &rwlock->mutex);
   }
-  Sg_UnlockMutex(&rwlock->read_lock);
+  rwlock->reader_count++;
+  Sg_UnlockMutex(&rwlock->mutex);
 }
 
 void Sg_ReleaseReadLock(SgReadWriteLock *rwlock)
 {
-  Sg_LockMutex(&rwlock->read_lock);
-  if (--rwlock->reader_count == 0) {
-    /* First reader must release the write lock */
-    Sg_UnlockMutex(&rwlock->write_lock);
+  Sg_LockMutex(&rwlock->mutex);
+  rwlock->reader_count--;
+  if (rwlock->reader_count == 0) {
+    Sg_NotifyAll(&rwlock->cv);
   }
-  Sg_UnlockMutex(&rwlock->read_lock);
+  Sg_UnlockMutex(&rwlock->mutex);
 }
 
 void Sg_AcquireWriteLock(SgReadWriteLock *rwlock)
 {
-  Sg_LockMutex(&rwlock->write_lock);
+  Sg_LockMutex(&rwlock->mutex);
+  while (rwlock->reader_count > 0 || rwlock->writer_count > 0) {
+    Sg_Wait(&rwlock->cv, &rwlock->mutex);
+  }
+  rwlock->writer_count++;
+  Sg_UnlockMutex(&rwlock->mutex);
 }
 
 void Sg_ReleaseWriteLock(SgReadWriteLock *rwlock)
 {
-  Sg_UnlockMutex(&rwlock->write_lock);
+  Sg_LockMutex(&rwlock->mutex);
+  rwlock->writer_count--;
+  Sg_NotifyAll(&rwlock->cv);
+  Sg_UnlockMutex(&rwlock->mutex);
 }
