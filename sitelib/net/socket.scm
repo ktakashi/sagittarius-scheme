@@ -508,7 +508,7 @@
 	(loop (receiver)))))
 
   (define socket-poll-thread
-    (thread-start! (make-thread selector-waiter)))
+    (thread-start! (make-thread selector-waiter (gensym "selector-waiter"))))
   (define on-read-actor
     (parameterize ((*actor-thread-name-factory* on-read-name-factory))
       (make-shared-queue-channel-actor dispatch-socket)))

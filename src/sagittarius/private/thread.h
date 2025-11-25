@@ -215,6 +215,8 @@ SG_EXTERN void Sg_DestroyMutex(SgInternalMutex *mutex);
 
 SG_EXTERN int  Sg_InternalThreadStart(SgInternalThread *thread,
 				      SgThreadEntryFunc *entry, void *param);
+SG_EXTERN void Sg_SetInternalThreadName(SgInternalThread *thread, SgObject name);
+
 SG_EXTERN void Sg_SetCurrentThread(SgInternalThread *ret);
 
 SG_EXTERN void Sg_InitCond(SgInternalCond *cond);

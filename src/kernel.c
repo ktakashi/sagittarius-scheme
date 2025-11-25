@@ -29,6 +29,8 @@
 #include "sagittarius/private/kernel.h"
 #include "sagittarius/private/error.h"
 #include "sagittarius/private/pair.h"
+#include "sagittarius/private/string.h"
+#include "sagittarius/private/symbol.h"
 #include "sagittarius/private/system.h"
 #include "sagittarius/private/thread.h"
 #include "sagittarius/private/writer.h"
@@ -145,6 +147,12 @@ SgObject Sg_StartManagedThread(SgVM *vm, SgThreadEntryFunc *func, int daemonP)
       remove_entry(SG_KERNEL(vm->kernel), vm);
       vm->threadState = SG_VM_NEW;
       err_state = TRUE;
+    } else {
+      if (SG_STRINGP(vm->name)) {
+	Sg_SetInternalThreadName(&vm->thread, vm->name);
+      } else if (SG_SYMBOLP(vm->name)) {
+	Sg_SetInternalThreadName(&vm->thread, SG_SYMBOL_NAME(vm->name));
+      }
     }
   }
   Sg_UnlockMutex(&vm->vmlock);

@@ -160,6 +160,46 @@ int Sg_InternalThreadStart(SgInternalThread *thread, SgThreadEntryFunc *entry,
   return TRUE;
 }
 
+#if WINVER >= 0x0A00
+void Sg_SetInternalThreadName(SgInternalThread *thread, SgObject name)
+{
+  /* use  */
+  SetThreadDescription(thread->thread, Sg_StringToWCharTs(name));
+}
+#else 
+
+/* from https://learn.microsoft.com/en-gb/previous-versions/visualstudio/visual-studio-2015/debugger/how-to-set-a-thread-name-in-native-code?view=vs-2015&redirectedfrom=MSDN */
+#pragma pack(push,8)
+typedef struct tagTHREADNAME_INFO
+{
+  DWORD   dwType;
+  LPCSTR  szName;
+  DWORD   dwThreadID;
+  DWORD   dwFlags;
+} THREADNAME_INFO;
+#pragma pack(pop)
+
+#define MS_VC_EXCEPTION 0x406D1388
+
+void Sg_SetInternalThreadName(SgInternalThread *thread, SgObject name)
+{
+  THREADNAME_INFO info;
+  info.dwType = 0x1000;
+  info.szName = (LPCSTR) Sg_Utf32sToUtf8s(name);
+  info.dwThreadID = GetThreadId(thread->thread);
+  info.dwFlags = 0;
+#pragma warning(push)
+#pragma warning(disable: 6320 6322)
+  __try {
+    RaiseException(MS_VC_EXCEPTION, 0, sizeof(info) / sizeof(ULONG_PTR),
+		   (ULONG_PTR*)&info);
+  } __except (EXCEPTION_EXECUTE_HANDLER) {
+  }
+
+#pragma warning(pop)
+}
+#endif
+
 void Sg_SetCurrentThread(SgInternalThread *ret)
 {
   ret->thread = GetCurrentThread();

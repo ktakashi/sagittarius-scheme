@@ -141,6 +141,10 @@ int Sg_InternalThreadStart(SgInternalThread *thread, SgThreadEntryFunc *entry, v
   return ok;
 }
 
+void Sg_SetInternalThreadName(SgInternalThread *thread, SgObject name)
+{
+}
+
 void Sg_SetCurrentThread(SgInternalThread *ret)
 {
   ret->thread = pthread_self();
