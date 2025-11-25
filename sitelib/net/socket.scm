@@ -500,8 +500,7 @@
 	    (on-read sock e
 		     (case-lambda
 		      (() (push-socket sock on-read timeout))
-		      ((timeout)
-		       (push-socket sock on-read (make-timeout timeout)))))))))
+		      ((to) (push-socket sock on-read to))))))))
     (let loop ((e* (receiver)))
       (when e*
 	(for-each call-on-read e*)
