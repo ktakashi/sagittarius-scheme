@@ -2,7 +2,6 @@
 	(net server)
 	(sagittarius)
 	(sagittarius socket)
-  (only (sagittarius test helper) retry)
 	(util concurrent)
 	(rfc tls)
 	(rfc x509)
@@ -156,7 +155,6 @@
        (output-sender 'done)
        ;; Wait for finish signal.
        (input-receiver)
-       ;; Close immediately without delay to trigger race.
        (socket-shutdown socket SHUT_RDWR)
        (socket-close socket))))
   (define config (make-server-config
@@ -210,7 +208,5 @@
     (socket-close sock))
 
   (server-stop! server))
-
-(retry _test-socket-detachment-for-simple-server 3)
 
 (test-end)

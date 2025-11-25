@@ -5,8 +5,7 @@
 	    push-error
 	    push-success
 	    show-report
-	    generate-reporter
-      retry)
+	    generate-reporter)
     (import (rnrs)
 	    (core))
   (define current-reporter
