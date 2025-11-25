@@ -138,7 +138,7 @@
 ;; The test creates a non-blocking server that detaches incoming connections
 ;; to a shared-queue-channel-actor which handles the actual socket
 ;; communication.
-(define (_test-socket-detachment-for-simple-server)
+(let ()
   ;; the thread management is done outside of our threads
   ;; thus there's no way to guarantee. let's hope...
   (define (hope-it-works)
@@ -156,6 +156,7 @@
        (output-sender 'done)
        ;; Wait for finish signal.
        (input-receiver)
+       ;; Close immediately without delay to trigger race.
        (socket-shutdown socket SHUT_RDWR)
        (socket-close socket))))
   (define config (make-server-config
@@ -200,9 +201,11 @@
     (check-status server)
     ;; Signal actor to finish and close socket.
     (actor-send-message! detached-actor 'finish)
-    ;; Receive the echoed data (potential race condition point).
-    (let ((bv (socket-recv sock 5)))
-      (test-equal #vu8(1 2 3 4 5) bv))
+    ;; Handle potential race condition where socket closes before read.
+    (guard (e ((socket-error? e) (test-assert "server socket closed" #t))
+              (else (test-assert (condition-message e) #f)))
+      (let ((bv (socket-recv sock 5)))
+        (test-equal #vu8(1 2 3 4 5) bv)))
     (socket-shutdown sock SHUT_RDWR)
     (socket-close sock))
 
