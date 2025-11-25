@@ -98,9 +98,16 @@ void Sg_CloseSocketSelector(SgSocketSelector *selector)
     win_context_t *ctx = (win_context_t *)selector->context;
     HANDLE *locks = SG_NEW_ATOMIC2(HANDLE *, sizeof(HANDLE) * 2);
 
-    WaitForSingleObject(ctx->lock, INFINITE);
-
+    Sg_AcquireWriteLock(&selector->rw_lock);
     selector->context = NULL;
+    WSASetEvent(ctx->event);
+    Sg_ReleaseWriteLock(&selector->rw_lock);
+
+    while (selector->waiting) Sg_YieldCPU();
+    
+    WaitForSingleObject(ctx->lock, INFINITE);
+    Sg_AcquireWriteLock(&selector->rw_lock);
+
     WSACloseEvent(ctx->event);
     ctx->event = INVALID_HANDLE_VALUE;
     for (int i = 0; i < WSA_MAXIMUM_WAIT_EVENTS; i++) {
@@ -108,6 +115,7 @@ void Sg_CloseSocketSelector(SgSocketSelector *selector)
       ctx->events[i] = INVALID_HANDLE_VALUE;
     }
     ReleaseMutex(ctx->lock);
+    Sg_ReleaseWriteLock(&selector->rw_lock);
 
     Sg_UnregisterFinalizer(selector);
     locks[0] = selector->rw_lock.read_lock.mutex;
