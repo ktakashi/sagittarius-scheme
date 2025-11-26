@@ -141,10 +141,17 @@ void Sg_GCSetPrintWarning(int onP)
 }
 
 #endif
-				 
+
+static int initializingP = TRUE;
+int Sg__InitializingP() {
+  return initializingP;
+}
+
 void Sg_Init()
 {
   SgObject nullsym, coreBase, compsym, sgsym;
+  initializingP = TRUE;
+
 #ifdef USE_BOEHM_GC
   GC_INIT();
   GC_allow_register_threads();
@@ -281,6 +288,7 @@ void Sg_Init()
 					     SG_INTERN("import"),
 					     SG_INTERN("library"),
 					     SG_INTERN("define-library"))));
+  initializingP = FALSE;
 }
 
 /* GC related */

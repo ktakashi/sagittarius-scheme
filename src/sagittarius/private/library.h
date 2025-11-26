@@ -65,7 +65,8 @@ struct SgLibraryRec
 				   c.f) user, eval environment and child
 				*/
   unsigned int autoExport: 1;	/* automatically exports bindings */
-  int          reserved:   30;
+  unsigned int builtinP: 1;	/* the library is C compiled */
+  int          reserved:   29;
 
   SgObject     holder;		/* #f or VM.
 				   if this is not #f then the library

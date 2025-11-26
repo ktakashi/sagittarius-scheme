@@ -112,7 +112,7 @@ static SgString *default_prefix;
 
 SgObject Sg_Gensym(SgString *prefix)
 {
-    SgObject name;
+  SgObject name;
   SgSymbol *sym;
   char numbuf[50] = {0};
   SgChar buf[50] = {0};

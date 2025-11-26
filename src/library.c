@@ -305,6 +305,8 @@ static void remove_library(SgLibrary *lib)
   UNLOCK_LIBRARIES();
 }
 
+extern int Sg__InitializingP();
+
 static SgLibrary* make_library_rec(SgObject name)
 {
   SgLibrary *z = make_library();
@@ -313,6 +315,8 @@ static SgLibrary* make_library_rec(SgObject name)
   
   z->name = convert_name_to_symbol(SG_CAR(id_version));
   z->version = SG_CDR(id_version);
+  /* the library loaded during the initialization is C compiled */
+  z->builtinP = Sg__InitializingP();
 
   return SG_OBJ(add_library(z));
 }
@@ -595,8 +599,8 @@ static int load_library(SgVM *vm, SgObject path, SgObject directive)
   return result;
 }
 
-static SgObject search_library_unsafe(SgObject name, SgObject olibname,
-				      int *loadedp)
+static inline SgObject search_library_unsafe(SgObject name, SgObject olibname,
+					     int *loadedp)
 {
   SgObject libname, lib, paths;
   SgVM *vm = Sg_VM();
@@ -682,7 +686,6 @@ static SgObject search_library_unsafe(SgObject name, SgObject olibname,
 
 static SgObject search_library(SgObject name, SgObject libname, int *loadedp)
 {
-  /* TODO should we use unwind_protect? */
   volatile SgObject r;
   LOCK_LIBRARIES();
   SG_UNWIND_PROTECT {
@@ -718,7 +721,7 @@ SgObject Sg_FindLibrary(SgObject name, int createp)
     return name;
   }
   id_version = library_name_to_id_version(name);
-  return search_library(SG_CAR(id_version), (createp)? name: NULL,  NULL);
+  return search_library(SG_CAR(id_version), (createp)? name: NULL, NULL);
 }
 
 
