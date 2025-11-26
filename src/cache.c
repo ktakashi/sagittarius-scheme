@@ -979,14 +979,17 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
   names = read_object_rec(in, ctx);
   /* Sg_Printf(Sg_StandardErrorPort(), UC("%A: names: %A\n"), name, names); */
   SG_FOR_EACH(key, names) {
+    SgObject v = SG_CAR(key);
     int loadedp = FALSE;
+    if (!Sg_IsValidLibraryName(v)) {
+      ESCAPE(ctx, "Invalid dependency library name (%A)\n", v);
+    }
     /* for hidden library, we don't check existence here */
-    Sg_SearchLibrary(SG_CAR(key), &loadedp);
+    Sg_SearchLibrary(v, &loadedp);
     if (loadedp) {
       /* re-load it */
       ctx->file = SG_FALSE;
-      ESCAPE(ctx, "dependency file of %A is freshly loaded: %A\n",
-	     name, SG_CAR(key));
+      ESCAPE(ctx, "dependency file of %A is freshly loaded: %A\n", name, v);
     } 
   }
   
@@ -1018,6 +1021,11 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
     from = SG_CAAR(key);
     import = SG_CDAR(key);
     ASSERT(!SG_FALSEP(import));
+
+    if (!Sg_IsValidLibraryName(from)) {
+      ESCAPE(ctx, "Invalid importing library name (%A)\n", from);
+    }
+
     /* 
        import can be '() or resolved import spec.
      */
