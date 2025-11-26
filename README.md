@@ -25,7 +25,6 @@ install to default location, run the following commands in the
 directory where all distributed files are expanded (c.f. By default
 it'd be `sagittarius-X.X.X`, `X.X.X` is the version you downloaded):
 
-    % ./dist.sh gen
     % cmake .
     % make
     % make install
