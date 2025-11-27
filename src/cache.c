@@ -259,6 +259,14 @@ static SgObject read_macro_section(SgPort *in, read_ctx *ctx);
 static SgObject read_object(SgPort *in, read_ctx *ctx);
 static SgObject read_object_rec(SgPort *in, read_ctx *ctx);
 
+static SgObject find_library(SgObject name, read_ctx *ctx)
+{
+  if (!Sg_IsValidLibraryName(name)) {
+    ESCAPE(ctx, "Invalid library name (%A)\n", name);
+  }
+  return Sg_FindLibrary(name, FALSE);
+}
+
 static int read_4byte(SgPort *in)
 {
   int a = Sg_GetbUnsafe(in);
@@ -458,7 +466,7 @@ static inline SgObject lookup_library(SgPort *in, read_ctx *ctx)
   length = read_word(in, LIBRARY_LOOKUP_TAG, ctx);
   name = read_string(in, length);
   lib = Sg_MakeSymbol(name, TRUE);
-  lib = Sg_FindLibrary(lib, FALSE);
+  lib = find_library(lib, ctx);
   ASSERT(SG_LIBRARYP(lib));
   return lib;
 }
@@ -524,7 +532,7 @@ static SgObject read_identifier(SgPort *in, read_ctx *ctx)
   lib = read_object_rec(in, ctx);
   if (!lib) ESCAPE(ctx, "Invalid identifier library [%A]\n", name);
   if (!SG_FALSEP(lib)) {
-    lib = Sg_FindLibrary(lib, FALSE);
+    lib = find_library(lib, ctx);
   }
   envs = read_object_rec(in, ctx);
   identity = read_object_rec(in, ctx);
@@ -662,7 +670,7 @@ static SgObject read_macro(SgPort *in, read_ctx *ctx)
   if (!SG_VECTORP(env)) {
     ESCAPE(ctx, "broken cache: %A (macro env)\n", env);
   }
-  SG_VECTOR_ELEMENT(env, 0) = Sg_FindLibrary(SG_VECTOR_ELEMENT(env, 0), FALSE);
+  SG_VECTOR_ELEMENT(env, 0) = find_library(SG_VECTOR_ELEMENT(env, 0), ctx);
 
   /* read closures of this macro */
   while (Sg_PeekbUnsafe(in) != MACRO_END_TAG) {
@@ -763,7 +771,7 @@ static SgObject read_user_defined_object(SgPort *in, read_ctx *ctx)
   library_name = read_library_name(in, ctx);
   name = read_object_rec(in, ctx);
 
-  library = Sg_FindLibrary(library_name, FALSE);
+  library = find_library(library_name, ctx);
   if (SG_FALSEP(library)) {
     ESCAPE(ctx, "library %S for user defined object %S is not found\n",
 	   library_name, name);
@@ -1135,7 +1143,7 @@ static SgObject read_macro_section(SgPort *in, read_ctx *ctx)
   SgObject lib;
   len = read_word(in, MACRO_SECTION_TAG, ctx);
   lib = read_object(in, ctx);
-  lib = Sg_FindLibrary(lib, FALSE);
+  lib = find_library(lib, ctx);
   /* never happen. i guess */
   if (SG_FALSEP(lib)) 
     ESCAPE(ctx, "macro section contains invalid library. (%A)\n", ctx->file);
