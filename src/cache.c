@@ -261,6 +261,7 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx);
 
 static SgObject find_library(SgObject name, read_ctx *ctx)
 {
+  if (SG_LIBRARYP(name)) return name;
   if (!Sg_IsValidLibraryName(name)) {
     ESCAPE(ctx, "Invalid library name (%A)\n", name);
   }
