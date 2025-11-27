@@ -65,7 +65,7 @@
 (define (get-digest who param)
   (cond ((get-dsa-digest (dsa-key-parameter-p param)))
 	(else
-	 (assertion-violation 'who "Can't determine the digest algorithm"))))
+	 (assertion-violation who "Can't determine the digest algorithm"))))
 (define-method make-signer-state ((m (eql *signature:dsa*))
 				  (key <dsa-private-key>)
 				  :key (k-generator default-k-generator)
