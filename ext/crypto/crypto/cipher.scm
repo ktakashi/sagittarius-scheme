@@ -266,13 +266,11 @@
 			    :key (tag-size (cipher-max-tag-size cipher)))
   (let ((encrypted (cipher-encrypt cipher data)))
     (values encrypted (cipher-tag cipher :tag (make-bytevector tag-size)))))
-(define (cipher-decrypt/tag cipher data tag)
+(define (cipher-decrypt/tag cipher data :optional (tag #f))
   (let ((pt (cipher-decrypt cipher data)))
     (values pt (cipher-tag cipher :tag tag))))
 (define (cipher-decrypt/verify cipher encrypted tag)
-  (let-values (((pt target)
-		(cipher-decrypt/tag cipher encrypted
-				    :tag-size (bytevector-length tag))))
+  (let-values (((pt target) (cipher-decrypt/tag cipher encrypted)))
     (unless (bytevector=? tag target)
       (error (slot-ref cipher 'name) 'cipher-decrypt/verify
 	     "invalid tag is given"))

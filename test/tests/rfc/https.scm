@@ -19,6 +19,7 @@
 	(srfi :64 testing)
 	(only (binary io) open-chunked-binary-input/output-port)
 	(crypto)
+	(crypto cipher)
 	(rfc tls)
 	(rfc x509)
 	(clos user))
