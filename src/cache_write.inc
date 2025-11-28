@@ -44,8 +44,7 @@
 
 static int cachable_p(SgObject obj, SgObject seen)
 {
-  if (!obj) return FALSE;	/* obvious case, should never happen */
-
+  if (!obj) return FALSE;      /* obvious case, should never happen */
   /* it's already checked so just return true */
   if (seen) {
     if (!SG_UNBOUNDP(Sg_HashTableRef(seen, obj, SG_UNBOUND))) return TRUE;
@@ -608,8 +607,8 @@ static void write_list_cache(SgPort *out, SgObject o, SgObject cbs,
     }
     first = FALSE;
   }
-  /* v = '(a b e d)
-     o = 'e
+  /* v = '(a b e d e)
+     o = '()
    */
   if (SG_NULLP(o)) {
     long size = Sg_Length(v);

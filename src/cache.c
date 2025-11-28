@@ -600,7 +600,8 @@ static SgObject read_plist(SgPort *in, read_ctx *ctx)
     SgObject o = read_object_rec(in, ctx);
     SG_APPEND1(h, t, o);
   }
-
+  /* sanity check */
+  if (!SG_PAIRP(h)) ESCAPE(ctx, "Invalid plist [%A]\n", ctx->file);
 #ifdef STORE_SOURCE_INFO
   info = read_object_rec(in, ctx);
   SG_PAIR(h)->info = info;
@@ -635,6 +636,8 @@ static SgObject read_dlist(SgPort *in, read_ctx *ctx)
   }
   /* set last element */
   SG_SET_CDR(t, o);
+  /* sanity check */
+  if (!SG_PAIRP(h)) ESCAPE(ctx, "Invalid dlist [%A]\n", ctx->file);
 #ifdef STORE_SOURCE_INFO
   info = read_object_rec(in, ctx);
   if (!SG_NULLP(info) && !SG_PAIRP(info)) {
