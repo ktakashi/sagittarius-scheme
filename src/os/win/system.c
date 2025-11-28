@@ -920,7 +920,7 @@ SgObject Sg_GetThreadTimes(SgVM *vm)
 /* for stack trace */
 #include <dbghelp.h>
 /* we want to track stack trace as well */
-#define MAX_STACK_SIZE 32
+#define MAX_STACK_SIZE 256
 
 typedef BOOL (WINAPI *ProcStackWalk64)(DWORD,
 				       HANDLE,
