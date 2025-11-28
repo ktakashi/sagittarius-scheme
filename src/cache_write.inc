@@ -153,23 +153,6 @@ static void     write_object_cache(SgPort *out, SgObject o, SgObject cbs,
 				   cache_ctx *ctx);
 static SgObject write_macro_scan(SgMacro *m, SgObject cbs, cache_ctx *ctx);
 
-#define ESCAPE(ctx, msg, ...)						\
-  do {									\
-    SgVM *vm = Sg_VM();							\
-    if (SG_VM_LOG_LEVEL(vm, SG_WARN_LEVEL)) {				\
-      Sg_Printf(vm->logPort, UC(";; **CACHE WARNING**\n;; " msg),	\
-		__VA_ARGS__);						\
-    }									\
-    longjmp((ctx)->escape, 1);						\
-  } while (0)
-
-#define CLOSE_TAG_CHECK(ctx, expect, tag)				\
-  do {									\
-    if ((expect) != (tag))						\
-      ESCAPE((ctx), "unexpected closing tag (expected %x, got %x)\n",	\
-	     expect, tag);						\
-  } while (0)
-
 static int write_library(SgPort *out, SgLibrary *lib)
 {
   Sg_PutbUnsafe(out, LIBRARY_TAG);
