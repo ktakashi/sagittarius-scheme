@@ -118,7 +118,7 @@ static SgLibrary* make_library()
 /* return library id and version pair
    cf ((lib name) . (1 2))
  */
-static void check_version_reference(SgObject name, SgObject o)
+static int check_version_reference(SgObject name, SgObject o, int raiseP)
 {
   SG_FOR_EACH(o, o) {
     SgObject v = SG_CAR(o);
@@ -131,15 +131,18 @@ static void check_version_reference(SgObject name, SgObject o)
 	  SG_EQ(v, SG_SYMBOL_NOT))) {
       if (SG_PAIRP(v)) {
 	/* check recursively */
-	check_version_reference(name, v);
+	check_version_reference(name, v, raiseP);
       } else {
-	Sg_Error(UC("malformed library version %S"), name);
+	if (raiseP) Sg_Error(UC("malformed library version %S"), name);
+	else return FALSE;
       }
     }
   }
   if (!SG_NULLP(o)) {
-    Sg_Error(UC("malformed library version %S"), name);
+    if (raiseP) Sg_Error(UC("malformed library version %S"), name);
+    else return FALSE;
   }
+  return TRUE;
 }
 
 static SgObject library_name_to_id_version_rec(SgObject name, int raiseP)
@@ -162,7 +165,9 @@ static SgObject library_name_to_id_version_rec(SgObject name, int raiseP)
 	  }
 	  SG_APPEND1(h, t, o);
 	} else if (SG_LISTP(o) && SG_NULLP(SG_CDR(cp))) {
-	  check_version_reference(name, o);
+	  if (!check_version_reference(name, o, raiseP)) {
+	    return SG_UNDEF;
+	  }
 	  return Sg_Cons(h, o);
 	} else {
 	  if (raiseP) Sg_Error(UC("malformed library name %S"), name);
