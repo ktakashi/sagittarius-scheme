@@ -656,7 +656,7 @@ static void read_cache_link(SgObject obj, SgHashTable *seen, read_ctx *ctx)
   }
 }
 
-#if 1
+#if 0
 # include "cache_read.inc"
 #else
 
