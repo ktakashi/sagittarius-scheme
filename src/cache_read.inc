@@ -345,6 +345,7 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
 	break;
       }
       if (!frame->mac.end) {
+	if (frame->mac.cc != root) handle_link(root, ctx);
 	root = parse_value(in, ctx, &stack);
       } else {
 	SgObject data = SG_NIL;
