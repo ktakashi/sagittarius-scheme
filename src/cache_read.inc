@@ -69,6 +69,11 @@ typedef struct
 
 typedef struct
 {
+  SgObject library_name;
+} user_obj_t;
+
+typedef struct
+{
   int type;
   int state;
   union {
@@ -78,6 +83,7 @@ typedef struct
     SgIdentifier *id;
     macro_t mac;
     code_t code;
+    user_obj_t uo;
   };
 } frame_t;
 
@@ -123,7 +129,7 @@ static SgObject parse_value(SgPort *in, read_ctx *ctx, SgObject *stack)
   case KEYWORD_TAG: return read_keyword(in, ctx);
   case NUMBER_TAG: return read_number(in, ctx);
   case IDENTIFIER_TAG:
-    f = SG_NEW_ATOMIC(frame_t);
+    f = SG_NEW(frame_t);
     f->type = IDENTIFIER_TAG;
     f->state = 0;
     f->id = SG_NEW(SgIdentifier);
@@ -153,7 +159,7 @@ static SgObject parse_value(SgPort *in, read_ctx *ctx, SgObject *stack)
     int n = read_word(in, VECTOR_TAG, ctx);
     int literal = Sg_GetbUnsafe(in);
     if (n > 0) {
-      f = SG_NEW_ATOMIC(frame_t);
+      f = SG_NEW(frame_t);
       f->type = VECTOR_TAG;
       f->vec.n = n;
       f->vec.literal = literal;
@@ -167,7 +173,7 @@ static SgObject parse_value(SgPort *in, read_ctx *ctx, SgObject *stack)
   }
   case PLIST_TAG:
   case DLIST_TAG:
-    f = SG_NEW_ATOMIC(frame_t);
+    f = SG_NEW(frame_t);
     f->type = tag;
     f->list.n = read_word(in, tag, ctx);
     f->list.h = f->list.t = SG_NIL;
@@ -196,7 +202,7 @@ static SgObject parse_value(SgPort *in, read_ctx *ctx, SgObject *stack)
     return SG_UNDEF;
   }
   case CODE_BUILDER_TAG:
-    f = SG_NEW_ATOMIC(frame_t);
+    f = SG_NEW(frame_t);
     f->type = tag;
     f->code.n = read_word(in, tag, ctx);
     f->code.argc = Sg_GetbUnsafe(in);
@@ -206,6 +212,14 @@ static SgObject parse_value(SgPort *in, read_ctx *ctx, SgObject *stack)
     f->code.index = read_4byte(in);
     f->code.code = SG_NEW_ARRAY(SgWord, f->code.n);
     f->state = -2;		/* insn index from 0 */
+    push_stack(f, stack);
+    return SG_UNDEF;
+  case USER_DEFINED_OBJECT_TAG:
+    CLOSE_TAG_CHECK(ctx, USER_DEFINED_OBJECT_TAG, Sg_GetbUnsafe(in));
+    f = SG_NEW(frame_t);
+    f->type = USER_DEFINED_OBJECT_TAG;
+    f->uo.library_name = read_library_name(in, ctx);
+    f->state = 0;
     push_stack(f, stack);
     return SG_UNDEF;
   default:
@@ -339,7 +353,8 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
 	if (SG_FALSEP(frame->mac.transformer)) {
 	  frame->mac.transformer = macro_transform;
 	} else {
-	  link_cb(SG_CODE_BUILDER(SG_CLOSURE(frame->mac.transformer)->code), ctx);
+	  link_cb(SG_CODE_BUILDER(SG_CLOSURE(frame->mac.transformer)->code),
+		  ctx);
 	}
 	if (SG_CODE_BUILDERP(frame->mac.cc)) {
 	  link_cb(SG_CODE_BUILDER(frame->mac.cc), ctx);
@@ -385,6 +400,46 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
       }
       root = parse_value(in, ctx, &stack);
       break;
+    case USER_DEFINED_OBJECT_TAG:
+      if (frame->state++ == 0) {
+	root = parse_value(in, ctx, &stack);
+      } else {
+	/* name read */
+	SgObject library = find_library(frame->uo.library_name, ctx), klass;
+	SgGloc *target;
+	if (SG_FALSEP(library)) {
+	  ESCAPE(ctx, "library %S for user defined object %S is not found\n",
+		 frame->uo.library_name, root);
+	  return SG_FALSE;
+	}
+	target = Sg_FindBinding(library, root, SG_FALSE);
+	if (SG_FALSEP(target)) {
+	  target = Sg_FindBinding(clos_lib, root, SG_FALSE);
+	}
+	if (SG_FALSEP(target)) {
+	  ESCAPE(ctx,
+		 "user defined object %S is appeared but no binding in library %S\n",
+		 root, library);
+	  return SG_FALSE;		/* dummy */
+	}
+	klass = SG_GLOC_GET(target);
+	if (SG_PROCEDUREP(SG_CLASS(klass)->creader)) {
+	  root = Sg_Apply2(SG_CLASS(klass)->creader, in, ctx);
+	} else {
+	  if (SG_CLASS(klass)->cacheReader) {
+	    root = SG_CLASS(klass)->cacheReader(in, (void *)ctx);
+	  } else {
+	    root = SG_FALSE;
+	  }
+	}
+	/* sanity check */
+	if (!SG_XTYPEP(root, klass)) {
+	  ESCAPE(ctx, "read object is not type of expected class (%S, %S)\n",
+		 root, klass);
+	}
+	pop_stack(stack);
+	continue;
+      }
     default: break;
     }
   }

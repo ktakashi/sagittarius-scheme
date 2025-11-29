@@ -272,7 +272,6 @@ enum {
  */
 typedef struct read_ctx_rec read_ctx;
 static SgObject read_library(SgPort *in, read_ctx *ctx);
-static SgObject read_code(SgPort *in, read_ctx *ctx);
 static SgObject read_macro_section(SgPort *in, read_ctx *ctx);
 static SgObject read_object(SgPort *in, read_ctx *ctx);
 static SgObject read_object_rec(SgPort *in, read_ctx *ctx);
@@ -539,6 +538,249 @@ static SgObject read_number(SgPort *in, read_ctx *ctx)
   return SG_UNDEF;
 }
 
+static SgObject read_bvector(SgPort *in, read_ctx *ctx)
+{
+  int length, i, literalp;
+  SgByteVector *bv;
+  length = read_word(in, BYTE_VECTOR_TAG, ctx);
+  literalp = Sg_GetbUnsafe(in);
+  bv = Sg_MakeByteVector(length, 0);
+  for (i = 0; i < length; i++) {
+    int b = Sg_GetbUnsafe(in);
+    SG_BVECTOR_ELEMENT(bv, i) = b;
+  }
+  if (literalp) {
+    bv = Sg_AddConstantLiteral(bv);
+  }
+  return bv;
+}
+
+static SgSharedRef* make_shared_ref(int mark, read_ctx *ctx)
+{
+  SgObject o = Sg_HashTableRef(ctx->seen, SG_MAKE_INT(mark), SG_UNBOUND);
+  if (SG_UNBOUNDP(o)) {
+    SgSharedRef *z = SG_NEW(SgSharedRef);
+    SG_SET_CLASS(z, SG_CLASS_SHARED_REF);
+    z->index = SG_MAKE_INT(mark);
+    return z;
+  }
+  return o;
+}
+
+static SgObject read_lookup(SgPort *in, read_ctx *ctx)
+{
+  int uid;
+  SgObject o;
+  uid = read_word(in, LOOKUP_TAG, ctx);
+  o = Sg_HashTableRef(ctx->sharedObjects, SG_MAKE_INT(uid), SG_UNBOUND);
+#if 0
+  if (!uid) {
+    Sg_Printf(Sg_StandardErrorPort(), UC("lookup:   %S[%p](%d)\n"), o, o, uid);
+  }
+#endif
+  if (SG_UNBOUNDP(o)) {
+    ctx->isLinkNeeded = TRUE;
+    return make_shared_ref(uid, ctx);
+  } else {
+    return o;
+  }
+}
+
+static int read_shared_tag(SgPort *in, read_ctx *ctx)
+{
+  return read_word(in, DEFINING_SHARED_TAG, ctx);
+}
+
+static SgObject clos_lib = SG_UNDEF;
+static SgObject read_library_name(SgPort *in, read_ctx *ctx);
+
+static SgObject get_shared(SgObject index, read_ctx *ctx)
+{
+  SgObject o = Sg_HashTableRef(ctx->sharedObjects, index, SG_UNBOUND);
+  if (SG_UNBOUNDP(o)) {
+    ESCAPE(ctx, "unknown shared object appeared %A\n", index);
+  }
+  return o;
+}
+
+static void read_cache_link(SgObject obj, SgHashTable *seen, read_ctx *ctx)
+{
+  if (SG_TRUEP(Sg_HashTableRef(seen, obj, SG_FALSE))) {
+    return;
+  }
+  Sg_HashTableSet(seen, obj, SG_TRUE, 0);
+  if (SG_PAIRP(obj)) {
+    if (SG_SHAREDREF_P(SG_CAR(obj))) {
+      SgObject index = SG_SHAREDREF(SG_CAR(obj))->index;
+      SG_SET_CAR(obj, get_shared(index, ctx));
+    } else {
+      read_cache_link(SG_CAR(obj), seen, ctx);
+    }
+    if (SG_SHAREDREF_P(SG_CDR(obj))) {
+      SgObject index = SG_SHAREDREF(SG_CDR(obj))->index;
+      SG_SET_CDR(obj, get_shared(index, ctx));
+    } else {
+      read_cache_link(SG_CDR(obj), seen, ctx);
+    }
+    return;
+  }
+  if (SG_VECTORP(obj)) {
+    long len = SG_VECTOR_SIZE(obj), i;
+    for (i = 0; i < len; i++) {
+      if (SG_SHAREDREF_P(SG_VECTOR_ELEMENT(obj, i))) {
+	SgObject index = SG_SHAREDREF(SG_VECTOR_ELEMENT(obj, i))->index;
+	SG_VECTOR_ELEMENT(obj, i) = get_shared(index, ctx);
+      } else {
+	read_cache_link(SG_VECTOR_ELEMENT(obj, i), seen, ctx);
+      }
+    }
+    return;
+  }
+  if (SG_IDENTIFIERP(obj)) {
+    /* this can be shared object completely */
+    SgObject envs = SG_IDENTIFIER_ENVS(obj);
+    SgObject identity = SG_IDENTIFIER_IDENTITY(obj);
+    if (SG_SHAREDREF_P(envs)) {
+      SgObject index = SG_SHAREDREF(envs)->index;
+      SG_IDENTIFIER_ENVS(obj) = get_shared(index, ctx);
+      envs = SG_IDENTIFIER_ENVS(obj);
+    }
+    if (SG_SHAREDREF_P(identity)) {
+      SgObject index = SG_SHAREDREF(envs)->index;
+      SG_IDENTIFIER_IDENTITY(obj) = get_shared(index, ctx);
+      identity = SG_IDENTIFIER_IDENTITY(obj);
+    }
+    read_cache_link(envs, seen, ctx);
+    read_cache_link(identity, seen, ctx);
+    return;
+  }
+}
+
+#if 1
+# include "cache_read.inc"
+#else
+
+static SgObject read_code(SgPort *in, read_ctx *ctx)
+{
+  int len, tag, argc, optional, maxStack, freec, index, i, prev = -1;
+  SgWord *code;
+  SgObject cb, name, src;
+  len = read_word(in, CODE_BUILDER_TAG, ctx);
+  argc = Sg_GetbUnsafe(in);
+  optional = Sg_GetbUnsafe(in);
+  maxStack = Sg_GetbUnsafe(in);
+  freec = read_4byte(in);
+  index = read_4byte(in);
+  name = read_object(in, ctx);
+  code = SG_NEW_ARRAY(SgWord, len);
+  debug_print("read code builder length: %d, pos: %d\n", len,
+	      Sg_PortPosition(in));
+  /* now we need to construct code builder */
+  /*
+  i = 0;
+  while ((tag = Sg_PeekbUnsafe(in)) != CODE_BUILDER_END_TAG) {
+    code[i++] = SG_WORD(read_object(in, ctx));
+  }
+  */
+  for (i = 0; i < len; i++) {
+    SgObject o = read_object(in, ctx);
+    if (!ctx->insnP && SG_IDENTIFIERP(o)) {
+      /* resolve shared object here for identifier*/
+      ctx->links = Sg_Cons(o, ctx->links);
+    }
+    /* ugly... */
+    if (!ctx->insnP && SG_CODE_BUILDERP(o) && prev != -1 && prev != CLOSURE) {
+      o = Sg_MakeClosure(o, NULL);
+    }
+    code[i] = SG_WORD(o);
+    prev = (ctx->insnP) ? INSN(SG_WORD(o)) : -1;
+  }
+  src = read_object(in, ctx);
+  tag = Sg_GetbUnsafe(in);
+  CLOSE_TAG_CHECK(ctx, CODE_BUILDER_END_TAG, tag);
+  cb = Sg_MakeCodeBuilderFromCache(name, code, len, argc, optional, 
+				   freec, maxStack);
+  SG_CODE_BUILDER(cb)->src = src;
+  /* store seen */
+  Sg_HashTableSet(ctx->seen, SG_MAKE_INT(index), cb, 0);
+  return cb;
+}
+
+static SgObject read_closure(SgPort *in, read_ctx *ctx)
+{
+  int tag = Sg_GetbUnsafe(in), uid = -1;
+  SgObject cb, o;
+  CLOSE_TAG_CHECK(ctx, CLOSURE_TAG, tag);
+  tag = Sg_PeekbUnsafe(in);
+  switch (tag) {
+  case LOOKUP_TAG:
+    return read_lookup(in, ctx);
+  case DEFINING_SHARED_TAG: 
+    uid = read_shared_tag(in, ctx);
+    break;
+  }
+
+  cb = read_code(in, ctx);
+  /* FIXME: this isn't right to check # of free variable here. */
+  if (SG_CODE_BUILDER(cb)->freec == 0) {
+    o = Sg_MakeClosure(cb, NULL);
+  } else {
+    o = cb;
+  }
+  if (uid >= 0) {
+    Sg_HashTableSet(ctx->sharedObjects, SG_MAKE_INT(uid), o, 0);
+  }
+  /* Sg_HashTableSet(ctx->seen, SG_MAKE_INT(num), cb, 0); */
+  return o;
+}
+
+static SgObject read_user_defined_object(SgPort *in, read_ctx *ctx)
+{
+  int tag = Sg_GetbUnsafe(in);
+  SgObject name, library, klass, library_name;
+  SgGloc *target;
+  CLOSE_TAG_CHECK(ctx, USER_DEFINED_OBJECT_TAG, tag);
+  library_name = read_library_name(in, ctx);
+  name = read_object_rec(in, ctx);
+
+  library = find_library(library_name, ctx);
+  if (SG_FALSEP(library)) {
+    ESCAPE(ctx, "library %S for user defined object %S is not found\n",
+	   library_name, name);
+    return SG_FALSE;		/* dummy */
+  }
+
+  target = Sg_FindBinding(library, name, SG_FALSE);
+  if (SG_FALSEP(target)) {
+    /* might be builtin CLOS  */
+    target = Sg_FindBinding(clos_lib, name, SG_FALSE);
+  }
+  if (SG_FALSEP(target)) {
+    ESCAPE(ctx,
+	   "user defined object %S is appeared but no binding in library %S\n",
+	   name, library);
+    return SG_FALSE;		/* dummy */
+  } else {
+    SgObject obj;
+    klass = SG_GLOC_GET(target);
+    if (SG_PROCEDUREP(SG_CLASS(klass)->creader)) {
+      obj = Sg_Apply2(SG_CLASS(klass)->creader, in, ctx);
+    } else {
+      if (SG_CLASS(klass)->cacheReader) {
+	obj = SG_CLASS(klass)->cacheReader(in, (void *)ctx);
+      } else {
+	obj = SG_FALSE;
+      }
+    }
+    /* sanity check */
+    if (!SG_XTYPEP(obj, klass)) {
+      ESCAPE(ctx, "read object is not type of expected class (%S, %S)\n",
+	     obj, klass);
+    }
+    return obj;
+  }
+}
+
 static SgObject read_identifier(SgPort *in, read_ctx *ctx)
 {
   int pending;
@@ -565,74 +807,6 @@ static SgObject read_identifier(SgPort *in, read_ctx *ctx)
   id->identity = identity;
   id->pending = pending;
   return id;
-}
-
-static SgObject read_bvector(SgPort *in, read_ctx *ctx)
-{
-  int length, i, literalp;
-  SgByteVector *bv;
-  length = read_word(in, BYTE_VECTOR_TAG, ctx);
-  literalp = Sg_GetbUnsafe(in);
-  bv = Sg_MakeByteVector(length, 0);
-  for (i = 0; i < length; i++) {
-    int b = Sg_GetbUnsafe(in);
-    SG_BVECTOR_ELEMENT(bv, i) = b;
-  }
-  if (literalp) {
-    bv = Sg_AddConstantLiteral(bv);
-  }
-  return bv;
-}
-
-static SgObject read_vector(SgPort *in, read_ctx *ctx)
-{
-  int length, i, literalp;
-  SgVector *vec;
-
-  length = read_word(in, VECTOR_TAG, ctx);
-  literalp = Sg_GetbUnsafe(in);
-  vec = Sg_MakeVector(length, SG_UNDEF);
-  for (i = 0; i < length; i++) {
-    SgObject o = read_object_rec(in, ctx);
-    SG_VECTOR_ELEMENT(vec, i) = o;
-  }
-  if (literalp) {
-    vec = Sg_AddConstantLiteral(vec);
-  }
-  return vec;
-}
-
-/* PLIST_TAG length *e1* *e2* ... */
-static SgObject read_plist(SgPort *in, read_ctx *ctx)
-{
-  int length, i;
-  SgObject h = SG_NIL, t = SG_NIL;
-#ifdef STORE_SOURCE_INFO
-  SgObject info;
-#else
-  int literalp;
-#endif
-
-  length = read_word(in, PLIST_TAG, ctx);
-  for (i = 0; i < length; i++) {
-    SgObject o = read_object_rec(in, ctx);
-    SG_APPEND1(h, t, o);
-  }
-  /* sanity check */
-  if (!SG_PAIRP(h)) ESCAPE(ctx, "Invalid plist [%A]\n", ctx->file);
-#ifdef STORE_SOURCE_INFO
-  info = read_object_rec(in, ctx);
-  SG_PAIR(h)->info = info;
-  if (Sg_ConstantLiteralP(h)) {
-    h = Sg_AddConstantLiteral(h);
-  }
-#else
-  literalp = Sg_GetbUnsafe(in);
-  if (literalp) {
-    h = Sg_AddConstantLiteral(h);
-  }
-#endif
-  return h;
 }
 
 /* DLIST_TAG length *en* *e1* *e2* ... *en-1* */
@@ -716,187 +890,57 @@ static SgObject read_macro(SgPort *in, read_ctx *ctx)
   return Sg_MakeMacro(name, transformer, data, env, NULL);
 }
 
-
-static SgSharedRef* make_shared_ref(int mark, read_ctx *ctx)
+static SgObject read_vector(SgPort *in, read_ctx *ctx)
 {
-  SgObject o = Sg_HashTableRef(ctx->seen, SG_MAKE_INT(mark), SG_UNBOUND);
-  if (SG_UNBOUNDP(o)) {
-    SgSharedRef *z = SG_NEW(SgSharedRef);
-    SG_SET_CLASS(z, SG_CLASS_SHARED_REF);
-    z->index = SG_MAKE_INT(mark);
-    return z;
+  int length, i, literalp;
+  SgVector *vec;
+
+  length = read_word(in, VECTOR_TAG, ctx);
+  literalp = Sg_GetbUnsafe(in);
+  vec = Sg_MakeVector(length, SG_UNDEF);
+  for (i = 0; i < length; i++) {
+    SgObject o = read_object_rec(in, ctx);
+    SG_VECTOR_ELEMENT(vec, i) = o;
   }
-  return o;
+  if (literalp) {
+    vec = Sg_AddConstantLiteral(vec);
+  }
+  return vec;
 }
 
-static SgObject read_lookup(SgPort *in, read_ctx *ctx)
+/* PLIST_TAG length *e1* *e2* ... */
+static SgObject read_plist(SgPort *in, read_ctx *ctx)
 {
-  int uid;
-  SgObject o;
-  uid = read_word(in, LOOKUP_TAG, ctx);
-  o = Sg_HashTableRef(ctx->sharedObjects, SG_MAKE_INT(uid), SG_UNBOUND);
-#if 0
-  if (!uid) {
-    Sg_Printf(Sg_StandardErrorPort(), UC("lookup:   %S[%p](%d)\n"), o, o, uid);
+  int length, i;
+  SgObject h = SG_NIL, t = SG_NIL;
+#ifdef STORE_SOURCE_INFO
+  SgObject info;
+#else
+  int literalp;
+#endif
+
+  length = read_word(in, PLIST_TAG, ctx);
+  for (i = 0; i < length; i++) {
+    SgObject o = read_object_rec(in, ctx);
+    SG_APPEND1(h, t, o);
+  }
+  /* sanity check */
+  if (!SG_PAIRP(h)) ESCAPE(ctx, "Invalid plist [%A]\n", ctx->file);
+#ifdef STORE_SOURCE_INFO
+  info = read_object_rec(in, ctx);
+  SG_PAIR(h)->info = info;
+  if (Sg_ConstantLiteralP(h)) {
+    h = Sg_AddConstantLiteral(h);
+  }
+#else
+  literalp = Sg_GetbUnsafe(in);
+  if (literalp) {
+    h = Sg_AddConstantLiteral(h);
   }
 #endif
-  if (SG_UNBOUNDP(o)) {
-    ctx->isLinkNeeded = TRUE;
-    return make_shared_ref(uid, ctx);
-  } else {
-    return o;
-  }
+  return h;
 }
 
-static int read_shared_tag(SgPort *in, read_ctx *ctx)
-{
-  return read_word(in, DEFINING_SHARED_TAG, ctx);
-}
-
-static SgObject read_closure(SgPort *in, read_ctx *ctx)
-{
-  int tag = Sg_GetbUnsafe(in), uid = -1;
-  SgObject cb, o;
-  CLOSE_TAG_CHECK(ctx, CLOSURE_TAG, tag);
-  tag = Sg_PeekbUnsafe(in);
-  switch (tag) {
-  case LOOKUP_TAG:
-    return read_lookup(in, ctx);
-  case DEFINING_SHARED_TAG: 
-    uid = read_shared_tag(in, ctx);
-    break;
-  }
-
-  cb = read_code(in, ctx);
-  /* FIXME: this isn't right to check # of free variable here. */
-  if (SG_CODE_BUILDER(cb)->freec == 0) {
-    o = Sg_MakeClosure(cb, NULL);
-  } else {
-    o = cb;
-  }
-  if (uid >= 0) {
-    Sg_HashTableSet(ctx->sharedObjects, SG_MAKE_INT(uid), o, 0);
-  }
-  /* Sg_HashTableSet(ctx->seen, SG_MAKE_INT(num), cb, 0); */
-  return o;
-}
-
-static SgObject clos_lib = SG_UNDEF;
-static SgObject read_library_name(SgPort *in, read_ctx *ctx);
-
-static SgObject read_user_defined_object(SgPort *in, read_ctx *ctx)
-{
-  int tag = Sg_GetbUnsafe(in);
-  SgObject name, library, klass, library_name;
-  SgGloc *target;
-  CLOSE_TAG_CHECK(ctx, USER_DEFINED_OBJECT_TAG, tag);
-  library_name = read_library_name(in, ctx);
-  name = read_object_rec(in, ctx);
-
-  library = find_library(library_name, ctx);
-  if (SG_FALSEP(library)) {
-    ESCAPE(ctx, "library %S for user defined object %S is not found\n",
-	   library_name, name);
-    return SG_FALSE;		/* dummy */
-  }
-
-  target = Sg_FindBinding(library, name, SG_FALSE);
-  if (SG_FALSEP(target)) {
-    /* might be builtin CLOS  */
-    target = Sg_FindBinding(clos_lib, name, SG_FALSE);
-  }
-  if (SG_FALSEP(target)) {
-    ESCAPE(ctx,
-	   "user defined object %S is appeared but no binding in library %S\n",
-	   name, library);
-    return SG_FALSE;		/* dummy */
-  } else {
-    SgObject obj;
-    klass = SG_GLOC_GET(target);
-    if (SG_PROCEDUREP(SG_CLASS(klass)->creader)) {
-      obj = Sg_Apply2(SG_CLASS(klass)->creader, in, ctx);
-    } else {
-      if (SG_CLASS(klass)->cacheReader) {
-	obj = SG_CLASS(klass)->cacheReader(in, (void *)ctx);
-      } else {
-	obj = SG_FALSE;
-      }
-    }
-    /* sanity check */
-    if (!SG_XTYPEP(obj, klass)) {
-      ESCAPE(ctx, "read object is not type of expected class (%S, %S)\n",
-	     obj, klass);
-    }
-    return obj;
-  }
-}
-
-static SgObject get_shared(SgObject index, read_ctx *ctx)
-{
-  SgObject o = Sg_HashTableRef(ctx->sharedObjects, index, SG_UNBOUND);
-  if (SG_UNBOUNDP(o)) {
-    ESCAPE(ctx, "unknown shared object appeared %A\n", index);
-  }
-  return o;
-}
-
-static void read_cache_link(SgObject obj, SgHashTable *seen, read_ctx *ctx)
-{
-  if (SG_TRUEP(Sg_HashTableRef(seen, obj, SG_FALSE))) {
-    return;
-  }
-  Sg_HashTableSet(seen, obj, SG_TRUE, 0);
-  if (SG_PAIRP(obj)) {
-    if (SG_SHAREDREF_P(SG_CAR(obj))) {
-      SgObject index = SG_SHAREDREF(SG_CAR(obj))->index;
-      SG_SET_CAR(obj, get_shared(index, ctx));
-    } else {
-      read_cache_link(SG_CAR(obj), seen, ctx);
-    }
-    if (SG_SHAREDREF_P(SG_CDR(obj))) {
-      SgObject index = SG_SHAREDREF(SG_CDR(obj))->index;
-      SG_SET_CDR(obj, get_shared(index, ctx));
-    } else {
-      read_cache_link(SG_CDR(obj), seen, ctx);
-    }
-    return;
-  }
-  if (SG_VECTORP(obj)) {
-    long len = SG_VECTOR_SIZE(obj), i;
-    for (i = 0; i < len; i++) {
-      if (SG_SHAREDREF_P(SG_VECTOR_ELEMENT(obj, i))) {
-	SgObject index = SG_SHAREDREF(SG_VECTOR_ELEMENT(obj, i))->index;
-	SG_VECTOR_ELEMENT(obj, i) = get_shared(index, ctx);
-      } else {
-	read_cache_link(SG_VECTOR_ELEMENT(obj, i), seen, ctx);
-      }
-    }
-    return;
-  }
-  if (SG_IDENTIFIERP(obj)) {
-    /* this can be shared object completely */
-    SgObject envs = SG_IDENTIFIER_ENVS(obj);
-    SgObject identity = SG_IDENTIFIER_IDENTITY(obj);
-    if (SG_SHAREDREF_P(envs)) {
-      SgObject index = SG_SHAREDREF(envs)->index;
-      SG_IDENTIFIER_ENVS(obj) = get_shared(index, ctx);
-      envs = SG_IDENTIFIER_ENVS(obj);
-    }
-    if (SG_SHAREDREF_P(identity)) {
-      SgObject index = SG_SHAREDREF(envs)->index;
-      SG_IDENTIFIER_IDENTITY(obj) = get_shared(index, ctx);
-      identity = SG_IDENTIFIER_IDENTITY(obj);
-    }
-    read_cache_link(envs, seen, ctx);
-    read_cache_link(identity, seen, ctx);
-    return;
-  }
-}
-
-
-#if 0
-# include "cache_read.inc"
-#else
 static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
 {
   int tag = Sg_PeekbUnsafe(in);
@@ -1118,52 +1162,6 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
   return lib;
 }
 
-static SgObject read_code(SgPort *in, read_ctx *ctx)
-{
-  int len, tag, argc, optional, maxStack, freec, index, i, prev = -1;
-  SgWord *code;
-  SgObject cb, name, src;
-  len = read_word(in, CODE_BUILDER_TAG, ctx);
-  argc = Sg_GetbUnsafe(in);
-  optional = Sg_GetbUnsafe(in);
-  maxStack = Sg_GetbUnsafe(in);
-  freec = read_4byte(in);
-  index = read_4byte(in);
-  name = read_object(in, ctx);
-  code = SG_NEW_ARRAY(SgWord, len);
-  debug_print("read code builder length: %d, pos: %d\n", len,
-	      Sg_PortPosition(in));
-  /* now we need to construct code builder */
-  /*
-  i = 0;
-  while ((tag = Sg_PeekbUnsafe(in)) != CODE_BUILDER_END_TAG) {
-    code[i++] = SG_WORD(read_object(in, ctx));
-  }
-  */
-  for (i = 0; i < len; i++) {
-    SgObject o = read_object(in, ctx);
-    if (!ctx->insnP && SG_IDENTIFIERP(o)) {
-      /* resolve shared object here for identifier*/
-      ctx->links = Sg_Cons(o, ctx->links);
-    }
-    /* ugly... */
-    if (!ctx->insnP && SG_CODE_BUILDERP(o) && prev != -1 && prev != CLOSURE) {
-      o = Sg_MakeClosure(o, NULL);
-    }
-    code[i] = SG_WORD(o);
-    prev = (ctx->insnP) ? INSN(SG_WORD(o)) : -1;
-  }
-  src = read_object(in, ctx);
-  tag = Sg_GetbUnsafe(in);
-  CLOSE_TAG_CHECK(ctx, CODE_BUILDER_END_TAG, tag);
-  cb = Sg_MakeCodeBuilderFromCache(name, code, len, argc, optional, 
-				   freec, maxStack);
-  SG_CODE_BUILDER(cb)->src = src;
-  /* store seen */
-  Sg_HashTableSet(ctx->seen, SG_MAKE_INT(index), cb, 0);
-  return cb;
-}
-
 static SgObject read_macro_section(SgPort *in, read_ctx *ctx)
 {
   int len, tag, i;
@@ -1176,8 +1174,11 @@ static SgObject read_macro_section(SgPort *in, read_ctx *ctx)
     ESCAPE(ctx, "macro section contains invalid library. (%A)\n", ctx->file);
   
   for (i = 0; i < len; i++) {
-    SgObject macro = read_macro(in, ctx);
-    ASSERT(SG_MACROP(macro));
+    SgObject macro = read_object_rec(in, ctx);
+    if(!SG_MACROP(macro)) {
+      ESCAPE(ctx, "macro section contains non macro: %S. (%A)\n",
+	     macro, ctx->file);
+    }
     Sg_InsertBinding(SG_LIBRARY(lib), SG_MACRO(macro)->name, macro);
   }
   tag = Sg_GetbUnsafe(in);
