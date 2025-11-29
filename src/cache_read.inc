@@ -339,13 +339,12 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
 	/* env read */
       case 3: frame->mac.env = root; break;
 	/* cc read */
-      case 4: frame->mac.cc = root; break;
+      case 4: frame->mac.cc = handle_link(root); break;
       default:
 	if (!frame->mac.end) handle_link(root, ctx);
 	break;
       }
       if (!frame->mac.end) {
-	if (frame->mac.cc != root) handle_link(root, ctx);
 	root = parse_value(in, ctx, &stack);
       } else {
 	SgObject data = SG_NIL;
@@ -374,9 +373,6 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
 	frame->state++;		/* start reading insn */
       } else if (frame->state < frame->code.n) {
 	root = handle_link(root, ctx);
-	if (!ctx->insnP && SG_IDENTIFIERP(root)) {
-	  ctx->links = Sg_Cons(root, ctx->links);
-	}
 	if (!ctx->insnP && SG_CODE_BUILDERP(root)
 	    && frame->code.prev != -1 && frame->code.prev != CLOSURE) {
 	  root = Sg_MakeClosure(root, NULL);

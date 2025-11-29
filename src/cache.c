@@ -656,7 +656,7 @@ static void read_cache_link(SgObject obj, SgHashTable *seen, read_ctx *ctx)
   }
 }
 
-#if 1
+#if 0
 # include "cache_read.inc"
 #else
 
@@ -1044,7 +1044,7 @@ static SgObject read_library_name(SgPort *in, read_ctx *ctx)
 static SgObject read_library(SgPort *in, read_ctx *ctx)
 {
   int length, tag, i;
-  SgObject name, from, import, expot, keys, key;
+  SgObject name, from, import, export, keys, key;
   SgLibrary *lib;
   SgObject later = SG_NIL, names;
   /* SgObject vtime = Sg_FileModifyTime(ctx->file); */
@@ -1083,13 +1083,13 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
   }
   /* read export */
   read_word(in, EXPORT_TAG, ctx); /* we don't need EXPORT_TAG's length */
-  expot = read_object(in, ctx);
+  export = read_object(in, ctx);
 
   tag = Sg_GetbUnsafe(in);
   CLOSE_TAG_CHECK(ctx, BOUNDARY_TAG, tag);
 
   lib = Sg_MakeLibrary(name);
-  lib->exported = expot;
+  lib->exported = export;
 
   keys = later;
 
