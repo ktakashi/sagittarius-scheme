@@ -251,9 +251,10 @@ enum {
 
 #define CLOSE_TAG_CHECK(ctx, expect, tag)				\
   do {									\
-    if ((expect) != (tag))						\
+    int t = (tag);							\
+    if ((expect) != t)							\
       ESCAPE((ctx), "unexpected closing tag (expected %x, got %x)\n",	\
-	     expect, tag);						\
+	     expect, t);						\
   } while (0)
 
 #include "cache_write.inc"
@@ -413,7 +414,7 @@ static SgObject read_toplevel(SgPort *in, int boundary, read_ctx *ctx)
       return read_library(in, ctx);
     case CODE_BUILDER_TAG: {
       /* the very first one is toplevel */
-      SgObject cb = read_code(in, ctx);
+      SgObject cb = read_object_rec(in, ctx);
       /* here we need to read the rest closures */
       while ((b = Sg_PeekbUnsafe(in)) != boundary) {
 	/* SgObject r; */
@@ -892,6 +893,10 @@ static void read_cache_link(SgObject obj, SgHashTable *seen, read_ctx *ctx)
   }
 }
 
+
+#if 0
+# include "cache_read.inc"
+#else
 static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
 {
   int tag = Sg_PeekbUnsafe(in);
@@ -954,6 +959,7 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
     return SG_FALSE;
   }
 }
+#endif
 
 static SgObject read_object(SgPort *in, read_ctx *ctx)
 {
