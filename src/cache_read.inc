@@ -94,7 +94,8 @@ typedef struct
 
 static SgObject handle_link(SgObject obj, read_ctx *ctx)
 {
-  if (ctx->isLinkNeeded) {
+  if (ctx->isLinkNeeded && !ctx->insnP
+      && (SG_PAIRP(obj) || SG_VECTORP(obj) || SG_IDENTIFIERP(obj))) {
     ctx->links = Sg_Cons(obj, ctx->links);
   }
   return obj;
@@ -143,7 +144,6 @@ static SgObject parse_value(SgPort *in, read_ctx *ctx, SgObject *stack)
   case CLOSURE_TAG: {
     int uid = -1;
     Sg_GetbUnsafe(in);		/* discard tag */
-    CLOSE_TAG_CHECK(ctx, CLOSURE_TAG, tag);
     switch (Sg_PeekbUnsafe(in)) {
     case LOOKUP_TAG: return read_lookup(in, ctx);
     case DEFINING_SHARED_TAG: uid = read_shared_tag(in, ctx); break;
@@ -183,8 +183,8 @@ static SgObject parse_value(SgPort *in, read_ctx *ctx, SgObject *stack)
     return f->list.h;
   case MACRO_TAG:
     f = SG_NEW_ATOMIC(frame_t);
-    f->type = tag;
-    read_word(in, tag, ctx);
+    f->type = MACRO_TAG;
+    read_word(in, MACRO_TAG, ctx);
     f->mac.end = FALSE;
     f->state = 0;
     push_stack(f, stack);
@@ -215,7 +215,7 @@ static SgObject parse_value(SgPort *in, read_ctx *ctx, SgObject *stack)
     push_stack(f, stack);
     return SG_UNDEF;
   case USER_DEFINED_OBJECT_TAG:
-    CLOSE_TAG_CHECK(ctx, USER_DEFINED_OBJECT_TAG, Sg_GetbUnsafe(in));
+    Sg_GetbUnsafe(in);
     f = SG_NEW(frame_t);
     f->type = USER_DEFINED_OBJECT_TAG;
     f->uo.library_name = read_library_name(in, ctx);
@@ -253,7 +253,13 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
 	 /* name is read */
       case 1: frame->id->name = root; break;
 	/* library is read */
-      case 2: frame->id->library = find_library(root, ctx); break;
+      case 2:
+	if (!SG_FALSEP(root)) {
+	  frame->id->library = find_library(root, ctx);
+	} else {
+	  frame->id->library = root;
+	}
+	break;
 	/* envs are read */
       case 3: frame->id->envs = root; break;
 	/* identity is read */
@@ -318,10 +324,10 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
 	  SG_SET_CDR(frame->list.t, frame->list.o);
 	}
 	SG_PAIR(frame->list.h)->info = root;
-	if (Sg_ConstantLiteralP(frame->list.h)) {
-	  frame->list.h = Sg_AddConstantLiteral(frame->list.h);
-	}
 	root = frame->list.h;
+	if (Sg_ConstantLiteralP(root)) {
+	  root = Sg_AddConstantLiteral(root);
+	}
 	pop_stack(stack);
 	continue;
       }
@@ -335,19 +341,22 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
 	/* name is read */
       case 1: frame->mac.name = root; break;
 	/* transformer is read */
-      case 2: frame->mac.transformer = handle_link(root, ctx); break;
+      case 2: frame->mac.transformer = root; break;
 	/* env read */
       case 3: frame->mac.env = root; break;
 	/* cc read */
-      case 4: frame->mac.cc = handle_link(root, ctx); break;
+      case 4: frame->mac.cc = root; break;
       default:
-	if (!frame->mac.end) handle_link(root, ctx);
+	if (!frame->mac.end) root = handle_link(root, ctx);
 	break;
       }
       if (!frame->mac.end) {
 	root = parse_value(in, ctx, &stack);
       } else {
 	SgObject data = SG_NIL;
+	if (!SG_VECTORP(frame->mac.env)) {
+	  ESCAPE(ctx, "broken cache: %A (macro env)\n", frame->mac.env);
+	}
 	SG_VECTOR_ELEMENT(frame->mac.env, 0) =
 	  find_library(SG_VECTOR_ELEMENT(frame->mac.env, 0), ctx);
 	if (SG_FALSEP(frame->mac.transformer)) {
@@ -381,8 +390,8 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
 	frame->code.prev = (ctx->insnP) ? INSN(SG_WORD(root)) : -1;
       } else {
 	/* root = source */
-	int tag = Sg_GetbUnsafe(in);
-	CLOSE_TAG_CHECK(ctx, CODE_BUILDER_END_TAG, tag);
+	SgObject src = root;
+	CLOSE_TAG_CHECK(ctx, CODE_BUILDER_END_TAG, Sg_GetbUnsafe(in));
 	root = Sg_MakeCodeBuilderFromCache(frame->code.name,
 					   frame->code.code,
 					   frame->code.n,
@@ -390,7 +399,7 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
 					   frame->code.opt,
 					   frame->code.freec,
 					   frame->code.stack);
-	SG_CODE_BUILDER(root)->src = handle_link(root, ctx);
+	SG_CODE_BUILDER(root)->src = handle_link(src, ctx);
 	Sg_HashTableSet(ctx->seen, SG_MAKE_INT(frame->code.index), root, 0);
 	pop_stack(stack);
 	continue;
