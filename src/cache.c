@@ -239,7 +239,7 @@ enum {
  */
 #define CACHE_THRESHOLD 0x10000
 
-#define ESCAPE(ctx, msg, ...)						\
+#define ESCAPE_NRC(ctx, msg, ...)						\
   do {									\
     SgVM *vm = Sg_VM();							\
     if (SG_VM_LOG_LEVEL(vm, SG_WARN_LEVEL)) {				\
@@ -248,6 +248,18 @@ enum {
     }									\
     longjmp((ctx)->escape, 1);						\
   } while (0)
+
+#define ESCAPE(ctx, msg, ...)						\
+  do {									\
+    SgVM *vm = Sg_VM();							\
+    if (SG_VM_LOG_LEVEL(vm, SG_WARN_LEVEL)) {				\
+      Sg_Printf(vm->logPort, UC(";; **CACHE WARNING**\n;; " msg),	\
+		__VA_ARGS__);						\
+    }									\
+    ctx->file = SG_FALSE;						\
+    longjmp((ctx)->escape, 1);						\
+  } while (0)
+
 
 #define CLOSE_TAG_CHECK(ctx, expect, tag)				\
   do {									\
@@ -353,8 +365,9 @@ static SgObject link_cb_rec(SgObject cb, SgHashTable *seen, read_ctx *ctx)
   int len, i, j;
 
   if (!SG_CODE_BUILDERP(cb)) {
-    ESCAPE(ctx, "Failed to link %A. Given object is not a code builder: %A\n",
-	   ctx->file, cb);
+    ESCAPE_NRC(ctx,
+	       "Failed to link %A. Given object is not a code builder: %A\n",
+	       ctx->file, cb);
   }
   code = SG_CODE_BUILDER(cb)->code;
   len = SG_CODE_BUILDER(cb)->size;
@@ -370,7 +383,7 @@ static SgObject link_cb_rec(SgObject cb, SgHashTable *seen, read_ctx *ctx)
 	  if (SG_FALSEP(new_cb)) continue;
 	  
 	  if (!SG_CODE_BUILDERP(new_cb)) {
-	    ESCAPE(ctx, "linking code builder failed. %A\n", new_cb);
+	    ESCAPE_NRC(ctx, "linking code builder failed. %A\n", new_cb);
 	  }
 	  code[i+j+1] = SG_WORD(new_cb);
 	  link_cb_rec(new_cb, seen, ctx);
@@ -399,7 +412,7 @@ static SgObject read_toplevel(SgPort *in, int boundary, read_ctx *ctx)
 #ifdef _MSC_VER
   /* I have no idea why this happens on Windows, I'm suspecting GC's bug */
   if (!SG_FILE_PORT(in)->file) {
-    ESCAPE(ctx, "invalid binary port %S appeared.", in);
+    ESCAPE_NRC(ctx, "invalid binary port %S appeared.", in);
   }
 #endif
   while ((b = Sg_PeekbUnsafe(in)) != EOF) {
@@ -656,7 +669,7 @@ static void read_cache_link(SgObject obj, SgHashTable *seen, read_ctx *ctx)
   }
 }
 
-#if 0
+#if 1
 # include "cache_read.inc"
 #else
 
@@ -1067,7 +1080,6 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
     Sg_SearchLibrary(v, &loadedp);
     if (loadedp) {
       /* re-load it */
-      ctx->file = SG_FALSE;
       ESCAPE(ctx, "dependency file of %A is freshly loaded: %A\n", name, v);
     } 
   }
@@ -1112,7 +1124,6 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
     if (!SG_LIBRARYP(tmp)) Sg_Error(UC("Library %A not found"), from);
     if (loadedp) {
       /* re-load it */
-      ctx->file = SG_FALSE;
       ESCAPE(ctx, "dependency file of %A is freshly loaded: %A\n", name, from);
       /* longjmp(ctx->escape, 1); */
     }
@@ -1148,7 +1159,6 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
 	SgObject cvtime = Sg_FileModifyTime(cache_file);
 	if (!Sg_FileExistP(cache_file) || Sg_NumCmp(vtime, cvtime) < 0) {
 	  /* ok looks we need to recache it */
-	  ctx->file = SG_FALSE;
 	  ESCAPE(ctx, "dependency file of %A seems freshly loaded: %A\n",
 		 name, from);
 	  /* longjmp(ctx->escape, 1); */

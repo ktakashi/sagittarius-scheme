@@ -315,10 +315,10 @@ static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
   SgObject value;
  loop:
   if (!cachable_p(obj, NULL)) {
-    ESCAPE(ctx, "non cacheable object in '%A' on %s phase: %S\n",
-	   ctx->name,
-	   ctx->macroPhaseP? UC("macro"): UC("runtime"),
-	   obj);
+    ESCAPE_NRC(ctx, "non cacheable object in '%A' on %s phase: %S\n",
+	       ctx->name,
+	       ctx->macroPhaseP? UC("macro"): UC("runtime"),
+	       obj);
   }
   if (!interesting_p(obj)) return cbs;
 
@@ -683,7 +683,7 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
   else if (SG_UNDEFP(sharedState)) {
     /* something is wrong */
     /* Sg_PrintfShared(Sg_StandardErrorPort(), UC(";; -> %S\n"), o); */
-    ESCAPE(ctx, "not collected cyclic object %#20S (%S)\n", o, Sg_ClassOf(o));
+    ESCAPE_NRC(ctx, "not collected cyclic object %#20S (%S)\n", o, Sg_ClassOf(o));
   } else if (SG_FALSEP(sharedState)){
     /* mark for safety */
     if (!(!SG_PTRP(o) || SG_SYMBOLP(o) || SG_STRINGP(o) ||
@@ -695,7 +695,7 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
 
   /* how could this happen? */
   if (!o) {
-    ESCAPE(ctx, "%S object\n", o);
+    ESCAPE_NRC(ctx, "%S object\n", o);
   } else if (!SG_PTRP(o)) {
     emit_immediate(out, o);
   } else if (SG_STRINGP(o)) {
@@ -758,7 +758,7 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
   } else if (SG_CLOSUREP(o)) {
     /* we can't cache closure with free variables */
     if (SG_CODE_BUILDER(SG_CLOSURE(o)->code)->freec != 0) {
-      ESCAPE(ctx, "closure %S contains free variables.\n", o);
+      ESCAPE_NRC(ctx, "closure %S contains free variables.\n", o);
     }
     Sg_PutbUnsafe(out, CLOSURE_TAG);
     write_cache_pass2(out, SG_CLOSURE(o)->code, cbs, ctx);
@@ -793,7 +793,7 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
       /* now cache write can write */
       klass->cacheWriter(o, out, (void *)ctx);
     } else {
-      ESCAPE(ctx, "Non-cacheable object appeared in writing phase %S\n", o);
+      ESCAPE_NRC(ctx, "Non-cacheable object appeared in writing phase %S\n", o);
     }
   }
 }
@@ -817,7 +817,7 @@ static void write_cache_pass2(SgPort *out, SgCodeBuilder *cb, SgObject cbs,
   }
 #endif
   if (SG_FALSEP(this_slot)) {
-    ESCAPE(ctx, "Target code builder %S(%p) is not collected.\n", cb, cb);
+    ESCAPE_NRC(ctx, "Target code builder %S(%p) is not collected.\n", cb, cb);
   }
 
   /* it's kinda abuse but fine */
@@ -862,7 +862,7 @@ static void write_cache_pass2(SgPort *out, SgCodeBuilder *cb, SgObject cbs,
 	  SgObject slot = Sg_Assq(o, cbs);
 	  /* never happen but just in case */
 	  if (SG_FALSEP(slot)) {
-	    ESCAPE(ctx, "code builder %S is not collected.\n", o);
+	    ESCAPE_NRC(ctx, "code builder %S is not collected.\n", o);
 	  }
 	  /* set mark.
 	     maximum 0xffffffff index

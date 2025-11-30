@@ -77,7 +77,7 @@ struct read_ctx_rec
   unsigned int isLinkNeeded:1;
   unsigned int insnP:1;	      /* for temporary flag */
   unsigned int deprecatedP:1; /* the content of cache is deprecated */
-  SgString    *file;
+  SgObject     file;
   SgObject     links;		/* list of object will be linked */
   jmp_buf      escape;
 };
