@@ -1353,6 +1353,7 @@ int Sg_ReadCacheFromImage(uint8_t *image, size_t len)
   return read_cache_from_port(Sg_VM(), in);
 }
 
+
 int Sg_ReadCache(SgString *id)
 {
   SgVM *vm = Sg_VM();
@@ -1392,7 +1393,6 @@ int Sg_ReadCache(SgString *id)
      This uses less memory :) */
   in = Sg_InitFileBinaryPort(&bp, &file, SG_INPUT_PORT, 
 			     &bbp, SG_BUFFER_MODE_BLOCK, portBuffer, bufSiz);
-
   ret = read_cache_from_port(vm, in);
 
   Sg_UnlockFile(&file);

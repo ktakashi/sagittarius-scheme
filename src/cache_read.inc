@@ -104,6 +104,7 @@ static SgObject handle_link(SgObject obj, read_ctx *ctx)
 static SgObject parse_value(SgPort *in, read_ctx *ctx, SgObject *stack)
 {
 #define push_stack(frame, stack) (*(stack)) = Sg_Cons(frame, *(stack))
+#define peek_stack(stack) (frame_t *)(SG_CAR(*stack))
 
   int tag = Sg_PeekbUnsafe(in);
   frame_t *f = NULL;
@@ -182,7 +183,7 @@ static SgObject parse_value(SgPort *in, read_ctx *ctx, SgObject *stack)
     push_stack(f, stack);
     return f->list.h;
   case MACRO_TAG:
-    f = SG_NEW_ATOMIC(frame_t);
+    f = SG_NEW(frame_t);
     f->type = MACRO_TAG;
     read_word(in, MACRO_TAG, ctx);
     f->mac.end = FALSE;
@@ -194,7 +195,7 @@ static SgObject parse_value(SgPort *in, read_ctx *ctx, SgObject *stack)
     /* current frame must be a MACRO_TAG frame */
     if (SG_NULLP(*stack))
       ESCAPE(ctx, "invalid state of cache reading. [%A]\n", ctx->file);
-    f = SG_CAR(*stack);
+    f = peek_stack(stack);
     if (f->type != MACRO_TAG)
       ESCAPE(ctx, "invalid state of cache reading (tag). [%A]\n", ctx->file);
     f->mac.end = TRUE;
@@ -355,7 +356,7 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
       } else {
 	SgObject data = SG_NIL;
 	if (!SG_VECTORP(frame->mac.env)) {
-	  ESCAPE(ctx, "broken cache: %A (macro env)\n", frame->mac.env);
+	  ESCAPE(ctx, "broken cache in macro: %A (macro env)\n", frame->mac.env);
 	}
 	SG_VECTOR_ELEMENT(frame->mac.env, 0) =
 	  find_library(SG_VECTOR_ELEMENT(frame->mac.env, 0), ctx);
@@ -451,5 +452,114 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
   }
   return root;
 }
+
+/*
+  Cache object structure
+  word = u8 * sizeof(SgWord)
+
+  // single word
+  INSTRUCTION_TAG = word
+  MARK_TAG = word (uid)
+  LOOKUP_TAG = word (uid)
+
+  // structures
+  STRING_TAG
+  INTERNED_SYMBOL_TAG
+  UNINTERNED_SYMBOL_TAG
+  KEYWORD_TAG =  {
+    length: word
+    values: SgChar[length]
+  }
+  NUMBER_TAG = {
+    length: word
+    type: u8
+    when (type) {
+      BIGNUM = {
+        sign: s8
+	values: ulong[length]
+      }
+      FLONUM = {
+        value: u8[sizeof(double)]
+      }
+      STRING = {
+        values: SgChar[length]
+      }
+    }
+  }
+  BYTE_VECTOR_TAG = {
+    length: word
+    literalp: u8
+    values: u8[length]
+  }
+  LIBRARY_LOOKUP_TAG = {
+    length: word
+    name: SgChar[length]
+  }
+  DEFINING_SHARED_TAG = {
+    uid: word
+    object: object
+  }
+  IDENTIFIER_TAG = {
+    pending: word
+    name: object
+    lib: object
+    envs: object
+    identity: object
+  }
+  CLOSURE_TAG = {
+    type: u8
+    when (type) {
+      LOOKUP_TAG = word
+      DEFINING_SHARED_TAG = {
+        uid: word
+      }
+    }
+    if (type != LOOKUP_TAG) {
+      cb: code_builder // see CODE_BUILDER_TAG
+    }
+  }
+  CODE_BUILDER_TAG = {
+    length: word
+    argc: u8
+    optionalp: u8
+    stack: u8
+    freec: u8*4
+    index: u8*4
+    name: object
+    code: word[length]
+    src: object
+    tag: CODE_BUILDER_END_TAG
+  }
+  VECTOR_TAG = {
+    n: word
+    literalp: u8
+    elements: object[n]
+  }
+  PLIST_TAG = {
+    length: word
+    elements: object[length]
+    info: object
+  }
+  DLIST_TAG = {
+    length: word
+    last: object
+    elements: object[length]
+    info: object
+  }
+  MACRO_TAG = {
+    padding: word
+    name: object
+    transformer: object
+    env: object
+    cc: object
+    dependencies: object* // arbitrarily length until MACRO_END_TAG
+    tag: MACRO_END_TAG
+  }
+  USER_DEFINED_OBJECT_TAG = {
+    library_name: object
+    name: object
+    data: u8[] // user defined values will be read by the class
+  }
+ */
 
 #endif
