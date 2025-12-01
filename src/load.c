@@ -117,20 +117,8 @@ int Sg_LoadFromPort(SgPort *port)
   return (SG_INTP(r) ? (int)SG_INT_VALUE(r) : 0);
 }
 
-static SgObject load_from_port_cc(SgObject r, void **data)
-{
-  SgVM *vm = Sg_VM();
-  int saved = (int)(intptr_t)data[0];
-  vm->flags = saved;
-  return r;
-}
-
 SgObject Sg_VMLoadFromPort(SgPort *port)
 {
-  void *d[1];
-  SgVM *vm = Sg_VM();
-  d[0] = (void *)(intptr_t) vm->flags;
-  Sg_VMPushCC(load_from_port_cc, d, 1);
   return Sg_VMApply1(load_procedure(), port);
 }
 

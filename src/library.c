@@ -737,7 +737,6 @@ SgObject Sg_SearchLibrary(SgObject lib, int *loadedp)
 }
 
 /* less C stack consuming for Scheme find-library */
-
 static SgObject vm_search_library_after(SgObject result, void **data)
 {
   UNLOCK_LIBRARIES();
@@ -750,7 +749,6 @@ static SgObject vm_search_library_cc1(SgObject name, void **data)
 {
   SgVM *vm = Sg_VM();
   SgObject r = Sg_HashTableRef(ALL_LIBRARIES, data[1], SG_FALSE);
-
   vm->cache = SG_CDR(vm->cache);
   vm->state = (int)(intptr_t)data[0];
 
@@ -775,7 +773,8 @@ static SgObject vm_search_library_load_after(SgObject result, void **data)
   void *d[3];
 
   vm->flags = (int)(intptr_t)data[6];
-  Sg_ClosePort(data[7]);
+  vm->currentLibrary = data[0];
+
   if (state == RE_CACHE_NEEDED) {
     Sg_WriteCache(data[1], SG_CAAR(data[4]), Sg_ReverseX(SG_CAR(vm->cache)));
   }
@@ -783,6 +782,7 @@ static SgObject vm_search_library_load_after(SgObject result, void **data)
   d[1] = data[2];		/* libname */
   d[2] = data[4];		/* paths */
   Sg_VMPushCC(vm_search_library_cc1, d, 3);
+      
   return data[1];		/* name */
 }
 
@@ -792,7 +792,8 @@ static SgObject vm_search_library_load(SgObject name, void **data)
   SgReadContext context = SG_STATIC_READ_CONTEXT;
   SgObject path = SG_CAAR(data[4]);
   SgObject file = Sg_OpenFile(path, SG_READ), bport, tport;
-  void *d[8];
+  void *d[7];
+  int i;
 
   if (!SG_FILEP(file)) {
     UNLOCK_LIBRARIES();		/* need to unlowck here */
@@ -802,8 +803,9 @@ static SgObject vm_search_library_load(SgObject name, void **data)
 	       Sg_Sprintf(UC("given file was not able to open: %A"), file),
 	       path, SG_FALSE);
   }
-  for (int i = 0; i < 6; i++) d[i] = data[i];
-  d[6] = (void *)(intptr_t)vm->flags;
+
+  for (i = 0; i < array_sizeof(d) - 1; i++) d[i] = data[i];
+  d[i++] = (void *)(intptr_t)vm->flags;
 
   vm->currentLibrary = userlib;
   context.flags = SG_CHANGE_VM_MODE;
@@ -812,9 +814,7 @@ static SgObject vm_search_library_load(SgObject name, void **data)
   tport = Sg_MakeTranscodedPort(SG_PORT(bport), default_load_transcoder);
   Sg_ApplyDirective(tport, SG_CDAR(data[4]), &context);
 
-  d[7] = tport;
-  
-  Sg_VMPushCC(vm_search_library_load_after, d, 8);
+  Sg_VMPushCC(vm_search_library_load_after, d, 7);
   return Sg_VMLoadFromPort(tport);
 }
 
@@ -828,6 +828,7 @@ static SgObject vm_search_library_cc0(SgObject name, void **data)
 
   path = SG_CAAR(paths);
   if (!Sg_FileExistP(path)) goto exit;
+
   save = vm->state;
   vm->state = IMPORTING;
   vm->cache = Sg_Cons(SG_NIL, vm->cache);
@@ -872,6 +873,7 @@ static SgObject vm_search_library(SgObject name, SgObject olibname)
    UNLOCK_LIBRARIES();
    return lib;
   }
+
   /* ok, we make continuation per possible path */
   paths = get_possible_paths(Sg_VM(), name, TRUE);
   d[0] = libname;
@@ -883,11 +885,11 @@ static SgObject vm_search_library(SgObject name, SgObject olibname)
 SgObject Sg_VMFindLibrary(SgObject name, int createp)
 {
   SgObject id_version;
-  
   /* fast path. for define-syntax. see compiler.scm */
   if (SG_LIBRARYP(name)) {
     return name;
   }
+
   id_version = library_name_to_id_version(name);
   return vm_search_library(SG_CAR(id_version), (createp)? name: NULL);
 }
