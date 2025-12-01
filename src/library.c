@@ -775,6 +775,7 @@ static SgObject vm_search_library_load_after(SgObject result, void **data)
   void *d[3];
 
   vm->flags = (int)(intptr_t)data[6];
+  Sg_ClosePort(data[7]);
   if (state == RE_CACHE_NEEDED) {
     Sg_WriteCache(data[1], SG_CAAR(data[4]), Sg_ReverseX(SG_CAR(vm->cache)));
   }
@@ -791,7 +792,7 @@ static SgObject vm_search_library_load(SgObject name, void **data)
   SgReadContext context = SG_STATIC_READ_CONTEXT;
   SgObject path = SG_CAAR(data[4]);
   SgObject file = Sg_OpenFile(path, SG_READ), bport, tport;
-  void *d[7];
+  void *d[8];
 
   if (!SG_FILEP(file)) {
     UNLOCK_LIBRARIES();		/* need to unlowck here */
@@ -801,6 +802,9 @@ static SgObject vm_search_library_load(SgObject name, void **data)
 	       Sg_Sprintf(UC("given file was not able to open: %A"), file),
 	       path, SG_FALSE);
   }
+  for (int i = 0; i < 6; i++) d[i] = data[i];
+  d[6] = (void *)(intptr_t)vm->flags;
+
   vm->currentLibrary = userlib;
   context.flags = SG_CHANGE_VM_MODE;
 
@@ -808,10 +812,9 @@ static SgObject vm_search_library_load(SgObject name, void **data)
   tport = Sg_MakeTranscodedPort(SG_PORT(bport), default_load_transcoder);
   Sg_ApplyDirective(tport, SG_CDAR(data[4]), &context);
 
-  for (int i = 0; i < 6; i++) d[i] = data[i];
-  d[6] = (void *)(intptr_t)vm->flags;
+  d[7] = tport;
   
-  Sg_VMPushCC(vm_search_library_load_after, d, 7);
+  Sg_VMPushCC(vm_search_library_load_after, d, 8);
   return Sg_VMLoadFromPort(tport);
 }
 
