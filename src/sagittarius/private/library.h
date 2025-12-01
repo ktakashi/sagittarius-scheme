@@ -109,6 +109,7 @@ SG_EXTERN SgObject Sg_MakeEvalLibrary();
 SG_EXTERN SgObject Sg_MakeChildLibrary(SgVM *vm, SgObject name);
 SG_EXTERN void     Sg_RemoveLibrary(SgLibrary *lib);
 SG_EXTERN SgObject Sg_FindLibrary(SgObject name, int createp);
+SG_EXTERN SgObject Sg_VMFindLibrary(SgObject name, int createp);
 SG_EXTERN void     Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
 					    SgObject spec);
 SG_EXTERN void     Sg_LibraryExportedSet(SgObject lib, SgObject exportSpec);

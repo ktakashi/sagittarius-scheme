@@ -144,7 +144,7 @@
   (define-c-proc library-mutable? (lib::<library>) ::<boolean> 
     SG_LIBRARY_MUTABLEP)
 
-  (define-c-proc find-library (arg0 createp::<boolean>) Sg_FindLibrary)
+  (define-c-proc find-library (arg0 createp::<boolean>) Sg_VMFindLibrary)
 
   (define-c-proc %insert-binding (libname name value) ::<void>
     (unless (or (SG_SYMBOLP name)

@@ -84,16 +84,9 @@ int Sg_Load(SgString *path)
   return (SG_INTP(r) ? (int)SG_INT_VALUE(r) : 0);
 }
 
-int Sg_LoadFromPort(SgPort *port)
-{
+
+static SgObject load_procedure() {
   static SgObject load_stub = SG_UNDEF;
-  SgObject r = SG_FALSE;
-  SgVM *vm = Sg_VM();
-  /* flags(#!** etc) are only per file.
-     so we need to save/restore.
-     TODO: do we need to lock?
-   */
-  int save = vm->flags;
   if (SG_UNDEFP(load_stub)) {
     SgObject gloc;
     Sg_LockMutex(&load_lock);
@@ -106,9 +99,39 @@ int Sg_LoadFromPort(SgPort *port)
     load_stub = SG_GLOC_GET(SG_GLOC(gloc));
     Sg_UnlockMutex(&load_lock);
   }
+  return load_stub;
+}
+
+int Sg_LoadFromPort(SgPort *port)
+{
+  SgObject r = SG_FALSE;
+  SgVM *vm = Sg_VM();
+  /* flags(#!** etc) are only per file.
+     so we need to save/restore.
+     TODO: do we need to lock?
+   */
+  int save = vm->flags;
+  SgObject load_stub = load_procedure();
   r = Sg_Apply1(load_stub, port);
   vm->flags = save;
   return (SG_INTP(r) ? (int)SG_INT_VALUE(r) : 0);
+}
+
+static SgObject load_from_port_cc(SgObject r, void **data)
+{
+  SgVM *vm = Sg_VM();
+  int saved = (int)(intptr_t)data[0];
+  vm->flags = saved;
+  return r;
+}
+
+SgObject Sg_VMLoadFromPort(SgPort *port)
+{
+  void *d[1];
+  SgVM *vm = Sg_VM();
+  d[0] = (void *)(intptr_t) vm->flags;
+  Sg_VMPushCC(load_from_port_cc, d, 1);
+  return Sg_VMApply1(load_procedure(), port);
 }
 
 /*

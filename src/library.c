@@ -725,7 +725,6 @@ SgObject Sg_FindLibrary(SgObject name, int createp)
   return search_library(SG_CAR(id_version), (createp)? name: NULL, NULL);
 }
 
-
 SgObject Sg_SearchLibrary(SgObject lib, int *loadedp)
 {
   SgObject id_version;
@@ -735,6 +734,152 @@ SgObject Sg_SearchLibrary(SgObject lib, int *loadedp)
   }
   id_version = library_name_to_id_version(lib);
   return search_library(SG_CAR(id_version), NULL, loadedp);
+}
+
+/* less C stack consuming for Scheme find-library */
+
+static SgObject vm_search_library_after(SgObject result, void **data)
+{
+  UNLOCK_LIBRARIES();
+  return result;
+}
+
+static SgObject vm_search_library_cc0(SgObject name, void **data);
+
+static SgObject vm_search_library_cc1(SgObject name, void **data)
+{
+  SgVM *vm = Sg_VM();
+  SgObject r = Sg_HashTableRef(ALL_LIBRARIES, data[1], SG_FALSE);
+
+  vm->cache = SG_CDR(vm->cache);
+  vm->state = (int)(intptr_t)data[0];
+
+  if (!SG_FALSEP(r)) {
+    if (!SG_FALSEP(SG_LIBRARY_DEFINEED(r)))
+      SG_LIBRARY_DEFINEED(r) = SG_NIL;
+    Sg_VMPushCC(vm_search_library_after, NULL, 0);
+    return r;
+  } else {
+    void *d[2];
+    d[0] = data[1];		/* libname */
+    d[1] = SG_CDR(data[2]);	/* paths */
+    Sg_VMPushCC(vm_search_library_cc0, d, 2);
+    return name;
+  }
+}
+
+static SgObject vm_search_library_load_after(SgObject result, void **data)
+{
+  SgVM *vm = Sg_VM();
+  int state = (int)(intptr_t)data[5];
+  void *d[3];
+  if (state == RE_CACHE_NEEDED) {
+    Sg_WriteCache(data[1], SG_CAAR(data[4]), Sg_ReverseX(SG_CAR(vm->cache)));
+  }
+  d[0] = data[3];		/* save */
+  d[1] = data[2];		/* libname */
+  d[2] = data[4];		/* paths */
+  Sg_VMPushCC(vm_search_library_cc1, d, 3);
+  return data[1];		/* name */
+}
+
+static SgObject vm_search_library_load(SgObject name, void **data)
+{
+  SgVM *vm = Sg_VM();
+  SgReadContext context = SG_STATIC_READ_CONTEXT;
+  SgObject path = SG_CAAR(data[4]);
+  SgObject file = Sg_OpenFile(path, SG_READ), bport, tport;
+  if (!SG_FILEP(file)) {
+    UNLOCK_LIBRARIES();		/* need to unlowck here */
+    /* file is error message */
+    Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR,
+	       SG_INTERN("load"),
+	       Sg_Sprintf(UC("given file was not able to open: %A"), file),
+	       path, SG_FALSE);
+  }
+  vm->currentLibrary = userlib;
+  context.flags = SG_CHANGE_VM_MODE;
+
+  bport = Sg_MakeFileBinaryInputPort(SG_FILE(file), SG_BUFFER_MODE_BLOCK);
+  tport = Sg_MakeTranscodedPort(SG_PORT(bport), default_load_transcoder);
+  Sg_ApplyDirective(tport, SG_CDAR(data[4]), &context);
+
+  Sg_VMPushCC(vm_search_library_load_after, data, 6);
+  return Sg_VMLoadFromPort(tport);
+}
+
+static SgObject vm_search_library_cc0(SgObject name, void **data)
+{
+  SgVM *vm = Sg_VM();
+  SgObject paths = data[1], path;
+  int state, save;
+
+  if (SG_NULLP(paths)) goto exit;
+
+  path = SG_CAAR(paths);
+  if (!Sg_FileExistP(path)) goto exit;
+  save = vm->state;
+  vm->state = IMPORTING;
+  vm->cache = Sg_Cons(SG_NIL, vm->cache);
+  state = Sg_ReadCache(path);
+  if (state != CACHE_READ) {
+    void *d[6];
+    d[0] = vm->currentLibrary;
+    d[1] = name;
+    d[2] = data[0];		/* libname */
+    d[3] = (void *)(intptr_t)save;
+    d[4] = paths;
+    d[5] = (void *)(intptr_t)state;
+    Sg_VMPushCC(vm_search_library_load, d, 6);
+    return name;
+  } else {
+    void *d[3];
+    d[0] = (void *)(intptr_t)save;
+    d[1] = data[0];
+    d[2] = paths;
+    Sg_VMPushCC(vm_search_library_cc1, d, 3);
+    return name;
+  }
+
+ exit:
+  Sg_VMPushCC(vm_search_library_after, NULL, 0);
+  return SG_FALSE;		/* failed to search */
+}
+
+static SgObject vm_search_library(SgObject name, SgObject olibname)
+{
+  SgObject libname = convert_name_to_symbol(name), paths;
+  SgObject lib = Sg_HashTableRef(ALL_LIBRARIES, libname, SG_FALSE);
+  void *d[2];
+  
+  /* ok, easy case */
+  if (!SG_FALSEP(lib)) {
+    UNLOCK_LIBRARIES();
+    return lib;
+  }
+  if (olibname) {
+   lib = Sg_MakeLibrary(olibname);
+   UNLOCK_LIBRARIES();
+   return lib;
+  }
+  /* ok, we make continuation per possible path */
+  paths = get_possible_paths(Sg_VM(), name, TRUE);
+  d[0] = libname;
+  d[1] = paths;
+  Sg_VMPushCC(vm_search_library_cc0, d, 2);
+  return name;			/* return name */
+}
+
+SgObject Sg_VMFindLibrary(SgObject name, int createp)
+{
+  SgObject id_version;
+  
+  /* fast path. for define-syntax. see compiler.scm */
+  if (SG_LIBRARYP(name)) {
+    return name;
+  }
+  id_version = library_name_to_id_version(name);
+  return vm_search_library(SG_CAR(id_version), (createp)? name: NULL);
 }
 
 #define ENSURE_LIBRARY(o, e)						\
