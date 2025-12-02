@@ -22,7 +22,14 @@ IF (APPLE)
   SET(CMAKE_MACOSX_RPATH 1)
 ENDIF()
 
-SET(CMAKE_BUILD_TYPE RelWithDebInfo)
+# In case if other build type, e.g. Debug, is needed
+IF (NOT BUILD_TYPE)
+  MESSAGE(STATUS "No build type specified, set to RelWithDebInfo")
+  SET(CMAKE_BUILD_TYPE RelWithDebInfo)
+ELSE()
+  MESSAGE(STATUS "Custom build type '${BUILD_TYPE}' is specified")
+  SET(CMAKE_BUILD_TYPE ${BUILD_TYPE})
+ENDIF()
 
 ### Platform checks
 INCLUDE(${CMAKE_ROOT}/Modules/CheckIncludeFile.cmake)
@@ -335,7 +342,7 @@ IF(USE_BOEHM_GC)
       FILE(
 	DOWNLOAD "${GC_URL}/${GC_PATH}" "${CMAKE_CURRENT_BINARY_DIR}/gc.tar.gz"
 	SHOW_PROGRESS)
-    ELSEIF()
+    ELSE()
       MESSAGE(STATUS "Checking Boehm GC archive file ... found")
     ENDIF()
 

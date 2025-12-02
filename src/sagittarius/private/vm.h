@@ -317,7 +317,7 @@ typedef enum {
 
 #define SG_VM_LOG_LEVEL(vm, level)  (((vm)->flags & SG_LOG_LEVEL_MASK) >= level)
 
-#define SG_CCONT_DATA_SIZE 6
+#define SG_CCONT_DATA_SIZE 10
 
 #define SG_LET_FRAME_SIZE           2
 #define SG_FRAME_SIZE               CONT_FRAME_SIZE
