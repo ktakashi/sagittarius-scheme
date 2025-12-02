@@ -820,6 +820,17 @@ int Sg_CharNumericP(SgChar ch)
     case 0xF9FD:		/* CJK COMPATIBILITY IDEOGRAPH 10 */
     case 0x2F890:		/* CJK COMPATIBILITY IDEOGRAPH 9  */
       return TRUE;
+    /* The same treatment since Unicode 17.0.0,
+       The general category of below code points are Lo... */
+    case 0x12038:		/* CUNEIFORM SIGN ASH 1 */
+    case 0x12039:		/* CUNEIFORM SIGN ASH ZIDA TENU 1 */
+    case 0x12079:		/* CUNEIFORM SIGN DISH 1 */
+    case 0x12226:		/* CUNEIFORM SIGN MASH 1/2 */
+    case 0x1222b:		/* CUNEIFORM SIGN MIN 2 */
+    case 0x1230b:		/* CUNEIFORM SIGN U 1 */
+    case 0x1230d:		/* CUNEIFORM SIGN U U U 3 */
+    case 0x12399:		/* CUNEIFORM SIGN U U 2 */
+      return TRUE;
     default:
       /* OK, check category */
       switch (Sg_CharGeneralCategory(ch)) {

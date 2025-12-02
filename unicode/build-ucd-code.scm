@@ -42,7 +42,7 @@ out))
 			     file)))
 
 (define (c-out datum)
-  (cond ((number? datum) (format "~aL" datum))
+  (cond ((number? datum) (format "0x~XL" datum))
 	((boolean? datum)
 	 (if datum 'TRUE 'FALSE))
 	((symbol? datum) datum)
