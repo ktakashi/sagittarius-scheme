@@ -20,7 +20,9 @@
 	    (core base)
 	    (only (core macro) er-macro-transformer)
 	    (rename (core errors) (error core:error))
-	    (only (sagittarius vm debug) source-info-set!))
+	    (only (sagittarius vm debug)
+		  source-info
+		  source-info-set!))
 ;; Chibi allow 'ls' to be non pair as its extension.
 ;; syntax-rules depends on this behaviour so we need to allow it
 (define (any pred ls)
@@ -53,7 +55,8 @@
 		 i
 		 (loop (+ i 1) (cdr ls))))))))
 
-(define (cons-source kar kdr source) (source-info-set! (cons kar kdr) source))
+(define (cons-source kar kdr source)
+  (source-info-set! (cons kar kdr) (source-info source)))
 (define (check-length tmpl . args)
   (or (apply = (map length args))
       (syntax-violation 'syntax-rules
@@ -69,7 +72,7 @@
         (_lambda (rename 'lambda))      (_let (rename 'let))
         (_begin (rename 'begin))        (_if (rename 'if))
         (_and (rename 'and))            (_or (rename 'or))
-        (_eq? (rename 'eq?))            (_equal? (rename 'equal?))
+        #;(_eq? (rename 'eq?))          (_equal? (rename 'equal?))
         (_car (rename 'car))            (_cdr (rename 'cdr))
         (_cons (rename 'cons))          (_pair? (rename 'pair?))
         (_null? (rename 'null?))        (_expr (rename 'expr))

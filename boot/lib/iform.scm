@@ -4,7 +4,8 @@
     (export lvar? make-lvar make-lvar+
 	    lvar-ref++! lvar-ref--! lvar-set++! lvar-reset lvar-const-value
 	    lvar-initval lvar-initval-set! lvar-name
-	    lvar-optimized? lvar-ref-count lvar-ref-count-set!
+	    lvar-optimized? lvar-optimized!
+	    lvar-ref-count lvar-ref-count-set!
 	    lvar-set-count
 	    ;; iforms
 	    $UNDEF $DEFINE $LREF $LSET $GREF $GSET $CONST
@@ -203,7 +204,7 @@
   (and (zero? (lvar-set-count lvar))
        (vector? (lvar-initval lvar))
        (lvar-initval lvar)))
-
+(define (lvar-optimized! lvar) (lvar-optimized?-set! lvar #t))
 
 ;; $undef
 ;;   undefinition

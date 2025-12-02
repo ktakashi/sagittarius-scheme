@@ -17,6 +17,7 @@
 	    (sagittarius compiler iform)
 	    (sagittarius compiler procedure)
 	    (sagittarius vm)
+	    (sagittarius vm debug)
 	    (sagittarius vm instruction))
 
 (include "smatch.scm")
@@ -344,10 +345,20 @@
 (define (pass2/remove-unused-lvars iform lvars type)
   (define (unused-warning lvar)
     (unless (lvar-optimized? lvar)
-      ($vm-warn "unused variable ~a in ~s"
-		(lvar-name lvar)
-		(or (cond (($let-src iform) => unwrap-syntax) (else #f))
-		    (iform->sexp iform)))))
+      (cond (($let-src iform) =>
+	     (lambda (src)
+	       (define (format-location loc)
+		 (if loc
+		     (format "~a at ~a" (car loc) (cdr loc))
+		     "n/a"))
+	       ($vm-warn "unused variable ~a in ~,,,,40:s [~a]"
+			 (lvar-name lvar)
+			 (unwrap-syntax src)
+			 (format-location (source-info src)))))
+	    (else
+	     ($vm-warn "unused variable ~a in ~,,,,40:s"
+		       (lvar-name lvar)
+		       (iform->sexp iform))))))
   (let loop ((lvars lvars)
 	     (rl '())  ;; result lvars
 	     (ri '())  ;; result inits
@@ -494,6 +505,7 @@
 	  ($seq-body-set! call-node ($seq-body inlined))
 	  ($seq-body-set! call-node (list inlined)))))
   (lvar-ref-count-set! lvar 0)
+  (lvar-optimized! lvar)
   ($lambda-flag-set! lambda-node 'dissolved)
   (let loop ((calls calls))
     (cond ((null? (cdr calls))
