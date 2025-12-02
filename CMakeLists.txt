@@ -325,8 +325,8 @@ IF(USE_BOEHM_GC)
     # download boehm gc
     SET(GC_URL "https://github.com/ivmai/bdwgc/releases/download")
     IF (WINDOWS_SUPPORT)
-      SET(USED_GC_VERSION "8.2.8")
-      SET(GC_VERSION "8.2.8")
+      SET(USED_GC_VERSION "8.2.10")
+      SET(GC_VERSION "8.2.10")
       SET(NEED_LIB_ATOMIC TRUE)
     ELSE()
       # for qnx we only support until 7.2d (as long as it doesn't support...)
@@ -335,13 +335,11 @@ IF(USE_BOEHM_GC)
       SET(NEED_LIB_ATOMIC FALSE)
     ENDIF()
 
-    IF (NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/gc.tar.gz")
+    IF (NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/gc-${USED_GC_VERSION}.tar.gz")
       SET(GC_PATH "/v${USED_GC_VERSION}/gc-${USED_GC_VERSION}.tar.gz")
       MESSAGE(STATUS "Checking Boehm GC archive file ... not found")
-      MESSAGE(STATUS "Downloading ${GC_URL}${GC_PATH}")
-      FILE(
-	DOWNLOAD "${GC_URL}/${GC_PATH}" "${CMAKE_CURRENT_BINARY_DIR}/gc.tar.gz"
-	SHOW_PROGRESS)
+      DOWNLOAD("${GC_URL}/${GC_PATH}"
+	"${CMAKE_CURRENT_BINARY_DIR}/gc-${USED_GC_VERSION}.tar.gz")
     ELSE()
       MESSAGE(STATUS "Checking Boehm GC archive file ... found")
     ENDIF()
@@ -350,9 +348,9 @@ IF(USE_BOEHM_GC)
 
     IF (NOT EXISTS "${GC_DIR}")
       EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E tar xzf
-	${CMAKE_CURRENT_BINARY_DIR}/gc.tar.gz
+	"${CMAKE_CURRENT_BINARY_DIR}/gc-${USED_GC_VERSION}.tar.gz"
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-      MESSAGE(STATUS "unpacked gc.tar.gz")
+      MESSAGE(STATUS "unpacked gc-${USED_GC_VERSION}.tar.gz")
     ENDIF()
     
     IF (NOT WINDOWS_SUPPORT AND NOT ${SAGITTARIUS_OS} STREQUAL "qnx")
@@ -385,26 +383,23 @@ IF(USE_BOEHM_GC)
       # /v7.8.2/libatomic_ops-7.8.2.tar.gz
       SET(LIBATOMIC_OPS_URL
 	"https://github.com/bdwgc/libatomic_ops/releases/download")
-      SET(LIBATOMIC_OPS_VERSION "7.8.2")
+      SET(LIBATOMIC_OPS_VERSION "7.10.0")
       SET(LIBATOMIC_OPS "libatomic_ops-${LIBATOMIC_OPS_VERSION}")
       SET(LIBATOMIC_OPS_PATH "/v${LIBATOMIC_OPS_VERSION}/${LIBATOMIC_OPS}.tar.gz")
       
-      IF (NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/libatomic_ops.tar.gz")
+      IF (NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/${LIBATOMIC_OPS}.tar.gz")
 	MESSAGE(STATUS "Checking libatomic_ops archive file ... not found")
-	MESSAGE(STATUS "Downloading ${LIBATOMIC_OPS_URL}${LIBATOMIC_OPS_PATH}")
-	FILE(
-	  DOWNLOAD "${LIBATOMIC_OPS_URL}${LIBATOMIC_OPS_PATH}"
-	  "${CMAKE_CURRENT_BINARY_DIR}/libatomic_ops.tar.gz"
-	  SHOW_PROGRESS)
+	DOWNLOAD("${LIBATOMIC_OPS_URL}${LIBATOMIC_OPS_PATH}"
+	  "${CMAKE_CURRENT_BINARY_DIR}/${LIBATOMIC_OPS}.tar.gz")
       ELSE()
 	MESSAGE(STATUS "Checking libatomic_ops archive file ... found")
       ENDIF()
 
       IF (NOT EXISTS ${GC_DIR}/${LIBATOMIC_OPS})
       	EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E tar xzf
-	  ${CMAKE_CURRENT_BINARY_DIR}/libatomic_ops.tar.gz
+	  ${CMAKE_CURRENT_BINARY_DIR}/${LIBATOMIC_OPS}.tar.gz
 	  WORKING_DIRECTORY ${GC_DIR})
-	MESSAGE(STATUS "unpacked libatomic_ops.tar.gz")
+	MESSAGE(STATUS "unpacked ${LIBATOMIC_OPS}.tar.gz")
       ENDIF()
 
       IF (EXISTS ${GC_DIR}/${LIBATOMIC_OPS}

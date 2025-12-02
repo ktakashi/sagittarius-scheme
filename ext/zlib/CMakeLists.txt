@@ -48,21 +48,18 @@ ENDIF()
 IF (NOT ZLIB_FOUND)
   # well we need to compile it
   SET(USED_ZLIB_VERSION "zlib-1.3.1")
-  IF (NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/zlib.tar.gz")
+  IF (NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/${USED_ZLIB_VERSION}.tar.gz")
     MESSAGE(STATUS "Checking zlib.tar.gz ... not found")
-    MESSAGE(STATUS "donwloading zlib")
-    FILE(
-      DOWNLOAD "http://zlib.net/${USED_ZLIB_VERSION}.tar.gz"
-      "${CMAKE_CURRENT_BINARY_DIR}/zlib.tar.gz"
-      SHOW_PROGRESS)
+    DOWNLOAD("http://zlib.net/${USED_ZLIB_VERSION}.tar.gz"
+      "${CMAKE_CURRENT_BINARY_DIR}/${USED_ZLIB_VERSION}.tar.gz")
   ELSE()
-    MESSAGE(STATUS "Checking zlib.tar.gz ... found")
+    MESSAGE(STATUS "Checking ${USED_ZLIB_VERSION}.tar.gz ... found")
   ENDIF()
   IF (NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/${USED_ZLIB_VERSION}")
     EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E tar xzf
-      ${CMAKE_CURRENT_BINARY_DIR}/zlib.tar.gz
+      ${CMAKE_CURRENT_BINARY_DIR}/${USED_ZLIB_VERSION}.tar.gz
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-    MESSAGE(STATUS "unpacked zlib.tar.gz")
+    MESSAGE(STATUS "unpacked ${USED_ZLIB_VERSION}.tar.gz")
   ENDIF()
 
   # we can't use patch command, as long as all of environments do
