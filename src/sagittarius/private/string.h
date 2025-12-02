@@ -84,11 +84,16 @@ typedef enum {
 #define SG_STRING_ALLOC_SIZE(size) (sizeof(SgString)+sizeof(SgChar)*size)
 
 #ifdef HAVE_ALLOCA
-#define SG_ALLOC_TEMP_STRING(var, size)					\
-  do {									\
-    (var) = SG_STRING(alloca(SG_STRING_ALLOC_SIZE(size)));		\
-    SG_SET_CLASS(var, SG_CLASS_STRING);					\
-    SG_STRING_SIZE(var) = size;						\
+#define SG_ALLOCA_STRING_LIMIT 1024
+#define SG_ALLOC_TEMP_STRING(var, size)				\
+  do {								\
+    if ((size) < SG_ALLOCA_STRING_LIMIT) {			\
+      (var) = SG_STRING(alloca(SG_STRING_ALLOC_SIZE(size)));	\
+    } else {							\
+      (var) = Sg_ReserveString(size, 0);			\
+    }								\
+    SG_SET_CLASS(var, SG_CLASS_STRING);				\
+    SG_STRING_SIZE(var) = size;					\
   } while (0)
 #else
 #define SG_ALLOC_TEMP_STRING(var, size)		\
