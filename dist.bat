@@ -106,7 +106,7 @@ echo Generating (sagittarius char-sets incb)
 	      InCB.Linker InCB.Consonant InCB.Extend
 
 echo Generating grapheme-data.scm
-$SASH ./tools/scripts/unicode-break-test-generator.scm^
+%SASH% ./tools/scripts/unicode-break-test-generator.scm^
       -o test/tests/text/unicode/grapheme-data.scm^
       unicode/data/GraphemeBreakTest.txt
 
