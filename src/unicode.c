@@ -804,40 +804,14 @@ int Sg_CharNumericP(SgChar ch)
 {
   if ('0' <= ch && ch <= '9') return TRUE;
   else if (0x80 <= ch) {
-    /* handle special cases
-       U+F96B, U+F973, U+F978, U+F9B2, U+F9D1, U+F9D3, U+F9FD, U+2F890
-       these are kanji numbers but categorised in Lo.
-       NB: digit-value can convert it because it has numeric property
-           to make R7RS compliant, we need to handle it separately
-     */
-    switch (ch) {
-    case 0xF96B: 		/* CJK COMPATIBILITY IDEOGRAPH 3  */
-    case 0xF973:		/* CJK COMPATIBILITY IDEOGRAPH 10 */
-    case 0xF978:		/* CJK COMPATIBILITY IDEOGRAPH 2  */
-    case 0xF9B2:		/* CJK COMPATIBILITY IDEOGRAPH 0  */
-    case 0xF9D1:		/* CJK COMPATIBILITY IDEOGRAPH 6  */
-    case 0xF9D3:		/* CJK COMPATIBILITY IDEOGRAPH 6  */
-    case 0xF9FD:		/* CJK COMPATIBILITY IDEOGRAPH 10 */
-    case 0x2F890:		/* CJK COMPATIBILITY IDEOGRAPH 9  */
-      return TRUE;
-    /* The same treatment since Unicode 17.0.0,
-       The general category of below code points are Lo... */
-    case 0x12038:		/* CUNEIFORM SIGN ASH 1 */
-    case 0x12039:		/* CUNEIFORM SIGN ASH ZIDA TENU 1 */
-    case 0x12079:		/* CUNEIFORM SIGN DISH 1 */
-    case 0x12226:		/* CUNEIFORM SIGN MASH 1/2 */
-    case 0x1222b:		/* CUNEIFORM SIGN MIN 2 */
-    case 0x1230b:		/* CUNEIFORM SIGN U 1 */
-    case 0x1230d:		/* CUNEIFORM SIGN U U U 3 */
-    case 0x12399:		/* CUNEIFORM SIGN U U 2 */
-      return TRUE;
-    default:
-      /* OK, check category */
-      switch (Sg_CharGeneralCategory(ch)) {
-      case Nd: case Nl: case No: return TRUE;
-      default: return FALSE;
+    const int size = array_sizeof(s_numeric_property);
+    int i;
+    for (i = 0; i < size; i++) {
+      if (s_numeric_property[i].in == (int32_t)ch) {
+	return TRUE;
       }
     }
+    return FALSE;
   }
   else return FALSE;
 }
