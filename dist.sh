@@ -60,6 +60,8 @@ unicode()
     $SASH ./tools/scripts/compile-unicode.scm $1
     if [ "$1" = "" ]; then
 	mkdir -p sitelib/sagittarius/char-sets
+
+	echo 'Generating (sagittarius char-sets grapheme)'
 	$SASH ./tools/scripts/extract-unicode-props.scm \
 	      -l'(sagittarius char-sets grapheme)' \
 	      -o sitelib/sagittarius/char-sets/grapheme.scm \
@@ -73,6 +75,7 @@ unicode()
 	      hangul-lv=:LV \
 	      hangul-lvt=:LVT
 
+	echo 'Generating (sagittarius char-sets word)'
 	$SASH ./tools/scripts/extract-unicode-props.scm \
 	      -l'(sagittarius char-sets word)' \
 	      -o sitelib/sagittarius/char-sets/word.scm \
@@ -85,6 +88,7 @@ unicode()
 	      extend-num-let=ExtendNumLet \
 	      w-seg-space=WSegSpace
 
+	echo 'Generating (sagittarius char-sets emojis)'
 	$SASH ./tools/scripts/extract-unicode-props.scm \
 	      -l'(sagittarius char-sets emojis)' \
 	      -o sitelib/sagittarius/char-sets/emojis.scm \
@@ -93,6 +97,20 @@ unicode()
 	      Emoji_Modifier_Base Emoji_Component \
 	      Extended_Pictographic
 
+	echo 'Generating (sagittarius char-sets incb)'
+	$SASH ./tools/scripts/extract-unicode-props.scm \
+	      -l '(sagittarius char-sets incb)' \
+	      -o  sitelib/sagittarius/char-sets/incb.scm \
+	      --derived unicode/data/DerivedCoreProperties.txt \
+	      'InCB.Linker' \
+	      'InCB.Consonant' \
+	      'InCB.Extend'
+
+	echo 'Generating grapheme-data.scm'
+	$SASH ./tools/scripts/unicode-break-test-generator.scm \
+	      -o test/tests/text/unicode/grapheme-data.scm \
+	      unicode/data/GraphemeBreakTest.txt
+	
     fi
 }
 

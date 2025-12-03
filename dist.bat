@@ -70,6 +70,7 @@ echo Generating Unicode codepoints
 if "%1" == "-c" goto:unicode_end
 
 md sitelib\sagittarius\char-sets
+echo Generating (sagittarius char-sets grapheme)
 %SASH% ./tools/scripts/extract-unicode-props.scm^
             -l"(sagittarius char-sets grapheme)"^
 	    -o sitelib/sagittarius/char-sets/grapheme.scm^
@@ -78,6 +79,7 @@ md sitelib\sagittarius\char-sets
 	    extend-or-spacing-mark=Extend,SpacingMark Regional_Indicator^
 	    hangul-l=:L hangul-v=:V hangul-t=:T hangul-lv=:LV hangul-lvt=:LVT
 
+echo Generating (sagittarius char-sets word)
 %SASH% ./tools/scripts/extract-unicode-props.scm^
             -l"(sagittarius char-sets word)"^
 	    -o sitelib/sagittarius/char-sets/word.scm^
@@ -87,6 +89,7 @@ md sitelib\sagittarius\char-sets
 	    mid-letter=MidLetter mid-num=MidNum Numeric^
 	    extend-num-let=ExtendNumLet w-seg-space=WSegSpace
 
+echo Generating (sagittarius char-sets emojis)
 %SASH% ./tools/scripts/extract-unicode-props.scm^
 	      -l"(sagittarius char-sets emojis)"^
 	      -o sitelib/sagittarius/char-sets/emojis.scm^
@@ -94,6 +97,18 @@ md sitelib\sagittarius\char-sets
 	      Emoji Emoji_Presentation Emoji_Modifier^
 	      Emoji_Modifier_Base Emoji_Component^
 	      Extended_Pictographic
+
+echo Generating (sagittarius char-sets incb)
+%SASH% ./tools/scripts/extract-unicode-props.scm^
+	      -l"(sagittarius char-sets incb)"^
+	      -o sitelib/sagittarius/char-sets/incb.scm^
+	      --derived unicode/data/DerivedCoreProperties.txt^
+	      InCB.Linker InCB.Consonant InCB.Extend
+
+echo Generating grapheme-data.scm
+$SASH ./tools/scripts/unicode-break-test-generator.scm^
+      -o test/tests/text/unicode/grapheme-data.scm^
+      unicode/data/GraphemeBreakTest.txt
 
 :unicode_end
 goto:eof

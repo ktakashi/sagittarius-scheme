@@ -51,6 +51,7 @@
 	    (sagittarius regex)
 	    (sagittarius control)
 	    (sagittarius char-sets grapheme)
+	    (sagittarius char-sets incb)
 	    (sagittarius char-sets emojis)
 	    (match))
 
@@ -201,6 +202,7 @@
 	    ;; core := hangul-syllable
 	    ;;       | ri-sequence
 	    ;;       | xpicto-sequence
+	    ;;       | conjunctCluster
 	    ;;       | [^Control CR LF]
 	    ;; extended grapheme cluster := crlf
 	    ;;                            | Control
@@ -224,6 +226,15 @@
 					  (* ,char-set:extend)
 					  ,char-set:zwj
 					  ,char-set:extended-pictographic)))
+				 ;; conjunctCluster
+				 (seq ,char-set:incb-consonant
+				      (+ (seq
+					  (* (or ,char-set:incb-extend
+						 ,char-set:incb-linker))
+					  ,char-set:incb-linker
+					  (* (or ,char-set:incb-extend
+						 ,char-set:incb-linker))
+					  ,char-set:incb-consonant)))
 				 (~ ,char-set:control #\return #\linefeed))
 			     (* (or ,char-set:extend
 				    ,char-set:spacing-mark

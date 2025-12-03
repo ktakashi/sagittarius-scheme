@@ -38,8 +38,11 @@ List of interesting files
     unicode/data/auxiliary/WordBreakProperty.txt (ditto)
     unicode/data/PropList.txt
     unicode/data/SpecialCasing.txt
-    unicode/data/UnicodeData.txt    
-    unicode/data/emoji/emoji-data.txt 
+    unicode/data/UnicodeData.txt
+    unicode/data/emoji/emoji-data.txt
+
+This is for creating test data
+    unicode/data/auxiliary/GraphemeBreakTest.txt
 |#
 (define-constant +interesting-files+
   '("CaseFolding.txt"
@@ -51,7 +54,8 @@ List of interesting files
     "PropList.txt"
     "SpecialCasing.txt"
     "UnicodeData.txt"    
-    "emoji-data.txt"))
+    "emoji-data.txt"
+    "GraphemeBreakTest.txt"))
 
 (define (path-filename p)
   (let-values (((dir base ext) (decompose-path p)))

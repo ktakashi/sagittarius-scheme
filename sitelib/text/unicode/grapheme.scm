@@ -36,6 +36,7 @@
 	    (peg chars)
 	    (sagittarius generators)
 	    (sagittarius char-sets grapheme)
+	    (sagittarius char-sets incb)
 	    (sagittarius char-sets emojis)
 	    (srfi :1 lists)
 	    (srfi :13 strings)
@@ -44,7 +45,7 @@
 
 (define $cr ($eqv? #\return))
 (define $lf ($eqv? #\newline))
-(define $control    ($char-set-contains? char-set:control))
+(define $control0   ($char-set-contains? char-set:control))
 (define $hangul-l   ($char-set-contains? char-set:hangul-l))
 (define $hangul-v   ($char-set-contains? char-set:hangul-v))
 (define $hangul-t   ($char-set-contains? char-set:hangul-t))
@@ -56,6 +57,9 @@
 (define $spacing-mark ($char-set-contains? char-set:spacing-mark))
 (define $prepend    ($char-set-contains? char-set:prepend))
 (define $ext-pict   ($char-set-contains? char-set:extended-pictographic))
+(define $incb:c     ($char-set-contains? char-set:incb-consonant))
+(define $incb:e     ($char-set-contains? char-set:incb-extend))
+(define $incb:l     ($char-set-contains? char-set:incb-linker))
 
 ;; From Table 1b
 ;; extended grapheme cluster := crlf
@@ -64,13 +68,12 @@
 
 (define $crlf ($seq $cr $lf ($return "\r\n")))
 ;; CR and LF is not Control, so need to explicitly added
-(define $control ($do (c ($or $control $cr $lf)) ($return (string c))))
+(define $control ($or $control0 $cr $lf))
 
 (define $precore $prepend)
 
 ;; postcore := [Extend ZWJ SpacingMark]
-(define $postcore
-  ($do (c ($or $extend $zwj $spacing-mark)) ($return (string c))))
+(define $postcore ($or $extend $zwj $spacing-mark))
 
 ;; hangul-syllable := L* (V+ | LV V* | LVT) T*
 ;;                  | L+
@@ -82,14 +85,12 @@
 			     ($return (cons lv v*)))
 			($do (lvt $hangul-lvt) ($return (list lvt)))))
 	      (c2* ($many $hangul-t)))
-	 ($return (string-append (list->string c0*)
-				 (list->string c1*)
-				 (list->string c2*))))
-       ($do (c* ($many $hangul-l 1)) ($return (list->string c*)))
-       ($do (c* ($many $hangul-t 1)) ($return (list->string c*)))))
+	 ($return `(,@c0* ,@c1* ,@c2*)))
+       ($many $hangul-l 1)
+       ($many $hangul-t 1)))
 
 ;; RI-Sequence := RI RI
-(define $ri-sequence ($do (ri0 $ri) (ri1 $ri) ($return (string ri0 ri1))))
+(define $ri-sequence ($do (ri0 $ri) (ri1 $ri) ($return (list ri0 ri1))))
 ;; The below is incorrect, so GB12 and GB13 is a bit misleading to me.
 #;(define $ri-sequence
   ($do (2ri* ($many $riri 1)) ($return (string-concatenate 2ri*))))
@@ -98,9 +99,45 @@
 (define $xpicto-sequence
   ($let ((e1 $ext-pict)
 	 (e* ($many ($do (e* ($many $extend)) (zwj $zwj) (ext $ext-pict)
-			 ($return (list->string `(,@e* ,zwj ,ext)))))))
-    ($return (apply string-append (string e1) e*))))
+			 ($return `(,@e* ,zwj ,ext))))))
+    ($return (cons e1 (append-map values e*)))))
 
+;; conjunctCluster := \p{InCB=Consonant}
+;;                    ([\p{InCB=Extend} \p{InCB=Linker}]*
+;;                     \p{InCB=Linker}
+;;                     [\p{InCB=Extend} \p{InCB=Linker}]*
+;;                     \p{InCB=Consonant})+
+(define $el ($or $incb:e $incb:l))
+(define ($conjunct-cluster ol)
+  (define (check-el l state)
+    (let-values (((s v nl) ($el l)))
+      (if (parse-success? s)
+	  (values state v nl)
+	  (return-expect $el l)))) 
+  (define (check l state)
+    (let-values (((s v nl) ($incb:c l)))
+      (cond ((and (parse-success? s) (eq? state 'l))
+	     (values 'end v nl))
+	    ((not state)
+	     (let-values (((s v nl) ($incb:l l)))
+	       (if (parse-success? s)
+		   (values 'l v nl)
+		   (check-el l state))))
+	    (else (check-el l state)))))
+  (define (parse-one nl vs)
+    (let loop ((vs vs) (l nl) (state #f))
+      (let-values (((s v nl) (check l state)))
+	(cond ((parse-expect? s) (return-expect $el nl))
+	      ((eq? s 'end) (return-result (cons v vs) nl))
+	      (else (loop (cons v vs) nl s))))))
+  (let-values (((s v nl) ($incb:c ol)))
+    (if (parse-success? s)
+	(let loop ((vs (list v)) (l nl) (first? #t))
+	  (let-values (((s v nl) (parse-one l vs)))
+	    (cond ((parse-success? s) (loop v nl #f))
+		  (first? (return-expect $conjunct-cluster ol))
+		  (else (return-result (reverse! vs) l)))))
+	(return-expect $incb:c ol))))
 
 ;; core := hangul-syllable
 ;;       | ri-sequence
@@ -110,16 +147,15 @@
   ($or $hangul-syllable
        $ri-sequence
        $xpicto-sequence
-       ($do (($not ($or $control $cr $lf))) (c $any) ($return (string c)))))
+       $conjunct-cluster
+       ($do (($not ($or $control $cr $lf))) (c $any) ($return (list c)))))
 (define $grapheme
   ($or $crlf
-       $control
+       ($do (c $control) ($return (string c)))
        ($let ((pre* ($many $precore))
 	      (core $core)
 	      (post* ($many $postcore)))
-	 ($return (string-append (list->string pre*)
-				 core
-				 (string-concatenate post*))))
+	 ($return (list->string `(,@pre* ,@core ,@post*))))
        ;; GB9a (this can't be handled by the regexp definition of Unicode)
        ($do (p* ($many $precore)) ($return (list->string p*)))
        ;; GB999 (default break)

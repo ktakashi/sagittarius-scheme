@@ -60,7 +60,3 @@
 		    (display "  " out) (write l out) (newline out)) data)
 	(display #\) out) (newline out)
 	(close-output-port out)))))
-	
-      
-	
-	  

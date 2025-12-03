@@ -100,6 +100,10 @@ exec sash $0 "$@"
 (define (extract-char-set-property prop derived)
   (define (string-trim-comment str comment-ch)
     (car (string-split str comment-ch)))
+  (define (merge-subcategory ls)
+    (if (= (length ls) 3)
+	(list (car ls) (string-append (cadr ls) "." (caddr ls)))
+	ls))
   (call-with-input-file derived
     (lambda (in)
       (let lp ((ranges '()))
@@ -109,26 +113,27 @@ exec sash $0 "$@"
             `(char-set-union ,@(reverse ranges)))
            ((or (string=? line "") (eqv? #\# (string-ref line 0))) (lp ranges))
            (else
-            (let ((ls (string-split (string-trim-comment line #\#) #\;)))
+            (let ((ls (merge-subcategory
+		       (map string-trim-both
+			    (string-split (string-trim-comment line #\#) #\;)))))
               (cond
                ((< (length ls) 2)
                 (warn "invalid DerivedCoreProperties line: " line)
                 (lp ranges))
-               ((string-ci=? prop (string-trim-both (cadr ls)))
+               ((string-ci=? prop (cadr ls))
                 (cond
                  ((string-contains (car ls) "..") =>
 		  (lambda (i)
-		    (let* ((str (string-trim (car ls)))
+		    (let* ((str (car ls))
 			   (start (string->number (string-copy str 0 i) 16))
-			   (end (string->number 
-				 (string-trim-both (string-copy str (+ i 2)))
+			   (end (string->number (string-copy str (+ i 2))
 				 16)))
 		      (if (and start end (<= 0 start end #x110000))
 			  (lp (cons `(ucs-range->char-set ,start ,(+ end 1))
 				    ranges))
 			  (error 'extract-char-set-property
 				 "invalid char range: " line)))))
-                 ((string->number (string-trim-right (car ls)) 16) =>
+                 ((string->number (car ls) 16) =>
 		  (lambda (n)
 		    (lp (cons `(char-set ,(integer->char n)) ranges))))
                  (else
@@ -176,7 +181,10 @@ exec sash $0 "$@"
   (define (normalize-char-set-name str)
     (string-append
      (if (eqv? #\: (string-ref str 0)) "char-set" "char-set:")
-     (string-map (lambda (ch) (if (eqv? ch #\_) #\- (char-downcase ch))) str)))
+     (string-map (lambda (ch)
+		   (case ch
+		     ((#\_ #\.) #\-)
+		     (else (char-downcase ch)))) str)))
   (let ((name (string->symbol (normalize-char-set-name name))))
     (values name `(define ,name ,(extract-char-set def data derived)))))
 
