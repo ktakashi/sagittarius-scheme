@@ -28,7 +28,7 @@ jobs:
         working-directory: target
         run: |
           ./dist.sh gen
-          cmake .
+          cmake . -DBUILD_TYPE=Debug
       - name: Build
         working-directory: target
         run: make

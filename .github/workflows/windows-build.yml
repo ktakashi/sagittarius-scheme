@@ -30,13 +30,13 @@ jobs:
         shell: cmd
       - name: CMake
         working-directory: target
-        run: cmake . -G "Ninja" -DSKIP_TEST_VECTOR=ON
+        run: cmake . -G "Ninja" -DSKIP_TEST_VECTOR=ON -DBUILD_TYPE=Debug
         shell: cmd
       - name: Build
         working-directory: target
-        run: ninja
+        run: ninja -j8
         shell: cmd
       - name: Test
         working-directory: target
-        run: ctest --output-on-failure -LE json
+        run: ctest --output-on-failure -LE json -j8
         shell: cmd
