@@ -29,6 +29,7 @@
 ;;;
 
 ;; the API names are taken from Chibi Scheme
+#!nounbound
 (library (sagittarius stty)
     (export stty with-stty with-raw-io
 	    stty-compose-termios! stty-compose-termios)
@@ -42,7 +43,7 @@
 (define ((ispeed-handler v) attr) (sys-cfsetispeed attr v))
 (define ((ospeed-handler v) attr) (sys-cfsetospeed attr v))
 (define ((min-handler v) attr)
-  (unless (< WMIN 0)
+  (unless (< VMIN 0)
     (let ((cc (termios-cc attr)))
       (vector-set! cc VMIN (integer->char v))
       (termios-cc-set! attr cc))))
@@ -54,10 +55,7 @@
 (define stty-lookup 
   (let ((ht (make-eq-hashtable)))
     (for-each
-     (lambda (c)
-       (let ((type (cadr c))
-	     (value (car (cddr c))))
-	 (hashtable-set! ht (car c) (cdr c))))
+     (lambda (c) (hashtable-set! ht (car c) (cdr c)))
 
      ;; We only support what POSIX requires (which is what our Windows
      ;; platform porting supports)
