@@ -30,7 +30,7 @@ jobs:
         shell: cmd
       - name: CMake
         working-directory: target
-        run: cmake . -G "Ninja" -DSKIP_TEST_VECTOR=ON
+        run: cmake . -G "Ninja" -DSKIP_TEST_VECTOR=ON -DDEBUG_GENSTUB=ON
         shell: cmd
       - name: Build
         working-directory: target

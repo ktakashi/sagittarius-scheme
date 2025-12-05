@@ -435,6 +435,7 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
 	} else {
 	  if (SG_CLASS(klass)->cacheReader) {
 	    root = SG_CLASS(klass)->cacheReader(in, (void *)ctx);
+	    if (!root) root = SG_FALSE;
 	  } else {
 	    root = SG_FALSE;
 	  }
