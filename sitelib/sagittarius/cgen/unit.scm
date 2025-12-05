@@ -168,8 +168,8 @@
 	(((and (or '> '>= '== '< '<= '!= 'logand 'logior 'lognot  '>> '<<) op)
 	  c0 c1)
 	 (binary op c0 c1))
-	(else (error 'cpp-condition->string
-		     "Invalid C preprocessor condition expression" condition))))
+	(_ (error 'cpp-condition->string
+		  "Invalid C preprocessor condition expression" condition))))
     (define (n-ary op cs)
       (string-concatenate (intersperse (format "~a" op)
 				       (map (^c (format "(~a)" c)) cs))))

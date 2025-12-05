@@ -344,7 +344,15 @@
 
 (define (pass2/remove-unused-lvars iform lvars type)
   (define (unused-warning lvar)
-    (unless (lvar-optimized? lvar)
+    (unless (or (lvar-optimized? lvar)
+		;; if the lvar referencing optimised lvar this means
+		;; the referencing lvar is the result of macro
+		;; expansion. it's rather annoying to see them
+		;; as the macro user can't fix it.
+		;; so make it silent.
+		(and ($lref? (lvar-initval lvar))
+		     (lvar-optimized?
+		      ($lref-lvar (lvar-initval lvar)))))
       (cond (($let-src iform) =>
 	     (lambda (src)
 	       (define (format-location loc)
