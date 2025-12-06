@@ -12,6 +12,7 @@ OPTION(INSTALL_C_TRANSLATOR "Install scheme2c script" OFF)
 OPTION(INSTALL_SRFI_138 "Create symlink of SRFI-138 (compile-r7rs) script" ON)
 OPTION(USE_SSE "Try to use SSE or AVX if supported (only on POSIX)" ON)
 OPTION(SKIP_TEST_VECTOR "Skip crypto test vector test" OFF)
+OPTION(DEBUG_GENSTUB "Stub generation debugging" OFF)
 
 IF (MSVC)
   OPTION(MAKE_XP_BINARY "create XP compatible binary" OFF)

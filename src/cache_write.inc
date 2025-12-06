@@ -928,10 +928,17 @@ static void write_macro_cache(SgPort *out, SgLibrary *lib, SgObject cbs,
 static SgInternalMutex cache_mutex;
 static SgObject TIMESTAMP_EXT = SG_UNDEF;
 
+/*
+  Here we do relatively conservative due to the past experience
+  of multi process instability.
+
+  First, we lock the cache file, then lock the timestamp file.
+  After all the writing, then we unlock the files.
+ */
 int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
 {
   SgVM *vm = Sg_VM();
-  SgString *cache_path = id_to_filename(id), *tmp_cache_path, *timestamp_path;
+  SgString *cache_path = id_to_filename(id), *timestamp_path;
   SgFile file, tagfile;
   SgPort *out;
   SgFilePort bp;
@@ -951,9 +958,9 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
     flags = SG_INT_VALUE(SG_CAAR(caches));
   }
   if (flags & SG_DISABLE_FILE_CACHE) return FALSE;
-  tmp_cache_path = Sg_StringAppend2(cache_path, TMP_EXT);
+  /* tmp_cache_path = Sg_StringAppend2(cache_path, TMP_EXT); */
   
-  SG_OPEN_FILE(ret, &file, tmp_cache_path, SG_CREATE | SG_WRITE);
+  SG_OPEN_FILE(ret, &file, cache_path, SG_CREATE | SG_WRITE);
   /* In some cases, e.g. encrypted drive on Ubuntu, the path
      name would be too long and can't be opened. In that case,
      we just return here.
@@ -986,40 +993,34 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
     }
   }
   Sg_FlushPort(out);
-  Sg_UnlockFile(&file);
-  Sg_ClosePort(out);
-  if (index < 0) return FALSE;
-  ret = Sg_FileRename(tmp_cache_path, cache_path);
-  if (ret) {
-    if (SG_VM_LOG_LEVEL(vm, SG_WARN_LEVEL)) {
-      Sg_Printf(vm->logPort, UC(";; ***CACHE WARNING***\n"
-				";; failed to rename cache file. %A\n"),
-		Sg_GetLastErrorMessageWithErrorCode(ret));
-    }
-    return FALSE;
-  }
 
   cacheSize = Sg_FileSize(cache_path);
   timestamp_path = Sg_StringAppend2(cache_path, TIMESTAMP_EXT);
   SG_OPEN_FILE(ret, &tagfile, timestamp_path, SG_CREATE|SG_WRITE|SG_TRUNCATE);
-  if (!ret) return FALSE;
+  if (!ret) {
+    Sg_UnlockFile(&file);
+    Sg_ClosePort(out);
+    return FALSE;
+  }
   
   Sg_LockFile(&tagfile, SG_EXCLUSIVE);
 
-  out = Sg_InitFileBinaryPort(&bp, &tagfile, SG_OUTPUT_PORT, &bfp, 
-			      SG_BUFFER_MODE_NONE,
-			      NULL, 0);
-
+  SgObject out2 = Sg_InitFileBinaryPort(&bp, &tagfile, SG_OUTPUT_PORT, &bfp, 
+					SG_BUFFER_MODE_NONE,
+					NULL, 0);
+  
   /* put validate tag */
-  Sg_WritebUnsafe(out, (uint8_t *)VALIDATE_TAG, 0, (int)TAG_LENGTH);
-  Sg_WritebUnsafe(out, (uint8_t *)&cacheSize, 0, sizeof(int64_t));
-  Sg_FlushPort(out);
+  Sg_WritebUnsafe(out2, (uint8_t *)VALIDATE_TAG, 0, (int)TAG_LENGTH);
+  Sg_WritebUnsafe(out2, (uint8_t *)&cacheSize, 0, sizeof(int64_t));
+  Sg_FlushPort(out2);
+  Sg_UnlockFile(&tagfile);
+  Sg_ClosePort(out2);
+  /* SG_CLEAN_FILE_PORT(&bp); */
+
+  Sg_UnlockFile(&file);
   Sg_ClosePort(out);
 
-  /* SG_CLEAN_FILE_PORT(&bp); */
-  Sg_UnlockFile(&tagfile);
-
-  return TRUE;
+  return index < 0;
 }
 
 #endif
