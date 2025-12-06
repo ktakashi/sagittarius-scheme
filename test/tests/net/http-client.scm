@@ -65,12 +65,14 @@
      (http-client-logger-builder
       (connection-logger
        (http-connection-logger-builder
-	(logger (make-logger +debug-level+ (make-appender "~m ~a[0]")))))
+	(logger (make-logger +debug-level+ (make-appender "~m")))))
+      (loggers
+       `((connection-manager
+	  ,(make-logger +debug-level+ (make-appender "~m")))))
       (wire-logger
        (http-wire-logger-builder
 	(logger (make-logger +debug-level+ (make-appender "~m")))
 	(data-formatter bytevector-formatter))))))))
-
 
 (let ()
   (define (test-future f status)
@@ -89,7 +91,7 @@
 		  (follow-redirects (http:redirect normal))))
 
   (test-assert (http:client? client))
-  (run-test "https://server.cryptomix.com/secure/" "200")
+  (run-test "https://certauth.cryptomix.com/" "200")
   (run-test "https://client.badssl.com/" "200")
   (http:client-shutdown! client)
   )
