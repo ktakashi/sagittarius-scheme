@@ -45,16 +45,13 @@ MACRO (FIXUP_COMPILER_FLAGS _PROCESSOR _PLATFORM)
     SET(CMAKE_CXX_FLAGS "-Wall ${CMAKE_CXX_FLAGS}")
     #SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wshorten-64-to-32")
 
-    IF (CMAKE_BUILD_TYPE STREQUAL Debug)
-      SET(CMAKE_C_FLAGS_DEBUG "-Og -fstack-protector-strong -fno-omit-frame-pointer ${CMAKE_C_FLAGS_DEBUG}")
-      SET(CMAKE_CXX_FLAGS_DEBUG "-Og -fstack-protector-strong -fno-omit-frame-pointer ${CMAKE_CXX_FLAGS_DEBUG}")
-    ELSEIF(CMAKE_BUILD_TYPE STREQUAL Release)
-      SET(CMAKE_C_FLAGS_RELEASE "-g ${CMAKE_C_FLAGS_RELEASE}")
-      SET(CMAKE_CXX_FLAGS_RELEASE "-g ${CMAKE_CXX_FLAGS_RELEASE}")
-    ELSE()
-      SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O3")
-      SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3")
-    ENDIF()
+    SET(CMAKE_C_FLAGS_DEBUG "-Og -fstack-protector-strong -fno-omit-frame-pointer ${CMAKE_C_FLAGS_DEBUG}")
+    SET(CMAKE_CXX_FLAGS_DEBUG "-Og -fstack-protector-strong -fno-omit-frame-pointer ${CMAKE_CXX_FLAGS_DEBUG}")
+    SET(CMAKE_C_FLAGS_RELEASE "-g ${CMAKE_C_FLAGS_RELEASE}")
+    SET(CMAKE_CXX_FLAGS_RELEASE "-g ${CMAKE_CXX_FLAGS_RELEASE}")
+    # left to right match, so append -O3
+    SET(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} -O3")
+    SET(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -O3")
 
     # for some reason static library doesn't have this
     # on x86_64 and is required.
