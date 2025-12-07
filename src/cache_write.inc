@@ -932,8 +932,13 @@ static SgObject TIMESTAMP_EXT = SG_UNDEF;
   Here we do relatively conservative due to the past experience
   of multi process instability.
 
-  First, we lock the cache file, then lock the timestamp file.
-  After all the writing, then we unlock the files.
+  First we open/create timestamp file and lock it
+  Then open/create cache file and lock it.
+
+  The reader will wait for the timestamp file to be released.
+
+  This set up should be better than compiling a library when
+  other process is writing cache.
  */
 int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
 {
@@ -958,14 +963,20 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
     flags = SG_INT_VALUE(SG_CAAR(caches));
   }
   if (flags & SG_DISABLE_FILE_CACHE) return FALSE;
-  /* tmp_cache_path = Sg_StringAppend2(cache_path, TMP_EXT); */
+
+  /* first create timestamp file */
+  timestamp_path = Sg_StringAppend2(cache_path, TIMESTAMP_EXT);
+  SG_OPEN_FILE(ret, &tagfile, timestamp_path, SG_CREATE|SG_WRITE|SG_TRUNCATE);
+  if (!ret) return FALSE;
+  Sg_LockFile(&tagfile, SG_EXCLUSIVE);
+
   
   SG_OPEN_FILE(ret, &file, cache_path, SG_CREATE | SG_WRITE);
   /* In some cases, e.g. encrypted drive on Ubuntu, the path
      name would be too long and can't be opened. In that case,
      we just return here.
    */
-  if (!ret) return FALSE;
+  if (!ret) goto err;
   
   /* lock file */
   if (!Sg_LockFile(&file, SG_EXCLUSIVE | SG_DONT_WAIT)) {
@@ -984,43 +995,31 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
     Sg_PutbUnsafe(out, (flags & SG_DEPRECATED_FILE) == SG_DEPRECATED_FILE);
   }
   SG_FOR_EACH(cache, caches) {
-    if (SG_VM_LOG_LEVEL(vm, SG_TRACE_LEVEL)) {
-      Sg_VMDumpCode(SG_CDAR(cache));
-    }
-    if ((index = write_cache(name, SG_CODE_BUILDER(SG_CDAR(cache)),
-			     out, index)) < 0) {
-      break;
-    }
+    if (SG_VM_LOG_LEVEL(vm, SG_TRACE_LEVEL)) Sg_VMDumpCode(SG_CDAR(cache));
+
+    index = write_cache(name, SG_CODE_BUILDER(SG_CDAR(cache)), out, index);
+    if (index < 0) goto close;
   }
   Sg_FlushPort(out);
 
   cacheSize = Sg_FileSize(cache_path);
-  timestamp_path = Sg_StringAppend2(cache_path, TIMESTAMP_EXT);
-  SG_OPEN_FILE(ret, &tagfile, timestamp_path, SG_CREATE|SG_WRITE|SG_TRUNCATE);
-  if (!ret) {
-    Sg_UnlockFile(&file);
-    Sg_ClosePort(out);
-    return FALSE;
-  }
-  
-  Sg_LockFile(&tagfile, SG_EXCLUSIVE);
 
-  SgObject out2 = Sg_InitFileBinaryPort(&bp, &tagfile, SG_OUTPUT_PORT, &bfp, 
-					SG_BUFFER_MODE_NONE,
-					NULL, 0);
-  
+  /* use file API directly here */
   /* put validate tag */
-  Sg_WritebUnsafe(out2, (uint8_t *)VALIDATE_TAG, 0, (int)TAG_LENGTH);
-  Sg_WritebUnsafe(out2, (uint8_t *)&cacheSize, 0, sizeof(int64_t));
-  Sg_FlushPort(out2);
-  Sg_UnlockFile(&tagfile);
-  Sg_ClosePort(out2);
-  /* SG_CLEAN_FILE_PORT(&bp); */
-
-  Sg_UnlockFile(&file);
+  SG_FILE_VTABLE(&tagfile)->write(&tagfile, (uint8_t *)VALIDATE_TAG, TAG_LENGTH);
+  /* put cache file size */
+  SG_FILE_VTABLE(&tagfile)->write(&tagfile, (uint8_t *)&cacheSize, sizeof(int64_t));
+  
   Sg_ClosePort(out);
+  Sg_CloseFile(&tagfile);
 
-  return index < 0;
+  return TRUE;
+
+ close:
+  Sg_ClosePort(out);
+  Sg_CloseFile(&tagfile);
+ err:
+  return FALSE;
 }
 
 #endif
