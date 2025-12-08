@@ -7,6 +7,7 @@
 	    (for (compat r7rs) expand)
 	    (sagittarius)
 	    (sagittarius vm)
+	    (sagittarius vm debug)
 	    (sagittarius vm instruction)
 	    (sagittarius compiler util)
 	    (sagittarius compiler iform)
@@ -24,6 +25,16 @@
       (if (label-dic-info label-dic)
 	  (loop iform.)
 	  iform.))))
+
+(define-syntax define-p3-backtracible
+  (syntax-rules ()
+    ((_ (name . formals) body ...)
+     (define-p3-backtracible name (lambda formals body ...)))
+    ((_ name expr)
+     (define name
+       (lambda (iform labels)
+	 (guard (e (else (raise (condition e (add-backtrace e ($*-src iform))))))
+	   (expr iform labels)))))))
 
 (define (pass3/rec iform labels)
   ((vector-ref *pass3-dispatch-table* (iform-tag iform)) iform labels))
@@ -64,7 +75,7 @@
    (else #f)))
 
 
-(define (pass3/$DEFINE iform labels)
+(define-p3-backtracible (pass3/$DEFINE iform labels)
   ($define-expr-set! iform (pass3/rec ($define-expr iform) labels))
   iform)
 (define (pass3/$LREF iform labels) iform)
@@ -77,7 +88,7 @@
   ($gset-expr-set! iform (pass3/rec ($gset-expr iform) labels))
   iform)
 
-(define (pass3/$IF iform labels)
+(define-p3-backtracible (pass3/$IF iform labels)
   (let ((test-form (pass3/rec ($if-test iform) labels))
 	(then-form (pass3/rec ($if-then iform) labels))
 	(else-form (pass3/rec ($if-else iform) labels)))
@@ -120,14 +131,14 @@
       (let ((lab ($label #f #f iform)))
 	(values lab lab))))
 
-(define (pass3/$LET iform labels) 
+(define-p3-backtracible (pass3/$LET iform labels) 
   (let ((lvars ($let-lvars iform))
 	(inits (imap (lambda (init) (pass3/rec init labels))
 		     ($let-inits iform))))
     (ifor-each2 (lambda (lv in) (lvar-initval-set! lv in)) lvars inits)
     (pass2/shrink-let-frame iform lvars (pass3/rec ($let-body iform) labels))))
 
-(define (pass3/$RECEIVE iform labels)
+(define-p3-backtracible (pass3/$RECEIVE iform labels)
   ($receive-expr-set! iform (pass3/rec ($receive-expr iform) labels))
   ($receive-body-set! iform (pass3/rec ($receive-body iform) labels))
   iform)
@@ -138,7 +149,7 @@
     ($label-body-set! iform (pass3/rec ($label-body iform) labels)))
     iform)
 
-(define (pass3/$LAMBDA iform labels)
+(define-p3-backtracible (pass3/$LAMBDA iform labels)
   ($lambda-body-set! iform (pass3/rec ($lambda-body iform) labels))
   iform)
 
@@ -164,6 +175,11 @@
     (if opt?
 	"wrong number of arguments: ~a requires at least ~a, but got ~a"
 	"wrong number of arguments: ~a requires ~a, but got ~a"))
+  (define (location src)
+    (cond ((and src (source-info src)) =>
+	   (lambda (loc) (format " [~a at ~a]" (car loc) (cdr loc))))
+	  (else " [n/a]")))
+	
   (and-let* ((proc ($call-proc iform))
 	     ( ($gref? proc) )
 	     (id ($gref-id proc)) 
@@ -177,11 +193,16 @@
 		(and opt? (< given req)))
 	;; Should we reuse this?
 	(if (vm-error-unbound?)
-	    (error (id-name id)
-		   (format/ss (err-msg-fmt opt?) (id-name id) req given))
-	    ($vm-warn (err-msg-fmt opt?)
+	    (raise (condition
+		    (make-compile-error ($call-src iform))
+		    (make-undefined-violation) ;; abuse
+		    (make-who-condition (id-name id))
+		    (make-message-condition
+		     (format/ss (err-msg-fmt opt?) (id-name id) req given))))
+	    ($vm-warn (string-append (err-msg-fmt opt?)
+				     (location ($call-src iform)))
 		      (id-name id) req given))))))
-(define (pass3/$CALL iform labels)
+(define-p3-backtracible (pass3/$CALL iform labels)
   (check-argumens iform)
   ($call-args-set! iform (imap (lambda (arg) (pass3/rec arg labels))
 			       ($call-args iform)))
