@@ -72,7 +72,7 @@ jobs:
               }
             }
             .\dist.bat gen
-            cmake . -G "Ninja" -DSKIP_TEST_VECTOR=ON
+            cmake . -G "Ninja" -DSKIP_TEST_VECTOR=ON -DDEBUG_GENSTUB=ON
       - run:
           name: Build
           command: |
