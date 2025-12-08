@@ -45,14 +45,15 @@
 		       (open-file-input-port file/port #f 'block
 					     (*current-load-transcoder*)))
 		      (else
-		       (error 'progam "Strict R6RS mode doesn't have REPL")))))
+		       (error 'progam "Strict R6RS mode doesn't have REPL"))))
+	  (rc (make-read-context-for-load)))
       (apply-directive! port 'r6rs *r6rs-read-context*)
-      (let loop ((e (read port)) (r '()))
+      (let loop ((e (read-with-context port rc)) (r '()))
 	(if (eof-object? e)
 	    (begin
 	      (eval `(program . ,(reverse! r)) (environment '(r6rs-script)))
 	      (exit))
-	    (loop (read port) (cons e r))))))
+	    (loop (read-with-context port rc) (cons e r))))))
   
   (define (script file/port prompt opt)
     (define (import-it lib) (eval `(import ,lib) (current-library)))

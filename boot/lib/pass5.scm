@@ -305,8 +305,13 @@
 	  (let next-free ((free frees)
 			  (n 0))
 	    (cond ((null? free)
-		   (scheme-error 'pass5/symbol-lookup "out of context"
-				 (lvar-name lvar)))
+		   (raise
+		    (condition
+		     (make-compile-error (lvar-name lvar))
+		     (make-undefined-violation) ; abuse
+		     (make-who-condition (lvar-name lvar))
+		     (make-message-condition
+		      "Attempt to reference out-of-phase identifier"))))
 		  ((eq? (car free) lvar)
 		   (return-free cb n lvar))
 		  (else
