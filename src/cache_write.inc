@@ -988,6 +988,13 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   }
   /* lock first, then truncate */
   Sg_FileTruncate(&file, 0);
+  /* Occasionally, I see bogus data appended on Windows.
+     So, let's check for my sanity */
+  if (Sg_FileSize(cache_path) != 0) {
+    Sg_CloseFile(&file);
+    goto err;
+  }
+
   out = Sg_InitFileBinaryPort(&bp, &file, SG_OUTPUT_PORT, &bfp, 
 			      SG_BUFFER_MODE_BLOCK,
 			      portBuffer, SG_PORT_DEFAULT_BUFFER_SIZE);
@@ -1017,8 +1024,8 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
 
  close:
   Sg_ClosePort(out);
-  Sg_CloseFile(&tagfile);
  err:
+  Sg_CloseFile(&tagfile);
   return FALSE;
 }
 
