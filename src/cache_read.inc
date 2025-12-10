@@ -324,7 +324,7 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
 	if (frame->type == DLIST_TAG) {
 	  SG_SET_CDR(frame->list.t, frame->list.o);
 	}
-	SG_PAIR(frame->list.h)->info = root;
+	SG_PAIR(frame->list.h)->info = root ? SG_NIL : root;
 	root = frame->list.h;
 	if (Sg_ConstantLiteralP(root)) {
 	  root = Sg_AddConstantLiteral(root);
