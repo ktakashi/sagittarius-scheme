@@ -169,10 +169,13 @@ void Sg_CloseSocketSelector(SgSocketSelector *selector)
 SgObject Sg_SocketSelectorInterrupt(SgSocketSelector *selector)
 {
   unix_context_t *ctx;
+  Sg_AcquireReadLock(&selector->rw_lock);
   if (Sg_SocketSelectorClosedP(selector)) {
+    Sg_ReleaseReadLock(&selector->rw_lock);
     Sg_Error(UC("Socket selector is closed: %A"), selector);
   }
   ctx = (unix_context_t *)selector->context;
+  Sg_ReleaseReadLock(&selector->rw_lock);
   interrupt_unix_stop(ctx);
   return selector;
 }

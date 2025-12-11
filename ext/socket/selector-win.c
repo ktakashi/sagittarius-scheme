@@ -240,10 +240,13 @@ static SgObject selector_wait(SgSocketSelector *selector, SgObject sockets,
 SgObject Sg_SocketSelectorInterrupt(SgSocketSelector *selector)
 {
   win_context_t *ctx;
+  Sg_AcquireReadLock(&selector->rw_lock);
   if (Sg_SocketSelectorClosedP(selector)) {
+    Sg_ReleaseReadLock(&selector->rw_lock);
     Sg_Error(UC("Socket selector is closed: %A"), selector);
   }
   ctx = (win_context_t *)selector->context;
+  Sg_ReleaseReadLock(&selector->rw_lock);
   WSASetEvent(ctx->event);
   return selector;
 }
