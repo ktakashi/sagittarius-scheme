@@ -65,16 +65,21 @@ void Sg_InitMutex(SgInternalMutex *mutex, int recursive)
   } else {
     pthread_mutex_init(&mutex->mutex, NULL);
   }
+  mutex->initialized = TRUE;
 }
 
 void Sg_LockMutex(SgInternalMutex *mutex)
 {
-  pthread_mutex_lock(&mutex->mutex);
+  if (mutex->initialized) {
+    pthread_mutex_lock(&mutex->mutex);
+  }
 }
 
 void Sg_UnlockMutex(SgInternalMutex *mutex)
 {
-  pthread_mutex_unlock(&mutex->mutex);
+  if (mutex->initialized) {
+    pthread_mutex_unlock(&mutex->mutex);
+  }
 }
 
 void Sg__MutexCleanup(void *mutex_)
@@ -86,6 +91,7 @@ void Sg__MutexCleanup(void *mutex_)
 void Sg_DestroyMutex(SgInternalMutex *mutex)
 {
   pthread_mutex_destroy(&mutex->mutex);
+  mutex->initialized = FALSE;
 }
 
 static void exit_handler(int signum)
@@ -153,31 +159,37 @@ void Sg_SetCurrentThread(SgInternalThread *ret)
 void Sg_InitCond(SgInternalCond *cond)
 {
   pthread_cond_init(&cond->cond, NULL);
+  cond->initialized = TRUE;
 }
 
 void Sg_DestroyCond(SgInternalCond *cond)
 {
   pthread_cond_destroy(&cond->cond);
+  cond->initialized = FALSE;
 }
 
 int Sg_Notify(SgInternalCond *cond)
 {
+  if (!cond->initialized) return FALSE;
   return pthread_cond_signal(&cond->cond);
 }
 
 int Sg_NotifyAll(SgInternalCond *cond)
 {
+  if (!cond->initialized) return FALSE;
   return pthread_cond_broadcast(&cond->cond);
 }
 
 int Sg_Wait(SgInternalCond *cond, SgInternalMutex *mutex)
 {
+  if (!cond->initialized) return FALSE;
   return pthread_cond_wait(&cond->cond, &mutex->mutex);
 }
 
 int Sg_WaitWithTimeout(SgInternalCond *cond, SgInternalMutex *mutex,
 		       struct timespec *pts)
 {
+  if (!cond->initialized) return FALSE;
   return pthread_cond_timedwait(&cond->cond, &mutex->mutex, pts);
 }
 

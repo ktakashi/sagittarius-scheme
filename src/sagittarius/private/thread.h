@@ -52,6 +52,7 @@
 typedef struct SgInternalMutexRec
 {
   pthread_mutex_t mutex;
+  int initialized;
 } SgInternalMutex;
 typedef struct SgInternalThreadRec
 {
@@ -63,6 +64,7 @@ typedef void* SgThreadEntryFunc(void *);
 typedef struct  SgInternalCondRec
 {
   pthread_cond_t cond;
+  int initialized;
 } SgInternalCond;
 
 typedef struct SgInternalSemaphoreRec
