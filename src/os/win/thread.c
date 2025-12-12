@@ -54,12 +54,16 @@ void Sg_InitMutex(SgInternalMutex *mutex, int recursive)
 
 void Sg_LockMutex(SgInternalMutex *mutex)
 {
-  WaitForSingleObject(mutex->mutex, INFINITE);
+  if (mutex->mutex != INVALID_HANDLE_VALUE) {
+    WaitForSingleObject(mutex->mutex, INFINITE);
+  }
 }
 
 void Sg_UnlockMutex(SgInternalMutex *mutex)
 {
-  ReleaseMutex(mutex->mutex);
+  if (mutex->mutex != INVALID_HANDLE_VALUE) {
+    ReleaseMutex(mutex->mutex);
+  }
 }
 
 void Sg__MutexCleanup(void *mutex_)
