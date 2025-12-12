@@ -15,8 +15,8 @@ have it on your platform, please install it.
 
  - [CMake](http://www.cmake.org/)
 
- NOTE: It should be higher than 3.5, though we don't use new features, so
- it should also work with 2.8.4
+The minimum required version of CMake is 3.12. The older version may
+work but not guaranteed.
 
 ## Quick build/install (for Unix like environment)
 
@@ -172,10 +172,21 @@ NB: If you install `gc` without build option, then default is without
 thread support. In such a case, you need to install `gc-threaded` as
 well.
 
+## Building on OpenBSD
+
+For OpenBSD, you can use `pkg_add` command to install dependencies.
+You can use the command below to install the required components.
+
+```sh
+pkg_add -IUv curl libffi boehm-gc cmake bash gmake
+```
+
+NOTE: the command is expecting to be fresh environment.
+
 ## Building on Windows (non Cygwin environment)
 
 On Windows, you need to create an installer and Sagittarius is using
-innosetup for it.  Please install it.
+innosetup for it. Please install it.
 
  - [Inno Setup](http://www.jrsoftware.org/)
 
