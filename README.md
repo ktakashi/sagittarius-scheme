@@ -227,6 +227,19 @@ Experimentally, we support other build tools. Below are the supported ones:
   % ninja
   ```
 
+### Supporting platform
+
+| OS      | x86                | x64                | ARM64              |
+|---------|--------------------|--------------------|--------------------|
+| Linux   |                    | :heavy_check_mark: | :white_check_mark: |
+| macOS   |                    |                    | :heavy_check_mark: |
+| FreeBSD |                    | :heavy_check_mark: | :white_check_mark: |
+| OpenBSD |                    | :heavy_check_mark: | :white_check_mark: |
+| Windows | :heavy_check_mark: | :heavy_check_mark: | :white_check_mark: |
+
+- :heavy_check_mark: Tested with CI
+- :white_check_mark: Tested locally
+
 ## Running test
 
 The tests are executed via `CTest`. In case you want to have verbose output,
