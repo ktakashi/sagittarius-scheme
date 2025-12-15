@@ -991,6 +991,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   /* Occasionally, I see bogus data appended on Windows.
      So, let's check for my sanity */
   if (Sg_FileSize(cache_path) != 0) {
+    SG_FILE_VTABLE(&file)->write(&file, (uint8_t *)INVALID_CACHE_TAG, 1);
     Sg_CloseFile(&file);
     goto err;
   }
@@ -1023,6 +1024,8 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   return TRUE;
 
  close:
+  Sg_SetPortPosition(out, 0, SG_BEGIN);
+  Sg_PutbUnsafe(out, (uint8_t)INVALID_CACHE_TAG);
   Sg_ClosePort(out);
  err:
   Sg_CloseFile(&tagfile);
