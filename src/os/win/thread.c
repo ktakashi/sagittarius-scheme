@@ -232,7 +232,8 @@ int Sg_Notify(SgInternalCond *cond)
 {
   int have_waiters; BOOL r = TRUE;
   if (!cond->mutex) return 0; /* nobody ever waited on this cond var */
-  
+  if (!cond->semaphore) return 0; /* cond is closed */
+
   SG_INTERNAL_MUTEX_SAFE_LOCK_BEGIN(*cond->mutex);
 
   EnterCriticalSection(&cond->waiters_count_lock);
@@ -254,6 +255,7 @@ int Sg_NotifyAll(SgInternalCond *cond)
   DWORD r1 = WAIT_OBJECT_0, err = 0;
 
   if (!cond->mutex) return 0; /* nobody ever waited on this cond var */
+  if (!cond->semaphore) return 0; /* cond is closed */
 
   SG_INTERNAL_MUTEX_SAFE_LOCK_BEGIN(*cond->mutex);
 
