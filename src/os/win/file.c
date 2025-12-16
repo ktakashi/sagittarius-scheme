@@ -830,6 +830,11 @@ void Sg_SetCurrentDirectory(SgString *path)
   }
 }
 
+int Sg_LastFileError(SgFile *file)
+{
+  return SG_FD(file)->lastError;
+}
+
 /* site dynload path is the same path as dynload path, so we don't make it */
 static SgString *win_lib_path = NULL;
 static SgString *win_sitelib_path = NULL;

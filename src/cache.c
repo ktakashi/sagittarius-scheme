@@ -1393,9 +1393,15 @@ int Sg_ReadCache(SgString *id)
      This uses less memory :) */
   in = Sg_InitFileBinaryPort(&bp, &file, SG_INPUT_PORT, 
 			     &bbp, SG_BUFFER_MODE_BLOCK, portBuffer, bufSiz);
-  ret = read_cache_from_port(vm, in);
+  SG_UNWIND_PROTECT {
+    ret = read_cache_from_port(vm, in);
+  } SG_WHEN_ERROR {
+    Sg_Printf(vm->logPort, UC(";; I/O error %A\n"),
+	      Sg_GetLastErrorMessageWithErrorCode(Sg_LastFileError(&file)));
+    Sg_ClosePort(in);
+    SG_NEXT_HANDLER;
+  } SG_END_PROTECT;
 
-  Sg_UnlockFile(&file);
   Sg_ClosePort(in);
   /* SG_CLEAN_BINARY_PORT(&bp); */
   if (SG_VM_LOG_LEVEL(vm, SG_INFO_LEVEL)) {

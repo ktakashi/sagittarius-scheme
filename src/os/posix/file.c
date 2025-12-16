@@ -832,6 +832,11 @@ void Sg_SetCurrentDirectory(SgString *path)
   }
 }
 
+int Sg_LastFileError(SgFile *file)
+{
+  return SG_FD(file)->errorno;
+}
+
 SgObject Sg_DirectoryName(SgString *path)
 {
   long size = SG_STRING_SIZE(path), i;
