@@ -336,10 +336,8 @@
     (thread-start!
      (make-thread
       (lambda ()
-	(guard (e (else (close-socket! server-sock)
-			(set! server-sock #f)
-			(print e)))
-	  (let loop ()
+	(let loop ()
+	  (guard (e (else #;(print e) (loop)))
 	    (let ((sock (socket-accept server-sock)))
 	      (when sock
 		(socket-send sock #vu8(1)) ;; send wake up
