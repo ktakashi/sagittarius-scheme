@@ -266,10 +266,10 @@ static int win_open(SgObject self, SgString *path, int flags)
     return FALSE;
   } else {
     DWORD access = 0, disposition = 0;
-    DWORD share = FILE_SHARE_READ | FILE_SHARE_WRITE;
+    DWORD share = (flags & SG_NO_SHARE) ? 0 : FILE_SHARE_READ | FILE_SHARE_WRITE;
     const wchar_t *u16path;
 
-    switch (flags) {
+    switch (flags & ~SG_NO_SHARE) {
     case SG_READ | SG_WRITE | SG_CREATE:
         access = GENERIC_READ | GENERIC_WRITE;
         disposition = OPEN_ALWAYS;

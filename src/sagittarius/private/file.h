@@ -38,7 +38,9 @@ enum OpenMode {
   SG_READ      = 0x00000001,
   SG_WRITE     = 0x00000002,
   SG_CREATE    = 0x00000010,
-  SG_TRUNCATE  = 0x00000020
+  SG_TRUNCATE  = 0x00000020,
+  /* only Windows */
+  SG_NO_SHARE  = 0x00000100
 };
 
 SG_CLASS_DECL(Sg_FileClass);

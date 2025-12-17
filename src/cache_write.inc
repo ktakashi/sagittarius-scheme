@@ -949,7 +949,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   SgFilePort bp;
   SgBufferedPort bfp;
   SgObject cache;
-  int index = 0, ret, flags = 0;
+  int index = 0, ret, flags = 0, oflags;
   uint8_t portBuffer[SG_PORT_DEFAULT_BUFFER_SIZE];
   int64_t cacheSize;
 
@@ -966,12 +966,13 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
 
   /* first create timestamp file */
   timestamp_path = Sg_StringAppend2(cache_path, TIMESTAMP_EXT);
-  SG_OPEN_FILE(ret, &tagfile, timestamp_path, SG_CREATE|SG_WRITE|SG_TRUNCATE);
+  oflags = SG_CREATE|SG_WRITE|SG_NO_SHARE;
+  SG_OPEN_FILE(ret, &tagfile, timestamp_path, oflags|SG_TRUNCATE);
   if (!ret) return FALSE;
   Sg_LockFile(&tagfile, SG_EXCLUSIVE);
 
   
-  SG_OPEN_FILE(ret, &file, cache_path, SG_CREATE | SG_WRITE);
+  SG_OPEN_FILE(ret, &file, cache_path, oflags);
   /* In some cases, e.g. encrypted drive on Ubuntu, the path
      name would be too long and can't be opened. In that case,
      we just return here.
