@@ -335,7 +335,9 @@
     (thread-start!
      (make-thread
       (lambda ()
-	(guard (e (else (print e)))
+	(guard (e (else (close-socket! server-sock)
+			(set! server-sock #f)
+			(print e)))
 	  (let loop ()
 	    (let ((sock (socket-accept server-sock)))
 	      (when sock
@@ -408,8 +410,7 @@
     (cond-expand (openbsd (test-expect-fail 2)) (else #t))
     (test-equal "counter (3)" count c)
     (test-equal "hard 50ms soft 1000ms" count (length (filter string? r))))
-  (socket-shutdown server-sock SHUT_RDWR)
-  (socket-close server-sock)
+  (close-socket! server-sock)
   (guard (e (else #t)) (thread-join! server-thread 0.1)))
 
 (test-end)
