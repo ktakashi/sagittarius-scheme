@@ -1848,6 +1848,10 @@ SgObject Sg_VMAttachStackTrace(SgVM *vm, SgObject condition, int skipTop)
 
 SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP)
 {
+  /* For CI debug... */
+  if (SG_VM_LOG_LEVEL(vm, SG_INFO_LEVEL))
+    Sg_Printf(vm->logPort, UC("E: %S\n"), exception);
+  
   exception = Sg_VMAttachStackTrace(vm, exception, FALSE);
   /* should never happen but I usually make mistake so lean to safer side. */
   if (SG_NULLP(vm->exceptionHandlers)) {
