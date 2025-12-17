@@ -367,13 +367,13 @@
 	(let ((s (make-client-socket "localhost" server-port)))
 	  (socket-recv s 1) ;; wait for wake up
 	  (socket-set-read-timeout! s 1000)
-	  (format #t "Client socket ready ~a~%" s)
 	  (socket-send s (string->utf8
 			  (string-append "Hello world " (number->string i))))
 	  (selector s push-result soft-timeout))))
     (define (collect-thread)
+      (format #t "Collecting threads...~!")
       (do ((i 0 (+ i 1)) (r '() (cons (shared-queue-get! result 1) r)))
-	  ((= i count) r)))
+	  ((= i count) (format #t "done!~%") r)))
     (define (safe-join! t)
       (guard (e ((uncaught-exception? e)
 		 (uncaught-exception-reason e))
@@ -381,9 +381,12 @@
 	(thread-join! t 0.1)))
 
     (let-values (((selector terminator) (make-socket-selector hard-timeout)))
+      (format #t "Start client selector test - ~a:~a~%" hard-timeout soft-timeout)
       (for-each (caller selector) (iota count))
       (let ((r (map (lambda (t?) (and t? (safe-join! t?))) (collect-thread))))
+	(format #t "Terminating socket selector...~!")
 	(terminator)
+	(format #t "done!~%")
 	(values (atomic-fixnum-load counter) r))))
 
   (let-values (((c r) (run-socket-selector 1000 #f)))
