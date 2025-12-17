@@ -335,14 +335,15 @@
     (thread-start!
      (make-thread
       (lambda ()
-	(let loop ()
-	  (let ((sock (socket-accept server-sock)))
-	    (when sock
-	      (socket-send sock #vu8(1)) ;; send wake up
-	      (guard (e (else (report-error e) (close-socket! sock)))
-		(socket-set-read-timeout! sock 2000) ;; 2s
-		(thread-start! (make-thread (echo sock))))
-	      (loop))))))))
+	(guard (e (else (print e)))
+	  (let loop ()
+	    (let ((sock (socket-accept server-sock)))
+	      (when sock
+		(socket-send sock #vu8(1)) ;; send wake up
+		(guard (e (else (report-error e) (close-socket! sock)))
+		  (socket-set-read-timeout! sock 2000) ;; 2s
+		  (thread-start! (make-thread (echo sock))))
+		(loop)))))))))
   (define count (get-socket-count 100))
   (define (run-socket-selector hard-timeout soft-timeout)
     (define result (make-shared-queue))
@@ -364,7 +365,8 @@
 		     e))))))))
       (guard (e (else (shared-queue-put! result
 		       (thread-start! (make-thread (lambda () (raise e)))))))
-	(let ((s (make-client-socket "localhost" server-port)))
+	(let ((s (make-client-socket "localhost" server-port
+				     (socket-options (read-timeout 2000)))))
 	  (socket-recv s 1) ;; wait for wake up
 	  (socket-set-read-timeout! s 1000)
 	  (socket-send s (string->utf8
