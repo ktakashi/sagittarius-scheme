@@ -372,7 +372,12 @@
 	  (selector s push-result soft-timeout))))
     (define (collect-thread)
       (format #t "Collecting threads...~!")
-      (do ((i 0 (+ i 1)) (r '() (cons (shared-queue-get! result 1) r)))
+      ;; all the sockets must be in the selector,
+      ;; so waiting for 1.5s here should conver all the sockets
+      ;; execution (incl. timeout)
+      (thread-yield!)
+      (thread-sleep! 1.5)
+      (do ((i 0 (+ i 1)) (r '() (cons (shared-queue-get! result 0.1) r)))
 	  ((= i count) (format #t "done!~%") r)))
     (define (safe-join! t)
       (guard (e ((uncaught-exception? e)
