@@ -250,7 +250,8 @@
 	      (terminater)))))))
     (define result (make-lock-free-queue))
     (define server-port
-      (number->string (socket-info-port (socket-info server-sock))))
+      (and server-sock
+	   (number->string (socket-info-port (socket-info server-sock)))))
 
     (define (caller i)
       (thread-start!
@@ -359,7 +360,7 @@
 	 (thread-start!
 	  (make-thread
 	   (lambda ()	      
-	     (guard (ex (else #;(print ex) ex))
+	     (guard (ex (else (close-socket! sock) #;(print ex) ex))
 	       (let ((v (or e (utf8->string (socket-recv sock 255)))))
 		 (close-socket! sock)
 		 (if (string? v)
