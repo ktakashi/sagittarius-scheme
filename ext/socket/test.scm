@@ -272,10 +272,12 @@
 (let ()
   (define server (make-server-socket "0"))
   (define t (make-thread
-	      (lambda ()
-		(socket-read-select #f server))))
+	     (lambda ()
+	       (guard (e (else (print e)))
+		 (socket-read-select #f server)))))
   (test-error "not blocked" condition? (thread-interrupt! t))
   (thread-start! t)
+  (thread-yield!)
   (thread-sleep! 1) ;; wait a bit
   (test-assert "thread-interrupt!" (thread-interrupt! t))
   (test-equal "result" '() (thread-join! t))
