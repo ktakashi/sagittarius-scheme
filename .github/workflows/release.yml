@@ -30,7 +30,7 @@ jobs:
       version: ${{ needs.Extract-Version.outputs.version }}
 
   Create-Windows-Installer-Artifact:
-    needs: Create-Artifact
+    needs: [Extract-Version, Create-Artifact]
     uses: ./.github/workflows/windows-installer.yml
     with:
       artifact-id: ${{ needs.Create-Artifact.outputs.artifact-id }}
