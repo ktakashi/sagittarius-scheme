@@ -18,7 +18,8 @@ jobs:
           tag=${{ github.ref_name }}
           prefix="v"
           version=${tag#$prefix}
-          echo "name=version::$version" >> $GITHUB_STATE
+          echo "Release version: $version"
+          echo "version=$version" >> $GITHUB_OUTPUT
 
   Create-Artifact:
     needs: Extract-Version

@@ -56,6 +56,7 @@ jobs:
             echo "Version doesn't match $input_version vs $version"
             exit 1
           fi
+        working-directory: build
       - name: Build
         run: |
           cmake ../checkout
