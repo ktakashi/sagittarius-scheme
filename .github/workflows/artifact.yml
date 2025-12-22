@@ -68,6 +68,6 @@ jobs:
           name: sagittarius-doc-${{ inputs.suffix }}
           path: |
             ./build/doc/**
-           !./build/doc/CMakeFiles/*
-           !./build/doc/*.cmake
+            !./build/doc/CMakeFiles/*
+            !./build/doc/*.cmake
           compression-level: 0
