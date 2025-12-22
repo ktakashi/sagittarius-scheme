@@ -21,7 +21,7 @@ jobs:
         arch: [x64, x86]
     steps:
       - name: Download artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           artifact-ids: ${{ inputs.artifact-id }}
           merge-multiple: true
@@ -59,7 +59,7 @@ jobs:
           options: /Qp
       - name: Upload installer
         id: upload-windows-installer
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: sagittarius-${{ inputs.suffix }}-${{ matrix.arch }}-installer
           path: ${{ steps.extract.outputs.build_dir }}/win/Output/setup_sagittarius_*.exe

@@ -43,6 +43,7 @@ jobs:
         run: |
           cmake ../checkout
           make -j8
+          make online-doc
         working-directory: build
       - name: Extract version
         id: version
@@ -55,9 +56,17 @@ jobs:
         run: |
           ../checkout/dist.sh dist ../checkout
         working-directory: build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         id: upload-artifact
         with:
           name: sagittarius-${{ inputs.suffix }}
           path: ./build/sagittarius-${{ steps.version.outputs.build_version }}.tar.gz
+          compression-level: 0
+      - uses: actions/upload-artifact@v6
+        id: upload-doc-artifact
+        with:
+          name: sagittarius-doc-${{ inputs.suffix }}
+          path: ./build/doc/**
+          !path: ./build/doc/CMakeFiles/*
+          !path: ./build/doc/*.cmake
           compression-level: 0
