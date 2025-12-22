@@ -58,3 +58,20 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             COMMIT=${{ github.sha }}
+  artifact:
+    if: ${{ needs.check_date.outputs.should_run != 'false' }}
+    uses: ./.github/workflows/artifact.yml
+    with:
+      release: false
+      suffix: ${{ github.run_id }}
+
+  installer:
+    if: ${{ needs.check_date.outputs.should_run != 'false' }}
+    needs: [artifact]
+    uses: ./.github/workflows/windows-installer.yml
+    with:
+      artifact-id: ${{ needs.artifact.outputs.artifact-id }}
+      tar-file: ${{ needs.artifact.outputs.tar-file }}
+      suffix: ${{ github.run_id }}
+
+

@@ -15,18 +15,6 @@ on:
       tar-file:
         description: Sagittarius tar file of the artifact content
         value: ${{ jobs.Build-Artifact.outputs.tar-file }}
-  workflow_dispatch:
-    inputs:
-      release:
-        required: true
-        type: boolean
-        default: false
-        description: "Release artifact?"
-      suffix:
-        required: true
-        type: string
-        default: 'manual'
-        description: "Artifact suffix"
 
 jobs:
   Build-Artifact:
@@ -83,4 +71,5 @@ jobs:
             ./build/doc/**
             !./build/doc/CMakeFiles/*
             !./build/doc/*.cmake
+            !./build/doc/Makefile
           compression-level: 0
