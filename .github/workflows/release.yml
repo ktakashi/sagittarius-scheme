@@ -1,0 +1,44 @@
+name: Sagittarius release
+
+on:
+  push:
+    tags: [ 'v*' ]
+
+jobs:
+  Extract-Version:
+    runs-on: ubuntu-latest
+    name: Extract Version
+    outputs:
+      version: ${{ steps.check_version.outputs.version }}
+      ok: ${{ steps.check_version.outputs.ok }}
+    steps:
+      - id: check_version
+        continue-on-error: true
+        run: |
+          tag=${{ github.ref_name }}
+          prefix="v"
+          if [[ $tag == $prefix* ]]; then
+            version=${tag#$prefix}
+            echo "name=version::$version" >> $GITHUB_STATE
+            echo "name=ok::true" >> $GITHUB_STATE
+          else
+            echo "name=version::invalid" >> $GITHUB_STATE
+            echo "name=ok::false" >> $GITHUB_STATE
+          fi
+
+  Create-Artifact:
+    needs: Extract-Version
+    if: ${{ needs.Extract-Version.outputs.ok == 'true' }}
+    uses: ./.github/workflows/artifact.yml
+    with:
+      release: true
+      suffix: ${{ needs.Extract-Version.outputs.version }}
+      version: ${{ needs.Extract-Version.outputs.version }}
+
+  Create-Windows-Installer-Artifact:
+    needs: Create-Artifact
+    uses: ./.github/workflows/windows-installer.yml
+    with:
+      artifact-id: ${{ needs.Create-Artifact.outputs.artifact-id }}
+      tar-file: ${{ needs.Create-Artifact.outputs.tar-file }}
+      suffix: ${{ needs.Extract-Version.outputs.version }}

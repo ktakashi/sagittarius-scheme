@@ -8,6 +8,10 @@ on:
       suffix:
         required: true
         type: string
+      version:
+        required: false
+        type: string
+        default: "n/a"
     outputs:
       artifact-id:
         description: Uploaded artifact ID
@@ -40,6 +44,18 @@ jobs:
           echo "old version:$version, new version: $version-${{ github.run_id }}"
           sed -e "s/$version/$version-${{ github.run_id }}/" -i ../checkout/CMakeLists.txt
         working-directory: build
+      - name: Check release version
+        if: ${{ inputs.release }}
+        run: |
+          input_version=${{ inputs.version }}
+          version=$(cmake -LA ../checkout | grep SAGITTARIUS_VERSION | sed 's/SAGITTARIUS_VERSION:STRING=//')
+          if [ $input_version == $version ]; then
+            echo "Release version: $input_version"
+            exit 0
+          else
+            echo "Version doesn't match $input_version vs $version"
+            exit 1
+          fi
       - name: Build
         run: |
           cmake ../checkout
