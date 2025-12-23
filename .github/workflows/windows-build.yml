@@ -38,5 +38,5 @@ jobs:
         shell: cmd
       - name: Test
         working-directory: target
-        run: ctest --output-on-failure -LE json
+        run: ctest --output-on-failure -LE json -j8
         shell: cmd
