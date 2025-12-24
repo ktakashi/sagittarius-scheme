@@ -63,6 +63,9 @@ nl.AddSystemEnvPath=Toevoegen aan System PATH
 AddUserEnvPath=Add to User PATH
 jp.AddUserEnvPath=ユーザー PATHに追加する
 nl.AddUserEnvPath=Toevoegen aan User PATH
+NoAddEnvPath=No
+jp.NoAddEnvPath=いいえ
+nl.NoAddEnvPath=Nee
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
@@ -71,6 +74,7 @@ Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescrip
 Name: "registry"; Description: "{cm:AssocFileExtension, {#MyAppName}, .scm}"; GroupDescription: "{cm:AdditionalRegistry}"; Flags: unchecked
 Name: "systemEnvPath"; Description: "{cm:AddSystemEnvPath}"; GroupDescription: "{cm:AddEnvPath}"; flags: unchecked exclusive
 Name: "userEnvPath"; Description: "{cm:AddUserEnvPath}"; GroupDescription: "{cm:AddEnvPath}"; flags: unchecked exclusive
+Name: "noEnvPath"; Description: "{cm:NoAddEnvPath}"; GroupDescription: "{cm:AddEnvPath}"; flags: exclusive
 
 [Files]
 Source: "{#BuiltDir}\sash.exe"; DestDir: "{app}"; DestName: "{#MyAppExeName}"; Flags: ignoreversion
