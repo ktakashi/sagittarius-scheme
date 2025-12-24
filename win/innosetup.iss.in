@@ -15,6 +15,8 @@
 #define BinDir   "@PROJECT_BINARY_DIR@"
 #define TargetArch "@SAGITTARIUS_ARCH@"
 
+#include "@PROJECT_SOURCE_DIR@/win/environment.iss"
+
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
 ; Do not use the same AppId value in installers for other applications.
@@ -38,6 +40,7 @@ OutputBaseFilename=setup_sagittarius_{#MyAppVersion}{#TargetArch}
 Compression=lzma
 SolidCompression=yes
 ChangesAssociations=yes
+ChangesEnvironment=true
 WizardStyle=modern
 @SAGITTARIUS_INSTALLER_MODE@
 @SAGITTARIUS_INSTALLER_ARCH@
@@ -51,12 +54,23 @@ Name: "nl"; MessagesFile: "compiler:Languages\Dutch.isl"
 AdditionalRegistry=Registry association:
 jp.AdditionalRegistry=レジストリに登録する:
 nl.AdditionalRegistry=Vereniging van het register:
+AddEnvPath=Add to PATH variable
+jp.AddEnvPath=PATHに追加する
+nl.AddEnvPath=Toevoegen aan PATH variabele
+AddSystemEnvPath=Add to System PATH
+jp.AddSystemEnvPath=System PATHに追加する
+nl.AddSystemEnvPath=Toevoegen aan System PATH
+AddUserEnvPath=Add to User PATH
+jp.AddUserEnvPath=ユーザー PATHに追加する
+nl.AddUserEnvPath=Toevoegen aan User PATH
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 Name: "desktopiconLoader"; Description: "{cm:CreateDesktopIcon} ({#SchemeFileLoader})"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 6.1
 Name: "registry"; Description: "{cm:AssocFileExtension, {#MyAppName}, .scm}"; GroupDescription: "{cm:AdditionalRegistry}"; Flags: unchecked
+Name: "systemEnvPath"; Description: "{cm:AddSystemEnvPath}"; GroupDescription: "{cm:AddEnvPath}"; flags: unchecked exclusive
+Name: "userEnvPath"; Description: "{cm:AddUserEnvPath}"; GroupDescription: "{cm:AddEnvPath}"; flags: unchecked exclusive
 
 [Files]
 Source: "{#BuiltDir}\sash.exe"; DestDir: "{app}"; DestName: "{#MyAppExeName}"; Flags: ignoreversion
@@ -104,6 +118,22 @@ Root: HKCR; Subkey: "{#MyAppName}"; ValueType: string; ValueName: ""; ValueData:
 Root: HKCR; Subkey: "{#MyAppName}\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\{#MyAppExeName},0"; Tasks: registry
 Root: HKCR; Subkey: "{#MyAppName}\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"" %*"; Tasks: registry
 
-;[Run]
-;Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, "&", "&&")}}"; Flags: nowait postinstall skipifsilent
+[Code]
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+    if (CurStep = ssPostInstall) and (IsTaskSelected('systemEnvPath') or IsTaskSelected('userEnvPath')) then
+        if IsTaskSelected('systemEnvPath') then
+            EnvAddPath(ExpandConstant('{app}'), 'system')
+        else 
+            EnvAddPath(ExpandConstant('{app}'), 'user')
+end;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+    if (CurUninstallStep = usPostUninstall) and (IsTaskSelected('systemEnvPath') or IsTaskSelected('userEnvPath')) then
+        if IsTaskSelected('systemEnvPath') then
+            EnvRemovePath(ExpandConstant('{app}'), 'system')
+        else
+            EnvRemovePath(ExpandConstant('{app}'), 'user')
+end;
 
