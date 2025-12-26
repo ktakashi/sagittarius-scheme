@@ -12,7 +12,7 @@ also provides asynchronous calling atop future object of
 
 The following example shows how to use in a nutshell.
 
-* @[-[Http Client](../../example/net/http-client0.scm)]
+* @[-[Http Client](../../../example/net/http-client0.scm)]
 
 ### [§3] HTTP client
 
