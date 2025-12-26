@@ -57,6 +57,15 @@ jobs:
         with:
           path: ${{ steps.extract.outputs.build_dir }}/win/innosetup.iss
           options: /Qp
+      - name: Test exe
+        shell: pwsh
+        run: |
+          $file = Get-Item .\win\Output\*.exe
+          Start-Process -FilePath ".\win\Output\$($file.Name)" -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/ALLUSERS', -Wait
+
+          $sash = "$($Env:Programfiles)\Sagittarius\sash.exe"
+          Start-Process -FilePath $sash -ArgumentList '-Einfo', ".\example\net\http-client0.scm" -Wait -NoNewWindow
+        working-directory: ${{ steps.extract.outputs.build_dir }}
       - name: Upload installer
         id: upload-windows-installer
         uses: actions/upload-artifact@v6
