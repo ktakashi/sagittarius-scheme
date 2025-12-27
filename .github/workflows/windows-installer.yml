@@ -59,17 +59,16 @@ jobs:
           options: /Qp
       - name: Install Sagittarius
         shell: pwsh
+        working-directory: ${{ steps.extract.outputs.build_dir }}
         run: |
           $file = Get-Item .\win\Output\*.exe
           Start-Process -FilePath ".\win\Output\$($file.Name)" -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/ALLUSERS', '/LOG="\tmp\setup.log"' -Wait
-        working-directory: ${{ steps.extract.outputs.build_dir }}
-      - name: Debug
-        run: type \tmp\setup.log
-        shell: cmd
-      - name: Run sash
-        shell: pwsh
-        run: |
-          $sash = "$($Env:Programfiles)\Sagittarius\sash.exe"
+
+          if ("${{ matrix.arch }}" -eq "x86") {
+            $sash = "$(${Env:ProgramFiles(x86)})\Sagittarius\sash.exe"
+          } else {
+            $sash = "$($Env:ProgramFiles)\Sagittarius\sash.exe"
+          }
           Write-Output $sash
           Start-Process -FilePath $sash -ArgumentList '-Einfo', ".\example\net\http-client0.scm" -Wait -NoNewWindow
       - name: Upload installer
