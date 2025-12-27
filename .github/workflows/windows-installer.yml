@@ -11,6 +11,19 @@ on:
       suffix:
         required: true
         type: string
+  workflow_dispatch:
+    inputs:
+      artifact-id:
+        required: true
+        type: string
+      tar-file:
+        required: false
+        type: string
+        default: "<n/a>"
+      suffix:
+        required: false
+        type: string
+        default: "manual"
 
 jobs:
   Build-Windows-Installer:
@@ -28,10 +41,18 @@ jobs:
       - name: Debug
         run: dir
         shell: cmd
+      - name: Find tar file
+        id: find_tar_file
+        run: |
+          $tarfile = "${{ inputs.tar-file }}"
+          if ($tarfile -eq "<n/a>") {
+            $tarfile = (Get-Item sagittarius*.tar.gz).Name
+          }
+          Write-Output "tar_file=$($tarfile)" >> $Env:GITHUB_OUTPUT
       - name: Extract tar file
         id: extract
         run: |
-          tar -xzf ${{ inputs.tar-file }}
+          tar -xzf ${{ steps.find_tar_file.outputs.tar_file }}
           dir /B /AD > tmpfile
           set /p BUILD_DIR= < tmpfile
           echo Build dir: %BUILD_DIR%
