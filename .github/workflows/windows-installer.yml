@@ -71,6 +71,7 @@ jobs:
           type setup.log
           dir
       - name: Exec Sagittarius
+        working-directory: ${{ steps.extract.outputs.build_dir }}
         shell: pwsh
         run: |
           if ("${{ matrix.arch }}" -eq "x86") {
@@ -79,7 +80,10 @@ jobs:
             $sash = "$($Env:ProgramFiles)\Sagittarius\sash.exe"
           }
           Write-Output $sash
-          Start-Process -FilePath $sash -ArgumentList '-Einfo', ".\example\net\http-client0.scm" -Wait -NoNewWindow
+          $proc = Start-Process -FilePath $sash -ArgumentList '-Einfo', ".\example\net\http-client0.scm" -Wait -NoNewWindow -PassThru
+          if ($proc.ExitCode -ne 0) {
+            throw "Failed to execute sanity check(s)"
+          }
       - name: Upload installer
         id: upload-windows-installer
         uses: actions/upload-artifact@v6
