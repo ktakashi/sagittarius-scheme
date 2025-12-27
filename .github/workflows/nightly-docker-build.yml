@@ -1,4 +1,4 @@
-name: Nightly Docker container build
+name: Nightly build
 
 # Once a day
 on:
