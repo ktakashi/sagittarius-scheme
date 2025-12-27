@@ -17,6 +17,7 @@ jobs:
     runs-on: windows-2025
     name: Windows installer - ${{ matrix.arch }}
     strategy:
+      fail-fast: false
       matrix:
         arch: [x64, x86]
     steps:
@@ -62,8 +63,16 @@ jobs:
         working-directory: ${{ steps.extract.outputs.build_dir }}
         run: |
           $file = Get-Item .\win\Output\*.exe
-          Start-Process -FilePath ".\win\Output\$($file.Name)" -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/ALLUSERS', '/LOG="\tmp\setup.log"' -Wait
-
+          Start-Process -FilePath ".\win\Output\$($file.Name)" -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/ALLUSERS', '/LOG="setup.log"' -Wait
+      - name: Debug
+        working-directory: ${{ steps.extract.outputs.build_dir }}
+        shell: cmd
+        run: |
+          type setup.log
+          dir
+      - name: Exec Sagittarius
+        shell: pwsh
+        run: |
           if ("${{ matrix.arch }}" -eq "x86") {
             $sash = "$(${Env:ProgramFiles(x86)})\Sagittarius\sash.exe"
           } else {
