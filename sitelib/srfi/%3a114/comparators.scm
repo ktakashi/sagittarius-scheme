@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!nounbound
 (library (srfi :114 comparators)
     (export comparator? comparator-comparison-procedure? 
 	    comparator-hash-function?
@@ -390,7 +391,7 @@
 	(if (zero? index)
 	    result
 	    (let* ((prod (mod (* result 33) +limit+))
-		   (sum (mod (+ prod (hash (ref x index)) +limit+))))
+		   (sum (mod (+ prod (hash (ref x index))) +limit+)))
 	      (loop (- index 1) sum))))))
 
   (define (make-listwise-comparator test comparator nil? kar kdr)
@@ -448,7 +449,7 @@
   (define (make-cdr-comparator comparator)
     (make-comparator 
      pair? #t 
-     (lambda (a b) (comparator-compare (cdr a) (cdr b)))
+     (lambda (a b) (comparator-compare comparator (cdr a) (cdr b)))
      (lambda (obj) (comparator-hash comparator (cdr obj)))))
 
   (define (make-pair-comparison car-comparator cdr-comparator)
@@ -549,8 +550,8 @@
       (let loop ((comparator (matching-comparator a comparators))
 		 (first? #t))
 	(if comparator
-	    (if (comparator-equal? a b)
-		(loop (matching-comparator a comparators) #f)
+	    (if (comparator-equal? comparator a b)
+		(loop (matching-comparator a (remq comparator comparators)) #f)
 		#f)
 	    (or (not first?) 
 		(error 'refined-equality-predicate
@@ -561,9 +562,9 @@
       (let loop ((comparator (matching-comparator a comparators))
 		 (first? #t))
 	(if comparator
-	    (let ((result (comparator-compare a b)))
+	    (let ((result (comparator-compare comparator a b)))
 	      (if (eqv? result 0)
-		  (loop (matching-comparator a comparators) #f)
+		  (loop (matching-comparator a (remq comparator comparators)) #f)
 		  result))
 	    (if first? 
 		(error 'refined-comparison-procedure
@@ -616,24 +617,26 @@
 		  'comparison 'reflexive))
 
   (define (check-symmetric-equality comparator a b)
-    (if (comparator-equal? a b)
-	(debug-assert (comparator-equal? b a) 'equality 'symmetric))
-    (if (not (comparator-equal? a b))
-	(debug-deny (comparator-equal? b a) 'equality 'symmetric)))
+    (if (comparator-equal? comparator a b)
+	(debug-assert (comparator-equal? comparator b a) 'equality 'symmetric))
+    (if (not (comparator-equal? comparator a b))
+	(debug-deny (comparator-equal? comparator b a) 'equality 'symmetric)))
 
   (define (check-asymmetric-comparison comparator a b)
     (debug-assert (eqv?
-		   (comparator-compare a b)
-		   (- (comparator-compare a b)))
+		   (comparator-compare comparator a b)
+		   (- (comparator-compare comparator a b)))
 		  'comparison 'asymmetric))
 
   (define (check-transitive-equality comparator a b c)
-    (and (comparator-equal? a b) (comparator-equal? b c)
-	 (debug-assert (comparator-equal? a c) 'equality 'transitive))
-    (and (comparator-equal? a b) (not (comparator-equal? b c))
-	 (debug-deny (comparator-equal? a c) 'equality 'transitive))
-    (and (not (comparator-equal? a b)) (comparator-equal? b c)
-	 (debug-deny (comparator-equal? a c) 'equality 'transitive)))
+    (and (comparator-equal? comparator a b) (comparator-equal? comparator b c)
+	 (debug-assert (comparator-equal? comparator a c) 'equality 'transitive))
+    (and (comparator-equal? comparator a b)
+	 (not (comparator-equal? comparator b c))
+	 (debug-deny (comparator-equal? comparator a c) 'equality 'transitive))
+    (and (not (comparator-equal? comparator a b))
+	 (comparator-equal? comparator b c)
+	 (debug-deny (comparator-equal? comparator a c) 'equality 'transitive)))
 
   (define (check-transitive-comparison comparator a b c)
     (define <= (<=? comparator))
@@ -675,12 +678,12 @@
        (lambda (a b)
 	 (check-all comparator a b c c?)
 	 (when (not c?) (set! c a) (set! c? #t))
-	 (comparator-equal? comparator))
+	 (comparator-equal? comparator a b))
        (if (comparator-comparison-procedure? comparator)
 	   (lambda (a b)
 	     (check-all comparator a b c c?)
 	     (when (not c?) (set! c b) (set! c? #t))
-	     (comparator-compare comparator))
+	     (comparator-compare comparator a b))
 	   #f)
        (if (comparator-hash-function? comparator)
 	   (lambda (obj)

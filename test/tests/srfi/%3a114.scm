@@ -116,4 +116,22 @@
   (test-equal "car hash" carh (comparator-hash car-comparator '(car . cdr)))
   (test-equal "cdr hash" cdrh (comparator-hash cdr-comparator '(car . cdr))))
 
+;; wrong number of argument during compilation...
+(let ((vech (comparator-hash vector-comparator #(1 2 3))))
+  (define vec-comparator (make-vector-comparator default-comparator))
+  (test-equal "vector hash" vech (comparator-hash vec-comparator #(1 2 3))))
+
+(define (test-comparator comparator v)
+  (test-assert "compare" (comparator-compare comparator v v))
+  (test-assert "hash" (comparator-hash comparator v)))
+
+(let ((v '(a b c)))
+  (test-comparator (make-car-comparator default-comparator) v)
+  (test-comparator (make-cdr-comparator list-comparator) v)
+  (test-comparator (make-pair-comparator default-comparator list-comparator) v)
+  (test-comparator (make-refining-comparator list-comparator) v)
+  (test-comparator (make-debug-comparator list-comparator) v)
+  )
+
+
 (test-end)
