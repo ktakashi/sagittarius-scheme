@@ -1,4 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
+#!nounbound
 (library (encoding util)
     (export utf16->ucs4
 	    ucs4->utf16

@@ -1,4 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
+#!nounbound
 (library (encoding euc-jp)
     (export euc-jp-codec)
     (import (rnrs)
@@ -47,7 +48,7 @@
 	     (euc (lookup-euc utf16)))
 	(cond (euc
 	       (if (<= euc #xDF)
-		   (put-u8 euc)
+		   (put-u8 port euc)
 		   (begin
 		     (put-u8 port (bitwise-and 
 				   (bitwise-arithmetic-shift-right euc 8) #xFF))

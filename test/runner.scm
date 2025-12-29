@@ -40,7 +40,7 @@
 	      (display #\tab)(display "expected value: ")
 	      (display expected)(newline)
 	      (display #\tab)(display "  actual value: ")
-	      (display actual)(newline)))))
+	      (display actual) (newline)))))
     (when (output-port? log)
       (display "Test end:" log)
       (newline log)

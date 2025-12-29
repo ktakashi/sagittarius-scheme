@@ -1,4 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
+#!nounbound
 (library (encoding sjis)
     (export sjis-codec)
     (import (rnrs)
@@ -47,7 +48,7 @@
 	     (sjis (lookup-sjis utf16)))
 	(cond (sjis
 	       (if (<= sjis #xDF)
-		   (put-u8 sjis)
+		   (put-u8 port sjis)
 		   (begin
 		     (put-u8 port (bitwise-and 
 				   (bitwise-arithmetic-shift-right sjis 8) #xFF))
