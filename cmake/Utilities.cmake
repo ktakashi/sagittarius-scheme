@@ -73,6 +73,8 @@ MACRO(DOWNLOAD)
       BREAK()
     ELSE()
       IF (CURRENT_ATTEMPTS LESS ATTEMPTS)
+	# sleep 5 seconds
+	EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E sleep 5)
 	MESSAGE(WARNING "Retry download (Attempt ${CURRENT_ATTEMPTS}/${ATTEMPTS})")
       ELSE()
 	MESSAGE(FATAL_ERROR "Failed to download ${DL_URL} after ${ATTEMPTS}")
