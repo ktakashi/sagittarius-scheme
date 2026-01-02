@@ -59,6 +59,7 @@ jobs:
           build-args: |
             COMMIT=${{ github.sha }}
   artifact:
+    needs: check_date
     if: ${{ needs.check_date.outputs.should_run != 'false' }}
     uses: ./.github/workflows/artifact.yml
     with:
