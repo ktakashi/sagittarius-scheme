@@ -562,8 +562,9 @@ SgObject Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo,
 			  SgObject timeout)
 {
   struct addrinfo *p = addrinfo->ai;
-  int rc;
+  int rc, nonblocking = -1;
   if (!SG_FALSEP(timeout)) {
+    nonblocking = socket->nonblocking;
     Sg_SocketNonblocking(socket);
   }
   rc = connect(socket->socket, p->ai_addr, (int)p->ai_addrlen);
@@ -586,6 +587,9 @@ SgObject Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo,
       goto err;
     }
   }
+  if (nonblocking == 0) {
+    Sg_SocketBlocking(socket);
+  }
   toggle_nagle(socket->socket, 1);
   socket->type = SG_SOCKET_CLIENT;
   socket->address = SG_SOCKADDR(ai_addr(addrinfo));
@@ -594,7 +598,7 @@ SgObject Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo,
   return socket;
     
  err:
-  if (!SG_FALSEP(timeout)) {
+  if (nonblocking == 0) {
     Sg_SocketBlocking(socket);
   }
   socket->lastError = last_error;
@@ -1453,6 +1457,7 @@ static int64_t socket_read_u8(SgObject self, uint8_t *buf, int64_t size)
      take sometime to flush socket even the data is continuous.
    */
   long readSize = 0;
+  SgSocket *socket;
   if (SG_PORT_HAS_U8_AHEAD(self) && size > 0) {
     buf[0] = SG_PORT_U8_AHEAD(self);
     SG_PORT_U8_AHEAD(self) = EOF;
@@ -1461,13 +1466,12 @@ static int64_t socket_read_u8(SgObject self, uint8_t *buf, int64_t size)
     readSize++;
   }
   if (size == 0) return readSize;
-
+  socket = SG_PORT_SOCKET(self);
   do {
     /* wait a bit in case of retry (10ms?)*/
     /* struct timeval tm = {0, 10000}; */
     /* int ready; */
-    long now = Sg_SocketReceive(SG_PORT_SOCKET(self), buf + readSize, 
-				(long)size, 0);
+    long now = Sg_SocketReceive(socket, buf + readSize, (long)size, 0);
     if (-1 == now) {
       int e = SG_PORT_SOCKET(self)->lastError;
       Sg_IOReadError(SG_INTERN("read-u8"),

@@ -201,7 +201,9 @@ static SgObject win_selector_wait(win_context_t *ctx, int n,
 	}
 	SG_FOR_EACH(cp, h) {
 	  SgSocket *s = SG_SOCKET(SG_CAAR(cp));
+	  ULONG val = s->nonblocking;
 	  WSAEventSelect(s->socket, NULL, 0);
+	  ioctlsocket(s->socket, FIONBIO, &val);
 	}
       }
       ReleaseMutex(ctx->lock);
