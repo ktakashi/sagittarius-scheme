@@ -50,7 +50,7 @@ IF (NOT ZLIB_FOUND)
   SET(USED_ZLIB_VERSION "zlib-1.3.1")
   IF (NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/${USED_ZLIB_VERSION}.tar.gz")
     MESSAGE(STATUS "Checking zlib.tar.gz ... not found")
-    DOWNLOAD("http://zlib.net/${USED_ZLIB_VERSION}.tar.gz"
+    DOWNLOAD("https://zlib.net/${USED_ZLIB_VERSION}.tar.gz"
       "${CMAKE_CURRENT_BINARY_DIR}/${USED_ZLIB_VERSION}.tar.gz")
   ELSE()
     MESSAGE(STATUS "Checking ${USED_ZLIB_VERSION}.tar.gz ... found")
