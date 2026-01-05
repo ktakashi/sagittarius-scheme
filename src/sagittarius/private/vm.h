@@ -61,7 +61,13 @@ struct SgBoxRec
 typedef struct SgContFrameRec
 {
   struct SgContFrameRec *prev; 	/* previous frame */
-  int            size;		/* size of argument frame */
+#if SIZEOF_VOIDP == 8
+  int            size;
+  int            type;
+#else
+  int            size: 30;	/* size of argument frame */
+  int            type:  2;
+#endif
   SgWord        *pc;		/* next PC */
   SgObject       cl;		/* cl register value */
   SgObject      *fp;		/* fp register value */

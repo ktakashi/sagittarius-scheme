@@ -97,7 +97,8 @@ static inline SgObject make_box(SgObject value)
   return SG_OBJ(b);
 }
 
-static SgObject evaluate_safe(SgObject program, SgWord *compiledCode);
+static SgObject evaluate_safe(SgObject program, SgWord *code);
+static SgObject evaluate_with_tag(SgObject program, SgWord *code, SgObject tag);
 static SgObject run_loop();
 
 static void vm_finalize(SgObject obj, void *data)
@@ -988,6 +989,7 @@ void Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize)
   s += CONT_FRAME_SIZE;
   cc->prev = CONT(vm);
   cc->size = datasize;
+  cc->type = 0;
   cc->pc = (SgWord*)after;
   cc->fp = C_CONT_MARK;
   cc->cl = CL(vm);
@@ -999,19 +1001,22 @@ void Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize)
 }
 
 /* #define USE_LIGHT_WEIGHT_APPLY 1 */
-
-#define PUSH_CONT(vm, next_pc)				\
-  do {							\
-    SgContFrame *newcont = (SgContFrame*)SP(vm);	\
-    newcont->prev = CONT(vm);				\
-    newcont->size = (int)(SP(vm) - FP(vm));		\
-    newcont->pc = next_pc;				\
-    newcont->cl = CL(vm);				\
-    newcont->fp = FP(vm);				\
-    CONT(vm) = newcont;					\
-    SP(vm) += CONT_FRAME_SIZE;				\
+#define PUSH_CONT_REC(vm, next_pc, typ)		\
+  do {						\
+    SgContFrame *newcont;			\
+    newcont = (SgContFrame*)SP(vm);		\
+    newcont->type = typ;			\
+    newcont->prev = CONT(vm);			\
+    newcont->size = (int)(SP(vm) - FP(vm));	\
+    newcont->pc = next_pc;			\
+    newcont->cl = CL(vm);			\
+    newcont->fp = FP(vm);			\
+    CONT(vm) = newcont;				\
+    SP(vm) += CONT_FRAME_SIZE;			\
   } while (0)
 
+#define PUSH_CONT(vm, next_pc) PUSH_CONT_REC(vm, next_pc, 0)
+#define PUSH_PROMPT_CONT(vm, tag) PUSH_CONT_REC(vm, tag, 1)
 
 static SgWord apply_callN[2] = {
   MERGE_INSN_VALUE2(APPLY, 2, 1),
@@ -1321,8 +1326,7 @@ SgObject Sg_VMWithErrorHandler(SgObject handler, SgObject thunk,
   return Sg_VMDynamicWind(before, thunk, after);
 }
 
-static SgWord boundaryFrameMark = NOP;
-#define BOUNDARY_FRAME_MARK_P(cont) ((cont)->pc == &boundaryFrameMark)
+#define BOUNDARY_FRAME_MARK_P(cont) ((cont)->type == 1)
 
 #define FORWARDED_CONT_P(c) ((c)&&((c)->size == -1))
 #define FORWARDED_CONT(c)   ((c)->prev)
@@ -1616,7 +1620,6 @@ SgObject Sg_VMCallPC(SgObject proc)
   cont->ehandler = SG_FALSE;
   cont->cstack = NULL;		/* so that the partial continuation can be
 				   run on any cstack state. */
-
 
   contproc = Sg_MakeSubr(throw_continuation, cont, 0, 1,
 			 SG_MAKE_STRING("partial continuation"));
@@ -2040,14 +2043,27 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
     if ((vm)->finalizerPending) Sg_VMFinalizerRun(vm);	\
   } while (0)
 
+/* for now */
+static SgPair defaultPromptTag = {
+  SG_FALSE,
+  SG_NIL,
+  SG_NIL
+};
+#define DEFAULT_PROMPT_TAG &defaultPromptTag
+
 SgObject evaluate_safe(SgObject program, SgWord *code)
+{
+  return evaluate_with_tag(program, code, DEFAULT_PROMPT_TAG);
+}
+
+SgObject evaluate_with_tag(SgObject program, SgWord *code, SgObject tag)
 {
   SgCStack cstack;
   SgVM * volatile vm = Sg_VM();
   SgWord * volatile prev_pc = PC(vm);
 
   CHECK_STACK(CONT_FRAME_SIZE, vm);
-  PUSH_CONT(vm, &boundaryFrameMark);
+  PUSH_PROMPT_CONT(vm, tag);
   FP(vm) = (SgObject*)CONT(vm) + CONT_FRAME_SIZE;
 
   ASSERT(SG_PROCEDUREP(program));
@@ -2368,19 +2384,22 @@ static SgContFrame * print_cont1(SgContFrame *cont, SgVM *vm)
   }
   Sg_Printf(vm->logPort, UC(";; %p +   pc=%#38p +\n"),
 	    (uintptr_t)cont + offsetof(SgContFrame, pc), cont->pc);
+  Sg_Printf(vm->logPort, UC(";; %p + type=%#38d +\n"),
+	    (uintptr_t)cont + offsetof(SgContFrame, type), cont->type);
   Sg_Printf(vm->logPort, UC(";; %p + size=%#38d +\n"),
 	    (uintptr_t)cont + offsetof(SgContFrame, size), size);
   Sg_Printf(vm->logPort, UC(";; %p + prev=%#38p +\n"),
 	    (uintptr_t)cont + offsetof(SgContFrame, prev), cont->prev);
+
   if (cont == CONT(vm)) {
     Sg_Printf(vm->logPort, 
-      UC(";; %p +---------------------------------------------+ < cont%s\n"), 
-      cont, BOUNDARY_FRAME_MARK_P(cont) ? UC(" (boundary)") : UC(""));
+      UC(";; %p +---------------------------------------------+ < cont"), cont);
   } else if (cont->prev) {
     Sg_Printf(vm->logPort, 
-      UC(";; %p +---------------------------------------------+ < prev%s\n"),
-      cont, BOUNDARY_FRAME_MARK_P(cont) ? UC(" (boundary)") : UC(""));
+      UC(";; %p +---------------------------------------------+ < prev"), cont);
   }
+  if (BOUNDARY_FRAME_MARK_P(cont)) Sg_Printf(vm->logPort, UC("(boundary)"));
+  Sg_Printf(vm->logPort, UC("\n"));
 
   /* cont's size is argc of previous cont frame */
   /* dump arguments */
@@ -2593,6 +2612,8 @@ void Sg__InitVM()
 #ifdef PROF_INSN
   Sg_AddCleanupHandler(show_inst_count, NULL);
 #endif
+
+  defaultPromptTag.car = SG_INTERN("default");
 }
 
 void Sg__PostInitVM()
