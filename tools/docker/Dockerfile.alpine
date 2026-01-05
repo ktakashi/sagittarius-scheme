@@ -2,7 +2,7 @@ FROM alpine:latest
 ARG VERSION=latest
 
 ADD scripts/build-sagittarius.sh /home/sagittarius/build.sh
-ADD musl-fix.patch /home/sagittarius/musl.patch
+# ADD musl-fix.patch /home/sagittarius/musl.patch
 
 RUN apk update; \
     apk add --no-cache gc-dev zlib-dev libffi-dev openssl-dev \
