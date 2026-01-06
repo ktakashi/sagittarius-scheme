@@ -1,25 +1,25 @@
 # Multi-stage build for distroless Sagittarius Scheme
 # Build stage
-FROM alpine:latest AS builder
+FROM debian:bookworm AS builder
 ARG VERSION=latest
 
 # Install build dependencies
-RUN apk update && \
-    apk add --no-cache \
-        gc-dev \
-        zlib-dev \
+RUN apt update && \
+    apt install --no-install-recommends --no-install-suggests -y \
+        libgc-dev \
+        zlib1g-dev \
         libffi-dev \
-        openssl-dev \
+        libssl-dev \
         cmake \
         curl \
         make \
         gcc \
         g++ \
         patch \
-        musl-dev \
-        linux-headers
+        libpam0g-dev
 
 # Create build directory and copy build script
+ADD patches/ /home/sagittarius/patches
 ADD scripts/build-sagittarius.sh /home/sagittarius/build.sh
 RUN mkdir -p /home/sagittarius && \
     cd /home/sagittarius && \
@@ -42,7 +42,7 @@ RUN cp -r /usr/lib/libcrypto* /runtime-deps/usr/lib/ 2>/dev/null || true
 RUN cp -r /lib/libz* /runtime-deps/lib/ 2>/dev/null || true
 
 # Runtime stage using distroless
-FROM gcr.io/distroless/cc-debian12:latest
+FROM gcr.io/distroless/base-debian12:latest
 
 # Copy the compiled sagittarius binary
 COPY --from=builder /usr/local/bin/sagittarius /usr/local/bin/sagittarius

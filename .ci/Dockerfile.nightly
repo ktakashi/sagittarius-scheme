@@ -1,15 +1,69 @@
 # syntax=docker/dockerfile-upstream:master-labs
-From ktakashi/sagittarius:latest
+# Multi-stage build for distroless Sagittarius nightly
+
+# Bootstrap stage - get a working sagittarius for bootstrapping
+FROM ktakashi/sagittarius:latest AS bootstrap
+
+# Build stage
+FROM debian:bookworm AS builder
 ARG COMMIT
+
+# Install build dependencies
+RUN apt update && \
+    apt install --no-install-recommends --no-install-suggests -y \
+        libgc-dev \
+        zlib1g-dev \
+        libffi-dev \
+        libssl-dev \
+        cmake \
+        curl \
+        make \
+        gcc \
+        g++ \
+        patch \
+        git \
+        libpam0g-dev
+
+# Copy sagittarius from bootstrap stage for dist.sh gen
+COPY --from=bootstrap /usr/local/bin/sagittarius /usr/local/bin/sagittarius
+COPY --from=bootstrap /usr/local/lib/sagittarius /usr/local/lib/sagittarius
+COPY --from=bootstrap /usr/local/share/sagittarius /usr/local/share/sagittarius
+
+# Clone and build Sagittarius from specific commit
 ADD --keep-git-dir=true "https://github.com/ktakashi/sagittarius-scheme.git" /home/sagittarius-nightly/
 
-RUN apt update; \
-    apt install --no-install-recommends --no-install-suggests -y git; \
-    cd /home/sagittarius-nightly && git checkout $COMMIT; \
-    cd /home/sagittarius-nightly && ./dist.sh gen; \
-    cd /home/sagittarius-nightly && cmake .;  \
-    cd /home/sagittarius-nightly && make -j8; \
-    cd /home/sagittarius-nightly && make install; \
-    rm -rf /home/sagittarius-nightly
+RUN cd /home/sagittarius-nightly && \
+    git checkout $COMMIT && \
+    ./dist.sh gen && \
+    cmake . && \
+    make -j8 && \
+    make install
+
+# Create a directory for runtime dependencies
+RUN mkdir -p /runtime-deps/lib && \
+    mkdir -p /runtime-deps/usr/lib
+
+# Copy runtime libraries that Sagittarius depends on
+RUN ldd /usr/local/bin/sagittarius | grep "=>" | awk '{print $3}' \
+    | grep -v "^$" | xargs -I {} cp {} /runtime-deps/lib/ || true
+RUN cp -r /usr/lib/libgc* /runtime-deps/usr/lib/ 2>/dev/null || true
+RUN cp -r /usr/lib/libffi* /runtime-deps/usr/lib/ 2>/dev/null || true
+RUN cp -r /usr/lib/libssl* /runtime-deps/usr/lib/ 2>/dev/null || true
+RUN cp -r /usr/lib/libcrypto* /runtime-deps/usr/lib/ 2>/dev/null || true
+RUN cp -r /lib/libz* /runtime-deps/lib/ 2>/dev/null || true
+
+# Runtime stage using distroless
+FROM gcr.io/distroless/cc-debian12:latest
+
+# Copy the compiled sagittarius binary
+COPY --from=builder /usr/local/bin/sagittarius /usr/local/bin/sagittarius
+
+# Copy any additional sagittarius files (libraries, etc.)
+COPY --from=builder /usr/local/lib/sagittarius /usr/local/lib/sagittarius
+COPY --from=builder /usr/local/share/sagittarius /usr/local/share/sagittarius
+
+# Copy runtime dependencies
+COPY --from=builder /runtime-deps/lib/* /lib/
+COPY --from=builder /runtime-deps/usr/lib/* /usr/lib/
 
 ENTRYPOINT ["/usr/local/bin/sagittarius"]
