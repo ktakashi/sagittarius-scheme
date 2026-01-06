@@ -68,7 +68,7 @@
 		 1
 		 +window-size+
 		 +window-size+)))))
-(define (make-http2-connection socket socket-option node service opts)
+(define (make-http2-connection socket socket-option node service . opts)
   (apply make-http-connection node service socket-option
 	 socket
 	 http2-send-header http2-send-data
