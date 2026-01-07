@@ -196,10 +196,31 @@
   (define-syntax with-atomic
     (syntax-rules ()
       ((_ executor expr ...)
-       (dynamic-wind
-	   (lambda () (mutex-lock-recursively! (executor-mutex executor)))
-	   (lambda () expr ...)
-	   (lambda () (mutex-unlock-recursively! (executor-mutex executor)))))))
+       (let ((mutex (executor-mutex executor)))
+	 (define (rec) expr ...)
+	 ;; push-future-handler has a bit naughty it passes canceller
+	 ;; to future-execute-task! which will be executed on the pool
+	 ;; thread, but in the canceller it uses with-atomic (in
+	 ;; cleanup) this occasionally causes race condition on mutex
+	 ;; lock, when the executor is being shutdown.
+	 ;;
+	 ;; i.e. pooled thread holds the lock of the mutex and terminated
+	 ;;      then the lock is held on the terminated thread
+	 ;;      now, future-cancel calls the canceller, which also calls
+	 ;;      cleanup procedure, which tries to obtain lock. however
+	 ;;      the mutex is locked by the terminated thread. this causes
+	 ;;      &abandoned-mutex
+	 ;;
+	 ;; wrapping with guard is a bit sloppy, but for the time being
+	 ;; it's better not to get occasional test failure...
+	 (guard (e ((abandoned-mutex-exception? e) #t)
+		   (else (raise e)))
+	   (mutex-lock-recursively! mutex))
+	 (guard (e (else (mutex-unlock-recursively! mutex) (raise e)))
+	   (let ((r (rec)))
+	     (mutex-unlock-recursively! mutex)
+	     r))))))
+
   (define (cleanup executor future)
     (define (remove-from-queue! proc queue)
       (list-queue-set-list! queue (remove! proc (list-queue-list queue))))

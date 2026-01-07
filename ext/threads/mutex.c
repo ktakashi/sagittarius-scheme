@@ -154,17 +154,22 @@ SgObject Sg_MutexLock(SgMutex *mutex, SgObject timeout, SgVM *owner)
     mutex->owner = owner;
   }
   SG_INTERNAL_MUTEX_SAFE_LOCK_END();
-
+#define make_condition(c, msg)			\
+  Sg_Condition(SG_LIST3(c, Sg_MakeWhoCondition(SG_INTERN("mutex-lock!")), \
+			Sg_MakeMessageCondition(SG_MAKE_STRING(msg))))
   /* intr? */
   if (intr) {
-    SgObject e = Sg_MakeThreadInterruptException(owner);
+    SgObject e = make_condition(Sg_MakeThreadInterruptException(owner),
+				"locking mutex is interrupted");
     Sg_Raise(e, FALSE);
     r = FALSE;
   }
   if (abandoned) {
-    SgObject exc = Sg_MakeAbandonedMutexException(abandoned, mutex);
-    r = Sg_Raise(exc, FALSE);
+    SgObject e = make_condition(Sg_MakeAbandonedMutexException(abandoned, mutex),
+				"mutex is abandoned by the other thread");
+    r = Sg_Raise(e, FALSE);
   }
+#undef make_condition
   return r;
 }
 
