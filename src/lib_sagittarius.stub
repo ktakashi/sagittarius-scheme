@@ -1843,4 +1843,26 @@
 	(set! code (Sg_GetLastError)))
       (result (Sg_Values2 (SG_MAKE_INT code)
 			  (Sg_GetLastErrorMessageWithErrorCode code)))))
+
+;; continuation prompt
+  (define-c-proc %call/prompt
+    (proc::<procedure> tag handler args)
+    (unless (or (SG_PROCEDUREP handler) (SG_FALSEP handler))
+      (wrong-type-of-argument-violation 'call/cp "procedure or #f" handler))
+    (result (Sg_VMCallCP proc tag handler args)))
+
+  (define-c-proc abort-current-continuation (tag :rest args) Sg_VMAbortCC)
+
+  (define (make-continuation-prompt-tag :optional (name (gensym))) (list name))
+  (define default-continuation-prompt-tag
+    (let ((tag (make-continuation-prompt-tag (gensym "default"))))
+      (lambda () tag)))
+  (define (call-with-continuation-prompt
+	   proc :optional (tag (default-continuation-prompt-tag))
+			  (handler #f)
+		:rest args)
+    (%call/prompt proc tag handler args))
+
+  (define call/prompt call-with-continuation-prompt)
+  (define abort/cc abort-current-continuation)
 )

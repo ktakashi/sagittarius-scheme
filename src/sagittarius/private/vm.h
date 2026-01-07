@@ -383,6 +383,10 @@ SG_EXTERN SgObject Sg_VMApply4(SgObject proc, SgObject arg0, SgObject arg1, SgOb
 SG_EXTERN SgObject Sg_VMApply(SgObject proc, SgObject args);
 SG_EXTERN SgObject Sg_VMCallCC(SgObject proc);
 SG_EXTERN SgObject Sg_VMCallPC(SgObject proc);
+/* call-with-continuation-prompt */
+SG_EXTERN SgObject Sg_VMCallCP(SgObject proc, SgObject tag,
+			       SgObject handler, SgObject args);
+SG_EXTERN SgObject Sg_VMAbortCC(SgObject tag, SgObject args);
 SG_EXTERN SgVM*    Sg_VM();	/* get vm */
 SG_EXTERN int      Sg_SetCurrentVM(SgVM *vm);
 SG_EXTERN int      Sg_AttachVM(SgVM *vm);
