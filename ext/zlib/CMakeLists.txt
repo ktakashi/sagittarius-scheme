@@ -47,10 +47,11 @@ ENDIF()
 
 IF (NOT ZLIB_FOUND)
   # well we need to compile it
-  SET(USED_ZLIB_VERSION "zlib-1.3.1")
+  SET(ZLIB_VERSION "1.3.1")
+  SET(USED_ZLIB_VERSION "zlib-${ZLIB_VERSION}")
   IF (NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/${USED_ZLIB_VERSION}.tar.gz")
     MESSAGE(STATUS "Checking zlib.tar.gz ... not found")
-    DOWNLOAD("https://zlib.net/${USED_ZLIB_VERSION}.tar.gz"
+    DOWNLOAD("https://github.com/madler/zlib/releases/download/v${ZLIB_VERSION}/${USED_ZLIB_VERSION}.tar.gz"
       "${CMAKE_CURRENT_BINARY_DIR}/${USED_ZLIB_VERSION}.tar.gz")
   ELSE()
     MESSAGE(STATUS "Checking ${USED_ZLIB_VERSION}.tar.gz ... found")
