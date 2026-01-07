@@ -1,12 +1,7 @@
-# syntax=docker/dockerfile-upstream:master-labs
-# Multi-stage build for distroless Sagittarius nightly
-
-# Bootstrap stage - get a working sagittarius for bootstrapping
-FROM ktakashi/sagittarius:latest AS bootstrap
-
+# Multi-stage build for distroless Sagittarius Scheme
 # Build stage
 FROM debian:bookworm AS builder
-ARG COMMIT
+ARG VERSION=latest
 
 # Install build dependencies
 RUN apt update && \
@@ -21,23 +16,17 @@ RUN apt update && \
         gcc \
         g++ \
         patch \
-        git \
         libpam0g-dev
 
-# Copy sagittarius from bootstrap stage for dist.sh gen
-COPY --from=bootstrap /usr/local/bin/sagittarius /usr/local/bin/sagittarius
-COPY --from=bootstrap /usr/local/lib/sagittarius /usr/local/lib/sagittarius
-COPY --from=bootstrap /usr/local/share/sagittarius /usr/local/share/sagittarius
+# Create build directory and copy build script
+ADD patches/ /home/sagittarius/patches
+ADD scripts/build-sagittarius.sh /home/sagittarius/build.sh
+RUN mkdir -p /home/sagittarius && \
+    cd /home/sagittarius && \
+    chmod +x ./build.sh
 
-# Clone and build Sagittarius from specific commit
-ADD --keep-git-dir=true "https://github.com/ktakashi/sagittarius-scheme.git" /home/sagittarius-nightly/
-
-RUN cd /home/sagittarius-nightly && \
-    git checkout $COMMIT && \
-    ./dist.sh gen && \
-    cmake . && \
-    make -j8 && \
-    make install
+# Build Sagittarius
+RUN cd /home/sagittarius && ./build.sh $VERSION
 
 # Create a directory for runtime dependencies
 RUN mkdir -p /runtime-deps/lib && \
@@ -53,7 +42,7 @@ RUN cp -r /usr/lib/libcrypto* /runtime-deps/usr/lib/ 2>/dev/null || true
 RUN cp -r /lib/libz* /runtime-deps/lib/ 2>/dev/null || true
 
 # Runtime stage using distroless
-FROM gcr.io/distroless/cc-debian12:latest
+FROM gcr.io/distroless/base-debian12:latest
 
 # Copy the compiled sagittarius binary
 COPY --from=builder /usr/local/bin/sagittarius /usr/local/bin/sagittarius
@@ -66,4 +55,5 @@ COPY --from=builder /usr/local/share/sagittarius /usr/local/share/sagittarius
 COPY --from=builder /runtime-deps/lib/* /lib/
 COPY --from=builder /runtime-deps/usr/lib/* /usr/lib/
 
+# Set the entrypoint
 ENTRYPOINT ["/usr/local/bin/sagittarius"]

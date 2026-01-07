@@ -21,12 +21,13 @@ esac
 DOWNLOAD="${RELEASES}/download/v${VERSION}/sagittarius-${VERSION}.tar.gz"
 curl -kLo sagittarius.tar.gz $DOWNLOAD
 
-tar xvf sagittarius.tar.gz
-cd sagittarius-$VERSION
+tar xf sagittarius.tar.gz
 
-for p in ../*.patch; do 
-    patch -p1 < ${p}
-done
+if [ -f patches/patch-$VERSION.patch ]; then
+    patch -p0 < patches/patch-$VERSION.patch
+fi
+
+cd sagittarius-$VERSION
 
 cmake .
 make -j8

@@ -229,17 +229,17 @@ Experimentally, we support other build tools. Below are the supported ones:
 
 ### Supporting platform
 
-| OS      | x86                | amd64                                 | ARM64                                      | ARM                | ppc64le            | riscv64            |
-|---------|--------------------|---------------------------------------|--------------------------------------------|--------------------|--------------------|--------------------|
-| Linux   |                    | :white_check_mark: :heavy_check_mark: | :ballot_box_with_check: :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| macOS   |                    |                                       | :white_check_mark:                         |                    |                    |                    |
-| FreeBSD |                    | :white_check_mark:                    | :ballot_box_with_check:                    |                    |                    |                    |
-| OpenBSD |                    | :white_check_mark:                    | :ballot_box_with_check:                    |                    |                    |                    |
-| Windows | :white_check_mark: | :white_check_mark:                    | :ballot_box_with_check:                    |                    |                    |                    |
+| OS      | x86 | amd64 | ARM64 | ARM | ppc64le |
+|---------|-----|-------|-------|-----|---------|
+| Linux   |     | ✅✔️ | ☑️✔️  | ✔️  | ✔️     |
+| macOS   |     |       | ✅    |     |         |
+| FreeBSD |     | ✅    | ☑️    |     |         |
+| OpenBSD |     | ✅    | ☑️    |     |         |
+| Windows | ✅  | ✅    | ☑️    |     |         |
 
-- :white_check_mark: Tested with CI
-- :ballot_box_with_check: Tested locally
-- :heavy_check_mark: Docker image
+- ✅ Tested with CI
+- ☑️ Tested locally
+- ✔️ Docker image
 
 ## Running test
 

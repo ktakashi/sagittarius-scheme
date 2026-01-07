@@ -1584,7 +1584,7 @@ static void set_callback_result(SgCallback *callback, SgObject ret,
     if (!SG_NUMBERP(ret)) goto ret0;
     *((int64_t *) result) = Sg_GetIntegerS64Clamp(ret, SG_CLAMP_NONE, NULL);
     break;
-#if SIZEOF_LONG != 4
+#if (SIZEOF_LONG != 4) || (SIZEOF_WCHAR_T != 2)
   uint64_entry:
 #endif
   case FFI_RETURN_TYPE_UINT64_T:

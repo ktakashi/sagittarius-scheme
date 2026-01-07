@@ -188,6 +188,11 @@
   
   (test-http-client (http:version http/1.1))
   (test-http-client (http:version http/2)))
-  
+
+(let ()
+  (define client (http:client-builder (follow-redirects (http:redirect always))))
+  (define request (http:request-builder (uri "https://google.com")))
+  (test-assert "wrong constructer arguments on HTTP2"
+	       (http:client-send client request)))
 
 (test-end)
