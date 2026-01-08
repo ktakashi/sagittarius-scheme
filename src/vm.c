@@ -1025,7 +1025,8 @@ enum {
   } while (0)
 
 #define PUSH_CONT(vm, next_pc) PUSH_CONT_REC(vm, next_pc, NORMAL_FRAME)
-#define PUSH_BOUNDARY_CONT(vm) PUSH_CONT_REC(vm, BOUNDARY_FRAME_MARK, BOUNDARY_FRAME)
+#define PUSH_BOUNDARY_CONT(vm)					\
+  PUSH_CONT_REC(vm, BOUNDARY_FRAME_MARK, BOUNDARY_FRAME)
 #define PUSH_PROMPT_CONT(vm, tag) PUSH_CONT_REC(vm, tag, PROMPT_FRAME)
 
 static SgWord apply_callN[2] = {
@@ -1658,7 +1659,7 @@ SgObject Sg_VMCallCP(SgObject proc, SgObject tag,
   int nargs = (int)Sg_Length(args), i;
   SgWord code[3];
   SgObject prog, boundary = Sg_Cons(tag, Sg_Cons(handler, vm->dynamicWinders));
-
+  
   if (nargs < 0) {
     Sg_Error(UC("improper list not allowed: %S"), args);
   }
@@ -2212,7 +2213,32 @@ SgObject evaluate_inner(SgObject program, SgWord *code)
       POP_CONT();
       PC(vm) = prev_pc;
     } else if (PROMPT_FRAME_MARK_P(vm->cont)) {
-      /* print_frames(vm, vm->cont); */
+      /* Here we want to align cstack as well.
+	 When the call/prompt is nested and abort/cc is called against
+	 not the closest prompt frame, then the cstack still holds the
+	 redundant call/prompt frame.
+	 e.g.
+	   (call/prompt 
+	     (lambda () 
+	       (call/prompt ;; <-- *1
+	         (lambda () (abort/cc tag0)) 
+	         tag1))
+	     tag0)
+	   Then the VM stack is cleared until tag0, but C stack still holds `*1`
+	   call frame.
+	 To avoid it, we need to check the cstack here, then if the cstack
+	 and the current VM continuation frame are not matched, we need to
+	 do longjmp to align the c call stack.
+      */
+      /* check cstack here */
+      if (vm->cstack->cont != vm->cont) {
+	/* now we need to align continuation */
+	while (vm->cstack->cont != vm->cont) {
+	  vm->cstack = vm->cstack->prev;
+	}
+	vm->escapeReason = SG_VM_ESCAPE_ABORT;
+	longjmp(vm->cstack->jbuf, 1);
+      }
       POP_CONT();
       PC(vm) = prev_pc;
     } else {
@@ -2277,10 +2303,14 @@ SgObject evaluate_inner(SgObject program, SgWord *code)
     } else if (vm->escapeReason == SG_VM_ESCAPE_RAISE) {
       PC(vm) = PC_TO_RETURN;
       goto restart;
+    } else if (vm->escapeReason == SG_VM_ESCAPE_ABORT) {
+      POP_CONT();
+      goto end;
     } else {
       Sg_Panic("invalid longjmp");
     }
   }
+ end:
   vm->cstack = vm->cstack->prev;
   CLEAR_STACK(vm);
   return AC(vm);
@@ -2522,7 +2552,7 @@ static SgContFrame * print_cont1(SgContFrame *cont, SgVM *vm)
       UC(";; %p +---------------------------------------------+ < prev"), cont);
   }
   if (BOUNDARY_FRAME_MARK_P(cont)) Sg_Printf(vm->logPort, UC("(boundary)"));
-  if (PROMPT_FRAME_MARK_P(cont)) Sg_Printf(vm->logPort, UC("%S"), cont->pc);
+  if (PROMPT_FRAME_MARK_P(cont)) Sg_Printf(vm->logPort, UC("%S"), SG_CAR(cont->pc));
   Sg_Printf(vm->logPort, UC("\n"));
 
   /* cont's size is argc of previous cont frame */
