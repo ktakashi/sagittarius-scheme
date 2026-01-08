@@ -2055,6 +2055,13 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
       CL(vm) = CONT(vm)->cl;						\
       CONT(vm) = CONT(vm)->prev;					\
       AC(vm) = after__(v__, data__);					\
+    } else if (PROMPT_FRAME_MARK_P(CONT(vm))) {				\
+      SgContFrame *cont__ = CONT(vm)->prev;				\
+      CONT(vm) = cont__->prev;						\
+      PC(vm) = cont__->pc;						\
+      CL(vm) = cont__->cl;						\
+      FP(vm) = cont__->fp;						\
+      SP(vm) = FP(vm) + cont__->size;					\
     } else if (IN_STACK_P((SgObject*)CONT(vm), vm)) {			\
       SgContFrame *cont__ = CONT(vm);					\
       CONT(vm) = cont__->prev;						\
