@@ -98,7 +98,6 @@ static inline SgObject make_box(SgObject value)
 }
 
 static SgObject evaluate_safe(SgObject program, SgWord *code);
-static SgObject evaluate_with_tag(SgObject program, SgWord *code, SgObject tag);
 static SgObject run_loop();
 
 static void vm_finalize(SgObject obj, void *data)
@@ -1136,7 +1135,7 @@ SgObject Sg_VMApply(SgObject proc, SgObject args)
   PUSH(SP(vm), proc);
   PC(vm) = apply_callN;
   /* return Sg_CopyList(args); */
-  return Sg_CopyList(args);;
+  return Sg_CopyList(args);
 }
 
 SgObject Sg_VMApply0(SgObject proc)
@@ -1656,24 +1655,18 @@ SgObject Sg_VMCallCP(SgObject proc, SgObject tag,
 		     SgObject handler, SgObject args)
 {
   SgVM *vm = theVM;
-  int nargs = (int)Sg_Length(args), i;
-  SgWord code[3];
-  SgObject prog, boundary = Sg_Cons(tag, Sg_Cons(handler, vm->dynamicWinders));
+  int nargs = (int)Sg_Length(args);
+  SgObject boundary = Sg_Cons(Sg_Cons(tag, vm->cstack),
+			      Sg_Cons(handler, vm->dynamicWinders));
   
   if (nargs < 0) {
     Sg_Error(UC("improper list not allowed: %S"), args);
   }
-  for (i = 0; i < nargs; i++) {
-    if (i == DEFAULT_VALUES_SIZE) break;
-    vm->values[i] = SG_CAR(args);
-    args = SG_CDR(args);
-  }
-  code[0] = SG_WORD(MERGE_INSN_VALUE1(APPLY_VALUES, nargs));
-  code[1] = SG_WORD(args);
-  code[2] = SG_WORD(RET);
-  AC(vm) = proc;
-  prog = (CL(vm)) ? CL(vm) : SG_OBJ(&internal_toplevel_closure);
-  return evaluate_with_tag(prog, code, boundary);
+
+  CHECK_STACK(CONT_FRAME_SIZE, vm);
+  PUSH_PROMPT_CONT(vm, boundary);
+  FP(vm) = SP(vm);
+  return Sg_VMApply(proc, args);
 }
 
 
@@ -2107,34 +2100,49 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
   If the tag is not found, then an error will be raised
  */
 static SgObject abort_cc(SgObject, void **);
-static SgObject abort_body(SgObject winders, SgObject handler, SgObject args)
+static SgObject abort_end(SgObject, void **);
+static SgObject abort_body(SgObject winders, SgObject handler,
+			   SgCStack *cstack, SgObject args)
 {
   SgVM *vm = theVM;
   if (SG_PAIRP(winders)) {
     SgObject winder, chain;
-    void *data[3];
+    void *data[4];
     winder = SG_CAAR(winders);
     chain = SG_CDAR(winders);
     data[0] = SG_CDR(winders);
     data[1] = handler;
-    data[2] = args;
-    Sg_VMPushCC(abort_cc, data, 3);
+    data[2] = cstack;
+    data[3] = args;
+    Sg_VMPushCC(abort_cc, data, 4);
     vm->dynamicWinders = chain;
     return Sg_VMApply0(winder);
-  }
-  if (SG_FALSEP(handler)) {
-    /* TODO default abort handler */
-    return SG_NIL;
   } else {
-    return Sg_VMApply(handler, args);
+    void *data[1];
+    data[0] = cstack;
+    Sg_VMPushCC(abort_end, data, 1);
+    if (SG_FALSEP(handler)) {
+      /* TODO default abort handler */
+      return SG_NIL;
+    } else {
+      return Sg_VMApply(handler, args);
+    }
   }
 }
 
 static SgObject abort_cc(SgObject r, void **data)
 {
-  return abort_body(SG_OBJ(data[0]), SG_OBJ(data[1]), SG_OBJ(data[2]));
+  return abort_body(SG_OBJ(data[0]), SG_OBJ(data[1]),
+		    (SgCStack *)data[2], SG_OBJ(data[3]));
 }
 
+static SgObject abort_end(SgObject r, void **data)
+{
+  SgVM *vm = theVM;
+  vm->escapeReason = SG_VM_ESCAPE_ABORT;
+  vm->escapeData[0] = data[0];	/* a bit of abuse :) */
+  longjmp(vm->cstack->jbuf, 1);
+}
 
 SgObject Sg_VMAbortCC(SgObject tag, SgObject args)
 {
@@ -2148,7 +2156,7 @@ SgObject Sg_VMAbortCC(SgObject tag, SgObject args)
       Sg_Error(UC("No continuation tag: %S"), tag);
     }
     if (PROMPT_FRAME_MARK_P(cont)) {
-      if (SG_PAIRP(cont->pc) && SG_CAR(cont->pc) == tag) break;
+      if (SG_PAIRP(cont->pc) && SG_CAAR(cont->pc) == tag) break;
     }
     cont = cont->prev;
   }
@@ -2164,32 +2172,17 @@ SgObject Sg_VMAbortCC(SgObject tag, SgObject args)
     SG_APPEND1(h, t, Sg_Cons(SG_CAAR(cp), SG_CDR(chain)));
   }
   vm->cont = cont;
-  return abort_body(h, SG_CADR(cont->pc), args);
+  return abort_body(h, SG_CADR(cont->pc), (SgCStack *)SG_CDAR(cont->pc), args);
 }
-
-static SgObject evaluate_inner(SgObject, SgWord *);
 
 SgObject evaluate_safe(SgObject program, SgWord *code)
-{
-  SgVM *vm = theVM;
-  CHECK_STACK(CONT_FRAME_SIZE, vm);
-  PUSH_BOUNDARY_CONT(vm);
-  return evaluate_inner(program, code);
-}
-
-SgObject evaluate_with_tag(SgObject program, SgWord *code, SgObject tag)
-{
-  SgVM *vm = theVM;
-  CHECK_STACK(CONT_FRAME_SIZE, vm);
-  PUSH_PROMPT_CONT(vm, tag);
-  return evaluate_inner(program, code);
-}
-
-SgObject evaluate_inner(SgObject program, SgWord *code)
 {
   SgCStack cstack;
   SgVM * volatile vm = theVM;
   SgWord * volatile prev_pc = PC(vm);
+
+  CHECK_STACK(CONT_FRAME_SIZE, vm);
+  PUSH_BOUNDARY_CONT(vm);
   
   FP(vm) = (SgObject*)CONT(vm) + CONT_FRAME_SIZE;
 
@@ -2217,35 +2210,6 @@ SgObject evaluate_inner(SgObject program, SgWord *code)
     } else if (vm->cont == NULL) {
       /* we're finished with executing partial continuation */
       vm->cont = cstack.cont;
-      POP_CONT();
-      PC(vm) = prev_pc;
-    } else if (PROMPT_FRAME_MARK_P(vm->cont)) {
-      /* Here we want to align cstack as well.
-	 When the call/prompt is nested and abort/cc is called against
-	 not the closest prompt frame, then the cstack still holds the
-	 redundant call/prompt frame.
-	 e.g.
-	   (call/prompt 
-	     (lambda () 
-	       (call/prompt ;; <-- *1
-	         (lambda () (abort/cc tag0)) 
-	         tag1))
-	     tag0)
-	   Then the VM stack is cleared until tag0, but C stack still holds `*1`
-	   call frame.
-	 To avoid it, we need to check the cstack here, then if the cstack
-	 and the current VM continuation frame are not matched, we need to
-	 do longjmp to align the c call stack.
-      */
-      /* check cstack here */
-      if (vm->cstack->cont != vm->cont) {
-	/* now we need to align continuation */
-	while (vm->cstack->cont != vm->cont) {
-	  vm->cstack = vm->cstack->prev;
-	}
-	vm->escapeReason = SG_VM_ESCAPE_ABORT;
-	longjmp(vm->cstack->jbuf, 1);
-      }
       POP_CONT();
       PC(vm) = prev_pc;
     } else {
@@ -2285,7 +2249,7 @@ SgObject evaluate_inner(SgObject program, SgWord *code)
 	AC(vm) = throw_continuation_body(handlers, c, vm->escapeData[1]);
 	goto restart;
       } else {
-	ASSERT(vm->cstack && vm->cstack->prev);
+ 	ASSERT(vm->cstack && vm->cstack->prev);
 	CONT(vm) = cstack.cont;
 	AC(vm) = vm->ac;
 	POP_CONT();
@@ -2311,13 +2275,16 @@ SgObject evaluate_inner(SgObject program, SgWord *code)
       PC(vm) = PC_TO_RETURN;
       goto restart;
     } else if (vm->escapeReason == SG_VM_ESCAPE_ABORT) {
-      POP_CONT();
-      goto end;
+      SgCStack *abort_stack = (SgCStack *)vm->escapeData[0];
+      if (abort_stack != vm->cstack) {
+	vm->cstack = abort_stack;
+	longjmp(abort_stack->jbuf, 1);
+      }
+      goto restart;
     } else {
       Sg_Panic("invalid longjmp");
     }
   }
- end:
   vm->cstack = vm->cstack->prev;
   CLEAR_STACK(vm);
   return AC(vm);
@@ -2471,7 +2438,7 @@ static void process_queued_requests(SgVM *vm)
 
 #define RET_INSN()						\
   do {								\
-    if (CONT(vm) == NULL || !NORMAL_FRAME_MARK_P(CONT(vm))) {	\
+    if (CONT(vm) == NULL || BOUNDARY_FRAME_MARK_P(CONT(vm))) {	\
       /* no more continuation */				\
       return AC(vm);						\
     }								\
@@ -2544,10 +2511,17 @@ static SgContFrame * print_cont1(SgContFrame *cont, SgVM *vm)
   }
   Sg_Printf(vm->logPort, UC(";; %p +   pc=%#38p +\n"),
 	    (uintptr_t)cont + offsetof(SgContFrame, pc), cont->pc);
+#if SIZEOF_LONG == 8
   Sg_Printf(vm->logPort, UC(";; %p + type=%#38d +\n"),
 	    (uintptr_t)cont + offsetof(SgContFrame, type), cont->type);
   Sg_Printf(vm->logPort, UC(";; %p + size=%#38d +\n"),
 	    (uintptr_t)cont + offsetof(SgContFrame, size), size);
+#else
+  Sg_Printf(vm->logPort, UC(";; %p + type=%#38d +\n"),
+	    (uintptr_t)cont, cont->type);
+  Sg_Printf(vm->logPort, UC(";; %p + size=%#38d +\n"),
+	    (uintptr_t)cont, size);
+#endif
   Sg_Printf(vm->logPort, UC(";; %p + prev=%#38p +\n"),
 	    (uintptr_t)cont + offsetof(SgContFrame, prev), cont->prev);
 
@@ -2559,7 +2533,8 @@ static SgContFrame * print_cont1(SgContFrame *cont, SgVM *vm)
       UC(";; %p +---------------------------------------------+ < prev"), cont);
   }
   if (BOUNDARY_FRAME_MARK_P(cont)) Sg_Printf(vm->logPort, UC("(boundary)"));
-  if (PROMPT_FRAME_MARK_P(cont)) Sg_Printf(vm->logPort, UC("%S"), SG_CAR(cont->pc));
+  if (PROMPT_FRAME_MARK_P(cont))
+    Sg_Printf(vm->logPort, UC("%S"), SG_CAAR(cont->pc));
   Sg_Printf(vm->logPort, UC("\n"));
 
   /* cont's size is argc of previous cont frame */
