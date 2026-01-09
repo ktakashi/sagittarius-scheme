@@ -87,6 +87,7 @@
 	    (filter-map (lambda (node)
 			  (and (or (is-a? node <cgen-c-proc>)
 				   #;(is-a? node <cgen-c-variable>))
+			       (not (memq :no-export (slot-ref node 'flags)))
 			       (slot-ref node 'scheme-name)))
 			(cgen-unit-toplevel-nodes unit))
 	    (if (memq :export-reader-macro oexports)

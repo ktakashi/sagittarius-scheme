@@ -2092,6 +2092,20 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
     if ((vm)->finalizerPending) Sg_VMFinalizerRun(vm);	\
   } while (0)
 
+SgObject Sg_VMDefaultAbortHandler(SgObject args)
+{
+  /* Racket's default-abort-handler is stricter.
+     But we are very lenient :) */
+  int nargs = Sg_Length(args);
+
+  if (nargs == 0) return SG_UNDEF;
+
+  if (SG_PROCEDUREP(SG_CAR(args))) {
+    return Sg_VMApply(SG_CAR(args), SG_CDR(args));
+  }
+  return args;			/* just return */
+}
+
 /*
   Abort continuation goes 2 pass,
   1. search the tag
@@ -2122,8 +2136,7 @@ static SgObject abort_body(SgObject winders, SgObject handler,
     data[0] = cstack;
     Sg_VMPushCC(abort_end, data, 1);
     if (SG_FALSEP(handler)) {
-      /* TODO default abort handler */
-      return SG_NIL;
+      return Sg_VMDefaultAbortHandler(args);
     } else {
       return Sg_VMApply(handler, args);
     }
