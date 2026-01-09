@@ -116,6 +116,7 @@ you run the command.
 - SpecialCasing.txt
 - UnicodeData.txt
 - WordBreakProperty.txt
+- emoji-data.txt
 
 Above Unicode files can be downloaded from the Unicode FTP site:
 [ftp.unicode.org](ftp://ftp.unicode.org/Public/17.0.0/).  Currently,
