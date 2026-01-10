@@ -2,7 +2,7 @@
 ;;;
 ;;; cache/apis.scm - Cache APIs
 ;;;
-;;;   Copyright (c) 2016  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2016-2026  Takashi Kato  <ktakashi@ymail.com>
 ;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;
 
+#!nounbound
 (library (cache apis)
     (export <cache>
 	    cache-put!
@@ -58,16 +59,13 @@
 (define-class <cache> ()
   (storage ;; hashtable
    (comparator :init-keyword :comparator :init-value default-comparator)
-   (max-size :init-keyword :max-size :init-value +inf.0)
+   (evict-strategy :init-keyword :evict-strategy :init-value #f)
    (on-evict :init-keyword :on-evict :init-value #f)))
 
 (define-method initialize ((o <cache>) initargs)
   (call-next-method)
-  (let ((s (slot-ref o 'max-size))
-	(c (slot-ref o 'comparator)))
-    (unless (number? s) 
-      (asserion-violation 'make-cache "max-size must be a number" s))
-    (slot-set! o 'storage (make-hashtable/comparator c (if (fixnum? s) s 10))))
+  (let ((c (slot-ref o 'comparator)))
+    (slot-set! o 'storage (make-hashtable/comparator c)))
   o)
 
 (define (call-on-evict cache v)
@@ -77,8 +75,8 @@
 
 ;; APIs
 (define (cache-put! cache k v)
-  (let ((size (cache-size cache)))
-    (when (> (+ size 1) (slot-ref cache 'max-size)) 
+  (let ((strategy (slot-ref cache 'evict-strategy)))
+    (when (and strategy (strategy cache k))
       (call-on-evict cache (cache-pop! cache))))
   (hashtable-set! (slot-ref cache 'storage) k v)
   (cache-access cache :put k v))

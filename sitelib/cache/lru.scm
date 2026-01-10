@@ -2,7 +2,7 @@
 ;;;
 ;;; cache/lru.scm - LRU cache
 ;;;
-;;;   Copyright (c) 2015-2016  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2015-2026  Takashi Kato  <ktakashi@ymail.com>
 ;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -28,7 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;
 
-;; might be useful 
+#!nounbound
 (library (cache lru)
     (export make-simple-lru-cache
 	    <lru-cache>)
@@ -38,61 +38,71 @@
 	    (srfi :1)
 	    (srfi :19)
 	    (srfi :114 comparators)
-	    (sagittarius vm)
+	    (sagittarius mop allocation)
+	    (sagittarius)
 	    (only (scheme base) vector-copy!))
 
-  (define-class <lru-cache> (<cache>)
-    ((queue :init-value '())
-     equal?))
+(define-class <lru-cache> (<cache>)
+  ((queue :init-value '())
+   equal?))
 
-  (define-method initialize ((o <lru-cache>) initargs)
-    (call-next-method)
-    (slot-set! o 'equal? 
-	       (hashtable-equivalence-function (slot-ref o 'storage))))
+(define-method initialize ((o <lru-cache>) initargs)
+  (cond ((get-keyword :max-size initargs #f) =>
+	 (lambda (size)
+	   (call-next-method o `(:evict-strategy ,(strategy size) ,@initargs))))
+	(else (call-next-method)))
+  (slot-set! o 'equal? (hashtable-equivalence-function (slot-ref o 'storage))))
 
-  (define (re-order o k)
-    (let ((storage (slot-ref o 'storage))
-	  (queue (slot-ref o 'queue))
-	  (equal? (slot-ref o 'equal?)))
-      ;; FIXME we should manage tail as well to make this O(1)
-      (slot-set! o 'queue `(,@(remove (lambda (o) (equal? o k)) queue) ,k))))
-  (define-method cache-access ((o <lru-cache>) on k v)
-    ;; we need to re-order
-    (re-order o k))
+(define (re-order o k)
+  (let ((storage (slot-ref o 'storage))
+	(queue (slot-ref o 'queue))
+	(equal? (slot-ref o 'equal?)))
+    ;; FIXME we should manage tail as well to make this O(1)
+    (slot-set! o 'queue `(,@(remove (lambda (o) (equal? o k)) queue) ,k))))
+(define-method cache-access ((o <lru-cache>) on k v)
+  ;; we need to re-order
+  (re-order o k))
 
-  (define-method cache-pop! ((o <lru-cache>))
-    (let ((queue (slot-ref o 'queue))
-	  (storage (slot-ref o 'storage)))
-      (slot-set! o 'queue (cdr queue))
-      (let ((v (hashtable-ref storage (car queue) #f)))
-	(hashtable-delete! storage (car queue))
-	v)))
-  (define-method cache-evict! ((o <lru-cache>) k)
-    (let ((queue (slot-ref o 'queue))
-	  (equal? (slot-ref o 'equal?)))
-      (remove! (lambda (o) (equal? o k)) queue)
-      (call-next-method)))
+(define-method cache-pop! ((o <lru-cache>))
+  (let ((queue (slot-ref o 'queue))
+	(storage (slot-ref o 'storage)))
+    (slot-set! o 'queue (cdr queue))
+    (let ((v (hashtable-ref storage (car queue) #f)))
+      (hashtable-delete! storage (car queue))
+      v)))
+(define-method cache-evict! ((o <lru-cache>) k)
+  (let ((queue (slot-ref o 'queue))
+	(equal? (slot-ref o 'equal?)))
+    (remove! (lambda (o) (equal? o k)) queue)
+    (call-next-method)))
 
-  (define (make-simple-lru-cache size create 
-				 :optional (comparator default-comparator))
-    (define cache (make <lru-cache> :max-size size :comparator comparator))
-    (define mark (list 'not-found))
-    (lambda (name)
-      (let ((r (cache-get cache name mark)))
-	(if (eq? r mark)
-	    (let ((o (create name)))
-	      (cache-put! cache name o)
-	      o)
-	    r))))
+(define (make-simple-lru-cache size create 
+			       :optional (comparator default-comparator))
+  (define cache (make <lru-cache> :evict-strategy (strategy size)
+		      :comparator comparator))
+  (define mark (list 'not-found))
+  (lambda (name)
+    (let ((r (cache-get cache name mark)))
+      (if (eq? r mark)
+	  (let ((o (create name)))
+	    (cache-put! cache name o)
+	    o)
+	  r))))
 
-  ;; Found in java/util/Scanner.java
-  ;; it seems caches are created per name and comparison
-  ;; is done with given name and actual object.
-  ;; easy enough to implement :)
-  ;;
-  ;; NB: if we need to store with KV, then we need a cache class.
-  ;;     this implementation assumes that values can be created
-  ;;     from given names.
+(define ((strategy size) cache k)
+  (let ((s (cache-size cache)))
+    (> (+ s 1) size)))
+
+;; Below is the old implementation, kept it for whatever the reason...
+;;
+;; Found in java/util/Scanner.java
+;; it seems caches are created per name and comparison
+;; is done with given name and actual object.
+;; easy enough to implement :)
+;;
+;; NB: if we need to store with KV, then we need a cache class.
+;;     this implementation assumes that values can be created
+;;     from given names.
 ;;   (define (make-simple-lru-cache size create has-name?)
 ;;     ;; cache itself, we initialise this when needed
 ;;     (define buffer #f)
