@@ -97,7 +97,7 @@ static inline SgObject make_box(SgObject value)
   return SG_OBJ(b);
 }
 
-static SgObject evaluate_safe(SgObject program, SgWord *compiledCode);
+static SgObject evaluate_safe(SgObject program, SgWord *code);
 static SgObject run_loop();
 
 static void vm_finalize(SgObject obj, void *data)
@@ -988,6 +988,7 @@ void Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize)
   s += CONT_FRAME_SIZE;
   cc->prev = CONT(vm);
   cc->size = datasize;
+  cc->type = 0;
   cc->pc = (SgWord*)after;
   cc->fp = C_CONT_MARK;
   cc->cl = CL(vm);
@@ -998,20 +999,34 @@ void Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize)
   FP(vm) = SP(vm) = s;
 }
 
-/* #define USE_LIGHT_WEIGHT_APPLY 1 */
+static SgWord boundaryFrameMark = NOP;
+#define BOUNDARY_FRAME_MARK &boundaryFrameMark
 
-#define PUSH_CONT(vm, next_pc)				\
-  do {							\
-    SgContFrame *newcont = (SgContFrame*)SP(vm);	\
-    newcont->prev = CONT(vm);				\
-    newcont->size = (int)(SP(vm) - FP(vm));		\
-    newcont->pc = next_pc;				\
-    newcont->cl = CL(vm);				\
-    newcont->fp = FP(vm);				\
-    CONT(vm) = newcont;					\
-    SP(vm) += CONT_FRAME_SIZE;				\
+enum {
+  NORMAL_FRAME = 0,
+  BOUNDARY_FRAME = 1,
+  PROMPT_FRAME = 2
+};
+
+/* #define USE_LIGHT_WEIGHT_APPLY 1 */
+#define PUSH_CONT_REC(vm, next_pc, typ)		\
+  do {						\
+    SgContFrame *newcont;			\
+    newcont = (SgContFrame*)SP(vm);		\
+    newcont->type = typ;			\
+    newcont->prev = CONT(vm);			\
+    newcont->size = (int)(SP(vm) - FP(vm));	\
+    newcont->pc = (SgWord *)next_pc;		\
+    newcont->cl = CL(vm);			\
+    newcont->fp = FP(vm);			\
+    CONT(vm) = newcont;				\
+    SP(vm) += CONT_FRAME_SIZE;			\
   } while (0)
 
+#define PUSH_CONT(vm, next_pc) PUSH_CONT_REC(vm, next_pc, NORMAL_FRAME)
+#define PUSH_BOUNDARY_CONT(vm)					\
+  PUSH_CONT_REC(vm, BOUNDARY_FRAME_MARK, BOUNDARY_FRAME)
+#define PUSH_PROMPT_CONT(vm, tag) PUSH_CONT_REC(vm, tag, PROMPT_FRAME)
 
 static SgWord apply_callN[2] = {
   MERGE_INSN_VALUE2(APPLY, 2, 1),
@@ -1120,7 +1135,7 @@ SgObject Sg_VMApply(SgObject proc, SgObject args)
   PUSH(SP(vm), proc);
   PC(vm) = apply_callN;
   /* return Sg_CopyList(args); */
-  return Sg_CopyList(args);;
+  return Sg_CopyList(args);
 }
 
 SgObject Sg_VMApply0(SgObject proc)
@@ -1321,8 +1336,9 @@ SgObject Sg_VMWithErrorHandler(SgObject handler, SgObject thunk,
   return Sg_VMDynamicWind(before, thunk, after);
 }
 
-static SgWord boundaryFrameMark = NOP;
-#define BOUNDARY_FRAME_MARK_P(cont) ((cont)->pc == &boundaryFrameMark)
+#define NORMAL_FRAME_MARK_P(cont) ((cont)->type == NORMAL_FRAME)
+#define BOUNDARY_FRAME_MARK_P(cont) ((cont)->type == BOUNDARY_FRAME)
+#define PROMPT_FRAME_MARK_P(cont) ((cont)->type == PROMPT_FRAME)
 
 #define FORWARDED_CONT_P(c) ((c)&&((c)->size == -1))
 #define FORWARDED_CONT(c)   ((c)->prev)
@@ -1533,9 +1549,15 @@ static SgObject throw_continuation_calculate_handlers(SgContinuation *c,
   SgObject target = remove_common_winders(current, c->winders);
   SgObject h = SG_NIL, t = SG_NIL, p;
 
-  SG_FOR_EACH(p, current) {
-    if (!SG_FALSEP(Sg_Memq(SG_CAR(p), c->winders))) break;
-    SG_APPEND1(h, t, Sg_Cons(SG_CDAR(p), SG_CDR(p)));
+  /* When the continuation is partial continuation,
+     then the after thunk is already installed in the dynamic extent.
+     So, skip the current ones.
+   */
+  if (c->cstack) {
+    SG_FOR_EACH(p, current) {
+      if (!SG_FALSEP(Sg_Memq(SG_CAR(p), c->winders))) break;
+      SG_APPEND1(h, t, Sg_Cons(SG_CDAR(p), SG_CDR(p)));
+    }
   }
   SG_FOR_EACH(p, target) {
     SgObject chain = Sg_Memq(SG_CAR(p), c->winders);
@@ -1617,13 +1639,36 @@ SgObject Sg_VMCallPC(SgObject proc)
   cont->cstack = NULL;		/* so that the partial continuation can be
 				   run on any cstack state. */
 
-
   contproc = Sg_MakeSubr(throw_continuation, cont, 0, 1,
 			 SG_MAKE_STRING("partial continuation"));
   /* Remove the saved continuation chain */
   vm->cont = c;
   return Sg_VMApply1(proc, contproc);  
 }
+
+/* call-with-continuation-prompt
+
+   This is basically just put a boundary continuation
+   before executing the `proc`.
+ */
+SgObject Sg_VMCallCP(SgObject proc, SgObject tag,
+		     SgObject handler, SgObject args)
+{
+  SgVM *vm = theVM;
+  int nargs = (int)Sg_Length(args);
+  SgObject boundary = Sg_Cons(Sg_Cons(tag, vm->cstack),
+			      Sg_Cons(handler, vm->dynamicWinders));
+  
+  if (nargs < 0) {
+    Sg_Error(UC("improper list not allowed: %S"), args);
+  }
+
+  CHECK_STACK(CONT_FRAME_SIZE, vm);
+  PUSH_PROMPT_CONT(vm, boundary);
+  FP(vm) = SP(vm);
+  return Sg_VMApply(proc, args);
+}
+
 
 /* given load path must be unshifted.
    NB: we don't check the validity of given path.
@@ -2003,6 +2048,13 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
       CL(vm) = CONT(vm)->cl;						\
       CONT(vm) = CONT(vm)->prev;					\
       AC(vm) = after__(v__, data__);					\
+    } else if (PROMPT_FRAME_MARK_P(CONT(vm))) {				\
+      SgContFrame *cont__ = CONT(vm)->prev;				\
+      CONT(vm) = cont__->prev;						\
+      PC(vm) = cont__->pc;						\
+      CL(vm) = cont__->cl;						\
+      FP(vm) = cont__->fp;						\
+      SP(vm) = FP(vm) + cont__->size;					\
     } else if (IN_STACK_P((SgObject*)CONT(vm), vm)) {			\
       SgContFrame *cont__ = CONT(vm);					\
       CONT(vm) = cont__->prev;						\
@@ -2040,14 +2092,111 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
     if ((vm)->finalizerPending) Sg_VMFinalizerRun(vm);	\
   } while (0)
 
+SgObject Sg_VMDefaultAbortHandler(SgObject args)
+{
+  /* Racket's default-abort-handler is stricter.
+     But we are very lenient :) */
+  int nargs = Sg_Length(args);
+
+  if (nargs == 0) return SG_UNDEF;
+
+  if (SG_PROCEDUREP(SG_CAR(args))) {
+    return Sg_VMApply(SG_CAR(args), SG_CDR(args));
+  }
+  return args;			/* just return */
+}
+
+/*
+  Abort continuation goes 2 pass,
+  1. search the tag
+  2. pop the continuation until the tag
+
+  If the tag is not found, then an error will be raised
+ */
+static SgObject abort_cc(SgObject, void **);
+static SgObject abort_end(SgObject, void **);
+static SgObject abort_body(SgObject winders, SgObject handler,
+			   SgCStack *cstack, SgObject args)
+{
+  SgVM *vm = theVM;
+  if (SG_PAIRP(winders)) {
+    SgObject winder, chain;
+    void *data[4];
+    winder = SG_CAAR(winders);
+    chain = SG_CDAR(winders);
+    data[0] = SG_CDR(winders);
+    data[1] = handler;
+    data[2] = cstack;
+    data[3] = args;
+    Sg_VMPushCC(abort_cc, data, 4);
+    vm->dynamicWinders = chain;
+    return Sg_VMApply0(winder);
+  } else {
+    void *data[1];
+    data[0] = cstack;
+    Sg_VMPushCC(abort_end, data, 1);
+    if (SG_FALSEP(handler)) {
+      return Sg_VMDefaultAbortHandler(args);
+    } else {
+      return Sg_VMApply(handler, args);
+    }
+  }
+}
+
+static SgObject abort_cc(SgObject r, void **data)
+{
+  return abort_body(SG_OBJ(data[0]), SG_OBJ(data[1]),
+		    (SgCStack *)data[2], SG_OBJ(data[3]));
+}
+
+static SgObject abort_end(SgObject r, void **data)
+{
+  SgVM *vm = theVM;
+  vm->escapeReason = SG_VM_ESCAPE_ABORT;
+  vm->escapeData[0] = data[0];	/* a bit of abuse :) */
+  longjmp(vm->cstack->jbuf, 1);
+}
+
+SgObject Sg_VMAbortCC(SgObject tag, SgObject args)
+{
+  SgVM *vm = theVM;
+  SgContFrame *cont = CONT(vm);
+  SgObject h = SG_NIL, t = SG_NIL, cp, target, winders;
+
+  /* search tag */
+  while (TRUE) {
+    if (!cont || cont == cont->prev) {
+      Sg_Error(UC("No continuation tag: %S"), tag);
+    }
+    if (PROMPT_FRAME_MARK_P(cont)) {
+      if (SG_PAIRP(cont->pc) && SG_CAAR(cont->pc) == tag) break;
+    }
+    cont = cont->prev;
+  }
+  winders = SG_CDDR(cont->pc);
+  target = remove_common_winders(vm->dynamicWinders, winders);
+  /* computes winders */
+  SG_FOR_EACH(cp, vm->dynamicWinders) {
+    if (!SG_FALSEP(Sg_Memq(SG_CAR(cp), winders))) break;
+    SG_APPEND1(h, t, Sg_Cons(SG_CDAR(cp), SG_CDR(cp)));
+  }
+  SG_FOR_EACH(cp, target) {
+    SgObject chain = Sg_Memq(SG_CAR(cp), winders);
+    SG_APPEND1(h, t, Sg_Cons(SG_CAAR(cp), SG_CDR(chain)));
+  }
+  vm->cont = cont;
+  return abort_body(h, SG_CADR(cont->pc), (SgCStack *)SG_CDAR(cont->pc), args);
+}
+
 SgObject evaluate_safe(SgObject program, SgWord *code)
 {
   SgCStack cstack;
-  SgVM * volatile vm = Sg_VM();
+  SgVM * volatile vm = theVM;
   SgWord * volatile prev_pc = PC(vm);
 
   CHECK_STACK(CONT_FRAME_SIZE, vm);
-  PUSH_CONT(vm, &boundaryFrameMark);
+  PUSH_BOUNDARY_CONT(vm);
+  
   FP(vm) = (SgObject*)CONT(vm) + CONT_FRAME_SIZE;
 
   ASSERT(SG_PROCEDUREP(program));
@@ -2113,7 +2262,7 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
 	AC(vm) = throw_continuation_body(handlers, c, vm->escapeData[1]);
 	goto restart;
       } else {
-	ASSERT(vm->cstack && vm->cstack->prev);
+ 	ASSERT(vm->cstack && vm->cstack->prev);
 	CONT(vm) = cstack.cont;
 	AC(vm) = vm->ac;
 	POP_CONT();
@@ -2137,6 +2286,13 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
       }
     } else if (vm->escapeReason == SG_VM_ESCAPE_RAISE) {
       PC(vm) = PC_TO_RETURN;
+      goto restart;
+    } else if (vm->escapeReason == SG_VM_ESCAPE_ABORT) {
+      SgCStack *abort_stack = (SgCStack *)vm->escapeData[0];
+      if (abort_stack != vm->cstack) {
+	vm->cstack = abort_stack;
+	longjmp(abort_stack->jbuf, 1);
+      }
       goto restart;
     } else {
       Sg_Panic("invalid longjmp");
@@ -2355,7 +2511,7 @@ static SgContFrame * print_cont1(SgContFrame *cont, SgVM *vm)
   SgObject *current = (SgObject *)cont;
   int i;
   int size = cont->size;
-  SgString *clfmt = SG_MAKE_STRING("+   cl=~38,,,,39s +~%");
+  SgString *clfmt = SG_MAKE_STRING("+   cl=~38,,,,38s +~%");
 
   Sg_Printf(vm->logPort, UC(";; %p +   fp=%#38p +\n"),
 	    (uintptr_t)cont + offsetof(SgContFrame, fp), cont->fp);
@@ -2368,19 +2524,31 @@ static SgContFrame * print_cont1(SgContFrame *cont, SgVM *vm)
   }
   Sg_Printf(vm->logPort, UC(";; %p +   pc=%#38p +\n"),
 	    (uintptr_t)cont + offsetof(SgContFrame, pc), cont->pc);
+#if SIZEOF_LONG == 8
+  Sg_Printf(vm->logPort, UC(";; %p + type=%#38d +\n"),
+	    (uintptr_t)cont + offsetof(SgContFrame, type), cont->type);
   Sg_Printf(vm->logPort, UC(";; %p + size=%#38d +\n"),
 	    (uintptr_t)cont + offsetof(SgContFrame, size), size);
+#else
+  Sg_Printf(vm->logPort, UC(";; %p + type=%#38d +\n"),
+	    (uintptr_t)cont, cont->type);
+  Sg_Printf(vm->logPort, UC(";; %p + size=%#38d +\n"),
+	    (uintptr_t)cont, size);
+#endif
   Sg_Printf(vm->logPort, UC(";; %p + prev=%#38p +\n"),
 	    (uintptr_t)cont + offsetof(SgContFrame, prev), cont->prev);
+
   if (cont == CONT(vm)) {
     Sg_Printf(vm->logPort, 
-      UC(";; %p +---------------------------------------------+ < cont%s\n"), 
-      cont, BOUNDARY_FRAME_MARK_P(cont) ? UC(" (boundary)") : UC(""));
+      UC(";; %p +---------------------------------------------+ < cont"), cont);
   } else if (cont->prev) {
     Sg_Printf(vm->logPort, 
-      UC(";; %p +---------------------------------------------+ < prev%s\n"),
-      cont, BOUNDARY_FRAME_MARK_P(cont) ? UC(" (boundary)") : UC(""));
+      UC(";; %p +---------------------------------------------+ < prev"), cont);
   }
+  if (BOUNDARY_FRAME_MARK_P(cont)) Sg_Printf(vm->logPort, UC("(boundary)"));
+  if (PROMPT_FRAME_MARK_P(cont))
+    Sg_Printf(vm->logPort, UC("%S"), SG_CAAR(cont->pc));
+  Sg_Printf(vm->logPort, UC("\n"));
 
   /* cont's size is argc of previous cont frame */
   /* dump arguments */

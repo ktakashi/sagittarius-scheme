@@ -61,7 +61,13 @@ struct SgBoxRec
 typedef struct SgContFrameRec
 {
   struct SgContFrameRec *prev; 	/* previous frame */
-  int            size;		/* size of argument frame */
+#if SIZEOF_VOIDP == 8
+  int            size;
+  int            type;
+#else
+  int            size: 30;	/* size of argument frame */
+  int            type:  2;
+#endif
   SgWord        *pc;		/* next PC */
   SgObject       cl;		/* cl register value */
   SgObject      *fp;		/* fp register value */
@@ -123,7 +129,8 @@ typedef enum {
   SG_VM_ESCAPE_NONE,
   SG_VM_ESCAPE_CONT,
   SG_VM_ESCAPE_ERROR,
-  SG_VM_ESCAPE_RAISE
+  SG_VM_ESCAPE_RAISE,
+  SG_VM_ESCAPE_ABORT
 } SgVMEscapeReason;
 
 enum {
@@ -377,6 +384,11 @@ SG_EXTERN SgObject Sg_VMApply4(SgObject proc, SgObject arg0, SgObject arg1, SgOb
 SG_EXTERN SgObject Sg_VMApply(SgObject proc, SgObject args);
 SG_EXTERN SgObject Sg_VMCallCC(SgObject proc);
 SG_EXTERN SgObject Sg_VMCallPC(SgObject proc);
+/* call-with-continuation-prompt */
+SG_EXTERN SgObject Sg_VMCallCP(SgObject proc, SgObject tag,
+			       SgObject handler, SgObject args);
+SG_EXTERN SgObject Sg_VMAbortCC(SgObject tag, SgObject args);
+SG_EXTERN SgObject Sg_VMDefaultAbortHandler(SgObject args);
 SG_EXTERN SgVM*    Sg_VM();	/* get vm */
 SG_EXTERN int      Sg_SetCurrentVM(SgVM *vm);
 SG_EXTERN int      Sg_AttachVM(SgVM *vm);

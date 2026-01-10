@@ -284,7 +284,8 @@
   (define-form-parser define-c-proc (scheme-name argspec . body)
     (define (extract-flags body)
       (receive (flags body) (span keyword? body)
-	(unless (for-all (cut memq <> c-proc-flags) flags)
+	;; we don't check flags for script side...
+	#;(unless (for-all (cut memq <> c-proc-flags) flags)
 	  (error 'define-c-proc "invalid c-proc flag" flags))
 	(values flags body)))
 
