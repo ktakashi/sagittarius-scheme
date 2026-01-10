@@ -359,12 +359,14 @@ static void lexical_error(SgPort * port, SgReadContext *ctx,
 
   file = Sg_FileName(port);
   if (ctx->parsingLineFrom == ctx->parsingLineTo) {
-    line = Sg_Sprintf(UC("file %S, line %d"),
-		      file,
+    line = Sg_Sprintf(UC("%s %S, line %d"),
+		      SG_FALSEP(file) ? UC("port") : UC("file"),
+		      SG_FALSEP(file) ? port : file,
 		      ctx->parsingLineFrom);
   } else {
-    line = Sg_Sprintf(UC("file %S, line %d-%d"),
-		      file,
+    line = Sg_Sprintf(UC("%s %S, line %d-%d"),
+		      SG_FALSEP(file) ? UC("port") : UC("file"),
+		      SG_FALSEP(file) ? port : file,
 		      ctx->parsingLineFrom, ctx->parsingLineTo);
   }
   Sg_ReadError(UC("%A (%A)"), msg, line);
